@@ -1,0 +1,28 @@
+diff --git a/sound.h b/sound.h
+index a7afa9b..b38a6cb 100644
+--- a/sound.h
++++ b/sound.h
+@@ -21,6 +21,8 @@
+ #ifndef SOUND_H_
+ #define SOUND_H_
+ 
++#include <audio_out_session/connection.h>
++
+ #include <SDL_mixer.h>
+ 
+ #include <vector>
+@@ -38,10 +40,10 @@ private:
+                 MIXER_CHANNELS = 4, THRUST_CHANNEL = 3,
+ 
+                 /* Sound specs */
+-                OUTPUT_RATE = 11025,
+-                OUTPUT_FORMAT = AUDIO_U8,
+-                OUTPUT_CHANNELS = 1,
+-                OUTPUT_CHUNK_SIZE = 256,
++                OUTPUT_RATE = Audio_out::SAMPLE_RATE,
++                OUTPUT_FORMAT = AUDIO_S16LSB,
++                OUTPUT_CHANNELS = 2,
++                OUTPUT_CHUNK_SIZE = 4096,
+                 /* increase the buffer size linearly with the size of the audio,
+                  * (double the rate or channels, double the buffer).
+                  */
