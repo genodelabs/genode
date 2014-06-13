@@ -1,0 +1,38 @@
+diff --git a/maclib/Mac_Wave.cpp b/maclib/Mac_Wave.cpp
+index f0ad3d1..494c6c3 100644
+--- a/maclib/Mac_Wave.cpp
++++ b/maclib/Mac_Wave.cpp
+@@ -29,7 +29,6 @@
+ #include "SDL_endian.h"
+ #include "SDL_rwops.h"
+ #include "Mac_Wave.h"
+-#include <SDL_mixer.h>
+ 
+ #if SDL_BYTEORDER == SDL_BIG_ENDIAN
+ #define wavesex32(x)	\
+diff --git a/maclib/Mac_Wave.h b/maclib/Mac_Wave.h
+index 07840eb..648afb9 100644
+--- a/maclib/Mac_Wave.h
++++ b/maclib/Mac_Wave.h
+@@ -26,7 +26,7 @@
+ 
+ #include "SDL_audio.h"
+ #include "Mac_Resource.h"
+-#include <SDL_mixer.h>
++#include <SDL/SDL_mixer.h>
+ 
+ class Wave {
+ 
+diff --git a/sound.h b/sound.h
+index 5e232ea..d506a77 100644
+--- a/sound.h
++++ b/sound.h
+@@ -21,7 +21,7 @@
+ #ifndef SOUND_H_
+ #define SOUND_H_
+ 
+-#include <SDL_mixer.h>
++#include <SDL/SDL_mixer.h>
+ 
+ #include <vector>
+ #include <stdexcept>

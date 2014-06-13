@@ -1,0 +1,12 @@
+LICENSE   := GPLV2
+VERSION   := 4.0.4
+DOWNLOADS := maelstrom.archive
+
+URL(maelstrom) := https://github.com/ehmry/maelstrom/archive/$(VERSION).tar.gz
+SHA(maelstrom) := cc2347975f28dd734f14008c2d8aaf1a1389bafe
+DIR(maelstrom) := src/app/maelstrom
+
+PATCHES := src/app/maelstrom/audio-conversion.patch \
+	   src/app/maelstrom/sdl_mixer-include.patch
+
+PATCH_OPT := -p1 -d src/app/maelstrom

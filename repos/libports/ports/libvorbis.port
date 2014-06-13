@@ -1,0 +1,10 @@
+LICENSE   := BSD
+VERSION   := 1.3.4
+DOWNLOADS := libvorbis.archive
+
+URL(libvorbis) := http://downloads.xiph.org/releases/vorbis/libvorbis-$(VERSION).tar.xz
+SHA(libvorbis) := b99724acdf3577982b3146b9430d765995ecf9e1
+DIR(libvorbis) := src/lib/libvorbis
+
+DIRS := include/vorbis
+DIR_CONTENT(include/vorbis) := $(addprefix src/lib/libvorbis/include/vorbis/,codec.h vorbisenc.h vorbisfile.h)
