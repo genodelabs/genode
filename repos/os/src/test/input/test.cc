@@ -17,7 +17,6 @@
 #include <input_session/connection.h>
 #include <input/event.h>
 
-#include "key_strings.h"
 
 using namespace Genode;
 
@@ -53,7 +52,7 @@ int main(int argc, char **argv)
 			/* log event */
 			PLOG("Input event type=%d\tcode=%d\trx=%d\try=%d\tkey_cnt=%d\t%s",
 			     ev->type(), ev->code(), ev->rx(), ev->ry(), key_cnt,
-			     key_strings[ev->code()]);
+			     Input::key_name(static_cast<Input::Keycode>(ev->code())));
 		}
 	}
 
