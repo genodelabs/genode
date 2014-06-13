@@ -53,7 +53,8 @@ class Mode
 
 		bool has_key_cnt(unsigned cnt) const { return cnt == _key_cnt; }
 
-		Session *focused_session() { return _focused_session; }
+		Session       *focused_session()       { return _focused_session; }
+		Session const *focused_session() const { return _focused_session; }
 
 		virtual void focused_session(Session *session) { _focused_session = session; }
 

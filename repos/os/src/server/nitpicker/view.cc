@@ -79,8 +79,7 @@ void View::frame(Canvas_base &canvas, Mode const &mode) const
 
 void View::draw(Canvas_base &canvas, Mode const &mode) const
 {
-	/* is this the currently focused view? */
-	bool const session_is_focused = mode.is_focused(_session);
+	bool const is_focused = _session.has_same_domain(mode.focused_session());
 
 	Color const frame_color = _session.color();
 
@@ -88,7 +87,7 @@ void View::draw(Canvas_base &canvas, Mode const &mode) const
 	 * Use dimming in x-ray and kill mode, but do not dim the focused view in
 	 * x-ray mode.
 	 */
-	Texture_painter::Mode const op = mode.flat() || (mode.xray() && session_is_focused)
+	Texture_painter::Mode const op = mode.flat() || (mode.xray() && is_focused)
 	                               ? Texture_painter::SOLID : Texture_painter::MIXED;
 
 	Rect const view_rect = abs_geometry();

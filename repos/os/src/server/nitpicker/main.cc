@@ -39,6 +39,7 @@
 #include "clip_guard.h"
 #include "mouse_cursor.h"
 #include "chunky_menubar.h"
+#include "domain_registry.h"
 
 namespace Input       { class Session_component; }
 namespace Framebuffer { class Session_component; }
@@ -895,13 +896,14 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 {
 	private:
 
-		Session_list         &_session_list;
-		Global_keys          &_global_keys;
-		Framebuffer::Mode     _scr_mode;
-		View_stack           &_view_stack;
-		Mode                 &_mode;
-		Framebuffer::Session &_framebuffer;
-		int                   _default_v_offset;
+		Session_list          &_session_list;
+		Domain_registry const &_domain_registry;
+		Global_keys           &_global_keys;
+		Framebuffer::Mode      _scr_mode;
+		View_stack            &_view_stack;
+		Mode                  &_mode;
+		Framebuffer::Session  &_framebuffer;
+		int                    _default_v_offset;
 
 	protected:
 
@@ -933,7 +935,7 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 				                  _framebuffer, v_offset, provides_default_bg,
 				                  stay_top, *md_alloc(), unused_quota);
 
-			session->apply_session_color();
+			session->apply_session_policy(_domain_registry);
 			_session_list.insert(session);
 			_global_keys.apply_config(_session_list);
 
@@ -962,17 +964,16 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 		/**
 		 * Constructor
 		 */
-		Root(Session_list &session_list, Global_keys &global_keys,
-		     Rpc_entrypoint &session_ep, View_stack &view_stack,
-		     Mode &mode, Allocator &md_alloc,
-		     Framebuffer::Session &framebuffer,
+		Root(Session_list &session_list,
+		     Domain_registry const &domain_registry, Global_keys &global_keys,
+		     Rpc_entrypoint &session_ep, View_stack &view_stack, Mode &mode,
+		     Allocator &md_alloc, Framebuffer::Session &framebuffer,
 		     int default_v_offset)
 		:
 			Root_component<Session_component>(&session_ep, &md_alloc),
-			_session_list(session_list), _global_keys(global_keys),
-			_view_stack(view_stack), _mode(mode),
-			_framebuffer(framebuffer),
-			_default_v_offset(default_v_offset)
+			_session_list(session_list), _domain_registry(domain_registry),
+			_global_keys(global_keys), _view_stack(view_stack), _mode(mode),
+			_framebuffer(framebuffer), _default_v_offset(default_v_offset)
 		{ }
 };
 
@@ -1046,6 +1047,13 @@ struct Nitpicker::Main
 
 	Session_list session_list;
 
+	/*
+	 * Construct empty domain registry. The initial version will be replaced
+	 * on the first call of 'handle_config'.
+	 */
+	Genode::Volatile_object<Domain_registry> domain_registry {
+		*env()->heap(), Genode::Xml_node("<config/>") };
+
 	User_state user_state = { global_keys, fb_screen->screen.size(), fb_screen->menubar };
 
 	/*
@@ -1062,9 +1070,9 @@ struct Nitpicker::Main
 	 */
 	Genode::Sliced_heap sliced_heap = { env()->ram_session(), env()->rm_session() };
 
-	Root<PT> np_root = { session_list, global_keys, ep.rpc_ep(), user_state,
-	                     user_state, sliced_heap, framebuffer,
-	                     Framebuffer_screen::MENUBAR_HEIGHT };
+	Root<PT> np_root = { session_list, *domain_registry, global_keys,
+	                     ep.rpc_ep(), user_state, user_state, sliced_heap,
+	                     framebuffer, Framebuffer_screen::MENUBAR_HEIGHT };
 
 	Genode::Reporter pointer_reporter = { "pointer" };
 
@@ -1196,9 +1204,16 @@ void Nitpicker::Main::handle_config(unsigned)
 		                                             .has_value("yes"));
 	} catch (...) { }
 
-	/* update session policies */
+	/* update domain registry and session policies */
 	for (::Session *s = session_list.first(); s; s = s->next())
-		s->apply_session_color();
+		s->reset_domain();
+
+	try {
+		domain_registry.construct(*env()->heap(), config()->xml_node()); }
+	catch (...) { }
+
+	for (::Session *s = session_list.first(); s; s = s->next())
+		s->apply_session_policy(*domain_registry);
 
 	/* redraw */
 	user_state.update_all_views();

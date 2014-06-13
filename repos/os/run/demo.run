@@ -119,6 +119,9 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nitpicker"/></provides>
 		<config>
+			<domain name="default" color="#ffffff"/>
+			<policy label="" domain="default"/>
+
 			<global-keys>
 				<key name="KEY_SCROLLLOCK" operation="xray" />
 				<key name="KEY_SYSRQ"      operation="kill" />

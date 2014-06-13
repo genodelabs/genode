@@ -22,6 +22,7 @@
 /* local includes */
 #include "color.h"
 #include "canvas.h"
+#include "domain_registry.h"
 
 class View;
 class Session;
@@ -34,14 +35,14 @@ class Session : public Session_list::Element
 {
 	private:
 
-		Genode::Session_label const  _label;
-		Color                        _color;
-		Texture_base          const *_texture = { 0 };
-		bool                         _uses_alpha = { false };
-		View                        *_background = 0;
-		int                          _v_offset;
-		unsigned char         const *_input_mask = { 0 };
-		bool                  const  _stay_top;
+		Genode::Session_label  const  _label;
+		Domain_registry::Entry const *_domain;
+		Texture_base           const *_texture = { 0 };
+		bool                          _uses_alpha = { false };
+		View                         *_background = 0;
+		int                           _v_offset;
+		unsigned char          const *_input_mask = { 0 };
+		bool                   const  _stay_top;
 
 	public:
 
@@ -87,7 +88,7 @@ class Session : public Session_list::Element
 		 */
 		void input_mask(unsigned char const *mask) { _input_mask = mask; }
 
-		Color color() const { return _color; }
+		Color color() const { return _domain ? _domain->color() : WHITE; }
 
 		View *background() const { return _background; }
 
@@ -120,22 +121,51 @@ class Session : public Session_list::Element
 			return _input_mask[p.y()*_texture->size().w() + p.x()];
 		}
 
+		bool has_same_domain(Session const *s) const
+		{
+			return s && (s->_domain == _domain);
+		}
+
+		bool has_valid_domain() const
+		{
+			return _domain;
+		}
+
+		void reset_domain()
+		{
+			_domain = nullptr;
+		}
+
 		/**
-		 * Set session color according to the list of configured policies
+		 * Set session domain according to the list of configured policies
 		 *
 		 * Select the policy that matches the label. If multiple policies
 		 * match, select the one with the largest number of characters.
 		 */
-		void apply_session_color()
+		void apply_session_policy(Domain_registry const &domain_registry)
 		{
-			/* use white by default */
-			_color = WHITE;
+			reset_domain();
 
 			try {
 				Genode::Session_policy policy(_label);
 
-				/* read color attribute */
-				policy.attribute("color").value(&_color);
+				/* read domain attribute */
+				if (!policy.has_attribute("domain")) {
+					PERR("policy for label \"%s\" lacks domain declaration",
+					     _label.string());
+					return;
+				}
+
+				typedef Domain_registry::Entry::Name Domain_name;
+				char buf[sizeof(Domain_name)];
+				buf[0] = 0;
+				try {
+					policy.attribute("domain").value(buf, sizeof(buf)); }
+				catch (...) { }
+
+				Domain_name name(buf);
+				_domain = domain_registry.lookup(name);
+
 			} catch (...) { }
 		}
 };
