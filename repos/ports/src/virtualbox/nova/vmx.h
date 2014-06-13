@@ -59,18 +59,6 @@ static inline bool vmx_save_state(Nova::Utcb * utcb, VM * pVM, PVMCPU pVCpu)
 
 enum { VMCS_SEG_UNUSABLE = 0x10000 };
 
-#define GENODE_WRITE_SELREG_REQUIRED(REG) \
-	(utcb->REG.sel   != pCtx->REG.Sel) || \
-	(utcb->REG.limit != pCtx->REG.u32Limit) || \
-	(utcb->REG.base  != pCtx->REG.u64Base) || \
-	((( pCtx->REG.Sel \
-	   || !CPUMIsGuestInPagedProtectedModeEx(pCtx) \
-	   || (!pCtx->cs.Attr.n.u1DefBig && !CPUMIsGuestIn64BitCodeEx(pCtx))) \
-	  && pCtx->REG.Attr.n.u1Present == 1) ? \
-		utcb->REG.ar != sel_ar_conv_to_nova(pCtx->REG.Attr.u | X86_SEL_TYPE_ACCESSED) : \
-		utcb->REG.ar != sel_ar_conv_to_nova(VMCS_SEG_UNUSABLE) \
-	)
-
 #define GENODE_WRITE_SELREG(REG) \
 	Assert(pCtx->REG.fFlags & CPUMSELREG_FLAGS_VALID); \
 	Assert(pCtx->REG.ValidSel == pCtx->REG.Sel); \
@@ -93,24 +81,18 @@ static inline bool vmx_load_state(Nova::Utcb * utcb, VM * pVM, PVMCPU pVCpu)
 {
 	PCPUMCTX pCtx  = CPUMQueryGuestCtxPtr(pVCpu);
 
-	if ((GENODE_WRITE_SELREG_REQUIRED(es)) ||
-	    (GENODE_WRITE_SELREG_REQUIRED(ds)))
 	{
 		utcb->mtd |= Nova::Mtd::ESDS;
 		GENODE_WRITE_SELREG(es);
 		GENODE_WRITE_SELREG(ds);
 	}
 
-	if ((GENODE_WRITE_SELREG_REQUIRED(fs)) ||
-	    (GENODE_WRITE_SELREG_REQUIRED(gs)))
 	{
 		utcb->mtd |= Nova::Mtd::FSGS;
 		GENODE_WRITE_SELREG(fs);
 		GENODE_WRITE_SELREG(gs);
 	}
 
-	if ((GENODE_WRITE_SELREG_REQUIRED(cs)) ||
-	    (GENODE_WRITE_SELREG_REQUIRED(ss)))
 	{
 		utcb->mtd |= Nova::Mtd::CSSS;
 		GENODE_WRITE_SELREG(cs);
@@ -119,10 +101,6 @@ static inline bool vmx_load_state(Nova::Utcb * utcb, VM * pVM, PVMCPU pVCpu)
 
 	/* ldtr */
 	if (pCtx->ldtr.Sel == 0) {
-		if (utcb->ldtr.sel   != 0 ||
-		    utcb->ldtr.limit != 0 ||
-		    utcb->ldtr.base  != 0 ||
- 		    utcb->ldtr.ar    != sel_ar_conv_to_nova(0x82))
 		{
 			utcb->mtd |= Nova::Mtd::LDTR;
 
@@ -132,10 +110,6 @@ static inline bool vmx_load_state(Nova::Utcb * utcb, VM * pVM, PVMCPU pVCpu)
 			utcb->ldtr.ar    = sel_ar_conv_to_nova(0x82);
 		}
 	} else {
-		if (utcb->ldtr.sel   != pCtx->ldtr.Sel ||
-		    utcb->ldtr.limit != pCtx->ldtr.u32Limit ||
-		    utcb->ldtr.base  != pCtx->ldtr.u64Base ||
- 		    utcb->ldtr.ar    != sel_ar_conv_to_nova(pCtx->ldtr.Attr.u))
 		{
 			utcb->mtd |= Nova::Mtd::LDTR;
 
@@ -150,10 +124,6 @@ static inline bool vmx_load_state(Nova::Utcb * utcb, VM * pVM, PVMCPU pVCpu)
 	Assert(pCtx->tr.Attr.u & X86_SEL_TYPE_SYS_TSS_BUSY_MASK);
 	Assert(!CPUMIsGuestInRealModeEx(pCtx));
 
-	if (utcb->tr.sel   != pCtx->tr.Sel ||
-	    utcb->tr.limit != pCtx->tr.u32Limit ||
-	    utcb->tr.base  != pCtx->tr.u64Base ||
- 	    utcb->tr.ar    != sel_ar_conv_to_nova(pCtx->tr.Attr.u))
 	{
 		utcb->mtd |= Nova::Mtd::TR;
 
@@ -167,6 +137,5 @@ static inline bool vmx_load_state(Nova::Utcb * utcb, VM * pVM, PVMCPU pVCpu)
 }
 
 #undef GENODE_WRITE_SELREG
-#undef GENODE_WRITE_SELREG_REQUIRED
 
 #endif /* _GENODE_VIRTUALBOX_VMX__H_ */

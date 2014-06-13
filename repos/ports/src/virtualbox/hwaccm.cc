@@ -51,6 +51,11 @@ VMMR3_INT_DECL(int) HWACCMR3InitCompleted(PVM pVM, VMINITCOMPLETED enmWhat)
 		return VINF_SUCCESS;
 
 	int rc = SUPR3CallVMMR0Ex(pVM->pVMR0, 0 /*idCpu*/, VMMR0_DO_HWACC_SETUP_VM, 0, NULL);
+
+	if (rc == VINF_SUCCESS) {
+		CPUMSetGuestCpuIdFeature(pVM, CPUMCPUIDFEATURE_SEP);
+	}
+
 	return rc;
 }
 

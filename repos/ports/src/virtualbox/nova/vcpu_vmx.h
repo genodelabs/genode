@@ -48,10 +48,29 @@ class Vcpu_handler_vmx : public Vcpu_handler
 			Genode::Thread_base *myself = Genode::Thread_base::myself();
 			Utcb *utcb = reinterpret_cast<Utcb *>(myself->utcb());
 
-			/* avoid as many as possible VM exits */
+			/* configure VM exits to get */
 			next_utcb.mtd = Nova::Mtd::CTRL;
-			next_utcb.ctrl[0] = 0;
-			next_utcb.ctrl[1] = 0;
+			/* from src/VBox/VMM/VMMR0/HWVMXR0.cpp of virtualbox sources  */
+			next_utcb.ctrl[0] = VMX_VMCS_CTRL_PROC_EXEC_CONTROLS_HLT_EXIT |
+			                    VMX_VMCS_CTRL_PROC_EXEC_CONTROLS_MOV_DR_EXIT |
+			                    VMX_VMCS_CTRL_PROC_EXEC_CONTROLS_RDPMC_EXIT |
+			                    VMX_VMCS_CTRL_PROC_EXEC_CONTROLS_UNCOND_IO_EXIT |
+			                    VMX_VMCS_CTRL_PROC_EXEC_CONTROLS_MONITOR_EXIT |
+			                    VMX_VMCS_CTRL_PROC_EXEC_CONTROLS_MWAIT_EXIT |
+			                    VMX_VMCS_CTRL_PROC_EXEC_CONTROLS_CR8_LOAD_EXIT |
+			                    VMX_VMCS_CTRL_PROC_EXEC_CONTROLS_CR8_STORE_EXIT |
+			                    VMX_VMCS_CTRL_PROC_EXEC_CONTROLS_RDPMC_EXIT |
+/*			                    VMX_VMCS_CTRL_PROC_EXEC_CONTROLS_PAUSE_EXIT | */
+			/* we don't support tsc offsetting for now - so let the rdtsc exit */
+			                    VMX_VMCS_CTRL_PROC_EXEC_CONTROLS_RDTSC_EXIT;
+
+			next_utcb.ctrl[1] = VMX_VMCS_CTRL_PROC_EXEC2_VIRT_APIC |
+			                    VMX_VMCS_CTRL_PROC_EXEC2_WBINVD_EXIT |
+			                    VMX_VMCS_CTRL_PROC_EXEC2_REAL_MODE |
+			                    VMX_VMCS_CTRL_PROC_EXEC2_VPID |
+/*			                    VMX_VMCS_CTRL_PROC_EXEC2_X2APIC | */
+			                    VMX_VMCS_CTRL_PROC_EXEC2_RDTSCP |
+			                    VMX_VMCS_CTRL_PROC_EXEC2_EPT;
 
 			void *exit_status = _start_routine(_arg);
 			pthread_exit(exit_status);
@@ -69,14 +88,27 @@ class Vcpu_handler_vmx : public Vcpu_handler
 			_default_handler();
 		}
 
-		__attribute__((noreturn)) void _vmx_irqwin()
-		{
-			_irq_window(VMX_EXIT_IRQ_WINDOW);
-		}
+		__attribute__((noreturn)) void _vmx_irqwin() { _irq_window(); }
 
 		__attribute__((noreturn)) void _vmx_recall()
 		{
 			Vcpu_handler::_recall_handler();
+		}
+
+		__attribute__((noreturn)) void _vmx_invalid()
+		{
+			Genode::Thread_base *myself = Genode::Thread_base::myself();
+			Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(myself->utcb());
+
+			unsigned const dubious = utcb->inj_info | utcb->inj_error |
+			                         utcb->intr_state | utcb->actv_state;
+			if (dubious)
+				Vmm::printf("%s - dubious - inj_info=0x%x inj_error=%x"
+				            " intr_state=0x%x actv_state=0x%x\n", __func__,
+				            utcb->inj_info, utcb->inj_error,
+				            utcb->intr_state, utcb->actv_state);
+
+			Vcpu_handler::_default_handler();
 		}
 
 	public:
@@ -102,8 +134,11 @@ class Vcpu_handler_vmx : public Vcpu_handler
 				&This::_vmx_default> (exc_base, Mtd::ALL | Mtd::FPU);
 			register_handler<VMX_EXIT_HLT, This,
 				&This::_vmx_default> (exc_base, Mtd::ALL | Mtd::FPU);
+
+			/* we don't support tsc offsetting for now - so let the rdtsc exit */
 			register_handler<VMX_EXIT_RDTSC, This,
 				&This::_vmx_default> (exc_base, Mtd::ALL | Mtd::FPU);
+
 			register_handler<VMX_EXIT_VMCALL, This,
 				&This::_vmx_default> (exc_base, Mtd::ALL | Mtd::FPU);
 			register_handler<VMX_EXIT_PORT_IO, This,
@@ -113,15 +148,19 @@ class Vcpu_handler_vmx : public Vcpu_handler
 			register_handler<VMX_EXIT_WRMSR, This,
 				&This::_vmx_default> (exc_base, Mtd::ALL | Mtd::FPU);
 			register_handler<VMX_EXIT_ERR_INVALID_GUEST_STATE, This,
+				&This::_vmx_invalid> (exc_base, Mtd::ALL | Mtd::FPU);
+//			register_handler<VMX_EXIT_PAUSE, This,
+//				&This::_vmx_default> (exc_base, Mtd::ALL | Mtd::FPU);
+			register_handler<VMX_EXIT_WBINVD, This,
 				&This::_vmx_default> (exc_base, Mtd::ALL | Mtd::FPU);
-			register_handler<VMX_EXIT_PAUSE, This,
+			register_handler<VMX_EXIT_DRX_MOVE, This,
 				&This::_vmx_default> (exc_base, Mtd::ALL | Mtd::FPU);
 			register_handler<VMX_EXIT_EPT_VIOLATION, This,
 				&This::_vmx_ept<VMX_EXIT_EPT_VIOLATION>> (exc_base, Mtd::ALL | Mtd::FPU);
 			register_handler<VCPU_STARTUP, This,
 				&This::_vmx_startup> (exc_base, Mtd::ALL | Mtd::FPU);
 			register_handler<RECALL, This,
-				&This::_vmx_recall> (exc_base, Mtd::EFL | Mtd::STA);
+				&This::_vmx_recall> (exc_base, Mtd::ALL | Mtd::FPU);
 
 			start();
 		}

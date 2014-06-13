@@ -113,10 +113,8 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned
 	case VMMR0_DO_HWACC_ENABLE:
 		return VINF_SUCCESS;
 
-	/* XXX only do one of it - either recall or up - not both XXX */
 	case VMMR0_DO_GVMM_SCHED_POKE:
 		vcpu_handler->recall();
-		r0_halt_sem()->up();
 		return VINF_SUCCESS;
 
 	default:

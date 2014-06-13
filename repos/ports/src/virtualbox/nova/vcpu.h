@@ -76,7 +76,8 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 		Genode::Cap_connection _cap_connection;
 		Vmm::Vcpu_other_pd     _vcpu;
 
-		Genode::addr_t _ec_sel = 0;
+		Genode::addr_t _ec_sel; 
+		bool _irq_win;
 
 		void fpu_save(char * data) {
 			Assert(!(reinterpret_cast<Genode::addr_t>(data) & 0xF));
@@ -88,7 +89,21 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			asm volatile ("fxrstor %0" : : "m" (*data));
 		}
 
-		enum { IRQ_INJ_VALID_MASK = 0x80000000UL };
+		enum {
+			NOVA_REQ_IRQWIN_EXIT = 0x1000U,
+			IRQ_INJ_VALID_MASK   = 0x80000000UL,
+			IRQ_INJ_NONE         = 0U,
+
+			/*
+			 * Intel® 64 and IA-32 Architectures Software Developer’s Manual 
+			 * Volume 3C, Chapter 24.4.2.
+			 * May 2012
+			*/
+			BLOCKING_BY_STI    = 1U << 0,
+			BLOCKING_BY_MOV_SS = 1U << 1,
+			ACTIVITY_STATE_ACTIVE = 0U,
+			INTERRUPT_STATE_NONE  = 0U,
+		};
 
 	protected:
 
@@ -112,45 +127,52 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			}
 		}
 
-		__attribute__((noreturn)) void _irq_window(unsigned cond)
-		{
-			Nova::Utcb * utcb = reinterpret_cast<Nova::Utcb *>(Thread_base::utcb());
-
-			Assert(!(utcb->intr_state & 3));
-			Assert(utcb->flags & X86_EFL_IF);
-			Assert(!(utcb->inj_info & IRQ_INJ_VALID_MASK));
-
-			if (irq_win(utcb)) {
-				/* reset mtd to not transfer anything back by accident */
-				utcb->mtd = 0;
-				/* inject IRQ */
-				inj_event(utcb, _current_vcpu, utcb->flags & X86_EFL_IF);
-				Nova::reply(_stack_reply);
-			}
-
-			/* go back to re-compiler */
-			longjmp(_env, 1);
-		}
 
 		__attribute__((noreturn)) void _default_handler()
 		{
 			Nova::Utcb * utcb = reinterpret_cast<Nova::Utcb *>(Thread_base::utcb());
 
+			Assert(utcb->actv_state == ACTIVITY_STATE_ACTIVE);
 			Assert(!(utcb->inj_info & IRQ_INJ_VALID_MASK));
 
+			/* go back to re-compiler */
 			longjmp(_env, 1);
 		}
 
 		__attribute__((noreturn)) void _recall_handler()
 		{
-			/* take care - Mtd::EFL | Mtd::STA are solely written to utcb */
 			Nova::Utcb * utcb = reinterpret_cast<Nova::Utcb *>(Thread_base::utcb());
 
-			Assert(!(utcb->intr_state & 3));
+			Assert(utcb->actv_state == ACTIVITY_STATE_ACTIVE);
+			Assert(utcb->intr_state == INTERRUPT_STATE_NONE);
 
+			if (utcb->inj_info & IRQ_INJ_VALID_MASK) {
+				Assert(utcb->flags & X86_EFL_IF);
+
+				if (!continue_hw_accelerated(utcb))
+					Vmm::printf("WARNING - recall ignored during IRQ delivery\n");
+
+				/* got recall during irq injection and X86_EFL_IF set for
+				 * delivery of IRQ - just continue */
+				Nova::reply(_stack_reply);
+			}
+
+			/* are we forced to go back to emulation mode ? */
+			if (!continue_hw_accelerated(utcb))
+				/* go back to emulation mode */
+				longjmp(_env, 1);
+
+			/* check whether we have to request irq injection window */
 			utcb->mtd = 0;
-			inj_event(utcb, _current_vcpu, utcb->flags & X86_EFL_IF);
+			if (check_to_request_irq_window(utcb, _current_vcpu)) {
+				_irq_win = true;
+				Nova::reply(_stack_reply);
+			}
 
+			/* nothing to do at all - continue hardware accelerated */
+			Assert(!_irq_win);
+			Assert(continue_hw_accelerated(utcb));
+				
 			Nova::reply(_stack_reply);
 		}
 
@@ -162,8 +184,8 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			using namespace Nova;
 			using namespace Genode;
 
-			Assert(utcb->actv_state == 0);
-			Assert(!(utcb->intr_state & 3));
+			Assert(utcb->actv_state == ACTIVITY_STATE_ACTIVE);
+			Assert(utcb->intr_state == INTERRUPT_STATE_NONE);
 
 			Assert(!(utcb->inj_info & IRQ_INJ_VALID_MASK));
 
@@ -248,100 +270,55 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 
 			using namespace Nova;
 
-			if (utcb->ip != pCtx->rip) {
 				utcb->mtd |= Mtd::EIP;
 				utcb->ip   = pCtx->rip;
-			}
 
-			if (utcb->sp != pCtx->rsp) {
 				utcb->mtd |= Mtd::ESP;
 				utcb->sp   = pCtx->rsp;
-			}
 
-			if (utcb->ax != pCtx->rax || utcb->bx != pCtx->rbx ||
-			    utcb->cx != pCtx->rcx || utcb->dx != pCtx->rdx)
-			{
 				utcb->mtd |= Mtd::ACDB;
 				utcb->ax   = pCtx->rax;
 				utcb->bx   = pCtx->rbx;
 				utcb->cx   = pCtx->rcx;
 				utcb->dx   = pCtx->rdx;
-			}
 
-			if (utcb->bp != pCtx->rbp || utcb->si != pCtx->rsi ||
-			    utcb->di != pCtx->rdi)
-			{
 				utcb->mtd |= Mtd::EBSD;
 				utcb->bp   = pCtx->rbp;
 				utcb->si   = pCtx->rsi;
 				utcb->di   = pCtx->rdi;
-			}
 
-			if (utcb->flags != pCtx->rflags.u) {
 				utcb->mtd |= Mtd::EFL;
 				utcb->flags = pCtx->rflags.u;
-			}
 
-			if (utcb->sysenter_cs != pCtx->SysEnter.cs ||
-			    utcb->sysenter_sp != pCtx->SysEnter.esp ||
-			    utcb->sysenter_ip != pCtx->SysEnter.eip)
-			{
 				utcb->mtd |= Mtd::SYS;
 				utcb->sysenter_cs = pCtx->SysEnter.cs;
 				utcb->sysenter_sp = pCtx->SysEnter.esp;
 				utcb->sysenter_ip = pCtx->SysEnter.eip;
-			}
 
-			if (utcb->dr7 != pCtx->dr[7]) {
 				utcb->mtd |= Mtd::DR;
 				utcb->dr7  = pCtx->dr[7];
-			}
 
-			if (utcb->cr0 != pCtx->cr0) {
 				utcb->mtd |= Mtd::CR;
 				utcb->cr0  = pCtx->cr0;
-			}
 
-			if (utcb->cr2 != pCtx->cr2) {
 				utcb->mtd |= Mtd::CR;
 				utcb->cr2  = pCtx->cr2;
-			}
 
-			if (utcb->cr3 != pCtx->cr3) {
 				utcb->mtd |= Mtd::CR;
 				utcb->cr3  = pCtx->cr3;
-			}
 
-			if (utcb->cr4 != pCtx->cr4) {
 				utcb->mtd |= Mtd::CR;
 				utcb->cr4  = pCtx->cr4;
-			}
 
-			if (utcb->idtr.limit != pCtx->idtr.cbIdt ||
-			    utcb->idtr.base  != pCtx->idtr.pIdt)
-			{
 				utcb->mtd        |= Mtd::IDTR;
 				utcb->idtr.limit  = pCtx->idtr.cbIdt;
 				utcb->idtr.base   = pCtx->idtr.pIdt;
-			}
 
-			if (utcb->gdtr.limit != pCtx->gdtr.cbGdt ||
-			    utcb->gdtr.base  != pCtx->gdtr.pGdt)
-			{
 				utcb->mtd        |= Mtd::GDTR;
 				utcb->gdtr.limit  = pCtx->gdtr.cbGdt;
 				utcb->gdtr.base   = pCtx->gdtr.pGdt;
-			}
 
-			if (VMCPU_FF_ISSET(pVCpu, VMCPU_FF_INHIBIT_INTERRUPTS)) {
-				if (pCtx->rip != EMGetInhibitInterruptsPC(pVCpu)) {
-				PERR("intr_state nothing !=");
-					VMCPU_FF_CLEAR(pVCpu, VMCPU_FF_INHIBIT_INTERRUPTS);
-					utcb->intr_state = 0;
-					while (1) {}
-				}
-
-			}
+			Assert(!(VMCPU_FF_ISSET(pVCpu, VMCPU_FF_INHIBIT_INTERRUPTS)));
 
 			return true;
 		}
@@ -400,51 +377,69 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			/* tell rem compiler that FPU register changed XXX optimizations ? */
 			CPUMSetChangedFlags(pVCpu, CPUM_CHANGED_FPU_REM); /* redundant ? XXX */
 			pVCpu->cpum.s.fUseFlags |=  (CPUM_USED_FPU | CPUM_USED_FPU_SINCE_REM); /* redundant ? XXX */
-
-			if (utcb->intr_state != 0)
+			
+			if (utcb->intr_state != 0) {
+				Assert(utcb->intr_state == BLOCKING_BY_STI ||
+				       utcb->intr_state == BLOCKING_BY_MOV_SS);
 				EMSetInhibitInterruptsPC(pVCpu, pCtx->rip);
-			else
+			} else
 				VMCPU_FF_CLEAR(pVCpu, VMCPU_FF_INHIBIT_INTERRUPTS);
 
 			return true;
 		}
 
 
-		inline bool inj_event(Nova::Utcb * utcb, PVMCPU pVCpu, bool if_flag)
+		inline bool check_to_request_irq_window(Nova::Utcb * utcb, PVMCPU pVCpu)
 		{
+			if (!TRPMHasTrap(pVCpu) &&
+				!VMCPU_FF_ISPENDING(pVCpu, (VMCPU_FF_INTERRUPT_APIC |
+				                            VMCPU_FF_INTERRUPT_PIC)))
+				return false;
+
+			unsigned vector = 0;
+			utcb->inj_info  = NOVA_REQ_IRQWIN_EXIT | vector;
+			utcb->mtd      |= Nova::Mtd::INJ;
+
+			return true;
+		}
+
+
+		__attribute__((noreturn)) void _irq_window()
+		{
+			Nova::Utcb * utcb = reinterpret_cast<Nova::Utcb *>(Thread_base::utcb());
+
+			PVMCPU   pVCpu = _current_vcpu;
+
+			Assert(utcb->intr_state == INTERRUPT_STATE_NONE);
+			Assert(utcb->flags & X86_EFL_IF);
+			Assert(!VMCPU_FF_ISSET(pVCpu, VMCPU_FF_INHIBIT_INTERRUPTS));
+			Assert(!(utcb->inj_info & IRQ_INJ_VALID_MASK));
+
+			Assert(_irq_win);
+			_irq_win = false;
+
 			if (!TRPMHasTrap(pVCpu)) {
 
-				if (VMCPU_FF_TESTANDCLEAR(pVCpu, VMCPU_FF_INTERRUPT_NMI)) {
-					PDBG("%u hoho", __LINE__);
-					while (1) {}
-				}
+				bool res = VMCPU_FF_TESTANDCLEAR(pVCpu, VMCPU_FF_INTERRUPT_NMI);
+				Assert(!res);
 
-				if (VMCPU_FF_ISPENDING(pVCpu, (VMCPU_FF_INTERRUPT_APIC|VMCPU_FF_INTERRUPT_PIC))) {
+				if (VMCPU_FF_ISPENDING(pVCpu, (VMCPU_FF_INTERRUPT_APIC |
+				                               VMCPU_FF_INTERRUPT_PIC))) {
 
-					if (!if_flag) {
+					uint8_t irq;
+					int rc = PDMGetInterrupt(pVCpu, &irq);
+					Assert(RT_SUCCESS(rc));
 
-						unsigned vector = 0;
-						utcb->inj_info  = 0x1000 | vector;
-						utcb->mtd      |= Nova::Mtd::INJ;
-
-					} else
-					if (!VMCPU_FF_ISSET(pVCpu, VMCPU_FF_INHIBIT_INTERRUPTS)) {
-
-						uint8_t irq;
-						int rc = PDMGetInterrupt(pVCpu, &irq);
-						Assert(RT_SUCCESS(rc));
-
-						rc = TRPMAssertTrap(pVCpu, irq, TRPM_HARDWARE_INT);
-						Assert(RT_SUCCESS(rc));
-					} else
-						Vmm::printf("pending interrupt blocked due to INHIBIT flag\n");
+					rc = TRPMAssertTrap(pVCpu, irq, TRPM_HARDWARE_INT);
+					Assert(RT_SUCCESS(rc));
 				}
 			}
 
-			/* can an interrupt be dispatched ? */
-			if (!TRPMHasTrap(pVCpu) || !if_flag ||
-			    VMCPU_FF_ISSET(pVCpu, VMCPU_FF_INHIBIT_INTERRUPTS))
-				return false;
+			/*
+			 * If we have no IRQ for injection, something with requesting the
+			 * IRQ window went wrong. Probably it was forgotten to be reset.
+			 */
+			Assert(TRPMHasTrap(pVCpu));
 
 			#ifdef VBOX_STRICT
 			if (TRPMHasTrap(pVCpu)) {
@@ -480,16 +475,16 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			utcb->inj_info  = Event.au64[0]; 
 			utcb->inj_error = Event.n.u32ErrorCode;
 
-			utcb->mtd      |= Nova::Mtd::INJ; 
 /*
-			Vmm::printf("type:info:vector %x:%x:%x\n",
-			     Event.n.u3Type, utcb->inj_info, u8Vector);
+			Vmm::printf("type:info:vector %x:%x:%x intr:actv - %x:%x mtd %x\n",
+			     Event.n.u3Type, utcb->inj_info, u8Vector, utcb->intr_state, utcb->actv_state, utcb->mtd);
 */
-			return true;
+			utcb->mtd = Nova::Mtd::INJ; 
+			Nova::reply(_stack_reply);
 		}
 
 
-		inline bool irq_win(Nova::Utcb * utcb)
+		inline bool continue_hw_accelerated(Nova::Utcb * utcb)
 		{
 			Assert(!(VMCPU_FF_ISSET(_current_vcpu, VMCPU_FF_INHIBIT_INTERRUPTS)));
 
@@ -501,24 +496,13 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			                      | VMCPU_FF_PGM_SYNC_CR3_NON_GLOBAL
 			                      | VMCPU_FF_REQUEST;
 
-			if (VM_FF_ISPENDING(_current_vm, check_vm)
-			    || VMCPU_FF_ISPENDING(_current_vcpu, check_vcpu))
-			{ 
-				Assert(VM_FF_ISPENDING(_current_vm, VM_FF_HWACCM_TO_R3_MASK) ||
-				       VMCPU_FF_ISPENDING(_current_vcpu,
-				                          VMCPU_FF_HWACCM_TO_R3_MASK));
+			if (!VM_FF_ISPENDING(_current_vm, check_vm) &&
+			    !VMCPU_FF_ISPENDING(_current_vcpu, check_vcpu))
+				return true;
 
-    	        Assert(!(RT_UNLIKELY(VM_FF_ISPENDING(_current_vm,
-				                                     VM_FF_PGM_NO_MEMORY))));
+			Assert(!(VM_FF_ISPENDING(_current_vm, VM_FF_PGM_NO_MEMORY)));
 
-				return false;
-			}
-
-			/* Is in Realmode ? */
-			if (!(utcb->cr0 & X86_CR0_PE))
-				return false;
-
-			return true;
+			return false;
 		}
 
 		virtual bool hw_load_state(Nova::Utcb *, VM *, PVMCPU) = 0;
@@ -545,7 +529,8 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			Vmm::Vcpu_dispatcher<pthread>(stack_size, _cap_connection,
 			                              attr ? *attr : 0, start_routine, arg),
 			_vcpu(cpu_session),
-			_ec_sel(Genode::cap_map()->insert())
+			_ec_sel(Genode::cap_map()->insert()),
+			_irq_win(false)
 		{ }
 
 		void start() {
@@ -657,15 +642,13 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 
 			/* take the utcb state prepared during the last exit */
 			utcb->mtd        = next_utcb.mtd;
+			utcb->inj_info   = IRQ_INJ_NONE;
 			utcb->intr_state = next_utcb.intr_state;
-			utcb->actv_state = 0; /* XXX */
+			utcb->actv_state = ACTIVITY_STATE_ACTIVE;
 			utcb->ctrl[0]    = next_utcb.ctrl[0];
 			utcb->ctrl[1]    = next_utcb.ctrl[1];
 
 			using namespace Nova;
-
-			/* check whether to inject interrupts */	
-			inj_event(utcb, pVCpu, pCtx->rflags.u & X86_EFL_IF);
 
 			/* Transfer vCPU state from vBox to Nova format */
 			if (!vbox_to_utcb(utcb, pVM, pVCpu) ||
@@ -675,6 +658,9 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 				return VERR_INTERNAL_ERROR;
 			}
 			
+			/* check whether to request interrupt window for injection */
+			_irq_win = check_to_request_irq_window(utcb, pVCpu);
+
 			/*
 			 * Flag vCPU to be "pokeable" by external events such as interrupts
 			 * from virtual devices. Only if this flag is set, the
@@ -695,7 +681,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			/* switch to hardware accelerated mode */
 			switch_to_hw(pCtx);
 
-			Assert(utcb->actv_state == 0);
+			Assert(utcb->actv_state == ACTIVITY_STATE_ACTIVE);
 
 			_current_vm   = 0;
 			_current_vcpu = 0;
@@ -716,7 +702,10 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			}
 
 			/* reset message transfer descriptor for next invocation */
-			next_utcb.mtd        = 0;
+			Assert (!(utcb->inj_info & IRQ_INJ_VALID_MASK));
+			/* Reset irq window next time if we are still requesting it */
+			next_utcb.mtd = _irq_win ? Mtd::INJ : 0;
+
 			next_utcb.intr_state = utcb->intr_state;
 			next_utcb.ctrl[0]    = utcb->ctrl[0];
 			next_utcb.ctrl[1]    = utcb->ctrl[1];

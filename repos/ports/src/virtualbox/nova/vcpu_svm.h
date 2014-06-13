@@ -21,9 +21,7 @@ class Vcpu_handler_svm : public Vcpu_handler
 
 		__attribute__((noreturn)) void _svm_default() { _default_handler(); }
 
-		__attribute__((noreturn)) void _svm_vintr() {
-			_irq_window(SVM_EXIT_VINTR);
-		}
+		__attribute__((noreturn)) void _svm_vintr() { _irq_window(); }
 
 		__attribute__((noreturn)) void _svm_ioio()
 		{
