@@ -146,7 +146,7 @@ template <typename MT>
 struct Genode::Lazy_volatile_object : Volatile_object<MT>
 {
 	template <typename... ARGS>
-	Lazy_volatile_object(ARGS... args)
+	Lazy_volatile_object(ARGS &&... args)
 	:
 		Volatile_object<MT>((typename Volatile_object<MT>::Lazy *)0)
 	{ }
