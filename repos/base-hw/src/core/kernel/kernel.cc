@@ -109,6 +109,39 @@ namespace Kernel
 
 		struct Core_pd : Platform_pd, Pd
 		{
+			/**
+			 * Establish initial one-to-one mappings for core/kernel.
+			 * This function avoids to take the core-pd's translation table
+			 * lock in contrast to normal translation insertions to
+			 * circumvent strex/ldrex problems in early bootstrap code
+			 * on some ARM SoCs.
+			 *
+			 * \param start   physical/virtual start address of area
+			 * \param end     physical/virtual end address of area
+			 * \param io_mem  true if it should be marked as device memory
+			 */
+			void map(addr_t start, addr_t end, bool io_mem)
+			{
+				using namespace Genode;
+
+				Translation_table *tt = Platform_pd::translation_table();
+				const Page_flags flags = Page_flags::map_core_area(io_mem);
+
+				start = trunc_page(start);
+				size_t size  = round_page(end) - start;
+
+				try {
+					tt->insert_translation(start, start, size, flags, page_slab());
+				} catch(Page_slab::Out_of_slabs) {
+					PERR("Not enough page slabs");
+				} catch(Allocator::Out_of_memory) {
+					PERR("Translation table needs to much RAM");
+				} catch(...) {
+					PERR("Invalid mapping %p -> %p (%zx)", (void*)start,
+					     (void*)start, size);
+				}
+			}
+
 			Core_pd(Ttable * tt, Genode::Page_slab * slab)
 			: Platform_pd(tt, slab),
 			  Pd(tt, this)
@@ -121,15 +154,13 @@ namespace Kernel
 				Kernel::mtc()->map(tt, slab);
 
 				/* map core's program image */
-				addr_t start = trunc_page((addr_t)&_prog_img_beg);
-				addr_t end   = round_page((addr_t)&_prog_img_end);
-				map_local(start, start, (end-start) / get_page_size());
+				map((addr_t)&_prog_img_beg, (addr_t)&_prog_img_end, false);
 
 				/* map core's mmio regions */
 				Native_region * r = Platform::_core_only_mmio_regions(0);
 				for (unsigned i = 0; r;
 				     r = Platform::_core_only_mmio_regions(++i))
-					map_local(r->base, r->base, r->size / get_page_size(), true);
+					map(r->base, r->base + r->size, true);
 			}
 		};
 

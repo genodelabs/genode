@@ -17,8 +17,5 @@
 using namespace Kernel;
 
 
-Processor_pool * Kernel::processor_pool()
-{
-	static Processor_pool s;
-	return &s;
-}
+Processor_pool * Kernel::processor_pool() {
+	return unmanaged_singleton<Processor_pool>(); }
