@@ -73,6 +73,8 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 {
 	private:
 
+		X86FXSTATE _fpu_state __attribute__((aligned(0x10)));
+
 		Genode::Cap_connection _cap_connection;
 		Vmm::Vcpu_other_pd     _vcpu;
 
@@ -670,9 +672,11 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			 */
 			VMCPU_SET_STATE(pVCpu, VMCPUSTATE_STARTED_EXEC);
 
-			/* write FPU state from pCtx to vCPU */
+			/* save current FPU state */
+			fpu_save(reinterpret_cast<char *>(&_fpu_state));
+			/* write FPU state from pCtx to FPU registers */
 			fpu_load(reinterpret_cast<char *>(&pCtx->fpu));
-
+			/* tell kernel to transfer current fpu registers to vCPU */
 			utcb->mtd |= Mtd::FPU;
 
 			_current_vm   = pVM;
@@ -686,8 +690,10 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			_current_vm   = 0;
 			_current_vcpu = 0;
 
-			/* write FPU state of vCPU to pCtx */
+			/* write FPU state of vCPU (in current FPU registers) to pCtx */
 			fpu_save(reinterpret_cast<char *>(&pCtx->fpu));
+			/* load saved FPU state of EMT thread */
+			fpu_load(reinterpret_cast<char *>(&_fpu_state));
 
 //			CPUMSetChangedFlags(pVCpu, CPUM_CHANGED_GLOBAL_TLB_FLUSH);
 

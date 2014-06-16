@@ -21,12 +21,18 @@
 /* libc includes */
 #include <stdio.h>
 
+/* libc memory allocator */
+#include <libc_mem_alloc.h>
+
 /* Virtualbox includes of VBoxBFE */
 #include <iprt/initterm.h>
 #include <iprt/err.h>
 
-void *operator new (Genode::size_t size) {
-	return Genode::env()->heap()->alloc(size); }
+void *operator new (Genode::size_t size)
+{
+	static Libc::Mem_alloc_impl heap(Genode::env()->rm_session());
+	return heap.alloc(size, 0x10);
+}
 
 void *operator new [] (Genode::size_t size) {
 	return Genode::env()->heap()->alloc(size); }
