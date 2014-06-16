@@ -112,6 +112,7 @@ proc build_boot_image {binaries} { }
 # \param  wait_for_re    regular expression that matches the test completion
 # \param  timeout_value  timeout in seconds
 # \param  spawn_id       spawn_id of a already running and spawned process
+#                        spawn_id may be a list of spawned processes if needed
 # \global output         contains the core output (modified)
 #
 # If the function is called without any argument, Genode is executed in

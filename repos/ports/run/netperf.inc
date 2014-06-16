@@ -255,7 +255,9 @@ foreach netperf_test $netperf_tests {
 	spawn netperf-$version -H $ip_addr -P 1 -v 2 -t $netperf_test -c -C -- -m $packet_size $force_ports
 	set netperf_id $spawn_id
 
-	run_genode_until "Segment" 60 $netperf_id
+	set spawn_id_list [list $netperf_id $serial_id]
+
+	run_genode_until "Segment" 60 $spawn_id_list
 
 	# get throughput from netperf output
 	set throughput [regexp -all -inline {([0-9]+[ ]+){3}[0-9]+\.[0-9]+[ ]+[0-9]+\.[0-9]+} $output]
