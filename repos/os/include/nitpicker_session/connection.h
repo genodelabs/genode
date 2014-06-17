@@ -34,11 +34,14 @@ class Nitpicker::Connection : public Genode::Connection<Session>,
 		/**
 		 * Create session and return typed session capability
 		 */
-		Session_capability _connect(bool stay_top)
+		Session_capability _connect(bool stay_top, char const *label)
 		{
 			enum { ARGBUF_SIZE = 128 };
 			char argbuf[ARGBUF_SIZE];
 			argbuf[0] = 0;
+
+			if (Genode::strlen(label) > 0)
+				Genode::snprintf(argbuf, sizeof(argbuf), "label=\"%s\"", label);
 
 			/*
 			 * Declare ram-quota donation
@@ -58,10 +61,10 @@ class Nitpicker::Connection : public Genode::Connection<Session>,
 		/**
 		 * Constructor
 		 */
-		Connection(bool stay_top = false)
+		Connection(bool stay_top = false, char const *label = "")
 		:
 			/* establish nitpicker session */
-			Genode::Connection<Session>(_connect(stay_top)),
+			Genode::Connection<Session>(_connect(stay_top, label)),
 			Session_client(cap()),
 
 			/* request frame-buffer and input sub sessions */
