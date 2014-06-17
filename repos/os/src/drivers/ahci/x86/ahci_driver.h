@@ -42,7 +42,16 @@ class Ahci_driver : public Ahci_pci_connection,
 		/**
 		 * Constructor
 		 */
-		Ahci_driver() : Ahci_driver_base(Ahci_device::probe(_pci)) { }
+		Ahci_driver() : Ahci_driver_base(nullptr) {
+			Ahci_device * device = Ahci_device::probe(_pci);
+
+			if (!device) {
+				PWRN("Could not find ahci device");
+				throw Root::Unavailable();
+			}
+
+			_device = device;
+		}
 };
 
 #endif /* _AHCI_DRIVER_H_ */
