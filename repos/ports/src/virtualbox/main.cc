@@ -202,10 +202,15 @@ int main()
 	}
 
 	args.add(c_file);
-	args.add("-ioapic");
 
 	if (bOverlay)
 		args.add("-overlay");
+
+	/* ioapic support */
+	try {
+		Genode::Xml_node node = Genode::config()->xml_node().sub_node("ioapic");
+		args.add("-ioapic");
+	} catch (...) { }
 
 	/* shared folder setup */
 	unsigned shares = 0;
