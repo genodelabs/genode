@@ -274,10 +274,16 @@ class Net::Socketcall : public Genode::Signal_dispatcher_base,
 			};
 
 			/*
+			 * Needed by udp_poll because it may check file->f_flags
+			 */
+			struct file f;
+			f.f_flags = 0;
+
+			/*
 			 * Set socket wait queue to one so we can block poll in 'tcp_poll -> poll_wait'
 			 */
 			set_sock_wait(sock, _call.poll.block ? 1 : 0);
-			int mask =sock->ops->poll(0, sock, 0);
+			int mask = sock->ops->poll(&f, sock, 0);
 			set_sock_wait(sock, 0);
 
 			_result.err = 0;
