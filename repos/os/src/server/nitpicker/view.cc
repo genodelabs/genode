@@ -123,9 +123,12 @@ void View::draw(Canvas_base &canvas, Mode const &mode) const
 	                              _session.color().g >> 1,
 	                              _session.color().b >> 1);
 
-	if (_session.texture())
+	if (_session.texture()) {
 		canvas.draw_texture(_buffer_off + view_rect.p1(), *_session.texture(),
 		                    op, mix_color, allow_alpha);
+	} else {
+		canvas.draw_box(view_rect, BLACK);
+	}
 
 	if (mode.flat()) return;
 
