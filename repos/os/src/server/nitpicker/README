@@ -33,16 +33,13 @@ keyboard shortcuts, namely the X-ray mode and the kill mode. The keys
 for toggling those functions can be defined as follows:
 
 ! <config>
-!   <global-keys>
-!     <key name="KEY_SCROLLLOCK" operation="xray" />
-!     <key name="KEY_PRINT"      operation="kill" />
-!   </global-keys>
+!   <global-key name="KEY_SCROLLLOCK" operation="xray" />
+!   <global-key name="KEY_PRINT"      operation="kill" />
 ! </config>
 
-The '<global-keys>' node contains the policy for handling global keys. Each
-'<key>' subnode expresses a rule for named key. The 'operation' attribute
-refers nitpicker's built-in operations. In the example above, the X-ray
-mode can be activated via the scroll-lock key and the kill mode can be
+Each '<global-key>' node expresses a rule for a named key. The 'operation'
+attribute refers nitpicker's built-in operations. In the example above, the
+X-ray mode can be activated via the scroll-lock key and the kill mode can be
 activated via the print key.
 
 Alternatively to specifying an 'operation' attribute, a key node can contain
@@ -55,10 +52,8 @@ the key specified in the '<key>' node. For the routing of global keys to
 clients, the order of '<key>' nodes is important. If multiple nodes exists for
 different labels, the first match will take effect. For example:
 
-! <global-keys>
-!   <key name="KEY_F11" label="launchpad -> testnit" />
-!   <key name="KEY_F11" label="launchpad" />
-! </global-keys>
+! <global-key name="KEY_F11" label="launchpad -> testnit" />
+! <global-key name="KEY_F11" label="launchpad" />
 
 The "launchpad" client will receive all key sequences starting with F11 unless
 the "launchpad -> testnit" program is running. As soon as testnit gets started

@@ -122,13 +122,11 @@ append config {
 			<domain name="default" color="#ffffff"/>
 			<policy label="" domain="default"/>
 
-			<global-keys>
-				<key name="KEY_SCROLLLOCK" operation="xray" />
-				<key name="KEY_SYSRQ"      operation="kill" />
-				<key name="KEY_PRINT"      operation="kill" />
-				<key name="KEY_F11"        operation="kill" />
-				<key name="KEY_F12"        operation="xray" />
-			</global-keys>
+			<global-key name="KEY_SCROLLLOCK" operation="xray" />
+			<global-key name="KEY_SYSRQ"      operation="kill" />
+			<global-key name="KEY_PRINT"      operation="kill" />
+			<global-key name="KEY_F11"        operation="kill" />
+			<global-key name="KEY_F12"        operation="xray" />
 		</config>
 	</start>
 	<start name="launchpad">

@@ -33,14 +33,16 @@ void Global_keys::apply_config(Session_list &session_list)
 	for (unsigned i = 0; i < NUM_POLICIES; i++)
 		_policies[i].undefine();
 
+	char const *node_type = "global-key";
+
 	using Genode::Xml_node;
 	try {
-		Xml_node node = Genode::config()->xml_node().sub_node("global-keys").sub_node("key");
+		Xml_node node = Genode::config()->xml_node().sub_node(node_type);
 
-		for (; ; node = node.next("key")) {
+		for (; ; node = node.next(node_type)) {
 
 			if (!node.has_attribute("name")) {
-				PWRN("attribute 'name' missing in <key> config node");
+				PWRN("attribute 'name' missing in <global-key> config node");
 				continue;
 			}
 
