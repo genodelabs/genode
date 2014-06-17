@@ -229,9 +229,12 @@ void User_state::handle_event(Input::Event ev)
 			_input_receiver->submit_input_event(ev);
 	}
 
-	/* deliver press/release event to focused session */
+	/*
+	 * Deliver press/release event to focused session. Never deliver events
+	 * for keys that are configured for global operations.
+	 */
 	if (type == Event::PRESS || type == Event::RELEASE)
-		if (_input_receiver)
+		if (_input_receiver && !_global_keys.is_operation_key(keycode))
 			_input_receiver->submit_input_event(ev);
 
 	/*
