@@ -260,6 +260,14 @@ class Packet_descriptor_transmitter
 		void register_rx_ready_cap(Genode::Signal_context_capability cap)
 		{
 			_rx_ready.context(cap);
+
+			/*
+			 * if a packet was already put into the queue
+			 * before a signal handler was registered,
+			 * a signal has to be send again
+			 */
+			if (!_tx_queue->empty())
+				_rx_ready.submit();
 		}
 
 		bool ready_for_tx()
@@ -341,6 +349,14 @@ class Packet_descriptor_receiver
 		void register_tx_ready_cap(Genode::Signal_context_capability cap)
 		{
 			_tx_ready.context(cap);
+
+			/*
+			 * if a packet was already put into the queue
+			 * before a signal handler was registered,
+			 * a signal has to be send again
+			 */
+			if (!_rx_queue->empty())
+				_tx_ready.submit();
 		}
 
 		bool ready_for_rx()

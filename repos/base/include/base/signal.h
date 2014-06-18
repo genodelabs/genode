@@ -132,6 +132,13 @@ namespace Genode {
 			 */
 			void context(Signal_context_capability context);
 
+
+			/**
+			 * Return signal context
+			 */
+			Signal_context_capability context();
+
+
 			/**
 			 * Trigger signal submission to context
 			 *

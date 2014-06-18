@@ -78,6 +78,8 @@ Signal_transmitter::Signal_transmitter(Signal_context_capability context)
 void Signal_transmitter::context(Signal_context_capability context) {
 	_context = context; }
 
+Signal_context_capability Signal_transmitter::context() { return _context; }
+
 
 /*********************
  ** Signal_receiver **
