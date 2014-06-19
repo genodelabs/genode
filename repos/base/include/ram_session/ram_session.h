@@ -17,6 +17,7 @@
 #include <base/stdint.h>
 #include <base/capability.h>
 #include <base/exception.h>
+#include <base/cache.h>
 #include <dataspace/capability.h>
 #include <ram_session/capability.h>
 #include <session/session.h>
@@ -49,7 +50,7 @@ namespace Genode {
 		 * Allocate RAM dataspace
 		 *
 		 * \param  size    size of RAM dataspace
-		 * \param  cached  true for cached memory, false for allocating
+		 * \param  cached  selects cacheability attributes of the memory,
 		 *                 uncached memory, i.e., for DMA buffers
 		 *
 		 * \throw  Quota_exceeded
@@ -57,7 +58,7 @@ namespace Genode {
 		 * \return capability to new RAM dataspace
 		 */
 		virtual Ram_dataspace_capability alloc(size_t size,
-		                                       bool cached = true) = 0;
+		                                       Cache_attribute cached = CACHED) = 0;
 
 		/**
 		 * Free RAM dataspace
@@ -116,7 +117,7 @@ namespace Genode {
 
 		GENODE_RPC_THROW(Rpc_alloc, Ram_dataspace_capability, alloc,
 		                 GENODE_TYPE_LIST(Quota_exceeded, Out_of_metadata),
-		                 size_t, bool);
+		                 size_t, Cache_attribute);
 		GENODE_RPC(Rpc_free, void, free, Ram_dataspace_capability);
 		GENODE_RPC(Rpc_ref_account, int, ref_account, Ram_session_capability);
 		GENODE_RPC(Rpc_transfer_quota, int, transfer_quota, Ram_session_capability, size_t);

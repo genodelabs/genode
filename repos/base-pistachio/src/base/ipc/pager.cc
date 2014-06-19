@@ -32,10 +32,8 @@ using namespace Pistachio;
  *************/
 
 Mapping::Mapping(addr_t dst_addr, addr_t src_addr,
-                 bool write_combined, bool io_mem, unsigned l2size,
+                 Cache_attribute, bool io_mem, unsigned l2size,
                  bool rw, bool grant)
-:
-	_write_combined(write_combined)
 {
 	L4_Fpage_t fpage = L4_FpageLog2(src_addr, l2size);
 

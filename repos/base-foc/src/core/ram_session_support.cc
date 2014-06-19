@@ -29,7 +29,7 @@ void Ram_session_component::_clear_ds(Dataspace_component *ds)
 {
 	memset((void *)ds->phys_addr(), 0, ds->size());
 
-	if (ds->write_combined())
+	if (ds->cacheability() != CACHED)
 			Fiasco::l4_cache_dma_coherent(ds->phys_addr(), ds->phys_addr() + ds->size());
 }
 

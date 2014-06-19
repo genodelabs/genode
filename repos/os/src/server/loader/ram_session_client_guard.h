@@ -34,7 +34,7 @@ namespace Genode {
 			Ram_session_client_guard(Ram_session_capability session, size_t amount)
 			: Ram_session_client(session), _amount(amount), _consumed(0) { }
 
-			Ram_dataspace_capability alloc(size_t size, bool cached)
+			Ram_dataspace_capability alloc(size_t size, Cache_attribute cached)
 			{
 				Lock::Guard _consumed_lock_guard(_consumed_lock);
 

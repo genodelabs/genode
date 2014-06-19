@@ -14,13 +14,17 @@
 #ifndef _ARM__PLATFORM__LX_MEM_
 #define _ARM__PLATFORM__LX_MEM_
 
+#include <base/cache.h>
+
 class Backend_memory {
 
 	public:
 
 		static Genode::Ram_dataspace_capability alloc(Genode::addr_t size,
-		                                              bool cached) {
-			return Genode::env()->ram_session()->alloc(size, cached); }
+		                                              Genode::Cache_attribute c)
+		{
+			return Genode::env()->ram_session()->alloc(size, c);
+		}
 
 		static void free(Genode::Ram_dataspace_capability cap) {
 			return Genode::env()->ram_session()->free(cap); }

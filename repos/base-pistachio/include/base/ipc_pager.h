@@ -15,6 +15,7 @@
 #define _INCLUDE__BASE__IPC_PAGER_H_
 
 /* Genode includes */
+#include <base/cache.h>
 #include <base/native_types.h>
 #include <base/ipc.h>
 #include <base/stdint.h>
@@ -37,20 +38,13 @@ namespace Genode {
 				Pistachio::L4_GrantItem_t _grant_item;
 			};
 
-			/*
-			 * On Pistachio, the write-combining attribute is not part of a mapping
-			 * but it can be applied to a flexpage via the memory-control system
-			 * call. Therefore, we need to keep the flag in an extra member variable.
-			 */
-			bool _write_combined;  /* enable write-combined access to I/O memory */
-
 		public:
 
 			/**
 			 * Constructor
 			 */
 			Mapping(addr_t dst_addr, addr_t src_addr,
-			        bool write_combined, bool io_mem,
+			        Cache_attribute, bool io_mem,
 			        unsigned l2size = Pistachio::get_page_size_log2(),
 			        bool rw = true, bool grant = false);
 

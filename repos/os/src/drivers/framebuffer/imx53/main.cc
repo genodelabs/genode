@@ -73,7 +73,7 @@ class Framebuffer::Session_component :
 		  _bb_ds(buffered ? Genode::env()->ram_session()->alloc(_size)
 		                  : Genode::Ram_dataspace_capability()),
 		  _bb_addr(buffered ? (void*)Genode::env()->rm_session()->attach(_bb_ds) : 0),
-		  _fb_ds(Genode::env()->ram_session()->alloc(_size, false)),
+		  _fb_ds(Genode::env()->ram_session()->alloc(_size, WRITE_COMBINED)),
 		  _fb_addr((void*)Genode::env()->rm_session()->attach(_fb_ds)),
 		  _ipu(driver.ipu())
 		{

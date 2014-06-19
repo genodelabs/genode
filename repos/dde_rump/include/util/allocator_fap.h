@@ -62,7 +62,7 @@ namespace Allocator {
 			typedef Genode::Allocator_avl Allocator_avl;
 
 			addr_t                   _base;              /* virt. base address */
-			bool                     _cached;            /* non-/cached RAM */
+			Cache_attribute          _cached;            /* non-/cached RAM */
 			Ram_dataspace_capability _ds_cap[ELEMENTS];  /* dataspaces to put in VM */
 			addr_t                   _ds_phys[ELEMENTS]; /* physical bases of dataspaces */
 			int                      _index = 0;         /* current index in ds_cap */
@@ -107,7 +107,7 @@ namespace Allocator {
 
 		public:
 
-			Backend_alloc(bool cached)
+			Backend_alloc(Cache_attribute cached)
 			: Rm_connection(0, VM_SIZE), _cached(cached),
 			  _range(Genode::env()->heap())
 			{
@@ -195,7 +195,7 @@ namespace Allocator {
 		public:
 
 			Fap(bool cached)
-			: _back_allocator(cached) { }
+			: _back_allocator(cached ? CACHED : UNCACHED) { }
 
 			void *alloc(size_t size, int align = 0)
 			{

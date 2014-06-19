@@ -35,7 +35,7 @@ namespace Genode {
 			Ram_session              *_ram_session;
 			Ram_dataspace_capability  _ds;
 			void                     *_local_addr;
-			bool const                _cached;
+			Cache_attribute const     _cached;
 
 			template <typename T>
 			static void _swap(T &v1, T &v2) { T tmp = v1; v1 = v2; v2 = tmp; }
@@ -73,7 +73,7 @@ namespace Genode {
 				 * work-around for this issues, we eagerly map the whole
 				 * dataspace before writing actual content to it.
 				 */
-				if (!_cached) {
+				if (_cached != CACHED) {
 					enum { PAGE_SIZE = 4096 };
 					unsigned char volatile *base = (unsigned char volatile *)_local_addr;
 					for (size_t i = 0; i < _size; i += PAGE_SIZE)
@@ -90,7 +90,7 @@ namespace Genode {
 			 * \throw Rm_session::Attach_failed
 			 */
 			Attached_ram_dataspace(Ram_session *ram_session, size_t size,
-			                       bool cached = true)
+			                       Cache_attribute cached = CACHED)
 			:
 				_size(size), _ram_session(ram_session), _local_addr(0),
 				_cached(cached)

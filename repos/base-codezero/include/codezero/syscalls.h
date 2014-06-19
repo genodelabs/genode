@@ -58,6 +58,15 @@ extern void *memcpy(void *dest, const void *src, __SIZE_TYPE__);
 #undef max
 #endif
 #undef printf
+
+/*
+ * Turn '#define cacheable' (as defined in the codezero headers) into an enum
+ * value. Otherwise, the define will conflict with variables named 'cacheable'.
+ */
+enum { _codezero_cacheable = cacheable /* #define value */ };
+#undef cacheable
+enum { cacheable = _codezero_cacheable };
+
 } }
 
 namespace Codezero {

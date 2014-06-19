@@ -65,7 +65,7 @@ int Pager_activation_base::apply_mapping()
 
 	Page_flags const flags =
 	Page_flags::apply_mapping(_mapping.writable,
-	                          _mapping.write_combined,
+	                          _mapping.cacheable,
 	                          _mapping.io_mem);
 
 	/* insert mapping into translation table */

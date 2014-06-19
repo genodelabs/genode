@@ -60,12 +60,12 @@ namespace Genode
 
 struct Genode::Mapping
 {
-	addr_t   virt_address;
-	addr_t   phys_address;
-	bool     write_combined;
-	bool     io_mem;
-	unsigned size_log2;
-	bool     writable;
+	addr_t          virt_address;
+	addr_t          phys_address;
+	Cache_attribute cacheable;
+	bool            io_mem;
+	unsigned        size_log2;
+	bool            writable;
 
 	/**
 	 * Constructor for invalid mappings
@@ -75,7 +75,7 @@ struct Genode::Mapping
 	/**
 	 * Constructor for valid mappings
 	 */
-	Mapping(addr_t const va, addr_t const pa, bool const wc,
+	Mapping(addr_t const va, addr_t const pa, Cache_attribute const c,
 	        bool const io, unsigned const sl2, bool const w);
 
 	/**

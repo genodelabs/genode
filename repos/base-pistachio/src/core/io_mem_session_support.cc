@@ -104,7 +104,7 @@ addr_t Io_mem_session_component::_map_local(addr_t base, size_t size)
 			                            L4_Fpage(base       + offset, page_size),
 			                            L4_Fpage(local_base + offset, page_size));
 
-		if (_write_combined) {
+		if (_cacheable == WRITE_COMBINED) {
 			int res = L4_Set_PageAttribute(L4_Fpage(local_base + offset, page_size),
 			                               L4_WriteCombiningMemory);
 			if (res != 1)

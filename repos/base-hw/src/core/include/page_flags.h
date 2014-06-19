@@ -14,6 +14,8 @@
 #ifndef _TLB__PAGE_FLAGS_H_
 #define _TLB__PAGE_FLAGS_H_
 
+#include <base/cache.h>
+
 namespace Genode
 {
 	/**
@@ -21,34 +23,35 @@ namespace Genode
 	 */
 	struct Page_flags
 	{
-		bool writeable;
-		bool executable;
-		bool privileged;
-		bool global;
-		bool device;
-		bool cacheable;
+		bool            writeable;
+		bool            executable;
+		bool            privileged;
+		bool            global;
+		bool            device;
+		Cache_attribute cacheable;
 
 		/**
 		 * Create flag POD for Genode pagers
 		 */
 		static const Page_flags
 		apply_mapping(bool const writeable,
-		              bool const write_combined,
+		              Cache_attribute const cacheable,
 		              bool const io_mem) {
 			return Page_flags { writeable, true, false, false,
-				                io_mem, !write_combined && !io_mem }; }
+				                io_mem, cacheable }; }
 
 		/**
 		 * Create flag POD for kernel when it creates the core space
 		 */
 		static const Page_flags map_core_area(bool const io_mem) {
-			return Page_flags { true, true, false, false, io_mem, !io_mem }; }
+			return Page_flags { true, true, false, false, io_mem,
+			                    io_mem ? UNCACHED : CACHED}; }
 
 		/**
 		 * Create flag POD for the mode transition region
 		 */
 		static const Page_flags mode_transition() {
-			return Page_flags { true, true, true, true, false, true }; }
+			return Page_flags { true, true, true, true, false, CACHED }; }
 	};
 }
 

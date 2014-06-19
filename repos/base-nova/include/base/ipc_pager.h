@@ -15,6 +15,7 @@
 #define _INCLUDE__BASE__IPC_PAGER_H_
 
 /* Genode includes */
+#include <base/cache.h>
 #include <base/ipc.h>
 #include <base/stdint.h>
 #include <base/native_types.h>
@@ -43,12 +44,12 @@ namespace Genode {
 			 * Constructor
 			 */
 			Mapping(addr_t dst_addr, addr_t map_addr,
-			        bool write_combined, bool io_mem,
+			        Cache_attribute c, bool io_mem,
 			        unsigned size_log2 = PAGE_SIZE_LOG2,
 			        bool rw = true)
 			:
 				_dst_addr(dst_addr), _core_local_addr(map_addr),
-				_write_combined(write_combined), _size_log2(size_log2),
+				_write_combined(c != CACHED), _size_log2(size_log2),
 				_rw(rw)
 			{ }
 

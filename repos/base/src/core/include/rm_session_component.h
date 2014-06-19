@@ -263,7 +263,7 @@ namespace Genode {
 					 */
 					Rm_dataspace_component(size_t size)
 					:
-						Dataspace_component(size, 0, false, false, 0)
+						Dataspace_component(size, 0, CACHED, false, 0)
 						{ _managed = true; }
 
 

@@ -367,15 +367,15 @@ void Ram_object::free() { Genode::env()->ram_session()->free(ram_cap()); }
 void Dma_object::free() { pci.free_dma_buffer(pci_device_cap, ram_cap()); }
 
 
-Genode::Ram_dataspace_capability Backend_memory::alloc(Genode::addr_t size,
-                                                       bool cached)
+Genode::Ram_dataspace_capability
+Backend_memory::alloc(Genode::addr_t size, Genode::Cache_attribute cached)
 {
 	using namespace Genode;
 
 	Memory_object_base *o;
 	Genode::Ram_dataspace_capability cap;
-	if (cached) {
-		cap = env()->ram_session()->alloc(size, cached);
+	if (cached == CACHED) {
+		cap = env()->ram_session()->alloc(size);
 		o = new (env()->heap())	Ram_object(cap);
 	} else {
 		cap = pci.alloc_dma_buffer(pci_device_cap, size);

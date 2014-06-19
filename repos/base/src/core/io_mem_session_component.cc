@@ -37,11 +37,11 @@ Io_mem_session_component::_prepare_io_mem(const char      *args,
 	addr_t base = req_base & ~(get_page_size() - 1);
 	size_t size = end - base;
 
-	_write_combined = false;
+	_cacheable = UNCACHED;
 
 	Arg a = Arg_string::find_arg(args, "wc");
-	if (a.valid())
-		_write_combined = a.bool_value(0);
+	if (a.valid() && a.bool_value(0))
+		_cacheable = WRITE_COMBINED;
 
 	/* check for RAM collision */
 	int ret;
@@ -69,9 +69,9 @@ Io_mem_session_component::_prepare_io_mem(const char      *args,
 	if (verbose)
 		PDBG("I/O mem [%lx,%lx) => [%lx,%lx)%s",
 		     base, base + size, local_addr, local_addr + size,
-		     _write_combined ? " (write-combined)" : "");
+		     (_cacheable == WRITE_COMBINED) ? " (write-combined)" : "");
 
-	return Dataspace_attr(size, local_addr, base, _write_combined, req_base);
+	return Dataspace_attr(size, local_addr, base, _cacheable, req_base);
 }
 
 

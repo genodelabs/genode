@@ -26,8 +26,13 @@ Arm::memory_region_attr(Page_flags const & flags)
 	typedef typename T::C C;
 	typedef typename T::B B;
 	if (flags.device) { return Tex::bits(2); }
-	if (flags.cacheable) { return Tex::bits(5) | B::bits(1); }
-	return Tex::bits(6) | C::bits(1);
+
+	switch (flags.cacheable) {
+	case CACHED:         return Tex::bits(5) | B::bits(1);
+	case WRITE_COMBINED: return B::bits(1);
+	case UNCACHED:       return Tex::bits(1);
+	}
+	return 0;
 }
 
 #endif /* _ARM_V7__TRANSLATION_TABLE_H_ */

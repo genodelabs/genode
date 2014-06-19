@@ -271,7 +271,7 @@ class Block::Root :
 			}
 
 			Ram_dataspace_capability ds_cap;
-			ds_cap = Genode::env()->ram_session()->alloc(tx_buf_size, true);
+			ds_cap = Genode::env()->ram_session()->alloc(tx_buf_size);
 			return new (md_alloc())
 				Session_component(ds_cap,
 				                  Partition_table::table().partition(num),

@@ -84,7 +84,8 @@ class Context_area_ram_session : public Genode::Ram_session
 {
 	public:
 
-		Genode::Ram_dataspace_capability alloc(Genode::size_t size, bool) {
+		Genode::Ram_dataspace_capability alloc(Genode::size_t size,
+		                                       Genode::Cache_attribute) {
 			return Genode::Ram_dataspace_capability(); }
 
 		void free(Genode::Ram_dataspace_capability) { }

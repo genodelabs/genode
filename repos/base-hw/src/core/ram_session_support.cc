@@ -51,7 +51,7 @@ void Ram_session_component::_clear_ds (Dataspace_component * ds)
 	memset(virt_addr, 0, page_rounded_size);
 
 	/* uncached dataspaces need to be flushed */
-	if (ds->write_combined())
+	if (ds->cacheability() != CACHED)
 		Kernel::update_data_region((addr_t)virt_addr, page_rounded_size);
 
 	/* unmap dataspace from core */

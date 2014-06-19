@@ -65,7 +65,7 @@ Rom_session_component::Rom_session_component(Rom_fs         *rom_fs,
 
 	int const fd = lx_open(fname, O_RDONLY | LX_O_CLOEXEC, S_IRUSR | S_IXUSR);
 
-	_ds = Dataspace_component(fsize, 0, false, false, 0);
+	_ds = Dataspace_component(fsize, 0, CACHED, false, 0);
 	_ds.fd(fd);
 	_ds.fname(fname);
 

@@ -87,7 +87,7 @@ struct Genode::Expanding_ram_session_client : Upgradeable_client<Genode::Ram_ses
 	Expanding_ram_session_client(Ram_session_capability cap)
 	: Upgradeable_client<Genode::Ram_session_client>(cap) { }
 
-	Ram_dataspace_capability alloc(size_t size, bool cached = true)
+	Ram_dataspace_capability alloc(size_t size, Cache_attribute cached = UNCACHED)
 	{
 		/*
 		 * If the RAM session runs out of quota, issue a resource request

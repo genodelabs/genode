@@ -25,7 +25,8 @@ namespace Genode {
 		explicit Ram_session_client(Ram_session_capability session)
 		: Rpc_client<Ram_session>(session) { }
 
-		Ram_dataspace_capability alloc(size_t size, bool cached = true) {
+		Ram_dataspace_capability alloc(size_t size,
+		                               Cache_attribute cached = CACHED) {
 			return call<Rpc_alloc>(size, cached); }
 
 		void free(Ram_dataspace_capability ds) { call<Rpc_free>(ds); }

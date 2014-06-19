@@ -62,7 +62,7 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 			_height(height),
 			_format(Driver::FORMAT_RGB565),
 			_size(driver.buffer_size(width, height, _format)),
-			_ds(env()->ram_session()->alloc(_size, false)),
+			_ds(env()->ram_session()->alloc(_size, WRITE_COMBINED)),
 			_phys_base(Dataspace_client(_ds).phys_addr())
 		{
 			if (!driver.init(width, height, _format, output, _phys_base)) {

@@ -16,6 +16,7 @@
 #define _INCLUDE__BASE__IPC_PAGER_H_
 
 /* Genode includes */
+#include <base/cache.h>
 #include <base/ipc.h>
 #include <base/stdint.h>
 #include <base/native_types.h>
@@ -33,12 +34,13 @@ namespace Genode {
 	{
 		private:
 
-			addr_t   _dst_addr;
-			addr_t   _src_addr;
-			bool     _write_combined;
-			unsigned _log2size;
-			bool     _rw;
-			bool     _grant;
+			addr_t          _dst_addr;
+			addr_t          _src_addr;
+			Cache_attribute _cacheability;
+			bool            _iomem;
+			unsigned        _log2size;
+			bool            _rw;
+			bool            _grant;
 
 		public:
 
@@ -46,34 +48,30 @@ namespace Genode {
 			 * Constructor
 			 */
 			Mapping(addr_t dst_addr, addr_t src_addr,
-			        bool write_combined, bool io_mem,
+			        Cache_attribute c, bool io_mem,
 			        unsigned l2size = L4_LOG2_PAGESIZE,
 			        bool rw = true, bool grant = false)
 			: _dst_addr(dst_addr), _src_addr(src_addr),
-			  _write_combined(write_combined), _log2size(l2size),
+				_cacheability(c), _iomem(io_mem), _log2size(l2size),
 			  _rw(rw), _grant(grant) { }
 
 			/**
 			 * Construct invalid flexpage
 			 */
-			Mapping() : _dst_addr(0), _src_addr(0), _write_combined(false),
-			            _log2size(0), _rw(false), _grant(false) { }
+			Mapping() : _dst_addr(0), _src_addr(0), _cacheability(UNCACHED),
+				_iomem(false), _log2size(0), _rw(false), _grant(false) { }
 
 			Fiasco::l4_umword_t dst_addr() const { return _dst_addr; }
 			bool                grant()    const { return _grant;    }
 
 			Fiasco::l4_fpage_t  fpage()    const
 			{
-				// TODO: write combined
-				//if (write_combined)
-				//	_fpage.fp.cache = Fiasco::L4_FPAGE_BUFFERABLE;
-
 				unsigned char rights = _rw ? Fiasco::L4_FPAGE_RWX : Fiasco::L4_FPAGE_RX;
 				return Fiasco::l4_fpage(_src_addr, _log2size, rights);
 			}
 
-			bool write_combined() const { return _write_combined; }
-
+			Cache_attribute cacheability() const { return _cacheability; }
+			bool iomem() { return _iomem; }
 			/**
 			 * Prepare map operation is not needed on Fiasco.OC, since we clear the
 			 * dataspace before this function is called.

@@ -74,7 +74,8 @@ class Packet_session_component : public RPC
 	/**
 	 * Root component, handling new session requests
 	 */
-	template <typename ROOT_COMPONENT, typename SESSION_COMPONENT, bool CACHED>
+	template <typename ROOT_COMPONENT, typename SESSION_COMPONENT,
+	          Genode::Cache_attribute CACHEABILITY>
 	class Packet_root : public ROOT_COMPONENT
 	{
 		private:
@@ -116,8 +117,8 @@ class Packet_session_component : public RPC
 				}
 
 				return new (ROOT_COMPONENT::md_alloc())
-					SESSION_COMPONENT(Backend_memory::alloc(tx_buf_size, CACHED),
-					                  Backend_memory::alloc(rx_buf_size, CACHED),
+					SESSION_COMPONENT(Backend_memory::alloc(tx_buf_size, CACHEABILITY),
+					                  Backend_memory::alloc(rx_buf_size, CACHEABILITY),
 					                  _ep, _device);
 			}
 

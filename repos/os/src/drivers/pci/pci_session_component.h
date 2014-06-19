@@ -312,7 +312,7 @@ namespace Pci {
 			                                                  Genode::size_t size)
 			{
 				Genode::Ram_dataspace_capability ram =
-					Genode::env()->ram_session()->alloc(size, false);
+					Genode::env()->ram_session()->alloc(size, Genode::UNCACHED);
 
 				if (!ram.valid() || !_child)
 					return ram;

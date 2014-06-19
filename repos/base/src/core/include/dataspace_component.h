@@ -41,8 +41,8 @@ namespace Genode {
 			addr_t       _core_local_addr;  /* address of core-local mapping           */
 			size_t const _size;             /* size of dataspace in bytes              */
 			bool   const _is_io_mem;        /* dataspace is I/O mem, not to be touched */
-			bool   const _write_combined;   /* access I/O memory write-combined, or
-			                                   RAM uncacheable respectively            */
+			Cache_attribute const _cache;   /* access memory cached, write-combined, or
+			                                   uncached respectively                   */
 			bool   const _writable;         /* false if dataspace is read-only         */
 
 			List<Rm_region> _regions;       /* regions this is attached to */
@@ -73,7 +73,7 @@ namespace Genode {
 			Dataspace_component()
 			:
 				_phys_addr(0), _core_local_addr(0), _size(0),
-				_is_io_mem(false), _write_combined(false), _writable(false),
+				_is_io_mem(false), _cache(CACHED), _writable(false),
 				_owner(0), _managed(false) { }
 
 			/**
@@ -82,12 +82,12 @@ namespace Genode {
 			 * This constructor is used by RAM and ROM dataspaces.
 			 */
 			Dataspace_component(size_t size, addr_t core_local_addr,
-			                    bool write_combined, bool writable,
+			                    Cache_attribute cache, bool writable,
 			                    Dataspace_owner *owner)
 			:
 				_phys_addr(core_local_addr), _core_local_addr(core_local_addr),
 				_size(round_page(size)), _is_io_mem(false),
-				_write_combined(write_combined), _writable(writable),
+				_cache(cache), _writable(writable),
 				_owner(owner), _managed(false) { }
 
 			/**
@@ -101,11 +101,11 @@ namespace Genode {
 			 * space is needed to send a mapping to another address space.
 			 */
 			Dataspace_component(size_t size, addr_t core_local_addr,
-			                    addr_t phys_addr, bool write_combined,
+			                    addr_t phys_addr, Cache_attribute cache,
 			                    bool writable, Dataspace_owner *owner)
 			:
 				_phys_addr(phys_addr), _core_local_addr(core_local_addr),
-				_size(size), _is_io_mem(true), _write_combined(write_combined),
+				_size(size), _is_io_mem(true), _cache(cache),
 				_writable(writable), _owner(owner), _managed(false) { }
 
 			/**
@@ -120,9 +120,9 @@ namespace Genode {
 			 */
 			virtual Native_capability sub_rm_session() { return Dataspace_capability(); }
 
-			addr_t core_local_addr() const { return _core_local_addr; }
-			bool is_io_mem()         const { return _is_io_mem; }
-			bool write_combined()    const { return _write_combined; }
+			addr_t core_local_addr()       const { return _core_local_addr; }
+			bool is_io_mem()               const { return _is_io_mem; }
+			Cache_attribute cacheability() const { return _cache; }
 
 			/**
 			 * Return dataspace base address to be used for map operations

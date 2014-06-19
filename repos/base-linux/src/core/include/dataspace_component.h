@@ -52,7 +52,7 @@ namespace Genode {
 			 * Constructor
 			 */
 			Dataspace_component(size_t size, addr_t addr,
-			                    bool /* write_combined */, bool writable,
+			                    Cache_attribute, bool writable,
 			                    Dataspace_owner * owner)
 			: _size(size), _addr(addr), _fd(-1), _writable(writable),
 			  _owner(owner) { }
@@ -68,7 +68,7 @@ namespace Genode {
 			 * reasons and should not be used.
 			 */
 			Dataspace_component(size_t size, addr_t core_local_addr,
-			                    addr_t phys_addr, bool write_combined,
+			                    addr_t phys_addr, Cache_attribute,
 			                    bool writable, Dataspace_owner * _owner)
 			:
 				_size(size), _addr(phys_addr), _fd(-1), _owner(_owner)

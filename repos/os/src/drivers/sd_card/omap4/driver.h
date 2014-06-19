@@ -133,7 +133,7 @@ class Block::Omap4_driver : public Block::Driver
 		bool dma_enabled() { return _use_dma; }
 
 		Genode::Ram_dataspace_capability alloc_dma_buffer(Genode::size_t size) {
-			return Genode::env()->ram_session()->alloc(size, false); }
+			return Genode::env()->ram_session()->alloc(size, UNCACHED); }
 
 		void free_dma_buffer(Genode::Ram_dataspace_capability c) {
 			return Genode::env()->ram_session()->free(c); }

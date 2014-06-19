@@ -14,6 +14,7 @@
 #ifndef _INCLUDE__BASE__IPC_PAGER_H_
 #define _INCLUDE__BASE__IPC_PAGER_H_
 
+#include <base/cache.h>
 #include <base/ipc.h>
 #include <base/stdint.h>
 #include <base/native_types.h>
@@ -37,7 +38,7 @@ namespace Genode {
 			 * Constructor
 			 */
 			Mapping(addr_t dst_addr, addr_t src_addr,
-			        bool write_combined, bool io_mem,
+			        Cache_attribute const cacheability, bool io_mem,
 			        unsigned l2size = PAGE_SIZE_LOG2,
 			        bool rw = true)
 			:

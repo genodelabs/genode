@@ -135,7 +135,7 @@ class Context_area_ram_session : public Ram_session
 
 	public:
 
-		Ram_dataspace_capability alloc(size_t size, bool cached)
+		Ram_dataspace_capability alloc(size_t size, Cache_attribute cached)
 		{
 			/* find free context */
 			unsigned i;
@@ -161,7 +161,7 @@ class Context_area_ram_session : public Ram_session
 				PDBG("phys_base = %p, size = 0x%zx", phys_base, size);
 
 			context_ds[i] = new (&_ds_slab)
-				Dataspace_component(size, 0, (addr_t)phys_base, false, true, 0);
+				Dataspace_component(size, 0, (addr_t)phys_base, CACHED, true, 0);
 
 			Dataspace_capability cap = Dataspace_capability::local_cap(context_ds[i]);
 			return static_cap_cast<Ram_dataspace>(cap);

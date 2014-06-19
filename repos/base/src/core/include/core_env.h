@@ -70,7 +70,7 @@ namespace Genode {
 			 ** RAM-session interface **
 			 ***************************/
 
-			Ram_dataspace_capability alloc(size_t size, bool cached)
+			Ram_dataspace_capability alloc(size_t size, Cache_attribute cached)
 			{
 				Lock::Guard lock_guard(_lock);
 				return RAM_SESSION_IMPL::alloc(size, cached);

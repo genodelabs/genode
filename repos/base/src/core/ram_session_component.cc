@@ -106,7 +106,7 @@ void Ram_session_component::_remove_ref_account_member(Ram_session_component *me
 }
 
 
-Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, bool cached)
+Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, Cache_attribute cached)
 {
 	/* zero-sized dataspaces are not allowed */
 	if (!ds_size) return Ram_dataspace_capability();
@@ -171,7 +171,7 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, bool cache
 		 * when resolving page faults.
 		 */
 		ds = new (&_ds_slab)
-			Dataspace_component(ds_size, (addr_t)ds_addr, !cached, true, this);
+			Dataspace_component(ds_size, (addr_t)ds_addr, cached, true, this);
 	} catch (Allocator::Out_of_memory) {
 		PWRN("Could not allocate metadata");
 		/* cleanup unneeded resources */

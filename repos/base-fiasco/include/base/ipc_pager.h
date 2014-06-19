@@ -15,6 +15,7 @@
 #define _INCLUDE__BASE__IPC_PAGER_H_
 
 /* Genode includes */
+#include <base/cache.h>
 #include <base/ipc.h>
 #include <base/stdint.h>
 #include <base/native_types.h>
@@ -41,14 +42,14 @@ namespace Genode {
 			 * Constructor
 			 */
 			Mapping(addr_t dst_addr, addr_t src_addr,
-			        bool write_combined, bool io_mem,
+			        Cache_attribute cacheability, bool io_mem,
 			        unsigned l2size = L4_LOG2_PAGESIZE,
 			        bool rw = true, bool grant = false)
 			:
 				_dst_addr(dst_addr),
 				_fpage(Fiasco::l4_fpage(src_addr, l2size, rw, grant))
 			{
-				if (write_combined)
+				if (cacheability == WRITE_COMBINED)
 					_fpage.fp.cache = Fiasco::L4_FPAGE_BUFFERABLE;
 			}
 
