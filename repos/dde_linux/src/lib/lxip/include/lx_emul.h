@@ -1528,7 +1528,7 @@ struct rcu_head { };
 #define rcu_dereference_rtnl(p) p
 #define rcu_dereference_index_check(p, c) p
 
-#define rcu_assign_pointer(p, v) p = v;
+#define rcu_assign_pointer(p, v) p = v
 #define rcu_access_pointer(p) p
 
 void rcu_read_lock(void);
