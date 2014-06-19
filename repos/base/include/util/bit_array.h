@@ -97,7 +97,7 @@ namespace Genode {
 			  _word_cnt(_bit_cnt / _BITS_PER_WORD),
 			  _words(addr)
 			{
-				if (bits % _BITS_PER_WORD) throw Invalid_bit_count();
+				if (!bits || bits % _BITS_PER_WORD) throw Invalid_bit_count();
 
 				memset(_words, 0, sizeof(addr_t)*_word_cnt);
 			}
