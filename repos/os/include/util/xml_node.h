@@ -621,13 +621,16 @@ namespace Genode {
 			 */
 			Xml_node sub_node(unsigned idx = 0U) const
 			{
-				/* look up node at specified index */
-				try {
-					Xml_node curr_node = _sub_node(content_addr());
-					for (; idx > 0; idx--)
-						curr_node = curr_node.next();
-					return curr_node;
-				} catch (Invalid_syntax) { }
+				if (_num_sub_nodes > 0) {
+
+					/* look up node at specified index */
+					try {
+						Xml_node curr_node = _sub_node(content_addr());
+						for (; idx > 0; idx--)
+							curr_node = curr_node.next();
+						return curr_node;
+					} catch (Invalid_syntax) { }
+				}
 
 				throw Nonexistent_sub_node();
 			}
@@ -639,13 +642,16 @@ namespace Genode {
 			 */
 			Xml_node sub_node(const char *type) const
 			{
-				/* search for sub node of specified type */
-				try {
-					Xml_node curr_node = _sub_node(content_addr());
-					for ( ; true; curr_node = curr_node.next())
-						if (curr_node.has_type(type))
-							return curr_node;
-				} catch (...) { }
+				if (_num_sub_nodes > 0) {
+
+					/* search for sub node of specified type */
+					try {
+						Xml_node curr_node = _sub_node(content_addr());
+						for ( ; true; curr_node = curr_node.next())
+							if (curr_node.has_type(type))
+								return curr_node;
+					} catch (...) { }
+				}
 
 				throw Nonexistent_sub_node();
 			}
