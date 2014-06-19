@@ -164,6 +164,9 @@ class View : public Same_buffer_list_elem,
 		 */
 		virtual int frame_size(Mode const &mode) const
 		{
+			if (_session.xray_opaque()) return 1;
+			if (_session.xray_no())     return 0;
+
 			return mode.is_focused(_session) ? 5 : 3;
 		}
 

@@ -73,22 +73,44 @@ void View::frame(Canvas_base &canvas, Mode const &mode) const
 	/* do not draw frame in flat mode */
 	if (mode.flat()) return;
 
-	draw_frame(canvas, abs_geometry(), _session.color(), frame_size(mode));
+	Rect const geometry = abs_geometry();
+
+	if (_session.xray_no())
+		return;
+
+	if (_session.xray_opaque()) {
+		Point frame_offset(frame_size(mode), frame_size(mode));
+		Rect  rect(geometry.p1() - frame_offset, geometry.p2() + frame_offset);
+		canvas.draw_box(rect, _session.color());
+		return;
+	}
+
+	draw_frame(canvas, geometry, _session.color(), frame_size(mode));
 }
 
 
-void View::draw(Canvas_base &canvas, Mode const &mode) const
+/**
+ * Return texture painter mode depending on nitpicker state and session policy
+ */
+static Texture_painter::Mode
+texture_painter_mode(Mode const &mode, Session const &session)
 {
-	bool const is_focused = _session.has_same_domain(mode.focused_session());
-
-	Color const frame_color = _session.color();
+	bool const is_focused = session.has_same_domain(mode.focused_session());
 
 	/*
 	 * Use dimming in x-ray and kill mode, but do not dim the focused view in
 	 * x-ray mode.
 	 */
-	Texture_painter::Mode const op = mode.flat() || (mode.xray() && is_focused)
-	                               ? Texture_painter::SOLID : Texture_painter::MIXED;
+	if (mode.flat() || (session.xray_no()) || (mode.xray() && is_focused))
+		return Texture_painter::SOLID;
+
+	return Texture_painter::MIXED;
+}
+
+
+void View::draw(Canvas_base &canvas, Mode const &mode) const
+{
+	Texture_painter::Mode const op = texture_painter_mode(mode, _session);
 
 	Rect const view_rect = abs_geometry();
 
@@ -113,9 +135,8 @@ void View::draw(Canvas_base &canvas, Mode const &mode) const
 		}
 	}
 
-
 	/* allow alpha blending only in flat mode */
-	bool allow_alpha = mode.flat();
+	bool allow_alpha = mode.flat() || _session.xray_no();
 
 	/* draw view content */
 	Color const mix_color = mode.kill() ? KILL_COLOR
@@ -123,16 +144,22 @@ void View::draw(Canvas_base &canvas, Mode const &mode) const
 	                              _session.color().g >> 1,
 	                              _session.color().b >> 1);
 
-	if (_session.texture()) {
-		canvas.draw_texture(_buffer_off + view_rect.p1(), *_session.texture(),
-		                    op, mix_color, allow_alpha);
+	if (mode.xray() && _session.xray_opaque()) {
+		canvas.draw_box(view_rect, _session.color());
+
 	} else {
-		canvas.draw_box(view_rect, BLACK);
+		if (_session.texture()) {
+			canvas.draw_texture(_buffer_off + view_rect.p1(), *_session.texture(),
+			                    op, mix_color, allow_alpha);
+		} else {
+			canvas.draw_box(view_rect, BLACK);
+		}
 	}
 
-	if (mode.flat()) return;
+	if (mode.flat() || _session.xray_opaque() || _session.xray_no()) return;
 
 	/* draw label */
+	Color const frame_color = _session.color();
 	draw_label(canvas, _label_rect.p1(), _session.label().string(), WHITE,
 	           _title, frame_color);
 }

@@ -66,6 +66,9 @@ class Session : public Session_list::Element
 
 		Genode::Session_label const &label() const { return _label; }
 
+		bool xray_opaque() const { return _domain ? _domain->xray_opaque() : false; }
+		bool xray_no()     const { return _domain ? _domain->xray_no()     : false; }
+
 		Texture_base const *texture() const { return _texture; }
 
 		void texture(Texture_base const *texture, bool uses_alpha)

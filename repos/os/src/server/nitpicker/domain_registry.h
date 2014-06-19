@@ -28,16 +28,26 @@ class Domain_registry
 				typedef Genode::String<64> Name;
 				typedef Genode::Color      Color;
 
+				/**
+				 * Behaviour of the views of the domain when X-ray is activated
+				 */
+				enum Xray {
+					XRAY_NO,     /* views are not subjected to X-ray mode */
+					XRAY_FRAME,  /* views are tinted and framed */
+					XRAY_OPAQUE, /* views are replaced by opaque domain color */
+				};
+
 			private:
 
 				Name  _name;
 				Color _color;
+				Xray  _xray;
 
 				friend class Domain_registry;
 
-				Entry(Name const &name, Color color)
+				Entry(Name const &name, Color color, Xray xray)
 				:
-					_name(name), _color(color)
+					_name(name), _color(color), _xray(xray)
 				{ }
 
 			public:
@@ -45,7 +55,29 @@ class Domain_registry
 				bool has_name(Name const &name) const { return name == _name; }
 
 				Color color() const { return _color; }
+
+				bool xray_opaque() const { return _xray == XRAY_OPAQUE; }
+				bool xray_no()     const { return _xray == XRAY_NO; }
 		};
+
+		static Entry::Xray _xray(Genode::Xml_node domain)
+		{
+			char const * const attr_name = "xray";
+
+			Entry::Xray const default_xray = Entry::XRAY_FRAME;
+
+			if (!domain.has_attribute(attr_name))
+				return default_xray;
+
+			Genode::Xml_node::Attribute const attr = domain.attribute(attr_name);
+
+			if (attr.has_value("no"))     return Entry::XRAY_NO;
+			if (attr.has_value("frame"))  return Entry::XRAY_FRAME;
+			if (attr.has_value("opaque")) return Entry::XRAY_OPAQUE;
+
+			PWRN("invalid value of xray attribute");
+			return default_xray;
+		}
 
 		void _insert(Genode::Xml_node domain)
 		{
@@ -69,9 +101,9 @@ class Domain_registry
 				return;
 			}
 
-			Entry::Color const color = domain.attribute_value("color", Entry::Color());
+			Entry::Color const color = domain.attribute_value("color", WHITE);
 
-			_entries.insert(new (_alloc) Entry(name, color));
+			_entries.insert(new (_alloc) Entry(name, color, _xray(domain)));
 		}
 
 	private:
