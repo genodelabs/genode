@@ -24,6 +24,8 @@ extern int _mon_kernel_entry;
 
 void Kernel::init_trustzone(Pic * pic)
 {
+	using namespace Genode;
+
 	/* check for compatibility */
 	if (PROCESSORS > 1) {
 		PERR("trustzone not supported with multiprocessing");

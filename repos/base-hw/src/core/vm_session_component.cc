@@ -18,6 +18,7 @@
 #include <cpu/cpu_state.h>
 
 /* core includes */
+#include <kernel/core_interface.h>
 #include <vm_session_component.h>
 
 using namespace Genode;
