@@ -190,3 +190,64 @@ bool Kernel::Processor_domain_update::_perform(unsigned const domain_id)
 	}
 	return true;
 }
+
+
+void Kernel::Processor::exception()
+{
+	/*
+	 * Request the current occupant without any update. While the
+	 * processor was outside the kernel, another processor may have changed the
+	 * scheduling of the local activities in a way that an update would return
+	 * an occupant other than that whose exception caused the kernel entry.
+	 */
+	Processor_client * const old_client = _scheduler.occupant();
+	Cpu_lazy_state * const old_state = old_client->lazy_state();
+	old_client->exception(_id);
+
+	/*
+	 * The processor local as well as remote exception-handling may have
+	 * changed the scheduling of the local activities. Hence we must update the
+	 * occupant.
+	 */
+	bool updated, refreshed;
+	Processor_client * const new_client =
+		_scheduler.update_occupant(updated, refreshed);
+
+	/**
+	 * There are three scheduling situations we have to deal with:
+	 *
+	 * The client has not changed and didn't yield:
+	 *
+	 *    The client must not update its time-slice state as the timer
+	 *    can continue as is and hence keeps providing the information.
+	 *
+	 * The client has changed or did yield and the previous client
+	 * received a fresh timeslice:
+	 *
+	 *    The previous client can reset his time-slice state.
+	 *    The timer must be re-programmed according to the time-slice
+	 *    state of the new client.
+	 *
+	 * The client has changed and the previous client did not receive
+	 * a fresh timeslice:
+	 *
+	 *    The previous client must update its time-slice state. The timer
+	 *    must be re-programmed according to the time-slice state of the
+	 *    new client.
+	 */
+	if (updated) {
+		unsigned const tics_per_slice = _tics_per_slice();
+		if (refreshed) { old_client->reset_tics_consumed(); }
+		else {
+			unsigned const tics_left = _timer->value(_id);
+			old_client->update_tics_consumed(tics_left, tics_per_slice);
+		}
+		_update_timer(new_client->tics_consumed(), tics_per_slice);
+	}
+	/**
+	 * Apply the CPU state of the new client and continue his execution
+	 */
+	Cpu_lazy_state * const new_state = new_client->lazy_state();
+	prepare_proceeding(old_state, new_state);
+	new_client->proceed(_id);
+}

@@ -116,7 +116,7 @@ class Kernel::Scheduler
 		Double_list<T> _items[Priority::MAX + 1];
 		bool           _yield;
 
-		bool _check_update(T * const occupant)
+		bool _does_update(T * const occupant)
 		{
 			if (_yield) {
 				_yield = false;
@@ -138,18 +138,29 @@ class Kernel::Scheduler
 		/**
 		 * Adjust occupant reference to the current scheduling plan
 		 *
-		 * \return  updated occupant reference
+		 * \param updated    true on return if the occupant has changed/yielded
+		 * \param refreshed  true on return if the occupant got a new timeslice
+		 *
+		 * \return  updated occupant
 		 */
-		T * update_occupant(bool & update)
+		T * update_occupant(bool & updated, bool & refreshed)
 		{
 			for (int i = Priority::MAX; i >= 0 ; i--) {
-				T * const head = _items[i].head();
-				if (!head) { continue; }
-				update = _check_update(head);
-				_occupant = head;
-				return head;
+				T * const new_occupant = _items[i].head();
+				if (!new_occupant) { continue; }
+				updated                = _does_update(new_occupant);
+				T * const old_occupant = _occupant;
+				if (!old_occupant) { refreshed = true; }
+				else {
+					unsigned const new_prio = new_occupant->priority();
+					unsigned const old_prio = old_occupant->priority();
+					refreshed               = new_prio <= old_prio;
+				}
+				_occupant = new_occupant;
+				return new_occupant;
 			}
-			update = _check_update(_idle);
+			updated   = _does_update(_idle);
+			refreshed = true;
 			_occupant = 0;
 			return _idle;
 		}

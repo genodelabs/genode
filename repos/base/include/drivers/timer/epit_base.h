@@ -114,7 +114,9 @@ namespace Genode
 
 				/* disable timer */
 				write<Cr::En>(0);
-				clear_interrupt(0);
+
+				/* clear interrupt */
+				write<Sr::Ocif>(1);
 			}
 
 			void _start_one_shot(unsigned const tics)
@@ -157,21 +159,32 @@ namespace Genode
 			{
 				/* disable timer */
 				write<Cr::En>(0);
-
-				/* if the timer has hit zero already return 0 */
-				return read<Sr::Ocif>() ? 0 : read<Cnt>();
+				return value(0);
 			}
-
-			/**
-			 * Clear interrupt output line
-			 */
-			void clear_interrupt(unsigned) { write<Sr::Ocif>(1); }
 
 			/**
 			 * Translate milliseconds to a native timer value
 			 */
-			static unsigned ms_to_tics(unsigned const ms) {
-				return TICS_PER_MS * ms; }
+			unsigned ms_to_tics(unsigned const ms)
+			{
+				return TICS_PER_MS * ms;
+			}
+
+			/**
+			 * Translate native timer value to milliseconds
+			 */
+			unsigned tics_to_ms(unsigned const tics)
+			{
+				return tics / TICS_PER_MS;
+			}
+
+			/**
+			 * Return current native timer value
+			 */
+			unsigned value(unsigned const)
+			{
+				return read<Sr::Ocif>() ? 0 : read<Cnt>();
+			}
 	};
 }
 

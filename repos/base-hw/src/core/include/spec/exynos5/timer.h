@@ -228,11 +228,13 @@ class Genode::Timer : public Mmio
 		{
 			switch (processor_id) {
 			case 0:
+				write<L0_int_cstat::Frcnt>(1);
 				_run_0(0);
 				_acked_write<L0_frcntb, L0_wstat::Frcntb>(tics);
 				_run_0(1);
 				return;
 			case 1:
+				write<L1_int_cstat::Frcnt>(1);
 				_run_1(0);
 				_acked_write<L1_frcntb, L1_wstat::Frcntb>(tics);
 				_run_1(1);
@@ -246,36 +248,11 @@ class Genode::Timer : public Mmio
 		 */
 		unsigned ms_to_tics(unsigned const ms) { return ms * _tics_per_ms; }
 
-		/**
-		 * Clear interrupt output line
-		 */
-		void clear_interrupt(unsigned const processor_id)
-		{
-			switch (processor_id) {
-			case 0:
-				write<L0_int_cstat::Frcnt>(1);
-				return;
-			case 1:
-				write<L1_int_cstat::Frcnt>(1);
-				return;
-			default: return;
-			}
-		}
-
 		unsigned value(unsigned const processor_id)
 		{
 			switch (processor_id) {
 			case 0:  return read<L0_frcnto>();
 			case 1:  return read<L1_frcnto>();
-			default: return 0;
-			}
-		}
-
-		unsigned irq_state(unsigned const processor_id)
-		{
-			switch (processor_id) {
-			case 0:  return read<L0_int_cstat::Frcnt>();
-			case 1:  return read<L1_int_cstat::Frcnt>();
 			default: return 0;
 			}
 		}

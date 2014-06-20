@@ -35,6 +35,11 @@ namespace Genode
 		struct Load : Register<0x0, 32> { };
 
 		/**
+		 * Counter value register
+		 */
+		struct Counter : Register<0x4, 32> { };
+
+		/**
 		 * Timer control register
 		 */
 		struct Control : Register<0x8, 32>
@@ -51,17 +56,14 @@ namespace Genode
 			struct Event : Bitfield<0,1> { }; /* if counter hit zero */
 		};
 
-		void _clear_interrupt() { write<Interrupt_status::Event>(1); }
-
 		public:
 
 			/**
-			 * Constructor, clears the interrupt output
+			 * Constructor
 			 */
 			Timer() : Mmio(Cpu::PRIVATE_TIMER_MMIO_BASE)
 			{
 				write<Control::Timer_enable>(0);
-				_clear_interrupt();
 			}
 
 			/**
@@ -80,7 +82,7 @@ namespace Genode
 			inline void start_one_shot(unsigned const tics, unsigned)
 			{
 				/* reset timer */
-				_clear_interrupt();
+				write<Interrupt_status::Event>(1);
 				Control::access_t control = 0;
 				Control::Irq_enable::set(control, 1);
 				write<Control>(control);
@@ -99,9 +101,9 @@ namespace Genode
 			}
 
 			/**
-			 * Clear interrupt output line
+			 * Return current native timer value
 			 */
-			void clear_interrupt(unsigned) { _clear_interrupt(); }
+			unsigned value(unsigned const) { return read<Counter>(); }
 	};
 }
 

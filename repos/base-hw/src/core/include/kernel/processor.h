@@ -96,6 +96,8 @@ class Kernel::Processor_client : public Processor_scheduler::Item
 		Processor *    _processor;
 		Cpu_lazy_state _lazy_state;
 
+		unsigned _tics_consumed;
+
 		/**
 		 * Handle an interrupt exception that occured during execution
 		 *
@@ -143,7 +145,8 @@ class Kernel::Processor_client : public Processor_scheduler::Item
 		Processor_client(Processor * const processor, Priority const priority)
 		:
 			Processor_scheduler::Item(priority),
-			_processor(processor)
+			_processor(processor),
+			_tics_consumed(0)
 		{ }
 
 		/**
@@ -155,12 +158,30 @@ class Kernel::Processor_client : public Processor_scheduler::Item
 			_unschedule();
 		}
 
+		/**
+		 * Update how many tics the client consumed from its current time slice
+		 *
+		 * \param tics_left       tics that aren't consumed yet at the slice
+		 * \param tics_per_slice  tics that the slice provides
+		 */
+		void update_tics_consumed(unsigned const tics_left,
+		                          unsigned const tics_per_slice)
+		{
+			unsigned const old_tics_left = tics_per_slice - _tics_consumed;
+			_tics_consumed += old_tics_left - tics_left;
+		}
+
+		/**
+		 * Reset how many tics the client consumed from its current time slice
+		 */
+		void reset_tics_consumed() { _tics_consumed = 0; }
 
 		/***************
 		 ** Accessors **
 		 ***************/
 
 		Cpu_lazy_state * lazy_state() { return &_lazy_state; }
+		unsigned tics_consumed() { return _tics_consumed; }
 };
 
 class Kernel::Processor : public Cpu
@@ -172,13 +193,18 @@ class Kernel::Processor : public Cpu
 		bool                _ip_interrupt_pending;
 		Timer * const       _timer;
 
-		/**
-		 * Reset the scheduling timer for a new scheduling interval
-		 */
-		void _reset_timer()
+		void _start_timer(unsigned const tics) {
+			_timer->start_one_shot(tics, _id); }
+
+		unsigned _tics_per_slice() {
+			return _timer->ms_to_tics(USER_LAP_TIME_MS); }
+
+		void _update_timer(unsigned const tics_consumed,
+		                   unsigned const tics_per_slice)
 		{
-			unsigned const tics = _timer->ms_to_tics(USER_LAP_TIME_MS);
-			_timer->start_one_shot(tics, _id);
+			assert(tics_consumed <= tics_per_slice);
+			if (tics_consumed >= tics_per_slice) { _start_timer(1); }
+			else { _start_timer(tics_per_slice - tics_consumed); }
 		}
 
 	public:
@@ -200,7 +226,7 @@ class Kernel::Processor : public Cpu
 		/**
 		 * Initializate on the processor that this object corresponds to
 		 */
-		void init_processor_local() { _reset_timer(); }
+		void init_processor_local() { _update_timer(0, _tics_per_slice()); }
 
 		/**
 		 * Check for a scheduling timeout and handle it in case
@@ -213,7 +239,6 @@ class Kernel::Processor : public Cpu
 		{
 			if (_timer->interrupt_id(_id) != interrupt_id) { return false; }
 			_scheduler.yield_occupation();
-			_timer->clear_interrupt(_id);
 			return true;
 		}
 
@@ -237,30 +262,7 @@ class Kernel::Processor : public Cpu
 		/**
 		 * Handle exception of the processor and proceed its user execution
 		 */
-		void exception()
-		{
-			/*
-			 * Request the current occupant without any update. While the
-			 * processor was outside the kernel, another processor may have changed the
-			 * scheduling of the local activities in a way that an update would return
-			 * an occupant other than that whose exception caused the kernel entry.
-			 */
-			Processor_client * const old_client = _scheduler.occupant();
-			Cpu_lazy_state * const old_state = old_client->lazy_state();
-			old_client->exception(_id);
-
-			/*
-			 * The processor local as well as remote exception-handling may have
-			 * changed the scheduling of the local activities. Hence we must update the
-			 * occupant.
-			 */
-			bool update;
-			Processor_client * const new_client = _scheduler.update_occupant(update);
-			if (update) { _reset_timer(); }
-			Cpu_lazy_state * const new_state = new_client->lazy_state();
-			prepare_proceeding(old_state, new_state);
-			new_client->proceed(_id);
-		}
+		void exception();
 
 		/***************
 		 ** Accessors **
