@@ -43,6 +43,8 @@ struct Menubar : Menubar_state
 	virtual void state(Menubar_state) = 0;
 
 	Menubar_state state() const { return *this; }
+
+	virtual View &view() = 0;
 };
 
 #endif

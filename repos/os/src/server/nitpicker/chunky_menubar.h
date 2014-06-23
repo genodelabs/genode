@@ -104,6 +104,8 @@ class Chunky_menubar : public Texture<PT>,
 			           session_label.string(), WHITE, "", session_color);
 		}
 
+		View &view() override { return *this; }
+
 		using Menubar::state;
 };
 

@@ -59,6 +59,7 @@ class User_state : public Mode, public View_stack
 		 */
 		bool _global_key_sequence = false;
 
+		void _update_menubar();
 		void _update_all();
 
 	public:

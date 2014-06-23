@@ -76,6 +76,8 @@ class View_stack
 		void _mark_view_as_dirty(View &view, Rect rect)
 		{
 			_dirty_rect.mark_as_dirty(rect);
+
+			view.mark_as_dirty(rect);
 		}
 
 	public:
@@ -96,7 +98,8 @@ class View_stack
 		void size(Area size)
 		{
 			_size = size;
-			_dirty_rect.mark_as_dirty(Rect(Point(0, 0), _size));
+
+			update_all_views();
 		}
 
 		/**
@@ -124,8 +127,23 @@ class View_stack
 		 */
 		void update_all_views()
 		{
-			_place_labels(Rect(Point(), _size));
-			_dirty_rect.mark_as_dirty(Rect(Point(), _size));
+			Rect const whole_screen(Point(), _size);
+
+			_place_labels(whole_screen);
+			_dirty_rect.mark_as_dirty(whole_screen);
+
+			for (View *view = _first_view(); view; view = view->view_stack_next())
+				view->mark_as_dirty(_outline(*view));
+
+		}
+
+		/**
+		 * mark all view-local dirty rectangles a clean
+		 */
+		void mark_all_views_as_clean()
+		{
+			for (View *view = _first_view(); view; view = view->view_stack_next())
+				view->mark_as_clean();
 		}
 
 		/**
@@ -150,7 +168,7 @@ class View_stack
 				                                    rect.p2() + offset),
 				                               view->abs_geometry());
 
-				_mark_view_as_dirty(*view, r);
+				refresh_view(*view, r);
 			}
 		}
 
@@ -159,7 +177,17 @@ class View_stack
 		 *
 		 * \param view  view that should be updated on screen
 		 */
-		void refresh_view(View const &view, Rect);
+		void refresh_view(View &view, Rect);
+
+		/**
+		 * Refresh entire view
+		 */
+		void refresh_view(View &view) { refresh_view(view, _outline(view)); }
+
+		/**
+		 * Refresh area
+		 */
+		void refresh(Rect);
 
 		/**
 		 * Define view geometry
@@ -186,7 +214,7 @@ class View_stack
 		 * bottom of the view stack, specify neighbor = 0 and
 		 * behind = false.
 		 */
-		void stack(View const &view, View const *neighbor = 0, bool behind = true);
+		void stack(View &view, View const *neighbor = 0, bool behind = true);
 
 		/**
 		 * Set view title

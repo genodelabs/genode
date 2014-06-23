@@ -41,7 +41,7 @@ User_state::User_state(Global_keys &global_keys, Area view_stack_size, Menubar &
 { }
 
 
-void User_state::_update_all()
+void User_state::_update_menubar()
 {
 	Menubar_state state(*this, "", BLACK);
 
@@ -51,6 +51,14 @@ void User_state::_update_all()
 		                      _input_receiver->color());
 
 	_menubar.state(state);
+
+	refresh_view(_menubar.view(), _menubar.view().abs_geometry());
+}
+
+
+void User_state::_update_all()
+{
+	_update_menubar();
 	update_all_views();
 }
 
@@ -276,5 +284,5 @@ void User_state::focused_session(::Session *session)
 	if (!_global_key_sequence)
 		_input_receiver = session;
 
-	_update_all();
+	_update_menubar();
 }

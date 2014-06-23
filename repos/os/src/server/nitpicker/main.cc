@@ -1164,6 +1164,8 @@ void Nitpicker::Main::handle_input(unsigned)
 			framebuffer.refresh(rect.x1(), rect.y1(),
 			                    rect.w(),  rect.h()); });
 
+		user_state.mark_all_views_as_clean();
+
 		/* deliver framebuffer synchronization events */
 		if (!user_state.kill()) {
 			for (::Session *s = session_list.first(); s; s = s->next())

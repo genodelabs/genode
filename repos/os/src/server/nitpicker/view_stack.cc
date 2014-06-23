@@ -209,8 +209,9 @@ void View_stack::draw_rec(Canvas_base &canvas, View const *view, Rect rect) cons
 	if (next && left.valid()) draw_rec(canvas, next, left);
 
 	/* draw current view */
-	{
-		Clip_guard clip_guard(canvas, clipped);
+	view->dirty_rect().flush([&] (Rect const &dirty_rect) {
+
+		Clip_guard clip_guard(canvas, Rect::intersect(clipped, dirty_rect));
 
 		/* draw background if view is transparent */
 		if (view->uses_alpha())
@@ -218,7 +219,7 @@ void View_stack::draw_rec(Canvas_base &canvas, View const *view, Rect rect) cons
 
 		view->frame(canvas, _mode);
 		view->draw(canvas, _mode);
-	}
+	});
 
 	/* draw areas at the bottom/right of the current view */
 	if (next &&  right.valid()) draw_rec(canvas, next, right);
@@ -226,14 +227,32 @@ void View_stack::draw_rec(Canvas_base &canvas, View const *view, Rect rect) cons
 }
 
 
-void View_stack::refresh_view(View const &view, Rect const rect)
+void View_stack::refresh_view(View &view, Rect const rect)
 {
-	/* clip argument agains view outline */
-	Rect const intersection = Rect::intersect(rect, _outline(view));
+	/* rectangle constrained to view geometry */
+	Rect const view_rect = Rect::intersect(rect, _outline(view));
 
-	_dirty_rect.mark_as_dirty(intersection);
+	for (View *v = _first_view(); v; v = v->view_stack_next()) {
 
-	view.for_each_child([&] (View const &child) { refresh_view(child, rect); });
+		Rect const intersection = Rect::intersect(view_rect, _outline(*v));
+
+		if (intersection.valid())
+			_mark_view_as_dirty(*v, intersection);
+	}
+
+	view.for_each_child([&] (View &child) { refresh_view(child, rect); });
+}
+
+
+void View_stack::refresh(Rect const rect)
+{
+	for (View *v = _first_view(); v; v = v->view_stack_next()) {
+
+		Rect const intersection = Rect::intersect(rect, _outline(*v));
+
+		if (intersection.valid())
+			refresh_view(*v, intersection);
+	}
 }
 
 
@@ -241,10 +260,19 @@ void View_stack::geometry(View &view, Rect const rect)
 {
 	Rect const old_outline = _outline(view);
 
+	/*
+	 * Refresh area covered by the original view geometry.
+	 *
+	 * We specify the whole geometry to also cover the refresh of child
+	 * views. The 'refresh_view' function takes care to constrain the
+	 * refresh to the actual view geometry.
+	 */
 	refresh_view(view, Rect(Point(), _size));
 
+	/* change geometry */
 	view.geometry(Rect(rect));
 
+	/* refresh new view geometry */
 	refresh_view(view, Rect(Point(), _size));
 
 	Rect const compound = Rect::compound(old_outline, _outline(view));
@@ -263,14 +291,14 @@ void View_stack::buffer_offset(View &view, Point const buffer_off)
 }
 
 
-void View_stack::stack(View const &view, View const *neighbor, bool behind)
+void View_stack::stack(View &view, View const *neighbor, bool behind)
 {
 	_views.remove(&view);
 	_views.insert(&view, _target_stack_position(neighbor, behind));
 
 	_place_labels(view.abs_geometry());
 
-	_dirty_rect.mark_as_dirty(_outline(view));
+	_mark_view_as_dirty(view, _outline(view));
 }
 
 
@@ -279,7 +307,7 @@ void View_stack::title(View &view, const char *title)
 	view.title(title);
 	_place_labels(view.abs_geometry());
 
-	_dirty_rect.mark_as_dirty(_outline(view));
+	_mark_view_as_dirty(view, _outline(view));
 }
 
 
@@ -298,7 +326,7 @@ View *View_stack::find_view(Point p)
 
 void View_stack::remove_view(View const &view, bool redraw)
 {
-	view.for_each_child([&] (View const &child) { remove_view(child); });
+	view.for_each_const_child([&] (View const &child) { remove_view(child); });
 
 	/* remember geometry of view to remove */
 	Rect rect = _outline(view);
@@ -306,5 +334,5 @@ void View_stack::remove_view(View const &view, bool redraw)
 	/* exclude view from view stack */
 	_views.remove(&view);
 
-	_dirty_rect.mark_as_dirty(rect);
+	refresh(rect);
 }

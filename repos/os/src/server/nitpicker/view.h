@@ -92,6 +92,7 @@ class View : public Same_buffer_list_elem,
 		Point      _buffer_off;     /* offset to the visible buffer area    */
 		Session   &_session;        /* session that created the view        */
 		char       _title[TITLE_LEN];
+		Dirty_rect _dirty_rect;
 
 		Genode::List<View_parent_elem> _children;
 
@@ -154,7 +155,13 @@ class View : public Same_buffer_list_elem,
 		void remove_child(View const &child) { _children.remove(&child); }
 
 		template <typename FN>
-		void for_each_child(FN const &fn) const {
+		void for_each_child(FN const &fn) {
+			for (View_parent_elem *e = _children.first(); e; e = e->next())
+				fn(*static_cast<View *>(e));
+		}
+
+		template <typename FN>
+		void for_each_const_child(FN const &fn) const {
 			for (View_parent_elem const *e = _children.first(); e; e = e->next())
 				fn(*static_cast<View const *>(e));
 		}
@@ -242,6 +249,23 @@ class View : public Same_buffer_list_elem,
 
 			return true;
 		}
+
+		/**
+		 * Mark part of view as dirty
+		 *
+		 * \param rect  dirty rectangle in absolute coordinates
+		 */
+		void mark_as_dirty(Rect rect) { _dirty_rect.mark_as_dirty(rect); }
+
+		/**
+		 * Return dirty-rectangle information
+		 */
+		Dirty_rect dirty_rect() const { return _dirty_rect; }
+
+		/**
+		 * Reset dirty rectangle
+		 */
+		void mark_as_clean() { _dirty_rect = Dirty_rect(); }
 };
 
 #endif /* _VIEW_H_ */
