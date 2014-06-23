@@ -49,5 +49,5 @@ void Kernel::init_trustzone(Pic * pic)
 	}
 
 	/* configure central security unit */
-	Genode::Csu csu(0x63f9c000);
+	Genode::Csu csu(Imx53::Board::CSU_BASE);
 }

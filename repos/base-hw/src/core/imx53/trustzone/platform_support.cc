@@ -59,6 +59,9 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 
 		/* vm state memory */
 		{ Trustzone::VM_STATE_BASE, Trustzone::VM_STATE_SIZE },
+
+		/* central security unit */
+		{ Board::CSU_BASE, Board::CSU_SIZE },
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
