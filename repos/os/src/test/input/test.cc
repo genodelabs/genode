@@ -20,6 +20,22 @@
 
 using namespace Genode;
 
+static char const * ev_type(Input::Event::Type type)
+{
+	switch (type) {
+	case Input::Event::INVALID: return "INVALID";
+	case Input::Event::MOTION:  return "MOTION ";
+	case Input::Event::PRESS:   return "PRESS  ";
+	case Input::Event::RELEASE: return "RELEASE";
+	case Input::Event::WHEEL:   return "WHEEL  ";
+	case Input::Event::FOCUS:   return "FOCUS  ";
+	case Input::Event::LEAVE:   return "LEAVE  ";
+	}
+
+	return "";
+}
+
+
 int main(int argc, char **argv)
 {
 	/*
@@ -50,8 +66,8 @@ int main(int argc, char **argv)
 			if (ev->type() == Input::Event::RELEASE) key_cnt--;
 
 			/* log event */
-			PLOG("Input event type=%d\tcode=%d\trx=%d\try=%d\tkey_cnt=%d\t%s",
-			     ev->type(), ev->code(), ev->rx(), ev->ry(), key_cnt,
+			PLOG("Input event type=%s\tcode=%d\trx=%d\try=%d\tkey_cnt=%d\t%s",
+			     ev_type(ev->type()), ev->code(), ev->rx(), ev->ry(), key_cnt,
 			     Input::key_name(static_cast<Input::Keycode>(ev->code())));
 		}
 	}
