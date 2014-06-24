@@ -4,10 +4,8 @@
 # \date   2012-06-25
 #
 
-if {![have_spec trustzone]} {
-	puts "\nThe VMM support base-hw for Versatile Express with TrustZone support only\n"
-	exit 0
-}
+assert_spec hw_imx53
+assert_spec trustzone
 
 build "core init server/tz_vmm"
 create_boot_directory
@@ -36,13 +34,9 @@ install_config {
 </config>
 }
 
-if {[have_spec platform_imx53]} {
-	set init_uri "http://genode.org/files/images/imx53_qsb/initrd.gz"
-	set linux_uri "http://genode.org/files/images/imx53_qsb/linux_trustzone.bin"
-} elseif {[have_spec platform_vea9x4]} {
-	set init_uri "http://genode.org/files/images/vea9x4/initrd.gz"
-	set linux_uri "http://genode.org/files/images/vea9x4/linux_trustzone.bin"
-}
+set init_uri "http://genode.org/files/images/imx53_qsb/initrd.gz"
+set linux_uri "http://genode.org/files/images/imx53_qsb/linux_trustzone.bin"
+
 if {![file exists bin/initrd.gz]} {
 	puts "Download initramfs ..."
 	exec >& /dev/null wget -c -O bin/initrd.gz $init_uri
@@ -60,4 +54,19 @@ cd ..
 
 build_boot_image "core init tz_vmm linux initrd.gz"
 
-run_genode_until forever
+#
+# Execute test case
+#
+run_genode_until {.*\/ #.*} 220
+
+# Wait for network to settle down
+send "sleep 5\n"
+send "wget http://genode.org/\n"
+
+expect {
+	 -re "Connecting to genode.org.*index.html.*\/ #.*" { }
+	timeout { puts stderr "Error: Test execution timed out"; exit -2 }
+}
+
+puts "Test succeeded"
+exec rm bin/initrd.gz bin/initrd.gz.md5 bin/linux bin/linux.md5
