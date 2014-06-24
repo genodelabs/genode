@@ -222,7 +222,7 @@ class Kernel::Mode_transition_control
 		void continue_vm(Cpu_state_modes * const context,
 		                 unsigned const processor_id)
 		{
-			_continue_client(context, processor_id, _mt_vm_entry_pic);
+			_continue_client(context, processor_id, (addr_t)&_mt_vm_entry_pic);
 		}
 };
 

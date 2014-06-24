@@ -455,10 +455,6 @@
 	/* apply user pc which implies application of spsr as user psr */
 	ldm sp, {pc}^
 
-	/* end of the mode transition code */
-	.global _mt_end
-	_mt_end:
-
 	/*
 	 * On vm exceptions the CPU has to jump to one of the following
 	 * 7 entry vectors to switch to a kernel context.
@@ -488,3 +484,7 @@
 	.global _mt_vm_entry_pic
 	_mt_vm_entry_pic:
 		_kernel_to_vm
+
+	/* end of the mode transition code */
+	.global _mt_end
+	_mt_end:
