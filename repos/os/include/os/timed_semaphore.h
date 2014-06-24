@@ -155,7 +155,7 @@ namespace Genode {
 
 				protected:
 
-					bool on_alarm()
+					bool on_alarm(unsigned) override
 					{
 						/* Abort blocking operation */
 						_triggered = _sem->_abort(_element);

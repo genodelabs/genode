@@ -113,7 +113,7 @@ void Alarm_scheduler::handle(Alarm::Time curr_time)
 	while ((curr = _get_pending_alarm())) {
 
 		/* do not reschedule if alarm function returns 0 */
-		bool reschedule = curr->on_alarm();
+		bool reschedule = curr->on_alarm(1);
 
 		if (reschedule) {
 

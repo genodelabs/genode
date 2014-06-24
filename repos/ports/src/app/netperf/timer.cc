@@ -71,7 +71,7 @@ class One_shot : public Alarm
 
 	protected:
 
-		bool on_alarm()
+		bool on_alarm(unsigned) override
 		{
 			times_up = 1;
 			return false;

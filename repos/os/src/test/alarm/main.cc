@@ -70,7 +70,7 @@ class One_shot_alarm : public Alarm
 
 	protected:
 
-		bool on_alarm()
+		bool on_alarm(unsigned) override
 		{
 			printf("one-shot alarm %s triggered\n", _name);
 			return false;
@@ -95,7 +95,7 @@ class Periodic_alarm : public Alarm
 
 	protected:
 
-		bool on_alarm()
+		bool on_alarm(unsigned) override
 		{
 			printf("periodic alarm %s triggered\n", _name);
 			return true;

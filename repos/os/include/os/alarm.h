@@ -52,7 +52,7 @@ namespace Genode {
 			 * return value is 'true' and the alarm is periodically scheduled,
 			 * the alarm is scheduled again.
 			 */
-			virtual bool on_alarm() { return false; }
+			virtual bool on_alarm(unsigned) { return false; }
 
 		public:
 

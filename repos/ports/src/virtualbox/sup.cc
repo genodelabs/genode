@@ -44,7 +44,7 @@ PSUPGLOBALINFOPAGE g_pSUPGlobalInfoPage;
 
 class Periodic_GIP : public Genode::Alarm {
 
-	bool on_alarm()
+	bool on_alarm(unsigned) override
 	{
 		/**
 		 * We're using rdtsc here since timer_session->elapsed_ms produces

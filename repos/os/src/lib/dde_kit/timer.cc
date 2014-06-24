@@ -134,7 +134,7 @@ class dde_kit_timer : public Alarm, public List<dde_kit_timer>::Element
 
 	protected:
 
-		bool on_alarm()
+		bool on_alarm(unsigned) override
 		{
 			/* if timer is really pending, call registered handler function */
 			if (_pending) {

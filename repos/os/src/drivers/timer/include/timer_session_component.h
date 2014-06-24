@@ -122,9 +122,9 @@ namespace Timer {
 			 *
 			 * This function gets called by the 'Alarm_scheduler' thread.
 			 */
-			bool on_alarm()
+			bool on_alarm (unsigned cnt) override
 			{
-				Signal_transmitter(_sigh).submit();
+				Signal_transmitter(_sigh).submit(cnt);
 
 				return _periodic;
 			}

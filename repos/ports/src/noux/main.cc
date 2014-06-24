@@ -116,7 +116,8 @@ namespace Noux {
 			void discard() { _scheduler->discard(this); }
 
 		protected:
-			bool on_alarm()
+
+			bool on_alarm(unsigned) override
 			{
 				_state->timed_out = true;
 				_blocker->unlock();
