@@ -359,7 +359,7 @@ namespace Arm_v7
 		 */
 		static void start_secondary_processors(void * const ip)
 		{
-			if (PROCESSORS > 1) {
+			if (is_smp()) {
 				Genode::Board::secondary_processors_ip(ip);
 				data_synchronization_barrier();
 				asm volatile ("sev\n");

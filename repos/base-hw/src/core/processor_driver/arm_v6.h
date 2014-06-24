@@ -182,7 +182,7 @@ namespace Arm_v6
 
 		static void start_secondary_processors(void * const ip)
 		{
-			if (PROCESSORS > 1) { PERR("multiprocessing not implemented"); }
+			if (is_smp()) { PERR("multiprocessing not implemented"); }
 		}
 
 		/**

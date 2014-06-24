@@ -699,6 +699,11 @@ namespace Arm
 			base = base & LINE_ALIGNM_MASK;
 			for (; base < top; base += LINE_SIZE) { Icimvau::write(base); }
 		}
+
+		/**
+		 * Return true if the processor support multiple cores
+		 */
+		static bool is_smp() { return PROCESSORS > 1; }
 	};
 }
 

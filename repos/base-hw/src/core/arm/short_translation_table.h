@@ -22,6 +22,7 @@
 /* base-hw includes */
 #include <page_flags.h>
 #include <page_slab.h>
+#include <processor_driver.h>
 
 namespace Arm
 {
@@ -184,7 +185,7 @@ class Arm::Section_table
 						access_t v = access_permission_bits<Small_page>(flags);
 						v |= memory_region_attr<Small_page>(flags);
 						v |= Ng::bits(!flags.global);
-						v |= S::bits(1);
+						v |= S::bits(Processor_driver::is_smp());
 						v |= Pa::masked(pa);
 						Descriptor::type(v, Descriptor::SMALL_PAGE);
 						return v;
@@ -447,7 +448,7 @@ class Arm::Section_table
 				access_t v = access_permission_bits<Section>(flags);
 				v |= memory_region_attr<Section>(flags);
 				v |= Domain::bits(DOMAIN);
-				v |= S::bits(1);
+				v |= S::bits(Processor_driver::is_smp());
 				v |= Ng::bits(!flags.global);
 				v |= Pa::masked(pa);
 				Descriptor::type(v, Descriptor::SECTION);
