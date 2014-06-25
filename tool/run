@@ -720,6 +720,33 @@ proc exit {{status 0}} {
 
 
 ##
+# Load image to target hardware via JTAG
+#
+proc jtag_load { } {
+	if {![have_spec arm] || ![have_installed openocd]} {
+		puts "No support for JTAG detected."
+		exit -1
+	}
+
+	set debugger [get_cmd_arg --jtag-debugger 1]
+	set board    [get_cmd_arg --jtag-board 1]
+	set elf_img "[run_dir]/image.elf"
+
+	# parse ELF entrypoint
+	set entrypoint [exec [cross_dev_prefix]readelf -h $elf_img | \
+	                grep "Entry point address: " | \
+	                sed -e "s/.*Entry point address: *//"]
+	eval spawn openocd -f $debugger -f $board -c init -c halt -c \"load_image $elf_img\" -c \"resume $entrypoint\"
+	set jtag_spawn_id $spawn_id
+	set timeout 210
+	expect {
+		"downloaded"  { }
+		eof     { puts stderr "openocd command process died unexpectedly" }
+		timeout { puts stderr "Loading timed out" }
+	}
+}
+
+##
 # Execute scenario expecting output via serial device
 #
 proc spawn_serial { wait_for_re timeout_value kernel_msg } {
@@ -732,6 +759,10 @@ proc spawn_serial { wait_for_re timeout_value kernel_msg } {
 
 		if {[regexp "reset" $run_target]} {
 			power_plug_reset
+		}
+
+		if {[regexp "jtag" $run_target]} {
+			jtag_load
 		}
 
 		eval spawn $serial_cmd
