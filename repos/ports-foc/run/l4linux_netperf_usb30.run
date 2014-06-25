@@ -8,6 +8,11 @@ if {[is_qemu_available]} {
 	exit
 }
 
+#
+# Remove when testing USB 3.0 on x86
+#
+assert_spec foc_arndale
+
 # network configuration
 set use_nic_bridge      0
 
