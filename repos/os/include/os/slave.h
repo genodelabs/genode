@@ -97,6 +97,11 @@ namespace Genode {
 				_config_policy.load(config, Genode::strlen(config) + 1);
 			}
 
+			void configure(char const *config, size_t len)
+			{
+				_config_policy.load(config, len);
+			}
+
 
 			/****************************
 			 ** Child_policy interface **
