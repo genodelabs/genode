@@ -7,9 +7,7 @@
 assert_spec foc
 assert_spec 32bit
 
-if {[have_spec arm]} {
 assert_spec foc_arndale
-}
 
 set ip [check_installed ip]
 set wget [check_installed wget]
