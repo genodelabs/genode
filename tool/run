@@ -83,6 +83,23 @@ proc lappend_if {condition var string} {
 }
 
 
+##
+# Check syntax of specified XML file using xmllint
+#
+proc check_xml_syntax {xml_file} {
+
+	if {![have_installed xmllint]} {
+		puts "Warning: Cannot validate config syntax (please install xmllint)"
+		return;
+	}
+
+	if {[catch {exec xmllint --noout $xml_file} result]} {
+		puts stderr $result
+		puts stderr "Error: Invalid XML syntax in file [run_dir]/config"
+		exit 1
+	}
+}
+
 
 ##
 # Install content of specfied variable as init config file
@@ -91,6 +108,8 @@ proc install_config {config} {
 	set fh [open "[run_dir]/genode/config" "WRONLY CREAT TRUNC"]
 	puts $fh $config
 	close $fh
+
+	check_xml_syntax [run_dir]/genode/config
 }
 
 

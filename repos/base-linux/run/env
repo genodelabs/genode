@@ -17,6 +17,8 @@ proc install_config {config} {
 	set fh [open "[run_dir]/config" "WRONLY CREAT TRUNC"]
 	puts $fh $config
 	close $fh
+
+	check_xml_syntax [run_dir]/config
 }
 
 
