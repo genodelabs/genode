@@ -82,6 +82,15 @@ class Ps2_mouse : public Input_driver
 		int           _packet_len;
 		int           _packet_idx;
 
+		void _check_for_event_queue_overflow()
+		{
+			if (_ev_queue.avail_capacity())
+				return;
+
+			PWRN("event queue overflow - dropping events");
+			_ev_queue.reset();
+		}
+
 		/**
 		 * Generate mouse button event on state changes
 		 *
@@ -96,6 +105,8 @@ class Ps2_mouse : public Input_driver
 
 			if (verbose)
 				Genode::printf("post %s, key_code = %d\n", new_state ? "PRESS" : "RELEASE", key_code);
+
+			_check_for_event_queue_overflow();
 
 			_ev_queue.add(Input::Event(new_state ? Input::Event::PRESS
 			                                     : Input::Event::RELEASE,
@@ -223,6 +234,8 @@ class Ps2_mouse : public Input_driver
 				if (verbose)
 					Genode::printf("post MOTION, rel_x = %d, rel_y = %d\n", rel_x, rel_y);
 
+				_check_for_event_queue_overflow();
+
 				_ev_queue.add(Input::Event(Input::Event::MOTION,
 				                           0, 0, 0, rel_x, rel_y));
 			}
@@ -242,6 +255,8 @@ class Ps2_mouse : public Input_driver
 
 				if (verbose)
 					Genode::printf("post WHEEL, rel_z = %d\n", rel_z);
+
+				_check_for_event_queue_overflow();
 
 				_ev_queue.add(Input::Event(Input::Event::WHEEL,
 				                           0, 0, 0, 0, rel_z));
