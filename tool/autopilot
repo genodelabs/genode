@@ -58,6 +58,7 @@ proc help { } {
 		  --stdout            print test output instead of writing log files
 		  --skip-clean-rules  skip cleanall tests, keep build-directory content
 		  --enable-ccache     use ccache instead of plain gcc
+		  --time-stamp        prepend log output lines with time stamps (requires ts utility)
 		}
 
 	append help_text "\ndefault test directory is [default_test_dir]\n"
@@ -166,7 +167,12 @@ proc execute_run_script { platform run_script } {
 	set fd [log_fd $platform $run_script]
 
 	if {[catch {
-		exec make -C [build_dir $platform] [file join run $run_script] >&@ $fd
+		if {[get_cmd_switch --time-stamp]} {
+			exec make -C [build_dir $platform] [file join run $run_script] \
+			  |& ts "\[%F %H:%M:%S\]" >&@ $fd
+		} else {
+			exec make -C [build_dir $platform] [file join run $run_script] >&@ $fd
+		}
 	}]} {
 		set return_value false
 	}
@@ -315,6 +321,18 @@ proc print_step_label { platform step } {
 }
 
 
+##
+# Return string for elapsed time
+#
+proc elapsed_time { time_start time_end } {
+	set total   [expr $time_end - $time_start]
+	set minutes [expr $total / 60]
+	set seconds [expr $total % 60]
+
+	return [format "%d:%02d" $minutes $seconds]
+}
+
+
 # default exit value used if all tests went successfully
 set exit_value 0
 
@@ -326,14 +344,19 @@ foreach platform $platforms {
 
 	foreach run_script $run_scripts {
 		print_step_label $platform $run_script
-		if {[execute_run_script $platform $run_script]} {
-			puts stderr "-> OK"
+
+		set time_start [clock seconds]
+		set result [execute_run_script $platform $run_script]
+		set elapsed [elapsed_time $time_start [clock seconds]]
+
+		if {$result} {
+			puts stderr "-> OK ($elapsed)"
 		} else {
 
 			if {[build_failed_because_of_missing_run_script $platform $run_script]} {
 				puts stderr "-> UNAVAILABLE"
 			} else {
-				puts stderr "-> ERROR"
+				puts stderr "-> ERROR ($elapsed)"
 				set exit_value -1
 			}
 		}
