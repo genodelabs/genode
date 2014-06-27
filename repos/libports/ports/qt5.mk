@@ -12,7 +12,8 @@ QT5_URL = http://download.qt-project.org/official_releases/qt/5.1/$(QT_VERSION)/
 QT5_TGZ = $(QT5).tar.gz
 QT5_MD5 = 787ce18c7f47fc14538b4362a0aa9edd
 
-QTSCRIPTCLASSIC_URL = http://ftp.heanet.ie/mirrors/ftp.trolltech.com/pub/qt/solutions/lgpl
+QTSCRIPTCLASSIC_URL =  ftp://ftp.informatik.hu-berlin.de/pub/Mirrors/ftp.troll.no/QT/qt/solutions/lgpl
+#QTSCRIPTCLASSIC_URL = http://ftp.heanet.ie/mirrors/ftp.trolltech.com/pub/qt/solutions/lgpl
 QTSCRIPTCLASSIC     = qtscriptclassic-1.0_1-opensource
 QTSCRIPTCLASSIC_TGZ = $(QTSCRIPTCLASSIC).tar.gz
 QTSCRIPTCLASSIC_MD5 = a835edfa9de2206ebfaebcb1267453bf
