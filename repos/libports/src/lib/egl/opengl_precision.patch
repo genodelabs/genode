@@ -10,10 +10,8 @@ the compile errors and didn't seem to cause any problems so far.
  src/mesa/shader/slang/slang_compile.c |    2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/src/mesa/shader/slang/slang_compile.c b/src/mesa/shader/slang/slang_compile.c
-index ad86676..101623d 100644
---- a/src/mesa/shader/slang/slang_compile.c
-+++ b/src/mesa/shader/slang/slang_compile.c
+--- src/lib/mesa/src/mesa/shader/slang/slang_compile.c
+--- src/lib/mesa/src/mesa/shader/slang/slang_compile.c
 @@ -2571,7 +2571,7 @@ parse_code_unit(slang_parse_ctx * C, slang_code_unit * unit,
  #if FEATURE_es2_glsl
     o.allow_precision = GL_TRUE;

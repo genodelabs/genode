@@ -2,8 +2,8 @@ Reduce memory allocated in 'sp_context.c' used for caching. By default,
 more than 100 MB of memory gets allocated via malloc. We override the
 definitions in 'gallium/include/pipe/p_state.h' to reduce the footprint.
 
---- src/gallium/include/pipe/p_state.h	2010-04-05 18:05:15.000000000 +0200
-+++ src/gallium/include/pipe/p_state.h	2010-08-07 22:45:24.000000000 +0200
+--- src/lib/mesa/src/gallium/include/pipe/p_state.h
+--- src/lib/mesa/src/gallium/include/pipe/p_state.h
 @@ -56,10 +56,10 @@
   */
  #define PIPE_MAX_ATTRIBS          32

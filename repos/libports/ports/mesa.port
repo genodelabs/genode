@@ -6,6 +6,9 @@ URL(mesa) := ftp://ftp.freedesktop.org/pub/mesa/older-versions/7.x/$(VERSION)/Me
 SHA(mesa) := 74e72b56c7ae779649c18867fe9e0865f3bfc057
 DIR(mesa) := src/lib/mesa
 
+PATCHES := src/lib/gallium/p_state_config.patch \
+           src/lib/egl/opengl_precision.patch
+
 DIRS := include include/EGL
 DIR_CONTENT(include)     := $(addprefix src/lib/mesa/include/,GL KHR)
 DIR_CONTENT(include/EGL) := $(addprefix src/lib/mesa/include/EGL/,egl.h eglext.h)
