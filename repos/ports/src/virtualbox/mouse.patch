@@ -1,0 +1,33 @@
+This patch avoids an assertion in the VboxBFE frontend when the PS/2 model does
+not manage to read out the mouse events quick enough. The PS/2 model is still
+alive but reads out the buffer with some delay.
+
++++ src/app/virtualbox/src/VBox/Devices/Input/DrvMouseQueue.cpp
+@@ -101,6 +101,7 @@
+ /**
+  * @interface_method_impl{PDMIMOUSEPORT,pfnPutEvent}
+  */
++#include <base/printf.h>
+ static DECLCALLBACK(int) drvMouseQueuePutEvent(PPDMIMOUSEPORT pInterface, int32_t iDeltaX, int32_t iDeltaY, int32_t iDeltaZ, int32_t iDeltaW, uint32_t fButtonStates)
+ {
+     PDRVMOUSEQUEUE pDrv = IMOUSEPORT_2_DRVMOUSEQUEUE(pInterface);
+@@ -121,7 +122,8 @@
+         PDMQueueInsert(pDrv->pQueue, &pItem->Core);
+         return VINF_SUCCESS;
+     }
+-    return VERR_PDM_NO_QUEUE_ITEMS;
++    PERR("%s - drop event", __func__);
++    return VINF_SUCCESS;
+ }
+ 
+ /**
+@@ -147,7 +149,8 @@
+         PDMQueueInsert(pDrv->pQueue, &pItem->Core);
+         return VINF_SUCCESS;
+     }
+-    return VERR_PDM_NO_QUEUE_ITEMS;
++    PERR("%s - drop event", __func__);
++    return VINF_SUCCESS;
+ }
+ 
+ 
