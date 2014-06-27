@@ -112,8 +112,20 @@ void Alarm_scheduler::handle(Alarm::Time curr_time)
 
 	while ((curr = _get_pending_alarm())) {
 
+		unsigned long triggered = 1;
+
+		if (curr->_period) {
+			Alarm::Time deadline = curr->_deadline;
+
+			/* schedule next event */
+			if (deadline == 0)
+				 deadline = curr_time;
+
+			triggered += (curr_time - deadline) / curr->_period;
+		}
+
 		/* do not reschedule if alarm function returns 0 */
-		bool reschedule = curr->on_alarm(1);
+		bool reschedule = curr->on_alarm(triggered);
 
 		if (reschedule) {
 
@@ -121,7 +133,7 @@ void Alarm_scheduler::handle(Alarm::Time curr_time)
 			if (curr->_deadline == 0)
 				curr->_deadline = _now;
 
-			curr->_deadline += curr->_period;
+			curr->_deadline += triggered * curr->_period;
 
 			/* synchronize enqueue operation */
 			Lock::Guard lock_guard(_lock);
