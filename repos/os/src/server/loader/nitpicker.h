@@ -19,295 +19,259 @@
 #include <util/arg_string.h>
 #include <util/misc_math.h>
 #include <base/signal.h>
+#include <os/attached_ram_dataspace.h>
 #include <nitpicker_session/connection.h>
 #include <nitpicker_session/nitpicker_session.h>
-#include <nitpicker_view/client.h>
 
 /* local includes */
 #include <input.h>
 
-namespace Nitpicker {
-
-	using namespace Genode;
-
-	/**
-	 * View interface provided to the loader client
-	 */
-	class Loader_view_component : public Rpc_object<View>
-	{
-		private:
-
-			View_client _view;  /* wrapped view */
-
-			int _x, _y, _buf_x, _buf_y;
-
-		public:
-
-			/**
-			 * Constructor
-			 */
-			Loader_view_component(View_capability view_cap)
-			:
-				_view(view_cap), _x(0), _y(0), _buf_x(0), _buf_y(0)
-			{ }
-
-			int x()     const { return _x; }
-			int y()     const { return _y; }
-			int buf_x() const { return _buf_x; }
-			int buf_y() const { return _buf_y; }
+namespace Nitpicker { class Session_component; }
 
 
-			/******************************
-			 ** Nitpicker view interface **
-			 ******************************/
+class Nitpicker::Session_component : public Genode::Rpc_object<Session>
+{
+	private:
 
-			int viewport(int x, int y, int w, int h,
-			             int buf_x, int buf_y, bool redraw)
-			{
-				_x = x, _y = y, _buf_x = buf_x, _buf_y = buf_y;
+		/**
+		 * Signal handler to be notified once the geometry of the view is
+		 * known.
+		 */
+		Genode::Signal_context_capability _view_ready_sigh;
 
-				return _view.viewport(x, y, w, h, buf_x, buf_y, redraw);
+		Genode::Rpc_entrypoint &_ep;
+
+		Area _max_size;
+
+		Nitpicker::Connection _nitpicker;
+
+		View_handle _parent_view_handle;
+
+		/*
+		 * Physical view
+		 */
+		View_handle _view_handle;
+		Rect        _view_geometry;
+		Point       _view_offset;
+
+		/*
+		 * Geometry of virtual view presented to the loaded subsystem
+		 */
+		Rect  _virt_view_geometry;
+		Point _virt_view_offset;
+		bool  _virt_view_geometry_defined = false;
+
+		Input::Motion_delta _motion_delta;
+
+		Input::Session_component  _proxy_input;
+		Input::Session_capability _proxy_input_cap;
+
+		static long _session_arg(const char *arg, const char *key) {
+			return Genode::Arg_string::find_arg(arg, key).long_value(0); }
+
+		/*
+		 * Command buffer
+		 */
+		typedef Nitpicker::Session::Command_buffer Command_buffer;
+		Genode::Attached_ram_dataspace _command_ds;
+		Command_buffer &_command_buffer = *_command_ds.local_addr<Command_buffer>();
+
+		void _propagate_view_offset()
+		{
+			_nitpicker.enqueue<Command::Offset>(_view_handle,
+			                                    _view_offset + _virt_view_offset);
+		}
+
+		void _update_motion_delta()
+		{
+			_motion_delta = _virt_view_geometry.p1() - _view_geometry.p1();
+		}
+
+		void _execute_command(Command const &command)
+		{
+			switch (command.opcode) {
+
+			case Command::OP_GEOMETRY:
+				{
+					_virt_view_geometry = command.geometry.rect;
+
+					if (!_virt_view_geometry_defined)
+						Genode::Signal_transmitter(_view_ready_sigh).submit();
+
+					_virt_view_geometry_defined = true;
+
+					_update_motion_delta();
+					return;
+				}
+
+			case Command::OP_OFFSET:
+				{
+					_virt_view_offset = command.offset.offset;
+					_propagate_view_offset();
+					_nitpicker.execute();
+					return;
+				}
+
+			case Command::OP_TO_FRONT:
+				{
+					_nitpicker.enqueue<Command::To_front>(_view_handle, _parent_view_handle);
+					_nitpicker.execute();
+					return;
+				}
+
+			case Command::OP_TO_BACK:
+				{
+					PDBG("OP_TO_BACK not implemented");
+					return;
+				}
+
+			case Command::OP_BACKGROUND:
+				{
+					PDBG("OP_BACKGROUND not implemented");
+					return;
+				}
+
+			case Command::OP_TITLE:
+				{
+					_nitpicker.enqueue(command);
+					_nitpicker.execute();
+					return;
+				}
+
+			case Command::OP_NOP:
+				return;
 			}
+		}
 
-			int stack(View_capability neighbor_cap, bool behind, bool redraw)
-			{
-				return _view.stack(neighbor_cap, behind, redraw);
-			}
+	public:
 
-			int title(Title const &title)
-			{
-				return _view.title(title.string());
-			}
-	};
+		/**
+		 * Constructor
+		 */
+		Session_component(Genode::Rpc_entrypoint            &ep,
+		                  Genode::Ram_session               &ram,
+		                  Area                               max_size,
+		                  Nitpicker::View_capability         parent_view,
+		                  Genode::Signal_context_capability  view_ready_sigh,
+		                  const char                        *args)
+		:
+			_view_ready_sigh(view_ready_sigh),
+			_ep(ep),
+			_max_size(max_size),
 
+			/* import parent view */
+			_parent_view_handle(_nitpicker.view_handle(parent_view)),
 
-	/**
-	 * View interface exposed to the subsystem
-	 */
-	class View_component : public Rpc_object<View>
-	{
-		private:
+			/* create nitpicker view */
+			_view_handle(_nitpicker.create_view(_parent_view_handle)),
 
-			View_client               _view;  /* wrapped view */
-			Signal_context_capability _sigh;
-			bool                      _viewport_initialized;
-			int                       _x, _y, _w, _h, _buf_x, _buf_y;
+			_proxy_input(_nitpicker.input_session(), _motion_delta),
+			_proxy_input_cap(_ep.manage(&_proxy_input)),
 
-		public:
-
-			/**
-			 * Constructor
-			 */
-			View_component(View_capability           view_cap,
-			               Signal_context_capability sigh)
-			:
-				_view(view_cap), _sigh(sigh), _viewport_initialized(false),
-				_x(0), _y(0), _w(0), _h(0), _buf_x(0), _buf_y(0)
-			{ }
-
-			int x()     const { return _x; }
-			int y()     const { return _y; }
-			int w()     const { return _w; }
-			int h()     const { return _h; }
-			int buf_x() const { return _buf_x; }
-			int buf_y() const { return _buf_y; }
+			_command_ds(&ram, sizeof(Command_buffer))
+		{ }
 
 
-			/******************************
-			 ** Nitpicker view interface **
-			 ******************************/
+		/*********************************
+		 ** Nitpicker session interface **
+		 *********************************/
 
-			int viewport(int x, int y, int w, int h,
-			             int buf_x, int buf_y, bool redraw)
-			{
-				_x = x; _y = y; _w = w; _h = h;
-				_buf_x = buf_x; _buf_y = buf_y;
+		Framebuffer::Session_capability framebuffer_session() override
+		{
+			return _nitpicker.framebuffer_session();
+		}
 
-				if (_viewport_initialized)
-					return 0;
+		Input::Session_capability input_session() override
+		{
+			return _proxy_input_cap;
+		}
 
-				_viewport_initialized = true;
+		View_handle create_view(View_handle) override
+		{
+			return View_handle(1);
+		}
 
-				/* hide the view and let the application set the viewport */
-				int result = _view.viewport(0, 0, 0, 0, 0, 0, true);
+		void destroy_view(View_handle view) override { }
 
-				/* signal readyness of the view */
-				if (_sigh.valid())
-					Signal_transmitter(_sigh).submit();
+		View_handle view_handle(View_capability, View_handle) override
+		{
+			return View_handle();
+		}
 
-				return result;
-			}
+		View_capability view_capability(View_handle) override
+		{
+			return View_capability();
+		}
 
-			int stack(View_capability neighbor_cap, bool behind, bool redraw)
-			{
-				/*
-				 * Only one child view is supported, so the stack request can
-				 * be ignored.
-				 */
-				return 0;
-			}
+		void release_view_handle(View_handle) override { }
 
-			int title(Title const &title)
-			{
-				return _view.title(title.string());
-			}
-	};
+		Genode::Dataspace_capability command_dataspace() override
+		{
+			return _command_ds.cap();
+		}
 
+		void execute() override
+		{
+			for (unsigned i = 0; i < _command_buffer.num(); i++)
+				_execute_command(_command_buffer.get(i));
+		}
 
-	class Session_component : public Rpc_object<Session>,
-	                          public Input::Transformer
-	{
-		private:
+		Framebuffer::Mode mode() override
+		{
+			int mode_width = _max_size.valid() ?
+			                 _max_size.w() :
+			                 _nitpicker.mode().width();
 
-			Rpc_entrypoint           &_ep;
+			int mode_height = _max_size.valid() ?
+			                  _max_size.h() :
+			                  _nitpicker.mode().height();
 
-			int                       _max_width;
-			int                       _max_height;
+			return Framebuffer::Mode(mode_width, mode_height,
+			                         _nitpicker.mode().format());
+		}
 
-			Nitpicker::Connection     _nitpicker;
-			View_capability           _nitpicker_view;
+		void mode_sigh(Genode::Signal_context_capability) override { }
 
-			View_component            _proxy_view;
-			View_capability           _proxy_view_cap;
+		void buffer(Framebuffer::Mode mode, bool use_alpha) override
+		{
+			_nitpicker.buffer(mode, use_alpha);
+		}
 
-			Loader_view_component     _loader_view;
-			View_capability           _loader_view_cap;
+		void focus(Genode::Capability<Session>) override { }
 
-			Input::Session_component  _proxy_input;
-			Input::Session_capability _proxy_input_cap;
+		/**
+		 * Return geometry of loader view
+		 */
+		Area loader_view_size() const
+		{
+			int const  width = _max_size.valid()
+			                 ? Genode::min(_virt_view_geometry.w(), _max_size.w())
+			                 : _virt_view_geometry.w();
 
-			static long _session_arg(const char *arg, const char *key) {
-				return Arg_string::find_arg(arg, key).long_value(0); }
+			int const height = _max_size.valid()
+			                 ? Genode::min(_virt_view_geometry.h(), _max_size.h())
+			                 : _virt_view_geometry.h();
 
-		public:
+			return Area(width, height);
+		}
 
-			/**
-			 * Constructor
-			 */
-			Session_component(Rpc_entrypoint            &ep,
-			                  int                        max_width,
-			                  int                        max_height,
-			                  Nitpicker::View_capability parent_view,
-			                  Signal_context_capability  view_ready_sigh,
-			                  const char                *args)
-			:
-				_ep(ep),
+		/**
+		 * Define geometry of loader view
+		 */
+		void loader_view_geometry(Rect rect, Point offset)
+		{
+			typedef Nitpicker::Session::Command Command;
 
-				_max_width(max_width),
-				_max_height(max_height),
+			_view_geometry = rect;
+			_view_offset   = offset;
 
-				/* create Nitpicker view */
-				_nitpicker_view(_nitpicker.create_view(parent_view)),
+			_propagate_view_offset();
+			_nitpicker.enqueue<Command::Geometry>(_view_handle, _view_geometry);
+			_nitpicker.enqueue<Command::To_front>(_view_handle, _parent_view_handle);
+			_nitpicker.execute();
 
-				/* create proxy view component for the child */
-				_proxy_view(_nitpicker_view, view_ready_sigh),
-				_proxy_view_cap(_ep.manage(&_proxy_view)),
-
-				/* create view component accessed by the loader client */
-				_loader_view(_nitpicker_view),
-				_loader_view_cap(_ep.manage(&_loader_view)),
-
-				_proxy_input(_nitpicker.input_session(), *this),
-				_proxy_input_cap(_ep.manage(&_proxy_input))
-			{ }
-
-
-			/*********************************
-			 ** Nitpicker session interface **
-			 *********************************/
-
-			Framebuffer::Session_capability framebuffer_session() override
-			{
-				return _nitpicker.framebuffer_session();
-			}
-
-			Input::Session_capability input_session() override
-			{
-				return _proxy_input_cap;
-			}
-
-			View_capability create_view(View_capability) override
-			{
-				return _proxy_view_cap;
-			}
-
-			void destroy_view(View_capability view) override
-			{
-				_nitpicker.destroy_view(_nitpicker_view);
-			}
-
-			int background(View_capability view) override
-			{
-				/* not forwarding to real nitpicker session */
-				return 0;
-			}
-
-			Framebuffer::Mode mode() override
-			{
-				int mode_width = (_max_width > -1) ?
-				                 _max_width :
-				                 _nitpicker.mode().width();
-
-				int mode_height = (_max_height > -1) ?
-				                  _max_height :
-				                  _nitpicker.mode().height();
-
-				return Framebuffer::Mode(mode_width, mode_height,
-				                         _nitpicker.mode().format());
-			}
-
-			void buffer(Framebuffer::Mode mode, bool use_alpha) override
-			{
-				_nitpicker.buffer(mode, use_alpha);
-			}
-
-			void focus(Capability<Session>) override { }
-
-
-			/**********************************
-			 ** Input::Transformer interface **
-			 **********************************/
-
-			Input::Transformer::Delta delta()
-			{
-				/* translate mouse position to child's coordinate system */
-				Input::Transformer::Delta result = {
-					_loader_view.x() + _loader_view.buf_x() +
-					_proxy_view.x()  +  _proxy_view.buf_x(),
-					_loader_view.y() + _loader_view.buf_y() +
-					_proxy_view.y()  +  _proxy_view.buf_y() };
-
-				return result;
-			}
-
-			/**
-			 * Return the client-specific wrapper view for the Nitpicker view
-			 * showing the child content
-			 */
-			View_capability loader_view() { return _loader_view_cap; }
-
-			/**
-			 * Return geometry of loader view
-			 */
-			Loader::Session::View_geometry loader_view_geometry()
-			{
-				int view_width = (_max_width > -1) ?
-				                 min(_proxy_view.w(), _max_width) :
-				                 _proxy_view.w();
-
-				int view_height = (_max_height > -1) ?
-				                  min(_proxy_view.h(), _max_height) :
-				                  _proxy_view.h();
-
-				Loader::Session::View_geometry result(
-					view_width,
-					view_height,
-					_proxy_view.buf_x(),
-					_proxy_view.buf_y());
-
-				return result;
-			}
-	};
-}
+			_update_motion_delta();
+		}
+};
 
 #endif /* _NITPICKER_H_ */

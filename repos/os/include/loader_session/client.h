@@ -21,41 +21,42 @@
 
 namespace Loader {
 
-	struct Session_client : Rpc_client<Session>
+	struct Session_client : Genode::Rpc_client<Session>
 	{
 		explicit Session_client(Loader::Session_capability session)
 		: Rpc_client<Session>(session) { }
 
-		Dataspace_capability alloc_rom_module(Name const &name, size_t size) {
+		Dataspace_capability alloc_rom_module(Name const &name,
+		                                      size_t size) override {
 			return call<Rpc_alloc_rom_module>(name, size); }
 
-		void commit_rom_module(Name const &name) {
+		void commit_rom_module(Name const &name) override {
 			call<Rpc_commit_rom_module>(name); }
 
-		void ram_quota(size_t quantum) {
+		void ram_quota(size_t quantum) override {
 			call<Rpc_ram_quota>(quantum); }
 
-		void constrain_geometry(int width, int height) {
-			call<Rpc_constrain_geometry>(width, height); }
+		void constrain_geometry(Area size) override {
+			call<Rpc_constrain_geometry>(size); }
 
-		void parent_view(Nitpicker::View_capability view) {
+		void parent_view(Nitpicker::View_capability view) override {
 			call<Rpc_parent_view>(view); }
 
-		void view_ready_sigh(Signal_context_capability sigh) {
+		void view_ready_sigh(Signal_context_capability sigh) override {
 			call<Rpc_view_ready_sigh>(sigh); }
 
-		void fault_sigh(Signal_context_capability sigh) {
+		void fault_sigh(Signal_context_capability sigh) override {
 			call<Rpc_fault_sigh>(sigh); }
 
 		void start(Name const &binary, Name const &label = "",
-		           Native_pd_args const &pd_args = Native_pd_args()) {
+		           Native_pd_args const &pd_args = Native_pd_args()) override {
 			call<Rpc_start>(binary, label, pd_args); }
 
-		Nitpicker::View_capability view() {
-			return call<Rpc_view>(); }
+		void view_geometry(Rect rect, Point offset) override {
+			call<Rpc_view_geometry>(rect, offset); }
 
-		View_geometry view_geometry() {
-			return call<Rpc_view_geometry>(); }
+		Area view_size() const override {
+			return call<Rpc_view_size>(); }
 	};
 }
 
