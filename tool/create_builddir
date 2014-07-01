@@ -32,6 +32,7 @@ usage:
 	@echo "                  'hw_pbxa9'"
 	@echo "                  'hw_imx31'"
 	@echo "                  'hw_imx53'"
+	@echo "                  'hw_imx53_tz'"
 	@echo "                  'hw_arndale'"
 	@echo "                  'hw_odroid_xu'"
 	@echo "                  'hw_rpi'"
@@ -222,6 +223,9 @@ hw_imx31::
 
 hw_imx53::
 	@echo "SPECS = genode hw_imx53" > $(BUILD_DIR)/etc/specs.conf
+
+hw_imx53_tz::
+	@echo "SPECS = genode hw_imx53 trustzone" > $(BUILD_DIR)/etc/specs.conf
 
 hw_arndale::
 	@echo "SPECS = genode hw_arndale" > $(BUILD_DIR)/etc/specs.conf
