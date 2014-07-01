@@ -751,10 +751,14 @@ proc jtag_load { } {
 	set board    [get_cmd_arg --jtag-board 1]
 	set elf_img "[run_dir]/image.elf"
 
+	# sleep a bit, board might need some time to come up
+	sleep 8
+
 	# parse ELF entrypoint
 	set entrypoint [exec [cross_dev_prefix]readelf -h $elf_img | \
 	                grep "Entry point address: " | \
 	                sed -e "s/.*Entry point address: *//"]
+
 	eval spawn openocd -f $debugger -f $board -c init -c halt -c \"load_image $elf_img\" -c \"resume $entrypoint\"
 	set jtag_spawn_id $spawn_id
 	set timeout 210
