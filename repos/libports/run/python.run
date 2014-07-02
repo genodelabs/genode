@@ -54,7 +54,7 @@ print "        ||       Genode 11.11       ||";
 print "        ||                          ||";
 print "        -============================-";
 print " \r";
-print "   2011 by Genode Labs <www.genode-labs.com>";
+print "   2011 by Genode Labs www.genode-labs.com";
 print " \r\n\r";
 					</inline>
 				</vfs>
@@ -98,7 +98,7 @@ compare_output_to {
 [init -> test-python]         ||                          ||
 [init -> test-python]         -============================-
 [init -> test-python]
-[init -> test-python]    2011 by Genode Labs <www.genode-labs.com>
+[init -> test-python]    2011 by Genode Labs www.genode-labs.com
 [init -> test-python]
 }
 
