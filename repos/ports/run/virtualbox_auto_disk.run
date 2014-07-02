@@ -7,7 +7,7 @@ set use_iso 0
 set vdi_image "win7.vdi"
 
 set config_of_app {
-	<start name="vbox-auto-test-helper">
+	<start name="vbox-auto-test-helper" priority="-1">
 		<resource name="RAM" quantum="10M"/>
 		<route>
 			<service name="File_system"> <child name="rump_fs"/> </service>
@@ -34,7 +34,7 @@ set build_components { }
 set boot_modules { }
 
 set config_of_app {
-	<start name="vbox">
+	<start name="vbox" priority="-2">
 		<binary name="virtualbox" />
 		<resource name="RAM" quantum="2G"/>
 		<config>}

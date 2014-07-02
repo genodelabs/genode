@@ -99,7 +99,7 @@ catch { exec dd if=/dev/urandom of=bin/test.bin bs=4096 count=8160 }
 # Step 0: prepare overlay.vdi for a clean run of the VM
 #
 set config_of_app {
-	<start name="vbox-auto-test-helper">
+	<start name="vbox-auto-test-helper" priority="-1">
 		<resource name="RAM" quantum="10M"/>
 		<route>
 			<service name="File_system"> <child name="rump_fs"/> </service>
@@ -143,7 +143,7 @@ set boot_modules {
 }
 
 set config_of_app {
-	<start name="nic_drv">
+	<start name="nic_drv" priority="-1">
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="Nic"/> </provides>
 		<route>
@@ -152,7 +152,7 @@ set config_of_app {
 		</route>
 	</start>
 
-	<start name="tcp_terminal">
+	<start name="tcp_terminal" priority="-1">
 		<resource name="RAM" quantum="5M"/>
 		<provides> <service name="Terminal"/> </provides>
 		<config>
@@ -160,7 +160,7 @@ set config_of_app {
 		</config>
 	</start>
 
-	<start name="noux">
+	<start name="noux" priority="-1">
 		<resource name="RAM" quantum="32M" />
 		<config>
 			<fstab>
@@ -187,7 +187,7 @@ set config_of_app {
 		</route>
 	</start>
 
-	<start name="ram_fs_from">
+	<start name="ram_fs_from" priority="-1">
 		<binary name="ram_fs" />
 		<resource name="RAM" quantum="64M"/>
 		<provides><service name="File_system"/></provides>
@@ -200,7 +200,7 @@ set config_of_app {
 		</config>
 	</start>
 
-	<start name="ram_fs_to">
+	<start name="ram_fs_to" priority="-1">
 		<binary name="ram_fs" />
 		<resource name="RAM" quantum="64M"/>
 		<provides><service name="File_system"/></provides>
@@ -209,7 +209,7 @@ set config_of_app {
 		</config>
 	</start>
 
-	<start name="vbox">
+	<start name="vbox" priority="-2">
 		<binary name="virtualbox" />
 		<resource name="RAM" quantum="1536M"/>
 		<config>

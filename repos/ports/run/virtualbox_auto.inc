@@ -24,7 +24,7 @@ build $build_components
 create_boot_directory
 
 set config {
-<config verbose="yes">
+<config verbose="yes" prio_levels="4">
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="RAM"/>
@@ -45,7 +45,7 @@ set config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="ahci">
+	<start name="ahci" priority="-1">
 		<binary name="ahci" />
 		<resource name="RAM" quantum="10M" />
 		<provides><service name="Block" /></provides>
@@ -54,7 +54,7 @@ set config {
 			<any-service> <parent /> <any-child /></any-service>
 		</route>
 	</start>
-	<start name="part_blk">
+	<start name="part_blk" priority="-1">
 		<resource name="RAM" quantum="10M" />
 		<provides><service name="Block" /></provides>
 		<route>
@@ -64,7 +64,7 @@ set config {
 			<policy label="rump_fs" partition="4"/>
 		</config>
 	</start>
-	<start name="rump_fs">
+	<start name="rump_fs" priority="-1">
 		<resource name="RAM" quantum="32M" />
 		<provides><service name="File_system"/></provides>
 		<config fs="ext2fs"><policy label="" root="/" writeable="yes"/></config>
@@ -74,7 +74,7 @@ set config {
 	</start>}
 
 append_if [have_spec acpi] config {
-	<start name="acpi">
+	<start name="acpi" priority="-1">
 		<resource name="RAM" quantum="10M"/>
 		<binary name="acpi_drv"/>
 		<provides>
@@ -88,26 +88,26 @@ append_if [have_spec acpi] config {
 	</start>}
 
 append_if [expr ![have_spec acpi] && [have_spec pci]] config {
-	<start name="pci_drv">
+	<start name="pci_drv" priority="-1">
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="PCI"/> </provides>
 	</start>}
 
 append_if [have_spec ps2] config {
-	<start name="ps2_drv">
+	<start name="ps2_drv" priority="-1">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Input"/></provides>
 	</start>}
 
 append_if [have_spec framebuffer] config {
-	<start name="fb_drv">
+	<start name="fb_drv" priority="-1">
 		<resource name="RAM" quantum="6M"/>
 		<provides><service name="Framebuffer"/></provides>
 		<config buffered="yes" width="1024" height="768" depth="16" />
 	</start>}
 
 append_if [have_spec x86] config {
-	<start name="rtc_drv">
+	<start name="rtc_drv" priority="-1">
 		<resource name="RAM" quantum="1M"/>
 		<provides>
 			<service name="Rtc"/>
