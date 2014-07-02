@@ -247,8 +247,7 @@ class Parent : Genode::Slave_policy
 		Parent()
 		:
 			Genode::Slave_policy("test-resource_yield", _entrypoint(),
-			                     Genode::env()->ram_session()),
-			_yield_blockade(Genode::Lock::LOCKED)
+			                     Genode::env()->ram_session())
 		{
 			configure("<config child=\"yes\" />");
 		}
@@ -268,6 +267,18 @@ class Parent : Genode::Slave_policy
 		void yield_response()
 		{
 			_yield_blockade.unlock();
+
+			/*
+			 * At this point, the ownership of '_yield_blockade' will be passed
+			 * to the main program. By trying to aquire it here, we block until
+			 * the main program is ready.
+			 *
+			 * This way, we ensure that the main program validates the
+			 * statistics before the 'yield_response' RPC call returns.
+			 * Otherwise, the child might allocate new resources before the
+			 * main program is able to see the amount of yielded resources.
+			 */
+			Genode::Lock::Guard guard(_yield_blockade);
 		}
 
 };
@@ -311,6 +322,7 @@ int Parent::main()
 		 */
 		PLOG("wait for yield response");
 		_yield_blockade.lock();
+		_yield_blockade.lock();
 		PLOG("got yield response");
 
 		_print_status();
@@ -321,6 +333,9 @@ int Parent::main()
 			PERR("child has not yielded enough resources");
 			return -1;
 		}
+
+		/* let the 'yield_response' RPC call return */
+		_yield_blockade.unlock();
 	}
 
 	printf("--- test-resource_yield finished ---\n");
