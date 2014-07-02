@@ -26,6 +26,16 @@ set build_components {
 	test/libports/ncurses
 }
 
+#
+# Disable syntax check for config file
+#
+# The syntax check fails because the content of the '.bash_profile' is
+# specified using an '<inline>' node but it is no valid XML. I.e., xmllint
+# complains about the sequence '&&'.
+#
+proc check_xml_syntax {xml_file} { }
+
+
 lappend_if [have_spec acpi]     build_components drivers/acpi
 lappend_if [have_spec pci]      build_components drivers/pci/device_pd
 lappend_if $use_platform_driver build_components drivers/platform
