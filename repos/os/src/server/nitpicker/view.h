@@ -96,6 +96,27 @@ class View : public Same_buffer_list_elem,
 
 		Genode::List<View_parent_elem> _children;
 
+		/**
+		 * Assign new parent
+		 *
+		 * Normally, the parent of a view is defined at the construction time
+		 * of the view. However, if the domain origin changes at runtime, we
+		 * need to dynamically re-assign the pointer origin as the parent.
+		 */
+		void _assign_parent(View *parent)
+		{
+			if (_parent == parent)
+				return;
+
+			if (_parent)
+				_parent->remove_child(*this);
+
+			_parent = parent;
+
+			if (_parent)
+				_parent->add_child(*this);
+		}
+
 	public:
 
 		View(Session &session, Stay_top stay_top, Transparent transparent,
@@ -144,6 +165,17 @@ class View : public Same_buffer_list_elem,
 		{
 			_parent   = 0;
 			_geometry = Rect();
+		}
+
+		bool has_parent(View const &parent) const { return &parent == _parent; }
+
+		void apply_origin_policy(View &pointer_origin)
+		{
+			if (session().origin_pointer() && !has_parent(pointer_origin))
+				_assign_parent(&pointer_origin);
+
+			if (!session().origin_pointer() && has_parent(pointer_origin))
+				_assign_parent(0);
 		}
 
 		Rect geometry() const { return _geometry; }

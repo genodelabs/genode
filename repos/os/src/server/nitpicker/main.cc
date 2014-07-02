@@ -400,6 +400,8 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 		Mode &_mode;
 
+		View &_pointer_origin;
+
 		List<Session_view_list_elem> _view_list;
 
 		Genode::Tslab<View, 4000> _view_alloc { &_session_alloc };
@@ -631,6 +633,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 		Session_component(Session_label  const &label,
 		                  View_stack           &view_stack,
 		                  Mode                 &mode,
+		                  View                 &pointer_origin,
 		                  Rpc_entrypoint       &ep,
 		                  Framebuffer::Session &framebuffer,
 		                  int                   v_offset,
@@ -644,6 +647,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 			_framebuffer(framebuffer),
 			_framebuffer_session_component(view_stack, *this, framebuffer, *this),
 			_ep(ep), _view_stack(view_stack), _mode(mode),
+			_pointer_origin(pointer_origin),
 			_framebuffer_session_cap(_ep.manage(&_framebuffer_session_component)),
 			_input_session_cap(_ep.manage(&_input_session_component)),
 			_provides_default_bg(provides_default_bg),
@@ -751,6 +755,8 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 				catch (Genode::Allocator::Out_of_memory) {
 					throw Nitpicker::Session::Out_of_metadata(); }
 			}
+
+			view->apply_origin_policy(_pointer_origin);
 
 			_view_list.insert(view);
 			_ep.manage(view);
@@ -902,6 +908,7 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 		Framebuffer::Mode      _scr_mode;
 		View_stack            &_view_stack;
 		Mode                  &_mode;
+		::View                &_pointer_origin;
 		Framebuffer::Session  &_framebuffer;
 		int                    _default_v_offset;
 
@@ -931,9 +938,10 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 			bool const provides_default_bg = (strcmp(label.string(), "backdrop") == 0);
 
 			Session_component *session = new (md_alloc())
-				Session_component(Session_label(args), _view_stack, _mode, *ep(),
-				                  _framebuffer, v_offset, provides_default_bg,
-				                  stay_top, *md_alloc(), unused_quota);
+				Session_component(Session_label(args), _view_stack, _mode,
+				                  _pointer_origin, *ep(), _framebuffer,
+				                  v_offset, provides_default_bg, stay_top,
+				                  *md_alloc(), unused_quota);
 
 			session->apply_session_policy(_domain_registry);
 			_session_list.insert(session);
@@ -967,13 +975,14 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 		Root(Session_list &session_list,
 		     Domain_registry const &domain_registry, Global_keys &global_keys,
 		     Rpc_entrypoint &session_ep, View_stack &view_stack, Mode &mode,
-		     Allocator &md_alloc, Framebuffer::Session &framebuffer,
-		     int default_v_offset)
+		     ::View &pointer_origin, Allocator &md_alloc,
+		     Framebuffer::Session &framebuffer, int default_v_offset)
 		:
 			Root_component<Session_component>(&session_ep, &md_alloc),
 			_session_list(session_list), _domain_registry(domain_registry),
 			_global_keys(global_keys), _view_stack(view_stack), _mode(mode),
-			_framebuffer(framebuffer), _default_v_offset(default_v_offset)
+			_pointer_origin(pointer_origin), _framebuffer(framebuffer),
+			_default_v_offset(default_v_offset)
 		{ }
 };
 
@@ -1071,8 +1080,8 @@ struct Nitpicker::Main
 	Genode::Sliced_heap sliced_heap = { env()->ram_session(), env()->rm_session() };
 
 	Root<PT> np_root = { session_list, *domain_registry, global_keys,
-	                     ep.rpc_ep(), user_state, user_state, sliced_heap,
-	                     framebuffer, Framebuffer_screen::MENUBAR_HEIGHT };
+	                     ep.rpc_ep(), user_state, user_state, mouse_cursor,
+	                     sliced_heap, framebuffer, Framebuffer_screen::MENUBAR_HEIGHT };
 
 	Genode::Reporter pointer_reporter = { "pointer" };
 
@@ -1216,6 +1225,8 @@ void Nitpicker::Main::handle_config(unsigned)
 
 	for (::Session *s = session_list.first(); s; s = s->next())
 		s->apply_session_policy(*domain_registry);
+
+	user_state.apply_origin_policy(mouse_cursor);
 
 	/* redraw */
 	user_state.update_all_views();

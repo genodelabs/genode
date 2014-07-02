@@ -83,6 +83,14 @@ class User_state : public Mode, public View_stack
 		Point mouse_pos() { return _mouse_pos; }
 
 		/**
+		 * (Re-)apply origin policy to all views
+		 */
+		void apply_origin_policy(View &pointer_origin)
+		{
+			View_stack::apply_origin_policy(pointer_origin);
+		}
+
+		/**
 		 * Mode interface
 		 */
 		void forget(Session const &) override;

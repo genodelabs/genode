@@ -66,8 +66,11 @@ class Session : public Session_list::Element
 
 		Genode::Session_label const &label() const { return _label; }
 
-		bool xray_opaque() const { return _domain ? _domain->xray_opaque() : false; }
-		bool xray_no()     const { return _domain ? _domain->xray_no()     : false; }
+		bool xray_opaque() const { return _domain && _domain->xray_opaque(); }
+
+		bool xray_no() const { return _domain && _domain->xray_no(); }
+
+		bool origin_pointer() const { return _domain && _domain->origin_pointer(); }
 
 		Texture_base const *texture() const { return _texture; }
 

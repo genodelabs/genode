@@ -37,17 +37,23 @@ class Domain_registry
 					XRAY_OPAQUE, /* views are replaced by opaque domain color */
 				};
 
+				/**
+				 * Origin of the domain's coordiate system
+				 */
+				enum Origin { ORIGIN_POINTER, ORIGIN_SCREEN };
+
 			private:
 
-				Name  _name;
-				Color _color;
-				Xray  _xray;
+				Name   _name;
+				Color  _color;
+				Xray   _xray;
+				Origin _origin;
 
 				friend class Domain_registry;
 
-				Entry(Name const &name, Color color, Xray xray)
+				Entry(Name const &name, Color color, Xray xray, Origin origin)
 				:
-					_name(name), _color(color), _xray(xray)
+					_name(name), _color(color), _xray(xray), _origin(origin)
 				{ }
 
 			public:
@@ -56,8 +62,9 @@ class Domain_registry
 
 				Color color() const { return _color; }
 
-				bool xray_opaque() const { return _xray == XRAY_OPAQUE; }
-				bool xray_no()     const { return _xray == XRAY_NO; }
+				bool xray_opaque()    const { return _xray == XRAY_OPAQUE; }
+				bool xray_no()        const { return _xray == XRAY_NO; }
+				bool origin_pointer() const { return _origin == ORIGIN_POINTER; }
 		};
 
 		static Entry::Xray _xray(Genode::Xml_node domain)
@@ -77,6 +84,24 @@ class Domain_registry
 
 			PWRN("invalid value of xray attribute");
 			return default_xray;
+		}
+
+		Entry::Origin _origin(Genode::Xml_node domain)
+		{
+			char const * const attr_name = "origin";
+
+			Entry::Origin const default_origin = Entry::ORIGIN_SCREEN;
+
+			if (!domain.has_attribute(attr_name))
+				return default_origin;
+
+			Genode::Xml_node::Attribute const attr = domain.attribute(attr_name);
+
+			if (attr.has_value("screen"))  return Entry::ORIGIN_SCREEN;
+			if (attr.has_value("pointer")) return Entry::ORIGIN_POINTER;
+
+			PWRN("invalid value of origin attribute");
+			return default_origin;
 		}
 
 		void _insert(Genode::Xml_node domain)
@@ -103,7 +128,8 @@ class Domain_registry
 
 			Entry::Color const color = domain.attribute_value("color", WHITE);
 
-			_entries.insert(new (_alloc) Entry(name, color, _xray(domain)));
+			_entries.insert(new (_alloc) Entry(name, color, _xray(domain),
+			                                   _origin(domain)));
 		}
 
 	private:

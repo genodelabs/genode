@@ -256,6 +256,12 @@ class View_stack
 				next_view = view ? view->view_stack_next() : 0;
 			}
 		}
+
+		void apply_origin_policy(View &pointer_origin)
+		{
+			for (View *v = _first_view(); v; v = v->view_stack_next())
+				v->apply_origin_policy(pointer_origin);
+		}
 };
 
 #endif
