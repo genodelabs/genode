@@ -262,6 +262,8 @@ class View_stack
 			for (View *v = _first_view(); v; v = v->view_stack_next())
 				v->apply_origin_policy(pointer_origin);
 		}
+
+		void sort_views_by_layer();
 };
 
 #endif

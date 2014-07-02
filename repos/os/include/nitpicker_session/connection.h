@@ -34,7 +34,7 @@ class Nitpicker::Connection : public Genode::Connection<Session>,
 		/**
 		 * Create session and return typed session capability
 		 */
-		Session_capability _connect(bool stay_top, char const *label)
+		Session_capability _connect(char const *label)
 		{
 			enum { ARGBUF_SIZE = 128 };
 			char argbuf[ARGBUF_SIZE];
@@ -50,9 +50,6 @@ class Nitpicker::Connection : public Genode::Connection<Session>,
 			enum { SESSION_METADATA = 36*1024 };
 			Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota", SESSION_METADATA);
 
-			if (stay_top)
-				Arg_string::set_arg(argbuf, sizeof(argbuf), "stay_top", "yes");
-
 			return session(argbuf);
 		}
 
@@ -61,10 +58,10 @@ class Nitpicker::Connection : public Genode::Connection<Session>,
 		/**
 		 * Constructor
 		 */
-		Connection(bool stay_top = false, char const *label = "")
+		Connection(char const *label = "")
 		:
 			/* establish nitpicker session */
-			Genode::Connection<Session>(_connect(stay_top, label)),
+			Genode::Connection<Session>(_connect(label)),
 			Session_client(cap()),
 
 			/* request frame-buffer and input sub sessions */

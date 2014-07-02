@@ -42,7 +42,6 @@ class Session : public Session_list::Element
 		View                         *_background = 0;
 		int                           _v_offset;
 		unsigned char          const *_input_mask = { 0 };
-		bool                   const  _stay_top;
 
 	public:
 
@@ -51,11 +50,10 @@ class Session : public Session_list::Element
 		 *
 		 * \param label     session label
 		 * \param v_offset  vertical screen offset of session
-		 * \param stay_top  true for views that stay always in front
 		 */
-		Session(Genode::Session_label const &label, int v_offset, bool stay_top)
+		Session(Genode::Session_label const &label, int v_offset)
 		:
-			_label(label), _v_offset(v_offset), _stay_top(stay_top)
+			_label(label), _v_offset(v_offset)
 		{ }
 
 		virtual ~Session() { }
@@ -71,6 +69,8 @@ class Session : public Session_list::Element
 		bool xray_no() const { return _domain && _domain->xray_no(); }
 
 		bool origin_pointer() const { return _domain && _domain->origin_pointer(); }
+
+		unsigned layer() const { return _domain ? _domain->layer() : ~0UL; }
 
 		Texture_base const *texture() const { return _texture; }
 
@@ -99,8 +99,6 @@ class Session : public Session_list::Element
 		View *background() const { return _background; }
 
 		void background(View *background) { _background = background; }
-
-		bool stay_top() const { return _stay_top; }
 
 		/**
 		 * Return true if session uses an alpha channel

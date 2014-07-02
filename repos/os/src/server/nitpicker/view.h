@@ -76,13 +76,11 @@ class View : public Same_buffer_list_elem,
 
 		enum { TITLE_LEN = 32 };   /* max.characters of a title */
 
-		enum Stay_top    { NOT_STAY_TOP    = 0, STAY_TOP    = 1 };
 		enum Transparent { NOT_TRANSPARENT = 0, TRANSPARENT = 1 };
 		enum Background  { NOT_BACKGROUND  = 0, BACKGROUND  = 1 };
 
 	private:
 
-		Stay_top    const _stay_top;      /* keep view always on top      */
 		Transparent const _transparent;   /* background is partly visible */
 		Background        _background;    /* view is a background view    */
 
@@ -119,10 +117,10 @@ class View : public Same_buffer_list_elem,
 
 	public:
 
-		View(Session &session, Stay_top stay_top, Transparent transparent,
+		View(Session &session, Transparent transparent,
 		     Background bg, View *parent)
 		:
-			_stay_top(stay_top), _transparent(transparent), _background(bg),
+			_transparent(transparent), _background(bg),
 			_parent(parent), _session(session)
 		{ title(""); }
 
@@ -250,7 +248,6 @@ class View : public Same_buffer_list_elem,
 		bool same_session_as(View const &other) const { return &_session == &other._session; }
 
 		bool  top_level()   const { return _parent == 0; }
-		bool  stay_top()    const { return _stay_top; }
 		bool  transparent() const { return _transparent || _session.uses_alpha(); }
 		bool  background()  const { return _background; }
 		Rect  label_rect()  const { return _label_rect; }

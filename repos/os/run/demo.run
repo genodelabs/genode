@@ -5,7 +5,8 @@
 set build_components {
 	core init
 	drivers/timer
-	server/nitpicker server/liquid_framebuffer app/launchpad app/scout
+	server/nitpicker app/pointer
+	server/liquid_framebuffer app/launchpad app/scout
 	test/nitpicker server/nitlog
 	drivers/framebuffer drivers/pci drivers/input
 }
@@ -119,8 +120,11 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nitpicker"/></provides>
 		<config>
-			<domain name="default" color="#ffffff"/>
-			<policy label="" domain="default"/>
+			<domain name="pointer" layer="1" xray="no" origin="pointer" />
+			<domain name="default" layer="2" />
+
+			<policy label="pointer" domain="pointer"/>
+			<policy label=""        domain="default"/>
 
 			<global-key name="KEY_SCROLLLOCK" operation="xray" />
 			<global-key name="KEY_SYSRQ"      operation="kill" />
@@ -128,6 +132,9 @@ append config {
 			<global-key name="KEY_F11"        operation="kill" />
 			<global-key name="KEY_F12"        operation="xray" />
 		</config>
+	</start>
+	<start name="pointer">
+		<resource name="RAM" quantum="1M"/>
 	</start>
 	<start name="launchpad">
 		<resource name="RAM" quantum="64M" />
@@ -163,7 +170,7 @@ close $launchpad_config_fd
 set boot_modules {
 	core init
 	timer
-	nitpicker liquid_fb launchpad scout
+	nitpicker pointer liquid_fb launchpad scout
 	testnit nitlog
 	launchpad.config
 }

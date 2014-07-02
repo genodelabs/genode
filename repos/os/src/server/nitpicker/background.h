@@ -30,8 +30,8 @@ struct Background : private Texture_base, Session, View
 	 */
 	Background(Area size)
 	:
-		Texture_base(Area(0, 0)), Session(Genode::Session_label(""), 0, false),
-		View(*this, View::NOT_STAY_TOP, View::NOT_TRANSPARENT, View::BACKGROUND, 0),
+		Texture_base(Area(0, 0)), Session(Genode::Session_label(""), 0),
+		View(*this, View::NOT_TRANSPARENT, View::BACKGROUND, 0),
 		color(25, 37, 50)
 	{
 		View::geometry(Rect(Point(0, 0), size));

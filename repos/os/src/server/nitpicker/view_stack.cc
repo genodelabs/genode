@@ -15,24 +15,6 @@
 #include "clip_guard.h"
 
 
-/***************
- ** Utilities **
- ***************/
-
-/**
- * Get last view with the stay_top attribute
- *
- * \param view  first view of the view stack
- */
-static View const *last_stay_top_view(View const *view)
-{
-	for (; view && view->view_stack_next() && view->view_stack_next()->stay_top(); )
-		view = view->view_stack_next();
-
-	return view;
-}
-
-
 /**************************
  ** View stack interface **
  **************************/
@@ -79,10 +61,9 @@ Rect View_stack::_outline(View const &view) const
 
 View const *View_stack::_target_stack_position(View const *neighbor, bool behind)
 {
-	/* find target position in view stack */
-	View const *cv = last_stay_top_view(_first_view());
+	View const *cv = _first_view();
 
-	for ( ; cv; cv = _next_view(*cv)) {
+	for (; cv; cv = _next_view(*cv)) {
 
 		/* bring view to front? */
 		if (behind && !neighbor)
@@ -101,7 +82,7 @@ View const *View_stack::_target_stack_position(View const *neighbor, bool behind
 			break;
 	}
 
-	return cv ? cv : last_stay_top_view(_first_view());
+	return cv ? cv : _first_view();
 }
 
 
@@ -296,6 +277,9 @@ void View_stack::stack(View &view, View const *neighbor, bool behind)
 	_views.remove(&view);
 	_views.insert(&view, _target_stack_position(neighbor, behind));
 
+	/* enforce stacking constrains dictated by domain layers */
+	sort_views_by_layer();
+
 	_place_labels(view.abs_geometry());
 
 	_mark_view_as_dirty(view, _outline(view));
@@ -335,4 +319,41 @@ void View_stack::remove_view(View const &view, bool redraw)
 	_views.remove(&view);
 
 	refresh(rect);
+}
+
+
+void View_stack::sort_views_by_layer()
+{
+	Genode::List<View_stack_elem> sorted;
+
+	/* last element of the sorted list */
+	View_stack_elem *at = nullptr;
+
+	while (_views.first()) {
+
+		/* find view with the lowest layer */
+		unsigned         lowest_layer = ~0UL;
+		View_stack_elem *lowest_view  = nullptr;
+		for (View_stack_elem *v = _views.first(); v; v = v->next()) {
+			unsigned const layer = static_cast<View *>(v)->session().layer();
+			if (layer < lowest_layer) {
+				lowest_layer = layer;
+				lowest_view  = v;
+			}
+		}
+
+		if (!lowest_view)
+			lowest_view = _views.first();
+
+		/*
+		 * Move lowest view from unsorted list to the end of the sorted
+		 * list.
+		 */
+		_views.remove(lowest_view);
+		sorted.insert(lowest_view, at);
+		at = lowest_view;
+	}
+
+	/* replace empty source list by newly sorted list */
+	_views = sorted;
 }

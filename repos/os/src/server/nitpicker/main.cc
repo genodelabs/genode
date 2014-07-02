@@ -34,10 +34,9 @@
 
 /* local includes */
 #include "input.h"
-#include "big_mouse.h"
 #include "background.h"
 #include "clip_guard.h"
-#include "mouse_cursor.h"
+#include "pointer_origin.h"
 #include "chunky_menubar.h"
 #include "domain_registry.h"
 
@@ -638,11 +637,10 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 		                  Framebuffer::Session &framebuffer,
 		                  int                   v_offset,
 		                  bool                  provides_default_bg,
-		                  bool                  stay_top,
 		                  Allocator            &session_alloc,
 		                  size_t                ram_quota)
 		:
-			::Session(label, v_offset, stay_top),
+			::Session(label, v_offset),
 			_session_alloc(&session_alloc, ram_quota),
 			_framebuffer(framebuffer),
 			_framebuffer_session_component(view_stack, *this, framebuffer, *this),
@@ -729,7 +727,6 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 					view = new (_view_alloc)
 						View(*this,
-						     stay_top() ? View::STAY_TOP : View::NOT_STAY_TOP,
 						     View::NOT_TRANSPARENT, View::NOT_BACKGROUND,
 						     &(*parent));
 
@@ -748,7 +745,6 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 				try {
 					view = new (_view_alloc)
 						View(*this,
-						     stay_top() ? View::STAY_TOP : View::NOT_STAY_TOP,
 						     View::NOT_TRANSPARENT, View::NOT_BACKGROUND,
 						     nullptr);
 					}
@@ -921,8 +917,6 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 
 			int const v_offset = _default_v_offset;
 
-			bool const stay_top  = Arg_string::find_arg(args, "stay_top").bool_value(false);
-
 			size_t const required_quota = Input::Session_component::ev_ds_size()
 			                            + Genode::align_addr(sizeof(Session::Command_buffer), 12);
 
@@ -940,7 +934,7 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 			Session_component *session = new (md_alloc())
 				Session_component(Session_label(args), _view_stack, _mode,
 				                  _pointer_origin, *ep(), _framebuffer,
-				                  v_offset, provides_default_bg, stay_top,
+				                  v_offset, provides_default_bg,
 				                  *md_alloc(), unused_quota);
 
 			session->apply_session_policy(_domain_registry);
@@ -1068,9 +1062,7 @@ struct Nitpicker::Main
 	/*
 	 * Create view stack with default elements
 	 */
-	Area                   mouse_size { big_mouse.w, big_mouse.h };
-	Mouse_cursor<PT const> mouse_cursor { (PT const *)&big_mouse.pixels[0][0],
-	                                      mouse_size, user_state };
+	Pointer_origin pointer_origin;
 
 	Background background = { Area(99999, 99999) };
 
@@ -1080,7 +1072,7 @@ struct Nitpicker::Main
 	Genode::Sliced_heap sliced_heap = { env()->ram_session(), env()->rm_session() };
 
 	Root<PT> np_root = { session_list, *domain_registry, global_keys,
-	                     ep.rpc_ep(), user_state, user_state, mouse_cursor,
+	                     ep.rpc_ep(), user_state, user_state, pointer_origin,
 	                     sliced_heap, framebuffer, Framebuffer_screen::MENUBAR_HEIGHT };
 
 	Genode::Reporter pointer_reporter = { "pointer" };
@@ -1115,9 +1107,9 @@ struct Nitpicker::Main
 		fb_screen->menubar.state(Menubar_state(user_state, "", BLACK));
 
 		user_state.default_background(background);
-		user_state.stack(mouse_cursor);
-		user_state.stack(fb_screen->menubar);
+		user_state.stack(pointer_origin);
 		user_state.stack(background);
+		user_state.stack(fb_screen->menubar);
 
 		config()->sigh(config_dispatcher);
 		Signal_transmitter(config_dispatcher).submit();
@@ -1144,19 +1136,19 @@ void Nitpicker::Main::handle_input(unsigned)
 		return;
 
 	do {
-		Point const old_mouse_pos = user_state.mouse_pos();
+		Point const old_pointer_pos = user_state.pointer_pos();
 
 		/* handle batch of pending events */
 		if (input.is_pending())
 			import_input_events(ev_buf, input.flush(), user_state);
 
-		Point const new_mouse_pos  = user_state.mouse_pos();
-		Point const menubar_offset = Point(0, Framebuffer_screen::MENUBAR_HEIGHT);
-		Point const report_pos     = new_mouse_pos - menubar_offset;
+		Point const new_pointer_pos = user_state.pointer_pos();
+		Point const menubar_offset  = Point(0, Framebuffer_screen::MENUBAR_HEIGHT);
+		Point const report_pos      = new_pointer_pos - menubar_offset;
 
 		/* report mouse-position updates */
-		if (pointer_reporter.is_enabled() && old_mouse_pos != new_mouse_pos
-		 && new_mouse_pos.y() >= 0)
+		if (pointer_reporter.is_enabled() && old_pointer_pos != new_pointer_pos
+		 && new_pointer_pos.y() >= 0)
 
 			Genode::Reporter::Xml_generator xml(pointer_reporter, [&] ()
 			{
@@ -1165,8 +1157,8 @@ void Nitpicker::Main::handle_input(unsigned)
 			});
 
 		/* update mouse cursor */
-		if (old_mouse_pos != new_mouse_pos)
-			user_state.geometry(mouse_cursor, Rect(new_mouse_pos, mouse_size));
+		if (old_pointer_pos != new_pointer_pos)
+			user_state.geometry(pointer_origin, Rect(new_pointer_pos, Area()));
 
 		/* perform redraw and flush pixels to the framebuffer */
 		user_state.draw(fb_screen->screen).flush([&] (Rect const &rect) {
@@ -1226,7 +1218,13 @@ void Nitpicker::Main::handle_config(unsigned)
 	for (::Session *s = session_list.first(); s; s = s->next())
 		s->apply_session_policy(*domain_registry);
 
-	user_state.apply_origin_policy(mouse_cursor);
+	user_state.apply_origin_policy(pointer_origin);
+
+	/*
+	 * Domains may have changed their layering, resort the view stack with the
+	 * new constrains.
+	 */
+	user_state.sort_views_by_layer();
 
 	/* redraw */
 	user_state.update_all_views();
@@ -1251,7 +1249,7 @@ void Nitpicker::Main::handle_fb_mode(unsigned)
 	fb_screen->menubar.state(menubar_state);
 
 	/* re-insert menu bar behind mouse cursor */
-	user_state.stack(fb_screen->menubar, &mouse_cursor);
+	user_state.stack(fb_screen->menubar, &pointer_origin);
 
 	/* redraw */
 	user_state.update_all_views();

@@ -44,16 +44,19 @@ class Domain_registry
 
 			private:
 
-				Name   _name;
-				Color  _color;
-				Xray   _xray;
-				Origin _origin;
+				Name     _name;
+				Color    _color;
+				Xray     _xray;
+				Origin   _origin;
+				unsigned _layer;
 
 				friend class Domain_registry;
 
-				Entry(Name const &name, Color color, Xray xray, Origin origin)
+				Entry(Name const &name, Color color, Xray xray, Origin origin,
+				      unsigned layer)
 				:
-					_name(name), _color(color), _xray(xray), _origin(origin)
+					_name(name), _color(color), _xray(xray), _origin(origin),
+					_layer(layer)
 				{ }
 
 			public:
@@ -61,6 +64,8 @@ class Domain_registry
 				bool has_name(Name const &name) const { return name == _name; }
 
 				Color color() const { return _color; }
+
+				unsigned layer() const { return _layer; }
 
 				bool xray_opaque()    const { return _xray == XRAY_OPAQUE; }
 				bool xray_no()        const { return _xray == XRAY_NO; }
@@ -126,10 +131,17 @@ class Domain_registry
 				return;
 			}
 
+			if (!domain.has_attribute("layer")) {
+				PERR("no layer specified for domain \"%s\"", name.string());
+				return;
+			}
+
+			unsigned const layer = domain.attribute_value("layer", ~0UL);
+
 			Entry::Color const color = domain.attribute_value("color", WHITE);
 
 			_entries.insert(new (_alloc) Entry(name, color, _xray(domain),
-			                                   _origin(domain)));
+			                                   _origin(domain), layer));
 		}
 
 	private:

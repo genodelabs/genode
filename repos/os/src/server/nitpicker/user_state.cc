@@ -71,7 +71,7 @@ void User_state::handle_event(Input::Event ev)
 	/*
 	 * Mangle incoming events
 	 */
-	int ax = _mouse_pos.x(), ay = _mouse_pos.y();
+	int ax = _pointer_pos.x(), ay = _pointer_pos.y();
 	int rx = 0, ry = 0; /* skip info about relative motion by default */
 
 	/* transparently handle absolute and relative motion events */
@@ -94,13 +94,13 @@ void User_state::handle_event(Input::Event ev)
 	/* create the mangled event */
 	ev = Input::Event(type, keycode, ax, ay, rx, ry);
 
-	_mouse_pos = Point(ax, ay);
+	_pointer_pos = Point(ax, ay);
 
 	/* count keys */
 	if (type == Event::PRESS)                   Mode::inc_key_cnt();
 	if (type == Event::RELEASE && Mode::drag()) Mode::dec_key_cnt();
 
-	View const * const pointed_view    = find_view(_mouse_pos);
+	View const * const pointed_view    = find_view(_pointer_pos);
 	::Session  * const pointed_session = pointed_view ? &pointed_view->session() : 0;
 
 	/*
@@ -268,7 +268,7 @@ void User_state::forget(::Session const &session)
 	Mode::forget(session);
 
 	if (_pointed_session == &session) {
-		View * const pointed_view = find_view(_mouse_pos);
+		View * const pointed_view = find_view(_pointer_pos);
 		_pointed_session = pointed_view ? &pointed_view->session() : nullptr;
 	}
 

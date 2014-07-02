@@ -40,9 +40,9 @@ class User_state : public Mode, public View_stack
 		Menubar &_menubar;
 
 		/*
-		 * Current mouse cursor position
+		 * Current pointer position
 		 */
-		Point _mouse_pos;
+		Point _pointer_pos;
 
 		/*
 		 * Currently pointed-at session
@@ -80,7 +80,7 @@ class User_state : public Mode, public View_stack
 		/**
 		 * Accessors
 		 */
-		Point mouse_pos() { return _mouse_pos; }
+		Point pointer_pos() { return _pointer_pos; }
 
 		/**
 		 * (Re-)apply origin policy to all views
