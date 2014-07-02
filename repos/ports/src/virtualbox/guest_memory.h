@@ -257,6 +257,19 @@ class Guest_memory
 			                            pfnReadCallback, pfnFillCallback, fFlags));
 		}
 
+
+		bool remove_mmio_mapping(RTGCPHYS const GCPhys, RTGCPHYS const size)
+		{
+			Region *r = _lookup(GCPhys, _mmio_regions, size);
+			if (!r)
+				return false;
+
+			_mmio_regions.remove(r);
+			delete r;
+			return true;
+		}
+
+
 		void dump() const
 		{
 			Genode::printf("guest-physical to VMM-local RAM mappings:\n");

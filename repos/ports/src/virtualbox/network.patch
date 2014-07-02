@@ -1,0 +1,131 @@
++++ src/app/virtualbox/src/VBox/Devices/Network/DevE1000.cpp
+@@ -7536,6 +7536,39 @@
+     pState->INetworkConfig.pfnGetLinkState   = e1kGetLinkState;
+     pState->INetworkConfig.pfnSetLinkState   = e1kSetLinkState;
+ 
++    /* For Genode attach already here to be able to overwrite mac address */
++    rc = PDMDevHlpDriverAttach(pDevIns, 0, &pState->IBase, &pState->pDrvBase, "Network Port");
++    if (RT_SUCCESS(rc))
++    {
++        /* Genode: read out the mac address from nic_session interface */
++        PPDMINETWORKCONFIG  pDrvConfig = PDMIBASE_QUERY_INTERFACE(pState->pDrvBase, PDMINETWORKCONFIG);
++        Assert(pDrvConfig && pDrvConfig->pfnGetMac);
++        pDrvConfig->pfnGetMac(pDrvConfig, &pState->macConfigured);
++
++        if (rc == VINF_NAT_DNS)
++        {
++            PDMDevHlpVMSetRuntimeError(pDevIns, 0 /*fFlags*/, "NoDNSforNAT",
++                                       N_("A Domain Name Server (DNS) for NAT networking could not be determined. Ensure that your host is correctly connected to an ISP. If you ignore this warning the guest will not be able to perform nameserver lookups and it will probably observe delays if trying so"));
++        }
++        pState->pDrvR3 = PDMIBASE_QUERY_INTERFACE(pState->pDrvBase, PDMINETWORKUP);
++        AssertMsgReturn(pState->pDrvR3, ("Failed to obtain the PDMINETWORKUP interface!\n"),
++                        VERR_PDM_MISSING_INTERFACE_BELOW);
++
++        pState->pDrvR0 = PDMIBASER0_QUERY_INTERFACE(PDMIBASE_QUERY_INTERFACE(pState->pDrvBase, PDMIBASER0), PDMINETWORKUP);
++        pState->pDrvRC = PDMIBASERC_QUERY_INTERFACE(PDMIBASE_QUERY_INTERFACE(pState->pDrvBase, PDMIBASERC), PDMINETWORKUP);
++    }
++    else if (   rc == VERR_PDM_NO_ATTACHED_DRIVER
++             || rc == VERR_PDM_CFG_MISSING_DRIVER_NAME)
++    {
++        /* No error! */
++        E1kLog(("%s This adapter is not attached to any network!\n", INSTANCE(pState)));
++    }
++    else
++        return PDMDEV_SET_ERROR(pDevIns, rc, N_("Failed to attach the network LUN"));
++
++
++
++
+     /* Initialize the EEPROM */
+     pState->eeprom.init(pState->macConfigured);
+ 
+@@ -7696,30 +7729,6 @@
+         return PDMDEV_SET_ERROR(pDevIns, rc, N_("Failed to attach the status LUN"));
+     pState->pLedsConnector = PDMIBASE_QUERY_INTERFACE(pBase, PDMILEDCONNECTORS);
+ 
+-    rc = PDMDevHlpDriverAttach(pDevIns, 0, &pState->IBase, &pState->pDrvBase, "Network Port");
+-    if (RT_SUCCESS(rc))
+-    {
+-        if (rc == VINF_NAT_DNS)
+-        {
+-            PDMDevHlpVMSetRuntimeError(pDevIns, 0 /*fFlags*/, "NoDNSforNAT",
+-                                       N_("A Domain Name Server (DNS) for NAT networking could not be determined. Ensure that your host is correctly connected to an ISP. If you ignore this warning the guest will not be able to perform nameserver lookups and it will probably observe delays if trying so"));
+-        }
+-        pState->pDrvR3 = PDMIBASE_QUERY_INTERFACE(pState->pDrvBase, PDMINETWORKUP);
+-        AssertMsgReturn(pState->pDrvR3, ("Failed to obtain the PDMINETWORKUP interface!\n"),
+-                        VERR_PDM_MISSING_INTERFACE_BELOW);
+-
+-        pState->pDrvR0 = PDMIBASER0_QUERY_INTERFACE(PDMIBASE_QUERY_INTERFACE(pState->pDrvBase, PDMIBASER0), PDMINETWORKUP);
+-        pState->pDrvRC = PDMIBASERC_QUERY_INTERFACE(PDMIBASE_QUERY_INTERFACE(pState->pDrvBase, PDMIBASERC), PDMINETWORKUP);
+-    }
+-    else if (   rc == VERR_PDM_NO_ATTACHED_DRIVER
+-             || rc == VERR_PDM_CFG_MISSING_DRIVER_NAME)
+-    {
+-        /* No error! */
+-        E1kLog(("%s This adapter is not attached to any network!\n", INSTANCE(pState)));
+-    }
+-    else
+-        return PDMDEV_SET_ERROR(pDevIns, rc, N_("Failed to attach the network LUN"));
+-
+     rc = RTSemEventCreate(&pState->hEventMoreRxDescAvail);
+     if (RT_FAILURE(rc))
+         return rc;
++++ src/app/virtualbox/src/VBox/Devices/Network/DevPCNet.cpp
+@@ -5331,6 +5331,11 @@
+     rc = PDMDevHlpDriverAttach(pDevIns, 0, &pThis->IBase, &pThis->pDrvBase, "Network Port");
+     if (RT_SUCCESS(rc))
+     {
++        /* Genode: read out the mac address from nic_session interface */
++        PPDMINETWORKCONFIG  pDrvConfig = PDMIBASE_QUERY_INTERFACE(pThis->pDrvBase, PDMINETWORKCONFIG);
++        Assert(pDrvConfig && pDrvConfig->pfnGetMac);
++        pDrvConfig->pfnGetMac(pDrvConfig, &pThis->MacConfigured);
++
+         if (rc == VINF_NAT_DNS)
+         {
+ #ifdef RT_OS_LINUX
++++ src/app/virtualbox/src/VBox/Frontends/VBoxBFE/VBoxBFE.cpp
+@@ -1601,11 +1630,14 @@
+     /*
+      * Network adapters
+      */
+-    rc = CFGMR3InsertNode(pDevices, "pcnet",          &pDev);                       UPDATE_RC();
+     for (ULONG ulInstance = 0; ulInstance < NetworkAdapterCount; ulInstance++)
+     {
+         if (g_aNetDevs[ulInstance].enmType != BFENETDEV::NOT_CONFIGURED)
+         {
++            /* On Genode we use pszName to select the device model */ 
++            const char * device_model = g_aNetDevs[ulInstance].pszName;
++            rc = CFGMR3InsertNode(pDevices, device_model, &pDev);                   UPDATE_RC();
++
+             char szInstance[4];
+             RTStrPrintf(szInstance, sizeof(szInstance), "%lu", ulInstance);
+             rc = CFGMR3InsertNode(pDev, szInstance, &pInst);                        UPDATE_RC();
+@@ -1616,6 +1650,10 @@
+             rc = CFGMR3InsertNode(pInst,    "Config",         &pCfg);               UPDATE_RC();
+             rc = CFGMR3InsertBytes(pCfg,    "MAC",            &g_aNetDevs[ulInstance].Mac, sizeof(RTMAC));
+                                                                                     UPDATE_RC();
++            if (!strcmp("e1000", device_model)) {
++                rc = CFGMR3InsertInteger(pCfg,  "CableConnected", 1);                   UPDATE_RC();
++                rc = CFGMR3InsertInteger(pCfg,  "AdapterType", 0);                      UPDATE_RC();
++            }
+ 
+             /*
+              * Enable the packet sniffer if requested.
+@@ -1747,10 +1785,15 @@
+ 
+ 
+ #else
+-                    FatalError("Name based HIF devices not implemented yet for this host platform\n");
+-                    return VERR_NOT_IMPLEMENTED;
++//                    FatalError("Name based HIF devices not implemented yet for this host platform\n");
++//                    return VERR_NOT_IMPLEMENTED;
+ #endif
+                 }
++
++                rc = CFGMR3InsertNode(pInst,    "LUN#999",        &pLunL0);                     UPDATE_RC();
++                rc = CFGMR3InsertString(pLunL0, "Driver",         "MainStatus");                UPDATE_RC();
++                rc = CFGMR3InsertNode(pLunL0,   "Config",         &pCfg);                       UPDATE_RC();
++                rc = CFGMR3InsertInteger(pCfg,  "papLeds",        (uintptr_t)&mapFDLeds[0]);    UPDATE_RC();
+             }
+             else if (g_aNetDevs[ulInstance].enmType == BFENETDEV::INTNET)
+             {

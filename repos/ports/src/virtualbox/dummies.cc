@@ -161,10 +161,6 @@ DUMMY(-1, PGMGetHostMode)
 
 CHECKED_DUMMY(0, poll)  /* needed by 'DrvHostSerial.cpp' */
 DUMMY(-1, pthread_key_delete)
-DUMMY(-1, RTCrc32);
-DUMMY(-1, RTCrc32Start)
-DUMMY(-1, RTCrc32Finish)
-DUMMY(-1, RTCrc32Process)
 DUMMY(-1, RTMemExecFree)
 DUMMY(-1, RTMemPageFree)
 DUMMY(-1, RTPathAppend)
@@ -218,7 +214,6 @@ DUMMY(-1, RTAvlU32Insert)
 CHECKED_DUMMY( 0, IOMR3Init)
 int IOMR3IOPortRegisterR0() { return 0; }
 int IOMR3IOPortRegisterRC() { return 0; }
-DUMMY(-1, IOMR3MmioDeregister)
 CHECKED_DUMMY( 0, IOMR3MmioRegisterR0)
 CHECKED_DUMMY( 0, IOMR3MmioRegisterRC)
 void IOMR3Relocate() { }
@@ -280,6 +275,8 @@ DUMMY(-1, RTTimeLocalExplode)
 DUMMY(-1, RTSymlinkCreate)
 DUMMY(-1, RTSymlinkRead)
 DUMMY(-1, RTSymlinkDelete)
+
+DUMMY(-1, RTNetIPv6PseudoChecksumEx)
 
 CHECKED_DUMMY(0, futimes)
 CHECKED_DUMMY(0, lutimes)

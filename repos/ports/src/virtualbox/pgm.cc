@@ -57,7 +57,6 @@ int PGMR3PhysRomRegister(PVM pVM, PPDMDEVINS pDevIns, RTGCPHYS GCPhys,
 
 	try {
 		guest_memory()->add_rom_mapping(GCPhys, cb, pvBinary, pDevIns);
-		guest_memory()->dump();
 
 		/*
 		 * XXX Try to understand the fShadowed condition
@@ -255,8 +254,6 @@ int PGMR3PhysRegisterRam(PVM pVM, RTGCPHYS GCPhys, RTGCPHYS cb,
 		void *pv = vmm_memory()->alloc_ram((size_t)cb);
 
 		guest_memory()->add_ram_mapping(GCPhys, cb, pv);
-
-		guest_memory()->dump();
 
 		REMR3NotifyPhysRamRegister(pVM, GCPhys, cb, REM_NOTIFY_PHYS_RAM_FLAGS_RAM);
 	}

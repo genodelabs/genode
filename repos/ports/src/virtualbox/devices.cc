@@ -97,6 +97,11 @@ extern "C" int VBoxDevicesRegister(PPDMDEVREGCB pCallbacks, uint32_t u32Version)
 	if (RT_FAILURE(rc))
 		return rc;
 
+	/* Ethernet E1000 controller */
+	rc = pCallbacks->pfnRegister(pCallbacks, &g_DeviceE1000);
+	if (RT_FAILURE(rc))
+		return rc;
+
 	/* Serial device */
 	rc = pCallbacks->pfnRegister(pCallbacks, &g_DeviceSerialPort);
 	if (RT_FAILURE(rc))

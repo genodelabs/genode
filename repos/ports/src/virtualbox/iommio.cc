@@ -29,8 +29,9 @@ int IOMR3MmioRegisterR3(PVM pVM, PPDMDEVINS pDevIns, RTGCPHYS GCPhysStart,
                         R3PTRTYPE(PFNIOMMMIOFILL)  pfnFillCallback,
                         uint32_t fFlags, const char *pszDesc)
 {
-	PLOG("IOMR3MmioRegisterR3: GCPhys=0x%lx cb=0x%zx pszDesc=%s rd=%p wr=%p fl=%p",
-	     (long)GCPhysStart, (size_t)cbRange, pszDesc,
+	PLOG("%s: GCPhys=0x%lx cb=0x%x pszDesc=%s rd=%p wr=%p fl=%p",
+	     __PRETTY_FUNCTION__,
+	     (long)GCPhysStart, cbRange, pszDesc,
 	     pfnWriteCallback, pfnReadCallback, pfnFillCallback);
 
 	REMR3NotifyHandlerPhysicalRegister(pVM, PGMPHYSHANDLERTYPE_MMIO,
@@ -42,6 +43,20 @@ int IOMR3MmioRegisterR3(PVM pVM, PPDMDEVINS pDevIns, RTGCPHYS GCPhysStart,
 
 	return VINF_SUCCESS;
 
+}
+
+
+int IOMR3MmioDeregister(PVM pVM, PPDMDEVINS pDevIns, RTGCPHYS GCPhysStart,
+                        uint32_t cbRange)
+{
+	PLOG("%s: GCPhys=0x%lx cb=0x%x", __PRETTY_FUNCTION__, GCPhysStart, cbRange);
+
+	bool status = guest_memory()->remove_mmio_mapping(GCPhysStart, cbRange);
+	if (status)
+		return VINF_SUCCESS;
+	
+
+	return !VINF_SUCCESS;
 }
 
 

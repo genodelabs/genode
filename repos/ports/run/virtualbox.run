@@ -1,3 +1,5 @@
+set use_net 0
+
 set build_components {
 	core init virtualbox
 	drivers/input
@@ -8,6 +10,8 @@ set build_components {
 lappend_if [have_spec acpi]  build_components drivers/acpi
 lappend_if [have_spec pci]   build_components drivers/pci
 lappend_if [have_spec x86]   build_components drivers/rtc
+
+lappend_if [expr $use_net]   build_components drivers/nic
 
 build $build_components
 
@@ -38,7 +42,7 @@ set config {
 
 append_if [have_spec acpi] config {
 	<start name="acpi" priority="-1">
-		<resource name="RAM" quantum="5M"/>
+		<resource name="RAM" quantum="8M"/>
 		<binary name="acpi_drv"/>
 		<provides>
 			<service name="PCI"/>
@@ -85,13 +89,25 @@ append_if [have_spec x86] config {
 		</provides>
 	</start>}
 
+append_if [expr $use_net] config {
+	<start name="nic_drv" priority="-1">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Nic"/></provides>
+	</start>
+}
+
 append config {
 	<start name="virtualbox" priority="-2">
 		<resource name="RAM" quantum="1G"/>
 		<config>
 			<image type="iso" file="test.iso" />
 <!--			<ioapic/> -->
-<!--			<noacpi/> -->
+<!--			<noacpi/> -->}
+
+append_if [expr $use_net] config {
+				<net model="e1000"/>}
+
+append config {
 			<libc stdout="/dev/log" stderr="/dev/log">
 				<vfs>
 					<dir name="dev"> <log/> </dir>
@@ -119,6 +135,8 @@ lappend_if [have_spec         x86] boot_modules rtc_drv
 append boot_modules { ld.lib.so libc.lib.so libm.lib.so pthread.lib.so
                       libc_lock_pipe.lib.so libc_terminal.lib.so
                       libiconv.lib.so }
+
+append_if [expr $use_net] boot_modules { nic_drv }
 
 build_boot_image $boot_modules
 

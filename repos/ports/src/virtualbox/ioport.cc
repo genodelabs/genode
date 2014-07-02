@@ -22,6 +22,8 @@
 #include <VBox/err.h>
 #include <VBox/vmm/pdmdev.h>
 
+static bool verbose = false;
+
 class Guest_ioports
 {
 	struct Range;
@@ -263,8 +265,9 @@ IOMR3IOPortRegisterR3(PVM pVM, PPDMDEVINS pDevIns,
                       R3PTRTYPE(PFNIOMIOPORTINSTRING)  pfnInStringCallback,
                       const char *pszDesc)
 {
-	PLOG("register I/O port range 0x%x-0x%x '%s'",
-	     PortStart, PortStart + cPorts - 1, pszDesc);
+	if (verbose)
+		PLOG("register I/O port range 0x%x-0x%x '%s'",
+		     PortStart, PortStart + cPorts - 1, pszDesc);
 
 	return guest_ioports()->add_range(pDevIns, PortStart, cPorts, pvUser,
 	                                  pfnOutCallback, pfnInCallback,
@@ -275,8 +278,9 @@ IOMR3IOPortRegisterR3(PVM pVM, PPDMDEVINS pDevIns,
 int IOMR3IOPortDeregister(PVM pVM, PPDMDEVINS pDevIns, RTIOPORT PortStart,
                           RTUINT cPorts)
 {
-	PLOG("deregister I/O port range 0x%x-0x%x",
-	     PortStart, PortStart + cPorts - 1);
+	if (verbose)
+		PLOG("deregister I/O port range 0x%x-0x%x",
+		     PortStart, PortStart + cPorts - 1);
 
 	return guest_ioports()->remove_range(pDevIns, PortStart, cPorts);
 }
