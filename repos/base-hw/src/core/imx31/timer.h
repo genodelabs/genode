@@ -16,6 +16,7 @@
 
 /* core includes */
 #include <drivers/timer/epit_base.h>
+#include <board.h>
 
 namespace Kernel
 {
