@@ -39,7 +39,4 @@ extern "C" void dde_kit_debug(const char *fmt, ...)
 	Genode::vprintf(fmt, va);
 	va_end(va);
 	Genode::printf("\n");
-
-	/* XXX original implementation enters a kernel debugger here */
-	Genode::sleep_forever();
 }
