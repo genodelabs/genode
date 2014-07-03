@@ -24,6 +24,7 @@ proc qt5_build_components { feature_arg } {
 		server/report_rom
 		app/floating_window_layouter
 		app/decorator
+		app/pointer
 		server/wm
 	}
 
@@ -55,8 +56,14 @@ proc qt5_start_nodes { feature_arg } {
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Nitpicker"/></provides>
 			<config>
-				<domain name="default" color="#ffffff"/>
-				<policy label="" domain="default"/>
+				<domain name="pointer"   layer="1" xray="no" origin="pointer" />
+				<domain name="decorator" layer="2" xray="opaque" />
+				<domain name="default"   layer="2" />
+
+				<policy label="pointer"         domain="pointer"/>
+				<policy label=""                domain="default"/>
+				<policy label="wm -> decorator" domain="decorator"/>
+
 				<global-key name="KEY_SCROLLLOCK" operation="xray" />
 				<global-key name="KEY_SYSRQ"      operation="kill" />
 				<global-key name="KEY_PRINT"      operation="kill" />
@@ -64,6 +71,15 @@ proc qt5_start_nodes { feature_arg } {
 				<global-key name="KEY_F12"        operation="xray" />
 			</config>
 		</start>
+
+		<start name="pointer">
+			<resource name="RAM" quantum="1M"/>
+			<route>
+				<service name="Nitpicker"> <child name="nitpicker"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+
 		<start name="wm">
 			<resource name="RAM" quantum="16M"/>
 			<provides><service name="Nitpicker"/></provides>
@@ -98,6 +114,7 @@ proc qt5_boot_modules { feature_arg } {
 		floating_window_layouter
 		decorator
 		wm
+		pointer
 	}
 
 	return $boot_modules
