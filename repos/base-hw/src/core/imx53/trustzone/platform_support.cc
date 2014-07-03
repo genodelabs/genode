@@ -18,8 +18,45 @@
 #include <board.h>
 #include <pic.h>
 #include <processor_driver.h>
+#include <trustzone.h>
+#include <csu.h>
 
 using namespace Genode;
+
+/* monitor exception vector address */
+extern int _mon_kernel_entry;
+
+
+void Kernel::init_trustzone(Pic * pic)
+{
+	using namespace Genode;
+
+	/* check for compatibility */
+	if (PROCESSORS > 1) {
+		PERR("trustzone not supported with multiprocessing");
+		return;
+	}
+	/* set exception vector entry */
+	Processor_driver::mon_exception_entry_at((Genode::addr_t)&_mon_kernel_entry);
+
+	/* enable coprocessor access for TZ VMs */
+	Processor_driver::allow_coprocessor_nonsecure();
+
+	/* configure non-secure interrupts */
+	for (unsigned i = 0; i < Pic::NR_OF_IRQ; i++) {
+		if ((i != Imx53::Board::EPIT_1_IRQ) &&
+			(i != Imx53::Board::EPIT_2_IRQ) &&
+			(i != Imx53::Board::I2C_2_IRQ)  &&
+			(i != Imx53::Board::I2C_3_IRQ)  &&
+			(i < Imx53::Board::GPIO1_IRQL || i > Imx53::Board::GPIO4_IRQH) &&
+			(i < Imx53::Board::GPIO5_IRQL || i > Imx53::Board::GPIO7_IRQH))
+			pic->unsecure(i);
+	}
+
+	/* configure central security unit */
+	Genode::Csu csu(Imx53::Board::CSU_BASE);
+}
+
 
 Native_region * Platform::_ram_regions(unsigned const i)
 {

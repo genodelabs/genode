@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _IMX53__PIC_BASE_H_
-#define _IMX53__PIC_BASE_H_
+#ifndef _PIC_H_
+#define _PIC_H_
 
 /* Genode includes */
 #include <util/mmio.h>
@@ -20,14 +20,12 @@
 /* core includes */
 #include <board.h>
 
-namespace Imx53
+namespace Genode
 {
-	using namespace Genode;
-
 	/**
 	 * Programmable interrupt controller for core
 	 */
-	class Pic_base : public Mmio
+	class Pic : public Mmio
 	{
 		public:
 
@@ -113,24 +111,31 @@ namespace Imx53
 			 */
 			unsigned _max_priority() { return 255; }
 
-		public:
-
 			/**
-			 * Constructor, all interrupts get masked
+			 * Initialization that is common to constructor implementations
 			 */
-			Pic_base() : Mmio(Board::TZIC_MMIO_BASE)
+			void _common_init()
 			{
 				for (unsigned i = 0; i < NR_OF_IRQ; i++) {
 					write<Intsec::Nonsecure>(1, i);
 					write<Enclear::Clear_enable>(1, i);
 				}
-
 				write<Priomask::Mask>(0x1f);
 				write<Intctrl>(Intctrl::Enable::bits(1) |
 				               Intctrl::Nsen::bits(1)   |
 				               Intctrl::Nsen_mask::bits(1));
-
 			}
+
+		public:
+
+			/**
+			 * Constructor, all interrupts get masked
+			 */
+			Pic();
+
+			void unsecure(unsigned const i);
+
+			void secure(unsigned const i);
 
 			/**
 			 * Initialize processor local interface of the controller
@@ -222,4 +227,6 @@ namespace Imx53
 	};
 }
 
-#endif /* _IMX53__PIC_BASE_H_ */
+namespace Kernel { class Pic : public Genode::Pic { }; }
+
+#endif /* _PIC_H_ */

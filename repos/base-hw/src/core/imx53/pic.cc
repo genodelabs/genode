@@ -11,12 +11,15 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _IMX53__PIC_H_
-#define _IMX53__PIC_H_
-
 /* core includes */
-#include <pic_base.h>
+#include <pic.h>
 
-namespace Kernel { class Pic : public Imx53::Pic_base { }; }
+using namespace Genode;
 
-#endif /* _IMX53__PIC_H_ */
+Pic::Pic() : Mmio(Board::TZIC_MMIO_BASE) { _common_init(); }
+
+
+void Pic::unsecure(unsigned) { }
+
+
+void Pic::secure(unsigned) { }

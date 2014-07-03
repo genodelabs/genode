@@ -16,4 +16,3 @@ LD_TEXT_ADDR ?= 0x70010000
 # include implied specs
 include $(call select_from_repositories,mk/spec-hw.mk)
 include $(call select_from_repositories,mk/spec-platform_imx53.mk)
-
