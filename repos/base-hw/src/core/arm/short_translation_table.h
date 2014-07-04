@@ -272,6 +272,11 @@ class Arm::Section_table
 
 						/* compose new descriptor value */
 						_entries[i] = Small_page::create(flags, pa);
+
+						/* some processors need to act on changed translations */
+						using Cpu = Genode::Processor_driver;
+						Cpu::translation_added((addr_t)&_entries[i],
+						                       sizeof(Descriptor::access_t));
 					}
 				}
 
@@ -510,6 +515,11 @@ class Arm::Section_table
 					Page_table * pt_phys = (Page_table*) slab->phys_addr(pt);
 					pt_phys = pt_phys ? pt_phys : pt; /* hack for core */
 					_entries[i] = Page_table_descriptor::create(pt_phys);
+
+					/* some processors need to act on changed translations */
+					using Cpu = Genode::Processor_driver;
+					Cpu::translation_added((addr_t)&_entries[i],
+					                       sizeof(Descriptor::access_t));
 				}
 
 			case Descriptor::PAGE_TABLE:
@@ -597,6 +607,11 @@ class Arm::Section_table
 						    _entries[i] != Section::create(flags, pa))
 							throw Double_insertion();
 						_entries[i] = Section::create(flags, pa);
+
+						/* some processors need to act on changed translations */
+						using Cpu = Genode::Processor_driver;
+						Cpu::translation_added((addr_t)&_entries[i],
+						                       sizeof(Descriptor::access_t));
 						break;
 					}
 

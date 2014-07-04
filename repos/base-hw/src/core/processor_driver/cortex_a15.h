@@ -49,6 +49,12 @@ namespace Cortex_a15
 		 * Return wether to retry an undefined user instruction after this call
 		 */
 		bool retry_undefined_instr(Processor_lazy_state *) { return false; }
+
+		/**
+		 * After a page-fault resolution nothing needs to be done
+		 */
+		static void translation_added(Genode::addr_t addr,
+		                              Genode::size_t size) { }
 	};
 }
 

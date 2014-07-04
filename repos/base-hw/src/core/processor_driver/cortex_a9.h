@@ -290,6 +290,12 @@ class Cortex_a9::Processor_driver : public Arm_v7::Processor_driver
 			}
 			return true;
 		}
+
+		/**
+		 * After a page-fault resolution nothing needs to be done
+		 */
+		static void translation_added(Genode::addr_t addr,
+		                              Genode::size_t size) { }
 };
 
 

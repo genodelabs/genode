@@ -623,6 +623,12 @@ namespace Arm
 		};
 
 		/**
+		 * Returns true if current execution context is running in user mode
+		 */
+		inline static bool is_user() {
+			return Psr::M::get(Psr::read()) == Psr::M::USER; }
+
+		/**
 		 * Invalidate all entries of all instruction caches
 		 */
 		__attribute__((always_inline))

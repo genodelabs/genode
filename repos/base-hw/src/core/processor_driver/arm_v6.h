@@ -230,6 +230,20 @@ namespace Arm_v6
 		 * Return wether to retry an undefined user instruction after this call
 		 */
 		bool retry_undefined_instr(Processor_lazy_state *) { return false; }
+
+		/**
+		 * The ARM1176JZF-S processor cannot page table walk from level one cache.
+		 * Therefore, as the page-tables lie in write-back cacheable memory we've
+		 * to clean the corresponding cache-lines even when a page table entry is added
+		 */
+		static void translation_added(Genode::addr_t addr, Genode::size_t size)
+		{
+			/*
+			 * only clean lines as core, the kernel adds entries
+			 * before MMU and caches are enabled
+			 */
+			if (is_user()) Kernel::update_data_region(addr, size);
+		}
 	};
 }
 

@@ -57,7 +57,7 @@ namespace Genode
 			SECURITY_EXTENSION = 0,
 
 			/* CPU cache */
-			CACHE_LINE_SIZE_LOG2 = 2, /* FIXME get correct value from board spec */
+			CACHE_LINE_SIZE_LOG2 = 5,
 		};
 
 		enum Videocore_cache_policy { NON_COHERENT = 0,

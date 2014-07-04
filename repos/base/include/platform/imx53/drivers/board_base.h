@@ -113,7 +113,7 @@ namespace Genode
 			SECURITY_EXTENSION = 1,
 
 			/* CPU cache */
-			CACHE_LINE_SIZE_LOG2 = 2, /* FIXME get correct value from board spec */
+			CACHE_LINE_SIZE_LOG2 = 6,
 		};
 	};
 }
