@@ -41,4 +41,7 @@ CC_OPT += -DCONFIG_MAX_THREAD_BITS=10
 clean_includes:
 	$(VERBOSE)rm -rf $(BUILD_BASE_DIR)/include
 
-clean cleanall: clean_includes
+clean_tool_elfweaver:
+	$(VERBOSE)rm -rf $(BUILD_BASE_DIR)/tool/okl4/elfweaver
+
+clean cleanall: clean_includes clean_tool_elfweaver
