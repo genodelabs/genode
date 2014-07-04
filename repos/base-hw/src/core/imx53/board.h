@@ -78,13 +78,6 @@ namespace Imx53
 
 	struct Board : Genode::Board_base
 	{
-		static void disable_l2_cache()
-		{
-			asm volatile ("mrc p15, 0, r0, c1, c0, 1 \n"
-			              "bic r0, r0, #2            \n"
-			              "mcr p15, 0, r0, c1, c0, 1" ::: "r0" );
-		}
-
 		/**
 		 * static AIPS 1 instance
 		 */
@@ -100,8 +93,6 @@ namespace Imx53
 		 */
 		static void prepare_kernel()
 		{
-			disable_l2_cache();
-
 			aips_1()->prepare_kernel();
 			aips_2()->prepare_kernel();
 		}
