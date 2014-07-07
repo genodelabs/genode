@@ -288,7 +288,7 @@ Genode::Rpc_entrypoint &Parent::_entrypoint()
 {
 	using namespace Genode;
 	static Cap_connection cap;
-	size_t const stack_size = sizeof(addr_t)*1024;
+	size_t const stack_size = sizeof(addr_t)*2*1024;
 	static Rpc_entrypoint ep(&cap, stack_size, "ep", false);
 	return ep;
 }
