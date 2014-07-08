@@ -15,7 +15,7 @@ if {[have_spec linux]} {
 # Build
 #
 
-build {
+set build_components {
 	core init
 	drivers/timer drivers/nic
 	server/tcp_terminal
@@ -25,6 +25,8 @@ build {
 lappend_if [have_spec acpi]    build_components drivers/acpi
 lappend_if [have_spec pci]     build_components drivers/pci
 lappend_if [have_spec pci]     build_components drivers/pci/device_pd
+
+build $build_components
 
 create_boot_directory
 
