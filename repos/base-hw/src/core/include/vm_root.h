@@ -24,17 +24,12 @@ namespace Genode {
 
 	class Vm_root : public Root_component<Vm_session_component>
 	{
-		private:
-
-			Range_allocator *_ram_alloc;
-
 		protected:
 
 			Vm_session_component *_create_session(const char *args)
 			{
 				size_t ram_quota = Arg_string::find_arg(args, "ram_quota").long_value(0);
-				return new (md_alloc())
-					Vm_session_component(ep(), _ram_alloc, ram_quota);
+				return new (md_alloc()) Vm_session_component(ep(), ram_quota);
 			}
 
 		public:
@@ -46,10 +41,8 @@ namespace Genode {
 			 * \param md_alloc    meta-data allocator to be used by root component
 			 */
 			Vm_root(Rpc_entrypoint  *session_ep,
-			        Allocator       *md_alloc,
-			        Range_allocator *ram_alloc)
-			: Root_component<Vm_session_component>(session_ep, md_alloc),
-			  _ram_alloc(ram_alloc){ }
+			        Allocator       *md_alloc)
+			: Root_component<Vm_session_component>(session_ep, md_alloc) { }
 	};
 }
 

@@ -53,9 +53,6 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 
 		/* Core UART */
 		{ Board::PL011_0_MMIO_BASE, Board::PL011_0_MMIO_SIZE },
-
-		/* vm state memory */
-		{ Trustzone::VM_STATE_BASE, Trustzone::VM_STATE_SIZE },
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }

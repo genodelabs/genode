@@ -17,6 +17,9 @@
 /* Genode includes */
 #include <base/printf.h>
 
+/* core includes */
+#include <page_flags.h>
+
 namespace Genode {
 
 	/**
@@ -30,7 +33,8 @@ namespace Genode {
 	 * \return true on success
 	 */
 	bool map_local(addr_t from_phys, addr_t to_virt, size_t num_pages,
-	               bool io_mem = false);
+	               Page_flags flags = { true, true, false, false,
+	                                    false, CACHED });
 
 	/**
 	 * Unmap pages from core's address space

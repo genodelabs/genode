@@ -125,7 +125,9 @@ namespace Kernel
 				using namespace Genode;
 
 				Translation_table *tt = Platform_pd::translation_table();
-				const Page_flags flags = Page_flags::map_core_area(io_mem);
+				const Page_flags flags =
+					Page_flags::apply_mapping(true, io_mem ? UNCACHED : CACHED,
+					                          io_mem);
 
 				start = trunc_page(start);
 				size_t size  = round_page(end) - start;

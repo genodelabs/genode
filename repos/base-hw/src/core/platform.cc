@@ -192,10 +192,10 @@ void Core_parent::exit(int exit_value)
  ** Support for core memory management **
  ****************************************/
 
-bool Genode::map_local(addr_t from_phys, addr_t to_virt, size_t num_pages, bool io_mem)
+bool Genode::map_local(addr_t from_phys, addr_t to_virt, size_t num_pages,
+                       Page_flags flags)
 {
 	Translation_table *tt = Kernel::core_pd()->translation_table();
-	const Page_flags flags = Page_flags::map_core_area(io_mem);
 
 	try {
 		for (unsigned i = 0; i < 2; i++) {
@@ -245,7 +245,7 @@ bool Core_mem_allocator::Mapped_mem_allocator::_map_local(addr_t   virt_addr,
 {
 	Genode::Page_slab * slab = Kernel::core_pd()->platform_pd()->page_slab();
 	slab->backing_store(_core_mem_allocator->raw());
-	bool ret = ::map_local(phys_addr, virt_addr, size / get_page_size(), false);
+	bool ret = ::map_local(phys_addr, virt_addr, size / get_page_size());
 	slab->backing_store(_core_mem_allocator);
 	return ret;
 }

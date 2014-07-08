@@ -29,34 +29,24 @@ namespace Genode {
 	{
 		private:
 
-			Rpc_entrypoint          *_ds_ep;
-			Range_allocator         *_ram_alloc;
-			unsigned                 _vm_id;
-			void                    *_vm;
-			addr_t                   _ds_addr;
-			Dataspace_component      _ds;
-			Dataspace_capability     _ds_cap;
+			Rpc_entrypoint      *_ds_ep;
+			Range_allocator     *_ram_alloc;
+			unsigned             _vm_id;
+			void                *_vm;
+			Dataspace_component  _ds;
+			Dataspace_capability _ds_cap;
+			addr_t               _ds_addr;
 
 			static size_t _ds_size() {
 				return align_addr(sizeof(Cpu_state_modes),
 				                  get_page_size_log2()); }
 
-			addr_t _alloc_ds(size_t *ram_quota)
-			{
-				addr_t addr;
-				if (_ds_size() > *ram_quota ||
-					_ram_alloc->alloc_aligned(_ds_size(), (void**)&addr,
-					                          get_page_size_log2()).is_error())
-					throw Root::Quota_exceeded();
-				*ram_quota -= _ds_size();
-				return addr;
-			}
+			addr_t _alloc_ds(size_t &ram_quota);
 
 		public:
 
-			Vm_session_component(Rpc_entrypoint  *ds_ep,
-			                     Range_allocator *ram_alloc,
-			                     size_t           ram_quota);
+			Vm_session_component(Rpc_entrypoint *ds_ep,
+			                     size_t          ram_quota);
 			~Vm_session_component();
 
 

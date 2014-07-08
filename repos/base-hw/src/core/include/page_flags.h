@@ -41,13 +41,6 @@ namespace Genode
 				                io_mem, cacheable }; }
 
 		/**
-		 * Create flag POD for kernel when it creates the core space
-		 */
-		static const Page_flags map_core_area(bool const io_mem) {
-			return Page_flags { true, true, false, false, io_mem,
-			                    io_mem ? UNCACHED : CACHED}; }
-
-		/**
 		 * Create flag POD for the mode transition region
 		 */
 		static const Page_flags mode_transition() {
