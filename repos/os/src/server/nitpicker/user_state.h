@@ -19,7 +19,6 @@
 #define _USER_STATE_H_
 
 #include "mode.h"
-#include "menubar.h"
 #include "view_stack.h"
 #include "global_keys.h"
 
@@ -31,13 +30,6 @@ class User_state : public Mode, public View_stack
 		 * Policy for the routing of global keys
 		 */
 		Global_keys &_global_keys;
-
-		/*
-		 * Menubar to display trusted labeling information
-		 * according to the current Mitpicker mode and the
-		 * focused session.
-		 */
-		Menubar &_menubar;
 
 		/*
 		 * Current pointer position
@@ -59,7 +51,6 @@ class User_state : public Mode, public View_stack
 		 */
 		bool _global_key_sequence = false;
 
-		void _update_menubar();
 		void _update_all();
 
 	public:
@@ -67,7 +58,7 @@ class User_state : public Mode, public View_stack
 		/**
 		 * Constructor
 		 */
-		User_state(Global_keys &, Area view_stack_size, Menubar &);
+		User_state(Global_keys &, Area view_stack_size);
 
 		/**
 		 * Handle input event

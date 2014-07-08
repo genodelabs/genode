@@ -37,7 +37,6 @@
 #include "background.h"
 #include "clip_guard.h"
 #include "pointer_origin.h"
-#include "chunky_menubar.h"
 #include "domain_registry.h"
 
 namespace Input       { class Session_component; }
@@ -94,6 +93,20 @@ static void report_focus(Genode::Reporter &reporter, Session *focused_session)
 			                 color.r, color.g, color.b);
 			xml.attribute("color", buf);
 		}
+	});
+}
+
+
+static void report_kill_focus(Genode::Reporter &reporter)
+{
+	if (!reporter.is_enabled())
+		return;
+
+	Genode::Reporter::Xml_generator xml(reporter, [&] ()
+	{
+		xml.attribute("label",  "");
+		xml.attribute("domain", "");
+		xml.attribute("color",  "#ff4444");
 	});
 }
 
@@ -1043,11 +1056,10 @@ struct Nitpicker::Main
 	typedef Pixel_rgb565 PT;  /* physical pixel type */
 
 	/*
-	 * Initialize framebuffer and menu bar
+	 * Initialize framebuffer
 	 *
-	 * The framebuffer and menubar are encapsulated in a volatile object to
-	 * allow their reconstruction at runtime as a response to resolution
-	 * changes.
+	 * The framebuffer is encapsulated in a volatile object to allow its
+	 * reconstruction at runtime as a response to resolution changes.
 	 */
 	struct Framebuffer_screen
 	{
@@ -1059,28 +1071,10 @@ struct Nitpicker::Main
 
 		Screen<PT> screen = { fb_ds.local_addr<PT>(), Area(mode.width(), mode.height()) };
 
-		enum { MENUBAR_HEIGHT = 16 };
-
-		/**
-		 * Size of menubar pixel buffer in bytes
-		 */
-		size_t const menubar_size = sizeof(PT)*mode.width()*MENUBAR_HEIGHT;
-
-		PT *menubar_pixels =
-			(PT *)env()->heap()->alloc(menubar_size);
-
-		Chunky_menubar<PT> menubar =
-			{ menubar_pixels, Area(mode.width(), MENUBAR_HEIGHT) };
-
 		/**
 		 * Constructor
 		 */
 		Framebuffer_screen(Framebuffer::Session &fb) : framebuffer(fb) { }
-
-		/**
-		 * Destructor
-		 */
-		~Framebuffer_screen() { env()->heap()->free(menubar_pixels, menubar_size); }
 	};
 
 	Genode::Volatile_object<Framebuffer_screen> fb_screen = { framebuffer };
@@ -1103,7 +1097,7 @@ struct Nitpicker::Main
 	Genode::Volatile_object<Domain_registry> domain_registry {
 		*env()->heap(), Genode::Xml_node("<config/>") };
 
-	User_state user_state = { global_keys, fb_screen->screen.size(), fb_screen->menubar };
+	User_state user_state = { global_keys, fb_screen->screen.size() };
 
 	/*
 	 * Create view stack with default elements
@@ -1151,12 +1145,9 @@ struct Nitpicker::Main
 	{
 //		tmp_fb = &framebuffer;
 
-		fb_screen->menubar.state(Menubar_state(user_state, "", BLACK));
-
 		user_state.default_background(background);
 		user_state.stack(pointer_origin);
 		user_state.stack(background);
-		user_state.stack(fb_screen->menubar);
 
 		config()->sigh(config_dispatcher);
 		Signal_transmitter(config_dispatcher).submit();
@@ -1185,6 +1176,7 @@ void Nitpicker::Main::handle_input(unsigned)
 	do {
 		Point       const old_pointer_pos     = user_state.pointer_pos();
 		::Session * const old_focused_session = user_state.Mode::focused_session();
+		bool        const old_kill_mode       = user_state.kill();
 
 		/* handle batch of pending events */
 		if (input.is_pending())
@@ -1192,6 +1184,7 @@ void Nitpicker::Main::handle_input(unsigned)
 
 		Point       const new_pointer_pos     = user_state.pointer_pos();
 		::Session * const new_focused_session = user_state.Mode::focused_session();
+		bool        const new_kill_mode       = user_state.kill();
 
 		/* report mouse-position updates */
 		if (pointer_reporter.is_enabled() && old_pointer_pos != new_pointer_pos) {
@@ -1206,6 +1199,24 @@ void Nitpicker::Main::handle_input(unsigned)
 		/* report focus changes */
 		if (old_focused_session != new_focused_session)
 			report_focus(focus_reporter, new_focused_session);
+
+		/* report kill mode */
+		if (old_kill_mode != new_kill_mode) {
+
+			if (new_kill_mode)
+				report_kill_focus(focus_reporter);
+
+			if (!new_kill_mode)
+				report_focus(focus_reporter, new_focused_session);
+		}
+
+		/*
+		 * Continuously redraw the whole screen when kill mode is active.
+		 * Otherwise client updates (e.g., the status bar) would stay invisible
+		 * because we do not dispatch the RPC interface during kill mode.
+		 */
+		if (new_kill_mode)
+			user_state.update_all_views();
 
 		/* update mouse cursor */
 		if (old_pointer_pos != new_pointer_pos)
@@ -1290,23 +1301,11 @@ void Nitpicker::Main::handle_config(unsigned)
 
 void Nitpicker::Main::handle_fb_mode(unsigned)
 {
-	/* save state of menu bar */
-	Menubar_state menubar_state = fb_screen->menubar.state();
-
-	/* remove old version of menu bar from view stack */
-	user_state.remove_view(fb_screen->menubar, false);
-
 	/* reconstruct framebuffer screen and menu bar */
 	fb_screen.construct(framebuffer);
 
 	/* let the view stack use the new size */
 	user_state.size(Area(fb_screen->mode.width(), fb_screen->mode.height()));
-
-	/* load original state into new menu bar */
-	fb_screen->menubar.state(menubar_state);
-
-	/* re-insert menu bar behind mouse cursor */
-	user_state.stack(fb_screen->menubar, &pointer_origin);
 
 	/* redraw */
 	user_state.update_all_views();

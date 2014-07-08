@@ -35,30 +35,14 @@ static inline bool _mouse_button(Keycode keycode) {
  ** User state interface **
  **************************/
 
-User_state::User_state(Global_keys &global_keys, Area view_stack_size, Menubar &menubar)
+User_state::User_state(Global_keys &global_keys, Area view_stack_size)
 :
-	View_stack(view_stack_size, *this), _global_keys(global_keys), _menubar(menubar)
+	View_stack(view_stack_size, *this), _global_keys(global_keys)
 { }
-
-
-void User_state::_update_menubar()
-{
-	Menubar_state state(*this, "", BLACK);
-
-	if (_input_receiver)
-		state = Menubar_state(*this,
-		                      _input_receiver->label().string(),
-		                      _input_receiver->color());
-
-	_menubar.state(state);
-
-	refresh_view(_menubar.view(), _menubar.view().abs_geometry());
-}
 
 
 void User_state::_update_all()
 {
-	_update_menubar();
 	update_all_views();
 }
 
@@ -283,6 +267,4 @@ void User_state::focused_session(::Session *session)
 
 	if (!_global_key_sequence)
 		_input_receiver = session;
-
-	_update_menubar();
 }

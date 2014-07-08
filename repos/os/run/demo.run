@@ -5,10 +5,11 @@
 set build_components {
 	core init
 	drivers/timer
-	server/nitpicker app/pointer
+	server/nitpicker app/pointer app/status_bar
 	server/liquid_framebuffer app/launchpad app/scout
 	test/nitpicker server/nitlog
 	drivers/framebuffer drivers/pci drivers/input
+	server/report_rom
 }
 
 lappend_if [have_spec usb]          build_components drivers/usb
@@ -116,15 +117,27 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
+	<start name="report_rom">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config>
+			<rom>
+				<policy label="status_bar -> focus" report="nitpicker -> focus"/>
+			</rom>
+		</config>
+	</start>
 	<start name="nitpicker">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nitpicker"/></provides>
 		<config>
+			<report focus="yes" />
 			<domain name="pointer" layer="1" xray="no" origin="pointer" />
-			<domain name="default" layer="2" />
+			<domain name="panel"   layer="2" xray="no" />
+			<domain name=""        layer="3" ypos="18" height="-18" />
 
-			<policy label="pointer" domain="pointer"/>
-			<policy label=""        domain="default"/>
+			<policy label="pointer"    domain="pointer"/>
+			<policy label="status_bar" domain="panel"/>
+			<policy label=""           domain=""/>
 
 			<global-key name="KEY_SCROLLLOCK" operation="xray" />
 			<global-key name="KEY_SYSRQ"      operation="kill" />
@@ -135,6 +148,13 @@ append config {
 	</start>
 	<start name="pointer">
 		<resource name="RAM" quantum="1M"/>
+	</start>
+	<start name="status_bar">
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="ROM"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
 	</start>
 	<start name="launchpad">
 		<resource name="RAM" quantum="64M" />
@@ -170,7 +190,7 @@ close $launchpad_config_fd
 set boot_modules {
 	core init
 	timer
-	nitpicker pointer liquid_fb launchpad scout
+	nitpicker pointer status_bar report_rom liquid_fb launchpad scout
 	testnit nitlog
 	launchpad.config
 }
