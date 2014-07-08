@@ -83,6 +83,8 @@ class Domain_registry
 
 				bool has_name(Name const &name) const { return name == _name; }
 
+				Name name() const { return _name; }
+
 				Color color() const { return _color; }
 
 				unsigned layer() const { return _layer; }

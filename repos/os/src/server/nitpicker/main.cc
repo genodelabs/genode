@@ -77,6 +77,27 @@ Framebuffer::Session *tmp_fb;
  ** Utilities **
  ***************/
 
+static void report_focus(Genode::Reporter &reporter, Session *focused_session)
+{
+	if (!reporter.is_enabled())
+		return;
+
+	Genode::Reporter::Xml_generator xml(reporter, [&] ()
+	{
+		if (focused_session) {
+			xml.attribute("label",  focused_session->label().string());
+			xml.attribute("domain", focused_session->domain_name().string());
+
+			Color const color = focused_session->color();
+			char buf[32];
+			Genode::snprintf(buf, sizeof(buf), "#%02x%02x%02x",
+			                 color.r, color.g, color.b);
+			xml.attribute("color", buf);
+		}
+	});
+}
+
+
 /*
  * Font initialization
  */
@@ -423,6 +444,8 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 		View_handle_registry _view_handle_registry;
 
+		Genode::Reporter &_focus_reporter;
+
 		void _release_buffer()
 		{
 			if (!::Session::texture())
@@ -637,7 +660,8 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 		                  Framebuffer::Session &framebuffer,
 		                  bool                  provides_default_bg,
 		                  Allocator            &session_alloc,
-		                  size_t                ram_quota)
+		                  size_t                ram_quota,
+		                  Genode::Reporter     &focus_reporter)
 		:
 			::Session(label),
 			_session_alloc(&session_alloc, ram_quota),
@@ -648,7 +672,8 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 			_framebuffer_session_cap(_ep.manage(&_framebuffer_session_component)),
 			_input_session_cap(_ep.manage(&_input_session_component)),
 			_provides_default_bg(provides_default_bg),
-			_view_handle_registry(_session_alloc)
+			_view_handle_registry(_session_alloc),
+			_focus_reporter(focus_reporter)
 		{
 			_session_alloc.upgrade(ram_quota);
 		}
@@ -863,6 +888,8 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 			if (session)
 				session->release();
+
+			report_focus(_focus_reporter, session);
 		}
 
 
@@ -911,6 +938,7 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 		Mode                  &_mode;
 		::View                &_pointer_origin;
 		Framebuffer::Session  &_framebuffer;
+		Genode::Reporter      &_focus_reporter;
 
 	protected:
 
@@ -936,7 +964,8 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 			Session_component *session = new (md_alloc())
 				Session_component(Session_label(args), _view_stack, _mode,
 				                  _pointer_origin, *ep(), _framebuffer,
-				                  provides_default_bg, *md_alloc(), unused_quota);
+				                  provides_default_bg, *md_alloc(), unused_quota,
+				                  _focus_reporter);
 
 			session->apply_session_policy(_domain_registry);
 			_session_list.insert(session);
@@ -971,12 +1000,13 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 		     Domain_registry const &domain_registry, Global_keys &global_keys,
 		     Rpc_entrypoint &session_ep, View_stack &view_stack, Mode &mode,
 		     ::View &pointer_origin, Allocator &md_alloc,
-		     Framebuffer::Session &framebuffer)
+		     Framebuffer::Session &framebuffer, Genode::Reporter &focus_reporter)
 		:
 			Root_component<Session_component>(&session_ep, &md_alloc),
 			_session_list(session_list), _domain_registry(domain_registry),
 			_global_keys(global_keys), _view_stack(view_stack), _mode(mode),
-			_pointer_origin(pointer_origin), _framebuffer(framebuffer)
+			_pointer_origin(pointer_origin), _framebuffer(framebuffer),
+			_focus_reporter(focus_reporter)
 		{ }
 };
 
@@ -1071,11 +1101,12 @@ struct Nitpicker::Main
 	 */
 	Genode::Sliced_heap sliced_heap = { env()->ram_session(), env()->rm_session() };
 
+	Genode::Reporter pointer_reporter = { "pointer" };
+	Genode::Reporter focus_reporter   = { "focus" };
+
 	Root<PT> np_root = { session_list, *domain_registry, global_keys,
 	                     ep.rpc_ep(), user_state, user_state, pointer_origin,
-	                     sliced_heap, framebuffer };
-
-	Genode::Reporter pointer_reporter = { "pointer" };
+	                     sliced_heap, framebuffer, focus_reporter };
 
 	/*
 	 * Configuration-update dispatcher, executed in the context of the RPC
@@ -1136,22 +1167,29 @@ void Nitpicker::Main::handle_input(unsigned)
 		return;
 
 	do {
-		Point const old_pointer_pos = user_state.pointer_pos();
+		Point       const old_pointer_pos     = user_state.pointer_pos();
+		::Session * const old_focused_session = user_state.Mode::focused_session();
 
 		/* handle batch of pending events */
 		if (input.is_pending())
 			import_input_events(ev_buf, input.flush(), user_state);
 
-		Point const new_pointer_pos = user_state.pointer_pos();
+		Point       const new_pointer_pos     = user_state.pointer_pos();
+		::Session * const new_focused_session = user_state.Mode::focused_session();
 
 		/* report mouse-position updates */
-		if (pointer_reporter.is_enabled() && old_pointer_pos != new_pointer_pos)
+		if (pointer_reporter.is_enabled() && old_pointer_pos != new_pointer_pos) {
 
 			Genode::Reporter::Xml_generator xml(pointer_reporter, [&] ()
 			{
 				xml.attribute("xpos", new_pointer_pos.x());
 				xml.attribute("ypos", new_pointer_pos.y());
 			});
+		}
+
+		/* report focus changes */
+		if (old_focused_session != new_focused_session)
+			report_focus(focus_reporter, new_focused_session);
 
 		/* update mouse cursor */
 		if (old_pointer_pos != new_pointer_pos)
@@ -1202,6 +1240,12 @@ void Nitpicker::Main::handle_config(unsigned)
 		pointer_reporter.enabled(config()->xml_node().sub_node("report")
 		                                             .attribute("pointer")
 		                                             .has_value("yes"));
+	} catch (...) { }
+
+	try {
+		focus_reporter.enabled(config()->xml_node().sub_node("report")
+		                                           .attribute("focus")
+		                                           .has_value("yes"));
 	} catch (...) { }
 
 	/* update domain registry and session policies */

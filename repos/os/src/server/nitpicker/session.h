@@ -67,6 +67,11 @@ class Session : public Session_list::Element
 
 		unsigned layer() const { return _domain ? _domain->layer() : ~0UL; }
 
+		Domain_registry::Entry::Name domain_name() const
+		{
+			return _domain ? _domain->name() : Domain_registry::Entry::Name();
+		}
+
 		Texture_base const *texture() const { return _texture; }
 
 		void texture(Texture_base const *texture, bool uses_alpha)

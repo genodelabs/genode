@@ -30,7 +30,7 @@ struct Background : private Texture_base, Session, View
 	 */
 	Background(Area size)
 	:
-		Texture_base(Area(0, 0)), Session(Genode::Session_label("")),
+		Texture_base(Area(0, 0)), Session(Genode::Session_label("label=\"\"")),
 		View(*this, View::NOT_TRANSPARENT, View::BACKGROUND, 0),
 		color(25, 37, 50)
 	{
