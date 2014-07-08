@@ -91,6 +91,7 @@ append config {
 		<config>
 			<image type="iso" file="test.iso" />
 <!--			<ioapic/> -->
+<!--			<noacpi/> -->
 			<libc stdout="/dev/log" stderr="/dev/log">
 				<vfs>
 					<dir name="dev"> <log/> </dir>

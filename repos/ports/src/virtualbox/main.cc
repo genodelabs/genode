@@ -206,6 +206,12 @@ int main()
 	if (bOverlay)
 		args.add("-overlay");
 
+	/* disable acpi support if requested */
+	try {
+		Genode::Xml_node node = Genode::config()->xml_node().sub_node("noacpi");
+		args.add("-noacpi");
+	} catch (...) { }
+
 	/* ioapic support */
 	try {
 		Genode::Xml_node node = Genode::config()->xml_node().sub_node("ioapic");
