@@ -505,9 +505,9 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 					Point pos = command.geometry.rect.p1();
 
-					/* transpose y position of top-level views by vertical session offset */
+					/* transpose position of top-level views by vertical session offset */
 					if (view->top_level())
-						pos = pos + Point(0, v_offset());
+						pos = ::Session::phys_pos(pos, _view_stack.size());
 
 					if (view.is_valid())
 						_view_stack.geometry(*view, Rect(pos, command.geometry.rect.area()));
@@ -635,12 +635,11 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 		                  View                 &pointer_origin,
 		                  Rpc_entrypoint       &ep,
 		                  Framebuffer::Session &framebuffer,
-		                  int                   v_offset,
 		                  bool                  provides_default_bg,
 		                  Allocator            &session_alloc,
 		                  size_t                ram_quota)
 		:
-			::Session(label, v_offset),
+			::Session(label),
 			_session_alloc(&session_alloc, ram_quota),
 			_framebuffer(framebuffer),
 			_framebuffer_session_component(view_stack, *this, framebuffer, *this),
@@ -684,13 +683,18 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 		{
 			using namespace Input;
 
+			Point const origin_offset =
+				::Session::phys_pos(Point(0, 0), _view_stack.size());
+
 			/*
 			 * Transpose absolute coordinates by session-specific vertical
 			 * offset.
 			 */
 			if (e.ax() || e.ay())
-				e = Event(e.type(), e.code(), e.ax(),
-				          Genode::max(0, e.ay() - v_offset()), e.rx(), e.ry());
+				e = Event(e.type(), e.code(),
+				          Genode::max(0, e.ax() - origin_offset.x()),
+				          Genode::max(0, e.ay() - origin_offset.y()),
+				          e.rx(), e.ry());
 
 			_input_session_component.submit(&e);
 		}
@@ -821,11 +825,12 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 		Framebuffer::Mode mode() override
 		{
-			unsigned const width  = _framebuffer.mode().width();
-			unsigned const height = _framebuffer.mode().height()
-			                      - ::Session::v_offset();
+			Area const phys_area(_framebuffer.mode().width(),
+			                     _framebuffer.mode().height());
 
-			return Framebuffer::Mode(width, height,
+			Area const session_area = ::Session::screen_area(phys_area);
+
+			return Framebuffer::Mode(session_area.w(), session_area.h(),
 			                         _framebuffer.mode().format());
 		}
 
@@ -906,7 +911,6 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 		Mode                  &_mode;
 		::View                &_pointer_origin;
 		Framebuffer::Session  &_framebuffer;
-		int                    _default_v_offset;
 
 	protected:
 
@@ -914,8 +918,6 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 		{
 			PINF("create session with args: %s\n", args);
 			size_t const ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
-
-			int const v_offset = _default_v_offset;
 
 			size_t const required_quota = Input::Session_component::ev_ds_size()
 			                            + Genode::align_addr(sizeof(Session::Command_buffer), 12);
@@ -934,8 +936,7 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 			Session_component *session = new (md_alloc())
 				Session_component(Session_label(args), _view_stack, _mode,
 				                  _pointer_origin, *ep(), _framebuffer,
-				                  v_offset, provides_default_bg,
-				                  *md_alloc(), unused_quota);
+				                  provides_default_bg, *md_alloc(), unused_quota);
 
 			session->apply_session_policy(_domain_registry);
 			_session_list.insert(session);
@@ -970,13 +971,12 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 		     Domain_registry const &domain_registry, Global_keys &global_keys,
 		     Rpc_entrypoint &session_ep, View_stack &view_stack, Mode &mode,
 		     ::View &pointer_origin, Allocator &md_alloc,
-		     Framebuffer::Session &framebuffer, int default_v_offset)
+		     Framebuffer::Session &framebuffer)
 		:
 			Root_component<Session_component>(&session_ep, &md_alloc),
 			_session_list(session_list), _domain_registry(domain_registry),
 			_global_keys(global_keys), _view_stack(view_stack), _mode(mode),
-			_pointer_origin(pointer_origin), _framebuffer(framebuffer),
-			_default_v_offset(default_v_offset)
+			_pointer_origin(pointer_origin), _framebuffer(framebuffer)
 		{ }
 };
 
@@ -1073,7 +1073,7 @@ struct Nitpicker::Main
 
 	Root<PT> np_root = { session_list, *domain_registry, global_keys,
 	                     ep.rpc_ep(), user_state, user_state, pointer_origin,
-	                     sliced_heap, framebuffer, Framebuffer_screen::MENUBAR_HEIGHT };
+	                     sliced_heap, framebuffer };
 
 	Genode::Reporter pointer_reporter = { "pointer" };
 
@@ -1143,17 +1143,14 @@ void Nitpicker::Main::handle_input(unsigned)
 			import_input_events(ev_buf, input.flush(), user_state);
 
 		Point const new_pointer_pos = user_state.pointer_pos();
-		Point const menubar_offset  = Point(0, Framebuffer_screen::MENUBAR_HEIGHT);
-		Point const report_pos      = new_pointer_pos - menubar_offset;
 
 		/* report mouse-position updates */
-		if (pointer_reporter.is_enabled() && old_pointer_pos != new_pointer_pos
-		 && new_pointer_pos.y() >= 0)
+		if (pointer_reporter.is_enabled() && old_pointer_pos != new_pointer_pos)
 
 			Genode::Reporter::Xml_generator xml(pointer_reporter, [&] ()
 			{
-				xml.attribute("xpos", report_pos.x());
-				xml.attribute("ypos", report_pos.y());
+				xml.attribute("xpos", new_pointer_pos.x());
+				xml.attribute("ypos", new_pointer_pos.y());
 			});
 
 		/* update mouse cursor */

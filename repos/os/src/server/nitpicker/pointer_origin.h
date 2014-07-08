@@ -21,7 +21,7 @@ struct Pointer_origin : Session, View
 {
 	Pointer_origin()
 	:
-		Session(Genode::Session_label(""), 0),
+		Session(Genode::Session_label("")),
 		View(*this, View::TRANSPARENT, View::NOT_BACKGROUND, 0)
 	{ }
 

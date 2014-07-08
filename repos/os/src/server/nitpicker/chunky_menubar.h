@@ -35,7 +35,7 @@ class Chunky_menubar : public Texture<PT>,
 		Chunky_menubar(PT *pixels, Area size)
 		:
 			Texture<PT>(pixels, 0, size),
-			Session(Genode::Session_label(""), 0),
+			Session(Genode::Session_label("")),
 			View(*this, View::NOT_TRANSPARENT, View::NOT_BACKGROUND, 0),
 			_canvas(pixels, size)
 		{

@@ -40,7 +40,12 @@ class Domain_registry
 				/**
 				 * Origin of the domain's coordiate system
 				 */
-				enum Origin { ORIGIN_POINTER, ORIGIN_SCREEN };
+				enum Origin {
+					ORIGIN_POINTER,
+					ORIGIN_TOP_LEFT,
+					ORIGIN_TOP_RIGHT,
+					ORIGIN_BOTTOM_LEFT,
+					ORIGIN_BOTTOM_RIGHT };
 
 			private:
 
@@ -49,15 +54,30 @@ class Domain_registry
 				Xray     _xray;
 				Origin   _origin;
 				unsigned _layer;
+				Point    _offset;
+				Point    _area;
 
 				friend class Domain_registry;
 
 				Entry(Name const &name, Color color, Xray xray, Origin origin,
-				      unsigned layer)
+				      unsigned layer, Point offset, Point area)
 				:
 					_name(name), _color(color), _xray(xray), _origin(origin),
-					_layer(layer)
+					_layer(layer), _offset(offset), _area(area)
 				{ }
+
+				Point _corner(Area screen_area) const
+				{
+					switch (_origin) {
+					case ORIGIN_POINTER:      return Point(0, 0);
+					case ORIGIN_TOP_LEFT:     return Point(0, 0);
+					case ORIGIN_TOP_RIGHT:    return Point(screen_area.w(), 0);
+					case ORIGIN_BOTTOM_LEFT:  return Point(0, screen_area.h());
+					case ORIGIN_BOTTOM_RIGHT: return Point(screen_area.w(),
+					                                       screen_area.h());
+					}
+					return Point(0, 0);
+				}
 
 			public:
 
@@ -70,6 +90,24 @@ class Domain_registry
 				bool xray_opaque()    const { return _xray == XRAY_OPAQUE; }
 				bool xray_no()        const { return _xray == XRAY_NO; }
 				bool origin_pointer() const { return _origin == ORIGIN_POINTER; }
+
+				Point phys_pos(Point pos, Area screen_area) const
+				{
+					return pos + _corner(screen_area) + _offset;
+				}
+
+				Area screen_area(Area phys_screen_area) const
+				{
+					int const w = _area.x() > 0
+					            ? _area.x()
+					            : Genode::max(0, (int)phys_screen_area.w() + _area.x());
+
+					int const h = _area.y() > 0
+					            ? _area.y()
+					            : Genode::max(0, (int)phys_screen_area.h() + _area.y());
+
+					return Area(w, h);
+				}
 		};
 
 		static Entry::Xray _xray(Genode::Xml_node domain)
@@ -95,15 +133,18 @@ class Domain_registry
 		{
 			char const * const attr_name = "origin";
 
-			Entry::Origin const default_origin = Entry::ORIGIN_SCREEN;
+			Entry::Origin const default_origin = Entry::ORIGIN_TOP_LEFT;
 
 			if (!domain.has_attribute(attr_name))
 				return default_origin;
 
 			Genode::Xml_node::Attribute const attr = domain.attribute(attr_name);
 
-			if (attr.has_value("screen"))  return Entry::ORIGIN_SCREEN;
-			if (attr.has_value("pointer")) return Entry::ORIGIN_POINTER;
+			if (attr.has_value("top_left"))     return Entry::ORIGIN_TOP_LEFT;
+			if (attr.has_value("top_right"))    return Entry::ORIGIN_TOP_RIGHT;
+			if (attr.has_value("bottom_left"))  return Entry::ORIGIN_BOTTOM_LEFT;
+			if (attr.has_value("bottom_right")) return Entry::ORIGIN_BOTTOM_RIGHT;
+			if (attr.has_value("pointer"))      return Entry::ORIGIN_POINTER;
 
 			PWRN("invalid value of origin attribute");
 			return default_origin;
@@ -138,10 +179,16 @@ class Domain_registry
 
 			unsigned const layer = domain.attribute_value("layer", ~0UL);
 
+			Point const offset(domain.attribute_value("xpos", 0L),
+			                   domain.attribute_value("ypos", 0L));
+
+			Point const area(domain.attribute_value("width",  0L),
+			                 domain.attribute_value("height", 0L));
+
 			Entry::Color const color = domain.attribute_value("color", WHITE);
 
 			_entries.insert(new (_alloc) Entry(name, color, _xray(domain),
-			                                   _origin(domain), layer));
+			                                   _origin(domain), layer, offset, area));
 		}
 
 	private:

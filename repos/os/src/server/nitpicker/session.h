@@ -40,7 +40,6 @@ class Session : public Session_list::Element
 		Texture_base           const *_texture = { 0 };
 		bool                          _uses_alpha = { false };
 		View                         *_background = 0;
-		int                           _v_offset;
 		unsigned char          const *_input_mask = { 0 };
 
 	public:
@@ -48,13 +47,9 @@ class Session : public Session_list::Element
 		/**
 		 * Constructor
 		 *
-		 * \param label     session label
-		 * \param v_offset  vertical screen offset of session
+		 * \param label  session label
 		 */
-		Session(Genode::Session_label const &label, int v_offset)
-		:
-			_label(label), _v_offset(v_offset)
-		{ }
+		explicit Session(Genode::Session_label const &label) : _label(label) { }
 
 		virtual ~Session() { }
 
@@ -106,9 +101,25 @@ class Session : public Session_list::Element
 		bool uses_alpha() const { return _texture && _uses_alpha; }
 
 		/**
-		 * Return vertical offset of session
+		 * Calculate session-local coordinate to physical screen position
+		 *
+		 * \param pos          coordinate in session-local coordinate system
+		 * \param screen_area  session-local screen size
 		 */
-		int v_offset() const { return _v_offset; }
+		Point phys_pos(Point pos, Area screen_area) const
+		{
+			return _domain ? _domain->phys_pos(pos, screen_area) : Point(0, 0);
+		}
+
+		/**
+		 * Return session-local screen area
+		 *
+		 * \param phys_pos  size of physical screen
+		 */
+		Area screen_area(Area phys_area) const
+		{
+			return _domain ? _domain->screen_area(phys_area) : Area(0, 0);
+		}
 
 		/**
 		 * Return input mask value at specified buffer position
