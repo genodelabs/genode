@@ -253,6 +253,11 @@ struct Nitpicker::Session : Genode::Session
 	virtual Framebuffer::Mode mode() = 0;
 
 	/**
+	 * Register signal handler to be notified about mode changes
+	 */
+	virtual void mode_sigh(Genode::Signal_context_capability) = 0;
+
+	/**
 	 * Define dimensions of virtual framebuffer
 	 *
 	 * \throw Out_of_metadata  session quota does not suffice for specified
@@ -304,6 +309,7 @@ struct Nitpicker::Session : Genode::Session
 	GENODE_RPC(Rpc_execute, void, execute);
 	GENODE_RPC(Rpc_background, int, background, View_capability);
 	GENODE_RPC(Rpc_mode, Framebuffer::Mode, mode);
+	GENODE_RPC(Rpc_mode_sigh, void, mode_sigh, Genode::Signal_context_capability);
 	GENODE_RPC(Rpc_focus, void, focus, Genode::Capability<Session>);
 	GENODE_RPC_THROW(Rpc_buffer, void, buffer, GENODE_TYPE_LIST(Out_of_metadata),
 	                 Framebuffer::Mode, bool);
@@ -323,10 +329,11 @@ struct Nitpicker::Session : Genode::Session
 	        Type_tuple<Rpc_command_dataspace,
 	        Type_tuple<Rpc_execute,
 	        Type_tuple<Rpc_mode,
+	        Type_tuple<Rpc_mode_sigh,
 	        Type_tuple<Rpc_buffer,
 	        Type_tuple<Rpc_focus,
 	                   Genode::Meta::Empty>
-	        > > > > > > > > > > > Rpc_functions;
+	        > > > > > > > > > > > > Rpc_functions;
 };
 
 #endif /* _INCLUDE__NITPICKER_SESSION__NITPICKER_SESSION_H_ */

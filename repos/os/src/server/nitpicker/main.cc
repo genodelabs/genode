@@ -420,6 +420,8 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 		Mode &_mode;
 
+		Signal_context_capability _mode_sigh;
+
 		View &_pointer_origin;
 
 		List<Session_view_list_elem> _view_list;
@@ -697,6 +699,15 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 				_destroy_view(*static_cast<View *>(v));
 		}
 
+		/**
+		 * Deliver mode-change signal to client
+		 */
+		void notify_mode_change()
+		{
+			if (_mode_sigh.valid())
+				Signal_transmitter(_mode_sigh).submit();
+		}
+
 		void upgrade_ram_quota(size_t ram_quota) { _session_alloc.upgrade(ram_quota); }
 
 
@@ -857,6 +868,11 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 			return Framebuffer::Mode(session_area.w(), session_area.h(),
 			                         _framebuffer.mode().format());
+		}
+
+		void mode_sigh(Signal_context_capability sigh) override
+		{
+			_mode_sigh = sigh;
 		}
 
 		void buffer(Framebuffer::Mode mode, bool use_alpha) override
@@ -1294,6 +1310,13 @@ void Nitpicker::Main::handle_fb_mode(unsigned)
 
 	/* redraw */
 	user_state.update_all_views();
+
+	/* notify clients about the change screen mode */
+	for (::Session *s = session_list.first(); s; s = s->next()) {
+		Session_component *sc = dynamic_cast<Session_component *>(s);
+		if (sc)
+			sc->notify_mode_change();
+	}
 }
 
 

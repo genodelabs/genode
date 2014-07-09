@@ -74,6 +74,9 @@ class Nitpicker::Session_client : public Genode::Rpc_client<Session>
 		Framebuffer::Mode mode() override {
 			return call<Rpc_mode>(); }
 
+		void mode_sigh(Genode::Signal_context_capability sigh) override {
+			call<Rpc_mode_sigh>(sigh); }
+
 		void buffer(Framebuffer::Mode mode, bool alpha) override {
 			call<Rpc_buffer>(mode, alpha); }
 
