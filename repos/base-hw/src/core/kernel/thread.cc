@@ -14,9 +14,7 @@
 
 /* Genode includes */
 #include <base/thread_state.h>
-
-/* base-hw includes */
-#include <placement_new.h>
+#include <unmanaged_singleton.h>
 
 /* core includes */
 #include <kernel/kernel.h>

@@ -13,10 +13,10 @@
 
 /* Genode includes */
 #include <base/printf.h>
+#include <unmanaged_singleton.h>
 
 /* base-hw includes */
 #include <kernel/core_interface.h>
-#include <placement_new.h>
 
 /* core includes */
 #include <signal_session_component.h>

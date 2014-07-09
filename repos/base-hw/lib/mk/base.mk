@@ -4,14 +4,21 @@
 # \date   2013-02-14
 #
 
+# add library dependencies
 LIBS += base-common startup
 
+# add C++ sources
 SRC_CC += console/log_console.cc
 SRC_CC += cpu/cache.cc
-SRC_CC += env/env.cc env/context_area.cc env/reinitialize.cc
-SRC_CC += thread/thread.cc thread_support.cc
+SRC_CC += env/env.cc
+SRC_CC += env/context_area.cc
+SRC_CC += env/reinitialize.cc
+SRC_CC += thread/thread.cc
+SRC_CC += thread/start.cc
 
+# add include paths
 INC_DIR += $(BASE_DIR)/src/base/env
 
-vpath %.cc  $(REP_DIR)/src/base
-vpath %.cc $(BASE_DIR)/src/base
+# declare source locations
+vpath %  $(REP_DIR)/src/base
+vpath % $(BASE_DIR)/src/base

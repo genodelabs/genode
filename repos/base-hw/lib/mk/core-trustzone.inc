@@ -6,10 +6,9 @@
 #
 
 # add include paths
-INC_DIR +=  $(REP_DIR)/src/core
 INC_DIR +=  $(REP_DIR)/src/core/include
 INC_DIR += $(BASE_DIR)/src/core/include
 
-# add C++ sources
-SRC_CC += platform_support.cc
-SRC_CC += platform_services.cc
+# declare source paths
+vpath %  $(REP_DIR)/src/core
+vpath % $(BASE_DIR)/src/core

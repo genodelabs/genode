@@ -6,10 +6,10 @@
 #
 
 # add include paths
-INC_DIR += $(REP_DIR)/src/core/arndale
+INC_DIR += $(REP_DIR)/src/core/include/spec/arndale
 
-# declare source paths
-vpath platform_support.cc $(REP_DIR)/src/core/arndale
+# add C++ sources
+SRC_CC += spec/arndale/platform_support.cc
 
-# include less specific library parts
+# include less specific configuration
 include $(REP_DIR)/lib/mk/exynos5/core.inc

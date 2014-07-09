@@ -5,14 +5,12 @@
 #
 
 # add include paths
-INC_DIR += $(REP_DIR)/src/core/exynos5
+INC_DIR += $(REP_DIR)/src/core/include/spec/exynos5
+INC_DIR += $(REP_DIR)/src/core/include/spec/corelink_gic400
 
 # add C++ sources
 SRC_CC += platform_services.cc
-SRC_CC += platform_support.cc
+SRC_CC += spec/arm_gic/pic.cc
 
-# declare source paths
-vpath platform_services.cc $(BASE_DIR)/src/core
-
-# include less specific library parts
+# include less specific configuration
 include $(REP_DIR)/lib/mk/arm_v7/core.inc
