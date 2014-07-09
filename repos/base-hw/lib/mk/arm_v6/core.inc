@@ -5,10 +5,10 @@
 #
 
 # add include paths
-INC_DIR += $(REP_DIR)/src/core/arm_v6
+INC_DIR += $(REP_DIR)/src/core/include/spec/arm_v6
 
-# declare source paths
-vpath mode_transition.s $(REP_DIR)/src/core/arm_v6
+# add assembly sources
+SRC_S += spec/arm_v6/mode_transition.s
 
-# include less specific library parts
+# include less specific configuration
 include $(REP_DIR)/lib/mk/arm/core.inc

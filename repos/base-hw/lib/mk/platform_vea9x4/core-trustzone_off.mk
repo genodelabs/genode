@@ -5,9 +5,15 @@
 # \date   2012-10-24
 #
 
-# declare source paths
-vpath platform_support.cc   $(REP_DIR)/src/core/vea9x4
-vpath platform_services.cc $(BASE_DIR)/src/core
+# add include paths
+INC_DIR += $(REP_DIR)/src/core/include/spec/vea9x4
+INC_DIR += $(REP_DIR)/src/core/include/spec/cortex_a9
 
-# include less specific library parts
-include $(REP_DIR)/lib/mk/platform_vea9x4/core-trustzone.inc
+# add C++ sources
+SRC_CC += platform_services.cc
+SRC_CC += spec/vea9x4/platform_support.cc
+SRC_CC += spec/cortex_a9/pic.cc
+SRC_CC += spec/arm_gic/pic.cc
+
+# include less specific configuration
+include $(REP_DIR)/lib/mk/core-trustzone.inc

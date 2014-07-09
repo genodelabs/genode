@@ -5,10 +5,14 @@
 # \date   2012-10-24
 #
 
-# declare source paths
-vpath platform_support.cc   $(REP_DIR)/src/core/imx53
-vpath pic.cc                $(REP_DIR)/src/core/imx53
-vpath platform_services.cc $(BASE_DIR)/src/core
+# add include paths
+INC_DIR += $(REP_DIR)/src/core/include/spec/imx53
+INC_DIR += $(REP_DIR)/src/core/include/spec/cortex_a8
 
-# include less specific library parts
-include $(REP_DIR)/lib/mk/platform_imx53/core-trustzone.inc
+# add C++ sources
+SRC_CC += spec/imx53/platform_support.cc
+SRC_CC += spec/imx53/pic.cc
+SRC_CC += platform_services.cc
+
+# include less specific configuration
+include $(REP_DIR)/lib/mk/core-trustzone.inc

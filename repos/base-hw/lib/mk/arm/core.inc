@@ -5,14 +5,16 @@
 #
 
 # add include paths
-INC_DIR += $(REP_DIR)/src/core/arm
+INC_DIR += $(REP_DIR)/src/core/include/spec/arm
 
-# declare source paths
-vpath cpu_support.cc $(REP_DIR)/src/core/arm
-vpath crt0.s         $(REP_DIR)/src/core/arm
+# add C++ sources
+SRC_CC += spec/arm/cpu_support.cc
+
+# add assembly sources
+SRC_S += spec/arm/crt0.s
 
 # use dummy boot-modules per default
-BOOT_MODULES_VPATH = $(REP_DIR)/src/core/arm
+BOOT_MODULES_VPATH = $(REP_DIR)/src/core/spec/arm
 
-# include less specific library parts
+# include less specific configuration
 include $(REP_DIR)/lib/mk/core.inc

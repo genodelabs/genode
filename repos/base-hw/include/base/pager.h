@@ -19,9 +19,7 @@
 #include <base/object_pool.h>
 #include <base/signal.h>
 #include <pager/capability.h>
-
-/* base-hw includes */
-#include <placement_new.h>
+#include <unmanaged_singleton.h>
 
 namespace Genode
 {

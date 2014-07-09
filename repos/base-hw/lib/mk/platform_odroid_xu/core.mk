@@ -5,10 +5,10 @@
 #
 
 # add include paths
-INC_DIR += $(REP_DIR)/src/core/odroid_xu
+INC_DIR += $(REP_DIR)/src/core/include/spec/odroid_xu
 
-# declare source paths
-vpath platform_support.cc $(REP_DIR)/src/core/odroid_xu
+# add C++ sources
+SRC_CC += spec/odroid_xu/platform_support.cc
 
 # include less specific library parts
 include $(REP_DIR)/lib/mk/exynos5/core.inc

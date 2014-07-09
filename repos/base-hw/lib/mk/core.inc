@@ -4,23 +4,21 @@
 # \date   2011-12-16
 #
 
+# add library dependencies
+LIBS += core-perf_counter
+
 # set entry point of core's first thread
 CC_OPT += -DCORE_MAIN=_main
 
 # add library dependencies
-LIBS += base-common perf_counter
+LIBS += base-common
 
 # add include paths
-INC_DIR +=  $(REP_DIR)/src/core
 INC_DIR +=  $(REP_DIR)/src/core/include
-INC_DIR +=  $(REP_DIR)/include
-INC_DIR +=  $(REP_DIR)/src/platform
-INC_DIR +=  $(REP_DIR)/src/base
 INC_DIR += $(BASE_DIR)/src/core/include
-INC_DIR += $(BASE_DIR)/include
-INC_DIR += $(BASE_DIR)/src/platform
-INC_DIR += $(BASE_DIR)/src/base/thread
 INC_DIR += $(BASE_DIR)/src/base/include
+INC_DIR += $(BASE_DIR)/src/base/thread
+INC_DIR += $(BASE_DIR)/src/platform
 
 # add C++ sources
 SRC_CC += console.cc
@@ -45,12 +43,11 @@ SRC_CC += rm_session_component.cc
 SRC_CC += rom_session_component.cc
 SRC_CC += signal_session_component.cc
 SRC_CC += trace_session_component.cc
-SRC_CC += thread.cc
-SRC_CC += thread_support.cc
+SRC_CC += thread/thread.cc
+SRC_CC += thread_start.cc
 SRC_CC += rm_session_support.cc
 SRC_CC += pager.cc
 SRC_CC += _main.cc
-SRC_CC += cpu_support.cc
 SRC_CC += kernel/kernel.cc
 SRC_CC += kernel/thread.cc
 SRC_CC += kernel/vm.cc
@@ -60,9 +57,7 @@ SRC_CC += kernel/processor.cc
 SRC_CC += kernel/processor_pool.cc
 
 # add assembly sources
-SRC_S += mode_transition.s
 SRC_S += boot_modules.s
-SRC_S += crt0.s
 
 # provide Genode version information
 include $(BASE_DIR)/src/core/version.inc
@@ -75,22 +70,7 @@ endif
 vpath boot_modules.s $(BOOT_MODULES_VPATH)
 
 # declare source locations
-vpath _main.cc                    $(BASE_DIR)/src/platform
-vpath cpu_session_component.cc    $(BASE_DIR)/src/core
-vpath dataspace_component.cc      $(BASE_DIR)/src/core
-vpath io_mem_session_component.cc $(BASE_DIR)/src/core
-vpath io_mem_session_support.cc   $(BASE_DIR)/src/core
-vpath main.cc                     $(BASE_DIR)/src/core
-vpath pd_session_component.cc     $(BASE_DIR)/src/core
-vpath ram_session_component.cc    $(BASE_DIR)/src/core
-vpath rm_session_component.cc     $(BASE_DIR)/src/core
-vpath rom_session_component.cc    $(BASE_DIR)/src/core
-vpath trace_session_component.cc  $(BASE_DIR)/src/core
-vpath dump_alloc.cc               $(BASE_DIR)/src/core
-vpath context_area.cc             $(BASE_DIR)/src/core
-vpath core_mem_alloc.cc           $(BASE_DIR)/src/core
-vpath console.cc                   $(REP_DIR)/src/base
-vpath pager.cc                     $(REP_DIR)/src/base
-vpath _main.cc                    $(BASE_DIR)/src/platform
-vpath thread.cc                   $(BASE_DIR)/src/base/thread
-vpath %                            $(REP_DIR)/src/core
+vpath %  $(REP_DIR)/src/core
+vpath % $(BASE_DIR)/src/core
+vpath % $(BASE_DIR)/src/platform
+vpath % $(BASE_DIR)/src/base
