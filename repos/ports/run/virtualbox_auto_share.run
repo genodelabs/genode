@@ -58,7 +58,10 @@
 # the VM - for this script to copy the test.bin file from D: to E:.
 
 
-
+if {[is_qemu_available]} {
+	puts "\nRun script does not support Qemu.\n"
+	exit
+}
 
 # Tested for nova 64bit solely.
 assert_spec nova

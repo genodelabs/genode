@@ -1,7 +1,7 @@
 assert_spec nova
 
 if {[is_qemu_available]} {
-	puts "\nScript running on Qemu is not supported.\n"
+	puts "\nRun script does not support Qemu.\n"
 	exit
 }
 
