@@ -56,6 +56,7 @@ long PTR_ERR(const void *ptr) { TRACE; return 0; }
 void might_sleep() { SKIP; }
 char *kasprintf(gfp_t gfp, const char *fmt, ...) { TRACE; return NULL; }
 int kstrtouint(const char *s, unsigned int base, unsigned int *res) { TRACE; return 0; }
+int kstrtoul(const char *s, unsigned int base, unsigned long *res) { TRACE; return 0; }
 int sprintf(char *buf, const char *fmt, ...) { TRACE; return 0; }
 int sscanf(const char *b, const char *s, ...) { TRACE; return 0; }
 int scnprintf(char *buf, size_t size, const char *fmt, ...);
@@ -756,7 +757,10 @@ int input_ff_effect_from_user(const char __user *buffer, size_t size, struct ff_
  ****************/
 
 void input_mt_destroy_slots(struct input_dev *dev) { TRACE; }
-
+int input_mt_init_slots(struct input_dev *dev, unsigned int num_slots, unsigned int flags) { TRACE; return 0;}
+void input_mt_sync_frame(struct input_dev *dev) { TRACE; }
+void input_mt_report_slot_state(struct input_dev *dev,unsigned int tool_type, bool active) {}
+int input_mt_get_slot_by_key(struct input_dev *dev, int key) { TRACE; return 0; }
 
 /*********************
  ** linux/vmalloc.h **
