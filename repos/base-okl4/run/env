@@ -200,11 +200,13 @@ proc build_boot_image {binaries} {
 	puts $fh "default 0"
 	puts $fh "hiddenmenu"
 	puts $fh "\ntitle Genode on OKL4"
-	puts $fh "kernel /image.elf"
-	puts $fh "vbeset 0x117"
+	puts $fh " kernel /boot/bender"
+	puts $fh " module /image.elf"
+	puts $fh " vbeset 0x117"
 	close $fh
 
 	create_iso_image_from_run_dir
+	create_disk_image_from_run_dir
 
 	#
 	# Generate pulsar config file

@@ -161,7 +161,8 @@ proc build_boot_image_x86 {binaries} {
 	puts $fh "timeout 0"
 	puts $fh "default 0"
 	puts $fh "\ntitle Genode on Fiasco.OC"
-	puts $fh " kernel /fiasco/bootstrap -modaddr=0x01100000"
+	puts $fh " kernel /boot/bender"
+	puts $fh " module /fiasco/bootstrap -modaddr=0x01100000"
 	puts $fh " module /fiasco/fiasco $fiasco_serial_esc_arg"
 	puts $fh " module /fiasco/sigma0"
 	puts $fh " module /genode/core"
@@ -174,6 +175,7 @@ proc build_boot_image_x86 {binaries} {
 
 	install_pxe_bootloader_to_run_dir
 	create_iso_image_from_run_dir
+	create_disk_image_from_run_dir
 
 	#
 	# Generate pulsar config file

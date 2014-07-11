@@ -23,6 +23,19 @@ of Genode.
   This simple tool helps to build bootable ISO images from your build of
   Genode. For getting usage information, start the tool without arguments.
 
+:'create_grub2':
+
+  This tool prepares a partitioned disk image with GRUB2 as boot
+  loader.
+
+:'grub2-head.img':
+
+  This file is the head part of a partioned disk image including an
+  installation of GRUB2 as boot loader. GRUB2 is available from
+  http://www.gnu.org/software/grub/ and in major Linux distributions.
+  Steps to reproduce the image creation can be found in
+  'create_grub2'.
+
 :'beautify':
 
   Beautify is a coding-style checking tool that analyzes source code for its

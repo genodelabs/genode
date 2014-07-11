@@ -451,6 +451,48 @@ proc create_iso_image_from_run_dir { } {
 	}
 }
 
+
+##
+# Create disk image with the content of the run directory
+#
+# optional parameter: --disk-size <n> ... disk size in MiB
+#
+proc create_disk_image_from_run_dir { } {
+
+	global run_target
+
+	if {![regexp "disk" $run_target]} { return }
+
+	requires_installation_of parted
+	requires_installation_of resize2fs
+	requires_installation_of fallocate
+
+	set grub_img   "[genode_dir]/tool/grub2-head.img"
+	set disk_img   "[run_dir].img"
+	set part1_img  "[run_dir]-part1.img"
+	set run_size   [expr [regsub {\s.*} [exec du -sm [run_dir]] {}] + 4]
+	set disk_size  [get_cmd_arg --disk-size $run_size]
+	set part1_size [expr $disk_size - 1]MiB
+
+	# extract and resize partition image
+	exec dd if=$grub_img of=$part1_img bs=1M skip=1  2>/dev/null
+	exec fallocate -l $part1_size $part1_img
+	exec resize2fs $part1_img  2>/dev/null
+
+	# populate partition with binaries
+	exec [genode_dir]/tool/rump -F ext2fs -p [run_dir] $part1_img
+
+	# merge final image from GRUB2 head and partition
+	exec dd if=$grub_img  of=$disk_img status=noxfer bs=1M count=1  2>/dev/null
+	exec dd if=$part1_img of=$disk_img status=noxfer bs=1M seek=1   2>/dev/null
+	exec parted -s $disk_img -- rm 1 mkpart primary 2048s -1s
+
+	exec rm -f $part1_img
+
+	puts "Created image file $disk_img ($disk_size MiB)"
+}
+
+
 ##
 # Wait for a specific output of a already running spawned process
 #
@@ -572,7 +614,7 @@ proc is_amt_available { } {
 
 	if {![have_spec x86] || ![regexp "amt" $run_target]} { return false }
 
-	if {[info exists ::env(AMT_TEST_MACHINE_IP)] && 
+	if {[info exists ::env(AMT_TEST_MACHINE_IP)] &&
 	    [info exists ::env(AMT_TEST_MACHINE_PWD)] &&
 		[have_installed amtterm] &&
 		[have_installed amttool]} {
@@ -596,7 +638,7 @@ proc is_serial_available { } {
 
 
 ##
-# Execute scenario using Intel's AMT 
+# Execute scenario using Intel's AMT
 #
 proc spawn_amt { wait_for_re timeout_value } {
 	global spawn_id

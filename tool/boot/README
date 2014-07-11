@@ -13,7 +13,7 @@ code respectively the download source of binaries are described below.
   http://os.inf.tu-dresden.de/~us15/pulsar.
 
 :'chain.c32', 'isolinux.bin'
-  
+
   These files are part of the 'Syslinux Project' hosting several bootloaders.
   The sources has been obtained from http://www.syslinux.org.
 
