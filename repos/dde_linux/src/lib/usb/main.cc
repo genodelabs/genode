@@ -38,6 +38,7 @@ extern "C" void module_hid_init_core();
 extern "C" void module_hid_generic_init();
 extern "C" void module_usb_stor_init();
 extern "C" void module_ch_driver_init();
+extern "C" void module_mt_driver_init();
 
 extern "C" void start_input_service(void *ep);
 
@@ -67,6 +68,7 @@ static void init(Services *services)
 		module_hid_init();
 		module_hid_generic_init();
 		module_ch_driver_init();
+		module_mt_driver_init();
 	}
 
 	/* host controller */
