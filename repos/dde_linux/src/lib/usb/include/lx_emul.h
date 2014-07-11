@@ -587,6 +587,7 @@ void might_sleep();
 
 char *kasprintf(gfp_t gfp, const char *fmt, ...);
 int kstrtouint(const char *s, unsigned int base, unsigned int *res);
+int kstrtoul(const char *s, unsigned int base, unsigned long *res);
 
 #define clamp(val, min, max) ({                 \
 	typeof(val) __val = (val);              \

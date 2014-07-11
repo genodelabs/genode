@@ -1,8 +1,9 @@
 /*
  * \brief  Input service and event handler
  * \author Christian Helmuth
- * \author Dirk Vogt <dvogt@os.inf.tu-dresden.de>
- * \author Sebastian Sumpf <sebastian.sumpf@genode-labs.com>
+ * \author Dirk Vogt        <dvogt@os.inf.tu-dresden.de>
+ * \author Sebastian Sumpf  <sebastian.sumpf@genode-labs.com>
+ * \author Christian Menard <christian.menard@ksyslabs.org>
  * \date   2009-04-20
  *
  * The original implementation was in the L4Env from the TUD:OS group
@@ -11,7 +12,8 @@
  */
 
 /*
- * Copyright (C) 2009-2013 Genode Labs GmbH
+ * Copyright (C) 2009-2014 Genode Labs GmbH
+ * Copyright (C) 2014      Ksys Labs LLC
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -33,6 +35,8 @@ void genode_evdev_event(struct input_handle *handle, unsigned int type,
 	static unsigned long count = 0;
 #endif
 
+	static int last_ax = -1; /* store the last absolute x value */
+	  
 	/* filter sound events */
 	if (test_bit(EV_SND, handle->dev->evbit)) return;
 
@@ -51,6 +55,11 @@ void genode_evdev_event(struct input_handle *handle, unsigned int type,
 
 	case EV_KEY:
 		arg_keycode = code;
+
+		/* map BTN_TOUCH events to BTN_LEFT */
+		if (code == BTN_TOUCH)
+			arg_keycode = BTN_LEFT;
+
 		switch (value) {
 
 		case 0:
@@ -71,16 +80,34 @@ void genode_evdev_event(struct input_handle *handle, unsigned int type,
 		switch (code) {
 
 		case ABS_X:
-			arg_type = EVENT_TYPE_MOTION;
-			arg_ax = value;
-			break;
+		case ABS_MT_POSITION_X:
+
+			/*
+			 * Don't create an input event yet. Store the value and wait for the
+			 * subsequent Y event.
+			 */
+			last_ax = value;
+			return;
 
 		case ABS_Y:
+		case ABS_MT_POSITION_Y:
+
+			/*
+			 * Create a unified input event with absolute positions on x and y
+			 * axis.
+			 */
 			arg_type = EVENT_TYPE_MOTION;
 			arg_ay = value;
+			arg_ax = last_ax;
+			last_ax = -1;
+			if (arg_ax == -1) {
+				printk("Ignore absolute Y event without a preceeding X event\n");
+				return;
+			}
 			break;
 
 		case ABS_WHEEL:
+
 			/*
 			 * XXX I do not know, how to handle this correctly. At least, this
 			 * scheme works on Qemu.

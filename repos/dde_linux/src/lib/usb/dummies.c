@@ -6,6 +6,7 @@
  */
 
 /*
+ * Copyright (C) 2014 Ksys Labs LLC
  * Copyright (C) 2011-2013 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
@@ -56,6 +57,7 @@ long PTR_ERR(const void *ptr) { TRACE; return 0; }
 void might_sleep() { SKIP; }
 char *kasprintf(gfp_t gfp, const char *fmt, ...) { TRACE; return NULL; }
 int kstrtouint(const char *s, unsigned int base, unsigned int *res) { TRACE; return 0; }
+int kstrtoul(const char *s, unsigned int base, unsigned long *res) { TRACE; return 0; }
 int sprintf(char *buf, const char *fmt, ...) { TRACE; return 0; }
 int sscanf(const char *b, const char *s, ...) { TRACE; return 0; }
 int scnprintf(char *buf, size_t size, const char *fmt, ...);
@@ -750,12 +752,6 @@ int input_ff_erase(struct input_dev *dev, int effect_id, struct file *file) { TR
 int input_event_from_user(const char __user *buffer, struct input_event *event) { TRACE; return 0; }
 int input_event_to_user(char __user *buffer, const struct input_event *event) { TRACE; return 0; }
 int input_ff_effect_from_user(const char __user *buffer, size_t size, struct ff_effect *effect) { TRACE; return 0;}
-
-/****************
- ** linux/mt.h **
- ****************/
-
-void input_mt_destroy_slots(struct input_dev *dev) { TRACE; }
 
 
 /*********************
