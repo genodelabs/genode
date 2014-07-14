@@ -8,7 +8,7 @@
 INC_DIR += $(REP_DIR)/src/core/include/spec/arm
 
 # add C++ sources
-SRC_CC += spec/arm/cpu_support.cc
+SRC_CC += spec/arm/kernel/thread_base.cc
 
 # add assembly sources
 SRC_S += spec/arm/crt0.s

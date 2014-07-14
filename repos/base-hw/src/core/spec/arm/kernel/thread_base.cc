@@ -19,11 +19,11 @@
 using namespace Kernel;
 
 
-/********************************
- ** Kernel::Thread_cpu_support **
- ********************************/
+/*************************
+ ** Kernel::Thread_base **
+ *************************/
 
-Thread_cpu_support::Thread_cpu_support(Thread * const t)
+Thread_base::Thread_base(Thread * const t)
 :
 	_fault(t),
 	_fault_pd(0),

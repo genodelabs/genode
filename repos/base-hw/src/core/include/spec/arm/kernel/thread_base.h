@@ -1,5 +1,5 @@
 /*
- * \brief   CPU specific support for base-hw
+ * \brief   Hardware specific base of kernel thread-objects
  * \author  Martin Stein
  * \date    2013-11-13
  */
@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CPU_SUPPORT_H_
-#define _CPU_SUPPORT_H_
+#ifndef _KERNEL__THREAD_BASE_H_
+#define _KERNEL__THREAD_BASE_H_
 
 /* core includes */
 #include <kernel/thread_event.h>
@@ -20,12 +20,12 @@
 namespace Kernel
 {
 	/**
-	 * CPU specific parts of a kernel thread-object
+	 * Hardware specific base of kernel thread-objects
 	 */
-	class Thread_cpu_support;
+	class Thread_base;
 }
 
-class Kernel::Thread_cpu_support
+class Kernel::Thread_base
 {
 	protected:
 
@@ -40,7 +40,7 @@ class Kernel::Thread_cpu_support
 		 *
 		 * \param t  generic part of kernel thread-object
 		 */
-		Thread_cpu_support(Thread * const t);
+		Thread_base(Thread * const t);
 };
 
-#endif /* _CPU_SUPPORT_H_ */
+#endif /* _KERNEL__THREAD_BASE_H_ */

@@ -19,7 +19,7 @@
 #include <kernel/signal_receiver.h>
 #include <kernel/ipc_node.h>
 #include <kernel/processor.h>
-#include <cpu_support.h>
+#include <kernel/thread_base.h>
 
 namespace Kernel
 {
@@ -75,7 +75,7 @@ class Kernel::Thread
 	public Ipc_node,
 	public Signal_context_killer,
 	public Signal_handler,
-	public Thread_cpu_support
+	public Thread_base
 {
 	friend class Thread_event;
 
