@@ -52,6 +52,7 @@ linux-3.9/drivers/hid/usbhid/usbkbd.c
 linux-3.9/drivers/hid/usbhid/usbmouse.c
 linux-3.9/drivers/input/evdev.c
 linux-3.9/drivers/input/input.c
+linux-3.9/drivers/input/input-mt.h
 linux-3.9/drivers/input/input-compat.h
 linux-3.9/drivers/net/usb/asix_common.c
 linux-3.9/drivers/net/usb/asix_devices.c

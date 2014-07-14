@@ -752,15 +752,6 @@ int input_event_from_user(const char __user *buffer, struct input_event *event) 
 int input_event_to_user(char __user *buffer, const struct input_event *event) { TRACE; return 0; }
 int input_ff_effect_from_user(const char __user *buffer, size_t size, struct ff_effect *effect) { TRACE; return 0;}
 
-/****************
- ** linux/mt.h **
- ****************/
-
-void input_mt_destroy_slots(struct input_dev *dev) { TRACE; }
-int input_mt_init_slots(struct input_dev *dev, unsigned int num_slots, unsigned int flags) { TRACE; return 0;}
-void input_mt_sync_frame(struct input_dev *dev) { TRACE; }
-void input_mt_report_slot_state(struct input_dev *dev,unsigned int tool_type, bool active) {}
-int input_mt_get_slot_by_key(struct input_dev *dev, int key) { TRACE; return 0; }
 
 /*********************
  ** linux/vmalloc.h **
