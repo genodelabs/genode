@@ -220,6 +220,15 @@ namespace Genode {
 			Thread_capability thread_cap() { return _thread_cap; } const
 			void thread_cap(Thread_capability cap) { _thread_cap = cap; }
 
+			/*
+			 * Note in the thread state that an unresolved page
+			 * fault occurred.
+			 */
+			void unresolved_page_fault_occurred()
+			{
+				_state.thread.unresolved_page_fault = true;
+			}
+
 			/**
 			 * Make sure nobody is in the handler anymore by doing an IPC to a
 			 * local cap pointing to same serving thread (if not running in the

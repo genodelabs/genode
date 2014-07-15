@@ -313,6 +313,8 @@ void Rm_faulter::fault(Rm_session_component *faulting_rm_session,
 
 	_faulting_rm_session = faulting_rm_session;
 	_fault_state         = fault_state;
+
+	_pager_object->unresolved_page_fault_occurred();
 }
 
 

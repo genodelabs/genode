@@ -181,21 +181,49 @@ void genode_continue_thread(unsigned long lwpid, int single_step)
 }
 
 
+/*
+ * This function returns the first thread with a page fault that it finds.
+ * Multiple page-faulted threads are currently not supported.
+ */
+
 unsigned long genode_find_segfault_lwpid()
 {
+
 	Cpu_session_component *csc = gdb_stub_thread()->cpu_session_component();
 
-	Thread_capability thread_cap = csc->first();
+	/*
+	 * It can happen that the thread state of the thread which caused the
+	 * page fault is not accessible yet. In that case, we'll retry until
+	 * it is accessible.
+	 */
 
-	while (thread_cap.valid()) {
-		Thread_state thread_state = csc->state(thread_cap);
-		if (thread_state.unresolved_page_fault)
-			return csc->lwpid(thread_cap);
-		thread_cap = csc->next(thread_cap);
+	while (1) {
+
+		Thread_capability thread_cap = csc->first();
+
+		while (thread_cap.valid()) {
+
+			try {
+
+				Thread_state thread_state = csc->state(thread_cap);
+
+				if (thread_state.unresolved_page_fault) {
+
+					/*
+					 * On base-foc it is necessary to pause the thread before
+					 * IP and SP are available in the thread state.
+					 */
+					csc->pause(thread_cap);
+
+					return csc->lwpid(thread_cap);
+				}
+
+			} catch (Cpu_session::State_access_failed) { }
+
+			thread_cap = csc->next(thread_cap);
+		}
+
 	}
-
-	PDBG("could not determine thread which caused the page fault");
-	return 1;
 }
 
 

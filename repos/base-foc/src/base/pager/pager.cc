@@ -81,8 +81,6 @@ void Pager_activation_base::entry()
 				/* handle request */
 				if (obj->pager(pager)) {
 					/* could not resolv - leave thread in pagefault */
-					Lock::Guard guard(obj->state.lock);
-					obj->state.unresolved_page_fault = true;
 					PDBG("Could not resolve pf=%p ip=%p",
 					     (void*)pager.fault_addr(), (void*)pager.fault_ip());
 				} else {

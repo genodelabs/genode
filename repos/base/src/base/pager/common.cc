@@ -25,3 +25,9 @@ void Pager_object::wake_up()
 	Ipc_client ipc_client(pager, &snd, &rcv);
 	ipc_client << this << IPC_CALL;
 }
+
+
+void Pager_object::unresolved_page_fault_occurred()
+{
+	state.unresolved_page_fault = true;
+}

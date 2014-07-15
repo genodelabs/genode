@@ -226,13 +226,16 @@ Thread_state Platform_thread::state()
 	if (!_pager) throw Cpu_session::State_access_failed();
 
 	Thread_state s;
+
 	if (_pager->copy_thread_state(&s))
 		return s;
 
-	if (is_worker())
+	if (is_worker()) {
 		s.sp = _pager->initial_esp();
+		return s;
+	}
 
-	return s;
+	throw Cpu_session::State_access_failed();
 }
 
 

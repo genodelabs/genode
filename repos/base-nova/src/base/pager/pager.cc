@@ -79,8 +79,6 @@ void Pager_object::_page_fault_handler()
 		}
 
 		if (ret == 1) {
-			obj->_state.thread.unresolved_page_fault = true;
-
 			char client_name[Context::NAME_LEN];
 			myself->name(client_name, sizeof(client_name));
 

@@ -109,6 +109,12 @@ namespace Genode {
 			 */
 			Thread_capability thread_cap() { return _thread_cap; } const
 			void thread_cap(Thread_capability cap) { _thread_cap = cap; }
+
+			/*
+			 * Note in the thread state that an unresolved page
+			 * fault occurred.
+			 */
+			void unresolved_page_fault_occurred();
 	};
 
 	/**
