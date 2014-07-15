@@ -783,12 +783,8 @@ int driver_register(struct device_driver *drv)
 
 int device_add(struct device *dev)
 {
-	PINF("device_add start");
-  
 	if (dev->driver)
 		return 0;
-	
-	PINF("device_add middle");
 
 	/* foreach driver match and probe device */
 	for (Driver *driver = Driver::list()->first(); driver; driver = driver->next())
@@ -799,8 +795,6 @@ int device_add(struct device *dev)
 			if (!ret)
 				return 0;
 		}
-		
-	PINF("device_add end");
 
 	return 0;
 }
