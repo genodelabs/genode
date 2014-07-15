@@ -56,12 +56,14 @@ void User_state::handle_event(Input::Event ev, Canvas_base &canvas)
 
 	/* transparently handle absolute and relative motion events */
 	if (type == Event::MOTION) {
-		if ((ev.rx() || ev.ry()) && ev.ax() == 0 && ev.ay() == 0) {
+		if ((ev.rx() || ev.ry()) && ev.ax() == -1 && ev.ay() == -1) {
 			ax = Genode::max(0, Genode::min((int)size().w(), ax + ev.rx()));
 			ay = Genode::max(0, Genode::min((int)size().h(), ay + ev.ry()));
 		} else {
-			ax = ev.ax();
-			ay = ev.ay();
+			if( ev.ax() != -1)
+				ax = ev.ax();
+			if( ev.ay() != -1)
+				ay = ev.ay();
 		}
 	}
 

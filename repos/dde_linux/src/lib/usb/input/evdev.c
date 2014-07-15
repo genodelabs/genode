@@ -45,7 +45,7 @@ void genode_evdev_event(struct input_handle *handle, unsigned int type,
 	/* generate arguments and call back */
 	enum input_event_type arg_type;
 	unsigned arg_keycode = KEY_UNKNOWN;
-	int arg_ax = 0, arg_ay = 0, arg_rx = 0, arg_ry = 0;
+	int arg_ax = -1, arg_ay = -1, arg_rx = 0, arg_ry = 0;
 
 	switch (type) {
 
