@@ -55,10 +55,14 @@ void genode_evdev_event(struct input_handle *handle, unsigned int type,
 
 		case 0:
 			arg_type = EVENT_TYPE_RELEASE;
+			if(code == 0x14a)           // XXX map BTN_TOUCH events to BTN_LEFT
+			  arg_keycode = 0x110;
 			break;
 
 		case 1:
 			arg_type = EVENT_TYPE_PRESS;
+			if(code == 0x14a)           // XXX
+			  arg_keycode = 0x110;
 			break;
 
 		default:
@@ -71,11 +75,13 @@ void genode_evdev_event(struct input_handle *handle, unsigned int type,
 		switch (code) {
 
 		case ABS_X:
+		case ABS_MT_POSITION_X: // XXX treat every MT Position event as a normal Mouse event
 			arg_type = EVENT_TYPE_MOTION;
 			arg_ax = value;
 			break;
 
 		case ABS_Y:
+		case ABS_MT_POSITION_Y: // XXX treat every MT Position event as a normal Mouse event
 			arg_type = EVENT_TYPE_MOTION;
 			arg_ay = value;
 			break;
