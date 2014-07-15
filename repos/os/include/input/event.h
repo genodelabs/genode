@@ -50,7 +50,7 @@ namespace Input {
 			 * Constructors
 			 */
 			Event():
-				_type(INVALID), _code(0), _ax(0), _ay(0), _rx(0), _ry(0) { }
+				_type(INVALID), _code(0), _ax(-1), _ay(-1), _rx(0), _ry(0) { }
 
 			Event(Type type, int code, int ax, int ay, int rx, int ry):
 				_type(type), _code(code),

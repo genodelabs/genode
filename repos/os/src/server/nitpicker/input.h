@@ -56,7 +56,7 @@ static Input::Event merge_motion_events(Input::Event const *ev, unsigned n)
 {
 	Input::Event res;
 	for (unsigned i = 0; i < n; i++, ev++)
-		res = Input::Event(Input::Event::MOTION, 0, ev->ax(), ev->ay(),
+		res = Input::Event(Input::Event::MOTION, 0, ev->ax() == -1 ? res.ax() : ev->ax(), ev->ay() == -1 ? res.ay() : ev-> ay(),
 		                   res.rx() + ev->rx(), res.ry() + ev->ry());
 	return res;
 }
