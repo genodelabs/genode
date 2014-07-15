@@ -1,5 +1,5 @@
 /*
- * \brief  Processor driver for core
+ * \brief  CPU driver for core
  * \author Martin stein
  * \date   2011-11-03
  */
@@ -11,29 +11,35 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _PROCESSOR_DRIVER_H_
-#define _PROCESSOR_DRIVER_H_
+#ifndef _CPU_H_
+#define _CPU_H_
 
 /* core includes */
-#include <spec/arm_v7/processor_driver_support.h>
+#include <spec/arm_v7/cpu_support.h>
 #include <board.h>
 
 namespace Genode
 {
 	/**
-	 * Part of processor state that is not switched on every mode transition
+	 * Part of CPU state that is not switched on every mode transition
 	 */
-	class Processor_lazy_state;
+	class Cpu_lazy_state;
 
 	/**
-	 * Processor driver for core
+	 * CPU driver for core
 	 */
-	class Processor_driver;
+	class Cpu;
 }
 
-class Genode::Processor_lazy_state
+namespace Kernel
 {
-	friend class Processor_driver;
+	using Genode::Cpu_lazy_state;
+	using Genode::Cpu;
+}
+
+class Genode::Cpu_lazy_state
+{
+	friend class Cpu;
 
 	private:
 
@@ -50,12 +56,12 @@ class Genode::Processor_lazy_state
 		/**
 		 * Constructor
 		 */
-		inline Processor_lazy_state();
+		inline Cpu_lazy_state();
 };
 
-class Genode::Processor_driver : public Arm_v7
+class Genode::Cpu : public Arm_v7
 {
-	friend class Processor_lazy_state;
+	friend class Cpu_lazy_state;
 
 	private:
 
@@ -146,7 +152,7 @@ class Genode::Processor_driver : public Arm_v7
 			}
 		};
 
-		Processor_lazy_state * _advanced_fp_simd_state;
+		Cpu_lazy_state * _advanced_fp_simd_state;
 
 		/**
 		 * Enable or disable the advanced FP/SIMD extension
@@ -165,8 +171,7 @@ class Genode::Processor_driver : public Arm_v7
 		 *
 		 * \param state  processor state to save FP/SIMD state into
 		 */
-		static void
-		_save_advanced_fp_simd_state(Processor_lazy_state * const state)
+		static void _save_advanced_fp_simd_state(Cpu_lazy_state * const state)
 		{
 			/* save system registers */
 			state->fpexc = Fpexc::read();
@@ -188,8 +193,7 @@ class Genode::Processor_driver : public Arm_v7
 		 *
 		 * \param state  processor state to load FP/SIMD state out of
 		 */
-		static void
-		_load_advanced_fp_simd_state(Processor_lazy_state * const state)
+		static void _load_advanced_fp_simd_state(Cpu_lazy_state * const state)
 		{
 			/* load system registers */
 			Fpexc::write(state->fpexc);
@@ -238,12 +242,7 @@ class Genode::Processor_driver : public Arm_v7
 		/**
 		 * Constructor
 		 */
-		Processor_driver() : _advanced_fp_simd_state(0) { }
-
-		/**
-		 * Ensure that TLB insertions get applied
-		 */
-		static void tlb_insertions() { }
+		Cpu() : _advanced_fp_simd_state(0) { }
 
 		/**
 		 * Initialize advanced FP/SIMD extension
@@ -263,8 +262,8 @@ class Genode::Processor_driver : public Arm_v7
 		 * \param old_state  processor state of the last user
 		 * \param new_state  processor state of the next user
 		 */
-		static void prepare_proceeding(Processor_lazy_state * const old_state,
-		                               Processor_lazy_state * const new_state)
+		static void prepare_proceeding(Cpu_lazy_state * const old_state,
+		                               Cpu_lazy_state * const new_state)
 		{
 			if (old_state == new_state) { return; }
 			_toggle_advanced_fp_simd(false);
@@ -275,7 +274,7 @@ class Genode::Processor_driver : public Arm_v7
 		 *
 		 * \param state  processor state of the user
 		 */
-		bool retry_undefined_instr(Processor_lazy_state * const state)
+		bool retry_undefined_instr(Cpu_lazy_state * const state)
 		{
 			if (_advanced_fp_simd_enabled()) { return false; }
 			_toggle_advanced_fp_simd(true);
@@ -290,34 +289,26 @@ class Genode::Processor_driver : public Arm_v7
 		}
 
 		/**
-		 * After a page-fault resolution nothing needs to be done
+		 * Return kernel name of the executing processor
 		 */
-		static void translation_added(Genode::addr_t addr,
-		                              Genode::size_t size) { }
+		static unsigned executing_id();
 
 		/**
 		 * Return kernel name of the primary processor
 		 */
-		static unsigned primary_id() { return 0; }
+		static unsigned primary_id();
 
-		/**
-		 * Return kernel name of the executing processor
-		 */
-		static unsigned executing_id() { return primary_id(); }
+		/*************
+		 ** Dummies **
+		 *************/
+
+		static void translation_added(addr_t, size_t) { }
+		static void tlb_insertions() { }
 };
 
+void Genode::Arm_v7::finish_init_phys_kernel() { Cpu::init_advanced_fp_simd(); }
 
-void Genode::Arm_v7::finish_init_phys_kernel()
-{
-	Processor_driver::init_advanced_fp_simd();
-}
-
-
-Genode::Processor_lazy_state::Processor_lazy_state()
-{
-	fpexc = Processor_driver::Fpexc::En::bits(1);
-}
-
+Genode::Cpu_lazy_state::Cpu_lazy_state() { fpexc = Cpu::Fpexc::En::bits(1); }
 
 /*
  * Annotation 1
@@ -339,4 +330,4 @@ Genode::Processor_lazy_state::Processor_lazy_state()
  *  head branch as from 2014.04.17.
  */
 
-#endif /* _PROCESSOR_DRIVER_H_ */
+#endif /* _CPU_H_ */

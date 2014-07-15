@@ -46,7 +46,7 @@ namespace Kernel
 }
 
 
-struct Kernel::Cpu_context : Processor_driver::Context
+struct Kernel::Cpu_context : Cpu::Context
 {
 	private:
 
@@ -68,7 +68,7 @@ struct Kernel::Cpu_context : Processor_driver::Context
 
 class Kernel::Thread
 :
-	public Processor_driver::User_context,
+	public Cpu::User_context,
 	public Object<Thread, MAX_THREADS, Thread_ids, thread_ids, thread_pool>,
 	public Processor_client,
 	public Processor_domain_update,

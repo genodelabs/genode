@@ -18,7 +18,7 @@
 #include <util/mmio.h>
 
 /* core includes */
-#include <processor_driver.h>
+#include <cpu.h>
 
 namespace Genode
 {
@@ -27,7 +27,7 @@ namespace Genode
 	 */
 	class Timer : public Mmio
 	{
-		enum { TICS_PER_MS = Processor_driver::PRIVATE_TIMER_CLK / 1000, };
+		enum { TICS_PER_MS = Cpu::PRIVATE_TIMER_CLK / 1000, };
 
 		/**
 		 * Load value register
@@ -58,7 +58,7 @@ namespace Genode
 			/**
 			 * Constructor, clears the interrupt output
 			 */
-			Timer() : Mmio(Processor_driver::PRIVATE_TIMER_MMIO_BASE)
+			Timer() : Mmio(Cpu::PRIVATE_TIMER_MMIO_BASE)
 			{
 				write<Control::Timer_enable>(0);
 				_clear_interrupt();
@@ -69,7 +69,7 @@ namespace Genode
 			 */
 			static unsigned interrupt_id(unsigned)
 			{
-				return Processor_driver::PRIVATE_TIMER_IRQ;
+				return Cpu::PRIVATE_TIMER_IRQ;
 			}
 
 			/**

@@ -22,20 +22,19 @@ void Arm_gic::_init()
 	for (unsigned i=MIN_SPI; i <= _max_interrupt; i++) {
 		_distr.write<Distr::Icfgr::Edge_triggered>(0, i);
 		_distr.write<Distr::Ipriorityr::Priority>(0, i);
-		_distr.write<Distr::Itargetsr::Cpu_targets>(
-			Distr::Itargetsr::ALL, i);
+		_distr.write<Distr::Itargetsr::Cpu_targets>(0xff, i);
 	}
 
 	/* disable the priority filter */
-	_cpu.write<Cpu::Pmr::Priority>(0xff);
+	_cpui.write<Cpui::Pmr::Priority>(0xff);
 
 	/* signal secure IRQ via FIQ interface */
-	_cpu.write<Cpu::Ctlr>(Cpu::Ctlr::Enable_grp0::bits(1)  |
-	                      Cpu::Ctlr::Enable_grp1::bits(1) |
-	                      Cpu::Ctlr::Fiq_en::bits(1));
+	_cpui.write<Cpui::Ctlr>(Cpui::Ctlr::Enable_grp0::bits(1)  |
+	                        Cpui::Ctlr::Enable_grp1::bits(1) |
+	                        Cpui::Ctlr::Fiq_en::bits(1));
 
 	/* use whole band of prios */
-	_cpu.write<Cpu::Bpr::Binary_point>(Cpu::Bpr::NO_PREEMPTION);
+	_cpui.write<Cpui::Bpr::Binary_point>(Cpui::Bpr::NO_PREEMPTION);
 
 	/* enable device */
 	_distr.write<Distr::Ctlr>(Distr::Ctlr::Enable::bits(1));

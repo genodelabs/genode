@@ -20,17 +20,194 @@
 namespace Genode
 {
 	/**
+	 * Disributor of the ARM generic interrupt controller
+	 */
+	class Arm_gic_distributor;
+
+	/**
+	 * CPU interface of the ARM generic interrupt controller
+	 */
+	class Arm_gic_cpu_interface;
+
+	/**
 	 * Programmable interrupt controller for core
 	 */
 	class Arm_gic;
 }
 
-class Genode::Arm_gic
+class Genode::Arm_gic_distributor : public Mmio
 {
 	public:
 
 		enum { NR_OF_IRQ = 1024 };
 
+		/**
+		 * Constructor
+		 */
+		Arm_gic_distributor(addr_t const base) : Mmio(base) { }
+
+		/**
+		 * Control register
+		 */
+		struct Ctlr : Register<0x000, 32>
+		{
+			struct Enable : Bitfield<0,1> { };
+		};
+
+		/**
+		 * Controller type register
+		 */
+		struct Typer : Register<0x004, 32>
+		{
+			struct It_lines_number : Bitfield<0,5> { };
+			struct Cpu_number      : Bitfield<5,3> { };
+		};
+
+		/**
+		 * Interrupt group register
+		 */
+		struct Igroupr : Register_array<0x80, 32, NR_OF_IRQ, 1>
+		{
+			struct Group_status : Bitfield<0, 1> { };
+		};
+
+		/**
+		 * Interrupt set enable registers
+		 */
+		struct Isenabler : Register_array<0x100, 32, NR_OF_IRQ, 1, true>
+		{
+			struct Set_enable : Bitfield<0, 1> { };
+		};
+
+		/**
+		 * Interrupt clear enable registers
+		 */
+		struct Icenabler : Register_array<0x180, 32, NR_OF_IRQ, 1, true>
+		{
+			struct Clear_enable : Bitfield<0, 1> { };
+		};
+
+		/**
+		 * Interrupt priority level registers
+		 */
+		struct Ipriorityr : Register_array<0x400, 32, NR_OF_IRQ, 8>
+		{
+			enum { GET_MIN = 0xff };
+
+			struct Priority : Bitfield<0, 8> { };
+		};
+
+		/**
+		 * Interrupt processor target registers
+		 */
+		struct Itargetsr : Register_array<0x800, 32, NR_OF_IRQ, 8>
+		{
+			struct Cpu_targets : Bitfield<0, 8> { };
+		};
+
+		/**
+		 * Interrupt configuration registers
+		 */
+		struct Icfgr : Register_array<0xc00, 32, NR_OF_IRQ, 2>
+		{
+			struct Edge_triggered : Bitfield<1, 1> { };
+		};
+
+		/**
+		 * Software generated interrupt register
+		 */
+		struct Sgir : Register<0xf00, 32>
+		{
+			struct Sgi_int_id      : Bitfield<0,  4> { };
+			struct Cpu_target_list : Bitfield<16, 8> { };
+		};
+
+		/**
+		 * Minimum supported interrupt priority
+		 */
+		Ipriorityr::access_t min_priority()
+		{
+			write<Ipriorityr::Priority>(Ipriorityr::GET_MIN, 0);
+			return read<Ipriorityr::Priority>(0);
+		}
+
+		/**
+		 * Maximum supported interrupt priority
+		 */
+		Ipriorityr::access_t max_priority() { return 0; }
+
+		/**
+		 * ID of the maximum supported interrupt
+		 */
+		Typer::access_t max_interrupt()
+		{
+			enum { LINE_WIDTH_LOG2 = 5 };
+			Typer::access_t lnr = read<Typer::It_lines_number>();
+			return ((lnr + 1) << LINE_WIDTH_LOG2) - 1;
+		}
+};
+
+class Genode::Arm_gic_cpu_interface : public Mmio
+{
+	public:
+
+		/**
+		 * Constructor
+		 */
+		Arm_gic_cpu_interface(addr_t const base) : Mmio(base) { }
+
+		/**
+		 * Control register
+		 */
+		struct Ctlr : Register<0x00, 32>
+		{
+			/* Without security extension */
+			struct Enable : Bitfield<0,1> { };
+
+			/* In a secure world */
+			struct Enable_grp0 : Bitfield<0,1> { };
+			struct Enable_grp1 : Bitfield<1,1> { };
+			struct Fiq_en      : Bitfield<3,1> { };
+		};
+
+		/**
+		 * Priority mask register
+		 */
+		struct Pmr : Register<0x04, 32>
+		{
+			struct Priority : Bitfield<0,8> { };
+		};
+
+		/**
+		 * Binary point register
+		 */
+		struct Bpr : Register<0x08, 32>
+		{
+			enum { NO_PREEMPTION = 7 };
+
+			struct Binary_point : Bitfield<0,3> { };
+		};
+
+		/**
+		 * Interrupt acknowledge register
+		 */
+		struct Iar : Register<0x0c, 32, true>
+		{
+			struct Irq_id : Bitfield<0,10> { };
+		};
+
+		/**
+		 * End of interrupt register
+		 */
+		struct Eoir : Register<0x10, 32, true>
+		{
+			struct Irq_id : Bitfield<0,10> { };
+			struct Cpu_id : Bitfield<10,3> { };
+		};
+};
+
+class Genode::Arm_gic
+{
 	protected:
 
 		enum {
@@ -38,186 +215,11 @@ class Genode::Arm_gic
 			SPURIOUS_ID = 1023,
 		};
 
-		/**
-		 * Distributor interface
-		 */
-		struct Distr : public Mmio
-		{
-			/**
-			 * Constructor
-			 */
-			Distr(addr_t const base) : Mmio(base) { }
+		typedef Arm_gic_cpu_interface Cpui;
+		typedef Arm_gic_distributor   Distr;
 
-			/**
-			 * Control register
-			 */
-			struct Ctlr : Register<0x000, 32>
-			{
-				struct Enable : Bitfield<0,1> { };
-			};
-
-			/**
-			 * Controller type register
-			 */
-			struct Typer : Register<0x004, 32>
-			{
-				struct It_lines_number : Bitfield<0,5> { };
-				struct Cpu_number      : Bitfield<5,3> { };
-			};
-
-			/**
-			 * Interrupt group register
-			 */
-			struct Igroupr :
-				Register_array<0x80, 32, NR_OF_IRQ, 1>
-			{
-				struct Group_status : Bitfield<0, 1> { };
-			};
-
-			/**
-			 * Interrupt set enable registers
-			 */
-			struct Isenabler :
-				Register_array<0x100, 32, NR_OF_IRQ, 1, true>
-			{
-				struct Set_enable : Bitfield<0, 1> { };
-			};
-
-			/**
-			 * Interrupt clear enable registers
-			 */
-			struct Icenabler :
-				Register_array<0x180, 32, NR_OF_IRQ, 1, true>
-			{
-				struct Clear_enable : Bitfield<0, 1> { };
-			};
-
-			/**
-			 * Interrupt priority level registers
-			 */
-			struct Ipriorityr :
-				Register_array<0x400, 32, NR_OF_IRQ, 8>
-			{
-				enum { GET_MIN = 0xff };
-
-				struct Priority : Bitfield<0, 8> { };
-			};
-
-			/**
-			 * Interrupt processor target registers
-			 */
-			struct Itargetsr :
-				Register_array<0x800, 32, NR_OF_IRQ, 8>
-			{
-				enum { ALL = 0xff };
-
-				struct Cpu_targets : Bitfield<0, 8> { };
-			};
-
-			/**
-			 * Interrupt configuration registers
-			 */
-			struct Icfgr :
-				Register_array<0xc00, 32, NR_OF_IRQ, 2>
-			{
-				struct Edge_triggered : Bitfield<1, 1> { };
-			};
-
-			/**
-			 * Software generated interrupt register
-			 */
-			struct Sgir : Register<0xf00, 32>
-			{
-				struct Sgi_int_id      : Bitfield<0,  4> { };
-				struct Cpu_target_list : Bitfield<16, 8> { };
-			};
-
-			/**
-			 * Minimum supported interrupt priority
-			 */
-			Ipriorityr::access_t min_priority()
-			{
-				write<Ipriorityr::Priority>(Ipriorityr::GET_MIN, 0);
-				return read<Ipriorityr::Priority>(0);
-			}
-
-			/**
-			 * Maximum supported interrupt priority
-			 */
-			Ipriorityr::access_t max_priority() { return 0; }
-
-			/**
-			 * ID of the maximum supported interrupt
-			 */
-			Typer::access_t max_interrupt()
-			{
-				enum { LINE_WIDTH_LOG2 = 5 };
-				Typer::access_t lnr = read<Typer::It_lines_number>();
-				return ((lnr + 1) << LINE_WIDTH_LOG2) - 1;
-			}
-
-		} _distr;
-
-		/**
-		 * CPU interface
-		 */
-		struct Cpu : public Mmio
-		{
-			/**
-			 * Constructor
-			 */
-			Cpu(addr_t const base) : Mmio(base) { }
-
-			/**
-			 * Control register
-			 */
-			struct Ctlr : Register<0x00, 32>
-			{
-				/* Without security extension */
-				struct Enable : Bitfield<0,1> { };
-
-				/* In a secure world */
-				struct Enable_grp0 : Bitfield<0,1> { };
-				struct Enable_grp1 : Bitfield<1,1> { };
-				struct Fiq_en      : Bitfield<3,1> { };
-			};
-
-			/**
-			 * Priority mask register
-			 */
-			struct Pmr : Register<0x04, 32>
-			{
-				struct Priority : Bitfield<0,8> { };
-			};
-
-			/**
-			 * Binary point register
-			 */
-			struct Bpr : Register<0x08, 32>
-			{
-				enum { NO_PREEMPTION = 7 };
-
-				struct Binary_point : Bitfield<0,3> { };
-			};
-
-			/**
-			 * Interrupt acknowledge register
-			 */
-			struct Iar : Register<0x0c, 32, true>
-			{
-				struct Irq_id : Bitfield<0,10> { };
-			};
-
-			/**
-			 * End of interrupt register
-			 */
-			struct Eoir : Register<0x10, 32, true>
-			{
-				struct Irq_id : Bitfield<0,10> { };
-				struct Cpu_id : Bitfield<10,3> { };
-			};
-		} _cpu;
-
+		Distr          _distr;
+		Cpui           _cpui;
 		unsigned const _max_interrupt;
 		unsigned       _last_request;
 
@@ -238,12 +240,14 @@ class Genode::Arm_gic
 
 	public:
 
+		enum { NR_OF_IRQ = Distr::NR_OF_IRQ };
+
 		/**
 		 * Constructor
 		 */
 		Arm_gic(addr_t const distr_base, addr_t const cpu_base)
 		:
-			_distr(distr_base), _cpu(cpu_base),
+			_distr(distr_base), _cpui(cpu_base),
 			_max_interrupt(_distr.max_interrupt()),
 			_last_request(SPURIOUS_ID)
 		{
@@ -256,13 +260,13 @@ class Genode::Arm_gic
 		void init_processor_local()
 		{
 			/* disable the priority filter */
-			_cpu.write<Cpu::Pmr::Priority>(_distr.min_priority());
+			_cpui.write<Cpui::Pmr::Priority>(_distr.min_priority());
 
 			/* disable preemption of interrupt handling by interrupts */
-			_cpu.write<Cpu::Bpr::Binary_point>(Cpu::Bpr::NO_PREEMPTION);
+			_cpui.write<Cpui::Bpr::Binary_point>(Cpui::Bpr::NO_PREEMPTION);
 
 			/* enable device */
-			_cpu.write<Cpu::Ctlr::Enable>(1);
+			_cpui.write<Cpui::Ctlr::Enable>(1);
 		}
 
 		/**
@@ -275,7 +279,7 @@ class Genode::Arm_gic
 		 */
 		bool take_request(unsigned & i)
 		{
-			_last_request = _cpu.read<Cpu::Iar::Irq_id>();
+			_last_request = _cpui.read<Cpui::Iar::Irq_id>();
 			i = _last_request;
 			return valid(i);
 		}
@@ -286,8 +290,8 @@ class Genode::Arm_gic
 		void finish_request()
 		{
 			if (!valid(_last_request)) return;
-			_cpu.write<Cpu::Eoir>(Cpu::Eoir::Irq_id::bits(_last_request) |
-			                      Cpu::Eoir::Cpu_id::bits(0) );
+			_cpui.write<Cpui::Eoir>(Cpui::Eoir::Irq_id::bits(_last_request) |
+			                        Cpui::Eoir::Cpu_id::bits(0) );
 			_last_request = SPURIOUS_ID;
 		}
 

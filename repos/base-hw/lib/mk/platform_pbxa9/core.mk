@@ -15,6 +15,7 @@ SRC_CC += platform_services.cc
 SRC_CC += spec/pbxa9/platform_support.cc
 SRC_CC += spec/cortex_a9/pic.cc
 SRC_CC += spec/arm_gic/pic.cc
+SRC_CC += cpu.cc
 
 # include less specific configuration
 include $(REP_DIR)/lib/mk/arm_v7/core.inc

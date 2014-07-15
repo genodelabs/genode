@@ -14,7 +14,7 @@
 /* core includes */
 #include <platform.h>
 #include <board.h>
-#include <processor_driver.h>
+#include <cpu.h>
 #include <pic.h>
 #include <unmanaged_singleton.h>
 
@@ -62,7 +62,7 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 }
 
 
-Processor_driver::User_context::User_context() { cpsr = Psr::init_user(); }
+Cpu::User_context::User_context() { cpsr = Psr::init_user(); }
 
 
 static Board::Pl310 * l2_cache() {

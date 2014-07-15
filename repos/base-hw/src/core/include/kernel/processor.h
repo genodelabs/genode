@@ -17,14 +17,11 @@
 
 /* core includes */
 #include <timer.h>
-#include <processor_driver.h>
+#include <cpu.h>
 #include <kernel/scheduler.h>
 
 namespace Kernel
 {
-	using Genode::Processor_driver;
-	using Genode::Processor_lazy_state;
-
 	/**
 	 * A single user of a multiplexable processor
 	 */
@@ -60,10 +57,7 @@ class Kernel::Processor_domain_update
 		/**
 		 * Domain-update back-end
 		 */
-		void _domain_update()
-		{
-			Processor_driver::flush_tlb_by_pid(_domain_id);
-		}
+		void _domain_update() { Cpu::flush_tlb_by_pid(_domain_id); }
 
 		/**
 		 * Perform the domain update on the executing processors
@@ -99,8 +93,8 @@ class Kernel::Processor_client : public Processor_scheduler::Item
 {
 	protected:
 
-		Processor *          _processor;
-		Processor_lazy_state _lazy_state;
+		Processor *    _processor;
+		Cpu_lazy_state _lazy_state;
 
 		/**
 		 * Handle an interrupt exception that occured during execution
@@ -166,10 +160,10 @@ class Kernel::Processor_client : public Processor_scheduler::Item
 		 ** Accessors **
 		 ***************/
 
-		Processor_lazy_state * lazy_state() { return &_lazy_state; }
+		Cpu_lazy_state * lazy_state() { return &_lazy_state; }
 };
 
-class Kernel::Processor : public Processor_driver
+class Kernel::Processor : public Cpu
 {
 	private:
 
@@ -252,7 +246,7 @@ class Kernel::Processor : public Processor_driver
 			 * an occupant other than that whose exception caused the kernel entry.
 			 */
 			Processor_client * const old_client = _scheduler.occupant();
-			Processor_lazy_state * const old_state = old_client->lazy_state();
+			Cpu_lazy_state * const old_state = old_client->lazy_state();
 			old_client->exception(_id);
 
 			/*
@@ -263,7 +257,7 @@ class Kernel::Processor : public Processor_driver
 			bool update;
 			Processor_client * const new_client = _scheduler.update_occupant(update);
 			if (update) { _reset_timer(); }
-			Processor_lazy_state * const new_state = new_client->lazy_state();
+			Cpu_lazy_state * const new_state = new_client->lazy_state();
 			prepare_proceeding(old_state, new_state);
 			new_client->proceed(_id);
 		}

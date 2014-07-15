@@ -22,7 +22,7 @@
 /* base-hw includes */
 #include <page_flags.h>
 #include <page_slab.h>
-#include <processor_driver.h>
+#include <cpu.h>
 
 namespace Genode
 {
@@ -183,7 +183,7 @@ class Genode::Translation_table
 						access_t v = access_permission_bits<Small_page>(flags);
 						v |= arm_memory_region_attr<Small_page>(flags);
 						v |= Ng::bits(!flags.global);
-						v |= S::bits(Processor_driver::is_smp());
+						v |= S::bits(Cpu::is_smp());
 						v |= Pa::masked(pa);
 						Descriptor::type(v, Descriptor::SMALL_PAGE);
 						return v;
@@ -272,7 +272,6 @@ class Genode::Translation_table
 						_entries[i] = Small_page::create(flags, pa);
 
 						/* some processors need to act on changed translations */
-						using Cpu = Genode::Processor_driver;
 						Cpu::translation_added((addr_t)&_entries[i],
 						                       sizeof(Descriptor::access_t));
 					}
@@ -451,7 +450,7 @@ class Genode::Translation_table
 				access_t v = access_permission_bits<Section>(flags);
 				v |= arm_memory_region_attr<Section>(flags);
 				v |= Domain::bits(DOMAIN);
-				v |= S::bits(Processor_driver::is_smp());
+				v |= S::bits(Cpu::is_smp());
 				v |= Ng::bits(!flags.global);
 				v |= Pa::masked(pa);
 				Descriptor::type(v, Descriptor::SECTION);
@@ -515,7 +514,6 @@ class Genode::Translation_table
 					_entries[i] = Page_table_descriptor::create(pt_phys);
 
 					/* some processors need to act on changed translations */
-					using Cpu = Genode::Processor_driver;
 					Cpu::translation_added((addr_t)&_entries[i],
 					                       sizeof(Descriptor::access_t));
 				}
@@ -607,7 +605,6 @@ class Genode::Translation_table
 						_entries[i] = Section::create(flags, pa);
 
 						/* some processors need to act on changed translations */
-						using Cpu = Genode::Processor_driver;
 						Cpu::translation_added((addr_t)&_entries[i],
 						                       sizeof(Descriptor::access_t));
 						break;
