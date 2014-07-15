@@ -46,7 +46,7 @@ class Kernel::Idle_thread : public Thread
 
 		enum {
 			STACK_SIZE   = sizeof(addr_t) * 32,
-			STACK_ALIGNM = Processor_driver::DATA_ACCESS_ALIGNM,
+			STACK_ALIGNM = Cpu::DATA_ACCESS_ALIGNM,
 		};
 
 		char _stack[STACK_SIZE] __attribute__((aligned(STACK_ALIGNM)));
@@ -54,10 +54,7 @@ class Kernel::Idle_thread : public Thread
 		/**
 		 * Main function of all idle threads
 		 */
-		static void _main()
-		{
-			while (1) { Processor_driver::wait_for_interrupt(); }
-		}
+		static void _main() { while (1) { Cpu::wait_for_interrupt(); } }
 
 	public:
 

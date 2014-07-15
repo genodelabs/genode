@@ -12,8 +12,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _SPEC__ARM__PROCESSOR_DRIVER_SUPPORT_H_
-#define _SPEC__ARM__PROCESSOR_DRIVER_SUPPORT_H_
+#ifndef _SPEC__ARM__CPU_SUPPORT_H_
+#define _SPEC__ARM__CPU_SUPPORT_H_
 
 /* Genode includes */
 #include <util/register.h>
@@ -635,10 +635,8 @@ class Genode::Arm
 		 * Invalidate all entries of all instruction caches
 		 */
 		__attribute__((always_inline))
-		static void invalidate_instr_caches()
-		{
-			asm volatile ("mcr p15, 0, %[rd], c7, c5, 0" :: [rd]"r"(0) : );
-		}
+		static void invalidate_instr_caches() {
+			asm volatile ("mcr p15, 0, %[rd], c7, c5, 0" :: [rd]"r"(0) : ); }
 
 		/**
 		 * Flush all entries of all data caches
@@ -715,4 +713,4 @@ class Genode::Arm
 		static bool is_smp() { return PROCESSORS > 1; }
 };
 
-#endif /* _SPEC__ARM__PROCESSOR_DRIVER_SUPPORT_H_ */
+#endif /* _SPEC__ARM__CPU_SUPPORT_H_ */

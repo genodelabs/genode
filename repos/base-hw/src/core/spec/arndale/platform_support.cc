@@ -15,7 +15,7 @@
 #include <board.h>
 #include <platform.h>
 #include <pic.h>
-#include <processor_driver.h>
+#include <cpu.h>
 #include <timer.h>
 
 using namespace Genode;
@@ -53,4 +53,4 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 }
 
 
-Processor_driver::User_context::User_context() { cpsr = Psr::init_user(); }
+Cpu::User_context::User_context() { cpsr = Psr::init_user(); }

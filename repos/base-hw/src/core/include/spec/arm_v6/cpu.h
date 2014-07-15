@@ -1,5 +1,5 @@
 /*
- * \brief  Processor driver for core
+ * \brief  CPU driver for core
  * \author Norman Feske
  * \author Martin stein
  * \date   2012-08-30
@@ -12,28 +12,34 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _PROCESSOR_DRIVER_H_
-#define _PROCESSOR_DRIVER_H_
+#ifndef _CPU_H_
+#define _CPU_H_
 
 /* core includes */
-#include <spec/arm/processor_driver_support.h>
+#include <spec/arm/cpu_support.h>
 #include <assert.h>
 #include <board.h>
 
 namespace Genode
 {
 	/**
-	 * Part of processor state that is not switched on every mode transition
+	 * Part of CPU state that is not switched on every mode transition
 	 */
-	class Processor_lazy_state { };
+	class Cpu_lazy_state { };
 
 	/**
-	 * Processor driver for core
+	 * CPU driver for core
 	 */
-	class Processor_driver;
+	class Cpu;
 }
 
-class Genode::Processor_driver : public Arm
+namespace Kernel
+{
+	using Genode::Cpu_lazy_state;
+	using Genode::Cpu;
+}
+
+class Genode::Cpu : public Arm
 {
 	public:
 
@@ -178,56 +184,12 @@ class Genode::Processor_driver : public Arm
 		 */
 		static void tlb_insertions() { flush_tlb(); }
 
-		static void start_secondary_processors(void * const ip)
-		{
-			assert(!is_smp());
-		}
-
-		/**
-		 * Invalidate all predictions about the future control-flow
-		 */
-		static void invalidate_control_flow_predictions()
-		{
-			/* FIXME invalidation of branch prediction not implemented */
-		}
-
-		/**
-		 * Finish all previous data transfers
-		 */
-		static void data_synchronization_barrier()
-		{
-			/* FIXME data synchronization barrier not implemented */
-		}
-
-		/**
-		 * Wait for the next interrupt as cheap as possible
-		 */
-		static void wait_for_interrupt()
-		{
-			/* FIXME cheap way of waiting is not implemented */
-		}
-
-		/**
-		 * Return kernel name of the primary processor
-		 */
-		static unsigned primary_id() { return 0; }
-
-		/**
-		 * Return kernel name of the executing processor
-		 */
-		static unsigned executing_id() { return primary_id(); }
-
-
-		/**
-		 * Prepare for the proceeding of a user
-		 */
-		static void prepare_proceeding(Processor_lazy_state *,
-		                               Processor_lazy_state *) { }
+		static void start_secondary_processors(void *) { assert(!is_smp()); }
 
 		/**
 		 * Return wether to retry an undefined user instruction after this call
 		 */
-		bool retry_undefined_instr(Processor_lazy_state *) { return false; }
+		bool retry_undefined_instr(Cpu_lazy_state *) { return false; }
 
 		/**
 		 * Post processing after a translation was added to a translation table
@@ -246,6 +208,25 @@ class Genode::Processor_driver : public Arm
 			 */
 			if (is_user()) Kernel::update_data_region(addr, size);
 		}
+
+		/**
+		 * Return kernel name of the executing processor
+		 */
+		static unsigned executing_id();
+
+		/**
+		 * Return kernel name of the primary processor
+		 */
+		static unsigned primary_id();
+
+		/*************
+		 ** Dummies **
+		 *************/
+
+		static void prepare_proceeding(Cpu_lazy_state *, Cpu_lazy_state *) { }
+		static void wait_for_interrupt() { /* FIXME */ }
+		static void data_synchronization_barrier() { /* FIXME */ }
+		static void invalidate_control_flow_predictions() { /* FIXME */ }
 };
 
 
@@ -260,5 +241,4 @@ void Genode::Arm::invalidate_data_caches()
 	asm volatile ("mcr p15, 0, %[rd], c7, c6, 0" :: [rd]"r"(0) : );
 }
 
-
-#endif /* _PROCESSOR_DRIVER_H_ */
+#endif /* _CPU_H_ */

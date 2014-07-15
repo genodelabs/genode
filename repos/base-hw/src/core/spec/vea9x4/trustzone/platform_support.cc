@@ -15,7 +15,7 @@
 
 /* core includes */
 #include <board.h>
-#include <processor_driver.h>
+#include <cpu.h>
 #include <platform.h>
 #include <pic.h>
 #include <trustzone.h>
@@ -35,10 +35,10 @@ void Kernel::init_trustzone(Pic * pic)
 		return;
 	}
 	/* set exception vector entry */
-	Processor_driver::mon_exception_entry_at((Genode::addr_t)&_mon_kernel_entry);
+	Cpu::mon_exception_entry_at((Genode::addr_t)&_mon_kernel_entry);
 
 	/* enable coprocessor access for TZ VMs */
-	Processor_driver::allow_coprocessor_nonsecure();
+	Cpu::allow_coprocessor_nonsecure();
 
 	/* set unsecure IRQs */
 	pic->unsecure(34); //Timer 0/1
@@ -92,4 +92,4 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 }
 
 
-Processor_driver::User_context::User_context() { cpsr = Psr::init_user_with_trustzone(); }
+Cpu::User_context::User_context() { cpsr = Psr::init_user_with_trustzone(); }

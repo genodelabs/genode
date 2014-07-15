@@ -11,11 +11,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _SPEC__ARM_V7__PROCESSOR_DRIVER_SUPPORT_H_
-#define _SPEC__ARM_V7__PROCESSOR_DRIVER_SUPPORT_H_
+#ifndef _SPEC__ARM_V7__CPU_SUPPORT_H_
+#define _SPEC__ARM_V7__CPU_SUPPORT_H_
 
 /* core includes */
-#include <spec/arm/processor_driver_support.h>
+#include <spec/arm/cpu_support.h>
 #include <board.h>
 
 /**
@@ -411,5 +411,5 @@ Genode::Arm::Psr::init_user_with_trustzone()
 }
 
 
-#endif /* _SPEC__ARM_V7__PROCESSOR_DRIVER_SUPPORT_H_ */
+#endif /* _SPEC__ARM_V7__CPU_SUPPORT_H_ */
 

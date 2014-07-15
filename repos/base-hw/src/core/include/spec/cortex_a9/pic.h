@@ -16,7 +16,7 @@
 
 /* core includes */
 #include <spec/arm_gic/pic_support.h>
-#include <processor_driver.h>
+#include <cpu.h>
 
 namespace Genode
 {
@@ -28,15 +28,13 @@ namespace Genode
 
 class Genode::Pic : public Arm_gic
 {
-	private:
-
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Pic() : Arm_gic(Processor_driver::PL390_DISTRIBUTOR_MMIO_BASE,
-		                Processor_driver::PL390_CPU_MMIO_BASE) { }
+		Pic() : Arm_gic(Cpu::PL390_DISTRIBUTOR_MMIO_BASE,
+		                Cpu::PL390_CPU_MMIO_BASE) { }
 
 		/**
 		 * Mark interrupt 'i' unsecure

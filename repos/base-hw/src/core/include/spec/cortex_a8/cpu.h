@@ -1,5 +1,5 @@
 /*
- * \brief  Processor driver for core
+ * \brief  CPU driver for core
  * \author Martin stein
  * \date   2011-11-03
  */
@@ -11,26 +11,32 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _PROCESSOR_DRIVER_H_
-#define _PROCESSOR_DRIVER_H_
+#ifndef _CPU_H_
+#define _CPU_H_
 
 /* core includes */
-#include <spec/arm_v7/processor_driver_support.h>
+#include <spec/arm_v7/cpu_support.h>
 
 namespace Genode
 {
 	/**
-	 * Part of processor state that is not switched on every mode transition
+	 * Part of CPU state that is not switched on every mode transition
 	 */
-	class Processor_lazy_state { };
+	class Cpu_lazy_state { };
 
 	/**
-	 * Processor driver for core
+	 * CPU driver for core
 	 */
-	class Processor_driver;
+	class Cpu;
 }
 
-class Genode::Processor_driver : public Arm_v7
+namespace Kernel
+{
+	using Genode::Cpu_lazy_state;
+	using Genode::Cpu;
+}
+
+class Genode::Cpu : public Arm_v7
 {
 	public:
 
@@ -40,15 +46,9 @@ class Genode::Processor_driver : public Arm_v7
 		static void tlb_insertions() { flush_tlb(); }
 
 		/**
-		 * Prepare for the proceeding of a user
-		 */
-		static void prepare_proceeding(Processor_lazy_state *,
-		                               Processor_lazy_state *) { }
-
-		/**
 		 * Return wether to retry an undefined user instruction after this call
 		 */
-		bool retry_undefined_instr(Processor_lazy_state *) { return false; }
+		bool retry_undefined_instr(Cpu_lazy_state *) { return false; }
 
 		/**
 		 * Post processing after a translation was added to a translation table
@@ -69,18 +69,22 @@ class Genode::Processor_driver : public Arm_v7
 		}
 
 		/**
-		 * Return kernel name of the primary processor
-		 */
-		static unsigned primary_id() { return 0; }
-
-		/**
 		 * Return kernel name of the executing processor
 		 */
-		static unsigned executing_id() { return primary_id(); }
-};
+		static unsigned executing_id();
 
+		/**
+		 * Return kernel name of the primary processor
+		 */
+		static unsigned primary_id();
+
+		/*************
+		 ** Dummies **
+		 *************/
+
+		static void prepare_proceeding(Cpu_lazy_state *, Cpu_lazy_state *) { }
+};
 
 void Genode::Arm_v7::finish_init_phys_kernel() { }
 
-
-#endif /* _PROCESSOR_DRIVER_H_ */
+#endif /* _CPU_H_ */
