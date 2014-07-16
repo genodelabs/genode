@@ -43,16 +43,18 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 {
 	private:
 
-		Genode::Pd_connection  _pd_session;
-		Genode::Cpu_session   *_cpu_session;
+		Genode::Pd_connection       _pd_session;
+		Genode::Affinity::Location  _location;
+		Genode::Cpu_session        *_cpu_session;
 
 		Genode::addr_t _exc_pt_sel;
 
 	public:
 
-		Vcpu_other_pd(Cpu_session * cpu_session)
+		Vcpu_other_pd(Cpu_session * cpu_session,
+		              Genode::Affinity::Location location)
 		:
-			_pd_session("VM"), _cpu_session(cpu_session),
+			_pd_session("VM"), _location(location), _cpu_session(cpu_session),
 			_exc_pt_sel(Genode::cap_map()->insert(Nova::NUM_INITIAL_VCPU_PT_LOG2))
 		{ }
 
@@ -83,6 +85,9 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 			 */
 			delegate_vcpu_portals(pager_cap, exc_base());
 
+			/* place the thread on CPU described by location object */
+			_cpu_session->affinity(vcpu_vm, _location);
+
 			/* start vCPU in separate PD */
 			_cpu_session->start(vcpu_vm, 0, 0);
 
@@ -101,7 +106,8 @@ class Vmm::Vcpu_same_pd : public Vmm::Vcpu_thread, Genode::Thread_base
 {
 	public:
 
-		Vcpu_same_pd(size_t stack_size, Cpu_session * cpu_session)
+		Vcpu_same_pd(size_t stack_size, Cpu_session * cpu_session,
+		             Genode::Affinity::Location location)
 		:
 			Thread_base("vCPU", stack_size, Type::NORMAL, cpu_session)
 		{
@@ -113,6 +119,9 @@ class Vmm::Vcpu_same_pd : public Vmm::Vcpu_thread, Genode::Thread_base
 
 			/* tell generic thread code that this becomes a vCPU */
 			this->tid().is_vcpu = true;
+
+			/* place the thread on CPU described by location object */
+			cpu_session->affinity(Thread_base::cap(), location);
 		}
 
 		~Vcpu_same_pd()

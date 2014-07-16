@@ -683,9 +683,11 @@ class Vcpu_dispatcher : public Vcpu_handler,
 		                Synced_motherboard     &motherboard,
 		                bool                    has_svm,
 		                bool                    has_vmx,
-		                Vmm::Vcpu_thread       *vcpu_thread)
+		                Vmm::Vcpu_thread       *vcpu_thread,
+		                Genode::Cpu_session    *cpu_session,
+		                Genode::Affinity::Location &location)
 		:
-			Vcpu_handler(STACK_SIZE, cap_connection),
+			Vcpu_handler(STACK_SIZE, cap_connection, cpu_session, location),
 			_vcpu(vcpu_lock, unsynchronized_vcpu),
 			_vcpu_thread(vcpu_thread),
 			_guest_memory(guest_memory),
@@ -837,6 +839,7 @@ class Machine : public StaticReceiver<Machine>
 
 		bool                   _alloc_fb_mem; /* For detecting FB alloc message */
 		bool                   _colocate_vm_vmm;
+		unsigned short         _vcpus_up;
 
 		Nic::Session          *_nic;
 		Rtc::Session          *_rtc;
@@ -911,13 +914,17 @@ class Machine : public StaticReceiver<Machine>
 					if (verbose_debug)
 						Logging::printf("OP_VCPU_CREATE_BACKEND\n");
 
+					_vcpus_up ++;
+
 					Vmm::Vcpu_thread * vcpu_thread;
-					Genode::Cpu_session * cpu = Genode::env()->cpu_session();
+					Genode::Cpu_session * cpu_session = Genode::env()->cpu_session();
+					Genode::Affinity::Space cpu_space = cpu_session->affinity_space();
+					Genode::Affinity::Location location = cpu_space.location_of_index(_vcpus_up);
 
 					if (_colocate_vm_vmm)
-						vcpu_thread = new Vmm::Vcpu_same_pd(Vcpu_dispatcher::STACK_SIZE, cpu);
+						vcpu_thread = new Vmm::Vcpu_same_pd(Vcpu_dispatcher::STACK_SIZE, cpu_session, location);
 					else
-						vcpu_thread = new Vmm::Vcpu_other_pd(cpu);
+						vcpu_thread = new Vmm::Vcpu_other_pd(cpu_session, location);
 
 					Vcpu_dispatcher *vcpu_dispatcher =
 						new Vcpu_dispatcher(_motherboard_lock,
@@ -927,7 +934,9 @@ class Machine : public StaticReceiver<Machine>
 						                    _motherboard,
 						                    _hip->has_feature_svm(),
 						                    _hip->has_feature_vmx(),
-						                    vcpu_thread);
+						                    vcpu_thread,
+						                    cpu_session,
+						                    location);
 
 					msg.value = vcpu_dispatcher->sel_sm_ec();
 					return true;
@@ -1216,7 +1225,8 @@ class Machine : public StaticReceiver<Machine>
 			_timeouts(_timeouts_lock, &_unsynchronized_timeouts),
 			_guest_memory(guest_memory),
 			_boot_modules(boot_modules),
-			_colocate_vm_vmm(colocate)
+			_colocate_vm_vmm(colocate),
+			_vcpus_up(0)
 		{
 			_timeouts()->init();
 
@@ -1304,6 +1314,10 @@ class Machine : public StaticReceiver<Machine>
 		 */
 		void boot()
 		{
+			PINF("VM and VMM are %s. VM is starting with %u %s.",
+			     _colocate_vm_vmm ? "co-located" : "not co-located",
+			     _vcpus_up,  _vcpus_up > 1 ? "vCPUs" : "vCPU");
+
 			/* init VCPUs */
 			for (VCpu *vcpu = _unsynchronized_motherboard.last_vcpu; vcpu; vcpu = vcpu->get_last()) {
 
@@ -1461,8 +1475,6 @@ int main(int argc, char **argv)
 	vdisk.register_host_operations(machine.unsynchronized_motherboard());
 
 	machine.setup_devices(Genode::config()->xml_node().sub_node("machine"));
-
-	PINF("VM and VMM %s.", colocate ? "co-located" : "not co-located");
 
 	Genode::printf("\n--- Booting VM ---\n");
 

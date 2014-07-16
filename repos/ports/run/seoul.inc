@@ -83,9 +83,12 @@ puts $vm_cfg_fd {
 		<ioapic/>
 		<pcihostbridge bus_num="0" bus_count="0x10" io_base="0xcf8"
 		               mem_base="0xe0000000"/>
-		<pmtimer io_port="0x8000"/>
+		<pmtimer io_port="0x8000"/>}
 
+for {set i 0} {$i < $vcpus_to_be_used} {incr i 1} {
+	puts $vm_cfg_fd {
 		<vcpu/> <halifax/> <vbios/> <lapic/>}
+}
 
 if {!$use_multiboot} {
 	puts $vm_cfg_fd {
@@ -120,7 +123,7 @@ create_boot_directory
 #
 
 append config {
-<config verbose="yes">
+<config verbose="yes" prio_levels="4">
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="RAM"/>
@@ -143,33 +146,33 @@ append config {
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="rtc_drv">
+	<start name="rtc_drv" priority="-1">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Rtc"/></provides>
 	</start>}
 
 append_if [expr !$use_usb] config {
-	<start name="ps2_drv">
+	<start name="ps2_drv" priority="-1">
 		<resource name="RAM" quantum="3M"/>
 		<provides><service name="Input"/></provides>
 		<route> <any-service><parent/></any-service> </route>
 	</start> }
 
 append_if $use_block_sata config {
-	<start name="ahci">
+	<start name="ahci" priority="-1">
 		<resource name="RAM" quantum="1M" />
 		<provides><service name="Block"/></provides>
 	</start>}
 
 append_if $use_block_ide config {
-	<start name="atapi_drv">
+	<start name="atapi_drv" priority="-1">
 		<resource name="RAM" quantum="1M" />
 		<provides><service name="Block"/></provides>
 		<config ata="yes" />
 	</start>}
 
 append_if [have_spec acpi] config {
-	<start name="acpi">
+	<start name="acpi" priority="-1">
 		<resource name="RAM" quantum="8M"/>
 		<binary name="acpi_drv"/>
 		<provides>
@@ -183,7 +186,7 @@ append_if [have_spec acpi] config {
 	</start>}
 
 append_if [expr ![have_spec acpi] && [have_spec pci]] config {
-	<start name="pci_drv">
+	<start name="pci_drv" priority="-1">
 		<resource name="RAM" quantum="3M"/>
 		<provides><service name="PCI"/></provides>
 		<route> <any-service><parent/></any-service> </route>
@@ -191,7 +194,7 @@ append_if [expr ![have_spec acpi] && [have_spec pci]] config {
 }
 
 append_if $use_nic_session config {
-	<start name="nic_drv">
+	<start name="nic_drv" priority="-2">
 		<resource name="RAM" quantum="3M"/>
 		<provides><service name="Nic"/></provides>
 		<route> <any-service><any-child/><parent/></any-service> </route>
@@ -199,7 +202,7 @@ append_if $use_nic_session config {
 }
 
 append_if [expr $use_nic_session && $use_nic_bridge] config {
-	<start name="nic_bridge">
+	<start name="nic_bridge" priority="-3">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nic"/></provides>
 		<route>
@@ -210,7 +213,7 @@ append_if [expr $use_nic_session && $use_nic_bridge] config {
 }
 
 append_if $use_framebuffer config {
-	<start name="fb_drv">
+	<start name="fb_drv" priority="-1">
 		<resource name="RAM" quantum="8M"/>
 		<provides><service name="Framebuffer"/></provides>
 		<route>
@@ -223,7 +226,7 @@ append_if $use_framebuffer config {
 
 if {!$use_fancy_stuff} {
 append config {
-	<start name="seoul">
+	<start name="seoul" priority="-3">
 		<binary name="seoul"/>}
 append config "
 		<resource name=\"RAM\" quantum=\"$memory_vmm_vm\"/>"
@@ -245,7 +248,7 @@ append config {
 }
 
 append_if $use_usb config {
-	<start name="usb_drv">
+	<start name="usb_drv" priority="-1">
 		<resource name="RAM" quantum="7M"/>
 		<provides><service name="Input"/></provides>
 		<config uhci="yes" ehci="yes" xhci="yes">
@@ -254,7 +257,7 @@ append_if $use_usb config {
 	</start>}
 
 append_if $use_fancy_stuff config {
-	<start name="nitpicker">
+	<start name="nitpicker" priority="-1">
 		<resource name="RAM" quantum="8M"/>
 		<route>
 			<service name="Timer">      <child name="timer"/></service>
@@ -263,7 +266,7 @@ append_if $use_fancy_stuff config {
 		</route>
 		<provides><service name="Nitpicker"/></provides>
 	</start>
-	<start name="launchpad">
+	<start name="launchpad" priority="-2">
 		<resource name="RAM" quantum="64000M"/>
 		<configfile name="launchpad-config"/>
 		<route>
@@ -305,7 +308,7 @@ if {$use_fancy_stuff} {
 				<service name="Rtc"/>
 			</parent-provides>
 
-			<start name="fb.seoul">
+			<start name="fb.seoul" priority="-1">
 				<binary name="liquid_fb"/>
 				<resource name="RAM" quantum="16M"/>
 				<provides>
@@ -318,7 +321,7 @@ if {$use_fancy_stuff} {
 				<config xpos="10" ypos="10" width="800" height="600" animate="off"/>
 			</start>
 
-			<start name="seoul">
+			<start name="seoul" priority="-1">
 				<binary name="seoul"/>
 				<resource name="RAM" quantum="256M"/>
 				<route>

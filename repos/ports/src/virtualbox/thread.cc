@@ -20,6 +20,8 @@
 /* Genode libc pthread binding */
 #include "thread.h"
 
+#include "sup.h"
+
 /* libc */
 #include <pthread.h>
 #include <errno.h>
@@ -55,15 +57,6 @@ static Genode::Cpu_session * get_cpu_session(RTTHREADTYPE type) {
 
 extern "C" {
 
-	/**
-	 * Returns true if a vCPU could be started. If false we run without
-	 * hardware acceleration support.
-	 */
-	bool create_emt_vcpu(pthread_t * pthread, size_t stack,
-	                     const pthread_attr_t *attr,
-	                     void *(*start_routine) (void *), void *arg,
-	                     Genode::Cpu_session *);
-
 	int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 	                   void *(*start_routine) (void *), void *arg)
 	{
@@ -86,9 +79,12 @@ extern "C" {
 			Assert(rtthread->enmType == RTTHREADTYPE_EMULATION);
 
 		if (rtthread->enmType == RTTHREADTYPE_EMULATION) {
-
+			Genode::Cpu_session * cpu_session = get_cpu_session(RTTHREADTYPE_EMULATION);
+			Genode::Affinity::Space cpu_space = cpu_session->affinity_space();
+/*			Genode::Affinity::Location location = cpu_space.location_of_index(i); */
+			Genode::Affinity::Location location;
 			if (create_emt_vcpu(thread, stack_size, attr, start_routine, arg,
-			                          get_cpu_session(RTTHREADTYPE_EMULATION)))
+			                    cpu_session, location))
 				return 0;
 			/* no haredware support, create normal pthread thread */
 		}

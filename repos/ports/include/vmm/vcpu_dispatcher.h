@@ -57,12 +57,17 @@ class Vmm::Vcpu_dispatcher : public T
 
 	public:
 
-		Vcpu_dispatcher(size_t stack_size, Cap_connection &cap)
+		Vcpu_dispatcher(size_t stack_size, Cap_connection &cap,
+		                Cpu_session * cpu_session,
+		                Genode::Affinity::Location location)
 		:
 			T("vCPU dispatcher", stack_size),
 			_cap(cap)
 		{
 			using namespace Genode;
+
+			/* place the thread on CPU described by location object */
+			cpu_session->affinity(T::cap(), location);
 
 			/* request creation of a 'local' EC */
 			T::_tid.ec_sel = Native_thread::INVALID_INDEX - 1;
@@ -72,11 +77,16 @@ class Vmm::Vcpu_dispatcher : public T
 
 		template <typename X>
 		Vcpu_dispatcher(size_t stack_size, Cap_connection &cap,
+		                Cpu_session * cpu_session,
+		                Genode::Affinity::Location location,
 		                X attr, void *(*start_routine) (void *), void *arg)
 		: T(attr, start_routine, arg, stack_size, "vCPU dispatcher", nullptr),
 		  _cap(cap)
 		{
 			using namespace Genode;
+
+			/* place the thread on CPU described by location object */
+			cpu_session->affinity(T::cap(), location);
 
 			/* request creation of a 'local' EC */
 			T::_tid.ec_sel = Native_thread::INVALID_INDEX - 1;

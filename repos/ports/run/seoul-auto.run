@@ -24,6 +24,8 @@ set use_fancy_stuff   0
 
 set memory_vmm_vm     "128M"
 
+set vcpus_to_be_used  2
+
 set multiboot_files {
 		<rom name="munich"/>
 		<rom name="bzImage-3.1" cmdline="root=/dev/ram0 earlyprintk=ttyS0 console=ttyS0 text"/>

@@ -60,8 +60,8 @@ class Vcpu_dispatcher : public Vmm::Vcpu_dispatcher<Genode::Thread_base>
 
 		Vcpu_dispatcher(Cap_connection &cap, Type type)
 		:
-			Vmm::Vcpu_dispatcher<Genode::Thread_base>(STACK_SIZE, cap),
-			_vcpu_thread(STACK_SIZE, Genode::env()->cpu_session())
+			Vmm::Vcpu_dispatcher<Genode::Thread_base>(STACK_SIZE, cap, Genode::env()->cpu_session(), Genode::Affinity::Location()),
+			_vcpu_thread(STACK_SIZE, Genode::env()->cpu_session(), Genode::Affinity::Location())
 		{
 			using namespace Nova;
 
