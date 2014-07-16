@@ -33,6 +33,8 @@ void genode_evdev_event(struct input_handle *handle, unsigned int type,
 	static unsigned long count = 0;
 #endif
 
+	static int last_ax = -1; // store the last absolute x value 
+	  
 	/* filter sound events */
 	if (test_bit(EV_SND, handle->dev->evbit)) return;
 
@@ -74,16 +76,21 @@ void genode_evdev_event(struct input_handle *handle, unsigned int type,
 	case EV_ABS:
 		switch (code) {
 
-		case ABS_X:
+		case ABS_X:             // Don't create an input event yet. Store the value and wait for the subsequent Y event.
 		case ABS_MT_POSITION_X: // XXX treat every MT Position event as a normal Mouse event
-			arg_type = EVENT_TYPE_MOTION;
-			arg_ax = value;
-			break;
+			last_ax = value;
+			return;
 
-		case ABS_Y:
+		case ABS_Y:             // Create a unified input event with absolute positions on x and y axis.
 		case ABS_MT_POSITION_Y: // XXX treat every MT Position event as a normal Mouse event
 			arg_type = EVENT_TYPE_MOTION;
 			arg_ay = value;
+			arg_ax = last_ax;
+			last_ax = -1;
+			if (arg_ax == -1) {
+				printk("Ignore absolute Y event without a preceeding X event\n");
+				return;
+			}
 			break;
 
 		case ABS_WHEEL:
