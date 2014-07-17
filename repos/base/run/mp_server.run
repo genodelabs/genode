@@ -61,22 +61,35 @@ unify_output {transfer cap [a-f0-9]+} "transfer cap UNIFIED"
 unify_output {yes - idx [a-f0-9]+} "yes - idx UNIFIED"
 unify_output {\- received cap [a-f0-9]+} "- received cap UNIFIED"
 
-compare_output_to {
+set good_string {
 	[init -> test-server-mp] --- test-mp_server started ---
-	[init -> test-server-mp] Detected 2x1 CPUs.
-	[init -> test-server-mp] call server on CPU 0
-	[init -> test-server-mp] function test_untyped: got value 0
-	[init -> test-server-mp] call server on CPU 1
-	[init -> test-server-mp] function test_untyped: got value 1
-	[init -> test-server-mp] call server on CPU 0 - transfer cap UNIFIED
-	[init -> test-server-mp] function test_cap: capability is valid ? yes - idx UNIFIED
-	[init -> test-server-mp] call server on CPU 1 - transfer cap UNIFIED
-	[init -> test-server-mp] function test_cap: capability is valid ? yes - idx UNIFIED
-	[init -> test-server-mp] call server on CPU 0 - transfer cap UNIFIED
-	[init -> test-server-mp] function test_cap_reply: capability is valid ? yes - idx UNIFIED
-	[init -> test-server-mp] got from server on CPU 0 - received cap UNIFIED
-	[init -> test-server-mp] call server on CPU 1 - transfer cap UNIFIED
-	[init -> test-server-mp] function test_cap_reply: capability is valid ? yes - idx UNIFIED
-	[init -> test-server-mp] got from server on CPU 1 - received cap UNIFIED
-	[init -> test-server-mp] done
+	[init -> test-server-mp] Detected }
+append good_string "$cpus"
+append good_string "x1 CPUs.\n"
+
+for {set r 0} {$r < $cpus} {incr r} {
+	append good_string {[init -> test-server-mp] call server on CPU }
+	append good_string "$r\n"
+	append good_string {[init -> test-server-mp] function test_untyped: got value }
+	append good_string "$r\n"
 }
+
+for {set r 0} {$r < $cpus} {incr r} {
+	append good_string {[init -> test-server-mp] call server on CPU }
+	append good_string "$r - transfer cap UNIFIED\n"
+	append good_string {[init -> test-server-mp] function test_cap: capability is valid ? yes - idx UNIFIED}
+	append good_string "\n"
+}
+
+for {set r 0} {$r < $cpus} {incr r} {
+	append good_string {[init -> test-server-mp] call server on CPU }
+	append good_string "$r - transfer cap UNIFIED\n"
+	append good_string {[init -> test-server-mp] function test_cap_reply: capability is valid ? yes - idx UNIFIED}
+	append good_string "\n"
+	append good_string {[init -> test-server-mp] got from server on CPU }
+	append good_string "$r - received cap UNIFIED\n"
+}
+
+append good_string {[init -> test-server-mp] done}
+
+compare_output_to $good_string
