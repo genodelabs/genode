@@ -16,6 +16,7 @@ build {
 	server/terminal_log
 	test/nitpicker
 	app/launchpad
+	app/pointer
 }
 create_boot_directory
 
@@ -58,6 +59,12 @@ append_if [have_spec sdl] config {
 	<start name="nitpicker">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nitpicker"/></provides>
+		<config>
+			<domain name="pointer" layer="1" xray="no" origin="pointer" />
+			<domain name=""        layer="2" />
+			<policy label="pointer" domain="pointer"/>
+			<policy label=""        domain=""/>
+		</config>
 		<route>
 			<service name="Input">       <child name="fb_sdl"/> </service>
 			<service name="Framebuffer"> <child name="fb_sdl"/> </service>
@@ -88,6 +95,12 @@ append_if [expr ! [have_spec sdl]] config {
 	<start name="nitpicker">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nitpicker"/></provides>
+		<config>
+			<domain name="pointer" layer="1" xray="no" origin="pointer" />
+			<domain name=""        layer="2" />
+			<policy label="pointer" domain="pointer"/>
+			<policy label=""        domain=""/>
+		</config>
 		<route>
 			<service name="Input">       <child name="input_drv"/> </service>
 			<service name="Framebuffer"> <child name="fb_drv"/> </service>
@@ -96,6 +109,9 @@ append_if [expr ! [have_spec sdl]] config {
 	</start>}
 
 append config {
+	<start name="pointer">
+		<resource name="RAM" quantum="1M"/>
+	</start>
 	<start name="terminal_fb">
 		<binary name="nit_fb"/>
 		<resource name="RAM" quantum="4M"/>
@@ -137,6 +153,7 @@ set boot_modules {
 	core init
 	timer
 	nitpicker
+	pointer
 	launchpad
 	testnit
 	nit_fb

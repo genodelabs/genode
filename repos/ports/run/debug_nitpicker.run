@@ -21,7 +21,7 @@ build {
 	drivers/timer drivers/uart
 	app/gdb_monitor
 	test/gdb_monitor
-	server/nitpicker app/scout
+	server/nitpicker app/pointer app/scout
 	drivers/framebuffer drivers/pci drivers/input
 }
 
@@ -64,12 +64,22 @@ set config {
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Nitpicker"/></provides>
 		<config>
-			<target name="nitpicker"/>
+			<target name="nitpicker">
+				<config>
+					<domain name="pointer" layer="1" xray="no" origin="pointer" />
+					<domain name=""        layer="3" />
+					<policy label="pointer" domain="pointer"/>
+					<policy label=""        domain=""/>
+				</config>
+			</target>
 			<preserve name="RAM" quantum="2M"/>
 			<libc stdout="/dev/log" stderr="/dev/log">
 				<vfs> <dir name="dev"> <log/> </dir> </vfs>
 			</libc>
 		</config>
+	</start>
+	<start name="pointer">
+		<resource name="RAM" quantum="1M"/>
 	</start>
 	<start name="scout">
 		<resource name="RAM" quantum="32M"/>
@@ -109,7 +119,7 @@ set boot_modules {
 	ld.lib.so libc.lib.so libc_lock_pipe.lib.so libc_terminal.lib.so
 	uart_drv
 	gdb_monitor
-	nitpicker scout
+	nitpicker pointer scout
 }
 
 # platform-specific modules

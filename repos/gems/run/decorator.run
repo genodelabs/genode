@@ -61,6 +61,8 @@ append config {
 		<provides><service name="Nitpicker"/></provides>
 		<config>
 			<report pointer="yes" />
+			<domain name="" layer="2" />
+			<policy label="" domain=""/>
 			<global-key name="KEY_SCROLLLOCK" operation="xray" />
 			<global-key name="KEY_SYSRQ"      operation="kill" />
 			<global-key name="KEY_PRINT"      operation="kill" />

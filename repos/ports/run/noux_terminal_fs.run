@@ -16,7 +16,7 @@
 set build_components {
 	core init drivers/timer noux lib/libc_noux
 	drivers/framebuffer drivers/pci drivers/input
-	server/terminal server/ram_fs server/nitpicker
+	server/terminal server/ram_fs server/nitpicker app/pointer
 	server/nit_fb
 }
 
@@ -90,6 +90,12 @@ append config {
 	<start name="nitpicker">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nitpicker"/></provides>
+		<config>
+			<domain name="pointer" layer="1" xray="no" origin="pointer" />
+			<domain name=""        layer="2" />
+			<policy label="pointer" domain="pointer"/>
+			<policy label=""        domain=""/>
+		</config>
 		<route> }
 append_if [have_spec ps2] config {
 			<service name="Input"><child name="ps2_drv"/></service> }
@@ -97,6 +103,9 @@ append config {
 			<service name="Framebuffer"><child name="fb_drv"/> </service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
+	</start>
+	<start name="pointer">
+		<resource name="RAM" quantum="1M"/>
 	</start>
 	<start name="terminal_noux_fb">
 		<binary name="nit_fb"/>
@@ -186,7 +195,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init timer ld.lib.so noux terminal ram_fs nitpicker nit_fb
+	core init timer ld.lib.so noux terminal ram_fs nitpicker nit_fb pointer
 	libc.lib.so libm.lib.so libc_noux.lib.so
 	bash.tar coreutils.tar
 }

@@ -2,7 +2,7 @@ build {
 	core init
 	drivers/timer
 	server/nitpicker server/nit_fb
-	app/launchpad
+	app/launchpad app/pointer
 	app/eglgears
 	drivers/framebuffer drivers/pci drivers/input
 	lib/gallium
@@ -65,7 +65,16 @@ append config {
 	<start name="nitpicker">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nitpicker"/></provides>
+		<config>
+			<domain name="pointer" layer="1" xray="no" origin="pointer" />
+			<domain name=""        layer="2" />
+			<policy label="pointer" domain="pointer"/>
+			<policy label=""        domain=""/>
+		</config>
 		<route><any-service><parent/><any-child/></any-service></route>
+	</start>
+	<start name="pointer">
+		<resource name="RAM" quantum="1M"/>
 	</start>
 	<start name="launchpad">
 		<resource name="RAM" quantum="1G"/>
@@ -114,7 +123,7 @@ install_config $config
 
 set boot_modules {
 	core init ld.lib.so timer nitpicker nit_fb
-	launchpad eglgears
+	launchpad eglgears pointer
 	gallium.lib.so libc.lib.so libm.lib.so pthread.lib.so
 }
 
