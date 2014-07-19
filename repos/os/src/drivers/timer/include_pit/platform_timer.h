@@ -179,37 +179,6 @@ class Platform_timer
 			if (timeout_usec > max_timeout())
 				timeout_usec = max_timeout();
 
-			/*
-			 * XXX Quirk - start
-			 *
-			 * On some x86 platforms, it happens that the system seems to slow
-			 * down dramatically for some unclear reasons so far. When this
-			 * happens, the handling of the timeout queue and reprogramming the
-			 * next timeout takes so long that the timer IRQ will fire
-			 * immediately after acknowledging it. This causes the timer
-			 * service to run on a very high rate, which may utilize the CPU
-			 * close to the maximum. We try to detect this condition by the
-			 * following heuristic and apply this quirk, which programs the
-			 * next timeout later in time - so that it will fire not
-			 * immediately after acknowledging it.
-			 *
-			 * This quirk should be removed as soon as it is clear what
-			 * triggers the phenomenon.
-			 */
-			enum { QUIRK_TIMEOUT_US = 2800 };
-
-			unsigned long now   = curr_time();
-			asm volatile ("":::"memory");
-			unsigned long later = curr_time();
-
-			unsigned long diff = later - now;
-			if (diff > QUIRK_TIMEOUT_US) {
-				timeout_usec = diff * 6 > max_timeout() ? max_timeout() : diff * 6;
-				PERR("apply timer quirk - diff=%lu, timeout_usec=%lu",
-					 diff, timeout_usec);
-			}
-			/* XXX Quirk - end */
-
 			_counter_init_value = (PIT_TICKS_PER_MSEC * timeout_usec)/1000;
 			_set_counter(_counter_init_value);
 		}
