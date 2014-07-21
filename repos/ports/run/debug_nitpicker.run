@@ -50,7 +50,7 @@ set config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<start name="timer">
-		<resource name="RAM" quantum="512K"/>
+		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 	<start name="uart_drv">
@@ -61,11 +61,14 @@ set config {
 		</config>
 	</start>
 	<start name="gdb_monitor">
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Nitpicker"/></provides>
 		<config>
 			<target name="nitpicker"/>
 			<preserve name="RAM" quantum="2M"/>
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
 		</config>
 	</start>
 	<start name="scout">
@@ -103,7 +106,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init timer
-	ld.lib.so libc.lib.so libc_log.lib.so libc_lock_pipe.lib.so libc_terminal.lib.so
+	ld.lib.so libc.lib.so libc_lock_pipe.lib.so libc_terminal.lib.so
 	uart_drv
 	gdb_monitor
 	nitpicker scout
