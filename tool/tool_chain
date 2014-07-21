@@ -241,6 +241,11 @@ BINUTILS_CONFIG += CFLAGS=-DTE_LINUX
 BINUTILS_CONFIG += $(BINUTILS_CONFIG_$(PLATFORM))
 
 #
+# GDB configure arguments
+#
+GDB_CONFIG += $(COMMON_CONFIG) --disable-werror
+
+#
 # Dummy libc symbols to resolve unresolved references when linking
 # 'libgcc_s.so'. Even though, this library is not used on Genode, we want the
 # link command to succeed to complete the build process.
@@ -501,7 +506,7 @@ build/$(PLATFORM)/gdb/Makefile: $(CONTRIB_DIR)/gdb-$(GDB_VERSION)/configure
 	$(ECHO) "$(BRIGHT_COL)configuring gdb...$(DEFAULT_COL)"
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)cd $(dir $@); \
-		../../../$(CONTRIB_DIR)/gdb-$(GDB_VERSION)/configure $(COMMON_CONFIG)
+		../../../$(CONTRIB_DIR)/gdb-$(GDB_VERSION)/configure $(GDB_CONFIG)
 
 $(GDB_BINARIES): build/$(PLATFORM)/gdb/Makefile
 	$(ECHO) "$(BRIGHT_COL)builing gdb...$(DEFAULT_COL)"
