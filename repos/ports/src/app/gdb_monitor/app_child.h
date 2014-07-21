@@ -196,9 +196,28 @@ namespace Gdb_monitor {
 						return cap;
 					}
 
-					void upgrade(Session_capability, Upgrade_args const &)
+					void upgrade(Session_capability session_cap,
+					             Upgrade_args const &args)
 					{
-						PDBG("not yet implemented");
+						using namespace Genode;
+
+						Child_session *session = _sessions.lookup_and_lock(session_cap);
+						if (!session) {
+							PERR("attempt to upgrade unknown session");
+							return;
+						}
+
+						Genode::size_t ram_quota =
+							Arg_string::find_arg(args.string(),
+							                     "ram_quota").long_value(0);
+
+						/* forward session quota to child */
+						env()->ram_session()->transfer_quota(_child_ram, ram_quota);
+
+						session->ram_quota += ram_quota;
+
+						/* inform child about quota upgrade */
+						_child_root.upgrade(session_cap, args);
 					}
 
 					void close(Session_capability session_cap)
