@@ -203,7 +203,7 @@ static void convert_char_array_to_pixels(Cell_array<Char_cell> *cell_array,
 
 				unsigned glyph_width = regular_font.wtab[ascii];
 
-				if (x + glyph_width >= fb_width) break;
+				if (x + glyph_width > fb_width)	break;
 
 				Color fg_color = foreground_color(cell);
 				Color bg_color = background_color(cell);
