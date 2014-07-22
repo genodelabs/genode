@@ -84,6 +84,11 @@ class Vfs::Terminal_file_system : public Single_file_system
 			return READ_OK;
 		}
 
+		Ftruncate_result ftruncate(Vfs_handle *vfs_handle, size_t) override
+		{
+			return FTRUNCATE_OK;
+		}
+
 		bool check_unblock(Vfs_handle *vfs_handle, bool rd, bool wr, bool ex) override
 		{
 			if (rd && (_terminal.avail() > 0))

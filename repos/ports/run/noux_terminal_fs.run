@@ -157,7 +157,7 @@ append config {
 				<if-arg key="label" value=""/><child name="terminal_noux"/>
 			</service>
 			<service name="Terminal">
-				<if-arg key="label" value="noux(terminal_fs)"/><child name="terminal_test"/>
+				<if-arg key="label" value="terminal_fs"/><child name="terminal_test"/>
 			</service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
@@ -167,7 +167,7 @@ append config {
 				<tar name="bash.tar" />
 
 				<dir name="ram"> <fs label="root" /> </dir>
-				<dir name="dev"> <terminal name="terminal" /> </dir>
+				<dir name="dev"> <terminal name="terminal" label="terminal_fs" /> </dir>
 			</fstab>
 			<start name="/bin/bash">
 				<env name="TERM" value="linux" />
