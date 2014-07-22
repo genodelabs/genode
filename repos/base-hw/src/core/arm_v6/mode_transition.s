@@ -114,12 +114,13 @@
 	 */
 	cps #19
 
-	/* get kernel context pointer */
+	/* apply kernel sp */
 	adr r0, _mt_master_context_begin
+	_restore_kernel_sp r0, r1, r2
 
 	/* load kernel context */
-	add r0, r0, #SP_OFFSET
-	ldm r0, {sp, lr, pc}
+	add r0, r0, #LR_OFFSET
+	ldm r0, {lr, pc}
 
 .endm
 

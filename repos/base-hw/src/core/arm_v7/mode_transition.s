@@ -397,13 +397,9 @@
 	 */
 	cps #SVC_MODE
 
-	/* get base of the kernel-stacks area and the kernel-stack size */
+	/* apply kernel sp */
 	adr r0, _mt_master_context_begin
-	add r1, r0, #R12_OFFSET
-	ldm r1, {r2, r3}
-
-	/* determine top of the kernel stack of this processor and apply it as SP */
-	_init_kernel_sp r3, r2
+	_restore_kernel_sp r0, r1, r2
 
 	/* apply kernel lr and kernel pc */
 	add r1, r0, #LR_OFFSET
