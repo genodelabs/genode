@@ -11,6 +11,7 @@
  */
 
 /*
+ * Copyright (C) 2014 Ksys Labs LLC
  * Copyright (C) 2009-2013 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
