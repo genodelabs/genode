@@ -5,7 +5,5 @@ virtual frame buffers on one physical screen. The size and screen position
 of each 'nit_fb' instance can be defined via Genode's configuration mechansim
 using the following attributes of the 'nit_fb' config node:
 
-! <config xpos="100" ypos="150" width="300" height="200" refresh_rate="25"/>
+! <config xpos="100" ypos="150" width="300" height="200" />
 
-If 'refresh_rate' isn't set the server will not trigger any refresh operations
-by itself.

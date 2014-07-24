@@ -5,111 +5,39 @@
  */
 
 /*
- * Copyright (C) 2010-2013 Genode Labs GmbH
+ * Copyright (C) 2010-2014 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* Genode includes */
-#include <base/sleep.h>
-#include <cap_session/connection.h>
 #include <nitpicker_session/connection.h>
-#include <dataspace/client.h>
-#include <input_session/input_session.h>
+#include <input/component.h>
+#include <os/surface.h>
 #include <input/event.h>
 #include <os/config.h>
 #include <os/static_root.h>
+#include <os/server.h>
+#include <os/attached_dataspace.h>
 #include <timer_session/connection.h>
 
+namespace Nit_fb {
 
-namespace Input {
+	struct Main;
 
-	/**
-	 * Input session applying a position offset to absolute motion events
-	 */
-	class Session_component : public Genode::Rpc_object<Session>
-	{
-		private:
+	using Genode::Static_root;
+	using Genode::Signal_rpc_member;
 
-			/**
-			 * Offset to be applied to absolute motion events
-			 */
-			int _dx, _dy;
-
-			/**
-			 * Input session, from which we fetch events
-			 */
-			Input::Session              *_from_input;
-			Genode::Dataspace_capability _from_input_ds;
-			Genode::size_t               _from_ev_buf_size;
-			Input::Event                *_from_ev_buf;
-
-			/**
-			 * Input session, to which to provide events
-			 */
-			Genode::Dataspace_capability _to_input_ds;
-			Input::Event                *_to_ev_buf;
-
-			/**
-			 * Shortcut for mapping an event buffer locally
-			 */
-			Input::Event *_map_ev_buf(Genode::Dataspace_capability ds_cap) {
-				return Genode::env()->rm_session()->attach(ds_cap); }
-
-		public:
-
-			/**
-			 * Constructor
-			 *
-			 * \param dx, dy      offset to be added to absolute motion events
-			 * \param from_input  input session from where to get input events
-			 */
-			Session_component(int dx, int dy, Input::Session *from_input)
-			:
-				_dx(dx), _dy(dy),
-				_from_input(from_input),
-				_from_input_ds(from_input->dataspace()),
-				_from_ev_buf_size(Genode::Dataspace_client(_from_input_ds).size()),
-				_from_ev_buf(_map_ev_buf(_from_input_ds)),
-				_to_input_ds(Genode::env()->ram_session()->alloc(_from_ev_buf_size)),
-				_to_ev_buf(_map_ev_buf(_to_input_ds))
-			{ }
-
-
-			/*****************************
-			 ** Input session interface **
-			 *****************************/
-
-			Genode::Dataspace_capability dataspace() override { return _to_input_ds; }
-
-			bool is_pending() const override { return _from_input->is_pending(); }
-
-			int flush() override
-			{
-				/* flush events at input session */
-				int num_events = _from_input->flush();
-
-				/* copy events from input buffer to client buffer */
-				for (int i = 0; i < num_events; i++) {
-					Input::Event e = _from_ev_buf[i];
-
-					/* apply view offset to absolute motion events */
-					if (e.is_absolute_motion())
-						e = Event(e.type(), e.code(),
-						          e.ax() + _dx, e.ay() + _dy, 0, 0);
-					_to_ev_buf[i] = e;
-				}
-				return num_events;
-			}
-
-			void sigh(Genode::Signal_context_capability sigh) override
-			{
-				_from_input->sigh(sigh);
-			}
-	};
+	typedef Genode::Surface_base::Point Point;
+	typedef Genode::Surface_base::Area  Area;
+	typedef Genode::Surface_base::Rect  Rect;
 }
 
+
+/***************
+ ** Utilities **
+ ***************/
 
 /**
  * Read integer value from config attribute
@@ -123,139 +51,272 @@ long config_arg(const char *attr, long default_value)
 }
 
 
-struct Config_args
+/**
+ * Translate input event
+ */
+static Input::Event translate_event(Input::Event const ev,
+                                    Nit_fb::Point const input_origin)
 {
-	long xpos, ypos, width, height;
-	unsigned refresh_rate;
+	switch (ev.type()) {
 
-	Config_args()
-	:
-		xpos(config_arg("xpos",   0)),
-		ypos(config_arg("ypos",   0)),
-		width(config_arg("width",  0)),
-		height(config_arg("height", 0)),
-		refresh_rate(config_arg("refresh_rate", 0))
-	{ }
+	case Input::Event::MOTION:
+	case Input::Event::PRESS:
+	case Input::Event::RELEASE:
+	case Input::Event::FOCUS:
+	case Input::Event::LEAVE:
+		{
+			Nit_fb::Point abs_pos = Nit_fb::Point(ev.ax(), ev.ay()) + input_origin;
+			return Input::Event(ev.type(), ev.code(),
+			                    abs_pos.x(), abs_pos.y(), 0, 0);
+		}
+
+	case Input::Event::INVALID:
+	case Input::Event::WHEEL:
+		return ev;
+	}
+	return Input::Event();
+}
+
+
+struct View_updater
+{
+	virtual void update_view() = 0;
 };
 
 
-int main(int argc, char **argv)
+/*****************************
+ ** Virtualized framebuffer **
+ *****************************/
+
+namespace Framebuffer { struct Session_component; }
+
+
+struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 {
-	using namespace Genode;
+	Nitpicker::Connection &_nitpicker;
+
+	Framebuffer::Session &_nit_fb = *_nitpicker.framebuffer();
+
+	Genode::Signal_context_capability _mode_sigh;
+
+	View_updater &_view_updater;
 
 	/*
-	 * Read arguments from config
+	 * Mode as requested by the configuration or by a mode change of our
+	 * nitpicker session.
 	 */
-	Config_args cfg;
-	long view_x = cfg.xpos,  view_y = cfg.ypos,
-	     view_w = cfg.width, view_h = cfg.height;
+	Framebuffer::Mode _next_mode = _nitpicker.mode();
 
 	/*
-	 * Open Nitpicker session
+	 * Mode that was returned to the client at the last call of
+	 * 'Framebuffer:mode'. The virtual framebuffer must correspond to this
+	 * mode. The variable is mutable because it is changed as a side effect of
+	 * calling the const 'mode' function.
 	 */
-	static Nitpicker::Connection nitpicker;
+	Framebuffer::Mode mutable _active_mode = _next_mode;
 
-	/*
-	 * If no config was provided, use screen size of Nitpicker
+	bool _dataspace_is_new = true;
+
+
+	/**
+	 * Constructor
 	 */
-	if (view_w == 0 || view_h == 0) {
-		Framebuffer::Mode const mode = nitpicker.mode();
-		view_w = mode.width(), view_h = mode.height();
+	Session_component(Nitpicker::Connection &nitpicker,
+	                  View_updater &view_updater)
+	:
+		_nitpicker(nitpicker), _view_updater(view_updater)
+	{ }
+
+	void size(Nitpicker::Area size)
+	{
+		/* ignore calls that don't change the size */
+		if (Nitpicker::Area(_next_mode.width(), _next_mode.height()) == size)
+			return;
+
+		_next_mode = Framebuffer::Mode(size.w(), size.h(), _next_mode.format());
+
+		if (_mode_sigh.valid())
+			Genode::Signal_transmitter(_mode_sigh).submit();
 	}
 
-	/*
-	 * Setup virtual framebuffer
-	 */
-	Framebuffer::Mode const mode(view_w, view_h, Framebuffer::Mode::RGB565);
-	nitpicker.buffer(mode, false);
+	Nitpicker::Area size() const
+	{
+		return Nitpicker::Area(_active_mode.width(), _active_mode.height());
+	}
 
-	PINF("using xywh=(%ld,%ld,%ld,%ld) refresh_rate=%u",
-	     view_x, view_y, view_w, view_h, cfg.refresh_rate);
 
-	/*
-	 * Create Nitpicker view and bring it to front
-	 */
+	/************************************
+	 ** Framebuffer::Session interface **
+	 ************************************/
+
+	Genode::Dataspace_capability dataspace() override
+	{
+		_nitpicker.buffer(_active_mode, false);
+
+		/*
+		 * We defer the update of the view until the client calls refresh the
+		 * next time. This avoid showing the empty buffer as an intermediate
+		 * artifact.
+		 */
+		_dataspace_is_new = true;
+
+		return _nit_fb.dataspace();
+	}
+
+	Mode mode() const override
+	{
+		_active_mode = _next_mode;
+		return _active_mode;
+	}
+
+	void mode_sigh(Genode::Signal_context_capability sigh) override
+	{
+		_mode_sigh = sigh;
+	}
+
+	void refresh(int x, int y, int w, int h) override
+	{
+		if (_dataspace_is_new) {
+			_view_updater.update_view();
+			_dataspace_is_new = false;
+		}
+
+		_nit_fb.refresh(x, y, w, h);
+	}
+
+	void sync_sigh(Genode::Signal_context_capability sigh) override
+	{
+		_nit_fb.sync_sigh(sigh);
+	}
+};
+
+
+/******************
+ ** Main program **
+ ******************/
+
+struct Nit_fb::Main : View_updater
+{
+	Server::Entrypoint &ep;
+
+	Nitpicker::Connection nitpicker;
+
+	Point position;
+
+	unsigned refresh_rate = 0;
+
 	Nitpicker::Session::View_handle view = nitpicker.create_view();
-	typedef Nitpicker::Session::Command Command;
-	Nitpicker::Rect geometry(Nitpicker::Point(view_x, view_y),
-	                         Nitpicker::Area(view_w, view_h));
-	nitpicker.enqueue<Command::Geometry>(view, geometry);
-	nitpicker.enqueue<Command::To_front>(view);
-	nitpicker.execute();
+
+	Genode::Attached_dataspace input_ds { nitpicker.input()->dataspace() };
 
 	/*
-	 * Initialize server entry point
+	 * Input and framebuffer sessions provided to our client
 	 */
-	enum { STACK_SIZE = 4096 };
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "nitfb_ep");
+	Input::Session_component       input_session;
+	Framebuffer::Session_component fb_session { nitpicker, *this };
 
 	/*
-	 * Let the entry point serve the framebuffer and input root interfaces
+	 * Attach root interfaces to the entry point
 	 */
-	static Static_root<Framebuffer::Session> fb_root(nitpicker.framebuffer_session());
+	Static_root<Input::Session>       input_root { ep.manage(input_session) };
+	Static_root<Framebuffer::Session> fb_root    { ep.manage(fb_session) };
 
-	/*
-	 * Pre-initialize single client input session
+	/**
+	 * View_updater interface
 	 */
-	static Input::Session_client    nit_input(nitpicker.input_session());
-	static Input::Session_component input_session(-view_x, -view_y, &nit_input);
-
-	/*
-	 * Attach input root interface to the entry point
-	 */
-	static Static_root<Input::Session> input_root(ep.manage(&input_session));
-
-	/*
-	 * Announce services
-	 */
-	env()->parent()->announce(ep.manage(&fb_root));
-	env()->parent()->announce(ep.manage(&input_root));
-
-	/*
-	 * Register signal handler for config changes
-	 */
-	Signal_receiver sig_rec;
-	Signal_context sig_ctx;
-	config()->sigh(sig_rec.manage(&sig_ctx));
-
-	for (;;) {
-
-		bool reload_config = false;
-
-		if (!cfg.refresh_rate) {
-
-			sig_rec.wait_for_signal();
-			reload_config = true;
-
-		} else {
-
-			static Timer::Connection timer;
-			static Framebuffer::Session_client nit_fb(nitpicker.framebuffer_session());
-
-			timer.msleep(cfg.refresh_rate);
-			nit_fb.refresh(0, 0, view_w, view_h);
-
-			if (sig_rec.pending()) {
-				sig_rec.wait_for_signal();
-				reload_config = true;
-			}
-		}
-
-		if (reload_config) {
-			try {
-				config()->reload();
-				cfg = Config_args();
-
-				Nitpicker::Rect geometry(Nitpicker::Point(cfg.xpos, cfg.ypos),
-				                         Nitpicker::Area(cfg.width, cfg.height));
-				nitpicker.enqueue<Command::Geometry>(view, geometry);
-				nitpicker.execute();
-			} catch (...) {
-				PERR("Error while reloading config");
-			}
-		}
+	void update_view() override
+	{
+		typedef Nitpicker::Session::Command Command;
+		nitpicker.enqueue<Command::Geometry>(view, Rect(position,
+		                                                fb_session.size()));
+		nitpicker.enqueue<Command::To_front>(view);
+		nitpicker.execute();
 	}
-	return 0;
-}
 
+	void handle_config_update(unsigned)
+	{
+		Genode::config()->reload();
+
+		Framebuffer::Mode const nit_mode = nitpicker.mode();
+
+		position = Point(config_arg("xpos", 0),
+		                 config_arg("ypos", 0));
+
+		refresh_rate = config_arg("refresh_rate", 0);
+
+		fb_session.size(Area(config_arg("width",  nit_mode.width()),
+		                     config_arg("height", nit_mode.height())));
+
+		PINF("using xywh=(%d,%d,%d,%d) refresh_rate=%u",
+		     position.x(), position.x(),
+		     fb_session.size().w(), fb_session.size().h(),
+		     refresh_rate);
+
+		update_view();
+	}
+
+	Signal_rpc_member<Main> config_update_dispatcher =
+		{ ep, *this, &Main::handle_config_update};
+
+	void handle_mode_update(unsigned)
+	{
+		Framebuffer::Mode const nit_mode = nitpicker.mode();
+
+		fb_session.size(Area(nit_mode.width(), nit_mode.height()));
+	}
+
+	Signal_rpc_member<Main> mode_update_dispatcher =
+		{ ep, *this, &Main::handle_mode_update};
+
+	void handle_input(unsigned)
+	{
+		Input::Event const * const events = input_ds.local_addr<Input::Event>();
+
+		unsigned const num = nitpicker.input()->flush();
+		for (unsigned i = 0; i < num; i++)
+			input_session.submit(translate_event(events[i], position));
+	}
+
+	Signal_rpc_member<Main> input_dispatcher =
+		{ ep, *this, &Main::handle_input};
+
+	/**
+	 * Constructor
+	 */
+	Main(Server::Entrypoint &ep) : ep(ep)
+	{
+		input_session.event_queue().enabled(true);
+
+		/*
+		 * Announce services
+		 */
+		Genode::env()->parent()->announce(ep.manage(fb_root));
+		Genode::env()->parent()->announce(ep.manage(input_root));
+
+		/*
+		 * Apply initial configuration
+		 */
+		handle_config_update(0);
+
+		/*
+		 * Register signal handlers
+		 */
+		Genode::config()->sigh(config_update_dispatcher);
+		nitpicker.mode_sigh(mode_update_dispatcher);
+		nitpicker.input()->sigh(input_dispatcher);
+	}
+};
+
+
+/************
+ ** Server **
+ ************/
+
+namespace Server {
+
+	char const *name() { return "nit_fb_ep"; }
+
+	size_t stack_size() { return 4*1024*sizeof(long); }
+
+	void construct(Entrypoint &ep) { static Nit_fb::Main inst(ep); }
+}
