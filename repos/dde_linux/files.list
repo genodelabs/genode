@@ -38,6 +38,7 @@ linux-3.9/arch/arm/plat-samsung/include/plat/usb-phy.h
 linux-3.9/drivers/hid/hid-cherry.c
 linux-3.9/drivers/hid/hid-core.c
 linux-3.9/drivers/hid/hid-generic.c
+linux-3.9/drivers/hid/hid-multitouch.c
 linux-3.9/drivers/hid/hid-ids.h
 linux-3.9/drivers/hid/hid-input.c
 linux-3.9/drivers/hid/usbhid/hid-core.c
@@ -51,6 +52,7 @@ linux-3.9/drivers/hid/usbhid/usbkbd.c
 linux-3.9/drivers/hid/usbhid/usbmouse.c
 linux-3.9/drivers/input/evdev.c
 linux-3.9/drivers/input/input.c
+linux-3.9/drivers/input/input-mt.h
 linux-3.9/drivers/input/input-compat.h
 linux-3.9/drivers/net/usb/asix_common.c
 linux-3.9/drivers/net/usb/asix_devices.c

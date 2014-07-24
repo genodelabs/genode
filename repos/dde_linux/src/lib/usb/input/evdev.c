@@ -11,6 +11,7 @@
  */
 
 /*
+ * Copyright (C) 2014 Ksys Labs LLC
  * Copyright (C) 2009-2013 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
@@ -33,6 +34,8 @@ void genode_evdev_event(struct input_handle *handle, unsigned int type,
 	static unsigned long count = 0;
 #endif
 
+	static int last_ax = -1; // store the last absolute x value 
+	  
 	/* filter sound events */
 	if (test_bit(EV_SND, handle->dev->evbit)) return;
 
@@ -55,10 +58,14 @@ void genode_evdev_event(struct input_handle *handle, unsigned int type,
 
 		case 0:
 			arg_type = EVENT_TYPE_RELEASE;
+			if(code == 0x14a)           // XXX map BTN_TOUCH events to BTN_LEFT
+			  arg_keycode = 0x110;
 			break;
 
 		case 1:
 			arg_type = EVENT_TYPE_PRESS;
+			if(code == 0x14a)           // XXX
+			  arg_keycode = 0x110;
 			break;
 
 		default:
@@ -70,14 +77,21 @@ void genode_evdev_event(struct input_handle *handle, unsigned int type,
 	case EV_ABS:
 		switch (code) {
 
-		case ABS_X:
-			arg_type = EVENT_TYPE_MOTION;
-			arg_ax = value;
-			break;
+		case ABS_X:             // Don't create an input event yet. Store the value and wait for the subsequent Y event.
+		case ABS_MT_POSITION_X: // XXX treat every MT Position event as a normal Mouse event
+			last_ax = value;
+			return;
 
-		case ABS_Y:
+		case ABS_Y:             // Create a unified input event with absolute positions on x and y axis.
+		case ABS_MT_POSITION_Y: // XXX treat every MT Position event as a normal Mouse event
 			arg_type = EVENT_TYPE_MOTION;
 			arg_ay = value;
+			arg_ax = last_ax;
+			last_ax = -1;
+			if (arg_ax == -1) {
+				printk("Ignore absolute Y event without a preceeding X event\n");
+				return;
+			}
 			break;
 
 		case ABS_WHEEL:
