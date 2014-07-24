@@ -16,6 +16,7 @@ URL(linux)     := http://www.kernel.org/pub/linux/kernel/v3.x/linux-$(VERSION).t
 SHA(linux)     := 7979f0d670838d0552c7ede5cc06497b81dcd812
 DIR(linux)     := $(SRC_DIR)
 TAR_OPT(linux) := --strip-components=1 --files-from $(REP_DIR)/files.list
+HASH_INPUT     += $(REP_DIR)/files.list
 
 #
 # IP stack headers
@@ -24,6 +25,7 @@ URL(linux_lxip)     := ${URL(linux)}
 SHA(linux_lxip)     := ${SHA(linux)}
 DIR(linux_lxip)     := $(SRC_DIR)/lxip
 TAR_OPT(linux_lxip) := --strip-components=1  --files-from $(REP_DIR)/lxip_header.list
+HASH_INPUT          += $(REP_DIR)/lxip_header.list
 
 #
 # Raspberry Pi USB controller
