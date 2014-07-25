@@ -928,17 +928,42 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 		Buffer *realloc_buffer(Framebuffer::Mode mode, bool use_alpha)
 		{
-			_release_buffer();
+			typedef Pixel_rgb565 PT;
 
 			Area const size(mode.width(), mode.height());
-
-			typedef Pixel_rgb565 PT;
 
 			_buffer_size =
 				Chunky_dataspace_texture<PT>::calc_num_bytes(size, use_alpha);
 
+			/*
+			 * Preserve the content of the original buffer if nitpicker has
+			 * enough lack memory to temporarily keep the original pixels.
+			 */
+			Texture<PT> const *src_texture = nullptr;
+			if (::Session::texture()) {
+
+				enum { PRESERVED_RAM = 128*1024 };
+				if (env()->ram_session()->avail() > _buffer_size + PRESERVED_RAM) {
+					src_texture = static_cast<Texture<PT> const *>(::Session::texture());
+				} else {
+					PWRN("not enough RAM to preserve buffer content during resize");
+					_release_buffer();
+				}
+			}
+
 			Chunky_dataspace_texture<PT> * const texture =
 				new (&_session_alloc) Chunky_dataspace_texture<PT>(size, use_alpha);
+
+			/* copy old buffer content into new buffer and release old buffer */
+			if (src_texture) {
+
+				Genode::Surface<PT> surface(texture->pixel(),
+				                            texture->Texture_base::size());
+
+				Texture_painter::paint(surface, *src_texture, Color(), Point(0, 0),
+				                       Texture_painter::SOLID, false);
+				_release_buffer();
+			}
 
 			if (!_session_alloc.withdraw(_buffer_size)) {
 				destroy(&_session_alloc, texture);
@@ -1140,6 +1165,16 @@ struct Nitpicker::Main
 	 * Dispatch input and redraw periodically
 	 */
 	Timer::Connection timer;
+
+	/**
+	 * Perform redraw and flush pixels to the framebuffer
+	 */
+	void draw_and_flush()
+	{
+		user_state.draw(fb_screen->screen).flush([&] (Rect const &rect) {
+			framebuffer.refresh(rect.x1(), rect.y1(),
+			                    rect.w(),  rect.h()); });
+	}
 
 	Main(Server::Entrypoint &ep) : ep(ep)
 	{
