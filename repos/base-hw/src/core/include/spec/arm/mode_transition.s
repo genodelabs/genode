@@ -39,8 +39,9 @@
 .set PC_OFFSET,             15 * 4
 .set PSR_OFFSET,            16 * 4
 .set EXCEPTION_TYPE_OFFSET, 17 * 4
-.set CONTEXTIDR_OFFSET,     18 * 4
-.set SECTION_TABLE_OFFSET,  19 * 4
+.set TRANSIT_TTBR0_OFFSET,  17 * 4
+.set CIDR_OFFSET,           18 * 4
+.set TTBR0_OFFSET,          19 * 4
 
 /* size of local variables */
 .set CONTEXT_PTR_SIZE, 1 * 4

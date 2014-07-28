@@ -30,7 +30,7 @@
 .set UND_MODE, 27
 
 /* size of local variables */
-.set BUFFER_SIZE, 2 * 4
+.set BUFFER_SIZE, 3 * 4
 
 
 /************
@@ -85,35 +85,38 @@
 
 
 /**
- * Compose a value for the translation-table-base register 0 and apply it
+ * Override the TTBR0 register
  *
- * \param section_table_reg  register that contains targeted section-table base
+ * \param val  new value, read reg
  */
-.macro _init_ttbr0 section_table_reg
-
-	/* IRGN bitfield is set to 1 to compose the TTBR0 value */
-	orr \section_table_reg, \section_table_reg, #0b1001000
-
-	/* write translation-table-base register 0 */
-	mcr p15, 0, \section_table_reg, c2, c0, 0
-
-	/* instruction and data synchronization barrier */
-	isb
-	dsb
+.macro _write_ttbr0 val
+	mcr p15, 0, \val, c2, c0, 0
 .endm
 
 
 /**
- * Apply a value to the CONTEXTIDR register
+ * Override the CIDR register
  *
- * \param  contexidr_reg  register that contains the new CONTEXTIDR value
+ * \param val  new value, read reg
  */
-.macro _init_contextidr contextidr_reg
+.macro _write_cidr val
+	mcr p15, 0, \val, c13, c0, 1
+.endm
 
-	/* write CONTEXTIDR register */
-	mcr p15, 0, \contextidr_reg, c13, c0, 1
 
-	/* finish all previous instructions */
+/**
+ * Switch to a given protection domain
+ *
+ * \param transit_ttbr0  transitional TTBR0 value, read/write reg
+ * \param new_cidr       new CIDR value, read reg
+ * \param new_ttbr0      new TTBR0 value, read/write reg
+ */
+.macro _switch_protection_domain transit_ttbr0, new_cidr, new_ttbr0
+	_write_ttbr0 \transit_ttbr0
+	isb
+	_write_cidr \new_cidr
+	isb
+	_write_ttbr0 \new_ttbr0
 	isb
 .endm
 
@@ -126,26 +129,20 @@
  */
 .macro _user_to_kernel_pic exception_type, pc_adjust
 
-	/*************************************************************************
-	 ** Still in user protection domain, thus avoid access to kernel memory **
-	 *************************************************************************/
-
 	/* disable fast interrupts when not in fast-interrupt mode */
 	.if \exception_type != FIQ_TYPE
 		cpsid f
 	.endif
 
 	/*
-	 * The sp in svc mode still contains the base of the globally mapped
-	 * buffer of this processor. Hence go to svc mode and buffer user r0 and
-	 * user r1 to globally mapped memory to be able to pollute r0 and r1.
+	 * The sp in svc mode still contains the base of the globally mapped buffer
+	 * of this processor. Hence go to svc mode, buffer user r0-r2, and make
+	 * buffer pointer available to all modes
 	 */
 	.if \exception_type != RST_TYPE && \exception_type != SVC_TYPE
 		cps #SVC_MODE
 	.endif
-	stm sp, {r0, r1}^
-
-	/* make buffer pointer available to all modes */
+	stm sp, {r0-r2}^
 	mov r0, sp
 
 	/* switch back to previous privileged mode */
@@ -165,18 +162,11 @@
 		cps #FIQ_MODE
 	.endif
 
-	/* load kernel contextidr and base of the kernel section-table */
-	adr sp, _mt_master_context_begin
-	add sp, #CONTEXTIDR_OFFSET
-	ldm sp, {r1, sp}
-
 	/* switch to kernel protection-domain */
-	_init_contextidr r1
-	_init_ttbr0 sp
-
-	/*******************************************
-	 ** Now it's save to access kernel memory **
-	 *******************************************/
+	adr sp, _mt_master_context_begin
+	add sp, #TRANSIT_TTBR0_OFFSET
+	ldm sp, {r1, r2, sp}
+	_switch_protection_domain r1, r2, sp
 
 	/* get user context-pointer */
 	_get_client_context_ptr sp, r1
@@ -187,13 +177,9 @@
 	.endif
 	str lr, [sp, #PC_OFFSET]
 
-	/* move buffer pointer to lr to enable us to save user r0 - r12 via stm */
+	/* restore user r0-r2 from buffer and save user r0-r12 */
 	mov lr, r0
-
-	/* restore user r0 and user r1 */
-	ldm lr, {r0, r1}
-
-	/* save user r0 - r12 */
+	ldm lr, {r0-r2}
 	stm sp, {r0-r12}^
 
 	/* save user sp and user lr */
@@ -420,37 +406,29 @@
 	_get_client_context_ptr lr, r0
 	_get_buffer_ptr sp, r0
 
-	/* buffer user pc and base of user section-table globally mapped */
-	ldr r0, [lr, #PC_OFFSET]
-	ldr r1, [lr, #SECTION_TABLE_OFFSET]
-	stm sp, {r0, r1}
-
-	/* buffer user psr in spsr */
+	/* load user psr in spsr */
 	ldr r0, [lr, #PSR_OFFSET]
 	msr spsr, r0
 
-	/* setup banked user sp and banked user lr */
+	/* apply banked user sp, banked user lr, and user r0-r12 */
 	add r0, lr, #SP_OFFSET
 	ldm r0, {sp, lr}^
-
-	/* setup user r0 to r12 */
 	ldm lr, {r0-r12}^
 
-	/* load user contextidr */
-	ldr lr, [lr, #CONTEXTIDR_OFFSET]
-
-	/********************************************************
-	 ** From now on, until we leave kernel mode, we must   **
-	 ** avoid access to memory that is not mapped globally **
-	 ********************************************************/
+	/* buffer user r0-r1, and user pc */
+	stm sp, {r0, r1}
+	ldr r0, [lr, #PC_OFFSET]
+	str r0, [sp, #2*4]
 
 	/* switch to user protection-domain */
-	_init_contextidr lr
-	ldr lr, [sp, #4]
-	_init_ttbr0 lr
+	adr r0, _mt_master_context_begin
+	ldr r0, [r0, #TRANSIT_TTBR0_OFFSET]
+	add lr, lr, #CIDR_OFFSET
+	ldm lr, {r1, lr}
+	_switch_protection_domain r0, r1, lr
 
-	/* apply user pc which implies application of spsr as user psr */
-	ldm sp, {pc}^
+	/* apply user r0-r1 and user pc which implies application of spsr */
+	ldm sp, {r0, r1, pc}^
 
 	/*
 	 * On vm exceptions the CPU has to jump to one of the following

@@ -38,33 +38,7 @@ namespace Kernel
 
 	Thread_ids  * thread_ids();
 	Thread_pool * thread_pool();
-
-	/**
-	 * Processor context of the kernel
-	 */
-	class Cpu_context;
 }
-
-
-struct Kernel::Cpu_context : Cpu::Context
-{
-	private:
-
-		/**
-		 * Hook for environment specific initializations
-		 *
-		 * \param stack_size  size of kernel stack
-		 */
-		void _init(size_t const stack_size);
-
-	public:
-
-		/**
-		 * Constructor
-		 */
-		Cpu_context();
-};
-
 
 class Kernel::Thread
 :

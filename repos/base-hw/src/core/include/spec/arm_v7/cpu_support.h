@@ -175,89 +175,6 @@ class Genode::Arm_v7 : public Arm
 		};
 
 		/**
-		 * System control register
-		 */
-		struct Sctlr : Arm::Sctlr
-		{
-			struct Unused_0 : Bitfield<3,4>  { }; /* shall be ~0 */
-			struct Sw       : Bitfield<10,1> { }; /* support SWP and SWPB */
-			struct Unused_1 : Bitfield<16,1> { }; /* shall be ~0 */
-			struct Ha       : Bitfield<17,1> { }; /* enable HW access flag */
-			struct Unused_2 : Bitfield<18,1> { }; /* shall be ~0 */
-			struct Unused_3 : Bitfield<22,2> { }; /* shall be ~0 */
-			struct Nmfi     : Bitfield<27,1> { }; /* FIQs are non-maskable */
-			struct Tre      : Bitfield<28,1> { }; /* remap TEX[2:1] for OS */
-
-			struct Afe : Bitfield<29,1> /* translation access perm. mode */
-			{
-				enum { FULL_RANGE_OF_PERMISSIONS = 0 };
-			};
-
-			struct Te : Bitfield<30,1> { }; /* do exceptions in Thumb state */
-
-			/**
-			 * Static base value
-			 */
-			static access_t base_value()
-			{
-				return Unused_0::bits(~0) |
-				       Unused_1::bits(~0) |
-				       Unused_2::bits(~0) |
-				       Unused_3::bits(~0);
-			}
-
-			/**
-			 * Value for the first kernel run
-			 */
-			static access_t init_phys_kernel()
-			{
-				return base_value() |
-				       Arm::Sctlr::init_phys_kernel() |
-				       Sw::bits(0) |
-				       Ha::bits(0) |
-				       Nmfi::bits(0) |
-				       Tre::bits(0);
-			}
-
-			/**
-			 * Value for the switch to virtual mode in kernel
-			 */
-			static access_t init_virt_kernel()
-			{
-				return base_value() |
-				       Arm::Sctlr::init_virt_kernel() |
-				       Sw::bits(0) |
-				       Ha::bits(0) |
-				       Nmfi::bits(0) |
-				       Tre::bits(0);
-			}
-		};
-
-		/**
-		 * Translation table base register 0
-		 */
-		struct Ttbr0 : Arm::Ttbr0
-		{
-			struct Nos : Bitfield<5,1> { }; /* not outer shareable */
-
-			struct Irgn_1 : Bitfield<0,1> { }; /* inner cachable mode */
-			struct Irgn_0 : Bitfield<6,1> { }; /* inner cachable mode */
-
-			/**
-			 * Value for the switch to virtual mode in kernel
-			 *
-			 * \param sect_table  pointer to initial section table
-			 */
-			static access_t init_virt_kernel(addr_t const sect_table)
-			{
-				return Arm::Ttbr0::init_virt_kernel(sect_table) |
-				       Nos::bits(0) |
-				       Irgn_1::bits(0) |
-				       Irgn_0::bits(1);
-			}
-		};
-
-		/**
 		 * Translation table base control register
 		 */
 		struct Ttbcr : Arm::Ttbcr
@@ -276,21 +193,89 @@ class Genode::Arm_v7 : public Arm
 			}
 		};
 
+		/**
+		 * System control register
+		 */
+		struct Sctlr : Arm::Sctlr
+		{
+			struct Z : Bitfield<11,1> { }; /* enable program flow prediction */
+			struct Unnamed_0 : Bitfield<3,4>  { }; /* shall be ones */
+			struct Unnamed_1 : Bitfield<16,1> { }; /* shall be ones */
+			struct Unnamed_2 : Bitfield<18,1> { }; /* shall be ones */
+			struct Unnamed_3 : Bitfield<22,2> { }; /* shall be ones */
+
+			/**
+			 * Initialization that is common
+			 */
+			static void init_common(access_t & v)
+			{
+				Arm::Sctlr::init_common(v);
+				Unnamed_0::set(v, ~0);
+				Unnamed_1::set(v, ~0);
+				Unnamed_2::set(v, ~0);
+				Unnamed_3::set(v, ~0);
+			}
+
+			/**
+			 * Initialization for virtual kernel stage
+			 */
+			static access_t init_virt_kernel()
+			{
+				access_t v = 0;
+				init_common(v);
+				Arm::Sctlr::init_virt_kernel(v);
+				return v;
+			}
+
+			/**
+			 * Initialization for physical kernel stage
+			 */
+			static access_t init_phys_kernel()
+			{
+				access_t v = 0;
+				init_common(v);
+				return v;
+			}
+		};
+
 	public:
+
+		/**
+		 * Translation table base register 0
+		 */
+		struct Ttbr0 : Arm::Ttbr0
+		{
+			struct Irgn_1 : Bitfield<0, 1> { }; /* inner cache attr */
+			struct Rgn    : Bitfield<3, 2> { }; /* outer cache attr */
+			struct Irgn_0 : Bitfield<6, 1> { }; /* inner cache attr */
+			struct Irgn   : Bitset_2<Irgn_0, Irgn_1> { }; /* inner cache attr */
+
+			/**
+			 * Return initialized value
+			 *
+			 * \param table  base of targeted translation table
+			 */
+			static access_t init(addr_t const table)
+			{
+				access_t v = Ba::masked(table);
+				Irgn::set(v, 1);
+				Rgn::set(v, 1);
+				return v;
+			}
+		};
 
 		/**
 		 * Switch to the virtual mode in kernel
 		 *
-		 * \param section_table  section translation table of the initial
-		 *                       address space this function switches to
-		 * \param process_id     process ID of the initial address space
+		 * \param table       base of targeted translation table
+		 * \param process_id  process ID of the kernel address-space
 		 */
-		static void init_virt_kernel(addr_t const section_table,
-		                             unsigned const process_id)
+		static void
+		init_virt_kernel(addr_t const table, unsigned const process_id)
 		{
 			Cidr::write(process_id);
 			Dacr::write(Dacr::init_virt_kernel());
-			Ttbr0::write(Ttbr0::init_virt_kernel(section_table));
+			Ttbr0::write(Ttbr0::init(table));
 			Ttbcr::write(Ttbcr::init_virt_kernel());
 			Sctlr::write(Sctlr::init_virt_kernel());
 		}

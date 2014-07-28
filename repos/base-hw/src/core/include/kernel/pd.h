@@ -19,12 +19,12 @@
 #include <cpu/atomic.h>
 
 /* core includes */
+#include <kernel/early_translations.h>
 #include <kernel/configuration.h>
 #include <kernel/object.h>
 #include <kernel/processor.h>
 #include <translation_table.h>
 #include <assert.h>
-#include <page_slab.h>
 
 /* structure of the mode transition */
 extern int            _mt_begin;
@@ -81,6 +81,11 @@ class Kernel::Lock
 namespace Kernel
 {
 	/**
+	 * Processor context of the kernel
+	 */
+	class Cpu_context;
+
+	/**
 	 * Controls the mode-transition page
 	 *
 	 * The mode transition page is a small memory region that is mapped by
@@ -90,7 +95,7 @@ namespace Kernel
 	 * control provides a simple interface to access the code from within
 	 * the kernel.
 	 */
-	struct Mode_transition_control;
+	class Mode_transition_control;
 
 	/**
 	 * Return the system wide mode-transition control
@@ -111,16 +116,69 @@ namespace Kernel
 	Lock & data_lock();
 }
 
+class Kernel::Cpu_context : Cpu::Context
+{
+	private:
+
+		/**
+		 * Hook for environment specific initializations
+		 *
+		 * \param stack_size  size of kernel stack
+		 * \param table       base of transit translation table
+		 */
+		void _init(size_t const stack_size, addr_t const table);
+
+	public:
+
+		/**
+		 * Constructor
+		 *
+		 * \param table  mode-transition table
+		 */
+		Cpu_context(Genode::Translation_table * const table);
+};
+
 class Kernel::Mode_transition_control
 {
 	friend class Pd;
 
 	private:
 
-		typedef Genode::Cpu_state_modes Cpu_state_modes;
-		typedef Genode::Page_flags      Page_flags;
+		typedef Early_translations_allocator Allocator;
+		typedef Early_translations_slab      Slab;
+		typedef Genode::Translation_table    Table;
+		typedef Genode::Cpu_state_modes      Cpu_state_modes;
+		typedef Genode::Page_flags           Page_flags;
 
-		addr_t const _virt_user_entry;
+		Allocator   _allocator;
+		Slab        _slab;
+		Table       _table;
+		Cpu_context _master;
+
+		/**
+		 * Return size of the mode transition
+		 */
+		static size_t _size() { return (addr_t)&_mt_end - (addr_t)&_mt_begin; }
+
+		/**
+		 * Return size of master-context space in the mode transition
+		 */
+		static size_t _master_context_size()
+		{
+			addr_t const begin = (addr_t)&_mt_master_context_begin;
+			addr_t const end = (addr_t)&_mt_master_context_end;
+			return end - begin;
+		}
+
+		/**
+		 * Return virtual address of the user entry-code
+		 */
+		static addr_t _virt_user_entry()
+		{
+			addr_t const phys      = (addr_t)&_mt_user_entry_pic;
+			addr_t const phys_base = (addr_t)&_mt_begin;
+			return VIRT_BASE + (phys - phys_base);
+		}
 
 		/**
 		 * Continue execution of client context
@@ -150,11 +208,11 @@ class Kernel::Mode_transition_control
 	public:
 
 		enum {
-			SIZE_LOG2 = Genode::Translation_table::MIN_PAGE_SIZE_LOG2,
-			SIZE = 1 << SIZE_LOG2,
-			VIRT_BASE = Processor::EXCEPTION_ENTRY,
-			VIRT_END = VIRT_BASE + SIZE,
-			ALIGNM_LOG2 = SIZE_LOG2,
+			SIZE_LOG2  = Genode::Translation_table::MIN_PAGE_SIZE_LOG2,
+			SIZE       = 1 << SIZE_LOG2,
+			VIRT_BASE  = Processor::EXCEPTION_ENTRY,
+			ALIGN_LOG2 = Genode::Translation_table::ALIGNM_LOG2,
+			ALIGN      = 1 << ALIGN_LOG2,
 		};
 
 		/**
@@ -162,27 +220,7 @@ class Kernel::Mode_transition_control
 		 *
 		 * \param c  CPU context for kernel mode entry
 		 */
-		Mode_transition_control(Processor::Context * const c)
-		:
-			_virt_user_entry(VIRT_BASE + ((addr_t)&_mt_user_entry_pic -
-			                 (addr_t)&_mt_begin))
-		{
-			/* check if mode transition fits into aligned region */
-			addr_t const mt_begin = (addr_t)&_mt_begin;
-			addr_t const mt_end = (addr_t)&_mt_end;
-			size_t const mt_size = mt_end - mt_begin;
-			assert(mt_size <= SIZE);
-
-			/* check if kernel context fits into the mode transition */
-			addr_t const kc_begin = (addr_t)&_mt_master_context_begin;
-			addr_t const kc_end = (addr_t)&_mt_master_context_end;
-			size_t const kc_size = kc_end - kc_begin;
-			assert(sizeof(Processor::Context) <= kc_size);
-
-			/* fetch kernel-mode context */
-			Genode::memcpy(&_mt_master_context_begin, c,
-			               sizeof(Processor::Context));
-		}
+		Mode_transition_control();
 
 		/**
 		 * Map the mode transition page to a virtual address space
@@ -210,7 +248,7 @@ class Kernel::Mode_transition_control
 		void continue_user(Processor::Context * const context,
 		                   unsigned const processor_id)
 		{
-			_continue_client(context, processor_id, _virt_user_entry);
+			_continue_client(context, processor_id, _virt_user_entry());
 		}
 
 		/**
@@ -224,20 +262,22 @@ class Kernel::Mode_transition_control
 		{
 			_continue_client(context, processor_id, (addr_t)&_mt_vm_entry_pic);
 		}
-};
+
+} __attribute__((aligned(Mode_transition_control::ALIGN)));
 
 class Kernel::Pd : public Object<Pd, MAX_PDS, Pd_ids, pd_ids, pd_pool>
 {
+	public:
+
+		typedef Genode::Translation_table Table;
+
 	private:
 
-		Genode::Translation_table * const _tt;
-		Platform_pd               * const _platform_pd;
+		Table       * const _table;
+		Platform_pd * const _platform_pd;
 
 		/* keep ready memory for size-aligned extra costs at construction */
-		enum {
-			EXTRA_RAM_SIZE = 2 * Genode::Translation_table::MAX_COSTS_PER_TRANSLATION
-		};
-
+		enum { EXTRA_RAM_SIZE = 2 * Table::MAX_COSTS_PER_TRANSLATION };
 		char _extra_ram[EXTRA_RAM_SIZE];
 
 	public:
@@ -245,17 +285,11 @@ class Kernel::Pd : public Object<Pd, MAX_PDS, Pd_ids, pd_ids, pd_pool>
 		/**
 		 * Constructor
 		 *
-		 * \param tt          translation lookaside buffer of the PD
+		 * \param table        translation table of the PD
 		 * \param platform_pd  core object of the PD
 		 */
-		Pd(Genode::Translation_table * const tt,
-		   Platform_pd * const platform_pd)
-		: _tt(tt), _platform_pd(platform_pd) { }
-
-		/**
-		 * Destructor
-		 */
-		~Pd() { }
+		Pd(Table * const table, Platform_pd * const platform_pd)
+		: _table(table), _platform_pd(platform_pd) { }
 
 		/**
 		 * Let the CPU context 'c' join the PD
@@ -272,9 +306,7 @@ class Kernel::Pd : public Object<Pd, MAX_PDS, Pd_ids, pd_ids, pd_pool>
 		 ***************/
 
 		Platform_pd * platform_pd() const { return _platform_pd; }
-
-		Genode::Translation_table * translation_table() const {
-			return _tt; }
+		Table * translation_table() const { return _table; }
 };
 
 #endif /* _KERNEL__PD_H_ */
