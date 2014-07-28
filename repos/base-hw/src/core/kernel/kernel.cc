@@ -33,7 +33,6 @@
 #include <map_local.h>
 
 /* base includes */
-#include <base/allocator_avl.h>
 #include <unmanaged_singleton.h>
 #include <base/native_types.h>
 
@@ -79,33 +78,11 @@ namespace Kernel
 	 */
 	Pd * core_pd()
 	{
-		using Ttable = Genode::Translation_table;
-		constexpr int tt_align  = 1 << Ttable::ALIGNM_LOG2;
+		typedef Early_translations_slab      Slab;
+		typedef Early_translations_allocator Allocator;
+		typedef Genode::Translation_table    Table;
 
-		/**
-		 * Dummy page slab backend allocator for bootstrapping only
-		 */
-		struct Simple_allocator : Genode::Core_mem_translator
-		{
-			Simple_allocator() { }
-
-			int add_range(addr_t base, size_t size) { return -1; }
-			int remove_range(addr_t base, size_t size) { return -1; }
-			Alloc_return alloc_aligned(size_t size, void **out_addr, int align) {
-				return Alloc_return::RANGE_CONFLICT; }
-			Alloc_return alloc_addr(size_t size, addr_t addr) {
-				return Alloc_return::RANGE_CONFLICT; }
-			void   free(void *addr) {}
-			size_t avail() { return 0; }
-			bool valid_addr(addr_t addr) { return false; }
-			bool alloc(size_t size, void **out_addr) { return false; }
-			void free(void *addr, size_t) {  }
-			size_t overhead(size_t size) { return 0; }
-			bool need_size_for_free() const override { return false; }
-
-			void * phys_addr(void * addr) { return addr; }
-			void * virt_addr(void * addr) { return addr; }
-		};
+		constexpr addr_t table_align = 1 << Table::ALIGNM_LOG2;
 
 		struct Core_pd : Platform_pd, Pd
 		{
@@ -144,16 +121,18 @@ namespace Kernel
 				}
 			}
 
-			Core_pd(Ttable * tt, Genode::Page_slab * slab)
-			: Platform_pd(tt, slab),
-			  Pd(tt, this)
+			/**
+			 * Constructor
+			 */
+			Core_pd(Table * const table, Slab * const slab)
+			: Platform_pd(table, slab), Pd(table, this)
 			{
 				using namespace Genode;
 
 				Platform_pd::_id = Pd::id();
 
 				/* map exception vector for core */
-				Kernel::mtc()->map(tt, slab);
+				Kernel::mtc()->map(table, slab);
 
 				/* map core's program image */
 				map((addr_t)&_prog_img_beg, (addr_t)&_prog_img_end, false);
@@ -166,11 +145,10 @@ namespace Kernel
 			}
 		};
 
-		Simple_allocator  * sa   = unmanaged_singleton<Simple_allocator>();
-		Ttable            * tt   = unmanaged_singleton<Ttable, tt_align>();
-		Genode::Page_slab * slab = unmanaged_singleton<Genode::Page_slab,
-		                                               tt_align>(sa);
-		return unmanaged_singleton<Core_pd>(tt, slab);
+		Allocator * const alloc = unmanaged_singleton<Allocator>();
+		Table     * const table = unmanaged_singleton<Table, table_align>();
+		Slab      * const slab  = unmanaged_singleton<Slab, Slab::ALIGN>(alloc);
+		return unmanaged_singleton<Core_pd>(table, slab);
 	}
 
 	/**
@@ -362,19 +340,9 @@ extern "C" void kernel()
 }
 
 
-Kernel::Mode_transition_control * Kernel::mtc()
+Kernel::Cpu_context::Cpu_context(Genode::Translation_table * const table)
 {
-	/* create singleton processor context for kernel */
-	Cpu_context * const cpu_context = unmanaged_singleton<Cpu_context>();
-
-	/* initialize mode transition page */
-	return unmanaged_singleton<Mode_transition_control>(cpu_context);
-}
-
-
-Kernel::Cpu_context::Cpu_context()
-{
-	_init(STACK_SIZE);
+	_init(STACK_SIZE, (addr_t)table);
 	sp = (addr_t)kernel_stack;
 	ip = (addr_t)kernel;
 	core_pd()->admit(this);

@@ -93,7 +93,11 @@ void Thread::_mmu_exception()
  ** Kernel::Cpu_context **
  *************************/
 
-void Kernel::Cpu_context::_init(size_t const stack_size) { r12 = stack_size; }
+void Kernel::Cpu_context::_init(size_t const stack_size, addr_t const table)
+{
+	r12 = stack_size;
+	cpu_exception = Genode::Cpu::Ttbr0::init(table);
+}
 
 
 /*************************

@@ -80,70 +80,10 @@ class Genode::Arm
 		 */
 		struct Sctlr : Register<32>
 		{
-			struct M : Bitfield<0,1> { };  /* enable MMU */
-			struct A : Bitfield<1,1> { };  /* strict data addr. alignment on */
-			struct C : Bitfield<2,1> { };  /* enable data cache */
-			struct Z : Bitfield<11,1> { }; /* enable program flow prediction */
+			struct M : Bitfield<0,1>  { }; /* enable MMU */
+			struct C : Bitfield<2,1>  { }; /* enable data cache */
 			struct I : Bitfield<12,1> { }; /* enable instruction caches */
-
-			/*
-			 * These must be set all ones
-			 */
-			struct Static1 : Bitfield<3,4> { };
-			struct Static2 : Bitfield<16,1> { };
-			struct Static3 : Bitfield<18,1> { };
-			struct Static4 : Bitfield<22,2> { };
-
-			struct V : Bitfield<13,1> /* select exception-entry base */
-			{
-				enum { XFFFF0000 = 1 };
-			};
-
-			struct Rr : Bitfield<14,1> /* replacement strategy */
-			{
-				enum { RANDOM = 0 };
-			};
-
-			struct Fi : Bitfield<21,1> { }; /* enable fast IRQ config */
-
-			struct Ve : Bitfield<24,1> /* interrupt vector config */
-			{
-				enum { FIXED = 0 };
-			};
-
-			struct Ee : Bitfield<25,1> { }; /* raise CPSR.E on exceptions */
-
-			/**
-			 * Common bitfield values for all modes
-			 */
-			static access_t common()
-			{
-				return Static1::bits(~0) |
-				       Static2::bits(~0) |
-				       Static3::bits(~0) |
-				       Static4::bits(~0) |
-				       A::bits(0) |
-				       C::bits(1) |
-				       Z::bits(0) |
-				       I::bits(1) |
-				       V::bits(V::XFFFF0000) |
-				       Rr::bits(Rr::RANDOM) |
-				       Fi::bits(0) |
-				       Ve::bits(Ve::FIXED) |
-				       Ee::bits(0);
-			}
-
-			/**
-			 * Value for the switch to virtual mode in kernel
-			 */
-			static access_t init_virt_kernel() {
-				return common() | M::bits(1); }
-
-			/**
-			 * Value for the initial kernel entry
-			 */
-			static access_t init_phys_kernel() {
-				return common() | M::bits(0); }
+			struct V : Bitfield<13,1> { }; /* select exception entry */
 
 			/**
 			 * Read register value
@@ -151,7 +91,7 @@ class Genode::Arm
 			static access_t read()
 			{
 				access_t v;
-				asm volatile ("mrc p15, 0, %[v], c1, c0, 0" : [v]"=r"(v) :: );
+				asm volatile ("mrc p15, 0, %0, c1, c0, 0" : "=r" (v) :: );
 				return v;
 			}
 
@@ -159,7 +99,22 @@ class Genode::Arm
 			 * Write register value
 			 */
 			static void write(access_t const v) {
-				asm volatile ("mcr p15, 0, %[v], c1, c0, 0" :: [v]"r"(v) : ); }
+				asm volatile ("mcr p15, 0, %0, c1, c0, 0" :: "r" (v) : ); }
+
+			/**
+			 * Initialization that is common
+			 */
+			static void init_common(access_t & v)
+			{
+				C::set(v, 1);
+				I::set(v, 1);
+				V::set(v, 1);
+			}
+
+			/**
+			 * Initialization for virtual kernel stage
+			 */
+			static void init_virt_kernel(access_t & v) { M::set(v, 1); }
 		};
 
 		/**
@@ -196,15 +151,7 @@ class Genode::Arm
 		 */
 		struct Ttbr0 : Register<32>
 		{
-			struct S : Bitfield<1,1> { }; /* shareable */
-
-			struct Rgn : Bitfield<3, 2> /* outer cachable attributes */
-			{
-				enum { NON_CACHEABLE = 0, CACHEABLE = 1 };
-			};
-
-			struct Ba : Bitfield<14-TTBCR_N, 18+TTBCR_N> { }; /* translation
-			                                                   * table base */
+			struct Ba : Bitfield<14-TTBCR_N, 18+TTBCR_N> { };
 
 			/**
 			 * Write register, only in privileged CPU mode
@@ -220,18 +167,6 @@ class Genode::Arm
 				access_t v;
 				asm volatile ("mrc p15, 0, %[v], c2, c0, 0" : [v]"=r"(v) :: );
 				return v;
-			}
-
-			/**
-			 * Value for the switch to virtual mode in kernel
-			 *
-			 * \param sect_table  pointer to initial section table
-			 */
-			static access_t init_virt_kernel(addr_t const sect_table)
-			{
-				return S::bits(0) |
-				       Rgn::bits(Rgn::CACHEABLE) |
-				       Ba::masked((addr_t)sect_table);
 			}
 		};
 
@@ -512,24 +447,19 @@ class Genode::Arm
 		 */
 		struct Context : Cpu_state
 		{
-			/**********************************************************
-			 ** The offset and width of any of these classmembers is **
-			 ** silently expected to be this way by several assembly **
-			 ** files. So take care if you attempt to change them.   **
-			 **********************************************************/
-
-			uint32_t cidr;    /* context ID register backup */
-			uint32_t t_table; /* base address of applied translation table */
+			Cidr::access_t  cidr;
+			Ttbr0::access_t ttbr0;
 
 			/**
-			 * Get base of assigned translation lookaside buffer
+			 * Return base of assigned translation table
 			 */
-			addr_t translation_table() const { return t_table; }
+			addr_t translation_table() const {
+				return Ttbr0::Ba::masked(ttbr0); }
 
 			/**
-			 * Assign translation lookaside buffer
+			 * Assign translation-table base 'table'
 			 */
-			void translation_table(addr_t const tt) { t_table = tt; }
+			void translation_table(addr_t const table);
 
 			/**
 			 * Assign protection domain
@@ -571,13 +501,13 @@ class Genode::Arm
 			/**
 			 * Initialize thread context
 			 *
-			 * \param tt     physical base of appropriate translation table
+			 * \param table  physical base of appropriate translation table
 			 * \param pd_id  kernel name of appropriate protection domain
 			 */
-			void init_thread(addr_t const tt, unsigned const pd_id)
+			void init_thread(addr_t const table, unsigned const pd_id)
 			{
-				cidr    = pd_id;
-				t_table = tt;
+				protection_domain(pd_id);
+				translation_table(table);
 			}
 
 			/**

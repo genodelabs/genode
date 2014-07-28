@@ -64,13 +64,13 @@
 
 	/* load kernel cidr */
 	adr sp, _mt_master_context_begin
-	ldr sp, [sp, #CONTEXTIDR_OFFSET]
+	ldr sp, [sp, #CIDR_OFFSET]
 	mcr p15, 0, sp, c13, c0, 1
 	_flush_branch_predictor
 
-	/* load kernel section table */
+	/* load kernel ttbr0 */
 	adr sp, _mt_master_context_begin
-	ldr sp, [sp, #SECTION_TABLE_OFFSET]
+	ldr sp, [sp, #TTBR0_OFFSET]
 	mcr p15, 0, sp, c2, c0, 0
 	_flush_branch_predictor
 
@@ -212,9 +212,9 @@
 	add sp, lr, #SP_OFFSET
 	ldm sp, {sp,lr}^
 
-	/* get user cidr and section table */
-	ldr sp, [lr, #CONTEXTIDR_OFFSET]
-	ldr lr, [lr, #SECTION_TABLE_OFFSET]
+	/* get user cidr and ttbr0 */
+	ldr sp, [lr, #CIDR_OFFSET]
+	ldr lr, [lr, #TTBR0_OFFSET]
 
 	/********************************************************
 	 ** From now on, until we leave kernel mode, we must   **
