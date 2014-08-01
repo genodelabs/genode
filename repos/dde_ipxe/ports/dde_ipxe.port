@@ -6,7 +6,8 @@ URL(ipxe) := http://git.ipxe.org/ipxe.git
 REV(ipxe) := c4bce43c3c4d3c5ebb2d926b58ad16dc9642c19d
 DIR(ipxe) := src/lib/dde_ipxe
 
-PATCHES   := patches/dde_ipxe.patch
+PATCHES   := patches/dde_ipxe.patch \
+             patches/i217lm.patch
 PATCH_OPT := -p1 -d ${DIR(ipxe)}
 
 # vi: set ft=make :
