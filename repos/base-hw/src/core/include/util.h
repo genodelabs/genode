@@ -67,10 +67,23 @@ namespace Genode
 
 
 	/**
-	 * Round down to a specific alignment
+	 * Return an address rounded down to a specific alignment
+	 *
+	 * \param addr         original address
+	 * \param alignm_log2  log2 of the required alignment
 	 */
-	inline addr_t trunc(addr_t const addr, unsigned const alignm_log2)
-	{ return addr & ~((1 << alignm_log2) - 1); }
+	inline addr_t trunc(addr_t const addr, addr_t const alignm_log2) {
+		return (addr >> alignm_log2) << alignm_log2; }
+
+
+	/**
+	 * Return wether a pointer fullfills an alignment
+	 *
+	 * \param p            pointer
+	 * \param alignm_log2  log2 of the required alignment
+	 */
+	inline bool aligned(void * const p, addr_t const alignm_log2) {
+		return (addr_t)p == trunc((addr_t)p, alignm_log2); }
 
 
 	/**
