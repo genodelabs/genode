@@ -19,7 +19,9 @@
 #include <util/register.h>
 #include <base/printf.h>
 
-/* base-hw includes */
+/* core includes */
+#include <util.h>
+#include <assert.h>
 #include <page_flags.h>
 #include <page_slab.h>
 #include <cpu.h>
@@ -41,23 +43,7 @@ namespace Genode
 
 class Genode::Translation_table
 {
-	public:
-
-		/***************************
-		 ** Exception definitions **
-		 ***************************/
-
-		class Double_insertion {};
-		class Misaligned {};
-		class Invalid_range {};
-
 	private:
-
-		/**
-		 * Check if 'p' is aligned to 1 << 'alignm_log2'
-		 */
-		static inline bool aligned(addr_t const a, size_t const alignm_log2) {
-			return a == ((a >> alignm_log2) << alignm_log2); }
 
 		/**
 		 * Return permission configuration according to given mapping flags
@@ -224,10 +210,7 @@ class Genode::Translation_table
 				 */
 				Page_table()
 				{
-					if (!aligned((addr_t)this, ALIGNM_LOG2))
-						throw Misaligned();
-
-					/* start with an empty table */
+					assert(aligned(this, ALIGNM_LOG2));
 					memset(&_entries, 0, sizeof(_entries));
 				}
 
@@ -249,10 +232,6 @@ class Genode::Translation_table
 				 * \param pa    base of the physical backing store
 				 * \param size  size of the translated region
 				 * \param flags mapping flags
-				 *
-				 * This method overrides an existing translation in case
-				 * that it spans the the same virtual range otherwise it
-				 * throws a Double_insertion.
 				 */
 				void insert_translation(addr_t vo,
 				                        addr_t pa,
@@ -261,17 +240,23 @@ class Genode::Translation_table
 				{
 					constexpr size_t sz = Descriptor::VIRT_SIZE;
 
-					for (unsigned i; (size > 0) && _index_by_vo (i, vo);
-						 size = (size < sz) ? 0 : size - sz, vo += sz, pa += sz) {
-
-						if (Descriptor::valid(_entries[i]) &&
-							_entries[i] != Small_page::create(flags, pa))
-							throw Double_insertion();
+					for (unsigned i; (size > 0) && _index_by_vo(i, vo);
+					     size = (size < sz) ? 0 : size - sz,
+					     vo += sz, pa += sz)
+					{
 
 						/* compose new descriptor value */
-						_entries[i] = Small_page::create(flags, pa);
+						Small_page::access_t const e =
+							Small_page::create(flags, pa);
 
-						/* some processors need to act on changed translations */
+						/* check if it is a good idea to override the entry */
+						assert(!Descriptor::valid(_entries[i]) ||
+						       _entries[i] == e);
+
+						/* override entry */
+						_entries[i] = e;
+
+						/* some CPUs need to act on changed translations */
 						Cpu::translation_added((addr_t)&_entries[i],
 						                       sizeof(Descriptor::access_t));
 					}
@@ -528,10 +513,7 @@ class Genode::Translation_table
 					break;
 				}
 
-			default:
-				{
-					throw Double_insertion();
-				}
+			default: assert(0);
 			};
 
 			/* insert translation */
@@ -551,10 +533,7 @@ class Genode::Translation_table
 		 */
 		Translation_table()
 		{
-			if (!aligned((addr_t)this, ALIGNM_LOG2))
-				throw Misaligned();
-
-			/* start with an empty table */
+			assert(aligned(this, ALIGNM_LOG2));
 			memset(&_entries, 0, sizeof(_entries));
 		}
 
@@ -584,10 +563,9 @@ class Genode::Translation_table
 		                        Page_flags const & flags,
 		                        Page_slab * slab)
 		{
-			/* sanity check  */
-			if ((vo & Page_table::Descriptor::VIRT_OFFSET_MASK)
-				|| size < Page_table::Descriptor::VIRT_SIZE)
-				throw Invalid_range();
+			/* check sanity */
+			assert(!(vo & Page_table::Descriptor::VIRT_OFFSET_MASK) &&
+			       size >= Page_table::Descriptor::VIRT_SIZE);
 
 			for (unsigned i; (size > 0) && _index_by_vo (i, vo);) {
 
@@ -599,12 +577,17 @@ class Genode::Translation_table
 
 				case Descriptor::SECTION:
 					{
-						if (Descriptor::valid(_entries[i]) &&
-						    _entries[i] != Section::create(flags, pa))
-							throw Double_insertion();
-						_entries[i] = Section::create(flags, pa);
+						/* compose new entry */
+						Section::access_t const e = Section::create(flags, pa);
 
-						/* some processors need to act on changed translations */
+						/* check if it is a good idea to override the entry */
+						assert(!Descriptor::valid(_entries[i]) ||
+						       _entries[i] == e);
+
+						/* override entry */
+						_entries[i] = e;
+
+						/* some CPUs need to act on changed translations */
 						Cpu::translation_added((addr_t)&_entries[i],
 						                       sizeof(Descriptor::access_t));
 						break;
@@ -635,7 +618,8 @@ class Genode::Translation_table
 		 */
 		void remove_translation(addr_t vo, size_t size, Page_slab * slab)
 		{
-			if (vo > (vo + size)) throw Invalid_range();
+			/* check sanity */
+			assert(vo <= (vo + size));
 
 			for (unsigned i; (size > 0) && _index_by_vo(i, vo);) {
 
