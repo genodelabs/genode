@@ -29,13 +29,9 @@ int main(int argc, char *argv[])
 
 	static Qt_launchpad launchpad(Genode::env()->ram_session()->quota());
 
-	launchpad.add_launcher("calculatorform",
-	                       30*1024*1024,
-	                       Genode::Dataspace_capability());
-
-	launchpad.add_launcher("tetrix",
-	                       40*1024*1024,
-	                       Genode::Dataspace_capability());
+	try {
+		launchpad.process_config();
+	} catch (...) { }
 
 	launchpad.move(300,100);
 	launchpad.show();

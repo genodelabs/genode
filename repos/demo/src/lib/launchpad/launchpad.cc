@@ -22,6 +22,7 @@
 #include <rom_session/connection.h>
 #include <ram_session/connection.h>
 #include <cpu_session/connection.h>
+#include <os/config.h>
 #include <timer_session/connection.h>
 #include <launchpad/launchpad.h>
 
@@ -97,6 +98,88 @@ void Launchpad::_get_unique_child_name(const char *filename, char *dst, int dst_
 
 		/* increase number of suffix */
 		snprintf(suffix, sizeof(suffix), ".%d", cnt + 1);
+	}
+}
+
+
+/**
+ * Process launchpad XML configuration
+ */
+void Launchpad::process_config()
+{
+	using namespace Genode;
+
+	Xml_node config_node = config()->xml_node();
+
+	/*
+	 * Iterate through all entries of the config file and create
+	 * launchpad entries as specified.
+	 */
+	int launcher_cnt = 0;
+	for (unsigned i = 0; i < config_node.num_sub_nodes(); i++) {
+		Xml_node node = config_node.sub_node(i);
+		if (node.has_type("launcher"))
+
+			/* catch XML syntax errors within launcher node */
+			try {
+				/* read file name and default quote from launcher node */
+				Xml_node::Attribute filename_attr = node.attribute("name");
+
+				enum { MAX_NAME_LEN = 128 };
+				char *filename = (char *)env()->heap()->alloc(MAX_NAME_LEN);
+				if (!filename) {
+					printf("Error: Out of memory while processing configuration\n");
+					return;
+				}
+				filename_attr.value(filename, MAX_NAME_LEN);
+				Xml_node::Attribute ram_quota_attr = node.attribute("ram_quota");
+				Number_of_bytes default_ram_quota = 0;
+				ram_quota_attr.value(&default_ram_quota);
+
+				/*
+				 * Obtain configuration for the child
+				 */
+				Dataspace_capability config_ds;
+
+				if (node.has_sub_node("configfile")
+				 && node.sub_node("configfile").has_attribute("name")) {
+
+				 	char name[128];
+				 	node.sub_node("configfile").attribute("name").value(name, sizeof(name));
+
+					Rom_connection config_rom(name);
+					config_rom.on_destruction(Rom_connection::KEEP_OPEN);
+
+					config_ds = config_rom.dataspace();
+				}
+
+				if (node.has_sub_node("config")) {
+
+					Xml_node config_node = node.sub_node("config");
+
+					/* allocate dataspace for config */
+					size_t const config_size = config_node.size();
+					config_ds = env()->ram_session()->alloc(config_size);
+
+					/* copy configuration into new dataspace */
+					char * const ptr = env()->rm_session()->attach(config_ds);
+					Genode::memcpy(ptr, config_node.addr(), config_size);
+					env()->rm_session()->detach(ptr);
+				}
+
+				/* add launchpad entry */
+				add_launcher(filename, default_ram_quota, config_ds);
+				launcher_cnt++;
+
+			} catch (...) {
+				printf("Warning: Launcher entry %d is malformed.\n",
+				         launcher_cnt + 1);
+			}
+		else {
+			char buf[32];
+			node.type_name(buf, sizeof(buf));
+			printf("Warning: Ignoring unsupported tag <%s>.\n", buf);
+		}
 	}
 }
 

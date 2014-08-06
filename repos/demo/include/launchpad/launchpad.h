@@ -187,6 +187,10 @@ class Launchpad
 
 		virtual ~Launchpad() { }
 
+		/**
+		 * Process launchpad XML configuration
+		 */
+		void process_config();
 
 		/*************************
 		 ** Configuring the GUI **

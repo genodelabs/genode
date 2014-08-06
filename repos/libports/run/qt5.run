@@ -35,6 +35,31 @@ append config [qt5_start_nodes feature]
 append config {
 	<start name="qt_launchpad">
 		<resource name="RAM" quantum="80M"/>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs>
+					<dir name="dev"> <log/> </dir>
+				</vfs>
+			</libc>
+			<launcher name="calculatorform" ram_quota="30M">
+				<config>
+					<libc stdout="/dev/log" stderr="/dev/log">
+						<vfs>
+							<dir name="dev"> <log/> </dir>
+						</vfs>
+					</libc>
+				</config>
+			</launcher>
+			<launcher name="tetrix" ram_quota="40M">
+				<config>
+					<libc stdout="/dev/log" stderr="/dev/log">
+						<vfs>
+							<dir name="dev"> <log/> </dir>
+						</vfs>
+					</libc>
+				</config>
+			</launcher>
+		</config>
 	</start>
 </config>
 }
