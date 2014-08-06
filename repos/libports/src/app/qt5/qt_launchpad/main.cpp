@@ -25,22 +25,24 @@ int main(int argc, char *argv[])
 
 	int result;
 
-	QApplication *a = new QApplication(argc, argv);
+	static QApplication a(argc, argv);
 
-	Qt_launchpad *launchpad = new Qt_launchpad(Genode::env()->ram_session()->quota());
+	static Qt_launchpad launchpad(Genode::env()->ram_session()->quota());
 
-	launchpad->add_launcher("calculatorform", 30*1024*1024);
-	launchpad->add_launcher("tetrix",         40*1024*1024);
+	launchpad.add_launcher("calculatorform",
+	                       30*1024*1024,
+	                       Genode::Dataspace_capability());
 
-	launchpad->move(300,100);
-	launchpad->show();
+	launchpad.add_launcher("tetrix",
+	                       40*1024*1024,
+	                       Genode::Dataspace_capability());
 
-	a->connect(a, SIGNAL(lastWindowClosed()), a, SLOT(quit()));
+	launchpad.move(300,100);
+	launchpad.show();
 
-	result = a->exec();
+	a.connect(&a, SIGNAL(lastWindowClosed()), &a, SLOT(quit()));
 
-	delete launchpad;
-	delete a;
+	result = a.exec();
 
 	return result;
 }

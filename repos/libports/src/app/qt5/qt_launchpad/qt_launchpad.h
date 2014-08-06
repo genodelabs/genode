@@ -21,26 +21,28 @@
 
 class Qt_launchpad : public QMainWindow, public Launchpad, private Ui::Qt_launchpadClass
 {
-    Q_OBJECT
+	Q_OBJECT
 
-public:
-    Qt_launchpad(unsigned long initial_quota, QWidget *parent = 0);
-    ~Qt_launchpad();
+	private slots:
 
-		virtual void quota(unsigned long quota);
+		void _avail_quota_update();
+
+	public:
+
+		Qt_launchpad(unsigned long initial_quota, QWidget *parent = 0);
+
+		virtual void quota(unsigned long quota) override;
 
 		virtual	void add_launcher(const char *filename,
-		                          unsigned long default_quota);
+		                          unsigned long default_quota,
+		                          Genode::Dataspace_capability config_ds) override;
 
 		virtual void add_child(const char *unique_name,
 		                       unsigned long quota,
-													 Launchpad_child *launchpad_child,
-		                       Genode::Allocator *alloc);
-														 
-		virtual void remove_child(const char *name, Genode::Allocator *alloc);
-									
-private slots:
-		void avail_quota_update();
+		                       Launchpad_child *launchpad_child,
+		                       Genode::Allocator *alloc) override;
+
+		virtual void remove_child(const char *name, Genode::Allocator *alloc) override;
 };
 
-#endif // QT_LAUNCHPAD_H
+#endif /* QT_LAUNCHPAD_H */

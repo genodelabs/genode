@@ -22,22 +22,28 @@
 
 class Launch_entry : public QWidget
 {
-    Q_OBJECT
+	Q_OBJECT
 
-public:
-    Launch_entry(const char *filename, unsigned long default_quota,
-                 unsigned long max_quota, Launchpad *launchpad,
-                 QWidget *parent = 0);
-    ~Launch_entry();
+	private:
 
-private:
-    Ui::Launch_entryClass ui;
+		Ui::Launch_entryClass ui;
 
 		const char *_filename;
+		Genode::Dataspace_capability _config_ds;
 		Launchpad *_launchpad;
 
-private slots:
+	private slots:
+
 		void on_launchButton_clicked();
+
+	public:
+
+		Launch_entry(const char *filename,
+		             unsigned long default_quota,
+		             unsigned long max_quota,
+		             Genode::Dataspace_capability config_ds,
+		             Launchpad *launchpad,
+		             QWidget *parent = 0);
 };
 
-#endif // LAUNCH_ENTRY_H
+#endif /* LAUNCH_ENTRY_H */

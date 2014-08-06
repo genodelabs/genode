@@ -22,22 +22,24 @@
 
 class Child_entry : public QWidget
 {
-    Q_OBJECT
+	Q_OBJECT
 
-public:
-    Child_entry(const char *name, int quota_kb, int max_quota_kb,
-		            Launchpad *launchpad, Launchpad_child *launchpad_child,
-                QWidget *parent = 0);
-    ~Child_entry();
+	private:
 
-private:
-    Ui::Child_entryClass ui;
+		Ui::Child_entryClass ui;
 
 		Launchpad *_launchpad;
 		Launchpad_child *_launchpad_child;
 
-private slots:
+	private slots:
+
 		void on_exitButton_clicked();
+
+	public:
+
+		Child_entry(const char *name, int quota_kb, int max_quota_kb,
+		            Launchpad *launchpad, Launchpad_child *launchpad_child,
+		            QWidget *parent = 0);
 };
 
-#endif // CHILD_ENTRY_H
+#endif /* CHILD_ENTRY_H */

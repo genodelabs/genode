@@ -6,19 +6,13 @@
 
 #include "kbyte_loadbar.h"
 
+
 Kbyte_loadbar::Kbyte_loadbar(QWidget *parent)
-    : QProgressBar(parent)
-{
-}
+: QProgressBar(parent) { }
 
-Kbyte_loadbar::~Kbyte_loadbar()
-{
-
-}
 
 QString Kbyte_loadbar::text() const
 {
 	return QString::number(value()) + " KByte / " + 
-		     QString::number(maximum()) + " KByte";
-	
+	                       QString::number(maximum()) + " KByte";
 }

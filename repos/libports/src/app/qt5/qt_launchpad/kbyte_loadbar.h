@@ -18,16 +18,13 @@
 
 class Kbyte_loadbar : public QProgressBar
 {
-    Q_OBJECT
+	Q_OBJECT
 
-public:
-    Kbyte_loadbar(QWidget *parent = 0);
-    ~Kbyte_loadbar();
+	public:
 
-    virtual QString text() const;
-    
-protected:
+		Kbyte_loadbar(QWidget *parent = 0);
 
+		virtual QString text() const;
 };
 
-#endif // KBYTE_LOADBAR_H
+#endif /* KBYTE_LOADBAR_H */
