@@ -434,7 +434,7 @@
 	 * On vm exceptions the CPU has to jump to one of the following
 	 * 7 entry vectors to switch to a kernel context.
 	 */
-	.p2align 4
+	.p2align 5
 	.global _mon_kernel_entry
 	_mon_kernel_entry:
 		b _mon_rst_entry           /* reset                  */
