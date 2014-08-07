@@ -59,7 +59,7 @@ class Genode::Cpu : public Arm_v7
 		 ** Dummies **
 		 *************/
 
-		static void tlb_insertions() { }
+		static void tlb_insertions() { inval_branch_predicts(); }
 		static void translation_added(addr_t, size_t) { }
 		static void prepare_proceeding(Cpu_lazy_state *, Cpu_lazy_state *) { }
 };

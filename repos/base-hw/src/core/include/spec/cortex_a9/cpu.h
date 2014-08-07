@@ -303,7 +303,7 @@ class Genode::Cpu : public Arm_v7
 		 *************/
 
 		static void translation_added(addr_t, size_t) { }
-		static void tlb_insertions() { }
+		static void tlb_insertions() { inval_branch_predicts(); }
 };
 
 void Genode::Arm_v7::finish_init_phys_kernel() { Cpu::init_advanced_fp_simd(); }
