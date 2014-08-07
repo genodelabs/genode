@@ -224,6 +224,7 @@ class Genode::Arm_v7 : public Arm
 				access_t v = 0;
 				init_common(v);
 				Arm::Sctlr::init_virt_kernel(v);
+				Z::set(v, 1);
 				return v;
 			}
 
@@ -265,6 +266,12 @@ class Genode::Arm_v7 : public Arm
 		};
 
 		/**
+		 * Invalidate all branch predictions
+		 */
+		static void inval_branch_predicts() {
+			asm volatile ("mcr p15, 0, r0, c7, c5, 6" ::: "r0"); };
+
+		/**
 		 * Switch to the virtual mode in kernel
 		 *
 		 * \param table       base of targeted translation table
@@ -278,6 +285,7 @@ class Genode::Arm_v7 : public Arm
 			Ttbr0::write(Ttbr0::init(table));
 			Ttbcr::write(Ttbcr::init_virt_kernel());
 			Sctlr::write(Sctlr::init_virt_kernel());
+			inval_branch_predicts();
 		}
 
 		inline static void finish_init_phys_kernel();
