@@ -166,31 +166,8 @@ class Genode::Arm_v7 : public Arm
 		 */
 		struct Nsacr : Register<32>
 		{
-			/************************************************
-			 ** Coprocessor 0-13 non-secure acccess enable **
-			 ************************************************/
-
 			struct Cpnsae10 : Bitfield<10, 1> { };
 			struct Cpnsae11 : Bitfield<11, 1> { };
-		};
-
-		/**
-		 * Translation table base control register
-		 */
-		struct Ttbcr : Arm::Ttbcr
-		{
-			struct Pd0 : Bitfield<4,1> { }; /* disable walk for TTBR0 */
-			struct Pd1 : Bitfield<5,1> { }; /* disable walk for TTBR1 */
-
-			/**
-			 * Value for the switch to virtual mode in kernel
-			 */
-			static access_t init_virt_kernel()
-			{
-				return Arm::Ttbcr::init_virt_kernel() |
-				       Pd0::bits(0) |
-				       Pd1::bits(0);
-			}
 		};
 
 		/**
@@ -252,9 +229,7 @@ class Genode::Arm_v7 : public Arm
 			struct Irgn   : Bitset_2<Irgn_0, Irgn_1> { }; /* inner cache attr */
 
 			/**
-			 * Return initialized value
-			 *
-			 * \param table  base of targeted translation table
+			 * Return value initialized with translation table 'table'
 			 */
 			static access_t init(addr_t const table)
 			{
@@ -283,7 +258,7 @@ class Genode::Arm_v7 : public Arm
 			Cidr::write(process_id);
 			Dacr::write(Dacr::init_virt_kernel());
 			Ttbr0::write(Ttbr0::init(table));
-			Ttbcr::write(Ttbcr::init_virt_kernel());
+			Ttbcr::write(0);
 			Sctlr::write(Sctlr::init_virt_kernel());
 			inval_branch_predicts();
 		}
@@ -317,32 +292,20 @@ class Genode::Arm_v7 : public Arm
 		 ******************************/
 
 		/**
-		 * Set the exception-vector's base-address for the monitor mode
-		 * software stack.
-		 *
-		 * \param addr  address of the exception vector's base
+		 * Set exception-vector's address for monitor mode to 'a'
 		 */
-		static inline void mon_exception_entry_at(addr_t const addr)
-		{
-			asm volatile ("mcr p15, 0, %[rd], c12, c0, 1" : : [rd] "r" (addr));
-		}
+		static void mon_exception_entry_at(addr_t const a) {
+			asm volatile ("mcr p15, 0, %[rd], c12, c0, 1" : : [rd] "r" (a)); }
 
 		/**
 		 * Enable access of co-processors cp10 and cp11 from non-secure mode.
 		 */
 		static inline void allow_coprocessor_nonsecure()
 		{
-			Nsacr::access_t rd = Nsacr::Cpnsae10::bits(1) |
-			                     Nsacr::Cpnsae11::bits(1);
-			asm volatile ("mcr p15, 0, %[rd], c1, c1, 2" : : [rd] "r" (rd));
-		}
-
-		/**
-		 * Invalidate all predictions about the future control-flow
-		 */
-		static void invalidate_control_flow_predictions()
-		{
-			asm volatile ("mcr p15, 0, r0, c7, c5, 6");
+			Nsacr::access_t v = 0;
+			Nsacr::Cpnsae10::set(v, 1);
+			Nsacr::Cpnsae11::set(v, 1);
+			asm volatile ("mcr p15, 0, %[v], c1, c1, 2" : : [v] "r" (v));
 		}
 
 		/**
@@ -351,17 +314,14 @@ class Genode::Arm_v7 : public Arm
 		static void data_synchronization_barrier() { asm volatile ("dsb"); }
 
 		/**
-		 * Enable secondary processors that loop on wait-for-event
-		 *
-		 * \param ip  initial instruction pointer for secondary processors
+		 * Enable secondary processors with instr. pointer 'ip'
 		 */
 		static void start_secondary_processors(void * const ip)
 		{
-			if (is_smp()) {
-				Board::secondary_processors_ip(ip);
-				data_synchronization_barrier();
-				asm volatile ("sev\n");
-			}
+			if (!is_smp()) { return; }
+			Board::secondary_processors_ip(ip);
+			data_synchronization_barrier();
+			asm volatile ("sev\n");
 		}
 
 		/**
@@ -391,18 +351,13 @@ void Genode::Arm::invalidate_data_caches()
 }
 
 
-Genode::Arm::Psr::access_t
-Genode::Arm::Psr::init_user_with_trustzone()
+Genode::Arm::Psr::access_t Genode::Arm::Psr::init_user_with_trustzone()
 {
-	return M::bits(M::USER) |
-	       T::bits(T::ARM) |
-	       F::bits(0) |
-	       I::bits(1) |
-	       A::bits(1) |
-	       E::bits(E::LITTLE) |
-	       J::bits(J::ARM);
+	access_t v = 0;
+	M::set(v, usr);
+	I::set(v, 1);
+	A::set(v, 1);
+	return v;
 }
 
-
 #endif /* _SPEC__ARM_V7__CPU_SUPPORT_H_ */
-

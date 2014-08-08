@@ -50,29 +50,29 @@ namespace Genode
 
 			struct Aux : Register<0x104, 32>
 			{
-				struct Associativity  : Bitfield<16,1> {
-						enum { WAY_8, WAY_16 }; };
-				struct Way_size       : Bitfield<17,3> {
-						enum { SZ_64KB = 0x3 }; };
-				struct Share_override : Bitfield<22,1> {};
-				struct Reserved       : Bitfield<25,1> {};
-				struct Ns_lockdown    : Bitfield<26,1> {};
-				struct Ns_irq_ctrl    : Bitfield<27,1> {};
-				struct Data_prefetch  : Bitfield<28,1> {};
-				struct Inst_prefetch  : Bitfield<29,1> {};
-				struct Early_bresp    : Bitfield<30,1> {};
+				struct Associativity  : Bitfield<16,1> { };
+				struct Way_size       : Bitfield<17,3> { };
+				struct Share_override : Bitfield<22,1> { };
+				struct Reserved       : Bitfield<25,1> { };
+				struct Ns_lockdown    : Bitfield<26,1> { };
+				struct Ns_irq_ctrl    : Bitfield<27,1> { };
+				struct Data_prefetch  : Bitfield<28,1> { };
+				struct Inst_prefetch  : Bitfield<29,1> { };
+				struct Early_bresp    : Bitfield<30,1> { };
 
 				static access_t init_value()
 				{
-					return Associativity::bits(Associativity::WAY_16) |
-					       Way_size::bits(Way_size::SZ_64KB)          |
-					       Share_override::bits(1)                    |
-					       Reserved::bits(1)                          |
-					       Ns_lockdown::bits(1)                       |
-					       Ns_irq_ctrl::bits(1)                       |
-					       Data_prefetch::bits(1)                     |
-					       Inst_prefetch::bits(1)                     |
-					       Early_bresp::bits(1);
+					access_t v = 0;
+					Associativity::set(v, 1);
+					Way_size::set(v, 3);
+					Share_override::set(v, 1);
+					Reserved::set(v, 1);
+					Ns_lockdown::set(v, 1);
+					Ns_irq_ctrl::set(v, 1);
+					Data_prefetch::set(v, 1);
+					Inst_prefetch::set(v, 1);
+					Early_bresp::set(v, 1);
+					return v;
 				}
 			};
 

@@ -38,7 +38,7 @@ class Genode::Pic : public Arm_gic
 		                Cpu::PL390_CPU_MMIO_BASE)
 		{
 			/* configure every shared peripheral interrupt */
-			for (unsigned i=MIN_SPI; i <= _max_interrupt; i++) {
+			for (unsigned i = min_spi; i <= _max_interrupt; i++) {
 				_distr.write<Distr::Icfgr::Edge_triggered>(0, i);
 				_distr.write<Distr::Ipriorityr::Priority>(0, i);
 				_distr.write<Distr::Itargetsr::Cpu_targets>(0xff, i);
@@ -55,7 +55,7 @@ class Genode::Pic : public Arm_gic
 			_cpui.write<Cpui::Ctlr>(ctlr);
 
 			/* use whole band of prios */
-			_cpui.write<Cpui::Bpr::Binary_point>(Cpui::Bpr::NO_PREEMPTION);
+			_cpui.write<Cpui::Bpr::Binary_point>(~0);
 
 			/* enable device */
 			_distr.write<Distr::Ctlr>(Distr::Ctlr::Enable::bits(1));

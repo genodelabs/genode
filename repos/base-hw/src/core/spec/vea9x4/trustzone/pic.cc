@@ -1,6 +1,7 @@
 /*
  * \brief  Programmable interrupt controller for core
- * \author Martin stein
+ * \author Stefan Kalkowski
+ * \author Martin Stein
  * \date   2011-10-26
  */
 
@@ -19,22 +20,25 @@ using namespace Genode;
 void Arm_gic::_init()
 {
 	/* configure every shared peripheral interrupt */
-	for (unsigned i=MIN_SPI; i <= _max_interrupt; i++) {
+	for (unsigned i = min_spi; i <= _max_irq; i++) {
 		_distr.write<Distr::Icfgr::Edge_triggered>(0, i);
 		_distr.write<Distr::Ipriorityr::Priority>(0, i);
-		_distr.write<Distr::Itargetsr::Cpu_targets>(0xff, i);
+		_distr.write<Distr::Itargetsr::Cpu_targets>(~0, i);
 	}
 
 	/* disable the priority filter */
-	_cpui.write<Cpui::Pmr::Priority>(0xff);
+	_cpui.write<Cpui::Pmr::Priority>(~0);
 
 	/* signal secure IRQ via FIQ interface */
-	_cpui.write<Cpui::Ctlr>(Cpui::Ctlr::Enable_grp0::bits(1)  |
-	                        Cpui::Ctlr::Enable_grp1::bits(1) |
-	                        Cpui::Ctlr::Fiq_en::bits(1));
+	typedef Cpui::Ctlr Ctlr;
+	Ctlr::access_t v = 0;
+	Ctlr::Enable_grp0::set(v, 1);
+	Ctlr::Enable_grp1::set(v, 1);
+	Ctlr::Fiq_en::set(v, 1);
+	_cpui.write<Ctlr>(v);
 
 	/* use whole band of prios */
-	_cpui.write<Cpui::Bpr::Binary_point>(Cpui::Bpr::NO_PREEMPTION);
+	_cpui.write<Cpui::Bpr::Binary_point>(~0);
 
 	/* enable device */
 	_distr.write<Distr::Ctlr>(Distr::Ctlr::Enable::bits(1));

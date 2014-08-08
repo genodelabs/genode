@@ -33,9 +33,11 @@ struct Pmcr : Register<32>
 
 	static access_t enable_and_reset()
 	{
-		return E::bits(1) |
-		       P::bits(1) |
-		       C::bits(1);
+		access_t v = 0;
+		E::set(v, 1);
+		P::set(v, 1);
+		C::set(v, 1);
+		return v;
 	}
 
 	static access_t read()
@@ -45,10 +47,8 @@ struct Pmcr : Register<32>
 		return v;
 	}
 
-	static void write(access_t const v)
-	{
-		asm volatile("mcr p15, 0, %[v], c15, c12, 0" :: [v]"r"(v) : );
-	}
+	static void write(access_t const v) {
+		asm volatile("mcr p15, 0, %[v], c15, c12, 0" :: [v]"r"(v) : ); }
 };
 
 
@@ -57,12 +57,7 @@ struct Pmcr : Register<32>
  */
 struct Sysvalcntrr : Register<32>
 {
-	struct Resetcntr : Bitfield<0,1> { }; /* reset all counter */
-
-	static access_t reset_counter()
-	{
-		return Resetcntr::bits(0);
-	}
+	static access_t reset_counter() { return 0; }
 
 	static access_t read()
 	{
@@ -71,10 +66,8 @@ struct Sysvalcntrr : Register<32>
 		return v;
 	}
 
-	static void write(access_t const v)
-	{
-		asm volatile("mcr p15, 0, %[v], c15, c12, 1" :: [v]"r"(v) : );
-	}
+	static void write(access_t const v) {
+		asm volatile("mcr p15, 0, %[v], c15, c12, 1" :: [v]"r"(v) : ); }
 };
 
 
@@ -85,10 +78,7 @@ struct Accvalctlr : Register<32>
 {
 	struct V : Bitfield<0,1> { }; /* enable access in user-mode */
 
-	static access_t enable_user_access()
-	{
-		return V::bits(1);
-	}
+	static access_t enable_user_access() { return V::bits(1); }
 
 	static access_t read()
 	{
@@ -97,18 +87,16 @@ struct Accvalctlr : Register<32>
 		return v;
 	}
 
-	static void write(access_t const v)
-	{
-		asm volatile("mcr p15, 0, %[v], c15, c9, 0" :: [v]"r"(v) : );
-	}
+	static void write(access_t const v) {
+		asm volatile("mcr p15, 0, %[v], c15, c9, 0" :: [v]"r"(v) : ); }
 };
 
 
 void Kernel::Perf_counter::enable()
 {
 	/* enable counters and disable overflow interrupt. */
-	Pmcr::access_t v = Pmcr::enable_and_reset() |
-	                   Pmcr::D::bits(1); /* count every 64 cycles */
+	Pmcr::access_t v = Pmcr::enable_and_reset();
+	Pmcr::D::set(v, 1); /* count every 64 cycles */
 	Pmcr::write(v);
 
 	Sysvalcntrr::write(Sysvalcntrr::reset_counter());
