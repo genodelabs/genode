@@ -146,7 +146,7 @@ class Genode::Cpu : public Arm
 			Cidr::write(process_id);
 			Dacr::write(Dacr::init_virt_kernel());
 			Ttbr0::write(Ttbr0::init(table));
-			Ttbcr::write(Ttbcr::init_virt_kernel());
+			Ttbcr::write(0);
 			Sctlr::write(Sctlr::init_virt_kernel());
 		}
 

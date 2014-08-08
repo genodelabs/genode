@@ -210,7 +210,7 @@ class Kernel::Mode_transition_control
 		enum {
 			SIZE_LOG2  = Genode::Translation_table::MIN_PAGE_SIZE_LOG2,
 			SIZE       = 1 << SIZE_LOG2,
-			VIRT_BASE  = Processor::EXCEPTION_ENTRY,
+			VIRT_BASE  = Processor::exception_entry,
 			ALIGN_LOG2 = Genode::Translation_table::ALIGNM_LOG2,
 			ALIGN      = 1 << ALIGN_LOG2,
 		};

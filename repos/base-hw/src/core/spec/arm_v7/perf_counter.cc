@@ -33,9 +33,11 @@ struct Pmcr : Register<32>
 
 	static access_t enable_and_reset()
 	{
-		return E::bits(1) |
-		       P::bits(1) |
-		       C::bits(1);
+		access_t v = 0;
+		E::set(v, 1);
+		P::set(v, 1);
+		C::set(v, 1);
+		return v;
 	}
 
 	static access_t read()
@@ -45,10 +47,8 @@ struct Pmcr : Register<32>
 		return v;
 	}
 
-	static void write(access_t const v)
-	{
-		asm volatile("mcr p15, 0, %[v], c9, c12, 0" :: [v]"r"(v) : );
-	}
+	static void write(access_t const v) {
+		asm volatile("mcr p15, 0, %[v], c9, c12, 0" :: [v]"r"(v) : ); }
 };
 
 
@@ -57,15 +57,17 @@ struct Pmcr : Register<32>
  */
 struct Pmintenclr : Register<32>
 {
-	struct C  : Bitfield<31,1> { }; /* disable cycle counter overflow interrupt request */
-	struct P0 : Bitfield<0,1>  { }; /* disable pmc0 overflow interrupt request */
-	struct P1 : Bitfield<1,1>  { }; /* disable pmc1 overflow interrupt reuqest */
+	struct C  : Bitfield<31,1> { }; /* disable cycle counter overflow IRQ */
+	struct P0 : Bitfield<0,1>  { }; /* disable pmc0 overflow IRQ */
+	struct P1 : Bitfield<1,1>  { }; /* disable pmc1 overflow IRQ */
 
 	static access_t disable_overflow_intr()
 	{
-		return C::bits(1)  |
-		       P0::bits(1) |
-		       P1::bits(1);
+		access_t v = 0;
+		C::set(v, 1) ;
+		P0::set(v, 1);
+		P1::set(v, 1);
+		return v;
 	}
 
 	static access_t read()
@@ -75,10 +77,8 @@ struct Pmintenclr : Register<32>
 		return v;
 	}
 
-	static void write(access_t const v)
-	{
-		asm volatile("mcr p15, 0, %[v], c9, c14, 2" :: [v]"r"(v) : );
-	}
+	static void write(access_t const v) {
+		asm volatile("mcr p15, 0, %[v], c9, c14, 2" :: [v]"r"(v) : ); }
 };
 
 
@@ -95,11 +95,13 @@ struct Pmcntenset : Register<32>
 
 	static access_t enable_counter()
 	{
-		return C::bits(1)  |
-		       P0::bits(1) |
-		       P1::bits(1) |
-		       P2::bits(1) |
-		       P3::bits(1);
+		access_t v = 0;
+		C::set(v, 1);
+		P0::set(v, 1);
+		P1::set(v, 1);
+		P2::set(v, 1);
+		P3::set(v, 1);
+		return v;
 	}
 
 	static access_t read()
@@ -109,10 +111,8 @@ struct Pmcntenset : Register<32>
 		return v;
 	}
 
-	static void write(access_t const v)
-	{
-		asm volatile("mcr p15, 0, %0, c9, c12, 1" :: [v]"r"(v) : );
-	}
+	static void write(access_t const v) {
+		asm volatile("mcr p15, 0, %0, c9, c12, 1" :: [v]"r"(v) : ); }
 };
 
 
@@ -127,9 +127,11 @@ struct Pmovsr : Register<32>
 
 	static access_t clear_overflow_flags()
 	{
-		return C::bits(1)    |
-		       P0::bits(1) |
-		       P1::bits(1);
+		access_t v = 0;
+		C::set(v, 1);
+		P0::set(v, 1);
+		P1::set(v, 1);
+		return v;
 	}
 
 	static access_t read()
@@ -139,10 +141,8 @@ struct Pmovsr : Register<32>
 		return v;
 	}
 
-	static void write(access_t const v)
-	{
-		asm volatile("mcr p15, 0, %0, c9, c12, 3" :: [v]"r"(v) : );
-	}
+	static void write(access_t const v) {
+		asm volatile("mcr p15, 0, %0, c9, c12, 3" :: [v]"r"(v) : ); }
 };
 
 
@@ -151,12 +151,9 @@ struct Pmovsr : Register<32>
  */
 struct Pmuseren : Register<32>
 {
-	struct En  : Bitfield<0,1> { }; /* enable user mode access */
+	struct En : Bitfield<0,1> { }; /* enable user mode access */
 
-	static access_t enable()
-	{
-		return En::bits(1);
-	}
+	static access_t enable() { return En::bits(1); }
 
 	static access_t read()
 	{
@@ -165,10 +162,8 @@ struct Pmuseren : Register<32>
 		return v;
 	}
 
-	static void write(access_t const v)
-	{
-		asm volatile("mcr p15, 0, %0, c9, c14, 0" :: [v]"r"(v) : );
-	}
+	static void write(access_t const v) {
+		asm volatile("mcr p15, 0, %0, c9, c14, 0" :: [v]"r"(v) : ); }
 };
 
 

@@ -35,26 +35,20 @@ class Genode::Arm
 {
 	public:
 
-		enum {
-			TTBCR_N = 0,
-			EXCEPTION_ENTRY = 0xffff0000,
-			DATA_ACCESS_ALIGNM = 4,
-		};
+		static constexpr addr_t exception_entry   = 0xffff0000;
+		static constexpr addr_t data_access_align = 4;
 
 		/**
 		 * Multiprocessor affinity register
 		 */
 		struct Mpidr : Register<32>
 		{
-			struct Aff_0 : Bitfield<0, 8> { };
+			struct Aff_0 : Bitfield<0, 8> { }; /* affinity value 0 */
 
-			/**
-			 * Read register value
-			 */
 			static access_t read()
 			{
 				access_t v;
-				asm volatile ("mrc p15, 0, %[v], c0, c0, 5" : [v] "=r" (v) ::);
+				asm volatile ("mrc p15, 0, %0, c0, c0, 5" : "=r" (v) :: );
 				return v;
 			}
 		};
@@ -64,13 +58,10 @@ class Genode::Arm
 		 */
 		struct Ctr : Register<32>
 		{
-			/**
-			 * Read register value
-			 */
 			static access_t read()
 			{
 				access_t v;
-				asm volatile ("mrc p15, 0, %[v], c0, c0, 1" : [v]"=r"(v) :: );
+				asm volatile ("mrc p15, 0, %0, c0, c0, 1" : "=r" (v) :: );
 				return v;
 			}
 		};
@@ -85,9 +76,6 @@ class Genode::Arm
 			struct I : Bitfield<12,1> { }; /* enable instruction caches */
 			struct V : Bitfield<13,1> { }; /* select exception entry */
 
-			/**
-			 * Read register value
-			 */
 			static access_t read()
 			{
 				access_t v;
@@ -95,14 +83,11 @@ class Genode::Arm
 				return v;
 			}
 
-			/**
-			 * Write register value
-			 */
 			static void write(access_t const v) {
 				asm volatile ("mcr p15, 0, %0, c1, c0, 0" :: "r" (v) : ); }
 
 			/**
-			 * Initialization that is common
+			 * Do initialization that is common on value 'v'
 			 */
 			static void init_common(access_t & v)
 			{
@@ -112,7 +97,7 @@ class Genode::Arm
 			}
 
 			/**
-			 * Initialization for virtual kernel stage
+			 * Do initialization for virtual mode in kernel on value 'v'
 			 */
 			static void init_virt_kernel(access_t & v) { M::set(v, 1); }
 		};
@@ -122,28 +107,15 @@ class Genode::Arm
 		 */
 		struct Ttbcr : Register<32>
 		{
-			struct N : Bitfield<0, 3> { }; /* base address width */
-
-			/**
-			 * Write register, only in privileged CPU mode
-			 */
 			static void write(access_t const v) {
-				asm volatile ("mcr p15, 0, %[v], c2, c0, 2" :: [v]"r"(v) : ); }
+				asm volatile ("mcr p15, 0, %0, c2, c0, 2" :: "r" (v) : ); }
 
-			/**
-			 * Read register value
-			 */
 			static access_t read()
 			{
 				access_t v;
-				asm volatile ("mrc p15, 0, %[v], c2, c0, 2" : [v]"=r"(v) :: );
+				asm volatile ("mrc p15, 0, %0, c2, c0, 2" : "=r" (v) :: );
 				return v;
 			}
-
-			/**
-			 * Value for the switch to virtual mode in kernel
-			 */
-			static access_t init_virt_kernel() { return N::bits(TTBCR_N); }
 		};
 
 		/**
@@ -151,21 +123,15 @@ class Genode::Arm
 		 */
 		struct Ttbr0 : Register<32>
 		{
-			struct Ba : Bitfield<14-TTBCR_N, 18+TTBCR_N> { };
+			struct Ba : Bitfield<14, 18> { }; /* base */
 
-			/**
-			 * Write register, only in privileged CPU mode
-			 */
 			static void write(access_t const v) {
-				asm volatile ("mcr p15, 0, %[v], c2, c0, 0" :: [v]"r"(v) : ); }
+				asm volatile ("mcr p15, 0, %0, c2, c0, 0" :: "r" (v) : ); }
 
-			/**
-			 * Read register value
-			 */
 			static access_t read()
 			{
 				access_t v;
-				asm volatile ("mrc p15, 0, %[v], c2, c0, 0" : [v]"=r"(v) :: );
+				asm volatile ("mrc p15, 0, %0, c2, c0, 0" : "=r" (v) :: );
 				return v;
 			}
 		};
@@ -175,48 +141,15 @@ class Genode::Arm
 		 */
 		struct Dacr : Register<32>
 		{
-			enum Dx_values { NO_ACCESS = 0, CLIENT = 1 };
+			struct D0 : Bitfield<0,2> { }; /* access mode for domain 0 */
 
-			/**
-			 * Access values for the 16 available domains
-			 */
-			struct D0  : Bitfield<0,2> { };
-			struct D1  : Bitfield<2,2> { };
-			struct D2  : Bitfield<4,2> { };
-			struct D3  : Bitfield<6,2> { };
-			struct D4  : Bitfield<8,2> { };
-			struct D5  : Bitfield<10,2> { };
-			struct D6  : Bitfield<12,2> { };
-			struct D7  : Bitfield<14,2> { };
-			struct D8  : Bitfield<16,2> { };
-			struct D9  : Bitfield<18,2> { };
-			struct D10 : Bitfield<20,2> { };
-			struct D11 : Bitfield<22,2> { };
-			struct D12 : Bitfield<24,2> { };
-			struct D13 : Bitfield<26,2> { };
-			struct D14 : Bitfield<28,2> { };
-			struct D15 : Bitfield<30,2> { };
-
-			/**
-			 * Write register, only in privileged CPU mode
-			 */
 			static void write(access_t const v) {
-				asm volatile ("mcr p15, 0, %[v], c3, c0, 0" :: [v]"r"(v) : ); }
+				asm volatile ("mcr p15, 0, %0, c3, c0, 0" :: "r" (v) : ); }
 
 			/**
-			 * Initialize for Genodes operational mode
+			 * Return value initialized for virtual mode in kernel
 			 */
-			static access_t init_virt_kernel()
-			{
-				return D0::bits(CLIENT)     | D1::bits(NO_ACCESS)  |
-				       D2::bits(NO_ACCESS)  | D3::bits(NO_ACCESS)  |
-				       D4::bits(NO_ACCESS)  | D5::bits(NO_ACCESS)  |
-				       D6::bits(NO_ACCESS)  | D7::bits(NO_ACCESS)  |
-				       D8::bits(NO_ACCESS)  | D9::bits(NO_ACCESS)  |
-				       D10::bits(NO_ACCESS) | D11::bits(NO_ACCESS) |
-				       D12::bits(NO_ACCESS) | D13::bits(NO_ACCESS) |
-				       D14::bits(NO_ACCESS) | D15::bits(NO_ACCESS);
-			}
+			static access_t init_virt_kernel() { return D0::bits(1); }
 		};
 
 		/**
@@ -224,14 +157,8 @@ class Genode::Arm
 		 */
 		struct Icimvau : Register<32>
 		{
-			/**
-			 * Write register value
-			 */
-			static void write(access_t const v)
-			{
-				asm volatile (
-					"mcr p15, 0, %[v], c7, c5, 1\n" :: [v] "r" (v) : );
-			}
+			static void write(access_t const v) {
+				asm volatile ("mcr p15, 0, %0, c7, c5, 1" :: "r" (v) : ); }
 		};
 
 		/**
@@ -239,14 +166,8 @@ class Genode::Arm
 		 */
 		struct Dccmvac : Register<32>
 		{
-			/**
-			 * Write register value
-			 */
-			static void write(access_t const v)
-			{
-				asm volatile (
-					"mcr p15, 0, %[v], c7, c10, 1\n" :: [v] "r" (v) : );
-			}
+			static void write(access_t const v) {
+				asm volatile ("mcr p15, 0, %0, c7, c10, 1" :: "r" (v) : ); }
 		};
 
 		/**
@@ -254,21 +175,13 @@ class Genode::Arm
 		 */
 		struct Cidr : Register<32>
 		{
-			/**
-			 * Write register value
-			 */
-			static void write(access_t const v)
-			{
-				asm volatile ("mcr p15, 0, %[v], c13, c0, 1" :: [v]"r"(v) : );
-			}
+			static void write(access_t const v) {
+				asm volatile ("mcr p15, 0, %0, c13, c0, 1" :: "r" (v) : ); }
 
-			/**
-			 * Read register value
-			 */
 			static access_t read()
 			{
 				access_t v;
-				asm volatile ("mrc p15, 0, %[v], c13, c0, 1" : [v]"=r"(v) :: );
+				asm volatile ("mrc p15, 0, %0, c13, c0, 1" : "=r" (v) :: );
 				return v;
 			}
 		};
@@ -278,81 +191,59 @@ class Genode::Arm
 		 */
 		struct Psr : Register<32>
 		{
-			struct M : Bitfield<0,5> /* processor mode */
-			{
-				enum { USER = 0b10000, SUPERVISOR = 0b10011 };
-			};
+			static constexpr access_t usr = 16;
+			static constexpr access_t svc = 19;
 
-			struct T : Bitfield<5,1> /* instruction state */
-			{
-				enum { ARM = 0 };
-			};
-
+			struct M : Bitfield<0,5> { }; /* CPU mode */
 			struct F : Bitfield<6,1> { }; /* FIQ disable */
 			struct I : Bitfield<7,1> { }; /* IRQ disable */
-			struct A : Bitfield<8,1> { }; /* asynchronous abort disable */
+			struct A : Bitfield<8,1> { }; /* async. abort disable */
 
-			struct E : Bitfield<9,1> /* load/store endianess */
-			{
-				enum { LITTLE = 0 };
-			};
-
-			struct J : Bitfield<24,1> /* instruction state */
-			{
-				enum { ARM = 0 };
-			};
-
-			/**
-			 * Read register
-			 */
 			static access_t read()
 			{
 				access_t v;
-				asm volatile ("mrs %[v], cpsr" : [v] "=r" (v) : : );
+				asm volatile ("mrs %0, cpsr" : "=r" (v) :: );
 				return v;
 			}
 
-			/**
-			 * Write register
-			 */
 			static void write(access_t const v) {
-				asm volatile ("msr cpsr, %[v]" : : [v] "r" (v) : ); }
+				asm volatile ("msr cpsr, %0" :: "r" (v) : ); }
 
 			/**
-			 * Initial value for a user execution context with trustzone
-			 *
-			 * FIXME: This function should not be declared in 'Arm' but in
-			 *        'Arm_v7', but for now the declaration is necessary
-			 *        because of 'User_context::User_context()'.
+			 * Return value initialized for user execution with trustzone
 			 */
 			inline static access_t init_user_with_trustzone();
 
 			/**
-			 * Initial value for an userland execution context
+			 * Do common initialization on register value 'v'
 			 */
-			static access_t init_user()
+			static void init_common(access_t & v)
 			{
-				return M::bits(M::USER) |
-				       T::bits(T::ARM) |
-				       F::bits(1) |
-				       I::bits(0) |
-				       A::bits(1) |
-				       E::bits(E::LITTLE) |
-				       J::bits(J::ARM);
+				F::set(v, 1);
+				A::set(v, 1);
 			}
 
 			/**
-			 * Initial value for the kernel execution context
+			 * Return initial value for user execution
+			 */
+			static access_t init_user()
+			{
+				access_t v = 0;
+				init_common(v);
+				M::set(v, usr);
+				return v;
+			}
+
+			/**
+			 * Return initial value for the kernel
 			 */
 			static access_t init_kernel()
 			{
-				return M::bits(M::SUPERVISOR) |
-				       T::bits(T::ARM) |
-				       F::bits(1) |
-				       I::bits(1) |
-				       A::bits(1) |
-				       E::bits(E::LITTLE) |
-				       J::bits(J::ARM);
+				access_t v = 0;
+				init_common(v);
+				M::set(v, svc);
+				I::set(v, 1);
+				return v;
 			}
 		};
 
@@ -361,17 +252,12 @@ class Genode::Arm
 		 */
 		struct Fsr : Register<32>
 		{
-			/**
-			 * Fault status encoding
-			 */
-			enum Fault_status
-			{
-				SECTION_TRANSLATION = 5,
-				PAGE_TRANSLATION = 7,
-			};
+			static constexpr access_t section = 5;
+			static constexpr access_t page    = 7;
 
-			struct Fs_3_0 : Bitfield<0, 4> { };  /* fault status */
-			struct Fs_4   : Bitfield<10, 1> { }; /* fault status */
+			struct Fs_0 : Bitfield<0, 4> { };       /* fault status */
+			struct Fs_1 : Bitfield<10, 1> { };      /* fault status */
+			struct Fs   : Bitset_2<Fs_0, Fs_1> { }; /* fault status */
 		};
 
 		/**
@@ -379,24 +265,11 @@ class Genode::Arm
 		 */
 		struct Ifsr : Fsr
 		{
-			/**
-			 * Read register value
-			 */
 			static access_t read()
 			{
 				access_t v;
-				asm volatile ("mrc p15, 0, %[v], c5, c0, 1" : [v]"=r"(v) :: );
+				asm volatile ("mrc p15, 0, %0, c5, c0, 1" : "=r" (v) :: );
 				return v;
-			}
-
-			/**
-			 * Read fault status
-			 */
-			static Fault_status fault_status()
-			{
-				access_t const v = read();
-				return (Fault_status)(Fs_3_0::get(v) |
-				                     (Fs_4::get(v) << Fs_3_0::WIDTH));
 			}
 		};
 
@@ -407,23 +280,11 @@ class Genode::Arm
 		{
 			struct Wnr : Bitfield<11, 1> { }; /* write not read bit */
 
-			/**
-			 * Read register value
-			 */
 			static access_t read()
 			{
 				access_t v;
-				asm volatile ("mrc p15, 0, %[v], c5, c0, 0" : [v]"=r"(v) :: );
+				asm volatile ("mrc p15, 0, %0, c5, c0, 0" : "=r" (v) :: );
 				return v;
-			}
-
-			/**
-			 * Read fault status
-			 */
-			static Fault_status fault_status() {
-				access_t const v = read();
-				return (Fault_status)(Fs_3_0::get(v) |
-				                     (Fs_4::get(v) << Fs_3_0::WIDTH));
 			}
 		};
 
@@ -432,10 +293,8 @@ class Genode::Arm
 		 */
 		struct Dfar : Register<32>
 		{
-			/**
-			 * Read register value
-			 */
-			static access_t read() {
+			static access_t read()
+			{
 				access_t v;
 				asm volatile ("mrc p15, 0, %[v], c6, c0, 0" : [v]"=r"(v) :: );
 				return v;
@@ -477,10 +336,9 @@ class Genode::Arm
 			 */
 			User_context();
 
-			/***************************************************
-			 ** Communication between user and context holder **
-			 ***************************************************/
-
+			/**
+			 * Support for kernel calls
+			 */
 			void user_arg_0(unsigned const arg) { r0 = arg; }
 			void user_arg_1(unsigned const arg) { r1 = arg; }
 			void user_arg_2(unsigned const arg) { r2 = arg; }
@@ -511,62 +369,52 @@ class Genode::Arm
 			}
 
 			/**
-			 * Return if the context is in a page fault due to a translation miss
+			 * Return if the context is in a page fault due to translation miss
 			 *
 			 * \param va  holds the virtual fault-address if call returns 1
 			 * \param w   holds wether it's a write fault if call returns 1
 			 */
 			bool in_fault(addr_t & va, addr_t & w) const
 			{
-				/* determine fault type */
 				switch (cpu_exception) {
 
 				case PREFETCH_ABORT: {
 
 					/* check if fault was caused by a translation miss */
-					Ifsr::Fault_status const fs = Ifsr::fault_status();
-					if (fs == Ifsr::SECTION_TRANSLATION ||
-					    fs == Ifsr::PAGE_TRANSLATION)
-					{
-						/* fetch fault data */
-						w = 0;
-						va = ip;
-						return 1;
-					}
-					return 0; }
+					Ifsr::access_t const fs = Ifsr::Fs::get(Ifsr::read());
+					if (fs != Ifsr::section && fs != Ifsr::page) { return 0; }
+
+					/* fetch fault data */
+					w = 0;
+					va = ip;
+					return 1; }
 
 				case DATA_ABORT: {
 
 					/* check if fault was caused by translation miss */
-					Dfsr::Fault_status const fs = Dfsr::fault_status();
-					if(fs == Dfsr::SECTION_TRANSLATION ||
-					   fs == Dfsr::PAGE_TRANSLATION)
-					{
-						/* fetch fault data */
-						Dfsr::access_t const dfsr = Dfsr::read();
-						w = Dfsr::Wnr::get(dfsr);
-						va = Dfar::read();
-						return 1;
-					}
-					return 0; }
+					Dfsr::access_t const fs = Dfsr::Fs::get(Dfsr::read());
+					if (fs != Dfsr::section && fs != Dfsr::page) { return 0; }
 
-				default: return 0;
-				}
+					/* fetch fault data */
+					Dfsr::access_t const dfsr = Dfsr::read();
+					w = Dfsr::Wnr::get(dfsr);
+					va = Dfar::read();
+					return 1; }
+
+				default: return 0; }
 			}
 		};
 
 		/**
 		 * Returns true if current execution context is running in user mode
 		 */
-		inline static bool is_user() {
-			return Psr::M::get(Psr::read()) == Psr::M::USER; }
+		static bool is_user() { return Psr::M::get(Psr::read()) == Psr::usr; }
 
 		/**
 		 * Invalidate all entries of all instruction caches
 		 */
-		__attribute__((always_inline))
-		static void invalidate_instr_caches() {
-			asm volatile ("mcr p15, 0, %[rd], c7, c5, 0" :: [rd]"r"(0) : ); }
+		__attribute__((always_inline)) static void invalidate_instr_caches() {
+			asm volatile ("mcr p15, 0, %0, c7, c5, 0" :: "r" (0) : ); }
 
 		/**
 		 * Flush all entries of all data caches
@@ -588,14 +436,12 @@ class Genode::Arm
 		}
 
 		/**
-		 * Invalidate all TLB entries of one address space
-		 *
-		 * \param pid  ID of the targeted address space
+		 * Invalidate all TLB entries of the address space named 'pid'
 		 */
 		static void flush_tlb_by_pid(unsigned const pid)
 		{
 			flush_caches();
-			asm volatile ("mcr p15, 0, %[pid], c8, c7, 2" :: [pid]"r"(pid) : );
+			asm volatile ("mcr p15, 0, %0, c8, c7, 2" :: "r" (pid) : );
 		}
 
 		/**
@@ -604,41 +450,36 @@ class Genode::Arm
 		static void flush_tlb()
 		{
 			flush_caches();
-			asm volatile ("mcr p15, 0, %[rd], c8, c7, 0" :: [rd]"r"(0) : );
+			asm volatile ("mcr p15, 0, %0, c8, c7, 0" :: "r" (0) : );
 		}
 
+		static constexpr addr_t line_size = 1 << Board::CACHE_LINE_SIZE_LOG2;
+		static constexpr addr_t line_align_mask = ~(line_size - 1);
+
 		/**
-		 * Clean every data-cache entry within a virtual region
+		 * Flush data-cache entries for virtual region ['base', 'base + size')
 		 */
 		static void
 		flush_data_caches_by_virt_region(addr_t base, size_t const size)
 		{
-			enum {
-				LINE_SIZE        = 1 << Board::CACHE_LINE_SIZE_LOG2,
-				LINE_ALIGNM_MASK = ~(LINE_SIZE - 1),
-			};
 			addr_t const top = base + size;
-			base = base & LINE_ALIGNM_MASK;
-			for (; base < top; base += LINE_SIZE) { Dccmvac::write(base); }
+			base &= line_align_mask;
+			for (; base < top; base += line_size) { Dccmvac::write(base); }
 		}
 
 		/**
-		 * Invalidate every instruction-cache entry within a virtual region
+		 * Bin instr.-cache entries for virtual region ['base', 'base + size')
 		 */
 		static void
 		invalidate_instr_caches_by_virt_region(addr_t base, size_t const size)
 		{
-			enum {
-				LINE_SIZE        = 1 << Board::CACHE_LINE_SIZE_LOG2,
-				LINE_ALIGNM_MASK = ~(LINE_SIZE - 1),
-			};
 			addr_t const top = base + size;
-			base = base & LINE_ALIGNM_MASK;
-			for (; base < top; base += LINE_SIZE) { Icimvau::write(base); }
+			base &= line_align_mask;
+			for (; base < top; base += line_size) { Icimvau::write(base); }
 		}
 
 		/**
-		 * Return true if the processor support multiple cores
+		 * Return true if the CPU supports multiple cores
 		 */
 		static bool is_smp() { return PROCESSORS > 1; }
 };

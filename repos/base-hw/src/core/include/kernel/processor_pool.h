@@ -46,7 +46,7 @@ class Kernel::Idle_thread : public Thread
 
 		enum {
 			STACK_SIZE   = sizeof(addr_t) * 32,
-			STACK_ALIGNM = Cpu::DATA_ACCESS_ALIGNM,
+			STACK_ALIGNM = Cpu::data_access_align,
 		};
 
 		char _stack[STACK_SIZE] __attribute__((aligned(STACK_ALIGNM)));

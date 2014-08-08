@@ -39,79 +39,55 @@ class Genode::Arm_gic_distributor : public Mmio
 {
 	public:
 
-		enum { NR_OF_IRQ = 1024 };
-
-		/**
-		 * Constructor
-		 */
-		Arm_gic_distributor(addr_t const base) : Mmio(base) { }
+		static constexpr unsigned nr_of_irq = 1024;
 
 		/**
 		 * Control register
 		 */
-		struct Ctlr : Register<0x000, 32>
-		{
-			struct Enable : Bitfield<0,1> { };
-		};
+		struct Ctlr : Register<0x000, 32> {
+			struct Enable : Bitfield<0,1> { }; };
 
 		/**
 		 * Controller type register
 		 */
-		struct Typer : Register<0x004, 32>
-		{
-			struct It_lines_number : Bitfield<0,5> { };
-			struct Cpu_number      : Bitfield<5,3> { };
-		};
+		struct Typer : Register<0x004, 32> {
+			struct It_lines_number : Bitfield<0,5> { }; };
 
 		/**
 		 * Interrupt group register
 		 */
-		struct Igroupr : Register_array<0x80, 32, NR_OF_IRQ, 1>
-		{
-			struct Group_status : Bitfield<0, 1> { };
-		};
+		struct Igroupr : Register_array<0x80, 32, nr_of_irq, 1> {
+			struct Group_status : Bitfield<0, 1> { }; };
 
 		/**
 		 * Interrupt set enable registers
 		 */
-		struct Isenabler : Register_array<0x100, 32, NR_OF_IRQ, 1, true>
-		{
-			struct Set_enable : Bitfield<0, 1> { };
-		};
+		struct Isenabler : Register_array<0x100, 32, nr_of_irq, 1, true> {
+			struct Set_enable : Bitfield<0, 1> { }; };
 
 		/**
 		 * Interrupt clear enable registers
 		 */
-		struct Icenabler : Register_array<0x180, 32, NR_OF_IRQ, 1, true>
-		{
-			struct Clear_enable : Bitfield<0, 1> { };
-		};
+		struct Icenabler : Register_array<0x180, 32, nr_of_irq, 1, true> {
+			struct Clear_enable : Bitfield<0, 1> { }; };
 
 		/**
 		 * Interrupt priority level registers
 		 */
-		struct Ipriorityr : Register_array<0x400, 32, NR_OF_IRQ, 8>
-		{
-			enum { GET_MIN = 0xff };
-
-			struct Priority : Bitfield<0, 8> { };
-		};
+		struct Ipriorityr : Register_array<0x400, 32, nr_of_irq, 8> {
+			struct Priority : Bitfield<0, 8> { }; };
 
 		/**
 		 * Interrupt processor target registers
 		 */
-		struct Itargetsr : Register_array<0x800, 32, NR_OF_IRQ, 8>
-		{
-			struct Cpu_targets : Bitfield<0, 8> { };
-		};
+		struct Itargetsr : Register_array<0x800, 32, nr_of_irq, 8> {
+			struct Cpu_targets : Bitfield<0, 8> { }; };
 
 		/**
 		 * Interrupt configuration registers
 		 */
-		struct Icfgr : Register_array<0xc00, 32, NR_OF_IRQ, 2>
-		{
-			struct Edge_triggered : Bitfield<1, 1> { };
-		};
+		struct Icfgr : Register_array<0xc00, 32, nr_of_irq, 2> {
+			struct Edge_triggered : Bitfield<1, 1> { }; };
 
 		/**
 		 * Software generated interrupt register
@@ -123,27 +99,27 @@ class Genode::Arm_gic_distributor : public Mmio
 		};
 
 		/**
-		 * Minimum supported interrupt priority
+		 * Constructor
 		 */
-		Ipriorityr::access_t min_priority()
+		Arm_gic_distributor(addr_t const base) : Mmio(base) { }
+
+		/**
+		 * Return minimum IRQ priority
+		 */
+		unsigned min_priority()
 		{
-			write<Ipriorityr::Priority>(Ipriorityr::GET_MIN, 0);
+			write<Ipriorityr::Priority>(~0, 0);
 			return read<Ipriorityr::Priority>(0);
 		}
 
 		/**
-		 * Maximum supported interrupt priority
+		 * Return highest IRQ number
 		 */
-		Ipriorityr::access_t max_priority() { return 0; }
-
-		/**
-		 * ID of the maximum supported interrupt
-		 */
-		Typer::access_t max_interrupt()
+		unsigned max_irq()
 		{
-			enum { LINE_WIDTH_LOG2 = 5 };
-			Typer::access_t lnr = read<Typer::It_lines_number>();
-			return ((lnr + 1) << LINE_WIDTH_LOG2) - 1;
+			constexpr unsigned line_width_log2 = 5;
+			Typer::access_t const lnr = read<Typer::It_lines_number>();
+			return ((lnr + 1) << line_width_log2) - 1;
 		}
 };
 
@@ -152,19 +128,11 @@ class Genode::Arm_gic_cpu_interface : public Mmio
 	public:
 
 		/**
-		 * Constructor
-		 */
-		Arm_gic_cpu_interface(addr_t const base) : Mmio(base) { }
-
-		/**
 		 * Control register
 		 */
 		struct Ctlr : Register<0x00, 32>
 		{
-			/* Without security extension */
-			struct Enable : Bitfield<0,1> { };
-
-			/* In a secure world */
+			struct Enable      : Bitfield<0,1> { };
 			struct Enable_grp0 : Bitfield<0,1> { };
 			struct Enable_grp1 : Bitfield<1,1> { };
 			struct Fiq_en      : Bitfield<3,1> { };
@@ -173,74 +141,66 @@ class Genode::Arm_gic_cpu_interface : public Mmio
 		/**
 		 * Priority mask register
 		 */
-		struct Pmr : Register<0x04, 32>
-		{
-			struct Priority : Bitfield<0,8> { };
-		};
+		struct Pmr : Register<0x04, 32> {
+			struct Priority : Bitfield<0,8> { }; };
 
 		/**
 		 * Binary point register
 		 */
-		struct Bpr : Register<0x08, 32>
-		{
-			enum { NO_PREEMPTION = 7 };
-
-			struct Binary_point : Bitfield<0,3> { };
-		};
+		struct Bpr : Register<0x08, 32> {
+			struct Binary_point : Bitfield<0,3> { }; };
 
 		/**
 		 * Interrupt acknowledge register
 		 */
-		struct Iar : Register<0x0c, 32, true>
-		{
-			struct Irq_id : Bitfield<0,10> { };
-		};
+		struct Iar : Register<0x0c, 32, true> {
+			struct Irq_id : Bitfield<0,10> { }; };
 
 		/**
 		 * End of interrupt register
 		 */
-		struct Eoir : Register<0x10, 32, true>
-		{
-			struct Irq_id : Bitfield<0,10> { };
-			struct Cpu_id : Bitfield<10,3> { };
-		};
+		struct Eoir : Register<0x10, 32, true> {
+			struct Irq_id : Bitfield<0,10> { }; };
+
+		/**
+		 * Constructor
+		 */
+		Arm_gic_cpu_interface(addr_t const base) : Mmio(base) { }
 };
 
 class Genode::Arm_gic
 {
 	protected:
 
-		enum {
-			MIN_SPI  = 32,
-			SPURIOUS_ID = 1023,
-		};
-
 		typedef Arm_gic_cpu_interface Cpui;
 		typedef Arm_gic_distributor   Distr;
 
+		static constexpr unsigned min_spi     = 32;
+		static constexpr unsigned spurious_id = 1023;
+
 		Distr          _distr;
 		Cpui           _cpui;
-		unsigned const _max_interrupt;
+		unsigned const _max_irq;
 		unsigned       _last_request;
 
 		/**
-		 * Return inter-processor interrupt of a specific processor
-		 *
-		 * \param processor_id  kernel name of targeted processor
+		 * Return inter-processor IRQ of the CPU with kernel name 'cpu_id'
 		 */
-		unsigned _ip_interrupt(unsigned const processor_id) const
-		{
-			return processor_id + 1;
-		}
+		unsigned _ipi(unsigned const cpu_id) const { return cpu_id + 1; }
 
 		/**
 		 * Platform specific initialization
 		 */
 		void _init();
 
+		/**
+		 * Return wether kernel name 'irq_id' addresses a valid IRQ
+		 */
+		bool _valid(unsigned const irq_id) const { return irq_id <= _max_irq; }
+
 	public:
 
-		enum { NR_OF_IRQ = Distr::NR_OF_IRQ };
+		enum { NR_OF_IRQ = Distr::nr_of_irq };
 
 		/**
 		 * Constructor
@@ -248,124 +208,83 @@ class Genode::Arm_gic
 		Arm_gic(addr_t const distr_base, addr_t const cpu_base)
 		:
 			_distr(distr_base), _cpui(cpu_base),
-			_max_interrupt(_distr.max_interrupt()),
-			_last_request(SPURIOUS_ID)
-		{
-			_init();
-		}
+			_max_irq(_distr.max_irq()),
+			_last_request(spurious_id) { _init(); }
 
 		/**
-		 * Initialize processor local interface of the controller
+		 * Initialize CPU local interface of the controller
 		 */
 		void init_processor_local()
 		{
 			/* disable the priority filter */
 			_cpui.write<Cpui::Pmr::Priority>(_distr.min_priority());
 
-			/* disable preemption of interrupt handling by interrupts */
-			_cpui.write<Cpui::Bpr::Binary_point>(Cpui::Bpr::NO_PREEMPTION);
+			/* disable preemption of IRQ handling by other IRQs */
+			_cpui.write<Cpui::Bpr::Binary_point>(~0);
 
 			/* enable device */
 			_cpui.write<Cpui::Ctlr::Enable>(1);
 		}
 
 		/**
-		 * Get the ID of the last interrupt request
+		 * Try to take an IRQ and return wether it was successful
 		 *
-		 * \return  True if the request with ID 'i' is treated as accepted
-		 *          by the CPU and awaits an subsequently 'finish_request'
-		 *          call. Otherwise this returns false and the value of 'i'
-		 *          remains useless.
+		 * \param irq_id  contains kernel name of taken IRQ on success
 		 */
-		bool take_request(unsigned & i)
+		bool take_request(unsigned & irq_id)
 		{
 			_last_request = _cpui.read<Cpui::Iar::Irq_id>();
-			i = _last_request;
-			return valid(i);
+			irq_id = _last_request;
+			return _valid(irq_id);
 		}
 
 		/**
-		 * Complete the last request that was taken via 'take_request'
+		 * End the last taken IRQ
 		 */
 		void finish_request()
 		{
-			if (!valid(_last_request)) return;
-			_cpui.write<Cpui::Eoir>(Cpui::Eoir::Irq_id::bits(_last_request) |
-			                        Cpui::Eoir::Cpu_id::bits(0) );
-			_last_request = SPURIOUS_ID;
+			if (!_valid(_last_request)) { return; }
+			_cpui.write<Cpui::Eoir::Irq_id>(_last_request);
+			_last_request = spurious_id;
 		}
 
 		/**
-		 * Check if 'i' is a valid interrupt request ID at the device
-		 */
-		bool valid(unsigned const i) const { return i <= _max_interrupt; }
-
-		/**
-		 * Unmask all interrupts
-		 */
-		void unmask()
-		{
-			for (unsigned i=0; i <= _max_interrupt; i++) {
-				_distr.write<Distr::Isenabler::Set_enable>(1, i);
-			}
-		}
-
-		/**
-		 * Unmask interrupt and assign it to a specific processor
+		 * Unmask IRQ and assign it to one CPU
 		 *
-		 * \param interrupt_id  kernel name of targeted interrupt
-		 * \param processor_id  kernel name of targeted processor
+		 * \param irq_id  kernel name of targeted IRQ
+		 * \param cpu_id  kernel name of targeted CPU
 		 */
-		void unmask(unsigned const interrupt_id, unsigned const processor_id)
+		void unmask(unsigned const irq_id, unsigned const cpu_id)
 		{
-			unsigned const targets = 1 << processor_id;
-			_distr.write<Distr::Itargetsr::Cpu_targets>(targets, interrupt_id);
-			_distr.write<Distr::Isenabler::Set_enable>(1, interrupt_id);
+			unsigned const targets = 1 << cpu_id;
+			_distr.write<Distr::Itargetsr::Cpu_targets>(targets, irq_id);
+			_distr.write<Distr::Isenabler::Set_enable>(1, irq_id);
 		}
 
 		/**
-		 * Mask all interrupts
+		 * Mask IRQ with kernel name 'irq_id'
 		 */
-		void mask()
-		{
-			for (unsigned i=0; i <= _max_interrupt; i++) {
-				_distr.write<Distr::Icenabler::Clear_enable>(1, i);
-			}
-		}
+		void mask(unsigned const irq_id) {
+			_distr.write<Distr::Icenabler::Clear_enable>(1, irq_id); }
 
 		/**
-		 * Mask specific interrupt
+		 * Return wether an IRQ is inter-processor IRQ of a CPU
 		 *
-		 * \param interrupt_id  kernel name of targeted interrupt
+		 * \param irq_id  kernel name of the IRQ
+		 * \param cpu_id  kernel name of the CPU
 		 */
-		void mask(unsigned const interrupt_id)
-		{
-			_distr.write<Distr::Icenabler::Clear_enable>(1, interrupt_id);
-		}
+		bool is_ip_interrupt(unsigned const irq_id, unsigned const cpu_id) {
+			return irq_id == _ipi(cpu_id); }
 
 		/**
-		 * Wether an interrupt is inter-processor interrupt of a processor
-		 *
-		 * \param interrupt_id  kernel name of the interrupt
-		 * \param processor_id  kernel name of the processor
+		 * Raise inter-processor IRQ of the CPU with kernel name 'cpu_id'
 		 */
-		bool is_ip_interrupt(unsigned const interrupt_id,
-		                     unsigned const processor_id)
-		{
-			return interrupt_id == _ip_interrupt(processor_id);
-		}
-
-		/**
-		 * Trigger the inter-processor interrupt of a processor
-		 *
-		 * \param processor_id  kernel name of the processor
-		 */
-		void trigger_ip_interrupt(unsigned const processor_id)
+		void trigger_ip_interrupt(unsigned const cpu_id)
 		{
 			typedef Distr::Sgir Sgir;
 			Sgir::access_t sgir = 0;
-			Sgir::Sgi_int_id::set(sgir, _ip_interrupt(processor_id));
-			Sgir::Cpu_target_list::set(sgir, 1 << processor_id);
+			Sgir::Sgi_int_id::set(sgir, _ipi(cpu_id));
+			Sgir::Cpu_target_list::set(sgir, 1 << cpu_id);
 			_distr.write<Sgir>(sgir);
 		}
 };

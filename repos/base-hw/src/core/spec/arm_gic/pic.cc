@@ -22,10 +22,9 @@ void Arm_gic::_init()
 	_distr.write<Distr::Ctlr::Enable>(0);
 
 	/* configure every shared peripheral interrupt */
-	for (unsigned i=MIN_SPI; i <= _max_interrupt; i++)
-	{
+	for (unsigned i = min_spi; i <= _max_irq; i++) {
 		_distr.write<Distr::Icfgr::Edge_triggered>(0, i);
-		_distr.write<Distr::Ipriorityr::Priority>(_distr.max_priority(), i);
+		_distr.write<Distr::Ipriorityr::Priority>(0, i);
 	}
 	/* enable device */
 	_distr.write<Distr::Ctlr::Enable>(1);
