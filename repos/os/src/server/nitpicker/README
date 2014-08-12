@@ -6,35 +6,134 @@ please refer to the following document:
   [http://genode-labs.com/publications/nitpicker-secure-gui-2005.pdf]
 
 
-Configuration
-~~~~~~~~~~~~~
+Nitpicker supports the following configuration options, supplied via Genode's
+config mechanism.
 
-Nitpicker supports the following configuration options, supplied via
-Genode's config mechanism.
 
-Tinting of clients in X-Ray mode
---------------------------------
+Domains
+~~~~~~~
 
-Nitpicker allows for assigning a color to single clients or a groups
-of clients based on the client's label. The following configuration
-tints all views of the launchpad subsystem in blue except for those
-views that belong to the testnit child of launchpad.
+Nitpicker clients are grouped into so-called domains where each domain can be
+subjected to a different policy. The assignment of clients to domains is
+expressed via '<policy>' nodes as illustrated by the following example:
 
 ! <config>
-!   <policy label="launchpad"            color="#0000ff"/>
-!   <policy label="launchpad -> testnit" color="#ff0000"/>
+!   ...
+!   <policy label="pointer"    domain="pointer"/>
+!   <policy label="status_bar" domain="panel"/>
+!   <policy label=""           domain=""/>
+!   ...
 ! </config>
 
+When a session is created, the session label as provided with the creation
+request determines the policy rule to apply to the session. The policy with
+the longest matching label comes into effect. In the example above, the
+client labeled as "pointer" will be assigned to the domain named "pointer".
+The client labeled as "status_bar" will be assigned to the domain "panel".
+All other clients will be assigned to the third domain with an empty name.
+
+The properties of each domain are declared via '<domain>' nodes. For example:
+
+! <config>
+!   ...
+!  <domain name="pointer" layer="1" xray="no" origin="pointer" />
+!  <domain name="panel"   layer="2" xray="no" />
+!  <domain name=""        layer="3" ypos="18" height="-18" />
+!   ...
+! </config>
+
+
+Layering
+--------
+
+The 'name' attribute of a '<domain>' node corresponds to the 'domain'
+declarations of the '<policy>' nodes. Each domain requires the definition
+of a 'layer', which is number. It allows for constraining the stacking
+position of the domain's views to a certain part of the global view stack.
+The front-most layer has the number 0. In the example above, all views
+of the "pointer" domain are presented in front of all others because the
+"pointer" domain is assigned to the lowest layer. All views of the "panel"
+domain are placed behind the "pointer" but in front to all other views
+that belong to the unnamed domain.
+
+
+Domain-specific coordinate systems
+----------------------------------
+
+The operations issued by nitpicker clients refer to screen coordinates.
+For each domain, the coordinate system can be constrained in the following
+ways.
+
+The 'origin' attribute specifies the location of the coordinate (0,0) on
+screen. It can take the values "top_left", "top_right", "bottom_left",
+"bottom_right", and "pointer". By default, the coordinate origin (0,0) refers
+to the top-left screen corner. When configured to use the "pointer" as origin,
+all views of the domain are positioned relative to the current pointer
+position. If the mouse if moved, the movement will be applied to all views of
+the domain. This enables the realization of pointer shapes outside of the
+nitpicker server.
+
+In addition to the coarse definition of the 'origin', it is possible to further
+shift the origin by a fixed amount of pixels using the 'xpos' and 'ypos'
+attributes. By specifying an 'ypos' value of 18 as in the example above, an
+operation that places a view at (0,0) will position the view at (0,18). This is
+useful to preserve a certain screen area for a panel.
+
+The combination of the 'origin' attribute with 'xpos' and 'ypos' allows the
+constraining of the screen at each border without the need to specify
+values that depend on the screen dimension. E.g., for placing a panel at
+the right screen border, the 'origin' attribute can be set to "top_right"
+and the 'xpos' value to a negative width of the panel.
+
+
+Domain-specific screen size constraints
+---------------------------------------
+
+The screen dimensions reported when a client requests the size of the screen
+can be tweaked per domain. E.g., when preserving a part of the screen for a
+panel, it is sensible to reduce the screen size reported to normal clients by
+the size of the panel so that such clients can adjust themselves the part of
+the screen not covered by the panel. The screen-size constrains are expressed
+via the 'width' and 'height' attributes. If specifying a positive value, the
+value is reported to the client as is. If specifying a negative value, the
+value is subtracted from the physical dimensions. It is thereby possible to
+shrink the reported screen size independent of the physical screen size.
+
+
+X-Ray mode
+----------
+
+The behavior of nitpicker's X-ray mode can be defined for each domain
+individually. Each domain can have an associated color configured via the
+'color' attribute. This color is used by nitpicker when the X-ray mode
+is active.
+
+By setting the 'xray' attribute to "frame" (default), the views of the
+domain will be surrounded by a thin frame of the domain color. The content
+of all non-focussed views will be tinted using the domain color.
+
+When setting the 'xray' value to "opaque", the view's content will be
+replaced by the opaque session color. This is useful for domains that
+display many tiny views, e.g., window handles.
+
+By assigning the value "none", the X-ray mode will not be applied to the
+domain. This is useful for trusted domains such as the pointer or a global
+panel. When X-ray mode gets activated, the views of those trusted clients
+remain unobstructed.
+
+
 Global key definitions
-----------------------
+~~~~~~~~~~~~~~~~~~~~~~
 
 Nitpicker has a few built-in function that can be activated via global
 keyboard shortcuts, namely the X-ray mode and the kill mode. The keys
 for toggling those functions can be defined as follows:
 
 ! <config>
+!   ...
 !   <global-key name="KEY_SCROLLLOCK" operation="xray" />
 !   <global-key name="KEY_PRINT"      operation="kill" />
+!   ...
 ! </config>
 
 Each '<global-key>' node expresses a rule for a named key. The 'operation'
@@ -52,18 +151,44 @@ the key specified in the '<key>' node. For the routing of global keys to
 clients, the order of '<key>' nodes is important. If multiple nodes exists for
 different labels, the first match will take effect. For example:
 
-! <global-key name="KEY_F11" label="launchpad -> testnit" />
-! <global-key name="KEY_F11" label="launchpad" />
+! <config>
+!   ...
+!   <global-key name="KEY_F11" label="launchpad -> testnit" />
+!   <global-key name="KEY_F11" label="launchpad" />
+!   ...
+! </config>
 
 The "launchpad" client will receive all key sequences starting with F11 unless
 the "launchpad -> testnit" program is running. As soon as testnit gets started
 by launchpad, testnit will receive the events. If the order was reversed,
 launchpad would always receive the events.
 
+
 Background color
-----------------
+~~~~~~~~~~~~~~~~
 
 The background color can be defined via the '<background>' config node:
 
-! <background color="#112233" />
+! <config>
+!   ...
+!   <background color="#112233" />
+!   ...
+! </config>
 
+
+Status reporting
+~~~~~~~~~~~~~~~~
+
+Nitpicker can be configured to report parts of its internal state to the
+outside world via report sessions. The reporting can be enabled using the
+'<report>' node as follows:
+
+! <config>
+!   ...
+!   <report focus="yes" />
+!   ...
+! </config>
+
+The 'focus' attribute enables the reporting of the currently focused session.
+The 'pointer' attribute enables the reporting of the current absolute pointer
+position.
