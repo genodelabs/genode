@@ -23,6 +23,11 @@ build $build_components
 create_boot_directory
 
 #
+# Create Qt tar archive
+
+create_qt5_fs_tar_archive "textedit" "gui"
+
+#
 # Generate config
 #
 
@@ -76,8 +81,12 @@ append config {
 	<start name="textedit">
 		<resource name="RAM" quantum="70M"/>
 		<config xpos="3" ypos="0" width="500" height="710">
-			<libc>
-				<vfs> <fs/> </vfs>
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs>
+					<dir name="dev"> <log/> </dir>
+					<tar name="qt5_fs_textedit.tar"/>
+					<dir name="fs">	<fs/> </dir>
+				</vfs>
 			</libc>
 		</config>
 	</start>
@@ -85,8 +94,12 @@ append config {
 		<binary name="textedit" />
 		<resource name="RAM" quantum="70M"/>
 		<config xpos="512" ypos="0" width="500" height="710">
-			<libc>
-				<vfs> <fs/> </vfs>
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs>
+					<dir name="dev"> <log/> </dir>
+					<tar name="qt5_fs_textedit.tar"/>
+					<dir name="fs">	<fs/> </dir>
+				</vfs>
 			</libc>
 		</config>
 	</start>
@@ -114,12 +127,12 @@ append boot_modules {
 	jpeg.lib.so
 	pthread.lib.so
 	qt5_core.lib.so
-	qt5_dejavusans.lib.so
 	qt5_gui.lib.so
 	qt5_widgets.lib.so
 	qt5_xml.lib.so
 	zlib.lib.so
 	stdcxx.lib.so
+	qt5_fs_textedit.tar
 }
 
 # platform-specific modules

@@ -4,7 +4,10 @@ QT5_REP_DIR := $(realpath $(dir $(QT5_REP_DIR))../..)
 
 include $(QT5_REP_DIR)/lib/mk/qt5_version.inc
 
-QMAKE_PROJECT_PATH = $(realpath $(QT5_REP_DIR)/contrib/$(QT5)/qttools/examples/designer/calculatorform)
+QT5_PORT_DIR := $(call select_from_ports,qt5)
+QT5_CONTRIB_DIR := $(QT5_PORT_DIR)/src/lib/qt5/$(QT5)
+
+QMAKE_PROJECT_PATH = $(QT5_CONTRIB_DIR)/qttools/examples/designer/calculatorform
 QMAKE_PROJECT_FILE = $(QMAKE_PROJECT_PATH)/calculatorform.pro
 
 vpath % $(QMAKE_PROJECT_PATH)

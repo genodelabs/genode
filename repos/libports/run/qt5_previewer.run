@@ -15,6 +15,12 @@ build $build_components
 create_boot_directory
 
 #
+# Create Qt tar archive
+#
+
+create_qt5_fs_tar_archive "previewer" "gui"
+
+#
 # Generate config
 #
 
@@ -33,6 +39,14 @@ append config [qt5_start_nodes feature]
 append config {
 	<start name="previewer">
 		<resource name="RAM" quantum="2G"/>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs>
+					<dir name="dev"> <log/> </dir>
+					<tar name="qt5_fs_previewer.tar"/>
+				</vfs>
+			</libc>
+		</config>
 	</start>
 </config>
 }
@@ -60,7 +74,6 @@ append boot_modules {
 	libssl.lib.so
 	pthread.lib.so
 	qt5_core.lib.so
-	qt5_dejavusans.lib.so
 	qt5_gui.lib.so
 	qt5_jscore.lib.so
 	qt5_network.lib.so
@@ -74,6 +87,7 @@ append boot_modules {
 	qt5_xml.lib.so
 	zlib.lib.so
 	stdcxx.lib.so
+	qt5_fs_previewer.tar
 }
 
 build_boot_image $boot_modules

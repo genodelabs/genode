@@ -27,9 +27,9 @@ COMPILER_MOC_SOURCE_MAKE_ALL_FILES_FILTER_OUT = \
 
 include $(REP_DIR)/lib/mk/qt5.inc
 
-INC_DIR += $(REP_DIR)/contrib/$(QT5)/qtbase/include/QtNetwork/$(QT_VERSION) \
-           $(REP_DIR)/contrib/$(QT5)/qtbase/include/QtNetwork/$(QT_VERSION)/QtNetwork \
-           $(REP_DIR)/contrib/$(QT5)/qtbase/include/QtCore/$(QT_VERSION) \
-           $(REP_DIR)/contrib/$(QT5)/qtbase/include/QtCore/$(QT_VERSION)/QtCore
+INC_DIR += $(QT5_CONTRIB_DIR)/qtbase/include/QtNetwork/$(QT_VERSION) \
+           $(QT5_CONTRIB_DIR)/qtbase/include/QtNetwork/$(QT_VERSION)/QtNetwork \
+           $(QT5_CONTRIB_DIR)/qtbase/include/QtCore/$(QT_VERSION) \
+           $(QT5_CONTRIB_DIR)/qtbase/include/QtCore/$(QT_VERSION)/QtCore
 
 LIBS += qt5_core zlib libc libssl

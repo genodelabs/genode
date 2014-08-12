@@ -18,6 +18,12 @@ build $build_components
 create_boot_directory
 
 #
+# Create Qt tar archive
+#
+
+create_qt5_fs_tar_archive "arora" "gui"
+
+#
 # Generate tar archives with plugin configurations
 #
 exec tar cf bin/nitpicker_plugin.tar -C [genode_dir]/repos/ports/src/app/arora/demo/nitpicker_plugin config.plugin
@@ -47,7 +53,10 @@ append config {
 		<resource name="RAM" quantum="2G"/>
 		<config>
 			<libc stdout="/dev/log" stderr="/dev/log">
-				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+				<vfs>
+					<dir name="dev"> <log/> </dir>
+					<tar name="qt5_fs_arora.tar"/>
+				</vfs>
 			</libc>
 		</config>
 	</start>
@@ -82,7 +91,6 @@ if {[have_spec qt4_deprecated]} {
 	# Qt4-specific boot modules
 	#
 	append boot_modules {
-		dejavusans.lib.so
 		qt_core.lib.so
 		qt_gui.lib.so
 		qt_jscore.lib.so
@@ -104,7 +112,6 @@ if {[have_spec qt4_deprecated]} {
 		icu.lib.so
 		pthread.lib.so
 		qt5_core.lib.so
-		qt5_dejavusans.lib.so
 		qt5_gui.lib.so
 		qt5_jscore.lib.so
 		qt5_network.lib.so
@@ -120,6 +127,7 @@ if {[have_spec qt4_deprecated]} {
 		qt5_webkitwidgets.lib.so
 		qt5_widgets.lib.so
 		qt5_wtf.lib.so
+		qt5_fs_arora.tar
 	}
 }
 

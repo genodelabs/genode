@@ -19,7 +19,7 @@ create_boot_directory
 # Create Qt tar archive
 #
 
-exec tar chf bin/qt5_fs.tar -C bin/qt5_fs .
+create_qt5_fs_tar_archive "samegame" "gui quick"
 
 #
 # Generate config
@@ -44,7 +44,7 @@ append config {
 			<libc stdout="/dev/log" stderr="/dev/log">
 				<vfs>
 					<dir name="dev"> <log/> </dir>
-					<tar name="qt5_fs.tar" />
+					<tar name="qt5_fs_samegame.tar" />
 				</vfs>
 			</libc>
 		</config>
@@ -78,7 +78,6 @@ append boot_modules {
 	jpeg.lib.so
 	pthread.lib.so
 	qt5_core.lib.so
-	qt5_dejavusans.lib.so
 	qt5_network.lib.so
 	qt5_qml.lib.so
 	qt5_gui.lib.so
@@ -88,7 +87,7 @@ append boot_modules {
 	qt5_xml.lib.so
 	zlib.lib.so
 	stdcxx.lib.so
-	qt5_fs.tar
+	qt5_fs_samegame.tar
 	qt5_qtquick2plugin.lib.so
 }
 

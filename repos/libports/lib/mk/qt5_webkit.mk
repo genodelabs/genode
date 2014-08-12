@@ -21,5 +21,5 @@ include $(REP_DIR)/lib/mk/qt5.inc
 
 LIBS += qt5_webcore qt5_jscore qt5_network qt5_printsupport qt5_core icu libc libm
 
-vpath %.qrc $(REP_DIR)/contrib/$(QT5)/src/3rdparty/webkit/Source/WebCore
-vpath %.qrc $(REP_DIR)/contrib/$(QT5)/src/3rdparty/webkit/Source/WebCore/inspector/front-end
+vpath %.qrc $(QT5_CONTRIB_DIR)/src/3rdparty/webkit/Source/WebCore
+vpath %.qrc $(QT5_CONTRIB_DIR)/src/3rdparty/webkit/Source/WebCore/inspector/front-end

@@ -22,7 +22,7 @@ endif
 # QtGui
 ifeq ($(findstring gui, $(QT)), gui)
 QT_DEFINES += -DQT_GUI_LIB
-LIBS += qt5_gui qt5_qpa_nitpicker qt5_widgets qt5_dejavusans
+LIBS += qt5_gui qt5_qpa_nitpicker qt5_widgets
 endif
 
 # QtNetwork

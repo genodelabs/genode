@@ -21,20 +21,19 @@ SRC_CC += main.cpp \
           moc_qunixeventdispatcher_qpa_p.cpp \
           moc_qevdevkeyboardhandler_p.cpp
 
-INC_DIR += $(REP_DIR)/contrib/$(QT5)/qtbase/src/platformsupport/eventdispatchers \
-           $(REP_DIR)/contrib/$(QT5)/qtbase/src/platformsupport/fontdatabases/basic \
-           $(REP_DIR)/contrib/$(QT5)/qtbase/src/3rdparty/harfbuzz/src \
-           $(REP_DIR)/contrib/$(QT5)/qtbase/include/QtPlatformSupport/$(QT_VERSION) \
-           $(REP_DIR)/contrib/$(QT5)/qtbase/include/QtGui/$(QT_VERSION) \
-           $(REP_DIR)/contrib/$(QT5)/qtbase/include/QtCore/$(QT_VERSION) \
-           $(REP_DIR)/contrib/$(QT5)/qtbase/include/QtCore/$(QT_VERSION)/QtCore
+INC_DIR += $(QT5_CONTRIB_DIR)/qtbase/src/platformsupport/eventdispatchers \
+           $(QT5_CONTRIB_DIR)/qtbase/src/platformsupport/fontdatabases/basic \
+           $(QT5_CONTRIB_DIR)/qtbase/src/3rdparty/harfbuzz/src \
+           $(QT5_CONTRIB_DIR)/qtbase/include/QtPlatformSupport/$(QT_VERSION) \
+           $(QT5_CONTRIB_DIR)/qtbase/include/QtGui/$(QT_VERSION) \
+           $(QT5_CONTRIB_DIR)/qtbase/include/QtCore/$(QT_VERSION) \
+           $(QT5_CONTRIB_DIR)/qtbase/include/QtCore/$(QT_VERSION)/QtCore
 
 LIBS += qt5_xml qt5_gui qt5_core libm freetype gallium qoost
 
-vpath % $(call select_from_repositories,contrib/$(QT5)/qtbase/src/platformsupport/eventdispatchers)
-vpath % $(call select_from_repositories,contrib/$(QT5)/qtbase/src/platformsupport/input/evdevkeyboard)
-vpath % $(call select_from_repositories,contrib/$(QT5)/qtbase/src/platformsupport/fontdatabases/basic)
-vpath % $(call select_from_repositories,contrib/$(QT5)/qtbase/src/platformsupport/eglconvenience)
-vpath % $(call select_from_repositories,contrib/$(QT5)/qtbase/src/gui/text)
-vpath % $(call select_from_repositories,src/lib/qt5/qtbase/src/plugins/platforms/nitpicker)
-
+vpath % $(QT5_CONTRIB_DIR)/qtbase/src/platformsupport/eventdispatchers
+vpath % $(QT5_CONTRIB_DIR)/qtbase/src/platformsupport/input/evdevkeyboard
+vpath % $(QT5_CONTRIB_DIR)/qtbase/src/platformsupport/fontdatabases/basic
+vpath % $(QT5_CONTRIB_DIR)/qtbase/src/platformsupport/eglconvenience
+vpath % $(QT5_CONTRIB_DIR)/qtbase/src/gui/text
+vpath % $(REP_DIR)/src/lib/qt5/qtbase/src/plugins/platforms/nitpicker

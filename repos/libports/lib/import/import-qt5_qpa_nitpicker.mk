@@ -6,6 +6,6 @@ include $(IMPORT_QT5_INC)
 # the qt5_qnitpickerviewwidget library
 
 INC_DIR += $(REP_DIR)/src/lib/qt5/qtbase/src/plugins/platforms/nitpicker \
-           $(REP_DIR)/contrib/$(QT5)/qtbase/src/platformsupport/input/evdevkeyboard \
-           $(REP_DIR)/contrib/$(QT5)/qtbase/include/QtGui/$(QT_VERSION)/QtGui \
+           $(QT5_CONTRIB_DIR)/qtbase/src/platformsupport/input/evdevkeyboard \
+           $(QT5_CONTRIB_DIR)/qtbase/include/QtGui/$(QT_VERSION)/QtGui \
 

@@ -28,6 +28,12 @@ if {![file exists bin/mediafile]} {
 create_boot_directory
 
 #
+# Create Qt tar archive
+#
+
+create_qt5_fs_tar_archive "qt_avplay" "gui"
+
+#
 # Generate config
 #
 
@@ -47,6 +53,12 @@ append config {
 	<start name="qt_avplay">
 		<resource name="RAM" quantum="2G"/>
 		<config>
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs>
+					<dir name="dev"> <log/> </dir>
+					<tar name="qt5_fs_qt_avplay.tar"/>
+				</vfs>
+			</libc>
 			<mediafile name="mediafile"/>
 		</config>
 	</start>
@@ -74,7 +86,6 @@ append boot_modules {
 	jpeg.lib.so
 	pthread.lib.so
 	qt5_core.lib.so
-	qt5_dejavusans.lib.so
 	qt5_gui.lib.so
 	qt5_qnitpickerviewwidget.lib.so
 	qt5_widgets.lib.so
@@ -90,6 +101,7 @@ append boot_modules {
 	avplay
 	mediafile
 	stdcxx.lib.so
+	qt5_fs_qt_avplay.tar
 }
 
 build_boot_image $boot_modules

@@ -22,14 +22,6 @@
 /repos/libports/src/lib/qt5/qtjsbackend
 /repos/libports/src/lib/qt5/qtwebkit/Source/JavaScriptCore
 /repos/libports/src/lib/qt5/qtwebkit/Source/WebCore/generated
-/repos/libports/tool/qt5/bootstrap
-/repos/libports/tool/qt5/misc/var
-/repos/libports/tool/qt5/moc
-/repos/libports/tool/qt5/qmake/*.d
-/repos/libports/tool/qt5/qmake/*.o
-/repos/libports/tool/qt5/qmake/qmake
-/repos/libports/tool/qt5/rcc
-/repos/libports/tool/qt5/uic
 /repos/ports-foc/contrib
 /repos/ports-okl4/contrib
 /repos/ports-okl4/download

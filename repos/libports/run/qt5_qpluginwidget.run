@@ -18,6 +18,12 @@ build $build_components
 create_boot_directory
 
 #
+# Create Qt tar archive
+#
+
+create_qt5_fs_tar_archive "test-qpluginwidget" "gui"
+
+#
 # Generate config
 #
 
@@ -40,6 +46,14 @@ append config {
 	</start>
 	<start name="test-qpluginwidget">
 		<resource name="RAM" quantum="30M"/>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs>
+					<dir name="dev"> <log/> </dir>
+					<tar name="qt5_fs_test-qpluginwidget.tar"/>
+				</vfs>
+			</libc>
+		</config>
 	</start>
 </config>
 }
@@ -72,7 +86,6 @@ append boot_modules {
 	jpeg.lib.so
 	pthread.lib.so
 	qt5_core.lib.so
-	qt5_dejavusans.lib.so
 	qt5_gui.lib.so
 	qt5_qnitpickerviewwidget.lib.so
 	qt5_qpluginwidget.lib.so
@@ -82,6 +95,7 @@ append boot_modules {
 	zlib.lib.so
 	test-plugin.tar
 	stdcxx.lib.so
+	qt5_fs_test-qpluginwidget.tar
 }
 
 build_boot_image $boot_modules

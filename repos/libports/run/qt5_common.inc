@@ -120,3 +120,26 @@ proc qt5_boot_modules { feature_arg } {
 	return $boot_modules
 }
 
+
+#
+# tar archive
+#
+
+proc create_qt5_fs_tar_archive { app_name qt_modules } {
+
+	exec rm -rf bin/qt5_fs/${app_name}/qt
+
+	if { [lsearch ${qt_modules} "gui"] != -1 } {
+		# add fonts
+		exec mkdir -p bin/qt5_fs/${app_name}/qt/lib
+		exec ln -sf [pwd]/bin/qt5_fs/qt/lib/fonts bin/qt5_fs/${app_name}/qt/lib/fonts
+	}
+
+	if { [lsearch ${qt_modules} "quick"] != -1 } {
+		# add QtQuick plugins
+		exec mkdir -p bin/qt5_fs/${app_name}/qt
+		exec ln -sf [pwd]/bin/qt5_fs/qt/qml bin/qt5_fs/${app_name}/qt/qml
+	}
+
+	exec tar chf bin/qt5_fs_${app_name}.tar -C bin/qt5_fs/${app_name} .
+}

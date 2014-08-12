@@ -1,5 +1,6 @@
 qt5_configuration.patch
 qt5_generated_headers.patch
+qt5_qtbase_qconfig.patch
 qt5_qtbase_genode.patch
 qt5_qtbase_virtual_deletelater.patch
 qt5_qtbase_lwip_connect_semantics_adaption.patch

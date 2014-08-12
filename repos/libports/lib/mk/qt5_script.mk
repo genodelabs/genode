@@ -16,8 +16,8 @@ COMPILER_MOC_SOURCE_MAKE_ALL_FILES_FILTER_OUT = \
 
 include $(REP_DIR)/lib/mk/qt5.inc
 
-INC_DIR += $(REP_DIR)/contrib/$(QT5)/qtscript/include/QtScript/$(QT_VERSION)/QtScript \
-           $(REP_DIR)/contrib/$(QT5)/qtbase/include/QtCore/$(QT_VERSION)/QtCore \
+INC_DIR += $(QT5_CONTRIB_DIR)/qtscript/include/QtScript/$(QT_VERSION)/QtScript \
+           $(QT5_CONTRIB_DIR)/qtbase/include/QtCore/$(QT_VERSION)/QtCore \
 
 LIBS += qt5_core pthread
 

@@ -4,7 +4,10 @@ QT5_REP_DIR := $(realpath $(dir $(QT5_REP_DIR))../..)
 
 include $(QT5_REP_DIR)/lib/mk/qt5_version.inc
 
-QMAKE_PROJECT_PATH = $(realpath $(QT5_REP_DIR)/contrib/$(QT5)/qtscript/examples/script/qstetrix)
+QT5_PORT_DIR := $(call select_from_ports,qt5)
+QT5_CONTRIB_DIR := $(QT5_PORT_DIR)/src/lib/qt5/$(QT5)
+
+QMAKE_PROJECT_PATH = $(QT5_CONTRIB_DIR)/qtscript/examples/script/qstetrix
 QMAKE_PROJECT_FILE = $(QMAKE_PROJECT_PATH)/qstetrix.pro
 
 vpath % $(QMAKE_PROJECT_PATH)

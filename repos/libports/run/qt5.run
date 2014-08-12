@@ -17,6 +17,14 @@ build $build_components
 create_boot_directory
 
 #
+# Create Qt tar archives
+#
+
+create_qt5_fs_tar_archive "qt_launchpad" "gui"
+create_qt5_fs_tar_archive "calculatorform" "gui"
+create_qt5_fs_tar_archive "tetrix" "gui"
+
+#
 # Generate config
 #
 
@@ -39,6 +47,7 @@ append config {
 			<libc stdout="/dev/log" stderr="/dev/log">
 				<vfs>
 					<dir name="dev"> <log/> </dir>
+					<tar name="qt5_fs_qt_launchpad.tar"/>
 				</vfs>
 			</libc>
 			<launcher name="calculatorform" ram_quota="30M">
@@ -46,6 +55,7 @@ append config {
 					<libc stdout="/dev/log" stderr="/dev/log">
 						<vfs>
 							<dir name="dev"> <log/> </dir>
+							<tar name="qt5_fs_calculatorform.tar"/>
 						</vfs>
 					</libc>
 				</config>
@@ -55,6 +65,7 @@ append config {
 					<libc stdout="/dev/log" stderr="/dev/log">
 						<vfs>
 							<dir name="dev"> <log/> </dir>
+							<tar name="qt5_fs_tetrix.tar"/>
 						</vfs>
 					</libc>
 				</config>
@@ -85,7 +96,6 @@ append boot_modules {
 	jpeg.lib.so
 	pthread.lib.so
 	qt5_core.lib.so
-	qt5_dejavusans.lib.so
 	qt5_gui.lib.so
 	qt5_widgets.lib.so
 	qt5_xml.lib.so
@@ -95,6 +105,9 @@ append boot_modules {
 	stdcxx.lib.so
 	calculatorform
 	tetrix
+	qt5_fs_qt_launchpad.tar
+	qt5_fs_calculatorform.tar
+	qt5_fs_tetrix.tar
 }
 
 

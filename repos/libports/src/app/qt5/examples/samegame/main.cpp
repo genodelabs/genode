@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
 
     QQuickView view;
-    view.setSource(QUrl("qrc:/samegame.qml"));
+    view.setSource(QUrl("/samegame.qml"));
     view.show();
 
     return app.exec();
