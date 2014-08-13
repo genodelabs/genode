@@ -34,8 +34,6 @@
 /* includes for I/O */
 #include <base/env.h>
 #include <util/list.h>
-#include <nitpicker_session/connection.h>
-#include <nitpicker_view/client.h>
 #include <input/event.h>
 
 using Genode::List;
