@@ -225,7 +225,7 @@ _extract_function = $(call _assert,\
 %.archive: DIR     = $(call _archive_dir,$*)
 
 %.archive: %.file
-	@$(MSG_EXTRACT)$(ARCHIVE)
+	@$(MSG_EXTRACT)"$(ARCHIVE) ($*)"
 	$(VERBOSE)\
 		mkdir -p $(DIR);\
 		$(call _extract_function,$*)
