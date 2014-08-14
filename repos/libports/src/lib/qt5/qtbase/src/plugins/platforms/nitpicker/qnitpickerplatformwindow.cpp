@@ -18,6 +18,7 @@
 /* Qt includes */
 #include <qpa/qwindowsysteminterface.h>
 #include <qpa/qplatformscreen.h>
+#include <QGuiApplication>
 #include <QDebug>
 
 #include "qnitpickerplatformwindow.h"
@@ -132,6 +133,15 @@ Nitpicker::Session::View_handle QNitpickerPlatformWindow::_create_view()
 	if (window()->type() == Qt::Dialog)
 		return _nitpicker_session.create_view();
 
+	/*
+	 * Popup menus should never get a window decoration, therefore we set a top
+	 * level Qt window as 'transient parent'.
+	 */
+	if (!window()->transientParent() && (window()->type() == Qt::Popup)) {
+		QWindow *top_window = QGuiApplication::topLevelWindows().first();
+	    window()->setTransientParent(top_window);
+	}
+
 	if (window()->transientParent()) {
 		QNitpickerPlatformWindow *parent_platform_window =
 			static_cast<QNitpickerPlatformWindow*>(window()->transientParent()->handle());
@@ -145,8 +155,9 @@ Nitpicker::Session::View_handle QNitpickerPlatformWindow::_create_view()
 		_nitpicker_session.release_view_handle(parent_handle);
 
 		return result;
-	} else
-		return _nitpicker_session.create_view();
+	}
+
+	return _nitpicker_session.create_view();
 }
 
 void QNitpickerPlatformWindow::_adjust_and_set_geometry(const QRect &rect)
@@ -239,6 +250,11 @@ void QNitpickerPlatformWindow::setGeometry(const QRect &rect)
 	if (window()->isVisible()) {
 		QRect g(geometry());
 
+		if (window()->transientParent()) {
+			/* translate global position to parent-relative position */
+			g.moveTo(window()->transientParent()->mapFromGlobal(g.topLeft()));
+		}
+
 		typedef Nitpicker::Session::Command Command;
 		_nitpicker_session.enqueue<Command::Geometry>(_view_handle,
 		             Nitpicker::Rect(Nitpicker::Point(g.x(), g.y()),
@@ -272,7 +288,12 @@ void QNitpickerPlatformWindow::setVisible(bool visible)
 	typedef Nitpicker::Session::Command Command;
 
 	if (visible) {
-		QRect g = geometry();
+		QRect g(geometry());
+
+		if (window()->transientParent()) {
+			/* translate global position to parent-relative position */
+			g.moveTo(window()->transientParent()->mapFromGlobal(g.topLeft()));
+		}
 
 		_nitpicker_session.enqueue<Command::Geometry>(_view_handle,
 		     Nitpicker::Rect(Nitpicker::Point(g.x(), g.y()),
