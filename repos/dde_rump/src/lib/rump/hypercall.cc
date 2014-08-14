@@ -113,6 +113,13 @@ int rumpuser_thread_create(func f, void *arg, const char *name,
 	return 0;
 }
 
+
+void rumpuser_thread_exit()
+{
+	Genode::sleep_forever();
+}
+
+
 int errno;
 void rumpuser_seterrno(int e) { errno = e; }
 

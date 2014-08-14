@@ -1,8 +1,8 @@
 #
 # Check used commands
 #
-set mkfs.vfat [check_installed mkfs.vfat]
-set dd        [check_installed dd]
+set mkfs [check_installed mkfs.vfat]
+set dd   [check_installed dd]
 
 #
 # Build
@@ -21,7 +21,7 @@ build $build_components
 # Build FAT-file-system image
 #
 catch { exec $dd if=/dev/zero of=bin/fs.raw bs=1M count=16 }
-catch { exec $mkfs.vfat -F16 bin/fs.raw }
+catch { exec $mkfs -F16 bin/fs.raw }
 
 create_boot_directory
 
@@ -88,7 +88,7 @@ set boot_modules {
 
 build_boot_image $boot_modules
 
-append qemu_args " -m 256 -nographic"
+append qemu_args " -m 256 -nographic "
 
 run_genode_until {.*child "test-libc_vfs" exited with exit value 0.*} 60
 

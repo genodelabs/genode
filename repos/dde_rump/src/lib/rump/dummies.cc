@@ -46,7 +46,6 @@ DUMMY(-1, rumpuser_sp_copyoutstr)
 DUMMY(-1, rumpuser_sp_fini)
 DUMMY(-1, rumpuser_sp_init)
 DUMMY(-1, rumpuser_sp_raise)
-DUMMY(-1, rumpuser_thread_exit)
 DUMMY(-1, rumpuser_thread_join)
 DUMMY(-1, rumpuser_unmap)
 } /* extern "C" */

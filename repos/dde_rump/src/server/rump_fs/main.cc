@@ -197,7 +197,7 @@ class File_system::Session_component : public Session_rpc_object
 		Symlink_handle symlink(Dir_handle dir_handle, Name const &name, bool create)
 		{
 			if (!File_system::supports_symlinks())
-				return Symlink_handle();
+				throw Permission_denied();
 
 			if (!valid_name(name.string()))
 				throw Invalid_name();

@@ -262,14 +262,16 @@ static Backend *backend()
 
 	if (_b)
 		return _b;
+
+	int nlocks;
+	rumpkern_unsched(&nlocks, 0);
 	try {
-		int nlocks;
-		rumpkern_unsched(&nlocks, 0);
 		_b = new(Genode::env()->heap())Backend();
-		rumpkern_sched(nlocks, 0);
 	} catch (Genode::Parent::Service_denied) {
 		PERR("Opening block session denied!");
 	}
+	rumpkern_sched(nlocks, 0);
+
 	return _b;
 }
 

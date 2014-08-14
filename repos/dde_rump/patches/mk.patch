@@ -1,8 +1,8 @@
-diff --git a/share/mk/bsd.own.mk b/share/mk/bsd.own.mk
-index 57f4909..36235db 100644
+diff --git a/src/share/mk/bsd.own.mk b/src/share/mk/bsd.own.mk
+index 9bdc7c7..518440e 100644
 --- a/src/share/mk/bsd.own.mk
 +++ b/src/share/mk/bsd.own.mk
-@@ -1045,7 +1045,7 @@ INSTPRIV?=	${INSTPRIV.unpriv} -N ${NETBSDSRCDIR}/etc
+@@ -1155,7 +1155,7 @@ INSTPRIV?=	${INSTPRIV.unpriv} -N ${NETBSDSRCDIR}/etc
  STRIPFLAG?=	
  
  .if ${NEED_OWN_INSTALL_TARGET} != "no"

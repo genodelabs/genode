@@ -2,26 +2,30 @@ LICENSE   := BSD
 VERSION   := git
 DOWNLOADS := rump.git nblibs.git
 
-URL(rump) := https://github.com/anttikantee/buildrump.sh.git
-REV(rump) := d604845baafa110945cb54a2d9607e6f435c6027
+URL(rump) := https://github.com/rumpkernel/buildrump.sh.git
+REV(rump) := fd4bdac4ad6357a36b9a0af6abde02bf3bb42232
 DIR(rump) := src/lib/dde_rump
 
-URL(nblibs) := https://github.com/rumpkernel/netbsd-userspace-src.git
-REV(nblibs) := b86122315f338042d06ad83ac5bd763a5dbd0c00
+URL(nblibs) := https://github.com/rumpkernel/src-netbsd.git
+REV(nblibs) := b71ee7667ea9904c28b089feadc594a62f406bd5
 DIR(nblibs) := src/lib/dde_rump/nblibs
 
 PATCHES   := $(shell find $(REP_DIR)/patches/*.patch)
 PATCH_OPT := -N -d ${DIR(rump)} -p1
 
-GIT_NETBSD_COMMIT := ff70642c9d7a8fb4b3242b30de2efc1fd8ad9ad4
+GIT_NETBSD_COMMIT := 0875d49ae93a8101d5321b7a73983daee5c1b581
+NETBSD_SRC        := src/lib/dde_rump/src
+
 
 # checkout NetBSD sources
 default: checkout_src
 checkout_src: $(DOWNLOADS)
 	@$(MSG_PREFIX)"checkout NetBSD src "
+	$(VERBOSE)if [ -d "$(NETBSD_SRC)/.git" ]; then cd $(NETBSD_SRC) && git checkout -f; fi
 	$(VERBOSE)src/lib/dde_rump/checkout.sh git src/lib/dde_rump/src
-	$(VERBOSE)cd src/lib/dde_rump/src && git reset --hard $(GIT_NETBSD_COMMIT)
-	$(VERBOSE)ln -s ../src/common src/lib/dde_rump/nblibs/common
+	$(VERBOSE)cd $(NETBSD_SRC) && git reset --hard $(GIT_NETBSD_COMMIT)
+	$(VERBOSE)ln -sf ../src/common src/lib/dde_rump/nblibs/common
+
 
 DIRS := include/rump
 DIR_CONTENT(include/rump) := src/lib/dde_rump/src/sys/rump/include/rump/*.h

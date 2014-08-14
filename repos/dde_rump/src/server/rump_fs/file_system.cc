@@ -38,8 +38,7 @@ namespace File_system {
 
 static char const *fs_types[] = { RUMP_MOUNT_CD9660, RUMP_MOUNT_EXT2FS,
                                   RUMP_MOUNT_FFS, RUMP_MOUNT_MSDOS,
-                                  RUMP_MOUNT_NFS, RUMP_MOUNT_NTFS,
-                                  RUMP_MOUNT_SMBFS, RUMP_MOUNT_UDF, 0 };
+                                  RUMP_MOUNT_NTFS, RUMP_MOUNT_UDF, 0 };
 
 static char _fs_type[10];
 static bool _supports_symlinks;

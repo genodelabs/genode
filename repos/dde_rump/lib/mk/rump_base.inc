@@ -25,10 +25,11 @@ SOURCE = $(addprefix $(REP_DIR)/src/lib/rump/,$(SRC_CC))
 #
 # Rump build script
 #
-BUILD_CMD = AR=$(AR) NM=$(NM) OBJCOPY=$(OBJCOPY) \
+BUILD_CMD = BUILD_CC=cc BUILD_AR=ar BUILD_NM=nm BUILD_OBJCOPY=objcopy \
+            AR=$(AR) NM=$(NM) OBJCOPY=$(OBJCOPY) CC_TARGET=$(shell basename $(CC)) \
             $(RUMP_CONTRIB_DIR)/buildrump.sh -k -V'MAKEVERBOSE=$(VERBOSE_LEVEL)' \
-            $(RUMP_OPT) -s $(RUMP_SRC) -T $(RUMP_TOOLS) -o $(RUMP_OBJ) \
-            -d $(RUMP_BASE)
+            -V'NOGCCERROR=1' $(RUMP_OPT) -s $(RUMP_SRC) -T $(RUMP_TOOLS) \
+            -o $(RUMP_OBJ) -d $(RUMP_BASE)
 
 #
 # Linkage
@@ -83,7 +84,7 @@ $(RUMP_BASE)/include/.prepared: $(ARCHIVE)
 	@cd $(RUMP_SRC)/sys; $(RMAKE) -k obj >/dev/null 2>&1
 	@cd $(RUMP_SRC)/sys;  $(RMAKE) -k includes >/dev/null 2>&1
 	@cd $(RUMP_SRC)/include; $(RMAKE) -k includes > /dev/null 2>&1
-	@cd $(RUMP_CONTRIB_DIR)/nblibs/lib/libc; $(RMAKE) includes 
+	@cd $(RUMP_CONTRIB_DIR)/nblibs/lib/libc; $(RMAKE) includes
 	@cd $(RUMP_CONTRIB_DIR)/nblibs/lib/libpthread; $(RMAKE) includes >/dev/null 2>&1
 	@touch $(RUMP_BASE)/include/.prepared
 
