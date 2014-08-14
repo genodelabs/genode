@@ -9,6 +9,7 @@ set build_components {
 	server/nitpicker app/pointer server/report_rom
 	drivers/framebuffer drivers/pci drivers/input
 	test/nitpicker
+	app/backdrop
 	app/launchpad
 	server/nit_fb
 }
@@ -153,34 +154,58 @@ append config {
 			</any-service>
 		</route>
 	</start>
-	<start name="testnit">
-		<resource name="RAM" quantum="1M"/>
-		<route>
-			<any-service> <child name="wm"/> <parent/> <any-child/>
-			</any-service>
-		</route>
-	</start>
-	<start name="direct_testnit">
-		<binary name="testnit" />
-		<resource name="RAM" quantum="1M"/>
-		<route>
-			<any-service> <child name="nitpicker"/> <parent/> <any-child/>
-			</any-service>
-		</route>
-	</start>
 	<start name="launchpad">
 		<resource name="RAM" quantum="20M"/>
 		<config>
-			<launcher name="testnit"   ram_quota="768K" />
+			<launcher name="nit_fb" ram_quota="7M">
+				<config width="500" height="400" />
+			</launcher>
+			<launcher name="nitpicker" ram_quota="1M" >
+				<config>
+					<domain name="default" layer="2" />
+					<policy label="" domain="default"/>
+				</config>
+			</launcher>
+			<launcher name="testnit" ram_quota="768K" />
 		</config>
 		<route>
 			<any-service> <child name="wm"/> <parent/> <any-child/>
 			</any-service>
 		</route>
 	</start>
-	<start name="nit_fb">
-		<resource name="RAM" quantum="20M"/>
-		<config width="400" height="300" />
+	<start name="backdrop">
+		<resource name="RAM" quantum="4M"/>
+		<config>
+			<libc>
+				<vfs>
+					<rom name="genode_logo.png"/>
+					<rom name="grid.png"/>
+				</vfs>
+			</libc>
+			<fill color="#224433" />
+			<image png="grid.png"        tiled="yes" alpha="200" />
+			<image png="genode_logo.png" anchor="bottom_right" alpha="150"
+			                             xpos="-20" ypos="-20" />
+		</config>
+		<route>
+			<any-service> <child name="nitpicker"/> <parent/> <any-child/>
+			</any-service>
+		</route>
+	</start>
+	<start name="wm_backdrop">
+		<binary name="backdrop" />
+		<resource name="RAM" quantum="4M"/>
+		<config>
+			<libc>
+				<vfs>
+					<rom name="genode_logo.png"/>
+				</vfs>
+			</libc>
+			<fill color="#664455" />
+			<image png="genode_logo.png" scale="zoom" alpha="150" />
+			<image png="genode_logo.png" scale="fit" alpha="150" tiled="yes" />
+			<image png="genode_logo.png" />
+		</config>
 		<route>
 			<any-service> <child name="wm"/> <parent/> <any-child/>
 			</any-service>
@@ -189,6 +214,10 @@ append config {
 </config>}
 
 install_config $config
+
+# copy backdrop PNG images to bin directory
+foreach file { genode_logo.png grid.png } {
+	file copy -force [genode_dir]/repos/gems/src/app/backdrop/$file bin/ }
 
 
 #
@@ -202,7 +231,10 @@ set boot_modules {
 	wm decorator
 	floating_window_layouter
 	nitpicker pointer report_rom
+	backdrop
 	testnit launchpad nit_fb
+	ld.lib.so libpng.lib.so libc.lib.so libm.lib.so zlib.lib.so
+	genode_logo.png grid.png
 }
 
 # platform-specific modules
