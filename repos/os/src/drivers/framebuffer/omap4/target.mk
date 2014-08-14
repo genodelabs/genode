@@ -7,7 +7,7 @@
 TARGET   = fb_drv
 REQUIRES = omap4
 SRC_CC   = main.cc
-LIBS     = base config
+LIBS     = base blit config
 INC_DIR += $(PRG_DIR)
 
 vpath main.cc $(PRG_DIR)
