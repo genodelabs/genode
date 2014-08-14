@@ -111,8 +111,8 @@ namespace Framebuffer {
 				if (!bypp) return;
 
 				/* copy pixels from back buffer to physical frame buffer */
-				char *src = (char *)_bb_addr + bypp*(_scr_width*y + x),
-				     *dst = (char *)_fb_addr + bypp*(_scr_width*y + x);
+				char *src = (char *)_bb_addr + bypp*(_scr_width*y1 + x1),
+				     *dst = (char *)_fb_addr + bypp*(_scr_width*y1 + x1);
 
 				blit(src, bypp*_scr_width, dst, bypp*_scr_width,
 				     bypp*(x2 - x1 + 1), y2 - y1 + 1);

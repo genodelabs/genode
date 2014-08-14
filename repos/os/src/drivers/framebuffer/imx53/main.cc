@@ -57,8 +57,8 @@ class Framebuffer::Session_component :
 			int bypp = _mode.bytes_per_pixel();
 
 			/* copy pixels from back buffer to physical frame buffer */
-			char *src = (char *)_bb_addr + bypp*(_mode.width()*y + x),
-			     *dst = (char *)_fb_addr + bypp*(_mode.width()*y + x);
+			char *src = (char *)_bb_addr + bypp*(_mode.width()*y1 + x1),
+			     *dst = (char *)_fb_addr + bypp*(_mode.width()*y1 + x1);
 
 			blit(src, bypp*_mode.width(), dst, bypp*_mode.width(),
 				 bypp*(x2 - x1 + 1), y2 - y1 + 1);
