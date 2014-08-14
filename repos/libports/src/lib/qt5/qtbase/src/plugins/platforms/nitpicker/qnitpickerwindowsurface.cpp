@@ -11,6 +11,10 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
+#include <blit/blit.h>
+
+/* Qt includes */
 #include <private/qguiapplication_p.h>
 
 #include <qpa/qplatformscreen.h>
@@ -26,7 +30,7 @@ static const bool verbose = false;
 QT_BEGIN_NAMESPACE
 
 QNitpickerWindowSurface::QNitpickerWindowSurface(QWindow *window)
-    : QPlatformBackingStore(window), _framebuffer_changed(true)
+    : QPlatformBackingStore(window), _backbuffer(0), _framebuffer_changed(true)
 {
     //qDebug() << "QNitpickerWindowSurface::QNitpickerWindowSurface:" << (long)this;
 
@@ -36,6 +40,7 @@ QNitpickerWindowSurface::QNitpickerWindowSurface(QWindow *window)
 
 QNitpickerWindowSurface::~QNitpickerWindowSurface()
 {
+	qFree(_backbuffer);
 }
 
 QPaintDevice *QNitpickerWindowSurface::paintDevice()
@@ -55,7 +60,10 @@ QPaintDevice *QNitpickerWindowSurface::paintDevice()
     	 */
         QImage::Format format = QGuiApplication::primaryScreen()->handle()->format();
         QRect geo = _platform_window->geometry();
-        _image = QImage(_platform_window->framebuffer(), geo.width(), geo.height(), 2*geo.width(), format);
+        unsigned int const bytes_per_pixel = QGuiApplication::primaryScreen()->depth() / 8;
+		qFree(_backbuffer);
+		_backbuffer = (unsigned char*)qMalloc(geo.width() * geo.height() * bytes_per_pixel);
+		_image = QImage(_backbuffer, geo.width(), geo.height(), geo.width() * bytes_per_pixel, format);
 
         if (verbose)
         	qDebug() << "QNitpickerWindowSurface::paintDevice(): w =" << geo.width() << ", h =" << geo.height();
@@ -80,10 +88,35 @@ void QNitpickerWindowSurface::flush(QWindow *window, const QRegion &region, cons
     	         << ", offset =" << offset
     	         << ")";
 
-    _platform_window->refresh(region.boundingRect().x() + offset.x(),
-                              region.boundingRect().y() + offset.y(),
-                              region.boundingRect().width(),
-                              region.boundingRect().height());
+	unsigned int const bytes_per_pixel = _image.depth() / 8;
+
+	for (int i = 0; i < region.rects().size(); i++) {
+
+		QRect rect(region.rects()[i]);
+
+		/*
+		 * It happened that after resizing a window, the given flush region was
+		 * bigger than the current window size, so clipping is necessary here.
+		 */
+
+		rect &= _image.rect();
+
+		unsigned int buffer_offset = ((rect.y() + offset.y()) * _image.bytesPerLine()) +
+		                             ((rect.x() + offset.x()) * bytes_per_pixel);
+
+		blit(_image.bits() + buffer_offset,
+		     _image.bytesPerLine(),
+		     _platform_window->framebuffer() + buffer_offset,
+		     _image.bytesPerLine(),
+		     rect.width() * bytes_per_pixel,
+		     rect.height());
+
+		_platform_window->refresh(rect.x() + offset.x(),
+		                          rect.y() + offset.y(),
+		                          rect.width(),
+		                          rect.height());
+	}
+
 }
 
 void QNitpickerWindowSurface::resize(const QSize &size, const QRegion &staticContents)

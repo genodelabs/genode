@@ -175,6 +175,8 @@ void QNitpickerPlatformWindow::_adjust_and_set_geometry(const QRect &rect)
 	                       Framebuffer::Mode::RGB565);
 	_nitpicker_session.buffer(mode, false);
 
+	_framebuffer_changed = true;
+
 	emit framebuffer_changed();
 }
 
@@ -183,6 +185,7 @@ QNitpickerPlatformWindow::QNitpickerPlatformWindow(QWindow *window, Genode::Rpc_
 : QPlatformWindow(window),
   _framebuffer_session(_nitpicker_session.framebuffer_session()),
   _framebuffer(0),
+  _framebuffer_changed(false),
   _view_handle(_create_view()),
   _input_session(_nitpicker_session.input_session()),
   _timer(this),
@@ -535,12 +538,23 @@ bool QNitpickerPlatformWindow::frameStrutEventsEnabled() const
 unsigned char *QNitpickerPlatformWindow::framebuffer()
 {
 	if (qnpw_verbose)
-	    qDebug() << "QNitpickerPlatformWindow::framebuffer()";
+	    qDebug() << "QNitpickerPlatformWindow::framebuffer()" << _framebuffer;
 
-	if (_framebuffer)
-	    Genode::env()->rm_session()->detach(_framebuffer);
+	/*
+	 * The new framebuffer is acquired in this function to avoid a time span when
+	 * the nitpicker buffer would be black and not refilled yet by Qt.
+	 */
 
-	_framebuffer = Genode::env()->rm_session()->attach(_framebuffer_session.dataspace());
+	if (_framebuffer_changed) {
+
+	    _framebuffer_changed = false;
+
+		if (_framebuffer != 0)
+		    Genode::env()->rm_session()->detach(_framebuffer);
+
+		_framebuffer = Genode::env()->rm_session()->attach(_framebuffer_session.dataspace());
+	}
+
 	return _framebuffer;
 }
 

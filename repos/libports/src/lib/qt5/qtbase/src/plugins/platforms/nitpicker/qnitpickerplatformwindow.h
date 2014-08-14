@@ -40,6 +40,7 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 		Nitpicker::Connection           _nitpicker_session;
 		Framebuffer::Session_client     _framebuffer_session;
 		unsigned char                  *_framebuffer;
+		bool                            _framebuffer_changed;
 		Nitpicker::Session::View_handle _view_handle;
 		Input::Session_client           _input_session;
 		Input::Event                   *_ev_buf;

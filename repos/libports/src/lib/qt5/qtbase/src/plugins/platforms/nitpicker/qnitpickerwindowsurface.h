@@ -28,6 +28,7 @@ class QNitpickerWindowSurface : public QObject, public QPlatformBackingStore
 	private:
 
 		QNitpickerPlatformWindow *_platform_window;
+		unsigned char            *_backbuffer;
 		QImage                    _image;
 		bool                      _framebuffer_changed;
 
