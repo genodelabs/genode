@@ -101,11 +101,13 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 
 	View_updater &_view_updater;
 
+	Framebuffer::Mode::Format _format = _nitpicker.mode().format();
+
 	/*
 	 * Mode as requested by the configuration or by a mode change of our
 	 * nitpicker session.
 	 */
-	Framebuffer::Mode _next_mode = _nitpicker.mode();
+	Framebuffer::Mode _next_mode;
 
 	/*
 	 * Mode that was returned to the client at the last call of
@@ -122,9 +124,11 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 	 * Constructor
 	 */
 	Session_component(Nitpicker::Connection &nitpicker,
-	                  View_updater &view_updater)
+	                  View_updater &view_updater,
+	                  Framebuffer::Mode initial_mode)
 	:
-		_nitpicker(nitpicker), _view_updater(view_updater)
+		_nitpicker(nitpicker), _view_updater(view_updater),
+		_next_mode(initial_mode)
 	{ }
 
 	void size(Nitpicker::Area size)
@@ -209,11 +213,18 @@ struct Nit_fb::Main : View_updater
 
 	Genode::Attached_dataspace input_ds { nitpicker.input()->dataspace() };
 
+	Framebuffer::Mode _initial_mode()
+	{
+		return Framebuffer::Mode(config_arg("width",  nitpicker.mode().width()),
+		                         config_arg("height", nitpicker.mode().height()),
+		                         nitpicker.mode().format());
+	}
+
 	/*
 	 * Input and framebuffer sessions provided to our client
 	 */
 	Input::Session_component       input_session;
-	Framebuffer::Session_component fb_session { nitpicker, *this };
+	Framebuffer::Session_component fb_session { nitpicker, *this, _initial_mode() };
 
 	/*
 	 * Attach root interfaces to the entry point
@@ -242,15 +253,18 @@ struct Nit_fb::Main : View_updater
 		position = Point(config_arg("xpos", 0),
 		                 config_arg("ypos", 0));
 
-		refresh_rate = config_arg("refresh_rate", 0);
-
 		fb_session.size(Area(config_arg("width",  nit_mode.width()),
 		                     config_arg("height", nit_mode.height())));
 
-		PINF("using xywh=(%d,%d,%d,%d) refresh_rate=%u",
+		/*
+		 * Simulate a client call Framebuffer::Session::mode to make the
+		 * initial mode the active mode.
+		 */
+		fb_session.mode();
+
+		PINF("using xywh=(%d,%d,%d,%d)",
 		     position.x(), position.x(),
-		     fb_session.size().w(), fb_session.size().h(),
-		     refresh_rate);
+		     fb_session.size().w(), fb_session.size().h());
 
 		update_view();
 	}
