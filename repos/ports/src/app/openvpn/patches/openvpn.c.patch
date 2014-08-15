@@ -1,0 +1,23 @@
+--- a/src/openvpn/openvpn.c	2013-11-07 13:55:13.000000000 +0100
++++ b/src/openvpn/openvpn.c	2014-06-06 15:44:09.912735591 +0200
+@@ -127,7 +127,6 @@
+  * @param argc - Commandline argument count.
+  * @param argv - Commandline argument values.
+  */
+-static
+ int
+ openvpn_main (int argc, char *argv[])
+ {
+@@ -319,8 +318,8 @@
+   return ret;
+ }
+ #else
+-int
+-main (int argc, char *argv[]) {
+-	return openvpn_main(argc, argv);
+-}
++//int
++//main (int argc, char *argv[]) {
++//	return openvpn_main(argc, argv);
++//}
+ #endif

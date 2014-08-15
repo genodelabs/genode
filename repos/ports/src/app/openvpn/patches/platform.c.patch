@@ -1,0 +1,13 @@
+Since the VFS is process-local on Genode, we have all the rights we
+need.
+--- a/src/openvpn/platform.c	2014-06-03 16:47:45.892653524 +0200
++++ b/src/openvpn/platform.c	2014-06-03 16:47:53.896653798 +0200
+@@ -226,7 +226,7 @@
+   gc_free (&gc);
+   return ret;
+ #else
+-  return access (path, mode);
++  return 0;
+ #endif
+ }
+ 
