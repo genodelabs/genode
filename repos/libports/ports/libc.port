@@ -98,7 +98,8 @@ DIR_CONTENT(include/libc/vm) := \
 
 DIRS += include/libc/net
 DIR_CONTENT(include/libc/net) := \
-    $(addprefix src/lib/libc/sys/net/, if.h if_dl.h if_tun.h if_types.h)
+    $(addprefix src/lib/libc/sys/net/, if.h if_dl.h if_tun.h if_types.h \
+                radix.h route.h)
 
 DIRS += include/libc/netinet
 DIR_CONTENT(include/libc/netinet) := \
@@ -119,13 +120,14 @@ DIR_CONTENT(include/libc/sys) := \
                 _types.h limits.h cdefs.h _null.h types.h _pthreadtypes.h \
                 syslimits.h select.h _sigset.h _timeval.h timespec.h \
                 _timespec.h stat.h signal.h unistd.h time.h param.h stdint.h \
-                event.h disk.h errno.h poll.h queue.h mman.h stddef.h sysctl.h \
-                uio.h _iovec.h ktrace.h ioctl.h ttycom.h ioccom.h filio.h \
-                sockio.h wait.h file.h fcntl.h resource.h disklabel.h \
-                link_elf.h endian.h mount.h ucred.h dirent.h cpuset.h socket.h \
-                un.h ttydefaults.h imgact_aout.h elf32.h elf64.h elf_generic.h \
-                elf_common.h nlist_aout.h ipc.h sem.h exec.h _lock.h _mutex.h \
-                statvfs.h ucontext.h syslog.h times.h utsname.h elf.h mtio.h)
+                event.h eventhandler.h disk.h errno.h poll.h queue.h mman.h \
+                stddef.h sysctl.h uio.h _iovec.h ktrace.h ioctl.h ttycom.h \
+                ioccom.h filio.h sockio.h wait.h file.h fcntl.h resource.h \
+                disklabel.h link_elf.h endian.h mount.h ucred.h dirent.h \
+                cpuset.h socket.h un.h ttydefaults.h imgact_aout.h elf32.h \
+                elf64.h elf_generic.h elf_common.h nlist_aout.h ipc.h sem.h \
+                exec.h _lock.h _mutex.h statvfs.h ucontext.h syslog.h times.h \
+                utsname.h elf.h mtio.h)
 
 
 #
