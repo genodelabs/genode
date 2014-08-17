@@ -1,6 +1,6 @@
 TARGET  =  gdb_monitor
 
-GDB_CONTRIB_DIR = $(REP_DIR)/contrib/gdb-7.3.1
+GDB_CONTRIB_DIR = $(call select_from_ports,gdb)/src/noux-pkg/gdb
 
 INC_DIR += $(GDB_CONTRIB_DIR)/include \
            $(GDB_CONTRIB_DIR)/gdb/common \
