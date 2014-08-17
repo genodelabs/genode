@@ -1,6 +1,6 @@
 PWD = $(shell pwd)
 
-NOUX_PKG_DIR := $(REP_DIR)/contrib/gcc-4.7.2
+NOUX_PKG_DIR = $(call select_from_ports,gcc)/src/noux-pkg/gcc
 
 NOUX_CONFIGURE_ARGS = --program-prefix=$(PROGRAM_PREFIX) \
                       --target=$(GCC_TARGET) \
@@ -64,8 +64,6 @@ libgmp.a libmpfr.a libmpc.a libc.a:
 Makefile: dummy_libs
 
 LIBS  += libc libm libc_noux
-
-NOUX_PKG_DIR = $(wildcard $(REP_DIR)/contrib/gcc-*)
 
 include $(REP_DIR)/mk/noux.mk
 

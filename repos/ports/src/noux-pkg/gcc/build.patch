@@ -4,19 +4,31 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 
 ---
- Makefile.in             |    7 +++++++
- configure               |    1 +
+ Makefile.def            |    1 +
+ Makefile.tpl            |    6 ++++++
  fixincludes/Makefile.in |    4 ++--
  gcc/Makefile.in         |    6 +++---
- gcc/configure           |    1 +
+ gcc/configure.ac        |    1 +
  libgcc/Makefile.in      |    2 +-
- 6 files changed, 15 insertions(+), 6 deletions(-)
+ 6 files changed, 14 insertions(+), 6 deletions(-)
 
-diff --git a/Makefile.in b/Makefile.in
-index 1cb2117..84759de 100644
---- a/Makefile.in
-+++ b/Makefile.in
-@@ -153,6 +153,8 @@ BUILD_EXPORTS = \
+diff --git a/Makefile.def b/Makefile.def
+index ae2689d..2569010 100644
+--- a/Makefile.def
++++ b/Makefile.def
+@@ -256,6 +256,7 @@ flags_to_pass = { flag= GOCFLAGS_FOR_TARGET ; };
+ flags_to_pass = { flag= LD_FOR_TARGET ; };
+ flags_to_pass = { flag= LIPO_FOR_TARGET ; };
+ flags_to_pass = { flag= LDFLAGS_FOR_TARGET ; };
++flags_to_pass = { flag= LIBS_FOR_TARGET ; };
+ flags_to_pass = { flag= LIBCFLAGS_FOR_TARGET ; };
+ flags_to_pass = { flag= LIBCXXFLAGS_FOR_TARGET ; };
+ flags_to_pass = { flag= NM_FOR_TARGET ; };
+diff --git a/Makefile.tpl b/Makefile.tpl
+index 685756c..45fe31e 100644
+--- a/Makefile.tpl
++++ b/Makefile.tpl
+@@ -156,6 +156,8 @@ BUILD_EXPORTS = \
  	CONFIG_SHELL="$(SHELL)"; export CONFIG_SHELL; \
  	CXX="$(CXX_FOR_BUILD)"; export CXX; \
  	CXXFLAGS="$(CXXFLAGS_FOR_BUILD)"; export CXXFLAGS; \
@@ -25,7 +37,7 @@ index 1cb2117..84759de 100644
  	GCJ="$(GCJ_FOR_BUILD)"; export GCJ; \
  	GFORTRAN="$(GFORTRAN_FOR_BUILD)"; export GFORTRAN; \
  	GOC="$(GOC_FOR_BUILD)"; export GOC; \
-@@ -191,6 +193,8 @@ HOST_EXPORTS = \
+@@ -194,6 +196,8 @@ HOST_EXPORTS = \
  	CONFIG_SHELL="$(SHELL)"; export CONFIG_SHELL; \
  	CXX="$(CXX)"; export CXX; \
  	CXXFLAGS="$(CXXFLAGS)"; export CXXFLAGS; \
@@ -34,7 +46,7 @@ index 1cb2117..84759de 100644
  	GCJ="$(GCJ)"; export GCJ; \
  	GFORTRAN="$(GFORTRAN)"; export GFORTRAN; \
  	GOC="$(GOC)"; export GOC; \
-@@ -277,6 +281,7 @@ BASE_TARGET_EXPORTS = \
+@@ -280,6 +284,7 @@ BASE_TARGET_EXPORTS = \
  	CFLAGS="$(CFLAGS_FOR_TARGET)"; export CFLAGS; \
  	CONFIG_SHELL="$(SHELL)"; export CONFIG_SHELL; \
  	CPPFLAGS="$(CPPFLAGS_FOR_TARGET)"; export CPPFLAGS; \
@@ -42,15 +54,7 @@ index 1cb2117..84759de 100644
  	CXXFLAGS="$(CXXFLAGS_FOR_TARGET)"; export CXXFLAGS; \
  	GCJ="$(GCJ_FOR_TARGET) $(XGCC_FLAGS_FOR_TARGET) $$TFLAGS"; export GCJ; \
  	GFORTRAN="$(GFORTRAN_FOR_TARGET) $(XGCC_FLAGS_FOR_TARGET) $$TFLAGS"; export GFORTRAN; \
-@@ -775,6 +780,7 @@ BASE_FLAGS_TO_PASS = \
- 	"LD_FOR_TARGET=$(LD_FOR_TARGET)" \
- 	"LIPO_FOR_TARGET=$(LIPO_FOR_TARGET)" \
- 	"LDFLAGS_FOR_TARGET=$(LDFLAGS_FOR_TARGET)" \
-+	"LIBS_FOR_TARGET=$(LIBS_FOR_TARGET)" \
- 	"LIBCFLAGS_FOR_TARGET=$(LIBCFLAGS_FOR_TARGET)" \
- 	"LIBCXXFLAGS_FOR_TARGET=$(LIBCXXFLAGS_FOR_TARGET)" \
- 	"NM_FOR_TARGET=$(NM_FOR_TARGET)" \
-@@ -859,6 +865,7 @@ EXTRA_TARGET_FLAGS = \
+@@ -650,6 +655,7 @@ EXTRA_TARGET_FLAGS = \
  	'CFLAGS=$$(CFLAGS_FOR_TARGET)' \
  	'CXX=$$(CXX_FOR_TARGET) $$(XGCC_FLAGS_FOR_TARGET) $$(TFLAGS)' \
  	'CXXFLAGS=$$(CXXFLAGS_FOR_TARGET)' \
@@ -58,18 +62,6 @@ index 1cb2117..84759de 100644
  	'DLLTOOL=$$(DLLTOOL_FOR_TARGET)' \
  	'GCJ=$$(GCJ_FOR_TARGET) $$(XGCC_FLAGS_FOR_TARGET) $$(TFLAGS)' \
  	'GFORTRAN=$$(GFORTRAN_FOR_TARGET) $$(XGCC_FLAGS_FOR_TARGET) $$(TFLAGS)' \
-diff --git a/configure b/configure
-index 88ec0e7..dfb4906 100755
---- a/configure
-+++ b/configure
-@@ -642,6 +642,7 @@ LDFLAGS_FOR_TARGET
- CXXFLAGS_FOR_TARGET
- CFLAGS_FOR_TARGET
- CPPFLAGS_FOR_TARGET
-+LDFLAGS_FOR_TARGET
- DEBUG_PREFIX_CFLAGS_FOR_TARGET
- SYSROOT_CFLAGS_FOR_TARGET
- stage1_languages
 diff --git a/fixincludes/Makefile.in b/fixincludes/Makefile.in
 index b9857b9..0229f70 100644
 --- a/fixincludes/Makefile.in
@@ -112,11 +104,11 @@ index 5c3514d..9345bc3 100644
  BACKENDLIBS = $(CLOOGLIBS) $(PPLLIBS) $(GMPLIBS) $(PLUGINLIBS) $(HOST_LIBS) \
  	$(ZLIB)
  # Any system libraries needed just for GNAT.
-diff --git a/gcc/configure b/gcc/configure
-index a211e83..f6abc2e 100755
---- a/gcc/configure
-+++ b/gcc/configure
-@@ -11397,6 +11397,7 @@ else
+diff --git a/gcc/configure.ac b/gcc/configure.ac
+index 75bb2b5..1cb2b05 100644
+--- a/gcc/configure.ac
++++ b/gcc/configure.ac
+@@ -1514,6 +1514,7 @@ else
  	saved_CFLAGS="${CFLAGS}"
  	CC="${CC_FOR_BUILD}" CFLAGS="${CFLAGS_FOR_BUILD}" \
  	LDFLAGS="${LDFLAGS_FOR_BUILD}" \

@@ -1,0 +1,31 @@
+LICENSE   := GPLv3
+VERSION   := 4.7.2
+DOWNLOADS := gcc.archive
+
+URL(gcc)  := ftp://ftp.fu-berlin.de/gnu/gcc/gcc-$(VERSION)/gcc-$(VERSION).tar.gz
+SHA(gcc)  := 39b5662c4bdffa8d8b8f31f61764de2a9e3b69b0
+SIG(gcc)  := ${URL(gcc)}.sig
+KEY(gcc)  := GNU
+DIR(gcc)  := src/noux-pkg/gcc
+
+GENODE_DIR  := $(REP_DIR)/../..
+PATCHES_DIR := $(GENODE_DIR)/tool/patches/gcc-$(VERSION)
+PATCHES     := $(addprefix $(PATCHES_DIR)/,$(shell cat $(PATCHES_DIR)/series)) \
+               $(REP_DIR)/src/noux-pkg/gcc/build.patch
+PATCH_OPT   := -p1 -d ${DIR(gcc)}
+
+AUTOCONF := autoconf2.64
+
+$(call check_tool,$(AUTOCONF))
+$(call check_tool,autogen)
+
+default: _patch
+	@#
+	@# Re-generate configure scripts
+	@#
+	$(VERBOSE)cd ${DIR(gcc)}; autogen Makefile.def
+	$(VERBOSE)cd ${DIR(gcc)}/libgcc; $(AUTOCONF)
+	$(VERBOSE)cd ${DIR(gcc)}/libstdc++-v3; $(AUTOCONF)
+	$(VERBOSE)cd ${DIR(gcc)}/gcc; $(AUTOCONF)
+	$(VERBOSE)cd ${DIR(gcc)}; $(AUTOCONF)
+	$(VERBOSE)touch $@
