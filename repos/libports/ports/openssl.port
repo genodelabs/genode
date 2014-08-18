@@ -1,9 +1,9 @@
 LICENSE   := OpenSSL
-VERSION   := 1.0.1g
+VERSION   := 1.0.1i
 DOWNLOADS := openssl.archive
 
 URL(openssl) := http://www.openssl.org/source/openssl-$(VERSION).tar.gz
-SHA(openssl) := b28b3bcb1dc3ee7b55024c9f795be60eb3183e3c
+SHA(openssl) := 74eed314fa2c93006df8d26cd9fc630a101abd76
 SIG(openssl) := ${URL(openssl)}.asc
 KEY(openssl) := "49A563D9 26BB437D F295C759 9C58A66D 2118CF83 F709453B 5A6A9B85"
 DIR(openssl) := src/lib/openssl
@@ -38,5 +38,5 @@ src/lib/openssl/x86_64/rc4_md5.s:
 	$(VERBOSE)perl src/lib/openssl/crypto/rc4/asm/rc4-md5-x86_64.pl \
 		src/lib/openssl/crypto/perlasm/x86as.pl > $@
 
-PATCHES := src/lib/openssl/rand_unix_c.patch
+PATCHES   := src/lib/openssl/rand_unix_c.patch
 PATCH_OPT := -p1 -d src/lib/openssl
