@@ -1185,7 +1185,7 @@ struct Nitpicker::Main
 		user_state.stack(background);
 
 		config()->sigh(config_dispatcher);
-		Signal_transmitter(config_dispatcher).submit();
+		handle_config(0);
 
 		timer.sigh(input_dispatcher);
 		timer.trigger_periodic(10*1000);
