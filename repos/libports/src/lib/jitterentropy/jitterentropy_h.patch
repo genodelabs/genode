@@ -1,0 +1,18 @@
+--- a/jitterentropy.h	2014-04-07 21:07:13.000000000 +0200
++++ b/jitterentropy.h	2014-08-18 14:42:32.609235231 +0200
+@@ -42,11 +42,15 @@
+ #ifndef _JITTERENTROPY_H
+ #define _JITTERENTROPY_H
+ 
++#ifdef JITTERENTROPY_GENODE
++#include <jitterentropy-base-genode.h>
++#else
+ #ifdef __KERNEL__
+ #include "jitterentropy-base-kernel.h"
+ #else
+ #include "jitterentropy-base-user.h"
+ #endif /* __KERNEL__ */
++#endif
+ 
+ /* Statistical data from the entropy source */
+ struct entropy_stat {

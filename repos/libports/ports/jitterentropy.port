@@ -1,0 +1,24 @@
+LICENSE   := BSD
+VERSION   := 20140411
+DOWNLOADS := jitterentropy.archive
+
+URL(jitterentropy) := http://www.chronox.de/jent/jitterentropy-$(VERSION).tar.bz2
+SHA(jitterentropy) := a072ed4788b9de49bef5d339d61eaa8e88547cb3
+DIR(jitterentropy) := src/lib/jitterentropy
+
+DIRS := include/jitterentropy
+DIR_CONTENT(include/jitterentropy) := $(addprefix src/lib/jitterentropy/,\
+                                                  jitterentropy.h)
+
+PATCHES   := src/lib/jitterentropy/jitterentropy_h.patch
+PATCH_OPT := -p1 -d src/lib/jitterentropy
+
+#
+# Just to make sure that the compiler will use the right header files
+# we delete the local copy from the source directory after the files
+# were copied to the include directory.
+#
+default: rm_header
+rm_header: _dirs
+	@$(MSG_PREFIX)"remove header files from source directory "
+	$(VERBOSE)rm src/lib/jitterentropy/jitterentropy.h
