@@ -6,7 +6,8 @@ SHARED_LIB = yes
 LIBS += libc
 
 CC_OPT += -DDSO_DLFCN -DHAVE_DLFCN_H -Wa,--noexecstack -DL_ENDIAN -DTERMIOS \
-          -DOPENSSL_NO_ASM
+          -DOPENSSL_NO_ASM -DGETPID_IS_MEANINGLESS
+CC_OPT += -DRAND_GENODE
 
 #
 # crypto base source
