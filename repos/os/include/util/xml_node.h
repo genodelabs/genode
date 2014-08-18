@@ -365,6 +365,65 @@ namespace Genode {
 					Token next_token() const { return _next; }
 			};
 
+			class Declaration
+			{
+				private:
+					Token _next;   /* token following the declaration */
+					bool  _valid;  /* true if declaration is well formed */
+
+					/**
+					 * Check if token sequence matches specified character sequence
+					 *
+					 * \param t  start of token sequence
+					 * \param s  null-terminated character sequence
+					 */
+					static bool _match(Token t, const char *s)
+					{
+						for (int i = 0; s[i]; t = t.next(), i++)
+							if (t[0] != s[i])
+								return false;
+						return true;
+					}
+
+				public:
+
+					/**
+					 * Constructor
+					 *
+					 * \param start  first token of the declaration tag
+					 */
+					Declaration(Token t) : _valid(false)
+					{
+						/* check for declaration-start tag */
+						if (!_match(t, "<?"))
+							return;
+
+						/* search for declaration-end tag */
+						for ( ; t && !_match(t, "?>"); t = t.next());
+
+						if (t.type() == Token::END)
+							return;
+
+						_next  = t.next().next();
+						_valid = true;
+					}
+
+					/**
+					 * Default constructor produces invalid Declaration
+					 */
+					Declaration() : _valid(false) { }
+
+					/**
+					 * Return true if declaration is valid
+					 */
+					bool valid() const { return _valid; }
+
+					/**
+					 * Return token after the closing declaration delimiter
+					 */
+					Token next_token() const { return _next; }
+			};
+
 			const char *_addr;          /* first character of XML data      */
 			size_t      _max_len;       /* length of XML data in characters */
 			int         _num_sub_nodes; /* number of immediate sub nodes    */
@@ -446,6 +505,28 @@ namespace Genode {
 			}
 
 			/**
+			 * Skip a document prolog if it exists and return token of first element
+			 *
+			 * Prologs should only be found at the begining of documents.
+			 */
+			static Token eat_prolog(Token t)
+			{
+				while (true) {
+
+					t = t.eat_whitespace();
+					/* eat declaration */
+					Declaration declaration(t);
+					if (declaration.valid()) {
+						t = declaration.next_token();
+						continue;
+					}
+
+					break;
+				}
+				return eat_whitespaces_and_comments(t);
+			}
+
+			/**
 			 * Find next non-whitespace and non-comment token
 			 */
 			static Token eat_whitespaces_and_comments(Token t)
@@ -493,7 +574,7 @@ namespace Genode {
 				_addr(addr),
 				_max_len(max_len),
 				_num_sub_nodes(0),
-				_start_tag(eat_whitespaces_and_comments(Token(addr, max_len))),
+				_start_tag(eat_prolog(Token(addr, max_len))),
 				_end_tag(_init_end_tag())
 			{
 				/* check validity of XML node */
