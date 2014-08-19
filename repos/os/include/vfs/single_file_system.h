@@ -15,6 +15,7 @@
 #define _INCLUDE__VFS__SINGLE_FILE_SYSTEM_H_
 
 #include <vfs/file_system.h>
+#include <vfs/vfs_handle.h>
 
 namespace Vfs { class Single_file_system; }
 
