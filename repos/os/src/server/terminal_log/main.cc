@@ -74,9 +74,7 @@ namespace Genode {
 				 */
 				enum { ESC = 27 };
 				if ((string[0] == ESC) && (len == 5) && (string[4] == '\n')) {
-					char buf[5];
-					strncpy(buf, string, 5);
-					_terminal->write(buf, len);
+					_terminal->write(string, len - 1);
 					return len;
 				}
 
