@@ -620,13 +620,11 @@ class Wm::Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 			case Command::OP_TO_BACK:
 				{
-					PDBG("OP_TO_BACK not implemented");
 					return;
 				}
 
 			case Command::OP_BACKGROUND:
 				{
-					PDBG("OP_BACKGROUND not implemented");
 					return;
 				}
 
