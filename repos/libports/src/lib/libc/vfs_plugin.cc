@@ -27,6 +27,7 @@
 #include <vfs/log_file_system.h>
 #include <vfs/rom_file_system.h>
 #include <vfs/inline_file_system.h>
+#include <vfs/rtc_file_system.h>
 
 /* libc includes */
 #include <errno.h>
@@ -158,6 +159,7 @@ class Libc_file_system_factory : public Vfs::File_system_factory
 			_add_builtin_fs<Vfs::Log_file_system>();
 			_add_builtin_fs<Vfs::Rom_file_system>();
 			_add_builtin_fs<Vfs::Inline_file_system>();
+			_add_builtin_fs<Vfs::Rtc_file_system>();
 		}
 };
 
@@ -227,6 +229,13 @@ namespace Libc {
 	{
 		static Config_attr stderr("stderr", "");
 		return stderr.string();
+	}
+
+	char const *config_rtc() __attribute__((weak));
+	char const *config_rtc()
+	{
+		static Config_attr rtc("rtc", "");
+		return rtc.string();
 	}
 }
 
