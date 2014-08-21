@@ -14,11 +14,13 @@
 
 /* core includes */
 #include <kernel/processor.h>
-#include <kernel/processor_pool.h>
+#include <kernel/kernel.h>
 #include <kernel/thread.h>
 #include <kernel/irq.h>
 #include <pic.h>
 #include <timer.h>
+
+using namespace Kernel;
 
 namespace Kernel
 {
@@ -29,6 +31,9 @@ namespace Kernel
 
 	Pic * pic();
 	Timer * timer();
+
+	Processor_pool * processor_pool() {
+		return unmanaged_singleton<Processor_pool>(); }
 }
 
 class Kernel::Processor_domain_update_list
@@ -53,11 +58,8 @@ namespace Kernel
 	/**
 	 * Return singleton of the processor domain-udpate list
 	 */
-	Processor_domain_update_list * processor_domain_update_list()
-	{
-		static Processor_domain_update_list s;
-		return &s;
-	}
+	Processor_domain_update_list * processor_domain_update_list() {
+		return unmanaged_singleton<Processor_domain_update_list>(); }
 }
 
 
@@ -65,7 +67,7 @@ namespace Kernel
  ** Processor_client **
  **********************/
 
-void Kernel::Processor_client::_interrupt(unsigned const processor_id)
+void Processor_client::_interrupt(unsigned const processor_id)
 {
 	/* determine handling for specific interrupt */
 	unsigned irq_id;
@@ -94,14 +96,29 @@ void Kernel::Processor_client::_interrupt(unsigned const processor_id)
 }
 
 
-void Kernel::Processor_client::_schedule() { _processor->schedule(this); }
+void Processor_client::_schedule() { _processor->schedule(this); }
+
+
+/********************
+ ** Processor_idle **
+ ********************/
+
+Cpu_idle::Cpu_idle(Processor * const cpu) : Processor_client(cpu, 0)
+{
+	cpu_exception = RESET;
+	ip = (addr_t)&_main;
+	sp = (addr_t)&_stack[stack_size];
+	init_thread((addr_t)core_pd()->translation_table(), core_pd()->id());
+}
+
+void Cpu_idle::proceed(unsigned const cpu) { mtc()->continue_user(this, cpu); }
 
 
 /***************
  ** Processor **
  ***************/
 
-void Kernel::Processor::schedule(Processor_client * const client)
+void Processor::schedule(Processor_client * const client)
 {
 	if (_id != executing_id()) {
 
@@ -127,7 +144,7 @@ void Kernel::Processor::schedule(Processor_client * const client)
 }
 
 
-void Kernel::Processor::trigger_ip_interrupt()
+void Processor::trigger_ip_interrupt()
 {
 	if (!_ip_interrupt_pending) {
 		pic()->trigger_ip_interrupt(_id);
@@ -136,14 +153,14 @@ void Kernel::Processor::trigger_ip_interrupt()
 }
 
 
-void Kernel::Processor_client::_unschedule()
+void Processor_client::_unschedule()
 {
 	assert(_processor->id() == Processor::executing_id());
 	_processor->scheduler()->remove(this);
 }
 
 
-void Kernel::Processor_client::_yield()
+void Processor_client::_yield()
 {
 	assert(_processor->id() == Processor::executing_id());
 	_processor->scheduler()->yield_occupation();
@@ -154,7 +171,7 @@ void Kernel::Processor_client::_yield()
  ** Processor_domain_update **
  *****************************/
 
-void Kernel::Processor_domain_update::_perform_locally()
+void Processor_domain_update::_perform_locally()
 {
 	/* perform domain update locally and get pending bit */
 	unsigned const processor_id = Processor::executing_id();
@@ -173,7 +190,7 @@ void Kernel::Processor_domain_update::_perform_locally()
 }
 
 
-bool Kernel::Processor_domain_update::_perform(unsigned const domain_id)
+bool Processor_domain_update::_perform(unsigned const domain_id)
 {
 	/* perform locally and leave it at that if in uniprocessor mode */
 	_domain_id = domain_id;

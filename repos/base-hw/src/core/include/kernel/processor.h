@@ -20,6 +20,9 @@
 #include <cpu.h>
 #include <kernel/scheduler.h>
 
+/* base includes */
+#include <unmanaged_singleton.h>
+
 namespace Kernel
 {
 	/**
@@ -33,6 +36,11 @@ namespace Kernel
 	class Processor_domain_update;
 
 	/**
+	 * Execution context that is scheduled on CPU idle
+	 */
+	class Cpu_idle;
+
+	/**
 	 * Multiplexes a single processor to multiple processor clients
 	 */
 	typedef Scheduler<Processor_client> Processor_scheduler;
@@ -41,6 +49,16 @@ namespace Kernel
 	 * A multiplexable common instruction processor
 	 */
 	class Processor;
+
+	/**
+	 * Provides a processor object for every available processor
+	 */
+	class Processor_pool;
+
+	/**
+	 * Return Processor_pool singleton
+	 */
+	Processor_pool * processor_pool();
 }
 
 class Kernel::Processor_domain_update
@@ -184,11 +202,50 @@ class Kernel::Processor_client : public Processor_scheduler::Item
 		unsigned tics_consumed() { return _tics_consumed; }
 };
 
+class Kernel::Cpu_idle : public Cpu::User_context, public Processor_client
+{
+	private:
+
+		static constexpr size_t stack_size = sizeof(addr_t) * 32;
+
+		char _stack[stack_size] __attribute__((aligned(16)));
+
+		/**
+		 * Main function of all idle threads
+		 */
+		static void _main() { while (1) { Cpu::wait_for_interrupt(); } }
+
+	public:
+
+		/**
+		 * Construct idle context for CPU 'cpu'
+		 */
+		Cpu_idle(Processor * const cpu);
+
+		/**
+		 * Handle exception that occured during execution on CPU 'cpu'
+		 */
+		void exception(unsigned const cpu)
+		{
+			switch (cpu_exception) {
+			case INTERRUPT_REQUEST:      _interrupt(cpu); return;
+			case FAST_INTERRUPT_REQUEST: _interrupt(cpu); return;
+			case RESET:                                   return;
+			default: assert(0); }
+		}
+
+		/**
+		 * Continue execution on CPU 'cpu_id'
+		 */
+		void proceed(unsigned const cpu_id);
+};
+
 class Kernel::Processor : public Cpu
 {
 	private:
 
 		unsigned const      _id;
+		Cpu_idle            _idle;
 		Processor_scheduler _scheduler;
 		bool                _ip_interrupt_pending;
 		Timer * const       _timer;
@@ -212,15 +269,13 @@ class Kernel::Processor : public Cpu
 		/**
 		 * Constructor
 		 *
-		 * \param id           kernel name of the processor object
-		 * \param idle_client  client that gets scheduled on idle
-		 * \param timer        timer that is used for scheduling the processor
+		 * \param id     kernel name of the processor
+		 * \param timer  scheduling timer
 		 */
-		Processor(unsigned const id, Processor_client * const idle_client,
-		          Timer * const timer)
+		Processor(unsigned const id, Timer * const timer)
 		:
-			_id(id), _scheduler(idle_client), _ip_interrupt_pending(false),
-			_timer(timer)
+			_id(id), _idle(this), _scheduler(&_idle),
+			_ip_interrupt_pending(false), _timer(timer)
 		{ }
 
 		/**
@@ -271,6 +326,41 @@ class Kernel::Processor : public Cpu
 		unsigned id() const { return _id; }
 
 		Processor_scheduler * scheduler() { return &_scheduler; }
+};
+
+class Kernel::Processor_pool
+{
+	private:
+
+		Timer _timer;
+		char  _processors[PROCESSORS][sizeof(Processor)];
+
+	public:
+
+		/**
+		 * Constructor
+		 */
+		Processor_pool()
+		{
+			for (unsigned id = 0; id < PROCESSORS; id++) {
+				new (_processors[id]) Processor(id, &_timer); }
+		}
+
+		/**
+		 * Return the kernel object of processor 'id'
+		 */
+		Processor * processor(unsigned const id) const
+		{
+			assert(id < PROCESSORS);
+			char * const p = const_cast<char *>(_processors[id]);
+			return reinterpret_cast<Processor *>(p);
+		}
+
+		/**
+		 * Return the object of the primary processor
+		 */
+		Processor * primary_processor() const {
+			return processor(Processor::primary_id()); }
 };
 
 #endif /* _KERNEL__PROCESSOR_H_ */

@@ -20,7 +20,6 @@
 /* core includes */
 #include <kernel/kernel.h>
 #include <kernel/pd.h>
-#include <kernel/processor_pool.h>
 #include <kernel/signal_receiver.h>
 
 namespace Kernel
