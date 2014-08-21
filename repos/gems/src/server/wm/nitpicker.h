@@ -481,8 +481,14 @@ class Wm::Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 					                    abs_pos.x(), abs_pos.y(), 0, 0);
 				}
 
-			case Input::Event::INVALID:
 			case Input::Event::WHEEL:
+				{
+					Point abs_pos = Point(ev.ax(), ev.ay()) + input_origin;
+					return Input::Event(ev.type(), ev.code(),
+					                    abs_pos.x(), abs_pos.y(), ev.rx(), ev.ry());
+				}
+
+			case Input::Event::INVALID:
 				return ev;
 			}
 			return Input::Event();
