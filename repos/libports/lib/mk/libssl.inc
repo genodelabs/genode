@@ -15,17 +15,6 @@ SRC_C = s2_meth.c   s2_srvr.c s2_clnt.c  s2_lib.c  s2_enc.c s2_pkt.c \
 
 INC_DIR += $(LIBSSL_PORT_DIR)/include/openssl
 INC_DIR += $(LIBSSL_PORT_DIR)/src/lib/openssl/crypto
-
-ifeq ($(filter-out $(SPECS),x86_32),)
-TARGET_CPUARCH=x86_32
-else ifeq ($(filter-out $(SPECS),x86_64),)
-TARGET_CPUARCH=x86_64
-else ifeq ($(filter-out $(SPECS),arm),)
-TARGET_CPUARCH=arm
-endif
-
-INC_DIR += $(REP_DIR)/src/lib/openssl/$(TARGET_CPUARCH)/
-INC_DIR += $(LIBSSL_PORT_DIR)/src/lib/openssl/$(TARGET_CPUARCH)/
 INC_DIR += $(LIBSSL_PORT_DIR)/include
 
 vpath %.c $(LIBSSL_PORT_DIR)/src/lib/openssl/ssl
