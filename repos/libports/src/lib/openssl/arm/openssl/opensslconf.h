@@ -17,21 +17,21 @@
 #ifndef OPENSSL_NO_KRB5
 # define OPENSSL_NO_KRB5
 #endif
-//#ifndef OPENSSL_NO_MD2
-//# define OPENSSL_NO_MD2
-//#endif
-//#ifndef OPENSSL_NO_RC5
-//# define OPENSSL_NO_RC5
-//#endif
+#ifndef OPENSSL_NO_MD2
+# define OPENSSL_NO_MD2
+#endif
+#ifndef OPENSSL_NO_RC5
+# define OPENSSL_NO_RC5
+#endif
 #ifndef OPENSSL_NO_RFC3779
 # define OPENSSL_NO_RFC3779
 #endif
 #ifndef OPENSSL_NO_SCTP
 # define OPENSSL_NO_SCTP
 #endif
-//#ifndef OPENSSL_NO_STORE
-//# define OPENSSL_NO_STORE
-//#endif
+#ifndef OPENSSL_NO_STORE
+# define OPENSSL_NO_STORE
+#endif
 
 #endif /* OPENSSL_DOING_MAKEDEPEND */
 

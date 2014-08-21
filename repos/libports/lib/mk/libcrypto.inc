@@ -101,7 +101,7 @@ SRC_C_err      = err.c err_all.c err_prn.c
 SRC_C_evp      = encode.c digest.c evp_cnf.c evp_enc.c evp_key.c evp_acnf.c \
                  e_des.c e_bf.c e_idea.c e_des3.c e_camellia.c e_rc4.c \
                  e_aes.c names.c e_seed.c e_xcbc_d.c e_rc2.c e_cast.c \
-                 e_rc5.c m_null.c m_md2.c m_md4.c m_md5.c m_sha.c \
+                 m_null.c m_md4.c m_md5.c m_sha.c \
                  m_sha1.c m_wp.c m_dss.c m_dss1.c m_mdc2.c m_ripemd.c \
                  m_ecdsa.c p_open.c p_seal.c p_sign.c p_verify.c \
                  p_lib.c p_enc.c p_dec.c bio_md.c bio_b64.c bio_enc.c \
@@ -115,7 +115,6 @@ SRC_C_hmac     = hmac.c hm_ameth.c hm_pmeth.c
 SRC_C_idea     = i_cbc.c i_cfb64.c i_ecb.c i_ofb64.c i_skey.c
 SRC_C_krb5     = krb5_asn.c
 SRC_C_lhash    = lhash.c lh_stats.c
-SRC_C_md2      = md2_dgst.c md2_one.c
 SRC_C_md4      = md4_dgst.c md4_one.c
 SRC_C_md5      = md5_dgst.c md5_one.c
 SRC_C_mdc2     = mdc2_one.c mdc2dgst.c
@@ -140,7 +139,6 @@ SRC_C_rand     = md_rand.c randfile.c rand_lib.c rand_err.c \
                  rand_nw.c
 SRC_C_rc2      = rc2_ecb.c rc2_skey.c rc2_cbc.c rc2cfb64.c rc2ofb64.c
 SRC_C_rc4      = rc4_skey.c rc4_enc.c rc4_utl.c
-SRC_C_rc5      = rc5_skey.c rc5_ecb.c rc5_enc.c rc5cfb64.c rc5ofb64.c
 SRC_C_ripemd   = rmd_dgst.c rmd_one.c
 SRC_C_rsa      = rsa_eay.c rsa_gen.c rsa_lib.c rsa_sign.c rsa_saos.c \
                  rsa_err.c rsa_pk1.c rsa_ssl.c rsa_none.c rsa_oaep.c \
@@ -152,7 +150,6 @@ SRC_C_sha      = sha_dgst.c sha1dgst.c sha_one.c sha1_one.c sha256.c \
                  sha512.c
 SRC_C_srp      = srp_lib.c srp_vfy.c
 SRC_C_stack    = stack.c
-SRC_C_store    = str_err.c str_lib.c str_meth.c str_mem.c
 #SRC_C_threads  = th-lock.c
 SRC_C_ts       = ts_err.c ts_req_utils.c ts_req_print.c ts_rsp_utils.c \
                  ts_rsp_print.c ts_rsp_sign.c ts_rsp_verify.c \
