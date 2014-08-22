@@ -54,8 +54,9 @@ long config_arg(const char *attr, long default_value)
 /**
  * Translate input event
  */
-static Input::Event translate_event(Input::Event const ev,
-                                    Nit_fb::Point const input_origin)
+static Input::Event translate_event(Input::Event  const ev,
+                                    Nit_fb::Point const input_origin,
+                                    Nit_fb::Area  const boundary)
 {
 	switch (ev.type()) {
 
@@ -65,9 +66,14 @@ static Input::Event translate_event(Input::Event const ev,
 	case Input::Event::FOCUS:
 	case Input::Event::LEAVE:
 		{
-			Nit_fb::Point abs_pos = Nit_fb::Point(ev.ax(), ev.ay()) + input_origin;
+			Nit_fb::Point abs_pos = Nit_fb::Point(ev.ax(), ev.ay()) - input_origin;
+
+			using namespace Genode;
+
 			return Input::Event(ev.type(), ev.code(),
-			                    abs_pos.x(), abs_pos.y(), 0, 0);
+			                    min((int)boundary.w() - 1, max(0, abs_pos.x())),
+			                    min((int)boundary.h() - 1, max(0, abs_pos.y())),
+			                    0, 0);
 		}
 
 	case Input::Event::INVALID:
@@ -288,7 +294,7 @@ struct Nit_fb::Main : View_updater
 
 		unsigned const num = nitpicker.input()->flush();
 		for (unsigned i = 0; i < num; i++)
-			input_session.submit(translate_event(events[i], position));
+			input_session.submit(translate_event(events[i], position, fb_session.size()));
 	}
 
 	Signal_rpc_member<Main> input_dispatcher =
