@@ -187,10 +187,12 @@ void Decorator::Window_stack::update_model(Genode::Xml_node root_node)
 	for (Window_base *window = _windows.first(), *next = 0; window; window = next) {
 		next = window->next();
 		try {
-			_xml_node_by_window_id(root_node, window->id()); }
-
+			_xml_node_by_window_id(root_node, window->id());
+		}
 		catch (Xml_node::Nonexistent_sub_node) {
-			_destroy(*window); };
+			_dirty_rect.mark_as_dirty(window->outer_geometry());
+			_destroy(*window);
+		};
 	}
 
 	/*
