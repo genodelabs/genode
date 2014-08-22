@@ -34,6 +34,6 @@ build_boot_image "core init timer test-thread_join"
 
 append qemu_args "-nographic -m 64"
 
-run_genode_until {child exited with exit value 0.*\n} 10
+run_genode_until {child "test-thread_join" exited with exit value 0.*\n} 10
 
 puts "Test succeeded"

@@ -33,10 +33,10 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-        <start name="timer">
-                <resource name="RAM" quantum="1M"/>
-                <provides> <service name="Timer"/> </provides>
-        </start>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
 	<start name="test-expat">
 		<resource name="RAM" quantum="2M"/>
 		<config>
@@ -70,18 +70,16 @@ build_boot_image {
 
 append qemu_args " -nographic -m 64"
 
-run_genode_until {.*child exited with exit value 0.*} 5
+run_genode_until {.*child "test-expat" exited with exit value 0.*} 5
 
 grep_output {\[init -> test-expat\]  }
 
 compare_output_to {
-	[init -> test-expat]  start of element: config
-	[init -> test-expat]  start of element: test_tag
-	[init -> test-expat]  attribute: name='test_attribute', value='test_value'
-	[init -> test-expat]  end of element: test_tag
-	[init -> test-expat]  end of element: config
+[init -> test-expat]  start of element: config
+[init -> test-expat]  start of element: test_tag
+[init -> test-expat]  attribute: name='test_attribute', value='test_value'
+[init -> test-expat]  end of element: test_tag
+[init -> test-expat]  end of element: config
 }
-
-puts "\nTest succeeded\n"
 
 # vi: set ft=tcl :

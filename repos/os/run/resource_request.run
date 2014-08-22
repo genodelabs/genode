@@ -35,6 +35,6 @@ build_boot_image "core init timer test-resource_request"
 
 append qemu_args "-nographic -m 128"
 
-run_genode_until {child exited with exit value 0.*\n} 30
+run_genode_until {child "test-resource_request" exited with exit value 0.*\n} 30
 
 puts "Test succeeded"

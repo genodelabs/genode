@@ -51,7 +51,7 @@ build_boot_image $boot_modules
 # Execute test case
 #
 
-run_genode_until "child exited with exit value 0.*\n" 10
+run_genode_until {child "test-lx_hybrid_ctors" exited with exit value 0.*\n} 10
 
 #
 # Compare output

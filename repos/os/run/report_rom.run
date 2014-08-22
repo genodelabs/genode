@@ -46,7 +46,7 @@ build_boot_image "core init timer report_rom test-report_rom"
 
 append qemu_args "-nographic -m 128"
 
-run_genode_until {child exited with exit value 0.*\n} 30
+run_genode_until {child "test-report_rom" exited with exit value 0.*\n} 30
 
 grep_output {^\[init -> test-report_rom}
 

@@ -67,7 +67,11 @@ build_boot_image $boot_modules
 # Execute test
 #
 
-run_genode_until "child exited with exit value 0.*\n" 10
+if {$test_type eq "static"} {
+	run_genode_until {child "test-lx_rmap_static" exited with exit value 0.*\n} 10
+} else {
+	run_genode_until {child "test-lx_rmap_dynamic" exited with exit value 0.*\n} 10
+}
 puts "Test succeeded"
 
 # vi: set ft=tcl :

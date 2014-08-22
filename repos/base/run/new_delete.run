@@ -21,7 +21,7 @@ build_boot_image "core init test-new_delete"
 
 append qemu_args "-nographic -m 64"
 
-run_genode_until {child exited with exit value 0} 15
+run_genode_until {child "test-new_delete" exited with exit value 0.*\n} 15
 
 grep_output  {^\[init -> test-new_delete\]}
 

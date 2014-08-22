@@ -94,7 +94,7 @@ namespace Genode {
 		 */
 		virtual void exit(int exit_value)
 		{
-			PDBG("child exited with exit value %d", exit_value);
+			PDBG("child \"%s\" exited with exit value %d", name(), exit_value);
 		}
 
 		/**

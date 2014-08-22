@@ -105,7 +105,7 @@ build_boot_image $boot_modules
 #
 append qemu_args " -m 128 -nographic "
 
-run_genode_until {.*child exited with exit value 0.*} 60
+run_genode_until {.*child "test-libc_fs_tar_fs" exited with exit value 0.*} 60
 
 #exec rm -rf bin/libc_fs_tar_fs
 #exec rm -rf bin/libc_fs_tar_fs.tar

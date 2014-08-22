@@ -142,7 +142,7 @@ append qemu_args {  \
 -device usb-storage,bus=ehci.0,drive=disk \
 -boot order=d }
 
-run_genode_until {.*child exited with exit value 0.*} 100
+run_genode_until {.*child "test-usb" exited with exit value 0.*} 100
 
 puts "\nTest succeeded\n"
 

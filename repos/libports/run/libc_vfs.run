@@ -68,7 +68,7 @@ build_boot_image {
 #
 
 append qemu_args " -m 128 -nographic "
-run_genode_until {.*child exited with exit value 0.*} 60
+run_genode_until {.*child "test-libc_vfs" exited with exit value 0.*} 60
 
 puts "\nTest succeeded\n"
 

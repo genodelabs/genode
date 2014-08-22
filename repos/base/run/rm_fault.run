@@ -20,16 +20,16 @@ install_config {
 		<default-route>
 			<any-service> <parent/> </any-service>
 		</default-route>
-		<start name="test-rmfault">
+		<start name="test-rm_fault">
 			<resource name="RAM" quantum="10M"/>
 		</start>
 	</config>
 }
 
-build_boot_image "core init test-rmfault"
+build_boot_image "core init test-rm_fault"
 
 append qemu_args "-nographic -m 64"
 
-run_genode_until {child exited with exit value 0.*} 10
+run_genode_until {child "test-rm_fault" exited with exit value 0.*} 10
 
 puts "Test succeeded"

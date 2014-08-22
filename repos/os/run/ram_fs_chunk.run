@@ -27,7 +27,7 @@ build_boot_image "core init test-ram_fs_chunk"
 
 append qemu_args "-nographic -m 64"
 
-run_genode_until "child exited with exit value 0.*\n" 10
+run_genode_until {child "test-ram_fs_chunk" exited with exit value 0.*\n} 10
 
 grep_output {^\[init -> test-ram_fs_chunk\]}
 unify_output { sizeof=[0-9]+} {}

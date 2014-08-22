@@ -163,7 +163,7 @@ append qemu_args " -m 128 -nographic "
 append_if $use_atapi_drv   qemu_args " -hda $disk_image -boot order=d "
 append_if $use_sd_card_drv qemu_args " -drive file=$disk_image,if=sd,cache=writeback "
 
-run_genode_until {.*child exited with exit value 0.*} 60
+run_genode_until {.*child "test-libc_block" exited with exit value 0.*} 60
 
 exec rm -f $disk_image
 

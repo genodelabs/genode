@@ -85,7 +85,7 @@ build_boot_image $boot_modules
 
 append qemu_args " -m 128 -nographic "
 
-run_genode_until {.*child exited with exit value 0.*} 60
+run_genode_until {.*child "test-python" exited with exit value 0.*} 60
 
 grep_output {test-python\]  }
 compare_output_to {

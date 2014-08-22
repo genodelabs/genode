@@ -50,10 +50,7 @@ build_boot_image $boot_modules
 # Execute test case
 #
 
-# qemu config
-append qemu_args "-nographic -m 64 "
-
-run_genode_until "child exited with exit value 0.*\n" 10
+run_genode_until {child "test-lx_hybrid_exception" exited with exit value 0.*\n} 10
 
 puts "Test succeeded"
 

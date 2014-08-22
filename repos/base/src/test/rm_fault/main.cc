@@ -208,7 +208,7 @@ int main(int argc, char **argv)
 
 	/* obtain own elf file from rom service */
 	try {
-		static Rom_connection rom("test-rmfault");
+		static Rom_connection rom("test-rm_fault");
 		main_parent(rom.dataspace());
 	} catch (Genode::Rom_connection::Rom_connection_failed) {
 		main_child();

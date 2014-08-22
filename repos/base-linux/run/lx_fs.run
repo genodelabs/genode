@@ -72,7 +72,7 @@ build_boot_image {
 # Execute test case
 #
 
-run_genode_until {.*child exited with exit value 0.*} 60
+run_genode_until {child "test-libc_vfs" exited with exit value 0.*\n} 20
 
 puts "\nTest succeeded\n"
 
