@@ -297,8 +297,7 @@ void View_stack::title(View &view, const char *title)
 
 View *View_stack::find_view(Point p)
 {
-	/* skip mouse cursor */
-	View *view = _next_view(*_first_view());
+	View *view = _first_view();
 
 	for ( ; view; view = _next_view(*view))
 		if (view->input_response_at(p, _mode))
