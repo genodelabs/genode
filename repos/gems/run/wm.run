@@ -29,7 +29,7 @@ create_boot_directory
 #
 
 append config {
-<config>
+<config prio_levels="2">
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="RAM"/>
@@ -145,7 +145,7 @@ append config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
-	<start name="wm">
+	<start name="wm" priority="-1">
 		<resource name="RAM" quantum="32M"/>
 		<provides><service name="Nitpicker"/></provides>
 		<route>
@@ -154,7 +154,7 @@ append config {
 			</any-service>
 		</route>
 	</start>
-	<start name="launchpad">
+	<start name="launchpad" priority="-1">
 		<resource name="RAM" quantum="20M"/>
 		<config>
 			<launcher name="nit_fb" ram_quota="7M">
@@ -173,7 +173,7 @@ append config {
 			</any-service>
 		</route>
 	</start>
-	<start name="backdrop">
+	<start name="backdrop" priority="-1">
 		<resource name="RAM" quantum="4M"/>
 		<config>
 			<libc>
@@ -192,7 +192,7 @@ append config {
 			</any-service>
 		</route>
 	</start>
-	<start name="wm_backdrop">
+	<start name="wm_backdrop" priority="-1">
 		<binary name="backdrop" />
 		<resource name="RAM" quantum="4M"/>
 		<config>
