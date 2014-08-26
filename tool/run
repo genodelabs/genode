@@ -617,7 +617,7 @@ proc is_amt_available { } {
 	if {[info exists ::env(AMT_TEST_MACHINE_IP)] &&
 	    [info exists ::env(AMT_TEST_MACHINE_PWD)] &&
 		[have_installed amtterm] &&
-		[have_installed amttool]} {
+		[expr [have_installed amttool] || [have_installed wsman] ] } {
 		return true
 	}
 	puts "No support for Intel's AMT detected."
@@ -638,23 +638,16 @@ proc is_serial_available { } {
 
 
 ##
-# Execute scenario using Intel's AMT
+# Reset via Intel AMT (works up to version smaller Intel AMT 9)
 #
-proc spawn_amt { wait_for_re timeout_value } {
-	global spawn_id
-
-	if {![is_amt_available]} { return 0 }
+proc amt_reset_soap_eoi { } {
+	set timeout 20
+	set exit_result 1
 
 	#
 	# amttool expects in the environment variable AMT_PASSWORD the password
 	#
 	set ::env(AMT_PASSWORD) $::env(AMT_TEST_MACHINE_PWD)
-
-	#
-	# reset the box
-	#
-	set timeout 20
-	set exit_result 1
 
 	while { $exit_result != 0 } {
 		set try_again 0
@@ -686,6 +679,70 @@ proc spawn_amt { wait_for_re timeout_value } {
 
 		set exit_result [lindex $result 3]
 	}
+}
+
+
+##
+# Reset via Intel AMT wsman protocol
+#
+proc amt_reset_wsman { } {
+	file tempfile xml_request ".xml"
+
+	set fh [open $xml_request "WRONLY"]
+
+	puts $fh {
+		<!-- poweron - 2, poweroff - 8, reset - 5 -->
+		<p:RequestPowerStateChange_INPUT xmlns:p="http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_PowerManagementService">
+		  <p:PowerState>5</p:PowerState>
+		  <p:ManagedElement xmlns:wsa="http://schemas.xmlsoap.org/ws/2004/08/addressing"
+				    xmlns:wsman="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd">
+		    <wsa:Address>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</wsa:Address>
+		    <wsa:ReferenceParameters>
+		      <wsman:ResourceURI>http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_ComputerSystem</wsman:ResourceURI>
+		      <wsman:SelectorSet>
+		        <wsman:Selector Name="CreationClassName">CIM_ComputerSystem</wsman:Selector>
+		        <wsman:Selector Name="Name">ManagedSystem</wsman:Selector>
+		      </wsman:SelectorSet>
+		    </wsa:ReferenceParameters>
+		  </p:ManagedElement>
+		</p:RequestPowerStateChange_INPUT>
+	}
+
+	close $fh
+
+	exec wsman invoke -a RequestPowerStateChange -J $xml_request "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_PowerManagementService?SystemCreationClassName=\"CIM_ComputerSystem\",SystemName=\"Intel(r) AMT\",CreationClassName=\"CIM_PowerManagementService\",Name=\"Intel(r) AMT Power Management Service\"" --port 16992 -h $::env(AMT_TEST_MACHINE_IP) --username admin -p $::env(AMT_TEST_MACHINE_PWD) -V -v
+
+	file delete $xml_request
+}
+
+
+##
+# Execute scenario using Intel's AMT
+#
+proc spawn_amt { wait_for_re timeout_value } {
+	global spawn_id
+
+	if {![is_amt_available]} { return 0 }
+
+	#
+	# amttool and wsman are supported for reset
+	#
+	set amt_tool [get_cmd_arg --amt-tool "default"]
+
+	#
+	# reset the box
+	#
+	if {[have_installed wsman] && ( $amt_tool == "wsman" || $amt_tool == "default") } {
+		amt_reset_wsman
+	} else {
+		if {[have_installed amttool] && ($amt_tool == "amttool" || $amt_tool == "default") } {
+			amt_reset_soap_eoi
+		} else {
+			puts stderr "specified tool \"$amt_tool\" for using Intel AMT is unknown or is not installed"
+			exit -1
+		}
+	}
+
 	sleep 5
 
 	#
