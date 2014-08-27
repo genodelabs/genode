@@ -18,6 +18,8 @@ help:
 
 .PHONY: build help install
 
+.NOTPARALLEL: install
+
 #
 # Rump tool list
 #
@@ -95,13 +97,29 @@ $(BUILD_DIR)/bin/rump_server: $(CONTRIB_DIR)/.compile.tag $(BUILD_DIR)
 
 build: $(CONTRIB_DIR) $(BUILD_DIR)/bin/rump_server
 
-install: $(CONTRIB_DIR) $(BUILD_DIR)/bin/rump_server
+copy: $(CONTRIB_DIR) $(BUILD_DIR)/bin/rump_server
 	$(ECHO) "$(BRIGHT_COL)installing rump tools to '$(INSTALL_LOCATION)'...$(DEFAULT_COL)"
 	$(VERBOSE)sudo mkdir -p $(INSTALL_LOCATION)/bin >/dev/null 2>&1 || true
 	$(VERBOSE)sudo mkdir -p $(INSTALL_LOCATION)/share/man >/dev/null 2>&1 || true
 	$(VERBOSE)sudo cp -a $(TOOLS_LIST) $(INSTALL_LOCATION)/bin
 	$(VERBOSE)sudo cp -a $(BUILD_DIR)/lib/ $(INSTALL_LOCATION)
 	$(VERBOSE)sudo cp -a $(BUILD_DIR)/share/man/man* $(INSTALL_LOCATION)/share/man
+
+#
+# Since at least the libraries are installed with 444 permission by the
+# NetBSD build framework and it requires some effort we strip the binaries
+# manually by calling strip(1) with root permission prior to copying the
+# binaries.
+#
+
+strip-binaries: $(CONTRIB_DIR) $(BUILD_DIR)/bin/rump_server
+	$(ECHO) "$(BRIGHT_COL)stripping binaries prior to installation...$(DEFAULT_COL)"
+	$(VERBOSE)sudo find $(BUILD_DIR)/bin -type f \
+	                -exec strip --strip-all {} \; > /dev/null 2>&1
+	$(VERBOSE)sudo find $(BUILD_DIR)/lib -type f \
+	                -exec strip --strip-all {} \; > /dev/null 2>&1
+
+install: strip-binaries copy
 
 #
 # Clean rules
