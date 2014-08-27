@@ -369,6 +369,13 @@
 	add sp, sp, #PSR_OFFSET
 	stm sp, {r0, r1}
 
+	/*
+	 * Clear exclusive access in local monitor,
+	 * as we use strex/ldrex in our cmpxchg method, we've to do this during
+	 * a context switch (ARM Reference Manual paragraph 3.4.4.)
+	 */
+	clrex
+
 	/*********************************************************
 	 ** Kernel-entry code that is common for all exceptions **
 	 *********************************************************/
