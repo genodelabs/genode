@@ -165,7 +165,7 @@ at the same time). Depending on the base platform, the implementation uses of
 different time sources. Time sources are either hardware timers, a time source
 provided by the kernel, or a pseudo time source (busy):
 
-:'nova':      PIT as time source
+:'nova':      NOVA kernel semaphores as time source
 :'codezero':  busy time source
 :'okl4_arm':  busy time source
 :'okl4_x86':  PIT as time source
@@ -309,6 +309,13 @@ Separate components:
   a virtual frame buffer. The area is statically positioned. For more
   information, please refer to 'os/src/server/nit_fb/README'.
 
+:'gems/src/server/wm':
+  Window manager that implements the nitpicker session interface but manages
+  each client view as a separate window. The window decorations are provided
+  by a so-called decorator (e.g., 'gems/src/app/decorator'). The behaviour
+  is defined by a so-called window layouter such as the floating window
+  layouter located at 'gems/src/app/floating_window_layouter/'.
+
 :'demo/src/server/liquid_framebuffer':
   Implements the same translation as 'nit_fb' but by presenting an interactive
   window rather than a statically positioned screen area.
@@ -400,6 +407,11 @@ Separate components:
   A service that implements both the report session interface and the ROM
   session interface. It reflects incoming reports as ROM modules.
 
+:'ports/src/app/openvpn':
+  OpenVPN enables access to remote network resources through a secure tunnel
+  by providing an encrypted connection to a remote host. It is plugged between
+  NIC server (such as a network driver) and NIC client.
+
 Libraries:
 
 :'libports/lib/mk/libc':
@@ -469,6 +481,10 @@ Libraries:
 :'libports/lib/mk/qt5_*':
   Qt5 framework, using nitpicker session and NIC session as back end.
 
+:'libports/lib/mk/vfs_jitterentropy.mk':
+  A VFS plugin that makes a jitter-based random-number generator available
+  as a file within the process-local VFS.
+
 
 Applications
 ############
@@ -478,8 +494,9 @@ usually do not provide services. They are typically located in the 'src/app/'
 subdirectory of a repository. Most applications come with README files
 located in their respective directory.
 
-:'demo/src/app/backdrop':
-  Nitpicker client application that sets a PNG image as desktop background.
+:'gems/src/app/backdrop':
+  Nitpicker client application that sets a composition of PNG images as
+  desktop background.
 
 :'demo/src/app/launchpad':
   Graphical application for interactively starting and killing subsystems.
