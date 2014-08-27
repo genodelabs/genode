@@ -109,7 +109,9 @@ install: $(CONTRIB_DIR) $(BUILD_DIR)/bin/rump_server
 
 clean:
 	$(VERBOSE)rm -rf $(BUILD_DIR)
-	$(VERBOSE)cd $(CONTRIB_DIR) && make cleanrump
+	$(VERBOSE)cd $(CONTRIB_DIR) > /dev/null 2>&1 && \
+	          rm .compile.tag > /dev/null 2>&1 && \
+	          make cleanrump > /dev/null 2>&1 || true
 
 cleanall: clean
 	$(VERBOSE)rm -rf $(CONTRIB_DIR)
