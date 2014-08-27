@@ -102,6 +102,7 @@ namespace Imx53
 		 * Tell secondary processors where to start execution from
 		 */
 		static void secondary_processors_ip(void *) { }
+		static bool is_smp() { return false; }
 	};
 }
 

@@ -95,6 +95,7 @@ namespace Genode
 
 		static void outer_cache_invalidate() { }
 		static void outer_cache_flush() { }
+		static bool is_smp() { return false; }
 	};
 }
 

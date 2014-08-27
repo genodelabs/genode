@@ -36,6 +36,8 @@ namespace Genode
 			{
 				*(void * volatile *)IRAM_BASE = ip;
 			}
+
+			static bool is_smp() { return true; }
 	};
 }
 

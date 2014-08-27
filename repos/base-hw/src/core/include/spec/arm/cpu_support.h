@@ -123,7 +123,22 @@ class Genode::Arm
 		 */
 		struct Ttbr0 : Register<32>
 		{
-			struct Ba : Bitfield<14, 18> { }; /* base */
+			enum Memory_region { NON_CACHEABLE = 0, CACHEABLE = 1 };
+
+			struct C   : Bitfield<0,1> { };    /* inner cacheable */
+			struct S   : Bitfield<1,1> { };    /* shareable */
+			struct Rgn : Bitfield<3,2> { };    /* outer cachable mode */
+			struct Nos : Bitfield<5,1> { };    /* not outer shareable */
+			struct Ba  : Bitfield<14, 18> { }; /* translation table base */
+
+
+			/*************************************
+			 *  with multiprocessing extension  **
+			 *************************************/
+
+			struct Irgn_1 : Bitfield<0,1> { };
+			struct Irgn_0 : Bitfield<6,1> { };
+			struct Irgn   : Bitset_2<Irgn_0, Irgn_1> { }; /* inner cache mode */
 
 			static void write(access_t const v) {
 				asm volatile ("mcr p15, 0, %0, c2, c0, 0" :: "r" (v) : ); }
@@ -132,6 +147,21 @@ class Genode::Arm
 			{
 				access_t v;
 				asm volatile ("mrc p15, 0, %0, c2, c0, 0" : "=r" (v) :: );
+				return v;
+			}
+
+			/**
+			 * Return initialized value
+			 *
+			 * \param table  base of targeted translation table
+			 */
+			static access_t init(addr_t const table)
+			{
+				access_t v = Ba::masked((addr_t)table);
+				Rgn::set(v, CACHEABLE);
+				S::set(v, Board::is_smp() ? 1 : 0);
+				if (Board::is_smp()) Irgn::set(v, CACHEABLE);
+				else C::set(v, 1);
 				return v;
 			}
 		};
@@ -318,7 +348,8 @@ class Genode::Arm
 			/**
 			 * Assign translation-table base 'table'
 			 */
-			void translation_table(addr_t const table);
+			void translation_table(addr_t const table) {
+				ttbr0 = Arm::Ttbr0::init(table); }
 
 			/**
 			 * Assign protection domain
@@ -477,11 +508,6 @@ class Genode::Arm
 			base &= line_align_mask;
 			for (; base < top; base += line_size) { Icimvau::write(base); }
 		}
-
-		/**
-		 * Return true if the CPU supports multiple cores
-		 */
-		static bool is_smp() { return PROCESSORS > 1; }
 };
 
 #endif /* _SPEC__ARM__CPU_SUPPORT_H_ */

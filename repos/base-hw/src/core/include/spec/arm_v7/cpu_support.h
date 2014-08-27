@@ -219,28 +219,6 @@ class Genode::Arm_v7 : public Arm
 	public:
 
 		/**
-		 * Translation table base register 0
-		 */
-		struct Ttbr0 : Arm::Ttbr0
-		{
-			struct Irgn_1 : Bitfield<0, 1> { }; /* inner cache attr */
-			struct Rgn    : Bitfield<3, 2> { }; /* outer cache attr */
-			struct Irgn_0 : Bitfield<6, 1> { }; /* inner cache attr */
-			struct Irgn   : Bitset_2<Irgn_0, Irgn_1> { }; /* inner cache attr */
-
-			/**
-			 * Return value initialized with translation table 'table'
-			 */
-			static access_t init(addr_t const table)
-			{
-				access_t v = Ba::masked(table);
-				Irgn::set(v, 1);
-				Rgn::set(v, 1);
-				return v;
-			}
-		};
-
-		/**
 		 * Invalidate all branch predictions
 		 */
 		static void inval_branch_predicts() {
@@ -318,7 +296,7 @@ class Genode::Arm_v7 : public Arm
 		 */
 		static void start_secondary_processors(void * const ip)
 		{
-			if (!is_smp()) { return; }
+			if (!(PROCESSORS > 1)) { return; }
 			Board::secondary_processors_ip(ip);
 			data_synchronization_barrier();
 			asm volatile ("sev\n");

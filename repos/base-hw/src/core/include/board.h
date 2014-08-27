@@ -28,8 +28,8 @@ namespace Genode
 			static void prepare_kernel() { }
 
 			static void secondary_processors_ip(void * const ip) { }
-	};
+			static bool is_smp() { return false; }
+		};
 }
 
 #endif /* _BOARD_H_ */
-
