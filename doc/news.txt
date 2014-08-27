@@ -4,6 +4,36 @@
                                ===========
 
 
+Genode OS Framework release 14.08 | 2014-08-28
+##############################################
+
+| The central theme of version 14.08 is a new GUI architecture that maintains
+| strong security yet scales to highly flexible and dynamic GUIs. Furthermore,
+| the release comes with a port of OpenVPN, networking support for VirtualBox,
+| updated DDE Linux, and vastly improved performance of our custom base-hw
+| kernel.
+
+The new GUI architecture introduced with the release puts security in the
+front seat while aiming at highly customizable user experiences. In line with
+Genode's philosophy, it does not come as a complete solution with a fixed
+feature set but as a number of building blocks. Its flexibility stems from the
+many different ways of how those building blocks can be combined. Because each
+component uses well-defined interfaces, it becomes easy to customize the
+look&feel and the behaviour of the user interface by replacing individual
+components by alternative implementations.
+
+Further highlights in addition to the GUI-related improvements are the added
+support for networking in VirtualBox, multi-processor support for the Seoul
+virtual machine monitor, pluggable file systems, and the added port of
+OpenVPN. Many existing parts of the framework received attention as well. For
+example, the environment for executing Linux device drivers (DDE Linux) on top
+of Genode has been updated to Linux 3.14.5, we improved the integration of
+Qt5, and the performance of our custom kernel for ARM hardware got a boost.
+
+More background information about all the new features and improvements is provided in the
+[http:/documentation/release-notes/14.08 - release documentation of version 14.08...]
+
+
 Genode OS Framework release 14.05 | 2014-05-29
 ##############################################
 
