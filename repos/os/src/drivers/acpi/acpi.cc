@@ -801,12 +801,6 @@ class Element : public List<Element>::Element
 
 				_valid = true;
 
-				/* set absolute name of this element */
-				_set_name();
-				_type = data[0];
-
-				dump();
-
 				/* ACPI 19.2.3 DataRefObject */
 				switch (data[_name_len + 1]) {
 					case QWORD_PREFIX: _para_len += 4;
@@ -815,6 +809,12 @@ class Element : public List<Element>::Element
 					case  BYTE_PREFIX: _para_len += 1;
 					default: _para_len += 1;
 				}
+
+				/* set absolute name of this element */
+				_set_name();
+				_type = data[0];
+
+				dump();
 
 			default:
 
@@ -836,6 +836,7 @@ class Element : public List<Element>::Element
 			_valid    = other._valid;
 			_routed   = other._routed;
 			_pci      = other._pci;
+			_para_len = other._para_len;
 
 			if (other._name) {
 				_name = (char *)env()->heap()->alloc(other._name_len);
@@ -926,11 +927,12 @@ class Element : public List<Element>::Element
 
 				/* skip header */
 				data += e.size_len();
+				/* skip name */
+				data += NAME_LEN;
+
 				/* skip rest of structure if known */
-				if (e.is_device_name()) {
-					data += e._name_len > NAME_LEN ? NAME_LEN : e._name_len;
+				if (e.is_device_name())
 					data += e._para_len;
-				}
 			}
 
 			parse_bdf();
