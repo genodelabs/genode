@@ -18,7 +18,7 @@ include $(REP_DIR)/lib/mk/qt_version.inc
 QT4_URL = http://download.qt-project.org/archive/qt/4.8/4.8.4
 QT4_TGZ = $(QT4).tar.gz
 
-QTSCRIPTCLASSIC_URL = http://ftp.heanet.ie/mirrors/ftp.trolltech.com/pub/qt/solutions/lgpl
+QTSCRIPTCLASSIC_URL = ftp://ftp.informatik.hu-berlin.de/pub/Mirrors/ftp.troll.no/QT/qt/solutions/lgpl/
 QTSCRIPTCLASSIC     = qtscriptclassic-1.0_1-opensource
 QTSCRIPTCLASSIC_TGZ = $(QTSCRIPTCLASSIC).tar.gz
 
