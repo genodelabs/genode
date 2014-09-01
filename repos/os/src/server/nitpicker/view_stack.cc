@@ -331,7 +331,7 @@ void View_stack::sort_views_by_layer()
 	while (_views.first()) {
 
 		/* find view with the lowest layer */
-		unsigned         lowest_layer = ~0UL;
+		unsigned         lowest_layer = ~0U;
 		View_stack_elem *lowest_view  = nullptr;
 		for (View_stack_elem *v = _views.first(); v; v = v->next()) {
 			unsigned const layer = static_cast<View *>(v)->session().layer();
