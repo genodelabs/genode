@@ -70,9 +70,11 @@ append config {
 	</start>
 	<start name="test-sdl">
 		<resource name="RAM" quantum="32M"/>
-		<libc stdout="/dev/log">
-			<vfs> <dir name="dev"> <log/> </dir> </vfs>
-		</libc>
+		<config>
+			<libc stdout="/dev/log">
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
+		</config>
 	</start>
 </config>}
 
