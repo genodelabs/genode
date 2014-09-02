@@ -279,10 +279,9 @@ class Genode::Translation_table
 	public:
 
 		enum {
-			SIZE_LOG2   = 14,
-			SIZE        = 1 << SIZE_LOG2,
-			ALIGNM_LOG2 = SIZE_LOG2,
-			MAX_COSTS_PER_TRANSLATION = sizeof(Page_table),
+			SIZE_LOG2          = 14,
+			SIZE               = 1 << SIZE_LOG2,
+			ALIGNM_LOG2        = SIZE_LOG2,
 			MAX_PAGE_SIZE_LOG2 = 20,
 			MIN_PAGE_SIZE_LOG2 = 12,
 		};

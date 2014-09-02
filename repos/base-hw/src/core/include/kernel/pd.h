@@ -232,10 +232,6 @@ class Kernel::Pd : public Object<Pd, MAX_PDS, Pd_ids, pd_ids, pd_pool>
 		Table       * const _table;
 		Platform_pd * const _platform_pd;
 
-		/* keep ready memory for size-aligned extra costs at construction */
-		enum { EXTRA_RAM_SIZE = 2 * Table::MAX_COSTS_PER_TRANSLATION };
-		char _extra_ram[EXTRA_RAM_SIZE];
-
 	public:
 
 		/**
