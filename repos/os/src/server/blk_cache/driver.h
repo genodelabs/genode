@@ -416,12 +416,12 @@ class Driver : public Block::Driver
 			_cache.alloc(block_count * _blk_sz, block_number * _blk_sz);
 
 			if ((block_number % _cache_blk_mod()) &&
-			    _stat(block_number, 1, const_cast<char* const>(buffer), packet))
+			    !_stat(block_number, 1, const_cast<char* const>(buffer), packet))
 				return;
 
 			if (((block_number+block_count) % _cache_blk_mod())
-				&& _stat(block_number+block_count-1, 1,
-				         const_cast<char* const>(buffer), packet))
+				&& !_stat(block_number+block_count-1, 1,
+				          const_cast<char* const>(buffer), packet))
 				return;
 
 			_cache.write(buffer, block_count * _blk_sz,
