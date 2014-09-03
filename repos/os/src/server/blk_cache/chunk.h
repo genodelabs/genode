@@ -52,6 +52,7 @@ namespace Cache {
 			offset_t const _base_offset;
 			size_t         _num_entries; /* corresponds to last used entry */
 			Chunk_base    *_parent;
+			bool const     _zero;        /* marks zero chunk */
 
 			/**
 			 * Test if specified range lies within the chunk
@@ -67,12 +68,14 @@ namespace Cache {
 			}
 
 			Chunk_base(offset_t base_offset, Chunk_base *p)
-			: _base_offset(base_offset), _num_entries(0), _parent(p) { }
+			: _base_offset(base_offset), _num_entries(0), _parent(p),
+			  _zero(false) { }
 
 			/**
 			 * Construct zero chunk
 			 */
-			Chunk_base() : _base_offset(0), _num_entries(0), _parent(0) { }
+			Chunk_base()
+			: _base_offset(0), _num_entries(0), _parent(0), _zero(true) { }
 
 		public:
 
@@ -85,6 +88,11 @@ namespace Cache {
 			 * Return true if chunk has no allocated sub chunks
 			 */
 			bool empty() const { return _num_entries == 0; }
+
+			/**
+			 * Return true if this is an unused 'zero' chunk
+			 */
+			bool zero() const { return _zero; }
 
 			virtual void free(size_t, offset_t) = 0;
 	};
@@ -513,6 +521,7 @@ namespace Cache {
 			 * Synchronize chunk when dirty
 			 */
 			void sync(size_t len, offset_t seek_offset) const {
+				if (zero()) return;
 				_range_op(*this, (char*)0, len, seek_offset, Sync_func()); }
 
 			/**
