@@ -125,11 +125,9 @@ void Rpc_entrypoint::_activation_entry()
 	ep->_snd_buf.snd_reset();
 
 	/* prepare ipc server object (copying utcb content to message buffer */
-	Ipc_server srv(&ep->_snd_buf, &ep->_rcv_buf);
-	ep->_rcv_buf.post_ipc(reinterpret_cast<Nova::Utcb *>(ep->utcb()));
-
 	int opcode = 0;
 
+	Ipc_server srv(&ep->_snd_buf, &ep->_rcv_buf);
 	srv >> IPC_WAIT >> opcode;
 
 	/* set default return value */

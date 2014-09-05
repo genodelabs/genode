@@ -103,7 +103,7 @@ namespace Genode {
 			/**
 			 * Answer current page fault
 			 */
-			void reply_and_wait_for_fault();
+			void reply_and_wait_for_fault(unsigned sm = 0);
 
 			/**
 			 * Request instruction pointer of current fault

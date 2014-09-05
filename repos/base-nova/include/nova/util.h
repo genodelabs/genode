@@ -56,17 +56,22 @@ inline void request_event_portal(Genode::Native_capability const &cap,
 
 
 inline void request_native_ec_cap(Genode::Native_capability const &cap,
-                                  Genode::addr_t sel, unsigned no_pager_cap = 0) {
-	request_event_portal(cap, sel , ~0UL, no_pager_cap); }
+                                  Genode::addr_t const sel,
+                                  unsigned const no_pager_cap = 0)
+{
+	request_event_portal(cap, sel , ~0UL, no_pager_cap);
+}
 
 
 inline void request_signal_sm_cap(Genode::Native_capability const &cap,
-                                  Genode::addr_t sel) {
-	request_event_portal(cap, sel, ~0UL - 1, 0); }
+                                  Genode::addr_t const sel)
+{
+	request_event_portal(cap, sel, ~0UL - 1, 0);
+}
 
 
 inline void delegate_vcpu_portals(Genode::Native_capability const &cap,
-                                  Genode::addr_t sel)
+                                  Genode::addr_t const sel)
 {
 	Genode::Thread_base * myself = Genode::Thread_base::myself();
 	Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(myself->utcb());
@@ -74,14 +79,33 @@ inline void delegate_vcpu_portals(Genode::Native_capability const &cap,
 	/* save original receive window */
 	Nova::Crd orig_crd = utcb->crd_rcv;
 
-	Nova::Obj_crd obj_crd(sel, Nova::NUM_INITIAL_VCPU_PT_LOG2);
-
 	utcb->crd_rcv = Nova::Obj_crd();
-	utcb->set_msg_word(0);
-	Genode::uint8_t res = utcb->append_item(obj_crd, 0);
-	(void)res;
 
-	res = Nova::call(cap.local_name());
+	Genode::uint8_t res = Nova::NOVA_OK;
+	enum {
+		TRANSLATE = true, THIS_PD = false, NON_GUEST = false, HOTSPOT = 0,
+		TRANSFER_ITEMS = 1U << (Nova::NUM_INITIAL_VCPU_PT_LOG2 - 1)
+	};
+
+	/* prepare translation items for every portal separately */
+	for (unsigned half = 0; !res && half < 2; half++) {
+		/* translate half of portals - due to size constraints on 64bit */
+		utcb->msg[0] = half;
+		utcb->set_msg_word(1);
+		/* add one translate item per portal */
+		for (unsigned i = 0; !res && i < TRANSFER_ITEMS; i++) {
+			Nova::Obj_crd obj_crd(sel + half * TRANSFER_ITEMS + i, 0);
+
+			if (!utcb->append_item(obj_crd, HOTSPOT, THIS_PD, NON_GUEST,
+			                       TRANSLATE))
+				res = 0xff;
+		}
+		if (res != Nova::NOVA_OK)
+			break;
+
+		/* trigger the translation */
+		res = Nova::call(cap.local_name());
+	}
 
 	/* restore original receive window */
 	utcb->crd_rcv = orig_crd;

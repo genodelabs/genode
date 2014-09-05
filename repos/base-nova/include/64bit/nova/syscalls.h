@@ -142,12 +142,14 @@ namespace Nova {
 
 	ALWAYS_INLINE
 	__attribute__((noreturn))
-	inline void reply(void *next_sp)
+	inline void reply(void *next_sp, unsigned long sm = 0)
 	{
+		mword_t syscall = rdi(NOVA_REPLY, 0, sm);
+
 		asm volatile ("mov %1, %%rsp;"
 		              "syscall;"
 		              :
-		              : "D" (NOVA_REPLY), "ir" (next_sp)
+		              : "D" (syscall), "ir" (next_sp)
 		              : "memory");
 		__builtin_unreachable();
 	}

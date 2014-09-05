@@ -163,7 +163,7 @@ namespace Genode {
 				if (main_thread) _features |= MAIN_THREAD;
 			}
 
-			void single_step(bool on);
+			Native_capability single_step(bool on);
 	};
 }
 

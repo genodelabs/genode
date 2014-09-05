@@ -24,17 +24,28 @@
 namespace Genode {
 
 	class Pager_entrypoint;
+	class Pager_object;
 
-	/*
-	 * On NOVA, each pager object is an EC that corresponds to one user thread.
-	 */
-	class Pager_object : public Object_pool<Pager_object>::Entry,
-	                     Thread_base
+	class Exception_handlers
 	{
 		private:
 
-			void entry() { }
-			void start() { }
+			template <uint8_t EV>
+			__attribute__((regparm(1))) static void _handler(addr_t);
+
+		public:
+
+			Exception_handlers(Pager_object *);
+
+			template <uint8_t EV>
+			void register_handler(Pager_object *, Nova::Mtd,
+			                      void (__attribute__((regparm(1)))*)(addr_t) = nullptr);
+	};
+
+
+	class Pager_object : public Object_pool<Pager_object>::Entry
+	{
+		private:
 
 			unsigned long _badge;  /* used for debugging */
 
@@ -45,9 +56,12 @@ namespace Genode {
 			Signal_context_capability _exception_sigh;
 
 			/**
-			 * Portal selector for object cleanup/destruction
+			 * selectors for
+			 * - cleanup portal
+			 * - semaphore used by caller used to notify paused state
+			 * - semaphore used to block during page fault handling or pausing
 			 */
-			addr_t _pt_cleanup;
+			addr_t _selectors;
 
 			addr_t _initial_esp;
 			addr_t _initial_eip;
@@ -59,58 +73,77 @@ namespace Genode {
 				struct Thread_state thread;
 				addr_t sel_client_ec;
 				enum {
-					VALID         = 0x1U,
-					DEAD          = 0x2U,
-					SINGLESTEP    = 0x4U,
-					CLIENT_CANCEL = 0x8U,
-					SIGNAL_SM     = 0x10U,
+					BLOCKED        = 0x1U,
+					DEAD           = 0x2U,
+					SINGLESTEP     = 0x4U,
+					NOTIFY_REQUEST = 0x8U,
+					SIGNAL_SM      = 0x10U,
+					DISSOLVED      = 0x20U,
+					SUBMIT_SIGNAL  = 0x40U,
+					SKIP_EXCEPTION = 0x80U,
 				};
 				uint8_t _status;
 
 				/* convenience function to access pause/recall state */
-				inline bool is_valid() { return _status & VALID; }
-				inline void mark_valid() { _status |= VALID; }
-				inline void mark_invalid() { _status &= ~VALID; }
-
-				inline bool is_client_cancel() { return _status & CLIENT_CANCEL; }
-				inline void mark_client_cancel() { _status |= CLIENT_CANCEL; }
-				inline void unmark_client_cancel() { _status &= ~CLIENT_CANCEL; }
+				inline bool blocked() { return _status & BLOCKED;}
+				inline void block()   { _status |= BLOCKED; }
+				inline void unblock() { _status &= ~BLOCKED; }
 
 				inline void mark_dead() { _status |= DEAD; }
 				inline bool is_dead() { return _status & DEAD; }
 
 				inline bool singlestep() { return _status & SINGLESTEP; }
 
+				inline void notify_request()   { _status |= NOTIFY_REQUEST; }
+				inline bool notify_requested() { return _status & NOTIFY_REQUEST; }
+				inline void notify_cancel()    { _status &= ~NOTIFY_REQUEST; }
+
 				inline void mark_signal_sm() { _status |= SIGNAL_SM; }
 				inline bool has_signal_sm() { return _status & SIGNAL_SM; }
+
+				inline void mark_dissolved() { _status |= DISSOLVED; }
+				inline bool dissolved()      { return _status & DISSOLVED; }
+
+				inline bool to_submit() { return _status & SUBMIT_SIGNAL; }
+				inline void submit_signal() { _status |= SUBMIT_SIGNAL; }
+				inline void reset_submit() { _status &= ~SUBMIT_SIGNAL; }
+
+				inline bool skip_requested() { return _status & SKIP_EXCEPTION; }
+				inline void skip_request() { _status |= SKIP_EXCEPTION; }
+				inline void skip_reset() { _status &= ~SKIP_EXCEPTION; }
 			} _state;
 
-			Thread_capability _thread_cap;
+			Thread_capability  _thread_cap;
+			Exception_handlers _exceptions;
 
 			void _copy_state(Nova::Utcb * utcb);
 
-			/**
-			 * Semaphore selector to synchronize pause/state/resume operations
-			 */
-			addr_t sm_state_notify() { return _pt_cleanup + 1; }
-
-			static void _page_fault_handler();
-			static void _startup_handler();
-			static void _invoke_handler();
-			static void _recall_handler();
+			addr_t sel_pt_cleanup() { return _selectors; }
+			addr_t sel_sm_notify()  { return _selectors + 1; }
+			addr_t sel_sm_block()   { return _selectors + 2; }
 
 			__attribute__((regparm(1)))
-			static void _exception_handler(addr_t portal_id);
+			static void _page_fault_handler(addr_t pager_obj);
 
-			static Nova::Utcb * _check_handler(Thread_base *&, Pager_object *&);
+			__attribute__((regparm(1)))
+			static void _startup_handler(addr_t pager_obj);
+
+			__attribute__((regparm(1)))
+			static void _invoke_handler(addr_t pager_obj);
+
+			__attribute__((regparm(1)))
+			static void _recall_handler(addr_t pager_obj);
 
 		public:
+
+			const Affinity::Location location;
 
 			Pager_object(unsigned long badge, Affinity::Location location);
 
 			virtual ~Pager_object();
 
 			unsigned long badge() const { return _badge; }
+			void reset_badge() { _badge = 0; }
 
 			virtual int pager(Ipc_pager &ps) = 0;
 
@@ -122,15 +155,11 @@ namespace Genode {
 				_exception_sigh = sigh;
 			}
 
-			/**
-			 * Return base of initial portal window
-			 */
-			addr_t ec_sel() { return _tid.ec_sel; }
+			void exception(uint8_t exit_id);
 
 			/**
 			 * Return base of initial portal window
 			 */
-			addr_t exc_pt_sel() { return _tid.exc_pt_sel; }
 			addr_t exc_pt_sel_client() { return _client_exc_pt_sel; }
 			addr_t exc_pt_vcpu() { return _client_exc_vcpu; }
 
@@ -157,6 +186,8 @@ namespace Genode {
 			{
 				if (!_exception_sigh.valid()) return false;
 
+				_state.reset_submit();
+
 				Signal_transmitter transmitter(_exception_sigh);
 				transmitter.submit();
 
@@ -177,10 +208,12 @@ namespace Genode {
 			 */
 			Native_capability notify_sm()
 			{
-				if (_state.is_valid() || _state.is_dead())
+				if (_state.blocked() || _state.is_dead())
 					return Native_capability();
 
-				return Native_capability(sm_state_notify());
+				_state.notify_request();
+
+				return Native_capability(sel_sm_notify());
 			}
 
 			/**
@@ -188,7 +221,7 @@ namespace Genode {
 			 */
 			bool copy_thread_state(Thread_state * state_dst)
 			{
-				if (!state_dst || !_state.is_valid())
+				if (!state_dst || !_state.blocked())
 					return false;
 
 				*state_dst = _state.thread;
@@ -205,12 +238,31 @@ namespace Genode {
 			uint8_t client_recall();
 			void    client_set_ec(addr_t ec) { _state.sel_client_ec = ec; }
 
-			inline void single_step(bool on)
+			inline Native_capability single_step(bool on)
 			{
+				if (_state.is_dead() ||
+				    (on && (_state._status & _state.SINGLESTEP)) ||
+				    (!on && !(_state._status & _state.SINGLESTEP)))
+					return Native_capability();
+
 				if (on)
 					_state._status |= _state.SINGLESTEP;
 				else
 					_state._status &= ~_state.SINGLESTEP;
+
+				/* we want to be notified if state change is done */
+				_state.notify_request();
+				/* the first single step exit ignore when switching it on */
+				if (on && _state.blocked())
+					_state.skip_request();
+
+				/* force client in exit and thereby apply single_step change */
+				client_recall();
+				/* single_step mode changes don't apply if blocked - wake up */
+				if (_state.blocked())
+					wake_up();
+
+				return Native_capability(sel_sm_notify());
 			}
 
 			/**
@@ -220,7 +272,7 @@ namespace Genode {
 			Thread_capability thread_cap() { return _thread_cap; } const
 			void thread_cap(Thread_capability cap) { _thread_cap = cap; }
 
-			/*
+			/**
 			 * Note in the thread state that an unresolved page
 			 * fault occurred.
 			 */
@@ -244,52 +296,108 @@ namespace Genode {
 			void prepare_vCPU_portals()
 			{
 				_client_exc_vcpu = cap_map()->insert(Nova::NUM_INITIAL_VCPU_PT_LOG2);
+			}
+	};
 
-				Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(Thread_base::utcb());
+	/**
+	 * A 'Pager_activation' processes one page fault of a 'Pager_object' at a time.
+	 */
+	class Pager_entrypoint;
+	class Pager_activation_base: public Thread_base
+	{
+		private:
 
-				utcb->crd_rcv = Nova::Obj_crd(_client_exc_vcpu, Nova::NUM_INITIAL_VCPU_PT_LOG2); 
+			Native_capability _cap;
+			Pager_entrypoint *_ep;       /* entry point to which the
+			                                activation belongs */
+			/**
+			 * Lock used for blocking until '_cap' is initialized
+			 */
+			Lock _cap_valid;
+
+		public:
+
+			/**
+			 * Constructor
+			 *
+			 * \param name        name of the new thread
+			 * \param stack_size  stack size of the new thread
+			 */
+			Pager_activation_base(char const * const name,
+			                      size_t const stack_size);
+
+			/**
+			 * Set entry point, which the activation serves
+			 *
+			 * This function is only called by the 'Pager_entrypoint'
+			 * constructor.
+			 */
+			void ep(Pager_entrypoint *ep) { _ep = ep; }
+
+			/**
+			 * Thread interface
+			 */
+			void entry();
+
+			/**
+			 * Return capability to this activation
+			 *
+			 * This function should only be called from 'Pager_entrypoint'
+			 */
+			Native_capability cap()
+			{
+				/* ensure that the initialization of our 'Ipc_pager' is done */
+				if (!_cap.valid())
+					_cap_valid.lock();
+				return _cap;
 			}
 	};
 
 
 	/**
-	 * Dummy pager activation
+	 * Paging entry point
 	 *
-	 * Because on NOVA each pager object can be invoked separately,
-	 * there is no central pager activation.
-	 */
-	class Pager_activation_base { };
-
-
-	template <unsigned STACK_SIZE>
-	class Pager_activation : public Pager_activation_base
-	{ };
-
-
-	/**
-	 * Dummy pager entrypoint
+	 * For a paging entry point can hold only one activation. So, paging is
+	 * strictly serialized for one entry point.
 	 */
 	class Pager_entrypoint : public Object_pool<Pager_object>
 	{
 		private:
 
-			Cap_session *_cap_session;
+			Pager_activation_base *_activation;
+			Cap_session           *_cap_session;
 
 		public:
 
-			Pager_entrypoint(Cap_session *cap_session,
-			                 Pager_activation_base *a = 0)
-			: _cap_session(cap_session) { }
+			/**
+			 * Constructor
+			 *
+			 * \param cap_session  Cap_session for creating capabilities
+			 *                     for the pager objects managed by this
+			 *                     entry point
+			 * \param a            initial activation
+			 */
+			Pager_entrypoint(Cap_session *cap_session, Pager_activation_base *a = 0);
 
 			/**
-			 * Return capability for 'Pager_object'
+			 * Associate Pager_object with the entry point
 			 */
 			Pager_capability manage(Pager_object *obj);
 
 			/**
-			 * Dissolve 'Pager_object' from entry point
+			 * Dissolve Pager_object from entry point
 			 */
 			void dissolve(Pager_object *obj);
+	};
+
+
+	template <int STACK_SIZE>
+	class Pager_activation : public Pager_activation_base
+	{
+		public:
+
+			Pager_activation() : Pager_activation_base("pager", STACK_SIZE)
+			{ }
 	};
 }
 

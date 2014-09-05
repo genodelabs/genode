@@ -231,6 +231,7 @@ namespace Genode {
 			 ******************************/
 
 			Native_capability pause_sync(Thread_capability);
+			Native_capability single_step_sync(Thread_capability, bool);
 	};
 }
 

@@ -180,11 +180,13 @@ namespace Nova {
 
 	ALWAYS_INLINE
 	__attribute__((noreturn))
-	inline void reply(void *next_sp)
+	inline void reply(void *next_sp, unsigned sm = 0)
 	{
+		mword_t reg = eax(NOVA_REPLY, 0, sm);
+
 		asm volatile ("sysenter;"
 		              :
-		              : "a" (NOVA_REPLY), "c" (next_sp)
+		              : "a" (reg), "c" (next_sp)
 		              : "memory");
 		__builtin_unreachable();
 	}

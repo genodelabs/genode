@@ -22,4 +22,19 @@ build_boot_image "core init test-thread"
 
 append qemu_args "-nographic -m 64"
 
-run_genode_until {child "test-thread" exited with exit value 0.*\n} 20
+run_genode_until {child "test-thread" exited with exit value .*\n} 20
+
+# determine error code of child exit
+set exit_code [regexp -inline {child "test-thread" exited with exit value .*\n} $output]
+set exit_code [regexp -inline {[-+]?[0-9]+} $exit_code]
+
+# good case
+if {$exit_code eq 0} {
+	return
+}
+# no pause/resume support for Fiasco and Pistachio - they may return a error
+if {[expr [have_spec fiasco] || [have_spec pistachio]] && $exit_code eq -11} { return }
+# no puase/resume support for Linux - it may return a error
+if {[have_spec linux] && $exit_code eq -10} { return }
+
+exit -1

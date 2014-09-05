@@ -26,21 +26,24 @@ Cpu_session_component::pause_sync(Thread_capability thread_cap)
 	Object_pool<Cpu_thread_component>::Guard
 		thread(_thread_ep->lookup_and_lock(thread_cap));
 	if (!thread || !thread->platform_thread())
-		return Native_capability::invalid_cap();
+		return Native_capability();
 
 	return thread->platform_thread()->pause();
 }
 
 
-void
-Cpu_session_component::single_step(Thread_capability thread_cap, bool enable)
+Native_capability
+Cpu_session_component::single_step_sync(Thread_capability thread_cap, bool enable)
 {
 	using namespace Genode;
 
 	Object_pool<Cpu_thread_component>::Guard
 		thread(_thread_ep->lookup_and_lock(thread_cap));
 	if (!thread || !thread->platform_thread())
-		return;
+		return Native_capability();
 
-	thread->platform_thread()->single_step(enable);
+	return thread->platform_thread()->single_step(enable);
 }
+
+
+void Cpu_session_component::single_step(Thread_capability, bool) { return; }

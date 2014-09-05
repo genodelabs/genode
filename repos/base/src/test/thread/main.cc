@@ -185,6 +185,66 @@ static void test_cpu_session()
 }
 
 
+struct Pause_helper : Thread<0x1000>
+{
+	volatile unsigned loop = 0;
+	volatile bool beep = false;
+
+	Pause_helper(const char * name, Cpu_session * cpu)
+	: Thread<0x1000>(name, cpu) { }
+
+	void entry()
+	{
+		while (1) {
+			/**
+			 * Don't use printf here, since this thread becomes "paused".
+			 * If it is holding the lock of the printf backend being paused,
+			 * all other threads of this task trying to do printf will
+			 * block - looks like a deadlock.
+			 */
+//			printf("stop me if you can\n");
+			loop ++;
+			if (beep) {
+				PINF("beep");
+				beep = false;
+			}
+		}
+	}
+};
+
+static void test_pause_resume()
+{
+	Pause_helper thread("pause", env()->cpu_session());
+	thread.start();
+
+	while (thread.loop < 1) { }
+
+	Thread_state state;
+
+	printf("--- pausing ---\n");
+	env()->cpu_session()->pause(thread.cap());
+	unsigned loop_paused = thread.loop;
+	printf("--- paused ---\n");
+
+	printf("--- reading thread state ---\n");
+	try {
+		state = env()->cpu_session()->state(thread.cap());
+	} catch (Cpu_session::State_access_failed) {
+		throw -10;
+	}
+	if (loop_paused != thread.loop)
+		throw -11;
+
+	thread.beep = true;
+	printf("--- resuming thread ---\n");
+	env()->cpu_session()->resume(thread.cap());
+
+	while (thread.loop == loop_paused) { }
+
+	printf("--- thread resumed ---\n");
+}
+
+
 int main()
 {
 	printf("--- thread test started ---\n");
@@ -194,6 +254,7 @@ int main()
 		test_stack_alignment();
 		test_main_thread();
 		test_cpu_session();
+		test_pause_resume();
 	} catch (int error) {
 		return error;
 	}

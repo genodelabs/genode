@@ -64,7 +64,7 @@ void Ipc_pager::set_reply_mapping(Mapping m)
 }
 
 
-void Ipc_pager::reply_and_wait_for_fault()
+void Ipc_pager::reply_and_wait_for_fault(unsigned sm)
 {
-	Nova::reply(Thread_base::myself()->stack_top());
+	Nova::reply(Thread_base::myself()->stack_top(), sm);
 }

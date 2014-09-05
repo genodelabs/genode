@@ -67,8 +67,14 @@ namespace Genode {
 		void exception_handler(Thread_capability thread, Signal_context_capability handler) {
 			call<Rpc_exception_handler>(thread, handler); }
 
-		void single_step(Thread_capability thread, bool enable) {
-			call<Rpc_single_step>(thread, enable); }
+		void single_step(Thread_capability thread, bool enable)
+		{
+			Native_capability block = call<Rpc_single_step_sync>(thread, enable);
+			if (!block.valid())
+				return;
+
+			Nova::sm_ctrl(block.local_name(), Nova::SEMAPHORE_DOWN);
+		}
 
 		Affinity::Space affinity_space() const {
 			return call<Rpc_affinity_space>(); }
@@ -100,8 +106,11 @@ namespace Genode {
 
 		private:
 
-			Native_capability pause_sync(Thread_capability target) {
-				return Native_capability::invalid_cap(); }
+			Native_capability pause_sync(Thread_capability) {
+				return Native_capability(); }
+
+			Native_capability single_step_sync(Thread_capability, bool) {
+				return Native_capability(); }
 	};
 }
 

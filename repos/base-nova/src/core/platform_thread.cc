@@ -108,15 +108,14 @@ int Platform_thread::start(void *ip, void *sp)
 		pd_utcb = Native_config::context_area_virtual_base() +
 		          Native_config::context_virtual_size() - get_page_size();
 
-		addr_t remap_src[] = { _pd->parent_pt_sel(),
-		                       _pager->Object_pool<Pager_object>::Entry::cap().local_name() };
+		addr_t remap_src[] = { _pd->parent_pt_sel(), _pager->Object_pool<Pager_object>::Entry::cap().local_name() };
 		addr_t remap_dst[] = { PT_SEL_PARENT, PT_SEL_MAIN_PAGER };
 
 		/* remap exception portals for first thread */
 		for (unsigned i = 0; i < sizeof(remap_dst)/sizeof(remap_dst[0]); i++) {
 			if (map_local((Utcb *)Thread_base::myself()->utcb(),
-		    	          Obj_crd(remap_src[i], 0),
-		        	      Obj_crd(_sel_exc_base + remap_dst[i], 0)))
+			              Obj_crd(remap_src[i], 0),
+			              Obj_crd(_sel_exc_base + remap_dst[i], 0)))
 				return -6;
 		}
 	}
@@ -272,11 +271,15 @@ void Platform_thread::cancel_blocking()
 }
 
 
-void Platform_thread::single_step(bool on)
+Native_capability Platform_thread::single_step(bool on)
 {
-	if (!_pager) return;
+	if (!_pager) return Native_capability();
 
-	_pager->single_step(on);
+	Native_capability cap = _pager->single_step(on);
+
+	if (is_worker()) return Native_capability();
+
+	return cap;
 }
 
 
@@ -305,6 +308,12 @@ Platform_thread::Platform_thread(const char *name, unsigned prio, int thread_id)
 
 Platform_thread::~Platform_thread()
 {
+	if (_pager) {
+		/* reset pager and badge used for debug output */
+		_pager->reset_badge();
+		_pager = 0;
+	}
+
 	using namespace Nova;
 
 	/* free ec and sc caps */

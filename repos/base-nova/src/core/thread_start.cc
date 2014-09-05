@@ -93,8 +93,8 @@ void Thread_base::start()
 	addr_t pd_sel   = Platform_pd::pd_core_sel();
 
 	/*
-	 * In core, the affinity location was write to the stack base by the server
-	 * code. So, thry to read the value from there.
+	 * In core, the affinity location has been written to the stack base by
+	 * the server or pager code. So - read the value from there.
 	 */
 	Affinity::Location location = reinterpret_cast<Affinity::Location *>(stack_base())[0];
 
@@ -106,7 +106,7 @@ void Thread_base::start()
 	uint8_t res = create_ec(_tid.ec_sel, pd_sel, location.xpos(),
 	                        utcb, sp, _tid.exc_pt_sel, LOCAL_THREAD);
 	if (res != NOVA_OK) {
-		PERR("create_ec returned %d", res);
+		PERR("create_ec returned %d cpu=%u", res, location.xpos());
 		throw Cpu_session::Thread_creation_failed();
 	}
 

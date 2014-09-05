@@ -129,16 +129,24 @@ namespace Nova {
 
 		unsigned cpus() const {
 			unsigned cpu_num = 0;
-			const char * cpu_desc =
-				reinterpret_cast<const char *>(this) + cpu_desc_offset;
 
-			for (unsigned i = 0; i < cpu_max(); i++) {
-				if ((*cpu_desc) & 0x1) cpu_num++;
-				cpu_desc += cpu_desc_size; 
-			}
+			for (unsigned i = 0; i < cpu_max(); i++)
+				if (is_cpu_enabled(i))
+					cpu_num++;
 
 			return cpu_num;
 		}
+
+		bool is_cpu_enabled(unsigned i) const {
+			if (i >= cpu_max())
+				return false;
+
+			const char * cpu_desc = reinterpret_cast<const char *>(this) +
+			                        cpu_desc_offset + i * cpu_desc_size;
+
+			return (*cpu_desc) & 0x1;
+		}
+
 	} __attribute__((packed));
 
 

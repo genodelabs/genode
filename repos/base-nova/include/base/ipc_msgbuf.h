@@ -394,6 +394,8 @@ namespace Genode {
 				 */
 				if (rcv_window != INVALID_INDEX)
 					_rcv_pt_base = INVALID_INDEX;
+
+				utcb->crd_rcv = 0;
 			}
 	};
 
