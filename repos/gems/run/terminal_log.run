@@ -9,6 +9,7 @@ build {
 	init
 	drivers/framebuffer
 	drivers/input
+	drivers/timer
 	drivers/pci
 	server/nitpicker
 	server/nit_fb

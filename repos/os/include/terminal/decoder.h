@@ -71,8 +71,8 @@ namespace Terminal {
 					{
 						enum { INVALID, NUMBER, CODE };
 
-						int type;
-						int value;
+						int type  = INVALID;
+						int value = 0;
 					};
 
 					struct Number_entry : Entry
@@ -85,10 +85,7 @@ namespace Terminal {
 						Code_entry(int code) { type = CODE, value = code; }
 					};
 
-					struct Invalid_entry : Entry
-					{
-						Invalid_entry() { type = INVALID; }
-					};
+					struct Invalid_entry : Entry { };
 
 				private:
 

@@ -8,6 +8,7 @@ install_config {
 		<service name="ROM"/>
 		<service name="RAM"/>
 		<service name="LOG"/>
+		<service name="RM"/>
 	</parent-provides>
 	<default-route>
 		<any-service> <any-child/> <parent/> </any-service>
