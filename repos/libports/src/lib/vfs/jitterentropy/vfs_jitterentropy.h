@@ -70,14 +70,16 @@ class Jitterentropy_file_system : public Vfs::Single_file_system
 		 ** File I/O service interface **
 		 ********************************/
 
-		Write_result write(Vfs::Vfs_handle *, char const *, Genode::size_t count,
-		                   Genode::size_t &count_out) override
+		Write_result write(Vfs::Vfs_handle *, char const *,
+		                   Vfs::file_size count,
+		                   Vfs::file_size &count_out) override
 		{
 			return WRITE_ERR_IO;
 		}
 
-		Read_result read(Vfs::Vfs_handle *vfs_handle, char *dst, Genode::size_t count,
-		                 Genode::size_t &out_count) override
+		Read_result read(Vfs::Vfs_handle *vfs_handle, char *dst,
+		                 Vfs::file_size count,
+		                 Vfs::file_size &out_count) override
 		{
 			if (!_initialized)
 				return READ_ERR_IO;

@@ -49,16 +49,23 @@ namespace Noux {
 			 ** File I/O service interface **
 			 ********************************/
 
-			Write_result write(Vfs::Vfs_handle *, char const *buf, size_t buf_size,
-			                   size_t &out_count) override
+			Write_result write(Vfs::Vfs_handle *, char const *buf,
+			                   Vfs::file_size buf_size,
+			                   Vfs::file_size &out_count) override
 			{
+				buf_size = buf_size > 0xFFFFFFFFULL ? ~0UL : buf_size;
+
 				out_count = _terminal->write(buf, buf_size);
 
 				return WRITE_OK;
 			}
 
-			Read_result read(Vfs::Vfs_handle *, char *dst, size_t count, size_t &out_count) override
+			Read_result read(Vfs::Vfs_handle *, char *dst,
+			                 Vfs::file_size count,
+			                 Vfs::file_size &out_count) override
 			{
+				count = count > 0xFFFFFFFFULL ? ~0UL : count;
+
 				out_count = _terminal->read(dst, count);
 
 				if (_echo)
@@ -67,7 +74,8 @@ namespace Noux {
 				return READ_OK;
 			}
 
-			Ftruncate_result ftruncate(Vfs::Vfs_handle *, size_t) override
+			Ftruncate_result ftruncate(Vfs::Vfs_handle *,
+			                           Vfs::file_size) override
 			{
 				return FTRUNCATE_OK;
 			}

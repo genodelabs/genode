@@ -50,13 +50,13 @@ __attribute__((weak))
 poll(struct pollfd fds[], nfds_t nfds, int timeout)
 {
 	nfds_t i;
-	int saved_errno, ret, fd, maxfd = 0;
+	int ret, fd, maxfd = 0;
 	fd_set readfds, writefds, exceptfds;
 	struct timeval tv, *tvp = NULL;
 
 	for (i = 0; i < nfds; i++) {
 		fd = fds[i].fd;
-		if (fd >= FD_SETSIZE) {
+		if (fd >= (int)FD_SETSIZE) {
 			/*errno = EINVAL;*/
 			return -1;
 		}

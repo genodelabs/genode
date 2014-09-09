@@ -513,7 +513,7 @@ ssize_t Libc::Vfs_plugin::write(Libc::File_descriptor *fd, const void *buf,
 
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
 
-	size_t out_count = 0;
+	Vfs::file_size out_count = 0;
 
 	switch (handle->fs().write(handle, (char const *)buf, count, out_count)) {
 	case Result::WRITE_ERR_AGAIN:       errno = EAGAIN;      return -1;
@@ -537,7 +537,7 @@ ssize_t Libc::Vfs_plugin::read(Libc::File_descriptor *fd, void *buf,
 
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
 
-	Genode::size_t out_count = 0;
+	Vfs::file_size out_count = 0;
 
 	switch (handle->fs().read(handle, (char *)buf, count, out_count)) {
 	case Result::READ_ERR_AGAIN:       errno = EAGAIN;      PERR("A1"); return -1;
@@ -852,7 +852,7 @@ ssize_t Libc::Vfs_plugin::readlink(const char *path, char *buf, size_t buf_size)
 {
 	typedef Vfs::Directory_service::Readlink_result Result;
 
-	size_t out_len = 0;
+	Vfs::file_size out_len = 0;
 
 	switch (_root_dir.readlink(path, buf, buf_size, out_len)) {
 	case Result::READLINK_ERR_NO_ENTRY: errno = ENOENT; return -1;

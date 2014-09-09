@@ -28,7 +28,7 @@ extern "C" int raw_write_str(const char *s);
 /*
  * Discard external references to 'raw_write_str'
  */
-static inline int raw_write_str(const char *s) { }
+static inline int raw_write_str(const char *s) { return 0; }
 
 #endif /* LIBC_DEBUG == 1 */
 

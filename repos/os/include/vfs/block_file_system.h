@@ -49,7 +49,7 @@ class Vfs::Block_file_system : public Single_file_system
 
 		Genode::Allocator_avl       _tx_block_alloc;
 		Block::Connection           _block;
-		size_t                      _block_size;
+		Genode::size_t              _block_size;
 		Block::sector_t             _block_count;
 		Block::Session::Operations  _block_ops;
 		Block::Session::Tx::Source *_tx_source;
@@ -57,15 +57,16 @@ class Vfs::Block_file_system : public Single_file_system
 		bool                        _readable;
 		bool                        _writeable;
 
-		size_t _block_io(size_t nr, void *buf, size_t sz, bool write, bool bulk = false)
+		file_size _block_io(file_size nr, void *buf, file_size sz,
+		                    bool write, bool bulk = false)
 		{
 			Lock::Guard guard(_lock);
 
 			Block::Packet_descriptor::Opcode op;
 			op = write ? Block::Packet_descriptor::WRITE : Block::Packet_descriptor::READ;
 
-			size_t packet_size  = bulk ? sz : _block_size;
-			size_t packet_count = bulk ? (sz / _block_size) : 1;
+			file_size packet_size  = bulk ? sz : _block_size;
+			file_size packet_count = bulk ? (sz / _block_size) : 1;
 
 			/* sanity check */
 			if (packet_count > _block_buffer_count) {
@@ -135,7 +136,7 @@ class Vfs::Block_file_system : public Single_file_system
 		Stat_result stat(char const *path, Stat &out) override
 		{
 			Stat_result const result = Single_file_system::stat(path, out);
-			out.size = _block_size*_block_count;
+			out.size = _block_count * _block_size;
 			return result;
 		}
 
@@ -144,22 +145,22 @@ class Vfs::Block_file_system : public Single_file_system
 		 ** File I/O service interface **
 		 ********************************/
 
-		Write_result write(Vfs_handle *vfs_handle, char const *buf, size_t count,
-		                   size_t &out_count) override
+		Write_result write(Vfs_handle *vfs_handle, char const *buf,
+		                   file_size count, file_size &out_count) override
 		{
 			if (!_writeable) {
 				PERR("block device is not writeable");
 				return WRITE_ERR_INVALID;
 			}
 
-			size_t seek_offset = vfs_handle->seek();
+			file_size seek_offset = vfs_handle->seek();
 
-			size_t written = 0;
+			file_size written = 0;
 			while (count > 0) {
-				size_t displ   = 0;
-				size_t length  = 0;
-				size_t nbytes  = 0;
-				size_t blk_nr  = seek_offset / _block_size;
+				file_size displ   = 0;
+				file_size length  = 0;
+				file_size nbytes  = 0;
+				file_size blk_nr  = seek_offset / _block_size;
 
 				displ = seek_offset % _block_size;
 
@@ -178,12 +179,12 @@ class Vfs::Block_file_system : public Single_file_system
 				 * blocks at the end.
 				 */
 				if (displ == 0 && (count % _block_size) >= 0 && !(count < _block_size)) {
-					size_t bytes_left = count - (count % _block_size);
+					file_size bytes_left = count - (count % _block_size);
 
 					nbytes = _block_io(blk_nr, (void*)(buf + written),
 					                   bytes_left, true, true);
 					if (nbytes == 0) {
-						PERR("error while write block:%zu from block device",
+						PERR("error while write block:%llu from block device",
 						     blk_nr);
 						return WRITE_ERR_INVALID;
 					}
@@ -202,7 +203,7 @@ class Vfs::Block_file_system : public Single_file_system
 				 * than block size, we also have to read the block first.
 				 */
 				if (displ > 0 || length < _block_size) {
-					PWRN("offset:%zd block_size:%zd displacement:%zd length:%zu",
+					PWRN("offset:%llu block_size:%zd displacement:%llu length:%llu",
 							seek_offset, _block_size, displ, length);
 
 					_block_io(blk_nr, _block_buffer, _block_size, false);
@@ -214,7 +215,7 @@ class Vfs::Block_file_system : public Single_file_system
 
 				nbytes = _block_io(blk_nr, _block_buffer, _block_size, true);
 				if ((unsigned)nbytes != _block_size) {
-					PERR("error while writing block:%zu from Block_device",
+					PERR("error while writing block:%llu from Block_device",
 					     blk_nr);
 					return WRITE_ERR_INVALID;
 				}
@@ -228,22 +229,22 @@ class Vfs::Block_file_system : public Single_file_system
 			return WRITE_OK;
 		}
 
-		Read_result read(Vfs_handle *vfs_handle, char *dst, size_t count,
-		                 size_t &out_count) override
+		Read_result read(Vfs_handle *vfs_handle, char *dst, file_size count,
+		                 file_size &out_count) override
 		{
 			if (!_readable) {
 				PERR("block device is not readable");
 				return READ_ERR_INVALID;
 			}
 
-			size_t seek_offset = vfs_handle->seek();
+			file_size seek_offset = vfs_handle->seek();
 
-			size_t read = 0;
+			file_size read = 0;
 			while (count > 0) {
-				size_t displ   = 0;
-				size_t length  = 0;
-				size_t nbytes  = 0;
-				size_t blk_nr  = seek_offset / _block_size;
+				file_size displ   = 0;
+				file_size length  = 0;
+				file_size nbytes  = 0;
+				file_size blk_nr  = seek_offset / _block_size;
 
 				displ = seek_offset % _block_size;
 
@@ -262,11 +263,11 @@ class Vfs::Block_file_system : public Single_file_system
 				 * blocks at the end.
 				 */
 				if (displ == 0 && (count % _block_size) >= 0 && !(count < _block_size)) {
-					size_t bytes_left = count - (count % _block_size);
+					file_size bytes_left = count - (count % _block_size);
 
 					nbytes = _block_io(blk_nr, dst + read, bytes_left, false, true);
 					if (nbytes == 0) {
-						PERR("error while reading block:%zu from block device",
+						PERR("error while reading block:%llu from block device",
 						     blk_nr);
 						return READ_ERR_INVALID;
 					}
@@ -278,13 +279,13 @@ class Vfs::Block_file_system : public Single_file_system
 				}
 
 				if (displ > 0)
-					PWRN("offset:%zd is not aligned to block_size:%zu"
-					     " displacement:%zu", seek_offset, _block_size,
+					PWRN("offset:%llu is not aligned to block_size:%zu"
+					     " displacement:%llu", seek_offset, _block_size,
 					     displ);
 
 				nbytes = _block_io(blk_nr, _block_buffer, _block_size, false);
 				if ((unsigned)nbytes != _block_size) {
-					PERR("error while reading block:%zu from block device",
+					PERR("error while reading block:%llu from block device",
 					     blk_nr);
 					return READ_ERR_INVALID;
 				}
@@ -300,7 +301,7 @@ class Vfs::Block_file_system : public Single_file_system
 			return READ_OK;
 		}
 
-		Ftruncate_result ftruncate(Vfs_handle *vfs_handle, size_t) override
+		Ftruncate_result ftruncate(Vfs_handle *vfs_handle, file_size) override
 		{
 			return FTRUNCATE_OK;
 		}

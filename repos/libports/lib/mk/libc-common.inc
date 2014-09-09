@@ -22,6 +22,7 @@ INC_DIR += $(LIBC_DIR)/contrib/gdtoa
 # the imported source code to improve build aesthetics
 #
 CC_WARN =
+CC_CXX_OPT += -Wall
 
 #
 # Generate position independent code to allow linking of static libc code into

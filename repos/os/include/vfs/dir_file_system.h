@@ -128,7 +128,7 @@ class Vfs::Dir_file_system : public File_system
 			if (path[0] == '/')
 				path++;
 
-			size_t const name_len = strlen(_name);
+			Genode::size_t const name_len = strlen(_name);
 			if (strcmp(path, _name, name_len) != 0)
 				return 0;
 			path += name_len;
@@ -147,7 +147,7 @@ class Vfs::Dir_file_system : public File_system
 		/**
 		 * The 'path' is relative to the child file systems.
 		 */
-		Dirent_result _dirent_of_file_systems(char const *path, off_t index, Dirent &out)
+		Dirent_result _dirent_of_file_systems(char const *path, file_offset index, Dirent &out)
 		{
 			int base = 0;
 			for (File_system *fs = _first_file_system; fs; fs = fs->next) {
@@ -177,7 +177,7 @@ class Vfs::Dir_file_system : public File_system
 			return DIRENT_OK;
 		}
 
-		void _dirent_of_this_dir_node(off_t index, Dirent &out)
+		void _dirent_of_this_dir_node(file_offset index, Dirent &out)
 		{
 			if (index == 0) {
 				strncpy(out.name, _name, sizeof(out.name));
@@ -193,9 +193,9 @@ class Vfs::Dir_file_system : public File_system
 		 * Accumulate number of directory entries that match in any of
 		 * our sub file systems.
 		 */
-		size_t _sum_dirents_of_file_systems(char const *path)
+		file_size _sum_dirents_of_file_systems(char const *path)
 		{
-			size_t cnt = 0;
+			file_size cnt = 0;
 			for (File_system *fs = _first_file_system; fs; fs = fs->next) {
 				cnt += fs->num_dirent(path);
 			}
@@ -311,7 +311,7 @@ class Vfs::Dir_file_system : public File_system
 			return STAT_ERR_NO_ENTRY;
 		}
 
-		Dirent_result dirent(char const *path, off_t index, Dirent &out) override
+		Dirent_result dirent(char const *path, file_offset index, Dirent &out) override
 		{
 			if (_is_root())
 				return _dirent_of_file_systems(path, index, out);
@@ -333,7 +333,7 @@ class Vfs::Dir_file_system : public File_system
 			return _dirent_of_file_systems(path, index, out);
 		}
 
-		size_t num_dirent(char const *path) override
+		file_size num_dirent(char const *path) override
 		{
 			if (_is_root()) {
 				return _sum_dirents_of_file_systems(path);
@@ -447,8 +447,8 @@ class Vfs::Dir_file_system : public File_system
 			               path, unlink_fn);
 		}
 
-		Readlink_result readlink(char const *path, char *buf, size_t buf_size,
-		                      size_t &out_len) override
+		Readlink_result readlink(char const *path, char *buf, file_size buf_size,
+		                         file_size &out_len) override
 		{
 			auto readlink_fn = [&] (File_system &fs, char const *path)
 			{
@@ -521,17 +521,18 @@ class Vfs::Dir_file_system : public File_system
 		 ** File I/O service interface **
 		 ********************************/
 
-		Write_result write(Vfs_handle *handle, char const *, size_t, size_t &) override
+		Write_result write(Vfs_handle *handle, char const *, file_size,
+		                   file_size &) override
 		{
 			return WRITE_ERR_INVALID;
 		}
 
-		Read_result read(Vfs_handle *, char *, size_t, size_t &) override
+		Read_result read(Vfs_handle *, char *, file_size, file_size &) override
 		{
 			return READ_ERR_INVALID;
 		}
 
-		Ftruncate_result ftruncate(Vfs_handle *, size_t) override
+		Ftruncate_result ftruncate(Vfs_handle *, file_size) override
 		{
 			return FTRUNCATE_ERR_NO_PERM;
 		}

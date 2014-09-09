@@ -177,7 +177,7 @@ namespace Noux {
 				num = 2000;
 			}
 
-			void buf(void *buf_, size_t len)
+			void buf(void *buf_, unsigned long long len)
 			{
 				size_t chunk;
 				uint8_t *buf = (uint8_t *)buf_;
@@ -222,7 +222,7 @@ namespace Noux {
 				memset(S, 0, 256);
 			}
 
-			void get(void *_buf, size_t len)
+			void get(void *_buf, unsigned long long len)
 			{
 				buf(_buf, len);
 			}
@@ -250,15 +250,18 @@ namespace Noux {
 			 ** File I/O service interface **
 			 ********************************/
 
-			Write_result write(Vfs::Vfs_handle *, char const *, size_t buf_size, size_t &out_count) override
+			Write_result write(Vfs::Vfs_handle *, char const *,
+			                   Vfs::file_size buf_size,
+			                   Vfs::file_size &out_count) override
 			{
 				out_count = buf_size;
 
 				return WRITE_OK;
 			}
 
-			Read_result read(Vfs::Vfs_handle *vfs_handle, char *dst, size_t count,
-			                 size_t &out_count) override
+			Read_result read(Vfs::Vfs_handle *vfs_handle, char *dst,
+			                 Vfs::file_size count,
+			                 Vfs::file_size &out_count) override
 			{
 				_arc4random.get(dst, count);
 				out_count = count;
@@ -266,7 +269,8 @@ namespace Noux {
 				return READ_OK;
 			}
 
-			Ftruncate_result ftruncate(Vfs::Vfs_handle *, size_t) override
+			Ftruncate_result ftruncate(Vfs::Vfs_handle *,
+			                           Vfs::file_size) override
 			{
 				return FTRUNCATE_OK;
 			}

@@ -46,12 +46,12 @@ namespace Noux {
 
 		bool write(Sysio *sysio, size_t &offset) override
 		{
-			size_t out_count = 0;
+			Vfs::file_size out_count = 0;
 
 			sysio->error.write = _fh->fs().write(_fh, sysio->write_in.chunk,
 		                                         sysio->write_in.count, out_count);
-		    if (sysio->error.write != Vfs::File_io_service::WRITE_OK)
-		    	return false;
+			if (sysio->error.write != Vfs::File_io_service::WRITE_OK)
+				return false;
 
 			_fh->advance_seek(out_count);
 
@@ -65,7 +65,7 @@ namespace Noux {
 		{
 			size_t count = min(sysio->read_in.count, sizeof(sysio->read_out.chunk));
 
-			size_t out_count = 0;
+			Vfs::file_size out_count = 0;
 
 			sysio->error.read = _fh->fs().read(_fh, sysio->read_out.chunk, count, out_count);
 

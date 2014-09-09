@@ -40,7 +40,8 @@ class Vfs::Log_file_system : public Single_file_system
 		 ** File I/O service interface **
 		 ********************************/
 
-		Write_result write(Vfs_handle *, char const *src, size_t count, size_t &out_count) override
+		Write_result write(Vfs_handle *, char const *src, file_size count,
+		                   file_size &out_count) override
 		{
 			out_count = count;
 
@@ -58,7 +59,8 @@ class Vfs::Log_file_system : public Single_file_system
 			return WRITE_OK;
 		}
 
-		Read_result read(Vfs_handle *, char *dst, size_t count, size_t &out_count) override
+		Read_result read(Vfs_handle *, char *, file_size,
+		                file_size &out_count) override
 		{
 			out_count = 0;
 			return READ_OK;

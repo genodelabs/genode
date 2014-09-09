@@ -627,7 +627,7 @@ extern "C" int _open(const char *pathname, int flags, ::mode_t mode)
 	plugin = plugin_registry()->get_plugin_for_open(resolved_path.base(), flags);
 
 	if (!plugin) {
-		PERR("no plugin found for open(\"%s\", int)", pathname, flags);
+		PERR("no plugin found for open(\"%s\", %d)", pathname, flags);
 		return -1;
 	}
 

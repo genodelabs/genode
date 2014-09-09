@@ -87,7 +87,7 @@ class Vfs::Single_file_system : public File_system
 			return STAT_OK;
 		}
 
-		Dirent_result dirent(char const *path, off_t index, Dirent &out) override
+		Dirent_result dirent(char const *path, file_offset index, Dirent &out) override
 		{
 			if (!_is_root(path))
 				return DIRENT_ERR_INVALID_PATH;
@@ -106,7 +106,7 @@ class Vfs::Single_file_system : public File_system
 			return DIRENT_OK;
 		}
 
-		size_t num_dirent(char const *path) override
+		file_size num_dirent(char const *path) override
 		{
 			if (_is_root(path))
 				return 1;
@@ -127,7 +127,8 @@ class Vfs::Single_file_system : public File_system
 			return path;
 		}
 
-		Open_result open(char const *path, unsigned, Vfs_handle **out_handle) override
+		Open_result open(char const *path, unsigned,
+		                 Vfs_handle **out_handle) override
 		{
 			if (!_is_single_file(path))
 				return OPEN_ERR_UNACCESSIBLE;
@@ -141,7 +142,8 @@ class Vfs::Single_file_system : public File_system
 			return UNLINK_ERR_NO_PERM;
 		}
 
-		Readlink_result readlink(char const *, char *, size_t, size_t &) override
+		Readlink_result readlink(char const *, char *, file_size,
+		                         file_size &) override
 		{
 			return READLINK_ERR_NO_ENTRY;
 		}
@@ -166,7 +168,7 @@ class Vfs::Single_file_system : public File_system
 		 ** File I/O service interface **
 		 ********************************/
 
-		Ftruncate_result ftruncate(Vfs_handle *vfs_handle, size_t) override
+		Ftruncate_result ftruncate(Vfs_handle *vfs_handle, file_size) override
 		{
 			return FTRUNCATE_ERR_NO_PERM;
 		}

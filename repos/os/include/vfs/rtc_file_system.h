@@ -44,7 +44,8 @@ class Vfs::Rtc_file_system : public Single_file_system
 		 ** File I/O service interface **
 		 ********************************/
 
-		Write_result write(Vfs_handle *, char const *, size_t count, size_t &count_out) override
+		Write_result write(Vfs_handle *, char const *, file_size,
+		                   file_size &) override
 		{
 			return WRITE_ERR_IO;
 		}
@@ -55,7 +56,8 @@ class Vfs::Rtc_file_system : public Single_file_system
 		 * On each read the current time is queried and afterwards formated
 		 * as '%Y-%m-%d %H:%M\n'.
 		 */
-		Read_result read(Vfs_handle *vfs_handle, char *dst, size_t count, size_t &out_count) override
+		Read_result read(Vfs_handle *vfs_handle, char *dst, file_size count,
+		                 file_size &out_count) override
 		{
 			time_t t = _rtc.get_current_time() / 1000000ULL;
 
@@ -67,7 +69,7 @@ class Vfs::Rtc_file_system : public Single_file_system
 			                 1 + tm->tm_mon,     /* months since January [0-11] */
 			                 tm->tm_mday, tm->tm_hour, tm->tm_min);
 
-			size_t len = count > sizeof(buf) ? sizeof(buf) : count;
+			file_size len = count > sizeof(buf) ? sizeof(buf) : count;
 			Genode::memcpy(dst, buf, len);
 
 			out_count = len;

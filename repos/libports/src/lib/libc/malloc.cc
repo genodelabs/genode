@@ -21,7 +21,10 @@
 #include <util/misc_math.h>
 
 /* libc includes */
+extern "C" {
 #include <string.h>
+#include <stdlib.h>
+}
 
 typedef unsigned long Block_header;
 
@@ -171,14 +174,14 @@ static Genode::Allocator *allocator()
 }
 
 
-extern "C" void *malloc(unsigned size)
+extern "C" void *malloc(size_t size)
 {
 	void *addr;
 	return allocator()->alloc(size, &addr) ? addr : 0;
 }
 
 
-extern "C" void *calloc(unsigned nmemb, unsigned size)
+extern "C" void *calloc(size_t nmemb, size_t size)
 {
 	void *addr = malloc(nmemb*size);
 	Genode::memset(addr, 0, nmemb*size);
@@ -194,7 +197,7 @@ extern "C" void free(void *ptr)
 }
 
 
-extern "C" void *realloc(void *ptr, Genode::size_t size)
+extern "C" void *realloc(void *ptr, size_t size)
 {
 	if (!ptr)
 		return malloc(size);

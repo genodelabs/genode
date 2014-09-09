@@ -34,8 +34,8 @@ struct Vfs::File_io_service
 	                    WRITE_ERR_INTERRUPT, WRITE_OK };
 
 	virtual Write_result write(Vfs_handle *vfs_handle,
-	                           char const *buf, size_t buf_size,
-	                           size_t &out_count) = 0;
+	                           char const *buf, file_size buf_size,
+	                           file_size &out_count) = 0;
 
 
 	/**********
@@ -46,8 +46,8 @@ struct Vfs::File_io_service
 	                   READ_ERR_INVALID,   READ_ERR_IO,
 	                   READ_ERR_INTERRUPT, READ_OK };
 
-	virtual Read_result read(Vfs_handle *vfs_handle, char *dst, size_t count,
-	                         size_t &out_count) = 0;
+	virtual Read_result read(Vfs_handle *vfs_handle, char *dst, file_size count,
+	                         file_size &out_count) = 0;
 
 
 	/***************
@@ -57,7 +57,7 @@ struct Vfs::File_io_service
 	enum Ftruncate_result { FTRUNCATE_ERR_NO_PERM = NUM_GENERAL_ERRORS,
 	                        FTRUNCATE_ERR_INTERRUPT, FTRUNCATE_OK };
 
-	virtual Ftruncate_result ftruncate(Vfs_handle *vfs_handle, size_t len) = 0;
+	virtual Ftruncate_result ftruncate(Vfs_handle *vfs_handle, file_size len) = 0;
 
 
 	/***********

@@ -34,14 +34,16 @@ struct Vfs::Zero_file_system : Single_file_system
 	 ** File I/O service interface **
 	 ********************************/
 
-	Write_result write(Vfs_handle *, char const *, size_t count, size_t &count_out) override
+	Write_result write(Vfs_handle *, char const *, file_size count,
+	                   file_size &count_out) override
 	{
 		count_out = count;
 
 		return WRITE_OK;
 	}
 
-	Read_result read(Vfs_handle *vfs_handle, char *dst, size_t count, size_t &out_count) override
+	Read_result read(Vfs_handle *vfs_handle, char *dst, file_size count,
+	                 file_size &out_count) override
 	{
 		memset(dst, 0, count);
 		out_count = count;

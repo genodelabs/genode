@@ -38,7 +38,7 @@ class Vfs::Tar_file_system : public File_system
 	Genode::Rom_connection _rom;
 
 	char  *_tar_base;
-	size_t _tar_size;
+	file_size _tar_size;
 
 	class Record
 	{
@@ -81,7 +81,7 @@ class Vfs::Tar_file_system : public File_system
 			enum { TYPE_FILE    = 0, TYPE_HARDLINK = 1,
 			       TYPE_SYMLINK = 2, TYPE_DIR      = 5 };
 
-			size_t             size() const { return _read(_size); }
+			file_size          size() const { return _read(_size); }
 			unsigned            uid() const { return _read(_uid);  }
 			unsigned            gid() const { return _read(_gid);  }
 			unsigned           mode() const { return _read(_mode); }
@@ -186,9 +186,9 @@ class Vfs::Tar_file_system : public File_system
 		}
 
 
-		size_t num_dirent()
+		file_size num_dirent()
 		{
-			size_t count = 0;
+			file_size count = 0;
 			for (Node *child_node = first(); child_node; child_node = child_node->next(), count++) ;
 			return count;
 		}
@@ -261,7 +261,7 @@ class Vfs::Tar_file_system : public File_system
 							 * and use the location in the record as name
 							 * pointer to save some memory
 							 */
-							size_t name_size = strlen(path_element) + 1;
+							Genode::size_t name_size = strlen(path_element) + 1;
 							char *name = (char*)env()->heap()->alloc(name_size);
 							strncpy(name, path_element, name_size);
 							child_node = new (env()->heap()) Node(name, record);
@@ -271,7 +271,7 @@ class Vfs::Tar_file_system : public File_system
 								PDBG("creating node without record for %s", path_element);
 
 							/* create a directory node without record */
-							size_t name_size = strlen(path_element) + 1;
+							Genode::size_t name_size = strlen(path_element) + 1;
 							char *name = (char*)env()->heap()->alloc(name_size);
 							strncpy(name, path_element, name_size);
 							child_node = new (env()->heap()) Node(name, 0);
@@ -299,13 +299,13 @@ class Vfs::Tar_file_system : public File_system
 
 			tar_record_action(record);
 
-			size_t file_size = record->size();
+			file_size size = record->size();
 
 			/* some datablocks */       /* one metablock */
-			block_id = block_id + (file_size / Record::BLOCK_LEN) + 1;
+			block_id = block_id + (size / Record::BLOCK_LEN) + 1;
 
 			/* round up */
-			if (file_size % Record::BLOCK_LEN != 0) block_id++;
+			if (size % Record::BLOCK_LEN != 0) block_id++;
 
 			/* check for end of tar archive */
 			if (block_id*Record::BLOCK_LEN >= _tar_size)
@@ -325,12 +325,12 @@ class Vfs::Tar_file_system : public File_system
 		Node            &root_node;
 		bool             valid;              /* true after first lookup */
 		char             key[256];           /* key used for lookup */
-		size_t           cached_num_dirent;  /* cached value */
+		file_size        cached_num_dirent;  /* cached value */
 
 		Num_dirent_cache(Node &root_node)
 		: root_node(root_node), valid(false), cached_num_dirent(0) { }
 
-		size_t num_dirent(char const *path)
+		file_size num_dirent(char const *path)
 		{
 			Lock::Guard guard(lock);
 
@@ -358,7 +358,7 @@ class Vfs::Tar_file_system : public File_system
 			_root_node("", 0),
 			_cached_num_dirent(_root_node)
 		{
-			PINF("tar archive '%s' local at %p, size is %zd",
+			PINF("tar archive '%s' local at %p, size is %llu",
 			     _rom_name.name, _tar_base, _tar_size);
 
 			_for_each_tar_record_do(Add_node_action(_root_node));
@@ -479,7 +479,7 @@ class Vfs::Tar_file_system : public File_system
 			return STAT_OK;
 		}
 
-		Dirent_result dirent(char const *path, off_t index, Dirent &out) override
+		Dirent_result dirent(char const *path, file_offset index, Dirent &out) override
 		{
 			Node *node = _root_node.lookup(path);
 
@@ -516,8 +516,8 @@ class Vfs::Tar_file_system : public File_system
 
 		Unlink_result unlink(char const *) override { return UNLINK_ERR_NO_PERM; }
 
-		Readlink_result readlink(char const *path, char *buf, size_t buf_size,
-		                         size_t &out_len) override
+		Readlink_result readlink(char const *path, char *buf, file_size buf_size,
+		                         file_size &out_len) override
 		{
 			Node *node = _root_node.lookup(path);
 			Record const *record = node ? node->record : 0;
@@ -525,7 +525,7 @@ class Vfs::Tar_file_system : public File_system
 			if (!record || (record->type() != Record::TYPE_SYMLINK))
 				return READLINK_ERR_NO_ENTRY;
 
-			size_t const count = min(buf_size, (size_t)100);
+			file_size const count = min(buf_size, 100ULL);
 
 			memcpy(buf, record->linked_name(), count);
 
@@ -549,7 +549,7 @@ class Vfs::Tar_file_system : public File_system
 			return SYMLINK_ERR_NO_ENTRY;
 		}
 
-		size_t num_dirent(char const *path) override
+		file_size num_dirent(char const *path) override
 		{
 			return _cached_num_dirent.num_dirent(path);
 		}
@@ -602,21 +602,22 @@ class Vfs::Tar_file_system : public File_system
 		 ** File I/O service interface **
 		 ********************************/
 
-		Write_result write(Vfs_handle *, char const *, size_t, size_t &) override
+		Write_result write(Vfs_handle *, char const *, file_size,
+		                   file_size &) override
 		{
 			PDBG("called\n");
 			return WRITE_ERR_INVALID;
 		}
 
-		Read_result read(Vfs_handle *vfs_handle, char *dst, size_t count,
-		                 size_t &out_count) override
+		Read_result read(Vfs_handle *vfs_handle, char *dst, file_size count,
+		                 file_size &out_count) override
 		{
 			Tar_vfs_handle const *handle = static_cast<Tar_vfs_handle *>(vfs_handle);
 
-			size_t const record_size = handle->record()->size();
+			file_size const record_size = handle->record()->size();
 
-			size_t const record_bytes_left = record_size >= handle->seek()
-			                               ? record_size  - handle->seek() : 0;
+			file_size const record_bytes_left = record_size >= handle->seek()
+			                                  ? record_size  - handle->seek() : 0;
 
 			count = min(record_bytes_left, count);
 
@@ -628,7 +629,7 @@ class Vfs::Tar_file_system : public File_system
 			return READ_OK;
 		}
 
-		Ftruncate_result ftruncate(Vfs_handle *handle, size_t) override
+		Ftruncate_result ftruncate(Vfs_handle *handle, file_size) override
 		{
 			PDBG("called\n");
 			return FTRUNCATE_ERR_NO_PERM;

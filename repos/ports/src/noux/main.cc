@@ -689,15 +689,20 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 			break;
 
 		case SYSCALL_READLINK:
+		{
+			Vfs::file_size out_count = 0;
 
 			_sysio->error.readlink = root_dir()->readlink(_sysio->readlink_in.path,
 			                              _sysio->readlink_out.chunk,
 			                              min(_sysio->readlink_in.bufsiz,
 			                                  sizeof(_sysio->readlink_out.chunk)),
-			                              _sysio->readlink_out.count);
+			                              out_count);
+
+			_sysio->readlink_out.count = out_count;
 
 			result = (_sysio->error.readlink == Vfs::Directory_service::READLINK_OK);
 			break;
+		}
 
 		case SYSCALL_RENAME:
 

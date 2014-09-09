@@ -90,13 +90,13 @@ class Vfs::Fs_file_system : public File_system
 			~Fs_handle_guard() { _fs.close(_handle); }
 		};
 
-		size_t _read(::File_system::Node_handle node_handle, void *buf,
-		             size_t const count, size_t const seek_offset)
+		file_size _read(::File_system::Node_handle node_handle, void *buf,
+		                file_size const count, file_size const seek_offset)
 		{
 			::File_system::Session::Tx::Source &source = *_fs.tx();
 
-			size_t const max_packet_size = source.bulk_buffer_size() / 2;
-			size_t const clipped_count = min(max_packet_size, count);
+			file_size const max_packet_size = source.bulk_buffer_size() / 2;
+			file_size const clipped_count = min(max_packet_size, count);
 
 			::File_system::Packet_descriptor const
 				packet_in(source.alloc_packet(clipped_count),
@@ -113,7 +113,7 @@ class Vfs::Fs_file_system : public File_system
 			::File_system::Packet_descriptor const
 				packet_out = source.get_acked_packet();
 
-			size_t const read_num_bytes = min(packet_out.length(), count);
+			file_size const read_num_bytes = min(packet_out.length(), count);
 
 			memcpy(buf, source.packet_content(packet_out), read_num_bytes);
 
@@ -127,12 +127,12 @@ class Vfs::Fs_file_system : public File_system
 			return read_num_bytes;
 		}
 
-		size_t _write(::File_system::Node_handle node_handle,
-		              const char *buf, size_t count, size_t seek_offset)
+		file_size _write(::File_system::Node_handle node_handle,
+		                 const char *buf, file_size count, file_size seek_offset)
 		{
 			::File_system::Session::Tx::Source &source = *_fs.tx();
 
-			size_t const max_packet_size = source.bulk_buffer_size() / 2;
+			file_size const max_packet_size = source.bulk_buffer_size() / 2;
 			count = min(max_packet_size, count);
 
 			::File_system::Packet_descriptor
@@ -207,12 +207,13 @@ class Vfs::Fs_file_system : public File_system
 				local_addr = env()->rm_session()->attach(ds_cap);
 
 				::File_system::Session::Tx::Source &source = *_fs.tx();
-				size_t const max_packet_size = source.bulk_buffer_size() / 2;
+				file_size const max_packet_size = source.bulk_buffer_size() / 2;
 
-				for (size_t seek_offset = 0; seek_offset < status.size;
+				for (file_size seek_offset = 0; seek_offset < status.size;
 				     seek_offset += max_packet_size) {
 
-					size_t const count = min(max_packet_size, status.size - seek_offset);
+					file_size const count = min(max_packet_size, status.size -
+					                                             seek_offset);
 
 					::File_system::Packet_descriptor
 						packet(source.alloc_packet(count),
@@ -281,7 +282,7 @@ class Vfs::Fs_file_system : public File_system
 			return STAT_OK;
 		}
 
-		Dirent_result dirent(char const *path, off_t index, Dirent &out) override
+		Dirent_result dirent(char const *path, file_offset index, Dirent &out) override
 		{
 			Lock::Guard guard(_lock);
 
@@ -362,8 +363,8 @@ class Vfs::Fs_file_system : public File_system
 			return UNLINK_OK;
 		}
 
-		Readlink_result readlink(char const *path, char *buf, size_t buf_size,
-		                         size_t &out_len) override
+		Readlink_result readlink(char const *path, char *buf, file_size buf_size,
+		                         file_size &out_len) override
 		{
 			/*
 			 * Canonicalize path (i.e., path must start with '/')
@@ -477,7 +478,7 @@ class Vfs::Fs_file_system : public File_system
 			return SYMLINK_ERR_NO_ENTRY;
 		}
 
-		size_t num_dirent(char const *path) override
+		file_size num_dirent(char const *path) override
 		{
 			if (strcmp(path, "") == 0)
 				path = "/";
@@ -581,8 +582,8 @@ class Vfs::Fs_file_system : public File_system
 		 ** File I/O service interface **
 		 ********************************/
 
-		Write_result write(Vfs_handle *vfs_handle, char const *buf, size_t buf_size,
-		                   size_t &out_count) override
+		Write_result write(Vfs_handle *vfs_handle, char const *buf,
+		                   file_size buf_size, file_size &out_count) override
 		{
 			Lock::Guard guard(_lock);
 
@@ -593,18 +594,18 @@ class Vfs::Fs_file_system : public File_system
 			return WRITE_OK;
 		}
 
-		Read_result read(Vfs_handle *vfs_handle, char *dst, size_t count,
-		                 size_t &out_count) override
+		Read_result read(Vfs_handle *vfs_handle, char *dst, file_size count,
+		                 file_size &out_count) override
 		{
 			Lock::Guard guard(_lock);
 
 			Fs_vfs_handle const *handle = static_cast<Fs_vfs_handle *>(vfs_handle);
 
 			::File_system::Status status = _fs.status(handle->file_handle());
-			size_t const file_size = status.size;
+			file_size const size_of_file = status.size;
 
-			size_t const file_bytes_left = file_size >= handle->seek()
-			                             ? file_size  - handle->seek() : 0;
+			file_size const file_bytes_left = size_of_file >= handle->seek()
+			                                ? size_of_file  - handle->seek() : 0;
 
 			count = min(count, file_bytes_left);
 
@@ -613,7 +614,7 @@ class Vfs::Fs_file_system : public File_system
 			return READ_OK;
 		}
 
-		Ftruncate_result ftruncate(Vfs_handle *vfs_handle, size_t len) override
+		Ftruncate_result ftruncate(Vfs_handle *vfs_handle, file_size len) override
 		{
 			Fs_vfs_handle const *handle = static_cast<Fs_vfs_handle *>(vfs_handle);
 

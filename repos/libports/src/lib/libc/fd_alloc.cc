@@ -45,11 +45,11 @@ File_descriptor *File_descriptor_allocator::alloc(Plugin *plugin,
                                                   int libc_fd)
 {
 	/* we use addresses returned by the allocator as file descriptors */
-	addr_t addr = (libc_fd == ANY_FD ? ANY_FD : libc_fd);
+	addr_t addr = (libc_fd <= ANY_FD ? ANY_FD : libc_fd);
 
 	/* allocate fresh fd if the default value for 'libc_fd' was specified */
 	bool alloc_ok = false;
-	if (addr == ANY_FD)
+	if (libc_fd <= ANY_FD)
 		alloc_ok = Allocator_avl_base::alloc(1, reinterpret_cast<void**>(&addr));
 	else
 		alloc_ok = (Allocator_avl_base::alloc_addr(1, addr).is_ok());

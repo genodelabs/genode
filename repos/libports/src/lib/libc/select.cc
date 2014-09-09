@@ -280,7 +280,7 @@ pselect(int nfds, fd_set *readfds, fd_set *writefds,
        fd_set *exceptfds, const struct timespec *timeout,
        const sigset_t *sigmask)
 {
-	struct timeval tv, *tvp;
+	struct timeval tv;
 	sigset_t origmask;
 	int nready;
 

@@ -74,23 +74,24 @@ class Vfs::Rom_file_system : public Single_file_system
 		 ** File I/O service interface **
 		 ********************************/
 
-		Write_result write(Vfs_handle *, char const *, size_t, size_t &count_out) override
+		Write_result write(Vfs_handle *, char const *, file_size,
+		                   file_size &count_out) override
 		{
 			count_out = 0;
 			return WRITE_ERR_INVALID;
 		}
 
-		Read_result read(Vfs_handle *vfs_handle, char *dst, size_t count,
-		                 size_t &out_count) override
+		Read_result read(Vfs_handle *vfs_handle, char *dst, file_size count,
+		                 file_size &out_count) override
 		{
 			/* file read limit is the size of the dataspace */
-			size_t const max_size = _rom.size();
+			file_size const max_size = _rom.size();
 
 			/* current read offset */
-			size_t const read_offset = vfs_handle->seek();
+			file_size const read_offset = vfs_handle->seek();
 
 			/* maximum read offset, clamped to dataspace size */
-			size_t const end_offset = min(count + read_offset, max_size);
+			file_size const end_offset = min(count + read_offset, max_size);
 
 			/* source address within the dataspace */
 			char const *src = _rom.local_addr<char>() + read_offset;
@@ -102,7 +103,7 @@ class Vfs::Rom_file_system : public Single_file_system
 			}
 
 			/* copy-out bytes from ROM dataspace */
-			size_t const num_bytes = end_offset - read_offset;
+			file_size const num_bytes = end_offset - read_offset;
 
 			memcpy(dst, src, num_bytes);
 
