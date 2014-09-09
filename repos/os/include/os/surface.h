@@ -37,7 +37,7 @@ class Genode::Surface_base
 		typedef Genode::Rect<>  Rect;
 		typedef Genode::Color   Color;
 
-		enum Pixel_format { UNKNOWN, RGB565, RGB888 };
+		enum Pixel_format { UNKNOWN, RGB565, RGB888, ALPHA8 };
 
 		struct Flusher
 		{
