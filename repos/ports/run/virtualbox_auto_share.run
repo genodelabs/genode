@@ -63,9 +63,8 @@ if {[is_qemu_available]} {
 	exit
 }
 
-# Tested for nova 64bit solely.
+# Tested for nova. 
 assert_spec nova
-assert_spec 64bit
 
 #
 # Build Noux packages only once

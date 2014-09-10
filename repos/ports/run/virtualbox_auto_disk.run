@@ -1,6 +1,5 @@
-# Tested for nova 64bit solely.
+# Tested for nova. 
 assert_spec nova
-assert_spec 64bit
  
 set use_vdi 1
 set use_iso 0
