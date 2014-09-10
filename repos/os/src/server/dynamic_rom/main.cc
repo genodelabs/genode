@@ -164,11 +164,6 @@ class Dynamic_rom::Session_component : public Rpc_object<Genode::Rom_session>
 			_execute_steps_until_sleep();
 		}
 
-		~Session_component()
-		{
-			_ep.dissolve(_timer_dispatcher);
-		}
-
 		Genode::Rom_dataspace_capability dataspace() override
 		{
 			using namespace Genode;
