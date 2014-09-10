@@ -273,7 +273,7 @@ class View : public Same_buffer_list_elem,
 				return false;
 
 			/* if view uses an alpha channel, check the input mask */
-			if (mode.flat() && session().uses_alpha())
+			if ((mode.flat() || _session.xray_no()) && session().uses_alpha())
 				return session().input_mask_at(p - view_rect.p1() + _buffer_off);
 
 			return true;
