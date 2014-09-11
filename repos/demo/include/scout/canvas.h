@@ -70,40 +70,8 @@ struct Scout::Canvas_base : Texture_allocator
 };
 
 
-#include <os/pixel_rgb565.h>
+#include <os/texture_rgb565.h>
 #include <base/env.h>
-
-
-namespace Genode {
-
-	template <>
-	inline void
-	Texture<Pixel_rgb565>::rgba(unsigned char const *rgba, unsigned len, int y)
-	{
-		if (len > size().w()) len = size().w();
-		if (y < 0 || y >= (int)size().h()) return;
-
-		Genode::Pixel_rgb565 *dst_pixel = pixel() + y*size().w();
-		unsigned char        *dst_alpha = alpha() ? alpha() + y*size().w() : 0;
-
-		Genode::Dither_matrix::Row dither_row = Dither_matrix::row(y);
-
-		for (unsigned i = 0; i < len; i++) {
-
-			int v = dither_row.value(i) >> 5;
-			int r = *rgba++ + v;
-			int g = *rgba++ + v;
-			int b = *rgba++ + v;
-			int a = *rgba++ + v;
-
-			using Genode::min;
-			dst_pixel[i].rgba(min(r, 255), min(g, 255), min(b, 255));
-
-			if (dst_alpha)
-				dst_alpha[i] = min(a, 255);
-		}
-	}
-}
 
 
 template <typename PT>

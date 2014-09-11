@@ -21,14 +21,14 @@
 #include <nitpicker_gfx/texture_painter.h>
 #include <os/attached_dataspace.h>
 #include <util/volatile_object.h>
+#include <os/texture_rgb565.h>
+#include <os/texture_rgb888.h>
 
 /* gems includes */
 #include <gems/png_image.h>
 #include <gems/file.h>
 #include <gems/xml_anchor.h>
 #include <gems/texture_utils.h>
-#include <gems/texture_rgb565.h>
-#include <gems/texture_rgb888.h>
 
 using namespace Genode;
 
