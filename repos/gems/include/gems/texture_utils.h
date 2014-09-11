@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _TEXTURE_UTILS_H_
-#define _TEXTURE_UTILS_H_
+#ifndef _INCLUDE__GEMS__TEXTURE_UTILS_H_
+#define _INCLUDE__GEMS__TEXTURE_UTILS_H_
 
 #include <os/texture.h>
 
@@ -94,4 +94,4 @@ static void convert_pixel_format(Genode::Texture<SRC_PT> const &src,
 	Genode::env()->heap()->free(row, row_num_bytes);
 }
 
-#endif /* _TEXTURE_UTILS_H_ */
+#endif /* _INCLUDE__GEMS__TEXTURE_UTILS_H_ */

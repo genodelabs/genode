@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _FILE_H_
-#define _FILE_H_
+#ifndef _INCLUDE__GEMS__FILE_H_
+#define _INCLUDE__GEMS__FILE_H_
 
 /* Genode includes */
 #include <base/allocator.h>
@@ -46,5 +46,5 @@ class File
 		Genode::size_t size() const { return _file_size; }
 };
 
-#endif /* _FILE_H_ */
+#endif /* _INCLUDE__GEMS__FILE_H_ */
 

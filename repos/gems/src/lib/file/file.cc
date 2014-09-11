@@ -14,8 +14,8 @@
 /* Genode includes */
 #include <base/printf.h>
 
-/* local includes */
-#include "file.h"
+/* gems includes */
+#include <gems/file.h>
 
 /* libc includes */
 #include <sys/types.h>

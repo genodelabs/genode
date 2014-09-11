@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _XML_ANCHOR_H_
-#define _XML_ANCHOR_H_
+#ifndef _INCLUDE__GEMS__XML_ANCHOR_H_
+#define _INCLUDE__GEMS__XML_ANCHOR_H_
 
 #include <util/xml_node.h>
 
@@ -68,4 +68,4 @@ class Anchor
 		}
 };
 
-#endif /* _XML_ANCHOR_H_ */
+#endif /* _INCLUDE__GEMS__XML_ANCHOR_H_ */

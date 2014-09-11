@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _PNG_IMAGE_H_
-#define _PNG_IMAGE_H_
+#ifndef _INCLUDE__GEMS__PNG_IMAGE_H_
+#define _INCLUDE__GEMS__PNG_IMAGE_H_
 
 /* Genode includes */
 #include <os/texture.h>
@@ -20,9 +20,9 @@
 /* libpng include */
 #include <png.h>
 
-/* local includes */
-#include "chunky_texture.h"
-#include "texture_utils.h"
+/* gems includes */
+#include <gems/chunky_texture.h>
+#include <gems/texture_utils.h>
 
 class Png_image
 {
@@ -178,4 +178,4 @@ class Png_image
 		}
 };
 
-#endif /* _PNG_IMAGE_H_ */
+#endif /* _INCLUDE__GEMS__PNG_IMAGE_H_ */

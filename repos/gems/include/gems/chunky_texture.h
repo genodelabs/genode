@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CHUNKY_TEXTURE_H_
-#define _CHUNKY_TEXTURE_H_
+#ifndef _INCLUDE__GEMS__CHUNKY_TEXTURE_H_
+#define _INCLUDE__GEMS__CHUNKY_TEXTURE_H_
 
 #include <os/surface.h>
 #include <os/attached_ram_dataspace.h>
@@ -59,4 +59,4 @@ class Chunky_texture : Genode::Attached_ram_dataspace, public Genode::Texture<PT
 		{ }
 };
 
-#endif /* _CHUNKY_TEXTURE_H_ */
+#endif /* _INCLUDE__GEMS__CHUNKY_TEXTURE_H_ */
