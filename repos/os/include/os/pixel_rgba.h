@@ -59,10 +59,11 @@ class Genode::Pixel_rgba
 		 */
 		Pixel_rgba() {}
 
-		Pixel_rgba(int red, int green, int blue) :
+		Pixel_rgba(int red, int green, int blue, int alpha = 255) :
 			pixel((_shift(red,   r_shift) & r_mask)
 			    | (_shift(green, g_shift) & g_mask)
-			    | (_shift(blue,  b_shift) & b_mask)) { }
+			    | (_shift(blue,  b_shift) & b_mask)
+			    | (_shift(alpha, a_shift) & a_mask)) { }
 
 		static Surface_base::Pixel_format format() { return FORMAT; }
 
@@ -80,6 +81,7 @@ class Genode::Pixel_rgba
 		inline int r() const { return _shift(pixel & r_mask, -r_shift); }
 		inline int g() const { return _shift(pixel & g_mask, -g_shift); }
 		inline int b() const { return _shift(pixel & b_mask, -b_shift); }
+		inline int a() const { return _shift(pixel & a_mask, -a_shift); }
 
 		/**
 		 * Compute average color value of two pixels
@@ -95,6 +97,17 @@ class Genode::Pixel_rgba
 		 * Mix two pixels at the ratio specified as alpha
 		 */
 		static inline Pixel_rgba mix(Pixel_rgba p1, Pixel_rgba p2, int alpha);
+
+		/**
+		 * Mix two pixels where p2 may be of a different pixel format
+		 *
+		 * This is useful for drawing operations that apply the same texture
+		 * to a pixel surface as well as an alpha surface. When drawing on the
+		 * alpha surface, 'p1' will be of type 'Pixel_alpha8' whereas 'p2'
+		 * corresponds to the pixel type of the texture.
+		 */
+		template <typename PT>
+		static inline Pixel_rgba mix(Pixel_rgba p1, PT p2, int alpha);
 
 		/**
 		 * Compute average color value of four pixels
