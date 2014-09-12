@@ -1,0 +1,162 @@
+#
+# Build
+#
+if {![have_spec linux]} {
+	puts "Runs on Linux only"
+	exit 0
+}
+
+set build_components {
+	core init drivers/timer drivers/framebuffer/sdl
+	server/dynamic_rom server/nitpicker
+	app/pointer app/menu_view
+	app/scout
+}
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="RM"/>
+		<service name="LOG"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="fb_sdl">
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Input"/>
+			<service name="Framebuffer"/>
+		</provides>
+	</start>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="nitpicker">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Nitpicker"/></provides>
+		<config>
+			<domain name="pointer" layer="1" xray="no" origin="pointer" />
+			<domain name="" layer="3" />
+
+			<policy label="pointer"    domain="pointer"/>
+			<policy label="" domain=""/>
+
+			<global-key name="KEY_SCROLLLOCK" operation="xray" />
+			<global-key name="KEY_SYSRQ"      operation="kill" />
+			<global-key name="KEY_PRINT"      operation="kill" />
+			<global-key name="KEY_F11"        operation="kill" />
+			<global-key name="KEY_F12"        operation="xray" />
+		</config>
+	</start>
+	<start name="pointer">
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="Nitpicker"> <child name="nitpicker" /> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="dynamic_rom">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="ROM"/></provides>
+		<config verbose="yes">
+			<rom name="dialog">
+				<inline description="example menu">
+					<dialog>
+						<frame>
+							<vbox>
+								<button name="virtualbox">
+									<label text="VirtualBox"/>
+								</button>
+								<button name="toolchain" hovered="yes">
+									<label text="Tool chain"/>
+								</button>
+								<button name="log" hovered="yes" selected="yes">
+									<label text="Log window"/>
+								</button>
+								<button name="config" selected="yes">
+									<label text="Configuration"/>
+								</button>
+							</vbox>
+						</frame>
+					</dialog>
+				</inline>
+				<sleep milliseconds="2000" />
+				<inline description="example menu">
+					<dialog>
+						<frame>
+							<vbox>
+								<button name="virtualbox" hovered="yes">
+									<label text="VirtualBox"/>
+								</button>
+								<button name="toolchain">
+									<label text="Tool chain"/>
+								</button>
+								<button name="log" selected="yes">
+									<label text="Log window"/>
+								</button>
+								<button name="config" selected="yes" hovered="yes">
+									<label text="Configuration"/>
+								</button>
+							</vbox>
+						</frame>
+					</dialog>
+				</inline>
+				<sleep milliseconds="2000" />
+			</rom>
+		</config>
+	</start>
+	<start name="menu_view">
+		<resource name="RAM" quantum="5M"/>
+		<config xpos="200" ypos="100">
+			<libc>
+				<vfs>
+					<tar name="menu_view_styles.tar" />
+				</vfs>
+			</libc>
+		</config>
+		<route>
+			<service name="ROM"> <if-arg key="label" value="dialog"/>
+				<child name="dynamic_rom" />
+			</service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="scout">
+		<resource name="RAM" quantum="64M" />
+	</start>
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer dynamic_rom fb_sdl nitpicker pointer menu_view
+	ld.lib.so libpng.lib.so libc.lib.so libm.lib.so zlib.lib.so
+	menu_view_styles.tar
+	scout
+}
+
+build_boot_image $boot_modules
+
+run_genode_until forever
