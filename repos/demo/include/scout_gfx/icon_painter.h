@@ -42,12 +42,12 @@ class Icon_painter
 		/**
 		 * Copy pixel with alpha
 		 */
-		template <typename PT>
-		static inline void _transfer_pixel(PT const &src, int src_a, int alpha, PT *dst)
+		template <typename SPT, typename TPT>
+		static inline void _transfer_pixel(TPT const &src, int src_a, int alpha, SPT *dst)
 		{
 			if (src_a) {
 				int register a = (src_a * alpha)>>8;
-				if (a) *dst = PT::mix(*dst, src, a);
+				if (a) *dst = SPT::mix(*dst, src, a);
 			}
 		}
 
@@ -55,16 +55,16 @@ class Icon_painter
 		/**
 		 * Draw corner slice
 		 */
-		template <typename PT>
-		static void _draw_cslice(PT const *src, unsigned char const *src_a,
-		                         unsigned src_pitch, int alpha, PT *dst,
+		template <typename SPT, typename TPT>
+		static void _draw_cslice(TPT const *src, unsigned char const *src_a,
+		                         unsigned src_pitch, int alpha, SPT *dst,
 		                         unsigned dst_pitch, int w, int h)
 		{
 			for (int j = 0; j < h; j++) {
 
-				PT            const *s  = src;
+				TPT           const *s  = src;
 				unsigned char const *sa = src_a;
-				PT                  *d  = dst;
+				SPT                 *d  = dst;
 
 				for (int i = 0; i < w; i++, s++, sa++, d++)
 					_transfer_pixel(*s, *sa, alpha, d);
@@ -77,16 +77,16 @@ class Icon_painter
 		/**
 		 * Draw horizontal slice
 		 */
-		template <typename PT>
-		static void _draw_hslice(PT const *src, unsigned char const *src_a,
-		                         int src_pitch, int alpha, PT *dst,
+		template <typename SPT, typename TPT>
+		static void _draw_hslice(TPT const *src, unsigned char const *src_a,
+		                         int src_pitch, int alpha, SPT *dst,
 		                         int dst_pitch, int w, int h)
 		{
 			for (int j = 0; j < h; j++) {
 
-				PT   s = *src;
+				TPT  s = *src;
 				int sa = *src_a;
-				PT  *d =  dst;
+				SPT *d =  dst;
 
 				for (int i = 0; i < w; i++, d++)
 					_transfer_pixel(s, sa, alpha, d);
@@ -99,16 +99,16 @@ class Icon_painter
 		/**
 		 * Draw vertical slice
 		 */
-		template <typename PT>
-		static void _draw_vslice(PT const *src, unsigned char const *src_a,
-		                         int src_pitch, int alpha, PT *dst,
+		template <typename SPT, typename TPT>
+		static void _draw_vslice(TPT const *src, unsigned char const *src_a,
+		                         int src_pitch, int alpha, SPT *dst,
 		                         int dst_pitch, int w, int h)
 		{
 			for (int i = 0; i < w; i++) {
 
-				PT   s = *src;
+				TPT  s = *src;
 				int sa = *src_a;
-				PT  *d =  dst;
+				SPT *d =  dst;
 
 				for (int j = 0; j < h; j++, d += dst_pitch)
 					_transfer_pixel(s, sa, alpha, d);
@@ -121,17 +121,17 @@ class Icon_painter
 		/**
 		 * Draw center slice
 		 */
-		template <typename PT>
-		static void _draw_center(PT const *src, unsigned char const *src_a,
-		                         int src_pitch, int alpha, PT *dst,
+		template <typename SPT, typename TPT>
+		static void _draw_center(TPT const *src, unsigned char const *src_a,
+		                         int src_pitch, int alpha, SPT *dst,
 		                         int dst_pitch, int w, int h)
 		{
-			PT   s = *src;
+			TPT  s = *src;
 			int sa = *src_a;
 
 			for (int j = 0; j < h; j++, dst += dst_pitch) {
 
-				PT  *d =  dst;
+				SPT *d = dst;
 
 				for (int i = 0; i < w; i++, d++)
 					_transfer_pixel(s, sa, alpha, d);
@@ -172,11 +172,11 @@ class Icon_painter
 		typedef Genode::Surface_base::Rect Rect;
 
 
-		template <typename PT>
-		static inline void paint(Genode::Surface<PT> &surface, Rect rect,
-		                         Genode::Texture<PT> const &icon, unsigned alpha)
+		template <typename SPT, typename TPT>
+		static inline void paint(Genode::Surface<SPT> &surface, Rect rect,
+		                         Genode::Texture<TPT> const &icon, unsigned alpha)
 		{
-			PT *addr = surface.addr();
+			SPT *addr = surface.addr();
 
 			if (!addr || (alpha == 0)) return;
 
@@ -207,7 +207,7 @@ class Icon_painter
 			int const tx3 = Genode::max(tx4 - (int)icon_w/2, tx2);
 			int const ty3 = Genode::max(ty4 - (int)icon_h/2, ty2);
 
-			PT            const *src   = icon.pixel() + icon_w*ty1;
+			TPT           const *src   = icon.pixel() + icon_w*ty1;
 			unsigned char const *src_a = icon.alpha() + icon_w*ty1;
 			int                  dx, dy, w, h;
 
