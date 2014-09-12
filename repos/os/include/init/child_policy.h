@@ -249,6 +249,20 @@ namespace Init {
 				/* replace filename argument */
 				Genode::snprintf(buf, sizeof(buf), "\"%s\"", _to);
 				Genode::Arg_string::set_arg(args, args_len, "filename", buf);
+
+				/* replace characters after last label delimiter by filename */
+				enum { LABEL_MAX_LEN = 200 };
+				char label[LABEL_MAX_LEN];
+				Genode::Arg_string::find_arg(args, "label").string(label, sizeof(label), "");
+				unsigned last_elem = 0;
+				for (unsigned i = 0; i < sizeof(label) - 3 && label[i]; i++)
+					if (Genode::strcmp("-> ", label + i, 3) == 0)
+						last_elem = i + 3;
+				label[last_elem] = 0;
+
+				Genode::snprintf(buf, sizeof(buf), "\"%s%s\"", label, _to);
+				Genode::Arg_string::set_arg(args, args_len, "label", buf);
+
 			}
 	};
 
