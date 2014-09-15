@@ -96,6 +96,9 @@ void File_system::init()
 	struct fs_args args;
 	int            opts = check_read_only(fs_type) ? RUMP_MNT_RDONLY : 0;
 
+	/* disable access time updates */
+	opts |= RUMP_MNT_NOATIME;
+
 	args.fspec =  (char *)GENODE_DEVICE;
 	if (rump_sys_mount(fs_type.string(), "/", opts, &args, sizeof(args)) == -1) {
 		Genode::error("Mounting '", fs_type, "' file system failed (errno ", errno, " )");
