@@ -11,8 +11,12 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _ANIMATOR_H_
-#define _ANIMATOR_H_
+#ifndef _INCLUDE__GEMS__ANIMATOR_H_
+#define _INCLUDE__GEMS__ANIMATOR_H_
+
+/* Genode includes */
+#include <util/list.h>
+
 
 class Animator
 {
@@ -29,6 +33,8 @@ class Animator
 	public:
 
 		inline void animate();
+
+		bool active() const { return _items.first() != nullptr; }
 };
 
 
@@ -69,8 +75,11 @@ class Animator::Item : public Genode::List<Item>::Element
 
 inline void Animator::animate()
 {
-	for (Item *item = _items.first(); item; item = item->next())
+	for (Item *item = _items.first(); item; ) {
+		Item *next = item->next();
 		item->animate();
+		item = next;
+	}
 }
 
-#endif /* _ANIMATOR_H_ */
+#endif /* _INCLUDE__GEMS__ANIMATOR_H_ */

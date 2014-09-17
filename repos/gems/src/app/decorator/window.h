@@ -17,8 +17,8 @@
 #include <util/lazy_value.h>
 #include <decorator/window.h>
 
-/* local includes */
-#include <animator.h>
+/* gems includes */
+#include <gems/animator.h>
 
 
 namespace Decorator { class Window; }
