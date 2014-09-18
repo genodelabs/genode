@@ -20,6 +20,11 @@
 # XXX remove this line when the tool has stabilized
 STRICT_HASH ?= no
 
+#
+# Utility to check if a tool is installed
+#
+check_tool = $(if $(shell which $(1)),,$(error Need to have '$(1)' installed.))
+
 default:
 
 # repository that contains the port description, used to look up patch files
@@ -44,6 +49,10 @@ include $(PORT)
 # Include common definitions
 #
 include $(GENODE_DIR)/tool/ports/mk/common.inc
+
+$(call check_tool,wget)
+$(call check_tool,patch)
+$(call check_tool, $(HASHSUM))
 
 #
 # Assertion for the presence of a LICENSE and VERSION declarations in the port

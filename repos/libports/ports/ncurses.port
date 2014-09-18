@@ -13,8 +13,8 @@ DIR_CONTENT(include/ncurses) := \
          nc_alloc.h nc_panel.h nc_tparm.h term_entry.h tic.h hashed_db.h \
          capdefaults.c)
 
-#$(call check_tool,sed)
-#$(call check_tool,mawk)
+$(call check_tool,sed)
+$(call check_tool,mawk)
 
 gen_inc   := curses.h ncurses_def.h ncurses_dll.h term.h \
              unctrl.h termcap.h parametrized.h hashsize.h \

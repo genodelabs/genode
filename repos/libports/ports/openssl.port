@@ -19,7 +19,7 @@ DIR_CONTENT(include/openssl) = $(shell find src/lib/openssl/include/openssl/ -na
 # Generate ASM codes
 #
 
-#$(call check_tool,sed)
+$(call check_tool,perl)
 
 gen_files := src/lib/openssl/x86_64/modexp512.s src/lib/openssl/x86_64/rc4_md5.s
 
