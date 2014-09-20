@@ -51,6 +51,9 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 
 		/* IRQ controller */
 		{ Board::IRQ_CONTROLLER_BASE, Board::IRQ_CONTROLLER_SIZE },
+
+		/* DWC OTG USB controller (used for in-kernel SOF IRQ handling) */
+		{ Board::USB_DWC_OTG_BASE, Board::USB_DWC_OTG_SIZE },
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }

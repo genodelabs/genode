@@ -48,6 +48,9 @@ namespace Genode
 			IRQ_CONTROLLER_BASE = 0x2000b200,
 			IRQ_CONTROLLER_SIZE = 0x100,
 
+			USB_DWC_OTG_BASE = 0x20980000,
+			USB_DWC_OTG_SIZE = 0x20000,
+
 			/* timer */
 			TIMER_IRQ = 0,
 
