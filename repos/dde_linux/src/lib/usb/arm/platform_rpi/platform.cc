@@ -129,10 +129,6 @@ DUMMY(-1, printk_once);
  ** Prevent use of FIQ fix, need to resolve FIQ-related symbols anyway **
  ************************************************************************/
 
-int fiq_fix_enable = false;
-
-extern int fiq_split_enable;
-
 void local_fiq_disable() { }
 void local_fiq_enable() { }
 int claim_fiq(struct fiq_handler *f) { return 0; }
@@ -141,6 +137,14 @@ void set_fiq_handler(void *start, unsigned int length) { }
 void enable_fiq() { }
 
 void __FIQ_Branch(unsigned long *regs) { TRACE; }
+
+extern "C" int fiq_fsm_too_late(struct fiq_state *st, int n) { TRACE; return 0; }
+extern "C" void dwc_otg_fiq_nop(struct fiq_state *state) { TRACE; }
+extern "C" void dwc_otg_fiq_fsm(struct fiq_state *state, int num_channels) { TRACE; }
+
+unsigned char _dwc_otg_fiq_stub, _dwc_otg_fiq_stub_end;
+
+extern int fiq_enable, fiq_fsm_enable;
 
 
 /***********************
@@ -197,8 +201,9 @@ void platform_hcd_init(Services *services)
 		module_smsc95xx_driver_init();
 	}
 
-	/* disable split-enable fix, otherwise, fiq_fix will be implied */
-	fiq_split_enable = false;
+	/* disable fiq optimization */
+	fiq_enable = false;
+	fiq_fsm_enable = false;
 
 	bool const verbose = false;
 	if (verbose)

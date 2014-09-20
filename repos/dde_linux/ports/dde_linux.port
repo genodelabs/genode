@@ -31,7 +31,7 @@ HASH_INPUT          += $(REP_DIR)/lxip_header.list
 # Raspberry Pi USB controller
 #
 URL(dwc_otg) := https://github.com/nfeske/dwc_otg.git
-REV(dwc_otg) := r1
+REV(dwc_otg) := r2
 DIR(dwc_otg) := $(SRC_DIR)/drivers/usb/host/dwc_otg
 
 PATCHES   := patches/*.patch

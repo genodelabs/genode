@@ -80,6 +80,7 @@ void print_hex_dump(const char *level, const char *prefix_str,
                     int prefix_type, int rowsize, int groupsize,
                     const void *buf, size_t len, bool ascii) { TRACE; }
 int printk_ratelimit() { TRACE; return 0; }
+int printk_ratelimited() { TRACE; return 0; }
 bool printk_timed_ratelimit(unsigned long *caller_jiffies,
                             unsigned int interval_msec) { TRACE; return false; }
 

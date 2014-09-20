@@ -249,6 +249,11 @@ typedef uint8_t       u_int8_t;
 typedef uint16_t      u_int16_t;
 typedef uint32_t      u_int32_t;
 
+/*
+ * Needed by 'dwc_otg/dwc_otg/dwc_otg_fiq_fsm.h'
+ */
+typedef unsigned short ushort;
+
 
 #define DIV_ROUND_UP(n,d) (((n) + (d) - 1) / (d))
 #define BITS_TO_LONGS(nr)       DIV_ROUND_UP(nr, 8 * sizeof(long))
@@ -689,6 +694,7 @@ void print_hex_dump(const char *level, const char *prefix_str,
 #define pr_warn pr_warning
 
 bool printk_ratelimit();
+bool printk_ratelimited();
 bool printk_timed_ratelimit(unsigned long *, unsigned int);
 
 struct va_format
@@ -3859,6 +3865,7 @@ struct pt_regs { unsigned long dummy; };
 #define ARM_r8 dummy
 #define ARM_r9 dummy
 #define ARM_sp dummy
+#define ARM_fp dummy
 
 
 /************************
