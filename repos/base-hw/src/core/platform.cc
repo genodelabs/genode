@@ -87,6 +87,19 @@ static void init_alloc(Range_allocator * const alloc,
 }
 
 
+/**
+ * Helper to initialise allocators through include region lists
+ */
+static void init_alloc_core_mmio(Range_allocator * const alloc,
+                                 Region_pool incl_regions)
+{
+	/* make all include regions available */
+	Native_region * r = incl_regions(0);
+	for (unsigned i = 0; r; r = incl_regions(++i))
+		alloc->add_range(r->base, r->size);
+}
+
+
 /**************
  ** Platform **
  **************/
@@ -144,7 +157,7 @@ Platform::Platform()
 	 * core. Using byte granuarlity allows handing out the MMIO page to trusted
 	 * user-level device drivers.
 	 */
-	init_alloc(&_io_mem_alloc, _mmio_regions, _core_only_mmio_regions, 0);
+	init_alloc_core_mmio(&_io_mem_alloc, _mmio_regions);
 
 	/* add boot modules to ROM FS */
 	Bm_header * header = &_boot_modules_headers_begin;
