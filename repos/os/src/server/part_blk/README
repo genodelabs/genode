@@ -14,6 +14,10 @@ extended boot records (EBRs) are parsed and offered as separate block sessions
 to the front-end clients. The four primary partitions will receive partition
 numbers '1' to '4' whereas the first logical partition will be assigned to '5'.
 
+The partition server also understands the GUID partition table (GPT). If the
+config attribute 'use_gpt' is set to 'yes' it will first try to parse any
+existing GPT. In case there is no GPT it will fall back to parsing the MBR.
+
 In order to route a client to the right partition, the server parses its
 configuration section looking for 'policy' tags.
 

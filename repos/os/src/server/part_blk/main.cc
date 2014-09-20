@@ -2,11 +2,12 @@
  * \brief  Front end of the partition server
  * \author Sebastian Sumpf
  * \author Stefan Kalkowski
+ * \author Josef Soentgen
  * \date   2011-05-30
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2014 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -16,9 +17,10 @@
 #include <cap_session/connection.h>
 #include <os/config.h>
 
-#include "driver.h"
-#include "partition_table.h"
 #include "component.h"
+#include "driver.h"
+#include "gpt.h"
+#include "mbr.h"
 
 static Genode::Signal_receiver receiver;
 
@@ -33,19 +35,48 @@ void Block::Driver::_ready_to_submit(unsigned) {
 	Block::Session_component::wake_up(); }
 
 
+static bool _use_gpt()
+{
+	try {
+		return Genode::config()->xml_node().attribute("use_gpt").has_value("yes");
+	} catch(...) { }
+
+	return false;
+}
+
+
 int main()
 {
 	using namespace Genode;
 
-	if (!Block::Partition_table::table().avail()) {
-		PERR("No valid partition table found");
-		return 1;
+	bool valid_mbr = false;
+	bool valid_gpt = false;
+	bool use_gpt   = _use_gpt();
+
+	if (use_gpt)
+		try { valid_gpt = Gpt::table().avail(); } catch (...) { }
+
+	/* fall back to MBR */
+	if (!valid_gpt) {
+		try { valid_mbr = Mbr_partition_table::table().avail(); }
+		catch (Mbr_partition_table::Protective_mbr_found) {
+			if (!use_gpt)
+				PERR("Aborting: found protective MBR but GPT usage was not requested.");
+			return 1;
+		}
 	}
+
+	Block::Partition_table *partition_table = 0;
+	if (valid_gpt)
+		partition_table = &Gpt::table();
+	if (valid_mbr)
+		partition_table = &Mbr_partition_table::table();
 
 	enum { STACK_SIZE = 1024 * sizeof(Genode::size_t) };
 	static Cap_connection cap;
 	static Rpc_entrypoint ep(&cap, STACK_SIZE, "part_ep");
-	static Block::Root block_root(&ep, env()->heap(), receiver);
+	static Block::Root block_root(&ep, env()->heap(), receiver,
+	                              *partition_table);
 
 	env()->parent()->announce(ep.manage(&block_root));
 

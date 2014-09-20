@@ -18,7 +18,7 @@
 #include <root/component.h>
 #include <block_session/rpc_object.h>
 
-#include "partition_table.h"
+#include "gpt.h"
 
 namespace Block {
 
@@ -195,8 +195,9 @@ class Block::Root :
 {
 	private:
 
-		Rpc_entrypoint  &_ep;
-		Signal_receiver &_receiver;
+		Rpc_entrypoint         &_ep;
+		Signal_receiver        &_receiver;
+		Block::Partition_table &_table;
 
 		long _partition_num(const char *session_label)
 		{
@@ -265,7 +266,7 @@ class Block::Root :
 				throw Root::Invalid_args();
 			}
 
-			if (!Partition_table::table().partition(num)) {
+			if (!_table.partition(num)) {
 				PERR("Partition %ld unavailable", num);
 				throw Root::Unavailable();
 			}
@@ -274,18 +275,19 @@ class Block::Root :
 			ds_cap = Genode::env()->ram_session()->alloc(tx_buf_size);
 			return new (md_alloc())
 				Session_component(ds_cap,
-				                  Partition_table::table().partition(num),
+				                  _table.partition(num),
 				                  _ep, _receiver);
 		}
 
 	public:
 
 		Root(Rpc_entrypoint *session_ep, Allocator *md_alloc,
-		     Signal_receiver &receiver)
+		     Signal_receiver &receiver, Block::Partition_table& table)
 		:
 			Root_component(session_ep, md_alloc),
 			_ep(*session_ep),
-			_receiver(receiver)
+			_receiver(receiver),
+			_table(table)
 		{ }
 };
 
