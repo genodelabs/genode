@@ -351,17 +351,20 @@ class File_system::Root : public Root_component<Session_component>
 					/*
 					 * Make sure the root path is specified with a
 					 * leading path delimiter. For performing the
-					 * lookup, we skip the first character.
+					 * lookup, we remove all leading slashes.
 					 */
-					if (root[0] != '/')
-						throw Lookup_failed();
+					if (root[0] != '/') {
+						PERR("Root directory must start with / but is \"%s\"", root);
+						throw Root::Unavailable();
+					}
 
-					root_dir = root + 1;
+					for (root_dir = root; *root_dir == '/'; ++root_dir) ;
+
+					/* sanitize possibly empty root_dir to current directory */
+					if (*root_dir == 0)
+						root_dir = ".";
 				} catch (Xml_node::Nonexistent_attribute) {
 					PERR("Missing \"root\" attribute in policy definition");
-					throw Root::Unavailable();
-				} catch (Lookup_failed) {
-					PERR("Session root directory \"%s\" does not exist", root);
 					throw Root::Unavailable();
 				}
 
@@ -392,8 +395,14 @@ class File_system::Root : public Root_component<Session_component>
 				     ram_quota, session_size);
 				throw Root::Quota_exceeded();
 			}
-			return new (md_alloc())
-				Session_component(tx_buf_size, _ep, root_dir, writeable, *md_alloc());
+
+			try {
+				return new (md_alloc())
+				       Session_component(tx_buf_size, _ep, root_dir, writeable, *md_alloc());
+			} catch (Lookup_failed) {
+				PERR("Session root directory \"%s\" does not exist", root);
+				throw Root::Unavailable();
+			}
 		}
 
 	public:
