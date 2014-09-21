@@ -22,6 +22,7 @@
 #include <rm_session/connection.h>
 #include <util/avl_string.h>
 #include <util/misc_math.h>
+#include <os/attached_ram_dataspace.h>
 
 /* local includes */
 #include "iso9660.h"
@@ -42,108 +43,29 @@ namespace Iso {
 	/**
 	 * File abstraction
 	 */
-	class File : public File_base,
-	             public Signal_context,
-	             public Backing_store::User
+	class File : public File_base
 	{
-
 		private:
 
 			File_info                *_info;
-			Rm_connection            *_rm;
-			Signal_receiver          *_receiver;
-			Backing_store            *_backing_store;
+			Attached_ram_dataspace    _ds;
 
 		public:
 
-			File(char *path, Signal_receiver *receiver, Backing_store *backing_store)
-			: File_base(path),
+			File(char *path) : File_base(path),
 				_info(Iso::file_info(path)),
-				_receiver(receiver),
-				_backing_store(backing_store)
+				_ds(env()->ram_session(), align_addr(_info->page_sized(), 12))
 			{
-				size_t rm_size = align_addr(_info->page_sized(),
-				                            log2(_backing_store->block_size()));
-				
-				_rm = new(env()->heap()) Rm_connection(0, rm_size);
-				_rm->fault_handler(receiver->manage(this));
+				Iso::read_file(_info, 0, _ds.size(), _ds.local_addr<void>());
 			}
 			
 			~File()
 			{
-				_receiver->dissolve(this);
-				_backing_store->flush(this);
-				destroy(env()->heap(), _rm);
 				destroy(env()->heap(), _info);
 			}
 
-			Rm_connection *rm() { return _rm; }
+			Dataspace_capability dataspace() { return _ds.cap(); }
 
-			void handle_fault()
-			{
-				Rm_session::State state = _rm->state();
-
-				if (verbose)
-					printf("rm session state is %s, pf_addr=0x%lx\n",
-					       state.type == Rm_session::READ_FAULT  ? "READ_FAULT"  :
-					       state.type == Rm_session::WRITE_FAULT ? "WRITE_FAULT" :
-					       state.type == Rm_session::EXEC_FAULT  ? "EXEC_FAULT"  : "READY",
-					       state.addr);
-
-				if (state.type == Rm_session::READY)
-					return;
-
-				Backing_store::Block *block = _backing_store->alloc();
-
-				/*
-				 * Calculate backing-store-block-aligned file offset from
-				 * page-fault address.
-				 */
-				Genode::off_t file_offset = state.addr;
-				file_offset &= ~(_backing_store->block_size() - 1);
-
-				/* re-initialize block content */
-				Genode::memset(_backing_store->local_addr(block), 0,
-				               _backing_store->block_size());
-
-				/* read file content to block */
-				unsigned long bytes = Iso::read_file(_info, file_offset,
-				                                     _backing_store->block_size(),
-				                                     _backing_store->local_addr(block));
-
-				if (verbose)
-					PDBG("[%ld] ATTACH: rm=%p, a=%08lx s=%lx",
-					     _backing_store->index(block), _rm, file_offset, bytes);
-
-				bool try_again;
-				do {
-					try_again = false;
-					try {
-						_rm->attach_at(_backing_store->dataspace(), file_offset,
-						               _backing_store->block_size(),
-						               _backing_store->offset(block)); }
-
-					catch (Genode::Rm_session::Region_conflict) {
-						PERR("Region conflict - this should not happen"); }
-
-					catch (Genode::Rm_session::Out_of_metadata) {
-
-						/* give up if the error occurred a second time */
-						if (try_again)
-							break;
-
-						PINF("upgrading quota donation for RM session");
-						Genode::env()->parent()->upgrade(_rm->cap(), "ram_quota=32K");
-						try_again = true;
-					}
-				} while (try_again);
-
-				/*
-				 * Register ourself as user of the block and thereby enable
-				 * future eviction.
-				 */
-				_backing_store->assign(block, this, file_offset);
-			}
 
 			/**************************
 			 ** File cache interface **
@@ -164,19 +86,6 @@ namespace Iso {
 				                           cache()->first()->find_by_name(path) :
 				                           0);
 			}
-
-
-			/***********************************
-			 ** Backing_store::User interface **
-			 ***********************************/
-
-			/**
-			 * Called by backing store if block gets evicted
-			 */
-			void detach_block(Genode::off_t file_offset)
-			{
-				_rm->detach((void *)file_offset);
-			}
 	};
 
 
@@ -189,56 +98,21 @@ namespace Iso {
 		public:
 
 			Rom_dataspace_capability dataspace() {
-				return static_cap_cast<Rom_dataspace>(_file->rm()->dataspace()); }
+				return static_cap_cast<Rom_dataspace>(_file->dataspace()); }
 
 			void sigh(Signal_context_capability) { }
 
-			Rom_component(char *path, Signal_receiver *receiver,
-			              Backing_store *backing_store)
+			Rom_component(char *path)
 			{
 				if ((_file = File::scan_cache(path))) {
 					PINF("cache hit for file %s", path);
 					return;
 				}
 
-				_file = new(env()->heap()) File(path, receiver, backing_store);
+				_file = new(env()->heap()) File(path);
 				PINF("request for file %s", path);
 
 				File::cache()->insert(_file);
-			}
-	};
-
-
-	class Pager : public Thread<8192>
-	{
-		private:
-
-			Signal_receiver _receiver;
-
-		public:
-
-			Pager() : Thread("iso_pager") { }
-
-			Signal_receiver *signal_receiver() { return &_receiver; }
-
-			void entry()
-			{
-				while (true) {
-					try {
-						Signal signal = _receiver.wait_for_signal();
-
-						for (unsigned i = 0; i < signal.num(); i++)
-							static_cast<File *>(signal.context())->handle_fault();
-					} catch (...) {
-						PDBG("unexpected error while waiting for signal");
-					}
-				}
-			}
-
-			static Pager* pager()
-			{
-				static Pager _pager;
-				return &_pager;
 			}
 	};
 
@@ -250,8 +124,6 @@ namespace Iso {
 		private:
 
 			char _path[PATH_LENGTH];
-
-			Backing_store *_backing_store;
 
 		protected:
 
@@ -271,9 +143,7 @@ namespace Iso {
 					PDBG("Request for file %s lrn %zu", _path, strlen(_path));
 
 				try {
-					return new (md_alloc())
-						Rom_component(_path, Pager::pager()->signal_receiver(),
-						              _backing_store);
+					return new (md_alloc()) Rom_component(_path);
 				}
 				catch (Io_error)       { throw Root::Unavailable(); }
 				catch (Non_data_disc)  { throw Root::Unavailable(); }
@@ -282,10 +152,9 @@ namespace Iso {
 
 		public:
 
-			Root(Rpc_entrypoint *ep, Allocator *md_alloc,
-			     Backing_store *backing_store)
+			Root(Rpc_entrypoint *ep, Allocator *md_alloc)
 			:
-				Root_component(ep, md_alloc), _backing_store(backing_store)
+				Root_component(ep, md_alloc)
 			{ }
 	};
 }
@@ -293,24 +162,12 @@ namespace Iso {
 
 int main()
 {
-	/*
-	 * XXX this could be a config parameter
-	 */
-	const Genode::size_t backing_store_block_size = 8*Iso::PAGE_SIZE;
-
-	enum { RESERVED_RAM = 5*1024*1024 };
-	const Genode::size_t use_ram = env()->ram_session()->avail() - RESERVED_RAM;
-	static Iso::Backing_store backing_store(use_ram, backing_store_block_size);
-
-	/* start pager thread */
-	Iso::Pager::pager()->start();
-
 	/* initialize ROM service */
 	enum { STACK_SIZE = sizeof(long)*4096 };
 	static Cap_connection cap;
 	static Rpc_entrypoint ep(&cap, STACK_SIZE, "iso9660_ep");
 
-	static Iso::Root root(&ep, env()->heap(), &backing_store);
+	static Iso::Root root(&ep, env()->heap());
 	env()->parent()->announce(ep.manage(&root));
 
 	sleep_forever();
