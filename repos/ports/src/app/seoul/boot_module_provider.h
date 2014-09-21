@@ -80,11 +80,16 @@ class Boot_module_provider
 				if (mod_node.has_type("rom")) {
 
 					/*
-					 * Determine ROM file name, which is specified as 'name'
-					 * attribute of the 'rom' node.
+					 * Determine ROM file name, which is specified as 'label'
+					 * attribute of the 'rom' node. If no 'label' argument is
+					 * provided, use the 'name' attribute as file name.
 					 */
 					char name[MODULE_NAME_MAX_LEN];
-					mod_node.attribute("name").value(name, sizeof(name));
+					try {
+						mod_node.attribute("label").value(name, sizeof(name));
+					} catch (Xml_node::Nonexistent_attribute) {
+						mod_node.attribute("name").value(name, sizeof(name));
+					}
 
 					/*
 					 * Open ROM session

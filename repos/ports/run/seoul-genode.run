@@ -1,0 +1,75 @@
+#
+# \brief  Turn a Genode setup(run script) into a VM to be bootable in Seoul
+# \author Alexander Boettcher
+# \date   2014-09-21
+#
+# This run script starts the Seoul VMM booting from a multiboot Genode setup
+# created by another Genode run script. The referenced run script can be
+# adapted by tuning the variables run_script and build_dir below accordingly.
+#
+
+set use_multiboot     1
+set use_genode_iso    1
+
+set use_block_ide     0
+set use_block_sata    0
+
+set use_nic_session   1
+set use_nic_bridge    0
+
+set use_usb           0
+
+set use_framebuffer   1
+set use_fancy_stuff   0
+
+set memory_vmm_vm     "128M"
+
+set vcpus_to_be_used  1
+
+# Put the multiboot data structure out of the way of Nova's bss.
+set use_multiboot_modaddr 0x2800000
+
+# Use a Genode run script and turn it into a bootable setup for Seoul
+set run_script      "printf"
+set build_dir       "."
+set run_script_path "$build_dir/var/run/$run_script"
+set genode_iso      "$build_dir/var/run/$run_script.iso"
+
+if {[catch {exec cp $genode_iso bin/genode.iso}]} {
+	puts "Run scenario '$run_script' is not present. Please run it before\
+	     invoking this run script."
+	exit 1
+}
+
+set files_vm [exec cat $run_script_path/boot/grub/menu.lst]
+
+set vm [split $files_vm "\n"]
+set guest_os_binaries {}
+foreach line $vm {
+	if {[regexp "module\.*" $line] || [regexp "kernel\.*" $line]} {
+		set label_file [lindex $line 1]
+		set binary_cmdline [lrange $line 2 end]
+		regsub -all "/fiasco/" $label_file "" binary_file
+		regsub -all "/boot/" $binary_file "" binary_file
+		regsub -all "/genode/" $binary_file "" binary_file
+
+		# skip bender to speed up booting
+		if {$binary_file == "bender"} {
+			continue
+		}
+
+		if {$binary_cmdline eq ""} {
+			append multiboot_files "<rom name=\"$binary_file\" label=\"$label_file\"/>\n"
+		} else {
+			append multiboot_files "<rom name=\"$binary_file\" label=\"$label_file\" cmdline=\"$binary_cmdline\"/>\n"
+		}
+	}
+}
+# Seoul VM setup done
+
+source ${genode_dir}/repos/ports/run/seoul.inc
+
+append qemu_args " -m 1024 "
+append qemu_args " -cpu phenom "
+
+run_genode_until forever

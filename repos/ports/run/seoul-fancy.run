@@ -11,6 +11,7 @@
 #
 
 set use_multiboot     1
+set use_genode_iso    0
 
 set use_block_ide     0
 set use_block_sata    0

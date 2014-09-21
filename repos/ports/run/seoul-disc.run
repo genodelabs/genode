@@ -8,9 +8,10 @@
 #
 
 set use_multiboot     0
+set use_genode_iso    0
 
-set use_block_ide     1
-set use_block_sata    0
+set use_block_ide     0
+set use_block_sata    1
 
 set use_nic_session   0
 set use_nic_bridge    0
@@ -20,7 +21,7 @@ set use_usb           0
 set use_framebuffer   1
 set use_fancy_stuff   0
 
-set memory_vmm_vm     "128M"
+set memory_vmm_vm     "512M"
 
 set vcpus_to_be_used  1
 
@@ -33,9 +34,10 @@ if {[is_qemu_available]} {
 		exit 1
 	}
 
-	append qemu_args " -m 128 "
+	append qemu_args " -m 1024 "
 	append qemu_args " -cpu phenom"
-	append qemu_args " -boot d -hda bin/seoul-disc.raw "
+	append_if $use_block_ide  qemu_args " -boot d -hda bin/seoul-disc.raw "
+	append_if $use_block_sata qemu_args " -drive id=disk,file=bin/seoul-disc.raw,if=none -device ahci,id=ahci -device ide-drive,drive=disk,bus=ahci.0 -boot d"
 }
 
 run_genode_until forever

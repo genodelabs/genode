@@ -37,11 +37,13 @@ lappend_if $use_fancy_stuff     build_components server/nitpicker
 lappend_if $use_fancy_stuff     build_components server/liquid_framebuffer
 lappend_if $use_fancy_stuff     build_components app/launchpad
 lappend_if $use_fancy_stuff     build_components server/nitlog
+lappend_if $use_genode_iso      build_components server/iso9660
+lappend_if $use_genode_iso      build_components server/rom_blk
 
 build $build_components
 
 # write Seoul config file
-set vm_cfg_fd [open "bin/vm_linux.cfg" w]
+set vm_cfg_fd [open "bin/vm_seoul.cfg" w]
 puts $vm_cfg_fd {<config colocate="1" >
 	<machine>
 		<mem start="0x0" end="0x9a000"/>
@@ -73,8 +75,10 @@ if {!$use_multiboot} {
 		<vbios_reset/>}
 
 if {$use_multiboot} {
-	puts $vm_cfg_fd {
-		<vbios_multiboot/>
+	if {[info exists use_multiboot_modaddr]} {
+		puts $vm_cfg_fd "		<vbios_multiboot modaddr=\"$use_multiboot_modaddr\"/>"
+	} else {
+		puts $vm_cfg_fd {		<vbios_multiboot/>}
 	}
 } 
 
@@ -171,6 +175,22 @@ append_if $use_block_ide config {
 		<config ata="yes" />
 	</start>}
 
+append_if $use_genode_iso config {
+	<start name="rom_blk" priority="-1">
+		<resource name="RAM" quantum="16M" />
+		<provides><service name="Block"/></provides>
+		<config file="genode.iso" block_size="2048"/>
+	</start>
+
+	<start name="iso9660" priority="-1">
+		<resource name="RAM" quantum="16M"/>
+		<provides><service name="ROM"/></provides>
+		<route>
+			<service name="Block"><child name="rom_blk"/></service>
+			<any-service><parent/></any-service>
+		</route>
+	</start>}
+
 append_if [have_spec acpi] config {
 	<start name="acpi" priority="-1">
 		<resource name="RAM" quantum="8M"/>
@@ -239,11 +259,21 @@ append_if [expr $use_nic_session && !$use_nic_bridge] config {
 			<service name="Nic"> <child name="nic_drv"/> </service>}
 append_if $use_framebuffer config {
 			<service name="Framebuffer"><child name="fb_drv"/></service>}
+append_if $use_genode_iso config {
+			<service name="ROM">
+				<if-arg key="filename" value="vm_seoul.cfg"/>
+				<parent/>
+			</service>
+			<service name="ROM">
+				<if-arg key="filename" value="hypervisor_info_page"/>
+				<parent/>
+			</service>
+			<service name="ROM"><child name="iso9660"/></service>}
 append config {
 			<service name="Rtc"><child name="rtc_drv"/></service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
-		<configfile name="vm_linux.cfg"/>
+		<configfile name="vm_seoul.cfg"/>
 	</start> }
 }
 
@@ -331,7 +361,7 @@ if {$use_fancy_stuff} {
 					<service name="Framebuffer"><child name="fb.seoul"/></service>
 					<any-service><parent/></any-service>
 				</route>
-				<configfile name="vm_linux.cfg"/>
+				<configfile name="vm_seoul.cfg"/>
 			</start>
 		</config>
 	</launcher>}
@@ -352,7 +382,7 @@ set boot_modules {
 	timer
 	rtc_drv
 	seoul
-	vm_linux.cfg
+	vm_seoul.cfg
 }
 
 lappend_if [have_spec acpi]   boot_modules acpi_drv
@@ -369,7 +399,9 @@ lappend_if $use_fancy_stuff   boot_modules liquid_fb
 lappend_if $use_fancy_stuff   boot_modules launchpad
 lappend_if $use_fancy_stuff   boot_modules nitlog
 lappend_if $use_fancy_stuff   boot_modules launchpad-config
-
+lappend_if $use_genode_iso    boot_modules rom_blk
+lappend_if $use_genode_iso    boot_modules iso9660
+lappend_if $use_genode_iso    boot_modules genode.iso
 
 #
 # Add OS binaries of guest
@@ -384,12 +416,14 @@ if {$use_multiboot} {
 			set guest_os_binary_missing 1
 		}
 
-		set sha1 [exec sha1sum bin/$binary]
-		set sha1 [regexp -inline {[0-9a-h]+} $sha1]
-		if {[string compare $sha1 [lindex $sha1_os_binaries $binary_counter]]} {
-			puts "SHA1 sum of binary does not match with expected one - abort"
-			puts "$binary $sha1 != [lindex $sha1_os_binaries $binary_counter]"
-			set guest_os_binary_missing 1
+		if {[info exists sha1_os_binaries]} {
+			set sha1 [exec sha1sum bin/$binary]
+			set sha1 [regexp -inline {[0-9a-h]+} $sha1]
+			if {[string compare $sha1 [lindex $sha1_os_binaries $binary_counter]]} {
+				puts "SHA1 sum of binary does not match with expected one - abort"
+				puts "$binary $sha1 != [lindex $sha1_os_binaries $binary_counter]"
+				set guest_os_binary_missing 1
+			}
 		}
 		incr binary_counter 1
 	}
@@ -406,4 +440,4 @@ if {$use_usb} {
 build_boot_image $boot_modules
 
 # A copy of the config is placed in the run folder.
-exec rm -f bin/vm_linux.cfg
+exec rm -f bin/vm_seoul.cfg
