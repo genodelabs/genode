@@ -130,6 +130,11 @@ bool Vancouver_console::receive(MessageConsole &msg)
 		/* XXX: For now, we only have one view. */
 	} else if (msg.type == MessageConsole::TYPE_GET_MODEINFO) {
 
+		enum {
+			MEMORY_MODEL_TEXT = 0,
+			MEMORY_MODEL_DIRECT_COLOR = 6,
+		};
+
 		/*
 		 * We supply two modes to the guest, text mode and one
 		 * configured graphics mode 16-bit.
@@ -142,6 +147,7 @@ bool Vancouver_console::receive(MessageConsole &msg)
 			msg.info->bytes_per_scanline = 80*2;
 			msg.info->bytes_scanline = 80*2;
 			msg.info->bpp = 4;
+			msg.info->memory_model = MEMORY_MODEL_TEXT;
 			msg.info->phys_base = 0xb8000;
 			msg.info->_phys_size = 0x8000;
 			return true;
@@ -159,6 +165,7 @@ bool Vancouver_console::receive(MessageConsole &msg)
 			msg.info->bytes_per_scanline = _fb_mode.width()*2;
 			msg.info->bytes_scanline = _fb_mode.width()*2;
 			msg.info->bpp = 16;
+			msg.info->memory_model = MEMORY_MODEL_DIRECT_COLOR;
 			msg.info->vbe1[0] = 0x5; /* red mask size */
 			msg.info->vbe1[1] = 0xb; /* red field position */
 			msg.info->vbe1[2] = 0x6; /* green mask size */

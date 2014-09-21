@@ -3,8 +3,8 @@ VERSION   := git
 DOWNLOADS := seoul.git
 
 URL(seoul) := https://github.com/alex-ab/seoul.git
-# branch genode_virtualsmp
-REV(seoul) := 86c743a519abb87d3a729db07137222d836420a6
+# branch vbios
+REV(seoul) := 04dcb10ecf51463eebcc303e82eb900110a91aef
 DIR(seoul) := src/app/seoul
 
 #
