@@ -9,9 +9,9 @@ if {[is_qemu_available]} {
 	exit
 }
 
-set use_usb_driver      [expr [have_spec omap4] || [have_spec exynos5]]
+set use_usb_driver      [expr [have_spec omap4] || [have_spec exynos5] || [have_spec platform_rpi]]
 set use_nic_driver      [expr !$use_usb_driver && ![have_spec platform_imx53]]
-set use_platform_driver [expr [have_spec platform_arndale] || [have_spec platform_imx53]]
+set use_platform_driver [expr [have_spec platform_arndale] || [have_spec platform_imx53] || [have_spec platform_rpi]]
 
 if {[expr !$use_usb_driver && !$use_nic_driver]} {
 	puts "\n Run script is not supported on this platform. \n"; exit 0 }
@@ -99,7 +99,8 @@ set config {
 append_if $use_platform_driver config {
 	<start name="platform_drv">
 		<resource name="RAM" quantum="1M" />
-		<provides><service name="Regulator"/></provides>
+		<provides> <service name="Regulator"/>
+		           <service name="Platform"/> </provides>
 	</start>}
 
 append_if [have_spec gpio] config {
