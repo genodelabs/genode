@@ -1,0 +1,49 @@
++++ src/app/virtualbox/src/VBox/Devices/VMMDev/VMMDev.cpp
+@@ -2179,6 +2179,10 @@
+                     ("%u\n", pReq->header.size), VERR_INVALID_PARAMETER);
+ 
+     pReq->fEnabled = false;
++
++    if (!pThis || !pThis->pDrv || !pThis->pDrv->pfnIsPageFusionEnabled)
++        return VINF_SUCCESS;
++
+     int rc = pThis->pDrv->pfnIsPageFusionEnabled(pThis->pDrv, &pReq->fEnabled);
+     if (RT_FAILURE(rc))
+         pReq->fEnabled = false;
+@@ -2404,7 +2408,6 @@
+             pReqHdr->rc = vmmdevReqHandler_HGCMCall(pThis, pReqHdr, GCPhysReqHdr);
+             *pfDelayedUnlock = true;
+             break;
+-#endif /* VBOX_WITH_HGCM */
+ 
+         case VMMDevReq_HGCMCancel:
+             pReqHdr->rc = vmmdevReqHandler_HGCMCancel(pThis, pReqHdr, GCPhysReqHdr);
+@@ -2414,6 +2417,7 @@
+         case VMMDevReq_HGCMCancel2:
+             pReqHdr->rc = vmmdevReqHandler_HGCMCancel2(pThis, pReqHdr);
+             break;
++#endif /* VBOX_WITH_HGCM */
+ 
+         case VMMDevReq_VideoAccelEnable:
+             pReqHdr->rc = vmmdevReqHandler_VideoAccelEnable(pThis, pReqHdr);
+@@ -3595,8 +3599,10 @@
+     /* disabled statistics updating */
+     pThis->u32LastStatIntervalSize = 0;
+ 
++#ifdef VBOX_WITH_HGCM
+     /* Clear the "HGCM event enabled" flag so the event can be automatically reenabled.  */
+     pThis->u32HGCMEnabled = 0;
++#endif
+ 
+     /*
+      * Clear the event variables.
++++ src/app/virtualbox/src/VBox/Devices/VMMDev/VMMDevHGCM.cpp
+@@ -19,7 +19,7 @@
+ /*******************************************************************************
+ *   Header Files                                                               *
+ *******************************************************************************/
+-#define LOG_GROUP LOG_GROUP_DEV_VMM
++#define LOG_GROUP LOG_GROUP_HGCM
+ #include <iprt/alloc.h>
+ #include <iprt/asm.h>
+ #include <iprt/assert.h>

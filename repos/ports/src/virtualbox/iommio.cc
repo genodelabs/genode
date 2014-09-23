@@ -15,11 +15,54 @@
 #include <base/printf.h>
 
 /* VirtualBox includes */
+#include "IOMInternal.h"
+#include <VBox/vmm/vm.h>
 #include <VBox/vmm/iom.h>
 #include <VBox/vmm/rem.h>
 
 /* local includes */
 #include "guest_memory.h"
+
+static const bool verbose = false;
+
+VMMR3_INT_DECL(int) IOMR3Init(PVM pVM)
+{
+	/*
+	 * Assert alignment and sizes.
+	 */
+	AssertCompileMemberAlignment(VM, iom.s, 32);
+	AssertCompile(sizeof(pVM->iom.s) <= sizeof(pVM->iom.padding));
+	AssertCompileMemberAlignment(IOM, CritSect, sizeof(uintptr_t));
+
+	/*
+	 * Initialize the REM critical section.
+	 */
+#ifdef IOM_WITH_CRIT_SECT_RW
+	int rc = PDMR3CritSectRwInit(pVM, &pVM->iom.s.CritSect, RT_SRC_POS, "IOM Lock");
+#else
+	int rc = PDMR3CritSectInit(pVM, &pVM->iom.s.CritSect, RT_SRC_POS, "IOM Lock");
+#endif
+	AssertRCReturn(rc, rc);
+	return VINF_SUCCESS;
+}
+
+int IOMR3Term(PVM)
+{
+	if (verbose)
+		PDBG("called");
+	return VINF_SUCCESS;
+}
+
+
+VMMDECL(bool) IOMIsLockWriteOwner(PVM pVM)
+{
+#ifdef IOM_WITH_CRIT_SECT_RW
+	return PDMCritSectRwIsInitialized(&pVM->iom.s.CritSect)
+	       && PDMCritSectRwIsWriteOwner(&pVM->iom.s.CritSect);
+#else
+   return PDMCritSectIsOwner(&pVM->iom.s.CritSect);
+#endif
+}
 
 
 int IOMR3MmioRegisterR3(PVM pVM, PPDMDEVINS pDevIns, RTGCPHYS GCPhysStart,
@@ -29,10 +72,11 @@ int IOMR3MmioRegisterR3(PVM pVM, PPDMDEVINS pDevIns, RTGCPHYS GCPhysStart,
                         R3PTRTYPE(PFNIOMMMIOFILL)  pfnFillCallback,
                         uint32_t fFlags, const char *pszDesc)
 {
-	PLOG("%s: GCPhys=0x%lx cb=0x%x pszDesc=%s rd=%p wr=%p fl=%p",
-	     __PRETTY_FUNCTION__,
-	     (long)GCPhysStart, cbRange, pszDesc,
-	     pfnWriteCallback, pfnReadCallback, pfnFillCallback);
+	if (verbose)
+		PLOG("%s: GCPhys=0x%llx cb=0x%x pszDesc=%s rd=%p wr=%p fl=%p flags=%x",
+		     __PRETTY_FUNCTION__,
+		     (Genode::uint64_t)GCPhysStart, cbRange, pszDesc,
+		     pfnWriteCallback, pfnReadCallback, pfnFillCallback, fFlags);
 
 	REMR3NotifyHandlerPhysicalRegister(pVM, PGMPHYSHANDLERTYPE_MMIO,
 	                                   GCPhysStart, cbRange, true);
@@ -49,7 +93,9 @@ int IOMR3MmioRegisterR3(PVM pVM, PPDMDEVINS pDevIns, RTGCPHYS GCPhysStart,
 int IOMR3MmioDeregister(PVM pVM, PPDMDEVINS pDevIns, RTGCPHYS GCPhysStart,
                         uint32_t cbRange)
 {
-	PLOG("%s: GCPhys=0x%lx cb=0x%x", __PRETTY_FUNCTION__, GCPhysStart, cbRange);
+	if (verbose)
+		PLOG("%s: GCPhys=0x%llx cb=0x%x", __PRETTY_FUNCTION__,
+		     (Genode::uint64_t)GCPhysStart, cbRange);
 
 	bool status = guest_memory()->remove_mmio_mapping(GCPhysStart, cbRange);
 	if (status)
@@ -60,32 +106,75 @@ int IOMR3MmioDeregister(PVM pVM, PPDMDEVINS pDevIns, RTGCPHYS GCPhysStart,
 }
 
 
-VBOXSTRICTRC IOMMMIOWrite(PVM pVM, RTGCPHYS GCPhys, uint32_t u32Value, size_t cbValue)
+VMMDECL(VBOXSTRICTRC) IOMMMIOWrite(PVM pVM, PVMCPU, RTGCPHYS GCPhys,
+                                   uint32_t u32Value, size_t cbValue)
 {
-//	PDBG("GCPhys=0x%x, u32Value=0x%x, cbValue=%zd", GCPhys, u32Value, cbValue);
+	VBOXSTRICTRC rc = IOM_LOCK_SHARED(pVM);
+	Assert(rc == VINF_SUCCESS);
 
-	return guest_memory()->mmio_write(pVM, GCPhys, u32Value, cbValue);
+	rc = guest_memory()->mmio_write(GCPhys, u32Value, cbValue);
+
+	/*
+	 * Check whether access is unaligned or access width is less than device
+	 * supports. See original IOMMIOWrite & iomMMIODoComplicatedWrite of VBox.
+	 */
+	Assert(rc != VERR_IOM_NOT_MMIO_RANGE_OWNER);
+
+	IOM_UNLOCK_SHARED(pVM);
+
+	return rc;
 }
 
 
-VBOXSTRICTRC IOMMMIORead(PVM pVM, RTGCPHYS GCPhys, uint32_t *pu32Value,
-                         size_t cbValue)
+VMMDECL(VBOXSTRICTRC) IOMMMIORead(PVM pVM, PVMCPU, RTGCPHYS GCPhys,
+                                  uint32_t *pvalue, size_t bytes)
 {
-//	PDBG("GCPhys=0x%x, cbValue=%zd", GCPhys, cbValue);
+    VBOXSTRICTRC rc = IOM_LOCK_SHARED(pVM);
+	Assert(rc == VINF_SUCCESS);
 
-	return guest_memory()->mmio_read(pVM, GCPhys, pu32Value, cbValue);
+	rc = guest_memory()->mmio_read(GCPhys, pvalue, bytes);
+
+	/*
+	 * Check whether access is unaligned or access width is less than device
+	 * supports. See original IOMMIORead & iomMMIODoComplicatedRead of VBox.
+	 */
+	if (rc == VERR_IOM_NOT_MMIO_RANGE_OWNER) {
+		/* implement what we need to - extend by need */
+		Assert((GCPhys & 3U) == 0);
+		Assert(bytes == 1 || bytes == 2);
+		uint32_t value;
+		rc = guest_memory()->mmio_read(GCPhys, &value, sizeof(value));
+		Assert(rc == VINF_SUCCESS);
+
+		if (rc == VINF_SUCCESS) {
+			switch (bytes) {
+				case 1:
+					*(uint8_t *) pvalue = (uint8_t)value;
+				case 2:
+					*(uint16_t *)pvalue = (uint16_t)value;
+			}
+		}
+	}
+
+	IOM_UNLOCK_SHARED(pVM);
+
+	return rc;
 }
 
 
 int IOMMMIOMapMMIO2Page(PVM pVM, RTGCPHYS GCPhys, RTGCPHYS GCPhysRemapped,
                         uint64_t fPageFlags)
 {
-	PDBG("called - %lx %lx", GCPhys, GCPhysRemapped);
+	if (verbose)
+		PDBG("called - %llx %llx", (Genode::uint64_t)GCPhys,
+		     (Genode::uint64_t)GCPhysRemapped);
 	return VINF_SUCCESS;
 }
 
+
 int IOMMMIOResetRegion(PVM pVM, RTGCPHYS GCPhys)
 {
-	PDBG("called - %lx", GCPhys);
+	if (verbose)
+		PDBG("called - %llx", (Genode::uint64_t)GCPhys);
 	return VINF_SUCCESS;
 }

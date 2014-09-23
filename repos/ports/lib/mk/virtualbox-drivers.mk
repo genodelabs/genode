@@ -9,12 +9,12 @@ SRC_CC += Devices/PC/DrvACPI.cpp
 SRC_CC += Devices/Serial/DrvChar.cpp
 SRC_CC += Devices/Serial/DrvRawFile.cpp
 SRC_CC += Devices/Serial/DrvHostSerial.cpp
-SRC_CC += Main/src-client/MouseImpl.cpp
+#SRC_CC += Main/src-client/MouseImpl.cpp
 
 SRC_CC += network.cpp
 
 vpath network.cpp $(REP_DIR)/src/virtualbox
 
 # includes needed by 'MouseImpl.cpp'
-INC_DIR += $(VBOX_DIR)/Main/include
-INC_DIR += $(VBOX_DIR)/Frontends/VBoxBFE
+#INC_DIR += $(VBOX_DIR)/Main/include
+#INC_DIR += $(VBOX_DIR)/Frontends/VBoxBFE

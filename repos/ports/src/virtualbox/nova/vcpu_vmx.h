@@ -13,7 +13,7 @@
  */
 
 /* VirtualBox includes */
-#include <VBox/vmm/hwacc_vmx.h>
+#include <VBox/vmm/hm_vmx.h>
 
 #include "vmm_memory.h"
 
@@ -51,24 +51,24 @@ class Vcpu_handler_vmx : public Vcpu_handler
 			/* configure VM exits to get */
 			next_utcb.mtd = Nova::Mtd::CTRL;
 			/* from src/VBox/VMM/VMMR0/HWVMXR0.cpp of virtualbox sources  */
-			next_utcb.ctrl[0] = VMX_VMCS_CTRL_PROC_EXEC_CONTROLS_HLT_EXIT |
-			                    VMX_VMCS_CTRL_PROC_EXEC_CONTROLS_MOV_DR_EXIT |
-			                    VMX_VMCS_CTRL_PROC_EXEC_CONTROLS_RDPMC_EXIT |
-			                    VMX_VMCS_CTRL_PROC_EXEC_CONTROLS_UNCOND_IO_EXIT |
+			next_utcb.ctrl[0] = VMX_VMCS_CTRL_PROC_EXEC_HLT_EXIT |
+			                    VMX_VMCS_CTRL_PROC_EXEC_MOV_DR_EXIT |
+			                    VMX_VMCS_CTRL_PROC_EXEC_RDPMC_EXIT |
+			                    VMX_VMCS_CTRL_PROC_EXEC_UNCOND_IO_EXIT |
 /* XXX commented out because TinyCore Linux won't run as guest otherwise
-			                    VMX_VMCS_CTRL_PROC_EXEC_CONTROLS_MONITOR_EXIT |
-			                    VMX_VMCS_CTRL_PROC_EXEC_CONTROLS_MWAIT_EXIT |
+			                    VMX_VMCS_CTRL_PROC_EXEC_MONITOR_EXIT |
+			                    VMX_VMCS_CTRL_PROC_EXEC_MWAIT_EXIT |
 */
-			                    VMX_VMCS_CTRL_PROC_EXEC_CONTROLS_CR8_LOAD_EXIT |
-			                    VMX_VMCS_CTRL_PROC_EXEC_CONTROLS_CR8_STORE_EXIT |
-			                    VMX_VMCS_CTRL_PROC_EXEC_CONTROLS_RDPMC_EXIT |
-/*			                    VMX_VMCS_CTRL_PROC_EXEC_CONTROLS_PAUSE_EXIT | */
+			                    VMX_VMCS_CTRL_PROC_EXEC_CR8_LOAD_EXIT |
+			                    VMX_VMCS_CTRL_PROC_EXEC_CR8_STORE_EXIT |
+			                    VMX_VMCS_CTRL_PROC_EXEC_RDPMC_EXIT |
+/*			                    VMX_VMCS_CTRL_PROC_EXEC_PAUSE_EXIT | */
 			/* we don't support tsc offsetting for now - so let the rdtsc exit */
-			                    VMX_VMCS_CTRL_PROC_EXEC_CONTROLS_RDTSC_EXIT;
+			                    VMX_VMCS_CTRL_PROC_EXEC_RDTSC_EXIT;
 
 			next_utcb.ctrl[1] = VMX_VMCS_CTRL_PROC_EXEC2_VIRT_APIC |
 			                    VMX_VMCS_CTRL_PROC_EXEC2_WBINVD_EXIT |
-			                    VMX_VMCS_CTRL_PROC_EXEC2_REAL_MODE |
+			                    VMX_VMCS_CTRL_PROC_EXEC2_UNRESTRICTED_GUEST |
 			                    VMX_VMCS_CTRL_PROC_EXEC2_VPID |
 /*			                    VMX_VMCS_CTRL_PROC_EXEC2_X2APIC | */
 			                    VMX_VMCS_CTRL_PROC_EXEC2_RDTSCP |
@@ -133,7 +133,7 @@ class Vcpu_handler_vmx : public Vcpu_handler
 				&This::_vmx_triple> (exc_base, Mtd::ALL | Mtd::FPU);
 			register_handler<VMX_EXIT_INIT_SIGNAL, This,
 				&This::_vmx_default> (exc_base, Mtd::ALL | Mtd::FPU);
-			register_handler<VMX_EXIT_IRQ_WINDOW, This,
+			register_handler<VMX_EXIT_INT_WINDOW, This,
 				&This::_vmx_irqwin> (exc_base, Mtd::ALL | Mtd::FPU);
 			register_handler<VMX_EXIT_CPUID, This,
 				&This::_vmx_default> (exc_base, Mtd::ALL | Mtd::FPU);
@@ -146,7 +146,7 @@ class Vcpu_handler_vmx : public Vcpu_handler
 
 			register_handler<VMX_EXIT_VMCALL, This,
 				&This::_vmx_default> (exc_base, Mtd::ALL | Mtd::FPU);
-			register_handler<VMX_EXIT_PORT_IO, This,
+			register_handler<VMX_EXIT_IO_INSTR, This,
 				&This::_vmx_default> (exc_base, Mtd::ALL | Mtd::FPU);
 			register_handler<VMX_EXIT_RDMSR, This,
 				&This::_vmx_default> (exc_base, Mtd::ALL | Mtd::FPU);
@@ -158,7 +158,7 @@ class Vcpu_handler_vmx : public Vcpu_handler
 //				&This::_vmx_default> (exc_base, Mtd::ALL | Mtd::FPU);
 			register_handler<VMX_EXIT_WBINVD, This,
 				&This::_vmx_default> (exc_base, Mtd::ALL | Mtd::FPU);
-			register_handler<VMX_EXIT_DRX_MOVE, This,
+			register_handler<VMX_EXIT_MOV_DRX, This,
 				&This::_vmx_default> (exc_base, Mtd::ALL | Mtd::FPU);
 			register_handler<VMX_EXIT_EPT_VIOLATION, This,
 				&This::_vmx_ept<VMX_EXIT_EPT_VIOLATION>> (exc_base, Mtd::ALL | Mtd::FPU);

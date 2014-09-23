@@ -57,10 +57,12 @@ class Guest_ioports
 				 && (PortStart <= _PortStart + _cPorts - 1);
 			}
 
-			bool partof(RTIOPORT PortStart, RTUINT cPorts) const
+			bool partof(RTIOPORT port, RTUINT cPorts) const
 			{
-				return (PortStart <= _PortStart)
-				 && (PortStart + cPorts - 1 >= _PortStart + _cPorts - 1);
+				RTIOPORT last_port  = port + cPorts - 1;
+				RTIOPORT _last_port = _PortStart + _cPorts - 1;
+				return ((port <= _PortStart) && (_PortStart <= last_port)) ||
+				       ((port <= _last_port) && (_last_port <= last_port));
 			}
 
 			Range(PPDMDEVINS            pDevIns,
@@ -87,7 +89,6 @@ class Guest_ioports
 				if (!_pfnOutCallback)
 					return VINF_IOM_R3_IOPORT_WRITE;
 
-//				PDBG("IOPORT write Port=0x%lx", (long)port);
 				VBOXSTRICTRC rc = PDMCritSectEnter(_pDevIns->CTX_SUFF(pCritSectRo),
 				                                   VINF_IOM_R3_IOPORT_WRITE);
 				if (rc != VINF_SUCCESS)
@@ -111,12 +112,13 @@ class Guest_ioports
 					return rc;
 					
 				rc = _pfnInCallback(_pDevIns, _pvUser, port, pu32Value, cb);
-				if (rc != VINF_SUCCESS)
+
+				PDMCritSectLeave(_pDevIns->CTX_SUFF(pCritSectRo));
+
+				if (rc != VERR_IOM_IOPORT_UNUSED && rc != VINF_SUCCESS)
 					PDBG("IOPORT read port=0x%x failed - callback %p eip %p",
 					     port, _pfnInCallback, __builtin_return_address(0));
  
-				PDMCritSectLeave(_pDevIns->CTX_SUFF(pCritSectRo));
-
 				return rc;
 			}
 		};
@@ -135,6 +137,14 @@ class Guest_ioports
 			return 0;
 		}
 
+		void dump()
+		{
+			for (Range *r = _ranges.first(); r; r = r->next())
+				PINF("0x%x+0x%x - '%s'\n",
+				     r->_PortStart, r->_cPorts,
+				     r->_pDevIns && r->_pDevIns->pReg ? r->_pDevIns->pReg->szName : 0);
+		}
+
 		/*
 		 * The whitelist is used to suppress log messages, which the VM tries
 		 * to access I/O ports with no device model associated. TinyCore Linux
@@ -146,19 +156,22 @@ class Guest_ioports
 			/* LPT3 */ if (port >= 0x0278 && port <= 0x027f) return true;
 			/* ECP  */ if (port >= 0x0778 && port <= 0x077a) return true;
 			/* IDE1 */ if (port >= 0x0170 && port <= 0x017f) return true;
+			/* COM1 */ if (port >= 0x03f8 && port <= 0x03ff) return true;
+			/* COM2 */ if (port >= 0x02f8 && port <= 0x02ff) return true;
+			/* COM3 */ if (port >= 0x03e8 && port <= 0x03ef) return true;
+			/* COM4 */ if (port >= 0x02e8 && port <= 0x02ef) return true;
 			return false;
 		}
 
 	public:
 
-		int  add_range(PPDMDEVINS pDevIns,
-		               RTIOPORT PortStart, RTUINT cPorts, RTHCPTR pvUser,
-		               R3PTRTYPE(PFNIOMIOPORTOUT) pfnOutCallback,
-		               R3PTRTYPE(PFNIOMIOPORTIN) pfnInCallback,
-		               R3PTRTYPE(PFNIOMIOPORTOUTSTRING) pfnOutStringCallback,
-		               R3PTRTYPE(PFNIOMIOPORTINSTRING) pfnInStringCallback)
+		int add_range(PPDMDEVINS pDevIns,
+		              RTIOPORT PortStart, RTUINT cPorts, RTHCPTR pvUser,
+		              R3PTRTYPE(PFNIOMIOPORTOUT) pfnOutCallback,
+		              R3PTRTYPE(PFNIOMIOPORTIN) pfnInCallback,
+		              R3PTRTYPE(PFNIOMIOPORTOUTSTRING) pfnOutStringCallback,
+		              R3PTRTYPE(PFNIOMIOPORTINSTRING) pfnInStringCallback)
 		{
-/*
 			Range *r = _lookup(PortStart, cPorts);
 			if (r) {
 				PERR("io port inseration failure 0x%x+0x%x - '%s'",
@@ -168,7 +181,11 @@ class Guest_ioports
 				Assert(!r);
 				return VERR_GENERAL_FAILURE;
 			}
-*/
+
+			if (verbose)
+				PLOG("insert io port range 0x%x+0x%x - '%s'", PortStart, cPorts,
+				     pDevIns && pDevIns->pReg ? pDevIns->pReg->szName : 0);
+
 			_ranges.insert(new (Genode::env()->heap())
 			               Range(pDevIns, PortStart, cPorts, pvUser,
 			                     pfnOutCallback, pfnInCallback,
@@ -190,11 +207,17 @@ class Guest_ioports
 
 				deleted = true;
 
-				PERR("delete %x+%x", r->_PortStart, r->_cPorts);
+				if (verbose)
+					PLOG("delete io port range 0x%x+0x%x out of 0x%x+0x%x - '%s'",
+					     r->_PortStart, r->_cPorts, PortStart, cPorts,
+					     r->_pDevIns &&
+					     r->_pDevIns->pReg ? r->_pDevIns->pReg->szName : 0);
 
 				Range *s = r;
 				r = r->next();
 				_ranges.remove(s);
+
+				destroy(Genode::env()->heap(), s);
 			}
 
 			return deleted ? VINF_SUCCESS : VERR_GENERAL_FAILURE;
@@ -210,22 +233,21 @@ class Guest_ioports
 				return VINF_SUCCESS;
 
 			char c = u32Value & 0xff;
-			PWRN("attempted to write to non-existing port 0x%lx+%u  %c (%02x)",
+			PWRN("attempted to write to non-existing port 0x%x+%zu  %c (%02x)",
 			     port, cbValue, c >= 32 && c <= 176 ? c : '.', c);
 			return VINF_SUCCESS;
 		}
 
-		VBOXSTRICTRC read(RTIOPORT port, uint32_t *pu32Value, unsigned cbValue)
+		VBOXSTRICTRC read(RTIOPORT port, uint32_t *pu32Value, size_t cbValue)
 		{
 			Range *r = _lookup(port, cbValue);
 			if (r) {
 				VBOXSTRICTRC err = r->read(port, pu32Value, cbValue);
 				if (err != VERR_IOM_IOPORT_UNUSED)
 					return err;
-			}
-
+			} else
 			if (!_white_listed(port))
-				PWRN("attempted to read from non-existing port 0x%x+%u %p",
+				PWRN("attempted to read from non-existing port 0x%x+%zu %p",
 				     port, cbValue, r);
 
 			switch (cbValue)
@@ -240,7 +262,8 @@ class Guest_ioports
 					*reinterpret_cast<uint32_t *>(pu32Value) = 0xFFFFFFFFU;
 					break;
 				default:
-					PERR("Invalid I/O port (%x) access of size (%x)", port, cbValue);
+					PERR("Invalid I/O port (%x) access of size (%zx)",
+					     port, cbValue);
 					return VERR_IOM_INVALID_IOPORT_SIZE;
 			}
 			return VINF_SUCCESS;
@@ -289,16 +312,15 @@ int IOMR3IOPortDeregister(PVM pVM, PPDMDEVINS pDevIns, RTIOPORT PortStart,
 }
 
 
-VMMDECL(VBOXSTRICTRC) IOMIOPortWrite(PVM pVM, RTIOPORT Port, uint32_t u32Value,
-                                     size_t cbValue)
+VMMDECL(VBOXSTRICTRC) IOMIOPortWrite(PVM, PVMCPU, RTIOPORT Port,
+                                     uint32_t u32Value, size_t cbValue)
 {
-//	PDBG("IOMIOPortWrite Port=0x%lx cbValue=%zd", (long)Port, cbValue);
 	return guest_ioports()->write(Port, u32Value, cbValue);
 }
 
 
-VMMDECL(VBOXSTRICTRC) IOMIOPortRead(PVM pVM, RTIOPORT Port, uint32_t *pu32Value,
-                                    size_t cbValue)
+VMMDECL(VBOXSTRICTRC) IOMIOPortRead(PVM, PVMCPU, RTIOPORT Port,
+                                    uint32_t *pu32Value, size_t cbValue)
 {
 	return guest_ioports()->read(Port, pu32Value, cbValue);
 }

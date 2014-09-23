@@ -20,6 +20,8 @@
 #include "sup.h"
 
 /* VirtualBox includes */
+#include <iprt/semaphore.h>
+#include <iprt/ldr.h>
 #include <VBox/err.h>
 
 
@@ -169,6 +171,9 @@ int SUPR3Init(PSUPDRVSESSION *ppSession)
 }
 
 
+int SUPR3Term(bool) { return VINF_SUCCESS; }
+
+
 int SUPR3GipGetPhys(PRTHCPHYS pHCPhys)
 {
 	/*
@@ -180,6 +185,18 @@ int SUPR3GipGetPhys(PRTHCPHYS pHCPhys)
 	return VINF_SUCCESS;
 }
 
+
+int SUPR3HardenedLdrLoadAppPriv(const char *pszFilename, PRTLDRMOD phLdrMod,
+                               uint32_t fFlags, PRTERRINFO pErrInfo)
+{
+	return RTLdrLoad(pszFilename, phLdrMod);
+}
+
+
+uint32_t SUPSemEventMultiGetResolution(PSUPDRVSESSION)
+{
+	return 100000*10; /* called by 'vmR3HaltGlobal1Init' */
+}
 
 int SUPSemEventCreate(PSUPDRVSESSION pSession, PSUPSEMEVENT phEvent)
 {
@@ -201,7 +218,7 @@ int SUPSemEventSignal(PSUPDRVSESSION pSession, SUPSEMEVENT hEvent)
 	if (hEvent)
 		reinterpret_cast<Genode::Semaphore *>(hEvent)->up();
 	else
-		PERR("%s called %lx", __FUNCTION__, hEvent);
+		PERR("%s called - not implemented", __FUNCTION__);
 
 	return VINF_SUCCESS;	
 }
@@ -213,7 +230,7 @@ int SUPSemEventWaitNoResume(PSUPDRVSESSION pSession, SUPSEMEVENT hEvent,
 	if (hEvent && cMillies == RT_INDEFINITE_WAIT)
 		reinterpret_cast<Genode::Semaphore *>(hEvent)->down();
 	else {
-		PERR("%s called %lx millis=%u - not implemented", __FUNCTION__, hEvent, cMillies);
+		PERR("%s called millis=%u - not implemented", __FUNCTION__, cMillies);
 		reinterpret_cast<Genode::Semaphore *>(hEvent)->down();
 	}
 
@@ -221,16 +238,52 @@ int SUPSemEventWaitNoResume(PSUPDRVSESSION pSession, SUPSEMEVENT hEvent,
 }
 
 
+SUPDECL(int) SUPSemEventMultiCreate(PSUPDRVSESSION,
+                                    PSUPSEMEVENTMULTI phEventMulti)
+{
+    RTSEMEVENTMULTI sem;
+
+    /*
+     * Input validation.
+     */
+    AssertPtrReturn(phEventMulti, VERR_INVALID_POINTER);
+
+    /*
+     * Create the event semaphore object.
+     */
+	int rc = RTSemEventMultiCreate(&sem);
+
+	static_assert(sizeof(sem) == sizeof(*phEventMulti), "oi");
+	*phEventMulti = reinterpret_cast<SUPSEMEVENTMULTI>(sem);
+	return rc;
+}
+
+
+SUPDECL(int) SUPSemEventMultiClose(PSUPDRVSESSION, SUPSEMEVENTMULTI hEvMulti)
+{
+	return RTSemEventMultiDestroy(reinterpret_cast<RTSEMEVENTMULTI>(hEvMulti));
+}
+
+
 int SUPR3CallVMMR0(PVMR0 pVMR0, VMCPUID idCpu, unsigned uOperation,
                    void *pvArg)
 {
-	PDBG("SUPR3CallVMMR0 called uOperation=%d", uOperation);
-
 	if (uOperation == VMMR0_DO_CALL_HYPERVISOR) {
 		PDBG("VMMR0_DO_CALL_HYPERVISOR - doing nothing");
 		return VINF_SUCCESS;
 	}
+	if (uOperation == VMMR0_DO_VMMR0_TERM) {
+		PDBG("VMMR0_DO_VMMR0_TERM - doing nothing");
+		return VINF_SUCCESS;
+	}
+	if (uOperation == VMMR0_DO_GVMM_DESTROY_VM) {
+		PDBG("VMMR0_DO_GVMM_DESTROY_VM - doing nothing");
+		return VINF_SUCCESS;
+	}
 
-	PDBG("SUPR3CallVMMR0Ex: unhandled uOperation %d", uOperation);
-	for (;;);
+	AssertMsg(uOperation != VMMR0_DO_VMMR0_TERM &&
+	          uOperation != VMMR0_DO_CALL_HYPERVISOR &&
+	          uOperation != VMMR0_DO_GVMM_DESTROY_VM,
+	          ("SUPR3CallVMMR0Ex: unhandled uOperation %d", uOperation));
+	return VERR_GENERAL_FAILURE;
 }

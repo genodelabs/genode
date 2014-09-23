@@ -133,21 +133,49 @@ class Guest_memory
 			int mmio_write(RTGCPHYS GCPhys, void const *pv, unsigned cb)
 			{
 				if (!_pfnWriteCallback)
-					return VERR_IOM_MMIO_RANGE_NOT_FOUND;
+					return VINF_SUCCESS;
 
-//				PDBG("mmio_write(GCPhys=0x%lx, cb=%u)", GCPhys, cb);
+				int rc = PDMCritSectEnter(_pDevIns->CTX_SUFF(pCritSectRo),
+				                          VINF_IOM_R3_MMIO_READ);
+				if (rc != VINF_SUCCESS)
+					return rc;
 
-				return _pfnWriteCallback(_pDevIns, _pvUser, GCPhys, pv, cb);
+				rc = _pfnWriteCallback(_pDevIns, _pvUser, GCPhys, pv, cb);
+
+				PDMCritSectLeave(_pDevIns->CTX_SUFF(pCritSectRo));
+
+				return rc;
 			}
 
 			int mmio_read(RTGCPHYS GCPhys, void *pv, unsigned cb)
 			{
 				if (!_pfnReadCallback)
-					return VERR_IOM_MMIO_RANGE_NOT_FOUND;
+					return VINF_IOM_MMIO_UNUSED_FF;
 
-//				PDBG("mmio_read(GCPhys=0x%lx, cb=%u)", GCPhys, cb);
+				int rc = PDMCritSectEnter(_pDevIns->CTX_SUFF(pCritSectRo),
+				                          VINF_IOM_R3_MMIO_WRITE);
 
-				return _pfnReadCallback(_pDevIns, _pvUser, GCPhys, pv, cb);
+				rc = _pfnReadCallback(_pDevIns, _pvUser, GCPhys, pv, cb);
+
+				PDMCritSectLeave(_pDevIns->CTX_SUFF(pCritSectRo));
+
+				return rc;
+			}
+
+			bool simple_mmio_write(RTGCPHYS vm_phys, unsigned cb)
+			{
+				/* adhere to original IOMMIOWrite check */
+				return (cb == 4 && !(vm_phys & 3)) ||
+				       ((_fFlags & IOMMMIO_FLAGS_WRITE_MODE) == IOMMMIO_FLAGS_WRITE_PASSTHRU) ||
+				       (cb == 8 && !(vm_phys & 7) && IOMMMIO_DOES_WRITE_MODE_ALLOW_QWORD(_fFlags));
+			}
+
+			bool simple_mmio_read(RTGCPHYS vm_phys, unsigned cb)
+			{
+				/* adhere to original IOMMIORead check */
+				return (cb == 4 && !(vm_phys & 3)) ||
+				       ((_fFlags & IOMMMIO_FLAGS_READ_MODE) == IOMMMIO_FLAGS_READ_PASSTHRU) ||
+				       (cb == 8 && !(vm_phys & 7) && (_fFlags & IOMMMIO_FLAGS_READ_MODE) == IOMMMIO_FLAGS_READ_DWORD_QWORD);
 			}
 		};
 
@@ -328,35 +356,49 @@ class Guest_memory
 		/**
 		 * \return VirtualBox return code
 		 */
-		int mmio_write(PVM pVM, RTGCPHYS GCPhys, uint32_t u32Value, size_t cbValue)
+		int mmio_write(RTGCPHYS vm_phys, uint32_t u32Value, size_t size)
 		{
-			Region *r = _lookup(GCPhys, cbValue);
+			Region *r = _lookup(vm_phys, size);
 
 			if (!r) {
-				PERR("Guest_memory::mmio_write: lookup failed");
-				PERR("GCPhys=0x%x, u32Value=0x%x, cbValue=%zd",
-				     GCPhys, u32Value, cbValue);
+				PERR("Guest_memory::mmio_write: lookup failed - "
+				     "GCPhys=0x%llx, u32Value=0x%x, size=%zd",
+				     (Genode::uint64_t)vm_phys, u32Value, size);
 				return VERR_IOM_MMIO_RANGE_NOT_FOUND;
 			}
 
-			return r->mmio_write(GCPhys, &u32Value, cbValue);
+			/* use VERR_IOM_NOT_MMIO_RANGE_OWNER to request complicated write */
+			if (!r->simple_mmio_write(vm_phys, size))
+				return VERR_IOM_NOT_MMIO_RANGE_OWNER;
+
+			int rc = r->mmio_write(vm_phys, &u32Value, size);
+			/* check that VERR_IOM_NOT_MMIO_RANGE_OWNER is unused, see above */
+			Assert(rc != VERR_IOM_NOT_MMIO_RANGE_OWNER);
+			return rc;
 		}
 
 		/**
 		 * \return VirtualBox return code
 		 */
-		int mmio_read(PVM pVM, RTGCPHYS GCPhys, uint32_t *u32Value, size_t cbValue)
+		int mmio_read(RTGCPHYS vm_phys, uint32_t *u32Value, size_t size)
 		{
-			Region *r = _lookup(GCPhys, cbValue);
+			Region *r = _lookup(vm_phys, size);
 
 			if (!r) {
-				PERR("Guest_memory::mmio_read: lookup failed");
-				PERR("GCPhys=0x%x, u32Value=0x%x, cbValue=%zd",
-				     GCPhys, u32Value, cbValue);
+				PERR("Guest_memory::mmio_read: lookup faile - "
+				     "GCPhys=0x%llx, u32Value=0x%p, size=%zd",
+				     (Genode::uint64_t)vm_phys, u32Value, size);
 				return VERR_IOM_MMIO_RANGE_NOT_FOUND;
 			}
 
-			return r->mmio_read(GCPhys, u32Value, cbValue);
+			/* use VERR_IOM_NOT_MMIO_RANGE_OWNER to request complicated read */
+			if (!r->simple_mmio_read(vm_phys, size))
+				return VERR_IOM_NOT_MMIO_RANGE_OWNER;
+
+			int rc = r->mmio_read(vm_phys, u32Value, size);
+			/* check that VERR_IOM_NOT_MMIO_RANGE_OWNER is unused, see above */
+			Assert(rc != VERR_IOM_NOT_MMIO_RANGE_OWNER);
+			return rc;
 		}
 };
 

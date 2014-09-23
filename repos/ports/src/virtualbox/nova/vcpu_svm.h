@@ -91,26 +91,28 @@ class Vcpu_handler_svm : public Vcpu_handler
 		{
 			using namespace Nova;
 
+			Genode::addr_t const exc_base = vcpu().exc_base();
+
 			typedef Vcpu_handler_svm This;
 
 			register_handler<RECALL, This,
-				&This::_svm_recall>(vcpu().exc_base(), Mtd(Mtd::EFL | Mtd::STA));
+				&This::_svm_recall>       (exc_base, Mtd::ALL | Mtd::FPU);
 			register_handler<SVM_EXIT_IOIO, This,
-				&This::_svm_ioio> (vcpu().exc_base(), Mtd(Mtd::ALL | Mtd::FPU));
+				&This::_svm_ioio>         (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
 			register_handler<SVM_EXIT_VINTR, This,
-				&This::_svm_vintr> (vcpu().exc_base(), Mtd(Mtd::ALL | Mtd::FPU));
+				&This::_svm_vintr>        (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
 			register_handler<SVM_EXIT_RDTSC, This,
-				&This::_svm_default> (vcpu().exc_base(), Mtd(Mtd::ALL | Mtd::FPU));
+				&This::_svm_default>      (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
 			register_handler<SVM_EXIT_MSR, This,
-				&This::_svm_default> (vcpu().exc_base(), Mtd(Mtd::ALL | Mtd::FPU));
+				&This::_svm_default>      (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
 			register_handler<SVM_NPT, This,
-				&This::_svm_npt<SVM_NPT>>(vcpu().exc_base(), Mtd(Mtd::ALL | Mtd::FPU));
+				&This::_svm_npt<SVM_NPT>> (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
 			register_handler<SVM_EXIT_HLT, This,
-				&This::_svm_default>(vcpu().exc_base(), Mtd(Mtd::ALL | Mtd::FPU));
+				&This::_svm_default>      (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
 			register_handler<SVM_EXIT_CPUID, This,
-				&This::_svm_default> (vcpu().exc_base(), Mtd(Mtd::ALL | Mtd::FPU));
+				&This::_svm_default>      (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
 			register_handler<VCPU_STARTUP, This,
-				&This::_svm_startup>(vcpu().exc_base(), Mtd(Mtd::ALL | Mtd::FPU));
+				&This::_svm_startup>      (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
 
 			start();
 		}

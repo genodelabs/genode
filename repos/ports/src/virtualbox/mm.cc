@@ -84,7 +84,7 @@ class Sub_rm_connection : public Genode::Rm_connection
 static struct {
 	Sub_rm_connection * conn;
 	Libc::Mem_alloc_impl  * heap;
-} memory_regions [MM_TAG_HWACCM];
+} memory_regions [MM_TAG_HM + 1];
 
 
 static Libc::Mem_alloc * heap_by_mmtag(MMTAG enmTag)
@@ -123,18 +123,10 @@ static Libc::Mem_alloc * heap_by_pointer(void * pv)
 }
 
 
-int MMR3Init(PVM pVM)
-{
-	PDBG("MMR3Init called, not implemented");
-	return VINF_SUCCESS;
-}
-
-
-int MMR3InitUVM(PUVM pUVM)
-{
-	PDBG("MMR3InitUVM called, not implemented");
-	return VINF_SUCCESS;
-}
+int MMR3Init(PVM) { return VINF_SUCCESS; }
+int MMR3Term(PVM) { return VINF_SUCCESS; }
+int MMR3InitUVM(PUVM) { return VINF_SUCCESS; }
+void MMR3TermUVM(PUVM) { }
 
 
 void *MMR3HeapAllocU(PUVM pUVM, MMTAG enmTag, size_t cbSize)
@@ -151,7 +143,11 @@ static unsigned align_by_mmtag(MMTAG enmTag)
 	switch (enmTag) {
 	case MM_TAG_PDM_DEVICE:
 	case MM_TAG_PDM_DEVICE_USER:
+	case MM_TAG_VMM:
 		return 12;
+	case MM_TAG_CPUM_CPUID:
+    case MM_TAG_CPUM_MSRS:
+		return Genode::log2(32);
 	default:
 		return Genode::log2(RTMEM_ALIGNMENT);
 	}
@@ -193,9 +189,24 @@ int MMR3HeapAllocZEx(PVM pVM, MMTAG enmTag, size_t cbSize, void **ppv)
 }
 
 
+int MMR3HyperInitFinalize(PVM)
+{
+	return VINF_SUCCESS;
+}
+
+
+int MMR3HyperSetGuard(PVM, void* ptr, size_t, bool)
+{
+//	PDBG("called %p", ptr);
+	return VINF_SUCCESS;
+}
+
+
 int MMR3HyperAllocOnceNoRel(PVM pVM, size_t cb, unsigned uAlignment,
                             MMTAG enmTag, void **ppv)
 {
+	AssertRelease(align_by_mmtag(enmTag) >= (uAlignment ? Genode::log2(uAlignment) : 0));
+
 	unsigned const align_log2 = uAlignment ? Genode::log2(uAlignment)
 	                                       : align_by_mmtag(enmTag);
 
@@ -214,13 +225,15 @@ int MMR3HyperAllocOnceNoRel(PVM pVM, size_t cb, unsigned uAlignment,
 int MMR3HyperAllocOnceNoRelEx(PVM pVM, size_t cb, uint32_t uAlignment,
                               MMTAG enmTag, uint32_t fFlags, void **ppv)
 {
+	AssertRelease(align_by_mmtag(enmTag) >= (uAlignment ? Genode::log2(uAlignment) : 0));
+
 	return MMR3HyperAllocOnceNoRel(pVM, cb, uAlignment, enmTag, ppv);
 }
 
 
 int MMHyperAlloc(PVM pVM, size_t cb, unsigned uAlignment, MMTAG enmTag, void **ppv)
 {
-	AssertRelease(align_by_mmtag(enmTag) >= uAlignment);
+	AssertRelease(align_by_mmtag(enmTag) >= (uAlignment ? Genode::log2(uAlignment) : 0));
 
 	*ppv = MMR3HeapAllocZ(pVM, enmTag, cb);
 	return VINF_SUCCESS;
@@ -234,6 +247,20 @@ int MMHyperFree(PVM pVM, void *pv)
 }
 
 
+int MMHyperDupMem(PVM pVM, const void *pvSrc, size_t cb,
+                  unsigned uAlignment, MMTAG enmTag, void **ppv)
+{
+    int rc = MMHyperAlloc(pVM, cb, uAlignment, enmTag, ppv);
+    if (RT_SUCCESS(rc))
+        memcpy(*ppv, pvSrc, cb);
+    return rc;
+}
+
+bool MMHyperIsInsideArea(PVM, RTGCPTR ptr)
+{
+	return false;
+}
+
 void MMR3HeapFree(void *pv)
 {
 	Libc::Mem_alloc *heap = heap_by_pointer(pv);
@@ -244,16 +271,8 @@ void MMR3HeapFree(void *pv)
 }
 
 
-RTR0PTR MMHyperR3ToR0(PVM pVM, RTR3PTR R3Ptr) { return (RTR0PTR)R3Ptr; }
-RTRCPTR MMHyperR3ToRC(PVM pVM, RTR3PTR R3Ptr) { return to_rtrcptr(R3Ptr); }
-RTR0PTR MMHyperCCToR0(PVM pVM, void *pv)      { return (RTR0PTR)pv; }
-RTRCPTR MMHyperCCToRC(PVM pVM, void *pv)      { return to_rtrcptr(pv); }
-
-
 uint64_t MMR3PhysGetRamSize(PVM pVM)
 {
-	PDBG("MMR3PhysGetRamSize called, return 0");
-
 	/* when called from REMR3Init, it is expected to return 0 */
 	return 0;
 }
@@ -262,17 +281,15 @@ uint64_t MMR3PhysGetRamSize(PVM pVM)
 int MMR3HyperMapHCPhys(PVM pVM, void *pvR3, RTR0PTR pvR0, RTHCPHYS HCPhys,
                        size_t cb, const char *pszDesc, PRTGCPTR pGCPtr)
 {
-	PDBG("pszDesc=%s", pszDesc);
-
+	static_assert(sizeof(*pGCPtr) == sizeof(HCPhys) , "pointer transformation bug");
 	*pGCPtr = (RTGCPTR)HCPhys;
-
 	return VINF_SUCCESS;
 }
 
 
 int MMR3HyperReserve(PVM pVM, unsigned cb, const char *pszDesc, PRTGCPTR pGCPtr)
 {
-	PINF("MMR3HyperReserve: cb=0x%x, pszDesc=%s", cb, pszDesc);
+//	PINF("MMR3HyperReserve: cb=0x%x, pszDesc=%s", cb, pszDesc);
 
 	return VINF_SUCCESS;
 }
@@ -282,11 +299,10 @@ int MMR3HyperMapMMIO2(PVM pVM, PPDMDEVINS pDevIns, uint32_t iRegion,
                       RTGCPHYS off, RTGCPHYS cb, const char *pszDesc,
                       PRTRCPTR pRCPtr)
 {
+/*
 	PLOG("MMR3HyperMapMMIO2: pszDesc=%s iRegion=%u off=0x%lx cb=0x%zx",
 	     pszDesc, iRegion, (long)off, (size_t)cb);
-
-	
-
+*/
 	return VINF_SUCCESS;
 }
 
@@ -330,7 +346,7 @@ int MMR3InitPaging(PVM pVM)
     /*
      * Make the initial memory reservation with GMM.
      */
-    PDBG("GMMR3InitialReservation missing");
+    LogFlow(("GMMR3INitialReservation missing\n"));
 
     /*
      * If RamSize is 0 we're done now.

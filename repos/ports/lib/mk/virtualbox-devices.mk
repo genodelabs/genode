@@ -16,12 +16,14 @@ SRC_CC += Devices/PC/DevAPIC.cpp
 SRC_CC += Devices/Graphics/DevVGA.cpp
 SRC_CC += Devices/Graphics/DevVGA_VBVA.cpp
 SRC_CC += Devices/Graphics/DevVGA_VDMA.cpp
+SRC_CC += Devices/Graphics/DevVGA-SVGA.cpp
 SRC_CC += Devices/Graphics/HGSMI/HGSMIHost.cpp
 SRC_CC += Devices/Graphics/HGSMI/HGSMIHostHlp.cpp
 SRC_CC += Devices/Graphics/HGSMI/SHGSMIHost.cpp
+SRC_CC += Devices/Storage/ATAPIPassthrough.cpp
 SRC_CC += Devices/Storage/DevATA.cpp
 SRC_CC += Devices/Storage/Debug.cpp
-SRC_CC += Devices/Storage/fdc.c
+SRC_CC += Devices/Storage/DevFdc.c
 SRC_CC += Devices/Storage/DrvRawImage.cpp
 SRC_CC += Devices/Network/DevE1000.cpp
 SRC_CC += Devices/Network/DevE1000Phy.cpp
@@ -39,14 +41,9 @@ INC_DIR += $(VBOX_DIR)/Devices/Bus
 
 CC_WARN += -Wno-unused-but-set-variable
 
-#
-# Definitions needed to compile DevVGA.cpp
-#
-# VBOX_WITH_VDMA is needed because otherwise, the alignment of the
-# VGASTATE::lock member would violate the assertion
-# '!((uintptr_t)pvSample & 7)' in 'stamR3RegisterU'.
-#
-CC_OPT += -DVBOX_WITH_WDDM -DVBOX_WITH_VDMA
+CC_OPT += -DVBOX_WITH_WDDM -DVBOX_WITH_WDDM_W8 -DVBOXWDDM_WITH_VBVA
+CC_OPT += -DVBOX_WITH_VDMA
+CC_OPT += -DVBOX_WITH_VMSVGA
 
 Devices/Graphics/DevVGA.o: vbetables.h
 

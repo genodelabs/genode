@@ -20,17 +20,23 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <sys/time.h>
+#include <sys/mount.h>    /* statfs */
 #include <unistd.h>
 #include <errno.h>
+#include <fcntl.h>        /* open */
+
+
 
 /* libc memory allocator */
 #include <libc_mem_alloc.h>
 
 /* VirtualBox includes */
 #include <iprt/mem.h>
+#include <iprt/assert.h>
+
+static const bool verbose = false;
 
 using Genode::size_t;
-
 
 /*
  * We cannot use the libc's version of malloc because it does not satisfies
@@ -108,9 +114,10 @@ extern "C" char *getenv(const char *name)
 //		               "+dev_pcnet.e.l.f"
 //		               "+dev_pic.e.l.f"
 //		               "+dev_apic.e.l.f"
-//		               "+dev_vmm.e.l.f"
+		               "+dev_vmm.e"
 //		               "+main.e.l.f"
 //		               "+hgcm.e.l.f"
+//		               "+shared_folders.e.l.f"
 		               ;
 
 	if (Genode::strcmp(name, "VBOX_LOG_FLAGS") == 0 ||
@@ -154,13 +161,94 @@ extern "C" int gettimeofday(struct timeval *tv, struct timezone *tz)
 	}
 }
 
+/* our libc provides a _nanosleep function */
+extern "C" int _nanosleep(const struct timespec *req, struct timespec *rem);
+extern "C" int nanosleep(const struct timespec *req, struct timespec *rem)
+{
+	Assert(req);
+/*
+	if (req) { // && req->tv_sec == 0 && req->tv_nsec <= 10 *1000000) {
+		char _name[64];
+		Genode::Thread_base::myself()->name(_name, sizeof(_name));
+		PERR("%zd:%ld s:ns rip %p '%s'", req->tv_sec, req->tv_nsec,
+		     __builtin_return_address(0), _name);
+	}
+*/
+	return _nanosleep(req, rem);
+}
+
+
+
+/* Some dummy implementation for LibC functions */
+
+extern "C" pid_t getpid(void)
+{
+	if (verbose)
+		PINF("%s called - rip %p", __func__, __builtin_return_address(0));
+
+	return 1345;
+}
+
+extern "C" int sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
+{
+	if (verbose)
+		PINF("%s called - rip %p", __func__, __builtin_return_address(0));
+
+	return -1;
+}
+
+extern "C" int _sigaction(int, const struct sigaction *, struct sigaction *)
+{
+	if (verbose)
+		PINF("%s called - rip %p", __func__, __builtin_return_address(0));
+
+	return -1;
+}
+
+extern "C" int futimes(int fd, const struct timeval tv[2])
+{
+	PINF("%s called - rip %p", __func__, __builtin_return_address(0));
+	return 0;
+}
+
+extern "C" int lutimes(const char *filename, const struct timeval tv[2])
+{
+	PINF("%s called - file '%s' - rip %p", __func__, filename,
+	     __builtin_return_address(0));
+	return 0;
+}
+
+extern "C" int _sigprocmask()
+{
+	if (verbose)
+		PINF("%s called - rip %p", __func__, __builtin_return_address(0));
+
+	return 0;
+}
+
+
 
 /**
- * Used by Shared Folders
+ * Used by Shared Folders Guest additions
  */
+extern "C" int _fstatfs(int libc_fd, struct statfs *buf);
+extern "C" int statfs(const char *path, struct statfs *buf)
+{
+	int fd = open(path, 0);
+
+	if (fd < 0)
+		return fd;
+
+	int res = _fstatfs(fd, buf);
+
+	close(fd);
+
+	return res;
+}
+
 extern "C" long pathconf(char const *path, int name)
 {
-	if (name = _PC_NAME_MAX) return 255;
+	if (name == _PC_NAME_MAX) return 255;
 
 	PERR("pathconf does not support config option %d", name);
 	errno = EINVAL;

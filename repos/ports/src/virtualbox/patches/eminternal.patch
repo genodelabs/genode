@@ -1,0 +1,15 @@
+Triggers misalignment assertion in STAM.cpp
+
+case STAMTYPE_PROFILE_ADV:                                              
+  AssertMsg(!((uintptr_t)pvSample & 7), ("%p - %s - %u\n", pvSample, pszName, enmType));
+
++++ src/app/virtualbox/src/VBox/VMM/include/EMInternal.h
+@@ -361,6 +361,8 @@
+ #ifdef VBOX_WITH_RAW_MODE
+     /** Pointer to the PATM status structure. (R3 Ptr) */
+     R3PTRTYPE(PPATMGCSTATE) pPatmGCState;
++#else
++    RTR3PTR dummyDONTUSE;
+ #endif
+ 
+     /** Pointer to the guest CPUM state. (R3 Ptr) */

@@ -19,6 +19,8 @@
 
 /* VirtualBox includes */
 #include "PGMInternal.h" /* enable access to pgm.s.* */
+#include "EMInternal.h"
+
 #include <VBox/vmm/mm.h>
 #include <VBox/vmm/vm.h>
 #include <VBox/vmm/pgm.h>
@@ -33,7 +35,7 @@
 using Genode::Ram_session;
 using Genode::Rm_session;
 
-static bool debug = false;
+static bool verbose = false;
 static bool verbose_debug = false;
 
 Vmm_memory *vmm_memory()
@@ -56,18 +58,17 @@ static DECLCALLBACK(int) romwritehandler(PVM pVM, RTGCPHYS GCPhys,
                                          PGMACCESSTYPE enmAccessType,
                                          void *pvUser)
 {
-	while (1) {
-		Assert(!"Somebody tries to write to ROM");
-	}
-	return 0;
+	Assert(!"Somebody tries to write to ROM");
+	return -1;
 }
 
 int PGMR3PhysRomRegister(PVM pVM, PPDMDEVINS pDevIns, RTGCPHYS GCPhys,
                          RTGCPHYS cb, const void *pvBinary, uint32_t cbBinary,
                          uint32_t fFlags, const char *pszDesc)
 {
-	PLOG("PGMR3PhysRomRegister: GCPhys=0x%llx cb=0x%llx pvBinary=0x%p - '%s'",
-	     GCPhys, cb, pvBinary, pszDesc);
+	if (verbose)
+		PLOG("%s: GCPhys=0x%llx cb=0x%llx pvBinary=0x%p - '%s'", __func__,
+		     (Genode::uint64_t)GCPhys, (Genode::uint64_t)cb, pvBinary, pszDesc);
 
 	try {
 		RTGCPHYS GCPhysLast = GCPhys + (cb - 1);
@@ -109,11 +110,29 @@ int PGMR3PhysRomRegister(PVM pVM, PPDMDEVINS pDevIns, RTGCPHYS GCPhys,
 }
 
 
+static int pgmR3PhysWriteExternalEMT(PVM pVM, PRTGCPHYS pGCPhys,
+                                     const void *pvBuf, size_t cbWrite)
+{
+	VM_ASSERT_EMT(pVM);
+
+    return PGMPhysWrite(pVM, *pGCPhys, pvBuf, cbWrite);
+}
+
+
 int PGMPhysWrite(PVM pVM, RTGCPHYS GCPhys, const void *pvBuf, size_t cbWrite)
 {
+	VM_ASSERT_EMT(pVM);
+
 	void *pv = guest_memory()->lookup(GCPhys, cbWrite);
 
+	if (verbose_debug)
+		PDBG("%s: GCPhys=0x%llx pvBuf=0x%p cb=0x%zx pv=%p", __func__,
+		     (Genode::uint64_t)GCPhys, pvBuf, cbWrite, pv);
+
 	if (pv) {
+		void * pvx = vmm_memory()->lookup(GCPhys, cbWrite);
+		Assert(!pvx);
+
 		memcpy(pv, pvBuf, cbWrite);
 		return VINF_SUCCESS;
 	}
@@ -124,8 +143,8 @@ int PGMPhysWrite(PVM pVM, RTGCPHYS GCPhys, const void *pvBuf, size_t cbWrite)
 	pv = vmm_memory()->lookup(GCPhys, cbWrite, &pfnHandlerR3, &pvUserR3);
 
 	if (!pv || !pfnHandlerR3 || !pvUserR3) {
-		PERR("PGMPhysWrite skipped: GCPhys=0x%lx pvBuf=0x%p cbWrite=0x%zx",
-		     GCPhys, pvBuf, cbWrite);
+		PERR("%s skipped: GCPhys=0x%llx pvBuf=0x%p cbWrite=0x%zx", __func__,
+		     (Genode::uint64_t)GCPhys, pvBuf, cbWrite);
 		return VERR_GENERAL_FAILURE;
 	}
 
@@ -145,21 +164,27 @@ int PGMPhysWrite(PVM pVM, RTGCPHYS GCPhys, const void *pvBuf, size_t cbWrite)
 int PGMR3PhysWriteExternal(PVM pVM, RTGCPHYS GCPhys, const void *pvBuf,
                            size_t cbWrite, const char *pszWho)
 {
-//	PDBG("GCPhys=0x%llx pvBuf=0x%p cbWrite=0x%zx - '%s'",
-//	     GCPhys, pvBuf, cbWrite, pszWho);
+	VM_ASSERT_OTHER_THREAD(pVM);
 
-	return PGMPhysWrite(pVM, GCPhys, pvBuf, cbWrite);
+	return VMR3ReqPriorityCallWait(pVM, VMCPUID_ANY,
+	                               (PFNRT)pgmR3PhysWriteExternalEMT, 4,
+                                   pVM, &GCPhys, pvBuf, cbWrite);
 }
 
 
 int PGMPhysRead(PVM pVM, RTGCPHYS GCPhys, void *pvBuf, size_t cbRead)
 {
+	VM_ASSERT_EMT(pVM);
+
 	void *pv = guest_memory()->lookup(GCPhys, cbRead);
 
-//	PLOG("PGMPhysRead: GCPhys=0x%x pvBuf=0x%p cbRead=0x%zx pv=%p",
-//	     GCPhys, pvBuf, cbRead, pv);
+	if (verbose_debug)
+		PDBG("%s: GCPhys=0x%llx pvBuf=0x%p cbRead=0x%zx pv=%p", __func__,
+		     (Genode::uint64_t)GCPhys, pvBuf, cbRead, pv);
 
 	if (pv) {
+		void * pvx = vmm_memory()->lookup(GCPhys, cbRead);
+		Assert(!pvx);
 		memcpy(pvBuf, pv, cbRead);
 		return VINF_SUCCESS;
 	}
@@ -169,8 +194,8 @@ int PGMPhysRead(PVM pVM, RTGCPHYS GCPhys, void *pvBuf, size_t cbRead)
 
 	pv = vmm_memory()->lookup(GCPhys, cbRead, &pfnHandlerR3, &pvUserR3);
 	if (!pv || !pfnHandlerR3 || !pvUserR3) {
-		PERR("PGMPhysRead skipped: GCPhys=0x%lx pvBuf=0x%p cbRead=0x%zx",
-		     GCPhys, pvBuf, cbRead);
+		PERR("PGMPhysRead skipped: GCPhys=0x%llx pvBuf=0x%p cbRead=0x%zx",
+		     (Genode::uint64_t)GCPhys, pvBuf, cbRead);
 		return VERR_GENERAL_FAILURE;
 	}
 
@@ -179,14 +204,23 @@ int PGMPhysRead(PVM pVM, RTGCPHYS GCPhys, void *pvBuf, size_t cbRead)
 }
 
 
+static int pgmR3PhysReadExternalEMT(PVM pVM, PRTGCPHYS pGCPhys, void *pvBuf,
+                                    size_t cbRead)
+{
+	VM_ASSERT_EMT(pVM);
+
+    PGMPhysRead(pVM, *pGCPhys, pvBuf, cbRead);
+    return VINF_SUCCESS;
+}
+
+
 int PGMR3PhysReadExternal(PVM pVM, RTGCPHYS GCPhys, void *pvBuf, size_t cbRead)
 {
-	void *pv = guest_memory()->lookup(GCPhys, cbRead);
+	VM_ASSERT_OTHER_THREAD(pVM);
 
-//	PLOG("PGMPhysReadExternal: GCPhys=0x%x pvBuf=0x%p cbRead=0x%zx pv=%p",
-//	     GCPhys, pvBuf, cbRead, pv);
-
-	return PGMPhysRead(pVM, GCPhys, pvBuf, cbRead);
+	return VMR3ReqPriorityCallWait(pVM, VMCPUID_ANY,
+	                               (PFNRT)pgmR3PhysReadExternalEMT, 4,
+	                               pVM, &GCPhys, pvBuf, cbRead);
 }
 
 
@@ -196,9 +230,17 @@ int PGMR3PhysMMIO2Register(PVM pVM, PPDMDEVINS pDevIns, uint32_t iRegion,
 {
 	*ppv = vmm_memory()->alloc((size_t)cb, pDevIns, iRegion);
 
-	PLOG("PGMR3PhysMMIO2Register: pszDesc=%s iRegion=%u cb=0x%zx -> 0x%p",
-	     pszDesc, iRegion, (size_t)cb, *ppv);
+	if (verbose)
+		PLOG("PGMR3PhysMMIO2Register: pszDesc=%s iRegion=%u cb=0x%zx -> 0x%p",
+		     pszDesc, iRegion, (size_t)cb, *ppv);
 
+	return VINF_SUCCESS;
+}
+
+
+int PGMR3PhysMMIO2Deregister(PVM pVM, PPDMDEVINS pDevIns, uint32_t iRegion)
+{
+	PERR("%s: pDevIns %p iRegion=%x", __func__, pDevIns, iRegion);
 	return VINF_SUCCESS;
 }
 
@@ -208,13 +250,14 @@ int PGMR3PhysMMIO2Map(PVM pVM, PPDMDEVINS pDevIns, uint32_t iRegion,
 {
 	size_t cb = vmm_memory()->map_to_vm(pDevIns, GCPhys, iRegion);
 	if (cb == 0) {
-		PERR("PGMR3PhysMMIO2Map: lookup for pDevIns=%p iRegion=%u failed\n",
+		PERR("%s: lookup for pDevIns=%p iRegion=%u failed\n", __func__,
 		     pDevIns, iRegion);
-		for (;;);
+		Assert(cb);
 	}
 
-	PLOG("PGMR3PhysMMIO2Map: pDevIns=%p iRegion=%u cb=0x%zx GCPhys=0x%lx\n",
-	     pDevIns, iRegion, cb, (long)GCPhys);
+	if (verbose)
+		PLOG("%s: pDevIns=%p iRegion=%u cb=0x%zx GCPhys=0x%llx\n", __func__,
+		     pDevIns, iRegion, cb, (Genode::uint64_t)GCPhys);
 
 #ifdef VBOX_WITH_REM
 	REMR3NotifyPhysRamRegister(pVM, GCPhys, cb, REM_NOTIFY_PHYS_RAM_FLAGS_MMIO2);
@@ -227,19 +270,22 @@ int PGMR3PhysMMIO2Map(PVM pVM, PPDMDEVINS pDevIns, uint32_t iRegion,
 int PGMR3PhysMMIO2Unmap(PVM pVM, PPDMDEVINS pDevIns, uint32_t iRegion,
                         RTGCPHYS GCPhys)
 {
-	if (debug)
-		PDBG("called phys=%llx iRegion=0x%x", GCPhys, iRegion);
+	if (verbose_debug)
+		PDBG("called phys=%llx iRegion=0x%x", (Genode::uint64_t)GCPhys,
+		     iRegion);
 
+	RTGCPHYS GCPhysStart = GCPhys;
 	size_t size = 1;
+	bool io = vmm_memory()->lookup_range(GCPhysStart, size);
+	Assert(io);
+	Assert(GCPhysStart == GCPhys);
+
 	bool INVALIDATE = true;
 	bool ok = vmm_memory()->unmap_from_vm(GCPhys, size, INVALIDATE);
 	Assert(ok);
 
 #ifdef VBOX_WITH_REM
-#if 0 /* XXX */
-    if (fInformREM)
-        REMR3NotifyPhysRamDeregister(pVM, GCPhysRangeREM, cbRangeREM);
-#endif
+	REMR3NotifyPhysRamDeregister(pVM, GCPhysStart, size);
 #endif
 	return VINF_SUCCESS;
 }
@@ -248,8 +294,8 @@ int PGMR3PhysMMIO2Unmap(PVM pVM, PPDMDEVINS pDevIns, uint32_t iRegion,
 bool PGMR3PhysMMIO2IsBase(PVM pVM, PPDMDEVINS pDevIns, RTGCPHYS GCPhys)
 {
 	bool res = vmm_memory()->lookup(GCPhys, 1);
-	if (debug)
-		PDBG("called phys=%llx res=%u", GCPhys, res);
+	if (verbose_debug)
+		PDBG("called phys=%llx res=%u", (Genode::uint64_t)GCPhys, res);
 	return res;
 }
 
@@ -263,9 +309,10 @@ int PGMR3HandlerPhysicalRegister(PVM pVM, PGMPHYSHANDLERTYPE enmType,
                                  const char *pszHandlerRC,
                                  RTRCPTR pvUserRC, const char *pszDesc)
 {
-	PLOG("PGMR3HandlerPhysicalRegister: GCPhys=0x%llx-%llx r3=0x%p "
-	     "enmType=%x - '%s'\n",
-	     GCPhys, GCPhysLast, pfnHandlerR3, enmType, pszDesc);
+	if (verbose)
+		PLOG("%s: GCPhys=0x%llx-%llx r3=0x%p enmType=%x - '%s'\n", __func__,
+		     (Genode::uint64_t)GCPhys, (Genode::uint64_t)GCPhysLast,
+		     pfnHandlerR3, enmType, pszDesc);
 
 	bool ok = vmm_memory()->add_handler(GCPhys, GCPhysLast - GCPhys + 1,
 	                                    pfnHandlerR3, pvUserR3, enmType);
@@ -286,13 +333,13 @@ int PGMHandlerPhysicalDeregister(PVM pVM, RTGCPHYS GCPhys)
 
 #ifdef VBOX_WITH_REM
 	PFNPGMR3PHYSHANDLER pfnHandlerR3 = 0;
-	PGMPHYSHANDLERTYPE enmType;
+	PGMPHYSHANDLERTYPE enmType = PGMPHYSHANDLERTYPE_MMIO;
 
 	void * pv = vmm_memory()->lookup(GCPhys, size, &pfnHandlerR3, 0, &enmType);
 	Assert(pv);
 
-	if (debug)
-		PDBG("called phys=%llx enmType=%x", GCPhys, enmType);
+	if (verbose_debug)
+		PDBG("called phys=%llx enmType=%x", (Genode::uint64_t)GCPhys, enmType);
 
 #endif
 
@@ -318,8 +365,9 @@ int PGMHandlerPhysicalDeregister(PVM pVM, RTGCPHYS GCPhys)
 int PGMR3PhysRegisterRam(PVM pVM, RTGCPHYS GCPhys, RTGCPHYS cb,
                          const char *pszDesc)
 {
-	PLOG("PGMR3PhysRegisterRam: GCPhys=0x%lx, cb=0x%zx, pszDesc=%s",
-	     (long)GCPhys, (size_t)cb, pszDesc);
+	if (verbose)
+		PLOG("PGMR3PhysRegisterRam: GCPhys=0x%llx, cb=0x%llx, pszDesc=%s",
+		     (Genode::uint64_t)GCPhys, (Genode::uint64_t)cb, pszDesc);
 
 	try {
 
@@ -334,7 +382,9 @@ int PGMR3PhysRegisterRam(PVM pVM, RTGCPHYS GCPhys, RTGCPHYS cb,
 
 		guest_memory()->add_ram_mapping(GCPhys, cb, pv);
 
+#ifdef VBOX_WITH_REM
 		REMR3NotifyPhysRamRegister(pVM, GCPhys, cb, REM_NOTIFY_PHYS_RAM_FLAGS_RAM);
+#endif
 	}
 	catch (Guest_memory::Region_conflict) {
 		return VERR_PGM_MAPPING_CONFLICT; }
@@ -349,8 +399,10 @@ int PGMR3PhysRegisterRam(PVM pVM, RTGCPHYS GCPhys, RTGCPHYS cb,
 
 int PGMMapSetPage(PVM pVM, RTGCPTR GCPtr, uint64_t cb, uint64_t fFlags)
 {
-	PLOG("PGMMapSetPage: GCPtr=0x%llx cb=0x%llx, flags=0x%llx",
-	     GCPtr, cb, fFlags);
+	if (verbose)
+		PLOG("%s: GCPtr=0x%llx cb=0x%llx, flags=0x%llx", __func__,
+		     (Genode::uint64_t)GCPtr, (Genode::uint64_t)cb,
+		     (Genode::uint64_t)fFlags);
 
 	return VINF_SUCCESS;
 }
@@ -378,6 +430,18 @@ int PGMR3Init(PVM pVM)
 		pVCpu->pgm.s.GCPhysA20Mask    = ~((RTGCPHYS)!pVCpu->pgm.s.fA20Enabled << 20);
 	}
 
+    int rc = PDMR3CritSectInit(pVM, &pVM->pgm.s.CritSectX, RT_SRC_POS, "PGM");
+    AssertRCReturn(rc, rc);
+
+	return VINF_SUCCESS;
+}
+
+
+int PGMR3Term(PVM pVM)
+{
+	if (verbose)
+		PDBG("called");
+
 	return VINF_SUCCESS;
 }
 
@@ -388,7 +452,7 @@ int PGMPhysGCPtr2CCPtrReadOnly(PVMCPU pVCpu, RTGCPTR GCPtr, void const **ppv,
 	PERR("%s not implemented - caller 0x%p",
 	     __func__, __builtin_return_address(0));
 
-	while (1) { asm volatile ("ud2a"); }
+	Assert(!"not implemented");
 	return VERR_GENERAL_FAILURE;
 }
 
@@ -407,22 +471,22 @@ int PGMR3PhysTlbGCPhys2Ptr(PVM pVM, RTGCPHYS GCPhys, bool fWritable, void **ppv)
 		pv = guest_memory()->lookup(GCPhys, size);
 
 		if (!pv) {
-			PERR("%s: lookup for GCPhys=0x%llx failed", __func__, GCPhys);
+			PERR("%s: lookup for GCPhys=0x%llx failed", __func__,
+			    (Genode::uint64_t)GCPhys);
 			return VERR_PGM_PHYS_TLB_UNASSIGNED;
 		}
 
 		*ppv = pv;
 
 		if (verbose_debug)
-			PDBG("%llx %u -> 0x%p", GCPhys, fWritable, pv);
+			PDBG("%s: %llx %u -> 0x%p", __func__,
+			     (Genode::uint64_t)GCPhys, fWritable, pv);
 
 		return VINF_SUCCESS;
 	}
 
 	/* pv valid - check handlers next */
 	if (!pfnHandlerR3 && !pvUserR3) {
-		PERR("%s: %llx %u -> 0x%p no handlers", __func__, GCPhys, fWritable, pv);
-
 		*ppv = pv;
 		return VINF_SUCCESS;
 	}
@@ -431,7 +495,8 @@ int PGMR3PhysTlbGCPhys2Ptr(PVM pVM, RTGCPHYS GCPhys, bool fWritable, void **ppv)
 		*ppv = pv;
 		return VINF_PGM_PHYS_TLB_CATCH_WRITE;
 	}
-	PERR("%s: denied access - handlers set - GCPhys=0x%llx %p %p %x", __func__, GCPhys, pfnHandlerR3, pvUserR3, enmType);
+	PERR("%s: denied access - handlers set - GCPhys=0x%llx %p %p %x", __func__,
+	     (Genode::uint64_t)GCPhys, pfnHandlerR3, pvUserR3, enmType);
 
 	return VERR_PGM_PHYS_TLB_CATCH_ALL;
 }
@@ -458,12 +523,21 @@ bool PGMPhysIsA20Enabled(PVMCPU pVCpu)
 
 void PGMR3PhysWriteU8(PVM pVM, RTGCPHYS GCPhys, uint8_t value)
 {
+	VM_ASSERT_EMT(pVM);
+
 	void *pv = guest_memory()->lookup(GCPhys, sizeof(value));
 
+	if (verbose_debug)
+		PDBG("%s: GCPhys=0x%llx cb=0x%zx pv=%p", __func__,
+		    (Genode::uint64_t)GCPhys, sizeof(value), pv);
+
 	if (!pv) {
-		PERR("%s: invalid write attempt phy=%llx", __func__, GCPhys);
+		PERR("%s: invalid write attempt phy=%llx", __func__,
+		    (Genode::uint64_t)GCPhys);
 		return;
 	}
+		void * pvx = vmm_memory()->lookup(GCPhys, sizeof(value));
+		Assert(!pvx);
 
 	*reinterpret_cast<uint8_t *>(pv) = value;
 }
@@ -471,12 +545,21 @@ void PGMR3PhysWriteU8(PVM pVM, RTGCPHYS GCPhys, uint8_t value)
 
 void PGMR3PhysWriteU16(PVM pVM, RTGCPHYS GCPhys, uint16_t value)
 {
+	VM_ASSERT_EMT(pVM);
+
 	void *pv = guest_memory()->lookup(GCPhys, sizeof(value));
 
+	if (verbose_debug)
+		PDBG("%s: GCPhys=0x%llx cb=0x%zx pv=%p",
+		     __func__, (Genode::uint64_t)GCPhys, sizeof(value), pv);
+
 	if (!pv) {
-		PERR("%s: invalid write attempt phy=%llx", __func__, GCPhys);
+		PERR("%s: invalid write attempt phy=%llx", __func__,
+		     (Genode::uint64_t)GCPhys);
 		return;
 	}
+		void * pvx = vmm_memory()->lookup(GCPhys, sizeof(value));
+		Assert(!pvx);
 
 	*reinterpret_cast<uint16_t *>(pv) = value;
 }
@@ -486,10 +569,17 @@ void PGMR3PhysWriteU32(PVM pVM, RTGCPHYS GCPhys, uint32_t value)
 {
 	void *pv = guest_memory()->lookup(GCPhys, sizeof(value));
 
+	if (verbose_debug)
+		PDBG("%s: GCPhys=0x%llx cb=0x%zx pv=%p",
+		     __func__, (Genode::uint64_t)GCPhys, sizeof(value), pv);
+
 	if (!pv) {
-		PERR("%s: invalid write attempt phy=%llx", __func__, GCPhys);
+		PERR("%s: invalid write attempt phy=%llx", __func__,
+		     (Genode::uint64_t)GCPhys);
 		return;
 	}
+		void * pvx = vmm_memory()->lookup(GCPhys, sizeof(value));
+		Assert(!pvx);
 
 	*reinterpret_cast<uint32_t *>(pv) = value;
 }
@@ -499,10 +589,18 @@ uint32_t PGMR3PhysReadU32(PVM pVM, RTGCPHYS GCPhys)
 {
 	void *pv = guest_memory()->lookup(GCPhys, 4);
 
+	if (verbose_debug)
+		PDBG("%s: GCPhys=0x%llx cb=0x%x pv=%p",
+		     __func__, (Genode::uint64_t)GCPhys, 4, pv);
+
 	if (!pv) {
-		PERR("%s: invalid read attempt phys=%llx", __func__, GCPhys);
+		PERR("%s: invalid read attempt phys=%llx", __func__,
+		     (Genode::uint64_t)GCPhys);
 		return 0;
 	}
+
+	void * pvx = vmm_memory()->lookup(GCPhys, 4);
+	Assert(!pvx);
 
 	return *reinterpret_cast<uint32_t *>(pv);
 }
@@ -513,8 +611,13 @@ int PGMPhysGCPhys2CCPtrReadOnly(PVM pVM, RTGCPHYS GCPhys, void const **ppv,
 {
 	void *pv = guest_memory()->lookup(GCPhys, 0x1000);
 
+	if (verbose_debug)
+		PDBG("%s: GCPhys=0x%llx cb=0x%d pv=%p",
+		     __func__, (Genode::uint64_t)GCPhys, 0x1000, pv);
+
 	if (!pv) {
-		PERR("unknown address pv=%p ppv=%p GCPhys=%llx", pv, ppv, GCPhys);
+		PERR("unknown address pv=%p ppv=%p GCPhys=%llx", pv, ppv,
+		     (Genode::uint64_t)GCPhys);
 
 		guest_memory()->dump();
 
@@ -522,8 +625,6 @@ int PGMPhysGCPhys2CCPtrReadOnly(PVM pVM, RTGCPHYS GCPhys, void const **ppv,
 	}
 
 	*ppv = pv;
-
-	PVMCPU pVCpu = VMMGetCpu(pVM);
 
 	return VINF_SUCCESS;
 }
@@ -533,7 +634,8 @@ int PGMHandlerPhysicalReset(PVM, RTGCPHYS GCPhys)
 {
 	size_t size = 1;
 	if (!vmm_memory()->unmap_from_vm(GCPhys, size))
-		PWRN("%s: unbacked region - GCPhys %llx", __func__, GCPhys);
+		PWRN("%s: unbacked region - GCPhys %llx", __func__,
+		     (Genode::uint64_t)GCPhys);
 
 	return VINF_SUCCESS;
 }
@@ -560,6 +662,8 @@ extern "C" int MMIO2_MAPPED_SYNC(PVM pVM, RTGCPHYS GCPhys, size_t cbWrite,
 
 	if (!pfnHandlerR3 && !pvUserR3) {
 		*ppv = pv;
+//		Vmm::printf("------------------ %s: GCPhys=0x%llx vmm local %p io mem map - no handlers\n", __func__, GCPhys, pv);
+//		return VERR_PGM_PHYS_TLB_UNASSIGNED;
 		/* you may map it */
 		return VINF_SUCCESS;
 	}
@@ -574,8 +678,8 @@ extern "C" int MMIO2_MAPPED_SYNC(PVM pVM, RTGCPHYS GCPhys, size_t cbWrite,
 			return VINF_SUCCESS;
 		}
 		
-		Vmm::printf("%s: GCPhys=0x%lx failed - unexpected rc=%d\n",
-		            __func__, GCPhys, rc);
+		Vmm::printf("%s: GCPhys=0x%llx failed - unexpected rc=%d\n",
+		            __func__, (Genode::uint64_t)GCPhys, rc);
 		return rc;
 	}
 
@@ -589,9 +693,10 @@ extern "C" int MMIO2_MAPPED_SYNC(PVM pVM, RTGCPHYS GCPhys, size_t cbWrite,
 	Assert(pv);
 
 	fli = Flexpage_iterator((addr_t)pv, map_size, map_start, map_size, map_start);
-	if (debug)
-		Vmm::printf("%s: GCPhys=0x%llx - %llx+%zx\n",
-		            __func__, GCPhys, map_start, map_size);
+	if (verbose_debug)
+		Vmm::printf("%s: GCPhys=0x%llx - %llx+%zx\n", __func__,
+		            (Genode::uint64_t)GCPhys, (Genode::uint64_t)map_start,
+		            map_size);
 
 	*ppv = pv;
 
@@ -627,7 +732,7 @@ void PGMR3Reset(PVM pVM)
 #ifdef PGM_WITH_A20
 			pVCpu->pgm.s.fSyncFlags |= PGM_SYNC_UPDATE_PAGE_BIT_VIRTUAL;
 			VMCPU_FF_SET(pVCpu, VMCPU_FF_PGM_SYNC_CR3);
-			HWACCMFlushTLB(pVCpu);
+			HMFlushTLB(pVCpu);
 #endif
 		}
 	}
@@ -638,9 +743,24 @@ void PGMR3Reset(PVM pVM)
 
 int PGMR3MappingsSize(PVM pVM, uint32_t *pcb)
 {
-	PINF("%s - not implemented - %p", __func__, __builtin_return_address(0));
+	if (verbose)
+		PINF("%s - not implemented - %p", __func__,
+		     __builtin_return_address(0));
 
 	*pcb = 0;
 
 	return 0;
+}
+
+
+void PGMR3MemSetup(PVM pVM, bool fAtReset)
+{
+	if (verbose)
+		PDBG(" called");
+}
+
+
+VMMDECL(bool) PGMIsLockOwner(PVM pVM)
+{
+	return PDMCritSectIsOwner(&pVM->pgm.s.CritSectX);
 }

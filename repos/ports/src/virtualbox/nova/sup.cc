@@ -27,10 +27,10 @@
 #include <nova/syscalls.h>
 
 /* VirtualBox includes */
-#include "HWACCMInternal.h" /* enable access to hwaccm.s.* */
+#include "HMInternal.h" /* enable access to hm.s.* */
 #include "CPUMInternal.h" /* enable access to cpum.s.* */
 #include <VBox/vmm/vm.h>
-#include <VBox/vmm/hwacc_svm.h>
+#include <VBox/vmm/hm_svm.h>
 #include <VBox/err.h>
 
 /* Genode's VirtualBox includes */
@@ -58,8 +58,8 @@ void SUPR3QueryHWACCLonGenodeSupport(VM * pVM)
 	try {
 		Nova::Hip * hip = hip_rom.local_addr<Nova::Hip>();
 
-		pVM->hwaccm.s.svm.fSupported = hip->has_feature_svm();
-		pVM->hwaccm.s.vmx.fSupported = hip->has_feature_vmx();
+		pVM->hm.s.svm.fSupported = hip->has_feature_svm();
+		pVM->hm.s.vmx.fSupported = hip->has_feature_vmx();
 
 		PINF("support svm %u vmx %u", hip->has_feature_svm(), hip->has_feature_vmx());
 	} catch (...) {
@@ -75,7 +75,7 @@ int SUPR3QueryVTxSupported(void) { return VINF_SUCCESS; }
 int SUPR3CallVMMR0Fast(PVMR0 pVMR0, unsigned uOperation, VMCPUID idCpu)
 {
 	switch (uOperation) {
-	case SUP_VMMR0_DO_HWACC_RUN:
+	case SUP_VMMR0_DO_HM_RUN:
 		return vcpu_handler->run_hw(pVMR0, idCpu);
 	}
 	return VERR_INTERNAL_ERROR;
@@ -107,10 +107,12 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned
 		SUPR3QueryHWACCLonGenodeSupport(reinterpret_cast<VM *>(pVMR0));
 		return VINF_SUCCESS;
 
-	case VMMR0_DO_HWACC_SETUP_VM:
+	case VMMR0_DO_GVMM_DESTROY_VM:
+	case VMMR0_DO_VMMR0_TERM:
+	case VMMR0_DO_HM_SETUP_VM:
 		return VINF_SUCCESS;
 
-	case VMMR0_DO_HWACC_ENABLE:
+	case VMMR0_DO_HM_ENABLE:
 		return VINF_SUCCESS;
 
 	case VMMR0_DO_GVMM_SCHED_POKE:
@@ -183,7 +185,23 @@ bool Vmm_memory::revoke_from_vm(Region *r)
 }
 
 
-extern "C" void pthread_yield(void) { Nova::ec_ctrl(Nova::EC_YIELD); }
+extern "C" void pthread_yield(void)
+{
+/*
+	char _name[64];
+	Genode::Thread_base::myself()->name(_name, sizeof(_name));
+	PERR("pthread_yield %p - '%s'", __builtin_return_address(0), _name);
+	Assert(!"pthread_yield called");
+*/
+	Nova::ec_ctrl(Nova::EC_YIELD);
+}
+
+
+void *operator new (Genode::size_t size, int log2_align)
+{
+	static Libc::Mem_alloc_impl heap(Genode::env()->rm_session());
+	return heap.alloc(size, log2_align);
+}
 
 
 bool create_emt_vcpu(pthread_t * pthread, size_t stack,
@@ -198,12 +216,14 @@ bool create_emt_vcpu(pthread_t * pthread, size_t stack,
 		return false;
 
 	if (hip->has_feature_vmx())
-		vcpu_handler = new Vcpu_handler_vmx(stack, attr, start_routine, arg,
-		                                    cpu_session, location);
+		vcpu_handler = new (0x10) Vcpu_handler_vmx(stack, attr, start_routine,
+		                                           arg, cpu_session, location);
 
 	if (hip->has_feature_svm())
-		vcpu_handler = new Vcpu_handler_svm(stack, attr, start_routine, arg,
-		                                    cpu_session, location);
+		vcpu_handler = new (0x10) Vcpu_handler_svm(stack, attr, start_routine,
+		                                           arg, cpu_session, location);
+
+	Assert(!(reinterpret_cast<unsigned long>(vcpu_handler) & 0xf));
 
 	*pthread = vcpu_handler;
 	return true;

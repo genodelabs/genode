@@ -21,8 +21,6 @@
 
 extern "C" int VBoxDevicesRegister(PPDMDEVREGCB pCallbacks, uint32_t u32Version)
 {
-	PDBG("VBoxDevicesRegister called");
-
 	int rc = 0;
 
 	/* pcarch */

@@ -20,8 +20,6 @@
 
 extern "C" int VBoxDriversRegister(PCPDMDRVREGCB pCallbacks, uint32_t u32Version)
 {
-	PDBG("VBoxDriversRegister called");
-
 	PDMDRVREG const *drvs[] = {
 		&g_DrvKeyboardQueue,
 		&g_DrvMouseQueue,

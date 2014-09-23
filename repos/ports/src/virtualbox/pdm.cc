@@ -49,8 +49,7 @@ int PDMR3LdrGetSymbolRCLazy(PVM pVM, const char *pszModule,
 
 static void R0SymbolDummy()
 {
-	PDBG("unexpected call of R0 symbol");
-	for (;;);
+	Assert(!"unexpected call of R0 symbol");
 }
 
 
@@ -73,6 +72,7 @@ int PDMR3LdrGetSymbolR0Lazy(PVM pVM, const char *pszModule,
 
 extern "C" int VBoxDriversRegister(PCPDMDRVREGCB, uint32_t);
 extern "C" int VBoxDevicesRegister(PPDMDEVREGCB,  uint32_t);
+extern "C" int VBoxDriversRegister_Main(PCPDMDRVREGCB, uint32_t);
 
 
 static int dummy_VBoxDriversRegister(PCPDMDRVREGCB, uint32_t) { return VINF_SUCCESS; }
@@ -95,13 +95,11 @@ int PDMR3LdrGetSymbolR3(PVM pVM, const char *pszModule, const char *pszSymbol,
 
 		if (Genode::strcmp(pszSymbol, "VBoxDriversRegister") == 0) {
 			*ppvValue = (void *)VBoxDriversRegister;
-			PDBG("return VBoxDriversRegister pointer");
 			return VINF_SUCCESS;
 		}
 
 		if (Genode::strcmp(pszSymbol, "VBoxDevicesRegister") == 0) {
 			*ppvValue = (void *)VBoxDevicesRegister;
-			PDBG("return VBoxDevicesRegister pointer");
 			return VINF_SUCCESS;
 		}
 	}
@@ -119,7 +117,14 @@ int PDMR3LdrGetSymbolR3(PVM pVM, const char *pszModule, const char *pszSymbol,
 		}
 	}
 
-	PDBG("pszModule=%s pszSymbol=%s", pszModule, pszSymbol);
+	if (Genode::strcmp(pszModule, "VBoxC") == 0) {
+		if (Genode::strcmp(pszSymbol, "VBoxDriversRegister") == 0) {
+			*ppvValue = (void *)VBoxDriversRegister_Main;
+			return VINF_SUCCESS;
+		}
+	}
+
+	PERR("pszModule=%s pszSymbol=%s", pszModule, pszSymbol);
 
 	return VERR_SYMBOL_NOT_FOUND;
 }

@@ -17,6 +17,7 @@ SRC_CC += VMM/VMMR3/PDMCritSect.cpp
 SRC_CC += VMM/VMMAll/PDMAll.cpp
 SRC_CC += VMM/VMMAll/PDMAllQueue.cpp
 SRC_CC += VMM/VMMAll/PDMAllCritSect.cpp
+SRC_CC += VMM/VMMAll/PDMAllCritSectRw.cpp
 
 SRC_CC += VMM/VMMR3/TM.cpp
 SRC_CC += VMM/VMMAll/TMAll.cpp
@@ -32,32 +33,25 @@ SRC_CC += VMM/VMMR3/PDMDevMiscHlp.cpp
 SRC_CC += VMM/VMMR3/PDMDriver.cpp
 SRC_CC += VMM/VMMR3/PDMThread.cpp
 
+SRC_CC += VMM/VMMAll/CPUMAllMsrs.cpp
 SRC_CC += VMM/VMMAll/CPUMAllRegs.cpp
 
 SRC_CC += VMM/VMMR3/VMEmt.cpp
 SRC_CC += VMM/VMMR3/VMReq.cpp
 
+SRC_CC += VMM/VMMAll/DBGFAll.cpp
 SRC_CC += VMM/VMMR3/DBGFInfo.cpp
 
 SRC_CC += VMM/VMMR3/CPUM.cpp
+SRC_CC += VMM/VMMR3/CPUMR3CpuId.cpp
+SRC_CC += VMM/VMMR3/CPUMR3Db.cpp
 
 SRC_CC += VMM/VMMAll/EMAll.cpp
 SRC_CC += VMM/VMMR3/EM.cpp
+SRC_CC += VMM/VMMR3/EMHM.cpp
 
 SRC_CC += VMM/VMMR3/TRPM.cpp
 SRC_CC += VMM/VMMAll/SELMAll.cpp
-
-SRC_CC += VMM/VMMAll/PATMAll.cpp
-SRC_CC += VMM/VMMR3/PATM.cpp
-SRC_CC += VMM/VMMR3/PATMPatch.cpp
-SRC_CC += VMM/VMMR3/PATMA.asm
-SRC_CC += VMM/VMMR3/PATMSSM.cpp
-SRC_CC += VMM/VMMR3/PATMGuest.cpp
-
-SRC_CC += VMM/VMMAll/CSAMAll.cpp
-SRC_CC += VMM/VMMR3/CSAM.cpp
-
-SRC_CC += VMM/VMMR3/EMHwaccm.cpp
 
 SRC_CC += VMM/VMMAll/REMAll.cpp
 

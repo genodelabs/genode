@@ -1,0 +1,79 @@
++++ src/app/virtualbox/src/VBox/Devices/Network/DevPCNet.cpp
+@@ -5331,6 +5331,11 @@
+     rc = PDMDevHlpDriverAttach(pDevIns, 0, &pThis->IBase, &pThis->pDrvBase, "Network Port");
+     if (RT_SUCCESS(rc))
+     {
++        /* Genode: read out the mac address from nic_session interface */
++        PPDMINETWORKCONFIG  pDrvConfig = PDMIBASE_QUERY_INTERFACE(pThis->pDrvBase, PDMINETWORKCONFIG);
++        Assert(pDrvConfig && pDrvConfig->pfnGetMac);
++        pDrvConfig->pfnGetMac(pDrvConfig, &pThis->MacConfigured);
++
+         if (rc == VINF_NAT_DNS)
+         {
+ #ifdef RT_OS_LINUX
++++ src/app/virtualbox/src/VBox/Devices/Network/DevE1000.cpp
+@@ -7512,6 +7519,35 @@
+             pThis->fR0Enabled ? "enabled" : "disabled",
+             pThis->fRCEnabled ? "enabled" : "disabled"));
+ 
++    /* For Genode attach already here to be able to overwrite mac address */
++    /* Network driver */
++    rc = PDMDevHlpDriverAttach(pDevIns, 0, &pThis->IBase, &pThis->pDrvBase, "Network Port");
++    if (RT_SUCCESS(rc))
++    {
++
++        /* Genode: read out the mac address from nic_session interface */      
++        PPDMINETWORKCONFIG  pDrvConfig = PDMIBASE_QUERY_INTERFACE(pThis->pDrvBase, PDMINETWORKCONFIG);
++        Assert(pDrvConfig && pDrvConfig->pfnGetMac);                           
++        pDrvConfig->pfnGetMac(pDrvConfig, &pThis->macConfigured);
++
++        if (rc == VINF_NAT_DNS)
++            PDMDevHlpVMSetRuntimeError(pDevIns, 0 /*fFlags*/, "NoDNSforNAT",
++                                       N_("A Domain Name Server (DNS) for NAT networking could not be determined. Ensure that your host is correctly connected to an ISP. If you ignore this warning the guest will not be able to perform nameserver lookups and it will probably observe delays if trying so"));
++        pThis->pDrvR3 = PDMIBASE_QUERY_INTERFACE(pThis->pDrvBase, PDMINETWORKUP);
++        AssertMsgReturn(pThis->pDrvR3, ("Failed to obtain the PDMINETWORKUP interface!\n"), VERR_PDM_MISSING_INTERFACE_BELOW);
++
++        pThis->pDrvR0 = PDMIBASER0_QUERY_INTERFACE(PDMIBASE_QUERY_INTERFACE(pThis->pDrvBase, PDMIBASER0), PDMINETWORKUP);
++        pThis->pDrvRC = PDMIBASERC_QUERY_INTERFACE(PDMIBASE_QUERY_INTERFACE(pThis->pDrvBase, PDMIBASERC), PDMINETWORKUP);
++    }
++    else if (   rc == VERR_PDM_NO_ATTACHED_DRIVER
++             || rc == VERR_PDM_CFG_MISSING_DRIVER_NAME)
++    {
++        /* No error! */
++        E1kLog(("%s This adapter is not attached to any network!\n", pThis->szPrf));
++    }
++    else
++        return PDMDEV_SET_ERROR(pDevIns, rc, N_("Failed to attach the network LUN"));
++
+     /* Initialize the EEPROM. */
+     pThis->eeprom.init(pThis->macConfigured);
+ 
+@@ -7670,28 +7706,6 @@
+         return PDMDEV_SET_ERROR(pDevIns, rc, N_("Failed to attach the status LUN"));
+     pThis->pLedsConnector = PDMIBASE_QUERY_INTERFACE(pBase, PDMILEDCONNECTORS);
+ 
+-    /* Network driver */
+-    rc = PDMDevHlpDriverAttach(pDevIns, 0, &pThis->IBase, &pThis->pDrvBase, "Network Port");
+-    if (RT_SUCCESS(rc))
+-    {
+-        if (rc == VINF_NAT_DNS)
+-            PDMDevHlpVMSetRuntimeError(pDevIns, 0 /*fFlags*/, "NoDNSforNAT",
+-                                       N_("A Domain Name Server (DNS) for NAT networking could not be determined. Ensure that your host is correctly connected to an ISP. If you ignore this warning the guest will not be able to perform nameserver lookups and it will probably observe delays if trying so"));
+-        pThis->pDrvR3 = PDMIBASE_QUERY_INTERFACE(pThis->pDrvBase, PDMINETWORKUP);
+-        AssertMsgReturn(pThis->pDrvR3, ("Failed to obtain the PDMINETWORKUP interface!\n"), VERR_PDM_MISSING_INTERFACE_BELOW);
+-
+-        pThis->pDrvR0 = PDMIBASER0_QUERY_INTERFACE(PDMIBASE_QUERY_INTERFACE(pThis->pDrvBase, PDMIBASER0), PDMINETWORKUP);
+-        pThis->pDrvRC = PDMIBASERC_QUERY_INTERFACE(PDMIBASE_QUERY_INTERFACE(pThis->pDrvBase, PDMIBASERC), PDMINETWORKUP);
+-    }
+-    else if (   rc == VERR_PDM_NO_ATTACHED_DRIVER
+-             || rc == VERR_PDM_CFG_MISSING_DRIVER_NAME)
+-    {
+-        /* No error! */
+-        E1kLog(("%s This adapter is not attached to any network!\n", pThis->szPrf));
+-    }
+-    else
+-        return PDMDEV_SET_ERROR(pDevIns, rc, N_("Failed to attach the network LUN"));
+-
+     rc = RTSemEventCreate(&pThis->hEventMoreRxDescAvail);
+     if (RT_FAILURE(rc))
+         return rc;

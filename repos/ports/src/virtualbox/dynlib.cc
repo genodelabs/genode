@@ -29,7 +29,7 @@ static struct shared {
 	const char * name;
 	const char * symbol;
 	void * func;
-} shared[] = { "/VBoxSharedFolders", VBOX_HGCM_SVCLOAD_NAME, (void *)VBoxHGCMSvcLoad };
+} shared[] = {{ "VBoxSharedFolders", VBOX_HGCM_SVCLOAD_NAME, (void *)VBoxHGCMSvcLoad }};
 
 
 int RTLdrLoad(const char *pszFilename, PRTLDRMOD phLdrMod)
@@ -70,6 +70,11 @@ int RTLdrGetSymbol(RTLDRMOD hLdrMod, const char *pszSymbol, void **ppvValue)
 
 	*ppvValue = library->func;
 
+	return VINF_SUCCESS;
+}
+
+int RTLdrClose(RTLDRMOD hLdrMod)
+{
 	return VINF_SUCCESS;
 }
 

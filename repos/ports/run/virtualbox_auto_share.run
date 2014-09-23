@@ -57,7 +57,6 @@
 # beforehand. test.bat contains the actual instructions to be performed by
 # the VM - for this script to copy the test.bin file from D: to E:.
 
-
 if {[is_qemu_available]} {
 	puts "\nRun script does not support Qemu.\n"
 	exit
@@ -66,11 +65,8 @@ if {[is_qemu_available]} {
 # Tested for nova. 
 assert_spec nova
 
-#
-# Build Noux packages only once
-#
-foreach pkg {bash coreutils} {
-	lappend_if [expr ![file exists bin/$pkg]] build_components noux-pkg/$pkg }
+# Write overlay back to harddisk if set to 0
+set use_ram_fs 0
 
 #
 # Create .bat file to be executed by Win VM
@@ -96,52 +92,28 @@ catch { exec unix2dos bin/template.bat }
 #
 catch { exec dd if=/dev/urandom of=bin/test.bin bs=4096 count=8160 }
 
-
-#
-# Step 0: prepare overlay.vdi for a clean run of the VM
-#
-set config_of_app {
-	<start name="vbox-auto-test-helper" priority="-1">
-		<resource name="RAM" quantum="10M"/>
-		<route>
-			<service name="File_system"> <child name="rump_fs"/> </service>
-			<any-service> <parent/> <any-child /> </any-service>
-		</route>
-		<config>
-			<libc stdout="/dev/log" stderr="/dev/log">
-				<vfs>
-					<fs />
-					<dir name="dev"> <log/> </dir>
-				</vfs>
-			</libc>
-		</config>
-	</start>
-}
-
-source ${genode_dir}/repos/ports/run/virtualbox_auto.inc
-
-run_genode_until "vbox_auto_test_helper is done." 20
-exec kill [exp_pid −i $spawn_id]
-
-
-
 #
 # Step 1: prepare and start the actual VM
 #
-exec tar cfv bin/bash.tar      -h -C bin/bash .
-exec tar cfv bin/coreutils.tar -h -C bin/coreutils .
-
 set build_components {
-	 server/ram_fs
-	 server/tcp_terminal drivers/nic
-	 noux/minimal
+	server/ram_fs
+	server/tcp_terminal drivers/nic
+	lib/libc_noux
+	noux/minimal
 }
+
+#
+# Build Noux packages only once
+#
+foreach pkg {bash coreutils} {
+	lappend_if [expr ![file exists bin/$pkg]] build_components noux-pkg/$pkg }
 
 set boot_modules {
 	ram_fs
 	noux libc_noux.lib.so bash.tar coreutils.tar
 	tcp_terminal lwip.lib.so nic_drv
 	test.bin template.bat
+	vm_auto_share.vbox
 }
 
 set config_of_app {
@@ -213,21 +185,32 @@ set config_of_app {
 
 	<start name="vbox" priority="-2">
 		<binary name="virtualbox" />
-		<resource name="RAM" quantum="1536M"/>
-		<config>
-			<share host="/from" guest="from" />
-			<share host="/to" guest="to" />
-			<image type="vdi" file="win7.vdi" overlay="yes"/>
+		<resource name="RAM" quantum="1280M"/>
+		<config vbox_file="vm_auto_share.vbox" vm_name="AutoDisk">
 			<libc stdout="/dev/log" stderr="/dev/log">
 				<vfs>
 					<dir name="dev"> <log/> </dir>
+					<rom name="vm_auto_share.vbox" />}
+
+append_if [expr $use_ram_fs] config_of_app {
+					<dir name="ram">  <fs label="from_ram_fs"/> </dir>}
+
+append config_of_app {
 					<dir name="from"> <fs label="share_ram_fs_from"/> </dir>
 					<dir name="to">   <fs label="share_ram_fs_to"/> </dir>
 					<fs />
 				</vfs>
 			</libc>
 		</config>
-		<route>
+		<route>}
+
+append_if [expr $use_ram_fs] config_of_app {
+			<service name="File_system">
+				<if-arg key="label" value="from_ram_fs" />
+				<child name="ram_fs"/>
+			</service>}
+
+append config_of_app {
 			<service name="File_system">
 				<if-arg key="label" value="share_ram_fs_from" />
 				<child name="ram_fs_from"/>
@@ -244,6 +227,12 @@ set config_of_app {
 
 source ${genode_dir}/repos/ports/run/virtualbox_auto.inc
 
+exec tar cfv bin/bash.tar      -h -C bin/bash .
+exec tar cfv bin/coreutils.tar -h -C bin/coreutils .
+exec cp ${genode_dir}/repos/ports/run/vm_auto_share.vbox bin/.
+
+build_boot_image $boot_modules
+
 #
 # Step 2: Read out TCP/IP address of tcp_terminal running on Genode target
 #
@@ -256,6 +245,8 @@ regexp {[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+} $serial_ip_addr serial_ip_addr
 #
 # Step 3: Wait until Windows is up for sure
 #
+
+
 run_genode_until {\[init -\> vbox\].*Guest Additions capability report:.*seamless: yes, hostWindowMapping: no, graphics: yes} 300 $serial_id
 
 
@@ -292,7 +283,7 @@ puts $noux_id "sleep 5"
 puts $noux_id "done"
 
 # Wait until VM signaled shutdown state
-run_genode_until {\[init -\> vbox\].*Changing the VM state from 'POWERING_OFF' to 'OFF'} 120 $serial_id
+run_genode_until {\[init -\> vbox\] EMT      PDMR3PowerOff: .* ns run time} 120 $serial_id
 
 # SHA1 of copied file
 puts $noux_id "sha1sum to/test.bin"
@@ -305,6 +296,7 @@ run_genode_until {[[:xdigit:]]+  to/test\.bin} 50 $noux_id
 foreach pkg {bash coreutils} { exec rm -f bin/$pkg.tar }
 exec rm -f bin/test.bin
 exec rm -f bin/template.bat
+exec rm -f bin/vm_auto_share.vbox
 
 
 #

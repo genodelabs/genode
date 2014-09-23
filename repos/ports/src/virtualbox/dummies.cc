@@ -5,295 +5,188 @@
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-2014 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
  */
 
 #include <base/printf.h>
-#include <base/thread.h>
 
-#include <iprt/types.h>
+#include <string.h> /* libc memcpy */
 
-#include <stddef.h>
-#include <time.h>
+#include "VMMInternal.h"
+#include "EMInternal.h"
+#include "PDMInternal.h"
 
-extern "C" {
+#include <iprt/err.h>
+#include <iprt/mem.h>
+#include <VBox/vmm/cpum.h>
+#include <VBox/vmm/mm.h>
+#include <VBox/vmm/dbgf.h>
+#include <VBox/vmm/ftm.h>
+#include <VBox/vmm/iem.h>
+#include <VBox/vmm/selm.h>
+#include <VBox/vmm/hm.h>
+#include <VBox/vmm/iom.h>
 
-#define DUMMY(retval, name) \
-int name(void) { \
-	PDBG( #name " called, not implemented, eip=%p", __builtin_return_address(0)); \
-	for (;;); \
-	return retval; \
+#include "util.h"
+
+static const bool trace = false;
+
+#define TRACE(retval) \
+	{ \
+		if (trace) \
+			PDBG("called, return dummy, eip=%p", \
+			     __builtin_return_address(0)); \
+		return retval; \
+	}
+
+
+RT_C_DECLS_BEGIN
+
+RTDECL(int) RTMemProtect(void *pv, size_t cb, unsigned fProtect) RT_NO_THROW
+{
+	if (!trace)
+		return VINF_SUCCESS;
+
+	char type[4];
+
+	if (fProtect & RTMEM_PROT_READ)
+		type[0] = 'r';
+	else
+		type[0] = '-';
+
+	if (fProtect & RTMEM_PROT_WRITE)
+		type[1] = 'w';
+	else
+		type[1] = '-';
+
+	if (fProtect & RTMEM_PROT_EXEC)
+		type[2] = 'x';
+	else
+		type[2] = '-';
+
+	type[3] = 0;
+
+	PDBG("called - not implemented - 0x%p+%0zx protect %x - '%s'",
+	     pv, cb, fProtect, type);
+
+	return VINF_SUCCESS;
 }
 
-#define CHECKED_DUMMY(TYPE, retval, name) \
-TYPE name(void) { \
-	PINF( #name " called, not implemented, eip=%p", __builtin_return_address(0)); \
-	return retval; \
+
+static_assert(sizeof(RTR0PTR) == sizeof(RTR3PTR), "pointer transformation bug");
+static_assert(sizeof(RTR0PTR) == sizeof(void *) , "pointer transformation bug");
+static_assert(sizeof(RTR3PTR) == sizeof(RTR0PTR), "pointer transformation bug");
+
+RTR0PTR MMHyperR3ToR0(PVM pVM, RTR3PTR R3Ptr) { return (RTR0PTR)R3Ptr; }
+RTRCPTR MMHyperR3ToRC(PVM pVM, RTR3PTR R3Ptr) { return to_rtrcptr(R3Ptr); }
+RTR0PTR MMHyperCCToR0(PVM pVM, void *pv)      { return (RTR0PTR)pv; }
+RTRCPTR MMHyperCCToRC(PVM pVM, void *pv)      { return to_rtrcptr(pv); }
+RTR3PTR MMHyperR0ToR3(PVM pVM, RTR0PTR R0Ptr) { return (RTR3PTR*)(R0Ptr | 0UL); }
+RTR3PTR MMHyperRCToR3(PVM pVM, RTRCPTR RCPtr)
+{
+	static_assert(sizeof(RCPtr) <= sizeof(RTR3PTR), "ptr transformation bug");
+	return reinterpret_cast<RTR3PTR>(0UL | RCPtr);
 }
 
-CHECKED_DUMMY(int, 0, cpumR3DbgInit)
-CHECKED_DUMMY(int, 0, DBGFR3Init)  /* debugger */
-DUMMY(-1, DBGFR3CoreWrite)
-CHECKED_DUMMY(int, 0, FTMR3Init)  /* fault tolerance manager */
-CHECKED_DUMMY(int, 0, pdmR3LdrInitU) /* module loader of pluggable device manager */
-CHECKED_DUMMY(int, 0, PDMR3LdrLoadVMMR0U) /* pretend to have successfully loaded the r0 module */
-CHECKED_DUMMY(int, 0, pdmR3LoadR3U)
-CHECKED_DUMMY(int, 0, pthread_atfork)
-CHECKED_DUMMY(int, 0, pthread_attr_setdetachstate)
-CHECKED_DUMMY(int, 0, pthread_attr_setstacksize)
-CHECKED_DUMMY(int, 0, RTMemProtect)
-CHECKED_DUMMY(int, 0, SELMR3Init)  /* selector manager - GDT handling */
-CHECKED_DUMMY(int, 0, sigfillset)
-CHECKED_DUMMY(int, 0, vmmR3SwitcherInit)  /* world switcher */
-CHECKED_DUMMY(int, -1, atexit)
-CHECKED_DUMMY(pid_t, -1, getpid)
-CHECKED_DUMMY(char *, (char *)-1, pdmR3FileR3)
-CHECKED_DUMMY(char *, nullptr, setlocale)
-CHECKED_DUMMY(int, -1, sigaddset)
-CHECKED_DUMMY(int, -1, sigemptyset)
-CHECKED_DUMMY(int, -1, siginterrupt)
-CHECKED_DUMMY(int, -1, sysctl)
-DUMMY( 0, RTErrCOMGet)
-void CPUMPushHyper() { } /* called by 'VMMR3InitRC', but we don't use GC */
-DUMMY(-1, DBGCRegisterCommands)
-DUMMY(-1, DBGFR3Event)
-DUMMY(-1, DBGFR3EventAssertion)
-DUMMY(-1, DBGFR3EventBreakpoint)
-DUMMY(-1, DBGFR3EventSrc)
-CHECKED_DUMMY(int, 0, DBGFR3EventSrcV)
-void DBGFR3Relocate() { }
-DUMMY(-1, DBGFR3Term)
-DUMMY(-1, DBGFR3VMMForcedAction)
-
-CHECKED_DUMMY(int, -4, DBGFR3AsSymbolByAddr) /* -4 == VERR_INVALID_HANDLE */
-
-DUMMY(-1, _flockfile)
-
-int FTMR3SetCheckpoint() { return -1; }
-DUMMY(-1, FTMR3Term)
-int FTMSetCheckpoint() { return 0; }
-DUMMY(-1, _funlockfile)
-DUMMY(-1, _fwalk)
-
-DUMMY(-1, HWACCMInvalidatePage)
-DUMMY(-1, HWACCMFlushTLB)
-DUMMY(-1, HWACCMR3EmulateIoBlock)
-DUMMY(-1, HWACCMR3PatchTprInstr)
-DUMMY(-1, HWACCMR3CheckError)
-DUMMY(-1, HWACCMR3RestartPendingIOInstr)
-void HWACCMR3Relocate() { }
-void HWACCMR3Reset() { }
-DUMMY(-1, HWACCMR3Term)
-DUMMY(-1, HWACMMR3EnablePatching)
-DUMMY(-1, HWACMMR3DisablePatching)
-
-CHECKED_DUMMY(int, 0, IEMR3Init)  /* interpreted execution manager (seems to be just a skeleton) */
-void IEMR3Relocate() { }
-DUMMY(-1, IEMR3Term)
-
-DUMMY(-1, MMHyperR0ToCC)
-DUMMY(-1, MMHyperR0ToR3)
-DUMMY(-1, MMHyperRCToCC)
-DUMMY(-1, MMHyperRCToR3)
-CHECKED_DUMMY(RTGCPTR, 0, MMHyperGetArea)
-
-DUMMY(-1, MMR3HeapAPrintfV)
-CHECKED_DUMMY(int, 0, MMR3HyperInitFinalize)
-CHECKED_DUMMY(int, 0, MMR3HyperSetGuard)
-DUMMY(-1, MMR3LockCall)
-DUMMY(-1, MMR3Term)
-DUMMY(-1, MMR3TermUVM)
-DUMMY(-1, PDMR3AsyncCompletionTemplateCreateDriver)
-DUMMY(-1, PDMR3LdrGetInterfaceSymbols)
-void PDMR3LdrRelocateU() { }
-DUMMY(-1, pdmR3LdrTermU)
-
-DUMMY(-1, PGMNotifyNxeChanged)
-DUMMY(-1, PGMPhysGCPtr2GCPhys)
-DUMMY(-1, PGMPhysSimpleReadGCPhys)
-DUMMY(-1, PGMPhysSimpleReadGCPtr)
-DUMMY(-1, PGMPhysSimpleWriteGCPtr)
-DUMMY(-1, PGMSyncCR3)
-
-CHECKED_DUMMY(int, 0, PGMR3CheckIntegrity)
-CHECKED_DUMMY(int, 0, PGMR3FinalizeMappings)
-CHECKED_DUMMY(int, 0, PGMR3InitCompleted)
-CHECKED_DUMMY(int, 0, PGMR3InitDynMap)  /* reserve space for "dynamic mappings" */
-CHECKED_DUMMY(int, 0, PGMR3InitFinalize)
-
-DUMMY(-1, PGMR3SharedModuleCheckAll)
-DUMMY(-1, PGMR3SharedModuleUnregister)
-DUMMY(-1, PGMR3SharedModuleRegister)
-DUMMY(-1, PGMR3MappingsUnfix)
-DUMMY(-1, PGMR3PhysChangeMemBalloon)
-DUMMY(-1, PGMR3MappingsFix)
-DUMMY(-1, PGMR3MappingsDisable)
-DUMMY(-1, PGMR3LockCall)
-DUMMY(-1, PGMR3PhysAllocateHandyPages)
-DUMMY(-1, PGMR3PhysAllocateLargeHandyPage)
-DUMMY(-1, PGMR3PhysChunkMap)
-DUMMY(-1, PGMR3PhysGCPhys2CCPtrExternal)
-DUMMY(-1, PGMR3PhysGCPhys2CCPtrReadOnlyExternal)
-DUMMY(-1, PGMR3PhysMMIO2Deregister)
-DUMMY(-1, PGMR3PhysMMIO2MapKernel)
-DUMMY(-1, PGMR3PhysReadU16)
-DUMMY(-1, PGMR3PhysReadU64)
-DUMMY(-1, PGMR3PhysRomProtect)
-DUMMY(-1, PGMR3PoolGrow)
-void PGMR3Relocate() {}
-DUMMY(-1, PGMR3ResetCpu)
-DUMMY(-1, PGMR3Term)
-
-DUMMY(-1, PGMPrefetchPage)
-DUMMY(-1, PGMGstGetPage)
-DUMMY(-1, PGMGstIsPagePresent)
-DUMMY(-1, PGMShwMakePageReadonly)
-DUMMY(-1, PGMShwMakePageNotPresent)
-DUMMY(-1, PGMPhysIsGCPhysNormal)
-DUMMY(-1, PGMHandlerVirtualChangeInvalidateCallback)
-DUMMY(-1, PGMSetLargePageUsage)
-DUMMY(-1, PGMPhysSimpleDirtyWriteGCPtr)
-DUMMY(-1, PGMGetShadowMode)
-DUMMY(-1, PGMGetHostMode)
-CHECKED_DUMMY(int, 0, PGMGetGuestMode) /* PGMMODE_INVALID == 0 */
-int PGMChangeMode() { return 0; }
-
-CHECKED_DUMMY(int, 0, poll)  /* needed by 'DrvHostSerial.cpp' */
-DUMMY(-1, pthread_key_delete)
-DUMMY(-1, RTMemExecFree)
-DUMMY(-1, RTMemPageFree)
-DUMMY(-1, RTPathAppend)
-DUMMY(-1, RTSemEventWaitEx)
-
-CHECKED_DUMMY(int, 0, SELMR3InitFinalize)
-void SELMR3Relocate() { }
-void SELMR3DisableMonitoring () { }
-void SELMR3Reset() { }
-DUMMY(-1, SELMR3Term)
-DUMMY(-1, SELMR3GetSelectorInfo)
-
-DUMMY(-1, libc_select_notify) /* needed for libc_terminal plugin */
-DUMMY(-1, DISInstrToStrEx)
-
-DUMMY(-1, strcat)
-DUMMY(-1, strerror)
-DUMMY(-1, strpbrk)
-
-CHECKED_DUMMY(int, 0, SUPR3SetVMForFastIOCtl)
-DUMMY(-1, SUPR3HardenedLdrLoadPlugIn)
-DUMMY(-1, SUPR3Term)
-
-uint32_t SUPSemEventMultiGetResolution()
-{ return 100000*10; /* called by 'vmR3HaltGlobal1Init' */ }
-
-DUMMY(-1, VMMR3FatalDump)
-void vmmR3SwitcherRelocate() { }
-DUMMY(-1, VMMR3GetHostToGuestSwitcher)
-
-DUMMY(-1, pthread_kill)
-DUMMY(-1, sscanf)
-DUMMY(-1, RTHeapSimpleRelocate)
-DUMMY(-1, RTHeapSimpleAlloc)
-DUMMY(-1, RTHeapSimpleInit)
-DUMMY(-1, RTHeapSimpleFree)
-DUMMY(-1, RTAvloU32Get)
-DUMMY(-1, RTAvloU32Remove)
-DUMMY(-1, RTAvloU32GetBestFit)
-CHECKED_DUMMY(void *, nullptr, RTAvloU32RemoveBestFit)
-DUMMY(-1, RTAvlU32Destroy)
-DUMMY(-1, RTAvlU32GetBestFit)
-DUMMY(-1, RTAvloU32DoWithAll)
-DUMMY(-1, RTAvloU32Insert)
-DUMMY(-1, RTAvlU32Get)
-DUMMY(-1, RTAvlU32DoWithAll)
-DUMMY(-1, RTAvlU32Insert)
-
-CHECKED_DUMMY(int, 0, IOMR3Init)
-int IOMR3IOPortRegisterR0() { return 0; }
-int IOMR3IOPortRegisterRC() { return 0; }
-CHECKED_DUMMY(int, 0, IOMR3MmioRegisterR0)
-CHECKED_DUMMY(int, 0, IOMR3MmioRegisterRC)
-void IOMR3Relocate() { }
-void IOMR3Reset() { }
-DUMMY(-1, IOMR3Term)
-
-DUMMY(-1, IOMInterpretOUT)
-DUMMY(-1, IOMInterpretOUTS)
-DUMMY(-1, IOMInterpretIN)
-DUMMY(-1, IOMInterpretINS)
+/* debugger */
+int  DBGFR3Init(PVM)                                                            TRACE(VINF_SUCCESS)
+int  DBGFR3EventSrcV(PVM, DBGFEVENTTYPE, const char *, unsigned, const char *,
+                    const char *, va_list)                                      TRACE(VINF_SUCCESS)
+void DBGFR3Relocate(PVM, RTGCINTPTR)                                            TRACE()
+int  DBGFR3RegRegisterDevice(PVM, PCDBGFREGDESC, PPDMDEVINS, const char*,
+                             uint32_t)                                          TRACE(VINF_SUCCESS)
+int  DBGFR3AsSymbolByAddr(PUVM, RTDBGAS, PCDBGFADDRESS, uint32_t, PRTGCINTPTR,
+                          PRTDBGSYMBOL, PRTDBGMOD)                              TRACE(VERR_INVALID_HANDLE)
+int DBGFR3Term(PVM)                                                             TRACE(VINF_SUCCESS)
 
 
-DUMMY(-1, DISInstrToStrWithReader)
+/* called by 'VMMR3InitRC', but we don't use GC */
+int  cpumR3DbgInit(PVM)                                                         TRACE(VINF_SUCCESS)
+void CPUMPushHyper(PVMCPU, uint32_t)                                            TRACE()
 
-DUMMY(-1, RTFileQueryFsSizes)
+int  PGMFlushTLB(PVMCPU, uint64_t, bool)                                        TRACE(VINF_SUCCESS) 
+int  PGMInvalidatePage(PVMCPU, RTGCPTR)                                         TRACE(VINF_SUCCESS)
+int  PGMHandlerPhysicalPageTempOff(PVM, RTGCPHYS, RTGCPHYS)                     TRACE(VINF_SUCCESS)
+void PGMPhysReleasePageMappingLock(PVM, PPGMPAGEMAPLOCK)                        TRACE()
+int  PGMR3CheckIntegrity(PVM)                                                   TRACE(VINF_SUCCESS)
+int  PGMR3FinalizeMappings(PVM)                                                 TRACE(VINF_SUCCESS)
+int  PGMR3InitCompleted(PVM, VMINITCOMPLETED)                                   TRACE(VINF_SUCCESS)
+int  PGMR3InitDynMap(PVM)                                                       TRACE(VINF_SUCCESS)
+int  PGMR3InitFinalize(PVM)                                                     TRACE(VINF_SUCCESS)
+int  PGMR3HandlerVirtualRegister(PVM, PGMVIRTHANDLERTYPE, RTGCPTR, RTGCPTR,
+                                 PFNPGMR3VIRTINVALIDATE, PFNPGMR3VIRTHANDLER,
+                                 const char*, const char*, const char*)         TRACE(VINF_SUCCESS)
+int  PGMHandlerVirtualDeregister(PVM, RTGCPTR)                                  TRACE(VINF_SUCCESS)
+void PGMR3Relocate(PVM, RTGCINTPTR)                                             TRACE()
+int  PGMChangeMode(PVMCPU, uint64_t, uint64_t, uint64_t)                        TRACE(VINF_SUCCESS)
+int  PGMR3ChangeMode(PVM, PVMCPU, PGMMODE)                                      TRACE(VINF_SUCCESS)
+/* required for Netware */
+void PGMCr0WpEnabled(PVMCPU pVCpu)                                              TRACE()
 
-DUMMY(-1, pthread_mutex_timedlock)
+/* debugger */
+void DBGFR3PowerOff(PVM pVM) TRACE()
+int  DBGFR3DisasInstrCurrent(PVMCPU, char *, uint32_t)                          TRACE(VINF_SUCCESS)
 
-CHECKED_DUMMY(int, 0, PGMHandlerVirtualDeregister) /* XXX */
-CHECKED_DUMMY(int, 0, PGMR3HandlerVirtualRegister) /* XXX */
+int  vmmR3SwitcherInit(PVM pVM)                                                 TRACE(VINF_SUCCESS)
+void vmmR3SwitcherRelocate(PVM, RTGCINTPTR)                                     TRACE()
+int  VMMR3DisableSwitcher(PVM)                                                  TRACE(VINF_SUCCESS)
 
-/*
- * Dummies added for storage
- */
-DUMMY(-1, RTAvlrFileOffsetDestroy)
-DUMMY(-1, RTAvlrFileOffsetGet)
-DUMMY(-1, RTAvlrFileOffsetGetBestFit)
-DUMMY(-1, RTAvlrFileOffsetInsert)
-DUMMY(-1, RTAvlrFileOffsetRemove)
-DUMMY(-1, RTAvlrU64Destroy)
-DUMMY(-1, RTAvlrU64DoWithAll)
-DUMMY(-1, RTAvlrU64GetBestFit)
-DUMMY(-1, RTAvlrU64Insert)
-DUMMY(-1, RTAvlrU64RangeGet)
-DUMMY(-1, RTAvlrU64RangeRemove)
-DUMMY(-1, RTAvlrU64Remove)
-DUMMY(-1, RTLdrClose)
-DUMMY(-1, RTMemDupExTag)
-DUMMY(-1, rtPathRootSpecLen)
-DUMMY(-1, RTPathStartsWithRoot)
-DUMMY(-1, RTSocketToNative)
-DUMMY(-1, RTStrCatP)
-DUMMY(-1, RTTcpClientCloseEx)
-DUMMY(-1, RTTcpClientConnect)
-DUMMY(-1, RTTcpFlush)
-DUMMY(-1, RTTcpGetLocalAddress)
-DUMMY(-1, RTTcpGetPeerAddress)
-DUMMY(-1, RTTcpRead)
-DUMMY(-1, RTTcpReadNB)
-DUMMY(-1, RTTcpSelectOne)
-DUMMY(-1, RTTcpSelectOneEx)
-DUMMY(-1, RTTcpSetSendCoalescing)
-DUMMY(-1, RTTcpSgWrite)
-DUMMY(-1, RTTcpSgWriteNB)
-DUMMY(-1, RTTcpWrite)
-DUMMY(-1, RTTcpWriteNB)
-DUMMY(-1, RTTimeLocalExplode)
+int  emR3InitDbg(PVM pVM)                                                       TRACE(VINF_SUCCESS)
 
-DUMMY(-1, RTSymlinkCreate)
-DUMMY(-1, RTSymlinkRead)
-DUMMY(-1, RTSymlinkDelete)
+int  FTMR3Init(PVM)                                                             TRACE(VINF_SUCCESS)
+int  FTMR3SetCheckpoint(PVM, FTMCHECKPOINTTYPE)                                 TRACE(-1)
+int  FTMSetCheckpoint(PVM, FTMCHECKPOINTTYPE)                                   TRACE(VINF_SUCCESS)
+int  FTMR3Term(PVM)                                                             TRACE(VINF_SUCCESS)
 
-DUMMY(-1, RTNetIPv6PseudoChecksumEx)
+int  IEMR3Init(PVM)                                                             TRACE(VINF_SUCCESS)
+int  IEMR3Term(PVM)                                                             TRACE(VINF_SUCCESS)
+void IEMR3Relocate(PVM)                                                         TRACE()
 
-CHECKED_DUMMY(int, 0, futimes)
-CHECKED_DUMMY(int, 0, lutimes)
+void HMR3Relocate(PVM)                                                          TRACE()
+void HMR3Reset(PVM pVM)                                                         TRACE()
 
-int __isthreaded;
+int  SELMR3Init(PVM)                                                            TRACE(VINF_SUCCESS)
+int  SELMR3Term(PVM)                                                            TRACE(VINF_SUCCESS)
+int  SELMR3InitFinalize(PVM)                                                    TRACE(VINF_SUCCESS)
+void SELMR3Relocate(PVM)                                                        TRACE()
+void SELMR3Reset(PVM)                                                           TRACE()
+void SELMR3DisableMonitoring(PVM)                                               TRACE()
 
-int sigprocmask() { return 0; }
-int _sigprocmask() { return 0; }
+int IOMR3IOPortRegisterRC(PVM, PPDMDEVINS, RTIOPORT, RTUINT, RTRCPTR, RTRCPTR,
+                          RTRCPTR, RTRCPTR, RTRCPTR, const char*)               TRACE(VINF_SUCCESS)
+int IOMR3IOPortRegisterR0(PVM, PPDMDEVINS, RTIOPORT, RTUINT, RTR0PTR,
+                          RTHCUINTPTR, RTHCUINTPTR, RTHCUINTPTR, RTHCUINTPTR,
+                          const char*)                                          TRACE(VINF_SUCCESS)
+int IOMR3MmioRegisterR0(PVM, PPDMDEVINS, RTGCPHYS, uint32_t, RTR0PTR,
+                        RTHCUINTPTR, RTHCUINTPTR, RTHCUINTPTR)                  TRACE(VINF_SUCCESS)
+int IOMR3MmioRegisterRC(PVM, PPDMDEVINS, RTGCPHYS, uint32_t, RTGCPTR, RTRCPTR,
+                        RTRCPTR, RTRCPTR)                                       TRACE(VINF_SUCCESS)
+void IOMR3Relocate(PVM, RTGCINTPTR)                                             TRACE()
+void IOMR3Reset(PVM)                                                            TRACE()
 
-int  PGMFlushTLB() { return 0; }
-int PGMInvalidatePage() { return 0; }  /* seems to be needed on raw mode only */
-int  PGMHandlerPhysicalPageTempOff() { return 0; }
+int SUPR3SetVMForFastIOCtl(PVMR0)                                               TRACE(VINF_SUCCESS)
 
-bool PGMIsLockOwner() { return false; }  /* assertion in EMRemLock */
-bool IOMIsLockOwner() { return false; }  /* XXX */
+_AVLOU32NodeCore* RTAvloU32RemoveBestFit(PAVLOU32TREE, AVLOU32KEY, bool)        TRACE(VINF_SUCCESS)
+int RTAvlrFileOffsetDestroy(PAVLRFOFFTREE, PAVLRFOFFCALLBACK, void*)            TRACE(VINF_SUCCESS)
 
-int  MMHyperIsInsideArea() { return 0; } /* used by dbgfR3DisasInstrRead */
-void PGMPhysReleasePageMappingLock() { }
-} /* extern "C" */
+/* module loader of pluggable device manager */
+int  pdmR3LdrInitU(PUVM)                                                        TRACE(VINF_SUCCESS)
+int  PDMR3LdrLoadVMMR0U(PUVM)                                                   TRACE(VINF_SUCCESS)
+void PDMR3LdrRelocateU(PUVM, RTGCINTPTR)                                        TRACE()
+int  pdmR3LoadR3U(PUVM, const char *, const char *)                             TRACE(VINF_SUCCESS)
+void pdmR3LdrTermU(PUVM)                                                        TRACE()
 
+char *pdmR3FileR3(const char * file, bool)
+{
+	char * pv = reinterpret_cast<char *>(RTMemTmpAllocZ(1));
+
+	if (trace)
+		PDBG("file %s %s %p", file, pv, __builtin_return_address(0));
+
+	TRACE(pv)
+}
+
+RT_C_DECLS_END

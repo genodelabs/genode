@@ -15,9 +15,10 @@ append build_components {
 	drivers/timer
 }
 
-lappend_if [have_spec acpi]  build_components drivers/acpi
-lappend_if [have_spec pci]   build_components drivers/pci
-lappend_if [have_spec x86]   build_components drivers/rtc
+lappend_if [have_spec acpi]   build_components drivers/acpi
+lappend_if [have_spec pci]    build_components drivers/pci
+lappend_if [have_spec x86]    build_components drivers/rtc
+lappend_if [expr $use_ram_fs] build_components server/ram_fs
 
 build $build_components
 
@@ -71,6 +72,21 @@ set config {
 		<route>
 			<any-service><child name="part_blk"/> <parent/><any-child/></any-service>
 		</route>
+	</start>}
+
+append_if [expr $use_ram_fs] config {
+	<start name="ram_fs" priority="-1">
+		<resource name="RAM" quantum="512M" />
+		<provides><service name="File_system"/></provides>
+		<config>
+			<content>
+				<dir name="ram">
+					<rom name="overlay.vdi"/>
+				</dir>
+			</content>
+			<!-- constrain sessions according to their labels -->
+			<policy label="vbox -> from_ram_fs" root="/ram" writeable="yes" />
+		</config>
 	</start>}
 
 append_if [have_spec acpi] config {
@@ -127,9 +143,9 @@ append boot_modules {
 	part_blk ahci
 	ld.lib.so libc.lib.so libm.lib.so pthread.lib.so
 	libc_lock_pipe.lib.so libc_terminal.lib.so
-	libiconv.lib.so
+	libiconv.lib.so stdcxx.lib.so
 	rump.lib.so rump_fs.lib.so rump_fs
-	virtualbox vbox-auto-test-helper
+	virtualbox
 }
 
 #
@@ -162,6 +178,9 @@ append boot_modules {
 #	}
 #}
 
+lappend_if [expr $use_ram_fs]      boot_modules ram_fs
+lappend_if [expr $use_ram_fs]      boot_modules overlay.vdi
+
 # platform-specific modules
 lappend_if [have_spec         ps2] boot_modules ps2_drv
 lappend_if [have_spec        acpi] boot_modules acpi_drv
@@ -169,5 +188,3 @@ lappend_if [have_spec         pci] boot_modules pci_drv
 lappend_if [have_spec framebuffer] boot_modules fb_drv
 lappend_if [have_spec        nova] boot_modules pci_device_pd
 lappend_if [have_spec         x86] boot_modules rtc_drv
-
-build_boot_image $boot_modules

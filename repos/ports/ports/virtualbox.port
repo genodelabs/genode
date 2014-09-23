@@ -1,52 +1,96 @@
 LICENSE         := GPLv2
-VERSION         := 4.2.24
+VERSION         := 4.3.16
 DOWNLOADS       := virtualbox.archive
 
 VIRTUALBOX_TBZ2 := VirtualBox-$(VERSION).tar.bz2
 
 URL(virtualbox) := http://download.virtualbox.org/virtualbox/$(VERSION)/$(VIRTUALBOX_TBZ2)
 DIR(virtualbox) := src/app/virtualbox
-SHA(virtualbox) := 4685a898fb426ae59081a3b3adf3f5b8c5cfd34e
+SHA(virtualbox) := e4c23b713e8715b8e0172fa066f2197756e901fe
 
-PATCHES         := src/virtualbox/*.patch
+PATCHES_LIST    := acpi_drv dev_e1000 eminternal fake_pci_vendor iconv mouse
+PATCHES_LIST    += pdm_driver pdm_queue_irqs sharedfolder_pagelist timer
+PATCHES_LIST    += time-log-deadlock vbetables-gen vbox_inc vbox_main network
+PATCHES_LIST    += vga_fb vga_vbva vmdk vmmdev avoid_yield
 
-VIRTUALBOX_CONTENT = src/VBox/VMM \
-                     src/VBox/Devices \
-                     src/VBox/Runtime \
-                     src/VBox/GuestHost/HGSMI \
-                     src/VBox/Frontends/VBoxBFE \
-                     src/VBox/Storage \
-                     src/VBox/Disassembler \
-                     src/VBox/HostServices/SharedFolders \
-                     src/recompiler \
-                     src/VBox/Main/include/MouseImpl.h \
-                     src/VBox/Main/include/ConsoleEvents.h \
-                     src/VBox/Main/src-client/MouseImpl.cpp \
-                     src/libs/zlib-1.2.6 \
-                     src/libs/liblzf-3.4 \
-                     include/VBox/vmm \
-                     include/iprt \
-                     $(addprefix include/VBox/,types.h cdefs.h hgcmsvc.h \
-                                               err.h dis.h disopcode.h \
-                                               log.h sup.h pci.h param.h \
-                                               ostypes.h VMMDev.h VMMDev2.h \
-                                               vusb.h dbg.h version.h \
-                                               VBoxVideo.h Hardware bioslogo.h \
-                                               scsi.h shflsvc.h VBoxGuest2.h \
-                                               HGSMI) \
-                     include/VBox/msi.h \
-                     include/VBox/DevPCNet.h \
-                     include/VBox/asmdefs.mac \
-                     include/VBox/err.mac \
-                     include/VBox/vd.h \
-                     include/VBox/vd-ifs.h \
-                     include/VBox/vd-plugin.h \
-                     include/VBox/vd-ifs-internal.h \
-                     include/VBox/vd-cache-plugin.h \
-                     Config.kmk \
-                     include/VBox/VBoxVideo3D.h
+PATCHES         := $(addsuffix .patch, $(PATCHES_LIST))
+PATCHES         := $(addprefix src/virtualbox/patches/, $(PATCHES))
+
+$(call check_tool,xsltproc)
+
+VBOX_MAIN_GLUE := AutoLock EventQueue string xpcom/helpers
+
+VBOX_MAIN_ALL := DisplayResampleImage DisplayUtils EventImpl Global HashedPw
+VBOX_MAIN_ALL += PCIDeviceAttachmentImpl ProgressImpl SharedFolderImpl
+VBOX_MAIN_ALL += VirtualBoxBase
+
+VBOX_MAIN_CLI := AdditionsFacilityImpl ConsoleImpl2 DisplayImpl HGCM HGCMThread
+VBOX_MAIN_CLI += HGCMObjects
+VBOX_MAIN_CLI += KeyboardImpl SessionImpl VMMDevInterface BusAssignmentManager
+VBOX_MAIN_CLI += ConsoleImpl GuestImpl MouseImpl VBoxDriversRegister
+
+VBOX_MAIN_SRV := AudioAdapterImpl DHCPServerImpl MediumAttachmentImpl
+VBOX_MAIN_SRV += NATEngineImpl SerialPortImpl USBControllerImpl
+VBOX_MAIN_SRV += BandwidthControlImpl GuestOSTypeImpl MediumFormatImpl
+VBOX_MAIN_SRV += NetworkAdapterImpl SnapshotImpl USBDeviceFiltersImpl
+VBOX_MAIN_SRV += BandwidthGroupImpl MachineImplCloneVM MediumImpl
+VBOX_MAIN_SRV += NetworkServiceRunner StorageControllerImpl VirtualBoxImpl
+VBOX_MAIN_SRV += BIOSSettingsImpl MachineImpl MediumLock ParallelPortImpl
+VBOX_MAIN_SRV += SystemPropertiesImpl VRDEServerImpl TokenImpl
+
+VBOX_MAIN_INC := AdditionsFacilityImpl AudioAdapterImpl AudioSnifferInterface
+VBOX_MAIN_INC += AutoCaller AutostartDb AutoStateDep BandwidthControlImpl
+VBOX_MAIN_INC += BandwidthGroupImpl BIOSSettingsImpl BusAssignmentManager Nvram
+VBOX_MAIN_INC += ConsoleEvents ConsoleImpl DHCPServerImpl DisplayImpl HostImpl
+VBOX_MAIN_INC += DisplayUtils EventImpl FramebufferImpl Global
+VBOX_MAIN_INC += GuestCtrlImplPrivate GuestDirectoryImpl GuestDnDImpl Logging
+VBOX_MAIN_INC += GuestFileImpl GuestFsObjInfoImpl GuestImpl GuestOSTypeImpl
+VBOX_MAIN_INC += GuestSessionImpl HashedPw KeyboardImpl MachineImplCloneVM
+VBOX_MAIN_INC += HGCM HGCMThread HGCMObjects
+VBOX_MAIN_INC += MachineImpl MediumAttachmentImpl MediumFormatImpl MediumImpl
+VBOX_MAIN_INC += MediumLock MouseImpl NATEngineImpl NATNetworkImpl objectslist
+VBOX_MAIN_INC += NetworkAdapterImpl NetworkServiceRunner ParallelPortImpl
+VBOX_MAIN_INC += PCIDeviceAttachmentImpl Performance ProgressImpl SnapshotImpl
+VBOX_MAIN_INC += ProgressProxyImpl SerialPortImpl SessionImpl SharedFolderImpl
+VBOX_MAIN_INC += StorageControllerImpl SystemPropertiesImpl TokenImpl VMMDev
+VBOX_MAIN_INC += USBControllerImpl USBDeviceFilterImpl USBDeviceFiltersImpl
+VBOX_MAIN_INC += VirtualBoxImpl VRDEServerImpl GuestProcessImpl
+
+VBOX_SRC_VBOX := VMM Devices Runtime GuestHost/HGSMI Storage Disassembler
+VBOX_SRC_VBOX += HostServices/SharedFolders Main/xml/Settings.cpp
+VBOX_SRC_VBOX += Main/xml/VirtualBox-settings.xsd Main/xml/SchemaDefs.xsl
+VBOX_SRC_VBOX += $(addsuffix .h,   $(addprefix Main/include/, $(VBOX_MAIN_INC)))
+VBOX_SRC_VBOX += $(addsuffix .cpp, $(addprefix Main/src-client/, $(VBOX_MAIN_CLI)))
+VBOX_SRC_VBOX += $(addsuffix .cpp, $(addprefix Main/src-server/, $(VBOX_MAIN_SRV)))
+VBOX_SRC_VBOX += $(addsuffix .cpp, $(addprefix Main/src-all/, $(VBOX_MAIN_ALL)))
+VBOX_SRC_VBOX += $(addsuffix .cpp, $(addprefix Main/glue/, $(VBOX_MAIN_GLUE)))
+
+VBOX_INC += types.h cdefs.h hgcmsvc.h err.h dis.h disopcode.h log.h sup.h pci.h
+VBOX_INC += param.h ostypes.h VMMDev.h VMMDev2.h vusb.h dbg.h version.h HGSMI
+VBOX_INC += VBoxVideo.h Hardware bioslogo.h scsi.h shflsvc.h VBoxGuest2.h vd.h
+VBOX_INC += vd-plugin.h vd-ifs.h vd-ifs-internal.h vd-image-backend.h
+VBOX_INC += vd-cache-backend.h vd-filter-backend.h msi.h asmdefs.mac err.mac
+VBOX_INC += VBoxVideoHost3D.h VBoxVideo3D.h settings.h VBoxAuth.h
+
+VBOX_INC_COM := array.h assert.h AutoLock.h ErrorInfo.h EventQueue.h Guid.h
+VBOX_INC_COM += list.h MultiResult.h string.h
+
+VBOX_CONTENT += $(addprefix src/VBox/,         $(VBOX_SRC_VBOX))
+VBOX_CONTENT += $(addprefix include/VBox/,     $(VBOX_INC))
+VBOX_CONTENT += $(addprefix include/VBox/com/, $(VBOX_INC_COM))
+
+VBOX_CONTENT += src/libs/zlib-1.2.6 src/libs/liblzf-3.4 src/libs/libxml2-2.6.31
+VBOX_CONTENT += src/recompiler include/VBox/vmm include/iprt Config.kmk
+
 
 TAR_OPT(virtualbox) := \
 	--strip-components 1 \
-	$(addprefix $(VIRTUALBOX_TBZ2:.tar.bz2=)/,$(VIRTUALBOX_CONTENT)) \
-	--exclude SDLConsole.h --exclude SDLFramebuffer.h
+	$(addprefix $(VIRTUALBOX_TBZ2:.tar.bz2=)/,$(VBOX_CONTENT))
+
+
+default : additional_steps
+additional_steps : $(DOWNLOADS)
+	xsltproc --stringparam mode declare \
+	   -o src/app/virtualbox/src/VBox/Main/xml/SchemaDefs.h \
+	   src/app/virtualbox/src/VBox/Main/xml/SchemaDefs.xsl \
+	   src/app/virtualbox/src/VBox/Main/xml/VirtualBox-settings.xsd

@@ -1,0 +1,13 @@
++++ src/app/virtualbox/src/VBox/VMM/VMMR3/PDMDriver.cpp
+@@ -1550,7 +1550,11 @@
+     LogFlow(("pdmR3DrvHlp_AsyncCompletionTemplateCreate: caller='%s'/%d: ppTemplate=%p pfnCompleted=%p pszDesc=%p:{%s}\n",
+              pDrvIns->pReg->szName, pDrvIns->iInstance, ppTemplate, pfnCompleted, pszDesc, pszDesc));
+ 
++#ifdef VBOX_WITH_PDM_ASYNC_COMPLETION
+     int rc = pdmR3AsyncCompletionTemplateCreateDriver(pDrvIns->Internal.s.pVMR3, pDrvIns, ppTemplate, pfnCompleted, pvTemplateUser, pszDesc);
++#else
++    int rc = VERR_NOT_IMPLEMENTED;
++#endif
+ 
+     LogFlow(("pdmR3DrvHlp_AsyncCompletionTemplateCreate: caller='%s'/%d: returns %Rrc *ppThread=%p\n", pDrvIns->pReg->szName,
+              pDrvIns->iInstance, rc, *ppTemplate));
