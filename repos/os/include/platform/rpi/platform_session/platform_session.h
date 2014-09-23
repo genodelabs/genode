@@ -60,6 +60,13 @@ struct Platform::Session : Genode::Session
 	 */
 	virtual void power_state(Power, bool enable) = 0;
 
+	enum Clock { CLOCK_EMMC = 1 };
+
+	/**
+	 * Request clock rate
+	 */
+	virtual uint32_t clock_rate(Clock) = 0;
+
 
 	/*********************
 	 ** RPC declaration **
@@ -68,9 +75,10 @@ struct Platform::Session : Genode::Session
 	GENODE_RPC(Rpc_setup_framebuffer, void, setup_framebuffer, Framebuffer_info &);
 	GENODE_RPC(Rpc_get_power_state, bool, power_state, Power);
 	GENODE_RPC(Rpc_set_power_state, void, power_state, Power, bool);
+	GENODE_RPC(Rpc_get_clock_rate, uint32_t, clock_rate, Clock);
 
 	GENODE_RPC_INTERFACE(Rpc_setup_framebuffer, Rpc_set_power_state,
-	                     Rpc_get_power_state);
+	                     Rpc_get_power_state, Rpc_get_clock_rate);
 };
 
 #endif /* _INCLUDE__PLATFORM_SESSION__PLATFORM_SESSION_H_ */

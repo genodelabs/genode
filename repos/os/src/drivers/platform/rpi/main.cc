@@ -73,6 +73,14 @@ class Platform::Session_component : public Genode::Rpc_object<Platform::Session>
 			msg.append_no_response<Property_command::Set_power_state>(id, enable, true);
 			_mbox.call<Property_message>();
 		}
+
+		uint32_t clock_rate(Clock id)
+		{
+			auto &msg = _mbox.message<Property_message>();
+			auto const &res = msg.append<Property_command::Get_clock_rate>(id);
+			_mbox.call<Property_message>();
+			return res.hz;
+		}
 };
 
 

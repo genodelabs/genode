@@ -15,7 +15,7 @@
 #define _INCLUDE__PLATFORM_SESSION__CLIENT_H_
 
 #include <base/capability.h>
-#include <base/rpc.h>
+#include <base/rpc_client.h>
 #include <platform_session/platform_session.h>
 
 namespace Platform { struct Client; }
@@ -33,6 +33,9 @@ struct Platform::Client : Genode::Rpc_client<Platform::Session>
 
 	void power_state(Power power, bool enable) override {
 		call<Rpc_set_power_state>(power, enable); }
+
+	uint32_t clock_rate(Clock clock) {
+		return call<Rpc_get_clock_rate>(clock); }
 };
 
 #endif /* _INCLUDE__PLATFORM_SESSION__CLIENT_H_ */
