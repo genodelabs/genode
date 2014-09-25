@@ -35,12 +35,14 @@ namespace Framebuffer_drv {
 	/**
 	 * Set video, initialize framebuffer dataspace
 	 *
+	 * If either 'width' or 'height' is 0, the mode with the highest resolution
+	 * for the given color depth is chosen and 'width' and 'height' are updated
+	 * accordingly.
+	 *
 	 * \return  0 on success,
 	 *          non-zero otherwise
 	 */
-	int set_mode(unsigned long width, unsigned long height, unsigned long mode);
-
-	int use_current_mode();
+	int set_mode(unsigned long &width, unsigned long &height, unsigned long mode);
 
 	/**
 	 * Map given device memory, return out_addr (map address)

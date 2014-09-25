@@ -46,9 +46,11 @@ static inline uint32_t to_phys(uint32_t addr)
 
 
 static uint16_t get_vesa_mode(mb_vbe_ctrl_t *ctrl_info, mb_vbe_mode_t *mode_info,
-                              unsigned long width, unsigned long height,
+                              unsigned long &width, unsigned long &height,
                               unsigned long depth, bool verbose)
 {
+	bool choose_highest_resolution_mode = ((width == 0) || (height == 0));
+
 	uint16_t ret = 0;
 
 	if (verbose)
@@ -72,10 +74,22 @@ static uint16_t get_vesa_mode(mb_vbe_ctrl_t *ctrl_info, mb_vbe_mode_t *mode_info
 			                                 mode_info->y_resolution,
 			                                 mode_info->bits_per_pixel);
 
-		if (mode_info->x_resolution == width &&
-		    mode_info->y_resolution == height &&
-		    mode_info->bits_per_pixel == depth)
-			ret = *MODE_PTR(off);
+		if (choose_highest_resolution_mode) {
+			if ((mode_info->bits_per_pixel == depth) &&
+			    ((mode_info->x_resolution > width) ||
+			     ((mode_info->x_resolution == width) &&
+			      (mode_info->y_resolution > height)))) {
+
+				width = mode_info->x_resolution;
+				height = mode_info->y_resolution;
+				ret = *MODE_PTR(off);
+			}
+		} else {
+			if (mode_info->x_resolution == width &&
+			    mode_info->y_resolution == height &&
+			    mode_info->bits_per_pixel == depth)
+				ret = *MODE_PTR(off);
+		}
 	}
 #undef MODE_PTR
 
@@ -84,6 +98,19 @@ static uint16_t get_vesa_mode(mb_vbe_ctrl_t *ctrl_info, mb_vbe_mode_t *mode_info
 
 	if (verbose)
 		PWRN("Searching in default vesa modes");
+
+	if (choose_highest_resolution_mode) {
+		/*
+		 * We did not find any mode for the given color depth so far.
+		 * Default to 1024x768 for now.
+		 */
+		ret = get_default_vesa_mode(1024, 768, depth);
+		if (ret != 0) {
+			width = 1024;
+			height = 768;
+		}
+		return ret;
+	}
 
 	return get_default_vesa_mode(width, height, depth);
 }
@@ -124,52 +151,7 @@ int Framebuffer_drv::map_io_mem(addr_t base, size_t size, bool write_combined,
 }
 
 
-int Framebuffer_drv::use_current_mode()
-{
-	mb_vbe_ctrl_t *ctrl_info;
-	mb_vbe_mode_t *mode_info;
-
-	/* set location of data types */
-	ctrl_info = reinterpret_cast<mb_vbe_ctrl_t*>(X86emu::x86_mem.data_addr()
-	                                             + VESA_CTRL_OFFS);
-	mode_info = reinterpret_cast<mb_vbe_mode_t*>(X86emu::x86_mem.data_addr()
-	                                             + VESA_MODE_OFFS);
-
-	/* retrieve controller information */
-	if (X86emu::x86emu_cmd(VBE_CONTROL_FUNC, 0, 0, VESA_CTRL_OFFS) != VBE_SUPPORTED) {
-		PWRN("VBE Bios not present");
-		return -1;
-	}
-
-	/* retrieve current video mode */
-	uint16_t vesa_mode = 0;
-	if (X86emu::x86emu_cmd(VBE_GMODE_FUNC, 0, 0, 0, &vesa_mode) != VBE_SUPPORTED) {
-		PWRN("VBE Bios not present");
-		return -1;
-	}
-	vesa_mode &= 0x3fff;
-
-	/* retrieve framebuffer info for current mode */
-	if (X86emu::x86emu_cmd(VBE_INFO_FUNC, 0, vesa_mode, VESA_MODE_OFFS) != VBE_SUPPORTED) {
-		PWRN("VBE Info function failed");
-		return -2;
-	}
-
-	if (!io_mem_cap.valid()) {
-		printf("Found: physical frame buffer at 0x%08x size: 0x%08x\n",
-		       mode_info->phys_base,
-		       ctrl_info->total_memory << 16);
-
-		void *fb;
-		map_io_mem(mode_info->phys_base, ctrl_info->total_memory << 16, true,
-		           &fb, 0, &io_mem_cap);
-	}
-
-	return 0;
-}
-
-
-int Framebuffer_drv::set_mode(unsigned long width, unsigned long height,
+int Framebuffer_drv::set_mode(unsigned long &width, unsigned long &height,
                               unsigned long mode)
 {
 	mb_vbe_ctrl_t *ctrl_info;
@@ -195,7 +177,8 @@ int Framebuffer_drv::set_mode(unsigned long width, unsigned long height,
 	/* retrieve vesa mode hex value */
 	if (!(vesa_mode = get_vesa_mode(ctrl_info, mode_info, width, height, mode, verbose))) {
 		PWRN("graphics mode %lux%lu@%lu not found", width, height, mode);
-		get_vesa_mode(ctrl_info, mode_info, 0, 0, 0, true);
+		/* print available modes */
+		get_vesa_mode(ctrl_info, mode_info, width, height, mode, true);
 		return -2;
 	}
 
@@ -220,7 +203,8 @@ int Framebuffer_drv::set_mode(unsigned long width, unsigned long height,
 	if (X86emu::x86emu_cmd(VBE_INFO_FUNC, 0, vesa_mode, VESA_MODE_OFFS) != VBE_SUPPORTED
 	   || (mode_info->mode_attributes & 0x91) != 0x91) {
 		PWRN("graphics mode %lux%lu@%lu not supported", width, height, mode);
-		get_vesa_mode(ctrl_info, mode_info, 0, 0, 0, true);
+		/* print available modes */
+		get_vesa_mode(ctrl_info, mode_info, width, height, mode, true);
 		return -4;
 	}
 

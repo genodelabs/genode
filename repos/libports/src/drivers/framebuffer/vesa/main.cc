@@ -209,22 +209,18 @@ namespace Framebuffer {
 
 			Session_component *_create_session(const char *args) override
 			{
-				unsigned long scr_width  = session_arg("width",  args, "fb_width", 1024),
-				              scr_height = session_arg("height", args, "fb_height", 768),
-				              scr_mode   = session_arg("depth",  args, "fb_mode",    16);
-				bool          buffered         = config_attribute("buffered");
-				bool          use_current_mode = config_attribute("preinit");
+				unsigned long scr_width  = session_arg("width",  args, "fb_width",  0),
+				              scr_height = session_arg("height", args, "fb_height", 0),
+				              scr_mode   = session_arg("depth",  args, "fb_mode",   16);
+				bool          buffered   = config_attribute("buffered");
 
-				if (use_current_mode) {
-					if (Framebuffer_drv::use_current_mode()) {
-						PWRN("Could not use preinitialized VESA mode");
-						throw Root::Invalid_args();
-					}
-				} else if (Framebuffer_drv::set_mode(scr_width, scr_height, scr_mode)) {
+				if (Framebuffer_drv::set_mode(scr_width, scr_height, scr_mode) != 0) {
 					PWRN("Could not set vesa mode %lux%lu@%lu", scr_width, scr_height,
 					     scr_mode);
 					throw Root::Invalid_args();
 				}
+
+				printf("Using video mode: %lu x %lu x %lu\n", scr_width, scr_height, scr_mode);
 
 				return new (md_alloc()) Session_component(scr_width, scr_height, scr_mode,
 				                                          Framebuffer_drv::hw_framebuffer(),
