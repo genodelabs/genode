@@ -231,10 +231,21 @@ class I8042
 		 */
 		void reset()
 		{
-			int ret;
+			unsigned char configuration;
+			unsigned char ret;
+
+			/* disable keyboard and mouse */
+			_command(CMD_KBD_DISABLE);
+			_command(CMD_AUX_DISABLE);
 
 			/* read remaining data in controller */
 			while (_output_buffer_full()) _data();
+
+			/* get configuration (can change during the self tests) */
+			_command(CMD_READ);
+			configuration = _wait_data();
+			/* query xlate bit */
+			_kbd_xlate = !!(configuration & CTRL_XLATE);
 
 			/* run self tests */
 			_command(CMD_TEST);
@@ -242,26 +253,23 @@ class I8042
 				Genode::printf("i8042: self test failed (%x)\n", ret);
 				return;
 			}
+
 			_command(CMD_KBD_TEST);
 			if ((ret = _wait_data()) != RET_KBD_TEST_OK) {
 				Genode::printf("i8042: kbd test failed (%x)\n", ret);
 				return;
 			}
+
 			_command(CMD_AUX_TEST);
 			if ((ret = _wait_data()) != RET_AUX_TEST_OK) {
 				Genode::printf("i8042: aux test failed (%x)\n", ret);
 				return;
 			}
 
-			/* query xlate bit */
-			_command(CMD_READ);
-			ret = _wait_data();
-			_kbd_xlate = !!(ret & CTRL_XLATE);
-
 			/* enable interrupts for keyboard and mouse at the controller */
-			ret |= CTRL_KBD_INT | CTRL_AUX_INT;
+			configuration |= CTRL_KBD_INT | CTRL_AUX_INT;
 			_command(CMD_WRITE);
-			_data(ret);
+			_data(configuration);
 
 			/* enable keyboard and mouse */
 			_command(CMD_KBD_ENABLE);
