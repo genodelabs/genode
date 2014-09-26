@@ -1302,13 +1302,17 @@ void Nitpicker::Main::handle_config(unsigned)
 		pointer_reporter.enabled(config()->xml_node().sub_node("report")
 		                                             .attribute("pointer")
 		                                             .has_value("yes"));
-	} catch (...) { }
+	} catch (...) {
+		pointer_reporter.enabled(false);
+	}
 
 	try {
 		focus_reporter.enabled(config()->xml_node().sub_node("report")
 		                                           .attribute("focus")
 		                                           .has_value("yes"));
-	} catch (...) { }
+	} catch (...) {
+		focus_reporter.enabled(false);
+	}
 
 	/* update domain registry and session policies */
 	for (::Session *s = session_list.first(); s; s = s->next())
