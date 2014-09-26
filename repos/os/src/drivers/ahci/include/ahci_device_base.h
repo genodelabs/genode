@@ -449,15 +449,19 @@ class Ahci_device_base
 			/* write CI (command issue) slot 0 */
 			_port->cmd_issue(1);
 
-			/* wait for interrupt */
-			_irq->wait_for_irq();
+			uint32_t status = 0;
+			while (!status) {
 
-			if (verbose)
-				PDBG("Int status (IRQ): global: %x port: %x error: %x",
-				     _ctrl->hba_intr_status(), _port->intr_status(), _port->err());
+				/* wait for interrupt */
+				_irq->wait_for_irq();
 
-			/* acknowledge interrupt */
-			uint32_t status = _port->interrupt_ack();
+				if (verbose)
+					PDBG("Int status (IRQ): global: %x port: %x error: %x",
+					     _ctrl->hba_intr_status(), _port->intr_status(), _port->err());
+
+				/* acknowledge interrupt */
+				status = _port->interrupt_ack();
+			}
 
 			/* check for error */
 			enum {
