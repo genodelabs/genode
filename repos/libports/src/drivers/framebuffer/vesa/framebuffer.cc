@@ -79,16 +79,37 @@ static uint16_t get_vesa_mode(mb_vbe_ctrl_t *ctrl_info, mb_vbe_mode_t *mode_info
 			    ((mode_info->x_resolution > width) ||
 			     ((mode_info->x_resolution == width) &&
 			      (mode_info->y_resolution > height)))) {
-
-				width = mode_info->x_resolution;
+				/*
+				 * FIXME
+				 *
+				 * The width of a line in the framebuffer can be higher than
+				 * the visible width (for example: visible width 1366,
+				 * framebuffer width 1376). Currently, the framebuffer width
+				 * is reported to the client, which does not know the
+				 * difference and assumes the whole width to be completely
+				 * visible.
+				 */
+				width = mode_info->bytes_per_scanline / (mode_info->bits_per_pixel / 8);
 				height = mode_info->y_resolution;
 				ret = *MODE_PTR(off);
 			}
 		} else {
 			if (mode_info->x_resolution == width &&
 			    mode_info->y_resolution == height &&
-			    mode_info->bits_per_pixel == depth)
+			    mode_info->bits_per_pixel == depth) {
+				/*
+				 * FIXME
+				 *
+				 * The width of a line in the framebuffer can be higher than
+				 * the visible width (for example: visible width 1366,
+				 * framebuffer width 1376). Currently, the framebuffer width
+				 * is reported to the client, which does not know the
+				 * difference and assumes the whole width to be completely
+				 * visible.
+				 */
+				width = mode_info->bytes_per_scanline / (mode_info->bits_per_pixel / 8);
 				ret = *MODE_PTR(off);
+			}
 		}
 	}
 #undef MODE_PTR
