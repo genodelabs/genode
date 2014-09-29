@@ -214,7 +214,7 @@ bool Genode::map_local(addr_t from_phys, addr_t to_virt, size_t num_pages,
 	Translation_table *tt = Kernel::core_pd()->translation_table();
 
 	try {
-		for (unsigned i = 0; i < 2; i++) {
+		for (;;) {
 			try {
 				Lock::Guard guard(*Kernel::core_pd()->platform_pd()->lock());
 
@@ -223,6 +223,7 @@ bool Genode::map_local(addr_t from_phys, addr_t to_virt, size_t num_pages,
 				                       Kernel::core_pd()->platform_pd()->page_slab());
 				return true;
 			} catch(Page_slab::Out_of_slabs) {
+				PDBG("Page_slab::Out_of_slabs");
 				Kernel::core_pd()->platform_pd()->page_slab()->alloc_slab_block();
 			}
 		}
