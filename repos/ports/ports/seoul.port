@@ -3,8 +3,8 @@ VERSION   := git
 DOWNLOADS := seoul.git
 
 URL(seoul) := https://github.com/alex-ab/seoul.git
-# branch vbios
-REV(seoul) := 04dcb10ecf51463eebcc303e82eb900110a91aef
+# branch pae - containing smp and vbios patches
+REV(seoul) := 3e1a90143cd446756c31e0e011da5122a7d210a8
 DIR(seoul) := src/app/seoul
 
 #
