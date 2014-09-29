@@ -79,7 +79,7 @@ struct mb_vbe_mode_t
 	/* >= VESA version 2.0 */
 	uint32_t phys_base;
 	uint32_t reserved1;
-	uint16_t reversed2;
+	uint16_t reserved2;
 
 	/* >= VESA version 3.0 */
 	uint16_t linear_bytes_per_scanline;
