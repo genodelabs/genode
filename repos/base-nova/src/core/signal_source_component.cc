@@ -46,8 +46,7 @@ void Signal_source_component::submit(Signal_context_component *context,
 	if (!context->is_enqueued()) {
 		_signal_queue.enqueue(context);
 
-		/* wake up client */
-		Nova::sm_ctrl(_blocking_semaphore.local_name(), Nova::SEMAPHORE_UP);
+		_wakeup_client();
 	}
 }
 

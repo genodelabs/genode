@@ -22,23 +22,52 @@
 #include <base/rpc_server.h>
 #include <signal_session/nova_source.h>
 
-namespace Genode {
+namespace Genode { struct Signal_source_rpc_object; }
 
-	struct Signal_source_rpc_object : Rpc_object<Nova_signal_source, Signal_source_rpc_object>
-	{
-		protected:
+struct Genode::Signal_source_rpc_object : Rpc_object<Nova_signal_source,
+                                                     Signal_source_rpc_object>
+{
+	private:
 
-			Native_capability _blocking_semaphore;
+		Native_capability _blocking_semaphore;
+		bool              _missed_wakeup;
 
-		public:
+	protected:
 
-			void _register_semaphore(Native_capability const &cap)
-			{
-				if (_blocking_semaphore.valid())
-					PWRN("overwritting blocking signal semaphore !!!");
-				_blocking_semaphore = cap;
+		void _wakeup_client()
+		{
+			if (!_blocking_semaphore.valid()) {
+				_missed_wakeup = true;
+				return;
 			}
-	};
-}
+
+			if (_missed_wakeup)
+				_missed_wakeup = false;
+
+			/* wake up client */
+			uint8_t res = Nova::sm_ctrl(_blocking_semaphore.local_name(),
+			                            Nova::SEMAPHORE_UP);
+			if (res != Nova::NOVA_OK) {
+				PWRN("%s - signal delivery failed - error %x",
+				     __func__, res);
+				_missed_wakeup = true;
+			}
+		}
+
+	public:
+
+		void _register_semaphore(Native_capability const &cap)
+		{
+			if (_blocking_semaphore.valid())
+				PWRN("overwritting blocking signal semaphore !!!");
+
+			_blocking_semaphore = cap;
+
+			if (_missed_wakeup)
+				_wakeup_client();
+		}
+
+		Signal_source_rpc_object() : _missed_wakeup(false) {}
+};
 
 #endif /* _INCLUDE__SIGNAL_SESSION__SOURCE_SERVER_H_ */
