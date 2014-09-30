@@ -29,6 +29,15 @@ namespace Genode {
 			Ram_session *_ram;
 
 			/*
+			 * The ROM module may be written and consumed by different threads,
+			 * e.g., written by the main thread and consumed by the child's
+			 * entrypoint that manages the local ROM service for handing out a
+			 * dynamic config. Hence, the '_lock' is used to synchronize the
+			 * 'load' and 'dataspace' functions.
+			 */
+			Lock _lock;
+
+			/*
 			 * We keep two dataspaces around. The foreground ('_fg') dataspace
 			 * is the one we present to the client. While the foreground
 			 * dataspace is in use, we perform all modifications of the data
@@ -87,6 +96,8 @@ namespace Genode {
 			 */
 			void load(void const *data, size_t data_len)
 			{
+				Lock::Guard guard(_lock);
+
 				if (!_ram) {
 					PERR("Error: No backing store for loading ROM data");
 					return;
@@ -110,6 +121,8 @@ namespace Genode {
 
 			Rom_dataspace_capability dataspace()
 			{
+				Lock::Guard guard(_lock);
+
 				if (!_fg.size() && !_bg_has_pending_data) {
 					PERR("Error: no data loaded");
 					return Rom_dataspace_capability();
