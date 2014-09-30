@@ -1,0 +1,177 @@
+#
+# Build
+#
+
+set build_components {
+	core init drivers/timer drivers/framebuffer drivers/input drivers/pci
+	server/dynamic_rom server/nitpicker server/report_rom
+	app/pointer app/menu_view
+	app/scout app/launchpad app/launcher test/nitpicker
+	server/nit_fader
+}
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="CPU"/>
+		<service name="PD"/>
+		<service name="RAM"/>
+		<service name="RM"/>
+		<service name="LOG"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>}
+
+append_if [have_spec sdl] config {
+	<start name="fb_sdl">
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Input"/>
+			<service name="Framebuffer"/>
+		</provides>
+	</start>}
+
+append_if [have_spec pci] config {
+	<start name="pci_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="PCI"/></provides>
+	</start>}
+
+append_if [have_spec framebuffer] config {
+	<start name="fb_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Framebuffer"/></provides>
+		<config buffered="yes" />
+	</start>}
+
+append_if [have_spec ps2] config {
+	<start name="ps2_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Input"/></provides>
+	</start>}
+
+append config {
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="nitpicker">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Nitpicker"/></provides>
+		<config>
+			<report xray="yes" />
+			<domain name="pointer" layer="1" xray="no" origin="pointer" />
+			<domain name="panel"   layer="2" xray="no" />
+			<domain name=""        layer="3" />
+
+			<policy label="pointer"          domain="pointer"/>
+			<policy label="launcher -> menu" domain="panel"/>
+			<policy label=""                 domain=""/>
+
+			<global-key name="KEY_SCROLLLOCK" operation="xray" />
+			<global-key name="KEY_SYSRQ"      operation="kill" />
+			<global-key name="KEY_PRINT"      operation="kill" />
+			<global-key name="KEY_F11"        operation="kill" />
+			<global-key name="KEY_F12"        operation="xray" />
+		</config>
+	</start>
+	<start name="pointer">
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="Nitpicker"> <child name="nitpicker" /> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="report_rom">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config>
+			<rom>
+				<policy label="launcher -> xray" report="nitpicker -> xray"/>
+			</rom>
+		</config>
+	</start>
+	<start name="launcher">
+		<resource name="RAM" quantum="60M" />
+		<config visibility="xray">
+			<subsystem name="scout" title="Scout">
+				<resource name="RAM" quantum="20M" />
+				<binary name="scout" />
+			</subsystem>
+			<subsystem name="testnit1" title="Nitpicker Test">
+				<resource name="RAM" quantum="2M" />
+				<binary name="testnit" />
+			</subsystem>
+			<subsystem name="testnit2" title="Nitpicker Test 2">
+				<resource name="RAM" quantum="2M" />
+				<binary name="testnit" />
+			</subsystem>
+			<subsystem name="testnit3" title="Nitpicker Test 3">
+				<resource name="RAM" quantum="2M" />
+				<binary name="testnit" />
+			</subsystem>
+			<subsystem name="scout2" title="Scoutx">
+				<resource name="RAM" quantum="20M" />
+				<binary name="scout" />
+			</subsystem>
+			<subsystem name="testnit4" title="Nitpicker Testx">
+				<resource name="RAM" quantum="2M" />
+				<binary name="testnit" />
+			</subsystem>
+			<subsystem name="testnit5">
+				<resource name="RAM" quantum="2M" />
+				<binary name="testnit" />
+			</subsystem>
+			<subsystem name="testnit6">
+				<resource name="RAM" quantum="2M" />
+				<binary name="testnit" />
+			</subsystem>
+		</config>
+		<route>
+			<service name="ROM"> <if-arg key="label" value="xray"/>
+				<child name="report_rom" />
+			</service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer dynamic_rom nitpicker pointer menu_view
+	ld.lib.so libpng.lib.so libc.lib.so libm.lib.so zlib.lib.so
+	menu_view_styles.tar
+	scout launchpad testnit
+	nit_fader report_rom launcher
+}
+
+# platform-specific modules
+lappend_if [have_spec linux]        boot_modules fb_sdl
+lappend_if [have_spec pci]          boot_modules pci_drv
+lappend_if [have_spec ps2]          boot_modules ps2_drv
+lappend_if [have_spec framebuffer]  boot_modules fb_drv
+
+build_boot_image $boot_modules
+
+run_genode_until forever
