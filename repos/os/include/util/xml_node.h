@@ -657,6 +657,35 @@ namespace Genode {
 			}
 
 			/**
+			 * Execute functor 'fn' for each sub node of specified type
+			 */
+			template <typename FN>
+			void for_each_sub_node(char const *type, FN const &fn)
+			{
+				if (_num_sub_nodes == 0)
+					return;
+
+				Xml_node node = sub_node();
+				for (int i = 0; ; node = node.next()) {
+
+					if (!type || node.has_type(type))
+						fn(node);
+
+					if (++i == _num_sub_nodes)
+						break;
+				}
+			}
+
+			/**
+			 * Execute functor 'fn' for each sub node
+			 */
+			template <typename FN>
+			void for_each_sub_node(FN const &fn)
+			{
+				for_each_sub_node(nullptr, fn);
+			}
+
+			/**
 			 * Return Nth attribute of XML node
 			 *
 			 * \param idx                    attribute index,
