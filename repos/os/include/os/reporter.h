@@ -25,9 +25,13 @@ namespace Genode { class Reporter; }
 
 class Genode::Reporter : Noncopyable
 {
+	public:
+
+		typedef String<100> Name;
+
 	private:
 
-		String<100> const _name;
+		Name const _name;
 
 		size_t const _buffer_size;
 
@@ -65,6 +69,8 @@ class Genode::Reporter : Noncopyable
 		}
 
 		bool is_enabled() const { return _enabled; }
+
+		Name name() const { return _name; }
 
 		/**
 		 * Return size of report buffer
