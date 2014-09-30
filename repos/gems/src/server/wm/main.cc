@@ -20,11 +20,13 @@
 #include <util/volatile_object.h>
 #include <util/xml_node.h>
 
+/* gems includes */
+#include <gems/single_session_service.h>
+#include <gems/report_rom_slave.h>
+#include <gems/local_reporter.h>
+
 /* local includes */
-#include <single_session_service.h>
-#include <report_rom_slave.h>
 #include <decorator_nitpicker.h>
-#include <local_reporter.h>
 #include <decorator_slave.h>
 #include <window_layouter_slave.h>
 #include <nitpicker.h>
@@ -47,7 +49,17 @@ struct Wm::Main
 
 	Genode::Cap_connection cap;
 
-	Report_rom_slave report_rom_slave = { cap, *env()->ram_session() };
+	char const *report_rom_config =
+		"<config> <rom>"
+		"  <policy label=\"window_list\"    report=\"window_list\"/>"
+		"  <policy label=\"window_layout\"  report=\"window_layout\"/>"
+		"  <policy label=\"resize_request\" report=\"resize_request\"/>"
+		"  <policy label=\"pointer\"        report=\"pointer\"/>"
+		"  <policy label=\"hover\"          report=\"hover\"/>"
+		"  <policy label=\"focus\"          report=\"focus\"/>"
+		"</rom> </config>";
+
+	Report_rom_slave report_rom_slave = { cap, *env()->ram_session(), report_rom_config };
 
 	Rom_session_capability window_list_rom    = report_rom_slave.rom_session("window_list");
 	Rom_session_capability window_layout_rom  = report_rom_slave.rom_session("window_layout");

@@ -11,14 +11,12 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _SINGLE_SESSION_SERVICE_H_
-#define _SINGLE_SESSION_SERVICE_H_
+#ifndef _INCLUDE__GEMS__SINGLE_SESSION_SERVICE_H_
+#define _INCLUDE__GEMS__SINGLE_SESSION_SERVICE_H_
 
 #include <base/service.h>
 
-namespace Wm { class Single_session_service; }
-
-struct Wm::Single_session_service : Genode::Service
+struct Single_session_service : Genode::Service
 {
 	Genode::Session_capability session_cap;
 
@@ -38,4 +36,4 @@ struct Wm::Single_session_service : Genode::Service
 	void close(Genode::Session_capability) override { }
 };
 
-#endif /* _SINGLE_SESSION_SERVICE_H_ */
+#endif /* _INCLUDE__GEMS__SINGLE_SESSION_SERVICE_H_ */

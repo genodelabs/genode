@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _REPORT_ROM_SLAVE_H_
-#define _REPORT_ROM_SLAVE_H_
+#ifndef _INCLUDE__GEMS__REPORT_ROM_SLAVE_H_
+#define _INCLUDE__GEMS__REPORT_ROM_SLAVE_H_
 
 /* Genode includes */
 #include <base/lock.h>
@@ -48,19 +48,14 @@ class Report_rom_slave : public Genode::Noncopyable
 			public:
 
 				Policy(Genode::Rpc_entrypoint &entrypoint,
-				       Genode::Ram_session    &ram)
+				       Genode::Ram_session    &ram,
+				       const char             *config)
 				:
 					Slave_policy("report_rom", entrypoint, &ram),
 					_lock(Genode::Lock::LOCKED)
 				{
-					configure("<config> <rom>"
-					          "  <policy label=\"window_list\"    report=\"window_list\"/>"
-					          "  <policy label=\"window_layout\"  report=\"window_layout\"/>"
-					          "  <policy label=\"resize_request\" report=\"resize_request\"/>"
-					          "  <policy label=\"pointer\"        report=\"pointer\"/>"
-					          "  <policy label=\"hover\"          report=\"hover\"/>"
-					          "  <policy label=\"focus\"          report=\"focus\"/>"
-					          "</rom> </config>");
+					if (config)
+						configure(config);
 				}
 
 				bool announce_service(const char             *service_name,
@@ -107,14 +102,15 @@ class Report_rom_slave : public Genode::Noncopyable
 		/**
 		 * Constructor
 		 *
-		 * \param ep   entrypoint used for nitpicker child thread
+		 * \param ep   entrypoint used for child thread
 		 * \param ram  RAM session used to allocate the configuration
 		 *             dataspace
 		 */
-		Report_rom_slave(Genode::Cap_session &cap, Genode::Ram_session &ram)
+		Report_rom_slave(Genode::Cap_session &cap, Genode::Ram_session &ram,
+		                 char const *config)
 		:
 			_ep(&cap, _ep_stack_size, "report_rom"),
-			_policy(_ep, ram),
+			_policy(_ep, ram, config),
 			_slave(_ep, _policy, _quota),
 			_rom_root(_policy.rom_root()),
 			_report_root(_policy.report_root())
@@ -170,4 +166,4 @@ class Report_rom_slave : public Genode::Noncopyable
 		}
 };
 
-#endif /* _REPORT_ROM_SLAVE_H_ */
+#endif /* _INCLUDE__GEMS__REPORT_ROM_SLAVE_H_ */

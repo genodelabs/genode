@@ -21,9 +21,8 @@
 #include <base/allocator.h>
 #include <os/surface.h>
 
-/* local includes */
-#include <local_reporter.h>
-
+/* gems includes */
+#include <gems/local_reporter.h>
 
 namespace Wm { class Window_registry; }
 

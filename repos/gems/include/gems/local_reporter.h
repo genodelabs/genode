@@ -11,17 +11,15 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _LOCAL_REPORTER_H_
-#define _LOCAL_REPORTER_H_
+#ifndef _INCLUDE__GEMS__LOCAL_REPORTER_H_
+#define _INCLUDE__GEMS__LOCAL_REPORTER_H_
 
+/* Genode includes */
 #include <os/attached_dataspace.h>
 #include <util/xml_generator.h>
 #include <report_session/client.h>
 
-
-namespace Wm { struct Local_reporter; }
-
-struct Wm::Local_reporter
+struct Local_reporter
 {
 	Report::Session_client _session;
 
@@ -49,4 +47,4 @@ struct Wm::Local_reporter
 	};
 };
 
-#endif /* _LOCAL_REPORTER_H_ */
+#endif /* _INCLUDE__GEMS__LOCAL_REPORTER_H_ */
