@@ -213,7 +213,8 @@ void User_state::handle_event(Input::Event ev)
 			 * session. In xray mode, we deliver motion events only to the
 			 * focused session.
 			 */
-			if (flat() || (xray() && Mode::focused_session() == pointed_session))
+			if (flat() || (xray() && Mode::focused_session() == pointed_session)
+			 || (pointed_session && pointed_session->xray_no()))
 				if (pointed_session)
 					pointed_session->submit_input_event(ev);
 
