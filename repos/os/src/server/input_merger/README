@@ -1,0 +1,27 @@
+This component merges the input events of multiple sources.
+
+Example configuration:
+
+<start name="input_merger">
+	<resource name="RAM" quantum="1M" />
+	<provides>
+		<service name="Input" />
+	</provides>
+	<config>
+		<input label="ps2" />
+		<input label="usb_hid" />
+	</config>
+	<route>
+		<service name="Input">
+			<if-arg key="label" value="ps2" /> <child name="ps2_drv" />
+		</service>
+		<service name="Input">
+			<if-arg key="label" value="usb_hid" /> <child name="usb_drv" />
+		</service>
+		<any-service> <parent /> <any-child /> </any-service>
+	</route>
+</start>
+
+For each 'input' config node, the component opens an 'Input' session with the
+configured label. This label is then evaluated by 'init' to route the session
+request to a specific input source component.
