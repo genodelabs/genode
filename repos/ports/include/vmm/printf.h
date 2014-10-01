@@ -23,7 +23,7 @@ namespace Vmm {
 
 	using namespace Genode;
 
-	void printf(const char *format, ...);
+	void printf(const char *format, ...) __attribute__((format(printf, 1, 2)));
 }
 
 
