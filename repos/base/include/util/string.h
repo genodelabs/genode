@@ -488,6 +488,12 @@ namespace Genode {
 			{
 				return strcmp(string(), other.string()) == 0;
 			}
+
+			template <size_t OTHER_CAPACITY>
+			bool operator != (String<OTHER_CAPACITY> const &other) const
+			{
+				return strcmp(string(), other.string()) != 0;
+			}
 	};
 }
 
