@@ -34,7 +34,19 @@ namespace Genode {
 
 			enum {
 				MIN_CHUNK_SIZE =   4*1024,  /* in machine words */
-				MAX_CHUNK_SIZE = 256*1024
+				MAX_CHUNK_SIZE = 256*1024,
+				/*
+				 * Meta data includes the Dataspace structure and meta data of
+				 * the AVL allocator.
+				 */
+				META_DATA_SIZE = 1024,      /* in bytes */
+				/*
+				 * Allocation sizes >= this value are considered as big
+				 * allocations, which get their own dataspace. In contrast
+				 * to smaller allocations, this memory is released to
+				 * the RAM session when 'free()' is called.
+				 */
+				BIG_ALLOCATION_THRESHOLD = 64*1024 /* in bytes */
 			};
 
 			class Dataspace : public List<Dataspace>::Element
@@ -43,50 +55,35 @@ namespace Genode {
 
 					Ram_dataspace_capability cap;
 					void  *local_addr;
+					size_t size;
 
-					Dataspace(Ram_dataspace_capability c, void *a)
-					: cap(c), local_addr(a) {}
+					Dataspace(Ram_dataspace_capability c, void *local_addr, size_t size)
+					: cap(c), local_addr(local_addr), size(size) { }
 
 					inline void * operator new(Genode::size_t, void* addr) {
 						return addr; }
 					inline void operator delete(void*) { }
 			};
 
-			class Dataspace_pool : public List<Dataspace>
+			/*
+			 * This structure exists only to make sure that the dataspaces are
+			 * destroyed after the AVL allocator.
+			 */
+			struct Dataspace_pool : public List<Dataspace>
 			{
-				private:
+				Ram_session *ram_session; /* ram session for backing store */
+				Rm_session  *rm_session;  /* region manager */
 
-					Ram_session *_ram_session;  /* ram session for backing store */
-					Rm_session  *_rm_session;   /* region manager                */
+				Dataspace_pool(Ram_session *ram_session, Rm_session *rm_session)
+				: ram_session(ram_session), rm_session(rm_session) { }
 
-				public:
+				/**
+				 * Destructor
+				 */
+				~Dataspace_pool();
 
-					/**
-					 * Constructor
-					 */
-					Dataspace_pool(Ram_session *ram_session, Rm_session *rm_session):
-						_ram_session(ram_session), _rm_session(rm_session) { }
-
-					/**
-					 * Destructor
-					 */
-					~Dataspace_pool();
-
-					/**
-					 * Expand dataspace by specified size
-					 *
-					 * \param size      number of bytes to add to the dataspace pool
-					 * \param md_alloc  allocator to expand. This allocator is also
-					 *                  used for meta data allocation (only after
-					 *                  being successfully expanded).
-					 * \throw           Rm_session::Invalid_dataspace,
-					 *                  Rm_session::Region_conflict
-					 * \return          0 on success or negative error code
-					 */
-					int expand(size_t size, Range_allocator *alloc);
-
-					void reassign_resources(Ram_session *ram, Rm_session *rm) {
-						_ram_session = ram, _rm_session = rm; }
+				void reassign_resources(Ram_session *ram, Rm_session *rm) {
+					ram_session = ram, rm_session = rm; }
 			};
 
 			/*
@@ -102,14 +99,31 @@ namespace Genode {
 			size_t         _chunk_size;
 
 			/**
+			 * Allocate a new dataspace of the specified size
+			 *
+			 * \param size                       number of bytes to allocate
+			 * \param enforce_separate_metadata  if true, the new dataspace
+			 *                                   will not contain any meta data
+			 * \throw                            Rm_session::Invalid_dataspace,
+			 *                                   Rm_session::Region_conflict
+			 * \return                           0 on success or negative error code
+			 */
+			Heap::Dataspace *_allocate_dataspace(size_t size, bool enforce_separate_metadata);
+
+			/**
 			 * Try to allocate block at our local allocator
 			 *
 			 * \return true on success
 			 *
-			 * This function is a utility used by 'alloc' to avoid
-			 * code duplication.
+			 * This function is a utility used by '_unsynchronized_alloc' to
+			 * avoid code duplication.
 			 */
 			bool _try_local_alloc(size_t size, void **out_addr);
+
+			/**
+			 * Unsynchronized implementation of 'alloc'
+			 */
+			bool _unsynchronized_alloc(size_t size, void **out_addr);
 
 		public:
 
