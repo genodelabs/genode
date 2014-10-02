@@ -143,7 +143,8 @@ namespace Genode {
 			Signal_source_component               _source;
 			Signal_source_capability              _source_cap;
 			Allocator_guard                       _md_alloc;
-			Tslab<Signal_context_component, 1024> _contexts_slab;
+			Tslab<Signal_context_component,
+			      960*sizeof(long)>               _contexts_slab;
 			Ipc_ostream                          *_ipc_ostream;
 
 		public:

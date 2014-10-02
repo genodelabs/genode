@@ -562,6 +562,7 @@ class Signal_context_destroyer : public Thread<4096>
 		}
 };
 
+
 static void synchronized_context_destruction_test()
 {
 	Signal_receiver receiver;
@@ -598,6 +599,25 @@ static void synchronized_context_destruction_test()
 }
 
 
+static void many_managed_contexts()
+{
+	for (unsigned round = 0; round < 10; ++round) {
+
+		unsigned const num_contexts = 200 + 5*round;
+		printf("round %u: create and manage %u contexts\n", round, num_contexts);
+
+		Signal_receiver rec;
+
+		for (unsigned i = 0; i < num_contexts; ++i) {
+			Id_signal_context *context = new (env()->heap()) Id_signal_context(i);
+			rec.manage(context);
+		}
+	}
+
+	printf("many contexts finished\n");
+}
+
+
 /**
  * Main program
  */
@@ -611,6 +631,7 @@ int main(int, char **)
 	lazy_receivers_test();
 	check_context_management();
 	synchronized_context_destruction_test();
+	many_managed_contexts();
 
 	printf("--- signalling test finished ---\n");
 	return 0;
