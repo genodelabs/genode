@@ -35,7 +35,7 @@ class Genode::Attached_dataspace : Noncopyable
 
 		size_t const _size = { Dataspace_client(_ds).size() };
 
-		void * const _local_addr = { env()->rm_session()->attach(_ds) };
+		void *_local_addr = { env()->rm_session()->attach(_ds) };
 
 		Dataspace_capability _check(Dataspace_capability ds)
 		{
@@ -58,7 +58,11 @@ class Genode::Attached_dataspace : Noncopyable
 		/**
 		 * Destructor
 		 */
-		~Attached_dataspace() { env()->rm_session()->detach(_local_addr); }
+		~Attached_dataspace()
+		{
+			if (_local_addr)
+				env()->rm_session()->detach(_local_addr);
+		}
 
 		/**
 		 * Return capability of the used dataspace
@@ -78,6 +82,17 @@ class Genode::Attached_dataspace : Noncopyable
 		 * Return size
 		 */
 		size_t size() const { return _size; }
+
+		/**
+		 * Forget dataspace, thereby skipping the detachment on destruction
+		 *
+		 * This function can be called if the the dataspace is known to be
+		 * physically destroyed, e.g., because the session where the dataspace
+		 * originated from was closed. In this case, core will already have
+		 * removed the memory mappings of the dataspace. So we have to omit the
+		 * detach operation in '~Attached_dataspace'.
+		 */
+		void invalidate() { _local_addr = nullptr; }
 };
 
 #endif /* _INCLUDE__OS__ATTACHED_DATASPACE_H_ */
