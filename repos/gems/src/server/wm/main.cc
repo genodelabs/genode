@@ -98,8 +98,11 @@ struct Wm::Main
 	void handle_focus_update(unsigned)
 	{
 		try {
-			if (!focus_ds.is_constructed() || focus_rom.update() == false)
+			if (!focus_ds.is_constructed() || focus_rom.update() == false) {
+				if (focus_ds.is_constructed())
+					focus_ds->invalidate();
 				focus_ds.construct(focus_rom.dataspace());
+			}
 
 			unsigned long win_id = 0;
 
@@ -125,9 +128,11 @@ struct Wm::Main
 	void handle_resize_request_update(unsigned)
 	{
 		try {
-			if (!resize_request_ds.is_constructed()
-			 || resize_request_rom.update() == false)
+			if (!resize_request_ds.is_constructed() || resize_request_rom.update() == false) {
+				if (resize_request_ds.is_constructed())
+					resize_request_ds->invalidate();
 				resize_request_ds.construct(resize_request_rom.dataspace());
+			}
 
 			char const * const node_type = "window";
 
