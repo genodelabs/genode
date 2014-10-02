@@ -11,12 +11,17 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _RAM_H_
-#define _RAM_H_
+#ifndef _INCLUDE__CLI_MONITOR__RAM_H_
+#define _INCLUDE__CLI_MONITOR__RAM_H_
+
+/* Genode includes */
+#include <ram_session/connection.h>
 
 class Ram
 {
 	private:
+
+		typedef Genode::size_t size_t;
 
 		Genode::Lock mutable _lock;
 		Genode::Ram_session &_ram = *Genode::env()->ram_session();
@@ -129,4 +134,4 @@ class Ram
 		static Ram &ram();
 };
 
-#endif /* _RAM_H_ */
+#endif /* _INCLUDE__CLI_MONITOR__RAM_H_ */

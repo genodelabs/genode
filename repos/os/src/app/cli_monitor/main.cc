@@ -12,17 +12,17 @@
  */
 
 /* Genode includes */
-#include <init/child_policy.h>
 #include <os/config.h>
-#include <os/child_policy_dynamic_rom.h>
 #include <cap_session/connection.h>
+
+/* public CLI-monitor includes */
+#include <cli_monitor/ram.h>
 
 /* local includes */
 #include <line_editor.h>
 #include <command_line.h>
 #include <format_util.h>
 #include <extension.h>
-#include <ram.h>
 #include <status_command.h>
 #include <kill_command.h>
 #include <start_command.h>

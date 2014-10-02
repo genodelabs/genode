@@ -22,12 +22,14 @@
 #include <util/arg_string.h>
 #include <util/xml_node.h>
 
+/* public CLI-monitor includes */
+#include <cli_monitor/ram.h>
+
 /* local includes */
 #include <child_registry.h>
 #include <gdb_prefix.h>
 #include <format_util.h>
 #include <process_arg_registry.h>
-#include <ram.h>
 
 class Gdb_command_child : public Child
 {
