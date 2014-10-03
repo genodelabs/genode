@@ -23,7 +23,7 @@ install_config {
 	</config>
 }
 
-build_boot_image "core init timer test-xml_generator"
+build_boot_image "core init test-xml_generator"
 
 append qemu_args "-nographic -m 64"
 
