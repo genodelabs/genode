@@ -34,6 +34,8 @@ VIEW *View_stack::_next_view(VIEW &view) const
 		/* check if we hit the bottom of the view stack */
 		if (!next_view) return 0;
 
+		if (!next_view->session().visible()) continue;
+
 		if (!next_view->background()) return next_view;
 
 		if (is_default_background(*next_view) || next_view == active_background)

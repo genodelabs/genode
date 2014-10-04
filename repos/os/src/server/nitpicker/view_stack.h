@@ -264,6 +264,57 @@ class View_stack
 		}
 
 		void sort_views_by_layer();
+
+		/**
+		 * Set visibility of views that match the specified label selector
+		 */
+		void visible(char const *selector, bool visible)
+		{
+			for (View *v = _first_view(); v; v = v->view_stack_next()) {
+
+				if (!v->session().matches_session_label(selector))
+					continue;
+
+				/* mark view geometry as to be redrawn */
+				refresh(_outline(*v));
+
+				/* let the view stack omit the views of the session */
+				v->session().visible(visible);
+			}
+		}
+
+		/**
+		 * Bring views that match the specified label selector to the front
+		 */
+		void to_front(char const *selector)
+		{
+			/*
+			 * Move all views that match the selector to the front while
+			 * maintaining their ordering.
+			 */
+			View *at = nullptr;
+			for (View *v = _first_view(); v; v = v->view_stack_next()) {
+
+				if (!v->session().matches_session_label(selector))
+					continue;
+
+				/*
+				 * Move view to behind the previous view that we moved to
+				 * front. If 'v' is the first view that matches the selector,
+				 * move it to the front ('at' argument of 'insert' is 0).
+				 */
+				_views.remove(v);
+				_views.insert(v, at);
+
+				at = v;
+
+				/* mark view geometry as to be redrawn */
+				refresh(_outline(*v));
+			}
+
+			/* reestablish domain layering */
+			sort_views_by_layer();
+		}
 };
 
 #endif

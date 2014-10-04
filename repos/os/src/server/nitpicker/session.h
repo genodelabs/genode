@@ -39,6 +39,7 @@ class Session : public Session_list::Element
 		Domain_registry::Entry const *_domain;
 		Texture_base           const *_texture = { 0 };
 		bool                          _uses_alpha = { false };
+		bool                          _visible = true;
 		View                         *_background = 0;
 		unsigned char          const *_input_mask = { 0 };
 
@@ -59,6 +60,21 @@ class Session : public Session_list::Element
 
 		Genode::Session_label const &label() const { return _label; }
 
+		/**
+		 * Return true if session label starts with specified 'selector'
+		 */
+		bool matches_session_label(char const *selector) const
+		{
+			/*
+			 * Append label separator to match selectors with a trailing
+			 * separator.
+			 */
+			char label[Genode::Session_label::MAX_LEN + 4];
+			Genode::snprintf(label, sizeof(label), "%s ->", _label.string());
+			return Genode::strcmp(label, selector,
+			                      Genode::strlen(selector)) == 0;
+		}
+
 		bool xray_opaque() const { return _domain && _domain->xray_opaque(); }
 
 		bool xray_no() const { return _domain && _domain->xray_no(); }
@@ -66,6 +82,10 @@ class Session : public Session_list::Element
 		bool origin_pointer() const { return _domain && _domain->origin_pointer(); }
 
 		unsigned layer() const { return _domain ? _domain->layer() : ~0UL; }
+
+		bool visible() const { return _visible; }
+
+		void visible(bool visible) { _visible = visible; }
 
 		Domain_registry::Entry::Name domain_name() const
 		{

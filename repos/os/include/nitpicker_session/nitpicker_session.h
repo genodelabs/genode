@@ -279,6 +279,23 @@ struct Nitpicker::Session : Genode::Session
 	 */
 	virtual void focus(Genode::Capability<Session> focused) = 0;
 
+	typedef Genode::String<160> Label;
+
+	enum Session_control { SESSION_CONTROL_HIDE, SESSION_CONTROL_SHOW,
+		                   SESSION_CONTROL_TO_FRONT };
+
+	/**
+	 * Perform control operation on one or multiple sessions
+	 *
+	 * The 'label' is used to select the sessions, on which the 'operation' is
+	 * performed. Nitpicker creates a selector string by concatenating the
+	 * caller's session label with the supplied 'label' argument. A session is
+	 * selected if its label starts with the selector string. Thereby, the
+	 * operation is limited to the caller session or any child session of the
+	 * caller.
+	 */
+	virtual void session_control(Label label, Session_control operation) { }
+
 	/**
 	 * Return number of bytes needed for virtual framebuffer of specified size
 	 */
@@ -311,6 +328,7 @@ struct Nitpicker::Session : Genode::Session
 	GENODE_RPC(Rpc_mode, Framebuffer::Mode, mode);
 	GENODE_RPC(Rpc_mode_sigh, void, mode_sigh, Genode::Signal_context_capability);
 	GENODE_RPC(Rpc_focus, void, focus, Genode::Capability<Session>);
+	GENODE_RPC(Rpc_session_control, void, session_control, Label, Session_control);
 	GENODE_RPC_THROW(Rpc_buffer, void, buffer, GENODE_TYPE_LIST(Out_of_metadata),
 	                 Framebuffer::Mode, bool);
 
@@ -332,8 +350,9 @@ struct Nitpicker::Session : Genode::Session
 	        Type_tuple<Rpc_mode_sigh,
 	        Type_tuple<Rpc_buffer,
 	        Type_tuple<Rpc_focus,
+	        Type_tuple<Rpc_session_control,
 	                   Genode::Meta::Empty>
-	        > > > > > > > > > > > > Rpc_functions;
+	        > > > > > > > > > > > > > Rpc_functions;
 };
 
 #endif /* _INCLUDE__NITPICKER_SESSION__NITPICKER_SESSION_H_ */
