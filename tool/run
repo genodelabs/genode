@@ -485,7 +485,7 @@ proc create_disk_image_from_run_dir { } {
 	# merge final image from GRUB2 head and partition
 	exec dd if=$grub_img  of=$disk_img status=noxfer bs=1M count=1  2>/dev/null
 	exec dd if=$part1_img of=$disk_img status=noxfer bs=1M seek=1   2>/dev/null
-	exec parted -s $disk_img -- rm 1 mkpart primary 2048s -1s
+	exec parted -s $disk_img -- rm 1 mkpart primary 2048s -1s set 1 boot on
 
 	exec rm -f $part1_img
 
