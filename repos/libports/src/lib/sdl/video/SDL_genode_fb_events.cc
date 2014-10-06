@@ -69,7 +69,10 @@ extern "C" {
 			switch(curr.type())
 			{
 			case Input::Event::MOTION:
-				SDL_PrivateMouseMotion(0, 1, curr.rx(), curr.ry());
+				if (curr.is_absolute_motion())
+					SDL_PrivateMouseMotion(0, 0, curr.ax(), curr.ay());
+				else
+					SDL_PrivateMouseMotion(0, 1, curr.rx(), curr.ry());
 				break;
 			case Input::Event::PRESS:
 				if(curr.code() >= Input::BTN_MISC &&
