@@ -37,8 +37,9 @@ class Vfs::Tar_file_system : public File_system
 
 	Genode::Rom_connection _rom;
 
-	char  *_tar_base;
-	file_size _tar_size;
+	Genode::Dataspace_capability  _tar_ds;
+	char                         *_tar_base;
+	file_size                     _tar_size;
 
 	class Record
 	{
@@ -353,8 +354,9 @@ class Vfs::Tar_file_system : public File_system
 		Tar_file_system(Xml_node config)
 		:
 			_rom_name(config), _rom(_rom_name.name),
-			_tar_base(env()->rm_session()->attach(_rom.dataspace())),
-			_tar_size(Dataspace_client(_rom.dataspace()).size()),
+			_tar_ds(_rom.dataspace()),
+			_tar_base(env()->rm_session()->attach(_tar_ds)),
+			_tar_size(Dataspace_client(_tar_ds).size()),
 			_root_node("", 0),
 			_cached_num_dirent(_root_node)
 		{
