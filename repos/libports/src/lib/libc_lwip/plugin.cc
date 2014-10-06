@@ -321,7 +321,11 @@ int Plugin::fcntl(Libc::File_descriptor *sockfdo, int cmd, long val)
 	switch (cmd) {
 	case F_GETFL:
 	case F_SETFL:
-		result = lwip_fcntl(s, cmd, (val & O_NONBLOCK) ? -1 : O_NONBLOCK);
+		/*
+                 * lwip_fcntl() supports only the 'O_NONBLOCK' flag and only if
+                 * no other flag is set.
+                 */
+		result = lwip_fcntl(s, cmd, val & O_NONBLOCK);
 		break;
 	default:
 		PERR("unsupported fcntl() request: %d", cmd);
