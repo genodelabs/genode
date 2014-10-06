@@ -47,7 +47,7 @@ class Vfs::Log_file_system : public Single_file_system
 
 			/* count does not include the trailing '\0' */
 			while (count > 0) {
-				char tmp[128];
+				char tmp[256];
 				int const curr_count = min(count, sizeof(tmp) - 1);
 				memcpy(tmp, src, curr_count);
 				tmp[curr_count > 0 ? curr_count : 0] = 0;
