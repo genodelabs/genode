@@ -19,7 +19,7 @@
  *
  * \param fmt  message format string
  */
-void dde_kit_panic(const char *fmt, ...);
+__attribute__((noreturn)) void dde_kit_panic(const char *fmt, ...);
 
 /**
  * Print debug message and block
