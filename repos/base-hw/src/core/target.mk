@@ -10,5 +10,5 @@ TARGET = core
 # library that provides the whole configuration
 LIBS += core
 
-# add empty source to trigger build though all config is provided via lib
-SRC_CC += dummy.cc
+# add C++ sources
+SRC_CC += kernel/test.cc

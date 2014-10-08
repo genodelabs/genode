@@ -74,6 +74,11 @@ namespace Kernel
 	Signal_receiver_pool * signal_receiver_pool() { return unmanaged_singleton<Signal_receiver_pool>(); }
 
 	/**
+	 * Hook that enables automated testing of kernel internals
+	 */
+	void test();
+
+	/**
 	 * Static kernel PD that describes core
 	 */
 	Pd * core_pd()
@@ -320,6 +325,7 @@ extern "C" void init_kernel_multiprocessor()
 		}
 		/* kernel initialization finished */
 		Genode::printf("kernel initialized\n");
+		test();
 	}
 }
 

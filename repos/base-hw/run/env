@@ -52,7 +52,18 @@ proc create_boot_directory { } {
 }
 
 
-proc build_boot_image {binaries} {
+proc build_boot_image {binaries {core_type core}} {
+	if {$core_type == "test"} {
+		set core_bin "test-[run_name]"
+		set core_target "test/[run_name]"
+	} elseif {$core_type == "core"} {
+		set core_bin "core"
+		set core_target "core"
+	} else {
+		puts stderr "Error: Unknown core type '$core_type'"
+		exit -1
+	}
+
 	global run_target
 
 	# strip binaries
@@ -94,7 +105,7 @@ proc build_boot_image {binaries} {
 	# generate header for each boot module except core
 	set i 1
 	foreach binary $binaries {
-		if {$binary == "core"} { continue }
+		if {$binary == $core_bin} { continue }
 		exec echo -e \
 			"\n.long _boot_module_${i}_name" \
 			"\n.long _boot_module_${i}_begin" \
@@ -111,7 +122,7 @@ proc build_boot_image {binaries} {
 	# generate name string for each module except core
 	set i 1
 	foreach binary $binaries {
-		if {$binary == "core"} { continue }
+		if {$binary == $core_bin} { continue }
 		exec echo -e \
 			"\n.p2align DATA_ACCESS_ALIGNM_LOG2" \
 			"\n_boot_module_${i}_name:" \
@@ -129,7 +140,7 @@ proc build_boot_image {binaries} {
 	# include raw data of modules consecutively but page aligned
 	set i 1
 	foreach binary $binaries {
-		if {$binary == "core"} { continue }
+		if {$binary == $core_bin} { continue }
 		exec echo -e \
 			"\n.p2align MIN_PAGE_SIZE_LOG2" \
 			"\n_boot_module_${i}_begin:" \
@@ -147,10 +158,10 @@ proc build_boot_image {binaries} {
 	exec ln -s $boot_modules boot_modules.s
 
 	# recompile core with boot modules
-	exec cp -L bin/core core/core.standalone
-	exec find . -type f -name "core" -delete
+	exec cp -L bin/$core_bin $core_target/$core_bin.standalone
+	exec find . -type f -name $core_bin -delete
 	set timeout 10000
-	set pid [eval "spawn make core"]
+	set pid [eval "spawn make $core_target"]
 	expect { eof { } }
 	if {[lindex [wait $pid] end] != 0} {
 		clean_boot_modules
@@ -162,7 +173,7 @@ proc build_boot_image {binaries} {
 
 	# offer ELF image
 	set elf_img "[run_dir]/image.elf"
-	exec cp -L bin/core $elf_img
+	exec cp -L bin/$core_bin $elf_img
 	exec [cross_dev_prefix]strip $elf_img
 
 	build_uboot_image $elf_img
@@ -178,8 +189,8 @@ proc build_boot_image {binaries} {
 	}
 
 	# retrieve stand-alone core
-	exec cp core/core.standalone bin/core
-	exec rm core/core.standalone
+	exec cp $core_target/$core_bin.standalone bin/$core_bin
+	exec rm $core_target/$core_bin.standalone
 }
 
 
