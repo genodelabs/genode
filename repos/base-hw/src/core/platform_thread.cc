@@ -101,7 +101,8 @@ Platform_thread::Platform_thread(const char * const label,
 	_utcb_core_addr->core_start_info()->init(Cpu::primary_id());
 
 	/* create kernel object */
-	_id = Kernel::new_thread(_kernel_thread, Kernel::Priority::MAX, _label);
+	constexpr unsigned prio = Kernel::Cpu_priority::max;
+	_id = Kernel::new_thread(_kernel_thread, prio, _label);
 	if (!_id) {
 		PERR("failed to create kernel object");
 		throw Cpu_session::Thread_creation_failed();
@@ -136,8 +137,8 @@ Platform_thread::Platform_thread(const char * const label,
 	_utcb_core_addr = (Native_utcb *)core_env()->rm_session()->attach(_utcb);
 
 	/* create kernel object */
-	enum { MAX_PRIO = Kernel::Priority::MAX };
-	auto const phys_prio = Cpu_session::scale_priority(MAX_PRIO, virt_prio);
+	constexpr unsigned max_prio = Kernel::Cpu_priority::max;
+	auto const phys_prio = Cpu_session::scale_priority(max_prio, virt_prio);
 	_id = Kernel::new_thread(_kernel_thread, phys_prio, _label);
 	if (!_id) {
 		PERR("failed to create kernel object");

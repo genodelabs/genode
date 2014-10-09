@@ -133,39 +133,31 @@ void Thread::_pause()
 void Thread::_schedule()
 {
 	if (_state == SCHEDULED) { return; }
-	Processor_client::_schedule();
+	Cpu_job::_schedule();
 	_state = SCHEDULED;
 }
 
 
 void Thread::_unschedule(State const s)
 {
-	if (_state == SCHEDULED) { Processor_client::_unschedule(); }
+	if (_state == SCHEDULED) { Cpu_job::_unschedule(); }
 	_state = s;
 }
 
 
 Thread::Thread(unsigned const priority, char const * const label)
 :
-	Processor_client(0, priority),
-	Thread_base(this),
-	_state(AWAITS_START),
-	_pd(0),
-	_utcb_phys(0),
-	_signal_receiver(0),
-	_label(label)
-{
-	cpu_exception = RESET;
-}
+	Cpu_job(priority), Thread_base(this), _state(AWAITS_START), _pd(0),
+	_utcb_phys(0), _signal_receiver(0), _label(label)
+{ cpu_exception = RESET; }
 
 
 void Thread::init(Processor * const processor, Pd * const pd,
-             Native_utcb * const utcb_phys, bool const start)
+                  Native_utcb * const utcb_phys, bool const start)
 {
 	assert(_state == AWAITS_START)
 
-	/* store thread parameters */
-	Processor_client::_processor = processor;
+	Cpu_job::affinity(processor);
 	_utcb_phys = utcb_phys;
 
 	/* join protection domain */
@@ -209,7 +201,7 @@ void Thread::exception(unsigned const processor_id)
 		_interrupt(processor_id);
 		return;
 	case UNDEFINED_INSTRUCTION:
-		if (_processor->retry_undefined_instr(&_lazy_state)) { return; }
+		if (_cpu->retry_undefined_instr(&_lazy_state)) { return; }
 		PWRN("undefined instruction");
 		_stop();
 		return;
@@ -401,7 +393,7 @@ void Thread::_call_yield_thread()
 {
 	Thread * const t = Thread::pool()->object(user_arg_1());
 	if (t) { t->_receive_yielded_cpu(); }
-	Processor_client::_yield();
+	Cpu_job::_yield();
 }
 
 
@@ -540,7 +532,7 @@ void Thread::_call_access_thread_regs()
 
 void Thread::_call_update_pd()
 {
-	if (Processor_domain_update::_perform(user_arg_1())) { _pause(); }
+	if (Processor_domain_update::_do_global(user_arg_1())) { _pause(); }
 }
 
 

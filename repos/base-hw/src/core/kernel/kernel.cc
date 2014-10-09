@@ -283,12 +283,9 @@ extern "C" void init_kernel_multiprocessor()
 	 */
 	perf_counter()->enable();
 
-	/* locally initialize processor */
+	/* locally initialize interrupt controller */
 	unsigned const processor_id = Processor::executing_id();
 	Processor * const processor = processor_pool()->processor(processor_id);
-	processor->init_processor_local();
-
-	/* locally initialize interrupt controller */
 	pic()->init_processor_local();
 	pic()->unmask(Timer::interrupt_id(processor_id), processor_id);
 
@@ -309,7 +306,7 @@ extern "C" void init_kernel_multiprocessor()
 
 		/* start thread with stack pointer at the top of stack */
 		static Native_utcb utcb;
-		static Thread t(Priority::MAX, "core");
+		static Thread t(Cpu_priority::max, "core");
 		_main_thread_id = t.id();
 		_main_thread_utcb = &utcb;
 		_main_thread_utcb->start_info()->init(t.id(), Genode::Native_capability());

@@ -18,14 +18,21 @@ namespace Kernel
 {
 	enum {
 		DEFAULT_STACK_SIZE   = 16 * 1024,
-		USER_LAP_TIME_MS     = 100,
 		MAX_PDS              = 256,
 		MAX_THREADS          = 256,
 		MAX_SIGNAL_RECEIVERS = 2048,
 		MAX_SIGNAL_CONTEXTS  = 4096,
 		MAX_VMS              = 4,
-		MAX_PRIORITY         = 128,
 	};
+
+	/* amount of priority bands amongst quota owners in CPU scheduling */
+	constexpr unsigned cpu_priorities = 4;
+
+	/* super period in CPU scheduling and the overall allocatable CPU time */
+	constexpr unsigned cpu_quota_ms = 1000;
+
+	/* time slice for the round-robin mode and the idle in CPU scheduling */
+	constexpr unsigned cpu_fill_ms = 100;
 }
 
 #endif /* _KERNEL__CONFIGURATION_H_ */

@@ -37,20 +37,16 @@ namespace Kernel
 }
 
 class Kernel::Processor_domain_update_list
-:
-	public Double_list_typed<Processor_domain_update>
+: public Double_list_typed<Processor_domain_update>
 {
+	typedef Processor_domain_update Update;
+
 	public:
 
 		/**
 		 * Perform all pending domain updates on the executing processor
 		 */
-		void for_each_perform_locally()
-		{
-			for_each([] (Processor_domain_update * const domain_update) {
-				domain_update->_perform_locally();
-			});
-		}
+		void do_each() { for_each([] (Update * const u) { u->_do(); }); }
 };
 
 namespace Kernel
@@ -63,11 +59,30 @@ namespace Kernel
 }
 
 
-/**********************
- ** Processor_client **
- **********************/
+/*************
+ ** Cpu_job **
+ *************/
 
-void Processor_client::_interrupt(unsigned const processor_id)
+Cpu_job::~Cpu_job() { if (_cpu) { _cpu->scheduler()->remove(this); } }
+
+void Cpu_job::_schedule() { _cpu->schedule(this); }
+
+
+void Cpu_job::_unschedule()
+{
+	assert(_cpu->id() == Processor::executing_id());
+	_cpu->scheduler()->unready(this);
+}
+
+
+void Cpu_job::_yield()
+{
+	assert(_cpu->id() == Processor::executing_id());
+	_cpu->scheduler()->yield();
+}
+
+
+void Cpu_job::_interrupt(unsigned const processor_id)
 {
 	/* determine handling for specific interrupt */
 	unsigned irq_id;
@@ -75,13 +90,13 @@ void Processor_client::_interrupt(unsigned const processor_id)
 	if (ic->take_request(irq_id)) {
 
 		/* check wether the interrupt is a processor-scheduling timeout */
-		if (!_processor->check_timer_interrupt(irq_id)) {
+		if (!_cpu->timer_irq(irq_id)) {
 
 			/* check wether the interrupt is our inter-processor interrupt */
 			if (ic->is_ip_interrupt(irq_id, processor_id)) {
 
-				processor_domain_update_list()->for_each_perform_locally();
-				_processor->ip_interrupt_handled();
+				processor_domain_update_list()->do_each();
+				_cpu->ip_interrupt_handled();
 
 			/* after all it must be a user interrupt */
 			} else {
@@ -96,15 +111,20 @@ void Processor_client::_interrupt(unsigned const processor_id)
 }
 
 
-void Processor_client::_schedule() { _processor->schedule(this); }
-
-
-/********************
- ** Processor_idle **
- ********************/
-
-Cpu_idle::Cpu_idle(Processor * const cpu) : Processor_client(cpu, 0)
+void Cpu_job::affinity(Processor * const cpu)
 {
+	_cpu = cpu;
+	_cpu->scheduler()->insert(this);
+}
+
+
+/**************
+ ** Cpu_idle **
+ **************/
+
+Cpu_idle::Cpu_idle(Processor * const cpu) : Cpu_job(Cpu_priority::min)
+{
+	Cpu_job::cpu(cpu);
 	cpu_exception = RESET;
 	ip = (addr_t)&_main;
 	sp = (addr_t)&_stack[stack_size];
@@ -118,29 +138,10 @@ void Cpu_idle::proceed(unsigned const cpu) { mtc()->continue_user(this, cpu); }
  ** Processor **
  ***************/
 
-void Processor::schedule(Processor_client * const client)
+void Processor::schedule(Job * const job)
 {
-	if (_id != executing_id()) {
-
-		/*
-		 * Remote add client and let target processor notice it if necessary
-		 *
-		 * The interrupt controller might provide redundant submission of
-		 * inter-processor interrupts. Thus its possible that once the targeted
-		 * processor is able to grab the kernel lock, multiple remote updates
-		 * occured and consequently the processor traps multiple times for the
-		 * sole purpose of recognizing the result of the accumulative changes.
-		 * Hence, we omit further interrupts if there is one pending already.
-		 * Additionailly we omit the interrupt if the insertion doesn't
-		 * rescind the current scheduling choice of the processor.
-		 */
-		if (_scheduler.insert_and_check(client)) { trigger_ip_interrupt(); }
-
-	} else {
-
-		/* add client locally */
-		_scheduler.insert(client);
-	}
+	if (_id == executing_id()) { _scheduler.ready(job); }
+	else if (_scheduler.ready_check(job)) { trigger_ip_interrupt(); }
 }
 
 
@@ -153,25 +154,11 @@ void Processor::trigger_ip_interrupt()
 }
 
 
-void Processor_client::_unschedule()
-{
-	assert(_processor->id() == Processor::executing_id());
-	_processor->scheduler()->remove(this);
-}
-
-
-void Processor_client::_yield()
-{
-	assert(_processor->id() == Processor::executing_id());
-	_processor->scheduler()->yield_occupation();
-}
-
-
 /*****************************
  ** Processor_domain_update **
  *****************************/
 
-void Processor_domain_update::_perform_locally()
+void Processor_domain_update::_do()
 {
 	/* perform domain update locally and get pending bit */
 	unsigned const processor_id = Processor::executing_id();
@@ -190,7 +177,7 @@ void Processor_domain_update::_perform_locally()
 }
 
 
-bool Processor_domain_update::_perform(unsigned const domain_id)
+bool Processor_domain_update::_do_global(unsigned const domain_id)
 {
 	/* perform locally and leave it at that if in uniprocessor mode */
 	_domain_id = domain_id;
@@ -206,65 +193,4 @@ bool Processor_domain_update::_perform(unsigned const domain_id)
 		processor_pool()->processor(i)->trigger_ip_interrupt();
 	}
 	return true;
-}
-
-
-void Kernel::Processor::exception()
-{
-	/*
-	 * Request the current occupant without any update. While the
-	 * processor was outside the kernel, another processor may have changed the
-	 * scheduling of the local activities in a way that an update would return
-	 * an occupant other than that whose exception caused the kernel entry.
-	 */
-	Processor_client * const old_client = _scheduler.occupant();
-	Cpu_lazy_state * const old_state = old_client->lazy_state();
-	old_client->exception(_id);
-
-	/*
-	 * The processor local as well as remote exception-handling may have
-	 * changed the scheduling of the local activities. Hence we must update the
-	 * occupant.
-	 */
-	bool updated, refreshed;
-	Processor_client * const new_client =
-		_scheduler.update_occupant(updated, refreshed);
-
-	/**
-	 * There are three scheduling situations we have to deal with:
-	 *
-	 * The client has not changed and didn't yield:
-	 *
-	 *    The client must not update its time-slice state as the timer
-	 *    can continue as is and hence keeps providing the information.
-	 *
-	 * The client has changed or did yield and the previous client
-	 * received a fresh timeslice:
-	 *
-	 *    The previous client can reset his time-slice state.
-	 *    The timer must be re-programmed according to the time-slice
-	 *    state of the new client.
-	 *
-	 * The client has changed and the previous client did not receive
-	 * a fresh timeslice:
-	 *
-	 *    The previous client must update its time-slice state. The timer
-	 *    must be re-programmed according to the time-slice state of the
-	 *    new client.
-	 */
-	if (updated) {
-		unsigned const tics_per_slice = _tics_per_slice();
-		if (refreshed) { old_client->reset_tics_consumed(); }
-		else {
-			unsigned const tics_left = _timer->value(_id);
-			old_client->update_tics_consumed(tics_left, tics_per_slice);
-		}
-		_update_timer(new_client->tics_consumed(), tics_per_slice);
-	}
-	/**
-	 * Apply the CPU state of the new client and continue his execution
-	 */
-	Cpu_lazy_state * const new_state = new_client->lazy_state();
-	prepare_proceeding(old_state, new_state);
-	new_client->proceed(_id);
 }

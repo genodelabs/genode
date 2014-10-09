@@ -44,7 +44,7 @@ class Kernel::Thread
 :
 	public Cpu::User_context,
 	public Object<Thread, MAX_THREADS, Thread_ids, thread_ids, thread_pool>,
-	public Processor_client,
+	public Cpu_job,
 	public Processor_domain_update,
 	public Ipc_node,
 	public Signal_context_killer,
@@ -290,9 +290,9 @@ class Kernel::Thread
 		          Native_utcb * const utcb, bool const start);
 
 
-		/**********************
-		 ** Processor_client **
-		 **********************/
+		/*************
+		 ** Cpu_job **
+		 *************/
 
 		void exception(unsigned const processor_id);
 		void proceed(unsigned const processor_id);

@@ -40,13 +40,6 @@ class Kernel::Double_list_item
 
 		Double_list_item * _next;
 		Double_list_item * _prev;
-		Double_list *      _list;
-
-	protected:
-
-		Double_list_item() : _list(0) { }
-
-		bool _listed() const { return _list; }
 };
 
 class Kernel::Double_list
@@ -100,7 +93,6 @@ class Kernel::Double_list
 			i->_prev = _tail;
 			i->_next = 0;
 			_tail = i;
-			i->_list = this;
 		}
 
 		/**
@@ -113,7 +105,6 @@ class Kernel::Double_list
 			i->_next = _head;
 			i->_prev = 0;
 			_head = i;
-			i->_list = this;
 		}
 
 		/**
@@ -125,7 +116,6 @@ class Kernel::Double_list
 			else { i->_next->_prev = i->_prev; }
 			if (i == _head) { _head = i->_next; }
 			else { i->_prev->_next = i->_next; }
-			i->_list = 0;
 		}
 
 		/**

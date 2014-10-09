@@ -18,7 +18,7 @@
 /* core includes */
 #include <timer.h>
 #include <cpu.h>
-#include <kernel/scheduler.h>
+#include <kernel/cpu_scheduler.h>
 
 /* base includes */
 #include <unmanaged_singleton.h>
@@ -26,9 +26,9 @@
 namespace Kernel
 {
 	/**
-	 * A single user of a multiplexable processor
+	 * Context of a job (thread, VM, idle) that shall be executed by a CPU
 	 */
-	class Processor_client;
+	class Cpu_job;
 
 	/**
 	 * Ability to do a domain update on all processors
@@ -39,11 +39,6 @@ namespace Kernel
 	 * Execution context that is scheduled on CPU idle
 	 */
 	class Cpu_idle;
-
-	/**
-	 * Multiplexes a single processor to multiple processor clients
-	 */
-	typedef Scheduler<Processor_client> Processor_scheduler;
 
 	/**
 	 * A multiplexable common instruction processor
@@ -78,7 +73,7 @@ class Kernel::Processor_domain_update : public Double_list_item
 		/**
 		 * Perform the domain update on the executing processors
 		 */
-		void _perform_locally();
+		void _do();
 
 	protected:
 
@@ -97,7 +92,7 @@ class Kernel::Processor_domain_update : public Double_list_item
 		 *
 		 * \return  wether the update blocks and reports back on completion
 		 */
-		bool _perform(unsigned const domain_id);
+		bool _do_global(unsigned const domain_id);
 
 		/**
 		 * Notice that the update isn't pending on any processor anymore
@@ -105,14 +100,12 @@ class Kernel::Processor_domain_update : public Double_list_item
 		virtual void _processor_domain_update_unblocks() = 0;
 };
 
-class Kernel::Processor_client : public Processor_scheduler::Item
+class Kernel::Cpu_job : public Cpu_share
 {
 	protected:
 
-		Processor *    _processor;
+		Processor *    _cpu;
 		Cpu_lazy_state _lazy_state;
-
-		unsigned _tics_consumed;
 
 		/**
 		 * Handle an interrupt exception that occured during execution
@@ -153,54 +146,29 @@ class Kernel::Processor_client : public Processor_scheduler::Item
 		virtual void proceed(unsigned const processor_id) = 0;
 
 		/**
-		 * Constructor
-		 *
-		 * \param processor  kernel object of targeted processor
-		 * \param priority   scheduling priority
+		 * Construct a job with scheduling priority 'prio'
 		 */
-		Processor_client(Processor * const processor, Priority const priority)
-		:
-			Processor_scheduler::Item(priority),
-			_processor(processor),
-			_tics_consumed(0)
-		{ }
+		Cpu_job(Cpu_priority const p) : Cpu_share(p, 0), _cpu(0) { }
 
 		/**
 		 * Destructor
 		 */
-		~Processor_client()
-		{
-			if (!_scheduled()) { return; }
-			_unschedule();
-		}
+		~Cpu_job();
 
 		/**
-		 * Update how many tics the client consumed from its current time slice
-		 *
-		 * \param tics_left       tics that aren't consumed yet at the slice
-		 * \param tics_per_slice  tics that the slice provides
+		 * Link job to CPU 'cpu'
 		 */
-		void update_tics_consumed(unsigned const tics_left,
-		                          unsigned const tics_per_slice)
-		{
-			unsigned const old_tics_left = tics_per_slice - _tics_consumed;
-			_tics_consumed += old_tics_left - tics_left;
-		}
-
-		/**
-		 * Reset how many tics the client consumed from its current time slice
-		 */
-		void reset_tics_consumed() { _tics_consumed = 0; }
+		void affinity(Processor * const cpu);
 
 		/***************
 		 ** Accessors **
 		 ***************/
 
+		void cpu(Processor * const cpu) { _cpu = cpu; }
 		Cpu_lazy_state * lazy_state() { return &_lazy_state; }
-		unsigned tics_consumed() { return _tics_consumed; }
 };
 
-class Kernel::Cpu_idle : public Cpu::User_context, public Processor_client
+class Kernel::Cpu_idle : public Cpu::User_context, public Cpu_job
 {
 	private:
 
@@ -242,58 +210,33 @@ class Kernel::Processor : public Cpu
 {
 	private:
 
-		unsigned const      _id;
-		Cpu_idle            _idle;
-		Processor_scheduler _scheduler;
-		bool                _ip_interrupt_pending;
-		Timer * const       _timer;
+		typedef Cpu_job Job;
 
-		void _start_timer(unsigned const tics) {
-			_timer->start_one_shot(tics, _id); }
+		unsigned const _id;
+		Cpu_idle       _idle;
+		Timer * const  _timer;
+		Cpu_scheduler  _scheduler;
+		bool           _ip_interrupt_pending;
 
-		unsigned _tics_per_slice() {
-			return _timer->ms_to_tics(USER_LAP_TIME_MS); }
-
-		void _update_timer(unsigned const tics_consumed,
-		                   unsigned const tics_per_slice)
-		{
-			assert(tics_consumed <= tics_per_slice);
-			if (tics_consumed >= tics_per_slice) { _start_timer(1); }
-			else { _start_timer(tics_per_slice - tics_consumed); }
-		}
+		unsigned _quota() const { return _timer->ms_to_tics(cpu_quota_ms); }
+		unsigned _fill() const { return _timer->ms_to_tics(cpu_fill_ms); }
+		Job * _head() const { return static_cast<Job *>(_scheduler.head()); }
 
 	public:
 
 		/**
-		 * Constructor
-		 *
-		 * \param id     kernel name of the processor
-		 * \param timer  scheduling timer
+		 * Construct object for CPU 'id' with scheduling timer 'timer'
 		 */
 		Processor(unsigned const id, Timer * const timer)
 		:
-			_id(id), _idle(this), _scheduler(&_idle),
-			_ip_interrupt_pending(false), _timer(timer)
-		{ }
+			_id(id), _idle(this), _timer(timer),
+			_scheduler(&_idle, _quota(), _fill()),
+			_ip_interrupt_pending(false) { }
 
 		/**
-		 * Initializate on the processor that this object corresponds to
+		 * Check if IRQ 'i' was due to a scheduling timeout
 		 */
-		void init_processor_local() { _update_timer(0, _tics_per_slice()); }
-
-		/**
-		 * Check for a scheduling timeout and handle it in case
-		 *
-		 * \param interrupt_id  kernel name of interrupt that caused this call
-		 *
-		 * \return  wether it was a timeout and therefore has been handled
-		 */
-		bool check_timer_interrupt(unsigned const interrupt_id)
-		{
-			if (_timer->interrupt_id(_id) != interrupt_id) { return false; }
-			_scheduler.yield_occupation();
-			return true;
-		}
+		bool timer_irq(unsigned const i) { return _timer->interrupt_id(_id) == i; }
 
 		/**
 		 * Notice that the inter-processor interrupt isn't pending anymore
@@ -306,24 +249,46 @@ class Kernel::Processor : public Cpu
 		void trigger_ip_interrupt();
 
 		/**
-		 * Add a processor client to the scheduling plan of the processor
-		 *
-		 * \param client  targeted client
+		 * Schedule 'job' at this CPU
 		 */
-		void schedule(Processor_client * const client);
+		void schedule(Job * const job);
 
 		/**
 		 * Handle exception of the processor and proceed its user execution
 		 */
-		void exception();
+		void exception()
+		{
+			/* update old job */
+			Job * const old_job = _head();
+			old_job->exception(_id);
+
+			/* update scheduler */
+			unsigned const old_time = _scheduler.head_quota();
+			unsigned const new_time = _timer->value(_id);
+			unsigned quota = old_time > new_time ? old_time - new_time : 1;
+			_scheduler.update(quota);
+
+			/* get new job */
+			Job * const new_job = _head();
+			quota = _scheduler.head_quota();
+			assert(quota);
+			_timer->start_one_shot(quota, _id);
+
+			/* switch between lazy state of old and new job */
+			Cpu_lazy_state * const old_state = old_job->lazy_state();
+			Cpu_lazy_state * const new_state = new_job->lazy_state();
+			prepare_proceeding(old_state, new_state);
+
+			/* resume new job */
+			new_job->proceed(_id);
+		}
 
 		/***************
 		 ** Accessors **
 		 ***************/
 
 		unsigned id() const { return _id; }
-
-		Processor_scheduler * scheduler() { return &_scheduler; }
+		Cpu_scheduler * scheduler() { return &_scheduler; }
 };
 
 class Kernel::Processor_pool

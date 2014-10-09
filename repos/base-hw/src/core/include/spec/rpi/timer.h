@@ -46,19 +46,14 @@ class Genode::Timer : public Mmio
 
 		inline void start_one_shot(uint32_t const tics, unsigned)
 		{
+			write<Cs::M1>(1);
+			read<Cs>();
 			write<Clo>(0);
 			write<Cmp>(read<Clo>() + tics);
-			write<Cs::M1>(1);
 		}
 
 		static uint32_t ms_to_tics(unsigned const ms) {
 			return (Board::SYSTEM_TIMER_CLOCK / 1000) * ms; }
-
-		void clear_interrupt(unsigned)
-		{
-			write<Cs::M1>(1);
-			read<Cs>();
-		}
 
 		unsigned value(unsigned)
 		{
