@@ -1,0 +1,31 @@
+#
+# \brief  Test double-list implementation of core
+# \author Martin Stein
+# \date   2014-09-30
+#
+
+# build program images
+build "test/double_list"
+
+# create directory where the boot files are written to
+create_boot_directory
+
+# create single boot image from the compiled program images
+build_boot_image "test-double_list" test
+
+# configure qemu to use 64 MB RAM and avoid GUI mode
+append qemu_args " -m 64 -nographic"
+
+# execute the test in qemu if the targeted platform is supported
+run_genode_until "done.*\n" 10
+
+# check the output
+grep_output {\[test\]}
+compare_output_to {
+	[test] print each
+	[test] print each 1
+	[test] print each 3 2 5 7 6 4 1
+	[test] print each 8 9 2 5 1 7 6 4 3
+	[test] print each 7 8
+	[test] done
+}

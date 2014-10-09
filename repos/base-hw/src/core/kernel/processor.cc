@@ -38,7 +38,7 @@ namespace Kernel
 
 class Kernel::Processor_domain_update_list
 :
-	public Double_list<Processor_domain_update>
+	public Double_list_typed<Processor_domain_update>
 {
 	public:
 

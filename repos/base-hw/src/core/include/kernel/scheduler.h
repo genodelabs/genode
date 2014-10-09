@@ -76,7 +76,7 @@ class Kernel::Priority
  * Ability to be item in a scheduler through inheritance
  */
 template <typename T>
-class Kernel::Scheduler_item : public Double_list<T>::Item
+class Kernel::Scheduler_item : public Double_list_item
 {
 	private:
 
@@ -87,7 +87,7 @@ class Kernel::Scheduler_item : public Double_list<T>::Item
 		/**
 		 * Return wether this item is managed by a scheduler currently
 		 */
-		bool _scheduled() const { return Double_list<T>::Item::_listed(); }
+		bool _scheduled() const { return Double_list_item::_listed(); }
 
 	public:
 
@@ -111,10 +111,10 @@ class Kernel::Scheduler
 {
 	private:
 
-		T * const      _idle;
-		T *            _occupant;
-		Double_list<T> _items[Priority::MAX + 1];
-		bool           _yield;
+		T * const            _idle;
+		T *                  _occupant;
+		Double_list_typed<T> _items[Priority::MAX + 1];
+		bool                 _yield;
 
 		bool _does_update(T * const occupant)
 		{

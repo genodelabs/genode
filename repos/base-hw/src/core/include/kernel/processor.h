@@ -61,9 +61,7 @@ namespace Kernel
 	Processor_pool * processor_pool();
 }
 
-class Kernel::Processor_domain_update
-:
-	public Double_list_item<Processor_domain_update>
+class Kernel::Processor_domain_update : public Double_list_item
 {
 	friend class Processor_domain_update_list;
 
