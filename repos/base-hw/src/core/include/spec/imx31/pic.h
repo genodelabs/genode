@@ -105,7 +105,7 @@ class Genode::Pic : public Mmio
 		 ** Dummies **
 		 *************/
 
-		void init_processor_local() { }
+		void init_cpu_local() { }
 		void trigger_ip_interrupt(unsigned) { }
 		void finish_request() { /* done by source retraction or masking */ }
 };

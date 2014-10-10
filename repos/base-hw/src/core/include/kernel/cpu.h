@@ -1,5 +1,5 @@
 /*
- * \brief   A multiplexable common instruction processor
+ * \brief   Class for kernel data that is needed to manage a specific CPU
  * \author  Martin Stein
  * \author  Stefan Kalkowski
  * \date    2014-01-14
@@ -12,8 +12,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _KERNEL__PROCESSOR_H_
-#define _KERNEL__PROCESSOR_H_
+#ifndef _KERNEL__CPU_H_
+#define _KERNEL__CPU_H_
 
 /* core includes */
 #include <timer.h>
@@ -31,9 +31,9 @@ namespace Kernel
 	class Cpu_job;
 
 	/**
-	 * Ability to do a domain update on all processors
+	 * Ability to do a domain update on all CPUs
 	 */
-	class Processor_domain_update;
+	class Cpu_domain_update;
 
 	/**
 	 * Execution context that is scheduled on CPU idle
@@ -41,37 +41,37 @@ namespace Kernel
 	class Cpu_idle;
 
 	/**
-	 * A multiplexable common instruction processor
+	 * Class for kernel data that is needed to manage a specific CPU
 	 */
-	class Processor;
+	class Cpu;
 
 	/**
-	 * Provides a processor object for every available processor
+	 * Provides a CPU object for every available CPU
 	 */
-	class Processor_pool;
+	class Cpu_pool;
 
 	/**
-	 * Return Processor_pool singleton
+	 * Return singleton of CPU pool
 	 */
-	Processor_pool * processor_pool();
+	Cpu_pool * cpu_pool();
 }
 
-class Kernel::Processor_domain_update : public Double_list_item
+class Kernel::Cpu_domain_update : public Double_list_item
 {
-	friend class Processor_domain_update_list;
+	friend class Cpu_domain_update_list;
 
 	private:
 
-		bool     _pending[PROCESSORS];
+		bool     _pending[NR_OF_CPUS];
 		unsigned _domain_id;
 
 		/**
 		 * Domain-update back-end
 		 */
-		void _domain_update() { Cpu::flush_tlb_by_pid(_domain_id); }
+		void _domain_update() { Genode::Cpu::flush_tlb_by_pid(_domain_id); }
 
 		/**
-		 * Perform the domain update on the executing processors
+		 * Perform the domain update on the executing CPU
 		 */
 		void _do();
 
@@ -80,73 +80,63 @@ class Kernel::Processor_domain_update : public Double_list_item
 		/**
 		 * Constructor
 		 */
-		Processor_domain_update()
+		Cpu_domain_update()
 		{
-			for (unsigned i = 0; i < PROCESSORS; i++) { _pending[i] = false; }
+			for (unsigned i = 0; i < NR_OF_CPUS; i++) { _pending[i] = false; }
 		}
 
 		/**
-		 * Perform the domain update on all processors
-		 *
-		 * \param domain_id  kernel name of targeted domain
-		 *
-		 * \return  wether the update blocks and reports back on completion
+		 * Do an update of domain 'id' on all CPUs and return if this blocks
 		 */
-		bool _do_global(unsigned const domain_id);
+		bool _do_global(unsigned const id);
 
 		/**
-		 * Notice that the update isn't pending on any processor anymore
+		 * Notice that the update isn't pending on any CPU anymore
 		 */
-		virtual void _processor_domain_update_unblocks() = 0;
+		virtual void _cpu_domain_update_unblocks() = 0;
 };
 
 class Kernel::Cpu_job : public Cpu_share
 {
 	protected:
 
-		Processor *    _cpu;
+		Cpu *          _cpu;
 		Cpu_lazy_state _lazy_state;
 
 		/**
-		 * Handle an interrupt exception that occured during execution
-		 *
-		 * \param processor_id  kernel name of targeted processor
+		 * Handle interrupt exception that occured during execution on CPU 'id'
 		 */
-		void _interrupt(unsigned const processor_id);
+		void _interrupt(unsigned const id);
 
 		/**
-		 * Insert context into the processor scheduling
+		 * Insert context into the scheduling of this CPU
 		 */
 		void _schedule();
 
 		/**
-		 * Remove context from the processor scheduling
+		 * Remove context from the scheduling of this CPU
 		 */
 		void _unschedule();
 
 		/**
-		 * Yield currently scheduled processor share of the context
+		 * Yield the currently scheduled CPU share of this context
 		 */
 		void _yield();
 
 	public:
 
 		/**
-		 * Handle an exception that occured during execution
-		 *
-		 * \param processor_id  kernel name of targeted processor
+		 * Handle exception that occured during execution on CPU 'id'
 		 */
-		virtual void exception(unsigned const processor_id) = 0;
+		virtual void exception(unsigned const id) = 0;
 
 		/**
-		 * Continue execution
-		 *
-		 * \param processor_id  kernel name of targeted processor
+		 * Continue execution on CPU 'id'
 		 */
-		virtual void proceed(unsigned const processor_id) = 0;
+		virtual void proceed(unsigned const id) = 0;
 
 		/**
-		 * Construct a job with scheduling priority 'prio'
+		 * Construct a job with scheduling priority 'p'
 		 */
 		Cpu_job(Cpu_priority const p) : Cpu_share(p, 0), _cpu(0) { }
 
@@ -158,17 +148,17 @@ class Kernel::Cpu_job : public Cpu_share
 		/**
 		 * Link job to CPU 'cpu'
 		 */
-		void affinity(Processor * const cpu);
+		void affinity(Cpu * const cpu);
 
 		/***************
 		 ** Accessors **
 		 ***************/
 
-		void cpu(Processor * const cpu) { _cpu = cpu; }
+		void cpu(Cpu * const cpu) { _cpu = cpu; }
 		Cpu_lazy_state * lazy_state() { return &_lazy_state; }
 };
 
-class Kernel::Cpu_idle : public Cpu::User_context, public Cpu_job
+class Kernel::Cpu_idle : public Genode::Cpu::User_context, public Cpu_job
 {
 	private:
 
@@ -179,14 +169,14 @@ class Kernel::Cpu_idle : public Cpu::User_context, public Cpu_job
 		/**
 		 * Main function of all idle threads
 		 */
-		static void _main() { while (1) { Cpu::wait_for_interrupt(); } }
+		static void _main() { while (1) { Genode::Cpu::wait_for_interrupt(); } }
 
 	public:
 
 		/**
 		 * Construct idle context for CPU 'cpu'
 		 */
-		Cpu_idle(Processor * const cpu);
+		Cpu_idle(Cpu * const cpu);
 
 		/**
 		 * Handle exception that occured during execution on CPU 'cpu'
@@ -206,7 +196,7 @@ class Kernel::Cpu_idle : public Cpu::User_context, public Cpu_job
 		void proceed(unsigned const cpu_id);
 };
 
-class Kernel::Processor : public Cpu
+class Kernel::Cpu : public Genode::Cpu
 {
 	private:
 
@@ -227,7 +217,7 @@ class Kernel::Processor : public Cpu
 		/**
 		 * Construct object for CPU 'id' with scheduling timer 'timer'
 		 */
-		Processor(unsigned const id, Timer * const timer)
+		Cpu(unsigned const id, Timer * const timer)
 		:
 			_id(id), _idle(this), _timer(timer),
 			_scheduler(&_idle, _quota(), _fill()),
@@ -239,12 +229,12 @@ class Kernel::Processor : public Cpu
 		bool timer_irq(unsigned const i) { return _timer->interrupt_id(_id) == i; }
 
 		/**
-		 * Notice that the inter-processor interrupt isn't pending anymore
+		 * Notice that the IPI of the CPU isn't pending anymore
 		 */
 		void ip_interrupt_handled() { _ip_interrupt_pending = false; }
 
 		/**
-		 * Raise the inter-processor interrupt of the processor
+		 * Raise the IPI of the CPU
 		 */
 		void trigger_ip_interrupt();
 
@@ -254,7 +244,7 @@ class Kernel::Processor : public Cpu
 		void schedule(Job * const job);
 
 		/**
-		 * Handle exception of the processor and proceed its user execution
+		 * Handle recent exception of the CPU and proceed its user execution
 		 */
 		void exception()
 		{
@@ -291,39 +281,38 @@ class Kernel::Processor : public Cpu
 		Cpu_scheduler * scheduler() { return &_scheduler; }
 };
 
-class Kernel::Processor_pool
+class Kernel::Cpu_pool
 {
 	private:
 
 		Timer _timer;
-		char  _processors[PROCESSORS][sizeof(Processor)];
+		char  _cpus[NR_OF_CPUS][sizeof(Cpu)];
 
 	public:
 
 		/**
-		 * Constructor
+		 * Construct pool and thereby objects for all available CPUs
 		 */
-		Processor_pool()
+		Cpu_pool()
 		{
-			for (unsigned id = 0; id < PROCESSORS; id++) {
-				new (_processors[id]) Processor(id, &_timer); }
+			for (unsigned id = 0; id < NR_OF_CPUS; id++) {
+				new (_cpus[id]) Cpu(id, &_timer); }
 		}
 
 		/**
-		 * Return the kernel object of processor 'id'
+		 * Return object of CPU 'id'
 		 */
-		Processor * processor(unsigned const id) const
+		Cpu * cpu(unsigned const id) const
 		{
-			assert(id < PROCESSORS);
-			char * const p = const_cast<char *>(_processors[id]);
-			return reinterpret_cast<Processor *>(p);
+			assert(id < NR_OF_CPUS);
+			char * const p = const_cast<char *>(_cpus[id]);
+			return reinterpret_cast<Cpu *>(p);
 		}
 
 		/**
-		 * Return the object of the primary processor
+		 * Return object of primary CPU
 		 */
-		Processor * primary_processor() const {
-			return processor(Processor::primary_id()); }
+		Cpu * primary_cpu() const { return cpu(Cpu::primary_id()); }
 };
 
-#endif /* _KERNEL__PROCESSOR_H_ */
+#endif /* _KERNEL__CPU_H_ */

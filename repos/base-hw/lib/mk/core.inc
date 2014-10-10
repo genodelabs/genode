@@ -54,7 +54,7 @@ SRC_CC += kernel/vm.cc
 SRC_CC += kernel/signal_receiver.cc
 SRC_CC += kernel/irq.cc
 SRC_CC += kernel/pd.cc
-SRC_CC += kernel/processor.cc
+SRC_CC += kernel/cpu.cc
 
 # add assembly sources
 SRC_S += boot_modules.s

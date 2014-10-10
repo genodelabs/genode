@@ -44,7 +44,7 @@ void Rm_client::unmap(addr_t, addr_t virt_base, size_t size)
 	}
 	tt->remove_translation(virt_base, size,pt->pd()->page_slab());
 
-	/* update translation caches of all processors */
+	/* update translation caches of all CPUs */
 	Kernel::update_pd(pt->pd()->id());
 }
 

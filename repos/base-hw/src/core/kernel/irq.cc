@@ -12,7 +12,7 @@
  */
 
 /* core includes */
-#include <kernel/processor.h>
+#include <kernel/cpu.h>
 #include <kernel/irq.h>
 #include <pic.h>
 
@@ -22,4 +22,4 @@ namespace Kernel { Pic * pic(); }
 
 void Irq::_disable() const { pic()->mask(_id()); }
 
-void Irq::_enable() const { pic()->unmask(_id(), Processor::executing_id()); }
+void Irq::_enable() const { pic()->unmask(_id(), Cpu::executing_id()); }

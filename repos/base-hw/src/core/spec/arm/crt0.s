@@ -36,9 +36,9 @@
 
 .section ".text.crt0"
 
-	/****************************************
-	 ** Startup code for primary processor **
-	 ****************************************/
+	/**********************************
+	 ** Startup code for primary CPU **
+	 **********************************/
 
 	.global _start
 	_start:
@@ -70,21 +70,21 @@
 	add sp, r0, r1
 
 	/* uniprocessor kernel-initialization which activates multiprocessor */
-	bl init_kernel_uniprocessor
+	bl init_kernel_up
 
-	/***************************************************
-	 ** Startup code that is common to all processors **
-	 ***************************************************/
+	/*********************************************
+	 ** Startup code that is common to all CPUs **
+	 *********************************************/
 
-	.global _start_secondary_processors
-	_start_secondary_processors:
+	.global _start_secondary_cpus
+	_start_secondary_cpus:
 
 	/* setup multiprocessor-aware kernel stack-pointer */
 	_get_constraints_of_kernel_stacks r0, r1
 	_init_kernel_sp r0, r1
 
 	/* do multiprocessor kernel-initialization */
-	bl init_kernel_multiprocessor
+	bl init_kernel_mp
 
 	/* call the kernel main-routine */
 	bl kernel

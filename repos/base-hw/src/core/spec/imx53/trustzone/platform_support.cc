@@ -32,7 +32,7 @@ void Kernel::init_trustzone(Pic * pic)
 	using namespace Genode;
 
 	/* check for compatibility */
-	if (PROCESSORS > 1) {
+	if (NR_OF_CPUS > 1) {
 		PERR("trustzone not supported with multiprocessing");
 		return;
 	}

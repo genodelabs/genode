@@ -15,15 +15,13 @@
 .include "spec/arm/macros_support.s"
 
 /**
- * Determine the kernel name of the executing processor
- *
- * \param target_reg  register that shall receive the processor name
+ * Load kernel name of the executing CPU into register 'r'
  */
-.macro _get_processor_id target_reg
+.macro _get_cpu_id r
 
 	/* read the multiprocessor affinity register */
-	mrc p15, 0, \target_reg, c0, c0, 5
+	mrc p15, 0, \r, c0, c0, 5
 
 	/* get the affinity-0 bitfield from the read register value */
-	and \target_reg, \target_reg, #0xff
+	and \r, \r, #0xff
 .endm

@@ -15,12 +15,10 @@
 .include "spec/arm/macros_support.s"
 
 /**
- * Determine the kernel name of the executing processor
- *
- * \param target_reg  register that shall receive the processor name
+ * Load kernel name of the executing CPU into register 'r'
  */
-.macro _get_processor_id target_reg
+.macro _get_cpu_id r
 
 	/* no multiprocessing supported for ARMv6 */
-	mov \target_reg, #0
+	mov \r, #0
 .endm

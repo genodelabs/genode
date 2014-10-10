@@ -265,26 +265,21 @@ class Genode::Core_start_info
 {
 	private:
 
-		unsigned _processor_id;
+		unsigned _cpu_id;
 
 	public:
 
 		/**
-		 * Set-up valid core startup-message
-		 *
-		 * \param processor_id  kernel name of the processor to start on
+		 * Set-up valid core startup-message for starting on 'cpu'
 		 */
-		void init(unsigned const processor_id)
-		{
-			_processor_id = processor_id;
-		}
+		void init(unsigned const cpu) { _cpu_id = cpu; }
 
 
 		/***************
 		 ** Accessors **
 		 ***************/
 
-		unsigned processor_id() const { return _processor_id; }
+		unsigned cpu_id() const { return _cpu_id; }
 };
 
 class Genode::Native_utcb

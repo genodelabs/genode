@@ -8,7 +8,7 @@
 SPECS += hw platform_arndale
 
 # configure multiprocessor mode
-PROCESSORS = 2
+NR_OF_CPUS = 2
 
 # add repository relative paths
 REP_INC_DIR += include/exynos5_uart

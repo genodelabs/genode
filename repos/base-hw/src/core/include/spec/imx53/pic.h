@@ -147,7 +147,7 @@ class Genode::Pic : public Mmio
 			if (valid(i)) { write<Enclear::Clear_enable>(1, i); } }
 
 		/**
-		 * Wether an interrupt is inter-processor interrupt of a processor
+		 * Wether an interrupt is inter-processor interrupt of a CPU
 		 */
 		bool is_ip_interrupt(unsigned, unsigned) { return false; }
 
@@ -156,7 +156,7 @@ class Genode::Pic : public Mmio
 		 *************/
 
 		void trigger_ip_interrupt(unsigned) { }
-		void init_processor_local() { }
+		void init_cpu_local() { }
 		void finish_request() { }
 };
 

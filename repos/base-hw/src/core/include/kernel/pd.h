@@ -23,7 +23,7 @@
 #include <kernel/early_translations.h>
 #include <kernel/configuration.h>
 #include <kernel/object.h>
-#include <kernel/processor.h>
+#include <kernel/cpu.h>
 #include <translation_table.h>
 #include <assert.h>
 
@@ -77,7 +77,7 @@ class Kernel::Lock
 namespace Kernel
 {
 	/**
-	 * Processor context of the kernel
+	 * CPU context of the kernel
 	 */
 	class Cpu_context;
 
@@ -179,16 +179,16 @@ class Kernel::Mode_transition_control
 		/**
 		 * Continue execution of client context
 		 *
-		 * \param context       targeted client processor-context
-		 * \param processor_id  kernel name of targeted processor
-		 * \param entry_raw     raw pointer to assembly entry-code
+		 * \param context    targeted CPU context
+		 * \param cpu        kernel name of targeted CPU
+		 * \param entry_raw  raw pointer to assembly entry-code
 		 */
-		void _continue_client(void * const context, unsigned const processor_id,
+		void _continue_client(void * const context, unsigned const cpu,
 		                      addr_t const entry_raw)
 		{
-			/* override client-context pointer of the executing processor */
+			/* override client-context pointer of the executing CPU */
 			addr_t const context_ptr_base = (addr_t)&_mt_client_context_ptr;
-			size_t const context_ptr_offset = processor_id * sizeof(context);
+			size_t const context_ptr_offset = cpu * sizeof(context);
 			addr_t const context_ptr = context_ptr_base + context_ptr_offset;
 			*(void * *)context_ptr = context;
 
@@ -206,7 +206,7 @@ class Kernel::Mode_transition_control
 		enum {
 			SIZE_LOG2  = Genode::Translation_table::MIN_PAGE_SIZE_LOG2,
 			SIZE       = 1 << SIZE_LOG2,
-			VIRT_BASE  = Processor::exception_entry,
+			VIRT_BASE  = Cpu::exception_entry,
 			ALIGN_LOG2 = Genode::Translation_table::ALIGNM_LOG2,
 			ALIGN      = 1 << ALIGN_LOG2,
 		};
@@ -236,28 +236,16 @@ class Kernel::Mode_transition_control
 		}
 
 		/**
-		 * Continue execution of userland context
-		 *
-		 * \param context       targeted userland context
-		 * \param processor_id  kernel name of targeted processor
+		 * Continue execution of 'user' at 'cpu'
 		 */
-		void continue_user(Processor::Context * const context,
-		                   unsigned const processor_id)
-		{
-			_continue_client(context, processor_id, _virt_user_entry());
-		}
+		void continue_user(Cpu::Context * const user, unsigned const cpu) {
+			_continue_client(user, cpu, _virt_user_entry()); }
 
 		/**
-		 * Continue execution of virtual machine
-		 *
-		 * \param context       targeted virtual-machine context
-		 * \param processor_id  kernel name of targeted processor
+		 * Continue execution of 'vm' at 'cpu'
 		 */
-		void continue_vm(Cpu_state_modes * const context,
-		                 unsigned const processor_id)
-		{
-			_continue_client(context, processor_id, (addr_t)&_mt_vm_entry_pic);
-		}
+		void continue_vm(Cpu_state_modes * const vm, unsigned const cpu) {
+			_continue_client(vm, cpu, (addr_t)&_mt_vm_entry_pic); }
 
 } __attribute__((aligned(Mode_transition_control::ALIGN)));
 
@@ -290,7 +278,7 @@ class Kernel::Pd : public Object<Pd, MAX_PDS, Pd_ids, pd_ids, pd_pool>
 		/**
 		 * Let the CPU context 'c' join the PD
 		 */
-		void admit(Processor::Context * const c)
+		void admit(Cpu::Context * const c)
 		{
 			c->protection_domain(id());
 			c->translation_table((addr_t)translation_table());

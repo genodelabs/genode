@@ -31,11 +31,7 @@ namespace Genode
 	class Cpu;
 }
 
-namespace Kernel
-{
-	using Genode::Cpu_lazy_state;
-	using Genode::Cpu;
-}
+namespace Kernel { using Genode::Cpu_lazy_state; }
 
 class Genode::Cpu_lazy_state
 {
@@ -167,9 +163,7 @@ class Genode::Cpu : public Arm_v7
 		}
 
 		/**
-		 * Save state of the advanced FP/SIMD extension to memory
-		 *
-		 * \param state  processor state to save FP/SIMD state into
+		 * Save state of the advanced FP/SIMD extension into 'state'
 		 */
 		static void _save_advanced_fp_simd_state(Cpu_lazy_state * const state)
 		{
@@ -189,9 +183,7 @@ class Genode::Cpu : public Arm_v7
 		}
 
 		/**
-		 * Load state of the advanced FP/SIMD extension from memory
-		 *
-		 * \param state  processor state to load FP/SIMD state out of
+		 * Load state of the advanced FP/SIMD extension from 'state'
 		 */
 		static void _load_advanced_fp_simd_state(Cpu_lazy_state * const state)
 		{
@@ -259,8 +251,8 @@ class Genode::Cpu : public Arm_v7
 		/**
 		 * Prepare for the proceeding of a user
 		 *
-		 * \param old_state  processor state of the last user
-		 * \param new_state  processor state of the next user
+		 * \param old_state  CPU state of the last user
+		 * \param new_state  CPU state of the next user
 		 */
 		static void prepare_proceeding(Cpu_lazy_state * const old_state,
 		                               Cpu_lazy_state * const new_state)
@@ -272,7 +264,7 @@ class Genode::Cpu : public Arm_v7
 		/**
 		 * Return wether to retry an undefined user instruction after this call
 		 *
-		 * \param state  processor state of the user
+		 * \param state  CPU state of the user
 		 */
 		bool retry_undefined_instr(Cpu_lazy_state * const state)
 		{
@@ -289,12 +281,12 @@ class Genode::Cpu : public Arm_v7
 		}
 
 		/**
-		 * Return kernel name of the executing processor
+		 * Return kernel name of the executing CPU
 		 */
 		static unsigned executing_id();
 
 		/**
-		 * Return kernel name of the primary processor
+		 * Return kernel name of the primary CPU
 		 */
 		static unsigned primary_id();
 

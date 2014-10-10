@@ -61,7 +61,7 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 		:
 			Cpu_job(Cpu_priority::min), _state((Vm_state * const)state),
 			_context(context)
-		{ Cpu_job::affinity(processor_pool()->primary_processor()); }
+		{ affinity(cpu_pool()->primary_cpu()); }
 
 
 		/****************
@@ -69,7 +69,6 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 		 ****************/
 
 		void run()   { Cpu_job::_schedule(); }
-
 		void pause() { Cpu_job::_unschedule(); }
 
 
@@ -77,25 +76,22 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 		 ** Cpu_job **
 		 *************/
 
-		void exception(unsigned const processor_id)
+		void exception(unsigned const cpu)
 		{
 			switch(_state->cpu_exception) {
 			case Genode::Cpu_state::INTERRUPT_REQUEST:
 			case Genode::Cpu_state::FAST_INTERRUPT_REQUEST:
-				_interrupt(processor_id);
+				_interrupt(cpu);
 				return;
 			case Genode::Cpu_state::DATA_ABORT:
-				_state->dfar = Processor::Dfar::read();
+				_state->dfar = Cpu::Dfar::read();
 			default:
 				Cpu_job::_unschedule();
 				_context->submit(1);
 			}
 		}
 
-		void proceed(unsigned const processor_id)
-		{
-			mtc()->continue_vm(_state, processor_id);
-		}
+		void proceed(unsigned const cpu) { mtc()->continue_vm(_state, cpu); }
 };
 
 #endif /* _KERNEL__VM_H_ */

@@ -36,58 +36,60 @@ namespace Genode {
 	 */
 	class Platform : public Platform_generic
 	{
-		typedef Core_mem_allocator::Phys_allocator Phys_allocator;
+		private:
 
-		Core_mem_allocator _core_mem_alloc; /* core-accessible memory */
-		Phys_allocator     _io_mem_alloc;   /* MMIO allocator         */
-		Phys_allocator     _irq_alloc;      /* IRQ allocator          */
-		Rom_fs             _rom_fs;         /* ROM file system        */
+			typedef Core_mem_allocator::Phys_allocator Phys_allocator;
 
-		/*
-		 * Virtual-memory range for non-core address spaces.
-		 * The virtual memory layout of core is maintained in
-		 * '_core_mem_alloc.virt_alloc()'.
-		 */
-		addr_t             _vm_start;
-		size_t             _vm_size;
+			Core_mem_allocator _core_mem_alloc; /* core-accessible memory */
+			Phys_allocator     _io_mem_alloc;   /* MMIO allocator         */
+			Phys_allocator     _irq_alloc;      /* IRQ allocator          */
+			Rom_fs             _rom_fs;         /* ROM file system        */
+
+			/*
+			 * Virtual-memory range for non-core address spaces.
+			 * The virtual memory layout of core is maintained in
+			 * '_core_mem_alloc.virt_alloc()'.
+			 */
+			addr_t             _vm_start;
+			size_t             _vm_size;
 
 
 		public:
 
-		/**
-		 * Get one of the consecutively numbered available resource regions
-		 *
-		 * \return  >0  region pointer if region with index 'i' exists
-		 *          0   if region with index 'i' doesn't exist
-		 *
-		 * These functions should provide all ressources that are available
-		 * on the current platform.
-		 */
-		static Native_region * _ram_regions(unsigned i);
-		static Native_region * _mmio_regions(unsigned i);
+			/**
+			 * Get one of the consecutively numbered available resource regions
+			 *
+			 * \return  >0  region pointer if region with index 'i' exists
+			 *          0   if region with index 'i' doesn't exist
+			 *
+			 * These functions should provide all ressources that are available
+			 * on the current platform.
+			 */
+			static Native_region * _ram_regions(unsigned i);
+			static Native_region * _mmio_regions(unsigned i);
 
-		/**
-		 * Get one of the consecutively numbered core regions
-		 *
-		 * \return  >0  Region pointer if region with index 'i' exists
-		 *          0   If region with index 'i' doesn't exist
-		 *
-		 * Core regions are address regions that must be permitted to
-		 * core only, such as the core image ROM. These regions are normally
-		 * a subset of the ressource regions provided above.
-		 */
-		static Native_region * _core_only_ram_regions(unsigned i);
-		static Native_region * _core_only_mmio_regions(unsigned i);
+			/**
+			 * Get one of the consecutively numbered core regions
+			 *
+			 * \return  >0  Region pointer if region with index 'i' exists
+			 *          0   If region with index 'i' doesn't exist
+			 *
+			 * Core regions are address regions that must be permitted to
+			 * core only, such as the core image ROM. These regions are
+			 * normally a subset of the ressource regions provided above.
+			 */
+			static Native_region * _core_only_ram_regions(unsigned i);
+			static Native_region * _core_only_mmio_regions(unsigned i);
 
-		/**
-		 * Get one of the consecutively numbered user interrupts
-		 *
-		 * \param i  index of interrupt
-		 *
-		 * \return  >0  pointer to the name of the requested interrupt
-		 *          0   no interrupt for that index
-		 */
-		static unsigned * _irq(unsigned const i);
+			/**
+			 * Get one of the consecutively numbered user interrupts
+			 *
+			 * \param i  index of interrupt
+			 *
+			 * \return  >0  pointer to the name of the requested interrupt
+			 *          0   no interrupt for that index
+			 */
+			static unsigned * _irq(unsigned const i);
 
 			/**
 			 * Constructor
@@ -120,17 +122,13 @@ namespace Genode {
 
 			inline Rom_fs *rom_fs() { return &_rom_fs; }
 
-			inline void wait_for_exit()
-			{
-				while (1) { Kernel::pause_current_thread(); }
-			};
+			inline void wait_for_exit() {
+				while (1) { Kernel::pause_current_thread(); } };
 
 			bool supports_direct_unmap() const { return 1; }
 
-			Affinity::Space affinity_space() const
-			{
-				return Affinity::Space(PROCESSORS);
-			}
+			Affinity::Space affinity_space() const {
+				return Affinity::Space(NR_OF_CPUS); }
 	};
 }
 

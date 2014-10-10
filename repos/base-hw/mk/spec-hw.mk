@@ -5,4 +5,4 @@
 #
 
 # configure multiprocessor mode
-CC_OPT += -Wa,--defsym -Wa,PROCESSORS=$(PROCESSORS) -DPROCESSORS=$(PROCESSORS)
+CC_OPT += -Wa,--defsym -Wa,NR_OF_CPUS=$(NR_OF_CPUS) -DNR_OF_CPUS=$(NR_OF_CPUS)

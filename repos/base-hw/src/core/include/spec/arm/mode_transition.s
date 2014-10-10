@@ -32,7 +32,7 @@
 .set IRQ_PC_ADJUST, 4
 .set FIQ_PC_ADJUST, 4
 
-/* offsets of the member variables in a processor context */
+/* offsets of the member variables in a CPU context */
 .set R12_OFFSET,            12 * 4
 .set SP_OFFSET,             13 * 4
 .set LR_OFFSET,             14 * 4
@@ -61,19 +61,19 @@
 	.global _mt_master_context_end
 	_mt_master_context_end:
 
-	/* space for a client context-pointer per processor */
+	/* space for a client context-pointer per CPU */
 	.p2align 2
 	.global _mt_client_context_ptr
 	_mt_client_context_ptr:
-	.rept PROCESSORS
+	.rept NR_OF_CPUS
 		.space CONTEXT_PTR_SIZE
 	.endr
 
-	/* a globally mapped buffer per processor */
+	/* a globally mapped buffer per CPU */
 	.p2align 2
 	.global _mt_buffer
 	_mt_buffer:
-	.rept PROCESSORS
+	.rept NR_OF_CPUS
 		.space BUFFER_SIZE
 	.endr
 

@@ -432,7 +432,7 @@ class Genode::Translation_table
 					pt_phys = pt_phys ? pt_phys : pt; /* hack for core */
 					_entries[i] = Page_table_descriptor::create(pt_phys);
 
-					/* some processors need to act on changed translations */
+					/* some CPUs need to act on changed translations */
 					size_t const dsize = sizeof(Descriptor::access_t);
 					Cpu::translation_added((addr_t)&_entries[i], dsize);
 				}

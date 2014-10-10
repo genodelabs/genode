@@ -200,14 +200,12 @@ int Platform_thread::start(void * const ip, void * const sp)
 		PERR("failed to initialize thread registers");
 		return -1;
 	}
-	/* determine kernel name of targeted processor */
-	unsigned processor_id;
-	if (_location.valid()) { processor_id = _location.xpos(); }
-	else { processor_id = Cpu::primary_id(); }
 
 	/* start executing new thread */
+	unsigned const cpu =
+		_location.valid() ? _location.xpos() : Cpu::primary_id();
 	_utcb_core_addr->start_info()->init(_id, _utcb);
-	if (!Kernel::start_thread(_id, processor_id, _pd->id(), _utcb_core_addr)) {
+	if (!Kernel::start_thread(_id, cpu, _pd->id(), _utcb_core_addr)) {
 		PERR("failed to start thread");
 		return -1;
 	}

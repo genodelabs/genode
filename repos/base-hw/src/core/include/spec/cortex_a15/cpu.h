@@ -30,11 +30,7 @@ namespace Genode
 	class Cpu;
 }
 
-namespace Kernel
-{
-	using Genode::Cpu_lazy_state;
-	using Genode::Cpu;
-}
+namespace Kernel { using Genode::Cpu_lazy_state; }
 
 class Genode::Cpu : public Arm_v7
 {
@@ -46,12 +42,12 @@ class Genode::Cpu : public Arm_v7
 		bool retry_undefined_instr(Cpu_lazy_state *) { return false; }
 
 		/**
-		 * Return kernel name of the executing processor
+		 * Return kernel name of the executing CPU
 		 */
 		static unsigned executing_id();
 
 		/**
-		 * Return kernel name of the primary processor
+		 * Return kernel name of the primary CPU
 		 */
 		static unsigned primary_id();
 

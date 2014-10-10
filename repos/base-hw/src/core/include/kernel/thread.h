@@ -18,7 +18,7 @@
 #include <kernel/configuration.h>
 #include <kernel/signal_receiver.h>
 #include <kernel/ipc_node.h>
-#include <kernel/processor.h>
+#include <kernel/cpu.h>
 #include <kernel/thread_base.h>
 
 namespace Kernel
@@ -44,12 +44,8 @@ class Kernel::Thread
 :
 	public Cpu::User_context,
 	public Object<Thread, MAX_THREADS, Thread_ids, thread_ids, thread_pool>,
-	public Cpu_job,
-	public Processor_domain_update,
-	public Ipc_node,
-	public Signal_context_killer,
-	public Signal_handler,
-	public Thread_base
+	public Cpu_job, public Cpu_domain_update, public Ipc_node,
+	public Signal_context_killer, public Signal_handler, public Thread_base
 {
 	friend class Thread_event;
 
@@ -262,11 +258,11 @@ class Kernel::Thread
 		void _await_request_failed();
 
 
-		/*****************************
-		 ** Processor_domain_update **
-		 *****************************/
+		/***********************
+		 ** Cpu_domain_update **
+		 ***********************/
 
-		void _processor_domain_update_unblocks() { _resume(); }
+		void _cpu_domain_update_unblocks() { _resume(); }
 
 	public:
 
@@ -281,21 +277,21 @@ class Kernel::Thread
 		/**
 		 * Prepare thread to get scheduled the first time
 		 *
-		 * \param processor  targeted processor
-		 * \param pd         targeted domain
-		 * \param utcb       core local pointer to userland thread-context
-		 * \param start      wether to start executing the thread
+		 * \param cpu    targeted CPU
+		 * \param pd     targeted domain
+		 * \param utcb   core local pointer to userland thread-context
+		 * \param start  wether to start executing the thread
 		 */
-		void init(Processor * const processor, Pd * const pd,
-		          Native_utcb * const utcb, bool const start);
+		void init(Cpu * const cpu, Pd * const pd, Native_utcb * const utcb,
+		          bool const start);
 
 
 		/*************
 		 ** Cpu_job **
 		 *************/
 
-		void exception(unsigned const processor_id);
-		void proceed(unsigned const processor_id);
+		void exception(unsigned const cpu);
+		void proceed(unsigned const cpu);
 
 
 		/***************

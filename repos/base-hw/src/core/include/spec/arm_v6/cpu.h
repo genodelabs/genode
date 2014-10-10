@@ -33,11 +33,7 @@ namespace Genode
 	class Cpu;
 }
 
-namespace Kernel
-{
-	using Genode::Cpu_lazy_state;
-	using Genode::Cpu;
-}
+namespace Kernel { using Genode::Cpu_lazy_state; }
 
 class Genode::Cpu : public Arm
 {
@@ -141,7 +137,7 @@ class Genode::Cpu : public Arm
 		 */
 		static void tlb_insertions() { flush_tlb(); }
 
-		static void start_secondary_processors(void *) { assert(!Board::is_smp()); }
+		static void start_secondary_cpus(void *) { assert(!Board::is_smp()); }
 
 		/**
 		 * Return wether to retry an undefined user instruction after this call
@@ -157,7 +153,7 @@ class Genode::Cpu : public Arm
 		static void translation_added(addr_t const addr, size_t const size)
 		{
 			/*
-			 * The Cortex A8 processor can't use the L1 cache on page-table
+			 * The Cortex-A8 CPU can't use the L1 cache on page-table
 			 * walks. Therefore, as the page-tables lie in write-back cacheable
 			 * memory we've to clean the corresponding cache-lines even when a
 			 * page table entry is added. We only do this as core as the kernel
@@ -167,12 +163,12 @@ class Genode::Cpu : public Arm
 		}
 
 		/**
-		 * Return kernel name of the executing processor
+		 * Return kernel name of the executing CPU
 		 */
 		static unsigned executing_id();
 
 		/**
-		 * Return kernel name of the primary processor
+		 * Return kernel name of the primary CPU
 		 */
 		static unsigned primary_id();
 

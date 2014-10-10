@@ -188,13 +188,11 @@ class Genode::Timer : public Mmio
 
 
 		/**
-		 * Return kernel name of timer interrupt of a specific processor
-		 *
-		 * \param processor_id  kernel name of targeted processor
+		 * Return kernel name of the interrupt of the timer of CPU 'cpu'
 		 */
-		static unsigned interrupt_id(unsigned const processor_id)
+		static unsigned interrupt_id(unsigned const cpu)
 		{
-			switch (processor_id) {
+			switch (cpu) {
 			case 0:  return Board::MCT_IRQ_L0;
 			case 1:  return Board::MCT_IRQ_L1;
 			default: return 0;
@@ -218,15 +216,11 @@ class Genode::Timer : public Mmio
 		}
 
 		/**
-		 * Start single timeout run
-		 *
-		 * \param tics          delay of timer interrupt
-		 * \param processor_id  kernel name of processor of targeted timer
+		 * Raise interrupt of CPU 'cpu' once after timeout 'tics'
 		 */
-		inline void start_one_shot(unsigned const tics,
-		                           unsigned const processor_id)
+		inline void start_one_shot(unsigned const tics, unsigned const cpu)
 		{
-			switch (processor_id) {
+			switch (cpu) {
 			case 0:
 				write<L0_int_cstat::Frcnt>(1);
 				_run_0(0);
@@ -248,9 +242,9 @@ class Genode::Timer : public Mmio
 		 */
 		unsigned ms_to_tics(unsigned const ms) { return ms * _tics_per_ms; }
 
-		unsigned value(unsigned const processor_id)
+		unsigned value(unsigned const cpu)
 		{
-			switch (processor_id) {
+			switch (cpu) {
 			case 0:  return read<L0_frcnto>();
 			case 1:  return read<L1_frcnto>();
 			default: return 0;

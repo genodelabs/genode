@@ -43,7 +43,7 @@ using namespace Kernel;
 
 extern Genode::Native_thread_id _main_thread_id;
 extern "C" void CORE_MAIN();
-extern void * _start_secondary_processors;
+extern void * _start_secondary_cpus;
 extern int _prog_img_beg;
 extern int _prog_img_end;
 
@@ -157,17 +157,14 @@ namespace Kernel
 	}
 
 	/**
-	 * Return wether an interrupt is private to the kernel
-	 *
-	 * \param interrupt_id  kernel name of the targeted interrupt
+	 * Return wether interrupt 'irq' is private to the kernel
 	 */
-	bool private_interrupt(unsigned const interrupt_id)
+	bool private_interrupt(unsigned const irq)
 	{
-		bool ret = 0;
-		for (unsigned i = 0; i < PROCESSORS; i++) {
-			ret |= interrupt_id == Timer::interrupt_id(i);
+		for (unsigned i = 0; i < NR_OF_CPUS; i++) {
+			if (irq == Timer::interrupt_id(i)) { return 1; }
 		}
-		return ret;
+		return 0;
 	}
 }
 
@@ -207,67 +204,106 @@ namespace Kernel
 
 
 /**
- * Enable kernel-entry assembly to get an exclusive stack at every processor
+ * Enable kernel-entry assembly to get an exclusive stack for every CPU
  */
 unsigned kernel_stack_size = Kernel::STACK_SIZE;
-char     kernel_stack[PROCESSORS][Kernel::STACK_SIZE]
+char     kernel_stack[NR_OF_CPUS][Kernel::STACK_SIZE]
          __attribute__((aligned(16)));
 
 
 /**
- * Setup kernel enviroment before activating secondary processors
+ * Setup kernel environment before activating secondary CPUs
  */
-extern "C" void init_kernel_uniprocessor()
+extern "C" void init_kernel_up()
 {
-	/************************************************************************
-	 ** As atomic operations are broken in physical mode on some platforms **
-	 ** we must avoid the use of 'cmpxchg' by now (includes not using any  **
-	 ** local static objects.                                              **
-	 ************************************************************************/
+	/*
+	 * As atomic operations are broken in physical mode on some platforms
+	 * we must avoid the use of 'cmpxchg' by now (includes not using any
+	 * local static objects.
+	 */
 
 	/* calculate in advance as needed later when data writes aren't allowed */
 	core_tt_base = (addr_t) core_pd()->translation_table();
 	core_pd_id   = core_pd()->id();
 
-	/* initialize all processor objects */
-	processor_pool();
+	/* initialize all CPU objects */
+	cpu_pool();
 
 	/* go multiprocessor mode */
-	Processor::start_secondary_processors(&_start_secondary_processors);
+	Cpu::start_secondary_cpus(&_start_secondary_cpus);
 }
 
+
 /**
- * Setup kernel enviroment after activating secondary processors
+ * Setup kernel enviroment after activating secondary CPUs as primary CPU
  */
-extern "C" void init_kernel_multiprocessor()
+void init_kernel_mp_primary()
 {
-	/***********************************************************************
-	 ** As updates on a cached kernel lock might not be visible to        **
-	 ** processors that have not enabled caches, we can't synchronize the **
-	 ** activation of MMU and caches. Hence we must avoid write access to **
-	 ** kernel data by now.                                               **
-	 ***********************************************************************/
+	/* get stack memory that fullfills the constraints for core stacks */
+	enum {
+		STACK_ALIGNM = 1 << Genode::CORE_STACK_ALIGNM_LOG2,
+		STACK_SIZE   = DEFAULT_STACK_SIZE,
+	};
+	static_assert(STACK_SIZE <= STACK_ALIGNM - sizeof(Core_thread_id),
+	              "stack size does not fit stack alignment of core");
+	static char s[STACK_SIZE] __attribute__((aligned(STACK_ALIGNM)));
 
-	/* synchronize data view of all processors */
-	Processor::invalidate_data_caches();
-	Processor::invalidate_instr_caches();
-	Processor::data_synchronization_barrier();
+	/* provide thread ident at the aligned base of the stack */
+	*(Core_thread_id *)s = 0;
 
-	/* initialize processor in physical mode */
-	Processor::init_phys_kernel();
+	/* start thread with stack pointer at the top of stack */
+	static Native_utcb utcb;
+	static Thread t(Cpu_priority::max, "core");
+	_main_thread_id = t.id();
+	_main_thread_utcb = &utcb;
+	_main_thread_utcb->start_info()->init(t.id(), Genode::Native_capability());
+	t.ip = (addr_t)CORE_MAIN;;
+	t.sp = (addr_t)s + STACK_SIZE;
+	t.init(cpu_pool()->primary_cpu(), core_pd(), &utcb, 1);
+
+	/* initialize interrupt objects */
+	static Genode::uint8_t _irqs[Pic::NR_OF_IRQ * sizeof(Irq)];
+	for (unsigned i = 0; i < Pic::NR_OF_IRQ; i++) {
+		if (private_interrupt(i)) { continue; }
+		new (&_irqs[i * sizeof(Irq)]) Irq(i);
+	}
+	/* kernel initialization finished */
+	Genode::printf("kernel initialized\n");
+	test();
+}
+
+
+/**
+ * Setup kernel enviroment after activating secondary CPUs
+ */
+extern "C" void init_kernel_mp()
+{
+	/*
+	 * As updates on a cached kernel lock might not be visible to CPUs that
+	 * have not enabled caches, we can't synchronize the activation of MMU and
+	 * caches. Hence we must avoid write access to kernel data by now.
+	 */
+
+	/* synchronize data view of all CPUs */
+	Cpu::invalidate_data_caches();
+	Cpu::invalidate_instr_caches();
+	Cpu::data_synchronization_barrier();
+
+	/* initialize CPU in physical mode */
+	Cpu::init_phys_kernel();
 
 	/* switch to core address space */
-	Processor::init_virt_kernel(core_tt_base, core_pd_id);
+	Cpu::init_virt_kernel(core_tt_base, core_pd_id);
 
-	/************************************
-	 ** Now it's safe to use 'cmpxchg' **
-	 ************************************/
+	/*
+	 * Now it's safe to use 'cmpxchg'
+	 */
 
 	Lock::Guard guard(data_lock());
 
-	/*******************************************
-	 ** Now it's save to write to kernel data **
-	 *******************************************/
+	/*
+	 * Now it's save to write to kernel data
+	 */
 
 	/*
 	 * TrustZone initialization code
@@ -279,51 +315,18 @@ extern "C" void init_kernel_multiprocessor()
 	/*
 	 * Enable performance counter
 	 *
-	 * FIXME This is an optional processor specific feature
+	 * FIXME This is an optional CPU specific feature
 	 */
 	perf_counter()->enable();
 
 	/* locally initialize interrupt controller */
-	unsigned const processor_id = Processor::executing_id();
-	Processor * const processor = processor_pool()->processor(processor_id);
-	pic()->init_processor_local();
-	pic()->unmask(Timer::interrupt_id(processor_id), processor_id);
+	unsigned const cpu = Cpu::executing_id();
+	pic()->init_cpu_local();
+	pic()->unmask(Timer::interrupt_id(cpu), cpu);
 
-	/* as primary processor create the core main thread */
-	if (Processor::primary_id() == processor_id)
-	{
-		/* get stack memory that fullfills the constraints for core stacks */
-		enum {
-			STACK_ALIGNM = 1 << Genode::CORE_STACK_ALIGNM_LOG2,
-			STACK_SIZE   = DEFAULT_STACK_SIZE,
-		};
-		static_assert(STACK_SIZE <= STACK_ALIGNM - sizeof(Core_thread_id),
-		              "stack size does not fit stack alignment of core");
-		static char s[STACK_SIZE] __attribute__((aligned(STACK_ALIGNM)));
-
-		/* provide thread ident at the aligned base of the stack */
-		*(Core_thread_id *)s = 0;
-
-		/* start thread with stack pointer at the top of stack */
-		static Native_utcb utcb;
-		static Thread t(Cpu_priority::max, "core");
-		_main_thread_id = t.id();
-		_main_thread_utcb = &utcb;
-		_main_thread_utcb->start_info()->init(t.id(), Genode::Native_capability());
-		t.ip = (addr_t)CORE_MAIN;;
-		t.sp = (addr_t)s + STACK_SIZE;
-		t.init(processor, core_pd(), &utcb, 1);
-
-		/* initialize interrupt objects */
-		static Genode::uint8_t _irqs[Pic::NR_OF_IRQ * sizeof(Irq)];
-		for (unsigned i = 0; i < Pic::NR_OF_IRQ; i++) {
-			if (private_interrupt(i)) { continue; }
-			new (&_irqs[i * sizeof(Irq)]) Irq(i);
-		}
-		/* kernel initialization finished */
-		Genode::printf("kernel initialized\n");
-		test();
-	}
+	/* do further initialization only as primary CPU */
+	if (Cpu::primary_id() != cpu) { return; }
+	init_kernel_mp_primary();
 }
 
 
@@ -332,13 +335,8 @@ extern "C" void init_kernel_multiprocessor()
  */
 extern "C" void kernel()
 {
-	/* ensure that no other processor accesses kernel data while we do */
 	data_lock().lock();
-
-	/* determine local processor object and let it handle its exception */
-	unsigned const processor_id = Processor::executing_id();
-	Processor * const processor = processor_pool()->processor(processor_id);
-	processor->exception();
+	cpu_pool()->cpu(Cpu::executing_id())->exception();
 }
 
 

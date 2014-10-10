@@ -8,7 +8,7 @@
 SPECS += hw platform_odroid_xu
 
 # configure multiprocessor mode
-PROCESSORS = 1
+NR_OF_CPUS = 1
 
 # add repository relative paths
 REP_INC_DIR += include/exynos5_uart

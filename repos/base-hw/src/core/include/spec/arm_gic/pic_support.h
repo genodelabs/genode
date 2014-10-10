@@ -78,7 +78,7 @@ class Genode::Arm_gic_distributor : public Mmio
 			struct Priority : Bitfield<0, 8> { }; };
 
 		/**
-		 * Interrupt processor target registers
+		 * Interrupt CPU-target registers
 		 */
 		struct Itargetsr : Register_array<0x800, 32, nr_of_irq, 8> {
 			struct Cpu_targets : Bitfield<0, 8> { }; };
@@ -214,7 +214,7 @@ class Genode::Arm_gic
 		/**
 		 * Initialize CPU local interface of the controller
 		 */
-		void init_processor_local()
+		void init_cpu_local()
 		{
 			/* disable the priority filter */
 			_cpui.write<Cpui::Pmr::Priority>(_distr.min_priority());

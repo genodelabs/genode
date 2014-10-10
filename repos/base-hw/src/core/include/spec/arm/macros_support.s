@@ -19,10 +19,10 @@
  */
 .macro _init_kernel_sp base_reg, size_reg
 
-	/* get kernel name of processor */
-	_get_processor_id sp
+	/* get kernel name of CPU */
+	_get_cpu_id sp
 
-	/* calculate top of the kernel-stack of this processor and apply as SP */
+	/* calculate top of the kernel-stack of this CPU and apply as SP */
 	add sp, #1
 	mul \size_reg, \size_reg, sp
 	add sp, \base_reg, \size_reg

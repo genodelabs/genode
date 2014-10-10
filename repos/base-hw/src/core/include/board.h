@@ -26,10 +26,9 @@ namespace Genode
 			static void outer_cache_invalidate() { }
 			static void outer_cache_flush() { }
 			static void prepare_kernel() { }
-
-			static void secondary_processors_ip(void * const ip) { }
+			static void secondary_cpus_ip(void * const ip) { }
 			static bool is_smp() { return false; }
-		};
+	};
 }
 
 #endif /* _BOARD_H_ */

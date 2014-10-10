@@ -245,7 +245,7 @@ bool Genode::unmap_local(addr_t virt_addr, size_t num_pages)
 		tt->remove_translation(virt_addr, num_pages * get_page_size(),
 		                       Kernel::core_pd()->platform_pd()->page_slab());
 
-		/* update translation caches of all processors */
+		/* update translation caches of all CPUs */
 		Kernel::update_pd(Kernel::core_pd()->id());
 		return true;
 	} catch(...) {

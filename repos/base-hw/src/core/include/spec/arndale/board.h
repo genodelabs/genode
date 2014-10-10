@@ -28,14 +28,10 @@ namespace Genode
 			static void prepare_kernel() { }
 
 			/**
-			 * Tell secondary processors where to start execution from
-			 *
-			 * \param ip  initial instruction pointer of secondary processors
+			 * Tell secondary CPUs to start execution from instr. pointer 'ip'
 			 */
-			static void secondary_processors_ip(void * const ip)
-			{
-				*(void * volatile *)IRAM_BASE = ip;
-			}
+			static void secondary_cpus_ip(void * const ip) {
+				*(void * volatile *)IRAM_BASE = ip; }
 
 			static bool is_smp() { return true; }
 	};

@@ -21,7 +21,7 @@
  ** Constants **
  ***************/
 
-/* hardware names of processor modes */
+/* hardware names of CPU modes */
 .set USR_MODE, 16
 .set FIQ_MODE, 17
 .set IRQ_MODE, 18
@@ -38,48 +38,48 @@
  ************/
 
 /**
- * Determine the base of the client context of the executing processor
+ * Determine the base of the client context of the executing CPU
  *
  * \param target_reg  register that shall receive the base pointer
  * \param buf_reg     register that can be polluted by the macro
  */
 .macro _get_client_context_ptr target_reg, buf_reg
 
-	/* get kernel name of processor */
-	_get_processor_id \buf_reg
+	/* get kernel name of CPU */
+	_get_cpu_id \buf_reg
 
-	/* multiply processor name with pointer size to get offset of pointer */
+	/* multiply CPU name with pointer size to get offset of pointer */
 	mov \target_reg, #CONTEXT_PTR_SIZE
 	mul \buf_reg, \buf_reg, \target_reg
 
 	/* get base of the pointer array */
 	adr \target_reg, _mt_client_context_ptr
 
-	/* add offset and base to get processor-local pointer */
+	/* add offset and base to get CPU-local pointer */
 	add \target_reg, \target_reg, \buf_reg
 	ldr \target_reg, [\target_reg]
 .endm
 
 
 /**
- * Determine the base of the globally mapped buffer of the executing processor
+ * Determine the base of the globally mapped buffer of the executing CPU
  *
  * \param target_reg  register that shall receive the base pointer
  * \param buf_reg     register that can be polluted by the macro
  */
 .macro _get_buffer_ptr target_reg, buf_reg
 
-	/* get kernel name of processor */
-	_get_processor_id \buf_reg
+	/* get kernel name of CPU */
+	_get_cpu_id \buf_reg
 
-	/* multiply processor name with buffer size to get offset of buffer */
+	/* multiply CPU name with buffer size to get offset of buffer */
 	mov \target_reg, #BUFFER_SIZE
 	mul \buf_reg, \buf_reg, \target_reg
 
 	/* get base of the buffer array */
 	adr \target_reg, _mt_buffer
 
-	/* add offset and base to get processor-local buffer */
+	/* add offset and base to get CPU-local buffer */
 	add \target_reg, \target_reg, \buf_reg
 .endm
 
@@ -153,7 +153,7 @@
 
 	/*
 	 * The sp in svc mode still contains the base of the globally mapped buffer
-	 * of this processor. Hence go to svc mode, buffer user r0-r2, and make
+	 * of this CPU. Hence go to svc mode, buffer user r0-r2, and make
 	 * buffer pointer available to all modes
 	 */
 	.if \exception_type != RST_TYPE && \exception_type != SVC_TYPE
@@ -426,7 +426,7 @@
 	.global _mt_user_entry_pic
 	_mt_user_entry_pic:
 
-	/* get user context and globally mapped buffer of this processor */
+	/* get user context and globally mapped buffer of this CPU */
 	_get_client_context_ptr lr, r0
 	_get_buffer_ptr sp, r0
 

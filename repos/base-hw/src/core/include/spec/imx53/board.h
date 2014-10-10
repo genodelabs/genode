@@ -95,14 +95,10 @@ namespace Imx53
 			aips_2()->prepare_kernel();
 		}
 
+		static bool is_smp() { return false; }
 		static void outer_cache_invalidate() { }
 		static void outer_cache_flush() { }
-
-		/**
-		 * Tell secondary processors where to start execution from
-		 */
-		static void secondary_processors_ip(void *) { }
-		static bool is_smp() { return false; }
+		static void secondary_cpus_ip(void *) { }
 	};
 }
 

@@ -171,7 +171,7 @@ class Genode::Pic : Mmio
 		 */
 		Pic() : Mmio(Board::IRQ_CONTROLLER_BASE) { mask(); }
 
-		void init_processor_local() { }
+		void init_cpu_local() { }
 
 		bool take_request(unsigned &irq)
 		{
@@ -235,24 +235,12 @@ class Genode::Pic : Mmio
 				write<Irq_disable_gpu_2>(1 << (i - 8 - 32));
 		}
 
-		/**
-		 * Wether an interrupt is inter-processor interrupt of a processor
-		 *
-		 * \param interrupt_id  kernel name of the interrupt
-		 * \param processor_id  kernel name of the processor
+		/*
+		 * Dummies
 		 */
-		bool is_ip_interrupt(unsigned const interrupt_id,
-		                     unsigned const processor_id)
-		{
-			return false;
-		}
 
-		/**
-		 * Trigger the inter-processor interrupt of a processor
-		 *
-		 * \param processor_id  kernel name of the processor
-		 */
-		void trigger_ip_interrupt(unsigned const processor_id) { }
+		bool is_ip_interrupt(unsigned, unsigned) { return false; }
+		void trigger_ip_interrupt(unsigned) { }
 };
 
 namespace Kernel { class Pic : public Genode::Pic { }; }

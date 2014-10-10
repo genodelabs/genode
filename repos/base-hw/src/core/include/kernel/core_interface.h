@@ -85,7 +85,7 @@ namespace Kernel
 	 *
 	 * Kernel and/or hardware may cache parts of a domain configuration. This
 	 * function ensures that the in-memory state of the targeted domain gets
-	 * processor locally effective.
+	 * CPU-locally effective.
 	 */
 	inline void update_pd(unsigned const pd_id)
 	{
@@ -137,7 +137,7 @@ namespace Kernel
 	 * Start execution of a thread
 	 *
 	 * \param thread_id  kernel name of the targeted thread
-	 * \param cpu_id     kernel name of the targeted processor
+	 * \param cpu_id     kernel name of the targeted CPU
 	 * \param pd_id      kernel name of the targeted domain
 	 * \param utcb       core local pointer to userland thread-context
 	 */
@@ -287,7 +287,7 @@ namespace Kernel
 	 * Create a virtual machine that is stopped initially
 	 *
 	 * \param dst                memory donation for the VM object
-	 * \param state              location of the processor state of the VM
+	 * \param state              location of the CPU state of the VM
 	 * \param signal_context_id  kernel name of the signal context for VM events
 	 *
 	 * \retval >0  kernel name of the new VM
