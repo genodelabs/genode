@@ -34,6 +34,9 @@ extern "C" {
 #include <dde_kit/panic.h>
 }
 
+/* we directly map 'jiffies' to 'dde_kit_timer_ticks' */
+#define jiffies dde_kit_timer_ticks
+
 
 static Timer::Session_client *timer = 0;
 

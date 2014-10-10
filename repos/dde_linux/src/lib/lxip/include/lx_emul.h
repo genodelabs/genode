@@ -351,6 +351,30 @@ enum { true = 1, false = 0 };
 #define __bitwise
 
 
+/*********************
+ ** linux/jiffies.h **
+ *********************/
+
+/* we directly map 'jiffies' to 'dde_kit_timer_ticks' */
+#define jiffies dde_kit_timer_ticks
+
+extern volatile unsigned long jiffies;
+
+enum { INITIAL_JIFFIES = 0 };
+
+unsigned int jiffies_to_msecs(const unsigned long);
+unsigned int jiffies_to_usecs(const unsigned long);
+unsigned long msecs_to_jiffies(const unsigned int);
+
+long time_after(long a, long b);
+long time_after_eq(long a, long b);
+
+static inline long time_before(long a, long b) { return time_after(b, a); }
+static inline long time_before_eq(long a, long b) { return time_after_eq(b ,a); }
+
+clock_t jiffies_to_clock_t(unsigned long);
+
+
 /******************
  ** linux/kmod.h **
  ******************/
@@ -1253,27 +1277,6 @@ struct rw_semaphore { int dummy; };
 
 #define __RWSEM_INITIALIZER(name) { 0 }
 
-
-
-/*********************
- ** linux/jiffies.h **
- *********************/
-
-extern volatile unsigned long jiffies;
-
-enum { INITIAL_JIFFIES = 0 };
-
-unsigned int jiffies_to_msecs(const unsigned long);
-unsigned int jiffies_to_usecs(const unsigned long);
-unsigned long msecs_to_jiffies(const unsigned int);
-
-long time_after(long a, long b);
-long time_after_eq(long a, long b);
-
-static inline long time_before(long a, long b) { return time_after(b, a); }
-static inline long time_before_eq(long a, long b) { return time_after_eq(b ,a); }
-
-clock_t jiffies_to_clock_t(unsigned long);
 
 
 /******************

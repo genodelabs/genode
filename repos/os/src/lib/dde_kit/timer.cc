@@ -30,7 +30,6 @@ using namespace Genode;
  ************************/
 
 volatile unsigned long dde_kit_timer_ticks;
-extern "C" volatile unsigned long jiffies __attribute__ ((alias ("dde_kit_timer_ticks")));
 
 
 /***************************

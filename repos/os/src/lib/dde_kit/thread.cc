@@ -274,7 +274,7 @@ extern "C" void dde_kit_thread_msleep(unsigned long msecs)
 	Lock *lock;
 	struct dde_kit_timer *timer;
 
-	unsigned long timeout = jiffies + (msecs * DDE_KIT_HZ) / 1000;
+	unsigned long timeout = dde_kit_timer_ticks + (msecs * DDE_KIT_HZ) / 1000;
 
 	lock = new (env()->heap()) Lock(Lock::LOCKED);
 	timer = dde_kit_timer_add(_wake_up_msleep, lock, timeout);

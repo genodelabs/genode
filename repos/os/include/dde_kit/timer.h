@@ -28,7 +28,6 @@
 
 /** Timer tick (global symbol) */
 extern volatile unsigned long dde_kit_timer_ticks;
-extern volatile unsigned long jiffies;
 
 /** Timer tick rate */
 enum { DDE_KIT_HZ = 100 };
