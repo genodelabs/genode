@@ -174,7 +174,7 @@ bool Vancouver_console::receive(MessageConsole &msg)
 			msg.info->vbe1[5] = 0x0; /* blue field position */
 			msg.info->vbe1[6] = 0x0; /* reserved mask size */
 			msg.info->vbe1[7] = 0x0; /* reserved field position */
-			msg.info->vbe1[8] = 0x0; /* direct color mode info */
+			msg.info->colormode = 0x0; /* direct color mode info */
 			msg.info->phys_base = 0xe0000000;
 			msg.info->_phys_size = _fb_mode.width()*_fb_mode.height()*2;
 			return true;
@@ -192,6 +192,7 @@ bool Vancouver_console::receive(MessageMemRegion &msg)
 		if (!fb_active) fb_active = true;
 		Logging::printf("Reactivating text buffer loop.\n");
 	}
+	return false;
 }
 
 
@@ -358,9 +359,8 @@ Vancouver_console::Vancouver_console(Synced_motherboard &mb,
 :
 	Thread("vmm_console"),
 	_startup_lock(Genode::Lock::LOCKED),
-	_vm_fb_size(vm_fb_size), _motherboard(mb),
-	_fb_size(0), _pixels(0), _guest_fb(0),
-	_regs(0), _fb_ds(fb_ds),
+	_motherboard(mb), _pixels(0), _guest_fb(0), _fb_size(0),
+	_fb_ds(fb_ds), _vm_fb_size(vm_fb_size), _regs(0),
 	_left(false), _middle(false), _right(false)
 {
 	start();

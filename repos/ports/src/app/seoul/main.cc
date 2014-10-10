@@ -188,10 +188,10 @@ class Guest_memory
 		 */
 		Guest_memory(Genode::size_t backing_store_size, Genode::size_t fb_size)
 		:
-			_backing_store_size(backing_store_size),
-			_fb_size(fb_size),
 			_ds(Genode::env()->ram_session()->alloc(backing_store_size-fb_size)),
 			_fb_ds(Genode::env()->ram_session()->alloc(fb_size)),
+			_backing_store_size(backing_store_size),
+			_fb_size(fb_size),
 			_local_addr(0),
 			_fb_addr(0),
 			remaining_size(backing_store_size-fb_size)
@@ -446,7 +446,7 @@ class Vcpu_dispatcher : public Vcpu_handler,
 			                         + crd.addr() - vmm_memory_base;
 
 			if (verbose_npt)
-				Logging::printf("NPT mapping (base=0x%lx, order=%d, hotspot=0x%lx)\n",
+				Logging::printf("NPT mapping (base=0x%lx, order=%lu, hotspot=0x%lx)\n",
 				                crd.base(), crd.order(), hotspot);
 
 			utcb->mtd = 0;
@@ -622,7 +622,7 @@ class Vcpu_dispatcher : public Vcpu_handler,
 		void _vmx_ioio()
 		{
 			Utcb *utcb = _utcb_of_myself();
-			unsigned order;
+			unsigned order = 0U;
 			if (utcb->qual[0] & 0x10) {
 				Logging::printf("invalid gueststate\n");
 				assert(utcb->mtd & MTD_RFLAGS);
@@ -866,7 +866,7 @@ class Machine : public StaticReceiver<Machine>
 					msg.len = _guest_memory.fb_size();
 					msg.ptr = _guest_memory.backing_store_local_base();
 					_alloc_fb_mem = false;
-					Logging::printf("_alloc_fb_mem -> len=0x%lx, ptr=0x%p\n",
+					Logging::printf("_alloc_fb_mem -> len=0x%zx, ptr=0x%p\n",
 					                msg.len, msg.ptr);
 					return true;
 				}
@@ -879,7 +879,7 @@ class Machine : public StaticReceiver<Machine>
 				}
 
 				if (verbose_debug)
-					Logging::printf(" -> len=0x%lx, ptr=0x%p\n",
+					Logging::printf(" -> len=0x%zx, ptr=0x%p\n",
 					                msg.len, msg.ptr);
 				return true;
 
@@ -905,7 +905,7 @@ class Machine : public StaticReceiver<Machine>
 				msg.phys = _guest_memory.remaining_size;
 
 				if (verbose_debug)
-					Logging::printf("-> allocated from guest %08lx+%lx\n",
+					Logging::printf("-> allocated from guest %08zx+%lx\n",
 					                _guest_memory.remaining_size, msg.value);
 				return true;
 
@@ -1069,6 +1069,7 @@ class Machine : public StaticReceiver<Machine>
 
 					/* start receiver thread for this MAC */
 					Vancouver_network * netreceiver = new Vancouver_network(_motherboard, _nic);
+					assert(netreceiver);
 
 					return true;
 				}
@@ -1422,17 +1423,17 @@ int main(int argc, char **argv)
 	/* diagnostic messages */
 	if (colocate)
 		Genode::printf("[0x%012lx, 0x%012lx) - %lu MiB - VM accessible "
-		               "memory\n", 0, vm_size, vm_size / 1024 / 1024);
+		               "memory\n", 0UL, vm_size, vm_size / 1024 / 1024);
 
 	if (guest_memory.backing_store_local_base())
-		Genode::printf("[0x%012p, 0x%012p) - %lu MiB - VMM accessible shadow "
+		Genode::printf("[0x%12p, 0x%12p) - %lu MiB - VMM accessible shadow "
 		               "mapping of VM memory \n",
 		               guest_memory.backing_store_local_base(),
 		               guest_memory.backing_store_local_base() +
 		               guest_memory.remaining_size, vm_size / 1024 / 1024);
 
 	if (guest_memory.backing_store_fb_local_base())
-		Genode::printf("[0x%012p, 0x%012p) - %lu MiB - VMM accessible "
+		Genode::printf("[0x%12p, 0x%12p) - %lu MiB - VMM accessible "
 		               "framebuffer memory of VM\n",
 		               guest_memory.backing_store_fb_local_base(),
 		               guest_memory.backing_store_fb_local_base() + fb_size,

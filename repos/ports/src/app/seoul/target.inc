@@ -24,7 +24,7 @@ INC_DIR += $(SEOUL_CONTRIB_DIR)/include
 INC_DIR += $(SEOUL_GENODE_DIR)/include
 INC_DIR += $(PRG_DIR)/../include
 
-CC_WARN += -Wno-parentheses
+CC_WARN += -Wno-parentheses -Wall
 CC_CXX_OPT += -march=core2
 CC_CXX_OPT += -mssse3
 

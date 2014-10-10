@@ -207,15 +207,13 @@ bool Vancouver_disk::receive(MessageDisk &msg)
 		                                   &_diskcon[msg.disknr].blk_size,
 		                                   &_diskcon[msg.disknr].ops);
 
-		Logging::printf("Got info: %lu blocks (%u B), ops (R: %x, W:%x)\n ",
+		Logging::printf("Got info: %llu blocks (%zu B), ops (R: %x, W:%x)\n ",
 		        _diskcon[msg.disknr].blk_cnt,
 		        _diskcon[msg.disknr].blk_size,
 		        _diskcon[msg.disknr].ops.supported(Block::Packet_descriptor::READ),
 		        _diskcon[msg.disknr].ops.supported(Block::Packet_descriptor::WRITE)
 		);
 	}
-
-	Block::Session::Tx::Source *source = _diskcon[msg.disknr].blk_con->tx();
 
 	msg.error = MessageDisk::DISK_OK;
 
