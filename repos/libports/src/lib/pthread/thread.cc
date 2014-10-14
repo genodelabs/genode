@@ -598,4 +598,50 @@ extern "C" {
 
 		return 0;
 	}
+
+
+	int pthread_once(pthread_once_t *once, void (*init_once)(void))
+	{
+		if (!once || ((once->state != PTHREAD_NEEDS_INIT) &&
+		              (once->state != PTHREAD_DONE_INIT)))
+			return EINTR;
+
+		if (!once->mutex) {
+			pthread_mutex_t p = new (env()->heap()) pthread_mutex(0);
+			/* be paranoid */
+			if (!p)
+				return EINTR;
+
+			static Lock lock;
+
+			lock.lock();
+			if (!once->mutex) {
+				once->mutex = p;
+				p = nullptr;
+			}
+			lock.unlock();
+
+			/*
+			 * If another thread concurrently allocated a mutex and was faster,
+			 * free our mutex since it is not used.
+			 */
+			if (p)
+				destroy(env()->heap(), p);
+		}
+
+		once->mutex->lock();
+
+		if (once->state == PTHREAD_DONE_INIT) {
+			once->mutex->unlock();
+			return 0;
+		}
+
+		init_once();
+
+		once->state = PTHREAD_DONE_INIT;
+
+		once->mutex->unlock();
+
+		return 0;
+	}
 }
