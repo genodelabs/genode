@@ -1,0 +1,37 @@
+##
+# Populate directory with binaries on seL4
+#
+proc run_boot_dir {binaries} {
+	#
+	# Collect contents of the ISO image
+	#
+	copy_and_strip_genode_binaries_to_run_dir $binaries
+
+	build { kernel }
+	exec cp bin/sel4 [run_dir]/sel4
+
+	if {[have_include "image/iso"] || [have_include "image/disk"]} {
+		#
+		# Install isolinux/GRUB files and bender
+		#
+		install_iso_bootloader_to_run_dir
+
+		#
+		# Generate GRUB config file
+		#
+		set fh [open "[run_dir]/boot/grub/menu.lst" "WRONLY CREAT TRUNC"]
+		puts $fh "timeout 0"
+		puts $fh "default 0"
+		puts $fh "\ntitle Genode on seL4"
+		puts $fh " kernel /sel4"
+		foreach binary $binaries {
+			if {$binary != "core"} {
+				puts $fh " module /genode/$binary" } }
+		close $fh
+	}
+
+	#
+	# Build image
+	#
+	run_image
+}

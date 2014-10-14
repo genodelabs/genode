@@ -1,0 +1,8 @@
+LICENSE   := GPLv2
+VERSION   := git
+DOWNLOADS := sel4.git
+
+URL(sel4) := https://github.com/seL4/seL4.git
+# experimental branch
+REV(sel4) := b6fbb78cb1233aa8549ea3acb90524306f49a8d2
+DIR(sel4) := src/kernel/sel4

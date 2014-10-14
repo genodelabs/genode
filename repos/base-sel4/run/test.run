@@ -1,0 +1,7 @@
+create_boot_directory
+
+build_boot_image ""
+
+append qemu_args " -nographic -m 64 "
+
+run_genode_until forever
