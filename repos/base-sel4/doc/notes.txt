@@ -777,6 +777,19 @@ compiling position-independent code (as is the case for Genode). For now,
 we have are not compiling with '-fPIC' enabled but this issue is clear
 in front of us.
 
+Patches for the seL4 code will be reside at _base-sel4/src/kernel/_. E.g.,
+we just added the current modification of the _syscalls.h_ header by
+copying a git diff to the file _base-sel4/src/kernel/syscalls.patch_.
+To apply the patch automatically when preparing the seL4 port, we need
+to modify the _base-sel4/ports/sel4.port_ file by adding the following
+lines:
+
+! PATCHES   := src/kernel/syscalls.patch
+! PATCH_OPT := -p1 -d src/kernel/sel4
+
+Since we modified the port-description file, we need to update the
+accompanied hash via './tool/ports/update_hash sel4'.
+
 Anyway, after all the steps, our test-sel4 program can be successfully
 built. Executing the run script produces the result that we longed for:
 
