@@ -37,12 +37,11 @@ using namespace Genode;
 static Heap *cxx_heap()
 {
 	/*
-	 * Exception frames are small (ca. 100 bytes). Hence, a small static
-	 * backing store suffices for the cxx heap partition in the normal
-	 * case. The 'env()->ram_session' is used only if the demand exceeds
-	 * the capacity of the 'initial_block'.
+	 * Exception frames are small. Hence, a small static backing store suffices
+	 * for the cxx heap partition in the normal case. The 'env()->ram_session'
+	 * is used only if the demand exceeds the capacity of the 'initial_block'.
 	 */
-	static char initial_block[512];
+	static char initial_block[1024*sizeof(long)];
 	static Heap heap(env()->ram_session(), env()->rm_session(),
 	                 Heap::UNLIMITED, initial_block, sizeof(initial_block));
 	return &heap;
