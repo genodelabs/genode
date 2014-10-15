@@ -16,7 +16,7 @@ LINKER_OPT_PREFIX := -Wl,
 build_kernel:
 	$(VERBOSE)$(MAKE) \
 	          TOOLPREFIX=$(CROSS_DEV_PREFIX) \
-	          ARCH=ia32 PLAT=pc99 DEBUG=1 V=1 \
+	          ARCH=ia32 PLAT=pc99 DEBUG=1 \
 	          LDFLAGS+=-nostdlib LDFLAGS+=-Wl,-nostdlib \
 	          $(addprefix LDFLAGS+=$(LINKER_OPT_PREFIX),$(LD_MARCH)) \
 	          CFLAGS+=-fno-builtin-printf \

@@ -24,10 +24,10 @@ Following the convention to host each kernel in its dedicated _base-<kernel>_
 source repository, the seL4-specific code will go to _base-sel4_. This way,
 we can cleanly hold the seL4-specific code apart from generic Genode code.
 
-For the start, the new repository will contain three things: This notes
-document at _doc/_, the port-description file for downloading the seL4
+For the start, the new repository will contain two things: This notes
+document at _doc/_ and the port-description file for downloading the seL4
 kernel _(ports/sel4.port)_ accompanied with the corresponding hash file
-_(ports/sel4.hash)_, and a bunch of small tests _(src/test/sel4/)_
+_(ports/sel4.hash)_.
 
 Since seL4 is hosted on GitHub, writing a port-description file is easy.
 We can simply use _base-nova/ports/nova.port_ as a template and adapt it:
@@ -293,4 +293,318 @@ a root task to the system.
 A root task for exercising the kernel interface
 ===============================================
 
+At this point, there are two options. We could either start with a very
+minimalistic hello-world program that is completely unrelated to Genode. Such
+a root-task from scratch could be used to explore the individual system calls
+before jumping into Genode. The second option would be to go directly for
+a Genode program, which includes a proper C++ runtime and Genode's generic
+linker script.
 
+I went for the latter option and created a simple test program at
+_base-sel4/src/test/sel4/_. The _target.mk_ file looks as follows:
+
+! TARGET = test-sel4
+! SRC_CC = main.cc
+! LIBS   = cxx startup
+
+The 'main' function of the _main.cc_ file does no much except for writing
+at an illegal (yet known) address:
+
+! int main()
+! {
+! 	*(int *)0x1122 = 0;
+! 	return 0;
+! }
+
+When attempting to build the program by issuing 'make test/sel4' from within
+our build directory, the build system will attempt to compile the C++ runtime,
+which, in turn, depends on a few Genode headers. Some headers are readily
+provided by the _base/_ repository but others are expected to be supplied
+by the _base-<kernel>_ repository. The compile errors look like this:
+
+!     COMPILE  malloc_free.o
+! In file included from repos/base/include/parent/capability.h:17:0,
+!                  from repos/base/include/base/env.h:20,
+!                  from repos/base/src/base/cxx/malloc_free.cc:17:
+! repos/base/include/base/capability.h:21:31:
+!   fatal error: base/native_types.h: No such file or directory
+
+For now, we can supply a dummy version of this header, which contain
+preliminary type definitions. To see, which types are expected from which
+header file, we can take cues from the other _base-<kernel>_ platforms.
+
+At link time, we will observe plenty of undefined references originating
+from the startup code. Most of those references concern basic data
+structures such as the AVL tree. Normally, those symbols are provided by
+the so-called _base-common_ library, which is used both core and non-core
+programs. We can take a copy of a _base-common.mk_ file from one of the
+other base platforms as a starting point. I decided to go for the version
+provided by _base-nova_. With the base-common library present, we can
+replace the 'cxx' and 'startup' libs by the base-common library in the
+'LIBS' declaration of our test-sel4 program. Because base-common already
+depends on both 'cxx' and 'startup', there is no need to specify those
+libraries twice.
+
+On the attempt to compile the base-common library, we will stumble over
+further missing headers such as _ipc_msgbuf.h_. Here the _base-linux_
+version of this file becomes handy because it is free-standing.
+
+When compiling _lock.cc_, the compiler complaints about the missing
+_lock_helper.h_ file. This platform-specific file that is internally used by
+the lock implementation is normally expected
+at _base-<kernel>/src/base/lock/_. For now, just for getting the binary
+linked, we provide empty dummies:
+
+! static inline void thread_yield() { }
+! static inline void thread_switch_to(Genode::Thread_base *thread_base) { }
+! static inline void thread_stop_myself() { }
+! 
+! static inline bool thread_check_stopped_and_restart(Genode::Thread_base *)
+! {
+! 	return false;
+! }
+
+The next missing piece is the platform-specific implementation of the IPC
+API _(ipc/ipc.cc and ipc/pager.cc)_, which are expected to reside at
+_base-sel4/src/base/ipc/_. We just take the simplest version of the other
+base platforms (in this case _base-codezero/src/base/ipc/) and strip it down
+to become mere dummy.
+
+By adding the base-common library, the number of unresolved references
+decreased by a great amount. Some functions are still unresolved.
+There are many references to 'printf', which is not part of the base-common
+library because core uses a different back end (typically a kernel debugger)
+than non-core processes (using a session to core's LOG service). Because
+our test plays the role of a root task, we can include core's version by
+adding 'base/src/base/console/core_printf.cc' as source to our target
+description file.
+
+! SRC_CC += base/console/core_printf.cc
+! vpath %.cc $(BASE_DIR)/src
+
+The back end of 'core_printf.cc' has to be provided by a header at
+_base-sel4/src/base/console/core_console.h_. For now, we just provide
+an empty implementation of '_out_char'. To let the compiler find the
+header, we need to add the extend the include search path as follows:
+
+! INC_DIR += $(REP_DIR)/src/base/console
+
+For the unresolved references for 'env_context_area_ram_session' and
+'env_context_area_rm_session', the following dummy will do:
+
+! #include <ram_session/ram_session.h>
+! #include <rm_session/rm_session.h>
+!
+! namespace Genode {
+! 	Rm_session  *env_context_area_rm_session()  { return nullptr; }
+! 	Ram_session *env_context_area_ram_session() { return nullptr; }
+! }
+
+The remaining pieces of the puzzle is the 'Genode::env()' function, which
+is an accessor to the Genode environment. Because the Genode environment does
+not exist yet, we provide a dummy 'env' called _mini_env_. Initially, this
+implementation of the 'Genode::Env' interface merely returns dummy values
+(null pointers and invalid capabilies).
+
+After this step, the test-sel4 target links successfully. To use it as
+roottask, we have to modify our _test.run_ script by
+
+# Adding a build step
+  ! build { test/sel4 }
+# Specifying the test-sel4 binary as boot module so that the our run
+  environment includes it in the boot image and appends the file as module
+  to the boot-loader configuration.
+  ! build_boot_image "test-sel4"
+
+When issuing 'make run/test' now, we get the following messages from the
+kernel:
+
+! Detected 1 boot module(s):
+!   module #0: start=0x169000 end=0x186754 size=0x1d754
+!              name='/genode/test-sel4'
+! ELF-loading userland images from boot modules:
+!   module #0 for node #0: size=0x27000 v_entry=0x136cc
+!                          v_start=0x0 v_end=0x27000
+!                          p_start=0x187000 p_end=0x1ae000
+! Moving loaded userland images to final location:
+!                          from=0x187000 to=0x15e000 size=0x27000
+!
+! Starting node #0
+! Caught cap fault in send phase at address 0x0
+! while trying to handle:
+! vm fault on data at address 0x9090c3fb with status 0x4
+! in thread 0xe0189880 at address 0x314a
+
+Assuming that 'v_start' and 'v_end' stand for the virtual address range
+if the loaded binary, those numbers look weird. Normally, Genode binaries
+are linked at a much higher address, e.g., 0x1000000. By inspecting the
+binary via the readelf commend, it turns out that we haven't yet declared the
+link address for the seL4 platform. So its time to introduce a so-called spec
+file for the "sel4" build-spec value. The new file _base-sel4/mk/spec-sel4.mk_
+will be incorporated into the build process whenever the 'SPEC' declaration of
+the build directory has the value "sel4" listed. To define the default link
+address for the platform, the file has the following content:
+
+! LD_TEXT_ADDR ?= 0x01000000
+
+When issuing 'make test/sel4 VERBOSE=', we can see the link address specified
+at the linker command line. Another look at the binary via readelf confirms
+that the location of the text segment looks good now. Re-executing the run
+script produces the same result as before though. But the last message is
+quite helpful:
+
+! vm fault on data at address 0x0 with status 0x4
+! in thread 0xe0189880 at address 0x100312b
+
+The last address lies well within the text segment of our binary. It seems
+that the kernel has kicked off the execution of our root task (presumably
+at the entry point address as found in the ELF binary). At some point, our
+"root task" de-references a null pointer. Given that several of the dummy
+functions that we just created, return null pointers, this is hardly a
+surprise. So let us have a look how far we have come by inspecting the
+fault address 0x100312b using
+! objdump -lSd bin/test-sel4 | less
+In less, we search for the pattern "100312b". We see that the surrounding
+code belongs to the heap implementation ('Heap::_allocate_dataspace'). It
+seems that someone is trying to use 'Genode::env()->heap()'. To confirm
+this assumption, we can use Qemu's GDB stub to obtain a backtrace. We have
+to take the following steps:
+
+# We want to halt the execution at the point where the fault would happen
+  instead of triggering a page fault. The easiest way to accomplish that
+  is to insert an infinite loop at the right spot. The infinite loop serve
+  us as a poor man's break point. In our case, we add a 'for (;;);' statement
+  right at the beginning of the '_allocate_dataspace' function in
+  _repos/base/src/base/heap/heap.cc_. When re-executing the run script after
+  this change, we can see that the fault message won't appear.
+
+# We cancel the execution of the run script and start Qemu manually using
+  the command-line arguments that are found in the log output (the message
+  "spawn qemu ...". To enable Qemu's GDB stub, we have to append "-s" as
+  argument.
+  ! qemu-system-i386 -nographic -m 64 -cdrom var/run/test.iso -s
+
+# When qemu is running, we start GDB from another shell (changing to
+  our build directory) as follows:
+  ! gdb bin/test-sel4 -ex "target remote :1234"
+
+# Listing the backtrace via the 'bt' command is quite revealing (output
+  slightly edited for brevity):
+
+  ! (gdb) bt
+  ! #0  Genode::Heap::_allocate_dataspace
+  !     at genode/repos/base/src/base/heap/heap.cc:57
+  ! #1  0x010030b9 in Genode::Heap::_unsynchronized_alloc
+  !     at genode/repos/base/src/base/heap/heap.cc:181
+  ! #2  0x01003155 in Genode::Heap::alloc
+  !     at genode/repos/base/src/base/heap/heap.cc:199
+  ! #3  0x01010732 in malloc
+  ! #4  0x0100f539 in start_fde_sort
+  ! #5  init_object
+  !     at ../../../../../../contrib/gcc-4.7.2/libgcc/unwind-dw2-fde.c:768
+  ! #6  search_object
+  !     at ../../../../../../contrib/gcc-4.7.2/libgcc/unwind-dw2-fde.c:958
+  ! #7  0x01010375 in _Unwind_Find_registered_FDE
+  !     at ../../../../../../contrib/gcc-4.7.2/libgcc/unwind-dw2-fde.c:1022
+  ! #8  _Unwind_Find_FDE
+  !     at ../../../../../../contrib/gcc-4.7.2/libgcc/unwind-dw2-fde-dip.c:440
+  ! #9  0x0100d4c3 in uw_frame_state_for
+  ! #10 0x0100dff8 in uw_init_context_1
+  !     at ../../../../../../contrib/gcc-4.7.2/libgcc/unwind-dw2.c:1500
+  ! #11 0x0100e3ea in _Unwind_RaiseException
+  ! #12 0x01011f51 in __cxa_throw ()
+  ! #13 0x01013751 in init_main_thread ()
+  !     at genode/repos/base/src/platform/init_main_thread.cc:119
+  ! #14 0x010134fe in _start ()
+  !     at genode/repos/base/src/platform/x86_32/crt0.s:47
+
+We can see that Genode's startup code tries to throw the first C++ exception.
+There is a lengthy comment at the corresponding code portion that explains
+the rationale behind throwing an exception right from the startup code.
+The exception handling, in particular the stack unwinding) is done by the
+GCC support library, which eventually calls 'malloc' to allocate some
+backing store for metadata. Genode has no 'malloc' function. But for making
+the GCC support library happy (which expects a C runtime to be present), our
+Genode-specific C++ support code in the form of the 'cxx' library comes with
+a library-local version of malloc _(base/src/base/cxx/malloc_free.cc)_. This
+malloc implementation uses a separate 'Genode::Heap' instance. The instance
+has an initial capacity of 512 bytes. If the allocations exceed this capacity,
+this heap will try to expand using 'env()->ram_session()' as backing store.
+This is why the '_allocate_dataspace' function was called. At the current
+stage, we don't have an implementation of 'env()->ram_session()'. To work
+around this early allocation issue, we can simply increase the capacity of
+the 'initial_block', let's say by factor 10. When re-executing the run script
+now, '_allocate_dataspace' won't be called. Hence, we execution won't get
+stuck in our infinite loop (we can remove the loop either way now). Instead,
+we get another null-pointer dereference:
+
+! vm fault on data at address 0x0 with status 0x4
+! in thread 0xe0189880 at address 0x1003ab7
+
+The procedure to investigate the reason for this page fault is exactly the
+same as for the first one, using objdump, infinite loops, and Qemu's GDB stub.
+
+This time, the null-pointer dereference occurs in
+_base/src/base/thread/thread.cc_ on the attempt to allocate so-called
+thread context for the main thread. Such thread contexts contain the
+stacks and meta data of threads. They are placed in a dedicated virtual
+memory area that is manually managed by the process.
+
+For our minimalistic root task, we don't have Genode's address-space
+management facilities at our disposal yet. So we have to side-step the
+'_alloc_context' function somehow. This can be accomplished by using
+custom version of _thread.cc_ instead of the one provided by the _base/_
+repository. So we remove _thread.cc_ from the base-common library for now
+and add a new _thread.cc_ file to our test-sel4 target. The following
+dummy stub will do for now:
+
+! static Thread_base::Context *main_context()
+! {
+! 	enum { STACK_SIZE = sizeof(long)*4*1024 };
+! 
+! 	static long buffer[STACK_SIZE/sizeof(long)];
+! 
+! 	/* the context is located beyond the top of the stack */
+! 	addr_t const context_addr = (addr_t)buffer + sizeof(buffer)
+! 	                          - sizeof(Thread_base::Context);
+! 
+! 	Thread_base::Context *context = (Thread_base::Context *)context_addr;
+! 	context->stack_base = (addr_t)buffer;
+! 	return context;
+! }
+! 
+! Thread_base *Thread_base::myself() { return nullptr; }
+! 
+! Thread_base::Thread_base(const char *name, size_t stack_size, Type type,
+!                          Cpu_session *cpu_session)
+! :
+! 	_cpu_session(cpu_session), _context(main_context())
+! {
+! 	strncpy(_context->name, name, sizeof(_context->name));
+! 	_context->thread_base = this;
+! 
+! 	_init_platform_thread(type);
+! }
+! 
+! Thread_base::Thread_base(const char *name, size_t stack_size, Type type)
+! : Thread_base(name, stack_size, type, nullptr) { }
+! 
+! Thread_base::~Thread_base() { _deinit_platform_thread(); }
+
+Genode's startup code will change the stack of the main thread prior calling
+the main function. This way, the stack can be placed at a dedicated area of
+the virtual address space (thread-context area). By not placing the stack
+close to the program image, stack overflows won't silently corrupt data but
+trigger a page fault. The code above, however, allocates a dummy context for
+the main thread in the BSS segment (the 'buffer' used as backing store for the
+context is a static variable). This code above is intended as an interim
+solution for the initialization of the main thread only.
+
+When executing our run script again, we will get the following message:
+
+! vm fault on data at address 0x1122 with status 0x6
+! in thread 0xe0189880 at address 0x1000190
+
+This message is caused by the main function of our test program! In this
+function, we deliberately triggered a fault at the address 0x1122 via
+the statement '*(int *)0x1122 = 0;'

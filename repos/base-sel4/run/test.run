@@ -1,6 +1,8 @@
+build { test/sel4 }
+
 create_boot_directory
 
-build_boot_image ""
+build_boot_image "test-sel4"
 
 append qemu_args " -nographic -m 64 "
 
