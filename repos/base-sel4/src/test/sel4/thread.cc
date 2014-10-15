@@ -46,8 +46,6 @@ Thread_base::Thread_base(size_t, const char *name, size_t stack_size, Type type,
 {
 	strncpy(_context->name, name, sizeof(_context->name));
 	_context->thread_base = this;
-
-	_init_platform_thread(type);
 }
 
 
@@ -55,4 +53,4 @@ Thread_base::Thread_base(size_t quota, const char *name, size_t stack_size, Type
 : Thread_base(quota, name, stack_size, type, nullptr) { }
 
 
-Thread_base::~Thread_base() { _deinit_platform_thread(); }
+Thread_base::~Thread_base() { }

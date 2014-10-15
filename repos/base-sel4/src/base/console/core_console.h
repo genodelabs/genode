@@ -11,8 +11,12 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
 #include <base/console.h>
 
+/* seL4 includes */
+#include <sel4/arch/functions.h>
+#include <sel4/arch/syscalls.h>
 
 namespace Genode
 {
@@ -20,8 +24,10 @@ namespace Genode
 	{
 		protected:
 
-			void _out_char(char c) { }
+			void _out_char(char c)
+			{
+				seL4_DebugPutChar(c);
+			}
 	};
 }
-
 

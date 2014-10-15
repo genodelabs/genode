@@ -762,20 +762,19 @@ The next problem is more tricky:
 ! include/sel4/arch/syscalls.h:481:6: error: impossible register constraint in ‘asm’
 
 The error refers to the system-call binding for 'seL4_DebugPutChar'. After
-twiddling with the asm constraints, it turns
-out that the error is caused by the use of an enum value as input argument.
-The C++ compiler is free to pick any integer type that it sees fit for
-representing an enum value. Even though the seL4 developers use a helper
-macro (SEL4_FORCE_LONG_ENUM) to force a certain minimum bit width for the
-used type, the C++ compiler complains. By explicitly casting the input
-argument to 'int', this ambiguity can be resolved and the compiler becomes
-happy. Unfortunately, this means that I will have to patch the system-call
-bindings to make them fit for the use with C++. But looking at the bindings,
-I think that a patch won't be avoidable anyway because the bindings clobber
-the EBX register. This means that we won't be able to use the headers for
-compiling position-independent code (as is the case for Genode). For now,
-we have are not compiling with '-fPIC' enabled but this issue is clear
-in front of us.
+twiddling with the asm constraints, it turns out that the error is caused by
+the use of an enum value as input argument. The C++ compiler is free to pick
+any integer type that it sees fit for representing an enum value. Even though
+the seL4 developers use a helper macro (SEL4_FORCE_LONG_ENUM) to force a
+certain minimum bit width for the used type, the C++ compiler complains. By
+explicitly casting the input argument to 'int', this ambiguity can be resolved
+and the compiler becomes happy. Unfortunately, this means that I will have to
+patch the system-call bindings to make them fit for the use with C++. But
+looking at the bindings, I think that a patch won't be avoidable anyway
+because the bindings clobber the EBX register. This means that we won't be
+able to use the headers for compiling position-independent code (as is the
+case for Genode). For now, we have are not compiling with '-fPIC' enabled but
+this issue is clear in front of us.
 
 Patches for the seL4 code will be reside at _base-sel4/src/kernel/_. E.g.,
 we just added the current modification of the _syscalls.h_ header by
@@ -802,10 +801,20 @@ built. Executing the run script produces the result that we longed for:
 The first line is produced by our test program. Knowing how to print
 characters using the kernel's debug interface, filling out the empty
 stub function 'Genode::Core_console::_out_char' in _core_console.h_
-is easy.
+is easy. We can replace the main program with this version:
 
+! #include <base/printf.h>
+! 
+! int main()
+! {
+! 	PDBG("a message printed via Genode's PDBG");
+! 
+! 	*(int *)0x1122 = 0;
+! 	return 0;
+! }
 
+When running it via 'make run/test', it produces the expected result:
 
-
+! int main(): a message printed via Genode's PDBG
 
 
