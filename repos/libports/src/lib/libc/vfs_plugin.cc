@@ -391,7 +391,6 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags,
 		switch (_root_dir.open(path, flags, &handle)) {
 
 		case Result::OPEN_OK:
-			errno = 0;
 			break;
 
 		case Result::OPEN_ERR_UNACCESSIBLE:
@@ -405,7 +404,6 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags,
 				switch (_root_dir.open(path, flags | O_EXCL, &handle)) {
 
 				case Result::OPEN_OK:
-					errno = 0;
 					break;
 
 				case Result::OPEN_ERR_EXISTS:
@@ -479,7 +477,7 @@ int Libc::Vfs_plugin::mkdir(const char *path, mode_t mode)
 	case Result::MKDIR_ERR_NO_SPACE:      errno = ENOSPC;       return -1;
 	case Result::MKDIR_ERR_NAME_TOO_LONG: errno = ENAMETOOLONG; return -1;
 	case Result::MKDIR_ERR_NO_PERM:       errno = EPERM;        return -1;
-	case Result::MKDIR_OK:                errno = 0;            break;
+	case Result::MKDIR_OK:                                      break;
 	}
 	return 0;
 }
@@ -498,7 +496,7 @@ int Libc::Vfs_plugin::stat(char const *path, struct stat *buf)
 
 	switch (_root_dir.stat(path, stat)) {
 	case Result::STAT_ERR_NO_ENTRY: errno = ENOENT; return -1;
-	case Result::STAT_OK:           errno = 0;      break;
+	case Result::STAT_OK:                           break;
 	}
 
 	vfs_stat_to_libc_stat_struct(stat, buf);
@@ -521,7 +519,7 @@ ssize_t Libc::Vfs_plugin::write(Libc::File_descriptor *fd, const void *buf,
 	case Result::WRITE_ERR_INVALID:     errno = EINVAL;      return -1;
 	case Result::WRITE_ERR_IO:          errno = EIO;         return -1;
 	case Result::WRITE_ERR_INTERRUPT:   errno = EINTR;       return -1;
-	case Result::WRITE_OK:              errno = 0;           break;
+	case Result::WRITE_OK:                                   break;
 	}
 
 	handle->advance_seek(out_count);
@@ -545,7 +543,7 @@ ssize_t Libc::Vfs_plugin::read(Libc::File_descriptor *fd, void *buf,
 	case Result::READ_ERR_INVALID:     errno = EINVAL;      PERR("A3"); return -1;
 	case Result::READ_ERR_IO:          errno = EIO;         PERR("A4"); return -1;
 	case Result::READ_ERR_INTERRUPT:   errno = EINTR;       PERR("A5"); return -1;
-	case Result::READ_OK:              errno = 0;           break;
+	case Result::READ_OK:                                               break;
 	}
 
 	handle->advance_seek(out_count);
@@ -573,7 +571,7 @@ ssize_t Libc::Vfs_plugin::getdirentries(Libc::File_descriptor *fd, char *buf,
 
 	switch (handle->ds().dirent(fd->fd_path, index, dirent_out)) {
 	case Result::DIRENT_ERR_INVALID_PATH: /* XXX errno */ return -1;
-	case Result::DIRENT_OK:               errno = 0;      break;
+	case Result::DIRENT_OK:                               break;
 	}
 
 	/*
@@ -713,7 +711,7 @@ int Libc::Vfs_plugin::ioctl(Libc::File_descriptor *fd, int request, char *argp)
 	switch (handle->fs().ioctl(handle, opcode, arg, out)) {
 	case Vfs::File_io_service::IOCTL_ERR_INVALID: errno = EINVAL; return -1;
 	case Vfs::File_io_service::IOCTL_ERR_NOTTY:   errno = ENOTTY; return -1;
-	case Vfs::File_io_service::IOCTL_OK:          errno = 0;      break;
+	case Vfs::File_io_service::IOCTL_OK:                          break;
 	}
 
 	/*
@@ -782,7 +780,7 @@ int Libc::Vfs_plugin::ftruncate(Libc::File_descriptor *fd, ::off_t length)
 	switch (handle->fs().ftruncate(handle, length)) {
 	case Result::FTRUNCATE_ERR_NO_PERM:   errno = EPERM; return -1;
 	case Result::FTRUNCATE_ERR_INTERRUPT: errno = EINTR; return -1;
-	case Result::FTRUNCATE_OK:            errno = 0;     break;
+	case Result::FTRUNCATE_OK:                           break;
 	}
 	return 0;
 }
@@ -842,7 +840,7 @@ int Libc::Vfs_plugin::symlink(const char *oldpath, const char *newpath)
 	case Result::SYMLINK_ERR_NO_ENTRY:      errno = ENOENT;       return -1;
 	case Result::SYMLINK_ERR_NAME_TOO_LONG: errno = ENAMETOOLONG; return -1;
 	case Result::SYMLINK_ERR_NO_PERM:       errno = ENOSYS;       return -1;
-	case Result::SYMLINK_OK:                errno = 0;            break;
+	case Result::SYMLINK_OK:                                      break;
 	}
 	return 0;
 }
@@ -856,7 +854,7 @@ ssize_t Libc::Vfs_plugin::readlink(const char *path, char *buf, size_t buf_size)
 
 	switch (_root_dir.readlink(path, buf, buf_size, out_len)) {
 	case Result::READLINK_ERR_NO_ENTRY: errno = ENOENT; return -1;
-	case Result::READLINK_OK:           errno = 0;      break;
+	case Result::READLINK_OK:                           break;
 	};
 
 	return out_len;
@@ -876,7 +874,7 @@ int Libc::Vfs_plugin::unlink(char const *path)
 	switch (_root_dir.unlink(path)) {
 	case Result::UNLINK_ERR_NO_ENTRY: errno = ENOENT; return -1;
 	case Result::UNLINK_ERR_NO_PERM:  errno = EPERM;  return -1;
-	case Result::UNLINK_OK:           errno = 0;      break;
+	case Result::UNLINK_OK:                           break;
 	}
 	return 0;
 }
@@ -890,7 +888,7 @@ int Libc::Vfs_plugin::rename(char const *from_path, char const *to_path)
 	case Result::RENAME_ERR_NO_ENTRY: errno = ENOENT; return -1;
 	case Result::RENAME_ERR_CROSS_FS: errno = EXDEV;  return -1;
 	case Result::RENAME_ERR_NO_PERM:  errno = EPERM;  return -1;
-	case Result::RENAME_OK:           errno = 0;      break;
+	case Result::RENAME_OK:                           break;
 	}
 	return 0;
 }
