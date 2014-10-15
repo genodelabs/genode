@@ -219,7 +219,7 @@ proc build_failed_because_of_missing_run_script { platform run_script } {
 
 	# grep log output for the respective error message of the build system
 	if {[catch {
-		exec grep "^Error: No run script for" [log_file $platform $run_script]
+		exec grep {^\(\[....-..-.. ..:..:..] \)*Error: No run script for} [log_file $platform $run_script]
 	}]} { return 0 }
 	return 1
 }
