@@ -608,3 +608,191 @@ When executing our run script again, we will get the following message:
 This message is caused by the main function of our test program! In this
 function, we deliberately triggered a fault at the address 0x1122 via
 the statement '*(int *)0x1122 = 0;'
+
+
+Issuing the first system call
+=============================
+
+We have successfully started our custom root task but we have not interacted
+with the kernel yet. So it is time to take a look at seL4's system-call
+interface. The interfaces comes in the form of several header files within
+sel4's _libsel4/_ directory. At the first glance, the directory layout looks
+straight forward. The generic parts reside in _libsel4/include/_ whereas
+the architecture-depending parts are located at _libsel4/arch_include/_.
+However, when skimming over the headers, it becomes apparent that some of
+them are generated from XML files. Also, some headers are including
+a top-level header '<autoconf.h>'.
+
+To make sel4's kernel interface visible to the Genode world, we use a pseudo
+library called _platform.mk_. The platform library is built before all other
+libraries and targets and thereby gives us a hook to populate the build
+directory with a custom include-directory structure. Because the selection of
+the kernel-interface header depends on the architecture, we place the
+_platform.mk_ file at _lib/mk/x86_32_. To create the platform library, we can
+take OKL4's version as a blue print. When the library gets built, the include
+directory structure will be created as a side effect. However, we cannot
+implement the removal of the _include/_ directory of a side effect of a clean
+rule because library description files have no clean rule (the build system
+just wipes the respective library directory when cleaning). To complement the
+creation of the _include/_ directory structure with a corresponding clean
+rule, the _base-sel4/mk/spec-sel4.mk_ file can be extended with such a rule,
+which will be globally visible.
+
+The platform library is used as a mere hook to create the include directory
+structure within the build directory. To allow a program to actually use
+those headers, we'd need to extend the include-search path accordingly.
+One way would be to have each target specify the build-directory's local
+include path via 'INC_DIR += $(BUILD_BASE_DIR)/include'. To too bad. However,
+to make the use of the syscall headers more convenient, we introduce just
+another library called _syscall_. The library is solely used for providing
+a so-called library-import file to all targets that use the library. The
+import file contains the extension of the include-search path. Additionally,
+we extend the 'REP_INC_DIR' with the value "include/sel4". This way, we can
+place custom headers (such as a version of _autoconf.h_) within one of the
+Genode source repositories under _include/sel4/_. Those headers will appear
+to be located at the inlude root scope for such targets. Speaking of
+_autoconf.h_, this header is expected by some sel4 includes to distinguish
+the debug mode from the non-debug mode. As we want to enable the debug
+functionality, we supply our version of the _autoconf.h_ file at
+_base-sel4/include/sel4/autoconf.h_ with the definition:
+
+! #define SEL4_DEBUG_KERNEL 1
+
+Besides the _autoconf.h_ file, the kernel-interface headers also require
+an _stdint.h_ to be present at the include root scope. So we place a version
+of this file at _base-sel4/include/sel4/stdint.h_.
+
+! #include <base/fixed_stdint.h>
+! 
+! typedef genode_uint32_t uint32_t;
+! 
+! #ifndef NULL
+! #define NULL ((void *)0)
+! #endif
+
+For trying out the access to the kernel-interface headers, we let our target
+use the syscall library by extending the
+_target.mk_ file with 'LIBS += syscall'. Then, we change the main program
+as follows.
+
+! /* Genode includes */
+! #include <util/string.h>
+! 
+! /* seL4 includes */
+! #include <sel4/arch/syscalls.h>
+! 
+! int main()
+! {
+! 	char const *string = "\nMessage printed via the kernel\n";
+! 	for (unsigned i = 0; i < Genode::strlen(string); i++)
+! 		seL4_DebugPutChar(string[i]);
+! 
+! 	*(int *)0x1122 = 0;
+! 	return 0;
+! }
+
+Here we see three things. First, we can use Genode's usual utilities such as
+the string functions, which is quite convenient. Second, we include one of
+seL4 headers. And third, we try to invoke the 'seL4_DebugPutChar' system call
+to print a string before triggering the page fault at address 0x1122. Before
+we can run the program, through, we just have to overcome yet another problem.
+On the attempt to build it, we get the following message:
+
+!     COMPILE  main.o
+! In file included from include/sel4/arch/syscalls.h:15:0,
+!                  from genode/repos/base-sel4/src/test/sel4/main.cc:18:
+! include/sel4/types.h:16:28: fatal error: sel4/types_gen.h: No such file or directory
+
+A look at the top-level _Makefile_ of seL4 reveals that this file is generated
+from a "types.bf" file using a python script called _tools/bitfield_gen.py_.
+Se we have to add a rule for generating this file to our platform library.
+
+! $(BUILD_BASE_DIR)/include/sel4/types_gen.h: $(LIBSEL4_DIR)/include/sel4/types.bf
+! 	$(VERBOSE)python $(LIBSEL4_DIR)/tools/bitfield_gen.py \
+! 	                 --environment libsel4 "$<" $@
+
+The next missing header that we stumble over is _assert.h_. So we have to add
+a simple version of _assert.h_ to _base-sel4/include/sel4/_. This version
+uses Genode's PDBG facility to print error messages, which is, of course, not
+expected to work yet.
+
+On the next attempt to build the program, the compilation fails because
+of a missing header again:
+
+! In file included from include/sel4/arch/syscalls.h:15:0,
+!                  from genode/repos/base-sel4/src/test/sel4/main.cc:18:
+! include/sel4/types.h:17:26: fatal error: sel4/syscall.h: No such file or directory
+
+The _libsel4/Makefile_ contains the rule to generate this file. At this point,
+I am wondering whether to use this Makefile to add those rules to our
+platform library. I decided for the latter because there are not too many
+files to generate, I will need to look behind the scenes sooner or later
+anyway, and I would need to supply some some additional environment (such
+as providing a _common.mk_ file in order to invoke the original Makefile.
+The rules for generating headers like _syscall.h_ look similar to the rule
+for _types_gen.h_ above.
+
+With _sel4/syscall.h_ in place, we get confronted with another problem:
+
+! include/sel4/arch/syscalls.h: In function ‘void seL4_Send(seL4_CPtr, seL4_MessageInfo_t)’:
+! include/sel4/arch/syscalls.h:32:26: error: ‘seL4_GetMR’ was not declared in this scope
+
+Fortunately, this error is simply caused by a missing include directive of
+_syscalls.h_. The 'seL4_GetMR' function is provided by _sel4/arch/functions.h_
+but this file is never included except for _sel4/sel4.h_. I assume that seL4
+users are expected to always include the _sel4/sel4.h_ file instead of
+including individual kernel headers. By prepending the include of
+'<sel4/arch/functions.h>' to the include of '<sel4/arch/syscalls.h>, the
+problem goes away and clears the path for the next one:
+
+! include/sel4/arch/syscalls.h: In function ‘void seL4_DebugPutChar(char)’:
+! include/sel4/arch/syscalls.h:478:16: error: ‘seL4_SysDebugPutChar’ was not declared in this scope
+
+This message is accompanied with similar errors for "seL4_SysDebugHalt",
+"seL4_SysDebugSnapshot", and "seL4_SysDebugCapIdentify".
+A look in the generated _include/sel4/syscall.h_ reveals that those
+declarations exists only when building in DEBUG mode. Hence, we need
+to add the following line to our _autoconf.h_ file:
+
+! #define DEBUG 1
+
+The next problem is more tricky:
+
+! include/sel4/arch/syscalls.h: In function ‘int main()’:
+! include/sel4/arch/syscalls.h:481:6: error: impossible register constraint in ‘asm’
+
+The error refers to the system-call binding for 'seL4_DebugPutChar'. After
+twiddling with the asm constraints, it turns
+out that the error is caused by the use of an enum value as input argument.
+The C++ compiler is free to pick any integer type that it sees fit for
+representing an enum value. Even though the seL4 developers use a helper
+macro (SEL4_FORCE_LONG_ENUM) to force a certain minimum bit width for the
+used type, the C++ compiler complains. By explicitly casting the input
+argument to 'int', this ambiguity can be resolved and the compiler becomes
+happy. Unfortunately, this means that I will have to patch the system-call
+bindings to make them fit for the use with C++. But looking at the bindings,
+I think that a patch won't be avoidable anyway because the bindings clobber
+the EBX register. This means that we won't be able to use the headers for
+compiling position-independent code (as is the case for Genode). For now,
+we have are not compiling with '-fPIC' enabled but this issue is clear
+in front of us.
+
+Anyway, after all the steps, our test-sel4 program can be successfully
+built. Executing the run script produces the result that we longed for:
+
+! Message printed via the kernel
+! Caught cap fault in send phase at address 0x0
+! while trying to handle:
+! vm fault on data at address 0x1122 with status 0x6
+! in thread 0xe0189880 at address 0x10001d8
+
+The first line is produced by our test program. Knowing how to print
+characters using the kernel's debug interface, filling out the empty
+stub function 'Genode::Core_console::_out_char' in _core_console.h_
+is easy.
+
+
+
+
+
+

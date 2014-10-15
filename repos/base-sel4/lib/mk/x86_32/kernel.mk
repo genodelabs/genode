@@ -1,4 +1,4 @@
-SEL4_DIR = $(call select_from_ports,sel4)/src/kernel/sel4
+SEL4_DIR := $(call select_from_ports,sel4)/src/kernel/sel4
 
 #
 # Execute the kernel build only at the second build stage when we know

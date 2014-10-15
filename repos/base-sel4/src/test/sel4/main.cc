@@ -11,9 +11,19 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
+#include <util/string.h>
+
+/* seL4 includes */
+#include <sel4/arch/functions.h>
+#include <sel4/arch/syscalls.h>
 
 int main()
 {
+	char const *string = "\nMessage printed via the kernel\n";
+	for (unsigned i = 0; i < Genode::strlen(string); i++)
+		seL4_DebugPutChar(string[i]);
+
 	*(int *)0x1122 = 0;
 	return 0;
 }
