@@ -217,11 +217,6 @@ namespace Genode {
 			void insert_sb(Slab_block *sb, Slab_block *at = 0);
 
 			/**
-			 * Allocate slab entry
-			 */
-			void *alloc();
-
-			/**
 			 * Free slab entry
 			 */
 			static void free(void *addr);
@@ -242,10 +237,17 @@ namespace Genode {
 			void backing_store(Allocator *bs) { _backing_store = bs; }
 			Allocator *backing_store() { return _backing_store; }
 
+			/*************************
+			 ** Allocator interface **
+			 *************************/
+
 			/**
-			 * Allocator interface
+			 * Allocate slab entry
+			 *
+			 * The 'size' parameter is ignored as only slab entries with
+			 * preconfigured slab-entry size are allocated.
 			 */
-			bool   alloc(size_t, void **);
+			bool   alloc(size_t size, void **addr);
 			void   free(void *addr, size_t) { free(addr); }
 			size_t consumed();
 			size_t overhead(size_t) { return _block_size/_num_elem; }
