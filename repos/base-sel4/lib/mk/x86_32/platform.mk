@@ -21,14 +21,15 @@ LIBSEL4_DIR := $(call select_from_ports,sel4)/src/kernel/sel4/libsel4
 #
 
 SEL4_ARCH_INCLUDES := objecttype.h types.h bootinfo.h constants.h functions.h \
-                      pfIPC.h syscalls.h exIPC.h
+                      pfIPC.h syscalls.h exIPC.h invocation.h
 
 SEL4_INCLUDES := objecttype.h types.h bootinfo.h errors.h constants.h \
                  messages.h sel4.h benchmark.h types.bf macros.h \
-                 types_gen.h syscall.h
+                 types_gen.h syscall.h invocation.h
 
 SEL4_INCLUDE_SYMLINKS += $(addprefix $(BUILD_BASE_DIR)/include/sel4/,     $(SEL4_INCLUDES))
 SEL4_INCLUDE_SYMLINKS += $(addprefix $(BUILD_BASE_DIR)/include/sel4/arch/,$(SEL4_ARCH_INCLUDES))
+SEL4_INCLUDE_SYMLINKS += $(BUILD_BASE_DIR)/include/sel4/interfaces/sel4_client.h
 
 SEL4_INCLUDE_DIRS = $(sort $(dir $(SEL4_INCLUDE_SYMLINKS)))
 
@@ -61,5 +62,22 @@ $(BUILD_BASE_DIR)/include/sel4/syscall.h: $(LIBSEL4_DIR)/include/api/syscall.xml
 	$(VERBOSE)python $(LIBSEL4_DIR)/tools/syscall_header_gen.py \
 	                 --xml $< --libsel4_header $@
 
+$(BUILD_BASE_DIR)/include/sel4/invocation.h: $(LIBSEL4_DIR)/include/interfaces/sel4.xml
+	$(MSG_CONVERT)$(notdir $@)
+	$(VERBOSE)python $(LIBSEL4_DIR)/tools/invocation_header_gen.py \
+	                 --xml $< --libsel4 --dest $@
+
+$(BUILD_BASE_DIR)/include/sel4/arch/invocation.h: $(LIBSEL4_DIR)/arch_include/ia32/interfaces/sel4arch.xml
+	$(MSG_CONVERT)arch/$(notdir $@)
+	$(VERBOSE)python $(LIBSEL4_DIR)/tools/invocation_header_gen.py \
+	                 --xml $< --libsel4 --arch --dest $@
+
+SEL4_CLIENT_H_SRC := $(LIBSEL4_DIR)/include/interfaces/sel4.xml \
+                     $(LIBSEL4_DIR)/arch_include/ia32/interfaces/sel4arch.xml
+
+$(BUILD_BASE_DIR)/include/sel4/interfaces/sel4_client.h: $(SEL4_CLIENT_H_SRC)
+	$(MSG_CONVERT)$(notdir $@)
+	$(VERBOSE)python $(LIBSEL4_DIR)/tools/syscall_stub_gen.py \
+	                 -a ia32 -o $@ $(SEL4_CLIENT_H_SRC)
 
 endif

@@ -18,7 +18,7 @@ a modern microkernel jointly developed by NICTA and General Dynamics.
 
 
 A fresh Genode source-code repository
-=====================================
+#####################################
 
 Following the convention to host each kernel in its dedicated _base-<kernel>_
 source repository, the seL4-specific code will go to _base-sel4_. This way,
@@ -65,7 +65,7 @@ _contrib/sel4-<hash>/src/kernel/sel4_.
 
 
 Building the kernel for the first time
-======================================
+######################################
 
 For getting acquainted with the code base, the README.md file provides a
 good starting point. It seems to contain exactly the information that I need
@@ -207,7 +207,7 @@ directory of the kernel.
 
 
 Starting the kernel in Qemu
-===========================
+###########################
 
 To test-drive the kernel, we need to create a bootable image including a boot
 loader, the boot-loader configuration, and the kernel. To spare us the
@@ -291,7 +291,7 @@ a root task to the system.
 
 
 A root task for exercising the kernel interface
-===============================================
+###############################################
 
 At this point, there are two options. We could either start with a very
 minimalistic hello-world program that is completely unrelated to Genode. Such
@@ -611,7 +611,7 @@ the statement '*(int *)0x1122 = 0;'
 
 
 Issuing the first system call
-=============================
+#############################
 
 We have successfully started our custom root task but we have not interacted
 with the kernel yet. So it is time to take a look at seL4's system-call
@@ -816,5 +816,117 @@ is easy. We can replace the main program with this version:
 When running it via 'make run/test', it produces the expected result:
 
 ! int main(): a message printed via Genode's PDBG
+
+
+Exploration of the kernel interface
+###################################
+
+Now that we have a nice playground in place, it is time to explore the
+actual kernel interface step by step. The goal is to get a tangible
+feeling for the kernel and to exercise the functionality that is needed
+by Genode. Those functionalities are:
+
+* Access to boot information such as the memory layout and the boot modules
+* Multi-threading
+* Process-local synchronization
+* Synchronous inter-process communication between threads
+* Address-space creation
+* Page-fault handling
+
+At this point, it is useful to take a look at the excellent seL4 reference
+manual to learn the concepts behind the kernel interface:
+
+:[http://sel4.systems/Docs/seL4-manual.pdf]:
+
+  seL4 reference manual
+
+
+Obtaining boot information
+==========================
+
+The manual mentions the function 'seL4_GetBootInfo' to obtain a pointer to
+a boot-info structure. The function implementation, however, requires a
+prior all of 'seL4_InitBootInfo' from the startup code. According to the
+manual, the startup code gets the pointer passed in a CPU register. It
+presumably registers this pointer via 'seL4_InitBootInfo'. Of course, we
+don't want to change Genode's kernel-agnostic startup code by inserting
+a call to the 'seL4_InitBootInfo' function. Fortunately, this is not the
+first time, Genode has to pick up a register value passed by the kernel to
+root task via a CPU register. The startup code already saves the initial
+stack pointer, EAX and EDI. The seL4 manual does not state, which register
+is used. In the kernel code ('create_initial_thread'), the register is denoted
+at "capRegister". A look into _ia32/arch/machine/registerset.h_ reveals that
+this register is actually EBX on the x86 architecture. Since EBX is not
+saved by Genode's startup code yet, we need to enhance the startup code
+a bit to save the initial EBX value in the variable '_initial_bx'.
+
+The boot-info type is declared in _sel4/bootinfo.h_. When including the
+header, we have to expand our _sel4/stdint.h_ version by a definition
+of 'uint8_t'. Also, the header expects CONFIG_MAX_NUM_BOOTINFO_UNTYPED_CAPS
+to be defined. We are just using the kernel's default config value, which
+we copy to our _sel4/autoconf.h_ file.
+
+! #define CONFIG_MAX_NUM_BOOTINFO_UNTYPED_CAPS 800
+
+With those changes in place, we can access the boot info with a utility like
+this:
+
+! #include <sel4/bootinfo.h>
+! 
+! static seL4_BootInfo const *boot_info()
+! {
+! 	extern Genode::addr_t __initial_bx;
+! 	return (seL4_BootInfo const *)__initial_bx;
+! }
+
+While writing a simple 'dump_boot_info' function, I noticed that some boot-info
+fields mentioned in the manual and present on the master branch, have
+disappeared in the experimental branch, i.e., 'numDeviceRegions'.
+
+Anyway, the output of 'dump_boot_info' function looks like this:
+
+! --- boot info at 102c000 ---
+! ipcBuffer:               102b000
+! initThreadCNodeSizeBits: 12
+! untyped:                 [38,4d)
+!                          [38] [00100000,00107fff]
+!                          [39] [00108000,00109fff]
+!                          [3a] [001a0000,001bffff]
+!                          [3b] [001c0000,001fffff]
+!                          [3c] [00200000,003fffff]
+!                          [3d] [00400000,007fffff]
+!                          [3e] [00800000,00ffffff]
+!                          [3f] [01000000,01ffffff]
+!                          [40] [02000000,02ffffff]
+!                          [41] [03000000,037fffff]
+!                          [42] [03800000,03bfffff]
+!                          [43] [03c00000,03dfffff]
+!                          [44] [03e00000,03efffff]
+!                          [45] [03f00000,03f7ffff]
+!                          [46] [03f80000,03fbffff]
+!                          [47] [03fc0000,03fdffff]
+!                          [48] [03fe0000,03feffff]
+!                          [49] [03ff0000,03ff7fff]
+!                          [4a] [03ff8000,03ffbfff]
+!                          [4b] [03ffc000,03ffdfff]
+!                          [4c] [00189000,001897ff]
+
+
+Creating a thread
+=================
+
+On seL4, kernel objects are created by turning untyped memory into kernel
+memory using the 'seL4_Untype_Retype' function. As a first test. I am going to
+manually define the parameters for this function using the information from
+the boot info.
+
+But before I can start using this function, we first need to generate some
+stub code. We need to generate _sel4/invocation.h_ and its corresponding
+_sel4/arch/invocation.h_. The rules in the platform library are quickly added,
+taking the seL4 Makefile as inspiration. We also need to generate the
+_interfaces/sel4_client.h_ stub code. In the stub code, we find the function
+'seL4_Untyped_RetypeAtOffset', which pretty much matches the signature of
+'seL4_Untype_Retype' explained in the manual. This is just another difference
+from the master branch.
 
 
