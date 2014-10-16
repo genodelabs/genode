@@ -98,16 +98,17 @@ namespace Kernel
 	 *
 	 * \param p         memory donation for the new kernel thread object
 	 * \param priority  scheduling priority of the new thread
+	 * \param quota     CPU-time quota of the new thread in milliseconds
 	 * \param label     debugging label of the new thread
 	 *
 	 * \retval >0  kernel name of the new thread
 	 * \retval  0  failed
 	 */
 	inline unsigned new_thread(void * const p, unsigned const priority,
-	                           char const * const label)
+	                           size_t const quota, char const * const label)
 	{
 		return call(call_id_new_thread(), (Call_arg)p, (Call_arg)priority,
-		            (Call_arg)label);
+		            (Call_arg)quota, (Call_arg)label);
 	}
 
 

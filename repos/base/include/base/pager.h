@@ -136,7 +136,7 @@ namespace Genode {
 		public:
 
 			Pager_activation_base(const char *name, size_t stack_size) :
-				Thread_base(name, stack_size),
+				Thread_base(0, name, stack_size),
 				_cap(Native_capability()), _ep(0), _cap_valid(Lock::LOCKED) { }
 
 			/**

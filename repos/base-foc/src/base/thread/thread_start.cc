@@ -39,7 +39,7 @@ void Thread_base::_deinit_platform_thread()
 }
 
 
-void Thread_base::_init_platform_thread(Type type)
+void Thread_base::_init_platform_thread(size_t, Type type)
 {
 	/* if no cpu session is given, use it from the environment */
 	if (!_cpu_session)
@@ -50,7 +50,7 @@ void Thread_base::_init_platform_thread(Type type)
 		/* create thread at core */
 		char buf[48];
 		name(buf, sizeof(buf));
-		_thread_cap = _cpu_session->create_thread(buf);
+		_thread_cap = _cpu_session->create_thread(0, buf);
 
 		/* assign thread to protection domain */
 		env()->pd_session()->bind_thread(_thread_cap);

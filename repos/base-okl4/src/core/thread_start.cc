@@ -35,7 +35,7 @@ void Thread_base::start()
 {
 	/* create and start platform thread */
 	_tid.pt = new(platform_specific()->thread_slab())
-		Platform_thread(_context->name);
+		Platform_thread(0, _context->name);
 
 	platform_specific()->core_pd()->bind_thread(_tid.pt);
 

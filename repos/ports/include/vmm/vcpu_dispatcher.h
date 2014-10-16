@@ -61,7 +61,7 @@ class Vmm::Vcpu_dispatcher : public T
 		                Cpu_session * cpu_session,
 		                Genode::Affinity::Location location)
 		:
-			T("vCPU dispatcher", stack_size),
+			T(0, "vCPU dispatcher", stack_size),
 			_cap(cap)
 		{
 			using namespace Genode;

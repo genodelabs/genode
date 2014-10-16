@@ -53,6 +53,7 @@ namespace Genode {
 
 		private:
 
+			size_t              const _quota;
 			Thread_name         const _name;
 			Platform_thread           _platform_thread;
 			bool                      _bound;            /* pd binding flag */
@@ -62,16 +63,17 @@ namespace Genode {
 
 		public:
 
-			Cpu_thread_component(Session_label const &label,
+			Cpu_thread_component(size_t quota, Session_label const &label,
 			                     Thread_name const &name,
 			                     unsigned priority, addr_t utcb,
 			                     Signal_context_capability sigh,
 			                     unsigned trace_control_index,
 			                     Trace::Control &trace_control)
 			:
-				_name(name),
-				_platform_thread(name.string(), priority, utcb), _bound(false),
-				_sigh(sigh), _trace_control_index(trace_control_index),
+				_quota(quota), _name(name),
+				_platform_thread(quota, name.string(), priority, utcb),
+				_bound(false), _sigh(sigh),
+				_trace_control_index(trace_control_index),
 				_trace_source(label, _name, trace_control)
 			{
 				update_exception_sigh();
@@ -86,6 +88,7 @@ namespace Genode {
 			bool             bound()     const { return _bound; }
 			void             bound(bool b)     { _bound = b; }
 			Trace::Source   *trace_source()    { return &_trace_source; }
+			size_t           quota() const     { return _quota; }
 
 			void sigh(Signal_context_capability sigh)
 			{
@@ -105,7 +108,8 @@ namespace Genode {
 	};
 
 
-	class Cpu_session_component : public Rpc_object<Cpu_session>
+	class Cpu_session_component : public Rpc_object<Cpu_session>,
+	                              public List<Cpu_session_component>::Element
 	{
 		public:
 
@@ -114,6 +118,7 @@ namespace Genode {
 		private:
 
 			Session_label              _label;
+			Rpc_entrypoint * const     _session_ep;
 			Rpc_entrypoint            *_thread_ep;
 			Pager_entrypoint          *_pager_ep;
 			Allocator_guard            _md_alloc;          /* guarded meta-data allocator */
@@ -128,6 +133,70 @@ namespace Genode {
 			                                                  session */
 			Trace::Source_registry    &_trace_sources;
 			Trace::Control_area        _trace_control_area;
+
+			/*
+			 * Members for quota accounting
+			 */
+
+			Cpu_session_component *     _ref;
+			size_t                      _used;
+			size_t                      _quota;
+			List<Cpu_session_component> _ref_members;
+			Lock                        _ref_members_lock;
+
+			/*
+			 * Utilities for quota accounting
+			 */
+
+			size_t _avail() { return _quota - _used; }
+
+			size_t _local_to_global(size_t const q) const {
+				return (q * _quota) >> Cpu_session::QUOTA_LIMIT_LOG2; }
+
+			size_t _global_to_local(size_t const q) const {
+				if (!_quota) { return 0; }
+				return (q << Cpu_session::QUOTA_LIMIT_LOG2) / _quota; }
+
+			int _insuff_for_transfer(size_t const q);
+
+			void _insuff_for_consume(size_t const q);
+
+			int _transfer_back(size_t const q)
+			{
+				_quota -= q;
+				_ref->_used -= q;
+				return 0;
+			}
+
+			int _transfer_forth(Cpu_session_component * const s, size_t const q)
+			{
+				s->_quota += q;
+				_used += q;
+				return 0;
+			}
+
+			void _insert_ref_member(Cpu_session_component * const s)
+			{
+				Lock::Guard lock_guard(_ref_members_lock);
+				_ref_members.insert(s);
+				s->_ref = this;
+			}
+
+			void _unsync_remove_ref_member(Cpu_session_component * const s)
+			{
+				s->_ref = 0;
+				_ref_members.remove(s);
+			}
+
+			void _remove_ref_member(Cpu_session_component * const s)
+			{
+				Lock::Guard lock_guard(_ref_members_lock);
+				_unsync_remove_ref_member(s);
+			}
+
+			void _deinit_ref_account();
+
+			void _deinit_threads();
 
 			/**
 			 * Exception handler that will be invoked unless overridden by a
@@ -150,11 +219,13 @@ namespace Genode {
 			/**
 			 * Constructor
 			 */
-			Cpu_session_component(Rpc_entrypoint         *thread_ep,
+			Cpu_session_component(Rpc_entrypoint         *session_ep,
+			                      Rpc_entrypoint         *thread_ep,
 			                      Pager_entrypoint       *pager_ep,
 			                      Allocator              *md_alloc,
 			                      Trace::Source_registry &trace_sources,
-			                      const char *args, Affinity const &affinity);
+			                      const char *args, Affinity const &affinity,
+			                      size_t quota);
 
 			/**
 			 * Destructor
@@ -171,7 +242,7 @@ namespace Genode {
 			 ** CPU session interface **
 			 ***************************/
 
-			Thread_capability create_thread(Name const &, addr_t);
+			Thread_capability create_thread(size_t, Name const &, addr_t);
 			Ram_dataspace_capability utcb(Thread_capability thread);
 			void kill_thread(Thread_capability);
 			int set_pager(Thread_capability, Pager_capability);
@@ -189,6 +260,10 @@ namespace Genode {
 			unsigned trace_control_index(Thread_capability);
 			Dataspace_capability trace_buffer(Thread_capability);
 			Dataspace_capability trace_policy(Thread_capability);
+			int ref_account(Cpu_session_capability c);
+			int transfer_quota(Cpu_session_capability c, size_t q);
+			size_t used();
+			size_t quota();
 	};
 }
 

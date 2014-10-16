@@ -270,9 +270,11 @@ class Kernel::Thread
 		 * Constructor
 		 *
 		 * \param priority  scheduling priority
+		 * \param quota     CPU-time quota
 		 * \param label     debugging label
 		 */
-		Thread(unsigned const priority, char const * const label);
+		Thread(unsigned const priority, unsigned const quota,
+		       char const * const label);
 
 		/**
 		 * Prepare thread to get scheduled the first time

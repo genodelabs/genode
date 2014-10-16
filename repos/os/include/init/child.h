@@ -94,36 +94,11 @@ namespace Init {
 	}
 
 
-	inline Genode::size_t read_ram_quota(Genode::Xml_node start_node)
-	{
-		Genode::Number_of_bytes ram_quota = 0;
-		try {
-			Genode::Xml_node rsc = start_node.sub_node("resource");
-			for (;; rsc = rsc.next("resource")) {
-
-				try {
-					if (rsc.attribute("name").has_value("RAM")) {
-						rsc.attribute("quantum").value(&ram_quota);
-					}
-				} catch (...) { }
-			}
-		} catch (...) { }
-
-		/*
-		 * If the configured quota exceeds our own quota, we donate
-		 * all remaining quota to the child but we need to count in
-		 * our allocation of the child meta data from the heap.
-		 * Hence, we preserve some of our own quota.
-		 */
-		if (ram_quota > avail_slack_ram_quota()) {
-			ram_quota = avail_slack_ram_quota();
-			if (config_verbose)
-				Genode::printf("Warning: Specified quota exceeds available quota.\n"
-				               "         Proceeding with a quota of %zu bytes.\n",
-				               (Genode::size_t)ram_quota);
-		}
-		return ram_quota;
-	}
+	/**
+	 * Return amount of CPU time that is currently unused
+	 */
+	static inline Genode::size_t avail_slack_cpu_quota() {
+		return Genode::env()->cpu_session()->avail(); }
 
 
 	/**
@@ -411,15 +386,65 @@ namespace Init {
 				Pd_args(Genode::Xml_node start_node);
 			} _pd_args;
 
+			struct Read_quota
+			{
+				void warn_unsuff_quota(Genode::size_t const avail)
+				{
+					using namespace Genode;
+					if (!config_verbose) { return; }
+					Genode::printf("Warning: Specified quota exceeds available quota.\n");
+					Genode::printf("         Proceeding with a quota of %zu.\n", avail);
+				}
+
+				Read_quota(Genode::Xml_node start_node, Genode::size_t & ram_quota,
+				           Genode::size_t & cpu_quota)
+				{
+					Genode::Number_of_bytes ram_bytes = 0;
+					Genode::size_t          cpu_percent = 0;
+					try {
+						Genode::Xml_node rsc = start_node.sub_node("resource");
+						for (;; rsc = rsc.next("resource")) {
+							try {
+								if (rsc.attribute("name").has_value("RAM")) {
+									rsc.attribute("quantum").value(&ram_bytes);
+								} else if (rsc.attribute("name").has_value("CPU")) {
+									rsc.attribute("quantum").value(&cpu_percent); }
+							} catch (...) { }
+						}
+					} catch (...) { }
+					ram_quota = ram_bytes;
+					cpu_quota = Genode::Cpu_session::pc_to_quota(cpu_percent);
+
+					/*
+					 * If the configured RAM quota exceeds our own quota, we donate
+					 * all remaining quota to the child but we need to count in
+					 * our allocation of the child meta data from the heap.
+					 * Hence, we preserve some of our own quota.
+					 */
+					Genode::size_t const ram_avail = avail_slack_ram_quota();
+					if (ram_quota > ram_avail) {
+						ram_quota = ram_avail;
+						warn_unsuff_quota(ram_avail);
+					}
+
+					Genode::size_t const cpu_avail = avail_slack_cpu_quota();
+					if (cpu_quota > cpu_avail) {
+						cpu_quota = cpu_avail;
+						warn_unsuff_quota(cpu_avail);
+					}
+				}
+			};
+
 			/**
 			 * Resources assigned to the child
 			 */
-			struct Resources
+			struct Resources : Read_quota
 			{
 				long                   prio_levels_log2;
 				long                   priority;
 				Genode::Affinity       affinity;
 				Genode::size_t         ram_quota;
+				Genode::size_t         cpu_quota;
 				Genode::Ram_connection ram;
 				Genode::Cpu_connection cpu;
 				Genode::Rm_connection  rm;
@@ -428,11 +453,11 @@ namespace Init {
 				          long prio_levels_log2,
 				          Genode::Affinity::Space const &affinity_space)
 				:
+					Read_quota(start_node, ram_quota, cpu_quota),
 					prio_levels_log2(prio_levels_log2),
 					priority(read_priority(start_node)),
 					affinity(affinity_space,
 					         read_affinity_location(affinity_space, start_node)),
-					ram_quota(read_ram_quota(start_node)),
 					ram(label),
 					cpu(label,
 					    priority*(Genode::Cpu_session::PRIORITY_LIMIT >> prio_levels_log2),
@@ -449,6 +474,9 @@ namespace Init {
 
 					ram.ref_account(Genode::env()->ram_session_cap());
 					Genode::env()->ram_session()->transfer_quota(ram.cap(), ram_quota);
+
+					cpu.ref_account(Genode::env()->cpu_session_cap());
+					Genode::env()->cpu_session()->transfer_quota(cpu.cap(), cpu_quota);
 				}
 			} _resources;
 

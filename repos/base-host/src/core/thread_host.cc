@@ -17,7 +17,7 @@
 
 using namespace Genode;
 
-void Thread_base::_init_platform_thread() { }
+void Thread_base::_init_platform_thread(size_t, Type) { }
 void Thread_base::_deinit_platform_thread() { }
 void Thread_base::start() { }
 void Thread_base::cancel_blocking() { }

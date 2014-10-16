@@ -43,8 +43,11 @@ namespace Genode {
 					throw Root::Quota_exceeded();
 
 				return new (md_alloc())
-					Cpu_session_component(_thread_ep, _pager_ep, _md_alloc,
-					                      _trace_sources, args, affinity); }
+					Cpu_session_component(
+						Root_component<Cpu_session_component>::ep(),
+						_thread_ep, _pager_ep, _md_alloc, _trace_sources,
+						args, affinity, 0);
+			}
 
 			void _upgrade_session(Cpu_session_component *cpu, const char *args)
 			{
@@ -68,8 +71,8 @@ namespace Genode {
 			         Trace::Source_registry &trace_sources)
 			:
 				Root_component<Cpu_session_component>(session_ep, md_alloc),
-				_thread_ep(thread_ep), _pager_ep(pager_ep), _md_alloc(md_alloc),
-				_trace_sources(trace_sources)
+				_thread_ep(thread_ep), _pager_ep(pager_ep),
+				_md_alloc(md_alloc), _trace_sources(trace_sources)
 			{ }
 	};
 }

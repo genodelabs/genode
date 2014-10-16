@@ -34,7 +34,7 @@ void prepare_reinit_main_thread() { }
 void Thread_base::_thread_bootstrap() { }
 
 
-void Thread_base::_init_platform_thread(Type type)
+void Thread_base::_init_platform_thread(size_t, Type type)
 {
 	if (type == NORMAL) { return; }
 	_thread_cap = Genode::env()->parent()->main_thread_cap();

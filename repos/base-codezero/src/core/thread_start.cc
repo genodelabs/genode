@@ -98,7 +98,8 @@ void Thread_base::_thread_start()
 void Thread_base::start()
 {
 	/* create and start platform thread */
-	_tid.pt = new(platform()->core_mem_alloc()) Platform_thread(_context->name);
+	_tid.pt = new(platform()->core_mem_alloc())
+		Platform_thread(0, _context->name);
 
 	_tid.l4id = create_thread(1, stack_top(), (void *)&_thread_start);
 

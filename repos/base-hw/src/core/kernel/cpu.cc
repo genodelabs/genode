@@ -120,7 +120,7 @@ void Cpu_job::affinity(Cpu * const cpu)
  ** Cpu_idle **
  **************/
 
-Cpu_idle::Cpu_idle(Cpu * const cpu) : Cpu_job(Cpu_priority::min)
+Cpu_idle::Cpu_idle(Cpu * const cpu) : Cpu_job(Cpu_priority::min, 0)
 {
 	Cpu_job::cpu(cpu);
 	cpu_exception = RESET;

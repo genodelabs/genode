@@ -198,7 +198,7 @@ Process::Process(Dataspace_capability    elf_ds_cap,
 
 		/* create thread0 */
 		try {
-			_thread0_cap = _cpu_session_client.create_thread(name);
+			_thread0_cap = _cpu_session_client.create_thread(0, name);
 		} catch (Cpu_session::Thread_creation_failed) {
 			PERR("Creation of thread0 failed");
 			throw THREAD_FAIL;

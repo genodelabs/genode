@@ -145,9 +145,10 @@ void Thread::_unschedule(State const s)
 }
 
 
-Thread::Thread(unsigned const priority, char const * const label)
+Thread::Thread(unsigned const priority, unsigned const quota,
+               char const * const label)
 :
-	Cpu_job(priority), Thread_base(this), _state(AWAITS_START), _pd(0),
+	Cpu_job(priority, quota), Thread_base(this), _state(AWAITS_START), _pd(0),
 	_utcb_phys(0), _signal_receiver(0), _label(label)
 { cpu_exception = RESET; }
 
@@ -268,8 +269,9 @@ void Thread::_call_new_thread()
 	/* create new thread */
 	void * const p = (void *)user_arg_1();
 	unsigned const priority = user_arg_2();
-	char const * const label = (char *)user_arg_3();
-	Thread * const t = new (p) Thread(priority, label);
+	unsigned const quota = cpu_pool()->timer()->ms_to_tics(user_arg_3());
+	char const * const label = (char *)user_arg_4();
+	Thread * const t = new (p) Thread(priority, quota, label);
 	user_arg_0(t->id());
 }
 

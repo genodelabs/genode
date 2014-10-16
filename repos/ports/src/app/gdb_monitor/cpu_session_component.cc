@@ -63,10 +63,10 @@ Thread_capability Cpu_session_component::thread_cap(unsigned long lwpid)
 }
 
 
-Thread_capability Cpu_session_component::create_thread(Cpu_session::Name const &name, addr_t utcb)
+Thread_capability Cpu_session_component::create_thread(size_t, Cpu_session::Name const &name, addr_t utcb)
 {
 	Thread_capability thread_cap =
-		_parent_cpu_session.create_thread(name.string(), utcb);
+		_parent_cpu_session.create_thread(0, name.string(), utcb);
 
 	if (thread_cap.valid()) {
 		Thread_info *thread_info = new (env()->heap()) Thread_info(thread_cap, new_lwpid++);
@@ -238,3 +238,11 @@ Cpu_session_component::Cpu_session_component(Signal_receiver *exception_signal_r
 Cpu_session_component::~Cpu_session_component()
 {
 }
+
+size_t Cpu_session_component::quota() { return 0; }
+
+size_t Cpu_session_component::used() { return 0; }
+
+int Cpu_session_component::ref_account(Cpu_session_capability) { return -1; }
+
+int Cpu_session_component::transfer_quota(Cpu_session_capability, size_t) { return -1; }

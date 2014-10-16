@@ -214,7 +214,7 @@ Platform::Sigma0 *Platform::sigma0()
 
 Platform::Core_pager::Core_pager(Platform_pd *core_pd)
 :
-	Platform_thread("core.pager"), Pager_object(0, Affinity::Location())
+	Platform_thread(0, "core.pager"), Pager_object(0, Affinity::Location())
 {
 	Platform_thread::pager(sigma0());
 
@@ -665,7 +665,7 @@ Platform::Platform() :
 	 * thread_id of first task. But since we do not destroy this
 	 * task, it should be no problem.
 	 */
-	static Platform_thread core_thread("core.main");
+	static Platform_thread core_thread(0, "core.main");
 
 	core_thread.set_l4_thread_id(Pistachio::L4_MyGlobalId());
 	core_thread.pager(sigma0());

@@ -29,6 +29,7 @@
 #ifndef _INCLUDE__CPU_SESSION__CPU_SESSION_H_
 #define _INCLUDE__CPU_SESSION__CPU_SESSION_H_
 
+#include <cpu_session/capability.h>
 #include <base/stdint.h>
 #include <base/exception.h>
 #include <base/thread_state.h>
@@ -50,12 +51,15 @@ namespace Genode {
 
 			class Thread_creation_failed : public Exception { };
 			class State_access_failed : public Exception { };
+			class Quota_exceeded  : public Thread_creation_failed { };
 			class Out_of_metadata : public Exception { };
 
 			static const char *service_name() { return "CPU"; }
 
 			enum { THREAD_NAME_LEN = 48 };
 			enum { PRIORITY_LIMIT = 1 << 16 };
+			enum { QUOTA_LIMIT_LOG2 = 15 };
+			enum { QUOTA_LIMIT = 1 << QUOTA_LIMIT_LOG2 };
 			enum { DEFAULT_PRIORITY = 0 };
 
 			typedef Rpc_in_buffer<THREAD_NAME_LEN> Name;
@@ -65,13 +69,16 @@ namespace Genode {
 			/**
 			 * Create a new thread
 			 *
-			 * \param   name  name for the thread
-			 * \param   utcb  Base of the UTCB that will be used by the thread
-			 * \return        capability representing the new thread
-			 * \throw         Thread_creation_failed
-			 * \throw         Out_of_metadata
+			 * \param quota  CPU quota that shall be granted to the thread
+			 * \param name   name for the thread
+			 * \param utcb   Base of the UTCB that will be used by the thread
+			 * \return       capability representing the new thread
+			 * \throw        Thread_creation_failed
+			 * \throw        Out_of_metadata
+			 * \throw        Quota_exceeded
 			 */
-			virtual Thread_capability create_thread(Name const &name,
+			virtual Thread_capability create_thread(size_t quota,
+			                                        Name const &name,
 			                                        addr_t utcb = 0) = 0;
 
 			/**
@@ -254,6 +261,56 @@ namespace Genode {
 			 */
 			virtual Dataspace_capability trace_policy(Thread_capability thread) = 0;
 
+			/**
+			 * Define reference account for the CPU session
+			 *
+			 * \param   cpu_session    reference account
+			 *
+			 * \return  0 on success
+			 *
+			 * Each CPU session requires another CPU session as reference
+			 * account to transfer quota to and from. The reference account can
+			 * be defined only once.
+			 */
+			virtual int ref_account(Cpu_session_capability cpu_session) = 0;
+
+			/**
+			 * Transfer quota to another CPU session
+			 *
+			 * \param cpu_session  receiver of quota donation
+			 * \param amount       amount of quota to donate
+			 * \return             0 on success
+			 *
+			 * Quota can only be transfered if the specified CPU session is
+			 * either the reference account for this session or vice versa.
+			 */
+			virtual int transfer_quota(Cpu_session_capability cpu_session,
+			                           size_t amount) = 0;
+
+			/**
+			 * Return current quota limit
+			 */
+			virtual size_t quota() = 0;
+
+			/**
+			 * Return amount of used quota
+			 */
+			virtual size_t used() = 0;
+
+			/**
+			 * Return amount of available quota
+			 */
+			size_t avail()
+			{
+				size_t q = quota(), u = used();
+				return q > u ? q - u : 0;
+			}
+
+			/**
+			 * Transform percentage of CPU utilization into CPU quota
+			 */
+			static size_t pc_to_quota(size_t const pc) {
+				return (pc << QUOTA_LIMIT_LOG2) / 100; }
 
 			/*********************
 			 ** RPC declaration **
@@ -261,7 +318,7 @@ namespace Genode {
 
 			GENODE_RPC_THROW(Rpc_create_thread, Thread_capability, create_thread,
 			                 GENODE_TYPE_LIST(Thread_creation_failed, Out_of_metadata),
-			                 Name const &, addr_t);
+			                 size_t, Name const &, addr_t);
 			GENODE_RPC(Rpc_utcb, Ram_dataspace_capability, utcb, Thread_capability);
 			GENODE_RPC(Rpc_kill_thread, void, kill_thread, Thread_capability);
 			GENODE_RPC(Rpc_set_pager, int, set_pager, Thread_capability, Pager_capability);
@@ -284,6 +341,10 @@ namespace Genode {
 			GENODE_RPC(Rpc_trace_control_index, unsigned, trace_control_index, Thread_capability);
 			GENODE_RPC(Rpc_trace_buffer, Dataspace_capability, trace_buffer, Thread_capability);
 			GENODE_RPC(Rpc_trace_policy, Dataspace_capability, trace_policy, Thread_capability);
+			GENODE_RPC(Rpc_ref_account, int, ref_account, Cpu_session_capability);
+			GENODE_RPC(Rpc_transfer_quota, int, transfer_quota, Cpu_session_capability, size_t);
+			GENODE_RPC(Rpc_quota, size_t, quota);
+			GENODE_RPC(Rpc_used, size_t, used);
 
 			/*
 			 * 'GENODE_RPC_INTERFACE' declaration done manually
@@ -311,8 +372,12 @@ namespace Genode {
 			        Meta::Type_tuple<Rpc_trace_control_index,
 			        Meta::Type_tuple<Rpc_trace_buffer,
 			        Meta::Type_tuple<Rpc_trace_policy,
+			        Meta::Type_tuple<Rpc_ref_account,
+			        Meta::Type_tuple<Rpc_transfer_quota,
+			        Meta::Type_tuple<Rpc_quota,
+			        Meta::Type_tuple<Rpc_used,
 			                         Meta::Empty>
-			        > > > > > > > > > > > > > > > > > Rpc_functions;
+			        > > > > > > > > > > > > > > > > > > > > > Rpc_functions;
 	};
 }
 

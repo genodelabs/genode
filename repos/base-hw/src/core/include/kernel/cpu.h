@@ -136,9 +136,10 @@ class Kernel::Cpu_job : public Cpu_share
 		virtual void proceed(unsigned const id) = 0;
 
 		/**
-		 * Construct a job with scheduling priority 'p'
+		 * Construct a job with scheduling priority 'p' and time quota 'q'
 		 */
-		Cpu_job(Cpu_priority const p) : Cpu_share(p, 0), _cpu(0) { }
+		Cpu_job(Cpu_priority const p, unsigned const q)
+		: Cpu_share(p, q), _cpu(0) { }
 
 		/**
 		 * Destructor
@@ -313,6 +314,12 @@ class Kernel::Cpu_pool
 		 * Return object of primary CPU
 		 */
 		Cpu * primary_cpu() const { return cpu(Cpu::primary_id()); }
+
+		/*
+		 * Accessors
+		 */
+
+		Timer * timer() { return &_timer; }
 };
 
 #endif /* _KERNEL__CPU_H_ */

@@ -92,7 +92,7 @@ void Pager_activation_base::ep(Pager_entrypoint * const ep) { _ep = ep; }
 Pager_activation_base::Pager_activation_base(char const * const name,
                                              size_t const stack_size)
 :
-	Thread_base(name, stack_size), _cap_valid(Lock::LOCKED), _ep(0)
+	Thread_base(0, name, stack_size), _cap_valid(Lock::LOCKED), _ep(0)
 { }
 
 

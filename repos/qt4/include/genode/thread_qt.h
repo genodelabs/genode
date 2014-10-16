@@ -49,7 +49,7 @@ namespace Genode {
 					              size_t        stack_size,
 					              Thread_entry *thread_entry)
 					:
-						Thread_base(name, stack_size),
+						Thread_base(0, name, stack_size),
 						_thread_entry(thread_entry)
 					{
 						/* start Genode thread */

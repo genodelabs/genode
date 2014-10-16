@@ -24,6 +24,7 @@
 
 using namespace Genode;
 
+static constexpr bool verbose = false;
 
 void Cpu_thread_component::update_exception_sigh()
 {
@@ -32,9 +33,14 @@ void Cpu_thread_component::update_exception_sigh()
 };
 
 
-Thread_capability Cpu_session_component::create_thread(Name  const &name,
-                                                       addr_t       utcb)
+Thread_capability Cpu_session_component::create_thread(size_t quota,
+                                                       Name const &name,
+                                                       addr_t utcb)
 {
+	/* check for sufficient quota */
+	quota = _local_to_global(quota);
+	if (quota > avail()) { _insuff_for_consume(quota); }
+
 	unsigned trace_control_index = 0;
 	if (!_trace_control_area.alloc(trace_control_index))
 		throw Out_of_metadata();
@@ -47,12 +53,14 @@ Thread_capability Cpu_session_component::create_thread(Name  const &name,
 	Cpu_thread_component *thread = 0;
 	try {
 		Lock::Guard slab_lock_guard(_thread_alloc_lock);
-		thread = new(&_thread_alloc) Cpu_thread_component(_label,
-		                                                  thread_name,
-		                                                  _priority, utcb,
-		                                                  _default_exception_handler,
-		                                                  trace_control_index,
-		                                                  *trace_control);
+		thread = new(&_thread_alloc)
+			Cpu_thread_component(
+				quota, _label, thread_name, _priority, utcb,
+				_default_exception_handler, trace_control_index,
+				*trace_control);
+
+		/* account quota */
+		_used += quota;
 
 		/* set default affinity defined by CPU session */
 		thread->platform_thread()->affinity(_location);
@@ -77,6 +85,8 @@ void Cpu_session_component::_unsynchronized_kill_thread(Cpu_thread_component *th
 	_trace_sources.remove(thread->trace_source());
 
 	unsigned const trace_control_index = thread->trace_control_index();
+
+	_used -= thread->quota();
 
 	Lock::Guard lock_guard(_thread_alloc_lock);
 	destroy(&_thread_alloc, thread);
@@ -280,13 +290,54 @@ static size_t remaining_session_ram_quota(char const *args)
 }
 
 
-Cpu_session_component::Cpu_session_component(Rpc_entrypoint         *thread_ep,
+int Cpu_session_component::transfer_quota(Cpu_session_capability c, size_t q)
+{
+	/* lookup targeted CPU-session */
+	Object_pool<Cpu_session_component>::Guard s(_session_ep->lookup_and_lock(c));
+	if (!s) { return -1; }
+
+	/* translate quota argument and check limits */
+	q = _local_to_global(q);
+	if (q > avail()) { return _insuff_for_transfer(q); }
+
+	/* transfer quota to targeted CPU-session */
+	if (s->_ref == this) { return _transfer_forth(s, q); }
+	if (s == _ref) { return _transfer_back(q); }
+	return -2;
+}
+
+
+int Cpu_session_component::ref_account(Cpu_session_capability c)
+{
+	/*
+	 * Ensure that the ref account is set only once
+	 *
+	 * FIXME Add check for cycles along the tree of reference accounts
+	 */
+	if (_ref) { return -2; }
+
+	/* lookup targeted CPU-session */
+	Object_pool<Cpu_session_component>::Guard s(_session_ep->lookup_and_lock(c));
+	if (!s) { return -1; }
+	if (s == this) { return -3; }
+
+	/* establish ref-account relation from targeted CPU-session to us */
+	_ref = s;
+	_ref->_insert_ref_member(this);
+	return 0;
+}
+
+
+Cpu_session_component::Cpu_session_component(Rpc_entrypoint         *session_ep,
+                                             Rpc_entrypoint         *thread_ep,
                                              Pager_entrypoint       *pager_ep,
                                              Allocator              *md_alloc,
                                              Trace::Source_registry &trace_sources,
                                              char             const *args,
-                                             Affinity         const &affinity)
+                                             Affinity         const &affinity,
+                                             size_t                  quota)
 :
+	_session_ep(session_ep),
 	_thread_ep(thread_ep), _pager_ep(pager_ep),
 	_md_alloc(md_alloc, remaining_session_ram_quota(args)),
 	_thread_alloc(&_md_alloc), _priority(0),
@@ -294,7 +345,7 @@ Cpu_session_component::Cpu_session_component(Rpc_entrypoint         *thread_ep,
 	/* map affinity to a location within the physical affinity space */
 	_location(affinity.scale_to(platform()->affinity_space())),
 
-	_trace_sources(trace_sources)
+	_trace_sources(trace_sources), _ref(0), _used(0), _quota(quota)
 {
 	/* remember session label */
 	char buf[Session_label::size()];
@@ -313,6 +364,34 @@ Cpu_session_component::Cpu_session_component(Rpc_entrypoint         *thread_ep,
 
 Cpu_session_component::~Cpu_session_component()
 {
+	_deinit_threads();
+	_deinit_ref_account();
+}
+
+
+void Cpu_session_component::_deinit_ref_account()
+{
+	/* without a ref-account, nothing has do be done */
+	if (!_ref) { return; }
+
+	/* give back our remaining quota to our ref account */
+	_transfer_back(_quota);
+
+	/* remove ref-account relation between us and our ref-account */
+	Cpu_session_component * const orig_ref = _ref;
+	_ref->_remove_ref_member(this);
+
+	/* redirect ref-account relation of ref members to our prior ref account */
+	Lock::Guard lock_guard(_ref_members_lock);
+	for (Cpu_session_component * s; (s = _ref_members.first()); ) {
+		_unsync_remove_ref_member(s);
+		orig_ref->_insert_ref_member(s);
+	}
+}
+
+
+void Cpu_session_component::_deinit_threads()
+{
 	Lock::Guard lock_guard(_thread_list_lock);
 
 	/*
@@ -324,6 +403,32 @@ Cpu_session_component::~Cpu_session_component()
 	for (Cpu_thread_component *thread; (thread = _thread_list.first()); )
 		_unsynchronized_kill_thread(thread);
 }
+
+
+int Cpu_session_component::_insuff_for_transfer(size_t const q)
+{
+	if (verbose) {
+		PWRN("Insufficient CPU quota for transfer: %s", _label.string());
+		PWRN("  avail  %zu", _avail());
+		PWRN("  needed %zu", q);
+	}
+	return -3;
+}
+
+
+void Cpu_session_component::_insuff_for_consume(size_t const q)
+{
+	if (verbose) {
+		PWRN("Insufficient CPU quota for consumption: %s", _label.string());
+		PWRN("  avail  %zu", _avail());
+		PWRN("  needed %zu", q);
+	}
+	throw Quota_exceeded();
+}
+
+size_t Cpu_session_component::used() { return _global_to_local(_used); }
+
+size_t Cpu_session_component::quota() { return _global_to_local(_quota); }
 
 
 /****************************

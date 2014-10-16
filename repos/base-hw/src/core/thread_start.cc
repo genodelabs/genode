@@ -50,7 +50,7 @@ void Thread_base::_deinit_platform_thread()
 }
 
 
-void Thread_base::_init_platform_thread(Type type)
+void Thread_base::_init_platform_thread(size_t, Type type)
 {
 	/* create platform thread */
 	_tid.platform_thread = new (platform()->core_mem_alloc())

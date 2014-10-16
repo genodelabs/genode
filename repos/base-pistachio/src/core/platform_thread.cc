@@ -243,7 +243,8 @@ Weak_ptr<Address_space> Platform_thread::address_space()
 }
 
 
-Platform_thread::Platform_thread(const char *name, unsigned prio, addr_t, int id)
+Platform_thread::Platform_thread(size_t, const char *name, unsigned prio,
+                                 addr_t, int id)
 : _thread_id(id), _l4_thread_id(L4_nilthread), _priority(prio), _pager(0)
 {
 	strncpy(_name, name, sizeof(_name));

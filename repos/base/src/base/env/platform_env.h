@@ -78,10 +78,12 @@ struct Genode::Expanding_cpu_session_client : Upgradeable_client<Genode::Cpu_ses
 			(static_cap_cast<Genode::Cpu_session_client::Rpc_interface>(cap))
 	{ }
 
-	Thread_capability create_thread(Name const &name, addr_t utcb)
+	Thread_capability
+	create_thread(size_t quota, Name const &name, addr_t utcb)
 	{
 		return retry<Cpu_session::Out_of_metadata>(
-			[&] () { return Cpu_session_client::create_thread(name, utcb); },
+			[&] () {
+				return Cpu_session_client::create_thread(quota, name, utcb); },
 			[&] () { upgrade_ram(8*1024); });
 	}
 };

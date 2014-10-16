@@ -57,7 +57,7 @@ namespace Genode {
 			 */
 			Irq_activation(int irq_number, Irq_handler &handler, size_t stack_size)
 			:
-				Thread_base(_create_thread_name(irq_number), stack_size),
+				Thread_base(0, _create_thread_name(irq_number), stack_size),
 				_number(irq_number), _connection(irq_number), _handler(handler)
 			{
 				start();

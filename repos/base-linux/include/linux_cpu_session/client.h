@@ -24,8 +24,8 @@ namespace Genode {
 		explicit Linux_cpu_session_client(Capability<Linux_cpu_session> session)
 		: Rpc_client<Linux_cpu_session>(session) { }
 
-		Thread_capability create_thread(Name const &name, addr_t utcb = 0) {
-			return call<Rpc_create_thread>(name, utcb); }
+		Thread_capability create_thread(size_t, Name const &name, addr_t utcb = 0) {
+			return call<Rpc_create_thread>(0, name, utcb); }
 
 		Ram_dataspace_capability utcb(Thread_capability thread) {
 			return call<Rpc_utcb>(thread); }
@@ -78,6 +78,15 @@ namespace Genode {
 		Dataspace_capability trace_policy(Thread_capability thread) {
 			return call<Rpc_trace_policy>(thread); }
 
+		int ref_account(Cpu_session_capability session) {
+			return call<Rpc_ref_account>(session); }
+
+		int transfer_quota(Cpu_session_capability session, size_t amount) {
+			return call<Rpc_transfer_quota>(session, amount); }
+
+		size_t quota() { return call<Rpc_quota>(); }
+
+		size_t used() { return call<Rpc_used>(); }
 
 		/*****************************
 		 * Linux-specific extension **

@@ -65,7 +65,7 @@ void Thread_base::_thread_start()
  ** Thread base **
  *****************/
 
-void Thread_base::_init_platform_thread(Type type)
+void Thread_base::_init_platform_thread(size_t, Type type)
 {
 	using namespace Nova;
 
@@ -102,7 +102,7 @@ void Thread_base::_init_platform_thread(Type type)
 	char buf[48];
 	name(buf, sizeof(buf));
 
-	_thread_cap = _cpu_session->create_thread(buf);
+	_thread_cap = _cpu_session->create_thread(0, buf);
 	if (!_thread_cap.valid())
 		throw Cpu_session::Thread_creation_failed();
 

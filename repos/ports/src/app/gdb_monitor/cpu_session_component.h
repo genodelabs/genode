@@ -56,7 +56,7 @@ class Cpu_session_component : public Rpc_object<Cpu_session>
 		 ** CPU session interface **
 		 ***************************/
 
-		Thread_capability create_thread(Name const &, addr_t);
+		Thread_capability create_thread(size_t, Name const &, addr_t);
 		Ram_dataspace_capability utcb(Thread_capability thread);
 		void kill_thread(Thread_capability);
 		int set_pager(Thread_capability, Pager_capability);
@@ -76,6 +76,10 @@ class Cpu_session_component : public Rpc_object<Cpu_session>
 		unsigned trace_control_index(Thread_capability);
 		Dataspace_capability trace_buffer(Thread_capability);
 		Dataspace_capability trace_policy(Thread_capability);
+		int ref_account(Cpu_session_capability c);
+		int transfer_quota(Cpu_session_capability c, size_t q);
+		size_t used();
+		size_t quota();
 };
 
 #endif /* _CPU_SESSION_COMPONENT_H_ */

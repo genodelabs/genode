@@ -75,6 +75,12 @@ namespace Genode {
 		 */
 		bool _attaches_utcb_by_itself();
 
+		static size_t _generic_to_platform_quota(size_t const q)
+		{
+			assert(Kernel::cpu_quota_ms <= Cpu_session::QUOTA_LIMIT);
+			return (q * Kernel::cpu_quota_ms) >> 15;
+		}
+
 		public:
 
 			/**
@@ -88,12 +94,13 @@ namespace Genode {
 			/**
 			 * Constructor for threads outside of core
 			 *
+			 * \param quota      CPU quota that shall be granted to the thread
 			 * \param label      debugging label
 			 * \param virt_prio  unscaled processor-scheduling priority
 			 * \param utcb       core local pointer to userland thread-context
 			 */
-			Platform_thread(const char * const label, unsigned const virt_prio,
-			                addr_t const utcb);
+			Platform_thread(size_t const quota, const char * const label,
+			                unsigned const virt_prio, addr_t const utcb);
 
 			/**
 			 * Destructor

@@ -332,7 +332,7 @@ static uint8_t create_portal(addr_t pt, addr_t pd, addr_t ec, Mtd mtd,
 
 Pager_object::Pager_object(unsigned long badge, Affinity::Location location)
 :
-	Thread_base("pager:", PF_HANDLER_STACK_SIZE),
+	Thread_base(0, "pager:", PF_HANDLER_STACK_SIZE),
 	_badge(reinterpret_cast<unsigned long>(_context->name + 6)),
 	_client_exc_vcpu(Native_thread::INVALID_INDEX)
 {

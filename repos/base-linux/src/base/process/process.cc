@@ -80,7 +80,7 @@ Process::Process(Dataspace_capability   elf_data_ds_cap,
 	 * thread. Those information will be provided to core by the constructor of
 	 * the 'Platform_env' of the new process.
 	 */
-	_thread0_cap = _cpu_session_client.create_thread(name);
+	_thread0_cap = _cpu_session_client.create_thread(0, name);
 
 	Linux_pd_session_client lx_pd(static_cap_cast<Linux_pd_session>(_pd.cap()));
 

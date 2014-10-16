@@ -253,7 +253,7 @@ void init_kernel_mp_primary()
 
 	/* start thread with stack pointer at the top of stack */
 	static Native_utcb utcb;
-	static Thread t(Cpu_priority::max, "core");
+	static Thread t(Cpu_priority::max, 0, "core");
 	_main_thread_id = t.id();
 	_main_thread_utcb = &utcb;
 	_main_thread_utcb->start_info()->init(t.id(), Genode::Native_capability());

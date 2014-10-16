@@ -49,7 +49,7 @@ class Irq_thread : public Thread_base
 
 	public:
 
-		Irq_thread(char const *name) : Thread_base(name, 1024 * sizeof(addr_t)) { }
+		Irq_thread(char const *name) : Thread_base(0, name, 1024 * sizeof(addr_t)) { }
 
 		/**
 		 * Create global EC, associate it to SC

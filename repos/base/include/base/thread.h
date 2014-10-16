@@ -326,15 +326,17 @@ namespace Genode {
 			/**
 			 * Hook for platform-specific constructor supplements
 			 *
-			 * \param main_thread  whether this is the main thread
+			 * \param quota  CPU quota that shall be granted to the thread
+			 * \param type   enables selection of special initialization
 			 */
-			void _init_platform_thread(Type type);
+			void _init_platform_thread(size_t quota, Type type);
 
 		public:
 
 			/**
 			 * Constructor
 			 *
+			 * \param quota       CPU quota that shall be granted to the thread
 			 * \param name        thread name for debugging
 			 * \param stack_size  stack size
 			 * \param type        enables selection of special construction
@@ -354,12 +356,13 @@ namespace Genode {
 			 *        at least set Context::ds_cap in a way that it references
 			 *        the dataspace of the already attached stack.
 			 */
-			Thread_base(const char *name, size_t stack_size,
+			Thread_base(size_t quota, const char *name, size_t stack_size,
 			            Type type = NORMAL);
 
 			/**
 			 * Constructor
 			 *
+			 * \param quota       CPU quota that shall be granted to the thread
 			 * \param name        thread name for debugging
 			 * \param stack_size  stack size
 			 * \param type        enables selection of special construction
@@ -369,8 +372,8 @@ namespace Genode {
 			 * \throw Stack_alloc_failed
 			 * \throw Context_alloc_failed
 			 */
-			Thread_base(const char *name, size_t stack_size, Type type,
-			            Cpu_session *);
+			Thread_base(size_t quota, const char *name, size_t stack_size,
+			            Type type, Cpu_session *);
 
 			/**
 			 * Destructor
@@ -513,20 +516,36 @@ namespace Genode {
 			/**
 			 * Constructor
 			 *
-			 * \param name  thread name (for debugging)
-			 * \param type  enables selection of special construction
+			 * \param quota  CPU quota that shall be granted to the thread
+			 * \param name   thread name (for debugging)
+			 * \param type   enables selection of special construction
 			 */
-			explicit Thread(const char *name, Type type = NORMAL)
-			: Thread_base(name, STACK_SIZE, type) { }
+			explicit Thread(size_t quota, const char *name, Type type = NORMAL)
+			: Thread_base(quota, name, STACK_SIZE, type) { }
 
 			/**
 			 * Constructor
 			 *
+			 * \param quota        CPU quota that shall be granted to the thread
 			 * \param name         thread name (for debugging)
 			 * \param cpu_session  thread created via specific cpu session
 			 */
+			explicit Thread(size_t quota, const char *name, Cpu_session * cpu_session)
+			: Thread_base(quota, name, STACK_SIZE, Type::NORMAL, cpu_session)
+			{ }
+
+			/**
+			 * Shortcut for 'Thread(0, name, type)'
+			 */
+			explicit Thread(const char *name, Type type = NORMAL)
+			: Thread_base(0, name, STACK_SIZE, type) { }
+
+			/**
+			 * Shortcut for 'Thread(0, name, cpu_session)'
+			 */
 			explicit Thread(const char *name, Cpu_session * cpu_session)
-			: Thread_base(name, STACK_SIZE, Type::NORMAL, cpu_session) { }
+			: Thread_base(0, name, STACK_SIZE, Type::NORMAL, cpu_session)
+			{ }
 	};
 }
 

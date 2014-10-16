@@ -145,7 +145,7 @@ Platform::Sigma0 *Platform::sigma0()
 
 Platform::Core_pager::Core_pager(Platform_pd *core_pd)
 :
-	Platform_thread("core.pager"), Pager_object(0, Affinity::Location())
+	Platform_thread(0, "core.pager"), Pager_object(0, Affinity::Location())
 {
 	Platform_thread::pager(sigma0());
 
@@ -496,7 +496,8 @@ Platform::Platform() :
 	 * We setup the thread object for thread0 in core pd using a special
 	 * interface that allows us to specify the lthread number.
 	 */
-	Platform_thread *core_thread = new(core_mem_alloc()) Platform_thread("core.main", myself.id.lthread);
+	Platform_thread *core_thread = new(core_mem_alloc())
+		Platform_thread(0, "core.main", myself.id.lthread);
 	core_thread->pager(sigma0());
 	_core_pd->bind_thread(core_thread);
 

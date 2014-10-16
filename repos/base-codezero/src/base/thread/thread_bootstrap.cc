@@ -82,7 +82,7 @@ void Genode::Thread_base::_thread_bootstrap()
 }
 
 
-void Genode::Thread_base::_init_platform_thread(Type type)
+void Genode::Thread_base::_init_platform_thread(size_t, Type type)
 {
 	if (type == NORMAL) { return; }
 

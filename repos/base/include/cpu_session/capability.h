@@ -15,8 +15,11 @@
 #define _INCLUDE__CPU_SESSION__CAPABILITY_H_
 
 #include <base/capability.h>
-#include <cpu_session/cpu_session.h>
 
-namespace Genode { typedef Capability<Cpu_session> Cpu_session_capability; }
+namespace Genode
+{
+	class Cpu_session;
+	typedef Capability<Cpu_session> Cpu_session_capability;
+}
 
 #endif /* _INCLUDE__CPU_SESSION__CAPABILITY_H_ */

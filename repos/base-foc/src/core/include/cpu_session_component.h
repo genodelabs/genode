@@ -64,7 +64,7 @@ namespace Genode {
 
 		public:
 
-			Cpu_thread_component(Session_label const &label,
+			Cpu_thread_component(size_t, Session_label const &label,
 			                     Thread_name const &name,
 			                     unsigned priority, addr_t utcb,
 			                     Signal_context_capability sigh,
@@ -88,6 +88,7 @@ namespace Genode {
 			bool             bound()     const { return _bound; }
 			void             bound(bool b)     { _bound = b; }
 			Trace::Source   *trace_source()    { return &_trace_source; }
+			size_t           quota()           { return 0; }
 
 			void sigh(Signal_context_capability sigh)
 			{
@@ -122,6 +123,7 @@ namespace Genode {
 			typedef Tslab<Cpu_thread_component, 1024> Cpu_thread_allocator;
 
 			Session_label              _label;
+			Rpc_entrypoint            *_session_ep;
 			Rpc_entrypoint            *_thread_ep;
 			Pager_entrypoint          *_pager_ep;
 			Allocator_guard            _md_alloc;          /* guarded meta-data allocator */
@@ -136,6 +138,24 @@ namespace Genode {
 			                                                  session */
 			Trace::Source_registry    &_trace_sources;
 			Trace::Control_area        _trace_control_area;
+			Cpu_session_component *     _ref;
+			size_t                      _used;
+			size_t                      _quota;
+			List<Cpu_session_component> _ref_members;
+			Lock                        _ref_members_lock;
+
+			size_t _global_to_local(size_t const q) const { return 0; }
+			size_t _avail() { return 0; }
+			void _deinit_ref_account();
+			void _deinit_threads();
+			size_t _local_to_global(size_t) const { return 0; }
+			void _insuff_for_consume(size_t);
+			int _insuff_for_transfer(size_t);
+			int _transfer_back(size_t) { return -1; }
+			int _transfer_forth(Cpu_session_component *, size_t) { return -1; }
+			void _insert_ref_member(Cpu_session_component *) { }
+			void _remove_ref_member(Cpu_session_component *) { }
+			void _unsync_remove_ref_member(Cpu_session_component *) { }
 
 			/**
 			 * Exception handler that will be invoked unless overridden by a
@@ -158,11 +178,13 @@ namespace Genode {
 			/**
 			 * Constructor
 			 */
-			Cpu_session_component(Rpc_entrypoint         *thread_ep,
+			Cpu_session_component(Rpc_entrypoint         *session_ep,
+			                      Rpc_entrypoint         *thread_ep,
 			                      Pager_entrypoint       *pager_ep,
 			                      Allocator              *md_alloc,
 			                      Trace::Source_registry &trace_sources,
-			                      const char *args, Affinity const &affinity);
+			                      const char *args, Affinity const &affinity,
+			                      size_t quota);
 
 			/**
 			 * Destructor
@@ -179,7 +201,7 @@ namespace Genode {
 			 ** CPU session interface **
 			 ***************************/
 
-			Thread_capability create_thread(Name const &, addr_t);
+			Thread_capability create_thread(size_t, Name const &, addr_t);
 			Ram_dataspace_capability utcb(Thread_capability thread);
 			void kill_thread(Thread_capability);
 			Thread_capability first();
@@ -200,6 +222,10 @@ namespace Genode {
 			unsigned trace_control_index(Thread_capability);
 			Dataspace_capability trace_buffer(Thread_capability);
 			Dataspace_capability trace_policy(Thread_capability);
+			int ref_account(Cpu_session_capability c);
+			int transfer_quota(Cpu_session_capability c, size_t q);
+			size_t used();
+			size_t quota();
 
 
 			/***********************************

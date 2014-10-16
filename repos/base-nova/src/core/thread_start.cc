@@ -27,7 +27,7 @@
 using namespace Genode;
 
 
-void Thread_base::_init_platform_thread(Type type)
+void Thread_base::_init_platform_thread(size_t, Type type)
 {
 	/*
 	 * This function is called for constructing server activations and pager

@@ -59,7 +59,7 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 		 */
 		Vm(void * const state, Signal_context * const context)
 		:
-			Cpu_job(Cpu_priority::min), _state((Vm_state * const)state),
+			Cpu_job(Cpu_priority::min, 0), _state((Vm_state * const)state),
 			_context(context)
 		{ affinity(cpu_pool()->primary_cpu()); }
 

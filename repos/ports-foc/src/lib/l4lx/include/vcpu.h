@@ -50,7 +50,7 @@ namespace L4lx {
 			     Genode::size_t              stack_size,
 			     Genode::addr_t              vcpu_state,
 			     unsigned                    cpu_nr)
-			: Genode::Thread_base(str, stack_size),
+			: Genode::Thread_base(0, str, stack_size),
 			  _lock(Genode::Cancelable_lock::LOCKED),
 			  _func(func),
 			  _data(data ? *data : 0),
