@@ -23,16 +23,17 @@
 	.global _start
 	_start:
 
-	/* initialize GOT pointer in EBX */
+	/* save initial register values using GOT-relative addressing */
 	3:
-	movl $., %ebx
-	addl $_GLOBAL_OFFSET_TABLE_ + (. - 3b) , %ebx
-	movl %esp, __initial_sp@GOTOFF(%ebx)
+	movl $., %ecx
+	addl $_GLOBAL_OFFSET_TABLE_ + (. - 3b) , %ecx
+	movl %esp, __initial_sp@GOTOFF(%ecx)
+	movl %eax, __initial_ax@GOTOFF(%ecx)
+	movl %ebx, __initial_bx@GOTOFF(%ecx)
+	movl %edi, __initial_di@GOTOFF(%ecx)
 
-	/* make initial value of some registers available to higher-level code */
-	mov %esp, __initial_sp
-	mov %eax, __initial_ax
-	mov %edi, __initial_di
+	/* initialize GOT pointer in EBX as expected by the tool chain */
+	mov %ecx, %ebx
 
 	/*
 	 * Install initial temporary environment that is replaced later by the
@@ -73,6 +74,9 @@
 	.space 4
 	.global __initial_ax
 	__initial_ax:
+	.space 4
+	.global __initial_bx
+	__initial_bx:
 	.space 4
 	.global __initial_di
 	__initial_di:
