@@ -22,14 +22,10 @@ set platform_cmds     {
                          exit 234
 }
 
-# default tool_chain timeout, overwritten by platform if required
-set tool_chain_timeout  450
-set noux_boot_timeout   100
-
 if {[have_spec arm]} {
-	set platform_base_dir "base-hw"
+	set platform_base_dir   "base-hw"
 	set noux_boot_timeout   350
-	set tool_chain_timeout  500
+	set tool_chain_timeout  600
 
 	if {[have_spec platform_panda]}   {
 		set platform "hw_panda"
@@ -47,12 +43,15 @@ if {[have_spec arm]} {
 }
 
 if {[have_spec x86]} {
+	set platform_base_dir   "base-nova"
+	set noux_boot_timeout   100
+	set tool_chain_timeout  600
+
 	if {[have_spec 32bit]} {
 		set platform          "nova_x86_32"
 	} else {
 		set platform          "nova_x86_64"
 	}
-	set platform_base_dir "base-nova"
 }
 
 source ${genode_dir}/repos/ports/run/noux_tool_chain.inc
