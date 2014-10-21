@@ -709,7 +709,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			/* load saved FPU state of EMT thread */
 			fpu_load(reinterpret_cast<char *>(&_emt_fpu_state));
 
-//			CPUMSetChangedFlags(pVCpu, CPUM_CHANGED_GLOBAL_TLB_FLUSH);
+			CPUMSetChangedFlags(pVCpu, CPUM_CHANGED_GLOBAL_TLB_FLUSH);
 
 			VMCPU_SET_STATE(pVCpu, VMCPUSTATE_STARTED);
 
