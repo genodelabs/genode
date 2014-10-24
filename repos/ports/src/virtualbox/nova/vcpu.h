@@ -73,7 +73,8 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 {
 	private:
 
-		X86FXSTATE _fpu_state __attribute__((aligned(0x10)));
+		X86FXSTATE _guest_fpu_state __attribute__((aligned(0x10)));
+		X86FXSTATE _emt_fpu_state __attribute__((aligned(0x10)));
 
 		Genode::Cap_connection _cap_connection;
 		Vmm::Vcpu_other_pd     _vcpu;
@@ -107,6 +108,16 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			INTERRUPT_STATE_NONE  = 0U,
 		};
 
+		/*
+		 * 'longjmp()' restores some FPU registers saved by 'setjmp()',
+		 * so we need to save the guest FPU state before calling 'longjmp()'
+		 */
+		__attribute__((noreturn)) void _fpu_save_and_longjmp()
+		{
+			fpu_save(reinterpret_cast<char *>(&_guest_fpu_state));
+			longjmp(_env, 1);
+		}
+
 	protected:
 
 		struct {
@@ -120,7 +131,8 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 		void *   _stack_reply;
 		jmp_buf  _env;
 
-		void switch_to_hw(PCPUMCTX pCtx) {
+		void switch_to_hw()
+		{
 			unsigned long value;
 
 			if (!setjmp(_env)) {
@@ -128,7 +140,6 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 				Nova::reply(_stack_reply);
 			}
 		}
-
 
 		__attribute__((noreturn)) void _default_handler()
 		{
@@ -138,7 +149,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			Assert(!(utcb->inj_info & IRQ_INJ_VALID_MASK));
 
 			/* go back to re-compiler */
-			longjmp(_env, 1);
+			_fpu_save_and_longjmp();
 		}
 
 		__attribute__((noreturn)) void _recall_handler()
@@ -162,7 +173,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			/* are we forced to go back to emulation mode ? */
 			if (!continue_hw_accelerated(utcb))
 				/* go back to emulation mode */
-				longjmp(_env, 1);
+				_fpu_save_and_longjmp();
 
 			/* check whether we have to request irq injection window */
 			utcb->mtd = 0;
@@ -216,7 +227,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 
 			/* emulator has to take over if fault region is not ram */	
 			if (!pv)
-				longjmp(_env, 1);
+				_fpu_save_and_longjmp();
 
 			/* fault region is ram - so map it */
 			enum {
@@ -675,7 +686,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			VMCPU_SET_STATE(pVCpu, VMCPUSTATE_STARTED_EXEC);
 
 			/* save current FPU state */
-			fpu_save(reinterpret_cast<char *>(&_fpu_state));
+			fpu_save(reinterpret_cast<char *>(&_emt_fpu_state));
 			/* write FPU state from pCtx to FPU registers */
 			fpu_load(reinterpret_cast<char *>(&pCtx->fpu));
 			/* tell kernel to transfer current fpu registers to vCPU */
@@ -685,7 +696,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			_current_vcpu = pVCpu;
 
 			/* switch to hardware accelerated mode */
-			switch_to_hw(pCtx);
+			switch_to_hw();
 
 			Assert(utcb->actv_state == ACTIVITY_STATE_ACTIVE);
 
@@ -693,9 +704,10 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			_current_vcpu = 0;
 
 			/* write FPU state of vCPU (in current FPU registers) to pCtx */
-			fpu_save(reinterpret_cast<char *>(&pCtx->fpu));
+			Genode::memcpy(&pCtx->fpu, &_guest_fpu_state, sizeof(X86FXSTATE));
+
 			/* load saved FPU state of EMT thread */
-			fpu_load(reinterpret_cast<char *>(&_fpu_state));
+			fpu_load(reinterpret_cast<char *>(&_emt_fpu_state));
 
 //			CPUMSetChangedFlags(pVCpu, CPUM_CHANGED_GLOBAL_TLB_FLUSH);
 
