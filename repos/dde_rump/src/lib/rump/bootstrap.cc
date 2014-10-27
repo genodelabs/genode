@@ -19,9 +19,8 @@ extern "C" {
 
 #include <base/env.h>
 #include <base/printf.h>
+#include <base/shared_object.h>
 #include <util/string.h>
-
-#include "dl_interface.h"
 
 extern "C" void wait_for_continue();
 
@@ -36,14 +35,14 @@ typedef Elf32_Sym Elf_Sym;
 static bool const verbose = false;
 
 
-static void *dl_main;
+static Genode::Shared_object  *obj_main;
 
 struct Sym_tab
 {
-	link_map   *map;
+	Genode::Shared_object::Link_map const *map;
 
-	void const *dynamic_base = 0;
-	void const *sym_base     = 0;
+	void const *dynamic_base = nullptr;
+	void const *sym_base     = nullptr;
 
 	Elf_Addr    str_tab      = 0;
 	size_t      sym_cnt      = 0;
@@ -52,20 +51,21 @@ struct Sym_tab
 
 	Elf_Sym    *sym_tab;
 
-	Sym_tab(link_map *map) : map(map), dynamic_base(map->l_ld)
+	Sym_tab(Genode::Shared_object::Link_map const *map)
+	: map(map), dynamic_base(map->dynamic)
 	{
 		if (!dynamic_base) {
-			PERR("%s: base is bogus %lx", map->l_name, map->l_addr);
+			PERR("%s: base is bogus %lx", map->path, map->addr);
 			throw -1;
 		}
 
 		if (verbose)
-			PDBG("for %s at %lx\n", map->l_name, map->l_addr);
+			PDBG("for %s at %lx\n", map->path, map->addr);
 
 		find_tables();
 
 		if (!sym_base) {
-			PERR("%s: could not find symbol table (sym_base %p)", map->l_name,
+			PERR("%s: could not find symbol table (sym_base %p)", map->path,
 			                                                      sym_base);
 			throw -2;
 		}
@@ -117,10 +117,10 @@ struct Sym_tab
 
 			switch (dyn_tag) {
 				case DT_SYMTAB:
-					sym_base = (void *)(elf_dyn(i)->d_un.d_ptr + map->l_addr);
+					sym_base = (void *)(elf_dyn(i)->d_un.d_ptr + map->addr);
 					break;
 				case DT_STRTAB:
-					str_tab = elf_dyn(i)->d_un.d_ptr + map->l_addr;
+					str_tab = elf_dyn(i)->d_un.d_ptr + map->addr;
 					break;
 				case DT_STRSZ:
 					str_size = elf_dyn(i)->d_un.d_ptr;
@@ -128,7 +128,7 @@ struct Sym_tab
 				case DT_HASH:
 					{
 						Elf_Symindx *hashtab = (Elf_Symindx *)(elf_dyn(i)->d_un.d_ptr +
-						                                       map->l_addr);
+						                                       map->addr);
 						sym_cnt = hashtab[1];
 					}
 					break;
@@ -164,7 +164,7 @@ struct Sym_tab
 
 			sym_tab[out_cnt] = *sym;
 			/* set absolute value */
-			sym_tab[out_cnt].st_value += map->l_addr; 
+			sym_tab[out_cnt].st_value += map->addr;
 			if (verbose)
 				PDBG("Read symbol %s val: %zx", name, sym_tab[out_cnt].st_value);
 			out_cnt++;
@@ -178,37 +178,30 @@ struct Sym_tab
 };
 
 
-char const *_filename(char const *path)
-{
-	int i;
-	int len = Genode::strlen(path);
-	for (i = len; i > 0 && path[i] != '/'; i--) ;
-	return path + i + 1;
-}
-
 /**
  * Call init functions of libraries
  */
-static void _dl_init(link_map const *map,
+static void _dl_init(Genode::Shared_object::Link_map const *map,
                     rump_modinit_fn mod_init,
                     rump_compload_fn comp_init)
 {
-	void *handle = dlopen(map->l_name, RTLD_LAZY);
-	if (!handle)
-		PERR ("Could not dlopen %s\n", map->l_name);
+	using namespace Genode;
+	Shared_object *obj;
+	try { obj = new (Genode::env()->heap()) Shared_object(map->path); }
+	catch (...) { PERR ("Could not dlopen %s\n", map->path); return; }
 
 	struct modinfo **mi_start, **mi_end;
 	struct rump_component **rc_start, **rc_end;
 
-	mi_start = (modinfo **)dlsym(handle, "__start_link_set_modules");
-	mi_end   = (modinfo **)dlsym(handle, "__stop_link_set_modules");
+	mi_start = obj->lookup<modinfo **>("__start_link_set_modules");
+	mi_end   = obj->lookup<modinfo **>("__stop_link_set_modules");
 	if (verbose)
 		PDBG("MI: start: %p end: %p", mi_start, mi_end);
 	if (mi_start && mi_end)
 		mod_init(mi_start, (size_t)(mi_end-mi_start));
 
-	rc_start = (rump_component **)dlsym(handle, "__start_link_set_rump_components");
-	rc_end   = (rump_component **)dlsym(handle, "__stop_link_set_rump_components");
+	rc_start = obj->lookup<rump_component **>("__start_link_set_rump_components");
+	rc_end   = obj->lookup<rump_component **>("__stop_link_set_rump_components");
 	if (verbose)
 		PDBG("RC: start: %p end: %p", rc_start, rc_end);
 	if (rc_start && rc_end) {
@@ -222,26 +215,24 @@ void rumpuser_dl_bootstrap(rump_modinit_fn domodinit, rump_symload_fn symload,
                            rump_compload_fn compload)
 {
 	/* open main program and request link map */
-	dl_main = dlopen(0, RTLD_NOW);
+	using namespace Genode;
 
-	struct link_map *map;
-	if(dlinfo(dl_main, RTLD_DI_LINKMAP, &map)) {
-		PERR("Error: Could not retrieve linkmap from main program");
-		return;
-	}
+	obj_main = new (env()->heap()) Shared_object(nullptr, Shared_object::NOW);
 
-	for (; map->l_next; map = map->l_next) ;
+	Shared_object::Link_map const *map = obj_main->link_map();
+	for (; map->next; map = map->next) ;
 
-	struct link_map *curr_map;
+	Shared_object::Link_map const *curr_map;
 
-	for (curr_map = map; curr_map; curr_map = curr_map->l_prev)
-		if (!Genode::strcmp(_filename(curr_map->l_name), "rump", 4)) {
+	for (curr_map = map; curr_map; curr_map = curr_map->prev) {
+		if (!Genode::strcmp(curr_map->path, "rump", 4)) {
 			Sym_tab tab(curr_map);
 			/* load into rum kernel */
 			tab.rump_load(symload);
 			/* init modules and components */
 			_dl_init(curr_map, domodinit, compload);
 		}
+	}
 	PINF("BOOTSTRAP");
 }
 
@@ -249,7 +240,9 @@ void rumpuser_dl_bootstrap(rump_modinit_fn domodinit, rump_symload_fn symload,
 void * rumpuser_dl_globalsym(const char *symname)
 {
 
-	void *addr = dlsym(RTLD_DEFAULT, symname);
+	void *addr = 0;
+	try { addr = obj_main->lookup(symname); }
+	catch (...) { }
 
 	if (verbose)
 		PDBG("Lookup: %s addr %p", symname, addr);
