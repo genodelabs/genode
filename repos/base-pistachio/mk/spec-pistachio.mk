@@ -22,12 +22,6 @@ INC_DIR += $(PISTACHIO_USER_BUILD_DIR)/include
 #
 REP_INC_DIR += include/pistachio
 
-#
-# Linker options
-#
-CXX_LINK_OPT += -L$(PISTACHIO_USER_BUILD_DIR)/lib
-EXT_OBJECTS  += -ll4
-
 clean_contrib:
 	$(VERBOSE)rm -rf $(BUILD_BASE_DIR)/l4
 
