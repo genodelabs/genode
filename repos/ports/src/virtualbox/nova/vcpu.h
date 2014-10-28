@@ -176,7 +176,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 				_fpu_save_and_longjmp();
 
 			/* check whether we have to request irq injection window */
-			utcb->mtd = 0;
+			utcb->mtd = Nova::Mtd::FPU;
 			if (check_to_request_irq_window(utcb, _current_vcpu)) {
 				_irq_win = true;
 				Nova::reply(_stack_reply);
@@ -238,7 +238,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 
 			/* prepare utcb */
 			utcb->set_msg_word(0);
-			utcb->mtd = 0;
+			utcb->mtd = Mtd::FPU;
 
 			/* add map items until no space is left on utcb anymore */
 			bool res;
@@ -492,7 +492,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			Vmm::printf("type:info:vector %x:%x:%x intr:actv - %x:%x mtd %x\n",
 			     Event.n.u3Type, utcb->inj_info, u8Vector, utcb->intr_state, utcb->actv_state, utcb->mtd);
 */
-			utcb->mtd = Nova::Mtd::INJ; 
+			utcb->mtd = Nova::Mtd::INJ | Nova::Mtd::FPU;
 			Nova::reply(_stack_reply);
 		}
 
