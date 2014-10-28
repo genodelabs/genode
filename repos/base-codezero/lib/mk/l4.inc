@@ -7,11 +7,17 @@ SRC_C += $(addprefix lib/,addr.c bit.c idpool.c)
 SRC_C += $(addprefix lib/thread/,init.c thread.c)
 SRC_C += $(addprefix lib/cap/,cap.c read.c)
 
+#
+# Dummies
+#
+SRC_C += dummy.c
+
 INC_DIR += $(CODEZERO_DIR)/conts/userlibs/libc/include
 INC_DIR += $(CODEZERO_DIR)/conts/userlibs/libmem/include
 INC_DIR += $(CODEZERO_DIR)/conts/userlibs/libmem
 
-vpath % $(LIBL4_DIR)/src
+vpath %   $(LIBL4_DIR)/src
+vpath %.c $(REP_DIR)/src/lib/syscall
 
 #
 # The libl4 source files uses macros defined in macros.h but do not
