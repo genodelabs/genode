@@ -5,7 +5,7 @@ LIB_INC_DIR = $(LIB_DIR)/include
 
 LIBS += base cxx dde_kit
 
-LX_CONTRIB_DIR := $(call select_from_ports,dde_linux)/src/lib/dde_linux
+LX_CONTRIB_DIR := $(call select_from_ports,dde_linux)/src/lib/lxip
 NET_DIR        := $(LX_CONTRIB_DIR)/net
 
 #
@@ -14,7 +14,6 @@ NET_DIR        := $(LX_CONTRIB_DIR)/net
 #
 INC_DIR += $(LIB_INC_DIR)
 INC_DIR += $(LX_CONTRIB_DIR)/include $(LX_CONTRIB_DIR)/include/uapi \
-           $(LX_CONTRIB_DIR)/lxip/include $(LX_CONTRIB_DIR)/lxip/include/uapi \
            $(LX_CONTRIB_DIR)
 
 CC_OLEVEL = -O2

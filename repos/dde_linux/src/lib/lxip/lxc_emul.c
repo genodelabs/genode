@@ -225,10 +225,10 @@ struct iphdr *ip_hdr(const struct sk_buff *skb)
  ** linux/netdevice.h **
  ***********************/
 
-struct netdev_queue *netdev_pick_tx(struct net_device *dev, struct sk_buff *skb, void *accel_priv)
-{
-	return netdev_get_tx_queue(dev, 0);
-}
+ struct netdev_queue *netdev_pick_tx(struct net_device *dev, struct sk_buff *skb)
+ {
+ 	return netdev_get_tx_queue(dev, 0); 
+ }
 
 
 /*******************************
@@ -344,29 +344,6 @@ int blocking_notifier_call_chain(struct blocking_notifier_head *nh,
                                  unsigned long val, void *v)
 {
 	return raw_notifier_call_chain((struct raw_notifier_head *)nh, val, v);
-}
-
-
-/*****************
- ** linux/uio.h **
- *****************/
-
-int memcpy_toiovec(struct iovec *iov, unsigned char *kdata, int len)
-{
-	while (len > 0) {
-		if (iov->iov_len) {
-			int copy = min_t(unsigned int, iov->iov_len, len);
-			if (copy_to_user(iov->iov_base, kdata, copy))
-				return -EFAULT;
-			kdata += copy;
-			len -= copy;
-			iov->iov_len -= copy;
-			iov->iov_base += copy;
-		}
-		iov++;
-	}
-
-	return 0;
 }
 
 

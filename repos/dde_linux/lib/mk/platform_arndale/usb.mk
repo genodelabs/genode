@@ -1,4 +1,6 @@
-SRC_C   += usbnet.c asix_devices.c asix_common.c ax88172a.c ax88179_178a.c ehci-exynos.c
+SRC_C   += $(addprefix net/usb/, usbnet.c asix_devices.c asix_common.c ax88172a.c \
+             ax88179_178a.c)
+SRC_C   += usb/host/ehci-exynos.c
 
 include $(REP_DIR)/lib/mk/xhci.inc
 include $(REP_DIR)/lib/mk/usb.inc
@@ -10,11 +12,9 @@ INC_DIR += $(LX_CONTRIB_DIR)/arch/arm/plat-samsung/include
 SRC_CC  += platform.cc
 
 #DWC3
-SRC_C   += host.c core.c
+SRC_C   += $(addprefix usb/dwc3/, host.c core.c)
 
 #XHCI
-SRC_C   += xhci-plat.c
+SRC_C   += usb/host/xhci-plat.c
 
 vpath platform.cc $(LIB_DIR)/arm/platform_arndale
-vpath %.c         $(LX_CONTRIB_DIR)/drivers/usb/dwc3
-vpath %.c         $(LX_CONTRIB_DIR)/drivers/net/usb

@@ -1,14 +1,7 @@
-commit 3785e30c9833a908775a69c2961a3c1d6fe50d09
-Author: Sebastian Sumpf <sebastian.sumpf@genode-labs.com>
-Date:   Mon Jun 2 13:25:30 2014 +0200
-
-    ip_config.patch
-
-diff --git a/net/ipv4/ipconfig.c b/net/ipv4/ipconfig.c
-index b3e86ea..cd93457 100644
---- a/net/ipv4/ipconfig.c
-+++ b/net/ipv4/ipconfig.c
-@@ -1516,24 +1516,24 @@ static int __init ip_auto_config(void)
+diff -r d3a8e67b38cf net/ipv4/ipconfig.c
+--- a/net/ipv4/ipconfig.c	Fri Sep 20 12:18:22 2013 +0200
++++ b/net/ipv4/ipconfig.c	Fri Sep 20 12:18:56 2013 +0200
+@@ -1505,24 +1505,24 @@
  	 */
  	pr_info("IP-Config: Complete:\n");
  

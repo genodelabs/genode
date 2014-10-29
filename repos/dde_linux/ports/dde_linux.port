@@ -1,40 +1,64 @@
-LICENSE   := GPL
-VERSION   := 3.14.5
-DOWNLOADS := dwc_otg.git linux.archive linux_lxip.archive
-SRC_DIR   := src/lib/dde_linux
+LICENSE     := GPL
+VERSION     := 1
+DOWNLOADS   := dwc_otg.git usb.archive lxip.archive
 
 #
 # The git checkout checks for the existence of SRC_DIR, which is created by the
 # Linux extraction, therefore make sure to checkout the GIT sources first.
 #
-linux.archive linux_lxip.archive: dwc_otg.git
+usb.archive: dwc_otg.git
+
 
 #
-# USB and IP stack sources
+# USB
 #
-URL(linux)     := http://www.kernel.org/pub/linux/kernel/v3.x/linux-$(VERSION).tar.gz
-SHA(linux)     := 675bb3446cbf0889d59a048f6af177ca0a7aacb5
-DIR(linux)     := $(SRC_DIR)
-TAR_OPT(linux) := --strip-components=1 --files-from $(REP_DIR)/files.list
-HASH_INPUT     += $(REP_DIR)/files.list
+SRC_DIR_USB  := src/lib/usb
+VERSION_USB  := 3.14.5
+URL(usb)     := http://www.kernel.org/pub/linux/kernel/v3.x/linux-$(VERSION_USB).tar.gz
+SHA(usb)     := 675bb3446cbf0889d59a048f6af177ca0a7aacb5
+DIR(usb)     := $(SRC_DIR_USB)
+TAR_OPT(usb) := --strip-components=1 --files-from $(REP_DIR)/usb.list
+HASH_INPUT   += $(REP_DIR)/usb.list
 
-#
-# IP stack headers
-#
-URL(linux_lxip)     := ${URL(linux)}
-SHA(linux_lxip)     := ${SHA(linux)}
-DIR(linux_lxip)     := $(SRC_DIR)/lxip
-TAR_OPT(linux_lxip) := --strip-components=1  --files-from $(REP_DIR)/lxip_header.list
-HASH_INPUT          += $(REP_DIR)/lxip_header.list
 
 #
 # Raspberry Pi USB controller
 #
 URL(dwc_otg) := https://github.com/nfeske/dwc_otg.git
 REV(dwc_otg) := r2
-DIR(dwc_otg) := $(SRC_DIR)/drivers/usb/host/dwc_otg
+DIR(dwc_otg) := $(SRC_DIR_USB)/drivers/usb/host/dwc_otg
 
-PATCHES   := patches/*.patch
-PATCH_OPT  = -p1 -d$(SRC_DIR)
+
+#
+# IP stack sources
+#
+SRC_DIR_LXIP  := src/lib/lxip
+VERSION_LXIP  := 3.9
+URL(lxip)     := http://www.kernel.org/pub/linux/kernel/v3.x/linux-$(VERSION_LXIP).tar.gz
+SHA(lxip)     := 7979f0d670838d0552c7ede5cc06497b81dcd812
+DIR(lxip)     := $(SRC_DIR_LXIP)
+TAR_OPT(lxip) := --strip-components=1  --files-from $(REP_DIR)/lxip.list
+HASH_INPUT    += $(REP_DIR)/lxip.list
+
+
+#
+# Patches
+#
+PATCHES := $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/*.patch)))
+
+USB_OPT = -p1 -d$(SRC_DIR_USB)
+PATCH_OPT(patches/usb_ax88179.patch)     := $(USB_OPT)
+PATCH_OPT(patches/usb_csum.patch)        := $(USB_OPT)
+PATCH_OPT(patches/usb_evdev.patch)       := $(USB_OPT)
+PATCH_OPT(patches/usb_mem.patch)         := $(USB_OPT)
+PATCH_OPT(patches/usb_usbnet.patch)      := $(USB_OPT)
+PATCH_OPT(patches/usb_xchi-quirks.patch) := $(USB_OPT)
+
+LXIP_OPT = -p1 -d$(SRC_DIR_LXIP)
+PATCH_OPT(patches/lxip_icmp.patch)      := $(LXIP_OPT)
+PATCH_OPT(patches/lxip_ip_config.patch) := $(LXIP_OPT)
+PATCH_OPT(patches/lxip_skbuff.patch)    := $(LXIP_OPT)
+PATCH_OPT(patches/lxip_tcp.patch)       := $(LXIP_OPT)
+PATCH_OPT(patches/lxip_netlink.patch)   := $(LXIP_OPT)
 
 # vi: set ft=make :

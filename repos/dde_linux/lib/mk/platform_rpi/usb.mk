@@ -20,7 +20,7 @@ SRC_C += \
 	usb/host/dwc_otg/dwc_common_port/dwc_modpow.c \
 	usb/host/dwc_otg/dwc_common_port/dwc_notifier.c
 
-SRC_C += usbnet.c smsc95xx.c
+SRC_C += net/usb/usbnet.c net/usb/smsc95xx.c
 
 include $(REP_DIR)/lib/mk/usb.inc
 include $(REP_DIR)/lib/mk/armv6/usb.inc
