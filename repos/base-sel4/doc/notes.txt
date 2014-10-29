@@ -789,6 +789,12 @@ lines:
 Since we modified the port-description file, we need to update the
 accompanied hash via './tool/ports/update_hash sel4'.
 
+_Edit: After consulting the seL4 mailing list, Adrian Danis pointed out that_
+_the actual issue is an off-by-one bug in the SEL4_FORCE_LONG_ENUM macro._
+_So instead of explicitly casting all opcodes to integers, the macro_
+_can be fixed at one place. Hence, I replaced the syscalls.patch by a_
+_macros.patch until the fix appears upstream._
+
 Anyway, after all the steps, our test-sel4 program can be successfully
 built. Executing the run script produces the result that we longed for:
 
