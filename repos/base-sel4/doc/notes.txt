@@ -935,4 +935,165 @@ _interfaces/sel4_client.h_ stub code. In the stub code, we find the function
 'seL4_Untype_Retype' explained in the manual. This is just another difference
 from the master branch.
 
+I decided to proceeed with invoking 'seL4_Untyped_RetypeAtOffset' by
+manually specifying its parameters. At this point, I am having a hard time
+with wrapping my head around seL4's kernel-resource management, in particular
+the CNode addressing. My first attempt looked like this:
 
+! {
+!   /* I don't really know what I am doing here */
+!   seL4_Untyped const service     = 0x38; /* untyped */
+!   int          const type        = seL4_TCBObject;
+!   int          const offset      = 0;
+!   int          const size_bits   = 0;
+!   seL4_CNode   const root        = seL4_CapInitThreadCNode;
+!   int          const node_index  = 0;
+!   int          const node_depth  = 32;
+!   int          const node_offset = 0x100;
+!   int          const num_objects = 1;
+!
+!   int const ret = seL4_Untyped_RetypeAtOffset(service,
+!                                               type,
+!                                               offset,
+!                                               size_bits,
+!                                               root,
+!                                               node_index,
+!                                               node_depth,
+!                                               node_offset,
+!                                               num_objects);
+!   PDBG("seL4_Untyped_RetypeAtOffset returned %d", ret);
+! }
+
+I put the individual arguments into named constants instead of directly
+supplying them to the function to make their meaning easier to memorize. The
+'service' argument refers to one of the untyped memory capabilities reported
+by the boot info. This memory will be turned into a thread control block
+(TCB). The 'node_offset' is a presumably free capability slot of the root
+CScope that is supposed to be free. This is where we want to store the
+capability for the newly created thread.
+
+When executing the code, the kernel reports an error like this:
+! vm fault on data at address 0x1e8 with status 0x6
+! in thread 0xe0189880 at address 0x10002ed
+
+The fault is triggered by the function 'seL4_SetCap', more precisely by the
+instruction:
+!  mov %eax,%gs:0x1e8(,%ecx,4)
+
+It appears that the seL4 bindings rely on a thread-local-storage facility
+via GS-relative addressing. When the kernel switches thread contexts, it
+loads a segment with a thread-specific memory location. Since, we have not
+initialized the GS register with a particular value, we end up addressing
+the first page, which is not mapped. The issue could be resolved by
+initializing the GS register as follows:
+
+! static inline void init_ipc_buffer()
+! {
+!   asm volatile ("movl %0, %%gs" :: "r"(IPCBUF_GDT_SELECTOR) : "memory");
+! }
+
+The IPCBUF_GDT_SELECTOR is defined by the seL4 headers. On the next attempt
+to execute the code, we get a much nicer kernel message:
+
+! <<seL4 [decodeUntypedInvocation/136 Te0189880 @100035a]:
+!         Untyped Retype: Destination cap invalid or read-only.>>
+
+In reality, the message even looks much better - it is in color!
+The message tells us that the kernel has actually received our request
+for retyping untyped memory but the arguments are still messed up.
+The message comes from _src/object/untyped.c_:
+
+! /* Lookup the destination CNode (where our caps will be placed in). */
+! if (nodeDepth == 0) {
+!     nodeCap = extraCaps.excaprefs[0]->cap;
+! } else {
+!     cap_t rootCap = extraCaps.excaprefs[0]->cap;
+!     lu_ret = lookupTargetSlot(rootCap, nodeIndex, nodeDepth);
+!     if (lu_ret.status != EXCEPTION_NONE) {
+!         userError("Untyped Retype: Invalid destination address.");
+!         return lu_ret.status;
+!     }
+!     nodeCap = lu_ret.slot->cap;
+! }
+
+Apparently, by specifying the value 32 for the depth argument, we entered
+the code path for traversing a CNode tree instead of just inserting a
+capability into the root CScope. By changing 'node_depth' to 0, system
+call returns successfully:
+! int main(): seL4_Untyped_RetypeAtOffset returned 0
+
+Even though the new thread has no valid register set and no defined space,
+let us see what happens when we try to start it anyway. This can be done
+via the 'seL4_TCB_Resume' call with our just created TCB capability as
+argument.
+
+! seL4_TCB_Resume(0x100);
+
+This results into the following exciting output:
+
+! Caught cap fault in send phase at address 0x0
+! while trying to handle:
+! vm fault on data at address 0x1122 with status 0x6
+! in thread 0xe0189880 at address 0x10003a5
+! Caught cap fault in send phase at address 0x0
+! while trying to handle:
+! vm fault on data at address 0x0 with status 0x4
+! in thread 0xe0100080 at address 0x0
+
+We see two threads faulting! The main thread faults at our "breakpoint"
+0x1122. But there is also another thread, which faults at 0x0. Apparently,
+the TCB creation via 'seL4_Untyped_RetypeAtOffset' was successful!
+
+Now, turning the situation into something useful seems like a walk in the
+park: We need to allocate a stack for the new thread and set up the initial
+program counter and stack pointer of the new thread. At this point, I decide
+to give the number 0x100 a proper name SECOND_THREAD_CAP because it will be
+repeatedly used.
+
+! enum { SECOND_THREAD_CAP = 0x100 };
+
+Following the manual, we have call 'seL4_TCB_WriteRegisters' and
+'seL4_TCB_SetSpace'. The following code snippet allocates the stack for
+the new thread on the stack of the main thread, initializes the stack
+pointer and program counter of the new thread, assigns the new thread to
+the same address space as the main thread, and kicks off the execution of
+the new thread.
+
+!  long stack[0x1000];
+!  {
+!    seL4_UserContext regs;
+!    Genode::memset(&regs, 0, sizeof(regs));
+!
+!    regs.eip = (uint32_t)&second_thread_entry;
+!    regs.esp = (uint32_t)&stack[0] + sizeof(stack);
+!    int const ret = seL4_TCB_WriteRegisters(SECOND_THREAD_CAP, false,
+!                                            0, 2, &regs);
+!    PDBG("seL4_TCB_WriteRegisters returned %d", ret);
+!  }
+!
+!  {
+!    seL4_CapData_t no_cap_data = { { 0 } };
+!    int const ret = seL4_TCB_SetSpace(SECOND_THREAD_CAP, 0,
+!                      seL4_CapInitThreadCNode, no_cap_data,
+!                      seL4_CapInitThreadPD, no_cap_data);
+!    PDBG("seL4_TCB_SetSpace returned %d", ret);
+!  }
+!
+!  seL4_TCB_Resume(SECOND_THREAD_CAP);
+
+The entry function of the new thread is supposed to produce a page fault at
+the predefined address 0x2244:
+
+! void second_thread_entry()
+! {
+!   *(int *)0x2244 = 0;
+! }
+
+When executing the code, we get the desired result:
+
+! vm fault on data at address 0x1122 with status 0x6
+! ...
+! vm fault on data at address 0x2244 with status 0x6
+
+From these messages, we can see that both the main thread and the second
+thread are faulting at their designated fault addresses.

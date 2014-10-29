@@ -17,7 +17,9 @@
 #include <base/fixed_stdint.h>
 
 typedef genode_uint8_t  uint8_t;
+typedef genode_uint16_t uint16_t;
 typedef genode_uint32_t uint32_t;
+typedef genode_uint64_t uint64_t;
 
 #ifndef NULL
 #define NULL ((void *)0)
