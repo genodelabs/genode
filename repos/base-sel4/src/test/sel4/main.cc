@@ -68,9 +68,13 @@ static inline void init_ipc_buffer()
 }
 
 
+static int volatile cnt = 0;
+
+
 void second_thread_entry()
 {
-	*(int *)0x2244 = 0;
+	for (;;)
+		cnt++;
 }
 
 
@@ -137,6 +141,10 @@ int main()
 
 	seL4_TCB_Resume(SECOND_THREAD_CAP);
 
+	seL4_TCB_SetPriority(SECOND_THREAD_CAP, 0xff);
+
+	for (;;)
+		PDBG("cnt = %d", cnt);
 
 	*(int *)0x1122 = 0;
 	return 0;

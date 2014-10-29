@@ -1097,3 +1097,46 @@ When executing the code, we get the desired result:
 
 From these messages, we can see that both the main thread and the second
 thread are faulting at their designated fault addresses.
+
+Now, with two threads in place, we can test-drive the preemptive scheduling of
+the kernel by changing the 'second_thread_entry' function to:
+
+! static int volatile cnt = 0;
+!
+! void second_thread_entry()
+! {
+!   for (;;)
+!     cnt++;
+! }
+
+At the end of the main function, we repeatedly print the counter value:
+
+! for (;;)
+!   PDBG("cnt = %d", cnt);
+
+When executing the code, the counter values surprisingly stays at the value
+0. This is because the just-created new thread has a lower priority than the
+main thread. By explicitly assigning the maximum priority to the second
+thread, we can enable the preemptive round-robin scheduling:
+
+! seL4_TCB_SetPriority(SECOND_THREAD_CAP, 0xff);
+
+Now, we can see the counter value nicely increasing:
+
+! int main(): cnt = 0
+! ...
+! int main(): cnt = 0
+! int main(): cnt = 2908738
+! ...
+! int main(): cnt = 2908738
+! int main(): cnt = 5876191
+! ...
+! int main(): cnt = 5876191
+! ...
+
+Each thread consumes its entire time slice. This way, the second thread has
+the chance to increment the counter circa 3 million times per time slice after
+which the main thread has the chance to print the counter about 50 times
+before being preempted again.
+
+
