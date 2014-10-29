@@ -1,11 +1,11 @@
 
 
-              ==========================================
-              Notes on porting Genode to the seL4 kernel
-              ==========================================
+        =========================================================
+        Genode on seL4 - Building a simple root task from scratch
+        =========================================================
 
 
-                            Norman Feske
+                              Norman Feske
 
 
 This document is a loose collection of notes about the exploration of the
@@ -44,7 +44,7 @@ We can simply use _base-nova/ports/nova.port_ as a template and adapt it:
 There are two branches of seL4. The master branch is the stable branch
 that contains the formally verified version of the kernel. The experimental
 branch contains features that are not yet ready to be included in the
-master branch. Among those features are the support for virtualization.
+master branch. Among those features is the support for virtualization.
 To anticipate current developments of the seL4 community, I am going with
 the experimental branch. For the ports file, I pick the commit ID of the
 most recent commit of the experimental branch at the time of porting. Once,
@@ -192,7 +192,7 @@ directory prepared for seL4. Later, we will add seL4 support to the regular
   GENODE_DIR must point to the root of Genode's source tree.
   BASE_DIR is used by the build system to find the build-system scripts.
   The CONTRIB_DIR is needed to enable the build system to find the location
-  of the seL4 source code. The 'REPOSITORIES' declaration lists all source
+  of the seL4 source code. The REPOSITORIES declaration lists all source
   repositories that should be included in the build. Note that the order
   is important. By listing 'base-sel4' before 'base', we allow 'base-sel4'
   to override the content of the 'base' repository.
@@ -218,7 +218,7 @@ _base-sel4/run/env_. To create it, we can take inspiration from the run
 environments of the other platforms such as NOVA. It comes down to
 implementing the functions 'build_boot_image' and 'run_genode_until' according
 to our needs. The former function contains the generation of the boot-loader
-configuration, i.e., GRUB's _menu.lst_ file. At the current stage, we merely
+configuration, i.e., GRUB's _menu.lst_ file. At the current stage, we simply
 load the seL4 ELF image as multi-boot kernel. For using the run tool for the
 initial test, the following small run script at _base-sel4/run/test.run_ does
 the trick:
@@ -235,7 +235,7 @@ Normally we would expect from the kernel to print a life sign when booting
 up. This is suggested by a 'printf' in _arch/arm/kernel/boot.c_. So the lack
 of output is most certainly a configuration issue. A look in
 _include/plat/pc99/plat/machine/io.h_ indicates that 'kernel_putchar', which
-is used as the back end of 'printf' _(src/machine/io.c)_ is compiled in only
+is used as the back end of 'printf' _(src/machine/io.c)_ is compiled-in only
 if DEBUG mode is enabled. Adding 'DEBUG=1' to the sel4 build command (in our
 _lib/mk/x86_32/kernel.mk_ file) enables this mode.
 
@@ -266,7 +266,7 @@ triggers because the section of the binary is larger (40900 bytes) than the
 assumed limit NDKS_SIZE (12288 bytes). According to the linker script
 _(src/plat/pc99/linker.lds)_, the section includes the kernel stack, the BSS,
 and "COMMON" symbols. When looking at the list of those symbols using 'nm |
-sort -n', the 'ksReadyQueues' symbol raises my eyebrows because it is quite
+sort', the 'ksReadyQueues' symbol raises my eyebrows because it is quite
 large (32768 bytes) compared to all others. This symbol belongs to an array,
 which is dimensioned as CONFIG_NUM_DOMAINS * CONFIG_NUM_PRIORITIES. As we are
 using the default configuration values of _include/config.h_,
@@ -307,7 +307,7 @@ _base-sel4/src/test/sel4/_. The _target.mk_ file looks as follows:
 ! SRC_CC = main.cc
 ! LIBS   = cxx startup
 
-The 'main' function of the _main.cc_ file does no much except for writing
+The 'main' function of the _main.cc_ file does not much except for writing
 at an illegal (yet known) address:
 
 ! int main()
@@ -367,8 +367,8 @@ linked, we provide empty dummies:
 The next missing piece is the platform-specific implementation of the IPC
 API _(ipc/ipc.cc and ipc/pager.cc)_, which are expected to reside at
 _base-sel4/src/base/ipc/_. We just take the simplest version of the other
-base platforms (in this case _base-codezero/src/base/ipc/) and strip it down
-to become mere dummy.
+base platforms (in this case _base-codezero/src/base/ipc/_) and strip it down
+to become a mere dummy.
 
 By adding the base-common library, the number of unresolved references
 decreased by a great amount. Some functions are still unresolved.
@@ -376,20 +376,20 @@ There are many references to 'printf', which is not part of the base-common
 library because core uses a different back end (typically a kernel debugger)
 than non-core processes (using a session to core's LOG service). Because
 our test plays the role of a root task, we can include core's version by
-adding 'base/src/base/console/core_printf.cc' as source to our target
+adding _base/src/base/console/core_printf.cc_ as source to our target
 description file.
 
 ! SRC_CC += base/console/core_printf.cc
 ! vpath %.cc $(BASE_DIR)/src
 
-The back end of 'core_printf.cc' has to be provided by a header at
+The back end of _core_printf.cc_ has to be provided by a header at
 _base-sel4/src/base/console/core_console.h_. For now, we just provide
 an empty implementation of '_out_char'. To let the compiler find the
-header, we need to add the extend the include search path as follows:
+header, we need to extend the include search path as follows:
 
 ! INC_DIR += $(REP_DIR)/src/base/console
 
-For the unresolved references for 'env_context_area_ram_session' and
+For the unresolved references of 'env_context_area_ram_session' and
 'env_context_area_rm_session', the following dummy will do:
 
 ! #include <ram_session/ram_session.h>
@@ -400,7 +400,7 @@ For the unresolved references for 'env_context_area_ram_session' and
 ! 	Ram_session *env_context_area_ram_session() { return nullptr; }
 ! }
 
-The remaining pieces of the puzzle is the 'Genode::env()' function, which
+The remaining piece of the puzzle is the 'Genode::env()' function, which
 is an accessor to the Genode environment. Because the Genode environment does
 not exist yet, we provide a dummy 'env' called _mini_env_. Initially, this
 implementation of the 'Genode::Env' interface merely returns dummy values
@@ -436,9 +436,9 @@ kernel:
 ! in thread 0xe0189880 at address 0x314a
 
 Assuming that 'v_start' and 'v_end' stand for the virtual address range
-if the loaded binary, those numbers look weird. Normally, Genode binaries
+of the loaded binary, those numbers look weird. Normally, Genode binaries
 are linked at a much higher address, e.g., 0x1000000. By inspecting the
-binary via the readelf commend, it turns out that we haven't yet declared the
+binary via the readelf command, it turns out that we haven't yet declared the
 link address for the seL4 platform. So its time to introduce a so-called spec
 file for the "sel4" build-spec value. The new file _base-sel4/mk/spec-sel4.mk_
 will be incorporated into the build process whenever the 'SPEC' declaration of
@@ -472,7 +472,7 @@ to take the following steps:
 
 # We want to halt the execution at the point where the fault would happen
   instead of triggering a page fault. The easiest way to accomplish that
-  is to insert an infinite loop at the right spot. The infinite loop serve
+  is to insert an infinite loop at the right spot. The infinite loop serves
   us as a poor man's break point. In our case, we add a 'for (;;);' statement
   right at the beginning of the '_allocate_dataspace' function in
   _repos/base/src/base/heap/heap.cc_. When re-executing the run script after
@@ -607,7 +607,7 @@ When executing our run script again, we will get the following message:
 
 This message is caused by the main function of our test program! In this
 function, we deliberately triggered a fault at the address 0x1122 via
-the statement '*(int *)0x1122 = 0;'
+the statement '*(int *)0x1122 = 0;'.
 
 
 Issuing the first system call
@@ -642,7 +642,7 @@ The platform library is used as a mere hook to create the include directory
 structure within the build directory. To allow a program to actually use
 those headers, we'd need to extend the include-search path accordingly.
 One way would be to have each target specify the build-directory's local
-include path via 'INC_DIR += $(BUILD_BASE_DIR)/include'. To too bad. However,
+include path via 'INC_DIR += $(BUILD_BASE_DIR)/include'. Not too bad. However,
 to make the use of the syscall headers more convenient, we introduce just
 another library called _syscall_. The library is solely used for providing
 a so-called library-import file to all targets that use the library. The
@@ -705,7 +705,7 @@ On the attempt to build it, we get the following message:
 
 A look at the top-level _Makefile_ of seL4 reveals that this file is generated
 from a "types.bf" file using a python script called _tools/bitfield_gen.py_.
-Se we have to add a rule for generating this file to our platform library.
+So we have to add a rule for generating this file to our platform library.
 
 ! $(BUILD_BASE_DIR)/include/sel4/types_gen.h: $(LIBSEL4_DIR)/include/sel4/types.bf
 ! 	$(VERBOSE)python $(LIBSEL4_DIR)/tools/bitfield_gen.py \
@@ -852,7 +852,7 @@ Obtaining boot information
 
 The manual mentions the function 'seL4_GetBootInfo' to obtain a pointer to
 a boot-info structure. The function implementation, however, requires a
-prior all of 'seL4_InitBootInfo' from the startup code. According to the
+prior call of 'seL4_InitBootInfo' from the startup code. According to the
 manual, the startup code gets the pointer passed in a CPU register. It
 presumably registers this pointer via 'seL4_InitBootInfo'. Of course, we
 don't want to change Genode's kernel-agnostic startup code by inserting
@@ -935,13 +935,12 @@ _interfaces/sel4_client.h_ stub code. In the stub code, we find the function
 'seL4_Untype_Retype' explained in the manual. This is just another difference
 from the master branch.
 
-I decided to proceeed with invoking 'seL4_Untyped_RetypeAtOffset' by
+I decided to proceed with invoking 'seL4_Untyped_RetypeAtOffset' by
 manually specifying its parameters. At this point, I am having a hard time
-with wrapping my head around seL4's kernel-resource management, in particular
+with wrapping my mind around seL4's kernel-resource management, in particular
 the CNode addressing. My first attempt looked like this:
 
 ! {
-!   /* I don't really know what I am doing here */
 !   seL4_Untyped const service     = 0x38; /* untyped */
 !   int          const type        = seL4_TCBObject;
 !   int          const offset      = 0;
@@ -964,13 +963,14 @@ the CNode addressing. My first attempt looked like this:
 !   PDBG("seL4_Untyped_RetypeAtOffset returned %d", ret);
 ! }
 
-I put the individual arguments into named constants instead of directly
-supplying them to the function to make their meaning easier to memorize. The
-'service' argument refers to one of the untyped memory capabilities reported
-by the boot info. This memory will be turned into a thread control block
-(TCB). The 'node_offset' is a presumably free capability slot of the root
-CScope that is supposed to be free. This is where we want to store the
-capability for the newly created thread.
+Admittedly, I feel a bit flabbergasted by the amount of arguments and not 100%
+certain what I am doing here. I put the individual arguments into named
+constants instead of directly supplying them to the function to make their
+meaning easier to memorize. The 'service' argument refers to one of the
+untyped memory capabilities reported by the boot info. This memory will be
+turned into a thread control block (TCB). The 'node_offset' is a presumably
+free capability slot of the root CScope that is supposed to be free. This is
+where we want to store the capability for the newly created thread.
 
 When executing the code, the kernel reports an error like this:
 ! vm fault on data at address 0x1e8 with status 0x6
@@ -982,7 +982,7 @@ instruction:
 
 It appears that the seL4 bindings rely on a thread-local-storage facility
 via GS-relative addressing. When the kernel switches thread contexts, it
-loads a segment with a thread-specific memory location. Since, we have not
+loads a segment with a thread-specific memory location. Since we have not
 initialized the GS register with a particular value, we end up addressing
 the first page, which is not mapped. The issue could be resolved by
 initializing the GS register as follows:
@@ -998,9 +998,9 @@ to execute the code, we get a much nicer kernel message:
 ! <<seL4 [decodeUntypedInvocation/136 Te0189880 @100035a]:
 !         Untyped Retype: Destination cap invalid or read-only.>>
 
-In reality, the message even looks much better - it is in color!
+In reality, the message looks even much better - it is in color!
 The message tells us that the kernel has actually received our request
-for retyping untyped memory but the arguments are still messed up.
+for retyping untyped memory but the arguments are messed up.
 The message comes from _src/object/untyped.c_:
 
 ! /* Lookup the destination CNode (where our caps will be placed in). */
@@ -1029,7 +1029,7 @@ argument.
 
 ! seL4_TCB_Resume(0x100);
 
-This results into the following exciting output:
+This results in the following exciting output:
 
 ! Caught cap fault in send phase at address 0x0
 ! while trying to handle:
@@ -1041,18 +1041,18 @@ This results into the following exciting output:
 ! in thread 0xe0100080 at address 0x0
 
 We see two threads faulting! The main thread faults at our "breakpoint"
-0x1122. But there is also another thread, which faults at 0x0. Apparently,
-the TCB creation via 'seL4_Untyped_RetypeAtOffset' was successful!
+0x1122. But there is also another thread, which faults at 0x0. We can see
+that the TCB creation via 'seL4_Untyped_RetypeAtOffset' was successful!
 
 Now, turning the situation into something useful seems like a walk in the
 park: We need to allocate a stack for the new thread and set up the initial
 program counter and stack pointer of the new thread. At this point, I decide
-to give the number 0x100 a proper name SECOND_THREAD_CAP because it will be
+to give the number 0x100 a proper name "SECOND_THREAD_CAP" because it will be
 repeatedly used.
 
 ! enum { SECOND_THREAD_CAP = 0x100 };
 
-Following the manual, we have call 'seL4_TCB_WriteRegisters' and
+Following the manual, we have to call 'seL4_TCB_WriteRegisters' and
 'seL4_TCB_SetSpace'. The following code snippet allocates the stack for
 the new thread on the stack of the main thread, initializes the stack
 pointer and program counter of the new thread, assigns the new thread to
@@ -1098,7 +1098,7 @@ When executing the code, we get the desired result:
 From these messages, we can see that both the main thread and the second
 thread are faulting at their designated fault addresses.
 
-Now, with two threads in place, we can test-drive the preemptive scheduling of
+With two threads in place, we can test-drive the preemptive scheduling of
 the kernel by changing the 'second_thread_entry' function to:
 
 ! static int volatile cnt = 0;
