@@ -4,6 +4,36 @@
                                ===========
 
 
+Article about building a simple seL4 root task | 2014-10-30
+###########################################################
+
+| As we have just kicked off our work on porting Genode to the seL4
+| microkernel, we took the chance to document the process in the form
+| of a series of articles. The first part covers the steps of creating
+| a minimalistic root task.
+
+The seL4 kernel is a modern microkernel jointly developed by NICTA and
+General Dynamics. This summer, it was released under GPL, which makes it
+intriguing as a potential base platform for Genode. Its biggest appeal
+stems from the fact that there exists a formal proof of correctness of the
+kernel code. But besides this assuring attribute, with solid kernel resource
+management, support for capability-based security, and good performance, it is
+attractive on technical merits too.
+
+The article "Genode on seL4 - Building a simple root task from scratch" covers
+the first steps of enabling Genode to run on seL4. It describes the
+integration of the kernel code with Genode's source tree and the steps taken
+to create a minimalistic root task that runs on the kernel. It is full of
+hands-on information about the methodology of such a porting effort and
+describes the experience with using the kernel from the perspective of
+someone with no prior association with the seL4 project.
+[http://genode.org/documentation/articles/sel4_part_1 - Read the article...]
+
+All the steps described in the article can be followed in the
+topic branch [http://github.com/nfeske/genode/commits/sel4] of the current
+development.
+
+
 Genode OS Framework release 14.08 | 2014-08-28
 ##############################################
 
