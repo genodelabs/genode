@@ -34,7 +34,7 @@ set output $expect_out(buffer)
 grep_output {^\[}
 
 compare_output_to {
-	[128]: (roottask) (entrypoi) (signal) (pager) (ioport) (init) {init} (signal h) (init.1) {init.1} (init.2) (signal h) (init.11) (init.12)
+	[128]: {roottask} (entrypoi) (signal) (pager) (ioport) (init) {init} (signal h) (init.1) {init.1} (init.2) (signal h) (init.11) (init.12)
 	[112]: {init.11} (signal h)
 	[ 96]: {init.12} (signal h) (init.121) {init.121} (signal h)
 	[ 64]: {init.2} (signal h)
