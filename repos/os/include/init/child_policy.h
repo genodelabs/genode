@@ -105,7 +105,10 @@ namespace Init {
 				if (Genode::strcmp(service, "CPU") || _prio_levels_log2 == 0)
 					return;
 
-				long priority = Arg_string::find_arg(args, "priority").long_value(0);
+				unsigned long priority = Arg_string::find_arg(args, "priority").long_value(0);
+
+				/* clamp priority value to valid range */
+				priority = min((unsigned)Cpu_session::PRIORITY_LIMIT - 1, priority);
 
 				long discarded_prio_lsb_bits_mask = (1 << _prio_levels_log2) - 1;
 				if (priority & discarded_prio_lsb_bits_mask) {
