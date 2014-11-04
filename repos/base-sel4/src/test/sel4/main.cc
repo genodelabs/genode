@@ -68,13 +68,32 @@ static inline void init_ipc_buffer()
 }
 
 
-static int volatile cnt = 0;
+enum { SEL4_TCB_SIZE = 0x1000,
+       SEL4_EP_SIZE  = 16 };
+
+/*
+ * Capability for the second thread's TCB
+ */
+enum { SECOND_THREAD_CAP = 0x100 };
+
+/*
+ * Capability for IPC entrypoint, set up by the main thread, used by the second
+ * thread.
+ */
+enum { EP_CAP = 0x101 };
 
 
 void second_thread_entry()
 {
-	for (;;)
-		cnt++;
+	init_ipc_buffer();
+
+	PDBG("call seL4_Wait");
+	seL4_MessageInfo_t msg_info = seL4_Wait(EP_CAP, nullptr);
+	PDBG("returned from seL4_Wait, call seL4_Reply");
+	seL4_Reply(msg_info);
+	PDBG("returned from seL4_Reply");
+
+	*(int *)0x2244 = 0;
 }
 
 
@@ -93,18 +112,25 @@ int main()
 	PDBG("seL4_SetUserData");
 	seL4_SetUserData((seL4_Word)bi->ipcBuffer);
 
-	enum { SECOND_THREAD_CAP = 0x100 };
+	/* yse first untyped memory region for allocating kernel objects */
+	seL4_Untyped const untyped = bi->untyped.start;
 
+	/* offset to next free position within the untyped memory range */
+	unsigned long untyped_offset = 0;
+
+	/* create second thread */
 	{
-		seL4_Untyped const service     = 0x38; /* untyped */
+		seL4_Untyped const service     = untyped;
 		int          const type        = seL4_TCBObject;
-		int          const offset      = 0;
+		int          const offset      = untyped_offset;
 		int          const size_bits   = 0;
 		seL4_CNode   const root        = seL4_CapInitThreadCNode;
 		int          const node_index  = 0;
 		int          const node_depth  = 0;
 		int          const node_offset = SECOND_THREAD_CAP;
 		int          const num_objects = 1;
+
+		untyped_offset += SEL4_TCB_SIZE;
 
 		int const ret = seL4_Untyped_RetypeAtOffset(service,
 		                                            type,
@@ -116,9 +142,49 @@ int main()
 		                                            node_offset,
 		                                            num_objects);
 
-		PDBG("seL4_Untyped_RetypeAtOffset returned %d", ret);
+		PDBG("seL4_Untyped_RetypeAtOffset (TCB) returned %d", ret);
 	}
 
+	/* create synchronous IPC entrypoint */
+	{
+		seL4_Untyped const service     = untyped;
+		int          const type        = seL4_EndpointObject;
+		int          const offset      = untyped_offset;
+		int          const size_bits   = 0;
+		seL4_CNode   const root        = seL4_CapInitThreadCNode;
+		int          const node_index  = 0;
+		int          const node_depth  = 0;
+		int          const node_offset = EP_CAP;
+		int          const num_objects = 1;
+
+		untyped_offset += SEL4_EP_SIZE;
+
+		int const ret = seL4_Untyped_RetypeAtOffset(service,
+		                                            type,
+		                                            offset,
+		                                            size_bits,
+		                                            root,
+		                                            node_index,
+		                                            node_depth,
+		                                            node_offset,
+		                                            num_objects);
+
+		PDBG("seL4_Untyped_RetypeAtOffset (EP) returned %d", ret);
+	}
+
+	/* assign IPC buffer to second thread */
+	{
+		static_assert(sizeof(seL4_IPCBuffer) % 512 == 0,
+		              "unexpected seL4_IPCBuffer size");
+
+		int const ret = seL4_TCB_SetIPCBuffer(SECOND_THREAD_CAP,
+		                                      (seL4_Word)(bi->ipcBuffer + 1),
+		                                      seL4_CapInitThreadIPCBuffer);
+
+		PDBG("seL4_TCB_SetIPCBuffer returned %d", ret);
+	}
+
+	/* start second thread */
 	long stack[0x1000];
 	{
 		seL4_UserContext regs;
@@ -143,8 +209,12 @@ int main()
 
 	seL4_TCB_SetPriority(SECOND_THREAD_CAP, 0xff);
 
-	for (;;)
-		PDBG("cnt = %d", cnt);
+	PDBG("call seL4_Call");
+
+	seL4_MessageInfo_t msg_info = seL4_MessageInfo_new(0, 0, 0, 0);
+	seL4_Call(EP_CAP, msg_info);
+
+	PDBG("returned from seL4_Call");
 
 	*(int *)0x1122 = 0;
 	return 0;

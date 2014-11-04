@@ -1,0 +1,145 @@
+
+
+                  =======================================
+                  Genode on seL4 - IPC and virtual memory
+                  =======================================
+
+
+                              Norman Feske
+
+
+This is the second part of a series of hands-on articles about bringing Genode
+to the seL4 kernel.
+[http://genode.org/documentation/articles/sel4_part_1 - Read the previous part here...]
+
+After having created a minimalistic root task consisting of two threads, we
+can move forward with exercising the functionality provided by the kernel,
+namely inter-process communication and the handling of virtual memory.
+Once we have tested those functionalities in our minimalistic root task
+environment, we will be able to apply the gained knowledge to the actual
+porting effort of Genode's core process.
+
+
+Inter-process communication
+###########################
+
+In the L4 universe, the term IPC (inter-process communication) usually stands
+for synchronous communication between two threads. In seL4, IPC has two uses.
+First, it enables threads of different protection domains (or the same
+protection domain) to exchange messages. So information can be transferred
+across protection-domain boundaries. Second, IPC is the mechanism used to
+delegate access rights throughout the system. This is accomplished by sending
+capabilities as message payload. When a capability is part of a message, the
+kernel translates the local name of the capability in the sender's protection
+domain to a local name in the receiver's protection domain.
+
+In Genode, IPC is realized as a two thin abstractions that build upon each
+other:
+
+# At the low level, the IPC library _src/base/ipc/ipc.cc_ is responsible
+  for sending and receiving messages using the kernel mechanism. It has a
+  generic interface _base/include/base/ipc.h_, which supports the marshalling
+  and un-marshalling of message arguments and capabilities using C++ streaming
+  operators. Genode users never directly interact with the IPC library.
+
+# Built on top the IPC library, the so-called RPC framework adds the notion
+  of RPC functions and RPC objects. RPC interfaces are declared using
+  abstract C++ base classes with a few annotations. Under the hood, the
+  RPC framework uses C++ meta-programming techniques to turn RPC definitions
+  into code that transfers messages via the IPC library. In contrast to
+  the IPC library, the RPC library is platform-agnostic.
+
+To enable Genode's RPC mechanism on seL4, we merely have to provide a
+seL4-specific IPC library implementation. To warm up with seL4's IPC
+mechanism, however, we first modify our test program to let the main thread
+perform an IPC call to the second thread.
+
+To let the second thread receive IPC messages, we first need to create a
+synchronous IPC endpoint using the 'seL4_Untyped_RetypeAtOffset' function
+with 'seL4_EndpointObject' as type, an offset that skips the already allocated
+TCB (the TCB object has a known size of 1024 bytes) and the designated
+capability number, let's call it EP_CAP. Of course, we have to create the
+entrypoint before starting the second thread.
+
+As a first test, we want the second thread to receive an incoming message.
+So we change the entry function as follows:
+
+! PDBG("call seL4_Wait");
+! seL4_MessageInfo_t msg_info = seL4_Wait(EP_CAP, nullptr);
+! PDBG("returned from seL4_Wait, call seL4_Reply");
+! seL4_Reply(msg_info);
+! PDBG("returned from seL4_Reply");
+
+At the end of the main function, we try call the second thread via 'seL4_Call':
+
+! PDBG("call seL4_Call");
+! seL4_MessageInfo_t msg_info = seL4_MessageInfo_new(0, 0, 0, 0);
+! seL4_Call(EP_CAP, msg_info);
+! PDBG("returned from seL4_Call");
+
+When executing the code, we get an error as follows:
+
+! int main(): call seL4_Call
+! void second_thread_entry(): call seL4_Wait
+! Caught cap fault in send phase at address 0x0
+! while trying to handle:
+! vm fault on data at address 0x4 with status 0x6
+! in thread 0xe0100080 at address 0x10002e1
+
+By looking at the output of 'objdump -lSd', we see that fault happens at the
+instruction
+! mov %edi,%gs:0x4(,%ebx,4)
+The issue is the same as the one we experienced for the main thread - we
+haven't initialized the GS register with a proper segment, yet. This can be
+easily fixed by adding a call to our 'init_ipc_buffer' function right at the
+start of the second thread's entry function. Still, the program does not work
+yet:
+
+! vm fault on data at address 0x4 with status 0x6
+! in thread 0xe0100080 at address 0x10002e8
+
+Looking at the objdump output, we see that the fault still happens at the same
+instruction. So what is missing? The answer is that we haven't equipped the
+second thread with a proper IPC buffer. The attempt to call 'seL4_Wait',
+however, tries to access the IPC buffer of the calling thread. The IPC buffer
+can be configured for a thread using the 'seL4_TCB_SetIPCBuffer' function. But
+wait - what arguments do we need to pass? In addition to the TCB capability,
+there are two arguments a pointer to the IPC buffer and a page capability,
+which contains the IPC buffer. Well, I had hoped to get away without dealing
+with the memory management at this point. I figure that setting up the IPC
+buffer for the second thread would require me to create a seL4_IA32_4K page
+object via 'seL4_Untyped_RetypeAtOffset' and insert a mapping of the page
+within the roottask's address space, and possibly also create and install a
+page table object.
+
+To avoid becoming side-tracked by those memory-management issues, I decide
+to assign the IPC buffer of the second thread right at the same page as
+the one for the initial thread. Both the local address and the page
+capability for the initial thread's IPC buffer are conveniently provided by
+seL4's boot info structure. So let's give this a try:
+
+! /* assign IPC buffer to second thread */
+! {
+!   static_assert(sizeof(seL4_IPCBuffer) % 512 == 0,
+!                 "unexpected seL4_IPCBuffer size");
+!
+!   int const ret = seL4_TCB_SetIPCBuffer(SECOND_THREAD_CAP,
+!                                         (seL4_Word)(bi->ipcBuffer + 1),
+!                                         seL4_CapInitThreadIPCBuffer);
+!
+!   PDBG("seL4_TCB_SetIPCBuffer returned %d", ret);
+! }
+
+With the initialization of the IPC buffer in place, we finally get our
+desired output:
+
+! int main(): call seL4_Call
+! void second_thread_entry(): call seL4_Wait
+! void second_thread_entry(): returned from seL4_Wait, call seL4_Reply
+! int main(): returned from seL4_Call
+! void second_thread_entry(): returned from seL4_Reply
+
+
+
+
+
