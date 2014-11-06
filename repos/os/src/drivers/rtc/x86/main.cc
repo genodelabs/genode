@@ -25,6 +25,8 @@
 
 using namespace Genode;
 
+static bool verbose = false;
+
 /**
  * Time helper
  */
@@ -70,7 +72,10 @@ namespace Rtc {
 			uint64_t get_current_time()
 			{
 				uint64_t ret = get_rtc_time();
-				PINF("Time is: %llx\n", ret);
+
+				if (verbose)
+					PINF("Time is: %llx\n", ret);
+
 				return ret;
 			}
 
@@ -82,7 +87,6 @@ namespace Rtc {
 
 			Session_component *_create_session(const char *args)
 			{
-				PDBG("RTC: creating session\n");
 				return new (md_alloc()) Session_component();
 			}
 		public:
@@ -90,7 +94,6 @@ namespace Rtc {
 			               Genode::Allocator *allocator)
 			: Genode::Root_component<Session_component>(ep, allocator)
 			{
-				PDBG("RTC: creating root component\n");
 			}
         };
 }
@@ -212,7 +215,9 @@ static uint64_t get_rtc_time(void)
 
 	if ((year += 1900) < 1970) year += 100;
 
-	PDBG("Date:%02d.%02d.%04d Time:%02d:%02d:%02d\n", day, mon, year, hour, min, sec);
+	if (verbose)
+		PINF("Date:%02d.%02d.%04d Time:%02d:%02d:%02d\n", day, mon, year,
+		     hour, min, sec);
 
 	/* return microseconds */
 	return mktime(day, mon, year, hour, min, sec) * 1000000ULL; 
