@@ -12,13 +12,17 @@
  */
 
 /* Genode includes */
+#include <util/volatile_object.h>
 #include <os/attached_io_mem_dataspace.h>
+#include <os/attached_ram_dataspace.h>
 #include <os/static_root.h>
+#include <os/config.h>
 #include <cap_session/connection.h>
 #include <base/sleep.h>
 #include <framebuffer_session/framebuffer_session.h>
 #include <base/rpc_server.h>
 #include <platform_session/connection.h>
+#include <blit/blit.h>
 
 namespace Framebuffer {
 	using namespace Genode;
@@ -30,23 +34,57 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 {
 	private:
 
-		size_t              const _width;
-		size_t              const _height;
-		Attached_io_mem_dataspace _fb_mem;
-		Signal_context_capability _sync_sigh;
+		size_t                                 const _width;
+		size_t                                 const _height;
+		Lazy_volatile_object<Attached_ram_dataspace> _bb_mem;
+		Attached_io_mem_dataspace                    _fb_mem;
+		Signal_context_capability                    _sync_sigh;
+
+		void _refresh_buffered(int x, int y, int w, int h)
+		{
+			Mode _mode = mode();
+
+			/* clip specified coordinates against screen boundaries */
+			int x2 = min(x + w - 1, (int)_mode.width()  - 1),
+				y2 = min(y + h - 1, (int)_mode.height() - 1);
+			int x1 = max(x, 0),
+				y1 = max(y, 0);
+			if (x1 > x2 || y1 > y2) return;
+
+			int bypp = _mode.bytes_per_pixel();
+
+			/* copy pixels from back buffer to physical frame buffer */
+			char *src = _bb_mem->local_addr<char>() + bypp*(_width*y1 + x1),
+			     *dst = _fb_mem.local_addr<char>() + bypp*(_width*y1 + x1);
+
+			blit(src, bypp*_width, dst, bypp*_width,
+				 bypp*(x2 - x1 + 1), y2 - y1 + 1);
+		}
 
 	public:
 
-		Session_component(addr_t phys_addr, size_t size, size_t width, size_t height)
+		Session_component(addr_t phys_addr, size_t size,
+		                  size_t width, size_t height,
+		                  bool buffered)
 		:
 			_width(width), _height(height), _fb_mem(phys_addr, size)
-		{ }
+		{
+			if (buffered) {
+				_bb_mem.construct(env()->ram_session(), size);
+			}
+		}
 
 		/************************************
 		 ** Framebuffer::Session interface **
 		 ************************************/
 
-		Dataspace_capability dataspace() override { return _fb_mem.cap(); }
+		Dataspace_capability dataspace() override
+		{
+			if (_bb_mem.is_constructed())
+				return _bb_mem->cap();
+			else
+				return _fb_mem.cap();
+		}
 
 		Mode mode() const override
 		{
@@ -60,12 +98,25 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 			_sync_sigh = sigh;
 		}
 
-		void refresh(int, int, int, int) override
+		void refresh(int x, int y, int w, int h) override
 		{
+			if (_bb_mem.is_constructed())
+				_refresh_buffered(x, y, w, h);
+
 			if (_sync_sigh.valid())
 				Signal_transmitter(_sync_sigh).submit();
 		}
 };
+
+
+static bool config_is_buffered()
+{
+	try {
+		return Genode::config()->xml_node().attribute("buffered").has_value("yes");
+	} catch (...) {
+		return false;
+	}
+}
 
 
 int main(int, char **)
@@ -93,7 +144,8 @@ int main(int, char **)
 	static Session_component fb_session(fb_info.addr,
 	                                    fb_info.size,
 	                                    fb_info.phys_width,
-	                                    fb_info.phys_height);
+	                                    fb_info.phys_height,
+	                                    config_is_buffered());
 	static Static_root<Framebuffer::Session> fb_root(ep.manage(&fb_session));
 
 	/*
