@@ -46,6 +46,7 @@ SRC_C += net/ethernet/eth.c
 SRC_C += net/netlink/af_netlink.c
 SRC_C += net/sched/sch_generic.c
 SRC_C += lib/checksum.c
+SRC_C += drivers/net/loopback.c
 
 # DHCP support
 SRC_C += net/ipv4/ipconfig.c

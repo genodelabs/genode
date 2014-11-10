@@ -506,6 +506,8 @@ typedef unsigned long mm_segment_t;
 void prefetchw(const void *);
 void prefetch(const void *);
 
+void *current_text_addr(void);
+
 
 /*************************************
  ** linux/byteorder/little_endian.h **
