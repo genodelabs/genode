@@ -684,15 +684,15 @@ namespace Init {
 			{
 				using namespace Genode;
 
+				Affinity::Space    const &child_space    = _resources.affinity.space();
+				Affinity::Location const &child_location = _resources.affinity.location();
+
 				/* check if no valid affinity space was specified */
 				if (session_affinity.space().total() == 0)
-					return session_affinity;
+					return Affinity(child_space, child_location);
 
 				Affinity::Space    const &session_space    = session_affinity.space();
 				Affinity::Location const &session_location = session_affinity.location();
-
-				Affinity::Space    const &child_space    = _resources.affinity.space();
-				Affinity::Location const &child_location = _resources.affinity.location();
 
 				/* scale resolution of resulting space */
 				Affinity::Space space(child_space.multiply(session_space));
