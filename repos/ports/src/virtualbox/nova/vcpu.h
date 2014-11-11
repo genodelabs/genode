@@ -131,6 +131,8 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 		void *   _stack_reply;
 		jmp_buf  _env;
 
+		bool     _last_exit_was_recall;
+
 		void switch_to_hw()
 		{
 			unsigned long value;
@@ -171,9 +173,11 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			}
 
 			/* are we forced to go back to emulation mode ? */
-			if (!continue_hw_accelerated(utcb))
+			if (!continue_hw_accelerated(utcb)) {
+				_last_exit_was_recall = true;
 				/* go back to emulation mode */
 				_fpu_save_and_longjmp();
+			}
 
 			/* check whether we have to request irq injection window */
 			utcb->mtd = Nova::Mtd::FPU;
@@ -695,6 +699,8 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			_current_vm   = pVM;
 			_current_vcpu = pVCpu;
 
+			_last_exit_was_recall = false;
+
 			/* switch to hardware accelerated mode */
 			switch_to_hw();
 
@@ -735,7 +741,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 				next_utcb.mtd        |= Mtd::STA;
 			}
 
-			return VINF_EM_RAW_EMULATE_INSTR;
+			return _last_exit_was_recall ? VINF_SUCCESS : VINF_EM_RAW_EMULATE_INSTR;
 		}
 };
 
