@@ -14,48 +14,48 @@
 #include <base/printf.h>
 #include <base/thread.h>
 
+#include <iprt/types.h>
+
 #include <stddef.h>
 #include <time.h>
 
 extern "C" {
 
-	typedef long DUMMY;
-
 #define DUMMY(retval, name) \
-DUMMY name(void) { \
+int name(void) { \
 	PDBG( #name " called, not implemented, eip=%p", __builtin_return_address(0)); \
 	for (;;); \
 	return retval; \
 }
 
-#define CHECKED_DUMMY(retval, name) \
-DUMMY name(void) { \
+#define CHECKED_DUMMY(TYPE, retval, name) \
+TYPE name(void) { \
 	PINF( #name " called, not implemented, eip=%p", __builtin_return_address(0)); \
 	return retval; \
 }
 
-CHECKED_DUMMY( 0, cpumR3DbgInit)
-CHECKED_DUMMY( 0, DBGFR3Init)  /* debugger */
+CHECKED_DUMMY(int, 0, cpumR3DbgInit)
+CHECKED_DUMMY(int, 0, DBGFR3Init)  /* debugger */
 DUMMY(-1, DBGFR3CoreWrite)
-CHECKED_DUMMY( 0, FTMR3Init)  /* fault tolerance manager */
-CHECKED_DUMMY( 0, pdmR3LdrInitU) /* module loader of pluggable device manager */
-CHECKED_DUMMY( 0, PDMR3LdrLoadVMMR0U) /* pretend to have successfully loaded the r0 module */
-CHECKED_DUMMY( 0, pdmR3LoadR3U)
-CHECKED_DUMMY( 0, pthread_atfork)
-CHECKED_DUMMY( 0, pthread_attr_setdetachstate)
-CHECKED_DUMMY( 0, pthread_attr_setstacksize)
-CHECKED_DUMMY( 0, RTMemProtect)
-CHECKED_DUMMY( 0, SELMR3Init)  /* selector manager - GDT handling */
-CHECKED_DUMMY( 0, sigfillset)
-CHECKED_DUMMY( 0, vmmR3SwitcherInit)  /* world switcher */
-CHECKED_DUMMY(-1, atexit)
-CHECKED_DUMMY(-1, getpid)
-CHECKED_DUMMY(-1, pdmR3FileR3)
-CHECKED_DUMMY(0, setlocale)
-CHECKED_DUMMY(-1, sigaddset)
-CHECKED_DUMMY(-1, sigemptyset)
-CHECKED_DUMMY(-1, siginterrupt)
-CHECKED_DUMMY(-1, sysctl)
+CHECKED_DUMMY(int, 0, FTMR3Init)  /* fault tolerance manager */
+CHECKED_DUMMY(int, 0, pdmR3LdrInitU) /* module loader of pluggable device manager */
+CHECKED_DUMMY(int, 0, PDMR3LdrLoadVMMR0U) /* pretend to have successfully loaded the r0 module */
+CHECKED_DUMMY(int, 0, pdmR3LoadR3U)
+CHECKED_DUMMY(int, 0, pthread_atfork)
+CHECKED_DUMMY(int, 0, pthread_attr_setdetachstate)
+CHECKED_DUMMY(int, 0, pthread_attr_setstacksize)
+CHECKED_DUMMY(int, 0, RTMemProtect)
+CHECKED_DUMMY(int, 0, SELMR3Init)  /* selector manager - GDT handling */
+CHECKED_DUMMY(int, 0, sigfillset)
+CHECKED_DUMMY(int, 0, vmmR3SwitcherInit)  /* world switcher */
+CHECKED_DUMMY(int, -1, atexit)
+CHECKED_DUMMY(pid_t, -1, getpid)
+CHECKED_DUMMY(char *, (char *)-1, pdmR3FileR3)
+CHECKED_DUMMY(char *, nullptr, setlocale)
+CHECKED_DUMMY(int, -1, sigaddset)
+CHECKED_DUMMY(int, -1, sigemptyset)
+CHECKED_DUMMY(int, -1, siginterrupt)
+CHECKED_DUMMY(int, -1, sysctl)
 DUMMY( 0, RTErrCOMGet)
 void CPUMPushHyper() { } /* called by 'VMMR3InitRC', but we don't use GC */
 DUMMY(-1, DBGCRegisterCommands)
@@ -63,12 +63,12 @@ DUMMY(-1, DBGFR3Event)
 DUMMY(-1, DBGFR3EventAssertion)
 DUMMY(-1, DBGFR3EventBreakpoint)
 DUMMY(-1, DBGFR3EventSrc)
-CHECKED_DUMMY( 0, DBGFR3EventSrcV)
+CHECKED_DUMMY(int, 0, DBGFR3EventSrcV)
 void DBGFR3Relocate() { }
 DUMMY(-1, DBGFR3Term)
 DUMMY(-1, DBGFR3VMMForcedAction)
 
-CHECKED_DUMMY(-4, DBGFR3AsSymbolByAddr) /* -4 == VERR_INVALID_HANDLE */
+CHECKED_DUMMY(int, -4, DBGFR3AsSymbolByAddr) /* -4 == VERR_INVALID_HANDLE */
 
 DUMMY(-1, _flockfile)
 
@@ -85,12 +85,12 @@ DUMMY(-1, HWACCMR3PatchTprInstr)
 DUMMY(-1, HWACCMR3CheckError)
 DUMMY(-1, HWACCMR3RestartPendingIOInstr)
 void HWACCMR3Relocate() { }
-DUMMY(-1, HWACCMR3Reset)
+void HWACCMR3Reset() { }
 DUMMY(-1, HWACCMR3Term)
 DUMMY(-1, HWACMMR3EnablePatching)
 DUMMY(-1, HWACMMR3DisablePatching)
 
-CHECKED_DUMMY( 0, IEMR3Init)  /* interpreted execution manager (seems to be just a skeleton) */
+CHECKED_DUMMY(int, 0, IEMR3Init)  /* interpreted execution manager (seems to be just a skeleton) */
 void IEMR3Relocate() { }
 DUMMY(-1, IEMR3Term)
 
@@ -98,17 +98,17 @@ DUMMY(-1, MMHyperR0ToCC)
 DUMMY(-1, MMHyperR0ToR3)
 DUMMY(-1, MMHyperRCToCC)
 DUMMY(-1, MMHyperRCToR3)
-CHECKED_DUMMY(0, MMHyperGetArea)
+CHECKED_DUMMY(RTGCPTR, 0, MMHyperGetArea)
 
 DUMMY(-1, MMR3HeapAPrintfV)
-CHECKED_DUMMY( 0, MMR3HyperInitFinalize)
-CHECKED_DUMMY( 0, MMR3HyperSetGuard)
+CHECKED_DUMMY(int, 0, MMR3HyperInitFinalize)
+CHECKED_DUMMY(int, 0, MMR3HyperSetGuard)
 DUMMY(-1, MMR3LockCall)
 DUMMY(-1, MMR3Term)
 DUMMY(-1, MMR3TermUVM)
 DUMMY(-1, PDMR3AsyncCompletionTemplateCreateDriver)
 DUMMY(-1, PDMR3LdrGetInterfaceSymbols)
-CHECKED_DUMMY( 0, PDMR3LdrRelocateU)
+void PDMR3LdrRelocateU() { }
 DUMMY(-1, pdmR3LdrTermU)
 
 DUMMY(-1, PGMNotifyNxeChanged)
@@ -118,11 +118,11 @@ DUMMY(-1, PGMPhysSimpleReadGCPtr)
 DUMMY(-1, PGMPhysSimpleWriteGCPtr)
 DUMMY(-1, PGMSyncCR3)
 
-CHECKED_DUMMY( 0, PGMR3CheckIntegrity)
-CHECKED_DUMMY( 0, PGMR3FinalizeMappings)
-CHECKED_DUMMY( 0, PGMR3InitCompleted)
-CHECKED_DUMMY( 0, PGMR3InitDynMap)  /* reserve space for "dynamic mappings" */
-CHECKED_DUMMY( 0, PGMR3InitFinalize)
+CHECKED_DUMMY(int, 0, PGMR3CheckIntegrity)
+CHECKED_DUMMY(int, 0, PGMR3FinalizeMappings)
+CHECKED_DUMMY(int, 0, PGMR3InitCompleted)
+CHECKED_DUMMY(int, 0, PGMR3InitDynMap)  /* reserve space for "dynamic mappings" */
+CHECKED_DUMMY(int, 0, PGMR3InitFinalize)
 
 DUMMY(-1, PGMR3SharedModuleCheckAll)
 DUMMY(-1, PGMR3SharedModuleUnregister)
@@ -130,7 +130,7 @@ DUMMY(-1, PGMR3SharedModuleRegister)
 DUMMY(-1, PGMR3MappingsUnfix)
 DUMMY(-1, PGMR3PhysChangeMemBalloon)
 DUMMY(-1, PGMR3MappingsFix)
-CHECKED_DUMMY( 0, PGMR3MappingsDisable)
+DUMMY(-1, PGMR3MappingsDisable)
 DUMMY(-1, PGMR3LockCall)
 DUMMY(-1, PGMR3PhysAllocateHandyPages)
 DUMMY(-1, PGMR3PhysAllocateLargeHandyPage)
@@ -158,39 +158,39 @@ DUMMY(-1, PGMSetLargePageUsage)
 DUMMY(-1, PGMPhysSimpleDirtyWriteGCPtr)
 DUMMY(-1, PGMGetShadowMode)
 DUMMY(-1, PGMGetHostMode)
+CHECKED_DUMMY(int, 0, PGMGetGuestMode) /* PGMMODE_INVALID == 0 */
+int PGMChangeMode() { return 0; }
 
-CHECKED_DUMMY(0, poll)  /* needed by 'DrvHostSerial.cpp' */
+CHECKED_DUMMY(int, 0, poll)  /* needed by 'DrvHostSerial.cpp' */
 DUMMY(-1, pthread_key_delete)
 DUMMY(-1, RTMemExecFree)
 DUMMY(-1, RTMemPageFree)
 DUMMY(-1, RTPathAppend)
 DUMMY(-1, RTSemEventWaitEx)
 
-CHECKED_DUMMY( 0, SELMR3InitFinalize)
+CHECKED_DUMMY(int, 0, SELMR3InitFinalize)
 void SELMR3Relocate() { }
-CHECKED_DUMMY( 0, SELMR3DisableMonitoring)
-DUMMY(-1, SELMR3Reset)
+void SELMR3DisableMonitoring () { }
+void SELMR3Reset() { }
 DUMMY(-1, SELMR3Term)
 DUMMY(-1, SELMR3GetSelectorInfo)
 
 DUMMY(-1, libc_select_notify) /* needed for libc_terminal plugin */
 DUMMY(-1, DISInstrToStrEx)
-CHECKED_DUMMY(-1, signal)
 
 DUMMY(-1, strcat)
 DUMMY(-1, strerror)
 DUMMY(-1, strpbrk)
 
-CHECKED_DUMMY( 0, SUPR3SetVMForFastIOCtl)
+CHECKED_DUMMY(int, 0, SUPR3SetVMForFastIOCtl)
 DUMMY(-1, SUPR3HardenedLdrLoadPlugIn)
 DUMMY(-1, SUPR3Term)
 
-CHECKED_DUMMY(100000*10, SUPSemEventMultiGetResolution) /* called by 'vmR3HaltGlobal1Init' */
-CHECKED_DUMMY(-1, __swsetup)
+uint32_t SUPSemEventMultiGetResolution()
+{ return 100000*10; /* called by 'vmR3HaltGlobal1Init' */ }
 
 DUMMY(-1, VMMR3FatalDump)
 void vmmR3SwitcherRelocate() { }
-CHECKED_DUMMY( 0, VMMR3DisableSwitcher)
 DUMMY(-1, VMMR3GetHostToGuestSwitcher)
 
 DUMMY(-1, pthread_kill)
@@ -202,7 +202,7 @@ DUMMY(-1, RTHeapSimpleFree)
 DUMMY(-1, RTAvloU32Get)
 DUMMY(-1, RTAvloU32Remove)
 DUMMY(-1, RTAvloU32GetBestFit)
-DUMMY( 0, RTAvloU32RemoveBestFit)
+CHECKED_DUMMY(void *, nullptr, RTAvloU32RemoveBestFit)
 DUMMY(-1, RTAvlU32Destroy)
 DUMMY(-1, RTAvlU32GetBestFit)
 DUMMY(-1, RTAvloU32DoWithAll)
@@ -211,13 +211,13 @@ DUMMY(-1, RTAvlU32Get)
 DUMMY(-1, RTAvlU32DoWithAll)
 DUMMY(-1, RTAvlU32Insert)
 
-CHECKED_DUMMY( 0, IOMR3Init)
+CHECKED_DUMMY(int, 0, IOMR3Init)
 int IOMR3IOPortRegisterR0() { return 0; }
 int IOMR3IOPortRegisterRC() { return 0; }
-CHECKED_DUMMY( 0, IOMR3MmioRegisterR0)
-CHECKED_DUMMY( 0, IOMR3MmioRegisterRC)
+CHECKED_DUMMY(int, 0, IOMR3MmioRegisterR0)
+CHECKED_DUMMY(int, 0, IOMR3MmioRegisterRC)
 void IOMR3Relocate() { }
-DUMMY(-1, IOMR3Reset)
+void IOMR3Reset() { }
 DUMMY(-1, IOMR3Term)
 
 DUMMY(-1, IOMInterpretOUT)
@@ -232,8 +232,8 @@ DUMMY(-1, RTFileQueryFsSizes)
 
 DUMMY(-1, pthread_mutex_timedlock)
 
-CHECKED_DUMMY( 0, PGMHandlerVirtualDeregister) /* XXX */
-CHECKED_DUMMY( 0, PGMR3HandlerVirtualRegister) /* XXX */
+CHECKED_DUMMY(int, 0, PGMHandlerVirtualDeregister) /* XXX */
+CHECKED_DUMMY(int, 0, PGMR3HandlerVirtualRegister) /* XXX */
 
 /*
  * Dummies added for storage
@@ -278,8 +278,8 @@ DUMMY(-1, RTSymlinkDelete)
 
 DUMMY(-1, RTNetIPv6PseudoChecksumEx)
 
-CHECKED_DUMMY(0, futimes)
-CHECKED_DUMMY(0, lutimes)
+CHECKED_DUMMY(int, 0, futimes)
+CHECKED_DUMMY(int, 0, lutimes)
 
 int __isthreaded;
 
@@ -290,10 +290,10 @@ int  PGMFlushTLB() { return 0; }
 int PGMInvalidatePage() { return 0; }  /* seems to be needed on raw mode only */
 int  PGMHandlerPhysicalPageTempOff() { return 0; }
 
-int  PGMIsLockOwner() { return 0; }  /* assertion in EMRemLock */
-bool IOMIsLockOwner() { return 0; }  /* XXX */
+bool PGMIsLockOwner() { return false; }  /* assertion in EMRemLock */
+bool IOMIsLockOwner() { return false; }  /* XXX */
 
 int  MMHyperIsInsideArea() { return 0; } /* used by dbgfR3DisasInstrRead */
-int  PGMPhysReleasePageMappingLock() { return 0; }
+void PGMPhysReleasePageMappingLock() { }
 } /* extern "C" */
 

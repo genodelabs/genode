@@ -54,6 +54,7 @@ class Vmm_memory
 			RTGCPHYS             vm_phys; 
 			PFNPGMR3PHYSHANDLER  pfnHandlerR3;
 			void                *pvUserR3;
+			PGMPHYSHANDLERTYPE   enmType;
 
 			Region(Ram_session &ram, size_t size, PPDMDEVINS pDevIns,
 			           unsigned iRegion)
@@ -122,12 +123,69 @@ class Vmm_memory
 			return 0;
 		}
 
-		void *alloc_ram(size_t cb)
+		void *alloc_rom(size_t cb, PPDMDEVINS pDevIns)
 		{
-			return alloc(cb, 0, 0);
+			return alloc(cb, pDevIns, ~0U);
 		}
 
-		size_t map_to_vm(PPDMDEVINS pDevIns, unsigned iRegion, RTGCPHYS GCPhys)
+		void *alloc_ram(size_t cb)
+		{
+			return alloc(cb, 0, ~0U);
+		}
+
+		bool add_handler(RTGCPHYS vm_phys, size_t size,
+		                 PFNPGMR3PHYSHANDLER pfnHandlerR3, void *pvUserR3,
+		                 PGMPHYSHANDLERTYPE enmType = PGMPHYSHANDLERTYPE_PHYSICAL_ALL)
+		{
+			Lock::Guard guard(_lock);
+
+			Region *r = _lookup_unsynchronized(vm_phys, size);
+
+			if (!r) return false;
+
+			r->enmType      = enmType;
+			r->pfnHandlerR3 = pfnHandlerR3;
+			r->pvUserR3     = pvUserR3;
+
+			return true;
+		}
+
+		void * lookup(RTGCPHYS vm_phys, size_t size,
+		              PFNPGMR3PHYSHANDLER *ppfnHandlerR3 = 0,
+		              void **ppvUserR3 = 0,
+		              PGMPHYSHANDLERTYPE *enmType = 0)
+		{
+			Lock::Guard guard(_lock);
+
+			Region *r = _lookup_unsynchronized(vm_phys, size);
+
+			if (!r) return 0;
+
+			if (enmType)       *enmType       = r->enmType;
+			if (ppfnHandlerR3) *ppfnHandlerR3 = r->pfnHandlerR3;
+			if (ppvUserR3)     *ppvUserR3     = r->pvUserR3;
+
+			return reinterpret_cast<void *>(r->local_addr<uint8_t>() +
+			                                (vm_phys - r->vm_phys));
+		}
+
+		bool lookup_range(RTGCPHYS &vm_phys, size_t &size)
+		{
+			Lock::Guard guard(_lock);
+
+			Region *r = _lookup_unsynchronized(vm_phys, size);
+
+			if (!r)
+				return false;
+
+			vm_phys = r->vm_phys;
+			size    = r->size();
+
+			return true;
+		}
+
+		size_t map_to_vm(PPDMDEVINS pDevIns, RTGCPHYS GCPhys,
+		                 unsigned iRegion = ~0U)
 		{
 			Lock::Guard guard(_lock);
 
@@ -138,36 +196,39 @@ class Vmm_memory
 			return r ? r->size() : 0;
 		}
 
-		void add_handler(RTGCPHYS vm_phys, size_t size, 
-		                 PFNPGMR3PHYSHANDLER pfnHandlerR3, void *pvUserR3)
+		bool unmap_from_vm(RTGCPHYS GCPhys, size_t size, bool invalidate = false)
 		{
 			Lock::Guard guard(_lock);
 
-			Region *r = _lookup_unsynchronized(vm_phys, size);
+			Region *r = _lookup_unsynchronized(GCPhys, size);
+			if (!r) return false;
 
-			if (!r) return;
+			bool result = revoke_from_vm(r);
 
-			r->pfnHandlerR3 = pfnHandlerR3;
-			r->pvUserR3  = pvUserR3;
+			if (invalidate)
+				r->vm_phys = 0ULL;
+
+			return result;
 		}
 
-		void * lookup(RTGCPHYS vm_phys, size_t size,
-		              PFNPGMR3PHYSHANDLER *ppfnHandlerR3 = 0, void **ppvUserR3 = 0)
+		/**
+		 * Platform specific implemented.
+		 */
+		bool revoke_from_vm(Region *r);
+
+		/**
+		 * Revoke all memory (RAM or ROM) from VM
+		 */
+		void revoke_all()
 		{
 			Lock::Guard guard(_lock);
 
-			Region *r = _lookup_unsynchronized(vm_phys, size);
-
-			if (!r) return 0;
-
-			if (ppfnHandlerR3) *ppfnHandlerR3 = r->pfnHandlerR3;
-			if (ppvUserR3)     *ppvUserR3     = r->pvUserR3;
-
-			return reinterpret_cast<void *>(r->local_addr<uint8_t>() +
-			                                (vm_phys - r->vm_phys));
+			for (Region *r = _regions.first(); r; r = r->next())
+			{
+				bool ok = revoke_from_vm(r);
+				Assert(ok);
+			}
 		}
-
-		bool unmap_from_vm(RTGCPHYS GCPhys);
 };
 
 

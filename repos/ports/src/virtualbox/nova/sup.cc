@@ -152,24 +152,32 @@ uint64_t genode_cpu_hz()
 }
 
 
-bool Vmm_memory::unmap_from_vm(RTGCPHYS GCPhys)
+bool Vmm_memory::revoke_from_vm(Region *r)
 {
-	size_t const size = 1;
+	Assert(r);
 
-	Region *r = _lookup_unsynchronized(GCPhys, size);
-	if (!r) return false;
+	using namespace Genode;
 
-	using Genode::addr_t;
 	addr_t const vmm_local = (addr_t)r->local_addr<addr_t>();
-
 	Assert(vmm_local);
-	Assert(!((r->size() - 1) & vmm_local));
 
-	using namespace Nova;
-	unsigned const order = Genode::log2(r->size() >> PAGE_SIZE_LOG2);
+	Flexpage_iterator fli(vmm_local, r->size(), 0, ~0UL, 0);
 
-	Rights rwx(true, true, true);
-	revoke(Mem_crd(vmm_local >> PAGE_SIZE_LOG2, order, rwx), false);
+	Flexpage revoke_page = fli.page();
+	while (revoke_page.valid()) {
+		Assert(revoke_page.log2_order >= 12);
+		Assert(!(((1UL << revoke_page.log2_order) - 1) & revoke_page.addr));
+
+		using namespace Nova;
+
+		Rights const revoke_rwx(true, true, true);
+		Crd crd = Mem_crd(revoke_page.addr >> 12, revoke_page.log2_order - 12,
+		                  revoke_rwx);
+		revoke(crd, false);
+
+		/* request next page(s) to be revoked */
+		revoke_page = fli.page();
+	}
 
 	return true;
 }

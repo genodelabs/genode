@@ -161,8 +161,11 @@ class Guest_ioports
 /*
 			Range *r = _lookup(PortStart, cPorts);
 			if (r) {
-				PERR("failure 0x%lx+0x%lx", PortStart, cPorts);
-				while (1) {}
+				PERR("io port inseration failure 0x%x+0x%x - '%s'",
+				     PortStart, cPorts,
+				     pDevIns && pDevIns->pReg ? pDevIns->pReg->szName : 0);
+				dump();
+				Assert(!r);
 				return VERR_GENERAL_FAILURE;
 			}
 */

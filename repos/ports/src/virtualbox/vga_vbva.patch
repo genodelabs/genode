@@ -1,0 +1,11 @@
++++ src/app/virtualbox/src/VBox/Devices/Graphics/DevVGA_VBVA.cpp
+@@ -536,7 +536,8 @@
+         pView->u32VBVAOffset = HGSMIOFFSET_VOID;
+     }
+ 
+-    pVGAState->pDrv->pfnVBVADisable (pVGAState->pDrv, uScreenId);
++    if (pVGAState->pDrv->pfnVBVADisable)
++        pVGAState->pDrv->pfnVBVADisable (pVGAState->pDrv, uScreenId);
+     return VINF_SUCCESS;
+ }
+

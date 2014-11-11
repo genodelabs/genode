@@ -100,7 +100,7 @@ uint64_t genode_cpu_hz() {
 }
 
 
-bool Vmm_memory::unmap_from_vm(RTGCPHYS GCPhys)
+bool Vmm_memory::revoke_from_vm(Region *r)
 {
 	PWRN("%s unimplemented", __func__);
 	return false;
