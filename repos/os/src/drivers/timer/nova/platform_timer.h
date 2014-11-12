@@ -101,6 +101,7 @@ class Platform_timer
 
 			/* XXX quirk start - description below */
 			static unsigned short quirk_count = 0;
+			static unsigned int delay = 0;
 			Trace::Timestamp before = Trace::timestamp();
 			asm volatile ("":::"memory");
 			/* XXX quirk end */
@@ -143,11 +144,14 @@ class Platform_timer
 
 			if (diff)
 				quirk_count++;
-			else
+			else {
 				quirk_count = 0;
+				delay = 0;
+			}
 
 			if (quirk_count > 10) {
-				us_64 += 30000;
+				delay += 10000;
+				us_64 += delay;
 				PWRN("apply timer quirk - diff=%lu, delay timeout %lu->%llu us",
 				     diff, _timeout, us_64);
 				quirk_count = 0;
