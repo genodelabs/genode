@@ -17,10 +17,12 @@
 #include <util/endian.h>
 #include <util/list.h>
 
+#include <extern_c_begin.h>
 #include <lx_emul.h>
+#include <storage/scsi.h>
+#include <extern_c_end.h>
 
 #include <platform/lx_mem.h>
-#include <storage/scsi.h>
 #include "signal.h"
 
 static Signal_helper *_signal = 0;

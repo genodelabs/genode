@@ -107,14 +107,6 @@ char  *kstrdup(const char *s, gfp_t gfp) { TRACE; return 0; }
 char  *strstr(const char *h, const char *n) { TRACE; return 0; }
 
 
-/*****************
- ** linux/nls.h **
- *****************/
-
-int utf16s_to_utf8s(const wchar_t *pwcs, int len,
-                    enum utf16_endian endian, u8 *s, int maxlen) { TRACE; return 0; }
-
-
 /*******************
  ** linux/ctype.h **
  *******************/
@@ -344,7 +336,6 @@ void device_unregister(struct device *dev) { TRACE; }
 void device_lock(struct device *dev) { TRACE; }
 int  device_trylock(struct device *dev) { TRACE; return 0; }
 void device_unlock(struct device *dev) { TRACE; }
-void device_del(struct device *dev) { TRACE; }
 void device_initialize(struct device *dev) { TRACE; }
 int  device_attach(struct device *dev) { TRACE; return 0; }
 int  device_is_registered(struct device *dev) { TRACE; return 0; }

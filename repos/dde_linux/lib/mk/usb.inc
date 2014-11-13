@@ -4,8 +4,8 @@ LIB_INC_DIR = $(LIB_DIR)/include
 # FIXME should we *really* dde_kit to this shared library?
 LIBS     += dde_kit libc-setjmp config
 SRC_CC   += main.cc lx_emul.cc irq.cc timer.cc event.cc storage.cc \
-            input_component.cc nic.cc
-SRC_C    += dummies.c scsi.c evdev.c
+            input_component.cc nic.cc raw.cc
+SRC_C    += dummies.c scsi.c evdev.c raw_driver.c
 
 LX_CONTRIB_DIR := $(call select_from_ports,dde_linux)/src/lib/usb
 DRIVERS_DIR    := $(LX_CONTRIB_DIR)/drivers
@@ -110,6 +110,8 @@ vpath %.cc $(LIB_DIR)/input
 vpath %.cc $(LIB_DIR)/storage
 vpath %.c  $(LIB_DIR)/storage
 vpath %.cc $(LIB_DIR)/nic
+vpath %.cc $(LIB_DIR)/raw
+vpath %.c  $(LIB_DIR)/raw
 vpath lib/int_sqrt.c $(LX_CONTRIB_DIR)
 
 # vi: set ft=make :

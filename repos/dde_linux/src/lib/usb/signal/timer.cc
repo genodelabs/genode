@@ -14,7 +14,9 @@
 #include <base/env.h>
 #include <base/printf.h>
 
+#include <extern_c_begin.h>
 #include <lx_emul.h>
+#include <extern_c_end.h>
 #include "signal.h"
 
 static void handler(void *timer);

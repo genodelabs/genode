@@ -170,24 +170,25 @@ class Routine : public Genode::List<Routine>::Element
 		/**
 		 * Add an object
 		 */
-		static void add(int (*func)(void *), void *arg, char const *name,
-		                bool started = false)
+		static Routine *add(int (*func)(void *), void *arg, char const *name,
+		                    bool started = false)
 		{
-			_list()->insert(new (Genode::env()->heap())
-			                Routine(func, arg, name, started));
+			Routine *r = new (Genode::env()->heap()) Routine(func, arg, name, started);
+			_list()->insert(r);
+			return r;
 		}
 
 		/**
 		 * Remove this object
 		 */
-		static void remove()
+		static void remove(Routine *r = nullptr)
 		{
-			if (!_current)
+			if (!_current && !r)
 				return;
 
-			_dead = _current;
+			_dead = r ? r : _current;
 
-			schedule();
+			schedule_main();
 		}
 
 		static void main()
