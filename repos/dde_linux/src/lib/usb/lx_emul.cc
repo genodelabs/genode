@@ -22,8 +22,11 @@
 /* Local includes */
 #include "routine.h"
 #include "signal.h"
-#include "lx_emul.h"
 #include "platform/lx_mem.h"
+
+#include <extern_c_begin.h>
+#include "lx_emul.h"
+#include <extern_c_end.h>
 
 /* DDE kit includes */
 extern "C" {
@@ -770,8 +773,8 @@ class Driver : public Genode::List<Driver>::Element
 				return false;
 
 			bool ret = _drv->bus->match ? _drv->bus->match(dev, _drv) : true;
-			dde_kit_log(DEBUG_DRIVER, "MATCH: %s ret: %u match: %p",
-			            _drv->name, ret,  _drv->bus->match);
+			dde_kit_log(DEBUG_DRIVER, "MATCH: %s ret: %u match: %p %p",
+			            _drv->name, ret,  _drv->bus->match, _drv->probe);
 			return ret;
 		}
 
@@ -786,7 +789,7 @@ class Driver : public Genode::List<Driver>::Element
 				dde_kit_log(DEBUG_DRIVER, "Probing device bus %p", dev->bus->probe);
 				return dev->bus->probe(dev);
 			} else if (_drv->probe) {
-				dde_kit_log(DEBUG_DRIVER, "Probing driver: %s", _drv->name);
+				dde_kit_log(DEBUG_DRIVER, "Probing driver: %s %p", _drv->name, _drv->probe);
 				return _drv->probe(dev);
 			}
 
@@ -819,6 +822,14 @@ int device_add(struct device *dev)
 		}
 
 	return 0;
+}
+
+
+void device_del(struct device *dev)
+{
+	dde_kit_log(DEBUG_DRIVER, "Remove device %p", dev);
+	if (dev->driver && dev->driver->remove)
+		dev->driver->remove(dev);
 }
 
 
@@ -870,7 +881,6 @@ void *devm_kzalloc(struct device *dev, size_t size, gfp_t gfp)
 
 void *dev_get_platdata(const struct device *dev)
 {
-	PDBG("called");
 	return (void *)dev->platform_data;
 }
 
@@ -1311,4 +1321,24 @@ void remove_wait_queue(wait_queue_head_t *q, wait_queue_t *wait)
 int waitqueue_active(wait_queue_head_t *q)
 {
 	return q->q ? 1 : 0;
+}
+
+
+/*****************
+ ** linux/nls.h **
+ *****************/
+
+int utf16s_to_utf8s(const wchar_t *pwcs, int len,
+                    enum utf16_endian endian, u8 *s, int maxlen)
+{
+	/*
+	 * We do not convert to char, we simply copy the UTF16 plane 0 values
+	 */
+	u16 *out = (u16 *)s;
+	u16 *in  = (u16 *)pwcs;
+	int length = Genode::min(len, maxlen / 2);
+	for (int i = 0; i < length; i++)
+		out[i] = in[i];
+
+	return 2 * length;
 }

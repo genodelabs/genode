@@ -42,6 +42,7 @@ extern "C" void module_usb_storage_driver_init();
 extern "C" void module_wacom_driver_init();
 extern "C" void module_ch_driver_init();
 extern "C" void module_mt_driver_init();
+extern "C" void module_raw_driver_init();
 
 extern "C" void start_input_service(void *ep, unsigned long, unsigned long);
 
@@ -81,6 +82,10 @@ static void init(Services *services)
 	/* storage */
 	if (services->stor)
 		module_usb_storage_driver_init();
+
+	if (services->raw)
+		/* low level interface */
+		module_raw_driver_init();
 }
 
 
@@ -96,6 +101,9 @@ void start_usb_driver(Server::Entrypoint &ep)
 	Event::init(ep);
 	Storage::init(ep);
 	Nic::init(ep);
+
+	if (services.raw)
+		Raw::init(ep);
 
 	Routine::add(0, 0, "Main", true);
 	Routine::make_main_current();

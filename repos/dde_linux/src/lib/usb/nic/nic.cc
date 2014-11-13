@@ -19,15 +19,15 @@
 #include <nic/xml_node.h>
 #include <util/xml_node.h>
 
+#include <extern_c_begin.h>
 #include <lx_emul.h>
+#include <linux/usb.h>
+#include <linux/usb/usbnet.h>
+#include <extern_c_end.h>
 
 #include <nic/component.h>
 #include "signal.h"
 
-extern "C" {
-#include <linux/usb.h>
-#include <linux/usb/usbnet.h>
-}
 
 static Signal_helper *_signal = 0;
 

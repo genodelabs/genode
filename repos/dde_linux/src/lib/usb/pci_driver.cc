@@ -18,7 +18,9 @@
 #include <pci_device/client.h>
 
 /* Linux includes */
+#include <extern_c_begin.h>
 #include <lx_emul.h>
+#include <extern_c_end.h>
 #include <platform/lx_mem.h>
 
 struct  bus_type pci_bus_type;
@@ -56,7 +58,7 @@ class Pci_driver
 
 			_dev->vendor       = client.vendor_id();
 			_dev->device       = client.device_id();
-			_dev->device_class = client.class_code();
+			_dev->class_       = client.class_code();
 			_dev->revision     = client.config_read(REV, Device::ACCESS_8BIT);
 			_dev->dev.driver   = &_drv->driver;
 
@@ -236,15 +238,15 @@ int pci_register_driver(struct pci_driver *drv)
 
 	bool found = false;
 
-	while (id->device_class || id->class_mask || id->device_class) {
+	while (id->class_ || id->class_mask || id->class_) {
 
-		if (id->device_class == (unsigned)PCI_ANY_ID) {
+		if (id->class_ == (unsigned)PCI_ANY_ID) {
 			dde_kit_log(DEBUG_PCI, "Skipping PCI_ANY_ID device class");
 			id++;
 			continue;
 		}
 
-		Pci::Device_capability cap = pci.first_device(id->device_class,
+		Pci::Device_capability cap = pci.first_device(id->class_,
 		                                              id->class_mask);
 		while (cap.valid()) {
 
@@ -278,7 +280,7 @@ int pci_register_driver(struct pci_driver *drv)
 			}
 
 			Pci::Device_capability free_up = cap;
-			cap = pci.next_device(cap, id->device_class, id->class_mask);
+			cap = pci.next_device(cap, id->class_, id->class_mask);
 			if (!pci_drv)
 				pci.release_device(free_up);
 		}

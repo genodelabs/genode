@@ -23,26 +23,24 @@
 struct Services
 {
 	/* USB profiles */
-	bool hid;
-	bool stor;
-	bool nic;
+	bool hid  = false;
+	bool stor = false;
+	bool nic  = false;
+	bool raw  = false;
 
 	/* Controller types */
-	bool uhci; /* 1.0 */
-	bool ehci; /* 2.0 */
-	bool xhci; /* 3.0 */
+	bool uhci = false; /* 1.0 */
+	bool ehci = false; /* 2.0 */
+	bool xhci = false; /* 3.0 */
 
 	/*
 	 * Screen resolution used by touch devices to convert touchscreen
 	 * absolute coordinates to screen absolute coordinates
 	 */
-	unsigned long screen_x;
-	unsigned long screen_y;
+	unsigned long screen_x = 0;
+	unsigned long screen_y = 0;
 
 	Services()
-	: hid(false),  stor(false), nic(false),
-	  uhci(false), ehci(false), xhci(false),
-	  screen_x(0), screen_y(0)
 	{
 		using namespace Genode;
 
@@ -74,6 +72,13 @@ struct Services
 			nic = true;
 		} catch (Xml_node::Nonexistent_sub_node) {
 			PDBG("No <nic> config node found - not starting the USB Nic (Network) service");
+		}
+
+		try {
+			config()->xml_node().sub_node("raw");
+			raw = true;
+		} catch (Xml_node::Nonexistent_sub_node) {
+			PDBG("No <raw> config node found - not starting external USB service");
 		}
 
 		try {

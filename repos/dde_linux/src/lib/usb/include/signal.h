@@ -98,4 +98,9 @@ namespace Nic
 	void init(Server::Entrypoint &ep);
 }
 
+namespace Raw
+{
+	void init(Server::Entrypoint &ep);
+}
+
 #endif /* _SIGNAL_H_ */

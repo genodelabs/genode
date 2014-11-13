@@ -18,10 +18,6 @@
 #ifndef _LX_EMUL_H_
 #define _LX_EMUL_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
-
 /* DDE Kit includes */
 #include <dde_kit/types.h>
 #include <dde_kit/printf.h>
@@ -1583,11 +1579,6 @@ bool device_can_wakeup(struct device *dev);
  ** linux/device.h **
  ********************/
 
-#ifdef __cplusplus
-#define class device_class
-#endif
-
-
 #define dev_info(dev, format, arg...) dde_kit_printf("dev_info: "  format, ## arg)
 #define dev_warn(dev, format, arg...) dde_kit_printf("dev_warn: "  format, ## arg)
 #define dev_WARN(dev, format, arg...) dde_kit_printf("dev_WARN: "  format, ## arg)
@@ -1806,10 +1797,6 @@ void *devm_ioremap_resource(struct device *dev, struct resource *res);
 void devm_kfree(struct device *dev, void *p);
 
 void *dev_get_platdata(const struct device *dev);
-
-#ifdef __cplusplus
-#undef class
-#endif
 
 
 /*****************************
@@ -2389,10 +2376,6 @@ typedef enum { PCI_D0 = 0 } pci_power_t;
 /*
  * Deal with C++ keyword used as member name of 'pci_dev'
  */
-#ifdef __cplusplus
-#define class device_class
-#endif /* __cplusplus */
-
 struct msix_entry
 {
 	u32 vector;
@@ -2436,9 +2419,6 @@ struct pci_fixup {
 	unsigned int class_shift;       /* should be 0, 8, 16 */
 	void (*hook)(struct pci_dev *dev);
 };
-#ifdef __cplusplus
-#undef class
-#endif /* __cplusplus */
 
 
 /* quirks */
@@ -2780,9 +2760,7 @@ enum { HID_DEBUG_BUFSIZE=512 };
  ** linux/list.h **
  ******************/
 
-#define new _new
 #include <linux/list.h>
-#undef new
 
 
 /********************
@@ -3905,9 +3883,5 @@ static inline void trace_xhci_dbg_cancel_urb(struct va_format *v) { }
 static inline void trace_xhci_dbg_reset_ep(struct va_format *v) { }
 static inline void trace_xhci_dbg_quirks(struct va_format *v) { }
 static inline void trace_xhci_dbg_address(struct va_format *v) { }
-
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
 
 #endif /* _LX_EMUL_H_ */
