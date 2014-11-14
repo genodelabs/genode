@@ -26,6 +26,8 @@ namespace Genode {
 	 * both values are different, the value at dest remains
 	 * unchanged.
 	 *
+	 * Note, that cmpxchg() represents a memory barrier.
+	 *
 	 * \return  1 if the value was successfully changed to new_val,
 	 *          0 if cmp_val and the value at dest differ.
 	 */

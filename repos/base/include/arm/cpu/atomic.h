@@ -15,6 +15,8 @@
 #ifndef _INCLUDE__ARM__CPU__ATOMIC_H_
 #define _INCLUDE__ARM__CPU__ATOMIC_H_
 
+#include <cpu/memory_barrier.h>
+
 namespace Genode {
 
 	/**
@@ -24,6 +26,8 @@ namespace Genode {
 	 * If both values are equal, dest is set to new_val. If
 	 * both values are different, the value at dest remains
 	 * unchanged.
+	 *
+	 * Note, that cmpxchg() represents a memory barrier.
 	 *
 	 * \return  1 if the value was successfully changed to new_val,
 	 *          0 if cmp_val and the value at dest differ.
@@ -47,6 +51,7 @@ namespace Genode {
 			: "=&r" (not_exclusive), "=&r" (equal)
 			: "r" (dest), "r" (cmp_val), "r" (new_val)
 			: "cc");
+		Genode::memory_barrier();
 		return equal && !not_exclusive;
 	}
 }

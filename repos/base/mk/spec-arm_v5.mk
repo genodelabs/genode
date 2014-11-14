@@ -1,5 +1,8 @@
 SPECS += arm
 
+# add repository relative include paths
+REP_INC_DIR += include/arm_v5
+
 #
 # Configure target CPU
 #

@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <cpu/atomic.h>
+#include <cpu/memory_barrier.h>
 #include <base/thread.h>
 
 /* local includes */
@@ -89,7 +90,7 @@ static inline void spinlock_unlock(volatile T *lock_variable)
 	if (utcb) {
 		utcb->tls = (((utcb->tls & COUNTER_MASK) + 4) % 4096) & COUNTER_MASK;
 		/* take care that compiler generates code that writes tls to memory */
-		asm volatile ("":::"memory");
+		Genode::memory_barrier();
 	}
 
 	/*

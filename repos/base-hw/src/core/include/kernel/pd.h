@@ -17,6 +17,7 @@
 
 /* Genode includes */
 #include <cpu/atomic.h>
+#include <cpu/memory_barrier.h>
 
 /* core includes */
 #include <kernel/early_translations.h>
@@ -49,11 +50,6 @@ class Kernel::Lock
 
 		int volatile _locked;
 
-		/**
-		 * Finish all previously started memory transactions
-		 */
-		void _memory_barrier() { asm volatile ("" : : : "memory"); }
-
 	public:
 
 		Lock() : _locked(0) { }
@@ -68,7 +64,7 @@ class Kernel::Lock
 		 */
 		void unlock()
 		{
-			_memory_barrier();
+			Genode::memory_barrier();
 			_locked = 0;
 		}
 
