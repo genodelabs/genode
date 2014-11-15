@@ -15,10 +15,10 @@ frontend invokes 'ld' on multiarch platforms. I.e., on x86, we need to pass
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/gcc/configure.ac b/gcc/configure.ac
-index 2d1876f..b7604d6 100644
+index a78a1d7..29ac2f3 100644
 --- a/gcc/configure.ac
 +++ b/gcc/configure.ac
-@@ -1759,7 +1759,7 @@ for f in $xm_file; do
+@@ -1785,7 +1785,7 @@ for f in $xm_file; do
  done
  
  host_xm_file_list=

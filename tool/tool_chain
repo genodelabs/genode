@@ -60,7 +60,7 @@ MPC_DOWNLOAD_URL     ?= http://www.multiprecision.org/mpc/download
 # Tool versions and install location
 #
 
-GCC_VERSION       = 4.7.2
+GCC_VERSION       = 4.7.4
 BINUTILS_VERSION  = 2.22
 GDB_VERSION       = 7.3.1
 GMP_VERSION       = 5.0.2
@@ -104,7 +104,7 @@ VERBOSE     = @
 #
 AUTOCONF_VERSION_gcc_4.4.5 = 2.59
 AUTOCONF_VERSION_gcc_4.6.1 = 2.64
-AUTOCONF_VERSION_gcc_4.7.2 = 2.64
+AUTOCONF_VERSION_gcc_4.7.4 = 2.64
 
 AUTOCONF_VERSION = $(AUTOCONF_VERSION_gcc_$(GCC_VERSION))
 
@@ -260,6 +260,7 @@ GCC_CONFIG += $(COMMON_CONFIG) \
               --with-gnu-as --with-gnu-ld --disable-tls --disable-threads \
               --disable-libstdcxx-pch \
               --enable-shared \
+              --enable-multiarch \
               --with-gmp=$(LOCAL_LIB_INSTALL_LOCATION) \
               --with-mpfr=$(LOCAL_LIB_INSTALL_LOCATION) \
               --with-mpc=$(LOCAL_LIB_INSTALL_LOCATION) \

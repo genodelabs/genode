@@ -1,9 +1,9 @@
 LICENSE   := LGPL
-VERSION   := 4.7.2
+VERSION   := 4.7.4
 DOWNLOADS := gcc.archive
 
 URL(gcc) := ftp://ftp.fu-berlin.de/gnu/gcc/gcc-$(VERSION)/gcc-$(VERSION).tar.bz2
-SHA(gcc) := a464ba0f26eef24c29bcd1e7489421117fb9ee35
+SHA(gcc) := f3359a157b3536f289c155363f1736a2c9b414db
 DIR(gcc) := src/lib/stdcxx
 SIG(gcc) := ${URL(gcc)}
 KEY(gcc) := GNU

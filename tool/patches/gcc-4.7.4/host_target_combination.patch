@@ -1,0 +1,27 @@
+host_target_combination.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+Remove sanity check for host/target combination in configure script of
+libstdc++. An alternative fix would be the addition of a new host or
+the use of an existing one. However, adding a new host would require
+us to maintain a larger patch to the GCC build system, and using an
+existing host comes with all the (possibly unwanted) policies associated
+with the respective host platform. We want to stick with the bare-bone
+compiler as much as possible.
+---
+ libstdc++-v3/crossconfig.m4 |    1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/libstdc++-v3/crossconfig.m4 b/libstdc++-v3/crossconfig.m4
+index 361ed0b..98d68ec 100644
+--- a/libstdc++-v3/crossconfig.m4
++++ b/libstdc++-v3/crossconfig.m4
+@@ -264,7 +264,6 @@ case "${host}" in
+     AC_DEFINE(HAVE_TANHF)
+     ;;
+   *)
+-    AC_MSG_ERROR([No support for this host/target combination.])
+    ;;
+ esac
+ ])

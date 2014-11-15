@@ -1,0 +1,41 @@
+prefer_pic.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+Without this change, libsupc++ would be compiled w/o PIC flags, resulting
+in text relocations. Because for base tool chains, no 'dynamic_linker'
+is defined (see 'libtool.m4'), 'dynamic_linker' is set to 'no', which
+results in 'can_build_shared = no', which, in turn , results
+in 'enable_shared = no', which, in turn, sets 'glibcxx_lt_pic_flag' to
+nothing rather than '-prefer-pic'.
+---
+ libstdc++-v3/configure.ac |   12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/libstdc++-v3/configure.ac b/libstdc++-v3/configure.ac
+index ce1f6c4..59024f2 100644
+--- a/libstdc++-v3/configure.ac
++++ b/libstdc++-v3/configure.ac
+@@ -109,16 +109,16 @@ AC_SUBST(enable_static)
+ # Use glibcxx_compiler_pic_flag to designate a compile-time flags for
+ # creating position-independent objects. This varies with the target
+ # hardware and operating system, but is often: -DPIC -fPIC.
+-if test "$enable_shared" = yes; then
++#if test "$enable_shared" = yes; then
+   glibcxx_lt_pic_flag="-prefer-pic"
+   glibcxx_compiler_pic_flag="$lt_prog_compiler_pic_CXX"
+   glibcxx_compiler_shared_flag="-D_GLIBCXX_SHARED"
+ 
+-else
+-  glibcxx_lt_pic_flag=
+-  glibcxx_compiler_pic_flag=
+-  glibcxx_compiler_shared_flag=
+-fi
++#else
++#  glibcxx_lt_pic_flag=
++#  glibcxx_compiler_pic_flag=
++#  glibcxx_compiler_shared_flag=
++#fi
+ AC_SUBST(glibcxx_lt_pic_flag)
+ AC_SUBST(glibcxx_compiler_pic_flag)
+ AC_SUBST(glibcxx_compiler_shared_flag)

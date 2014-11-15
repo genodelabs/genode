@@ -1,0 +1,25 @@
+tmake_file_arm.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+Let 'config.gcc' expand our already populated 'tmake_file' variable rather
+than making a hard assignment. This is needed for the ARM platform because
+the target 'arm-elf-eabi' actually matches the pattern 'arm-*-*-eabi' in
+the 'config.gcc' file.
+---
+ gcc/config.gcc |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/gcc/config.gcc b/gcc/config.gcc
+index 732b829..8876218 100644
+--- a/gcc/config.gcc
++++ b/gcc/config.gcc
+@@ -910,7 +910,7 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtems*)
+ 	need_64bit_hwint=yes
+ 	default_use_cxa_atexit=yes
+ 	tm_file="dbxelf.h elfos.h arm/unknown-elf.h arm/elf.h arm/bpabi.h"
+-	tmake_file="arm/t-arm arm/t-arm-elf"
++	tmake_file="${tmake_file} arm/t-arm arm/t-arm-elf"
+ 	case ${target} in
+ 	arm*-*-eabi*)
+ 	  tm_file="$tm_file newlib-stdint.h"

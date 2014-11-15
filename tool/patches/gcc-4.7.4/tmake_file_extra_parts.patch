@@ -1,0 +1,59 @@
+tmake_file_extra_parts.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+Enable support for passing custom 'tmake_file' and 'extra_parts' to the
+GCC configure process uncommenting the default initialization of the
+respective variables. The 'extra_parts' variable is used to carry the
+information about which crtN files are to be created.
+---
+ gcc/config.gcc     |    2 +-
+ libgcc/config.host |    8 ++++----
+ 2 files changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/gcc/config.gcc b/gcc/config.gcc
+index 9503b96..732b829 100644
+--- a/gcc/config.gcc
++++ b/gcc/config.gcc
+@@ -204,7 +204,7 @@
+ 
+ out_file=
+ common_out_file=
+-tmake_file=
++#tmake_file=
+ extra_headers=
+ user_headers_inc_next_pre=
+ user_headers_inc_next_post=
+diff --git a/libgcc/config.host b/libgcc/config.host
+index b64da4a..c34e7b3 100644
+--- a/libgcc/config.host
++++ b/libgcc/config.host
+@@ -69,8 +69,8 @@
+ 
+ asm_hidden_op=.hidden
+ enable_execute_stack=
+-extra_parts=
+-tmake_file=
++#extra_parts=
++#tmake_file=
+ tm_file=
+ tm_define=
+ md_unwind_header=no-unwind.h
+@@ -261,7 +261,7 @@ case ${host} in
+   tmake_file=t-vxworks
+   ;;
+ *-*-elf)
+-  extra_parts="crtbegin.o crtend.o"
++#  extra_parts="crtbegin.o crtend.o"
+   ;;
+ esac
+ 
+@@ -364,7 +364,7 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtems*)
+ 	case ${host} in
+ 	arm*-*-eabi* | arm*-*-rtems*)
+ 	  tmake_file="${tmake_file} arm/t-bpabi"
+-	  extra_parts="crtbegin.o crtend.o crti.o crtn.o"
++#	  extra_parts="crtbegin.o crtend.o crti.o crtn.o"
+ 	  ;;
+ 	arm*-*-symbianelf*)
+ 	  tmake_file="${tmake_file} arm/t-symbian t-slibgcc-nolc-override"
