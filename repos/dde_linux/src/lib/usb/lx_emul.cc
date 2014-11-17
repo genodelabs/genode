@@ -838,7 +838,7 @@ long find_next_zero_bit_le(const void *addr,
 	}
 
 	for (; offset < max_size; offset++)
-		if (!(*(unsigned long*)addr & (1 << offset)))
+		if (!(*(unsigned long*)addr & (1L << offset)))
 			return offset;
 
 	PERR("No zero bit findable");
