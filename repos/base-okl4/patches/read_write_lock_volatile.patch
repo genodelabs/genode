@@ -1,0 +1,13 @@
+diff --git a/pistachio/include/read_write_lock.h b/pistachio/include/read_write_lock.h
+index d667451..49f7f30 100644
+--- a/pistachio/include/read_write_lock.h
++++ b/pistachio/include/read_write_lock.h
+@@ -123,7 +123,7 @@ struct read_write_lock_t
+     bool is_locked(void);
+ 
+ #if defined(CONFIG_DEBUG)
+-    word_t locked;
++    word_t volatile locked;
+ #endif
+ };
+ 
