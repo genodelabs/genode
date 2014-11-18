@@ -16,6 +16,7 @@
 #include <util/misc_math.h>
 #include <util/arg_string.h>
 #include <base/printf.h>
+#include <os/config.h>
 #include <rom_session/connection.h>
 #include <base/sleep.h>
 #include <dataspace/client.h>
@@ -509,6 +510,10 @@ extern "C" void fork_trampoline()
 
 	/* reinitialize standard-output connection */
 	stdout_reconnect();
+
+	/* reinitialize config */
+	Genode::Config *config = Genode::config();
+	construct_at<Genode::Config>(config);
 
 	/* reinitialize noux connection */
 	construct_at<Noux_connection>(noux_connection());
