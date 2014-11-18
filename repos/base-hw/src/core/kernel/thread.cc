@@ -34,8 +34,8 @@ bool Thread::_core() const { return pd_id() == core_pd()->id(); }
 
 void Thread::_signal_context_kill_pending()
 {
-	assert(_state == SCHEDULED);
-	_unschedule(AWAITS_SIGNAL_CONTEXT_KILL);
+	assert(_state == ACTIVE);
+	_become_inactive(AWAITS_SIGNAL_CONTEXT_KILL);
 }
 
 
@@ -43,7 +43,7 @@ void Thread::_signal_context_kill_done()
 {
 	assert(_state == AWAITS_SIGNAL_CONTEXT_KILL);
 	user_arg_0(0);
-	_schedule();
+	_become_active();
 }
 
 
@@ -51,13 +51,13 @@ void Thread::_signal_context_kill_failed()
 {
 	assert(_state == AWAITS_SIGNAL_CONTEXT_KILL);
 	user_arg_0(-1);
-	_schedule();
+	_become_active();
 }
 
 
 void Thread::_await_signal(Signal_receiver * const receiver)
 {
-	_unschedule(AWAITS_SIGNAL);
+	_become_inactive(AWAITS_SIGNAL);
 	_signal_receiver = receiver;
 }
 
@@ -66,7 +66,7 @@ void Thread::_receive_signal(void * const base, size_t const size)
 {
 	assert(_state == AWAITS_SIGNAL && size <= _utcb_phys->size());
 	Genode::memcpy(_utcb_phys->base(), base, size);
-	_schedule();
+	_become_active();
 }
 
 
@@ -74,7 +74,7 @@ void Thread::_send_request_succeeded()
 {
 	assert(_state == AWAITS_IPC);
 	user_arg_0(0);
-	_schedule();
+	_become_active();
 }
 
 
@@ -82,7 +82,7 @@ void Thread::_send_request_failed()
 {
 	assert(_state == AWAITS_IPC);
 	user_arg_0(-1);
-	_schedule();
+	_become_active();
 }
 
 
@@ -90,7 +90,7 @@ void Thread::_await_request_succeeded()
 {
 	assert(_state == AWAITS_IPC);
 	user_arg_0(0);
-	_schedule();
+	_become_active();
 }
 
 
@@ -98,7 +98,7 @@ void Thread::_await_request_failed()
 {
 	assert(_state == AWAITS_IPC);
 	user_arg_0(-1);
-	_schedule();
+	_become_active();
 }
 
 
@@ -106,7 +106,7 @@ bool Thread::_resume()
 {
 	switch (_state) {
 	case AWAITS_RESUME:
-		_schedule();
+		_become_active();
 		return true;
 	case AWAITS_IPC:
 		Ipc_node::cancel_waiting();
@@ -125,22 +125,22 @@ bool Thread::_resume()
 
 void Thread::_pause()
 {
-	assert(_state == AWAITS_RESUME || _state == SCHEDULED);
-	_unschedule(AWAITS_RESUME);
+	assert(_state == AWAITS_RESUME || _state == ACTIVE);
+	_become_inactive(AWAITS_RESUME);
 }
 
 
-void Thread::_schedule()
+void Thread::_become_active()
 {
-	if (_state == SCHEDULED) { return; }
+	if (_state == ACTIVE) { return; }
 	Cpu_job::_schedule();
-	_state = SCHEDULED;
+	_state = ACTIVE;
 }
 
 
-void Thread::_unschedule(State const s)
+void Thread::_become_inactive(State const s)
 {
-	if (_state == SCHEDULED) { Cpu_job::_unschedule(); }
+	if (_state == ACTIVE) { Cpu_job::_unschedule(); }
 	_state = s;
 }
 
@@ -174,11 +174,11 @@ void Thread::init(Cpu * const cpu, Pd * const pd,
 		Genode::printf("\n");
 	}
 	/* start execution */
-	if (start) { _schedule(); }
+	if (start) { _become_active(); }
 }
 
 
-void Thread::_stop() { _unschedule(STOPPED); }
+void Thread::_stop() { _become_inactive(STOPPED); }
 
 
 void Thread::exception(unsigned const cpu)
@@ -216,7 +216,7 @@ void Thread::exception(unsigned const cpu)
 
 void Thread::_receive_yielded_cpu()
 {
-	if (_state == AWAITS_RESUME) { _schedule(); }
+	if (_state == AWAITS_RESUME) { _become_active(); }
 	else { PWRN("failed to receive yielded CPU"); }
 }
 
@@ -399,7 +399,7 @@ void Thread::_call_await_request_msg()
 		user_arg_0(0);
 		return;
 	}
-	_unschedule(AWAITS_IPC);
+	_become_inactive(AWAITS_IPC);
 }
 
 
@@ -408,14 +408,14 @@ void Thread::_call_send_request_msg()
 	Thread * const dst = Thread::pool()->object(user_arg_1());
 	if (!dst) {
 		PWRN("unknown recipient");
-		_unschedule(AWAITS_IPC);
+		_become_inactive(AWAITS_IPC);
 		return;
 	}
 	void * buf_base;
 	size_t buf_size, msg_size;
 	_utcb_phys->message()->request_info(buf_base, buf_size, msg_size);
 	Ipc_node::send_request(dst, buf_base, buf_size, msg_size);
-	_unschedule(AWAITS_IPC);
+	_become_inactive(AWAITS_IPC);
 }
 
 
@@ -590,7 +590,7 @@ void Thread::_print_activity(bool const printing_thread)
 	case AWAITS_START: {
 		Genode::printf("\033[32m init\033[0m");
 		break; }
-	case SCHEDULED: {
+	case ACTIVE: {
 		if (!printing_thread) { Genode::printf("\033[32m run\033[0m"); }
 		else { Genode::printf("\033[32m debug\033[0m"); }
 		break; }

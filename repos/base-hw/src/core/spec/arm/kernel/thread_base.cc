@@ -79,7 +79,7 @@ Thread_event Thread::* Thread::_event(unsigned const id) const
 
 void Thread::_mmu_exception()
 {
-	_unschedule(AWAITS_RESUME);
+	_become_inactive(AWAITS_RESUME);
 	if (in_fault(_fault_addr, _fault_writes)) {
 		_fault_pd    = (addr_t)_pd->platform_pd();
 		_fault_signal = _fault.signal_context_id();

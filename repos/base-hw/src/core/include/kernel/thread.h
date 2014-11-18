@@ -55,7 +55,7 @@ class Kernel::Thread
 
 		enum State
 		{
-			SCHEDULED                   = 1,
+			ACTIVE                      = 1,
 			AWAITS_START                = 2,
 			AWAITS_IPC                  = 3,
 			AWAITS_RESUME               = 4,
@@ -103,14 +103,14 @@ class Kernel::Thread
 		bool _core() const;
 
 		/**
-		 * Resume execution rawly
+		 * Switch from an inactive state to the active state
 		 */
-		void _schedule();
+		void _become_active();
 
 		/**
-		 * Pause execution rawly
+		 * Switch from the active state to the inactive state 's'
 		 */
-		void _unschedule(State const s);
+		void _become_inactive(State const s);
 
 		/**
 		 * Pause execution
@@ -277,7 +277,7 @@ class Kernel::Thread
 		       char const * const label);
 
 		/**
-		 * Prepare thread to get scheduled the first time
+		 * Prepare thread to get active the first time
 		 *
 		 * \param cpu    targeted CPU
 		 * \param pd     targeted domain
