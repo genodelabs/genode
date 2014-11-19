@@ -1,0 +1,1047 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 14.11
+              ===============================================
+
+                               Genode Labs
+
+
+
+With version 14.11 of the Genode OS framework, we are happy to close one of
+the last functional gaps that prevented us from using Genode for our
+day-to-day computing needs, namely wireless networking. With the availability
+of the Intel wireless stack, Genode becomes suddenly useful on most modern
+laptops. With the wireless stack being one of the most complex driver stacks
+ported to the framework ever, the undertaking was extremely challenging.
+Section [Intel wireless stack] tells the story of how we managed to transplant
+the driver stack from Linux to Genode.
+
+The second highlight of the release is the new implementation of a trading
+scheme for CPU resources. When Genode was originally designed in 2006, we
+envisioned to trade CPU resources between components similarly to how memory
+is managed throughout Genode. However, the schedulers of the existing base
+platforms did not allow us to realize this idea - until now. With the new
+scheduler of our custom base-hw kernel that is described in Section
+[Trading CPU time between components using the HW kernel], Genode becomes
+finally able to not just assign priorities to subsystems, as already supported
+on most kernels of the L4 family, but also to guarantee the provisioning of
+processing time to subsystems. This way, we can achieve low interrupt
+latencies for untrusted driver code like huge 3rd-party driver stacks, which
+would normally require us to assign a high priority (with the risk of starving
+other subsystems) to the component. It also allows Genode users to partition
+the CPU time between different subsystems in a straight-forward way.
+
+Further highlights of version 14.11 are a new dynamic linker with a code
+complexity of less than 20% of the old one, VirtualBox version 4.3.16 with
+support for regular vbox configuration files, networking for the Raspberry Pi,
+and new GUI components.
+
+
+Intel wireless stack
+####################
+
+Since the very beginning, it was our primary goal to develop the Genode OS
+Framework as the basis for a usable general-purpose OS. To achieve this goal,
+we have to overcome various obstacles, device-driver support for common
+hardware being one of the most tricky jobs. Over the years, we accumulated
+driver support for essential devices (PS/2, LAN adapters, USB, ATA/SATA). We
+even dared to port the madwifi driver to provide proof-of-concept wireless
+network support for Atheros chipsets. Alas, recent Intel-based notebooks come
+with wireless chipsets from Intel like the IWL6xxx almost exclusively. Up to
+now, Genode lacked support for these devices but since we had great success
+with porting existing drivers from Linux in the past, we approached this issue
+in classical fashion. We decided to port the _iwlwifi_ driver as well as its
+wireless stack from Linux to Genode using the DDE-Linux approach. In addition,
+we also ported the _WPA supplicant_ application to enable Wi-Fi Protected
+Access (WPA).
+
+In the following, we tell our war story of about six months of struggle,
+setbacks, and adventures. We start with presenting our initially vague idea of
+a Genode component that would enable us to access protected wireless networks.
+The overview is followed by the description of the many steps that were needed
+to turn our vague idea into a working component. Finally, we give a glimpse on
+the future of the driver and provide quick instructions for using it.
+
+
+Component overview
+==================
+
+[image wifi]
+
+The first figure depicts the _wifi_drv_ component, which consists of four
+parts. The first part is the iwlwifi driver, which manages the hardware by
+communicating with the firmware that runs on the wireless card. Second, there
+is the wireless stack _mac80211_, which performs all IEEE 802.11 related
+networking operations including the translation of IEEE 802.11 radio frames to
+ordinary 802.3 ethernet frames. Furthermore, there is the WPA supplicant,
+which handles the authentication of a client at the access point. Last but not
+least, the component has to interface with Genode clients. Therefore, the
+wifi_drv implements the NIC session interface, which is used by the TCP/IP
+stack to send and receive ethernet frames.
+
+Since wireless networking itself is a comprehensive field, we decided early on
+to reuse as much functionality as possible. The following sections will
+describe the steps taken in more detail.
+
+
+Driver
+======
+
+In the classical DDE-Linux manner, we started by porting the iwlwifi driver.
+Porting a Linux driver is a laborious but essentially a straightforward task.
+All needed source files must be added to the _dde_linux_ repository. These
+files are normally selected by examining Linux's build configuration for the
+driver in Makefile and Kconfig file types. The next step is to create a Linux
+emulation environment for the driver. The central piece of this environment is
+the _lx_emul.h_ header file. It combines all declarations and data structures,
+which are scattered over many header files in the original Linux sources, into
+a single file.
+
+Several times during the creation of the emulation environment, a decision has
+to be taken whether the original Linux header is used or the declaration is
+added to the emulation header. Since we have ported Linux code to Genode
+before, e.g., the USB stack and TCP/IP stack, we developed a sense for which
+parts of Linux should be taken from the original header files and which parts
+are better provided by the emulation header. We also learned by experience
+that it is best to keep the number of used original header files as low as
+possible. Otherwise future updates become complex and tiresome. The emulation
+environment is completed iteratively by extending the header file after each
+compile pass. In the end the linker sends his greetings with a long list of
+undefined symbols. At this point, we just use a dummy implementation for each
+undefined symbol like the following:
+
+!typedef long DUMMY;
+!#define DUMMY(retval, name) \
+!        DUMMY name(void) { \
+!        if (SHOW_DUMMY) \
+!                PDBG( #name " called (from %p) not implemented",\
+!                     __builtin_return_address(0)); \
+!        return retval; \
+!}
+!
+!DUMMY(0, kmalloc)
+
+Most of the symbols the compiler complains about are not needed by our port
+anyway. These are merely functions the vanilla Linux kernel uses for
+accounting or rather internal book keeping of resources as well as checking
+permissions, which are not needed inside our driver component. However, we can
+use these dummies to trace the function calls when we execute the component.
+Hence, the decision whether to implement or to ignore the function can be
+postponed.
+
+The fundamental functionality required by the iwlwifi driver boils down to the
+usual PCIe resource allocation, IRQ handling, and DMA mapping as well as
+regular memory allocation. On that account, it is worth mentioning that we use
+the vanilla 'skbuff' implementation for network-packet buffer management from
+Linux. Though we have previously implemented this functionality specifically
+for our USB network driver, we saved us the trouble this time. An sk_buff is
+allocated by the driver if it receives a packet and is passed to the wireless
+stack. The stack, in return, submits sk_buffs to the driver to transmit
+packets.
+
+Nowadays, most work in the Linux kernel is done in workqueues in an
+asynchronous way by using multiple kernel threads. By contrast, we try to
+minimize the usage of threads in our driver ports to minimize the emulation
+effort of the manifold synchronization primitives provided by the Linux kernel
+API. In fact, we employ cooperative tasks to implement the concurrent
+execution of code. Although this approach is more complex because preemption
+points must be defined manually, it is worthwhile since debugging becomes much
+easier with the absence of actual thread concurrency. In addition, we get away
+with implementing certain synchronization primitives like mutexes or the whole
+RCU handling in a much simpler way. As a prominent example of simplification,
+atomic operations may be implemented as straight assignment statements.
+
+In the original Linux implementation, loading the firmware of the wireless
+card is an asynchronous operation to mitigate the effect of delays due to
+file-system operations. On Genode, we access the firmware directly via a ROM
+connection in the driver server with minimal side effects on other system
+servers. Therefore, we execute the assigned callback function directly
+accepting the possible delay at the ROM server.
+
+The iwlwifi driver implements the network-device operations needed by the
+wireless stack. After the driver loaded the firmware, it initializes the
+device and registers itself at the wireless stack.
+
+When using cooperative tasks, it is still important to provide the expected
+behavior and semantics of the original execution environment. The iwlwifi
+driver handles an IRQ by using the _threaded_irq_ mechanism. Meant as a
+replacement for the 'tasklet' mechanism, the top-half is executed in the
+interrupt context whereas the bottom-half is executed in a dedicated kernel
+thread. For this purpose, our port adds an IRQ task that mimics these
+semantics. Up to now, we did not add priorities to our cooperative tasks. In
+the usb_drv component, all tasks have the same priority. Unfortunately, we did
+not get away that easily in the wifi_drv component and had to employ a
+scheduler with priorities.
+
+
+Mac80211 stack
+==============
+
+With the iwlwifi driver experiencing its first successful compilation, it was
+time to port the wireless stack of Linux to Genode. The stack consists of the
+_mac80211_ layer that abstracts the device handling and takes charge of
+converting the 802.11 frames to 802.3 frames. It also handles various
+management tasks like beacon frames and rate control. The design of the stack
+is highly asynchronous and event driven. In a nutshell, the stack adds
+received requests to a workqueue for delayed processing and, hence, remains
+recipient for further requests at all times. On request completion, the
+originating component will get notified. Received packets in form of sk_buffs
+are monitored by the wireless stack and passed to other subsystems by calling
+'netif_receive_skb()'.
+
+Most requests are issued by the _cfg80211_ layer, which manages requests from
+userspace via a netlink-bus based interface called _nl80211_. For this reason,
+we added support for AF_NETLINK by adding the corresponding source files to
+the wifi_drv component. While doing so it became clear that we would need to
+provide an interface for using netlink from the WPA supplicant. On that
+account, we created the 'Socket_call' interface.
+
+
+Configuration
+=============
+
+As mentioned before, the configuration of network devices on Linux is done by
+using the Netlink API nowadays. In the context of wireless networking, it
+replaces the old 'ioctl()' based _Wireless Extension_ interface with nl80211.
+Nl80211 enables the user to configure all wireless related properties
+including association with an access point (AP) and scanning for available
+networks.
+
+Support for using protected wireless networks on Linux is split between the
+kernel and the user space. The so-called supplicant that handles
+authentication against a given access point runs in user space whereas the
+cryptographic operations on bulk traffic are executed in the kernel. On Linux,
+the WPA supplicant is used for the user-space work.
+
+The supplicant scans for available networks and tries to authenticate at a
+known network retrieved from the configuration file. After a suitable network
+was discovered, the supplicant tries to associate and authenticate at the
+access point of the network. If this undertaking is successful, the actual
+IEEE 802.1X authentication takes place. Up to this point, the whole
+communication with the AP is done unencrypted. While performing the
+authentication, the WPA supplicant needs access to the raw EAPoL ethernet
+frames, which is provided by Linux via the AF_PACKET protocol. This protocol
+is used by the WPA supplicant in its 'l2_packet' back end and, therefore, must
+be provided by our driver, too. Since we already implemented the Socket_call
+interface, enabling AF_PACKET was a straight-forward procedure. The driver
+initializes the af_packet protocol family and switches incoming traffic to its
+protocol hook in case of EAPoL frames. All other packets are passed to our NIC
+session front end.
+
+Since the WPA supplicant is normally executed in userspace using the _libnl_
+library, it depends on a working libc. The Genode libc is a port of the
+FreeBSD libc whereas the nl80211 back end of the WPA supplicant expects a
+Linux-based user land, i.e., glibc. Therefore, we decided to split up the
+supplicant into separate modules, one for the back end and one for the front
+end. We created a port of libnl, which uses a specially tailored Linux user
+emulation environment similar to the emulation of the kernel environment in
+DDE Linux. The libnl emulation implements various socket related functions
+like 'socket', 'bind', 'sendto', and 'recvfrom'. These socket functions are
+mapped to the internal Socket_call interface, which talks to the kernel parts.
+The nl80211 back end driver is linked against this static libnl library. The
+WPA supplicant on the other hand is linked against Genode's regular libc. To
+make sure that each part can only access the symbols that it is supposed to
+see on linking, we use symbol maps like the following for
+_wpa_driver_nl80211.lib.so_.
+
+!{
+!  global:
+!    /* array containing all drivers, from drivers.c */
+!    wpa_drivers;
+!    /* ethernet frame handling, from l2_packet_linux.c */
+!    l2_packet_*;
+!    poll;
+!  local:
+!    *;
+!};
+
+The _wpa_drivers_ array is used by the WPA supplicant to access its internal
+driver back end and functions. The 'l2_packet_*' functions are used by the
+EAPoL authentication-handling code. The 'poll' function is required by the
+supplicant's event handling and therefore mandatory. All file descriptors as
+well as sockets opened by the back end are processed by the WPA supplicant.
+All other symbols are kept local to prevent the runtime linker from running
+into symbol clashes.
+
+
+NIC session front end
+=====================
+
+The front end connects the wifi_drv component to Genode clients. When the
+TCP/IP stack of an application wants to send an ethernet frame, it calls the
+'Nic::Driver::tx()' method. The component takes the frame and puts it into a
+freshly allocated sk_buff. After that, it calls the 'ndo_start_xmit()'
+function. This function is part of the 'struct netdev_ops' and is implemented
+by the wireless stack. On packet reception, the wireless stack will pass on
+the 'sk_buff' by calling 'netif_receive_skb()'. The front end extracts all
+data it needs from this 'sk_buff' and copies it into the packet stream.
+
+During development of this complex interplay between the NIC session front end
+and the driver, we also had to cope with Linux-internal semantics of the
+interface. One prominent example is the handling of head room in the protocol
+header data in the sk_buff. Shrinking or expanding the head room at the right
+places is crucial. Otherwise, the driver will produce corrupt packets.
+
+
+The final picture
+=================
+
+In summary, it can be stated that the 'wifi_drv' turned out to be more complex
+than we anticipated after our first investigations. The final structure of our
+port looks like follows.
+
+[image wifi_complete]
+
+The figure depicts our new component that uses three threads: The first thread
+executes the WPA supplicant's code, another thread executes the whole Linux
+kernel code, and the last thread acts as IRQ handler. The Linux thread
+implements a cooperative task model for concurrent kernel tasks, namely the
+'irq' task that runs on the highest priority, the 'timer' task, the 'work'
+task, the 'socket_call' task, and the 'linux' task.
+
+
+Roundup
+=======
+
+In its current state, the wifi_drv is tested with Intel wireless 6205 and 6300
+cards and performs reasonable well for an unoptimized component. Other cards
+might also work and could be enabled by editing
+_src/lib/wifi/drivers/net/wireless/iwlwifi/pcie/drv.c_ in the
+_dde_linux/contrib_ directory manually. The driver does not support changing
+the network at the moment. This is merely a limitation of the current
+NIC-session interface, though. The link state is not forwarded to the TCP/IP
+stack, which therefore will not send a new DHCP request. But, transparent
+changes among access points within the same LAN without network
+reconfiguration are possible.
+
+The current version of the wifi_drv is one of the most voluminous drivers
+ported to date. All in all, it contains about 215,000 lines of 3rd-party code.
+The code written to connect this code to Genode amounts to about 8,500 lines
+of code while the 'lx_emul.h' header alone takes 3,245 lines. Porting the
+whole stack raises the opportunity to enable other wireless drivers in the
+future with minimal effort. Furthermore, it should be possible to enable more
+userland tools that use the nl80211 interface, for example, a dedicated
+wireless-network scanner or even hostapd.
+
+Prior to the wifi_drv component, all ported drivers more or less used the
+DDE-Kit library to perform low-level tasks, e.g., PCI, IRQ, and memory
+handling. The original idea behind DDE Kit was to provide a C-based API to
+ease the porting of drivers, which are mostly written in C whereas Genode is
+written in C++. During porting the wireless stack, however, we disregarded DDE
+Kit at all and implemented the needed functionality by using Genode primitives
+directly. We realized that using a more generic interface like DDE Kit has no
+advantages because we had to circumvent it more than once in the past. It
+became more of a burden than a blessing. Also, we recognized that the idea of
+creating a synergy among various projects utilizing DDE-Linux drivers by
+providing a common DDE Kit interface did not came to fruition. So we see no
+benefit in using DDE Kit in future driver ports in the future.
+
+In the future, we plan to address the necessary optimization of the driver
+component and also want to add a simpler front end to configure the WPA
+supplicant. For now, we utilize the regular POSIX front end. Furthermore, the
+user has to specify the network prior to starting the driver. A mechanism,
+which uses a report session to notify the user about all available networks
+and that is able to change the configuration of the WPA supplicant on the fly
+is currently under progress.
+
+
+Usage
+=====
+
+The following instructions may help you to get started because using the
+driver is somewhat laborious at the moment. For building the driver, you have
+to add _drivers/wifi_ and  _drivers/rtc_ to the build_components list in your
+run script in addition to the normally required components.
+
+For starting the driver, you may use the following configuration snippet as a
+starting point:
+
+!<start name="wifi_drv">
+!  <resource name="RAM" quantum="32M"/>
+!  <provides><service name="Nic"/></provides>
+!  <config>
+!    <libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc">
+!      <vfs>
+!        <inline name="wpa_supplicant.conf">
+!network={
+!  ssid="foobar"
+!  key_mgmt=WPA-PSK
+!  psk="foobarfoobar"
+!}
+!        </inline>
+!        <dir name="dev"> <log/> <rtc/>
+!           <jitterentropy name="random"/>
+!           <jitterentropy name="urandom"/>
+!        </dir>
+!      </vfs>
+!    </libc>
+!  </config>
+!  <route>
+!    <service name="Rtc"> <any-child /> </service>
+!    <any-service> <parent/> <any-child /> </any-service>
+!  </route>
+!</start
+
+Since we are using 'wpa_supplicant' to handle all network management, we have
+to configure it. As mentioned before, we use the common POSIX configuration
+file format for this purpose, and therefore use the same configuration syntax
+as on any other OS. By convention, our port of the WPA supplicant is looking
+for the configuration in '/wpa_supplicant.conf'. It is provided by creating an
+inline file in the VFS configuration section. We provide a _/dev_ directory
+populated with all required virtual devices. These devices are needed by
+various parts of the WPA supplicant.
+
+To run the driver, we need to add the following binaries to the list of boot
+modules:
+
+!rtc_drv vfs_jitterentropy.lib.so
+!libc.lib.so libcrypto.lib.so libssl.lib.so
+!wifi.lib.so wpa_supplicant.lib.so wpa_driver_nl80211.lib.so
+!wifi_drv
+
+Furthermore all Intel wireless cards supported by the 'iwlwifi' driver need a
+specific firmware to work. You can download the archives containing the
+firmware from [http://wireless.kernel.org/en/users/Drivers/iwlwifi]. The
+firmware image also has to be added to the boot module list. If the firmware
+is missing, the driver will complain and print an error message:
+
+!Could not open file "iwlwifi-6000-6.ucode"
+
+A exemplary run script can be found in _repos/dde_linux/run/wifi.run_.
+
+
+Trading CPU time between components using the HW kernel
+#######################################################
+
+Up to the last Genode release, CPU scheduling in the HW-kernel was a matter of
+absolute priority bands, each doing a round-robin schedule over all tasks with
+the respective priority. While being pretty fast and manageable, this scheme
+also had its disadvantages: First, there was no way to prevent
+high-prioritized tasks from starving less important ones. Second, CPU time
+could not be granted to tasks and passed between them by the means of quota.
+To cope with these problems without much loss of performance, we decided to
+come up with a new scheduler whose design was developed with the new feature
+set in mind right from the start.
+
+The new scheduler introduces the distinction between high-throughput-oriented
+scheduling contexts - which we shortly call "fills" - and low-latency-oriented
+scheduling contexts - called "claims". Examples for a typical fill would be
+the processing of a GCC job or the rendering computations of a sophisticated
+graphics program. They shall obtain as much CPU time as the system can spare
+but there is no demand for a high responsiveness. In contrast, a good example
+for the claim category would be a typical GUI-software stack covering the
+control flow from user-input drivers through a chain of GUI components to the
+drivers of the graphical output. Another example is a user-level device driver
+that has to quickly respond to sporadic interrupts but is otherwise untrusted.
+The low latency of such components is a key factor for usability and quality
+of service. Besides introducing the distinction between "claim" and "fill"
+scheduling contexts, we introduced the notion of a so-called "super period",
+i.e., in the current version it is one second. The entire super period
+corresponds to 100% of the CPU time of one CPU. Portions of it can be assigned
+to scheduling contexts. A CPU quota thereby corresponds to a percentage of the
+super period.
+
+At the beginning of a super period, each claim has its full amount of assigned
+CPU quota. The priority defines the absolute scheduling order within the super
+period among those claims that are active and have quota left. As long as
+there exist such claims, the scheduler stays in the claim mode and the quota
+of the scheduled claims decreases. At the end of a super period, the quota of
+all claims gets refreshed to the initial value. Every time the scheduler can't
+find an active claim with CPU-quota left, it switches to the fill mode. Fills
+are scheduled in a simple round-robin fashion with identical time slices. The
+proceeding of the super period doesn't affect the scheduling order and
+time-slices of this mode. The concept of quota and priority that is
+implemented through the claim mode aligns nicely with Genode's way of
+hierarchical resource management: Through CPU-sessions, each process becomes
+able to assign portions of its CPU time and subranges of its priority band to
+its children without knowing the global means of CPU time or priority.
+
+Whereas the management of priorities was already existent at the thread and
+CPU-session API, the management of CPU quota is new to these components. While
+extending Genode's resource trading to CPU time, we closely followed the
+existing patterns of how RAM quota is managed among RAM sessions. In the init
+configuration, one can configure the assignment of CPU time via "resource"
+tags that have the attribute "name" set to "CPU" and the attribute "quantum"
+set to the percentage of CPU quota that init shall assign. The pattern is the
+same as when donating RAM quota.
+
+! <start name="test">
+!   <resource name="CPU" quantum="75"/>
+! </start>
+
+This example configuration would cause init to try donating 75% of its CPU
+quota to the child "test". Be aware that init and core do not preserve CPU
+quota for their own requirements by default as it is done with RAM quota.
+Hence, the configuration should consider such preservations if required. If no
+preservation is configured, init and core depend on someone not using its
+quota to the full extend or someone donating its quota temporarily on, e.g.,
+IPC to a core service.
+
+! <start name="init2">
+!   <resource name="CPU" quantum="50"/>
+!   ...
+!   <config>
+!     ...
+!     <start name="test">
+!       <resource name="CPU" quantum="50"/>
+!     </start>
+!   </config>
+! <start>
+
+This example configuration would result in process "init2" receiving 50% of
+the CPU quota and process "test" receiving 50% of the CPU quota of "init2". So
+both processes have 25% of the overall CPU time at disposal.
+
+Once a process owns CPU quota, the process can apply it at the construction of
+local threads. For this purpose, the thread constructor has been enhanced by
+an argument that indicates the percentage of the program's CPU quota that
+shall be assigned. So 'Thread(33, "test")' would cause the backing CPU session
+to try granting 33% of the component's CPU quota to the new thread "test".
+Note that the CPU quota of a thread can't be altered after construction for
+now. A new thread participates in CPU scheduling with a context for only the
+fill mode if the CPU quota is specified with 0 or not at all to the thread
+constructor. That doesn't mean that such threads are never scheduled. But they
+have no guarantee to receive CPU time during a super period and their priority
+is ignored at all. If a thread gets constructed with a quota greater than 0,
+it participates in CPU scheduling with a context for both claim and fill mode.
+The claim context then uses the specified quota and priority as mentioned
+earlier.
+
+
+Base framework
+##############
+
+New dynamic linker
+==================
+
+In 2010, we added dynamic linking support to Genode. This enabled Genode to
+load and share libraries among programs at runtime. Since, at the time, we did
+not have a whole lot of experience with dynamic linking and dynamic ELF
+loading, we decided to port FreeBSD's linker (rtld) to Genode. Up to this
+point, the old linker has served its purpose well on all supported kernels and
+hardware architectures.
+
+Nevertheless, we were a little worried because it was hard to understand the
+linker's internals and we did not want to trust a vital piece of code that we
+could not comprehend in full. Also, the old linker heavily depended on libc
+and C-style POSIX semantics, which we had to emulate in order to get the
+program working.
+
+As one of Genode's midterm goals is making most Genode applications binary
+compatible for microkernels that support the same hardware architecture and
+for the reasons above, we decided to implement a Genode specific linker. Our
+future goal is to keep all kernel-dependent code within the linker (making it
+kernel dependent) and to link Genode applications against this new version of
+the linker (thus, making them kernel independent).
+
+Genode's new dynamic linker can be found in _repos/base/src/lib/ldso_. It is a
+drop-in replacement for the old linker, which has been removed from Genode's
+source tree. The linker provides all the functionality the FreeBSD version
+did: Loading and construction of shared libraries, a shared-object interface
+(_repos/base/include/base/shared_object.h_) that is comparable to the DL
+interface (dlopen, dlsym and friends), link map, and GDB debugging support.
+The linker is entirely written in C++ and with a code size of about 1800 lines
+significantly smaller then the old version with about 8000 code lines
+including the emulation layer.
+
+
+Low-level OS infrastructure
+###########################
+
+Graphics helpers for operating on alpha channels
+================================================
+
+For realizing graphical applications that are security critical, we wish to
+avoid the complexity of sophisticated tool kits like Qt5. To ease the
+development of such Genode-specific graphical applications, we introduced a
+few common low-level interfaces and utilities for graphics in
+[http://genode.org/documentation/release-notes/14.02#Unified_interfaces_for_graphics - version 14.02].
+
+The current version refines those utilities with added support for layering
+graphics using alpha channels. There is a new ALPHA8 pixel format that can be
+used to apply graphics operations on alpha-channels. Furthermore, the new
+'Texture_rgb565' and 'Texture_rgb888' types provide pixel conversion functions
+for those common texture formats. This way, ordered dithering is automatically
+applied when importing pixel data to a RGB565 texture.
+
+
+Nitpicker GUI server
+====================
+
+The fundamental premise of the Nitpicker GUI server is to isolate GUI clients
+from each other. However, there are situations where the user wants to issue
+operations spanning multiple clients, for example hiding all views of a
+subsystem regardless of how many clients are running within the subsystem.
+
+Such operations should be applied to the global view stack to maintain the
+global view stacking order when hiding and subsequently un-hiding subsystems.
+To realize this functionality, nitpicker's session interface has been enhanced
+by a new 'session_control' function. The function takes a session label and an
+operation as arguments, and performs a control operation on one or multiple
+sessions. The label is used to select the sessions, on which the operation is
+applied. Internally, nitpicker creates a selector string by concatenating
+the caller's session label with the supplied label argument. A session is
+selected for the operation if its label starts with the selector string.
+Thereby, the operation is limited to the caller session or any child session
+of the caller. The supported control operations are the hiding of sessions,
+the un-hiding of sessions, and the move of session views to the front of the
+view stack while maintaining their partial order.
+
+To enable the user to unambiguously identify the applications on screen,
+nitpicker provides an X-ray mode that can be activated by the user at any
+time. To enable a trusted application such as a panel to respond to the
+activation of the X-ray mode, nitpicker has gained an option to report the
+currently active mode to a report session. Furthermore, the user-input
+handling was slightly refined to accommodate such trusted applications. While
+X-ray mode is active, nitpicker filters motion events that are not referring
+to the currently focused domain. However, domains configured as xray="no"
+(such as a panel) need to obtain motion events regardless of the xray mode. So
+we relaxed the motion-event filtering to accommodate such clients.
+
+
+Nitpicker fader
+===============
+
+Some graphical applications should not be visible at all times but only when
+needed, for example an on-screen display that is visible only when the user
+changes the volume. To realize such applications on top of nitpicker,
+nitpicker could provide support for toggling the visibility of views. But
+adding view fading to nitpicker would increase nitpicker's complexity just for
+the sake of visual presentation. Also, the fading/unfading would be limited to
+whatever support nitpicker would provide. Alternatively, the fading could be
+implemented in the respective nitpicker client. But this way, each client that
+could potentially be used in an on-demand way had to be enhanced with a fading
+feature. For example, an on-demand visible terminal could be useful in some
+scenarios. So the terminal had to be enhanced.
+
+Being component-based, Genode provides another alternative: The introduction
+of a separate component that wraps the nitpicker session interface. The new
+nit_fader sits in-between nitpicker and a client, and applies alpha-blending
+to the client's virtual framebuffer. It is entirely optional and requires no
+changes in nitpicker or any client. Because it can be instantiated per client,
+it does not compromise the security of nitpicker. Even though it can access
+the pixel data and the user input designated for a particular client, it
+cannot leak this information to other clients. Therefore, the implementation
+complexity of this component is not critical for confidentiality.
+
+[image nit_fader_screenshot]
+
+The current version of nit_fader obtains the alpha-blending value from its
+configuration. It is able to dynamically respond to configuration changes. If
+the configured alpha value changes, it performs a smooth transition between
+the old and the new alpha value.
+
+
+Growing tool kit for low-complexity GUI applications
+====================================================
+
+With the current release, we continue our line of GUI-related work started in
+[http://genode.org/documentation/release-notes/14.08#New_GUI_architecture - version 14.08].
+As a side product of implementing low-complexity GUI components directly on
+Genode instead of using existing GUI tool kits, a library of common utilities
+is evolving. The utilities are not strictly GUI-related but also cover the
+construction of multi-process applications.
+
+
+:'gems/animator.h':
+
+  A utility for the smooth interpolation between two integer values. As the
+  interpolation is not linear, it is suitable for fading effects. It is used
+  by the scout widgets, the window decorator, the new nit_fader, and the
+  new menu view.
+
+:'gems/chunky_texture.h':
+
+  A texture with its backing store allocated from a RAM session.
+
+:'gems/file.h':
+
+  A simple utility for obtaining the content of a file as a buffer.
+
+:'gems/local_reporter.h':
+
+  A utility for creating reports to a local report session. It is useful for
+  components that host a local report service, for example the window manager
+  or the new launcher application.
+
+:'gems/png_image.h':
+
+  A utility that provides the pixel data of a PNG image as a texture. Its
+  main purpose is hiding the peculiarities of libpng and the life-time
+  management of the involved memory allocations behind a simple interface.
+
+:'gems/report_rom_slave.h':
+
+  A utility for instantiating a local report-rom service as a child process.
+  It is used by the window manager and the new launcher application.
+
+:'gems/single_session_service.h':
+
+  A utility for providing a locally implemented session as a service to a
+  child process. It is useful for virtualizing services when hosting other
+  components as child processes.
+
+:'gems/texture_utils.h':
+
+  Utilities for scaling a texture and for converting textures between
+  different pixel formats.
+
+:'gems/wrapped_nitpicker_session.h':
+
+  A default implementation of a wrapped nitpicker session that can be used to
+  selectively override a few functions of nitpicker's session interface while
+  delegating all other functions to the wrapped nitpicker session.
+
+:'gems/xml_anchor.h':
+
+  A utility for converting an "anchor" XML attribute to a convenient object.
+
+:'cli_monitor/ram.h':
+
+  A utility for managing RAM among a number of child processes.
+
+:'cli_monitor/child.h':
+
+  A utility for creating child processes while dynamically managing their
+  RAM resources.
+
+As a note of caution, the API of those utilities should not be expected to be
+stable. It is likely to change during the further evolution of Genode's GUI
+architecture.
+
+
+New menu view application
+=========================
+
+The new menu view application generates a simple dialog of widgets and reports
+the hovered element. It is meant to be embedded into applications that require
+simple GUIs but don't want to deal with the complexities of a full-blown
+widget set.
+
+The menu view takes a description of the dialog in the form of a ROM session
+with XML data, for example:
+
+! <dialog>
+!   <frame>
+!     <vbox>
+!       <button name="virtualbox">
+!         <label text="VirtualBox"/>
+!       </button>
+!       <button name="toolchain" hovered="yes">
+!         <label text="Tool chain"/>
+!       </button>
+!       <button name="log" hovered="yes" selected="yes">
+!         <label text="Log window"/>
+!       </button>
+!       <button name="config" selected="yes">
+!         <label text="Configuration"/>
+!       </button>
+!     </vbox>
+!   </frame>
+! </dialog>
+
+Given such a description, it renders a pixel representation of the dialog and
+provides the result to a nitpicker session. The application dynamically
+responds to changes of the XML model and thereby applies state transitions of
+dialog elements. It does not perform any application logic. Even the hovering
+of dialog elements is out of the scope of the menu view. However, the menu
+view receives user input for its nitpicker session. It evaluates the user
+input to determine the currently hovered widget and reports this information
+to a report session. This way, the parent process of a menu view can implement
+arbitrary application logic of a GUI application without dealing with any
+graphical operations.
+
+In the current form, the menu view is limited to fulfill the requirements of
+the new launcher application. Hence, it solely provides a frame, button, and
+label widget as well as a vertical box-layout widget. For experimenting with
+the new menu view, there exists a run script at _gems/run/menu_view.run_.
+
+
+New launcher application
+========================
+
+The new launcher application located at _gems/src/app/launcher/_ is a poster
+child of a multi-process GUI application on Genode. Similar to the existing
+launchpad, it can be used to dynamically start and kill subsystems. But in
+contrast to the launchpad, which contained a widget library, the new launcher
+delegates the (potentially complex and bug-prone) graphics processing to a
+sandboxed child process (the menu view). The launcher is able to toggle
+visibility of the dialog using the new nit_fader component, which is
+instantiated as a child process as well. Thanks to this multi-process
+technique, the complexity of the actual launcher, which needs to be ultimately
+trusted by all launched subsystems, remains low and thereby trustworthy.
+
+In addition to being able to start and kill subsystems, the launcher uses
+nitpicker's new session-control interface (see Section [Nitpicker GUI server])
+for toggling the visibility of subsystems. The new launcher can be explored
+with the run script _gems/run/launcher.run_.
+
+
+New input merger
+================
+
+The new input merger component allows the aggregation of user-input events
+from an arbitrary number of sources. The aggregated stream of events is
+provided as a single input session. Thereby, it allows the merging of user
+input of multiple device drivers such as USB HID and PS/2 into one stream to
+be consumed by a single component such as the nitpicker GUI server.
+
+The input merger is located at _os/src/server/input_merger/_. Please refer to
+the accompanied README file for configuring the component.
+
+
+Libraries and applications
+##########################
+
+Improved Qt5 integration
+========================
+
+Genode's Qt5 support received optimizations as well as the ability for Qt5
+application to participate in the window-resizing protocol of the window
+manager. So, Qt5 windows can be resized by dragging their respective window
+borders.
+
+
+Runtime environments
+####################
+
+VirtualBox
+==========
+
+Since the last release, we intensively tested and stabilized VirtualBox on
+Genode. We found several issues regarding the FPU handling and virtual TLB
+flush handling, which caused VMs to just stop after a while. Additionally, we
+enabled the missing VM-reboot feature and improved the handling of those VM
+exits that caused the recompiler of VirtualBox to be used unnecessarily. As
+the result of our stability improvements, we have become able to run VMs on
+VirtualBox 4.2 for days without any trouble.
+
+The second part of our work on VirtualBox deals with upgrading from version
+4.2.24 to a recent 4.3 version. Our motivation was twofold: On the one hand,
+VirtualBox 4.3 supports Windows 8 and multi-touch input pretty well, and on
+the other hand, the (user) front end we used in our 4.2 port has limited
+support to configure all the variations of virtual hardware setups that we
+desire.
+
+With the port to version 4.3.16 of VirtualBox, we now support the
+configuration of VMs using VirtualBox .vbox files. These files are generated
+as a result of creating and configuring a VM in the VirtualBox GUI. Such .vbox
+files contain all features the virtual hardware should provide to a Guest VM.
+In principal, a user of VirtualBox on Windows/Linux/MacOS is now able to
+transfer the very same VM configuration over to Genode. An example
+configuration for a setup with a shared folder between Guest VM and the Genode
+world as well as networking looks as follows.
+
+! ...
+! <start name="ram_fs">
+! ...
+! </start>
+! <start name="nic_drv">
+! ...
+! </start>
+! ...
+! <start name="virtualbox">
+!   <resource name="RAM" quantum="2G"/
+!   <config vbox_file="my.vbox" vm_name="MyVM">
+!     <libc stdout="/dev/log" stderr="/dev/log">
+!     <vfs>
+!       <dir name="dev"> <log/> </dir>
+!       <rom name="my.vbox" />
+!       <dir name="vbox"> <fs label="share_with_vbox"/> </dir>
+!   </config>
+!   <route>
+!     <service name="File_system">
+!       <if-arg key="label" value="share_with_vbox" /> <child name="ram_fs"/>
+!     </service>
+!   </route>
+! </start>
+! ...
+
+The corresponding my.vbox looks like this:
+
+! ...
+! <VirtualBox ...>
+!   <Machine ...>
+!     <Hardware ...>
+!        ...
+!        <SharedFolders>
+!          <SharedFolder name="genode" hostPath="/vbox" writable="true" autoMount="true"/>
+!        <SharedFolders>
+!        <Network>
+!           <Adapter slot="0" enabled="false" MACAddress="0800271D7901" cable="true" speed="0" type="82540EM">
+!              <HostInterface/>
+!           </Adapter>
+!           ...
+!        </Network>
+!        ...
+!     </Hardware ...>
+!   </Machine ...>
+! ...
+! </VirtualBox>
+
+In Genode, the ram_fs server is used to provide a directory called "/vbox" to
+the VirtualBox VMM instance. In the Guest VM, this directory will appear as
+"genode" and is mounted writable. As network adapter, we support E1000 and
+PCNet. As network back end (provided by the host, which is Genode) we
+currently support solely the "HostInterface" XML tag, which uses a
+Genode-specific implementation using Genode's NIC-session interface. The MAC
+address configured in the .vbox file remains unused. Instead, the MAC address
+provided by the NIC server will be used. MAC addresses can be configured e.g.
+in the Genode bridge directly for each NIC client.
+
+
+Updated Seoul virtual machine monitor
+=====================================
+
+During Genode's Hack-and-Hike event, we met our long-term friend and former
+university colleague Bernhard Kauer. Besides the nice time during the event,
+it was also beneficial for the Seoul VMM on Genode. Bernhard reported about
+his work on extending the virtual BIOS emulation in his Vancouver VMM. With
+his recent changes, the VGA model becomes able to detect and emulate VESA
+switching attempts as performed by code inside the VM. Xorg servers as well as
+Genode use the x86emu library to emulate 16bit code of the Video BIOS provided
+by the graphics card and system BIOS. Normally, this code contains
+vendor-specific real mode instructions to perform the VESA mode switching.
+Because the original version of Seoul did not provide any real-mode code as
+Video BIOS, X.org's VESA driver could not work.
+
+To benefit from Bernhard's work, we ported his changes over to the Seoul VMM,
+which turned out to be easily doable since Seoul originated from Vancouver.
+With the changes in place, we are now able to easily reuse existing Linux VMs
+and we are also able to boot graphical Genode setups in Seoul. The run script
+_repos/ports/run/seoul-genode.run_ showcases how to start Genode x86 setups
+created by any other Genode run script directly as Guest VM inside Seoul.
+
+
+Device drivers
+##############
+
+DDE Linux
+=========
+
+With the addition of the WIFI driver to the DDE Linux repository, we decided
+to do some cleanup within DDE Linux. First of all, we did not want to share
+any Linux files between the drivers. So we moved the USB stack, LXIP, and the
+WIFI drivers to different _src/lib/_ directories within _contrib/dde_linux/_.
+So, we are now able to individually update the used kernel version for a
+single DDE Linux driver with no side effects to other ported drivers. We
+mostly update drivers to gain support for recent hardware like the WIFI
+driver. After the split, we reverted LXIP to Linux version 3.9. because it
+generally runs more stable and is better tested with this kernel version.
+
+
+Raspberry Pi
+============
+
+Genode added principle support for the Raspberry Pi one year ago in
+[http://genode.org/documentation/release-notes/13.11#Raspberry_Pi - version 13.11].
+Back then, the driver support covered the interrupt controller, timer, UART,
+display, and USB. The latter was particularly challenging because the DWC-OTG
+USB host controller lacked public documentation. Hence, we ported the driver
+from the official Raspberry-Pi Linux kernel, which principally allowed Genode
+to support HID devices and thereby enabled interactive applications. However,
+the USB driver dramatically impeded the performance of the system because the
+host controller triggered an interrupt for each USB microframe, which results
+in a rate of 8000 interrupts per second. This is already pretty bad for an OS
+based on a monolithic kernel but it is overkill for a microkernel-based system
+where each interrupt is delivered as an IPC message with the associated
+context-switch costs.
+
+:In-kernel USB SOF interrupt filtering:
+
+For Linux, the Raspberry Pi developers relieved the problem by adding a fast
+path for the highly frequent USB start-of-frame (SOF) interrupts. Each USB
+interrupt is served by a low-footprint routine executed as a so-called "fast
+interrupt" (FIQ) handler. Only if the frame number reaches a value that is
+scheduled by the USB driver, the handler will trigger an artificial interrupt
+to activate the actual USB driver. Those "interesting" interrupts occur at a
+rate that is more than an order of magnitude lower than the SOF interrupt
+rate.
+
+Unfortunately, this optimization cannot be used as is on Genode where the USB
+driver lives in user land and lacks the privileges to install a FIQ handler.
+But the approach to hide SOF interrupts from the USB driver was worth
+investigating. We decided to split the USB driver into two parts. One part is
+the actual driver ported from Linux but without the FIQ optimization. With
+more than 30,000 lines of code, this part is highly complex but it lives as an
+unprivileged user process. The second part is a small USB SOF filter routine
+that is integrated into the interrupt-controller driver in the base-hw
+microkernel. The filter adds merely 100 lines of code to the kernel. Both the
+USB driver and the in-kernel SOF filter access the physical DWC-OTG
+controller. Each time when the USB driver schedules a micro frame, it writes
+the frame number to an unused scratch register of the host controller. When an
+USB interrupt comes in, the in-kernel SOF filter compares the current frame
+number with the number reported by the USB driver. Only if the current frame
+corresponds to the next scheduled frame, the filter propagates the interrupt
+to the user-level USB driver. This way, the USB driver is activated only for
+handling interesting events. Even though this optimization is not as
+sophisticated as the FIQ optimization found in the Linux kernel, it is highly
+effective compared to the original version while staying true to the
+microkernel architecture.
+
+With the USB SOF filter in place, the interactive performance of Genode on the
+Raspberry Pi has reached a decent level. Furthermore, we could enable
+networking. Using lwIP running separated from the USB network driver, netperf
+reports a throughput of 50 MBit/second, which we find acceptable for this
+platform.
+
+:Framebuffer driver:
+
+To accommodate the use of translucent nitpicker views as well as SDL
+applications such as Supertux, we enhanced the framebuffer driver with an
+configurable buffered mode. If enabled, the driver keeps the client pixels in
+a separate pixel buffer that is copied to the physical frame buffer not before
+the client explicitly issues a refresh operation. This way, intermediate
+drawing states remain hidden from the user.
+
+
+Default mode selection of VESA driver
+=====================================
+
+Unless explicitly configured to a specific resolution, the VESA driver used to
+set a mode of 1024x768. When using a Genode system image across machines with
+different displays, we had to provide different configurations to accommodate
+the variety of displays. Because we longed for a way to let Genode
+automatically adapt to the native display resolution, we changed the VESA
+driver to pick the video mode with the highest resolution from the list of
+available modes.
+
+This works well if Genode is used on laptops because the native display
+resolution is typically reported as the highest available mode. Unfortunately,
+when using VGA, the highest available mode usually exceeds the native
+resolution of the connected output device such as a data projector. In this
+case, the default mode can be overridden by explicitly specifying a mode in
+the configuration.
+
+
+Build system and tools
+######################
+
+Updated tool chain
+==================
+
+The tool-chain has been updated to version 4.7.4, which fixes problems with
+executing the tool-chain build script on the current version of Ubuntu Linux.
+
+
+Improved tooling for using Intel AMT
+====================================
+
+We use Intel Active Management Technology (AMT) on diverse native test
+hardware to forward serial output over network (SOL) to developer machines and
+to power-on, reset, and power-off test machines. Until now, we used the tool
+amttool, which uses a SOAP EOI protocol for communication. Newer hardware with
+AMT version 9 or higher dropped the support for SOAP EOI - read
+[https://software.intel.com/en-us/blogs/2012/12/01/intel-amt-wsman-interface-is-replacing-the-soapeoi-interface - a blog entry by Intel]
+for more details - switched to the
+[http://www.dmtf.org/standards/wsman - WSMAN interface]. The tool wsman on
+Linux speaks the protocol and can be used as a replacement. We integrated the
+support of wsman into our run tool infrastructure and use it by default if
+installed - otherwise amttool will be used. Of course, you can enforce your
+preferred tool by setting the RUN_OPT variable in your build.conf file or as
+an  environment variable accordingly, e.g.
+
+! RUN_OPT="--target amt --amt-tool wsman"   make run/printf
+or
+! RUN_OPT="--target amt --amt-tool amttool" make run/printf
