@@ -191,7 +191,8 @@ _file_name = $(call _prefer,$(NAME($1)),$(notdir $(URL($1))))
 		($(ECHO) "Error: Undefined URL for $(call _file_name,$*)"; false);
 	$(VERBOSE)name=$(call _file_name,$*);\
 		(test -f $$name || $(MSG_DOWNLOAD)$(URL($*))); \
-		(test -f $$name || wget --quiet $(URL($*)) -O $$name);
+		(test -f $$name || wget --quiet $(URL($*)) -O $$name) || \
+			($(ECHO) Error: Download for $* failed; false)
 	$(VERBOSE)\
 		($(ECHO) "$(SHA($*))  $(call _file_name,$*)" |\
 		$(HASHSUM) -c > /dev/null 2> /dev/null) || \
