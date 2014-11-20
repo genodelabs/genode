@@ -15,6 +15,7 @@
 /* core includes */
 #include <kernel/thread.h>
 #include <kernel/pd.h>
+#include <kernel/kernel.h>
 
 using namespace Kernel;
 
@@ -82,6 +83,15 @@ void Thread::_mmu_exception()
 	if (in_fault(_fault_addr, _fault_writes)) {
 		_fault_pd    = (addr_t)_pd->platform_pd();
 		_fault_signal = _fault.signal_context_id();
+
+		/**
+		 * core should never raise a page-fault,
+		 * if this happens print out an error message with debug information
+		 */
+		if (_pd == Kernel::core_pd())
+			PERR("Pagefault in core thread (%s): ip=%p fault=%p",
+			     label(), (void*)ip, (void*)_fault_addr);
+
 		_fault.submit();
 		return;
 	}
