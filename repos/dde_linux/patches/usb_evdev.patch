@@ -4,8 +4,6 @@ Date:   Mon Jun 2 13:25:03 2014 +0200
 
     evdev.patch
 
-diff --git a/drivers/input/evdev.c b/drivers/input/evdev.c
-index ce953d8..6263984 100644
 --- a/drivers/input/evdev.c
 +++ b/drivers/input/evdev.c
 @@ -1168,6 +1168,9 @@ static int evdev_connect(struct input_handler *handler, struct input_dev *dev,

@@ -4,8 +4,6 @@ Date:   Mon Jun 2 13:24:37 2014 +0200
 
     csum.patch
 
-diff --git a/drivers/net/usb/smsc95xx.c b/drivers/net/usb/smsc95xx.c
-index 424db65..5eb8ac7 100644
 --- a/drivers/net/usb/smsc95xx.c
 +++ b/drivers/net/usb/smsc95xx.c
 @@ -1716,7 +1716,13 @@ static int smsc95xx_resume(struct usb_interface *intf)

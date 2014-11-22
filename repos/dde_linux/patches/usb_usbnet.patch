@@ -4,8 +4,6 @@ Date:   Mon Jun 2 13:35:56 2014 +0200
 
     usbnet.patch
 
-diff --git a/drivers/net/usb/usbnet.c b/drivers/net/usb/usbnet.c
-index 31d8b12..f5e3054 100644
 --- a/drivers/net/usb/usbnet.c
 +++ b/drivers/net/usb/usbnet.c
 @@ -63,8 +63,30 @@

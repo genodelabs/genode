@@ -4,8 +4,6 @@ Date:   Mon Jun 2 13:36:46 2014 +0200
 
     xhci-quirks.patch
 
-diff --git a/drivers/usb/host/xhci-pci.c b/drivers/usb/host/xhci-pci.c
-index 08a5f92..707b5f9 100644
 --- a/drivers/usb/host/xhci-pci.c
 +++ b/drivers/usb/host/xhci-pci.c
 @@ -38,6 +38,8 @@

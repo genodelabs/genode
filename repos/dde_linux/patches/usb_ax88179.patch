@@ -4,8 +4,6 @@ Date:   Mon Jun 2 13:23:44 2014 +0200
 
     ax88179_178a.patch
 
-diff --git a/drivers/net/usb/ax88179_178a.c b/drivers/net/usb/ax88179_178a.c
-index 054e59c..38d02ec 100644
 --- a/drivers/net/usb/ax88179_178a.c
 +++ b/drivers/net/usb/ax88179_178a.c
 @@ -1019,6 +1019,7 @@ static int ax88179_bind(struct usbnet *dev, struct usb_interface *intf)
