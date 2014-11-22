@@ -82,3 +82,38 @@ LXIP is a port of the Linux TCP/IP stack to Genode. It is build as a shared
 library named 'lxip.lib.so'. The IP stack can be interfaced using Genode's
 version of 'libc' by linking your application to 'lxip_libc' plugin in your
 'target.mk' file.
+
+WIFI
+####
+
+The wifi_drv component is a port of the Linux mac802.11 stack, including the
+iwlwifi driver as well as libnl and wpa_supplicant, to Genode.
+
+Configuration snippet:
+
+!<start name="wifi_drv">
+!  <resource name="RAM" quantum="32M"/>
+!  <provides><service name="Nic"/></provides>
+!  <config>
+!    <libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc">
+!      <vfs>
+!        <dir name="dev"> <log/> <rtc/>
+!           <jitterentropy name="random"/>
+!           <jitterentropy name="urandom"/>
+!        </dir>
+!        <inline name="wpa_supplicant.conf">
+!network={
+!  id_str="foobar"
+!  ssid="foobar"
+!  key_mgmt=WPA-PSK
+!  psk="foobarfoobar"
+!}
+!        </inline>
+!      </vfs>
+!    </libc>
+!  </config>
+!  <route>
+!    <service name="Rtc"> <any-child /> </service>
+!    <any-service> <parent/> <any-child /> </any-service>
+!  </route>
+!</start

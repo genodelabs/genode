@@ -1,0 +1,20 @@
+/*
+ *
+ */
+{
+	global:
+
+		/* initialize function */
+		_*wifi_init*;
+		/* Wifi::Socket_call interface */
+		*Socket_call*;
+		/* Wifi::Socket_call instance */
+		socket_call;
+
+		/* used by libnl's time() */
+		jiffies;
+
+	local:
+
+		*;
+};

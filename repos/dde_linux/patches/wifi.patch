@@ -1,0 +1,883 @@
+ drivers/net/wireless/iwlwifi/iwl-debug.c |  18 +-
+ drivers/net/wireless/iwlwifi/mvm/mvm.h   |   2 +-
+ drivers/net/wireless/iwlwifi/pcie/drv.c  | 628 ++++++++++++++++---------------
+ net/core/sock.c                          |   2 +
+ net/packet/af_packet.c                   |   6 +
+ net/wireless/core.h                      |   2 +-
+ net/wireless/sysfs.c                     |   2 +-
+ wifi/include/linux/ieee80211.h           |   2 +-
+ wifi/include/net/cfg80211.h              |   5 +-
+ wifi/include/net/netlink.h               |   8 +-
+ wifi/include/net/sock.h                  |   4 +-
+ 11 files changed, 349 insertions(+), 330 deletions(-)
+
+--- a/drivers/net/wireless/iwlwifi/iwl-debug.c
++++ b/drivers/net/wireless/iwlwifi/iwl-debug.c
+@@ -80,7 +80,9 @@ void __iwl_ ##fn(struct device *dev, const char *fmt, ...)	\
+ 								\
+ 	va_start(args, fmt);					\
+ 	vaf.va = &args;						\
+-	dev_ ##fn(dev, "%pV", &vaf);				\
++	char buf[256]; \
++	vsnprintf(buf, sizeof(buf), vaf.fmt, *vaf.va); \
++	dev_ ##fn(dev, "%s", buf);				\
+ 	trace_iwlwifi_ ##fn(&vaf);				\
+ 	va_end(args);						\
+ }
+@@ -103,10 +105,12 @@ void __iwl_err(struct device *dev, bool rfkill_prefix, bool trace_only,
+ 	va_start(args, fmt);
+ 	vaf.va = &args;
+ 	if (!trace_only) {
++		char buf[256];
++		vsnprintf(buf, sizeof(buf), vaf.fmt, *vaf.va);
+ 		if (rfkill_prefix)
+-			dev_err(dev, "(RFKILL) %pV", &vaf);
++			dev_err(dev, "(RFKILL) %s",  buf);
+ 		else
+-			dev_err(dev, "%pV", &vaf);
++			dev_err(dev, "%s", buf);
+ 	}
+ 	trace_iwlwifi_err(&vaf);
+ 	va_end(args);
+@@ -127,9 +131,11 @@ void __iwl_dbg(struct device *dev,
+ 	vaf.va = &args;
+ #ifdef CONFIG_IWLWIFI_DEBUG
+ 	if (iwl_have_debug_level(level) &&
+-	    (!limit || net_ratelimit()))
+-		dev_dbg(dev, "%c %s %pV", in_interrupt() ? 'I' : 'U',
+-			function, &vaf);
++	    (!limit || net_ratelimit())) {
++		char buf[256];
++		vsnprintf(buf, sizeof(buf), vaf.fmt, *vaf.va);
++		dev_dbg(dev, "%c %s %s", in_interrupt() ? 'I' : 'U', function, buf);
++	}
+ #endif
+ 	trace_iwlwifi_dbg(level, in_interrupt(), function, &vaf);
+ 	va_end(args);
+--- a/drivers/net/wireless/iwlwifi/mvm/mvm.h
++++ b/drivers/net/wireless/iwlwifi/mvm/mvm.h
+@@ -64,7 +64,7 @@
+ #ifndef __IWL_MVM_H__
+ #define __IWL_MVM_H__
+ 
+-#include <linux/list.h>
++/* #include <linux/list.h> */
+ #include <linux/spinlock.h>
+ #include <linux/leds.h>
+ #include <linux/in6.h>
+--- a/drivers/net/wireless/iwlwifi/pcie/drv.c
++++ b/drivers/net/wireless/iwlwifi/pcie/drv.c
+@@ -78,318 +78,322 @@
+ 
+ /* Hardware specific file defines the PCI IDs table for that hardware module */
+ static DEFINE_PCI_DEVICE_TABLE(iwl_hw_card_ids) = {
+-#if IS_ENABLED(CONFIG_IWLDVM)
+-	{IWL_PCI_DEVICE(0x4232, 0x1201, iwl5100_agn_cfg)}, /* Mini Card */
+-	{IWL_PCI_DEVICE(0x4232, 0x1301, iwl5100_agn_cfg)}, /* Half Mini Card */
+-	{IWL_PCI_DEVICE(0x4232, 0x1204, iwl5100_agn_cfg)}, /* Mini Card */
+-	{IWL_PCI_DEVICE(0x4232, 0x1304, iwl5100_agn_cfg)}, /* Half Mini Card */
+-	{IWL_PCI_DEVICE(0x4232, 0x1205, iwl5100_bgn_cfg)}, /* Mini Card */
+-	{IWL_PCI_DEVICE(0x4232, 0x1305, iwl5100_bgn_cfg)}, /* Half Mini Card */
+-	{IWL_PCI_DEVICE(0x4232, 0x1206, iwl5100_abg_cfg)}, /* Mini Card */
+-	{IWL_PCI_DEVICE(0x4232, 0x1306, iwl5100_abg_cfg)}, /* Half Mini Card */
+-	{IWL_PCI_DEVICE(0x4232, 0x1221, iwl5100_agn_cfg)}, /* Mini Card */
+-	{IWL_PCI_DEVICE(0x4232, 0x1321, iwl5100_agn_cfg)}, /* Half Mini Card */
+-	{IWL_PCI_DEVICE(0x4232, 0x1224, iwl5100_agn_cfg)}, /* Mini Card */
+-	{IWL_PCI_DEVICE(0x4232, 0x1324, iwl5100_agn_cfg)}, /* Half Mini Card */
+-	{IWL_PCI_DEVICE(0x4232, 0x1225, iwl5100_bgn_cfg)}, /* Mini Card */
+-	{IWL_PCI_DEVICE(0x4232, 0x1325, iwl5100_bgn_cfg)}, /* Half Mini Card */
+-	{IWL_PCI_DEVICE(0x4232, 0x1226, iwl5100_abg_cfg)}, /* Mini Card */
+-	{IWL_PCI_DEVICE(0x4232, 0x1326, iwl5100_abg_cfg)}, /* Half Mini Card */
+-	{IWL_PCI_DEVICE(0x4237, 0x1211, iwl5100_agn_cfg)}, /* Mini Card */
+-	{IWL_PCI_DEVICE(0x4237, 0x1311, iwl5100_agn_cfg)}, /* Half Mini Card */
+-	{IWL_PCI_DEVICE(0x4237, 0x1214, iwl5100_agn_cfg)}, /* Mini Card */
+-	{IWL_PCI_DEVICE(0x4237, 0x1314, iwl5100_agn_cfg)}, /* Half Mini Card */
+-	{IWL_PCI_DEVICE(0x4237, 0x1215, iwl5100_bgn_cfg)}, /* Mini Card */
+-	{IWL_PCI_DEVICE(0x4237, 0x1315, iwl5100_bgn_cfg)}, /* Half Mini Card */
+-	{IWL_PCI_DEVICE(0x4237, 0x1216, iwl5100_abg_cfg)}, /* Mini Card */
+-	{IWL_PCI_DEVICE(0x4237, 0x1316, iwl5100_abg_cfg)}, /* Half Mini Card */
+-
+-/* 5300 Series WiFi */
+-	{IWL_PCI_DEVICE(0x4235, 0x1021, iwl5300_agn_cfg)}, /* Mini Card */
+-	{IWL_PCI_DEVICE(0x4235, 0x1121, iwl5300_agn_cfg)}, /* Half Mini Card */
+-	{IWL_PCI_DEVICE(0x4235, 0x1024, iwl5300_agn_cfg)}, /* Mini Card */
+-	{IWL_PCI_DEVICE(0x4235, 0x1124, iwl5300_agn_cfg)}, /* Half Mini Card */
+-	{IWL_PCI_DEVICE(0x4235, 0x1001, iwl5300_agn_cfg)}, /* Mini Card */
+-	{IWL_PCI_DEVICE(0x4235, 0x1101, iwl5300_agn_cfg)}, /* Half Mini Card */
+-	{IWL_PCI_DEVICE(0x4235, 0x1004, iwl5300_agn_cfg)}, /* Mini Card */
+-	{IWL_PCI_DEVICE(0x4235, 0x1104, iwl5300_agn_cfg)}, /* Half Mini Card */
+-	{IWL_PCI_DEVICE(0x4236, 0x1011, iwl5300_agn_cfg)}, /* Mini Card */
+-	{IWL_PCI_DEVICE(0x4236, 0x1111, iwl5300_agn_cfg)}, /* Half Mini Card */
+-	{IWL_PCI_DEVICE(0x4236, 0x1014, iwl5300_agn_cfg)}, /* Mini Card */
+-	{IWL_PCI_DEVICE(0x4236, 0x1114, iwl5300_agn_cfg)}, /* Half Mini Card */
+-
+-/* 5350 Series WiFi/WiMax */
+-	{IWL_PCI_DEVICE(0x423A, 0x1001, iwl5350_agn_cfg)}, /* Mini Card */
+-	{IWL_PCI_DEVICE(0x423A, 0x1021, iwl5350_agn_cfg)}, /* Mini Card */
+-	{IWL_PCI_DEVICE(0x423B, 0x1011, iwl5350_agn_cfg)}, /* Mini Card */
+-
+-/* 5150 Series Wifi/WiMax */
+-	{IWL_PCI_DEVICE(0x423C, 0x1201, iwl5150_agn_cfg)}, /* Mini Card */
+-	{IWL_PCI_DEVICE(0x423C, 0x1301, iwl5150_agn_cfg)}, /* Half Mini Card */
+-	{IWL_PCI_DEVICE(0x423C, 0x1206, iwl5150_abg_cfg)}, /* Mini Card */
+-	{IWL_PCI_DEVICE(0x423C, 0x1306, iwl5150_abg_cfg)}, /* Half Mini Card */
+-	{IWL_PCI_DEVICE(0x423C, 0x1221, iwl5150_agn_cfg)}, /* Mini Card */
+-	{IWL_PCI_DEVICE(0x423C, 0x1321, iwl5150_agn_cfg)}, /* Half Mini Card */
+-	{IWL_PCI_DEVICE(0x423C, 0x1326, iwl5150_abg_cfg)}, /* Half Mini Card */
+-
+-	{IWL_PCI_DEVICE(0x423D, 0x1211, iwl5150_agn_cfg)}, /* Mini Card */
+-	{IWL_PCI_DEVICE(0x423D, 0x1311, iwl5150_agn_cfg)}, /* Half Mini Card */
+-	{IWL_PCI_DEVICE(0x423D, 0x1216, iwl5150_abg_cfg)}, /* Mini Card */
+-	{IWL_PCI_DEVICE(0x423D, 0x1316, iwl5150_abg_cfg)}, /* Half Mini Card */
+-
+-/* 6x00 Series */
+-	{IWL_PCI_DEVICE(0x422B, 0x1101, iwl6000_3agn_cfg)},
+-	{IWL_PCI_DEVICE(0x422B, 0x1108, iwl6000_3agn_cfg)},
+-	{IWL_PCI_DEVICE(0x422B, 0x1121, iwl6000_3agn_cfg)},
+-	{IWL_PCI_DEVICE(0x422B, 0x1128, iwl6000_3agn_cfg)},
+-	{IWL_PCI_DEVICE(0x422C, 0x1301, iwl6000i_2agn_cfg)},
+-	{IWL_PCI_DEVICE(0x422C, 0x1306, iwl6000i_2abg_cfg)},
+-	{IWL_PCI_DEVICE(0x422C, 0x1307, iwl6000i_2bg_cfg)},
+-	{IWL_PCI_DEVICE(0x422C, 0x1321, iwl6000i_2agn_cfg)},
+-	{IWL_PCI_DEVICE(0x422C, 0x1326, iwl6000i_2abg_cfg)},
+-	{IWL_PCI_DEVICE(0x4238, 0x1111, iwl6000_3agn_cfg)},
+-	{IWL_PCI_DEVICE(0x4238, 0x1118, iwl6000_3agn_cfg)},
+-	{IWL_PCI_DEVICE(0x4239, 0x1311, iwl6000i_2agn_cfg)},
+-	{IWL_PCI_DEVICE(0x4239, 0x1316, iwl6000i_2abg_cfg)},
+-
+-/* 6x05 Series */
+-	{IWL_PCI_DEVICE(0x0082, 0x1301, iwl6005_2agn_cfg)},
+-	{IWL_PCI_DEVICE(0x0082, 0x1306, iwl6005_2abg_cfg)},
+-	{IWL_PCI_DEVICE(0x0082, 0x1307, iwl6005_2bg_cfg)},
+-	{IWL_PCI_DEVICE(0x0082, 0x1308, iwl6005_2agn_cfg)},
+-	{IWL_PCI_DEVICE(0x0082, 0x1321, iwl6005_2agn_cfg)},
+-	{IWL_PCI_DEVICE(0x0082, 0x1326, iwl6005_2abg_cfg)},
+-	{IWL_PCI_DEVICE(0x0082, 0x1328, iwl6005_2agn_cfg)},
+-	{IWL_PCI_DEVICE(0x0085, 0x1311, iwl6005_2agn_cfg)},
+-	{IWL_PCI_DEVICE(0x0085, 0x1318, iwl6005_2agn_cfg)},
+-	{IWL_PCI_DEVICE(0x0085, 0x1316, iwl6005_2abg_cfg)},
+-	{IWL_PCI_DEVICE(0x0082, 0xC020, iwl6005_2agn_sff_cfg)},
+-	{IWL_PCI_DEVICE(0x0085, 0xC220, iwl6005_2agn_sff_cfg)},
+-	{IWL_PCI_DEVICE(0x0085, 0xC228, iwl6005_2agn_sff_cfg)},
+-	{IWL_PCI_DEVICE(0x0082, 0x4820, iwl6005_2agn_d_cfg)},
+-	{IWL_PCI_DEVICE(0x0082, 0x1304, iwl6005_2agn_mow1_cfg)},/* low 5GHz active */
+-	{IWL_PCI_DEVICE(0x0082, 0x1305, iwl6005_2agn_mow2_cfg)},/* high 5GHz active */
+-
+-/* 6x30 Series */
+-	{IWL_PCI_DEVICE(0x008A, 0x5305, iwl1030_bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x008A, 0x5307, iwl1030_bg_cfg)},
+-	{IWL_PCI_DEVICE(0x008A, 0x5325, iwl1030_bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x008A, 0x5327, iwl1030_bg_cfg)},
+-	{IWL_PCI_DEVICE(0x008B, 0x5315, iwl1030_bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x008B, 0x5317, iwl1030_bg_cfg)},
+-	{IWL_PCI_DEVICE(0x0090, 0x5211, iwl6030_2agn_cfg)},
+-	{IWL_PCI_DEVICE(0x0090, 0x5215, iwl6030_2bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x0090, 0x5216, iwl6030_2abg_cfg)},
+-	{IWL_PCI_DEVICE(0x0091, 0x5201, iwl6030_2agn_cfg)},
+-	{IWL_PCI_DEVICE(0x0091, 0x5205, iwl6030_2bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x0091, 0x5206, iwl6030_2abg_cfg)},
+-	{IWL_PCI_DEVICE(0x0091, 0x5207, iwl6030_2bg_cfg)},
+-	{IWL_PCI_DEVICE(0x0091, 0x5221, iwl6030_2agn_cfg)},
+-	{IWL_PCI_DEVICE(0x0091, 0x5225, iwl6030_2bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x0091, 0x5226, iwl6030_2abg_cfg)},
+-
+-/* 6x50 WiFi/WiMax Series */
+-	{IWL_PCI_DEVICE(0x0087, 0x1301, iwl6050_2agn_cfg)},
+-	{IWL_PCI_DEVICE(0x0087, 0x1306, iwl6050_2abg_cfg)},
+-	{IWL_PCI_DEVICE(0x0087, 0x1321, iwl6050_2agn_cfg)},
+-	{IWL_PCI_DEVICE(0x0087, 0x1326, iwl6050_2abg_cfg)},
+-	{IWL_PCI_DEVICE(0x0089, 0x1311, iwl6050_2agn_cfg)},
+-	{IWL_PCI_DEVICE(0x0089, 0x1316, iwl6050_2abg_cfg)},
+-
+-/* 6150 WiFi/WiMax Series */
+-	{IWL_PCI_DEVICE(0x0885, 0x1305, iwl6150_bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x0885, 0x1307, iwl6150_bg_cfg)},
+-	{IWL_PCI_DEVICE(0x0885, 0x1325, iwl6150_bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x0885, 0x1327, iwl6150_bg_cfg)},
+-	{IWL_PCI_DEVICE(0x0886, 0x1315, iwl6150_bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x0886, 0x1317, iwl6150_bg_cfg)},
+-
+-/* 1000 Series WiFi */
+-	{IWL_PCI_DEVICE(0x0083, 0x1205, iwl1000_bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x0083, 0x1305, iwl1000_bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x0083, 0x1225, iwl1000_bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x0083, 0x1325, iwl1000_bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x0084, 0x1215, iwl1000_bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x0084, 0x1315, iwl1000_bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x0083, 0x1206, iwl1000_bg_cfg)},
+-	{IWL_PCI_DEVICE(0x0083, 0x1306, iwl1000_bg_cfg)},
+-	{IWL_PCI_DEVICE(0x0083, 0x1226, iwl1000_bg_cfg)},
+-	{IWL_PCI_DEVICE(0x0083, 0x1326, iwl1000_bg_cfg)},
+-	{IWL_PCI_DEVICE(0x0084, 0x1216, iwl1000_bg_cfg)},
+-	{IWL_PCI_DEVICE(0x0084, 0x1316, iwl1000_bg_cfg)},
+-
+-/* 100 Series WiFi */
+-	{IWL_PCI_DEVICE(0x08AE, 0x1005, iwl100_bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x08AE, 0x1007, iwl100_bg_cfg)},
+-	{IWL_PCI_DEVICE(0x08AF, 0x1015, iwl100_bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x08AF, 0x1017, iwl100_bg_cfg)},
+-	{IWL_PCI_DEVICE(0x08AE, 0x1025, iwl100_bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x08AE, 0x1027, iwl100_bg_cfg)},
+-
+-/* 130 Series WiFi */
+-	{IWL_PCI_DEVICE(0x0896, 0x5005, iwl130_bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x0896, 0x5007, iwl130_bg_cfg)},
+-	{IWL_PCI_DEVICE(0x0897, 0x5015, iwl130_bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x0897, 0x5017, iwl130_bg_cfg)},
+-	{IWL_PCI_DEVICE(0x0896, 0x5025, iwl130_bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x0896, 0x5027, iwl130_bg_cfg)},
+-
+-/* 2x00 Series */
+-	{IWL_PCI_DEVICE(0x0890, 0x4022, iwl2000_2bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x0891, 0x4222, iwl2000_2bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x0890, 0x4422, iwl2000_2bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x0890, 0x4822, iwl2000_2bgn_d_cfg)},
+-
+-/* 2x30 Series */
+-	{IWL_PCI_DEVICE(0x0887, 0x4062, iwl2030_2bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x0888, 0x4262, iwl2030_2bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x0887, 0x4462, iwl2030_2bgn_cfg)},
+-
+-/* 6x35 Series */
+-	{IWL_PCI_DEVICE(0x088E, 0x4060, iwl6035_2agn_cfg)},
+-	{IWL_PCI_DEVICE(0x088E, 0x406A, iwl6035_2agn_sff_cfg)},
+-	{IWL_PCI_DEVICE(0x088F, 0x4260, iwl6035_2agn_cfg)},
+-	{IWL_PCI_DEVICE(0x088F, 0x426A, iwl6035_2agn_sff_cfg)},
+-	{IWL_PCI_DEVICE(0x088E, 0x4460, iwl6035_2agn_cfg)},
+-	{IWL_PCI_DEVICE(0x088E, 0x446A, iwl6035_2agn_sff_cfg)},
+-	{IWL_PCI_DEVICE(0x088E, 0x4860, iwl6035_2agn_cfg)},
+-	{IWL_PCI_DEVICE(0x088F, 0x5260, iwl6035_2agn_cfg)},
+-
+-/* 105 Series */
+-	{IWL_PCI_DEVICE(0x0894, 0x0022, iwl105_bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x0895, 0x0222, iwl105_bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x0894, 0x0422, iwl105_bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x0894, 0x0822, iwl105_bgn_d_cfg)},
+-
+-/* 135 Series */
+-	{IWL_PCI_DEVICE(0x0892, 0x0062, iwl135_bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x0893, 0x0262, iwl135_bgn_cfg)},
+-	{IWL_PCI_DEVICE(0x0892, 0x0462, iwl135_bgn_cfg)},
+-#endif /* CONFIG_IWLDVM */
+-
+-#if IS_ENABLED(CONFIG_IWLMVM)
+-/* 7260 Series */
+-	{IWL_PCI_DEVICE(0x08B1, 0x4070, iwl7260_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0x4072, iwl7260_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0x4170, iwl7260_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0x4060, iwl7260_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0x406A, iwl7260_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0x4160, iwl7260_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0x4062, iwl7260_n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0x4162, iwl7260_n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B2, 0x4270, iwl7260_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B2, 0x4272, iwl7260_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B2, 0x4260, iwl7260_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B2, 0x426A, iwl7260_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B2, 0x4262, iwl7260_n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0x4470, iwl7260_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0x4472, iwl7260_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0x4460, iwl7260_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0x446A, iwl7260_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0x4462, iwl7260_n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0x4870, iwl7260_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0x486E, iwl7260_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0x4A70, iwl7260_2ac_cfg_high_temp)},
+-	{IWL_PCI_DEVICE(0x08B1, 0x4A6E, iwl7260_2ac_cfg_high_temp)},
+-	{IWL_PCI_DEVICE(0x08B1, 0x4A6C, iwl7260_2ac_cfg_high_temp)},
+-	{IWL_PCI_DEVICE(0x08B1, 0x4570, iwl7260_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0x4560, iwl7260_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B2, 0x4370, iwl7260_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B2, 0x4360, iwl7260_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0x5070, iwl7260_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0x5072, iwl7260_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0x5170, iwl7260_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0x5770, iwl7260_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0x4020, iwl7260_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0x402A, iwl7260_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B2, 0x4220, iwl7260_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0x4420, iwl7260_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0xC070, iwl7260_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0xC072, iwl7260_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0xC170, iwl7260_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0xC060, iwl7260_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0xC06A, iwl7260_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0xC160, iwl7260_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0xC062, iwl7260_n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0xC162, iwl7260_n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0xC770, iwl7260_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0xC760, iwl7260_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B2, 0xC270, iwl7260_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B2, 0xC272, iwl7260_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B2, 0xC260, iwl7260_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B2, 0xC26A, iwl7260_n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B2, 0xC262, iwl7260_n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0xC470, iwl7260_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0xC472, iwl7260_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0xC460, iwl7260_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0xC462, iwl7260_n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0xC570, iwl7260_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0xC560, iwl7260_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B2, 0xC370, iwl7260_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0xC360, iwl7260_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0xC020, iwl7260_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0xC02A, iwl7260_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B2, 0xC220, iwl7260_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B1, 0xC420, iwl7260_2n_cfg)},
+-
+-/* 3160 Series */
+-	{IWL_PCI_DEVICE(0x08B3, 0x0070, iwl3160_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B3, 0x0072, iwl3160_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B3, 0x0170, iwl3160_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B3, 0x0172, iwl3160_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B3, 0x0060, iwl3160_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B3, 0x0062, iwl3160_n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B4, 0x0270, iwl3160_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B4, 0x0272, iwl3160_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B3, 0x0470, iwl3160_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B3, 0x0472, iwl3160_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B4, 0x0370, iwl3160_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B3, 0x8070, iwl3160_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B3, 0x8072, iwl3160_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B3, 0x8170, iwl3160_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B3, 0x8172, iwl3160_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B3, 0x8060, iwl3160_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B3, 0x8062, iwl3160_n_cfg)},
+-	{IWL_PCI_DEVICE(0x08B4, 0x8270, iwl3160_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B3, 0x8470, iwl3160_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B3, 0x8570, iwl3160_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B3, 0x1070, iwl3160_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x08B3, 0x1170, iwl3160_2ac_cfg)},
+-
+-/* 7265 Series */
+-	{IWL_PCI_DEVICE(0x095A, 0x5010, iwl7265_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x095A, 0x5110, iwl7265_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x095A, 0x5100, iwl7265_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x095B, 0x5310, iwl7265_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x095B, 0x5302, iwl7265_n_cfg)},
+-	{IWL_PCI_DEVICE(0x095B, 0x5210, iwl7265_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x095A, 0x5012, iwl7265_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x095A, 0x5412, iwl7265_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x095A, 0x5410, iwl7265_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x095A, 0x5400, iwl7265_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x095A, 0x1010, iwl7265_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x095A, 0x5000, iwl7265_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x095A, 0x500A, iwl7265_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x095B, 0x5200, iwl7265_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x095A, 0x5002, iwl7265_n_cfg)},
+-	{IWL_PCI_DEVICE(0x095B, 0x5202, iwl7265_n_cfg)},
+-	{IWL_PCI_DEVICE(0x095A, 0x9010, iwl7265_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x095A, 0x9012, iwl7265_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x095A, 0x9110, iwl7265_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x095A, 0x9112, iwl7265_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x095A, 0x9210, iwl7265_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x095A, 0x9510, iwl7265_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x095A, 0x9310, iwl7265_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x095A, 0x9410, iwl7265_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x095A, 0x5020, iwl7265_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x095A, 0x502A, iwl7265_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x095A, 0x5420, iwl7265_2n_cfg)},
+-	{IWL_PCI_DEVICE(0x095A, 0x5090, iwl7265_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x095A, 0x5190, iwl7265_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x095A, 0x5590, iwl7265_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x095B, 0x5290, iwl7265_2ac_cfg)},
+-	{IWL_PCI_DEVICE(0x095A, 0x5490, iwl7265_2ac_cfg)},
+-#endif /* CONFIG_IWLMVM */
++	{IWL_PCI_DEVICE(0x4238, 0x1111, iwl6000_3agn_cfg)}, /* x201 */
++	{IWL_PCI_DEVICE(0x0085, 0x1311, iwl6005_2agn_cfg)}, /* x220 */
++	{IWL_PCI_DEVICE(0x088E, 0x4060, iwl6035_2agn_cfg)}, /* plumbum */
++
++//#if IS_ENABLED(CONFIG_IWLDVM)
++//	{IWL_PCI_DEVICE(0x4232, 0x1201, iwl5100_agn_cfg)}, /* Mini Card */
++//	{IWL_PCI_DEVICE(0x4232, 0x1301, iwl5100_agn_cfg)}, /* Half Mini Card */
++//	{IWL_PCI_DEVICE(0x4232, 0x1204, iwl5100_agn_cfg)}, /* Mini Card */
++//	{IWL_PCI_DEVICE(0x4232, 0x1304, iwl5100_agn_cfg)}, /* Half Mini Card */
++//	{IWL_PCI_DEVICE(0x4232, 0x1205, iwl5100_bgn_cfg)}, /* Mini Card */
++//	{IWL_PCI_DEVICE(0x4232, 0x1305, iwl5100_bgn_cfg)}, /* Half Mini Card */
++//	{IWL_PCI_DEVICE(0x4232, 0x1206, iwl5100_abg_cfg)}, /* Mini Card */
++//	{IWL_PCI_DEVICE(0x4232, 0x1306, iwl5100_abg_cfg)}, /* Half Mini Card */
++//	{IWL_PCI_DEVICE(0x4232, 0x1221, iwl5100_agn_cfg)}, /* Mini Card */
++//	{IWL_PCI_DEVICE(0x4232, 0x1321, iwl5100_agn_cfg)}, /* Half Mini Card */
++//	{IWL_PCI_DEVICE(0x4232, 0x1224, iwl5100_agn_cfg)}, /* Mini Card */
++//	{IWL_PCI_DEVICE(0x4232, 0x1324, iwl5100_agn_cfg)}, /* Half Mini Card */
++//	{IWL_PCI_DEVICE(0x4232, 0x1225, iwl5100_bgn_cfg)}, /* Mini Card */
++//	{IWL_PCI_DEVICE(0x4232, 0x1325, iwl5100_bgn_cfg)}, /* Half Mini Card */
++//	{IWL_PCI_DEVICE(0x4232, 0x1226, iwl5100_abg_cfg)}, /* Mini Card */
++//	{IWL_PCI_DEVICE(0x4232, 0x1326, iwl5100_abg_cfg)}, /* Half Mini Card */
++//	{IWL_PCI_DEVICE(0x4237, 0x1211, iwl5100_agn_cfg)}, /* Mini Card */
++//	{IWL_PCI_DEVICE(0x4237, 0x1311, iwl5100_agn_cfg)}, /* Half Mini Card */
++//	{IWL_PCI_DEVICE(0x4237, 0x1214, iwl5100_agn_cfg)}, /* Mini Card */
++//	{IWL_PCI_DEVICE(0x4237, 0x1314, iwl5100_agn_cfg)}, /* Half Mini Card */
++//	{IWL_PCI_DEVICE(0x4237, 0x1215, iwl5100_bgn_cfg)}, /* Mini Card */
++//	{IWL_PCI_DEVICE(0x4237, 0x1315, iwl5100_bgn_cfg)}, /* Half Mini Card */
++//	{IWL_PCI_DEVICE(0x4237, 0x1216, iwl5100_abg_cfg)}, /* Mini Card */
++//	{IWL_PCI_DEVICE(0x4237, 0x1316, iwl5100_abg_cfg)}, /* Half Mini Card */
++//
++///* 5300 Series WiFi */
++//	{IWL_PCI_DEVICE(0x4235, 0x1021, iwl5300_agn_cfg)}, /* Mini Card */
++//	{IWL_PCI_DEVICE(0x4235, 0x1121, iwl5300_agn_cfg)}, /* Half Mini Card */
++//	{IWL_PCI_DEVICE(0x4235, 0x1024, iwl5300_agn_cfg)}, /* Mini Card */
++//	{IWL_PCI_DEVICE(0x4235, 0x1124, iwl5300_agn_cfg)}, /* Half Mini Card */
++//	{IWL_PCI_DEVICE(0x4235, 0x1001, iwl5300_agn_cfg)}, /* Mini Card */
++//	{IWL_PCI_DEVICE(0x4235, 0x1101, iwl5300_agn_cfg)}, /* Half Mini Card */
++//	{IWL_PCI_DEVICE(0x4235, 0x1004, iwl5300_agn_cfg)}, /* Mini Card */
++//	{IWL_PCI_DEVICE(0x4235, 0x1104, iwl5300_agn_cfg)}, /* Half Mini Card */
++//	{IWL_PCI_DEVICE(0x4236, 0x1011, iwl5300_agn_cfg)}, /* Mini Card */
++//	{IWL_PCI_DEVICE(0x4236, 0x1111, iwl5300_agn_cfg)}, /* Half Mini Card */
++//	{IWL_PCI_DEVICE(0x4236, 0x1014, iwl5300_agn_cfg)}, /* Mini Card */
++//	{IWL_PCI_DEVICE(0x4236, 0x1114, iwl5300_agn_cfg)}, /* Half Mini Card */
++//
++///* 5350 Series WiFi/WiMax */
++//	{IWL_PCI_DEVICE(0x423A, 0x1001, iwl5350_agn_cfg)}, /* Mini Card */
++//	{IWL_PCI_DEVICE(0x423A, 0x1021, iwl5350_agn_cfg)}, /* Mini Card */
++//	{IWL_PCI_DEVICE(0x423B, 0x1011, iwl5350_agn_cfg)}, /* Mini Card */
++//
++///* 5150 Series Wifi/WiMax */
++//	{IWL_PCI_DEVICE(0x423C, 0x1201, iwl5150_agn_cfg)}, /* Mini Card */
++//	{IWL_PCI_DEVICE(0x423C, 0x1301, iwl5150_agn_cfg)}, /* Half Mini Card */
++//	{IWL_PCI_DEVICE(0x423C, 0x1206, iwl5150_abg_cfg)}, /* Mini Card */
++//	{IWL_PCI_DEVICE(0x423C, 0x1306, iwl5150_abg_cfg)}, /* Half Mini Card */
++//	{IWL_PCI_DEVICE(0x423C, 0x1221, iwl5150_agn_cfg)}, /* Mini Card */
++//	{IWL_PCI_DEVICE(0x423C, 0x1321, iwl5150_agn_cfg)}, /* Half Mini Card */
++//	{IWL_PCI_DEVICE(0x423C, 0x1326, iwl5150_abg_cfg)}, /* Half Mini Card */
++//
++//	{IWL_PCI_DEVICE(0x423D, 0x1211, iwl5150_agn_cfg)}, /* Mini Card */
++//	{IWL_PCI_DEVICE(0x423D, 0x1311, iwl5150_agn_cfg)}, /* Half Mini Card */
++//	{IWL_PCI_DEVICE(0x423D, 0x1216, iwl5150_abg_cfg)}, /* Mini Card */
++//	{IWL_PCI_DEVICE(0x423D, 0x1316, iwl5150_abg_cfg)}, /* Half Mini Card */
++//
++///* 6x00 Series */
++//	{IWL_PCI_DEVICE(0x422B, 0x1101, iwl6000_3agn_cfg)},
++//	{IWL_PCI_DEVICE(0x422B, 0x1108, iwl6000_3agn_cfg)},
++//	{IWL_PCI_DEVICE(0x422B, 0x1121, iwl6000_3agn_cfg)},
++//	{IWL_PCI_DEVICE(0x422B, 0x1128, iwl6000_3agn_cfg)},
++//	{IWL_PCI_DEVICE(0x422C, 0x1301, iwl6000i_2agn_cfg)},
++//	{IWL_PCI_DEVICE(0x422C, 0x1306, iwl6000i_2abg_cfg)},
++//	{IWL_PCI_DEVICE(0x422C, 0x1307, iwl6000i_2bg_cfg)},
++//	{IWL_PCI_DEVICE(0x422C, 0x1321, iwl6000i_2agn_cfg)},
++//	{IWL_PCI_DEVICE(0x422C, 0x1326, iwl6000i_2abg_cfg)},
++//	{IWL_PCI_DEVICE(0x4238, 0x1111, iwl6000_3agn_cfg)},
++//	{IWL_PCI_DEVICE(0x4238, 0x1118, iwl6000_3agn_cfg)},
++//	{IWL_PCI_DEVICE(0x4239, 0x1311, iwl6000i_2agn_cfg)},
++//	{IWL_PCI_DEVICE(0x4239, 0x1316, iwl6000i_2abg_cfg)},
++//
++///* 6x05 Series */
++//	{IWL_PCI_DEVICE(0x0082, 0x1301, iwl6005_2agn_cfg)},
++//	{IWL_PCI_DEVICE(0x0082, 0x1306, iwl6005_2abg_cfg)},
++//	{IWL_PCI_DEVICE(0x0082, 0x1307, iwl6005_2bg_cfg)},
++//	{IWL_PCI_DEVICE(0x0082, 0x1308, iwl6005_2agn_cfg)},
++//	{IWL_PCI_DEVICE(0x0082, 0x1321, iwl6005_2agn_cfg)},
++//	{IWL_PCI_DEVICE(0x0082, 0x1326, iwl6005_2abg_cfg)},
++//	{IWL_PCI_DEVICE(0x0082, 0x1328, iwl6005_2agn_cfg)},
++//	{IWL_PCI_DEVICE(0x0085, 0x1311, iwl6005_2agn_cfg)},
++//	{IWL_PCI_DEVICE(0x0085, 0x1318, iwl6005_2agn_cfg)},
++//	{IWL_PCI_DEVICE(0x0085, 0x1316, iwl6005_2abg_cfg)},
++//	{IWL_PCI_DEVICE(0x0082, 0xC020, iwl6005_2agn_sff_cfg)},
++//	{IWL_PCI_DEVICE(0x0085, 0xC220, iwl6005_2agn_sff_cfg)},
++//	{IWL_PCI_DEVICE(0x0085, 0xC228, iwl6005_2agn_sff_cfg)},
++//	{IWL_PCI_DEVICE(0x0082, 0x4820, iwl6005_2agn_d_cfg)},
++//	{IWL_PCI_DEVICE(0x0082, 0x1304, iwl6005_2agn_mow1_cfg)},/* low 5GHz active */
++//	{IWL_PCI_DEVICE(0x0082, 0x1305, iwl6005_2agn_mow2_cfg)},/* high 5GHz active */
++//
++///* 6x30 Series */
++//	{IWL_PCI_DEVICE(0x008A, 0x5305, iwl1030_bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x008A, 0x5307, iwl1030_bg_cfg)},
++//	{IWL_PCI_DEVICE(0x008A, 0x5325, iwl1030_bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x008A, 0x5327, iwl1030_bg_cfg)},
++//	{IWL_PCI_DEVICE(0x008B, 0x5315, iwl1030_bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x008B, 0x5317, iwl1030_bg_cfg)},
++//	{IWL_PCI_DEVICE(0x0090, 0x5211, iwl6030_2agn_cfg)},
++//	{IWL_PCI_DEVICE(0x0090, 0x5215, iwl6030_2bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x0090, 0x5216, iwl6030_2abg_cfg)},
++//	{IWL_PCI_DEVICE(0x0091, 0x5201, iwl6030_2agn_cfg)},
++//	{IWL_PCI_DEVICE(0x0091, 0x5205, iwl6030_2bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x0091, 0x5206, iwl6030_2abg_cfg)},
++//	{IWL_PCI_DEVICE(0x0091, 0x5207, iwl6030_2bg_cfg)},
++//	{IWL_PCI_DEVICE(0x0091, 0x5221, iwl6030_2agn_cfg)},
++//	{IWL_PCI_DEVICE(0x0091, 0x5225, iwl6030_2bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x0091, 0x5226, iwl6030_2abg_cfg)},
++//
++///* 6x50 WiFi/WiMax Series */
++//	{IWL_PCI_DEVICE(0x0087, 0x1301, iwl6050_2agn_cfg)},
++//	{IWL_PCI_DEVICE(0x0087, 0x1306, iwl6050_2abg_cfg)},
++//	{IWL_PCI_DEVICE(0x0087, 0x1321, iwl6050_2agn_cfg)},
++//	{IWL_PCI_DEVICE(0x0087, 0x1326, iwl6050_2abg_cfg)},
++//	{IWL_PCI_DEVICE(0x0089, 0x1311, iwl6050_2agn_cfg)},
++//	{IWL_PCI_DEVICE(0x0089, 0x1316, iwl6050_2abg_cfg)},
++//
++///* 6150 WiFi/WiMax Series */
++//	{IWL_PCI_DEVICE(0x0885, 0x1305, iwl6150_bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x0885, 0x1307, iwl6150_bg_cfg)},
++//	{IWL_PCI_DEVICE(0x0885, 0x1325, iwl6150_bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x0885, 0x1327, iwl6150_bg_cfg)},
++//	{IWL_PCI_DEVICE(0x0886, 0x1315, iwl6150_bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x0886, 0x1317, iwl6150_bg_cfg)},
++//
++///* 1000 Series WiFi */
++//	{IWL_PCI_DEVICE(0x0083, 0x1205, iwl1000_bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x0083, 0x1305, iwl1000_bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x0083, 0x1225, iwl1000_bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x0083, 0x1325, iwl1000_bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x0084, 0x1215, iwl1000_bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x0084, 0x1315, iwl1000_bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x0083, 0x1206, iwl1000_bg_cfg)},
++//	{IWL_PCI_DEVICE(0x0083, 0x1306, iwl1000_bg_cfg)},
++//	{IWL_PCI_DEVICE(0x0083, 0x1226, iwl1000_bg_cfg)},
++//	{IWL_PCI_DEVICE(0x0083, 0x1326, iwl1000_bg_cfg)},
++//	{IWL_PCI_DEVICE(0x0084, 0x1216, iwl1000_bg_cfg)},
++//	{IWL_PCI_DEVICE(0x0084, 0x1316, iwl1000_bg_cfg)},
++//
++///* 100 Series WiFi */
++//	{IWL_PCI_DEVICE(0x08AE, 0x1005, iwl100_bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x08AE, 0x1007, iwl100_bg_cfg)},
++//	{IWL_PCI_DEVICE(0x08AF, 0x1015, iwl100_bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x08AF, 0x1017, iwl100_bg_cfg)},
++//	{IWL_PCI_DEVICE(0x08AE, 0x1025, iwl100_bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x08AE, 0x1027, iwl100_bg_cfg)},
++//
++///* 130 Series WiFi */
++//	{IWL_PCI_DEVICE(0x0896, 0x5005, iwl130_bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x0896, 0x5007, iwl130_bg_cfg)},
++//	{IWL_PCI_DEVICE(0x0897, 0x5015, iwl130_bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x0897, 0x5017, iwl130_bg_cfg)},
++//	{IWL_PCI_DEVICE(0x0896, 0x5025, iwl130_bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x0896, 0x5027, iwl130_bg_cfg)},
++//
++///* 2x00 Series */
++//	{IWL_PCI_DEVICE(0x0890, 0x4022, iwl2000_2bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x0891, 0x4222, iwl2000_2bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x0890, 0x4422, iwl2000_2bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x0890, 0x4822, iwl2000_2bgn_d_cfg)},
++//
++///* 2x30 Series */
++//	{IWL_PCI_DEVICE(0x0887, 0x4062, iwl2030_2bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x0888, 0x4262, iwl2030_2bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x0887, 0x4462, iwl2030_2bgn_cfg)},
++//
++///* 6x35 Series */
++//	{IWL_PCI_DEVICE(0x088E, 0x4060, iwl6035_2agn_cfg)},
++//	{IWL_PCI_DEVICE(0x088E, 0x406A, iwl6035_2agn_sff_cfg)},
++//	{IWL_PCI_DEVICE(0x088F, 0x4260, iwl6035_2agn_cfg)},
++//	{IWL_PCI_DEVICE(0x088F, 0x426A, iwl6035_2agn_sff_cfg)},
++//	{IWL_PCI_DEVICE(0x088E, 0x4460, iwl6035_2agn_cfg)},
++//	{IWL_PCI_DEVICE(0x088E, 0x446A, iwl6035_2agn_sff_cfg)},
++//	{IWL_PCI_DEVICE(0x088E, 0x4860, iwl6035_2agn_cfg)},
++//	{IWL_PCI_DEVICE(0x088F, 0x5260, iwl6035_2agn_cfg)},
++//
++///* 105 Series */
++//	{IWL_PCI_DEVICE(0x0894, 0x0022, iwl105_bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x0895, 0x0222, iwl105_bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x0894, 0x0422, iwl105_bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x0894, 0x0822, iwl105_bgn_d_cfg)},
++//
++///* 135 Series */
++//	{IWL_PCI_DEVICE(0x0892, 0x0062, iwl135_bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x0893, 0x0262, iwl135_bgn_cfg)},
++//	{IWL_PCI_DEVICE(0x0892, 0x0462, iwl135_bgn_cfg)},
++//#endif /* CONFIG_IWLDVM */
++//
++//#if IS_ENABLED(CONFIG_IWLMVM)
++///* 7260 Series */
++//	{IWL_PCI_DEVICE(0x08B1, 0x4070, iwl7260_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0x4072, iwl7260_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0x4170, iwl7260_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0x4060, iwl7260_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0x406A, iwl7260_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0x4160, iwl7260_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0x4062, iwl7260_n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0x4162, iwl7260_n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B2, 0x4270, iwl7260_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B2, 0x4272, iwl7260_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B2, 0x4260, iwl7260_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B2, 0x426A, iwl7260_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B2, 0x4262, iwl7260_n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0x4470, iwl7260_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0x4472, iwl7260_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0x4460, iwl7260_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0x446A, iwl7260_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0x4462, iwl7260_n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0x4870, iwl7260_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0x486E, iwl7260_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0x4A70, iwl7260_2ac_cfg_high_temp)},
++//	{IWL_PCI_DEVICE(0x08B1, 0x4A6E, iwl7260_2ac_cfg_high_temp)},
++//	{IWL_PCI_DEVICE(0x08B1, 0x4A6C, iwl7260_2ac_cfg_high_temp)},
++//	{IWL_PCI_DEVICE(0x08B1, 0x4570, iwl7260_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0x4560, iwl7260_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B2, 0x4370, iwl7260_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B2, 0x4360, iwl7260_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0x5070, iwl7260_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0x5072, iwl7260_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0x5170, iwl7260_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0x5770, iwl7260_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0x4020, iwl7260_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0x402A, iwl7260_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B2, 0x4220, iwl7260_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0x4420, iwl7260_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0xC070, iwl7260_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0xC072, iwl7260_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0xC170, iwl7260_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0xC060, iwl7260_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0xC06A, iwl7260_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0xC160, iwl7260_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0xC062, iwl7260_n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0xC162, iwl7260_n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0xC770, iwl7260_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0xC760, iwl7260_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B2, 0xC270, iwl7260_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B2, 0xC272, iwl7260_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B2, 0xC260, iwl7260_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B2, 0xC26A, iwl7260_n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B2, 0xC262, iwl7260_n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0xC470, iwl7260_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0xC472, iwl7260_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0xC460, iwl7260_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0xC462, iwl7260_n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0xC570, iwl7260_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0xC560, iwl7260_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B2, 0xC370, iwl7260_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0xC360, iwl7260_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0xC020, iwl7260_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0xC02A, iwl7260_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B2, 0xC220, iwl7260_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B1, 0xC420, iwl7260_2n_cfg)},
++//
++///* 3160 Series */
++//	{IWL_PCI_DEVICE(0x08B3, 0x0070, iwl3160_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B3, 0x0072, iwl3160_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B3, 0x0170, iwl3160_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B3, 0x0172, iwl3160_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B3, 0x0060, iwl3160_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B3, 0x0062, iwl3160_n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B4, 0x0270, iwl3160_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B4, 0x0272, iwl3160_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B3, 0x0470, iwl3160_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B3, 0x0472, iwl3160_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B4, 0x0370, iwl3160_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B3, 0x8070, iwl3160_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B3, 0x8072, iwl3160_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B3, 0x8170, iwl3160_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B3, 0x8172, iwl3160_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B3, 0x8060, iwl3160_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B3, 0x8062, iwl3160_n_cfg)},
++//	{IWL_PCI_DEVICE(0x08B4, 0x8270, iwl3160_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B3, 0x8470, iwl3160_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B3, 0x8570, iwl3160_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B3, 0x1070, iwl3160_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x08B3, 0x1170, iwl3160_2ac_cfg)},
++//
++///* 7265 Series */
++//	{IWL_PCI_DEVICE(0x095A, 0x5010, iwl7265_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x095A, 0x5110, iwl7265_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x095A, 0x5100, iwl7265_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x095B, 0x5310, iwl7265_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x095B, 0x5302, iwl7265_n_cfg)},
++//	{IWL_PCI_DEVICE(0x095B, 0x5210, iwl7265_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x095A, 0x5012, iwl7265_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x095A, 0x5412, iwl7265_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x095A, 0x5410, iwl7265_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x095A, 0x5400, iwl7265_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x095A, 0x1010, iwl7265_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x095A, 0x5000, iwl7265_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x095A, 0x500A, iwl7265_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x095B, 0x5200, iwl7265_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x095A, 0x5002, iwl7265_n_cfg)},
++//	{IWL_PCI_DEVICE(0x095B, 0x5202, iwl7265_n_cfg)},
++//	{IWL_PCI_DEVICE(0x095A, 0x9010, iwl7265_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x095A, 0x9012, iwl7265_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x095A, 0x9110, iwl7265_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x095A, 0x9112, iwl7265_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x095A, 0x9210, iwl7265_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x095A, 0x9510, iwl7265_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x095A, 0x9310, iwl7265_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x095A, 0x9410, iwl7265_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x095A, 0x5020, iwl7265_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x095A, 0x502A, iwl7265_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x095A, 0x5420, iwl7265_2n_cfg)},
++//	{IWL_PCI_DEVICE(0x095A, 0x5090, iwl7265_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x095A, 0x5190, iwl7265_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x095A, 0x5590, iwl7265_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x095B, 0x5290, iwl7265_2ac_cfg)},
++//	{IWL_PCI_DEVICE(0x095A, 0x5490, iwl7265_2ac_cfg)},
++//#endif /* CONFIG_IWLMVM */
+ 
+ 	{0}
+ };
+--- a/net/core/sock.c
++++ b/net/core/sock.c
+@@ -142,6 +142,8 @@
+ 
+ #include <net/busy_poll.h>
+ 
++#include <net/timewait_sock.h>
++
+ static DEFINE_MUTEX(proto_list_mutex);
+ static LIST_HEAD(proto_list);
+ 
+--- a/net/packet/af_packet.c
++++ b/net/packet/af_packet.c
+@@ -93,6 +93,8 @@
+ #include <net/inet_common.h>
+ #endif
+ 
++#include <linux/if_ether.h>
++
+ #include "internal.h"
+ 
+ /*
+@@ -3508,6 +3510,7 @@ static int packet_notifier(struct notifier_block *this,
+ 	struct net_device *dev = netdev_notifier_info_to_dev(ptr);
+ 	struct net *net = dev_net(dev);
+ 
++#if 0
+ 	rcu_read_lock();
+ 	sk_for_each_rcu(sk, &net->packet.sklist) {
+ 		struct packet_sock *po = pkt_sk(sk);
+@@ -3548,6 +3551,7 @@ static int packet_notifier(struct notifier_block *this,
+ 		}
+ 	}
+ 	rcu_read_unlock();
++#endif
+ 	return NOTIFY_DONE;
+ }
+ 
+@@ -4062,8 +4066,10 @@ static int __net_init packet_net_init(struct net *net)
+ 	mutex_init(&net->packet.sklist_lock);
+ 	INIT_HLIST_HEAD(&net->packet.sklist);
+ 
++#ifdef CONFIG_PROC_FS
+ 	if (!proc_create("packet", 0, net->proc_net, &packet_seq_fops))
+ 		return -ENOMEM;
++#endif
+ 
+ 	return 0;
+ }
+--- a/net/wireless/core.h
++++ b/net/wireless/core.h
+@@ -82,7 +82,7 @@ struct cfg80211_registered_device {
+ 
+ 	/* must be last because of the way we do wiphy_priv(),
+ 	 * and it should at least be aligned to NETDEV_ALIGN */
+-	struct wiphy wiphy __aligned(NETDEV_ALIGN);
++	struct wiphy wiphy __attribute__((__aligned__(32)));
+ };
+ 
+ static inline
+--- a/net/wireless/sysfs.c
++++ b/net/wireless/sysfs.c
+@@ -156,7 +156,7 @@ struct class ieee80211_class = {
+ 	.resume = wiphy_resume,
+ #endif
+ 	.ns_type = &net_ns_type_operations,
+-	.namespace = wiphy_namespace,
++	._namespace = wiphy_namespace,
+ };
+ 
+ int wiphy_sysfs_init(void)
+--- a/include/linux/ieee80211.h
++++ b/include/linux/ieee80211.h
+@@ -2231,7 +2231,7 @@ static inline bool ieee80211_is_robust_mgmt_frame(struct ieee80211_hdr *hdr)
+ static inline bool ieee80211_is_public_action(struct ieee80211_hdr *hdr,
+ 					      size_t len)
+ {
+-	struct ieee80211_mgmt *mgmt = (void *)hdr;
++	struct ieee80211_mgmt *mgmt = (struct ieee80211_mgmt *)hdr;
+ 
+ 	if (len < IEEE80211_MIN_ACTION_SIZE)
+ 		return false;
+--- a/include/net/cfg80211.h
++++ b/include/net/cfg80211.h
+@@ -191,6 +191,7 @@ struct ieee80211_channel {
+  * @IEEE80211_RATE_SUPPORTS_10MHZ: Rate can be used in 10 MHz mode
+  */
+ enum ieee80211_rate_flags {
++	IEEE80211_RATE_NULL = 0,
+ 	IEEE80211_RATE_SHORT_PREAMBLE	= 1<<0,
+ 	IEEE80211_RATE_MANDATORY_A	= 1<<1,
+ 	IEEE80211_RATE_MANDATORY_B	= 1<<2,
+@@ -465,7 +466,7 @@ ieee80211_chandef_rate_flags(struct cfg80211_chan_def *chandef)
+ 	default:
+ 		break;
+ 	}
+-	return 0;
++	return IEEE80211_RATE_NULL;
+ }
+ 
+ /**
+@@ -2990,7 +2991,7 @@ struct wiphy {
+ 	const struct nl80211_vendor_cmd_info *vendor_events;
+ 	int n_vendor_commands, n_vendor_events;
+ 
+-	char priv[0] __aligned(NETDEV_ALIGN);
++	char priv[0] __attribute__ ((__aligned__(32)));//__aligned(NETDEV_ALIGN);
+ };
+ 
+ static inline struct net *wiphy_net(struct wiphy *wiphy)
+--- a/include/net/netlink.h
++++ b/include/net/netlink.h
+@@ -308,7 +308,7 @@ static inline int nlmsg_len(const struct nlmsghdr *nlh)
+ static inline struct nlattr *nlmsg_attrdata(const struct nlmsghdr *nlh,
+ 					    int hdrlen)
+ {
+-	unsigned char *data = nlmsg_data(nlh);
++	unsigned char *data = (unsigned char *)nlmsg_data(nlh);
+ 	return (struct nlattr *) (data + NLMSG_ALIGN(hdrlen));
+ }
+ 
+@@ -717,7 +717,7 @@ static inline struct nlattr *nla_next(const struct nlattr *nla, int *remaining)
+ static inline struct nlattr *
+ nla_find_nested(const struct nlattr *nla, int attrtype)
+ {
+-	return nla_find(nla_data(nla), nla_len(nla), attrtype);
++	return nla_find((const struct nlattr *)nla_data(nla), nla_len(nla), attrtype);
+ }
+ 
+ /**
+@@ -733,7 +733,7 @@ static inline int nla_parse_nested(struct nlattr *tb[], int maxtype,
+ 				   const struct nlattr *nla,
+ 				   const struct nla_policy *policy)
+ {
+-	return nla_parse(tb, maxtype, nla_data(nla), nla_len(nla), policy);
++	return nla_parse(tb, maxtype, (const struct nlattr *)nla_data(nla), nla_len(nla), policy);
+ }
+ 
+ /**
+@@ -1161,7 +1161,7 @@ static inline void nla_nest_cancel(struct sk_buff *skb, struct nlattr *start)
+ static inline int nla_validate_nested(const struct nlattr *start, int maxtype,
+ 				      const struct nla_policy *policy)
+ {
+-	return nla_validate(nla_data(start), nla_len(start), maxtype, policy);
++	return nla_validate((const struct nlattr *)nla_data(start), nla_len(start), maxtype, policy);
+ }
+ 
+ /**
+--- a/include/net/sock.h
++++ b/include/net/sock.h
+@@ -1854,7 +1854,7 @@ static inline int skb_add_data_nocache(struct sock *sk, struct sk_buff *skb,
+ {
+ 	int err, offset = skb->len;
+ 
+-	err = skb_do_copy_data_nocache(sk, skb, from, skb_put(skb, copy),
++	err = skb_do_copy_data_nocache(sk, skb, from, (char *)skb_put(skb, copy),
+ 				       copy, offset);
+ 	if (err)
+ 		__skb_trim(skb, offset);
+@@ -1869,7 +1869,7 @@ static inline int skb_copy_to_page_nocache(struct sock *sk, char __user *from,
+ {
+ 	int err;
+ 
+-	err = skb_do_copy_data_nocache(sk, skb, from, page_address(page) + off,
++	err = skb_do_copy_data_nocache(sk, skb, from, (char *)(page_address(page) + off),
+ 				       copy, skb->len);
+ 	if (err)
+ 		return err;
+--- a/drivers/net/wireless/iwlwifi/dvm/rs.c
++++ b/drivers/net/wireless/iwlwifi/dvm/rs.c
+@@ -2309,7 +2309,7 @@ static void rs_rate_scale_perform(struct iwl_priv *priv,
+ 		rate_scale_index_msk = rate_mask;
+ 
+ 	if (!((1 << index) & rate_scale_index_msk)) {
+-		IWL_ERR(priv, "Current Rate is not valid\n");
++		// IWL_ERR(priv, "Current Rate is not valid\n");
+ 		if (lq_sta->search_better_tbl) {
+ 			/* revert to active table if search table is not valid*/
+ 			tbl->lq_type = LQ_NONE;

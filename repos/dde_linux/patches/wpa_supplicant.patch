@@ -1,0 +1,83 @@
+--- a/wpa_supplicant/config.c
++++ b/wpa_supplicant/config.c
+@@ -1187,6 +1187,7 @@ static int wpa_config_parse_password(const struct parse_data *data,
+ }
+ 
+ 
++#if 0
+ static char * wpa_config_write_password(const struct parse_data *data,
+ 					struct wpa_ssid *ssid)
+ {
+@@ -1221,6 +1222,7 @@ static char * wpa_config_write_password(const struct parse_data *data,
+ 	return buf;
+ }
+ #endif /* IEEE8021X_EAPOL */
++#endif
+ 
+ 
+ static int wpa_config_parse_wep_key(u8 *key, size_t *len, int line,
+@@ -2264,6 +2266,7 @@ int wpa_config_set_quoted(struct wpa_ssid *ssid, const char *var,
+ }
+ 
+ 
++#ifndef NO_CONFIG_WRITE
+ /**
+  * wpa_config_get_all - Get all options from network configuration
+  * @ssid: Pointer to network configuration data
+@@ -2326,7 +2329,6 @@ err:
+ }
+ 
+ 
+-#ifndef NO_CONFIG_WRITE
+ /**
+  * wpa_config_get - Get a variable in network configuration
+  * @ssid: Pointer to network configuration data
+--- a/src/drivers/driver_nl80211.c
++++ b/src/drivers/driver_nl80211.c
+@@ -20,11 +20,12 @@
+ #include <netlink/genl/family.h>
+ #include <netlink/genl/ctrl.h>
+ #include <linux/rtnetlink.h>
+-#include <netpacket/packet.h>
+-#include <linux/filter.h>
+-#include <linux/errqueue.h>
++//#include <netpacket/packet.h>
++//#include <linux/filter.h>
++//#include <linux/errqueue.h>
+ #include "nl80211_copy.h"
+ 
++
+ #include "common.h"
+ #include "eloop.h"
+ #include "utils/list.h"
+@@ -10924,7 +10925,7 @@ static void * nl80211_global_init(void)
+ 	if (wpa_driver_nl80211_init_nl_global(global) < 0)
+ 		goto err;
+ 
+-	global->ioctl_sock = socket(PF_INET, SOCK_DGRAM, 0);
++	global->ioctl_sock = 42;
+ 	if (global->ioctl_sock < 0) {
+ 		wpa_printf(MSG_ERROR, "nl80211: socket(PF_INET,SOCK_DGRAM) failed: %s",
+ 			   strerror(errno));
+--- a/src/drivers/netlink.c
++++ b/src/drivers/netlink.c
+@@ -13,6 +13,8 @@
+ #include "priv_netlink.h"
+ #include "netlink.h"
+ 
++#define PF_NETLINK 16
++#define AF_NETLINK PF_NETLINK
+ 
+ struct netlink_data {
+ 	struct netlink_config *cfg;
+--- a/src/utils/eloop.c
++++ b/src/utils/eloop.c
+@@ -23,7 +23,7 @@
+ #endif
+ 
+ #ifdef CONFIG_ELOOP_POLL
+-#include <poll.h>
++#include <sys/poll.h>
+ #endif /* CONFIG_ELOOP_POLL */
+ 
+ #ifdef CONFIG_ELOOP_EPOLL

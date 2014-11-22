@@ -1,0 +1,82 @@
+--- a/drivers/net/wireless/iwlwifi/dvm/calib.c
++++ b/drivers/net/wireless/iwlwifi/dvm/calib.c
+@@ -121,7 +121,7 @@ int iwl_calib_set(struct iwl_priv *priv,
+ 	struct iwl_calib_result *res, *tmp;
+ 
+ 	res = kmalloc(sizeof(*res) + len - sizeof(struct iwl_calib_hdr),
+-		      GFP_ATOMIC);
++		      GFP_ATOMIC | GFP_LX_DMA);
+ 	if (!res)
+ 		return -ENOMEM;
+ 	memcpy(&res->hdr, cmd, len);
+--- a/drivers/net/wireless/iwlwifi/dvm/scan.c
++++ b/drivers/net/wireless/iwlwifi/dvm/scan.c
+@@ -672,7 +672,7 @@ static int iwlagn_request_scan(struct iwl_priv *priv, struct ieee80211_vif *vif)
+ 		ctx = iwl_rxon_ctx_from_vif(vif);
+ 
+ 	if (!priv->scan_cmd) {
+-		priv->scan_cmd = kmalloc(scan_cmd_size, GFP_KERNEL);
++		priv->scan_cmd = kmalloc(scan_cmd_size, GFP_KERNEL | GFP_LX_DMA);
+ 		if (!priv->scan_cmd) {
+ 			IWL_DEBUG_SCAN(priv,
+ 				       "fail to allocate memory for scan\n");
+--- a/drivers/net/wireless/iwlwifi/pcie/trans.c
++++ b/drivers/net/wireless/iwlwifi/pcie/trans.c
+@@ -1593,7 +1593,7 @@ struct iwl_trans *iwl_trans_pcie_alloc(struct pci_dev *pdev,
+ 				  sizeof(struct iwl_device_cmd)
+ 				  + trans->dev_cmd_headroom,
+ 				  sizeof(void *),
+-				  SLAB_HWCACHE_ALIGN,
++				  SLAB_HWCACHE_ALIGN | SLAB_LX_DMA,
+ 				  NULL);
+ 
+ 	if (!trans->dev_cmd_pool) {
+--- a/drivers/net/wireless/iwlwifi/pcie/tx.c
++++ b/drivers/net/wireless/iwlwifi/pcie/tx.c
+@@ -492,7 +492,7 @@ static int iwl_pcie_txq_alloc(struct iwl_trans *trans,
+ 
+ 	txq->entries = kcalloc(slots_num,
+ 			       sizeof(struct iwl_pcie_txq_entry),
+-			       GFP_KERNEL);
++			       GFP_KERNEL | GFP_LX_DMA);
+ 
+ 	if (!txq->entries)
+ 		goto error;
+@@ -501,7 +501,7 @@ static int iwl_pcie_txq_alloc(struct iwl_trans *trans,
+ 		for (i = 0; i < slots_num; i++) {
+ 			txq->entries[i].cmd =
+ 				kmalloc(sizeof(struct iwl_device_cmd),
+-					GFP_KERNEL);
++					GFP_KERNEL | GFP_LX_DMA);
+ 			if (!txq->entries[i].cmd)
+ 				goto error;
+ 		}
+@@ -840,7 +840,7 @@ static int iwl_pcie_tx_alloc(struct iwl_trans *trans)
+ 	}
+ 
+ 	trans_pcie->txq = kcalloc(trans->cfg->base_params->num_of_queues,
+-				  sizeof(struct iwl_txq), GFP_KERNEL);
++				  sizeof(struct iwl_txq), GFP_KERNEL | GFP_LX_DMA);
+ 	if (!trans_pcie->txq) {
+ 		IWL_ERR(trans, "Not enough memory for txq\n");
+ 		ret = -ENOMEM;
+@@ -1255,7 +1255,7 @@ static int iwl_pcie_enqueue_hcmd(struct iwl_trans *trans,
+ 			}
+ 
+ 			dup_buf = kmemdup(cmddata[i], cmdlen[i],
+-					  GFP_ATOMIC);
++					  GFP_ATOMIC | GFP_LX_DMA);
+ 			if (!dup_buf)
+ 				return -ENOMEM;
+ 		} else {
+--- a/net/core/skbuff.c
++++ b/net/core/skbuff.c
+@@ -125,6 +125,8 @@ static void *__kmalloc_reserve(size_t size, gfp_t flags, int node,
+ 	void *obj;
+ 	bool ret_pfmemalloc = false;
+ 
++	flags |= GFP_LX_DMA;
++
+ 	/*
+ 	 * Try a regular allocation, when that fails and we're not entitled
+ 	 * to the reserves, fail.

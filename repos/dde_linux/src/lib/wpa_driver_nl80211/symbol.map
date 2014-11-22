@@ -1,0 +1,18 @@
+/*
+ *
+ */
+{
+	global:
+
+		/* array containing all drivers, from drivers.c */
+		wpa_drivers;
+
+		/* ethernet frame handlin, from l2_packet_linux.c */
+		l2_packet_*;
+
+		poll;
+
+	local:
+
+		*;
+};

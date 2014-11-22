@@ -1,0 +1,52 @@
+ include/netlink-private/netlink.h | 1 +
+ lib/handlers.c                    | 4 ++--
+ lib/msg.c                         | 4 ++--
+ 3 files changed, 5 insertions(+), 4 deletions(-)
+
+--- a/include/netlink-private/netlink.h
++++ b/include/netlink-private/netlink.h
+@@ -100,6 +100,7 @@ struct trans_list {
+ 		fprintf(stderr, "BUG at file position %s:%d:%s\n",  	\
+ 			__FILE__, __LINE__, __PRETTY_FUNCTION__); 	\
+ 		assert(0);						\
++		while (7); \
+ 	} while (0)
+ 
+ #define BUG_ON(condition)						\
+--- a/lib/handlers.c
++++ b/lib/handlers.c
+@@ -81,8 +81,8 @@ static int nl_error_handler_verbose(struct sockaddr_nl *who,
+ 	FILE *ofd = arg ? arg : stderr;
+ 	char buf[256];
+ 
+-	fprintf(ofd, "-- Error received: %s\n-- Original message: ",
+-		strerror_r(-e->error, buf, sizeof(buf)));
++	strerror_r(-e->error, buf, sizeof(buf));
++	fprintf(ofd, "-- Error received: %s\n-- Original message: ", buf);
+ 	print_header_content(ofd, &e->msg);
+ 	fprintf(ofd, "\n");
+ 
+--- a/lib/msg.c
++++ b/lib/msg.c
+@@ -916,8 +916,8 @@ static void dump_error_msg(struct nl_msg *msg, FILE *ofd)
+ 		char buf[256];
+ 		struct nl_msg *errmsg;
+ 
+-		fprintf(ofd, "    .error = %d \"%s\"\n", err->error,
+-			strerror_r(-err->error, buf, sizeof(buf)));
++		strerror_r(-err->error, buf, sizeof(buf));
++		fprintf(ofd, "    .error = %d \"%s\"\n", err->error, buf);
+ 		fprintf(ofd, "  [ORIGINAL MESSAGE] %zu octets\n", sizeof(*hdr));
+ 
+ 		errmsg = nlmsg_inherit(&err->msg);
+--- a/include/netlink/netlink-compat.h
++++ b/include/netlink/netlink-compat.h
+@@ -13,7 +13,7 @@
+ #define NETLINK_COMPAT_H_
+ 
+ #if !defined _LINUX_SOCKET_H && !defined _BITS_SOCKADDR_H
+-typedef unsigned short  sa_family_t;
++//typedef unsigned short  sa_family_t;
+ #endif
+ 
+ #ifndef IFNAMSIZ 
