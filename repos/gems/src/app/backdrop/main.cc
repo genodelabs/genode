@@ -144,6 +144,8 @@ struct Backdrop::Main
 		Signal_transmitter(config_dispatcher).submit();
 
 		nitpicker.mode_sigh(config_dispatcher);
+
+		config()->sigh(config_dispatcher);
 	}
 };
 
