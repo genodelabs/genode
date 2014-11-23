@@ -14,7 +14,7 @@
 	<default-route> <any-service> <any-child/> <parent/> </any-service> </default-route>
 	<start name="framebuffer">
 		<binary name="nit_fb"/>
-		<resource name="RAM" quantum="8M"/>
+		<resource name="RAM" quantum="4M"/>
 		<provides>
 			<service name="Framebuffer"/>
 			<service name="Input"/>
@@ -25,12 +25,22 @@
 	<start name="nitpicker">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nitpicker"/></provides>
-		<config/>
+		<config>
+			<domain name="pointer" layer="1" xray="no" origin="pointer" />
+			<domain name="" layer="2" />
+			<policy label="pointer"    domain="pointer"/>
+			<policy label="" domain=""/>
+			<global-key name="KEY_F1" operation="kill" />
+			<global-key name="KEY_F2" operation="xray" />
+		</config>
+	</start>
+	<start name="pointer">
+		<resource name="RAM" quantum="1M"/>
 	</start>
 	<start name="launchpad">
-		<resource name="RAM" quantum="1G"/>
+		<resource name="RAM" quantum="2G"/>
 		<config xpos="50" ypos="10" width="400" height="400">
-			<launcher name="testnit" ram_quota="768K" />
+			<launcher name="testnit" ram_quota="1M" />
 			<launcher name="launchpad" ram_quota="6M">
 				<config xpos="90" ypos="50" width="400" height="400">
 					<launcher name="testnit" ram_quota="512K" />
