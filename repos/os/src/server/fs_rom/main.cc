@@ -148,6 +148,11 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 		File_system::File_handle _file_handle;
 
 		/**
+		 * Size of current version of the file
+		 */
+		File_system::file_size_t _file_size = 0;
+
+		/**
 		 * Handle of currently watched compound directory
 		 *
 		 * The compund directory is watched only if the requested file could
@@ -285,11 +290,24 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 			/*
 			 * On each repeated call of this function, the dataspace is
 			 * replaced with a new one that contains the most current file
-			 * content.
+			 * content. The dataspace is re-allocated if the new version
+			 * of the file has become bigger.
 			 */
-			if (_file_ds.valid()) {
-				env()->ram_session()->free(_file_ds);
-				_file_ds = Ram_dataspace_capability();
+			{
+				File_handle const file_handle = _open_file(_fs, _file_path);
+				if (file_handle.valid()) {
+					File_system::file_size_t const new_file_size =
+						_fs.status(file_handle).size;
+
+					if (_file_ds.valid() && (new_file_size > _file_size)) {
+						env()->ram_session()->free(_file_ds);
+
+						/* mark as invalid */
+						_file_ds = Ram_dataspace_capability();
+						_file_size = 0;
+					}
+				}
+				_fs.close(file_handle);
 			}
 
 			/* close and then re-open the file */
@@ -315,8 +333,11 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 			/* allocate new RAM dataspace according to file size */
 			if (file_size > 0) {
 				try {
-					_file_ds = env()->ram_session()->alloc(file_size); }
-				catch (...) {
+					if (!_file_ds.valid()) {
+						_file_ds = env()->ram_session()->alloc(file_size);
+						_file_size = file_size;
+					}
+				} catch (...) {
 					PERR("couldn't allocate memory for file, empty result\n");
 					_file_ds = Ram_dataspace_capability();
 					return;
@@ -413,7 +434,8 @@ class Rom_root : public Genode::Root_component<Rom_session_component>
 			PINF("connection for file '%s' requested\n", filename);
 
 			/* create new session for the requested file */
-			return new (md_alloc()) Rom_session_component(_fs, filename, _sig_rec);
+			return new (md_alloc())
+				Rom_session_component(_fs, filename, _sig_rec);
 		}
 
 	public:
