@@ -156,6 +156,12 @@ class Loader::Session_component : public Rpc_object<Session>
 				Cpu_session_client(cap).exception_handler(Thread_capability(), fault_sigh);
 				return cap;
 			}
+
+			void upgrade(Session_capability session, const char *args)
+			{
+				try { env()->parent()->upgrade(session, args); }
+				catch (Genode::Ipc_error)    { throw Unavailable();    }
+			}
 		};
 
 		/**
