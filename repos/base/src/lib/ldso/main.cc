@@ -363,6 +363,7 @@ struct Linker::Elf_object : Object, Genode::List<Elf_object>::Element,
 	Link_map map;
 	unsigned ref_count = 1;
 	unsigned flags     = 0;
+	bool     relocated = false;
 
 	Elf_object(Dag const *dag) : dynamic(dag)
 	{ }
@@ -408,7 +409,13 @@ struct Linker::Elf_object : Object, Genode::List<Elf_object>::Element,
 		Link_map::add(&map);
 	};
 
-	virtual void relocate() { dynamic.relocate(); }
+	virtual void relocate()
+	{
+		if (!relocated)
+			dynamic.relocate();
+
+		relocated = true;
+	}
 
 	/**
 	 * Return symbol of given number from ELF
@@ -577,6 +584,9 @@ struct Linker::Elf_object : Object, Genode::List<Elf_object>::Element,
  */
 struct Init : Genode::List<Elf_object>
 {
+	bool in_progress = false;
+	bool restart     = false;
+
 	static Init *list()
 	{
 		static Init _list;
@@ -619,9 +629,24 @@ struct Init : Genode::List<Elf_object>
 			obj->relocate();
 		}
 
+		/*
+		 * Recursive initialization call is not allowed here. This might happend
+		 * when Shared_objects (e.g. dlopen and friends) are constructed from within
+		 * global constructors (ctors).
+		 */
+		if (in_progress) {
+			restart = true;
+			return;
+		}
+
+		in_progress = true;
+
 		/* call static constructors */
 		obj = first();
 		while (obj) {
+
+			Elf_object *next = obj->init_next();
+			remove(obj);
 
 			if (obj->dynamic.init_function) {
 
@@ -631,10 +656,11 @@ struct Init : Genode::List<Elf_object>
 				obj->dynamic.init_function();
 			}
 
-			Elf_object *next = obj->init_next();
-			remove(obj);
-			obj = next;
+			obj = restart ? first() : next;
+			restart = false;
 		}
+
+		in_progress = false;
 	}
 };
 
