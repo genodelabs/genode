@@ -245,8 +245,8 @@ class Genode::Timer : public Mmio
 		unsigned value(unsigned const cpu)
 		{
 			switch (cpu) {
-			case 0:  return read<L0_frcnto>();
-			case 1:  return read<L1_frcnto>();
+			case 0: return read<L0_int_cstat::Frcnt>() ? 0 : read<L0_frcnto>();
+			case 1: return read<L1_int_cstat::Frcnt>() ? 0 : read<L1_frcnto>();
 			default: return 0;
 			}
 		}
