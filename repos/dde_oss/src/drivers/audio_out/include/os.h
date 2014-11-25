@@ -181,7 +181,7 @@ enum {
 }
 
 #define HZ DDE_KIT_HZ
-#define GET_JIFFIES() jiffies
+#define GET_JIFFIES() dde_kit_timer_ticks
 
 
 #define MUTEX_INIT(osdev, mutex, hier)

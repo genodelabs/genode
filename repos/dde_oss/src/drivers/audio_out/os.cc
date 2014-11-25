@@ -41,11 +41,11 @@ static Timer::Connection _timer;
 
 void oss_udelay(unsigned long usecs)
 {
-	unsigned long start = jiffies;
+	unsigned long start = GET_JIFFIES();
 	/* check for IRQs etc */
 	Service_handler::s()->check_signal(false);
 
-	unsigned delta = (jiffies - start) * 10000;
+	unsigned delta = (GET_JIFFIES() - start) * 10000;
 
 	/* return if already expired */
 	if (delta > usecs)
@@ -187,12 +187,12 @@ extern "C" int oss_sleep(struct oss_wait_queue *wq, oss_mutex_t * mutex, int tic
 		return 0;
 
 	wq->blocked = 1;
-	unsigned long start = jiffies;
+	unsigned long start = GET_JIFFIES();
 
 	while (wq->blocked) {
 		Irq::check_irq(true);
 	
-		if (jiffies - start > (unsigned long)ticks) {
+		if (GET_JIFFIES() - start > (unsigned long)ticks) {
 			return 0;
 		}
 	}
