@@ -57,7 +57,7 @@ class Ahci_driver : public Block::Driver
 		bool   dma_enabled() { return true; }
 
 		Genode::Ram_dataspace_capability alloc_dma_buffer(Genode::size_t size) {
-			return Genode::env()->ram_session()->alloc(size, UNCACHED); }
+			return Genode::env()->ram_session()->alloc(size, Genode::UNCACHED); }
 
 		void free_dma_buffer(Genode::Ram_dataspace_capability c) {
 			return Genode::env()->ram_session()->free(c); }

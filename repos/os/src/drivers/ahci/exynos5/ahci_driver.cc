@@ -910,7 +910,7 @@ struct Sata_ahci : Attached_mmio
 	 */
 	Sata_ahci()
 	: Attached_mmio(0x122f0000, 0x10000),
-	  ds(env()->ram_session()->alloc(0x20000, 0)),
+	  ds(env()->ram_session()->alloc(0x20000, Genode::UNCACHED)),
 	  cl_phys(Dataspace_client(ds).phys_addr()),
 	  cl_virt(env()->rm_session()->attach(ds)),
 	  fb_phys(cl_phys + CMD_LIST_SIZE),
@@ -1223,7 +1223,7 @@ struct Sata_ahci : Attached_mmio
 		};
 
 		/* create receive buffer DMA */
-		Ram_dataspace_capability dev_id_ds = env()->ram_session()->alloc(0x1000, 0);;
+		Ram_dataspace_capability dev_id_ds = env()->ram_session()->alloc(0x1000, Genode::UNCACHED);;
 		addr_t dev_id_virt = (addr_t)env()->rm_session()->attach(dev_id_ds);
 		addr_t dev_id_phys = Dataspace_client(dev_id_ds).phys_addr();
 

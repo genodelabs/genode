@@ -96,7 +96,7 @@ int main(int argc, char **argv)
 	size_t const buffer_size = 10*1024*1024;
 
 	/* allocate read/write buffer */
-	static Attached_ram_dataspace buffer(env()->ram_session(), buffer_size, false);
+	static Attached_ram_dataspace buffer(env()->ram_session(), buffer_size, Genode::UNCACHED);
 	char * const buffer_virt = buffer.local_addr<char>();
 	addr_t const buffer_phys = Dataspace_client(buffer.cap()).phys_addr();
 

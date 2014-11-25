@@ -764,7 +764,7 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 			_use_dma(use_dma),
 			_adma_desc_ds(Genode::env()->ram_session(),
 			              ADMA_DESC_MAX_ENTRIES*sizeof(Adma_desc::access_t),
-			              false),
+			              Genode::UNCACHED),
 			_adma_desc(_adma_desc_ds.local_addr<Adma_desc::access_t>()),
 			_adma_desc_phys(Genode::Dataspace_client(_adma_desc_ds.cap()).phys_addr()),
 			_irq(IRQ_NUMBER)

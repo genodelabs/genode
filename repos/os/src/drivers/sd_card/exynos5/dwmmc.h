@@ -500,7 +500,7 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 		: Dwmmc(mmio_base),
 			_idmac_desc_ds(Genode::env()->ram_session(),
 			               IDMAC_DESC_MAX_ENTRIES*sizeof(Idmac_desc),
-			               false),
+			               Genode::UNCACHED),
 			_idmac_desc(_idmac_desc_ds.local_addr<Idmac_desc>()),
 			_idmac_desc_phys(Genode::Dataspace_client(_idmac_desc_ds.cap()).phys_addr()),
 			_delayer(delayer), _card_info(_init()), _irq(IRQ_NUMBER)
@@ -602,7 +602,7 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 		size_t _read_ext_csd()
 		{
 			using namespace Genode;
-			Attached_ram_dataspace ds(env()->ram_session(), 0x1000, false);
+			Attached_ram_dataspace ds(env()->ram_session(), 0x1000, UNCACHED);
 
 			addr_t phys = Genode::Dataspace_client(ds.cap()).phys_addr();
 			_setup_idmac_descriptor_table(1, phys);
