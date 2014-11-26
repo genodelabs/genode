@@ -60,7 +60,7 @@ class Genode::Shared_object
 		 */
 		template<typename T = void *> T lookup(const char *symbol) const
 		{
-			return static_cast<T>(_lookup(symbol));
+			return reinterpret_cast<T>(_lookup(symbol));
 		}
 
 		/**
