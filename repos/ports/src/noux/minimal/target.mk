@@ -1,5 +1,5 @@
 TARGET   = noux
-LIBS     = base alarm config
+LIBS     = alarm config vfs ld
 SRC_CC   = main.cc dummy_net.cc
 INC_DIR += $(PRG_DIR)
 INC_DIR += $(PRG_DIR)/../

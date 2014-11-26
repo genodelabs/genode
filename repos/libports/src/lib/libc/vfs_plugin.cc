@@ -17,18 +17,6 @@
 #include <vfs/dir_file_system.h>
 #include <os/config.h>
 
-/* supported builtin file systems */
-#include <vfs/tar_file_system.h>
-#include <vfs/fs_file_system.h>
-#include <vfs/terminal_file_system.h>
-#include <vfs/null_file_system.h>
-#include <vfs/zero_file_system.h>
-#include <vfs/block_file_system.h>
-#include <vfs/log_file_system.h>
-#include <vfs/rom_file_system.h>
-#include <vfs/inline_file_system.h>
-#include <vfs/rtc_file_system.h>
-
 /* libc includes */
 #include <errno.h>
 #include <dirent.h>
@@ -46,7 +34,6 @@
 /* libc plugin interface */
 #include <libc-plugin/plugin.h>
 #include <libc-plugin/fd_alloc.h>
-#include <libc-plugin/vfs.h>
 
 /* libc-internal includes */
 #include <libc_mem_alloc.h>
@@ -85,119 +72,6 @@ static void vfs_stat_to_libc_stat_struct(Vfs::Directory_service::Stat const &src
 	dst->st_ino     = src.inode;
 	dst->st_dev     = src.device;
 }
-
-
-class Libc_file_system_factory : public Vfs::File_system_factory
-{
-	private:
-
-		struct Entry_base : Libc::File_system_factory,
-		                    Genode::List<Entry_base>::Element
-		{
-			Entry_base(char const *name) : File_system_factory(name) { }
-		};
-
-		template <typename FILE_SYSTEM>
-		struct Builtin_entry : Entry_base
-		{
-			Builtin_entry() : Entry_base(FILE_SYSTEM::name()) { }
-
-			Vfs::File_system *create(Genode::Xml_node node) override
-			{
-				return new (Genode::env()->heap()) FILE_SYSTEM(node);
-			}
-		};
-
-		struct External_entry : Entry_base
-		{
-			Libc::File_system_factory &_fs;
-
-			External_entry(char const *name, Libc::File_system_factory_func func)
-			: Entry_base(name), _fs(*func()) { }
-
-			Vfs::File_system *create(Genode::Xml_node node) override {
-				return _fs.create(node); }
-
-			bool matches(Genode::Xml_node node) const override {
-				return node.has_type(_fs.name); }
-		};
-
-		Genode::List<Entry_base> _list;
-
-		template <typename FILE_SYSTEM>
-		void _add_builtin_fs()
-		{
-			_list.insert(new (Genode::env()->heap()) Builtin_entry<FILE_SYSTEM>());
-		}
-
-		Vfs::File_system *_try_create(Genode::Xml_node node)
-		{
-			for (Entry_base *e = _list.first(); e; e = e->next())
-				if (e->matches(node))
-					return e->create(node);
-
-			return 0;
-		}
-
-		bool _probe_lib(Genode::Xml_node node)
-		{
-			enum { MAX_LIB_NAME = 64, MAX_NAME = 32 };
-			char lib_name[MAX_LIB_NAME];
-			char name[MAX_NAME];
-
-			node.type_name(name, sizeof(name));
-			Genode::snprintf(lib_name, sizeof(lib_name), "vfs_%s.lib.so", name);
-
-			void *lib = dlopen(lib_name, RTLD_LAZY);
-			if (!lib) {
-				PWRN("could not open '%s'", lib_name);
-				return false;
-			}
-
-			Libc::File_system_factory_func func = (Libc::File_system_factory_func)
-			                                      dlsym(lib, "Libc_file_system_factory");
-			if (!func) {
-				PWRN("could not find symbol 'Libc_file_system_factory' in '%s'", lib_name);
-				dlclose(lib);
-				return false;
-			}
-
-			_list.insert(new (Genode::env()->heap()) External_entry(name, func));
-			return true;
-		}
-
-	public:
-
-		Vfs::File_system *create(Genode::Xml_node node) override
-		{
-			/* try if type is handled by the currently registered fs types */
-			if (Vfs::File_system *fs = _try_create(node))
-				return fs;
-
-			/* probe for file system implementation available as shared lib */
-			if (_probe_lib(node)) {
-				/* try again with the new file system type loaded */
-				if (Vfs::File_system *fs = _try_create(node))
-					return fs;
-			}
-
-			return 0;
-		}
-
-		Libc_file_system_factory()
-		{
-			_add_builtin_fs<Vfs::Tar_file_system>();
-			_add_builtin_fs<Vfs::Fs_file_system>();
-			_add_builtin_fs<Vfs::Terminal_file_system>();
-			_add_builtin_fs<Vfs::Null_file_system>();
-			_add_builtin_fs<Vfs::Zero_file_system>();
-			_add_builtin_fs<Vfs::Block_file_system>();
-			_add_builtin_fs<Vfs::Log_file_system>();
-			_add_builtin_fs<Vfs::Rom_file_system>();
-			_add_builtin_fs<Vfs::Inline_file_system>();
-			_add_builtin_fs<Vfs::Rtc_file_system>();
-		}
-};
 
 
 namespace Libc {
@@ -283,8 +157,6 @@ class Libc::Vfs_plugin : public Libc::Plugin
 {
 	private:
 
-		Libc_file_system_factory _fs_factory;
-
 		Vfs::Dir_file_system _root_dir;
 
 		Genode::Xml_node _vfs_config()
@@ -327,7 +199,7 @@ class Libc::Vfs_plugin : public Libc::Plugin
 		/**
 		 * Constructor
 		 */
-		Vfs_plugin() : _root_dir(_vfs_config(), _fs_factory)
+		Vfs_plugin() : _root_dir(_vfs_config(), Vfs::global_file_system_factory())
 		{
 			chdir(initial_cwd());
 
