@@ -543,16 +543,15 @@ extern "C" {
 	};
 
 
+	static Lock key_list_lock;
 	List<Key_element> key_list[PTHREAD_KEYS_MAX];
-
 
 	int pthread_key_create(pthread_key_t *key, void (*destructor)(void*))
 	{
-		static Lock key_list_lock;
-		Lock_guard<Lock> key_list_lock_guard(key_list_lock);
-
 		if (!key)
 			return EINVAL;
+
+		Lock_guard<Lock> key_list_lock_guard(key_list_lock);
 
 		for (int k = 0; k < PTHREAD_KEYS_MAX; k++) {
 			/*
@@ -571,9 +570,31 @@ extern "C" {
 	}
 
 
+	int pthread_key_delete(pthread_key_t key)
+	{
+		if (key < 0 || key >= PTHREAD_KEYS_MAX || !key_list[key].first())
+			return EINVAL;
+
+		Lock_guard<Lock> key_list_lock_guard(key_list_lock);
+
+		while (Key_element * element = key_list[key].first()) {
+			key_list[key].remove(element);
+			destroy(env()->heap(), element);
+		}
+
+		return 0;
+	}
+
+
 	int pthread_setspecific(pthread_key_t key, const void *value)
 	{
+		if (key < 0 || key >= PTHREAD_KEYS_MAX)
+			return EINVAL;
+
 		void *myself = Thread_base::myself();
+
+		Lock_guard<Lock> key_list_lock_guard(key_list_lock);
+
 		for (Key_element *key_element = key_list[key].first(); key_element;
 		     key_element = key_element->next())
 			if (key_element->thread_base == myself) {
@@ -590,7 +611,13 @@ extern "C" {
 
 	void *pthread_getspecific(pthread_key_t key)
 	{
+		if (key < 0 || key >= PTHREAD_KEYS_MAX)
+			return nullptr;
+
 		void *myself = Thread_base::myself();
+
+		Lock_guard<Lock> key_list_lock_guard(key_list_lock);
+
 		for (Key_element *key_element = key_list[key].first(); key_element;
 		     key_element = key_element->next())
 			if (key_element->thread_base == myself)
