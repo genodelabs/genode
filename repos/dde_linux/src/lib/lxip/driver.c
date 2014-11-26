@@ -34,9 +34,10 @@ int driver_net_xmit(struct sk_buff *skb, struct net_device *dev)
 	void* addr                     = skb->data;
 
 	/* transmit to nic-session */
-	while (net_tx(addr, len)) {
+	if (net_tx(addr, len)) {
 		/* tx queue is  full, could not enqueue packet */
-		printk("TX full\n");
+		pr_debug("TX packet dropped\n");
+		return NETDEV_TX_BUSY;
 	}
 
 	dev_kfree_skb(skb);
