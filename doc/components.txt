@@ -412,6 +412,14 @@ Separate components:
   by providing an encrypted connection to a remote host. It is plugged between
   NIC server (such as a network driver) and NIC client.
 
+:'os/src/server/input_merger':
+  A component that merges input events from multiple sources into a single
+  stream.
+
+:'gems/src/server/nit_fader':
+  A wrapper for nitpicker's session interface that applies alpha-blending to
+  the of views a nitpicker client.
+
 Libraries:
 
 :'libports/lib/mk/libc':
@@ -501,6 +509,10 @@ located in their respective directory.
 :'demo/src/app/launchpad':
   Graphical application for interactively starting and killing subsystems.
 
+:'gems/app/launcher': Graphical launcher of Genode subsystems.
+
+:'os/app/cli_monitor': Command-line-based launcher of Genode subsystems.
+
 :'demo/src/app/scout':
   Graphical hypertext browser used for Genode's default demonstration scenario.
 
@@ -552,7 +564,7 @@ Runtime environments
 :'ports-foc/src/l4android': L4Android is a variant of L4Linux that is able
   to execute the Android software stack on top of the Fiasco.OC kernel.
 
-:'ports/src/vancouver': Vancouver is a virtual-machine monitor developed for
+:'ports/src/app/seoul': Seoul is a virtual-machine monitor developed for
   the use with the NOVA platform. It virtualizes 32bit x86 PC hardware
   including various peripherals.
 
@@ -561,4 +573,6 @@ Runtime environments
   refer to 'os/src/server/loader/README'.
 
 :'ports/src/app/dosbox': A port of DosBox for executing DOS software.
+
+:'ports/src/virtualbox': VirtualBox running on top of the NOVA hypervisor.
 
