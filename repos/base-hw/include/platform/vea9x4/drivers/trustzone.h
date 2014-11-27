@@ -20,8 +20,8 @@
 namespace Trustzone
 {
 	enum {
-		SECURE_RAM_BASE    = Genode::Board_base::RAM_3_BASE,
-		SECURE_RAM_SIZE    = Genode::Board_base::RAM_3_SIZE,
+		SECURE_RAM_BASE    = Genode::Board_base::RAM_2_BASE,
+		SECURE_RAM_SIZE    = Genode::Board_base::RAM_2_SIZE,
 		NONSECURE_RAM_BASE = 0x80000000,
 		NONSECURE_RAM_SIZE = 0x20000000,
 	};
