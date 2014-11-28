@@ -123,7 +123,7 @@
         </Adapter>
       </Network>
       <UART>
-        <Port slot="0" enabled="false" IOBase="0x3f8" IRQ="4" hostMode="Disconnected"/>
+        <Port slot="0" enabled="false" IOBase="0x3f8" IRQ="4" path="/dev/terminal" hostMode="HostDevice"/>
         <Port slot="1" enabled="false" IOBase="0x2f8" IRQ="3" hostMode="Disconnected"/>
       </UART>
       <LPT>

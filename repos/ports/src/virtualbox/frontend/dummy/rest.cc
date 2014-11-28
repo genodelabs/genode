@@ -102,8 +102,14 @@ void DummyClass<Console>::fireStateChangedEvent(ComObjPtr<EventSource> const&,
                                                 MachineState_T)                 TRACE()
 template<>
 void DummyClass<Console>::fireRuntimeErrorEvent(ComObjPtr<EventSource> const&,
-                                                bool&, unsigned short*&,
-                                                unsigned short*&)               DUMMY()
+                                                bool aFatal, IN_BSTR aErrorID,
+                                                IN_BSTR aMessage)
+{
+	PERR("%s : %u %s %s", __func__, aFatal,
+	     Utf8Str(aErrorID).c_str(), Utf8Str(aMessage).c_str());
+
+	TRACE();
+}
 
 template<>
 void DummyClass<Machine>::fireHostPCIDevicePlugEvent(ComPtr<EventSource>&,

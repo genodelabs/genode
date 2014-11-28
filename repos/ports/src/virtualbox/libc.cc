@@ -118,6 +118,7 @@ extern "C" char *getenv(const char *name)
 //		               "+main.e.l.f"
 //		               "+hgcm.e.l.f"
 //		               "+shared_folders.e.l.f"
+//		               "+drv_host_serial.e.l.f"
 		               ;
 
 	if (Genode::strcmp(name, "VBOX_LOG_FLAGS") == 0 ||

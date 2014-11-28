@@ -11,7 +11,7 @@ SHA(virtualbox) := e4c23b713e8715b8e0172fa066f2197756e901fe
 PATCHES_LIST    := acpi_drv dev_e1000 eminternal fake_pci_vendor iconv mouse
 PATCHES_LIST    += pdm_driver pdm_queue_irqs sharedfolder_pagelist timer
 PATCHES_LIST    += time-log-deadlock vbetables-gen vbox_inc vbox_main network
-PATCHES_LIST    += vga_fb vga_vbva vmdk vmmdev avoid_yield
+PATCHES_LIST    += vga_fb vga_vbva vmdk vmmdev avoid_yield serial
 
 PATCHES         := $(addsuffix .patch, $(PATCHES_LIST))
 PATCHES         := $(addprefix src/virtualbox/patches/, $(PATCHES))

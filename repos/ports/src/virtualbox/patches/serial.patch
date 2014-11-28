@@ -1,0 +1,9 @@
++++ src/app/virtualbox/src/VBox/Devices/Serial/DrvHostSerial.cpp
+@@ -903,6 +903,7 @@
+             PDMDrvHlpVMSetRuntimeError(pDrvIns, 0 /*fFlags*/, "DrvHostSerialFail",
+                                        N_("Ioctl failed for serial host device '%s' (%Rrc). The device will not work properly"),
+                                        pThis->pszDevicePath, RTErrConvertFromErrno(errno));
++            pThread->enmState = PDMTHREADSTATE_TERMINATING;
+             break;
+         }
+ 

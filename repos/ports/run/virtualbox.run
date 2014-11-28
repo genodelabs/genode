@@ -1,4 +1,5 @@
 set use_net 0
+set use_serial 0
 
 set build_components {
 	core init virtualbox
@@ -7,11 +8,12 @@ set build_components {
 	drivers/timer
 }
 
-lappend_if [have_spec acpi]  build_components drivers/acpi
-lappend_if [have_spec pci]   build_components drivers/pci
-lappend_if [have_spec x86]   build_components drivers/rtc
+lappend_if [expr $use_serial] build_components server/log_terminal
+lappend_if [have_spec acpi]   build_components drivers/acpi
+lappend_if [have_spec pci]    build_components drivers/pci
+lappend_if [have_spec x86]    build_components drivers/rtc
 
-lappend_if [expr $use_net]   build_components drivers/nic
+lappend_if [expr $use_net]    build_components drivers/nic
 
 build $build_components
 
@@ -96,13 +98,27 @@ append_if [expr $use_net] config {
 	</start>
 }
 
+append_if [expr $use_serial] config {
+	<start name="log_terminal">
+		<resource name="RAM" quantum="2M"/>
+		<provides>
+			<service name="Terminal"/>
+		</provides>
+	</start>
+}
+
 append config {
 	<start name="virtualbox" priority="-2">
 		<resource name="RAM" quantum="448M"/>
 		<config vbox_file="test.vbox" vm_name="TestVM">
 			<libc stdout="/dev/log" stderr="/dev/log">
 				<vfs>
-					<dir name="dev"> <log/> </dir>
+					<dir name="dev"> <log/> </dir>}
+
+append_if [expr $use_serial] config {
+					<dir name="dev"> <terminal/> </dir>}
+
+append config {
 					<rom name="test.vbox" />
 					<dir name="VirtualBox VMs">
 						<dir name="TestVM">
@@ -136,7 +152,8 @@ append boot_modules {
 	libc_terminal.lib.so libiconv.lib.so stdcxx.lib.so
 }
 
-append_if [expr $use_net] boot_modules { nic_drv }
+append_if [expr $use_net]          boot_modules { nic_drv }
+append_if [expr $use_serial]       boot_modules { log_terminal }
 
 build_boot_image $boot_modules
 
