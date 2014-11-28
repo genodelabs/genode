@@ -4,6 +4,35 @@
                                ===========
 
 
+Genode OS Framework release 14.11 | 2014-11-28
+##############################################
+
+| With the availability of the Intel wireless stack in version 14.11,
+| we close one of the last functional gaps to use Genode on modern laptops.
+| Further highlights of the new version are the trading of CPU resources
+| between subsystems on top of our custom HW kernel, VirtualBox 4.3.16,
+| a new dynamic linker, and networking on the Raspberry Pi.
+
+Early on our long way towards the use of Genode as a general-purpose OS, we
+identified wireless networking as a crucial functionality. For a long time,
+however, we feared the topic because WiFi driver stacks are known to be
+extremely complex. In spring this year, we have finally started to port the
+Intel wireless stack from Linux to Genode. With the current release, we are
+proud to present the outcome of this activity as a new component on Genode.
+
+As the second major improvement of the new version, we added a new scheduler
+to our custom HW kernel that allows us to trade CPU resources between Genode
+subsystems, similarly to how memory is managed on Genode. Furthermore, the new
+version comes with an upgrade of VirtualBox on NOVA to version 4.3.16 along
+with profound stability improvements, a new dynamic linker with a complexity
+of less than 20% of the old one, added networking support for the Raspberry
+Pi, and new GUI components.
+
+The story behind our work on the WiFi stack as well as detailed information
+about all the other improvements are provided by the
+[http:/documentation/release-notes/14.11 - release documentation of version 14.11...]
+
+
 Article about building a simple seL4 root task | 2014-10-30
 ###########################################################
 
