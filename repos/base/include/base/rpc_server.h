@@ -107,22 +107,10 @@ namespace Genode {
 
 				if (opcode == Index_of<Rpc_functions, This_rpc_function>::Value) {
 
-					/*
-					 * Argument receive buffer
-					 *
-					 * To prevent the compiler from complaining about the
-					 * 'Server_args' data structure from being uninitialized,
-					 * we instantiate the variable as volatile and strip away
-					 * the volatile-ness when using it.
-					 */
-					struct {
-						typedef typename This_rpc_function::Server_args Data;
-						volatile Data _data;
-						Data &data() { return *(Data *)(&_data); }
-					} args;
+					typename This_rpc_function::Server_args args{};
 
 					/* read arguments from istream */
-					_read_args(is, args.data());
+					_read_args(is, args);
 
 					{
 						Trace::Rpc_dispatch trace_event(This_rpc_function::name());
@@ -137,7 +125,7 @@ namespace Genode {
 
 					typename This_rpc_function::Ret_type ret;
 					Rpc_exception_code exc;
-					exc = _do_serve(args.data(), ret, Overload_selector<This_rpc_function, Exceptions>());
+					exc = _do_serve(args, ret, Overload_selector<This_rpc_function, Exceptions>());
 					os << ret;
 
 					{
@@ -145,7 +133,7 @@ namespace Genode {
 					}
 
 					/* write results to ostream 'os' */
-					_write_results(os, args.data());
+					_write_results(os, args);
 
 					return exc;
 				}
