@@ -232,12 +232,25 @@ namespace {
 	int Plugin::fcntl(Libc::File_descriptor *pipefdo, int cmd, long arg)
 	{
 		switch (cmd) {
-			case F_GETFL:
-				if (is_write_end(pipefdo))
-					return O_WRONLY;
-				else
-					return O_RDONLY;
-			default: PERR("fcntl(): command %d not supported", cmd); return -1;
+		case F_GETFL:
+			if (is_write_end(pipefdo))
+				return O_WRONLY;
+			else
+				return O_RDONLY;
+		case F_SETFD:
+			{
+				const long supported_flags = FD_CLOEXEC;
+				/* if unsupported flags are used, fall through with error */
+				if (!(arg & ~supported_flags)) {
+					/* close fd if exec is called - no exec support -> ignore */
+					if (arg & FD_CLOEXEC)
+						return 0;
+				}
+			}
+		default:
+			PERR("fcntl(): command %d arg %ld not supported - pipe",
+			     cmd, arg);
+			return -1;
 		}
 	}
 
@@ -287,6 +300,7 @@ namespace {
 		FD_ZERO(readfds);
 		in_writefds = *writefds;
 		FD_ZERO(writefds);
+		FD_ZERO(exceptfds);
 
 		for (int libc_fd = 0; libc_fd < nfds; libc_fd++) {
 			fdo = Libc::file_descriptor_allocator()->find_by_libc_fd(libc_fd);

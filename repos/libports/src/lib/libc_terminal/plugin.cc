@@ -297,8 +297,21 @@ namespace {
 			int fcntl(Libc::File_descriptor *fd, int cmd, long arg)
 			{
 				switch (cmd) {
-					case F_GETFL: return context(fd)->status_flags();
-					default: PERR("fcntl(): command %d not supported", cmd); return -1;
+				case F_GETFL: return context(fd)->status_flags();
+				case F_SETFD:
+					{
+						const long supported_flags = FD_CLOEXEC;
+						/* if unsupported flags are used, fall through with error */
+						if (!(arg & ~supported_flags)) {
+							/* close fd if exec is called - no exec support -> ignore */
+							if (arg & FD_CLOEXEC)
+								return 0;
+						}
+					}
+				default:
+					PERR("fcntl(): command %d args %ld not supported - terminal",
+					     cmd, arg);
+					return -1;
 				}
 			}
 

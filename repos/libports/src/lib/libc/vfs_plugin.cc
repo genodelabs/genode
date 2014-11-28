@@ -818,7 +818,7 @@ int Libc::Vfs_plugin::fcntl(Libc::File_descriptor *fd, int cmd, long arg)
 		break;
 	}
 
-	PERR("fcntl(): command %d not supported", cmd);
+	PERR("fcntl(): command %d not supported - vfs", cmd);
 	errno = EINVAL;
 	return -1;
 }
