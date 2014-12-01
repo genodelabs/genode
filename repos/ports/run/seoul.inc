@@ -18,9 +18,9 @@ set build_components {
 	core init
 	drivers/timer
 	drivers/rtc
-	app/seoul
 	drivers/pci
 	drivers/input
+	app/seoul
 }
 
 if {$use_fancy_stuff} { set use_framebuffer 1 }
@@ -34,9 +34,12 @@ lappend_if $use_nic_session     build_components drivers/nic
 lappend_if $use_nic_bridge      build_components server/nic_bridge
 lappend_if $use_framebuffer     build_components drivers/framebuffer
 lappend_if $use_fancy_stuff     build_components server/nitpicker
+lappend_if $use_fancy_stuff     build_components app/pointer
+lappend_if $use_fancy_stuff     build_components app/status_bar
 lappend_if $use_fancy_stuff     build_components server/liquid_framebuffer
 lappend_if $use_fancy_stuff     build_components app/launchpad
 lappend_if $use_fancy_stuff     build_components server/nitlog
+lappend_if $use_fancy_stuff     build_components server/report_rom
 lappend_if $use_genode_iso      build_components server/iso9660
 lappend_if $use_genode_iso      build_components server/rom_blk
 
@@ -289,6 +292,22 @@ append_if $use_usb config {
 append_if $use_fancy_stuff config {
 	<start name="nitpicker" priority="-1">
 		<resource name="RAM" quantum="8M"/>
+		<config>
+			<report focus="yes" />
+			<domain name="pointer" layer="1" xray="no" origin="pointer" />
+			<domain name="panel"   layer="2" xray="no" />
+			<domain name=""        layer="3" ypos="18" height="-18" />
+
+			<policy label="pointer"    domain="pointer"/>
+			<policy label="status_bar" domain="panel"/>
+			<policy label=""           domain=""/>
+
+			<global-key name="KEY_SCROLLLOCK" operation="xray" />
+			<global-key name="KEY_SYSRQ"      operation="kill" />
+			<global-key name="KEY_PRINT"      operation="kill" />
+			<global-key name="KEY_F11"        operation="kill" />
+			<global-key name="KEY_F12"        operation="xray" />
+		</config>
 		<route>
 			<service name="Timer">      <child name="timer"/></service>
 			<service name="Framebuffer"><child name="fb_drv"/></service>
@@ -296,12 +315,31 @@ append_if $use_fancy_stuff config {
 		</route>
 		<provides><service name="Nitpicker"/></provides>
 	</start>
+	<start name="pointer">
+		<resource name="RAM" quantum="1M"/>
+	</start>
+	<start name="status_bar">
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="ROM"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="report_rom">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config>
+			<rom>
+				<policy label="status_bar -> focus" report="nitpicker -> focus"/>
+			</rom>
+		</config>
+	</start>
 	<start name="launchpad" priority="-2">
 		<resource name="RAM" quantum="64000M"/>
 		<configfile name="launchpad-config"/>
 		<route>
 			<service name="Nic"><child name="nic_bridge"/></service>
-			<any-service><any-child/><parent/></any-service>
+			<any-service><parent/><any-child/></any-service>
 		</route>
 	</start>}
 
@@ -394,11 +432,16 @@ lappend_if $use_block_sata    boot_modules ahci
 lappend_if $use_nic_session   boot_modules nic_drv
 lappend_if $use_nic_bridge    boot_modules nic_bridge
 lappend_if $use_framebuffer   boot_modules fb_drv
+
 lappend_if $use_fancy_stuff   boot_modules nitpicker
+lappend_if $use_fancy_stuff   boot_modules pointer
+lappend_if $use_fancy_stuff   boot_modules status_bar
 lappend_if $use_fancy_stuff   boot_modules liquid_fb
 lappend_if $use_fancy_stuff   boot_modules launchpad
 lappend_if $use_fancy_stuff   boot_modules nitlog
 lappend_if $use_fancy_stuff   boot_modules launchpad-config
+lappend_if $use_fancy_stuff   boot_modules report_rom
+
 lappend_if $use_genode_iso    boot_modules rom_blk
 lappend_if $use_genode_iso    boot_modules iso9660
 lappend_if $use_genode_iso    boot_modules genode.iso
