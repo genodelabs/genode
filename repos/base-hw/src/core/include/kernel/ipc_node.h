@@ -14,10 +14,8 @@
 #ifndef _KERNEL__IPC_NODE_H_
 #define _KERNEL__IPC_NODE_H_
 
-/* Genode includes */
-#include <util/fifo.h>
-
 /* core includes */
+#include <kernel/fifo.h>
 #include <assert.h>
 
 namespace Kernel
@@ -45,7 +43,7 @@ class Kernel::Ipc_node
 
 		class Message_buf;
 
-		typedef Genode::Fifo<Message_buf> Message_fifo;
+		typedef Kernel::Fifo<Message_buf> Message_fifo;
 
 		/**
 		 * Describes the buffer for incoming or outgoing messages
