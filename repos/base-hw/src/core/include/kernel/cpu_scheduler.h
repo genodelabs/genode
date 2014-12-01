@@ -99,6 +99,12 @@ class Kernel::Cpu_share : public Cpu_claim, public Cpu_fill
 		 */
 		Cpu_share(signed const p, unsigned const q)
 		: _prio(p), _quota(q), _claim(q), _ready(0) { }
+
+		/*
+		 * Accessors
+		 */
+
+		bool ready() const { return _ready; }
 };
 
 class Kernel::Cpu_scheduler

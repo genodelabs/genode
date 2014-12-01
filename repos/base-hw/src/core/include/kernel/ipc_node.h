@@ -61,6 +61,7 @@ class Kernel::Ipc_node
 		Message_buf  _inbuf;
 		Message_buf  _outbuf;
 		Ipc_node *   _outbuf_dst;
+		bool         _outbuf_dst_help;
 		State        _state;
 
 		/**
@@ -180,6 +181,15 @@ class Kernel::Ipc_node
 		}
 
 		/**
+		 * Return wether we are the source of a helping relationship
+		 */
+		bool _helps_outbuf_dst()
+		{
+			return (_state == PREPARE_AND_AWAIT_REPLY ||
+			        _state == AWAIT_REPLY) && _outbuf_dst_help;
+		}
+
+		/**
 		 * IPC node returned from waiting due to reply receipt
 		 */
 		virtual void _send_request_succeeded() = 0;
@@ -227,23 +237,28 @@ class Kernel::Ipc_node
 		 * \param buf_base  base of receive buffer and request message
 		 * \param buf_size  size of receive buffer
 		 * \param msg_size  size of request message
+		 * \param help      wether the request implies a helping relationship
 		 */
 		void send_request(Ipc_node * const dst, void * const buf_base,
-		                  size_t const buf_size, size_t const msg_size)
+		                  size_t const buf_size, size_t const msg_size,
+		                  bool help)
 		{
 			/* assertions */
 			assert(_state == INACTIVE || _state == PREPARE_REPLY);
 
 			/* prepare transmission of request message */
-			_outbuf.base = buf_base;
-			_outbuf.size = msg_size;
-			_outbuf.src  = this;
-			_outbuf_dst  = dst;
+			_outbuf.base     = buf_base;
+			_outbuf.size     = msg_size;
+			_outbuf.src      = this;
+			_outbuf_dst      = dst;
+			_outbuf_dst_help = 0;
 
-			/* prepare reception of reply message */
+			/*
+			 * Prepare reception of reply message but don't clear
+			 * '_inbuf.origin' because we might also prepare a reply.
+			 */
 			_inbuf.base = buf_base;
 			_inbuf.size = buf_size;
-			/* don't clear '_inbuf.origin' because we might prepare a reply */
 
 			/* update state */
 			if (_state != PREPARE_REPLY) { _state = AWAIT_REPLY; }
@@ -251,6 +266,29 @@ class Kernel::Ipc_node
 
 			/* announce request */
 			dst->_announce_request(&_outbuf);
+
+			/* set help relation after announcement to simplify scheduling */
+			_outbuf_dst_help = help;
+		}
+
+		/**
+		 * Return root destination of the helping-relation tree we are in
+		 */
+		Ipc_node * helping_sink() {
+			return _helps_outbuf_dst() ? _outbuf_dst->helping_sink() : this; }
+
+		/**
+		 * Call function 'f' of type 'void (Ipc_node *)' for each helper
+		 */
+		template <typename F> void for_each_helper(F f)
+		{
+			/* if we have a helper in the receive buffer, call 'f' for it */
+			if (_state == PREPARE_REPLY || _state == PREPARE_AND_AWAIT_REPLY) {
+				if (_inbuf.src->_outbuf_dst_help) { f(_inbuf.src); } }
+
+			/* call 'f' for each helper in our request queue */
+			_request_queue.for_each([f] (Message_buf * const b) {
+				if (b->src->_outbuf_dst_help) { f(b->src); } });
 		}
 
 		/**

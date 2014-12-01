@@ -109,19 +109,24 @@ class Kernel::Cpu_job : public Cpu_share
 		void _interrupt(unsigned const id);
 
 		/**
-		 * Insert context into the scheduling of this CPU
+		 * Activate our own CPU-share
 		 */
-		void _schedule();
+		void _activate_own_share();
 
 		/**
-		 * Remove context from the scheduling of this CPU
+		 * Deactivate our own CPU-share
 		 */
-		void _unschedule();
+		void _deactivate_own_share();
 
 		/**
 		 * Yield the currently scheduled CPU share of this context
 		 */
 		void _yield();
+
+		/**
+		 * Return wether we are allowed to help job 'j' with our CPU-share
+		 */
+		bool _helping_possible(Cpu_job * const j) { return j->_cpu == _cpu; }
 
 	public:
 
@@ -134,6 +139,11 @@ class Kernel::Cpu_job : public Cpu_share
 		 * Continue execution on CPU 'id'
 		 */
 		virtual void proceed(unsigned const id) = 0;
+
+		/**
+		 * Return which job currently uses our CPU-share
+		 */
+		virtual Cpu_job * helping_sink() = 0;
 
 		/**
 		 * Construct a job with scheduling priority 'p' and time quota 'q'
@@ -150,6 +160,11 @@ class Kernel::Cpu_job : public Cpu_share
 		 * Link job to CPU 'cpu'
 		 */
 		void affinity(Cpu * const cpu);
+
+		/**
+		 * Return wether our CPU-share is currently active
+		 */
+		bool own_share_active() { return Cpu_share::ready(); }
 
 		/***************
 		 ** Accessors **
@@ -179,9 +194,11 @@ class Kernel::Cpu_idle : public Genode::Cpu::User_context, public Cpu_job
 		 */
 		Cpu_idle(Cpu * const cpu);
 
-		/**
-		 * Handle exception that occured during execution on CPU 'cpu'
+
+		/*
+		 * Cpu_job interface
 		 */
+
 		void exception(unsigned const cpu)
 		{
 			switch (cpu_exception) {
@@ -191,10 +208,8 @@ class Kernel::Cpu_idle : public Genode::Cpu::User_context, public Cpu_job
 			default: assert(0); }
 		}
 
-		/**
-		 * Continue execution on CPU 'cpu_id'
-		 */
 		void proceed(unsigned const cpu_id);
+		Cpu_job * helping_sink() { return this; }
 };
 
 class Kernel::Cpu : public Genode::Cpu
@@ -211,7 +226,8 @@ class Kernel::Cpu : public Genode::Cpu
 
 		unsigned _quota() const { return _timer->ms_to_tics(cpu_quota_ms); }
 		unsigned _fill() const { return _timer->ms_to_tics(cpu_fill_ms); }
-		Job * _head() const { return static_cast<Job *>(_scheduler.head()); }
+		Job * _scheduled_job() const {
+			return static_cast<Job *>(_scheduler.head())->helping_sink(); }
 
 	public:
 
@@ -250,7 +266,7 @@ class Kernel::Cpu : public Genode::Cpu
 		void exception()
 		{
 			/* update old job */
-			Job * const old_job = _head();
+			Job * const old_job = _scheduled_job();
 			old_job->exception(_id);
 
 			/* update scheduler */
@@ -260,7 +276,7 @@ class Kernel::Cpu : public Genode::Cpu
 			_scheduler.update(quota);
 
 			/* get new job */
-			Job * const new_job = _head();
+			Job * const new_job = _scheduled_job();
 			quota = _scheduler.head_quota();
 			assert(quota);
 			_timer->start_one_shot(quota, _id);

@@ -65,12 +65,16 @@ namespace Kernel
  ** Cpu_job **
  *************/
 
-Cpu_job::~Cpu_job() { if (_cpu) { _cpu->scheduler()->remove(this); } }
+Cpu_job::~Cpu_job()
+{
+	if (!_cpu) { return; }
+	_cpu->scheduler()->remove(this);
+}
 
-void Cpu_job::_schedule() { _cpu->schedule(this); }
+void Cpu_job::_activate_own_share() { _cpu->schedule(this); }
 
 
-void Cpu_job::_unschedule()
+void Cpu_job::_deactivate_own_share()
 {
 	assert(_cpu->id() == Cpu::executing_id());
 	_cpu->scheduler()->unready(this);

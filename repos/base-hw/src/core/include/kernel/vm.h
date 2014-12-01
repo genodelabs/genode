@@ -68,8 +68,8 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 		 ** Vm_session **
 		 ****************/
 
-		void run()   { Cpu_job::_schedule(); }
-		void pause() { Cpu_job::_unschedule(); }
+		void run()   { Cpu_job::_activate_own_share(); }
+		void pause() { Cpu_job::_deactivate_own_share(); }
 
 
 		/*************
@@ -86,12 +86,13 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 			case Genode::Cpu_state::DATA_ABORT:
 				_state->dfar = Cpu::Dfar::read();
 			default:
-				Cpu_job::_unschedule();
+				Cpu_job::_deactivate_own_share();
 				_context->submit(1);
 			}
 		}
 
 		void proceed(unsigned const cpu) { mtc()->continue_vm(_state, cpu); }
+		Cpu_job * helping_sink() { return this; }
 };
 
 #endif /* _KERNEL__VM_H_ */

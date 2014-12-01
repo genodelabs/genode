@@ -44,8 +44,8 @@ class Kernel::Thread
 :
 	public Cpu::User_context,
 	public Object<Thread, MAX_THREADS, Thread_ids, thread_ids, thread_pool>,
-	public Cpu_job, public Cpu_domain_update, public Ipc_node,
-	public Signal_context_killer, public Signal_handler, public Thread_base
+	public Cpu_domain_update, public Ipc_node, public Signal_context_killer,
+	public Signal_handler, public Thread_base, public Cpu_job
 {
 	friend class Thread_event;
 
@@ -111,6 +111,16 @@ class Kernel::Thread
 		 * Switch from the active state to the inactive state 's'
 		 */
 		void _become_inactive(State const s);
+
+		/**
+		 * Activate our CPU-share and those of our helpers
+		 */
+		void _activate_used_shares();
+
+		/**
+		 * Deactivate our CPU-share and those of our helpers
+		 */
+		void _deactivate_used_shares();
 
 		/**
 		 * Pause execution
@@ -294,6 +304,7 @@ class Kernel::Thread
 
 		void exception(unsigned const cpu);
 		void proceed(unsigned const cpu);
+		Cpu_job * helping_sink();
 
 
 		/***************

@@ -74,7 +74,8 @@ void Thread::_send_request_succeeded()
 {
 	assert(_state == AWAITS_IPC);
 	user_arg_0(0);
-	_become_active();
+	_state = ACTIVE;
+	if (!Cpu_job::own_share_active()) { _activate_used_shares(); }
 }
 
 
@@ -82,7 +83,8 @@ void Thread::_send_request_failed()
 {
 	assert(_state == AWAITS_IPC);
 	user_arg_0(-1);
-	_become_active();
+	_state = ACTIVE;
+	if (!Cpu_job::own_share_active()) { _activate_used_shares(); }
 }
 
 
@@ -129,18 +131,30 @@ void Thread::_pause()
 	_become_inactive(AWAITS_RESUME);
 }
 
+void Thread::_deactivate_used_shares()
+{
+	Cpu_job::_deactivate_own_share();
+	Ipc_node::for_each_helper([&] (Ipc_node * const h) {
+		static_cast<Thread *>(h)->_deactivate_used_shares(); });
+}
+
+void Thread::_activate_used_shares()
+{
+	Cpu_job::_activate_own_share();
+	Ipc_node::for_each_helper([&] (Ipc_node * const h) {
+		static_cast<Thread *>(h)->_activate_used_shares(); });
+}
 
 void Thread::_become_active()
 {
-	if (_state == ACTIVE) { return; }
-	Cpu_job::_schedule();
+	if (_state != ACTIVE) { _activate_used_shares(); }
 	_state = ACTIVE;
 }
 
 
 void Thread::_become_inactive(State const s)
 {
-	if (_state == ACTIVE) { Cpu_job::_unschedule(); }
+	if (_state == ACTIVE) { _deactivate_used_shares(); }
 	_state = s;
 }
 
@@ -148,7 +162,7 @@ void Thread::_become_inactive(State const s)
 Thread::Thread(unsigned const priority, unsigned const quota,
                char const * const label)
 :
-	Cpu_job(priority, quota), Thread_base(this), _state(AWAITS_START), _pd(0),
+	Thread_base(this), Cpu_job(priority, quota), _state(AWAITS_START), _pd(0),
 	_utcb_phys(0), _signal_receiver(0), _label(label)
 { cpu_exception = RESET; }
 
@@ -179,6 +193,10 @@ void Thread::init(Cpu * const cpu, Pd * const pd,
 
 
 void Thread::_stop() { _become_inactive(STOPPED); }
+
+
+Cpu_job * Thread::helping_sink() {
+	return static_cast<Thread *>(Ipc_node::helping_sink()); }
 
 
 void Thread::exception(unsigned const cpu)
@@ -411,11 +429,13 @@ void Thread::_call_send_request_msg()
 		_become_inactive(AWAITS_IPC);
 		return;
 	}
+	bool const help = Cpu_job::_helping_possible(dst);
 	void * buf_base;
 	size_t buf_size, msg_size;
 	_utcb_phys->message()->request_info(buf_base, buf_size, msg_size);
-	Ipc_node::send_request(dst, buf_base, buf_size, msg_size);
-	_become_inactive(AWAITS_IPC);
+	_state = AWAITS_IPC;
+	Ipc_node::send_request(dst, buf_base, buf_size, msg_size, help);
+	if (!help || !dst->own_share_active()) { _deactivate_used_shares(); }
 }
 
 
