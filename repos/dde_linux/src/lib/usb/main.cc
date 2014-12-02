@@ -39,10 +39,11 @@ extern "C" void module_hid_init();
 extern "C" void module_hid_init_core();
 extern "C" void module_hid_generic_init();
 extern "C" void module_usb_storage_driver_init();
+extern "C" void module_wacom_driver_init();
 extern "C" void module_ch_driver_init();
 extern "C" void module_mt_driver_init();
 
-extern "C" void start_input_service(void *ep);
+extern "C" void start_input_service(void *ep, unsigned long, unsigned long);
 
 Routine *Routine::_current    = 0;
 Routine *Routine::_dead       = 0;
@@ -71,6 +72,7 @@ static void init(Services *services)
 		module_hid_generic_init();
 		module_ch_driver_init();
 		module_mt_driver_init();
+		module_wacom_driver_init();
 	}
 
 	/* host controller */
@@ -87,7 +89,7 @@ void start_usb_driver(Server::Entrypoint &ep)
 	Services services;
 
 	if (services.hid)
-		start_input_service(&ep.rpc_ep());
+		start_input_service(&ep.rpc_ep(), services.screen_x, services.screen_y);
 
 	Timer::init(ep);
 	Irq::init(ep);

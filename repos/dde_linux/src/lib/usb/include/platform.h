@@ -32,15 +32,32 @@ struct Services
 	bool ehci; /* 2.0 */
 	bool xhci; /* 3.0 */
 
+	/*
+	 * Screen resolution used by touch devices to convert touchscreen
+	 * absolute coordinates to screen absolute coordinates
+	 */
+	unsigned long screen_x;
+	unsigned long screen_y;
+
 	Services()
 	: hid(false),  stor(false), nic(false),
-	  uhci(false), ehci(false), xhci(false)
+	  uhci(false), ehci(false), xhci(false),
+	  screen_x(0), screen_y(0)
 	{
 		using namespace Genode;
 
 		try {
-			config()->xml_node().sub_node("hid");
+			Genode::Xml_node node_hid = config()->xml_node().sub_node("hid");
 			hid = true;
+
+			try {
+				Genode::Xml_node node_screen = node_hid.sub_node("screen");
+				node_screen.attribute("x").value(&screen_x);
+				node_screen.attribute("y").value(&screen_y);
+			} catch (...) {
+				screen_x = screen_y = 0;
+				PDBG("Could not read screen resolution in config node");
+			}
 		} catch (Xml_node::Nonexistent_sub_node) {
 			PDBG("No <hid> config node found - not starting the USB HID (Input) service");
 		}

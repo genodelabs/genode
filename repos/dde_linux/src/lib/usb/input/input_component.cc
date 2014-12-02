@@ -75,11 +75,11 @@ static void input_callback(enum input_event_type type,
 }
 
 
-void start_input_service(void *ep_ptr)
+void start_input_service(void *ep_ptr, unsigned long res_x, unsigned long res_y)
 {
 	Rpc_entrypoint *ep = static_cast<Rpc_entrypoint *>(ep_ptr);
 
 	env()->parent()->announce(ep->manage(&input_root(ep)));
 
-	genode_input_register(input_callback);
+	genode_input_register(input_callback, res_x, res_y);
 }

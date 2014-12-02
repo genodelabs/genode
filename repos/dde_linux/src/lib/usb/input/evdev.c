@@ -28,6 +28,10 @@
 /* Callback function to Genode subsystem */
 static genode_input_event_cb handler;;
 
+static unsigned long screen_x = 0;
+static unsigned long screen_y = 0;
+
+
 void genode_evdev_event(struct input_handle *handle, unsigned int type,
                         unsigned int code, int value)
 {
@@ -97,8 +101,30 @@ void genode_evdev_event(struct input_handle *handle, unsigned int type,
 			 * axis.
 			 */
 			arg_type = EVENT_TYPE_MOTION;
-			arg_ay = value;
 			arg_ax = last_ax;
+			arg_ay = value;
+
+			/* transform if requested */
+			if (screen_x && screen_y) {
+				int const min_x_dev  = input_abs_get_min(handle->dev, ABS_X);
+				int const min_y_dev  = input_abs_get_min(handle->dev, ABS_Y);
+				int const max_x_dev  = input_abs_get_max(handle->dev, ABS_X);
+				int const max_y_dev  = input_abs_get_max(handle->dev, ABS_Y);
+				int const max_y_norm = max_y_dev - min_y_dev;
+				int const max_x_norm = max_x_dev - min_x_dev;
+
+				if ((max_x_norm == 0)     || (max_y_norm == 0)   ||
+				    (last_ax < min_x_dev) || (value < min_y_dev) ||
+				    (last_ax > max_x_dev) || (value > max_y_dev))
+				{
+					printk("Ignore input source with coordinates out of range\n");
+					return;
+				}
+
+				arg_ax = screen_x * (last_ax - min_x_dev) / (max_x_norm);
+				arg_ay = screen_y * (value   - min_y_dev) / (max_y_norm);
+			}
+
 			last_ax = -1;
 			if (arg_ax == -1) {
 				printk("Ignore absolute Y event without a preceeding X event\n");
@@ -160,10 +186,18 @@ void genode_evdev_event(struct input_handle *handle, unsigned int type,
 		handler(arg_type, arg_keycode, arg_ax, arg_ay, arg_rx, arg_ry);
 
 #if DEBUG_EVDEV
-	printk("event[%ld]. dev: %s, type: %d, code: %d, value: %d\n",
-	       count++, handle->dev->name, type, code, value);
+	printk("event[%ld]. dev: %s, type: %d, code: %d, value: %d a=%d,%d "
+	       "r=%d,%d\n", count++, handle->dev->name, type, code, value, arg_ax,
+	       arg_ay, arg_rx, arg_ry);
 #endif
 }
 
-void genode_input_register(genode_input_event_cb h) { handler = h; }
 
+void genode_input_register(genode_input_event_cb h, unsigned long res_x,
+                           unsigned long res_y)
+{
+	handler = h;
+
+	screen_x = res_x;
+	screen_y = res_y;
+}

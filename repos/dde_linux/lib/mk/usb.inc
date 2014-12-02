@@ -37,6 +37,9 @@ CC_CXX_OPT = -fpermissive
 MOD_SUFFIX =
 CC_OPT += -DMOD_SUFFIX=$(MOD_SUFFIX)
 
+# common lib
+SRC_C += lib/int_sqrt.c
+
 # USB core
 SRC_C += $(addprefix usb/core/,$(notdir $(wildcard $(USB_DIR)/core/*.c)))
 SRC_C += usb/usb-common.c
@@ -46,8 +49,10 @@ SRC_C += $(addprefix usb/host/, ehci-hcd.c)
 
 # USB hid
 SRC_C += $(addprefix hid/usbhid/, hid-core.c hid-quirks.c)
-SRC_C += $(addprefix hid/,        hid-core.c hid-generic.c hid-input.c hid-cherry.c hid-multitouch.c)
+SRC_C += $(addprefix hid/,        hid-core.c hid-generic.c hid-input.c \
+                                  hid-cherry.c hid-multitouch.c)
 SRC_C += $(addprefix input/,      evdev.c input.c input-mt.c)
+SRC_C += $(addprefix input/,      tablet/wacom_sys.c tablet/wacom_wac.c)
 
 # USB storage
 SRC_C += $(addprefix usb/storage/,scsiglue.c protocol.c transport.c usb.c \
@@ -105,5 +110,6 @@ vpath %.cc $(LIB_DIR)/input
 vpath %.cc $(LIB_DIR)/storage
 vpath %.c  $(LIB_DIR)/storage
 vpath %.cc $(LIB_DIR)/nic
+vpath lib/int_sqrt.c $(LX_CONTRIB_DIR)
 
 # vi: set ft=make :

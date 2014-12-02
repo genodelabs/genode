@@ -540,16 +540,32 @@ int    strcmp(const char *s1, const char *s2) { return Genode::strcmp(s1, s2); }
 size_t strlen(const char *s) { return Genode::strlen(s); }
 
 
-size_t strlcat(char *dest, const char *src, size_t n)
+size_t strlcat(char *dest, const char *src, size_t dest_size)
 {
-	size_t len = strlen(dest);
+	size_t len_d = strlen(dest);
+	size_t len_s = strlen(src);
 
-	if (len >= n)
-		len = n - 1;
+	if (len_d > dest_size)
+		return 0;
 
-	memcpy(dest, src, len);
-	dest[len] = 0;
+	size_t len = dest_size - len_d - 1;
+
+	memcpy(dest + len_d, src, len);
+	dest[len_d + len] = 0;
 	return len;
+}
+
+
+size_t strlcpy(char *dest, const char *src, size_t size)
+{
+	size_t ret = strlen(src);
+
+	if (size) {
+		size_t len = (ret >= size) ? size - 1 : ret;
+		Genode::memcpy(dest, src, len);
+		dest[len] = '\0';
+	}
+	return ret;
 }
 
 
