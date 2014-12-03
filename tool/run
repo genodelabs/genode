@@ -791,7 +791,7 @@ proc power_plug_connect {} {
 
 	spawn telnet $server_ip 1234
 	set connection_id $spawn_id
-	expect -i $connection_id "KSHELL V1.3"
+	expect -i $connection_id "KSHELL V1.*"
 	send -i $connection_id "login $user_name $password\n"
 	expect -i $connection_id "250 OK"
 
@@ -887,7 +887,9 @@ proc spawn_serial { wait_for_re timeout_value kernel_msg } {
 			jtag_load
 		}
 
-		eval spawn $serial_cmd
+		# pipe the serial output through 'tr', sometimes expect steps out due to
+		# unexpected pipe behaviour and reports EOF although the pipe is still active
+		eval spawn sh -c \"$serial_cmd | tr a a\"
 		set serial_spawn_id $spawn_id
 
 		set timeout 210
