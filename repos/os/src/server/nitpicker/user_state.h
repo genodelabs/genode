@@ -71,7 +71,9 @@ class User_state : public Mode, public View_stack
 		/**
 		 * Accessors
 		 */
-		Point pointer_pos() { return _pointer_pos; }
+		Point    pointer_pos()     { return _pointer_pos; }
+		Session *pointed_session() { return _pointed_session; }
+
 
 		/**
 		 * (Re-)apply origin policy to all views
