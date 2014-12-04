@@ -155,6 +155,7 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 
 		/* for QNitpickerViewWidget */
 
+		Nitpicker::Session_client &nitpicker();
 		Nitpicker::View_capability view_cap() const;
 
 	signals:

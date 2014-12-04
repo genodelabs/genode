@@ -573,6 +573,11 @@ void QNitpickerPlatformWindow::egl_surface(EGLSurface egl_surface)
 	_egl_surface = egl_surface;
 }
 
+Nitpicker::Session_client &QNitpickerPlatformWindow::nitpicker()
+{
+	return _nitpicker_session;
+}
+
 Nitpicker::View_capability QNitpickerPlatformWindow::view_cap() const
 {
 	QNitpickerPlatformWindow *npw = const_cast<QNitpickerPlatformWindow *>(this);

@@ -75,6 +75,7 @@ protected:
 	virtual void showEvent(QShowEvent *event);
 	virtual void hideEvent(QHideEvent *event);
 	virtual void paintEvent(QPaintEvent *event);
+	virtual void focusInEvent(QFocusEvent * event);
 
 public:
 

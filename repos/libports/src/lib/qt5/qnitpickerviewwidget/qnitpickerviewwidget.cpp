@@ -226,3 +226,11 @@ void QNitpickerViewWidget::paintEvent(QPaintEvent *event)
 	nitpicker->release_view_handle(neighbor_handle);
 }
 
+
+void QNitpickerViewWidget::focusInEvent(QFocusEvent *)
+{
+	QNitpickerPlatformWindow *platform_window =
+		dynamic_cast<QNitpickerPlatformWindow*>(window()->windowHandle()->handle());
+
+	platform_window->nitpicker().focus(*nitpicker);
+}
