@@ -882,3 +882,29 @@
  		if (lq_sta->search_better_tbl) {
  			/* revert to active table if search table is not valid*/
  			tbl->lq_type = LQ_NONE;
+--- a/drivers/net/wireless/iwlwifi/mvm/ops.c
++++ b/drivers/net/wireless/iwlwifi/mvm/ops.c
+@@ -385,6 +385,11 @@
+ 	trans_cfg.n_no_reclaim_cmds = ARRAY_SIZE(no_reclaim_cmds);
+ 	trans_cfg.rx_buf_size_8k = iwlwifi_mod_params.amsdu_size_8K;
+ 
++	if (mvm->fw->ucode_capa.flags & IWL_UCODE_TLV_FLAGS_PM_CMD_SUPPORT)
++		mvm->pm_ops = &pm_mac_ops;
++	else
++		mvm->pm_ops = &pm_legacy_ops;
++
+ 	if (mvm->fw->ucode_capa.flags & IWL_UCODE_TLV_FLAGS_DW_BC_TABLE)
+ 		trans_cfg.bc_table_dword = true;
+ 
+@@ -462,11 +467,6 @@
+ 	if (err)
+ 		goto out_unregister;
+ 
+-	if (mvm->fw->ucode_capa.flags & IWL_UCODE_TLV_FLAGS_PM_CMD_SUPPORT)
+-		mvm->pm_ops = &pm_mac_ops;
+-	else
+-		mvm->pm_ops = &pm_legacy_ops;
+-
+ 	memset(&mvm->rx_stats, 0, sizeof(struct mvm_statistics_rx));
+ 
+ 	return op_mode;
