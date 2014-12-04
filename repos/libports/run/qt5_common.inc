@@ -55,6 +55,20 @@ proc qt5_start_nodes { feature_arg } {
 		<start name="nitpicker">
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Nitpicker"/></provides>
+			<route> }
+	append_if [use_fb_sdl feature] start_nodes { 
+				<service name="Framebuffer"> <child name="fb_sdl" /> </service>
+				<service name="Input"> <child name="fb_sdl" /> </service>
+	}
+	append_if [use_fb_drv feature] start_nodes {
+				<service name="Framebuffer"> <child name="fb_drv" /> </service>
+	}
+	append_if [use_ps2_drv feature] start_nodes {
+				<service name="Input"> <child name="ps2_drv" /> </service>
+	}
+	append start_nodes {
+				<any-service> <parent /> <any-child /> </any-service>
+			</route>
 			<config>
 				<domain name="pointer"   layer="1" xray="no" origin="pointer" />
 				<domain name="decorator" layer="2" xray="opaque" />
