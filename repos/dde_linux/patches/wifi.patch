@@ -908,3 +908,14 @@
  	memset(&mvm->rx_stats, 0, sizeof(struct mvm_statistics_rx));
  
  	return op_mode;
+--- a/drivers/net/wireless/iwlwifi/mvm/mac80211.c
++++ b/drivers/net/wireless/iwlwifi/mvm/mac80211.c
+@@ -1923,7 +1923,7 @@
+ 	.add_interface = iwl_mvm_mac_add_interface,
+ 	.remove_interface = iwl_mvm_mac_remove_interface,
+ 	.config = iwl_mvm_mac_config,
+-	.prepare_multicast = iwl_mvm_prepare_multicast,
++	.prepare_multicast = 0,
+ 	.configure_filter = iwl_mvm_configure_filter,
+ 	.bss_info_changed = iwl_mvm_bss_info_changed,
+ 	.hw_scan = iwl_mvm_mac_hw_scan,
