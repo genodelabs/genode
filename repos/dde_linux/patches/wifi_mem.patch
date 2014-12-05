@@ -80,3 +80,45 @@
  	/*
  	 * Try a regular allocation, when that fails and we're not entitled
  	 * to the reserves, fail.
+--- a/drivers/net/wireless/iwlwifi/mvm/bt-coex.c
++++ b/drivers/net/wireless/iwlwifi/mvm/bt-coex.c
+@@ -365,7 +365,7 @@
+ 	if (!(mvm->fw->ucode_capa.flags & IWL_UCODE_TLV_FLAGS_NEWBT_COEX))
+ 		return 0;
+ 
+-	bt_cmd = kzalloc(sizeof(*bt_cmd), GFP_KERNEL);
++	bt_cmd = kzalloc(sizeof(*bt_cmd), GFP_KERNEL | GFP_LX_DMA);
+ 	if (!bt_cmd)
+ 		return -ENOMEM;
+ 	cmd.data[0] = bt_cmd;
+@@ -467,7 +467,7 @@
+ 
+ 	mvm->bt_kill_msk = bt_kill_msk;
+ 
+-	bt_cmd = kzalloc(sizeof(*bt_cmd), GFP_KERNEL);
++	bt_cmd = kzalloc(sizeof(*bt_cmd), GFP_KERNEL | GFP_LX_DMA);
+ 	if (!bt_cmd)
+ 		return -ENOMEM;
+ 	cmd.data[0] = bt_cmd;
+--- a/drivers/net/wireless/iwlwifi/iwl-phy-db.c
++++ a/drivers/net/wireless/iwlwifi/iwl-phy-db.c
+@@ -233,7 +233,7 @@
+ 		return -EINVAL;
+ 
+ 	kfree(entry->data);
+-	entry->data = kmemdup(phy_db_notif->data, size, alloc_ctx);
++	entry->data = kmemdup(phy_db_notif->data, size, alloc_ctx | GFP_LX_DMA);
+ 	if (!entry->data) {
+ 		entry->size = 0;
+ 		return -ENOMEM;
+--- a/drivers/net/wireless/iwlwifi/mvm/ops.c
++++ b/drivers/net/wireless/iwlwifi/mvm/ops.c
+@@ -450,7 +450,7 @@
+ 	scan_size = sizeof(struct iwl_scan_cmd) +
+ 		mvm->fw->ucode_capa.max_probe_length +
+ 		(MAX_NUM_SCAN_CHANNELS * sizeof(struct iwl_scan_channel));
+-	mvm->scan_cmd = kmalloc(scan_size, GFP_KERNEL);
++	mvm->scan_cmd = kmalloc(scan_size, GFP_KERNEL | GFP_LX_DMA);
+ 	if (!mvm->scan_cmd)
+ 		goto out_free;
+ 
