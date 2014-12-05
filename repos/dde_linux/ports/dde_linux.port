@@ -6,8 +6,11 @@ DOWNLOADS   := dwc_otg.git usb.archive lxip.archive wifi.archive \
 #
 # Tools
 #
-FLEX        ?= flex
-YACC        ?= bison
+$(call check_tool,flex)
+$(call check_tool,bison)
+
+FLEX = flex
+YACC = bison
 
 #
 # The git checkout checks for the existence of SRC_DIR, which is created by the
