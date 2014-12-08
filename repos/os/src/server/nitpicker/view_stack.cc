@@ -284,7 +284,7 @@ void View_stack::stack(View &view, View const *neighbor, bool behind)
 
 	_place_labels(view.abs_geometry());
 
-	_mark_view_as_dirty(view, _outline(view));
+	refresh_view(view, _outline(view));
 }
 
 
