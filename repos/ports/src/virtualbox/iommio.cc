@@ -116,8 +116,26 @@ VMMDECL(VBOXSTRICTRC) IOMMMIOWrite(PVM pVM, PVMCPU, RTGCPHYS GCPhys,
 
 	/*
 	 * Check whether access is unaligned or access width is less than device
-	 * supports. See original IOMMIOWrite & iomMMIODoComplicatedWrite of VBox.
+	 * supports. See original IOMMMIOWrite & iomMMIODoComplicatedWrite of VBox.
 	 */
+	if (rc == VERR_IOM_NOT_MMIO_RANGE_OWNER) {
+
+		/* implement what we need to - extend by need */
+
+		Assert((GCPhys & 3U) == 0);
+		Assert(cbValue == 1);
+
+		uint32_t value;
+
+		rc = guest_memory()->mmio_read(GCPhys, &value, sizeof(value));
+		Assert(rc == VINF_SUCCESS);
+
+		value &= 0xffffff00;
+		value |= (u32Value & 0x000000ff);
+
+		rc = guest_memory()->mmio_write(GCPhys, value, sizeof(value));
+	}
+
 	Assert(rc != VERR_IOM_NOT_MMIO_RANGE_OWNER);
 
 	IOM_UNLOCK_SHARED(pVM);
@@ -136,7 +154,7 @@ VMMDECL(VBOXSTRICTRC) IOMMMIORead(PVM pVM, PVMCPU, RTGCPHYS GCPhys,
 
 	/*
 	 * Check whether access is unaligned or access width is less than device
-	 * supports. See original IOMMIORead & iomMMIODoComplicatedRead of VBox.
+	 * supports. See original IOMMMIORead & iomMMIODoComplicatedRead of VBox.
 	 */
 	if (rc == VERR_IOM_NOT_MMIO_RANGE_OWNER) {
 		/* implement what we need to - extend by need */
