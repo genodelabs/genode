@@ -48,7 +48,7 @@ class Genodefb : public Framebuffer
 			if (!width)
 				return E_INVALIDARG;
 
-			*width = _width;
+			*width = _width > _fb_mode.width() ? _fb_mode.width() : _width;
 			return S_OK;
 		}
 		
@@ -57,7 +57,7 @@ class Genodefb : public Framebuffer
 			if (!height)
 				return E_INVALIDARG;
 
-			*height = _height;
+			*height = _height > _fb_mode.height() ? _fb_mode.height() : _height;
 			return S_OK;
 		}
 
@@ -113,17 +113,17 @@ class Genodefb : public Framebuffer
 			bool ok = ((bitsPerPixel == 16) || (bitsPerPixel == 0)) &&
 			          (w <= (ULONG)_fb_mode.width()) &&
 			          (h <= (ULONG)_fb_mode.height());
-
-			if (ok) {
+			if (ok)
 				PINF("fb resize : %lux%lu@%zu -> %ux%u@%u", _width, _height,
 				     _fb_mode.bytes_per_pixel() * 8, w, h, bitsPerPixel);
-				_width  = w;
-				_height = h;
-			} else
-				PERR("Could not resize to %ux%u - %u bpp, %u bpl, vram %p",
-				     w, h, bitsPerPixel, bytesPerLine, vram);
+			else
+				PWRN("fb resize : %lux%lu@%zu -> %ux%u@%u ignored", _width, _height,
+				     _fb_mode.bytes_per_pixel() * 8, w, h, bitsPerPixel);
 
-			*finished = ok;
+			_width  = w;
+			_height = h;
+
+			*finished = true;
 
 			return S_OK;
 		}
