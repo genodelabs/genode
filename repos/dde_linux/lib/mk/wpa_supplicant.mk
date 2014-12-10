@@ -10,7 +10,8 @@ CC_OPT += -Wno-unused-function
 
 CC_CXX_OPT += -fpermissive
 
-SRC_C += main.c
+SRC_C  += main.c
+SRC_CC += reporter.cc
 
 # wpa_supplicant
 SRC_C_wpa_supplicant = blacklist.c      \
@@ -103,4 +104,5 @@ INC_DIR += $(WS_CONTRIB_DIR)/src/utils
 CC_OPT  += -DCONFIG_ELOOP_POLL
 
 vpath %.c  $(WS_CONTRIB_DIR)
-vpath %.c $(WS_DIR)
+vpath %.c  $(WS_DIR)
+vpath %.cc $(WS_DIR)

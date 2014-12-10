@@ -131,3 +131,45 @@ Configuration snippet:
 !    <any-service> <parent/> <any-child /> </any-service>
 !  </route>
 !</start
+
+The wifi_drv creates two distinct reports to communicate its state and
+information about the wireless infrastructure to other components. The
+first one is a list of all available accesspoints. The following examplary
+report shows its structure:
+
+!<wlan_accesspoints>
+!  <accesspoint ssid="skynet" bssid="00:01:02:03:04:05" quality="40"/>
+!  <accesspoint ssid="foobar" bssid="01:02:03:04:05:06" quality="70" protection="WPA-PSK"/>
+!  <accesspoint ssid="foobar" bssid="01:02:03:04:05:07" quality="10" protection="WPA-PSK"/>
+!</wlan_accesspoints>
+
+Each accesspoint node has attributes that contain the SSID and the BSSID
+of the accesspoint as well as the link quality (signal strength). These
+attributes are mandatory. If the network is protected, the node will also
+have an attribute describing the type of protection in addition.
+
+The second report provides information about the state of the connection
+to the currently connected accesspoint:
+
+!<wlan_state>
+!  <accesspoint ssid="foobar" bssid="01:02:03:04:05:06" quality="70" protection="WPA-PSK" state="connected"/>
+!</wlan_state>
+
+Valid state values are 'connected', 'disconnected', 'connecting' and
+'disconnecting'.
+
+In return, the wifi_drv get its configuration via a ROM module. This ROM
+module contains the selected accesspoint. To connect to a accesspoint
+a report like the following is used:
+
+!<selected_accesspoint ssid="foobar" bssid="01:02:03:04:05:06" protection="WPA-PSK" psk="foobar123!"/>
+
+To disconnect from an accesspoint, a empty report is sent:
+
+!<selected_accesspoint/>
+
+By subscribing to both reports and providing the required ROM module, a
+component can control the wireless driver. An example therefore is the Qt
+based component in 'src/app/qt_wifi_connect'.
+
+Currently only WPA/WPA2 protection using a pre-shared key is supported.

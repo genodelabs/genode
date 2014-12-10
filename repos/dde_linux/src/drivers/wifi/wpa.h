@@ -19,6 +19,7 @@
 
 /* entry function */
 extern "C" int wpa_main(void);
+extern "C" void wpa_conf_reload(void);
 
 class Wpa_thread : public Genode::Thread<8 * 1024 * sizeof(long)>
 {
