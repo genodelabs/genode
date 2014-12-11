@@ -141,12 +141,15 @@ namespace Kernel
 	 * \param cpu_id     kernel name of the targeted CPU
 	 * \param pd_id      kernel name of the targeted domain
 	 * \param utcb       core local pointer to userland thread-context
+	 *
+	 * \retval   0  suceeded
+	 * \retval !=0  failed
 	 */
-	inline Tlb * start_thread(unsigned const thread_id, unsigned const cpu_id,
-	                          unsigned const pd_id, Native_utcb * const utcb)
+	inline int start_thread(unsigned const thread_id, unsigned const cpu_id,
+	                        unsigned const pd_id, Native_utcb * const utcb)
 	{
-		return (Tlb *)call(call_id_start_thread(), thread_id, cpu_id, pd_id,
-		                   (Call_arg)utcb);
+		return call(call_id_start_thread(), thread_id, cpu_id, pd_id,
+		            (Call_arg)utcb);
 	}
 
 

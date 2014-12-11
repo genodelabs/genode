@@ -27,7 +27,6 @@
 namespace Genode
 {
 	class Platform_thread;
-	class Tlb;
 
 	typedef unsigned Native_thread_id;
 

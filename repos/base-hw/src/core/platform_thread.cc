@@ -206,7 +206,7 @@ int Platform_thread::start(void * const ip, void * const sp)
 	unsigned const cpu =
 		_location.valid() ? _location.xpos() : Cpu::primary_id();
 	_utcb_core_addr->start_info()->init(_id, _utcb);
-	if (!Kernel::start_thread(_id, cpu, _pd->id(), _utcb_core_addr)) {
+	if (Kernel::start_thread(_id, cpu, _pd->id(), _utcb_core_addr)) {
 		PERR("failed to start thread");
 		return -1;
 	}

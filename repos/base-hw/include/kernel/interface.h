@@ -21,12 +21,10 @@ namespace Genode
 {
 	class Native_utcb;
 	class Platform_pd;
-	class Tlb;
 }
 
 namespace Kernel
 {
-	typedef Genode::Tlb          Tlb;
 	typedef Genode::addr_t       addr_t;
 	typedef Genode::size_t       size_t;
 	typedef Genode::Platform_pd  Platform_pd;

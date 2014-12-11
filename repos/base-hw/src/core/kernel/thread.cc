@@ -295,26 +295,26 @@ void Thread::_call_start_thread()
 	Thread * const thread = Thread::pool()->object(user_arg_1());
 	if (!thread) {
 		PWRN("failed to lookup  thread");
-		user_arg_0(0);
+		user_arg_0(-1);
 		return;
 	}
 	/* lookup CPU */
 	Cpu * const cpu = cpu_pool()->cpu(user_arg_2());
 	if (!cpu) {
 		PWRN("failed to lookup CPU");
-		user_arg_0(0);
+		user_arg_0(-2);
 		return;
 	}
 	/* lookup domain */
 	Pd * const pd = Pd::pool()->object(user_arg_3());
 	if (!pd) {
 		PWRN("failed to lookup domain");
-		user_arg_0(0);
+		user_arg_0(-3);
 		return;
 	}
 	/* start thread */
 	thread->init(cpu, pd, (Native_utcb *)user_arg_4(), 1);
-	user_arg_0((Call_ret)thread->_pd->translation_table());
+	user_arg_0(0);
 }
 
 
