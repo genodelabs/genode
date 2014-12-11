@@ -134,12 +134,6 @@ class GenodeConsole : public Console {
 				_key_status[i] = 0;
 
 			_input.sigh(_receiver.manage(&_context));
-/*
-			if (FAILED(gMouse->init(this))) {
-				PERR("mouse init failed");
-				return;
-			}
-*/
 		}
 
 		void eventWait(IKeyboard * gKeyboard, IMouse * gMouse)

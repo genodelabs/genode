@@ -86,8 +86,6 @@ HRESULT Console::Teleport(unsigned short*, unsigned int, unsigned short*,
                           unsigned int, Progress**)                             DUMMY(E_FAIL)
 HRESULT Console::setDiskEncryptionKeys(const Utf8Str &strCfg)                   DUMMY(E_FAIL)
 
-DisplayMouseInterface *Console::getDisplayMouseInterface()                      DUMMY(nullptr)
-
 void    Console::onMouseCapabilityChange(BOOL, BOOL, BOOL, BOOL)                TRACE()
 void    Console::onAdditionsStateChange()                                       TRACE()
 void    Console::onAdditionsOutdated()                                          DUMMY()

@@ -721,7 +721,7 @@
  // private methods
  /////////////////////////////////////////////////////////////////////////////
      
-@@ -4388,11 +4429,15 @@
+@@ -4388,6 +4429,8 @@
      return rc;
  }
  
@@ -730,13 +730,15 @@
  VMMDevMouseInterface *Console::getVMMDevMouseInterface()
  {
      return m_pVMMDev;
+@@ -4398,6 +4441,8 @@
+     return mDisplay;
  }
  
 +#if 0
 +
- DisplayMouseInterface *Console::getDisplayMouseInterface()
- {
-     return mDisplay;
+ /**
+  * Parses one key value pair.
+  *
 @@ -6490,6 +6535,8 @@
      fireMouseCapabilityChangedEvent(mEventSource, supportsAbsolute, supportsRelative, supportsMT, needsHostCursor);
  }
