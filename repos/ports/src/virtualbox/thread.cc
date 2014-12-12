@@ -42,8 +42,12 @@ static Genode::Cpu_session * get_cpu_session(RTTHREADTYPE type) {
 	if (con[type - 1])
 		return con[type - 1];
 
-	long const prio = (RTTHREADTYPE_END - type) *
-	                  (Cpu_session::PRIORITY_LIMIT / RTTHREADTYPE_END);
+	unsigned const VIRTUAL_GENODE_VBOX_LEVELS = 16;
+	static_assert (RTTHREADTYPE_END < VIRTUAL_GENODE_VBOX_LEVELS,
+	               "prio levels exceeds VIRTUAL_GENODE_VBOX_LEVELS");
+
+	long const prio = (VIRTUAL_GENODE_VBOX_LEVELS - type) *
+	                  Cpu_session::PRIORITY_LIMIT / VIRTUAL_GENODE_VBOX_LEVELS;
 
 	char * data = new (env()->heap()) char[16];
 
