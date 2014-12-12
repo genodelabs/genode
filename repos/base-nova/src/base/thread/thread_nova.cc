@@ -85,8 +85,7 @@ void Thread_base::_init_platform_thread(size_t, Type type)
 		_tid.exc_pt_sel = 0;
 		_tid.ec_sel     = Nova::PT_SEL_MAIN_EC;
 
-		enum { DONT_MAP_PAGER_CAP = 0 };
-		request_native_ec_cap(_pager_cap, _tid.ec_sel, DONT_MAP_PAGER_CAP);
+		request_native_ec_cap(_pager_cap, _tid.ec_sel);
 		return;
 	}
 
@@ -179,7 +178,9 @@ void Thread_base::start()
 	if (_tid.ec_sel == Native_thread::INVALID_INDEX)
 		throw Cpu_session::Thread_creation_failed();
 
-	request_native_ec_cap(_pager_cap, _tid.ec_sel);
+	/* requested pager cap used by request_native_ec_cap in Signal_source_client */
+	enum { MAP_PAGER_CAP = 1 };
+	request_native_ec_cap(_pager_cap, _tid.ec_sel, MAP_PAGER_CAP);
 
 	using namespace Nova;
 
