@@ -53,6 +53,9 @@ class Lx::List : private Genode::List<LT>
 			if (at == first()) {
 				prepend(le);
 				return;
+			} else if (!at) {
+				append(le);
+				return;
 			}
 
 			for (LT *l = first(); l; l = l->next())

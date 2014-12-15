@@ -80,6 +80,11 @@ class Lx::Timer
 
 		/**
 		 * Program the first timer in the list
+		 *
+		 * The first timer is programmed if the 'programmed' flag was not set
+		 * before. The second timer is flagged as not programmed as
+		 * 'Timer::trigger_once' invalidates former registered one-shot
+		 * timeouts.
 		 */
 		void _program_first_timer()
 		{
@@ -87,40 +92,40 @@ class Lx::Timer
 			if (!ctx)
 				return;
 
-			if (!ctx->programmed) {
-				ctx->programmed = true;
+			if (ctx->programmed)
+				return;
 
-				/* calculate relative microseconds for trigger */
-				unsigned long us = ctx->timeout > jiffies ?
-				                   jiffies_to_msecs(ctx->timeout - jiffies) * 1000 : 0;
-				_timer_conn.trigger_once(us);
-			}
+			/* calculate relative microseconds for trigger */
+			unsigned long us = ctx->timeout > jiffies ?
+			                   jiffies_to_msecs(ctx->timeout - jiffies) * 1000 : 0;
+			_timer_conn.trigger_once(us);
+
+			ctx->programmed = true;
+
+			/* possibly programmed successor must be reprogrammed later */
+			if (Context *next = ctx->next())
+				next->programmed = false;
 		}
 
 		/**
 		 * Schedule timer
+		 *
+		 * Add the context to the scheduling list depending on its timeout
+		 * and reprogram the first timer.
 		 */
 		void _schedule_timer(Context *ctx, unsigned long expires)
 		{
 			_list.remove(ctx);
 
-			ctx->timeout = expires;
-			ctx->pending = true;
+			ctx->timeout    = expires;
+			ctx->pending    = true;
+			ctx->programmed = false;
 
-			Context *c = _list.first();
-			do {
-				if (!c) {
-					_list.insert(ctx);
+			Context *c;
+			for (c = _list.first(); c; c = c->next())
+				if (ctx->timeout <= c->timeout)
 					break;
-				}
-
-				if (ctx->timeout < c->timeout) {
-					_list.insert_before(ctx, c);
-					break;
-				}
-
-				c = c->next();
-			} while (c);
+			_list.insert_before(ctx, c);
 
 			_program_first_timer();
 		}
