@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2006-2014 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -37,13 +37,13 @@ class Launch_entry : public Scout::Parent_element, public Loadbar_listener
 		/**
 		 * Constructor
 		 */
-		Launch_entry(const char *prg_name, int initial_quota, int max_quota,
-		             Launchpad  *launchpad,
+		Launch_entry(const char *prg_name, unsigned long initial_quota,
+		             unsigned long max_quota, Launchpad  *launchpad,
 		             Genode::Dataspace_capability config_ds)
 		:
 			_block(Scout::Block::RIGHT), _loadbar(this, &Scout::label_font),
 			_config(config_ds),
-			_launcher(prg_name, launchpad, 1024 * initial_quota, &_config)
+			_launcher(prg_name, launchpad, initial_quota * 1024UL, &_config)
 		{
 			_block.append_launchertext(prg_name, &Scout::link_style, &_launcher);
 

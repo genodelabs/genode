@@ -188,7 +188,7 @@ Launchpad_child *Launchpad::start_child(const char *filename,
                                         unsigned long ram_quota,
                                         Genode::Dataspace_capability config_ds)
 {
-	printf("starting %s with quota %ld\n", filename, ram_quota);
+	printf("starting %s with quota %lu\n", filename, ram_quota);
 
 	/* find unique name for new child */
 	char unique_name[64];
