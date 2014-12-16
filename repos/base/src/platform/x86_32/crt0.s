@@ -17,7 +17,7 @@
  ** .text (program code) **
  **************************/
 
-.text
+.section ".text.crt0"
 
 	/* program entry-point */
 	.global _start

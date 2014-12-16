@@ -21,8 +21,8 @@ ENTRY(_start)
 
 PHDRS
 {
-  ro PT_LOAD;
-  rw PT_LOAD;
+	ro PT_LOAD;
+	rw PT_LOAD;
 }
 
 SECTIONS
@@ -30,6 +30,9 @@ SECTIONS
 	.text : {
 		/* begin of program image (link address) */
 		_prog_img_beg = .;
+
+		/* put entry code at the start of the text segment / raw binary */
+		*(.text.crt0)
 
 		*(.init)
 		*(.text .text.* .gnu.linkonce.t.*)
