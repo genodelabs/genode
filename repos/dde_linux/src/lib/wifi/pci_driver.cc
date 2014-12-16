@@ -270,6 +270,15 @@ extern "C" int pci_register_driver(struct pci_driver *drv)
 
 	using namespace Genode;
 
+	enum {
+		PCI_CLASS_MASK = 0xfff000,
+		/**
+		 * This is actually PCI_CLASS_NETWORK_OTHER and may only work
+		 * for the iwlwifi driver.
+		 */
+		PCI_CLASS_WIFI = 0x028000,
+	};
+
 	unsigned found = 0;
 
 	while (id->device) {
@@ -278,8 +287,8 @@ extern "C" int pci_register_driver(struct pci_driver *drv)
 			continue;
 		}
 
-		Pci::Device_capability cap = pci()->first_device(id->class_,
-		                                                 id->class_mask);
+		Pci::Device_capability cap = pci()->first_device(PCI_CLASS_WIFI,
+		                                                 PCI_CLASS_MASK);
 
 		while (cap.valid()) {
 			Pci_driver *pci_drv = 0;
@@ -308,7 +317,7 @@ extern "C" int pci_register_driver(struct pci_driver *drv)
 				break;
 
 			Pci::Device_capability free_up = cap;
-			cap = pci()->next_device(cap, id->class_, id->class_mask);
+			cap = pci()->next_device(cap, PCI_CLASS_WIFI, PCI_CLASS_MASK);
 			if (!pci_drv)
 				pci()->release_device(free_up);
 		}
