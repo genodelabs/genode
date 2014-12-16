@@ -1048,9 +1048,30 @@ int strict_strtoul(const char *s, unsigned int base, unsigned long *res)
 static Timer::Connection _timer;
 
 
-void udelay(unsigned long usecs) { _timer.usleep(usecs); }
-void usleep_range(unsigned long min, unsigned long max) { _timer.usleep(min); }
-void msleep(unsigned int msecs) { _timer.msleep(msecs); }
+void udelay(unsigned long usecs)
+{
+	_timer.usleep(usecs);
+
+	Lx::scheduler().current()->schedule();
+}
+
+
+void usleep_range(unsigned long min, unsigned long max)
+{
+	_timer.usleep(min);
+
+	Lx::scheduler().current()->schedule();
+}
+
+
+void msleep(unsigned int msecs)
+{
+	_timer.msleep(msecs);
+
+	Lx::scheduler().current()->schedule();
+}
+
+
 void mdelay(unsigned long msecs) { msleep(msecs); }
 
 
