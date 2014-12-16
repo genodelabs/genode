@@ -93,10 +93,23 @@ unsigned Vancouver_console::_input_to_ps2mouse(Input::Event const *ev)
 		if (ev->code() == Input::BTN_RIGHT)  _right  = pressed;
 	}
 
+	int rx;
+	int ry;
+
+	if (ev->is_absolute_motion()) {
+		static Input::Event last_event;
+		rx = ev->ax() - last_event.ax();
+		ry = ev->ay() - last_event.ay();
+		last_event = *ev;
+	} else {
+		rx = ev->rx();
+		ry = ev->ry();
+	}
+
 	/* clamp relative motion vector to bounds */
 	int const boundary = 200;
-	int const rx =  Genode::min(boundary, Genode::max(-boundary, ev->rx()));
-	int const ry = -Genode::min(boundary, Genode::max(-boundary, ev->ry()));
+	rx =  Genode::min(boundary, Genode::max(-boundary, rx));
+	ry = -Genode::min(boundary, Genode::max(-boundary, ry));
 
 	/* assemble PS/2 packet */
 	Ps2_mouse_packet::access_t packet = 0;
