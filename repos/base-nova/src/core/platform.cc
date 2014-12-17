@@ -55,6 +55,12 @@ Utcb *__main_thread_utcb;
 extern unsigned _prog_img_beg, _prog_img_end;
 
 
+
+extern addr_t sc_idle_base;
+addr_t sc_idle_base = 0;
+
+
+
 /**
  *  Capability selector of root PD
  */
@@ -262,6 +268,35 @@ Platform::Platform() :
 		printf("configuration error\n");
 		nova_die();
 	}
+
+	/* map idle SCs */
+	unsigned const log2cpu = log2(hip->cpus());
+	if ((1U << log2cpu) != hip->cpus()) {
+		PERR("number of max CPUs is not of power of 2");
+		nova_die();
+	}
+
+	sc_idle_base = cap_map()->insert(log2cpu + 1);
+	if (sc_idle_base & ((1UL << log2cpu) - 1)) {
+		PERR("unaligned sc_idle_base value %lx", sc_idle_base);
+		nova_die();
+	}
+	if(map_local(__main_thread_utcb, Obj_crd(0, log2cpu),
+	             Obj_crd(sc_idle_base, log2cpu), true))
+		nova_die();
+
+	/* test reading out idle SCs */
+	bool sc_init = true;
+	for (unsigned i = 0; i < hip->cpus(); i++) {
+		uint64_t n_time;
+		uint8_t res = Nova::sc_ctrl(sc_idle_base + i, n_time);
+		if (res != Nova::NOVA_OK) {
+			sc_init = false;
+			printf("%u %u %llu - failed\n", i, res, n_time);
+		}
+	}
+	if (!sc_init)
+		nova_die();
 
 	/* configure virtual address spaces */
 #ifdef __x86_64__
