@@ -125,14 +125,21 @@ append config {
 
 install_config $config
 
-if {![file exists bin/iwlwifi-6000-6.ucode] ||
-    ![file exists bin/iwlwifi-6000g2a-6.ucode] ||
-    ![file exists bin/iwlwifi-6000g2b-6.ucode]} {
-	puts ""
-	puts "The iwlwifi driver needs specific firmware images to work. Please download"
-	puts "the firmware from http://wireless.kernel.org/en/users/Drivers/iwlwifi and put"
-	puts "the appropiate firmware into './bin'."
-	exit 1
+set firmware_modules {
+	iwlwifi-6000-6.ucode
+	iwlwifi-6000g2a-6.ucode
+	iwlwifi-6000g2b-6.ucode
+	iwlwifi-7260-8.ucode
+}
+
+foreach f $firmware_modules {
+	if ![file exists bin/$f] {
+		puts ""
+		puts "The iwlwifi driver needs the following list of firmware images to work."
+		puts "  $firmware_modules"
+		puts "Please download the images from http://wireless.kernel.org/en/users/Drivers/iwlwifi into './bin'."
+		exit 1
+	}
 }
 
 
@@ -150,11 +157,9 @@ set boot_modules {
 	wifi_drv
 
 	test-lwip_httpsrv lwip.lib.so
-
-	iwlwifi-6000-6.ucode
-	iwlwifi-6000g2a-6.ucode
-	iwlwifi-6000g2b-6.ucode
 }
+
+append boot_modules $firmware_modules
 
 lappend_if [have_spec acpi]             boot_modules acpi_drv
 lappend_if [have_spec pci]              boot_modules pci_drv
@@ -165,4 +170,5 @@ lappend_if [have_spec gpio]             boot_modules gpio_drv
 build_boot_image $boot_modules
 
 run_genode_until forever
+
 # vi: set ft=tcl :
