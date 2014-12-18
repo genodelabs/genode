@@ -52,7 +52,7 @@ namespace Genode {
 				}
 
 				char const *string = string_buf.string();
-				int len = strlen(string);
+				size_t len = strlen(string);
 
 				/*
 				 * Heuristic: The Log console implementation flushes
@@ -70,11 +70,21 @@ namespace Genode {
 					return len;
 				}
 
-				printf("[%s] %s", _label, string);
+				char buf[string_buf.MAX_SIZE];
+				unsigned from_i = 0;
+
+				for (unsigned i = 0; i < len; i++) {
+					if (string[i] == '\n') {
+						memcpy(buf, string + from_i, i - from_i);
+						buf[i - from_i] = 0;
+						printf("[%s] %s\n", _label, buf);
+						from_i = i + 1;
+					}
+				}
 
 				/* if last character of string was not a line break, add one */
-				if ((len > 0) && (string[len - 1] != '\n'))
-					printf("\n");
+				if (from_i < len)
+					printf("[%s] %s\n", _label, string + from_i);
 
 				return len;
 			}
