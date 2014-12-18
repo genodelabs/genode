@@ -82,6 +82,35 @@ struct Upgradeable_client : CLIENT
 };
 
 
+struct Genode::Expanding_rm_session_client
+:
+	Upgradeable_client<Genode::Rm_session_client>
+{
+	Expanding_rm_session_client(Rm_session_capability cap)
+	: Upgradeable_client<Genode::Rm_session_client>(cap) { }
+
+	Local_addr attach(Dataspace_capability ds, size_t size, off_t offset,
+	                  bool use_local_addr, Local_addr local_addr,
+	                  bool executable)
+	{
+		return retry<Rm_session::Out_of_metadata>(
+			[&] () {
+				return Rm_session_client::attach(ds, size, offset,
+				                                 use_local_addr,
+				                                 local_addr,
+				                                 executable); },
+			[&] () { upgrade_ram(8*1024); });
+	}
+
+	Pager_capability add_client(Thread_capability thread)
+	{
+		return retry<Rm_session::Out_of_metadata>(
+			[&] () { return Rm_session_client::add_client(thread); },
+			[&] () { upgrade_ram(8*1024); });
+	}
+};
+
+
 struct Genode::Expanding_ram_session_client : Upgradeable_client<Genode::Ram_session_client>
 {
 	Expanding_ram_session_client(Ram_session_capability cap)

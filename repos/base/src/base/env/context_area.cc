@@ -14,15 +14,32 @@
 #include <rm_session/connection.h>
 #include <base/env.h>
 #include <base/thread.h>
+#include <platform_env_common.h>
+
+using namespace Genode;
 
 
-struct Context_area_rm_session : Genode::Rm_connection
+struct Expanding_rm_connection : Connection<Rm_session>, Expanding_rm_session_client
+{
+	/**
+	 * Constructor
+	 *
+	 * \param start start of the managed VM-region
+	 * \param size  size of the VM-region to manage
+	 */
+	Expanding_rm_connection(addr_t start = ~0UL, size_t size = 0) :
+		Connection<Rm_session>(
+			session("ram_quota=64K, start=0x%p, size=0x%zx",
+			        start, size)),
+		Expanding_rm_session_client(cap()) { }
+};
+
+
+struct Context_area_rm_session : Expanding_rm_connection
 {
 	Context_area_rm_session()
-	: Genode::Rm_connection(0, Genode::Native_config::context_area_virtual_size())
+	: Expanding_rm_connection(0, Native_config::context_area_virtual_size())
 	{
-		using namespace Genode;
-
 		addr_t local_base = Native_config::context_area_virtual_base();
 		size_t size       = Native_config::context_area_virtual_size();
 
