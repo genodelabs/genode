@@ -55,6 +55,8 @@ SRC_CC += VMM/VMMAll/SELMAll.cpp
 
 SRC_CC += VMM/VMMAll/REMAll.cpp
 
+SRC_CC += VMM/VMMR3/VMMGuruMeditation.cpp
+
 CC_OPT += -DVBOX_IN_VMM
 
 # definitions needed by SSM.cpp

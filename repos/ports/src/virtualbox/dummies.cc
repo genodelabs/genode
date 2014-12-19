@@ -101,6 +101,12 @@ int  DBGFR3RegRegisterDevice(PVM, PCDBGFREGDESC, PPDMDEVINS, const char*,
 int  DBGFR3AsSymbolByAddr(PUVM, RTDBGAS, PCDBGFADDRESS, uint32_t, PRTGCINTPTR,
                           PRTDBGSYMBOL, PRTDBGMOD)                              TRACE(VERR_INVALID_HANDLE)
 int DBGFR3Term(PVM)                                                             TRACE(VINF_SUCCESS)
+int DBGFR3Event(PVM pVM, DBGFEVENTTYPE enmEvent)
+{
+	PDBG("%u", enmEvent);
+
+	TRACE(VERR_NOT_SUPPORTED)
+}
 
 
 /* called by 'VMMR3InitRC', but we don't use GC */
