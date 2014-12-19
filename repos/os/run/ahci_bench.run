@@ -8,6 +8,12 @@
 #
 set layer 0
 
+# driver-internal benchmark is special
+if {[expr ($layer == 0)] && ![have_spec exynos5]} {
+	puts "Driver-internal benchmark (layer 0) only supported on exynos5."
+	exit 0
+}
+
 #
 # Build
 #
@@ -20,6 +26,10 @@ set build_components {
 
 lappend_if [expr ($layer == 1 || $layer == 2)] build_components test/block_bench
 lappend_if [expr ($layer == 2)]                build_components server/part_blk
+
+lappend_if [have_spec acpi]  build_components drivers/acpi
+lappend_if [have_spec pci]   build_components drivers/pci/device_pd
+lappend_if [have_spec pci]   build_components drivers/pci
 
 build $build_components
 
@@ -37,6 +47,7 @@ set config {
 		<service name="RAM"/>
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
 		<service name="CAP"/>
 		<service name="PD"/>
 		<service name="RM"/>
@@ -47,23 +58,45 @@ set config {
 	<default-route>
 		<any-service><parent/><any-child/></any-service>
 	</default-route>
-	<start name="platform_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Regulator"/></provides>
-	</start>
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
+	</start>}
+
+append_if [expr ![have_spec acpi] && ![have_spec pci]] config {
+	<start name="platform_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Regulator"/></provides>
+	</start>}
+
+append_if [have_spec acpi] config {
+	<start name="acpi">
+		<resource name="RAM" quantum="16M"/>
+		<binary name="acpi_drv"/>
+		<provides>
+			<service name="PCI"/>
+			<service name="IRQ" />
+		</provides>
+		<route>
+			<service name="PCI"> <any-child /> </service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>}
+
+append_if [expr ![have_spec acpi] && [have_spec pci]] config {
+	<start name="pci_drv">
+		<resource name="RAM" quantum="3M"/>
+		<provides> <service name="PCI"/> </provides>
 	</start> }
 
-# start driver internal bench (wich a the driver itself) with layer 0
+# start driver internal bench with layer 0
 append_if [expr $layer == 0] config {
 	<start name="ahci_bench">
 		<resource name="RAM" quantum="1G"/>
 		<provides><service name="Block"/></provides>
 	</start> }
 
-# start part_blk with layer 1
+# start part_blk with layer 2
 append_if [expr $layer == 2] config {
 	<start name="part_blk">
 		<resource name="RAM" quantum="10M" />
@@ -73,7 +106,7 @@ append_if [expr $layer == 2] config {
 			<any-service><parent/><any-child/></any-service>
 		</route>
 		<config>
-			<policy label="test-block_bench" partition="0"/>
+			<policy label="test-block_bench" partition="1"/>
 		</config>
 	</start> }
 
@@ -81,7 +114,15 @@ append_if [expr $layer == 2] config {
 append_if [expr ($layer == 1 || $layer == 2)] config {
 	<start name="ahci">
 		<resource name="RAM" quantum="10M"/>
-		<provides><service name="Block"/></provides>
+		<provides><service name="Block"/></provides>}
+
+append_if [expr ($layer == 1 || $layer == 2) && [have_spec acpi]] config {
+		<route>
+			<service name="IRQ"><child name="acpi" /></service>
+			<any-service><parent/><any-child/></any-service>
+		</route>}
+
+append_if [expr ($layer == 1 || $layer == 2)] config {
 	</start>
 	<start name="test-block_bench">
 		<resource name="RAM" quantum="1G"/> }
@@ -107,7 +148,12 @@ install_config $config
 # Boot modules
 #
 
-set boot_modules { core init timer platform_drv }
+set boot_modules { core init timer }
+
+lappend_if [expr ![have_spec acpi] && ![have_spec pci]] boot_modules platform_drv
+lappend_if [have_spec pci]           boot_modules pci_drv
+lappend_if [have_spec pci]           boot_modules pci_device_pd
+lappend_if [have_spec acpi]          boot_modules acpi_drv
 
 lappend_if [expr ($layer == 0)]                boot_modules ahci_bench
 lappend_if [expr ($layer == 1 || $layer == 2)] boot_modules ahci
