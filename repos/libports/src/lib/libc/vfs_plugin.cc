@@ -538,12 +538,12 @@ ssize_t Libc::Vfs_plugin::read(Libc::File_descriptor *fd, void *buf,
 	Vfs::file_size out_count = 0;
 
 	switch (handle->fs().read(handle, (char *)buf, count, out_count)) {
-	case Result::READ_ERR_AGAIN:       errno = EAGAIN;      PERR("A1"); return -1;
-	case Result::READ_ERR_WOULD_BLOCK: errno = EWOULDBLOCK; PERR("A2"); return -1;
-	case Result::READ_ERR_INVALID:     errno = EINVAL;      PERR("A3"); return -1;
-	case Result::READ_ERR_IO:          errno = EIO;         PERR("A4"); return -1;
-	case Result::READ_ERR_INTERRUPT:   errno = EINTR;       PERR("A5"); return -1;
-	case Result::READ_OK:                                               break;
+	case Result::READ_ERR_AGAIN:       errno = EAGAIN;      return -1;
+	case Result::READ_ERR_WOULD_BLOCK: errno = EWOULDBLOCK; return -1;
+	case Result::READ_ERR_INVALID:     errno = EINVAL;      return -1;
+	case Result::READ_ERR_IO:          errno = EIO;         return -1;
+	case Result::READ_ERR_INTERRUPT:   errno = EINTR;       return -1;
+	case Result::READ_OK:                                   break;
 	}
 
 	handle->advance_seek(out_count);
