@@ -186,12 +186,17 @@ _svn_dir = $(call _assert,$(DIR($1)),Missing declaration of DIR($*))
 
 _file_name = $(call _prefer,$(NAME($1)),$(notdir $(URL($1))))
 
+# Some downloads are available via HTTPS only, but wget < 3.14 does not support
+# server-name identification, which is used by some sites. So, we disable
+# certificate checking in wget and check the validity of the download via SIG
+# or SHA.
+
 %.file:
 	$(VERBOSE)test -n "$(URL($*))" ||\
 		($(ECHO) "Error: Undefined URL for $(call _file_name,$*)"; false);
 	$(VERBOSE)name=$(call _file_name,$*);\
 		(test -f $$name || $(MSG_DOWNLOAD)$(URL($*))); \
-		(test -f $$name || wget --quiet $(URL($*)) -O $$name) || \
+		(test -f $$name || wget --quiet --no-check-certificate $(URL($*)) -O $$name) || \
 			($(ECHO) Error: Download for $* failed; false)
 	$(VERBOSE)\
 		($(ECHO) "$(SHA($*))  $(call _file_name,$*)" |\
