@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2006-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -29,17 +29,7 @@ namespace Genode {
 		Native_capability alloc(Native_capability ep, addr_t entry = 0,
 		                        addr_t flags = 0)
 		{
-			Native_capability cap = call<Rpc_alloc>(ep, entry, flags);
-
-			using namespace Nova;
-
-			/* set our local name */
-			if (NOVA_OK != pt_ctrl(cap.local_name(), cap.local_name()))
-				nova_die();
-			/* disable the feature for security reasons now */
-			revoke(Obj_crd(cap.local_name(), 0, Obj_crd::RIGHT_PT_CTRL));
-
-			return cap;
+			return call<Rpc_alloc>(ep, entry, flags);
 		}
 
 		void free(Native_capability cap) { call<Rpc_free>(cap); }

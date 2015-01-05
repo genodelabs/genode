@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2010-2013 Genode Labs GmbH
+ * Copyright (C) 2010-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -25,6 +25,32 @@
 using namespace Genode;
 
 
+static Untyped_capability create_portal(Cap_session * cap_session,
+                                        Untyped_capability ec_cap,
+                                        addr_t entry)
+{
+	Untyped_capability obj_cap;
+
+	obj_cap = cap_session->alloc(ec_cap, entry);
+
+	if (!obj_cap.valid())
+		return obj_cap;
+
+	using namespace Nova;
+
+	/* set local badge */
+	if (pt_ctrl(obj_cap.local_name(), obj_cap.local_name()) != NOVA_OK) {
+		cap_session->free(obj_cap);
+		return Untyped_capability();
+	}
+
+	/* disable PT_CTRL permission - feature for security reasons now */
+	revoke(Obj_crd(obj_cap.local_name(), 0, Obj_crd::RIGHT_PT_CTRL));
+
+	return obj_cap;
+}
+
+
 /***********************
  ** Server entrypoint **
  ***********************/
@@ -33,7 +59,7 @@ Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 {
 	using namespace Nova;
 
-	Untyped_capability ec_cap, ep_cap;
+	Untyped_capability ec_cap, obj_cap;
 
 	/* _ec_sel is invalid until thread gets started */
 	if (tid().ec_sel != Native_thread::INVALID_INDEX)
@@ -41,14 +67,16 @@ Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 	else
 		ec_cap = _thread_cap;
 
-	ep_cap = _cap_session->alloc(ec_cap, (addr_t)_activation_entry);
+	obj_cap = create_portal(_cap_session, ec_cap, (addr_t)_activation_entry);
+	if (!obj_cap.valid())
+		return obj_cap;
 
 	/* add server object to object pool */
-	obj->cap(ep_cap);
+	obj->cap(obj_cap);
 	insert(obj);
 
-	/* return entrypoint capability */
-	return ep_cap;
+	/* return object capability managed by entrypoint thread */
+	return obj_cap;
 }
 
 
@@ -218,8 +246,8 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 	Thread_base::start();
 
 	/* create cleanup portal */
-	_cap = _cap_session->alloc(Native_capability(_tid.ec_sel),
-	                           (addr_t)_activation_entry);
+	_cap = create_portal(cap_session, Native_capability(_tid.ec_sel),
+	                     (addr_t)_activation_entry);
 	if (!_cap.valid())
 		throw Cpu_session::Thread_creation_failed();
 

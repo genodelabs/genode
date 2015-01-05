@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2010-2013 Genode Labs GmbH
+ * Copyright (C) 2010-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -465,6 +465,9 @@ Pager_capability Pager_entrypoint::manage(Pager_object *obj)
 	Native_capability pager_thread_cap(obj->ec_sel());
 	Native_capability cap_session =
 		_cap_session->alloc(pager_thread_cap, obj->handler_address());
+
+	/* disable PT_CTRL feature */
+	revoke(Obj_crd(cap_session.local_name(), 0, Obj_crd::RIGHT_PT_CTRL));
 
 	/* add server object to object pool */
 	obj->Object_pool<Pager_object>::Entry::cap(cap_session);
