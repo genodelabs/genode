@@ -31,9 +31,16 @@ time_t Libc::read_rtc()
 {
 	time_t rtc = 0;
 
-	int fd = open(Libc::config_rtc(), O_RDONLY);
-	if (fd == -1)
+	if (!Genode::strcmp(Libc::config_rtc(), "")) {
+		PWRN("%s: rtc not configured, returning %lu", __func__, rtc);
 		return rtc;
+	}
+
+	int fd = open(Libc::config_rtc(), O_RDONLY);
+	if (fd == -1) {
+		PWRN("%s: %s not readable, returning %lu", __func__, Libc::config_rtc(), rtc);
+		return rtc;
+	}
 
 	char buf[32];
 	ssize_t n = read(fd, buf, sizeof(buf));
