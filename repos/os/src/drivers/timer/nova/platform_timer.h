@@ -99,13 +99,6 @@ class Platform_timer
 			using namespace Genode;
 			using namespace Nova;
 
-			/* XXX quirk start - description below */
-			static unsigned short quirk_count = 0;
-			static unsigned int delay = 0;
-			Trace::Timestamp before = Trace::timestamp();
-			asm volatile ("":::"memory");
-			/* XXX quirk end */
-
 			if (_sem == ~0UL)
 				_sem = blocking_thread->tid().exc_pt_sel + SM_SEL_EC;
  
@@ -122,41 +115,6 @@ class Platform_timer
 					nova_die();
 				return;
 			}
-
-			/*
-			 * XXX quirk start
-			 *
-			 * On some x86 platforms, it happens that the system seems to slow
-			 * down dramatically for some unclear reasons so far. When this
-			 * happens, the handling of the timeout queue and reprogramming the
-			 * next timeout takes so long that the timer IRQ will fire
-			 * immediately after acknowledging it. This causes the timer
-			 * service to run on a very high rate, which may utilize the CPU
-			 * close to the maximum. We try to detect this condition by the
-			 * following heuristic and apply this quirk, which programs the
-			 * next timeout later in time - so that it will fire not
-			 * immediately after acknowledging it.
-			 *
-			 * This quirk should be removed as soon as it is clear what
-			 * triggers the phenomenon.
-			 */
-			unsigned long diff = _time_in_us(now - before, false);
-
-			if (diff)
-				quirk_count++;
-			else {
-				quirk_count = 0;
-				delay = 0;
-			}
-
-			if (quirk_count > 10) {
-				delay += 10000;
-				us_64 += delay;
-				PWRN("apply timer quirk - diff=%lu, delay timeout %lu->%llu us",
-				     diff, _timeout, us_64);
-				quirk_count = 0;
-			}
-			/* XXX quirk end */
 
 			/* block until timeout fires or it gets canceled */
 			unsigned long long tsc_absolute = now + us_64 * (_tsc_khz / TSC_FACTOR);
