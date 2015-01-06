@@ -168,7 +168,7 @@ class Tsc_380 : Genode::Mmio
 			write<Region_attr<REGION14_REG_OFF>::Subreg5>(1);
 			write<Region_attr<REGION14_REG_OFF>::Subreg6>(1);
 
-			/* Access to SP804, and RTC */
+			/* Access to SP804 2/3, and RTC */
 			write<Region_low<REGION13_REG_OFF> >(0x10010000);
 			write<Region_high<REGION13_REG_OFF> >(0x10018000);
 			write<Region_attr<REGION13_REG_OFF>::Enable>(1);
@@ -178,6 +178,7 @@ class Tsc_380 : Genode::Mmio
 			write<Region_attr<REGION13_REG_OFF>::Secure_read>(1);
 			write<Region_attr<REGION13_REG_OFF>::Secure_write>(1);
 			write<Region_attr<REGION13_REG_OFF>::Subreg0>(1);
+			write<Region_attr<REGION13_REG_OFF>::Subreg1>(1);
 			write<Region_attr<REGION13_REG_OFF>::Subreg3>(1);
 			write<Region_attr<REGION13_REG_OFF>::Subreg4>(1);
 			write<Region_attr<REGION13_REG_OFF>::Subreg5>(1);

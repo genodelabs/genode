@@ -41,7 +41,6 @@ void Kernel::init_trustzone(Pic * pic)
 	Cpu::allow_coprocessor_nonsecure();
 
 	/* set unsecure IRQs */
-	pic->unsecure(34); //Timer 0/1
 	pic->unsecure(35); //Timer 2/3
 	pic->unsecure(36); //RTC
 	pic->unsecure(37); //UART0
