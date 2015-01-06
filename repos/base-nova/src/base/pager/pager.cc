@@ -101,6 +101,7 @@ void Pager_object::_exception_handler(addr_t portal_id)
 	Utcb         *utcb = _check_handler(myself, obj);
 	addr_t fault_ip    = utcb->ip;
 	uint8_t res        = 0xFF;
+	addr_t  mtd        = 0;
 
 	if (obj->submit_exception_signal())
 		res = obj->client_recall();
@@ -117,10 +118,17 @@ void Pager_object::_exception_handler(addr_t portal_id)
 
 		Nova::revoke(Obj_crd(portal_id, 0));
 		obj->_state.mark_dead();
+
+		enum { TRAP_BREAKPOINT = 3 };
+
+		if ((portal_id & 0x1f) == TRAP_BREAKPOINT) {
+			utcb->ip = fault_ip - 1;
+			mtd      = Mtd::EIP;
+		}
 	}
 
 	utcb->set_msg_word(0);
-	utcb->mtd = 0;
+	utcb->mtd = mtd;
 
 	reply(myself->stack_top());
 }
