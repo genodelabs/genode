@@ -76,6 +76,11 @@ class Block::Driver
 		class Request_congestion : public ::Genode::Exception { };
 
 		/**
+		 * Destructor
+		 */
+		virtual ~Driver() { }
+
+		/**
 		 * Request block size for driver and medium
 		 */
 		virtual Genode::size_t block_size() = 0;
