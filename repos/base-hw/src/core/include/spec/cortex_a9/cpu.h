@@ -215,9 +215,6 @@ class Genode::Cpu : public Arm_v7
 
 		enum
 		{
-			/* common */
-			PERIPH_CLK = Board::CORTEX_A9_CLOCK,
-
 			/* interrupt controller */
 			PL390_DISTRIBUTOR_MMIO_BASE = Board::CORTEX_A9_PRIVATE_MEM_BASE + 0x1000,
 			PL390_DISTRIBUTOR_MMIO_SIZE = 0x1000,
@@ -228,7 +225,6 @@ class Genode::Cpu : public Arm_v7
 			PRIVATE_TIMER_MMIO_BASE = Board::CORTEX_A9_PRIVATE_MEM_BASE + 0x600,
 			PRIVATE_TIMER_MMIO_SIZE = 0x10,
 			PRIVATE_TIMER_IRQ = 29,
-			PRIVATE_TIMER_CLK = PERIPH_CLK
 		};
 
 		/**

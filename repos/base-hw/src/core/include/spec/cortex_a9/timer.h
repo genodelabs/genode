@@ -27,7 +27,7 @@ namespace Genode
 	 */
 	class Timer : public Mmio
 	{
-		enum { TICS_PER_MS = Cpu::PRIVATE_TIMER_CLK / 1000, };
+		enum { TICS_PER_MS = Board::CORTEX_A9_PRIVATE_TIMER_CLK / 1000 };
 
 		/**
 		 * Load value register

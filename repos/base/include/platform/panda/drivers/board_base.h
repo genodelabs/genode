@@ -34,8 +34,7 @@ namespace Genode
 			RAM_0_SIZE = 0x40000000,
 
 			/* clocks */
-			MPU_DPLL_CLOCK = 200*1000*1000,
-			SYS_CLK        = 38400000,
+			SYS_CLK = 38400000,
 
 			/* UART controllers */
 			TL16C750_1_MMIO_BASE = MMIO_0_BASE + 0x6a000,
@@ -58,7 +57,7 @@ namespace Genode
 			/* CPU */
 			CORTEX_A9_PRIVATE_MEM_BASE = 0x48240000,
 			CORTEX_A9_PRIVATE_MEM_SIZE = 0x00002000,
-			CORTEX_A9_CLOCK = MPU_DPLL_CLOCK,
+			CORTEX_A9_PRIVATE_TIMER_CLK = 350000000,
 
 			/* L2 cache */
 			PL310_MMIO_BASE = 0x48242000,
