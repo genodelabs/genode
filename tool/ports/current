@@ -1,0 +1,25 @@
+#!/usr/bin/make -f
+
+#
+# \brief  Tool for printing current contrib directory of port
+# \author Christian Helmuth
+# \date   2015-01-07
+#
+
+#
+# Determine Genode base directory based on the known location of the
+# 'create_builddir' tool within the Genode source tree
+#
+GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../..)
+
+include $(GENODE_DIR)/tool/ports/mk/front_end.inc
+include $(GENODE_DIR)/tool/ports/mk/check_port_arg.inc
+
+usage:
+	@$(ECHO)
+	@$(ECHO) "--- print current contrib directory of port ---"
+	@$(ECHO) "usage: current <port-name>"
+	@$(ECHO)
+
+$(TARGET):
+	@$(ECHO) $(PORT_DIR)
