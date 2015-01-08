@@ -43,10 +43,16 @@ class Input::Session_component : public Genode::Rpc_object<Input::Session>
 
 		/**
 		 * Submit input event to event queue
-		 *
-		 * \throw Input::Event_queue::Overflow
 		 */
-		void submit(Input::Event event) { _event_queue.add(event); }
+		void submit(Input::Event event)
+		{
+			try {
+				_event_queue.add(event);
+			} catch (Input::Event_queue::Overflow) {
+				PWRN("input overflow - resetting queue");
+				_event_queue.reset();
+			}
+		}
 
 
 		/******************************

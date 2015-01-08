@@ -501,22 +501,14 @@ class Wm::Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 			Input::Event const * const events =
 				_nitpicker_input_ds.local_addr<Input::Event>();
 
-			try {
-				while (_nitpicker_input.is_pending()) {
+			while (_nitpicker_input.is_pending()) {
 
-					size_t const num_events = _nitpicker_input.flush();
+				size_t const num_events = _nitpicker_input.flush();
 
-					/* we trust nitpicker to return a valid number of events */
+				/* we trust nitpicker to return a valid number of events */
 
-					for (size_t i = 0; i < num_events; i++)
-						_input_session.submit(_translate_event(events[i], input_origin));
-				}
-			} catch (Input::Event_queue::Overflow) {
-
-				PWRN("client \"%s\" does not respond to user input",
-				     _session_label.string());
-
-				_input_session.event_queue().reset();
+				for (size_t i = 0; i < num_events; i++)
+					_input_session.submit(_translate_event(events[i], input_origin));
 			}
 		}
 

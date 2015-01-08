@@ -65,13 +65,9 @@ static void input_callback(enum input_event_type type,
 		case EVENT_TYPE_WHEEL:   t = Input::Event::WHEEL; break;
 	}
 
-	try {
-		input_session().submit(Input::Event(t, code,
-		                                    absolute_x, absolute_y,
-		                                    relative_x, relative_y));
-	} catch (Input::Event_queue::Overflow) {
-		PWRN("input ring buffer overflow");
-	}
+	input_session().submit(Input::Event(t, code,
+	                                    absolute_x, absolute_y,
+	                                    relative_x, relative_y));
 }
 
 
