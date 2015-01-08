@@ -97,4 +97,3 @@ append qemu_args " -m 256 -nographic"
 run_genode_until {.*child "test-libc_vfs" exited with exit value 0.*} 60
 
 exec rm -f bin/ext2.raw
-puts "\nTest succeeded\n"

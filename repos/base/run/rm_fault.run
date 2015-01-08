@@ -31,5 +31,3 @@ build_boot_image "core init test-rm_fault"
 append qemu_args "-nographic -m 64"
 
 run_genode_until {child "test-rm_fault" exited with exit value 0.*} 10
-
-puts "Test succeeded"

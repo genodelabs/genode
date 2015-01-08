@@ -82,5 +82,3 @@ append qemu_args "-nographic -m 64"
 run_genode_until "--- timer test ---" 10
 
 exec rm bin/archive.tar
-
-puts "Test succeeded"

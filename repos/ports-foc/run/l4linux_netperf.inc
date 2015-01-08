@@ -232,7 +232,7 @@ regexp $ip_match $ip_string ip_local
 # Remote IP
 #
 run_genode_until "netif_info: register.*\n" 60
-set serial_id $spawn_id
+set serial_id [output_spawn_id]
 sleep 8
 send "ip addr show dev eth0\n"
 run_genode_until "inet.*\n" 3 $serial_id
@@ -289,7 +289,6 @@ puts "              [lindex $throughput_rx 1] MBit/s ok"
 
 exec rm bin/initrd.gz bin/initrd.gz.md5
 
-puts "\nTest succeeded"
 close -i $serial_id
 exec killall netserver-$version
 

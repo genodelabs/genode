@@ -59,5 +59,3 @@ if [have_spec linux_x86_32] {
 		exit -1
 	}
 }
-
-puts "Test succeeded"

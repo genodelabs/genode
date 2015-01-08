@@ -10,7 +10,7 @@
 # at this time
 #
 
-if {![is_qemu_available] || (![have_spec foc] && ![have_spec nova])} {
+if {![have_include "power_on/qemu"] || (![have_spec foc] && ![have_spec nova])} {
 	 puts "Run script is only supported for foc or nova in Qemu"; exit 0
 }
 
@@ -246,7 +246,5 @@ if {![regexp {thread_stop_myself \(\)} $gdb_output] ||
 	exit -1
 
 }
-
-puts "Test succeeded"
 
 # vi: set ft=tcl :

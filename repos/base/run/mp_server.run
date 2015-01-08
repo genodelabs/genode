@@ -35,7 +35,7 @@ install_config {
 
 build_boot_image "core init test-server-mp"
 
-if {[is_qemu_available]} {
+if {[have_include "power_on/qemu"]} {
 	set want_cpus 2
 	append qemu_args " -nographic -m 64 -smp $want_cpus,cores=$want_cpus "
 }
@@ -47,7 +47,7 @@ set cpus [regexp -inline {Detected [0-9x]+ CPU[ s]\.} $output]
 set cpus [regexp -all -inline {[0-9]+} $cpus]
 set cpus [expr [lindex $cpus 0] * [lindex $cpus 1]]
 
-if {[is_qemu_available]} {
+if {[have_include "power_on/qemu"]} {
 	if {$want_cpus != $cpus} {
 		puts "CPU count is not as expected: $want_cpus != $cpus"
 		exit 1;

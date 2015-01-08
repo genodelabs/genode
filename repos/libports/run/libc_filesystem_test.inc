@@ -30,7 +30,7 @@ if {[have_spec linux]} {
 if {[expr [have_spec 64bit] && $use_atapi_drv]} {
 	puts "ATAPI driver does not support 64 bit."; exit 0 }
 
-if {![is_qemu_available]} {
+if {![have_include "power_on/qemu"]} {
 	puts "\nPlease setup your native sd or hard drive. Remove this fail stop";
 	puts "check when you have prepared your native environment.\n";
 	exit 0
@@ -218,7 +218,5 @@ append_if $use_sd_card_drv qemu_args " -drive file=$disk_image,if=sd,cache=write
 run_genode_until ".*child \"test-libc_$filesystem\" exited with exit value 0.*" 60
 
 exec rm -f $disk_image
-
-puts "\nTest succeeded\n"
 
 # vi: set ft=tcl :

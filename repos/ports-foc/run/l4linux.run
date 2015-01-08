@@ -195,5 +195,4 @@ expect {
 	timeout { puts stderr "Error: Test execution timed out"; exit -2 }
 }
 
-puts "Test succeeded"
 exec rm bin/initrd.gz bin/initrd.gz.md5

@@ -36,5 +36,3 @@ build_boot_image "core init timer test-resource_yield"
 append qemu_args "-nographic -m 64"
 
 run_genode_until {--- test-resource_yield finished ---\s*\n} 50
-
-puts "Test succeeded"

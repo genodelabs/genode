@@ -40,5 +40,3 @@ build_boot_image "core init rom_blk test-rom_blk"
 append qemu_args "-m 64 -nographic "
 
 run_genode_until "all done, finished!" 10
-
-puts "Test succeeded"

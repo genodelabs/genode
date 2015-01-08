@@ -4,7 +4,7 @@
 # \date   2013-04-18
 #
 
-if {[is_qemu_available]} {
+if {[have_include "power_on/qemu"]} {
 	puts "\nNetperf running on Qemu is not recommended.\n"
 	exit
 }
@@ -44,7 +44,7 @@ if {$wrong_version} {
 set packet_size 1024
 set netperf_tests "TCP_STREAM TCP_MAERTS"
 
-# start run script generation 
+# start run script generation
 
 if {$use_usb_driver}    { set network_driver "usb_drv" }
 if {$use_nic_driver}    { set network_driver "nic_drv" }
@@ -236,10 +236,10 @@ append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
 append qemu_args " -net user -redir tcp:12865::12865 -redir tcp:49153::49153 "
 
 run_genode_until {.*and family AF_INET.*} 30
-set serial_id $spawn_id
+set serial_id [output_spawn_id]
 
 set force_ports ""
-if [is_qemu_available] {
+if {[have_include "power_on/qemu"]} {
 	set ip_addr "localhost"
 	set force_ports "-P 49153,49153"
 } elseif [have_spec linux] {
@@ -286,7 +286,3 @@ foreach netperf_test $netperf_tests {
 	}
 	puts "              [lindex $throughput 1] MBit/s ok"
 }
-
-
-puts "\nTest succeeded"
-# vi: set ft=tcl :

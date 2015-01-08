@@ -70,6 +70,4 @@ build_boot_image {
 append qemu_args " -m 128 -nographic "
 run_genode_until {.*child "test-libc_vfs" exited with exit value 0.*} 60
 
-puts "\nTest succeeded\n"
-
 # vi: set ft=tcl :

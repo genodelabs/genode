@@ -1,6 +1,6 @@
 assert_spec nova
 
-if {[is_qemu_available]} {
+if {[have_include "power_on/qemu"]} {
 	puts "\nRun script does not support Qemu.\n"
 	exit
 }

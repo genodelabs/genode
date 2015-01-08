@@ -57,5 +57,3 @@ build_boot_image $boot_modules
 append qemu_args " -m 64 -nographic "
 
 run_genode_until "end of timed-semaphore test" 10
-
-puts "Test succeeded"

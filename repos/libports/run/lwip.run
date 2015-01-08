@@ -182,7 +182,7 @@ append qemu_args " -net user -redir tcp:5555::80 "
 
 run_genode_until {.*Start the server loop \.\.\..*} 30
 
-if [is_qemu_available] {
+if {[have_include "power_on/qemu"]} {
 	set uri "http://localhost:5555/"
 } else {
 	set match_string "got IP address (.*)\033.*\n"
@@ -202,7 +202,5 @@ if {![regexp {Welcome to our lwIP HTTP server!} $website dummy]} {
 	puts stderr "Query returned unexpected website"
 	exit 2;
 }
-
-puts "Test succeeded"
 
 # vi: set ft=tcl :

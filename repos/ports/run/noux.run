@@ -59,5 +59,3 @@ if {[have_spec x86_64]} {
 run_genode_until "child /bin/ls exited with exit value 0.*\n" 30
 
 exec rm bin/coreutils.tar
-
-puts "Test succeeded"

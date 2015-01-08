@@ -45,5 +45,3 @@ build_boot_image $boot_modules
 #
 
 run_genode_until "--- finished pthread IPC test ---.*\n" 10
-
-puts "Test succeeded"

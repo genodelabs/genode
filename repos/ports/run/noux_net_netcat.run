@@ -14,13 +14,13 @@ set build_components {
 	noux-pkg/netcat
 }
 
-lappend_if $use_usb_driver     build_components drivers/usb
-lappend_if $use_nic_driver     build_components drivers/nic
-lappend_if [have_spec acpi]    build_components drivers/acpi
-lappend_if [have_spec pci]     build_components drivers/pci/device_pd
-lappend_if [have_spec gpio]    build_components drivers/gpio
-lappend_if [is_qemu_available] build_components drivers/uart
-lappend_if $use_platform_drv   build_components drivers/platform
+lappend_if $use_usb_driver                build_components drivers/usb
+lappend_if $use_nic_driver                build_components drivers/nic
+lappend_if [have_spec acpi]               build_components drivers/acpi
+lappend_if [have_spec pci]                build_components drivers/pci/device_pd
+lappend_if [have_spec gpio]               build_components drivers/gpio
+lappend_if [have_include "power_on/qemu"] build_components drivers/uart
+lappend_if $use_platform_drv              build_components drivers/platform
 
 build $build_components
 
@@ -65,7 +65,7 @@ append config {
 		<provides><service name="Timer"/></provides>
 	</start>}
 
-append_if [is_qemu_available] config {
+append_if [have_include "power_on/qemu"] config {
 	<start name="uart_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Terminal"/></provides>
@@ -74,7 +74,7 @@ append_if [is_qemu_available] config {
 		</config>
 	</start>}
 
-if {![is_qemu_available]} {
+if {![have_include "power_on/qemu"]} {
 append config {
 	<start name="tcp_terminal">
 		<resource name="RAM" quantum="5M"/>
@@ -166,7 +166,7 @@ append config {
 			</start>
 		</config>}
 
-append_if [expr ![is_qemu_available]] config {
+append_if [expr ![have_include "power_on/qemu"]] config {
 		<route>
 			<service name="Nic"> <child name="nic_bridge"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
@@ -191,14 +191,14 @@ set boot_modules {
 }
 
 # platform-specific modules
-lappend_if $use_nic_driver     boot_modules nic_drv
-lappend_if $use_usb_driver     boot_modules usb_drv
-lappend_if [have_spec pci]     boot_modules pci_drv
-lappend_if [have_spec acpi]    boot_modules acpi_drv
-lappend_if [have_spec nova]    boot_modules pci_device_pd
-lappend_if [is_qemu_available] boot_modules uart_drv
-lappend_if $use_platform_drv   boot_modules platform_drv
-lappend_if [have_spec gpio]    boot_modules gpio_drv
+lappend_if $use_nic_driver                boot_modules nic_drv
+lappend_if $use_usb_driver                boot_modules usb_drv
+lappend_if [have_spec pci]                boot_modules pci_drv
+lappend_if [have_spec acpi]               boot_modules acpi_drv
+lappend_if [have_spec nova]               boot_modules pci_device_pd
+lappend_if [have_include "power_on/qemu"] boot_modules uart_drv
+lappend_if $use_platform_drv              boot_modules platform_drv
+lappend_if [have_spec gpio]               boot_modules gpio_drv
 
 build_boot_image $boot_modules
 
@@ -206,7 +206,7 @@ set noux_output_file "noux_output.log"
 set serial_ip_addr   "localhost"
 set noux_ip_addr     "localhost"
 
-if {[is_qemu_available]} {
+if {[have_include "power_on/qemu"]} {
 	#
 	# Redirect the output of Noux via the virtual serial port 1 into a file to be
 	# dumped after the successful completion of the test.
@@ -220,10 +220,10 @@ if {[is_qemu_available]} {
 	append qemu_args " -net user -redir tcp:5555::5555 "
 
 	run_genode_until {.*got IP address.*\n} 60
-	set serial_id $spawn_id
+	set serial_id [output_spawn_id]
 } else {
 	run_genode_until {\[init -> tcp_terminal\] listening on port 8888\.\.\.} 60
-	set serial_id $spawn_id
+	set serial_id [output_spawn_id]
 
 	regexp {\[init -> noux_net\] .{1,5}got IP address [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+} $output noux_ip_addr
 	regexp {[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+} $noux_ip_addr noux_ip_addr 
@@ -256,5 +256,3 @@ if {![regexp {Hello Genode} $output dummy]} {
 	puts stderr "Error: output not as expected"
 	exit 1
 }
-
-puts "Test succeeded"

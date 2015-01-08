@@ -45,5 +45,3 @@ build_boot_image {
 append qemu_args " -nographic -m 64 "
 
 run_genode_until {.*test-moon.*Finished\..*} 30
-
-puts "Test succeeded"

@@ -104,4 +104,3 @@ append qemu_args " -nographic -m 128 "
 
 run_genode_until "Tests finished successfully.*\n.*Tests finished successfully.*\n" 100
 exec rm bin/ata.raw
-puts "Test succeeded"

@@ -52,6 +52,4 @@ build_boot_image $boot_modules
 
 run_genode_until {child "test-lx_hybrid_exception" exited with exit value 0.*\n} 10
 
-puts "Test succeeded"
-
 # vi: set ft=tcl :

@@ -48,5 +48,3 @@ append qemu_args " -m 64 -nographic"
 
 # Execute test in Qemu
 run_genode_until "--- timer test finished ---" 60
-
-puts "Test succeeded"
