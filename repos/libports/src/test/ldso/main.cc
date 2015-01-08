@@ -14,6 +14,8 @@
 #include <base/printf.h>
 #include <rom_session/connection.h>
 #include <base/env.h>
+#include <base/shared_object.h>
+
 using namespace Genode;
 
 /* shared-lib includes */
@@ -160,6 +162,23 @@ static void test_dynamic_cast()
 }
 
 
+/***********************
+ ** Shared-object API **
+ ***********************/
+
+static void test_shared_object_api()
+{
+	/*
+	 * When loading the shared object, we expect the global constructor
+	 * that is present in the library to print a message.
+	 *
+	 * 'lib_dl_so' is a local variable such that its destructor is called
+	 * when leaving the scope of the function.
+	 */
+	Shared_object lib_dl_so("test-ldso_lib_dl.lib.so");
+}
+
+
 /**
  * Main function of LDSO test
  */
@@ -229,6 +248,10 @@ int main(int argc, char **argv)
 	test_dynamic_cast();
 	printf("\n");
 
+	printf("Shared-object API\n");
+	printf("-----------------\n");
+	test_shared_object_api();
+	printf("\n");
 
 	printf("Destruction\n");
 	printf("-----------\n");

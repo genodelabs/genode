@@ -1100,6 +1100,17 @@ static Root_object *to_root(void *h)
 }
 
 
+/**
+ * Needed during shared object creation and destruction, since global lists are
+ * manipulated
+ */
+static Genode::Lock & shared_object_lock()
+{
+	static Genode::Lock _lock;
+	return _lock;
+}
+
+
 Genode::Shared_object::Shared_object(char const *file, unsigned flags)
 {
 	using namespace Linker;
@@ -1108,7 +1119,7 @@ Genode::Shared_object::Shared_object(char const *file, unsigned flags)
 		PDBG("open '%s'", file ? file : "binary");
 
 	try {
-		Genode::Lock::Guard guard(Elf_object::lock());
+		Genode::Lock::Guard guard(shared_object_lock());
 
 		/* update bind now variable */
 		bind_now = (flags & Shared_object::NOW) ? true : false;
@@ -1150,7 +1161,7 @@ Genode::Shared_object::~Shared_object()
 	if (verbose_shared)
 		PDBG("close");
 
-	Genode::Lock::Guard guard(Elf_object::lock());
+	Genode::Lock::Guard guard(shared_object_lock());
 	destroy(Genode::env()->heap(), to_root(_handle));
 }
 

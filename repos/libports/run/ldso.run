@@ -120,6 +120,10 @@ compare_output_to {
 [init -> test-ldso] ------------
 [init -> test-ldso] 'Object' called: good
 [init -> test-ldso] 
+[init -> test-ldso] Shared-object API
+[init -> test-ldso] -----------------
+[init -> test-ldso] Global object constructed
+[init -> test-ldso] 
 [init -> test-ldso] Destruction
 [init -> test-ldso] -----------
 [init -> test-ldso] ~Lib_2_local 55667785
