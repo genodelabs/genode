@@ -65,14 +65,6 @@ namespace Genode
 			PL180_0_IRQ = 9,
 			PL180_1_IRQ = 10,
 
-			/* TrustZone Address Space Controller */
-			TZASC_MMIO_BASE = 0x100ec000,
-			TZASC_MMIO_SIZE = 0x1000,
-
-			/* TrustZone Protection Controller */
-			TZPC_MMIO_BASE = 0x100e6000,
-			TZPC_MMIO_SIZE = 0x1000,
-
 			/* CPU */
 			CORTEX_A9_PRIVATE_MEM_BASE  = 0x1e000000,
 			CORTEX_A9_PRIVATE_MEM_SIZE  = 0x2000,

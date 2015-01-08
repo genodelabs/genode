@@ -29,7 +29,6 @@ usage:
 	@echo "                  'codezero_vpb926'"
 	@echo "                  'hw_panda'"
 	@echo "                  'hw_vea9x4'"
-	@echo "                  'hw_vea9x4_tz'"
 	@echo "                  'hw_pbxa9'"
 	@echo "                  'hw_imx31'"
 	@echo "                  'hw_imx53'"
@@ -215,9 +214,6 @@ hw_pbxa9::
 
 hw_vea9x4::
 	@echo "SPECS = genode hw_vea9x4" > $(BUILD_DIR)/etc/specs.conf
-
-hw_vea9x4_tz::
-	@echo "SPECS = genode hw_vea9x4_tz" > $(BUILD_DIR)/etc/specs.conf
 
 hw_panda::
 	@echo "SPECS = genode hw_panda" > $(BUILD_DIR)/etc/specs.conf
