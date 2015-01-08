@@ -1,0 +1,47 @@
+##
+# Build U-boot bootloader specific uImage
+#
+# \param --image-uboot-no-gzip   do not gzip the uImage
+#
+
+
+##
+# Check if the uImage should be gzipped
+#
+proc image_uboot_use_no_gzip { } { return [get_cmd_switch --image-uboot-no-gzip] }
+
+
+##
+# Build U-boot bootloader specific uImage
+#
+# \param  elf_img   ELF binary to build uImage from
+#
+proc run_image {elf_img} {
+	# parse ELF entrypoint and load address
+	set entrypoint [exec [cross_dev_prefix]readelf -h $elf_img | \
+			grep "Entry point address: " | \
+			sed -e "s/.*Entry point address: *//"]
+	set load_addr [exec [cross_dev_prefix]readelf -l $elf_img | \
+		       grep -m 1 "LOAD"]
+	set load_addr [lindex [regexp -inline -all -- {\S+} $load_addr] 3]
+
+	set bin_img "[run_dir]/image.bin"
+	exec [cross_dev_prefix]objcopy -O binary $elf_img $bin_img
+
+	set use_gzip [expr ![image_uboot_use_no_gzip]]
+	set compress_type none
+	set bin_ext ""
+
+	# compress ELF
+	if $use_gzip {
+		exec gzip --best --force $bin_img
+		set bin_ext .gz
+		set compress_type gzip
+	}
+
+	# create uImage
+	set uboot_img [run_dir]/uImage
+	exec mkimage -A arm -O linux -T kernel -C $compress_type -a $load_addr \
+	             -e $entrypoint -d $bin_img$bin_ext $uboot_img
+	exec rm -rf $bin_img$bin_ext
+}

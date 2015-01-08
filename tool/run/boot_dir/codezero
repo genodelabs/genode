@@ -1,10 +1,3 @@
-#
-# \brief  Codezero-specific test-environment supplements
-# \author Norman Feske
-# \date   2011-08-05
-#
-# This file is meant to be used as '--include' argument for 'tool/run'.
-#
 
 
 ##
@@ -34,21 +27,10 @@ proc exec_sh { command } {
 }
 
 
-##################################
-## Test framework API functions ##
-##################################
-
-proc create_boot_directory { } {
-
-	# create only intermediate directries hosting the run directory
-	exec mkdir -p [run_dir]
-	exec rm -rf [run_dir]
-
-	exec mkdir -p [run_dir]/genode
-}
-
-
-proc build_boot_image {binaries} {
+##
+# Populate boot directory with binaries on codezero
+#
+proc run_boot_dir {binaries} {
 
 	if {![file exists kernel]} { build kernel }
 
@@ -80,27 +62,4 @@ proc build_boot_image {binaries} {
 
 	# copy result to [run_dir]/image.elf (to be picked up by spawn_qemu)
 	exec_sh "cp [kernel_dir]/build/final.elf [run_dir]/image.elf"
-}
-
-
-proc run_genode_until {{wait_for_re forever} {timeout_value 0} {running_spawn_id -1}} {
-	#
-	# If a running_spawn_id is specified, wait for the expected output
-	#
-	if {$running_spawn_id != -1} {
-		wait_for_output $wait_for_re $timeout_value $running_spawn_id
-		return
-	}
-
-	#
-	# Try to use one of the supported backends for running the scripts
-	#
-	if {[is_qemu_available]} {
-		spawn_qemu $wait_for_re $timeout_value
-		return
-	}
-
-	global run_target
-	puts stderr "Error: Can't execute automatically on target '$run_target'"
-	exit -1
 }

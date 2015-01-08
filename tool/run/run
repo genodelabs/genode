@@ -1,0 +1,663 @@
+#!/usr/bin/expect
+
+#
+# \brief  Framework for running automated tests
+# \author Norman Feske
+# \date   2010-03-16
+#
+# Usage: run --name <run_name> --include <run_script> ...
+#
+# The '--name' argument is used for as name for the boot-image and
+# temporary directories. The files includes via the '--include'
+# argument provide platform-specific additions/refinements to the
+# test framework as well as the actual test steps.
+#
+
+
+##
+# Remove leading and trailing whitespace from string
+#
+proc strip_whitespace {string} {
+	regsub -all {^\s+} $string "" string
+	regsub -all {\s+$} $string "" string
+	return $string
+}
+
+
+##
+# Check if the specified spec requirement is satisfied
+#
+proc assert_spec {spec} {
+	global specs
+	if {[lsearch $specs $spec] == -1} {
+		puts stderr "Test requires '$spec'"
+		exit 0
+	}
+}
+
+
+##
+# Build genode targets specified as space-separated strings
+#
+# If the build process fails, this procedure will exit the program with
+# the error code -4.
+#
+proc build {targets} {
+
+	if {[get_cmd_switch --skip-build]} return
+
+	if {[info exists run_boot_dir_hook]} {
+		run_boot_dir_hook
+	}
+
+	regsub -all {\s\s+} $targets " " targets
+	puts "building targets: $targets"
+	set timeout 10000
+	set pid [eval "spawn make $targets"]
+	expect { eof { } }
+	if {[lindex [wait $pid] end] != 0} {
+		puts "Error: Genode build failed"
+		exit -4
+	}
+	puts "genode build completed"
+}
+
+
+##
+# Create a fresh boot directory
+#
+proc create_boot_directory { } {
+	exec rm -rf [run_dir]
+	exec mkdir -p [run_dir]
+	exec mkdir -p [run_dir]/genode
+}
+
+
+##
+# Append string to variable only if 'condition' is satisfied
+#
+proc append_if {condition var string} {
+	upvar $var up_var
+	if {$condition} { append up_var $string }
+}
+
+
+##
+# Append element to list only if 'condition' is satisfied
+#
+proc lappend_if {condition var string} {
+	upvar $var up_var
+	if {$condition} { lappend up_var $string }
+}
+
+
+##
+# Check syntax of specified XML file using xmllint
+#
+proc check_xml_syntax {xml_file} {
+
+	if {![have_installed xmllint]} {
+		puts "Warning: Cannot validate config syntax (please install xmllint)"
+		return;
+	}
+
+	if {[catch {exec xmllint --noout $xml_file} result]} {
+		puts stderr $result
+		puts stderr "Error: Invalid XML syntax in $xml_file"
+		exit 1
+	}
+}
+
+
+##
+# Install content of specfied variable as init config file
+#
+proc install_config {config} {
+	set fh [open "[run_dir]/genode/config" "WRONLY CREAT TRUNC"]
+	puts $fh $config
+	close $fh
+
+	check_xml_syntax [run_dir]/genode/config
+}
+
+
+##
+# Integrate specified binaries into boot image
+#
+# \param binaries  space-separated list of file names located within the
+#                  '<build-dir>/bin/' directory
+#
+proc build_boot_image {binaries} {
+	run_boot_dir $binaries
+}
+
+
+##
+# Execute Genode
+#
+# \param  wait_for_re    regular expression that matches the test completion
+# \param  timeout_value  timeout in seconds
+# \param  spawn_id       spawn_id of a already running and spawned process
+#                        spawn_id may be a list of spawned processes if needed
+# \global output         contains the core output (modified)
+#
+# If the function is called without any argument, Genode is executed in
+# interactive mode.
+#
+# If the test execution times out, this procedure will exit the program with
+# the error code -2.
+#
+proc run_genode_until {{wait_for_re forever} {timeout_value 0} {running_spawn_id -1}} {
+	#
+	# If a running_spawn_id is specified, wait for the expected output
+	#
+	if {$running_spawn_id != -1} {
+		wait_for_output $wait_for_re $timeout_value $running_spawn_id
+		return;
+	}
+
+	set retry 3
+	while { $retry != 0 } {
+
+		run_power_on
+
+		if {![run_load]} {
+			puts "Load step failed, retry."
+
+			# kill the spawned load process if there is one
+			if {[load_spawn_id] != -1} {
+				set pid [exp_pid -i [load_spawn_id]]
+				exec kill -9 $pid
+			}
+
+			incr retry -1;
+			continue;
+		}
+
+		if {![run_log $wait_for_re $timeout_value]} {
+			puts "Log step failed, retry."
+			incr retry -1;
+			continue;
+		}
+
+		return;
+	}
+
+	puts stderr "Boot process failed 3 times in series. I give up!";
+	exit -1;
+}
+
+
+##
+# Remove color information from output
+#
+proc filter_out_color_escape_sequences { } {
+	global output
+	regsub -all {\e\[.*?m} $output "" output
+}
+
+
+##
+# Remove superfluous empty lines and unify line endings from output
+#
+proc trim_lines { } {
+	global output
+	regsub -all {[\r\n]+} $output "\n" output
+}
+
+
+##
+# Filter output based on the specified pattern
+#
+# Only those lines that match the pattern are preserved.
+#
+proc grep_output {pattern} {
+	global output
+
+	filter_out_color_escape_sequences
+
+	trim_lines
+
+	set output_list [split $output "\n"]
+	set filtered ""
+	foreach line $output_list {
+		if {[regexp $pattern $line]} {
+			append filtered "$line\n"
+		}
+	}
+	set output $filtered
+}
+
+
+##
+# Unify known variations that appear in the test output
+#
+# \global output test output (modified)
+#
+proc unify_output {pattern replacement} {
+	global output
+	regsub -all $pattern $output $replacement output
+}
+
+
+##
+# Compare output against expected output line by line
+#
+# \param  good   expected test output
+# \global output test output
+#
+# This procedure will exit the program with the error code -1 if the
+# comparison fails.
+#
+proc compare_output_to { good } {
+	global output
+	set output_list [split [strip_whitespace $output] "\n"]
+	set good_list   [split [strip_whitespace $good]   "\n"]
+
+	set i 0
+	set mismatch_cnt 0
+	foreach good_line $good_list {
+		set output_line [strip_whitespace [lindex $output_list $i]]
+		set good_line   [strip_whitespace $good_line]
+
+		if {$output_line != $good_line} {
+			puts ""
+			puts stderr "Line $i of output is unexpected"
+			puts stderr " expected: '$good_line'"
+			puts stderr " got:      '$output_line'"
+			incr mismatch_cnt
+		}
+		incr i
+	}
+
+	#
+	# if $good is empty the foreach-loop isn't entered
+	# so we've to check for it separately
+	#
+	if {![llength $good_list] && [llength $output_list]} {
+		foreach output_line $output_list {
+			set output_line [strip_whitespace $output_line]
+			puts ""
+			puts stderr "Line $i of output is unexpected"
+			puts stderr " got:      '$output_line'"
+			incr mismatch_cnt
+			incr i
+		}
+	}
+
+	if {$mismatch_cnt > 0} {
+		puts "Error: Test failed, $mismatch_cnt unexpected lines of output"
+		exit -1
+	}
+}
+
+
+##
+# Return true if command-line switch was specified
+#
+proc get_cmd_switch { arg_name } {
+	global argv
+	return [expr [lsearch $argv $arg_name] >= 0]
+}
+
+
+##
+# Return command-line argument value
+#
+# If a argument name is specified multiple times, a
+# list of argument values is returned.
+#
+proc get_cmd_arg { arg_name default_value } {
+	global argv
+
+	# find argument name in argv list
+	set arg_idx_list [lsearch -all $argv $arg_name]
+
+	if {[llength $arg_idx_list] == 0} { return $default_value }
+
+	set result {}
+	foreach arg_idx $arg_idx_list {
+		set next_idx [expr $arg_idx + 1]
+
+		# stop if argv ends with the argument name
+		if {$next_idx >= [llength $argv]} continue
+
+		# return list element following the argument name
+		lappend result [lindex $argv $next_idx]
+	}
+
+	# if argument occurred only once, return its value
+	if {[llength $result] == 1} { return [lindex $result 0] }
+
+	# if argument occurred multiple times, contain list of arguments
+	return $result
+}
+
+##
+# Return command-line argument value
+#
+# If a argument name is specified multiple times, return only the
+# first match.
+#
+proc get_cmd_arg_first { arg_name default_value } {
+	global argv
+
+	set arg_idx [lsearch $argv $arg_name]
+
+	if {$arg_idx == -1} { return $default_value }
+
+	return [lindex $argv [expr $arg_idx + 1]]
+}
+
+
+#
+# Read command-line arguments
+#
+
+set run_name         [get_cmd_arg --name       "noname"]
+set genode_dir       [get_cmd_arg --genode-dir       ""]
+set cross_dev_prefix [get_cmd_arg --cross-dev-prefix ""]
+set specs            [get_cmd_arg --specs            ""]
+set repositories     [get_cmd_arg --repositories     ""]
+
+
+# accessor functions for command-line arguments
+proc run_name         { } { global run_name;         return $run_name }
+proc run_dir          { } { global run_name;         return var/run/$run_name }
+proc genode_dir       { } { global genode_dir;       return $genode_dir }
+proc cross_dev_prefix { } { global cross_dev_prefix; return $cross_dev_prefix }
+
+# set expect match-buffer size
+match_max -d 20000
+
+##
+# Return true if spec value is set for the build
+#
+proc have_spec {spec} { global specs; return [expr [lsearch $specs $spec] != -1] }
+
+
+##
+# Return true if specified program is installed
+#
+proc have_installed {program} {
+	if {[catch { exec which $program }]} { return false; }
+	return true
+}
+
+
+##
+# Return true if specified program is installed on the host platform
+#
+proc requires_installation_of {program} {
+	if {![have_installed $program]} {
+		puts "Run script aborted because $program is not installed"; exit
+	}
+}
+
+
+##
+# Return first repository containing the given path
+#
+proc repository_contains {path} {
+	global repositories;
+	foreach i $repositories {
+		if {[file exists $i/$path]} { return $i }
+	}
+}
+
+
+##
+## Utilities for performing steps that are the same on several platforms
+##
+
+##
+# Read kernel location from build-directory configuration
+#
+# If config file does not exist or if there is no 'KERNEL' declaration in the
+# config file, the function returns 'default_location'. If the config file
+# points to a non-existing kernel image, the function aborts with the exit
+# value -6.
+#
+proc kernel_location_from_config_file { config_file default_location } {
+	global _kernel
+
+	if {![info exists _kernel]} {
+		if {[file exists $config_file]} {
+			set _kernel [exec sed -n "/^KERNEL/s/^.*=\\s*//p" $config_file]
+
+			# check if the regular expression matched
+			if {$_kernel != ""} {
+				if {[file exists $_kernel]} {
+					return $_kernel
+				} else {
+					puts stderr "Error: kernel specified in '$config_file' does not exist"
+					exit -6
+				}
+			}
+		}
+
+		# try to fall back to version hosted with the Genode build directory
+		set _kernel $default_location
+	}
+	return $_kernel
+}
+
+
+##
+# Copy the specified binaries from the 'bin/' directory to the run
+# directory and try to strip executables.
+#
+proc copy_and_strip_genode_binaries_to_run_dir { binaries } {
+
+	foreach binary $binaries {
+		exec cp bin/$binary [run_dir]/genode
+		catch {
+			exec [cross_dev_prefix]strip [run_dir]/genode/$binary || true }
+	}
+}
+
+
+##
+# Wait for a specific output of a already running spawned process
+#
+proc wait_for_output { wait_for_re timeout_value running_spawn_id } {
+	global output
+
+	if {$wait_for_re == "forever"} {
+		set timeout -1
+		interact {
+			\003 {
+				send_user "Expect: 'interact' received 'strg+c' and was cancelled\n";
+				exit
+			}
+			-i $running_spawn_id
+		}
+	} else {
+		set timeout $timeout_value
+	}
+
+	expect {
+		-i $running_spawn_id -re $wait_for_re { }
+		eof     { puts stderr "Error: Spawned process died unexpectedly"; exit -3 }
+		timeout { puts stderr "Error: Test execution timed out"; exit -2 }
+	}
+	set output $expect_out(buffer)
+}
+
+
+##
+## Fall-back implementations of all run module procedures
+##
+
+##
+# Dummy boot_dir maodule
+proc run_boot_dir { } { return true; }
+
+
+##
+# Dummy image build module
+#
+proc run_image { {image "" } } { return true; }
+
+
+##
+# Dummy load module
+#
+proc run_load { } { return true; }
+
+
+##
+# Dummy output module
+#
+# XXX explain why exit 0 is appropiate
+#
+proc run_log { wait_for_re timeout_value } { exit 0 }
+
+
+##
+# Dummy power_on module
+#
+proc run_power_on { } { return true; }
+
+
+##
+# Dummy power_off module
+#
+proc run_power_off { } { return true; }
+
+
+##
+# Check if a specific file is included
+#
+proc have_include { name } {
+	global include_list
+	foreach element $include_list {
+		if {[string equal $element $name]} {
+			return true
+		}
+	}
+
+	return false
+}
+
+
+##
+# Override the exit procedure
+#
+# We have to override the exit procedure to make sure that a loaded
+# run_power_off procedure is in any case execute when stopping the
+# execution of the run tool.
+#
+rename exit real_exit
+proc exit {{status 0}} {
+	run_power_off
+
+	real_exit $status
+}
+
+
+##
+# Determine terminal program
+#
+proc terminal { } {
+	global env
+	if {[info exists env(COLORTERM)]} {
+		return $env(COLORTERM)
+	}
+	return $env(TERM)
+}
+
+
+##
+# Determine GDB executable installed at the host
+#
+proc gdb { } {
+	if {[have_installed "[cross_dev_prefix]gdb"]} {
+		return "[cross_dev_prefix]gdb" }
+
+	if {[have_installed gdb]} {
+		return "gdb" }
+
+	requires_installation_of gdb
+}
+
+
+##
+# Check if a shell command is installed
+#
+# \param  command  name of the command to search
+#
+# \return absolute path of command if found, or exists if not
+#
+proc check_installed {command} {
+	if { [catch {set path [exec which $command]}] == 0} {
+		return $path
+	}
+
+	set dir { /sbin /usr/sbin /usr/local/bin }
+
+	foreach location $dir  {
+		append location / $command
+
+		if { [file exists $location] == 1} {
+			return $location
+		}
+	}
+
+	puts stderr "Error: '$command' command could be not found. Please make sure to install the"
+	puts stderr "        packet containing '$command', or make it available in your PATH variable.\n"
+
+	exit 1
+}
+
+
+##
+## Execution of run scripts
+##
+
+
+set include_list { }
+
+
+##
+# Read and execute files specified as '--include' arguments
+#
+# Out of convenience run modules may be included by using a relative path.
+#
+foreach include_name [get_cmd_arg --include ""] {
+	# first check if the include name is absolute
+	if {[string first "/" $include_name] == 0} {
+		puts "including $include_name"
+		lappend include_list $include_name
+		source $include_name
+
+		continue
+	}
+
+	# if it is relative, check run modules
+	set run_path [genode_dir]/tool/run
+	set dir { etc }
+	lappend dir $run_path
+
+	set found 0
+	foreach location $dir {
+		set include_file $location/$include_name
+		if {[file exists $include_file] == 1} {
+			puts "including $include_file"
+			lappend include_list $include_name
+			source $include_file
+
+			set found 1
+			break
+		} else {
+		}
+	}
+
+	if {!$found} {
+		puts stderr "Aborting, could not load '$include_file'"
+		exit -1;
+	}
+}
+
+puts "\nRun script execution successful."
+exit 0

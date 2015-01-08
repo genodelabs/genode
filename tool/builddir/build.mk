@@ -238,14 +238,15 @@ RUN_SCRIPT = $(call select_from_repositories,run/$*.run)
 
 run/%: $(call select_from_repositories,run/%.run) $(RUN_ENV)
 	$(VERBOSE)test -f "$(RUN_SCRIPT)" || (echo "Error: No run script for $*"; exit -1)
-	$(VERBOSE)$(GENODE_DIR)/tool/run --genode-dir $(GENODE_DIR) \
-	                                 --name $* \
-	                                 --specs "$(SPECS)" \
-	                                 --repositories "$(REPOSITORIES)" \
-	                                 --cross-dev-prefix "$(CROSS_DEV_PREFIX)" \
-	                                 --qemu-args "$(QEMU_OPT)" \
-	                                 --include $(RUN_ENV) $(RUN_OPT) \
-	                                 --include $(RUN_SCRIPT)
+	$(VERBOSE)$(GENODE_DIR)/tool/run/run --genode-dir $(GENODE_DIR) \
+	                                     --name $* \
+	                                     --specs "$(SPECS)" \
+	                                     --repositories "$(REPOSITORIES)" \
+	                                     --cross-dev-prefix "$(CROSS_DEV_PREFIX)" \
+	                                     --qemu-args "$(QEMU_OPT)" \
+	                                     $(RUN_OPT) \
+	                                     --include $(RUN_ENV) \
+	                                     --include $(RUN_SCRIPT)
 
 ##
 ## Clean rules

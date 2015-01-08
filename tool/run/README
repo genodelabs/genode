@@ -1,0 +1,141 @@
+
+
+                             ===================
+                             The Genode run tool
+                             ===================
+
+Introduction
+############
+
+The run tool is used to configure, build, and execute so-called run scripts.
+These run scripts include a scenario or test-case of Genode components and
+subsystems. Its core functionality is split into various modules to accommodate
+a variety of different execution environments. These modules provide the
+implementation of a given step in the sequence of execution of a run script.
+These steps are:
+
+* Building the corresponding components
+* Wrapping the components in a format suitable for execution
+* Preparing the target systems
+* Executing the scenario
+* Collecting any output
+
+After the run script was executed successfully, the run tool will print the
+string 'Run script execution successful.". This message can be used to check
+for the successful completion of the run script when doing automated testing.
+
+The categories of modules are formed by existing requirements such as automated
+testing on a variety of different hardware platforms and are based
+on the above-named steps:
+
+:boot_dir:
+  These modules contain the functionality to populate the boot directory
+  and are specific to each kernel. It is mandatory to always include the
+  module corresponding to the used kernel.
+
+:image modules:
+  These modules are used to wrap up all components used by the run script
+  in a specific format and thereby to prepare them for execution.
+  Depending on the used kernel, there are different formats. With these
+  modules, the creation of ISO and disk images is also handled.
+
+:load modules:
+  These modules handle the way the components are transfered to the
+  target system. Depending on the used kernel there are various options
+  to pass on the components. Loading from TFTP or via JTAG is handled
+  by the modules of this category.
+
+:log modules:
+  These modules handle how the output of a currently executed run script
+  is captured.
+
+:power_on modules:
+  These modules are used for bringing the target system into an defined
+  state, e.g., by starting or rebooting the system.
+
+:power_off modules:
+  These modules are used for turning the target system off after the
+  execution of a run script.
+
+When executing a run script, only one module of each category must be used.
+
+
+Usage
+#####
+
+To execute a run script a combination of modules may be used. The combination
+is controlled via the RUN_OPT variable used by the build framework. Here are a
+few common exemplary combinations:
+
+Executing NOVA in Qemu:
+
+!RUN_OPT = --include boot_dir/nova \
+!          --include exec/qemu --include log/qemu --include image/iso
+
+Executing NOVA on a real x86 machine using AMT for resetting the target system
+and for capturing the serial output while loading the files via TFTP:
+
+!RUN_OPT = --include boot_dir/nova \
+!          --include power_on/amt --power-on-amt-host 10.23.42.13 \
+!                                 --power-on-amt-password 'foo!' \
+!          --include load/tftp --load-tftp-base-dir /var/lib/tftpboot \
+!                              --load-tftp-offset-dir /x86 \
+!          --include log/amt --log-amt-host 10.23.42.13 \
+!                            --log-amt-password 'foo!'
+
+Executing fiasco.OC on a real x86 machine using AMT for resetting, USB serial
+for output while loading the files via TFTP:
+
+!RUN_OPT = --include boot_dir/foc \
+!          --include power_on/amt --amt-host 10.23.42.13 --amt-password 'foo!' \
+!          --include load/tftp --tftp-base-dir /var/lib/tftpboot \
+!                              --tftp-offset-dir /x86 \
+!          --include log/serial --serial-cmd 'picocom -b 115200 /dev/ttyUSB0'
+
+Executing hw on a rpi using powerplug to reset the hardware, JTAG to load the
+image and USB serial to capture the output:
+
+!RUN_OPT = --include boot_dir/hw \
+!          --include power_on/powerplug --power-on-powerplug-ip 10.23.42.5 \
+!                                       --power-on-powerplug-user admin \
+!                                       --power-on-powerplug-password secret \
+!                                       --power-on-powerplug-port 1
+!          --include power_off/powerplug --power-off-powerplug-ip 10.23.42.5 \
+!                                        --power-off-powerplug-user admin \
+!                                        --power-off-powerplug-password secret \
+!                                        --power-off-powerplug-port 1
+!          --include load/jtag \
+!          --load-jtag-debugger /usr/share/openocd/scripts/interface/flyswatter2.cfg \
+!          --load-jtag-board /usr/share/openocd/scripts/interface/raspberrypi.cfg \
+!          --include log/serial --log-serial-cmd 'picocom -b 115200 /dev/ttyUSB0'
+
+
+Module overview
+###############
+
+A module consist of a expect/TCL source file located in one of the existing
+directories of a category. It is named implicitly by its location and the
+name of the source file, e.g. 'image/iso' is the name of the image module
+that creates an ISO image.
+
+The source file contains one mandatory procedure:
+
+* run_<module> { <module-args> }
+  The procedure is called if the step at hand is executed by the
+  run tool. If its execution was successful, it returns true and
+  otherwise false. Certain modules may also call exit on failure.
+
+A module may have arguments, which are by convention prefixed with the name
+of the source file, e.g. 'power_on/amt' may have an argument called
+'--power-on-amt-host'. If the argument passes on a value the value must be
+made accessible by calling an equally named procedure, e.g.
+'--power-on-amt-host' becomes 'proc amt_host { }'.
+Thereby a run script or a run environment can access the value of the argument
+in a defined way without the use of a global variable by using
+'[power_on_amt_host]'. Also arguments without a value may be queried in this
+way. '--image-uboot-gzip' becomes '[image_uboot_use_gzip]'.
+In addition to these procedures, a module may have any number of public
+procedures. They may be used after the presence of the particular module that
+contains them is verified. For this reason the run tool provides a procedure
+called 'have_include', that performs this check. For example the presence of
+the 'load/tftp' module is checked by calling '[have_include "load/tftp"]'.

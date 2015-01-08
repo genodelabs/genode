@@ -1,0 +1,20 @@
+source [genode_dir]/tool/run/iso.inc
+
+
+##
+# Create ISO image with the content of the run directory
+#
+proc run_image { {unused ""} } {
+
+	puts "creating ISO image..."
+	exec rm -f "[run_dir].iso"
+
+	#
+	# The 'create_iso' writes diagnostics to stderr, which are interpreted as
+	# execution failure by expect unless '-ignorestderr' is set on 'exec'.
+	#
+	if {[catch {exec -ignorestderr [genode_dir]/tool/create_iso iso ISO=[run_dir]} ]} {
+		puts stderr "Error: ISO image creation failed"
+		exit -5
+	}
+}

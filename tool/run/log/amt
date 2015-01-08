@@ -1,0 +1,70 @@
+##
+# Get output of the target machine via Intel AMT's SoL feature
+#
+# \param --amt-host       IP address of target machine
+# \param --amt-password   AMT password for target machine
+#
+
+source [genode_dir]/tool/run/log.inc
+source [genode_dir]/tool/run/amt.inc
+
+
+proc log_amt_host { } {
+	return [get_cmd_arg_first --log-amt-host ""]
+}
+
+
+proc log_amt_password { } {
+	return [get_cmd_arg_first --log-amt-password ""]
+}
+
+
+##
+# Log output of the test machine using Intel's AMT
+#
+proc run_log { wait_for_re timeout_value } {
+	global output_spawn_id
+
+	if {![is_amt_available [log_amt_host] [log_amt_password]]} {
+		set exit_result 1
+		return false
+	}
+
+	#
+	# grab output
+	#
+	set amtterm  "amtterm -u admin -p [log_amt_password] -v [log_amt_host]"
+	if {$wait_for_re == "forever"} {
+		set timeout -1
+	} else {
+		set timeout [expr $timeout_value + 30]
+	}
+	set exit_result 1
+
+	while { $exit_result != 0 } {
+		set time_start [ clock seconds ]
+		eval spawn $amtterm
+		set output_spawn_id $spawn_id
+		expect {
+			-i $output_spawn_id -re $wait_for_re { break }
+			eof     { continue }
+			timeout { puts "Error: Test execution timed out"; exit -2 }
+		}
+		catch wait result
+		set time_end [ clock seconds ]
+		if {[expr $time_end - $time_start] <= 1} {
+			incr timeout -1
+		} else {
+			incr timeout [expr -1 * ($time_end - $time_start)]
+		}
+		if {$timeout < 0} {
+			set timeout 0
+		}
+		set exit_result [lindex $result 3]
+	}
+
+	global output
+	set output $expect_out(buffer)
+
+	return true
+}

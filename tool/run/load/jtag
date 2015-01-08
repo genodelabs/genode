@@ -1,0 +1,52 @@
+##
+# Load image to target hardware via JTAG
+#
+# \param --load-jtag-debugger   Debugger used
+# \param --load-jtag-board      Set the used board
+#
+
+source [genode_dir]/tool/run/load.inc
+
+
+proc load_jtag_debugger { } { return [get_cmd_arg --load-jtag-debugger 1] }
+
+
+proc load_jtag_board { } { return [get_cmd_arg --load-jtag-board 1] }
+
+
+proc run_load { } {
+	global load_spawn_id
+
+	if {![have_spec arm] || ![have_installed openocd]} {
+		puts "No support for JTAG detected."
+		exit -1
+	}
+
+	set debugger [load_jtag_debugger]
+	set board    [load_jtag_board]
+	set elf_img "[run_dir]/image.elf"
+
+	# sleep a bit, board might need some time to come up
+	sleep 8
+
+	# parse ELF entrypoint
+	set entrypoint [exec [cross_dev_prefix]readelf -h $elf_img | \
+	                grep "Entry point address: " | \
+	                sed -e "s/.*Entry point address: *//"]
+
+	eval spawn openocd -f $debugger -f $board -c init -c halt \
+	                   -c \"load_image $elf_img\" -c \"resume $entrypoint\"
+	set load_spawn_id $spawn_id
+	set timeout 360
+	expect {
+		"downloaded"  { return true; }
+		eof     {
+			puts stderr "openocd command process died unexpectedly";
+			return false;
+		}
+		timeout {
+			puts stderr "Loading timed out";
+			return false;
+		}
+	}
+}

@@ -1,0 +1,7 @@
+##
+# Populate boot directory with binaries on Linux
+#
+proc run_boot_dir {binaries} {
+	foreach binary $binaries {
+		exec ln -sf ../../../../bin/$binary [run_dir]/genode }
+}

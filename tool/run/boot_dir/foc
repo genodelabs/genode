@@ -7,14 +7,6 @@
 #
 
 ##
-# Install files needed to boot via PXE
-#
-proc install_pxe_bootloader_to_run_dir { } {
-	exec cp [genode_dir]/tool/boot/pulsar [run_dir]/boot/pulsar
-	exec cp [genode_dir]/tool/boot/bender [run_dir]/boot/bender
-}
-
-##
 # Return the location of the Fiasco.OC user directory
 #
 proc l4_dir { } {
@@ -83,20 +75,6 @@ proc reset_target { {spawn_id_arg -1} } {
 	send -i $spawn_id_arg "\033^^"
 }
 
-##################################
-## Test framework API functions ##
-##################################
-
-proc create_boot_directory { } {
-	exec rm -rf   [run_dir]
-	exec mkdir -p [run_dir]/genode
-
-	if {[have_spec x86]} {
-		exec mkdir -p [run_dir]/fiasco
-		exec mkdir -p [run_dir]/boot/grub
-	}
-}
-
 
 proc copy_and_strip_binaries {binaries} {
 
@@ -108,10 +86,6 @@ proc copy_and_strip_binaries {binaries} {
 		catch {
 			exec [cross_dev_prefix]strip [run_dir]/genode/$binary }
 	}
-
-	#
-	# Generate config file for bootstrap
-	#
 }
 
 
@@ -126,9 +100,11 @@ proc bin_dir { } {
 
 set fiasco_serial_esc_arg "-serial_esc "
 
-proc build_boot_image_x86 {binaries} {
+proc run_boot_dir_x86 {binaries} {
 
 	global fiasco_serial_esc_arg
+
+	exec mkdir -p [run_dir]/fiasco
 
 	copy_and_strip_binaries $binaries
 
@@ -149,69 +125,67 @@ proc build_boot_image_x86 {binaries} {
 	exec cp [bin_dir]/l4f/sigma0 [run_dir]/fiasco
 	exec cp [bin_dir]/bootstrap [run_dir]/fiasco
 
-	install_iso_bootloader_to_run_dir
+	if {[have_include "image/iso"] || [have_include "image/disk"]} {
+		#
+		# Install isolinux/GRUB files and bender
+		#
+		install_iso_bootloader_to_run_dir
 
-	#
-	# Generate grub config file
-	#
-	# The core binary is part of the 'binaries' list but it must
-	# appear right after 'sigma0' as boot module. Hence the special case.
-	#
-	set fh [open "[run_dir]/boot/grub/menu.lst" "WRONLY CREAT TRUNC"]
-	puts $fh "timeout 0"
-	puts $fh "default 0"
-	puts $fh "\ntitle Genode on Fiasco.OC"
-	puts $fh " kernel /boot/bender"
-	puts $fh " module /fiasco/bootstrap -modaddr=0x01100000"
-	puts $fh " module /fiasco/fiasco $fiasco_serial_esc_arg"
-	puts $fh " module /fiasco/sigma0"
-	puts $fh " module /genode/core"
-	puts $fh " module /genode/config"
-	foreach binary $binaries {
-		if {$binary != "core"} {
-			puts $fh " module /genode/$binary" } }
-	puts $fh " vbeset 0x117 506070"
-	close $fh
-
-	install_pxe_bootloader_to_run_dir
-	create_iso_image_from_run_dir
-	create_disk_image_from_run_dir
-
-	#
-	# Generate pulsar config file
-	#
-	set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
-	puts $fh " exec /boot/bender"
-	puts $fh " load /fiasco/bootstrap -modaddr=0x01100000"
-	puts $fh " load /fiasco/fiasco -serial_esc"
-	puts $fh " load /fiasco/sigma0"
-	puts $fh " load /genode/core"
-	puts $fh " load /genode/config"
-	foreach binary $binaries {
-		if {$binary != "core"} {
-			puts $fh " load /genode/$binary" } }
-	close $fh
-
-	#
-	# Generate pulsar config file pointing to the config file above.
-	#
-	if {[info exists ::env(PXE_TFTP_DIR_BASE)] && [info exists ::env(PXE_TFTP_DIR_OFFSET)]} {
-		exec ln -nfs "[pwd]" "$::env(PXE_TFTP_DIR_BASE)$::env(PXE_TFTP_DIR_OFFSET)"
-
-		set tftp_base ""
-		if {[get_cmd_switch --tftp-absolute]} {
-			set tftp_base $::env(PXE_TFTP_DIR_BASE)
-		}
-
-		set fh [open "$::env(PXE_TFTP_DIR_BASE)$::env(PXE_TFTP_DIR_OFFSET)/config-00-00-00-00-00-00" "WRONLY CREAT TRUNC"]
-		puts $fh " root $tftp_base$::env(PXE_TFTP_DIR_OFFSET)/[run_dir]"
-		puts $fh " config config-52-54-00-12-34-56"
+		#
+		# Generate grub config file
+		#
+		# The core binary is part of the 'binaries' list but it must
+		# appear right after 'sigma0' as boot module. Hence the special case.
+		#
+		set fh [open "[run_dir]/boot/grub/menu.lst" "WRONLY CREAT TRUNC"]
+		puts $fh "timeout 0"
+		puts $fh "default 0"
+		puts $fh "\ntitle Genode on Fiasco.OC"
+		puts $fh " kernel /boot/bender"
+		puts $fh " module /fiasco/bootstrap -modaddr=0x01100000"
+		puts $fh " module /fiasco/fiasco $fiasco_serial_esc_arg"
+		puts $fh " module /fiasco/sigma0"
+		puts $fh " module /genode/core"
+		puts $fh " module /genode/config"
+		foreach binary $binaries {
+			if {$binary != "core"} {
+				puts $fh " module /genode/$binary" } }
+		puts $fh " vbeset 0x117 506070"
 		close $fh
+	}
+
+	#
+	# Build image
+	#
+	run_image
+
+	if {[have_include "load/tftp"]} {
+		#
+		# Install PXE bootloader pulsar
+		#
+		install_pxe_bootloader_to_run_dir
+
+		#
+		# Generate pulsar config file
+		#
+		set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
+		puts $fh " exec /boot/bender"
+		puts $fh " load /fiasco/bootstrap -modaddr=0x01100000"
+		puts $fh " load /fiasco/fiasco -serial_esc"
+		puts $fh " load /fiasco/sigma0"
+		puts $fh " load /genode/core"
+		puts $fh " load /genode/config"
+		foreach binary $binaries {
+			if {$binary != "core"} {
+				puts $fh " load /genode/$binary" } }
+		close $fh
+
+		generate_tftp_config
 	}
 }
 
 
-proc build_boot_image_arm {binaries} {
+proc run_boot_dir_arm {binaries} {
 
 	global run_target
 	global fiasco_serial_esc_arg
@@ -249,53 +223,27 @@ proc build_boot_image_arm {binaries} {
 	}
 
 	exec cp [bin_dir]/bootstrap.elf [run_dir]/image.elf
-	build_uboot_image [run_dir]/image.elf
+	run_image [run_dir]/image.elf
 
 	puts "\nboot image: [run_dir]/image.elf\n"
 
 	# set symbolic link to image.elf file in TFTP directory for PXE boot
-	if {[info exists ::env(PXE_TFTP_DIR_BASE)] &&
-	    [info exists ::env(PXE_TFTP_DIR_OFFSET)]} {
-		exec ln -sf "[pwd]/[run_dir]/image.elf" "$::env(PXE_TFTP_DIR_BASE)$::env(PXE_TFTP_DIR_OFFSET)"
-		if {[regexp "uboot" $run_target]} {
-			exec ln -sf "[pwd]/[run_dir]/uImage" "$::env(PXE_TFTP_DIR_BASE)$::env(PXE_TFTP_DIR_OFFSET)/uImage"
+	if {[have_include "load/tftp"]} {
+		set tftp_base_dir [load_tftp_base_dir]
+		set tftp_offset_dir [load_tftp_offset_dir]
+
+		exec ln -sf [pwd]/[run_dir]/image.elf $tftp_base_dir$tftp_offset_dir
+		if {[have_include "image/uboot"]} {
+			exec ln -sf [pwd]/[run_dir]/uImage $tftp_base_dir$tftp_offset_dir/uImage
 		}
 	}
 }
 
 
-proc build_boot_image {binaries} {
-	if {[have_spec x86]} { return [build_boot_image_x86 $binaries] }
-	if {[have_spec arm]} { return [build_boot_image_arm $binaries] }
-}
-
-
-proc run_genode_until {{wait_for_re forever} {timeout_value 0} {running_spawn_id -1}} {
-	#
-	# If a running_spawn_id is specified, wait for the expected output
-	#
-	if {$running_spawn_id != -1} {
-		wait_for_output $wait_for_re $timeout_value $running_spawn_id
-		return
-	}
-
-	#
-	# Try to use one of the supported backends for running the scripts
-	#
-	if {[is_amt_available]} {
-		spawn_amt $wait_for_re $timeout_value
-		return
-	}
-	if {[is_qemu_available]} {
-		spawn_qemu $wait_for_re $timeout_value
-		return
-	}
-	if {[is_serial_available]} {
-		spawn_serial $wait_for_re $timeout_value "L4 Bootstrapper"
-		return
-	}
-
-	global run_target
-	puts stderr "Error: Can't execute automatically on target '$run_target'"
-	exit -1
+##
+# Populate boot directory with binaries on fiasco.OC
+#
+proc run_boot_dir {binaries} {
+	if {[have_spec x86]} { return [run_boot_dir_x86 $binaries] }
+	if {[have_spec arm]} { return [run_boot_dir_arm $binaries] }
 }

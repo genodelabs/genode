@@ -1,0 +1,49 @@
+##
+# Create disk image with contents of the run directory
+#
+# \param --image-disk-size   disk size in MiB
+#
+
+source [genode_dir]/tool/run/iso.inc
+
+
+proc image_disk_size { } { return [get_cmd_arg --image-disk-size 0] }
+
+
+##
+# Create disk image with the content of the run directory
+#
+proc run_image { {unused ""} } {
+
+	requires_installation_of parted
+	requires_installation_of resize2fs
+	requires_installation_of fallocate
+
+	set grub_img   "[genode_dir]/tool/grub2-head.img"
+	set disk_img   "[run_dir].img"
+	set part1_img  "[run_dir]-part1.img"
+	set run_size   [expr [regsub {\s.*} [exec du -sm [run_dir]] {}] + 4]
+	if {[image_disk_size] > 0} {
+		set disk_size  [image_disk_size]
+	} else {
+		set disk_size $run_size
+	}
+	set part1_size [expr $disk_size - 1]MiB
+
+	# extract and resize partition image
+	exec dd if=$grub_img of=$part1_img bs=1M skip=1  2>/dev/null
+	exec fallocate -l $part1_size $part1_img
+	exec resize2fs $part1_img  2>/dev/null
+
+	# populate partition with binaries
+	exec [genode_dir]/tool/rump -F ext2fs -p [run_dir] $part1_img
+
+	# merge final image from GRUB2 head and partition
+	exec dd if=$grub_img  of=$disk_img status=noxfer bs=1M count=1  2>/dev/null
+	exec dd if=$part1_img of=$disk_img status=noxfer bs=1M seek=1   2>/dev/null
+	exec parted -s $disk_img -- rm 1 mkpart primary 2048s -1s set 1 boot on
+
+	exec rm -f $part1_img
+
+	puts "Created image file $disk_img ($disk_size MiB)"
+}

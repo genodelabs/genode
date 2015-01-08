@@ -1,0 +1,37 @@
+##
+# Execute scenario on Linux
+#
+proc run_power_on { } {
+	global linux_spawn_id
+	global linux_orig_pwd
+
+	set linux_orig_pwd [pwd]
+	cd [run_dir]/genode
+	eval spawn ./core
+	set linux_spawn_id $spawn_id
+	cd $linux_orig_pwd
+}
+
+
+##
+# Umount a directory that was bind-mounted beforehand
+#
+# This function is used by chroot-related tests, e.g., 'os/run/chroot.run',
+# 'os/run/chroot_loader.run'.
+#
+proc umount_and_rmdir { path } {
+
+	puts "umounting $path"
+
+	#
+	# Invoke umount until it returns an error. Apparently, the unmounting
+	# of bind-mounted mount points does not always take immediate effect
+	# (regardless of the -l option).
+	#
+	while {1} {
+		if {[catch { exec sudo umount -l $path }]} { break; }
+		sleep 0.25
+	}
+
+	catch { exec rmdir -p $path }
+}

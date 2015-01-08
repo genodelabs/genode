@@ -1,0 +1,54 @@
+##
+# Reset the target machine via powerplug
+#
+# \param --power-on-powerplug-ip         IP address of powerplug device
+# \param --power-on-powerplug-user       user for powerplug device
+# \param --power-on-powerplug-password   password for powerplug device
+# \param --power-on-powerplug-port       target port of powerplug device
+#
+
+source [genode_dir]/tool/run/powerplug.inc
+
+
+proc power_on_powerplug_ip { } {
+	return [get_cmd_arg_first --power-on-powerplug-ip 1]
+}
+
+
+proc power_on_powerplug_user { } {
+	return [get_cmd_arg_first --power-on-powerplug-user 1]
+}
+
+
+proc power_on_powerplug_password { } {
+	return [get_cmd_arg_first --power-on-powerplug-password 1]
+}
+
+
+proc power_on_powerplug_port { } {
+	return [get_cmd_arg_first --power-on-powerplug-port 1]
+}
+
+
+
+proc run_power_on { } {
+	set server_ip [power_on_powerplug_ip]
+	set user_name [power_on_powerplug_user]
+	set password  [power_on_powerplug_password]
+	set power_port [power_on_powerplug_port]
+
+	set connection_id [power_plug_connect $server_ip $user_name $password]
+
+	send -i $connection_id "port $power_port\n"
+	expect -i $connection_id -re {250 [0-9]+.*\n}
+	regexp -all {[0-9]+} $expect_out(0,string) power_status
+	if {!$power_status} {
+		puts "port $power_port is off - switching it on"
+		send -i $connection_id "port $power_port 1\n"
+		expect -i $connection_id "250 OK"
+	} else {
+		puts "port $power_port is on - reset port"
+		send -i $connection_id "port $power_port int\n"
+		expect -i $connection_id "250 OK"
+	}
+}

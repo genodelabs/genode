@@ -1,23 +1,8 @@
-#
-# \brief  OKL4-specific test-environment supplements
-# \author Norman Feske
-# \date   2010-08-16
-#
-# This file is meant to be used as '--include' argument for 'tool/run'.
-#
-
-##
-# Install files needed to boot via PXE
-#
-proc install_pxe_bootloader_to_run_dir { } {
-	exec cp [genode_dir]/tool/boot/pulsar [run_dir]/boot/pulsar
-	exec cp [genode_dir]/tool/boot/bender [run_dir]/boot/bender
-}
-
 ##
 # Get the base-okl4 repository
 #
 proc base_okl4_dir {} { return [repository_contains mk/spec-okl4.mk] }
+
 
 ##
 # Read the location of the OKL4 directory from 'etc/okl4.conf'
@@ -37,6 +22,7 @@ proc okl4_dir { } {
 	return $_okl4_dir
 }
 
+
 ##
 # Return the location of the OKL4 kernel
 #
@@ -45,21 +31,13 @@ proc okl4 { } {
 	return bin/kernel
 }
 
+
 ##
 # Return whether okl4 kernel is provided from the outside
 #
 proc okl4_external { } {
 	if {"[okl4_dir]" == "[base_okl4_dir]/contrib/okl4"} { return 0 }
 	return 1
-}
-
-##################################
-## Test framework API functions ##
-##################################
-
-proc create_boot_directory { } {
-	exec rm -rf   [run_dir]
-	exec mkdir -p [run_dir]/genode
 }
 
 
@@ -122,7 +100,11 @@ set weaver_xml_template {
 	<rootprogram file="core" virtpool="virtual" physpool="physical" />
 }
 
-proc build_boot_image {binaries} {
+
+##
+# Populate directory with binaries on OKL4
+#
+proc run_boot_dir {binaries} {
 	global weaver_xml_template
 
 	#
@@ -179,86 +161,50 @@ proc build_boot_image {binaries} {
 	#
 	exec rm -r [run_dir]/genode
 
-	#
-	# Install GRUB
-	#
-	install_iso_bootloader_to_run_dir
+	if {[have_include "image/iso"] || [have_include "image/disk"]} {
+		#
+		# Install GRUB
+		#
+		install_iso_bootloader_to_run_dir
 
-	#
-	# Install PXE bootloader pulsar
-	#
-	install_pxe_bootloader_to_run_dir
-
-	#
-	# Generate grub config file
-	#
-	# The core binary is part of the 'binaries' list but it must
-	# appear right after 'sigma0' as boot module. Hence the special case.
-	#
-	set fh [open "[run_dir]/boot/grub/menu.lst" "WRONLY CREAT TRUNC"]
-	puts $fh "timeout 0"
-	puts $fh "default 0"
-	puts $fh "hiddenmenu"
-	puts $fh "\ntitle Genode on OKL4"
-	puts $fh " kernel /boot/bender"
-	puts $fh " module /image.elf"
-	puts $fh " vbeset 0x117"
-	close $fh
-
-	create_iso_image_from_run_dir
-	create_disk_image_from_run_dir
-
-	#
-	# Generate pulsar config file
-	#
-	set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
-	# load okl4 at 256M to avoid overwritting binary, adjust by need
-	puts $fh " addr 0x10000000"
-	puts $fh " exec /boot/bender"
-	puts $fh " load /image.elf"
-	close $fh
-
-	#
-	# Generate pulsar config file pointing to the config file above.
-	#
-	if {[info exists ::env(PXE_TFTP_DIR_BASE)] && [info exists ::env(PXE_TFTP_DIR_OFFSET)]} {
-		exec ln -nfs "[pwd]" "$::env(PXE_TFTP_DIR_BASE)$::env(PXE_TFTP_DIR_OFFSET)"
-
-		set tftp_base ""
-		if {[get_cmd_switch --tftp-absolute]} {
-			set tftp_base $::env(PXE_TFTP_DIR_BASE)
-		}
-
-		set fh [open "$::env(PXE_TFTP_DIR_BASE)$::env(PXE_TFTP_DIR_OFFSET)/config-00-00-00-00-00-00" "WRONLY CREAT TRUNC"]
-		puts $fh " root $tftp_base$::env(PXE_TFTP_DIR_OFFSET)/[run_dir]"
-		puts $fh " config config-52-54-00-12-34-56"
+		#
+		# Generate grub config file
+		#
+		# The core binary is part of the 'binaries' list but it must
+		# appear right after 'sigma0' as boot module. Hence the special case.
+		#
+		set fh [open "[run_dir]/boot/grub/menu.lst" "WRONLY CREAT TRUNC"]
+		puts $fh "timeout 0"
+		puts $fh "default 0"
+		puts $fh "hiddenmenu"
+		puts $fh "\ntitle Genode on OKL4"
+		puts $fh " kernel /boot/bender"
+		puts $fh " module /image.elf"
+		puts $fh " vbeset 0x117"
 		close $fh
 	}
-}
 
+	#
+	# Build image
+	#
+	run_image
 
-proc run_genode_until {{wait_for_re forever} {timeout_value 0} {running_spawn_id -1}} {
-	#
-	# If a running_spawn_id is specified, wait for the expected output
-	#
-	if {$running_spawn_id != -1} {
-		wait_for_output $wait_for_re $timeout_value $running_spawn_id
-		return
+	if {[have_include "load/tftp"]} {
+		#
+		# Install PXE bootloader pulsar
+		#
+		install_pxe_bootloader_to_run_dir
+
+		#
+		# Generate pulsar config file
+		#
+		set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
+		# load okl4 at 256M to avoid overwritting binary, adjust by need
+		puts $fh " addr 0x10000000"
+		puts $fh " exec /boot/bender"
+		puts $fh " load /image.elf"
+		close $fh
+
+		generate_tftp_config
 	}
-
-	#
-	# Try to use one of the supported backends for running the scripts
-	#
-	if {[is_amt_available]} {
-		spawn_amt $wait_for_re $timeout_value
-		return
-	}
-	if {[is_qemu_available]} {
-		spawn_qemu $wait_for_re $timeout_value
-		return
-	}
-
-	global run_target
-	puts stderr "Error: Can't execute automatically on target '$run_target'"
-	exit -1
 }

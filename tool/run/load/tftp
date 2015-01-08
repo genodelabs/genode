@@ -1,0 +1,64 @@
+##
+# Load files needed by the scenario via TFTP
+#
+# \param --load-tftp-base-dir     base directory of TFTP
+# \param --load-tftp-offset-dir   offset directory within TFTP
+# \param --load-tftp-absolute     path is absolute, i.e. /base_dir/offset_dir
+#                            instead of only /offset_dir is used
+#
+
+source [genode_dir]/tool/run/load.inc
+
+
+##
+# The files are loaded implicitly via TFTP to the target machine
+#
+proc run_load { } {
+	global load_spawn_id
+	set load_spawn_id -1
+	return true
+}
+
+
+proc load_tftp_base_dir { } { return [get_cmd_arg --load-tftp-base-dir ""] }
+
+
+proc load_tftp_offset_dir { } { return [get_cmd_arg --load-tftp-offset-dir ""] }
+
+
+proc load_tftp_use_absolute { } { return [get_cmd_switch --load-tftp-absolute] }
+
+
+##
+# Install files needed to boot via PXE
+#
+proc install_pxe_bootloader_to_run_dir { } {
+	exec mkdir -p [run_dir]/boot
+	exec cp [genode_dir]/tool/boot/pulsar [run_dir]/boot/pulsar
+	exec cp [genode_dir]/tool/boot/bender [run_dir]/boot/bender
+}
+
+
+##
+# Generate pulsar config file used for loading files from TFTP
+#
+proc generate_tftp_config { } {
+	set tftp_base_dir [load_tftp_base_dir]
+	set tftp_offset_dir [load_tftp_offset_dir]
+
+	if {[string length $tftp_base_dir] > 0 && [string length $tftp_offset_dir] > 0} {
+		exec ln -nfs "[pwd]" "$tftp_base_dir$tftp_offset_dir"
+
+		set tftp_base ""
+		if {[load_tftp_use_absolute]} {
+			set tftp_base $tftp_base_dir
+		}
+
+		set fh [open "$tftp_base_dir$tftp_offset_dir/config-00-00-00-00-00-00" "WRONLY CREAT TRUNC"]
+		puts $fh " root $tftp_base$tftp_offset_dir/[run_dir]"
+		puts $fh " config config-52-54-00-12-34-56"
+		close $fh
+	} else {
+		puts "Warning, TFTP base directory or TFTP offset directory not set."
+	}
+}

@@ -1,0 +1,78 @@
+##
+# Reset the target machine or rather run the scenario with Qemu
+#
+
+source [genode_dir]/tool/run/qemu.inc
+
+
+##
+# Execute scenario using Qemu
+#
+proc run_power_on { } {
+	global qemu_args
+	global qemu
+	global qemu_spawn_id
+
+	#
+	# Back out on platforms w/o Qemu support
+	#
+	if {![is_qemu_available]} { return 0 }
+
+	if {[have_spec x86_32]} { set qemu "qemu-system-i386" }
+	if {[have_spec x86_64]} { set qemu "qemu-system-x86_64" }
+	if {[have_spec arm]}    { set qemu "qemu-system-arm" }
+
+	#
+	# Only the x86_64 variant of Qemu provides the emulation of hardware
+	# virtualization features used by NOVA. So let's always stick to this
+	# variant of Qemu when working with NOVA even when operating in 32bit.
+	#
+	if {[have_spec nova]} { set qemu "qemu-system-x86_64" }
+
+	#
+	# Redirect serial output to stdio, but only in graphics mode and no
+	# explicit configuration of serial interfaces is specified in the run
+	# script. The 'mon' prefix enables the access to the qemu console.
+	#
+	if {![regexp -- {-nographic} $qemu_args dummy] &&
+	    ![regexp -- {-serial}    $qemu_args dummy]} {
+	    append qemu_args " -serial mon:stdio " }
+
+	# tweak emulated platform for specific platforms
+	if {[have_spec platform_pbxa9]}  {
+		#
+		# For PBXA9 qemu adjusts provided RAM chips to the -m arg. Thus we
+		# filter user values and force value that enables all chips that Genode
+		# expects to be available. Not doing so leads to inexplicable errors.
+		#
+		regsub -all {\-m ([0-9])+} $qemu_args "" qemu_args
+		append qemu_args " -m 768"
+		append qemu_args " -M realview-pbx-a9"
+	}
+	if {[have_spec platform_vpb926]} { append qemu_args " -M versatilepb     -m 128 " }
+	if {[have_spec platform_vea9x4]} { append qemu_args " -M vexpress-a9 -cpu cortex-a9 -m 256 " }
+
+	# on x86, we support booting via pxe or iso/disk image
+	if {[have_spec x86]} {
+		if {[have_include "load/tftp"]} {
+			append qemu_args " -boot n -tftp [run_dir] -bootp boot/pulsar -no-reboot -no-shutdown "
+		} else {
+			if {[have_include "image/iso"]} {
+				append qemu_args " -cdrom [run_dir].iso "
+			} else {
+				if {[have_include "image/disk"]} {
+					append qemu_args " -hda [run_dir].img "
+				} else {
+					puts "Aborting, cannot execute Qemu without a ISO or disk image"
+					exit -4
+				}
+			}
+		}
+	}
+
+	# on ARM, we supply the boot image as kernel
+	if {[have_spec arm]} { append qemu_args " -kernel [run_dir]/image.elf " }
+
+	eval spawn $qemu $qemu_args
+	set qemu_spawn_id $spawn_id
+}
