@@ -234,3 +234,13 @@ generated_files += \
 # generate files before assembling the public include directory tree
 _dirs: $(generated_files)
 $(generated_files) : $(DOWNLOADS)
+
+
+#
+# Create symlinks for sys headers expected in parent directory
+#
+
+default: create_symlinks
+create_symlinks: _dirs
+	@$(MSG_PREFIX)create symlinks
+	$(VERBOSE)ln -sf sys/poll.h include/libc/poll.h
