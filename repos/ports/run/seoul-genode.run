@@ -29,7 +29,8 @@ set vcpus_to_be_used  1
 # Put the multiboot data structure out of the way of Nova's bss.
 set use_multiboot_modaddr 0x2800000
 
-# Use a Genode run script and turn it into a bootable setup for Seoul
+# Use a Genode run script of a 32bit platform and turn it into a bootable
+# setup for Seoul - adjust build_dir and run_script variable accordingly
 set run_script      "printf"
 set build_dir       "."
 set run_script_path "$build_dir/var/run/$run_script"
@@ -56,6 +57,13 @@ foreach line $vm {
 		# skip bender to speed up booting
 		if {$binary_file == "bender"} {
 			continue
+		}
+
+		set file_type [exec file $run_script_path$label_file]
+		if {[regexp "ELF 64-bit" $file_type]} {
+			puts "Seoul supports only 32bit guests - choose a 32bit Genode platform"
+			puts "Exit reason: $file_type"
+			exit 2
 		}
 
 		if {$binary_cmdline eq ""} {
