@@ -33,10 +33,10 @@ struct Main
 	struct Factory : Block::Driver_factory
 	{
 		Block::Driver *create() {
-			return new(env()->heap()) Ahci_driver(); }
+			static Ahci_driver driver;
+			return &driver; }
 
-		void destroy(Block::Driver *driver) {
-			Genode::destroy(env()->heap(), static_cast<Ahci_driver *>(driver)); }
+		void destroy(Block::Driver *driver) { }
 	} factory;
 
 	Block::Root root;
