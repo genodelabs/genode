@@ -1,5 +1,5 @@
 /*
- * \brief  Driver base for i.MX31 UART-module
+ * \brief  Driver base for Freescale's i.MX UART-module
  * \author Norman Feske
  * \author Martin Stein
  * \date   2012-08-30
@@ -12,8 +12,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__DRIVERS__UART__IMX31_UART_BASE_H_
-#define _INCLUDE__DRIVERS__UART__IMX31_UART_BASE_H_
+#ifndef _INCLUDE__DRIVERS__UART__IMX_UART_BASE_H_
+#define _INCLUDE__DRIVERS__UART__IMX_UART_BASE_H_
 
 /* Genode includes */
 #include <util/mmio.h>
@@ -21,9 +21,9 @@
 namespace Genode
 {
 	/**
-	 * Driver base for i.MX31 UART-module
+	 * Driver base for i.MX UART-module
 	 */
-	class Imx31_uart_base : Mmio
+	class Imx_uart_base : Mmio
 	{
 		/**
 		 * Control register 1
@@ -245,7 +245,7 @@ namespace Genode
 			 *
 			 * \param base  device MMIO base
 			 */
-			explicit Imx31_uart_base(addr_t const base) : Mmio(base)
+			explicit Imx_uart_base(addr_t const base) : Mmio(base)
 			{
 				write<Cr1>(Cr1::init_value());
 				write<Cr2>(Cr2::init_value());
@@ -270,5 +270,5 @@ namespace Genode
 	};
 }
 
-#endif /* _INCLUDE__DRIVERS__UART__IMX31_UART_BASE_H_ */
+#endif /* _INCLUDE__DRIVERS__UART__IMX_UART_BASE_H_ */
 

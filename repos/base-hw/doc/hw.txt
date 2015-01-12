@@ -16,10 +16,7 @@ For further target specific informations, have a look at
 '<GENODE_DIR>/repos/base-hw/doc/<TARGET>.txt' where '<TARGET>'
 is one of the following:
 
-'pbxa9'    - Realview PBXA9
-'vea9x4'   - Versatile Express A9X4
-'imx31'    - Freescale i.MX31
-'panda'    - PandaBoard A2
+'panda' - PandaBoard A2
 
 
 Prerequisites
@@ -61,10 +58,14 @@ build directory you want to create, and the hardware target to run Genode on.
 Where '<TARGET>' is one of the following, depending on the hardware system
 you aim at:
 
-'pbxa9'    - Realview PBXA9
-'vea9x4'   - Versatile Express A9X4
-'imx31'    - Freescale i.MX31
-'panda'    - PandaBoard A2
+'arndale'   - Arndale (Exynos5) board
+'imx53'     - i.MX53 based board
+'imx53_tz'  - i.MX53 based board using TrustZone
+'odroid_xu' - Odroid XU (Exynos5) board
+'panda'     - PandaBoard A2
+'pbxa9'     - Realview PBXA9
+'rpi'       - Raspberry PI
+'vea9x4'    - Versatile Express A9X4
 
 Please notice that not all of these targets might be emulateable with Qemu.
 To be on the safe side use 'pbxa9'. For informations about how to boot

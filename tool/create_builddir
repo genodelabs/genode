@@ -30,7 +30,6 @@ usage:
 	@echo "                  'hw_panda'"
 	@echo "                  'hw_vea9x4'"
 	@echo "                  'hw_pbxa9'"
-	@echo "                  'hw_imx31'"
 	@echo "                  'hw_imx53'"
 	@echo "                  'hw_imx53_tz'"
 	@echo "                  'hw_arndale'"
@@ -217,9 +216,6 @@ hw_vea9x4::
 
 hw_panda::
 	@echo "SPECS = genode hw_panda" > $(BUILD_DIR)/etc/specs.conf
-
-hw_imx31::
-	@echo "SPECS = genode hw_imx31" > $(BUILD_DIR)/etc/specs.conf
 
 hw_imx53::
 	@echo "SPECS = genode hw_imx53" > $(BUILD_DIR)/etc/specs.conf

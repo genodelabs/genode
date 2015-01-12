@@ -18,14 +18,14 @@
 #include <board.h>
 
 /* Genode includes */
-#include <drivers/uart/imx31_uart_base.h>
+#include <drivers/uart/imx_uart_base.h>
 
 namespace Genode
 {
 	/**
 	 * Serial output driver for core
 	 */
-	class Serial : public Imx31_uart_base
+	class Serial : public Imx_uart_base
 	{
 		public:
 
@@ -34,7 +34,7 @@ namespace Genode
 			 *
 			 * XXX: The 'baud_rate' argument is ignored for now.
 			 */
-			Serial(unsigned) : Imx31_uart_base(Board::UART_1_MMIO_BASE) { }
+			Serial(unsigned) : Imx_uart_base(Board::UART_1_MMIO_BASE) { }
 	};
 }
 
