@@ -1,0 +1,39 @@
++++ src/app/virtualbox/src/VBox/VMM/VMMR3/VMEmt.cpp
+@@ -804,6 +804,20 @@ static DECLCALLBACK(int) vmR3HaltGlobal1Wait(PUVMCPU pUVCpu)
+  */
+ static DECLCALLBACK(void) vmR3HaltGlobal1NotifyCpuFF(PUVMCPU pUVCpu, uint32_t fFlags)
+ {
++    /*
++     * On Linux, an 'external interrupt' VM exit occurs on a regular basis, so
++     * it is not always necessary (or does not matter much if forgotten) to
++     * pass the 'VMNOTIFYFF_FLAGS_POKE' flag to this function. On Genode,
++     * however, VirtualBox does not get these regular VM exits, so we need to
++     * make sure that the EMT thread is actively woken up if needed. We know
++     * for sure that poking is needed for the correct delivery of timer and
++     * input interrupts, but there are some more places where the function is
++     * called without the 'poke' flag and we do not know for sure if this is
++     * correct. So, to be on the safe side, we let the function act as if the
++     * 'poke' flag is always set.
++     */
++    fFlags |= VMNOTIFYFF_FLAGS_POKE;
++
+     if (pUVCpu->vm.s.fWait)
+     {
+         int rc = SUPR3CallVMMR0Ex(pUVCpu->pVM->pVMR0, pUVCpu->idCpu, VMMR0_DO_GVMM_SCHED_WAKE_UP, 0, NULL);
+@@ -814,7 +828,15 @@ static DECLCALLBACK(void) vmR3HaltGlobal1NotifyCpuFF(PUVMCPU pUVCpu, uint32_t fF
+              && pUVCpu->pVCpu)
+     {
+         VMCPUSTATE enmState = VMCPU_GET_STATE(pUVCpu->pVCpu);
+-        if (enmState == VMCPUSTATE_STARTED_EXEC)
++        /*
++         * It can happen that the EMT thread has already handled the
++         * Forced Actions, but not switched to the 'EXEC' state yet when a
++         * worker thread adds new Forced Actions and calls this function. So,
++         * we 'poke' the EMT thread in the 'STARTED' state, too, to make sure
++         * that it will be woken up again to handle the new work.
++         */
++        if ((enmState == VMCPUSTATE_STARTED_EXEC) ||
++            (enmState == VMCPUSTATE_STARTED))
+         {
+             if (fFlags & VMNOTIFYFF_FLAGS_POKE)
+             {
