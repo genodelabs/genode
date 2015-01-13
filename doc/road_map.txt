@@ -14,138 +14,95 @@ The road map is not fixed. If there is commercial interest of pushing the
 Genode technology to a certain direction, we are willing to revisit our plans.
 
 
-Review of the past year
-#######################
+Review of 2014
+##############
 
-In 2013, we worked on four construction sites: Framework infrastructure,
-self-hosting, tooling and optimization, and hardware support. When
-reviewing the road map for 2013, it is great to see that we largely
-lived up to our planning.
+Most of the progress in 2014 was motivated by our goal to use
+Genode as general-purpose OS on x86-based platforms. To highlight a
+few achievements, we started to use [http://rumpkernel.org/ - Rump kernels]
+as file-system providers, enabled VirtualBox on NOVA, pulled off the
+engineering feat to run the Intel Wireless stack natively on microkernels, and
+came up with a new GUI architecture. We regard these features as the
+groundwork to make Genode a feasible platform for day-to-day computing.
 
-The framework infrastructure was enhanced with concepts for managing
-CPUs on multi-processor systems and for dynamically balancing memory
-resources, it received new audio and file-system capabilities, and, with
-the addition of Qt5 and the lxIP stack, we could enable highly
-sophisticated workloads natively on Genode.
-
-On our endeavour of self-hosting Genode on Genode, we could eliminate
-long-standing show stoppers for several base platforms. We were able to
-improve them to the point where we can routinely execute Genode's tool
-chain across several base platforms such as NOVA and Fiasco.OC as part
-of our nightly automated tests. On the user-facing side, a new
-command-line interface has seen the light of the day.
-
-Two highlights when it comes to tooling were the new event tracing
-facilities, and profound support for automated testing. Thanks to the
-latter, we expose Genode to over 500 test runs including automated
-performance benchmarks. By executing those tests each night, we have
-become able to resolve regressions before they enter the master branch.
-So the master branch remains always in a good shape.
-
-As expected for an operating-system project, most of our work was spent
-on hardware support. On x86, we added IOMMU support, and the
-virtualization capabilities on NOVA have seen a major upgrade. On ARM,
-we enabled or vastly enhanced the device drivers for Samsung Exynos 5,
-Freescale i.MX, and Raspberry Pi. We also explored the possibilities of
-combining Genode with ARM TrustZone.
-
-Only two topics, namely Intel wireless and a new user interface concept
-had been deferred. We decided to postpone the Intel wireless topic to
-address gigabit networking instead. Even though the new user-interface
-concept served as a strong motivation behind many improvements of the
-base system such as dynamic reconfiguration and dynamic resource
-balancing, the work on those fundamentals left little room to bring
-forward the actual UI concept. Now that those pieces are in place, we
-can go full steam ahead.
-
-The most surprising topic that was not clearly laid out in our last
-year's road map is the advancement of the base-hw platform. Started as a
-mere experiment, it received so much love and attention that it
-unexpectedly became able to host the whole universe of Genode's software
-stack.
+That said, even though we are proud about the progress, we are still not there
+yet. So what keeps us back? The answer is actually not technical. Most
+developments over the past years were concerned with individual features or
+technical challenges. But the integration of sophisticated system scenarios
+was a rare occurrence. For the most part, such integration activities were
+solely triggered by a particular project or by a presentation. In order to
+make Genode fit for regular use, we need to make the composing of advanced
+systems a habit for most of the regular developers.
 
 
-2014
-####
+Big picture for 2015
+####################
 
-In 2014, we will put the emphasis on the base-hw kernel, 3rd-party software,
-storage, and the user-facing side of Genode.
+On the account of this realization, the overall theme of 2015 will be the
+consolidation and cultivation of the existing feature set rather than the
+conquering of new grounds. This implies the following topics:
 
-The experience with base-hw in 2013 ignited our ambitions to develop this
-kernel not just into a complete base platform for Genode, but also
-to explore new grounds. To fully accommodate Genode, we will complement
-base-hw with multi-processor support, kernel-protected capability-based
-security, and real-time scheduling. Beyond supporting Genode's software
-stack, we will explore the use of ARM's virtualization extensions
-to turn base-hw into a microhypervisor, similar to NOVA but focusing on ARM.
+* Advancing our automated test and integration infrastructure towards
+  the continuous integration of real-world system scenarios,
+* Fostering good-quality documentation,
+* Optimization of performance and stability,
+* Improvement of our tooling
 
-With Genode becoming more and more flexible, the role of 3rd-party software in
-both source-code and binary form grows. Even though Genode offers a pretty
-convenient mechanism to automatically download and integrate 3rd-party source
-codes, the burden to resolve inter-dependencies between such source packages is
-still left to the user of the framework. Many new users stumble over
-the installation of 3rd-party code as it is not obvious to see which packages
-are required for a particular system scenario. To make Genode better
-approachable and more convenient to use, we plan to consolidate the current
-mechanisms into a solid source-code package management solution.
+Furthermore, we have to address outstanding limitations of the most
+commonly used base platforms, namely base-hw and NOVA. I.e., only
+with kernel-protected capabilities, base-hw can be considered as a viable
+base platform for security-critical systems, and only with proper
+kernel-resource management, NOVA can be recommended as a kernel for
+general-purpose computing.
 
-The improved 3rd-party software support will hopefully allow us to realize
-sophisticated and popular usage scenarios more easily. As security is one of
-Genode's major benefits compared to commodity operating systems, we consider
-supporting TOR, either as server, or client side, or even both. One
-possibility would be to provide a ready-to-use live image containing a TOR
-client and a configured browser, which would enable users to browse
-anonymously.
-
-Besides the use of ported 3rd-party software on top of Genode, we see clear
-demand for hosting 3rd-party binary software, particularly virtualized OSes.
-The Seoul VMM (on NOVA) and L4Linux (on Fiasco.OC) already allow for the use
-of Linux guest OSes as Genode sub systems. However, both solutions fall short
-in different ways. Whereas L4Linux requires the maintenance of a patched Linux
-kernel, Seoul can execute unpatched Linux kernels but requires a fine-tuned
-kernel configuration. Because we long for a product-quality virtualization
-solution that works just out of the box with most existing guest OSes, we will
-make VirtualBox available on Genode/NOVA.
-
-The move to employing Genode for day-to-day computing requires reliable,
-secure, and fast storage. Hence, we will build and optimize components that
-operate on file-system and block level. This includes work on device drivers,
-file-system stacks, caching mechanisms, block-level encryption, as well as
-improved per-process virtual file systems.
-
-Finally, we plan to complement Genode with an entirely capability-based user
-interface, which will present the user with a unique model of how to interact
-with the system. With user interface, we actually refer to three different
-things: System configuration (the user interface a system integrator has
-to deal with), text-based user interface, and a graphical desktop environment.
-We hope to cover those with one single holistic concept.
+Besides the cultivation of the existing feature set, there will still be room
+for new things. We are particularly excited about the prospect of combining
+Genode with the [http://sel4.systems - seL4 kernel] and
+the [http://nixos.org/nix/ - Nix package manager]. Furthermore, we desire to
+continue the work on our new GUI architecture towards a capability-based
+desktop environment.
 
 
-Milestones
-==========
+Milestones for 2015
+###################
 
-In the following, there is a rough schedule of the planned work. As usual,
+In the following, we present a rough schedule of the planned work. As usual,
 it is not set in stone. If you are interested in a particular line of work,
 please get in touch.
 
-:February - Release 14.02:
-  * First version of VirtualBox on NOVA
-  * Base-hw: multi-processor support
-  * Block cache
-  * Component composition tool kit
 
-:May - Release 14.05:
-  * Base-hw: real-time scheduling
-  * 3rd-party source-code package management
-  * Block-level encryption
+February - Release 15.02
+========================
 
-:August - Release 14.08:
-  * Desktop environment
-  * Base-hw: kernel-protected capability-based security
-  * TOR on Genode
+* ARM virtualization on top of the base-hw kernel
+* Modularized tooling for automated tests
 
-:November - Release 14.11:
-  * Base-hw: virtualization on ARM, support for Cortex-A7
-  * Intel wireless
-  * NOVA kernel resource management
+
+May - Release 15.05
+===================
+
+* Comprehensive documentation of the Genode foundations
+* Kernel-protected capabilities for the base-hw kernel
+* seL4 microkernel as base platform
+* Refined platform-driver architecture (support for MSIs, assignment of
+  I/O resources to drivers, standardized configuration)
+
+
+August - Release 15.08
+======================
+
+* Capability-based desktop environment allowing the interactive installation
+  and management of Genode subsystems and the interaction with files
+* Accommodation of typical desktop-computing tasks (e.g., email)
+* Interactive tools for observing the system behavior
+* NOVA kernel-resource management
+
+
+November - Release 15.11
+========================
+
+* Achieving cross-kernel binary compatibility
+* Package management
+* Modern web browser
+
 
