@@ -217,15 +217,6 @@ again: $(INSTALL_DIR)
 ##
 
 RUN_OPT ?=
-RUN_ENV := $(call select_from_repositories,run/env)
-
-ifeq ($(RUN_ENV),)
-run: run_no_env
-endif
-
-run_no_env:
-	@echo "Error: There exists no execution environment this platform"
-	@false
 
 # helper for run/% rule
 RUN_SCRIPT = $(call select_from_repositories,run/$*.run)
@@ -245,7 +236,6 @@ run/%: $(call select_from_repositories,run/%.run) $(RUN_ENV)
 	                                     --cross-dev-prefix "$(CROSS_DEV_PREFIX)" \
 	                                     --qemu-args "$(QEMU_OPT)" \
 	                                     $(RUN_OPT) \
-	                                     --include $(RUN_ENV) \
 	                                     --include $(RUN_SCRIPT)
 
 ##
