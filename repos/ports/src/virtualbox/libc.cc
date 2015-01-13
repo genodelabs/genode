@@ -143,25 +143,6 @@ extern "C" int sigaction(int signum, const struct sigaction *act,
 }
 
 
-/**
- * Used by RTTimeNow
- */
-extern "C" int gettimeofday(struct timeval *tv, struct timezone *tz)
-{
-	if (!tv)
-		return -1;
-
-	try {
-		static Rtc::Connection rtc;
-		/* we need only seconds, current_time in microseconds */
-		tv->tv_sec = rtc.get_current_time() / 1000000ULL;
-		tv->tv_usec = rtc.get_current_time() % 1000000ULL * 1000;
-		return 0;
-	} catch (...) {
-		return -1;
-	}
-}
-
 /* our libc provides a _nanosleep function */
 extern "C" int _nanosleep(const struct timespec *req, struct timespec *rem);
 extern "C" int nanosleep(const struct timespec *req, struct timespec *rem)

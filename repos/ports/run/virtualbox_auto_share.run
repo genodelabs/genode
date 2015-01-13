@@ -187,9 +187,9 @@ set config_of_app {
 		<binary name="virtualbox" />
 		<resource name="RAM" quantum="1280M"/>
 		<config vbox_file="vm_auto_share.vbox" vm_name="AutoDisk">
-			<libc stdout="/dev/log" stderr="/dev/log">
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc">
 				<vfs>
-					<dir name="dev"> <log/> </dir>
+					<dir name="dev"> <log/> <rtc/> </dir>
 					<rom name="vm_auto_share.vbox" />}
 
 append_if [expr $use_ram_fs] config_of_app {
