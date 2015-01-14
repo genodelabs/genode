@@ -15,9 +15,10 @@ set build_components {
 	app/lighttpd
 }
 
-set use_usb_driver      [expr [have_spec omap4] || [have_spec exynos5]]
+set use_usb_driver      [expr [have_spec omap4] || [have_spec exynos5] || [have_spec platform_rpi]]
 set use_nic_driver      [expr !$use_usb_driver]
-set use_platform_driver [expr $use_usb_driver && [have_spec foc_arndale]]
+set use_platform_driver [expr [have_spec platform_arndale] || [have_spec platform_imx53] || [have_spec platform_rpi]]
+
 if {$use_usb_driver}    { set network_driver "usb_drv" }
 if {$use_nic_driver}    { set network_driver "nic_drv" }
 
@@ -59,6 +60,7 @@ append_if $use_platform_driver config {
 	<start name="platform_drv">
 		<resource name="RAM" quantum="1M" />
 		<provides><service name="Regulator"/></provides>
+		<provides><service name="Platform"/></provides>
 	</start>}
 
 append_if [have_spec gpio] config {

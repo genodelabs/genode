@@ -16,7 +16,7 @@ if {[have_spec linux]} {
 	exit 0
 }
 
-set use_platform_driver [expr [have_spec platform_arndale] || [have_spec platform_imx53]]
+set use_platform_driver [expr [have_spec platform_arndale] || [have_spec platform_imx53] || [have_spec platform_rpi]]
 set use_usb_input [expr ![have_spec ps2] && ![have_spec sdl] && [have_spec usb]]
 
 set build_components {
@@ -120,6 +120,7 @@ append_if $use_platform_driver config {
 		<start name="platform_drv">
 			<resource name="RAM" quantum="1M" />
 			<provides><service name="Regulator"/></provides>
+			<provides><service name="Platform"/></provides>
 		</start>}
 
 append_if [have_spec sdl] config {

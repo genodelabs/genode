@@ -12,7 +12,7 @@ set build_components {
 }
 
 set use_sd_card_driver [expr [have_spec omap4] || [have_spec exynos5]]
-set use_usb_driver     [expr [have_spec omap4] || [have_spec exynos5]]
+set use_usb_driver     [expr [have_spec omap4] || [have_spec exynos5] || [have_spec platform_rpi]]
 
 lappend_if $use_sd_card_driver build_components drivers/sd_card
 lappend_if $use_usb_driver     build_components drivers/usb
