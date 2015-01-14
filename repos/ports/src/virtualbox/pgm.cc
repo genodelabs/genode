@@ -521,7 +521,8 @@ bool PGMPhysIsA20Enabled(PVMCPU pVCpu)
 }
 
 
-void PGMR3PhysWriteU8(PVM pVM, RTGCPHYS GCPhys, uint8_t value)
+template <typename T>
+static void PGMR3PhysWrite(PVM pVM, RTGCPHYS GCPhys, T value)
 {
 	VM_ASSERT_EMT(pVM);
 
@@ -536,62 +537,41 @@ void PGMR3PhysWriteU8(PVM pVM, RTGCPHYS GCPhys, uint8_t value)
 		    (Genode::uint64_t)GCPhys);
 		return;
 	}
-		void * pvx = vmm_memory()->lookup(GCPhys, sizeof(value));
-		Assert(!pvx);
 
-	*reinterpret_cast<uint8_t *>(pv) = value;
+	/* sanity check */
+	void * pvx = vmm_memory()->lookup(GCPhys, sizeof(value));
+	Assert(!pvx);
+
+	*reinterpret_cast<T *>(pv) = value;
+}
+
+
+void PGMR3PhysWriteU8(PVM pVM, RTGCPHYS GCPhys, uint8_t value)
+{
+	PGMR3PhysWrite(pVM, GCPhys, value);
 }
 
 
 void PGMR3PhysWriteU16(PVM pVM, RTGCPHYS GCPhys, uint16_t value)
 {
-	VM_ASSERT_EMT(pVM);
-
-	void *pv = guest_memory()->lookup(GCPhys, sizeof(value));
-
-	if (verbose_debug)
-		PDBG("%s: GCPhys=0x%llx cb=0x%zx pv=%p",
-		     __func__, (Genode::uint64_t)GCPhys, sizeof(value), pv);
-
-	if (!pv) {
-		PERR("%s: invalid write attempt phy=%llx", __func__,
-		     (Genode::uint64_t)GCPhys);
-		return;
-	}
-		void * pvx = vmm_memory()->lookup(GCPhys, sizeof(value));
-		Assert(!pvx);
-
-	*reinterpret_cast<uint16_t *>(pv) = value;
+	PGMR3PhysWrite(pVM, GCPhys, value);
 }
 
 
 void PGMR3PhysWriteU32(PVM pVM, RTGCPHYS GCPhys, uint32_t value)
 {
-	void *pv = guest_memory()->lookup(GCPhys, sizeof(value));
-
-	if (verbose_debug)
-		PDBG("%s: GCPhys=0x%llx cb=0x%zx pv=%p",
-		     __func__, (Genode::uint64_t)GCPhys, sizeof(value), pv);
-
-	if (!pv) {
-		PERR("%s: invalid write attempt phy=%llx", __func__,
-		     (Genode::uint64_t)GCPhys);
-		return;
-	}
-		void * pvx = vmm_memory()->lookup(GCPhys, sizeof(value));
-		Assert(!pvx);
-
-	*reinterpret_cast<uint32_t *>(pv) = value;
+	PGMR3PhysWrite(pVM, GCPhys, value);
 }
 
 
-uint32_t PGMR3PhysReadU32(PVM pVM, RTGCPHYS GCPhys)
+template <typename T>
+static T PGMR3PhysRead(PVM pVM, RTGCPHYS GCPhys)
 {
-	void *pv = guest_memory()->lookup(GCPhys, 4);
+	void *pv = guest_memory()->lookup(GCPhys, sizeof(T));
 
 	if (verbose_debug)
-		PDBG("%s: GCPhys=0x%llx cb=0x%x pv=%p",
-		     __func__, (Genode::uint64_t)GCPhys, 4, pv);
+		PDBG("%s: GCPhys=0x%llx cb=0x%zx pv=%p",
+		     __func__, (Genode::uint64_t)GCPhys, sizeof(T), pv);
 
 	if (!pv) {
 		PERR("%s: invalid read attempt phys=%llx", __func__,
@@ -599,10 +579,23 @@ uint32_t PGMR3PhysReadU32(PVM pVM, RTGCPHYS GCPhys)
 		return 0;
 	}
 
-	void * pvx = vmm_memory()->lookup(GCPhys, 4);
+	/* sanity check */
+	void * pvx = vmm_memory()->lookup(GCPhys, sizeof(T));
 	Assert(!pvx);
 
-	return *reinterpret_cast<uint32_t *>(pv);
+	return *reinterpret_cast<T *>(pv);
+}
+
+
+uint64_t PGMR3PhysReadU64(PVM pVM, RTGCPHYS GCPhys)
+{
+	return PGMR3PhysRead<uint64_t>(pVM, GCPhys);
+}
+
+
+uint32_t PGMR3PhysReadU32(PVM pVM, RTGCPHYS GCPhys)
+{
+	return PGMR3PhysRead<uint32_t>(pVM, GCPhys);
 }
 
 
@@ -763,4 +756,12 @@ void PGMR3MemSetup(PVM pVM, bool fAtReset)
 VMMDECL(bool) PGMIsLockOwner(PVM pVM)
 {
 	return PDMCritSectIsOwner(&pVM->pgm.s.CritSectX);
+}
+
+
+VMM_INT_DECL(void) PGMNotifyNxeChanged(PVMCPU pVCpu, bool fNxe)
+{
+	if (verbose)
+		PINF("%s - not implemented - %p", __func__,
+		     __builtin_return_address(0));
 }

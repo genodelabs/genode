@@ -135,6 +135,8 @@ class Vcpu_handler_vmx : public Vcpu_handler
 				&This::_vmx_default> (exc_base, Mtd::ALL | Mtd::FPU);
 			register_handler<VMX_EXIT_INT_WINDOW, This,
 				&This::_vmx_irqwin> (exc_base, Mtd::ALL | Mtd::FPU);
+			register_handler<VMX_EXIT_TASK_SWITCH, This,
+				&This::_vmx_default> (exc_base, Mtd::ALL | Mtd::FPU);
 			register_handler<VMX_EXIT_CPUID, This,
 				&This::_vmx_default> (exc_base, Mtd::ALL | Mtd::FPU);
 			register_handler<VMX_EXIT_HLT, This,

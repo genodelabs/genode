@@ -34,7 +34,7 @@ class Vcpu_handler_svm : public Vcpu_handler
 			if (utcb->qual[0] & 0x4) {
 				unsigned ctrl0 = utcb->ctrl[0];
 
-				PERR("invalid gueststate");
+				Vmm::printf("invalid gueststate\n");
 
 				utcb->ctrl[0] = ctrl0;
 				utcb->ctrl[1] = 0;

@@ -111,6 +111,7 @@ extern "C" char *getenv(const char *name)
 //		               "+rem_run.e.l.f"
 //		               "+pgm.e.l.f"
 		               "+pdm"
+//		               "+cpum.e.l.f"
 //		               "+dev_pcnet.e.l.f"
 //		               "+dev_pic.e.l.f"
 //		               "+dev_apic.e.l.f"

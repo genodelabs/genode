@@ -23,11 +23,23 @@
 #include "sup.h"
 
 
-static bool enabled = true;
-
+static bool enabled_hm = true;
+static bool enable_pae_nx  = false;
 
 VMMR3DECL(int) HMR3Init(PVM pVM)
 {
+	PCFGMNODE pCfgHM = CFGMR3GetChild(CFGMR3GetRoot(pVM), "HM/");
+
+	/* check whether to stay for non-paged modi in recompiler */
+	int rc = CFGMR3QueryBoolDef(pCfgHM, "EnableUX",
+	                            &pVM->hm.s.vmx.fAllowUnrestricted, true);
+	AssertRCReturn(rc, rc);
+
+	/* check whether to enable pae and nx bit - in 64bit host mode */
+	rc = CFGMR3QueryBoolDef(CFGMR3GetRoot(pVM), "EnablePAE", &enable_pae_nx,
+	                        false);
+	AssertRCReturn(rc, rc);
+
 	/*
 	 * We always set the fHMEnabled flag. Otherwise, the EM won't
 	 * consult us for taking scheduling decisions. The actual switch to
@@ -53,15 +65,21 @@ VMMR3_INT_DECL(int) HMR3Term(PVM pVM)
 
 VMMR3_INT_DECL(int) HMR3InitCompleted(PVM pVM, VMINITCOMPLETED enmWhat)
 {
-	enabled = pVM->hm.s.svm.fSupported || pVM->hm.s.vmx.fSupported;
+	enabled_hm = pVM->hm.s.svm.fSupported || pVM->hm.s.vmx.fSupported;
 
-	if (!enabled || enmWhat != VMINITCOMPLETED_RING0)
+	if (!enabled_hm || enmWhat != VMINITCOMPLETED_RING0)
 		return VINF_SUCCESS;
 
 	int rc = SUPR3CallVMMR0Ex(pVM->pVMR0, 0 /*idCpu*/, VMMR0_DO_HM_SETUP_VM, 0, NULL);
 
 	if (rc == VINF_SUCCESS) {
 		CPUMSetGuestCpuIdFeature(pVM, CPUMCPUIDFEATURE_SEP);
+
+		/* nova kernel supports solely on 64bit the following features */
+		if (sizeof(void *) > 4 && enable_pae_nx) {
+			CPUMSetGuestCpuIdFeature(pVM, CPUMCPUIDFEATURE_PAE);
+			CPUMSetGuestCpuIdFeature(pVM, CPUMCPUIDFEATURE_NX);
+		}
 	}
 
 	return rc;
@@ -94,16 +112,10 @@ VMM_INT_DECL(bool) HMIsLongModeAllowed(PVM pVM)
 
 VMMR3DECL(bool) HMR3IsRescheduleRequired(PVM pVM, PCPUMCTX pCtx)
 {
-	/* no re-schedule on AMD-V required - just works */
-/*
-	if (pVM->hm.s.svm.fSupported)
+	if (pVM->hm.s.vmx.fAllowUnrestricted)
 		return false;
-*/
-	bool reschedule = !CPUMIsGuestInPagedProtectedModeEx(pCtx);
 
-//	PLOG("reschedule %u %u %lx", reschedule, HMR3CanExecuteGuest(pVM, pCtx), pCtx->cr0);
-
-	return reschedule;
+	return !CPUMIsGuestInPagedProtectedModeEx(pCtx);
 }
 
 
@@ -116,30 +128,19 @@ VMMR3DECL(bool) HMR3IsEventPending(PVMCPU pVCpu)
 
 VMMR3DECL(bool) HMR3CanExecuteGuest(PVM pVM, PCPUMCTX pCtx)
 {
-	PVMCPU pVCpu = VMMGetCpu(pVM);
-
-	/* AMD-V just works */
-/*
-	if (pVM->hm.s.svm.fSupported) {
-		pVCpu->hm.s.fActive = true;
-		return true;
-	}
-*/
-	if (!enabled)
+	if (!enabled_hm)
 		return false;
 
-	/* enable H/W acceleration in protected mode only */
-	bool res = (pCtx->cr0 & 1) && (pCtx->cr0 & 0x80000000);
-/*
-	static bool on = false;
+	PVMCPU pVCpu = VMMGetCpu(pVM);
 
-	if (res)
-		on = true;
+	if (pVM->hm.s.vmx.fAllowUnrestricted) {
+		pVCpu->hm.s.fActive = true;
+	} else
+		/* enable H/W acceleration in protected and paged mode only */
+		pVCpu->hm.s.fActive = CPUMIsGuestInPagedProtectedModeEx(pCtx);
 
-	if (on)
-		PLOG("executeguest %lx -> %x", pCtx->cr0, res);
-*/
-	pVCpu->hm.s.fActive = res;
-
-	return res;
+	return pVCpu->hm.s.fActive;
 }
+
+
+VMM_INT_DECL(int) HMFlushTLB(PVMCPU pVCpu) { return VINF_SUCCESS; }

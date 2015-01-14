@@ -350,6 +350,9 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 				utcb->gdtr.limit  = pCtx->gdtr.cbGdt;
 				utcb->gdtr.base   = pCtx->gdtr.pGdt;
 
+				utcb->mtd  |= Mtd::EFER;
+				utcb->write_efer(CPUMGetGuestEFER(pVCpu));
+
 			Assert(!(VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_INHIBIT_INTERRUPTS)));
 
 			return true;
@@ -391,6 +394,8 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			if (pCtx->gdtr.cbGdt != utcb->gdtr.limit ||
 			    pCtx->gdtr.pGdt  != utcb->gdtr.base)
 				CPUMSetGuestGDTR(pVCpu, utcb->gdtr.base, utcb->gdtr.limit);
+
+			CPUMSetGuestEFER(pVCpu, utcb->read_efer());
 
 			if (pCtx->cr0 != utcb->cr0)
 				CPUMSetGuestCR0(pVCpu, utcb->cr0);
