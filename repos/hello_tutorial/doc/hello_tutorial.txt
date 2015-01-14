@@ -117,6 +117,7 @@ Writing server code
 ###################
 
 Now let's write a server providing the interface defined by _Hello::Session_.
+We will put all of this code in 'src/hello/server/main.cc'
 
 
 Implementing the server side
@@ -330,6 +331,8 @@ This call blocks as long as the service has not been registered at the parent.
 Afterwards, we create a 'Hello::Session_client' object with it and invoke calls. In
 addition, we use the Timer service that comes with Genode. This server
 enables us to sleep for a certain amount of milliseconds.
+
+Put this code into 'src/hello/client/main.cc':
 
 !#include <base/env.h>
 !#include <base/printf.h>
