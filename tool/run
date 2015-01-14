@@ -858,7 +858,7 @@ proc jtag_load { } {
 
 	eval spawn openocd -f $debugger -f $board -c init -c halt -c \"load_image $elf_img\" -c \"resume $entrypoint\"
 	set jtag_spawn_id $spawn_id
-	set timeout 210
+	set timeout 360
 	expect {
 		"downloaded"  { }
 		eof     { puts stderr "openocd command process died unexpectedly" }
