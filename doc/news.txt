@@ -4,6 +4,50 @@
                                ===========
 
 
+Road Map for 2015 | 2015-01-14
+##############################
+
+| After brainstorming Genode's mid-term future on our mailing list,
+| we finalized our road map for this year.
+
+The development during the past years was primarily driven by our desire for
+features. With respect to the feature set, we have eventually reached a state
+where Genode becomes viable as general-purpose computing platform.
+
+That said, we are still not there yet, because apart from a list
+of features, it is important how those features fit together and
+how easy it is to use them. Therefore, the focus for 2015 will be
+the consolidation and cultivation of the existing feature set.
+Still, there will be room for new developments, i.e., the use of
+Genode on the seL4 kernel.
+
+The new road map is available at [http://genode.org/about/road-map].
+
+
+Genode at FOSDEM 2015 | 2015-01-14
+##################################
+
+| With three talks, Genode will show a strong presence at this year's FOSDEM.
+| The talks will cover an introduction of Genode, our line of work
+| regarding VirtualBox on NOVA, and Genode's evolving GUI architecture.
+
+Keeping up with our tradition to participate in the worlds largest
+gathering of the open-source and free-software community, we are happy
+to announce three talks to be held by Norman Feske at FOSDEM 2015:
+
+Sunday 12:00 - 12:25 *Genode - OS security by design*
+_Security devroom (AW1.120)_
+
+Sunday 14:20 - 15:00 *Transplantation of VirtualBox to the NOVA microhypervisor*
+_Virtualization devroom (UD2.120)_
+
+Sunday 15:30 - 16:15 *Introducing a radically componentized GUI architecture*
+_Microkernel devroom (K.3.201)_
+
+More information about the talks (including abstracts) are
+available at the [https://fosdem.org/2015/schedule/speaker/norman_feske/ - FOSDEM website].
+
+
 Genode OS Framework release 14.11 | 2014-11-28
 ##############################################
 
