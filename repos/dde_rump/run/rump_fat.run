@@ -1,3 +1,7 @@
+if {[have_spec arm]} {
+   assert_spec arm_v7
+}
+
 #
 # Check used commands
 #
