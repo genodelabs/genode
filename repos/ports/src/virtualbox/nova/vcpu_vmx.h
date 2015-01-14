@@ -102,7 +102,7 @@ class Vcpu_handler_vmx : public Vcpu_handler
 			Genode::Thread_base *myself = Genode::Thread_base::myself();
 			Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(myself->utcb());
 
-			unsigned const dubious = utcb->inj_info | utcb->inj_error |
+			unsigned const dubious = utcb->inj_info |
 			                         utcb->intr_state | utcb->actv_state;
 			if (dubious)
 				Vmm::printf("%s - dubious - inj_info=0x%x inj_error=%x"
