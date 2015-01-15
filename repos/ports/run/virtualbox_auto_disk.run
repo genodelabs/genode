@@ -53,8 +53,7 @@ exec cp ${genode_dir}/repos/ports/run/vm_auto_disk.vbox bin/.
 
 build_boot_image $boot_modules
 
-run_genode_until "fb resize : 720x400@16 -> 640x480@32" 40
-run_genode_until {\[init -\> vbox\].*Guest Additions capability report:.*seamless: no, hostWindowMapping: no, graphics: no} 30 $spawn_id
+run_genode_until {\[init -\> vbox\].*Guest Additions capability report:.*seamless: no, hostWindowMapping: no, graphics: no} 70
 run_genode_until {\[init -\> vbox\].*Guest Additions capability report:.*seamless: yes, hostWindowMapping: no, graphics: yes} 170 $spawn_id
 
 # cleanup bin directory - remove vbox file
