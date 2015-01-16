@@ -66,18 +66,18 @@ SECTIONS
   .init           :
   {
     KEEP (*(.init))
-  } =0x90909090
+  } = 0x0
   .plt            : { *(.plt) }
   .text           :
   {
     *(.text .stub .text.* .gnu.linkonce.t.*)
     /* .gnu.warning sections are handled specially by elf32.em.  */
     *(.gnu.warning)
-  } =0x90909090
+  } = 0x0
   .fini           :
   {
     KEEP (*(.fini))
-  } =0x90909090
+  } =0x0
   PROVIDE (__etext = .);
   PROVIDE (_etext = .);
   PROVIDE (etext = .);

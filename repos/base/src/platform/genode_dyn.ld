@@ -37,7 +37,7 @@ SECTIONS
     *(.text .stub .text.* .gnu.linkonce.t.*)
     /* .gnu.warning sections are handled specially by elf32.em.  */
     *(.gnu.warning)
-  } : ro =0x90909090
+  } : ro =0x0
   
   .interp         : { *(.interp) } : interp : ro
   .note.gnu.build-id : { *(.note.gnu.build-id) }
@@ -77,13 +77,13 @@ SECTIONS
   .init           :
   {
     KEEP (*(.init))
-  } =0x90909090
+  } = 0x0
   .plt            : { *(.plt) }
 
   .fini           :
   {
     KEEP (*(.fini))
-  } =0x90909090
+  } = 0x0
   PROVIDE (__etext = .);
   PROVIDE (_etext = .);
   PROVIDE (etext = .);
