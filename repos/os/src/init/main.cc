@@ -92,74 +92,186 @@ inline void determine_parent_services(Genode::Service_registry *services)
  ** Child registry **
  ********************/
 
+namespace Init { struct Alias; }
+
+
+/**
+ * Representation of an alias for a child
+ */
+struct Init::Alias : Genode::List<Alias>::Element
+{
+	typedef Genode::String<128> Name;
+	typedef Genode::String<128> Child;
+
+	Name  name;
+	Child child;
+
+	/**
+	 * Exception types
+	 */
+	class Name_is_missing  { };
+	class Child_is_missing { };
+
+	/**
+	 * Utility to read a string attribute from an XML node
+	 *
+	 * \param STR        string type
+	 * \param EXC        exception type raised if attribute is not present
+	 *
+	 * \param node       XML node
+	 * \param attr_name  name of attribute to read
+	 */
+	template <typename STR, typename EXC>
+	static STR _read_string_attr(Genode::Xml_node node, char const *attr_name)
+	{
+		char buf[STR::size()];
+
+		if (!node.has_attribute(attr_name))
+			throw EXC();
+
+		node.attribute(attr_name).value(buf, sizeof(buf));
+
+		return STR(buf);
+	}
+
+	/**
+	 * Constructor
+	 *
+	 * \throw Name_is_missing
+	 * \throw Child_is_missing
+	 */
+	Alias(Genode::Xml_node alias)
+	:
+		name (_read_string_attr<Name, Name_is_missing> (alias, "name")),
+		child(_read_string_attr<Name, Child_is_missing>(alias, "child"))
+	{ }
+};
+
+
 namespace Init {
 
 	typedef Genode::List<Genode::List_element<Child> > Child_list;
 
-	class Child_registry : public Name_registry, Child_list
-	{
-		public:
-
-			/**
-			 * Register child
-			 */
-			void insert(Child *child)
-			{
-				Child_list::insert(&child->_list_element);
-			}
-
-			/**
-			 * Unregister child
-			 */
-			void remove(Child *child)
-			{
-				Child_list::remove(&child->_list_element);
-			}
-
-			/**
-			 * Start execution of all children
-			 */
-			void start()
-			{
-				Genode::List_element<Child> *curr = first();
-				for (; curr; curr = curr->next())
-					curr->object()->start();
-			}
-
-			/**
-			 * Return any of the registered children, or 0 if no child exists
-			 */
-			Child *any()
-			{
-				return first() ? first()->object() : 0;
-			}
-
-
-			/*****************************
-			 ** Name-registry interface **
-			 *****************************/
-
-			bool is_unique(const char *name) const
-			{
-				Genode::List_element<Child> const *curr = first();
-				for (; curr; curr = curr->next())
-					if (curr->object()->has_name(name))
-						return false;
-
-				return true;
-			}
-
-			Genode::Server *lookup_server(const char *name) const
-			{
-				Genode::List_element<Child> const *curr = first();
-				for (; curr; curr = curr->next())
-					if (curr->object()->has_name(name))
-						return curr->object()->server();
-
-				return 0;
-			}
-	};
+	struct Child_registry;
 }
+
+
+class Init::Child_registry : public Name_registry, Child_list
+{
+	private:
+
+		List<Alias> _aliases;
+
+	public:
+
+		/**
+		 * Exception type
+		 */
+		class Alias_name_is_not_unique { };
+
+		/**
+		 * Register child
+		 */
+		void insert(Child *child)
+		{
+			Child_list::insert(&child->_list_element);
+		}
+
+		/**
+		 * Unregister child
+		 */
+		void remove(Child *child)
+		{
+			Child_list::remove(&child->_list_element);
+		}
+
+		/**
+		 * Register alias
+		 */
+		void insert_alias(Alias *alias)
+		{
+			if (!is_unique(alias->name.string())) {
+				PERR("Alias name %s is not unique", alias->name.string());
+				throw Alias_name_is_not_unique();
+			}
+			_aliases.insert(alias);
+		}
+
+		/**
+		 * Unregister alias
+		 */
+		void remove_alias(Alias *alias)
+		{
+			_aliases.remove(alias);
+		}
+
+		/**
+		 * Start execution of all children
+		 */
+		void start()
+		{
+			Genode::List_element<Child> *curr = first();
+			for (; curr; curr = curr->next())
+				curr->object()->start();
+		}
+
+		/**
+		 * Return any of the registered children, or 0 if no child exists
+		 */
+		Child *any()
+		{
+			return first() ? first()->object() : 0;
+		}
+
+		/**
+		 * Return any of the registered aliases, or 0 if no alias exists
+		 */
+		Alias *any_alias()
+		{
+			return _aliases.first() ? _aliases.first() : 0;
+		}
+
+
+		/*****************************
+		 ** Name-registry interface **
+		 *****************************/
+
+		bool is_unique(const char *name) const
+		{
+			/* check for name clash with an existing child */
+			Genode::List_element<Child> const *curr = first();
+			for (; curr; curr = curr->next())
+				if (curr->object()->has_name(name))
+					return false;
+
+			/* check for name clash with an existing alias */
+			for (Alias const *a = _aliases.first(); a; a = a->next()) {
+				if (Alias::Name(name) == a->name)
+					return false;
+			}
+
+			return true;
+		}
+
+		Genode::Server *lookup_server(const char *name) const
+		{
+			/*
+			 * Check if an alias with the specified name exists. If so,
+			 * look up the server referred to by the alias.
+			 */
+			for (Alias const *a = _aliases.first(); a; a = a->next())
+				if (Alias::Name(name) == a->name)
+					name = a->child.string();
+
+			/* look up child with the name */
+			Genode::List_element<Child> const *curr = first();
+			for (; curr; curr = curr->next())
+				if (curr->object()->has_name(name))
+					return curr->object()->server();
+
+			return 0;
+		}
+};
 
 
 int main(int, char **)
@@ -202,17 +314,29 @@ int main(int, char **)
 			config()->xml_node().sub_node("default-route"); }
 		catch (...) { }
 
+		/* create aliases */
+		config()->xml_node().for_each_sub_node("alias", [&] (Xml_node alias_node) {
+
+			try {
+				children.insert_alias(new (env()->heap()) Alias(alias_node));
+			}
+			catch (Alias::Name_is_missing) {
+				PWRN("Missing 'name' attribute in '<alias>' entry\n"); }
+			catch (Alias::Child_is_missing) {
+				PWRN("Missing 'child' attribute in '<alias>' entry\n"); }
+
+		});
+
 		/* create children */
 		try {
-			Xml_node start_node = config()->xml_node().sub_node("start");
-			for (;; start_node = start_node.next("start")) {
+			config()->xml_node().for_each_sub_node("start", [&] (Xml_node start_node) {
 
 				try {
 					children.insert(new (env()->heap())
 					                Init::Child(start_node, default_route_node,
-					                &children, read_prio_levels_log2(),
-					                read_affinity_space(),
-					                &parent_services, &child_services, &cap));
+					                            &children, read_prio_levels_log2(),
+					                            read_affinity_space(),
+					                            &parent_services, &child_services, &cap));
 				}
 				catch (Rom_connection::Rom_connection_failed) {
 					/*
@@ -220,9 +344,7 @@ int main(int, char **)
 					 * by the Rom_connection constructor.
 					 */
 				}
-
-				if (start_node.is_last("start")) break;
-			}
+			});
 
 			/* start children */
 			children.start();
@@ -232,6 +354,7 @@ int main(int, char **)
 		catch (Xml_node::Invalid_syntax) {
 			PERR("No children to start"); }
 		catch (Init::Child::Child_name_is_not_unique) { }
+		catch (Init::Child_registry::Alias_name_is_not_unique) { }
 
 		/*
 		 * Respond to config changes at runtime
@@ -248,6 +371,13 @@ int main(int, char **)
 			Init::Child *child = children.any();
 			children.remove(child);
 			destroy(env()->heap(), child);
+		}
+
+		/* remove all known aliases */
+		while (children.any_alias()) {
+			Init::Alias *alias = children.any_alias();
+			children.remove_alias(alias);
+			destroy(env()->heap(), alias);
 		}
 
 		/* reset knowledge about parent services */
