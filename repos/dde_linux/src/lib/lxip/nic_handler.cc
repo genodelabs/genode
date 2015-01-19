@@ -88,21 +88,20 @@ void Net::Packet_handler::_ready_to_ack(unsigned num)
 void Net::Packet_handler::_packet_avail(unsigned)
 {
 	using namespace Net;
-	enum { MAX_PACKETS = 50 };
+	enum { MAX_PACKETS = 20 };
 
 	int count = 0;
 	while(Nic::n()->rx()->packet_avail() &&
 	      Nic::n()->rx()->ready_to_ack() &&
-				++count < MAX_PACKETS) {
-
+	      count++ < MAX_PACKETS)
+	{
 		Packet_descriptor p = Nic::n()->rx()->get_packet();
 		net_driver_rx(Net::Nic::n()->rx()->packet_content(p), p.size());
 		Nic::n()->rx()->acknowledge_packet(p);
 	}
 
-	if (count == MAX_PACKETS)
-		_sink_submit.submit(1);
-		//Genode::Signal_transmitter(_sink_submit).submit();
+	if (Nic::n()->rx()->packet_avail())
+		Genode::Signal_transmitter(_sink_submit).submit();
 }
 
 

@@ -126,8 +126,7 @@ class Net::Socketcall : public Genode::Signal_dispatcher_base,
 
 		void _submit_and_block()
 		{
-			//_signal.submit(); /* global submit */
-			submit(1); /* local submit */
+			_signal.submit(); /* global submit */
 			_block.down();
 		}
 
