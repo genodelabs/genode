@@ -86,37 +86,25 @@ bool Genode::Irq_object::associate(unsigned irq, bool msi,
                                    Irq_session::Trigger trigger,
                                    Irq_session::Polarity polarity)
 {
-	if (msi)
-		/*
-		 * Local APIC address, See Intel x86 Spec - Section MSI 10.11.
-		 *
-		 * XXX local Apic ID encoding missing - address is constructed
-		 *     assuming that local APIC id of boot CPU is 0 XXX
-		 */
-		_msi_addr = 0xfee00000UL;
+	using namespace Fiasco;
 
 	_irq      = irq;
 	_trigger  = trigger;
 	_polarity = polarity;
 
-	using namespace Fiasco;
+	if (msi) irq |= L4_ICU_FLAG_MSI;
+	else
+		/* set interrupt mode */
+		Platform::setup_irq_mode(irq, _trigger, _polarity);
+
 	if (l4_error(l4_factory_create_irq(L4_BASE_FACTORY_CAP, _capability()))) {
 		error("l4_factory_create_irq failed!");
 		return false;
 	}
-
-	unsigned long gsi = _irq;
-	if (_msi_addr)
-		gsi |= L4_ICU_FLAG_MSI;
-
-	if (l4_error(l4_icu_bind(L4_BASE_ICU_CAP, gsi, _capability()))) {
+	if (l4_error(l4_icu_bind(L4_BASE_ICU_CAP, irq, _capability()))) {
 		error("Binding IRQ ", _irq, " to the ICU failed");
 		return false;
 	}
-
-	if (!_msi_addr)
-		/* set interrupt mode */
-		Platform::setup_irq_mode(gsi, _trigger, _polarity);
 
 	if (l4_error(l4_irq_attach(_capability(), reinterpret_cast<l4_umword_t>(this),
 	                           Interrupt_handler::handler_cap()))) {
@@ -124,10 +112,22 @@ bool Genode::Irq_object::associate(unsigned irq, bool msi,
 		return false;
 	}
 
-	if (_msi_addr && l4_error(l4_icu_msi_info(L4_BASE_ICU_CAP, gsi,
-	                                          &_msi_data))) {
-		error("cannot get MSI info");
-		return false;
+	if (msi) {
+		/**
+		 * src_id represents bit 64-84 of the Interrupt Remap Table Entry Format
+		 * for Remapped Interrupts, reference section 9.10 of the
+		 * Intel ® Virtualization Technology for Directed I/O
+		 * Architecture Specification
+		 */
+		unsigned src_id = 0x0;
+		Fiasco::l4_icu_msi_info_t info = l4_icu_msi_info_t();
+		if (l4_error(l4_icu_msi_info(L4_BASE_ICU_CAP, irq,
+		                             src_id, &info))) {
+			error("cannot get MSI info");
+			return false;
+		}
+		_msi_addr = info.msi_addr;
+		_msi_data = info.msi_data;
 	}
 
 	return true;
@@ -161,14 +161,13 @@ Genode::Irq_object::~Irq_object()
 
 	using namespace Fiasco;
 
-	unsigned long gsi = _irq;
-	if (_msi_addr)
-		gsi |= L4_ICU_FLAG_MSI;
+	unsigned long irq = _irq;
+	if (_msi_addr) irq |= L4_ICU_FLAG_MSI;
 
 	if (l4_error(l4_irq_detach(_capability())))
 		error("cannot detach IRQ");
 
-	if (l4_error(l4_icu_unbind(L4_BASE_ICU_CAP, gsi, _capability())))
+	if (l4_error(l4_icu_unbind(L4_BASE_ICU_CAP, irq, _capability())))
 		error("cannot unbind IRQ");
 
 	cap_map()->remove(_cap);
@@ -182,27 +181,24 @@ Genode::Irq_object::~Irq_object()
 
 Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
                                              const char      *args)
-:
-	_irq_number(~0U), _irq_alloc(irq_alloc)
+: _irq_number(Arg_string::find_arg(args, "irq_number").long_value(-1)),
+  _irq_alloc(irq_alloc)
 {
-	Irq_args const irq_args(args);
-
 	long msi = Arg_string::find_arg(args, "device_config_phys").long_value(0);
 	if (msi) {
-		if (msi_alloc.get(irq_args.irq_number(), 1)) {
-			error("unavailable MSI ", irq_args.irq_number(), " requested");
+		if (msi_alloc.get(_irq_number, 1)) {
+			error("unavailable MSI ", _irq_number, " requested");
 			throw Service_denied();
 		}
-		msi_alloc.set(irq_args.irq_number(), 1);
+		msi_alloc.set(_irq_number, 1);
 	} else {
-		if (!irq_alloc || irq_alloc->alloc_addr(1, irq_args.irq_number()).error()) {
-			error("unavailable IRQ ", irq_args.irq_number(), " requested");
+		if (!irq_alloc || irq_alloc->alloc_addr(1, _irq_number).error()) {
+			error("unavailable IRQ ", _irq_number, " requested");
 			throw Service_denied();
 		}
 	}
 
-	_irq_number = irq_args.irq_number();
-
+	Irq_args const irq_args(args);
 	_irq_object.associate(_irq_number, msi, irq_args.trigger(),
 	                      irq_args.polarity());
 }
@@ -233,7 +229,7 @@ void Irq_session_component::sigh(Genode::Signal_context_capability cap)
 
 Genode::Irq_session::Info Irq_session_component::info()
 {
-	if (!_irq_object.msi_address() || !_irq_object.msi_value())
+	if (!_irq_object.msi_address())
 		return { .type = Genode::Irq_session::Info::Type::INVALID };
 
 	return {

@@ -166,7 +166,7 @@ proc run_boot_dir_arm { binaries } {
 	set gen_img_cmd "make -C [l4_build_dir]/source O=[l4_build_dir] E=genode "
 	append gen_img_cmd "MODULES_LIST=[pwd]/[run_dir]/modules.list "
 	append gen_img_cmd "MODULE_SEARCH_PATH=[pwd]/[run_dir]:[pwd]:[l4_build_dir] "
-	append gen_img_cmd "SYSTEM_TARGET=[cross_dev_prefix] elfimage"
+	append gen_img_cmd "CROSS_COMPILE=[cross_dev_prefix] elfimage"
 
 	set pid [eval "spawn sh -c \"$gen_img_cmd\""]
 	expect { eof { } }

@@ -10,9 +10,9 @@ SRC_C += utcb.c
 SRC_S += atomic_ops_s.S
 
 utcb.c:
-	$(VERBOSE)ln -sf $(L4_BUILD_DIR)/source/pkg/l4sys/lib/src/utcb.c
+	$(VERBOSE)ln -sf $(L4_BUILD_DIR)/source/pkg/l4re-core/l4sys/lib/src/utcb.c
 
 atomic_ops_s.S:
-	$(VERBOSE)ln -sf $(L4_BUILD_DIR)/source/pkg/l4sys/lib/src/ARCH-arm/atomic_ops_s.S
+	$(VERBOSE)ln -sf $(L4_BUILD_DIR)/source/pkg/l4re-core/l4sys/lib/src/ARCH-arm/atomic_ops_s.S
 
 utcb.c atomic_ops_s.S: $(PKG_TAGS)

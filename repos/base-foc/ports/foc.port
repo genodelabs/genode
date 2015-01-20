@@ -1,6 +1,6 @@
 LICENSE   := GPLv2
 VERSION   := git
 DOWNLOADS := foc.git
-URL(foc)  := http://github.com/cproc/foc.git
-REV(foc)  := f201220aa686083d10805a91343b67629b62fe30
+URL(foc)  := https://github.com/skalk/foc.git
+REV(foc)  := 382bafdd546d324a11541e3b68eb93b24f7bacbf
 DIR(foc)  := src/kernel/foc

@@ -21,6 +21,33 @@
 /* kernel includes */
 #include <foc/capability_space.h>
 
+/**
+ * We had to change the sematic of l4_task_cap_equal to return whether two
+ * capabilities point to the same kernel object instead of whether both
+ * capabilities are equal with respect to thier rights. To easily check after
+ * a Fiasco.OC upgrade whether the sematic of the kernel patch still matches
+ * our expectations below macro can be used.
+  */
+#ifdef TEST_KERN_CAP_EQUAL
+namespace Fiasco {
+#include <l4/sys/debugger.h>
+}
+inline bool CHECK_CAP_EQUAL(bool equal, Genode::addr_t cap1,
+                                        Genode::addr_t cap2)
+{
+	unsigned long id1 = Fiasco::l4_debugger_global_id(cap1),
+	              id2 = Fiasco::l4_debugger_global_id(cap2);
+	ASSERT(((id1 == id2) == equal), "CAPS NOT EQUAL!!!");
+	return equal;
+}
+#else
+inline bool CHECK_CAP_EQUAL(bool equal, Genode::addr_t,
+                                        Genode::addr_t)
+{
+	return equal;
+}
+#endif /* TEST_KERN_CAP_EQUAL */
+
 
 /***********************
  **  Cap_index class  **
@@ -136,7 +163,7 @@ Genode::Cap_index* Genode::Capability_map::insert_map(int id, addr_t kcap)
 	/* if we own the capability already check whether it's the same */
 	if (i) {
 		l4_msgtag_t tag = l4_task_cap_equal(L4_BASE_TASK_CAP, i->kcap(), kcap);
-		if (!l4_msgtag_label(tag)) {
+		if (!CHECK_CAP_EQUAL(l4_msgtag_label(tag), i->kcap(), kcap)) {
 			/*
 			 * they aren't equal, possibly an already revoked cap,
 			 * otherwise it's a fake capability and we return an invalid one

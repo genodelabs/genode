@@ -51,23 +51,14 @@ using namespace Fiasco;
  ** Utilities **
  ***************/
 
-enum Debug { DEBUG_MSG = 1, HALT_ON_ERROR = 0 };
+enum Debug { DEBUG_MSG = 1 };
 
 
 static inline bool ipc_error(l4_msgtag_t tag, bool print)
 {
 	int ipc_error = l4_ipc_error(tag, l4_utcb());
-	if (ipc_error) {
-		if (print) {
-			outstring("Ipc error: ");
-			outhex32(ipc_error);
-			outstring(" occurred!\n");
-		}
-		if (HALT_ON_ERROR)
-			enter_kdebug("Ipc error");
-		return true;
-	}
-	return false;
+	if (ipc_error && print) raw("Ipc error: ", ipc_error, " occurred!");
+	return ipc_error;
 }
 
 
@@ -111,7 +102,7 @@ static unsigned long extract_msg_from_utcb(l4_msgtag_t     tag,
 
 	num_msg_words -= 2;
 	if (num_caps > 0 && num_msg_words < num_caps) {
-		outstring("unexpected end of message, capability info missing\n");
+		raw("unexpected end of message, capability info missing");
 		return 0;
 	}
 
@@ -137,7 +128,7 @@ static unsigned long extract_msg_from_utcb(l4_msgtag_t     tag,
 
 		/* received a delegated capability */
 		if (sel_idx == num_cap_sel) {
-			outstring("missing capability selector in message\n");
+			raw("missing capability selector in message");
 			break;
 		}
 
@@ -150,7 +141,7 @@ static unsigned long extract_msg_from_utcb(l4_msgtag_t     tag,
 	/* the remainder of the message contains the regular data payload */
 	if ((num_msg_words)*sizeof(l4_mword_t) > rcv_msg.capacity()) {
 		if (DEBUG_MSG)
-			outstring("receive message buffer too small\n");
+			raw("receive message buffer too small");
 		num_msg_words = rcv_msg.capacity()/sizeof(l4_mword_t);
 	}
 
@@ -229,7 +220,7 @@ static l4_msgtag_t copy_msgbuf_to_utcb(Msgbuf_base &snd_msg,
 	unsigned const num_msg_words  = 2 + num_caps + num_data_words;
 
 	if (num_msg_words > L4_UTCB_GENERIC_DATA_SIZE) {
-		outstring("receive message buffer too small\n");
+		raw("receive message buffer too small");
 		throw Ipc_error();
 	}
 
@@ -361,7 +352,7 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
 
 		/* ignore request if we detect a forged badge */
 		if (!badge_matches_label(badge, label)) {
-			outstring("badge does not match label, ignoring request\n");
+			raw("badge does not match label, ignoring request");
 			continue;
 		}
 
