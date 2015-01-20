@@ -39,15 +39,14 @@ $(L4_BUILD_DIR)/.kconfig:
 	$(VERBOSE_MK) set -o pipefail; \
 	     MAKEFLAGS= $(MAKE) $(VERBOSE_DIR) -C $(L4_SRC_DIR)/l4 \
 	     B=$(L4_BUILD_DIR) DROPSCONF_DEFCONFIG="$(L4_CONFIG)" \
-	     VERBOSE="$(VERBOSE)" SYSTEM_TARGET="$(CROSS_DEV_PREFIX)" \
+	     VERBOSE="$(VERBOSE)" CROSS_COMPILE="$(CROSS_DEV_PREFIX)" \
 	     2>&1 | sed "s/^/      [l4build]  /"
 
-PKGS := ldscripts \
-        libgcc-pure \
-        l4sys \
-        libgcc \
-        libsigma0 \
-        libvcpu/include
+PKGS := l4re-core/ldscripts \
+        l4re-core/libgcc-pure \
+        l4re-core/l4sys \
+        l4re-core/libgcc \
+        l4re-core/libsigma0
 
 include $(REP_DIR)/lib/mk/l4_pkg.inc
 

@@ -19,6 +19,7 @@
 
 /* Genode includes */
 #include <base/stdint.h>
+#include <base/log.h>
 #include <rm_session/rm_session.h>
 #include <util/touch.h>
 
@@ -28,27 +29,16 @@
 /* Fiasco includes */
 namespace Fiasco {
 #include <l4/sys/types.h>
-#include <l4/sys/kdebug.h>
 #include <l4/sys/ktrace.h>
 }
 
 namespace Genode {
 
-	inline void log_event(const char *s)
-	{
-		Fiasco::fiasco_tbuf_log(s);
-	}
-
-	inline void log_event(const char *s, unsigned v1, unsigned v2, unsigned v3)
-	{
-		Fiasco::fiasco_tbuf_log_3val(s, v1, v2, v3);
-	}
-
 	inline void panic(const char *s)
 	{
-		using namespace Fiasco;
-		outstring(s);
-		enter_kdebug("> panic <");
+		raw(s);
+		raw("> panic <");
+		while (1) ;
 	}
 
 	inline void touch_ro(const void *addr, unsigned size)
@@ -75,25 +65,10 @@ namespace Genode {
 			touch_read_write(bptr);
 	}
 
-	inline addr_t trunc_page(addr_t addr)
-	{
-		using namespace Fiasco;
-		return l4_trunc_page(addr);
-	}
+	inline addr_t trunc_page(addr_t addr) { return Fiasco::l4_trunc_page(addr); }
+	inline addr_t round_page(addr_t addr) { return Fiasco::l4_round_page(addr); }
 
-	inline addr_t round_page(addr_t addr)
-	{
-		using namespace Fiasco;
-		return l4_round_page(addr);
-	}
-
-	inline addr_t round_superpage(addr_t addr)
-	{
-		using namespace Fiasco;
-		return (addr + L4_SUPERPAGESIZE-1) & L4_SUPERPAGEMASK;
-	}
-
-	constexpr size_t get_super_page_size() { return L4_SUPERPAGESIZE; }
+	constexpr size_t get_super_page_size()      { return L4_SUPERPAGESIZE;      }
 	constexpr size_t get_super_page_size_log2() { return L4_LOG2_SUPERPAGESIZE; }
 
 	inline addr_t map_src_addr(addr_t core_local_addr, addr_t phys_addr) {

@@ -57,6 +57,7 @@ namespace Genode {
 
 			Cap_mapping       _task;
 			Cap_mapping       _parent;
+			Cap_mapping       _debug;
 			Platform_thread  *_threads[THREAD_MAX];
 
 		public:

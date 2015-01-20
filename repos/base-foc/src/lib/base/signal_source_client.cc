@@ -15,6 +15,7 @@
 /* Genode includes */
 #include <signal_source/client.h>
 #include <base/thread.h>
+#include <base/env.h>
 #include <base/log.h>
 
 /* base-internal includes */
@@ -22,6 +23,8 @@
 #include <base/internal/native_thread.h>
 
 /* Fiasco includes */
+#include <foc_native_cpu/client.h>
+
 namespace Fiasco {
 #include <l4/sys/irq.h>
 }
@@ -38,8 +41,9 @@ Signal_source_client::Signal_source_client(Capability<Signal_source> cap)
 	/* request mapping of semaphore capability selector */
 	_sem = call<Rpc_request_semaphore>();
 
-	l4_msgtag_t tag = l4_irq_attach(_sem.data()->kcap(), 0,
-	 Thread::myself()->native_thread().kcap);
+	Foc_native_cpu_client cpu_client(env_deprecated()->cpu_session()->native_cpu());
+	Native_capability thread_cap = cpu_client.native_cap(Thread::myself()->cap());
+	l4_msgtag_t tag = l4_irq_attach(_sem.data()->kcap(), 0, thread_cap.data()->kcap());
 	if (l4_error(tag))
 		Genode::raw("l4_irq_attach failed with ", l4_error(tag));
 }

@@ -29,13 +29,14 @@ namespace Fiasco {
 		TASK_CAP         = L4_BASE_TASK_CAP, /* use the same task cap selector
 		                                        like L4Re for compatibility in
 		                                        L4Linux */
+		DEBUG_CAP        = L4_BASE_DEBUGGER_CAP,
 
 		/*
 		 * To not clash with other L4Re cap selector constants (e.g.: L4Linux)
-		 * leave the following selectors (2-7) empty
+		 * leave the following selectors (2-8) empty
 		 */
 
-		PARENT_CAP       = 0x8UL   << L4_CAP_SHIFT, /* cap to parent session */
+		PARENT_CAP       = 0xbUL   << L4_CAP_SHIFT, /* cap to parent session */
 
 		/*
 		 * Each thread has a designated slot in the core controlled cap
@@ -43,7 +44,7 @@ namespace Fiasco {
 		 * its irq capability (for locks), and the capability to its pager
 		 * gate are stored
 		 */
-		THREAD_AREA_BASE = 0x9UL   << L4_CAP_SHIFT, /* offset to thread area */
+		THREAD_AREA_BASE = 0xcUL   << L4_CAP_SHIFT, /* offset to thread area */
 		THREAD_AREA_SLOT = 0x3UL   << L4_CAP_SHIFT, /* size of one thread slot */
 		THREAD_GATE_CAP  = 0,                       /* offset to the ipc gate
 		                                               cap selector in the slot */

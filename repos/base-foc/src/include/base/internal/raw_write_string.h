@@ -14,18 +14,13 @@
 #ifndef _INCLUDE__BASE__INTERNAL__RAW_WRITE_STRING_H_
 #define _INCLUDE__BASE__INTERNAL__RAW_WRITE_STRING_H_
 
-/* Fiasco includes */
-namespace Fiasco {
-#include <l4/sys/kdebug.h>
-}
+#include <util/string.h>
+#include "foc_assert.h"
 
 namespace Genode {
 
-	void raw_write_string(char const *str)
-	{
-		using namespace Fiasco;
-		outstring(const_cast<char *>(str));
-	}
+	void raw_write_string(char const *str) {
+		Fiasco::outstring(const_cast<char *>(str)); }
 }
 
 #endif /* _INCLUDE__BASE__INTERNAL__RAW_WRITE_STRING_H_ */

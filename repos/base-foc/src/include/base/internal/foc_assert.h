@@ -17,7 +17,6 @@
 /* Genode includes */
 #include <base/log.h>
 
-/* Fiasco includes */
 namespace Fiasco {
 #include <l4/sys/kdebug.h>
 }
@@ -25,7 +24,7 @@ namespace Fiasco {
 #define ASSERT(e, s) \
 	do { if (!(e)) { \
 		Genode::raw("assertion failed: ", s, " at ", __FILE__, ":", __LINE__); \
-		enter_kdebug("ASSERT"); \
+		Fiasco::enter_kdebug("ASSERT"); \
 		} \
 	} while(0)
 

@@ -69,8 +69,10 @@ bool Platform_pd::bind_thread(Platform_thread *thread)
 		thread->_irq.remote   = cap_offset + THREAD_IRQ_CAP;
 
 		/* if it's no core-thread we have to map parent and pager gate cap */
-		if (!thread->core_thread())
+		if (!thread->core_thread()) {
 			_task.map(_task.local.data()->kcap());
+			_debug.map(_task.local.data()->kcap());
+		}
 
 		/* inform thread about binding */
 		thread->bind(this);
@@ -105,6 +107,13 @@ void Platform_pd::assign_parent(Native_capability parent)
 }
 
 
+static Core_cap_index & debug_cap()
+{
+	unsigned long id = platform_specific()->cap_id_alloc()->alloc();
+	static Cap_index * idx = cap_map()->insert(id, DEBUG_CAP);
+	return *reinterpret_cast<Core_cap_index*>(idx);
+}
+
 Platform_pd::Platform_pd(Core_cap_index* i)
 : _task(Native_capability(*i), TASK_CAP)
 {
@@ -114,7 +123,7 @@ Platform_pd::Platform_pd(Core_cap_index* i)
 
 
 Platform_pd::Platform_pd(Allocator *, char const *)
-: _task(true, TASK_CAP)
+: _task(true, TASK_CAP), _debug(debug_cap(), DEBUG_CAP)
 {
 	for (unsigned i = 0; i < THREAD_MAX; i++)
 		_threads[i] = (Platform_thread*) 0;

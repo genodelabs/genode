@@ -9,14 +9,14 @@ unexport KERNEL
 
 $(FOC_BUILD_DIR):
 	$(VERBOSE_MK) set -o pipefail; \
-	              $(MAKE) SYSTEM_TARGET="$(CROSS_DEV_PREFIX)" \
+	              $(MAKE) CROSS_COMPILE="$(CROSS_DEV_PREFIX)" \
 	                      $(VERBOSE_DIR) -C $(FOC_SRC) BUILDDIR=$@ \
 	                      $(KERNEL_BUILD_OUTPUT_FILTER)
 	$(VERBOSE)cp $(KERNEL_CONFIG) $@/globalconfig.out
 
 $(FOC): $(FOC_BUILD_DIR)
 	$(VERBOSE_MK) set -o pipefail; \
-	              $(MAKE) SYSTEM_TARGET="$(CROSS_DEV_PREFIX)" \
+	              $(MAKE) CROSS_COMPILE="$(CROSS_DEV_PREFIX)" \
 	                      CC="$(CC)" CXX="$(CXX)" \
 	                      $(VERBOSE_DIR) -C $(FOC_BUILD_DIR) \
 	                      $(KERNEL_BUILD_OUTPUT_FILTER)
@@ -31,11 +31,13 @@ $(FOC): $(FOC_BUILD_DIR)
 
 LIBS += syscall-foc
 
-PKGS := uclibc-headers \
-        uclibc-minimal \
-        l4util \
-        cxx \
-        sigma0 \
+PKGS := l4re-core/crtn \
+        l4re-core/uclibc-headers \
+        l4re-core/l4util \
+        l4re-core/cxx \
+        l4re-core/uclibc-minimal \
+        l4re-core/libstdc++-headers \
+        l4re-core/sigma0 \
         drivers-frst/include drivers-frst/of drivers-frst/uart \
         bootstrap
 

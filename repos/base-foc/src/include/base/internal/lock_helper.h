@@ -27,7 +27,6 @@
 
 /* Fiasco.OC includes */
 namespace Fiasco {
-#include <l4/sys/kdebug.h>
 #include <l4/sys/irq.h>
 #include <l4/sys/thread.h>
 }
