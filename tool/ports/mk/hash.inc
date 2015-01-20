@@ -15,7 +15,8 @@
 # STRICT_HASH to 'no', the MAKEFILE_LIST can be exluded.
 #
 
-_PATCHES_IN_REP_DIR := $(foreach P,$(PATCHES),$(wildcard $(REP_DIR)/$(P)))
+_PATCHES_IN_REP_DIR := $(foreach P,$(PATCHES),\
+                         $(wildcard $(REP_DIR)/$(subst $(REP_DIR)/,,$(P))))
 
 HASH_INPUT += $(sort $(_PATCHES_IN_REP_DIR)) $(PORT)
 ifneq ($(STRICT_HASH),no)
