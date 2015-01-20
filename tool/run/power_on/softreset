@@ -1,0 +1,41 @@
+##
+# Reset the target machine via softreset
+#
+# \param --power-on-softreset-host       softreset host
+# \param --power-on-softreset-port       softreset port
+#
+
+
+proc power_on_softreset_host { } {
+	return [get_cmd_arg_first --power-on-softreset-host ""]
+}
+
+
+proc power_on_softreset_port { } {
+	return [get_cmd_arg_first --power-on-softreset-port ""]
+}
+
+
+proc run_power_on { } {
+	set host [power_on_softreset_host]
+	set port [power_on_softreset_port]
+
+	if {[string equal $host ""]} {
+		puts "Aborting, softreset host not set."
+		exit -1
+	}
+
+	if {[string equal $port ""]} {
+		puts "Aborting, softreset port not set."
+		exit -1
+	}
+
+	set telnet [check_installed telnet]
+
+	spawn $telnet $host $port
+	set connection_id $spawn_id
+
+	send -i $connection_id "1\n"
+	sleep 1
+	send -i $connection_id "q\n"
+}
