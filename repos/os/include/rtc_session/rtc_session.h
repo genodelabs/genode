@@ -28,10 +28,10 @@ namespace Rtc {
 		/**
 		 * Get microseconds elapsed since 1.1.1970 UTC.
 		 */
-		virtual Genode::uint64_t get_current_time() = 0;
+		virtual Genode::uint64_t current_time() = 0;
 
-		GENODE_RPC(Rpc_get_current_time, Genode::uint64_t, get_current_time);
-		GENODE_RPC_INTERFACE(Rpc_get_current_time);
+		GENODE_RPC(Rpc_current_time, Genode::uint64_t, current_time);
+		GENODE_RPC_INTERFACE(Rpc_current_time);
 	};
 }
 

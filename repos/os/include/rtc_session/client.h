@@ -25,9 +25,9 @@ namespace Rtc {
 		Session_client(Genode::Capability<Session> cap)
 		: Genode::Rpc_client<Session>(cap) {}
 
-		Genode::uint64_t get_current_time()
+		Genode::uint64_t current_time()
 		{
-			return call<Rpc_get_current_time>();
+			return call<Rpc_current_time>();
 		}
 	};
 }

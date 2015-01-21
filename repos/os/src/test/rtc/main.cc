@@ -26,7 +26,7 @@ int main(int argc, char **argv)
 	static Timer::Connection timer;
 
 	for (unsigned i = 0; i < 4; ++i) {
-		Genode::uint64_t now = rtc.get_current_time();
+		Genode::uint64_t now = rtc.current_time();
 
 		Genode::printf("RTC: %llu.%06llu seconds since 1970\n",
 		               now / 1000000ULL,

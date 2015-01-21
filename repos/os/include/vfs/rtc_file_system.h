@@ -59,7 +59,7 @@ class Vfs::Rtc_file_system : public Single_file_system
 		Read_result read(Vfs_handle *vfs_handle, char *dst, file_size count,
 		                 file_size &out_count) override
 		{
-			time_t t = _rtc.get_current_time() / 1000000ULL;
+			time_t t = _rtc.current_time() / 1000000ULL;
 
 			struct tm *tm = localtime(&t);
 
