@@ -21,11 +21,15 @@ Quick start to build Genode for Linux
 The best starting point for exploring Genode is to run it on Linux. Make sure
 that your system satisfies the following requirements:
 
-* GNU 'Make' version 3.81 or newer
+* GNU Make version 3.81 or newer
 * 'libSDL-dev'
 * 'tclsh' and 'expect'
 * 'byacc' (only needed for the L4/Fiasco kernel)
 * 'qemu' and 'genisoimage' (for testing non-Linux platforms via Qemu)
+
+For using the entire collection of ported 3rd-party software, the following
+packages should be installed additionally: 'autoconf2.64', 'autogen', 'bison',
+'flex', 'g++', 'git', 'gperf', 'libxml2-utils', 'subversion', and 'xsltproc'.
 
 Furthermore, you will need to install the official Genode toolchain, which
 you can download at [http://genode.org/download/tool-chain].
