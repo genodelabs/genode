@@ -657,6 +657,50 @@ extern "C" int kill(int pid, int sig)
 }
 
 
+extern "C" int nanosleep(const struct timespec *timeout,
+                         struct timespec *remainder)
+{
+	Noux::Sysio::Select_fds &in_fds = sysio()->select_in.fds;
+
+	in_fds.num_rd = 0;
+	in_fds.num_wr = 0;
+	in_fds.num_ex = 0;
+
+	sysio()->select_in.timeout.sec  = timeout->tv_sec;
+	sysio()->select_in.timeout.usec = timeout->tv_nsec / 1000;
+
+	/*
+	 * Perform syscall
+	 */
+	if (!noux_syscall(Noux::Session::SYSCALL_SELECT)) {
+		switch (sysio()->error.select) {
+		case Noux::Sysio::SELECT_ERR_INTERRUPT: errno = EINTR; break;
+		}
+
+		return -1;
+	}
+
+	if (remainder) {
+		remainder->tv_sec  = 0;
+		remainder->tv_nsec = 0;
+	}
+
+	return 0;
+}
+
+
+extern "C" unsigned int sleep(unsigned int seconds)
+{
+	struct timespec dummy = { seconds, 0 };
+
+	/*
+	 * Always return 0 because our nanosleep() cannot not be interrupted.
+	 */
+	nanosleep(&dummy, 0);
+	return 0;
+}
+
+
 /********************
  ** Time functions **
  ********************/
