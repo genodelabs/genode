@@ -12,16 +12,25 @@
  */
 
 /* Linux includes */
-#include <sys/time.h>
+#include <time.h>
 
 #include "rtc.h"
 
 
-Genode::uint64_t Rtc::get_time(void)
+Rtc::Timestamp Rtc::get_time(void)
 {
-	struct timeval now { };
+	Timestamp ts { 0 };
 
-	gettimeofday(&now, nullptr);
+	time_t t       = time(NULL);
+	struct tm *utc = gmtime(&t);
+	if (utc) {
+		ts.second = utc->tm_sec;
+		ts.minute = utc->tm_min;
+		ts.hour   = utc->tm_hour;
+		ts.day    = utc->tm_mday;
+		ts.month  = utc->tm_mon + 1;
+		ts.year   = utc->tm_year + 1900;
+	}
 
-	return now.tv_sec * 1000000ULL + now.tv_usec;
+	return ts;
 }

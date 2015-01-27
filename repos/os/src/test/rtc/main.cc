@@ -26,11 +26,11 @@ int main(int argc, char **argv)
 	static Timer::Connection timer;
 
 	for (unsigned i = 0; i < 4; ++i) {
-		Genode::uint64_t now = rtc.current_time();
+		Rtc::Timestamp now = rtc.current_time();
 
-		Genode::printf("RTC: %llu.%06llu seconds since 1970\n",
-		               now / 1000000ULL,
-		               now % 1000000ULL);
+		Genode::printf("RTC: %u-%02u-%02u %02u:%02u:%02u\n",
+		               now.year, now.month, now.day,
+		               now.hour, now.minute, now.second);
 
 		timer.msleep(1000);
 	}

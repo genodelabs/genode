@@ -1,12 +1,13 @@
 /*
  * \brief  Rtc session interface
  * \author Markus Partheymueller
+ * \author Josef Soentgen
  * \date   2012-11-15
  */
 
 /*
  * Copyright (C) 2012 Intel Corporation
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-2014 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -21,16 +22,25 @@
 
 namespace Rtc {
 
+	struct Timestamp
+	{
+		unsigned microsecond;
+		unsigned second;
+		unsigned minute;
+		unsigned hour;
+		unsigned day;
+		unsigned month;
+		unsigned year;
+	};
+
+
 	struct Session : Genode::Session
 	{
 		static const char *service_name() { return "Rtc"; }
 
-		/**
-		 * Get microseconds elapsed since 1.1.1970 UTC.
-		 */
-		virtual Genode::uint64_t current_time() = 0;
+		virtual Timestamp current_time() = 0;
 
-		GENODE_RPC(Rpc_current_time, Genode::uint64_t, current_time);
+		GENODE_RPC(Rpc_current_time, Timestamp, current_time);
 		GENODE_RPC_INTERFACE(Rpc_current_time);
 	};
 }

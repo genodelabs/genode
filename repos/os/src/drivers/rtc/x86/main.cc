@@ -31,9 +31,9 @@ namespace Rtc {
 
 struct Rtc::Session_component : public Genode::Rpc_object<Session>
 {
-	uint64_t current_time() override
+	Timestamp current_time() override
 	{
-		uint64_t ret = Rtc::get_time();
+		Timestamp ret = Rtc::get_time();
 
 		return ret;
 	}

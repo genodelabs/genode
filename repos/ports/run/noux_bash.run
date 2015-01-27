@@ -14,6 +14,8 @@ set build_components {
 	drivers/framebuffer drivers/pci drivers/input
 	server/terminal server/ram_fs
 	test/libports/ncurses
+
+	drivers/rtc
 }
 
 lappend_if [use_usb_input]  build_components drivers/usb
@@ -68,7 +70,11 @@ append config {
 		<start name="timer">
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
-		</start> }
+		</start>
+		<start name="rtc_drv">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Rtc"/></provides>
+		</start>}
 
 append_if [have_spec sdl] config {
 	<start name="fb_sdl">
@@ -162,6 +168,8 @@ append config {
 				<dir name="ram"> <fs label="root" /> </dir>
 				<dir name="tmp"> <fs label="tmp" /> </dir>
 
+				<dir name="dev"> <rtc/> <zero/> </dir>
+
 			</fstab>
 			<start name="/bin/bash">
 				<env name="TERM" value="linux" />
@@ -183,6 +191,7 @@ set boot_modules {
 	core init timer ld.lib.so noux terminal ram_fs
 	libc.lib.so libm.lib.so libc_noux.lib.so ncurses.lib.so
 	bash.tar coreutils.tar vim.tar
+	rtc_drv
 }
 
 # platform-specific modules

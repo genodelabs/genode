@@ -61,6 +61,9 @@
 #include <nul/motherboard.h>
 #include <sys/hip.h>
 
+/* utilities includes */
+#include <service/time.h>
+
 /* local includes */
 #include "synced_motherboard.h"
 #include "device_model_registry.h"
@@ -1133,8 +1136,12 @@ class Machine : public StaticReceiver<Machine>
 					return true;
 				}
 			}
-			/* current_time() returns microseconds */
-			msg.wallclocktime = _rtc->current_time() / 1000000U * MessageTime::FREQUENCY;
+
+			Rtc::Timestamp rtc_ts = _rtc->current_time();
+			tm_simple tms(rtc_ts.year, rtc_ts.month, rtc_ts.day, rtc_ts.hour,
+			              rtc_ts.minute, rtc_ts.second);
+
+			msg.wallclocktime = mktime(&tms) * MessageTime::FREQUENCY;
 			Logging::printf("Got time %llx\n", msg.wallclocktime);
 			msg.timestamp = _unsynchronized_motherboard.clock()->clock(MessageTime::FREQUENCY);
 

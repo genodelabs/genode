@@ -28,42 +28,6 @@
 using namespace Genode;
 
 
-/**
- * Time helper
- */
-static bool is_leap_year(int year)
-{
-	if (((year & 3) || !((year % 100) != 0)) && (year % 400 != 0)) return false;
-	return true;
-}
-
-/**
- * Return UNIX time from given date and time.
- */
-static uint64_t mktime(int day, int mon, int year, int hour, int minutes, int seconds)
-{
-	bool jan_mar = mon < 3;
-	uint64_t ret = 0;
-	ret += (367*(10+mon))/12;
-	ret += jan_mar*2;
-	ret -= 719866;
-	ret += day;
-	ret += jan_mar * is_leap_year(year);
-	ret += 365*year;
-	ret += year/4;
-	ret -= year/100;
-	ret += year/400;
-	ret *= 24;
-	ret += hour;
-	ret *= 60;
-	ret += minutes;
-	ret *= 60;
-	ret += seconds;
-
-	return ret;
-}
-
-
 enum RTC
 {
 	RTC_SECONDS       = 0,
@@ -136,7 +100,7 @@ static inline unsigned cmos_read(unsigned char addr)
 #define BIN_TO_BCD(val)  ((val) = (((val)/10) << 4) + (val) % 10)
 
 
-uint64_t Rtc::get_time(void)
+Rtc::Timestamp Rtc::get_time(void)
 {
 	unsigned year, mon, day, hour, min, sec;
 	int i;
@@ -174,5 +138,5 @@ uint64_t Rtc::get_time(void)
 
 	if ((year += 1900) < 1970) year += 100;
 
-	return mktime(day, mon, year, hour, min, sec) * 1000000ULL; 
+	return Timestamp { 0, sec, min, hour, day, mon, year };
 }
