@@ -2,9 +2,8 @@
  * \brief  Symlink file-system node
  * \author Norman Feske
  * \author Christian Helmuth
+ * \author Emery Hemingway
  * \date   2013-11-11
- *
- * FIXME unfinished
  */
 
 #ifndef _SYMLINK_H_
@@ -24,27 +23,45 @@ class File_system::Symlink : public Node
 {
 	private:
 
-		char _link_to[MAX_PATH_LEN];
+		typedef Genode::Path<MAX_PATH_LEN> Path;
+
+		Path _path;
+		bool _create;
 
 	public:
 
-		Symlink(char const *name) { Node::name(name); }
+		Symlink(char const *dir, char const *name, const bool create)
+		: Node(0), _path(name, dir), _create(create)
+		{
+			Node::name(name);
+		}
+
+		Symlink(char const *name, const bool create)
+		: Node(0), _path(name), _create(create)
+		{
+			Node::name(basename(name));
+		}
 
 		size_t read(char *dst, size_t len, seek_off_t seek_offset)
 		{
-			size_t count = min(len, sizeof(_link_to) + 1);
-			Genode::strncpy(dst, _link_to, count);
-			return count;
+			int ret = readlink(_path.base(), dst, len);
+			return ret == -1 ? 0 : ret;
 		}
 
 		size_t write(char const *src, size_t len, seek_off_t seek_offset)
 		{
-			size_t count = min(len, sizeof(_link_to) + 1);
-			Genode::strncpy(_link_to, src, count);
-			return count;
+			if (!_create)
+				return 0;
+
+			int ret = symlink(src, _path.base());
+			return ret == -1 ? 0 : ret;
 		}
 
-		file_size_t length() const { return strlen(_link_to) + 1; }
+		file_size_t length()
+		{
+			char link_to[MAX_PATH_LEN];
+			return read(link_to, MAX_PATH_LEN, 0);
+		}
 };
 
 #endif /* _SYMLINK_H_ */

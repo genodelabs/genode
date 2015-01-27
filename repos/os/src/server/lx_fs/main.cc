@@ -1,5 +1,5 @@
 /*
- * \brief  RAM file system
+ * \brief  Linux host file system
  * \author Norman Feske
  * \date   2012-04-11
  */
@@ -205,8 +205,18 @@ class File_system::Session_component : public Session_rpc_object
 
 		Symlink_handle symlink(Dir_handle dir_handle, Name const &name, bool create)
 		{
-			PERR("%s not implemented", __func__);
-			return Symlink_handle();
+			if (!valid_name(name.string()))
+				throw Invalid_name();
+
+			if (create && !_writable)
+				throw Permission_denied();
+
+			Directory *dir = _handle_registry.lookup_and_lock(dir_handle);
+			Node_lock_guard dir_guard(*dir);
+
+			Symlink *link = dir->symlink(name.string(), create);
+			Node_lock_guard file_guard(*link);
+			return  _handle_registry.alloc(link);
 		}
 
 		Dir_handle dir(Path const &path, bool create)
@@ -254,8 +264,6 @@ class File_system::Session_component : public Session_rpc_object
 
 			Status s;
 			s.inode = node->inode();
-			s.size  = 0;
-			s.mode  = 0;
 
 			File *file = dynamic_cast<File *>(node);
 			if (file) {
@@ -271,7 +279,12 @@ class File_system::Session_component : public Session_rpc_object
 				return s;
 			}
 
-			PERR("%s for symlinks not implemented", __func__);
+			Symlink *link = dynamic_cast<Symlink *>(node);
+			if (link) {
+				s.size  = 0;
+				s.mode = File_system::Status::MODE_SYMLINK;
+				return s;
+			}
 
 			return Status();
 		}
@@ -281,9 +294,18 @@ class File_system::Session_component : public Session_rpc_object
 			PERR("%s not implemented", __func__);
 		}
 
-		void unlink(Dir_handle, Name const &)
+		void unlink(Dir_handle dir_handle, Name const &name)
 		{
-			PERR("%s not implemented", __func__);
+			if (!valid_name(name.string()))
+				throw Invalid_name();
+
+			if (!_writable)
+				throw Permission_denied();
+
+			Directory *dir = _handle_registry.lookup_and_lock(dir_handle);
+			Node_lock_guard dir_guard(*dir);
+
+			dir->unlink(name.string());
 		}
 
 		void truncate(File_handle file_handle, file_size_t size)
