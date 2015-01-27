@@ -14,6 +14,8 @@
 #include <base/snprintf.h>
 #include <dataspace/client.h>
 #include <rm_session/connection.h>
+#include <timer_session/connection.h>
+#include <trace/timestamp.h>
 
 #include <lx_emul.h>
 #include <env.h>
@@ -502,10 +504,25 @@ unsigned long ilog2(unsigned long n) { return Genode::log2<unsigned long>(n); }
  ** linux/sched.h **
  *******************/
 
-extern "C" void __wait_event()
+
+static void __wait_event(signed long timeout)
 {
-	Genode::Signal s = Net::Env::receiver()->wait_for_signal();
-	static_cast<Genode::Signal_dispatcher_base *>(s.context())->dispatch(s.num());
+		static Timer::Connection timer;
+		/* timeout is relative in jiffies, make it absolute */
+		timeout += jiffies;
+
+		 /* wait for signal and return upon timeout */
+		while (timeout > jiffies  && !Net::Env::receiver()->pending())
+		{
+			timer.msleep(1);
+			//dde_kit_thread_msleep(1);
+			if (timeout <= jiffies)
+				return;
+		}
+
+		/* dispatch signal */
+		Genode::Signal s = Net::Env::receiver()->wait_for_signal();
+		static_cast<Genode::Signal_dispatcher_base *>(s.context())->dispatch(s.num());
 }
 
 
@@ -518,14 +535,14 @@ long schedule_timeout_uninterruptible(signed long timeout)
 signed long schedule_timeout(signed long timeout)
 {
 	long start = jiffies;
-	__wait_event();
+	__wait_event(timeout);
 	timeout -= jiffies - start;
 	return timeout < 0 ? 0 : timeout;
 }
 
 void poll_wait(struct file * filp, wait_queue_head_t * wait_address, poll_table *p)
 {
-	__wait_event();
+	__wait_event(0);
 }
 
 
@@ -634,3 +651,30 @@ void put_page(struct page *page)
 }
 
 
+static void create_event(char const *fmt, va_list list)
+{
+	enum { BUFFER_LEN = 64, EVENT_LEN = BUFFER_LEN + 32 };
+	char buf[BUFFER_LEN];
+
+	using namespace Genode;
+
+	String_console sc(buf, BUFFER_LEN);
+	sc.vprintf(fmt, list);
+
+	char event[EVENT_LEN];
+	static Trace::Timestamp last = 0;
+	       Trace::Timestamp now  = Trace::timestamp();
+	Genode::snprintf(event, sizeof(event), "delta = %llu ms %s",
+	                 (now - last) / 2260000, buf);
+	Thread_base::trace(event);
+	last = now;
+}
+
+
+extern "C" void lx_trace_event(char const *fmt, ...)
+{
+	va_list list;
+	va_start(list, fmt);
+	create_event(fmt, list);
+	va_end(list);
+}

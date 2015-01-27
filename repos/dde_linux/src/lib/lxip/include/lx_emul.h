@@ -3324,6 +3324,9 @@ void trace_udp_fail_queue_rcv_skb(int, struct sock*);
 void set_sock_wait(struct socket *sock, unsigned long ptr);
 int socket_check_state(struct socket *sock);
 void log_sock(struct socket *sock);
+
+void lx_trace_event(char const *, ...) __attribute__((format(printf, 1, 2)));
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

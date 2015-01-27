@@ -28,7 +28,7 @@ namespace Net {
  */
 class Net::Packet_handler
 {
-	private:
+	protected:
 
 		/**
 		 * submit queue not empty anymore
@@ -53,8 +53,6 @@ class Net::Packet_handler
 		 */
 		void _ready_to_submit(unsigned) { }
 
-	protected:
-
 		Genode::Signal_dispatcher<Packet_handler> _sink_ack;
 		Genode::Signal_dispatcher<Packet_handler> _sink_submit;
 		Genode::Signal_dispatcher<Packet_handler> _source_ack;
@@ -66,8 +64,6 @@ class Net::Packet_handler
 
 		virtual Packet_stream_sink< ::Nic::Session::Policy>   * sink()   = 0;
 		virtual Packet_stream_source< ::Nic::Session::Policy> * source() = 0;
-
-		void packet_avail() { _packet_avail(1); }
 };
 
 #endif /* _PACKET_HANDLER_H_ */
