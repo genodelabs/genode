@@ -16,21 +16,28 @@
 
 /* local includes */
 #include <child_registry.h>
-#include <process_arg_registry.h>
 
 struct Yield_command : Command
 {
-	Child_registry       &_children;
-	Process_arg_registry &_process_args;
+	Child_registry &_children;
 
-	Yield_command(Child_registry &children, Process_arg_registry &process_args)
+	Yield_command(Child_registry &children)
 	:
 		Command("yield", "instruct subsystem to yield resources"),
-		_children(children),
-		_process_args(process_args)
+		_children(children)
 	{
 		add_parameter(new Parameter("--ram", Parameter::NUMBER,  "RAM quota to free"));
 		add_parameter(new Parameter("--greedy", Parameter::VOID, "withdraw yielded RAM quota"));
+	}
+
+	void _for_each_argument(Argument_fn const &fn) const override
+	{
+		auto child_name_fn = [&] (char const *child_name) {
+			Argument arg(child_name, "");
+			fn(arg);
+		};
+
+		_children.for_each_child_name(child_name_fn);
 	}
 
 	void execute(Command_line &cmd, Terminal::Session &terminal)
@@ -64,8 +71,6 @@ struct Yield_command : Command
 		tprint_bytes(terminal, ram);
 		tprintf(terminal, "\n");
 	}
-
-	List<Argument> &arguments() { return _process_args.list; }
 };
 
 #endif /* _YIELD_COMMAND_H_ */

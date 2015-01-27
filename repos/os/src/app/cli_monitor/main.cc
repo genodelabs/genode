@@ -14,6 +14,8 @@
 /* Genode includes */
 #include <os/config.h>
 #include <cap_session/connection.h>
+#include <vfs/file_system_factory.h>
+#include <vfs/dir_file_system.h>
 
 /* public CLI-monitor includes */
 #include <cli_monitor/ram.h>
@@ -48,8 +50,8 @@ static inline Command *lookup_command(char const *buf, Command_registry &registr
 {
 	Token token(buf);
 	for (Command *curr = registry.first(); curr; curr = curr->next())
-		if (strcmp(token.start(), curr->name(), token.len()) == 0
-		 && strlen(curr->name()) == token.len())
+		if (strcmp(token.start(), curr->name().string(), token.len()) == 0
+		 && strlen(curr->name().string()) == token.len())
 			return curr;
 	return 0;
 }
@@ -70,6 +72,30 @@ static size_t ram_preservation_from_config()
 }
 
 
+/**
+ * Return singleton instance of the subsystem config registry
+ */
+static Subsystem_config_registry &subsystem_config_registry()
+{
+	try {
+
+		/* initialize virtual file system */
+		static Vfs::Dir_file_system
+			root_dir(Genode::config()->xml_node().sub_node("vfs"),
+			         Vfs::global_file_system_factory());
+
+		static Subsystem_config_registry inst(root_dir);
+
+		return inst;
+
+	} catch (Genode::Xml_node::Nonexistent_sub_node) {
+
+		PERR("missing '<vfs>' configuration");
+		throw;
+	}
+}
+
+
 int main(int argc, char **argv)
 {
 	/* look for dynamic linker */
@@ -86,7 +112,6 @@ int main(int argc, char **argv)
 	static Terminal::Connection   terminal;
 	static Command_registry       commands;
 	static Child_registry         children;
-	static Process_arg_registry   process_args;
 
 	/* initialize platform-specific commands */
 	init_extension(commands);
@@ -112,20 +137,18 @@ int main(int argc, char **argv)
 
 	/* initialize generic commands */
 	commands.insert(new Help_command);
-	Kill_command kill_command(children, process_args);
+	Kill_command kill_command(children);
 	commands.insert(&kill_command);
 	commands.insert(new Gdb_command(ram, cap, children,
-	                                Genode::config()->xml_node(),
-	                                process_args,
+	                                subsystem_config_registry(),
 	                                yield_response_sig_cap,
 	                                kill_gdb_sig_cap));
 	commands.insert(new Start_command(ram, cap, children,
-	                                  Genode::config()->xml_node(),
-	                                  process_args,
+	                                  subsystem_config_registry(),
 	                                  yield_response_sig_cap));
 	commands.insert(new Status_command(ram, children));
-	commands.insert(new Yield_command(children, process_args));
-	commands.insert(new Ram_command(children, process_args));
+	commands.insert(new Yield_command(children));
+	commands.insert(new Ram_command(children));
 
 	enum { COMMAND_MAX_LEN = 1000 };
 	static char buf[COMMAND_MAX_LEN];
@@ -180,7 +203,6 @@ int main(int argc, char **argv)
 					dynamic_cast<Gdb_command_child*>(child);
 				if (gdb_command_child && gdb_command_child->kill_requested()) {
 					tprintf(terminal, "Destroying GDB subsystem after an error occured.\n");
-					process_args.list.remove(&gdb_command_child->argument);
 					children.remove(gdb_command_child);
 					Genode::destroy(Genode::env()->heap(), gdb_command_child);
 					line_editor.reset();

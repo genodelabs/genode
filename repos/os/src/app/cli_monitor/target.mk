@@ -1,6 +1,6 @@
 TARGET   = cli_monitor
 SRC_CC   = main.cc
-LIBS     = base cli_monitor config
+LIBS     = base cli_monitor config vfs ld
 INC_DIR += $(PRG_DIR)
 
 ifeq ($(findstring arm, $(SPECS)), arm)
