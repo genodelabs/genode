@@ -18,8 +18,6 @@
 #include <rtc_session/connection.h>
 #include <vfs/file_system.h>
 
-/* libc includes */
-#include <time.h>
 
 namespace Vfs { class Rtc_file_system; }
 
@@ -40,6 +38,19 @@ class Vfs::Rtc_file_system : public Single_file_system
 		static char const *name() { return "rtc"; }
 
 
+		/*********************************
+		 ** Directory-service interface **
+		 *********************************/
+
+		Stat_result stat(char const *path, Stat &out) override
+		{
+			Stat_result result = Single_file_system::stat(path, out);
+			out.mode |= 0444;
+
+			return result;
+		}
+
+
 		/********************************
 		 ** File I/O service interface **
 		 ********************************/
@@ -51,7 +62,7 @@ class Vfs::Rtc_file_system : public Single_file_system
 		}
 
 		/**
-		 * Read the current time from the RTC
+		 * Read the current time from the Rtc session
 		 *
 		 * On each read the current time is queried and afterwards formated
 		 * as '%Y-%m-%d %H:%M\n'.
@@ -59,19 +70,26 @@ class Vfs::Rtc_file_system : public Single_file_system
 		Read_result read(Vfs_handle *vfs_handle, char *dst, file_size count,
 		                 file_size &out_count) override
 		{
-			time_t t = _rtc.current_time() / 1000000ULL;
+			enum { TIMESTAMP_LEN = 17 };
 
-			struct tm *tm = localtime(&t);
+			file_size seek = vfs_handle->seek();
 
-			char buf[16 + 1 + 1];
-			Genode::snprintf(buf, sizeof(buf), "%04d-%02d-%02d %02d:%02d\n",
-			                 1900 + tm->tm_year, /* years since 1900 */
-			                 1 + tm->tm_mon,     /* months since January [0-11] */
-			                 tm->tm_mday, tm->tm_hour, tm->tm_min);
+			if (seek >= TIMESTAMP_LEN) {
+				out_count = 0;
+				return READ_OK;
+			}
 
-			file_size len = count > sizeof(buf) ? sizeof(buf) : count;
-			Genode::memcpy(dst, buf, len);
+			Rtc::Timestamp ts = _rtc.current_time();
 
+			char buf[TIMESTAMP_LEN+1];
+			char *b = buf;
+			unsigned n = Genode::snprintf(buf, sizeof(buf), "%04u-%02u-%02u %02u:%02u\n",
+			                              ts.year, ts.month, ts.day, ts.hour, ts.minute);
+			n -= seek;
+			b += seek;
+
+			file_size len = count > n ? n : count;
+			Genode::memcpy(dst, b, len);
 			out_count = len;
 
 			return READ_OK;

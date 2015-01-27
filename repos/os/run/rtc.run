@@ -40,5 +40,3 @@ build_boot_image { core init timer rtc_drv test-rtc }
 append qemu_args " -nographic -m 128 "
 
 run_genode_until ".*--- RTC test finished ---.*\n" 20
-
-puts "Test succeeded"

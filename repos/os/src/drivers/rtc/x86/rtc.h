@@ -15,11 +15,11 @@
 #define _RTC_H_
 
 #include <base/stdint.h>
+#include <rtc_session/rtc_session.h>
 
 namespace Rtc {
 
-	/* Get real time in microseconds since 1970 */
-	Genode::uint64_t get_time();
+	Timestamp get_time();
 }
 
 #endif /* _RTC_H_ */

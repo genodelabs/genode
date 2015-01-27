@@ -6,7 +6,7 @@
 
 /*
  * Copyright (C) 2012 Intel Corporation
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-14 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -25,7 +25,7 @@ namespace Rtc {
 		Session_client(Genode::Capability<Session> cap)
 		: Genode::Rpc_client<Session>(cap) {}
 
-		Genode::uint64_t current_time()
+		Timestamp current_time()
 		{
 			return call<Rpc_current_time>();
 		}

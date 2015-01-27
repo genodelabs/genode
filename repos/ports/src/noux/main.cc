@@ -38,6 +38,7 @@
 #include <vfs/null_file_system.h>
 #include <vfs/zero_file_system.h>
 #include <vfs/block_file_system.h>
+#include <vfs/rtc_file_system.h>
 #include <random_file_system.h>
 #include <stdio_file_system.h>
 
@@ -1113,6 +1114,8 @@ int main(int argc, char **argv)
 	fs_factory.add_fs_type<Vfs::Null_file_system>();
 	fs_factory.add_fs_type<Vfs::Zero_file_system>();
 	fs_factory.add_fs_type<Vfs::Block_file_system>();
+	fs_factory.add_fs_type<Vfs::Block_file_system>();
+	fs_factory.add_fs_type<Vfs::Rtc_file_system>();
 	fs_factory.add_fs_type<Stdio_file_system>();
 	fs_factory.add_fs_type<Random_file_system>();
 
