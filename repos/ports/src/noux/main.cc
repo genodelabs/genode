@@ -230,8 +230,8 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				size_t   path_len  = strlen(_sysio->stat_in.path);
 				uint32_t path_hash = hash_path(_sysio->stat_in.path, path_len);
 
-				_sysio->error.stat = root_dir()->stat(_sysio->stat_in.path,
-				                                      _sysio->stat_out.st);
+				Vfs::Directory_service::Stat stat_out;
+				_sysio->error.stat = root_dir()->stat(_sysio->stat_in.path, stat_out);
 
 				result = (_sysio->error.stat == Vfs::Directory_service::STAT_OK);
 
@@ -240,11 +240,13 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				 * we use the ones specificed in the config.
 				 */
 				if (result) {
-					_sysio->stat_out.st.uid = user_info()->uid;
-					_sysio->stat_out.st.gid = user_info()->gid;
+					stat_out.uid = user_info()->uid;
+					stat_out.gid = user_info()->gid;
 
-					_sysio->stat_out.st.inode = path_hash;
+					stat_out.inode = path_hash;
 				}
+
+				_sysio->stat_out.st = stat_out;
 
 				break;
 			}
