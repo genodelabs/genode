@@ -24,6 +24,7 @@
 #include <cap_session/connection.h>
 #include <input/root.h>
 #include <os/config.h>
+#include <timer_session/connection.h>
 
 /* local includes */
 #include <input.h>
@@ -66,7 +67,7 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 
 		Mode _mode;
 
-		Genode::Signal_context_capability _sync_sigh;
+		Timer::Connection _timer;
 
 	public:
 
@@ -83,7 +84,8 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 
 		void sync_sigh(Genode::Signal_context_capability sigh) override
 		{
-			_sync_sigh = sigh;
+			_timer.sigh(sigh);
+			_timer.trigger_periodic(10*1000);
 		}
 
 		void refresh(int x, int y, int w, int h) override
@@ -110,9 +112,6 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 				/* flush pixels in sdl window */
 				SDL_UpdateRect(screen, x1, y1, x2 - x1 + 1, y2 - y1 + 1);
 			}
-
-			if (_sync_sigh.valid())
-				Genode::Signal_transmitter(_sync_sigh).submit();
 		}
 };
 

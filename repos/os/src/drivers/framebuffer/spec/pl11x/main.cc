@@ -18,6 +18,7 @@
 #include <base/rpc_server.h>
 #include <io_mem_session/connection.h>
 #include <cap_session/connection.h>
+#include <timer_session/connection.h>
 #include <dataspace/client.h>
 #include <timer_session/connection.h>
 #include <framebuffer_session/framebuffer_session.h>
@@ -55,12 +56,11 @@ namespace Framebuffer
 	{
 		private:
 
-			Genode::Dataspace_capability      _fb_ds_cap;
-			Genode::Dataspace_client          _fb_ds;
-			Genode::addr_t                    _regs_base;
-			Genode::addr_t                    _sys_regs_base;
-			Timer::Connection                 _timer;
-			Genode::Signal_context_capability _sync_sigh;
+			Genode::Dataspace_capability _fb_ds_cap;
+			Genode::Dataspace_client     _fb_ds;
+			Genode::addr_t               _regs_base;
+			Genode::addr_t               _sys_regs_base;
+			Timer::Connection            _timer;
 
 			enum {
 				/**
@@ -162,13 +162,13 @@ namespace Framebuffer
 
 			void mode_sigh(Genode::Signal_context_capability) override { }
 
-			void sync_sigh(Genode::Signal_context_capability sigh) override { _sync_sigh = sigh; }
-
-			void refresh(int x, int y, int w, int h) override
+			void sync_sigh(Genode::Signal_context_capability sigh) override
 			{
-				if (_sync_sigh.valid())
-					Genode::Signal_transmitter(_sync_sigh).submit();
+				_timer.sigh(sigh);
+				_timer.trigger_periodic(10*1000);
 			}
+
+			void refresh(int x, int y, int w, int h) override { }
 	};
 
 

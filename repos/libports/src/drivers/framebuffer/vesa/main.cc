@@ -25,6 +25,7 @@
 #include <dataspace/client.h>
 #include <blit/blit.h>
 #include <os/config.h>
+#include <timer_session/connection.h>
 
 /* Local */
 #include "framebuffer.h"
@@ -94,7 +95,7 @@ namespace Framebuffer {
 			Genode::Dataspace_capability _fb_ds;
 			void                        *_fb_addr;
 
-			Genode::Signal_context_capability _sync_sigh;
+			Timer::Connection _timer;
 
 			void _refresh_buffered(int x, int y, int w, int h)
 			{
@@ -184,16 +185,14 @@ namespace Framebuffer {
 
 			void sync_sigh(Genode::Signal_context_capability sigh) override
 			{
-				_sync_sigh = sigh;
+				_timer.sigh(sigh);
+				_timer.trigger_periodic(10*1000);
 			}
 
 			void refresh(int x, int y, int w, int h) override
 			{
 				if (_buffered)
 					_refresh_buffered(x, y, w, h);
-
-				if (_sync_sigh.valid())
-					Signal_transmitter(_sync_sigh).submit();
 			}
 	};
 

@@ -8,6 +8,7 @@
 /* Genode includes */
 #include <imx_framebuffer_session/imx_framebuffer_session.h>
 #include <cap_session/connection.h>
+#include <timer_session/connection.h>
 #include <dataspace/client.h>
 #include <base/printf.h>
 #include <base/sleep.h>
@@ -41,7 +42,8 @@ class Framebuffer::Session_component :
 		Genode::Dataspace_capability _fb_ds;
 		void                        *_fb_addr;
 
-		Signal_context_capability    _sync_sigh;
+		Timer::Connection _timer;
+
 
 		Ipu &_ipu;
 
@@ -95,16 +97,14 @@ class Framebuffer::Session_component :
 
 		void sync_sigh(Genode::Signal_context_capability sigh) override
 		{
-			_sync_sigh = sigh;
+			_timer.sigh(sigh);
+			_timer.trigger_periodic(10*1000);
 		}
 
 		void refresh(int x, int y, int w, int h) override
 		{
 			if (_buffered)
 				_refresh_buffered(x, y, w, h);
-
-			if (_sync_sigh.valid())
-				Signal_transmitter(_sync_sigh).submit();
 		}
 
 		void overlay(Genode::addr_t phys_base, int x, int y, int alpha) {

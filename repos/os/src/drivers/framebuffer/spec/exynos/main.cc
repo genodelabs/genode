@@ -14,6 +14,7 @@
 /* Genode includes */
 #include <framebuffer_session/framebuffer_session.h>
 #include <cap_session/connection.h>
+#include <timer_session/connection.h>
 #include <dataspace/client.h>
 #include <base/printf.h>
 #include <base/sleep.h>
@@ -46,7 +47,7 @@ class Framebuffer::Session_component
 		size_t                    _size;
 		Dataspace_capability      _ds;
 		addr_t                    _phys_base;
-		Signal_context_capability _sync_sigh;
+		Timer::Connection         _timer;
 
 		/**
 		 * Convert Driver::Format to Framebuffer::Mode::Format
@@ -101,14 +102,11 @@ class Framebuffer::Session_component
 
 		void sync_sigh(Genode::Signal_context_capability sigh) override
 		{
-			_sync_sigh = sigh;
+			_timer.sigh(sigh);
+			_timer.trigger_periodic(10*1000);
 		}
 
-		void refresh(int, int, int, int) override
-		{
-			if (_sync_sigh.valid())
-				Signal_transmitter(_sync_sigh).submit();
-		}
+		void refresh(int, int, int, int) override { }
 };
 
 
