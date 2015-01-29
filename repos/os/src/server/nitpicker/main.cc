@@ -1228,9 +1228,7 @@ struct Nitpicker::Main
 		config()->sigh(config_dispatcher);
 		handle_config(0);
 
-		timer.sigh(input_dispatcher);
-		timer.trigger_periodic(10*1000);
-
+		framebuffer.sync_sigh(input_dispatcher);
 		framebuffer.mode_sigh(fb_mode_dispatcher);
 
 		env()->parent()->announce(ep.manage(np_root));
