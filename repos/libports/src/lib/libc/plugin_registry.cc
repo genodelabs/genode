@@ -37,6 +37,11 @@ using namespace Libc;
 	} \
 	return result;
 
+
+Plugin * Plugin_registry::get_plugin_for_access(const char *path, int mode) {
+	GET_PLUGIN_FOR(access, path, mode) }
+
+
 Plugin *Plugin_registry::get_plugin_for_execve(char const *filename, char *const argv[],
         char *const envp[]) {
 	GET_PLUGIN_FOR(execve, filename, argv, envp) }
