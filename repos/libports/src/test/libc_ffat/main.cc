@@ -87,6 +87,13 @@ int main(int argc, char *argv[])
 			   file_time->tm_year, file_time->tm_mon, file_time->tm_mday,
 			   file_time->tm_hour, file_time->tm_min, file_time->tm_sec);
 
+		/* check permissions on new file */
+		CALL_AND_CHECK(ret, access(file_name, F_OK), ret == 0, "file_name=%s", file_name);
+		CALL_AND_CHECK(ret, access(file_name, R_OK), ret == 0, "file_name=%s", file_name);
+		CALL_AND_CHECK(ret, access(file_name, W_OK), ret == 0, "file_name=%s", file_name);
+		CALL_AND_CHECK(ret, access(file_name, R_OK|W_OK), ret == 0, "file_name=%s", file_name);
+		CALL_AND_CHECK(ret, access("doesnotexist", F_OK), ret == -1, "file_name=doesnotexist");
+
 		/* read and verify file content */
 		CALL_AND_CHECK(fd, open(file_name, O_RDONLY), fd >= 0, "file_name=%s", file_name);
 		static char buf[512];

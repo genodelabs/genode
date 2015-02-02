@@ -25,6 +25,7 @@ namespace Libc {
 	{
 		public:
 		
+			Plugin *get_plugin_for_access(const char *path, int mode);
 			Plugin *get_plugin_for_execve(char const *filename, char *const argv[],
 		                                  char *const envp[]);
 			Plugin *get_plugin_for_freeaddrinfo(struct addrinfo *res);

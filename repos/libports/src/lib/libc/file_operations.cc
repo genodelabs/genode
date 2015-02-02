@@ -280,6 +280,19 @@ extern "C" int accept(int libc_fd, struct sockaddr *addr, socklen_t *addrlen)
 }
 
 
+extern "C" int access(const char *path, int mode)
+{
+	PDBGV("path = %s", path);
+	try {
+		Absolute_path resolved_path;
+		resolve_symlinks(path, resolved_path);
+		FNAME_FUNC_WRAPPER(access, resolved_path.base(), mode);
+	} catch(Symlink_resolve_error) {
+		return -1;
+	}
+}
+
+
 extern "C" int _bind(int libc_fd, const struct sockaddr *addr,
                      socklen_t addrlen)
 {

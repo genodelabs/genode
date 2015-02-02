@@ -338,6 +338,7 @@ class Libc::Vfs_plugin : public Libc::Plugin
 
 		~Vfs_plugin() { }
 
+		bool supports_access(const char*, int)               override { return true; }
 		bool supports_mkdir(const char *, mode_t)            override { return true; }
 		bool supports_open(const char *, int)                override { return true; }
 		bool supports_readlink(const char *, char *, size_t) override { return true; }
@@ -355,6 +356,7 @@ class Libc::Vfs_plugin : public Libc::Plugin
 			return open(path, flags, Libc::ANY_FD);
 		}
 
+		int     access(const char *, int) override;
 		int     close(Libc::File_descriptor *) override;
 		int     dup2(Libc::File_descriptor *, Libc::File_descriptor *) override;
 		int     fcntl(Libc::File_descriptor *, int, long) override;
@@ -500,6 +502,25 @@ int Libc::Vfs_plugin::stat(char const *path, struct stat *buf)
 	}
 
 	vfs_stat_to_libc_stat_struct(stat, buf);
+	return 0;
+}
+
+
+int Libc::Vfs_plugin::access(char const *path, int mode)
+{
+	typedef Vfs::Directory_service::Stat_result Result;
+
+	Vfs::Directory_service::Stat stat;
+
+	switch (_root_dir.stat(path, stat)) {
+	case Result::STAT_ERR_NO_ENTRY: errno = ENOENT; return -1;
+	case Result::STAT_OK:                           break;
+	}
+
+	if ((mode & R_OK) && !(stat.mode & S_IROTH)) return EACCES;
+	if ((mode & W_OK) && !(stat.mode & S_IWOTH)) return EACCES;
+	if ((mode & X_OK) && !(stat.mode & S_IXOTH)) return EACCES;
+
 	return 0;
 }
 
