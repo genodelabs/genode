@@ -137,9 +137,10 @@ class Vfs::Single_file_system : public File_system
 			return OPEN_OK;
 		}
 
-		Unlink_result unlink(char const *) override
+		Unlink_result unlink(char const *path) override
 		{
-			return UNLINK_ERR_NO_PERM;
+			return (strlen(path) == (strlen(_filename) + 1)) && ((strcmp(&path[1], _filename) == 0)) ?
+				UNLINK_ERR_NO_PERM : UNLINK_ERR_NO_ENTRY;
 		}
 
 		Readlink_result readlink(char const *, char *, file_size,
