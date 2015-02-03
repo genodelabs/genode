@@ -1,10 +1,14 @@
 LICENSE   := PublicDomain
-VERSION   := 3.8.7.4
-DOWNLOADS := sqlite.archive
+VERSION   := 3.8.8.2
+DOWNLOADS := sqlite.archive speedtest.file
 
-URL(sqlite) := http://www.sqlite.org/2014/sqlite-amalgamation-3080704.zip
-SHA(sqlite) := c59060db42ab51e4a063f4f91ce4bc7aad5ab5fa
+URL(sqlite) := http://sqlite.org/2015/sqlite-amalgamation-3080802.zip
+SHA(sqlite) := b920eb0f346b55048a92192ded28fe5a8a38b7ca
 DIR(sqlite) := src/lib/sqlite
+
+URL(speedtest) := http://www.sqlite.org/cgi/src/raw/test/speedtest1.c?name=e4e2aa37ff66bad9f414a50a8cb9edfaac65c9e5
+SHA(speedtest) := e4e2aa37ff66bad9f414a50a8cb9edfaac65c9e5
+NAME(speedtest) := src/lib/sqlite/speedtest1.c
 
 UNZIP_OPT(sqlite) := -j
 

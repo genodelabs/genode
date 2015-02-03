@@ -1,0 +1,66 @@
+#
+# SQLite performance regression test
+#
+
+build "core init drivers/timer drivers/rtc server/ram_fs test/sqlite_speedtest"
+
+create_boot_directory
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="RAM"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+			<service name="CAP"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="SIGNAL"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<start name="timer">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Timer"/></provides>
+		</start>
+		<start name="rtc_drv">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Rtc"/></provides>
+		</start>
+		<start name="ram_fs">
+			<resource name="RAM" quantum="80M"/>
+			<provides><service name="File_system"/></provides>
+			<config>
+				<policy label="" root="/" writeable="yes" />
+			</config>
+		</start>
+		<start name="test-sqlite_speedtest">
+			<resource name="RAM" quantum="16M"/>
+			<config>
+				<libc stdout="/dev/log">
+					<vfs>
+						<fs/>
+						<dir name="dev"> <log/> <null/> </dir>
+					</vfs>
+				</libc>
+			</config>
+		</start>
+</config>
+}
+
+build_boot_image {
+	core init timer rtc_drv
+	ram_fs sqlite_speedtest
+	ld.lib.so libc.lib.so pthread.lib.so
+}
+
+append qemu_args " -nographic -m 128 "
+
+run_genode_until {.*child "test-sqlite_speedtest" exited with exit value 0.*} 600
+
+puts "Test succeeded"
