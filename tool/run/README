@@ -70,7 +70,7 @@ few common exemplary combinations:
 Executing NOVA in Qemu:
 
 !RUN_OPT = --include boot_dir/nova \
-!          --include exec/qemu --include log/qemu --include image/iso
+!          --include power_on/qemu --include log/qemu --include image/iso
 
 Executing NOVA on a real x86 machine using AMT for resetting the target system
 and for capturing the serial output while loading the files via TFTP:
@@ -90,7 +90,7 @@ for output while loading the files via TFTP:
 !          --include power_on/amt --amt-host 10.23.42.13 --amt-password 'foo!' \
 !          --include load/tftp --tftp-base-dir /var/lib/tftpboot \
 !                              --tftp-offset-dir /x86 \
-!          --include log/serial --serial-cmd 'picocom -b 115200 /dev/ttyUSB0'
+!          --include log/serial --log-serial-cmd 'picocom -b 115200 /dev/ttyUSB0'
 
 Executing hw on a rpi using powerplug to reset the hardware, JTAG to load the
 image and USB serial to capture the output:
