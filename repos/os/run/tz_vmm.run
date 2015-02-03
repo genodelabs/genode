@@ -58,14 +58,12 @@ build_boot_image "core init tz_vmm linux initrd.gz"
 # Execute test case
 #
 run_genode_until {.*\/ #.*} 220
+set serial_id [output_spawn_id]
 
 # Wait for network to settle down
-send "sleep 5\n"
-send "wget http://genode.org/\n"
+send -i $serial_id "sleep 5\n"
+send -i $serial_id "wget http://genode.org/\n"
 
-expect {
-	 -re "Connecting to genode.org.*index.html.*\/ #.*" { }
-	timeout { puts stderr "Error: Test execution timed out"; exit -2 }
-}
+run_genode_until "Connecting to genode.org.*index.html.*\/ #.*" 30 $serial_id
 
 exec rm bin/initrd.gz bin/initrd.gz.md5 bin/linux bin/linux.md5
