@@ -1,11 +1,9 @@
 LICENSE        := GPLv2
 VERSION        := git
 DOWNLOADS      := l4android.git
-URL(l4android) := http://git.l4android.org/kernel
-REV(l4android) := bf83cc85e672bfafddc0fb85398129e427d6780f
+URL(l4android) := https://github.com/skalk/l4linux.git
+REV(l4android) := 6005e4b36fefb1f8a383054fd01076082a6eb834
 DIR(l4android) := src/l4android
-PATCH_OPT      := -p0 -d src/l4android
-PATCHES         = $(addprefix $(REP_DIR)/patches/,l4lx_genode.patch icmp_align.patch tcp_mem.patch android_binder.patch)
 sym_link       := src/l4android/arch/l4/drivers
 
 default: $(sym_link)
