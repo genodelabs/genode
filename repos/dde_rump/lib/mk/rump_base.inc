@@ -13,6 +13,11 @@ RMAKE       = $(RUMP_TOOLS)/rumpmake
 VERBOSE_LEVEL ?= 0
 
 #
+# Libraries
+#
+LIBS += jitterentropy
+
+#
 # Sources
 #
 SRC_CC = dummies.cc hypercall.cc bootstrap.cc io.cc sync.cc misc.cc

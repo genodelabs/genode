@@ -15,15 +15,6 @@
 #include <util/string.h>
 
 
-/*
- * On some platforms (namely ARM) we end-up pulling in string.h prototypes
- */
-extern "C" void *memcpy(void *d, void *s, Genode::size_t n)
-{
-	return Genode::memcpy(d, s, n);
-}
-
-
 extern "C" void *memset(void *s, int c, Genode::size_t n)
 {
 	return Genode::memset(s, c, n);

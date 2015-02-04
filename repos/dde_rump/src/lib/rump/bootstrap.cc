@@ -166,7 +166,7 @@ struct Sym_tab
 			/* set absolute value */
 			sym_tab[out_cnt].st_value += map->addr;
 			if (verbose)
-				PDBG("Read symbol %s val: %zx", name, sym_tab[out_cnt].st_value);
+				PDBG("Read symbol %s val: %lx", name, sym_tab[out_cnt].st_value);
 			out_cnt++;
 		}
 	}
