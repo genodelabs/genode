@@ -85,6 +85,16 @@ class Vfs::Dir_file_system : public File_system
 			bool permission_denied = false;
 
 			/*
+			 * Keep the most meaningful error code. When using stacked file
+			 * systems, most child file systems will eventually return no
+			 * entry (or leave the error code unchanged). If any of those
+			 * file systems has anything more interesting to tell, return
+			 * this information after all file systems have been tried and
+			 * none could handle the request.
+			 */
+			RES error = ok;
+
+			/*
 			 * The given path refers to at least one of our sub directories.
 			 * Propagate the request into all of our file systems. If at least
 			 * one operation succeeds, we return success.
@@ -96,22 +106,16 @@ class Vfs::Dir_file_system : public File_system
 				if (err == ok)
 					return err;
 
-				/*
-				 * Keep the most meaningful error code. When using stacked file
-				 * systems, most child file systems will eventually return no
-				 * entry (or leave the error code unchanged). If any of those
-				 * file systems has anything more interesting to tell (in
-				 * particular no perm), return this information.
-				 */
-				if (err != no_entry && err != no_perm)
-					return err;
+				if (err != no_entry && err != no_perm) {
+					error = err;
+				}
 
 				if (err == no_perm)
 					permission_denied = true;
 			}
 
 			/* none of our file systems could successfully operate on the path */
-			return permission_denied ? no_perm : no_entry;
+			return error != ok ? error : permission_denied ? no_perm : no_entry;
 		}
 
 		/**
