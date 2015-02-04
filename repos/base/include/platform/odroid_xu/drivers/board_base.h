@@ -26,17 +26,8 @@ namespace Genode
 	{
 		enum
 		{
-			/* interrupt controller */
-			GIC_CPU_MMIO_BASE = 0x10481000,
-			GIC_CPU_MMIO_SIZE = 0x00010000,
-
 			/* UART */
-			UART_2_MMIO_BASE = 0x12C20000,
-			UART_2_CLOCK     = 62668800,
-			UART_2_IRQ       = 85,
-
-			/* CPU cache */
-			CACHE_LINE_SIZE_LOG2 = 6,
+			UART_2_CLOCK = 62668800,
 
 			/* wether board provides security extension */
 			SECURITY_EXTENSION = 0,

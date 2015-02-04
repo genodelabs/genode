@@ -35,6 +35,14 @@ class Genode::Exynos5
 			MMIO_0_BASE = 0x10000000,
 			MMIO_0_SIZE = 0x10000000,
 
+			/* interrupt controller */
+			GIC_CPU_MMIO_BASE = 0x10480000,
+			GIC_CPU_MMIO_SIZE = 0x00010000,
+
+			/* UART */
+			UART_2_MMIO_BASE = 0x12C20000,
+			UART_2_IRQ       = 85,
+
 			/* pulse-width-modulation timer  */
 			PWM_MMIO_BASE = 0x12dd0000,
 			PWM_MMIO_SIZE = 0x1000,
@@ -50,6 +58,12 @@ class Genode::Exynos5
 
 			/* CPU cache */
 			CACHE_LINE_SIZE_LOG2 = 6,
+
+			/* IRAM */
+			IRAM_BASE = 0x02020000,
+
+			/* hardware name of the primary processor */
+			PRIMARY_MPIDR_AFF_0 = 0,
 		};
 };
 
