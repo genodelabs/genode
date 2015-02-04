@@ -9,7 +9,7 @@ else ifeq ($(filter-out $(SPECS),arm_v7),)
 endif
 
 INC_DIR += $(call select_from_ports,jitterentropy)/include/jitterentropy
-INC_DIR += $(REP_DIR)/src/lib/jitterentropy \
-           $(REP_DIR)/src/lib/jitterentropy/$(TARGET_CPUARCH)
+INC_DIR += $(call select_from_repositories,src/lib/jitterentropy)
+INC_DIR += $(call select_from_repositories,src/lib/jitterentropy/$(TARGET_CPUARCH))
 
 CC_OPT += -DJITTERENTROPY_GENODE
