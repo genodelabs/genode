@@ -1,0 +1,44 @@
+##
+# Load image to target hardware via Fastboot
+#
+# \param --load-fastboot-device      Specify device serial number
+#                                    or path to device port
+#
+
+source [genode_dir]/tool/run/load.inc
+
+proc load_fastboot_device { } { return [get_cmd_arg --load-fastboot-device 1] }
+
+proc run_load { } {
+	global load_spawn_id
+
+	if {![have_spec arm] || ![have_installed fastboot]} {
+		puts "No support for fastboot detected."
+		exit -1
+	}
+
+	if {![have_include "image/uboot"]} {
+		puts stderr "Cannot load via fastboot without a u-boot image"
+	}
+
+	set device [load_fastboot_device]
+	set uimg "[run_dir]/uImage"
+
+	# sleep a bit, board might need some time to come up
+	sleep 8
+
+	eval spawn fastboot -s $device boot $uimg
+	set load_spawn_id $spawn_id
+	set timeout 80
+	expect {
+		"finished. total time:"  { return true; }
+		eof     {
+			puts stderr "fastboot command process died unexpectedly";
+			return false;
+		}
+		timeout {
+			puts stderr "Loading timed out";
+			return false;
+		}
+	}
+}
