@@ -58,7 +58,7 @@ namespace Kernel
 	 * \retval >0  kernel name of the new domain
 	 * \retval  0  failed
 	 */
-	inline unsigned new_pd(void * const dst, Platform_pd * const pd)
+	inline unsigned long new_pd(void * const dst, Platform_pd * const pd)
 	{
 		return call(call_id_new_pd(), (Call_arg)dst, (Call_arg)pd);
 	}

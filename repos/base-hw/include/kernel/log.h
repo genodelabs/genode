@@ -55,7 +55,7 @@ namespace Kernel
 			/**
 			 * Print an unsigned integer x as hexadecimal value
 			 */
-			Log & operator << (unsigned int const x)
+			Log & operator << (unsigned long const x)
 			{
 				enum {
 					BYTE_WIDTH = 8,
@@ -101,7 +101,7 @@ namespace Kernel
 			/**
 			 * Print a pointer p as hexadecimal value
 			 */
-			Log & operator << (void * const p) { return *this << (unsigned)p; }
+			Log & operator << (void * const p) { return *this << (unsigned long)p; }
 	};
 
 	/**

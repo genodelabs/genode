@@ -135,7 +135,7 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry,
 		Thread_capability         _thread_cap;
 		bool                      _signal_valid;
 		char                      _signal_buf[sizeof(Signal)];
-		unsigned const            _badge;
+		unsigned long const       _badge;
 
 		/**
 		 * Remember an incoming fault for handling
@@ -196,7 +196,7 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry,
 		/**
 		 * User identification of pager object
 		 */
-		unsigned badge() const { return _badge; }
+		unsigned long badge() const { return _badge; }
 
 		/**
 		 * Resume faulter

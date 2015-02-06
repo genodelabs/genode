@@ -156,7 +156,7 @@ namespace Genode {
 			/**
 			 * Return unique identification of this thread as faulter
 			 */
-			unsigned pager_object_badge() { return (unsigned)this; }
+			unsigned long pager_object_badge() { return (unsigned long)this; }
 
 			/**
 			 * Set the executing CPU for this thread

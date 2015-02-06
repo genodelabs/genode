@@ -82,8 +82,8 @@ int Pager_activation_base::apply_mapping()
 	} catch(Allocator::Out_of_memory) {
 		PERR("Translation table needs to much RAM");
 	} catch(...) {
-		PERR("Invalid mapping %p -> %p (%zx)", (void*)_mapping.phys_address,
-			 (void*)_mapping.virt_address, 1 << _mapping.size_log2);
+		PERR("Invalid mapping %p -> %p (%lx)", (void*)_mapping.phys_address,
+			 (void*)_mapping.virt_address, 1UL << _mapping.size_log2);
 	}
 	return -1;
 }
