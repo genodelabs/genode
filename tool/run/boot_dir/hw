@@ -139,9 +139,14 @@ proc run_boot_dir {binaries {core_type core}} {
 
 	# offer ELF image
 	set elf_img "[run_dir]/image.elf"
-	#exec cp -L bin/$core_bin $elf_img
-	exec [cross_dev_prefix]objcopy -O elf32-i386 bin/$core_bin $elf_img
-	#exec [cross_dev_prefix]strip $elf_img
+	if {[have_spec "x86_64"]} {
+		# as startup is done in 32 bit mode, GRUB expects a 32 bit image
+		exec [cross_dev_prefix]objcopy -O elf32-i386 bin/$core_bin $elf_img
+	}
+	if {[expr [have_spec "arm"] || [have_spec "x86_32"]]} {
+		exec cp -L bin/$core_bin $elf_img
+	}
+	exec [cross_dev_prefix]strip $elf_img
 
 	if {[have_include "image/iso"] || [have_include "image/disk"]} {
 		#
