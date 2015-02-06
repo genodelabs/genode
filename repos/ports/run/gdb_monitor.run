@@ -114,6 +114,7 @@ append qemu_args " -serial chardev:uart "
 append qemu_args " -chardev socket,id=uart,port=$local_port,host=localhost,server,nowait "
 
 run_genode_until {.*Remote debugging using /dev/terminal.*} 30
+set genode_id [output_spawn_id]
 
 puts "GDB monitor is up, starting GDB"
 
@@ -168,9 +169,11 @@ append gdb_cmds {-ex "q" }
 
 # run GDB and redirect stderr to stdio to get the relevant output into the expect buffer  
 eval spawn [gdb] bin/$gdb_target_binary -n -batch $gdb_cmds 2&>1
+set gdb_id $spawn_id
 
 set timeout 120
 expect {
+	-i [list $genode_id $gdb_id]
 	timeout { puts stderr "Error: Test execution timed out"; exit -2 }
 }
 
@@ -185,7 +188,7 @@ if {![regexp {Breakpoint 2, main ()} $gdb_output]} {
 	exit -1
 }
 
-if {![regexp {Breakpoint 3, puts ()} $gdb_output]} {
+if {![regexp {Breakpoint 3, puts (.*)} $gdb_output]} {
 	puts "Error: Breakpoint in shared library did not trigger"
 	exit -1
 }

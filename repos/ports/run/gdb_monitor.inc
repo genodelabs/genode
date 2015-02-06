@@ -22,8 +22,8 @@ proc gdb_main_breakpoint_cmds { target_binary_name } {
 	# load the symbols of ld.lib.so
 	append gdb_cmds {-ex "symbol-file bin/ld.lib.so" }
 
-	# set a breakpoint in the 'call_program_main()' function
-	append gdb_cmds {-ex "b call_program_main" }
+	# set a breakpoint in the 'Linker::Binary::call_entry_point' function
+	append gdb_cmds {-ex "b Linker::Binary::call_entry_point" }
 
 	# continue execution until the breakpoint triggers
 	append gdb_cmds {-ex "c" }
@@ -36,6 +36,9 @@ proc gdb_main_breakpoint_cmds { target_binary_name } {
 
 	# set a breakpoint in the application's 'main()' function
 	append gdb_cmds {-ex "b main()" }
+
+	# set search path for "sharedlibrary" to bin
+	append gdb_cmds {-ex "set solib-search-path bin" }
 
 	# load the symbols of loaded shared libraries
 	append gdb_cmds {-ex "sharedlibrary" }

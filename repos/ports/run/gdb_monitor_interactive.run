@@ -123,6 +123,6 @@ puts "command: [gdb] bin/$gdb_target_binary $gdb_cmds"
 
 exec [terminal] -e "[gdb] bin/test-gdb_monitor $gdb_cmds" &
 
-interact
+interact -i [output_spawn_id]
 
 # vi: set ft=tcl :
