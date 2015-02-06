@@ -13,7 +13,6 @@
  */
 
 /* core includes */
-.include "mode_transition.s"
 .include "macros.s"
 
 
@@ -81,60 +80,6 @@
 
 	/* add offset and base to get CPU-local buffer */
 	add \target_reg, \target_reg, \buf_reg
-.endm
-
-
-/**
- * Override the TTBR0 register
- *
- * \param val  new value, read reg
- */
-.macro _write_ttbr0 val
-	mcr p15, 0, \val, c2, c0, 0
-.endm
-
-
-/**
- * Override the CIDR register
- *
- * \param val  new value, read reg
- */
-.macro _write_cidr val
-	mcr p15, 0, \val, c13, c0, 1
-.endm
-
-
-/*
- * Invalidate all branch predictors
- */
-.macro _bpiall
-	mcr p15, 0, r0, c7, c5, 6
-.endm
-
-
-/**
- * Switch to a given protection domain
- *
- * \param transit_ttbr0  transitional TTBR0 value, read/write reg
- * \param new_cidr       new CIDR value, read reg
- * \param new_ttbr0      new TTBR0 value, read/write reg
- */
-.macro _switch_protection_domain transit_ttbr0, new_cidr, new_ttbr0
-
-	/*
-	 * FIXME: Fixes instability problems that were observed on the
-	 *        PandaBoard only. We neither know why invalidating predictions
-	 *        at PD switches is a fix nor wether not doing so is the real
-	 *        cause of this instability.
-	 */
-	_bpiall
-
-	_write_ttbr0 \transit_ttbr0
-	isb
-	_write_cidr \new_cidr
-	isb
-	_write_ttbr0 \new_ttbr0
-	isb
 .endm
 
 

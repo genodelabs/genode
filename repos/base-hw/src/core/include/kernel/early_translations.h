@@ -16,6 +16,7 @@
 #define _KERNEL__EARLY_TRANSLATIONS_H_
 
 /* core includes */
+#include <assert.h>
 #include <page_slab.h>
 #include <translation_table.h>
 

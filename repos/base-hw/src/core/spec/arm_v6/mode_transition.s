@@ -12,7 +12,6 @@
  */
 
 /* core includes */
-.include "mode_transition.s"
 .include "macros.s"
 
 

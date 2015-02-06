@@ -16,4 +16,4 @@ SRC_CC += platform_services.cc
 SRC_CC += spec/arm_gic/pic.cc
 
 # include less specific configuration
-include $(REP_DIR)/lib/mk/arm_v7/core.inc
+include $(REP_DIR)/lib/mk/cortex_a15/core.inc

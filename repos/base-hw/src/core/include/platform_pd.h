@@ -18,6 +18,7 @@
 /* Genode includes */
 #include <base/printf.h>
 #include <root/root.h>
+#include <util/construct_at.h>
 
 /* Core includes */
 #include <translation_table.h>
@@ -80,7 +81,7 @@ namespace Genode
 					throw Root::Quota_exceeded();
 				}
 
-				_tt      = new (tt) Translation_table();
+				_tt      = construct_at<Translation_table>(tt);
 				_tt_phys = (Translation_table*) cma->phys_addr(_tt);
 				_pslab   = new (cma) Page_slab(cma);
 				Kernel::mtc()->map(_tt, _pslab);
