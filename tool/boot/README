@@ -6,6 +6,10 @@ code respectively the download source of binaries are described below.
 
   The 'bender' tool is part of the 'morbo' toolchain available under GPL.
   The toolchain was obtained from https://github.com/TUD-OS/morbo.
+  For Genode the bender was modified so that binaries are only relocated up
+  to 2G physical.
+  The changes are available on the genode_bender branch of
+  https://github.com/alex-ab/morbo.git.
 
 :'pulsar':
 
