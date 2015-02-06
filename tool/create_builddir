@@ -36,6 +36,7 @@ usage:
 	@echo "                  'hw_arndale'"
 	@echo "                  'hw_odroid_xu'"
 	@echo "                  'hw_rpi'"
+	@echo "                  'hw_x86_64'"
 	@echo "                  'foc_x86_32'"
 	@echo "                  'foc_x86_64'"
 	@echo "                  'foc_pbxa9'"
@@ -247,6 +248,9 @@ hw_rpi::
 hw_odroid_xu::
 	@echo "SPECS = genode hw_odroid_xu" > $(BUILD_DIR)/etc/specs.conf
 	@echo "SPECS += perf_counter" >> $(BUILD_DIR)/etc/specs.conf
+
+hw_x86_64::
+	@echo "SPECS = genode hw_x86_64" > $(BUILD_DIR)/etc/specs.conf
 
 lx_hybrid_x86::
 	@echo "CROSS_DEV_PREFIX =" > $(BUILD_DIR)/etc/tools.conf

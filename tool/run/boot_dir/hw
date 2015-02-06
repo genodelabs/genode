@@ -139,8 +139,26 @@ proc run_boot_dir {binaries {core_type core}} {
 
 	# offer ELF image
 	set elf_img "[run_dir]/image.elf"
-	exec cp -L bin/$core_bin $elf_img
-	exec [cross_dev_prefix]strip $elf_img
+	#exec cp -L bin/$core_bin $elf_img
+	exec [cross_dev_prefix]objcopy -O elf32-i386 bin/$core_bin $elf_img
+	#exec [cross_dev_prefix]strip $elf_img
+
+	if {[have_include "image/iso"] || [have_include "image/disk"]} {
+		#
+		# Install isolinux/GRUB files and bender
+		#
+		install_iso_bootloader_to_run_dir
+
+		#
+		# Generate GRUB config file
+		#
+		set fh [open "[run_dir]/boot/grub/menu.lst" "WRONLY CREAT TRUNC"]
+		puts $fh "timeout 0"
+		puts $fh "default 0"
+		puts $fh "\ntitle Genode on base-hw"
+		puts $fh " kernel /image.elf"
+		close $fh
+	}
 
 	run_image $elf_img
 
