@@ -240,6 +240,11 @@ proc run_boot_dir_arm {binaries} {
 }
 
 
+proc run_boot_string { } {
+	return "L4 Bootstrapper"
+}
+
+
 ##
 # Populate boot directory with binaries on fiasco.OC
 #

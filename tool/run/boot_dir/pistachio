@@ -63,6 +63,11 @@ proc kernel_external { } {
 }
 
 
+proc run_boot_string { } {
+	return "L4Ka::Pistachio -"
+}
+
+
 ##
 # Populdate boot directory with binaries on pistachio
 #

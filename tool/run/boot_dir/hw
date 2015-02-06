@@ -10,6 +10,11 @@ proc run_boot_dir_hook { } {
 }
 
 
+proc run_boot_string { } {
+	return "kernel initialized"
+}
+
+
 ##
 # Populate boot directory with binaries on hw
 #

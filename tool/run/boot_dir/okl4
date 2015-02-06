@@ -101,6 +101,11 @@ set weaver_xml_template {
 }
 
 
+proc run_boot_string { } {
+	return "OKL4 -"
+}
+
+
 ##
 # Populate directory with binaries on OKL4
 #

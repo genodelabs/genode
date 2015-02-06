@@ -24,6 +24,11 @@ proc nova_external { } {
 }
 
 
+proc run_boot_string { } {
+	return "NOVA Microhypervisor"
+}
+
+
 ##
 # Populate directory with binaries on NOVA
 #

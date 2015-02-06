@@ -22,21 +22,25 @@ proc log_serial_cmd { } {
 proc run_log { wait_for_re timeout_value } {
 	global output_spawn_id
 
-	set timeout 60
-	while {true} {
-		eval spawn [log_serial_cmd]
-		set output_spawn_id $spawn_id
-		expect {
-			"Genode \[0-9]\[0-9]\.\[0-9]\[0-9]"  {
-				wait_for_output $wait_for_re $timeout_value $output_spawn_id;
-				return true;
-			}
-			eof          { continue; }
-			timeout      {
-				puts stderr "Boot process timed out";
-				close;
-				return false;
-			}
+	set kernel_msg [run_boot_string]
+
+	eval spawn [log_serial_cmd]
+	set output_spawn_id $spawn_id
+
+	set timeout 210
+	expect {
+		$kernel_msg { }
+		eof         {
+			puts stderr "Serial command process died unexpectedly"
+			return false
+		}
+		timeout     {
+			puts stderr "Boot process timed out"
+			close
+			return false
 		}
 	}
+
+	wait_for_output $wait_for_re $timeout_value $output_spawn_id
+	return true
 }

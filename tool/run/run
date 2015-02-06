@@ -490,6 +490,10 @@ proc wait_for_output { wait_for_re timeout_value running_spawn_id } {
 ##
 
 ##
+# Dummy boot_string procedure
+proc run_boot_string { } { return ""; }
+
+##
 # Dummy boot_dir maodule
 proc run_boot_dir { } { return true; }
 
