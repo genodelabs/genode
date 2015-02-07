@@ -23,6 +23,41 @@
 
 namespace Init {
 
+	class Child_policy_ram_phys
+	{
+		private:
+
+			bool _constrain_phys;
+
+		public:
+
+			Child_policy_ram_phys(bool constrain_phys)
+			: _constrain_phys(constrain_phys) { }
+
+			/**
+			 * Filter arguments of session request
+			 *
+			 * This function removes phys_start and phys_size ram_session
+			 * parameters if the child configuration does not explicitly
+			 * permits this.
+			 */
+			void filter_session_args(const char *service, char *args,
+			                         Genode::size_t args_len)
+			{
+				using namespace Genode;
+
+				/* intercept only RAM session requests */
+				if (Genode::strcmp(service, "RAM"))
+					return;
+
+				if (_constrain_phys)
+					return;
+
+				Arg_string::remove_arg(args, "phys_start");
+				Arg_string::remove_arg(args, "phys_size");
+			}
+	};
+
 	/**
 	 * Policy for prepending the child name to the 'label' argument
 	 *

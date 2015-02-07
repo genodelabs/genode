@@ -396,17 +396,21 @@ namespace Init {
 					Genode::printf("         Proceeding with a quota of %zu.\n", avail);
 				}
 
-				Read_quota(Genode::Xml_node start_node, Genode::size_t & ram_quota,
-				           Genode::size_t & cpu_quota)
+				Read_quota(Genode::Xml_node start_node,
+				           Genode::size_t & ram_quota,
+				           Genode::size_t & cpu_quota,
+				           bool           & constrain_phys)
 				{
 					Genode::Number_of_bytes ram_bytes = 0;
 					Genode::size_t          cpu_percent = 0;
+
 					try {
 						Genode::Xml_node rsc = start_node.sub_node("resource");
 						for (;; rsc = rsc.next("resource")) {
 							try {
 								if (rsc.attribute("name").has_value("RAM")) {
 									rsc.attribute("quantum").value(&ram_bytes);
+									constrain_phys = rsc.attribute("constrain_phys").has_value("yes");
 								} else if (rsc.attribute("name").has_value("CPU")) {
 									rsc.attribute("quantum").value(&cpu_percent); }
 							} catch (...) { }
@@ -445,6 +449,7 @@ namespace Init {
 				Genode::Affinity       affinity;
 				Genode::size_t         ram_quota;
 				Genode::size_t         cpu_quota;
+				bool                   constrain_phys;
 				Genode::Ram_connection ram;
 				Genode::Cpu_connection cpu;
 				Genode::Rm_connection  rm;
@@ -453,7 +458,7 @@ namespace Init {
 				          long prio_levels_log2,
 				          Genode::Affinity::Space const &affinity_space)
 				:
-					Read_quota(start_node, ram_quota, cpu_quota),
+					Read_quota(start_node, ram_quota, cpu_quota, constrain_phys),
 					prio_levels_log2(prio_levels_log2),
 					priority(read_priority(start_node)),
 					affinity(affinity_space,
@@ -517,6 +522,7 @@ namespace Init {
 			Init::Child_policy_provide_rom_file      _binary_policy;
 			Init::Child_policy_redirect_rom_file     _configfile_policy;
 			Init::Child_policy_pd_args               _pd_args_policy;
+			Init::Child_policy_ram_phys              _ram_session_policy;
 
 		public:
 
@@ -550,7 +556,8 @@ namespace Init {
 				_config_policy("config", _config.dataspace(), &_entrypoint),
 				_binary_policy("binary", _binary_rom_ds, &_entrypoint),
 				_configfile_policy("config", _config.filename()),
-				_pd_args_policy(&_pd_args)
+				_pd_args_policy(&_pd_args),
+				_ram_session_policy(_resources.constrain_phys)
 			{
 				using namespace Genode;
 
@@ -706,6 +713,7 @@ namespace Init {
 				_priority_policy.  filter_session_args(service, args, args_len);
 				_configfile_policy.filter_session_args(service, args, args_len);
 				_pd_args_policy.   filter_session_args(service, args, args_len);
+				_ram_session_policy.filter_session_args(service, args, args_len);
 			}
 
 			Genode::Affinity filter_session_affinity(Genode::Affinity const &session_affinity)

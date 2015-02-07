@@ -146,7 +146,8 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, Cache_attr
 	void *ds_addr = 0;
 	bool alloc_succeeded = false;
 	for (size_t align_log2 = log2(ds_size); align_log2 >= 12; align_log2--) {
-		if (_ram_alloc->alloc_aligned(ds_size, &ds_addr, align_log2).is_ok()) {
+		if (_ram_alloc->alloc_aligned(ds_size, &ds_addr, align_log2,
+		                              _phys_start, _phys_end).is_ok()) {
 			alloc_succeeded = true;
 			break;
 		}
@@ -265,9 +266,17 @@ Ram_session_component::Ram_session_component(Rpc_entrypoint  *ds_ep,
 	_ds_ep(ds_ep), _ram_session_ep(ram_session_ep), _ram_alloc(ram_alloc),
 	_quota_limit(quota_limit), _payload(0),
 	_md_alloc(md_alloc, Arg_string::find_arg(args, "ram_quota").long_value(0)),
-	_ds_slab(&_md_alloc), _ref_account(0)
+	_ds_slab(&_md_alloc), _ref_account(0),
+	_phys_start(Arg_string::find_arg(args, "phys_start").long_value(0))
 {
 	Arg_string::find_arg(args, "label").string(_label, sizeof(_label), "");
+
+	size_t phys_size = Arg_string::find_arg(args, "phys_size").long_value(0);
+	/* sanitize overflow and interpret phys_size==0 as maximum phys address */
+	if (_phys_start + phys_size <= _phys_start)
+		_phys_end = ~0UL;
+	else
+		_phys_end = _phys_start + phys_size - 1;
 }
 
 

@@ -18,23 +18,26 @@
 #include <base/connection.h>
 
 namespace Genode {
-
-	struct Ram_connection : Connection<Ram_session>, Ram_session_client
-	{
-		enum { RAM_QUOTA = 64*1024 };
-		/**
-		 * Constructor
-		 *
-		 * \param label  session label
-		 */
-		Ram_connection(const char *label = "")
-		:
-			Connection<Ram_session>(
-				session("ram_quota=64K, label=\"%s\"", label)),
-
-			Ram_session_client(cap())
-		{ }
-	};
+	struct Ram_connection;
 }
+
+struct Genode::Ram_connection : Connection<Ram_session>, Ram_session_client
+{
+	enum { RAM_QUOTA = 64*1024 };
+	/**
+	 * Constructor
+	 *
+	 * \param label  session label
+	 */
+	Ram_connection(const char *label = "", unsigned long phys_start = 0UL,
+	               unsigned long phys_size = 0UL)
+	:
+		Connection<Ram_session>(
+			session("ram_quota=64K, phys_start=0x%lx, phys_size=0x%lx, "
+			        "label=\"%s\"", phys_start, phys_size, label)),
+
+		Ram_session_client(cap())
+	{ }
+};
 
 #endif /* _INCLUDE__RAM_SESSION__CONNECTION_H_ */

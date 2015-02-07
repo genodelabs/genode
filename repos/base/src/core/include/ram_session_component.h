@@ -51,6 +51,8 @@ namespace Genode {
 			Allocator_guard         _md_alloc;     /* guarded meta-data allocator */
 			Ds_slab                 _ds_slab;      /* meta-data allocator         */
 			Ram_session_component  *_ref_account;  /* reference ram session       */
+			addr_t                  _phys_start;
+			addr_t                  _phys_end;
 
 			enum { MAX_LABEL_LEN = 64 };
 			char _label[MAX_LABEL_LEN];
