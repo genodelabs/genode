@@ -157,7 +157,7 @@ namespace Genode {
 		 * \param align     alignment of new block specified
 		 *                  as the power of two
 		 */
-		virtual Alloc_return alloc_aligned(size_t size, void **out_addr, int align = 0) = 0;
+		virtual Alloc_return alloc_aligned(size_t size, void **out_addr, int align = 0, addr_t from=0, addr_t to = ~0UL) = 0;
 
 		/**
 		 * Allocate block at address

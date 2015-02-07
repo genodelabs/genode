@@ -54,13 +54,19 @@ namespace Genode {
 					 * Query if block can hold a specified subblock
 					 *
 					 * \param n       number of bytes
+					 * \param from    minimum start address of subblock
+					 * \param to      maximum end address of subblock
 					 * \param align   alignment (power of two)
 					 * \return        true if block fits
 					 */
-					inline bool _fits(size_t n, unsigned align = 1) {
-						return ((align_addr(addr(), align) >= addr()) &&
-						        _sum_in_range(align_addr(addr(), align), n) &&
-						        (align_addr(addr(), align) - addr() + n <= avail())); }
+					inline bool _fits(size_t n, unsigned align,
+					                  addr_t from, addr_t to)
+					{
+						addr_t a = align_addr(addr() < from ? from : addr(),
+						                      align);
+						return (a >= addr()) && _sum_in_range(a, n) &&
+						       (a - addr() + n <= avail()) && (a + n - 1 <= to);
+					}
 
 				public:
 
@@ -110,7 +116,8 @@ namespace Genode {
 					/**
 					 * Find best-fitting block
 					 */
-					Block *find_best_fit(size_t size, unsigned align = 1);
+					Block *find_best_fit(size_t size, unsigned align = 1,
+					                     addr_t from = 0UL, addr_t to = ~0UL);
 
 					/**
 					 * Find block that contains the specified address range
@@ -215,7 +222,7 @@ namespace Genode {
 
 			int          add_range(addr_t base, size_t size);
 			int          remove_range(addr_t base, size_t size);
-			Alloc_return alloc_aligned(size_t size, void **out_addr, int align = 0);
+			Alloc_return alloc_aligned(size_t size, void **out_addr, int align = 0, addr_t from = 0, addr_t to = ~0UL);
 			Alloc_return alloc_addr(size_t size, addr_t addr);
 			void         free(void *addr);
 			size_t       avail();

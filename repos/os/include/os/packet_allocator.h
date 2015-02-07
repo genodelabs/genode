@@ -90,9 +90,12 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 			return 0;
 		}
 
-		Alloc_return alloc_aligned(size_t size, void **out_addr, int) {
+		Alloc_return alloc_aligned(size_t size, void **out_addr, int, addr_t,
+			                       addr_t)
+		{
 			return alloc(size, out_addr) ? Alloc_return::OK
-			                             : Alloc_return::RANGE_CONFLICT; }
+			                             : Alloc_return::RANGE_CONFLICT;
+		}
 
 		bool alloc(size_t size, void **out_addr)
 		{

@@ -162,7 +162,7 @@ class Genode::Core_mem_allocator : public Genode::Core_mem_translator
 				int add_range(addr_t base, size_t size)    { return -1; }
 				int remove_range(addr_t base, size_t size) { return -1; }
 				Alloc_return alloc_aligned(size_t size, void **out_addr,
-				                           int align = 0);
+				                           int align = 0, addr_t from = 0, addr_t to = ~0UL);
 				Alloc_return alloc_addr(size_t size, addr_t addr) {
 					return Alloc_return::RANGE_CONFLICT; }
 				void         free(void *addr) {}
@@ -274,10 +274,10 @@ class Genode::Core_mem_allocator : public Genode::Core_mem_translator
 		Alloc_return alloc_addr(size_t size, addr_t addr) {
 			return Alloc_return::RANGE_CONFLICT; }
 
-		Alloc_return alloc_aligned(size_t size, void **out_addr, int align = 0)
+		Alloc_return alloc_aligned(size_t size, void **out_addr, int align = 0, addr_t from = 0, addr_t to = ~0UL)
 		{
 			Lock::Guard lock_guard(_lock);
-			return _mem_alloc.alloc_aligned(size, out_addr, align);
+			return _mem_alloc.alloc_aligned(size, out_addr, align, from, to);
 		}
 
 		void free(void *addr)

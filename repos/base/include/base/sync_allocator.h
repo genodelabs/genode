@@ -220,10 +220,10 @@ namespace Genode {
 				return _alloc.remove_range(base, size);
 			}
 
-			Alloc_return alloc_aligned(size_t size, void **out_addr, int align = 0)
+			Alloc_return alloc_aligned(size_t size, void **out_addr, int align = 0, addr_t from = 0, addr_t to = ~0UL)
 			{
 				Lock::Guard lock_guard(*_lock);
-				return _alloc.alloc_aligned(size, out_addr, align);
+				return _alloc.alloc_aligned(size, out_addr, align, from, to);
 			}
 
 			Alloc_return alloc_addr(size_t size, addr_t addr)

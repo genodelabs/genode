@@ -47,7 +47,8 @@ namespace Genode {
 					return true;
 				}
 
-				Alloc_return alloc_aligned(size_t, void **out_addr, int)
+				Alloc_return alloc_aligned(size_t, void **out_addr, int,
+				                           addr_t, addr_t)
 				{
 					*out_addr = 0;
 					return Alloc_return::OK;

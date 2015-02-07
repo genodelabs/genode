@@ -46,7 +46,7 @@ class Genode::Early_translations_allocator : public Genode::Core_mem_translator
 		Early_translations_allocator() { }
 		int add_range(addr_t base, size_t size) { return -1; }
 		int remove_range(addr_t base, size_t size) { return -1; }
-		Alloc_return alloc_aligned(size_t size, void **out_addr, int align) {
+		Alloc_return alloc_aligned(size_t, void **, int, addr_t, addr_t) {
 			return Alloc_return::RANGE_CONFLICT; }
 		Alloc_return alloc_addr(size_t size, addr_t addr) {
 			return Alloc_return::RANGE_CONFLICT; }
