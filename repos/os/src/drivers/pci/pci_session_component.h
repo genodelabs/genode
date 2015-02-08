@@ -82,6 +82,7 @@ namespace Pci {
 			Genode::Allocator              *_md_alloc;
 			Genode::List<Device_component>  _device_list;
 			Device_pd_client               *_child;
+			Genode::Ram_connection         *_ram;
 
 			/**
 			 * Scan PCI buses for a device
@@ -160,9 +161,10 @@ namespace Pci {
 			 */
 			Session_component(Genode::Rpc_entrypoint *ep,
 			                  Genode::Allocator      *md_alloc,
-			                  Device_pd_client       *child)
+			                  Device_pd_client       *child,
+			                  Genode::Ram_connection *ram)
 			:
-				_ep(ep), _md_alloc(md_alloc), _child(child) { }
+				_ep(ep), _md_alloc(md_alloc), _child(child), _ram(ram) { }
 
 			/**
 			 * Destructor
@@ -308,12 +310,19 @@ namespace Pci {
 				return io_mem->dataspace();
 			}
 
-			Genode::Ram_dataspace_capability alloc_dma_buffer(Device_capability device_cap,
-			                                                  Genode::size_t size)
-			{
-				Genode::Ram_dataspace_capability ram =
-					Genode::env()->ram_session()->alloc(size, Genode::UNCACHED);
+			/**
+			 * De-/Allocation of dma capable dataspaces
+			 */
+			typedef Genode::Ram_dataspace_capability Ram_capability;
 
+			Ram_capability alloc_dma_buffer(Device_capability device_cap,
+			                                Genode::size_t size)
+			{
+				if (Genode::env()->ram_session()->transfer_quota(_ram->cap(),
+				                                                 size))
+					return Ram_capability();
+
+				Ram_capability ram = _ram->alloc(size, Genode::UNCACHED);
 				if (!ram.valid() || !_child)
 					return ram;
 
@@ -322,11 +331,10 @@ namespace Pci {
 				return ram;
 			}
 
-			void free_dma_buffer(Device_capability device_cap,
-			                     Genode::Ram_dataspace_capability cap)
+			void free_dma_buffer(Device_capability, Ram_capability ram)
 			{
-				if (cap.valid())
-					Genode::env()->ram_session()->free(cap);
+				if (ram.valid())
+					_ram->free(ram);
 			}
 	};
 
@@ -337,7 +345,8 @@ namespace Pci {
 
 			/* for now we have only one device pd for all pci devices */
 			Device_pd_client *_pd_device_client;
-
+			/* Ram_session for allocation of dma capable dataspaces */
+			Genode::Ram_connection _ram;
 
 			void _parse_config()
 			{
@@ -378,7 +387,8 @@ namespace Pci {
 				/* FIXME: pass quota to session-component constructor */
 
 				return new (md_alloc()) Session_component(ep(), md_alloc(),
-				                                          _pd_device_client);
+				                                          _pd_device_client,
+				                                          &_ram);
 			}
 
 		public:
@@ -396,12 +406,20 @@ namespace Pci {
 			     Genode::Capability <Device_pd> pci_device_pd)
 			:
 				Genode::Root_component<Session_component>(ep, md_alloc),
-				_pd_device_client(0)
+				_pd_device_client(0),
+				/* restrict physical address to 4G on 32/64bit in general XXX */
+				/* restrict physical address to 3G on 32bit with device_pd */
+				_ram("dma", 0, (pci_device_pd.valid() && sizeof(void *) == 4) ?
+				               0xc0000000UL : 0x100000000ULL)
 			{
 				_parse_config();
 
 				if (pci_device_pd.valid())
 					_pd_device_client = new (md_alloc) Device_pd_client(pci_device_pd);
+
+				/* associate _ram session with ram_session of process */
+				_ram.ref_account(Genode::env()->ram_session_cap());
+				Genode::env()->ram_session()->transfer_quota(_ram.cap(), 0x1000);
 
 				/* enforce initial bus scan */
 				bus_valid();
