@@ -16,11 +16,11 @@
 
 /* core includes */
 #include <util/mmio.h>
-#include <drivers/board_base.h>
+#include <spec/cortex_a9/board_support.h>
 
 namespace Genode
 {
-	struct Board : Board_base
+	struct Board : Cortex_a9::Board_base
 	{
 		/**
 		 * L2 outer cache controller

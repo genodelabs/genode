@@ -15,7 +15,7 @@
 #define _BOARD_H_
 
 /* Genode includes */
-#include <platform/imx53/drivers/board_base.h>
+#include <drivers/board_base.h>
 #include <util/mmio.h>
 
 namespace Imx53

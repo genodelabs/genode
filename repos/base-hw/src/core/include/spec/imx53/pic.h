@@ -91,7 +91,7 @@ class Genode::Pic : public Mmio
 		/**
 		 * Constructor
 		 */
-		Pic() : Mmio(Board::TZIC_MMIO_BASE)
+		Pic() : Mmio(Board::IRQ_CONTROLLER_BASE)
 		{
 			for (unsigned i = 0; i < NR_OF_IRQ; i++) {
 				write<Intsec::Nonsecure>(1, i);

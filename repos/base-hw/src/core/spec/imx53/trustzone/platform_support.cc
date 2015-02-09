@@ -92,7 +92,7 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 		{ Board::EPIT_1_MMIO_BASE, Board::EPIT_1_MMIO_SIZE },
 
 		/* interrupt controller */
-		{ Board::TZIC_MMIO_BASE, Board::TZIC_MMIO_SIZE },
+		{ Board::IRQ_CONTROLLER_BASE, Board::IRQ_CONTROLLER_SIZE },
 
 		/* central security unit */
 		{ Board::CSU_BASE, Board::CSU_SIZE },

@@ -45,7 +45,7 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 {
 	static Native_region _regions[] =
 	{
-		{ Board::GIC_CPU_MMIO_BASE, Board::GIC_CPU_MMIO_SIZE },
+		{ Board::IRQ_CONTROLLER_BASE, Board::IRQ_CONTROLLER_SIZE },
 		{ Board::MCT_MMIO_BASE, Board::MCT_MMIO_SIZE },
 		{ Board::UART_2_MMIO_BASE, 0x1000 },
 	};

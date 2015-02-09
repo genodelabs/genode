@@ -1,6 +1,7 @@
 /*
  * \brief  Programmable interrupt controller for core
  * \author Martin stein
+ * \author Stefan Kalkowski
  * \date   2011-10-26
  */
 
@@ -17,6 +18,9 @@
 /* Genode includes */
 #include <util/mmio.h>
 
+/* core includes */
+#include <board.h>
+
 namespace Genode
 {
 	/**
@@ -32,8 +36,11 @@ namespace Genode
 	/**
 	 * Programmable interrupt controller for core
 	 */
-	class Arm_gic;
+	class Pic;
 }
+
+namespace Kernel { using Pic = Genode::Pic; }
+
 
 class Genode::Arm_gic_distributor : public Mmio
 {
@@ -168,7 +175,7 @@ class Genode::Arm_gic_cpu_interface : public Mmio
 		Arm_gic_cpu_interface(addr_t const base) : Mmio(base) { }
 };
 
-class Genode::Arm_gic
+class Genode::Pic
 {
 	protected:
 
@@ -205,26 +212,16 @@ class Genode::Arm_gic
 		/**
 		 * Constructor
 		 */
-		Arm_gic(addr_t const distr_base, addr_t const cpu_base)
-		:
-			_distr(distr_base), _cpui(cpu_base),
-			_max_irq(_distr.max_irq()),
-			_last_request(spurious_id) { _init(); }
+		Pic()
+		: _distr(Board::IRQ_CONTROLLER_DISTR_BASE),
+		  _cpui (Board::IRQ_CONTROLLER_CPU_BASE),
+		  _max_irq(_distr.max_irq()),
+		  _last_request(spurious_id) { _init(); }
 
 		/**
 		 * Initialize CPU local interface of the controller
 		 */
-		void init_cpu_local()
-		{
-			/* disable the priority filter */
-			_cpui.write<Cpui::Pmr::Priority>(_distr.min_priority());
-
-			/* disable preemption of IRQ handling by other IRQs */
-			_cpui.write<Cpui::Bpr::Binary_point>(~0);
-
-			/* enable device */
-			_cpui.write<Cpui::Ctlr::Enable>(1);
-		}
+		void init_cpu_local();
 
 		/**
 		 * Try to take an IRQ and return wether it was successful

@@ -16,7 +16,7 @@
 
 using namespace Genode;
 
-void Arm_gic::_init()
+void Pic::_init()
 {
 	/* disable device */
 	_distr.write<Distr::Ctlr::Enable>(0);
@@ -28,4 +28,17 @@ void Arm_gic::_init()
 	}
 	/* enable device */
 	_distr.write<Distr::Ctlr::Enable>(1);
+}
+
+
+void Pic::init_cpu_local()
+{
+	/* disable the priority filter */
+	_cpui.write<Cpui::Pmr::Priority>(_distr.min_priority());
+
+	/* disable preemption of IRQ handling by other IRQs */
+	_cpui.write<Cpui::Bpr::Binary_point>(~0);
+
+	/* enable device */
+	_cpui.write<Cpui::Ctlr::Enable>(1);
 }

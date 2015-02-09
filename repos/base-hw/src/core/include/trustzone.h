@@ -14,11 +14,10 @@
 #ifndef _CORE__INCLUDE__TRUSTZONE_H_
 #define _CORE__INCLUDE__TRUSTZONE_H_
 
+/* core includes */
+#include <pic.h>
+
 namespace Kernel {
-
-	class Pic;
-
-
 	void init_trustzone(Pic * pic);
 }
 

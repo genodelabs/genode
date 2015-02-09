@@ -36,8 +36,8 @@ class Genode::Exynos5
 			MMIO_0_SIZE = 0x10000000,
 
 			/* interrupt controller */
-			GIC_CPU_MMIO_BASE = 0x10480000,
-			GIC_CPU_MMIO_SIZE = 0x00010000,
+			IRQ_CONTROLLER_BASE = 0x10480000,
+			IRQ_CONTROLLER_SIZE = 0x00010000,
 
 			/* UART */
 			UART_2_MMIO_BASE = 0x12C20000,

@@ -18,7 +18,7 @@
 #include <util/mmio.h>
 
 /* core includes */
-#include <cpu.h>
+#include <board.h>
 
 namespace Genode
 {
@@ -61,7 +61,7 @@ namespace Genode
 			/**
 			 * Constructor
 			 */
-			Timer() : Mmio(Cpu::PRIVATE_TIMER_MMIO_BASE)
+			Timer() : Mmio(Board::PRIVATE_TIMER_MMIO_BASE)
 			{
 				write<Control::Timer_enable>(0);
 			}
@@ -69,10 +69,8 @@ namespace Genode
 			/**
 			 * Return kernel name of timer interrupt
 			 */
-			static unsigned interrupt_id(unsigned)
-			{
-				return Cpu::PRIVATE_TIMER_IRQ;
-			}
+			static unsigned interrupt_id(unsigned) {
+				return Board::PRIVATE_TIMER_IRQ; }
 
 			/**
 			 * Start single timeout run

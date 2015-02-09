@@ -71,8 +71,8 @@ namespace Genode
 			GPIO7_IRQL         = 107,
 			GPIO7_IRQH         = 108,
 
-			TZIC_MMIO_BASE     = 0x0fffc000,
-			TZIC_MMIO_SIZE     = 0x00004000,
+			IRQ_CONTROLLER_BASE = 0x0fffc000,
+			IRQ_CONTROLLER_SIZE = 0x00004000,
 
 			AIPS_1_MMIO_BASE   = 0x53f00000,
 			AIPS_2_MMIO_BASE   = 0x63f00000,

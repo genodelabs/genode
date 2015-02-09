@@ -15,11 +15,11 @@
 #define _BOARD_H_
 
 /* core includes */
-#include <drivers/board_base.h>
+#include <spec/cortex_a15/board_support.h>
 
 namespace Genode
 {
-	class Board : public Board_base
+	class Board : public Cortex_a15::Board_base
 	{
 		public:
 
