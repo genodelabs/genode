@@ -182,6 +182,7 @@ class Genode::Pic
 		typedef Arm_gic_cpu_interface Cpui;
 		typedef Arm_gic_distributor   Distr;
 
+		static constexpr unsigned ipi         = 1;
 		static constexpr unsigned min_spi     = 32;
 		static constexpr unsigned spurious_id = 1023;
 
@@ -189,11 +190,6 @@ class Genode::Pic
 		Cpui           _cpui;
 		unsigned const _max_irq;
 		unsigned       _last_request;
-
-		/**
-		 * Return inter-processor IRQ of the CPU with kernel name 'cpu_id'
-		 */
-		unsigned _ipi(unsigned const cpu_id) const { return cpu_id + 1; }
 
 		/**
 		 * Platform specific initialization
@@ -268,10 +264,9 @@ class Genode::Pic
 		 * Return wether an IRQ is inter-processor IRQ of a CPU
 		 *
 		 * \param irq_id  kernel name of the IRQ
-		 * \param cpu_id  kernel name of the CPU
 		 */
-		bool is_ip_interrupt(unsigned const irq_id, unsigned const cpu_id) {
-			return irq_id == _ipi(cpu_id); }
+		bool is_ip_interrupt(unsigned const irq_id) {
+			return irq_id == ipi; }
 
 		/**
 		 * Raise inter-processor IRQ of the CPU with kernel name 'cpu_id'
@@ -280,7 +275,7 @@ class Genode::Pic
 		{
 			typedef Distr::Sgir Sgir;
 			Sgir::access_t sgir = 0;
-			Sgir::Sgi_int_id::set(sgir, _ipi(cpu_id));
+			Sgir::Sgi_int_id::set(sgir, ipi);
 			Sgir::Cpu_target_list::set(sgir, 1 << cpu_id);
 			_distr.write<Sgir>(sgir);
 		}

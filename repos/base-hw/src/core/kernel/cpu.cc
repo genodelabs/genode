@@ -99,7 +99,7 @@ void Cpu_job::_interrupt(unsigned const cpu_id)
 		if (!_cpu->timer_irq(irq_id)) {
 
 			/* check wether the interrupt is our IPI */
-			if (ic->is_ip_interrupt(irq_id, cpu_id)) {
+			if (ic->is_ip_interrupt(irq_id)) {
 
 				cpu_domain_update_list()->do_each();
 				_cpu->ip_interrupt_handled();

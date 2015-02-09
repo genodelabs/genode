@@ -149,7 +149,7 @@ class Genode::Pic : public Mmio
 		/**
 		 * Wether an interrupt is inter-processor interrupt of a CPU
 		 */
-		bool is_ip_interrupt(unsigned, unsigned) { return false; }
+		bool is_ip_interrupt(unsigned) { return false; }
 
 		/*************
 		 ** Dummies **

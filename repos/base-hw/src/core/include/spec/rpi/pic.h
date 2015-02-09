@@ -239,7 +239,7 @@ class Genode::Pic : Mmio
 		 * Dummies
 		 */
 
-		bool is_ip_interrupt(unsigned, unsigned) { return false; }
+		bool is_ip_interrupt(unsigned) { return false; }
 		void trigger_ip_interrupt(unsigned) { }
 };
 
