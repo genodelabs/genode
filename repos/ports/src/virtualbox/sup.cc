@@ -15,6 +15,7 @@
 #include <os/attached_ram_dataspace.h>
 #include <base/semaphore.h>
 #include <os/timed_semaphore.h>
+#include <trace/timestamp.h>
 
 /* Genode/Virtualbox includes */
 #include "sup.h"
@@ -22,6 +23,7 @@
 /* VirtualBox includes */
 #include <iprt/semaphore.h>
 #include <iprt/ldr.h>
+#include <iprt/uint128.h>
 #include <VBox/err.h>
 
 
@@ -53,47 +55,31 @@ class Periodic_GIP : public Genode::Alarm {
 		 * instable results when the timer service is using the Genode PIC
 		 * driver as done for base-nova currently.
 		 */
-		static unsigned long long tsc_last = 0;
 
-		Genode::uint32_t now_low, now_high;
-		asm volatile("rdtsc" :  "=a"(now_low), "=d"(now_high) : : "memory");
+		static uint64_t tsc_reference = Genode::Trace::timestamp();
 
-		Genode::uint64_t tsc_current = now_high;
-		tsc_current <<= 32;
-		tsc_current  |= now_low;
+		Genode::uint64_t tsc_current = Genode::Trace::timestamp() - tsc_reference;
 
-		Genode::uint64_t elapsed_tsc;
-		Genode::uint32_t elapsed_ms;
-		enum { BOGUS_MULTIPLIER = 10 };
+		/*
+		 * Convert tsc to nanoseconds.
+		 *
+		 * There is no 'uint128_t' type on x86_32, so we use the 128-bit type
+		 * and functions provided by VirtualBox.
+		 *
+		 * nanots128 = tsc_current * 1000*1000*1000 / genode_cpu_hz()
+		 *
+		 */
 
-		/* handle wrap around, backwards running tsc and too bogus timeouts */
-		if (tsc_current < tsc_last ||
-		    tsc_current - tsc_last > BOGUS_MULTIPLIER * UPDATE_MS * genode_cpu_hz() / 1000) {
+		RTUINT128U nanots128;
+		RTUInt128AssignU64(&nanots128, tsc_current);
 
-/*
-			if (tsc_current < tsc_last)
-				PDBG("bogus timeout - set fixed to %lums - calculated ms %llu "
-				     " - time wrapped", UPDATE_MS,
-				     (tsc_current - tsc_last) * 1000 / genode_cpu_hz());
-			else
-				PDBG("bogus timeout - set fixed to %lums - calculated ms %llu "
-				     " > %u * %lums", UPDATE_MS,
-				     (tsc_current - tsc_last) * 1000 / genode_cpu_hz(),
-				     BOGUS_MULTIPLIER, UPDATE_MS);
-*/
-			elapsed_ms  = UPDATE_MS;
-			elapsed_tsc = UPDATE_MS * genode_cpu_hz() / 1000;
+		RTUINT128U multiplier;
+		RTUInt128AssignU32(&multiplier, 1000*1000*1000);
+		RTUInt128AssignMul(&nanots128, &multiplier);
 
-		} else {
-			elapsed_tsc = tsc_current - tsc_last;
-			elapsed_ms  = elapsed_tsc * 1000 / genode_cpu_hz();
-		}
-
-		Genode::uint64_t elapsed_nanots = 1000ULL * 1000 * elapsed_ms;
-
-		tsc_last        = tsc_current;
-
-
+		RTUINT128U divisor;
+		RTUInt128AssignU64(&divisor, genode_cpu_hz());
+		RTUInt128AssignDiv(&nanots128, &divisor);
 
 		SUPGIPCPU *cpu = &g_pSUPGlobalInfoPage->aCPUs[0];
 
@@ -103,8 +89,8 @@ class Periodic_GIP : public Genode::Alarm {
 		 */
 		ASMAtomicIncU32(&cpu->u32TransactionId);
 
-		cpu->u64NanoTS += elapsed_nanots;
-		cpu->u64TSC    += elapsed_tsc;
+		cpu->u64TSC    = tsc_current;
+		cpu->u64NanoTS = nanots128.s.Lo;
 
 		/*
 		 * Transaction id must be incremented before and after update,
