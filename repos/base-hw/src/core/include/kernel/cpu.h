@@ -16,6 +16,7 @@
 #define _KERNEL__CPU_H_
 
 /* core includes */
+#include <translation_table.h>
 #include <timer.h>
 #include <cpu.h>
 #include <kernel/cpu_scheduler.h>
@@ -25,6 +26,11 @@
 
 namespace Kernel
 {
+	/**
+	 * CPU context of a kernel stack
+	 */
+	class Cpu_context;
+
 	/**
 	 * Context of a job (thread, VM, idle) that shall be executed by a CPU
 	 */
@@ -55,6 +61,28 @@ namespace Kernel
 	 */
 	Cpu_pool * cpu_pool();
 }
+
+class Kernel::Cpu_context : Genode::Cpu::Context
+{
+	private:
+
+		/**
+		 * Hook for environment specific initializations
+		 *
+		 * \param stack_size  size of kernel stack
+		 * \param table       base of transit translation table
+		 */
+		void _init(size_t const stack_size, addr_t const table);
+
+	public:
+
+		/**
+		 * Constructor
+		 *
+		 * \param table  mode-transition table
+		 */
+		Cpu_context(Genode::Translation_table * const table);
+};
 
 class Kernel::Cpu_domain_update : public Double_list_item
 {
@@ -199,15 +227,7 @@ class Kernel::Cpu_idle : public Genode::Cpu::User_context, public Cpu_job
 		 * Cpu_job interface
 		 */
 
-		void exception(unsigned const cpu)
-		{
-			switch (cpu_exception) {
-			case INTERRUPT_REQUEST:      _interrupt(cpu); return;
-			case FAST_INTERRUPT_REQUEST: _interrupt(cpu); return;
-			case RESET:                                   return;
-			default: assert(0); }
-		}
-
+		void exception(unsigned const cpu);
 		void proceed(unsigned const cpu_id);
 		Cpu_job * helping_sink() { return this; }
 };

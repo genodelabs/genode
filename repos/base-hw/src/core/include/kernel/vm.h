@@ -14,10 +14,8 @@
 #ifndef _KERNEL__VM_H_
 #define _KERNEL__VM_H_
 
-/* Genode includes */
-#include <cpu/cpu_state.h>
-
 /* core includes */
+#include <kernel/vm_state.h>
 #include <kernel/kernel.h>
 #include <kernel/pd.h>
 #include <kernel/signal_receiver.h>
@@ -40,11 +38,6 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
                    public Cpu_job
 {
 	private:
-
-		struct Vm_state : Genode::Cpu_state_modes
-		{
-			Genode::addr_t dfar;
-		};
 
 		Vm_state       * const _state;
 		Signal_context * const _context;
@@ -76,21 +69,7 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 		 ** Cpu_job **
 		 *************/
 
-		void exception(unsigned const cpu)
-		{
-			switch(_state->cpu_exception) {
-			case Genode::Cpu_state::INTERRUPT_REQUEST:
-			case Genode::Cpu_state::FAST_INTERRUPT_REQUEST:
-				_interrupt(cpu);
-				return;
-			case Genode::Cpu_state::DATA_ABORT:
-				_state->dfar = Cpu::Dfar::read();
-			default:
-				Cpu_job::_deactivate_own_share();
-				_context->submit(1);
-			}
-		}
-
+		void exception(unsigned const cpu);
 		void proceed(unsigned const cpu) { mtc()->continue_vm(_state, cpu); }
 		Cpu_job * helping_sink() { return this; }
 };

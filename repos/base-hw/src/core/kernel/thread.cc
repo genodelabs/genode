@@ -159,14 +159,6 @@ void Thread::_become_inactive(State const s)
 }
 
 
-Thread::Thread(unsigned const priority, unsigned const quota,
-               char const * const label)
-:
-	Thread_base(this), Cpu_job(priority, quota), _state(AWAITS_START), _pd(0),
-	_utcb_phys(0), _signal_receiver(0), _label(label)
-{ cpu_exception = RESET; }
-
-
 void Thread::init(Cpu * const cpu, Pd * const pd,
                   Native_utcb * const utcb_phys, bool const start)
 {
@@ -197,39 +189,6 @@ void Thread::_stop() { _become_inactive(STOPPED); }
 
 Cpu_job * Thread::helping_sink() {
 	return static_cast<Thread *>(Ipc_node::helping_sink()); }
-
-
-void Thread::exception(unsigned const cpu)
-{
-	switch (cpu_exception) {
-	case SUPERVISOR_CALL:
-		_call();
-		return;
-	case PREFETCH_ABORT:
-		_mmu_exception();
-		return;
-	case DATA_ABORT:
-		_mmu_exception();
-		return;
-	case INTERRUPT_REQUEST:
-		_interrupt(cpu);
-		return;
-	case FAST_INTERRUPT_REQUEST:
-		_interrupt(cpu);
-		return;
-	case UNDEFINED_INSTRUCTION:
-		if (_cpu->retry_undefined_instr(&_lazy_state)) { return; }
-		PWRN("undefined instruction");
-		_stop();
-		return;
-	case RESET:
-		return;
-	default:
-		PWRN("unknown exception");
-		_stop();
-		return;
-	}
-}
 
 
 void Thread::_receive_yielded_cpu()
@@ -819,26 +778,6 @@ void Thread::_call_bin_signal_receiver()
 	}
 	r->~Signal_receiver();
 	user_arg_0(0);
-}
-
-
-void Thread::_call_new_vm()
-{
-	/* lookup signal context */
-	auto const context = Signal_context::pool()->object(user_arg_3());
-	if (!context) {
-		PWRN("failed to lookup signal context");
-		user_arg_0(0);
-		return;
-	}
-	/* create virtual machine */
-	typedef Genode::Cpu_state_modes Cpu_state_modes;
-	auto const allocator = reinterpret_cast<void *>(user_arg_1());
-	auto const state = reinterpret_cast<Cpu_state_modes *>(user_arg_2());
-	Vm * const vm = new (allocator) Vm(state, context);
-
-	/* return kernel name of virtual machine */
-	user_arg_0(vm->id());
 }
 
 

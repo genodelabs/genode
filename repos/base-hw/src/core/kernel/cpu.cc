@@ -124,15 +124,6 @@ void Cpu_job::affinity(Cpu * const cpu)
  ** Cpu_idle **
  **************/
 
-Cpu_idle::Cpu_idle(Cpu * const cpu) : Cpu_job(Cpu_priority::min, 0)
-{
-	Cpu_job::cpu(cpu);
-	cpu_exception = RESET;
-	ip = (addr_t)&_main;
-	sp = (addr_t)&_stack[stack_size];
-	init_thread((addr_t)core_pd()->translation_table(), core_pd()->id());
-}
-
 void Cpu_idle::proceed(unsigned const cpu) { mtc()->continue_user(this, cpu); }
 
 

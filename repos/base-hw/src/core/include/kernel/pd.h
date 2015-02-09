@@ -24,7 +24,7 @@
 #include <kernel/configuration.h>
 #include <kernel/object.h>
 #include <kernel/cpu.h>
-#include <translation_table.h>
+#include <kernel/vm_state.h>
 #include <assert.h>
 
 /* structure of the mode transition */
@@ -77,11 +77,6 @@ class Kernel::Lock
 namespace Kernel
 {
 	/**
-	 * CPU context of the kernel
-	 */
-	class Cpu_context;
-
-	/**
 	 * Controls the mode-transition page
 	 *
 	 * The mode transition page is a small memory region that is mapped by
@@ -112,28 +107,6 @@ namespace Kernel
 	Lock & data_lock();
 }
 
-class Kernel::Cpu_context : Cpu::Context
-{
-	private:
-
-		/**
-		 * Hook for environment specific initializations
-		 *
-		 * \param stack_size  size of kernel stack
-		 * \param table       base of transit translation table
-		 */
-		void _init(size_t const stack_size, addr_t const table);
-
-	public:
-
-		/**
-		 * Constructor
-		 *
-		 * \param table  mode-transition table
-		 */
-		Cpu_context(Genode::Translation_table * const table);
-};
-
 class Kernel::Mode_transition_control
 {
 	friend class Pd;
@@ -143,7 +116,6 @@ class Kernel::Mode_transition_control
 		typedef Early_translations_allocator Allocator;
 		typedef Early_translations_slab      Slab;
 		typedef Genode::Translation_table    Table;
-		typedef Genode::Cpu_state_modes      Cpu_state_modes;
 		typedef Genode::Page_flags           Page_flags;
 
 		Allocator   _allocator;
@@ -244,7 +216,7 @@ class Kernel::Mode_transition_control
 		/**
 		 * Continue execution of 'vm' at 'cpu'
 		 */
-		void continue_vm(Cpu_state_modes * const vm, unsigned const cpu) {
+		void continue_vm(Vm_state * const vm, unsigned const cpu) {
 			_continue_client(vm, cpu, (addr_t)&_mt_vm_entry_pic); }
 
 } __attribute__((aligned(Mode_transition_control::ALIGN)));
