@@ -134,7 +134,7 @@ append_if [have_spec sdl] config {
 
 append_if [have_spec acpi] config {
 	<start name="acpi">
-		<resource name="RAM" quantum="5M"/>
+		<resource name="RAM" quantum="5M" constrain_phys="yes"/>
 		<binary name="acpi_drv"/>
 		<provides>
 			<service name="PCI"/>
@@ -154,7 +154,7 @@ append_if [have_spec framebuffer] config {
 
 append_if [expr ![have_spec acpi] && [have_spec pci]] config {
 	<start name="pci_drv">
-		<resource name="RAM" quantum="2M"/>
+		<resource name="RAM" quantum="2M" constrain_phys="yes"/>
 		<provides> <service name="PCI"/> </provides>
 	</start> }
 

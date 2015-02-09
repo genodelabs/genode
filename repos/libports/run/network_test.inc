@@ -119,7 +119,7 @@ append_if [expr ![have_spec omap4] && ![have_spec exynos5]] config {
 
 append_if [have_spec acpi] config {
 	<start name="acpi">
-		<resource name="RAM" quantum="6M"/>
+		<resource name="RAM" quantum="6M" constrain_phys="yes"/>
 		<binary name="acpi_drv"/>
 		<provides>
 			<service name="PCI"/>
@@ -133,7 +133,7 @@ append_if [have_spec acpi] config {
 
 append_if [expr ![have_spec acpi] && [have_spec pci]] config {
 	<start name="pci_drv">
-		<resource name="RAM" quantum="3M"/>
+		<resource name="RAM" quantum="3M" constrain_phys="yes"/>
 		<provides> <service name="PCI"/> </provides>
 	</start> }
 

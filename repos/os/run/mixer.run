@@ -49,7 +49,7 @@ set config  {
 if {![have_spec linux]} {
 	append config {
 		<start name="acpi">
-			<resource name="RAM" quantum="2M"/>
+			<resource name="RAM" quantum="2M" constrain_phys="yes"/>
 			<binary name="acpi_drv"/>
 			<provides>
 				<service name="PCI"/>

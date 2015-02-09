@@ -196,7 +196,7 @@ append_if $use_genode_iso config {
 
 append_if [have_spec acpi] config {
 	<start name="acpi" priority="-1">
-		<resource name="RAM" quantum="8M"/>
+		<resource name="RAM" quantum="8M" constrain_phys="yes"/>
 		<binary name="acpi_drv"/>
 		<provides>
 			<service name="PCI"/>
@@ -210,7 +210,7 @@ append_if [have_spec acpi] config {
 
 append_if [expr ![have_spec acpi] && [have_spec pci]] config {
 	<start name="pci_drv" priority="-1">
-		<resource name="RAM" quantum="3M"/>
+		<resource name="RAM" quantum="3M" constrain_phys="yes"/>
 		<provides><service name="PCI"/></provides>
 		<route> <any-service><parent/></any-service> </route>
 	</start>

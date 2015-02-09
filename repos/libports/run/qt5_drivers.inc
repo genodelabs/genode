@@ -123,7 +123,7 @@ proc drivers_start_nodes { feature_arg } {
 
 	append_if [use_acpi_drv feature] start_nodes {
 		<start name="acpi">
-			<resource name="RAM" quantum="10M"/>
+			<resource name="RAM" quantum="10M" constrain_phys="yes"/>
 			<binary name="acpi_drv"/>
 			<provides>
 				<service name="PCI"/>
@@ -177,7 +177,7 @@ proc drivers_start_nodes { feature_arg } {
 
 	append_if [expr [use_pci_drv feature] && ![use_acpi_drv feature]] start_nodes {
 		<start name="pci_drv">
-			<resource name="RAM" quantum="2M"/>
+			<resource name="RAM" quantum="2M" constrain_phys="yes"/>
 			<provides><service name="PCI"/></provides>
 		</start>
 	}
