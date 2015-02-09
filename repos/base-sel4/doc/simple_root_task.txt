@@ -212,12 +212,12 @@ Starting the kernel in Qemu
 To test-drive the kernel, we need to create a bootable image including a boot
 loader, the boot-loader configuration, and the kernel. To spare us the
 manual work, Genode comes with a so-called run tool that automates this
-procedure. We merely need to create run environment for seL4 to tweak the
-run tool for this particular platform. The run environment for seL4 resides at
-_base-sel4/run/env_. To create it, we can take inspiration from the run
-environments of the other platforms such as NOVA. It comes down to
-implementing the functions 'build_boot_image' and 'run_genode_until' according
-to our needs. The former function contains the generation of the boot-loader
+procedure. We merely need to supplement the run tool with a script snippet
+that describes how a boot image is assembled for the seL4 base platform.
+This snippet has to reside at _tool/run/boot_dir/sel4_. To create it, we can
+take inspiration from the versions for the other platforms such as NOVA. It
+comes down to implementing the function 'run_boot_dir' according to our needs.
+For the most part, the function contains the generation of the boot-loader
 configuration, i.e., GRUB's _menu.lst_ file. At the current stage, we simply
 load the seL4 ELF image as multi-boot kernel. For using the run tool for the
 initial test, the following small run script at _base-sel4/run/test.run_ does
