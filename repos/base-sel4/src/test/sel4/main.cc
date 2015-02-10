@@ -100,6 +100,9 @@ void second_thread_entry()
 	for (;;) {
 		seL4_SetCapReceivePath(seL4_CapInitThreadCNode, RECV_CAP, 32);
 
+		seL4_CNode_Delete(seL4_CapInitThreadCNode, RECV_CAP, 32);
+
+
 		PDBG("call seL4_Wait");
 		seL4_MessageInfo_t msg_info = seL4_Wait(EP_CAP, nullptr);
 		PDBG("returned from seL4_Wait, call seL4_Reply");
@@ -229,6 +232,17 @@ int main()
 	seL4_TCB_Resume(SECOND_THREAD_CAP);
 
 	seL4_TCB_SetPriority(SECOND_THREAD_CAP, 0xff);
+
+	PDBG("seL4_Call, delegating a TCB capability");
+	{
+		seL4_MessageInfo_t msg_info = seL4_MessageInfo_new(13, 0, 1, 0);
+
+		seL4_SetCap(0, SECOND_THREAD_CAP);
+
+		seL4_Call(EP_CAP, msg_info);
+
+		PDBG("returned from seL4_Call");
+	}
 
 	PDBG("seL4_Call, delegating a TCB capability");
 	{

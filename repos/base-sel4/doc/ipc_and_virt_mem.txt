@@ -184,6 +184,13 @@ single RPC call.
 
 That said, the simple capability-delegation test works as expected.
 
+When repeatedly performing an IPC call with a delegated capability, the
+RECV_CAP index will be populated by the first call. Subsequent attempts to
+override the RECV_CAP capability do not work (the 'extraCaps' field of the
+received message info remains 0). The receiver has to make sure that the
+specified 'CapReceivePath' is an empty capability slot. I.e., by calling
+'seL4_CNode_Delete' prior 'seL4_Wait'.
+
 
 Translation of capabilities aka "unwrapping"
 ============================================
