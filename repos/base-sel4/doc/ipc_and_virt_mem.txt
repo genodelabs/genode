@@ -140,6 +140,51 @@ desired output:
 ! void second_thread_entry(): returned from seL4_Reply
 
 
+Delegation of capabilities via IPC
+==================================
+
+The seL4 kernel supports the delegation of capabilities across address-space
+boundaries by the means of synchronous IPC. As Genode fundamentally relies
+on such a mechanism, I decide to give it a try by extending the simple IPC
+test. Instead of letting the main thread call the second thread without any
+arguments, the main thread will pass the thread capability of the second
+thread as argument. Upon reception of the call, the second thread will find
+a capability in its IPC buffer. To validate that the received capability
+corresponds to the thread cap, the second thread issues a 'seL4_TCB_Suspend'
+operation on the received cap. It is supposed to stop it execution right
+there. This experiment requires the following steps:
+
+# At the caller side, we need to supply a capability as argument to the
+  'seL4_Call' operation by specifying the number of capabilities to transfer
+  at the 'extraCaps' field of the 'seL4_MessageInfo', and marshalling the
+  index of the capability via the 'seL4_SetCap' function (specifying
+  SECOND_THREAD_CAP as argument).
+
+# At the callee side, we need to define where to receive an incoming
+  capability. First, we have to reserve a CNode slot designated for the
+  new capability. For the test, a known-free index will do:
+
+  ! enum { RECV_CAP = 0x102 };
+
+  Second, we have to configure the IPC buffer of the second thread to
+  point to the RECV_CAP:
+
+  ! seL4_SetCapReceivePath(seL4_CapInitThreadCNode, RECV_CAP, 32);
+
+  We specify 32 as receive depth because the CNode of the initial thread has a
+  size of 2^12 and a guard of 20.
+
+At this point I am wondering that there is apparently no way to specify a
+*receive window* rather than an individual CNode for receiving capabilities.
+After revisiting Section 4.2.2 of the manual, I came to the realization that
+*seL4 does not support delegating* *more than one capability in a single IPC*.
+From Genode's perspective, this could become an issue because Genode's RPC
+framework generally allows for the delegation of multiple capabilities via a
+single RPC call.
+
+That said, the simple capability-delegation test works as expected.
+
+
 
 
 

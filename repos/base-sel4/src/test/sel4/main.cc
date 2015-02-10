@@ -82,14 +82,30 @@ enum { SECOND_THREAD_CAP = 0x100 };
  */
 enum { EP_CAP = 0x101 };
 
+/*
+ * Capability slot used by the second thread to receive a capability via IPC.
+ */
+enum { RECV_CAP = 0x102 };
+
 
 void second_thread_entry()
 {
 	init_ipc_buffer();
 
+	seL4_SetCapReceivePath(seL4_CapInitThreadCNode, RECV_CAP, 32);
+
 	PDBG("call seL4_Wait");
 	seL4_MessageInfo_t msg_info = seL4_Wait(EP_CAP, nullptr);
 	PDBG("returned from seL4_Wait, call seL4_Reply");
+
+	PDBG("msg_info: got unwrapped  %d", seL4_MessageInfo_get_capsUnwrapped(msg_info));
+	PDBG("          got extra caps %d", seL4_MessageInfo_get_extraCaps(msg_info));
+	PDBG("          label          %d", seL4_MessageInfo_get_label(msg_info));
+
+	seL4_TCB_Suspend(RECV_CAP);
+
+	PDBG("this message should not appear");
+
 	seL4_Reply(msg_info);
 	PDBG("returned from seL4_Reply");
 
@@ -211,7 +227,10 @@ int main()
 
 	PDBG("call seL4_Call");
 
-	seL4_MessageInfo_t msg_info = seL4_MessageInfo_new(0, 0, 0, 0);
+	seL4_MessageInfo_t msg_info = seL4_MessageInfo_new(13, 0, 1, 0);
+
+	seL4_SetCap(0, SECOND_THREAD_CAP);
+
 	seL4_Call(EP_CAP, msg_info);
 
 	PDBG("returned from seL4_Call");
