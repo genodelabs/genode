@@ -405,6 +405,30 @@ Platform::Platform() :
 		prev_cmd_line_page = curr_cmd_line_page;
 	}
 
+	/* sanity checks that regions don't overlap - could be bootloader issue */
+	mem_desc = (Hip::Mem_desc *)mem_desc_base;
+	for (unsigned i = 0; i < num_mem_desc; i++, mem_desc++) {
+
+		if (mem_desc->type == Hip::Mem_desc::AVAILABLE_MEMORY) continue;
+
+		Hip::Mem_desc * mem_d = (Hip::Mem_desc *)mem_desc_base;
+		for (unsigned j = 0; j < num_mem_desc; j++, mem_d++) {
+			if (mem_d->type == Hip::Mem_desc::AVAILABLE_MEMORY) continue;
+			if (mem_d == mem_desc) continue;
+
+			/* if regions are disjunct all is fine */
+			if ((mem_d->addr + mem_d->size <= mem_desc->addr) ||
+			    (mem_d->addr >= mem_desc->addr + mem_desc->size))
+				continue;
+
+			PERR("region overlap [0x%8llx+0x%8llx] (%d) with "
+			     "[0x%8llx+0x%8llx] (%d)",
+			     mem_desc->addr, mem_desc->size, mem_desc->type,
+			     mem_d->addr, mem_d->size, mem_d->type);
+			nova_die();
+		}
+	}
+
 	/*
 	 * From now on, it is save to use the core allocators...
 	 */
