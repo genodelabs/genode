@@ -87,29 +87,34 @@ enum { EP_CAP = 0x101 };
  */
 enum { RECV_CAP = 0x102 };
 
+/*
+ * Minted endpoint capability, derived from EP_CAP
+ */
+enum { EP_MINTED_CAP = 0x103 };
+
 
 void second_thread_entry()
 {
 	init_ipc_buffer();
 
-	seL4_SetCapReceivePath(seL4_CapInitThreadCNode, RECV_CAP, 32);
+	for (;;) {
+		seL4_SetCapReceivePath(seL4_CapInitThreadCNode, RECV_CAP, 32);
 
-	PDBG("call seL4_Wait");
-	seL4_MessageInfo_t msg_info = seL4_Wait(EP_CAP, nullptr);
-	PDBG("returned from seL4_Wait, call seL4_Reply");
+		PDBG("call seL4_Wait");
+		seL4_MessageInfo_t msg_info = seL4_Wait(EP_CAP, nullptr);
+		PDBG("returned from seL4_Wait, call seL4_Reply");
 
-	PDBG("msg_info: got unwrapped  %d", seL4_MessageInfo_get_capsUnwrapped(msg_info));
-	PDBG("          got extra caps %d", seL4_MessageInfo_get_extraCaps(msg_info));
-	PDBG("          label          %d", seL4_MessageInfo_get_label(msg_info));
+		PDBG("msg_info: got unwrapped  %d", seL4_MessageInfo_get_capsUnwrapped(msg_info));
+		PDBG("          got extra caps %d", seL4_MessageInfo_get_extraCaps(msg_info));
+		PDBG("          label          %d", seL4_MessageInfo_get_label(msg_info));
 
-	seL4_TCB_Suspend(RECV_CAP);
+		if (seL4_MessageInfo_get_capsUnwrapped(msg_info)) {
+			PDBG("          badge          %d", seL4_CapData_Badge_get_Badge(seL4_GetBadge(0)));
+		}
 
-	PDBG("this message should not appear");
-
-	seL4_Reply(msg_info);
-	PDBG("returned from seL4_Reply");
-
-	*(int *)0x2244 = 0;
+		seL4_Reply(msg_info);
+		PDBG("returned from seL4_Reply");
+	}
 }
 
 
@@ -225,15 +230,53 @@ int main()
 
 	seL4_TCB_SetPriority(SECOND_THREAD_CAP, 0xff);
 
-	PDBG("call seL4_Call");
+	PDBG("seL4_Call, delegating a TCB capability");
+	{
+		seL4_MessageInfo_t msg_info = seL4_MessageInfo_new(13, 0, 1, 0);
 
-	seL4_MessageInfo_t msg_info = seL4_MessageInfo_new(13, 0, 1, 0);
+		seL4_SetCap(0, SECOND_THREAD_CAP);
 
-	seL4_SetCap(0, SECOND_THREAD_CAP);
+		seL4_Call(EP_CAP, msg_info);
 
-	seL4_Call(EP_CAP, msg_info);
+		PDBG("returned from seL4_Call");
+	}
 
-	PDBG("returned from seL4_Call");
+	PDBG("seL4_Call, delegating a minted endpoint capability");
+	{
+		/* mint EP_CAP into EP_MINTED_CAP */
+		seL4_CNode     const service    = seL4_CapInitThreadCNode;
+		seL4_Word      const dest_index = EP_MINTED_CAP;
+		uint8_t        const dest_depth = 32;
+		seL4_CNode     const src_root   = seL4_CapInitThreadCNode;
+		seL4_Word      const src_index  = EP_CAP;
+		uint8_t        const src_depth  = 32;
+		seL4_CapRights const rights     = seL4_Transfer_Mint;
+		seL4_CapData_t const badge      = seL4_CapData_Badge_new(111);
+
+		int const ret = seL4_CNode_Mint(service,
+		                                dest_index,
+		                                dest_depth,
+		                                src_root,
+		                                src_index,
+		                                src_depth,
+		                                rights,
+		                                badge);
+
+		PDBG("seL4_CNode_Mint (EP_MINTED_CAP) returned %d", ret);
+
+		seL4_MessageInfo_t msg_info = seL4_MessageInfo_new(13, 0, 3, 0);
+
+		/*
+		 * Supply 3 capabilities as arguments. The first and third will be
+		 * unwrapped at the receiver, the second will be delegated.
+		 */
+		seL4_SetCap(0, EP_MINTED_CAP);
+		seL4_SetCap(1, SECOND_THREAD_CAP);
+		seL4_SetCap(2, EP_MINTED_CAP);
+		seL4_Call(EP_CAP, msg_info);
+
+		PDBG("returned from seL4_Call");
+	}
 
 	*(int *)0x1122 = 0;
 	return 0;

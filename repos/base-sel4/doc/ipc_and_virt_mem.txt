@@ -185,6 +185,51 @@ single RPC call.
 That said, the simple capability-delegation test works as expected.
 
 
+Translation of capabilities aka "unwrapping"
+============================================
+
+In addition to receiving delegated capabilities under a new name, seL4's IPC
+mechanism allows the recipient of a capability that originated from the
+recipient to obtain a custom defined value instead of receiving a new name.
+In seL4 terminology, this mechanism is called "unwrapping".
+
+Capability unwrapping is supposed to happen if the transferred capability is
+a minted endpoint capability and the recipient is the original creator of
+the capability. For testing the mechanism, we replace the 'SECOND_THREAD_CAP'
+argument of the 'seL4_Call' by a minted endpoint capability derived from
+the endpoint used by the second thread.
+
+For creating a minted endpoint capability, we allocate a new index for the
+minted capability (EP_MINTED_CAP) and use the 'seL4_CNode_Mint' operation
+as follows:
+
+! seL4_CNode     const service    = seL4_CapInitThreadCNode;
+! seL4_Word      const dest_index = EP_MINTED_CAP;
+! uint8_t        const dest_depth = 32;
+! seL4_CNode     const src_root   = seL4_CapInitThreadCNode;
+! seL4_Word      const src_index  = EP_CAP;
+! uint8_t        const src_depth  = 32;
+! seL4_CapRights const rights     = seL4_Transfer_Mint;
+! seL4_CapData_t const badge      = seL4_CapData_Badge_new(111);
+!
+! int const ret = seL4_CNode_Mint(service,
+!                                 dest_index,
+!                                 dest_depth,
+!                                 src_root,
+!                                 src_index,
+!                                 src_depth,
+!                                 rights,
+!                                 badge);
+
+The badge is set to the magic value 111.
+When specifying the resulting EP_MINTED_CAP as IPC argument for a 'seL4_Call',
+the kernel will translate the capability to the badge value. The callee
+observes the reception of such an "unwrapped" capability via the
+'capsUnwrapped' field of the 'seL4_MessageInfo' structure returned by the
+'seL4_Wait' operation. The badge value can be obtained from the IPC buffer via
+'seL4_GetBadge(0)'. This simple experiment shows that the mechanism works
+as expected.
+
 
 
 
