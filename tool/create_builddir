@@ -208,29 +208,43 @@ foc_arndale::
 codezero_vpb926::
 	@echo "CODEZERO_DIR = $(GENODE_DIR)/repos/base-codezero/contrib" > $(BUILD_DIR)/etc/codezero.conf
 
+#
+# On all other platforms, the performance counter is assumed to be active by
+# default. On HW, its activation is done by an optional core lib. To be
+# conform to the other platforms, opt it in by default and, e.g. for security
+# reasons, allow users to opt it out.
+#
 hw_pbxa9::
 	@echo "SPECS = genode hw_pbxa9" > $(BUILD_DIR)/etc/specs.conf
+	@echo "SPECS += perf_counter" >> $(BUILD_DIR)/etc/specs.conf
 
 hw_vea9x4::
 	@echo "SPECS = genode hw_vea9x4" > $(BUILD_DIR)/etc/specs.conf
+	@echo "SPECS += perf_counter" >> $(BUILD_DIR)/etc/specs.conf
 
 hw_panda::
 	@echo "SPECS = genode hw_panda" > $(BUILD_DIR)/etc/specs.conf
+	@echo "SPECS += perf_counter" >> $(BUILD_DIR)/etc/specs.conf
 
 hw_imx53::
 	@echo "SPECS = genode hw_imx53" > $(BUILD_DIR)/etc/specs.conf
+	@echo "SPECS += perf_counter" >> $(BUILD_DIR)/etc/specs.conf
 
 hw_imx53_tz::
 	@echo "SPECS = genode hw_imx53_tz" > $(BUILD_DIR)/etc/specs.conf
+	@echo "SPECS += perf_counter" >> $(BUILD_DIR)/etc/specs.conf
 
 hw_arndale::
 	@echo "SPECS = genode hw_arndale" > $(BUILD_DIR)/etc/specs.conf
+	@echo "SPECS += perf_counter" >> $(BUILD_DIR)/etc/specs.conf
 
 hw_rpi::
 	@echo "SPECS = genode hw_rpi" > $(BUILD_DIR)/etc/specs.conf
+	@echo "SPECS += perf_counter" >> $(BUILD_DIR)/etc/specs.conf
 
 hw_odroid_xu::
 	@echo "SPECS = genode hw_odroid_xu" > $(BUILD_DIR)/etc/specs.conf
+	@echo "SPECS += perf_counter" >> $(BUILD_DIR)/etc/specs.conf
 
 lx_hybrid_x86::
 	@echo "CROSS_DEV_PREFIX =" > $(BUILD_DIR)/etc/tools.conf
