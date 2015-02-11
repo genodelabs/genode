@@ -121,6 +121,34 @@ void second_thread_entry()
 }
 
 
+/**
+ * Return cap selector of largest available untyped memory range
+ */
+static seL4_Untyped const largest_untyped_range(seL4_BootInfo const &bi)
+{
+	using Genode::size_t;
+
+	seL4_Untyped largest = 0;
+	size_t largest_size = 0;
+
+	unsigned const idx_start = bi.untyped.start;
+	unsigned const idx_size  = bi.untyped.end - idx_start;
+
+	for (unsigned i = idx_start; i < idx_start + idx_size; i++) {
+
+		size_t const size = (1UL << bi.untypedSizeBitsList[i - idx_start]) - 1;
+
+		if (size <= largest_size)
+			continue;
+
+		largest_size = size;
+		largest      = i;
+	}
+
+	return largest;
+}
+
+
 extern char _bss_start, _bss_end;
 
 int main()
@@ -136,8 +164,8 @@ int main()
 	PDBG("seL4_SetUserData");
 	seL4_SetUserData((seL4_Word)bi->ipcBuffer);
 
-	/* yse first untyped memory region for allocating kernel objects */
-	seL4_Untyped const untyped = bi->untyped.start;
+	/* yse largest untyped memory region for allocating kernel objects */
+	seL4_Untyped const untyped = largest_untyped_range(*bi);
 
 	/* offset to next free position within the untyped memory range */
 	unsigned long untyped_offset = 0;
