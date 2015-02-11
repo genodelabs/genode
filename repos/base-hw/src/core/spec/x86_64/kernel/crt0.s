@@ -27,6 +27,11 @@
 	.global _start
 	_start:
 
+	/* Enable PAE (prerequisite for IA-32e mode) */
+	movl %cr4, %eax
+	btsl $5, %eax
+	movl %eax, %cr4
+
 	/*
 	 * Install initial temporary environment that is replaced later by the
 	 * environment that init_main_thread creates.
