@@ -45,6 +45,15 @@
 	btsl $11, %eax
 	wrmsr
 
+	/* Enable paging, write protection, caching and FPU error reporting */
+	movl %cr0, %eax
+	btsl $5, %eax
+	btsl $16, %eax
+	btrl $29, %eax
+	btrl $30, %eax
+	btsl $31, %eax
+	movl %eax, %cr0
+
 	/*
 	 * Install initial temporary environment that is replaced later by the
 	 * environment that init_main_thread creates.
