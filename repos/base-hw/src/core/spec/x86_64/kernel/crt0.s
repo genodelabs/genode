@@ -34,6 +34,10 @@
 	btsl $5, %eax
 	movl %eax, %cr4
 
+	/* Load initial pagetables */
+	leal _kernel_pml4, %eax
+	mov %eax, %cr3
+
 	/*
 	 * Install initial temporary environment that is replaced later by the
 	 * environment that init_main_thread creates.
