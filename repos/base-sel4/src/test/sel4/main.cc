@@ -68,8 +68,10 @@ static inline void init_ipc_buffer()
 }
 
 
-enum { SEL4_TCB_SIZE = 0x1000,
-       SEL4_EP_SIZE  = 16 };
+enum { SEL4_TCB_SIZE        = 0x1000,
+       SEL4_EP_SIZE         = 16,
+       SEL4_PAGE_TABLE_SIZE = 1UL << 12,
+       SEL4_PAGE_SIZE       = 1UL << 12 };
 
 /*
  * Capability for the second thread's TCB
@@ -91,6 +93,12 @@ enum { RECV_CAP = 0x102 };
  * Minted endpoint capability, derived from EP_CAP
  */
 enum { EP_MINTED_CAP = 0x103 };
+
+/*
+ * Capabilities for a custom created page table, a page, and a second cap
+ * for the same page.
+ */
+enum { PAGE_TABLE_CAP = 0x104, PAGE_CAP = 0x105, PAGE_CAP_2 = 0x106 };
 
 
 void second_thread_entry()
@@ -319,6 +327,135 @@ int main()
 
 		PDBG("returned from seL4_Call");
 	}
+
+	/*
+	 * Test the mapping of memory
+	 */
+
+	/* create page table */
+	{
+		/* align allocation offset */
+		untyped_offset = Genode::align_addr(untyped_offset, 12);
+
+		seL4_Untyped const service     = untyped;
+		int          const type        = seL4_IA32_PageTableObject;
+		int          const offset      = untyped_offset;
+		int          const size_bits   = 0;
+		seL4_CNode   const root        = seL4_CapInitThreadCNode;
+		int          const node_index  = 0;
+		int          const node_depth  = 0;
+		int          const node_offset = PAGE_TABLE_CAP;
+		int          const num_objects = 1;
+
+		untyped_offset += SEL4_PAGE_TABLE_SIZE;
+
+		int const ret = seL4_Untyped_RetypeAtOffset(service,
+		                                            type,
+		                                            offset,
+		                                            size_bits,
+		                                            root,
+		                                            node_index,
+		                                            node_depth,
+		                                            node_offset,
+		                                            num_objects);
+
+		PDBG("seL4_Untyped_RetypeAtOffset (PAGE_TABLE) returned %d", ret);
+	}
+
+	/* create 4K page */
+	{
+		/* align allocation offset */
+		untyped_offset = Genode::align_addr(untyped_offset, 12);
+
+		seL4_Untyped const service     = untyped;
+		int          const type        = seL4_IA32_4K;
+		int          const offset      = untyped_offset;
+		int          const size_bits   = 0;
+		seL4_CNode   const root        = seL4_CapInitThreadCNode;
+		int          const node_index  = 0;
+		int          const node_depth  = 0;
+		int          const node_offset = PAGE_CAP;
+		int          const num_objects = 1;
+
+		untyped_offset += SEL4_PAGE_SIZE;
+
+		int const ret = seL4_Untyped_RetypeAtOffset(service,
+		                                            type,
+		                                            offset,
+		                                            size_bits,
+		                                            root,
+		                                            node_index,
+		                                            node_depth,
+		                                            node_offset,
+		                                            num_objects);
+
+		PDBG("seL4_Untyped_RetypeAtOffset (PAGE) returned %d", ret);
+	}
+
+	/* add page table into our page directory at address 0x40000000 */
+	{
+		seL4_IA32_PageTable     const service = PAGE_TABLE_CAP;
+		seL4_IA32_PageDirectory const pd      = seL4_CapInitThreadPD;
+		seL4_Word               const vaddr   = 0x40000000;
+		seL4_IA32_VMAttributes  const attr    = seL4_IA32_Default_VMAttributes;
+
+		int const ret = seL4_IA32_PageTable_Map(service, pd, vaddr, attr);
+
+		PDBG("seL4_IA32_PageTable_Map returned %d", ret);
+	}
+
+	/* add page to page table at 0x40001000 */
+	{
+		seL4_IA32_Page          const service = PAGE_CAP;
+		seL4_IA32_PageDirectory const pd      = seL4_CapInitThreadPD;
+		seL4_Word               const vaddr   = 0x40001000;
+		seL4_CapRights          const rights  = seL4_AllRights;
+		seL4_IA32_VMAttributes  const attr    = seL4_IA32_Default_VMAttributes;
+
+		int const ret = seL4_IA32_Page_Map(service, pd, vaddr, rights, attr);
+
+		PDBG("seL4_IA32_Page_Map to 0x%lx returned %d", (unsigned long)vaddr, ret);
+	}
+
+	/*
+	 * We cannot use the same PAGE_CAP for the seoncd mapping (see Chapter
+	 * 6.4 of the seL4 manual). So we need to create and use a copy of the
+	 * page cap.
+	 */
+
+	{
+		seL4_CNode     const service    =  seL4_CapInitThreadCNode;
+		seL4_Word      const dest_index = PAGE_CAP_2;
+		uint8_t        const dest_depth = 32;
+		seL4_CNode     const src_root   = seL4_CapInitThreadCNode;
+		seL4_Word      const src_index  = PAGE_CAP;
+		uint8_t        const src_depth  = 32;
+		seL4_CapRights const rights     = seL4_AllRights;
+
+		int const ret = seL4_CNode_Copy(service, dest_index, dest_depth,
+		                                src_root, src_index, src_depth, rights);
+
+		PDBG("seL4_CNode_Copy returned %d", ret);
+	}
+
+	/* add the same page to page table at 0x40002000 */
+	{
+		seL4_IA32_Page          const service = PAGE_CAP_2;
+		seL4_IA32_PageDirectory const pd      = seL4_CapInitThreadPD;
+		seL4_Word               const vaddr   = 0x40002000;
+		seL4_CapRights          const rights  = seL4_AllRights;
+		seL4_IA32_VMAttributes  const attr    = seL4_IA32_Default_VMAttributes;
+
+		int const ret = seL4_IA32_Page_Map(service, pd, vaddr, rights, attr);
+
+		PDBG("seL4_IA32_Page_Map to 0x%lx returned %d", (unsigned long)vaddr, ret);
+	}
+
+	/* write data to the first mapping of the page */
+	Genode::strncpy((char *)0x40001000, "Data written to 0x40001000", 100);
+
+	/* print content of the second mapping */
+	PLOG("read from 0x40002000: \"%s\"", (char const *)0x40002000);
 
 	*(int *)0x1122 = 0;
 	return 0;
