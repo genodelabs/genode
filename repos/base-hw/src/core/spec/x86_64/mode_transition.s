@@ -35,7 +35,7 @@
 	_mt_master_context_begin:
 
 	/* space must be at least as large as 'Cpu_state' */
-	.space 32*4
+	.space 20*8
 
 	.global _mt_master_context_end
 	_mt_master_context_end:
