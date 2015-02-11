@@ -38,6 +38,13 @@
 	leal _kernel_pml4, %eax
 	mov %eax, %cr3
 
+	/* Enable IA-32e mode and execute-disable */
+	movl $0xc0000080, %ecx
+	rdmsr
+	btsl $8, %eax
+	btsl $11, %eax
+	wrmsr
+
 	/*
 	 * Install initial temporary environment that is replaced later by the
 	 * environment that init_main_thread creates.
