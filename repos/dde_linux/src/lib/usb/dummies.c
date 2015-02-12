@@ -668,7 +668,7 @@ void dma_unmap_sg_attrs(struct device *dev, struct scatterlist *sg,
 
 
 void dma_unmap_page(struct device *dev, dma_addr_t dma_address, size_t size,
-                    enum dma_data_direction direction) { SKIP;; }
+                    enum dma_data_direction direction) { SKIP; }
 
 int dma_mapping_error(struct device *dev, dma_addr_t dma_addr) { SKIP; return 0; }
 

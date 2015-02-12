@@ -43,8 +43,8 @@ struct Linker::Debug
 
 	Debug() : Brk(brk) { }
 
-	int             version = 1;        /* unused */
-	struct Link_map *map    = nullptr;; /* start of link map */
+	int             version = 1;       /* unused */
+	struct Link_map *map    = nullptr; /* start of link map */
 
 	/*
 	 * This is the address of a function internal to the run-time linker, that
@@ -86,7 +86,7 @@ struct Linker::Link_map
 
 	static void add(Link_map *map)
 	{
-		map->next = nullptr;;
+		map->next = nullptr;
 		if (!first) {
 			first           = map;
 			Debug::d()->map = map;

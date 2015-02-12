@@ -259,7 +259,7 @@ inline int lx_sigaction(int signum, void (*handler)(int))
 	 */
 	enum { SA_RESTORER = 0x04000000 };
 	act.flags    = SA_RESTORER;
-	act.restorer = lx_restore_rt;;
+	act.restorer = lx_restore_rt;
 #else
 	act.flags    = 0;
 	act.restorer = 0;

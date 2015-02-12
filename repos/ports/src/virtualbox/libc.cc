@@ -138,7 +138,7 @@ extern "C" int sigaction(int signum, const struct sigaction *act,
 {
 	/*
 	 * Break infinite loop at 'VBox/Runtime/r3/init.cpp' :451
-	 */;
+	 */
 	if (oldact)
 		oldact->sa_flags = SA_SIGINFO;
 

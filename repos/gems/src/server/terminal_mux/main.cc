@@ -307,7 +307,7 @@ namespace Terminal {
 				unsigned char *dst       = _io_buffer.local_addr<unsigned char>();
 				Genode::size_t dst_size  = Genode::min(_io_buffer.size(), dst_len);
 				do {
-					dst[num_bytes++] = _read_buffer.get();;
+					dst[num_bytes++] = _read_buffer.get();
 				} while (!_read_buffer.empty() && num_bytes < dst_size);
 
 				return num_bytes;

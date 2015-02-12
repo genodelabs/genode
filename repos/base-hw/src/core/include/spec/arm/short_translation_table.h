@@ -399,7 +399,7 @@ class Genode::Translation_table
 		/**
 		 * Try to get entry index in 'i' for virtual offset 'vo!
 		 *
-		 * \return  wether it was successful
+		 * \return  whether it was successful
 		 */
 		bool _index_by_vo(unsigned & i, addr_t const vo) const
 		{

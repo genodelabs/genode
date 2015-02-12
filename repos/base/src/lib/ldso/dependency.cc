@@ -74,7 +74,7 @@ Linker::Root_object::Root_object(char const *path, unsigned flags)
 	new (Genode::env()->heap()) Dependency(path, this, &dep, flags);
 
 	/* provide Genode base library access */
-	new (Genode::env()->heap()) Dependency(linker_name(), this, &dep);;
+	new (Genode::env()->heap()) Dependency(linker_name(), this, &dep);
 
 	/* relocate and call constructors */
 	Init::list()->initialize();

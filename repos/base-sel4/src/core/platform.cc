@@ -266,7 +266,7 @@ void Platform::_init_rom_modules()
 	 */
 	static long slab_block[4096];
 	static Tslab<Rom_module, sizeof(slab_block)>
-		rom_module_slab(core_mem_alloc(), (Genode::Slab_block *)slab_block);;
+		rom_module_slab(core_mem_alloc(), (Genode::Slab_block *)slab_block);
 
 	/*
 	 * Allocate unused range of phys CNode address space where to make the
