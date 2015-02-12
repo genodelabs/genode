@@ -324,7 +324,7 @@ int asprintf(char **strp, const char *fmt, ...)
 	sc.vprintf(fmt, args);
 	va_end(args);
 
-	return strlen(p);;
+	return strlen(p);
 }
 
 

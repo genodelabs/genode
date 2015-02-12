@@ -376,7 +376,7 @@ void Decorator::Window::draw(Decorator::Canvas_base &canvas,
 
 	_draw_title_box(canvas, title_rect, element(Element::TITLE).color());
 
-	char const * const text = _title.string();;
+	char const * const text = _title.string();
 
 	Area const label_area(default_font().str_w(text),
 	                      default_font().str_h(text));

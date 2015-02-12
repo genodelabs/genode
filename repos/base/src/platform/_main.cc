@@ -104,7 +104,7 @@ int genode_atexit(void (*func)(void))
 	int error;
 
 	fn.fn_type = ATEXIT_FN_STD;
-	fn.fn_ptr.std_func = func;;
+	fn.fn_ptr.std_func = func;
 	fn.fn_arg = 0;
 	fn.fn_dso = 0;
 
@@ -127,7 +127,7 @@ int genode___cxa_atexit(void (*func)(void*), void *arg, void *dso)
 	int error;
 
 	fn.fn_type = ATEXIT_FN_CXA;
-	fn.fn_ptr.cxa_func = func;;
+	fn.fn_ptr.cxa_func = func;
 	fn.fn_arg = arg;
 	fn.fn_dso = dso;
 

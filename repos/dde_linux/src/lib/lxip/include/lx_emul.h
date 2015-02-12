@@ -1766,7 +1766,7 @@ char  *strcat(char *dest, const char *src);
 int    strcmp(const char *, const char *);
 int    strncmp(const char *, const char *, size_t);
 char  *strcpy(char *to, const char *from);
-char * strncpy(char *,const char *, __kernel_size_t);;
+char * strncpy(char *,const char *, __kernel_size_t);
 size_t strlcpy(char *dest, const char *src, size_t size);
 char * strsep(char **,const char *);
 

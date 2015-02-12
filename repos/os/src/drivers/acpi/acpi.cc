@@ -315,9 +315,9 @@ class Table_wrapper
 		void parse_dmar() const
 		{
 			Dmar_struct_header *head = _table->dmar_header();
-			PLOG("%u bit DMA physical addressable %s\n", head->width + 1,
+			PLOG("%u bit DMA physical addressable%s\n", head->width + 1,
 			     head->flags & Dmar_struct_header::INTR_REMAP_MASK ?
-			     ", IRQ remapping supported" : "");
+			     " , IRQ remapping supported" : "");
 
 			Dmar_struct *dmar = _table->dmar_struct();
 			for (; dmar < _table->dmar_end(); dmar = dmar->next())

@@ -27,7 +27,7 @@
 #include <lx_emul.h>
 
 /* Callback function to Genode subsystem */
-static genode_input_event_cb handler;;
+static genode_input_event_cb handler;
 
 static unsigned long screen_x  = 0;
 static unsigned long screen_y  = 0;
