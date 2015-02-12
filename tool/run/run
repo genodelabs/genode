@@ -131,6 +131,8 @@ proc build_boot_image {binaries} {
 	run_boot_dir $binaries
 }
 
+# set expect match-buffer size
+match_max -d 40000
 
 ##
 # Execute Genode
@@ -366,9 +368,6 @@ proc run_name         { } { global run_name;         return $run_name }
 proc run_dir          { } { global run_name;         return var/run/$run_name }
 proc genode_dir       { } { global genode_dir;       return $genode_dir }
 proc cross_dev_prefix { } { global cross_dev_prefix; return $cross_dev_prefix }
-
-# set expect match-buffer size
-match_max -d 20000
 
 ##
 # Return true if spec value is set for the build
