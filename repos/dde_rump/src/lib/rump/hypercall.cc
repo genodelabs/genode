@@ -19,13 +19,8 @@
 #include <base/sleep.h>
 #include <os/timed_semaphore.h>
 #include <util/allocator_fap.h>
+#include <util/random.h>
 #include <util/string.h>
-
-extern "C" {
-	namespace Jitter {
-		#include <jitterentropy.h>
-	}
-}
 
 extern "C" void wait_for_continue();
 enum { SUPPORTED_RUMP_VERSION = 17 };
@@ -35,38 +30,6 @@ static bool verbose = false;
 /* upcalls to rump kernel */
 struct rumpuser_hyperup _rump_upcalls;
 
-
-/***********************************
- ** Jitter entropy for randomness **
- ***********************************/
-
-struct Entropy
-{
-	struct Jitter::rand_data *ec_stir;
-
-	Entropy()
-	{
-		Jitter::jent_entropy_init();
-		ec_stir = Jitter::jent_entropy_collector_alloc(0, 0);
-	}
-
-	static Entropy *e()
-	{
-		static Entropy _e;
-		return &_e;
-	}
-
-	size_t read(char *buf, size_t len)
-	{
-		int err;
-		if ((err = Jitter::jent_read_entropy(ec_stir, buf, len) < 0)) {
-			PERR("Failed to read entropy: %d", err);
-			return 0;
-		}
-
-		return len;
-	}
-};
 
 /********************
  ** Initialization **
@@ -89,9 +52,6 @@ int rumpuser_init(int version, const struct rumpuser_hyperup *hyp)
 	 * slow
 	 */
 	Genode::Timeout_thread::alarm_timer();
-
-	/* initialize jitter entropy */
-	Entropy::e();
 
 	return 0;
 }
@@ -336,8 +296,7 @@ int rumpuser_clock_sleep(int enum_rumpclock, int64_t sec, long nsec)
 
 int rumpuser_getrandom(void *buf, size_t buflen, int flags, size_t *retp)
 {
-	*retp = Entropy::e()->read((char *)buf, buflen);
-	return 0;
+	return rumpuser_getrandom_backend(buf, buflen, flags, retp);
 }
 
 
