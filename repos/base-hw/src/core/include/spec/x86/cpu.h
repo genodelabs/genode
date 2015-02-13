@@ -17,6 +17,7 @@
 #include <util/register.h>
 #include <kernel/interface_support.h>
 #include <cpu/cpu_state.h>
+#include <idt.h>
 
 namespace Genode
 {
@@ -36,6 +37,16 @@ namespace Kernel { using Genode::Cpu_lazy_state; }
 class Genode::Cpu
 {
 	public:
+
+		Cpu()
+		{
+			/* Setup IDT only once */
+			if (primary_id() == executing_id()) {
+				Idt::setup();
+			}
+
+			Idt::load();
+		}
 
 		static constexpr addr_t exception_entry = 0x0; /* XXX */
 		static constexpr addr_t mtc_size        = 1 << 13;
