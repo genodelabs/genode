@@ -17,7 +17,7 @@ can move forward with exercising the functionality provided by the kernel,
 namely inter-process communication and the handling of virtual memory.
 Once we have tested those functionalities in our minimalistic root task
 environment, we will be able to apply the gained knowledge to the actual
-porting effort of Genode's core process.
+porting effort of Genode's core component.
 
 
 Inter-process communication
@@ -33,13 +33,14 @@ capabilities as message payload. When a capability is part of a message, the
 kernel translates the local name of the capability in the sender's protection
 domain to a local name in the receiver's protection domain.
 
-In Genode, IPC is realized as a two thin abstractions that build upon each
+In Genode, IPC is realized via two thin abstractions that build upon each
 other:
 
 # At the low level, the IPC library _src/base/ipc/ipc.cc_ is responsible
   for sending and receiving messages using the kernel mechanism. It has a
   generic interface _base/include/base/ipc.h_, which supports the marshalling
-  and un-marshalling of message arguments and capabilities using C++ streaming
+  and un-marshalling of message arguments and capabilities using C++
+  insertion and extraction
   operators. Genode users never directly interact with the IPC library.
 
 # Built on top the IPC library, the so-called RPC framework adds the notion
@@ -51,15 +52,15 @@ other:
 
 To enable Genode's RPC mechanism on seL4, we merely have to provide a
 seL4-specific IPC library implementation. To warm up with seL4's IPC
-mechanism, however, we first modify our test program to let the main thread
-perform an IPC call to the second thread.
+mechanism, however, we first modify our existing test program (see
+[http://genode.org/documentation/articles/sel4_part_1 - the first part])
+to let the main thread perform an IPC call to the second thread.
 
 To let the second thread receive IPC messages, we first need to create a
 synchronous IPC endpoint using the 'seL4_Untyped_RetypeAtOffset' function
 with 'seL4_EndpointObject' as type, an offset that skips the already allocated
-TCB (the TCB object has a known size of 1024 bytes) and the designated
-capability number, let's call it EP_CAP. Of course, we have to create the
-entrypoint before starting the second thread.
+TCB (the TCB object has a known size of 1024 bytes), and the designated
+capability number (EP_CAP).
 
 As a first test, we want the second thread to receive an incoming message.
 So we change the entry function as follows:
@@ -70,7 +71,8 @@ So we change the entry function as follows:
 ! seL4_Reply(msg_info);
 ! PDBG("returned from seL4_Reply");
 
-At the end of the main function, we try call the second thread via 'seL4_Call':
+At the end of the main function (the context of the first thread), we try to
+call the second thread via 'seL4_Call':
 
 ! PDBG("call seL4_Call");
 ! seL4_MessageInfo_t msg_info = seL4_MessageInfo_new(0, 0, 0, 0);
@@ -89,7 +91,7 @@ When executing the code, we get an error as follows:
 By looking at the output of 'objdump -lSd', we see that fault happens at the
 instruction
 ! mov %edi,%gs:0x4(,%ebx,4)
-The issue is the same as the one we experienced for the main thread - we
+The issue is the same as the one we experienced before for the main thread - we
 haven't initialized the GS register with a proper segment, yet. This can be
 easily fixed by adding a call to our 'init_ipc_buffer' function right at the
 start of the second thread's entry function. Still, the program does not work
@@ -104,13 +106,13 @@ second thread with a proper IPC buffer. The attempt to call 'seL4_Wait',
 however, tries to access the IPC buffer of the calling thread. The IPC buffer
 can be configured for a thread using the 'seL4_TCB_SetIPCBuffer' function. But
 wait - what arguments do we need to pass? In addition to the TCB capability,
-there are two arguments a pointer to the IPC buffer and a page capability,
+there are two arguments: a pointer to the IPC buffer and a page capability,
 which contains the IPC buffer. Well, I had hoped to get away without dealing
 with the memory management at this point. I figure that setting up the IPC
-buffer for the second thread would require me to create a seL4_IA32_4K page
-object via 'seL4_Untyped_RetypeAtOffset' and insert a mapping of the page
+buffer for the second thread would require me to create a seL4_IA32_4K frame
+object via 'seL4_Untyped_RetypeAtOffset' and insert a mapping of the page frame
 within the roottask's address space, and possibly also create and install a
-page table object.
+page-table object.
 
 To avoid becoming side-tracked by those memory-management issues, I decide
 to assign the IPC buffer of the second thread right at the same page as
@@ -151,7 +153,7 @@ arguments, the main thread will pass the thread capability of the second
 thread as argument. Upon reception of the call, the second thread will find
 a capability in its IPC buffer. To validate that the received capability
 corresponds to the thread cap, the second thread issues a 'seL4_TCB_Suspend'
-operation on the received cap. It is supposed to stop it execution right
+operation on the received cap. It is supposed to stop its execution right
 there. This experiment requires the following steps:
 
 # At the caller side, we need to supply a capability as argument to the
@@ -174,10 +176,10 @@ there. This experiment requires the following steps:
   We specify 32 as receive depth because the CNode of the initial thread has a
   size of 2^12 and a guard of 20.
 
-At this point I am wondering that there is apparently no way to specify a
-*receive window* rather than an individual CNode for receiving capabilities.
+At this point, I am wondering that there is apparently no way to specify a
+receive window rather than an individual CNode for receiving capabilities.
 After revisiting Section 4.2.2 of the manual, I came to the realization that
-*seL4 does not support delegating* *more than one capability in a single IPC*.
+that *seL4 does not support delegating more than one capability in a single IPC*.
 From Genode's perspective, this could become an issue because Genode's RPC
 framework generally allows for the delegation of multiple capabilities via a
 single RPC call.
@@ -238,5 +240,176 @@ observes the reception of such an "unwrapped" capability via the
 as expected.
 
 
+Management of virtual memory
+############################
 
+Besides synchronous IPC, Genode relies on two other forms of inter-process
+communication, namely asynchronous notifications and shared memory. I will
+save the investigation of the former mechanism for later but focus on seL4's
+mechanisms for managing virtual memory for now.
+
+
+Virtual-memory management in traditional L4 kernels
+===================================================
+
+Traditional L4 kernels rely on an in-kernel mapping database to track memory
+mappings. If a protection domain has access to a range of memory pages, it can
+transfer a "mapping" of those memory pages to other protection domains as IPC
+payload. As a side effect of the IPC operation, the kernel populates the page
+tables of the receiver of the mapping accordingly. In reverse, the originator
+of a mapping can revoke the mapping by using a system call. This system call
+takes a virtual-address range of the calling protection domain as argument and
+flushes all mappings that originated from this range. Because mappings could
+be established transitively, the kernel has to maintain a tree structure
+(mapping database) that records how each memory mapping got established. This
+approach has several problems:
+
+First, it intertwines two concerns, namely the delegation of the authority
+over memory pages and making memory pages accessible. In order to have the
+authorization over memory pages, i.e., the right to hand them out to other
+protection domains or to revoke them from other protection domains, a
+protection domain has to make the pages accessible within its own virtual
+address space. For Genode's core component, which needs to have the authority
+over the entirety of physical memory, this raises two problems: First, even
+though core is not supposed to ever touch memory pages that are in use by
+other components, it still has to make those memory pages accessible within
+its virtual address space. This complicates the assessment of the isolation
+properties of core with respect to the components on top. For example, a
+dangling pointer bug in core could leak or corrupt information that should be
+local to an individual component. Second, the virtual address space of core
+limits the amount of physical memory that can be handed out to other
+components. On a 32-bit machine with 4 GiB of memory, core can hand out a
+maximum of 3 GiB to other components because the upper 1 GiB of its virtual
+address space is owned by the kernel.
+
+Second, the mapping database keeps records about how mappings got established.
+Thereby, the memory required for storing this information in the kernel
+depends on the behaviour of the user land. As a consequence, a malicious
+user-level program is able to provoke a high consumption of kernel memory
+by establishing mappings. Eventually, this represents an attack vector
+for denial-of-service attacks onto the kernel.
+
+
+Virtual-memory management in seL4
+=================================
+
+Fortunately, the seL4 kernel breaks with this traditional approach.
+Authority over memory pages is represented by capabilities. In fact, in
+order to use a memory page, a capability for the memory page must exist.
+This capability can be delegated. But the possession of the authority
+over a memory page does not imply that the memory page is accessible.
+Very good! Second, seL4 dropped the traditional mapping data base.
+It does not record _how_ memory mappings were established. But it provides
+an thin abstraction of page tables that define _who_ has access to which
+memory page. The backing store for those page tables is managed outside
+the kernel. This effectively alleviates the denial-of-service attack vector
+present in traditional L4 kernels.
+
+To test the virtual-memory management facilities of seL4, I decide to
+conduct a simple experiment: I want to attach a page of physical memory into
+the virtual address space of the root task twice. I will write a
+string at the first virtual address and expect to read the same string
+from the second virtual address. Compared to other kernels, this simple
+scenario is quote elaborative on seL4 because the kernel barely abstracts
+from the MMU hardware. I have to perform the following steps:
+
+# Creating a page table and a page frame. I want to attach the page somewhere
+  at 0x40000000, which is an address range not yet in use but the root task.
+  So I have to create an 'seL4_IA32_PageTableObject' first. This is done by
+  the 'seL4_Untyped_RetypeAtOffset' operation as for all other kernel objects.
+  In order to be able to use a portion of physical memory as actual memory, we
+  also have to convert untyped memory to a 'seL4_IA32_4K' kernel object,
+  also using the 'Untyped_Retype' operation.
+
+# With the page table created, we can tell seL4 to insert the page table
+  into the page directory of the root task:
+
+  ! seL4_IA32_PageTable     const service = PAGE_TABLE_CAP;
+  ! seL4_IA32_PageDirectory const pd      = seL4_CapInitThreadPD;
+  ! seL4_Word               const vaddr   = 0x40000000;
+  ! seL4_IA32_VMAttributes  const attr    = seL4_IA32_Default_VMAttributes;
+  !
+  ! int const ret = seL4_IA32_PageTable_Map(service, pd, vaddr, attr);
+
+# Now that the virtual memory range at 0x40000000 is backed by a page table,
+  we can finally insert our page frame at the designated virtual address:
+
+  ! seL4_IA32_Page          const service = PAGE_CAP;
+  ! seL4_IA32_PageDirectory const pd      = seL4_CapInitThreadPD;
+  ! seL4_Word               const vaddr   = 0x40001000;
+  ! seL4_CapRights          const rights  = seL4_AllRights;
+  ! seL4_IA32_VMAttributes  const attr    = seL4_IA32_Default_VMAttributes;
+  !
+  ! int const ret = seL4_IA32_Page_Map(service, pd, vaddr, rights, attr);
+
+After these steps, root task is able to touch the memory at 0x40001000
+without crashing, which is just expected.
+
+However, the attempt to attach the same page at a second virtual address
+fails:
+
+! <<seL4 [decodeIA32FrameInvocation/1630 Te3ffd880 @100025f]:
+!   IA32Frame: Frame already mapped.>>
+
+This is the point where the similarity of seL4's kernel interface to real
+page tables ends. With real page tables, one physical page frame can be
+present in any number of page tables by simply writing the frame number into
+the corresponding page-table entry. In principle, a frame number corresponds
+to an IA32_4K capability. But in contrast to a frame number, which can be
+reused for any number of page-table entries, on seL4, each insertion of a
+page frame into a page table requires a distinct IA32_4K capability. For a
+given IA32_4K capability, the creation of a second capability that refers to
+the same frame is easy enough:
+
+! seL4_CNode     const service    =  seL4_CapInitThreadCNode;
+! seL4_Word      const dest_index = PAGE_CAP_2;
+! uint8_t        const dest_depth = 32;
+! seL4_CNode     const src_root   = seL4_CapInitThreadCNode;
+! seL4_Word      const src_index  = PAGE_CAP;
+! uint8_t        const src_depth  = 32;
+! seL4_CapRights const rights     = seL4_AllRights;
+!
+! int const ret = seL4_CNode_Copy(service, dest_index, dest_depth,
+!                                 src_root, src_index, src_depth, rights);
+
+Inserting the page mapping using the copy of the original IA32_4K capability
+works:
+
+! seL4_IA32_Page          const service = PAGE_CAP_2;
+! seL4_IA32_PageDirectory const pd      = seL4_CapInitThreadPD;
+! seL4_Word               const vaddr   = 0x40002000;
+! seL4_CapRights          const rights  = seL4_AllRights;
+! seL4_IA32_VMAttributes  const attr    = seL4_IA32_Default_VMAttributes;
+!
+! int const ret = seL4_IA32_Page_Map(service, pd, vaddr, rights, attr);
+
+The subsequent test of writing a string to 0x40001000 and reading it from
+0x40002000 produces the desired result.
+
+
+*Sentiments*
+
+Compared to traditional L4 kernels, the virtual memory management of seL4
+is much more advanced. It solves pressing problems that plagued L4 kernels
+since an eternity. This is extremely valuable!
+
+On the other hand, it does so by putting the burden of kernel-resource
+management onto the user land while further complicating the problem
+compared to the underlying mechanism provided by the MMU hardware.
+I understand that the copies of the page-frame capabilities are needed to
+enable to kernel to find and flush all page-table entries when a page frame is
+destroyed. This is a fundamental security property of the kernel.
+
+In Genode, each range of physical memory is represented as a dataspace that
+can be attached to different or the same virtual address spaces any number of
+times. The seemingly small detail that the population of each page-table entry
+requires a dedicated kernel object raises quite a challenge.
+We do not only need to perform the book keeping of the physical page
+frames and their corresponding capability numbers, but additionally need to
+create and keep track of an additional kernel object (a copy of the page-frame
+capability) each time a physical page is mapped to a virtual address space.
+It goes without saying that all the book-keeping meta data must be allocated
+somewhere and accounted properly.
+Fortunately, I see how Genode's resource-trading mechanisms could come to
+the rescue here.
 
