@@ -19,7 +19,9 @@
 #include <io_mem_session/connection.h>
 #include <pci_session/connection.h>
 #include <pci_device/client.h>
+
 #include "acpi.h"
+#include "memory.h"
 
 using namespace Genode;
 
@@ -192,6 +194,13 @@ class Pci_config_space : public List<Pci_config_space>::Element
 };
 
 
+static Acpi::Memory & acpi_memory()
+{
+	static Acpi::Memory _memory;
+	return _memory;
+}
+
+
 /**
  * ACPI table wrapper that for mapping tables to this address space
  */
@@ -200,34 +209,8 @@ class Table_wrapper
 	private:
 
 		addr_t             _base;    /* table base address */
-		Io_mem_connection *_io_mem;  /* mapping connection */
 		Generic           *_table;   /* pointer to table header */
 		char               _name[5]; /* table name */
-
-		/**
-		 * Cleanup dynamically allocated memory
-		 */
-		void _cleanup()
-		{
-			if (_table)
-				env()->rm_session()->detach((uint8_t *)_table - _offset());
-
-			if (_io_mem)
-				destroy(env()->heap(), _io_mem);
-		}
-
-		/**
-		 * Map table of 'size'
-		 */
-		void _map(size_t size)
-		{
-			_io_mem = new (env()->heap()) Io_mem_connection(_base - _offset(), size + _offset());
-			Io_mem_dataspace_capability io_ds = _io_mem->dataspace();
-			if (!io_ds.valid())
-				throw -1;
-
-			_table = (Generic *)((uint8_t *)env()->rm_session()->attach(io_ds, size + _offset()) + _offset());
-		}
 
 		/* return offset of '_base' to page boundary */
 		addr_t _offset() const              { return (_base & 0xfff); }
@@ -245,17 +228,12 @@ class Table_wrapper
 		char const *name() const { return _name; }
 
 		/**
-		 * Copy table data to 'ptr'
+		 * Determine maximal number of potential elements
 		 */
 		template <typename T>
-		T * copy_entries(T &count)
+		addr_t entry_count(T *)
 		{
-			addr_t size = _table->size - sizeof (Generic);
-			count = size / sizeof(T);
-
-			T * entries = new (env()->heap()) T [count];
-			memcpy(entries, _table + 1, size);
-			return entries;
+			return (_table->size - sizeof (Generic)) / sizeof(T);
 		}
 
 		/**
@@ -344,20 +322,17 @@ class Table_wrapper
 					     dmar->base, dmar->limit);
 		}
 
-		Table_wrapper(addr_t base) : _base(base), _io_mem(0), _table(0)
+		Table_wrapper(addr_t base) : _base(base), _table(0)
 		{
-			/*
-			 * Try to map one page only, if table is on page boundary, map two pages
-			 */
-			size_t map_size = 0x1000 - _offset();
-			_map(map_size < 8 ? 0x1000 : map_size);
+			/* if table is on page boundary, map two pages, otherwise one page */
+			size_t const map_size = 0x1000UL - _offset() < 8 ? 0x1000UL : 1UL;
 
-			/* remap if table size is larger than current size */
-			if (_offset() + _table->size > 0x1000) {
-				size_t size = _table->size;
-				_cleanup();
-				_map(size);
-			}
+			/* make table header accessible */
+			_table = reinterpret_cast<Generic *>(acpi_memory().phys_to_virt(base, map_size));
+
+			/* table size is known now - make it complete accessible */
+			if (_offset() + _table->size > 0x1000UL)
+				acpi_memory().phys_to_virt(base, _table->size);
 
 			memset(_name, 0, 5);
 			memcpy(_name, _table->signature, 4);
@@ -370,8 +345,6 @@ class Table_wrapper
 				throw -1;
 			}
 		}
-
-		~Table_wrapper() { _cleanup(); }
 };
 
 
@@ -844,12 +817,6 @@ class Element : public List<Element>::Element
 			}
 		}
 
-		virtual ~Element()
-		{
-			if (_name)
-				env()->heap()->free(_name, _name_len);
-		}
-
 		bool is_device() { return _type == SUB_DEVICE; }
 		bool is_device_name() { return _type == DEVICE_NAME; }
 
@@ -869,6 +836,12 @@ class Element : public List<Element>::Element
 		}
 
 	public:
+
+		virtual ~Element()
+		{
+			if (_name)
+				env()->heap()->free(_name, _name_len);
+		}
 
 		/**
 		 * Accessors
@@ -895,6 +868,30 @@ class Element : public List<Element>::Element
 		{
 			static List<Element> _list;
 			return &_list;
+		}
+
+		static void clean_list()
+		{
+			unsigned long freed_up = 0;
+
+			Element * element = list()->first();
+			while (element) {
+				if (element->is_device() || (element->_name_len == 4 &&
+				                             !memcmp(element->_name, "_PIC", 4))) {
+					element = element->next();
+					continue;
+				}
+
+				freed_up += sizeof(*element) + element->_name ? element->_name_len : 0;
+
+				Element * next = element->next();
+				Element::list()->remove(element);
+				destroy(env()->heap(), element);
+				element = next;
+			}
+
+			if (verbose)
+				PDBG("Freeing up memory of elements - %lu bytes", freed_up);
 		}
 
 		/**
@@ -1188,32 +1185,21 @@ class Acpi_table
 
 			if (xsdt && sizeof(addr_t) != sizeof(uint32_t)) {
 				/* running 64bit and xsdt is valid */
-				addr_t entries_count;
-				addr_t * entries;
-				{
-					Table_wrapper table(xsdt);
-					entries = table.copy_entries(entries_count);
-				}
-
-				_parse_tables(entries, entries_count);
-
-				if (entries)
-					env()->heap()->free(entries, 0);
+				Table_wrapper table(xsdt);
+				uint64_t * entries = reinterpret_cast<uint64_t *>(table.table() + 1);
+				_parse_tables(entries, table.entry_count(entries));
 			} else {
 				/* running (32bit) or (64bit and xsdt isn't valid) */
-				uint32_t entries_count;
-				uint32_t * entries;
-
-				{
-					Table_wrapper table(rsdt);
-					entries = table.copy_entries(entries_count);
-				}
-
-				_parse_tables(entries, entries_count);
-
-				if (entries)
-					env()->heap()->free(entries, 0);
+				Table_wrapper table(rsdt);
+				uint32_t * entries = reinterpret_cast<uint32_t *>(table.table() + 1);
+				_parse_tables(entries, table.entry_count(entries));
 			}
+
+			/* free up memory of elements not of any use */
+			Element::clean_list();
+
+			/* free up io memory */
+			acpi_memory().free_io_memory();
 		}
 };
 

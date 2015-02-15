@@ -14,33 +14,27 @@
 #ifndef _ACPI_H_
 #define _ACPI_H_
 
-#include <base/thread.h>
 #include <pci_session/capability.h>
 
-struct Acpi
+namespace Acpi
 {
-	/**
-	 * Constructor
-	 */
-	Acpi();
-
 	/**
 	 * Generate config file for pci_drv containing pointers to the
 	 * extended PCI config space (since PCI Express)
 	 */
-	static void create_pci_config_file(char * config_space,
+	void create_pci_config_file(char * config_space,
 	                                   Genode::size_t config_space_max);
 	
 	/**
 	 * Rewrite PCI-config space with GSIs found in ACPI tables.
 	 */
-	static void configure_pci_devices(Pci::Session_capability &session);
+	void configure_pci_devices(Pci::Session_capability &session);
 
 	/**
 	 * Return override GSI for IRQ
 	 */
-	static unsigned override(unsigned irq, unsigned *mode);
-};
+	unsigned override(unsigned irq, unsigned *mode);
+}
 
 #endif /* _ACPI_H_ */
 
