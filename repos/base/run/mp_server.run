@@ -57,6 +57,10 @@ if {[have_include "power_on/qemu"]} {
 # pay only attention to the output of init and its children
 grep_output {^\[init }
 
+# remove upgrade messages from init
+unify_output {\[init \-\> test\-server\-mp\] upgrading quota donation for Env\:\:CPU \([0-9]+ bytes\)} ""
+trim_lines
+
 unify_output {transfer cap [a-f0-9]+} "transfer cap UNIFIED"
 unify_output {yes - idx [a-f0-9]+} "yes - idx UNIFIED"
 unify_output {\- received cap [a-f0-9]+} "- received cap UNIFIED"
