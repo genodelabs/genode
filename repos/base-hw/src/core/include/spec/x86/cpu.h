@@ -52,19 +52,55 @@ class Genode::Cpu
 		static constexpr addr_t mtc_size        = 1 << 13;
 
 		/**
+		 * Control register 3: Page-Directory base register
+		 *
+		 * See Intel SDM Vol. 3A, section 2.5.
+		 */
+		struct Cr3 : Register<64>
+		{
+			struct Pwt : Bitfield<3,1> { };    /* Page-level write-through    */
+			struct Pcd : Bitfield<4,1> { };    /* Page-level cache disable    */
+			struct Pdb : Bitfield<12, 36> { }; /* Page-directory base address */
+
+			static void write(access_t const v) {
+				asm volatile ("mov %0, %%cr3" :: "r" (v) : ); }
+
+			static access_t read()
+			{
+				access_t v;
+				asm volatile ("mov %%cr3, %0" : "=r" (v) :: );
+				return v;
+			}
+
+			/**
+			 * Return initialized value
+			 *
+			 * \param table  base of targeted translation table
+			 */
+			static access_t init(addr_t const table) {
+				return Pdb::masked(table); }
+		};
+
+		/**
 		 * Extend basic CPU state by members relevant for 'base-hw' only
 		 */
 		struct Context : Cpu_state
 		{
 			/**
+			 * Address of top-level paging structure.
+			 */
+			addr_t cr3;
+
+			/**
 			 * Return base of assigned translation table
 			 */
-			addr_t translation_table() const { return 0UL; }
+			addr_t translation_table() const { return cr3; }
 
 			/**
 			 * Assign translation-table base 'table'
 			 */
-			void translation_table(addr_t const table) { }
+			void translation_table(addr_t const table) {
+				cr3 = Cr3::init(table); }
 
 			/**
 			 * Assign protection domain
@@ -187,8 +223,8 @@ class Genode::Cpu
 		 * \param process_id  process ID of the kernel address-space
 		 */
 		static void
-		init_virt_kernel(addr_t const table, unsigned const process_id)
-		{ }
+		init_virt_kernel(addr_t const table, unsigned const process_id) {
+			Cr3::write(Cr3::init(table)); }
 
 		inline static void finish_init_phys_kernel()
 		{ }
