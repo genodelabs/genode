@@ -213,6 +213,24 @@ class Genode::Cpu : public Arm_v7
 
 	public:
 
+		/**
+		 * Auxiliary Control Register
+		 */
+		struct Actlr : Register<32>
+		{
+			struct Smp : Bitfield<6, 1> { };
+
+			static access_t read()
+			{
+				access_t v;
+				asm volatile ("mrc p15, 0, %0, c1, c0, 1" : "=r" (v) :: );
+				return v;
+			}
+
+			static void write(access_t const v) {
+				asm volatile ("mcr p15, 0, %0, c1, c0, 1" :: "r" (v) : ); }
+		};
+
 		enum
 		{
 			/* interrupt controller */
