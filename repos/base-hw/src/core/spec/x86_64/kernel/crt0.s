@@ -161,6 +161,14 @@
 	.long 0
 	/* GDTE_LONG | GDTE_PRESENT | GDTE_TYPE_DATA_A | GDTE_TYPE_DATA_W | GDTE_NON_SYSTEM */
 	.long 0x209300
+	/* 64-bit user code segment descriptor */
+	.long 0
+	/* GDTE_LONG | GDTE_PRESENT | GDTE_CODE | GDTE_NON_SYSTEM */
+	.long 0x20f800
+	/* 64-bit user data segment descriptor */
+	.long 0
+	/* GDTE_LONG | GDTE_PRESENT | GDTE_TYPE_DATA_A | GDTE_TYPE_DATA_W | GDTE_NON_SYSTEM */
+	.long 0x20f300
 	/* Task segment descriptor */
 	.long 0
 	/* GDTE_PRESENT | GDTE_SYS_TSS */
