@@ -90,6 +90,13 @@
 	pushq $0x1b
 	pushq (%rax)
 
+	/* Restore segment registers */
+	mov $0x23, %rbx
+	mov %rbx, %ds
+	mov %rbx, %es
+	mov %rbx, %fs
+	mov %rbx, %gs
+
 	1: jmp 1b
 
 	/* end of the mode transition code */
