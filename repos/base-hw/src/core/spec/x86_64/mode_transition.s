@@ -123,7 +123,7 @@
 	mov $_mt_buffer, %rsp
 	popq %rax
 
-	1: jmp 1b
+	iretq
 
 	/* end of the mode transition code */
 	.global _mt_end
