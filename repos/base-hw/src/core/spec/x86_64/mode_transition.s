@@ -75,6 +75,16 @@
 
 	.global _mt_user_entry_pic
 	_mt_user_entry_pic:
+
+	/* Prepare stack frame in mt buffer (Intel SDM Vol. 3A, figure 6-8) */
+	mov _mt_client_context_ptr, %rax
+	mov $_mt_buffer+BUFFER_SIZE, %rsp
+	pushq $0x23
+	pushq SP_OFFSET(%rax)
+	pushq $0x3000 /* XXX: Set Interrupt Enable flag */
+	pushq $0x1b
+	pushq (%rax)
+
 	1: jmp 1b
 
 	/* end of the mode transition code */
