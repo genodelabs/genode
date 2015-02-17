@@ -43,7 +43,23 @@ class File_system::Directory : public Node
 				mode_t ugo = S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH;
 				ret = mkdir(path, ugo);
 				if (ret == -1)
-					throw No_space();
+					switch (errno) {
+					case EACCES:
+						throw Permission_denied();
+						break;
+
+					case EEXIST:
+						throw Node_already_exists();
+						break;
+
+					case ENOSPC:
+						throw No_space();
+						break;
+
+					default:
+						throw Exception();
+						break;
+					}
 			}
 
 			struct stat s;
