@@ -97,6 +97,24 @@
 	mov %rbx, %fs
 	mov %rbx, %gs
 
+	/* Restore register values from client context */
+	lea R8_OFFSET(%rax), %rsp
+	popq %r8
+	popq %r9
+	popq %r10
+	popq %r11
+	popq %r12
+	popq %r13
+	popq %r14
+	popq %r15
+	popq _mt_buffer
+	popq %rbx
+	popq %rcx
+	popq %rdx
+	popq %rdi
+	popq %rsi
+	popq %rbp
+
 	1: jmp 1b
 
 	/* end of the mode transition code */
