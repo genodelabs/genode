@@ -204,9 +204,8 @@
 	pushq $0x23
 	pushq SP_OFFSET(%rax)
 
-	/* Set I/O privilege level to 3 */
-	orq $0x3000, FLAGS_OFFSET(%rax)
-	btrq $9, FLAGS_OFFSET(%rax) /* XXX: Drop once interrupt handling is done */
+	/* Set I/O privilege level to 3 and enable interrupts */
+	orq $0x3200, FLAGS_OFFSET(%rax)
 	pushq FLAGS_OFFSET(%rax)
 
 	pushq $0x1b
