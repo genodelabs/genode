@@ -17,6 +17,9 @@
 /* size of pointer to CPU context */
 .set CONTEXT_PTR_SIZE, 1 * 8
 
+/* globally mapped buffer storage */
+.set BUFFER_SIZE, 6 * 8
+
 .section .text
 
 	/*
@@ -53,6 +56,7 @@
 	.p2align 2
 	.global _mt_buffer
 	_mt_buffer:
+	.space BUFFER_SIZE
 
 	/*
 	 * On user exceptions the CPU has to jump to one of the following
