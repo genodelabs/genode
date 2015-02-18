@@ -474,7 +474,7 @@ namespace Nova {
 					unsigned limit;
 					mword_t  base;
 #ifndef __x86_64__
-					mword_t  reserved;	
+					mword_t  reserved;
 #endif
 				} es, cs, ss, ds, fs, gs, ldtr, tr;
 				struct {
@@ -482,7 +482,7 @@ namespace Nova {
 					unsigned limit;
 					mword_t  base;
 #ifndef __x86_64__
-					mword_t  reserved1;	
+					mword_t  reserved1;
 #endif
 				} gdtr, idtr;
 				unsigned long long tsc_val, tsc_off;
@@ -494,6 +494,14 @@ namespace Nova {
 			mword_t hotspot;
 			bool is_del() { return hotspot & 0x1; }
 		};
+
+#ifdef __x86_64__
+		inline mword_t read_efer() { return efer; }
+		inline void write_efer(mword_t e) { efer = e; }
+#else
+		inline mword_t read_efer() { return 0UL; }
+		inline void write_efer(mword_t) { }
+#endif
 
 		/**
 		 * Set number of untyped message words
