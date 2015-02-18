@@ -20,6 +20,7 @@
 #include <timer.h>
 #include <cpu.h>
 #include <kernel/cpu_scheduler.h>
+#include <kernel/irq.h>
 
 /* base includes */
 #include <unmanaged_singleton.h>
@@ -232,22 +233,51 @@ class Kernel::Cpu_idle : public Genode::Cpu::User_context, public Cpu_job
 		Cpu_job * helping_sink() { return this; }
 };
 
-class Kernel::Cpu : public Genode::Cpu
+class Kernel::Cpu : public Genode::Cpu,
+                    public Irq::Pool
 {
 	private:
 
 		typedef Cpu_job Job;
 
+		/**
+		 * Inter-processor-interrupt object of the cpu
+		 */
+		struct Ipi : Irq
+		{
+			bool pending = false;
+
+
+			/*********************
+			 **  Irq interface  **
+			 *********************/
+
+			void occurred();
+
+			/**
+			 * Constructor
+			 *
+			 * \param p  interrupt pool this irq shall reside in
+			 */
+			Ipi(Irq::Pool &p);
+
+			/**
+			 * Trigger the ipi
+			 *
+			 * \param cpu_id  id of the cpu this ipi object is related to
+			 */
+			void trigger(unsigned const cpu_id);
+		};
+
 		unsigned const _id;
 		Cpu_idle       _idle;
 		Timer * const  _timer;
 		Cpu_scheduler  _scheduler;
-		bool           _ip_interrupt_pending;
+		Ipi        _ipi_irq;
+		Irq            _timer_irq; /* timer irq implemented as empty event */
 
 		unsigned _quota() const { return _timer->ms_to_tics(cpu_quota_ms); }
-		unsigned _fill() const { return _timer->ms_to_tics(cpu_fill_ms); }
-		Job * _scheduled_job() const {
-			return static_cast<Job *>(_scheduler.head())->helping_sink(); }
+		unsigned _fill() const  { return _timer->ms_to_tics(cpu_fill_ms); }
 
 	public:
 
@@ -255,25 +285,29 @@ class Kernel::Cpu : public Genode::Cpu
 		 * Construct object for CPU 'id' with scheduling timer 'timer'
 		 */
 		Cpu(unsigned const id, Timer * const timer)
-		:
-			_id(id), _idle(this), _timer(timer),
-			_scheduler(&_idle, _quota(), _fill()),
-			_ip_interrupt_pending(false) { }
-
-		/**
-		 * Check if IRQ 'i' was due to a scheduling timeout
-		 */
-		bool timer_irq(unsigned const i) { return _timer->interrupt_id(_id) == i; }
-
-		/**
-		 * Notice that the IPI of the CPU isn't pending anymore
-		 */
-		void ip_interrupt_handled() { _ip_interrupt_pending = false; }
+		: _id(id), _idle(this), _timer(timer),
+		  _scheduler(&_idle, _quota(), _fill()),
+		  _ipi_irq(*this),
+		  _timer_irq(_timer->interrupt_id(_id), *this) { }
 
 		/**
 		 * Raise the IPI of the CPU
 		 */
-		void trigger_ip_interrupt();
+		void trigger_ip_interrupt() { _ipi_irq.trigger(_id); }
+
+		/**
+		 * Deliver interrupt to the CPU
+		 *
+		 * \param irq_id  id of the interrupt that occured
+		 * \returns true if the interrupt belongs to this CPU, otherwise false
+		 */
+		bool interrupt(unsigned const irq_id)
+		{
+			Irq * const irq = object(irq_id);
+			if (!irq) return false;
+			irq->occurred();
+			return true;
+		}
 
 		/**
 		 * Schedule 'job' at this CPU
@@ -286,7 +320,7 @@ class Kernel::Cpu : public Genode::Cpu
 		void exception()
 		{
 			/* update old job */
-			Job * const old_job = _scheduled_job();
+			Job * const old_job = scheduled_job();
 			old_job->exception(_id);
 
 			/* update scheduler */
@@ -296,7 +330,7 @@ class Kernel::Cpu : public Genode::Cpu
 			_scheduler.update(quota);
 
 			/* get new job */
-			Job * const new_job = _scheduled_job();
+			Job * const new_job = scheduled_job();
 			quota = _scheduler.head_quota();
 			assert(quota);
 			_timer->start_one_shot(quota, _id);
@@ -313,6 +347,12 @@ class Kernel::Cpu : public Genode::Cpu
 		/***************
 		 ** Accessors **
 		 ***************/
+
+		/**
+		 * Returns the currently active job
+		 */
+		Job * scheduled_job() const {
+			return static_cast<Job *>(_scheduler.head())->helping_sink(); }
 
 		unsigned id() const { return _id; }
 		Cpu_scheduler * scheduler() { return &_scheduler; }
@@ -350,6 +390,11 @@ class Kernel::Cpu_pool
 		 * Return object of primary CPU
 		 */
 		Cpu * primary_cpu() const { return cpu(Cpu::primary_id()); }
+
+		/**
+		 * Return object of current CPU
+		 */
+		Cpu * executing_cpu() const { return cpu(Cpu::executing_id()); }
 
 		/*
 		 * Accessors

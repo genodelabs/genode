@@ -92,24 +92,19 @@ void Cpu_job::_interrupt(unsigned const cpu_id)
 {
 	/* determine handling for specific interrupt */
 	unsigned irq_id;
-	Pic * const ic = pic();
-	if (ic->take_request(irq_id)) {
+	if (pic()->take_request(irq_id))
 
-		/* check wether the interrupt is a CPU-scheduling timeout */
-		if (!_cpu->timer_irq(irq_id)) {
+		/* is the interrupt a cpu-local one */
+		if (!_cpu->interrupt(irq_id)) {
 
-			/* check wether the interrupt is our IPI */
-			if (ic->is_ip_interrupt(irq_id)) {
-
-				cpu_domain_update_list()->do_each();
-				_cpu->ip_interrupt_handled();
-
-			/* try to inform the user interrupt-handler */
-			} else { Irq::occurred(irq_id); }
+			/* it needs to be a user interrupt */
+			User_irq * irq = User_irq::object(irq_id);
+			if (irq) irq->occurred();
+			else PWRN("Unknown interrupt %u", irq_id);
 		}
-	}
+
 	/* end interrupt request at controller */
-	ic->finish_request();
+	pic()->finish_request();
 }
 
 
@@ -138,13 +133,23 @@ void Cpu::schedule(Job * const job)
 }
 
 
-void Cpu::trigger_ip_interrupt()
+void Cpu::Ipi::occurred()
 {
-	if (!_ip_interrupt_pending) {
-		pic()->trigger_ip_interrupt(_id);
-		_ip_interrupt_pending = true;
-	}
+	cpu_domain_update_list()->do_each();
+	pending = false;
 }
+
+
+void Cpu::Ipi::trigger(unsigned const cpu_id)
+{
+	if (pending) return;
+
+	pic()->trigger_ip_interrupt(cpu_id);
+	pending = true;
+}
+
+
+Cpu::Ipi::Ipi(Irq::Pool &p) : Irq(Pic::IPI, p) { }
 
 
 /***********************

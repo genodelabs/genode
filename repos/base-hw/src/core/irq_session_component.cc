@@ -63,6 +63,6 @@ Irq_session_component::Irq_session_component(Cap_session * const     cap_session
 		throw Root::Invalid_args();
 	}
 	/* make interrupt accessible */
-	_signal = Irq::signal(irq_number);
+	_signal = Kernel::User_irq::signal(irq_number);
 	_cap    = Irq_session_capability(irq_session_ep()->manage(this));
 }

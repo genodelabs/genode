@@ -177,12 +177,15 @@ class Genode::Arm_gic_cpu_interface : public Mmio
 
 class Genode::Pic
 {
+	public:
+
+		enum { IPI = 1 };
+
 	protected:
 
 		typedef Arm_gic_cpu_interface Cpui;
 		typedef Arm_gic_distributor   Distr;
 
-		static constexpr unsigned ipi         = 1;
 		static constexpr unsigned min_spi     = 32;
 		static constexpr unsigned spurious_id = 1023;
 
@@ -261,21 +264,13 @@ class Genode::Pic
 			_distr.write<Distr::Icenabler::Clear_enable>(1, irq_id); }
 
 		/**
-		 * Return wether an IRQ is inter-processor IRQ of a CPU
-		 *
-		 * \param irq_id  kernel name of the IRQ
-		 */
-		bool is_ip_interrupt(unsigned const irq_id) {
-			return irq_id == ipi; }
-
-		/**
 		 * Raise inter-processor IRQ of the CPU with kernel name 'cpu_id'
 		 */
 		void trigger_ip_interrupt(unsigned const cpu_id)
 		{
 			typedef Distr::Sgir Sgir;
 			Sgir::access_t sgir = 0;
-			Sgir::Sgi_int_id::set(sgir, ipi);
+			Sgir::Sgi_int_id::set(sgir, IPI);
 			Sgir::Cpu_target_list::set(sgir, 1 << cpu_id);
 			_distr.write<Sgir>(sgir);
 		}

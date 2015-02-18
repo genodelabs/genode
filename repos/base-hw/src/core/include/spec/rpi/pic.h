@@ -135,7 +135,14 @@ class Genode::Pic : Mmio
 {
 	public:
 
-		enum { NR_OF_IRQ = 64 };
+		enum {
+			/*
+			 * FIXME: dummy ipi value on non-SMP platform, should be removed
+			 *        when SMP is an aspect of CPUs only compiled where necessary
+			 */
+			IPI       = 63,
+			NR_OF_IRQ = 64,
+		};
 
 	private:
 
