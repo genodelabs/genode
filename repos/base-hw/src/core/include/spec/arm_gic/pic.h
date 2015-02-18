@@ -51,8 +51,12 @@ class Genode::Arm_gic_distributor : public Mmio
 		/**
 		 * Control register
 		 */
-		struct Ctlr : Register<0x000, 32> {
-			struct Enable : Bitfield<0,1> { }; };
+		struct Ctlr : Register<0x000, 32>
+		{
+			struct Enable      : Bitfield<0,1> { };
+			struct Enable_grp0 : Bitfield<0,1> { };
+			struct Enable_grp1 : Bitfield<1,1> { };
+		};
 
 		/**
 		 * Controller type register

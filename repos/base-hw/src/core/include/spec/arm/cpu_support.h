@@ -221,10 +221,19 @@ class Genode::Arm
 		 */
 		struct Psr : Register<32>
 		{
-			static constexpr access_t usr = 16;
-			static constexpr access_t svc = 19;
+			/**
+			 * CPU mode
+			 */
+			struct M : Bitfield<0,5>
+			{
+				enum {
+					USR = 16,
+					SVC = 19,
+					MON = 22,
+					HYP = 26,
+				};
+			};
 
-			struct M : Bitfield<0,5> { }; /* CPU mode */
 			struct F : Bitfield<6,1> { }; /* FIQ disable */
 			struct I : Bitfield<7,1> { }; /* IRQ disable */
 			struct A : Bitfield<8,1> { }; /* async. abort disable */
@@ -260,7 +269,7 @@ class Genode::Arm
 			{
 				access_t v = 0;
 				init_common(v);
-				M::set(v, usr);
+				M::set(v, M::USR);
 				return v;
 			}
 
@@ -271,7 +280,7 @@ class Genode::Arm
 			{
 				access_t v = 0;
 				init_common(v);
-				M::set(v, svc);
+				M::set(v, M::SVC);
 				I::set(v, 1);
 				return v;
 			}
@@ -418,7 +427,7 @@ class Genode::Arm
 		/**
 		 * Returns true if current execution context is running in user mode
 		 */
-		static bool is_user() { return Psr::M::get(Psr::read()) == Psr::usr; }
+		static bool is_user() { return Psr::M::get(Psr::read()) == Psr::M::USR; }
 
 		/**
 		 * Invalidate all entries of all instruction caches

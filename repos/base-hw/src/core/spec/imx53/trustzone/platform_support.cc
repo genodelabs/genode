@@ -39,8 +39,11 @@ void Kernel::init_trustzone(Pic * pic)
 	/* set exception vector entry */
 	Cpu::mon_exception_entry_at((Genode::addr_t)&_mon_kernel_entry);
 
-	/* enable coprocessor access for TZ VMs */
-	Cpu::allow_coprocessor_nonsecure();
+	/* enable coprocessor 10 + 11 access for TZ VMs */
+	Cpu::Nsacr::access_t v = 0;
+	Cpu::Nsacr::Cpnsae10::set(v, 1);
+	Cpu::Nsacr::Cpnsae11::set(v, 1);
+	Cpu::Nsacr::write(v);
 
 	/* configure non-secure interrupts */
 	for (unsigned i = 0; i < Pic::NR_OF_IRQ; i++) {

@@ -229,6 +229,9 @@ extern "C" void init_kernel_up()
 	/* initialize all CPU objects */
 	cpu_pool();
 
+	/* initialize PIC */
+	pic();
+
 	/* go multiprocessor mode */
 	Cpu::start_secondary_cpus(&_start_secondary_cpus);
 }
@@ -289,6 +292,9 @@ extern "C" void init_kernel_mp()
 	Cpu::invalidate_instr_caches();
 	Cpu::data_synchronization_barrier();
 
+	/* locally initialize interrupt controller */
+	pic()->init_cpu_local();
+
 	/* initialize CPU in physical mode */
 	Cpu::init_phys_kernel();
 
@@ -319,9 +325,8 @@ extern "C" void init_kernel_mp()
 	 */
 	perf_counter()->enable();
 
-	/* locally initialize interrupt controller */
+	/* enable timer interrupt */
 	unsigned const cpu = Cpu::executing_id();
-	pic()->init_cpu_local();
 	pic()->unmask(Timer::interrupt_id(cpu), cpu);
 
 	/* do further initialization only as primary CPU */

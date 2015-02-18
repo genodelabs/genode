@@ -25,7 +25,7 @@ namespace Genode
 
 			static void outer_cache_invalidate() { }
 			static void outer_cache_flush() { }
-			static void prepare_kernel() { }
+			static void prepare_kernel();
 
 			/**
 			 * Tell secondary CPUs to start execution from instr. pointer 'ip'

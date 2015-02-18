@@ -34,7 +34,7 @@ namespace Kernel { using Genode::Cpu_lazy_state; }
 
 class Genode::Cpu : public Arm_v7
 {
-	protected:
+	public:
 
 		/**
 		 * Translation table base control register
@@ -66,7 +66,13 @@ class Genode::Cpu : public Arm_v7
 			}
 		};
 
-	public:
+		/**
+		 * Non-secure access control register
+		 */
+		struct Nsacr : Arm_v7::Nsacr
+		{
+			struct Ns_smp : Bitfield<18,1> { };
+		};
 
 		/**
 		 * Translation table base register 0 (64-bit format)

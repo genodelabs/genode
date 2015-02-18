@@ -141,14 +141,19 @@ namespace Genode
 
 class Genode::Arm_v7 : public Arm
 {
-	protected:
+	public:
 
 		/**
 		 * Secure configuration register
 		 */
 		struct Scr : Register<32>
 		{
-			struct Ns : Bitfield<0, 1> { }; /* not secure */
+			struct Ns  : Bitfield<0, 1> { }; /* not secure               */
+			struct Fw  : Bitfield<4, 1> { }; /* F bit writeable          */
+			struct Aw  : Bitfield<5, 1> { }; /* A bit writeable          */
+			struct Scd : Bitfield<7, 1> { }; /* smc call disable         */
+			struct Hce : Bitfield<8, 1> { }; /* hyp call enable          */
+			struct Sif : Bitfield<9, 1> { }; /* secure instruction fetch */
 
 			/**
 			 * Read register value
@@ -159,6 +164,15 @@ class Genode::Arm_v7 : public Arm
 				asm volatile ("mrc p15, 0, %[v], c1, c1, 0" : [v]"=r"(v) ::);
 				return v;
 			}
+
+			/**
+			 * Write register value
+			 */
+			static void write(access_t const v)
+			{
+				asm volatile ("mcr p15, 0, %[v], c1, c1, 0 \n"
+				              "isb" : : [v] "r" (v));
+			}
 		};
 
 		/**
@@ -168,6 +182,14 @@ class Genode::Arm_v7 : public Arm
 		{
 			struct Cpnsae10 : Bitfield<10, 1> { };
 			struct Cpnsae11 : Bitfield<11, 1> { };
+
+			/**
+			 * Write register value
+			 */
+			static void write(access_t const v)
+			{
+				asm volatile ("mcr p15, 0, %[v], c1, c1, 2" : : [v] "r" (v));
+			}
 		};
 
 		/**
@@ -216,8 +238,6 @@ class Genode::Arm_v7 : public Arm
 			}
 		};
 
-	public:
-
 		/**
 		 * Invalidate all branch predictions
 		 */
@@ -256,37 +276,6 @@ class Genode::Arm_v7 : public Arm
 		}
 
 		/**
-		 * Wether we are in secure mode
-		 */
-		static bool secure_mode()
-		{
-			if (!Board::SECURITY_EXTENSION) return 0;
-			return !Scr::Ns::get(Scr::read());
-		}
-
-
-		/******************************
-		 **  Trustzone specific API  **
-		 ******************************/
-
-		/**
-		 * Set exception-vector's address for monitor mode to 'a'
-		 */
-		static void mon_exception_entry_at(addr_t const a) {
-			asm volatile ("mcr p15, 0, %[rd], c12, c0, 1" : : [rd] "r" (a)); }
-
-		/**
-		 * Enable access of co-processors cp10 and cp11 from non-secure mode.
-		 */
-		static inline void allow_coprocessor_nonsecure()
-		{
-			Nsacr::access_t v = 0;
-			Nsacr::Cpnsae10::set(v, 1);
-			Nsacr::Cpnsae11::set(v, 1);
-			asm volatile ("mcr p15, 0, %[v], c1, c1, 2" : : [v] "r" (v));
-		}
-
-		/**
 		 * Finish all previous data transfers
 		 */
 		static void data_synchronization_barrier() { asm volatile ("dsb"); }
@@ -306,6 +295,37 @@ class Genode::Arm_v7 : public Arm
 		 * Wait for the next interrupt as cheap as possible
 		 */
 		static void wait_for_interrupt() { asm volatile ("wfi"); }
+
+
+		/******************************
+		 **  Trustzone specific API  **
+		 ******************************/
+
+		/**
+		 * Wether we are in secure mode
+		 */
+		static bool secure_mode()
+		{
+			if (!Board::SECURITY_EXTENSION) return 0;
+			return !Scr::Ns::get(Scr::read());
+		}
+
+		/**
+		 * Set exception-vector's address for monitor mode to 'a'
+		 */
+		static void mon_exception_entry_at(addr_t const a) {
+			asm volatile ("mcr p15, 0, %[rd], c12, c0, 1" : : [rd] "r" (a)); }
+
+
+		/***********************************
+		 **  Virtualization specific API  **
+		 ***********************************/
+
+		/**
+		 * Set exception-vector's address for hypervisor mode to 'a'
+		 */
+		static void hyp_exception_entry_at(void * a) {
+			asm volatile ("mcr p15, 4, %[rd], c12, c0, 0" :: [rd] "r" (a)); }
 };
 
 
@@ -332,7 +352,7 @@ void Genode::Arm::invalidate_data_caches()
 Genode::Arm::Psr::access_t Genode::Arm::Psr::init_user_with_trustzone()
 {
 	access_t v = 0;
-	M::set(v, usr);
+	M::set(v, M::USR);
 	I::set(v, 1);
 	A::set(v, 1);
 	return v;
