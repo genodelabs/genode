@@ -75,7 +75,13 @@ namespace Genode {
 					}
 
 					/**
-					 * Return location of a single CPU of specified index
+					 * Return the location of the Nth CPU within the affinity
+					 * space
+					 *
+					 * This function returns a valid location even if the index
+					 * is larger than the number of CPUs in the space. In this
+					 * case, the x and y coordinates are wrapped by the bounds
+					 * of the space.
 					 */
 					inline Location location_of_index(int index);
 			};
@@ -178,7 +184,7 @@ namespace Genode {
 
 	Affinity::Location Affinity::Space::location_of_index(int index)
 	{
-		return Location(index % _width, index / _width, 1, 1);
+		return Location(index % _width, (index / _width) % _height, 1, 1);
 	}
 }
 
