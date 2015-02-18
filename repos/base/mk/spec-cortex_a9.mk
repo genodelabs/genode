@@ -10,7 +10,8 @@ SPECS += arm_v7a pl390
 # add repository relative include paths
 REP_INC_DIR += include/cortex_a9
 
-CC_OPT += -mcpu=cortex-a9
+# configure compiler
+CC_MARCH += -march=armv7-a -mcpu=cortex-a9
 
 # include implied specs
 include $(call select_from_repositories,mk/spec-arm_v7a.mk)

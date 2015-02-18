@@ -35,7 +35,7 @@ BUILD_CMD = BUILD_CC=cc BUILD_AR=ar BUILD_NM=nm BUILD_OBJCOPY=objcopy \
 # Linkage
 #
 ARCHIVE = $(RUMP_LIB)/librump.a
-CC_OPT  = -DLIBRUMPUSER
+CC_OPT += -DLIBRUMPUSER
 
 
 INCSDIRS = adosfs altq arpa crypto dev evbarm filecorefs fs i386 isofs miscfs \

@@ -7,9 +7,6 @@
 # denote wich specs are also fullfilled by this spec
 SPECS += arm_v7
 
-# configure compiler
-CC_MARCH += -march=armv7-a
-
 # add repository relative include paths
 REP_INC_DIR += include/arm_v7a
 

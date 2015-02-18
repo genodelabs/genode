@@ -10,18 +10,17 @@ SPECS += arm_v7a
 # add repository relative include paths
 REP_INC_DIR += include/cortex_a15
 
+# configure compiler
 #
 # GCC versions up to 4.7.3 complain about conflicting command-line switches:
 #
 #   warning: switch -mcpu=cortex-a15 conflicts with -march=armv7-a switch [enabled by default]
 #
-# Therefore, do not specify the actual CPU and stay with just the architecture
-# for now.
+# Therefore, do not specify the actual CPU and the architecture together.
 #
 # Reference: https://github.com/genodelabs/genode/issues/810
 #
-#CC_OPT += -mcpu=cortex-a15
+CC_MARCH += -mcpu=cortex-a15
 
 # include implied specs
 include $(call select_from_repositories,mk/spec-arm_v7a.mk)
-
