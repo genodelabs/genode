@@ -22,16 +22,27 @@
 #include <framebuffer_session/framebuffer_session.h>
 #include <cap_session/connection.h>
 #include <input/root.h>
+#include <os/config.h>
 
 /* local includes */
 #include <input.h>
+
+
+/**
+ * Read integer value from config attribute
+ */
+void config_arg(const char *attr, long *value)
+{
+	try { Genode::config()->xml_node().attribute(attr).value(value); }
+	catch (...) { }
+}
 
 
 /*
  * Variables for the libSDL output window
  */
 static SDL_Surface *screen;
-static int scr_width = 1024, scr_height = 768;
+static long scr_width = 1024, scr_height = 768;
 static Framebuffer::Mode::Format scr_format = Framebuffer::Mode::RGB565;
 
 /*
@@ -113,9 +124,8 @@ extern "C" int main(int, char**)
 	using namespace Genode;
 	using namespace Framebuffer;
 
-	/*
-	 * FIXME: Read configuration (screen parameters)
-	 */
+	config_arg("width",  &scr_width);
+	config_arg("height", &scr_height);
 
 	/*
 	 * Initialize libSDL window
@@ -130,7 +140,7 @@ extern "C" int main(int, char**)
 	screen = SDL_SetVideoMode(scr_width, scr_height, bpp*8, SDL_SWSURFACE);
 	SDL_ShowCursor(0);
 
-	Genode::printf("creating virtual framebuffer for mode %dx%d@%zd\n",
+	Genode::printf("creating virtual framebuffer for mode %ldx%ld@%zd\n",
 	               scr_width, scr_height, bpp*8);
 
 	/*
