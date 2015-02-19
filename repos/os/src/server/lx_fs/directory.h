@@ -15,6 +15,7 @@
 #include <node.h>
 #include <util.h>
 #include <file.h>
+#include <symlink.h>
 
 #include <lx_util.h>
 
@@ -42,7 +43,23 @@ class File_system::Directory : public Node
 				mode_t ugo = S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH;
 				ret = mkdir(path, ugo);
 				if (ret == -1)
-					throw No_space();
+					switch (errno) {
+					case EACCES:
+						throw Permission_denied();
+						break;
+
+					case EEXIST:
+						throw Node_already_exists();
+						break;
+
+					case ENOSPC:
+						throw No_space();
+						break;
+
+					default:
+						throw Exception();
+						break;
+					}
 			}
 
 			struct stat s;
@@ -80,7 +97,6 @@ class File_system::Directory : public Node
 			closedir(_fd);
 		}
 
-		/* FIXME returned file node must be locked */
 		File * file(char const *name, Mode mode, bool create)
 		{
 			File *file = new (&_alloc) File(dirfd(_fd), name, mode, create);
@@ -89,7 +105,14 @@ class File_system::Directory : public Node
 			return file;
 		}
 
-		/* FIXME returned directory node must be locked */
+		Symlink * symlink(char const *name, bool create)
+		{
+			Symlink *link = new (&_alloc) Symlink(_path.base(), name, create);
+
+			link->lock();
+			return link;
+		}
+
 		Directory * subdir(char const *path, bool create)
 		{
 			Path dir_path(path, _path.base());
@@ -104,15 +127,8 @@ class File_system::Directory : public Node
 		{
 			Path node_path(path, _path.base());
 
-			/*
-			 * XXX Currently, symlinks are transparently dereferenced by the
-			 *     use of stat(). For symlink detection we would need lstat()
-			 *     and implement special handling of the root, which may be a
-			 *     link!
-			 */
-
 			struct stat s;
-			int ret = stat(node_path.base(), &s);
+			int ret = lstat(node_path.base(), &s);
 			if (ret == -1)
 				throw Lookup_failed();
 
@@ -122,6 +138,8 @@ class File_system::Directory : public Node
 				node = new (&_alloc) Directory(_alloc, node_path.base(), false);
 			else if (S_ISREG(s.st_mode))
 				node = new (&_alloc) File(node_path.base(), STAT_ONLY);
+			else if (S_ISLNK(s.st_mode))
+				node = new (&_alloc) Symlink(node_path.base(), false);
 			else
 				throw Lookup_failed();
 
@@ -183,6 +201,29 @@ class File_system::Directory : public Node
 
 			return num;
 		}
+
+		void unlink(char const *path)
+		{
+			Path node_path(path, _path.base());
+
+			struct stat s;
+			int ret = lstat(node_path.base(), &s);
+			if (ret == -1)
+				throw Lookup_failed();
+
+			if (S_ISDIR(s.st_mode))
+				ret = rmdir(node_path.base());
+			else if (S_ISREG(s.st_mode) || S_ISLNK(s.st_mode))
+				ret = ::unlink(node_path.base());
+			else
+				throw Lookup_failed();
+
+			if (ret == -1) {
+				if (errno == EACCES)
+					throw Permission_denied();
+				PERR("Error during unlink of %s", node_path.base());
+			}
+		};
 };
 
 #endif /* _DIRECTORY_H_ */
