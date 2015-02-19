@@ -22,8 +22,8 @@ class Mmu
 {
 	private:
 
-		Vm_state *_state;
-		Ram      *_ram;
+		Genode::Vm_state *_state;
+		Ram              *_ram;
 
 		unsigned _n_bits() { return _state->ttbrc & 0x7; }
 
@@ -68,7 +68,7 @@ class Mmu
 
 	public:
 
-		Mmu(Vm_state *state, Ram *ram)
+		Mmu(Genode::Vm_state *state, Ram *ram)
 		: _state(state), _ram(ram) {}
 
 

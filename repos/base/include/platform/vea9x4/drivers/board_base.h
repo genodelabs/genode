@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__DRIVERS__BOARD_BASE_H_
-#define _INCLUDE__DRIVERS__BOARD_BASE_H_
+#ifndef _INCLUDE__PLATFORM__VEA9X4__DRIVERS__BOARD_BASE_H_
+#define _INCLUDE__PLATFORM__VEA9X4__DRIVERS__BOARD_BASE_H_
 
 namespace Genode
 {
@@ -79,5 +79,5 @@ namespace Genode
 	};
 }
 
-#endif /* _INCLUDE__DRIVERS__BOARD_BASE_H_ */
+#endif /* _INCLUDE__PLATFORM__VEA9X4__DRIVERS__BOARD_BASE_H_ */
 

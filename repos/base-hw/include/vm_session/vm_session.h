@@ -26,6 +26,8 @@ namespace Genode {
 	{
 			static const char *service_name() { return "VM"; }
 
+			class Invalid_dataspace : Exception { };
+
 			/**
 			 * Destructor
 			 */
@@ -51,6 +53,33 @@ namespace Genode {
 			 */
 			virtual void pause(void) {}
 
+			/**
+			 * Attach dataspace to the guest-physical memory address space
+			 *
+			 * \param ds       dataspace to be attached
+			 * \param vm_addr  address in guest-physical memory address space
+			 */
+			virtual void attach(Dataspace_capability ds, addr_t vm_addr) = 0;
+
+			/**
+			 * Invalidate region of the guest-physical memory address space
+			 *
+			 * \param vm_addr  address in guest-physical memory address space
+			 * \param size     size of the region to invalidate
+			 */
+			virtual void detach(addr_t vm_addr, size_t size) = 0;
+
+			/**
+			 * Attach cpu-local interrupt-controller's interface to
+			 * guest-physical memory address space.
+			 *
+			 * \param vm_addr  address in guest-physical memory address space
+			 *
+			 * Note: this is currently only support for ARM interrupt-controller
+			 *       hardware virtualization
+			 */
+			virtual void attach_pic(addr_t vm_addr) = 0;
+
 
 			/*********************
 			 ** RPC declaration **
@@ -61,8 +90,14 @@ namespace Genode {
 			           Signal_context_capability);
 			GENODE_RPC(Rpc_run, void, run);
 			GENODE_RPC(Rpc_pause, void, pause);
+			GENODE_RPC_THROW(Rpc_attach, void, attach,
+			                 GENODE_TYPE_LIST(Invalid_dataspace),
+		                     Dataspace_capability, addr_t);
+			GENODE_RPC(Rpc_detach, void, detach, addr_t, size_t);
+			GENODE_RPC(Rpc_attach_pic, void, attach_pic, addr_t);
 			GENODE_RPC_INTERFACE(Rpc_cpu_state, Rpc_exception_handler,
-			                     Rpc_run, Rpc_pause);
+			                     Rpc_run, Rpc_pause, Rpc_attach, Rpc_detach,
+			                     Rpc_attach_pic);
 	};
 }
 

@@ -6,15 +6,22 @@
 #
 
 # add include paths
+INC_DIR += $(REP_DIR)/src/core/include/spec/arm_v7/trustzone
 INC_DIR += $(REP_DIR)/src/core/include/spec/imx53/trustzone
-INC_DIR += $(REP_DIR)/src/core/include/spec/imx53
-INC_DIR += $(REP_DIR)/src/core/include/spec/cortex_a8
 
 # add C++ sources
 SRC_CC += spec/imx53/trustzone/platform_support.cc
 SRC_CC += spec/imx53/trustzone/platform_services.cc
 SRC_CC += spec/imx53/trustzone/pic.cc
-SRC_CC += vm_session_component.cc
+SRC_CC += spec/arm_v7/kernel/vm_thread.cc
+SRC_CC += spec/arm_v7/trustzone/kernel/vm.cc
+SRC_CC += spec/arm_v7/trustzone/kernel/vm_thread.cc
+SRC_CC += spec/arm_v7/vm_session_component.cc
+SRC_CC += spec/arm_v7/trustzone/vm_session_component.cc
+
+# add assembly sources
+SRC_S += spec/arm_v7/trustzone/mode_transition.s
 
 # include less specific configuration
+include $(REP_DIR)/lib/mk/platform_imx53/core-trustzone.inc
 include $(REP_DIR)/lib/mk/core-trustzone.inc

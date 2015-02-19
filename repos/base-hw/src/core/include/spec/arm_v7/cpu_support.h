@@ -238,6 +238,22 @@ class Genode::Arm_v7 : public Arm
 			}
 		};
 
+
+		/**
+		 * Memory attribute indirection register 0
+		 */
+		struct Mair0 : Register<32>
+		{
+			struct Attr0 : Bitfield<0,  8> { };
+			struct Attr1 : Bitfield<8,  8> { };
+			struct Attr2 : Bitfield<16, 8> { };
+			struct Attr3 : Bitfield<24, 8> { };
+
+			static void write(access_t v) {
+				asm volatile ("mcr p15, 0, %[v], c10, c2, 0" :: [v]"r"(v) : ); }
+		};
+
+
 		/**
 		 * Invalidate all branch predictions
 		 */

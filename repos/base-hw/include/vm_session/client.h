@@ -31,6 +31,7 @@ namespace Genode
 		explicit Vm_session_client(Vm_session_capability session)
 		: Rpc_client<Vm_session>(session) { }
 
+
 		/**************************
 		 ** Vm_session interface **
 		 **************************/
@@ -43,6 +44,15 @@ namespace Genode
 
 		void run()   { call<Rpc_run>();   }
 		void pause() { call<Rpc_pause>(); }
+
+		void attach(Dataspace_capability ds,addr_t vm_addr) {
+			call<Rpc_attach>(ds, vm_addr); }
+
+		void detach(addr_t vm_addr, size_t size) {
+			call<Rpc_detach>(vm_addr, size); }
+
+		void attach_pic(addr_t vm_addr) {
+			call<Rpc_attach_pic>(vm_addr); }
 	};
 }
 

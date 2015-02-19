@@ -15,11 +15,13 @@
 #ifndef _KERNEL__KERNEL_H_
 #define _KERNEL__KERNEL_H_
 
+#include <pic.h>
 #include <kernel/pd.h>
 
 namespace Kernel {
 	Pd                      * core_pd();
 	Mode_transition_control * mtc();
+	Pic                     * pic();
 }
 
 #endif /* _KERNEL__KERNEL_H_ */

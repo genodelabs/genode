@@ -50,16 +50,6 @@ class Kernel::Irq : public Object_pool<Irq>::Item
 	protected:
 
 		/**
-		 * Prevent interrupt from occurring
-		 */
-		void _disable() const;
-
-		/**
-		 * Allow interrupt to occur
-		 */
-		void _enable() const;
-
-		/**
 		 * Get kernel name of the interrupt
 		 */
 		unsigned _id() const { return Pool::Item::id(); };
@@ -96,6 +86,16 @@ class Kernel::Irq : public Object_pool<Irq>::Item
 		 * Handle occurence of the interrupt
 		 */
 		virtual void occurred() { }
+
+		/**
+		 * Prevent interrupt from occurring
+		 */
+		void disable() const;
+
+		/**
+		 * Allow interrupt to occur
+		 */
+		void enable() const;
 };
 
 
@@ -128,7 +128,7 @@ class Kernel::User_irq
 		 ** Signal_ack_handler **
 		 ************************/
 
-		void _signal_acknowledged() { _enable(); }
+		void _signal_acknowledged() { enable(); }
 
 	public:
 
@@ -141,7 +141,7 @@ class Kernel::User_irq
 		: Irq(irq_id), Signal_context(this, 0)
 		{
 			_pool()->insert(this);
-			_disable();
+			disable();
 			Signal_context::ack_handler(this);
 		}
 
@@ -151,7 +151,7 @@ class Kernel::User_irq
 		void occurred()
 		{
 			Signal_context::submit(1);
-			_disable();
+			disable();
 		}
 
 		/**

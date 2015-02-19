@@ -50,7 +50,6 @@ SRC_CC += pager.cc
 SRC_CC += _main.cc
 SRC_CC += kernel/kernel.cc
 SRC_CC += kernel/thread.cc
-SRC_CC += kernel/vm.cc
 SRC_CC += kernel/signal_receiver.cc
 SRC_CC += kernel/irq.cc
 SRC_CC += kernel/pd.cc

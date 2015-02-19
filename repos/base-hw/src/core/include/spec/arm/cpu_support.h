@@ -345,27 +345,21 @@ class Genode::Arm
 		 */
 		struct Context : Cpu_state
 		{
-			/**
-			 * TODO: currently all non-Cortex A15 platforms use the
-			 *       short translation table format and thereby the Context ID
-			 *       register to store the ASID, and the TTBR0 for the table
-			 *       address. Cortex A15 uses the long translation format and
-			 *       a 64-bit wide TTBR0 that holds all information.
-			 *       The current Cortex A15 implementation stores TTBR0 in both
-			 *       members stated below.
-			 */
-			uint32_t cidr;
-			uint32_t ttbr0;
+			Cidr::access_t  cidr;
+			Ttbr0::access_t ttbr0;
 
 			/**
 			 * Return base of assigned translation table
 			 */
-			addr_t translation_table() const;
+			addr_t translation_table() const {
+				return Ttbr0::Ba::masked(ttbr0); }
+
 
 			/**
 			 * Assign translation-table base 'table'
 			 */
-			void translation_table(addr_t const table);
+			void translation_table(addr_t const table) {
+				ttbr0 = Arm::Ttbr0::init(table); }
 
 			/**
 			 * Assign protection domain
@@ -421,7 +415,41 @@ class Genode::Arm
 			 * \param va  holds the virtual fault-address if call returns 1
 			 * \param w   holds wether it's a write fault if call returns 1
 			 */
-			bool in_fault(addr_t & va, addr_t & w) const;
+			bool in_fault(addr_t & va, addr_t & w) const
+			{
+				switch (cpu_exception) {
+
+				case PREFETCH_ABORT:
+					{
+						/* check if fault was caused by a translation miss */
+						Ifsr::access_t const fs = Ifsr::Fs::get(Ifsr::read());
+						if (fs != Ifsr::section && fs != Ifsr::page)
+							return false;
+
+						/* fetch fault data */
+						w = 0;
+						va = ip;
+						return true;
+					}
+				case DATA_ABORT:
+					{
+						/* check if fault was caused by translation miss */
+						Dfsr::access_t const fs = Dfsr::Fs::get(Dfsr::read());
+						if (fs != Dfsr::section && fs != Dfsr::page)
+							return false;
+
+						/* fetch fault data */
+						Dfsr::access_t const dfsr = Dfsr::read();
+						w = Dfsr::Wnr::get(dfsr);
+						va = Dfar::read();
+						return true;
+					}
+
+				default:
+					return false;
+				};
+			}
+
 		};
 
 		/**

@@ -9,6 +9,8 @@ INC_DIR += $(REP_DIR)/src/core/include/spec/arm_v6
 
 # add C++ sources
 SRC_CC += spec/arm/cpu.cc
+SRC_CC += spec/arm/kernel/cpu_context.cc
+SRC_CC += kernel/vm_thread.cc
 
 # add assembly sources
 SRC_S += spec/arm_v6/mode_transition.s

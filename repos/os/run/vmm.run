@@ -1,0 +1,112 @@
+#
+# \brief  Virtual-machine monitor demo
+# \author Stefan Kalkowski
+# \date   2015-06-25
+#
+
+assert_spec hw_arndale
+
+set build_components {
+	core init
+	drivers/timer
+	drivers/platform
+	drivers/uart
+	server/vmm
+}
+build $build_components
+create_boot_directory
+
+install_config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+		<service name="VM"/>
+	</parent-provides>
+	<default-route>
+		<any-service><parent/><any-child/></any-service>
+	</default-route>
+	<start name="platform_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Regulator"/></provides>
+		<config/>
+	</start>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="uart_drv">
+		<resource name="RAM" quantum="2M"/>
+		<provides>
+			<service name="Terminal"/>
+			<service name="Uart"/>
+		</provides>
+		<config>
+			<policy label="vmm" uart="1"/>
+		</config>
+	</start>
+	<start name="vmm">
+		<resource name="RAM" quantum="256M"/>
+	</start>
+</config>
+}
+
+
+#
+# This test uses a Linux kernel built from unmodified vanilla kernel sources
+# but using a slightly simplified kernel configuration, as well as device tree
+# for a minimal Versatile Express Cortex A15 like emulated board.
+#
+# The used sources, including the modified device tree and configuration file
+# can be found in the following git repository/branch:
+#
+#   https://github.com/skalk/linux/tree/vexpress-vt
+#
+# To compile the kernel and device tree blob used in this script, do the
+# following steps:
+#
+# ! git checkout https://github.com/skalk/linux.git
+# ! cd linux
+# ! git checkout origin/vexpress-vt
+# ! make ARCH=arm CROSS_COMPILE=<cross_compiler_prefix> vexpress_config
+# ! make ARCH=arm CROSS_COMPILE=<cross_compiler_prefix> -j8 Image
+# ! make ARCH=arm CROSS_COMPILE=<cross_compiler_prefix> vexpress-v2p-ca15-tc1.dtb
+#
+
+if {![file exists bin/linux]} {
+	puts "Download linux kernel ..."
+	exec >& /dev/null wget -c -O bin/linux http://genode.org/files/release-15.02/arm_vt/linux
+}
+
+if {![file exists bin/dtb]} {
+	puts "Download device tree blob ..."
+	exec >& /dev/null wget -c -O bin/dtb http://genode.org/files/release-15.02/arm_vt/dtb
+}
+
+set boot_modules {
+	core init
+	platform_drv
+	uart_drv
+	timer
+	vmm
+	linux
+	dtb
+}
+build_boot_image $boot_modules
+
+#
+# Execute test case
+#
+run_genode_until {.*\/ #.*} 220
+set serial_id [output_spawn_id]
+send -i $serial_id "ls\n"
+run_genode_until "var" 30 $serial_id
+exec rm bin/linux bin/dtb

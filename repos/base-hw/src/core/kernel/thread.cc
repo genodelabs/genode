@@ -19,7 +19,6 @@
 /* core includes */
 #include <kernel/kernel.h>
 #include <kernel/thread.h>
-#include <kernel/vm.h>
 #include <kernel/irq.h>
 #include <platform_pd.h>
 #include <pic.h>
@@ -198,7 +197,7 @@ void Thread::_receive_yielded_cpu()
 }
 
 
-void Thread::proceed(unsigned const cpu) { mtc()->continue_user(this, cpu); }
+void Thread::proceed(unsigned const cpu) { mtc()->switch_to_user(this, cpu); }
 
 
 char const * Kernel::Thread::pd_label() const
@@ -524,6 +523,7 @@ void Thread::_call_update_data_region()
 	auto base = (addr_t)user_arg_1();
 	auto const size = (size_t)user_arg_2();
 	Cpu::flush_data_caches_by_virt_region(base, size);
+	Cpu::invalidate_instr_caches();
 }
 
 
@@ -781,32 +781,6 @@ void Thread::_call_bin_signal_receiver()
 }
 
 
-void Thread::_call_run_vm()
-{
-	/* lookup virtual machine */
-	Vm * const vm = Vm::pool()->object(user_arg_1());
-	if (!vm) {
-		PWRN("failed to lookup virtual machine");
-		return;
-	}
-	/* run virtual machine */
-	vm->run();
-}
-
-
-void Thread::_call_pause_vm()
-{
-	/* lookup virtual machine */
-	Vm * const vm = Vm::pool()->object(user_arg_1());
-	if (!vm) {
-		PWRN("failed to lookup virtual machine");
-		return;
-	}
-	/* pause virtual machine */
-	vm->pause();
-}
-
-
 int Thread::_read_reg(addr_t const id, addr_t & value) const
 {
 	addr_t Thread::* const reg = _reg(id);
@@ -874,6 +848,7 @@ void Thread::_call()
 	case call_id_bin_signal_context():  _call_bin_signal_context(); return;
 	case call_id_bin_signal_receiver(): _call_bin_signal_receiver(); return;
 	case call_id_new_vm():              _call_new_vm(); return;
+	case call_id_bin_vm():              _call_bin_vm(); return;
 	case call_id_run_vm():              _call_run_vm(); return;
 	case call_id_pause_vm():            _call_pause_vm(); return;
 	case call_id_pause_thread():        _call_pause_thread(); return;

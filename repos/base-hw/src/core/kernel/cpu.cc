@@ -32,7 +32,6 @@ namespace Kernel
 	 */
 	class Cpu_domain_update_list;
 
-	Pic * pic();
 	Timer * timer();
 
 	Cpu_pool * cpu_pool() { return unmanaged_singleton<Cpu_pool>(); }
@@ -119,7 +118,7 @@ void Cpu_job::affinity(Cpu * const cpu)
  ** Cpu_idle **
  **************/
 
-void Cpu_idle::proceed(unsigned const cpu) { mtc()->continue_user(this, cpu); }
+void Cpu_idle::proceed(unsigned const cpu) { mtc()->switch_to_user(this, cpu); }
 
 
 /*********

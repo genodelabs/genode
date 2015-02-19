@@ -1,0 +1,67 @@
+/*
+ * \brief   Kernel backend for virtual machines
+ * \author  Martin Stein
+ * \author  Stefan Kalkowski
+ * \date    2013-10-30
+ */
+
+/*
+ * Copyright (C) 2013 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
+/* core includes */
+#include <kernel/vm.h>
+
+extern void *         _mt_nonsecure_entry_pic;
+extern Genode::addr_t _tz_client_context;
+extern Genode::addr_t _mt_master_context_begin;
+extern Genode::addr_t _tz_master_context;
+
+namespace Kernel
+{
+	Vm_ids * vm_ids() { return unmanaged_singleton<Vm_ids>(); }
+	Vm_pool * vm_pool() { return unmanaged_singleton<Vm_pool>(); }
+}
+
+using namespace Kernel;
+
+
+Kernel::Vm::Vm(void                   * const state,
+               Kernel::Signal_context * const context,
+               void                   * const table)
+:  Cpu_job(Cpu_priority::min, 0),
+  _state((Genode::Vm_state * const)state),
+  _context(context), _table(0)
+{
+	affinity(cpu_pool()->primary_cpu());
+
+	Genode::memcpy(&_tz_master_context, &_mt_master_context_begin,
+	               sizeof(Cpu_context));
+}
+
+
+void Vm::exception(unsigned const cpu)
+{
+	switch(_state->cpu_exception) {
+	case Genode::Cpu_state::INTERRUPT_REQUEST:
+	case Genode::Cpu_state::FAST_INTERRUPT_REQUEST:
+		_interrupt(cpu);
+		return;
+	case Genode::Cpu_state::DATA_ABORT:
+		_state->dfar = Cpu::Dfar::read();
+	default:
+		pause();
+		_context->submit(1);
+	}
+}
+
+
+void Vm::proceed(unsigned const cpu)
+{
+	mtc()->switch_to(reinterpret_cast<Cpu::Context*>(_state), cpu,
+	                 (addr_t)&_mt_nonsecure_entry_pic,
+	                 (addr_t)&_tz_client_context);
+}

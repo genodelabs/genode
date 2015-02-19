@@ -15,7 +15,6 @@
 /* core includes */
 #include <kernel/thread.h>
 #include <kernel/pd.h>
-#include <kernel/vm.h>
 #include <kernel/kernel.h>
 
 using namespace Kernel;
@@ -27,26 +26,6 @@ Thread::Thread(unsigned const priority, unsigned const quota,
 	Thread_base(this), Cpu_job(priority, quota), _state(AWAITS_START), _pd(0),
 	_utcb_phys(0), _signal_receiver(0), _label(label)
 { cpu_exception = RESET; }
-
-
-void Thread::_call_new_vm()
-{
-	/* lookup signal context */
-	auto const context = Signal_context::pool()->object(user_arg_3());
-	if (!context) {
-		PWRN("failed to lookup signal context");
-		user_arg_0(0);
-		return;
-	}
-	/* create virtual machine */
-	typedef Genode::Cpu_state_modes Cpu_state_modes;
-	auto const allocator = reinterpret_cast<void *>(user_arg_1());
-	auto const state = reinterpret_cast<Cpu_state_modes *>(user_arg_2());
-	Vm * const vm = new (allocator) Vm(state, context);
-
-	/* return kernel name of virtual machine */
-	user_arg_0(vm->id());
-}
 
 
 void Thread::exception(unsigned const cpu)

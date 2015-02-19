@@ -86,6 +86,8 @@
 .set TRANSIT_TTBR0_OFFSET,  17 * 4
 .set CIDR_OFFSET,           18 * 4
 .set TTBR0_OFFSET,          19 * 4
+.set TTBCR_OFFSET,          20 * 4
+.set MAIR0_OFFSET,          21 * 4
 
 /* size of local variables */
 .set CONTEXT_PTR_SIZE, 1 * 4

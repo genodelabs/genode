@@ -17,6 +17,7 @@
 #include <base/thread.h>
 #include <drivers/board_base.h>
 #include <drivers/trustzone.h>
+#include <vm_state.h>
 
 /* local includes */
 #include <vm.h>

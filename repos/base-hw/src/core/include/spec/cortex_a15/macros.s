@@ -22,15 +22,14 @@
  * base address in the one 64-bit TTBR0 register, like in Armv7 cpus without
  * LPAE extensions. Therefore, we don't have to use a transition table.
  *
- * \param transit_ttbr0  ignored parameter
- * \param new_cidr       new CIDR value, read reg
- * \param new_ttbr0      new TTBR0 value, read/write reg
+ * \param ignored        ignored parameter
+ * \param ttbr0_low      low word of TTBR0 64-bit register
+ * \param ttbr0_high     high word of TTBR0 64-bit register
  */
-.macro _switch_protection_domain transit_ttbr0, new_cidr, new_ttbr0
+.macro _switch_protection_domain ignored, ttbr0_low, ttbr0_high
 
 	/* write translation-table-base register 0 */
-	lsl  \new_cidr, \new_cidr, #16
-	mcrr p15, 0, \new_ttbr0, \new_cidr, c2
+	mcrr p15, 0, \ttbr0_low, \ttbr0_high, c2
 
 	/* instruction and data synchronization barrier */
 	isb

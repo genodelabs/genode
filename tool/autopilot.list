@@ -45,3 +45,4 @@ pthread
 virtualbox_auto_disk
 virtualbox_auto_share
 tz_vmm
+vmm

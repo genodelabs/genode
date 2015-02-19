@@ -1,5 +1,5 @@
 /*
- * \brief   CPU context of a virtual machine
+ * \brief   CPU context of a virtual machine for TrustZone
  * \author  Stefan Kalkowski
  * \author  Martin Stein
  * \date    2013-10-30
@@ -12,18 +12,25 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _KERNEL__VM_STATE_H_
-#define _KERNEL__VM_STATE_H_
+#ifndef _INCLUDE__PLATFORM__IMX53__VM_STATE_H_
+#define _INCLUDE__PLATFORM__IMX53__VM_STATE_H_
 
 /* Genode includes */
 #include <cpu/cpu_state.h>
 
-namespace Kernel
+namespace Genode
 {
 	/**
 	 * CPU context of a virtual machine
 	 */
-	struct Vm_state : Genode::Cpu_state_modes { Genode::addr_t dfar; };
+	struct Vm_state;
 }
 
-#endif /* _KERNEL__VM_STATE_H_ */
+struct Genode::Vm_state : Genode::Cpu_state_modes
+{
+	Genode::addr_t dfar;
+	Genode::addr_t ttbr[2];
+	Genode::addr_t ttbrc;
+};
+
+#endif /* _INCLUDE__PLATFORM__IMX53__VM_STATE_H_ */

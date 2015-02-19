@@ -19,13 +19,6 @@
 using namespace Kernel;
 
 
-void Cpu_context::_init(size_t const stack_size, addr_t const table)
-{
-	r12 = stack_size;
-	cpu_exception = Genode::Cpu::Ttbr0::init(table);
-}
-
-
 Cpu_idle::Cpu_idle(Cpu * const cpu) : Cpu_job(Cpu_priority::min, 0)
 {
 	Cpu_job::cpu(cpu);

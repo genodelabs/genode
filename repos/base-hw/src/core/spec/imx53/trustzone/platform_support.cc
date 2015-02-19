@@ -47,17 +47,17 @@ void Kernel::init_trustzone(Pic * pic)
 
 	/* configure non-secure interrupts */
 	for (unsigned i = 0; i < Pic::NR_OF_IRQ; i++) {
-		if ((i != Imx53::Board::EPIT_1_IRQ) &&
-			(i != Imx53::Board::EPIT_2_IRQ) &&
-			(i != Imx53::Board::I2C_2_IRQ)  &&
-			(i != Imx53::Board::I2C_3_IRQ)  &&
-			(i < Imx53::Board::GPIO1_IRQL || i > Imx53::Board::GPIO4_IRQH) &&
-			(i < Imx53::Board::GPIO5_IRQL || i > Imx53::Board::GPIO7_IRQH))
+		if ((i != Board::EPIT_1_IRQ) &&
+			(i != Board::EPIT_2_IRQ) &&
+			(i != Board::I2C_2_IRQ)  &&
+			(i != Board::I2C_3_IRQ)  &&
+			(i < Board::GPIO1_IRQL || i > Board::GPIO4_IRQH) &&
+			(i < Board::GPIO5_IRQL || i > Board::GPIO7_IRQH))
 			pic->unsecure(i);
 	}
 
 	/* configure central security unit */
-	Genode::Csu csu(Imx53::Board::CSU_BASE);
+	Genode::Csu csu(Board::CSU_BASE);
 }
 
 

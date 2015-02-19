@@ -12,19 +12,19 @@
  */
 
 /* core includes */
+#include <kernel/kernel.h>
 #include <kernel/cpu.h>
 #include <kernel/irq.h>
 #include <pic.h>
 
-using namespace Kernel;
 
-namespace Kernel { Pic * pic(); }
+void Kernel::Irq::disable() const { pic()->mask(_id()); }
 
-void Irq::_disable() const { pic()->mask(_id()); }
 
-void Irq::_enable()  const { pic()->unmask(_id(), Cpu::executing_id()); }
+void Kernel::Irq::enable() const { pic()->unmask(_id(), Cpu::executing_id()); }
 
-Irq::Pool * User_irq::_pool()
+
+Kernel::Irq::Pool * Kernel::User_irq::_pool()
 {
 	static Irq::Pool p;
 	return &p;

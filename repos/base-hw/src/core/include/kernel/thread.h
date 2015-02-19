@@ -235,6 +235,7 @@ class Kernel::Thread
 		void _call_bin_signal_context();
 		void _call_bin_signal_receiver();
 		void _call_new_vm();
+		void _call_bin_vm();
 		void _call_run_vm();
 		void _call_pause_vm();
 		void _call_access_thread_regs();

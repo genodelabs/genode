@@ -14,10 +14,17 @@
 /* core includes */
 #include <board.h>
 #include <cpu.h>
+#include <kernel/kernel.h>
+#include <kernel/cpu.h>
+#include <kernel/vm.h>
+#include <unmanaged_singleton.h>
+#include <long_translation_table.h>
 
-/* hypervisor exception vector address */
-extern void* _hyp_kernel_entry;
+namespace Kernel {
+	void prepare_hypervisor(void);
+}
 
+static unsigned char hyp_mode_stack[1024];
 
 static inline void prepare_nonsecure_world()
 {
@@ -28,6 +35,11 @@ static inline void prepare_nonsecure_world()
 	/* if we are already in HYP mode we're done (depends on u-boot version) */
 	if (Cpsr::M::get(Cpsr::read()) == Cpsr::M::HYP)
 		return;
+
+	/* ARM generic timer counter freq needs to be set in secure mode */
+	volatile unsigned long * mct_control = (unsigned long*) 0x101C0240;
+	*mct_control = 0x100;
+	asm volatile ("mcr p15, 0, %0, c14, c0, 0" :: "r" (24000000));
 
 	/*
 	 * enable coprocessor 10 + 11 access and SMP bit access in auxiliary control
@@ -69,15 +81,17 @@ static inline void switch_to_supervisor_mode()
 		"msr sp_svc, sp        \n" /* copy current mode's sp           */
 		"msr lr_svc, lr        \n" /* copy current mode's lr           */
 		"msr elr_hyp, lr       \n" /* copy current mode's lr to hyp lr */
+		"msr sp_hyp, %[stack]  \n" /* copy to hyp stack pointer        */
 		"msr spsr_cxfs, %[psr] \n" /* set psr for supervisor mode      */
+		"adr lr, 1f            \n" /* load exception return address    */
 		"eret                  \n" /* exception return                 */
-		:: [psr] "r" (psr));
+		"1:":: [psr] "r" (psr), [stack] "r" (&hyp_mode_stack));
 }
 
 
 void Genode::Board::prepare_kernel()
 {
 	prepare_nonsecure_world();
-	Genode::Cpu::hyp_exception_entry_at(&_hyp_kernel_entry);
+	Kernel::prepare_hypervisor();
 	switch_to_supervisor_mode();
 }

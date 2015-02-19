@@ -15,19 +15,6 @@
 /* core includes */
 .include "macros.s"
 
-
-/***************
- ** Constants **
- ***************/
-
-/* hardware names of CPU modes */
-.set USR_MODE, 16
-.set FIQ_MODE, 17
-.set IRQ_MODE, 18
-.set SVC_MODE, 19
-.set ABT_MODE, 23
-.set UND_MODE, 27
-
 /* size of local variables */
 .set BUFFER_SIZE, 3 * 4
 
@@ -35,30 +22,6 @@
 /************
  ** Macros **
  ************/
-
-/**
- * Determine the base of the client context of the executing CPU
- *
- * \param target_reg  register that shall receive the base pointer
- * \param buf_reg     register that can be polluted by the macro
- */
-.macro _get_client_context_ptr target_reg, buf_reg
-
-	/* get kernel name of CPU */
-	_get_cpu_id \buf_reg
-
-	/* multiply CPU name with pointer size to get offset of pointer */
-	mov \target_reg, #CONTEXT_PTR_SIZE
-	mul \buf_reg, \buf_reg, \target_reg
-
-	/* get base of the pointer array */
-	adr \target_reg, _mt_client_context_ptr
-
-	/* add offset and base to get CPU-local pointer */
-	add \target_reg, \target_reg, \buf_reg
-	ldr \target_reg, [\target_reg]
-.endm
-
 
 /**
  * Determine the base of the globally mapped buffer of the executing CPU
@@ -131,7 +94,7 @@
 	_switch_protection_domain r1, r2, sp
 
 	/* get user context-pointer */
-	_get_client_context_ptr sp, r1
+	_get_client_context_ptr sp, r1, _mt_client_context_ptr
 
 	/* adjust and save user pc */
 	.if \pc_adjust != 0
@@ -155,95 +118,6 @@
 	b _common_user_to_kernel_pic
 
 .endm /* _user_to_kernel_pic */
-
-
-/**
- * Save sp, lr and spsr register banks of specified exception mode
- */
-.macro _save_bank mode
-	cps   #\mode          /* switch to given mode                  */
-	mrs   r1, spsr        /* store mode-specific spsr              */
-	stmia r0!, {r1,sp,lr} /* store mode-specific sp and lr         */
-.endm /* _save_bank mode */
-
-
-/**
- * Switch from an interrupted VM to the kernel context
- *
- * \param exception_type  immediate exception type ID
- * \param pc_adjust       immediate value that gets subtracted from the
- *                        vm's PC before it gets saved
- */
-.macro _vm_to_kernel exception_type, pc_adjust
-	ldr   sp, _mt_client_context_ptr   /* load context pointer            */
-	stmia sp, {r0-lr}^                 /* save user regs r0-r12,sp,lr     */
-	add   r0, sp, #15*4
-	.if \pc_adjust != 0                /* adjust pc if necessary          */
-		sub lr, lr, #\pc_adjust
-	.endif
-	stmia r0!, {lr}                    /* save pc                         */
-	mrs   r1, spsr                     /* spsr to r0                      */
-	mov   r2, #\exception_type         /* exception reason to r1          */
-	stmia r0!, {r1-r2}                 /* save spsr, and exception reason */
-	mrc   p15, 0, r3, c6, c0, 0        /* move DFAR  to r3                */
-	mrc   p15, 0, r4, c2, c0, 0        /* move TTBR0 to r4                */
-	mrc   p15, 0, r5, c2, c0, 1        /* move TTBR1 to r5                */
-	mrc   p15, 0, r6, c2, c0, 2        /* move TTBRC to r6                */
-	mov   r1, #0
-	mcr   p15, 0, r1, c1, c1, 0        /* disable non-secure bit          */
-	_save_bank 27                      /* save undefined banks            */
-	_save_bank 19                      /* save supervisor banks           */
-	_save_bank 23                      /* save abort banks                */
-	_save_bank 18                      /* save irq banks                  */
-	_save_bank 17                      /* save fiq banks                  */
-	stmia r0!, {r8-r12}                /* save fiq r8-r12                 */
-	stmia r0!, {r3-r6}                 /* save MMU registers              */
-	b _common_client_to_kernel_pic
-.endm /* _vm_to_kernel */
-
-
-/**
- * Restore sp, lr and spsr register banks of specified exception mode
- */
-.macro _restore_bank mode
-	cps   #\mode          /* switch to given mode                        */
-	ldmia r0!, {r1,sp,lr} /* load mode-specific sp, lr, and spsr into r1 */
-	msr   spsr_cxfs, r1   /* load mode-specific spsr                     */
-.endm
-
-
-/**
- * Switch from kernel context to a VM
- */
-.macro _kernel_to_vm
-	ldr   r0, _mt_client_context_ptr   /* get vm context pointer               */
-	add   r0, r0, #18*4         /* add offset of banked modes           */
-	_restore_bank 27            /* load undefined banks                 */
-	_restore_bank 19            /* load supervisor banks                */
-	_restore_bank 23            /* load abort banks                     */
-	_restore_bank 18            /* load irq banks                       */
-	_restore_bank 17            /* load fiq banks                       */
-	ldmia r0!, {r8 - r12}       /* load fiq r8-r12                      */
-	cps   #22                   /* switch to monitor mode               */
-	ldr   sp, _mt_client_context_ptr   /* get vm context pointer               */
-	ldmia sp, {r0-lr}^          /* load user r0-r12,sp,lr               */
-	ldr   lr, [sp, #16*4]       /* load vm's cpsr to lr                 */
-	msr   spsr_cxfs, lr         /* save cpsr to be load when switching  */
-	mov   lr, #13
-	mcr   p15, 0, lr, c1, c1, 0 /* enable EA, FIQ, and NS bit in SCTRL  */
-	ldr   lr, [sp, #15*4]       /* load vm's ip                         */
-	subs  pc, lr, #0
-.endm /* _kernel_to_vm */
-
-
-/**
- * Enter kernel after hypervisor call
- */
-.macro _hyp_to_kernel exception_type
-	cps #SVC_MODE
-	mov r0, #\exception_type
-	1: b 1b
-.endm /* _hyp_to_kernel */
 
 
 /**********************************
@@ -348,12 +222,6 @@
 	 */
 	clrex
 
-	/*********************************************************
-	 ** Kernel-entry code that is common for all exceptions **
-	 *********************************************************/
-
-	_common_client_to_kernel_pic:
-
 	/*
 	 * Switch to supervisor mode to circumvent incorrect behavior of
 	 * kernel high-level code in fast interrupt mode and to ensure that
@@ -382,7 +250,7 @@
 	_mt_user_entry_pic:
 
 	/* get user context and globally mapped buffer of this CPU */
-	_get_client_context_ptr lr, r0
+	_get_client_context_ptr lr, r0, _mt_client_context_ptr
 	_get_buffer_ptr sp, r0
 
 	/* load user psr in spsr */
@@ -408,60 +276,6 @@
 
 	/* apply user r0-r1 and user pc which implies application of spsr */
 	ldm sp, {r0, r1, pc}^
-
-	/*
-	 * On TrustZone exceptions the CPU has to jump to one of the following
-	 * 7 entry vectors to switch to a kernel context.
-	 */
-	.p2align 5
-	.global _mon_kernel_entry
-	_mon_kernel_entry:
-		b _mon_rst_entry           /* reset                  */
-		b _mon_und_entry           /* undefined instruction  */
-		b _mon_svc_entry           /* supervisor call        */
-		b _mon_pab_entry           /* prefetch abort         */
-		b _mon_dab_entry           /* data abort             */
-		nop                        /* reserved               */
-		b _mon_irq_entry           /* interrupt request      */
-		_vm_to_kernel FIQ_TYPE, 4  /* fast interrupt request */
-
-		/* PICs that switch from a vm exception to the kernel */
-		_mon_rst_entry: _vm_to_kernel RST_TYPE, 0
-		_mon_und_entry: _vm_to_kernel UND_TYPE, 4
-		_mon_svc_entry: _vm_to_kernel SVC_TYPE, 0
-		_mon_pab_entry: _vm_to_kernel PAB_TYPE, 4
-		_mon_dab_entry: _vm_to_kernel DAB_TYPE, 8
-		_mon_irq_entry: _vm_to_kernel IRQ_TYPE, 4
-
-	/* kernel must jump to this point to switch to a vm */
-	.p2align 2
-	.global _mt_vm_entry_pic
-	_mt_vm_entry_pic:
-		_kernel_to_vm
-
-	/*
-	 * On virtualization exceptions the CPU has to jump to one of the following
-	 * 7 entry vectors to switch to a kernel context.
-	 */
-	 .p2align 4
-	 .global _hyp_kernel_entry
-		_hyp_kernel_entry:
-	 b _hyp_rst_entry
-	 b _hyp_und_entry /* undefined instruction */
-	 b _hyp_svc_entry /* hypervisor call */
-	 b _hyp_pab_entry /* prefetch abort */
-	 b _hyp_dab_entry /* data abort */
-	 b _hyp_trp_entry /* hypervisor trap */
-	 b _hyp_irq_entry /* interrupt request */
-	 _hyp_to_kernel 7 /* fast interrupt request */
-
-	 _hyp_rst_entry: _hyp_to_kernel 0
-	 _hyp_und_entry: _hyp_to_kernel 1
-	 _hyp_svc_entry: _hyp_to_kernel 2
-	 _hyp_pab_entry: _hyp_to_kernel 3
-	 _hyp_dab_entry: _hyp_to_kernel 4
-	 _hyp_trp_entry: _hyp_to_kernel 5
-	 _hyp_irq_entry: _hyp_to_kernel 6
 
 	/* end of the mode transition code */
 	.global _mt_end

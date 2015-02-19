@@ -24,14 +24,14 @@
 #include <kernel/configuration.h>
 #include <kernel/object.h>
 #include <kernel/cpu.h>
-#include <kernel/vm_state.h>
 #include <assert.h>
+#include <page_slab.h>
+#include <board.h>
 
 /* structure of the mode transition */
 extern int            _mt_begin;
 extern int            _mt_end;
 extern int            _mt_user_entry_pic;
-extern int            _mt_vm_entry_pic;
 extern Genode::addr_t _mt_client_context_ptr;
 extern Genode::addr_t _mt_master_context_begin;
 extern Genode::addr_t _mt_master_context_end;
@@ -148,31 +148,6 @@ class Kernel::Mode_transition_control
 			return VIRT_BASE + (phys - phys_base);
 		}
 
-		/**
-		 * Continue execution of client context
-		 *
-		 * \param context    targeted CPU context
-		 * \param cpu        kernel name of targeted CPU
-		 * \param entry_raw  raw pointer to assembly entry-code
-		 */
-		void _continue_client(void * const context, unsigned const cpu,
-		                      addr_t const entry_raw)
-		{
-			/* override client-context pointer of the executing CPU */
-			addr_t const context_ptr_base = (addr_t)&_mt_client_context_ptr;
-			size_t const context_ptr_offset = cpu * sizeof(context);
-			addr_t const context_ptr = context_ptr_base + context_ptr_offset;
-			*(void * *)context_ptr = context;
-
-			/* unlock kernel data */
-			data_lock().unlock();
-
-			/* call assembly code that applies the virtual-machine context */
-			typedef void (* Entry)();
-			Entry __attribute__((noreturn)) const entry = (Entry)entry_raw;
-			entry();
-		}
-
 	public:
 
 		enum {
@@ -208,17 +183,44 @@ class Kernel::Mode_transition_control
 		}
 
 		/**
-		 * Continue execution of 'user' at 'cpu'
+		 * Continue execution of client context
+		 *
+		 * \param context           targeted CPU context
+		 * \param cpu               kernel name of targeted CPU
+		 * \param entry_raw         raw pointer to assembly entry-code
+		 * \param context_ptr_base  base address of client-context pointer region
 		 */
-		void continue_user(Cpu::Context * const user, unsigned const cpu) {
-			_continue_client(user, cpu, _virt_user_entry()); }
+		void switch_to(Cpu::Context * const context,
+		               unsigned const cpu,
+		               addr_t const entry_raw,
+		               addr_t const context_ptr_base)
+		{
+			/* override client-context pointer of the executing CPU */
+			size_t const context_ptr_offset = cpu * sizeof(context);
+			addr_t const context_ptr = context_ptr_base + context_ptr_offset;
+			*(void * *)context_ptr = context;
+
+			/* unlock kernel data */
+			data_lock().unlock();
+
+			/* call assembly code that applies the virtual-machine context */
+			typedef void (* Entry)();
+			Entry __attribute__((noreturn)) const entry = (Entry)entry_raw;
+			entry();
+		}
 
 		/**
-		 * Continue execution of 'vm' at 'cpu'
+		 * Continue execution of user context
+		 *
+		 * \param context           targeted CPU context
+		 * \param cpu               kernel name of targeted CPU
 		 */
-		void continue_vm(Vm_state * const vm, unsigned const cpu) {
-			_continue_client(vm, cpu, (addr_t)&_mt_vm_entry_pic); }
-
+		 void switch_to_user(Cpu::Context * const context,
+		                     unsigned const cpu)
+		 {
+			 switch_to(context, cpu, _virt_user_entry(),
+			           (addr_t)&_mt_client_context_ptr);
+		 }
 } __attribute__((aligned(Mode_transition_control::ALIGN)));
 
 class Kernel::Pd : public Object<Pd, MAX_PDS, Pd_ids, pd_ids, pd_pool>

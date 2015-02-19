@@ -14,8 +14,9 @@
 #ifndef _KERNEL__VM_H_
 #define _KERNEL__VM_H_
 
+#include <vm_state.h>
+
 /* core includes */
-#include <kernel/vm_state.h>
 #include <kernel/kernel.h>
 #include <kernel/pd.h>
 #include <kernel/signal_receiver.h>
@@ -34,13 +35,18 @@ namespace Kernel
 	Vm_pool * vm_pool();
 }
 
+
 class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
                    public Cpu_job
 {
 	private:
 
-		Vm_state       * const _state;
-		Signal_context * const _context;
+		enum State { ACTIVE, INACTIVE };
+
+		Genode::Vm_state * const _state;
+		Signal_context   * const _context;
+		void             * const _table;
+		State                    _scheduled = INACTIVE;
 
 	public:
 
@@ -49,20 +55,35 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 		 *
 		 * \param state    initial CPU state
 		 * \param context  signal for VM exceptions other than interrupts
+		 * \param table    translation table for guest to host physical memory
 		 */
-		Vm(void * const state, Signal_context * const context)
-		:
-			Cpu_job(Cpu_priority::min, 0), _state((Vm_state * const)state),
-			_context(context)
-		{ affinity(cpu_pool()->primary_cpu()); }
+		Vm(void           * const state,
+		   Signal_context * const context,
+		   void           * const table);
+
+		/**
+		 * Inject an interrupt to this VM
+		 *
+		 * \param irq  interrupt number to inject
+		 */
+		void inject_irq(unsigned irq);
 
 
 		/****************
 		 ** Vm_session **
 		 ****************/
 
-		void run()   { Cpu_job::_activate_own_share(); }
-		void pause() { Cpu_job::_deactivate_own_share(); }
+		void run()
+		{
+			if (_scheduled != ACTIVE) Cpu_job::_activate_own_share();
+			_scheduled = ACTIVE;
+		}
+
+		void pause()
+		{
+			if (_scheduled != INACTIVE) Cpu_job::_deactivate_own_share();
+			_scheduled = INACTIVE;
+		}
 
 
 		/*************
@@ -70,7 +91,7 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 		 *************/
 
 		void exception(unsigned const cpu);
-		void proceed(unsigned const cpu) { mtc()->continue_vm(_state, cpu); }
+		void proceed(unsigned const cpu);
 		Cpu_job * helping_sink() { return this; }
 };
 

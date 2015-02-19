@@ -26,7 +26,6 @@ namespace Kernel
 	unsigned pd_alignment_log2();
 	size_t   signal_context_size();
 	size_t   signal_receiver_size();
-	size_t   vm_size();
 
 	/**
 	 * Kernel names of the kernel calls
@@ -48,6 +47,7 @@ namespace Kernel
 	constexpr Call_arg call_id_run_vm()              { return 28; }
 	constexpr Call_arg call_id_pause_vm()            { return 29; }
 	constexpr Call_arg call_id_pause_thread()        { return 30; }
+	constexpr Call_arg call_id_bin_vm()              { return 31; }
 
 	/**
 	 * Create a domain
@@ -293,6 +293,8 @@ namespace Kernel
 	 * \param dst                memory donation for the VM object
 	 * \param state              location of the CPU state of the VM
 	 * \param signal_context_id  kernel name of the signal context for VM events
+	 * \param table              guest-physical to host-physical translation
+	 *                           table pointer
 	 *
 	 * \retval >0  kernel name of the new VM
 	 * \retval  0  failed
@@ -300,10 +302,11 @@ namespace Kernel
 	 * Regaining of the supplied memory is not supported by now.
 	 */
 	inline unsigned new_vm(void * const dst, void * const state,
-	                  unsigned const signal_context_id)
+	                       unsigned const signal_context_id,
+	                       void * const table)
 	{
 		return call(call_id_new_vm(), (Call_arg)dst, (Call_arg)state,
-		            signal_context_id);
+		            (Call_arg)table, signal_context_id);
 	}
 
 
@@ -311,10 +314,27 @@ namespace Kernel
 	 * Execute a virtual-machine (again)
 	 *
 	 * \param vm_id  kernel name of the targeted VM
+	 *
+	 * \retval  0  suceeded
+	 * \retval -1  failed
 	 */
-	inline void run_vm(unsigned const vm_id)
+	inline int run_vm(unsigned const vm_id)
 	{
-		call(call_id_run_vm(), vm_id);
+		return call(call_id_run_vm(), vm_id);
+	}
+
+
+	/**
+	 * Destruct a virtual-machine
+	 *
+	 * \param vm_id  kernel name of the targeted VM
+	 *
+	 * \retval  0  suceeded
+	 * \retval -1  failed
+	 */
+	inline int bin_vm(unsigned const vm_id)
+	{
+		return call(call_id_bin_vm(), vm_id);
 	}
 
 
@@ -322,10 +342,13 @@ namespace Kernel
 	 * Stop execution of a virtual-machine
 	 *
 	 * \param vm_id  kernel name of the targeted VM
+	 *
+	 * \retval  0  suceeded
+	 * \retval -1  failed
 	 */
-	inline void pause_vm(unsigned const vm_id)
+	inline int pause_vm(unsigned const vm_id)
 	{
-		call(call_id_pause_vm(), vm_id);
+		return call(call_id_pause_vm(), vm_id);
 	}
 }
 

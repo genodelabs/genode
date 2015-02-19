@@ -40,7 +40,7 @@ class Vm {
 		Genode::Dataspace_client  _kernel_cap;
 		Genode::Dataspace_client  _initrd_cap;
 		const char*               _cmdline;
-		Vm_state                 *_state;
+		Genode::Vm_state         *_state;
 		Genode::Io_mem_connection _ram_iomem;
 		Ram                       _ram;
 		Genode::addr_t            _kernel_offset;
@@ -90,7 +90,7 @@ class Vm {
 		  _kernel_cap(_kernel_rom.dataspace()),
 		  _initrd_cap(_initrd_rom.dataspace()),
 		  _cmdline(cmdline),
-		  _state((Vm_state*)Genode::env()->rm_session()->attach(_vm_con.cpu_state())),
+		  _state((Genode::Vm_state*)Genode::env()->rm_session()->attach(_vm_con.cpu_state())),
 		  _ram_iomem(ram_base, ram_size),
 		  _ram(ram_base, ram_size, (Genode::addr_t)Genode::env()->rm_session()->attach(_ram_iomem.dataspace())),
 		  _kernel_offset(kernel_offset),
@@ -99,7 +99,7 @@ class Vm {
 
 		void start()
 		{
-			Genode::memset((void*)_state, 0, sizeof(Vm_state));
+			Genode::memset((void*)_state, 0, sizeof(Genode::Vm_state));
 			_load_kernel();
 			_load_initrd();
 			_prepare_atag();
@@ -161,7 +161,7 @@ class Vm {
 			       _state->ip, va_to_pa(_state->ip));
 			printf("  cpsr       = %08lx\n", _state->cpsr);
 			for (unsigned i = 0;
-			     i < Vm_state::Mode_state::MAX; i++) {
+			     i < Genode::Vm_state::Mode_state::MAX; i++) {
 				printf("  sp_%s     = %08lx [%08lx]\n", modes[i],
 				       _state->mode[i].sp, va_to_pa(_state->mode[i].sp));
 				printf("  lr_%s     = %08lx [%08lx]\n", modes[i],
@@ -186,8 +186,8 @@ class Vm {
 			return 0;
 		}
 
-		Vm_state *state() const { return  _state; }
-		Ram      *ram()         { return &_ram;   }
+		Genode::Vm_state *state() const { return  _state; }
+		Ram              *ram()         { return &_ram;   }
 };
 
 #endif /* _SRC__SERVER__VMM__INCLUDE__VM_H_ */
