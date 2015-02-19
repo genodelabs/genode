@@ -309,15 +309,13 @@ void rumpuser_bio(int fd, int op, void *data, size_t dlen, int64_t off,
                   rump_biodone_fn biodone, void *donearg)
 {
 	int nlocks;
-	
-	rumpkern_unsched(&nlocks, 0);
 
+	rumpkern_unsched(&nlocks, 0);
 	Packet *p = backend()->alloc();
 
-#if 0
-	PDBG("fd: %d op: %d len: %zu off: %lx p %p bio %p sync %u", fd, op, dlen, off,
-	     p, donearg, !!(op & RUMPUSER_BIO_SYNC));
-#endif
+	if (verbose)
+		PDBG("fd: %d op: %d len: %zu off: %lx p %p bio %p sync %u", fd, op, dlen, off,
+		     p, donearg, !!(op & RUMPUSER_BIO_SYNC));
 
 	p->opcode= op & RUMPUSER_BIO_WRITE ? Block::Packet_descriptor::WRITE :
 	                                     Block::Packet_descriptor::READ;

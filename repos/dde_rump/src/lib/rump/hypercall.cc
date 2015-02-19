@@ -230,11 +230,11 @@ int rumpuser_malloc(size_t len, int alignment, void **memp)
 {
 	Genode::Lock::Guard guard(_alloc_lock);
 
-	int align = Genode::log2(alignment);
+	int align = alignment ? Genode::log2(alignment) : 0;
 	*memp     = allocator()->alloc(len, align);
 
 	if (verbose)
-		PWRN("ALLOC: p: %p, s: %zx, a: %d", *memp, len, align);
+		PWRN("ALLOC: p: %p, s: %zx, a: %d %d", *memp, len, align, alignment);
 
 
 	return *memp ? 0 : -1;

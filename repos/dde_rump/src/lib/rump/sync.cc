@@ -35,17 +35,18 @@ struct rumpuser_mtx
 
 	bool down(bool try_lock = false)
 	{
-		counter_lock.lock();
+		Genode::Lock::Guard guard(counter_lock);
 
 		if (sem.cnt() > 1)
-			PERR("SEM cnt > 1");
+			PERR("%p: SEM cnt > 1 (%d) %p", rumpuser_curlwp(), sem.cnt(), this);
 
 		bool locked = sem.cnt() <= 0;
 
-		counter_lock.unlock();
-
 		if (locked && try_lock)
 			return false;
+
+		if (!try_lock)
+			counter_lock.unlock();
 
 		sem.down();
 		set_owner();
@@ -56,6 +57,10 @@ struct rumpuser_mtx
 	void up()
 	{
 		Genode::Lock::Guard guard(counter_lock);
+
+		if (sem.cnt() >= 1)
+			return;
+
 		clear_owner();
 		sem.up();
 	}
@@ -453,10 +458,26 @@ void rumpuser_rw_init(struct rumpuser_rw **rw)
 
 void rumpuser_rw_enter(int enum_rumprwlock, struct rumpuser_rw *rw)
 {
-	if (enum_rumprwlock == RUMPUSER_RW_WRITER)
-		rw->rw.lock(false);
-	else
-		rw->rw.read_lock(false);
+	int nlocks;
+	bool try_lock = true;
+	bool locked   = false;
+
+
+	while (!locked) {
+
+		if (!try_lock)
+			rumpkern_unsched(&nlocks, 0);
+
+		if (enum_rumprwlock == RUMPUSER_RW_WRITER)
+			locked = rw->rw.lock(try_lock);
+		else
+			locked = rw->rw.read_lock(try_lock);
+
+		if (!try_lock)
+			rumpkern_sched(nlocks, 0);
+
+		try_lock = false;
+	}
 }
 
 
