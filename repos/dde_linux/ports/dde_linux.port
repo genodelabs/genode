@@ -1,7 +1,8 @@
 LICENSE     := GPL
 VERSION     := 1
 DOWNLOADS   := dwc_otg.git usb.archive lxip.archive wifi.archive \
-               libnl.archive wpa_supplicant.archive
+               libnl.archive wpa_supplicant.archive \
+               fw_6000.archive fw_6205a.archive fw_6205b.archive fw_7260.archive
 
 #
 # Tools
@@ -85,6 +86,39 @@ generate_libnl_files: $(DOWNLOADS)
 URL(wpa_supplicant) := http://w1.fi/releases/wpa_supplicant-2.2.tar.gz
 SHA(wpa_supplicant) := 0c2ff4fd2e2f6325147cca0357d6c9f524efa26a
 DIR(wpa_supplicant) := src/app/wpa_supplicant
+
+#
+# Firmware images for iwlwifi Ultimate-N 6300 and Advanced-N 6200
+#
+URL(fw_6000)     := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-6000-ucode-9.221.4.1.tgz
+SHA(fw_6000)     := a888cf54974702594e82bcbfca20c26d8f906e9f
+DIR(fw_6000)     := firmware
+
+default: symlink_fw_6000
+symlink_fw_6000: $(DOWNLOADS)
+	@$(MSG_PREFIX)symlink firmware 6000-4 to 6000-6
+	$(VERBOSE)ln -sf iwlwifi-6000-4.ucode firmware/iwlwifi-6000-6.ucode
+
+#
+# Firmware images for iwlwifi Advanced-N 6205
+#
+URL(fw_6205a)     := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-6000g2a-ucode-18.168.6.1.tgz
+SHA(fw_6205a)     := a542c82dba96e0bfb1b0e01817a59575c5c87fc4
+DIR(fw_6205a)     := firmware
+
+#
+# Firmware images for iwlwifi Advanced-N 6230 / 6235 and Wireless-N 130 / 1030
+#
+URL(fw_6205b)     := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-6000g2b-ucode-18.168.6.1.tgz
+SHA(fw_6205b)     := f4c72b75ae8415661182d63154234dc0a55bc3db
+DIR(fw_6205b)     := firmware
+
+#
+# Firmware images for iwlwifi Wireless 7260
+#
+URL(fw_7260)     := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-7260-ucode-22.24.8.0.tgz
+SHA(fw_7260)     := d4ef19560464b9dc9a2278c31d6158f0615871c7
+DIR(fw_7260)     := firmware
 
 #
 # Patches
