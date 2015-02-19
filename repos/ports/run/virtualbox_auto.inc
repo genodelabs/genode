@@ -80,8 +80,9 @@ append_if [expr $use_ram_fs] config {
 		<provides><service name="File_system"/></provides>
 		<config>
 			<content>
-				<dir name="ram">
-					<rom name="overlay.vdi"/>
+				<dir name="ram"> }
+append_if [expr $use_ram_fs] config "<rom name=\"${overlay_image}\"/>"
+append_if [expr $use_ram_fs] config {
 				</dir>
 			</content>
 			<!-- constrain sessions according to their labels -->
@@ -148,38 +149,8 @@ append boot_modules {
 	virtualbox
 }
 
-#
-# Stuff to generate overlay.vdi if required
-#
-# generate overlay VDI
-#proc vdi         { } {
-#	global vdi_image
-#	return "bin/$vdi_image"
-#}
-#proc overlay_vdi { } { return "bin/overlay.vdi" }
-#proc vdi_size {} {
-#	catch {
-#		set result [ exec vboxmanage showhdinfo [vdi] | \
-#		                  grep "^Logical" | sed "s/\[^0-9\]\\+//;s/ .*//" ]
-#	}
-#	return $result
-#}
-#
-#file delete -force [overlay_vdi]
-#if {$use_vdi} {
-#	if {![file exists [vdi]]} {
-#		puts "VDI image [vdi] missing!"
-#		exit -1
-#	}
-#	catch {
-#		exec -ignorestderr vboxmanage createhd --filename [overlay_vdi] --size [vdi_size] --format vdi
-#		exec chmod a+r [overlay_vdi]
-#		append boot_modules "overlay.vdi"
-#	}
-#}
-
 lappend_if [expr $use_ram_fs]      boot_modules ram_fs
-lappend_if [expr $use_ram_fs]      boot_modules overlay.vdi
+lappend_if [expr $use_ram_fs]      boot_modules ${overlay_image}
 
 # platform-specific modules
 lappend_if [have_spec         ps2] boot_modules ps2_drv

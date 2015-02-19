@@ -42,7 +42,8 @@ blk_cache
 rump_ext2
 thread
 pthread
-virtualbox_auto_disk
-virtualbox_auto_share
+vbox_auto_win7
+vbox_auto_win7_share
+vbox_auto_win8
 tz_vmm
 vmm

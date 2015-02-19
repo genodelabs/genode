@@ -6,27 +6,30 @@ if {[have_include "power_on/qemu"]} {
 	exit 0
 }
 
-set vdi_image "win7.vdi"
-# Write overlay back to harddisk if set to 0
-set use_ram_fs 0
+set vdi_image "${flavor}.vdi"
+set vbox_file "vm_${flavor}.vbox"
+set overlay_image "overlay_${flavor}.vdi"
 
 set build_components { }
-set boot_modules { vm_auto_disk.vbox }
+set boot_modules { }
 
 set config_of_app {
 	<start name="vbox" priority="-2">
 		<binary name="virtualbox" />
-		<resource name="RAM" quantum="1280M"/>
-		<config vbox_file="vm_auto_disk.vbox" vm_name="AutoDisk">
+		<resource name="RAM" quantum="1280M"/>}
+append config_of_app "
+			<config vbox_file=\"${vbox_file}\" vm_name=\"${flavor}\">"
+append config_of_app {
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc">
-				<vfs>}
+				<vfs>
+					<dir name="dev"> <log/> <rtc/> </dir>}
 
 append_if [expr $use_ram_fs] config_of_app {
 					<dir name="ram">  <fs label="from_ram_fs"/> </dir>}
 
+append config_of_app "
+					<rom name=\"${vbox_file}\"/>"
 append config_of_app {
-					<dir name="dev"> <log/> <rtc/> </dir>
-					<rom name="vm_auto_disk.vbox" />
 					<fs />
 				</vfs>
 			</libc>
@@ -49,7 +52,9 @@ append config_of_app {
 source ${genode_dir}/repos/ports/run/virtualbox_auto.inc
 
 # copy vbox configuration to bin directory
-exec cp ${genode_dir}/repos/ports/run/vm_auto_disk.vbox bin/.
+exec cp ${genode_dir}/repos/ports/run/${vbox_file} bin/.
+
+append boot_modules " ${vbox_file} "
 
 build_boot_image $boot_modules
 
@@ -57,4 +62,4 @@ run_genode_until {\[init -\> vbox\].*Guest Additions capability report:.*seamles
 run_genode_until {\[init -\> vbox\].*Guest Additions capability report:.*seamless: yes, hostWindowMapping: no, graphics: yes} 170 [output_spawn_id]
 
 # cleanup bin directory - remove vbox file
-exec rm bin/vm_auto_disk.vbox
+exec rm bin/${vbox_file}

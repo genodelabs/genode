@@ -65,8 +65,11 @@ if {[have_include "power_on/qemu"]} {
 # Tested for nova. 
 assert_spec nova
 
+set flavor   "win7"
+set vdi_image "${flavor}.vdi"
 # Write overlay back to harddisk if set to 0
 set use_ram_fs 0
+set overlay_image "overlay_${flavor}.vdi"
 
 #
 # Create .bat file to be executed by Win VM
