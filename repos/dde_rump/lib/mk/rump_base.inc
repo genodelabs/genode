@@ -64,14 +64,14 @@ $(RUMP_TOOLS):
 #
 # Setup install directory
 #
-$(RUMP_OBJ)/dest: $(RUMP_TOOLS)
+$(RUMP_OBJ)/dest.stage: $(RUMP_TOOLS)
 	CC=$(RUMP_CC) $(BUILD_CMD) setupdest
 
 #
 # Build librump
 #
-$(ARCHIVE): $(RUMP_OBJ)/dest
-	@echo "Building rump library ..."
+$(ARCHIVE): $(RUMP_OBJ)/dest.stage
+	@echo "Building rump library ... $(ARCHIVE)"
 	CC=$(RUMP_CC) $(BUILD_CMD) -k build install
 
 #
