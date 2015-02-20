@@ -90,6 +90,24 @@
 	popq FLAGS_OFFSET(%rax)
 	popq SP_OFFSET(%rax)
 
+	/* Save register values to client context */
+	lea ERRCODE_OFFSET(%rax), %rsp
+	pushq %rbp
+	pushq %rsi
+	pushq %rdi
+	pushq %rdx
+	pushq %rcx
+	pushq %rbx
+	pushq _mt_buffer
+	pushq %r15
+	pushq %r14
+	pushq %r13
+	pushq %r12
+	pushq %r11
+	pushq %r10
+	pushq %r9
+	pushq %r8
+
 	1: jmp 1b
 
 	.global _mt_user_entry_pic
