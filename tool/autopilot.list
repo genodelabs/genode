@@ -23,9 +23,11 @@ failsafe
 netperf_lwip
 netperf_lwip_usb30
 netperf_lwip_bridge
+netperf_lwip_wifi
 netperf_lxip
 netperf_lxip_usb30
 netperf_lxip_bridge
+netperf_lxip_wifi
 l4linux_netperf
 l4linux_netperf_usb30
 l4linux_netperf_bridge
