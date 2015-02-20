@@ -81,7 +81,12 @@
 	mov $_mt_buffer+BUFFER_SIZE, %rsp
 	pushq $0x23
 	pushq SP_OFFSET(%rax)
-	pushq $0x3000 /* XXX: Set Interrupt Enable flag */
+
+	/* Set I/O privilege level to 3 */
+	orq $0x3000, FLAGS_OFFSET(%rax)
+	btrq $9, FLAGS_OFFSET(%rax) /* XXX: Drop once interrupt handling is done */
+	pushq FLAGS_OFFSET(%rax)
+
 	pushq $0x1b
 	pushq (%rax)
 
