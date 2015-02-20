@@ -17,11 +17,13 @@
 /* needed type definitions */
 #include <base/fixed_stdint.h>
 
-typedef __SIZE_TYPE__   size_t;
+typedef __SIZE_TYPE__     size_t;
+typedef signed long      ssize_t;
 typedef genode_uint32_t uint32_t;
 typedef genode_uint64_t uint64_t;
 typedef uint32_t        __u32;
 typedef uint64_t        __u64;
+typedef genode_int64_t  __s64;
 
 #ifndef __cplusplus
 #define NULL (void*)0
