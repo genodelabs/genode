@@ -49,6 +49,13 @@ using namespace Kernel;
 	CALL_5_FILL_ARG_REGS \
 	register Call_arg arg_5_reg asm("r9") = arg_5;
 
+#define CALL_1_SYSCALL "int $0x80\n" : "+r" (arg_0_reg)
+#define CALL_2_SYSCALL CALL_1_SYSCALL: "r" (arg_1_reg)
+#define CALL_3_SYSCALL CALL_2_SYSCALL, "r" (arg_2_reg)
+#define CALL_4_SYSCALL CALL_3_SYSCALL, "r" (arg_3_reg)
+#define CALL_5_SYSCALL CALL_4_SYSCALL, "r" (arg_4_reg)
+#define CALL_6_SYSCALL CALL_5_SYSCALL, "r" (arg_5_reg)
+
 
 /******************
  ** Kernel calls **
@@ -56,18 +63,18 @@ using namespace Kernel;
 
 Call_ret Kernel::call(Call_arg arg_0)
 {
-	PDBG("syscall binding not implemented");
-	for (;;);
-	return 0;
+	CALL_1_FILL_ARG_REGS
+	asm volatile(CALL_1_SYSCALL);
+	return arg_0_reg;
 }
 
 
 Call_ret Kernel::call(Call_arg arg_0,
                       Call_arg arg_1)
 {
-	PDBG("syscall binding not implemented");
-	for (;;);
-	return 0;
+	CALL_2_FILL_ARG_REGS
+	asm volatile(CALL_2_SYSCALL);
+	return arg_0_reg;
 }
 
 
@@ -75,9 +82,9 @@ Call_ret Kernel::call(Call_arg arg_0,
                       Call_arg arg_1,
                       Call_arg arg_2)
 {
-	PDBG("syscall binding not implemented");
-	for (;;);
-	return 0;
+	CALL_3_FILL_ARG_REGS
+	asm volatile(CALL_3_SYSCALL);
+	return arg_0_reg;
 }
 
 
@@ -86,9 +93,9 @@ Call_ret Kernel::call(Call_arg arg_0,
                       Call_arg arg_2,
                       Call_arg arg_3)
 {
-	PDBG("syscall binding not implemented");
-	for (;;);
-	return 0;
+	CALL_4_FILL_ARG_REGS
+	asm volatile(CALL_4_SYSCALL);
+	return arg_0_reg;
 }
 
 
@@ -98,9 +105,9 @@ Call_ret Kernel::call(Call_arg arg_0,
                       Call_arg arg_3,
                       Call_arg arg_4)
 {
-	PDBG("syscall binding not implemented");
-	for (;;);
-	return 0;
+	CALL_5_FILL_ARG_REGS
+	asm volatile(CALL_5_SYSCALL);
+	return arg_0_reg;
 }
 
 
@@ -111,7 +118,7 @@ Call_ret Kernel::call(Call_arg arg_0,
                       Call_arg arg_4,
                       Call_arg arg_5)
 {
-	PDBG("syscall binding not implemented");
-	for (;;);
-	return 0;
+	CALL_6_FILL_ARG_REGS
+	asm volatile(CALL_6_SYSCALL);
+	return arg_0_reg;
 }
