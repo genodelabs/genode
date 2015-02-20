@@ -121,22 +121,22 @@ class Genode::Cpu
 			/**
 			 * Support for kernel calls
 			 */
-			void user_arg_0(Kernel::Call_arg const arg) { /* XXX */ }
-			void user_arg_1(Kernel::Call_arg const arg) { /* XXX */ }
-			void user_arg_2(Kernel::Call_arg const arg) { /* XXX */ }
-			void user_arg_3(Kernel::Call_arg const arg) { /* XXX */ }
-			void user_arg_4(Kernel::Call_arg const arg) { /* XXX */ }
-			void user_arg_5(Kernel::Call_arg const arg) { /* XXX */ }
-			void user_arg_6(Kernel::Call_arg const arg) { /* XXX */ }
-			void user_arg_7(Kernel::Call_arg const arg) { /* XXX */ }
-			Kernel::Call_arg user_arg_0() const { return 0UL; }
-			Kernel::Call_arg user_arg_1() const { return 0UL; }
-			Kernel::Call_arg user_arg_2() const { return 0UL; }
-			Kernel::Call_arg user_arg_3() const { return 0UL; }
-			Kernel::Call_arg user_arg_4() const { return 0UL; }
-			Kernel::Call_arg user_arg_5() const { return 0UL; }
-			Kernel::Call_arg user_arg_6() const { return 0UL; }
-			Kernel::Call_arg user_arg_7() const { return 0UL; }
+			void user_arg_0(Kernel::Call_arg const arg) { rdi = arg; }
+			void user_arg_1(Kernel::Call_arg const arg) { rsi = arg; }
+			void user_arg_2(Kernel::Call_arg const arg) { rdx = arg; }
+			void user_arg_3(Kernel::Call_arg const arg) { rcx = arg; }
+			void user_arg_4(Kernel::Call_arg const arg) { r8 = arg; }
+			void user_arg_5(Kernel::Call_arg const arg) { r9 = arg; }
+			void user_arg_6(Kernel::Call_arg const arg) { r10 = arg; }
+			void user_arg_7(Kernel::Call_arg const arg) { r11 = arg; }
+			Kernel::Call_arg user_arg_0() const { return rdi; }
+			Kernel::Call_arg user_arg_1() const { return rsi; }
+			Kernel::Call_arg user_arg_2() const { return rdx; }
+			Kernel::Call_arg user_arg_3() const { return rcx; }
+			Kernel::Call_arg user_arg_4() const { return r8; }
+			Kernel::Call_arg user_arg_5() const { return r9; }
+			Kernel::Call_arg user_arg_6() const { return r10; }
+			Kernel::Call_arg user_arg_7() const { return r11; }
 
 			/**
 			 * Initialize thread context
