@@ -81,6 +81,15 @@
 	mov _mt_master_context_begin+CR3_OFFSET, %rax
 	mov %rax, %cr3
 
+	/* Save information on interrupt stack frame in client context */
+	mov _mt_client_context_ptr, %rax
+	popq TRAPNO_OFFSET(%rax)
+	popq ERRCODE_OFFSET(%rax)
+	popq (%rax)
+	popq FLAGS_OFFSET(%rax) /* Discard cs */
+	popq FLAGS_OFFSET(%rax)
+	popq SP_OFFSET(%rax)
+
 	1: jmp 1b
 
 	.global _mt_user_entry_pic
