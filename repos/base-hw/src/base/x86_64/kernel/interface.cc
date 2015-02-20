@@ -17,6 +17,38 @@
 
 using namespace Kernel;
 
+/************************************
+ ** Helper macros for kernel calls **
+ ************************************/
+
+/**
+ * Assign argument registers according to AMD64 parameter passing
+ * convention to avoid additional register copy operations.
+ */
+
+#define CALL_1_FILL_ARG_REGS \
+	register Call_arg arg_0_reg asm("rdi") = arg_0;
+
+#define CALL_2_FILL_ARG_REGS \
+	CALL_1_FILL_ARG_REGS \
+	register Call_arg arg_1_reg asm("rsi") = arg_1;
+
+#define CALL_3_FILL_ARG_REGS \
+	CALL_2_FILL_ARG_REGS \
+	register Call_arg arg_2_reg asm("rdx") = arg_2;
+
+#define CALL_4_FILL_ARG_REGS \
+	CALL_3_FILL_ARG_REGS \
+	register Call_arg arg_3_reg asm("rcx") = arg_3;
+
+#define CALL_5_FILL_ARG_REGS \
+	CALL_4_FILL_ARG_REGS \
+	register Call_arg arg_4_reg asm("r8") = arg_4;
+
+#define CALL_6_FILL_ARG_REGS \
+	CALL_5_FILL_ARG_REGS \
+	register Call_arg arg_5_reg asm("r9") = arg_5;
+
 
 /******************
  ** Kernel calls **
