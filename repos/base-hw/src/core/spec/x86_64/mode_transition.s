@@ -115,6 +115,24 @@
 	mov %rbx, %fs
 	mov %rbx, %gs
 
+	/* Restore register values from kernel context */
+	mov $_mt_master_context_begin+R8_OFFSET, %rsp
+	popq %r8
+	popq %r9
+	popq %r10
+	popq %r11
+	popq %r12
+	popq %r13
+	popq %r14
+	popq %r15
+	popq %rax
+	popq %rbx
+	popq %rcx
+	popq %rdx
+	popq %rdi
+	popq %rsi
+	popq %rbp
+
 	1: jmp 1b
 
 	.global _mt_user_entry_pic
