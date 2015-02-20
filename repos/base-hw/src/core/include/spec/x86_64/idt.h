@@ -17,7 +17,8 @@ class Genode::Idt
 	private:
 
 		enum {
-			SIZE_IDT = 256,
+			SIZE_IDT    = 256,
+			SYSCALL_VEC = 0x80,
 		};
 
 		/**
