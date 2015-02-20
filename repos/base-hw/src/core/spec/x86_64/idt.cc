@@ -28,6 +28,9 @@ void Idt::setup()
 		_table[vec].offset_31_16 = (*isrs >> 16) & 0xffff;
 		_table[vec].offset_63_32 = (*isrs >> 32) & 0xffff;
 	}
+
+	/* Set DPL of syscall entry to 3 */
+	_table[SYSCALL_VEC].flags = _table[SYSCALL_VEC].flags | 0x6000;
 }
 
 
