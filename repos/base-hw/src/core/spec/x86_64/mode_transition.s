@@ -108,6 +108,13 @@
 	pushq %r9
 	pushq %r8
 
+	/* Restore kernel segment registers */
+	mov $0x10, %rbx
+	mov %rbx, %ds
+	mov %rbx, %es
+	mov %rbx, %fs
+	mov %rbx, %gs
+
 	1: jmp 1b
 
 	.global _mt_user_entry_pic
