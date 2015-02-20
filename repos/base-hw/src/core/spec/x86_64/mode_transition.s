@@ -73,6 +73,10 @@
 	 */
 	.global _mt_kernel_entry_pic
 	_mt_kernel_entry_pic:
+
+	/* Copy client context RAX to buffer */
+	mov %rax, _mt_buffer
+
 	1: jmp 1b
 
 	.global _mt_user_entry_pic
