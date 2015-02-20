@@ -135,7 +135,7 @@
 
 	/* Restore kernel stack and continue kernel execution */
 	mov _mt_master_context_begin+SP_OFFSET, %rsp
-	1: jmp 1b
+	jmp *_mt_master_context_begin
 
 	.global _mt_user_entry_pic
 	_mt_user_entry_pic:
