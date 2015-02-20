@@ -77,6 +77,10 @@
 	/* Copy client context RAX to buffer */
 	mov %rax, _mt_buffer
 
+	/* Switch to kernel page tables */
+	mov _mt_master_context_begin+CR3_OFFSET, %rax
+	mov %rax, %cr3
+
 	1: jmp 1b
 
 	.global _mt_user_entry_pic
