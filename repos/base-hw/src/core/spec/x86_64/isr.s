@@ -14,20 +14,15 @@ _isr_array:
 .macro _exception_with_code vector
 	_isr_entry
 	push $\vector
-	jmp _dispatch_interrupt
+	jmp _mt_kernel_entry_pic
 .endm
 
 .macro _exception vector
 	_isr_entry
 	push $0
 	push $\vector
-	jmp _dispatch_interrupt
+	jmp _mt_kernel_entry_pic
 .endm
-
-/* interrupt dispatcher */
-_dispatch_interrupt:
-hlt
-jmp _dispatch_interrupt
 
 _exception				0
 _exception				1
