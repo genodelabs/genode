@@ -21,11 +21,12 @@
 .set BUFFER_SIZE, 6 * 8
 
 /* offsets of the member variables in a CPU context */
-.set SP_OFFSET,     1 * 8
-.set R8_OFFSET,     2 * 8
-.set RAX_OFFSET,   10 * 8
-.set FLAGS_OFFSET, 18 * 8
-.set CR3_OFFSET,   20 * 8
+.set SP_OFFSET,       1 * 8
+.set R8_OFFSET,       2 * 8
+.set RAX_OFFSET,     10 * 8
+.set ERRCODE_OFFSET, 17 * 8
+.set FLAGS_OFFSET,   18 * 8
+.set CR3_OFFSET,     21 * 8
 
 .section .text
 
@@ -48,7 +49,7 @@
 	_mt_master_context_begin:
 
 	/* space must be at least as large as 'Cpu_state' */
-	.space 21*8
+	.space 22*8
 
 	.global _mt_master_context_end
 	_mt_master_context_end:
