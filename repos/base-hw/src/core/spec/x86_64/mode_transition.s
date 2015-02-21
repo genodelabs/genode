@@ -26,6 +26,7 @@
 .set RAX_OFFSET,     10 * 8
 .set ERRCODE_OFFSET, 17 * 8
 .set FLAGS_OFFSET,   18 * 8
+.set TRAPNO_OFFSET,  19 * 8
 .set CR3_OFFSET,     21 * 8
 
 .section .text
