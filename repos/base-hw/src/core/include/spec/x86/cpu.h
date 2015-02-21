@@ -18,6 +18,7 @@
 #include <kernel/interface_support.h>
 #include <cpu/cpu_state.h>
 #include <idt.h>
+#include <tss.h>
 
 namespace Genode
 {
@@ -43,9 +44,11 @@ class Genode::Cpu
 			/* Setup IDT only once */
 			if (primary_id() == executing_id()) {
 				Idt::setup();
+				Tss::setup();
 			}
 
 			Idt::load();
+			Tss::load();
 		}
 
 		static constexpr addr_t exception_entry = 0x0; /* XXX */
