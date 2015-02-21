@@ -23,26 +23,27 @@ namespace Genode { struct Cpu_state; }
 
 struct Genode::Cpu_state
 {
-	addr_t ip     = 0;
-	addr_t sp     = 0;
-	addr_t r8     = 0;
-	addr_t r9     = 0;
-	addr_t r10    = 0;
-	addr_t r11    = 0;
-	addr_t r12    = 0;
-	addr_t r13    = 0;
-	addr_t r14    = 0;
-	addr_t r15    = 0;
-	addr_t rax    = 0;
-	addr_t rbx    = 0;
-	addr_t rcx    = 0;
-	addr_t rdx    = 0;
-	addr_t rdi    = 0;
-	addr_t rsi    = 0;
-	addr_t rbp    = 0;
-	addr_t ss     = 0;
-	addr_t eflags = 0;
-	addr_t trapno = 0;
+	addr_t ip      = 0;
+	addr_t sp      = 0;
+	addr_t r8      = 0;
+	addr_t r9      = 0;
+	addr_t r10     = 0;
+	addr_t r11     = 0;
+	addr_t r12     = 0;
+	addr_t r13     = 0;
+	addr_t r14     = 0;
+	addr_t r15     = 0;
+	addr_t rax     = 0;
+	addr_t rbx     = 0;
+	addr_t rcx     = 0;
+	addr_t rdx     = 0;
+	addr_t rdi     = 0;
+	addr_t rsi     = 0;
+	addr_t rbp     = 0;
+	addr_t errcode = 0;
+	addr_t eflags  = 0;
+	addr_t trapno  = 0;
+	addr_t ss      = 0;
 };
 
 #endif /* _INCLUDE__X86_64__CPU__CPU_STATE_H_ */
