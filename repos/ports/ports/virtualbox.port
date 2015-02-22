@@ -11,7 +11,7 @@ SHA(virtualbox) := e4c23b713e8715b8e0172fa066f2197756e901fe
 PATCHES_LIST    := acpi_drv dev_e1000 eminternal fake_pci_vendor iconv mouse
 PATCHES_LIST    += pdm_driver poke sharedfolder_pagelist
 PATCHES_LIST    += time-log-deadlock vbox_inc vbox_main network
-PATCHES_LIST    += vga_fb vga_vbva vmdk vmmdev avoid_yield serial rem_irq
+PATCHES_LIST    += vga_fb vga_vbva vmdk vmmdev avoid_yield serial rem_irq usb
 
 PATCHES         := $(addsuffix .patch, $(PATCHES_LIST))
 PATCHES         := $(addprefix src/virtualbox/patches/, $(PATCHES))
@@ -30,13 +30,14 @@ VBOX_MAIN_CLI += KeyboardImpl SessionImpl VMMDevInterface BusAssignmentManager
 VBOX_MAIN_CLI += ConsoleImpl GuestImpl MouseImpl VBoxDriversRegister
 
 VBOX_MAIN_SRV := AudioAdapterImpl DHCPServerImpl MediumAttachmentImpl
-VBOX_MAIN_SRV += NATEngineImpl SerialPortImpl USBControllerImpl
+VBOX_MAIN_SRV += NATEngineImpl SerialPortImpl
 VBOX_MAIN_SRV += BandwidthControlImpl GuestOSTypeImpl MediumFormatImpl
-VBOX_MAIN_SRV += NetworkAdapterImpl SnapshotImpl USBDeviceFiltersImpl
+VBOX_MAIN_SRV += NetworkAdapterImpl SnapshotImpl
 VBOX_MAIN_SRV += BandwidthGroupImpl MachineImplCloneVM MediumImpl
 VBOX_MAIN_SRV += NetworkServiceRunner StorageControllerImpl VirtualBoxImpl
 VBOX_MAIN_SRV += BIOSSettingsImpl MachineImpl MediumLock ParallelPortImpl
 VBOX_MAIN_SRV += SystemPropertiesImpl VRDEServerImpl TokenImpl
+VBOX_MAIN_SRV += USBControllerImpl USBDeviceFilterImpl USBDeviceFiltersImpl
 
 VBOX_MAIN_INC := AdditionsFacilityImpl AudioAdapterImpl AudioSnifferInterface
 VBOX_MAIN_INC += AutoCaller AutostartDb AutoStateDep BandwidthControlImpl
@@ -54,7 +55,8 @@ VBOX_MAIN_INC += PCIDeviceAttachmentImpl Performance ProgressImpl SnapshotImpl
 VBOX_MAIN_INC += ProgressProxyImpl SerialPortImpl SessionImpl SharedFolderImpl
 VBOX_MAIN_INC += StorageControllerImpl SystemPropertiesImpl TokenImpl VMMDev
 VBOX_MAIN_INC += USBControllerImpl USBDeviceFilterImpl USBDeviceFiltersImpl
-VBOX_MAIN_INC += VirtualBoxImpl VRDEServerImpl GuestProcessImpl
+VBOX_MAIN_INC += USBProxyService VirtualBoxImpl VRDEServerImpl GuestProcessImpl
+VBOX_MAIN_INC += USBDeviceImpl HostUSBDeviceImpl Matching
 
 VBOX_SRC_VBOX := VMM Devices Runtime GuestHost/HGSMI Storage Disassembler
 VBOX_SRC_VBOX += HostServices/SharedFolders Main/xml/Settings.cpp
@@ -71,6 +73,7 @@ VBOX_INC += VBoxVideo.h Hardware bioslogo.h scsi.h shflsvc.h VBoxGuest2.h vd.h
 VBOX_INC += vd-plugin.h vd-ifs.h vd-ifs-internal.h vd-image-backend.h
 VBOX_INC += vd-cache-backend.h vd-filter-backend.h msi.h asmdefs.mac err.mac
 VBOX_INC += VBoxVideoHost3D.h VBoxVideo3D.h settings.h VBoxAuth.h
+VBOX_INC += usb.h usbfilter.h
 
 VBOX_INC_COM := array.h assert.h AutoLock.h ErrorInfo.h EventQueue.h Guid.h
 VBOX_INC_COM += list.h MultiResult.h string.h

@@ -19,6 +19,7 @@
 #include <VBox/vmm/pdmapi.h>
 #include <VBox/vmm/pdmdrv.h>
 #include <VBox/vmm/pdmdev.h>
+#include <VBox/vmm/pdmusb.h>
 
 #include "util.h"
 
@@ -73,6 +74,7 @@ int PDMR3LdrGetSymbolR0Lazy(PVM pVM, const char *pszModule,
 extern "C" int VBoxDriversRegister(PCPDMDRVREGCB, uint32_t);
 extern "C" int VBoxDevicesRegister(PPDMDEVREGCB,  uint32_t);
 extern "C" int VBoxDriversRegister_Main(PCPDMDRVREGCB, uint32_t);
+extern "C" int VBoxUsbRegister(PCPDMUSBREGCB, uint32_t);
 
 
 static int dummy_VBoxDriversRegister(PCPDMDRVREGCB, uint32_t) { return VINF_SUCCESS; }
@@ -100,6 +102,10 @@ int PDMR3LdrGetSymbolR3(PVM pVM, const char *pszModule, const char *pszSymbol,
 
 		if (Genode::strcmp(pszSymbol, "VBoxDevicesRegister") == 0) {
 			*ppvValue = (void *)VBoxDevicesRegister;
+			return VINF_SUCCESS;
+		}
+		if (Genode::strcmp(pszSymbol, "VBoxUsbRegister") == 0) {
+			*ppvValue = (void *)VBoxUsbRegister;
 			return VINF_SUCCESS;
 		}
 	}

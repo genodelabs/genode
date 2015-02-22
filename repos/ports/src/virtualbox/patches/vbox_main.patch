@@ -428,16 +428,6 @@
              }
              hrc = pMachine->COMGETTER(Name)(bstr.asOutParam());                             H();
              InsertConfigString(pCfg, "StreamName", bstr);
-@@ -2430,7 +2446,9 @@
-          * The USB Controllers.
-          */
-         com::SafeIfaceArray<IUSBController> usbCtrls;
-+#if 0
-         hrc = pMachine->COMGETTER(USBControllers)(ComSafeArrayAsOutParam(usbCtrls));        H();
-+#endif
-         bool fOhciPresent = false; /**< Flag whether at least one OHCI controller is presnet. */
- 
-         for (size_t i = 0; i < usbCtrls.size(); ++i)
 @@ -3533,6 +3551,8 @@
          ComPtr<IMedium> pMedium;
          hrc = pMediumAtt->COMGETTER(Medium)(pMedium.asOutParam());                          H();

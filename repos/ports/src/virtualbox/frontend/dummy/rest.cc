@@ -6,6 +6,9 @@
 #include "ProgressProxyImpl.h"
 #include "SharedFolderImpl.h"
 
+#include <VBox/usbfilter.h>
+#include "USBProxyService.h"
+
 static bool debug = false;
 
 #define TRACE(X) \
@@ -204,4 +207,30 @@ void Machine::ClientToken::getId(Utf8Str &strId)
 }
 
 HRESULT com::Initialize(bool fGui)                                              TRACE(S_OK)
+
+
+
+
+
+HRESULT USBProxyService::captureDeviceForVM(SessionMachine *, IN_GUID)          DUMMY(E_FAIL)
+HRESULT USBProxyService::detachAllDevicesFromVM(SessionMachine*, bool, bool)    DUMMY(E_FAIL)
+HRESULT USBProxyService::autoCaptureDevicesForVM(SessionMachine *)              DUMMY(E_FAIL)
+HRESULT USBProxyService::detachDeviceFromVM(SessionMachine*, GUID, bool)        DUMMY(E_FAIL)
+void matching::ParsedBoolFilter::parse(com::Bstr const&)                        DUMMY()
+
+USBFILTERMATCH USBFilterGetMatchingMethod(PCUSBFILTER, USBFILTERIDX)            DUMMY(USBFILTERMATCH_INVALID)
+const char * USBFilterGetString(PCUSBFILTER pFilter, USBFILTERIDX enmFieldIdx)  DUMMY(nullptr)
+
+bool USBFilterIsMethodNumeric(USBFILTERMATCH enmMatchingMethod)                 DUMMY(false)
+bool USBFilterMatch(PCUSBFILTER pFilter, PCUSBFILTER pDevice)                   DUMMY(false)
+void USBFilterInit(PUSBFILTER pFilter, USBFILTERTYPE enmType)                   DUMMY()
+int  USBFilterSetStringExact(PUSBFILTER, USBFILTERIDX, const char *, bool)      DUMMY(-1)
+int  USBFilterSetNumExact(PUSBFILTER, USBFILTERIDX, uint16_t, bool)             DUMMY(-1)
+int  USBFilterGetNum(PCUSBFILTER pFilter, USBFILTERIDX enmFieldIdx)             DUMMY(-1)
+bool USBFilterIsNumericField(USBFILTERIDX enmFieldIdx)                          DUMMY(false)
+bool USBFilterIsMethodString(USBFILTERMATCH enmMatchingMethod)                  DUMMY(false)
+bool USBFilterIsStringField(USBFILTERIDX enmFieldIdx)                           DUMMY(false)
+int  USBFilterSetStringPattern(PUSBFILTER, USBFILTERIDX, const char *, bool)    DUMMY(-1)
+int  USBFilterSetNumExpression(PUSBFILTER, USBFILTERIDX, const char *, bool)    DUMMY(-1)
+int  USBFilterSetIgnore(PUSBFILTER pFilter, USBFILTERIDX enmFieldIdx)           DUMMY(-1)
 

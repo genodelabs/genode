@@ -117,6 +117,10 @@ extern "C" int VBoxDevicesRegister(PPDMDEVREGCB pCallbacks, uint32_t u32Version)
 	if (RT_FAILURE(rc))
 		return rc;
 
+	rc = pCallbacks->pfnRegister(pCallbacks, &g_DeviceOHCI);
+	if (RT_FAILURE(rc))
+		return rc;
+
 	return VINF_SUCCESS;
 }
 

@@ -628,4 +628,8 @@ enum HWVirtExPropertyType_T
 	HWVirtExPropertyType_UnrestrictedExecution,
 };
 
+enum USBDeviceState_T
+{
+};
+
 #endif /* !___VBox_com_defs_h */

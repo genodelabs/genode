@@ -2,6 +2,8 @@
 
 #include "VirtualBoxBase.h"
 
+#include <VBox/usbfilter.h>
+
 static bool debug = false;
 
 #define TRACE(X) \
@@ -119,25 +121,20 @@ HRESULT Host::buildDVDDrivesList(MediaList &list) DUMMY(E_FAIL)
 HRESULT Host::buildFloppyDrivesList(MediaList &list) DUMMY(E_FAIL)
 
 #ifdef VBOX_WITH_USB
-USBProxyService* Host::usbProxyService() DUMMY(nullptr)
-HRESULT Host::addChild(HostUSBDeviceFilter *pChild) DUMMY(E_FAIL)
-HRESULT Host::removeChild(HostUSBDeviceFilter *pChild) DUMMY(E_FAIL)
-VirtualBox* Host::parent() DUMMY(nullptr)
+USBProxyService* Host::usbProxyService()
+{
+	TRACE(nullptr)
+}
 
-HRESULT Host::onUSBDeviceFilterChange(HostUSBDeviceFilter *aFilter) DUMMY(E_FAIL)
+HRESULT Host::addChild(HostUSBDeviceFilter *pChild)                             DUMMY(E_FAIL)
+HRESULT Host::removeChild(HostUSBDeviceFilter *pChild)                          DUMMY(E_FAIL)
+VirtualBox* Host::parent()                                                      DUMMY(nullptr)
 
-void Host::getUSBFilters(Host::USBDeviceFilterList *aGlobalFilters) DUMMY()
+HRESULT Host::onUSBDeviceFilterChange(HostUSBDeviceFilter *, BOOL)              DUMMY(E_FAIL)
+
+void Host::getUSBFilters(Host::USBDeviceFilterList *aGlobalFilters)             DUMMY()
+
+HRESULT Host::checkUSBProxyService()                                            TRACE(S_OK)
+
+int  USBFilterMatchRated(PCUSBFILTER pFilter, PCUSBFILTER pDevice)              DUMMY(-1)
 #endif
-
-/*
-void Host::getDVDInfoFromDevTree(std::list<ComObjPtr<Medium> > &list) DUMMY()
-bool Host::getDVDInfoFromHal(std::list<ComObjPtr<Medium> > &list) DUMMY(false)
-bool Host::getFloppyInfoFromHal(std::list< ComObjPtr<Medium> > &list) DUMMY(false)
-void Host::parseMountTable(char *mountTable, std::list< ComObjPtr<Medium> > &list) DUMMY()
-bool Host::validateDevice(const char *deviceNode, bool isCDROM) DUMMY(false)
-HRESULT Host::checkUSBProxyService() DUMMY(E_FAIL)
-HRESULT Host::updateNetIfList() DUMMY(E_FAIL)
-void Host::registerDiskMetrics(PerformanceCollector *aCollector) DUMMY()
-void Host::registerMetrics(PerformanceCollector *aCollector) DUMMY()
-void Host::unregisterMetrics (PerformanceCollector *aCollector) DUMMY()
-*/
