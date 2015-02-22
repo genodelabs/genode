@@ -71,6 +71,9 @@ set vdi_image "${flavor}.vdi"
 set use_ram_fs 0
 set overlay_image "overlay_${flavor}.vdi"
 
+set use_usb 0
+set use_ps2 [have_spec ps2]
+
 #
 # Create .bat file to be executed by Win VM
 #

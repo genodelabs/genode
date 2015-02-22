@@ -85,6 +85,7 @@ class Mouse;
 class NATEngine;
 class NATNetwork;
 class NetworkAdapter;
+class OUSBDevice;
 class ParallelPort;
 class PCIDeviceAttachment;
 class SerialPort;
@@ -162,7 +163,7 @@ typedef StorageController   IStorageController;
 typedef SystemProperties    ISystemProperties;
 typedef Token               IToken;
 typedef USBController       IUSBController;
-class IUSBDevice;
+typedef OUSBDevice          IUSBDevice;
 typedef USBDeviceFilter     IUSBDeviceFilter;
 typedef USBDeviceFilters    IUSBDeviceFilters;
 typedef VirtualBox          IVirtualBox;
@@ -269,6 +270,7 @@ typedef struct IFsObjInfo { } IFsObjInfo;
 #include "MediumImpl.h"
 #include "SessionImpl.h"
 #include "HostImpl.h"
+#include "USBDeviceImpl.h"
 
 class VRDEServerInfo { };
 class EmulatedUSB { };

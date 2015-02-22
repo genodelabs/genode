@@ -53,6 +53,7 @@ SRC_CC += Main/src-server/StorageControllerImpl.cpp
 SRC_CC += Main/src-server/SystemPropertiesImpl.cpp
 SRC_CC += Main/src-server/TokenImpl.cpp
 SRC_CC += Main/src-server/USBControllerImpl.cpp
+SRC_CC += Main/src-server/USBDeviceFilterImpl.cpp
 SRC_CC += Main/src-server/USBDeviceFiltersImpl.cpp
 SRC_CC += Main/src-server/VirtualBoxImpl.cpp
 SRC_CC += Main/src-server/VRDEServerImpl.cpp

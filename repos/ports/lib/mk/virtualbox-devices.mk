@@ -24,7 +24,6 @@ SRC_CC += Devices/Storage/ATAPIPassthrough.cpp
 SRC_CC += Devices/Storage/DevATA.cpp
 SRC_CC += Devices/Storage/Debug.cpp
 SRC_CC += Devices/Storage/DevFdc.c
-SRC_CC += Devices/Storage/DrvRawImage.cpp
 SRC_CC += Devices/Network/DevE1000.cpp
 SRC_CC += Devices/Network/DevE1000Phy.cpp
 SRC_CC += Devices/Network/DevEEPROM.cpp
@@ -35,6 +34,15 @@ SRC_CC += GuestHost/HGSMI/HGSMICommon.cpp
 SRC_CC += Devices/Serial/DevSerial.cpp
 SRC_CC += Devices/PC/DevIoApic.cpp
 
+SRC_CC += Devices/USB/DevOHCI.cpp
+SRC_CC += Devices/USB/USBProxyDevice.cpp
+SRC_CC += Devices/USB/VUSBDevice.cpp
+SRC_CC += Devices/USB/VUSBReadAhead.cpp
+SRC_CC += Devices/USB/VUSBUrb.cpp
+SRC_CC += Devices/Input/UsbMouse.cpp
+SRC_CC += Devices/Input/UsbKbd.cpp
+
+SRC_CC += Devices/build/VBoxDD.cpp
 
 INC_DIR += $(VBOX_DIR)/Devices/build
 INC_DIR += $(VBOX_DIR)/Devices/Bus

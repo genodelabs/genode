@@ -118,6 +118,8 @@ class VirtualBoxBase : public util::Lockable {
 		RWLockHandle * lockHandle() const;
 };
 
+class VirtualBoxTranslatable : public util::Lockable { };
+
 template <typename T>
 class Shareable {
 
