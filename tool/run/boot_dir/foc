@@ -142,7 +142,7 @@ proc run_boot_dir_x86 {binaries} {
 		puts $fh "default 0"
 		puts $fh "\ntitle Genode on Fiasco.OC"
 		puts $fh " kernel /boot/bender"
-		puts $fh " module /fiasco/bootstrap -modaddr=0x01100000"
+		puts $fh " module /fiasco/bootstrap"
 		puts $fh " module /fiasco/fiasco $fiasco_serial_esc_arg"
 		puts $fh " module /fiasco/sigma0"
 		puts $fh " module /genode/core"
@@ -170,7 +170,7 @@ proc run_boot_dir_x86 {binaries} {
 		#
 		set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
 		puts $fh " exec /boot/bender"
-		puts $fh " load /fiasco/bootstrap -modaddr=0x01100000"
+		puts $fh " load /fiasco/bootstrap"
 		puts $fh " load /fiasco/fiasco -serial_esc"
 		puts $fh " load /fiasco/sigma0"
 		puts $fh " load /genode/core"
