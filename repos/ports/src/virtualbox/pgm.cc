@@ -110,19 +110,8 @@ int PGMR3PhysRomRegister(PVM pVM, PPDMDEVINS pDevIns, RTGCPHYS GCPhys,
 }
 
 
-static int pgmR3PhysWriteExternalEMT(PVM pVM, PRTGCPHYS pGCPhys,
-                                     const void *pvBuf, size_t cbWrite)
-{
-	VM_ASSERT_EMT(pVM);
-
-    return PGMPhysWrite(pVM, *pGCPhys, pvBuf, cbWrite);
-}
-
-
 int PGMPhysWrite(PVM pVM, RTGCPHYS GCPhys, const void *pvBuf, size_t cbWrite)
 {
-	VM_ASSERT_EMT(pVM);
-
 	void *pv = guest_memory()->lookup(GCPhys, cbWrite);
 
 	if (verbose_debug)
@@ -166,16 +155,12 @@ int PGMR3PhysWriteExternal(PVM pVM, RTGCPHYS GCPhys, const void *pvBuf,
 {
 	VM_ASSERT_OTHER_THREAD(pVM);
 
-	return VMR3ReqPriorityCallWait(pVM, VMCPUID_ANY,
-	                               (PFNRT)pgmR3PhysWriteExternalEMT, 4,
-                                   pVM, &GCPhys, pvBuf, cbWrite);
+	return PGMPhysWrite(pVM, GCPhys, pvBuf, cbWrite);
 }
 
 
 int PGMPhysRead(PVM pVM, RTGCPHYS GCPhys, void *pvBuf, size_t cbRead)
 {
-	VM_ASSERT_EMT(pVM);
-
 	void *pv = guest_memory()->lookup(GCPhys, cbRead);
 
 	if (verbose_debug)
@@ -204,23 +189,11 @@ int PGMPhysRead(PVM pVM, RTGCPHYS GCPhys, void *pvBuf, size_t cbRead)
 }
 
 
-static int pgmR3PhysReadExternalEMT(PVM pVM, PRTGCPHYS pGCPhys, void *pvBuf,
-                                    size_t cbRead)
-{
-	VM_ASSERT_EMT(pVM);
-
-    PGMPhysRead(pVM, *pGCPhys, pvBuf, cbRead);
-    return VINF_SUCCESS;
-}
-
-
 int PGMR3PhysReadExternal(PVM pVM, RTGCPHYS GCPhys, void *pvBuf, size_t cbRead)
 {
 	VM_ASSERT_OTHER_THREAD(pVM);
 
-	return VMR3ReqPriorityCallWait(pVM, VMCPUID_ANY,
-	                               (PFNRT)pgmR3PhysReadExternalEMT, 4,
-	                               pVM, &GCPhys, pvBuf, cbRead);
+	return PGMPhysRead(pVM, GCPhys, pvBuf, cbRead);
 }
 
 
