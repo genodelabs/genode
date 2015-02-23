@@ -30,6 +30,11 @@ class Exynos_uart : public Genode::Exynos_uart_base,
                     public Uart::Driver,
                     public Genode::Irq_handler
 {
+	private:
+
+		Uart::Char_avail_callback &_char_avail_callback;
+		Genode::Irq_activation     _irq_activation;
+
 	public:
 
 		/**
@@ -37,24 +42,31 @@ class Exynos_uart : public Genode::Exynos_uart_base,
 		 */
 		Exynos_uart(Genode::Attached_io_mem_dataspace *uart_mmio, int irq_number,
 		          unsigned baud_rate, Uart::Char_avail_callback &callback)
-		:
-			Exynos_uart_base((Genode::addr_t)uart_mmio->local_addr<void>(),
-			                 Genode::Board_base::UART_2_CLOCK, baud_rate) { }
+		: Exynos_uart_base((Genode::addr_t)uart_mmio->local_addr<void>(),
+		                   Genode::Board_base::UART_2_CLOCK, baud_rate),
+		  _char_avail_callback(callback),
+		  _irq_activation(irq_number, *this, sizeof(Genode::addr_t) * 1024) {
+			_rx_enable(); }
 
-		/**
-		 * * IRQ handler interface **
-		 */
-		void handle_irq(int irq_number) { }
 
-		/**
-		 * * UART driver interface **
-		 */
+		/***************************
+		 ** IRQ handler interface **
+		 ***************************/
+
+		void handle_irq(int irq_number)
+		{
+			/* inform client about the availability of data */
+			_char_avail_callback();
+		}
+
+
+		/***************************
+		 ** UART driver interface **
+		 ***************************/
+
 		void put_char(char c) { Exynos_uart_base::put_char(c); }
-
-		bool char_avail() { return false; }
-
-		char get_char() { return 0; }
-
+		bool char_avail()     { return _rx_avail(); }
+		char get_char()       { return _rx_char();  }
 		void baud_rate(int bits_per_second) {}
 };
 
