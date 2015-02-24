@@ -28,8 +28,8 @@ namespace Trustzone
 		 */
 		SECURE_RAM_BASE    = Genode::Board_base::RAM0_BASE,
 		SECURE_RAM_SIZE    = 256 * 1024 * 1024,
-		NONSECURE_RAM_BASE = Genode::Board_base::RAM1_BASE,
-		NONSECURE_RAM_SIZE = Genode::Board_base::RAM1_SIZE,
+		NONSECURE_RAM_BASE = Genode::Board_base::RAM0_BASE + SECURE_RAM_SIZE,
+		NONSECURE_RAM_SIZE = 256 * 1024 * 1024,
 	};
 }
 

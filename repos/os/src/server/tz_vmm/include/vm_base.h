@@ -23,16 +23,12 @@
 
 /* local includes */
 #include <mmu.h>
-#include <atag.h>
 
-class Vm {
+class Vm_base {
 
-	private:
+	protected:
 
-		enum {
-			ATAG_OFFSET   = 0x100,
-			INITRD_OFFSET = 0x1000000,
-		};
+		enum { INITRD_OFFSET = 0x1000000, };
 
 		Genode::Vm_connection     _vm_con;
 		Genode::Rom_connection    _kernel_rom;
@@ -68,23 +64,14 @@ class Vm {
 			env()->rm_session()->detach((void*)addr);
 		}
 
-		void _prepare_atag()
-		{
-			Atag tag((void*)(_ram.local() + ATAG_OFFSET));
-			tag.setup_mem_tag(_ram.base(), _ram.size());
-			tag.setup_cmdline_tag(_cmdline);
-			tag.setup_initrd2_tag(_ram.base() + INITRD_OFFSET, _initrd_cap.size());
-			if (_board_rev)
-				tag.setup_rev_tag(_board_rev);
-			tag.setup_end_tag();
-		}
+		virtual Genode::addr_t _load_board_info() = 0;
 
 	public:
 
-		Vm(const char *kernel, const char *initrd, const char *cmdline,
-		   Genode::addr_t ram_base, Genode::size_t ram_size,
-		   Genode::addr_t kernel_offset, unsigned long mach_type,
-		   unsigned long board_rev = 0)
+		Vm_base(const char *kernel, const char *initrd, const char *cmdline,
+		        Genode::addr_t ram_base, Genode::size_t ram_size,
+		        Genode::addr_t kernel_offset, unsigned long mach_type,
+		        unsigned long board_rev = 0)
 		: _kernel_rom(kernel),
 		  _initrd_rom(initrd),
 		  _kernel_cap(_kernel_rom.dataspace()),
@@ -102,10 +89,10 @@ class Vm {
 			Genode::memset((void*)_state, 0, sizeof(Genode::Vm_state));
 			_load_kernel();
 			_load_initrd();
-			_prepare_atag();
 			_state->cpsr = 0x93; /* SVC mode and IRQs disabled */
+			_state->r0   = 0;
 			_state->r1   = _mach_type;
-			_state->r2   = _ram.base() + ATAG_OFFSET; /* ATAG addr */
+			_state->r2   = _ram.base() + _load_board_info(); /* board info addr */
 		}
 
 		void sig_handler(Genode::Signal_context_capability sig_cap) {

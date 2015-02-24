@@ -1,6 +1,7 @@
 #
 # \brief  Virtual-machine monitor demo
 # \author Stefan Kalkowski
+# \author Martin Stein
 # \date   2012-06-25
 #
 
@@ -35,8 +36,38 @@ install_config {
 </config>
 }
 
-set init_uri "http://genode.org/files/images/imx53_qsb/initrd.gz"
-set linux_uri "http://genode.org/files/images/imx53_qsb/linux_trustzone.bin"
+set init_uri  "http://genode.org/files/images/imx53_qsb/initrd.gz"
+
+if {[have_spec hw_usb_armory]} {
+	#
+	# This Linux and DTB were build with this toolchain:
+	#
+	# ! http://releases.linaro.org/14.09/components/toolchain/binaries/gcc-linaro-arm-none-eabi-4.9-2014.09_linux.tar.xz
+	#
+	# From this sources:
+	#
+	# ! https://github.com/m-stein/linux/tree/usb_armory_genode_tz_vmm
+	#
+	# With the following commands:
+	#
+	# ! make ARCH=arm CROSS_COMPILE=$GCC/bin/arm-none-eabi- imx_v53_usb_armory_defconfig
+	# ! make ARCH=arm CROSS_COMPILE=$GCC/bin/arm-none-eabi- zImage LOADADDR=0x80008000
+	# ! make ARCH=arm CROSS_COMPILE=$GCC/bin/arm-none-eabi- dtbs
+	#
+	# Then 'arch/arm/boot/zImage' can be used as 'linux' and
+	# 'arch/arm/boot/dts/imx53-qsb.dtb' can be used as 'dtb'.
+	#
+	set linux_uri "https://github.com/m-stein/genode_binaries/raw/master/tz_vmm/imx53/linux"
+	set dtb_uri   "https://github.com/m-stein/genode_binaries/raw/master/tz_vmm/imx53/dtb"
+
+	if {![file exists bin/dtb]} {
+		puts "Download device tree ..."
+		exec >& /dev/null wget -c -O bin/dtb $dtb_uri
+	}
+	exec >& /dev/null wget -O bin/dtb.md5 $dtb_uri.md5
+}  elseif {[have_spec hw_imx53_qsb_tz]} {
+	set linux_uri "http://genode.org/files/images/imx53_qsb/linux_trustzone.bin"
+}
 
 if {![file exists bin/initrd.gz]} {
 	puts "Download initramfs ..."
@@ -49,11 +80,14 @@ if {![file exists bin/linux]} {
 exec >& /dev/null wget -O bin/initrd.gz.md5 $init_uri.md5
 exec >& /dev/null wget -O bin/linux.md5 $linux_uri.md5
 cd bin
+if {[have_spec hw_usb_armory]} { exec md5sum -c dtb.md5 }
 exec md5sum -c initrd.gz.md5
 exec md5sum -c linux.md5
 cd ..
 
-build_boot_image "core init tz_vmm linux initrd.gz"
+set boot_modules { core init tz_vmm linux initrd.gz }
+lappend_if [have_spec hw_usb_armory] boot_modules dtb
+build_boot_image [join $boot_modules " "]
 
 #
 # Execute test case
@@ -64,8 +98,8 @@ set serial_id [output_spawn_id]
 # Wait for network to settle down
 send -i $serial_id "sleep 5\n"
 send -i $serial_id "wget http://genode.org/\n"
-
 run_genode_until "Connecting to genode.org" 10 $serial_id
 run_genode_until {.*\/ #.*} 30 $serial_id
 
 exec rm bin/initrd.gz bin/initrd.gz.md5 bin/linux bin/linux.md5
+if {[have_spec hw_usb_armory]} { exec rm bin/dtb bin/dtb.md5 }

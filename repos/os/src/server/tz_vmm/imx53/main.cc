@@ -21,7 +21,6 @@
 
 /* local includes */
 #include <vm.h>
-#include <atag.h>
 #include <m4if.h>
 
 using namespace Genode;
