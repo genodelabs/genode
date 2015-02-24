@@ -37,19 +37,19 @@ class Genode::Idt
 		/**
 		 * IDT table
 		 */
-		static gate _table[];
+		__attribute__((aligned(8))) gate _table[SIZE_IDT];
 
 	public:
 
 		/**
 		 * Setup IDT.
 		 */
-		static void setup();
+		void setup();
 
 		/**
 		 * Load IDT into IDTR.
 		 */
-		static void load();
+		void load();
 };
 
 #endif /* _IDT_H_ */
