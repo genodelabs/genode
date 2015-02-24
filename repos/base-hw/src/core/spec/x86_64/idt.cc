@@ -12,8 +12,6 @@ class Descriptor
 		Descriptor(uint16_t l, uint64_t b) : _limit(l), _base (b) {};
 } __attribute__((packed));
 
-__attribute__((aligned(8))) Idt::gate Idt::_table[SIZE_IDT];
-
 
 void Idt::setup()
 {
@@ -38,6 +36,6 @@ void Idt::setup()
 
 void Idt::load()
 {
-	asm volatile ("lidt %0" : : "m" (Descriptor (sizeof (_table) - 1,
+	asm volatile ("lidt %0" : : "m" (Descriptor (sizeof(_table) - 1,
 				  reinterpret_cast<uint64_t>(_table))));
 }

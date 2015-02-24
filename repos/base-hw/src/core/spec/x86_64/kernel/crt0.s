@@ -170,7 +170,7 @@
 	/* GDTE_LONG | GDTE_PRESENT | GDTE_TYPE_DATA_A | GDTE_TYPE_DATA_W | GDTE_NON_SYSTEM */
 	.long 0x20f300
 	/* Task segment descriptor */
-	.long 0x11000068
+	.long 0x01000068
 	/* GDTE_PRESENT | GDTE_SYS_TSS */
 	.long 0x893a
 	.long 0

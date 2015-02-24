@@ -37,17 +37,20 @@ namespace Kernel { using Genode::Cpu_lazy_state; }
 
 class Genode::Cpu
 {
+	private:
+		Idt _idt;
+
 	public:
 
 		Cpu()
 		{
 			/* Setup IDT only once */
 			if (primary_id() == executing_id()) {
-				Idt::setup();
+				_idt.setup();
 				Tss::setup();
 			}
 
-			Idt::load();
+			_idt.load();
 			Tss::load();
 		}
 
