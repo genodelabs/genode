@@ -64,6 +64,7 @@ set serial_id [output_spawn_id]
 send -i $serial_id "sleep 5\n"
 send -i $serial_id "wget http://genode.org/\n"
 
-run_genode_until "Connecting to genode.org.*index.html.*\/ #.*" 30 $serial_id
+run_genode_until "Connecting to genode.org" 10 $serial_id
+run_genode_until {.*\/ #.*} 30 $serial_id
 
 exec rm bin/initrd.gz bin/initrd.gz.md5 bin/linux bin/linux.md5
