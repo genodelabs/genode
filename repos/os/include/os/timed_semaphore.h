@@ -39,20 +39,19 @@ namespace Genode {
 			Timer::Connection   _timer;    /* timer session   */
 			Signal_context      _context;
 			Signal_receiver     _receiver;
-			Genode::Alarm::Time _time;     /* current time    */
 
 			void entry(void);
 
 		public:
 
-			Timeout_thread() : Thread<4096>("alarm-timer"), _time(0)
+			Timeout_thread() : Thread<4096>("alarm-timer")
 			{
 				_timer.sigh(_receiver.manage(&_context));
 				_timer.trigger_periodic(JIFFIES_STEP_MS*1000);
 				start();
 			}
 
-			Genode::Alarm::Time time(void) { return _time; }
+			Genode::Alarm::Time time(void) { return _timer.elapsed_ms(); }
 
 			/*
 			 * Returns the singleton timeout-thread used for all timeouts.
