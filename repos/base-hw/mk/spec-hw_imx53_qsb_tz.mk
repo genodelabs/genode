@@ -5,7 +5,7 @@
 #
 
 # denote wich specs are also fullfilled by this spec
-SPECS += hw_imx53 trustzone
+SPECS += hw_imx53_qsb trustzone
 
 # include implied specs
-include $(call select_from_repositories,mk/spec-hw_imx53.mk)
+include $(call select_from_repositories,mk/spec-hw_imx53_qsb.mk)

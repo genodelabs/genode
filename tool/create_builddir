@@ -30,8 +30,9 @@ usage:
 	@echo "                  'hw_panda'"
 	@echo "                  'hw_vea9x4'"
 	@echo "                  'hw_pbxa9'"
-	@echo "                  'hw_imx53'"
-	@echo "                  'hw_imx53_tz'"
+	@echo "                  'hw_imx53_qsb'"
+	@echo "                  'hw_imx53_qsb_tz'"
+	@echo "                  'hw_usb_armory'"
 	@echo "                  'hw_arndale'"
 	@echo "                  'hw_odroid_xu'"
 	@echo "                  'hw_rpi'"
@@ -226,12 +227,16 @@ hw_panda::
 	@echo "SPECS = genode hw_panda" > $(BUILD_DIR)/etc/specs.conf
 	@echo "SPECS += perf_counter" >> $(BUILD_DIR)/etc/specs.conf
 
-hw_imx53::
-	@echo "SPECS = genode hw_imx53" > $(BUILD_DIR)/etc/specs.conf
+hw_imx53_qsb::
+	@echo "SPECS = genode hw_imx53_qsb" > $(BUILD_DIR)/etc/specs.conf
 	@echo "SPECS += perf_counter" >> $(BUILD_DIR)/etc/specs.conf
 
-hw_imx53_tz::
-	@echo "SPECS = genode hw_imx53_tz" > $(BUILD_DIR)/etc/specs.conf
+hw_imx53_qsb_tz::
+	@echo "SPECS = genode hw_imx53_qsb_tz" > $(BUILD_DIR)/etc/specs.conf
+	@echo "SPECS += perf_counter" >> $(BUILD_DIR)/etc/specs.conf
+
+hw_usb_armory::
+	@echo "SPECS = genode hw_usb_armory" > $(BUILD_DIR)/etc/specs.conf
 	@echo "SPECS += perf_counter" >> $(BUILD_DIR)/etc/specs.conf
 
 hw_arndale::

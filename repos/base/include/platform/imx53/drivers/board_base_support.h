@@ -11,10 +11,10 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__PLATFORM__IMX53__DRIVERS__BOARD_BASE_H_
-#define _INCLUDE__PLATFORM__IMX53__DRIVERS__BOARD_BASE_H_
+#ifndef _INCLUDE__PLATFORM__IMX53__DRIVERS__BOARD_BASE_SUPPORT_H_
+#define _INCLUDE__PLATFORM__IMX53__DRIVERS__BOARD_BASE_SUPPORT_H_
 
-namespace Genode
+namespace Imx53
 {
 	/**
 	 * i.MX53 motherboard
@@ -24,11 +24,6 @@ namespace Genode
 		enum {
 			MMIO_BASE          = 0x0,
 			MMIO_SIZE          = 0x70000000,
-
-			RAM0_BASE          = 0x70000000,
-			RAM0_SIZE          = 0x20000000,
-			RAM1_BASE          = 0xb0000000,
-			RAM1_SIZE          = 0x20000000,
 
 			UART_1_IRQ         = 31,
 			UART_1_MMIO_BASE   = 0x53fbc000,
@@ -118,5 +113,5 @@ namespace Genode
 	};
 }
 
-#endif /* _INCLUDE__PLATFORM__IMX53__DRIVERS__BOARD_BASE_H_ */
+#endif /* _INCLUDE__PLATFORM__IMX53__DRIVERS__BOARD_BASE_SUPPORT_H_ */
 
