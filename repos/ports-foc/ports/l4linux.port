@@ -2,7 +2,7 @@ LICENSE      := GPLv2
 VERSION      := git
 DOWNLOADS    := l4linux.git
 URL(l4linux) := https://github.com/skalk/l4linux.git
-REV(l4linux) := f2eebaebf7d304dec7eb49ca5b9a020603cf6cb6
+REV(l4linux) := 7f2ab08eb68fcb0376f20d069040b3c5f8bd7d59
 DIR(l4linux) := src/l4linux
 sym_link     := src/l4linux/arch/l4/drivers
 
