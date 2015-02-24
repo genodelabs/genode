@@ -5,8 +5,14 @@
 #
 
 if {
-	![have_spec hw_arndale] &&
-	([have_spec platform_pbxa9] || (![have_spec nova] && ![have_spec foc]))
+	![have_spec hw_arndale]  &&
+	![have_spec foc_x86_32]  &&
+	![have_spec foc_x86_64]  &&
+	![have_spec foc_imx53]   &&
+	![have_spec foc_vea9x4]  &&
+	![have_spec foc_panda]   &&
+	![have_spec foc_arndale] &&
+	![have_spec nova]
 } {
 	puts "Platform is unsupported."
 	exit 0
@@ -15,7 +21,7 @@ if {
 
 set build_components { core init test/affinity }
 
-lappend_if [have_spec exynos5] build_components drivers/platform
+lappend_if [have_spec platform_arndale] build_components drivers/platform
 
 build $build_components
 
@@ -37,7 +43,7 @@ set config {
 			<any-service> <parent/> </any-service>
 		</default-route> }
 
-append_if [have_spec exynos5] config {
+append_if [have_spec platform_arndale] config {
 	<start name="platform_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Regulator"/></provides>
@@ -53,7 +59,7 @@ install_config $config
 
 set boot_modules { core init test-affinity }
 
-lappend_if [have_spec exynos5] boot_modules platform_drv
+lappend_if [have_spec platform_arndale] boot_modules platform_drv
 
 build_boot_image $boot_modules
 

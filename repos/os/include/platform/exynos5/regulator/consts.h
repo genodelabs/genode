@@ -1,5 +1,5 @@
 /*
- * \brief  Regulator definitions for Arndale
+ * \brief  Regulator definitions for Exynos5
  * \author Stefan Kalkowski <stefan.kalkowski@genode-labs.com>
  * \date   2013-06-13
  */
@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__PLATFORM__ARNDALE__REGULATOR__CONSTS_H_
-#define _INCLUDE__PLATFORM__ARNDALE__REGULATOR__CONSTS_H_
+#ifndef _INCLUDE__PLATFORM__EXYNOS5__REGULATOR__CONSTS_H_
+#define _INCLUDE__PLATFORM__EXYNOS5__REGULATOR__CONSTS_H_
 
 #include <util/string.h>
 
@@ -83,4 +83,4 @@ namespace Regulator {
 	};
 }
 
-#endif /* _INCLUDE__PLATFORM__ARNDALE__REGULATOR__CONSTS_H_ */
+#endif /* _INCLUDE__PLATFORM__EXYNOS5__REGULATOR__CONSTS_H_ */

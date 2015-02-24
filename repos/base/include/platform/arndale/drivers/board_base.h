@@ -38,15 +38,6 @@ namespace Genode
 			USB_HOST20_IRQ = 103,
 			USB_DRD30_IRQ  = 104,
 
-			/* SATA/AHCI */
-			SATA_IRQ = 147,
-
-			/* I2C */
-			I2C_HDMI_IRQ = 96,
-
-			/* SD card */
-			SDMMC0_IRQ = 107,
-
 			/* UART */
 			UART_2_CLOCK = 100000000,
 

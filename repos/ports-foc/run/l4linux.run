@@ -12,7 +12,7 @@ set build_components {
 	drivers/framebuffer
 	l4linux }
 
-set use_usb_driver   [expr [have_spec omap4] || [have_spec exynos5]]
+set use_usb_driver   [expr [have_spec omap4] || [have_spec platform_arndale]]
 set use_nic_driver   [expr !$use_usb_driver && [expr [have_spec lan9118] || [have_spec x86]]]
 set use_platform_drv [expr [have_spec platform_arndale] || [have_spec platform_imx53]]
 

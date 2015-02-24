@@ -11,10 +11,10 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__PLATFORM__ARNDALE__UART_DEFS_H_
-#define _INCLUDE__PLATFORM__ARNDALE__UART_DEFS_H_
+#ifndef _INCLUDE__PLATFORM__EXYNOS5__UART_DEFS_H_
+#define _INCLUDE__PLATFORM__EXYNOS5__UART_DEFS_H_
 
-#include <platform/arndale/drivers/board_base.h>
+#include <drivers/board_base.h>
 
 enum {
 	/** Number of UARTs */
@@ -34,4 +34,4 @@ static struct Exynos_uart_cfg {
 	{ Genode::Board_base::UART_2_MMIO_BASE, 4096, Genode::Board_base::UART_2_IRQ },
 };
 
-#endif /* _INCLUDE__PLATFORM__ARNDALE__UART_DEFS_H_ */
+#endif /* _INCLUDE__PLATFORM__EXYNOS5__UART_DEFS_H_ */

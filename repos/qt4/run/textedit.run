@@ -2,6 +2,11 @@
 # Build
 #
 
+if {[have_spec hw_odroid_xu]} {
+	puts "Run script does not support this platform."
+	exit 0
+}
+
 set build_components {
 	core
 	init
@@ -11,8 +16,8 @@ set build_components {
 	app/examples/textedit
 }
 
-set use_sd_card_driver [expr [have_spec omap4] || [have_spec exynos5]]
-set use_usb_driver     [expr [have_spec omap4] || [have_spec exynos5] || [have_spec platform_rpi]]
+set use_sd_card_driver [expr [have_spec omap4] || [have_spec platform_arndale]]
+set use_usb_driver     [expr [have_spec omap4] || [have_spec platform_arndale] || [have_spec platform_rpi]]
 
 lappend_if $use_sd_card_driver build_components drivers/sd_card
 lappend_if $use_usb_driver     build_components drivers/usb

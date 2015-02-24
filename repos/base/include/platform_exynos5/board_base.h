@@ -71,6 +71,15 @@ class Genode::Exynos5
 
 			/* hardware name of the primary processor */
 			PRIMARY_MPIDR_AFF_0 = 0,
+
+			/* SATA/AHCI */
+			SATA_IRQ = 147,
+
+			/* SD card */
+			SDMMC0_IRQ = 107,
+
+			/* I2C */
+			I2C_HDMI_IRQ = 96,
 		};
 };
 

@@ -4,8 +4,8 @@
 # \date   2013-03-26
 #
 
-if {[have_spec linux]} {
-	puts "Run script does not support Linux."; exit 0 }
+if {[expr [have_spec linux] || [have_spec hw_odroid_xu]]} {
+	puts "Run script not supported for this platform."; exit 0 }
 
 #
 # Build
@@ -16,8 +16,8 @@ set build_components {
 	drivers/pci drivers/timer drivers/nic
 }
 
-lappend_if [expr [have_spec omap4] || [have_spec exynos5]] build_components drivers/usb
-lappend_if [expr [have_spec omap4] || [have_spec exynos5]] build_components drivers/usb_net_stat
+lappend_if [expr [have_spec omap4] || [have_spec platform_arndale]] build_components drivers/usb
+lappend_if [expr [have_spec omap4] || [have_spec platform_arndale]] build_components drivers/usb_net_stat
 lappend_if [have_spec acpi] build_components drivers/acpi
 lappend_if [have_spec pci] build_components drivers/pci/device_pd
 lappend_if [have_spec x86] build_components drivers/nic_stat
@@ -28,13 +28,13 @@ lappend_if $use_nic_bridge build_components server/nic_bridge
 #
 # Choose network driver
 #
-if {[expr $use_nic_client && ([have_spec omap4] || [have_spec exynos5])]} {
+if {[expr $use_nic_client && ([have_spec omap4] || [have_spec platform_arndale])]} {
 	set network_driver "usb_drv" }
-if {[expr !$use_nic_client && ([have_spec omap4] || [have_spec exynos5])]} {
+if {[expr !$use_nic_client && ([have_spec omap4] || [have_spec platform_arndale])]} {
 	set network_driver "usb_drv_net_stat" }
-if {[expr $use_nic_client && ![have_spec omap4] && ![have_spec exynos5]]} {
+if {[expr $use_nic_client && ![have_spec omap4] && ![have_spec platform_arndale]]} {
 	set network_driver "nic_drv" }
-if {[expr !$use_nic_client && ![have_spec omap4] && ![have_spec exynos5]]} {
+if {[expr !$use_nic_client && ![have_spec omap4] && ![have_spec platform_arndale]]} {
 	set network_driver "nic_drv_stat" }
 
 build $build_components
@@ -68,7 +68,7 @@ set config {
 		<provides> <service name="Timer"/> </provides>
 	</start> }
 
-append_if [expr [have_spec omap4] || [have_spec exynos5]] config "
+append_if [expr [have_spec omap4] || [have_spec platform_arndale]] config "
 	<start name=\"$network_driver\">
 		<resource name=\"RAM\" quantum=\"12M\"/>
 		<provides>
@@ -79,7 +79,7 @@ append_if [expr [have_spec omap4] || [have_spec exynos5]] config "
 		</config>
 	</start>"
 
-append_if [expr ![have_spec omap4] && ![have_spec exynos5]] config "
+append_if [expr ![have_spec omap4] && ![have_spec platform_arndale]] config "
 	<start name=\"$network_driver\">
 		<resource name=\"RAM\" quantum=\"4M\"/>
 		<provides><service name=\"Nic\"/></provides>
@@ -151,10 +151,10 @@ lappend_if $use_nic_bridge boot_modules nic_bridge
 # platform-specific modules
 lappend_if [have_spec acpi]          boot_modules acpi_drv
 lappend_if [have_spec pci]           boot_modules pci_drv
-lappend_if [expr [have_spec omap4] || [have_spec exynos5]] boot_modules usb_drv
-lappend_if [expr [have_spec omap4] || [have_spec exynos5]] boot_modules usb_drv_net_stat
-lappend_if [expr ![have_spec omap4] && ![have_spec exynos5]] boot_modules nic_drv
-lappend_if [expr ![have_spec omap4] && ![have_spec exynos5]] boot_modules nic_drv_stat
+lappend_if [expr [have_spec omap4] || [have_spec platform_arndale]] boot_modules usb_drv
+lappend_if [expr [have_spec omap4] || [have_spec platform_arndale]] boot_modules usb_drv_net_stat
+lappend_if [expr ![have_spec omap4] && ![have_spec platform_arndale]] boot_modules nic_drv
+lappend_if [expr ![have_spec omap4] && ![have_spec platform_arndale]] boot_modules nic_drv_stat
 lappend_if [have_spec nova]          boot_modules pci_device_pd
 
 build_boot_image $boot_modules
@@ -177,7 +177,7 @@ if {![regexp cap_net_raw $cap_rights]} {
 # Execute test case
 #
 
-if {[expr [have_spec omap4] || [have_spec exynos5]]} {
+if {[expr [have_spec omap4] || [have_spec platform_arndale]]} {
 	run_genode_until {announces service "Nic"} 30
 	set serial_id $spawn_id 
 

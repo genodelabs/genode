@@ -9,8 +9,8 @@
 set layer 0
 
 # driver-internal benchmark is special
-if {[expr ($layer == 0)] && ![have_spec exynos5]} {
-	puts "Driver-internal benchmark (layer 0) only supported on exynos5."
+if {[expr ($layer == 0)] && ![have_spec platform_arndale]} {
+	puts "Driver-internal benchmark (layer 0) only supported on Arndale."
 	exit 0
 }
 

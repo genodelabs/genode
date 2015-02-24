@@ -4,8 +4,13 @@
 # \date   2011-05-27
 #
 
+if {[have_spec hw_odroid_xu]} {
+	puts "Run script does not support this platform."
+	exit 0
+}
+
 # use SD on ARM
-set use_sd_card_drv [expr [have_spec omap4] || [have_spec exynos5] || [have_spec pl180]]
+set use_sd_card_drv [expr [have_spec omap4] || [have_spec platform_arndale] || [have_spec pl180]]
 
 # use ATAPI on x86 (deprecated)
 #set use_atapi_drv   [have_spec x86]

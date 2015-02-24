@@ -4,13 +4,18 @@ source ${genode_dir}/repos/libports/run/qt5_common.inc
 # Build
 #
 
+if {[have_spec hw_odroid_xu]} {
+	puts "Run script does not support this platform."
+	exit 0
+}
+
 set build_components [qt5_build_components feature]
 
 append build_components {
 	app/qt5/examples/textedit
 }
 
-set use_sd_card_driver [expr [have_spec omap4] || [have_spec exynos5]]
+set use_sd_card_driver [expr [have_spec omap4] || [have_spec platform_arndale]]
 
 lappend_if $use_sd_card_driver       build_components drivers/sd_card
 lappend_if [have_spec     pci]       build_components drivers/atapi

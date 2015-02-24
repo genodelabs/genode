@@ -5,7 +5,7 @@
 set interpose_part_blk 0
 
 assert_spec foc
-assert_spec exynos5
+assert_spec arndale
 
 #
 # build
