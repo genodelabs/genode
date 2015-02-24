@@ -36,9 +36,12 @@ int Pd_session_component::bind_thread(Thread_capability thread)
 
 	Platform_thread *p_thread = cpu_thread->platform_thread();
 
-	_pd.bind_thread(p_thread);
-	cpu_thread->bound(true);
+	int res = _pd.bind_thread(p_thread);
 
+	if (res)
+		return res;
+
+	cpu_thread->bound(true);
 	return 0;
 }
 
