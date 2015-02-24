@@ -1,7 +1,7 @@
 #
 # Check if USB_RAW_DEVICE is set for Qemu
 #
-if {![info exists ::env(USB_RAW_DEVICE)] && [is_qemu_available]} {
+if {![info exists ::env(USB_RAW_DEVICE)] && [have_include power_on/qemu]} {
 	puts "\nPlease define USB_RAW_DEVICE environment variable and set it to your USB device <bus.device>\n"
 	exit 0
 }

@@ -9,7 +9,7 @@
 
 assert_spec nova
 
-if {[is_qemu_available]} {
+if {[have_include power_on/qemu]} {
 	puts "\nAuto test running on Qemu is not recommended.\n"
 	exit
 }
