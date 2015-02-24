@@ -42,7 +42,7 @@ namespace Genode {
 		private:
 
 			enum {
-				THREAD_MAX      = (1 << 6),
+				THREAD_MAX      = (1 << 7),
 				UTCB_AREA_SIZE  = (THREAD_MAX * Fiasco::L4_UTCB_OFFSET),
 			};
 
