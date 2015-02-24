@@ -46,7 +46,9 @@ void Thread_base::start()
 	Platform_thread *pt =
 		new(platform()->core_mem_alloc()) Platform_thread(_context->name);
 
-	platform_specific()->core_pd()->bind_thread(pt);
+	if (platform_specific()->core_pd()->bind_thread(pt))
+		throw Cpu_session::Thread_creation_failed();
+
 	_tid = pt->gate().remote;
 	_thread_cap =
 		reinterpret_cap_cast<Cpu_thread>(Native_capability(pt->thread().local));
