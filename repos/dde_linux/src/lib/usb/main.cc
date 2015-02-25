@@ -44,7 +44,7 @@ extern "C" void module_ch_driver_init();
 extern "C" void module_mt_driver_init();
 extern "C" void module_raw_driver_init();
 
-extern "C" void start_input_service(void *ep, unsigned long, unsigned long);
+extern "C" void start_input_service(void *ep, void *services);
 
 Routine *Routine::_current    = 0;
 Routine *Routine::_dead       = 0;
@@ -94,8 +94,7 @@ void start_usb_driver(Server::Entrypoint &ep)
 	Services services;
 
 	if (services.hid)
-		start_input_service(&ep.rpc_ep(), services.screen_width,
-		                    services.screen_height);
+		start_input_service(&ep.rpc_ep(), &services);
 
 	Timer::init(ep);
 	Irq::init(ep);

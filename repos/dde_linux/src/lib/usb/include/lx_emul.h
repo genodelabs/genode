@@ -3781,7 +3781,8 @@ static inline void dump_stack(void) { }
 enum input_event_type {
 	EVENT_TYPE_PRESS, EVENT_TYPE_RELEASE, /* key press and release */
 	EVENT_TYPE_MOTION,                    /* any type of (pointer) motion */
-	EVENT_TYPE_WHEEL                      /* mouse scroll wheel */
+	EVENT_TYPE_WHEEL,                     /* mouse scroll wheel */
+	EVENT_TYPE_TOUCH                      /* touchscreen events */
 };
 
 struct input_handle;
@@ -3822,13 +3823,13 @@ typedef void (*genode_input_event_cb)(enum input_event_type type,
  * \return  0 on success; !0 otherwise
  */
 void genode_input_register(genode_input_event_cb handler, unsigned long res_x,
-                           unsigned long res_y);
+                           unsigned long res_y, bool multitouch);
 
 
 void genode_evdev_event(struct input_handle *handle, unsigned int type,
                         unsigned int code, int value);
 
-void start_input_service(void *ep, unsigned long res_x, unsigned long res_y);
+void start_input_service(void *ep, void *);
 
 
 /******************

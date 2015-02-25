@@ -22,6 +22,7 @@
 #include <lx_emul.h>
 #include <extern_c_end.h>
 
+#include "platform.h"
 #undef RELEASE
 
 using namespace Genode;
@@ -65,6 +66,7 @@ static void input_callback(enum input_event_type type,
 		case EVENT_TYPE_RELEASE: t = Input::Event::RELEASE; break;
 		case EVENT_TYPE_MOTION:  t = Input::Event::MOTION; break;
 		case EVENT_TYPE_WHEEL:   t = Input::Event::WHEEL; break;
+		case EVENT_TYPE_TOUCH:   t = Input::Event::TOUCH; break;
 	}
 
 	input_session().submit(Input::Event(t, code,
@@ -73,11 +75,13 @@ static void input_callback(enum input_event_type type,
 }
 
 
-void start_input_service(void *ep_ptr, unsigned long res_x, unsigned long res_y)
+void start_input_service(void *ep_ptr, void * service_ptr)
 {
 	Rpc_entrypoint *ep = static_cast<Rpc_entrypoint *>(ep_ptr);
+	Services *service = static_cast<Services *>(service_ptr);
 
 	env()->parent()->announce(ep->manage(&input_root(ep)));
 
-	genode_input_register(input_callback, res_x, res_y);
+	genode_input_register(input_callback, service->screen_width,
+	                      service->screen_height, service->multitouch);
 }

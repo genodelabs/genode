@@ -45,9 +45,14 @@ hid xml tag:
 
 !...
 !<hid>
-!  <screen width="1024" height="768"/>
+!  <touchscreen width="1024" height="768" multitouch="no"/>
 !<hid/>
 !...
+
+If a touchscreen is multi-touch-capable than the multitouch attribute gears
+which type of Genode input events are generated. If set to  'no' (default)
+than absolute events are generated and no multitouch events. If set to 'yes'
+solely multitouch events are generated.
 
 Storage
 ~~~~~~~

@@ -37,7 +37,8 @@ struct Services
 	 * Screen resolution used by touch devices to convert touchscreen
 	 * absolute coordinates to screen absolute coordinates
 	 */
-	unsigned long screen_width = 0;
+	bool          multitouch    = false;
+	unsigned long screen_width  = 0;
 	unsigned long screen_height = 0;
 
 	Services()
@@ -49,9 +50,10 @@ struct Services
 			hid = true;
 
 			try {
-				Genode::Xml_node node_screen = node_hid.sub_node("screen");
+				Genode::Xml_node node_screen = node_hid.sub_node("touchscreen");
 				node_screen.attribute("width").value(&screen_width);
 				node_screen.attribute("height").value(&screen_height);
+				multitouch = node_screen.attribute("multitouch").has_value("yes");
 			} catch (...) {
 				screen_width = screen_height = 0;
 				PDBG("Could not read screen resolution in config node");
