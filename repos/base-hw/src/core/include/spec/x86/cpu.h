@@ -54,7 +54,7 @@ class Genode::Cpu
 				Tss::setup();
 			}
 
-			_idt->load();
+			_idt->load(Cpu::exception_entry);
 			Tss::load();
 		}
 

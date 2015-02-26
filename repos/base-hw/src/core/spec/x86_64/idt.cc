@@ -44,7 +44,7 @@ void Idt::setup()
 }
 
 
-void Idt::load()
+void Idt::load(addr_t const virt_base)
 {
 	asm volatile ("lidt %0" : : "m" (Descriptor (sizeof(_table) - 1,
 				  reinterpret_cast<uint64_t>(_table))));
