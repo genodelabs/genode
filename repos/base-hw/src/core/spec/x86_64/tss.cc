@@ -4,13 +4,11 @@ using namespace Genode;
 
 extern char kernel_stack[];
 
-__attribute__((aligned(8))) Tss Tss::_tss;
-
 void Tss::setup()
 {
-	_tss.rsp0 = (addr_t)kernel_stack;
-	_tss.rsp1 = (addr_t)kernel_stack;
-	_tss.rsp2 = (addr_t)kernel_stack;
+	this->rsp0 = (addr_t)kernel_stack;
+	this->rsp1 = (addr_t)kernel_stack;
+	this->rsp2 = (addr_t)kernel_stack;
 }
 
 

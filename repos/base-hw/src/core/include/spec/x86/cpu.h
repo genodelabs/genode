@@ -42,6 +42,7 @@ class Genode::Cpu
 {
 	private:
 		Idt *_idt;
+		Tss _tss;
 
 	public:
 
@@ -51,11 +52,10 @@ class Genode::Cpu
 			if (primary_id() == executing_id()) {
 				_idt = new (&_mt_idt) Idt();
 				_idt->setup();
-				Tss::setup();
+				_tss.load();
 			}
-
 			_idt->load(Cpu::exception_entry);
-			Tss::load();
+			_tss.setup();
 		}
 
 		static constexpr addr_t exception_entry = 0x0; /* XXX */
