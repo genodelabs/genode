@@ -2,8 +2,6 @@
 
 using namespace Genode;
 
-extern uint64_t _isr_array[];
-
 class Descriptor
 {
 	private:
@@ -19,14 +17,18 @@ __attribute__((aligned(8))) Idt::gate Idt::_table[SIZE_IDT];
 
 void Idt::setup()
 {
-	uint64_t *isrs = _isr_array;
+	/* TODO: Calculate from _mt_isrs label */
+	uint64_t base = 0;
 
-	for (unsigned vec = 0; vec < SIZE_IDT; vec++, isrs++) {
-		_table[vec].offset_15_00 = *isrs & 0xffff;
+	for (unsigned vec = 0; vec < SIZE_IDT; vec++) {
+		/* ISRs are padded to 4 bytes */
+		base = vec * 0xc;
+
+		_table[vec].offset_15_00 = base & 0xffff;
 		_table[vec].segment_sel  = 8;
 		_table[vec].flags        = 0x8e00;
-		_table[vec].offset_31_16 = (*isrs >> 16) & 0xffff;
-		_table[vec].offset_63_32 = (*isrs >> 32) & 0xffff;
+		_table[vec].offset_31_16 = (base >> 16) & 0xffff;
+		_table[vec].offset_63_32 = (base >> 32) & 0xffff;
 	}
 
 	/* Set DPL of syscall entry to 3 */

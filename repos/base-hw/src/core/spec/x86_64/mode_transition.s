@@ -29,6 +29,25 @@
 .set TRAPNO_OFFSET,  19 * 8
 .set CR3_OFFSET,     21 * 8
 
+.macro _isr_entry
+	.align 4, 0x90
+.endm
+
+.macro _exception vector
+	_isr_entry
+	push $0
+	push $\vector
+	jmp _mt_kernel_entry_pic
+.endm
+
+.macro _exception_with_code vector
+	_isr_entry
+	nop
+	nop
+	push $\vector
+	jmp _mt_kernel_entry_pic
+.endm
+
 .section .text
 
 	/*
@@ -43,6 +62,39 @@
 	.p2align MIN_PAGE_SIZE_LOG2
 	.global _mt_begin
 	_mt_begin:
+
+	/*
+	 * On user exceptions the CPU has to jump to one of the following
+	 * Interrupt Service Routines (ISRs) to switch to a kernel context.
+	 */
+	.global _mt_isrs
+	_mt_isrs:
+	_exception              0
+	_exception              1
+	_exception              2
+	_exception              3
+	_exception              4
+	_exception              5
+	_exception              6
+	_exception              7
+	_exception_with_code    8
+	_exception              9
+	_exception_with_code    10
+	_exception_with_code    11
+	_exception_with_code    12
+	_exception_with_code    13
+	_exception_with_code    14
+	_exception              15
+	_exception              16
+	_exception_with_code    17
+	_exception              18
+	_exception              19
+
+	.set vec, 20
+	.rept 236
+	_exception              vec
+	.set vec, vec + 1
+	.endr
 
 	/* space for a copy of the kernel context */
 	.p2align 2
@@ -67,10 +119,6 @@
 	_mt_buffer:
 	.space BUFFER_SIZE
 
-	/*
-	 * On user exceptions the CPU has to jump to one of the following
-	 * seven entry vectors to switch to a kernel context.
-	 */
 	.global _mt_kernel_entry_pic
 	_mt_kernel_entry_pic:
 
