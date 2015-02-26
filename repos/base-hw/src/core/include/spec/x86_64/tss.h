@@ -31,22 +31,17 @@ class Genode::Tss
 		uint16_t : 16;
 		uint16_t iomap_base;
 
-		/**
-		 * TSS
-		 */
-		static Tss _tss asm ("_tss");
-
 	public:
 
 		/**
 		 * Setup TSS.
 		 */
-		static void setup();
+		void setup();
 
 		/**
 		 * Load TSS into TR.
 		 */
-		static void load();
+		void load();
 
 }__attribute__((packed));
 
