@@ -237,6 +237,16 @@
 
 	iretq
 
+	/************************************************
+	 ** Space for Interrupt Descriptor Table (IDT) **
+	 ** See Intel SDM Vol. 3A, section 6.10        **
+	 ************************************************/
+
+	.global _mt_idt
+	.align 8
+	_mt_idt:
+	.space 1 << MIN_PAGE_SIZE_LOG2
+
 	/* end of the mode transition code */
 	.global _mt_end
 	_mt_end:
