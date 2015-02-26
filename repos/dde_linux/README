@@ -45,7 +45,7 @@ hid xml tag:
 
 !...
 !<hid>
-!  <screen x="1024" y="768"/>
+!  <screen width="1024" height="768"/>
 !<hid/>
 !...
 

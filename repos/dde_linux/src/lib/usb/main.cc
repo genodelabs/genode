@@ -94,7 +94,8 @@ void start_usb_driver(Server::Entrypoint &ep)
 	Services services;
 
 	if (services.hid)
-		start_input_service(&ep.rpc_ep(), services.screen_x, services.screen_y);
+		start_input_service(&ep.rpc_ep(), services.screen_width,
+		                    services.screen_height);
 
 	Timer::init(ep);
 	Irq::init(ep);
