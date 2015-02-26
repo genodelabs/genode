@@ -22,6 +22,12 @@ class Genode::Idt
 		};
 
 		/**
+		 * Return virtual address of the IDT for given virtual mode transition
+		 * base.
+		 */
+		static addr_t _virt_idt_addr(addr_t const virt_base);
+
+		/**
 		 * 64-Bit Mode IDT gate, see Intel SDM Vol. 3A, section 6.14.1.
 		 */
 		struct gate

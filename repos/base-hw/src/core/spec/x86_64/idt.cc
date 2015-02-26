@@ -1,5 +1,8 @@
 #include "idt.h"
 
+extern int _mt_begin;
+extern int _mt_idt;
+
 using namespace Genode;
 
 class Descriptor
@@ -12,6 +15,13 @@ class Descriptor
 		Descriptor(uint16_t l, uint64_t b) : _limit(l), _base (b) {};
 } __attribute__((packed));
 
+
+addr_t Idt::_virt_idt_addr(addr_t const virt_base)
+{
+	addr_t const phys      = (addr_t)&_mt_idt;
+	addr_t const phys_base = (addr_t)&_mt_begin;
+	return virt_base + (phys - phys_base);
+}
 
 void Idt::setup()
 {
