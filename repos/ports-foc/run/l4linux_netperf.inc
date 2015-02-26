@@ -234,7 +234,7 @@ regexp $ip_match $ip_string ip_local
 run_genode_until "netif_info: register.*\n" 60
 set serial_id [output_spawn_id]
 sleep 8
-send "ip addr show dev eth0\n"
+send -i $serial_id "ip addr show dev eth0\n"
 run_genode_until "inet.*\n" 3 $serial_id
 regexp $ip_match $output ip_remote
 
@@ -247,7 +247,7 @@ puts "Using local IP: $ip_local remote IP: $ip_remote"
 puts "\nTransmission test:"
 
 exec netserver-$version -p 8888 &
-send "netperf -p 8888 -H $ip_local -c -C -t TCP_STREAM && uname\n"
+send -i $serial_id "netperf -p 8888 -H $ip_local -c -C -t TCP_STREAM && uname\n"
 run_genode_until "Linux.*" 30 $serial_id
 
 puts "\n\n"
