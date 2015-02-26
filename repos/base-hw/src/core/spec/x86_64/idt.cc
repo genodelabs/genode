@@ -16,11 +16,10 @@ class Descriptor
 } __attribute__((packed));
 
 
-addr_t Idt::_virt_idt_addr(addr_t const virt_base)
+addr_t Idt::_virt_mtc_addr(addr_t const virt_base, addr_t const label)
 {
-	addr_t const phys      = (addr_t)&_mt_idt;
 	addr_t const phys_base = (addr_t)&_mt_begin;
-	return virt_base + (phys - phys_base);
+	return virt_base + (label - phys_base);
 }
 
 void Idt::setup()
@@ -47,5 +46,5 @@ void Idt::setup()
 void Idt::load(addr_t const virt_base)
 {
 	asm volatile ("lidt %0" : : "m" (Descriptor (sizeof(_table) - 1,
-				  _virt_idt_addr(virt_base))));
+				  _virt_mtc_addr(virt_base, (addr_t)&_mt_idt))));
 }

@@ -22,10 +22,12 @@ class Genode::Idt
 		};
 
 		/**
-		 * Return virtual address of the IDT for given virtual mode transition
-		 * base.
+		 * Return virtual mtc address of the given label for the specified
+		 * virtual mode transition base.
+		 *
+		 * \param virt_base  virtual address of the mode transition pages
 		 */
-		static addr_t _virt_idt_addr(addr_t const virt_base);
+		static addr_t _virt_mtc_addr(addr_t const virt_base, addr_t const label);
 
 		/**
 		 * 64-Bit Mode IDT gate, see Intel SDM Vol. 3A, section 6.14.1.
