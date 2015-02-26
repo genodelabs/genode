@@ -247,6 +247,16 @@
 	_mt_idt:
 	.space 1 << MIN_PAGE_SIZE_LOG2
 
+	/***********************************************
+	 ** Space for 64-bit Task State Segment (TSS) **
+	 ** See Intel SDM Vol. 3A, section 7.7        **
+	 ***********************************************/
+
+	.global _mt_tss
+	.align 8
+	_mt_tss:
+	.space 104
+
 	/******************************************
 	 ** Global Descriptor Table (GDT)        **
 	 ** See Intel SDM Vol. 3A, section 3.5.1 **
