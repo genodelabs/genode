@@ -247,6 +247,47 @@
 	_mt_idt:
 	.space 1 << MIN_PAGE_SIZE_LOG2
 
+	/******************************************
+	 ** Global Descriptor Table (GDT)        **
+	 ** See Intel SDM Vol. 3A, section 3.5.1 **
+	 ******************************************/
+
+	.align 4
+	.space 2
+
+	.global _gdt_ptr
+	_gdt_ptr:
+	.word _gdt_end - _gdt_start - 1 /* limit        */
+	.long _gdt_start                /* base address */
+
+	.align 8
+	_gdt_start:
+	/* Null descriptor */
+	.quad 0
+	/* 64-bit code segment descriptor */
+	.long 0
+	/* GDTE_LONG | GDTE_PRESENT | GDTE_CODE | GDTE_NON_SYSTEM */
+	.long 0x209800
+	/* 64-bit data segment descriptor */
+	.long 0
+	/* GDTE_LONG | GDTE_PRESENT | GDTE_TYPE_DATA_A | GDTE_TYPE_DATA_W | GDTE_NON_SYSTEM */
+	.long 0x209300
+	/* 64-bit user code segment descriptor */
+	.long 0
+	/* GDTE_LONG | GDTE_PRESENT | GDTE_CODE | GDTE_NON_SYSTEM */
+	.long 0x20f800
+	/* 64-bit user data segment descriptor */
+	.long 0
+	/* GDTE_LONG | GDTE_PRESENT | GDTE_TYPE_DATA_A | GDTE_TYPE_DATA_W | GDTE_NON_SYSTEM */
+	.long 0x20f300
+	/* Task segment descriptor */
+	.long 0x01000068
+	/* GDTE_PRESENT | GDTE_SYS_TSS */
+	.long 0x893a
+	.long 0
+	.long 0
+	_gdt_end:
+
 	/* end of the mode transition code */
 	.global _mt_end
 	_mt_end:
