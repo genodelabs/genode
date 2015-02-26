@@ -15,10 +15,13 @@
 #define _CPU_H_
 
 #include <util/register.h>
+#include <unmanaged_singleton.h>
 #include <kernel/interface_support.h>
 #include <cpu/cpu_state.h>
 #include <idt.h>
 #include <tss.h>
+
+extern int _mt_idt;
 
 namespace Genode
 {
@@ -38,7 +41,7 @@ namespace Kernel { using Genode::Cpu_lazy_state; }
 class Genode::Cpu
 {
 	private:
-		Idt _idt;
+		Idt *_idt;
 
 	public:
 
@@ -46,11 +49,12 @@ class Genode::Cpu
 		{
 			/* Setup IDT only once */
 			if (primary_id() == executing_id()) {
-				_idt.setup();
+				_idt = new (&_mt_idt) Idt();
+				_idt->setup();
 				Tss::setup();
 			}
 
-			_idt.load();
+			_idt->load();
 			Tss::load();
 		}
 
