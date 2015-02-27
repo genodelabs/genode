@@ -22,6 +22,7 @@
 #include <tss.h>
 
 extern int _mt_idt;
+extern int _mt_tss;
 
 namespace Genode
 {
@@ -42,20 +43,21 @@ class Genode::Cpu
 {
 	private:
 		Idt *_idt;
-		Tss _tss;
+		Tss *_tss;
 
 	public:
 
 		Cpu()
 		{
-			/* Setup IDT only once */
 			if (primary_id() == executing_id()) {
 				_idt = new (&_mt_idt) Idt();
 				_idt->setup();
-				_tss.load();
+
+				_tss = new (&_mt_tss) Tss();
+				_tss->load();
 			}
 			_idt->load(Cpu::exception_entry);
-			_tss.setup();
+			_tss->setup();
 		}
 
 		static constexpr addr_t exception_entry = 0x0; /* XXX */
