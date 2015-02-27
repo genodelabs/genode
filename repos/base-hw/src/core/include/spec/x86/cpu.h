@@ -18,6 +18,7 @@
 #include <unmanaged_singleton.h>
 #include <kernel/interface_support.h>
 #include <cpu/cpu_state.h>
+#include <gdt.h>
 #include <idt.h>
 #include <tss.h>
 
@@ -160,6 +161,8 @@ class Genode::Cpu
 			{
 				protection_domain(pd_id);
 				translation_table(table);
+
+				Gdt::load(Cpu::exception_entry);
 			}
 		};
 
