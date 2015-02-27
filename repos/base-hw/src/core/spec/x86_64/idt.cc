@@ -1,18 +1,12 @@
 #include <pseudo_descriptor.h>
+#include <mtc_util.h>
 
 #include "idt.h"
 
-extern int _mt_begin;
 extern int _mt_idt;
 
 using namespace Genode;
 
-
-addr_t Idt::_virt_mtc_addr(addr_t const virt_base, addr_t const label)
-{
-	addr_t const phys_base = (addr_t)&_mt_begin;
-	return virt_base + (label - phys_base);
-}
 
 void Idt::setup()
 {
