@@ -16,6 +16,7 @@
 #include <kernel/thread.h>
 
 enum Cpu_exception {
+	PAGE_FAULT      = 0x0e,
 	SUPERVISOR_CALL = 0x80,
 };
 
@@ -30,6 +31,10 @@ Thread::Thread(unsigned const priority, unsigned const quota,
 
 void Thread::exception(unsigned const cpu)
 {
+	if (trapno == PAGE_FAULT) {
+		_mmu_exception();
+		return;
+	}
 	if (trapno == SUPERVISOR_CALL) {
 		_call();
 		return;
