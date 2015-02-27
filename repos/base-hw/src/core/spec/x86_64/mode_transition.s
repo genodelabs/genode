@@ -300,6 +300,7 @@
 	.long 0x8900
 	.long 0
 	.long 0
+	.global _mt_gdt_end
 	_mt_gdt_end:
 
 	/* end of the mode transition code */
