@@ -43,8 +43,10 @@ class Genode::Idt
 
 		/**
 		 * Setup IDT.
+		 *
+		 * \param virt_base  virtual base address of mode transition pages
 		 */
-		void setup();
+		void setup(addr_t const virt_base);
 
 		/**
 		 * Load IDT into IDTR.

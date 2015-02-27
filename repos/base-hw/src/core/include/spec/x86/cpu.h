@@ -52,7 +52,7 @@ class Genode::Cpu
 		{
 			if (primary_id() == executing_id()) {
 				_idt = new (&_mt_idt) Idt();
-				_idt->setup();
+				_idt->setup(Cpu::exception_entry);
 
 				_tss = new (&_mt_tss) Tss();
 				_tss->load();
