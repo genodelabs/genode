@@ -16,8 +16,10 @@
 #include <kernel/thread.h>
 
 enum Cpu_exception {
-	PAGE_FAULT      = 0x0e,
-	SUPERVISOR_CALL = 0x80,
+	PAGE_FAULT       = 0x0e,
+	SUPERVISOR_CALL  = 0x80,
+	INTERRUPTS_START = 0x20,
+	INTERRUPTS_END   = 0xff,
 };
 
 using namespace Kernel;
@@ -37,6 +39,9 @@ void Thread::exception(unsigned const cpu)
 	}
 	if (trapno == SUPERVISOR_CALL) {
 		_call();
+		return;
+	} else if (trapno >= INTERRUPTS_START && trapno <= INTERRUPTS_END) {
+		_interrupt(cpu);
 		return;
 	} else {
 		PWRN("unknown exception 0x%lx", trapno);
