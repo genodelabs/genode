@@ -269,6 +269,7 @@
 	.space 2
 
 	.global _gdt_ptr
+	.global _gdt_start
 	_gdt_ptr:
 	.word _gdt_end - _gdt_start - 1 /* limit        */
 	.long _gdt_start                /* base address */
