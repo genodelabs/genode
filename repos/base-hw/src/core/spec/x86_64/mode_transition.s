@@ -32,6 +32,8 @@
 /* tss segment limit */
 .set TSS_LIMIT, 0x68
 
+/* mtc virt addresses */
+.set MT_BUFFER, _mt_buffer - _mt_begin
 .macro _isr_entry
 	.align 4, 0x90
 .endm
@@ -126,7 +128,7 @@
 	_mt_kernel_entry_pic:
 
 	/* Copy client context RAX to buffer */
-	mov %rax, _mt_buffer
+	mov %rax, MT_BUFFER
 
 	/* Switch to kernel page tables */
 	mov _mt_master_context_begin+CR3_OFFSET, %rax
@@ -235,7 +237,7 @@
 	mov %rax, %cr3
 
 	/* Set stack back to mt buffer and restore client RAX */
-	mov $_mt_buffer, %rsp
+	mov $MT_BUFFER, %rsp
 	popq %rax
 
 	iretq
