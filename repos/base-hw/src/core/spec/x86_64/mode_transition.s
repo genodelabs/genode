@@ -291,9 +291,9 @@
 	/* GDTE_LONG | GDTE_PRESENT | GDTE_TYPE_DATA_A | GDTE_TYPE_DATA_W | GDTE_NON_SYSTEM */
 	.long 0x20f300
 	/* Task segment descriptor */
-	.long 0x35b10068
+	.long 0x1e000068
 	/* GDTE_PRESENT | GDTE_SYS_TSS */
-	.long 0x8929
+	.long 0x8900
 	.long 0
 	.long 0
 	_gdt_end:
