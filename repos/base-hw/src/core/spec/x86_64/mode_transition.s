@@ -303,6 +303,17 @@
 	.global _mt_gdt_end
 	_mt_gdt_end:
 
+	/************************************************
+	 ** Temporary interrupt stack                  **
+	 ** Set as RSP for privilege levels 0-2 in TSS **
+	 ** See Intel SDM Vol. 3A, section 7.7         **
+	 ************************************************/
+
+	.p2align 8
+	.space 7 * 8
+	.global _mt_kernel_interrupt_stack
+	_mt_kernel_interrupt_stack:
+
 	/* end of the mode transition code */
 	.global _mt_end
 	_mt_end:
