@@ -4,7 +4,7 @@ using namespace Genode;
 
 extern char kernel_stack[];
 
-void Tss::setup()
+void Tss::setup(addr_t const virt_base)
 {
 	this->rsp0 = (addr_t)kernel_stack;
 	this->rsp1 = (addr_t)kernel_stack;
