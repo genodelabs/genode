@@ -28,12 +28,12 @@ namespace Kernel
 	struct Thread_reg_id
 	{
 		enum {
-			SP            = 13,  /* XXX numbers are arbitrary, taken from ARM version */
-			IP            = 15,
-			FAULT_TLB     = 18,
-			FAULT_ADDR    = 19,
-			FAULT_WRITES  = 20,
-			FAULT_SIGNAL  = 21,
+			IP           = 0,
+			SP           = 1,
+			FAULT_TLB    = 2,
+			FAULT_ADDR   = 3,
+			FAULT_WRITES = 4,
+			FAULT_SIGNAL = 5,
 		};
 	};
 
