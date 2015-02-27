@@ -40,8 +40,15 @@ Thread_base::Thread_base(Thread * const t)
 
 addr_t Thread::* Thread::_reg(addr_t const id) const
 {
-	PDBG("not implemented");
-	return 0UL;
+	static addr_t Thread::* const _regs[] = {
+		/* [0] */ (addr_t Thread::*)&Thread::ip,
+		/* [1] */ (addr_t Thread::*)&Thread::sp,
+		/* [2] */ (addr_t Thread::*)&Thread::_fault_pd,
+		/* [3] */ (addr_t Thread::*)&Thread::_fault_addr,
+		/* [4] */ (addr_t Thread::*)&Thread::_fault_writes,
+		/* [5] */ (addr_t Thread::*)&Thread::_fault_signal
+	};
+	return id < sizeof(_regs)/sizeof(_regs[0]) ? _regs[id] : 0;
 }
 
 
