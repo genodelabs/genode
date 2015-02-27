@@ -35,8 +35,10 @@ class Genode::Tss
 
 		/**
 		 * Setup TSS.
+		 *
+		 * \param virt_base  virtual base address of mode transition pages
 		 */
-		void setup();
+		void setup(addr_t const virt_base);
 
 		/**
 		 * Load TSS into TR.

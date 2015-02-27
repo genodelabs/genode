@@ -58,7 +58,7 @@ class Genode::Cpu
 				_tss->load();
 			}
 			_idt->load(Cpu::exception_entry);
-			_tss->setup();
+			_tss->setup(Cpu::exception_entry);
 		}
 
 		static constexpr addr_t exception_entry = 0x0; /* XXX */
