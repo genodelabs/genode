@@ -55,7 +55,7 @@
 	movl %eax, %cr0
 
 	/* Set up GDT */
-	lgdt _gdt_ptr
+	lgdt _mt_gdt_ptr
 
 	/* Indirect long jump to 64-bit code */
 	ljmp $8, $_start64

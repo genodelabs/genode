@@ -268,14 +268,14 @@
 	.align 4
 	.space 2
 
-	.global _gdt_ptr
-	.global _gdt_start
-	_gdt_ptr:
-	.word _gdt_end - _gdt_start - 1 /* limit        */
-	.long _gdt_start                /* base address */
+	.global _mt_gdt_ptr
+	.global _mt_gdt_start
+	_mt_gdt_ptr:
+	.word _mt_gdt_end - _mt_gdt_start - 1 /* limit        */
+	.long _mt_gdt_start                   /* base address */
 
 	.align 8
-	_gdt_start:
+	_mt_gdt_start:
 	/* Null descriptor */
 	.quad 0
 	/* 64-bit code segment descriptor */
@@ -300,7 +300,7 @@
 	.long 0x8900
 	.long 0
 	.long 0
-	_gdt_end:
+	_mt_gdt_end:
 
 	/* end of the mode transition code */
 	.global _mt_end
