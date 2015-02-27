@@ -29,6 +29,9 @@
 .set TRAPNO_OFFSET,  19 * 8
 .set CR3_OFFSET,     21 * 8
 
+/* tss segment limit */
+.set TSS_LIMIT, 0x68
+
 .macro _isr_entry
 	.align 4, 0x90
 .endm
@@ -291,7 +294,7 @@
 	/* GDTE_LONG | GDTE_PRESENT | GDTE_TYPE_DATA_A | GDTE_TYPE_DATA_W | GDTE_NON_SYSTEM */
 	.long 0x20f300
 	/* Task segment descriptor */
-	.long 0x1e000068
+	.long (_mt_tss - _mt_begin) << 16 | TSS_LIMIT
 	/* GDTE_PRESENT | GDTE_SYS_TSS */
 	.long 0x8900
 	.long 0
