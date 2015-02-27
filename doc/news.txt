@@ -4,6 +4,43 @@
                                ===========
 
 
+Genode OS Framework release 15.02 | 2015-01-27
+##############################################
+
+| Version 15.02 extends the base-hw kernel with ARM-virtualization support,
+| introduces a highly modularized tool kit for automated testing, adds
+| support for the USB Armory platform, and improves the performance and
+| stability of VirtualBox on Genode/NOVA.
+
+Most of the previous releases were motivated by our desire for features that
+we deemed as fundamentally important to use Genode as a general-purpose
+system. Now that we have reached most of the feature set that we longed after,
+the project adjusts its focus. According to our recently published
+[http://genode.org/about/road-map - roadmap], the underlying theme of the
+current development shifted towards the cultivation of the existing feature
+set rather than the introduction of new functionality. The current release
+perfectly reflects this change. It introduces a highly modular tool kit for
+scaling up the project's automated testing efforts and comes with stability
+and performance improvements all over the place. In particular, we are happy
+to report substantial performance gains of our version of VirtualBox running
+on NOVA.
+
+As a second focus of the version 15.02, our custom base-hw kernel platform
+received a lot of attention. The most prominent news is the added support
+for virtualization on ARM. This line of work has been conducted and refined over
+the time span of more than a year and took much of our prior experience with
+the NOVA virtualization architecture and ARM TrustZone into account. This
+experience resulted in a novel microhypervisor design  with an extremely
+tiny foot print with respect to the added complexity on the account of
+virtualization support. In fact, less than 1000 lines of code had to be added
+to the root of the trusted computing base. Besides  virtualization
+support, our kernel's scheduler got refined to take IPC relationships into
+account while additionally gaining support for the USB Armory hardware platform.
+
+These and many more improvements are covered in more detail by the
+[http:/documentation/release-notes/15.02 - release documentation of version 15.02...]
+
+
 Road Map for 2015 | 2015-01-14
 ##############################
 
