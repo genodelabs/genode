@@ -63,7 +63,20 @@ Thread_event Thread::* Thread::_event(unsigned const id) const
 
 void Thread::_mmu_exception()
 {
-	PDBG("not implemented");
+	_become_inactive(AWAITS_RESUME);
+	_fault_pd    = (addr_t)_pd->platform_pd();
+	_fault_signal = _fault.signal_context_id();
+
+	/**
+	 * core should never raise a page-fault,
+	 * if this happens print out an error message with debug information
+	 */
+	if (_pd == Kernel::core_pd())
+		PERR("Pagefault in core thread (%s): ip=%p fault=%p",
+		     label(), (void*)ip, (void*)_fault_addr);
+
+	_fault.submit();
+	return;
 }
 
 
