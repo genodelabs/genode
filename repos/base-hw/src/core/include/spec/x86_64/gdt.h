@@ -5,6 +5,7 @@
 #include <mtc_util.h>
 
 extern int _mt_gdt_start;
+extern int _mt_gdt_end;
 
 namespace Genode
 {
@@ -26,8 +27,9 @@ class Genode::Gdt
 		 */
 		static void load(addr_t const virt_base)
 		{
-			asm volatile ("lgdt %0" : : "m" (Pseudo_descriptor (0x37,
-						  _virt_mtc_addr(virt_base, (addr_t)&_mt_gdt_start))));
+			asm volatile ("lgdt %0" : : "m" (Pseudo_descriptor
+						  (_mt_gdt_end - _mt_gdt_start - 1,
+						   _virt_mtc_addr(virt_base, (addr_t)&_mt_gdt_start))));
 		}
 };
 
