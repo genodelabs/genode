@@ -8,7 +8,7 @@ extern int _mt_idt;
 using namespace Genode;
 
 
-void Idt::setup()
+void Idt::setup(addr_t const virt_base)
 {
 	/* TODO: Calculate from _mt_isrs label */
 	uint64_t base = 0;
