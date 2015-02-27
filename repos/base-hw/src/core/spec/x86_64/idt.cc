@@ -1,19 +1,11 @@
+#include <pseudo_descriptor.h>
+
 #include "idt.h"
 
 extern int _mt_begin;
 extern int _mt_idt;
 
 using namespace Genode;
-
-class Descriptor
-{
-	private:
-		uint16_t _limit;
-		uint64_t _base;
-
-	public:
-		Descriptor(uint16_t l, uint64_t b) : _limit(l), _base (b) {};
-} __attribute__((packed));
 
 
 addr_t Idt::_virt_mtc_addr(addr_t const virt_base, addr_t const label)
@@ -45,6 +37,6 @@ void Idt::setup()
 
 void Idt::load(addr_t const virt_base)
 {
-	asm volatile ("lidt %0" : : "m" (Descriptor (sizeof(_table) - 1,
+	asm volatile ("lidt %0" : : "m" (Pseudo_descriptor (sizeof(_table) - 1,
 				  _virt_mtc_addr(virt_base, (addr_t)&_mt_idt))));
 }
