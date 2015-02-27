@@ -54,8 +54,10 @@ addr_t Thread::* Thread::_reg(addr_t const id) const
 
 Thread_event Thread::* Thread::_event(unsigned const id) const
 {
-	PDBG("not implemented");
-	return nullptr;
+	static Thread_event Thread::* _events[] = {
+		/* [0] */ &Thread::_fault
+	};
+	return id < sizeof(_events)/sizeof(_events[0]) ? _events[id] : 0;
 }
 
 
