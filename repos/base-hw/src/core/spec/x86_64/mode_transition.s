@@ -34,6 +34,8 @@
 
 /* mtc virt addresses */
 .set MT_BUFFER, _mt_buffer - _mt_begin
+.set MT_MASTER, _mt_master_context_begin - _mt_begin
+
 .macro _isr_entry
 	.align 4, 0x90
 .endm
@@ -131,7 +133,7 @@
 	mov %rax, MT_BUFFER
 
 	/* Switch to kernel page tables */
-	mov _mt_master_context_begin+CR3_OFFSET, %rax
+	mov MT_MASTER+CR3_OFFSET, %rax
 	mov %rax, %cr3
 
 	/* Save information on interrupt stack frame in client context */
