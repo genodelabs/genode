@@ -4,7 +4,7 @@
 # \author  Christian Helmuth
 # \date    2014-07-11
 #
-# We generate an head-image file only. This image contains MBR, label
+# We generate a head-image file only. This image contains MBR, label
 # (partition table), and one primary partition where GRUB2 is installed. The
 # image size fits only the GRUB2 binaries and must be extended later to include
 # further binaries and data.
@@ -19,7 +19,7 @@ set -e
 # config
 #
 
-head_size="4MiB"
+head_size="8MiB"
  head_img="grub2-head.img"
 
 # generate image file
@@ -33,14 +33,14 @@ fallocate -l $head_size $head_img
 parted="parted -s $head_img -- unit MiB"
 
 $parted "mklabel msdos"
-$parted "mkpart primary ext2 1MiB 4MiB"
+$parted "mkpart primary ext2 1MiB -1s"
 
 # loop image as disk (loop0) and partition 1 (loop1)
 sudo losetup /dev/loop0 $head_img
 sudo losetup /dev/loop1 $head_img -o 1MiB
 
 # initialize ext2 on partition
-sudo mkfs.ext2 /dev/loop1 -L GENODE -q
+sudo mkfs.ext2 /dev/loop1 -L GENODE -q -T default
 
 # install GRUB2
 mnt=$(mktemp -d)
@@ -62,8 +62,7 @@ insmod legacycfg
 terminal_input console
 terminal_output console
 
-## just switch to partition 2 and legacy load Genode
-#set root=(hd0,msdos1)
+## just legacy load Genode
 legacy_configfile /boot/grub/menu.lst
 EOF
 
