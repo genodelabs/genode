@@ -22,7 +22,7 @@ proc run_image { {unused ""} } {
 	set grub_img   "[genode_dir]/tool/grub2-head.img"
 	set disk_img   "[run_dir].img"
 	set part1_img  "[run_dir]-part1.img"
-	set run_size   [expr [regsub {\s.*} [exec du -sm [run_dir]] {}] + 4]
+	set run_size   [expr [regsub {\s.*} [exec du -sm [run_dir]] {}] + 8]
 	if {[image_disk_size] > 0} {
 		set disk_size  [image_disk_size]
 	} else {
