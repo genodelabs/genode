@@ -211,7 +211,14 @@ namespace Nova {
 	ALWAYS_INLINE
 	inline uint8_t create_sm(mword_t sm, mword_t pd, mword_t cnt)
 	{
-		return syscall_2(NOVA_CREATE_SM, 0, sm, pd, cnt);
+		return syscall_3(NOVA_CREATE_SM, 0, sm, pd, cnt, 0);
+	}
+
+
+	ALWAYS_INLINE
+	inline uint8_t create_si(mword_t si, mword_t pd, mword_t value, mword_t sm)
+	{
+		return syscall_3(NOVA_CREATE_SM, 0, si, pd, value, sm);
 	}
 
 
@@ -237,6 +244,13 @@ namespace Nova {
 	{
 		return syscall_2(NOVA_SM_CTRL, op, sm, timeout >> 32,
 		                 timeout & 0xFFFFFFFFULL);
+	}
+
+
+	ALWAYS_INLINE
+	inline uint8_t si_ctrl(mword_t sm, Sem_op op, mword_t &value, mword_t &cnt)
+	{
+		return syscall_5(NOVA_SM_CTRL, op, sm, value, cnt);
 	}
 
 
