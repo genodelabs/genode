@@ -248,7 +248,14 @@ namespace Nova {
 	ALWAYS_INLINE
 	inline uint8_t create_sm(unsigned sm, unsigned pd, mword_t cnt)
 	{
-		return syscall_2(NOVA_CREATE_SM, 0, sm, pd, cnt);
+		return syscall_3(NOVA_CREATE_SM, 0, sm, pd, cnt, 0);
+	}
+
+
+	ALWAYS_INLINE
+	inline uint8_t create_si(mword_t si, mword_t pd, mword_t value, mword_t sm)
+	{
+		return syscall_3(NOVA_CREATE_SM, 0, si, pd, value, sm);
 	}
 
 
@@ -289,10 +296,18 @@ namespace Nova {
 
 
 	ALWAYS_INLINE
+	inline uint8_t si_ctrl(mword_t sm, Sem_op op, mword_t &value, mword_t &cnt)
+	{
+		return syscall_5(NOVA_SM_CTRL, op, sm, value, cnt);
+	}
+
+
+	ALWAYS_INLINE
 	inline uint8_t assign_pci(mword_t pd, mword_t mem, mword_t rid)
 	{
 		return syscall_2(NOVA_ASSIGN_PCI, 0, pd, mem, rid);
 	}
+
 
 	ALWAYS_INLINE
 	inline uint8_t assign_gsi(mword_t sm, mword_t dev, mword_t cpu, mword_t &msi_addr, mword_t &msi_data)
