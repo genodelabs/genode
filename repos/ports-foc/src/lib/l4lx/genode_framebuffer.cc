@@ -37,6 +37,12 @@ static Framebuffer::Connection *framebuffer() {
 }
 
 
+static Genode::Dataspace_capability fb_ds() {
+	static Genode::Dataspace_capability ds = framebuffer()->dataspace();
+	return ds;
+}
+
+
 extern "C" {
 
 	int genode_screen_count()
@@ -51,7 +57,7 @@ extern "C" {
 	{
 		Linux::Irq_guard guard;
 
-		return Genode::Dataspace_client(framebuffer()->dataspace()).size();
+		return Genode::Dataspace_client(fb_ds()).size();
 	}
 
 
@@ -59,8 +65,7 @@ extern "C" {
 	{
 		Linux::Irq_guard guard;
 
-		return L4lx::Env::env()->rm()->attach(framebuffer()->dataspace(),
-		                                      "framebuffer");
+		return L4lx::Env::env()->rm()->attach(fb_ds(), "framebuffer");
 	}
 
 
