@@ -14,13 +14,21 @@
 
 /* core includes */
 #include <kernel/cpu.h>
+#include <kernel/kernel.h>
 
 using namespace Kernel;
 
 
-Cpu_idle::Cpu_idle(Cpu * const cpu) : Cpu_job(Cpu_priority::min, 0) {
-	PDBG("not implemented"); }
+Cpu_idle::Cpu_idle(Cpu * const cpu) : Cpu_job(Cpu_priority::min, 0)
+{
+	Cpu_job::cpu(cpu);
+	ip = (addr_t)&_main;
+	sp = (addr_t)&_stack[stack_size];
+	init_thread((addr_t)core_pd()->translation_table(), core_pd()->id());
+}
 
 
-void Cpu_idle::exception(unsigned const cpu) {
-	PDBG("not implemented"); }
+void Cpu_idle::exception(unsigned const cpu)
+{
+	PDBG("not implemented");
+}
