@@ -1,9 +1,6 @@
 TARGET = codezero
 
--include $(BUILD_BASE_DIR)/etc/codezero.conf
-ifeq ($(wildcard $(CODEZERO_DIR)),)
-$(error No valid kernel configured in 'etc/codezero.conf')
-endif
+CODEZERO_DIR := $(call select_from_ports,codezero)/src/kernel/codezero
 
 include $(REP_DIR)/lib/mk/codezero_cml.inc
 

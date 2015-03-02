@@ -1,7 +1,5 @@
-diff --git a/loader/main.c b/loader/main.c
-index 7d21a4c..ee03918 100644
---- a/loader/main.c
-+++ b/loader/main.c
+--- src/kernel/codezero/loader/main.c
++++ src/kernel/codezero/loader/main.c
 @@ -135,3 +135,5 @@ int main(void)
  	return -1;
  }

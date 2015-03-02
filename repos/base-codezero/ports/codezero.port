@@ -1,0 +1,9 @@
+LICENSE   := GPLv3
+VERSION   := git
+DOWNLOADS := codezero.git
+
+URL(codezero) := https://github.com/nfeske/codezero.git
+REV(codezero) := 6fa4884a5a1cf6207372f69ae01e5faa6d5a39c8
+DIR(codezero) := src/kernel/codezero
+
+PATCHES := $(wildcard $(REP_DIR)/patches/*.patch)

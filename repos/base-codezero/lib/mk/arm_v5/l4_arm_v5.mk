@@ -1,3 +1,5 @@
+CODEZERO_DIR := $(call select_from_ports,codezero)/src/kernel/codezero
+
 LIBL4_DIR = $(CODEZERO_DIR)/conts/userlibs/libl4
 
 INC_DIR += $(CODEZERO_DIR)/conts/userlibs/libc/include

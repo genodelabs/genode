@@ -1,7 +1,5 @@
-diff --git a/src/drivers/SConscript b/src/drivers/SConscript
-index eedb59f..8f5cd5d 100644
---- a/src/drivers/SConscript
-+++ b/src/drivers/SConscript
+--- src/kernel/codezero/src/drivers/SConscript
++++ src/kernel/codezero/src/drivers/SConscript
 @@ -8,24 +8,24 @@ src_local = []
  objs = []
  
@@ -34,10 +32,8 @@ index eedb59f..8f5cd5d 100644
 +                   duplicate=0, variant_dir = join(bdir, 'omap/timer'))
  
  Return('objs')
-diff --git a/conts/baremetal/empty/SConstruct b/conts/baremetal/empty/SConstruct
-index b70d69a..4889d8e 100644
---- a/conts/baremetal/empty/SConstruct
-+++ b/conts/baremetal/empty/SConstruct
+--- src/kernel/codezero/conts/baremetal/empty/SConstruct
++++ src/kernel/codezero/conts/baremetal/empty/SConstruct
 @@ -48,7 +48,7 @@ env = Environment(CC = config.toolchain_userspace + 'gcc',
  		          CPPFLAGS = '-include l4/config.h -include l4/macros.h -include l4/types.h')
  
@@ -47,10 +43,8 @@ index b70d69a..4889d8e 100644
  
  Depends(objs, join(PROJROOT, CONFIG_H))
  prog = env.Program(join(builddir, 'main.elf'), objs)
-diff --git a/SConstruct b/SConstruct
-index 2abc190..58c983d 100644
---- a/SConstruct
-+++ b/SConstruct
+--- src/kernel/codezero/SConstruct
++++ src/kernel/codezero/SConstruct
 @@ -71,35 +71,35 @@ env = Environment(CC = config.toolchain_kernel + 'gcc',
  objects = []
  objects += SConscript('src/generic/SConscript',

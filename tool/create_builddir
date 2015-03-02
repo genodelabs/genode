@@ -206,9 +206,6 @@ foc_imx53::
 foc_arndale::
 	@echo "SPECS = genode foc_arndale" > $(BUILD_DIR)/etc/specs.conf
 
-codezero_vpb926::
-	@echo "CODEZERO_DIR = $(GENODE_DIR)/repos/base-codezero/contrib" > $(BUILD_DIR)/etc/codezero.conf
-
 #
 # On all other platforms, the performance counter is assumed to be active by
 # default. On HW, its activation is done by an optional core lib. To be

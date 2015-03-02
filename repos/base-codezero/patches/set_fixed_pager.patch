@@ -1,7 +1,5 @@
-diff --git a/include/l4/generic/tcb.h b/include/l4/generic/tcb.h
-index 7b315b8..ace38d8 100644
---- a/include/l4/generic/tcb.h
-+++ b/include/l4/generic/tcb.h
+--- src/kernel/codezero/include/l4/generic/tcb.h
++++ src/kernel/codezero/include/l4/generic/tcb.h
 @@ -70,7 +70,7 @@ struct task_ids {
  
  struct container;
