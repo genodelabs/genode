@@ -195,9 +195,18 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			}
 
 			/* nothing to do at all - continue hardware accelerated */
+
 			Assert(!_irq_win);
-			Assert(continue_hw_accelerated(utcb));
-				
+
+			/*
+			 * Print a debug message if there actually IS something to do now.
+			 * This can happen, for example, if one of the worker threads has
+			 * set a flag in the meantime. Usually, setting a flag is followed
+			 * by a recall request, but we haven't verified this for each flag
+			 * yet.
+			 */
+			continue_hw_accelerated(utcb, true);
+
 			Nova::reply(_stack_reply);
 		}
 
@@ -516,7 +525,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 		}
 
 
-		inline bool continue_hw_accelerated(Nova::Utcb * utcb)
+		inline bool continue_hw_accelerated(Nova::Utcb * utcb, bool verbose = false)
 		{
 			Assert(!(VMCPU_FF_IS_SET(_current_vcpu, VMCPU_FF_INHIBIT_INTERRUPTS)));
 
@@ -533,6 +542,49 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 				return true;
 
 			Assert(!(VM_FF_IS_PENDING(_current_vm, VM_FF_PGM_NO_MEMORY)));
+
+#define VERBOSE_VM(flag) \
+			do { \
+				if (VM_FF_IS_PENDING(_current_vm, flag)) \
+					Vmm::printf("flag " #flag " pending\n"); \
+			} while (0)
+
+#define VERBOSE_VMCPU(flag) \
+			do { \
+				if (VMCPU_FF_IS_PENDING(_current_vcpu, flag)) \
+					Vmm::printf("flag " #flag " pending\n"); \
+			} while (0)
+
+			if (verbose) {
+				/*
+				 * VM_FF_HM_TO_R3_MASK
+				 */
+				VERBOSE_VM(VM_FF_TM_VIRTUAL_SYNC);
+				VERBOSE_VM(VM_FF_PGM_NEED_HANDY_PAGES);
+				/* handled by the assertion above */
+				/* VERBOSE_VM(VM_FF_PGM_NO_MEMORY); */
+				VERBOSE_VM(VM_FF_PDM_QUEUES);
+				VERBOSE_VM(VM_FF_EMT_RENDEZVOUS);
+
+				VERBOSE_VM(VM_FF_REQUEST);
+				VERBOSE_VM(VM_FF_PGM_POOL_FLUSH_PENDING);
+				VERBOSE_VM(VM_FF_PDM_DMA);
+
+				/*
+				 * VMCPU_FF_HM_TO_R3_MASK
+				 */
+				VERBOSE_VMCPU(VMCPU_FF_TO_R3);
+				/* when this flag gets set, a recall request follows */
+				/* VERBOSE_VMCPU(VMCPU_FF_TIMER); */
+				VERBOSE_VMCPU(VMCPU_FF_PDM_CRITSECT);
+
+				VERBOSE_VMCPU(VMCPU_FF_PGM_SYNC_CR3);
+				VERBOSE_VMCPU(VMCPU_FF_PGM_SYNC_CR3_NON_GLOBAL);
+				VERBOSE_VMCPU(VMCPU_FF_REQUEST);
+			}
+
+#undef VERBOSE_VMCPU
+#undef VERBOSE_VM
 
 			return false;
 		}
