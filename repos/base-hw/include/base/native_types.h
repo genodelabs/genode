@@ -197,7 +197,7 @@ class Genode::Message_tpl
 		 * \param name       local name that shall be the first payload word
 		 */
 		void prepare_send(void * const data, size_t data_size,
-		                  unsigned const name)
+		                  unsigned long const name)
 		{
 			/* limit data size */
 			if (data_size > _max_data_size()) {
@@ -205,7 +205,7 @@ class Genode::Message_tpl
 				data_size = _max_data_size();
 			}
 			/* copy data */
-			*(unsigned *)_data = name;
+			*(unsigned long *)_data = name;
 			void * const data_dst = (void *)((addr_t)_data + sizeof(name));
 			void * const data_src  = (void *)((addr_t)data + sizeof(name));
 			memcpy(data_dst, data_src, data_size - sizeof(name));
