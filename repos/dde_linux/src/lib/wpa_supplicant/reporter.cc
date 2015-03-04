@@ -90,6 +90,23 @@ extern "C" void wpa_report_disconnect_event(struct wpa_supplicant *wpa_s)
 }
 
 
+static inline int approximate_quality(struct wpa_bss *bss)
+{
+	/*
+	 * We provide an quality value by transforming the actual
+	 * signal level [-50,-100] (dBm) to [100,0] (%).
+	 */
+	int level = bss->level;
+
+	if (level <= -100)
+		return 0;
+	else if (level >= -50)
+		return 100;
+
+	return 2 * (level + 100);
+}
+
+
 extern "C" void wpa_report_scan_results(struct wpa_supplicant *wpa_s)
 {
 	accesspoints_reporter.enabled(true);
@@ -107,9 +124,12 @@ extern "C" void wpa_report_scan_results(struct wpa_supplicant *wpa_s)
 
 				Genode::String<SSID_MAX_LEN> ssid((char const*)bss->ssid, bss->ssid_len);
 
+				int quality = approximate_quality(bss);
+
 				xml.node("accesspoint", [&]() {
 					xml.attribute("ssid", ssid.string());
 					xml.attribute("bssid", bssid_buf);
+					xml.attribute("quality", quality);
 
 					/* XXX we forcefully only support WPA/WPA2 psk for now */
 					if (wpa || wpa2)
