@@ -17,187 +17,192 @@
 #include <util/misc_math.h>
 
 namespace Genode {
-
-	class Avl_node_base
-	{
-		protected:
-
-			/**
-			 * Internal policy interface
-			 *
-			 * The implementation of this interface is provided by the AVL tree.
-			 */
-			struct Policy
-			{
-				virtual ~Policy() { }
-
-				/**
-				 * Compare two nodes
-				 *
-				 * \retval false if n2 is lower than n1
-				 * \retval true  if n2 is higher than or equal to n1
-				 *
-				 * This function must be provided by the derived class.
-				 * It determines the order of nodes inside the avl tree.
-				 */
-				virtual bool higher(Avl_node_base *n1, Avl_node_base *n2) const = 0;
-
-				/**
-				 * Node recomputation hook
-				 *
-				 * If a node gets rearranged, this function is called.
-				 * It can be used to update avl-tree-position dependent
-				 * meta data.
-				 */
-				virtual void recompute(Avl_node_base *) { }
-			};
-
-			Avl_node_base *_child[2];  /* left and right subtrees */
-			Avl_node_base *_parent;    /* parent of subtree       */
-			unsigned char  _depth;     /* depth of subtree        */
-
-		public:
-
-			typedef bool Side;
-
-			enum { LEFT = false, RIGHT = true };
-
-		private:
-
-			/**
-			 * Determine depth of subtree
-			 */
-			inline int _child_depth(Side i) {
-				return _child[i] ? _child[i]->_depth : 0; }
-
-			/**
-			 * Update depth of node
-			 */
-			void _recompute_depth(Policy &policy);
-
-			/**
-			 * Determine left-right bias of both subtrees
-			 */
-			inline Side _bias() {
-				return (_child_depth(RIGHT) > _child_depth(LEFT)); }
-
-			/**
-			 * Insert subtree into specified side of the node
-			 */
-			void _adopt(Avl_node_base *node, Side i, Policy &policy);
-
-			/**
-			 * Rotate subtree
-			 *
-			 * \param side   direction of rotate operation
-			 * \param node   subtree to rotate
-			 *
-			 * The local node_* variable names describe node locations for
-			 * the left (default) rotation. For example, node_r_l is the
-			 * left of the right of node.
-			 */
-			void _rotate_subtree(Avl_node_base *node, Side side, Policy &policy);
-
-			/**
-			 * Rebalance subtree
-			 *
-			 * \param node   immediate child that needs balancing
-			 *
-			 * 'this' is parent of the subtree to rebalance
-			 */
-			void _rebalance_subtree(Avl_node_base *node, Policy &policy);
-
-		public:
-
-			/**
-			 * Constructor
-			 */
-			Avl_node_base();
-
-			/**
-			 * Insert new node into subtree
-			 */
-			void insert(Avl_node_base *node, Policy &policy);
-
-			/**
-			 * Remove node from tree
-			 */
-			void remove(Policy &policy);
-	};
-
-
-	/**
-	 * AVL node
-	 *
-	 * \param NT  type of the class derived from 'Avl_node'
-	 *
-	 * Each object to be stored in the avl tree must be derived from
-	 * 'Avl_node'. The type of the derived class is to be specified as
-	 * template argument to enable 'Avl_node' to call virtual functions
-	 * specific for the derived class.
-	 */
-	template <typename NT>
-	class Avl_node : public Avl_node_base
-	{
-		public:
-
-			inline NT *child(Side i) const { return static_cast<NT *>(_child[i]); }
-
-			/**
-			 * Default policy
-			 */
-			void recompute() { }
-	};
-
-
-	/**
-	 * Root node of the AVL tree
-	 *
-	 * The real nodes are always attached at the left branch of
-	 * this root node.
-	 */
-	template <typename NT>
-	class Avl_tree : Avl_node<NT>
-	{
-		private:
-
-			/**
-			 * Auto-generated policy class specific for NT
-			 */
-			class Policy : public Avl_node_base::Policy
-			{
-				bool higher(Avl_node_base *n1, Avl_node_base *n2) const
-				{
-					return static_cast<NT *>(n1)->higher(static_cast<NT *>(n2));
-				}
-
-				void recompute(Avl_node_base *node)
-				{
-					static_cast<NT *>(node)->recompute();
-				}
-
-			} _policy;
-
-		public:
-
-			/**
-			 * Insert node into AVL tree
-			 */
-			void insert(Avl_node<NT> *node) { Avl_node_base::insert(node, _policy); }
-
-			/**
-			 * Remove node from AVL tree
-			 */
-			void remove(Avl_node<NT> *node) { node->remove(_policy); }
-
-			/**
-			 * Request first node of the tree
-			 *
-			 * \return  first node
-			 * \retval  NULL if tree is empty
-			 */
-			inline NT *first() const { return this->child(Avl_node<NT>::LEFT); }
-	};
+	
+	class Avl_node_base;
+	template <typename> class Avl_node;
+	template <typename> class Avl_tree;
 }
+
+
+class Genode::Avl_node_base
+{
+	protected:
+
+		/**
+		 * Internal policy interface
+		 *
+		 * The implementation of this interface is provided by the AVL tree.
+		 */
+		struct Policy
+		{
+			virtual ~Policy() { }
+
+			/**
+			 * Compare two nodes
+			 *
+			 * \retval false if n2 is lower than n1
+			 * \retval true  if n2 is higher than or equal to n1
+			 *
+			 * This function must be provided by the derived class.
+			 * It determines the order of nodes inside the avl tree.
+			 */
+			virtual bool higher(Avl_node_base *n1, Avl_node_base *n2) const = 0;
+
+			/**
+			 * Node recomputation hook
+			 *
+			 * If a node gets rearranged, this function is called.
+			 * It can be used to update avl-tree-position dependent
+			 * meta data.
+			 */
+			virtual void recompute(Avl_node_base *) { }
+		};
+
+		Avl_node_base *_child[2];  /* left and right subtrees */
+		Avl_node_base *_parent;    /* parent of subtree       */
+		unsigned char  _depth;     /* depth of subtree        */
+
+	public:
+
+		typedef bool Side;
+
+		enum { LEFT = false, RIGHT = true };
+
+	private:
+
+		/**
+		 * Determine depth of subtree
+		 */
+		inline int _child_depth(Side i) {
+			return _child[i] ? _child[i]->_depth : 0; }
+
+		/**
+		 * Update depth of node
+		 */
+		void _recompute_depth(Policy &policy);
+
+		/**
+		 * Determine left-right bias of both subtrees
+		 */
+		inline Side _bias() {
+			return (_child_depth(RIGHT) > _child_depth(LEFT)); }
+
+		/**
+		 * Insert subtree into specified side of the node
+		 */
+		void _adopt(Avl_node_base *node, Side i, Policy &policy);
+
+		/**
+		 * Rotate subtree
+		 *
+		 * \param side   direction of rotate operation
+		 * \param node   subtree to rotate
+		 *
+		 * The local node_* variable names describe node locations for
+		 * the left (default) rotation. For example, node_r_l is the
+		 * left of the right of node.
+		 */
+		void _rotate_subtree(Avl_node_base *node, Side side, Policy &policy);
+
+		/**
+		 * Rebalance subtree
+		 *
+		 * \param node   immediate child that needs balancing
+		 *
+		 * 'this' is parent of the subtree to rebalance
+		 */
+		void _rebalance_subtree(Avl_node_base *node, Policy &policy);
+
+	public:
+
+		/**
+		 * Constructor
+		 */
+		Avl_node_base();
+
+		/**
+		 * Insert new node into subtree
+		 */
+		void insert(Avl_node_base *node, Policy &policy);
+
+		/**
+		 * Remove node from tree
+		 */
+		void remove(Policy &policy);
+};
+
+
+/**
+ * AVL node
+ *
+ * \param NT  type of the class derived from 'Avl_node'
+ *
+ * Each object to be stored in the avl tree must be derived from
+ * 'Avl_node'. The type of the derived class is to be specified as
+ * template argument to enable 'Avl_node' to call virtual functions
+ * specific for the derived class.
+ */
+template <typename NT>
+class Genode::Avl_node : public Avl_node_base
+{
+	public:
+
+		inline NT *child(Side i) const { return static_cast<NT *>(_child[i]); }
+
+		/**
+		 * Default policy
+		 */
+		void recompute() { }
+};
+
+
+/**
+ * Root node of the AVL tree
+ *
+ * The real nodes are always attached at the left branch of
+ * this root node.
+ */
+template <typename NT>
+class Genode::Avl_tree : Avl_node<NT>
+{
+	private:
+
+		/**
+		 * Auto-generated policy class specific for NT
+		 */
+		class Policy : public Avl_node_base::Policy
+		{
+			bool higher(Avl_node_base *n1, Avl_node_base *n2) const
+			{
+				return static_cast<NT *>(n1)->higher(static_cast<NT *>(n2));
+			}
+
+			void recompute(Avl_node_base *node)
+			{
+				static_cast<NT *>(node)->recompute();
+			}
+
+		} _policy;
+
+	public:
+
+		/**
+		 * Insert node into AVL tree
+		 */
+		void insert(Avl_node<NT> *node) { Avl_node_base::insert(node, _policy); }
+
+		/**
+		 * Remove node from AVL tree
+		 */
+		void remove(Avl_node<NT> *node) { node->remove(_policy); }
+
+		/**
+		 * Request first node of the tree
+		 *
+		 * \return  first node
+		 * \retval  NULL if tree is empty
+		 */
+		inline NT *first() const { return this->child(Avl_node<NT>::LEFT); }
+};
 
 #endif /* _INCLUDE__UTIL__AVL_TREE_H_ */

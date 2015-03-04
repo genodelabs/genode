@@ -17,18 +17,18 @@
 #include <uart_session/client.h>
 #include <terminal_session/connection.h>
 
-namespace Uart {
+namespace Uart { struct Connection; }
 
-	struct Connection : Genode::Connection<Session>, Session_client
+
+struct Uart::Connection : Genode::Connection<Session>, Session_client
+{
+	Connection()
+	:
+		Genode::Connection<Session>(session("ram_quota=%zd", 2*4096)),
+		Session_client(cap())
 	{
-		Connection()
-		:
-			Genode::Connection<Session>(session("ram_quota=%zd", 2*4096)),
-			Session_client(cap())
-		{
-			Terminal::Connection::wait_for_connection(cap());
-		}
-	};
-}
+		Terminal::Connection::wait_for_connection(cap());
+	}
+};
 
 #endif /* _INCLUDE__UART_SESSION__CONNECTION_H_ */

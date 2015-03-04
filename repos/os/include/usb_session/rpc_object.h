@@ -17,9 +17,8 @@
 #include <packet_stream_tx/rpc_object.h>
 #include <usb_session/usb_session.h>
 
-namespace Usb {
-	class Session_rpc_object;
-}
+namespace Usb { class Session_rpc_object; }
+
 
 class Usb::Session_rpc_object : public Genode::Rpc_object<Session, Session_rpc_object>
 {

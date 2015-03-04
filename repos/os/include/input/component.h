@@ -22,8 +22,8 @@
 #include <input_session/input_session.h>
 #include <input/event_queue.h>
 
-
 namespace Input { class Session_component; }
+
 
 class Input::Session_component : public Genode::Rpc_object<Input::Session>
 {

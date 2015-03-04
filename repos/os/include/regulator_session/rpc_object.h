@@ -18,23 +18,23 @@
 #include <regulator/consts.h>
 #include <regulator_session/regulator_session.h>
 
-namespace Regulator {
+namespace Regulator { class Session_rpc_object; }
 
-	class Session_rpc_object : public Genode::Rpc_object<Session, Session_rpc_object>
-	{
-		protected:
 
-			Regulator_id _id; /* regulator identifier */
+class Regulator::Session_rpc_object : public Genode::Rpc_object<Session, Session_rpc_object>
+{
+	protected:
 
-		public:
+		Regulator_id _id; /* regulator identifier */
 
-			/**
-			 * Constructor
-			 *
-			 * \param id     identifies the specific regulator
-			 */
-			Session_rpc_object(Regulator_id id) : _id(id) { }
-	};
-}
+	public:
+
+		/**
+		 * Constructor
+		 *
+		 * \param id     identifies the specific regulator
+		 */
+		Session_rpc_object(Regulator_id id) : _id(id) { }
+};
 
 #endif /* _INCLUDE__REGULATOR_SESSION__SERVER_H_ */

@@ -21,6 +21,43 @@
 
 namespace Genode {
 
+	class Number_of_bytes;
+	template <Genode::size_t> class String;
+}
+
+
+/**
+ * Wrapper of 'size_t' for selecting 'ascii_to' specialization
+ */
+class Genode::Number_of_bytes
+{
+	size_t _n;
+
+	public:
+
+		/**
+		 * Default constructor
+		 */
+		Number_of_bytes() : _n(0) { }
+
+		/**
+		 * Constructor, to be used implicitly via assignment operator
+		 */
+		Number_of_bytes(size_t n) : _n(n) { }
+
+		/**
+		 * Convert number of bytes to 'size_t' value
+		 */
+		operator size_t() const { return _n; }
+};
+
+
+/***********************
+ ** Utility functions **
+ ***********************/
+
+namespace Genode {
+
 	/**
 	 * Determine length of null-terminated string
 	 */
@@ -316,32 +353,6 @@ namespace Genode {
 
 
 	/**
-	 * Wrapper of 'size_t' for selecting 'ascii_to' specialization
-	 */
-	class Number_of_bytes
-	{
-		size_t _n;
-
-		public:
-
-			/**
-			 * Default constructor
-			 */
-			Number_of_bytes() : _n(0) { }
-
-			/**
-			 * Constructor, to be used implicitly via assignment operator
-			 */
-			Number_of_bytes(size_t n) : _n(n) { }
-
-			/**
-			 * Convert number of bytes to 'size_t' value
-			 */
-			operator size_t() const { return _n; }
-	};
-
-
-	/**
 	 * Read 'Number_of_bytes' value from string and handle the size suffixes
 	 *
 	 * This function scales the resulting size value according to the suffixes
@@ -447,54 +458,55 @@ namespace Genode {
 
 		return i;
 	}
-
-	/**
-	 * Buffer that contains a null-terminated string
-	 *
-	 * \param CAPACITY  buffer size including the terminating zero
-	 */
-	template <size_t CAPACITY>
-	class String
-	{
-		private:
-
-			char   _buf[CAPACITY];
-			size_t _length;
-
-		public:
-
-			constexpr static size_t size() { return CAPACITY; }
-
-			String() : _length(0) { }
-
-			String(char const *str, size_t len = ~0UL - 1)
-			:
-				_length(min(len + 1, min(strlen(str) + 1, CAPACITY)))
-			{
-				strncpy(_buf, str, _length);
-			}
-
-			size_t length() const { return _length; }
-
-			static constexpr size_t capacity() { return CAPACITY; }
-
-			bool valid() const {
-				return (_length <= CAPACITY) && (_length != 0) && (_buf[_length - 1] == '\0'); }
-
-			char const *string() const { return valid() ? _buf : ""; }
-
-			template <size_t OTHER_CAPACITY>
-			bool operator == (String<OTHER_CAPACITY> const &other) const
-			{
-				return strcmp(string(), other.string()) == 0;
-			}
-
-			template <size_t OTHER_CAPACITY>
-			bool operator != (String<OTHER_CAPACITY> const &other) const
-			{
-				return strcmp(string(), other.string()) != 0;
-			}
-	};
 }
+
+
+/**
+ * Buffer that contains a null-terminated string
+ *
+ * \param CAPACITY  buffer size including the terminating zero
+ */
+template <Genode::size_t CAPACITY>
+class Genode::String
+{
+	private:
+
+		char   _buf[CAPACITY];
+		size_t _length;
+
+	public:
+
+		constexpr static size_t size() { return CAPACITY; }
+
+		String() : _length(0) { }
+
+		String(char const *str, size_t len = ~0UL - 1)
+		:
+			_length(min(len + 1, min(strlen(str) + 1, CAPACITY)))
+		{
+			strncpy(_buf, str, _length);
+		}
+
+		size_t length() const { return _length; }
+
+		static constexpr size_t capacity() { return CAPACITY; }
+
+		bool valid() const {
+			return (_length <= CAPACITY) && (_length != 0) && (_buf[_length - 1] == '\0'); }
+
+		char const *string() const { return valid() ? _buf : ""; }
+
+		template <size_t OTHER_CAPACITY>
+		bool operator == (String<OTHER_CAPACITY> const &other) const
+		{
+			return strcmp(string(), other.string()) == 0;
+		}
+
+		template <size_t OTHER_CAPACITY>
+		bool operator != (String<OTHER_CAPACITY> const &other) const
+		{
+			return strcmp(string(), other.string()) != 0;
+		}
+};
 
 #endif /* _INCLUDE__UTIL__STRING_H_ */

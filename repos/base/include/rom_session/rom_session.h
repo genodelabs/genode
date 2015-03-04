@@ -23,12 +23,14 @@
 
 namespace Genode {
 
-	struct Rom_dataspace : Dataspace { };
-
+	struct Rom_dataspace;
 	struct Rom_session;
 
 	typedef Capability<Rom_dataspace> Rom_dataspace_capability;
 }
+
+
+struct Genode::Rom_dataspace : Dataspace { };
 
 
 struct Genode::Rom_session : Session

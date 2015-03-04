@@ -18,43 +18,44 @@
 #include <base/connection.h>
 #include <base/printf.h>
 
-namespace Genode {
+namespace Genode { class Rom_connection; }
 
-	class Rom_connection : public Connection<Rom_session>,
-	                       public Rom_session_client
-	{
-		public:
 
-			class Rom_connection_failed : public Parent::Exception { };
+class Genode::Rom_connection : public Connection<Rom_session>,
+                               public Rom_session_client
+{
+	public:
 
-		private:
+		class Rom_connection_failed : public Parent::Exception { };
 
-			Rom_session_capability _create_session(const char *module_name, const char *label)
-			{
-				try {
-					return session("ram_quota=4K, filename=\"%s\", label=\"%s\"",
-					               module_name, label ? label: module_name); }
-				catch (...) {
-					PERR("Could not open ROM session for module \"%s\"", module_name);
-					throw Rom_connection_failed();
-				}
+	private:
+
+		Rom_session_capability _create_session(const char *module_name, const char *label)
+		{
+			try {
+				return session("ram_quota=4K, filename=\"%s\", label=\"%s\"",
+				               module_name, label ? label: module_name); }
+			catch (...) {
+				PERR("Could not open ROM session for module \"%s\"", module_name);
+				throw Rom_connection_failed();
 			}
+		}
 
-		public:
+	public:
 
-			/**
-			 * Constructor
-			 *
-			 * \param filename  name of ROM file
-			 * \param label     initial session label
-			 *
-			 * \throw Rom_connection_failed
-			 */
-			Rom_connection(const char *filename, const char *label = 0) :
-				Connection<Rom_session>(_create_session(filename, label)),
-				Rom_session_client(cap())
-			{ }
-	};
-}
+		/**
+		 * Constructor
+		 *
+		 * \param module_name  name of ROM module
+		 * \param label        initial session label
+		 *
+		 * \throw Rom_connection_failed
+		 */
+		Rom_connection(const char *module_name, const char *label = 0)
+		:
+			Connection<Rom_session>(_create_session(module_name, label)),
+			Rom_session_client(cap())
+		{ }
+};
 
 #endif /* _INCLUDE__ROM_SESSION__CONNECTION_H_ */

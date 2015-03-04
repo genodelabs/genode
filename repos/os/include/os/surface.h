@@ -18,6 +18,7 @@
 #include <util/color.h>
 
 namespace Genode {
+
 	class Surface_base;
 	template <typename> class Surface;
 }

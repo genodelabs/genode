@@ -18,14 +18,14 @@
 #include <rtc_session/client.h>
 #include <base/connection.h>
 
-namespace Rtc {
+namespace Rtc { struct Connection; }
 
-	struct Connection : Genode::Connection<Session>, Session_client
-	{
-		Connection() :
-			Genode::Connection<Rtc::Session>(session("foo, ram_quota=4K")),
-			Session_client(cap()) { }
-	};
-}
+
+struct Rtc::Connection : Genode::Connection<Session>, Session_client
+{
+	Connection() :
+		Genode::Connection<Rtc::Session>(session("foo, ram_quota=4K")),
+		Session_client(cap()) { }
+};
 
 #endif /* _INCLUDE__RTC_SESSION__CONNECTION_H_ */

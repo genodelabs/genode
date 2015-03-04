@@ -17,16 +17,15 @@
 #include <input_session/client.h>
 #include <base/connection.h>
 
-namespace Input {
+namespace Input { struct Connection; }
 
-	struct Connection : Genode::Connection<Session>, Session_client
-	{
-		Connection()
-		:
-			Genode::Connection<Session>(session("ram_quota=16K")),
-			Session_client(cap())
-		{ }
-	};
-}
+struct Input::Connection : Genode::Connection<Session>, Session_client
+{
+	Connection()
+	:
+		Genode::Connection<Session>(session("ram_quota=16K")),
+		Session_client(cap())
+	{ }
+};
 
 #endif /* _INCLUDE__INPUT_SESSION__CONNECTION_H_ */

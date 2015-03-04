@@ -11,9 +11,11 @@
 #include <base/stdint.h>
 
 namespace Genode {
+
 	class  Shared_object;
 	struct Address_info;
 };
+
 
 class Genode::Shared_object
 {

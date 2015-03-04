@@ -71,35 +71,35 @@ struct Genode::Trace::Session_client : Genode::Rpc_client<Genode::Trace::Session
 			return num_subjects;
 		}
 
-		Policy_id alloc_policy(size_t size) {
+		Policy_id alloc_policy(size_t size) override {
 			return call<Rpc_alloc_policy>(size); }
 
-		Dataspace_capability policy(Policy_id policy_id) {
+		Dataspace_capability policy(Policy_id policy_id) override {
 			return call<Rpc_policy>(policy_id); }
 
-		void unload_policy(Policy_id policy_id) {
+		void unload_policy(Policy_id policy_id) override {
 			call<Rpc_unload_policy>(policy_id); }
 
-		void trace(Subject_id s, Policy_id p, size_t buffer_size) {
+		void trace(Subject_id s, Policy_id p, size_t buffer_size) override {
 			call<Rpc_trace>(s, p, buffer_size); }
 
 		void rule(Session_label const &label, Thread_name const &thread,
-		          Policy_id policy, size_t buffer_size) {
+		          Policy_id policy, size_t buffer_size) override {
 			call<Rpc_rule>(label, thread, policy, buffer_size); }
 
-		void pause(Subject_id subject) {
+		void pause(Subject_id subject) override {
 			call<Rpc_pause>(subject); }
 
-		void resume(Subject_id subject) {
+		void resume(Subject_id subject) override {
 			call<Rpc_resume>(subject); }
 
-		Subject_info subject_info(Subject_id subject) {
+		Subject_info subject_info(Subject_id subject) override {
 			return call<Rpc_subject_info>(subject); }
 
-		Dataspace_capability buffer(Subject_id subject) {
+		Dataspace_capability buffer(Subject_id subject) override {
 			return call<Rpc_buffer>(subject); }
 
-		void free(Subject_id subject) {
+		void free(Subject_id subject) override {
 			call<Rpc_free>(subject); }
 };
 

@@ -17,9 +17,8 @@
 #include <ram_session/client.h>
 #include <base/connection.h>
 
-namespace Genode {
-	struct Ram_connection;
-}
+namespace Genode { struct Ram_connection; }
+
 
 struct Genode::Ram_connection : Connection<Ram_session>, Ram_session_client
 {

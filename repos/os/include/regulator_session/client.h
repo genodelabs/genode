@@ -17,30 +17,28 @@
 #include <base/rpc_client.h>
 #include <regulator_session/capability.h>
 
-namespace Regulator {
-
-	class Session_client : public Genode::Rpc_client<Session>
-	{
-		public:
-
-			/**
-			 * Constructor
-			 *
-			 * \param session  session capability
-			 */
-			Session_client(Session_capability session)
-			: Genode::Rpc_client<Session>(session) { }
+namespace Regulator { struct Session_client; }
 
 
-			/*********************************
-			 ** Regulator session interface **
-			 *********************************/
+struct Regulator::Session_client : public Genode::Rpc_client<Session>
+{
+	/**
+	 * Constructor
+	 *
+	 * \param session  session capability
+	 */
+	Session_client(Session_capability session)
+	: Genode::Rpc_client<Session>(session) { }
 
-			void level(unsigned long level) { call<Rpc_set_level>(level);  }
-			unsigned long level()           { return call<Rpc_level>();    }
-			void state(bool enable)         { call<Rpc_set_state>(enable); }
-			bool state()                    { return call<Rpc_state>();    }
-	};
-}
+
+	/*********************************
+	 ** Regulator session interface **
+	 *********************************/
+
+	void level(unsigned long level) override { call<Rpc_set_level>(level);  }
+	unsigned long level()           override { return call<Rpc_level>();    }
+	void state(bool enable)         override { call<Rpc_set_state>(enable); }
+	bool state()                    override { return call<Rpc_state>();    }
+};
 
 #endif /* _INCLUDE__REGULATOR_SESSION__CLIENT_H_ */

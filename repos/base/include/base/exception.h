@@ -14,6 +14,8 @@
 #ifndef _INCLUDE__BASE__EXCEPTION_H_
 #define _INCLUDE__BASE__EXCEPTION_H_
 
-namespace Genode { class Exception { }; }
+namespace Genode { class Exception; }
+
+class Genode::Exception { };
 
 #endif /* _INCLUDE__BASE__EXCEPTION_H_ */

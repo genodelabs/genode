@@ -18,37 +18,37 @@
 #include <packet_stream_tx/rpc_object.h>
 #include <base/rpc_server.h>
 
-namespace Block {
+namespace Block { class Session_rpc_object; }
 
-	class Session_rpc_object : public Genode::Rpc_object<Session, Session_rpc_object>
-	{
-		protected:
 
-			Packet_stream_tx::Rpc_object<Tx> _tx;
+class Block::Session_rpc_object : public Genode::Rpc_object<Session, Session_rpc_object>
+{
+	protected:
 
-		public:
+		Packet_stream_tx::Rpc_object<Tx> _tx;
 
-			/**
-			 * Constructor
-			 *
-			 * \param tx_ds  dataspace used as communication buffer
-			 *               for the tx packet stream
-			 * \param ep     entry point used for packet-stream channel
-			 */
-			Session_rpc_object(Genode::Dataspace_capability tx_ds,
-			                   Genode::Rpc_entrypoint &ep)
-			: _tx(tx_ds, ep) { }
+	public:
 
-			/**
-			 * Return capability to packet-stream channel
-			 *
-			 * This function is called by the client via an RPC call at session
-			 * construction time.
-			 */
-			Genode::Capability<Tx> _tx_cap() { return _tx.cap(); }
+		/**
+		 * Constructor
+		 *
+		 * \param tx_ds  dataspace used as communication buffer
+		 *               for the tx packet stream
+		 * \param ep     entry point used for packet-stream channel
+		 */
+		Session_rpc_object(Genode::Dataspace_capability tx_ds,
+		                   Genode::Rpc_entrypoint &ep)
+		: _tx(tx_ds, ep) { }
 
-			Tx::Sink *tx_sink() { return _tx.sink(); }
-	};
-}
+		/**
+		 * Return capability to packet-stream channel
+		 *
+		 * This function is called by the client via an RPC call at session
+		 * construction time.
+		 */
+		Genode::Capability<Tx> _tx_cap() { return _tx.cap(); }
+
+		Tx::Sink *tx_sink() { return _tx.sink(); }
+};
 
 #endif /* _INCLUDE__BLOCK_SESSION__SERVER_H_ */

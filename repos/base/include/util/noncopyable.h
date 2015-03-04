@@ -14,27 +14,27 @@
 #ifndef _INCLUDE__UTIL__NONCOPYABLE_H_
 #define _INCLUDE__UTIL__NONCOPYABLE_H_
 
-namespace Genode {
+namespace Genode { class Noncopyable; }
 
-	/**
-	 * Classes of objects not allowed to be copied, should inherit from this one.
-	 *
-	 * This class declares a private copy-constructor and assignment-operator.
-	 * It's sufficient to inherit private from this class, and let the compiler
-	 * detect any copy violations.
-	 */
-	class Noncopyable
-	{
-		private:
 
-			Noncopyable(const Noncopyable&);
-			const Noncopyable& operator=(const Noncopyable&);
+/**
+ * Classes of objects not allowed to be copied, should inherit from this one.
+ *
+ * This class declares a private copy-constructor and assignment-operator.
+ * It's sufficient to inherit private from this class, and let the compiler
+ * detect any copy violations.
+ */
+class Genode::Noncopyable
+{
+	private:
 
-		protected:
+		Noncopyable(const Noncopyable&);
+		const Noncopyable& operator=(const Noncopyable&);
 
-			Noncopyable()  {}
-			~Noncopyable() {}
-	};
-}
+	protected:
+
+		Noncopyable()  {}
+		~Noncopyable() {}
+};
 
 #endif /* _INCLUDE__UTIL__NONCOPYABLE_H_ */

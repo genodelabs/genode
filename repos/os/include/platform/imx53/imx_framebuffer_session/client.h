@@ -18,30 +18,30 @@
 #include <imx_framebuffer_session/imx_framebuffer_session.h>
 #include <base/rpc_client.h>
 
-namespace Framebuffer {
+namespace Framebuffer { struct Imx_client; }
 
-	struct Imx_client : Genode::Rpc_client<Imx_session>
-	{
-		explicit Imx_client(Capability<Imx_session> session)
-		: Genode::Rpc_client<Imx_session>(session) { }
 
-		Genode::Dataspace_capability dataspace() override {
-			return call<Rpc_dataspace>(); }
+struct Framebuffer::Imx_client : Genode::Rpc_client<Imx_session>
+{
+	explicit Imx_client(Capability<Imx_session> session)
+	: Genode::Rpc_client<Imx_session>(session) { }
 
-		Mode mode() const override { return call<Rpc_mode>(); }
+	Genode::Dataspace_capability dataspace() override {
+		return call<Rpc_dataspace>(); }
 
-		void mode_sigh(Genode::Signal_context_capability sigh) override {
-			call<Rpc_mode_sigh>(sigh); }
+	Mode mode() const override { return call<Rpc_mode>(); }
 
-		void sync_sigh(Genode::Signal_context_capability sigh) override {
-			call<Rpc_sync_sigh>(sigh); }
+	void mode_sigh(Genode::Signal_context_capability sigh) override {
+		call<Rpc_mode_sigh>(sigh); }
 
-		void refresh(int x, int y, int w, int h) override {
-			call<Rpc_refresh>(x, y, w, h); }
+	void sync_sigh(Genode::Signal_context_capability sigh) override {
+		call<Rpc_sync_sigh>(sigh); }
 
-		void overlay(Genode::addr_t phys_addr, int x, int y, int alpha) override {
-			call<Rpc_overlay>(phys_addr, x, y, alpha); }
-	};
-}
+	void refresh(int x, int y, int w, int h) override {
+		call<Rpc_refresh>(x, y, w, h); }
+
+	void overlay(Genode::addr_t phys_addr, int x, int y, int alpha) override {
+		call<Rpc_overlay>(phys_addr, x, y, alpha); }
+};
 
 #endif /* _INCLUDE__IMX_FRAMEBUFFER_SESSION__CLIENT_H_ */

@@ -18,18 +18,18 @@
 #include <cap_session/cap_session.h>
 #include <base/rpc_client.h>
 
-namespace Genode {
+namespace Genode { struct Cap_session_client; }
 
-	struct Cap_session_client : Rpc_client<Cap_session>
-	{
-		explicit Cap_session_client(Cap_session_capability session)
-		: Rpc_client<Cap_session>(session) { }
 
-		Native_capability alloc(Native_capability ep) {
-			return call<Rpc_alloc>(ep); }
+struct Genode::Cap_session_client : Rpc_client<Cap_session>
+{
+	explicit Cap_session_client(Cap_session_capability session)
+	: Rpc_client<Cap_session>(session) { }
 
-		void free(Native_capability cap) { call<Rpc_free>(cap); }
-	};
-}
+	Native_capability alloc(Native_capability ep) override {
+		return call<Rpc_alloc>(ep); }
+
+	void free(Native_capability cap) override { call<Rpc_free>(cap); }
+};
 
 #endif /* _INCLUDE__CAP_SESSION__CLIENT_H_ */

@@ -17,17 +17,17 @@
 #include <dataspace/capability.h>
 #include <base/rpc_client.h>
 
-namespace Genode {
+namespace Genode { struct Dataspace_client; }
 
-	struct Dataspace_client : Rpc_client<Dataspace>
-	{
-		explicit Dataspace_client(Dataspace_capability ds)
-		: Rpc_client<Dataspace>(ds) { }
 
-		size_t size()      { return call<Rpc_size>();      }
-		addr_t phys_addr() { return call<Rpc_phys_addr>(); }
-		bool   writable()  { return call<Rpc_writable>();  }
-	};
-}
+struct Genode::Dataspace_client : Rpc_client<Dataspace>
+{
+	explicit Dataspace_client(Dataspace_capability ds)
+	: Rpc_client<Dataspace>(ds) { }
+
+	size_t size()      override { return call<Rpc_size>();      }
+	addr_t phys_addr() override { return call<Rpc_phys_addr>(); }
+	bool   writable()  override { return call<Rpc_writable>();  }
+};
 
 #endif /* _INCLUDE__DATASPACE__CLIENT_H_ */

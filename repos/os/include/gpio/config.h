@@ -32,6 +32,7 @@
 #include <gpio/driver.h>
 
 namespace Gpio {
+
 	class Invalid_gpio_number : Genode::Exception {};
 	class Invalid_mode        : Genode::Exception {};
 
@@ -39,7 +40,8 @@ namespace Gpio {
 }
 
 
-void Gpio::process_config(Gpio::Driver &driver) {
+void Gpio::process_config(Gpio::Driver &driver)
+{
 	try {
 		Genode::Xml_node gpio_node = Genode::config()->xml_node().sub_node("gpio");
 

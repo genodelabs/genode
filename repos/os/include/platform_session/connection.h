@@ -18,20 +18,14 @@
 #include <util/arg_string.h>
 #include <base/connection.h>
 
-namespace Platform {
+namespace Platform { class Connection; }
 
-	class Connection : public Genode::Connection<Session>,
-	                   public Client
-	{
-		public:
 
-			/**
-			 * Constructor
-			 */
-			Connection()
-			: Genode::Connection<Session>(session("ram_quota=4K")),
-			  Client(cap()) { }
-	};
-}
+struct Platform::Connection : Genode::Connection<Session>, Client
+{
+	Connection()
+	: Genode::Connection<Session>(session("ram_quota=4K")),
+	  Client(cap()) { }
+};
 
 #endif /* _INCLUDE__PLATFORM_SESSION__CONNECTION_H_ */

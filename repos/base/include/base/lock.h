@@ -16,32 +16,32 @@
 
 #include <base/cancelable_lock.h>
 
-namespace Genode {
+namespace Genode { class Lock; }
 
-	class Lock : public Cancelable_lock
-	{
-		public:
 
-			/**
-			 * Constructor
-			 */
-			explicit Lock(State initial = UNLOCKED)
-			: Cancelable_lock(initial) { }
+class Genode::Lock : public Cancelable_lock
+{
+	public:
 
-			void lock()
-			{
-				while (1)
-					try {
-						Cancelable_lock::lock();
-						return;
-					} catch (Blocking_canceled) { }
-			}
+		/**
+		 * Constructor
+		 */
+		explicit Lock(State initial = UNLOCKED)
+		: Cancelable_lock(initial) { }
 
-			/**
-			 * Lock guard
-			 */
-			typedef Lock_guard<Lock> Guard;
-	};
-}
+		void lock()
+		{
+			while (1)
+				try {
+					Cancelable_lock::lock();
+					return;
+				} catch (Blocking_canceled) { }
+		}
+
+		/**
+		 * Lock guard
+		 */
+		typedef Lock_guard<Lock> Guard;
+};
 
 #endif /* _INCLUDE__BASE__LOCK_H_ */

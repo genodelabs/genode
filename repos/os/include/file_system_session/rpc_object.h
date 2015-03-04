@@ -18,36 +18,35 @@
 #include <packet_stream_tx/rpc_object.h>
 #include <base/rpc_server.h>
 
-namespace File_system {
+namespace File_system { class Session_rpc_object; }
 
-	class Session_rpc_object : public Genode::Rpc_object<Session, Session_rpc_object>
-	{
-		protected:
+class File_system::Session_rpc_object : public Genode::Rpc_object<Session, Session_rpc_object>
+{
+	protected:
 
-			Packet_stream_tx::Rpc_object<Tx> _tx;
+		Packet_stream_tx::Rpc_object<Tx> _tx;
 
-		public:
+	public:
 
-			/**
-			 * Constructor
-			 *
-			 * \param tx_ds  dataspace used as communication buffer
-			 *               for the tx packet stream
-			 * \param ep     entry point used for packet-stream channel
-			 */
-			Session_rpc_object(Dataspace_capability tx_ds, Rpc_entrypoint &ep)
-			: _tx(tx_ds, ep) { }
+		/**
+		 * Constructor
+		 *
+		 * \param tx_ds  dataspace used as communication buffer
+		 *               for the tx packet stream
+		 * \param ep     entry point used for packet-stream channel
+		 */
+		Session_rpc_object(Dataspace_capability tx_ds, Rpc_entrypoint &ep)
+		: _tx(tx_ds, ep) { }
 
-			/**
-			 * Return capability to packet-stream channel
-			 *
-			 * This function is called by the client via an RPC call at session
-			 * construction time.
-			 */
-			Capability<Tx> _tx_cap() { return _tx.cap(); }
+		/**
+		 * Return capability to packet-stream channel
+		 *
+		 * This function is called by the client via an RPC call at session
+		 * construction time.
+		 */
+		Capability<Tx> _tx_cap() { return _tx.cap(); }
 
-			Tx::Sink *tx_sink() { return _tx.sink(); }
-	};
-}
+		Tx::Sink *tx_sink() { return _tx.sink(); }
+};
 
 #endif /* _INCLUDE__FILE_SYSTEM_SESSION__SERVER_H_ */

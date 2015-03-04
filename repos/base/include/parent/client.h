@@ -17,44 +17,44 @@
 #include <parent/capability.h>
 #include <base/rpc_client.h>
 
-namespace Genode {
+namespace Genode { struct Parent_client; }
 
-	struct Parent_client : Rpc_client<Parent>
-	{
-		explicit Parent_client(Parent_capability parent)
-		: Rpc_client<Parent>(parent) { }
 
-		void exit(int exit_value) { call<Rpc_exit>(exit_value); }
+struct Genode::Parent_client : Rpc_client<Parent>
+{
+	explicit Parent_client(Parent_capability parent)
+	: Rpc_client<Parent>(parent) { }
 
-		void announce(Service_name const &service, Root_capability root) {
-			call<Rpc_announce>(service, root); }
+	void exit(int exit_value) override { call<Rpc_exit>(exit_value); }
 
-		Session_capability session(Service_name const &service,
-		                           Session_args const &args,
-		                           Affinity     const &affinity) {
-			return call<Rpc_session>(service, args, affinity); }
+	void announce(Service_name const &service, Root_capability root) override {
+		call<Rpc_announce>(service, root); }
 
-		void upgrade(Session_capability to_session, Upgrade_args const &args) {
-			call<Rpc_upgrade>(to_session, args); }
+	Session_capability session(Service_name const &service,
+	                           Session_args const &args,
+	                           Affinity     const &affinity) override {
+		return call<Rpc_session>(service, args, affinity); }
 
-		void close(Session_capability session) { call<Rpc_close>(session); }
+	void upgrade(Session_capability to_session, Upgrade_args const &args) override {
+		call<Rpc_upgrade>(to_session, args); }
 
-		Thread_capability main_thread_cap() const {
-			return call<Rpc_main_thread>(); }
+	void close(Session_capability session) override { call<Rpc_close>(session); }
 
-		void resource_avail_sigh(Signal_context_capability sigh) {
-			call<Rpc_resource_avail_sigh>(sigh); }
+	Thread_capability main_thread_cap() const override {
+		return call<Rpc_main_thread>(); }
 
-		void resource_request(Resource_args const &args) {
-			call<Rpc_resource_request>(args); }
+	void resource_avail_sigh(Signal_context_capability sigh) override {
+		call<Rpc_resource_avail_sigh>(sigh); }
 
-		void yield_sigh(Signal_context_capability sigh) {
-			call<Rpc_yield_sigh>(sigh); }
+	void resource_request(Resource_args const &args) override {
+		call<Rpc_resource_request>(args); }
 
-		Resource_args yield_request() { return call<Rpc_yield_request>(); }
+	void yield_sigh(Signal_context_capability sigh) override {
+		call<Rpc_yield_sigh>(sigh); }
 
-		void yield_response() { call<Rpc_yield_response>(); }
-	};
-}
+	Resource_args yield_request() override { return call<Rpc_yield_request>(); }
+
+	void yield_response() override { call<Rpc_yield_response>(); }
+};
 
 #endif /* _INCLUDE__PARENT__CLIENT_H_ */

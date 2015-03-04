@@ -17,15 +17,15 @@
 #include <io_mem_session/capability.h>
 #include <base/rpc_client.h>
 
-namespace Genode {
+namespace Genode { struct Io_mem_session_client; }
 
-	struct Io_mem_session_client : Rpc_client<Io_mem_session>
-	{
-		explicit Io_mem_session_client(Io_mem_session_capability session)
-		: Rpc_client<Io_mem_session>(session) { }
 
-		Io_mem_dataspace_capability dataspace() { return call<Rpc_dataspace>(); }
-	};
-}
+struct Genode::Io_mem_session_client : Rpc_client<Io_mem_session>
+{
+	explicit Io_mem_session_client(Io_mem_session_capability session)
+	: Rpc_client<Io_mem_session>(session) { }
+
+	Io_mem_dataspace_capability dataspace() override { return call<Rpc_dataspace>(); }
+};
 
 #endif /* _INCLUDE__IO_MEM_SESSION__CLIENT_H_ */

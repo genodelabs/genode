@@ -17,31 +17,31 @@
 #include <io_port_session/capability.h>
 #include <base/rpc_client.h>
 
-namespace Genode {
+namespace Genode { struct Io_port_session_client; }
 
-	struct Io_port_session_client : Rpc_client<Io_port_session>
-	{
-		explicit Io_port_session_client(Io_port_session_capability session)
-		: Rpc_client<Io_port_session>(session) { }
 
-		unsigned char inb(unsigned short address) {
-			return call<Rpc_inb>(address); }
+struct Genode::Io_port_session_client : Rpc_client<Io_port_session>
+{
+	explicit Io_port_session_client(Io_port_session_capability session)
+	: Rpc_client<Io_port_session>(session) { }
 
-		unsigned short inw(unsigned short address) {
-			return call<Rpc_inw>(address); }
+	unsigned char inb(unsigned short address) override {
+		return call<Rpc_inb>(address); }
 
-		unsigned inl(unsigned short address) {
-			return call<Rpc_inl>(address); }
+	unsigned short inw(unsigned short address) override {
+		return call<Rpc_inw>(address); }
 
-		void outb(unsigned short address, unsigned char value) {
-			call<Rpc_outb>(address, value); }
+	unsigned inl(unsigned short address) override {
+		return call<Rpc_inl>(address); }
 
-		void outw(unsigned short address, unsigned short value) {
-			call<Rpc_outw>(address, value); }
+	void outb(unsigned short address, unsigned char value) override {
+		call<Rpc_outb>(address, value); }
 
-		void outl(unsigned short address, unsigned value) {
-			call<Rpc_outl>(address, value); }
-	};
-}
+	void outw(unsigned short address, unsigned short value) override {
+		call<Rpc_outw>(address, value); }
+
+	void outl(unsigned short address, unsigned value) override {
+		call<Rpc_outl>(address, value); }
+};
 
 #endif /* _INCLUDE__IO_PORT_SESSION__CLIENT_H_ */

@@ -21,39 +21,39 @@
 #include <base/native_types.h>
 #include <session/session.h>
 
-namespace Genode {
-
-	struct Cap_session : Session
-	{
-		static const char *service_name() { return "CAP"; }
-
-		virtual ~Cap_session() { }
-
-		/**
-		 * Allocate new unique userland capability
-		 *
-		 * \param ep  entry point that will use this capability
-		 *
-		 * \return new userland capability
-		 */
-		virtual Native_capability alloc(Native_capability ep) = 0;
-
-		/**
-		 * Free userland capability
-		 *
-		 * \param cap  userland capability to free
-		 */
-		virtual void free(Native_capability cap) = 0;
+namespace Genode { struct Cap_session; }
 
 
-		/*********************
-		 ** RPC declaration **
-		 *********************/
+struct Genode::Cap_session : Session
+{
+	static const char *service_name() { return "CAP"; }
 
-		GENODE_RPC(Rpc_alloc, Native_capability, alloc, Native_capability);
-		GENODE_RPC(Rpc_free, void, free, Native_capability);
-		GENODE_RPC_INTERFACE(Rpc_alloc, Rpc_free);
-	};
-}
+	virtual ~Cap_session() { }
+
+	/**
+	 * Allocate new unique userland capability
+	 *
+	 * \param ep  entry point that will use this capability
+	 *
+	 * \return new userland capability
+	 */
+	virtual Native_capability alloc(Native_capability ep) = 0;
+
+	/**
+	 * Free userland capability
+	 *
+	 * \param cap  userland capability to free
+	 */
+	virtual void free(Native_capability cap) = 0;
+
+
+	/*********************
+	 ** RPC declaration **
+	 *********************/
+
+	GENODE_RPC(Rpc_alloc, Native_capability, alloc, Native_capability);
+	GENODE_RPC(Rpc_free, void, free, Native_capability);
+	GENODE_RPC_INTERFACE(Rpc_alloc, Rpc_free);
+};
 
 #endif /* _INCLUDE__CAP_SESSION__CAP_SESSION_H_ */

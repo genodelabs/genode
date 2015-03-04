@@ -18,9 +18,7 @@
 #include <base/allocator.h>
 #include <util/bit_array.h>
 
-namespace Genode {
-	class Packet_allocator;
-}
+namespace Genode { class Packet_allocator; }
 
 
 /**

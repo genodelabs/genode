@@ -17,39 +17,39 @@
 #include <terminal_session/client.h>
 #include <base/connection.h>
 
-namespace Terminal {
+namespace Terminal { struct Connection; }
 
-	struct Connection : Genode::Connection<Session>, Session_client
+
+struct Terminal::Connection : Genode::Connection<Session>, Session_client
+{
+	/**
+	 * Wait for connection-established signal
+	 */
+	static void wait_for_connection(Genode::Capability<Session> cap)
 	{
-		/**
-		 * Wait for connection-established signal
-		 */
-		static void wait_for_connection(Genode::Capability<Session> cap)
-		{
-			using namespace Genode;
+		using namespace Genode;
 
-			/* create signal receiver, just for the single signal */
-			Signal_context            sig_ctx;
-			Signal_receiver           sig_rec;
-			Signal_context_capability sig_cap = sig_rec.manage(&sig_ctx);
+		/* create signal receiver, just for the single signal */
+		Signal_context            sig_ctx;
+		Signal_receiver           sig_rec;
+		Signal_context_capability sig_cap = sig_rec.manage(&sig_ctx);
 
-			/* register signal handler */
-			cap.call<Rpc_connected_sigh>(sig_cap);
+		/* register signal handler */
+		cap.call<Rpc_connected_sigh>(sig_cap);
 
-			/* wati for signal */
-			sig_rec.wait_for_signal();
-			sig_rec.dissolve(&sig_ctx);
-		}
+		/* wati for signal */
+		sig_rec.wait_for_signal();
+		sig_rec.dissolve(&sig_ctx);
+	}
 
-		Connection(char const *label = "")
-		:
-			Genode::Connection<Session>(session("ram_quota=%zd, label=\"%s\"",
-			                                    2*4096, label)),
-			Session_client(cap())
-		{
-			wait_for_connection(cap());
-		}
-	};
-}
+	Connection(char const *label = "")
+	:
+		Genode::Connection<Session>(session("ram_quota=%zd, label=\"%s\"",
+		                                    2*4096, label)),
+		Session_client(cap())
+	{
+		wait_for_connection(cap());
+	}
+};
 
 #endif /* _INCLUDE__TERMINAL_SESSION__CONNECTION_H_ */

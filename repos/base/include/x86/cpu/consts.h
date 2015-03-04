@@ -31,10 +31,11 @@ namespace X86 {
 			IOPL        = 3 << 12,
 			NESTED_TASK = 1 << 14,
 		};
-
 }
 
+
 namespace Abi {
+
 	/**
 	 * On x86 a call will result in a growth of the stack by machine word size
 	 */

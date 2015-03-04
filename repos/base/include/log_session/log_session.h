@@ -19,31 +19,31 @@
 #include <base/rpc_args.h>
 #include <session/session.h>
 
-namespace Genode {
-
-	struct Log_session : Session
-	{
-		static const char *service_name() { return "LOG"; }
-
-		virtual ~Log_session() { }
-
-		typedef Rpc_in_buffer<256> String;
-
-		/**
-		 * Output null-terminated string
-		 *
-		 * \return  number of written characters
-		 */
-		virtual size_t write(String const &string) = 0;
+namespace Genode { struct Log_session; }
 
 
-		/*********************
-		 ** RPC declaration **
-		 *********************/
+struct Genode::Log_session : Session
+{
+	static const char *service_name() { return "LOG"; }
 
-		GENODE_RPC(Rpc_write, size_t, write, String const &);
-		GENODE_RPC_INTERFACE(Rpc_write);
-	};
-}
+	virtual ~Log_session() { }
+
+	typedef Rpc_in_buffer<256> String;
+
+	/**
+	 * Output null-terminated string
+	 *
+	 * \return  number of written characters
+	 */
+	virtual size_t write(String const &string) = 0;
+
+
+	/*********************
+	 ** RPC declaration **
+	 *********************/
+
+	GENODE_RPC(Rpc_write, size_t, write, String const &);
+	GENODE_RPC_INTERFACE(Rpc_write);
+};
 
 #endif /* _INCLUDE__LOG_SESSION__LOG_SESSION_H_ */

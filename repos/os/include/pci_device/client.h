@@ -19,34 +19,34 @@
 #include <base/rpc_client.h>
 #include <io_mem_session/io_mem_session.h>
 
-namespace Pci {
+namespace Pci { struct Device_client; }
 
-	struct Device_client : public Genode::Rpc_client<Device>
-	{
-		Device_client(Device_capability device)
-		: Genode::Rpc_client<Device>(device) { }
 
-		void bus_address(unsigned char *bus, unsigned char *dev, unsigned char *fn) {
-			call<Rpc_bus_address>(bus, dev, fn); }
+struct Pci::Device_client : public Genode::Rpc_client<Device>
+{
+	Device_client(Device_capability device)
+	: Genode::Rpc_client<Device>(device) { }
 
-		unsigned short vendor_id() {
-			return call<Rpc_vendor_id>(); }
+	void bus_address(unsigned char *bus, unsigned char *dev, unsigned char *fn) override {
+		call<Rpc_bus_address>(bus, dev, fn); }
 
-		unsigned short device_id() {
-			return call<Rpc_device_id>(); }
+	unsigned short vendor_id() override {
+		return call<Rpc_vendor_id>(); }
 
-		unsigned class_code() {
-			return call<Rpc_class_code>(); }
+	unsigned short device_id() override {
+		return call<Rpc_device_id>(); }
 
-		Resource resource(int resource_id) {
-			return call<Rpc_resource>(resource_id); }
+	unsigned class_code() override {
+		return call<Rpc_class_code>(); }
 
-		unsigned config_read(unsigned char address, Access_size size) {
-			return call<Rpc_config_read>(address, size); }
+	Resource resource(int resource_id) override {
+		return call<Rpc_resource>(resource_id); }
 
-		void config_write(unsigned char address, unsigned value, Access_size size) {
-			call<Rpc_config_write>(address, value, size); }
-	};
-}
+	unsigned config_read(unsigned char address, Access_size size) override {
+		return call<Rpc_config_read>(address, size); }
+
+	void config_write(unsigned char address, unsigned value, Access_size size) override {
+		call<Rpc_config_write>(address, value, size); }
+};
 
 #endif /* _INCLUDE__PCI_DEVICE__CLIENT_H_ */

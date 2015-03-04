@@ -19,9 +19,7 @@
 #include <base/allocator.h>
 
 
-namespace Audio_out {
-	struct Connection;
-}
+namespace Audio_out { struct Connection; }
 
 
 struct Audio_out::Connection : Genode::Connection<Session>, Audio_out::Session_client

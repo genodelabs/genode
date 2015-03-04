@@ -20,44 +20,44 @@
 #include <parent/capability.h>
 #include <session/session.h>
 
-namespace Genode {
-
-	struct Pd_session : Session
-	{
-		static const char *service_name() { return "PD"; }
-
-		virtual ~Pd_session() { }
-
-		/**
-		 * Bind thread to protection domain
-		 *
-		 * \param thread  capability of thread to bind
-		 *
-		 * \return        0 on success or negative error code
-		 *
-		 * After successful bind, the thread will execute inside this
-		 * protection domain when started.
-		 */
-		virtual int bind_thread(Thread_capability thread) = 0;
-
-		/**
-		 * Assign parent to protection domain
-		 *
-		 * \param   parent  capability of parent interface
-		 * \return  0 on success, or negative error code
-		 */
-		virtual int assign_parent(Parent_capability parent) = 0;
+namespace Genode { struct Pd_session; }
 
 
-		/*********************
-		 ** RPC declaration **
-		 *********************/
+struct Genode::Pd_session : Session
+{
+	static const char *service_name() { return "PD"; }
 
-		GENODE_RPC(Rpc_bind_thread,   int, bind_thread,   Thread_capability);
-		GENODE_RPC(Rpc_assign_parent, int, assign_parent, Parent_capability);
+	virtual ~Pd_session() { }
 
-		GENODE_RPC_INTERFACE(Rpc_bind_thread, Rpc_assign_parent);
-	};
-}
+	/**
+	 * Bind thread to protection domain
+	 *
+	 * \param thread  capability of thread to bind
+	 *
+	 * \return        0 on success or negative error code
+	 *
+	 * After successful bind, the thread will execute inside this
+	 * protection domain when started.
+	 */
+	virtual int bind_thread(Thread_capability thread) = 0;
+
+	/**
+	 * Assign parent to protection domain
+	 *
+	 * \param   parent  capability of parent interface
+	 * \return  0 on success, or negative error code
+	 */
+	virtual int assign_parent(Parent_capability parent) = 0;
+
+
+	/*********************
+	 ** RPC declaration **
+	 *********************/
+
+	GENODE_RPC(Rpc_bind_thread,   int, bind_thread,   Thread_capability);
+	GENODE_RPC(Rpc_assign_parent, int, assign_parent, Parent_capability);
+
+	GENODE_RPC_INTERFACE(Rpc_bind_thread, Rpc_assign_parent);
+};
 
 #endif /* _INCLUDE__PD_SESSION__PD_SESSION_H_ */

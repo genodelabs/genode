@@ -24,35 +24,34 @@
 #include <base/capability.h>
 #include <session/session.h>
 
-namespace Genode {
-
-	struct Irq_session : Session
-	{
-
-		/**
-		 * Interrupt trigger
-		 */
-		enum Trigger { TRIGGER_UNCHANGED = 0, TRIGGER_LEVEL, TRIGGER_EDGE };
-
-		/**
-		 * Interrupt trigger polarity
-		 */
-		enum Polarity { POLARITY_UNCHANGED = 0, POLARITY_HIGH, POLARITY_LOW };
-
-		static const char *service_name() { return "IRQ"; }
-
-		virtual ~Irq_session() { }
-
-		virtual void wait_for_irq() = 0;
+namespace Genode { struct Irq_session; }
 
 
-		/*********************
-		 ** RPC declaration **
-		 *********************/
+struct Genode::Irq_session : Session
+{
+	/**
+	 * Interrupt trigger
+	 */
+	enum Trigger { TRIGGER_UNCHANGED = 0, TRIGGER_LEVEL, TRIGGER_EDGE };
 
-		GENODE_RPC(Rpc_wait_for_irq, void, wait_for_irq);
-		GENODE_RPC_INTERFACE(Rpc_wait_for_irq);
-	};
-}
+	/**
+	 * Interrupt trigger polarity
+	 */
+	enum Polarity { POLARITY_UNCHANGED = 0, POLARITY_HIGH, POLARITY_LOW };
+
+	static const char *service_name() { return "IRQ"; }
+
+	virtual ~Irq_session() { }
+
+	virtual void wait_for_irq() = 0;
+
+
+	/*********************
+	 ** RPC declaration **
+	 *********************/
+
+	GENODE_RPC(Rpc_wait_for_irq, void, wait_for_irq);
+	GENODE_RPC_INTERFACE(Rpc_wait_for_irq);
+};
 
 #endif /* _INCLUDE__IRQ_SESSION__IRQ_SESSION_H_ */

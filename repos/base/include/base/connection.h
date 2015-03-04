@@ -17,99 +17,99 @@
 #include <base/env.h>
 #include <base/capability.h>
 
-namespace Genode {
+namespace Genode { template <typename> class Connection; }
 
-	/**
-	 * Representation of an open connection to a service
-	 */
-	template <typename SESSION_TYPE>
-	class Connection : public Noncopyable
-	{
-		public:
 
-			enum On_destruction { CLOSE = false, KEEP_OPEN = true };
+/**
+ * Representation of an open connection to a service
+ */
+template <typename SESSION_TYPE>
+class Genode::Connection : public Noncopyable
+{
+	public:
 
-		private:
+		enum On_destruction { CLOSE = false, KEEP_OPEN = true };
 
-			/*
-			 * Because the argument string is used with the parent interface,
-			 * the message-buffer size of the parent-interface provides a
-			 * realistic upper bound for dimensioning the format- string
-			 * buffer.
-			 */
-			enum { FORMAT_STRING_SIZE = Parent::Session_args::MAX_SIZE };
+	private:
 
-			Capability<SESSION_TYPE> _cap;
+		/*
+		 * Because the argument string is used with the parent interface,
+		 * the message-buffer size of the parent-interface provides a
+		 * realistic upper bound for dimensioning the format- string
+		 * buffer.
+		 */
+		enum { FORMAT_STRING_SIZE = Parent::Session_args::MAX_SIZE };
 
-			On_destruction _on_destruction;
+		Capability<SESSION_TYPE> _cap;
 
-			Capability<SESSION_TYPE> _session(Affinity const &affinity,
-			                                  const char *format_args, va_list list)
-			{
-				char buf[FORMAT_STRING_SIZE];
+		On_destruction _on_destruction;
 
-				String_console sc(buf, FORMAT_STRING_SIZE);
-				sc.vprintf(format_args, list);
+		Capability<SESSION_TYPE> _session(Affinity const &affinity,
+		                                  const char *format_args, va_list list)
+		{
+			char buf[FORMAT_STRING_SIZE];
 
-				va_end(list);
+			String_console sc(buf, FORMAT_STRING_SIZE);
+			sc.vprintf(format_args, list);
 
-				/* call parent interface with the resulting argument buffer */
-				return env()->parent()->session<SESSION_TYPE>(buf, affinity);
-			}
+			va_end(list);
 
-		public:
+			/* call parent interface with the resulting argument buffer */
+			return env()->parent()->session<SESSION_TYPE>(buf, affinity);
+		}
 
-			/**
-			 * Constructor
-			 *
-			 * \param cap  session capability
-			 * \param od   session policy applied when destructing the connection
-			 */
-			Connection(Capability<SESSION_TYPE> cap, On_destruction od = CLOSE):
-				_cap(cap), _on_destruction(od) { }
+	public:
 
-			/**
-			 * Destructor
-			 */
-			~Connection()
-			{
-				if (_on_destruction == CLOSE)
-					env()->parent()->close(_cap);
-			}
+		/**
+		 * Constructor
+		 *
+		 * \param cap  session capability
+		 * \param od   session policy applied when destructing the connection
+		 */
+		Connection(Capability<SESSION_TYPE> cap, On_destruction od = CLOSE):
+			_cap(cap), _on_destruction(od) { }
 
-			/**
-			 * Return session capability
-			 */
-			Capability<SESSION_TYPE> cap() const { return _cap; }
+		/**
+		 * Destructor
+		 */
+		~Connection()
+		{
+			if (_on_destruction == CLOSE)
+				env()->parent()->close(_cap);
+		}
 
-			/**
-			 * Define session policy
-			 */
-			void on_destruction(On_destruction od) { _on_destruction = od; }
+		/**
+		 * Return session capability
+		 */
+		Capability<SESSION_TYPE> cap() const { return _cap; }
 
-			/**
-			 * Shortcut for env()->parent()->session()
-			 */
-			Capability<SESSION_TYPE> session(const char *format_args, ...)
-			{
-				va_list list;
-				va_start(list, format_args);
+		/**
+		 * Define session policy
+		 */
+		void on_destruction(On_destruction od) { _on_destruction = od; }
 
-				return _session(Affinity(), format_args, list);
-			}
+		/**
+		 * Shortcut for env()->parent()->session()
+		 */
+		Capability<SESSION_TYPE> session(const char *format_args, ...)
+		{
+			va_list list;
+			va_start(list, format_args);
 
-			/**
-			 * Shortcut for env()->parent()->session()
-			 */
-			Capability<SESSION_TYPE> session(Affinity const &affinity,
-			                                 char     const *format_args, ...)
-			{
-				va_list list;
-				va_start(list, format_args);
+			return _session(Affinity(), format_args, list);
+		}
 
-				return _session(affinity, format_args, list);
-			}
-	};
-}
+		/**
+		 * Shortcut for env()->parent()->session()
+		 */
+		Capability<SESSION_TYPE> session(Affinity const &affinity,
+		                                 char     const *format_args, ...)
+		{
+			va_list list;
+			va_start(list, format_args);
+
+			return _session(affinity, format_args, list);
+		}
+};
 
 #endif /* _INCLUDE__BASE__CONNECTION_H_ */

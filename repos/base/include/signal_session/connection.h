@@ -17,16 +17,16 @@
 #include <signal_session/client.h>
 #include <base/connection.h>
 
-namespace Genode {
+namespace Genode { struct Signal_connection; }
 
-	struct Signal_connection : Connection<Signal_session>, Signal_session_client
-	{
-		Signal_connection()
-		:
-			Connection<Signal_session>(session("ram_quota=12K")),
-			Signal_session_client(cap())
-		{ }
-	};
-}
+
+struct Genode::Signal_connection : Connection<Signal_session>, Signal_session_client
+{
+	Signal_connection()
+	:
+		Connection<Signal_session>(session("ram_quota=12K")),
+		Signal_session_client(cap())
+	{ }
+};
 
 #endif /* _INCLUDE__CAP_SESSION__CONNECTION_H_ */

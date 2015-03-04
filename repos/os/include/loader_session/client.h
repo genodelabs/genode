@@ -19,45 +19,45 @@
 #include <base/rpc_client.h>
 #include <os/alarm.h>
 
-namespace Loader {
+namespace Loader { struct Session_client; }
 
-	struct Session_client : Genode::Rpc_client<Session>
-	{
-		explicit Session_client(Loader::Session_capability session)
-		: Rpc_client<Session>(session) { }
 
-		Dataspace_capability alloc_rom_module(Name const &name,
-		                                      size_t size) override {
-			return call<Rpc_alloc_rom_module>(name, size); }
+struct Loader::Session_client : Genode::Rpc_client<Session>
+{
+	explicit Session_client(Loader::Session_capability session)
+	: Rpc_client<Session>(session) { }
 
-		void commit_rom_module(Name const &name) override {
-			call<Rpc_commit_rom_module>(name); }
+	Dataspace_capability alloc_rom_module(Name const &name,
+	                                      size_t size) override {
+		return call<Rpc_alloc_rom_module>(name, size); }
 
-		void ram_quota(size_t quantum) override {
-			call<Rpc_ram_quota>(quantum); }
+	void commit_rom_module(Name const &name) override {
+		call<Rpc_commit_rom_module>(name); }
 
-		void constrain_geometry(Area size) override {
-			call<Rpc_constrain_geometry>(size); }
+	void ram_quota(size_t quantum) override {
+		call<Rpc_ram_quota>(quantum); }
 
-		void parent_view(Nitpicker::View_capability view) override {
-			call<Rpc_parent_view>(view); }
+	void constrain_geometry(Area size) override {
+		call<Rpc_constrain_geometry>(size); }
 
-		void view_ready_sigh(Signal_context_capability sigh) override {
-			call<Rpc_view_ready_sigh>(sigh); }
+	void parent_view(Nitpicker::View_capability view) override {
+		call<Rpc_parent_view>(view); }
 
-		void fault_sigh(Signal_context_capability sigh) override {
-			call<Rpc_fault_sigh>(sigh); }
+	void view_ready_sigh(Signal_context_capability sigh) override {
+		call<Rpc_view_ready_sigh>(sigh); }
 
-		void start(Name const &binary, Name const &label = "",
-		           Native_pd_args const &pd_args = Native_pd_args()) override {
-			call<Rpc_start>(binary, label, pd_args); }
+	void fault_sigh(Signal_context_capability sigh) override {
+		call<Rpc_fault_sigh>(sigh); }
 
-		void view_geometry(Rect rect, Point offset) override {
-			call<Rpc_view_geometry>(rect, offset); }
+	void start(Name const &binary, Name const &label = "",
+	           Native_pd_args const &pd_args = Native_pd_args()) override {
+		call<Rpc_start>(binary, label, pd_args); }
 
-		Area view_size() const override {
-			return call<Rpc_view_size>(); }
-	};
-}
+	void view_geometry(Rect rect, Point offset) override {
+		call<Rpc_view_geometry>(rect, offset); }
+
+	Area view_size() const override {
+		return call<Rpc_view_size>(); }
+};
 
 #endif /* _INCLUDE__PLUGIN_SESSION__CLIENT_H_ */

@@ -23,6 +23,8 @@
 
 #include <base/exception.h>
 
-namespace Genode {  class Blocking_canceled : public Exception { }; }
+namespace Genode { class Blocking_canceled; }
+
+class Genode::Blocking_canceled : public Exception { };
 
 #endif /* _INCLUDE__BASE__BLOCKING_H_ */

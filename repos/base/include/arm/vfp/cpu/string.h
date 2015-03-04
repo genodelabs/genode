@@ -16,8 +16,8 @@
 #ifndef _INCLUDE__ARM__VFP__STRING_H_
 #define _INCLUDE__ARM__VFP__STRING_H_
 
-namespace Genode
-{
+namespace Genode {
+
 	/**
 	 * Copy memory block
 	 *

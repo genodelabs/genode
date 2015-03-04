@@ -17,26 +17,26 @@
 /* Genode includes */
 #include <platform/imx53/drivers/board_base_support.h>
 
-namespace Genode
+namespace Genode { struct Board_base; }
+
+
+/**
+ * i.MX53 starter board
+ */
+struct Genode::Board_base : Imx53::Board_base
 {
-	/**
-	 * i.MX53 starter board
-	 */
-	struct Board_base : Imx53::Board_base
-	{
-		enum {
-			/*
-			 * These two regions are physically one RAM region but we split it
-			 * to keep the enum names compliant with other i.MX53 boards. This
-			 * way, more files can be shared between the platforms.
-			 */
-			RAM0_BASE = 0x70000000,
-			RAM0_SIZE = 0x10000000,
-			RAM1_BASE = 0x80000000,
-			RAM1_SIZE = 0x10000000,
-		};
+	enum {
+		/*
+		 * These two regions are physically one RAM region but we split it
+		 * to keep the enum names compliant with other i.MX53 boards. This
+		 * way, more files can be shared between the platforms.
+		 */
+		RAM0_BASE = 0x70000000,
+		RAM0_SIZE = 0x10000000,
+		RAM1_BASE = 0x80000000,
+		RAM1_SIZE = 0x10000000,
 	};
-}
+};
 
 #endif /* _INCLUDE__PLATFORM__IMX53_QSB__DRIVERS__BOARD_BASE_H_ */
 

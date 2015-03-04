@@ -18,19 +18,19 @@
 #include <base/rpc.h>
 #include <platform_session/platform_session.h>
 
-namespace Platform {
+namespace Platform { struct Client; }
 
-	struct Client : Genode::Rpc_client<Session>
-	{
-		explicit Client(Capability<Session> session)
-		: Genode::Rpc_client<Session>(session) { }
 
-		void enable(Device dev) { call<Rpc_enable>(dev); }
-		void disable(Device dev) { call<Rpc_disable>(dev); }
-		void clock_rate(Device dev, unsigned long rate) {
-			call<Rpc_clock_rate>(dev, rate); }
-		Board_revision revision() { return call<Rpc_revision>(); }
-	};
-}
+struct Platform::Client : Genode::Rpc_client<Session>
+{
+	explicit Client(Capability<Session> session)
+	: Genode::Rpc_client<Session>(session) { }
+
+	void enable(Device dev) override { call<Rpc_enable>(dev); }
+	void disable(Device dev) override { call<Rpc_disable>(dev); }
+	void clock_rate(Device dev, unsigned long rate) override {
+		call<Rpc_clock_rate>(dev, rate); }
+	Board_revision revision() override { return call<Rpc_revision>(); }
+};
 
 #endif /* _INCLUDE__PLATFORM_SESSION__CLIENT_H_ */

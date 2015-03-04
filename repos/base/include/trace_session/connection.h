@@ -19,6 +19,7 @@
 
 namespace Genode { namespace Trace { struct Connection; } }
 
+
 struct Genode::Trace::Connection : Genode::Connection<Genode::Trace::Session>,
                                    Genode::Trace::Session_client
 {
