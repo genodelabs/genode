@@ -147,6 +147,7 @@ class GenodeConsole : public Console {
 				bool const is_release = ev.type() == Input::Event::RELEASE;
 				bool const is_key     = is_press || is_release;
 				bool const is_motion  = ev.type() == Input::Event::MOTION;
+				bool const is_wheel   = ev.type() == Input::Event::WHEEL;
 
 				if (is_key) {
 					Scan_code scan_code(ev.keycode());
@@ -194,6 +195,9 @@ class GenodeConsole : public Console {
 					else
 						gMouse->PutMouseEvent(0, 0, 0, 0, buttons);
 				}
+
+				if (is_wheel)
+					gMouse->PutMouseEvent(0, 0, ev.rx(), ev.ry(), 0);
 			}
 		}
 };
