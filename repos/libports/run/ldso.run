@@ -80,7 +80,7 @@ compare_output_to {
 [init -> test-ldso] Catch exceptions in program
 [init -> test-ldso] ---------------------------
 [init -> test-ldso] exception in remote procedure call:
-[init -> test-ldso] Could not open file "unknown_file"
+[init -> test-ldso] Could not open ROM session for module "unknown_file"
 [init -> test-ldso] caught
 [init -> test-ldso] exception in program: caught
 [init -> test-ldso] exception in shared lib: caught
