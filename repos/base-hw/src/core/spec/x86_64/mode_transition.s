@@ -29,12 +29,15 @@
 .set TRAPNO_OFFSET,  19 * 8
 .set CR3_OFFSET,     21 * 8
 
-/* tss segment limit */
+/* tss segment constants */
 .set TSS_LIMIT, 0x68
+.set TSS_TYPE, 0x8900
 
 /* mtc virt addresses */
-.set MT_BUFFER, _mt_buffer - _mt_begin
-.set MT_MASTER, _mt_master_context_begin - _mt_begin
+.set MT_BASE, 0xffff0000
+.set MT_BUFFER, MT_BASE + (_mt_buffer - _mt_begin)
+.set MT_MASTER, MT_BASE + (_mt_master_context_begin - _mt_begin)
+.set MT_TSS, MT_BASE + (_mt_tss - _mt_begin)
 
 .macro _isr_entry
 	.align 4, 0x90
@@ -130,10 +133,10 @@
 	_mt_kernel_entry_pic:
 
 	/* Copy client context RAX to buffer */
-	mov %rax, MT_BUFFER
+	movabs %rax, MT_BUFFER
 
 	/* Switch to kernel page tables */
-	mov MT_MASTER+CR3_OFFSET, %rax
+	movabs MT_MASTER+CR3_OFFSET, %rax
 	mov %rax, %cr3
 
 	/* Save information on interrupt stack frame in client context */
@@ -239,7 +242,7 @@
 	mov %rax, %cr3
 
 	/* Set stack back to mt buffer and restore client RAX */
-	mov $MT_BUFFER, %rsp
+	movabs $MT_BUFFER, %rsp
 	popq %rax
 
 	iretq
@@ -299,10 +302,10 @@
 	/* GDTE_LONG | GDTE_PRESENT | GDTE_TYPE_DATA_A | GDTE_TYPE_DATA_W | GDTE_NON_SYSTEM */
 	.long 0x20f300
 	/* Task segment descriptor */
-	.long (_mt_tss - _mt_begin) << 16 | TSS_LIMIT
+	.long (MT_TSS & 0xffff) << 16 | TSS_LIMIT
 	/* GDTE_PRESENT | GDTE_SYS_TSS */
-	.long 0x8900
-	.long 0
+	.long ((MT_TSS >> 24) & 0xff) << 24 | ((MT_TSS >> 16) & 0xff) | TSS_TYPE
+	.long MT_TSS >> 32
 	.long 0
 	.global _mt_gdt_end
 	_mt_gdt_end:

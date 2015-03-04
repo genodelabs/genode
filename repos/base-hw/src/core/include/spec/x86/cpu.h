@@ -61,7 +61,7 @@ class Genode::Cpu
 			_tss->setup(Cpu::exception_entry);
 		}
 
-		static constexpr addr_t exception_entry = 0x0; /* XXX */
+		static constexpr addr_t exception_entry = 0xffff0000;
 		static constexpr addr_t mtc_size        = 1 << 13;
 
 		/**
