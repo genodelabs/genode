@@ -1,0 +1,27 @@
+#!/usr/bin/make -f
+
+#
+# \brief  Tool for checking remote 3rd-party sources
+# \author Stefan Kalkowski
+# \date   2015-03-04
+#
+
+#
+# Determine Genode base directory based on the known location of the
+# 'create_builddir' tool within the Genode source tree
+#
+export GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../..)
+
+include $(GENODE_DIR)/tool/ports/mk/front_end.inc
+include $(GENODE_DIR)/tool/ports/mk/check_port_arg.inc
+
+usage:
+	@$(ECHO)
+	@$(ECHO) "--- check remote sources of port ---"
+	@$(ECHO) "usage: check_port_source <port-name>"
+	@$(ECHO)
+
+$(TARGET):
+	$(VERBOSE)$(MAKE) --no-print-directory \
+	                  -f $(GENODE_DIR)/tool/ports/mk/check.mk \
+	                  PORT=$(PORT) VERBOSE=$(VERBOSE)
