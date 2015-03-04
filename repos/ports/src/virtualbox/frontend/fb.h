@@ -48,7 +48,7 @@ class Genodefb : public Framebuffer
 			if (!width)
 				return E_INVALIDARG;
 
-			*width = _width > _fb_mode.width() ? _fb_mode.width() : _width;
+			*width = (int)_width > _fb_mode.width() ? _fb_mode.width() : _width;
 			return S_OK;
 		}
 		
@@ -57,7 +57,7 @@ class Genodefb : public Framebuffer
 			if (!height)
 				return E_INVALIDARG;
 
-			*height = _height > _fb_mode.height() ? _fb_mode.height() : _height;
+			*height = (int)_height > _fb_mode.height() ? _fb_mode.height() : _height;
 			return S_OK;
 		}
 
