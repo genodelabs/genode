@@ -1486,20 +1486,14 @@ void put_page(struct page *page)
 unsigned long find_next_bit(const unsigned long *addr, unsigned long size,
                             unsigned long offset)
 {
-	unsigned long i, j;
+	unsigned long i  = offset / BITS_PER_LONG;
+	offset -= (i * BITS_PER_LONG);
 
-	for (i = offset; i < (size / BITS_PER_LONG); i++)
-		if (addr[i] == ~0UL)
-			break;
+	for (; offset < size; offset++)
+		if (addr[i] & (1UL << offset))
+			return offset;
 
-	if (i == size)
-		return size;
-
-	for (j = 0; j < BITS_PER_LONG; j++)
-		if ((addr[i]) & (1UL << j))
-			break;
-
-	return (i * BITS_PER_LONG) + j;
+	return size;
 }
 
 
