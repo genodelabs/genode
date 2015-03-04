@@ -17,15 +17,15 @@
 #include <irq_session/capability.h>
 #include <base/rpc_client.h>
 
-namespace Genode {
+namespace Genode { struct Irq_session_client; }
 
-	struct Irq_session_client : Rpc_client<Irq_session>
-	{
-		explicit Irq_session_client(Irq_session_capability session)
-		: Rpc_client<Irq_session>(session) { }
 
-		void wait_for_irq() { call<Rpc_wait_for_irq>(); }
-	};
-}
+struct Genode::Irq_session_client : Rpc_client<Irq_session>
+{
+	explicit Irq_session_client(Irq_session_capability session)
+	: Rpc_client<Irq_session>(session) { }
+
+	void wait_for_irq() override { call<Rpc_wait_for_irq>(); }
+};
 
 #endif /* _INCLUDE__IRQ_SESSION__CLIENT_H_ */

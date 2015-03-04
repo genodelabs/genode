@@ -18,26 +18,26 @@
 #include <base/connection.h>
 #include <base/allocator.h>
 
-namespace File_system {
+namespace File_system { struct Connection; }
 
-	struct Connection : Genode::Connection<Session>, Session_client
-	{
-		/**
-		 * Constructor
-		 *
-		 * \param tx_buffer_alloc  allocator used for managing the
-		 *                         transmission buffer
-		 * \param tx_buf_size      size of transmission buffer in bytes
-		 */
-		Connection(Range_allocator &tx_block_alloc,
-		           size_t           tx_buf_size = 128*1024,
-		           const char      *label = "")
-		:
-			Genode::Connection<Session>(
-				session("ram_quota=%zd, tx_buf_size=%zd, label=\"%s\"",
-				        4*1024*sizeof(long) + tx_buf_size, tx_buf_size, label)),
-			Session_client(cap(), tx_block_alloc) { }
-	};
-}
+
+struct File_system::Connection : Genode::Connection<Session>, Session_client
+{
+	/**
+	 * Constructor
+	 *
+	 * \param tx_buffer_alloc  allocator used for managing the
+	 *                         transmission buffer
+	 * \param tx_buf_size      size of transmission buffer in bytes
+	 */
+	Connection(Range_allocator &tx_block_alloc,
+	           size_t           tx_buf_size = 128*1024,
+	           const char      *label = "")
+	:
+		Genode::Connection<Session>(
+			session("ram_quota=%zd, tx_buf_size=%zd, label=\"%s\"",
+			        4*1024*sizeof(long) + tx_buf_size, tx_buf_size, label)),
+		Session_client(cap(), tx_block_alloc) { }
+};
 
 #endif /* _INCLUDE__FILE_SYSTEM_SESSION__CONNECTION_H_ */

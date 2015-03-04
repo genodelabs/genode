@@ -20,6 +20,7 @@
 #include <gpio/driver.h>
 
 namespace Gpio {
+
 	class Session_component;
 	class Root;
 };

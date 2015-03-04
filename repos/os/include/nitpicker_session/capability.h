@@ -19,8 +19,7 @@
 
 namespace Nitpicker {
 
-	typedef Genode::Capability<Session>
-	        Session_capability;
+	typedef Genode::Capability<Session> Session_capability;
 }
 
 #endif /* _INCLUDE__NITPICKER_SESSION__CAPABILITY_H_ */

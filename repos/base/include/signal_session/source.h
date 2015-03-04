@@ -21,55 +21,55 @@
 
 #include <base/rpc.h>
 
-namespace Genode {
+namespace Genode { struct Signal_source; }
+
+
+/**
+ * Blocking part of the signal-session interface
+ *
+ * The blocking 'wait_for_signal()' function cannot be part of the
+ * signal-session interface because otherwise, context allocations or
+ * signal submissions would not be possible while blocking for signals.
+ * Therefore, the blocking part is implemented a separate interface,
+ * which can be used by an independent thread.
+ */
+struct Genode::Signal_source
+{
+	class Signal
+	{
+		private:
+
+			long _imprint;
+			int  _num;
+
+		public:
+
+			Signal(long imprint, int num) :
+				_imprint(imprint),
+				_num(num)
+			{ }
+
+			Signal() : _imprint(0), _num(0) { }
+
+			long imprint() { return _imprint; }
+
+			int num() { return _num; }
+	};
+
+	virtual ~Signal_source() { }
 
 	/**
-	 * Blocking part of the signal-session interface
-	 *
-	 * The blocking 'wait_for_signal()' function cannot be part of the
-	 * signal-session interface because otherwise, context allocations or
-	 * signal submissions would not be possible while blocking for signals.
-	 * Therefore, the blocking part is implemented a separate interface,
-	 * which can be used by an independent thread.
+	 * Wait for signal
 	 */
-	struct Signal_source
-	{
-		class Signal
-		{
-			private:
-
-				long _imprint;
-				int  _num;
-
-			public:
-
-				Signal(long imprint, int num) :
-					_imprint(imprint),
-					_num(num)
-				{ }
-
-				Signal() : _imprint(0), _num(0) { }
-
-				long imprint() { return _imprint; }
-
-				int num() { return _num; }
-		};
-
-		virtual ~Signal_source() { }
-
-		/**
-		 * Wait for signal
-		 */
-		virtual Signal wait_for_signal() = 0;
+	virtual Signal wait_for_signal() = 0;
 
 
-		/*********************
-		 ** RPC declaration **
-		 *********************/
+	/*********************
+	 ** RPC declaration **
+	 *********************/
 
-		GENODE_RPC(Rpc_wait_for_signal, Signal, wait_for_signal);
-		GENODE_RPC_INTERFACE(Rpc_wait_for_signal);
-	};
-}
+	GENODE_RPC(Rpc_wait_for_signal, Signal, wait_for_signal);
+	GENODE_RPC_INTERFACE(Rpc_wait_for_signal);
+};
 
 #endif /* _INCLUDE__SIGNAL_SESSION__SOURCE_H_ */

@@ -18,57 +18,57 @@
 #include <util/arg_string.h>
 #include <base/connection.h>
 
-namespace Framebuffer {
+namespace Framebuffer { class Imx_connection; }
 
-	class Imx_connection : public Genode::Connection<Imx_session>,
-	                       public Imx_client
-	{
-		private:
 
-			/**
-			 * Create session and return typed session capability
-			 */
-			Capability<Imx_session> _connect(unsigned width, unsigned height,
-			                                 Mode::Format format)
-			{
-				using namespace Genode;
+class Framebuffer::Imx_connection : public Genode::Connection<Imx_session>,
+                                    public Imx_client
+{
+	private:
 
-				enum { ARGBUF_SIZE = 128 };
-				char argbuf[ARGBUF_SIZE];
+		/**
+		 * Create session and return typed session capability
+		 */
+		Capability<Imx_session> _connect(unsigned width, unsigned height,
+		                                 Mode::Format format)
+		{
+			using namespace Genode;
 
-				/* donate ram quota for storing server-side meta data */
-				strncpy(argbuf, "ram_quota=8K", sizeof(argbuf));
+			enum { ARGBUF_SIZE = 128 };
+			char argbuf[ARGBUF_SIZE];
 
-				/* set optional session-constructor arguments */
-				if (width)
-					Arg_string::set_arg(argbuf, sizeof(argbuf), "fb_width", width);
-				if (height)
-					Arg_string::set_arg(argbuf, sizeof(argbuf), "fb_height", height);
-				if (format != Mode::INVALID)
-					Arg_string::set_arg(argbuf, sizeof(argbuf), "fb_format", format);
+			/* donate ram quota for storing server-side meta data */
+			strncpy(argbuf, "ram_quota=8K", sizeof(argbuf));
 
-				return session(argbuf);
-			}
+			/* set optional session-constructor arguments */
+			if (width)
+				Arg_string::set_arg(argbuf, sizeof(argbuf), "fb_width", width);
+			if (height)
+				Arg_string::set_arg(argbuf, sizeof(argbuf), "fb_height", height);
+			if (format != Mode::INVALID)
+				Arg_string::set_arg(argbuf, sizeof(argbuf), "fb_format", format);
 
-		public:
+			return session(argbuf);
+		}
 
-			/**
- 			 * Constructor
-			 *
-			 * \param width   desired frame-buffer width
-			 * \param height  desired frame-buffer height
-			 * \param mode    desired pixel format
-			 *
-			 * The specified values are not enforced. After creating the
-			 * session, you should validate the actual frame-buffer attributes
-			 * by calling the 'info' function of the frame-buffer interface.
-			 */
-			Imx_connection(unsigned     width  = 0,
-			               unsigned     height = 0,
-			               Mode::Format format = Mode::INVALID)
-			: Genode::Connection<Imx_session>(_connect(width, height, format)),
-			  Imx_client(cap()) { }
-	};
-}
+	public:
+
+		/**
+		 * Constructor
+		 *
+		 * \param width   desired frame-buffer width
+		 * \param height  desired frame-buffer height
+		 * \param mode    desired pixel format
+		 *
+		 * The specified values are not enforced. After creating the
+		 * session, you should validate the actual frame-buffer attributes
+		 * by calling the 'info' function of the frame-buffer interface.
+		 */
+		Imx_connection(unsigned     width  = 0,
+		               unsigned     height = 0,
+		               Mode::Format format = Mode::INVALID)
+		: Genode::Connection<Imx_session>(_connect(width, height, format)),
+		  Imx_client(cap()) { }
+};
 
 #endif /* _INCLUDE__IMX_FRAMEBUFFER_SESSION__CONNECTION_H_ */

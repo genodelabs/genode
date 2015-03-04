@@ -17,16 +17,16 @@
 #include <cap_session/client.h>
 #include <base/connection.h>
 
-namespace Genode {
+namespace Genode { struct Cap_connection; }
 
-	struct Cap_connection : Connection<Cap_session>, Cap_session_client
-	{
-		Cap_connection()
-		:
-			Connection<Cap_session>(session("ram_quota=4K")),
-			Cap_session_client(cap())
-		{ }
-	};
-}
+
+struct Genode::Cap_connection : Connection<Cap_session>, Cap_session_client
+{
+	Cap_connection()
+	:
+		Connection<Cap_session>(session("ram_quota=4K")),
+		Cap_session_client(cap())
+	{ }
+};
 
 #endif /* _INCLUDE__CAP_SESSION__CONNECTION_H_ */

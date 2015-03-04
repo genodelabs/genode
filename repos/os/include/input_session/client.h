@@ -17,25 +17,25 @@
 #include <input_session/capability.h>
 #include <base/rpc_client.h>
 
-namespace Input {
+namespace Input { struct Session_client; }
 
-	struct Session_client : Genode::Rpc_client<Session>
-	{
-		explicit Session_client(Session_capability session)
-		: Genode::Rpc_client<Session>(session) { }
 
-		Genode::Dataspace_capability dataspace() override {
-			return call<Rpc_dataspace>(); }
+struct Input::Session_client : Genode::Rpc_client<Session>
+{
+	explicit Session_client(Session_capability session)
+	: Genode::Rpc_client<Session>(session) { }
 
-		bool is_pending() const override {
-			return call<Rpc_is_pending>(); }
+	Genode::Dataspace_capability dataspace() override {
+		return call<Rpc_dataspace>(); }
 
-		int flush() override {
-			return call<Rpc_flush>(); }
+	bool is_pending() const override {
+		return call<Rpc_is_pending>(); }
 
-		void sigh(Genode::Signal_context_capability sigh) override {
-			call<Rpc_sigh>(sigh); }
-	};
-}
+	int flush() override {
+		return call<Rpc_flush>(); }
+
+	void sigh(Genode::Signal_context_capability sigh) override {
+		call<Rpc_sigh>(sigh); }
+};
 
 #endif /* _INCLUDE__INPUT_SESSION__CLIENT_H_ */

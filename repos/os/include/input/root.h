@@ -18,8 +18,8 @@
 #include <os/static_root.h>
 #include <input/component.h>
 
-
 namespace Input { class Root_component; }
+
 
 /*
  * This input root component tracks if the session has been opened. If a client

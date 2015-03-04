@@ -19,48 +19,51 @@
 
 namespace Genode {
 
-	template <typename IF, typename LOCK = Genode::Lock>
-	class Synced_interface
-	{
-		public:
-
-			class Guard
-			{
-				private:
-
-					LOCK &_lock;
-					IF   *_interface;
-
-					Guard(LOCK &lock, IF *interface)
-					: _lock(lock), _interface(interface)
-					{
-						_lock.lock();
-					}
-
-					friend class Synced_interface;
-
-				public:
-
-					~Guard() { _lock.unlock(); }
-
-					IF *operator -> () { return _interface; }
-			};
-
-		private:
-
-			LOCK &_lock;
-			IF   *_interface;
-
-		public:
-
-			Synced_interface(LOCK &lock, IF *interface)
-			: _lock(lock), _interface(interface) { }
-
-			Guard operator () ()
-			{
-				return Guard(_lock, _interface);
-			}
-	};
+	template <typename, typename LOCK = Genode::Lock> class Synced_interface;
 }
+
+
+template <typename IF, typename LOCK>
+class Genode::Synced_interface
+{
+	public:
+
+		class Guard
+		{
+			private:
+
+				LOCK &_lock;
+				IF   *_interface;
+
+				Guard(LOCK &lock, IF *interface)
+				: _lock(lock), _interface(interface)
+				{
+					_lock.lock();
+				}
+
+				friend class Synced_interface;
+
+			public:
+
+				~Guard() { _lock.unlock(); }
+
+				IF *operator -> () { return _interface; }
+		};
+
+	private:
+
+		LOCK &_lock;
+		IF   *_interface;
+
+	public:
+
+		Synced_interface(LOCK &lock, IF *interface)
+		: _lock(lock), _interface(interface) { }
+
+		Guard operator () ()
+		{
+			return Guard(_lock, _interface);
+		}
+};
 
 #endif /* _INCLUDE__OS__SYNCED_INTERFACE_H_ */

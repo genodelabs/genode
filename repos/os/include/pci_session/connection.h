@@ -17,16 +17,16 @@
 #include <pci_session/client.h>
 #include <base/connection.h>
 
-namespace Pci {
+namespace Pci { struct Connection; }
 
-	struct Connection : Genode::Connection<Session>, Session_client
-	{
-		Connection()
-		:
-			Genode::Connection<Session>(session("ram_quota=4K")),
-			Session_client(cap())
-		{ }
-	};
-}
+
+struct Pci::Connection : Genode::Connection<Session>, Session_client
+{
+	Connection()
+	:
+		Genode::Connection<Session>(session("ram_quota=4K")),
+		Session_client(cap())
+	{ }
+};
 
 #endif /* _INCLUDE__PCI_SESSION__CONNECTION_H_ */

@@ -24,6 +24,7 @@ namespace Usb {
 	class  Interface_client;
 }
 
+
 class Usb::Session_client : public Genode::Rpc_client<Session>
 {
 	private:

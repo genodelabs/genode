@@ -17,9 +17,8 @@
 #include <base/connection.h>
 #include <base/allocator.h>
 
-namespace Usb {
-	struct Connection;
-}
+namespace Usb { struct Connection; }
+
 
 struct Usb::Connection : Genode::Connection<Session>, Session_client
 {

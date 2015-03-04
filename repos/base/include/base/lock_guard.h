@@ -21,26 +21,26 @@
 #ifndef _INCLUDE__BASE__LOCK_GUARD_H_
 #define _INCLUDE__BASE__LOCK_GUARD_H_
 
-namespace Genode {
+namespace Genode { template <typename> class Lock_guard; }
 
-	/**
-	 * Lock guard template
-	 *
-	 * \param LT  lock type
-	 */
-	template <typename LT>
-	class Lock_guard
-	{
-		private:
 
-			LT &_lock;
+/**
+ * Lock guard template
+ *
+ * \param LT  lock type
+ */
+template <typename LT>
+class Genode::Lock_guard
+{
+	private:
 
-		public:
+		LT &_lock;
 
-			explicit Lock_guard(LT &lock) : _lock(lock) { _lock.lock(); }
+	public:
 
-			~Lock_guard() { _lock.unlock(); }
-	};
-}
+		explicit Lock_guard(LT &lock) : _lock(lock) { _lock.lock(); }
+
+		~Lock_guard() { _lock.unlock(); }
+};
 
 #endif /* _INCLUDE__BASE__LOCK_GUARD_H_ */

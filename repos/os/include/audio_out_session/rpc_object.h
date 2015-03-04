@@ -19,9 +19,7 @@
 #include <audio_out_session/audio_out_session.h>
 
 
-namespace Audio_out {
-	class Session_rpc_object;
-}
+namespace Audio_out { class Session_rpc_object; }
 
 
 class Audio_out::Session_rpc_object : public Genode::Rpc_object<Audio_out::Session,

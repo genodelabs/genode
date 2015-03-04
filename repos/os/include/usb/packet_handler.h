@@ -16,9 +16,8 @@
 #include <base/lock.h>
 #include <usb_session/connection.h>
 
-namespace Usb {
-	class Packet_handler;
-}
+namespace Usb { class Packet_handler; }
+
 
 class Usb::Packet_handler
 {

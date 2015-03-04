@@ -19,21 +19,21 @@
 #include <timer_session/capability.h>
 #include <base/rpc_client.h>
 
-namespace Timer {
+namespace Timer { struct Session_client; }
 
-	struct Session_client : Genode::Rpc_client<Session>
-	{
-		explicit Session_client(Session_capability session)
-		: Genode::Rpc_client<Session>(session) { }
 
-		void trigger_once(unsigned us) { call<Rpc_trigger_once>(us); }
+struct Timer::Session_client : Genode::Rpc_client<Session>
+{
+	explicit Session_client(Session_capability session)
+	: Genode::Rpc_client<Session>(session) { }
 
-		void trigger_periodic(unsigned us) { call<Rpc_trigger_periodic>(us); }
+	void trigger_once(unsigned us) override { call<Rpc_trigger_once>(us); }
 
-		void sigh(Signal_context_capability sigh) { call<Rpc_sigh>(sigh); }
+	void trigger_periodic(unsigned us) override { call<Rpc_trigger_periodic>(us); }
 
-		unsigned long elapsed_ms() const { return call<Rpc_elapsed_ms>(); }
-	};
-}
+	void sigh(Signal_context_capability sigh) override { call<Rpc_sigh>(sigh); }
+
+	unsigned long elapsed_ms() const override { return call<Rpc_elapsed_ms>(); }
+};
 
 #endif /* _INCLUDE__TIMER_SESSION__CLIENT_H_ */

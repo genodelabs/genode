@@ -17,116 +17,116 @@
 /* Genode includes */
 #include <util/mmio.h>
 
-namespace Genode
+namespace Genode { class Pl011_base; } 
+
+
+/**
+ * Driver base for the PrimeCell UART PL011 Revision r1p3
+ */
+class Genode::Pl011_base : Mmio
 {
-	/**
-	 * Driver base for the PrimeCell UART PL011 Revision r1p3
-	 */
-	class Pl011_base : Mmio
-	{
-		protected:
+	protected:
 
-			enum { MAX_BAUD_RATE = 0xfffffff };
+		enum { MAX_BAUD_RATE = 0xfffffff };
 
-			/**
-			 * Data register
-			 */
-			struct Uartdr : public Register<0x00, 16>
-			{
-				struct Data : Bitfield<0,8>  { };
-				struct Fe   : Bitfield<8,1>  { };
-				struct Pe   : Bitfield<9,1>  { };
-				struct Be   : Bitfield<10,1> { };
-				struct Oe   : Bitfield<11,1> { };
-			};
+		/**
+		 * Data register
+		 */
+		struct Uartdr : public Register<0x00, 16>
+		{
+			struct Data : Bitfield<0,8>  { };
+			struct Fe   : Bitfield<8,1>  { };
+			struct Pe   : Bitfield<9,1>  { };
+			struct Be   : Bitfield<10,1> { };
+			struct Oe   : Bitfield<11,1> { };
+		};
 
-			/**
-			 * Flag register
-			 */
-			struct Uartfr : public Register<0x18, 16>
-			{
-				struct Cts  : Bitfield<0,1> { };
-				struct Dsr  : Bitfield<1,1> { };
-				struct Dcd  : Bitfield<2,1> { };
-				struct Busy : Bitfield<3,1> { };
-				struct Rxfe : Bitfield<4,1> { };
-				struct Txff : Bitfield<5,1> { };
-				struct Rxff : Bitfield<6,1> { };
-				struct Txfe : Bitfield<7,1> { };
-				struct Ri   : Bitfield<8,1> { };
-			};
+		/**
+		 * Flag register
+		 */
+		struct Uartfr : public Register<0x18, 16>
+		{
+			struct Cts  : Bitfield<0,1> { };
+			struct Dsr  : Bitfield<1,1> { };
+			struct Dcd  : Bitfield<2,1> { };
+			struct Busy : Bitfield<3,1> { };
+			struct Rxfe : Bitfield<4,1> { };
+			struct Txff : Bitfield<5,1> { };
+			struct Rxff : Bitfield<6,1> { };
+			struct Txfe : Bitfield<7,1> { };
+			struct Ri   : Bitfield<8,1> { };
+		};
 
-			/**
-			 * Integer baud rate register
-			 */
-			struct Uartibrd : public Register<0x24, 16>
-			{
-				struct Ibrd : Bitfield<0,15> { };
-			};
+		/**
+		 * Integer baud rate register
+		 */
+		struct Uartibrd : public Register<0x24, 16>
+		{
+			struct Ibrd : Bitfield<0,15> { };
+		};
 
-			/**
-			 * Fractional Baud Rate Register
-			 */
-			struct Uartfbrd : public Register<0x28, 8>
-			{
-				struct Fbrd : Bitfield<0,6> { };
-			};
+		/**
+		 * Fractional Baud Rate Register
+		 */
+		struct Uartfbrd : public Register<0x28, 8>
+		{
+			struct Fbrd : Bitfield<0,6> { };
+		};
 
-			/**
-			 * Line Control Register
-			 */
-			struct Uartlcrh : public Register<0x2c, 16>
-			{
-				struct Wlen : Bitfield<5,2> {
-					enum {
-						WORD_LENGTH_8BITS = 3,
-						WORD_LENGTH_7BITS = 2,
-						WORD_LENGTH_6BITS = 1,
-						WORD_LENGTH_5BITS = 0,
-					};
+		/**
+		 * Line Control Register
+		 */
+		struct Uartlcrh : public Register<0x2c, 16>
+		{
+			struct Wlen : Bitfield<5,2> {
+				enum {
+					WORD_LENGTH_8BITS = 3,
+					WORD_LENGTH_7BITS = 2,
+					WORD_LENGTH_6BITS = 1,
+					WORD_LENGTH_5BITS = 0,
 				};
 			};
+		};
 
-			/**
-			 * Control Register
-			 */
-			struct Uartcr : public Register<0x30, 16>
-			{
-				struct Uarten : Bitfield<0,1> { };
-				struct Txe    : Bitfield<8,1> { };
-				struct Rxe    : Bitfield<9,1> { };
-			};
+		/**
+		 * Control Register
+		 */
+		struct Uartcr : public Register<0x30, 16>
+		{
+			struct Uarten : Bitfield<0,1> { };
+			struct Txe    : Bitfield<8,1> { };
+			struct Rxe    : Bitfield<9,1> { };
+		};
 
-			/**
-			 * Interrupt Mask Set/Clear
-			 */
-			struct Uartimsc : public Register<0x38, 16>
-			{
-				struct Imsc : Bitfield<0,11> { };
-			};
+		/**
+		 * Interrupt Mask Set/Clear
+		 */
+		struct Uartimsc : public Register<0x38, 16>
+		{
+			struct Imsc : Bitfield<0,11> { };
+		};
 
-			/**
-			 * Idle until the device is ready for action
-			 */
-			void _wait_until_ready() { while (read<Uartfr::Busy>()) ; }
+		/**
+		 * Idle until the device is ready for action
+		 */
+		void _wait_until_ready() { while (read<Uartfr::Busy>()) ; }
 
-		public:
+	public:
 
-			/**
-			 * Constructor
-			 * \param  base       device MMIO base
-			 * \param  clock      device reference clock frequency
-			 * \param  baud_rate  targeted UART baud rate
-			 */
-			inline Pl011_base(addr_t const base, uint32_t const clock,
-			                  uint32_t const baud_rate);
+		/**
+		 * Constructor
+		 * \param  base       device MMIO base
+		 * \param  clock      device reference clock frequency
+		 * \param  baud_rate  targeted UART baud rate
+		 */
+		inline Pl011_base(addr_t const base, uint32_t const clock,
+		                  uint32_t const baud_rate);
 
-			/**
-			 * Send ASCII char 'c' over the UART interface
-			 */
-			inline void put_char(char const c);
-	};
-}
+		/**
+		 * Send ASCII char 'c' over the UART interface
+		 */
+		inline void put_char(char const c);
+};
 
 
 Genode::Pl011_base::Pl011_base(addr_t const base, uint32_t const clock,

@@ -22,74 +22,78 @@
 
 namespace Genode {
 
-	struct Root
-	{
-		/*********************
-		 ** Exception types **
-		 *********************/
-
-		class Exception      : public ::Genode::Exception { };
-		class Unavailable    : public Exception { };
-		class Quota_exceeded : public Exception { };
-		class Invalid_args   : public Exception { };
-
-		typedef Rpc_in_buffer<160> Session_args;
-		typedef Rpc_in_buffer<160> Upgrade_args;
-
-		virtual ~Root() { }
-
-		/**
-		 * Create session
-		 *
-		 * \throw Unavailable
-		 * \throw Quota_exceeded
-		 * \throw Invalid_args
-		 *
-		 * \return capability to new session
-		 */
-		virtual Session_capability session(Session_args const &args,
-		                                   Affinity     const &affinity) = 0;
-
-		/**
-		 * Extend resource donation to an existing session
-		 */
-		virtual void upgrade(Session_capability session, Upgrade_args const &args) = 0;
-
-		/**
-		 * Close session
-		 */
-		virtual void close(Session_capability session) = 0;
+	struct Root;
+	template <typename> struct Typed_root;
+}
 
 
-		/*********************
-		 ** RPC declaration **
-		 *********************/
+struct Genode::Root
+{
+	/*********************
+	 ** Exception types **
+	 *********************/
 
-		GENODE_RPC_THROW(Rpc_session, Session_capability, session,
-		                 GENODE_TYPE_LIST(Unavailable, Quota_exceeded, Invalid_args),
-		                 Session_args const &, Affinity const &);
-		GENODE_RPC_THROW(Rpc_upgrade, void, upgrade,
-		                 GENODE_TYPE_LIST(Invalid_args),
-		                 Session_capability, Upgrade_args const &);
-		GENODE_RPC(Rpc_close, void, close, Session_capability);
+	class Exception      : public ::Genode::Exception { };
+	class Unavailable    : public Exception { };
+	class Quota_exceeded : public Exception { };
+	class Invalid_args   : public Exception { };
 
-		GENODE_RPC_INTERFACE(Rpc_session, Rpc_upgrade, Rpc_close);
-	};
+	typedef Rpc_in_buffer<160> Session_args;
+	typedef Rpc_in_buffer<160> Upgrade_args;
 
+	virtual ~Root() { }
 
 	/**
-	 * Root interface supplemented with information about the managed
-	 * session type
+	 * Create session
 	 *
-	 * This class template is used to automatically propagate the
-	 * correct session type to 'Parent::announce()' when announcing
-	 * a service.
+	 * \throw Unavailable
+	 * \throw Quota_exceeded
+	 * \throw Invalid_args
+	 *
+	 * \return capability to new session
 	 */
-	template <typename SESSION_TYPE>
-	struct Typed_root : Root
-	{
-		typedef SESSION_TYPE Session_type;
-	};
-}
+	virtual Session_capability session(Session_args const &args,
+	                                   Affinity     const &affinity) = 0;
+
+	/**
+	 * Extend resource donation to an existing session
+	 */
+	virtual void upgrade(Session_capability session, Upgrade_args const &args) = 0;
+
+	/**
+	 * Close session
+	 */
+	virtual void close(Session_capability session) = 0;
+
+
+	/*********************
+	 ** RPC declaration **
+	 *********************/
+
+	GENODE_RPC_THROW(Rpc_session, Session_capability, session,
+	                 GENODE_TYPE_LIST(Unavailable, Quota_exceeded, Invalid_args),
+	                 Session_args const &, Affinity const &);
+	GENODE_RPC_THROW(Rpc_upgrade, void, upgrade,
+	                 GENODE_TYPE_LIST(Invalid_args),
+	                 Session_capability, Upgrade_args const &);
+	GENODE_RPC(Rpc_close, void, close, Session_capability);
+
+	GENODE_RPC_INTERFACE(Rpc_session, Rpc_upgrade, Rpc_close);
+};
+
+
+/**
+ * Root interface supplemented with information about the managed
+ * session type
+ *
+ * This class template is used to automatically propagate the
+ * correct session type to 'Parent::announce()' when announcing
+ * a service.
+ */
+template <typename SESSION_TYPE>
+struct Genode::Typed_root : Root
+{
+	typedef SESSION_TYPE Session_type;
+};
 
 #endif /* _INCLUDE__ROOT__ROOT_H_ */

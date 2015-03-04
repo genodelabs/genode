@@ -19,9 +19,8 @@
 
 #include <base/thread_state_base.h>
 
-namespace Genode {
+namespace Genode { struct Thread_state; }
 
-	struct Thread_state : Thread_state_base { };
-}
+struct Genode::Thread_state : Thread_state_base { };
 
 #endif /* _INCLUDE__BASE__THREAD_STATE_H_ */

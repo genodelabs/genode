@@ -14,8 +14,8 @@
 #ifndef _INCLUDE__X86__CPU__STRING_H_
 #define _INCLUDE__X86__CPU__STRING_H_
 
-namespace Genode
-{
+namespace Genode {
+
 	/**
 	 * Copy memory block
 	 *
@@ -25,8 +25,7 @@ namespace Genode
 	 *
 	 * \return      Number of bytes not copied
 	 */
-	inline size_t memcpy_cpu(void *, const void *, size_t size) {
-		return size; }
+	inline size_t memcpy_cpu(void *, const void *, size_t size) { return size; }
 }
 
 #endif /* _INCLUDE__X86__CPU__STRING_H_ */

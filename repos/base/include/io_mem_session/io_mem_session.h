@@ -19,33 +19,37 @@
 
 namespace Genode {
 
-	struct Io_mem_dataspace : Dataspace { };
+	struct Io_mem_dataspace;
+	struct Io_mem_session;
 
 	typedef Capability<Io_mem_dataspace> Io_mem_dataspace_capability;
-
-	struct Io_mem_session : Session
-	{
-		static const char *service_name() { return "IO_MEM"; }
-
-		virtual ~Io_mem_session() { }
-
-		/**
-		 * Request dataspace containing the IO_MEM session data
-		 *
-		 * \return  capability to IO_MEM dataspace
-		 *          (may be invalid)
-		 */
-		virtual Io_mem_dataspace_capability dataspace() = 0;
-
-
-		/*********************
-		 ** RPC declaration **
-		 *********************/
-
-		GENODE_RPC(Rpc_dataspace, Io_mem_dataspace_capability, dataspace);
-
-		GENODE_RPC_INTERFACE(Rpc_dataspace);
-	};
 }
+
+
+struct Genode::Io_mem_dataspace : Dataspace { };
+
+
+struct Genode::Io_mem_session : Session
+{
+	static const char *service_name() { return "IO_MEM"; }
+
+	virtual ~Io_mem_session() { }
+
+	/**
+	 * Request dataspace containing the IO_MEM session data
+	 *
+	 * \return  capability to IO_MEM dataspace
+	 *          (may be invalid)
+	 */
+	virtual Io_mem_dataspace_capability dataspace() = 0;
+
+
+	/*********************
+	 ** RPC declaration **
+	 *********************/
+
+	GENODE_RPC(Rpc_dataspace, Io_mem_dataspace_capability, dataspace);
+	GENODE_RPC_INTERFACE(Rpc_dataspace);
+};
 
 #endif /* _INCLUDE__IO_MEM_SESSION__IO_MEM_SESSION_H_ */

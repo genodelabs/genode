@@ -21,18 +21,17 @@
  */
 #include <base/rpc.h>
 
-namespace Genode {
+namespace Genode { class Session; }
 
-	/**
-	 * Base class of session interfaces
-	 *
-	 * Each session interface must implement the function 'service_name'
-	 * ! static const char *service_name();
-	 * This function returns the name of the service provided via the session
-	 * interface.
-	 */
-	class Session { };
-}
 
+/**
+ * Base class of session interfaces
+ *
+ * Each session interface must implement the function 'service_name'
+ * ! static const char *service_name();
+ * This function returns the name of the service provided via the session
+ * interface.
+ */
+class Genode::Session { };
 
 #endif /* _INCLUDE__SESSION_H_ */

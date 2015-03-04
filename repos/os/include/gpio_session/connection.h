@@ -19,14 +19,13 @@
 #include <gpio_session/client.h>
 #include <base/connection.h>
 
-namespace Gpio {
+namespace Gpio { struct Connection; }
 
-	struct Connection : Genode::Connection<Session>, Session_client
-	{
-		Connection(unsigned long gpio_pin)
-		: Genode::Connection<Session>(session("ram_quota=8K, gpio=%zd", gpio_pin)),
-		  Session_client(cap()) { }
-	};
-}
+struct Gpio::Connection : Genode::Connection<Session>, Session_client
+{
+	Connection(unsigned long gpio_pin)
+	: Genode::Connection<Session>(session("ram_quota=8K, gpio=%zd", gpio_pin)),
+	  Session_client(cap()) { }
+};
 
 #endif /* _INCLUDE__GPIO_SESSION__CONNECTION_H_ */

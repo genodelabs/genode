@@ -23,23 +23,26 @@ namespace Uart {
 
 	using namespace Terminal;
 
-	struct Session : Terminal::Session
-	{
-		static const char *service_name() { return "Uart"; }
-
-		/**
-		 * Set baud rate
-		 */
-		virtual void baud_rate(Genode::size_t bits_per_second) = 0;
-
-
-		/*******************
-		 ** RPC interface **
-		 *******************/
-
-		GENODE_RPC(Rpc_baud_rate, void, baud_rate, Genode::size_t);
-		GENODE_RPC_INTERFACE_INHERIT(Terminal::Session, Rpc_baud_rate);
-	};
+	struct Session;
 }
+
+
+struct Uart::Session : Terminal::Session
+{
+	static const char *service_name() { return "Uart"; }
+
+	/**
+	 * Set baud rate
+	 */
+	virtual void baud_rate(Genode::size_t bits_per_second) = 0;
+
+
+	/*******************
+	 ** RPC interface **
+	 *******************/
+
+	GENODE_RPC(Rpc_baud_rate, void, baud_rate, Genode::size_t);
+	GENODE_RPC_INTERFACE_INHERIT(Terminal::Session, Rpc_baud_rate);
+};
 
 #endif /* _INCLUDE__UART_SESSION__UART_SESSION_H_ */

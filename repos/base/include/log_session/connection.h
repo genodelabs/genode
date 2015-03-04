@@ -17,16 +17,16 @@
 #include <log_session/client.h>
 #include <base/connection.h>
 
-namespace Genode {
+namespace Genode { struct Log_connection; }
 
-	struct Log_connection : Connection<Log_session>, Log_session_client
-	{
-		Log_connection()
-		:
-			Connection<Log_session>(session("ram_quota=8K")),
-			Log_session_client(cap())
-		{ }
-	};
-}
+
+struct Genode::Log_connection : Connection<Log_session>, Log_session_client
+{
+	Log_connection()
+	:
+		Connection<Log_session>(session("ram_quota=8K")),
+		Log_session_client(cap())
+	{ }
+};
 
 #endif /* _INCLUDE__LOG_SESSION__CONNECTION_H_ */

@@ -22,7 +22,6 @@ namespace Genode {
 	 * Make D-Cache and I-Cache coherent
 	 */
 	void cache_coherent(Genode::addr_t addr, Genode::size_t size);
-
 }
 
 #endif /* _INCLUDE__CPU__CACHE_H_ */

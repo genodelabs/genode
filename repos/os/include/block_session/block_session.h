@@ -35,126 +35,130 @@ namespace Block {
 	 */
 	typedef Genode::uint64_t sector_t;
 
+	class Packet_descriptor;
+	struct Session;
+}
+
+
+/**
+ * Represents an operation request with respect to a block,
+ * the data associated with the 'Packet_descriptor' is either
+ * the data read from or written to the block indicated by
+ * its number.
+ */
+class Block::Packet_descriptor : public ::Packet_descriptor
+{
+	public:
+
+		enum Opcode    { READ, WRITE, END };
+		enum Alignment { PACKET_ALIGNMENT = 11 };
+
+	private:
+
+		Opcode          _op;           /* requested operation */
+		sector_t        _block_number; /* requested block number */
+		Genode::size_t  _block_count;  /* number of blocks to transfer */
+		unsigned        _success :1;   /* indicates success of operation */
+
+	public:
+
+		/**
+		 * Constructor
+		 */
+		Packet_descriptor(Genode::off_t offset=0, Genode::size_t size=0)
+		: ::Packet_descriptor(offset, size),
+		  _op(READ), _block_number(0), _block_count(0), _success(false) { }
+
+		/**
+		 * Constructor
+		 */
+		Packet_descriptor(Packet_descriptor p, Opcode op,
+		                  sector_t blk_nr, Genode::size_t blk_count = 1)
+		: ::Packet_descriptor(p.offset(), p.size()),
+		  _op(op), _block_number(blk_nr),
+		  _block_count(blk_count), _success(false) { }
+
+		Opcode         operation()    const { return _op;           }
+		sector_t       block_number() const { return _block_number; }
+		Genode::size_t block_count()  const { return _block_count;  }
+		bool           succeeded()    const { return _success;      }
+
+		void succeeded(bool b) { _success = b ? 1 : 0; }
+};
+
+
+struct Block::Session : public Genode::Session
+{
+	enum { TX_QUEUE_SIZE = 256 };
+
+
 	/**
-	 * Represents an operation request with respect to a block,
-	 * the data associated with the 'Packet_descriptor' is either
-	 * the data read from or written to the block indicated by
-	 * its number.
+	 * This class represents supported operations on a block device
 	 */
-	class Packet_descriptor : public ::Packet_descriptor
+	class Operations
 	{
-		public:
-
-			enum Opcode    { READ, WRITE, END };
-			enum Alignment { PACKET_ALIGNMENT = 11 };
-
 		private:
 
-			Opcode          _op;           /* requested operation */
-			sector_t        _block_number; /* requested block number */
-			Genode::size_t  _block_count;  /* number of blocks to transfer */
-			unsigned        _success :1;   /* indicates success of operation */
+			unsigned _ops :Packet_descriptor::END; /* bitfield of ops */
 
 		public:
 
-			/**
-			 * Constructor
-			 */
-			Packet_descriptor(Genode::off_t offset=0, Genode::size_t size=0)
-			: ::Packet_descriptor(offset, size),
-			  _op(READ), _block_number(0), _block_count(0), _success(false) { }
+			Operations() : _ops(0) { }
 
-			/**
-			 * Constructor
-			 */
-			Packet_descriptor(Packet_descriptor p, Opcode op,
-			                  sector_t blk_nr, Genode::size_t blk_count = 1)
-			: ::Packet_descriptor(p.offset(), p.size()),
-			  _op(op), _block_number(blk_nr),
-			  _block_count(blk_count), _success(false) { }
+			bool supported(Packet_descriptor::Opcode op) {
+				return (_ops & (1 << op)); }
 
-			Opcode         operation()    const { return _op;           }
-			sector_t       block_number() const { return _block_number; }
-			Genode::size_t block_count()  const { return _block_count;  }
-			bool           succeeded()    const { return _success;      }
-
-			void succeeded(bool b) { _success = b ? 1 : 0; }
+			void set_operation(Packet_descriptor::Opcode op) {
+				_ops |= (1 << op); }
 	};
 
 
-	struct Session : public Genode::Session
-	{
-		enum { TX_QUEUE_SIZE = 256 };
+	typedef Packet_stream_policy<Block::Packet_descriptor,
+	                             TX_QUEUE_SIZE, TX_QUEUE_SIZE,
+	                             char> Tx_policy;
+
+	typedef Packet_stream_tx::Channel<Tx_policy> Tx;
+
+	static const char *service_name() { return "Block"; }
+
+	virtual ~Session() { }
+
+	/**
+	 * Request information about the metrics of the block device
+	 *
+	 * \param blk_count will contain total number of blocks
+	 * \param blk_size  will contain total size in bytes
+	 * \param ops       supported operations
+	 */
+	virtual void info(sector_t       *blk_count,
+	                  Genode::size_t *blk_size,
+	                  Operations     *ops) = 0;
+
+	/**
+	 * Synchronize with block device, like ensuring data to be written
+	 */
+	virtual void sync() = 0;
+
+	/**
+	 * Request packet-transmission channel
+	 */
+	virtual Tx *tx_channel() { return 0; }
+
+	/**
+	 * Request client-side packet-stream interface of tx channel
+	 */
+	virtual Tx::Source *tx() { return 0; }
 
 
-		/**
-		 * This class represents supported operations on a block device
-		 */
-		class Operations
-		{
-			private:
+	/*******************
+	 ** RPC interface **
+	 *******************/
 
-				unsigned _ops :Packet_descriptor::END; /* bitfield of ops */
-
-			public:
-
-				Operations() : _ops(0) { }
-
-				bool supported(Packet_descriptor::Opcode op) {
-					return (_ops & (1 << op)); }
-
-				void set_operation(Packet_descriptor::Opcode op) {
-					_ops |= (1 << op); }
-		};
-
-
-		typedef Packet_stream_policy<Block::Packet_descriptor,
-		                             TX_QUEUE_SIZE, TX_QUEUE_SIZE,
-		                             char> Tx_policy;
-
-		typedef Packet_stream_tx::Channel<Tx_policy> Tx;
-
-		static const char *service_name() { return "Block"; }
-
-		virtual ~Session() { }
-
-		/**
-		 * Request information about the metrics of the block device
-		 *
-		 * \param blk_count will contain total number of blocks
-		 * \param blk_size  will contain total size in bytes
-		 * \param ops       supported operations
-		 */
-		virtual void info(sector_t       *blk_count,
-		                  Genode::size_t *blk_size,
-		                  Operations     *ops) = 0;
-
-		/**
-		 * Synchronize with block device, like ensuring data to be written
-		 */
-		virtual void sync() = 0;
-
-		/**
-		 * Request packet-transmission channel
-		 */
-		virtual Tx *tx_channel() { return 0; }
-
-		/**
-		 * Request client-side packet-stream interface of tx channel
-		 */
-		virtual Tx::Source *tx() { return 0; }
-
-
-		/*******************
-		 ** RPC interface **
-		 *******************/
-
-		GENODE_RPC(Rpc_info, void, info, Block::sector_t *,
-		           Genode::size_t *, Operations *);
-		GENODE_RPC(Rpc_tx_cap, Genode::Capability<Tx>, _tx_cap);
-		GENODE_RPC(Rpc_sync, void, sync);
-		GENODE_RPC_INTERFACE(Rpc_info, Rpc_tx_cap, Rpc_sync);
-	};
-}
+	GENODE_RPC(Rpc_info, void, info, Block::sector_t *,
+	           Genode::size_t *, Operations *);
+	GENODE_RPC(Rpc_tx_cap, Genode::Capability<Tx>, _tx_cap);
+	GENODE_RPC(Rpc_sync, void, sync);
+	GENODE_RPC_INTERFACE(Rpc_info, Rpc_tx_cap, Rpc_sync);
+};
 
 #endif /* _INCLUDE__BLOCK_SESSION__BLOCK_SESSION_H_ */

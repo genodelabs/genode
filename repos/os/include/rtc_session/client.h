@@ -18,18 +18,15 @@
 #include <rtc_session/rtc_session.h>
 #include <base/rpc_client.h>
 
-namespace Rtc {
+namespace Rtc { struct Session_client; }
 
-	struct Session_client : Genode::Rpc_client<Session>
-	{
-		Session_client(Genode::Capability<Session> cap)
-		: Genode::Rpc_client<Session>(cap) {}
 
-		Timestamp current_time()
-		{
-			return call<Rpc_current_time>();
-		}
-	};
-}
+struct Rtc::Session_client : Genode::Rpc_client<Session>
+{
+	Session_client(Genode::Capability<Session> cap)
+	: Genode::Rpc_client<Session>(cap) {}
+
+	Timestamp current_time() { return call<Rpc_current_time>(); }
+};
 
 #endif /* _INCLUDE__RTC_SESSION__CLIENT_H_ */

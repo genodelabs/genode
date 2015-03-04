@@ -18,38 +18,38 @@
 #include <packet_stream_tx/rpc_object.h>
 #include <packet_stream_rx/rpc_object.h>
 
-namespace Nic {
+namespace Nic { class Session_rpc_object; }
 
-	class Session_rpc_object : public Genode::Rpc_object<Session, Session_rpc_object>
-	{
-		protected:
 
-			Packet_stream_tx::Rpc_object<Tx> _tx;
-			Packet_stream_rx::Rpc_object<Rx> _rx;
+class Nic::Session_rpc_object : public Genode::Rpc_object<Session, Session_rpc_object>
+{
+	protected:
 
-		public:
+		Packet_stream_tx::Rpc_object<Tx> _tx;
+		Packet_stream_rx::Rpc_object<Rx> _rx;
 
-			/**
-			 * Constructor
-			 *
-			 * \param tx_ds            dataspace used as communication buffer
-			 *                         for the tx packet stream
-			 * \param rx_ds            dataspace used as communication buffer
-			 *                         for the rx packet stream
-			 * \param rx_buffer_alloc  allocator used for managing the communication
-			 *                         buffer of the rx packet stream
-			 * \param ep               entry point used for packet-stream channels
-			 */
-			Session_rpc_object(Genode::Dataspace_capability  tx_ds,
-			                   Genode::Dataspace_capability  rx_ds,
-			                   Genode::Range_allocator      *rx_buffer_alloc,
-			                   Genode::Rpc_entrypoint       &ep)
-			:
-				_tx(tx_ds, ep), _rx(rx_ds, rx_buffer_alloc, ep) { }
+	public:
 
-			Genode::Capability<Tx> _tx_cap() { return _tx.cap(); }
-			Genode::Capability<Rx> _rx_cap() { return _rx.cap(); }
-	};
-}
+		/**
+		 * Constructor
+		 *
+		 * \param tx_ds            dataspace used as communication buffer
+		 *                         for the tx packet stream
+		 * \param rx_ds            dataspace used as communication buffer
+		 *                         for the rx packet stream
+		 * \param rx_buffer_alloc  allocator used for managing the communication
+		 *                         buffer of the rx packet stream
+		 * \param ep               entry point used for packet-stream channels
+		 */
+		Session_rpc_object(Genode::Dataspace_capability  tx_ds,
+		                   Genode::Dataspace_capability  rx_ds,
+		                   Genode::Range_allocator      *rx_buffer_alloc,
+		                   Genode::Rpc_entrypoint       &ep)
+		:
+			_tx(tx_ds, ep), _rx(rx_ds, rx_buffer_alloc, ep) { }
+
+		Genode::Capability<Tx> _tx_cap() { return _tx.cap(); }
+		Genode::Capability<Rx> _rx_cap() { return _rx.cap(); }
+};
 
 #endif /* _INCLUDE__NIC_SESSION__RPC_OBJECT_H_ */

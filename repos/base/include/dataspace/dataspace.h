@@ -17,38 +17,38 @@
 #include <base/stdint.h>
 #include <base/rpc.h>
 
-namespace Genode {
-
-	struct Dataspace
-	{
-		virtual ~Dataspace() { }
-
-		/**
-		 * Request size of dataspace
-		 */
-		virtual size_t size() = 0;
-
-		/**
-		 * Request base address in physical address space
-		 */
-		virtual addr_t phys_addr() = 0;
-
-		/**
-		 * Return true if dataspace is writable
-		 */
-		virtual bool writable() = 0;
+namespace Genode { struct Dataspace; }
 
 
-		/*********************
-		 ** RPC declaration **
-		 *********************/
+struct Genode::Dataspace
+{
+	virtual ~Dataspace() { }
 
-		GENODE_RPC(Rpc_size,      size_t, size);
-		GENODE_RPC(Rpc_phys_addr, addr_t, phys_addr);
-		GENODE_RPC(Rpc_writable,  bool,   writable);
+	/**
+	 * Request size of dataspace
+	 */
+	virtual size_t size() = 0;
 
-		GENODE_RPC_INTERFACE(Rpc_size, Rpc_phys_addr, Rpc_writable);
-	};
-}
+	/**
+	 * Request base address in physical address space
+	 */
+	virtual addr_t phys_addr() = 0;
+
+	/**
+	 * Return true if dataspace is writable
+	 */
+	virtual bool writable() = 0;
+
+
+	/*********************
+	 ** RPC declaration **
+	 *********************/
+
+	GENODE_RPC(Rpc_size,      size_t, size);
+	GENODE_RPC(Rpc_phys_addr, addr_t, phys_addr);
+	GENODE_RPC(Rpc_writable,  bool,   writable);
+
+	GENODE_RPC_INTERFACE(Rpc_size, Rpc_phys_addr, Rpc_writable);
+};
 
 #endif /* _INCLUDE__DATASPACE__DATASPACE_H_ */

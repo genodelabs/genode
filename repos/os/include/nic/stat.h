@@ -20,49 +20,47 @@
 
 #include <timer_session/connection.h>
 
-namespace Nic {
+namespace Nic { class Measurement; }
 
-	/**
-	 *
-	 */
-	class Measurement
-	{
-		private:
 
-            Timer::Connection &_timer;
+class Nic::Measurement
+{
+	private:
 
-			Net::Ethernet_frame::Mac_address _mac;
+		Timer::Connection &_timer;
 
-			struct stat {
-				Genode::uint64_t size;
-				unsigned long count; 
-			} _stat, _drop;
+		Net::Ethernet_frame::Mac_address _mac;
 
-			Genode::addr_t _timestamp; 
+		struct stat
+		{
+			Genode::uint64_t size;
+			unsigned long count;
+		} _stat, _drop;
 
-			enum status {
-				FOR_US,
-				IS_MAGIC,
-				UNKNOWN
-			};
+		Genode::addr_t _timestamp;
 
-			enum status _check(Net::Ethernet_frame *, Genode::size_t);
-		public:
+		enum status {
+			FOR_US,
+			IS_MAGIC,
+			UNKNOWN
+		};
 
-			Measurement(Timer::Connection &timer)
-			:
-				_timer(timer), _timestamp(0)
-			{
-				_stat.size = _stat.count = _drop.size = _drop.count = 0;
- 			}
+		enum status _check(Net::Ethernet_frame *, Genode::size_t);
+	public:
 
-			void set_mac(void * mac) {
-				Genode::memcpy(_mac.addr, mac, 6);
-			}
+		Measurement(Timer::Connection &timer)
+		:
+			_timer(timer), _timestamp(0)
+		{
+			_stat.size = _stat.count = _drop.size = _drop.count = 0;
+		}
 
-			void data(Net::Ethernet_frame *, Genode::size_t);
-	};
+		void set_mac(void * mac)
+		{
+			Genode::memcpy(_mac.addr, mac, 6);
+		}
 
-}
+		void data(Net::Ethernet_frame *, Genode::size_t);
+};
 
 #endif /* _INCLUDE__NIC__STAT_H_ */

@@ -18,6 +18,7 @@
 #include <base/trace/policy.h>
 
 namespace Genode { namespace Trace {
+
 	struct Rpc_call;
 	struct Rpc_returned;
 	struct Rpc_dispatch;

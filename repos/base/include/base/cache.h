@@ -15,6 +15,8 @@
 #define _INCLUDE__BASE__CACHE_H_
 
 namespace Genode {
+
 	enum Cache_attribute { UNCACHED, WRITE_COMBINED, CACHED };
 }
+
 #endif /* _INCLUDE__BASE__CACHE_H_ */

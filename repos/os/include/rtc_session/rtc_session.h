@@ -21,28 +21,31 @@
 #include <base/stdint.h>
 
 namespace Rtc {
-
-	struct Timestamp
-	{
-		unsigned microsecond;
-		unsigned second;
-		unsigned minute;
-		unsigned hour;
-		unsigned day;
-		unsigned month;
-		unsigned year;
-	};
-
-
-	struct Session : Genode::Session
-	{
-		static const char *service_name() { return "Rtc"; }
-
-		virtual Timestamp current_time() = 0;
-
-		GENODE_RPC(Rpc_current_time, Timestamp, current_time);
-		GENODE_RPC_INTERFACE(Rpc_current_time);
-	};
+	struct Timestamp;
+	struct Session;
 }
+
+
+struct Rtc::Timestamp
+{
+	unsigned microsecond;
+	unsigned second;
+	unsigned minute;
+	unsigned hour;
+	unsigned day;
+	unsigned month;
+	unsigned year;
+};
+
+
+struct Rtc::Session : Genode::Session
+{
+	static const char *service_name() { return "Rtc"; }
+
+	virtual Timestamp current_time() = 0;
+
+	GENODE_RPC(Rpc_current_time, Timestamp, current_time);
+	GENODE_RPC_INTERFACE(Rpc_current_time);
+};
 
 #endif /* _INCLUDE__RTC_SESSION__RTC_SESSION_H_ */

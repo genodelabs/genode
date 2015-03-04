@@ -21,8 +21,8 @@
 #include <signal_session/source.h>
 #include <base/rpc_server.h>
 
-namespace Genode {
-	struct Signal_source_rpc_object : Rpc_object<Signal_source> { };
-}
+namespace Genode { struct Signal_source_rpc_object; }
+
+struct Genode::Signal_source_rpc_object : Rpc_object<Signal_source> { };
 
 #endif /* _INCLUDE__SIGNAL_SESSION__SOURCE_RPC_OBJECT_H_ */

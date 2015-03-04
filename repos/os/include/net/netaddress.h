@@ -18,56 +18,56 @@
 #include <base/stdint.h>
 #include <util/string.h>
 
-namespace Net {
-
-	/**
-	 * Generic form of a network address.
-	 */
-	template <unsigned LEN>
-	class Network_address
-	{
-		public:
-
-			Genode::uint8_t addr[LEN];
+namespace Net { template <unsigned> class Network_address; }
 
 
-			/******************
-			 ** Constructors **
-			 ******************/
+/**
+ * Generic form of a network address.
+ */
+template <unsigned LEN>
+class Net::Network_address
+{
+	public:
 
-			Network_address(Genode::uint8_t value = 0) {
-				Genode::memset(&addr, value, LEN); }
-
-			Network_address(void *src) {
-				Genode::memcpy(&addr, src, LEN); }
-
-
-			/***********************
-			 ** Helper functions  **
-			 ***********************/
-
-			void copy(void *dst) { Genode::memcpy(dst, addr, LEN); }
+		Genode::uint8_t addr[LEN];
 
 
-			/***************
-			 ** Operators **
-			 ***************/
+		/******************
+		 ** Constructors **
+		 ******************/
 
-			bool operator==(const Network_address &other) const {
+		Network_address(Genode::uint8_t value = 0) {
+			Genode::memset(&addr, value, LEN); }
 
-				/*
-				 * We compare from lowest address segment to highest
-				 * one, because in a local context, the higher segments
-				 * of two addresses normally don't distinguish.
-				 * (e.g. in an IPv4 local subnet)
-				 */
-				for (int i = LEN-1; i >= 0; --i) {
-					if (addr[i] != other.addr[i])
-						return false;
-				}
-				return true;
+		Network_address(void *src) {
+			Genode::memcpy(&addr, src, LEN); }
+
+
+		/***********************
+		 ** Helper functions  **
+		 ***********************/
+
+		void copy(void *dst) { Genode::memcpy(dst, addr, LEN); }
+
+
+		/***************
+		 ** Operators **
+		 ***************/
+
+		bool operator==(const Network_address &other) const {
+
+			/*
+			 * We compare from lowest address segment to highest
+			 * one, because in a local context, the higher segments
+			 * of two addresses normally don't distinguish.
+			 * (e.g. in an IPv4 local subnet)
+			 */
+			for (int i = LEN-1; i >= 0; --i) {
+				if (addr[i] != other.addr[i])
+					return false;
 			}
-	};
-}
+			return true;
+		}
+};
 
 #endif /* _NET__NETADDRESS_H_ */

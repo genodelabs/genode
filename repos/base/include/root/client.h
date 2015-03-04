@@ -17,22 +17,22 @@
 #include <root/capability.h>
 #include <base/rpc_client.h>
 
-namespace Genode {
+namespace Genode { struct Root_client; }
 
-	struct Root_client : Rpc_client<Root>
-	{
-		explicit Root_client(Root_capability root)
-		: Rpc_client<Root>(root) { }
 
-		Session_capability session(Session_args const &args, Affinity const &affinity) {
-			return call<Rpc_session>(args, affinity); }
+struct Genode::Root_client : Rpc_client<Root>
+{
+	explicit Root_client(Root_capability root)
+	: Rpc_client<Root>(root) { }
 
-		void upgrade(Session_capability session, Upgrade_args const &args) {
-			call<Rpc_upgrade>(session, args); }
+	Session_capability session(Session_args const &args, Affinity const &affinity) override {
+		return call<Rpc_session>(args, affinity); }
 
-		void close(Session_capability session) {
-			call<Rpc_close>(session); }
-	};
-}
+	void upgrade(Session_capability session, Upgrade_args const &args) override {
+		call<Rpc_upgrade>(session, args); }
+
+	void close(Session_capability session) override {
+		call<Rpc_close>(session); }
+};
 
 #endif /* _INCLUDE__ROOT__CLIENT_H_ */

@@ -19,6 +19,7 @@
 
 namespace Genode { struct Rom_session_client; }
 
+
 struct Genode::Rom_session_client : Rpc_client<Rom_session>
 {
 	explicit Rom_session_client(Rom_session_capability session)

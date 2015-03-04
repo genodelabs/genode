@@ -18,25 +18,23 @@
 
 #include <os/packet_allocator.h>
 
-namespace Nic {
+namespace Nic { struct Packet_allocator; }
+
+
+/**
+ * Packet allocator used for packet streaming in nic sessions.
+ */
+struct Nic::Packet_allocator : Genode::Packet_allocator
+{
+	enum { DEFAULT_PACKET_SIZE = 1600 };
 
 	/**
-	 * Packet allocator used for packet streaming in nic sessions.
+	 * Constructor
+	 *
+	 * \param md_alloc  Meta-data allocator
 	 */
-	class Packet_allocator : public Genode::Packet_allocator
-	{
-		public:
-
-			enum { DEFAULT_PACKET_SIZE = 1600 };
-
-			/**
-			 * Constructor
-			 *
-			 * \param md_alloc  Meta-data allocator
-			 */
-			Packet_allocator(Genode::Allocator *md_alloc)
-			: Genode::Packet_allocator(md_alloc, DEFAULT_PACKET_SIZE) {}
-	};
+	Packet_allocator(Genode::Allocator *md_alloc)
+	: Genode::Packet_allocator(md_alloc, DEFAULT_PACKET_SIZE) {}
 };
 
 #endif /* _INCLUDE__NIC__PACKET_ALLOCATOR__ */

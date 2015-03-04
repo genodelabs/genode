@@ -24,6 +24,7 @@
 #include <os/surface.h>
 
 namespace Decorator {
+
 	typedef Genode::Surface_base::Point Point;
 	typedef Genode::Surface_base::Area  Area;
 	typedef Genode::Surface_base::Rect  Rect;

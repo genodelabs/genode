@@ -17,12 +17,11 @@
 /* Genode includes */
 #include <base/signal.h>
 
-namespace Gpio {
-	struct Driver;
-}
+namespace Gpio { struct Driver; }
 
-struct Gpio::Driver {
 
+struct Gpio::Driver
+{
 	/**
 	 * Set direction of GPIO pin, whether it's an input or output one
 	 *

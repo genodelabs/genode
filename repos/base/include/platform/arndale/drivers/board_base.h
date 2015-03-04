@@ -17,34 +17,34 @@
 /* Genode includes */
 #include <platform_exynos5/board_base.h>
 
-namespace Genode
+namespace Genode { struct Board_base; }
+
+
+/**
+ * Board driver base
+ */
+struct Genode::Board_base : Exynos5
 {
-	/**
-	 * Board driver base
-	 */
-	struct Board_base : Exynos5
+	enum
 	{
-		enum
-		{
-			/* clock management unit */
-			CMU_MMIO_BASE = 0x10010000,
-			CMU_MMIO_SIZE = 0x24000,
+		/* clock management unit */
+		CMU_MMIO_BASE = 0x10010000,
+		CMU_MMIO_SIZE = 0x24000,
 
-			/* power management unit */
-			PMU_MMIO_BASE = 0x10040000,
-			PMU_MMIO_SIZE = 0x5000,
+		/* power management unit */
+		PMU_MMIO_BASE = 0x10040000,
+		PMU_MMIO_SIZE = 0x5000,
 
-			/* USB */
-			USB_HOST20_IRQ = 103,
-			USB_DRD30_IRQ  = 104,
+		/* USB */
+		USB_HOST20_IRQ = 103,
+		USB_DRD30_IRQ  = 104,
 
-			/* UART */
-			UART_2_CLOCK = 100000000,
+		/* UART */
+		UART_2_CLOCK = 100000000,
 
-			/* wether board provides security extension */
-			SECURITY_EXTENSION = 1,
-		};
+		/* wether board provides security extension */
+		SECURITY_EXTENSION = 1,
 	};
-}
+};
 
 #endif /* _INCLUDE__DRIVERS__BOARD_BASE_H_ */

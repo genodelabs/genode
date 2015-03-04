@@ -18,29 +18,29 @@
 #include <ram_session/ram_session.h>
 #include <base/rpc_client.h>
 
-namespace Genode {
+namespace Genode { struct Ram_session_client; }
 
-	struct Ram_session_client : Rpc_client<Ram_session>
-	{
-		explicit Ram_session_client(Ram_session_capability session)
-		: Rpc_client<Ram_session>(session) { }
 
-		Ram_dataspace_capability alloc(size_t size,
-		                               Cache_attribute cached = CACHED) {
-			return call<Rpc_alloc>(size, cached); }
+struct Genode::Ram_session_client : Rpc_client<Ram_session>
+{
+	explicit Ram_session_client(Ram_session_capability session)
+	: Rpc_client<Ram_session>(session) { }
 
-		void free(Ram_dataspace_capability ds) { call<Rpc_free>(ds); }
+	Ram_dataspace_capability alloc(size_t size,
+	                               Cache_attribute cached = CACHED) override {
+		return call<Rpc_alloc>(size, cached); }
 
-		int ref_account(Ram_session_capability ram_session) {
-			return call<Rpc_ref_account>(ram_session); }
+	void free(Ram_dataspace_capability ds) override { call<Rpc_free>(ds); }
 
-		int transfer_quota(Ram_session_capability ram_session, size_t amount) {
-			return call<Rpc_transfer_quota>(ram_session, amount); }
+	int ref_account(Ram_session_capability ram_session) override {
+		return call<Rpc_ref_account>(ram_session); }
 
-		size_t quota() { return call<Rpc_quota>(); }
+	int transfer_quota(Ram_session_capability ram_session, size_t amount) override {
+		return call<Rpc_transfer_quota>(ram_session, amount); }
 
-		size_t used() { return call<Rpc_used>(); }
-	};
-}
+	size_t quota() override { return call<Rpc_quota>(); }
+
+	size_t used() override { return call<Rpc_used>(); }
+};
 
 #endif /* _INCLUDE__RAM_SESSION__CLIENT_H_ */

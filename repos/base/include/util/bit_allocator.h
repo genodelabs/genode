@@ -17,60 +17,61 @@
 
 #include <util/bit_array.h>
 
-namespace Genode {
+namespace Genode { template<unsigned> class Bit_allocator; } 
 
-	template<unsigned BITS>
-	class Bit_allocator
-	{
-		protected:
 
-			addr_t          _next;
-			Bit_array<BITS> _array;
+template<unsigned BITS>
+class Genode::Bit_allocator
+{
+	protected:
 
-			void _reserve(addr_t bit_start, size_t const num)
-			{
-				if (!num) return;
+		addr_t          _next;
+		Bit_array<BITS> _array;
 
-				_array.set(bit_start, num);
-			}
+		void _reserve(addr_t bit_start, size_t const num)
+		{
+			if (!num) return;
 
-		public:
+			_array.set(bit_start, num);
+		}
 
-			class Out_of_indices : Exception {};
+	public:
 
-			Bit_allocator() : _next(0) { }
+		class Out_of_indices : Exception {};
 
-			addr_t alloc(size_t const num_log2 = 0)
-			{
-				addr_t const step = 1UL << num_log2;
-				addr_t max = ~0UL;
+		Bit_allocator() : _next(0) { }
 
-				do {
-					try {
-						/* throws exception if array is accessed outside bounds */
-						for (addr_t i = _next & ~(step - 1); i < max; i += step) {
-							if (_array.get(i, step))
-								continue;
+		addr_t alloc(size_t const num_log2 = 0)
+		{
+			addr_t const step = 1UL << num_log2;
+			addr_t max = ~0UL;
 
-							_array.set(i, step);
-							_next = i + step;
-							return i;
-						}
-					} catch (typename Bit_array<BITS>::Invalid_index_access) { }
+			do {
+				try {
+					/* throws exception if array is accessed outside bounds */
+					for (addr_t i = _next & ~(step - 1); i < max; i += step) {
+						if (_array.get(i, step))
+							continue;
 
-					max = _next;
-					_next = 0;
+						_array.set(i, step);
+						_next = i + step;
+						return i;
+					}
+				} catch (typename Bit_array<BITS>::Invalid_index_access) { }
 
-				} while (max != 0);
+				max = _next;
+				_next = 0;
 
-				throw Out_of_indices();
-			}
+			} while (max != 0);
 
-			void free(addr_t const bit_start, size_t const num_log2 = 0)
-			{
-				_array.clear(bit_start, 1UL << num_log2);
-				_next = bit_start;
-			}
-	};
-}
+			throw Out_of_indices();
+		}
+
+		void free(addr_t const bit_start, size_t const num_log2 = 0)
+		{
+			_array.clear(bit_start, 1UL << num_log2);
+			_next = bit_start;
+		}
+};
+
 #endif /* _INCLUDE__UTIL__BIT_ALLOCATOR_H_ */

@@ -18,6 +18,7 @@
 #include <base/printf.h>
 
 namespace Genode {
+
 	template <typename T, typename... ARGS>
 	static inline T *construct_at(void *, ARGS &&...);
 }

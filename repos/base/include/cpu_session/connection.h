@@ -17,28 +17,28 @@
 #include <cpu_session/client.h>
 #include <base/connection.h>
 
-namespace Genode {
+namespace Genode { struct Cpu_connection; }
 
-	struct Cpu_connection : Connection<Cpu_session>, Cpu_session_client
-	{
-		enum { RAM_QUOTA = 32*1024 };
 
-		/**
-		 * Constructor
-		 *
-		 * \param label     initial session label
-		 * \param priority  designated priority of all threads created
-		 *                  with this CPU session
-		 */
-		Cpu_connection(char     const *label    = "",
-		               long            priority = DEFAULT_PRIORITY,
-		               Affinity const &affinity = Affinity())
-		:
-			Connection<Cpu_session>(
-				session(affinity, "priority=0x%lx, ram_quota=36K, label=\"%s\"",
-				        priority, label)),
-			Cpu_session_client(cap()) { }
-	};
-}
+struct Genode::Cpu_connection : Connection<Cpu_session>, Cpu_session_client
+{
+	enum { RAM_QUOTA = 32*1024 };
+
+	/**
+	 * Constructor
+	 *
+	 * \param label     initial session label
+	 * \param priority  designated priority of all threads created
+	 *                  with this CPU session
+	 */
+	Cpu_connection(char     const *label    = "",
+	               long            priority = DEFAULT_PRIORITY,
+	               Affinity const &affinity = Affinity())
+	:
+		Connection<Cpu_session>(
+			session(affinity, "priority=0x%lx, ram_quota=36K, label=\"%s\"",
+			        priority, label)),
+		Cpu_session_client(cap()) { }
+};
 
 #endif /* _INCLUDE__CPU_SESSION__CONNECTION_H_ */

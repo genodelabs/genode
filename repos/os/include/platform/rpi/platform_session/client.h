@@ -25,13 +25,13 @@ struct Platform::Client : Genode::Rpc_client<Platform::Session>
 	explicit Client(Capability<Session> session)
 	: Genode::Rpc_client<Session>(session) { }
 
-	void setup_framebuffer(Framebuffer_info &info) {
+	void setup_framebuffer(Framebuffer_info &info) override {
 		call<Rpc_setup_framebuffer>(info); }
 
-	bool power_state(Power power) {
+	bool power_state(Power power) override {
 		return call<Rpc_get_power_state>(power); }
 
-	void power_state(Power power, bool enable) {
+	void power_state(Power power, bool enable) override {
 		call<Rpc_set_power_state>(power, enable); }
 };
 

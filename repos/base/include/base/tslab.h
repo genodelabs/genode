@@ -16,20 +16,18 @@
 
 #include <base/slab.h>
 
-namespace Genode {
+namespace Genode { template <typename, size_t> struct Tslab; }
 
-	template <typename T, size_t BLOCK_SIZE>
-	class Tslab : public Slab
-	{
-		public:
 
-			Tslab(Allocator  *backing_store,
-			      Slab_block *initial_sb = 0)
-			: Slab(sizeof(T), BLOCK_SIZE, initial_sb, backing_store)
-			{ }
+template <typename T, Genode::size_t BLOCK_SIZE>
+struct Genode::Tslab : Slab
+{
+	Tslab(Allocator  *backing_store,
+	      Slab_block *initial_sb = 0)
+	: Slab(sizeof(T), BLOCK_SIZE, initial_sb, backing_store)
+	{ }
 
-			T *first_object() { return (T *)Slab::first_used_elem(); }
-	};
-}
+	T *first_object() { return (T *)Slab::first_used_elem(); }
+};
 
 #endif /* _INCLUDE__BASE__TSLAB_H_ */

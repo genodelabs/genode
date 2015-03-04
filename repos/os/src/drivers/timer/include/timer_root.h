@@ -23,46 +23,46 @@
 #include "timer_session_component.h"
 
 
-namespace Timer {
+namespace Timer { class Root_component; }
 
-	class Root_component : public Genode::Root_component<Session_component>
-	{
-		private:
 
-			Platform_timer    _platform_timer;
-			Timeout_scheduler _timeout_scheduler;
+class Timer::Root_component : public Genode::Root_component<Session_component>
+{
+	private:
 
-		protected:
+		Platform_timer    _platform_timer;
+		Timeout_scheduler _timeout_scheduler;
 
-			Session_component *_create_session(const char *args)
-			{
-				Genode::size_t ram_quota = Genode::Arg_string::find_arg(args, "ram_quota").ulong_value(0);
+	protected:
 
-				if (ram_quota < sizeof(Session_component)) {
-					PWRN("Insufficient donated ram_quota (%zd bytes), require %zd bytes",
-					     ram_quota, sizeof(Session_component));
-				}
+		Session_component *_create_session(const char *args)
+		{
+			Genode::size_t ram_quota = Genode::Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 
-				return new (md_alloc())
-					Session_component(_timeout_scheduler);
+			if (ram_quota < sizeof(Session_component)) {
+				PWRN("Insufficient donated ram_quota (%zd bytes), require %zd bytes",
+				     ram_quota, sizeof(Session_component));
 			}
 
-		public:
+			return new (md_alloc())
+				Session_component(_timeout_scheduler);
+		}
 
-			/**
-			 * Constructor
-			 *
-			 * The 'cap' argument is not used by the single-threaded server
-			 * variant.
-			 */
-			Root_component(Genode::Rpc_entrypoint         *session_ep,
-			               Genode::Allocator              *md_alloc,
-			               Genode::Cap_session            *cap)
-			:
-				Genode::Root_component<Session_component>(session_ep, md_alloc),
-				_timeout_scheduler(&_platform_timer, session_ep)
-			{ }
-	};
-}
+	public:
+
+		/**
+		 * Constructor
+		 *
+		 * The 'cap' argument is not used by the single-threaded server
+		 * variant.
+		 */
+		Root_component(Genode::Rpc_entrypoint         *session_ep,
+		               Genode::Allocator              *md_alloc,
+		               Genode::Cap_session            *cap)
+		:
+			Genode::Root_component<Session_component>(session_ep, md_alloc),
+			_timeout_scheduler(&_platform_timer, session_ep)
+		{ }
+};
 
 #endif

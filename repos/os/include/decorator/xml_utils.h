@@ -18,6 +18,7 @@
 
 
 namespace Decorator {
+
 	template <typename T>
 	static T attribute(Xml_node const &, char const *, T);
 

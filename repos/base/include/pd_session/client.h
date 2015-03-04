@@ -17,21 +17,21 @@
 #include <pd_session/capability.h>
 #include <base/rpc_client.h>
 
-namespace Genode {
+namespace Genode { struct Pd_session_client; }
 
-	struct Pd_session_client : Rpc_client<Pd_session>
-	{
-		explicit Pd_session_client(Pd_session_capability session)
-		: Rpc_client<Pd_session>(session) { }
 
-		int bind_thread(Thread_capability thread) {
-			return call<Rpc_bind_thread>(thread); }
+struct Genode::Pd_session_client : Rpc_client<Pd_session>
+{
+	explicit Pd_session_client(Pd_session_capability session)
+	: Rpc_client<Pd_session>(session) { }
 
-		int assign_parent(Parent_capability parent) {
-			return call<Rpc_assign_parent>(parent); }
+	int bind_thread(Thread_capability thread) override {
+		return call<Rpc_bind_thread>(thread); }
 
-		bool assign_pci(addr_t) { return false; }
-	};
-}
+	int assign_parent(Parent_capability parent) override {
+		return call<Rpc_assign_parent>(parent); }
+
+	bool assign_pci(addr_t) { return false; }
+};
 
 #endif /* _INCLUDE__PD_SESSION__CLIENT_H_ */

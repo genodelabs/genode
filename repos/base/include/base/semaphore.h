@@ -21,150 +21,157 @@
 
 namespace Genode {
 
+	struct Semaphore_queue;
+	class Fifo_semaphore_queue;
+
+	template <typename, typename> class Semaphore_template;
+}
+
+
+/**
+ * Semaphore queue interface
+ */
+struct Genode::Semaphore_queue
+{
 	/**
-	 * Semaphore queue interface
-	 */
-	class Semaphore_queue
-	{
-		public:
-
-			/**
-			 * Semaphore-queue elements
-			 *
-			 * A queue element represents a thread blocking on the
-			 * semaphore.
-			 */
-			class Element : Lock
-			{
-				public:
-
-					/**
-					 * Constructor
-					 */
-					Element() : Lock(LOCKED) { }
-
-					void block()   { lock();   }
-					void wake_up() { unlock(); }
-			};
-
-			/**
-			 * Add new queue member that is going to block
-			 */
-			void enqueue(Element *e);
-
-			/**
-			 * Dequeue queue member to wake up next
-			 */
-			Element *dequeue();
-	};
-
-
-	/**
-	 * First-in-first-out variant of the semaphore-queue interface
-	 */
-	class Fifo_semaphore_queue : public Semaphore_queue
-	{
-		public:
-
-			class Element : public Semaphore_queue::Element,
-			                public Fifo<Element>::Element { };
-
-		private:
-
-			Fifo<Element> _fifo;
-
-		public:
-
-			void enqueue(Element *e) { _fifo.enqueue(e); }
-
-			Element *dequeue()  { return _fifo.dequeue(); }
-	};
-
-
-	/**
-	 * Semaphore base template
+	 * Semaphore-queue elements
 	 *
-	 * \param QT  semaphore wait queue type implementing the
-	 *            'Semaphore_queue' interface
-	 * \param QTE wait-queue element type implementing the
-	 *            'Semaphore_queue::Element' interface
-	 *
-	 * The queuing policy is defined via the QT and QTE types.
-	 * This way, the platform-specific semaphore-queueing policies
-	 * such as priority-sorted queueing can be easily supported.
+	 * A queue element represents a thread blocking on the
+	 * semaphore.
 	 */
-	template <typename QT, typename QTE>
-	class Semaphore_template
+	class Element : Lock
 	{
-		protected:
-
-			int  _cnt;
-			Lock _meta_lock;
-			QT   _queue;
-
 		public:
 
 			/**
 			 * Constructor
-			 *
-			 * \param n  initial counter value of the semphore
 			 */
-			Semaphore_template(int n = 0) : _cnt(n) { }
+			Element() : Lock(LOCKED) { }
 
-			~Semaphore_template()
-			{
-				/* synchronize destruction with unfinished 'up()' */
-				try { _meta_lock.lock(); } catch (...) { }
-			}
-
-			void up()
-			{
-				Lock::Guard lock_guard(_meta_lock);
-
-				if (++_cnt > 0)
-					return;
-
-				/*
-				 * Remove element from queue and wake up the corresponding
-				 * blocking thread
-				 */
-				Semaphore_queue::Element * element = _queue.dequeue();
-				if (element)
-					element->wake_up();
-			}
-
-			void down()
-			{
-				_meta_lock.lock();
-
-				if (--_cnt < 0) {
-
-					/*
-					 * Create semaphore queue element representing the thread
-					 * in the wait queue.
-					 */
-					QTE queue_element;
-					_queue.enqueue(&queue_element);
-					_meta_lock.unlock();
-
-					/*
-					 * The thread is going to block on a local lock now,
-					 * waiting for getting waked from another thread
-					 * calling 'up()'
-					 * */
-					queue_element.block();
-
-				} else {
-					_meta_lock.unlock();
-				}
-			}
-
-			/**
-			 * Return current semaphore counter
-			 */
-			int cnt() { return _cnt; }
+			void block()   { lock();   }
+			void wake_up() { unlock(); }
 	};
 
+	/**
+	 * Add new queue member that is going to block
+	 */
+	void enqueue(Element *e);
+
+	/**
+	 * Dequeue queue member to wake up next
+	 */
+	Element *dequeue();
+};
+
+
+/**
+ * First-in-first-out variant of the semaphore-queue interface
+ */
+class Genode::Fifo_semaphore_queue : public Semaphore_queue
+{
+	public:
+
+		class Element : public Semaphore_queue::Element,
+		                public Fifo<Element>::Element { };
+
+	private:
+
+		Fifo<Element> _fifo;
+
+	public:
+
+		void enqueue(Element *e) { _fifo.enqueue(e); }
+
+		Element *dequeue()  { return _fifo.dequeue(); }
+};
+
+
+/**
+ * Semaphore base template
+ *
+ * \param QT  semaphore wait queue type implementing the
+ *            'Semaphore_queue' interface
+ * \param QTE wait-queue element type implementing the
+ *            'Semaphore_queue::Element' interface
+ *
+ * The queuing policy is defined via the QT and QTE types.
+ * This way, the platform-specific semaphore-queueing policies
+ * such as priority-sorted queueing can be easily supported.
+ */
+template <typename QT, typename QTE>
+class Genode::Semaphore_template
+{
+	protected:
+
+		int  _cnt;
+		Lock _meta_lock;
+		QT   _queue;
+
+	public:
+
+		/**
+		 * Constructor
+		 *
+		 * \param n  initial counter value of the semphore
+		 */
+		Semaphore_template(int n = 0) : _cnt(n) { }
+
+		~Semaphore_template()
+		{
+			/* synchronize destruction with unfinished 'up()' */
+			try { _meta_lock.lock(); } catch (...) { }
+		}
+
+		void up()
+		{
+			Lock::Guard lock_guard(_meta_lock);
+
+			if (++_cnt > 0)
+				return;
+
+			/*
+			 * Remove element from queue and wake up the corresponding
+			 * blocking thread
+			 */
+			Semaphore_queue::Element * element = _queue.dequeue();
+			if (element)
+				element->wake_up();
+		}
+
+		void down()
+		{
+			_meta_lock.lock();
+
+			if (--_cnt < 0) {
+
+				/*
+				 * Create semaphore queue element representing the thread
+				 * in the wait queue.
+				 */
+				QTE queue_element;
+				_queue.enqueue(&queue_element);
+				_meta_lock.unlock();
+
+				/*
+				 * The thread is going to block on a local lock now,
+				 * waiting for getting waked from another thread
+				 * calling 'up()'
+				 * */
+				queue_element.block();
+
+			} else {
+				_meta_lock.unlock();
+			}
+		}
+
+		/**
+		 * Return current semaphore counter
+		 */
+		int cnt() { return _cnt; }
+};
+
+
+namespace Genode {
 
 	/**
 	 * Semaphore with default behaviour

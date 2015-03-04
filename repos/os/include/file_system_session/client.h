@@ -18,98 +18,98 @@
 #include <file_system_session/capability.h>
 #include <packet_stream_tx/client.h>
 
-namespace File_system {
-
-	class Session_client : public Rpc_client<Session>
-	{
-		private:
-
-			Packet_stream_tx::Client<Tx> _tx;
-
-		public:
-
-			/**
-			 * Constructor
-			 *
-			 * \param session          session capability
-			 * \param tx_buffer_alloc  allocator used for managing the
-			 *                         transmission buffer
-			 */
-			Session_client(Session_capability  session,
-			               Range_allocator    &tx_buffer_alloc)
-			:
-				Rpc_client<Session>(session),
-				_tx(call<Rpc_tx_cap>(), &tx_buffer_alloc)
-			{ }
+namespace File_system { class Session_client; }
 
 
-			/***********************************
-			 ** File-system session interface **
-			 ***********************************/
+class File_system::Session_client : public Rpc_client<Session>
+{
+	private:
 
-			Tx::Source *tx() { return _tx.source(); }
+		Packet_stream_tx::Client<Tx> _tx;
 
-			File_handle file(Dir_handle dir, Name const &name, Mode mode, bool create)
-			{
-				return call<Rpc_file>(dir, name, mode, create);
-			}
+	public:
 
-			Symlink_handle symlink(Dir_handle dir, Name const &name, bool create)
-			{
-				return call<Rpc_symlink>(dir, name, create);
-			}
+		/**
+		 * Constructor
+		 *
+		 * \param session          session capability
+		 * \param tx_buffer_alloc  allocator used for managing the
+		 *                         transmission buffer
+		 */
+		Session_client(Session_capability  session,
+		               Range_allocator    &tx_buffer_alloc)
+		:
+			Rpc_client<Session>(session),
+			_tx(call<Rpc_tx_cap>(), &tx_buffer_alloc)
+		{ }
 
-			Dir_handle dir(Path const &path, bool create)
-			{
-				return call<Rpc_dir>(path, create);
-			}
 
-			Node_handle node(Path const &path)
-			{
-				return call<Rpc_node>(path);
-			}
+		/***********************************
+		 ** File-system session interface **
+		 ***********************************/
 
-			void close(Node_handle node)
-			{
-				call<Rpc_close>(node);
-			}
+		Tx::Source *tx() { return _tx.source(); }
 
-			Status status(Node_handle node)
-			{
-				return call<Rpc_status>(node);
-			}
+		File_handle file(Dir_handle dir, Name const &name, Mode mode, bool create) override
+		{
+			return call<Rpc_file>(dir, name, mode, create);
+		}
 
-			void control(Node_handle node, Control control)
-			{
-				call<Rpc_control>(node, control);
-			}
+		Symlink_handle symlink(Dir_handle dir, Name const &name, bool create) override
+		{
+			return call<Rpc_symlink>(dir, name, create);
+		}
 
-			void unlink(Dir_handle dir, Name const &name)
-			{
-				call<Rpc_unlink>(dir, name);
-			}
+		Dir_handle dir(Path const &path, bool create) override
+		{
+			return call<Rpc_dir>(path, create);
+		}
 
-			void truncate(File_handle file, file_size_t size)
-			{
-				call<Rpc_truncate>(file, size);
-			}
+		Node_handle node(Path const &path) override
+		{
+			return call<Rpc_node>(path);
+		}
 
-			void move(Dir_handle from_dir, Name const &from_name,
-			          Dir_handle to_dir,   Name const &to_name)
-			{
-				call<Rpc_move>(from_dir, from_name, to_dir, to_name);
-			}
+		void close(Node_handle node) override
+		{
+			call<Rpc_close>(node);
+		}
 
-			void sigh(Node_handle node, Signal_context_capability sigh)
-			{
-				call<Rpc_sigh>(node, sigh);
-			}
+		Status status(Node_handle node) override
+		{
+			return call<Rpc_status>(node);
+		}
 
-			void sync()
-			{
-				call<Rpc_sync>();
-			}
-	};
-}
+		void control(Node_handle node, Control control) override
+		{
+			call<Rpc_control>(node, control);
+		}
+
+		void unlink(Dir_handle dir, Name const &name) override
+		{
+			call<Rpc_unlink>(dir, name);
+		}
+
+		void truncate(File_handle file, file_size_t size) override
+		{
+			call<Rpc_truncate>(file, size);
+		}
+
+		void move(Dir_handle from_dir, Name const &from_name,
+		          Dir_handle to_dir,   Name const &to_name) override
+		{
+			call<Rpc_move>(from_dir, from_name, to_dir, to_name);
+		}
+
+		void sigh(Node_handle node, Signal_context_capability sigh) override
+		{
+			call<Rpc_sigh>(node, sigh);
+		}
+
+		void sync() override
+		{
+			call<Rpc_sync>();
+		}
+};
 
 #endif /* _INCLUDE__FILE_SYSTEM_SESSION__CLIENT_H_ */

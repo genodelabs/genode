@@ -17,27 +17,27 @@
 #include <framebuffer_session/capability.h>
 #include <base/rpc_client.h>
 
-namespace Framebuffer {
+namespace Framebuffer { struct Session_client; }
 
-	struct Session_client : Genode::Rpc_client<Session>
-	{
-		explicit Session_client(Session_capability session)
-		: Genode::Rpc_client<Session>(session) { }
 
-		Genode::Dataspace_capability dataspace() override {
-			return call<Rpc_dataspace>(); }
+struct Framebuffer::Session_client : Genode::Rpc_client<Session>
+{
+	explicit Session_client(Session_capability session)
+	: Genode::Rpc_client<Session>(session) { }
 
-		Mode mode() const override { return call<Rpc_mode>(); }
+	Genode::Dataspace_capability dataspace() override {
+		return call<Rpc_dataspace>(); }
 
-		void mode_sigh(Genode::Signal_context_capability sigh) override {
-			call<Rpc_mode_sigh>(sigh); }
+	Mode mode() const override { return call<Rpc_mode>(); }
 
-		void sync_sigh(Genode::Signal_context_capability sigh) override {
-			call<Rpc_sync_sigh>(sigh); }
+	void mode_sigh(Genode::Signal_context_capability sigh) override {
+		call<Rpc_mode_sigh>(sigh); }
 
-		void refresh(int x, int y, int w, int h) override {
-			call<Rpc_refresh>(x, y, w, h); }
-	};
-}
+	void sync_sigh(Genode::Signal_context_capability sigh) override {
+		call<Rpc_sync_sigh>(sigh); }
+
+	void refresh(int x, int y, int w, int h) override {
+		call<Rpc_refresh>(x, y, w, h); }
+};
 
 #endif /* _INCLUDE__FRAMEBUFFER_SESSION__CLIENT_H_ */
