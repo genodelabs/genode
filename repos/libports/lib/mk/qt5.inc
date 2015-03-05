@@ -14,7 +14,9 @@ $(addsuffix .o,$(basename $(SRC_CC))): $(COMPILER_MOC_SOURCE_MAKE_ALL_FILES_FILT
 QT5_INC_DIR += $(REP_DIR)/src/lib/qt5/qtbase/src/corelib/global
 
 QT5_INC_DIR += $(addprefix $(REP_DIR)/src/lib/qt5/, $(QT_INCPATH))
+QT5_INC_DIR += $(addprefix $(QT5_PORT_DIR)/src/lib/qt5/, $(QT_INCPATH))
 QT5_INC_DIR += $(addprefix $(QT5_CONTRIB_DIR)/, $(QT_INCPATH))
 
 vpath % $(addprefix $(REP_DIR)/src/lib/qt5/, $(QT_VPATH))
+vpath % $(addprefix $(QT5_PORT_DIR)/src/lib/qt5/, $(QT_VPATH))
 vpath % $(addprefix $(QT5_CONTRIB_DIR)/, $(QT_VPATH))

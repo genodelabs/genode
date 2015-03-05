@@ -23,7 +23,7 @@ QT_INCPATH := qtwebkit/Source/WebCore/dom
 # that's why they can be quite long
 #
 
-all: $(REP_DIR)/src/lib/qt5/qtwebkit/Source/WebCore/generated/generated.tag
+all: $(QT5_PORT_DIR)/src/lib/qt5/qtwebkit/Source/WebCore/generated/generated.tag
 
 # command names used by some of the extracted generator commands
 DEL_FILE := rm
@@ -38,14 +38,14 @@ WEBCORE_DIR = $(QT5_CONTRIB_DIR)/qtwebkit/Source/WebCore
 # make the 'HOST_TOOLS' variable known
 include $(REP_DIR)/lib/mk/qt5_host_tools.mk
 
-$(REP_DIR)/src/lib/qt5/qtwebkit/Source/WebCore/generated/generated.tag: $(HOST_TOOLS)
+$(QT5_PORT_DIR)/src/lib/qt5/qtwebkit/Source/WebCore/generated/generated.tag: $(HOST_TOOLS)
 
 	$(VERBOSE)mkdir -p $(dir $@)
 
 	$(VERBOSE)bison -d -p xpathyy $(WEBCORE_DIR)/xml/XPathGrammar.y -o $(dir $@)/XPathGrammar.tab.c && $(MOVE) $(dir $@)/XPathGrammar.tab.c $(dir $@)/XPathGrammar.cpp && $(MOVE) $(dir $@)/XPathGrammar.tab.h $(dir $@)/XPathGrammar.h
 
 	@# preprocess-idls.pl
-	$(VERBOSE)sed -e "s,^,$(QT5_CONTRIB_DIR)/,g" $(dir $@)/../idl_files > $(dir $@)/idl_files.tmp
+	$(VERBOSE)sed -e "s,^,$(QT5_CONTRIB_DIR)/,g" $(REP_DIR)/src/lib/qt5/qtwebkit/Source/WebCore/idl_files > $(dir $@)/idl_files.tmp
 	$(VERBOSE)touch $(dir $@)/supplemental_dependency.tmp 
 	$(VERBOSE)export "QT5_CONTRIB_DIR=$(QT5_CONTRIB_DIR)" && perl -I$(WEBCORE_DIR)/bindings/scripts $(WEBCORE_DIR)/bindings/scripts/preprocess-idls.pl --defines $(DEFINES) --idlFilesList $(dir $@)/idl_files.tmp --supplementalDependencyFile $(dir $@)/supplemental_dependency.tmp --idlAttributesFile $(WEBCORE_DIR)/bindings/scripts/IDLAttributes.txt --preprocessor "$(MOC) -E"
 
