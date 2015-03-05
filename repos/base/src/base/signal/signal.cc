@@ -280,9 +280,8 @@ Signal_context_capability Signal_receiver::manage(Signal_context *context)
 	/* register context at process-wide registry */
 	signal_context_registry()->insert(&context->_registry_le);
 
-	bool try_again;
-	do {
-		try_again = false;
+	bool try_again = true;
+	for (;;) {
 		try {
 
 			/* use signal context as imprint */
@@ -292,8 +291,8 @@ Signal_context_capability Signal_receiver::manage(Signal_context *context)
 		} catch (Signal_session::Out_of_metadata) {
 
 			/* give up if the error occurred a second time */
-			if (try_again)
-				break;
+			if (try_again) { try_again = false; }
+			else { break; }
 
 			size_t const quota = 1024*sizeof(long);
 			char buf[64];
@@ -302,9 +301,8 @@ Signal_context_capability Signal_receiver::manage(Signal_context *context)
 			PINF("upgrading quota donation for SIGNAL session (%zu bytes)", quota);
 
 			env()->parent()->upgrade(signal_connection()->cap(), buf);
-			try_again = true;
 		}
-	} while (try_again);
+	};
 	return Signal_context_capability();
 }
 
