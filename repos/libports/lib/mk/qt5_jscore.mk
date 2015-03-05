@@ -18,11 +18,11 @@ CC_WARN =
 # that's why they can be quite long
 #
 
-all: $(REP_DIR)/src/lib/qt5/qtwebkit/Source/JavaScriptCore/generated/generated.tag
+all: $(QT5_PORT_DIR)/src/lib/qt5/qtwebkit/Source/JavaScriptCore/generated/generated.tag
 
 JAVASCRIPTCORE_DIR = $(QT5_CONTRIB_DIR)/qtwebkit/Source/JavaScriptCore
 
-$(REP_DIR)/src/lib/qt5/qtwebkit/Source/JavaScriptCore/generated/generated.tag:
+$(QT5_PORT_DIR)/src/lib/qt5/qtwebkit/Source/JavaScriptCore/generated/generated.tag:
 
 	$(VERBOSE)mkdir -p $(dir $@)
 
