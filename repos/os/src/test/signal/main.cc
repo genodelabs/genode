@@ -610,7 +610,10 @@ static void many_managed_contexts()
 
 		for (unsigned i = 0; i < num_contexts; ++i) {
 			Id_signal_context *context = new (env()->heap()) Id_signal_context(i);
-			rec.manage(context);
+			if (!rec.manage(context).valid()) {
+				PERR("failed to manage signal context");
+				sleep_forever();
+			}
 		}
 	}
 
