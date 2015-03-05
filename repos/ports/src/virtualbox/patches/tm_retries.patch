@@ -1,0 +1,88 @@
+Wait longer for stable timer state
+    
+Some functions in the time manager, for example 'TMTimerSet()' and
+'TMTimerStop()' let VirtualBox abort with a failed assertion if the timer
+does not change to a 'stable' state after 1000 calls of a mixture of
+'yield' and 'sleep'. On Genode, this happens sometimes when the 'EMT'
+thread is executing 'TMTimerSet()' and gets interrupted by the 'TAP'
+thread, which calls 'TMTimerStop()' and waits for the 'EMT' thread to
+finish setting the timer. Since the 'EMT' thread has the lowest priority,
+1000 retries can be too few. Without the assertion, these functions would
+return an error code, which is often ignored by the caller, so it seems
+safer to keep retrying until the function can return successfully.
+
+Issue #1437
+
+diff --git src/app/virtualbox/src/VBox/VMM/VMMAll/TMAll.cpp src/app/virtualbox/src/VBox/VMM/VMMAll/TMAll.cpp
+index a1167a1..fbf95e2 100644
+--- src/app/virtualbox/src/VBox/VMM/VMMAll/TMAll.cpp
++++ src/app/virtualbox/src/VBox/VMM/VMMAll/TMAll.cpp
+@@ -1334,6 +1334,12 @@ VMMDECL(int) TMTimerSet(PTMTIMER pTimer, uint64_t u64Expire)
+                 AssertMsgFailed(("Unknown timer state %d (%s)\n", enmState, R3STRING(pTimer->pszDesc)));
+                 return VERR_TM_UNKNOWN_STATE;
+         }
++
++        if (cRetries == 0) {
++			RTLogPrintf("TMTimerSet(): Failed waiting for stable state. state=%d (%s), keeping trying...\n", pTimer->enmState, R3STRING(pTimer->pszDesc));
++			cRetries = 1000;
++        }
++
+     } while (cRetries-- > 0);
+ 
+     AssertMsgFailed(("Failed waiting for stable state. state=%d (%s)\n", pTimer->enmState, R3STRING(pTimer->pszDesc)));
+@@ -1683,10 +1689,8 @@ VMMDECL(int) TMTimerSetRelative(PTMTIMER pTimer, uint64_t cTicksToNext, uint64_t
+         }
+         if (cRetries <= 0)
+         {
+-            AssertMsgFailed(("Failed waiting for stable state. state=%d (%s)\n", pTimer->enmState, R3STRING(pTimer->pszDesc)));
+-            rc = VERR_TM_TIMER_UNSTABLE_STATE;
+-            tmTimerSetRelativeNowWorker(pVM, enmClock, pu64Now);
+-            break;
++            RTLogPrintf("TMTimerSetRelative(): Failed waiting for stable state. state=%d (%s), keeping trying...\n", pTimer->enmState, R3STRING(pTimer->pszDesc));
++            cRetries = 1000;
+         }
+ 
+         /*
+@@ -1909,6 +1913,12 @@ VMMDECL(int) TMTimerStop(PTMTIMER pTimer)
+                 AssertMsgFailed(("Unknown timer state %d (%s)\n", enmState, R3STRING(pTimer->pszDesc)));
+                 return VERR_TM_UNKNOWN_STATE;
+         }
++
++        if (cRetries == 0) {
++			RTLogPrintf("TMTimerStop(): Failed waiting for stable state. state=%d (%s), keeping trying...\n", pTimer->enmState, R3STRING(pTimer->pszDesc));
++			cRetries = 1000;
++        }
++
+     } while (cRetries-- > 0);
+ 
+     AssertMsgFailed(("Failed waiting for stable state. state=%d (%s)\n", pTimer->enmState, R3STRING(pTimer->pszDesc)));
+@@ -2027,6 +2037,12 @@ VMMDECL(uint64_t) TMTimerGetExpire(PTMTIMER pTimer)
+                 AssertMsgFailed(("Unknown timer state %d (%s)\n", enmState, R3STRING(pTimer->pszDesc)));
+                 return ~(uint64_t)0;
+         }
++
++        if (cRetries == 0) {
++			RTLogPrintf("TMTimerGetExpire(): Failed waiting for stable state. state=%d (%s), keeping trying...\n", pTimer->enmState, R3STRING(pTimer->pszDesc));
++			cRetries = 1000;
++        }
++
+     } while (cRetries-- > 0);
+ 
+     AssertMsgFailed(("Failed waiting for stable state. state=%d (%s)\n", pTimer->enmState, R3STRING(pTimer->pszDesc)));
+diff --git src/app/virtualbox/src/VBox/VMM/VMMR3/TM.cpp src/app/virtualbox/src/VBox/VMM/VMMR3/TM.cpp
+index f6f6c8e..c3bc22d 100644
+--- src/app/virtualbox/src/VBox/VMM/VMMR3/TM.cpp
++++ src/app/virtualbox/src/VBox/VMM/VMMR3/TM.cpp
+@@ -1617,8 +1617,10 @@ VMMR3DECL(int) TMR3TimerDestroy(PTMTIMER pTimer)
+                 TM_UNLOCK_TIMERS(pVM);
+                 if (!RTThreadYield())
+                     RTThreadSleep(1);
+-                AssertMsgReturn(cRetries > 0, ("Failed waiting for stable state. state=%d (%s)\n", pTimer->enmState, pTimer->pszDesc),
+-                                VERR_TM_UNSTABLE_STATE);
++                if (cRetries == 0) {
++                	RTLogPrintf("TMR3TimerDestroy(): Failed waiting for stable state. state=%d (%s), keeping trying...\n", pTimer->enmState, pTimer->pszDesc);
++                	cRetries = 1000;
++                }
+                 TM_LOCK_TIMERS(pVM);
+                 continue;
+ 
