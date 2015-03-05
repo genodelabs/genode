@@ -280,9 +280,8 @@ Signal_context_capability Signal_receiver::manage(Signal_context *context)
 	/* register context at process-wide registry */
 	signal_context_registry()->insert(&context->_registry_le);
 
-	bool try_again;
+	bool try_again = false;
 	do {
-		try_again = false;
 		try {
 
 			/* use signal context as imprint */
