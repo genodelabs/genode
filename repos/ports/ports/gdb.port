@@ -15,25 +15,3 @@ PATCHES     := $(addprefix $(PATCHES_DIR)/,$(shell cat $(PATCHES_DIR)/series)) \
                $(REP_DIR)/src/noux-pkg/gdb/build.patch
 PATCH_OPT   := -p1 -d ${DIR(gdb)}
 
-default: _patch generated_files
-
-GENERATED_DIR := $(REP_DIR)/src/lib/gdbserver_platform/generated
-
-$(GENERATED_DIR):
-	$(VERBOSE) mkdir $@
-
-REGFORMATS_DIR := $(abspath ${DIR(gdb)}/gdb/regformats)
-
-$(GENERATED_DIR)/reg-arm.c: $(GENERATED_DIR)
-	$(VERBOSE) cd $(GENERATED_DIR) && $(SHELL) $(REGFORMATS_DIR)/regdat.sh $(REGFORMATS_DIR)/reg-arm.dat $(notdir $@)
-
-$(GENERATED_DIR)/i386.c: $(GENERATED_DIR)
-	$(VERBOSE) cd $(GENERATED_DIR) && $(SHELL) $(REGFORMATS_DIR)/regdat.sh $(REGFORMATS_DIR)/i386/i386.dat $(notdir $@)
-
-$(GENERATED_DIR)/i386-avx.c: $(GENERATED_DIR)
-	$(VERBOSE) cd $(GENERATED_DIR) && $(SHELL) $(REGFORMATS_DIR)/regdat.sh $(REGFORMATS_DIR)/i386/i386-avx.dat $(notdir $@)
-
-generated_files: $(GENERATED_DIR)/reg-arm.c \
-                 $(GENERATED_DIR)/i386.c \
-                 $(GENERATED_DIR)/i386-avx.c
-

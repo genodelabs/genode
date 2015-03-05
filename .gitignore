@@ -25,7 +25,6 @@
 /repos/ports/contrib
 /repos/ports/download
 /repos/ports/src/app/arora/html
-/repos/ports/src/lib/gdbserver_platform/generated
 /repos/qt4/contrib
 /repos/qt4/download
 /repos/qt4/tool/bootstrap
