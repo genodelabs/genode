@@ -39,7 +39,7 @@ struct Genode::Flexpage
 };
 
 
-class Flexpage_iterator
+class Genode::Flexpage_iterator
 {
 	private:
 
