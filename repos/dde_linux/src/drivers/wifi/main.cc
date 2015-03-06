@@ -35,24 +35,68 @@ static Genode::Lock &wpa_startup_lock()
 }
 
 
-static int update_conf(char **p, Genode::size_t *len, char const *ssid,
-                       bool encryption = false, char const *psk = 0)
+namespace {
+	template <Genode::size_t CAPACITY>
+	class Buffer
+	{
+		private:
+
+			char           _data[CAPACITY] { 0 };
+			Genode::size_t _length { 0 };
+
+		public:
+
+			void            reset()       { _data[0] = 0; _length = 0; }
+			char const      *data() const { return _data; }
+			Genode::size_t length() const { return _length; }
+
+			void append(char const *format, ...)
+			{
+				va_list list;
+				va_start(list, format);
+				Genode::String_console sc(_data + _length, CAPACITY - _length);
+				sc.vprintf(format, list);
+				va_end(list);
+
+				_length += sc.len();
+			}
+	};
+} /* anonymous namespace */
+
+
+/**
+ * Generate wpa_supplicant.conf file
+ */
+static int generate_wpa_supplicant_conf(char const **p, Genode::size_t *len, char const *ssid,
+                       char const *bssid, bool protection = false, char const *psk = 0)
 {
-	char const *ssid_fmt = "network={\n\tssid=\"%s\"\n\tkey_mgmt=%s\n";
-	char const *psk_fmt  = "psk=\"%s\"\n";
-	char const *end_fmt  = "}\n";
+	static char const *start_fmt = "network={\n";
+	static char const *ssid_fmt  = "\tssid=\"%s\"\n";
+	static char const *bssid_fmt = "\tbssid=%s\n";
+	static char const *prot_fmt  = "\tkey_mgmt=%s\n";
+	static char const *psk_fmt   = "\tpsk=\"%s\"\n";
+	static char const *end_fmt   = "}\n";
 
-	static char buf[4096];
-	Genode::size_t n = Genode::snprintf(buf, sizeof(buf), ssid_fmt, ssid,
-	                                    encryption ? "WPA-PSK" : "NONE");
-	if (encryption) {
-		n += Genode::snprintf(buf + n, sizeof(buf) - n, psk_fmt, psk);
-	}
+	static Buffer<256> buffer;
+	buffer.reset();
 
-	n += Genode::snprintf(buf + n, sizeof(buf) - n, end_fmt);
+	buffer.append(start_fmt);
 
-	*p = buf;
-	*len = n;
+	if (ssid)
+		buffer.append(ssid_fmt, ssid);
+
+	if (bssid)
+		buffer.append(bssid_fmt, bssid);
+
+	if (protection)
+		buffer.append(psk_fmt, psk);
+
+	buffer.append(prot_fmt, protection ? "WPA-PSK" : "NONE");
+
+	buffer.append(end_fmt);
+
+	*p = buffer.data();
+	*len = buffer.length();
 
 	return 0;
 }
@@ -60,55 +104,109 @@ static int update_conf(char **p, Genode::size_t *len, char const *ssid,
 
 struct Wlan_configration
 {
-	Genode::Attached_rom_dataspace              config_rom { "wlan_configuration" };
+	Genode::Attached_rom_dataspace               config_rom { "wlan_configuration" };
 	Genode::Signal_rpc_member<Wlan_configration> dispatcher;
+	Genode::Lock                                 update_lock;
 
-	void _update_conf()
+	char const     *buffer;
+	Genode::size_t  size;
+
+	/**
+	 * Write configuration buffer to conf file to activate the new configuration.
+	 */
+	void _activate_configuration()
 	{
-		config_rom.update();
-		Genode::size_t size = config_rom.size();
-
-		char           *file_buffer;
-		Genode::size_t  buffer_length;
-
-		Genode::Xml_node node(config_rom.local_addr<char>(), size);
-
-		/**
-		 * Since <selected_accesspoint/> is empty we generate a dummy
-		 * configuration to fool wpa_supplicant to keep it scanning for
-		 * the non exisiting network.
-		 */
-		if (!node.has_attribute("ssid")) {
-			update_conf(&file_buffer, &buffer_length, "dummyssid");
-		} else {
-			char ssid[32+1] = { 0 };
-			node.attribute("ssid").value(ssid, sizeof(ssid));
-
-			bool use_protection = node.has_attribute("protection");
-
-			char psk[63+1] = { 0 };
-			if (use_protection && node.has_attribute("psk"))
-				node.attribute("psk").value(psk, sizeof(psk));
-
-			if (update_conf(&file_buffer, &buffer_length, ssid,
-			                use_protection, psk) != 0)
-				return;
-			}
-
-		if (wpa_write_conf(file_buffer, buffer_length) == 0) {
+		if (wpa_write_conf(buffer, size) == 0) {
 			PINF("reload wpa_supplicant configuration");
 			wpa_conf_reload();
 		}
 	}
 
-	void _handle_update(unsigned) { _update_conf(); }
+	/**
+	 * Write dummy configuration buffer to conf file to activate the new
+	 * configuration.
+	 */
+	void _active_dummy_configuration()
+	{
+		generate_wpa_supplicant_conf(&buffer, &size, "dummyssid", "00:00:00:00:00:00");
+		_activate_configuration();
+	}
+
+	/**
+	 * Update the conf file used by the wpa_supplicant.
+	 */
+	void _update_configuration()
+	{
+		Genode::Lock::Guard guard(update_lock);
+
+		config_rom.update();
+
+		/**
+		 * We generate a dummy configuration because there is no valid
+		 * configuration yet to fool wpa_supplicant to keep it scanning
+		 * for the non exisiting network.
+		 */
+		if (!config_rom.is_valid()) {
+			_active_dummy_configuration();
+			return;
+		}
+
+		Genode::Xml_node node(config_rom.local_addr<char>(), config_rom.size());
+
+		/**
+		 * Since <selected_accesspoint/> is empty we also generate a dummy
+		 * configuration.
+		 */
+		bool use_ssid  = node.has_attribute("ssid");
+		bool use_bssid = node.has_attribute("bssid");
+		if (!use_ssid && !use_bssid) {
+			_active_dummy_configuration();
+			return;
+		}
+
+		/**
+		 * Try to generate a valid configuration.
+		 */
+		enum { MAX_SSID_LENGTH = 32,
+		       BSSID_LENGTH    = 12 + 5,
+		       MIN_PSK_LENGTH  =  8,
+		       MAX_PSK_LENGTH  = 63 };
+
+		char ssid[MAX_SSID_LENGTH + 1] = { 0 };
+		if (use_ssid)
+			node.attribute("ssid").value(ssid, sizeof(ssid));
+
+		char bssid[BSSID_LENGTH + 1] = { 0 };
+		if (use_bssid)
+			node.attribute("bssid").value(bssid, sizeof(bssid));
+
+		bool use_protection = node.has_attribute("protection");
+
+		char psk[MAX_PSK_LENGTH + 1] = { 0 };
+		if (use_protection && node.has_attribute("psk"))
+			node.attribute("psk").value(psk, sizeof(psk));
+
+		/* psk must be between 8 and 63 characters long */
+		if (Genode::strlen(psk) < MIN_PSK_LENGTH) {
+			_active_dummy_configuration();
+			return;
+		}
+
+		if (generate_wpa_supplicant_conf(&buffer, &size,
+		                                 use_ssid ? ssid : 0,
+		                                 use_bssid ? bssid : 0,
+		                                 use_protection, psk) == 0)
+			_activate_configuration();
+	}
+
+	void _handle_update(unsigned) { _update_configuration(); }
 
 	Wlan_configration(Server::Entrypoint &ep)
 	:
 		dispatcher(ep, *this, &Wlan_configration::_handle_update)
 	{
 		config_rom.sigh(dispatcher);
-		_update_conf();
+		_update_configuration();
 	}
 };
 
