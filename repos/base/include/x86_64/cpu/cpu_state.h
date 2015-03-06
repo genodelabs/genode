@@ -24,6 +24,7 @@ namespace Genode { struct Cpu_state; }
 struct Genode::Cpu_state
 {
 	enum Cpu_exception {
+		NO_MATH_COPROC   = 0x07,
 		PAGE_FAULT       = 0x0e,
 		SUPERVISOR_CALL  = 0x80,
 		INTERRUPTS_START = 0x20,

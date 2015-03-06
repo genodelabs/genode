@@ -31,7 +31,7 @@ namespace Genode
 	/**
 	 * Part of CPU state that is not switched on every mode transition
 	 */
-	class Cpu_lazy_state { };
+	class Cpu_lazy_state;
 
 	/**
 	 * CPU driver for core
@@ -41,15 +41,121 @@ namespace Genode
 
 namespace Kernel { using Genode::Cpu_lazy_state; }
 
-class Genode::Cpu
+class Genode::Cpu_lazy_state
 {
+	friend class Cpu;
+
 	private:
-		Idt *_idt;
-		Tss *_tss;
+
+		/**
+		 * FXSAVE area providing storage for x87 FPU, MMX, XMM, and MXCSR
+		 * registers.
+		 *
+		 * For further details see Intel SDM Vol. 2A, 'FXSAVE instruction'.
+		 */
+		char fxsave_area[527];
+
+		/**
+		 * 16-byte aligned start of FXSAVE area.
+		 */
+		char *start;
+
+		/**
+		 * Load x87 FPU State from fxsave area.
+		 */
+		inline void load() {
+			asm volatile ("fxrstor %0" : : "m" (*start)); }
+
+		/**
+		 * Save x87 FPU State to fxsave area.
+		 */
+		inline void save() {
+			asm volatile ("fxsave %0" : "=m" (*start)); }
 
 	public:
 
-		Cpu()
+		/**
+		 * Constructor
+		 *
+		 * Calculate 16-byte aligned start of FXSAVE area if necessary.
+		 */
+		inline Cpu_lazy_state()
+		{
+			start = fxsave_area;
+			if((addr_t)start & 15)
+				start = (char *)((addr_t)start & ~15) + 16;
+		};
+} __attribute__((aligned(16)));
+
+
+class Genode::Cpu
+{
+	friend class Cpu_lazy_state;
+
+	private:
+		Idt *_idt;
+		Tss *_tss;
+		Cpu_lazy_state *_fpu_state;
+
+		/**
+		 * Control register 0
+		 */
+		struct Cr0 : Register<64>
+		{
+			struct Pe : Bitfield<0,  1> { };  /* Protection Enable   */
+			struct Mp : Bitfield<1,  1> { };  /* Monitor Coprocessor */
+			struct Em : Bitfield<2,  1> { };  /* Emulation           */
+			struct Ts : Bitfield<3,  1> { };  /* Task Switched       */
+			struct Et : Bitfield<4,  1> { };  /* Extension Type      */
+			struct Ne : Bitfield<5,  1> { };  /* Numeric Error       */
+			struct Wp : Bitfield<16, 1> { };  /* Write Protect       */
+			struct Am : Bitfield<18, 1> { };  /* Alignment Mask      */
+			struct Nw : Bitfield<29, 1> { };  /* Not Write-through   */
+			struct Cd : Bitfield<30, 1> { };  /* Cache Disable       */
+			struct Pg : Bitfield<31, 1> { };  /* Paging              */
+
+			static void write(access_t const v) {
+				asm volatile ("mov %0, %%cr0" :: "r" (v) : ); }
+
+			static access_t read()
+			{
+				access_t v;
+				asm volatile ("mov %%cr0, %0" : "=r" (v) :: );
+				return v;
+			}
+		};
+
+		/**
+		 * Disable FPU by setting the TS flag in CR0.
+		 */
+		static void _disable_fpu()
+		{
+			Cr0::write(Cr0::read() | Cr0::Ts::bits(1));
+		}
+
+		/**
+		 * Enable FPU by clearing the TS flag in CR0.
+		 */
+		static void _enable_fpu() {
+			asm volatile ("clts"); }
+
+		/**
+		 * Initialize FPU without checking for pending unmasked floating-point
+		 * exceptions.
+		 */
+		static void _init_fpu() {
+			asm volatile ("fninit");
+		}
+
+		/**
+		 * Returns True if the FPU is enabled.
+		 */
+		static bool is_fpu_enabled() {
+			return !Cr0::Ts::get(Cr0::read()); }
+
+	public:
+
+		Cpu() : _fpu_state(0)
 		{
 			if (primary_id() == executing_id()) {
 				_idt = new (&_mt_idt) Idt();
@@ -259,8 +365,8 @@ class Genode::Cpu
 		init_virt_kernel(addr_t const table, unsigned const process_id) {
 			Cr3::write(Cr3::init(table)); }
 
-		inline static void finish_init_phys_kernel()
-		{ }
+		inline static void finish_init_phys_kernel() {
+			_init_fpu(); }
 
 		/**
 		 * Configure this module appropriately for the first kernel run
@@ -291,6 +397,25 @@ class Genode::Cpu
 		bool retry_undefined_instr(Cpu_lazy_state *) { return false; }
 
 		/**
+		 * Return whether to retry an FPU instruction after this call
+		 */
+		bool retry_fpu_instr(Cpu_lazy_state * const state)
+		{
+			if (is_fpu_enabled())
+				return false;
+
+			_enable_fpu();
+			if (_fpu_state != state) {
+				if (_fpu_state)
+					_fpu_state->save();
+
+				state->load();
+				_fpu_state = state;
+			}
+			return true;
+		}
+
+		/**
 		 * Return kernel name of the executing CPU
 		 */
 		static unsigned executing_id() { return 0; }
@@ -300,13 +425,27 @@ class Genode::Cpu
 		 */
 		static unsigned primary_id() { return 0; }
 
+		/**
+		 * Prepare for the proceeding of a user
+		 *
+		 * \param old_state  CPU state of the last user
+		 * \param new_state  CPU state of the next user
+		 */
+		static void prepare_proceeding(Cpu_lazy_state * const old_state,
+		                               Cpu_lazy_state * const new_state)
+		{
+			if (old_state == new_state)
+				return;
+
+			_disable_fpu();
+		}
+
 		/*************
 		 ** Dummies **
 		 *************/
 
 		static void tlb_insertions() { inval_branch_predicts(); }
 		static void translation_added(addr_t, size_t) { }
-		static void prepare_proceeding(Cpu_lazy_state *, Cpu_lazy_state *) { }
 
 };
 
