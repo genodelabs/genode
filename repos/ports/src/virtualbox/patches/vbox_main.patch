@@ -1626,3 +1626,17 @@
       CheckComArgNotNull(aTarget);
       CheckComArgOutPointerValid(aProgress);
       CheckComArgSafeArrayNotNull(aVariant);
++++ src/app/virtualbox/src/VBox/Main/src-client/MouseImpl.cpp
+@@ -816,7 +818,11 @@
+         }
+     }
+ 
+-    if (SUCCEEDED(rc))
++    /*
++     * Contrary to the comment of the previous if clause, the usb model
++     * triggers various assertions if 0 contacts are propagated.
++     */
++    if (SUCCEEDED(rc) && cContacts)
+     {
+         rc = reportMultiTouchEventToDevice(cContacts, cContacts? pau64Contacts: NULL, (uint32_t)aScanTime);
+ 

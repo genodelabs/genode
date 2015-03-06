@@ -25,9 +25,6 @@
 #include "ConsoleImpl.h"
 #include <base/printf.h>
 
-/* XXX */
-enum { KMOD_RCTRL = 0, SDLK_RCTRL = 0 };
-
 
 class Scan_code
 {
@@ -138,7 +135,16 @@ class GenodeConsole : public Console {
 
 		void eventWait(IKeyboard * gKeyboard, IMouse * gMouse)
 		{
+			static LONG64 mt_events [64];
+			unsigned      mt_number = 0;
+
 			_receiver.wait_for_signal();
+
+			/* read out input capabilities of guest */
+			bool guest_abs = false, guest_rel = false, guest_multi = false;
+			gMouse->COMGETTER(AbsoluteSupported)(&guest_abs);
+			gMouse->COMGETTER(RelativeSupported)(&guest_rel);
+			gMouse->COMGETTER(MultiTouchSupported)(&guest_multi);
 
 			for (int i = 0, num_ev = _input.flush(); i < num_ev; ++i) {
 				Input::Event &ev = _ev_buf[i];
@@ -148,6 +154,7 @@ class GenodeConsole : public Console {
 				bool const is_key     = is_press || is_release;
 				bool const is_motion  = ev.type() == Input::Event::MOTION;
 				bool const is_wheel   = ev.type() == Input::Event::WHEEL;
+				bool const is_touch   = ev.type() == Input::Event::TOUCH;
 
 				if (is_key) {
 					Scan_code scan_code(ev.keycode());
@@ -184,13 +191,19 @@ class GenodeConsole : public Console {
 					                       | (_key_status[Input::BTN_RIGHT]  ? MouseButtonState_RightButton : 0)
 					                       | (_key_status[Input::BTN_MIDDLE] ? MouseButtonState_MiddleButton : 0);
 					if (ev.is_absolute_motion()) {
-						int const rx = ev.ax() - _ax; _ax = ev.ax();
-						int const ry = ev.ay() - _ay; _ay = ev.ay();
-						gMouse->PutMouseEvent(rx, ry, 0, 0, buttons);
-						gMouse->PutMouseEventAbsolute(ev.ax(), ev.ay(), 0, 0, buttons);
+						/* transform absolute to relative if guest is so odd */
+						if (!guest_abs && guest_rel) {
+							int const boundary = 20;
+							int rx = ev.ax() - _ax; _ax = ev.ax();
+							int ry = ev.ay() - _ay; _ay = ev.ay();
+							rx = Genode::min(boundary, Genode::max(-boundary, rx));
+							ry = Genode::min(boundary, Genode::max(-boundary, ry));
+							gMouse->PutMouseEvent(rx, ry, 0, 0, buttons);
+						} else
+							gMouse->PutMouseEventAbsolute(ev.ax(), ev.ay(), 0,
+							                              0, buttons);
 					} else if (ev.is_relative_motion())
 						gMouse->PutMouseEvent(ev.rx(), ev.ry(), 0, 0, buttons);
-
 					/* only the buttons changed */
 					else
 						gMouse->PutMouseEvent(0, 0, 0, 0, buttons);
@@ -198,6 +211,42 @@ class GenodeConsole : public Console {
 
 				if (is_wheel)
 					gMouse->PutMouseEvent(0, 0, ev.rx(), ev.ry(), 0);
+
+				if (is_touch) {
+					/* if multitouch queue is full - send it */
+					if (mt_number >= sizeof(mt_events) / sizeof(mt_events[0])) {
+						gMouse->PutEventMultiTouch(mt_number, mt_number,
+						                           mt_events, RTTimeMilliTS());
+						mt_number = 0;
+					}
+
+					int x    = ev.ax();
+					int y    = ev.ay();
+					int slot = ev.code();
+
+					/* Mouse::putEventMultiTouch drops values of 0 */
+					if (x <= 0) x = 1;
+					if (y <= 0) y = 1;
+
+					enum MultiTouch {
+						None = 0x0,
+						InContact = 0x01,
+						InRange = 0x02
+					};
+
+					int status = MultiTouch::InContact | MultiTouch::InRange;
+					if (ev.is_touch_release())
+						status = MultiTouch::None;
+
+					uint16_t const s = RT_MAKE_U16(slot, status);
+					mt_events[mt_number++] = RT_MAKE_U64_FROM_U16(x, y, s, 0);
+				}
+
 			}
+
+			/* if there are elements - send it */
+			if (mt_number)
+				gMouse->PutEventMultiTouch(mt_number, mt_number, mt_events,
+				                           RTTimeMilliTS());
 		}
 };

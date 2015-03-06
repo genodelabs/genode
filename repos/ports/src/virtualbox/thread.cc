@@ -57,7 +57,7 @@ static Genode::Cpu_session * get_cpu_session(RTTHREADTYPE type) {
 
 	/* upgrade memory of cpu session for frequent used thread type */
 	if (type == RTTHREADTYPE_IO)
-		Genode::env()->parent()->upgrade(con[type - 1]->cap(), "ram_quota=8192");
+		Genode::env()->parent()->upgrade(con[type - 1]->cap(), "ram_quota=16384");
 
 	return con[type - 1];
 }
