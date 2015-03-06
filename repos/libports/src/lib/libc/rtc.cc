@@ -32,13 +32,13 @@ time_t Libc::read_rtc()
 	time_t rtc = 0;
 
 	if (!Genode::strcmp(Libc::config_rtc(), "")) {
-		PWRN("%s: rtc not configured, returning %lu", __func__, rtc);
+		PWRN("%s: rtc not configured, returning %lld", __func__, (long long)rtc);
 		return rtc;
 	}
 
 	int fd = open(Libc::config_rtc(), O_RDONLY);
 	if (fd == -1) {
-		PWRN("%s: %s not readable, returning %lu", __func__, Libc::config_rtc(), rtc);
+		PWRN("%s: %s not readable, returning %lld", __func__, Libc::config_rtc(), (long long)rtc);
 		return rtc;
 	}
 
