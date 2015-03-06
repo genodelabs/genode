@@ -48,7 +48,7 @@ class Genode::Timer
 		static uint32_t ms_to_tics(unsigned const ms)
 		{
 			PDBG("not implemented");
-			return 0;
+			return 10000;
 		}
 
 		unsigned value(unsigned)
