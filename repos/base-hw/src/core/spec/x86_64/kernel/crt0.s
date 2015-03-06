@@ -29,9 +29,10 @@
 	.global _start
 	_start:
 
-	/* Enable PAE (prerequisite for IA-32e mode) */
+	/* Enable PAE (prerequisite for IA-32e mode) and OSFXSR */
 	movl %cr4, %eax
 	btsl $5, %eax
+	btsl $9, %eax
 	movl %eax, %cr4
 
 	/* Load initial pagetables */

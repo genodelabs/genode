@@ -29,6 +29,11 @@ void Thread::exception(unsigned const cpu)
 	if (trapno == PAGE_FAULT) {
 		_mmu_exception();
 		return;
+	} else if (trapno == NO_MATH_COPROC) {
+		if (_cpu->retry_fpu_instr(&_lazy_state)) { return; }
+		PWRN("fpu error");
+		_stop();
+		return;
 	}
 	if (trapno == SUPERVISOR_CALL) {
 		_call();
