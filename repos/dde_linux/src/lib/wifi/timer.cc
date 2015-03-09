@@ -120,6 +120,12 @@ class Lx::Timer
 			ctx->timeout    = expires;
 			ctx->pending    = true;
 			ctx->programmed = false;
+			/*
+			 * Also write the timeout value to the expires field in
+			 * struct timer_list because the wireless stack checks
+			 * it directly.
+			 */
+			ctx->timer->expires = expires;
 
 			Context *c;
 			for (c = _list.first(); c; c = c->next())
