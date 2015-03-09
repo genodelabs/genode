@@ -26,12 +26,6 @@ extern Ram_dataspace_capability _main_thread_utcb_ds;
 extern Native_thread_id         _main_thread_id;
 
 
-/**
- * Return virtual UTCB location of main threads
- */
-Native_utcb * main_thread_utcb() { return UTCB_MAIN_THREAD; }
-
-
 /*****************
  ** Thread_base **
  *****************/

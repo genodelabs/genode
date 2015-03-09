@@ -63,12 +63,10 @@ void prepare_reinit_main_thread() { prepare_init_main_thread(); }
  ** Thread_base **
  *****************/
 
-extern Native_utcb* main_thread_utcb();
-
 Native_utcb * Thread_base::utcb()
 {
 	if (this) { return &_context->utcb; }
-	return main_thread_utcb();
+	return UTCB_MAIN_THREAD;
 }
 
 

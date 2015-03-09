@@ -7,9 +7,6 @@
 # add library dependencies
 LIBS += core-perf_counter
 
-# set entry point of core's first thread
-CC_OPT += -DCORE_MAIN=_main
-
 # add library dependencies
 LIBS += base-common
 
@@ -54,6 +51,7 @@ SRC_CC += kernel/signal_receiver.cc
 SRC_CC += kernel/irq.cc
 SRC_CC += kernel/pd.cc
 SRC_CC += kernel/cpu.cc
+SRC_CC += init_main_thread.cc
 
 # add assembly sources
 SRC_S += boot_modules.s

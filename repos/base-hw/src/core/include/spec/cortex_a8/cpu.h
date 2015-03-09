@@ -62,6 +62,7 @@ class Genode::Cpu : public Arm_v7
 			 * adds translations solely before MMU and caches are enabled.
 			 */
 			if (is_user()) Kernel::update_data_region(addr, size);
+			else flush_data_caches();
 		}
 
 		/**

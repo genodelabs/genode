@@ -23,11 +23,10 @@
 
 using namespace Genode;
 
-extern Genode::Native_utcb * _main_thread_utcb;
+namespace Genode { Rm_session * env_context_area_rm_session(); }
 
-Native_utcb * main_thread_utcb() {
-	return _main_thread_utcb; }
-
+extern Ram_dataspace_capability _main_thread_utcb_ds;
+extern Native_thread_id         _main_thread_id;
 
 void Thread_base::start()
 {
@@ -52,11 +51,23 @@ void Thread_base::_deinit_platform_thread()
 
 void Thread_base::_init_platform_thread(size_t, Type type)
 {
-	/* create platform thread */
-	_tid.platform_thread = new (platform()->core_mem_alloc())
-		Platform_thread(_context->name, &_context->utcb);
+	if (type == NORMAL) {
+		_tid.platform_thread = new (platform()->core_mem_alloc())
+			Platform_thread(_context->name, &_context->utcb);
+		return;
+	}
 
-	if (type == NORMAL) { return; }
+	size_t const utcb_size = sizeof(Native_utcb);
+	addr_t const context_area = Native_config::context_area_virtual_base();
+	addr_t const utcb_new = (addr_t)&_context->utcb - context_area;
+	Rm_session * const rm = env_context_area_rm_session();
 
-	PWRN("not implemented!");
+	/* remap initial main-thread UTCB according to context-area spec */
+	try { rm->attach_at(_main_thread_utcb_ds, utcb_new, utcb_size); }
+	catch(...) {
+		PERR("failed to re-map UTCB");
+		while (1) ;
+	}
+	/* adjust initial object state in case of a main thread */
+	tid().thread_id = _main_thread_id;
 }

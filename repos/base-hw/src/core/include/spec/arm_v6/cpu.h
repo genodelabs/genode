@@ -160,6 +160,7 @@ class Genode::Cpu : public Arm
 			 * adds translations solely before MMU and caches are enabled.
 			 */
 			if (is_user()) Kernel::update_data_region(addr, size);
+			else flush_data_caches();
 		}
 
 		/**
@@ -181,17 +182,5 @@ class Genode::Cpu : public Arm
 		static void data_synchronization_barrier() { /* FIXME */ }
 		static void invalidate_control_flow_predictions() { /* FIXME */ }
 };
-
-
-void Genode::Arm::flush_data_caches()
-{
-	asm volatile ("mcr p15, 0, %[rd], c7, c14, 0" :: [rd]"r"(0) : );
-}
-
-
-void Genode::Arm::invalidate_data_caches()
-{
-	asm volatile ("mcr p15, 0, %[rd], c7, c6, 0" :: [rd]"r"(0) : );
-}
 
 #endif /* _CPU_H_ */

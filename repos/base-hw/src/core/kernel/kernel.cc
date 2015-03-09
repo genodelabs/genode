@@ -40,13 +40,11 @@
 #include <kernel/perf_counter.h>
 using namespace Kernel;
 
+extern "C" void _core_start(void);
 extern Genode::Native_thread_id _main_thread_id;
-extern "C" void CORE_MAIN();
 extern void * _start_secondary_cpus;
 extern int _prog_img_beg;
 extern int _prog_img_end;
-
-Genode::Native_utcb * _main_thread_utcb;
 
 namespace Kernel
 {
@@ -231,9 +229,11 @@ extern "C" void init_kernel_up()
  */
 void init_kernel_mp_primary()
 {
+	using namespace Genode;
+
 	/* get stack memory that fullfills the constraints for core stacks */
 	enum {
-		STACK_ALIGNM = 1 << Genode::CORE_STACK_ALIGNM_LOG2,
+		STACK_ALIGNM = 1 << CORE_STACK_ALIGNM_LOG2,
 		STACK_SIZE   = DEFAULT_STACK_SIZE,
 	};
 	static_assert(STACK_SIZE <= STACK_ALIGNM - sizeof(Core_thread_id),
@@ -243,19 +243,27 @@ void init_kernel_mp_primary()
 	/* provide thread ident at the aligned base of the stack */
 	*(Core_thread_id *)s = 0;
 
+	/* initialize UTCB and map it */
+	static Native_utcb utcb __attribute__((aligned(get_page_size())));
+	static Dataspace_component main_utcb_ds(sizeof(Native_utcb),
+	                                        (addr_t)UTCB_MAIN_THREAD,
+	                                        (addr_t)&utcb, CACHED, true, 0);
+	Genode::map_local((addr_t)&utcb, (addr_t)UTCB_MAIN_THREAD,
+	                  sizeof(Native_utcb) / get_page_size());
+
+	static Kernel::Thread t(Cpu_priority::max, 0, "core");
+
 	/* start thread with stack pointer at the top of stack */
-	static Native_utcb utcb;
-	static Thread t(Cpu_priority::max, 0, "core");
-	_main_thread_id = t.id();
-	_main_thread_utcb = &utcb;
-	_main_thread_utcb->start_info()->init(t.id(), Genode::Native_capability());
-	t.ip = (addr_t)CORE_MAIN;;
+	utcb.start_info()->init(t.id(),
+	                        Dataspace_capability::local_cap(&main_utcb_ds));
+	t.ip = (addr_t)&_core_start;
 	t.sp = (addr_t)s + STACK_SIZE;
-	t.init(cpu_pool()->primary_cpu(), core_pd(), &utcb, 1);
+	t.init(cpu_pool()->primary_cpu(), core_pd(),
+	       (Native_utcb*)Genode::UTCB_MAIN_THREAD, 1);
 
 	/* initialize user interrupt objects */
-	static Genode::uint8_t _irqs[Pic::NR_OF_IRQ * sizeof(User_irq)];
-	for (unsigned i = 0; i < Pic::NR_OF_IRQ; i++) {
+	static Genode::uint8_t _irqs[Kernel::Pic::NR_OF_IRQ * sizeof(User_irq)];
+	for (unsigned i = 0; i < Kernel::Pic::NR_OF_IRQ; i++) {
 		if (private_interrupt(i)) { continue; }
 		new (&_irqs[i * sizeof(User_irq)]) User_irq(i);
 	}

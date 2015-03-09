@@ -32,8 +32,6 @@ using namespace Genode;
 
 extern int main(int argc, char **argv, char **envp);
 
-namespace Genode { Rm_session *env_context_area_rm_session(); }
-
 enum { ATEXIT_SIZE = 256 };
 
 
