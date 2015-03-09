@@ -30,6 +30,7 @@
 # include <net/cfg80211.h>
 #include <extern_c_end.h>
 
+extern bool config_verbose;
 
 enum {
 	HEAD_ROOM = 128, /* XXX guessed value but works */
@@ -408,6 +409,11 @@ extern "C" int register_netdevice(struct net_device *ndev)
 
 	/* set mac adress */
 	Genode::memcpy(ndev->perm_addr, ndev->ieee80211_ptr->wiphy->perm_addr, ETH_ALEN);
+
+	if (config_verbose)
+		PINF("mac_address: %02x:%02x:%02x:%02x:%02x:%02x",
+		     ndev->perm_addr[0], ndev->perm_addr[1], ndev->perm_addr[2],
+		     ndev->perm_addr[3], ndev->perm_addr[4], ndev->perm_addr[5]);
 
 	int err = ndev->netdev_ops->ndo_open(ndev);
 	if (err) {

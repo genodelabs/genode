@@ -15,6 +15,7 @@
 #include <base/env.h>
 #include <base/sleep.h>
 #include <os/attached_rom_dataspace.h>
+#include <os/config.h>
 #include <os/server.h>
 #include <util/xml_node.h>
 
@@ -27,6 +28,7 @@ extern void wifi_init(Server::Entrypoint &, Genode::Lock &);
 extern "C" void wpa_conf_reload(void);
 extern "C" ssize_t wpa_write_conf(char const *, Genode::size_t);
 
+bool config_verbose = false;
 
 static Genode::Lock &wpa_startup_lock()
 {
@@ -222,6 +224,9 @@ struct Main
 	:
 		_ep(ep)
 	{
+		try {
+			config_verbose = Genode::config()->xml_node().attribute("verbose").has_value("yes");
+		} catch (...) { }
 		_wpa = new (Genode::env()->heap()) Wpa_thread(wpa_startup_lock());
 
 		_wpa->start();
