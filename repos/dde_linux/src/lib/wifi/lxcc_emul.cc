@@ -319,7 +319,7 @@ class Malloc
 				msb = SLAB_STOP_LOG2;
 
 			if (msb > SLAB_STOP_LOG2) {
-				PERR("Slab too large %u reqested %zu cached %d", 1U << msb, size, _cached);
+				// PERR("Slab too large %u reqested %zu cached %d", 1U << msb, size, _cached);
 				return 0;
 			}
 
@@ -1227,7 +1227,7 @@ void *dma_alloc_coherent(struct device *dev, size_t size,
 	void *addr = Malloc::dma().alloc(size, 12, &dma_addr);
 
 	if (!addr) {
-		PERR("dma alloc: %zu failed", size);
+		// PERR("dma alloc: %zu failed", size);
 		return 0;
 	}
 
