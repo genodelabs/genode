@@ -30,5 +30,11 @@ Cpu_idle::Cpu_idle(Cpu * const cpu) : Cpu_job(Cpu_priority::min, 0)
 
 void Cpu_idle::exception(unsigned const cpu)
 {
-	PDBG("not implemented");
+	if (trapno == RESET) {
+		return;
+	} else if (trapno >= INTERRUPTS_START && trapno <= INTERRUPTS_END) {
+		_interrupt(cpu);
+		return;
+	}
+	assert(0);
 }
