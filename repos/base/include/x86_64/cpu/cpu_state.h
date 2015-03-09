@@ -27,6 +27,7 @@ struct Genode::Cpu_state
 		PAGE_FAULT       = 0x0e,
 		SUPERVISOR_CALL  = 0x80,
 		INTERRUPTS_START = 0x20,
+		RESET            = 0xfe,
 		INTERRUPTS_END   = 0xff,
 	};
 
@@ -49,7 +50,7 @@ struct Genode::Cpu_state
 	addr_t rbp     = 0;
 	addr_t errcode = 0;
 	addr_t eflags  = 0;
-	addr_t trapno  = 0;
+	addr_t trapno  = RESET;
 	addr_t ss      = 0;
 };
 
