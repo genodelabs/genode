@@ -15,13 +15,6 @@
 /* core includes */
 #include <kernel/thread.h>
 
-enum Cpu_exception {
-	PAGE_FAULT       = 0x0e,
-	SUPERVISOR_CALL  = 0x80,
-	INTERRUPTS_START = 0x20,
-	INTERRUPTS_END   = 0xff,
-};
-
 using namespace Kernel;
 
 Thread::Thread(unsigned const priority, unsigned const quota,

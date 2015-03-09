@@ -23,6 +23,13 @@ namespace Genode { struct Cpu_state; }
 
 struct Genode::Cpu_state
 {
+	enum Cpu_exception {
+		PAGE_FAULT       = 0x0e,
+		SUPERVISOR_CALL  = 0x80,
+		INTERRUPTS_START = 0x20,
+		INTERRUPTS_END   = 0xff,
+	};
+
 	addr_t ip      = 0;
 	addr_t sp      = 0;
 	addr_t r8      = 0;
