@@ -30,6 +30,7 @@ static char const * ev_type(Input::Event::Type type)
 	case Input::Event::WHEEL:   return "WHEEL  ";
 	case Input::Event::FOCUS:   return "FOCUS  ";
 	case Input::Event::LEAVE:   return "LEAVE  ";
+	case Input::Event::TOUCH:   return "TOUCH  ";
 	}
 
 	return "";
