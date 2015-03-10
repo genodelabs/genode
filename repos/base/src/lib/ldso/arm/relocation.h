@@ -43,12 +43,11 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 			Elf::Addr reloc_base;
 			Elf::Sym  const *sym;
 
-			if (!(sym = locate_symbol(rel->sym(), _dag, &reloc_base)))
+			if (!(sym = lookup_symbol(rel->sym(), _dep, &reloc_base)))
 				return;
 
 			/* S + A - P */
 			*addr = reloc_base + sym->st_value - (Elf::Addr)addr + *addr;
-			trace("REL32", (unsigned long)addr, *addr, 0);
 		}
 
 		void _glob_dat(Elf::Rel const *rel, Elf::Addr *addr, bool no_addend)
@@ -56,14 +55,13 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 			Elf::Addr reloc_base;
 			Elf::Sym  const *sym;
 
-			if (!(sym = locate_symbol(rel->sym(), _dag, &reloc_base)))
+			if (!(sym = lookup_symbol(rel->sym(), _dep, &reloc_base)))
 				return;
 
 			Elf::Addr addend = no_addend ? 0 : *addr;
 
 			/* S + A */
 			*addr = addend + reloc_base + sym->st_value;
-			trace("GLOB_DAT", (unsigned long)addr, *addr, 0);
 		}
 
 		void _relative(Elf::Addr *addr)
@@ -73,25 +71,26 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 			 * relocations within its text-segment (e.g., 'initial_sp' and friends), which
 			 * we cannot write to from here).
 			 */
-			if (_dag->obj->reloc_base())
-				*addr += _dag->obj->reloc_base();
+			if (_dep->obj->reloc_base())
+				*addr += _dep->obj->reloc_base();
 		}
 
 	public:
 
-		Reloc_non_plt(Dag const *dag, Elf::Rela const *, unsigned long)
-		: Reloc_non_plt_generic(dag)
+		Reloc_non_plt(Dependency const *dep, Elf::Rela const *, unsigned long)
+		: Reloc_non_plt_generic(dep)
 		{
 			PERR("LD: DT_RELA not supported");
 			throw Incompatible();
 		}
 
-		Reloc_non_plt(Dag const *dag, Elf::Rel const *rel, unsigned long size, bool second_pass)
-		: Reloc_non_plt_generic(dag)
+		Reloc_non_plt(Dependency const *dep, Elf::Rel const *rel, unsigned long size,
+		              bool second_pass)
+		: Reloc_non_plt_generic(dep)
 		{
 			Elf::Rel const *end = rel + (size / sizeof(Elf::Rel));
 			for (; rel < end; rel++) {
-				Elf::Addr *addr = (Elf::Addr *)(_dag->obj->reloc_base() + rel->offset);
+				Elf::Addr *addr = (Elf::Addr *)(_dep->obj->reloc_base() + rel->offset);
 
 				if (second_pass && rel->type() != R_GLOB_DAT)
 					continue;
@@ -104,8 +103,7 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 					case R_GLOB_DAT: _glob_dat(rel, addr, second_pass); break;
 					case R_RELATIVE: _relative(addr);                   break;
 					default:
-						trace("UNKREL", rel->type(), 0, 0);
-						if (_dag->root) {
+						if (_dep->root) {
 							PWRN("LD: Unkown relocation %u", rel->type());
 							throw Incompatible();
 						}

@@ -16,6 +16,19 @@
 
 #include <linker.h>
 
+constexpr bool verbose_relocation = false;
+
+static inline bool verbose_reloc(Linker::Dependency const *d)
+{
+	return d->root && verbose_relocation;
+}
+
+/**
+ * Low level linker entry for jump slot relocations
+ */
+extern "C" void _jmp_slot(void);
+
+
 namespace Linker
 {
 	struct Plt_got;
@@ -32,12 +45,12 @@ namespace Linker
  */
 struct Linker::Plt_got
 {
-	Plt_got(Dag const *dag, Elf::Addr *pltgot)
+	Plt_got(Dependency const *dep, Elf::Addr *pltgot)
 	{
 		if (verbose_relocation)
-			PDBG("OBJ: %s (%p)", dag->obj->name(), dag);
+			PDBG("OBJ: %s (%p)", dep->obj->name(), dep);
 
-		pltgot[1] = (Elf::Addr) dag;        /* ELF object */
+		pltgot[1] = (Elf::Addr) dep;        /* ELF object */
 		pltgot[2] = (Elf::Addr) &_jmp_slot; /* Linker entry */
 	}
 };
@@ -78,7 +91,7 @@ class Linker::Reloc_non_plt_generic
 {
 	protected:
 
-		Dag const *_dag;
+		Dependency const *_dep;
 
 		/**
 		 * Copy relocations, these are just for the main program, we can do them
@@ -88,8 +101,8 @@ class Linker::Reloc_non_plt_generic
 		template <typename REL>
 		void _copy(REL const *rel, Elf::Addr *addr)
 		{
-			if (!_dag->obj->is_binary()) {
-				PERR("LD: Copy relocation in DSO (%s at %p)", _dag->obj->name(), addr);
+			if (!_dep->obj->is_binary()) {
+				PERR("LD: Copy relocation in DSO (%s at %p)", _dep->obj->name(), addr);
 				throw Incompatible();
 			}
 
@@ -97,7 +110,7 @@ class Linker::Reloc_non_plt_generic
 			Elf::Addr      reloc_base;
 
 			 /* search symbol in other objects, do not return undefined symbols */
-			if (!(sym = locate_symbol(rel->sym(), _dag, &reloc_base, false, true))) {
+			if (!(sym = lookup_symbol(rel->sym(), _dep, &reloc_base, false, true))) {
 				PWRN("LD: Symbol not found");
 				return;
 			}
@@ -112,7 +125,7 @@ class Linker::Reloc_non_plt_generic
 
 	public:
 
-		Reloc_non_plt_generic(Dag const *dag) : _dag(dag) { }
+		Reloc_non_plt_generic(Dependency const *dep) : _dep(dep) { }
 };
 
 
@@ -126,7 +139,7 @@ class Linker::Reloc_jmpslot_generic
 
 	public:
 
-		Reloc_jmpslot_generic(Dag const *dag, unsigned const type, Elf::Rel const* pltrel,
+		Reloc_jmpslot_generic(Dependency const *dep, unsigned const type, Elf::Rel const* pltrel,
 		                      Elf::Size const index)
 		{
 			if (type != TYPE) {
@@ -138,13 +151,13 @@ class Linker::Reloc_jmpslot_generic
 			Elf::Sym const *sym;
 			Elf::Addr      reloc_base;
 
-			if (!(sym = locate_symbol(rel->sym(), dag, &reloc_base))) {
+			if (!(sym = lookup_symbol(rel->sym(), dep, &reloc_base))) {
 				PWRN("LD: Symbol not found");
 				return;
 			}
 
 			/* write address of symbol to jump slot */
-			_addr  = (Elf::Addr *)(dag->obj->reloc_base() + rel->offset);
+			_addr  = (Elf::Addr *)(dep->obj->reloc_base() + rel->offset);
 			*_addr = reloc_base + sym->st_value;
 
 
@@ -164,12 +177,12 @@ class Linker::Reloc_jmpslot_generic
 template <typename REL, unsigned TYPE>
 struct Linker::Reloc_bind_now_generic
 {
-	Reloc_bind_now_generic(Dag const *dag, Elf::Rel const *pltrel, unsigned long const size)
+	Reloc_bind_now_generic(Dependency const *dep, Elf::Rel const *pltrel, unsigned long const size)
 	{
 		Elf::Size last_index = size / sizeof(REL);
 
 		for (Elf::Size index = 0; index < last_index; index++)
-			Reloc_jmpslot_generic<REL, TYPE, false> reloc(dag, TYPE, pltrel, index);
+			Reloc_jmpslot_generic<REL, TYPE, false> reloc(dep, TYPE, pltrel, index);
 	}
 };
 

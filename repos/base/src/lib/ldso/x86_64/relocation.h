@@ -44,8 +44,7 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 		 */
 		void _relative(Elf::Rela const *rel, Elf::Addr *addr)
 		{
-			trace("64", _dag->obj->reloc_base(), rel->addend, 0);
-			*addr = _dag->obj->reloc_base() + rel->addend;
+			*addr = _dep->obj->reloc_base() + rel->addend;
 		}
 
 		/**
@@ -57,24 +56,24 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 			Elf::Addr reloc_base;
 			Elf::Sym  const *sym;
 
-			if (!(sym = locate_symbol(rel->sym(), _dag, &reloc_base)))
+			if (!(sym = lookup_symbol(rel->sym(), _dep, &reloc_base)))
 				return;
 
 			*addr = reloc_base + sym->st_value + (addend ? rel->addend : 0);
-			if (verbose_reloc(_dag))
+			if (verbose_reloc(_dep))
 				PDBG("GLOB DAT %p -> %llx r %llx v %llx", addr, *addr, reloc_base,
 				     sym->st_value);
 		}
 
 	public:
 
-		Reloc_non_plt(Dag const *dag, Elf::Rela const *rel, unsigned long size)
-		: Reloc_non_plt_generic(dag)
+		Reloc_non_plt(Dependency const *dep, Elf::Rela const *rel, unsigned long size)
+		: Reloc_non_plt_generic(dep)
 		{
 			Elf::Rela const *end = rel + (size / sizeof(Elf::Rela));
 
 			for (; rel < end; rel++) {
-				Elf::Addr *addr = (Elf::Addr *)(_dag->obj->reloc_base() + rel->offset);
+				Elf::Addr *addr = (Elf::Addr *)(_dep->obj->reloc_base() + rel->offset);
 
 				switch(rel->type()) {
 					case R_64:       _glob_dat_64(rel, addr, true);  break;
@@ -83,8 +82,7 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 					case R_RELATIVE: _relative(rel, addr);           break;
 
 					default:
-						trace("UNKRELA", rel->type(), 0, 0);
-						if (!_dag->obj->is_linker()) {
+						if (!_dep->obj->is_linker()) {
 							PWRN("LD: Unkown relocation %u", rel->type());
 							throw Incompatible();
 						}
@@ -93,8 +91,8 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 			}
 		}
 
-		Reloc_non_plt(Dag const *dag, Elf::Rel const *, unsigned long, bool)
-		: Reloc_non_plt_generic(dag)
+		Reloc_non_plt(Dependency const *dep, Elf::Rel const *, unsigned long, bool)
+		: Reloc_non_plt_generic(dep)
 		{
 			PERR("LD: DT_REL not supported");
 			throw Incompatible();
