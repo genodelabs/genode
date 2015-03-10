@@ -6,6 +6,9 @@ set build_components {
 	core init
 	drivers/pci drivers/timer drivers/wifi
 	drivers/rtc
+	server/report_rom
+	server/ram_fs
+	server/fs_rom
 	test/lwip/http_srv
 }
 
@@ -56,32 +59,53 @@ set config {
 			</libc>
 		</config>
 	</start>
+	<start name="report_rom">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Report" /> <service name="ROM" /> </provides>
+		<config> <rom/> </config>
+	</start>
+	<start name="config_fs">
+		<binary name="ram_fs"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<policy label="config_rom" root="/"/>
+			<policy label="wifi_drv -> config" root="/" writeable="yes"/>
+			<content>
+				<inline name="wlan_configuration">
+<selected_network ssid="foobar" protection="WPA-PSK" psk="foobarfoobar"/>
+				</inline>
+				<inline name="wpa_supplicant.conf"></inline>
+			</content>
+		</config>
+	</start>
+	<start name="config_rom">
+		<binary name="fs_rom"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="ROM"/></provides>
+		<route>
+			<service name="File_system"> <child name="config_fs" /> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
 	<start name="wifi_drv">
 		<resource name="RAM" quantum="32M"/>
-		<provides>
-			<service name="Nic"/>
-		</provides>
-		<config mac80211_only="no">
+		<provides> <service name="Nic"/> </provides>
+		<config verbose="yes">
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc">
 				<vfs>
 					<dir name="dev"> <log/> <rtc/>
-					<jitterentropy name="random"/>
-					<jitterentropy name="urandom"/>
+						<jitterentropy name="random"/>
+						<jitterentropy name="urandom"/>
 					</dir>
-					<inline name="wpa_supplicant.conf">
-network={
-	id_str="foobar"
-	ssid="foobar"
-	key_mgmt=NONE
-	#key_mgmt=WPA-PSK
-	#psk="foobarfoobar"
-}
-					</inline>
+					<dir name="config"> <fs label="config"/> </dir>
 				</vfs>
 			</libc>
 		</config>
 		<route>
 			<service name="Rtc"> <any-child /> </service>
+			<service name="File_system"> <child name="config_fs"/> </service>
+			<service name="ROM"> <if-arg key="label" value="wlan_configuration" /> <child name="config_rom" /> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>}
@@ -132,24 +156,14 @@ set firmware_modules {
 	iwlwifi-7260-8.ucode
 }
 
-foreach f $firmware_modules {
-	if ![file exists bin/$f] {
-		puts ""
-		puts "The iwlwifi driver needs the following list of firmware images to work."
-		puts "  $firmware_modules"
-		puts "Please download the images from http://wireless.kernel.org/en/users/Drivers/iwlwifi into './bin'."
-		exit 1
-	}
-}
-
-
 #
 # Boot modules
 #
 
 # generic modules
 set boot_modules {
-	core init timer rtc_drv vfs_jitterentropy.lib.so
+	core init timer rtc_drv ram_fs report_rom fs_rom
+	vfs_jitterentropy.lib.so
 	ld.lib.so
 	libc.lib.so libcrypto.lib.so libssl.lib.so
 	wpa_driver_nl80211.lib.so wpa_supplicant.lib.so
