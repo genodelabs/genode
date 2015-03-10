@@ -339,7 +339,7 @@ struct callback_head {
 };
 #define rcu_head callback_head
 
-#if defined(__x86__64__)
+#if defined(__x86_64__)
 typedef unsigned int mode_t;
 #else
 typedef unsigned short mode_t;
@@ -641,7 +641,7 @@ int local_softirq_pending(void);
  ** linux/spinlock.h **
  **********************/
 
-typedef struct spinlock { } spinlock_t;
+typedef struct spinlock { unsigned unused; } spinlock_t;
 #define DEFINE_SPINLOCK(name) spinlock_t name
 
 void spin_lock(spinlock_t *lock);
@@ -804,7 +804,7 @@ bool flush_work_sync(struct work_struct *work);
 
 /* dummy for queue_delayed_work call in storage/usb.c */
 #define system_freezable_wq 0
-struct workqueue_struct { };
+struct workqueue_struct { unsigned unused; };
 
 struct workqueue_struct *create_singlethread_workqueue(const char *name);
 struct workqueue_struct *alloc_ordered_workqueue(const char *fmt, unsigned int flags, ...) __printf(1, 3);
@@ -1492,7 +1492,7 @@ bool device_can_wakeup(struct device *dev);
  ** linux/pm_qos.h **
  ********************/
 
-struct pm_qos_request { };
+struct pm_qos_request { unsigned unused; };
 
 enum { PM_QOS_FLAG_NO_POWER_OFF = 1 };
 
@@ -2253,7 +2253,7 @@ void idr_init(struct idr *idp);
 void *idr_find(struct idr *idr, int id);
 
 #define DEFINE_IDA(name) struct ida name;
-struct ida { };
+struct ida { unsigned unused; };
 
 
 /**********************
@@ -2656,7 +2656,7 @@ void percpu_counter_destroy(struct percpu_counter *fbc);
  ** linux/u64_stats_sync.h **
  ****************************/
 
-struct u64_stats_sync { };
+struct u64_stats_sync { unsigned unused; };
 
 
 /********************
@@ -2685,7 +2685,7 @@ void local_bh_enable(void);
  ** net/scm.h **
  ***************/
 
-struct scm_creds { };
+struct scm_creds { unsigned unused; };
 
 struct scm_cookie
 {
@@ -3459,7 +3459,7 @@ static inline bool is_link_local_ether_addr(const u8 *addr)
  ******************/
 
 typedef struct wait_queue_head { void *list; } wait_queue_head_t;
-typedef struct wait_queue { } wait_queue_t;
+typedef struct wait_queue { unsigned unused; } wait_queue_t;
 
 #define DEFINE_WAIT(name) \
 	wait_queue_t name;
@@ -3558,7 +3558,7 @@ bool ns_capable(struct user_namespace *ns, int cap);
  ** linux/fs.h **
  ****************/
 
-struct fown_struct { };
+struct fown_struct { unsigned unused; };
 
 struct file {
 	unsigned int       f_flags;
@@ -4130,7 +4130,7 @@ void *__alloc_percpu(size_t size, size_t align);
  ** linux/hrtimer.h **
  *********************/
 
-struct hrtimer { };
+struct hrtimer { unsigned unused; };
 
 
 /*******************
@@ -4146,7 +4146,7 @@ extern struct task_struct *current;
 
 enum { RES_USAGE };
 
-struct res_counter { };
+struct res_counter { unsigned unused; };
 
 int res_counter_charge_nofail(struct res_counter *counter, unsigned long val, struct res_counter **limit_fail_at);
 u64 res_counter_uncharge(struct res_counter *counter, unsigned long val);
@@ -4459,7 +4459,7 @@ for ((cpu) = 0; (cpu) < 1; (cpu)++, (void)mask)
  ** linux/jump_label.h **
  ************************/
 
-struct static_key { };
+struct static_key { unsigned unused; };
 
 #define STATIC_KEY_INIT_FALSE ((struct static_key) {})
 
@@ -4600,14 +4600,14 @@ struct seq_net_private {
 	struct net *net;
 };
 
-struct seq_operations { };
+struct seq_operations { unsigned unused; };
 
 
 /**************************
  ** linux/seq_file.h **
  **************************/
 
-struct seq_file { };
+struct seq_file { unsigned unused; };
 
 int seq_printf(struct seq_file *, const char *, ...);
 
@@ -4699,7 +4699,7 @@ static inline struct page *sg_page(struct scatterlist *sg) {
 
 enum { IP_DEFRAG_AF_PACKET }; /* XXX original value is not 0 */
 
-struct inet_skb_parm { };
+struct inet_skb_parm { unsigned unused; };
 
 unsigned int ip_hdrlen(const struct sk_buff *skb);
 struct sk_buff *ip_check_defrag(struct sk_buff *skb, u32 user);
@@ -4988,7 +4988,7 @@ enum {
  ** uapi/linux/filter.h **
  *************************/
 
-struct sock_fprog { };
+struct sock_fprog { unsigned unused; };
 
 
 /* short-cut for net/core/sock.c */
