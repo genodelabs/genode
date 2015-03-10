@@ -4,7 +4,27 @@
                                ===========
 
 
-Genode OS Framework release 15.02 | 2015-01-27
+Exercising the seL4 kernel interface | 2015-03-10
+#################################################
+
+| The second part of the article series about Genode on seL4 goes into
+| detail about the kernel mechanisms for synchronous inter-process
+| communication and the management of virtual memory.
+
+The article "Genode on seL4 - IPC and virtual memory" examines the most
+important mechanisms of the seL4 kernel.
+It covers synchronous inter-process communication between threads, the
+delegation of capabilities, and the management of virtual memory.
+Apart from presenting hands-on experience with using the kernel, it identifies
+potential challenges for using it as Genode base platform.
+[http://genode.org/documentation/articles/sel4_part_2 - Read the article...]
+
+All the steps described in the article can be followed in the
+topic branch [http://github.com/nfeske/genode/commits/sel4] of the ongoing
+development.
+
+
+Genode OS Framework release 15.02 | 2015-02-27
 ##############################################
 
 | Version 15.02 extends the base-hw kernel with ARM-virtualization support,
