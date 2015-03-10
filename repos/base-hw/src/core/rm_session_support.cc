@@ -31,21 +31,29 @@ using namespace Genode;
 
 void Rm_client::unmap(addr_t, addr_t virt_base, size_t size)
 {
-	/* remove mapping from the translation table of the thread that we serve */
+	/* determine and lock PD */
 	Platform_thread * const pt = (Platform_thread *)badge();
-	if (!pt || !pt->pd()) return;
-
-	Lock::Guard guard(*pt->pd()->lock());
-
-	Translation_table * const tt = pt->pd()->translation_table();
-	if (!tt) {
-		PWRN("failed to get translation table of RM client");
+	if (!pt) {
+		PERR("failed to get thread of RM client");
 		return;
 	}
-	tt->remove_translation(virt_base, size,pt->pd()->page_slab());
+	Platform_pd * const pd = pt->pd();
+	if (!pd) {
+		PERR("failed to get PD of RM client");
+		return;
+	}
+	Lock::Guard guard(*pd->lock());
 
-	/* update translation caches of all CPUs */
-	Kernel::update_pd(pt->pd()->id());
+	/* update translation table of the PD */
+	Translation_table * const tt = pd->translation_table();
+	if (!tt) {
+		PERR("failed to get translation table of RM client");
+		return;
+	}
+	tt->remove_translation(virt_base, size, pd->page_slab());
+
+	/* update translation caches */
+	Kernel::update_pd(pd->id());
 }
 
 
