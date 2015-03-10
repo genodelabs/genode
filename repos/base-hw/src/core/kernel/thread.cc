@@ -227,7 +227,8 @@ void Thread::_call_bin_pd()
 	unsigned id = user_arg_1();
 	Pd * const pd = Pd::pool()->object(id);
 	if (!pd) {
-		PWRN("unknown protection domain");
+		PWRN("%s -> %s: cannot destroy unknown protection domain %u",
+		     pd_label(), label(), id);
 		user_arg_0(-1);
 		return;
 	}
@@ -383,7 +384,8 @@ void Thread::_call_send_request_msg()
 {
 	Thread * const dst = Thread::pool()->object(user_arg_1());
 	if (!dst) {
-		PWRN("unknown recipient");
+		PWRN("%s -> %s: cannot send to unknown recipient %u",
+		     pd_label(), label(), user_arg_1());
 		_become_inactive(AWAITS_IPC);
 		return;
 	}
@@ -415,7 +417,8 @@ void Thread::_call_route_thread_event()
 	unsigned const thread_id = user_arg_1();
 	Thread * const t = Thread::pool()->object(thread_id);
 	if (!t) {
-		PWRN("unknown thread");
+		PWRN("%s -> %s: cannot route event to unknown thread %u",
+		     pd_label(), label(), thread_id);
 		user_arg_0(-1);
 		return;
 	}
@@ -437,7 +440,8 @@ int Thread::_route_event(unsigned const event_id,
 	if (signal_context_id) {
 		c = Signal_context::pool()->object(signal_context_id);
 		if (!c) {
-			PWRN("unknown signal context");
+			PWRN("%s -> %s: unknown signal context %u",
+			     pd_label(), label(), signal_context_id);
 			return -1;
 		}
 	} else { c = 0; }
@@ -563,8 +567,7 @@ void Thread::_print_activity_table()
 
 void Thread::_print_activity(bool const printing_thread)
 {
-	Genode::printf("\033[33m[%u] %s", pd_id(), pd_label());
-	Genode::printf(" (%u) %s:\033[0m", id(), label());
+	Genode::printf("\033[33m%s -> %s:\033[0m", pd_label(), label());
 	switch (_state) {
 	case AWAITS_START: {
 		Genode::printf("\033[32m init\033[0m");
@@ -643,7 +646,8 @@ void Thread::_call_new_signal_context()
 	unsigned const id = user_arg_2();
 	Signal_receiver * const r = Signal_receiver::pool()->object(id);
 	if (!r) {
-		PWRN("unknown signal receiver");
+		PWRN("%s -> %s: no context construction, unknown signal receiver %u",
+		     pd_label(), label(), id);
 		user_arg_0(0);
 		return;
 	}
@@ -668,7 +672,8 @@ void Thread::_call_await_signal()
 	unsigned const receiver_id = user_arg_1();
 	Signal_receiver * const r = Signal_receiver::pool()->object(receiver_id);
 	if (!r) {
-		PWRN("unknown signal receiver");
+		PWRN("%s -> %s: cannot await, unknown signal receiver %u",
+		     pd_label(), label(), receiver_id);
 		user_arg_0(-1);
 		return;
 	}
@@ -688,7 +693,8 @@ void Thread::_call_signal_pending()
 	unsigned const id = user_arg_1();
 	Signal_receiver * const r = Signal_receiver::pool()->object(id);
 	if (!r) {
-		PWRN("unknown signal receiver");
+		PWRN("%s -> %s: no pending, unknown signal receiver %u",
+		     pd_label(), label(), id);
 		user_arg_0(0);
 		return;
 	}
@@ -703,7 +709,8 @@ void Thread::_call_submit_signal()
 	unsigned const id = user_arg_1();
 	Signal_context * const c = Signal_context::pool()->object(id);
 	if(!c) {
-		PWRN("unknown signal context");
+		PWRN("%s -> %s: cannot submit unknown signal context %u",
+		     pd_label(), label(), id);
 		user_arg_0(-1);
 		return;
 	}
@@ -723,7 +730,8 @@ void Thread::_call_ack_signal()
 	unsigned const id = user_arg_1();
 	Signal_context * const c = Signal_context::pool()->object(id);
 	if (!c) {
-		PWRN("unknown signal context");
+		PWRN("%s -> %s: cannot ack unknown signal context %u",
+		     pd_label(), label(), id);
 		return;
 	}
 	/* acknowledge */
@@ -737,7 +745,8 @@ void Thread::_call_kill_signal_context()
 	unsigned const id = user_arg_1();
 	Signal_context * const c = Signal_context::pool()->object(id);
 	if (!c) {
-		PWRN("unknown signal context");
+		PWRN("%s -> %s: cannot kill unknown signal context %u",
+		     pd_label(), label(), id);
 		user_arg_0(-1);
 		return;
 	}
@@ -756,7 +765,8 @@ void Thread::_call_bin_signal_context()
 	unsigned const id = user_arg_1();
 	Signal_context * const c = Signal_context::pool()->object(id);
 	if (!c) {
-		PWRN("unknown signal context");
+		PWRN("%s -> %s: cannot destroy unknown signal context %u",
+		     pd_label(), label(), id);
 		user_arg_0(0);
 		return;
 	}
@@ -772,7 +782,8 @@ void Thread::_call_bin_signal_receiver()
 	unsigned const id = user_arg_1();
 	Signal_receiver * const r = Signal_receiver::pool()->object(id);
 	if (!r) {
-		PWRN("unknown signal receiver");
+		PWRN("%s -> %s: cannot destroy unknown signal receiver %u",
+		     pd_label(), label(), id);
 		user_arg_0(0);
 		return;
 	}
@@ -788,7 +799,8 @@ int Thread::_read_reg(addr_t const id, addr_t & value) const
 		value = this->*reg;
 		return 0;
 	}
-	PWRN("unknown thread register");
+	PWRN("%s -> %s: cannot read unknown thread register %p",
+	     pd_label(), label(), (void*)id);
 	return -1;
 }
 
@@ -800,7 +812,8 @@ int Thread::_write_reg(addr_t const id, addr_t const value)
 		this->*reg = value;
 		return 0;
 	}
-	PWRN("unknown thread register");
+	PWRN("%s -> %s: cannot write unknown thread register %p",
+	     pd_label(), label(), (void*)id);
 	return -1;
 }
 
@@ -827,7 +840,8 @@ void Thread::_call()
 	default:
 		/* check wether this is a core thread */
 		if (!_core()) {
-			PWRN("not entitled to do kernel call");
+			PWRN("%s -> %s: not entitled to do kernel call",
+			     pd_label(), label());
 			_stop();
 			return;
 		}
@@ -853,7 +867,7 @@ void Thread::_call()
 	case call_id_pause_vm():            _call_pause_vm(); return;
 	case call_id_pause_thread():        _call_pause_thread(); return;
 	default:
-		PWRN("unknown kernel call");
+		PWRN("%s -> %s: unknown kernel call", pd_label(), label());
 		_stop();
 		return;
 	}

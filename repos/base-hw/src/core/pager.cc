@@ -15,6 +15,10 @@
 #include <base/pager.h>
 #include <base/printf.h>
 
+/* core includes*/
+#include <platform_thread.h>
+#include <platform_pd.h>
+
 using namespace Genode;
 
 
@@ -68,6 +72,13 @@ void Pager_object::wake_up() { fault_resolved(); }
 
 void Pager_object::exception_handler(Signal_context_capability) { }
 
+void Pager_object::unresolved_page_fault_occurred()
+{
+	Platform_thread * const pt = (Platform_thread *)badge();
+	if (pt && pt->pd())
+		PERR("%s -> %s: unresolved pagefault at ip=%p",
+		     pt->pd()->label(), pt->label(), (void*)pt->state().ip);
+}
 
 Pager_object::Pager_object(unsigned const badge, Affinity::Location)
 :
