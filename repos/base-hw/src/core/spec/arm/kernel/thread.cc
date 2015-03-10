@@ -48,13 +48,15 @@ void Thread::exception(unsigned const cpu)
 		return;
 	case UNDEFINED_INSTRUCTION:
 		if (_cpu->retry_undefined_instr(&_lazy_state)) { return; }
-		PWRN("undefined instruction");
+		PWRN("%s -> %s: undefined instruction at ip=%p",
+		     pd_label(), label(), (void*)ip);
 		_stop();
 		return;
 	case RESET:
 		return;
 	default:
-		PWRN("unknown exception");
+		PWRN("%s -> %s: triggered an unknown exception %lu",
+		     pd_label(), label(), (unsigned long)cpu_exception);
 		_stop();
 		return;
 	}

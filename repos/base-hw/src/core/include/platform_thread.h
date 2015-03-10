@@ -180,6 +180,8 @@ namespace Genode {
 			 ** Accessors **
 			 ***************/
 
+			char const * label() const { return _label; };
+
 			void pager(Pager_object * const pager);
 
 			Pager_object * pager();
