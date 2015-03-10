@@ -26,7 +26,6 @@
 #include <kernel/cpu.h>
 #include <assert.h>
 #include <page_slab.h>
-#include <board.h>
 
 /* structure of the mode transition */
 extern int            _mt_begin;
