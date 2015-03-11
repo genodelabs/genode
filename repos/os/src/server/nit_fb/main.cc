@@ -65,15 +65,23 @@ static Input::Event translate_event(Input::Event  const ev,
 	case Input::Event::RELEASE:
 	case Input::Event::FOCUS:
 	case Input::Event::LEAVE:
+	case Input::Event::TOUCH:
 		{
-			Nit_fb::Point abs_pos = Nit_fb::Point(ev.ax(), ev.ay()) - input_origin;
+			Nit_fb::Point abs_pos = Nit_fb::Point(ev.ax(), ev.ay()) -
+			                                      input_origin;
 
-			using namespace Genode;
+			using Genode::min;
+			using Genode::max;
+			using Input::Event;
 
-			return Input::Event(ev.type(), ev.code(),
-			                    min((int)boundary.w() - 1, max(0, abs_pos.x())),
-			                    min((int)boundary.h() - 1, max(0, abs_pos.y())),
-			                    0, 0);
+			int const ax = min((int)boundary.w() - 1, max(0, abs_pos.x()));
+			int const ay = min((int)boundary.h() - 1, max(0, abs_pos.y()));
+
+			if (ev.type() == Event::TOUCH)
+				return Event::create_touch_event(ax, ay, ev.code(),
+				                                 ev.is_touch_release());
+
+			return Event(ev.type(), ev.code(), ax, ay, 0, 0);
 		}
 
 	case Input::Event::INVALID:

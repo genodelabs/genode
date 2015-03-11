@@ -75,8 +75,13 @@ void User_state::handle_event(Input::Event ev)
 		ry = ev.ry();
 	}
 
-	/* create the mangled event */
-	ev = Input::Event(type, keycode, ax, ay, rx, ry);
+	if (type == Event::TOUCH) {
+		ax = ev.ax();
+		ay = ev.ay();
+		ev = Input::Event::create_touch_event(ax, ay, ev.code(),
+		                                      ev.is_touch_release());
+	} else
+		ev = Input::Event(type, keycode, ax, ay, rx, ry);
 
 	_pointer_pos = Point(ax, ay);
 
@@ -204,7 +209,7 @@ void User_state::handle_event(Input::Event ev)
 	 */
 	if (kill()) return;
 
-	if (type == Event::MOTION || type == Event::WHEEL) {
+	if (type == Event::MOTION || type == Event::WHEEL || type == Event::TOUCH) {
 
 		if (Mode::has_key_cnt(0)) {
 
