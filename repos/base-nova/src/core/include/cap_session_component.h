@@ -27,8 +27,6 @@ namespace Genode {
 	{
 		private:
 
-			static long _unique_id_cnt;
-
 			struct Cap_object : List<Cap_object>::Element
 			{
 				Genode::addr_t _cap_sel;

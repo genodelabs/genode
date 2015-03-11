@@ -38,9 +38,6 @@
 using namespace Genode;
 
 
-/* support for cap session component */
-long Cap_session_component::_unique_id_cnt;
-
 /* pool of provided core services */
 static Service_registry local_services;
 

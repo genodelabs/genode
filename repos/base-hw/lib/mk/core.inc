@@ -19,6 +19,7 @@ INC_DIR += $(BASE_DIR)/src/platform
 
 # add C++ sources
 SRC_CC += console.cc
+SRC_CC += cap_session_component.cc
 SRC_CC += cpu_session_component.cc
 SRC_CC += cpu_session_support.cc
 SRC_CC += core_rm_session.cc

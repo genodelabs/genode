@@ -14,6 +14,7 @@
 #ifndef _CORE__INCLUDE__CAP_SESSION_COMPONENT_H_
 #define _CORE__INCLUDE__CAP_SESSION_COMPONENT_H_
 
+#include <base/allocator.h>
 #include <base/rpc_server.h>
 #include <base/lock.h>
 

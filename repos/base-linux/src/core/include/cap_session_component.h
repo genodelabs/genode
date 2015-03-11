@@ -15,6 +15,7 @@
 #define _CORE__INCLUDE__LINUX__CAP_SESSION_COMPONENT_H_
 
 #include <cap_session/cap_session.h>
+#include <base/allocator.h>
 #include <base/rpc_server.h>
 #include <base/lock.h>
 

@@ -9,6 +9,7 @@ SRC_CC       = main.cc \
                ram_session_component.cc \
                ram_session_support.cc \
                rom_session_component.cc \
+               cap_session_component.cc \
                cpu_session_component.cc \
                cpu_session_platform.cc \
                pd_session_component.cc \
@@ -41,6 +42,7 @@ include $(GEN_CORE_DIR)/version.inc
 vpath main.cc                     $(GEN_CORE_DIR)
 vpath ram_session_component.cc    $(GEN_CORE_DIR)
 vpath rom_session_component.cc    $(GEN_CORE_DIR)
+vpath cap_session_component.cc    $(GEN_CORE_DIR)
 vpath cpu_session_component.cc    $(GEN_CORE_DIR)
 vpath pd_session_component.cc     $(GEN_CORE_DIR)
 vpath rm_session_component.cc     $(GEN_CORE_DIR)
