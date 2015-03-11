@@ -45,6 +45,7 @@ class Net::Nic : public Net::Packet_handler
 		::Nic::Connection          *nic() { return &_nic; }
 		Ethernet_frame::Mac_address mac() { return _mac; }
 
+		bool link_state() { return _nic.link_state(); }
 
 		/******************************
 		 ** Packet_handler interface **

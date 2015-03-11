@@ -72,6 +72,7 @@ class Lan9118 : public Nic::Driver
 		Timer::Connection                 _timer;
 		Nic::Rx_buffer_alloc             &_rx_buffer_alloc;
 		Nic::Mac_address                  _mac_addr;
+		Nic::Driver_notification         &_notify;
 
 		enum { IRQ_STACK_SIZE = 4096 };
 		Genode::Irq_activation _irq_activation;
@@ -201,11 +202,13 @@ class Lan9118 : public Nic::Driver
 		 * \throw  Device_not_supported
 		 */
 		Lan9118(Genode::addr_t mmio_base, Genode::size_t mmio_size, int irq,
-		        Nic::Rx_buffer_alloc &rx_buffer_alloc)
+		        Nic::Rx_buffer_alloc &rx_buffer_alloc,
+		        Nic::Driver_notification &notify)
 		:
 			_mmio(mmio_base, mmio_size),
 			_reg_base(_mmio.local_addr<Genode::uint32_t>()),
 			_rx_buffer_alloc(rx_buffer_alloc),
+			_notify(notify),
 			_irq_activation(irq, *this, IRQ_STACK_SIZE)
 		{
 			unsigned long const id_rev     = _reg_read(ID_REV),
@@ -287,6 +290,8 @@ class Lan9118 : public Nic::Driver
 			_mac_csr_write(MAC_CR, 0);
 		}
 
+		void link_state_changed() { _notify.link_state_changed(); }
+
 
 		/***************************
 		 ** Nic::Driver interface **
@@ -295,6 +300,12 @@ class Lan9118 : public Nic::Driver
 		Nic::Mac_address mac_address()
 		{
 			return _mac_addr;
+		}
+
+		bool link_state()
+		{
+			/* XXX always return true for now */
+			return true;
 		}
 
 		void tx(char const *packet, Genode::size_t size)

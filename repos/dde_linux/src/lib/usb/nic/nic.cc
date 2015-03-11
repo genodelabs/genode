@@ -144,6 +144,7 @@ class Nic_device : public Nic::Device
 		struct net_device *_ndev;  /* Linux-net device */
 		fixup_t            _tx_fixup;
 		bool const         _burst;
+		bool               _has_link { false };
 
 	public:
 
@@ -177,10 +178,28 @@ class Nic_device : public Nic::Device
 		static Nic_device *add(struct net_device *ndev) {
 			return new (Genode::env()->heap()) Nic_device(ndev); }
 
+		/**
+		 * Report link state
+		 */
+		void link_state(bool link)
+		{
+			/* only report changes of the link state */
+			if (link == _has_link)
+				return;
+
+			_has_link = link;
+
+			if (_session)
+				_session->link_state_changed();
+		}
+
+
 
 		/**********************
 		 ** Device interface **
 		 **********************/
+
+		bool link_state() override { return _has_link; }
 
 		/**
 		 * Submit packet to driver
@@ -344,12 +363,16 @@ int netif_carrier_ok(const struct net_device *dev)
 void netif_carrier_on(struct net_device *dev)
 {
 	dev->state &= ~(1 << __LINK_STATE_NOCARRIER);
+	if (_nic)
+		_nic->link_state(true);
 }
 
 
 void netif_carrier_off(struct net_device *dev)
 {
 	dev->state |= 1 << __LINK_STATE_NOCARRIER;
+	if (_nic)
+		_nic->link_state(false);
 }
 
 #ifdef GENODE_NET_STAT

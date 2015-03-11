@@ -36,32 +36,35 @@ namespace Ipxe {
 
 			static Driver *instance;
 
-			static void dde_rx_handler(unsigned if_index,
-			                           const char *packet,
-			                           unsigned packet_len)
+		private:
+
+			Nic::Mac_address          _mac_addr;
+			Nic::Rx_buffer_alloc     &_alloc;
+			Nic::Driver_notification &_notify;
+
+			Timer::Connection _timer;
+			Nic::Measurement  _stat;
+
+			static void _rx_callback(unsigned    if_index,
+			                         const char *packet,
+			                         unsigned    packet_len)
 			{
 				instance->rx_handler_stat(packet, packet_len);
 			}
 
-		private:
-
-			Nic::Mac_address      _mac_addr;
-			Nic::Rx_buffer_alloc &_alloc;
-
-			Timer::Connection _timer;
-			Nic::Measurement _stat;
+			static void _link_callback() { instance->link_state_changed(); }
 
 		public:
 
-			Driver(Nic::Rx_buffer_alloc &alloc)
-			: _alloc(alloc), _stat(_timer)
+			Driver(Nic::Rx_buffer_alloc &alloc, Nic::Driver_notification &notify)
+			: _alloc(alloc), _notify(notify), _stat(_timer)
 			{
 				PINF("--- init iPXE NIC");
 				int cnt = dde_ipxe_nic_init();
 				PINF("    number of devices: %d", cnt);
 
-				PINF("--- init rx_callbacks");
-				dde_ipxe_nic_register_rx_callback(dde_rx_handler);
+				PINF("--- init callbacks");
+				dde_ipxe_nic_register_callbacks(_rx_callback, _link_callback);
 
 				dde_ipxe_nic_get_mac_addr(1, _mac_addr.addr);
 				PINF("--- get MAC address %02x:%02x:%02x:%02x:%02x:%02x",
@@ -90,12 +93,19 @@ namespace Ipxe {
 				_alloc.submit();
 			}
 
+			void link_state_changed() { _notify.link_state_changed(); }
+
 
 			/***************************
 			 ** Nic::Driver interface **
 			 ***************************/
 
 			Nic::Mac_address mac_address() { return _mac_addr; }
+
+			bool link_state() override
+			{
+				return dde_ipxe_nic_link_state(1);
+			}
 
 			void tx(char const *packet, Genode::size_t size)
 			{
@@ -112,9 +122,9 @@ namespace Ipxe {
 
 	class Driver_factory : public Nic::Driver_factory
 	{
-		Nic::Driver *create(Nic::Rx_buffer_alloc &alloc)
+		Nic::Driver *create(Nic::Rx_buffer_alloc &alloc, Nic::Driver_notification &notify)
 		{
-			Driver::instance = new (Genode::env()->heap()) Ipxe::Driver(alloc);
+			Driver::instance = new (Genode::env()->heap()) Ipxe::Driver(alloc, notify);
 			return Driver::instance;
 		}
 

@@ -16,6 +16,11 @@
 #define _DDE_IPXE__NIC_H_
 
 /**
+ * Link-state change callback
+ */
+typedef void (*dde_ipxe_nic_link_cb)(void);
+
+/**
  * Packet reception callback
  *
  * \param   if_index    index of the receiving network interface
@@ -27,14 +32,14 @@ typedef void (*dde_ipxe_nic_rx_cb)(unsigned if_index, const char *packet, unsign
 /**
  * Register packet reception callback
  *
- * \param   cb   new callback function
- *
- * \return  old callback function pointer
+ * \param   rx_cb    packet-reception callback function
+ * \param   link_cb  link-state change callback function
  *
  * This registers a function pointer as rx callback. Incoming ethernet packets
  * are passed to this function.
  */
-extern dde_ipxe_nic_rx_cb dde_ipxe_nic_register_rx_callback(dde_ipxe_nic_rx_cb cb);
+extern void dde_ipxe_nic_register_callbacks(dde_ipxe_nic_rx_cb rx_cb,
+                                            dde_ipxe_nic_link_cb link_cb);
 
 /**
  * Send packet
@@ -56,6 +61,15 @@ extern int dde_ipxe_nic_tx(unsigned if_index, const char *packet, unsigned packe
  * \return  0 on success, -1 otherwise
  */
 extern int dde_ipxe_nic_get_mac_addr(unsigned if_index, char *out_mac_addr);
+
+/**
+ * Get current link-state of device
+ *
+ * \param  if_index  index of the receiving network interface
+ *
+ * \return 1 if link is up, 0 if no link is detected
+ */
+extern int dde_ipxe_nic_link_state(unsigned if_index);
 
 /**
  * Initialize network sub-system

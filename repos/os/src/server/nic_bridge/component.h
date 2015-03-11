@@ -105,6 +105,8 @@ namespace Net {
 			Mac_address_node   _mac_node;
 			Ipv4_address_node *_ipv4_node;
 
+			Genode::Signal_context_capability _link_state_sigh;
+
 			void _free_ipv4_node();
 
 		public:
@@ -137,7 +139,22 @@ namespace Net {
 				return m;
 			}
 
+			void link_state_changed()
+			{
+				if (_link_state_sigh.valid())
+					Genode::Signal_transmitter(_link_state_sigh).submit();
+			}
+
 			void set_ipv4_address(Ipv4_packet::Ipv4_address ip_addr);
+
+			/****************************************
+			 ** Nic::Driver notification interface **
+			 ****************************************/
+
+			bool link_state();
+
+			void link_state_sigh(Genode::Signal_context_capability sigh) {
+				_link_state_sigh = sigh; }
 
 			/******************************
 			 ** Packet_handler interface **

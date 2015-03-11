@@ -134,4 +134,5 @@ Net::Nic::Nic()
 	_nic.rx_channel()->sigh_packet_avail(_sink_submit);
 	_nic.tx_channel()->sigh_ack_avail(_source_ack);
 	_nic.tx_channel()->sigh_ready_to_submit(_source_submit);
+	_nic.link_state_sigh(_client_link_state);
 }

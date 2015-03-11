@@ -65,12 +65,18 @@ class Net::Packet_handler
 		 */
 		void _packet_avail(unsigned) { }
 
+		/**
+		 * the link-state of changed
+		 */
+		void _link_state(unsigned);
+
 	protected:
 
 		Genode::Signal_dispatcher<Packet_handler> _sink_ack;
 		Genode::Signal_dispatcher<Packet_handler> _sink_submit;
 		Genode::Signal_dispatcher<Packet_handler> _source_ack;
 		Genode::Signal_dispatcher<Packet_handler> _source_submit;
+		Genode::Signal_dispatcher<Packet_handler> _client_link_state;
 
 	public:
 

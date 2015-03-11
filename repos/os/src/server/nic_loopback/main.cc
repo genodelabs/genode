@@ -142,6 +142,14 @@ namespace Nic {
 				Mac_address result = {{1,2,3,4,5,6}};
 				return result;
 			}
+
+			bool link_state()
+			{
+				/* XXX always return true, for now */
+				return true;
+			}
+
+			void link_state_sigh(Genode::Signal_context_capability sigh) { }
 	};
 
 	class Root : public Genode::Root_component<Session_component>

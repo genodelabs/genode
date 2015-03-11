@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -87,8 +87,9 @@ class Nic_driver : public Tuntap_device,
 {
 	private:
 
-		Nic::Mac_address      _mac_addr {{ 0x02, 0x00, 0x00, 0x00, 0x00, 0x01 }};
-		Nic::Rx_buffer_alloc &_alloc;
+		Nic::Mac_address          _mac_addr {{ 0x02, 0x00, 0x00, 0x00, 0x00, 0x01 }};
+		Nic::Rx_buffer_alloc     &_alloc;
+		Nic::Driver_notification &_notify;
 
 		char const *_packet;
 
@@ -101,10 +102,9 @@ class Nic_driver : public Tuntap_device,
 
 	public:
 
-		Nic_driver(Nic::Rx_buffer_alloc &alloc)
+		Nic_driver(Nic::Rx_buffer_alloc &alloc, Nic::Driver_notification &notify)
 		:
-			_alloc(alloc),
-			_packet(0)
+			_alloc(alloc), _notify(notify), _packet(0)
 		{
 			if (pipe(_pipefd)) {
 				PERR("could not create pipe");
@@ -114,12 +114,19 @@ class Nic_driver : public Tuntap_device,
 
 		~Nic_driver() { PDBG("should probably be implemented"); }
 
+		void link_state_changed() { _notify.link_state_changed(); }
 
 		/***************************
 		 ** Nic::Driver interface **
 		 ***************************/
 
 		Nic::Mac_address mac_address() { return _mac_addr; }
+
+		bool link_state()
+		{
+			/* XXX always return true for now */
+			return true;
+		}
 
 		void tx(char const *packet, Genode::size_t size)
 		{
@@ -185,11 +192,12 @@ struct Main
 		Nic_driver     *drv { 0 };
 		Openvpn_thread *openvpn { 0 };
 
-		Nic::Driver *create(Nic::Rx_buffer_alloc &alloc)
+		Nic::Driver *create(Nic::Rx_buffer_alloc &alloc,
+		                    Nic::Driver_notification &notify)
 		{
 			/* there can be only one */
 			if (!drv) {
-				drv = new (Genode::env()->heap()) Nic_driver(alloc);
+				drv = new (Genode::env()->heap()) Nic_driver(alloc, notify);
 
 				/**
 				 * Setting the pointer in this manner is quite hackish but it has

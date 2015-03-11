@@ -93,6 +93,15 @@ struct Nic::Session : Genode::Session
 	 */
 	virtual Rx::Sink *rx() { return 0; }
 
+	/**
+	 * Request current link state of network adapter (true means link detected)
+	 */
+	virtual bool link_state() = 0;
+
+	/**
+	 * Register signal handler for link state changes
+	 */
+	virtual void link_state_sigh(Genode::Signal_context_capability sigh) = 0;
 
 	/*******************
 	 ** RPC interface **
@@ -101,8 +110,12 @@ struct Nic::Session : Genode::Session
 	GENODE_RPC(Rpc_mac_address, Mac_address, mac_address);
 	GENODE_RPC(Rpc_tx_cap, Genode::Capability<Tx>, _tx_cap);
 	GENODE_RPC(Rpc_rx_cap, Genode::Capability<Rx>, _rx_cap);
+	GENODE_RPC(Rpc_link_state, bool, link_state);
+	GENODE_RPC(Rpc_link_state_sigh, void, link_state_sigh,
+	           Genode::Signal_context_capability);
 
-	GENODE_RPC_INTERFACE(Rpc_mac_address, Rpc_tx_cap, Rpc_rx_cap);
+	GENODE_RPC_INTERFACE(Rpc_mac_address, Rpc_link_state,
+	                     Rpc_link_state_sigh, Rpc_tx_cap, Rpc_rx_cap);
 };
 
 #endif /* _INCLUDE__NIC_SESSION__NIC_SESSION_H_ */

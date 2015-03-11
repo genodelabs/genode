@@ -54,6 +54,16 @@ void Packet_handler::_ready_to_ack(unsigned)
 }
 
 
+void Packet_handler::_link_state(unsigned)
+{
+	Mac_address_node *node = Env::vlan()->mac_list()->first();
+	while (node) {
+		node->component()->link_state_changed();
+		node = node->next();
+	}
+}
+
+
 void Packet_handler::broadcast_to_clients(Ethernet_frame *eth, Genode::size_t size)
 {
 	/* check whether it's really a broadcast packet */
@@ -121,5 +131,6 @@ Packet_handler::Packet_handler()
 : _sink_ack(*Net::Env::receiver(), *this, &Packet_handler::_ack_avail),
   _sink_submit(*Net::Env::receiver(), *this, &Packet_handler::_ready_to_submit),
   _source_ack(*Net::Env::receiver(), *this, &Packet_handler::_ready_to_ack),
-  _source_submit(*Net::Env::receiver(), *this, &Packet_handler::_packet_avail)
+  _source_submit(*Net::Env::receiver(), *this, &Packet_handler::_packet_avail),
+  _client_link_state(*Net::Env::receiver(), *this, &Packet_handler::_link_state)
 { }

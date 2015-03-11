@@ -39,12 +39,15 @@ namespace Nic {
 
 
 class Nic::Session_component : public Genode::Allocator_avl,
-                               public Session_rpc_object, public Rx_buffer_alloc
+                               public Session_rpc_object, public Rx_buffer_alloc,
+                               public Driver_notification
 {
 	private:
 
 		Driver_factory &_driver_factory;
 		Driver         &_driver;
+
+		Genode::Signal_context_capability _link_state_sigh;
 
 		/* rx packet descriptor */
 		Genode::Packet_descriptor _curr_rx_packet;
@@ -126,7 +129,7 @@ class Nic::Session_component : public Genode::Allocator_avl,
 			                   Genode::env()->ram_session()->alloc(rx_buf_size),
 			                   static_cast<Genode::Range_allocator *>(this), ep),
 			_driver_factory(driver_factory),
-			_driver(*driver_factory.create(*this)),
+			_driver(*driver_factory.create(*this, *this)),
 			_tx_thread(_tx.sink(), _driver)
 		{ }
 
@@ -138,12 +141,21 @@ class Nic::Session_component : public Genode::Allocator_avl,
 			_driver_factory.destroy(&_driver);
 		}
 
+		/***********************************
+		 ** Driver-notification interface **
+		 ***********************************/
+
+		void link_state_changed() override
+		{
+			if (_link_state_sigh.valid())
+				Genode::Signal_transmitter(_link_state_sigh).submit();
+		}
 
 		/*******************************
 		 ** Rx_buffer_alloc interface **
 		 *******************************/
 
-		void *alloc(Genode::size_t size)
+		void *alloc(Genode::size_t size) override
 		{
 			/* assign rx packet descriptor */
 			_curr_rx_packet = _rx.source()->alloc_packet(size);
@@ -151,7 +163,7 @@ class Nic::Session_component : public Genode::Allocator_avl,
 			return _rx.source()->packet_content(_curr_rx_packet);
 		}
 
-		void submit()
+		void submit() override
 		{
 			/* check for acknowledgements from the client */
 			while (_rx.source()->ack_avail()) {
@@ -175,8 +187,14 @@ class Nic::Session_component : public Genode::Allocator_avl,
 		 ****************************/
 
 		Mac_address mac_address() { return _driver.mac_address(); }
+		bool        link_state()  { return _driver.link_state(); }
 		Tx::Sink*   tx_sink()     { return _tx.sink();   }
 		Rx::Source* rx_source()   { return _rx.source(); }
+
+		void link_state_sigh(Genode::Signal_context_capability sigh) override
+		{
+			_link_state_sigh = sigh;
+		}
 };
 
 

@@ -32,29 +32,32 @@ namespace Ipxe {
 
 			static Driver *instance;
 
-			static void dde_rx_handler(unsigned if_index,
-			                           const char *packet,
-			                           unsigned packet_len)
+		private:
+
+			Nic::Mac_address          _mac_addr;
+			Nic::Rx_buffer_alloc     &_alloc;
+			Nic::Driver_notification &_notify;
+
+			static void _rx_callback(unsigned    if_index,
+			                         const char *packet,
+			                         unsigned    packet_len)
 			{
 				instance->rx_handler(packet, packet_len);
 			}
 
-		private:
-
-			Nic::Mac_address      _mac_addr;
-			Nic::Rx_buffer_alloc &_alloc;
+			static void _link_callback() { instance->link_state_changed(); }
 
 		public:
 
-			Driver(Nic::Rx_buffer_alloc &alloc)
-			: _alloc(alloc)
+			Driver(Nic::Rx_buffer_alloc &alloc, Nic::Driver_notification &notify)
+			: _alloc(alloc), _notify(notify)
 			{
 				PINF("--- init iPXE NIC");
 				int cnt = dde_ipxe_nic_init();
 				PINF("    number of devices: %d", cnt);
 
-				PINF("--- init rx_callbacks");
-				dde_ipxe_nic_register_rx_callback(dde_rx_handler);
+				PINF("--- init callbacks");
+				dde_ipxe_nic_register_callbacks(_rx_callback, _link_callback);
 
 				dde_ipxe_nic_get_mac_addr(1, _mac_addr.addr);
 				PINF("--- get MAC address %02x:%02x:%02x:%02x:%02x:%02x",
@@ -70,23 +73,29 @@ namespace Ipxe {
 					Genode::memcpy(buffer, packet, packet_len);
 					_alloc.submit();
 				} catch (...) {
-					PDBG("failed to process received packet");	
+					PDBG("failed to process received packet");
 				}
 			}
+
+			void link_state_changed() { _notify.link_state_changed(); }
 
 
 			/***************************
 			 ** Nic::Driver interface **
 			 ***************************/
 
-			Nic::Mac_address mac_address() { return _mac_addr; }
+			Nic::Mac_address mac_address() override { return _mac_addr; }
+
+			bool link_state() override
+			{
+				return dde_ipxe_nic_link_state(1);
+			}
 
 			void tx(char const *packet, Genode::size_t size)
 			{
 				if (dde_ipxe_nic_tx(1, packet, size))
 					PWRN("Sending packet failed!");
 			}
-
 
 			/******************************
 			 ** Irq_activation interface **
@@ -97,9 +106,10 @@ namespace Ipxe {
 
 	class Driver_factory : public Nic::Driver_factory
 	{
-		Nic::Driver *create(Nic::Rx_buffer_alloc &alloc)
+		Nic::Driver *create(Nic::Rx_buffer_alloc &alloc,
+		                    Nic::Driver_notification &notify)
 		{
-			Driver::instance = new (Genode::env()->heap()) Ipxe::Driver(alloc);
+			Driver::instance = new (Genode::env()->heap()) Ipxe::Driver(alloc, notify);
 			return Driver::instance;
 		}
 

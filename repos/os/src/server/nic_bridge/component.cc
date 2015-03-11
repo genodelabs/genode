@@ -102,6 +102,10 @@ void Session_component::_free_ipv4_node()
 }
 
 
+bool Session_component::link_state() {
+	return Net::Env::nic()->link_state(); }
+
+
 void Session_component::set_ipv4_address(Ipv4_packet::Ipv4_address ip_addr)
 {
 	_free_ipv4_node();

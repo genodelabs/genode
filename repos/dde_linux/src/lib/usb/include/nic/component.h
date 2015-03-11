@@ -81,6 +81,11 @@ namespace Nic {
 		virtual Mac_address mac_address() = 0;
 
 		/**
+		 * Return current link-state (true if link detected)
+		 */
+		virtual bool link_state() = 0;
+
+		/**
 		 * Set session belonging to this driver
 		 */
 		void session(Session_component *s) { _session = s; }
@@ -129,6 +134,8 @@ namespace Nic {
 			Tx::Sink         *_tx_sink;   /* client packet sink */
 			bool              _tx_alloc;  /* get next packet from client or use _tx_packet */
 			Packet_descriptor _tx_packet; /* saved packet in case of driver errors */
+
+			Signal_context_capability _link_state_sigh;
 
 			void _send_packet_avail_signal() {
 				Signal_transmitter(_tx.sigh_packet_avail()).submit(); }
@@ -256,7 +263,22 @@ namespace Nic {
 				_tx_alloc(true)
 				{ _device->session(this); }
 
+			/**
+			 * Link state changed (called from driver)
+			 */
+			void link_state_changed()
+			{
+				if (_link_state_sigh.valid())
+					Genode::Signal_transmitter(_link_state_sigh).submit();
+			}
+
 			Mac_address mac_address() { return _device->mac_address(); }
+
+			bool link_state() override {
+				return _device->link_state(); }
+
+			void link_state_sigh(Genode::Signal_context_capability sigh) {
+				_link_state_sigh = sigh; }
 
 			/**
 			 * Send packet to client (called form driver)

@@ -67,8 +67,9 @@ class Linux_driver : public Nic::Driver
 			}
 		};
 
-		Nic::Mac_address      _mac_addr;
-		Nic::Rx_buffer_alloc &_alloc;
+		Nic::Mac_address          _mac_addr;
+		Nic::Rx_buffer_alloc     &_alloc;
+		Nic::Driver_notification &_notify;
 
 		char      _packet_buffer[1514];  /* maximum ethernet packet length */
 		int       _tap_fd;
@@ -114,8 +115,11 @@ class Linux_driver : public Nic::Driver
 
 	public:
 
-		Linux_driver(Nic::Rx_buffer_alloc &alloc)
-		: _alloc(alloc), _tap_fd(_setup_tap_fd()), _rx_thread(_tap_fd, *this)
+		Linux_driver(Nic::Rx_buffer_alloc &alloc,
+		             Nic::Driver_notification &notify)
+		:
+			_alloc(alloc), _notify(notify),
+			_tap_fd(_setup_tap_fd()), _rx_thread(_tap_fd, *this)
 		{
 			/* try using configured MAC address */
 			try {
@@ -141,12 +145,20 @@ class Linux_driver : public Nic::Driver
 			_rx_thread.start();
 		}
 
+		void link_state_changed() { _notify.link_state_changed(); }
+
 
 		/***************************
 		 ** Nic::Driver interface **
 		 ***************************/
 
 		Nic::Mac_address mac_address() { return _mac_addr; }
+
+		bool link_state()
+		{
+			/* XXX return always true for now */
+			return true;
+		}
 
 		void tx(char const *packet, Genode::size_t size)
 		{
@@ -200,9 +212,10 @@ int main(int, char **)
 	 */
 	struct Linux_driver_factory : Nic::Driver_factory
 	{
-		Nic::Driver *create(Nic::Rx_buffer_alloc &alloc)
+		Nic::Driver *create(Nic::Rx_buffer_alloc &alloc,
+		                    Nic::Driver_notification &notify)
 		{
-			return new (env()->heap()) Linux_driver(alloc);
+			return new (env()->heap()) Linux_driver(alloc, notify);
 		}
 
 		void destroy(Nic::Driver *driver)

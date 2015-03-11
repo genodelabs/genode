@@ -22,6 +22,7 @@ namespace Nic {
 	struct Rx_buffer_alloc;
 	struct Driver;
 	struct Driver_factory;
+	struct Driver_notification;
 }
 
 
@@ -43,6 +44,12 @@ struct Nic::Rx_buffer_alloc
 
 
 /**
+ * Interface for driver-to-component notifications
+ */
+struct Nic::Driver_notification { virtual void link_state_changed() = 0; };
+
+
+/**
  * Interface to be implemented by the device-specific driver code
  */
 struct Nic::Driver : Genode::Irq_handler
@@ -51,6 +58,11 @@ struct Nic::Driver : Genode::Irq_handler
 	 * Return MAC address of the network interface
 	 */
 	virtual Mac_address mac_address() = 0;
+
+	/**
+	 * Return link state (true if link detected)
+	 */
+	virtual bool link_state() = 0;
 
 	/**
 	 * Transmit packet
@@ -83,8 +95,10 @@ struct Nic::Driver_factory
 	 *
 	 * \param rx_buffer_alloc  buffer allocator used for storing incoming
 	 *                         packets
+	 * \param notifier         callback for notifications
 	 */
-	virtual Driver *create(Rx_buffer_alloc &rx_buffer_alloc) = 0;
+	virtual Driver *create(Rx_buffer_alloc &rx_buffer_alloc,
+	                       Driver_notification &notify) = 0;
 
 	/**
 	 * Destroy driver

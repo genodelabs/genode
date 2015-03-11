@@ -48,9 +48,15 @@ static struct dde_kit_sem *bh_sema;
 static struct net_device *net_dev;
 
 /**
- * RX callback function pointer
+ * Link-state change detected
  */
-static dde_ipxe_nic_rx_cb rx_callback;
+static int link_state_changed;
+
+/**
+ * Callback function pointers
+ */
+static dde_ipxe_nic_link_cb link_callback;
+static dde_ipxe_nic_rx_cb   rx_callback;
 
 /**
  * Known iPXE driver structures (located in the driver binaries)
@@ -70,7 +76,6 @@ static struct pci_driver *pci_drivers[] = {
 	&intel_driver,
 	&pcnet32_driver
 };
-
 
 /**
  * Update BARs of PCI device
@@ -201,8 +206,14 @@ static void irq_handler(void *p)
 {
 	ENTER;
 
+	/* check for the link-state to change on each interrupt */
+	int link_ok = netdev_link_ok(net_dev);
+
+	/* poll the device for packets and also link-state changes */
 	netdev_poll(net_dev);
 	dde_kit_sem_up(bh_sema);
+
+	link_state_changed = (link_ok != netdev_link_ok(net_dev));
 
 	LEAVE;
 }
@@ -219,6 +230,15 @@ static void bh_handler(void *p)
 		dde_kit_sem_down(bh_sema);
 
 		ENTER;
+
+		/* report link-state changes */
+		if (link_state_changed) {
+			LEAVE;
+			if (link_callback)
+				link_callback();
+			ENTER;
+			link_state_changed = 0;
+		}
 
 		struct io_buffer *iobuf;
 		while ((iobuf = netdev_rx_dequeue(net_dev))) {
@@ -238,15 +258,30 @@ static void bh_handler(void *p)
  ** API implementation **
  ************************/
 
-dde_ipxe_nic_rx_cb dde_ipxe_nic_register_rx_callback(dde_ipxe_nic_rx_cb cb)
+void dde_ipxe_nic_register_callbacks(dde_ipxe_nic_rx_cb rx_cb,
+                                     dde_ipxe_nic_link_cb link_cb)
 {
 	ENTER;
 
-	dde_ipxe_nic_rx_cb old = rx_callback;
-	rx_callback            = cb;
+	rx_callback   = rx_cb;
+	link_callback = link_cb;
 
 	LEAVE;
-	return old;
+}
+
+
+int dde_ipxe_nic_link_state(unsigned if_index)
+{
+	if (if_index != 1)
+		return -1;
+
+	ENTER;
+
+	int link_state = netdev_link_ok(net_dev);
+
+	LEAVE;
+
+	return link_state;
 }
 
 

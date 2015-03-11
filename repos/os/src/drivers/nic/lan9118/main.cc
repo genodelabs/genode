@@ -37,10 +37,11 @@ int main(int, char **)
 	 */
 	struct Lan9118_driver_factory : Nic::Driver_factory
 	{
-		Nic::Driver *create(Nic::Rx_buffer_alloc &alloc)
+		Nic::Driver *create(Nic::Rx_buffer_alloc &alloc,
+		                    Nic::Driver_notification &notify)
 		{
 			return new (env()->heap())
-				Lan9118(LAN9118_PHYS, LAN9118_SIZE, LAN9118_IRQ, alloc);
+				Lan9118(LAN9118_PHYS, LAN9118_SIZE, LAN9118_IRQ, alloc, notify);
 		}
 
 		void destroy(Nic::Driver *driver)

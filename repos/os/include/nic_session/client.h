@@ -56,6 +56,13 @@ class Nic::Session_client : public Genode::Rpc_client<Session>
 		Rx *rx_channel() { return &_rx; }
 		Tx::Source *tx() { return _tx.source(); }
 		Rx::Sink   *rx() { return _rx.sink(); }
+
+		void link_state_sigh(Genode::Signal_context_capability sigh) override
+		{
+			call<Rpc_link_state_sigh>(sigh);
+		}
+
+		bool link_state() override { return call<Rpc_link_state>(); }
 };
 
 #endif /* _INCLUDE__NIC_SESSION__CLIENT_H_ */
