@@ -163,13 +163,13 @@ extern "C" {
 			 *
 			 * See: http://lwip.wikia.com/wiki/Writing_a_device_driver
 			 */
-			struct netif *ret = netif_add(&netif, &ip, &nm, &gw, &nbs,
-			                              genode_netif_init, tcpip_input);
-			if (!ret)
+			err_t ret = netifapi_netif_add(&netif, &ip, &nm, &gw, &nbs,
+			                               genode_netif_init, tcpip_input);
+			if (ret != ERR_OK)
 				throw Nic_not_availble();
 
 			/* Set Genode's nic as the default nic */
-			netif_set_default(&netif);
+			netifapi_netif_set_default(&netif);
 
 			/* If no static ip was set, we do dhcp */
 			if (!ip_addr) {
@@ -178,13 +178,14 @@ extern "C" {
 				netif.status_callback = dhcp_callback;
 
 				/* Start DHCP requests */
-				dhcp_start(&netif);
+				netifapi_dhcp_start(&netif);
 
 				/* Block until DHCP succeeded or a timeout was triggered */
 				try {
 					dhcp_semaphore()->down(20000);
 				} catch (Genode::Timeout_exception) {
 					PWRN("DHCP timed out!");
+					netifapi_dhcp_stop(&netif);
 					return 1;
 				}
 				PINF("got IP address %d.%d.%d.%d",
@@ -197,7 +198,7 @@ extern "C" {
 				return 1;
 #endif /* LWIP_DHCP */
 			} else {
-				netif_set_up(&netif);
+				netifapi_netif_set_up(&netif);
 			}
 		} catch (Nic_not_availble) {
 			PWRN("NIC not available, loopback is used as default");
