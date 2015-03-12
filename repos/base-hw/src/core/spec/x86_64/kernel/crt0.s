@@ -29,6 +29,16 @@
 	.global _start
 	_start:
 
+	/**
+	 * zero-fill BSS segment
+	 */
+	leal _bss_start, %edi
+	leal _bss_end, %ecx
+	sub %edi, %ecx
+	shr $2, %ecx
+	xor %eax, %eax
+	rep stosl
+
 	/* Enable PAE (prerequisite for IA-32e mode) and OSFXSR */
 	movl %cr4, %eax
 	btsl $5, %eax
