@@ -1,4 +1,5 @@
-+++ src/lib/lwip/src/include/lwip/arch.h
+--- a/src/include/lwip/arch.h
++++ b/src/include/lwip/arch.h
 @@ -208,6 +208,12 @@ extern "C" {
  extern int errno;
  #endif

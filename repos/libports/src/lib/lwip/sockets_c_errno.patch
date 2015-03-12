@@ -3,8 +3,9 @@ connection is established but never EISCONN. So most programs will
 fail to connect because they at one point while connecting expect to
 get EISCONN.
 
-+++ src/lib/lwip/src/api/sockets.c
-@@ -142,7 +142,7 @@ static const int err_to_errno_table[] = {
+--- a/src/api/sockets.c
++++ b/src/api/sockets.c
+@@ -214,7 +214,7 @@ static const int err_to_errno_table[] = {
    EINVAL,        /* ERR_VAL        -6      Illegal value.           */
    EWOULDBLOCK,   /* ERR_WOULDBLOCK -7      Operation would block.   */
    EADDRINUSE,    /* ERR_USE        -8      Address in use.          */

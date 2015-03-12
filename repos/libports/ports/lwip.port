@@ -16,7 +16,7 @@ PATCHES := $(addprefix src/lib/lwip/,window_scaling.patch \
                                      sockets_c_errno.patch \
                                      sol_socket_definition.patch)
 
-PATCH_OPT(src/lib/lwip/window_scaling.patch) := -p1 -d src/lib/lwip
+PATCH_OPT := -p1 -d src/lib/lwip
 
 DIRS := include/lwip/lwip include/lwip/netif
 

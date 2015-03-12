@@ -1,5 +1,6 @@
-+++ src/lib/lwip/src/api/sockets.c
-@@ -171,6 +171,9 @@ static const int err_to_errno_table[] = {
+--- a/src/api/sockets.c
++++ b/src/api/sockets.c
+@@ -243,6 +243,9 @@ static const int err_to_errno_table[] = {
    set_errno(sk->err); \
  } while (0)
  
@@ -9,7 +10,7 @@
  /* Forward delcaration of some functions */
  static void event_callback(struct netconn *conn, enum netconn_evt evt, u16_t len);
  static void lwip_getsockopt_internal(void *arg);
-@@ -1244,7 +1247,7 @@ return_copy_fdsets:
+@@ -1316,7 +1319,7 @@ return_copy_fdsets:
   * Processes recvevent (data available) and wakes up tasks waiting for select.
   */
  static void
@@ -18,7 +19,7 @@
  {
    int s;
    struct lwip_sock *sock;
-@@ -1359,6 +1362,17 @@ again:
+@@ -1431,6 +1434,17 @@ again:
    SYS_ARCH_UNPROTECT(lev);
  }
  
