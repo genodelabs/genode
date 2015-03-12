@@ -4,6 +4,24 @@
                                ===========
 
 
+An in-depth look into the ARM virtualization extensions | 2015-03-12
+####################################################################
+
+| Our new article explores the mechanisms of the ARM virtualization extensions
+| and describes how Genode's custom base-hw kernel was turned into
+| a microhypervisor.
+
+With the recently published
+[http:/documentation/release-notes/15.02 - version 15.02], Genode received
+support for ARM's virtualization extensions. While conducting this line
+of work during the year of 2014, we took the chance to thoroughly document
+the experience. The article "An in-depth look into the ARM virtualization
+extensions" presents the overall virtualization architecture and goes into
+detail about the virtualization of memory, CPU, interrupts, and time.
+Furthermore, it covers a series of experiments with I/O protection mechanisms.
+[http:/documentation/articles/arm_virtualization - Read the article...]
+
+
 Exercising the seL4 kernel interface | 2015-03-10
 #################################################
 
