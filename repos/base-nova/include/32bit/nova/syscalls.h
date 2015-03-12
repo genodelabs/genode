@@ -120,8 +120,8 @@ namespace Nova {
 		              "  sysenter;"
 		              "1:"
 		              " pop %%ebx;"
-		              : "+a" (status)
-		              : "D" (p1), "S" (p2), "d" (p3)
+		              : "+a" (status), "+d" (p3)
+		              : "D" (p1), "S" (p2)
 		              : "ecx");
 		return status;
 	}
@@ -149,8 +149,8 @@ namespace Nova {
 
 		              "  pop %%ebx;"
 		              "  pop %%ebp;"
-		              : "+a" (status)
-		              : "D" (p1), "S" (p2), "c" (p3), "d" (p4)
+		              : "+a" (status), "+c" (p3), "+d" (p4)
+		              : "D" (p1), "S" (p2)
 		              : "memory");
 		return status;
 	}
