@@ -52,6 +52,12 @@ proc run_boot_dir {binaries {core_type core}} {
 	#
 	set boot_modules "[run_dir]/boot_modules.s"
 
+	if {[have_spec "64bit"]} {
+		set address_type ".quad"
+	} else {
+		set address_type ".long"
+	}
+
 	# introduce boot module headers
 	exec echo -e \
 		  "/**" \
@@ -73,10 +79,10 @@ proc run_boot_dir {binaries {core_type core}} {
 	foreach binary $binaries {
 		if {$binary == $core_bin} { continue }
 		exec echo -e \
-			"\n.long _boot_module_${i}_name" \
-			"\n.long _boot_module_${i}_begin" \
-			"\n.long _boot_module_${i}_end - _boot_module_${i}_begin" \
-			>> $boot_modules
+			"\n${address_type} _boot_module_${i}_name" \
+			"\n${address_type} _boot_module_${i}_begin" \
+			"\n${address_type} _boot_module_${i}_end -" \
+			" _boot_module_${i}_begin" >> $boot_modules
 		incr i
 	}
 
