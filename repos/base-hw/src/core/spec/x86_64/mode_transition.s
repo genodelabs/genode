@@ -203,9 +203,6 @@
 	mov $_mt_buffer+BUFFER_SIZE, %rsp
 	pushq $0x23
 	pushq SP_OFFSET(%rax)
-
-	/* Set I/O privilege level to 3 and enable interrupts */
-	orq $0x3200, FLAGS_OFFSET(%rax)
 	pushq FLAGS_OFFSET(%rax)
 
 	pushq $0x1b

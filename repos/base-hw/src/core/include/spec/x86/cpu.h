@@ -275,6 +275,13 @@ class Genode::Cpu
 			Kernel::Call_arg user_arg_6() const { return r10; }
 			Kernel::Call_arg user_arg_7() const { return r11; }
 
+			/* Constants to handle thread-specific IF, IOPL values */
+			enum {
+				CORE_PD_ID    = 1,
+				EFLAGS_IF_SET = 1 << 9,
+				EFLAGS_IOPL_3 = 3 << 12,
+			};
+
 			/**
 			 * Initialize thread context
 			 *
@@ -287,6 +294,16 @@ class Genode::Cpu
 				translation_table(table);
 
 				Gdt::load(Cpu::exception_entry);
+
+				/*
+				 * Enable interrupts for all threads, set I/O privilege level
+				 * (IOPL) to 3 for core threads to allow UART access.
+				 */
+				eflags = EFLAGS_IF_SET;
+				if (pd_id == CORE_PD_ID)
+				{
+					eflags |= EFLAGS_IOPL_3;
+				}
 			}
 		};
 
