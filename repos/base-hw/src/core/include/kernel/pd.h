@@ -151,8 +151,7 @@ class Kernel::Mode_transition_control
 	public:
 
 		enum {
-			SIZE_LOG2  = Genode::Translation_table::MIN_PAGE_SIZE_LOG2,
-			SIZE       = 1 << SIZE_LOG2,
+			SIZE       = Cpu::mtc_size,
 			VIRT_BASE  = Cpu::exception_entry,
 			ALIGN_LOG2 = Genode::Translation_table::ALIGNM_LOG2,
 			ALIGN      = 1 << ALIGN_LOG2,
