@@ -65,6 +65,23 @@ class Genode::Cpu
 		static constexpr addr_t mtc_size        = 1 << 13;
 
 		/**
+		 * Control register 2: Page-fault linear address
+		 *
+		 * See Intel SDM Vol. 3A, section 2.5.
+		 */
+		struct Cr2 : Register<64>
+		{
+			struct Addr : Bitfield<0, 63> { };
+
+			static access_t read()
+			{
+				access_t v;
+				asm volatile ("mov %%cr2, %0" : "=r" (v) :: );
+				return v;
+			}
+		};
+
+		/**
 		 * Control register 3: Page-Directory base register
 		 *
 		 * See Intel SDM Vol. 3A, section 2.5.
