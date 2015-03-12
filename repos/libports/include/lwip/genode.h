@@ -47,6 +47,13 @@ int lwip_nic_init(genode_int32_t ip_addr,
                   __SIZE_TYPE__  tx_buf_size,
                   __SIZE_TYPE__  rx_buf_size);
 
+/**
+ * Pass on link-state changes to lwIP
+ *
+ * \param state current link-state
+ */
+void lwip_nic_link_state_changed(int state);
+
 #ifdef __cplusplus
 }
 #endif

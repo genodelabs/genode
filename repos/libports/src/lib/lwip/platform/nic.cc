@@ -32,6 +32,13 @@ extern "C" {
 #include <nic/packet_allocator.h>
 #include <nic_session/connection.h>
 
+extern "C" {
+
+	static void  genode_netif_input(struct netif *netif);
+
+	void lwip_nic_link_state_changed(int state);
+}
+
 
 /*
  * Thread, that receives packets by the nic-session interface.
@@ -46,6 +53,28 @@ class Nic_receiver_thread : public Genode::Thread<8192>
 		Packet_descriptor _rx_packet; /* actual packet received */
 		struct netif     *_netif;     /* LwIP network interface structure */
 
+		Genode::Signal_receiver  _sig_rec;
+
+		Genode::Signal_dispatcher<Nic_receiver_thread> _link_state_dispatcher;
+		Genode::Signal_dispatcher<Nic_receiver_thread> _rx_packet_avail_dispatcher;
+		Genode::Signal_dispatcher<Nic_receiver_thread> _rx_ready_to_ack_dispatcher;
+
+		void _handle_rx_packet_avail(unsigned)
+		{
+			while (_nic->rx()->packet_avail() && _nic->rx()->ready_to_ack()) {
+				_rx_packet = _nic->rx()->get_packet();
+				genode_netif_input(_netif);
+				_nic->rx()->acknowledge_packet(_rx_packet);
+			}
+		}
+
+		void _handle_rx_read_to_ack(unsigned) { _handle_rx_packet_avail(0); }
+
+		void _handle_link_state(unsigned)
+		{
+			lwip_nic_link_state_changed(_nic->link_state());
+		}
+
 		void _tx_ack(bool block = false)
 		{
 			/* check for acknowledgements */
@@ -59,7 +88,16 @@ class Nic_receiver_thread : public Genode::Thread<8192>
 	public:
 
 		Nic_receiver_thread(Nic::Connection *nic, struct netif *netif)
-		: Genode::Thread<8192>("nic-recv"), _nic(nic), _netif(netif) {}
+		:
+			Genode::Thread<8192>("nic-recv"), _nic(nic), _netif(netif),
+			_link_state_dispatcher(_sig_rec, *this, &Nic_receiver_thread::_handle_link_state),
+			_rx_packet_avail_dispatcher(_sig_rec, *this, &Nic_receiver_thread::_handle_rx_packet_avail),
+			_rx_ready_to_ack_dispatcher(_sig_rec, *this, &Nic_receiver_thread::_handle_rx_read_to_ack)
+		{
+			_nic->link_state_sigh(_link_state_dispatcher);
+			_nic->rx_channel()->sigh_packet_avail(_rx_packet_avail_dispatcher);
+			_nic->rx_channel()->sigh_ready_to_ack(_rx_ready_to_ack_dispatcher);
+		}
 
 		void entry();
 		Nic::Connection  *nic() { return _nic; };
@@ -94,9 +132,6 @@ class Nic_receiver_thread : public Genode::Thread<8192>
  * C-interface
  */
 extern "C" {
-
-	static void  genode_netif_input(struct netif *netif);
-
 
 	/**
 	 * This function should do the actual transmission of the packet. The packet is
@@ -192,8 +227,6 @@ extern "C" {
 			LINK_STATS_INC(link.drop);
 		}
 
-		/* Acknowledge the packet */
-		nic->rx()->acknowledge_packet(rx_packet);
 		return p;
 	}
 
@@ -295,11 +328,11 @@ void Nic_receiver_thread::entry()
 {
 	while(true)
 	{
-		/*
-		 * Block until we receive a packet,
-		 * then call input function.
-		 */
-		_rx_packet = _nic->rx()->get_packet();
-		genode_netif_input(_netif);
+		Genode::Signal sig = _sig_rec.wait_for_signal();
+		int num    = sig.num();
+
+		Genode::Signal_dispatcher_base *dispatcher;
+		dispatcher = dynamic_cast<Genode::Signal_dispatcher_base *>(sig.context());
+		dispatcher->dispatch(num);
 	}
 }

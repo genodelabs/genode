@@ -42,7 +42,8 @@
 #define TCP_RCV_SCALE               2  /* receive scale factor IETF RFC 1323 */
 
 #if LWIP_DHCP
-#define LWIP_NETIF_STATUS_CALLBACK  1  /* callback function used by DHCP init */
+#define LWIP_NETIF_STATUS_CALLBACK  1  /* callback function used for interface changes */
+#define LWIP_NETIF_LINK_CALLBACK    1  /* callback function used for link-state changes */
 #endif
 
 /***********************************
