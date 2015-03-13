@@ -37,7 +37,8 @@ void Thread_base::start()
 	_tid.pt = new(platform_specific()->thread_slab())
 		Platform_thread(0, _context->name);
 
-	platform_specific()->core_pd()->bind_thread(_tid.pt);
+	if (platform_specific()->core_pd()->bind_thread(_tid.pt))
+		throw Cpu_session::Thread_creation_failed();
 
 	_tid.pt->start((void *)_thread_start, stack_top());
 }
