@@ -261,17 +261,31 @@ Launchpad_child *Launchpad::start_child(const char *filename,
 		return 0;
 	}
 
-	Launchpad_child *c = new (&_sliced_heap)
-		Launchpad_child(unique_name, file_cap, ram.cap(),
-		                cpu.cap(), rm.cap(), rom_cap,
-		                &_cap_session, &_parent_services, &_child_services,
-		                config_ds, this);
+	try {
+		Launchpad_child *c = new (&_sliced_heap)
+			Launchpad_child(unique_name, file_cap, ram.cap(),
+			                cpu.cap(), rm.cap(), rom_cap,
+			                &_cap_session, &_parent_services, &_child_services,
+			                config_ds, this);
 
-	Lock::Guard lock_guard(_children_lock);
-	_children.insert(c);
+		Lock::Guard lock_guard(_children_lock);
+		_children.insert(c);
 
-	add_child(unique_name, ram_quota, c, c->heap());
-	return c;
+		add_child(unique_name, ram_quota, c, c->heap());
+
+		return c;
+	} catch (Cpu_session::Thread_creation_failed) {
+		PWRN("Failed to create child - Cpu_session::Thread_creation_failed");
+	} catch (...) {
+		PWRN("Failed to create child - unknown reason");
+	}
+
+	env()->parent()->close(rm.cap());
+	env()->parent()->close(ram.cap());
+	env()->parent()->close(cpu.cap());
+	env()->parent()->close(rom_cap);
+
+	return 0;
 }
 
 
@@ -399,6 +413,9 @@ static Timer::Session *timer_session()
 }
 
 
+/* construct child-destructor thread early - in case we run out of threads */
+static Child_destructor_thread child_destructor;
+
 /**
  * Destruct Launchpad_child, cope with infinitely blocking server->close calls
  *
@@ -408,9 +425,6 @@ static Timer::Session *timer_session()
 static void destruct_child(Allocator *alloc, Launchpad_child *child,
                            Timer::Session *timer, int timeout)
 {
-	/* lazily construct child-destructor thread */
-	static Child_destructor_thread child_destructor;
-
 	/* if no timer session was provided by our caller, we have create one */
 	if (!timer)
 		timer = timer_session();
