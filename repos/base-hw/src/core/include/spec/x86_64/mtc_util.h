@@ -1,3 +1,16 @@
+/*
+ * \brief  x86 utility functions
+ * \author Reto Buerki
+ * \date   2015-02-27
+ */
+
+/*
+ * Copyright (C) 2015 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
 #ifndef _MTC_UTIL_H_
 #define _MTC_UTIL_H_
 

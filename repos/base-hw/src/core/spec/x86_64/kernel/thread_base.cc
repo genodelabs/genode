@@ -1,12 +1,13 @@
 /*
  * \brief   CPU specific implementations of core
  * \author  Martin Stein
+ * \author  Reto Buerki
  * \author  Stefan Kalkowski
  * \date    2013-11-11
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013, 2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.

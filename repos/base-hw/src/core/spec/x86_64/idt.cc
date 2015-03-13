@@ -1,3 +1,17 @@
+/*
+ * \brief  Interrupt Descriptor Table (IDT)
+ * \author Adrian-Ken Rueegsegger
+ * \author Reto Buerki
+ * \date   2015-02-13
+ */
+
+/*
+ * Copyright (C) 2015 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
 #include <pseudo_descriptor.h>
 #include <mtc_util.h>
 

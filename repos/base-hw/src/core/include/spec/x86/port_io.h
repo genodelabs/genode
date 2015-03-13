@@ -1,3 +1,16 @@
+/*
+ * \brief  Functions to perform port I/O
+ * \author Reto Buerki
+ * \date   2015-03-06
+ */
+
+/*
+ * Copyright (C) 2015 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
 #ifndef _PORT_IO_H_
 #define _PORT_IO_H_
 
