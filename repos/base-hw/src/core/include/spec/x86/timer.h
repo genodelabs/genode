@@ -1,11 +1,12 @@
 /*
  * \brief  Timer driver for core
- * \author Norman Feske
- * \date   2013-04-05
+ * \author Adrian-Ken Rueegsegger
+ * \author Reto Buerki
+ * \date   2015-02-06
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.

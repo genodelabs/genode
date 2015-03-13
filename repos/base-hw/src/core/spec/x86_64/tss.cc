@@ -1,3 +1,17 @@
+/*
+ * \brief  64-bit Task State Segment (TSS)
+ * \author Adrian-Ken Rueegsegger
+ * \author Reto Buerki
+ * \date   2015-02-21
+ */
+
+/*
+ * Copyright (C) 2015 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
 #include <mtc_util.h>
 
 #include "tss.h"

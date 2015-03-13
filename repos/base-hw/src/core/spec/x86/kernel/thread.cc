@@ -1,12 +1,12 @@
 /*
- * \brief   Kernel backend for execution contexts in userland
- * \author  Martin Stein
- * \author  Stefan Kalkowski
- * \date    2014-01-14
+ * \brief  Kernel backend for execution contexts in userland
+ * \author Adrian-Ken Rueegsegger
+ * \author Reto Buerki
+ * \date   2015-02-09
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.

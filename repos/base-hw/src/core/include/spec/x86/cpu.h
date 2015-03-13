@@ -1,11 +1,13 @@
 /*
- * \brief  CPU driver for core
+ * \brief  x86 CPU driver for core
+ * \author Adrian-Ken Rueegsegger
  * \author Martin stein
- * \date   2011-11-03
+ * \author Reto Buerki
+ * \date   2015-02-06
  */
 
 /*
- * Copyright (C) 2011-2012 Genode Labs GmbH
+ * Copyright (C) 2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
