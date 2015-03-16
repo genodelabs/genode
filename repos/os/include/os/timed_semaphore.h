@@ -82,7 +82,7 @@ class Genode::Timed_semaphore : public Semaphore
 {
 	private:
 
-		typedef Fifo_semaphore_queue::Element Element;
+		typedef Semaphore::Element Element;
 
 		/**
 		 * Aborts blocking on the semaphore, raised when a timeout occured.
