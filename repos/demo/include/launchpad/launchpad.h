@@ -28,8 +28,23 @@
 
 #include <init/child.h>
 
-class Launchpad_child_policy : public Init::Traditional_child_policy
+class Launchpad_child_policy : public Genode::Child_policy,
+                               public Genode::Client
 {
+	private:
+
+		typedef Genode::String<64> Name;
+		Name const _name;
+
+		Genode::Server                      *_server;
+		Genode::Service_registry            *_parent_services;
+		Genode::Service_registry            *_child_services;
+		Genode::Dataspace_capability         _config_ds;
+		Genode::Rpc_entrypoint              *_parent_entrypoint;
+		Init::Child_policy_enforce_labeling  _labeling_policy;
+		Init::Child_policy_provide_rom_file  _config_policy;
+		Init::Child_policy_provide_rom_file  _binary_policy;
+
 	public:
 
 		Launchpad_child_policy(const char                  *name,
@@ -40,10 +55,18 @@ class Launchpad_child_policy : public Init::Traditional_child_policy
 		                       Genode::Dataspace_capability binary_ds,
 		                       Genode::Rpc_entrypoint      *parent_entrypoint)
 		:
-			Init::Traditional_child_policy(name, server, parent_services,
-			                               child_services, config_ds,
-			                               binary_ds, 0, 0, 0, parent_entrypoint)
+			_name(name),
+			_server(server),
+			_parent_services(parent_services),
+			_child_services(child_services),
+			_config_ds(config_ds),
+			_parent_entrypoint(parent_entrypoint),
+			_labeling_policy(_name.string()),
+			_config_policy("config", config_ds, _parent_entrypoint),
+			_binary_policy("binary", binary_ds, _parent_entrypoint)
 		{ }
+
+		const char *name() const { return _name.string(); }
 
 		Genode::Service *resolve_session_request(const char *service_name,
 		                                         const char *args)
@@ -85,6 +108,38 @@ class Launchpad_child_policy : public Init::Traditional_child_policy
 			Genode::Client client;
 			return _child_services->wait_for_service(service_name,
 			                                         &client, name());
+		}
+
+		void filter_session_args(const char *service, char *args,
+		                         Genode::size_t args_len)
+		{
+			_labeling_policy.filter_session_args(service, args, args_len);
+		}
+
+		bool announce_service(const char              *service_name,
+		                      Genode::Root_capability  root,
+		                      Genode::Allocator       *alloc,
+		                      Genode::Server          * /*server*/)
+		{
+			if (_child_services->find(service_name)) {
+				PWRN("%s: service %s is already registered",
+				     name(), service_name);
+				return false;
+			}
+
+			/* XXX remove potential race between checking for and inserting service */
+
+			_child_services->insert(new (alloc)
+				Genode::Child_service(service_name, root, _server));
+			Genode::printf("%s registered service %s\n", name(), service_name);
+			return true;
+		}
+
+		void unregister_services()
+		{
+			Genode::Service *rs;
+			while ((rs = _child_services->find_by_server(_server)))
+				_child_services->remove(rs);
 		}
 };
 
@@ -192,6 +247,7 @@ class Launchpad
 		 */
 		void process_config();
 
+
 		/*************************
 		 ** Configuring the GUI **
 		 *************************/
@@ -209,8 +265,6 @@ class Launchpad
 
 		virtual void remove_child(const char *name,
 		                          Genode::Allocator *alloc) { }
-
-//		virtual void child_quota(const char *name, unsigned long quota) { }
 
 		Launchpad_child *start_child(const char *prg_name, unsigned long quota,
 		                             Genode::Dataspace_capability config_ds);
