@@ -324,7 +324,12 @@ append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
 
 append qemu_args " -net user -redir tcp:12865::12865 -redir tcp:49153::49153 "
 
-run_genode_until {.*and family AF_INET.*} 30
+if {[have_spec linux]} {
+	run_genode_until {.*family AF_INET.*\n} 60
+} else {
+	run_genode_until $ip_match_string 60
+}
+
 set serial_id [output_spawn_id]
 
 set force_ports ""
@@ -337,6 +342,9 @@ if {[have_include "power_on/qemu"]} {
 	regexp $ip_match_string $output all ip_addr
 	puts ""
 }
+
+# give the TCP/IP stack some time to settle down
+sleep 3
 
 # start netperf client connecting to netperf server running native on Genode
 foreach netperf_test $netperf_tests {
