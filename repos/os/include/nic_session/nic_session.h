@@ -37,6 +37,11 @@ namespace Nic {
 
 	struct Mac_address;
 	struct Session;
+
+	using Genode::Packet_stream_sink;
+	using Genode::Packet_stream_source;
+
+	typedef Genode::Packet_descriptor Packet_descriptor;
 }
 
 
@@ -53,8 +58,8 @@ struct Nic::Session : Genode::Session
 	 * The acknowledgement queue has always the same size as the submit
 	 * queue. We access the packet content as a char pointer.
 	 */
-	typedef Packet_stream_policy<Packet_descriptor, QUEUE_SIZE, QUEUE_SIZE,
-	                             char> Policy;
+	typedef Genode::Packet_stream_policy<Genode::Packet_descriptor,
+	                                     QUEUE_SIZE, QUEUE_SIZE, char> Policy;
 
 	typedef Packet_stream_tx::Channel<Policy> Tx;
 	typedef Packet_stream_rx::Channel<Policy> Rx;

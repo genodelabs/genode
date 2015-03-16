@@ -34,7 +34,7 @@ Vancouver_network::Vancouver_network(Synced_motherboard &mb, Nic::Session *nic)
 void Vancouver_network::entry()
 {
 	while (true) {
-		Packet_descriptor rx_packet = _nic->rx()->get_packet();
+		Nic::Packet_descriptor rx_packet = _nic->rx()->get_packet();
 
 		/* send it to the network bus */
 		char * rx_content = _nic->rx()->packet_content(rx_packet);

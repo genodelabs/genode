@@ -180,8 +180,8 @@ extern "C" {
 		static Counter counter;
 
 		try {
-			Packet_descriptor packet = nic()->tx()->alloc_packet(len);
-			void* content            = nic()->tx()->packet_content(packet);
+			Nic::Packet_descriptor packet = nic()->tx()->alloc_packet(len);
+			void* content                 = nic()->tx()->packet_content(packet);
 
 			Genode::memcpy((char *)content, addr, len);
 			nic()->tx()->submit_packet(packet);
@@ -204,7 +204,7 @@ extern "C" {
 	{
 		Linux::Irq_guard guard;
 
-		Packet_descriptor packet = nic()->tx()->get_acked_packet();
+		Nic::Packet_descriptor packet = nic()->tx()->get_acked_packet();
 		nic()->tx()->release_packet(packet);
 	}
 
@@ -216,7 +216,7 @@ extern "C" {
 
 		if (nic()) {
 			while(nic()->rx()->packet_avail()) {
-				Packet_descriptor p = nic()->rx()->get_packet();
+				Nic::Packet_descriptor p = nic()->rx()->get_packet();
 
 				if (receive_packet && net_device)
 					receive_packet(net_device, nic()->rx()->packet_content(p), p.size());

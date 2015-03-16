@@ -47,7 +47,7 @@ class Nic::Session_component : public Genode::Allocator_avl,
 		Driver         &_driver;
 
 		/* rx packet descriptor */
-		Packet_descriptor _curr_rx_packet;
+		Genode::Packet_descriptor _curr_rx_packet;
 
 		enum { TX_STACK_SIZE = 8*1024 };
 		class Tx_thread : public Genode::Thread<TX_STACK_SIZE>
@@ -155,7 +155,7 @@ class Nic::Session_component : public Genode::Allocator_avl,
 		{
 			/* check for acknowledgements from the client */
 			while (_rx.source()->ack_avail()) {
-				Packet_descriptor packet = _rx.source()->get_acked_packet();
+				Genode::Packet_descriptor packet = _rx.source()->get_acked_packet();
 
 				/* free packet buffer */
 				_rx.source()->release_packet(packet);

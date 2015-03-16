@@ -1163,7 +1163,7 @@ class Machine : public StaticReceiver<Machine>
 			}
 
 			/* allocate transmit packet */
-			Packet_descriptor tx_packet;
+			Nic::Packet_descriptor tx_packet;
 			try {
 				tx_packet = _nic->tx()->alloc_packet(msg.len);
 			} catch (Nic::Session::Tx::Source::Packet_alloc_failed) {
@@ -1180,7 +1180,7 @@ class Machine : public StaticReceiver<Machine>
 			_nic->tx()->submit_packet(tx_packet);
 
 			/* wait for acknowledgement */
-			Packet_descriptor ack_tx_packet = _nic->tx()->get_acked_packet();
+			Nic::Packet_descriptor ack_tx_packet = _nic->tx()->get_acked_packet();
 
 			if (ack_tx_packet.size()   != tx_packet.size()
 			 || ack_tx_packet.offset() != tx_packet.offset()) {

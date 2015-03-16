@@ -81,6 +81,32 @@
 #include <dataspace/client.h>
 #include <util/string.h>
 
+namespace Genode {
+
+	class Packet_descriptor;
+
+	template <typename, int> class Packet_descriptor_queue;
+	template <typename>      class Packet_descriptor_transmitter;
+	template <typename>      class Packet_descriptor_receiver;
+
+	class Packet_stream_base;
+
+	template <typename, unsigned, unsigned, typename>
+	struct Packet_stream_policy;
+
+	/**
+	 * Default configuration for packet-descriptor queues
+	 */
+	typedef Packet_stream_policy<Packet_descriptor, 64, 64, char>
+	        Default_packet_stream_policy;
+
+	template <typename POLICY = Default_packet_stream_policy>
+	class Packet_stream_source;
+
+	template <typename POLICY = Default_packet_stream_policy>
+	class Packet_stream_sink;
+}
+
 
 /**
  * Default packet descriptor
@@ -88,7 +114,7 @@
  * A class used as 'PACKET_DESCRIPTOR' arguments to the 'Packet_stream_policy'
  * template must implement the interface of this class.
  */
-class Packet_descriptor
+class Genode::Packet_descriptor
 {
 	private:
 
@@ -127,7 +153,7 @@ class Packet_descriptor
  * This class is private to the packet-stream interface.
  */
 template <typename PACKET_DESCRIPTOR, int QUEUE_SIZE>
-class Packet_descriptor_queue
+class Genode::Packet_descriptor_queue
 {
 	private:
 
@@ -221,7 +247,7 @@ class Packet_descriptor_queue
  * This class is private to the packet-stream interface.
  */
 template <typename TX_QUEUE>
-class Packet_descriptor_transmitter
+class Genode::Packet_descriptor_transmitter
 {
 	private:
 
@@ -310,7 +336,7 @@ class Packet_descriptor_transmitter
  * This class is private to the packet-stream interface.
  */
 template <typename RX_QUEUE>
-class Packet_descriptor_receiver
+class Genode::Packet_descriptor_receiver
 {
 	private:
 
@@ -386,7 +412,7 @@ class Packet_descriptor_receiver
  *
  * This class is private to the packet-stream interface.
  */
-class Packet_stream_base
+class Genode::Packet_stream_base
 {
 	public:
 
@@ -475,7 +501,7 @@ template <typename PACKET_DESCRIPTOR,
           unsigned SUBMIT_QUEUE_SIZE,
           unsigned ACK_QUEUE_SIZE,
           typename CONTENT_TYPE>
-struct Packet_stream_policy
+struct Genode::Packet_stream_policy
 {
 	typedef CONTENT_TYPE Content_type;
 
@@ -490,13 +516,6 @@ struct Packet_stream_policy
 
 
 /**
- * Default configuration for packet-descriptor queues
- */
-typedef Packet_stream_policy<Packet_descriptor, 64, 64, char>
-        Default_packet_stream_policy;
-
-
-/**
  * Placement new operator for constructing packet-descriptor queues
  *
  * The third argument is only there to let the compiler choose this overloaded
@@ -504,14 +523,15 @@ typedef Packet_stream_policy<Packet_descriptor, 64, 64, char>
  *
  * This operator should not be used outside the packet-stream interface.
  */
-inline void *operator new(Genode::size_t size, void *addr, Packet_stream_base *) { return addr; }
+inline void *operator new(Genode::size_t size, void *addr,
+                          Genode::Packet_stream_base *) { return addr; }
 
 
 /**
  * Originator of a packet stream
  */
-template <typename POLICY = Default_packet_stream_policy>
-class Packet_stream_source : private Packet_stream_base
+template <typename POLICY>
+class Genode::Packet_stream_source : private Packet_stream_base
 {
 	public:
 
@@ -694,8 +714,8 @@ class Packet_stream_source : private Packet_stream_base
 /**
  * Receiver of a packet stream
  */
-template <typename POLICY = Default_packet_stream_policy>
-class Packet_stream_sink : private Packet_stream_base
+template <typename POLICY>
+class Genode::Packet_stream_sink : private Packet_stream_base
 {
 	public:
 

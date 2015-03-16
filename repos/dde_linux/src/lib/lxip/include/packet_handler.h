@@ -19,7 +19,12 @@
 #include <nic_session/connection.h>
 
 namespace Net {
+
 	class Packet_handler;
+
+	using Nic::Packet_stream_sink;
+	using Nic::Packet_stream_source;
+	using Nic::Packet_descriptor;
 }
 
 

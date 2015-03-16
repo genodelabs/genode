@@ -22,7 +22,12 @@
 #include <net/ipv4.h>
 
 namespace Net {
+
 	class Packet_handler;
+
+	using ::Nic::Packet_stream_sink;
+	using ::Nic::Packet_stream_source;
+	typedef ::Nic::Packet_descriptor Packet_descriptor;
 }
 
 /**

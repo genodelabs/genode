@@ -40,6 +40,8 @@ class Nic_receiver_thread : public Genode::Thread<8192>
 {
 	private:
 
+		typedef Nic::Packet_descriptor Packet_descriptor;
+
 		Nic::Connection  *_nic;       /* nic-session */
 		Packet_descriptor _rx_packet; /* actual packet received */
 		struct netif     *_netif;     /* LwIP network interface structure */
@@ -119,8 +121,8 @@ extern "C" {
 #if ETH_PAD_SIZE
 		pbuf_header(p, -ETH_PAD_SIZE); /* drop the padding word */
 #endif
-		Packet_descriptor tx_packet = th->alloc_tx_packet(p->tot_len);
-		char *tx_content            = th->content(tx_packet);
+		Nic::Packet_descriptor tx_packet = th->alloc_tx_packet(p->tot_len);
+		char *tx_content                 = th->content(tx_packet);
 
 		/*
 		 * Iterate through all pbufs and
@@ -154,11 +156,11 @@ extern "C" {
 	static struct pbuf *
 	low_level_input(struct netif *netif)
 	{
-		Nic_receiver_thread *th = reinterpret_cast<Nic_receiver_thread*>(netif->state);
-		Nic::Connection *nic    = th->nic();
-		Packet_descriptor rx_packet = th->rx_packet();
-		char *rx_content        = nic->rx()->packet_content(rx_packet);
-		u16_t len               = rx_packet.size();
+		Nic_receiver_thread   *th         = reinterpret_cast<Nic_receiver_thread*>(netif->state);
+		Nic::Connection       *nic        = th->nic();
+		Nic::Packet_descriptor rx_packet  = th->rx_packet();
+		char                  *rx_content = nic->rx()->packet_content(rx_packet);
+		u16_t                  len        = rx_packet.size();
 
 #if ETH_PAD_SIZE
 		len += ETH_PAD_SIZE; /* allow room for Ethernet padding */

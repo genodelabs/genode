@@ -46,7 +46,7 @@ namespace Block {
  * the data read from or written to the block indicated by
  * its number.
  */
-class Block::Packet_descriptor : public ::Packet_descriptor
+class Block::Packet_descriptor : public Genode::Packet_descriptor
 {
 	public:
 
@@ -65,18 +65,22 @@ class Block::Packet_descriptor : public ::Packet_descriptor
 		/**
 		 * Constructor
 		 */
-		Packet_descriptor(Genode::off_t offset=0, Genode::size_t size=0)
-		: ::Packet_descriptor(offset, size),
-		  _op(READ), _block_number(0), _block_count(0), _success(false) { }
+		Packet_descriptor(Genode::off_t offset=0, Genode::size_t size = 0)
+		:
+			Genode::Packet_descriptor(offset, size),
+			_op(READ), _block_number(0), _block_count(0), _success(false)
+		{ }
 
 		/**
 		 * Constructor
 		 */
 		Packet_descriptor(Packet_descriptor p, Opcode op,
 		                  sector_t blk_nr, Genode::size_t blk_count = 1)
-		: ::Packet_descriptor(p.offset(), p.size()),
-		  _op(op), _block_number(blk_nr),
-		  _block_count(blk_count), _success(false) { }
+		:
+			Genode::Packet_descriptor(p.offset(), p.size()),
+			_op(op), _block_number(blk_nr),
+			_block_count(blk_count), _success(false)
+		{ }
 
 		Opcode         operation()    const { return _op;           }
 		sector_t       block_number() const { return _block_number; }
@@ -113,9 +117,9 @@ struct Block::Session : public Genode::Session
 	};
 
 
-	typedef Packet_stream_policy<Block::Packet_descriptor,
-	                             TX_QUEUE_SIZE, TX_QUEUE_SIZE,
-	                             char> Tx_policy;
+	typedef Genode::Packet_stream_policy<Block::Packet_descriptor,
+	                                     TX_QUEUE_SIZE, TX_QUEUE_SIZE,
+	                                     char> Tx_policy;
 
 	typedef Packet_stream_tx::Channel<Tx_policy> Tx;
 

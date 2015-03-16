@@ -81,7 +81,7 @@ typedef struct DRVTAP
 static int net_send_packet(void * packet, uint32_t packet_len, Nic::Session * nic) {
 
 	/* allocate transmit packet */
-	Packet_descriptor tx_packet;
+	Nic::Packet_descriptor tx_packet;
 	try {
 		tx_packet = nic->tx()->alloc_packet(packet_len);
 	} catch (Nic::Session::Tx::Source::Packet_alloc_failed) {
@@ -96,7 +96,7 @@ static int net_send_packet(void * packet, uint32_t packet_len, Nic::Session * ni
 	nic->tx()->submit_packet(tx_packet);
 
 	/* wait for acknowledgement */
-	Packet_descriptor ack_tx_packet = nic->tx()->get_acked_packet();
+	Nic::Packet_descriptor ack_tx_packet = nic->tx()->get_acked_packet();
 
 	if (ack_tx_packet.size()   != tx_packet.size() ||
 	    ack_tx_packet.offset() != tx_packet.offset())
@@ -292,17 +292,17 @@ static DECLCALLBACK(int) drvGetMac(PPDMINETWORKCONFIG pInterface, PRTMAC pMac)
  */
 static DECLCALLBACK(int) drvTAPAsyncIoThread(PPDMDRVINS pDrvIns, PPDMTHREAD pThread)
 {
-    PDRVTAP pThis = PDMINS_2_DATA(pDrvIns, PDRVTAP);
-    LogFlow(("drvTAPAsyncIoThread: pThis=%p\n", pThis));
+	PDRVTAP pThis = PDMINS_2_DATA(pDrvIns, PDRVTAP);
+	LogFlow(("drvTAPAsyncIoThread: pThis=%p\n", pThis));
 
-    if (pThread->enmState == PDMTHREADSTATE_INITIALIZING)
-        return VINF_SUCCESS;
+	if (pThread->enmState == PDMTHREADSTATE_INITIALIZING)
+		return VINF_SUCCESS;
 
 	Nic::Session * nic = pThis->nic_session;
 
-    while (pThread->enmState == PDMTHREADSTATE_RUNNING)
+	while (pThread->enmState == PDMTHREADSTATE_RUNNING)
 	{
-		Packet_descriptor rx_packet = nic->rx()->get_packet();
+		Nic::Packet_descriptor rx_packet = nic->rx()->get_packet();
 
 		/* send it to the network bus */
 		char * rx_content = nic->rx()->packet_content(rx_packet);

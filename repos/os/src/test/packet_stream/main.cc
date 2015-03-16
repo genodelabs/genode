@@ -25,14 +25,14 @@
  * Note that the ack queue size is smaller than the submit queue
  * size.
  */
-typedef Packet_stream_policy<Packet_descriptor, 8, 4, char>
+typedef Genode::Packet_stream_policy<Genode::Packet_descriptor, 8, 4, char>
         Test_packet_stream_policy;
 
 
 enum { STACK_SIZE = 4096 };
 
 
-void Packet_stream_base::_debug_print_buffers()
+void Genode::Packet_stream_base::_debug_print_buffers()
 {
 	Genode::printf("_ds_local_base       = 0x%p\n",        _ds_local_base);
 	Genode::printf("_submit_queue_offset = 0x%lx\n", _submit_queue_offset);
@@ -47,7 +47,7 @@ void Packet_stream_base::_debug_print_buffers()
  */
 class Source : private Genode::Thread<STACK_SIZE>,
                private Genode::Allocator_avl,
-               public  Packet_stream_source<Test_packet_stream_policy>
+               public  Genode::Packet_stream_source<Test_packet_stream_policy>
 {
 	private:
 
@@ -169,7 +169,7 @@ class Source : private Genode::Thread<STACK_SIZE>,
 
 
 class Sink : private Genode::Thread<STACK_SIZE>,
-             public  Packet_stream_sink<Test_packet_stream_policy>
+             public  Genode::Packet_stream_sink<Test_packet_stream_policy>
 {
 	private:
 

@@ -23,8 +23,8 @@ namespace Packet_stream_tx { template <typename> struct Channel; }
 template <typename PACKET_STREAM_POLICY>
 struct Packet_stream_tx::Channel
 {
-	typedef Packet_stream_source<PACKET_STREAM_POLICY> Source;
-	typedef Packet_stream_sink<PACKET_STREAM_POLICY>   Sink;
+	typedef Genode::Packet_stream_source<PACKET_STREAM_POLICY> Source;
+	typedef Genode::Packet_stream_sink<PACKET_STREAM_POLICY>   Sink;
 
 	/**
 	 * Request transmission interface

@@ -20,16 +20,18 @@
 
 
 namespace Usb {
+
 	using namespace Genode;
 	class Session;
 	struct Packet_descriptor;
 	struct Completion;
 }
 
+
 /**
  * USB packet type
  */
-struct Usb::Packet_descriptor : ::Packet_descriptor
+struct Usb::Packet_descriptor : Genode::Packet_descriptor
 {
 	enum Type { STRING, CTRL, BULK, IRQ, ALT_SETTING, CONFIG, RELEASE_IF };
 
@@ -41,17 +43,17 @@ struct Usb::Packet_descriptor : ::Packet_descriptor
 	{
 		struct
 		{
-			uint8_t   index;
-			unsigned  length;
+			uint8_t  index;
+			unsigned length;
 		} string;
 
 		struct
 		{
-			uint8_t    request;
-			uint8_t    request_type;
-			uint16_t   value;
-			uint16_t   index;
-			int        timeout;
+			uint8_t  request;
+			uint8_t  request_type;
+			uint16_t value;
+			uint16_t index;
+			int      timeout;
 		} control;
 
 		struct
@@ -63,8 +65,8 @@ struct Usb::Packet_descriptor : ::Packet_descriptor
 
 		struct
 		{
-			uint8_t     number;
-			uint8_t     alt_setting;
+			uint8_t number;
+			uint8_t alt_setting;
 		} interface;
 
 		struct
@@ -76,11 +78,12 @@ struct Usb::Packet_descriptor : ::Packet_descriptor
 	bool is_read_transfer() { return transfer.ep & ENDPOINT_IN; }
 
 	Packet_descriptor(off_t offset = 0, size_t size = 0)
-	: ::Packet_descriptor(offset, size) { }
+	: Genode::Packet_descriptor(offset, size) { }
 
-	Packet_descriptor(::Packet_descriptor p, Type type, Completion *completion = nullptr)
-	: ::Packet_descriptor(p.offset(), p.size()), type(type), completion(completion) { }
+	Packet_descriptor(Genode::Packet_descriptor p, Type type, Completion *completion = nullptr)
+	: Genode::Packet_descriptor(p.offset(), p.size()), type(type), completion(completion) { }
 };
+
 
 /**
  * Completion for asynchronous communication
@@ -89,6 +92,7 @@ struct Usb::Completion
 {
 	virtual void complete(Usb::Packet_descriptor &p) = 0;
 };
+
 
 struct Usb::Session : public Genode::Session
 {

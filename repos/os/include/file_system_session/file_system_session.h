@@ -106,7 +106,7 @@ struct File_system::Symlink_handle : Node_handle
 };
 
 
-class File_system::Packet_descriptor : public ::Packet_descriptor
+class File_system::Packet_descriptor : public Genode::Packet_descriptor
 {
 	public:
 
@@ -129,7 +129,7 @@ class File_system::Packet_descriptor : public ::Packet_descriptor
 		 */
 		Packet_descriptor(off_t offset = 0, size_t size = 0)
 		:
-			::Packet_descriptor(offset, size), _handle(-1),
+			Genode::Packet_descriptor(offset, size), _handle(-1),
 			_op(READ), _position(0), _length(0), _success(false) { }
 
 		/**
@@ -141,7 +141,7 @@ class File_system::Packet_descriptor : public ::Packet_descriptor
 		                  Node_handle handle, Opcode op, size_t length,
 		                  seek_off_t position = ~0)
 		:
-			::Packet_descriptor(p.offset(), p.size()),
+			Genode::Packet_descriptor(p.offset(), p.size()),
 			_handle(handle), _op(op),
 			_position(position), _length(length), _success(false),
 			_ref(ref)

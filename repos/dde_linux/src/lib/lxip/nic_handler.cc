@@ -133,8 +133,8 @@ void net_mac(void* mac, unsigned long size)
 int net_tx(void* addr, unsigned long len)
 {
 	try {
-		Packet_descriptor packet = Net::Nic::n()->tx()->alloc_packet(len);
-		void* content            = Net::Nic::n()->tx()->packet_content(packet);
+		Net::Packet_descriptor packet = Net::Nic::n()->tx()->alloc_packet(len);
+		void* content                 = Net::Nic::n()->tx()->packet_content(packet);
 
 		Genode::memcpy((char *)content, addr, len);
 		Net::Nic::n()->tx()->submit_packet(packet);
