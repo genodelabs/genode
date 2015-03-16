@@ -131,7 +131,7 @@ void Rpc_entrypoint::_activation_entry()
 	srv >> IPC_WAIT >> opcode;
 
 	/* set default return value */
-	srv.ret(ERR_INVALID_OBJECT);
+	srv.ret(Ipc_client::ERR_INVALID_OBJECT);
 
 	/* atomically lookup and lock referenced object */
 	ep->_curr_obj = ep->lookup_and_lock(id_pt);

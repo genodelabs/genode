@@ -23,7 +23,6 @@
 
 #include <util/misc_math.h>
 #include <util/string.h>
-#include <base/errno.h>
 #include <base/exception.h>
 #include <base/capability.h>
 #include <base/ipc_msgbuf.h>
@@ -438,6 +437,8 @@ class Genode::Ipc_client: public Ipc_istream, public Ipc_ostream
 		}
 
 	public:
+
+		enum { ERR_INVALID_OBJECT = -70000, };
 
 		/**
 		 * Constructor

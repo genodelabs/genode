@@ -63,7 +63,7 @@ void Rpc_entrypoint::entry()
 		srv >> IPC_REPLY_WAIT >> opcode;
 
 		/* set default return value */
-		srv.ret(ERR_INVALID_OBJECT);
+		srv.ret(Ipc_client::ERR_INVALID_OBJECT);
 
 		/* atomically lookup and lock referenced object */
 		Object_pool<Rpc_object_base>::Guard curr_obj(lookup_and_lock(srv.badge()));

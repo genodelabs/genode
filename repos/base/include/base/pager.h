@@ -17,7 +17,6 @@
 
 #include <base/thread.h>
 #include <base/thread_state.h>
-#include <base/errno.h>
 #include <base/ipc_pager.h>
 #include <base/printf.h>
 #include <base/object_pool.h>

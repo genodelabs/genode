@@ -62,7 +62,7 @@ void Rpc_entrypoint::entry()
 		srv >> IPC_REPLY_WAIT >> opcode;
 
 		/* set default return value */
-		srv.ret(ERR_INVALID_OBJECT);
+		srv.ret(Ipc_client::ERR_INVALID_OBJECT);
 
 		/* check whether capability's label fits global id */
 		if (((unsigned long)srv.badge()) != _rcv_buf.label()) {
