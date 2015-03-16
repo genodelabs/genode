@@ -128,7 +128,7 @@ include $(BASE_DIR)/mk/generic.mk
 #
 # Use $(OBJECTS) instead of $^ for specifying the list of objects to include
 # in the archive because $^ may also contain non-object phony targets, e.g.,
-# used by the integration of Qt4's meta-object compiler into the Genode
+# used by the integration of Qt's meta-object compiler into the Genode
 # build system.
 #
 $(LIB_A): $(OBJECTS)

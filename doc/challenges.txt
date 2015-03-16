@@ -107,7 +107,7 @@ Applications and library infrastructure
   independent trusted component facilitating Genode secure GUI server
   (Nitpicker).
 
-:Graphical on-target IPC tracing tool using Qt4:
+:Graphical on-target IPC tracing tool using Qt:
 
   Analysing the interaction of components of a multi-server operating system
   such as Genode is important to discover bottlenecks of the system and for
@@ -130,7 +130,7 @@ Applications and library infrastructure
   communication and control flows between those processes, and to visualize the
   interaction of threads with the kernel's scheduler.
 
-  Since Qt4 is available natively on Genode, the creation of both offline and
+  Since Qt is available natively on Genode, the creation of both offline and
   on-target analysis tools has become feasible. The first step of this project
   is creating an interactive on-target tool, that displays the interaction
   of communicating threads as captured on the running system. The tool should
@@ -140,9 +140,9 @@ Applications and library infrastructure
 Application frameworks
 ######################
 
-:Running the Meego application stack on Genode using Qt4:
+:Running the Meego application stack on Genode using Qt:
 
-  With Genode 11.02, Qt4 4.7.1 has become available. The most prominent feature
+  With Genode 11.02, Qt has become available. The most prominent feature
   of this version is the new QML language to design GUIs using a declarative
   language. This technique is targeted specifically to mobile applications and
   other touch-based devices. The goal of this project is to run the Meego
@@ -152,18 +152,18 @@ Application frameworks
   interface. The immediate goal of the first step is running one Meego example
   application natively on Genode.
 
-:Python Qt4 bindings:
+:Python Qt bindings:
 
-  With the Python interpreter and the port of the Qt4 framework, the principle
+  With the Python interpreter and the port of the Qt framework, the principle
   components for Python-based GUIs on Genode are available. However, the glue
   between both components is missing. The incentive of this work is supplementing
   our Python port with the modules needed for real applications and porting the
-  Qt4 bindings to Genode. This would bring Genode one step closer to executing
+  Qt bindings to Genode. This would bring Genode one step closer to executing
   modern Python-based GUI applications (in particular KDE4 applications).
 
 :Evaluation of porting GTK+ to Genode:
 
-  With Qt4, we have demonstrated the feasibility to run a highly-complex
+  With Qt, we have demonstrated the feasibility to run a highly-complex
   application framework via Genode on a wide range of microkernels. That leaves
   the question of looking into the other major toolkit in town, namely GTK+ as
   used by Firefox and the Gnome desktop.
@@ -243,7 +243,7 @@ Device drivers
   The efforts towards enabling mobile application stacks such as Meego and
   Android on Genode must be accompanied by a revision of Genode's 'Input'
   session interface to accommodate multi-touch input devices. First, existing
-  APIs such as multi-touch support in X11, Qt4, and Android should be analysed.
+  APIs such as multi-touch support in X11, Qt, and Android should be analysed.
   Based on these findings, we expect a proposal for changing Genode's input
   interface. The interface extension should be validated by a example driver
   implementing the interface as well as an example applications.

@@ -1,4 +1,4 @@
-# identify the qt4 repository by searching for a file that is unique for qt4
+# identify the qt repository by searching for a file that is unique for qt
 QT5_REP_DIR := $(call select_from_repositories,lib/import/import-qt5.inc)
 QT5_REP_DIR := $(realpath $(dir $(QT5_REP_DIR))../..)
 

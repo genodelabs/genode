@@ -86,49 +86,30 @@ append boot_modules {
 	nitpicker_plugin.tar
 }
 
-if {[have_spec qt4_deprecated]} {
-	#
-	# Qt4-specific boot modules
-	#
-	append boot_modules {
-		qt_core.lib.so
-		qt_gui.lib.so
-		qt_jscore.lib.so
-		qt_network.lib.so
-		qt_script.lib.so
-		qt_ui_tools.lib.so
-		qt_webcore.lib.so
-		qt_webkit.lib.so
-		qt_xml.lib.so
-		qnitpickerviewwidget.lib.so
-		qpluginwidget.lib.so
-	}
-} else {
-	#
-	# Qt5-specific boot modules
-	#
-	append boot_modules {
-		gallium.lib.so
-		icu.lib.so
-		pthread.lib.so
-		qt5_core.lib.so
-		qt5_gui.lib.so
-		qt5_jscore.lib.so
-		qt5_network.lib.so
-		qt5_qnitpickerviewwidget.lib.so
-		qt5_qpluginwidget.lib.so
-		qt5_ui_tools.lib.so
-		qt5_webcore.lib.so
-		qt5_webkit.lib.so
-		qt5_xml.lib.so	
-		qt5_printsupport.lib.so
-		qt5_scriptclassic.lib.so
-		qt5_sql.lib.so
-		qt5_webkitwidgets.lib.so
-		qt5_widgets.lib.so
-		qt5_wtf.lib.so
-		qt5_fs_arora.tar
-	}
+#
+# Qt5-specific boot modules
+#
+append boot_modules {
+	gallium.lib.so
+	icu.lib.so
+	pthread.lib.so
+	qt5_core.lib.so
+	qt5_gui.lib.so
+	qt5_jscore.lib.so
+	qt5_network.lib.so
+	qt5_qnitpickerviewwidget.lib.so
+	qt5_qpluginwidget.lib.so
+	qt5_ui_tools.lib.so
+	qt5_webcore.lib.so
+	qt5_webkit.lib.so
+	qt5_xml.lib.so	
+	qt5_printsupport.lib.so
+	qt5_scriptclassic.lib.so
+	qt5_sql.lib.so
+	qt5_webkitwidgets.lib.so
+	qt5_widgets.lib.so
+	qt5_wtf.lib.so
+	qt5_fs_arora.tar
 }
 
 build_boot_image $boot_modules

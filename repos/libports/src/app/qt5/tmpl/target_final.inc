@@ -61,7 +61,7 @@ LIBS += qt5_xml
 endif
 
 # QtUiTools
-# Qt4 documentation says: CONFIG += uitools
+# Qt documentation says: CONFIG += uitools
 ifeq ($(findstring uitools, $(CONFIG)), uitools)
 LIBS += qt5_ui_tools
 endif

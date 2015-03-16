@@ -483,9 +483,6 @@ Libraries:
 :'libports/lib/mk/lua':
   Runtime for the Lua scripting language.
 
-:'qt4':
-  Qt4 framework, using nitpicker session and NIC session as back end.
-
 :'libports/lib/mk/qt5_*':
   Qt5 framework, using nitpicker session and NIC session as back end.
 
@@ -520,20 +517,17 @@ located in their respective directory.
   Example program for using OpenGL via the Gallium3D graphics stack.
 
 :'ports/src/app/arora':
-  Arora is a Qt4-based web browser using the Webkit engine.
+  Arora is a Qt-based web browser using the Webkit engine.
 
 :'ports/src/app/gdb_monitor':
   Application that allows the debugging of a process via GDB over a remote
   connection.
 
-:'qt4/src/app/qt_launchpad':
-  Graphical application starter implemented using Qt4.
+:'libports/src/app/qt5/qt_launchpad':
+  Graphical application starter implemented using Qt.
 
-:'qt4/src/app/examples/':
-  Several example applications that come with Qt4.
-
-:'libports/src/app/qt5':
-  Qt5 examples including qt_launchpad and qt_avplay.
+:'libports/src/app/qt5/examples/':
+  Several example applications that come with Qt.
 
 :'os/src/app/xvfb':
   Is a proxy application that enables the integration of a virtual X server

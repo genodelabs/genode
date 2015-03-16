@@ -1,15 +1,5 @@
 ARORA = arora-0.11.0
 
-ifeq ($(filter-out $(SPECS),qt4_deprecated),)
-# identify the Qt repository by searching for a file that is unique for Qt4
-QT_REP_DIR := $(call select_from_repositories,lib/import/import-qt4.inc)
-ifneq ($(QT_REP_DIR),)
-QT_TMPL_DIR = $(QT_REP_DIR)/src/app/tmpl
-LIBS += qpluginwidget qnitpickerviewwidget
-else
-REQUIRES += qt4
-endif
-else
 # identify the Qt repository by searching for a file that is unique for Qt5
 QT_REP_DIR := $(call select_from_repositories,lib/import/import-qt5.inc)
 ifneq ($(QT_REP_DIR),)
@@ -17,7 +7,6 @@ QT_TMPL_DIR = $(QT_REP_DIR)/src/app/qt5/tmpl
 LIBS += qt5_printsupport qt5_qpluginwidget qt5_qnitpickerviewwidget
 else
 REQUIRES += qt5
-endif
 endif
 
 QT_REP_DIR := $(realpath $(dir $(QT_REP_DIR))../..)

@@ -114,13 +114,6 @@ but build upon of each other:
   The repository contains a server that uses a rump kernel to provide
   various NetBSD file systems to Genode.
 
-:'qt4':
-
-  This source-code repository contains the Genode version of Qt4 framework.
-  Please find more information about using Qt4 with Genode in the repository's
-  'README' file. Please note that the Qt4 support is deprecated. Use Qt5
-  as contained in 'libports' instead.
-
 :'ports':
 
   This source-code repository hosts ports of 3rd-party applications to

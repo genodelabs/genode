@@ -14,7 +14,7 @@
 #ifndef _AVPLAY_POLICY_H_
 #define _AVPLAY_POLICY_H_
 
-/* Qt4 includes */
+/* Qt includes */
 #include <QDebug>
 #include <QObject>
 #include <QDomDocument>

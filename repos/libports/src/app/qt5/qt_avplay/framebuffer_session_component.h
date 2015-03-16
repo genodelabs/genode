@@ -20,7 +20,7 @@
 #include <framebuffer_session/client.h>
 #include <nitpicker_session/connection.h>
 
-/* Qt4 includes */
+/* Qt includes */
 #include <qnitpickerviewwidget/qnitpickerviewwidget.h>
 
 
