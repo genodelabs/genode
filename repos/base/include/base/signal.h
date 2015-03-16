@@ -18,6 +18,7 @@
 #define _INCLUDE__BASE__SIGNAL_H__
 
 #include <util/noncopyable.h>
+#include <util/list.h>
 #include <base/semaphore.h>
 #include <signal_session/signal_session.h>
 
