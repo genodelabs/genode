@@ -129,7 +129,7 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 			addr_t i   = (((addr_t)addr) - _base) / _block_size;
 			size_t cnt = (size % _block_size) ? size / _block_size + 1
 			                                  : size / _block_size;
-			_array->clear(i, cnt);
+			try { _array->clear(i, cnt); } catch(...) { }
 			_next = i;
 		}
 
