@@ -209,7 +209,11 @@ inline int lx_munmap(void *addr, size_t length)
 
 enum {
 	LX_SIGINT    =  2,  /* used by core to catch Control-C */
+	LX_SIGILL    =  4,  /* exception: illegal instruction */
+	LX_SIGBUS    =  7,  /* exception: bus error, i.e., bad memory access */
+	LX_SIGFPE    =  8,  /* exception: floating point */
 	LX_SIGUSR1   = 10,  /* used for cancel-blocking mechanism */
+	LX_SIGSEGV   = 11,  /* exception: segmentation violation */
 	LX_SIGCHLD   = 17,  /* child process changed state, i.e., terminated */
 	LX_SIGCANCEL = 32,  /* accoring to glibc, this equals SIGRTMIN,
 	                       used for killing threads */

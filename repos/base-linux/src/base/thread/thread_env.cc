@@ -15,6 +15,8 @@
 #include <base/stdint.h>
 #include <base/env.h>
 
+#include <linux_syscalls.h>
+
 using namespace Genode;
 
 extern addr_t * __initial_sp;
@@ -28,6 +30,31 @@ char **lx_environ;
  * Natively aligned memory location used in the lock implementation
  */
 int main_thread_futex_counter __attribute__((aligned(sizeof(addr_t))));
+
+/**
+ * Signal handler for exceptions like segmentation faults
+ */
+static void exception_signal_handler(int signum)
+{
+	char const *reason = nullptr;
+
+	switch (signum) {
+	case LX_SIGILL:  reason = "Illegal instruction";      break;
+	case LX_SIGBUS:  reason = "Bad memory access";        break;
+	case LX_SIGFPE:  reason = "Floating point exception"; break;
+	case LX_SIGSEGV: reason = "Segmentation fault";       break;
+
+	default: /* unexpected signal */ return;
+	}
+	PERR("%s (signum=%d), see Linux kernel log for details", reason, signum);
+
+	/*
+	 * We reset the signal handler to SIG_DFL and trigger exception again,
+	 * i.e., terminate the process.
+	 */
+	lx_sigaction(signum, nullptr);
+	return;
+}
 
 
 /*****************************
@@ -46,4 +73,9 @@ void prepare_init_main_thread()
 	 * __initial_sp[3] = environ
 	 */
 	lx_environ = (char**)&__initial_sp[3];
+
+	lx_sigaction(LX_SIGILL,  exception_signal_handler);
+	lx_sigaction(LX_SIGBUS,  exception_signal_handler);
+	lx_sigaction(LX_SIGFPE,  exception_signal_handler);
+	lx_sigaction(LX_SIGSEGV, exception_signal_handler);
 }
