@@ -181,7 +181,7 @@ Genode::size_t
 Platform_env_base::Rm_session_mmap::_dataspace_size(Capability<Dataspace> ds_cap)
 {
 	if (!ds_cap.valid())
-		return Dataspace_capability::deref(ds_cap)->size();
+		return Local_capability<Dataspace>::deref(ds_cap)->size();
 
 	/* use RPC if called from a different thread */
 	if (!core_env()->entrypoint()->is_myself()) {

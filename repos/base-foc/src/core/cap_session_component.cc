@@ -34,6 +34,7 @@ namespace Fiasco {
 
 using namespace Genode;
 
+
 /***************************
  **  Cap_index_allocator  **
  ***************************/

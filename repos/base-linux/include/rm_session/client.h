@@ -15,6 +15,7 @@
 #define _INCLUDE__RM_SESSION__CLIENT_H_
 
 /* Genode includes */
+#include <base/local_capability.h>
 #include <rm_session/capability.h>
 
 namespace Genode {
@@ -28,7 +29,8 @@ namespace Genode {
 		 *
 		 * \throw Local_interface::Non_local_capability
 		 */
-		Rm_session *_local() const { return Rm_session_capability::deref(*this); }
+		Rm_session *_local() const {
+			return Local_capability<Rm_session>::deref(*this); }
 
 		explicit Rm_session_client(Rm_session_capability session)
 		: Rm_session_capability(session) { }

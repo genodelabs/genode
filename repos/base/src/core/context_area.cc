@@ -1,11 +1,12 @@
 /*
  * \brief  Support code for the thread API
  * \author Norman Feske
+ * \author Stefan Kalkowski
  * \date   2010-01-13
  */
 
 /*
- * Copyright (C) 2010-2013 Genode Labs GmbH
+ * Copyright (C) 2010-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -26,36 +27,53 @@ using namespace Genode;
 
 
 /**
- * Pointer to dataspace used to hold core contexts
- */
-enum { MAX_CORE_CONTEXTS = 256 };
-static Dataspace_component *context_ds[MAX_CORE_CONTEXTS];
-
-
-/**
  * Region-manager session for allocating thread contexts
  *
  * This class corresponds to the managed dataspace that is normally
  * used for organizing thread contexts with the thread context area.
- * It "emulates" the sub address space by adjusting the local address
- * argument to 'attach' with the offset of the thread context area.
+ * In contrast to the ordinary implementation, core's version does
+ * not split between allocation of memory and virtual memory management.
+ * Due to the missing availability of "real" dataspaces and capabilities
+ * refering to it without having an entrypoint in place, the allocation
+ * of a dataspace has no effect, but the attachment of the thereby "empty"
+ * dataspace is doing both: allocation and attachment.
  */
 class Context_area_rm_session : public Rm_session
 {
-	enum { verbose = false };
+	private:
+
+		using Ds_slab = Synchronized_allocator<Tslab<Dataspace_component,
+		                                             get_page_size()> >;
+
+		Ds_slab _ds_slab { platform()->core_mem_alloc() };
+
+		enum { verbose = false };
 
 	public:
 
 		/**
-		 * Attach backing store to thread-context area
+		 * Allocate and attach on-the-fly backing store to thread-context area
 		 */
-		Local_addr attach(Dataspace_capability ds_cap,
+		Local_addr attach(Dataspace_capability ds_cap, /* ignored capability */
 		                  size_t size, off_t offset,
 		                  bool use_local_addr, Local_addr local_addr,
 		                  bool executable)
 		{
-			Dataspace_component *ds =
-				dynamic_cast<Dataspace_component*>(Dataspace_capability::deref(ds_cap));
+			/* allocate physical memory */
+			size = round_page(size);
+			void *phys_base;
+			Range_allocator *ra = platform_specific()->ram_alloc();
+			if (ra->alloc_aligned(size, &phys_base,
+				                  get_page_size_log2()).is_error()) {
+				PERR("could not allocate backing store for new context");
+				return (addr_t)0;
+			}
+
+			if (verbose)
+				PDBG("phys_base = %p, size = 0x%zx", phys_base, size);
+
+			Dataspace_component *ds = new (&_ds_slab)
+				Dataspace_component(size, 0, (addr_t)phys_base, CACHED, true, 0);
 			if (!ds) {
 				PERR("dataspace for core context does not exist");
 				return (addr_t)0;
@@ -70,7 +88,8 @@ class Context_area_rm_session : public Rm_session
 
 			if (!map_local(ds->phys_addr(), core_local_addr,
 			               ds->size() >> get_page_size_log2())) {
-				PERR("could not map phys %lx at local %lx", ds->phys_addr(), core_local_addr);
+				PERR("could not map phys %lx at local %lx",
+				     ds->phys_addr(), core_local_addr);
 				return (addr_t)0;
 			}
 
@@ -79,35 +98,7 @@ class Context_area_rm_session : public Rm_session
 			return local_addr;
 		}
 
-		void detach(Local_addr local_addr)
-		{
-			addr_t core_local_addr = Native_config::context_area_virtual_base() +
-			                         (addr_t)local_addr;
-
-			Dataspace_component *ds = 0;
-
-			/* find the dataspace component for the given address */
-			for (unsigned i = 0; i < MAX_CORE_CONTEXTS; i++) {
-				if (context_ds[i] &&
-					(core_local_addr >= context_ds[i]->core_local_addr()) &&
-				    (core_local_addr < (context_ds[i]->core_local_addr() +
-				                        context_ds[i]->size()))) {
-					ds = context_ds[i];
-					break;
-				}
-			}
-
-			if (!ds) {
-				PERR("dataspace for core context does not exist");
-				return;
-			}
-
-			if (verbose)
-				PDBG("core_local_addr = %lx, phys_addr = %lx, size = 0x%zx",
-				     ds->core_local_addr(), ds->phys_addr(), ds->size());
-
-			Genode::unmap_local(ds->core_local_addr(), ds->size() >> get_page_size_log2());
-		}
+		void detach(Local_addr local_addr) { PWRN("Not implemented!"); }
 
 		Pager_capability add_client(Thread_capability) {
 			return Pager_capability(); }
@@ -124,76 +115,18 @@ class Context_area_rm_session : public Rm_session
 
 class Context_area_ram_session : public Ram_session
 {
-	private:
-
-		enum { verbose = false };
-
-		using Ds_slab = Synchronized_allocator<Tslab<Dataspace_component,
-		                                             get_page_size()> >;
-
-		Ds_slab _ds_slab { platform()->core_mem_alloc() };
-
 	public:
 
-		Ram_dataspace_capability alloc(size_t size, Cache_attribute cached)
-		{
-			/* find free context */
-			unsigned i;
-			for (i = 0; i < MAX_CORE_CONTEXTS; i++)
-				if (!context_ds[i])
-					break;
+		Ram_dataspace_capability alloc(size_t size, Cache_attribute cached) {
+			return reinterpret_cap_cast<Ram_dataspace>(Native_capability()); }
 
-			if (i == MAX_CORE_CONTEXTS) {
-				PERR("maximum number of core contexts (%d) reached", MAX_CORE_CONTEXTS);
-				return Ram_dataspace_capability();
-			}
-
-			/* allocate physical memory */
-			size = round_page(size);
-			void *phys_base;
-			if (platform_specific()->ram_alloc()->alloc_aligned(size, &phys_base,
-			                                                    get_page_size_log2()).is_error()) {
-				PERR("could not allocate backing store for new context");
-				return Ram_dataspace_capability();
-			}
-
-			if (verbose)
-				PDBG("phys_base = %p, size = 0x%zx", phys_base, size);
-
-			context_ds[i] = new (&_ds_slab)
-				Dataspace_component(size, 0, (addr_t)phys_base, CACHED, true, 0);
-
-			Dataspace_capability cap = Dataspace_capability::local_cap(context_ds[i]);
-			return static_cap_cast<Ram_dataspace>(cap);
-		}
-
-		void free(Ram_dataspace_capability ds)
-		{
-			Dataspace_component *dataspace_component =
-				dynamic_cast<Dataspace_component*>(Dataspace_capability::deref(ds));
-
-			if (!dataspace_component)
-				return;
-
-			for (unsigned i = 0; i < MAX_CORE_CONTEXTS; i++)
-				if (context_ds[i] == dataspace_component) {
-					context_ds[i] = 0;
-					break;
-				}
-
-			void *phys_addr = (void*)dataspace_component->phys_addr();
-			size_t size = dataspace_component->size();
-
-			if (verbose)
-				PDBG("phys_addr = %p, size = 0x%zx", phys_addr, size);
-
-			destroy(&_ds_slab, dataspace_component);
-			platform_specific()->ram_alloc()->free(phys_addr, size);
-		}
+		void free(Ram_dataspace_capability ds) {
+			PWRN("Not implemented!"); }
 
 		int ref_account(Ram_session_capability ram_session) { return 0; }
 
-		int transfer_quota(Ram_session_capability ram_session, size_t amount) { return 0; }
+		int transfer_quota(Ram_session_capability ram_session, size_t amount) {
+			return 0; }
 
 		size_t quota() { return 0; }
 
@@ -218,4 +151,3 @@ namespace Genode {
 		return &inst;
 	}
 }
-

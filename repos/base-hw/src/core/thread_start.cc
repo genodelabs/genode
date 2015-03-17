@@ -18,6 +18,8 @@
 #include <base/env.h>
 
 /* core includes */
+#include <map_local.h>
+#include <kernel/kernel.h>
 #include <platform.h>
 #include <platform_thread.h>
 
@@ -57,17 +59,11 @@ void Thread_base::_init_platform_thread(size_t, Type type)
 		return;
 	}
 
-	size_t const utcb_size = sizeof(Native_utcb);
-	addr_t const context_area = Native_config::context_area_virtual_base();
-	addr_t const utcb_new = (addr_t)&_context->utcb - context_area;
-	Rm_session * const rm = env_context_area_rm_session();
-
 	/* remap initial main-thread UTCB according to context-area spec */
-	try { rm->attach_at(_main_thread_utcb_ds, utcb_new, utcb_size); }
-	catch(...) {
-		PERR("failed to re-map UTCB");
-		while (1) ;
-	}
+	Genode::map_local((addr_t)Kernel::core_main_thread_utcb_phys_addr(),
+	                  (addr_t)&_context->utcb,
+	                  max(sizeof(Native_utcb) / get_page_size(), (size_t)1));
+
 	/* adjust initial object state in case of a main thread */
 	tid().thread_id = _main_thread_id;
 }

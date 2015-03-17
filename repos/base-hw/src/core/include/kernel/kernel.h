@@ -22,6 +22,7 @@ namespace Kernel {
 	Pd                      * core_pd();
 	Mode_transition_control * mtc();
 	Pic                     * pic();
+	Native_utcb             * core_main_thread_utcb_phys_addr();
 }
 
 #endif /* _KERNEL__KERNEL_H_ */

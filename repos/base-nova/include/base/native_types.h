@@ -41,7 +41,7 @@ namespace Genode {
 	inline bool operator == (Native_thread_id t1, Native_thread_id t2)
 	{
 		return (t1.ec_sel == t2.ec_sel) &&
-		       (t1.exc_pt_sel == t2.exc_pt_sel); 
+		       (t1.exc_pt_sel == t2.exc_pt_sel);
 	}
 	inline bool operator != (Native_thread_id t1, Native_thread_id t2)
 	{
@@ -99,17 +99,11 @@ namespace Genode {
 			} _cap;
 
 			bool   _trans_map;
-			void * _ptr;
 			addr_t _rcv_window;
 
 			enum { INVALID_INDEX = ~0UL };
 
 		protected:
-
-			explicit
-			Native_capability(void* ptr)
-			: _cap(), _trans_map(true), _ptr(ptr),
-			  _rcv_window(INVALID_INDEX) {}
 
 			inline void _inc(bool inc_if_one = false) const
 			{
@@ -130,7 +124,7 @@ namespace Genode {
 			 */
 
 			Native_capability()
-			: _cap(), _trans_map(true), _ptr(0), _rcv_window(INVALID_INDEX) {}
+			: _cap(), _trans_map(true), _rcv_window(INVALID_INDEX) {}
 
 			explicit
 			Native_capability(addr_t sel, unsigned rights = 0x1f)
@@ -143,12 +137,11 @@ namespace Genode {
 				}
 
 				_trans_map = true;
-				_ptr = 0;
 			  	_rcv_window = INVALID_INDEX;
 			}
 
 			Native_capability(const Native_capability &o)
-			: _cap(o._cap), _trans_map(o._trans_map), _ptr(o._ptr),
+			: _cap(o._cap), _trans_map(o._trans_map),
 			  _rcv_window(o._rcv_window) { if (valid()) _inc(); }
 
 			~Native_capability() { if (valid()) _dec(); }
@@ -157,7 +150,7 @@ namespace Genode {
 			 * Overloaded comparison operator
 			 */
 			bool operator==(const Native_capability &o) const {
-				return (_ptr) ? _ptr == o._ptr : local_name() == o.local_name(); }
+				return local_name() == o.local_name(); }
 
 			Native_capability operator+ () const
 			{
@@ -178,7 +171,6 @@ namespace Genode {
 
 				_cap        = o._cap;
 				_trans_map  = o._trans_map;
-				_ptr        = o._ptr;
 				_rcv_window = o._rcv_window;
 
 				if (valid()) _inc();
@@ -187,18 +179,12 @@ namespace Genode {
 			}
 
 			/**
-			 * Check whether the selector of the Native_cap and 
+			 * Check whether the selector of the Native_cap and
 			 * the capability type is valid.
 			 */
 			bool valid() const { return !_cap.dst.is_null(); }
 
 			Dst dst()   const { return _cap.dst; }
-
-			/**
-			 * Return pointer to the server object identified by
-			 * this cap
-			 */
-			void * local() const { return _ptr; }
 
 			/**
 			 * Return the local_name. On NOVA it is the same as the
@@ -247,7 +233,7 @@ namespace Genode {
 			 * Return true if the cap should be tried first to
 			 * be translated and if this fails it should be mapped.
 			 */
-			bool trans_map() const { return _trans_map; } 
+			bool trans_map() const { return _trans_map; }
 	};
 
 	typedef int Native_connection_state;

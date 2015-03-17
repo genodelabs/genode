@@ -46,6 +46,7 @@ extern void * _start_secondary_cpus;
 extern int _prog_img_beg;
 extern int _prog_img_end;
 
+
 namespace Kernel
 {
 	/* import Genode types */
@@ -190,6 +191,10 @@ namespace Kernel
 Pic * Kernel::pic() { return unmanaged_singleton<Pic>(); }
 
 
+Native_utcb* Kernel::core_main_thread_utcb_phys_addr() {
+	return unmanaged_singleton<Native_utcb,Genode::get_page_size()>(); }
+
+
 /**
  * Enable kernel-entry assembly to get an exclusive stack for every CPU
  */
@@ -244,18 +249,14 @@ void init_kernel_mp_primary()
 	*(Core_thread_id *)s = 0;
 
 	/* initialize UTCB and map it */
-	static Native_utcb utcb __attribute__((aligned(get_page_size())));
-	static Dataspace_component main_utcb_ds(sizeof(Native_utcb),
-	                                        (addr_t)UTCB_MAIN_THREAD,
-	                                        (addr_t)&utcb, CACHED, true, 0);
-	Genode::map_local((addr_t)&utcb, (addr_t)UTCB_MAIN_THREAD,
+	Native_utcb * utcb = Kernel::core_main_thread_utcb_phys_addr();
+	Genode::map_local((addr_t)utcb, (addr_t)UTCB_MAIN_THREAD,
 	                  sizeof(Native_utcb) / get_page_size());
 
 	static Kernel::Thread t(Cpu_priority::max, 0, "core");
 
 	/* start thread with stack pointer at the top of stack */
-	utcb.start_info()->init(t.id(),
-	                        Dataspace_capability::local_cap(&main_utcb_ds));
+	utcb->start_info()->init(t.id(), Dataspace_capability());
 	t.ip = (addr_t)&_core_start;
 	t.sp = (addr_t)s + STACK_SIZE;
 	t.init(cpu_pool()->primary_cpu(), core_pd(),

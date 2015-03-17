@@ -78,9 +78,7 @@ namespace Genode {
 	 * Native_capability in Fiasco.OC is just a reference to a Cap_index.
 	 *
 	 * As Cap_index objects cannot be copied around, but Native_capability
-	 * have to, we have to use this indirection. Moreover, it might instead
-	 * of a Cap_index reference some process-local object, and thereby
-	 * implements a local capability.
+	 * have to, we have to use this indirection.
 	 */
 	class Native_capability
 	{
@@ -97,17 +95,8 @@ namespace Genode {
 		private:
 
 			Cap_index* _idx;
-			void*      _ptr;
 
 		protected:
-
-			/**
-			 * Constructs a local capability, used by derived Capability
-			 * class only
-			 *
-			 * \param ptr pointer to process-local object
-			 */
-			Native_capability(void* ptr) : _idx(0), _ptr(ptr) { }
 
 			inline void _inc()
 			{
@@ -127,21 +116,18 @@ namespace Genode {
 			/**
 			 * Default constructor creates an invalid capability
 			 */
-			Native_capability() : _idx(0), _ptr(0) { }
+			Native_capability() : _idx(0) { }
 
 			/**
 			 * Construct capability manually
 			 */
 			Native_capability(Cap_index* idx)
-				: _idx(idx), _ptr(0) { _inc(); }
+				: _idx(idx) { _inc(); }
 
 			Native_capability(const Native_capability &o)
-			: _idx(o._idx), _ptr(o._ptr) { _inc(); }
+			: _idx(o._idx) { _inc(); }
 
-			~Native_capability()
-			{
-				_dec();
-			}
+			~Native_capability() { _dec(); }
 
 			/**
 			 * Return Cap_index object referenced by this object
@@ -152,14 +138,13 @@ namespace Genode {
 			 * Overloaded comparision operator
 			 */
 			bool operator==(const Native_capability &o) const {
-				return (_ptr) ? _ptr == o._ptr : _idx == o._idx; }
+				return _idx == o._idx; }
 
 			Native_capability& operator=(const Native_capability &o){
 				if (this == &o)
 					return *this;
 
 				_dec();
-				_ptr = o._ptr;
 				_idx = o._idx;
 				_inc();
 				return *this;
@@ -172,7 +157,6 @@ namespace Genode {
 			long  local_name() const { return _idx ? _idx->id() : 0;        }
 			Dst   dst()        const { return _idx ? Dst(_idx->kcap()) : Dst(); }
 			bool  valid()      const { return (_idx != 0) && _idx->valid(); }
-			void *local()      const { return _ptr;                         }
 	};
 
 

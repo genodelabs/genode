@@ -23,6 +23,7 @@
 
 /* Genode includes */
 #include <util/misc_math.h>
+#include <base/local_capability.h>
 #include <base/heap.h>
 #include <linux_cpu_session/client.h>
 
@@ -307,10 +308,8 @@ namespace Genode {
 					 * as argument to 'Rm_session_mmap::attach'. It is not a
 					 * real capability.
 					 */
-					Dataspace_capability dataspace()
-					{
-						return Dataspace_capability::local_cap(this);
-					}
+					Dataspace_capability dataspace() {
+						return Local_capability<Dataspace>::local_cap(this); }
 			};
 
 		private:

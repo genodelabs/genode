@@ -33,6 +33,7 @@
  */
 
 /* Genode includes */
+#include <base/local_capability.h>
 #include <base/thread.h>
 #include <linux_dataspace/client.h>
 #include <linux_syscalls.h>
@@ -49,7 +50,7 @@ static bool is_sub_rm_session(Dataspace_capability ds)
 	if (ds.valid())
 		return false;
 
-	return Dataspace_capability::deref(ds) != 0;
+	return Local_capability<Dataspace>::deref(ds) != 0;
 }
 
 
@@ -231,7 +232,7 @@ Platform_env::Rm_session_mmap::attach(Dataspace_capability ds,
 
 		if (is_sub_rm_session(ds)) {
 
-			Dataspace *ds_if = Dataspace_capability::deref(ds);
+			Dataspace *ds_if = Local_capability<Dataspace>::deref(ds);
 
 			Rm_session_mmap *rm = dynamic_cast<Rm_session_mmap *>(ds_if);
 
@@ -355,7 +356,7 @@ void Platform_env::Rm_session_mmap::detach(Rm_session::Local_addr local_addr)
 	 */
 	if (is_sub_rm_session(region.dataspace())) {
 
-		Dataspace *ds_if = Dataspace_capability::deref(region.dataspace());
+		Dataspace *ds_if = Local_capability<Dataspace>::deref(region.dataspace());
 		Rm_session_mmap *rm = dynamic_cast<Rm_session_mmap *>(ds_if);
 		if (rm)
 			rm->_base = 0;

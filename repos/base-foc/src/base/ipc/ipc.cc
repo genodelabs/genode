@@ -49,13 +49,6 @@ using namespace Fiasco;
 
 void Ipc_ostream::_marshal_capability(Native_capability const &cap)
 {
-	/* first transfer local capability value */
-	_write_to_buf(cap.local());
-
-	/* if it's a local capability we're done */
-	if (cap.local())
-		return;
-
 	if (cap.valid()) {
 		if (!l4_msgtag_label(l4_task_cap_valid(L4_BASE_TASK_CAP, cap.dst()))) {
 			_write_to_buf(0);
@@ -79,15 +72,6 @@ void Ipc_ostream::_marshal_capability(Native_capability const &cap)
 void Ipc_istream::_unmarshal_capability(Native_capability &cap)
 {
 	long value = 0;
-
-	/* get local capability pointer from message buffer */
-	_read_from_buf(value);
-
-	/* if it's a local capability, the pointer is marshalled in the id */
-	if (value) {
-		cap = Capability<Native_capability>::local_cap((Native_capability*)value);
-		return;
-	}
 
 	/* extract capability id from message buffer */
 	_read_from_buf(value);
