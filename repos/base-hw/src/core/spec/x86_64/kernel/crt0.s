@@ -141,6 +141,7 @@
 
 	.p2align MIN_PAGE_SIZE_LOG2
 	_kernel_pd_503:
-	.fill 503, 8, 0x0
+	.fill 502, 8, 0x0
+	.quad 0xfec0019f
 	.quad 0xfee0019f
 	.fill 8, 8, 0x0
