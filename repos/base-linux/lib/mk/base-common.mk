@@ -17,7 +17,7 @@ SRC_CC += process/process.cc
 SRC_CC += elf/elf_binary.cc
 SRC_CC += lock/lock.cc
 SRC_CC += env/rm_session_mmap.cc env/debug.cc
-SRC_CC += signal/signal.cc signal/common.cc
+SRC_CC += signal/signal.cc signal/common.cc signal/platform.cc
 SRC_CC += server/server.cc server/common.cc
 SRC_CC += thread/trace.cc thread/thread_env.cc thread/context_allocator.cc
 

@@ -34,6 +34,7 @@ namespace Genode {
 	class Signal_transmitter;
 	class Signal;
 	class Signal_dispatcher_base;
+	class Signal_connection;
 	template <typename> class Signal_dispatcher;
 }
 
@@ -121,6 +122,8 @@ class Genode::Signal_transmitter
 	private:
 
 		Signal_context_capability _context;  /* destination */
+
+		Signal_connection * connection();
 
 	public:
 

@@ -228,14 +228,7 @@ void Signal_context::submit(unsigned num)
  ** Signal transmitter **
  ************************/
 
-void Signal_transmitter::submit(unsigned cnt)
-{
-	{
-		Trace::Signal_submit trace_event(cnt);
-	}
-	signal_connection()->submit(_context, cnt);
-}
-
+Signal_connection * Signal_transmitter::connection() { return signal_connection(); }
 
 /*********************
  ** Signal receiver **

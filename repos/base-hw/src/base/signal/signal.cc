@@ -79,10 +79,7 @@ void Signal_context::submit(unsigned num)
  ** Signal transmitter **
  ************************/
 
-void Signal_transmitter::submit(unsigned const cnt)
-{
-	Kernel::submit_signal(_context.dst(), cnt);
-}
+Signal_connection * Signal_transmitter::connection() { return signal_connection(); }
 
 
 /*********************
