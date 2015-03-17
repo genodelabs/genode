@@ -132,3 +132,9 @@ Irq_session_component::~Irq_session_component()
 	}
 }
 
+
+Irq_signal Irq_session_component::signal()
+{
+	PDBG("not implemented;");
+	return Irq_signal();
+}

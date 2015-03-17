@@ -11,6 +11,7 @@ SRC_CC += cpu/cache.cc
 SRC_CC += env/env.cc env/context_area.cc env/reinitialize.cc \
           env/cap_map_remove.cc env/cap_alloc.cc
 SRC_CC += thread/thread_start.cc
+SRC_CC += irq/platform.cc
 
 INC_DIR += $(BASE_DIR)/src/base/env
 

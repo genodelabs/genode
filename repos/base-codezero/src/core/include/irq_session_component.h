@@ -64,7 +64,8 @@ namespace Genode {
 			 ** Irq session interface **
 			 ***************************/
 
-			void wait_for_irq();
+			void       wait_for_irq();
+			Irq_signal signal();
 	};
 }
 
