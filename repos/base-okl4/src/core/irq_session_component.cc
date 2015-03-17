@@ -12,10 +12,12 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <irq_proxy.h>
+/* Genode includes */
+#include <base/printf.h>
+#include <util/arg_string.h>
 
 /* core includes */
-#include <irq_root.h>
+#include <irq_session_component.h>
 
 /* OKL4 includes */
 namespace Okl4 { extern "C" {
@@ -30,12 +32,6 @@ using namespace Okl4;
 using namespace Genode;
 
 
-/**
- * Proxy class with generic thread
- */
-typedef Irq_proxy<Thread<0x1000> > Proxy;
-
-
 /* XXX move this functionality to a central place instead of duplicating it */
 static inline Okl4::L4_ThreadId_t thread_get_my_global_id()
 {
@@ -44,11 +40,15 @@ static inline Okl4::L4_ThreadId_t thread_get_my_global_id()
 	return myself;
 }
 
+namespace Genode {
+	typedef Irq_proxy<Thread<1024 * sizeof(addr_t)> > Irq_proxy_base;
+	class Irq_proxy_component;
+}
 
 /**
  * Platform-specific proxy code
  */
-class Irq_proxy_component : public Proxy
+class Genode::Irq_proxy_component : public Irq_proxy_base
 {
 	protected:
 
@@ -80,13 +80,14 @@ class Irq_proxy_component : public Proxy
 
 			/* prepare ourself to receive asynchronous IRQ notifications */
 			L4_Set_NotifyMask(1 << IRQ_NOTIFY_BIT);
-			L4_Accept(L4_NotifyMsgAcceptor);
 
 			return true;
 		}
 
 		void _wait_for_irq()
 		{
+			L4_Accept(L4_NotifyMsgAcceptor);
+
 			/* wait for asynchronous interrupt notification */
 			L4_ThreadId_t partner = L4_nilthread;
 			L4_ReplyWait(partner, &partner);
@@ -111,35 +112,23 @@ class Irq_proxy_component : public Proxy
  ** IRQ session component **
  ***************************/
 
-bool Irq_session_component::Irq_control_component::associate_to_irq(unsigned irq)
-{
-	return true;
-}
 
-
-void Irq_session_component::wait_for_irq()
+void Irq_session_component::ack_irq()
 {
 	/* block at interrupt proxy */
-	Proxy *p = Proxy::get_irq_proxy<Irq_proxy_component>(_irq_number);
-	if (!p) {
+	if (!_proxy) {
 		PERR("Expected to find IRQ proxy for IRQ %02x", _irq_number);
 		return;
 	}
 
-	p->wait_for_irq();
-
-	/* interrupt ocurred and proxy woke us up */
+	_proxy->ack_irq();
 }
 
 
-Irq_session_component::Irq_session_component(Cap_session     *cap_session,
-                                             Range_allocator *irq_alloc,
+Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
                                              const char      *args)
 :
-	_irq_alloc(irq_alloc),
-	_ep(cap_session, STACK_SIZE, "irqctrl"),
-	_irq_attached(false),
-	_control_client(Capability<Irq_session_component::Irq_control>())
+	_irq_alloc(irq_alloc)
 {
 	/*
 	 * XXX Removed irq_shared argument as this is the default now. If we need
@@ -154,30 +143,39 @@ Irq_session_component::Irq_session_component(Cap_session     *cap_session,
 	}
 
 	/* check if IRQ thread was started before */
-	Proxy *irq_proxy = Proxy::get_irq_proxy<Irq_proxy_component>(irq_number, irq_alloc);
-	if (!irq_proxy) {
+	_proxy = Irq_proxy_component::get_irq_proxy<Irq_proxy_component>(irq_number, irq_alloc);
+	if (!_proxy) {
 		PERR("unavailable IRQ %lx requested", irq_number);
-
 		throw Root::Unavailable();
 	}
 
-	irq_proxy->add_sharer();
 	_irq_number = irq_number;
-
-	/* initialize capability */
-	_irq_cap = _ep.manage(this);
 }
 
 
 Irq_session_component::~Irq_session_component()
 {
-	PERR("not yet implemented");
-	/* TODO del_sharer() resp. put_sharer() */
+	if (!_proxy) return;
+
+	if (_irq_sigh.valid())
+		_proxy->remove_sharer(&_irq_sigh);
 }
 
 
-Irq_signal Irq_session_component::signal()
+void Irq_session_component::sigh(Genode::Signal_context_capability sigh)
 {
-	PDBG("not implemented;");
-	return Irq_signal();
+	if (!_proxy) {
+		PERR("signal handler got not registered - irq thread unavailable");
+		return;
+	}
+
+	Genode::Signal_context_capability old = _irq_sigh;
+
+	if (old.valid() && !sigh.valid())
+		_proxy->remove_sharer(&_irq_sigh);
+
+	_irq_sigh = sigh;
+
+	if (!old.valid() && sigh.valid())
+		_proxy->add_sharer(&_irq_sigh);
 }

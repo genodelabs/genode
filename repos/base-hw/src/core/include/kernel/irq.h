@@ -47,7 +47,13 @@ namespace Genode
 
 class Kernel::Irq : public Object_pool<Irq>::Item
 {
+	public:
+
+		using Pool = Object_pool<Irq>;
+
 	protected:
+
+		Pool &_pool;
 
 		/**
 		 * Get kernel name of the interrupt
@@ -56,16 +62,6 @@ class Kernel::Irq : public Object_pool<Irq>::Item
 
 	public:
 
-		using Pool = Object_pool<Irq>;
-
-		/**
-		 * Constructor
-		 *
-		 * \param irq_id  kernel name of the interrupt
-		 */
-		Irq(unsigned const irq_id)
-		: Pool::Item(irq_id) { }
-
 		/**
 		 * Constructor
 		 *
@@ -73,14 +69,9 @@ class Kernel::Irq : public Object_pool<Irq>::Item
 		 * \param pool    pool this interrupt shall belong to
 		 */
 		Irq(unsigned const irq_id, Pool &pool)
-		: Irq(irq_id) { pool.insert(this); }
+		: Pool::Item(irq_id), _pool(pool) { _pool.insert(this); }
 
-		/**
-		 * Destructor
-		 *
-		 * By now, there is no use case to destruct interrupts
-		 */
-		virtual ~Irq() { PERR("destruction of interrupts not implemented"); }
+		virtual ~Irq() { _pool.remove(this); }
 
 		/**
 		 * Handle occurence of the interrupt
@@ -102,11 +93,11 @@ class Kernel::Irq : public Object_pool<Irq>::Item
 class Kernel::User_irq
 :
 	public Kernel::Irq,
-	public Signal_receiver,
-	public Signal_context,
 	public Signal_ack_handler
 {
 	private:
+
+		Signal_context &_context;
 
 		/**
 		 * Get map that provides all user interrupts by their kernel names
@@ -127,30 +118,25 @@ class Kernel::User_irq
 		 *
 		 * \param irq_id  kernel name of the interrupt
 		 */
-		User_irq(unsigned const irq_id)
-		: Irq(irq_id), Signal_context(this, 0)
+		User_irq(unsigned const irq_id, Signal_context &context)
+		: Irq(irq_id, *_pool()), _context(context)
 		{
-			_pool()->insert(this);
 			disable();
-			Signal_context::ack_handler(this);
+			_context.ack_handler(this);
 		}
 
-		/**
-		 * Get kernel name of the interrupt-signal receiver
-		 */
-		unsigned receiver_id() const { return Signal_receiver::Object::id(); }
-
-		/**
-		 * Get kernel name of the interrupt-signal context
-		 */
-		unsigned context_id() const { return Signal_context::Object::id(); }
+		~User_irq()
+		{
+			_context.ack_handler(nullptr);
+			disable();
+		}
 
 		/**
 		 * Handle occurence of the interrupt
 		 */
 		void occurred()
 		{
-			Signal_context::submit(1);
+			_context.submit(1);
 			disable();
 		}
 

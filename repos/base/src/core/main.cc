@@ -220,8 +220,7 @@ int main()
 	static Log_root     log_root     (e, &sliced_heap);
 	static Io_mem_root  io_mem_root  (e, e, platform()->io_mem_alloc(),
 	                                  platform()->ram_alloc(), &sliced_heap);
-	static Irq_root     irq_root     (core_env()->cap_session(),
-	                                  platform()->irq_alloc(), &sliced_heap);
+	static Irq_root     irq_root     (e, platform()->irq_alloc(), &sliced_heap);
 	static Trace::Root  trace_root   (e, &sliced_heap, trace_sources, trace_policies);
 
 	/*

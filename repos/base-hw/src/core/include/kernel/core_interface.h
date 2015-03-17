@@ -353,12 +353,14 @@ namespace Kernel
 	/**
 	 * Create an interrupt object
 	 *
-	 * \param p       memory donation for the irq object
-	 * \param irq_nr  interrupt number
+	 * \param p                 memory donation for the irq object
+	 * \param irq_nr            interrupt number
+	 * \param signal_context_id kernel name of the signal context
 	 */
-	inline void new_irq(addr_t const p, unsigned irq_nr)
+	inline int new_irq(addr_t const p, unsigned irq_nr,
+	                    unsigned signal_context_id)
 	{
-		call(call_id_new_irq(), (Call_arg) p, irq_nr);
+		return call(call_id_new_irq(), (Call_arg) p, irq_nr, signal_context_id);
 	}
 
 	/**

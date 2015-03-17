@@ -6,8 +6,7 @@
  *
  * An open IRQ session represents a valid IRQ attachment/association.
  * Initially, the interrupt is masked and will only occur if enabled. This is
- * done by calling wait_for_irq(). When the interrupt is delivered to the
- * client, it was acknowledged and masked at the interrupt controller before.
+ * done by calling ack_irq().
  *
  * Disassociation from an IRQ is done by closing the session.
  */
@@ -22,23 +21,13 @@
 #ifndef _INCLUDE__IRQ_SESSION__IRQ_SESSION_H_
 #define _INCLUDE__IRQ_SESSION__IRQ_SESSION_H_
 
+#include <base/signal.h>
 #include <base/capability.h>
 #include <session/session.h>
 
 namespace Genode {
 	struct Irq_session;
-	struct Irq_signal;
 }
-
-
-/**
- * Information that enables a user to await and ack an IRQ directly
- */
-struct Genode::Irq_signal
-{
-	unsigned receiver_id;
-	unsigned context_id;
-};
 
 
 struct Genode::Irq_session : Session
@@ -59,17 +48,14 @@ struct Genode::Irq_session : Session
 	virtual ~Irq_session() { }
 
 	/**
-	 * Await the next occurence of the interrupt of this session
+	 * Acknowledge handling of last interrupt - re-enables interrupt reception
 	 */
-	virtual void wait_for_irq() = 0;
+	virtual void ack_irq() = 0;
 
 	/**
-	 * Get information for direct interrupt handling
-	 *
-	 * FIXME: This is used only client-internal and could thus be protected.
+	 * Register irq signal handler
 	 */
-	virtual Irq_signal signal() = 0;
-
+	virtual void sigh(Genode::Signal_context_capability sigh) = 0;
 
 	/*************
 	 ** Session **
@@ -82,9 +68,9 @@ struct Genode::Irq_session : Session
 	 ** RPC declaration **
 	 *********************/
 
-	GENODE_RPC(Rpc_wait_for_irq, void, wait_for_irq);
-	GENODE_RPC(Rpc_signal, Irq_signal, signal);
-	GENODE_RPC_INTERFACE(Rpc_wait_for_irq, Rpc_signal);
+	GENODE_RPC(Rpc_ack_irq, void, ack_irq);
+	GENODE_RPC(Rpc_sigh, void, sigh, Genode::Signal_context_capability);
+	GENODE_RPC_INTERFACE(Rpc_ack_irq, Rpc_sigh);
 };
 
 #endif /* _INCLUDE__IRQ_SESSION__IRQ_SESSION_H_ */

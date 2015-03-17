@@ -207,12 +207,10 @@ namespace Kernel
 	 * Await any context of a receiver and optionally ack a context before
 	 *
 	 * \param receiver_id  kernel name of the targeted signal receiver
-	 * \param context_id   kernel name of a context that shall be acknowledged
 	 *
 	 * \retval  0  suceeded
 	 * \retval -1  failed
 	 *
-	 * If context is set to 0, the call doesn't acknowledge any context.
 	 * If this call returns 0, an instance of 'Signal::Data' is located at the
 	 * base of the callers UTCB. Every occurence of a signal is provided
 	 * through this function until it gets delivered through this function or
@@ -223,10 +221,9 @@ namespace Kernel
 	 * deliver again unless its last delivery has been acknowledged via
 	 * ack_signal.
 	 */
-	inline int await_signal(unsigned const receiver_id,
-	                        unsigned const context_id)
+	inline int await_signal(unsigned const receiver_id)
 	{
-		return call(call_id_await_signal(), receiver_id, context_id);
+		return call(call_id_await_signal(), receiver_id);
 	}
 
 

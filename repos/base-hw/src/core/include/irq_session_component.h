@@ -5,71 +5,59 @@
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 #ifndef _INCLUDE__IRQ_SESSION_COMPONENT_H_
-#define _INCLUDE__IRQ_SESSION_COMPONENT_H_
+#define __INCLUDE__IRQ_SESSION_COMPONENT_H_
 
 /* Genode includes */
 #include <base/rpc_server.h>
 #include <util/list.h>
 #include <irq_session/capability.h>
 
-namespace Genode
-{
-	/**
-	 * Backend for IRQ sessions to core
-	 */
-	class Irq_session_component
-	:
-		public Rpc_object<Irq_session, Irq_session_component>,
-		public List<Irq_session_component>::Element
-	{
-		private:
-
-			Range_allocator * const _irq_alloc;
-			Irq_session_capability  _cap;
-			Irq_signal              _signal;
-			Genode::uint8_t         _kernel_object[sizeof(Kernel::User_irq)];
-
-		public:
-
-			/**
-			 * Constructor
-			 *
-			 * \param cap_session  capability session to use
-			 * \param irq_alloc    interrupt allocator
-			 * \param args         session construction arguments
-			 */
-			Irq_session_component(Cap_session     * const cap_session,
-			                      Range_allocator * const irq_alloc,
-			                      const char      * const args);
-
-			/**
-			 * Destructor
-			 */
-			~Irq_session_component();
-
-			/**
-			 * Return capability to this session
-			 *
-			 * If an initialization error occurs, returned _cap is invalid.
-			 */
-			Irq_session_capability cap() const { return _cap; }
-
-
-			/*****************
-			 ** Irq_session **
-			 *****************/
-
-			void wait_for_irq();
-
-			Irq_signal signal();
-	};
+namespace Genode {
+	class Irq_session_component;
 }
+
+class Genode::Irq_session_component : public Rpc_object<Irq_session>,
+	public List<Irq_session_component>::Element
+{
+	private:
+
+		unsigned         _irq_number;
+		Range_allocator *_irq_alloc;
+		Genode::uint8_t  _kernel_object[sizeof(Kernel::User_irq)];
+
+		Signal_context_capability _sig_cap;
+
+		unsigned _find_irq_number(const char * const args);
+
+	public:
+
+		/**
+		 * Constructor
+		 *
+		 * \param irq_alloc    platform-dependent IRQ allocator
+		 * \param args         session construction arguments
+		 */
+		Irq_session_component(Range_allocator *irq_alloc,
+		                      const char      *args);
+
+		/**
+		 * Destructor
+		 */
+		~Irq_session_component();
+
+		/***************************
+		 ** Irq session interface **
+		 ***************************/
+
+		void       ack_irq();
+		void       sigh(Signal_context_capability) override;
+};
 
 #endif /* _INCLUDE__IRQ_SESSION_COMPONENT_H_ */

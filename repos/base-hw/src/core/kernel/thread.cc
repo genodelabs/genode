@@ -582,13 +582,6 @@ void Thread::_call_new_signal_context()
 
 void Thread::_call_await_signal()
 {
-	/* check wether to acknowledge a context */
-	unsigned const context_id = user_arg_2();
-	if (context_id) {
-		Signal_context * const c = Signal_context::pool()->object(context_id);
-		if (c) { c->ack(); }
-		else { PWRN("failed to acknowledge signal context"); }
-	}
 	/* lookup receiver */
 	unsigned const receiver_id = user_arg_1();
 	Signal_receiver * const r = Signal_receiver::pool()->object(receiver_id);
@@ -688,8 +681,19 @@ void Thread::_call_delete_signal_receiver() {
 	reinterpret_cast<Signal_receiver*>(user_arg_1())->~Signal_receiver(); }
 
 
-void Thread::_call_new_irq() {
-	new ((void *)user_arg_1()) User_irq(user_arg_2()); }
+void Thread::_call_new_irq()
+{
+	Signal_context * const c = Signal_context::pool()->object(user_arg_3());
+	if (!c) {
+		PWRN("%s -> %s: invalid signal context for interrupt",
+		     pd_label(), label());
+		user_arg_0(-1);
+		return;
+	}
+
+	new ((void *)user_arg_1()) User_irq(user_arg_2(), *c);
+	user_arg_0(0);
+}
 
 
 void Thread::_call_delete_irq() {

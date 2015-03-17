@@ -49,7 +49,7 @@ extern Genode::addr_t _vt_host_context_ptr;
 
 struct Kernel::Vm_irq : Kernel::Irq
 {
-		Vm_irq(unsigned const irq) : Kernel::Irq(irq) {}
+		Vm_irq(unsigned const irq) : Kernel::Irq(irq, *cpu_pool()->executing_cpu()) {}
 
 	/**
 	 * A VM interrupt gets injected into the VM scheduled on the current CPU
@@ -180,10 +180,6 @@ struct Kernel::Virtual_timer
 
 void Kernel::prepare_hypervisor()
 {
-	Cpu * cpu = cpu_pool()->executing_cpu();
-	cpu->insert(&Virtual_timer::timer().irq);
-	cpu->insert(&Virtual_pic::pic().irq);
-
 	/* set hypervisor exception vector */
 	Cpu::hyp_exception_entry_at(&_vt_host_entry);
 

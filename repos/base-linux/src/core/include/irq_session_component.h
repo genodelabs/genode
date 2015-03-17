@@ -15,46 +15,38 @@
 #define _CORE__INCLUDE__LINUX__IRQ_SESSION_COMPONENT_H_
 
 #include <util/list.h>
-#include <base/lock.h>
 #include <base/rpc_server.h>
 #include <irq_session/irq_session.h>
 
 namespace Genode {
-
-	class Irq_session_component : public List<Irq_session_component>::Element
-	{
-		public:
-
-			/**
-			 * Constructor
-			 *
-			 * \param cap_session  capability session to use
-			 * \param irq_alloc    platform-dependent IRQ allocator
-			 * \param args         session construction arguments
-			 */
-			Irq_session_component(Cap_session     *cap_session,
-			                      Range_allocator *irq_alloc,
-			                      const char      *args) { }
-
-			/**
-			 * Destructor
-			 */
-			~Irq_session_component() { }
-
-			/**
-			 * Return capability to this session
-			 *
-			 * Capability is always invalid under Linux.
-			 */
-			Session_capability cap() const { return Session_capability(); }
-
-
-			/***************************
-			 ** Irq session interface **
-			 ***************************/
-
-			void wait_for_irq() { }
-	};
+	class Irq_session_component;
 }
+
+class Genode::Irq_session_component : public Rpc_object<Irq_session>,
+                                      public List<Irq_session_component>::Element
+{
+	public:
+
+		/**
+		 * Constructor
+		 *
+		 * \param irq_alloc    platform-dependent IRQ allocator
+		 * \param args         session construction arguments
+		 */
+		Irq_session_component(Range_allocator *irq_alloc,
+		                      const char      *args) { }
+
+		/**
+		 * Destructor
+		 */
+		~Irq_session_component() { }
+
+		/***************************
+		 ** Irq session interface **
+		 ***************************/
+
+		void       ack_irq() { }
+		void       sigh(Signal_context_capability) override { }
+};
 
 #endif /* _CORE__INCLUDE__LINUX__IRQ_SESSION_COMPONENT_H_ */

@@ -11,9 +11,18 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <irq_session/client.h>
+#include <irq_session/connection.h>
 
-void Genode::Irq_session_client::wait_for_irq()
+void Genode::Irq_session_client::ack_irq()
 {
-	call<Rpc_wait_for_irq>();
+	call<Rpc_ack_irq>();
+}
+
+
+void Genode::Irq_connection::wait_for_irq()
+{
+	ack_irq();
+	Signal s = _sig_rec.wait_for_signal();
+	if (s.num() != 1)
+		PWRN("unexpected number of IRqs received %u", s.num());
 }

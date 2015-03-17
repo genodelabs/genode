@@ -170,43 +170,68 @@ class Genode::Irq_proxy_component : public Irq_proxy<Irq_thread>
 };
 
 
-typedef Irq_proxy<Irq_thread> Proxy;
 
 
-void Irq_session_component::wait_for_irq()
+/***************************
+ ** IRQ session component **
+ ***************************/
+
+
+void Irq_session_component::ack_irq()
 {
-	_proxy->wait_for_irq();
-	/* interrupt ocurred and proxy woke us up */
+	if (!_proxy) {
+		PERR("Expected to find IRQ proxy for IRQ %02x", _irq_number);
+		return;
+	}
+
+	_proxy->ack_irq();
 }
 
 
-Irq_session_component::Irq_session_component(Cap_session     *cap_session,
-                                             Range_allocator *irq_alloc,
+Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
                                              const char      *args)
-:
-	_ep(cap_session, STACK_SIZE, "irq")
 {
 	long irq_number = Arg_string::find_arg(args, "irq_number").long_value(-1);
-
-	/* check if IRQ thread was started before */
-	_proxy = Proxy::get_irq_proxy<Irq_proxy_component>(irq_number, irq_alloc);
-	if (irq_number == -1 || !_proxy) {
-		PERR("Unavailable IRQ %lx requested", irq_number);
+	if (irq_number == -1) {
+		PERR("invalid IRQ number requested");
 		throw Root::Unavailable();
 	}
 
-	_proxy->add_sharer();
+	/* check if IRQ thread was started before */
+	typedef Irq_proxy<Irq_thread> Proxy;
+	_proxy = Proxy::get_irq_proxy<Irq_proxy_component>(irq_number, irq_alloc);
+	if (!_proxy) {
+		PERR("unavailable IRQ %lx requested", irq_number);
+		throw Root::Unavailable();
+	}
 
-	/* initialize capability */
-	_irq_cap = _ep.manage(this);
+	_irq_number = irq_number;
 }
 
 
-Irq_session_component::~Irq_session_component() { }
-
-
-Irq_signal Irq_session_component::signal()
+Irq_session_component::~Irq_session_component()
 {
-	PDBG("not implemented;");
-	return Irq_signal();
+	if (_proxy) return;
+
+	if (_irq_sigh.valid())
+		_proxy->remove_sharer(&_irq_sigh);
+}
+
+
+void Irq_session_component::sigh(Genode::Signal_context_capability sigh)
+{
+	if (!_proxy) {
+		PERR("signal handler got not registered - irq thread unavailable");
+		return;
+	}
+
+	Genode::Signal_context_capability old = _irq_sigh;
+
+	if (old.valid() && !sigh.valid())
+		_proxy->remove_sharer(&_irq_sigh);
+
+	_irq_sigh = sigh;
+
+	if (!old.valid() && sigh.valid())
+		_proxy->add_sharer(&_irq_sigh);
 }

@@ -9,36 +9,34 @@
 #define _CORE__INCLUDE__IRQ_PROXY_H_
 
 #include <base/env.h>
-#include <util.h>
-#include <base/thread.h>
 
 
 namespace Genode {
-	class Irq_blocker;
+	class Irq_sigh;
 	template <typename THREAD> class Irq_proxy;
-	class Irq_thread_dummy;
-	class Irq_proxy_single;
 }
 
 
-class Genode::Irq_blocker : public Genode::List<Genode::Irq_blocker>::Element
+class Genode::Irq_sigh : public Genode::Signal_context_capability,
+                         public Genode::List<Genode::Irq_sigh>::Element
 {
-	private:
-
-		Lock _wait_lock;
-
 	public:
 
-		Irq_blocker() : _wait_lock(Lock::LOCKED) { }
+		inline Irq_sigh * operator= (const Signal_context_capability &cap)
+		{
+			Signal_context_capability::operator=(cap);
+			return this;
+		}
 
-		void block()   { _wait_lock.lock(); }
-		void unblock() { _wait_lock.unlock(); }
+		Irq_sigh() { }
+
+		void notify() { Genode::Signal_transmitter(*this).submit(1); }
 };
 
 
 /*
  * Proxy thread that associates to the interrupt and unblocks waiting irqctrl
- * threads. Maybe, we should utilize our signals for interrupt delivery...
+ * threads.
  *
  * XXX resources are not accounted as the interrupt is shared
  */
@@ -56,8 +54,8 @@ class Genode::Irq_proxy : public THREAD,
 		Lock              _mutex;             /* protects this object */
 		int               _num_sharers;       /* number of clients sharing this IRQ */
 		Semaphore         _sleep;             /* wake me up if aspired blockers return */
-		List<Irq_blocker> _blocker_list;
-		int               _num_blockers;      /* number of currently blocked clients */
+		List<Irq_sigh>    _sigh_list;
+		int               _num_acknowledgers; /* number of currently blocked clients */
 		bool              _woken_up;          /* client decided to wake me up -
 		                                         this prevents multiple wakeups
 		                                         to happen during initialization */
@@ -102,20 +100,8 @@ class Genode::Irq_proxy : public THREAD,
 			while (1) {
 				_wait_for_irq();
 
-				{
-					Lock::Guard lock_guard(_mutex);
-
-					/* inform blocked clients */
-					Irq_blocker *b;
-					while ((b = _blocker_list.first())) {
-						_blocker_list.remove(b);
-						b->unblock();
-					}
-
-					/* reset blocker state */
-					_num_blockers = 0;
-					_woken_up     = false;
-				}
+				/* notify all */
+				notify_about_irq(1);
 
 				/*
 				 * We must wait for all clients to ack their interrupt,
@@ -146,7 +132,8 @@ class Genode::Irq_proxy : public THREAD,
 		:
 			THREAD(_construct_name(irq_number)),
 			_startup_lock(Lock::LOCKED), _irq_number(irq_number),
-			_mutex(Lock::UNLOCKED), _num_sharers(0), _num_blockers(0), _woken_up(false)
+			_mutex(Lock::UNLOCKED), _num_sharers(0), _num_acknowledgers(0), _woken_up(false)
+
 		{ }
 
 		/**
@@ -163,43 +150,68 @@ class Genode::Irq_proxy : public THREAD,
 		}
 
 		/**
-		 * Block until interrupt occured
+		 * Acknowledgements of clients
 		 */
-		virtual void wait_for_irq()
+		virtual bool ack_irq()
 		{
-			Irq_blocker blocker;
-			{
-				Lock::Guard lock_guard(_mutex);
+			Lock::Guard lock_guard(_mutex);
 
-				_blocker_list.insert(&blocker);
-				_num_blockers++;
+			_num_acknowledgers++;
 
-				/*
-				 * The proxy thread is woken up if no client woke it up before
-				 * and this client is the last aspired blocker.
-				 */
-				if (!_woken_up && _num_blockers == _num_sharers) {
-					_sleep.up();
-					_woken_up = true;
-				}
+			/*
+			 * The proxy thread has to be woken up if no client woke it up
+			 * before and this client is the last aspired acknowledger.
+			 */
+			if (!_woken_up && _num_acknowledgers == _num_sharers) {
+				_sleep.up();
+				_woken_up = true;
 			}
-			blocker.block();
+
+			return _woken_up;
 		}
 
+		/**
+		 * Notify all clients about irq
+		 */
+		void notify_about_irq(unsigned)
+		{
+			Lock::Guard lock_guard(_mutex);
+
+			/* reset acknowledger state */
+			_num_acknowledgers = 0;
+			_woken_up          = false;
+
+			/* inform blocked clients */
+			for (Irq_sigh * s = _sigh_list.first(); s ; s = s->next())
+				s->notify();
+		}
 
 		long irq_number() const { return _irq_number; }
 
-		virtual bool add_sharer()
+		virtual bool add_sharer(Irq_sigh *s)
 		{
 			Lock::Guard lock_guard(_mutex);
+
 			++_num_sharers;
+			_sigh_list.insert(s);
+
 			return true;
 		}
 
-		virtual void remove_sharer()
+		virtual void remove_sharer(Irq_sigh *s)
 		{
 			Lock::Guard lock_guard(_mutex);
+
+			_sigh_list.remove(s);
 			--_num_sharers;
+
+			if (_woken_up)
+				return;
+
+			if (_num_acknowledgers == _num_sharers) {
+				_sleep.up();
+				_woken_up = true;
+			}
 		}
 
 		template <typename PROXY>
@@ -222,53 +234,6 @@ class Genode::Irq_proxy : public THREAD,
 			PROXY *new_proxy = new (env()->heap()) PROXY(irq_number);
 			proxies.insert(new_proxy);
 			return new_proxy;
-		}
-};
-
-
-/**
- * Dummy thread
- */
-class Genode::Irq_thread_dummy
-{
-	public:
-
-		Irq_thread_dummy(char const *name) { }
-		void start() { }
-};
-
-
-/**
- * Non-threaded proxy that disables shared interrupts
- */
-class Genode::Irq_proxy_single : public Genode::Irq_proxy<Genode::Irq_thread_dummy>
-{
-	protected:
-
-		void _start()
-		{
-			_associate();
-		}
-
-	public:
-
-		Irq_proxy_single(long irq_number) : Irq_proxy(irq_number) { }
-
-		bool add_sharer()
-		{
-			Lock::Guard lock_guard(_mutex);
-
-			if (_num_sharers)
-				return false;
-
-			_num_sharers = 1;
-			return true;
-		}
-
-		void wait_for_irq()
-		{
-			_wait_for_irq();
-			_ack_irq();
 		}
 };
 
