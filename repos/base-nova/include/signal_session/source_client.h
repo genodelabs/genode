@@ -62,7 +62,14 @@ namespace Genode {
 			 */
 			Signal_source_client(Signal_source_capability cap)
 			: Rpc_client<Nova_signal_source>(
-				static_cap_cast<Nova_signal_source>(cap)) { }
+				static_cap_cast<Nova_signal_source>(cap))
+			{
+				/*
+				 * Make sure that we have acquired the
+				 * semaphore from the server
+				 */
+				_init_sem();
+			}
 
 
 			/*****************************
@@ -71,25 +78,18 @@ namespace Genode {
 
 			Signal wait_for_signal()
 			{
-				/*
-				 * Make sure that we have acquired the
-				 * semaphore from the server
-				 */
-				_init_sem();
-
 				/* 
 				 * Block on semaphore, will be unblocked if
 				 * signal is available
 				 */
-				if (Nova::sm_ctrl(_sem.local_name(), Nova::SEMAPHORE_DOWN))
-					nova_die();
+				using namespace Nova;
+				mword_t value = 0;
+				mword_t count = 0;
+				if (uint8_t res = si_ctrl(_sem.local_name(), SEMAPHORE_DOWN,
+				                  value, count))
+					PWRN("signal reception failed - error %u", res);
 
-				/*
-				 * Now that the server has unblocked the semaphore, we are sure
-				 * that there is a signal pending. The following 'wait_for_signal'
-				 * request will be immediately answered.
-				 */
-				return call<Rpc_wait_for_signal>();
+				return Signal(value, count);
 			}
 	};
 }
