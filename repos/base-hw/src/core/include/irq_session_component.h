@@ -31,6 +31,7 @@ namespace Genode
 	{
 		private:
 
+			unsigned                _irq_number;
 			Range_allocator * const _irq_alloc;
 			Irq_session_capability  _cap;
 			Irq_signal              _signal;

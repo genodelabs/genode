@@ -39,8 +39,11 @@ void Irq_session_component::wait_for_irq() { PERR("not implemented"); }
 
 Irq_signal Irq_session_component::signal() { return _signal; }
 
-Irq_session_component::~Irq_session_component() { PERR("not implemented"); }
-
+Irq_session_component::~Irq_session_component()
+{
+	irq_session_ep()->dissolve(this);
+	_irq_alloc->free((void *)_irq_number);
+}
 
 Irq_session_component::Irq_session_component(Cap_session * const     cap_session,
                                              Range_allocator * const irq_alloc,
@@ -63,6 +66,7 @@ Irq_session_component::Irq_session_component(Cap_session * const     cap_session
 		throw Root::Invalid_args();
 	}
 	/* make interrupt accessible */
-	_signal = Kernel::User_irq::signal(irq_number);
-	_cap    = Irq_session_capability(irq_session_ep()->manage(this));
+	_irq_number = (unsigned)irq_number;
+	_signal     = Kernel::User_irq::signal(irq_number);
+	_cap        = Irq_session_capability(irq_session_ep()->manage(this));
 }
