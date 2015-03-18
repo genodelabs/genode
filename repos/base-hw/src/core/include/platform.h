@@ -42,6 +42,7 @@ namespace Genode {
 
 			Core_mem_allocator _core_mem_alloc; /* core-accessible memory */
 			Phys_allocator     _io_mem_alloc;   /* MMIO allocator         */
+			Phys_allocator     _io_port_alloc;  /* I/O port allocator     */
 			Phys_allocator     _irq_alloc;      /* IRQ allocator          */
 			Rom_fs             _rom_fs;         /* ROM file system        */
 
@@ -112,7 +113,7 @@ namespace Genode {
 
 			inline Range_allocator * io_mem_alloc() { return &_io_mem_alloc; }
 
-			inline Range_allocator * io_port_alloc() { return 0; }
+			inline Range_allocator * io_port_alloc() { return &_io_port_alloc; }
 
 			inline Range_allocator * irq_alloc() { return &_irq_alloc; }
 

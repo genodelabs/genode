@@ -129,6 +129,7 @@ static Core_mem_allocator * _core_mem_allocator = 0;
 Platform::Platform()
 :
 	_io_mem_alloc(core_mem_alloc()),
+	_io_port_alloc(core_mem_alloc()),
 	_irq_alloc(core_mem_alloc()),
 	_vm_start(VIRT_ADDR_SPACE_START), _vm_size(VIRT_ADDR_SPACE_SIZE)
 {
@@ -180,6 +181,10 @@ Platform::Platform()
 		printf("IO memory allocator\n");
 		printf("-------------------\n");
 		_io_mem_alloc.raw()->dump_addr_tree();
+		printf("\n");
+		printf("IO port allocator\n");
+		printf("-------------------\n");
+		_io_port_alloc.raw()->dump_addr_tree();
 		printf("\n");
 		printf("IRQ allocator\n");
 		printf("-------------------\n");
