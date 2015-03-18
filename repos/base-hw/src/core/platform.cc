@@ -148,6 +148,8 @@ Platform::Platform()
 	init_alloc(_core_mem_alloc.virt_alloc(), virt_region,
 	           _core_only_ram_regions, get_page_size_log2());
 
+	_init_io_port_alloc();
+
 	/* make interrupts available to the interrupt allocator */
 	for (unsigned i = 0; i < Kernel::Pic::NR_OF_IRQ; i++)
 		_irq_alloc.add_range(i, 1);

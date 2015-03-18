@@ -54,6 +54,10 @@ namespace Genode {
 			addr_t             _vm_start;
 			size_t             _vm_size;
 
+			/**
+			 * Initialize I/O port allocator
+			 */
+			 void _init_io_port_alloc();
 
 		public:
 

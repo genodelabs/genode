@@ -51,4 +51,10 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 }
 
 
+void Platform::_init_io_port_alloc()
+{
+	_io_port_alloc.add_range(0, 0x10000);
+}
+
+
 Cpu::User_context::User_context() { }
