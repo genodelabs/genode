@@ -26,6 +26,10 @@ struct Imx53::Board_base
 		MMIO_BASE          = 0x0,
 		MMIO_SIZE          = 0x70000000,
 
+		ESDHCV2_1_IRQ       = 1,
+		ESDHCV2_1_MMIO_BASE = 0x50004000,
+		ESDHCV2_1_MMIO_SIZE = 0x00004000,
+
 		UART_1_IRQ         = 31,
 		UART_1_MMIO_BASE   = 0x53fbc000,
 		UART_1_MMIO_SIZE   = 0x00004000,
