@@ -129,6 +129,7 @@ static Core_mem_allocator * _core_mem_allocator = 0;
 Platform::Platform()
 :
 	_io_mem_alloc(core_mem_alloc()),
+	_io_port_alloc(core_mem_alloc()),
 	_irq_alloc(core_mem_alloc()),
 	_vm_start(VIRT_ADDR_SPACE_START), _vm_size(VIRT_ADDR_SPACE_SIZE)
 {
@@ -146,6 +147,8 @@ Platform::Platform()
 	           _core_only_ram_regions, get_page_size_log2());
 	init_alloc(_core_mem_alloc.virt_alloc(), virt_region,
 	           _core_only_ram_regions, get_page_size_log2());
+
+	_init_io_port_alloc();
 
 	/* make interrupts available to the interrupt allocator */
 	for (unsigned i = 0; i < Kernel::Pic::NR_OF_IRQ; i++)
@@ -180,6 +183,10 @@ Platform::Platform()
 		printf("IO memory allocator\n");
 		printf("-------------------\n");
 		_io_mem_alloc.raw()->dump_addr_tree();
+		printf("\n");
+		printf("IO port allocator\n");
+		printf("-------------------\n");
+		_io_port_alloc.raw()->dump_addr_tree();
 		printf("\n");
 		printf("IRQ allocator\n");
 		printf("-------------------\n");
