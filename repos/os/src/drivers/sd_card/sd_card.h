@@ -195,6 +195,14 @@ namespace Sd_card {
 		};
 	};
 
+	struct Set_blocklen : Command<16, RESPONSE_48_BIT>
+	{
+		Set_blocklen(size_t blocklen)
+		{
+			arg = blocklen;
+		};
+	};
+
 	struct Read_multiple_block : Command<18, RESPONSE_48_BIT, TRANSFER_READ>
 	{
 		Read_multiple_block(unsigned long addr)
