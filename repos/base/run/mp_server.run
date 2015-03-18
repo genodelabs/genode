@@ -4,10 +4,7 @@
 # \author Alexander Boettcher
 #
 
-if {
-	![have_spec hw_arndale] &&
-	([have_spec platform_pbxa9] || (![have_spec nova] && ![have_spec foc]))
-} {
+if {[have_spec hw_panda] || [have_spec hw_vea9x4]} {
 	puts "Platform is unsupported."
 	exit 0
 }
@@ -36,14 +33,24 @@ install_config {
 build_boot_image "core init test-server-mp"
 
 if {[have_include "power_on/qemu"]} {
+	# in general we want to have at least 2 CPUs
 	set want_cpus 2
+
+	# pbxa9 - foc does only use 1 cpu even if more are configured
+	# pbxa9 - hw does not support multiple CPUs
+	if {[have_spec platform_pbxa9]} { set want_cpus 1 }
+	# okl4, pistachio, fiasco only use one CPU even if more are configured
+	if {[have_spec okl4]}           { set want_cpus 1 }
+	if {[have_spec pistachio]}      { set want_cpus 1 }
+	if {[have_spec fiasco]}         { set want_cpus 1 }
+
 	append qemu_args " -nographic -m 64 -smp $want_cpus,cores=$want_cpus "
 }
 
 # run the test
 run_genode_until {\[init -\> test-server-mp\] done.*\n} 60
 
-set cpus [regexp -inline {Detected [0-9x]+ CPU[ s]\.} $output]
+set cpus [regexp -inline {Detected [0-9x]+ CPU[s\.]} $output]
 set cpus [regexp -all -inline {[0-9]+} $cpus]
 set cpus [expr [lindex $cpus 0] * [lindex $cpus 1]]
 
@@ -69,7 +76,9 @@ set good_string {
 	[init -> test-server-mp] --- test-mp_server started ---
 	[init -> test-server-mp] Detected }
 append good_string "$cpus"
-append good_string "x1 CPUs.\n"
+append good_string "x1 CPU"
+if {$cpus > 1} { append good_string "s" }
+append good_string ".\n"
 
 for {set r 0} {$r < $cpus} {incr r} {
 	append good_string {[init -> test-server-mp] call server on CPU }
