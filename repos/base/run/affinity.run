@@ -8,7 +8,6 @@ if {
 	![have_spec hw_arndale]  &&
 	![have_spec foc_x86_32]  &&
 	![have_spec foc_x86_64]  &&
-	![have_spec foc_imx53]   &&
 	![have_spec foc_vea9x4]  &&
 	![have_spec foc_panda]   &&
 	![have_spec foc_arndale] &&
@@ -74,9 +73,9 @@ if {[have_include "power_on/qemu"]} {
 	if {[have_spec x86]} { set rounds "40" }
 }
 
-run_genode_until "Round $rounds:.*\n" 90
+run_genode_until "Round $rounds:.*\n" 120
 
-set cpus [regexp -inline {Detected [0-9x]+ CPU[ s]\.} $output]
+set cpus [regexp -inline {Detected [0-9x]+ CPU[s\.]} $output]
 set cpus [regexp -all -inline {[0-9]+} $cpus]
 set cpus [expr [lindex $cpus 0] * [lindex $cpus 1]]
 
