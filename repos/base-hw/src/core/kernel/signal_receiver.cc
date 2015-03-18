@@ -33,7 +33,10 @@ Signal_ack_handler::~Signal_ack_handler()
 
 void Signal_handler::_cancel_waiting()
 {
-	if (_receiver) { _receiver->_handler_cancelled(this); }
+	if (_receiver) {
+		_receiver->_handler_cancelled(this);
+		_receiver = 0;
+	}
 }
 
 

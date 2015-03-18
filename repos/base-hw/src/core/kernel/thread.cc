@@ -114,6 +114,8 @@ bool Thread::_resume()
 		return true;
 	case AWAITS_SIGNAL:
 		Signal_handler::cancel_waiting();
+		user_arg_0(-1);
+		_become_active();
 		return true;
 	case AWAITS_SIGNAL_CONTEXT_KILL:
 		Signal_context_killer::cancel_waiting();
