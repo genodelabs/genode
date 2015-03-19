@@ -384,8 +384,8 @@ void Thread::_call_send_request_msg()
 {
 	Thread * const dst = Thread::pool()->object(user_arg_1());
 	if (!dst) {
-		PWRN("%s -> %s: cannot send to unknown recipient %u",
-		     pd_label(), label(), user_arg_1());
+		PWRN("%s -> %s: cannot send to unknown recipient %llu",
+		     pd_label(), label(), (unsigned long long)user_arg_1());
 		_become_inactive(AWAITS_IPC);
 		return;
 	}
