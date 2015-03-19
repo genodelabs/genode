@@ -24,7 +24,7 @@ struct Genode::Signal_connection : Connection<Signal_session>, Signal_session_cl
 {
 	Signal_connection()
 	:
-		Connection<Signal_session>(session("ram_quota=12K")),
+		Connection<Signal_session>(session("ram_quota=16K")),
 		Signal_session_client(cap())
 	{ }
 };
