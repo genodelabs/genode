@@ -14,7 +14,7 @@
 /* core includes */
 #include <kernel/thread.h>
 
-void Kernel::Thread::_call_new_vm()   { user_arg_0(0);  }
-void Kernel::Thread::_call_bin_vm()   { user_arg_0(-1); }
-void Kernel::Thread::_call_run_vm()   { user_arg_0(-1); }
-void Kernel::Thread::_call_pause_vm() { user_arg_0(-1); }
+void Kernel::Thread::_call_new_vm()    { user_arg_0(0);  }
+void Kernel::Thread::_call_delete_vm() { user_arg_0(-1); }
+void Kernel::Thread::_call_run_vm()    { user_arg_0(-1); }
+void Kernel::Thread::_call_pause_vm()  { user_arg_0(-1); }

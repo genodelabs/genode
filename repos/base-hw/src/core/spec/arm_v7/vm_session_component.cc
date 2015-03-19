@@ -49,7 +49,7 @@ Vm_session_component::~Vm_session_component()
 	/* dissolve VM dataspace from service entry point */
 	_ds_ep->dissolve(&_ds);
 
-	if (Kernel::bin_vm(_vm_id)) PERR("Cannot destruct unknown VM");
+	if (Kernel::delete_vm(_vm_id)) PERR("Cannot destruct unknown VM");
 
 	/* free region in allocator */
 	core_env()->rm_session()->detach(_ds.core_local_addr());

@@ -15,7 +15,7 @@
 #include <kernel/thread.h>
 #include <kernel/vm.h>
 
-void Kernel::Thread::_call_bin_vm()
+void Kernel::Thread::_call_delete_vm()
 {
 	Vm * const vm = Vm::pool()->object(user_arg_1());
 	if (vm) vm->~Vm();

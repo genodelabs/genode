@@ -209,9 +209,9 @@ class Kernel::Thread
 		 *********************************************************/
 
 		void _call_new_pd();
-		void _call_bin_pd();
+		void _call_delete_pd();
 		void _call_new_thread();
-		void _call_bin_thread();
+		void _call_delete_thread();
 		void _call_start_thread();
 		void _call_pause_current_thread();
 		void _call_pause_thread();
@@ -232,10 +232,10 @@ class Kernel::Thread
 		void _call_submit_signal();
 		void _call_ack_signal();
 		void _call_kill_signal_context();
-		void _call_bin_signal_context();
-		void _call_bin_signal_receiver();
+		void _call_delete_signal_context();
+		void _call_delete_signal_receiver();
 		void _call_new_vm();
-		void _call_bin_vm();
+		void _call_delete_vm();
 		void _call_run_vm();
 		void _call_pause_vm();
 		void _call_access_thread_regs();

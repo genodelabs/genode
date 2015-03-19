@@ -21,7 +21,7 @@ Platform_pd::~Platform_pd()
 {
 	Lock::Guard guard(_lock);
 
-	if (Kernel::bin_pd(_id)) {
+	if (Kernel::delete_pd(_id)) {
 		PERR("failed to destruct protection domain at kernel");
 	}
 
@@ -30,4 +30,3 @@ Platform_pd::~Platform_pd()
 
 	/* TODO: destroy page slab and translation table!!! */
 }
-

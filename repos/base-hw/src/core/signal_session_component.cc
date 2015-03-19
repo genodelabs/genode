@@ -112,7 +112,7 @@ void Signal_session_component::free_context(Signal_context_capability cap)
 void Signal_session_component::_destruct_context(Context * const c)
 {
 	/* release kernel resources */
-	if (Kernel::bin_signal_context(c->id()))
+	if (Kernel::delete_signal_context(c->id()))
 	{
 		/* clean-up */
 		c->release();
@@ -128,7 +128,7 @@ void Signal_session_component::_destruct_context(Context * const c)
 void Signal_session_component::_destruct_receiver(Receiver * const r)
 {
 	/* release kernel resources */
-	if (Kernel::bin_signal_receiver(r->id()))
+	if (Kernel::delete_signal_receiver(r->id()))
 	{
 		/* clean-up */
 		r->release();

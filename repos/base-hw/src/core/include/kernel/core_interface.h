@@ -30,24 +30,24 @@ namespace Kernel
 	/**
 	 * Kernel names of the kernel calls
 	 */
-	constexpr Call_arg call_id_new_thread()          { return 14; }
-	constexpr Call_arg call_id_bin_thread()          { return 15; }
-	constexpr Call_arg call_id_start_thread()        { return 16; }
-	constexpr Call_arg call_id_resume_thread()       { return 17; }
-	constexpr Call_arg call_id_access_thread_regs()  { return 18; }
-	constexpr Call_arg call_id_route_thread_event()  { return 19; }
-	constexpr Call_arg call_id_update_pd()           { return 20; }
-	constexpr Call_arg call_id_new_pd()              { return 21; }
-	constexpr Call_arg call_id_bin_pd()              { return 22; }
-	constexpr Call_arg call_id_new_signal_receiver() { return 23; }
-	constexpr Call_arg call_id_new_signal_context()  { return 24; }
-	constexpr Call_arg call_id_bin_signal_context()  { return 25; }
-	constexpr Call_arg call_id_bin_signal_receiver() { return 26; }
-	constexpr Call_arg call_id_new_vm()              { return 27; }
-	constexpr Call_arg call_id_run_vm()              { return 28; }
-	constexpr Call_arg call_id_pause_vm()            { return 29; }
-	constexpr Call_arg call_id_pause_thread()        { return 30; }
-	constexpr Call_arg call_id_bin_vm()              { return 31; }
+	constexpr Call_arg call_id_new_thread()             { return 14; }
+	constexpr Call_arg call_id_delete_thread()          { return 15; }
+	constexpr Call_arg call_id_start_thread()           { return 16; }
+	constexpr Call_arg call_id_resume_thread()          { return 17; }
+	constexpr Call_arg call_id_access_thread_regs()     { return 18; }
+	constexpr Call_arg call_id_route_thread_event()     { return 19; }
+	constexpr Call_arg call_id_update_pd()              { return 20; }
+	constexpr Call_arg call_id_new_pd()                 { return 21; }
+	constexpr Call_arg call_id_delete_pd()              { return 22; }
+	constexpr Call_arg call_id_new_signal_receiver()    { return 23; }
+	constexpr Call_arg call_id_new_signal_context()     { return 24; }
+	constexpr Call_arg call_id_delete_signal_context()  { return 25; }
+	constexpr Call_arg call_id_delete_signal_receiver() { return 26; }
+	constexpr Call_arg call_id_new_vm()                 { return 27; }
+	constexpr Call_arg call_id_run_vm()                 { return 28; }
+	constexpr Call_arg call_id_pause_vm()               { return 29; }
+	constexpr Call_arg call_id_pause_thread()           { return 30; }
+	constexpr Call_arg call_id_delete_vm()              { return 31; }
 
 	/**
 	 * Create a domain
@@ -72,9 +72,9 @@ namespace Kernel
 	 * \retval  0  succeeded
 	 * \retval -1  failed
 	 */
-	inline int bin_pd(unsigned const pd_id)
+	inline int delete_pd(unsigned const pd_id)
 	{
-		return call(call_id_bin_pd(), pd_id);
+		return call(call_id_delete_pd(), pd_id);
 	}
 
 
@@ -128,9 +128,9 @@ namespace Kernel
 	 *
 	 * \param thread_id  kernel name of the targeted thread
 	 */
-	inline void bin_thread(unsigned const thread_id)
+	inline void delete_thread(unsigned const thread_id)
 	{
-		call(call_id_bin_thread(), thread_id);
+		call(call_id_delete_thread(), thread_id);
 	}
 
 
@@ -267,9 +267,9 @@ namespace Kernel
 	 * \retval  0  suceeded
 	 * \retval -1  failed
 	 */
-	inline int bin_signal_context(unsigned const context)
+	inline int delete_signal_context(unsigned const context)
 	{
-		return call(call_id_bin_signal_context(), context);
+		return call(call_id_delete_signal_context(), context);
 	}
 
 
@@ -281,9 +281,9 @@ namespace Kernel
 	 * \retval  0  suceeded
 	 * \retval -1  failed
 	 */
-	inline int bin_signal_receiver(unsigned const receiver)
+	inline int delete_signal_receiver(unsigned const receiver)
 	{
-		return call(call_id_bin_signal_receiver(), receiver);
+		return call(call_id_delete_signal_receiver(), receiver);
 	}
 
 
@@ -332,9 +332,9 @@ namespace Kernel
 	 * \retval  0  suceeded
 	 * \retval -1  failed
 	 */
-	inline int bin_vm(unsigned const vm_id)
+	inline int delete_vm(unsigned const vm_id)
 	{
-		return call(call_id_bin_vm(), vm_id);
+		return call(call_id_delete_vm(), vm_id);
 	}
 
 

@@ -223,7 +223,7 @@ void Thread::_call_new_pd()
 }
 
 
-void Thread::_call_bin_pd()
+void Thread::_call_delete_pd()
 {
 	/* lookup protection domain */
 	unsigned id = user_arg_1();
@@ -255,7 +255,7 @@ void Thread::_call_new_thread()
 }
 
 
-void Thread::_call_bin_thread()
+void Thread::_call_delete_thread()
 {
 	/* lookup thread */
 	Thread * const thread = Thread::pool()->object(user_arg_1());
@@ -761,7 +761,7 @@ void Thread::_call_kill_signal_context()
 }
 
 
-void Thread::_call_bin_signal_context()
+void Thread::_call_delete_signal_context()
 {
 	/* lookup signal context */
 	unsigned const id = user_arg_1();
@@ -778,7 +778,7 @@ void Thread::_call_bin_signal_context()
 }
 
 
-void Thread::_call_bin_signal_receiver()
+void Thread::_call_delete_signal_receiver()
 {
 	/* lookup signal receiver */
 	unsigned const id = user_arg_1();
@@ -850,24 +850,24 @@ void Thread::_call()
 	}
 	/* switch over kernel calls that are restricted to core */
 	switch (call_id) {
-	case call_id_new_thread():          _call_new_thread(); return;
-	case call_id_bin_thread():          _call_bin_thread(); return;
-	case call_id_start_thread():        _call_start_thread(); return;
-	case call_id_resume_thread():       _call_resume_thread(); return;
-	case call_id_access_thread_regs():  _call_access_thread_regs(); return;
-	case call_id_route_thread_event():  _call_route_thread_event(); return;
-	case call_id_update_pd():           _call_update_pd(); return;
-	case call_id_new_pd():              _call_new_pd(); return;
-	case call_id_bin_pd():              _call_bin_pd(); return;
-	case call_id_new_signal_receiver(): _call_new_signal_receiver(); return;
-	case call_id_new_signal_context():  _call_new_signal_context(); return;
-	case call_id_bin_signal_context():  _call_bin_signal_context(); return;
-	case call_id_bin_signal_receiver(): _call_bin_signal_receiver(); return;
-	case call_id_new_vm():              _call_new_vm(); return;
-	case call_id_bin_vm():              _call_bin_vm(); return;
-	case call_id_run_vm():              _call_run_vm(); return;
-	case call_id_pause_vm():            _call_pause_vm(); return;
-	case call_id_pause_thread():        _call_pause_thread(); return;
+	case call_id_new_thread():             _call_new_thread(); return;
+	case call_id_delete_thread():          _call_delete_thread(); return;
+	case call_id_start_thread():           _call_start_thread(); return;
+	case call_id_resume_thread():          _call_resume_thread(); return;
+	case call_id_access_thread_regs():     _call_access_thread_regs(); return;
+	case call_id_route_thread_event():     _call_route_thread_event(); return;
+	case call_id_update_pd():              _call_update_pd(); return;
+	case call_id_new_pd():                 _call_new_pd(); return;
+	case call_id_delete_pd():              _call_delete_pd(); return;
+	case call_id_new_signal_receiver():    _call_new_signal_receiver(); return;
+	case call_id_new_signal_context():     _call_new_signal_context(); return;
+	case call_id_delete_signal_context():  _call_delete_signal_context(); return;
+	case call_id_delete_signal_receiver(): _call_delete_signal_receiver(); return;
+	case call_id_new_vm():                 _call_new_vm(); return;
+	case call_id_delete_vm():              _call_delete_vm(); return;
+	case call_id_run_vm():                 _call_run_vm(); return;
+	case call_id_pause_vm():               _call_pause_vm(); return;
+	case call_id_pause_thread():           _call_pause_thread(); return;
 	default:
 		PWRN("%s -> %s: unknown kernel call", pd_label(), label());
 		_stop();
