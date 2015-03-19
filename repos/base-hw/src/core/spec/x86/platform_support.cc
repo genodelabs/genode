@@ -35,6 +35,10 @@ Native_region * Platform::_mmio_regions(unsigned const i)
 {
 	static Native_region _regions[] =
 	{
+		{ 0x00000000, 0x0001000 },
+		{ 0x000a0000, 0x0060000 },
+		{ 0xc0000000, 0x1000000 },
+		{ 0xfc000000, 0x1000000 },
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
