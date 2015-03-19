@@ -6,6 +6,7 @@
 
 # denote wich specs are also fullfilled by this spec
 SPECS += hw x86_64
+SPECS += pci ps2 vesa framebuffer
 
 # configure multiprocessor mode
 NR_OF_CPUS = 1
