@@ -21,6 +21,7 @@
 #include <gdt.h>
 #include <idt.h>
 #include <tss.h>
+#include <timer.h>
 
 extern int _mt_idt;
 extern int _mt_tss;
@@ -264,8 +265,8 @@ class Genode::Cpu
 		/**
 		 * Configure this module appropriately for the first kernel run
 		 */
-		static void init_phys_kernel()
-		{ }
+		static void init_phys_kernel() {
+			Timer::disable_pit(); };
 
 		/**
 		 * Finish all previous data transfers
