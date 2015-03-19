@@ -17,3 +17,6 @@
 using namespace Genode;
 
 void Platform::_init_io_port_alloc() { };
+
+
+long Platform::irq(long const user_irq) { return user_irq; }

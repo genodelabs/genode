@@ -101,6 +101,10 @@ namespace Genode {
 			 */
 			Platform();
 
+			/**
+			 * Return platform IRQ-number for user IRQ-number 'user_irq'
+			 */
+			static long irq(long const user_irq);
 
 			/********************************
 			 ** Platform_generic interface **

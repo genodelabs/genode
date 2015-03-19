@@ -1,11 +1,12 @@
 /*
  * \brief  Backend for IRQ sessions served by core
  * \author Martin Stein
+ * \author Reto Buerki
  * \date   2012-02-12
  */
 
 /*
- * Copyright (C) 2012-2013 Genode Labs GmbH
+ * Copyright (C) 2012-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -42,7 +43,7 @@ Irq_signal Irq_session_component::signal() { return _signal; }
 Irq_session_component::~Irq_session_component()
 {
 	irq_session_ep()->dissolve(this);
-	_irq_alloc->free((void *)_irq_number);
+	_irq_alloc->free((void *)(addr_t)_irq_number);
 }
 
 Irq_session_component::Irq_session_component(Cap_session * const     cap_session,
@@ -58,15 +59,19 @@ Irq_session_component::Irq_session_component(Cap_session * const     cap_session
 		throw Root::Invalid_args();
 	}
 	/* allocate interrupt */
-	long irq_number = Arg_string::find_arg(args, "irq_number").long_value(-1);
-	bool error = irq_number < 0 || !_irq_alloc;
-	error |= _irq_alloc->alloc_addr(1, irq_number).is_error();
+	long irq_nr = Arg_string::find_arg(args, "irq_number").long_value(-1);
+	bool error = irq_nr < 0 || !_irq_alloc;
+
+	/* enable platform specific code to apply mappings */
+	long const plat_irq_nr = Platform::irq(irq_nr);
+
+	error |= _irq_alloc->alloc_addr(1, plat_irq_nr).is_error();
 	if (error) {
 		PERR("unavailable interrupt requested");
 		throw Root::Invalid_args();
 	}
 	/* make interrupt accessible */
-	_irq_number = (unsigned)irq_number;
-	_signal     = Kernel::User_irq::signal(irq_number);
-	_cap        = Irq_session_capability(irq_session_ep()->manage(this));
+	_irq_number = (unsigned)plat_irq_nr;
+	_signal = Kernel::User_irq::signal(plat_irq_nr);
+	_cap    = Irq_session_capability(irq_session_ep()->manage(this));
 }
