@@ -27,7 +27,6 @@ SRC_CC += dataspace_component.cc
 SRC_CC += dump_alloc.cc
 SRC_CC += io_mem_session_component.cc
 SRC_CC += io_mem_session_support.cc
-SRC_CC += irq_session_component.cc
 SRC_CC += main.cc
 SRC_CC += pd_session_component.cc
 SRC_CC += platform.cc

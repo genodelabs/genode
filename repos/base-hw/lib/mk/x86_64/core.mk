@@ -15,6 +15,7 @@ SRC_S += spec/x86_64/crt0.s
 
 # add C++ sources
 SRC_CC += spec/x86/pic.cc
+SRC_CC += spec/x86/irq_session_component.cc
 SRC_CC += spec/x86_64/kernel/thread_base.cc
 SRC_CC += spec/x86_64/idt.cc
 SRC_CC += spec/x86_64/tss.cc
