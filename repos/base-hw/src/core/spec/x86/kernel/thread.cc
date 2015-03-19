@@ -42,7 +42,8 @@ void Thread::exception(unsigned const cpu)
 		_interrupt(cpu);
 		return;
 	} else {
-		PWRN("unknown exception 0x%lx", trapno);
+		PWRN("%s -> %s: triggered an unknown exception %lu with error code %lu",
+		     pd_label(), label(), trapno, errcode);
 		_stop();
 		return;
 	}
