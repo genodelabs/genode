@@ -114,6 +114,13 @@ void Cpu_job::affinity(Cpu * const cpu)
 }
 
 
+void Cpu_job::quota(unsigned const q)
+{
+	if (_cpu) { _cpu->scheduler()->quota(this, q); }
+	else { Cpu_share::quota(q); }
+}
+
+
 /**************
  ** Cpu_idle **
  **************/

@@ -57,6 +57,7 @@ namespace Kernel
 	constexpr Call_arg call_id_delete_vm()              { return 31; }
 	constexpr Call_arg call_id_new_irq()                { return 32; }
 	constexpr Call_arg call_id_delete_irq()             { return 33; }
+	constexpr Call_arg call_id_thread_quota()           { return 34; }
 
 	/**
 	 * Create a domain
@@ -103,7 +104,7 @@ namespace Kernel
 	 *
 	 * \param p         memory donation for the new kernel thread object
 	 * \param priority  scheduling priority of the new thread
-	 * \param quota     CPU-time quota of the new thread in milliseconds
+	 * \param quota     CPU quota of the new thread
 	 * \param label     debugging label of the new thread
 	 *
 	 * \retval >0  kernel name of the new thread
@@ -114,6 +115,18 @@ namespace Kernel
 	{
 		return call(call_id_new_thread(), (Call_arg)p, (Call_arg)priority,
 		            (Call_arg)quota, (Call_arg)label);
+	}
+
+
+	/**
+	 * Configure the CPU quota of a thread
+	 *
+	 * \param thread  kernel object of the targeted thread
+	 * \param quota   new CPU quota value
+	 */
+	inline void thread_quota(Kernel::Thread * const thread, size_t const quota)
+	{
+		call(call_id_thread_quota(), (Call_arg)thread, (Call_arg)quota);
 	}
 
 

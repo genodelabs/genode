@@ -191,6 +191,11 @@ class Kernel::Cpu_job : public Cpu_share
 		void affinity(Cpu * const cpu);
 
 		/**
+		 * Set CPU quota of the job to 'q'
+		 */
+		void quota(unsigned const q);
+
+		/**
 		 * Return wether our CPU-share is currently active
 		 */
 		bool own_share_active() { return Cpu_share::ready(); }

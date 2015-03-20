@@ -83,11 +83,11 @@ class Kernel::Cpu_share : public Cpu_claim, public Cpu_fill
 
 	private:
 
-		signed   const _prio;
-		unsigned const _quota;
-		unsigned       _claim;
-		unsigned       _fill;
-		bool           _ready;
+		signed const _prio;
+		unsigned     _quota;
+		unsigned     _claim;
+		unsigned     _fill;
+		bool         _ready;
 
 	public:
 
@@ -105,6 +105,7 @@ class Kernel::Cpu_share : public Cpu_claim, public Cpu_fill
 		 */
 
 		bool ready() const { return _ready; }
+		void quota(unsigned const q) { _quota = q; }
 };
 
 class Kernel::Cpu_scheduler
@@ -125,11 +126,12 @@ class Kernel::Cpu_scheduler
 		Share *        _head;
 		unsigned       _head_quota;
 		bool           _head_claims;
+		bool           _head_yields;
 		unsigned const _quota;
 		unsigned       _residual;
 		unsigned const _fill;
 
-		template <typename F> void _for_prios(F f) {
+		template <typename F> void _for_each_prio(F f) {
 			for (signed p = Prio::max; p > Prio::min - 1; p--) { f(p); } }
 
 		template <typename T>
@@ -144,16 +146,21 @@ class Kernel::Cpu_scheduler
 			_ucl[p].for_each([&] (Claim * const c) { _reset(c); });
 		}
 
+		void _next_round()
+		{
+			_residual = _quota;
+			_for_each_prio([&] (unsigned const p) { _reset_claims(p); });
+		}
+
 		void _consumed(unsigned const q)
 		{
-			if (_residual -= q) { return; }
-			_residual = _quota;
-			_for_prios([&] (unsigned const p) { _reset_claims(p); });
+			if (_residual > q) { _residual -= q; }
+			else { _next_round(); }
 		}
 
 		void _set_head(Share * const s, unsigned const q, bool const c)
 		{
-			_head_quota = Genode::min(q, _residual);
+			_head_quota = q;
 			_head_claims = c;
 			_head = s;
 		}
@@ -164,17 +171,18 @@ class Kernel::Cpu_scheduler
 			_fills.head_to_tail();
 		}
 
-		void _head_claimed(unsigned const q)
+		void _head_claimed(unsigned const r)
 		{
-			if (_head->_claim) { _head->_claim -= q; }
+			if (!_head->_quota) { return; }
+			_head->_claim = r > _head->_quota ? _head->_quota : r;
 			if (_head->_claim || !_head->_ready) { return; }
 			_rcl[_head->_prio].to_tail(_head);
 		}
 
-		void _head_filled(unsigned const q)
+		void _head_filled(unsigned const r)
 		{
 			if (_fills.head() != _head) { return; }
-			if (q < _head->_fill) { _head->_fill -= q; }
+			if (r) { _head->_fill = r; }
 			else { _next_fill(); }
 		}
 
@@ -198,6 +206,41 @@ class Kernel::Cpu_scheduler
 			return 1;
 		}
 
+		unsigned _trim_consumption(unsigned & q)
+		{
+			q = Genode::min(Genode::min(q, _head_quota), _residual);
+			if (!_head_yields) { return _head_quota - q; }
+			_head_yields = 0;
+			return 0;
+		}
+
+		/**
+		 * Fill 's' becomes a claim due to a quota donation
+		 */
+		void _quota_introduction(Share * const s)
+		{
+			if (s->_ready) { _rcl[s->_prio].insert_tail(s); }
+			else { _ucl[s->_prio].insert_tail(s); }
+		}
+
+		/**
+		 * Claim 's' looses its state as claim due to quota revokation
+		 */
+		void _quota_revokation(Share * const s)
+		{
+			if (s->_ready) { _rcl[s->_prio].remove(s); }
+			else { _ucl[s->_prio].remove(s); }
+		}
+
+		/**
+		 * The quota of claim 's' changes to 'q'
+		 */
+		void _quota_adaption(Share * const s, unsigned const q)
+		{
+			if (q) { if (s->_claim > q) { s->_claim = q; } }
+			else { _quota_revokation(s); }
+		}
+
 	public:
 
 		/**
@@ -209,16 +252,17 @@ class Kernel::Cpu_scheduler
 		 * \param f  time-slice length of the fill round-robin
 		 */
 		Cpu_scheduler(Share * const i, unsigned const q, unsigned const f)
-		: _idle(i), _quota(q), _residual(q), _fill(f) { _set_head(i, f, 0); }
+		: _idle(i), _head_yields(0), _quota(q), _residual(q), _fill(f)
+		{ _set_head(i, f, 0); }
 
 		/**
 		 * Update head according to the consumption of quota 'q'
 		 */
 		void update(unsigned q)
 		{
-			q = Genode::min(Genode::min(q, _head_quota), _residual);
-			if (_head_claims) { _head_claimed(q); }
-			else { _head_filled(q); }
+			unsigned const r = _trim_consumption(q);
+			if (_head_claims) { _head_claimed(r); }
+			else { _head_filled(r); }
 			_consumed(q);
 			if (_claim_for_head()) { return; }
 			if (_fill_for_head()) { return; }
@@ -268,16 +312,9 @@ class Kernel::Cpu_scheduler
 		}
 
 		/**
-		 * As far as possible current head won't be re-choosen for max. a round
+		 * Current head looses its current claim/fill for this round
 		 */
-		void yield()
-		{
-			assert(_head != _idle);
-			if (_head->_claim) { _head->_claim = 0; }
-			if (_head != _fills.head()) { return; }
-			_share(_fills.head())->_fill = _fill;
-			_fills.head_to_tail();
-		}
+		void yield() { _head_yields = 1; }
 
 		/**
 		 * Remove share 's' from scheduler
@@ -302,12 +339,26 @@ class Kernel::Cpu_scheduler
 			_ucl[s->_prio].insert_head(s);
 		}
 
+		/**
+		 * Set quota of share 's' to 'q'
+		 */
+		void quota(Share * const s, unsigned const q)
+		{
+			assert(s != _idle);
+			if (s->_quota) { _quota_adaption(s, q); }
+			else if (q) { _quota_introduction(s); }
+			s->_quota = q;
+		}
+
 		/*
 		 * Accessors
 		 */
 
 		Share * head() const { return _head; }
-		unsigned head_quota() const { return _head_quota; }
+		unsigned head_quota() const {
+			return Genode::min(_head_quota, _residual); }
+		unsigned quota() const { return _quota; }
+		unsigned residual() const { return _residual; }
 };
 
 #endif /* _KERNEL__CPU_SCHEDULER_H_ */

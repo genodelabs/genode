@@ -236,6 +236,14 @@ void Thread::_call_new_thread()
 }
 
 
+void Thread::_call_thread_quota()
+{
+	Thread * const thread = (Thread *)user_arg_1();
+	unsigned const quota = cpu_pool()->timer()->ms_to_tics(user_arg_2());
+	thread->Cpu_job::quota(quota);
+}
+
+
 void Thread::_call_delete_thread() {
 	reinterpret_cast<Thread*>(user_arg_1())->~Thread(); }
 
@@ -757,6 +765,7 @@ void Thread::_call()
 	/* switch over kernel calls that are restricted to core */
 	switch (call_id) {
 	case call_id_new_thread():             _call_new_thread(); return;
+	case call_id_thread_quota():           _call_thread_quota(); return;
 	case call_id_delete_thread():          _call_delete_thread(); return;
 	case call_id_start_thread():           _call_start_thread(); return;
 	case call_id_resume_thread():          _call_resume_thread(); return;

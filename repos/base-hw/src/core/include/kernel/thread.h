@@ -208,6 +208,7 @@ class Kernel::Thread
 		void _call_new_pd();
 		void _call_delete_pd();
 		void _call_new_thread();
+		void _call_thread_quota();
 		void _call_delete_thread();
 		void _call_start_thread();
 		void _call_pause_current_thread();
