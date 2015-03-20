@@ -11,7 +11,8 @@ build "test/cpu_scheduler"
 create_boot_directory
 
 # create single boot image from the compiled program images
-build_boot_image "test-cpu_scheduler" test
+set core_test 1
+build_boot_image "test-cpu_scheduler"
 
 # configure qemu to use 64 MB RAM and avoid GUI mode
 append qemu_args " -m 64 -nographic"

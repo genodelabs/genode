@@ -11,7 +11,8 @@ build "test/hw_info"
 create_boot_directory
 
 # create single boot image from the compiled program images
-build_boot_image "test-hw_info" test
+set core_test 1
+build_boot_image "test-hw_info"
 
 # configure qemu to use 64 MB RAM and avoid GUI mode
 append qemu_args " -m 64 -nographic"
