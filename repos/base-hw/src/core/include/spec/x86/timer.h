@@ -15,9 +15,12 @@
 #ifndef _TIMER_H_
 #define _TIMER_H_
 
+/* Genode includes */
 #include <util/mmio.h>
 #include <base/stdint.h>
 #include <base/printf.h>
+
+/* core includes */
 #include <port_io.h>
 #include <board.h>
 
@@ -58,7 +61,7 @@ class Genode::Timer : public Mmio
 		uint32_t _tics_per_ms = 0;
 
 		/* Measure LAPIC timer frequency using PIT channel 2 */
-		uint32_t pit_calc_timer_freq(void)
+		uint32_t _pit_calc_timer_freq(void)
 		{
 			uint32_t t_start, t_end;
 
@@ -95,7 +98,7 @@ class Genode::Timer : public Mmio
 			write<Tmr_lvt::Timer_mode>(0);
 
 			/* Calculate timer frequency */
-			_tics_per_ms = pit_calc_timer_freq();
+			_tics_per_ms = _pit_calc_timer_freq();
 			PINF("LAPIC: timer frequency %u kHz", _tics_per_ms);
 		}
 

@@ -16,10 +16,15 @@
 #ifndef _CPU_H_
 #define _CPU_H_
 
+/* Genode includes */
 #include <util/register.h>
-#include <unmanaged_singleton.h>
 #include <kernel/interface_support.h>
 #include <cpu/cpu_state.h>
+
+/* base includes */
+#include <unmanaged_singleton.h>
+
+/* core includes */
 #include <gdt.h>
 #include <idt.h>
 #include <tss.h>
@@ -65,14 +70,12 @@ class Genode::Cpu_lazy_state
 		/**
 		 * Load x87 FPU State from fxsave area.
 		 */
-		inline void load() {
-			asm volatile ("fxrstor %0" : : "m" (*start)); }
+		inline void load() { asm volatile ("fxrstor %0" : : "m" (*start)); }
 
 		/**
 		 * Save x87 FPU State to fxsave area.
 		 */
-		inline void save() {
-			asm volatile ("fxsave %0" : "=m" (*start)); }
+		inline void save() { asm volatile ("fxsave %0" : "=m" (*start)); }
 
 	public:
 
@@ -95,6 +98,7 @@ class Genode::Cpu
 	friend class Cpu_lazy_state;
 
 	private:
+
 		Idt *_idt;
 		Tss *_tss;
 		Cpu_lazy_state *_fpu_state;
@@ -138,22 +142,18 @@ class Genode::Cpu
 		/**
 		 * Enable FPU by clearing the TS flag in CR0.
 		 */
-		static void _enable_fpu() {
-			asm volatile ("clts"); }
+		static void _enable_fpu() { asm volatile ("clts"); }
 
 		/**
 		 * Initialize FPU without checking for pending unmasked floating-point
 		 * exceptions.
 		 */
-		static void _init_fpu() {
-			asm volatile ("fninit");
-		}
+		static void _init_fpu() { asm volatile ("fninit"); }
 
 		/**
 		 * Returns True if the FPU is enabled.
 		 */
-		static bool is_fpu_enabled() {
-			return !Cr0::Ts::get(Cr0::read()); }
+		static bool is_fpu_enabled() { return !Cr0::Ts::get(Cr0::read()); }
 
 	public:
 
@@ -362,8 +362,7 @@ class Genode::Cpu
 		 * Flush data-cache entries for virtual region ['base', 'base + size')
 		 */
 		static void
-		flush_data_caches_by_virt_region(addr_t base, size_t const size)
-		{ }
+		flush_data_caches_by_virt_region(addr_t base, size_t const size) { }
 
 		/**
 		 * Bin instr.-cache entries for virtual region ['base', 'base + size')
@@ -384,26 +383,22 @@ class Genode::Cpu
 		init_virt_kernel(addr_t const table, unsigned const process_id) {
 			Cr3::write(Cr3::init(table)); }
 
-		inline static void finish_init_phys_kernel() {
-			_init_fpu(); }
+		inline static void finish_init_phys_kernel() { _init_fpu(); }
 
 		/**
 		 * Configure this module appropriately for the first kernel run
 		 */
-		static void init_phys_kernel() {
-			Timer::disable_pit(); };
+		static void init_phys_kernel() { Timer::disable_pit(); };
 
 		/**
 		 * Finish all previous data transfers
 		 */
-		static void data_synchronization_barrier()
-		{ }
+		static void data_synchronization_barrier() { }
 
 		/**
 		 * Enable secondary CPUs with instr. pointer 'ip'
 		 */
-		static void start_secondary_cpus(void * const ip)
-		{ }
+		static void start_secondary_cpus(void * const ip) { }
 
 		/**
 		 * Wait for the next interrupt as cheap as possible

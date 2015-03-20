@@ -21,30 +21,29 @@ Thread::Thread(unsigned const priority, unsigned const quota,
                char const * const label)
 :
 	Thread_base(this), Cpu_job(priority, quota), _state(AWAITS_START), _pd(0),
-	_utcb_phys(0), _signal_receiver(0), _label(label) {}
+	_utcb_phys(0), _signal_receiver(0), _label(label) { }
 
 
 void Thread::exception(unsigned const cpu)
 {
-	if (trapno == PAGE_FAULT) {
+	switch (trapno) {
+	case PAGE_FAULT:
 		_mmu_exception();
 		return;
-	} else if (trapno == NO_MATH_COPROC) {
+	case NO_MATH_COPROC:
 		if (_cpu->retry_fpu_instr(&_lazy_state)) { return; }
-		PWRN("fpu error");
+		PWRN("%s -> %s: FPU error", pd_label(), label());
 		_stop();
 		return;
-	}
-	if (trapno == SUPERVISOR_CALL) {
+	case SUPERVISOR_CALL:
 		_call();
 		return;
-	} else if (trapno >= INTERRUPTS_START && trapno <= INTERRUPTS_END) {
+	}
+	if (trapno >= INTERRUPTS_START && trapno <= INTERRUPTS_END) {
 		_interrupt(cpu);
 		return;
-	} else {
-		PWRN("%s -> %s: triggered an unknown exception %lu with error code %lu",
-		     pd_label(), label(), trapno, errcode);
-		_stop();
-		return;
 	}
+	PWRN("%s -> %s: triggered unknown exception %lu with error code %lu",
+	     pd_label(), label(), trapno, errcode);
+	_stop();
 }

@@ -44,7 +44,7 @@ namespace Genode
 	};
 
 	class Level_4_translation_table;
-	class PML4_table;
+	class Pml4_table;
 
 	/**
 	 * IA-32e page directory template.
@@ -66,7 +66,7 @@ namespace Genode
 		Page_directory<Level_3_translation_table,
 		SIZE_LOG2_1GB, SIZE_LOG2_512GB>;
 
-	using Translation_table = PML4_table;
+	using Translation_table = Pml4_table;
 
 	/**
 	 * IA-32e common descriptor.
@@ -152,34 +152,33 @@ class Genode::Level_4_translation_table
 
 		typename Descriptor::access_t _entries[MAX_ENTRIES];
 
-		inline bool _aligned(addr_t const a, size_t const alignm_log2) {
-			return a == ((a >> alignm_log2) << alignm_log2); }
-
 		struct Insert_func
 		{
-				Page_flags const & flags;
-				Page_slab        * slab;
+			Page_flags const & flags;
+			Page_slab        * slab;
 
-				Insert_func(Page_flags const & flags,
-				            Page_slab * slab) : flags(flags), slab(slab) { }
+			Insert_func(Page_flags const & flags,
+			            Page_slab * slab) : flags(flags), slab(slab) { }
 
-				void operator () (addr_t const          vo,
-				                  addr_t const          pa,
-				                  size_t const          size,
-				                  Descriptor::access_t &desc)
+			void operator () (addr_t const vo, addr_t const pa,
+			                  size_t const size,
+			                  Descriptor::access_t &desc)
+			{
+				if ((vo & ~PAGE_MASK) || (pa & ~PAGE_MASK) ||
+				    size < PAGE_SIZE)
 				{
-					if ((vo & ~PAGE_MASK) || (pa & ~PAGE_MASK) ||
-					    size < PAGE_SIZE)
-						throw Invalid_range();
-
-					Descriptor::access_t table_entry =
-						Descriptor::create(flags, pa);
-					if (Descriptor::present(desc) &&
-							Descriptor::clear_mmu_flags(desc) != table_entry)
-						throw Double_insertion();
-
-					desc = table_entry;
+					throw Invalid_range();
 				}
+				Descriptor::access_t table_entry =
+					Descriptor::create(flags, pa);
+
+				if (Descriptor::present(desc) &&
+				    Descriptor::clear_mmu_flags(desc) != table_entry)
+				{
+					throw Double_insertion();
+				}
+				desc = table_entry;
+			}
 		};
 
 		struct Remove_func
@@ -188,11 +187,10 @@ class Genode::Level_4_translation_table
 
 				Remove_func(Page_slab * slab) : slab(slab) { }
 
-				void operator () (addr_t const          vo,
-				                  addr_t const          pa,
-				                  size_t const          size,
-				                  Descriptor::access_t &desc) {
-					desc = 0; }
+				void operator () (addr_t const vo, addr_t const pa,
+				                  size_t const size,
+				                  Descriptor::access_t &desc)
+				{ desc = 0; }
 		};
 
 		template <typename FUNC>
@@ -223,21 +221,16 @@ class Genode::Level_4_translation_table
 		 * IA-32e page table (Level 4)
 		 *
 		 * A page table consists of 512 entries that each maps a 4KB page
-		 * frame.
-		 * For further details refer to Intel SDM Vol. 3A, table 4-19.
+		 * frame. For further details refer to Intel SDM Vol. 3A, table 4-19.
 		 */
 		Level_4_translation_table()
 		{
-			if (!_aligned((addr_t)this, ALIGNM_LOG2))
-				throw Misaligned();
-
+			if (!aligned(this, ALIGNM_LOG2)) throw Misaligned();
 			memset(&_entries, 0, sizeof(_entries));
 		}
 
 		/**
 		 * Returns True if table does not contain any page mappings.
-		 *
-		 * \return		false if an entry is present, True otherwise
 		 */
 		bool empty()
 		{
@@ -258,11 +251,8 @@ class Genode::Level_4_translation_table
 		 * \param flags  mapping flags
 		 * \param slab   second level page slab allocator
 		 */
-		void insert_translation(addr_t vo,
-		                        addr_t pa,
-		                        size_t size,
-		                        Page_flags const & flags,
-		                        Page_slab * slab)
+		void insert_translation(addr_t vo, addr_t pa, size_t size,
+		                        Page_flags const & flags, Page_slab * slab)
 		{
 			this->_range_op(vo, pa, size, Insert_func(flags, slab));
 		}
@@ -359,15 +349,11 @@ class Genode::Page_directory
 			                                      addr_t const pa)
 			{
 				/* XXX: Set memory type depending on active PAT */
-				return Base::create(flags)
-					| Pa::masked(pa);
+				return Base::create(flags) | Pa::masked(pa);
 			}
 		};
 
 		typename Base_descriptor::access_t _entries[MAX_ENTRIES];
-
-		inline bool _aligned(addr_t const a, size_t const alignm_log2) {
-			return a == ((a >> alignm_log2) << alignm_log2); }
 
 		struct Insert_func
 		{
@@ -377,20 +363,22 @@ class Genode::Page_directory
 			Insert_func(Page_flags const & flags,
 			            Page_slab * slab) : flags(flags), slab(slab) { }
 
-			void operator () (addr_t const vo,
-			                  addr_t const pa,
+			void operator () (addr_t const vo, addr_t const pa,
 			                  size_t const size,
 			                  typename Base_descriptor::access_t &desc)
 			{
 				/* can we insert a large page mapping? */
 				if (!((vo & ~PAGE_MASK) || (pa & ~PAGE_MASK) ||
-				      size < PAGE_SIZE)) {
+				      size < PAGE_SIZE))
+				{
 					typename Base_descriptor::access_t table_entry =
 						Page_descriptor::create(flags, pa);
 
 					if (Base_descriptor::present(desc) &&
-							Base_descriptor::clear_mmu_flags(desc) != table_entry)
+					    Base_descriptor::clear_mmu_flags(desc) != table_entry)
+					{
 						throw Double_insertion();
+					}
 
 					desc = table_entry;
 					return;
@@ -405,10 +393,10 @@ class Genode::Page_directory
 					/* create and link next level table */
 					table = new (slab) ENTRY();
 					ENTRY * phys_addr = (ENTRY*) slab->phys_addr(table);
+					addr_t const pa = (addr_t)(phys_addr ? phys_addr : table);
 					desc = (typename Base_descriptor::access_t)
-						Table_descriptor::create(flags,
-						                         (addr_t)(phys_addr ? phys_addr
-						                                            : table));
+						Table_descriptor::create(flags, pa);
+
 				} else if (Base_descriptor::maps_page(desc)) {
 					throw Double_insertion();
 				} else {
@@ -431,8 +419,7 @@ class Genode::Page_directory
 
 				Remove_func(Page_slab * slab) : slab(slab) { }
 
-				void operator () (addr_t const vo,
-				                  addr_t const pa,
+				void operator () (addr_t const vo, addr_t const pa,
 				                  size_t const size,
 				                  typename Base_descriptor::access_t &desc)
 				{
@@ -445,8 +432,8 @@ class Genode::Page_directory
 								Table_descriptor::Pa::masked(desc);
 							ENTRY* table = (ENTRY*) slab->virt_addr(phys_addr);
 							table = table ? table : (ENTRY*)phys_addr;
-							table->remove_translation(vo - (vo & PAGE_MASK),
-							                          size, slab);
+							addr_t const table_vo = vo - (vo & PAGE_MASK);
+							table->remove_translation(table_vo, size, slab);
 							if (table->empty()) {
 								destroy(slab, table);
 								desc = 0;
@@ -460,7 +447,8 @@ class Genode::Page_directory
 		void _range_op(addr_t vo, addr_t pa, size_t size, FUNC &&func)
 		{
 			for (size_t i = vo >> PAGE_SIZE_LOG2; size > 0;
-			     i = vo >> PAGE_SIZE_LOG2) {
+			     i = vo >> PAGE_SIZE_LOG2)
+			{
 				addr_t end = (vo + PAGE_SIZE) & PAGE_MASK;
 				size_t sz  = min(size, end-vo);
 
@@ -482,9 +470,7 @@ class Genode::Page_directory
 
 		Page_directory()
 		{
-			if (!_aligned((addr_t)this, ALIGNM_LOG2))
-				throw Misaligned();
-
+			if (!aligned(this, ALIGNM_LOG2)) throw Misaligned();
 			memset(&_entries, 0, sizeof(_entries));
 		}
 
@@ -512,11 +498,8 @@ class Genode::Page_directory
 		 * \param flags  mapping flags
 		 * \param slab   second level page slab allocator
 		 */
-		void insert_translation(addr_t vo,
-		                        addr_t pa,
-		                        size_t size,
-		                        Page_flags const & flags,
-		                        Page_slab * slab)
+		void insert_translation(addr_t vo, addr_t pa, size_t size,
+		                        Page_flags const & flags, Page_slab * slab)
 		{
 			_range_op(vo, pa, size, Insert_func(flags, slab));
 		}
@@ -535,7 +518,7 @@ class Genode::Page_directory
 } __attribute__((aligned(1 << ALIGNM_LOG2)));
 
 
-class Genode::PML4_table
+class Genode::Pml4_table
 {
 	private:
 
@@ -556,15 +539,11 @@ class Genode::PML4_table
 			static access_t create(Page_flags const &flags, addr_t const pa)
 			{
 				/* XXX: Set memory type depending on active PAT */
-				return Common_descriptor::create(flags)
-					| Pa::masked(pa);
+				return Common_descriptor::create(flags) | Pa::masked(pa);
 			}
 		};
 
 		typename Descriptor::access_t _entries[MAX_ENTRIES];
-
-		inline bool _aligned(addr_t const a, size_t const alignm_log2) {
-			return a == ((a >> alignm_log2) << alignm_log2); }
 
 		using ENTRY = Level_2_translation_table;
 
@@ -576,8 +555,7 @@ class Genode::PML4_table
 				Insert_func(Page_flags const & flags,
 				            Page_slab * slab) : flags(flags), slab(slab) { }
 
-				void operator () (addr_t const vo,
-				                  addr_t const pa,
+				void operator () (addr_t const vo, addr_t const pa,
 				                  size_t const size,
 				                  Descriptor::access_t &desc)
 				{
@@ -590,9 +568,8 @@ class Genode::PML4_table
 						/* create and link next level table */
 						table = new (slab) ENTRY();
 						ENTRY * phys_addr = (ENTRY*) slab->phys_addr(table);
-						desc = Descriptor::create(flags,
-						                          (addr_t)(phys_addr ? phys_addr
-						                                             : table));
+						addr_t const pa = (addr_t)(phys_addr ? phys_addr : table);
+						desc = Descriptor::create(flags, pa);
 					} else {
 						Descriptor::merge_access_rights(desc, flags);
 						ENTRY * phys_addr = (ENTRY*)
@@ -602,8 +579,8 @@ class Genode::PML4_table
 					}
 
 					/* insert translation */
-					table->insert_translation(vo - (vo & PAGE_MASK),
-				                          pa, size, flags, slab);
+					addr_t const table_vo = vo - (vo & PAGE_MASK);
+					table->insert_translation(table_vo, pa, size, flags, slab);
 				}
 		};
 
@@ -613,8 +590,7 @@ class Genode::PML4_table
 
 				Remove_func(Page_slab * slab) : slab(slab) { }
 
-				void operator () (addr_t const vo,
-				                  addr_t const pa,
+				void operator () (addr_t const vo, addr_t const pa,
 				                  size_t const size,
 				                  Descriptor::access_t &desc)
 				{
@@ -624,8 +600,8 @@ class Genode::PML4_table
 							Descriptor::Pa::masked(desc);
 						ENTRY* table = (ENTRY*) slab->virt_addr(phys_addr);
 						table = table ? table : (ENTRY*)phys_addr;
-						table->remove_translation(vo - (vo & PAGE_MASK), size,
-						                          slab);
+						addr_t const table_vo = vo - (vo & PAGE_MASK);
+						table->remove_translation(table_vo, size, slab);
 						if (table->empty()) {
 							destroy(slab, table);
 							desc = 0;
@@ -658,11 +634,9 @@ class Genode::PML4_table
 		static constexpr size_t MIN_PAGE_SIZE_LOG2 = SIZE_LOG2_4KB;
 		static constexpr size_t ALIGNM_LOG2        = SIZE_LOG2_4KB;
 
-		PML4_table()
+		Pml4_table()
 		{
-			if (!_aligned((addr_t)this, ALIGNM_LOG2))
-				throw Misaligned();
-
+			if (!aligned(this, ALIGNM_LOG2)) throw Misaligned();
 			memset(&_entries, 0, sizeof(_entries));
 		}
 
@@ -690,11 +664,8 @@ class Genode::PML4_table
 		 * \param flags  mapping flags
 		 * \param slab   second level page slab allocator
 		 */
-		void insert_translation(addr_t vo,
-		                        addr_t pa,
-		                        size_t size,
-		                        Page_flags const & flags,
-		                        Page_slab * slab)
+		void insert_translation(addr_t vo, addr_t pa, size_t size,
+		                        Page_flags const & flags,  Page_slab * slab)
 		{
 			_range_op(vo, pa, size, Insert_func(flags, slab));
 		}

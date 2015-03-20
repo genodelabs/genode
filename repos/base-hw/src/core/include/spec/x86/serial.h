@@ -60,31 +60,29 @@ static void init_comport(Genode::uint16_t port, unsigned baud)
 	if (!port)
 		return;
 
-	const unsigned
-		IER  = port + 1,
-		EIR  = port + 2,
-		LCR  = port + 3,
-		MCR  = port + 4,
-		LSR  = port + 5,
-		MSR  = port + 6,
-		DLLO = port + 0,
-		DLHI = port + 1;
+	unsigned const ier  = port + 1;
+	unsigned const eir  = port + 2;
+	unsigned const lcr  = port + 3;
+	unsigned const mcr  = port + 4;
+	unsigned const lsr  = port + 5;
+	unsigned const msr  = port + 6;
+	unsigned const dllo = port + 0;
+	unsigned const dlhi = port + 1;
 
-	outb(LCR, 0x80);  /* select bank 1 */
-//	for (volatile int i = 10000000; i--; );
-	outb(DLLO, (115200/baud) >> 0);
-	outb(DLHI, (115200/baud) >> 8);
-	outb(LCR, 0x03);  /* set 8,N,1 */
-	outb(IER, 0x00);  /* disable interrupts */
-	outb(EIR, 0x07);  /* enable FIFOs */
-	outb(MCR, 0x0b);  /* force data terminal ready */
-	outb(IER, 0x01);  /* enable RX interrupts */
-	inb(IER);
-	inb(EIR);
-	inb(LCR);
-	inb(MCR);
-	inb(LSR);
-	inb(MSR);
+	outb(lcr, 0x80);  /* select bank 1 */
+	outb(dllo, (115200/baud) >> 0);
+	outb(dlhi, (115200/baud) >> 8);
+	outb(lcr, 0x03);  /* set 8,n,1 */
+	outb(ier, 0x00);  /* disable interrupts */
+	outb(eir, 0x07);  /* enable FIFOs */
+	outb(mcr, 0x0b);  /* force data terminal ready */
+	outb(ier, 0x01);  /* enable rx interrupts */
+	inb(ier);
+	inb(eir);
+	inb(lcr);
+	inb(mcr);
+	inb(lsr);
+	inb(msr);
 }
 
 

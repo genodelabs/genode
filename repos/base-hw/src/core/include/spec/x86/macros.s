@@ -11,6 +11,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* core includes */
-.include "spec/x86/macros_support.s"
 
+/***************************************************
+ ** Constant values that are pretty commonly used **
+ ***************************************************/
+
+/* alignment constraints */
+.set MIN_PAGE_SIZE_LOG2, 12
+.set DATA_ACCESS_ALIGNM_LOG2, 2

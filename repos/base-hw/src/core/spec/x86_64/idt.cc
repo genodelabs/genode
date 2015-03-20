@@ -12,10 +12,10 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* core includes */
 #include <pseudo_descriptor.h>
 #include <mtc_util.h>
-
-#include "idt.h"
+#include <idt.h>
 
 extern int _mt_idt;
 extern int _mt_isrs;
@@ -46,6 +46,7 @@ void Idt::setup(addr_t const virt_base)
 
 void Idt::load(addr_t const virt_base)
 {
-	asm volatile ("lidt %0" : : "m" (Pseudo_descriptor (sizeof(_table) - 1,
-				  _virt_mtc_addr(virt_base, (addr_t)&_mt_idt))));
+	uint16_t const limit = sizeof(_table) - 1;
+	uint64_t const base  = _virt_mtc_addr(virt_base, (addr_t)&_mt_idt);
+	asm volatile ("lidt %0" : : "m" (Pseudo_descriptor(limit, base)));
 }

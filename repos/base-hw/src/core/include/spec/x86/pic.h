@@ -14,8 +14,11 @@
 #ifndef _PIC_H_
 #define _PIC_H_
 
-#include <board.h>
+/* Genode includes */
 #include <util/mmio.h>
+
+/* core includes */
+#include <board.h>
 
 namespace Genode
 {
@@ -153,8 +156,6 @@ class Genode::Pic : public Mmio
 
 		void finish_request();
 
-		void mask() { }
-
 		void unmask(unsigned const i, unsigned);
 
 		void mask(unsigned const i);
@@ -163,6 +164,7 @@ class Genode::Pic : public Mmio
 		 * Dummies
 		 */
 
+		void mask() { }
 		void init_cpu_local() { }
 		bool is_ip_interrupt(unsigned, unsigned) { return false; }
 		void trigger_ip_interrupt(unsigned) { }
