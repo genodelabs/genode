@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2015 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
@@ -42,243 +42,338 @@
 /*******************************************************************************
 *   Structures and Typedefs                                                    *
 *******************************************************************************/
+
+struct Nic_client;
+
 /**
- * TAP driver instance data.
+ * Nic driver instance data.
  *
  * @implements PDMINETWORKUP
  */
-typedef struct DRVTAP
+typedef struct DRVNIC
 {
-    /** The network interface. */
-    PDMINETWORKUP           INetworkUp;
-    /** The network interface. */
-    PPDMINETWORKDOWN        pIAboveNet;
-    /** Pointer to the driver instance. */
-    PPDMDRVINS              pDrvIns;
-    /** Reader thread. */
-    PPDMTHREAD              pThread;
-
-    /** @todo The transmit thread. */
-    /** Transmit lock used by drvTAPNetworkUp_BeginXmit. */
-    RTCRITSECT              XmitLock;
-
-	Nic::Session           *nic_session;
-
-	PDMINETWORKCONFIG      INetworkConfig;
-
-} DRVTAP, *PDRVTAP;
+	/** The network interface to Nic session. */
+	PDMINETWORKUP           INetworkUp;
+	/** The config port interface we're representing. */
+	PDMINETWORKCONFIG       INetworkConfig;
+	/** The network interface to VBox driver. */
+	PPDMINETWORKDOWN        pIAboveNet;
+	/** The config port interface we're attached to. */
+	PPDMINETWORKCONFIG      pIAboveConfig;
+	/** Pointer to the driver instance. */
+	PPDMDRVINS              pDrvIns;
+	/** Receiver thread that handles all signals. */
+	PPDMTHREAD              pThread;
+	/** Nic::Session client wrapper. */
+	Nic_client             *nic_client;
+} DRVNIC, *PDRVNIC;
 
 
-/** Converts a pointer to TAP::INetworkUp to a PRDVTAP. */
-#define PDMINETWORKUP_2_DRVTAP(pInterface) ( (PDRVTAP)((uintptr_t)pInterface - RT_OFFSETOF(DRVTAP, INetworkUp)) )
-#define PDMINETWORKCONFIG_2_DRVTAP(pInterface) ( (PDRVTAP)((uintptr_t)pInterface - RT_OFFSETOF(DRVTAP, INetworkConfig)) )
+class Nic_client
+{
+	private:
+
+		enum {
+			PACKET_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE,
+			BUF_SIZE    = Nic::Session::QUEUE_SIZE * PACKET_SIZE,
+		};
+
+		Nic::Packet_allocator  *_tx_block_alloc;
+		Nic::Connection         _nic;
+		Genode::Signal_receiver _sig_rec;
+
+		Genode::Signal_dispatcher<Nic_client> _link_state_dispatcher;
+		Genode::Signal_dispatcher<Nic_client> _rx_packet_avail_dispatcher;
+		Genode::Signal_dispatcher<Nic_client> _rx_ready_to_ack_dispatcher;
+		Genode::Signal_dispatcher<Nic_client> _destruct_dispatcher;
+
+		/* VM <-> device driver (down) <-> nic_client (up) <-> nic session */
+		PPDMINETWORKDOWN   _down_rx;
+		PPDMINETWORKCONFIG _down_rx_config;
+
+		void _handle_rx_packet_avail(unsigned)
+		{
+			while (_nic.rx()->packet_avail() && _nic.rx()->ready_to_ack()) {
+				Nic::Packet_descriptor rx_packet = _nic.rx()->get_packet();
+
+				char *rx_content = _nic.rx()->packet_content(rx_packet);
+
+				int rc = _down_rx->pfnWaitReceiveAvail(_down_rx, RT_INDEFINITE_WAIT);
+				if (RT_FAILURE(rc))
+					continue;
+
+				rc = _down_rx->pfnReceive(_down_rx, rx_content, rx_packet.size());
+				AssertRC(rc);
+
+				_nic.rx()->acknowledge_packet(rx_packet);
+			}
+		}
+
+		void _handle_rx_ready_to_ack(unsigned) { _handle_rx_packet_avail(0); }
+
+		void _handle_link_state(unsigned)
+		{
+			_down_rx_config->pfnSetLinkState(_down_rx_config,
+			                                 _nic.link_state() ? PDMNETWORKLINKSTATE_UP
+			                                                   : PDMNETWORKLINKSTATE_DOWN);
+		}
+
+		/**
+		 * By handling this signal the I/O thread gets unblocked
+		 * and will leave its loop when the DRVNIC instance is
+		 * being destructed.
+		 */
+		void _handle_destruct(unsigned) { }
+
+		void _tx_ack(bool block = false)
+		{
+			/* check for acknowledgements */
+			while (_nic.tx()->ack_avail() || block) {
+				Nic::Packet_descriptor acked_packet = _nic.tx()->get_acked_packet();
+				_nic.tx()->release_packet(acked_packet);
+				block = false;
+			}
+		}
+
+		Nic::Packet_descriptor _alloc_tx_packet(Genode::size_t len)
+		{
+			while (true) {
+				try {
+					Nic::Packet_descriptor packet = _nic.tx()->alloc_packet(len);
+					return packet;
+				} catch (Nic::Session::Tx::Source::Packet_alloc_failed) {
+					_tx_ack(true);
+				}
+			}
+		}
+
+		static Nic::Packet_allocator* _packet_allocator()
+		{
+			using namespace Genode;
+			return new (env()->heap())Nic::Packet_allocator(env()->heap());
+		}
+
+	public:
+
+		Nic_client(PDRVNIC drvtap)
+		:
+			_tx_block_alloc(_packet_allocator()),
+			_nic(_tx_block_alloc, BUF_SIZE, BUF_SIZE),
+			_link_state_dispatcher(_sig_rec, *this, &Nic_client::_handle_link_state),
+			_rx_packet_avail_dispatcher(_sig_rec, *this, &Nic_client::_handle_rx_packet_avail),
+			_rx_ready_to_ack_dispatcher(_sig_rec, *this, &Nic_client::_handle_rx_ready_to_ack),
+			_destruct_dispatcher(_sig_rec, *this, &Nic_client::_handle_destruct),
+			_down_rx(drvtap->pIAboveNet),
+			_down_rx_config(drvtap->pIAboveConfig)
+		{
+			_nic.link_state_sigh(_link_state_dispatcher);
+			_nic.rx_channel()->sigh_packet_avail(_rx_packet_avail_dispatcher);
+			_nic.rx_channel()->sigh_ready_to_ack(_rx_ready_to_ack_dispatcher);
+		}
+
+		~Nic_client()
+		{
+			using namespace Genode;
+			destroy(env()->heap(), _tx_block_alloc);
+		}
+
+		Genode::Signal_context_capability &dispatcher()  { return _destruct_dispatcher; }
+		Genode::Signal_receiver           &sig_rec()     { return _sig_rec; }
+		Nic::Mac_address                   mac_address() { return _nic.mac_address(); }
+
+		int send_packet(void *packet, uint32_t packet_len)
+		{
+			Nic::Packet_descriptor tx_packet = _alloc_tx_packet(packet_len);
+
+			char *tx_content = _nic.tx()->packet_content(tx_packet);
+			Genode::memcpy(tx_content, packet, packet_len);
+
+			_nic.tx()->submit_packet(tx_packet);
+			_tx_ack();
+
+			return VINF_SUCCESS;
+		}
+};
+
+
+/**
+ * Return lock to synchronize the destruction of the
+ * PDRVNIC, i.e., the Nic_client.
+ */
+static Genode::Lock *destruct_lock()
+{
+	static Genode::Lock lock(Genode::Lock::LOCKED);
+	return &lock;
+}
+
+
+/** Converts a pointer to Nic::INetworkUp to a PRDVNic. */
+#define PDMINETWORKUP_2_DRVNIC(pInterface) ( (PDRVNIC)((uintptr_t)pInterface - RT_OFFSETOF(DRVNIC, INetworkUp)) )
+#define PDMINETWORKCONFIG_2_DRVNIC(pInterface) ( (PDRVNIC)((uintptr_t)pInterface - RT_OFFSETOF(DRVNIC, INetworkConfig)) )
 
 
 /*******************************************************************************
 *   Internal Functions                                                         *
 *******************************************************************************/
 
-static int net_send_packet(void * packet, uint32_t packet_len, Nic::Session * nic) {
-
-	/* allocate transmit packet */
-	Nic::Packet_descriptor tx_packet;
-	try {
-		tx_packet = nic->tx()->alloc_packet(packet_len);
-	} catch (Nic::Session::Tx::Source::Packet_alloc_failed) {
-		PERR("tx packet alloc failed");
-        return VERR_NO_MEMORY;
-	}
-
-	/* fill packet with content */
-	char * stream_buffer = nic->tx()->packet_content(tx_packet);
-	memcpy(stream_buffer, packet, packet_len);
-
-	nic->tx()->submit_packet(tx_packet);
-
-	/* wait for acknowledgement */
-	Nic::Packet_descriptor ack_tx_packet = nic->tx()->get_acked_packet();
-
-	if (ack_tx_packet.size()   != tx_packet.size() ||
-	    ack_tx_packet.offset() != tx_packet.offset())
-		PERR("unexpected acked packet");
-
-	nic->tx()->release_packet(tx_packet);
-
-	return VINF_SUCCESS;
-}
-
 /**
  * @interface_method_impl{PDMINETWORKUP,pfnBeginXmit}
  */
-static DECLCALLBACK(int) drvTAPNetworkUp_BeginXmit(PPDMINETWORKUP pInterface, bool fOnWorkerThread)
+static DECLCALLBACK(int) drvNicNetworkUp_BeginXmit(PPDMINETWORKUP pInterface, bool fOnWorkerThread)
 {
-    PDRVTAP pThis = PDMINETWORKUP_2_DRVTAP(pInterface);
-    int rc = RTCritSectTryEnter(&pThis->XmitLock);
-    if (RT_FAILURE(rc))
-    {
-        /** @todo XMIT thread */
-        rc = VERR_TRY_AGAIN;
-    }
-    return rc;
+	return VINF_SUCCESS;
 }
 
 
 /**
  * @interface_method_impl{PDMINETWORKUP,pfnAllocBuf}
  */
-static DECLCALLBACK(int) drvTAPNetworkUp_AllocBuf(PPDMINETWORKUP pInterface, size_t cbMin,
+static DECLCALLBACK(int) drvNicNetworkUp_AllocBuf(PPDMINETWORKUP pInterface, size_t cbMin,
                                                   PCPDMNETWORKGSO pGso, PPPDMSCATTERGATHER ppSgBuf)
 {
-    PDRVTAP pThis = PDMINETWORKUP_2_DRVTAP(pInterface);
-    Assert(RTCritSectIsOwner(&pThis->XmitLock));
+	PDRVNIC pThis = PDMINETWORKUP_2_DRVNIC(pInterface);
 
-    /*
-     * Allocate a scatter / gather buffer descriptor that is immediately
-     * followed by the buffer space of its single segment.  The GSO context
-     * comes after that again.
-     */
-    PPDMSCATTERGATHER pSgBuf = (PPDMSCATTERGATHER)RTMemAlloc(  RT_ALIGN_Z(sizeof(*pSgBuf), 16)
-                                                             + RT_ALIGN_Z(cbMin, 16)
-                                                             + (pGso ? RT_ALIGN_Z(sizeof(*pGso), 16) : 0));
-    if (!pSgBuf)
-        return VERR_NO_MEMORY;
+	/*
+	 * Allocate a scatter / gather buffer descriptor that is immediately
+	 * followed by the buffer space of its single segment.  The GSO context
+	 * comes after that again.
+	 */
+	PPDMSCATTERGATHER pSgBuf = (PPDMSCATTERGATHER)RTMemAlloc(RT_ALIGN_Z(sizeof(*pSgBuf), 16)
+	                                                         + RT_ALIGN_Z(cbMin, 16)
+	                                                         + (pGso ? RT_ALIGN_Z(sizeof(*pGso), 16) : 0));
+	if (!pSgBuf)
+		return VERR_NO_MEMORY;
 
-    /*
-     * Initialize the S/G buffer and return.
-     */
-    pSgBuf->fFlags         = PDMSCATTERGATHER_FLAGS_MAGIC | PDMSCATTERGATHER_FLAGS_OWNER_1;
-    pSgBuf->cbUsed         = 0;
-    pSgBuf->cbAvailable    = RT_ALIGN_Z(cbMin, 16);
-    pSgBuf->pvAllocator    = NULL;
-    if (!pGso)
-        pSgBuf->pvUser     = NULL;
-    else
-    {
-        pSgBuf->pvUser     = (uint8_t *)(pSgBuf + 1) + pSgBuf->cbAvailable;
-        *(PPDMNETWORKGSO)pSgBuf->pvUser = *pGso;
-    }
-    pSgBuf->cSegs          = 1;
-    pSgBuf->aSegs[0].cbSeg = pSgBuf->cbAvailable;
-    pSgBuf->aSegs[0].pvSeg = pSgBuf + 1;
+	/*
+	 * Initialize the S/G buffer and return.
+	 */
+	pSgBuf->fFlags         = PDMSCATTERGATHER_FLAGS_MAGIC | PDMSCATTERGATHER_FLAGS_OWNER_1;
+	pSgBuf->cbUsed         = 0;
+	pSgBuf->cbAvailable    = RT_ALIGN_Z(cbMin, 16);
+	pSgBuf->pvAllocator    = NULL;
+	if (!pGso)
+		pSgBuf->pvUser     = NULL;
+	else
+	{
+		pSgBuf->pvUser     = (uint8_t *)(pSgBuf + 1) + pSgBuf->cbAvailable;
+		*(PPDMNETWORKGSO)pSgBuf->pvUser = *pGso;
+	}
+	pSgBuf->cSegs          = 1;
+	pSgBuf->aSegs[0].cbSeg = pSgBuf->cbAvailable;
+	pSgBuf->aSegs[0].pvSeg = pSgBuf + 1;
 
-#if 0 /* poison */
-    memset(pSgBuf->aSegs[0].pvSeg, 'F', pSgBuf->aSegs[0].cbSeg);
-#endif
-    *ppSgBuf = pSgBuf;
-    return VINF_SUCCESS;
+	*ppSgBuf = pSgBuf;
+	return VINF_SUCCESS;
 }
 
 
 /**
  * @interface_method_impl{PDMINETWORKUP,pfnFreeBuf}
  */
-static DECLCALLBACK(int) drvTAPNetworkUp_FreeBuf(PPDMINETWORKUP pInterface, PPDMSCATTERGATHER pSgBuf)
+static DECLCALLBACK(int) drvNicNetworkUp_FreeBuf(PPDMINETWORKUP pInterface, PPDMSCATTERGATHER pSgBuf)
 {
-    PDRVTAP pThis = PDMINETWORKUP_2_DRVTAP(pInterface);
-    Assert(RTCritSectIsOwner(&pThis->XmitLock));
-    if (pSgBuf)
-    {
-        Assert((pSgBuf->fFlags & PDMSCATTERGATHER_FLAGS_MAGIC_MASK) == PDMSCATTERGATHER_FLAGS_MAGIC);
-        pSgBuf->fFlags = 0;
-        RTMemFree(pSgBuf);
-    }
-    return VINF_SUCCESS;
+	PDRVNIC pThis = PDMINETWORKUP_2_DRVNIC(pInterface);
+	if (pSgBuf)
+	{
+		Assert((pSgBuf->fFlags & PDMSCATTERGATHER_FLAGS_MAGIC_MASK) == PDMSCATTERGATHER_FLAGS_MAGIC);
+		pSgBuf->fFlags = 0;
+		RTMemFree(pSgBuf);
+	}
+	return VINF_SUCCESS;
 }
 
 
 /**
  * @interface_method_impl{PDMINETWORKUP,pfnSendBuf}
  */
-static DECLCALLBACK(int) drvTAPNetworkUp_SendBuf(PPDMINETWORKUP pInterface, PPDMSCATTERGATHER pSgBuf, bool fOnWorkerThread)
+static DECLCALLBACK(int) drvNicNetworkUp_SendBuf(PPDMINETWORKUP pInterface, PPDMSCATTERGATHER pSgBuf, bool fOnWorkerThread)
 {
-    PDRVTAP pThis = PDMINETWORKUP_2_DRVTAP(pInterface);
+	PDRVNIC pThis = PDMINETWORKUP_2_DRVNIC(pInterface);
+	Nic_client *nic_client = pThis->nic_client;
 
-    AssertPtr(pSgBuf);
-    Assert((pSgBuf->fFlags & PDMSCATTERGATHER_FLAGS_MAGIC_MASK) == PDMSCATTERGATHER_FLAGS_MAGIC);
-    Assert(RTCritSectIsOwner(&pThis->XmitLock));
+	AssertPtr(pSgBuf);
+	Assert((pSgBuf->fFlags & PDMSCATTERGATHER_FLAGS_MAGIC_MASK) == PDMSCATTERGATHER_FLAGS_MAGIC);
 
-    /* Set an FTM checkpoint as this operation changes the state permanently. */
-    PDMDrvHlpFTSetCheckpoint(pThis->pDrvIns, FTMCHECKPOINTTYPE_NETWORK);
+	/* Set an FTM checkpoint as this operation changes the state permanently. */
+	PDMDrvHlpFTSetCheckpoint(pThis->pDrvIns, FTMCHECKPOINTTYPE_NETWORK);
 
-    int rc;
-    if (!pSgBuf->pvUser)
-    {
-        Log2(("drvTAPSend: pSgBuf->aSegs[0].pvSeg=%p pSgBuf->cbUsed=%#x\n"
-              "%.*Rhxd\n",
-              pSgBuf->aSegs[0].pvSeg, pSgBuf->cbUsed, pSgBuf->cbUsed, pSgBuf->aSegs[0].pvSeg));
+	int rc;
+	if (!pSgBuf->pvUser)
+	{
+		Log2(("drvNicSend: pSgBuf->aSegs[0].pvSeg=%p pSgBuf->cbUsed=%#x\n"
+		      "%.*Rhxd\n", pSgBuf->aSegs[0].pvSeg, pSgBuf->cbUsed, pSgBuf->cbUsed,
+		      pSgBuf->aSegs[0].pvSeg));
 
-		rc = net_send_packet(pSgBuf->aSegs[0].pvSeg, pSgBuf->cbUsed, pThis->nic_session);
-    }
-    else
-    {
-        uint8_t         abHdrScratch[256];
-        uint8_t const  *pbFrame = (uint8_t const *)pSgBuf->aSegs[0].pvSeg;
-        PCPDMNETWORKGSO pGso    = (PCPDMNETWORKGSO)pSgBuf->pvUser;
-        uint32_t const  cSegs   = PDMNetGsoCalcSegmentCount(pGso, pSgBuf->cbUsed);  Assert(cSegs > 1);
-        rc = VINF_SUCCESS;
-        for (size_t iSeg = 0; iSeg < cSegs; iSeg++)
-        {
-            uint32_t cbSegFrame;
-            void *pvSegFrame = PDMNetGsoCarveSegmentQD(pGso, (uint8_t *)pbFrame, pSgBuf->cbUsed, abHdrScratch,
-                                                       iSeg, cSegs, &cbSegFrame);
-			rc = net_send_packet(pvSegFrame, cbSegFrame, pThis->nic_session);
-            if (RT_FAILURE(rc))
-                break;
-        }
-    }
+		rc = nic_client->send_packet(pSgBuf->aSegs[0].pvSeg, pSgBuf->cbUsed);
+	}
+	else
+	{
+		uint8_t         abHdrScratch[256];
+		uint8_t const  *pbFrame = (uint8_t const *)pSgBuf->aSegs[0].pvSeg;
+		PCPDMNETWORKGSO pGso    = (PCPDMNETWORKGSO)pSgBuf->pvUser;
+		uint32_t const  cSegs   = PDMNetGsoCalcSegmentCount(pGso, pSgBuf->cbUsed);
+		Assert(cSegs > 1);
+		rc = VINF_SUCCESS;
+		for (size_t iSeg = 0; iSeg < cSegs; iSeg++)
+		{
+			uint32_t cbSegFrame;
+			void *pvSegFrame = PDMNetGsoCarveSegmentQD(pGso, (uint8_t *)pbFrame, pSgBuf->cbUsed,
+			                                           abHdrScratch, iSeg, cSegs, &cbSegFrame);
+			rc = nic_client->send_packet(pvSegFrame, cbSegFrame);
+			if (RT_FAILURE(rc))
+				break;
+		}
+	}
 
-    pSgBuf->fFlags = 0;
-    RTMemFree(pSgBuf);
+	pSgBuf->fFlags = 0;
+	RTMemFree(pSgBuf);
 
-    AssertRC(rc);
-    if (RT_FAILURE(rc))
-        rc = rc == VERR_NO_MEMORY ? VERR_NET_NO_BUFFER_SPACE : VERR_NET_DOWN;
-    return rc;
+	AssertRC(rc);
+	if (RT_FAILURE(rc))
+		rc = rc == VERR_NO_MEMORY ? VERR_NET_NO_BUFFER_SPACE : VERR_NET_DOWN;
+	return rc;
 }
 
 
 /**
  * @interface_method_impl{PDMINETWORKUP,pfnEndXmit}
  */
-static DECLCALLBACK(void) drvTAPNetworkUp_EndXmit(PPDMINETWORKUP pInterface)
+static DECLCALLBACK(void) drvNicNetworkUp_EndXmit(PPDMINETWORKUP pInterface)
 {
-    PDRVTAP pThis = PDMINETWORKUP_2_DRVTAP(pInterface);
-    RTCritSectLeave(&pThis->XmitLock);
+	PDRVNIC pThis = PDMINETWORKUP_2_DRVNIC(pInterface);
 }
 
 
 /**
  * @interface_method_impl{PDMINETWORKUP,pfnSetPromiscuousMode}
  */
-static DECLCALLBACK(void) drvTAPNetworkUp_SetPromiscuousMode(PPDMINETWORKUP pInterface, bool fPromiscuous)
+static DECLCALLBACK(void) drvNicNetworkUp_SetPromiscuousMode(PPDMINETWORKUP pInterface, bool fPromiscuous)
 {
-    LogFlow(("drvTAPNetworkUp_SetPromiscuousMode: fPromiscuous=%d\n", fPromiscuous));
-    /* nothing to do */
+	LogFlow(("drvNicNetworkUp_SetPromiscuousMode: fPromiscuous=%d\n", fPromiscuous));
+	/* nothing to do */
 }
 
 
 /**
  * Notification on link status changes.
- *
- * @param   pInterface      Pointer to the interface structure containing the called function pointer.
- * @param   enmLinkState    The new link state.
- * @thread  EMT
  */
-static DECLCALLBACK(void) drvTAPNetworkUp_NotifyLinkChanged(PPDMINETWORKUP pInterface, PDMNETWORKLINKSTATE enmLinkState)
+static DECLCALLBACK(void) drvNicNetworkUp_NotifyLinkChanged(PPDMINETWORKUP pInterface, PDMNETWORKLINKSTATE enmLinkState)
 {
-    LogFlow(("drvTAPNetworkUp_NotifyLinkChanged: enmLinkState=%d\n", enmLinkState));
-    /** @todo take action on link down and up. Stop the polling and such like. */
+	LogFlow(("drvNicNetworkUp_NotifyLinkChanged: enmLinkState=%d\n", enmLinkState));
+	/*
+	 * At this point we could stop waiting for signals etc. but for now we just do nothing.
+	 */
 }
-
 
 
 static DECLCALLBACK(int) drvGetMac(PPDMINETWORKCONFIG pInterface, PRTMAC pMac)
 {
-	PDRVTAP pThis = PDMINETWORKCONFIG_2_DRVTAP(pInterface);
+	PDRVNIC pThis = PDMINETWORKCONFIG_2_DRVNIC(pInterface);
+	Nic_client *nic_client = pThis->nic_client;
 
-	static_assert (sizeof(*pMac) == sizeof(pThis->nic_session->mac_address()), 
+	static_assert (sizeof(*pMac) == sizeof(nic_client->mac_address()),
 	               "should be equal");
-	memcpy(pMac, pThis->nic_session->mac_address().addr, sizeof(*pMac));
+	memcpy(pMac, nic_client->mac_address().addr, sizeof(*pMac));
 	return VINF_SUCCESS;
 }
 
@@ -288,53 +383,47 @@ static DECLCALLBACK(int) drvGetMac(PPDMINETWORKCONFIG pInterface, PRTMAC pMac)
  *
  * @returns VINF_SUCCESS (ignored).
  * @param   Thread          Thread handle.
- * @param   pvUser          Pointer to a DRVTAP structure.
+ * @param   pvUser          Pointer to a DRVNIC structure.
  */
-static DECLCALLBACK(int) drvTAPAsyncIoThread(PPDMDRVINS pDrvIns, PPDMTHREAD pThread)
+static DECLCALLBACK(int) drvNicAsyncIoThread(PPDMDRVINS pDrvIns, PPDMTHREAD pThread)
 {
-	PDRVTAP pThis = PDMINS_2_DATA(pDrvIns, PDRVTAP);
-	LogFlow(("drvTAPAsyncIoThread: pThis=%p\n", pThis));
+	PDRVNIC pThis = PDMINS_2_DATA(pDrvIns, PDRVNIC);
+	LogFlow(("drvNicAsyncIoThread: pThis=%p\n", pThis));
 
 	if (pThread->enmState == PDMTHREADSTATE_INITIALIZING)
 		return VINF_SUCCESS;
 
-	Nic::Session * nic = pThis->nic_session;
+	Genode::Signal_receiver &sig_rec = pThis->nic_client->sig_rec();
 
 	while (pThread->enmState == PDMTHREADSTATE_RUNNING)
 	{
-		Nic::Packet_descriptor rx_packet = nic->rx()->get_packet();
+		Genode::Signal sig = sig_rec.wait_for_signal();
+		int num            = sig.num();
 
-		/* send it to the network bus */
-		char * rx_content = nic->rx()->packet_content(rx_packet);
-
-		int rc1 = pThis->pIAboveNet->pfnWaitReceiveAvail(pThis->pIAboveNet,
-		                                                 RT_INDEFINITE_WAIT);
-		if (RT_FAILURE(rc1))
-			continue;
-
-		rc1 = pThis->pIAboveNet->pfnReceive(pThis->pIAboveNet, rx_content,
-		                                    rx_packet.size());
-		AssertRC(rc1);
-
-		/* acknowledge received packet */
-		nic->rx()->acknowledge_packet(rx_packet);
+		Genode::Signal_dispatcher_base *dispatcher;
+		dispatcher = dynamic_cast<Genode::Signal_dispatcher_base *>(sig.context());
+		dispatcher->dispatch(num);
 	}
 
-    return VINF_SUCCESS;
+	destruct_lock()->unlock();
+
+	return VINF_SUCCESS;
 }
 
 
 /**
- * Unblock the send thread so it can respond to a state change.
+ * Unblock the asynchronous I/O thread.
  *
  * @returns VBox status code.
  * @param   pDevIns     The pcnet device instance.
- * @param   pThread     The send thread.
+ * @param   pThread     The asynchronous I/O thread.
  */
-static DECLCALLBACK(int) drvTapAsyncIoWakeup(PPDMDRVINS pDrvIns, PPDMTHREAD pThread)
+static DECLCALLBACK(int) drvNicAsyncIoWakeup(PPDMDRVINS pDrvIns, PPDMTHREAD pThread)
 {
-	PDRVTAP pThis = PDMINS_2_DATA(pDrvIns, PDRVTAP);
-	Assert(!"Not implemented");
+	/*
+	 * Since we already wake up on singals in the I/O thread function
+	 * we just return success at this point.
+	 */
 	return VINF_SUCCESS;
 }
 
@@ -344,149 +433,149 @@ static DECLCALLBACK(int) drvTapAsyncIoWakeup(PPDMDRVINS pDrvIns, PPDMTHREAD pThr
 /**
  * @interface_method_impl{PDMIBASE,pfnQueryInterface}
  */
-static DECLCALLBACK(void *) drvTAPQueryInterface(PPDMIBASE pInterface, const char *pszIID)
+static DECLCALLBACK(void *) drvNicQueryInterface(PPDMIBASE pInterface, const char *pszIID)
 {
-    PPDMDRVINS  pDrvIns = PDMIBASE_2_PDMDRV(pInterface);
-    PDRVTAP     pThis   = PDMINS_2_DATA(pDrvIns, PDRVTAP);
+	PPDMDRVINS  pDrvIns = PDMIBASE_2_PDMDRV(pInterface);
+	PDRVNIC     pThis   = PDMINS_2_DATA(pDrvIns, PDRVNIC);
 
-    PDMIBASE_RETURN_INTERFACE(pszIID, PDMIBASE, &pDrvIns->IBase);
-    PDMIBASE_RETURN_INTERFACE(pszIID, PDMINETWORKUP, &pThis->INetworkUp);
-    PDMIBASE_RETURN_INTERFACE(pszIID, PDMINETWORKCONFIG, &pThis->INetworkConfig);
-    return NULL;
+	PDMIBASE_RETURN_INTERFACE(pszIID, PDMIBASE, &pDrvIns->IBase);
+	PDMIBASE_RETURN_INTERFACE(pszIID, PDMINETWORKUP, &pThis->INetworkUp);
+	PDMIBASE_RETURN_INTERFACE(pszIID, PDMINETWORKCONFIG, &pThis->INetworkConfig);
+	return NULL;
 }
+
 
 /* -=-=-=-=- PDMDRVREG -=-=-=-=- */
 
-static DECLCALLBACK(void) drvTAPDestruct(PPDMDRVINS pDrvIns)
+static DECLCALLBACK(void) drvNicDestruct(PPDMDRVINS pDrvIns)
 {
-	Assert(!"Not implemented");
+	PDRVNIC pThis = PDMINS_2_DATA(pDrvIns, PDRVNIC);
+	Nic_client *nic_client = pThis->nic_client;
+
+	Genode::Signal_transmitter(nic_client->dispatcher()).submit();
+
+	/* wait until the recv thread exits */
+	destruct_lock()->lock();
+	destroy(Genode::env()->heap(), nic_client);
 }
 
+
 /**
- * Construct a TAP network transport driver instance.
+ * Construct a Nic network transport driver instance.
  *
  * @copydoc FNPDMDRVCONSTRUCT
  */
-static DECLCALLBACK(int) drvTAPConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uint32_t fFlags)
+static DECLCALLBACK(int) drvNicConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uint32_t fFlags)
 {
-    PDRVTAP pThis = PDMINS_2_DATA(pDrvIns, PDRVTAP);
-    PDMDRV_CHECK_VERSIONS_RETURN(pDrvIns);
+	PDRVNIC pThis = PDMINS_2_DATA(pDrvIns, PDRVNIC);
+	PDMDRV_CHECK_VERSIONS_RETURN(pDrvIns);
 
-    /*
-     * Init the static parts.
-     */
-    pThis->pDrvIns                      = pDrvIns;
-
-    /* IBase */
-    pDrvIns->IBase.pfnQueryInterface    = drvTAPQueryInterface;
-    /* INetwork */
-    pThis->INetworkUp.pfnBeginXmit              = drvTAPNetworkUp_BeginXmit;
-    pThis->INetworkUp.pfnAllocBuf               = drvTAPNetworkUp_AllocBuf;
-    pThis->INetworkUp.pfnFreeBuf                = drvTAPNetworkUp_FreeBuf;
-    pThis->INetworkUp.pfnSendBuf                = drvTAPNetworkUp_SendBuf;
-    pThis->INetworkUp.pfnEndXmit                = drvTAPNetworkUp_EndXmit;
-    pThis->INetworkUp.pfnSetPromiscuousMode     = drvTAPNetworkUp_SetPromiscuousMode;
-    pThis->INetworkUp.pfnNotifyLinkChanged      = drvTAPNetworkUp_NotifyLinkChanged;
-
+	/*
+	 * Init the static parts.
+	 */
+	pThis->pDrvIns                          = pDrvIns;
+	/* IBase */
+	pDrvIns->IBase.pfnQueryInterface        = drvNicQueryInterface;
+	/* INetwork */
+	pThis->INetworkUp.pfnBeginXmit          = drvNicNetworkUp_BeginXmit;
+	pThis->INetworkUp.pfnAllocBuf           = drvNicNetworkUp_AllocBuf;
+	pThis->INetworkUp.pfnFreeBuf            = drvNicNetworkUp_FreeBuf;
+	pThis->INetworkUp.pfnSendBuf            = drvNicNetworkUp_SendBuf;
+	pThis->INetworkUp.pfnEndXmit            = drvNicNetworkUp_EndXmit;
+	pThis->INetworkUp.pfnSetPromiscuousMode = drvNicNetworkUp_SetPromiscuousMode;
+	pThis->INetworkUp.pfnNotifyLinkChanged  = drvNicNetworkUp_NotifyLinkChanged;
 	/* INetworkConfig - used on Genode to request Mac address of nic_session */
-	pThis->INetworkConfig.pfnGetMac             = drvGetMac;
+	pThis->INetworkConfig.pfnGetMac         = drvGetMac;
+
+	/*
+	 * Check that no-one is attached to us.
+	 */
+	AssertMsgReturn(PDMDrvHlpNoAttach(pDrvIns) == VERR_PDM_NO_ATTACHED_DRIVER,
+	                ("Configuration error: Not possible to attach anything to"
+	                 " this driver!\n"), VERR_PDM_DRVINS_NO_ATTACH);
+
+	/*
+	 * Query the above network port interface.
+	 */
+	pThis->pIAboveNet = PDMIBASE_QUERY_INTERFACE(pDrvIns->pUpBase, PDMINETWORKDOWN);
+	if (!pThis->pIAboveNet)
+		return PDMDRV_SET_ERROR(pDrvIns, VERR_PDM_MISSING_INTERFACE_ABOVE,
+		                        N_("Configuration error: The above device/driver"
+		                           " didn't export the network port interface"));
+	pThis->pIAboveConfig = PDMIBASE_QUERY_INTERFACE(pDrvIns->pUpBase, PDMINETWORKCONFIG);
+	if (!pThis->pIAboveConfig)
+		return PDMDRV_SET_ERROR(pDrvIns, VERR_PDM_MISSING_INTERFACE_ABOVE,
+		                        N_("Configuration error: the above device/driver"
+		                            " didn't export the network config interface!\n"));
 
 	/*
 	 * Setup Genode nic_session connection
 	 */
-	Nic::Packet_allocator *tx_block_alloc =
-		new (Genode::env()->heap()) Nic::Packet_allocator(Genode::env()->heap());
-
-	enum {
-		PACKET_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE,
-		BUF_SIZE    = Nic::Session::QUEUE_SIZE * PACKET_SIZE,
-	};
-
 	try {
-		pThis->nic_session = new Nic::Connection(tx_block_alloc, BUF_SIZE,
-		                                         BUF_SIZE);
+		pThis->nic_client = new (Genode::env()->heap()) Nic_client(pThis);
 	} catch (...) {
 		return VERR_HOSTIF_INIT_FAILED;
 	}
 
-    /*
-     * Check that no-one is attached to us.
-     */
-    AssertMsgReturn(PDMDrvHlpNoAttach(pDrvIns) == VERR_PDM_NO_ATTACHED_DRIVER,
-                    ("Configuration error: Not possible to attach anything to this driver!\n"),
-                    VERR_PDM_DRVINS_NO_ATTACH);
-
-    /*
-     * Query the network port interface.
-     */
-    pThis->pIAboveNet = PDMIBASE_QUERY_INTERFACE(pDrvIns->pUpBase, PDMINETWORKDOWN);
-    if (!pThis->pIAboveNet)
-        return PDMDRV_SET_ERROR(pDrvIns, VERR_PDM_MISSING_INTERFACE_ABOVE,
-                                N_("Configuration error: The above device/driver didn't export the network port interface"));
-
-    /*
-     * Create the transmit lock.
-     */
-    int rc = RTCritSectInit(&pThis->XmitLock);
-    AssertRCReturn(rc, rc);
-
-    /*
-     * Create the async I/O thread.
-     */
-    rc = PDMDrvHlpThreadCreate(pDrvIns, &pThis->pThread, pThis, drvTAPAsyncIoThread, drvTapAsyncIoWakeup, 128 * _1K, RTTHREADTYPE_IO, "TAP");
-    AssertRCReturn(rc, rc);
+	/*
+	 * Create the asynchronous I/O thread.
+	 */
+	int rc = PDMDrvHlpThreadCreate(pDrvIns, &pThis->pThread, pThis,
+	                               drvNicAsyncIoThread, drvNicAsyncIoWakeup,
+	                               128 * _1K, RTTHREADTYPE_IO, "nic_thread");
+	AssertRCReturn(rc, rc);
 
 	return rc;
 }
 
 
 /**
- * TAP network transport driver registration record.
+ * Nic network transport driver registration record.
  */
 const PDMDRVREG g_DrvHostInterface =
 {
-    /* u32Version */
-    PDM_DRVREG_VERSION,
-    /* szName */
-    "HostInterface",
-    /* szRCMod */
-    "",
-    /* szR0Mod */
-    "",
-    /* pszDescription */
-    "Genode Network Session Driver",
-    /* fFlags */
-    PDM_DRVREG_FLAGS_HOST_BITS_DEFAULT,
-    /* fClass. */
-    PDM_DRVREG_CLASS_NETWORK,
-    /* cMaxInstances */
-    ~0U,
-    /* cbInstance */
-    sizeof(DRVTAP),
-    /* pfnConstruct */
-    drvTAPConstruct,
-    /* pfnDestruct */
-    drvTAPDestruct,
-    /* pfnRelocate */
-    NULL,
-    /* pfnIOCtl */
-    NULL,
-    /* pfnPowerOn */
-    NULL,
-    /* pfnReset */
-    NULL,
-    /* pfnSuspend */
-    NULL, /** @todo Do power on, suspend and resume handlers! */
-    /* pfnResume */
-    NULL,
-    /* pfnAttach */
-    NULL,
-    /* pfnDetach */
-    NULL,
-    /* pfnPowerOff */
-    NULL,
-    /* pfnSoftReset */
-    NULL,
-    /* u32EndVersion */
-    PDM_DRVREG_VERSION
+	/* u32Version */
+	PDM_DRVREG_VERSION,
+	/* szName */
+	"HostInterface",
+	/* szRCMod */
+	"",
+	/* szR0Mod */
+	"",
+	/* pszDescription */
+	"Genode Network Session Driver",
+	/* fFlags */
+	PDM_DRVREG_FLAGS_HOST_BITS_DEFAULT,
+	/* fClass. */
+	PDM_DRVREG_CLASS_NETWORK,
+	/* cMaxInstances */
+	~0U,
+	/* cbInstance */
+	sizeof(DRVNIC),
+	/* pfnConstruct */
+	drvNicConstruct,
+	/* pfnDestruct */
+	drvNicDestruct,
+	/* pfnRelocate */
+	NULL,
+	/* pfnIOCtl */
+	NULL,
+	/* pfnPowerOn */
+	NULL,
+	/* pfnReset */
+	NULL,
+	/* pfnSuspend */
+	NULL,
+	/* pfnResume */
+	NULL,
+	/* pfnAttach */
+	NULL,
+	/* pfnDetach */
+	NULL,
+	/* pfnPowerOff */
+	NULL,
+	/* pfnSoftReset */
+	NULL,
+	/* u32EndVersion */
+	PDM_DRVREG_VERSION
 };
