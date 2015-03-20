@@ -27,6 +27,7 @@ namespace Genode
 			VECTOR_REMAP_BASE   = 48,
 			TIMER_VECTOR_KERNEL = 32,
 			TIMER_VECTOR_USER   = 50,
+			ISA_IRQ_END         = 15,
 		};
 	};
 }

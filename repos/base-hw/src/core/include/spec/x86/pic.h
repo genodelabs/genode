@@ -33,6 +33,8 @@ class Genode::Pic : public Mmio
 {
 	private:
 
+		enum { REMAP_BASE = Board::VECTOR_REMAP_BASE };
+
 		/* Registers */
 		struct EOI : Register<0x0b0, 32, true> { };
 		struct Svr : Register<0x0f0, 32>
@@ -65,17 +67,28 @@ class Genode::Pic : public Mmio
 					IOREDTBL  = 0x10,
 				};
 
-				/* Create redirection table entry for given IRQ */
-				uint64_t create_irt_entry(unsigned irq)
+				/**
+				 * Create redirection table entry for given IRQ
+				 */
+				uint64_t _create_irt_entry(unsigned irq)
 				{
-					uint32_t entry = Board::VECTOR_REMAP_BASE + irq;
+					uint32_t entry = REMAP_BASE + irq;
 
-					if (irq > 15) {
+					if (irq > Board::ISA_IRQ_END) {
 						/* Use level-triggered, high-active mode for non-legacy
 						 * IRQs */
 						entry |= 1 << IRTE_BIT_POL | 1 << IRTE_BIT_TRG;
 					}
 					return entry;
+				}
+
+				/**
+				 * Return whether 'irq' is an edge-triggered interrupt
+				 */
+				bool _edge_triggered(unsigned const irq)
+				{
+					return irq <= REMAP_BASE + Board::ISA_IRQ_END ||
+					       irq >  REMAP_BASE + IRTE_COUNT;
 				}
 
 			public:
@@ -85,19 +98,24 @@ class Genode::Pic : public Mmio
 					/* Remap all supported IRQs */
 					for (unsigned i = 0; i <= IRTE_COUNT; i++) {
 						write<Ioregsel>(IOREDTBL + 2 * i);
-						write<Iowin>(create_irt_entry(i));
+						write<Iowin>(_create_irt_entry(i));
 					}
 				};
 
 				/* Set/unset mask bit of IRTE for given vector */
 				void toggle_mask(unsigned const vector, bool const set)
 				{
-					if (vector < Board::VECTOR_REMAP_BASE ||
-					    vector > Board::VECTOR_REMAP_BASE + IRTE_COUNT)
-						return;
+					/*
+					 * Only mask existing RTEs and do *not* mask edge-triggered
+					 * interrupts to avoid losing them while masked, see Intel
+					 * 82093AA I/O Advanced Programmable Interrupt Controller
+					 * (IOAPIC) specification, section 3.4.2, "Interrupt Mask"
+					 * flag and edge-triggered interrupts or:
+					 * http://yarchive.net/comp/linux/edge_triggered_interrupts.html
+					 */
+					if (_edge_triggered(vector)) { return; }
 
-					write<Ioregsel>(IOREDTBL + (2 * (vector -
-					                Board::VECTOR_REMAP_BASE)));
+					write<Ioregsel>(IOREDTBL + (2 * (vector - REMAP_BASE)));
 
 					uint32_t val = read<Iowin>();
 					if (set) {
