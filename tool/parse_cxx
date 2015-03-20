@@ -46,16 +46,6 @@ if {[catch {
 set stop 0
 
 #
-# Detect occurence of magic characters that we
-# use to mark substitutions in the syntax tree.
-#
-if {[regexp {[§³°]} $txt(0) magic_char]} {
-	puts stderr "Error: Source code contains reserved character '$magic_char'."
-	puts stderr "       The following characters are reserved: '§', '³', '°'"
-	exit -1;
-}
-
-#
 # Replace all '&' characters from the original input
 # because they cause trouble with the regexp command.
 #
@@ -336,7 +326,7 @@ foreach keyword {
 	using namespace class struct union enum template
 	const inline static virtual friend explicit
 	volatile case default operator new throw
-	try catch continue sizeof asm
+	try catch continue sizeof asm override typename constexpr
 	GENODE_RPC GENODE_RPC_THROW
 	GENODE_RPC_INTERFACE GENODE_RPC_INTERFACE_INHERIT
 	GENODE_TYPE_LIST
@@ -365,55 +355,55 @@ extract tplargs    {<[^<>{}]*>$} {content block parenblk}
 extract tplargs    {<[^<>{}]*>(?=[^>])} {content block parenblk}
 
 # extract special characters
-extract equal          {==}   {content block parenblk}
-extract assignopplus   {\+=}  {content block parenblk}
-extract assignopminus  {\-=}  {content block parenblk}
-extract assignopmult   {\*=}  {content block parenblk}
-extract assignopdiv    {\/=}  {content block parenblk}
-extract assignopmod    {%=}   {content block parenblk}
-extract assignopbitor  {\|=}  {content block parenblk}
-extract assignopbitand {³=}   {content block parenblk}
-extract assignopbitxor {\^=}  {content block parenblk}
-extract assignopneq    {\!=}  {content block parenblk}
-extract assignoplshift {<<=}  {content block parenblk}
-extract assignoprshift {>>=}  {content block parenblk}
-extract incr           {\+\+} {content block parenblk}
-extract decr           {\-\-} {content block parenblk}
-extract doublecolon    {::}   {content block parenblk}
-extract or             {\|\|} {content block parenblk}
-extract bitor          {\|}   {content block parenblk}
-extract and            {³³}   {content block parenblk}
-extract amper          {³}    {content block parenblk}
-extract plus           {\+}   {content block parenblk}
-extract div            {\/}   {content block parenblk}
-extract star           {\*}   {content block parenblk}
-extract notequal       {\!=}  {content block parenblk}
-extract not            {\!}   {content block parenblk}
-extract deref          {\->}  {content block parenblk}
-extract dot            {\.}   {content block parenblk}
-extract tilde          {~}    {content block parenblk}
-extract lshift         {<<}   {content block parenblk}
-extract rshift         {>>}   {content block parenblk}
-extract greaterequal   {>=}   {content block parenblk}
-extract lessequal      {<=}   {content block parenblk}
-extract greater        {>}    {content block parenblk}
-extract less           {<}    {content block parenblk}
-extract minus          {\-}   {content block parenblk}
-extract mod            {%}    {content block parenblk}
-extract xor            {\^}   {content block parenblk}
-extract question       {\?}   {content block parenblk}
-extract comma          {,}    {content block parenblk}
-extract assign         {=}    {content block parenblk}
+extract equal          {==}   {content block parenblk tplargs}
+extract assignopplus   {\+=}  {content block parenblk tplargs}
+extract assignopminus  {\-=}  {content block parenblk tplargs}
+extract assignopmult   {\*=}  {content block parenblk tplargs}
+extract assignopdiv    {\/=}  {content block parenblk tplargs}
+extract assignopmod    {%=}   {content block parenblk tplargs}
+extract assignopbitor  {\|=}  {content block parenblk tplargs}
+extract assignopbitand {³=}   {content block parenblk tplargs}
+extract assignopbitxor {\^=}  {content block parenblk tplargs}
+extract assignopneq    {\!=}  {content block parenblk tplargs}
+extract assignoplshift {<<=}  {content block parenblk tplargs}
+extract assignoprshift {>>=}  {content block parenblk tplargs}
+extract incr           {\+\+} {content block parenblk tplargs}
+extract decr           {\-\-} {content block parenblk tplargs}
+extract doublecolon    {::}   {content block parenblk tplargs}
+extract or             {\|\|} {content block parenblk tplargs}
+extract bitor          {\|}   {content block parenblk tplargs}
+extract and            {³³}   {content block parenblk tplargs}
+extract amper          {³}    {content block parenblk tplargs}
+extract plus           {\+}   {content block parenblk tplargs}
+extract div            {\/}   {content block parenblk tplargs}
+extract star           {\*}   {content block parenblk tplargs}
+extract notequal       {\!=}  {content block parenblk tplargs}
+extract not            {\!}   {content block parenblk tplargs}
+extract deref          {\->}  {content block parenblk tplargs}
+extract dot            {\.}   {content block parenblk tplargs}
+extract tilde          {~}    {content block parenblk tplargs}
+extract lshift         {<<}   {content block parenblk tplargs}
+extract rshift         {>>}   {content block parenblk tplargs}
+extract greaterequal   {>=}   {content block parenblk tplargs}
+extract lessequal      {<=}   {content block parenblk tplargs}
+extract greater        {>}    {content block parenblk tplargs}
+extract less           {<}    {content block parenblk tplargs}
+extract minus          {\-}   {content block parenblk tplargs}
+extract mod            {%}    {content block parenblk tplargs}
+extract xor            {\^}   {content block parenblk tplargs}
+extract question       {\?}   {content block parenblk tplargs}
+extract comma          {,}    {content block parenblk tplargs}
+extract assign         {=}    {content block parenblk tplargs}
 
 extract attribute {__attribute__\s*§parenblk\d+°} {content block parenblk}
 
 # extract identifiers
-extract identifier {([\w_][\w\d_]*)+(?=[^°]*(§|$))} {content parenblk block}
+extract identifier {([\w_][\w\d_]*)+(?=[^°]*(§|$))} {content parenblk block tplargs}
 
-extract identifier {§quotedchar\d+°} {content parenblk block}
+extract identifier {§quotedchar\d+°} {content parenblk block tplargs}
 
 # merge template arguments with the predecessing identifier
-extract identifier {§identifier\d+°\s*§tplargs\d+°} {content block parenblk}
+extract identifier {§identifier\d+°\s*§tplargs\d+°} {content block parenblk tplargs}
 
 # extract using namespace
 extract using {§keyusing\d+°\s*§keynamespace\d+°\s*§identifier\d+°\s*;} {content block}
@@ -426,10 +416,10 @@ extract identifier {§key(static|dynamic|reinterpret)cast\d+°\s*§tplargs\d+°\s*§p
 #
 
 # extract namespaced identifiers
-extract identifier {§identifier\d+°\s*§doublecolon\d+°\s*§identifier\d+°} block
+extract identifier {§identifier\d+°\s*§doublecolon\d+°\s*§identifier\d+°} {content block}
 
 # extract identifiers in the root namespace
-extract identifier {§doublecolon\d+°\s*§identifier\d+°} block
+extract identifier {§doublecolon\d+°\s*§identifier\d+°} {content block}
 
 extract whilecond {§keywhile\d+°\s*§parenblk\d+°} block
 extract forcond {§keyfor\d+°\s*§parenblk\d+°} block
@@ -503,12 +493,13 @@ extract operatorfunction {§keyoperator\d+°\s*§[^°]+\d+°\s*§parenblk\d+°} {conten
 extract funcptr {§parenblk\d+°\s*§parenblk\d+°(\s*§attribute\d+°)?} {content classblock block identifier parenblk}
 extract function {§identifier\d+°\s*§parenblk\d+°(\s*§attribute\d+°)?} {content classblock block initializer}
 
+extract operator {§keyoperator\d+°\s*§[^ ]+\d+°} operatorfunction
+
 extract destfunction {(§identifier\d+°§doublecolon\d+°)?§tilde\d+°§identifier\d+°\s*§parenblk\d+°} {content classblock}
 extract identifier {(§identifier\d+°§doublecolon\d+°)?§tilde\d+°§identifier\d+°} destfunction
 
-extract identifier {§identifier\d+°\s*§parenblk\d+°} {parenblk block identifier initializer}
+extract identifier {§identifier\d+°\s*§parenblk\d+°} {parenblk block identifier initializer tplargs}
 extract identifier {§parenblk\d+°} {parenblk block}
-#extract_operations parenblk
 
 # extract arrays
 extract array {(§identifier\d+°\s*)(§arrayindex\d+°\s*)+} {content classblock block}
@@ -530,17 +521,14 @@ extract identifier {§keynew\d+°\s*(§parenblk\d+°\s*)?§function\d+°} block
 extract return {§keyreturn\d+°[^;]*} {block}
 
 # extract modifiers
-extract modifier {(§key(extern|externc|const|static|inline|virtual|volatile)\d+°\s*)+} {content classblock block}
+extract modifier {(§key(extern|externc|constexpr|static|inline|virtual|volatile)\d+°\s*)+} {content classblock block}
 
 # extract function declarations
-extract funcdecl {(§mlcomment\d+° *\n[ \t]*)?(§(modifier|keyunsigned)\d+°\s*)*§(identifier|keyunsigned)\d+°(\s|(§amper\d+°)|(§star\d+°))*§(operator)?function\d+°\s*(§modifier\d+°\s*)*(§assign\d+°\s*§identifier\d+°)?\s*;} {content block classblock}
+extract funcdecl {(§mlcomment\d+° *\n[ \t]*)?(§(modifier|keyunsigned|keyconst)\d+°\s*)*§(identifier|keyunsigned|keyconst)\d+°(\s|(§amper\d+°)|(§star\d+°))*§(operator)?function\d+°\s*(§(keyconst|keyoverride)\d+°\s*)*(§assign\d+°\s*§identifier\d+°)?\s*;} {content block classblock}
 
 # extract function implementations
-extract funcimpl {(§mlcomment\d+° *\n[ \t]*)?(§(modifier|keyunsigned)\d+°\s*)?§(identifier|keyunsigned)\d+°(\s|(§amper\d+°)|(§star\d+°))*§(operator)?function\d+°\s*(§modifier\d+°\s*)?§block\d+°[;\t ]*} {content block classblock}
+extract funcimpl {(§mlcomment\d+° *\n[ \t]*)?(§(modifier|keyunsigned|keyconst)\d+°\s*)*(§(identifier|keyunsigned|keyconst)\d+°\s*)+(\s|(§amper\d+°)|(§star\d+°))*§(operator)?function\d+°\s*(§(keyconst|keyoverride)\d+°\s*)*§block\d+°[;\t ]*} {content block classblock}
 extract funcimpl {(§mlcomment\d+° *\n[ \t]*)?§operatorfunction\d+°\s*(§modifier\d+°\s*)?§block\d+°[;\t ]*} {content block classblock}
-
-# extract function implementations
-extract funcimpl {(§mlcomment\d+° *\n[ \t]*)?(§(modifier|keyunsigned)\d+°\s*)?§(identifier|keyunsigned)\d+°(\s|(§amper\d+°)|(§star\d+°))*§(operator)?function\d+°\s*(§modifier\d+°\s*)?§block\d+°[;\t ]*} {content block classblock}
 
 # extract template functions
 extract tplfunc {(§mlcomment\d+° *\n[ \t]*)?§keytemplate\d+°\s*§tplargs\d+°\s*§funcimpl\d+°} {content block classblock}
@@ -555,6 +543,9 @@ refine_sub_tokens destimpl destfunction function
 # extract constructor implementations
 extract constimpl {(§mlcomment\d+° *\n[ \t]*)?(§(modifier|keyexplicit)\d+°\s*)*§function\d+°\s*(§initializer\d+°\s*)?\s*§block\d+°[;\t ]*} {content classblock}
 
+# extract template constructors
+extract tplfunc {(§mlcomment\d+° *\n[ \t]*)?§keytemplate\d+°\s*§tplargs\d+°\s*§constimpl\d+°} {content block classblock}
+
 # extract destructor declarations
 extract destdecl {(§mlcomment\d+° *\n[ \t]*)?(§modifier\d+°\s*)?§tilde\d+°§function\d+°\s*(§assign\d+°\s+§identifier\d+°)?\s*;} {classblock}
 
@@ -568,29 +559,43 @@ extract frienddecl {§keyfriend\d+°\s*§classdecl\d+°} {classblock}
 foreach env_type [list destdecl constdecl destimpl constimpl funcimpl funcdecl] {
 	refine_sub_tokens $env_type function funcsignature }
 refine_sub_tokens funcsignature parenblk argparenblk
+refine_sub_tokens operatorfunction parenblk argparenblk
 
 extract_operations parenblk
-extract modifier {(§key(const|volatile)\d+°\s*)+} {argparenblk}
+extract argmodifier {(§key(const|volatile)\d+°\s*)+} {argparenblk}
 
 # extract pure-virtual assignments
 extract virtassign {§assign\d+°\s+§identifier\d+°} funcdecl
 
 # extract return values
-extract retval {(§keyunsigned\d+°\s*)*(§(identifier|keyunsigned)\d+°)(\s|(§amper\d+°)|(§star\d+°))*} {funcdecl funcimpl}
-extract identifier {§keyunsigned\d+°\s*(§identifier\d+°)?} {retval}
+extract retval {(§(identifier|keyunsigned|keyconst|star|amper)\d+°\s*)+(?=§funcsignature)} {funcdecl funcimpl}
+extract retval {(§(identifier|keyunsigned|keyconst|star|amper)\d+°\s*)+(?=§operatorfunction)} {funcdecl funcimpl}
+extract identifier {§(keyunsigned|keyconst)\d+°\s*(§identifier\d+°)?} {retval}
 
-# extract single argument declarations within argument-parenthesis blocks
-extract argdecl {(§(modifier|keyunsigned)\d+°\s*)*(§(identifier|keyunsigned)\d+°)(\s|(§amper\d+°)|(§star\d+°))*(§modifier\d+°\s*)*§identifier\d+°} {argparenblk tplargs}
+# extract argument declarations separated by commas
+refine_sub_tokens tplargs greater closeparen
+refine_sub_tokens tplargs less    openparen
+extract varargs {(§dot\d+°){3}} {argparenblk tplargs}
+extract keytypename {§keytypename\d+°\s*§varargs\d+°} tplargs
 
-extract argname {§identifier\d+°$} {argdecl}
-extract argtype {^(§(modifier|keyunsigned)\d+°\s*)*(§(identifier|keyunsigned)\d+°)(\s|(§amper\d+°)|(§star\d+°))*(§modifier\d+°\s*)*} {argdecl}
+extract argdecl {(§(argmodifier|keytypename|keyunsigned|identifier|tilde|minus|amper|star|and|varargs|assign|string)\d+°\s*)+(?=§comma)}      {argparenblk tplargs}
+extract argdecl {(§(argmodifier|keytypename|keyunsigned|identifier|tilde|minus|amper|star|and|varargs|assign|string)\d+°\s*)+(?=§closeparen)} {argparenblk tplargs}
+extract argdefault {§assign\d+°.*} argdecl
 
-# extract argument-declaration types
-extract argdecltype {^§(identifier|keyunsigned)\d+°(\s|(§amper\d+°)|(§star\d+°))*} argdecl
+extract argname {§identifier\d+°\s*(?=§argdefault)} {argdecl}
+
+# there may be just a type and no name
+extract argtype {^\s*§identifier\d+°\s*$} {argdecl}
+
+# the last identifier is the name
+extract argname {§identifier\d+°\s*$} {argdecl}
+extract argtype {^(§(argmodifier|keyunsigned)\d+°\s*)*(§(identifier|keytypename|varargs|keyunsigned)\d+°)(\s*|(§(amper|and|argmodifier)\d+°)|(§star\d+°))*(§argmodifier\d+°\s*)*(§varargs\d+°)?} argdecl
 
 # extract typedefs
-extract typedef {(§mlcomment\d+° *\n[ \t]*)?§keytypedef\d+°(\s*§identifier\d+°)+\s*;} {content classblock block}
+extract typedef {(§mlcomment\d+° *\n[ \t]*)?§keytypedef\d+°(\s*§(identifier|keyunsigned)\d+°)+\s*;} {content classblock block}
 extract typename {§identifier\d+°(?=;)} typedef
+extract identifier {(\s*§(identifier|keyunsigned)\d+°){2,}} typedef
+extract identifier {\s*§keyunsigned\d+°} typedef
 
 # extract function pointers
 extract vardecl {(§(modifier|keyunsigned)\d+°\s*)*(§(identifier|keyunsigned)\d+°)((\s|(§amper\d+°)|(§star\d+°))*(§modifier\d+°\s*)*(§funcptr\d+°)\s*(:\s*§identifier\d+°)?\s*(§assign\d+°[^;]*?)?\s*(§comma\d+°)?\s*)+;} {content classblock block}
