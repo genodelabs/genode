@@ -91,7 +91,7 @@ class Genode::Signal
 		 */
 		Signal(Data data);
 
-	    friend class Kernel::Signal_receiver;
+		friend class Kernel::Signal_receiver;
 		friend class Signal_receiver;
 		friend class Signal_context;
 
@@ -101,7 +101,12 @@ class Genode::Signal
 	public:
 
 		Signal(Signal const &other);
-		Signal &operator=(Signal const &other);
+
+		/**
+		 * \noapi
+		 */
+		Signal &operator = (Signal const &other);
+
 		~Signal();
 
 		Signal_context *context()       { return _data.context; }
@@ -184,9 +189,9 @@ class Genode::Signal_receiver : Noncopyable
 		/**
 		 * Helper to dissolve given context
 		 *
-		 * This function prevents duplicated code in '~Signal_receiver'
+		 * This method prevents duplicated code in '~Signal_receiver'
 		 * and 'dissolve'. Note that '_contexts_lock' must be held when
-		 * calling this function.
+		 * calling this method.
 		 */
 		void _unsynchronized_dissolve(Signal_context *context);
 
@@ -246,13 +251,17 @@ class Genode::Signal_receiver : Noncopyable
 
 		/**
 		 * Locally submit signal to the receiver
+		 *
+		 * \noapi
 		 */
 		void local_submit(Signal::Data signal);
 
 		/**
 		 * Framework-internal signal-dispatcher
 		 *
-		 * This function is called from the thread that monitors the signal
+		 * \noapi
+		 *
+		 * This method is called from the thread that monitors the signal
 		 * source associated with the process. It must not be used for other
 		 * purposes.
 		 */
@@ -265,7 +274,7 @@ class Genode::Signal_receiver : Noncopyable
  *
  * A signal context is a destination for signals. One receiver can listen
  * to multple contexts. If a signal arrives, the context is provided with the
- * signel. This enables the receiver to distinguish different signal sources
+ * signal. This enables the receiver to distinguish different signal sources
  * and dispatch incoming signals context-specific.
  */
 class Genode::Signal_context
@@ -286,7 +295,7 @@ class Genode::Signal_context
 		 * Receiver to which the context is associated with
 		 *
 		 * This member is initialized by the receiver when associating
-		 * the context with the receiver via the 'cap' function.
+		 * the context with the receiver via the 'cap' method.
 		 */
 		Signal_receiver *_receiver;
 
@@ -299,7 +308,7 @@ class Genode::Signal_context
 
 		/**
 		 * Capability assigned to this context after being assocated with
-		 * a 'Signal_receiver' via the 'manage' function. We store this
+		 * a 'Signal_receiver' via the 'manage' method. We store this
 		 * capability in the 'Signal_context' for the mere reason to
 		 * properly destruct the context (see '_unsynchronized_dissolve').
 		 */
@@ -330,6 +339,8 @@ class Genode::Signal_context
 		/**
 		 * Local signal submission (DEPRECATED)
 		 *
+		 * \noapi
+		 *
 		 * Trigger local signal submission (within the same address space), the
 		 * context has to be bound to a sginal receiver beforehand.
 		 *
@@ -339,7 +350,7 @@ class Genode::Signal_context
 
 		/*
 		 * Signal contexts are never invoked but only used as arguments for
-		 * 'Signal_session' functions. Hence, there exists a capability
+		 * 'Signal_session' methods. Hence, there exists a capability
 		 * type for it but no real RPC interface.
 		 */
 		GENODE_RPC_INTERFACE();
@@ -356,13 +367,13 @@ struct Genode::Signal_dispatcher_base : Signal_context
 
 
 /**
- * Adapter for directing signals to member functions
+ * Adapter for directing signals to object methods
  *
- * This utility associates member functions with signals. It is intended to
+ * This utility associates object methods with signals. It is intended to
  * be used as a member variable of the class that handles incoming signals
  * of a certain type. The constructor takes a pointer-to-member to the
- * signal handling function as argument. If a signal is received at the
- * common signal reception code, this function will be invoked by calling
+ * signal handling method as argument. If a signal is received at the
+ * common signal reception code, this method will be invoked by calling
  * 'Signal_dispatcher_base::dispatch'.
  *
  * \param T  type of signal-handling class
@@ -384,7 +395,7 @@ class Genode::Signal_dispatcher : public Signal_dispatcher_base,
 		 *
 		 * \param sig_rec     signal receiver to associate the signal
 		 *                    handler with
-		 * \param obj,member  object and member function to call when
+		 * \param obj,member  object and method to call when
 		 *                    the signal occurs
 		 */
 		Signal_dispatcher(Signal_receiver &sig_rec,

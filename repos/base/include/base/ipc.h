@@ -295,7 +295,7 @@ class Genode::Ipc_ostream : public Ipc_marshaller
 		/**
 		 * Return current 'IPC_SEND' destination
 		 *
-		 * This function is typically needed by a server than sends replies
+		 * This method is typically needed by a server than sends replies
 		 * in a different order as the incoming calls.
 		 */
 		Native_capability dst() const { return _dst; }
@@ -535,7 +535,7 @@ class Genode::Ipc_server : public Ipc_istream, public Ipc_ostream
 		/**
 		 * Wait for incoming call
 		 *
-		 * In constrast to 'Ipc_istream::_wait()', this function stores the
+		 * In constrast to 'Ipc_istream::_wait()', this method stores the
 		 * next reply destination from into 'dst' of the 'Ipc_ostream'.
 		 */
 		void _wait();
@@ -543,7 +543,7 @@ class Genode::Ipc_server : public Ipc_istream, public Ipc_ostream
 		/**
 		 * Send reply to destination
 		 *
-		 * In contrast to 'Ipc_ostream::_send()', this function prepares
+		 * In contrast to 'Ipc_ostream::_send()', this method prepares
 		 * the 'Ipc_server' to send another subsequent reply without the
 		 * calling '_wait()' in between. This is needed when a server
 		 * answers calls out of order.

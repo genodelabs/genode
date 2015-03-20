@@ -1,5 +1,5 @@
 /*
- * \brief  Genode-specific integer types
+ * \brief  Integer types
  * \author Christian Helmuth
  * \date   2006-05-10
  */

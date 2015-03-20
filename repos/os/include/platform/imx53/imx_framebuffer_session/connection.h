@@ -62,7 +62,7 @@ class Framebuffer::Imx_connection : public Genode::Connection<Imx_session>,
 		 *
 		 * The specified values are not enforced. After creating the
 		 * session, you should validate the actual frame-buffer attributes
-		 * by calling the 'info' function of the frame-buffer interface.
+		 * by calling the 'info' method of the frame-buffer interface.
 		 */
 		Imx_connection(unsigned     width  = 0,
 		               unsigned     height = 0,

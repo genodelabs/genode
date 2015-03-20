@@ -65,6 +65,13 @@ class Genode::Connection : public Noncopyable
 		 *
 		 * \param cap  session capability
 		 * \param od   session policy applied when destructing the connection
+		 *
+		 * The 'op' argument defines whether the session should automatically
+		 * be closed by the destructor of the connection (CLOSE), or the
+		 * session should stay open (KEEP_OPEN). The latter is useful in
+		 * situations where the creator a connection merely passes the
+		 * session capability of the connection to another party but never
+		 * invokes any of the session's RPC functions.
 		 */
 		Connection(Capability<SESSION_TYPE> cap, On_destruction od = CLOSE):
 			_cap(cap), _on_destruction(od) { }

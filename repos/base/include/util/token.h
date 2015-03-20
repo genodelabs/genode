@@ -121,10 +121,10 @@ class Genode::Token
 		 *
 		 * \param  max_len  maximum token length
 		 *
-		 * This function is used during the construction of 'Token'
+		 * This method is used during the construction of 'Token'
 		 * objects, in particular for determining the value of the '_len'
 		 * member. Therefore, we explicitely pass the 'max_len' to the
-		 * function. For the public interface, there exists the 'type()'
+		 * method. For the public interface, there exists the 'type()'
 		 * accessor, which relies on '_len' as implicit argument.
 		 */
 		Type _type(size_t max_len) const

@@ -2,16 +2,6 @@
  * \brief  Block session interface.
  * \author Stefan Kalkowski
  * \date   2010-07-06
- *
- * A block session corresponds to a block device, that can be used to read
- * or store data. Payload is communicated over the packet-stream interface
- * set up between 'Session_client' and 'Session_server'.
- *
- * Even though the functions 'tx' and 'tx_channel' are specific for the client
- * side of the block session interface, they are part of the abstract 'Session'
- * class to enable the client-side use of the block interface via a pointer to
- * the abstract 'Session' class. This way, we can transparently co-locate the
- * packet-stream server with the client in same program.
  */
 
 /*
@@ -41,8 +31,9 @@ namespace Block {
 
 
 /**
- * Represents an operation request with respect to a block,
- * the data associated with the 'Packet_descriptor' is either
+ * Represents an block-operation request
+ *
+ * The data associated with the 'Packet_descriptor' is either
  * the data read from or written to the block indicated by
  * its number.
  */
@@ -91,6 +82,19 @@ class Block::Packet_descriptor : public Genode::Packet_descriptor
 };
 
 
+/*
+ * Block session interface
+ *
+ * A block session corresponds to a block device that can be used to read
+ * or store data. Payload is communicated over the packet-stream interface
+ * set up between 'Session_client' and 'Session_server'.
+ *
+ * Even though the methods 'tx' and 'tx_channel' are specific for the client
+ * side of the block session interface, they are part of the abstract 'Session'
+ * class to enable the client-side use of the block interface via a pointer to
+ * the abstract 'Session' class. This way, we can transparently co-locate the
+ * packet-stream server with the client in same program.
+ */
 struct Block::Session : public Genode::Session
 {
 	enum { TX_QUEUE_SIZE = 256 };

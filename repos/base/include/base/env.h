@@ -1,10 +1,7 @@
 /*
- * \brief  Environment of a process
+ * \brief  Environment of a component
  * \author Norman Feske
  * \date   2006-07-01
- *
- * The environment of a Genode process is defined by its parent and initialized
- * on startup.
  */
 
 /*

@@ -23,7 +23,7 @@ namespace Genode { class Mmio; }
 /**
  * A continuous MMIO region
  *
- * For correct behavior of the member functions of 'Mmio', a class that
+ * For correct behavior of the methods of 'Mmio', a class that
  * derives from one of the subclasses of 'Mmio' must not define members
  * named 'Register_base', 'Bitfield_base', 'Register_array_base' or
  * 'Array_bitfield_base'.

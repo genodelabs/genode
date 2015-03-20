@@ -133,13 +133,13 @@ namespace Server{
 
 
 /**
- * Signal dispatcher for directing signals via RPC to member function
+ * Signal dispatcher for directing signals via RPC to object methods
  *
- * This utility associates member functions with signals. It is intended to
+ * This utility associates object methods with signals. It is intended to
  * be used as a member variable of the class that handles incoming signals
  * of a certain type. The constructor takes a pointer-to-member to the
- * signal handling function as argument. If a signal is received at the
- * common signal reception code, this function will be invoked by calling
+ * signal-handling method as argument. If a signal is received at the
+ * common signal reception code, this method will be invoked by calling
  * 'Signal_dispatcher_base::dispatch'.
  *
  * \param T  type of signal-handling class
@@ -157,7 +157,7 @@ struct Genode::Signal_rpc_member : Genode::Signal_rpc_dispatcher_base,
 	 * Constructor
 	 *
 	 * \param ep          entrypoint managing this signal RPC
-	 * \param obj,member  object and member function to call when
+	 * \param obj,member  object and method to call when
 	 *                    the signal occurs
 	 */
 	Signal_rpc_member(EP &ep, T &obj, void (T::*member)(unsigned))

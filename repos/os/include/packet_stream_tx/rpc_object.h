@@ -58,7 +58,7 @@ class Packet_stream_tx::Rpc_object : public Genode::Rpc_object<CHANNEL, Rpc_obje
 		~Rpc_object() { _ep.dissolve(this); }
 
 		/*
-		 * The 'sigh_packet_avail()' and 'sigh_ready_to_ack()' functions
+		 * The 'sigh_packet_avail()' and 'sigh_ready_to_ack()' methods
 		 * may be called at session-creation time to override the default
 		 * data-flow signal handlers as provided by the packet-stream sink.
 		 * The default handlers let the server block in the event of data
@@ -66,7 +66,7 @@ class Packet_stream_tx::Rpc_object : public Genode::Rpc_object<CHANNEL, Rpc_obje
 		 * implementation is able to avoid blocking for a single event by
 		 * facilitating the use of a select-like mode of operation.
 		 *
-		 * Note that calling these functions after the finished creation of
+		 * Note that calling these methods after the finished creation of
 		 * the session has no effect because the client queries the signal
 		 * handlers only once at session-creation time.
 		 */

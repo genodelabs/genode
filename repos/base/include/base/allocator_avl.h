@@ -2,10 +2,6 @@
  * \brief  Interface of AVL-tree-based allocator
  * \author Norman Feske
  * \date   2006-04-16
- *
- * Each block of the managed address space is present in two AVL trees,
- * one tree ordered by the base addresses of the blocks and one tree ordered
- * by the available capacity within the block.
  */
 
 /*
@@ -149,9 +145,17 @@ class Genode::Allocator_avl_base : public Range_allocator
 				size_t avail_in_subtree(void);
 
 				/**
-				 * Debug hooks
+				 * Debug hook
+				 *
+				 * \noapi
 				 */
 				void dump();
+
+				/**
+				 * Debug hook
+				 *
+				 * \noapi
+				 */
 				void dump_dot(int indent = 0);
 		};
 
@@ -230,6 +234,8 @@ class Genode::Allocator_avl_base : public Range_allocator
 
 		/**
 		 * Debug hook
+		 *
+		 * \noapi
 		 */
 		void dump_addr_tree(Block *addr_node = 0);
 

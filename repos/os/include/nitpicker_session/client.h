@@ -90,7 +90,7 @@ class Nitpicker::Session_client : public Genode::Rpc_client<Session>
 		 * Enqueue command to command buffer
 		 *
 		 * The submitted command is not executed immediately. To execute a
-		 * batch of enqueued commands, the 'execute' function must be called.
+		 * batch of enqueued commands, the 'execute' method must be called.
 		 * Only in the corner case when there is not space left in the command
 		 * buffer, the 'execute' is called to make room in the buffer.
 		 */

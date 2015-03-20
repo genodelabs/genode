@@ -30,7 +30,7 @@ namespace Genode {
 /**
  * Heap that uses dataspaces as backing store
  *
- * The heap class provides an allocator that uses a list of dataspaces of a ram
+ * The heap class provides an allocator that uses a list of dataspaces of a RAM
  * session as backing store. One dataspace may be used for holding multiple blocks.
  */
 class Genode::Heap : public Allocator
@@ -76,7 +76,7 @@ class Genode::Heap : public Allocator
 		 */
 		struct Dataspace_pool : public List<Dataspace>
 		{
-			Ram_session *ram_session; /* ram session for backing store */
+			Ram_session *ram_session; /* RAM session for backing store */
 			Rm_session  *rm_session;  /* region manager */
 
 			Dataspace_pool(Ram_session *ram_session, Rm_session *rm_session)
@@ -120,7 +120,7 @@ class Genode::Heap : public Allocator
 		 *
 		 * \return true on success
 		 *
-		 * This function is a utility used by '_unsynchronized_alloc' to
+		 * This method is a utility used by '_unsynchronized_alloc' to
 		 * avoid code duplication.
 		 */
 		bool _try_local_alloc(size_t size, void **out_addr);
@@ -185,7 +185,7 @@ class Genode::Sliced_heap : public Allocator
 
 		class Block;
 
-		Ram_session    *_ram_session;  /* ram session for backing store */
+		Ram_session    *_ram_session;  /* RAM session for backing store */
 		Rm_session     *_rm_session;   /* region manager                */
 		size_t          _consumed;     /* number of allocated bytes     */
 		List<Block>     _block_list;   /* list of allocated blocks      */

@@ -28,12 +28,27 @@ class Genode::Noncopyable
 {
 	private:
 
+		/**
+		 * Constructor
+		 */
 		Noncopyable(const Noncopyable&);
+
 		const Noncopyable& operator=(const Noncopyable&);
 
 	protected:
 
+		/**
+		 * Constructor
+		 *
+		 * \noapi
+		 */
 		Noncopyable()  {}
+
+		/**
+		 * Destructor
+		 *
+		 * \noapi
+		 */
 		~Noncopyable() {}
 };
 

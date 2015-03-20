@@ -90,7 +90,7 @@ class Genode::Parent
 		 * The type of the specified 'service_root' capability match with
 		 * an interface that provides a 'Session_type' type (i.e., a
 		 * 'Typed_root' interface). This 'Session_type' is expected to
-		 * host a static function called 'service_name' returning the
+		 * host a class function called 'service_name' returning the
 		 * name of the provided interface as null-terminated string.
 		 */
 		template <typename ROOT_INTERFACE>
@@ -123,7 +123,7 @@ class Genode::Parent
 		 *
 		 * \return                 untyped capability to new session
 		 *
-		 * The use of this function is discouraged. Please use the type safe
+		 * The use of this method is discouraged. Please use the type safe
 		 * 'session()' template instead.
 		 */
 		virtual Session_capability session(Service_name const &service_name,
@@ -162,7 +162,7 @@ class Genode::Parent
 		 * \throw Quota_exceeded  quota could not be transferred
 		 *
 		 * The 'args' argument has the same principle format as the 'args'
-		 * argument of the 'session' function.
+		 * argument of the 'session' operation.
 		 * The error case indicates that there is not enough unused quota on
 		 * the source side.
 		 */
@@ -187,7 +187,7 @@ class Genode::Parent
 		/**
 		 * Request additional resources
 		 *
-		 * By invoking this function, a process is able to inform its
+		 * By invoking this method, a process is able to inform its
 		 * parent about the need for additional resources. The argument
 		 * string contains a resource description in the same format as
 		 * used for session-construction arguments. In particular, for
@@ -212,7 +212,7 @@ class Genode::Parent
 		/**
 		 * Obtain information about the amount of resources to free
 		 *
-		 * The amount of resources returned by this function is the
+		 * The amount of resources returned by this method is the
 		 * goal set by the parent. It is not commanded but merely meant
 		 * as a friendly beg to cooperate. The process is not obligated
 		 * to comply. If the process decides to take action to free

@@ -53,6 +53,12 @@ class Genode::Semaphore
 			try { _meta_lock.lock(); } catch (...) { }
 		}
 
+		/**
+		 * Increment semphore counter
+		 *
+		 * This method may wake up another thread that currently blocks on
+		 * a 'down' call at the same semaphore.
+		 */
 		void up()
 		{
 			Lock::Guard lock_guard(_meta_lock);
@@ -69,6 +75,9 @@ class Genode::Semaphore
 				element->wake_up();
 		}
 
+		/**
+		 * Decrement semaphore counter, block if the counter reaches zero
+		 */
 		void down()
 		{
 			_meta_lock.lock();

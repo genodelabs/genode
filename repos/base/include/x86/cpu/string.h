@@ -1,5 +1,5 @@
 /*
- * \brief  Cpu specifi memcpy
+ * \brief  CPU-specific memcpy
  * \author Sebastian Sumpf
  * \date   2012-08-02
  */
@@ -23,7 +23,7 @@ namespace Genode {
 	 * \param src   source memory block
 	 * \param size  number of bytes to copy
 	 *
-	 * \return      Number of bytes not copied
+	 * \return      number of bytes not copied
 	 */
 	inline size_t memcpy_cpu(void *, const void *, size_t size) { return size; }
 }

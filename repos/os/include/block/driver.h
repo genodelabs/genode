@@ -205,7 +205,7 @@ class Block::Driver
 		 * Informs the driver that the client session was closed
 		 *
 		 * Note: drivers with state (e.g. asynchronously working)
-		 *       should override this function, and reset their internal state
+		 *       should override this method, and reset their internal state
 		 */
 		virtual void session_invalidated() { }
 

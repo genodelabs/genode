@@ -78,7 +78,7 @@ struct Genode::Multiple_clients
  * creation to only one instance at a time (using the 'Single_session'
  * policy) or multiple instances (using the 'Multiple_sessions' policy).
  *
- * The 'POLICY' class must provide the following two functions:
+ * The 'POLICY' class must provide the following two methods:
  *
  * :'aquire(const char *args)': is called with the session arguments
  *   at creation time of each new session. It can therefore implement
@@ -123,7 +123,7 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 		 * of its 'new' operator and must implement the session
 		 * creation at a place, where the required knowledge exist.
 		 *
-		 * In the implementation of this function, the heap, provided
+		 * In the implementation of this method, the heap, provided
 		 * by 'Root_component' must be used for allocating the session
 		 * object.
 		 *
@@ -151,16 +151,16 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 		 * Inform session about a quota upgrade
 		 *
 		 * Once a session is created, its client can successively extend
-		 * its quota donation via the 'Parent::transfer_quota' function.
+		 * its quota donation via the 'Parent::transfer_quota' operation.
 		 * This will result in the invokation of 'Root::upgrade' at the
 		 * root interface the session was created with. The root interface,
 		 * in turn, informs the session about the new resources via the
-		 * '_upgrade_session' function. The default implementation is
+		 * '_upgrade_session' method. The default implementation is
 		 * suited for sessions that use a static amount of resources
 		 * accounted for at session-creation time. For such sessions, an
 		 * upgrade is not useful. However, sessions that dynamically
 		 * allocate resources on behalf of its client, should respond to
-		 * quota upgrades by implementing this function.
+		 * quota upgrades by implementing this method.
 		 *
 		 * \param session  session to upgrade
 		 * \param args     description of additional resources in the
@@ -174,8 +174,12 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 		/**
 		 * Return allocator to allocate server object in '_create_session()'
 		 */
-		Allocator      *md_alloc() { return _md_alloc; }
-		Rpc_entrypoint *ep()       { return _ep; }
+		Allocator *md_alloc() { return _md_alloc; }
+
+		/**
+		 * Return entrypoint that serves the root component
+		 */
+		Rpc_entrypoint *ep() { return _ep; }
 
 	public:
 

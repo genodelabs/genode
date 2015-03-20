@@ -58,7 +58,7 @@
  *   empty acknowledgement queue and delivers a 'ack_avail' signal.
  *
  * These conditions can be avoided by querying the state of the submit and
- * acknowledge buffers using the functions 'packet_avail',
+ * acknowledge buffers using the methods 'packet_avail',
  * 'ready_to_submit', 'ready_to_ack', and 'ack_avail'.
  *
  * If bidirectional data exchange between two processes is desired, two pairs
@@ -407,10 +407,7 @@ class Genode::Packet_descriptor_receiver
 
 
 /**
- * Helper class for 'Packet_stream_source' and 'Packet_stream_sink'
- * containing code shared between both classes.
- *
- * This class is private to the packet-stream interface.
+ * Common base of 'Packet_stream_source' and 'Packet_stream_sink'
  */
 class Genode::Packet_stream_base
 {
@@ -802,7 +799,7 @@ class Genode::Packet_stream_sink : private Packet_stream_base
 		/**
 		 * Get next packet from source
 		 *
-		 * This function blocks if no packets are available.
+		 * This method blocks if no packets are available.
 		 */
 		Packet_descriptor get_packet()
 		{
@@ -839,7 +836,7 @@ class Genode::Packet_stream_sink : private Packet_stream_base
 		/**
 		 * Tell the source that the processing of the specified packet is completed
 		 *
-		 * This function blocks if the acknowledgement queue is full.
+		 * This method blocks if the acknowledgement queue is full.
 		 */
 		void acknowledge_packet(Packet_descriptor packet)
 		{

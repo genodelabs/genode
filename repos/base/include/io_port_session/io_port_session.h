@@ -7,7 +7,7 @@
  * variable-sized accesses (i.e., 8, 16, 32 bit) at arbitrary addresses are
  * allowed - currently, alignment is not enforced. Core enforces that access is
  * limited to the session-defined range while the user provides physical I/O port
- * addresses as function parameters.
+ * addresses as arguments.
  *
  * The design is founded on experiences while programming PCI configuration
  * space which needs two 32-bit port registers. Each byte, word and dword in

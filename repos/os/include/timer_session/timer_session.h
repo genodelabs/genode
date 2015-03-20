@@ -54,13 +54,13 @@ struct Timer::Session : Genode::Session
 	virtual unsigned long elapsed_ms() const = 0;
 
 	/**
-	 * Client-side convenience function for sleeping the specified number
+	 * Client-side convenience method for sleeping the specified number
 	 * of milliseconds
 	 */
 	virtual void msleep(unsigned ms) = 0;
 
 	/**
-	 * Client-side convenience function for sleeping the specified number
+	 * Client-side convenience method for sleeping the specified number
 	 * of microseconds
 	 */
 	virtual void usleep(unsigned us) = 0;

@@ -19,24 +19,7 @@
 
 namespace Genode {
 
-	/**
-	 * RPC client
-	 *
-	 * This class template is the base class of the client-side implementation
-	 * of the specified 'RPC_INTERFACE'. Usually, it inherits the pure virtual
-	 * functions declared in 'RPC_INTERFACE' and has the built-in facility to
-	 * perform RPC calls to this particular interface. Hence, the client-side
-	 * implementation of each pure virtual interface function comes down to a
-	 * simple wrapper in the line of 'return call<Rpc_function>(arguments...)'.
-	 */
-	template <typename RPC_INTERFACE>
-	struct Rpc_client : Capability<RPC_INTERFACE>, RPC_INTERFACE
-	{
-		typedef RPC_INTERFACE Rpc_interface;
-
-		Rpc_client(Capability<RPC_INTERFACE> const &cap)
-		: Capability<RPC_INTERFACE>(cap) { }
-	};
+	template <typename> struct Rpc_client;
 
 	/**
 	 * Count capabilities of a RPC_FUNCTION which are out parameters.
@@ -68,9 +51,9 @@ namespace Genode {
 		enum { Value = Rpc_caps_out<typename RPC_FUNCTION::Server_args>::Value +
 		               Cap_return  <typename RPC_FUNCTION::Ret_type>::Value}; };
 
-	/*********************************************************
+	/***************************************************
 	 ** Implementation of 'Capability:call' functions **
-	 *********************************************************/
+	 ***************************************************/
 
 	template <typename RPC_INTERFACE>
 	template <typename ATL>
@@ -170,5 +153,26 @@ namespace Genode {
 		                      Meta::Overload_selector<typename IF::Exceptions>());
 	}
 }
+
+
+/**
+ * RPC client
+ *
+ * This class template is the base class of the client-side implementation
+ * of the specified 'RPC_INTERFACE'. Usually, it inherits the pure virtual
+ * functions declared in 'RPC_INTERFACE' and has the built-in facility to
+ * perform RPC calls to this particular interface. Hence, the client-side
+ * implementation of each pure virtual interface function comes down to a
+ * simple wrapper in the line of 'return call<Rpc_function>(arguments...)'.
+ */
+template <typename RPC_INTERFACE>
+struct Genode::Rpc_client : Capability<RPC_INTERFACE>, RPC_INTERFACE
+{
+	typedef RPC_INTERFACE Rpc_interface;
+
+	Rpc_client(Capability<RPC_INTERFACE> const &cap)
+	: Capability<RPC_INTERFACE>(cap) { }
+};
+
 
 #endif /* _INCLUDE__BASE__RPC_CLIENT_H_ */

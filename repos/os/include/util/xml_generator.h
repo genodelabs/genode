@@ -34,7 +34,7 @@ class Genode::Xml_generator
 		/**
 		 * Buffer descriptor where the XML output goes to
 		 *
-		 * All 'append' functions may throw a 'Buffer_exceeded' exception.
+		 * All 'append' methods may throw a 'Buffer_exceeded' exception.
 		 */
 		class Out_buffer
 		{

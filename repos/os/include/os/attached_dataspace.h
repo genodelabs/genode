@@ -86,7 +86,7 @@ class Genode::Attached_dataspace : Noncopyable
 		/**
 		 * Forget dataspace, thereby skipping the detachment on destruction
 		 *
-		 * This function can be called if the the dataspace is known to be
+		 * This method can be called if the the dataspace is known to be
 		 * physically destroyed, e.g., because the session where the dataspace
 		 * originated from was closed. In this case, core will already have
 		 * removed the memory mappings of the dataspace. So we have to omit the

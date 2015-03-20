@@ -32,7 +32,7 @@ struct Vfs::File_system : Directory_service, File_io_service
 	/**
 	 * Synchronize file system
 	 *
-	 * This function is only used by a Fs_file_system because such a file
+	 * This method is only used by a Fs_file_system because such a file
 	 * system may employ a backend, which maintains a internal cache, that
 	 * needs to be flushed.
 	 */

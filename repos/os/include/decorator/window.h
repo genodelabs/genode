@@ -203,7 +203,7 @@ class Decorator::Window_base : public Window_list::Element
 		 * \return true if window changed
 		 *
 		 * We do not immediately update the views as part of the update
-		 * function because at the time when updating the model, the
+		 * method because at the time when updating the model, the
 		 * decorations haven't been redrawn already. If we updated the
 		 * nitpicker views at this point, we would reveal not-yet-drawn pixels.
 		 */

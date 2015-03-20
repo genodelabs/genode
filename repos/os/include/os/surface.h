@@ -65,7 +65,7 @@ class Genode::Surface_base
 		/**
 		 * Register part of surface to be flushed
 		 *
-		 * This function is called by graphics primitives when surface regions
+		 * This method is called by graphics primitives when surface regions
 		 * are changed.
 		 */
 		void flush_pixels(Rect rect)

@@ -34,7 +34,7 @@ struct Platform::Session : Genode::Session
 	 *
 	 * The 'info' argument serves as both input and output parameter. As input,
 	 * it describes the desired properties of the framebuffer. In return, the
-	 * function delivers the values that were actually taken into effect.
+	 * method delivers the values that were actually taken into effect.
 	 */
 	virtual void setup_framebuffer(Framebuffer_info &info) = 0;
 

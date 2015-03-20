@@ -34,6 +34,9 @@ namespace Genode {
 struct Genode::Ram_dataspace : Dataspace { };
 
 
+/**
+ * RAM session interface
+ */
 struct Genode::Ram_session : Session
 {
 	static const char *service_name() { return "RAM"; }

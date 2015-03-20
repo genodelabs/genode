@@ -2,10 +2,6 @@
  * \brief  Root component for singleton services
  * \author Norman Feske
  * \date   2012-10-05
- *
- * Many components, in particular device drivers, support only one client
- * at a time. In this case, one single session may be created right at the
- * start of the program and handed out via the 'Root::session' function.
  */
 
 /*
@@ -29,6 +25,10 @@ namespace Genode { template <typename> class Static_root; }
 
 /**
  * Root interface that hands out a statically created session
+ *
+ * Many components, in particular device drivers, support only one client
+ * at a time. In this case, one single session may be created right at the
+ * start of the program and handed out via the 'Root::session' method.
  */
 template <typename SESSION>
 class Genode::Static_root : public Genode::Rpc_object<Genode::Typed_root<SESSION> >

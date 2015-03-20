@@ -1,14 +1,7 @@
 /*
- * \brief  Utility for synchronizing the access of interface functions
+ * \brief  Utility for synchronizing the access of interface methods
  * \author Norman Feske
  * \date   2013-05-16
- *
- * The 'Synced_interface' utility makes the serialization of interface
- * function calls easy. The 'Synced_interface' is a functor that takes a lock
- * and a pointer to an interface as arguments. When called, the functor
- * returns a smart pointer to the interface. When this smart pointer gets
- * dereferenced, the smart pointer takes care of acquiring and releasing
- * the lock while the interface function is executed.
  */
 
 #ifndef _INCLUDE__OS__SYNCED_INTERFACE_H_
@@ -23,6 +16,16 @@ namespace Genode {
 }
 
 
+/*
+ * Utility for synchronizing the access of interface methods
+ *
+ * The 'Synced_interface' utility makes the serialization of interface
+ * method calls easy. The 'Synced_interface' is a functor that takes a lock
+ * and a pointer to an interface as arguments. When called, the functor
+ * returns a smart pointer to the interface. When this smart pointer gets
+ * dereferenced, the smart pointer takes care of acquiring and releasing
+ * the lock while the interface method is executed.
+ */
 template <typename IF, typename LOCK>
 class Genode::Synced_interface
 {

@@ -149,7 +149,7 @@ class Genode::Pager_activation_base: public Thread_base
 		/**
 		 * Set entry point, which the activation serves
 		 *
-		 * This function is only called by the 'Pager_entrypoint'
+		 * This method is only called by the 'Pager_entrypoint'
 		 * constructor.
 		 */
 		void ep(Pager_entrypoint *ep) { _ep = ep; }
@@ -162,7 +162,7 @@ class Genode::Pager_activation_base: public Thread_base
 		/**
 		 * Return capability to this activation
 		 *
-		 * This function should only be called from 'Pager_entrypoint'
+		 * This method should only be called from 'Pager_entrypoint'
 		 */
 		Native_capability cap()
 		{

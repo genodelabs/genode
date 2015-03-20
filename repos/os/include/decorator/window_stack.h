@@ -70,7 +70,7 @@ class Decorator::Window_stack
 		/**
 		 * Generate window list in reverse order
 		 *
-		 * After calling this function, the '_windows' list is empty.
+		 * After calling this method, the '_windows' list is empty.
 		 */
 		Window_list _reversed_window_list()
 		{

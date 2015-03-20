@@ -79,7 +79,7 @@ class Genode::Affinity
 				 * Return the location of the Nth CPU within the affinity
 				 * space
 				 *
-				 * This function returns a valid location even if the index
+				 * This method returns a valid location even if the index
 				 * is larger than the number of CPUs in the space. In this
 				 * case, the x and y coordinates are wrapped by the bounds
 				 * of the space.

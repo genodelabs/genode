@@ -24,9 +24,13 @@ namespace Genode {
 	/**
 	 * Print format string into character buffer
 	 *
+	 * \param dst      destination buffer
+	 * \param dst_len  size of 'dst' in bytes
+	 * \param format   format string followed by the list of arguments
+	 *
 	 * \return  number of characters written to destination buffer
 	 */
-	inline int snprintf(char *, size_t, const char *, ...)
+	inline int snprintf(char *dst, size_t dst_size, const char *format, ...)
 	           __attribute__((format(printf, 3, 4)));
 }
 
@@ -45,7 +49,7 @@ class Genode::String_console : public Console
 		 * Constructor
 		 *
 		 * \param dst      destination character buffer
-		 * \param dst_len  size of dst
+		 * \param dst_len  size of 'dst'
 		 */
 		String_console(char *dst, size_t dst_len)
 		: _dst(dst), _dst_len(dst_len), _w_offset(0)

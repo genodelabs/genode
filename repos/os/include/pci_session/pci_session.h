@@ -51,7 +51,7 @@ struct Pci::Session : Genode::Session
 	/**
 	 * Free server-internal data structures representing the device
 	 *
-	 * Use this function to relax the heap partition of your PCI session.
+	 * Use this method to relax the heap partition of your PCI session.
 	 */
 	virtual void release_device(Device_capability device) = 0;
 

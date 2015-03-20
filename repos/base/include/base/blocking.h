@@ -2,13 +2,6 @@
  * \brief  Support for blocking operations
  * \author Norman Feske
  * \date   2007-09-06
- *
- * In Genode, two operations may block a thread,
- * waiting at a lock or performing an IPC call.
- * Both operations may be canceled when killing
- * the thread. In this case, the thread unblocks
- * and throws an exception, and therefore, is able
- * to clean up the thread state before exiting.
  */
 
 /*
@@ -25,6 +18,14 @@
 
 namespace Genode { class Blocking_canceled; }
 
+/**
+ * Blocking-canceled exception
+ *
+ * Two operations may block a thread, waiting at a lock or performing an RPC
+ * call. Both operations may be canceled when the thread is destructed. In this
+ * case, the thread unblocks and throws an exception, and therefore, is able to
+ * clean up the thread state before exiting.
+ */
 class Genode::Blocking_canceled : public Exception { };
 
 #endif /* _INCLUDE__BASE__BLOCKING_H_ */

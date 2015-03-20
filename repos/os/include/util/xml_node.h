@@ -400,12 +400,12 @@ class Genode::Xml_node
 		 *
 		 * \return  end tag or invalid tag
 		 *
-		 * The function searches for a end tag that matches the same
+		 * The method searches for a end tag that matches the same
 		 * depth level and the same name as the start tag of the XML
 		 * node. If the XML structure is invalid, the search results
 		 * is an invalid Tag.
 		 *
-		 * During the search, the function also counts the number of
+		 * During the search, the method also counts the number of
 		 * immediate sub nodes.
 		 */
 		Tag _init_end_tag()
@@ -576,7 +576,7 @@ class Genode::Xml_node
 		 * points directly into a sub range of the unmodified Xml_node
 		 * address range.
 		 *
-		 * XXX This function is deprecated. Use 'content_base()' instead.
+		 * XXX This method is deprecated. Use 'content_base()' instead.
 		 */
 		char *content_addr() const { return _start_tag.next_token().start(); }
 
@@ -758,7 +758,7 @@ class Genode::Xml_node
 		 * reads optional attributes (those with default values) has to
 		 * handle the exception accordingly. Such code tends to become
 		 * clumsy, in particular when many attributes are processed in a
-		 * subsequent fashion. This function template relieves the XML node
+		 * subsequent fashion. This method template relieves the XML node
 		 * user from implementing the exception handling manually.
 		 */
 		template <typename T>

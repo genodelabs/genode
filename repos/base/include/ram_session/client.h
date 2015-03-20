@@ -1,5 +1,5 @@
 /*
- * \brief  Client-side ram session interface
+ * \brief  Client-side RAM session interface
  * \author Norman Feske
  * \date   2006-05-31
  */

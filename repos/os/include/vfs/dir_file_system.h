@@ -354,7 +354,7 @@ class Vfs::Dir_file_system : public File_system
 				path = _sub_path(path);
 
 				/*
-				 * If the resulting 'path' is non-NULL, the path lies
+				 * If the resulting 'path' is non-null, the path lies
 				 * within our tree. In this case, determine the sum of
 				 * matching dirents of all our file systems. Otherwise,
 				 * the specified path lies outside our directory node.

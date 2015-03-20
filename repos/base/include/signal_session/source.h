@@ -27,7 +27,7 @@ namespace Genode { struct Signal_source; }
 /**
  * Blocking part of the signal-session interface
  *
- * The blocking 'wait_for_signal()' function cannot be part of the
+ * The blocking 'wait_for_signal()' operation cannot be part of the
  * signal-session interface because otherwise, context allocations or
  * signal submissions would not be possible while blocking for signals.
  * Therefore, the blocking part is implemented a separate interface,

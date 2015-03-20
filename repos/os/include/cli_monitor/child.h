@@ -188,7 +188,7 @@ class Child_base : public Genode::Child_policy
 		/**
 		 * Try to respond to a current resource request issued by the child
 		 *
-		 * This function evaluates the conditions, under which a resource
+		 * This method evaluates the conditions, under which a resource
 		 * request can be answered: There must be enough room between the
 		 * current quota and the configured limit, and there must be enough
 		 * slack memory available. If both conditions are met, the quota
@@ -236,7 +236,7 @@ class Child_base : public Genode::Child_policy
 		/**
 		 * Return RAM quota status of the child
 		 *
-		 * XXX should be a const function, but the 'Ram_session' accessors
+		 * XXX should be a const method, but the 'Ram_session' accessors
 		 *     are not const
 		 */
 		Ram_status ram_status()

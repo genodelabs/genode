@@ -76,7 +76,7 @@ struct Genode::Signal_session : Session
 	 * but by using it as argument to our trusted signal-session
 	 * interface. Otherwise, a potential signal receiver could supply
 	 * a capability with a blocking interface to compromise the
-	 * nonblocking behaviour of the submit function.
+	 * nonblocking behaviour of the signal submission.
 	 */
 	virtual void submit(Signal_context_capability context,
 	                    unsigned cnt = 1) = 0;

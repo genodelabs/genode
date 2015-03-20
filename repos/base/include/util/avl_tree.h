@@ -43,16 +43,16 @@ class Genode::Avl_node_base
 			 * \retval false if n2 is lower than n1
 			 * \retval true  if n2 is higher than or equal to n1
 			 *
-			 * This function must be provided by the derived class.
-			 * It determines the order of nodes inside the avl tree.
+			 * This method must be provided by the derived class.
+			 * It determines the order of nodes inside the AVL tree.
 			 */
 			virtual bool higher(Avl_node_base *n1, Avl_node_base *n2) const = 0;
 
 			/**
 			 * Node recomputation hook
 			 *
-			 * If a node gets rearranged, this function is called.
-			 * It can be used to update avl-tree-position dependent
+			 * If a node gets rearranged, this method is called.
+			 * It can be used to update AVL-tree-position dependent
 			 * meta data.
 			 */
 			virtual void recompute(Avl_node_base *) { }
@@ -137,30 +137,37 @@ class Genode::Avl_node_base
  *
  * \param NT  type of the class derived from 'Avl_node'
  *
- * Each object to be stored in the avl tree must be derived from
- * 'Avl_node'. The type of the derived class is to be specified as
- * template argument to enable 'Avl_node' to call virtual functions
- * specific for the derived class.
+ * Each object to be stored in the AVL tree must be derived from 'Avl_node'.
+ * The type of the derived class is to be specified as template argument to
+ * enable 'Avl_node' to call virtual methods specific for the derived class.
+ *
+ * The NT class must implement a method called 'higher' that takes a pointer to
+ * another NT object as argument and returns a bool value. The bool value is
+ * true if the specified node is higher or equal in the tree order.
  */
 template <typename NT>
-class Genode::Avl_node : public Avl_node_base
+struct Genode::Avl_node : Avl_node_base
 {
-	public:
+	/**
+	 * Return child of specified side, or nullptr if there is no child
+	 *
+	 * This method can be called by the NT objects to traverse the tree.
+	 */
+	inline NT *child(Side i) const { return static_cast<NT *>(_child[i]); }
 
-		inline NT *child(Side i) const { return static_cast<NT *>(_child[i]); }
-
-		/**
-		 * Default policy
-		 */
-		void recompute() { }
+	/**
+	 * Default policy
+	 *
+	 * \noapi
+	 */
+	void recompute() { }
 };
 
 
 /**
  * Root node of the AVL tree
  *
- * The real nodes are always attached at the left branch of
- * this root node.
+ * The real nodes are always attached at the left branch of this root node.
  */
 template <typename NT>
 class Genode::Avl_tree : Avl_node<NT>
@@ -199,8 +206,7 @@ class Genode::Avl_tree : Avl_node<NT>
 		/**
 		 * Request first node of the tree
 		 *
-		 * \return  first node
-		 * \retval  NULL if tree is empty
+		 * \return  first node, or nullptr if the tree is empty
 		 */
 		inline NT *first() const { return this->child(Avl_node<NT>::LEFT); }
 };

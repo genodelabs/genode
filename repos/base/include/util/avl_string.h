@@ -32,6 +32,11 @@ class Genode::Avl_string_base : public Avl_node<Avl_string_base>
 
 	protected:
 
+		/**
+		 * Constructor
+		 *
+		 * \noapi
+		 */
 		Avl_string_base(const char *str) : _str(str) { }
 
 	public:

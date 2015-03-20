@@ -266,7 +266,7 @@ class Net::Arp_packet
 
 
 		/***************************
-		 ** convenience functions **
+		 ** Convenience functions **
 		 ***************************/
 
 		/**

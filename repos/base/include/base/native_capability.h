@@ -38,8 +38,8 @@ namespace Genode { template <typename> class Native_capability_tpl; }
  *
  * The 'Dst' type is the platform-specific destination type (e.g., the ID
  * of the destination thread targeted by the capability). The 'valid'
- * function returns true if the specified destination is valid. The
- * 'invalid' function produces an invalid destination.
+ * method returns true if the specified destination is valid. The
+ * 'invalid' method produces an invalid destination.
  */
 template <typename POLICY>
 class Genode::Native_capability_tpl

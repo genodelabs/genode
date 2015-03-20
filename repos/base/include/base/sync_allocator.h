@@ -165,7 +165,7 @@ class Genode::Synchronized_range_allocator : public Range_allocator
 		 * methods in addition to the Range_allocator interface.
 		 *
 		 * NOTE: Synchronize accesses to the raw allocator by facilitating
-		 * the lock() member function.
+		 * the lock() method.
 		 */
 		ALLOCATOR_IMPL *raw() { return &_alloc; }
 

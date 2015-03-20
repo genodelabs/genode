@@ -70,7 +70,7 @@ struct Nic::Driver : Genode::Irq_handler
 	 * \param packet start of packet
 	 * \param size   packet size
 	 *
-	 * If the packet size is not a multiple of 4 bytes, this function
+	 * If the packet size is not a multiple of 4 bytes, this method
 	 * accesses the bytes after the packet buffer up to the next 4-byte
 	 * length (in the worst case, 3 bytes after the packet end).
 	 */

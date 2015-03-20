@@ -18,7 +18,7 @@
 
 
 /**
- * Macro for declaring a RPC function
+ * Macro for declaring an RPC function
  *
  * \param rpc_name   type name representing the RPC function
  * \param ret_type   RPC return type

@@ -43,9 +43,9 @@ class Net::Network_address
 			Genode::memcpy(&addr, src, LEN); }
 
 
-		/***********************
-		 ** Helper functions  **
-		 ***********************/
+		/*********************
+		 ** Helper methods  **
+		 *********************/
 
 		void copy(void *dst) { Genode::memcpy(dst, addr, LEN); }
 

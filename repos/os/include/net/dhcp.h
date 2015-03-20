@@ -252,9 +252,9 @@ class Net::Dhcp_packet
 			mac.copy(&_chaddr); }
 
 
-		/***************************
-		 ** Convenience functions **
-		 ***************************/
+		/*************************
+		 ** Convenience methods **
+		 *************************/
 
 		static bool is_dhcp(Udp_packet *udp)
 		{

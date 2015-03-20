@@ -73,10 +73,11 @@ class Genode::Object_pool
 				friend class Object_pool;
 				friend class Avl_tree<Entry>;
 
-				/**
-				 * Support functions for atomic lookup and lock
-				 * functionality of class Object_pool.
+				/*
+				 * Support methods for atomic lookup and lock functionality of
+				 * class Object_pool.
 				 */
+
 				void lock()   { _entry_lock.lock(); };
 				void unlock() { _entry_lock.unlock(); };
 

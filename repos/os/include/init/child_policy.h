@@ -47,7 +47,7 @@ class Init::Child_policy_ram_phys
 		/**
 		 * Filter arguments of session request
 		 *
-		 * This function removes phys_start and phys_size ram_session
+		 * This method removes phys_start and phys_size ram_session
 		 * parameters if the child configuration does not explicitly
 		 * permits this.
 		 */
@@ -86,7 +86,7 @@ class Init::Child_policy_enforce_labeling
 		/**
 		 * Filter arguments of session request
 		 *
-		 * This function modifies the 'label' argument and leaves all other
+		 * This method modifies the 'label' argument and leaves all other
 		 * session arguments intact.
 		 */
 		void filter_session_args(const char *, char *args,

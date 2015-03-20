@@ -29,10 +29,10 @@ struct Packet_stream_tx::Channel
 	/**
 	 * Request transmission interface
 	 *
-	 * This function enables the client-side use of the 'Channel' using
+	 * This method enables the client-side use of the 'Channel' using
 	 * the abstract 'Channel' interface only. This is useful in cases
 	 * where both source and sink of the 'Channel' are co-located in
-	 * one program. At the server side of the 'Channel', this function
+	 * one program. At the server side of the 'Channel', this method
 	 * has no meaning.
 	 */
 	virtual Source *source() { return 0; }

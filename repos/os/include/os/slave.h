@@ -44,7 +44,7 @@ class Genode::Slave_policy : public Genode::Child_policy
 		/**
 		 * Return white list of services the slave is permitted to use
 		 *
-		 * The list is terminated via a NULL pointer.
+		 * The list is terminated via a null pointer.
 		 */
 		virtual char const **_permitted_services() const = 0;
 

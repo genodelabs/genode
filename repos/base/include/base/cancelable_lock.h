@@ -77,9 +77,9 @@ class Genode::Cancelable_lock
 		explicit Cancelable_lock(State initial = UNLOCKED);
 
 		/**
-		 * Try to aquire lock an block while lock is not free
+		 * Try to aquire the lock and block while the lock is not free
 		 *
-		 * This function may throw a Genode::Blocking_canceled exception.
+		 * \throw  Genode::Blocking_canceled
 		 */
 		void lock();
 

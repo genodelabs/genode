@@ -134,9 +134,9 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 		}
 
 
-		/*********************
-		 ** Dummy functions **
-		 *********************/
+		/*************
+		 ** Dummies **
+		 *************/
 
 		bool need_size_for_free() const override { return false; }
 		void free(void *addr) { }

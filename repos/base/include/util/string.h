@@ -1,5 +1,5 @@
 /*
- * \brief  String utility functions
+ * \brief  String utilities
  * \author Norman Feske
  * \author Sebastian Sumpf
  * \date   2006-05-10
@@ -59,7 +59,7 @@ class Genode::Number_of_bytes
 namespace Genode {
 
 	/**
-	 * Determine length of null-terminated string
+	 * Return length of null-terminated string in bytes
 	 */
 	inline size_t strlen(const char *s)
 	{
@@ -75,9 +75,9 @@ namespace Genode {
 	 * \param len   maximum number of characters to compare,
 	 *              default is unlimited
 	 *
-	 * \retval   0  strings are equal
-	 * \retval  >0  s1 is higher than s2
-	 * \retval  <0  s1 is lower than s2
+	 * \return   0 if both strings are equal, or
+	 *           a positive number if s1 is higher than s2, or
+	 *           a negative number if s1 is lower than s2
 	 */
 	inline int strcmp(const char *s1, const char *s2, size_t len = ~0UL)
 	{
@@ -87,7 +87,7 @@ namespace Genode {
 
 
 	/**
-	 * Simple memmove
+	 * Copy memory buffer to a potentially overlapping destination buffer
 	 *
 	 * \param dst   destination memory block
 	 * \param src   source memory block
@@ -110,7 +110,7 @@ namespace Genode {
 
 
 	/**
-	 * Copy memory block
+	 * Copy memory buffer to a non-overlapping destination buffer
 	 *
 	 * \param dst   destination memory block
 	 * \param src   source memory block
@@ -158,11 +158,11 @@ namespace Genode {
 	 * \param size  maximum number of characters to copy
 	 * \return      pointer to destination string
 	 *
-	 * This function is not fully compatible to the C standard, in particular
-	 * there is no zero-padding if the length of 'src' is smaller than 'size'.
-	 * Furthermore, in contrast to the libc version, this function always
-	 * produces a null-terminated string in the 'dst' buffer if the 'size'
-	 * argument is greater than 0.
+	 * Note that this function is not fully compatible to the C standard, in
+	 * particular there is no zero-padding if the length of 'src' is smaller
+	 * than 'size'. Furthermore, in contrast to the libc version, this function
+	 * always produces a null-terminated string in the 'dst' buffer if the
+	 * 'size' argument is greater than 0.
 	 */
 	inline char *strncpy(char *dst, const char *src, size_t size)
 	{
@@ -191,9 +191,9 @@ namespace Genode {
 	/**
 	 * Compare memory blocks
 	 *
-	 * \retval  0  memory blocks are equal
-	 * \retval <0  first memory block is less than second one
-	 * \retval >0  first memory block is greater than second one
+	 * \return  0 if both memory blocks are equal, or
+	 *          a negative number if 'p0' is less than 'p1', or
+	 *          a positive number if 'p0' is greater than 'p1'
 	 */
 	inline int memcmp(const void *p0, const void *p1, size_t size)
 	{
@@ -209,7 +209,11 @@ namespace Genode {
 
 
 	/**
-	 * Memset
+	 * Fill destination buffer with given value
+	 *
+	 * \param dst   destination buffer
+	 * \param i     byte value
+	 * \param size  buffer size in bytes
 	 */
 	inline void *memset(void *dst, int i, size_t size)
 	{

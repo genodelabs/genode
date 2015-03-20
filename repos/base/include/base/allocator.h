@@ -23,27 +23,13 @@ namespace Genode {
 	struct Allocator;
 	struct Range_allocator;
 
-	/**
-	 * Destroy object
-	 *
-	 * For destroying an object, we need to specify the allocator that was used
-	 * by the object. Because we cannot pass the allocator directly to the
-	 * delete expression, we mimic the expression by using this template
-	 * function. The function explicitly calls the object destructor and
-	 * operator delete afterwards.
-	 *
-	 * For details see https://github.com/genodelabs/genode/issues/1030.
-	 *
-	 * \param T        implicit object type
-	 *
-	 * \param dealloc  reference or pointer to allocator from which the object
-	 *                 was allocated
-	 * \param obj      object to destroy
-	 */
 	template <typename T, typename DEALLOC> void destroy(DEALLOC && dealloc, T *obj);
 }
 
 
+/**
+ * Deallocator interface
+ */
 struct Genode::Deallocator
 {
 	/**
@@ -56,7 +42,7 @@ struct Genode::Deallocator
 	 *
 	 * The generic 'Allocator' interface requires the caller of 'free'
 	 * to supply a valid size argument but not all implementations make
-	 * use of this argument. If this function returns false, it is safe
+	 * use of this argument. If this method returns false, it is safe
 	 * to call 'free' with an invalid size.
 	 *
 	 * Allocators that rely on the size argument must not be used for
@@ -94,7 +80,7 @@ struct Genode::Allocator : Deallocator
 	 * Allocate typed block
 	 *
 	 * This template allocates a typed block returned as a pointer to
-	 * a non-void type. By providing this function, we prevent the
+	 * a non-void type. By providing this method, we prevent the
 	 * compiler from warning us about "dereferencing type-punned
 	 * pointer will break strict-aliasing rules".
 	 */
@@ -115,11 +101,6 @@ struct Genode::Allocator : Deallocator
 	 * Return meta-data overhead per block
 	 */
 	virtual size_t overhead(size_t size) = 0;
-
-
-	/***************************
-	 ** Convenience functions **
-	 ***************************/
 
 	/**
 	 * Allocate block and signal error as an exception
@@ -199,7 +180,7 @@ struct Genode::Range_allocator : Allocator
 	/**
 	 * Free a previously allocated block
 	 *
-	 * NOTE: We have to declare the 'Allocator::free(void *)' function
+	 * NOTE: We have to declare the 'Allocator::free(void *)' method
 	 * here as well to make the compiler happy. Otherwise the C++
 	 * overload resolution would not find 'Allocator::free(void *)'.
 	 */
@@ -255,14 +236,30 @@ void *operator new [] (Genode::size_t, Genode::Allocator &);
  * we print a warning and pass the zero size argument anyway.
  *
  * :Warning: Never use an allocator that depends on the size argument of the
- *   'free()' function for the allocation of objects that may throw exceptions
+ *   'free()' method for the allocation of objects that may throw exceptions
  *   at their construction time!
  */
 void operator delete (void *, Genode::Deallocator *);
 void operator delete (void *, Genode::Deallocator &);
 
 
-/* implemented here as it needs the special delete operators */
+/**
+ * Destroy object
+ *
+ * For destroying an object, we need to specify the allocator that was used
+ * by the object. Because we cannot pass the allocator directly to the
+ * delete expression, we mimic the expression by using this template
+ * function. The function explicitly calls the object destructor and
+ * operator delete afterwards.
+ *
+ * For details see https://github.com/genodelabs/genode/issues/1030.
+ *
+ * \param T        implicit object type
+ *
+ * \param dealloc  reference or pointer to allocator from which the object
+ *                 was allocated
+ * \param obj      object to destroy
+ */
 template <typename T, typename DEALLOC>
 void Genode::destroy(DEALLOC && dealloc, T *obj)
 {

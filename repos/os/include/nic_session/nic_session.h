@@ -2,18 +2,6 @@
  * \brief  NIC session interface
  * \author Norman Feske
  * \date   2009-11-13
- *
- * A NIC session corresponds to a network adaptor, which can be used to
- * transmit and receive network packets. Payload is communicated over the
- * packet-stream interface set up between 'Session_client' and
- * 'Session_server'.
- *
- * Even though the functions 'tx', 'tx_channel', 'rx', and 'rx_channel' are
- * specific for the client side of the NIC session interface, they are part of
- * the abstract 'Session' class to enable the client-side use of the NIC
- * interface via a pointer to the abstract 'Session' class. This way, we can
- * transparently co-locate the packet-stream server with the client in same
- * program.
  */
 
 /*
@@ -48,6 +36,21 @@ namespace Nic {
 struct Nic::Mac_address { char addr[6]; };
 
 
+/*
+ * NIC session interface
+ *
+ * A NIC session corresponds to a network adaptor, which can be used to
+ * transmit and receive network packets. Payload is communicated over the
+ * packet-stream interface set up between 'Session_client' and
+ * 'Session_server'.
+ *
+ * Even though the methods 'tx', 'tx_channel', 'rx', and 'rx_channel' are
+ * specific for the client side of the NIC session interface, they are part of
+ * the abstract 'Session' class to enable the client-side use of the NIC
+ * interface via a pointer to the abstract 'Session' class. This way, we can
+ * transparently co-locate the packet-stream server with the client in same
+ * program.
+ */
 struct Nic::Session : Genode::Session
 {
 	enum { QUEUE_SIZE = 1024 };

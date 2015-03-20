@@ -34,7 +34,7 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 		 * e.g., written by the main thread and consumed by the child's
 		 * entrypoint that manages the local ROM service for handing out a
 		 * dynamic config. Hence, the '_lock' is used to synchronize the
-		 * 'load' and 'dataspace' functions.
+		 * 'load' and 'dataspace' methods.
 		 */
 		Lock _lock;
 
@@ -156,9 +156,9 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 		void close(Session_capability) { }
 
 
-		/*********************
-		 ** Policy function **
-		 *********************/
+		/**********************
+		 ** Policy interface **
+		 **********************/
 
 		Service *resolve_session_request(const char *service_name,
 		                                 const char *args)

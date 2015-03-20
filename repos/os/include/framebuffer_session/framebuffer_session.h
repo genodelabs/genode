@@ -76,9 +76,9 @@ struct Framebuffer::Session : Genode::Session
 	/**
 	 * Request dataspace representing the logical frame buffer
 	 *
-	 * By calling this function, the framebuffer client enables the server
+	 * By calling this method, the framebuffer client enables the server
 	 * to reallocate the framebuffer dataspace (e.g., on mode changes).
-	 * Hence, prior calling this function, the client should make sure to
+	 * Hence, prior calling this method, the client should make sure to
 	 * have detached the previously requested dataspace from its local
 	 * address space.
 	 */
@@ -86,7 +86,7 @@ struct Framebuffer::Session : Genode::Session
 
 	/**
 	 * Request display-mode properties of the framebuffer ready to be
-	 * obtained via the 'dataspace()' function
+	 * obtained via the 'dataspace()' method
 	 */
 	virtual Mode mode() const = 0;
 
@@ -98,7 +98,7 @@ struct Framebuffer::Session : Genode::Session
 	 * get resized according to the window dimensions. By installing a
 	 * signal handler for mode changes, the framebuffer client can respond
 	 * to such changes. The new mode can be obtained using the 'mode()'
-	 * function. However, from the client's perspective, the original mode
+	 * method. However, from the client's perspective, the original mode
 	 * stays in effect until the it calls 'dataspace()' again.
 	 */
 	virtual void mode_sigh(Genode::Signal_context_capability sigh) = 0;

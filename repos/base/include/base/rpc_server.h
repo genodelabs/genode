@@ -42,11 +42,11 @@ namespace Genode {
  * server functions according to the RPC declarations in 'RPC_INTERFACE'.
  *
  * If using the default argument for 'SERVER', the 'RPC_INTERFACE' is expected
- * to contain the abstract interface for all RPC functions. So virtual functions
+ * to contain the abstract interface for all RPC functions. So virtual methods
  * must be declared in 'RPC_INTERFACE'. In contrast, by explicitly specifying
- * the 'SERVER' argument, the server-side dispatching performs direct function
- * calls to the respective member functions of the 'SERVER' class and thereby
- * omits virtual functions calls.
+ * the 'SERVER' argument, the server-side dispatching performs direct
+ * calls to the respective methods of the 'SERVER' class and thereby
+ * omits virtual method calls.
  */
 template <typename RPC_INTERFACE, typename SERVER = RPC_INTERFACE>
 class Genode::Rpc_dispatcher : public RPC_INTERFACE
@@ -232,7 +232,7 @@ struct Genode::Rpc_object : Rpc_object_base, Rpc_dispatcher<RPC_INTERFACE, SERVE
  * activation-using server can ensure that it gets initialized completely
  * before the first capability invocations come in. Once the server is
  * ready, it must enable the entrypoint explicitly by calling the
- * 'activate()' function. The 'start_on_construction' argument is a
+ * 'activate()' method. The 'start_on_construction' argument is a
  * shortcut for the common case where the server's capability is handed
  * over to other parties _after_ the server is completely initialized.
  */
@@ -253,7 +253,7 @@ class Genode::Rpc_entrypoint : Thread_base, public Object_pool<Rpc_object_base>
 		/**
 		 * Hook to let low-level thread init code access private members
 		 *
-		 * This function is only used on NOVA.
+		 * This method is only used on NOVA.
 		 */
 		static void _activation_entry();
 
@@ -285,27 +285,37 @@ class Genode::Rpc_entrypoint : Thread_base, public Object_pool<Rpc_object_base>
 		Capability<Exit> _exit_cap;
 
 		/**
-		 * Back-end function to associate RPC object with the entry point
+		 * Back end used to associate RPC object with the entry point
+		 *
+		 * \noapi
 		 */
 		Untyped_capability _manage(Rpc_object_base *obj);
 
 		/**
-		 * Back-end function to Dissolve RPC object from entry point
+		 * Back end used to Dissolve RPC object from entry point
+		 *
+		 * \noapi
 		 */
 		void _dissolve(Rpc_object_base *obj);
 
 		/**
 		 * Force activation to cancel dispatching the specified server object
+		 *
+		 * \noapi
 		 */
 		void _leave_server_object(Rpc_object_base *obj);
 
 		/**
 		 * Wait until the entrypoint activation is initialized
+		 *
+		 * \noapi
 		 */
 		void _block_until_cap_valid();
 
 		/**
 		 * Thread interface
+		 *
+		 * \noapi
 		 */
 		void entry();
 
@@ -354,10 +364,12 @@ class Genode::Rpc_entrypoint : Thread_base, public Object_pool<Rpc_object_base>
 		/**
 		 * Request reply capability for current call
 		 *
-		 * Note: This is a temporary API function, which is going to be
-		 * removed. Please do not use this function.
+		 * \noapi
 		 *
-		 * Typically, a capability obtained via this function is used as
+		 * Note: This is a temporary API method, which is going to be
+		 * removed. Please do not use this method.
+		 *
+		 * Typically, a capability obtained via this method is used as
 		 * argument of 'intermediate_reply'.
 		 */
 		Untyped_capability reply_dst();
@@ -365,24 +377,28 @@ class Genode::Rpc_entrypoint : Thread_base, public Object_pool<Rpc_object_base>
 		/**
 		 * Prevent reply of current request
 		 *
-		 * Note: This is a temporary API function, which is going to be
-		 * removed. Please do not use this function.
+		 * \noapi
 		 *
-		 * This function can be used to keep the calling client blocked
+		 * Note: This is a temporary API method, which is going to be
+		 * removed. Please do not use this method.
+		 *
+		 * This method can be used to keep the calling client blocked
 		 * after the server has finished the processing of the client's
 		 * request. At a later time, the server may chose to unblock the
-		 * client via the 'intermedate_reply' function.
+		 * client via the 'intermedate_reply' method.
 		 */
 		void omit_reply();
 
 		/**
 		 * Send a reply out of the normal call-reply order
 		 *
-		 * Note: This is a temporary API function, which is going to be
-		 * removed. Please do not use this function.
+		 * \noapi
 		 *
-		 * In combination with the 'reply_dst' accessor functions, this
-		 * function can be used to implement services that dispatch client
+		 * Note: This is a temporary API method, which is going to be
+		 * removed. Please do not use this method.
+		 *
+		 * In combination with the 'reply_dst' accessor method, this
+		 * method can be used to implement services that dispatch client
 		 * requests out of order. In such cases, the server activation may
 		 * send reply messages to multiple blocking clients before
 		 * answering the original call.
@@ -391,6 +407,10 @@ class Genode::Rpc_entrypoint : Thread_base, public Object_pool<Rpc_object_base>
 
 		/**
 		 * Return true if the caller corresponds to the entrypoint called
+		 *
+		 * \noapi
+		 *
+		 * This method is solely needed on Linux.
 		 */
 		bool is_myself() const;
 };

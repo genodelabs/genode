@@ -122,7 +122,7 @@ class Init::Child_config
 		/**
 		 * Return file name if configuration comes from a file
 		 *
-		 * If the configuration is provided inline, the function returns 0.
+		 * If the configuration is provided inline, the method returns 0.
 		 */
 		char const *filename() const {
 			return _filename[0] != 0 ? _filename : 0; }
@@ -130,7 +130,7 @@ class Init::Child_config
 		/**
 		 * Request dataspace holding the start node's configuration data
 		 *
-		 * This function returns a valid dataspace only when using an
+		 * This method returns a valid dataspace only when using an
 		 * inline configuration (if 'filename()' returns 0).
 		 */
 		Genode::Dataspace_capability dataspace() {

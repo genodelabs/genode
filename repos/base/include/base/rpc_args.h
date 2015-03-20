@@ -114,7 +114,7 @@ class Genode::Rpc_in_buffer : public Rpc_in_buffer_base
 		 *
 		 * \return  pointer to null-terminated string
 		 *
-		 * The function returns an empty string if the buffer does not hold
+		 * The method returns an empty string if the buffer does not hold
 		 * a valid null-terminated string. To distinguish a buffer holding
 		 * an invalid string from a buffer holding a valid empty string,
 		 * the function 'is_valid_string' can be used.

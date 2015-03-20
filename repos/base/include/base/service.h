@@ -370,9 +370,9 @@ class Genode::Service_registry
 		/**
 		 * Wait for service
 		 *
-		 * This function is called by the clients's thread
-		 * when requesting a session creation. It blocks
-		 * if the requested service is not available.
+		 * This method is called by the clients's thread when requesting a
+		 * session creation. It blocks if the requested service is not
+		 * available.
 		 *
 		 * \return  service structure that matches the request or
 		 *          0 if the waiting was canceled.
@@ -422,7 +422,7 @@ class Genode::Service_registry
 		/**
 		 * Register service
 		 *
-		 * This function is called by the server's thread.
+		 * This method is called by the server's thread.
 		 */
 		void insert(Service *service)
 		{

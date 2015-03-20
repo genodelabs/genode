@@ -105,7 +105,7 @@ struct Genode::Child_policy
 	/**
 	 * Reference RAM session
 	 *
-	 * The RAM session returned by this function is used for session-quota
+	 * The RAM session returned by this method is used for session-quota
 	 * transfers.
 	 */
 	virtual Ram_session *ref_ram_session() { return env()->ram_session(); }
@@ -113,7 +113,7 @@ struct Genode::Child_policy
 	/**
 	 * Return platform-specific PD-session arguments
 	 *
-	 * This function is used on Linux to supply additional PD-session
+	 * This method is used on Linux to supply additional PD-session
 	 * argument to core, i.e., the chroot path, the UID, and the GID.
 	 */
 	virtual Native_pd_args const *pd_args() const { return 0; }
@@ -121,7 +121,7 @@ struct Genode::Child_policy
 	/**
 	 * Respond to the release of resources by the child
 	 *
-	 * This function is called when the child confirms the release of
+	 * This method is called when the child confirms the release of
 	 * resources in response to a yield request.
 	 */
 	virtual void yield_response() { }
@@ -137,14 +137,11 @@ struct Genode::Child_policy
  * Implementation of the parent interface that supports resource trading
  *
  * There are three possible cases of how a session can be provided to
- * a child:
- *
- * # The service is implemented locally
- * # The session was obtained by asking our parent
- * # The session is provided by one of our children
+ * a child: The service is implemented locally, the session was obtained by
+ * asking our parent, or the session is provided by one of our children.
  *
  * These types must be differentiated for the quota management when a child
- * issues the closing of a session or a transfers quota via our parent
+ * issues the closing of a session or transfers quota via our parent
  * interface.
  *
  * If we close a session to a local service, we transfer the session quota
@@ -154,7 +151,7 @@ struct Genode::Child_policy
  * account and must transfer this amount to the session-closing child.
  *
  * If we close a session provided by a server child, we close the session
- * at the server, transfer the session quota from the server's ram session
+ * at the server, transfer the session quota from the server's RAM session
  * to our account, and subsequently transfer the same amount from our
  * account to the client.
  */
@@ -225,7 +222,7 @@ class Genode::Child : protected Rpc_object<Parent>
 		/**
 		 * Return service interface targetting the parent
 		 *
-		 * The service returned by this function is used as default
+		 * The service returned by this method is used as default
 		 * provider for the RAM, CPU, and RM resources of the child. It is
 		 * solely used for targeting resource donations during
 		 * 'Parent::upgrade_quota()' calls.
@@ -290,7 +287,7 @@ class Genode::Child : protected Rpc_object<Parent>
 		/**
 		 * Discard all sessions to specified service
 		 *
-		 * When this function is called, we assume the server protection
+		 * When this method is called, we assume the server protection
 		 * domain to be dead and all that all server quota was already
 		 * transferred back to our own 'env()->ram_session()' account. Note
 		 * that the specified server object may not exist anymore. We do
@@ -301,7 +298,7 @@ class Genode::Child : protected Rpc_object<Parent>
 		/**
 		 * Instruct the child to yield resources
 		 *
-		 * By calling this function, the child will be notified about the
+		 * By calling this method, the child will be notified about the
 		 * need to release the specified amount of resources. For more
 		 * details about the protocol between a child and its parent,
 		 * refer to the description given in 'parent/parent.h'.

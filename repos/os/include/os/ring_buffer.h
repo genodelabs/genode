@@ -86,8 +86,7 @@ class Ring_buffer
 		/**
 		 * Place element into ring buffer
 		 *
-		 * If the ring buffer is full, this function
-		 * throws an Overflow exception.
+		 * \throw Overflow  the ring buffer is full
 		 */
 		void add(ET ev)
 		{
@@ -106,8 +105,8 @@ class Ring_buffer
 		 *
 		 * \return  element
 		 *
-		 * If the ring buffer is empty, this function
-		 * blocks until an element gets available.
+		 * If the ring buffer is empty, this method blocks until an element
+		 * gets available.
 		 */
 		ET get()
 		{

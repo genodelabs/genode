@@ -2,13 +2,6 @@
  * \brief  RAM dataspace utility
  * \author Norman Feske
  * \date   2008-03-22
- *
- * The combination of RAM allocation and a local RM attachment
- * is a frequent use case. Each function may fail, which makes
- * error handling inevitable. This utility class encapsulates
- * this functionality to handle both operations as a transaction.
- * When embedded as a member, this class also takes care about
- * freeing and detaching the dataspace at destruction time.
  */
 
 /*
@@ -28,6 +21,15 @@
 namespace Genode { class Attached_ram_dataspace; }
 
 
+/*
+ * Utility for allocating and attaching a RAM dataspace
+ *
+ * The combination of RAM allocation and a local RM attachment is a frequent
+ * use case. Each function may fail, which makes error handling inevitable.
+ * This utility class encapsulates this functionality to handle both operations
+ * as a transaction. When embedded as a member, this class also takes care
+ * about freeing and detaching the dataspace at destruction time.
+ */
 class Genode::Attached_ram_dataspace
 {
 	private:

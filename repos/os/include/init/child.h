@@ -132,7 +132,7 @@ namespace Init {
 		Genode::size_t const child_name_len = Genode::strlen(child_name);
 
 		/*
-		 * If the function was called with a valid "label" string, the
+		 * If the method was called with a valid "label" string, the
 		 * following condition should be always satisfied. See the
 		 * comment in 'service_node_args_condition_satisfied'.
 		 */
@@ -180,7 +180,7 @@ namespace Init {
 			 * Skip child-name prefix if the key is the process "label".
 			 *
 			 * Because 'filter_session_args' is called prior the call of
-			 * 'resolve_session_request' from the 'Child::session' function,
+			 * 'resolve_session_request' from the 'Child::session' method,
 			 * 'args' contains the filtered arguments, in particular the label
 			 * prefixed with the child's name. For the 'if-args' declaration,
 			 * however, we want to omit specifying this prefix because the
@@ -261,7 +261,7 @@ class Init::Routed_service : public Genode::Service
 		                                   Genode::Affinity const &affinity)
 		{
 			/*
-			 * This function is called from the context of the client's
+			 * This method is called from the context of the client's
 			 * activation thread. If the service is not yet announced,
 			 * we let the client block.
 			 */

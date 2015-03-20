@@ -57,7 +57,7 @@ class Genode::Config
 		 *
 		 * \throw Invalid  if the new configuration has an invalid syntax
 		 *
-		 * This function is meant to be called as response to a signal
+		 * This method is meant to be called as response to a signal
 		 * received by the signal handler as registered via 'sigh()'.
 		 */
 		void reload();

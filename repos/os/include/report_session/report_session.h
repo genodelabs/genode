@@ -61,7 +61,7 @@ struct Report::Session : Genode::Session
 	 *
 	 * \param length  length of report in bytes
 	 *
-	 * While this function is called, the information in the dataspace
+	 * While this method is called, the information in the dataspace
 	 * must not be modified by the client.
 	 */
 	virtual void submit(size_t length) = 0;
@@ -74,7 +74,7 @@ struct Report::Session : Genode::Session
 	/**
 	 * Request a response from the recipient of reports
 	 *
-	 * By calling this function, the client expects that the server will
+	 * By calling this method, the client expects that the server will
 	 * replace the content of the dataspace with new information.
 	 *
 	 * \return length of response in bytes

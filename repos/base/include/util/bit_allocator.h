@@ -28,6 +28,11 @@ class Genode::Bit_allocator
 		addr_t          _next;
 		Bit_array<BITS> _array;
 
+		/**
+		 * Reserve consecutive number of bits
+		 *
+		 * \noapi
+		 */
 		void _reserve(addr_t bit_start, size_t const num)
 		{
 			if (!num) return;

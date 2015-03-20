@@ -1,5 +1,5 @@
 /*
- * \brief  Standard fixed-width integer types
+ * \brief  Fixed-width integer types for 64-bit architectures
  * \author Christian Helmuth
  * \author Norman Feske
  * \date   2006-05-10
@@ -18,9 +18,10 @@
 #define _INCLUDE__64BIT__BASE__FIXED_STDINT_H_
 
 
-/*
- * Fixed-size types usable from both C and C++ programs
- */
+/**********************************************************
+ ** Fixed-size types usable from both C and C++ programs **
+ **********************************************************/
+
 typedef signed char        genode_int8_t;
 typedef unsigned char      genode_uint8_t;
 typedef signed short       genode_int16_t;
@@ -31,9 +32,10 @@ typedef signed long long   genode_int64_t;
 typedef unsigned long long genode_uint64_t;
 
 
-/*
- * Types residing within Genode's C++ namespace
- */
+/**************************************************
+ ** Types residing within Genode's C++ namespace **
+ **************************************************/
+
 #ifdef __cplusplus
 namespace Genode {
 	typedef genode_int8_t     int8_t;

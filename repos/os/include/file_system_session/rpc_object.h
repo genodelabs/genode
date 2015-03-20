@@ -41,7 +41,7 @@ class File_system::Session_rpc_object : public Genode::Rpc_object<Session, Sessi
 		/**
 		 * Return capability to packet-stream channel
 		 *
-		 * This function is called by the client via an RPC call at session
+		 * This method is called by the client via an RPC call at session
 		 * construction time.
 		 */
 		Capability<Tx> _tx_cap() { return _tx.cap(); }

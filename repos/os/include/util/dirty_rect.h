@@ -75,7 +75,7 @@ class Genode::Dirty_rect
 		 * Call functor for each dirty area
 		 *
 		 * The functor 'fn' takes a 'Rect const &' as argument.
-		 * This function resets the dirty rectangles.
+		 * This method resets the dirty rectangles.
 		 */
 		template <typename FN>
 		void flush(FN const &fn)

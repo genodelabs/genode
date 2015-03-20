@@ -2,40 +2,6 @@
  * \brief  Utilities for object life-time management
  * \author Norman Feske
  * \date   2013-03-09
- *
- * This header provides utilities for avoiding dangling pointers. Such a
- * situation happens when an object disappears while pointers to the object
- * are still in use. One way to solve this problem is to explicitly notify the
- * holders of those pointers about the disappearance of the object. But this
- * would require the object to keep references to those pointer holder, which,
- * in turn, might disappear as well. Consequently, this approach tends to
- * become a complex solution, which is prone to deadlocks or race conditions
- * when multiple threads are involved.
- *
- * The utilities provided herein implement a more elegant pattern called
- * "weak pointers" to deal with such situations. An object that might
- * disappear at any time is represented by the 'Weak_object' class
- * template. It keeps track of a list of so-called weak pointers pointing
- * to the object. A weak pointer, in turn, holds privately the pointer to the
- * object alongside a validity flag. It cannot be used to dereference the
- * object. For accessing the actual object, a locked pointer must be created
- * from a weak pointer. If this creation succeeds, the object is guaranteed to
- * be locked (not destructed) until the locked pointer gets destroyed. If the
- * object no longer exists, the locked pointer will be invalid. This condition
- * can (and should) be detected via the 'Locked_ptr::is_valid()' function prior
- * dereferencing the pointer.
- *
- * In the event a weak object gets destructed, all weak pointers that point
- * to the object are automatically invalidated. So a subsequent conversion into
- * a locked pointer will yield an invalid pointer, which can be detected (in
- * contrast to a dangling pointer).
- *
- * To use this mechanism, the destruction of a weak object must be
- * deferred until no locked pointer points to the object anymore. This is
- * done by calling the function 'Weak_object::lock_for_destruction()'
- * at the beginning of the destructor of the to-be-destructed object.
- * When this function returns, all weak pointers to the object will have been
- * invalidated. So it is save to destruct and free the object.
  */
 
 /*
@@ -62,6 +28,12 @@ namespace Genode {
 }
 
 
+/**
+ * Type-agnostic base class of a weak pointer
+ *
+ * This class implements the mechanics of the the 'Weak_ptr' class template.
+ * It is not used directly.
+ */
 class Genode::Weak_ptr_base : public Genode::List<Weak_ptr_base>::Element
 {
 	private:
@@ -79,6 +51,11 @@ class Genode::Weak_ptr_base : public Genode::List<Weak_ptr_base>::Element
 
 	protected:
 
+		/**
+		 * Return pointer to object if it exists, or 0 if object vanished
+		 *
+		 * \noapi
+		 */
 		Weak_object_base *obj() const { return _valid ? _obj: 0; }
 
 		explicit inline Weak_ptr_base(Weak_object_base *obj);
@@ -104,11 +81,16 @@ class Genode::Weak_ptr_base : public Genode::List<Weak_ptr_base>::Element
 
 		/**
 		 * Inspection hook for unit test
+		 *
+		 * \noapi
 		 */
 		void debug_info() const;
 };
 
 
+/**
+ * Type-agnostic base class of a weak object
+ */
 class Genode::Weak_object_base
 {
 	private:
@@ -130,10 +112,17 @@ class Genode::Weak_object_base
 
 	protected:
 
+		/**
+		 * Destructor
+		 *
+		 * \noapi
+		 */
 		inline ~Weak_object_base();
 
 		/**
 		 * To be called from 'Weak_object<T>' only
+		 *
+		 * \noapi
 		 */
 		template <typename T>
 		Weak_ptr<T> _weak_ptr();
@@ -141,13 +130,17 @@ class Genode::Weak_object_base
 	public:
 
 		/**
-		 * Function to be called by the destructor of a weak object to
+		 * Mark object as safe to be destructed
+		 *
+		 * This method must be called by the destructor of a weak object to
 		 * defer the destruction until no 'Locked_ptr' is held to the object.
 		 */
 		void lock_for_destruction() { _destruct_lock.lock(); }
 
 		/**
 		 * Inspection hook for unit test
+		 *
+		 * \noapi
 		 */
 		void debug_info() const;
 };
@@ -159,11 +152,33 @@ class Genode::Locked_ptr_base
 
 		Weak_object_base *curr;
 
+		/**
+		 * Constructor
+		 *
+		 * \noapi
+		 */
 		inline Locked_ptr_base(Weak_ptr_base &weak_ptr);
+
+		/**
+		 * Destructor
+		 *
+		 * \noapi
+		 */
 		inline ~Locked_ptr_base();
 };
 
 
+/**
+ * Weak pointer to a given type
+ *
+ * A weak pointer can be obtained from a weak object (an object that inherits
+ * the 'Weak_object' class template) and safely survives the lifetime of the
+ * associated weak object. If the weak object disappears, all
+ * weak pointers referring to the object are automatically invalidated.
+ * To avoid race conditions between the destruction and use of a weak object,
+ * a weak pointer cannot be de-reference directly. To access the object, a
+ * weak pointer must be turned into a locked pointer ('Locked_ptr').
+ */
 template <typename T>
 struct Genode::Weak_ptr : Genode::Weak_ptr_base
 {
@@ -187,13 +202,38 @@ struct Genode::Weak_ptr : Genode::Weak_ptr_base
 };
 
 
+/**
+ * Weak object
+ *
+ * This class template must be inherited in order to equip an object with
+ * the weak-pointer mechanism.
+ *
+ * \param T  type of the derived class
+ */
 template <typename T>
 struct Genode::Weak_object : Genode::Weak_object_base
 {
+	/**
+	 * Obtain a weak pointer referring to the weak object
+	 */
 	Weak_ptr<T> weak_ptr() { return _weak_ptr<T>(); }
 };
 
 
+/**
+ * Locked pointer
+ *
+ * A locked pointer is constructed from a weak pointer. After construction,
+ * its validity can (and should) be checked by calling the 'is_valid'
+ * method. If the locked pointer is valid, the pointed-to object is known to
+ * be locked until the locked pointer is destroyed. During this time, the
+ * locked pointer can safely be de-referenced.
+ *
+ * The typical pattern of using a locked pointer is to declare it as a
+ * local variable. Once the execution leaves the scope of the variable, the
+ * locked pointer is destructed, which unlocks the pointed-to weak object.
+ * It effectively serves as a lock guard.
+ */
 template <typename T>
 struct Genode::Locked_ptr : Genode::Locked_ptr_base
 {
@@ -203,6 +243,12 @@ struct Genode::Locked_ptr : Genode::Locked_ptr_base
 
 	T &operator * () { return *static_cast<T *>(curr); }
 
+	/**
+	 * Returns true if the locked pointer is valid
+	 *
+	 * Only if valid, the locked pointer can be de-referenced. Otherwise,
+	 * the attempt will result in a null-pointer access.
+	 */
 	bool is_valid() const { return curr != 0; }
 };
 

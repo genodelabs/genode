@@ -106,7 +106,7 @@ struct Loader::Session : Genode::Session
 	/**
 	 * Constrain size of the nitpicker buffer used by the subsystem
 	 *
-	 * Calling this function prior 'start()' enables the virtualization
+	 * Calling this method prior 'start()' enables the virtualization
 	 * of the nitpicker session interface.
 	 */
 	virtual void constrain_geometry(Area size) = 0;
@@ -134,7 +134,7 @@ struct Loader::Session : Genode::Session
 	 * the possible types of faults, please refer to the documentation of
 	 * 'Rm_session::fault_handler' and 'Cpu_session::exception_handler'.
 	 *
-	 * This function should not be called after the 'start' function.
+	 * This method should not be called after the 'start' method.
 	 */
 	virtual void fault_sigh(Signal_context_capability sigh) = 0;
 

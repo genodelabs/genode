@@ -41,7 +41,7 @@ struct Nitpicker::Session : Genode::Session
 	/**
 	 * Session-local view handle
 	 *
-	 * When issuing commands to nitpicker via the 'execute' function, views
+	 * When issuing commands to nitpicker via the 'execute' method, views
 	 * are referenced by session-local handles.
 	 */
 	typedef Genode::Handle<View> View_handle;
@@ -155,7 +155,7 @@ struct Nitpicker::Session : Genode::Session
 			 * Enqueue command
 			 *
 			 * The command will be dropped if the buffer is full. Check for this
-			 * condition by calling 'is_full()' prior calling this function.
+			 * condition by calling 'is_full()' prior calling this method.
 			 */
 			void enqueue(Command const &command)
 			{
@@ -213,8 +213,8 @@ struct Nitpicker::Session : Genode::Session
 	/**
 	 * Return session-local handle for the specified view
 	 *
-	 * The handle returned by this functions can be used to issue commands
-	 * via the 'execute' function.
+	 * The handle returned by this method can be used to issue commands
+	 * via the 'execute' method.
 	 *
 	 * \param handle  designated view handle to be assigned to the imported
 	 *                view. By default, a new handle will be allocated.
@@ -269,7 +269,7 @@ struct Nitpicker::Session : Genode::Session
 	 * Set focused session
 	 *
 	 * Normally, the focused session is defined by the user by clicking on a
-	 * view. The 'focus' function allows a client to set the focus without user
+	 * view. The 'focus' method allows a client to set the focus without user
 	 * action. However, the change of the focus is performed only is the
 	 * currently focused session belongs to a child or the same process as the
 	 * called session. This relationship is checked by comparing the session

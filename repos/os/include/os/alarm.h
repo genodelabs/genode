@@ -32,7 +32,7 @@ class Genode::Alarm
 
 		friend class Alarm_scheduler;
 
-		Lock             _dispatch_lock;  /* taken during handle function */
+		Lock             _dispatch_lock;  /* taken during handle method   */
 		Time             _deadline;       /* next deadline                */
 		Time             _period;         /* duration between alarms      */
 		int              _active;         /* set to one when active       */
@@ -48,9 +48,9 @@ class Genode::Alarm
 	protected:
 
 		/**
-		 * Function to be called on when deadline is reached
+		 * Method to be called on when deadline is reached
 		 *
-		 * This function must be implemented by a derived class.  If the
+		 * This method must be implemented by a derived class.  If the
 		 * return value is 'true' and the alarm is periodically scheduled,
 		 * the alarm is scheduled again.
 		 */
@@ -68,14 +68,14 @@ class Genode::Alarm_scheduler
 {
 	private:
 
-		Lock         _lock;   /* protect alarm list                       */
-		Alarm       *_head;   /* head of alarm list                       */
-		Alarm::Time  _now;    /* recent time (updated by handle function) */
+		Lock         _lock;   /* protect alarm list                     */
+		Alarm       *_head;   /* head of alarm list                     */
+		Alarm::Time  _now;    /* recent time (updated by handle method) */
 
 		/**
 		 * Enqueue alarm into alarm queue
 		 *
-		 * This is a helper function for 'schedule' and 'handle'.
+		 * This is a helper for 'schedule' and 'handle'.
 		 */
 		void _unsynchronized_enqueue(Alarm *alarm);
 

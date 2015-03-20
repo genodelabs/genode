@@ -47,7 +47,7 @@ class Genode::Attached_rom_dataspace
 			 * '_rom.dataspace()'.
 			 *
 			 * The ROM server may destroy the original dataspace when the
-			 * 'dataspace()' function is called. In this case, all existing
+			 * 'dataspace()' method is called. In this case, all existing
 			 * mappings of the dataspace will be flushed by core. A destruction
 			 * of 'Attached_dataspace' after this point will attempt to detach
 			 * the already flushed mappings, thereby producing error messages

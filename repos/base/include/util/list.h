@@ -57,8 +57,6 @@ class Genode::List
 
 		/**
 		 * Constructor
-		 *
-		 * Start with an empty list.
 		 */
 		List() : _first(0) { }
 

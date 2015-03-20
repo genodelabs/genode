@@ -1,5 +1,5 @@
 /*
- * \brief  Interface of the printf backend
+ * \brief  Interface of the printf back end
  * \author Norman Feske
  * \date   2006-04-08
  */
@@ -19,9 +19,10 @@
 namespace Genode {
 
 	/**
-	 * For your convenience...
+	 * Output format string to LOG session
 	 */
 	void  printf(const char *format, ...) __attribute__((format(printf, 1, 2)));
+
 	void vprintf(const char *format, va_list) __attribute__((format(printf, 1, 0)));
 }
 

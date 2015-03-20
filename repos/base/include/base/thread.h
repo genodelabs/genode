@@ -78,7 +78,7 @@ namespace Genode {
  * Concurrent control flow
  *
  * A 'Thread_base' object corresponds to a physical thread. The execution
- * starts at the 'entry()' function as soon as 'start()' is called.
+ * starts at the 'entry()' method as soon as 'start()' is called.
  */
 class Genode::Thread_base
 {
@@ -260,7 +260,7 @@ class Genode::Thread_base
 		 *
 		 * On some platforms, each new thread has to perform a startup
 		 * protocol, e.g., waiting for a message from the kernel. This hook
-		 * function allows for the implementation of such protocols.
+		 * method allows for the implementation of such protocols.
 		 */
 		void _thread_bootstrap();
 
@@ -323,7 +323,7 @@ class Genode::Thread_base
 		/**
 		 * Return 'Trace::Logger' instance of calling thread
 		 *
-		 * This function is used by the tracing framework internally.
+		 * This method is used by the tracing framework internally.
 		 */
 		static Trace::Logger *_logger();
 
@@ -354,7 +354,7 @@ class Genode::Thread_base
 		 * Constructor
 		 *
 		 * \param quota       CPU quota that shall be granted to the thread
-		 * \param name        thread name for debugging
+		 * \param name        thread name for DEBUGging
 		 * \param stack_size  stack size
 		 *
 		 * \throw Stack_too_large
@@ -365,7 +365,6 @@ class Genode::Thread_base
 		 * of the process environment. A small portion of the stack size is
 		 * internally used by the framework for storing thread-context
 		 * information such as the thread's name ('Context').
-		 *
 		 */
 		Thread_base(size_t quota, const char *name, size_t stack_size)
 		:
@@ -400,14 +399,14 @@ class Genode::Thread_base
 		virtual ~Thread_base();
 
 		/**
-		 * Entry function of the thread
+		 * Entry method of the thread
 		 */
 		virtual void entry() = 0;
 
 		/**
 		 * Start execution of the thread
 		 *
-		 * This function is virtual to enable the customization of threads
+		 * This method is virtual to enable the customization of threads
 		 * used as server activation.
 		 */
 		virtual void start();
@@ -450,7 +449,9 @@ class Genode::Thread_base
 		void cancel_blocking();
 
 		/**
-		 * Only to be called from platform-specific code
+		 * Return thread ID
+		 *
+		 * \noapi  Only to be called from platform-specific code
 		 */
 		Native_thread & tid() { return _tid; }
 
@@ -471,8 +472,7 @@ class Genode::Thread_base
 		/**
 		 * Return 'Thread_base' object corresponding to the calling thread
 		 *
-		 * \return  pointer to 'Thread_base' object, or
-		 *          0 if the calling thread is the main thread
+		 * \return  pointer to caller's 'Thread_base' object
 		 */
 		static Thread_base *myself();
 
@@ -489,14 +489,15 @@ class Genode::Thread_base
 		/**
 		 * Return user-level thread control block
 		 *
-		 * Note that it is safe to call this function on the result of the
-		 * 'myself' function. It handles the special case of 'myself' being
-		 * 0 when called by the main thread.
+		 * Note that it is safe to call this method on the result of the
+		 * 'myself' class function. It handles the special case of 'myself'
+		 * being 0 when called by the main thread during the component
+		 * initialization phase.
 		 */
 		Native_utcb *utcb();
 
 		/**
-		 * Block until the thread leaves the 'entry' function
+		 * Block until the thread leaves the 'entry' method
 		 *
 		 * Join must not be called more than once. Subsequent calls have
 		 * undefined behaviour.

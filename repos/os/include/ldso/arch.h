@@ -1,5 +1,5 @@
 /*
- * \brief  Architecture specific functions
+ * \brief  Architecture-specific functions
  * \author Sebastian Sumpf
  * \date   2009-10-26
  */

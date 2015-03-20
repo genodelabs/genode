@@ -70,7 +70,7 @@ class Genode::Irq_activation : Thread_base
 		}
 
 		/**
-		 * Thread entry function
+		 * Thread entry
 		 *
 		 * The interrupt thread infinitely waits for interrupts and calls
 		 * the handler on occurrence.

@@ -60,7 +60,7 @@ class Genode::Handle
  * \param OBJ     type of context associated with a handle
  *
  * The constructor of the 'HANDLE' type must take an unsigned value as argument
- * and have a 'value()' function that returns the same value.
+ * and have a 'value()' method that returns the same value.
  *
  * The 'OBJ' type must be inherited from 'Weak_object'.
  */

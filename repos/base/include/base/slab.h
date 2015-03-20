@@ -59,11 +59,13 @@ class Genode::Slab_block
 		 */
 
 		/**
-		 * Accessor functions to allocation state
-		 *
-		 * \param idx  index of slab entry
+		 * Return the allocation state of a slab entry
 		 */
 		inline bool state(int idx) { return _data[idx]; }
+
+		/**
+		 * Set the allocation state of a slab entry
+		 */
 		inline void state(int idx, bool state) { _data[idx] = state; }
 
 		/**
@@ -205,16 +207,22 @@ class Genode::Slab : public Allocator
 
 		/**
 		 * Debug function for dumping the current slab block list
+		 *
+		 * \noapi
 		 */
 		void dump_sb_list();
 
 		/**
 		 * Remove block from slab block list
+		 *
+		 * \noapi
 		 */
 		void remove_sb(Slab_block *sb);
 
 		/**
 		 * Insert block into slab block list
+		 *
+		 * \noapi
 		 */
 		void insert_sb(Slab_block *sb, Slab_block *at = 0);
 
@@ -235,8 +243,16 @@ class Genode::Slab : public Allocator
 
 		/**
 		 * Define/request backing-store allocator
+		 *
+		 * \noapi
 		 */
 		void backing_store(Allocator *bs) { _backing_store = bs; }
+
+		/**
+		 * Request backing-store allocator
+		 *
+		 * \noapi
+		 */
 		Allocator *backing_store() { return _backing_store; }
 
 		/*************************

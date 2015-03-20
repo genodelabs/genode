@@ -103,7 +103,7 @@ struct Genode::Cpu_session : Session
 	/**
 	 * Pause the specified thread
 	 *
-	 * After calling this function, the execution of the thread can be
+	 * After calling this method, the execution of the thread can be
 	 * continued by calling 'resume'.
 	 */
 	virtual void pause(Thread_capability thread) = 0;
@@ -158,7 +158,7 @@ struct Genode::Cpu_session : Session
 	/**
 	 * Enable/disable single stepping for specified thread.
 	 *
-	 * Since this functions is currently supported by a small number of
+	 * Since this method is currently supported by a small number of
 	 * platforms, we provide a default implementation
 	 *
 	 * \param thread  thread to set into single step mode
@@ -169,7 +169,7 @@ struct Genode::Cpu_session : Session
 	/**
 	 * Return affinity space of CPU nodes available to the CPU session
 	 *
-	 * The dimension of the affinity space as returned by this function
+	 * The dimension of the affinity space as returned by this method
 	 * represent the physical CPUs that are available.
 	 */
 	virtual Affinity::Space affinity_space() const = 0;
@@ -335,7 +335,7 @@ struct Genode::Cpu_session : Session
 	/*
 	 * 'GENODE_RPC_INTERFACE' declaration done manually
 	 *
-	 * The number of RPC function of this interface exceeds the maximum
+	 * The number of RPC functions of this interface exceeds the maximum
 	 * number of elements supported by 'Meta::Type_list'. Therefore, we
 	 * construct the type list by hand using nested type tuples instead
 	 * of employing the convenience macro 'GENODE_RPC_INTERFACE'.

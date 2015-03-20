@@ -71,8 +71,6 @@ class Genode::Fifo
 
 		/**
 		 * Constructor
-		 *
-		 * Start with an empty list.
 		 */
 		Fifo(): _head(0), _tail(0) { }
 
@@ -130,7 +128,7 @@ class Genode::Fifo
 		}
 
 		/**
-		 * Obtain head element of the queue and remove element from queue
+		 * Remove head element from queue
 		 *
 		 * \return  head element or 0 if queue is empty
 		 */

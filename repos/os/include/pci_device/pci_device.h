@@ -150,10 +150,6 @@ struct Pci::Device
 	                          Access_size size) = 0;
 
 
-	/***************************
-	 ** Convenience functions **
-	 ***************************/
-
 	/*
 	 * The base classes are defined as follows:
 	 *

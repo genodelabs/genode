@@ -46,11 +46,11 @@ struct Genode::Rom_session : Session
 	 *
 	 * The capability may be invalid.
 	 *
-	 * Consecutive calls of this functions are not guaranteed to return the
+	 * Consecutive calls of this method are not guaranteed to return the
 	 * same dataspace as dynamic ROM sessions may update the ROM data
-	 * during the lifetime of the session. When calling the function, the
+	 * during the lifetime of the session. When calling the method, the
 	 * server may destroy the old dataspace and replace it with a new one
-	 * containing the updated data. Hence, prior calling this function, the
+	 * containing the updated data. Hence, prior calling this method, the
 	 * client should make sure to detach the previously requested dataspace
 	 * from its local address space.
 	 */
@@ -59,7 +59,7 @@ struct Genode::Rom_session : Session
 	/**
 	 * Update ROM dataspace content
 	 *
-	 * This function is an optimization for use cases where ROM dataspaces
+	 * This method is an optimization for use cases where ROM dataspaces
 	 * are updated at a high rate. In such cases, requesting a new
 	 * dataspace for each update induces a large overhead because
 	 * memory mappings must be revoked and updated (e.g., handling the
@@ -67,12 +67,12 @@ struct Genode::Rom_session : Session
 	 * fits in the existing dataspace, those costly operations can be
 	 * omitted.
 	 *
-	 * When this function is called, the server may replace the dataspace
+	 * When this method is called, the server may replace the dataspace
 	 * content with new data.
 	 *
 	 * \return true if the existing dataspace contains up-to-date content,
 	 *         or false if a new dataspace must be requested via the
-	 *         'dataspace' function
+	 *         'dataspace' method
 	 */
 	virtual bool update() { return false; }
 
@@ -85,7 +85,7 @@ struct Genode::Rom_session : Session
 	 * where this data is generated rather than originating from a static
 	 * file, for example to update a program's configuration at runtime.
 	 *
-	 * By installing a signal handler using the 'sigh()' function, the
+	 * By installing a signal handler using the 'sigh()' method, the
 	 * client will receive a notification each time the data changes at the
 	 * server. From the client's perspective, the original data contained
 	 * in the currently used dataspace remains unchanged until the client

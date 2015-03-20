@@ -61,7 +61,7 @@ class Genode::Arg
 		 * \param  out_sign     1 if positive; -1 if negative
 		 * \return              true if no syntactic anomaly occured
 		 *
-		 * This function handles the numberic modifiers G (2^30),
+		 * This method handles the numberic modifiers G (2^30),
 		 * M (2^20), and K (2^10).
 		 */
 		bool read_ulong(unsigned long *out_value, int *out_sign) const
@@ -228,7 +228,7 @@ class Genode::Arg_string
 		/**
 		 * Append source string to destination string
 		 *
-		 * NOTE: check string length before calling this function!
+		 * NOTE: check string length before calling this method!
 		 *
 		 * \return  last character of result string
 		 */

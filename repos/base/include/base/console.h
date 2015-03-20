@@ -34,18 +34,18 @@ class Genode::Console
 	protected:
 
 		/**
-		 * Backend function for the output of one character
+		 * Back end used for the output of a single character
 		 */
 		virtual void _out_char(char c) = 0;
 
 		/**
-		 * Backend function for the output of a null-terminated string
+		 * Back end for the output of a null-terminated string
 		 *
-		 * The default implementation uses _out_char. This function may
+		 * The default implementation uses _out_char. This method may
 		 * be overridden by the backend for improving efficiency.
 		 *
-		 * This function is virtual to enable the use an optimized
-		 * string-output functions on some target platforms, e.g.
+		 * This method is virtual to enable the use an optimized
+		 * string-output operation on some target platforms, e.g.,
 		 * a kernel debugger that offers a string-output syscall. The
 		 * default implementation calls '_out_char' for each character.
 		 */

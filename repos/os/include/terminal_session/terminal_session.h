@@ -66,7 +66,7 @@ struct Terminal::Session : Genode::Session
 	/**
 	 * Register signal handler to be informed about the established connection
 	 *
-	 * This function is used for a simple startup protocol of terminal
+	 * This method is used for a simple startup protocol of terminal
 	 * sessions. At session-creation time, the terminal session may not
 	 * be ready to use. For example, a TCP terminal session needs an
 	 * established TCP connection first. However, we do not want to let the

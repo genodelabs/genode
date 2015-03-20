@@ -23,7 +23,7 @@
  *              about the glyph and its attributes
  *
  * The 'CELL' type must have a default constructor and has to provide the
- * function 'set_cursor()' and 'clear_cursor'.
+ * methods 'set_cursor()' and 'clear_cursor'.
  */
 template <typename CELL>
 class Cell_array

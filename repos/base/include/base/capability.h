@@ -90,7 +90,7 @@ class Genode::Capability : public Untyped_capability
 		 * A server-side exception is indicated by a non-zero exception
 		 * code. Each exception code corresponds to an entry in the
 		 * exception type list specified in the RPC function declaration.
-		 * The '_check_for_exception' function template throws the
+		 * The '_check_for_exception' method template throws the
 		 * exception type belonging to the received exception code.
 		 */
 		template <typename EXC_TL>
@@ -117,7 +117,7 @@ class Genode::Capability : public Untyped_capability
 		           typename IF::Ret_type    &ret) const;
 
 		/**
-		 * Shortcut for querying argument types used in 'call' functions
+		 * Shortcut for querying argument types used in 'call' methods
 		 */
 		template <typename IF, unsigned I>
 		struct Arg
@@ -148,7 +148,7 @@ class Genode::Capability : public Untyped_capability
 		 *
 		 * Each 'call' overload creates an instance of the return value
 		 * type as local variable. A reference to this variable is passed
-		 * to the '_call' function, which will assign its value. Even
+		 * to the '_call' method, which will assign its value. Even
 		 * though the variable does not need to be initialized prior the
 		 * call of '_call', the GCC will still complain "warning: ‘ret’ may
 		 * be used uninitialized in this function". Wrapping the return
