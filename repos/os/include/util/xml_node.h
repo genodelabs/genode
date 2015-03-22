@@ -17,31 +17,69 @@
 #include <util/token.h>
 #include <base/exception.h>
 
-namespace Genode { class Xml_node; }
+namespace Genode {
+
+	class Xml_attribute;
+	class Xml_node;
+}
 
 
 /**
- * Representation of an XML node
+ * Representation of an XML-node attribute
+ *
+ * An attribute has the form 'name="value"'.
  */
-class Genode::Xml_node
+class Genode::Xml_attribute
 {
-	/**
-	 * Scanner policy that accepts hyphens in identifiers
-	 */
-	struct Scanner_policy_xml_identifier {
-		static bool identifier_char(char c, unsigned i) {
-			return is_letter(c) || c == '_' || c == ':'
-			    || (i && (c == '-' || c == '.' || is_digit(c))); } };
+	private:
 
-	/**
-	 * Define tokenizer that matches XML tags (with hyphens) as identifiers
-	 */
-	typedef ::Genode::Token<Scanner_policy_xml_identifier> Token;
+		/**
+		 * Scanner policy that accepts hyphens in identifiers
+		 */
+		struct Scanner_policy_xml_identifier {
+			static bool identifier_char(char c, unsigned i) {
+				return is_letter(c) || c == '_' || c == ':'
+				    || (i && (c == '-' || c == '.' || is_digit(c))); } };
 
-	/**
-	 * Forward declaration needed for befriending Tag with Attribut
-	 */
-	class Tag;
+		/**
+		 * Define tokenizer that matches XML tags (with hyphens) as identifiers
+		 */
+		typedef ::Genode::Token<Scanner_policy_xml_identifier> Token;
+
+		Token _name;
+		Token _value;
+
+		friend class Xml_node;
+
+		/*
+		 * Even though 'Tag' is part of 'Xml_node', the friendship
+		 * to 'Xml_node' does not apply for 'Tag' when compiling
+		 * the code with 'gcc-3.4'. Hence, we need to add an
+		 * explicit friendship to 'Tag'.
+		 */
+		friend class Tag;
+
+		/**
+		 * Constructor
+		 *
+		 * This constructor is meant to be used as implicitly to
+		 * construct an 'Xml_attribute' from a token sequence via an
+		 * assignment from the leading 'Token'.
+		 */
+		Xml_attribute(Token t) :
+			_name(t.eat_whitespace()), _value(_name.next().next())
+		{
+			if (_name.type() != Token::IDENT)
+				throw Nonexistent_attribute();
+
+			if (_name.next()[0] != '=' || _value.type() != Token::STRING)
+				throw Invalid_syntax();
+		}
+
+		/**
+		 * Return token following the attribute declaration
+		 */
+		Token _next() const { return _name.next().next().next(); }
 
 	public:
 
@@ -49,136 +87,121 @@ class Genode::Xml_node
 		 ** Exception types **
 		 *********************/
 
-		class Exception             : public ::Genode::Exception { };
 		class Invalid_syntax        : public Exception { };
-		class Nonexistent_sub_node  : public Exception { };
 		class Nonexistent_attribute : public Exception { };
 
 
 		/**
-		 * Representation of an XML-node attribute
-		 *
-		 * An attribute has the form 'name="value"'.
+		 * Return attribute type as null-terminated string
 		 */
-		class Attribute
+		void type(char *dst, size_t max_len) const
 		{
-			private:
+			/*
+			 * Limit number of characters by token length, take
+			 * null-termination into account.
+			 */
+			max_len = min(max_len, _name.len() + 1);
+			strncpy(dst, _name.start(), max_len);
+		}
 
-				Token _name;
-				Token _value;
+		/**
+		 * Return true if attribute has specified type
+		 */
+		bool has_type(const char *type) {
+			return strlen(type) == _name.len() &&
+			       strcmp(type, _name.start(), _name.len()) == 0; }
 
-				friend class Xml_node;
+		/**
+		 * Return size of value
+		 */
+		size_t      value_size() const { return _value.len() - 2; }
+		char const *value_base() const { return _value.start() + 1; }
 
-				/*
-				 * Even though 'Tag' is part of 'Xml_node', the friendship
-				 * to 'Xml_node' does not apply for 'Tag' when compiling
-				 * the code with 'gcc-3.4'. Hence, we need to add an
-				 * explicit friendship to 'Tag'.
-				 */
-				friend class Tag;
+		/**
+		 * Return attribute value as null-terminated string
+		 *
+		 * \return true on success, or
+		 *         false if attribute is invalid
+		 */
+		bool value(char *dst, size_t max_len) const
+		{
+			/*
+			 * The value of 'max_len' denotes the maximum number of
+			 * characters to be written to 'dst' including the null
+			 * termination. From the quoted value string, we strip
+			 * both quote characters and add a null-termination
+			 * character.
+			 */
+			max_len = min(max_len, _value.len() - 2 + 1);
+			strncpy(dst, _value.start() + 1, max_len);
+			return true;
+		}
 
-				/**
-				 * Constructor
-				 *
-				 * This constructor is meant to be used as implicitly to
-				 * construct an 'Xml_attribute' from a token sequence via an
-				 * assignment from the leading 'Token'.
-				 */
-				Attribute(Token t) :
-					_name(t.eat_whitespace()), _value(_name.next().next())
-				{
-					if (_name.type() != Token::IDENT)
-						throw Nonexistent_attribute();
+		/**
+		 * Return true if attribute has the specified value
+		 */
+		bool has_value(const char *value) const {
+			return strlen(value) == (_value.len() - 2) &&
+			       !strcmp(value, _value.start() + 1, _value.len() - 2); }
 
-					if (_name.next()[0] != '=' || _value.type() != Token::STRING)
-						throw Invalid_syntax();
-				}
+		/**
+		 * Return attribute value as typed value
+		 *
+		 * \param T  type of value to read
+		 * \return   true on success, or
+		 *           false if attribute is invalid or value
+		 *           conversion failed
+		 */
+		template <typename T>
+		bool value(T *out) const
+		{
+			/*
+			 * The '_value' token starts with a quote, which we
+			 * need to skip to access the string. For validating
+			 * the length, we have to consider both the starting
+			 * and the trailing quote character.
+			 */
+			return ascii_to(_value.start() + 1, out) == _value.len() - 2;
+		}
 
-				/**
-				 * Return token following the attribute declaration
-				 */
-				Token _next() const { return _name.next().next().next(); }
+		/**
+		 * Return next attribute in attribute list
+		 */
+		Xml_attribute next() const { return Xml_attribute(_next()); }
+};
 
-			public:
 
-				/**
-				 * Return attribute type as null-terminated string
-				 */
-				void type(char *dst, size_t max_len) const
-				{
-					/*
-					 * Limit number of characters by token length, take
-					 * null-termination into account.
-					 */
-					max_len = min(max_len, _name.len() + 1);
-					strncpy(dst, _name.start(), max_len);
-				}
+/**
+ * Representation of an XML node
+ */
+class Genode::Xml_node
+{
+	private:
 
-				/**
-				 * Return true if attribute has specified type
-				 */
-				bool has_type(const char *type) {
-					return strlen(type) == _name.len() &&
-					       strcmp(type, _name.start(), _name.len()) == 0; }
+		typedef Xml_attribute::Token Token;
 
-				/**
-				 * Return size of value
-				 */
-				size_t      value_size() const { return _value.len() - 2; }
-				char const *value_base() const { return _value.start() + 1; }
+		/**
+		 * Forward declaration needed for befriending Tag with Xml_attribute
+		 */
+		class Tag;
 
-				/**
-				 * Return attribute value as null-terminated string
-				 *
-				 * \return true on success, or
-				 *         false if attribute is invalid
-				 */
-				bool value(char *dst, size_t max_len) const
-				{
-					/*
-					 * The value of 'max_len' denotes the maximum number of
-					 * characters to be written to 'dst' including the null
-					 * termination. From the quoted value string, we strip
-					 * both quote characters and add a null-termination
-					 * character.
-					 */
-					max_len = min(max_len, _value.len() - 2 + 1);
-					strncpy(dst, _value.start() + 1, max_len);
-					return true;
-				}
+	public:
 
-				/**
-				 * Return true if attribute has the specified value
-				 */
-				bool has_value(const char *value) const {
-					return strlen(value) == (_value.len() - 2) &&
-					       !strcmp(value, _value.start() + 1, _value.len() - 2); }
+		/*********************
+		 ** Exception types **
+		 *********************/
 
-				/**
-				 * Return attribute value as typed value
-				 *
-				 * \param T  type of value to read
-				 * \return   true on success, or
-				 *           false if attribute is invalid or value
-				 *           conversion failed
-				 */
-				template <typename T>
-				bool value(T *out) const
-				{
-					/*
-					 * The '_value' token starts with a quote, which we
-					 * need to skip to access the string. For validating
-					 * the length, we have to consider both the starting
-					 * and the trailing quote character.
-					 */
-					return ascii_to(_value.start() + 1, out) == _value.len() - 2;
-				}
+		typedef Genode::Exception                    Exception;
+		typedef Xml_attribute::Nonexistent_attribute Nonexistent_attribute;
+		typedef Xml_attribute::Invalid_syntax        Invalid_syntax;
 
-				/**
-				 * Return next attribute in attribute list
-				 */
-				Attribute next() const { return Attribute(_next()); }
-		};
+		class Nonexistent_sub_node  : public Exception { };
+
+
+		/**
+		 * Type definition for maintaining backward compatibility
+		 */
+		typedef Xml_attribute Attribute;
 
 	private:
 
@@ -231,7 +254,7 @@ class Genode::Xml_node
 					Token delimiter = _name.next();
 					if (supposed_type != END)
 						try {
-							for (Attribute a = _name.next(); ; a = a._next())
+							for (Xml_attribute a = _name.next(); ; a = a._next())
 								delimiter = a._next();
 						} catch (Nonexistent_attribute) { }
 
@@ -303,7 +326,7 @@ class Genode::Xml_node
 				/**
 				 * Return first attribute of tag
 				 */
-				Attribute attribute() const { return Attribute(_name.next()); }
+				Xml_attribute attribute() const { return Xml_attribute(_name.next()); }
 		};
 
 		class Comment
@@ -694,10 +717,10 @@ class Genode::Xml_node
 		 * \throw Nonexistent_attribute  no such attribute exists
 		 * \return                       XML attribute
 		 */
-		Attribute attribute(unsigned idx) const
+		Xml_attribute attribute(unsigned idx) const
 		{
 			/* get first attribute of the node */
-			Attribute a = _start_tag.attribute();
+			Xml_attribute a = _start_tag.attribute();
 
 			/* skip attributes until we reach the target index */
 			for (; idx > 0; idx--)
@@ -713,10 +736,10 @@ class Genode::Xml_node
 		 * \throw Nonexistent_attribute  no such attribute exists
 		 * \return                       XML attribute
 		 */
-		Attribute attribute(const char *type) const
+		Xml_attribute attribute(const char *type) const
 		{
 			/* iterate, beginning with the first attribute of the node */
-			for (Attribute a = _start_tag.attribute(); ; a = a.next())
+			for (Xml_attribute a = _start_tag.attribute(); ; a = a.next())
 				if (a.has_type(type))
 					return a;
 		}
