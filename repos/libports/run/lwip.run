@@ -180,7 +180,7 @@ append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
 
 append qemu_args " -net user -redir tcp:5555::80 "
 
-run_genode_until {.*Start the server loop \.\.\..*} 30
+run_genode_until {.*got IP address .*\n} 30
 
 if {[have_include "power_on/qemu"]} {
 	set uri "http://localhost:5555/"
