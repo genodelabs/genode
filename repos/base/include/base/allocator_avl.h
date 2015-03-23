@@ -238,13 +238,14 @@ class Genode::Allocator_avl_base : public Range_allocator
 		 ** Range allocator interface **
 		 *******************************/
 
-		int          add_range(addr_t base, size_t size);
-		int          remove_range(addr_t base, size_t size);
-		Alloc_return alloc_aligned(size_t size, void **out_addr, int align = 0, addr_t from = 0, addr_t to = ~0UL);
-		Alloc_return alloc_addr(size_t size, addr_t addr);
-		void         free(void *addr);
-		size_t       avail();
-		bool         valid_addr(addr_t addr);
+		int          add_range(addr_t base, size_t size) override;
+		int          remove_range(addr_t base, size_t size) override;
+		Alloc_return alloc_aligned(size_t size, void **out_addr, int align = 0,
+		                           addr_t from = 0, addr_t to = ~0UL) override;
+		Alloc_return alloc_addr(size_t size, addr_t addr) override;
+		void         free(void *addr) override;
+		size_t       avail() override;
+		bool         valid_addr(addr_t addr) override;
 
 
 		/*************************
