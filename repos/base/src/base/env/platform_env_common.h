@@ -25,10 +25,13 @@
 #include <pd_session/client.h>
 
 namespace Genode {
+
 	class Expanding_rm_session_client;
 	class Expanding_ram_session_client;
 	class Expanding_cpu_session_client;
 	class Expanding_parent_client;
+
+	Parent_capability parent_cap();
 }
 
 
