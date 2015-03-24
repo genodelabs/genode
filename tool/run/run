@@ -480,7 +480,7 @@ proc wait_for_output { wait_for_re timeout_value running_spawn_id } {
 		eof     { puts stderr "Error: Spawned process died unexpectedly"; exit -3 }
 		timeout { puts stderr "Error: Test execution timed out"; exit -2 }
 	}
-	set output $expect_out(buffer)
+	append output $expect_out(buffer)
 }
 
 
