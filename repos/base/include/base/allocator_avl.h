@@ -94,18 +94,23 @@ class Genode::Allocator_avl_base : public Range_allocator
 				 */
 				void recompute();
 
-				/**
-				 * Accessor functions
-				 */
-				inline int    id()            { return _id; }
-				inline addr_t addr()          { return _addr; }
-				inline size_t avail()         { return _used ? 0 : _size; }
-				inline size_t size()          { return _size; }
-				inline bool   used()          { return _used; }
-				inline size_t max_avail()     { return _max_avail; }
-				inline void   used(bool used) { _used = used; }
+
+				/*****************
+				 ** Accessorors **
+				 *****************/
+
+				inline int    id()        const { return _id; }
+				inline addr_t addr()      const { return _addr; }
+				inline size_t avail()     const { return _used ? 0 : _size; }
+				inline size_t size()      const { return _size; }
+				inline bool   used()      const { return _used; }
+				inline size_t max_avail() const { return _max_avail; }
+
+				inline void used(bool used) { _used = used; }
+
 
 				enum { FREE = false, USED = true };
+
 
 				/**
 				 * Constructor

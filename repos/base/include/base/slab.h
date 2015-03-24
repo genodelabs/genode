@@ -94,7 +94,7 @@ class Genode::Slab_block
 		/**
 		 * Request number of available entries in block
 		 */
-		unsigned avail() { return _avail; }
+		unsigned avail() const { return _avail; }
 
 		/**
 		 * Allocate slab entry from block
@@ -182,10 +182,10 @@ class Genode::Slab : public Allocator
 
 	public:
 
-		inline size_t slab_size()  { return _slab_size;  }
-		inline size_t block_size() { return _block_size; }
-		inline size_t num_elem()   { return _num_elem;   }
-		inline size_t entry_size() { return sizeof(Slab_entry) + _slab_size; }
+		inline size_t slab_size()  const { return _slab_size;  }
+		inline size_t block_size() const { return _block_size; }
+		inline size_t num_elem()   const { return _num_elem;   }
+		inline size_t entry_size() const { return sizeof(Slab_entry) + _slab_size; }
 
 		/**
 		 * Constructor
