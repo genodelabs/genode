@@ -1,18 +1,6 @@
 
-#
-# Select benchmark layer
-#
-# 0: driver internal
-# 1: native Genode app
-# 2: native Genode app with partition manager
-#
-set layer 0
-
-# driver-internal benchmark is special
-if {[expr ($layer == 0)] && ![have_spec platform_arndale]} {
-	puts "Driver-internal benchmark (layer 0) only supported on Arndale."
-	exit 0
-}
+set mke2fs [check_installed mke2fs]
+set dd     [check_installed dd]
 
 #
 # Build
@@ -22,24 +10,24 @@ set build_components {
 	drivers/timer
 	drivers/ahci
 	drivers/platform
+	test/blk/bench
 }
 
-lappend_if [expr ($layer == 1 || $layer == 2)] build_components test/block_bench
-lappend_if [expr ($layer == 2)]                build_components server/part_blk
-
 lappend_if [have_spec acpi]  build_components drivers/acpi
-lappend_if [have_spec pci]   build_components drivers/pci/device_pd
 lappend_if [have_spec pci]   build_components drivers/pci
 
 build $build_components
+#
+# Build EXT2-file-system image
+#
+catch { exec $dd if=/dev/zero of=bin/ext2.raw bs=1M count=16 }
+catch { exec $mke2fs -F bin/ext2.raw }
 
 create_boot_directory
 
 #
-# Config
+# Generate config
 #
-
-# basic config for all layers
 set config {
 <config>
 	<parent-provides>
@@ -56,13 +44,13 @@ set config {
 		<service name="SIGNAL"/>
 	</parent-provides>
 	<default-route>
-		<any-service><parent/><any-child/></any-service>
+		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
-	</start>}
-
+	</start>
+}
 append_if [expr ![have_spec acpi] && ![have_spec pci]] config {
 	<start name="platform_drv">
 		<resource name="RAM" quantum="1M"/>
@@ -71,75 +59,56 @@ append_if [expr ![have_spec acpi] && ![have_spec pci]] config {
 
 append_if [have_spec acpi] config {
 	<start name="acpi">
-		<resource name="RAM" quantum="16M" constrain_phys="yes"/>
+		<resource name="RAM" quantum="6M" constrain_phys="yes"/>
 		<binary name="acpi_drv"/>
 		<provides>
 			<service name="PCI"/>
 			<service name="IRQ" />
 		</provides>
 		<route>
-			<service name="PCI"> <any-child /> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
-	</start>}
+		<config>
+			<policy label="acpi_drv"><pci class="ALL" /></policy>
+			<policy label="ahci"><pci class="AHCI" /></policy>
+		</config>
+	</start>
+}
 
 append_if [expr ![have_spec acpi] && [have_spec pci]] config {
 	<start name="pci_drv">
 		<resource name="RAM" quantum="3M" constrain_phys="yes"/>
 		<provides> <service name="PCI"/> </provides>
-	</start> }
-
-# start driver internal bench with layer 0
-append_if [expr $layer == 0] config {
-	<start name="ahci_bench">
-		<resource name="RAM" quantum="1G"/>
-		<provides><service name="Block"/></provides>
-	</start> }
-
-# start part_blk with layer 2
-append_if [expr $layer == 2] config {
-	<start name="part_blk">
-		<resource name="RAM" quantum="10M" />
-		<provides><service name="Block" /></provides>
-		<route>
-			<service name="Block"><child name="ahci" /></service>
-			<any-service><parent/><any-child/></any-service>
-		</route>
 		<config>
-			<policy label="test-block_bench" partition="1"/>
+			<policy label="ahci"/><pci class="AHCI" /></policy>
 		</config>
 	</start> }
 
-# start normal AHCI driver and bench app with layer 1 or 2
-append_if [expr ($layer == 1 || $layer == 2)] config {
-	<start name="ahci">
-		<resource name="RAM" quantum="10M"/>
-		<provides><service name="Block"/></provides>}
-
-append_if [expr ($layer == 1 || $layer == 2) && [have_spec acpi]] config {
-		<route>
-			<service name="IRQ"><child name="acpi" /></service>
-			<any-service><parent/><any-child/></any-service>
-		</route>}
-
-append_if [expr ($layer == 1 || $layer == 2)] config {
-	</start>
-	<start name="test-block_bench">
-		<resource name="RAM" quantum="1G"/> }
-
-# if layer is 2 route block requests of bench app to part_blk
-append_if [expr $layer == 2] config {
-		<route>
-			<service name="Block"><child name="part_blk" /></service>
-			<any-service><parent/><any-child/></any-service>
-		</route> }
-
-# end start node of bench app if layer 1 or 2
-append_if [expr ($layer == 1 || $layer == 2)] config {
-	</start> }
-
-# end config
 append config {
+	<start name="ahci">
+		<binary name="ahci_drv" />
+		<resource name="RAM" quantum="10M" />
+		<provides><service name="Block" /></provides>
+		<config>
+			<policy label="test-ahci" device="0" />
+		</config>
+	</start>
+
+	<start name="test-ahci">
+		<binary name="test-blk-bench" />
+		<resource name="RAM" quantum="5M" />
+		<config>
+			<libc stdout="/dev/log">
+				<vfs>
+					<dir name="dev"> <log/> </dir>
+				</vfs>
+			</libc>
+		</config>
+		<route>
+			<service name="Block"><child name="ahci"/></service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>
 </config> }
 
 install_config $config
@@ -147,20 +116,18 @@ install_config $config
 #
 # Boot modules
 #
-
-set boot_modules { core init timer }
+set boot_modules { core init timer ahci_drv test-blk-bench libc.lib.so
+                   ld.lib.so }
 
 lappend_if [expr ![have_spec acpi] && ![have_spec pci]] boot_modules platform_drv
 lappend_if [have_spec pci]           boot_modules pci_drv
-lappend_if [have_spec pci]           boot_modules pci_device_pd
+lappend_if [have_spec nova]          boot_modules pci_device_pd
 lappend_if [have_spec acpi]          boot_modules acpi_drv
-
-lappend_if [expr ($layer == 0)]                boot_modules ahci_bench
-lappend_if [expr ($layer == 1 || $layer == 2)] boot_modules ahci
-lappend_if [expr ($layer == 1 || $layer == 2)] boot_modules test-block_bench
-lappend_if [expr ($layer == 2)]                boot_modules part_blk
 
 build_boot_image $boot_modules
 
-run_genode_until forever
+append qemu_args " -nographic -m 256 "
+append qemu_args " -drive id=disk,file=bin/ext2.raw,if=none -device ahci,id=ahci -device ide-hd,drive=disk,bus=ahci.0 -boot d"
+append qemu_args " -drive id=cd,file=[run_dir]/../ahci_bench.iso,if=none,media=cdrom -device ide-cd,drive=cd,bus=ahci.1"
 
+run_genode_until "Done\n" 100
