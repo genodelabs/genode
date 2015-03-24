@@ -1,0 +1,12 @@
++++ b/gcc/config/arm/arm.h
+@@ -2193,9 +2193,7 @@
+ /* -mcpu=native handling only makes sense with compiler running on
+    an ARM chip.  */
+ #if defined(__arm__)
+-extern const char *host_detect_local_cpu (int argc, const char **argv);
+-# define EXTRA_SPEC_FUNCTIONS						\
+-  { "local_cpu_detect", host_detect_local_cpu },
++# define EXTRA_SPEC_FUNCTIONS
+ 
+ # define MCPU_MTUNE_NATIVE_SPECS					\
+    " %{march=native:%<march=native %:local_cpu_detect(arch)}"		\

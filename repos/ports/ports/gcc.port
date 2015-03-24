@@ -11,7 +11,8 @@ DIR(gcc)  := src/noux-pkg/gcc
 GENODE_DIR  := $(REP_DIR)/../..
 PATCHES_DIR := $(GENODE_DIR)/tool/patches/gcc-$(VERSION)
 PATCHES     := $(addprefix $(PATCHES_DIR)/,$(shell cat $(PATCHES_DIR)/series)) \
-               $(REP_DIR)/src/noux-pkg/gcc/build.patch
+               $(REP_DIR)/src/noux-pkg/gcc/build.patch \
+               $(REP_DIR)/src/noux-pkg/gcc/arm.patch
 PATCH_OPT   := -p1 -d ${DIR(gcc)}
 
 AUTOCONF := autoconf2.64

@@ -17,3 +17,7 @@ FILTER_OUT += s_cosl.c s_frexpl.c s_nextafterl.c s_nexttoward.c \
 FILTER_OUT += s_fmal.c
 
 include $(REP_DIR)/lib/mk/libm.mk
+
+SRC_C  += msun/arm/fenv.c
+
+vpath msun/arm/fenv.c $(LIBC_DIR)/lib
