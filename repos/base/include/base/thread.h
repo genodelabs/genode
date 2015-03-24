@@ -340,20 +340,7 @@ class Genode::Thread_base
 		/**
 		 * Constructor
 		 *
-		 * \param quota       CPU quota that shall be granted to the thread
-		 * \param name        thread name for debugging
-		 * \param stack_size  stack size
-		 * \param type        enables selection of special construction
-		 *
-		 * \throw Stack_too_large
-		 * \throw Stack_alloc_failed
-		 * \throw Context_alloc_failed
-		 *
-		 * The stack for the new thread will be allocated from the RAM
-		 * session of the process environment. A small portion of the
-		 * stack size is internally used by the framework for storing
-		 * thread-context information such as the thread's name (see
-		 * 'struct Context').
+		 * \noapi
 		 *
 		 * FIXME: With type = Forked_main_thread the whole
 		 *        Context::_alloc_context call gets skipped but we should
@@ -361,10 +348,38 @@ class Genode::Thread_base
 		 *        the dataspace of the already attached stack.
 		 */
 		Thread_base(size_t quota, const char *name, size_t stack_size,
-		            Type type = NORMAL);
+		            Type type);
 
 		/**
 		 * Constructor
+		 *
+		 * \param quota       CPU quota that shall be granted to the thread
+		 * \param name        thread name for debugging
+		 * \param stack_size  stack size
+		 *
+		 * \throw Stack_too_large
+		 * \throw Stack_alloc_failed
+		 * \throw Context_alloc_failed
+		 *
+		 * The stack for the new thread will be allocated from the RAM session
+		 * of the process environment. A small portion of the stack size is
+		 * internally used by the framework for storing thread-context
+		 * information such as the thread's name ('Context').
+		 *
+		 */
+		Thread_base(size_t quota, const char *name, size_t stack_size)
+		:
+			Thread_base(quota, name, stack_size, NORMAL)
+		{ }
+
+		/**
+		 * Constructor
+		 *
+		 * Variant of the constructor that allows the use of a different
+		 * CPU session.
+		 *
+		 * \noapi Using multiple CPU sessions within a single component is
+		 *        an experimental feature.
 		 *
 		 * \param quota       CPU quota that shall be granted to the thread
 		 * \param name        thread name for debugging
@@ -524,7 +539,19 @@ class Genode::Thread : public Thread_base
 		 * \param name   thread name (for debugging)
 		 * \param type   enables selection of special construction
 		 */
-		explicit Thread(size_t quota, const char *name, Type type = NORMAL)
+		explicit Thread(size_t quota, const char *name)
+		: Thread_base(quota, name, STACK_SIZE, Type::NORMAL) { }
+
+		/**
+		 * Constructor
+		 *
+		 * \param quota  CPU quota that shall be granted to the thread
+		 * \param name   thread name (for debugging)
+		 * \param type   enables selection of special construction
+		 *
+		 * \noapi
+		 */
+		explicit Thread(size_t quota, const char *name, Type type)
 		: Thread_base(quota, name, STACK_SIZE, type) { }
 
 		/**
@@ -533,6 +560,8 @@ class Genode::Thread : public Thread_base
 		 * \param quota        CPU quota that shall be granted to the thread
 		 * \param name         thread name (for debugging)
 		 * \param cpu_session  thread created via specific cpu session
+		 *
+		 * \noapi
 		 */
 		explicit Thread(size_t quota, const char *name, Cpu_session * cpu_session)
 		: Thread_base(quota, name, STACK_SIZE, Type::NORMAL, cpu_session)
@@ -540,12 +569,16 @@ class Genode::Thread : public Thread_base
 
 		/**
 		 * Shortcut for 'Thread(0, name, type)'
+		 *
+		 * \noapi
 		 */
 		explicit Thread(const char *name, Type type = NORMAL)
 		: Thread_base(0, name, STACK_SIZE, type) { }
 
 		/**
 		 * Shortcut for 'Thread(0, name, cpu_session)'
+		 *
+		 * \noapi
 		 */
 		explicit Thread(const char *name, Cpu_session * cpu_session)
 		: Thread_base(0, name, STACK_SIZE, Type::NORMAL, cpu_session)
