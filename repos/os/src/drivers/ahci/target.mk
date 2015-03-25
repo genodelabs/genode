@@ -1,3 +1,3 @@
-TARGET  = ahci
-LIBS   += ahci server
-SRC_CC += empty.cc
+TARGET = ahci_drv
+SRC_CC = main.cc ahci.cc
+LIBS  += server base config ahci_platform
