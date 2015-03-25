@@ -33,6 +33,7 @@ usage:
 	@echo "                  'hw_imx53_qsb'"
 	@echo "                  'hw_imx53_qsb_tz'"
 	@echo "                  'hw_usb_armory'"
+	@echo "                  'hw_wand_quad'"
 	@echo "                  'hw_arndale'"
 	@echo "                  'hw_odroid_xu'"
 	@echo "                  'hw_rpi'"
@@ -235,6 +236,10 @@ hw_imx53_qsb_tz::
 
 hw_usb_armory::
 	@echo "SPECS = genode hw_usb_armory" > $(BUILD_DIR)/etc/specs.conf
+	@echo "SPECS += perf_counter" >> $(BUILD_DIR)/etc/specs.conf
+
+hw_wand_quad::
+	@echo "SPECS = genode hw_wand_quad" > $(BUILD_DIR)/etc/specs.conf
 	@echo "SPECS += perf_counter" >> $(BUILD_DIR)/etc/specs.conf
 
 hw_arndale::

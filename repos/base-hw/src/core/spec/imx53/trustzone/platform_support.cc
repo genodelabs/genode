@@ -104,4 +104,6 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 }
 
 
+bool Imx::Board::is_smp() { return false; }
+
 Cpu::User_context::User_context() { cpsr = Psr::init_user_with_trustzone(); }
