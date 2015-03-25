@@ -253,7 +253,7 @@ namespace Pci {
 				 * FIXME: check and adjust session quota
 				 */
 				Device_component *device_component =
-					new (_md_alloc) Device_component(config, config_space);
+					new (_md_alloc) Device_component(config, config_space, _ep);
 
 				if (!device_component)
 					return Device_capability();
