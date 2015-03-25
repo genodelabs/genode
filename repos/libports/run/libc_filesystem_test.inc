@@ -126,16 +126,17 @@ append_if [expr ![have_spec acpi] && [have_spec pci]] config {
 
 append_if $use_ahci config {
 	<start name="ahci">
-		<binary name="ahci" />
+		<binary name="ahci_drv" />
 		<resource name="RAM" quantum="10M" />
 		<provides><service name="Block" /></provides>
-		<route>}
-
-append_if [expr $use_ahci && [have_spec acpi]] config {
-			<service name="IRQ"><child name="acpi" /></service>}
-append_if $use_ahci config {
+		<route>
 			<any-service> <parent /> <any-child /></any-service>
 		</route>
+		<config>}
+append_if $use_ahci config "
+			<policy label=\"test-libc_$filesystem\" device=\"0\" />"
+append_if $use_ahci config {
+		</config>
 	</start>}
 
 append_if $use_sd_card_drv config {
@@ -167,7 +168,7 @@ append boot_modules libc_$filesystem.lib.so
 
 lappend_if [have_spec pci]   boot_modules pci_drv
 lappend_if [have_spec acpi]  boot_modules acpi_drv
-lappend_if $use_ahci         boot_modules ahci
+lappend_if $use_ahci         boot_modules ahci_drv
 lappend_if $use_sd_card_drv  boot_modules sd_card_drv
 
 build_boot_image $boot_modules

@@ -129,6 +129,25 @@ proc drivers_start_nodes { feature_arg } {
 				<service name="PCI"/>
 				<service name="IRQ" />
 			</provides>
+			<binary name="acpi_drv"/>
+			<provides>
+				<service name="PCI"/>
+				<service name="IRQ" />
+			</provides>
+			<config>
+				<policy label="acpi_drv">
+					<pci class="ALL"/>
+				</policy>
+				<policy label="ahci">
+					<pci class="AHCI"/>
+				</policy>
+				<policy label="ps2_drv">
+					<device name="PS2" />
+				</policy>
+				<policy label="fb_drv">
+					<pci class="VGA" />
+				</policy>
+			</config>
 			<route>
 				<service name="PCI"> <any-child /> </service>
 				<any-service> <parent/> <any-child /> </any-service>
@@ -179,6 +198,17 @@ proc drivers_start_nodes { feature_arg } {
 		<start name="pci_drv">
 			<resource name="RAM" quantum="2M" constrain_phys="yes"/>
 			<provides><service name="PCI"/></provides>
+			<config>
+				<policy label="ahci">
+					<pci class="AHCI"/>
+				</policy>
+				<policy label="ps2_drv">
+					<device name="PS2" />
+				</policy>
+				<policy label="fb_drv">
+					<pci class="VGA" />
+				</policy>
+			</config>
 		</start>
 	}
 

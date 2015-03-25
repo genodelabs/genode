@@ -58,7 +58,7 @@ set config  {
 		</provides>
 		<config><policy label="l4linux" uart="0" detect_size="yes"/></config>
 	</start>
-	<start name="ahci">
+	<start name="ahci_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Block"/></provides>
 	</start>
@@ -109,7 +109,7 @@ set boot_modules {
 	kdb_uart_drv
 	l4linux
 	initrd.gz
-	ahci
+	ahci_drv
 	platform_drv }
 
 lappend_if $interpose_part_blk boot_modules part_blk

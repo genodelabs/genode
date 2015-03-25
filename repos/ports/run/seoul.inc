@@ -168,8 +168,12 @@ append_if [expr !$use_usb] config {
 
 append_if $use_block_sata config {
 	<start name="ahci" priority="-1">
+		<binary name="ahci_drv" />
 		<resource name="RAM" quantum="1M" />
 		<provides><service name="Block"/></provides>
+		<config>
+			<policy label="seoul" device="0" />
+		</config>
 	</start>}
 
 append_if $use_genode_iso config {
@@ -422,7 +426,7 @@ lappend_if [have_spec acpi]   boot_modules acpi_drv
 lappend_if [have_spec nova]   boot_modules pci_device_pd
 lappend_if [expr !$use_usb]   boot_modules ps2_drv
 lappend_if $use_usb           boot_modules usb_drv
-lappend_if $use_block_sata    boot_modules ahci
+lappend_if $use_block_sata    boot_modules ahci_drv
 lappend_if $use_nic_session   boot_modules nic_drv
 lappend_if $use_nic_bridge    boot_modules nic_bridge
 lappend_if $use_framebuffer   boot_modules fb_drv

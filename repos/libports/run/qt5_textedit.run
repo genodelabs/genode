@@ -51,9 +51,12 @@ append config [qt5_start_nodes feature]
 
 append_if $use_ahci_driver config {
 	<start name="ahci">
-		<resource name="RAM" quantum="1M"/>
+		<binary name="ahci_drv" />
+		<resource name="RAM" quantum="5M"/>
 		<provides> <service name="Block"/> </provides>
-		<config ata="yes" />
+		<config>
+			<policy label="ffat_fs" device="0" />
+		</config>
 	</start>}
 
 append_if $use_sd_card_driver config {
@@ -145,7 +148,7 @@ append boot_modules {
 lappend_if [have_spec linux]         boot_modules ram_fs
 lappend_if [expr ![have_spec linux]] boot_modules ffat_fs
 lappend_if $use_sd_card_driver       boot_modules sd_card_drv
-lappend_if $use_ahci_driver          boot_modules ahci
+lappend_if $use_ahci_driver          boot_modules ahci_drv
 
 build_boot_image $boot_modules
 
