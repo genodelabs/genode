@@ -109,6 +109,7 @@ class GenodeConsole : public Console {
 		Genode::Signal_context   _context;
 		Input::Event            *_ev_buf;
 		unsigned                 _ax, _ay;
+		bool                     _last_received_motion_event_was_absolute;
 
 		bool _key_status[Input::KEY_MAX + 1];
 
@@ -125,7 +126,8 @@ class GenodeConsole : public Console {
 		:
 			Console(),
 			_ev_buf(static_cast<Input::Event *>(Genode::env()->rm_session()->attach(_input.dataspace()))),
-			_ax(0), _ay(0)
+			_ax(0), _ay(0),
+			_last_received_motion_event_was_absolute(false)
 		{
 			for (unsigned i = 0; i <= Input::KEY_MAX; i++)
 				_key_status[i] = 0;
@@ -191,22 +193,55 @@ class GenodeConsole : public Console {
 					                       | (_key_status[Input::BTN_RIGHT]  ? MouseButtonState_RightButton : 0)
 					                       | (_key_status[Input::BTN_MIDDLE] ? MouseButtonState_MiddleButton : 0);
 					if (ev.is_absolute_motion()) {
+
+						_last_received_motion_event_was_absolute = true;
+
 						/* transform absolute to relative if guest is so odd */
 						if (!guest_abs && guest_rel) {
 							int const boundary = 20;
-							int rx = ev.ax() - _ax; _ax = ev.ax();
-							int ry = ev.ay() - _ay; _ay = ev.ay();
+							int rx = ev.ax() - _ax;
+							int ry = ev.ay() - _ay;
 							rx = Genode::min(boundary, Genode::max(-boundary, rx));
 							ry = Genode::min(boundary, Genode::max(-boundary, ry));
 							gMouse->PutMouseEvent(rx, ry, 0, 0, buttons);
 						} else
 							gMouse->PutMouseEventAbsolute(ev.ax(), ev.ay(), 0,
 							                              0, buttons);
-					} else if (ev.is_relative_motion())
-						gMouse->PutMouseEvent(ev.rx(), ev.ry(), 0, 0, buttons);
+
+						_ax = ev.ax();
+						_ay = ev.ay();
+
+					} else if (ev.is_relative_motion()) {
+
+						_last_received_motion_event_was_absolute = false;
+
+						/* prefer relative motion event */
+						if (guest_rel)
+							gMouse->PutMouseEvent(ev.rx(), ev.ry(), 0, 0, buttons);
+						else if (guest_abs) {
+							_ax += ev.rx();
+							_ay += ev.ry();
+							gMouse->PutMouseEventAbsolute(_ax, _ay, 0, 0, buttons);
+						}
+					}
 					/* only the buttons changed */
-					else
-						gMouse->PutMouseEvent(0, 0, 0, 0, buttons);
+					else {
+
+						if (_last_received_motion_event_was_absolute) {
+							/* prefer absolute button event */
+							if (guest_abs)
+								gMouse->PutMouseEventAbsolute(_ax, _ay, 0, 0, buttons);
+							else if (guest_rel)
+								gMouse->PutMouseEvent(0, 0, 0, 0, buttons);
+						} else {
+							/* prefer relative button event */
+							if (guest_rel)
+								gMouse->PutMouseEvent(0, 0, 0, 0, buttons);
+							else if (guest_abs)
+								gMouse->PutMouseEventAbsolute(_ax, _ay, 0, 0, buttons);
+						}
+
+					}
 				}
 
 				if (is_wheel)
