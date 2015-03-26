@@ -15,6 +15,10 @@
 #ifndef _DDE_IPXE__NIC_H_
 #define _DDE_IPXE__NIC_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Link-state change callback
  */
@@ -74,8 +78,14 @@ extern int dde_ipxe_nic_link_state(unsigned if_index);
 /**
  * Initialize network sub-system
  *
+ * \param ep pointer to Server::Entrypoint
+ *
  * \return  number of network devices
  */
-extern int dde_ipxe_nic_init(void);
+extern int dde_ipxe_nic_init(void *ep);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif /* _DDE_IPXE__NIC_H_ */

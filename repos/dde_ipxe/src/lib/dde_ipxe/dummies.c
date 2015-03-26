@@ -11,7 +11,9 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include "local.h"
+#include <dde_support.h>
+
+#define TRACE dde_printf("\033[35m%s not implemented\033[0m\n", __func__)
 
 int snprintf(char *buf, __SIZE_TYPE__ size, const char *fmt, ...) { TRACE; return 0; }
 

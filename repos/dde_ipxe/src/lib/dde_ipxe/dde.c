@@ -1,23 +1,16 @@
 /*
  * \brief  DDE iPXE emulation implementation
  * \author Christian Helmuth
+ * \author Josef Soentgen
  * \date   2010-09-13
  */
 
 /*
- * Copyright (C) 2010-2013 Genode Labs GmbH
+ * Copyright (C) 2010-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
-
-/* DDE kit */
-#include <dde_kit/memory.h>
-#include <dde_kit/resources.h>
-#include <dde_kit/pci.h>
-#include <dde_kit/pgtab.h>
-#include <dde_kit/lock.h>
-#include <dde_kit/timer.h>
 
 /* iPXE */
 #include <stdlib.h>
@@ -28,92 +21,35 @@
 #include <ipxe/settings.h>
 #include <ipxe/netdevice.h>
 #include <ipxe/timer2.h>
-
+/* local includes */
+#include <dde_support.h>
 #include "local.h"
 
-
-/***********************************
- ** Wrapper to DDE support in C++ **
- ***********************************/
-
-#include "dde_support.h"
-
-void *alloc_memblock(size_t size, size_t align, size_t offset) { return dde_alloc_memblock(size, align, offset); }
-void free_memblock(void *p, size_t size)                       { dde_free_memblock(p, size); }
-void timer2_udelay(unsigned long usecs)                        { dde_timer2_udelay(usecs); }
-
-/**********************************
- ** Memory pool in DDE kit slabs **
- **********************************/
-
-enum { SLAB_128, SLAB_256, SLAB_512, SLAB_1024, SLAB_2048, SLAB_4096, SLAB_20480, NUM_SLABS };
-
-static struct dde_kit_slab *slabs[NUM_SLABS];
-
-static inline void *alloc_from_slab(size_t size)
-{
-	size_t *p = 0;
-	size_t alloc_size = size + sizeof(size_t);
-
-	if (alloc_size <= 128)
-		p = dde_kit_slab_alloc(slabs[SLAB_128]);
-	else if (alloc_size <= 256)
-		p = dde_kit_slab_alloc(slabs[SLAB_256]);
-	else if (alloc_size <= 512)
-		p = dde_kit_slab_alloc(slabs[SLAB_512]);
-	else if (alloc_size <= 1024)
-		p = dde_kit_slab_alloc(slabs[SLAB_1024]);
-	else if (alloc_size <= 2048)
-		p = dde_kit_slab_alloc(slabs[SLAB_2048]);
-	else if (alloc_size <= 4096)
-		p = dde_kit_slab_alloc(slabs[SLAB_4096]);
-	else if (alloc_size <= 20480)
-		p = dde_kit_slab_alloc(slabs[SLAB_20480]);
-	else
-		LOG("allocation of size %zd too big", size);
-
-	if (p) {
-		*p = alloc_size;
-		p++;
-	}
-
-	return p;
-}
+#define PDBG(fmt, ...) dde_printf(fmt "\n", ##__VA_ARGS__)
 
 
-static inline void free_in_slab(void *p0)
-{
-	size_t *p = (size_t *)p0 - 1;
+/***************************
+ ** DMA memory allocation **
+ ***************************/
 
-	if (*p <= 128)
-		dde_kit_slab_free(slabs[SLAB_128], p);
-	else if (*p <= 256)
-		dde_kit_slab_free(slabs[SLAB_256], p);
-	else if (*p <= 512)
-		dde_kit_slab_free(slabs[SLAB_512], p);
-	else if (*p <= 1024)
-		dde_kit_slab_free(slabs[SLAB_1024], p);
-	else if (*p <= 2048)
-		dde_kit_slab_free(slabs[SLAB_2048], p);
-	else if (*p <= 4096)
-		dde_kit_slab_free(slabs[SLAB_4096], p);
-	else if (*p <= 20480)
-		dde_kit_slab_free(slabs[SLAB_20480], p);
-	else
-		LOG("deallocation at %p not possible", p0);
-}
+void *alloc_memblock(size_t size, size_t align, size_t offset) {
+	return dde_dma_alloc(size, align, offset); }
 
 
-void slab_init(void)
-{
-	slabs[SLAB_128]  = dde_kit_slab_init(128);
-	slabs[SLAB_256]  = dde_kit_slab_init(256);
-	slabs[SLAB_512]  = dde_kit_slab_init(512);
-	slabs[SLAB_1024] = dde_kit_slab_init(1024);
-	slabs[SLAB_2048] = dde_kit_slab_init(2048);
-	slabs[SLAB_4096] = dde_kit_slab_init(4096);
-	slabs[SLAB_20480] = dde_kit_slab_init(20480);
-}
+void free_memblock(void *p, size_t size) {
+	dde_dma_free(p, size); }
+
+
+/**********************
+ ** Slab memory pool **
+ **********************/
+
+static inline void *alloc_from_slab(size_t size) {
+	return dde_slab_alloc(size); }
+
+
+static inline void free_in_slab(void *p) {
+	dde_slab_free(p); }
 
 
 /************
@@ -131,23 +67,23 @@ void *zalloc(size_t size)
 }
 
 
-void * malloc(size_t size)
-{
-	return alloc_from_slab(size);
-}
+void *malloc(size_t size) {
+	return alloc_from_slab(size); }
 
 
-void free(void *p)
-{
-	free_in_slab(p);
-}
+void free(void *p) {
+	free_in_slab(p); }
 
 
 /*********************
  ** Time and Timers **
  *********************/
 
-void udelay (unsigned long usecs)
+void timer2_udelay(unsigned long usecs) {
+	dde_udelay(usecs); }
+
+
+void udelay(unsigned long usecs)
 {
 	static int init = 0;
 
@@ -166,13 +102,11 @@ void udelay (unsigned long usecs)
 }
 
 
-void mdelay (unsigned long msecs)
-{
-	dde_kit_thread_msleep(msecs);
-}
+void mdelay(unsigned long msecs) {
+	dde_mdelay(msecs); }
 
 
-int ipxe_printf(const char *format, ...)
+int printf(const char *format, ...)
 {
 	/* replace unsupported '%#' with 'x%' in format string */
 	char *new_format = (char *)malloc(strlen(format) + 1);
@@ -192,7 +126,7 @@ int ipxe_printf(const char *format, ...)
 	va_list va;
 
 	va_start(va, format);
-	dde_kit_vprintf(new_format, va);
+	dde_vprintf(new_format, va);
 	va_end(va);
 
 	free(new_format);
@@ -207,17 +141,16 @@ int ipxe_printf(const char *format, ...)
 void iounmap(volatile const void *io_addr)
 {
 	LOG("io_addr = %p", io_addr);
-	/* XXX DDE kit always releases the whole region */
-	dde_kit_release_mem((dde_kit_addr_t) io_addr, 1);
+	dde_release_iomem((dde_addr_t) io_addr, 1);
 }
 
 
-void * ioremap(unsigned long bus_addr, size_t len)
+void *ioremap(unsigned long bus_addr, size_t len)
 {
 	LOG("bus_addr = %p len = %zx", (void *)bus_addr, len);
-	dde_kit_addr_t vaddr;
+	dde_addr_t vaddr;
 
-	int ret = dde_kit_request_mem(bus_addr, len, 0, &vaddr);
+	int ret = dde_request_iomem(bus_addr, len, 0, &vaddr);
 
 	return ret ? 0 : (void *)vaddr;
 }
@@ -225,7 +158,7 @@ void * ioremap(unsigned long bus_addr, size_t len)
 
 unsigned long user_to_phys(userptr_t userptr, off_t offset)
 {
-	return dde_kit_pgtab_get_physaddr((void *)userptr) + offset;
+	return dde_dma_get_physaddr((void *)userptr) + offset;
 }
 
 
@@ -247,54 +180,42 @@ unsigned long phys_to_bus(unsigned long phys_addr)
 
 int pci_read_config_byte(struct pci_device *pci, unsigned int where, uint8_t *value)
 {
-	dde_kit_pci_readb(PCI_BUS(pci->busdevfn), PCI_SLOT(pci->busdevfn), PCI_FUNC(pci->busdevfn),
-	                  where, value);
-
+	dde_pci_readb(where, value);
 	return 0;
 }
 
 
 int pci_read_config_word(struct pci_device *pci, unsigned int where, uint16_t *value)
 {
-	dde_kit_pci_readw(PCI_BUS(pci->busdevfn), PCI_SLOT(pci->busdevfn), PCI_FUNC(pci->busdevfn),
-	                  where, value);
-
+	dde_pci_readw( where, value);
 	return 0;
 }
 
 
 int pci_read_config_dword(struct pci_device *pci, unsigned int where, uint32_t *value)
 {
-	dde_kit_pci_readl(PCI_BUS(pci->busdevfn), PCI_SLOT(pci->busdevfn), PCI_FUNC(pci->busdevfn),
-	                  where, value);
-
+	dde_pci_readl(where, value);
 	return 0;
 }
 
 
 int pci_write_config_byte(struct pci_device *pci, unsigned int where, uint8_t value)
 {
-	dde_kit_pci_writeb(PCI_BUS(pci->busdevfn), PCI_SLOT(pci->busdevfn), PCI_FUNC(pci->busdevfn),
-	                   where, value);
-
+	dde_pci_writeb(where, value);
 	return 0;
 }
 
 
 int pci_write_config_word(struct pci_device *pci, unsigned int where, uint16_t value)
 {
-	dde_kit_pci_writew(PCI_BUS(pci->busdevfn), PCI_SLOT(pci->busdevfn), PCI_FUNC(pci->busdevfn),
-	                   where, value);
-
+	dde_pci_writew(where, value);
 	return 0;
 }
 
 
 int pci_write_config_dword(struct pci_device *pci, unsigned int where, uint32_t value)
 {
-	dde_kit_pci_writel(PCI_BUS(pci->busdevfn), PCI_SLOT(pci->busdevfn), PCI_FUNC(pci->busdevfn),
-	                   where, value);
-
+	dde_pci_writel( where, value);
 	return 0;
 }
 

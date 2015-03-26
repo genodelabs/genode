@@ -1,9 +1,8 @@
 LIB_DIR          := $(REP_DIR)/src/lib/dde_ipxe
 IPXE_CONTRIB_DIR := $(call select_from_ports,dde_ipxe)/src/lib/dde_ipxe/src
 
-LIBS = dde_kit dde_ipxe_support
-
-SRC_C = nic.c dde.c dummies.c
+SRC_CC = dde_support.cc
+SRC_C  = nic.c dde.c dummies.c
 
 SRC_C += $(addprefix core/, iobuf.c string.c bitops.c list.c random.c)
 SRC_C += $(addprefix arch/x86/core/, x86_string.c)
@@ -21,7 +20,7 @@ INC_DIR += $(IPXE_CONTRIB_DIR)/include $(IPXE_CONTRIB_DIR) \
 
 CC_WARN = -Wall -Wno-address
 CC_OPT += $(addprefix -fno-builtin-, putchar toupper tolower)
-CC_OPT += -DARCH=i386 -DPLATFORM=pcbios -include compiler.h -DOBJECT=$(notdir $(*:.o=))
+CC_C_OPT += -DARCH=i386 -DPLATFORM=pcbios -include compiler.h -DOBJECT=$(notdir $(*:.o=))
 
 #
 # Enable debugging of any iPXE object here via '-Ddebug_<object name>=<level>'.
@@ -32,10 +31,11 @@ CC_OPT += -Ddebug_lib=7
 #CC_OPT += -Ddebug_netdevice=7
 
 
-vpath nic.c     $(LIB_DIR)
-vpath dde.c     $(LIB_DIR)
-vpath dummies.c $(LIB_DIR)
+vpath nic.c          $(LIB_DIR)
+vpath dde.c          $(LIB_DIR)
+vpath dummies.c      $(LIB_DIR)
+vpath dde_support.cc $(LIB_DIR)
 
-vpath %.c       $(IPXE_CONTRIB_DIR)
+vpath %.c            $(IPXE_CONTRIB_DIR)
 
 # vi: set ft=make :

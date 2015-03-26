@@ -14,29 +14,3 @@ index 472e140..d5095a7 100644
  			       "shrdl %1, %%edx, %%eax\n\t"
  			       : "=a" ( ticks ) : "i" ( TSC_SHIFT ) : "edx" );
  	return ticks;
-diff --git a/src/include/assert.h b/src/include/assert.h
-index 655cbdc..a8016c8 100644
---- a/src/include/assert.h
-+++ b/src/include/assert.h
-@@ -31,7 +31,7 @@ extern unsigned int assertion_failures;
-  * to the printf symbol.
-  */
- extern int __attribute__ (( format ( printf, 1, 2 ) )) 
--assert_printf ( const char *fmt, ... ) asm ( "printf" );
-+assert_printf ( const char *fmt, ... ) asm ( "ipxe_printf" );
- 
- /**
-  * Assert a condition at run-time.
-diff --git a/src/include/compiler.h b/src/include/compiler.h
-index e555924..b430e37 100644
---- a/src/include/compiler.h
-+++ b/src/include/compiler.h
-@@ -263,7 +263,7 @@ REQUEST_EXPANDED ( CONFIG_SYMBOL );
- 
- /** printf() for debugging */
- extern void __attribute__ (( format ( printf, 1, 2 ) ))
--dbg_printf ( const char *fmt, ... );
-+dbg_printf ( const char *fmt, ... ) asm ( "ipxe_printf" );
- extern void dbg_autocolourise ( unsigned long id );
- extern void dbg_decolourise ( void );
- extern void dbg_hex_dump_da ( unsigned long dispaddr,

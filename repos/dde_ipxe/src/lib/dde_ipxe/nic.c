@@ -5,19 +5,11 @@
  */
 
 /*
- * Copyright (C) 2010-2013 Genode Labs GmbH
+ * Copyright (C) 2010-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
-
-/* DDE kit */
-#include <dde_kit/pci.h>
-#include <dde_kit/lock.h>
-#include <dde_kit/semaphore.h>
-#include <dde_kit/timer.h>
-#include <dde_kit/interrupt.h>
-#include <dde_kit/dde_kit.h>
 
 /* iPXE */
 #include <stdlib.h>
@@ -26,31 +18,14 @@
 #include <ipxe/iobuf.h>
 
 #include <dde_ipxe/nic.h>
+/* local includes */
 #include "local.h"
-#include "dde_support.h"
-
-/**
- * DDE iPXE mutual exclusion lock
- */
-static struct dde_kit_lock *ipxe_lock;
-
-#define ENTER dde_kit_lock_lock(ipxe_lock)
-#define LEAVE dde_kit_lock_unlock(ipxe_lock)
-
-/**
- * Bottom-half activation semaphore
- */
-static struct dde_kit_sem *bh_sema;
+#include <dde_support.h>
 
 /**
  * Network device driven by iPXE
  */
 static struct net_device *net_dev;
-
-/**
- * Link-state change detected
- */
-static int link_state_changed;
 
 /**
  * Callback function pointers
@@ -68,7 +43,7 @@ extern struct pci_driver
 	pcnet32_driver;
 
 /**
- * Driver database (used for probing)
+ * Driver database (used for probing)PCI_BASE_CLASS_NETWORK
  */
 static struct pci_driver *pci_drivers[] = {
 	&realtek_driver,
@@ -91,9 +66,9 @@ static void pci_read_bases(struct pci_device *pci_dev)
 			if (!pci_dev->ioaddr) {
 				pci_dev->ioaddr = bar & PCI_BASE_ADDRESS_IO_MASK;
 
-				dde_kit_addr_t base = bar & PCI_BASE_ADDRESS_IO_MASK;
-				dde_kit_size_t size = pci_bar_size(pci_dev, reg);
-				dde_kit_request_io(base, size);
+				dde_addr_t base = bar & PCI_BASE_ADDRESS_IO_MASK;
+				dde_size_t size = pci_bar_size(pci_dev, reg);
+				dde_request_io(base, size);
 			}
 		} else {
 			if (!pci_dev->membase)
@@ -149,27 +124,26 @@ enum { NO_DEVICE_FOUND = ~0U };
 static unsigned scan_pci(void)
 {
 	int ret, bus = 0, dev = 0, fun = 0; 
-	for (ret = dde_kit_pci_first_device(&bus, &dev, &fun);
+	for (ret = dde_pci_first_device(&bus, &dev, &fun);
 	     ret == 0;
-	     ret = dde_kit_pci_next_device(&bus, &dev, &fun)) {
+	     ret = dde_pci_next_device(&bus, &dev, &fun)) {
 
-		dde_kit_uint32_t class_code;
-		dde_kit_pci_readl(bus, dev, fun, PCI_CLASS_REVISION, &class_code);
+		dde_uint32_t class_code;
+		dde_pci_readl(PCI_CLASS_REVISION, &class_code);
 		class_code >>= 8;
 		if (PCI_BASE_CLASS(class_code) != PCI_BASE_CLASS_NETWORK)
 			continue;
 
-		dde_kit_uint16_t vendor, device;
-		dde_kit_pci_readw(bus, dev, fun, PCI_VENDOR_ID, &vendor);
-		dde_kit_pci_readw(bus, dev, fun, PCI_DEVICE_ID, &device);
-		dde_kit_uint8_t rev, irq;
-		dde_kit_pci_readb(bus, dev, fun, PCI_REVISION_ID, &rev);
-		dde_kit_pci_readb(bus, dev, fun, PCI_INTERRUPT_LINE, &irq);
+		dde_uint16_t vendor, device;
+		dde_pci_readw(PCI_VENDOR_ID, &vendor);
+		dde_pci_readw(PCI_DEVICE_ID, &device);
+		dde_uint8_t rev, irq;
+		dde_pci_readb(PCI_REVISION_ID, &rev);
+		dde_pci_readb(PCI_INTERRUPT_LINE, &irq);
 		LOG("Found: " FMT_BUSDEVFN " %04x:%04x (rev %02x) IRQ %02x",
 		            bus, dev, fun, vendor, device, rev, irq);
 
 		struct pci_device *pci_dev = zalloc(sizeof(*pci_dev));
-		ASSERT(pci_dev != 0);
 
 		pci_dev->busdevfn = PCI_BUSDEVFN(bus, dev, fun);
 		pci_dev->vendor   = vendor;
@@ -200,57 +174,33 @@ static unsigned scan_pci(void)
 
 
 /**
- * IRQ handler registered at DDE kit
+ * IRQ handler registered at DDE
  */
 static void irq_handler(void *p)
 {
-	ENTER;
+	dde_lock_enter();
 
 	/* check for the link-state to change on each interrupt */
 	int link_ok = netdev_link_ok(net_dev);
 
 	/* poll the device for packets and also link-state changes */
 	netdev_poll(net_dev);
-	dde_kit_sem_up(bh_sema);
 
-	link_state_changed = (link_ok != netdev_link_ok(net_dev));
-
-	LEAVE;
-}
-
-
-/**
- * Bottom-half handler executed in separate thread
- *
- * Calls RX callback if appropriate.
- */
-static void bh_handler(void *p)
-{
-	while (1) {
-		dde_kit_sem_down(bh_sema);
-
-		ENTER;
-
-		/* report link-state changes */
-		if (link_state_changed) {
-			LEAVE;
-			if (link_callback)
-				link_callback();
-			ENTER;
-			link_state_changed = 0;
-		}
-
-		struct io_buffer *iobuf;
-		while ((iobuf = netdev_rx_dequeue(net_dev))) {
-			LEAVE;
-			if (rx_callback)
-				rx_callback(1, iobuf->data, iob_len(iobuf));
-			ENTER;
-			free_iob(iobuf);
-		}
-
-		LEAVE;
+	struct io_buffer *iobuf;
+	while ((iobuf = netdev_rx_dequeue(net_dev))) {
+		dde_lock_leave();
+		if (rx_callback)
+			rx_callback(1, iobuf->data, iob_len(iobuf));
+		dde_lock_enter();
+		free_iob(iobuf);
 	}
+
+	dde_lock_leave();
+
+	if (link_ok != netdev_link_ok(net_dev))
+		/* report link-state changes */
+		if (link_callback)
+			link_callback();
 }
 
 
@@ -261,12 +211,12 @@ static void bh_handler(void *p)
 void dde_ipxe_nic_register_callbacks(dde_ipxe_nic_rx_cb rx_cb,
                                      dde_ipxe_nic_link_cb link_cb)
 {
-	ENTER;
+	dde_lock_enter();
 
 	rx_callback   = rx_cb;
 	link_callback = link_cb;
 
-	LEAVE;
+	dde_lock_leave();
 }
 
 
@@ -275,12 +225,11 @@ int dde_ipxe_nic_link_state(unsigned if_index)
 	if (if_index != 1)
 		return -1;
 
-	ENTER;
+	dde_lock_enter();
 
 	int link_state = netdev_link_ok(net_dev);
 
-	LEAVE;
-
+	dde_lock_leave();
 	return link_state;
 }
 
@@ -290,22 +239,22 @@ int dde_ipxe_nic_tx(unsigned if_index, const char *packet, unsigned packet_len)
 	if (if_index != 1)
 		return -1;
 
-	ENTER;
+	dde_lock_enter();
 
 	struct io_buffer *iobuf = alloc_iob(packet_len);
 
-	LEAVE;
+	dde_lock_leave();
 
 	if (!iobuf)
 		return -1;
 
 	memcpy(iob_put(iobuf, packet_len), packet, packet_len);
-	ENTER;
+	dde_lock_enter();
 
 	netdev_poll(net_dev);
 	netdev_tx(net_dev, iob_disown(iobuf));
 
-	LEAVE;
+	dde_lock_leave();
 	return 0;
 }
 
@@ -315,7 +264,7 @@ int dde_ipxe_nic_get_mac_addr(unsigned if_index, char *out_mac_addr)
 	if (if_index != 1)
 		return -1;
 
-	ENTER;
+	dde_lock_enter();
 
 	out_mac_addr[0] = net_dev->hw_addr[0];
 	out_mac_addr[1] = net_dev->hw_addr[1];
@@ -324,26 +273,16 @@ int dde_ipxe_nic_get_mac_addr(unsigned if_index, char *out_mac_addr)
 	out_mac_addr[4] = net_dev->hw_addr[4];
 	out_mac_addr[5] = net_dev->hw_addr[5];
 
-	LEAVE;
+	dde_lock_leave();
 	return 0;
 }
 
 
-int dde_ipxe_nic_init(void)
+int dde_ipxe_nic_init(void *ep)
 {
-	dde_kit_init();
-	dde_kit_timer_init(0, 0);
-	enum {
-		CLASS_MASK  = 0xff0000,
-		CLASS_NETWORK = PCI_BASE_CLASS_NETWORK << 16
-	};
-	dde_kit_pci_init(CLASS_NETWORK, CLASS_MASK);
+	dde_init(ep);
 
-	dde_kit_lock_init(&ipxe_lock);
-
-	slab_init();
-
-	ENTER;
+	dde_lock_enter();
 
 	/* scan all pci devices and drivers */
 	unsigned location = scan_pci();
@@ -353,10 +292,8 @@ int dde_ipxe_nic_init(void)
 	/* find iPXE NIC device */
 	net_dev = find_netdev_by_location(BUS_TYPE_PCI, location);
 
-	/* initialize memory backend allocator for nic driver */
-	if (!dde_mem_init(PCI_BUS(net_dev->dev->desc.location),
-	                  PCI_SLOT(net_dev->dev->desc.location),
-	                  PCI_FUNC(net_dev->dev->desc.location))) {
+	/* initialize DMA memory backend allocator for nic driver */
+	if (!dde_dma_mem_init()) {
 		LOG("initialization of block memory failed!");
 		return 0;
 	}
@@ -370,18 +307,15 @@ int dde_ipxe_nic_init(void)
 		return 0;
 	}
 
-	/* initialize IRQ handler and enable interrupt/bottom-half handling */
-	bh_sema = dde_kit_sem_init(0);
-	dde_kit_thread_create(bh_handler, 0, "bh_handler");
-	int err = dde_kit_interrupt_attach(net_dev->dev->desc.irq, 0,
-	                                   0, irq_handler, 0);
+	/* initialize IRQ handler */
+	int err = dde_interrupt_attach(net_dev->dev->desc.irq, irq_handler, 0);
 	if (err) {
 		LOG("attaching to IRQ %02x failed", net_dev->dev->desc.irq);
 		return 0;
 	}
 	netdev_irq(net_dev, 1);
 
-	LEAVE;
+	dde_lock_leave();
 
 	/* always report 1 device was found */
 	return 1;
