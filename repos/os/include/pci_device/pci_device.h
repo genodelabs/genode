@@ -15,12 +15,17 @@
 #define _INCLUDE__PCI_DEVICE__PCI_DEVICE_H_
 
 #include <base/rpc.h>
+#include <base/signal.h>
 #include <io_mem_session/io_mem_session.h>
+#include <irq_session/capability.h>
+
+/* os includes */
+#include <platform/device.h>
 
 namespace Pci { struct Device; }
 
 
-struct Pci::Device
+struct Pci::Device : Platform::Device
 {
 	class Resource
 	{
@@ -194,10 +199,11 @@ struct Pci::Device
 	           unsigned char, Access_size);
 	GENODE_RPC(Rpc_config_write, void, config_write,
 	           unsigned char, unsigned, Access_size);
+	GENODE_RPC(Rpc_irq, Genode::Irq_session_capability, irq, Genode::uint8_t);
 
 	GENODE_RPC_INTERFACE(Rpc_bus_address, Rpc_vendor_id, Rpc_device_id,
 	                     Rpc_class_code, Rpc_resource, Rpc_config_read,
-	                     Rpc_config_write);
+	                     Rpc_config_write, Rpc_irq);
 };
 
 #endif /* _INCLUDE__PCI_DEVICE__PCI_DEVICE_H_ */

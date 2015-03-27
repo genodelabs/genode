@@ -47,6 +47,9 @@ struct Pci::Device_client : public Genode::Rpc_client<Device>
 
 	void config_write(unsigned char address, unsigned value, Access_size size) override {
 		call<Rpc_config_write>(address, value, size); }
+
+	Genode::Irq_session_capability irq(Genode::uint8_t id) override {
+		return call<Rpc_irq>(id); }
 };
 
 #endif /* _INCLUDE__PCI_DEVICE__CLIENT_H_ */
