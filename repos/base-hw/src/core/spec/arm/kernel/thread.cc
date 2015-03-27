@@ -122,3 +122,9 @@ void Thread::_mmu_exception()
 	}
 	PERR("unknown MMU exception");
 }
+
+
+void Thread::_call_update_pd()
+{
+	if (Cpu_domain_update::_do_global(user_arg_1())) { _pause(); }
+}

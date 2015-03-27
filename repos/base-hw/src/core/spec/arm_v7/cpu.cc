@@ -13,6 +13,7 @@
  */
 
 #include <cpu.h>
+#include <kernel/pd.h>
 
 /**
  * Helpers that increase readability of MCR and MRC commands
@@ -155,4 +156,15 @@ Genode::Arm::Psr::access_t Genode::Arm::Psr::init_user_with_trustzone()
 	I::set(v, 1);
 	A::set(v, 1);
 	return v;
+}
+
+
+void Genode::Arm_v7::init_virt_kernel(Kernel::Pd * pd)
+{
+	Cidr::write(pd->asid);
+	Dacr::write(Dacr::init_virt_kernel());
+	Ttbr0::write(Ttbr0::init((Genode::addr_t)pd->translation_table()));
+	Ttbcr::write(0);
+	Sctlr::write(Sctlr::init_virt_kernel());
+	inval_branch_predicts();
 }

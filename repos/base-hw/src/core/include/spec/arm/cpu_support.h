@@ -365,7 +365,17 @@ class Genode::Arm
 			/**
 			 * Assign protection domain
 			 */
-			void protection_domain(unsigned const id) { cidr = id; }
+			void protection_domain(Genode::uint8_t const id) { cidr = id; }
+		};
+
+		/**
+		 * This class comprises ARM specific protection domain attributes
+		 */
+		struct Pd
+		{
+			Genode::uint8_t asid; /* address space id */
+
+			Pd(Genode::uint8_t id) : asid(id) {}
 		};
 
 		/**

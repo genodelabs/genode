@@ -19,7 +19,6 @@
 #include <base/signal.h>
 
 /* core include */
-#include <kernel/configuration.h>
 #include <kernel/object.h>
 
 namespace Kernel
@@ -49,14 +48,10 @@ namespace Kernel
 	 */
 	class Signal_receiver;
 
-	class Signal_context_ids  : public Id_allocator<MAX_SIGNAL_CONTEXTS> { };
-	class Signal_receiver_ids : public Id_allocator<MAX_SIGNAL_RECEIVERS> { };
 	typedef Object_pool<Signal_context>  Signal_context_pool;
 	typedef Object_pool<Signal_receiver> Signal_receiver_pool;
 
-	Signal_context_ids   * signal_context_ids();
 	Signal_context_pool  * signal_context_pool();
-	Signal_receiver_ids  * signal_receiver_ids();
 	Signal_receiver_pool * signal_receiver_pool();
 }
 
@@ -202,9 +197,7 @@ class Kernel::Signal_context_killer
 };
 
 class Kernel::Signal_context
-:
-	public Object<Signal_context, MAX_SIGNAL_CONTEXTS,
-	              Signal_context_ids, signal_context_ids, signal_context_pool>
+: public Object<Signal_context, signal_context_pool>
 {
 	friend class Signal_receiver;
 	friend class Signal_context_killer;
@@ -350,10 +343,7 @@ class Kernel::Signal_context
 };
 
 class Kernel::Signal_receiver
-:
-	public Object<Signal_receiver, MAX_SIGNAL_RECEIVERS,
-	              Signal_receiver_ids, signal_receiver_ids,
-	              signal_receiver_pool>
+: public Object<Signal_receiver, signal_receiver_pool>
 {
 	friend class Signal_context;
 	friend class Signal_handler;

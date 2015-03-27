@@ -67,6 +67,3 @@ long Platform::irq(long const user_irq)
 	if (user_irq) return user_irq + Board::VECTOR_REMAP_BASE;
 	return Board::TIMER_VECTOR_USER;
 }
-
-
-Cpu::User_context::User_context() { }

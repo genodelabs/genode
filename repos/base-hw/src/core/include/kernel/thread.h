@@ -15,7 +15,6 @@
 #define _KERNEL__THREAD_H_
 
 /* core includes */
-#include <kernel/configuration.h>
 #include <kernel/signal_receiver.h>
 #include <kernel/ipc_node.h>
 #include <kernel/cpu.h>
@@ -33,17 +32,15 @@ namespace Kernel
 	 */
 	class Thread;
 
-	class Thread_ids : public Id_allocator<MAX_THREADS> { };
 	typedef Object_pool<Thread> Thread_pool;
 
-	Thread_ids  * thread_ids();
 	Thread_pool * thread_pool();
 }
 
 class Kernel::Thread
 :
 	public Cpu::User_context,
-	public Object<Thread, MAX_THREADS, Thread_ids, thread_ids, thread_pool>,
+	public Object<Thread, thread_pool>,
 	public Cpu_domain_update, public Ipc_node, public Signal_context_killer,
 	public Signal_handler, public Thread_base, public Cpu_job
 {

@@ -28,16 +28,13 @@ namespace Kernel
 	 */
 	class Vm;
 
-	class Vm_ids : public Id_allocator<MAX_VMS> { };
 	typedef Object_pool<Vm> Vm_pool;
 
-	Vm_ids  * vm_ids();
 	Vm_pool * vm_pool();
 }
 
 
-class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
-                   public Cpu_job
+class Kernel::Vm : public Object<Vm, vm_pool>, public Cpu_job
 {
 	private:
 

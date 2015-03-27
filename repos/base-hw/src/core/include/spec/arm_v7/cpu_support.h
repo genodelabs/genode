@@ -26,6 +26,9 @@ namespace Genode
 	class Arm_v7;
 }
 
+namespace Kernel { class Pd; }
+
+
 class Genode::Arm_v7 : public Arm
 {
 	public:
@@ -150,19 +153,9 @@ class Genode::Arm_v7 : public Arm
 		/**
 		 * Switch to the virtual mode in kernel
 		 *
-		 * \param table       base of targeted translation table
-		 * \param process_id  process ID of the kernel address-space
+		 * \param pd  kernel's pd object
 		 */
-		static void
-		init_virt_kernel(addr_t const table, unsigned const process_id)
-		{
-			Cidr::write(process_id);
-			Dacr::write(Dacr::init_virt_kernel());
-			Ttbr0::write(Ttbr0::init(table));
-			Ttbcr::write(0);
-			Sctlr::write(Sctlr::init_virt_kernel());
-			inval_branch_predicts();
-		}
+		static void init_virt_kernel(Kernel::Pd* pd);
 
 		inline static void finish_init_phys_kernel();
 

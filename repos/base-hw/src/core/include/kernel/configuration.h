@@ -18,11 +18,7 @@ namespace Kernel
 {
 	enum {
 		DEFAULT_STACK_SIZE   = 16 * 1024,
-		MAX_PDS              = 256,
-		MAX_THREADS          = 256,
-		MAX_SIGNAL_RECEIVERS = 2048,
-		MAX_SIGNAL_CONTEXTS  = 4096,
-		MAX_VMS              = 4,
+		MAX_KERNEL_OBJECTS   = 8192,
 	};
 
 	/* amount of priority bands amongst quota owners in CPU scheduling */

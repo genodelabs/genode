@@ -1,11 +1,12 @@
 /*
  * \brief   Objects that are findable through unique IDs
  * \author  Martin Stein
+ * \author  Stefan Kalkowski
  * \date    2012-11-30
  */
 
 /*
- * Copyright (C) 2012-2013 Genode Labs GmbH
+ * Copyright (C) 2012-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -16,16 +17,14 @@
 
 /* Genode includes */
 #include <util/avl_tree.h>
-#include <base/printf.h>
+#include <util/bit_allocator.h>
 
 /* core includes */
 #include <assert.h>
+#include <kernel/configuration.h>
 
 namespace Kernel
 {
-	template <typename T> class Avl_tree : public Genode::Avl_tree<T> { };
-	template <typename T> class Avl_node : public Genode::Avl_node<T> { };
-
 	/**
 	 * Map unique sortable IDs to objects
 	 *
@@ -36,29 +35,17 @@ namespace Kernel
 
 	/**
 	 * Manage allocation of a static set of IDs
-	 *
-	 * \param SIZE  amount of allocatable IDs
 	 */
-	template <unsigned SIZE>
-	class Id_allocator;
+	using Id_allocator = Genode::Bit_allocator<MAX_KERNEL_OBJECTS>;
+	Id_allocator & id_alloc();
 
 	/**
 	 * Make all objects of a deriving class findable through unique IDs
 	 *
-	 * \param T              object type
-	 * \param MAX_INSTANCES  max amount of coincidently living objects
-	 * \param ID_ALLOC       accessor function of object-name allocator
-	 * \param POOL           accessor function of object pool
-	 *
-	 * FIXME: Most of the bother with template parameters regarding ID
-	 *        allocator and object pool is caused by the use of
-	 *        unsynchronized singletons. By avoiding the use of
-	 *        unsynchronized singletons one can at least remove
-	 *        ID_ALLOC_T.
+	 * \param T object type
+	 * \param POOL accessor function of object pool
 	 */
-	template <typename T, unsigned MAX_INSTANCES, typename ID_ALLOC_T,
-	          ID_ALLOC_T * (*ID_ALLOC)(), Kernel::Object_pool<T> * (* POOL)()>
-
+	template <typename T, Kernel::Object_pool<T> * (* POOL)()>
 	class Object;
 }
 
@@ -94,11 +81,11 @@ class Kernel::Object_pool
 
 	private:
 
-		Avl_tree<Item> _tree;
+		Genode::Avl_tree<Item> _tree;
 };
 
 template <typename T>
-class Kernel::Object_pool<T>::Item : public Avl_node<Item>
+class Kernel::Object_pool<T>::Item : public Genode::Avl_node<Item>
 {
 	protected:
 
@@ -117,7 +104,8 @@ class Kernel::Object_pool<T>::Item : public Avl_node<Item>
 		Item * find(unsigned const object_id)
 		{
 			if (object_id == id()) { return this; }
-			Item * const subtree = Avl_node<Item>::child(object_id > id());
+			Item * const subtree =
+				Genode::Avl_node<Item>::child(object_id > id());
 			if (!subtree) { return 0; }
 			return subtree->find(object_id);
 		}
@@ -135,79 +123,13 @@ class Kernel::Object_pool<T>::Item : public Avl_node<Item>
 		bool higher(Item * i) const { return i->id() > id(); }
 };
 
-template <unsigned SIZE>
-class Kernel::Id_allocator
-{
-	private:
 
-		enum {
-			MIN = 1,
-			MAX = MIN + SIZE - 1
-		};
-
-		bool     _free[MAX + 1];
-		unsigned _free_id;
-
-		/**
-		 * Return wether 'id' is a valid ID
-		 */
-		bool _valid_id(unsigned const id) const
-		{
-			return id >= MIN && id <= MAX;
-		}
-
-	public:
-
-		/**
-		 * Constructor
-		 */
-		Id_allocator() : _free_id(MIN)
-		{
-			/* free all IDs */
-			for (unsigned i = MIN; i <= MAX; i++) { _free[i] = 1; }
-		}
-
-		/**
-		 * Allocate a free ID
-		 *
-		 * \return  ID that has been allocated by the call
-		 */
-		unsigned alloc()
-		{
-			/* FIXME: let userland donate RAM to avoid out of mem */
-			if (!_valid_id(_free_id)) {
-				PERR("failed to allocate ID");
-				while (1) { }
-			}
-			/* allocate _free_id */
-			_free[_free_id] = 0;
-			unsigned const id = _free_id;
-
-			/* update _free_id */
-			_free_id++;
-			for (; _free_id <= MAX && !_free[_free_id]; _free_id++) { }
-			return id;
-		}
-
-		/**
-		 * Free ID 'id'
-		 */
-		void free(unsigned const id)
-		{
-			assert(_valid_id(id));
-			_free[id] = 1;
-			if (id < _free_id) { _free_id = id; }
-		}
-};
-
-template <typename T, unsigned MAX_INSTANCES, typename ID_ALLOC_T,
-          ID_ALLOC_T * (* ID_ALLOC)(), Kernel::Object_pool<T> * (* POOL)()>
-
+template <typename T, Kernel::Object_pool<T> * (* POOL)()>
 class Kernel::Object : public Object_pool<T>::Item
 {
 	public:
 
-		typedef Object_pool<T> Pool;
+		using Pool = Object_pool<T>;
 
 		/**
 		 * Map of unique IDs to objects of T
@@ -216,21 +138,13 @@ class Kernel::Object : public Object_pool<T>::Item
 
 	protected:
 
-		/**
-		 * Constructor
-		 */
-		Object() : Pool::Item(ID_ALLOC()->alloc())
-		{
-			POOL()->insert(static_cast<T *>(this));
-		}
+		Object() : Pool::Item(id_alloc().alloc()) {
+			POOL()->insert(static_cast<T *>(this)); }
 
-		/**
-		 * Destructor
-		 */
 		~Object()
 		{
 			POOL()->remove(static_cast<T *>(this));
-			ID_ALLOC()->free(Pool::Item::id());
+			id_alloc().free(Pool::Item::id());
 		}
 };
 

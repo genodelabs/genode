@@ -46,7 +46,12 @@ namespace Genode
 	class Cpu;
 }
 
-namespace Kernel { using Genode::Cpu_lazy_state; }
+namespace Kernel
+{
+	using Genode::Cpu_lazy_state;
+
+	class Pd;
+}
 
 class Genode::Cpu_lazy_state
 {
@@ -236,27 +241,38 @@ class Genode::Cpu
 			addr_t translation_table() const { return cr3; }
 
 			/**
-			 * Assign translation-table base 'table'
+			 * Initialize context
+			 *
+			 * \param table  physical base of appropriate translation table
+			 * \param core   whether it is a core thread or not
 			 */
-			void translation_table(addr_t const table) {
-				cr3 = Cr3::init(table); }
+			void init(addr_t const table, bool core)
+			{
+				/* Constants to handle IF, IOPL values */
+				enum {
+					EFLAGS_IF_SET = 1 << 9,
+					EFLAGS_IOPL_3 = 3 << 12,
+				};
 
-			/**
-			 * Assign protection domain
-			 */
-			void protection_domain(unsigned const id) { }
+				cr3 = Cr3::init(table);
+
+				/*
+				 * Enable interrupts for all threads, set I/O privilege level
+				 * (IOPL) to 3 for core threads to allow UART access.
+				 */
+				eflags = EFLAGS_IF_SET;
+				if (core) eflags |= EFLAGS_IOPL_3;
+				else Gdt::load(Cpu::exception_entry);
+			}
 		};
+
+		struct Pd {};
 
 		/**
 		 * An usermode execution state
 		 */
 		struct User_context : Context
 		{
-			/**
-			 * Constructor
-			 */
-			User_context();
-
 			/**
 			 * Support for kernel calls
 			 */
@@ -276,37 +292,6 @@ class Genode::Cpu
 			Kernel::Call_arg user_arg_5() const { return r9; }
 			Kernel::Call_arg user_arg_6() const { return r10; }
 			Kernel::Call_arg user_arg_7() const { return r11; }
-
-			/* Constants to handle thread-specific IF, IOPL values */
-			enum {
-				CORE_PD_ID    = 1,
-				EFLAGS_IF_SET = 1 << 9,
-				EFLAGS_IOPL_3 = 3 << 12,
-			};
-
-			/**
-			 * Initialize thread context
-			 *
-			 * \param table  physical base of appropriate translation table
-			 * \param pd_id  kernel name of appropriate protection domain
-			 */
-			void init_thread(addr_t const table, unsigned const pd_id)
-			{
-				protection_domain(pd_id);
-				translation_table(table);
-
-				Gdt::load(Cpu::exception_entry);
-
-				/*
-				 * Enable interrupts for all threads, set I/O privilege level
-				 * (IOPL) to 3 for core threads to allow UART access.
-				 */
-				eflags = EFLAGS_IF_SET;
-				if (pd_id == CORE_PD_ID)
-				{
-					eflags |= EFLAGS_IOPL_3;
-				}
-			}
 		};
 
 		/**
@@ -376,12 +361,9 @@ class Genode::Cpu
 		/**
 		 * Switch to the virtual mode in kernel
 		 *
-		 * \param table       base of targeted translation table
-		 * \param process_id  process ID of the kernel address-space
+		 * \param pd  kernel's pd object
 		 */
-		static void
-		init_virt_kernel(addr_t const table, unsigned const process_id) {
-			Cr3::write(Cr3::init(table)); }
+		static void init_virt_kernel(Kernel::Pd * pd);
 
 		inline static void finish_init_phys_kernel() { _init_fpu(); }
 

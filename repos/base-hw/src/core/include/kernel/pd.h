@@ -21,7 +21,6 @@
 
 /* core includes */
 #include <kernel/early_translations.h>
-#include <kernel/configuration.h>
 #include <kernel/object.h>
 #include <kernel/cpu.h>
 #include <assert.h>
@@ -97,10 +96,8 @@ namespace Kernel
 	 */
 	class Pd;
 
-	class Pd_ids : public Id_allocator<MAX_PDS> { };
 	typedef Object_pool<Pd> Pd_pool;
 
-	Pd_ids  * pd_ids();
 	Pd_pool * pd_pool();
 
 	Lock & data_lock();
@@ -221,7 +218,8 @@ class Kernel::Mode_transition_control
 		 }
 } __attribute__((aligned(Mode_transition_control::ALIGN)));
 
-class Kernel::Pd : public Object<Pd, MAX_PDS, Pd_ids, pd_ids, pd_pool>
+
+class Kernel::Pd : public Object<Pd, pd_pool>, public Cpu::Pd
 {
 	public:
 
@@ -240,17 +238,14 @@ class Kernel::Pd : public Object<Pd, MAX_PDS, Pd_ids, pd_ids, pd_pool>
 		 * \param table        translation table of the PD
 		 * \param platform_pd  core object of the PD
 		 */
-		Pd(Table * const table, Platform_pd * const platform_pd)
-		: _table(table), _platform_pd(platform_pd) { }
+		Pd(Table * const table, Platform_pd * const platform_pd);
+
+		~Pd();
 
 		/**
 		 * Let the CPU context 'c' join the PD
 		 */
-		void admit(Cpu::Context * const c)
-		{
-			c->protection_domain(id());
-			c->translation_table((addr_t)translation_table());
-		}
+		void admit(Cpu::Context * const c);
 
 
 		/***************

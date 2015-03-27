@@ -33,7 +33,11 @@ namespace Genode
 	class Cpu;
 }
 
-namespace Kernel { using Genode::Cpu_lazy_state; }
+namespace Kernel {
+	using Genode::Cpu_lazy_state;
+
+	class Pd;
+}
 
 class Genode::Cpu : public Arm
 {
@@ -119,18 +123,9 @@ class Genode::Cpu : public Arm
 		/**
 		 * Switch to the virtual mode in kernel
 		 *
-		 * \param table       base of targeted translation table
-		 * \param process_id  process ID of the initial address space
+		 * \param pd  kernel's pd object
 		 */
-		static void
-		init_virt_kernel(addr_t const table, unsigned const process_id)
-		{
-			Cidr::write(process_id);
-			Dacr::write(Dacr::init_virt_kernel());
-			Ttbr0::write(Ttbr0::init(table));
-			Ttbcr::write(0);
-			Sctlr::write(Sctlr::init_virt_kernel());
-		}
+		static void init_virt_kernel(Kernel::Pd* pd);
 
 		/**
 		 * Ensure that TLB insertions get applied

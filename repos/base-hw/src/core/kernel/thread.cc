@@ -170,7 +170,7 @@ void Thread::init(Cpu * const cpu, Pd * const pd,
 
 	/* join protection domain */
 	_pd = pd;
-	User_context::init_thread((addr_t)_pd->translation_table(), pd_id());
+	_pd->admit(this);
 
 	/* print log message */
 	if (START_VERBOSE) {
@@ -507,10 +507,6 @@ void Thread::_call_access_thread_regs()
 }
 
 
-void Thread::_call_update_pd() {
-	if (Cpu_domain_update::_do_global(user_arg_1())) { _pause(); } }
-
-
 void Thread::_call_update_data_region()
 {
 	/*
@@ -558,7 +554,7 @@ void Thread::_call_update_instr_region()
 
 void Thread::_print_activity_table()
 {
-	for (unsigned id = 0; id < MAX_THREADS; id++) {
+	for (unsigned id = 0; id < MAX_KERNEL_OBJECTS; id++) {
 		Thread * const t = Thread::pool()->object(id);
 		if (!t) { continue; }
 		t->_print_activity(t == this);

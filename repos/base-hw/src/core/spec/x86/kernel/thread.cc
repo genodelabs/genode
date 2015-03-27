@@ -47,3 +47,6 @@ void Thread::exception(unsigned const cpu)
 	     pd_label(), label(), trapno, errcode);
 	_stop();
 }
+
+
+void Thread::_call_update_pd() { }

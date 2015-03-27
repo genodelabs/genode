@@ -52,11 +52,6 @@ namespace Kernel
 	/* import Genode types */
 	typedef Genode::Core_thread_id Core_thread_id;
 
-	Pd_ids * pd_ids() { return unmanaged_singleton<Pd_ids>(); }
-	Thread_ids * thread_ids() { return unmanaged_singleton<Thread_ids>(); }
-	Signal_context_ids * signal_context_ids() { return unmanaged_singleton<Signal_context_ids>(); }
-	Signal_receiver_ids * signal_receiver_ids() { return unmanaged_singleton<Signal_receiver_ids>(); }
-
 	Pd_pool * pd_pool() { return unmanaged_singleton<Pd_pool>(); }
 	Thread_pool * thread_pool() { return unmanaged_singleton<Thread_pool>(); }
 	Signal_context_pool * signal_context_pool() { return unmanaged_singleton<Signal_context_pool>(); }
@@ -123,6 +118,7 @@ namespace Kernel
 			{
 				using namespace Genode;
 
+
 				Platform_pd::_id = Pd::id();
 
 				/* map exception vector for core */
@@ -188,6 +184,9 @@ namespace Kernel
 }
 
 
+Kernel::Id_allocator & Kernel::id_alloc() {
+	return *unmanaged_singleton<Id_allocator>(); }
+
 Pic * Kernel::pic() { return unmanaged_singleton<Pic>(); }
 
 
@@ -215,8 +214,7 @@ extern "C" void init_kernel_up()
 	 */
 
 	/* calculate in advance as needed later when data writes aren't allowed */
-	core_tt_base = (addr_t) core_pd()->translation_table();
-	core_pd_id   = core_pd()->id();
+	core_pd();
 
 	/* initialize all CPU objects */
 	cpu_pool();
@@ -297,7 +295,7 @@ extern "C" void init_kernel_mp()
 	Cpu::init_phys_kernel();
 
 	/* switch to core address space */
-	Cpu::init_virt_kernel(core_tt_base, core_pd_id);
+	Cpu::init_virt_kernel(core_pd());
 
 	/*
 	 * Now it's safe to use 'cmpxchg'

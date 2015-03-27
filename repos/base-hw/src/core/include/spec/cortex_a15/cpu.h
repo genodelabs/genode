@@ -316,7 +316,7 @@ class Genode::Cpu : public Arm_v7
 			/**
 			 * Assign protection domain
 			 */
-			void protection_domain(unsigned const id) {
+			void protection_domain(Genode::uint8_t const id) {
 				Ttbr0::Asid::set(ttbr0, id); }
 		};
 
@@ -425,20 +425,10 @@ class Genode::Cpu : public Arm_v7
 		/**
 		 * Switch to the virtual mode in kernel
 		 *
-		 * \param table       base of targeted translation table
-		 * \param process_id  process ID of the kernel address-space
+		 * \param pd  kernel pd object pointer
 		 */
-		static void
-		init_virt_kernel(addr_t const table, unsigned const process_id)
-		{
-			Mair0::write(Mair0::init_virt_kernel());
-			Cidr::write(process_id);
-			Dacr::write(Dacr::init_virt_kernel());
-			Ttbr0::write(Ttbr0::init(table, 1));
-			Ttbcr::write(Ttbcr::init_virt_kernel());
-			Sctlr::write(Sctlr::init_virt_kernel());
-			inval_branch_predicts();
-		}
+		static void init_virt_kernel(Kernel::Pd * pd);
+
 
 		/*************
 		 ** Dummies **
