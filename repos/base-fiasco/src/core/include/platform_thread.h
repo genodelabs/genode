@@ -150,6 +150,11 @@ namespace Genode {
 			unsigned long pager_object_badge() const {
 				return convert_native_thread_id_to_badge(_l4_thread_id); }
 
+			/**
+			 * Set CPU quota of the thread to 'quota'
+			 */
+			void quota(size_t const quota) { /* not supported*/ }
+
 
 			/*******************************
 			 ** Fiasco-specific Accessors **

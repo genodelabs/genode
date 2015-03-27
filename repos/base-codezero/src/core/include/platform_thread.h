@@ -152,6 +152,11 @@ namespace Genode {
 			 ***********************/
 
 			addr_t utcb() const { return _utcb; }
+
+			/**
+			 * Set CPU quota of the thread to 'quota'
+			 */
+			void quota(size_t const quota) { /* not supported*/ }
 	};
 }
 

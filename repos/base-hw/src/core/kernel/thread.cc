@@ -15,6 +15,7 @@
 /* Genode includes */
 #include <base/thread_state.h>
 #include <unmanaged_singleton.h>
+#include <cpu_session/cpu_session.h>
 
 /* core includes */
 #include <kernel/kernel.h>
@@ -224,12 +225,21 @@ void Thread::_call_new_pd()
 void Thread::_call_delete_pd() { reinterpret_cast<Pd*>(user_arg_1())->~Pd(); }
 
 
+size_t Thread::_core_to_kernel_quota(size_t const quota) const
+{
+	using Genode::Cpu_session;
+	using Genode::sizet_arithm_t;
+	size_t const tics = cpu_pool()->timer()->ms_to_tics(Kernel::cpu_quota_ms);
+	return Cpu_session::quota_lim_downscale<sizet_arithm_t>(quota, tics);
+}
+
+
 void Thread::_call_new_thread()
 {
 	/* create new thread */
 	void * const p = (void *)user_arg_1();
 	unsigned const priority = user_arg_2();
-	unsigned const quota = cpu_pool()->timer()->ms_to_tics(user_arg_3());
+	unsigned const quota = _core_to_kernel_quota(user_arg_3());
 	char const * const label = (char *)user_arg_4();
 	Thread * const t = new (p) Thread(priority, quota, label);
 	user_arg_0(t->id());
@@ -239,8 +249,7 @@ void Thread::_call_new_thread()
 void Thread::_call_thread_quota()
 {
 	Thread * const thread = (Thread *)user_arg_1();
-	unsigned const quota = cpu_pool()->timer()->ms_to_tics(user_arg_2());
-	thread->Cpu_job::quota(quota);
+	thread->Cpu_job::quota(_core_to_kernel_quota(user_arg_2()));
 }
 
 

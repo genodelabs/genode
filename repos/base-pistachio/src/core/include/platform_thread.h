@@ -148,6 +148,11 @@ namespace Genode {
 			 */
 			Affinity::Location affinity();
 
+			/**
+			 * Set CPU quota of the thread to 'quota'
+			 */
+			void quota(size_t const quota) { /* not supported*/ }
+
 
 			/**********************************
 			 ** Pistachio-specific Accessors **

@@ -29,6 +29,8 @@ namespace Genode
 	 * CPU driver for core
 	 */
 	class Arm;
+
+	typedef Genode::uint64_t sizet_arithm_t;
 }
 
 class Genode::Arm

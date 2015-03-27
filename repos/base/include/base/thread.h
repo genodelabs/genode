@@ -330,10 +330,10 @@ class Genode::Thread_base
 		/**
 		 * Hook for platform-specific constructor supplements
 		 *
-		 * \param quota  CPU quota that shall be granted to the thread
-		 * \param type   enables selection of special initialization
+		 * \param weight  weighting regarding the CPU session quota
+		 * \param type    enables selection of special initialization
 		 */
-		void _init_platform_thread(size_t quota, Type type);
+		void _init_platform_thread(size_t weight, Type type);
 
 	public:
 
@@ -347,14 +347,14 @@ class Genode::Thread_base
 		 *        at least set Context::ds_cap in a way that it references
 		 *        the dataspace of the already attached stack.
 		 */
-		Thread_base(size_t quota, const char *name, size_t stack_size,
+		Thread_base(size_t weight, const char *name, size_t stack_size,
 		            Type type);
 
 		/**
 		 * Constructor
 		 *
-		 * \param quota       CPU quota that shall be granted to the thread
-		 * \param name        thread name for DEBUGging
+		 * \param weight      weighting regarding the CPU session quota
+		 * \param name        thread name (for debugging)
 		 * \param stack_size  stack size
 		 *
 		 * \throw Stack_too_large
@@ -366,10 +366,8 @@ class Genode::Thread_base
 		 * internally used by the framework for storing thread-context
 		 * information such as the thread's name ('Context').
 		 */
-		Thread_base(size_t quota, const char *name, size_t stack_size)
-		:
-			Thread_base(quota, name, stack_size, NORMAL)
-		{ }
+		Thread_base(size_t weight, const char *name, size_t stack_size)
+		: Thread_base(weight, name, stack_size, NORMAL) { }
 
 		/**
 		 * Constructor
@@ -380,8 +378,8 @@ class Genode::Thread_base
 		 * \noapi Using multiple CPU sessions within a single component is
 		 *        an experimental feature.
 		 *
-		 * \param quota       CPU quota that shall be granted to the thread
-		 * \param name        thread name for debugging
+		 * \param weight      weighting regarding the CPU session quota
+		 * \param name        thread name (for debugging)
 		 * \param stack_size  stack size
 		 * \param type        enables selection of special construction
 		 * \param cpu_session capability to cpu session used for construction
@@ -390,7 +388,7 @@ class Genode::Thread_base
 		 * \throw Stack_alloc_failed
 		 * \throw Context_alloc_failed
 		 */
-		Thread_base(size_t quota, const char *name, size_t stack_size,
+		Thread_base(size_t weight, const char *name, size_t stack_size,
 		            Type type, Cpu_session *);
 
 		/**
@@ -536,53 +534,54 @@ class Genode::Thread : public Thread_base
 		/**
 		 * Constructor
 		 *
-		 * \param quota  CPU quota that shall be granted to the thread
-		 * \param name   thread name (for debugging)
-		 * \param type   enables selection of special construction
+		 * \param weight    weighting regarding the CPU session quota
+		 * \param name      thread name (for debugging)
+		 * \param type      enables selection of special construction
 		 */
-		explicit Thread(size_t quota, const char *name)
-		: Thread_base(quota, name, STACK_SIZE, Type::NORMAL) { }
+		explicit Thread(size_t weight, const char *name)
+		: Thread_base(weight, name, STACK_SIZE, Type::NORMAL) { }
 
 		/**
 		 * Constructor
 		 *
-		 * \param quota  CPU quota that shall be granted to the thread
-		 * \param name   thread name (for debugging)
-		 * \param type   enables selection of special construction
+		 * \param weight     weighting regarding the CPU session quota
+		 * \param name       thread name (for debugging)
+		 * \param type       enables selection of special construction
 		 *
 		 * \noapi
 		 */
-		explicit Thread(size_t quota, const char *name, Type type)
-		: Thread_base(quota, name, STACK_SIZE, type) { }
+		explicit Thread(size_t weight, const char *name, Type type)
+		: Thread_base(weight, name, STACK_SIZE, type) { }
 
 		/**
 		 * Constructor
 		 *
-		 * \param quota        CPU quota that shall be granted to the thread
+		 * \param weight       weighting regarding the CPU session quota
 		 * \param name         thread name (for debugging)
 		 * \param cpu_session  thread created via specific cpu session
 		 *
 		 * \noapi
 		 */
-		explicit Thread(size_t quota, const char *name, Cpu_session * cpu_session)
-		: Thread_base(quota, name, STACK_SIZE, Type::NORMAL, cpu_session)
-		{ }
+		explicit Thread(size_t weight, const char *name,
+		                Cpu_session * cpu_session)
+		: Thread_base(weight, name, STACK_SIZE, Type::NORMAL, cpu_session) { }
 
 		/**
-		 * Shortcut for 'Thread(0, name, type)'
+		 * Shortcut for 'Thread(DEFAULT_WEIGHT, name, type)'
 		 *
 		 * \noapi
 		 */
 		explicit Thread(const char *name, Type type = NORMAL)
-		: Thread_base(0, name, STACK_SIZE, type) { }
+		: Thread_base(Cpu_session::DEFAULT_WEIGHT, name, STACK_SIZE, type) { }
 
 		/**
-		 * Shortcut for 'Thread(0, name, cpu_session)'
+		 * Shortcut for 'Thread(DEFAULT_WEIGHT, name, cpu_session)'
 		 *
 		 * \noapi
 		 */
 		explicit Thread(const char *name, Cpu_session * cpu_session)
-		: Thread_base(0, name, STACK_SIZE, Type::NORMAL, cpu_session)
+		: Thread_base(Cpu_session::DEFAULT_WEIGHT, name, STACK_SIZE,
+		              Type::NORMAL, cpu_session)
 		{ }
 };
 

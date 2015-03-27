@@ -71,7 +71,7 @@ namespace Noux {
 			 ** Cpu_session interface **
 			 ***************************/
 
-			Thread_capability create_thread(size_t, Name const &name,
+			Thread_capability create_thread(size_t weight, Name const &name,
 			                                addr_t utcb)
 			{
 				/*
@@ -83,7 +83,7 @@ namespace Noux {
 					while (1);
 					return Thread_capability();
 				}
-				_main_thread = _cpu.create_thread(0, name, utcb);
+				_main_thread = _cpu.create_thread(weight, name, utcb);
 
 				return _main_thread;
 			}
@@ -147,10 +147,13 @@ namespace Noux {
 			Dataspace_capability trace_policy(Thread_capability thread) {
 				return _cpu.trace_policy(thread); }
 
-			size_t quota() { return 0; }
-			size_t used() { return 0; }
-			int ref_account(Cpu_session_capability) { return -1; }
-			int transfer_quota(Cpu_session_capability, size_t) { return -1; }
+			Quota quota() override { return _cpu.quota(); }
+
+			int ref_account(Cpu_session_capability c) override {
+				return _cpu.ref_account(c); }
+
+			int transfer_quota(Cpu_session_capability c, size_t q) override {
+				return _cpu.transfer_quota(c, q); }
 	};
 }
 

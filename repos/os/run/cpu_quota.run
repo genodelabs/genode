@@ -1,0 +1,244 @@
+#
+# Check platform
+#
+# HW is the only kernel that provides appliance of quota to the scheduling.
+# On X86, the timer driver uses the PIT with a timeout of max. 54 ms. Thus,
+# the driver needs to restart the timer permanently which is a hard job with 6
+# high-priority counter-threads in the background. As a consequence, timeouts
+# take much longer than requested and the test fails.  However, as the PIT
+# tends to be replaced by a better timing source, we simply skip X86 for now.
+#
+#
+assert_spec hw
+assert_spec arm
+
+#
+# Build
+#
+
+build "core init drivers/timer test/cpu_quota"
+
+#
+# Boot image
+#
+
+create_boot_directory
+
+install_config {
+<config prio_levels="4">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service><parent/><any-child/></any-service>
+	</default-route>
+
+	<start name="timer">
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="test-sync">
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="Sync"/></provides>
+	</start>
+
+	<start name="init_1" priority="-1">
+		<binary name="init"/>
+		<resource name="RAM" quantum="10M"/>
+		<resource name="CPU" quantum="10"/>
+		<config prio_levels="2">
+			<parent-provides>
+				<service name="ROM"/>
+				<service name="RAM"/>
+				<service name="IRQ"/>
+				<service name="IO_MEM"/>
+				<service name="IO_PORT"/>
+				<service name="CAP"/>
+				<service name="PD"/>
+				<service name="RM"/>
+				<service name="CPU"/>
+				<service name="LOG"/>
+				<service name="SIGNAL"/>
+				<service name="Timer"/>
+				<service name="Sync"/>
+			</parent-provides>
+			<default-route>
+				<any-service><parent/><any-child/></any-service>
+			</default-route>
+
+			<start name="test_slow" priority="-1">
+				<binary name="test-cpu_quota"/>
+				<resource name="RAM" quantum="10M"/>
+				<resource name="CPU" quantum="50"/>
+			</start>
+
+		</config>
+	</start>
+
+	<start name="init_2" priority="-2">
+		<binary name="init"/>
+		<resource name="RAM" quantum="100M"/>
+		<resource name="CPU" quantum="80"/>
+		<config>
+			<parent-provides>
+				<service name="ROM"/>
+				<service name="RAM"/>
+				<service name="IRQ"/>
+				<service name="IO_MEM"/>
+				<service name="IO_PORT"/>
+				<service name="CAP"/>
+				<service name="PD"/>
+				<service name="RM"/>
+				<service name="CPU"/>
+				<service name="LOG"/>
+				<service name="SIGNAL"/>
+				<service name="Timer"/>
+				<service name="Sync"/>
+			</parent-provides>
+			<default-route>
+				<any-service><parent/></any-service>
+			</default-route>
+
+			<start name="test_midl">
+				<binary name="test-cpu_quota"/>
+				<resource name="RAM" quantum="10M"/>
+				<resource name="CPU" quantum="25"/>
+			</start>
+
+			<start name="test_fast">
+				<binary name="test-cpu_quota"/>
+				<resource name="RAM" quantum="10M"/>
+				<resource name="CPU" quantum="75"/>
+			</start>
+
+		</config>
+	</start>
+</config>
+}
+
+build_boot_image "core init timer test-cpu_quota test-sync"
+
+#
+# Execution
+#
+
+append qemu_args "-nographic -m 64"
+
+run_genode_until ".*done.*\n.*done.*\n.*done.*\n" 100
+
+#
+# Conclusion
+#
+
+proc check_counter { name opt cnt total_cnt } {
+
+	set err         1
+	set is          [expr double($cnt) / $total_cnt ]
+	set is_pc       [expr double(round($is  * 100000)) / 1000]
+	set opt_pc      [expr double(round($opt * 100000)) / 1000]
+
+	if {[expr $is > $opt + $err || $is < $opt - $err]} {
+		puts stderr "Error: $name received $is_pc % of the CPU time."
+		puts stderr "       Should receive $opt_pc %."
+		exit -1
+	}
+	puts "$name: $is_pc % (optimal $opt_pc %)"
+}
+
+proc check_quota { name opt_sp quota_sp opt quota } {
+
+	if {[expr $quota != $opt]} {
+		puts stderr "Error: $name has CPU quota of $quota us."
+		puts stderr "       Should have $opt us."
+		exit -1
+	}
+	if {[expr $quota_sp != $opt_sp]} {
+		puts stderr "Error: $name has CPU quota super-period of $quota_sp us."
+		puts stderr "       Should have $opt_sp us."
+		exit -1
+	}
+}
+
+regexp {[0-9]+} [regexp -inline {slow. quota [0-9]+} $output] slow_quota
+regexp {[0-9]+} [regexp -inline {midl. quota [0-9]+} $output] midl_quota
+regexp {[0-9]+} [regexp -inline {fast. quota [0-9]+} $output] fast_quota
+
+regexp {[0-9]+} [regexp -inline {slow. quota super period [0-9]+} $output] slow_quota_sp
+regexp {[0-9]+} [regexp -inline {midl. quota super period [0-9]+} $output] midl_quota_sp
+regexp {[0-9]+} [regexp -inline {fast. quota super period [0-9]+} $output] fast_quota_sp
+
+#
+# We have to consider the rounding errors as the two translations from init to
+# core and then from core to the user are distinct.
+#
+# Slow quota (1000000 * (0x8000 *  5 / 100)) / 0x8000 =  49987
+# Slow quota (1000000 * (0x8000 * 20 / 100)) / 0x8000 = 199981
+# Slow quota (1000000 * (0x8000 * 60 / 100)) / 0x8000 = 599975
+#
+check_quota "Slow test"   1000000 $slow_quota_sp  49987 $slow_quota
+check_quota "Middle test" 1000000 $midl_quota_sp 199981 $midl_quota
+check_quota "Fast test"   1000000 $fast_quota_sp 599975 $fast_quota
+
+regexp {[0-9]+} [regexp -inline {slow. counter A [0-9]+} $output] slow_a_cnt
+regexp {[0-9]+} [regexp -inline {midl. counter A [0-9]+} $output] midl_a_cnt
+regexp {[0-9]+} [regexp -inline {fast. counter A [0-9]+} $output] fast_a_cnt
+regexp {[0-9]+} [regexp -inline {slow. counter B [0-9]+} $output] slow_b_cnt
+regexp {[0-9]+} [regexp -inline {midl. counter B [0-9]+} $output] midl_b_cnt
+regexp {[0-9]+} [regexp -inline {fast. counter B [0-9]+} $output] fast_b_cnt
+
+set total_cnt [expr $fast_a_cnt + $midl_a_cnt + $slow_a_cnt + $fast_b_cnt + $midl_b_cnt + $slow_b_cnt]
+
+#
+# Slow   5.0 % claim + 5.0 % fill = 10 %
+#   Stage 1
+#     A  0.5 % claim + 2.5 % fill =  3 %
+#     B  4.5 % claim + 2.5 % fill =  7 %
+#   Stage 2
+#     A  5.0 % claim + 5.0 % fill = 10 %
+#   Total
+#     A  3/4 * 3 + 1/4 * 10 = 4.75 %
+#     A  3/4 * 7 + 1/4 *  0 = 5.25 %
+#
+check_counter "Slow counter A"   0.0475 $slow_a_cnt $total_cnt
+check_counter "Slow counter B"   0.0525 $slow_b_cnt $total_cnt
+
+#
+# Middle 20 % claim + 5.0 % fill = 25.0 %
+#   Stage 1
+#     A   2 % claim + 2.5 % fill =  4.5 %
+#     B  18 % claim + 2.5 % fill = 20.5 %
+#   Stage 2
+#     A  20 % claim + 5.0 % fill = 25.0 %
+#   Total
+#     A  3/4 *  4.5 + 1/4 * 25 =  9.625 %
+#     A  3/4 * 20.5 + 1/4 *  0 = 15.375 %
+#
+check_counter "Middle counter A" 0.09625 $midl_a_cnt $total_cnt
+check_counter "Middle counter B" 0.15375 $midl_b_cnt $total_cnt
+
+#
+# Fast   60 % claim + 5.0 % fill = 65.0 %
+#   Stage 1
+#     A   6 % claim + 2.5 % fill =  8.5 %
+#     B  54 % claim + 2.5 % fill = 56.5 %
+#   Stage 2
+#     A  60 % claim + 5.0 % fill = 65.0 %
+#   Total
+#     A  3/4 *  8.5 + 1/4 * 65 = 22.625 %
+#     A  3/4 * 56.5 + 1/4 *  0 = 42.375 %
+#
+check_counter "Fast counter A" 0.22625 $fast_a_cnt $total_cnt
+check_counter "Fast counter B" 0.42375 $fast_b_cnt $total_cnt
+
+puts "Test succeeded"

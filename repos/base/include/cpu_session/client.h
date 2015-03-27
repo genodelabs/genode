@@ -86,9 +86,7 @@ struct Genode::Cpu_session_client : Rpc_client<Cpu_session>
 	int transfer_quota(Cpu_session_capability session, size_t amount) override {
 		return call<Rpc_transfer_quota>(session, amount); }
 
-	size_t quota() override { return call<Rpc_quota>(); }
-
-	size_t used() override { return call<Rpc_used>(); }
+	Quota quota() override { return call<Rpc_quota>(); }
 };
 
 #endif /* _INCLUDE__CPU_SESSION__CLIENT_H_ */

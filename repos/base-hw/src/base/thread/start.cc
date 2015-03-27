@@ -30,7 +30,7 @@ extern Native_thread_id         _main_thread_id;
  ** Thread_base **
  *****************/
 
-void Thread_base::_init_platform_thread(size_t quota, Type type)
+void Thread_base::_init_platform_thread(size_t weight, Type type)
 {
 	if (!_cpu_session) { _cpu_session = env()->cpu_session(); }
 	if (type == NORMAL) {
@@ -38,7 +38,8 @@ void Thread_base::_init_platform_thread(size_t quota, Type type)
 		/* create server object */
 		char buf[48];
 		name(buf, sizeof(buf));
-		_thread_cap = _cpu_session->create_thread(quota, buf, (addr_t)&_context->utcb);
+		addr_t const utcb = (addr_t)&_context->utcb;
+		_thread_cap = _cpu_session->create_thread(weight, buf, utcb);
 		return;
 	}
 	/* if we got reinitialized we have to get rid of the old UTCB */

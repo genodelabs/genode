@@ -53,7 +53,7 @@ namespace Genode {
 
 		private:
 
-			size_t              const _quota;
+			size_t              const _weight;
 			Thread_name         const _name;
 			Platform_thread           _platform_thread;
 			bool                      _bound;            /* pd binding flag */
@@ -63,14 +63,27 @@ namespace Genode {
 
 		public:
 
-			Cpu_thread_component(size_t quota, Session_label const &label,
+			/**
+			 * Constructor
+			 *
+			 * \param weight     weighting regarding the CPU session quota
+			 * \param quota      initial quota counter-value of the weight
+			 * \param labal      label of the threads session
+			 * \param name       name for the thread
+			 * \param priority   scheduling priority
+			 * \param utcb       user-local UTCB base
+			 * \param sigh       initial exception handler
+			 */
+			Cpu_thread_component(size_t const weight,
+			                     size_t const quota,
+			                     Session_label const &label,
 			                     Thread_name const &name,
 			                     unsigned priority, addr_t utcb,
 			                     Signal_context_capability sigh,
 			                     unsigned trace_control_index,
 			                     Trace::Control &trace_control)
 			:
-				_quota(quota), _name(name),
+				_weight(weight), _name(name),
 				_platform_thread(quota, name.string(), priority, utcb),
 				_bound(false), _sigh(sigh),
 				_trace_control_index(trace_control_index),
@@ -88,7 +101,7 @@ namespace Genode {
 			bool             bound()     const { return _bound; }
 			void             bound(bool b)     { _bound = b; }
 			Trace::Source   *trace_source()    { return &_trace_source; }
-			size_t           quota() const     { return _quota; }
+			size_t           weight() const    { return _weight; }
 
 			void sigh(Signal_context_capability sigh)
 			{
@@ -138,9 +151,9 @@ namespace Genode {
 			 * Members for quota accounting
 			 */
 
-			Cpu_session_component *     _ref;
-			size_t                      _used;
+			size_t                      _weight;
 			size_t                      _quota;
+			Cpu_session_component *     _ref;
 			List<Cpu_session_component> _ref_members;
 			Lock                        _ref_members_lock;
 
@@ -148,32 +161,22 @@ namespace Genode {
 			 * Utilities for quota accounting
 			 */
 
-			size_t _avail() { return _quota - _used; }
+			void _incr_weight(size_t const weight);
 
-			size_t _local_to_global(size_t const q) const {
-				return (q * _quota) >> Cpu_session::QUOTA_LIMIT_LOG2; }
+			void _decr_weight(size_t const weight);
 
-			size_t _global_to_local(size_t const q) const {
-				if (!_quota) { return 0; }
-				return (q << Cpu_session::QUOTA_LIMIT_LOG2) / _quota; }
+			size_t _weight_to_quota(size_t const weight) const;
 
-			int _insuff_for_transfer(size_t const q);
+			void _decr_quota(size_t const quota);
 
-			void _insuff_for_consume(size_t const q);
+			void _incr_quota(size_t const quota);
 
-			int _transfer_back(size_t const q)
-			{
-				_quota -= q;
-				_ref->_used -= q;
-				return 0;
-			}
+			void _update_thread_quota(Cpu_thread_component *) const;
 
-			int _transfer_forth(Cpu_session_component * const s, size_t const q)
-			{
-				s->_quota += q;
-				_used += q;
-				return 0;
-			}
+			void _update_each_thread_quota();
+
+			void _transfer_quota(Cpu_session_component * const dst,
+			                     size_t const quota);
 
 			void _insert_ref_member(Cpu_session_component * const s)
 			{
@@ -261,9 +264,8 @@ namespace Genode {
 			Dataspace_capability trace_buffer(Thread_capability);
 			Dataspace_capability trace_policy(Thread_capability);
 			int ref_account(Cpu_session_capability c);
-			int transfer_quota(Cpu_session_capability c, size_t q);
-			size_t used();
-			size_t quota();
+			int transfer_quota(Cpu_session_capability, size_t);
+			Quota quota() override;
 	};
 }
 

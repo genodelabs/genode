@@ -102,7 +102,7 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
                                char const *name, bool start_on_construction,
                                Affinity::Location location)
 :
-	Thread_base(0, name, stack_size),
+	Thread_base(Cpu_session::DEFAULT_WEIGHT, name, stack_size),
 	_cap(Untyped_capability()),
 	_curr_obj(0), _cap_valid(Lock::LOCKED), _delay_start(Lock::LOCKED),
 	_delay_exit(Lock::LOCKED),

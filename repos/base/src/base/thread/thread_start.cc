@@ -54,7 +54,9 @@ void Thread_base::start()
 	/* create thread at core */
 	char buf[48];
 	name(buf, sizeof(buf));
-	_thread_cap = _cpu_session->create_thread(0, buf, (addr_t)&_context->utcb);
+	enum { WEIGHT = Cpu_session::DEFAULT_WEIGHT };
+	addr_t const utcb = (addr_t)&_context->utcb;
+	_thread_cap = _cpu_session->create_thread(WEIGHT, buf, utcb);
 	if (!_thread_cap.valid())
 		throw Cpu_session::Thread_creation_failed();
 

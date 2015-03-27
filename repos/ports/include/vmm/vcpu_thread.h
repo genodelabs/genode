@@ -62,8 +62,10 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 		{
 			using namespace Genode;
 
-			Thread_capability vcpu_vm = _cpu_session->create_thread(0, "vCPU");
-			
+			enum { WEIGHT = Cpu_session::DEFAULT_WEIGHT };
+			Thread_capability vcpu_vm =
+				_cpu_session->create_thread(WEIGHT, "vCPU");
+
 			/* assign thread to protection domain */
 			_pd_session.bind_thread(vcpu_vm);
 
@@ -104,12 +106,14 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 
 class Vmm::Vcpu_same_pd : public Vmm::Vcpu_thread, Genode::Thread_base
 {
+	enum { WEIGHT = Genode::Cpu_session::DEFAULT_WEIGHT };
+
 	public:
 
 		Vcpu_same_pd(size_t stack_size, Cpu_session * cpu_session,
 		             Genode::Affinity::Location location)
 		:
-			Thread_base(0, "vCPU", stack_size, Type::NORMAL, cpu_session)
+			Thread_base(WEIGHT, "vCPU", stack_size, Type::NORMAL, cpu_session)
 		{
 			/* release pre-allocated selectors of Thread */
 			Genode::cap_map()->remove(tid().exc_pt_sel, Nova::NUM_INITIAL_PT_LOG2);

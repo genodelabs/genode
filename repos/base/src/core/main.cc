@@ -263,14 +263,13 @@ int main()
 	Ram_session_client(init_ram_session_cap).ref_account(env()->ram_session_cap());
 
 	/* create CPU session for init and transfer all of the CPU quota to it */
-	constexpr size_t cpu_quota = Cpu_session::QUOTA_LIMIT;
 	static Cpu_session_component
 		cpu(e, e, rm_root.pager_ep(), &sliced_heap, trace_sources,
-		    "label=\"core\"", Affinity(), cpu_quota);
+		    "label=\"core\"", Affinity(), Cpu_session::QUOTA_LIMIT);
 	Cpu_session_capability cpu_cap = core_env()->entrypoint()->manage(&cpu);
 	Cpu_connection init_cpu("init");
 	init_cpu.ref_account(cpu_cap);
-	cpu.transfer_quota(init_cpu, cpu_quota);
+	cpu.transfer_quota(init_cpu, Cpu_session::quota_lim_upscale(100, 100));
 
 	Rm_connection  init_rm;
 

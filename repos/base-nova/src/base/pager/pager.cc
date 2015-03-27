@@ -599,7 +599,7 @@ Pager_object::~Pager_object()
 
 Pager_activation_base::Pager_activation_base(const char *name, size_t stack_size)
 :
-	Thread_base(0, name, stack_size),
+	Thread_base(Cpu_session::DEFAULT_WEIGHT, name, stack_size),
 	_cap(Native_capability()), _ep(0), _cap_valid(Lock::LOCKED)
 {
 	/* tell thread starting code on which CPU to let run the pager */

@@ -33,14 +33,10 @@ void Cpu_thread_component::update_exception_sigh()
 };
 
 
-Thread_capability Cpu_session_component::create_thread(size_t quota,
+Thread_capability Cpu_session_component::create_thread(size_t weight,
                                                        Name const &name,
                                                        addr_t utcb)
 {
-	/* check for sufficient quota */
-	quota = _local_to_global(quota);
-	if (quota > avail()) { _insuff_for_consume(quota); }
-
 	unsigned trace_control_index = 0;
 	if (!_trace_control_area.alloc(trace_control_index))
 		throw Out_of_metadata();
@@ -51,16 +47,27 @@ Thread_capability Cpu_session_component::create_thread(size_t quota,
 	Trace::Thread_name thread_name(name.string());
 
 	Cpu_thread_component *thread = 0;
+
+	if (weight == 0) {
+		PWRN("Thread %s: Bad weight 0, using %i instead.",
+		     name.string(), DEFAULT_WEIGHT);
+		weight = DEFAULT_WEIGHT;
+	}
+	if (weight > QUOTA_LIMIT) {
+		PWRN("Thread %s: Oversized weight %zu, using %i instead.",
+		     name.string(), weight, QUOTA_LIMIT);
+		weight = QUOTA_LIMIT;
+	}
+	Lock::Guard thread_list_lock_guard(_thread_list_lock);
+	_incr_weight(weight);
+
 	try {
 		Lock::Guard slab_lock_guard(_thread_alloc_lock);
 		thread = new(&_thread_alloc)
 			Cpu_thread_component(
-				quota, _label, thread_name, _priority, utcb,
-				_default_exception_handler, trace_control_index,
-				*trace_control);
-
-		/* account quota */
-		_used += quota;
+				weight, _weight_to_quota(weight), _label, thread_name,
+				_priority, utcb, _default_exception_handler,
+				trace_control_index, *trace_control);
 
 		/* set default affinity defined by CPU session */
 		thread->platform_thread()->affinity(_location);
@@ -68,7 +75,6 @@ Thread_capability Cpu_session_component::create_thread(size_t quota,
 		throw Out_of_metadata();
 	}
 
-	Lock::Guard thread_list_lock_guard(_thread_list_lock);
 	_thread_list.insert(thread);
 
 	_trace_sources.insert(thread->trace_source());
@@ -86,7 +92,7 @@ void Cpu_session_component::_unsynchronized_kill_thread(Cpu_thread_component *th
 
 	unsigned const trace_control_index = thread->trace_control_index();
 
-	_used -= thread->quota();
+	_decr_weight(thread->weight());
 
 	Lock::Guard lock_guard(_thread_alloc_lock);
 	destroy(&_thread_alloc, thread);
@@ -290,39 +296,72 @@ static size_t remaining_session_ram_quota(char const *args)
 }
 
 
-int Cpu_session_component::transfer_quota(Cpu_session_capability c, size_t q)
+void Cpu_session_component::_transfer_quota(Cpu_session_component * const dst,
+                                            size_t const quota)
 {
-	/* lookup targeted CPU-session */
-	Object_pool<Cpu_session_component>::Guard s(_session_ep->lookup_and_lock(c));
-	if (!s) { return -1; }
-
-	/* translate quota argument and check limits */
-	q = _local_to_global(q);
-	if (q > avail()) { return _insuff_for_transfer(q); }
-
-	/* transfer quota to targeted CPU-session */
-	if (s->_ref == this) { return _transfer_forth(s, q); }
-	if (s == _ref) { return _transfer_back(q); }
-	return -2;
+	if (!quota) { return; }
+	_decr_quota(quota);
+	dst->_incr_quota(quota);
 }
 
 
-int Cpu_session_component::ref_account(Cpu_session_capability c)
+int Cpu_session_component::transfer_quota(Cpu_session_capability dst_cap,
+                                          size_t amount)
+{
+	/* lookup targeted CPU session */
+	Object_pool<Cpu_session_component>::Guard
+		dst(_session_ep->lookup_and_lock(dst_cap));
+	if (!dst) {
+		PWRN("Transfer CPU quota, %s, targeted session not found",
+		     _label.string());
+		return -1;
+	}
+	/* check reference relationship */
+	if (dst->_ref != this && dst != _ref) {
+		PWRN("Transfer CPU quota, %s -> %s, no reference relation",
+		     _label.string(), dst->_label.string());
+		return -2;
+	}
+	/* check quota availability */
+	size_t const quota = quota_lim_downscale(_quota, amount);
+	if (quota > _quota) {
+		PWRN("Transfer CPU quota, %s -> %s, insufficient quota %zu, need %zu",
+		     _label.string(), dst->_label.string(), _quota, quota);
+		return -3;
+	}
+	/* transfer quota */
+	_transfer_quota(dst, quota);
+	return 0;
+}
+
+
+int Cpu_session_component::ref_account(Cpu_session_capability ref_cap)
 {
 	/*
 	 * Ensure that the ref account is set only once
 	 *
 	 * FIXME Add check for cycles along the tree of reference accounts
 	 */
-	if (_ref) { return -2; }
+	if (_ref) {
+		PWRN("Set ref account, %s, set already",
+		     _label.string());
+		return -2; }
 
-	/* lookup targeted CPU-session */
-	Object_pool<Cpu_session_component>::Guard s(_session_ep->lookup_and_lock(c));
-	if (!s) { return -1; }
-	if (s == this) { return -3; }
-
+	/* lookup and check targeted CPU-session */
+	Object_pool<Cpu_session_component>::Guard
+		ref(_session_ep->lookup_and_lock(ref_cap));
+	if (!ref) {
+		PWRN("Set ref account, %s, targeted session not found",
+		     _label.string());
+		return -1;
+	}
+	if (ref == this) {
+		PWRN("Set ref account, %s, self reference not allowed",
+		     _label.string());
+		return -3;
+	}
 	/* establish ref-account relation from targeted CPU-session to us */
-	_ref = s;
+	_ref = ref;
 	_ref->_insert_ref_member(this);
 	return 0;
 }
@@ -335,7 +374,7 @@ Cpu_session_component::Cpu_session_component(Rpc_entrypoint         *session_ep,
                                              Trace::Source_registry &trace_sources,
                                              char             const *args,
                                              Affinity         const &affinity,
-                                             size_t                  quota)
+                                             size_t           const  quota)
 :
 	_session_ep(session_ep),
 	_thread_ep(thread_ep), _pager_ep(pager_ep),
@@ -345,7 +384,7 @@ Cpu_session_component::Cpu_session_component(Rpc_entrypoint         *session_ep,
 	/* map affinity to a location within the physical affinity space */
 	_location(affinity.scale_to(platform()->affinity_space())),
 
-	_trace_sources(trace_sources), _ref(0), _used(0), _quota(quota)
+	_trace_sources(trace_sources), _quota(quota), _ref(0)
 {
 	/* remember session label */
 	char buf[Session_label::size()];
@@ -375,7 +414,7 @@ void Cpu_session_component::_deinit_ref_account()
 	if (!_ref) { return; }
 
 	/* give back our remaining quota to our ref account */
-	_transfer_back(_quota);
+	_transfer_quota(_ref, _quota);
 
 	/* remove ref-account relation between us and our ref-account */
 	Cpu_session_component * const orig_ref = _ref;
@@ -405,30 +444,53 @@ void Cpu_session_component::_deinit_threads()
 }
 
 
-int Cpu_session_component::_insuff_for_transfer(size_t const q)
+void Cpu_session_component::
+_update_thread_quota(Cpu_thread_component * const thread) const
 {
-	if (verbose) {
-		PWRN("Insufficient CPU quota for transfer: %s", _label.string());
-		PWRN("  avail  %zu", _avail());
-		PWRN("  needed %zu", q);
-	}
-	return -3;
+	thread->platform_thread()->quota(_weight_to_quota(thread->weight()));
 }
 
 
-void Cpu_session_component::_insuff_for_consume(size_t const q)
+void Cpu_session_component::_incr_weight(size_t const weight)
 {
-	if (verbose) {
-		PWRN("Insufficient CPU quota for consumption: %s", _label.string());
-		PWRN("  avail  %zu", _avail());
-		PWRN("  needed %zu", q);
-	}
-	throw Quota_exceeded();
+	_weight += weight;
+	if (_quota) { _update_each_thread_quota(); }
 }
 
-size_t Cpu_session_component::used() { return _global_to_local(_used); }
 
-size_t Cpu_session_component::quota() { return _global_to_local(_quota); }
+void Cpu_session_component::_decr_weight(size_t const weight)
+{
+	_weight -= weight;
+	if (_quota) { _update_each_thread_quota(); }
+}
+
+
+void Cpu_session_component::_decr_quota(size_t const quota)
+{
+	Lock::Guard lock_guard(_thread_list_lock);
+	_quota -= quota;
+	_update_each_thread_quota();
+}
+
+
+void Cpu_session_component::_incr_quota(size_t const quota)
+{
+	Lock::Guard lock_guard(_thread_list_lock);
+	_quota += quota;
+	_update_each_thread_quota();
+}
+
+
+void Cpu_session_component::_update_each_thread_quota()
+{
+	Cpu_thread_component * thread = _thread_list.first();
+	for (; thread; thread = thread->next()) { _update_thread_quota(thread); }
+}
+
+
+size_t
+Cpu_session_component::_weight_to_quota(size_t const weight) const {
+	return (weight * _quota) / _weight; }
 
 
 /****************************

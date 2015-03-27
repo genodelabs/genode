@@ -164,6 +164,11 @@ namespace Genode {
 			}
 
 			Native_capability single_step(bool on);
+
+			/**
+			 * Set CPU quota of the thread to 'quota'
+			 */
+			void quota(size_t const quota) { /* not supported*/ }
 	};
 }
 

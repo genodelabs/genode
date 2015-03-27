@@ -63,7 +63,9 @@ namespace Genode {
 
 		public:
 
-			Cpu_thread_component(size_t, Session_label const &label,
+			Cpu_thread_component(size_t const weight,
+			                     size_t const quota,
+			                     Session_label const &label,
 			                     Thread_name const &name,
 			                     unsigned priority, addr_t utcb,
 			                     Signal_context_capability sigh,
@@ -87,7 +89,8 @@ namespace Genode {
 			bool             bound()     const { return _bound; }
 			void             bound(bool b)     { _bound = b; }
 			Trace::Source   *trace_source()    { return &_trace_source; }
-			size_t           quota()           { return 0; }
+
+			size_t weight() const { return Cpu_session::DEFAULT_WEIGHT; }
 
 			void sigh(Signal_context_capability sigh)
 			{
@@ -131,24 +134,26 @@ namespace Genode {
 			                                                  session */
 			Trace::Source_registry    &_trace_sources;
 			Trace::Control_area        _trace_control_area;
-			Cpu_session_component *     _ref;
-			size_t                      _used;
+
+			size_t                      _weight;
 			size_t                      _quota;
+			Cpu_session_component *     _ref;
 			List<Cpu_session_component> _ref_members;
 			Lock                        _ref_members_lock;
 
-			size_t _global_to_local(size_t const q) const { return 0; }
-			size_t _avail() { return 0; }
+			void _incr_weight(size_t);
+			void _decr_weight(size_t);
+			size_t _weight_to_quota(size_t) const;
+			void _decr_quota(size_t);
+			void _incr_quota(size_t);
+			void _update_thread_quota(Cpu_thread_component *) const;
+			void _update_each_thread_quota();
+			void _transfer_quota(Cpu_session_component *, size_t);
+			void _insert_ref_member(Cpu_session_component *) { }
+			void _unsync_remove_ref_member(Cpu_session_component *) { }
+			void _remove_ref_member(Cpu_session_component *) { }
 			void _deinit_ref_account();
 			void _deinit_threads();
-			size_t _local_to_global(size_t) const { return 0; }
-			void _insuff_for_consume(size_t);
-			int _insuff_for_transfer(size_t);
-			int _transfer_back(size_t) { return -1; }
-			int _transfer_forth(Cpu_session_component *, size_t) { return -1; }
-			void _insert_ref_member(Cpu_session_component *) { }
-			void _remove_ref_member(Cpu_session_component *) { }
-			void _unsync_remove_ref_member(Cpu_session_component *) { }
 
 			/**
 			 * Exception handler that will be invoked unless overridden by a
@@ -214,8 +219,7 @@ namespace Genode {
 			Dataspace_capability trace_policy(Thread_capability);
 			int ref_account(Cpu_session_capability c);
 			int transfer_quota(Cpu_session_capability c, size_t q);
-			size_t used();
-			size_t quota();
+			Quota quota() override;
 
 
 			/*******************************

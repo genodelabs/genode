@@ -132,6 +132,8 @@ class Genode::Pager_activation_base: public Thread_base
 {
 	private:
 
+		enum { WEIGHT = Cpu_session::DEFAULT_WEIGHT };
+
 		Native_capability _cap;
 		Pager_entrypoint *_ep;       /* entry point to which the
 		                                activation belongs */
@@ -142,9 +144,9 @@ class Genode::Pager_activation_base: public Thread_base
 
 	public:
 
-		Pager_activation_base(const char *name, size_t stack_size) :
-			Thread_base(0, name, stack_size),
-			_cap(Native_capability()), _ep(0), _cap_valid(Lock::LOCKED) { }
+		Pager_activation_base(const char *name, size_t stack_size)
+		: Thread_base(WEIGHT, name, stack_size), _cap(Native_capability()),
+		              _ep(0), _cap_valid(Lock::LOCKED) { }
 
 		/**
 		 * Set entry point, which the activation serves

@@ -401,7 +401,7 @@ void Thread_base::join()
 }
 
 
-Thread_base::Thread_base(size_t, const char *name, size_t stack_size,
+Thread_base::Thread_base(size_t weight, const char *name, size_t stack_size,
                          Type type, Cpu_session * cpu_sess)
 : _cpu_session(cpu_sess)
 {
@@ -420,13 +420,14 @@ Thread_base::Thread_base(size_t, const char *name, size_t stack_size,
 
 	Linux_cpu_session *cpu = cpu_session(_cpu_session);
 
-	_thread_cap = cpu->create_thread(0, name);
+	_thread_cap = cpu->create_thread(weight, name);
 	cpu->thread_id(_thread_cap, _tid.pid, _tid.tid);
 }
 
 
-Thread_base::Thread_base(size_t, const char *name, size_t stack_size, Type type)
-: Thread_base(0, name, stack_size, type, env()->cpu_session()) { }
+Thread_base::Thread_base(size_t weight, const char *name, size_t stack_size,
+                         Type type)
+: Thread_base(weight, name, stack_size, type, env()->cpu_session()) { }
 
 void Thread_base::cancel_blocking()
 {

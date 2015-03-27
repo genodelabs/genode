@@ -158,6 +158,11 @@ class Kernel::Thread
 		int _read_reg(addr_t const id, addr_t & value) const;
 
 		/**
+		 * Return amount of timer tics that 'quota' is worth 
+		 */
+		size_t _core_to_kernel_quota(size_t const quota) const;
+
+		/**
 		 * Override a thread register
 		 *
 		 * \param id     kernel name of targeted thread register

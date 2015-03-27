@@ -41,6 +41,9 @@ class Irq_thread : public Thread_base
 {
 	private:
 
+		enum { STACK_SIZE = 1024 * sizeof(addr_t) };
+		enum { WEIGHT = Cpu_session::DEFAULT_WEIGHT };
+
 		static void _thread_start()
 		{
 			Thread_base::myself()->entry();
@@ -49,7 +52,8 @@ class Irq_thread : public Thread_base
 
 	public:
 
-		Irq_thread(char const *name) : Thread_base(0, name, 1024 * sizeof(addr_t)) { }
+		Irq_thread(char const *name) : Thread_base(WEIGHT, name, STACK_SIZE)
+		{ }
 
 		/**
 		 * Create global EC, associate it to SC

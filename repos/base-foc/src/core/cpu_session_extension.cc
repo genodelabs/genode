@@ -107,3 +107,6 @@ void Genode::Cpu_session_component::single_step(Genode::Thread_capability thread
 
 	Fiasco::l4_thread_ex_regs(tid, ~0UL, ~0UL, flags);
 }
+
+
+Genode::Cpu_session::Quota Genode::Cpu_session_component::quota() { return Quota(); }

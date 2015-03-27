@@ -153,6 +153,11 @@ namespace Genode {
 			{
 				_registry()->submit_exception(pid);
 			}
+
+			/**
+			 * Set CPU quota of the thread to 'quota'
+			 */
+			void quota(size_t const quota) { /* not supported*/ }
 	};
 }
 

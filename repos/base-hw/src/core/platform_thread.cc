@@ -78,6 +78,10 @@ Platform_thread::~Platform_thread()
 }
 
 
+void Platform_thread::quota(size_t const quota) {
+	Kernel::thread_quota((Kernel::Thread *)_kernel_thread, quota); }
+
+
 Platform_thread::Platform_thread(const char * const label,
                                  Native_utcb * utcb)
 : _pd(Kernel::core_pd()->platform_pd()),
@@ -110,7 +114,8 @@ Platform_thread::Platform_thread(const char * const label,
 }
 
 
-Platform_thread::Platform_thread(size_t quota, const char * const label,
+Platform_thread::Platform_thread(size_t const quota,
+                                 const char * const label,
                                  unsigned const virt_prio,
                                  addr_t const utcb)
 :
@@ -139,7 +144,6 @@ Platform_thread::Platform_thread(size_t quota, const char * const label,
 	/* create kernel object */
 	constexpr unsigned max_prio = Kernel::Cpu_priority::max;
 	auto const phys_prio = Cpu_session::scale_priority(max_prio, virt_prio);
-	quota = _generic_to_platform_quota(quota);
 	_id = Kernel::new_thread(_kernel_thread, phys_prio, quota, _label);
 	if (!_id) {
 		PERR("failed to create kernel object");

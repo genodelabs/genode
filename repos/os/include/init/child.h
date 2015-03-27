@@ -42,6 +42,12 @@ namespace Init {
 
 	extern bool config_verbose;
 
+	static void warn_insuff_quota(Genode::size_t const avail)
+	{
+		if (!config_verbose) { return; }
+		Genode::printf("Warning: Specified quota exceeds available quota.\n");
+		Genode::printf("         Proceeding with a quota of %zu.\n", avail);
+	}
 
 	inline long read_priority(Genode::Xml_node start_node)
 	{
@@ -101,13 +107,6 @@ namespace Init {
 
 		return avail > preserve ? avail - preserve : 0;
 	}
-
-
-	/**
-	 * Return amount of CPU time that is currently unused
-	 */
-	static inline Genode::size_t avail_slack_cpu_quota() {
-		return Genode::env()->cpu_session()->avail(); }
 
 
 	/**
@@ -395,21 +394,12 @@ class Init::Child : Genode::Child_policy
 
 		struct Read_quota
 		{
-			void warn_unsuff_quota(Genode::size_t const avail)
-			{
-				using namespace Genode;
-				if (!config_verbose) { return; }
-				Genode::printf("Warning: Specified quota exceeds available quota.\n");
-				Genode::printf("         Proceeding with a quota of %zu.\n", avail);
-			}
-
 			Read_quota(Genode::Xml_node start_node,
 			           Genode::size_t & ram_quota,
-			           Genode::size_t & cpu_quota,
+			           Genode::size_t & cpu_quota_pc,
 			           bool           & constrain_phys)
 			{
 				Genode::Number_of_bytes ram_bytes = 0;
-				Genode::size_t          cpu_percent = 0;
 
 				try {
 					Genode::Xml_node rsc = start_node.sub_node("resource");
@@ -419,12 +409,11 @@ class Init::Child : Genode::Child_policy
 								rsc.attribute("quantum").value(&ram_bytes);
 								constrain_phys = rsc.attribute("constrain_phys").has_value("yes");
 							} else if (rsc.attribute("name").has_value("CPU")) {
-								rsc.attribute("quantum").value(&cpu_percent); }
+								rsc.attribute("quantum").value(&cpu_quota_pc); }
 						} catch (...) { }
 					}
 				} catch (...) { }
 				ram_quota = ram_bytes;
-				cpu_quota = Genode::Cpu_session::pc_to_quota(cpu_percent);
 
 				/*
 				 * If the configured RAM quota exceeds our own quota, we donate
@@ -435,13 +424,7 @@ class Init::Child : Genode::Child_policy
 				Genode::size_t const ram_avail = avail_slack_ram_quota();
 				if (ram_quota > ram_avail) {
 					ram_quota = ram_avail;
-					warn_unsuff_quota(ram_avail);
-				}
-
-				Genode::size_t const cpu_avail = avail_slack_cpu_quota();
-				if (cpu_quota > cpu_avail) {
-					cpu_quota = cpu_avail;
-					warn_unsuff_quota(cpu_avail);
+					warn_insuff_quota(ram_avail);
 				}
 			}
 		};
@@ -455,17 +438,19 @@ class Init::Child : Genode::Child_policy
 			long                   priority;
 			Genode::Affinity       affinity;
 			Genode::size_t         ram_quota;
-			Genode::size_t         cpu_quota;
+			Genode::size_t         cpu_quota_pc;
 			bool                   constrain_phys;
 			Genode::Ram_connection ram;
 			Genode::Cpu_connection cpu;
 			Genode::Rm_connection  rm;
 
+			inline void transfer_cpu_quota();
+
 			Resources(Genode::Xml_node start_node, const char *label,
 			          long prio_levels_log2,
 			          Genode::Affinity::Space const &affinity_space)
 			:
-				Read_quota(start_node, ram_quota, cpu_quota, constrain_phys),
+				Read_quota(start_node, ram_quota, cpu_quota_pc, constrain_phys),
 				prio_levels_log2(prio_levels_log2),
 				priority(read_priority(start_node)),
 				affinity(affinity_space,
@@ -487,8 +472,7 @@ class Init::Child : Genode::Child_policy
 				ram.ref_account(Genode::env()->ram_session_cap());
 				Genode::env()->ram_session()->transfer_quota(ram.cap(), ram_quota);
 
-				cpu.ref_account(Genode::env()->cpu_session_cap());
-				Genode::env()->cpu_session()->transfer_quota(cpu.cap(), cpu_quota);
+				transfer_cpu_quota();
 			}
 		} _resources;
 
@@ -800,5 +784,25 @@ class Init::Child : Genode::Child_policy
 
 		Genode::Native_pd_args const *pd_args() const { return &_pd_args; }
 };
+
+
+void Init::Child::Resources::transfer_cpu_quota()
+{
+	using Genode::Cpu_session;
+	using Genode::size_t;
+	static size_t avail = Cpu_session::quota_lim_upscale(         100, 100);
+	size_t const   need = Cpu_session::quota_lim_upscale(cpu_quota_pc, 100);
+	size_t need_adj;
+	if (need > avail) {
+		warn_insuff_quota(Cpu_session::quota_lim_downscale(avail, 100));
+		need_adj = Cpu_session::quota_lim_upscale(100, 100);
+		avail    = 0;
+	} else {
+		need_adj = Cpu_session::quota_lim_upscale(need, avail);
+		avail   -= need;
+	}
+	cpu.ref_account(Genode::env()->cpu_session_cap());
+	Genode::env()->cpu_session()->transfer_quota(cpu.cap(), need_adj);
+}
 
 #endif /* _INCLUDE__INIT__CHILD_H_ */

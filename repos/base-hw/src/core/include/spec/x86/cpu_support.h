@@ -13,8 +13,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CPU_H_
-#define _CPU_H_
+#ifndef _SPEC__X86__CPU_SUPPORT_H_
+#define _SPEC__X86__CPU_SUPPORT_H_
 
 /* Genode includes */
 #include <util/register.h>
@@ -445,4 +445,4 @@ class Genode::Cpu
 
 };
 
-#endif /* _CPU_H_ */
+#endif /* _SPEC__X86__CPU_SUPPORT_H_ */

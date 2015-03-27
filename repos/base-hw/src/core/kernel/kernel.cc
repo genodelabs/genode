@@ -46,6 +46,8 @@ extern void * _start_secondary_cpus;
 extern int _prog_img_beg;
 extern int _prog_img_end;
 
+static_assert(sizeof(Genode::sizet_arithm_t) >= 2 * sizeof(size_t),
+	"Bad result type for size_t arithmetics.");
 
 namespace Kernel
 {

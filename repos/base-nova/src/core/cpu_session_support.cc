@@ -26,3 +26,5 @@ Ram_dataspace_capability Cpu_session_component::utcb(Thread_capability thread_ca
 	return Ram_dataspace_capability();
 }
 
+
+Cpu_session::Quota Cpu_session_component::quota() { return Quota(); }

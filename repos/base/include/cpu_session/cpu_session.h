@@ -47,8 +47,14 @@ struct Genode::Cpu_session : Session
 	enum { QUOTA_LIMIT_LOG2 = 15 };
 	enum { QUOTA_LIMIT = 1 << QUOTA_LIMIT_LOG2 };
 	enum { DEFAULT_PRIORITY = 0 };
+	enum { DEFAULT_WEIGHT = 10 };
 
 	typedef Rpc_in_buffer<THREAD_NAME_LEN> Name;
+
+	/**
+	 * Physical quota configuration
+	 */
+	struct Quota;
 
 	virtual ~Cpu_session() { }
 
@@ -264,7 +270,8 @@ struct Genode::Cpu_session : Session
 	 * Transfer quota to another CPU session
 	 *
 	 * \param cpu_session  receiver of quota donation
-	 * \param amount       amount of quota to donate
+	 * \param amount       percentage of the session quota scaled up to
+	 *                     the 'QUOTA_LIMIT' space
 	 * \return             0 on success
 	 *
 	 * Quota can only be transfered if the specified CPU session is
@@ -274,29 +281,23 @@ struct Genode::Cpu_session : Session
 	                           size_t amount) = 0;
 
 	/**
-	 * Return current quota limit
+	 * Return quota configuration of the session
 	 */
-	virtual size_t quota() = 0;
+	virtual Quota quota() = 0;
 
 	/**
-	 * Return amount of used quota
+	 * Scale up 'value' from its space with 'limit' to the 'QUOTA_LIMIT' space
 	 */
-	virtual size_t used() = 0;
+	template<typename T = size_t>
+	static size_t quota_lim_upscale(size_t const value, size_t const limit) {
+		return ((T)value << Cpu_session::QUOTA_LIMIT_LOG2) / limit; }
 
 	/**
-	 * Return amount of available quota
+	 * Scale down 'value' from the 'QUOTA_LIMIT' space to a space with 'limit'
 	 */
-	size_t avail()
-	{
-		size_t q = quota(), u = used();
-		return q > u ? q - u : 0;
-	}
-
-	/**
-	 * Transform percentage of CPU utilization into CPU quota
-	 */
-	static size_t pc_to_quota(size_t const pc) {
-		return (pc << QUOTA_LIMIT_LOG2) / 100; }
+	template<typename T = size_t>
+	static size_t quota_lim_downscale(size_t const value, size_t const limit) {
+		return ((T)value * limit) >> Cpu_session::QUOTA_LIMIT_LOG2; }
 
 	/*********************
 	 ** RPC declaration **
@@ -329,8 +330,7 @@ struct Genode::Cpu_session : Session
 	GENODE_RPC(Rpc_trace_policy, Dataspace_capability, trace_policy, Thread_capability);
 	GENODE_RPC(Rpc_ref_account, int, ref_account, Cpu_session_capability);
 	GENODE_RPC(Rpc_transfer_quota, int, transfer_quota, Cpu_session_capability, size_t);
-	GENODE_RPC(Rpc_quota, size_t, quota);
-	GENODE_RPC(Rpc_used, size_t, used);
+	GENODE_RPC(Rpc_quota, Quota, quota);
 
 	/*
 	 * 'GENODE_RPC_INTERFACE' declaration done manually
@@ -361,9 +361,14 @@ struct Genode::Cpu_session : Session
 	        Meta::Type_tuple<Rpc_ref_account,
 	        Meta::Type_tuple<Rpc_transfer_quota,
 	        Meta::Type_tuple<Rpc_quota,
-	        Meta::Type_tuple<Rpc_used,
 	                         Meta::Empty>
-	        > > > > > > > > > > > > > > > > > > > > > Rpc_functions;
+	        > > > > > > > > > > > > > > > > > > > > Rpc_functions;
+};
+
+struct Genode::Cpu_session::Quota
+{
+	size_t super_period_us;
+	size_t us;
 };
 
 #endif /* _INCLUDE__CPU_SESSION__CPU_SESSION_H_ */

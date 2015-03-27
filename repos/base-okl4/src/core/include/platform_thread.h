@@ -147,6 +147,11 @@ namespace Genode {
 			 */
 			Affinity::Location affinity() { return Affinity::Location(); }
 
+			/**
+			 * Set CPU quota of the thread
+			 */
+			void quota(size_t) { /* not supported */ }
+
 
 			/*****************************
 			 ** OKL4-specific Accessors **

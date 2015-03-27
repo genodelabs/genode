@@ -75,12 +75,6 @@ namespace Genode {
 		 */
 		bool _attaches_utcb_by_itself();
 
-		static size_t _generic_to_platform_quota(size_t const q)
-		{
-			assert(Kernel::cpu_quota_ms <= Cpu_session::QUOTA_LIMIT);
-			return (q * Kernel::cpu_quota_ms) >> 15;
-		}
-
 		public:
 
 			/**
@@ -142,6 +136,11 @@ namespace Genode {
 			 * Cancel currently blocking operation
 			 */
 			void cancel_blocking() { resume(); }
+
+			/**
+			 * Set CPU quota of the thread to 'quota'
+			 */
+			void quota(size_t const quota);
 
 			/**
 			 * Get raw thread state

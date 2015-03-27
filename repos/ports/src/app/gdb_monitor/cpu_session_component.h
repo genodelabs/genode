@@ -78,8 +78,7 @@ class Cpu_session_component : public Rpc_object<Cpu_session>
 		Dataspace_capability trace_policy(Thread_capability);
 		int ref_account(Cpu_session_capability c);
 		int transfer_quota(Cpu_session_capability c, size_t q);
-		size_t used();
-		size_t quota();
+		Quota quota() override;
 };
 
 #endif /* _CPU_SESSION_COMPONENT_H_ */

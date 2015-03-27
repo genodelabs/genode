@@ -31,6 +31,8 @@ class Vmm::Vcpu_dispatcher : public T
 {
 	private:
 
+		enum { WEIGHT = Genode::Cpu_session::DEFAULT_WEIGHT };
+
 		Cap_connection &_cap;
 
 		/**
@@ -61,7 +63,7 @@ class Vmm::Vcpu_dispatcher : public T
 		                Cpu_session * cpu_session,
 		                Genode::Affinity::Location location)
 		:
-			T(0, "vCPU dispatcher", stack_size),
+			T(WEIGHT, "vCPU dispatcher", stack_size),
 			_cap(cap)
 		{
 			using namespace Genode;

@@ -69,7 +69,7 @@ void Thread_base::_thread_start()
 }
 
 
-void Thread_base::_init_platform_thread(size_t, Type type)
+void Thread_base::_init_platform_thread(size_t weight, Type type)
 {
 	/* if no cpu session is given, use it from the environment */
 	if (!_cpu_session)
@@ -77,7 +77,7 @@ void Thread_base::_init_platform_thread(size_t, Type type)
 
 	/* for normal threads create an object at the CPU session */
 	if (type == NORMAL) {
-		_thread_cap = _cpu_session->create_thread(0, _context->name);
+		_thread_cap = _cpu_session->create_thread(weight, _context->name);
 		return;
 	}
 	/* adjust initial object state for main threads */

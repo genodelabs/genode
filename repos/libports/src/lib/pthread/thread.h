@@ -38,10 +38,12 @@ extern "C" {
 		void *(*_start_routine) (void *);
 		void *_arg;
 
+		enum { WEIGHT = Genode::Cpu_session::DEFAULT_WEIGHT };
+
 		pthread(pthread_attr_t attr, void *(*start_routine) (void *),
 		        void *arg, size_t stack_size, char const * name,
 		        Genode::Cpu_session * cpu)
-		: Thread_base(0, name, stack_size, Type::NORMAL, cpu),
+		: Thread_base(WEIGHT, name, stack_size, Type::NORMAL, cpu),
 		  _attr(attr),
 		  _start_routine(start_routine),
 		  _arg(arg)
