@@ -19,7 +19,7 @@
 
 namespace Genode
 {
-	class Board : public Cortex_a9::Board_base
+	class Board : public Cortex_a9::Board
 	{
 		public:
 

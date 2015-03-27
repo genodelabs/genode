@@ -20,7 +20,7 @@
 
 namespace Genode
 {
-	struct Board : Cortex_a9::Board_base
+	struct Board : Cortex_a9::Board
 	{
 		/**
 		 * L2 outer cache controller
