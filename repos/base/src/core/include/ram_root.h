@@ -38,7 +38,7 @@ namespace Genode {
 
 			void _upgrade_session(Ram_session_component *ram, const char *args)
 			{
-				size_t ram_quota = Arg_string::find_arg(args, "ram_quota").long_value(0);
+				size_t ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 				ram->upgrade_ram_quota(ram_quota);
 			}
 

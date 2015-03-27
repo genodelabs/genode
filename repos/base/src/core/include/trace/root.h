@@ -34,7 +34,7 @@ class Genode::Trace::Root : public Genode::Root_component<Session_component>
 
 		Session_component *_create_session(const char *args)
 		{
-			size_t ram_quota       = Arg_string::find_arg(args, "ram_quota").long_value(0);
+			size_t ram_quota       = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 			size_t arg_buffer_size = Arg_string::find_arg(args, "arg_buffer_size").ulong_value(0);
 			unsigned parent_levels = Arg_string::find_arg(args, "parent_levels").ulong_value(0);
 
@@ -51,7 +51,7 @@ class Genode::Trace::Root : public Genode::Root_component<Session_component>
 
 		void _upgrade_session(Session_component *s, const char *args)
 		{
-			size_t ram_quota = Arg_string::find_arg(args, "ram_quota").long_value(0);
+			size_t ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 			s->upgrade_ram_quota(ram_quota);
 		}
 

@@ -77,7 +77,7 @@ namespace Genode
 			Signal_session_component * _create_session(const char * args)
 			{
 				size_t ram_quota =
-					Arg_string::find_arg(args, "ram_quota").long_value(0);
+					Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 				return new (md_alloc())
 					Signal_session_component(md_alloc(), ram_quota);
 			}
@@ -86,7 +86,7 @@ namespace Genode
 			                      const char * args)
 			{
 				size_t ram_quota =
-					Arg_string::find_arg(args, "ram_quota").long_value(0);
+					Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 				s->upgrade_ram_quota(ram_quota);
 			}
 	};

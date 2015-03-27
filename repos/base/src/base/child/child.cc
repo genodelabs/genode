@@ -281,7 +281,7 @@ Session_capability Child::session(Parent::Service_name const &name,
 	Affinity const filtered_affinity = _policy->filter_session_affinity(affinity);
 
 	/* transfer the quota donation from the child's account to ourself */
-	size_t ram_quota = Arg_string::find_arg(_args, "ram_quota").long_value(0);
+	size_t ram_quota = Arg_string::find_arg(_args, "ram_quota").ulong_value(0);
 
 	Transfer donation_from_child(ram_quota, _ram, env()->ram_session_cap());
 

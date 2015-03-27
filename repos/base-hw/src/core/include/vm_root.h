@@ -28,7 +28,7 @@ namespace Genode {
 
 			Vm_session_component *_create_session(const char *args)
 			{
-				size_t ram_quota = Arg_string::find_arg(args, "ram_quota").long_value(0);
+				size_t ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 				return new (md_alloc()) Vm_session_component(ep(), ram_quota);
 			}
 

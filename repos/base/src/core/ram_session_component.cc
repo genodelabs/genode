@@ -265,13 +265,13 @@ Ram_session_component::Ram_session_component(Rpc_entrypoint  *ds_ep,
 :
 	_ds_ep(ds_ep), _ram_session_ep(ram_session_ep), _ram_alloc(ram_alloc),
 	_quota_limit(quota_limit), _payload(0),
-	_md_alloc(md_alloc, Arg_string::find_arg(args, "ram_quota").long_value(0)),
+	_md_alloc(md_alloc, Arg_string::find_arg(args, "ram_quota").ulong_value(0)),
 	_ds_slab(&_md_alloc), _ref_account(0),
-	_phys_start(Arg_string::find_arg(args, "phys_start").long_value(0))
+	_phys_start(Arg_string::find_arg(args, "phys_start").ulong_value(0))
 {
 	Arg_string::find_arg(args, "label").string(_label, sizeof(_label), "");
 
-	size_t phys_size = Arg_string::find_arg(args, "phys_size").long_value(0);
+	size_t phys_size = Arg_string::find_arg(args, "phys_size").ulong_value(0);
 	/* sanitize overflow and interpret phys_size==0 as maximum phys address */
 	if (_phys_start + phys_size <= _phys_start)
 		_phys_end = ~0UL;

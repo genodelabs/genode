@@ -408,7 +408,7 @@ class Loader::Root : public Root_component<Session_component>
 		Session_component *_create_session(const char *args)
 		{
 			size_t quota =
-				Arg_string::find_arg(args, "ram_quota").long_value(0);
+				Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 
 			return new (md_alloc()) Session_component(quota, _ram, _cap);
 		}

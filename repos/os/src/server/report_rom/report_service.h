@@ -92,7 +92,7 @@ struct Report::Root : Genode::Root_component<Session_component>
 
 			/* read report buffer size from session arguments */
 			size_t const buffer_size =
-				Arg_string::find_arg(args, "buffer_size").long_value(0);
+				Arg_string::find_arg(args, "buffer_size").ulong_value(0);
 
 			return new (md_alloc())
 				Session_component(Rom::Module::Name(label), buffer_size,

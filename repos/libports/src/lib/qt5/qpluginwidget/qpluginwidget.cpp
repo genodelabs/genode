@@ -111,7 +111,7 @@ void PluginStarter::_start_plugin(QString &file_name, QByteArray const &file_buf
 
 		PDBG("file_size_uncompressed = %u", file_size);
 
-		size_t ram_quota = Arg_string::find_arg(_args.constData(), "ram_quota").long_value(0) + file_size;
+		size_t ram_quota = Arg_string::find_arg(_args.constData(), "ram_quota").ulong_value(0) + file_size;
 
 		if ((long)env()->ram_session()->avail() - (long)ram_quota < QPluginWidget::RAM_QUOTA) {
 			PERR("quota exceeded");
@@ -161,7 +161,7 @@ void PluginStarter::_start_plugin(QString &file_name, QByteArray const &file_buf
 			_pc->commit_rom_module(file_name.toUtf8().constData());
 		}
 	} else {
-		size_t ram_quota = Arg_string::find_arg(_args.constData(), "ram_quota").long_value(0);
+		size_t ram_quota = Arg_string::find_arg(_args.constData(), "ram_quota").ulong_value(0);
 
 		if ((long)env()->ram_session()->avail() - (long)ram_quota < QPluginWidget::RAM_QUOTA) {
 			_plugin_loading_state = QUOTA_EXCEEDED_ERROR;

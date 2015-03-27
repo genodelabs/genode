@@ -151,7 +151,7 @@ class Init::Child_policy_handle_cpu_priorities
 			if (Genode::strcmp(service, "CPU") || _prio_levels_log2 == 0)
 				return;
 
-			unsigned long priority = Arg_string::find_arg(args, "priority").long_value(0);
+			unsigned long priority = Arg_string::find_arg(args, "priority").ulong_value(0);
 
 			/* clamp priority value to valid range */
 			priority = min((unsigned)Cpu_session::PRIORITY_LIMIT - 1, priority);

@@ -210,7 +210,7 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 			 * We need to decrease 'ram_quota' by
 			 * the size of the session object.
 			 */
-			size_t ram_quota = Arg_string::find_arg(args.string(), "ram_quota").long_value(0);
+			size_t ram_quota = Arg_string::find_arg(args.string(), "ram_quota").ulong_value(0);
 			size_t needed = sizeof(SESSION_TYPE) + md_alloc()->overhead(sizeof(SESSION_TYPE));
 
 			if (needed > ram_quota) {

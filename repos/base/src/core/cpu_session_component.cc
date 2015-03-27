@@ -285,7 +285,7 @@ static size_t remaining_session_ram_quota(char const *args)
 	 * We don't need to consider an underflow here because
 	 * 'Cpu_root::_create_session' already checks for the condition.
 	 */
-	return Arg_string::find_arg(args, "ram_quota").long_value(0)
+	return Arg_string::find_arg(args, "ram_quota").ulong_value(0)
 	     - Trace::Control_area::SIZE;
 }
 

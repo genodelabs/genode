@@ -1045,7 +1045,7 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 
 		void _upgrade_session(Session_component *s, const char *args)
 		{
-			size_t ram_quota = Arg_string::find_arg(args, "ram_quota").long_value(0);
+			size_t ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 			s->upgrade_ram_quota(ram_quota);
 		}
 

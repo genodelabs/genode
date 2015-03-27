@@ -44,7 +44,7 @@ namespace Genode {
 			{
 				addr_t start     = Arg_string::find_arg(args, "start").ulong_value(~0UL);
 				size_t size      = Arg_string::find_arg(args, "size").ulong_value(0);
-				size_t ram_quota = Arg_string::find_arg(args, "ram_quota").long_value(0);
+				size_t ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 
 				return new (md_alloc())
 				       Rm_session_component(_ds_ep,
@@ -78,7 +78,7 @@ namespace Genode {
 
 			void _upgrade_session(Rm_session_component *rm, const char *args)
 			{
-				size_t ram_quota = Arg_string::find_arg(args, "ram_quota").long_value(0);
+				size_t ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 				rm->upgrade_ram_quota(ram_quota);
 			}
 
