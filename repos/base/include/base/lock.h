@@ -19,29 +19,26 @@
 namespace Genode { class Lock; }
 
 
-class Genode::Lock : public Cancelable_lock
+struct Genode::Lock : Cancelable_lock
 {
-	public:
+	/**
+	 * Constructor
+	 */
+	explicit Lock(State initial = UNLOCKED) : Cancelable_lock(initial) { }
 
-		/**
-		 * Constructor
-		 */
-		explicit Lock(State initial = UNLOCKED)
-		: Cancelable_lock(initial) { }
+	void lock()
+	{
+		while (1)
+			try {
+				Cancelable_lock::lock();
+				return;
+			} catch (Blocking_canceled) { }
+	}
 
-		void lock()
-		{
-			while (1)
-				try {
-					Cancelable_lock::lock();
-					return;
-				} catch (Blocking_canceled) { }
-		}
-
-		/**
-		 * Lock guard
-		 */
-		typedef Lock_guard<Lock> Guard;
+	/**
+	 * Lock guard
+	 */
+	typedef Lock_guard<Lock> Guard;
 };
 
 #endif /* _INCLUDE__BASE__LOCK_H_ */
