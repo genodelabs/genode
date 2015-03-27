@@ -18,16 +18,15 @@ macros.
   !   COLOR_GREEN = 3
   ! };
 
-:Meta-programming:
+:Meta programming:
 
-  Use templates instead of pre-processor macros.
-  In contrast to macros, templates are type-safe
-  and fit well with the implementation syntax.
+  Use templates instead of pre-processor macros. In contrast to macros,
+  templates are type-safe and fit well with the implementation syntax.
 
 :Conditional-code inclusion:
 
   Please avoid C-hacker style '#ifdef CONFIG_PLATFROM' - '#endif'
-  constructs but instead, factor-out the encapsulated code into a
+  constructs. Instead, factor-out the encapsulated code into a
   separate file and introduce a proper function interface.
   The build process should then be used to select the appropriate
   platform-specific files at compile time. Keep platform dependent
@@ -50,17 +49,18 @@ Header of each file
 Identifiers
 ===========
 
-* First character of class names uppercase, any other characters lowercase
-* Function and variable names lower case
-* 'Multi_word_identifiers' via underline
-* 'CONSTANTS' upper case
-* Private and protected members of a class begin with an '_'-character
+* The first character of class names are uppercase, any other characters are
+  lowercase.
+* Function and variable names are lower case.
+* 'Multi_word_identifiers' use underline to separate words.
+* 'CONSTANTS' and template arguments are upper case.
+* Private and protected members of a class begin with an '_'-character.
 * Accessor functions are named after their corresponding attributes:
 
   ! /**
   !  * Request private member variable
   !  */
-  ! int value() { return _value; }
+  ! int value() const { return _value; }
   !
   ! /**
   !  * Set the private member variable
@@ -73,13 +73,21 @@ Indentation
 
 * Use one tab per indentation step. *Do not mix tabs and spaces!*
 * Use no tabs except at the beginning of a line.
-* Use spaces for alignment
+* Use spaces for the alignment of continuation lines such as function
+  arguments that span multiple lines. The alignment spaces of such lines
+  should start after the (tab-indented) indentation level. For example:
+  ! {
+  ! <tab>function_with_many_arguments(arg1,
+  ! <tab><--- spaces for aligment --->arg2,
+  !      ...
+  ! }
+* Remove trailing spaces at the end of lines
 
-See [http://web.archive.org/web/20050311153439/http://electroly.com/mt/archives/000002.html]
-for a more detailed description.
-
-This way, everyone can set his preferred tabsize in his editor
+This way, each developer can set his preferred tab size in his editor
 and the source code always looks good.
+
+_Hint:_ In VIM, use the 'set list' and 'set listchars' commands to make tabs
+and spaces visible.
 
 
 Switch statements
@@ -165,12 +173,13 @@ prepended by a header as follows:
 ! /**
 !  * Short description
 !  *
-!  * \param   a    meaning of parameter a
-!  * \param   b    meaning of parameter b
-!  * \param   c,d  meaning of parameters c and d
+!  * \param a    meaning of parameter a
+!  * \param b    meaning of parameter b
+!  * \param c,d  meaning of parameters c and d
 !  *
-!  * \return       meaning of return value
-!  * \retval  0    meaning of the return value 0
+!  * \throw Exception_type  meaning of the exception
+!  *
+!  * \return meaning of return value
 !  *
 !  * More detailed information about the function. This is optional.
 !  */
