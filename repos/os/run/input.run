@@ -1,0 +1,120 @@
+#
+# Build
+#
+
+set build_components {
+	core init
+	drivers/input
+	drivers/timer
+	drivers/pci
+	test/input
+}
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route/>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+		<route>
+			<service name="CAP"> <parent/> </service>
+			<service name="LOG"> <parent/> </service>
+			<service name="RM">  <parent/> </service>
+			<service name="ROM"> <parent/> </service>
+			<service name="SIGNAL"> <parent/> </service>
+		</route>
+	</start>
+
+	<start name="pci_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides>
+			<service name="PCI"/>
+		</provides>
+		<route>
+			<service name="CAP">     <parent/> </service>
+			<service name="IO_PORT"> <parent/> </service>
+			<service name="IRQ">     <parent/> </service>
+			<service name="LOG">     <parent/> </service>
+			<service name="RAM">     <parent/> </service>
+			<service name="RM">      <parent/> </service>
+			<service name="ROM">     <parent/> </service>
+			<service name="SIGNAL">  <parent/> </service>
+		</route>
+		<config>
+			<policy label="ps2_drv">
+				<device name="PS2"/>
+			</policy>
+		</config>
+	</start>
+
+	<start name="ps2_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Input"/></provides>
+		<route>
+			<service name="CAP">     <parent/> </service>
+			<service name="IO_PORT"> <parent/> </service>
+			<service name="LOG">     <parent/> </service>
+			<service name="RM">      <parent/> </service>
+			<service name="SIGNAL">  <parent/> </service>
+			<service name="PCI">     <child name="pci_drv"/> </service>
+		</route>
+	</start>
+
+	<start name="test-input">
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="LOG">     <parent/> </service>
+			<service name="RM">      <parent/> </service>
+			<service name="SIGNAL">  <parent/> </service>
+
+			<service name="Input">   <child name="ps2_drv"/> </service>
+			<service name="Timer">   <child name="timer"/> </service>
+		</route>
+	</start>
+
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init
+	timer
+	pci_drv
+	ps2_drv
+	test-input
+}
+
+# platform-specific modules
+
+build_boot_image $boot_modules
+
+append qemu_args " -m 256 "
+
+run_genode_until forever

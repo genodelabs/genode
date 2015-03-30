@@ -26,7 +26,7 @@ class Irq_handler
 {
 	private:
 
-		Genode::Irq_connection                  _irq;
+		Genode::Irq_session_client              _irq;
 		Genode::Signal_rpc_member<Irq_handler>  _dispatcher;
 		Input_driver                           &_input_driver;
 
@@ -40,17 +40,16 @@ class Irq_handler
 
 	public:
 
-		Irq_handler(Server::Entrypoint &ep,
-		            int irq_number, Input_driver &input_driver)
+		Irq_handler(Server::Entrypoint &ep, Input_driver &input_driver,
+		            Genode::Irq_session_capability irq_cap)
 		:
-			_irq(irq_number),
+			_irq(irq_cap),
 			_dispatcher(ep, *this, &Irq_handler::_handle),
 			_input_driver(input_driver)
 		{
 			_irq.sigh(_dispatcher);
 			_irq.ack_irq();
 		}
-
 };
 
 #endif /* _IRQ_HANDLER_H_ */

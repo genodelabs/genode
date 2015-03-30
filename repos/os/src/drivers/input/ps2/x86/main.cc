@@ -11,14 +11,16 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* Genode includes */
+/* base includes */
 #include <base/env.h>
 #include <base/printf.h>
 #include <base/sleep.h>
+
+/* os includes */
 #include <input/component.h>
 #include <input/root.h>
-#include <cap_session/connection.h>
 #include <os/server.h>
+#include <pci_session/connection.h>
 
 /* local includes */
 #include "i8042.h"
@@ -40,16 +42,20 @@ struct Main
 	Ps2_mouse    ps2_mouse;
 	Ps2_keyboard ps2_keybd;
 
-	Irq_handler  ps2_mouse_irq;
+	Pci::Connection platform;
+	Pci::Device_client device_ps2;
+
 	Irq_handler  ps2_keybd_irq;
+	Irq_handler  ps2_mouse_irq;
 
 	Main(Server::Entrypoint &ep)
 	: ep(ep), root(ep.rpc_ep(), session),
 		ps2_mouse(*i8042.aux_interface(), session.event_queue()),
 		ps2_keybd(*i8042.kbd_interface(), session.event_queue(),
 		          i8042.kbd_xlate()),
-		ps2_mouse_irq(ep, 12, ps2_mouse),
-		ps2_keybd_irq(ep,  1, ps2_keybd)
+		device_ps2(platform.device("PS2")),
+		ps2_keybd_irq(ep, ps2_keybd, device_ps2.irq(0)),
+		ps2_mouse_irq(ep, ps2_mouse, device_ps2.irq(1))
 	{
 		env()->parent()->announce(ep.manage(root));
 	}
