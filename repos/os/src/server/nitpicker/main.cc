@@ -1233,8 +1233,7 @@ void Nitpicker::Main::handle_input(unsigned)
 		bool        const old_xray_mode       = user_state.xray();
 
 		/* handle batch of pending events */
-		if (input.is_pending())
-			import_input_events(ev_buf, input.flush(), user_state);
+		import_input_events(ev_buf, input.flush(), user_state);
 
 		Point       const new_pointer_pos     = user_state.pointer_pos();
 		::Session * const new_pointed_session = user_state.pointed_session();

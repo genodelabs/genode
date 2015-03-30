@@ -65,33 +65,42 @@ static Input::Event merge_motion_events(Input::Event const *ev, unsigned n)
 static void import_input_events(Input::Event *ev_buf, unsigned num_ev,
                                 User_state &user_state)
 {
-	/*
-	 * Take events from input event buffer, merge consecutive motion
-	 * events, and pass result to the user state.
-	 */
-	for (unsigned src_ev_cnt = 0; src_ev_cnt < num_ev; src_ev_cnt++) {
-
-		Input::Event *e = &ev_buf[src_ev_cnt];
-		Input::Event curr = *e;
-
-		if (e->type() == Input::Event::MOTION) {
-			unsigned n = num_consecutive_events(e, num_ev - src_ev_cnt);
-			curr = merge_motion_events(e, n);
-
-			/* skip merged events */
-			src_ev_cnt += n - 1;
-		}
-
+	if (num_ev > 0) {
 		/*
-		 * If subsequential relative motion events are merged to
-		 * a zero-motion event, drop it. Otherwise, it would be
-		 * misinterpreted as absolute event pointing to (0, 0).
-		 */
-		if (e->is_relative_motion() && curr.rx() == 0 && curr.ry() == 0)
-			continue;
+	 	 * Take events from input event buffer, merge consecutive motion
+	 	 * events, and pass result to the user state.
+	 	 */
+		for (unsigned src_ev_cnt = 0; src_ev_cnt < num_ev; src_ev_cnt++) {
 
-		/* pass event to user state */
-		user_state.handle_event(curr);
+			Input::Event *e = &ev_buf[src_ev_cnt];
+			Input::Event curr = *e;
+
+			if (e->type() == Input::Event::MOTION) {
+				unsigned n = num_consecutive_events(e, num_ev - src_ev_cnt);
+				curr = merge_motion_events(e, n);
+
+				/* skip merged events */
+				src_ev_cnt += n - 1;
+			}
+
+			/*
+		 	 * If subsequential relative motion events are merged to
+		 	 * a zero-motion event, drop it. Otherwise, it would be
+		 	 * misinterpreted as absolute event pointing to (0, 0).
+		 	 */
+			if (e->is_relative_motion() && curr.rx() == 0 && curr.ry() == 0)
+				continue;
+
+			/* pass event to user state */
+			user_state.handle_event(curr);
+		}
+	} else {
+		/*
+		 * Besides handling input events, 'user_state.handle_event()' also
+		 * updates the pointed session, which might have changed by other
+		 * means, for example view movement.
+		 */
+		user_state.handle_event(Input::Event());
 	}
 }
 
