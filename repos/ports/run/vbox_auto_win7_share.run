@@ -102,7 +102,7 @@ catch { exec dd if=/dev/urandom of=bin/test.bin bs=4096 count=8160 }
 # Step 1: prepare and start the actual VM
 #
 set build_components {
-	server/ram_fs
+	server/ram_fs server/report_rom
 	server/tcp_terminal drivers/nic
 	lib/libc_noux
 	noux/minimal
@@ -117,7 +117,7 @@ foreach pkg {bash coreutils} {
 set boot_modules {
 	ram_fs
 	noux libc_noux.lib.so bash.tar coreutils.tar
-	tcp_terminal lwip.lib.so nic_drv
+	tcp_terminal lwip.lib.so nic_drv report_rom
 	test.bin template.bat
 	vm_auto_share.vbox
 }
@@ -187,6 +187,12 @@ set config_of_app {
 		<config>
 			<policy label="" root="/" writeable="yes" />
 		</config>
+	</start>
+
+	<start name="report_rom">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config> <rom /> </config>
 	</start>
 
 	<start name="vbox" priority="-2">

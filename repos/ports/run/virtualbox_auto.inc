@@ -41,7 +41,7 @@ set config {
 		<service name="SIGNAL"/>
 	</parent-provides>
 	<default-route>
-		<any-service> <any-child/> <parent/> </any-service>
+		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
@@ -139,7 +139,7 @@ append_if [have_spec framebuffer] config {
 	<start name="fb_drv" priority="-1">
 		<resource name="RAM" quantum="6M"/>
 		<provides><service name="Framebuffer"/></provides>
-		<config buffered="yes" width="1024" height="768" depth="16" />
+		<config buffered="yes" />
 	</start>}
 
 append_if [have_spec x86] config {

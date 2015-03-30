@@ -166,7 +166,13 @@ class Genodefb : public Framebuffer
 
 		STDMETHODIMP VideoModeSupported(ULONG width, ULONG height, ULONG bpp, BOOL *supported)
 		{
-			Assert(!"FixMe");
+			if (!supported)
+				return E_POINTER;
+
+			*supported = ((width <= (ULONG)_fb_mode.width()) &&
+			              (height <= (ULONG)_fb_mode.height()) &&
+			              (bpp == _fb_mode.bytes_per_pixel() * 8));
+
 			return S_OK;
 		}
 

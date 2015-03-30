@@ -10,10 +10,120 @@ set vdi_image "${flavor}.vdi"
 set vbox_file "vm_${flavor}.vbox"
 set overlay_image "overlay_${flavor}.vdi"
 
-set build_components { }
-set boot_modules { }
+set build_components {
+	server/input_merger
+	drivers/nic
+	server/nitpicker
+	app/vbox_pointer
+	server/nit_fb
+	server/report_rom
+}
+
+set boot_modules {
+	input_merger
+	nic_drv
+	nitpicker
+	vbox_pointer
+	nit_fb
+	report_rom
+}
 
 set config_of_app {
+
+	<start name="input_merger">
+		<resource name="RAM" quantum="1M" />
+		<provides>
+			<service name="Input" />
+		</provides>
+		<config>}
+append_if [expr $use_ps2] config_of_app {
+			<input label="ps2" /> }
+append_if [expr $use_usb] config_of_app {
+			<input label="usb_hid" />}
+append config_of_app {
+		</config>
+		<route> }
+append_if [expr $use_ps2] config_of_app {
+			<service name="Input">
+				<if-arg key="label" value="ps2" /> <child name="ps2_drv" />
+			</service> }
+append_if [expr $use_usb] config_of_app {
+			<service name="Input">
+				<if-arg key="label" value="usb_hid" /> <child name="usb_drv" />
+			</service> }
+append config_of_app {
+			<any-service> <parent /> <any-child /> </any-service>
+		</route>
+	</start>
+
+	<!--
+		Note: to get network access in the VM, the virtual network adapter
+		      needs to be enabled in the .vbox file (disabled by default)
+	-->
+	<start name="nic_drv" priority="-1">
+		<resource name="RAM" quantum="8M" />
+		<provides>
+			<service name="Nic" />
+		</provides>
+	</start>
+
+	<start name="report_rom">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config>
+			<rom>
+				<policy label="vbox_pointer -> hover" report="nitpicker -> hover"/>
+				<policy label="vbox_pointer -> xray"  report="nitpicker -> xray"/>
+				<policy label="vbox_pointer -> shape" report="vbox -> shape"/>
+			</rom>
+		</config>
+	</start>
+
+	<start name="nitpicker" priority="-1">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Nitpicker"/></provides>
+		<route>
+			<service name="Framebuffer"> <child name="fb_drv" /> </service>
+			<service name="Input"> <child name="input_merger" /> </service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+		<config>
+			<report focus="yes" hover="yes" xray="yes" />
+
+			<domain name="pointer" layer="1" xray="no" origin="pointer" />
+			<domain name="vbox"    layer="2" />
+			<domain name=""        layer="2" />
+
+			<policy label="vbox_pointer" domain="pointer"/>
+			<policy label="nit_fb"       domain="vbox"/>
+			<policy label=""             domain=""/>
+
+			<global-key name="KEY_SCROLLLOCK" operation="xray" />
+			<global-key name="KEY_SYSRQ"      operation="kill" />
+			<global-key name="KEY_PRINT"      operation="kill" />
+			<global-key name="KEY_F11"        operation="kill" />
+			<global-key name="KEY_F12"        operation="xray" />
+		</config>
+	</start>
+
+	<start name="vbox_pointer" priority="-1">
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="Nitpicker"> <child name="nitpicker"/>  </service>
+			<service name="ROM">       <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="nit_fb" priority="-1">
+		<resource name="RAM" quantum="8M" />
+		<provides>
+			<service name="Framebuffer" />
+			<service name="Input" />
+		</provides>
+		<config width="1024" height="768" />
+	</start>
+
 	<start name="vbox" priority="-2">
 		<binary name="virtualbox" />
 		<resource name="RAM" quantum="1280M"/>}
@@ -44,6 +154,8 @@ append_if [expr $use_ram_fs] config_of_app {
 
 append config_of_app {
 			<service name="File_system"> <child name="rump_fs"/> </service>
+			<service name="Framebuffer"> <child name="nit_fb" /> </service>
+			<service name="Input"> <child name="nit_fb" /> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>

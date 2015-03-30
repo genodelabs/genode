@@ -24,6 +24,9 @@
 /* VirtualBox includes */
 #include "ConsoleImpl.h"
 #include <base/printf.h>
+#include <os/attached_dataspace.h>
+#include <report_session/connection.h>
+#include <vbox_pointer/shape_report.h>
 
 
 class Scan_code
@@ -104,12 +107,15 @@ class GenodeConsole : public Console {
 
 	private:
 
-		Input::Connection        _input;
-		Genode::Signal_receiver  _receiver;
-		Genode::Signal_context   _context;
-		Input::Event            *_ev_buf;
-		unsigned                 _ax, _ay;
-		bool                     _last_received_motion_event_was_absolute;
+		Input::Connection           _input;
+		Genode::Signal_receiver     _receiver;
+		Genode::Signal_context      _context;
+		Input::Event               *_ev_buf;
+		unsigned                    _ax, _ay;
+		bool                        _last_received_motion_event_was_absolute;
+		Report::Connection          _shape_report_connection;
+		Genode::Attached_dataspace  _shape_report_ds;
+		Vbox_pointer::Shape_report *_shape_report;
 
 		bool _key_status[Input::KEY_MAX + 1];
 
@@ -127,7 +133,10 @@ class GenodeConsole : public Console {
 			Console(),
 			_ev_buf(static_cast<Input::Event *>(Genode::env()->rm_session()->attach(_input.dataspace()))),
 			_ax(0), _ay(0),
-			_last_received_motion_event_was_absolute(false)
+			_last_received_motion_event_was_absolute(false),
+			_shape_report_connection("shape", sizeof(Vbox_pointer::Shape_report)),
+			_shape_report_ds(_shape_report_connection.dataspace()),
+			_shape_report(_shape_report_ds.local_addr<Vbox_pointer::Shape_report>())
 		{
 			for (unsigned i = 0; i <= Input::KEY_MAX; i++)
 				_key_status[i] = 0;
@@ -283,5 +292,74 @@ class GenodeConsole : public Console {
 			if (mt_number)
 				gMouse->PutEventMultiTouch(mt_number, mt_number, mt_events,
 				                           RTTimeMilliTS());
+		}
+
+		void onMouseCapabilityChange(BOOL supportsAbsolute, BOOL supportsRelative,
+		                             BOOL supportsMT, BOOL needsHostCursor)
+		{
+			if (supportsAbsolute) {
+				/* let the guest hide the software cursor */
+				Mouse *gMouse = getMouse();
+				gMouse->PutMouseEventAbsolute(-1, -1, 0, 0, 0);
+			}
+		}
+
+		void onMousePointerShapeChange(bool fVisible, bool fAlpha,
+		                               uint32_t xHot, uint32_t yHot,
+		                               uint32_t width, uint32_t height,
+		                               ComSafeArrayIn(BYTE,pShape))
+		{
+			com::SafeArray<BYTE> shape_array(ComSafeArrayInArg(pShape));
+
+			if (fVisible && ((width == 0) || (height == 0)))
+				return;
+
+			_shape_report->visible = fVisible;
+			_shape_report->x_hot = xHot;
+			_shape_report->y_hot = yHot;
+			_shape_report->width = width;
+			_shape_report->height = height;
+
+			unsigned int and_mask_size = (_shape_report->width + 7) / 8 *
+			                              _shape_report->height;
+
+			unsigned char *and_mask = shape_array.raw();
+
+			unsigned char *shape = and_mask + ((and_mask_size + 3) & ~3);
+
+			size_t shape_size = shape_array.size() - (shape - and_mask);
+
+			if (shape_size > Vbox_pointer::MAX_SHAPE_SIZE) {
+				PERR("%s: shape data buffer is too small for %zu bytes",
+				     __func__, shape_size);
+				return;
+			}
+
+			Genode::memcpy(_shape_report->shape,
+			               shape,
+			               shape_size);
+
+			if (fVisible && !fAlpha) {
+
+				for (unsigned int i = 0; i < width * height; i++) {
+
+					unsigned int *color =
+						&((unsigned int*)_shape_report->shape)[i];
+
+					/* heuristic from VBoxSDL.cpp */
+
+					if (and_mask[i / 8] & (1 << (7 - (i % 8)))) {
+
+						if (*color & 0x00ffffff)
+							*color = 0xff000000;
+						else
+							*color = 0x00000000;
+
+					} else
+						*color |= 0xff000000;
+				}
+			}
+
+			_shape_report_connection.submit(sizeof(Vbox_pointer::Shape_report));
 		}
 };
