@@ -131,12 +131,12 @@ namespace Genode {
 			/**
 			 * Pause this thread
 			 */
-			void pause() { Kernel::pause_thread(_id); }
+			void pause() { Kernel::pause_thread(kernel_thread()); }
 
 			/**
 			 * Resume this thread
 			 */
-			void resume() { Kernel::resume_thread(_id); }
+			void resume() { Kernel::resume_thread(kernel_thread()); }
 
 			/**
 			 * Cancel currently blocking operation
@@ -191,6 +191,9 @@ namespace Genode {
 			Native_thread_id id() const { return _id; }
 
 			Ram_dataspace_capability utcb() const { return _utcb; }
+
+			Kernel::Thread * const kernel_thread() {
+				return reinterpret_cast<Kernel::Thread*>(_kernel_thread); }
 	};
 }
 

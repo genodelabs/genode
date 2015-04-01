@@ -21,7 +21,7 @@ void Kernel::Thread::_call_new_vm()
 	auto const context = Signal_context::pool()->object(user_arg_4());
 	if (!context) {
 		PWRN("failed to lookup signal context");
-		user_arg_0(0);
+		user_arg_0(-1);
 		return;
 	}
 
@@ -31,8 +31,6 @@ void Kernel::Thread::_call_new_vm()
 	void * const table = reinterpret_cast<void *>(user_arg_3());
 	Cpu_state_modes * const state =
 		reinterpret_cast<Cpu_state_modes *>(user_arg_2());
-	Vm * const vm = new (allocator) Vm(state, context, table);
-
-	/* return kernel name of virtual machine */
-	user_arg_0(vm->id());
+	new (allocator) Vm(state, context, table);
+	user_arg_0(0);
 }

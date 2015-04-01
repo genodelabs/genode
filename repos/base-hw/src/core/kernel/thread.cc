@@ -27,9 +27,7 @@ using namespace Kernel;
 
 typedef Genode::Thread_state Thread_state;
 
-unsigned Thread::pd_id() const { return _pd ? _pd->id() : 0; }
-
-bool Thread::_core() const { return pd_id() == core_pd()->id(); }
+bool Thread::_core() const { return pd() == core_pd(); }
 
 void Thread::_signal_context_kill_pending()
 {
@@ -174,8 +172,8 @@ void Thread::init(Cpu * const cpu, Pd * const pd,
 
 	/* print log message */
 	if (START_VERBOSE) {
-		Genode::printf("start thread %u '%s' in program %u '%s' ",
-		               id(), label(), pd_id(), pd_label());
+		Genode::printf("start thread %u '%s' in program '%s' ",
+		               id(), label(), pd_label());
 		if (NR_OF_CPUS) {
 			Genode::printf("on CPU %u/%u ", cpu->id(), NR_OF_CPUS); }
 		Genode::printf("\n");
@@ -202,45 +200,28 @@ void Thread::_receive_yielded_cpu()
 void Thread::proceed(unsigned const cpu) { mtc()->switch_to_user(this, cpu); }
 
 
-char const * Kernel::Thread::pd_label() const
-{
-	if (_core()) { return "core"; }
-	if (!_pd) { return "?"; }
-	return _pd->platform_pd()->label();
-}
+char const * Kernel::Thread::pd_label() const {
+	return (_pd) ? _pd->platform_pd()->label() : "?"; }
 
 
 void Thread::_call_new_pd()
 {
 	using namespace Genode;
 
-	/* create protection domain */
-	void        * p        = (void *) user_arg_1();
-	Platform_pd * ppd      = (Platform_pd *) user_arg_2();
-	Translation_table * tt = ppd->translation_table_phys();
-	Pd * const pd          = new (p) Pd(tt, ppd);
-	user_arg_0(pd->id());
-}
-
-
-void Thread::_call_delete_pd()
-{
-	/* lookup protection domain */
-	unsigned id = user_arg_1();
-	Pd * const pd = Pd::pool()->object(id);
-	if (!pd) {
-		PWRN("%s -> %s: cannot destroy unknown protection domain %u",
-		     pd_label(), label(), id);
-		user_arg_0(-1);
+	try {
+		/* create protection domain */
+		void        * p        = (void *) user_arg_1();
+		Platform_pd * ppd      = (Platform_pd *) user_arg_2();
+		Translation_table * tt = ppd->translation_table_phys();
+		new (p) Pd(tt, ppd);
+		user_arg_0(0);
 		return;
-	}
-	/* destruct protection domain */
-	pd->~Pd();
-
-	/* clean up buffers of memory management */
-	Cpu::flush_tlb_by_pid(pd->id());
-	user_arg_0(0);
+	} catch(...) { }
+	user_arg_0(-1);
 }
+
+
+void Thread::_call_delete_pd() { reinterpret_cast<Pd*>(user_arg_1())->~Pd(); }
 
 
 void Thread::_call_new_thread()
@@ -255,28 +236,12 @@ void Thread::_call_new_thread()
 }
 
 
-void Thread::_call_delete_thread()
-{
-	/* lookup thread */
-	Thread * const thread = Thread::pool()->object(user_arg_1());
-	if (!thread) {
-		PWRN("failed to lookup thread");
-		return;
-	}
-	/* destroy thread */
-	thread->~Thread();
-}
+void Thread::_call_delete_thread() {
+	reinterpret_cast<Thread*>(user_arg_1())->~Thread(); }
 
 
 void Thread::_call_start_thread()
 {
-	/* lookup thread */
-	Thread * const thread = Thread::pool()->object(user_arg_1());
-	if (!thread) {
-		PWRN("failed to lookup  thread");
-		user_arg_0(-1);
-		return;
-	}
 	/* lookup CPU */
 	Cpu * const cpu = cpu_pool()->cpu(user_arg_2());
 	if (!cpu) {
@@ -284,13 +249,10 @@ void Thread::_call_start_thread()
 		user_arg_0(-2);
 		return;
 	}
-	/* lookup domain */
-	Pd * const pd = Pd::pool()->object(user_arg_3());
-	if (!pd) {
-		PWRN("failed to lookup domain");
-		user_arg_0(-3);
-		return;
-	}
+
+	Thread * const thread = (Thread*) user_arg_1();
+	Pd     * const pd = (Pd *) user_arg_3();
+
 	/* start thread */
 	thread->init(cpu, pd, (Native_utcb *)user_arg_4(), 1);
 	user_arg_0(0);
@@ -300,38 +262,19 @@ void Thread::_call_start_thread()
 void Thread::_call_pause_current_thread() { _pause(); }
 
 
-void Thread::_call_pause_thread()
-{
-	/* lookup thread */
-	Thread * const thread = Thread::pool()->object(user_arg_1());
-	if (!thread) {
-		PWRN("failed to lookup thread");
-		return;
-	}
-	/* pause thread */
-	thread->_pause();
-}
+void Thread::_call_pause_thread() {
+	reinterpret_cast<Thread*>(user_arg_1())->_pause(); }
 
 
-void Thread::_call_resume_thread()
-{
-	/* lookup thread */
-	Thread * const thread = Thread::pool()->object(user_arg_1());
-	if (!thread) {
-		PWRN("failed to lookup thread");
-		user_arg_0(false);
-		return;
-	}
-	/* resume thread */
-	user_arg_0(thread->_resume());
-}
+void Thread::_call_resume_thread() {
+	user_arg_0(reinterpret_cast<Thread*>(user_arg_1())->_resume()); }
 
 
 void Thread::_call_resume_local_thread()
 {
 	/* lookup thread */
 	Thread * const thread = Thread::pool()->object(user_arg_1());
-	if (!thread || pd_id() != thread->pd_id()) {
+	if (!thread || pd() != thread->pd()) {
 		PWRN("failed to lookup thread");
 		user_arg_0(0);
 		return;
@@ -349,9 +292,7 @@ void Thread_event::_signal_acknowledged()
 
 
 Thread_event::Thread_event(Thread * const t)
-:
-	_thread(t), _signal_context(0)
-{ }
+: _thread(t), _signal_context(0) { }
 
 
 void Thread_event::submit()
@@ -415,17 +356,8 @@ void Thread::_call_send_reply_msg()
 
 void Thread::_call_route_thread_event()
 {
-	/* get targeted thread */
-	unsigned const thread_id = user_arg_1();
-	Thread * const t = Thread::pool()->object(thread_id);
-	if (!t) {
-		PWRN("%s -> %s: cannot route event to unknown thread %u",
-		     pd_label(), label(), thread_id);
-		user_arg_0(-1);
-		return;
-	}
-
 	/* override event route */
+	Thread * const t = (Thread*) user_arg_1();
 	unsigned const event_id = user_arg_2();
 	unsigned const signal_context_id = user_arg_3();
 	if (t->_route_event(event_id, signal_context_id)) { user_arg_0(-1); }
@@ -473,10 +405,9 @@ unsigned Thread_event::signal_context_id() const
 void Thread::_call_access_thread_regs()
 {
 	/* get targeted thread */
-	unsigned const thread_id = user_arg_1();
 	unsigned const reads = user_arg_2();
 	unsigned const writes = user_arg_3();
-	Thread * const t = Thread::pool()->object(thread_id);
+	Thread * const t = (Thread*) user_arg_1();
 	if (!t) {
 		PWRN("unknown thread");
 		user_arg_0(reads + writes);
@@ -640,19 +571,11 @@ void Thread::_call_new_signal_receiver()
 
 void Thread::_call_new_signal_context()
 {
-	/* lookup receiver */
-	unsigned const id = user_arg_2();
-	Signal_receiver * const r = Signal_receiver::pool()->object(id);
-	if (!r) {
-		PWRN("%s -> %s: no context construction, unknown signal receiver %u",
-		     pd_label(), label(), id);
-		user_arg_0(0);
-		return;
-	}
 	/* create and assign context*/
-	void * const p = (void *)user_arg_1();
-	unsigned const imprint = user_arg_3();
-	Signal_context * const c = new (p) Signal_context(r, imprint);
+	void *            const p       = (void *)user_arg_1();
+	Signal_receiver * const r       = (Signal_receiver *) user_arg_2();
+	unsigned          const imprint = user_arg_3();
+	Signal_context *  const c       = new (p) Signal_context(r, imprint);
 	user_arg_0(c->id());
 }
 
@@ -757,37 +680,12 @@ void Thread::_call_kill_signal_context()
 }
 
 
-void Thread::_call_delete_signal_context()
-{
-	/* lookup signal context */
-	unsigned const id = user_arg_1();
-	Signal_context * const c = Signal_context::pool()->object(id);
-	if (!c) {
-		PWRN("%s -> %s: cannot destroy unknown signal context %u",
-		     pd_label(), label(), id);
-		user_arg_0(0);
-		return;
-	}
-	/* destruct signal context */
-	c->~Signal_context();
-	user_arg_0(0);
-}
+void Thread::_call_delete_signal_context() {
+	reinterpret_cast<Signal_context*>(user_arg_1())->~Signal_context(); }
 
 
-void Thread::_call_delete_signal_receiver()
-{
-	/* lookup signal receiver */
-	unsigned const id = user_arg_1();
-	Signal_receiver * const r = Signal_receiver::pool()->object(id);
-	if (!r) {
-		PWRN("%s -> %s: cannot destroy unknown signal receiver %u",
-		     pd_label(), label(), id);
-		user_arg_0(0);
-		return;
-	}
-	r->~Signal_receiver();
-	user_arg_0(0);
-}
+void Thread::_call_delete_signal_receiver() {
+	reinterpret_cast<Signal_receiver*>(user_arg_1())->~Signal_receiver(); }
 
 
 int Thread::_read_reg(addr_t const id, addr_t & value) const

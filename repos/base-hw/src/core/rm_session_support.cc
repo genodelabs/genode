@@ -53,7 +53,7 @@ void Rm_client::unmap(addr_t, addr_t virt_base, size_t size)
 	tt->remove_translation(virt_base, size, pd->page_slab());
 
 	/* update translation caches */
-	Kernel::update_pd(pd->id());
+	Kernel::update_pd(pd->kernel_pd());
 }
 
 
@@ -128,7 +128,6 @@ void Pager_activation_base::entry()
 			PWRN("failed to get platform thread of faulter");
 			continue;
 		}
-		unsigned const thread_id = pt->id();
 		typedef Kernel::Thread_reg_id Reg_id;
 		static addr_t const read_regs[] = {
 			Reg_id::FAULT_TLB, Reg_id::IP, Reg_id::FAULT_ADDR,
@@ -137,7 +136,7 @@ void Pager_activation_base::entry()
 		void * const utcb = Thread_base::myself()->utcb()->base();
 		memcpy(utcb, read_regs, sizeof(read_regs));
 		addr_t * const values = (addr_t *)&_fault;
-		if (Kernel::access_thread_regs(thread_id, READS, 0, values)) {
+		if (Kernel::access_thread_regs(pt->kernel_thread(), READS, 0, values)) {
 			PWRN("failed to read fault data");
 			continue;
 		}

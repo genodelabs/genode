@@ -39,13 +39,13 @@ class Genode::Vm_session_component :
 
 		Rpc_entrypoint      *_ds_ep;
 		Range_allocator     *_ram_alloc;
-		unsigned             _vm_id;
 		char                 _vm[sizeof(Kernel::Vm)];
 		Dataspace_component  _ds;
 		Dataspace_capability _ds_cap;
 		addr_t               _ds_addr;
 		Translation_table   *_table;
 		Page_slab           *_pslab;
+		bool                 _initialized = false;
 
 		static size_t _ds_size() {
 			return align_addr(sizeof(Cpu_state_modes),
@@ -53,6 +53,9 @@ class Genode::Vm_session_component :
 
 		addr_t _alloc_ds(size_t &ram_quota);
 		void   _attach(addr_t phys_addr, addr_t vm_addr, size_t size);
+
+		Kernel::Vm * _kernel_object() {
+			return reinterpret_cast<Kernel::Vm*>(_vm); }
 
 	public:
 

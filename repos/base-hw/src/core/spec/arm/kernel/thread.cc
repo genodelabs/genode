@@ -126,5 +126,6 @@ void Thread::_mmu_exception()
 
 void Thread::_call_update_pd()
 {
-	if (Cpu_domain_update::_do_global(user_arg_1())) { _pause(); }
+	Pd * const pd = (Pd *) user_arg_1();
+	if (Cpu_domain_update::_do_global(pd->asid)) { _pause(); }
 }

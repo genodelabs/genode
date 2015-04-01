@@ -119,7 +119,7 @@ namespace Kernel
 				using namespace Genode;
 
 
-				Platform_pd::_id = Pd::id();
+				Platform_pd::_kernel_pd = this;
 
 				/* map exception vector for core */
 				Kernel::mtc()->map(table, slab);

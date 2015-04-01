@@ -74,7 +74,7 @@ Platform_thread::~Platform_thread()
 		rm->remove_client(cap);
 	}
 	/* destroy object at the kernel */
-	Kernel::delete_thread(_id);
+	Kernel::delete_thread(kernel_thread());
 }
 
 
@@ -197,7 +197,7 @@ int Platform_thread::start(void * const ip, void * const sp)
 	write_regs[0] = Reg_id::IP;
 	write_regs[1] = Reg_id::SP;
 	addr_t values[] = { (addr_t)ip, (addr_t)sp };
-	if (Kernel::access_thread_regs(id(), 0, WRITES, values)) {
+	if (Kernel::access_thread_regs(kernel_thread(), 0, WRITES, values)) {
 		PERR("failed to initialize thread registers");
 		return -1;
 	}
@@ -206,7 +206,8 @@ int Platform_thread::start(void * const ip, void * const sp)
 	unsigned const cpu =
 		_location.valid() ? _location.xpos() : Cpu::primary_id();
 	_utcb_core_addr->start_info()->init(_id, _utcb);
-	if (Kernel::start_thread(_id, cpu, _pd->id(), _utcb_core_addr)) {
+	if (Kernel::start_thread(kernel_thread(), cpu, _pd->kernel_pd(),
+	                         _utcb_core_addr)) {
 		PERR("failed to start thread");
 		return -1;
 	}
@@ -220,7 +221,8 @@ void Platform_thread::pager(Pager_object * const pager)
 	if (pager) {
 		unsigned const sc_id = pager->signal_context_id();
 		if (sc_id) {
-			if (!Kernel::route_thread_event(id(), Event_id::FAULT, sc_id)) {
+			if (!Kernel::route_thread_event(kernel_thread(), Event_id::FAULT,
+			                                sc_id)) {
 				_rm_client = dynamic_cast<Rm_client *>(pager);
 				return;
 			}
@@ -228,7 +230,7 @@ void Platform_thread::pager(Pager_object * const pager)
 		PERR("failed to attach signal context to fault");
 		return;
 	} else {
-		if (!Kernel::route_thread_event(id(), Event_id::FAULT, 0)) {
+		if (!Kernel::route_thread_event(kernel_thread(), Event_id::FAULT, 0)) {
 			_rm_client = 0;
 			return;
 		}
@@ -259,7 +261,8 @@ Thread_state Platform_thread::state()
 	Genode::memcpy(dst, src, size);
 	Thread_state thread_state;
 	Cpu_state * const cpu_state = static_cast<Cpu_state *>(&thread_state);
-	if (Kernel::access_thread_regs(id(), length, 0, (addr_t *)cpu_state)) {
+	if (Kernel::access_thread_regs(kernel_thread(), length, 0,
+	                               (addr_t *)cpu_state)) {
 		throw Cpu_session::State_access_failed();
 	}
 	return thread_state;
@@ -274,7 +277,8 @@ void Platform_thread::state(Thread_state thread_state)
 	void  * dst = Thread_base::myself()->utcb()->base();
 	Genode::memcpy(dst, src, size);
 	Cpu_state * const cpu_state = static_cast<Cpu_state *>(&thread_state);
-	if (Kernel::access_thread_regs(id(), 0, length, (addr_t *)cpu_state)) {
+	if (Kernel::access_thread_regs(kernel_thread(), 0, length,
+	                               (addr_t *)cpu_state)) {
 		throw Cpu_session::State_access_failed();
 	}
 };

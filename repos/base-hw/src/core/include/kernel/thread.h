@@ -309,10 +309,10 @@ class Kernel::Thread
 		 ** Accessors **
 		 ***************/
 
-		unsigned     id() const { return Object::id(); }
-		char const * label() const { return _label; };
-		unsigned     pd_id() const;
+		unsigned     id() const    { return Object::id(); }
+		char const * label() const { return _label;       }
 		char const * pd_label() const;
+		Pd * const   pd() const    { return _pd;          }
 };
 
 #endif /* _KERNEL__THREAD_H_ */

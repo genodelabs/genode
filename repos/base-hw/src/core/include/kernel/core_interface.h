@@ -19,6 +19,12 @@
 
 namespace Kernel
 {
+	class Pd;
+	class Thread;
+	class Signal_receiver;
+	class Signal_context;
+	class Vm;
+
 	addr_t   mode_transition_base();
 	size_t   mode_transition_size();
 	size_t   thread_size();
@@ -55,10 +61,9 @@ namespace Kernel
 	 * \param dst  appropriate memory donation for the kernel object
 	 * \param pd   core local Platform_pd object
 	 *
-	 * \retval >0  kernel name of the new domain
-	 * \retval  0  failed
+	 * \retval 0 when successful, otherwise !=0
 	 */
-	inline unsigned long new_pd(void * const dst, Platform_pd * const pd)
+	inline int long new_pd(void * const dst, Platform_pd * const pd)
 	{
 		return call(call_id_new_pd(), (Call_arg)dst, (Call_arg)pd);
 	}
@@ -67,29 +72,26 @@ namespace Kernel
 	/**
 	 * Destruct a domain
 	 *
-	 * \param pd_id  kernel name of the targeted domain
-	 *
-	 * \retval  0  succeeded
-	 * \retval -1  failed
+	 * \param pd  pointer to pd kernel object
 	 */
-	inline int delete_pd(unsigned const pd_id)
+	inline void delete_pd(Pd * const pd)
 	{
-		return call(call_id_delete_pd(), pd_id);
+		call(call_id_delete_pd(), (Call_arg)pd);
 	}
 
 
 	/**
 	 * Update locally effective domain configuration to in-memory state
 	 *
-	 * \param pd_id  kernel name of the targeted domain
+	 * \param pd  pointer to pd kernel object
 	 *
 	 * Kernel and/or hardware may cache parts of a domain configuration. This
 	 * function ensures that the in-memory state of the targeted domain gets
 	 * CPU-locally effective.
 	 */
-	inline void update_pd(unsigned const pd_id)
+	inline void update_pd(Pd * const pd)
 	{
-		call(call_id_update_pd(), pd_id);
+		call(call_id_update_pd(), (Call_arg)pd);
 	}
 
 
@@ -115,72 +117,72 @@ namespace Kernel
 	/**
 	 * Pause execution of a specific thread
 	 *
-	 * \param thread_id  kernel name of the targeted thread
+	 * \param thread  pointer to thread kernel object
 	 */
-	inline void pause_thread(unsigned const thread_id)
+	inline void pause_thread(Thread * const thread)
 	{
-		call(call_id_pause_thread(), thread_id);
+		call(call_id_pause_thread(), (Call_arg)thread);
 	}
 
 
 	/**
 	 * Destruct a thread
 	 *
-	 * \param thread_id  kernel name of the targeted thread
+	 * \param thread  pointer to thread kernel object
 	 */
-	inline void delete_thread(unsigned const thread_id)
+	inline void delete_thread(Thread * const thread)
 	{
-		call(call_id_delete_thread(), thread_id);
+		call(call_id_delete_thread(), (Call_arg)thread);
 	}
 
 
 	/**
 	 * Start execution of a thread
 	 *
-	 * \param thread_id  kernel name of the targeted thread
-	 * \param cpu_id     kernel name of the targeted CPU
-	 * \param pd_id      kernel name of the targeted domain
-	 * \param utcb       core local pointer to userland thread-context
+	 * \param thread  pointer to thread kernel object
+	 * \param cpu_id  kernel name of the targeted CPU
+	 * \param pd      pointer to pd kernel object
+	 * \param utcb    core local pointer to userland thread-context
 	 *
 	 * \retval   0  suceeded
 	 * \retval !=0  failed
 	 */
-	inline int start_thread(unsigned const thread_id, unsigned const cpu_id,
-	                        unsigned const pd_id, Native_utcb * const utcb)
+	inline int start_thread(Thread * const thread, unsigned const cpu_id,
+	                        Pd * const pd, Native_utcb * const utcb)
 	{
-		return call(call_id_start_thread(), thread_id, cpu_id, pd_id,
-		            (Call_arg)utcb);
+		return call(call_id_start_thread(), (Call_arg)thread, cpu_id,
+		            (Call_arg)pd, (Call_arg)utcb);
 	}
 
 
 	/**
 	 * Cancel blocking of a thread if possible
 	 *
-	 * \param thread_id  kernel name of the targeted thread
+	 * \param thread  pointer to thread kernel object
 	 *
 	 * \return  wether thread was in a cancelable blocking beforehand
 	 */
-	inline bool resume_thread(unsigned const thread_id)
+	inline bool resume_thread(Thread * const thread)
 	{
-		return call(call_id_resume_thread(), thread_id);
+		return call(call_id_resume_thread(), (Call_arg)thread);
 	}
 
 
 	/**
 	 * Set or unset the handler of an event that can be triggered by a thread
 	 *
-	 * \param thread_id          kernel name of the targeted thread
+	 * \param thread             pointer to thread kernel object
 	 * \param event_id           kernel name of the targeted thread event
 	 * \param signal_context_id  kernel name of the handlers signal context
 	 *
 	 * \retval  0  succeeded
 	 * \retval -1  failed
 	 */
-	inline int route_thread_event(unsigned const thread_id,
+	inline int route_thread_event(Thread * const thread,
 	                              unsigned const event_id,
 	                              unsigned const signal_context_id)
 	{
-		return call(call_id_route_thread_event(), thread_id,
+		return call(call_id_route_thread_event(), (Call_arg)thread,
 		            event_id, signal_context_id);
 	}
 
@@ -188,7 +190,7 @@ namespace Kernel
 	/**
 	 * Access plain member variables of a kernel thread-object
 	 *
-	 * \param thread_id  kernel name of the targeted thread
+	 * \param thread     pointer to thread kernel object
 	 * \param reads      amount of read operations
 	 * \param writes     amount of write operations
 	 * \param values     base of the value buffer for all operations
@@ -217,13 +219,13 @@ namespace Kernel
 	 *                  ...                   ...
 	 * (reads + writes - 1) * sizeof(addr_t): write value #writes
 	 */
-	inline unsigned access_thread_regs(unsigned const thread_id,
+	inline unsigned access_thread_regs(Thread * const thread,
 	                                   unsigned const reads,
 	                                   unsigned const writes,
 	                                   addr_t * const values)
 	{
-		return call(call_id_access_thread_regs(), thread_id, reads, writes,
-		            (Call_arg)values);
+		return call(call_id_access_thread_regs(), (Call_arg)thread,
+		            reads, writes, (Call_arg)values);
 	}
 
 
@@ -245,45 +247,43 @@ namespace Kernel
 	 * Create a signal context and assign it to a signal receiver
 	 *
 	 * \param p         memory donation for the kernel signal-context object
-	 * \param receiver  kernel name of targeted signal receiver
+	 * \param receiver  pointer to signal receiver kernel object
 	 * \param imprint   user label of the signal context
 	 *
 	 * \retval >0  kernel name of the new signal context
 	 * \retval  0  failed
 	 */
 	inline unsigned new_signal_context(addr_t const   p,
-	                                   unsigned const receiver,
+	                                   Signal_receiver * const receiver,
 	                                   unsigned const imprint)
 	{
-		return call(call_id_new_signal_context(), p, receiver, imprint);
+		return call(call_id_new_signal_context(), p,
+		            (Call_arg)receiver, imprint);
 	}
 
 
 	/**
 	 * Destruct a signal context
 	 *
-	 * \param context  kernel name of the targeted signal context
-	 *
-	 * \retval  0  suceeded
-	 * \retval -1  failed
+	 * \param context  pointer to signal context kernel object
 	 */
-	inline int delete_signal_context(unsigned const context)
+	inline void delete_signal_context(Signal_context * const context)
 	{
-		return call(call_id_delete_signal_context(), context);
+		call(call_id_delete_signal_context(), (Call_arg)context);
 	}
 
 
 	/**
 	 * Destruct a signal receiver
 	 *
-	 * \param receiver  kernel name of the targeted signal receiver
+	 * \param receiver  pointer to signal receiver kernel object
 	 *
 	 * \retval  0  suceeded
 	 * \retval -1  failed
 	 */
-	inline int delete_signal_receiver(unsigned const receiver)
+	inline void delete_signal_receiver(Signal_receiver * const receiver)
 	{
-		return call(call_id_delete_signal_receiver(), receiver);
+		call(call_id_delete_signal_receiver(), (Call_arg)receiver);
 	}
 
 
@@ -296,14 +296,13 @@ namespace Kernel
 	 * \param table              guest-physical to host-physical translation
 	 *                           table pointer
 	 *
-	 * \retval >0  kernel name of the new VM
-	 * \retval  0  failed
+	 * \retval 0 when successful, otherwise !=0
 	 *
 	 * Regaining of the supplied memory is not supported by now.
 	 */
-	inline unsigned new_vm(void * const dst, void * const state,
-	                       unsigned const signal_context_id,
-	                       void * const table)
+	inline int new_vm(void * const dst, void * const state,
+	                  unsigned const signal_context_id,
+	                  void * const table)
 	{
 		return call(call_id_new_vm(), (Call_arg)dst, (Call_arg)state,
 		            (Call_arg)table, signal_context_id);
@@ -313,42 +312,39 @@ namespace Kernel
 	/**
 	 * Execute a virtual-machine (again)
 	 *
-	 * \param vm_id  kernel name of the targeted VM
+	 * \param vm  pointer to vm kernel object
 	 *
-	 * \retval  0  suceeded
-	 * \retval -1  failed
+	 * \retval 0 when successful, otherwise !=0
 	 */
-	inline int run_vm(unsigned const vm_id)
+	inline int run_vm(Vm * const vm)
 	{
-		return call(call_id_run_vm(), vm_id);
+		return call(call_id_run_vm(), (Call_arg) vm);
 	}
 
 
 	/**
 	 * Destruct a virtual-machine
 	 *
-	 * \param vm_id  kernel name of the targeted VM
+	 * \param vm  pointer to vm kernel object
 	 *
-	 * \retval  0  suceeded
-	 * \retval -1  failed
+	 * \retval 0 when successful, otherwise !=0
 	 */
-	inline int delete_vm(unsigned const vm_id)
+	inline int delete_vm(Vm * const vm)
 	{
-		return call(call_id_delete_vm(), vm_id);
+		return call(call_id_delete_vm(), (Call_arg) vm);
 	}
 
 
 	/**
 	 * Stop execution of a virtual-machine
 	 *
-	 * \param vm_id  kernel name of the targeted VM
+	 * \param vm  pointer to vm kernel object
 	 *
-	 * \retval  0  suceeded
-	 * \retval -1  failed
+	 * \retval 0 when successful, otherwise !=0
 	 */
-	inline int pause_vm(unsigned const vm_id)
+	inline int pause_vm(Vm * const vm)
 	{
-		return call(call_id_pause_vm(), vm_id);
+		return call(call_id_pause_vm(), (Call_arg) vm);
 	}
 }
 

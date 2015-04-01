@@ -254,7 +254,7 @@ bool Genode::unmap_local(addr_t virt_addr, size_t num_pages)
 		                       Kernel::core_pd()->platform_pd()->page_slab());
 
 		/* update translation caches of all CPUs */
-		Kernel::update_pd(Kernel::core_pd()->id());
+		Kernel::update_pd(Kernel::core_pd());
 		return true;
 	} catch(...) {
 		PERR("tried to remove invalid region!");

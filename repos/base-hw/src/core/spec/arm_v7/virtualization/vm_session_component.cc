@@ -25,14 +25,20 @@ using namespace Genode;
 
 void Vm_session_component::exception_handler(Signal_context_capability handler)
 {
-	if (_vm_id) {
-		PWRN("Cannot register exception_handler repeatedly");
+	if (_initialized) {
+		PWRN("Cannot initialize kernel vm object twice!");
 		return;
 	}
+
 	Core_mem_allocator * cma =
 		static_cast<Core_mem_allocator*>(platform()->core_mem_alloc());
-	_vm_id = Kernel::new_vm(&_vm, (void*)_ds.core_local_addr(), handler.dst(),
-	                        cma->phys_addr(_table));
+	if (Kernel::new_vm(&_vm, (void*)_ds.core_local_addr(), handler.dst(),
+	                   cma->phys_addr(_table))) {
+		PWRN("Cannot instantiate vm kernel object, invalid signal context?");
+		return;
+	}
+
+	_initialized = true;
 }
 
 
@@ -80,8 +86,7 @@ void Vm_session_component::detach(addr_t vm_addr, size_t size) {
 
 Vm_session_component::Vm_session_component(Rpc_entrypoint  *ds_ep,
                                            size_t           ram_quota)
-: _ds_ep(ds_ep), _vm_id(0),
-  _ds(_ds_size(), _alloc_ds(ram_quota), UNCACHED, true, 0),
+: _ds_ep(ds_ep), _ds(_ds_size(), _alloc_ds(ram_quota), UNCACHED, true, 0),
   _ds_cap(static_cap_cast<Dataspace>(_ds_ep->manage(&_ds)))
 {
 	_ds.assign_core_local_addr(core_env()->rm_session()->attach(_ds_cap));

@@ -40,13 +40,13 @@ namespace Genode
 		protected:
 
 			Lock                _lock; /* safeguard translation table and slab */
-			unsigned            _id;
 			Native_capability   _parent;
 			Native_thread_id    _main_thread;
 			char const * const  _label;
 			Translation_table * _tt;      /* translation table virtual addr.  */
 			Translation_table * _tt_phys; /* translation table physical addr. */
-			uint8_t             _kernel_pd[sizeof(Kernel::Pd)];
+			uint8_t             _kernel_pd_data[sizeof(Kernel::Pd)];
+			Kernel::Pd        * _kernel_pd;
 			Page_slab         * _pslab;   /* page table allocator */
 
 		public:
@@ -68,7 +68,8 @@ namespace Genode
 			 */
 			Platform_pd(Allocator * md_alloc, size_t ram_quota,
 			            char const *label)
-			: _main_thread(0), _label(label)
+			: _main_thread(0), _label(label),
+			  _kernel_pd(reinterpret_cast<Kernel::Pd*>(_kernel_pd_data))
 			{
 				Lock::Guard guard(_lock);
 
@@ -89,8 +90,7 @@ namespace Genode
 				Kernel::mtc()->map(_tt, _pslab);
 
 				/* create kernel object */
-				_id = Kernel::new_pd(&_kernel_pd, this);
-				if (!_id) {
+				if (Kernel::new_pd(_kernel_pd, this)) {
 					PERR("failed to create kernel object");
 					throw Root::Unavailable();
 				}
@@ -146,12 +146,13 @@ namespace Genode
 			 ***************/
 
 			Lock              * lock()                      { return &_lock;   }
-			unsigned const      id()                        { return _id;      }
 			char const * const  label()                     { return _label;   }
 			Page_slab         * page_slab()                 { return _pslab;   }
 			Translation_table * translation_table()         { return _tt;      }
 			Translation_table * translation_table_phys()    { return _tt_phys; }
 			void                page_slab(Page_slab *pslab) { _pslab = pslab;  }
+
+			Kernel::Pd * kernel_pd() { return _kernel_pd; }
 
 
 			/*****************************

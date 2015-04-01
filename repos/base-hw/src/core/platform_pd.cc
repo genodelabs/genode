@@ -21,10 +21,7 @@ Platform_pd::~Platform_pd()
 {
 	Lock::Guard guard(_lock);
 
-	if (Kernel::delete_pd(_id)) {
-		PERR("failed to destruct protection domain at kernel");
-	}
-
+	Kernel::delete_pd(_kernel_pd);
 	_tt->remove_translation(platform()->vm_start(), platform()->vm_size(),
 	                        _pslab);
 

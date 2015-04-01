@@ -35,8 +35,7 @@ Signal_receiver_capability Signal_session_component::alloc_receiver()
 	/* create kernel object for receiver */
 	addr_t donation = Receiver::kernel_donation(p);
 	unsigned const id = Kernel::new_signal_receiver(donation);
-	if (!id)
-	{
+	if (!id) {
 		/* clean up */
 		_receivers_slab.free(p, Receiver::size());
 		PERR("failed to create signal receiver");
@@ -67,9 +66,17 @@ void Signal_session_component::free_receiver(Signal_receiver_capability cap)
 
 
 Signal_context_capability
-Signal_session_component::alloc_context(Signal_receiver_capability r,
+Signal_session_component::alloc_context(Signal_receiver_capability src,
                                         unsigned const imprint)
 {
+	/* look up ressource info */
+	Receiver::Pool::Guard r(_receivers.lookup_and_lock(src));
+	if (!r) {
+		PERR("unknown signal receiver");
+		throw Create_context_failed();
+	}
+	Kernel::Signal_receiver *sr =
+		(Kernel::Signal_receiver*) Receiver::kernel_donation(r);
 	/* allocate resources for context */
 	void * p;
 	if (!_contexts_slab.alloc(Context::size(), &p)) {
@@ -78,9 +85,8 @@ Signal_session_component::alloc_context(Signal_receiver_capability r,
 	}
 	/* create kernel object for context */
 	addr_t donation = Context::kernel_donation(p);
-	unsigned const id = Kernel::new_signal_context(donation, r.dst(), imprint);
-	if (!id)
-	{
+	unsigned const id = Kernel::new_signal_context(donation, sr, imprint);
+	if (!id) {
 		/* clean up */
 		_contexts_slab.free(p, Context::size());
 		PERR("failed to create signal context");
@@ -112,13 +118,10 @@ void Signal_session_component::free_context(Signal_context_capability cap)
 void Signal_session_component::_destruct_context(Context * const c)
 {
 	/* release kernel resources */
-	if (Kernel::delete_signal_context(c->id()))
-	{
-		/* clean-up */
-		c->release();
-		PERR("failed to kill signal context");
-		throw Kill_context_failed();
-	}
+	Kernel::Signal_context *sc =
+		(Kernel::Signal_context*) Context::kernel_donation(c);
+	Kernel::delete_signal_context(sc);
+
 	/* release core resources */
 	_contexts.remove_locked(c);
 	c->~Signal_session_context();
@@ -128,13 +131,10 @@ void Signal_session_component::_destruct_context(Context * const c)
 void Signal_session_component::_destruct_receiver(Receiver * const r)
 {
 	/* release kernel resources */
-	if (Kernel::delete_signal_receiver(r->id()))
-	{
-		/* clean-up */
-		r->release();
-		PERR("failed to kill signal receiver");
-		throw Kill_receiver_failed();
-	}
+	Kernel::Signal_receiver *sr =
+		(Kernel::Signal_receiver*) Receiver::kernel_donation(r);
+	Kernel::delete_signal_receiver(sr);
+
 	/* release core resources */
 	_receivers.remove_locked(r);
 	r->~Signal_session_receiver();
