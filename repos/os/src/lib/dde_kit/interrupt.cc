@@ -54,11 +54,24 @@ class Irq_handler : Dde_kit::Thread, public Avl_node<Irq_handler>
 		int            _handle_irq;      /* nested irq disable counter */
 		Lock           _lock;            /* synchronize access to counter */
 
+		Genode::Signal_receiver                _sig_rec;
+		Genode::Signal_dispatcher<Irq_handler> _irq_dispatcher;
+
 
 		const char * _compose_thread_name(unsigned irq)
 		{
 			snprintf(_thread_name, sizeof(_thread_name), "irq.%02x", irq);
 			return _thread_name;
+		}
+
+		void _handle(unsigned)
+		{
+			_irq.ack_irq();
+
+			/* only call registered handler function, if IRQ is not disabled */
+			_lock.lock();
+			if (_handle_irq) _handler(_priv);
+			_lock.unlock();
 		}
 
 	public:
@@ -68,12 +81,18 @@ class Irq_handler : Dde_kit::Thread, public Avl_node<Irq_handler>
 		:
 			Dde_kit::Thread(_compose_thread_name(irq)), _irq_number(irq),
 			_irq(irq), _handler(handler), _init(init), _priv(priv),
-			_shared(shared), _handle_irq(1), _lock(Lock::LOCKED)
+			_shared(shared), _handle_irq(1), _lock(Lock::LOCKED),
+			_irq_dispatcher(_sig_rec, *this, &Irq_handler::_handle)
 		{
+			_irq.sigh(_irq_dispatcher);
+
 			start();
 
 			/* wait until thread is started */
 			Lock::Guard guard(_lock);
+
+			/* initial ack so that we will receive further interrupts */
+			_irq.ack_irq();
 		}
 
 		/** Enable IRQ handling */
@@ -102,12 +121,14 @@ class Irq_handler : Dde_kit::Thread, public Avl_node<Irq_handler>
 			_lock.unlock();
 
 			while (1) {
-				_irq.wait_for_irq();
+				using namespace Genode;
 
-				/* only call registered handler function, if IRQ is not disabled */
-				_lock.lock();
-				if (_handle_irq) _handler(_priv);
-				_lock.unlock();
+				Signal sig = _sig_rec.wait_for_signal();
+				int num    = sig.num();
+
+				Signal_dispatcher_base *dispatcher;
+				dispatcher = dynamic_cast<Signal_dispatcher_base *>(sig.context());
+				dispatcher->dispatch(num);
 			}
 		}
 
