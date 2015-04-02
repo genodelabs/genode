@@ -230,6 +230,7 @@ void Signal_context::submit(unsigned num)
 
 Signal_connection * Signal_transmitter::connection() { return signal_connection(); }
 
+
 /*********************
  ** Signal receiver **
  *********************/

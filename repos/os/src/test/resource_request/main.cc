@@ -67,6 +67,9 @@ int main(int argc, char **argv)
 	 * successively upgrade the session. At one point, we will run out of our
 	 * initial quota. Now, before we can issue another upgrade, we first need
 	 * to request additional resources.
+	 *
+	 * Note that the construction of the signal receiver will consume a part
+	 * of the quota we preserved as 'KEEP_QUOTA'.
 	 */
 	printf("\n-- draining signal session --\n");
 	{

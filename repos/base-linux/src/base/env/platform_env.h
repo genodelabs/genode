@@ -412,7 +412,7 @@ namespace Genode {
 			 *
 			 * See the comment of '_fallback_sig_cap()' in 'env/env.cc'.
 			 */
-			constexpr static size_t  _emergency_ram_size() { return 4*1024; }
+			constexpr static size_t  _emergency_ram_size() { return 8*1024; }
 			Ram_dataspace_capability _emergency_ram_ds;
 
 
