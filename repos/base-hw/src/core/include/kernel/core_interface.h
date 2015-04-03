@@ -24,6 +24,7 @@ namespace Kernel
 	class Signal_receiver;
 	class Signal_context;
 	class Vm;
+	class User_irq;
 
 	addr_t   mode_transition_base();
 	size_t   mode_transition_size();
@@ -54,6 +55,8 @@ namespace Kernel
 	constexpr Call_arg call_id_pause_vm()               { return 29; }
 	constexpr Call_arg call_id_pause_thread()           { return 30; }
 	constexpr Call_arg call_id_delete_vm()              { return 31; }
+	constexpr Call_arg call_id_new_irq()                { return 32; }
+	constexpr Call_arg call_id_delete_irq()             { return 33; }
 
 	/**
 	 * Create a domain
@@ -345,6 +348,27 @@ namespace Kernel
 	inline int pause_vm(Vm * const vm)
 	{
 		return call(call_id_pause_vm(), (Call_arg) vm);
+	}
+
+	/**
+	 * Create an interrupt object
+	 *
+	 * \param p       memory donation for the irq object
+	 * \param irq_nr  interrupt number
+	 */
+	inline void new_irq(addr_t const p, unsigned irq_nr)
+	{
+		call(call_id_new_irq(), (Call_arg) p, irq_nr);
+	}
+
+	/**
+	 * Destruct an interrupt object
+	 *
+	 * \param irq  pointer to interrupt kernel object
+	 */
+	inline void delete_irq(User_irq * const irq)
+	{
+		call(call_id_delete_irq(), (Call_arg) irq);
 	}
 }
 

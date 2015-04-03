@@ -237,6 +237,8 @@ class Kernel::Thread
 		void _call_pause_vm();
 		void _call_access_thread_regs();
 		void _call_route_thread_event();
+		void _call_new_irq();
+		void _call_delete_irq();
 
 
 		/***************************

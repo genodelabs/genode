@@ -42,22 +42,28 @@ Irq_signal Irq_session_component::signal() { return _signal; }
 
 Irq_session_component::~Irq_session_component()
 {
+	using namespace Kernel;
+
 	irq_session_ep()->dissolve(this);
-	_irq_alloc->free((void *)(addr_t)_irq_number);
+	User_irq * kirq = reinterpret_cast<User_irq*>(&_kernel_object);
+	_irq_alloc->free((void *)(addr_t)static_cast<Kernel::Irq*>(kirq)->id());
+	Kernel::delete_irq(kirq);
 }
 
 Irq_session_component::Irq_session_component(Cap_session * const     cap_session,
                                              Range_allocator * const irq_alloc,
                                              const char * const      args)
-:
-	_irq_alloc(irq_alloc)
+: _irq_alloc(irq_alloc)
 {
+	using namespace Kernel;
+
 	/* check arguments */
 	bool shared = Arg_string::find_arg(args, "irq_shared").bool_value(false);
 	if (shared) {
 		PERR("shared interrupts not supported");
 		throw Root::Invalid_args();
 	}
+
 	/* allocate interrupt */
 	long irq_nr = Arg_string::find_arg(args, "irq_number").long_value(-1);
 	bool error = irq_nr < 0 || !_irq_alloc;
@@ -70,8 +76,10 @@ Irq_session_component::Irq_session_component(Cap_session * const     cap_session
 		PERR("unavailable interrupt requested");
 		throw Root::Invalid_args();
 	}
+
 	/* make interrupt accessible */
-	_irq_number = (unsigned)plat_irq_nr;
-	_signal = Kernel::User_irq::signal(plat_irq_nr);
+	new_irq((addr_t)&_kernel_object, plat_irq_nr);
+	User_irq * kirq = reinterpret_cast<User_irq*>(&_kernel_object);
+	_signal = { kirq->receiver_id(), kirq->context_id() };
 	_cap    = Irq_session_capability(irq_session_ep()->manage(this));
 }

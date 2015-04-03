@@ -25,6 +25,7 @@ void Pic::_init()
 	for (unsigned i = min_spi; i <= _max_irq; i++) {
 		_distr.write<Distr::Icfgr::Edge_triggered>(0, i);
 		_distr.write<Distr::Ipriorityr::Priority>(0, i);
+		_distr.write<Distr::Icenabler::Clear_enable>(1, i);
 	}
 	/* enable device */
 	_distr.write<Distr::Ctlr::Enable>(1);

@@ -27,6 +27,7 @@ void Pic::_init()
 		_distr.write<Distr::Igroupr::Group_status>(1, i);
 		_distr.write<Distr::Icfgr::Edge_triggered>(0, i);
 		_distr.write<Distr::Ipriorityr::Priority>(0, i);
+		_distr.write<Distr::Icenabler::Clear_enable>(1, i);
 	}
 	/* enable device */
 	Distr::Ctlr::access_t v = 0;

@@ -688,6 +688,14 @@ void Thread::_call_delete_signal_receiver() {
 	reinterpret_cast<Signal_receiver*>(user_arg_1())->~Signal_receiver(); }
 
 
+void Thread::_call_new_irq() {
+	new ((void *)user_arg_1()) User_irq(user_arg_2()); }
+
+
+void Thread::_call_delete_irq() {
+	reinterpret_cast<User_irq*>(user_arg_1())->~User_irq(); }
+
+
 int Thread::_read_reg(addr_t const id, addr_t & value) const
 {
 	addr_t Thread::* const reg = _reg(id);
@@ -762,6 +770,8 @@ void Thread::_call()
 	case call_id_run_vm():                 _call_run_vm(); return;
 	case call_id_pause_vm():               _call_pause_vm(); return;
 	case call_id_pause_thread():           _call_pause_thread(); return;
+	case call_id_new_irq():                _call_new_irq(); return;
+	case call_id_delete_irq():             _call_delete_irq(); return;
 	default:
 		PWRN("%s -> %s: unknown kernel call", pd_label(), label());
 		_stop();

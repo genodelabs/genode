@@ -113,16 +113,6 @@ class Kernel::User_irq
 		 */
 		static Irq::Pool * _pool();
 
-		/**
-		 * Get kernel name of the interrupt-signal receiver
-		 */
-		unsigned _receiver_id() const { return Signal_receiver::Object::id(); }
-
-		/**
-		 * Get kernel name of the interrupt-signal context
-		 */
-		unsigned _context_id() const { return Signal_context::Object::id(); }
-
 
 		/************************
 		 ** Signal_ack_handler **
@@ -146,30 +136,22 @@ class Kernel::User_irq
 		}
 
 		/**
+		 * Get kernel name of the interrupt-signal receiver
+		 */
+		unsigned receiver_id() const { return Signal_receiver::Object::id(); }
+
+		/**
+		 * Get kernel name of the interrupt-signal context
+		 */
+		unsigned context_id() const { return Signal_context::Object::id(); }
+
+		/**
 		 * Handle occurence of the interrupt
 		 */
 		void occurred()
 		{
 			Signal_context::submit(1);
 			disable();
-		}
-
-		/**
-		 * Get information that enables a user to handle an interrupt
-		 *
-		 * \param irq_id  kernel name of targeted interrupt
-		 */
-		static Genode::Irq_signal signal(unsigned const irq_id)
-		{
-			typedef Genode::Irq_signal Irq_signal;
-			static Irq_signal const invalid = { 0, 0 };
-			User_irq * const irq =
-				dynamic_cast<User_irq*>(_pool()->object(irq_id));
-			if (irq) {
-				Irq_signal s = { irq->_receiver_id(), irq->_context_id() };
-				return s;
-			}
-			return invalid;
 		}
 
 		/**

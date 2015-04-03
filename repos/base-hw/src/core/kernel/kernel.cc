@@ -142,18 +142,6 @@ namespace Kernel
 	}
 
 	/**
-	 * Return wether interrupt 'irq' is private to the kernel
-	 */
-	bool private_interrupt(unsigned const irq)
-	{
-		for (unsigned i = 0; i < NR_OF_CPUS; i++)
-			if (irq == Timer::interrupt_id(i)) return true;
-		if (irq == Pic::IPI) return true;
-		return false;
-	}
-
-
-	/**
 	 * Get attributes of the mode transition region in every PD
 	 */
 	addr_t mode_transition_base() { return mtc()->VIRT_BASE; }
@@ -260,12 +248,6 @@ void init_kernel_mp_primary()
 	t.init(cpu_pool()->primary_cpu(), core_pd(),
 	       (Native_utcb*)Genode::UTCB_MAIN_THREAD, 1);
 
-	/* initialize user interrupt objects */
-	static Genode::uint8_t _irqs[Kernel::Pic::NR_OF_IRQ * sizeof(User_irq)];
-	for (unsigned i = 0; i < Kernel::Pic::NR_OF_IRQ; i++) {
-		if (private_interrupt(i)) { continue; }
-		new (&_irqs[i * sizeof(User_irq)]) User_irq(i);
-	}
 	/* kernel initialization finished */
 	Genode::printf("kernel initialized\n");
 	test();

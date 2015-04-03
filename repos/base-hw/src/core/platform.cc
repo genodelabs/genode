@@ -150,9 +150,12 @@ Platform::Platform()
 
 	_init_io_port_alloc();
 
-	/* make interrupts available to the interrupt allocator */
-	for (unsigned i = 0; i < Kernel::Pic::NR_OF_IRQ; i++)
+	/* make all non-kernel interrupts available to the interrupt allocator */
+	for (unsigned i = 0; i < Kernel::Pic::NR_OF_IRQ; i++) {
+		if (i == Timer::interrupt_id(i) || i == Pic::IPI)
+			continue;
 		_irq_alloc.add_range(i, 1);
+	}
 
 	/*
 	 * Use byte granuarity for MMIO regions because on some platforms, devices
