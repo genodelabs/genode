@@ -45,14 +45,20 @@ namespace Sd_card {
 	{
 		enum { BIT_BASE = 1*sizeof(access_t)*8 };
 
-		struct Device_size_lo : Bitfield<48 - BIT_BASE, 16> { };
+		struct V2_device_size_lo : Bitfield<48 - BIT_BASE, 16> { };
+
+		struct V1_c_size_lo   : Bitfield<62 - BIT_BASE, 2> { };
+		struct V1_c_size_mult : Bitfield<47 - BIT_BASE, 3> { };
 	};
 
 	struct Csd2 : Register<32>
 	{
 		enum { BIT_BASE = 2*sizeof(access_t)*8 };
 
-		struct Device_size_hi : Bitfield<64 - BIT_BASE, 6> { };
+		struct V2_device_size_hi : Bitfield<64 - BIT_BASE, 6> { };
+
+		struct V1_read_bl_len : Bitfield<80 - BIT_BASE, 4>  { };
+		struct V1_c_size_hi   : Bitfield<64 - BIT_BASE, 10> { };
 	};
 
 	struct Csd3 : Register<32>
@@ -61,7 +67,7 @@ namespace Sd_card {
 
 		struct Version : Bitfield<126 - BIT_BASE, 2>
 		{
-			enum { HIGH_CAPACITY = 1, EXT_CSD = 3 };
+			enum { STANDARD_CAPACITY = 0, HIGH_CAPACITY = 1, EXT_CSD = 3 };
 		};
 
 		struct Mmc_spec_vers : Bitfield<122 - BIT_BASE, 4> { };
@@ -394,6 +400,48 @@ namespace Sd_card {
 				return _issue_command(command.base());
 			}
 
+		private:
+
+			/**
+			 * Extract capacity information from CSD register
+			 *
+			 * \throw  Detection_failed
+			 * \return capacity in 512-byte blocks
+			 */
+			size_t _sd_card_device_size(Csd const csd)
+			{
+				/*
+				 * The capacity is reported via the CSD register. There are
+				 * two versions of this register. Standard-capacity cards
+				 * use version 1 whereas high-capacity cards use version 2.
+				 */
+
+				if (Csd3::Version::get(csd.csd3) == Csd3::Version::STANDARD_CAPACITY) {
+
+					/*
+					 * Calculation of the capacity according to the
+					 * "Physical Layer Simplified Specification Version 4.10",
+					 * Section 5.3.2.
+					 */
+					size_t const read_bl_len = Csd2::V1_read_bl_len::get(csd.csd2);
+					size_t const c_size      = (Csd2::V1_c_size_hi::get(csd.csd2) << 2)
+					                         |  Csd1::V1_c_size_lo::get(csd.csd1);
+					size_t const c_size_mult = Csd1::V1_c_size_mult::get(csd.csd1);
+					size_t const mult        = 1 << (c_size_mult + 2);
+					size_t const block_len   = 1 << read_bl_len;
+					size_t const capacity    = (c_size + 1)*mult*block_len;
+
+					return capacity;
+				}
+
+				if (Csd3::Version::get(csd.csd3) == Csd3::Version::HIGH_CAPACITY)
+					return ((Csd2::V2_device_size_hi::get(csd.csd2) << 16)
+				           | Csd1::V2_device_size_lo::get(csd.csd1)) + 1;
+
+				PERR("Could not detect SD-card capacity");
+				throw Detection_failed();
+			}
+
 		protected:
 
 			/**
@@ -410,7 +458,7 @@ namespace Sd_card {
 
 				Cid const cid = _read_cid();
 				PLOG("CID: 0x%08x 0x%08x 0x%08x 0x%08x",
-				     cid.raw_0, cid.raw_1, cid.raw_2, cid.raw_3);
+				     cid.raw_3, cid.raw_2, cid.raw_1, cid.raw_0);
 
 				if (!issue_command(Send_relative_addr())) {
 					PERR("Send_relative_addr timed out");
@@ -427,20 +475,12 @@ namespace Sd_card {
 
 				Csd const csd = _read_csd();
 
-				if (Csd3::Version::get(csd.csd3) != Csd3::Version::HIGH_CAPACITY) {
-					PERR("Could not detect high-capacity card");
-					throw Detection_failed();
-				}
-
-				size_t const device_size = ((Csd2::Device_size_hi::get(csd.csd2) << 16)
-				                           | Csd1::Device_size_lo::get(csd.csd1)) + 1;
-
 				if (!issue_command(Select_card(rca))) {
 					PERR("Select_card failed");
 					throw Detection_failed();
 				}
 
-				return Card_info(rca, device_size / 2);
+				return Card_info(rca, _sd_card_device_size(csd) / 2);
 			}
 
 			Card_info _detect_mmc()
