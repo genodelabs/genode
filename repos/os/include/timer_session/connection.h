@@ -55,6 +55,17 @@ class Timer::Connection : public Genode::Connection<Session>, public Session_cli
 
 		void usleep(unsigned us)
 		{
+			/*
+			 * Omit the interaction with the timer driver for the corner case
+			 * of not sleeping at all. This corner case may be triggered when
+			 * polling is combined with sleeping (as some device drivers do).
+			 * If we passed the sleep operation to the timer driver, the
+			 * timer would apply its policy about a minimum sleep time to
+			 * the sleep operation, which is not desired when polling.
+			 */
+			if (us == 0)
+				return;
+
 			/* serialize sleep calls issued by different threads */
 			Genode::Lock::Guard guard(_lock);
 
