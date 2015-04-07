@@ -74,47 +74,6 @@ struct Lx_irq_handler : public Lx::List<Lx_irq_handler>::Element
 };
 
 
-/**
- * IRQ handling thread
- */
-template <typename T>
-class Irq_thread : public Genode::Thread<1024 * sizeof(Genode::addr_t)>
-{
-	private:
-
-		unsigned               _irq_number;
-		Genode::Irq_connection _irq;
-		bool                   _enabled;
-
-		/* XXX replace by functor? */
-		T &_obj;
-		void (T::*_member)(void *);
-		void *_priv;
-
-	public:
-
-		Irq_thread(unsigned irq, T &obj, void (T::*member)(void*), void *priv,
-		           char const *name)
-		:
-			Thread(name),
-			_irq_number(irq), _irq(_irq_number), _enabled(false),
-			_obj(obj), _member(member), _priv(priv)
-		{
-			start();
-		}
-
-		void enable() { _enabled = true; }
-
-		void entry()
-		{
-			while (1) {
-				_irq.wait_for_irq();
-				if (_enabled) (_obj.*_member)(_priv);
-			}
-		}
-};
-
-
 namespace Lx {
 	class Irq;
 }
@@ -138,25 +97,12 @@ class Lx::Irq
 				Name_composer             _name;
 
 				unsigned int              _irq;     /* IRQ number */
+				Genode::Irq_connection    _irq_conn;
 				Lx::List<Lx_irq_handler>  _handler; /* List of registered handlers */
 				Irq_task                  _task;
-				Irq_thread<Context>       _thread;
-
-				Genode::Lock              _irq_sync { Genode::Lock::LOCKED };
 
 				Genode::Signal_transmitter         _sender;
 				Genode::Signal_rpc_member<Context> _dispatcher;
-
-				/**
-				 * IRQ handling thread callback
-				 */
-				void _handle_irq(void *)
-				{
-					_sender.submit();
-
-					/* wait for interrupt to get acked at device side */
-					_irq_sync.lock();
-				}
 
 				/**
 				 * Call one IRQ handler
@@ -201,13 +147,14 @@ class Lx::Irq
 				:
 					_name(irq),
 					_irq(irq),
+					_irq_conn(irq),
 					_task(run_irq, this, _name.name),
-					_thread(irq, *this, &Context::_handle_irq, 0, _name.name),
 					_dispatcher(ep, *this, &Context::_handle)
 				{
-					_sender.context(_dispatcher);
+					_irq_conn.sigh(_dispatcher);
 
-					_thread.enable();
+					/* initial ack to receive further IRQ signals */
+					_irq_conn.ack_irq();
 				}
 
 				/**
@@ -228,8 +175,7 @@ class Lx::Irq
 							break;
 					}
 
-					/* interrupt should be acked at device now */
-					_irq_sync.unlock();
+					_irq_conn.ack_irq();
 				}
 
 				/**
