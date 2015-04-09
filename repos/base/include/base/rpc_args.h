@@ -88,8 +88,8 @@ class Genode::Rpc_in_buffer : public Rpc_in_buffer_base
 		 */
 		Rpc_in_buffer(const char *str) : Rpc_in_buffer_base(str)
 		{
-			if (_size >= MAX_SIZE - 1)
-				_size = MAX_SIZE - 1;
+			if (_size >= MAX_SIZE)
+				_size = MAX_SIZE;
 		}
 
 		/**
@@ -107,7 +107,7 @@ class Genode::Rpc_in_buffer : public Rpc_in_buffer_base
 		 * Return true if buffer contains a valid null-terminated string
 		 */
 		bool is_valid_string() const {
-			return (_size < MAX_SIZE) && (_size > 0) && (_base[_size - 1] == '\0'); }
+			return (_size <= MAX_SIZE) && (_size > 0) && (_base[_size - 1] == '\0'); }
 
 		/**
 		 * Return buffer content as null-terminated string
