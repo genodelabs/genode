@@ -58,7 +58,6 @@ Pci_tree::Pci_tree(unsigned device_class, unsigned class_mask)
 	Pci::Device_capability prev_device_cap;
 	Pci::Device_capability device_cap = _pci_drv.first_device(device_class,
 	                                                          class_mask);
-
 	while (device_cap.valid()) {
 
 		Pci_device *device = new (env()->heap()) Pci_device(device_cap);
@@ -66,10 +65,19 @@ Pci_tree::Pci_tree(unsigned device_class, unsigned class_mask)
 		_devices.insert(device);
 
 		prev_device_cap = device_cap;
-		device_cap = _pci_drv.next_device(prev_device_cap, device_class,
-		                                  class_mask);
+
+		for (unsigned i = 0; i < 2; i++) {
+			try {
+				device_cap = _pci_drv.next_device(prev_device_cap, device_class,
+				                                  class_mask);
+				break;
+			} catch (Pci::Device::Quota_exceeded) {
+				Genode::env()->parent()->upgrade(_pci_drv.cap(), "ram_quota=4096");
+			}
+		}
 	}
 
 	if (verbose)
 		_show_devices();
+
 }
