@@ -274,6 +274,8 @@ int pci_register_driver(struct pci_driver *drv)
 			continue;
 		}
 
+		Genode::env()->parent()->upgrade(pci.cap(), "ram_quota=4096");
+
 		Pci::Device_capability cap = pci.first_device(id->class_,
 		                                              id->class_mask);
 		while (cap.valid()) {
@@ -295,6 +297,9 @@ int pci_register_driver(struct pci_driver *drv)
 				pci.on_destruction(Pci::Connection::KEEP_OPEN);
 				found = true;
 
+			} catch (Pci::Device::Quota_exceeded) {
+				Genode::env()->parent()->upgrade(pci.cap(), "ram_quota=4096");
+				continue;
 			} catch (...) {
 				destroy(env()->heap(), pci_drv);
 				pci_drv = 0;
@@ -401,6 +406,11 @@ Backend_memory::alloc(Genode::addr_t size, Genode::Cache_attribute cached)
 		cap = env()->ram_session()->alloc(size);
 		o = new (env()->heap())	Ram_object(cap);
 	} else {
+		/* transfer quota to pci driver, otherwise it will give us a exception */
+		char buf[32];
+		Genode::snprintf(buf, sizeof(buf), "ram_quota=%ld", size);
+		Genode::env()->parent()->upgrade(pci.cap(), buf);
+
 		cap = pci.alloc_dma_buffer(size);
 		o = new (env()->heap()) Dma_object(cap);
 	}
