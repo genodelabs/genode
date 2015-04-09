@@ -52,8 +52,13 @@ namespace Genode {
 
 		public:
 
-			Pd_session_component(Rpc_entrypoint *thread_ep, char const *args)
-			: _label(args), _pd(_label.string), _thread_ep(thread_ep) { }
+			Pd_session_component(Rpc_entrypoint *thread_ep,
+			                     Allocator * md_alloc, char const *args)
+			: _label(args),
+			  _pd(md_alloc,
+			      Arg_string::find_arg(args, "ram_quota").long_value(0),
+			      _label.string),
+			  _thread_ep(thread_ep) { }
 
 
 			/**************************/

@@ -14,6 +14,7 @@
 #ifndef _CORE__INCLUDE__PLATFORM_PD_H_
 #define _CORE__INCLUDE__PLATFORM_PD_H_
 
+#include <base/allocator.h>
 #include <platform_thread.h>
 #include <address_space.h>
 
@@ -39,7 +40,8 @@ namespace Genode {
 			/**
 			 * Constructors
 			 */
-			Platform_pd(char const *, signed pd_id = -1, bool create = true);
+			Platform_pd(Allocator * md_alloc, size_t ram_quota,
+			            char const *, signed pd_id = -1, bool create = true);
 
 			/**
 			 * Destructor

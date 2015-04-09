@@ -66,7 +66,9 @@ namespace Genode
 			 *
 			 * \param label  name of protection domain
 			 */
-			Platform_pd(char const *label) : _main_thread(0), _label(label)
+			Platform_pd(Allocator * md_alloc, size_t ram_quota,
+			            char const *label)
+			: _main_thread(0), _label(label)
 			{
 				Lock::Guard guard(_lock);
 

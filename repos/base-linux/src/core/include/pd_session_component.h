@@ -15,6 +15,7 @@
 #define _CORE__INCLUDE__PD_SESSION_COMPONENT_H_
 
 /* Genode includes */
+#include <base/allocator.h>
 #include <base/rpc_server.h>
 #include <linux_pd_session/linux_pd_session.h>
 
@@ -43,9 +44,12 @@ namespace Genode {
 			/**
 			 * Constructor
 			 *
-			 * \param ds_ep  entrypoint where the dataspaces are managed
+			 * \param ds_ep     entrypoint where the dataspaces are managed
+			 * \param md_alloc  meta-data allocator
+			 * \param args      additional session arguments
 			 */
-			Pd_session_component(Rpc_entrypoint *ds_ep, const char *args);
+			Pd_session_component(Rpc_entrypoint *ds_ep, Allocator * md_alloc,
+			                     const char *args);
 
 			~Pd_session_component();
 

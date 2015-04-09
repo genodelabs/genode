@@ -27,7 +27,8 @@ namespace Genode {
 			 * Constructors
 			 */
 			Platform_pd(bool core);
-			Platform_pd(char const *, signed pd_id = -1, bool create = true);
+			Platform_pd(Allocator * md_alloc, size_t ram_quota,
+			            char const *, signed pd_id = -1, bool create = true);
 
 			/**
 			 * Destructor
