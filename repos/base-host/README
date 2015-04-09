@@ -1,7 +1,0 @@
-This repository contains dummy implementations of platform-specific Genode APIs
-to enable the compilation of Genode for the host platform. Because the
-repository provides only dummy implementations, most of the generated binaries
-will not work. However, the repository serves two important purposes. It
-documents the platform- specific APIs that must be filled out when porting
-Genode to another platform, and it is the build environment for unit tests
-executed on the host platform.
