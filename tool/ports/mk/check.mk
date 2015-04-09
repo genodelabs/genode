@@ -55,7 +55,7 @@ check: $(DOWNLOADS)
 # Check plain remote file
 #
 %.file:
-	$(VERBOSE)curl -f -L -k -r -2 $(URL($*)) > /dev/null 2>&1
+	$(VERBOSE)curl -f -L -k -r -2 --max-time 15 --retry 2 $(URL($*)) > /dev/null 2>&1
 
 %.archive: %.file
 	$(VERBOSE)true
