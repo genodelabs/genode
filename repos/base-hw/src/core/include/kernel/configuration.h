@@ -28,7 +28,7 @@ namespace Kernel
 	constexpr unsigned cpu_quota_ms = 1000;
 
 	/* time slice for the round-robin mode and the idle in CPU scheduling */
-	constexpr unsigned cpu_fill_ms = 100;
+	constexpr unsigned cpu_fill_ms = 10;
 }
 
 #endif /* _KERNEL__CONFIGURATION_H_ */
