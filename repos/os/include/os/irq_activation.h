@@ -46,10 +46,19 @@ class Genode::Irq_activation : Thread_base
 		Irq_handler    &_handler;
 		char            _thread_name[8];
 
+		Genode::Signal_receiver                   _sig_rec;
+		Genode::Signal_dispatcher<Irq_activation> _dispatcher;
+
 		char const *_create_thread_name(unsigned irq_number)
 		{
 			snprintf(_thread_name, sizeof(_thread_name), "irq.%02x", irq_number);
 			return _thread_name;
+		}
+
+		void _handle(unsigned)
+		{
+			_connection.ack_irq();
+			_handler.handle_irq(_number);
 		}
 
 	public:
@@ -64,22 +73,30 @@ class Genode::Irq_activation : Thread_base
 		Irq_activation(int irq_number, Irq_handler &handler, size_t stack_size)
 		:
 			Thread_base(0, _create_thread_name(irq_number), stack_size),
-			_number(irq_number), _connection(irq_number), _handler(handler)
+			_number(irq_number), _connection(irq_number), _handler(handler),
+			_dispatcher(_sig_rec, *this, &Irq_activation::_handle)
 		{
 			start();
+
+			_connection.sigh(_dispatcher);
+			_connection.ack_irq();
 		}
 
 		/**
 		 * Thread entry
 		 *
-		 * The interrupt thread infinitely waits for interrupts and calls
-		 * the handler on occurrence.
+		 * The interrupt thread infinitely waits for interrupts signals and
+		 * dispatches the handler on occurrence.
 		 */
 		void entry()
 		{
 			while (true) {
-				_connection.wait_for_irq();
-				_handler.handle_irq(_number);
+				Genode::Signal sig = _sig_rec.wait_for_signal();
+				int num            = sig.num();
+
+				Genode::Signal_dispatcher_base *dispatcher;
+				dispatcher = dynamic_cast<Genode::Signal_dispatcher_base *>(sig.context());
+				dispatcher->dispatch(num);
 			}
 		}
 };
