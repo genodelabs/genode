@@ -374,9 +374,9 @@ extern "C" dde_addr_t dde_dma_get_physaddr(void *virt) {
  ** I/O port **
  **************/
 
-static Genode::Io_port_connection *_io_port;
+static Genode::Io_port_session_client *_io_port;
 
-extern "C" void dde_request_io(dde_addr_t base, dde_size_t size)
+extern "C" void dde_request_io(dde_uint8_t virt_bar_ioport)
 {
 	using namespace Genode;
 
@@ -385,7 +385,10 @@ extern "C" void dde_request_io(dde_addr_t base, dde_size_t size)
 		sleep_forever();
 	}
 
-	_io_port = new (env()->heap()) Io_port_connection(base, size);
+	Pci::Device_client device(pci_drv()._cap);
+	Io_port_session_capability cap = device.io_port(virt_bar_ioport);
+
+	_io_port = new (env()->heap()) Io_port_session_client(cap);
 }
 
 

@@ -95,7 +95,7 @@ void dde_pci_writel(int, dde_uint32_t);
  ** I/O port **
  **************/
 
-void dde_request_io(dde_addr_t, dde_size_t);
+void dde_request_io(dde_uint8_t);
 
 dde_uint8_t  dde_inb(dde_addr_t);
 dde_uint16_t dde_inw(dde_addr_t);

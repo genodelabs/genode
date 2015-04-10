@@ -59,6 +59,7 @@ static void pci_read_bases(struct pci_device *pci_dev)
 {
 	uint32_t bar;
 	int reg;
+	uint8_t virt_bar_ioport = 0;
 
 	for (reg = PCI_BASE_ADDRESS_0; reg <= PCI_BASE_ADDRESS_5; reg += 4) {
 		pci_read_config_dword(pci_dev, reg, &bar);
@@ -66,10 +67,9 @@ static void pci_read_bases(struct pci_device *pci_dev)
 			if (!pci_dev->ioaddr) {
 				pci_dev->ioaddr = bar & PCI_BASE_ADDRESS_IO_MASK;
 
-				dde_addr_t base = bar & PCI_BASE_ADDRESS_IO_MASK;
-				dde_size_t size = pci_bar_size(pci_dev, reg);
-				dde_request_io(base, size);
+				dde_request_io(virt_bar_ioport);
 			}
+			virt_bar_ioport ++;
 		} else {
 			if (!pci_dev->membase)
 				pci_dev->membase = bar & PCI_BASE_ADDRESS_MEM_MASK;
