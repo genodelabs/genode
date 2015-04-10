@@ -265,27 +265,9 @@ namespace Genode {
 
 
 	/**
-	 * Convert ASCII string to another type
-	 *
-	 * \param T       destination type of conversion
-	 * \param s       null-terminated source string
-	 * \param result  destination pointer to conversion result
-	 * \param base    base, autodetected if set to 0
-	 * \return        number of consumed characters
-	 *
-	 * Please note that 'base' and 's_max_len' are not evaluated by all
-	 * template specializations.
-	 */
-	template <typename T>
-	inline size_t ascii_to(const char *s, T *result, unsigned base = 0);
-
-
-	/**
 	 * Read unsigned long value from string
 	 */
-	template <>
-	inline size_t ascii_to<unsigned long>(const char *s, unsigned long *result,
-	                                      unsigned base)
+	inline size_t ascii_to(const char *s, unsigned long *result, unsigned base = 0)
 	{
 		unsigned long i = 0, value = 0;
 
@@ -320,12 +302,10 @@ namespace Genode {
 	/**
 	 * Read unsigned int value from string
 	 */
-	template <>
-	inline size_t ascii_to<unsigned int>(const char *s, unsigned int *result,
-	                                     unsigned base)
+	inline size_t ascii_to(const char *s, unsigned int *result, unsigned base = 10)
 	{
 		unsigned long result_long = 0;
-		size_t ret = ascii_to<unsigned long>(s, &result_long, base);
+		size_t ret = ascii_to(s, &result_long, base);
 		*result = result_long;
 		return ret;
 	}
@@ -334,8 +314,7 @@ namespace Genode {
 	/**
 	 * Read signed long value from string
 	 */
-	template <>
-	inline size_t ascii_to<long>(const char *s, long *result, unsigned base)
+	inline size_t ascii_to(const char *s, long *result, unsigned base = 10)
 	{
 		int i = 0;
 
@@ -362,8 +341,7 @@ namespace Genode {
 	 * This function scales the resulting size value according to the suffixes
 	 * for G (2^30), M (2^20), and K (2^10) if present.
 	 */
-	template <>
-	inline size_t ascii_to(const char *s, Number_of_bytes *result, unsigned)
+	inline size_t ascii_to(const char *s, Number_of_bytes *result, unsigned base = 0)
 	{
 		unsigned long res = 0;
 
@@ -387,8 +365,7 @@ namespace Genode {
 	/**
 	 * Read double float value from string
 	 */
-	template <>
-	inline size_t ascii_to<double>(const char *s, double *result, unsigned)
+	inline size_t ascii_to(const char *s, double *result, unsigned base = 0)
 	{
 		double v = 0.0;    /* decimal part              */
 		double d = 0.1;    /* power of fractional digit */
