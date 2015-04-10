@@ -201,9 +201,22 @@ struct Pci_driver
 			using namespace Genode;
 
 			/* trigger that the device gets assigned to this driver */
-			_pci.config_extended(_cap);
-			Ram_dataspace_capability ram_cap;
-			ram_cap = _pci.alloc_dma_buffer(size);
+			for (unsigned i = 0; i < 2; i++) {
+				try {
+					_pci.config_extended(_cap);
+					break;
+				} catch (Pci::Device::Quota_exceeded) {
+					Genode::env()->parent()->upgrade(_pci.cap(), "ram_quota=4096");
+				}
+			}
+
+			/* transfer quota to pci driver, otherwise it will give us a exception */
+			char buf[32];
+			Genode::snprintf(buf, sizeof(buf), "ram_quota=%zd", size);
+			Genode::env()->parent()->upgrade(_pci.cap(), buf);
+
+			Ram_dataspace_capability ram_cap = _pci.alloc_dma_buffer(size);
+
 			_region.mapped_base = (Genode::addr_t)env()->rm_session()->attach(ram_cap);
 			_region.base = Dataspace_client(ram_cap).phys_addr();
 
