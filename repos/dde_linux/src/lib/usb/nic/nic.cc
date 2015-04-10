@@ -15,9 +15,9 @@
 #include <base/snprintf.h>
 #include <nic_session/nic_session.h>
 #include <cap_session/connection.h>
-#include <os/config.h>
 #include <nic/xml_node.h>
 #include <util/xml_node.h>
+#include <os/config.h>
 
 #include <extern_c_begin.h>
 #include <lx_emul.h>

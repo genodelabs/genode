@@ -175,7 +175,7 @@ static int lookup_tid_by_client_socket(int sd)
 	static Prefix_len prefix_len(name.sun_path);
 
 	unsigned tid = 0;
-	if (Genode::ascii_to(name.sun_path + prefix_len.len, &tid) == 0) {
+	if (Genode::ascii_to(name.sun_path + prefix_len.len, tid) == 0) {
 		PRAW("Error: could not parse tid number");
 		return -1;
 	}

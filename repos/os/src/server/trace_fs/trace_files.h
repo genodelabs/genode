@@ -270,7 +270,7 @@ namespace File_system {
 				/* account for \n when reading from the file */
 				_length += 1;
 
-				ascii_to(_content, &tmp, 10);
+				ascii_to(_content, tmp);
 
 				_size = _check_size_limit(tmp);
 			}

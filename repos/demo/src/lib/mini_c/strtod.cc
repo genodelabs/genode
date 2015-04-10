@@ -17,7 +17,7 @@ extern "C" double strtod(const char *nptr, char **endptr)
 {
 	double value = 0;
 
-	int num_chars = Genode::ascii_to(nptr, &value);
+	int num_chars = Genode::ascii_to(nptr, value);
 
 	if (endptr)
 		*endptr = (char *)(nptr + num_chars);

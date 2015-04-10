@@ -26,8 +26,8 @@
 #include <base/sleep.h>
 #include <cap_session/connection.h>
 #include <nic/component.h>
-#include <os/config.h>
 #include <nic/xml_node.h>
+#include <os/config.h>
 
 /* Linux */
 #include <errno.h>

@@ -83,7 +83,7 @@ class Genode::Arg
 
 			/* read numeric value and skip the corresponding tokens */
 			Number_of_bytes value;
-			size_t n = ascii_to(t.start(), &value);
+			size_t n = ascii_to(t.start(), value);
 
 			if (n == 0)
 				return false;

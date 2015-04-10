@@ -12,17 +12,21 @@
  */
 
 #include <util/string.h>
+#include <base/printf.h>
 
-using namespace Genode;
 
 extern "C" long int strtol(const char *nptr, char **endptr, int base)
 {
-	long num_chars, result = 0;
+	using namespace Genode;
 
-	if (base == 0)
-		num_chars = ascii_to(nptr, &result);
-	else
-		num_chars = ascii_to(nptr, &result, base);
+	long result = 0;
+
+	if (base != 0 && base != 10) {
+		PERR("strtol: base of %d not supported", base);
+		return 0;
+	}
+
+	long const num_chars = ascii_to(nptr, result);
 
 	if (endptr)
 		*endptr = (char *)(nptr + num_chars);

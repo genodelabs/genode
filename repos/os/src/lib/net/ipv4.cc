@@ -43,7 +43,7 @@ Ipv4_packet::Ipv4_address Ipv4_packet::ip_from_string(const char *ip)
 		t.string(tmpstr, sizeof(tmpstr));
 
 		unsigned long tmpc = 0;
-		Genode::ascii_to(tmpstr, &tmpc, 10);
+		Genode::ascii_to(tmpstr, tmpc);
 		ipb[cnt] = tmpc & 0xFF;
 		t = t.next();
 

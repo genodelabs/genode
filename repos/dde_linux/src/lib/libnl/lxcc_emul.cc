@@ -142,7 +142,11 @@ char *getenv(const char *name)
 long int strtol(const char *nptr, char **endptr, int base)
 {
 	long res = 0;
-	Genode::ascii_to<long>(nptr, &res, base);
+	if (base != 0 && base != 10) {
+		PERR("strtol: base of %d is not supported", base);
+		return 0;
+	}
+	Genode::ascii_to(nptr, res);
 	return res;
 }
 
@@ -150,7 +154,7 @@ long int strtol(const char *nptr, char **endptr, int base)
 double strtod(const char *nptr, char **endptr)
 {
 	double res = 0;
-	Genode::ascii_to<double>(nptr, &res, 0);
+	Genode::ascii_to(nptr, res);
 	return res;
 }
 

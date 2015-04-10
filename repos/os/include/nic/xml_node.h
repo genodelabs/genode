@@ -23,9 +23,7 @@ namespace Genode {
 	/**
 	 * Convert ASCII string to mac address
 	 */
-	template <>
-	inline size_t ascii_to<Nic::Mac_address>(char const *s,
-	                                         Nic::Mac_address* mac, unsigned)
+	inline size_t ascii_to(char const *s, Nic::Mac_address &mac)
 	{
 		enum {
 			HEX          = true,
@@ -47,7 +45,7 @@ namespace Genode {
 			mac_str[i] = (digit(s[hi], HEX) << 4) | digit(s[lo], HEX);
 		}
 
-		Genode::memcpy(mac->addr, mac_str, MAC_SIZE);
+		Genode::memcpy(mac.addr, mac_str, MAC_SIZE);
 
 		return MAC_CHAR_LEN;
 	}

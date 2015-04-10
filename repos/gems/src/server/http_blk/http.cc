@@ -127,7 +127,7 @@ Genode::size_t Http::read_header()
 			continue;
 
 		if (count) {
-			ascii_to(t.start(), &_http_ret);
+			ascii_to(t.start(), _http_ret);
 			break;
 		}
 
@@ -154,7 +154,7 @@ void Http::get_capacity()
 		}
 
 		if (key) {
-			ascii_to(t.start(), &_size);
+			ascii_to(t.start(), _size);
 
 			if (verbose)
 				PDBG("File size: %zu bytes", _size);

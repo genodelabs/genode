@@ -16,6 +16,6 @@
 extern "C" long atol(const char *nptr)
 {
 	long result = 0;
-	Genode::ascii_to(nptr, &result);
+	Genode::ascii_to(nptr, result);
 	return result;
 }

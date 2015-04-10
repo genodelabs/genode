@@ -161,7 +161,7 @@ class Genode::Xml_attribute
 			 * the length, we have to consider both the starting
 			 * and the trailing quote character.
 			 */
-			return ascii_to(_value.start() + 1, out) == _value.len() - 2;
+			return ascii_to(_value.start() + 1, *out) == _value.len() - 2;
 		}
 
 		/**
@@ -557,7 +557,7 @@ class Genode::Xml_node
 		 */
 		template <typename T>
 		bool value(T *out) const {
-			return ascii_to(content_addr(), out) == content_size(); }
+			return ascii_to(content_addr(), *out) == content_size(); }
 
 		/**
 		 * Return begin of node including the start tag

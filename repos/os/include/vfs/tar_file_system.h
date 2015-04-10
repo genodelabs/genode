@@ -69,7 +69,7 @@ class Vfs::Tar_file_system : public File_system
 				strncpy(buf, field, sizeof(buf));
 
 				unsigned long value = 0;
-				ascii_to(buf, &value, 8);
+				Genode::ascii_to_unsigned_long(buf, value, 8);
 				return value;
 			}
 

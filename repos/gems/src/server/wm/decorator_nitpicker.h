@@ -242,7 +242,7 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>
 		case Command::OP_TITLE:
 			{
 				unsigned long id = 0;
-				Genode::ascii_to(cmd.title.title.string(), &id);
+				Genode::ascii_to(cmd.title.title.string(), id);
 
 				if (id > 0)
 					_content_registry.insert(cmd.title.view,

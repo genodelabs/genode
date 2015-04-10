@@ -76,7 +76,7 @@ class Command_line
 		bool parameter(char const *tag, T &result)
 		{
 			Token value = _value_token(tag);
-			return value && Genode::ascii_to(value.start(), &result) != 0;
+			return value && Genode::ascii_to(value.start(), result) != 0;
 		}
 
 		/**
