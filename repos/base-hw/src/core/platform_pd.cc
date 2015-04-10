@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2012-2013 Genode Labs GmbH
+ * Copyright (C) 2012-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -16,6 +16,17 @@
 #include <platform_pd.h>
 
 using namespace Genode;
+
+void Platform_pd::flush(addr_t virt_base, size_t size)
+{
+	Lock::Guard guard(*lock());
+
+	if (_tt) _tt->remove_translation(virt_base, size, page_slab());
+
+	/* update translation caches */
+	Kernel::update_pd(kernel_pd());
+}
+
 
 Platform_pd::~Platform_pd()
 {

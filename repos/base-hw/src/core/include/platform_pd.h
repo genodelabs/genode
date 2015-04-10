@@ -158,7 +158,7 @@ namespace Genode
 			 ** Address-space interface **
 			 *****************************/
 
-			void flush(addr_t, size_t) { PDBG("not implemented"); }
+			void flush(addr_t, size_t);
 	};
 }
 
