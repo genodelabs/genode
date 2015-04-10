@@ -21,13 +21,6 @@ namespace Genode { struct Irq_connection; }
 
 struct Genode::Irq_connection : Connection<Irq_session>, Irq_session_client
 {
-
-	private:
-
-		Genode::Signal_receiver           _sig_rec;
-		Genode::Signal_context            _sigh_ctx;
-		Genode::Signal_context_capability _sigh_cap;
-
 	public:
 
 		/**
@@ -44,24 +37,8 @@ struct Genode::Irq_connection : Connection<Irq_session>, Irq_session_client
 			Connection<Irq_session>(
 				session("ram_quota=4K, irq_number=%u, irq_trigger=%u, irq_polarity=%u",
 				        irq, trigger, polarity)),
-			Irq_session_client(cap()),
-			_sigh_cap(_sig_rec.manage(&_sigh_ctx))
-		{
-			/* register default signal handler */
-			Irq_session_client::sigh(_sigh_cap);
-		}
-
-		~Irq_connection()
-		{
-			Irq_session_client::sigh(Genode::Signal_context_capability());
-			_sig_rec.dissolve(&_sigh_ctx);
-		}
-
-		/**
-		 * Convenience function to acknowledge last IRQ and to block calling
-		 * thread until next IRQ fires.
-		 */
-		void wait_for_irq();
+			Irq_session_client(cap())
+		{ }
 };
 
 #endif /* _INCLUDE__IRQ_SESSION__CONNECTION_H_ */
