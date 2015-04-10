@@ -73,7 +73,7 @@ void dde_lock_leave(void);
  ** Interrupt handling **
  ************************/
 
-int dde_interrupt_attach(int irq, void (*handler)(void *), void *priv);
+int dde_interrupt_attach(void (*handler)(void *), void *priv);
 
 
 /******************

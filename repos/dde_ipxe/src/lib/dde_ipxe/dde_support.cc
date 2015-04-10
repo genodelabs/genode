@@ -262,7 +262,7 @@ extern "C" void dde_pci_writel(int pos, dde_uint32_t val) {
 struct Irq_handler
 {
 	Server::Entrypoint                     &ep;
-	Genode::Irq_connection                  irq;
+	Genode::Irq_session_client              irq;
 	Genode::Signal_rpc_member<Irq_handler>  dispatcher;
 
 	typedef void (*irq_handler)(void*);
@@ -276,10 +276,10 @@ struct Irq_handler
 		irq.ack_irq();
 	}
 
-	Irq_handler(Server::Entrypoint &ep, int irqnr,
+	Irq_handler(Server::Entrypoint &ep, Genode::Irq_session_capability cap,
 	            irq_handler handler, void *priv)
 	:
-		ep(ep), irq(irqnr), dispatcher(ep, *this, &Irq_handler::handle),
+		ep(ep), irq(cap), dispatcher(ep, *this, &Irq_handler::handle),
 		handler(handler), priv(priv)
 	{
 		irq.sigh(dispatcher);
@@ -291,7 +291,7 @@ struct Irq_handler
 
 static Irq_handler *_irq_handler;
 
-extern "C" int dde_interrupt_attach(int irq, void(*handler)(void *), void *priv)
+extern "C" int dde_interrupt_attach(void(*handler)(void *), void *priv)
 {
 	if (_irq_handler) {
 		PERR("Irq_handler already registered");
@@ -299,8 +299,9 @@ extern "C" int dde_interrupt_attach(int irq, void(*handler)(void *), void *priv)
 	}
 
 	try {
+		Pci::Device_client device(pci_drv()._cap);
 		_irq_handler = new (Genode::env()->heap())
-			Irq_handler(*_ep, irq, handler, priv);
+			Irq_handler(*_ep, device.irq(0), handler, priv);
 	} catch (...) { return -1; }
 
 	return 0;

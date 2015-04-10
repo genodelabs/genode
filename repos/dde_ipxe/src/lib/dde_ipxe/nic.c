@@ -308,7 +308,7 @@ int dde_ipxe_nic_init(void *ep)
 	}
 
 	/* initialize IRQ handler */
-	int err = dde_interrupt_attach(net_dev->dev->desc.irq, irq_handler, 0);
+	int err = dde_interrupt_attach(irq_handler, 0);
 	if (err) {
 		LOG("attaching to IRQ %02x failed", net_dev->dev->desc.irq);
 		return 0;
