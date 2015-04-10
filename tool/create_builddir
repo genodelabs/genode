@@ -151,7 +151,7 @@ endif
 #
 # Add x86 drivers repositories to x86 build directories
 #
-ifeq ($(filter-out foc_x86_32 foc_x86_64 okl4_x86 nova_x86_32 nova_x86_64 pistachio_x86 fiasco_x86,$(PLATFORM)),)
+ifeq ($(filter-out foc_x86_32 foc_x86_64 okl4_x86 nova_x86_32 nova_x86_64 pistachio_x86 fiasco_x86 hw_x86_64,$(PLATFORM)),)
 $(BUILD_DIR)/etc/build.conf::
 	@cat $(BUILD_CONF).drivers_x86 >> $@
 endif
