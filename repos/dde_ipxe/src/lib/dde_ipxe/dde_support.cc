@@ -601,14 +601,14 @@ extern "C" void dde_slab_free(void *p) {
 
 struct Io_memory
 {
-	Genode::Io_mem_connection           _mem;
+	Genode::Io_mem_session_client       _mem;
 	Genode::Io_mem_dataspace_capability _mem_ds;
 
 	Genode::addr_t                      _vaddr;
 
-	Io_memory(Genode::addr_t base, Genode::size_t size, bool wc)
+	Io_memory(Genode::addr_t base, Genode::Io_mem_session_capability cap)
 	:
-		_mem(base, size, wc),
+		_mem(cap),
 		_mem_ds(_mem.dataspace())
 	{
 		if (!_mem_ds.valid())
@@ -625,16 +625,32 @@ struct Io_memory
 static Io_memory *_io_mem;
 
 
-extern "C" int dde_request_iomem(dde_addr_t start, dde_size_t size, int wc,
-                               dde_addr_t *vaddr)
+extern "C" int dde_request_iomem(dde_addr_t start, dde_addr_t *vaddr)
 {
 	if (_io_mem) {
 		PERR("Io_memory already requested");
 		Genode::sleep_forever();
 	}
 
+	Pci::Device_client device(pci_drv()._cap);
+	Genode::Io_mem_session_capability cap;
+
+	Genode::uint8_t virt_iomem_bar = 0;
+	for (unsigned i = 0; i < Pci::Device::NUM_RESOURCES; i++) {
+		Pci::Device::Resource res = device.resource(i);
+		if (res.type() == Pci::Device::Resource::MEMORY) {
+			if (res.base() == start) {
+				cap = device.io_mem(virt_iomem_bar);
+				break;
+			}
+			virt_iomem_bar ++;
+		}
+	}
+	if (!cap.valid())
+		return -1;
+
 	try {
-		_io_mem = new (Genode::env()->heap()) Io_memory(start, size, !!wc);
+		_io_mem = new (Genode::env()->heap()) Io_memory(start, cap);
 	} catch (...) { return -1; }
 
 	*vaddr = _io_mem->vaddr();

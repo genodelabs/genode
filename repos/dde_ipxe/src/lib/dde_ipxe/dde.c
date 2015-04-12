@@ -150,7 +150,7 @@ void *ioremap(unsigned long bus_addr, size_t len)
 	LOG("bus_addr = %p len = %zx", (void *)bus_addr, len);
 	dde_addr_t vaddr;
 
-	int ret = dde_request_iomem(bus_addr, len, 0, &vaddr);
+	int ret = dde_request_iomem(bus_addr, &vaddr);
 
 	return ret ? 0 : (void *)vaddr;
 }

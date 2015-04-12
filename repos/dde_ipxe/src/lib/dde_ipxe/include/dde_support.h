@@ -118,7 +118,7 @@ void  dde_slab_free(void *);
  ** I/O memory **
  ****************/
 
-int dde_request_iomem(dde_addr_t, dde_size_t, int, dde_addr_t *);
+int dde_request_iomem(dde_addr_t, dde_addr_t *);
 int dde_release_iomem(dde_addr_t, dde_size_t);
 
 #ifdef __cplusplus
