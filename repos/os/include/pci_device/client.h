@@ -53,6 +53,9 @@ struct Pci::Device_client : public Genode::Rpc_client<Device>
 
 	Genode::Io_port_session_capability io_port(Genode::uint8_t id) override {
 		return call<Rpc_io_port>(id); }
+
+	Genode::Io_mem_session_capability io_mem(Genode::uint8_t id) override {
+		return call<Rpc_io_mem>(id); }
 };
 
 #endif /* _INCLUDE__PCI_DEVICE__CLIENT_H_ */

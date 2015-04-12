@@ -14,6 +14,7 @@
 #pragma once
 
 #include <irq_session/capability.h>
+#include <io_mem_session/capability.h>
 
 namespace Platform { class Device; }
 
@@ -23,4 +24,9 @@ struct Platform::Device
 	 * Get IRQ session capability
 	 */
 	virtual	Genode::Irq_session_capability irq(Genode::uint8_t) = 0;
+
+	/**
+	 * Get IO mem session capability of specified resource id
+	 */
+	virtual Genode::Io_mem_session_capability io_mem(Genode::uint8_t) = 0;
 };

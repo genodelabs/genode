@@ -48,7 +48,12 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 		Genode::Slab_block _slab_ioport_block;
 		char _slab_ioport_block_data[IO_BLOCK_SIZE];
 
+		Genode::Tslab<Genode::Io_mem_connection, IO_BLOCK_SIZE> _slab_iomem;
+		Genode::Slab_block _slab_iomem_block;
+		char _slab_iomem_block_data[IO_BLOCK_SIZE];
+
 		Genode::Io_port_connection *_io_port_conn [Device::NUM_RESOURCES];
+		Genode::Io_mem_connection  *_io_mem_conn  [Device::NUM_RESOURCES];
 
 		enum { PCI_IRQ = 0x3c };
 
@@ -65,15 +70,20 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 			_io_mem(0), _ep(ep), _session(session),
 			_irq_session(_device_config.read(&_config_access, PCI_IRQ,
 			                                 Pci::Device::ACCESS_8BIT)),
-			_slab_ioport(0, &_slab_ioport_block)
+			_slab_ioport(0, &_slab_ioport_block),
+			_slab_iomem(0, &_slab_iomem_block)
 		{
 			_ep->manage(&_irq_session);
 
-			for (unsigned i = 0; i < Device::NUM_RESOURCES; i++)
+			for (unsigned i = 0; i < Device::NUM_RESOURCES; i++) {
 				_io_port_conn[i] = nullptr;
+				_io_mem_conn[i] = nullptr;
+			}
 
 			if (_slab_ioport.num_elem() != Device::NUM_RESOURCES)
 				PERR("incorrect amount of space for io port resources");
+			if (_slab_iomem.num_elem() != Device::NUM_RESOURCES)
+				PERR("incorrect amount of space for io mem resources");
 		}
 
 		/**
@@ -84,12 +94,15 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 		:
 			_config_space(~0UL), _io_mem(0), _ep(ep), _session(session),
 			_irq_session(irq),
-			_slab_ioport(0, &_slab_ioport_block)
+			_slab_ioport(0, &_slab_ioport_block),
+			_slab_iomem(0, &_slab_iomem_block)
 		{
 			_ep->manage(&_irq_session);
 
-			for (unsigned i = 0; i < Device::NUM_RESOURCES; i++)
+			for (unsigned i = 0; i < Device::NUM_RESOURCES; i++) {
 				_io_port_conn[i] = nullptr;
+				_io_mem_conn[i] = nullptr;
+			}
 		}
 
 		/**
@@ -102,6 +115,8 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 			for (unsigned i = 0; i < Device::NUM_RESOURCES; i++) {
 				if (_io_port_conn[i])
 					Genode::destroy(_slab_ioport, _io_port_conn[i]);
+				if (_io_mem_conn[i])
+					Genode::destroy(_slab_iomem, _io_mem_conn[i]);
 			}
 		}
 
@@ -167,6 +182,8 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 		}
 
 		Genode::Io_port_session_capability io_port(Genode::uint8_t) override;
+
+		Genode::Io_mem_session_capability io_mem(Genode::uint8_t) override;
 };
 
 #endif /* _PCI_DEVICE_COMPONENT_H_ */

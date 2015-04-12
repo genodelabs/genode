@@ -63,6 +63,11 @@ class Nonpci::Ps2 : public Pci::Device_component
 
 			return Genode::Io_port_session_capability();
 		}
+
+		Genode::Io_mem_session_capability io_mem(Genode::uint8_t) override
+		{
+			return Genode::Io_mem_session_capability();
+		}
 };
 
 

@@ -241,6 +241,9 @@ struct Pci::Device : Platform::Device
 	GENODE_RPC_THROW(Rpc_io_port, Genode::Io_port_session_capability, io_port,
 	                 GENODE_TYPE_LIST(Quota_exceeded),
 	                 Genode::uint8_t);
+	GENODE_RPC_THROW(Rpc_io_mem, Genode::Io_mem_session_capability, io_mem,
+	                 GENODE_TYPE_LIST(Quota_exceeded),
+	                 Genode::uint8_t);
 
 	typedef Genode::Meta::Type_tuple<Rpc_bus_address,
 	        Genode::Meta::Type_tuple<Rpc_vendor_id,
@@ -251,8 +254,9 @@ struct Pci::Device : Platform::Device
 	        Genode::Meta::Type_tuple<Rpc_config_write,
 	        Genode::Meta::Type_tuple<Rpc_irq,
 	        Genode::Meta::Type_tuple<Rpc_io_port,
+	        Genode::Meta::Type_tuple<Rpc_io_mem,
 	                                 Genode::Meta::Empty>
-	        > > > > > > > > Rpc_functions;
+	        > > > > > > > > > Rpc_functions;
 };
 
 #endif /* _INCLUDE__PCI_DEVICE__PCI_DEVICE_H_ */
