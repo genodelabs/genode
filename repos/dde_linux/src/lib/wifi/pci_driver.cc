@@ -354,15 +354,19 @@ extern "C" void *pci_ioremap_bar(struct pci_dev *dev, int bar)
 {
 	using namespace Genode;
 
+	if (bar >= DEVICE_COUNT_RESOURCE || bar < 0)
+		return 0;
+
 	size_t start = pci_resource_start(dev, bar);
 	size_t size  = pci_resource_len(dev, bar);
 
 	if (!start)
 		return 0;
 
-	Io_mem_connection *io_mem;
+	Io_mem_session_client *io_mem;
 	try {
-		io_mem = new (env()->heap()) Io_mem_connection(start, size, 0);
+		Pci::Device_client device(pci_device_cap);
+		io_mem = new (env()->heap()) Io_mem_session_client(device.io_mem(device.phys_bar_to_virt(bar)));
 	} catch (...) {
 		PERR("Failed to request I/O memory: [%zx,%zx)", start, start + size);
 		return 0;
