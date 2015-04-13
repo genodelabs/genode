@@ -120,6 +120,7 @@ lappend_if [have_spec gpio]             boot_modules gpio_drv
 build_boot_image $boot_modules
 
 append qemu_args " -m 256 -usb  -usbdevice mouse -usbdevice keyboard"
+append qemu_args " -device usb-ehci,id=ehci"
 
 
 run_genode_until forever

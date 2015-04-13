@@ -682,49 +682,6 @@ void kmem_cache_free(struct kmem_cache *cache, void *objp)
  ** asm-generic/io.h **
  **********************/
 
-void *_ioremap(resource_size_t phys_addr, unsigned long size, int wc)
-{
-	dde_kit_addr_t map_addr;
-	if (dde_kit_request_mem(phys_addr, size, wc, &map_addr)) {
-		PERR("Failed to request I/O memory: [%zx,%lx)", phys_addr, phys_addr + size);
-		return 0;
-	}
-	return (void *)map_addr;
-}
-
-
-void *ioremap_wc(resource_size_t phys_addr, unsigned long size)
-{
-	return _ioremap(phys_addr, size, 1);
-}
-
-
-void *ioremap(resource_size_t offset, unsigned long size)
-{
-	return _ioremap(offset, size, 0);
-}
-
-
-void *devm_ioremap(struct device *dev, resource_size_t offset,
-                   unsigned long size)
-{
-	return ioremap(offset, size);
-}
-
-
-void *devm_ioremap_nocache(struct device *dev, resource_size_t offset,
-                           unsigned long size)
-{
-	return ioremap(offset, size);
-}
-
-
-void *devm_ioremap_resource(struct device *dev, struct resource *res)
-{
-	return _ioremap(res->start, res->end - res->start, 0);
-}
-
-
 void *phys_to_virt(unsigned long address)
 {
 	return (void *)Malloc::dma()->virt_addr(address);

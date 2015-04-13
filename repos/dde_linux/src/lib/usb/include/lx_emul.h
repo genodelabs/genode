@@ -2222,12 +2222,6 @@ void *devm_ioremap(struct device *dev, resource_size_t offset,
 void *devm_ioremap_nocache(struct device *dev, resource_size_t offset,
                            unsigned long size);
 
-
-/**
- * Map I/O memory write combined
- */
-void *ioremap_wc(resource_size_t phys_addr, unsigned long size);
-
 #define ioremap_nocache ioremap
 
 void *phys_to_virt(unsigned long address);

@@ -186,3 +186,42 @@ void platform_set_drvdata(struct platform_device *pdev, void *data)
 }
 
 
+/**********************
+ ** asm-generic/io.h **
+ **********************/
+
+void *_ioremap(resource_size_t phys_addr, unsigned long size, int wc)
+{
+	dde_kit_addr_t map_addr;
+	if (dde_kit_request_mem(phys_addr, size, wc, &map_addr)) {
+		panic("Failed to request I/O memory: [%zx,%lx)", phys_addr, phys_addr + size);
+		return 0;
+	}
+	return (void *)map_addr;
+}
+
+
+void *ioremap(resource_size_t offset, unsigned long size)
+{
+	return _ioremap(offset, size, 0);
+}
+
+
+void *devm_ioremap(struct device *dev, resource_size_t offset,
+                   unsigned long size)
+{
+	return _ioremap(offset, size, 0);
+}
+
+
+void *devm_ioremap_nocache(struct device *dev, resource_size_t offset,
+                           unsigned long size)
+{
+	return _ioremap(offset, size, 0);
+}
+
+
+void *devm_ioremap_resource(struct device *dev, struct resource *res)
+{
+	return _ioremap(res->start, res->end - res->start, 0);
+}

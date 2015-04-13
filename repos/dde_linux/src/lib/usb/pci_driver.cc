@@ -12,12 +12,12 @@
  */
 
 /* Genode base includes */
-#include <ram_session/client.h>
 #include <base/object_pool.h>
+#include <io_mem_session/client.h>
 #include <irq_session/connection.h>
+#include <ram_session/client.h>
 
 /* Genode os includes */
-#include <os/server.h>
 #include <pci_session/connection.h>
 #include <pci_device/client.h>
 
@@ -206,6 +206,29 @@ class Pci_driver : public Genode::List<Pci_driver>::Element
 			}
 
 			return Genode::Irq_session_capability();
+		}
+
+		static Genode::Io_mem_session_capability io_mem(resource_size_t phys) {
+
+			for (Pci_driver *d = _drivers().first(); d; d = d->next()) {
+				if (!d->_dev)
+					continue;
+
+				uint8_t bar = 0;
+				for (unsigned bar = 0; bar < PCI_ROM_RESOURCE; bar++) {
+					if ((pci_resource_flags(d->_dev, bar) & IORESOURCE_MEM) &&
+					    (pci_resource_start(d->_dev, bar) == phys))
+						break;
+				}
+				if (bar >= PCI_ROM_RESOURCE)
+					continue;
+
+				Pci::Device_client client(d->_cap);
+				return client.io_mem(bar);
+			}
+
+			PERR("Device using i/o memory of address %zx is unknown", phys);
+			return Genode::Io_mem_session_capability();
 		}
 };
 
@@ -442,4 +465,42 @@ void Backend_memory::free(Genode::Ram_dataspace_capability cap)
 Genode::Irq_session_capability platform_irq_activate(int irq)
 {
 	return Pci_driver::irq_cap(irq);
+}
+
+/******************
+ ** MMIO regions **
+ ******************/
+
+class Mem_range : public Genode::Io_mem_session_client
+{
+	private:
+
+		Genode::Io_mem_dataspace_capability _ds;
+		Genode::addr_t                      _vaddr;
+
+	public:
+
+		Mem_range(Genode::addr_t base,
+		          Genode::Io_mem_session_capability io_cap)
+		:
+			Io_mem_session_client(io_cap), _ds(dataspace()), _vaddr(0UL)
+		{
+			_vaddr  = Genode::env()->rm_session()->attach(_ds);
+			_vaddr |= base & 0xfffUL;
+		}
+
+		Genode::addr_t vaddr()     const { return _vaddr; }
+};
+
+
+void *ioremap(resource_size_t phys_addr, unsigned long size)
+{
+	Mem_range  * io_mem  = new (Genode::env()->heap()) Mem_range(phys_addr, Pci_driver::io_mem(phys_addr));
+	if (io_mem->vaddr())
+		return (void *)io_mem->vaddr();
+
+	PERR("Failed to request I/O memory: [%zx,%lx)", phys_addr,
+	     phys_addr + size);
+
+	return nullptr;
 }
