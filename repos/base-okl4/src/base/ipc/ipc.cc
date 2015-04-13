@@ -193,8 +193,11 @@ void Ipc_client::_call()
 	    ((L4_ErrorCode() & ERROR_MASK) == ERROR_CANCELED))
 		throw Genode::Blocking_canceled();
 
-	if (L4_IpcFailed(rcv_tag))
+	if (L4_IpcFailed(rcv_tag)) {
 		kdb_emergency_print("Ipc failed\n");
+		/* set return value for ipc_generic part if call failed */
+		ret(ERR_INVALID_OBJECT);
+	}
 
 	/* copy request message from the UTCBs message registers */
 	copy_utcb_to_msgbuf(rcv_tag, _rcv_msg);
