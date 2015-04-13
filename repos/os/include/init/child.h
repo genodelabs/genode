@@ -659,8 +659,10 @@ class Init::Child : Genode::Child_policy
 							target.attribute("name").value(server_name, sizeof(server_name));
 
 							Genode::Server *server = _name_registry->lookup_server(server_name);
-							if (!server)
+							if (!server) {
 								PWRN("%s: invalid route to non-existing server \"%s\"", name(), server_name);
+								return 0;
+							}
 
 							service = _child_services->find(service_name, server);
 							if (service)
