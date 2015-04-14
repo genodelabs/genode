@@ -15,7 +15,7 @@
 /* Genode includes */
 #include <base/printf.h>
 #include <base/semaphore.h>
-#include <base/flex_iterator.h>
+#include <util/flex_iterator.h>
 #include <rom_session/connection.h>
 #include <timer_session/connection.h>
 #include <os/attached_rom_dataspace.h>

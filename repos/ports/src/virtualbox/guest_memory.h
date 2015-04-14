@@ -28,7 +28,7 @@
 #include <base/printf.h>
 #include <base/env.h>
 #include <base/lock.h>
-#include <base/flex_iterator.h>
+#include <util/flex_iterator.h>
 #include <util/list.h>
 #include <os/attached_ram_dataspace.h>
 
