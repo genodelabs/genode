@@ -34,7 +34,7 @@ class Genode::Timer
 
 		inline void start_one_shot(uint32_t const tics, unsigned) { }
 
-		uint32_t ms_to_tics(unsigned const ms) { return 0; }
+		uint32_t ms_to_tics(unsigned const ms) { return 1000; }
 
 		unsigned value(unsigned) { return 0; }
 
