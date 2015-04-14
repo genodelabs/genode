@@ -17,6 +17,7 @@
 #include <base/tslab.h>
 #include <timer_session/connection.h>
 #include <irq_session/connection.h>
+#include <pci_device/client.h>
 
 /* local includes */
 #include <lx.h>
@@ -80,6 +81,8 @@ namespace Lx {
 
 static void run_irq(void *args);
 
+extern "C" Pci::Device_capability pci_device_cap;
+
 /**
  * Lx::Irq
  */
@@ -94,12 +97,12 @@ class Lx::Irq
 		{
 			private:
 
-				Name_composer             _name;
+				Name_composer              _name;
 
-				unsigned int              _irq;     /* IRQ number */
-				Genode::Irq_connection    _irq_conn;
-				Lx::List<Lx_irq_handler>  _handler; /* List of registered handlers */
-				Irq_task                  _task;
+				unsigned int               _irq;     /* IRQ number */
+				Genode::Irq_session_client _irq_sess;
+				Lx::List<Lx_irq_handler>   _handler; /* List of registered handlers */
+				Irq_task                   _task;
 
 				Genode::Signal_transmitter         _sender;
 				Genode::Signal_rpc_member<Context> _dispatcher;
@@ -143,18 +146,19 @@ class Lx::Irq
 				/**
 				 * Constructor
 				 */
-				Context(Server::Entrypoint &ep, unsigned irq)
+				Context(Server::Entrypoint &ep, unsigned irq,
+				        Pci::Device_capability pci_dev)
 				:
 					_name(irq),
 					_irq(irq),
-					_irq_conn(irq),
+					_irq_sess(Pci::Device_client(pci_dev).irq(0)),
 					_task(run_irq, this, _name.name),
 					_dispatcher(ep, *this, &Context::_handle)
 				{
-					_irq_conn.sigh(_dispatcher);
+					_irq_sess.sigh(_dispatcher);
 
 					/* initial ack to receive further IRQ signals */
-					_irq_conn.ack_irq();
+					_irq_sess.ack_irq();
 				}
 
 				/**
@@ -175,7 +179,7 @@ class Lx::Irq
 							break;
 					}
 
-					_irq_conn.ack_irq();
+					_irq_sess.ack_irq();
 				}
 
 				/**
@@ -228,7 +232,7 @@ class Lx::Irq
 
 			/* if this IRQ is not registered */
 			if (!ctx)
-				ctx = new (&_context_alloc) Context(_ep, irq);
+				ctx = new (&_context_alloc) Context(_ep, irq, pci_device_cap);
 
 			/* register Linux handler */
 			Lx_irq_handler *h = new (&_handler_alloc)

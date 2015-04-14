@@ -251,7 +251,7 @@ struct Dma_object : Memory_object_base
  ** Linux interface **
  *********************/
 
-static Pci::Device_capability pci_device_cap;
+extern "C" { Pci::Device_capability pci_device_cap; }
 static Pci::Connection *pci()
 {
 	static Pci::Connection _pci;
