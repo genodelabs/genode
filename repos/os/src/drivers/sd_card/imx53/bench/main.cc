@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2012-2013 Genode Labs GmbH
+ * Copyright (C) 2012-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -16,6 +16,7 @@
 #include <base/printf.h>
 #include <timer_session/connection.h>
 #include <os/attached_ram_dataspace.h>
+#include <os/server.h>
 
 /* local includes */
 #include <driver.h>
@@ -86,81 +87,93 @@ static void run_benchmark(Block::Driver  &driver,
 }
 
 
-int main(int argc, char **argv)
+struct Main
 {
-	using namespace Genode;
-
-	printf("--- i.MX53 SD card benchmark ---\n");
-
-	bool const use_dma = true;
-
-	static Block::Imx53_driver driver(use_dma);
-
-	static Timer::Connection timer;
-
-	long const request_sizes[] = {
-		512, 1024, 2048, 4096, 8192, 16384, 32768, 64*1024, 128*1024, 0 };
-
-	/* total size of communication buffer */
-	size_t const buffer_size = 10 * 1024 * 1024;
-
-	/* allocate read/write buffer */
-	static Attached_ram_dataspace buffer(env()->ram_session(), buffer_size, Genode::UNCACHED);
-	char * const buffer_virt = buffer.local_addr<char>();
-	addr_t const buffer_phys = Dataspace_client(buffer.cap()).phys_addr();
-
-	/*
-	 * Benchmark reading from SD card
-	 */
-
-	printf("\n-- reading from SD card --\n");
-
-	struct Read : Operation
+	Main(Server::Entrypoint &ep)
 	{
-		void operator () (Block::Driver &driver,
-		                  addr_t number, size_t count, addr_t phys, char *virt)
-		{
-			Block::Packet_descriptor p;
-			if (driver.dma_enabled())
-				driver.read_dma(number, count, phys, p);
-			else
-				driver.read(number, count, virt, p);
-		}
-	} read_operation;
+		using namespace Genode;
 
-	for (unsigned i = 0; request_sizes[i]; i++) {
-		run_benchmark(driver, timer, buffer_virt, buffer_phys, buffer_size,
-		              request_sizes[i], read_operation);
+		printf("--- i.MX53 SD card benchmark ---\n");
+
+		bool const use_dma = true;
+
+		static Block::Imx53_driver driver(use_dma);
+
+		static Timer::Connection timer;
+
+		long const request_sizes[] = {
+			512, 1024, 2048, 4096, 8192, 16384, 32768, 64*1024, 128*1024, 0 };
+
+		/* total size of communication buffer */
+		size_t const buffer_size = 10 * 1024 * 1024;
+
+		/* allocate read/write buffer */
+		static Attached_ram_dataspace buffer(env()->ram_session(), buffer_size, Genode::UNCACHED);
+		char * const buffer_virt = buffer.local_addr<char>();
+		addr_t const buffer_phys = Dataspace_client(buffer.cap()).phys_addr();
+
+		/*
+		 * Benchmark reading from SD card
+		 */
+
+		printf("\n-- reading from SD card --\n");
+
+		struct Read : Operation
+		{
+			void operator () (Block::Driver &driver,
+							  addr_t number, size_t count, addr_t phys, char *virt)
+			{
+				Block::Packet_descriptor p;
+				if (driver.dma_enabled())
+					driver.read_dma(number, count, phys, p);
+				else
+					driver.read(number, count, virt, p);
+			}
+		} read_operation;
+
+		for (unsigned i = 0; request_sizes[i]; i++) {
+			run_benchmark(driver, timer, buffer_virt, buffer_phys, buffer_size,
+						  request_sizes[i], read_operation);
+		}
+
+		/*
+		 * Benchmark writing to SD card
+		 *
+		 * We write back the content of the buffer, which we just filled during the
+		 * read benchmark. If both read and write succeed, the SD card will retain
+		 * its original content.
+		 */
+
+		printf("\n-- writing to SD card --\n");
+
+		struct Write : Operation
+		{
+			void operator () (Block::Driver &driver,
+			                  addr_t number, size_t count, addr_t phys, char *virt)
+			{
+				Block::Packet_descriptor p;
+				if (driver.dma_enabled())
+					driver.write_dma(number, count, phys, p);
+				else
+					driver.write(number, count, virt, p);
+			}
+		} write_operation;
+
+		for (unsigned i = 0; request_sizes[i]; i++)
+			run_benchmark(driver, timer, buffer_virt, buffer_phys, buffer_size,
+			              request_sizes[i], write_operation);
+
+		printf("\n--- i.MX53 SD card benchmark finished ---\n");
 	}
+};
 
-	/*
-	 * Benchmark writing to SD card
-	 *
-	 * We write back the content of the buffer, which we just filled during the
-	 * read benchmark. If both read and write succeed, the SD card will retain
-	 * its original content.
-	 */
 
-	printf("\n-- writing to SD card --\n");
+/************
+ ** Server **
+ ************/
 
-	struct Write : Operation
-	{
-		void operator () (Block::Driver &driver,
-		                  addr_t number, size_t count, addr_t phys, char *virt)
-		{
-			Block::Packet_descriptor p;
-			if (driver.dma_enabled())
-				driver.write_dma(number, count, phys, p);
-			else
-				driver.write(number, count, virt, p);
-		}
-	} write_operation;
-
-	for (unsigned i = 0; request_sizes[i]; i++)
-		run_benchmark(driver, timer, buffer_virt, buffer_phys, buffer_size,
-		              request_sizes[i], write_operation);
-
-	printf("\n--- i.MX53 SD card benchmark finished ---\n");
-	sleep_forever();
-	return 0;
+namespace Server {
+	char const *name()             { return "sd_card_bench_ep";  }
+	size_t stack_size()            { return 2*1024*sizeof(long); }
+	void construct(Entrypoint &ep) { static Main server(ep);     }
 }

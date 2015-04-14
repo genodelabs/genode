@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2012-2013 Genode Labs GmbH
+ * Copyright (C) 2012-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -500,7 +500,9 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 		Adma_desc::access_t *    const _adma_desc;
 		Genode::addr_t           const _adma_desc_phys;
 
-		Genode::Irq_connection _irq;
+		Genode::Irq_connection  _irq;
+		Genode::Signal_receiver _irq_rec;
+		Genode::Signal_context  _irq_ctx;
 
 		Sd_card::Card_info _init()
 		{
@@ -729,7 +731,12 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 			 *     running processes.
 			 */
 			for (;;) {
-				_irq.wait_for_irq();
+				/*
+				 * We ack the IRQ first to implicitly active receiving
+				 * IRQ signals when entering this loop for the first time.
+				 */
+				_irq.ack_irq();
+				_irq_rec.wait_for_signal();
 
 				/* check for transfer completion */
 				if (read<Stat::Tc>() == 1) {
@@ -747,6 +754,7 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 				PWRN("unexpected interrupt, Stat: 0x%08x", read<Stat>());
 			}
 		}
+
 
 	public:
 
@@ -768,7 +776,11 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 			_adma_desc(_adma_desc_ds.local_addr<Adma_desc::access_t>()),
 			_adma_desc_phys(Genode::Dataspace_client(_adma_desc_ds.cap()).phys_addr()),
 			_irq(IRQ_NUMBER)
-		{ }
+		{
+			_irq.sigh(_irq_rec.manage(&_irq_ctx));
+		}
+
+		~Omap4_hsmmc_controller() { _irq_rec.dissolve(&_irq_ctx); }
 
 
 		/****************************************

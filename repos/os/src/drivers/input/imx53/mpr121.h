@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -45,16 +45,19 @@ class Input::Buttons {
 			POWER   = 8,
 		};
 
+		Irq_handler                       _irq_handler;
 		Genode::Attached_io_mem_dataspace _i2c_ds;
 		I2c::I2c                          _i2c;
 		Genode::uint8_t                   _state;
 
 	public:
 
-		Buttons() : _i2c_ds(Genode::Board_base::I2C_2_BASE,
+		Buttons(Server::Entrypoint &ep) :
+		            _irq_handler(ep, Genode::Board_base::I2C_2_IRQ),
+		            _i2c_ds(Genode::Board_base::I2C_2_BASE,
 		                    Genode::Board_base::I2C_2_SIZE),
 		            _i2c((Genode::addr_t)_i2c_ds.local_addr<void>(),
-		                  Genode::Board_base::I2C_2_IRQ),
+		                  _irq_handler),
 		            _state(0)
 		{
 			static Genode::uint8_t init_cmd[][2] = {

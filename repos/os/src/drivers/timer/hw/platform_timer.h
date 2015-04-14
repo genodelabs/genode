@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2012-2013 Genode Labs GmbH
+ * Copyright (C) 2012-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <irq_session/connection.h>
+#include <os/server.h>
 
 /* Local includes */
 #include <platform_timer_base.h>
@@ -30,10 +31,13 @@ class Platform_timer : public Platform_timer_base,
 
 		enum { MAX_TIMER_IRQS_PER_MS = 1 };
 
-		unsigned long   const _max_timeout_us;        /* maximum timeout in microsecs */
-		unsigned long mutable _curr_time_us;          /* accumulate already measured timeouts */
-		unsigned long mutable _init_value;            /* mark last processed timer value */
-		Genode::Lock  mutable _update_curr_time_lock; /* serialize curr_time access */
+		unsigned long   const   _max_timeout_us;        /* maximum timeout in microsecs */
+		unsigned long mutable   _curr_time_us;          /* accumulate already measured timeouts */
+		unsigned long mutable   _init_value;            /* mark last processed timer value */
+		Genode::Lock  mutable   _update_curr_time_lock; /* serialize curr_time access */
+
+		Genode::Signal_receiver _irq_rec;
+		Genode::Signal_context  _irq_ctx;
 
 	public:
 
@@ -45,7 +49,12 @@ class Platform_timer : public Platform_timer_base,
 			Irq_connection(Platform_timer_base::IRQ),
 			_max_timeout_us(tics_to_us(max_value())),
 			_curr_time_us(0), _init_value(0)
-		{ }
+		{
+			Irq_connection::sigh(_irq_rec.manage(&_irq_ctx));
+			Irq_connection::ack_irq();
+		}
+
+		~Platform_timer() { _irq_rec.dissolve(&_irq_ctx); }
 
 		/**
 		 * Refresh and return our instance-own "now"-time in microseconds
@@ -109,7 +118,11 @@ class Platform_timer : public Platform_timer_base,
 		/**
 		 * Await the lastly scheduled timeout
 		 */
-		void wait_for_timeout(Genode::Thread_base *) { wait_for_irq(); }
+		void wait_for_timeout(Genode::Thread_base *)
+		{
+			_irq_rec.wait_for_signal();
+			Irq_connection::ack_irq();
+		}
 };
 
 #endif /* _OS__SRC__DRIVERS__TIMER__HW__PLATFORM_TIMER_H_ */

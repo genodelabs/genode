@@ -5,50 +5,52 @@
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2006-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
 #include <base/env.h>
 #include <base/sleep.h>
 #include <base/heap.h>
 #include <cap_session/connection.h>
+#include <os/server.h>
 
+/* local includes */
 #include "timer_root.h"
 
 using namespace Genode;
 using namespace Timer;
 
 
-/**
- * Main program
- */
-int main(int argc, char **argv)
+struct Main
 {
-	/*
-	 * Initialize server entry point that serves the root interface.
-	 */
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "timer_ep");
+	Server::Entrypoint    &ep;
+	Sliced_heap            sliced_heap;
+	Timer::Root_component  root;
 
-	/*
-	 * Use sliced heap to allocate each session component at a separate
-	 * dataspace.
-	 */
-	static Sliced_heap sliced_heap(env()->ram_session(), env()->rm_session());
+	Main(Server::Entrypoint &ep)
+	:
+		ep(ep),
+		sliced_heap(Genode::env()->ram_session(), Genode::env()->rm_session()),
+		root(ep, &sliced_heap, 0)
+	{
+		/*
+		 * Announce timer service at our parent.
+		 */
+		env()->parent()->announce(ep.manage(root));
+	}
+};
 
-	/*
-	 * Create root interface for timer service
-	 */
-	static Timer::Root_component timer_root(&ep, &sliced_heap, &cap);
 
-	/*
-	 * Announce timer service at our parent.
-	 */
-	env()->parent()->announce(ep.manage(&timer_root));
+/************
+ ** Server **
+ ************/
 
-	sleep_forever();
-	return 0;
+namespace Server {
+	char const *name()             { return "timer_drv_ep";    }
+	size_t stack_size()            { return 1024*sizeof(long); }
+	void construct(Entrypoint &ep) { static Main server(ep);   }
 }

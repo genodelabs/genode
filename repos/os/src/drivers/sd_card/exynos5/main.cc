@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -26,8 +26,12 @@ struct Main
 
 	struct Factory : Block::Driver_factory
 	{
+		Server::Entrypoint &ep;
+
+		Factory(Server::Entrypoint &ep) : ep(ep) { }
+
 		Block::Driver *create() {
-			return new (Genode::env()->heap()) Block::Exynos5_driver(true); }
+			return new (Genode::env()->heap()) Block::Exynos5_driver(ep, true); }
 
 		void destroy(Block::Driver *driver) {
 			Genode::destroy(Genode::env()->heap(),
@@ -38,7 +42,7 @@ struct Main
 	Block::Root           root;
 
 	Main(Server::Entrypoint &ep)
-	: ep(ep), regulator(Regulator::CLK_MMC0),
+	: ep(ep), factory(ep), regulator(Regulator::CLK_MMC0),
 	  root(ep, Genode::env()->heap(), factory)
 	{
 		Genode::printf("--- Arndale eMMC card driver ---\n");

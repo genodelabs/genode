@@ -11,9 +11,6 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* local includes */
-#include <driver.h>
-
 /* Genode includes */
 #include <framebuffer_session/framebuffer_session.h>
 #include <cap_session/connection.h>
@@ -22,6 +19,10 @@
 #include <base/sleep.h>
 #include <os/config.h>
 #include <os/static_root.h>
+#include <os/server.h>
+
+/* local includes */
+#include <driver.h>
 
 namespace Framebuffer
 {
@@ -111,47 +112,52 @@ class Framebuffer::Session_component
 };
 
 
-/**
- * Program entrypoint
- */
-int main(int, char **)
+struct Main
 {
-	using namespace Framebuffer;
+	Server::Entrypoint  &ep;
+	Framebuffer::Driver  driver;
 
-	/* default config */
-	size_t width  = 1920;
-	size_t height = 1080;
-	Driver::Output output = Driver::OUTPUT_HDMI;
+	Main(Server::Entrypoint &ep)
+	: ep(ep), driver()
+	{
+		using namespace Framebuffer;
 
-	/* try to read custom user config */
-	try {
-		char out[5] = { };
-		Genode::Xml_node config_node = Genode::config()->xml_node();
-		config_node.attribute("width").value(&width);
-		config_node.attribute("height").value(&height);
-		config_node.attribute("output").value(out, sizeof(out));
-		if (!Genode::strcmp(out, "LCD")) {
-			output = Driver::OUTPUT_LCD;
+		/* default config */
+		size_t width  = 1920;
+		size_t height = 1080;
+		Driver::Output output = Driver::OUTPUT_HDMI;
+
+		/* try to read custom user config */
+		try {
+			char out[5] = { 0 };
+			Genode::Xml_node config_node = Genode::config()->xml_node();
+			config_node.attribute("width").value(&width);
+			config_node.attribute("height").value(&height);
+			config_node.attribute("output").value(out, sizeof(out));
+			if (!Genode::strcmp(out, "LCD")) {
+				output = Driver::OUTPUT_LCD;
+			}
 		}
+		catch (...) {
+			PDBG("using default configuration: HDMI@%dx%d", width, height);
+		}
+
+		/* let entrypoint serve the framebuffer session and root interfaces */
+		static Session_component fb_session(driver, width, height, output);
+		static Static_root<Framebuffer::Session> fb_root(ep.manage(fb_session));
+
+		/* announce service and relax */
+		env()->parent()->announce(ep.manage(fb_root));
 	}
-	catch (...) {
-		PDBG("using default configuration: HDMI@%dx%d", width, height);
-	}
-	/* create server backend */
-	static Driver driver;
+};
 
-	/* create server entrypoint */
-	enum { STACK_SIZE = 4096 };
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "fb_ep");
 
-	/* let entrypoint serve the framebuffer session and root interfaces */
-	static Session_component fb_session(driver, width, height, output);
-	static Static_root<Framebuffer::Session> fb_root(ep.manage(&fb_session));
+/************
+ ** Server **
+ ************/
 
-	/* announce service and relax */
-	env()->parent()->announce(ep.manage(&fb_root));
-	sleep_forever();
-	return 0;
+namespace Server {
+	char const *name()             { return "fb_drv_ep";       }
+	size_t stack_size()            { return 1024*sizeof(long); }
+	void construct(Entrypoint &ep) { static Main server(ep);   }
 }
-

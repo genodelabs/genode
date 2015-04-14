@@ -902,6 +902,8 @@ struct Sata_ahci : Attached_mmio
 	/* port 0 settings */
 	unsigned p0_speed;
 	Irq_connection p0_irq;
+	Genode::Signal_receiver p0_irq_rec;
+	Genode::Signal_context  p0_irq_ctx;
 
 	enum { SATA_3_MAX_SPEED = 3 };
 
@@ -922,7 +924,10 @@ struct Sata_ahci : Attached_mmio
 	  dbc_stable_trials(5),
 	  p0_speed(SATA_3_MAX_SPEED),
 	  p0_irq(Genode::Board_base::SATA_IRQ)
-	{ }
+	{
+		p0_irq.sigh(p0_irq_rec.manage(&p0_irq_ctx));
+		p0_irq.ack_irq();
+	}
 
 	/**
 	 * Clear all interrupts at port 0
@@ -1145,7 +1150,7 @@ struct Sata_ahci : Attached_mmio
 	{
 		typedef typename P0IS_BIT::Bitfield_base P0is_bit;
 		write<P0ci>(1 << tag);
-		p0_irq.wait_for_irq();
+		p0_irq_rec.wait_for_signal();
 		if (!read<Is::Ips>()) {
 			PERR("ATA0 no IRQ raised");
 			return -1;
@@ -1269,6 +1274,7 @@ struct Sata_ahci : Attached_mmio
 			printf("ATA0 supports UDMA-133 and NCQ with queue depth %u\n",
 			       dev_id->queue_depth + 1);
 		write<Is::Ips>(1);
+		p0_irq.ack_irq();
 
 		/* destroy receive buffer DMA */
 		env()->rm_session()->detach(dev_id_virt);
@@ -1300,6 +1306,7 @@ struct Sata_ahci : Attached_mmio
 
 		/* end command */
 		write<Is::Ips>(1);
+		p0_irq.ack_irq();
 
 		/* check for hidden blocks */
 		return max_native_addr + 1 != block_cnt;
@@ -1344,6 +1351,7 @@ struct Sata_ahci : Attached_mmio
 		}
 		/* end command */
 		write<Is::Ips>(1);
+		p0_irq.ack_irq();
 		return 0;
 	}
 
@@ -1668,7 +1676,7 @@ struct Sata_ahci : Attached_mmio
 		/* issue command and wait for completion */
 		write<P0sact>(1 << tag);
 		write<P0ci>(1 << tag);
-		p0_irq.wait_for_irq();
+		p0_irq_rec.wait_for_signal();
 
 		/* get port back ready and deteremine command state */
 		int ret = p0_handle_irqs(lba);
@@ -1684,6 +1692,7 @@ struct Sata_ahci : Attached_mmio
 				return -1;
 			}
 			write<Is::Ips>(1);
+			p0_irq.ack_irq();
 		}
 		return ret;
 	}

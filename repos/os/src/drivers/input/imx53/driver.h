@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -16,7 +16,6 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <base/thread.h>
 #include <base/signal.h>
 #include <gpio_session/connection.h>
 
@@ -29,7 +28,7 @@ namespace Input {
 }
 
 
-class Input::Tablet_driver : Genode::Thread<8192>
+class Input::Tablet_driver
 {
 	private:
 
@@ -38,69 +37,66 @@ class Input::Tablet_driver : Genode::Thread<8192>
 			GPIO_BUTTON = 132,
 		};
 
-		Event_queue                      &_ev_queue;
-		Gpio::Connection                  _gpio_ts;
-		Gpio::Connection                  _gpio_bt;
-		Genode::Signal_receiver           _receiver;
-		Genode::Signal_context            _ts_rx;
-		Genode::Signal_context            _bt_rx;
-		Genode::Signal_context_capability _ts_sig_cap;
-		Genode::Signal_context_capability _bt_sig_cap;
-		Touchscreen                       _touchscreen;
-		Buttons                           _buttons;
+		Event_queue                              &_ev_queue;
+		Gpio::Connection                          _gpio_ts;
+		Gpio::Connection                          _gpio_bt;
+		Genode::Irq_session_client                _irq_ts;
+		Genode::Irq_session_client                _irq_bt;
+		Genode::Signal_rpc_member<Tablet_driver>  _ts_dispatcher;
+		Genode::Signal_rpc_member<Tablet_driver>  _bt_dispatcher;
+		Touchscreen                               _touchscreen;
+		Buttons                                   _buttons;
 
-		Genode::Signal_context_capability _init_ts_gpio()
+		void _handle_ts(unsigned)
 		{
-			Genode::Signal_context_capability ret = _receiver.manage(&_ts_rx);
+			_touchscreen.event(_ev_queue);
+			_irq_ts.ack_irq();
+		}
+
+		void _handle_bt(unsigned)
+		{
+			_buttons.event(_ev_queue);
+			_irq_bt.ack_irq();
+		}
+
+		Tablet_driver(Server::Entrypoint &ep, Event_queue &ev_queue)
+		:
+			_ev_queue(ev_queue),
+			_gpio_ts(GPIO_TOUCH),
+			_gpio_bt(GPIO_BUTTON),
+			_irq_ts(_gpio_ts.irq_session(Gpio::Session::LOW_LEVEL)),
+			_irq_bt(_gpio_bt.irq_session(Gpio::Session::FALLING_EDGE)),
+			_ts_dispatcher(ep, *this, &Tablet_driver::_handle_ts),
+			_bt_dispatcher(ep, *this, &Tablet_driver::_handle_bt),
+			_touchscreen(ep), _buttons(ep)
+		{
+			/* GPIO touchscreen handling */
 			_gpio_ts.direction(Gpio::Session::OUT);
 			_gpio_ts.write(true);
 			_gpio_ts.direction(Gpio::Session::IN);
-			_gpio_ts.irq_sigh(_ts_sig_cap);
-			_gpio_ts.irq_type(Gpio::Session::LOW_LEVEL);
-			_gpio_ts.irq_enable(true);
-			return ret;
-		}
 
-		Genode::Signal_context_capability _init_bt_gpio()
-		{
-			Genode::Signal_context_capability ret = _receiver.manage(&_bt_rx);
+			_irq_ts.sigh(_ts_dispatcher);
+			_irq_ts.ack_irq();
+
+			/* GPIO button handling */
 			_gpio_bt.direction(Gpio::Session::OUT);
 			_gpio_bt.write(true);
 			_gpio_bt.direction(Gpio::Session::IN);
-			_gpio_bt.irq_sigh(_bt_sig_cap);
-			_gpio_bt.irq_type(Gpio::Session::FALLING_EDGE);
-			_gpio_bt.irq_enable(true);
-			return ret;
-		}
 
-		Tablet_driver(Event_queue &ev_queue)
-		: Thread("touchscreen_signal_handler"),
-		  _ev_queue(ev_queue),
-		  _gpio_ts(GPIO_TOUCH),
-		  _gpio_bt(GPIO_BUTTON),
-		  _ts_sig_cap(_init_ts_gpio()),
-		  _bt_sig_cap(_init_bt_gpio()) { start(); }
+			_irq_bt.sigh(_bt_dispatcher);
+			_irq_bt.ack_irq();
+		}
 
 	public:
 
-		static Tablet_driver* factory(Event_queue &ev_queue);
-
-		void entry()
-		{
-			while (true) {
-				Genode::Signal sig = _receiver.wait_for_signal();
-				if (sig.context() == &_ts_rx)
-					_touchscreen.event(_ev_queue);
-				else if (sig.context() == &_bt_rx)
-					_buttons.event(_ev_queue);
-			}
-		}
+		static Tablet_driver* factory(Server::Entrypoint &ep, Event_queue &ev_queue);
 };
 
 
-Input::Tablet_driver* Input::Tablet_driver::factory(Event_queue &ev_queue)
+Input::Tablet_driver* Input::Tablet_driver::factory(Server::Entrypoint &ep,
+                                                    Event_queue &ev_queue)
 {
-	static Input::Tablet_driver driver(ev_queue);
+	static Input::Tablet_driver driver(ep, ev_queue);
 	return &driver;
 }
 

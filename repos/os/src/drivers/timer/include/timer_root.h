@@ -14,12 +14,15 @@
 #ifndef _TIMER_ROOT_H_
 #define _TIMER_ROOT_H_
 
+/* Genode includes */
 #include <util/arg_string.h>
 #include <base/printf.h>
 #include <base/heap.h>
 #include <root/component.h>
 #include <cap_session/cap_session.h>
+#include <os/server.h>
 
+/* local includes */
 #include "timer_session_component.h"
 
 
@@ -56,12 +59,12 @@ class Timer::Root_component : public Genode::Root_component<Session_component>
 		 * The 'cap' argument is not used by the single-threaded server
 		 * variant.
 		 */
-		Root_component(Genode::Rpc_entrypoint         *session_ep,
-		               Genode::Allocator              *md_alloc,
-		               Genode::Cap_session            *cap)
+		Root_component(Server::Entrypoint  &ep,
+		               Genode::Allocator   *md_alloc,
+		               Genode::Cap_session *cap)
 		:
-			Genode::Root_component<Session_component>(session_ep, md_alloc),
-			_timeout_scheduler(&_platform_timer, session_ep)
+			Genode::Root_component<Session_component>(&ep.rpc_ep(), md_alloc),
+			_timeout_scheduler(&_platform_timer, &ep.rpc_ep())
 		{ }
 };
 

@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2009-2013 Genode Labs GmbH
+ * Copyright (C) 2009-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -14,8 +14,10 @@
 #ifndef _PLATFORM_TIMER_H_
 #define _PLATFORM_TIMER_H_
 
+/* Genode includes */
 #include <io_port_session/connection.h>
 #include <irq_session/connection.h>
+#include <os/server.h>
 
 class Platform_timer
 {
@@ -64,6 +66,8 @@ class Platform_timer
 		unsigned long mutable      _curr_time_usec;
 		Genode::uint16_t mutable   _counter_init_value;
 		bool          mutable      _handled_wrap;
+		Genode::Signal_receiver    _irq_rec;
+		Genode::Signal_context     _irq_ctx;
 
 		/**
 		 * Set PIT counter value
@@ -111,7 +115,12 @@ class Platform_timer
 			/* operate PIT in one-shot mode */
 			_io_port.outb(PIT_CMD_PORT, PIT_CMD_SELECT_CHANNEL_0 |
 			              PIT_CMD_ACCESS_LO_HI | PIT_CMD_MODE_IRQ);
+
+			_timer_irq.sigh(_irq_rec.manage(&_irq_ctx));
+			_timer_irq.ack_irq();
 		}
+
+		~Platform_timer() { _irq_rec.dissolve(&_irq_ctx); }
 
 		/**
 		 * Return current time-counter value in microseconds
@@ -188,7 +197,8 @@ class Platform_timer
 		 */
 		void wait_for_timeout(Genode::Thread_base *blocking_thread)
 		{
-			_timer_irq.wait_for_irq();
+			_irq_rec.wait_for_signal();
+			_timer_irq.ack_irq();
 		}
 };
 

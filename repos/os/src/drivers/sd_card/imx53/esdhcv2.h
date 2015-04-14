@@ -414,11 +414,13 @@ struct Esdhcv2_controller : private Esdhcv2, public Sd_card::Host_controller
 			BURST_WORDS     = 8,
 		};
 
-		Genode::Irq_connection         _irq;
-		Delayer &                      _delayer;
-		Sd_card::Card_info             _card_info;
-		bool const                     _use_dma;
-		Adma2::Table                   _adma2_table;
+		Genode::Irq_connection  _irq;
+		Genode::Signal_receiver _irq_rec;
+		Genode::Signal_context  _irq_ctx;
+		Delayer &               _delayer;
+		Sd_card::Card_info      _card_info;
+		bool const              _use_dma;
+		Adma2::Table            _adma2_table;
 
 		/**
 		 * Print 'err' and throw detection-error exception
@@ -569,6 +571,20 @@ struct Esdhcv2_controller : private Esdhcv2, public Sd_card::Host_controller
 			return card_info;
 		}
 
+		/**
+		 * Wait until we received the IRQ signal
+		 */
+		void _wait_for_irq()
+		{
+			/*
+			 * Acknowledge the IRQ first to implicitly activate
+			 * receiving of further IRQ signals on the first usage
+			 * of this method.
+			 */
+			_irq.ack_irq();
+			_irq_rec.wait_for_signal();
+		}
+
 		/*
 		 * Wait till sending a new command is allowed
 		 *
@@ -596,7 +612,7 @@ struct Esdhcv2_controller : private Esdhcv2, public Sd_card::Host_controller
 		 */
 		bool _wait_for_cmd_complete()
 		{
-			_irq.wait_for_irq();
+			_wait_for_irq();
 			if (read<Irqstat>() != Irqstat::Cc::reg_mask()) {
 				PWRN("received unexpected host signal");
 				reset_command(_delayer);
@@ -634,7 +650,7 @@ struct Esdhcv2_controller : private Esdhcv2, public Sd_card::Host_controller
 		bool _wait_for_mbc_complete(bool const r)
 		{
 			/* wait for a signal */
-			_irq.wait_for_irq();
+			_wait_for_irq();
 			Irqstat::access_t const irq = read<Irqstat>();
 
 			/*
@@ -741,9 +757,13 @@ struct Esdhcv2_controller : private Esdhcv2, public Sd_card::Host_controller
 		Esdhcv2_controller(addr_t const mmio_base, unsigned const irq,
 		                   Delayer & delayer, bool const use_dma)
 		:
-			Esdhcv2(mmio_base), _irq(irq), _delayer(delayer),
-			_card_info(_init()), _use_dma(use_dma)
-		{ }
+			Esdhcv2(mmio_base), _irq(irq), 
+			_delayer(delayer), _card_info(_init()), _use_dma(use_dma)
+		{
+			_irq.sigh(_irq_rec.manage(&_irq_ctx));
+		}
+
+		~Esdhcv2_controller() { _irq_rec.dissolve(&_irq_ctx); }
 
 
 		/****************************************

@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <base/stdint.h>
 #include <base/printf.h>
+#include <os/server.h>
 
 namespace Framebuffer
 {

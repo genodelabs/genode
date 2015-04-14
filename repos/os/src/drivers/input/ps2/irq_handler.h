@@ -14,37 +14,43 @@
 #ifndef _IRQ_HANDLER_H_
 #define _IRQ_HANDLER_H_
 
+/* Genode includes */
 #include <base/thread.h>
 #include <irq_session/connection.h>
+#include <os/server.h>
 
+/* local includes */
 #include "input_driver.h"
 
-class Irq_handler : Genode::Thread<4096>
+class Irq_handler
 {
 	private:
 
-		Genode::Irq_connection  _irq;
-		Input_driver           &_input_driver;
+		Genode::Irq_connection                  _irq;
+		Genode::Signal_rpc_member<Irq_handler>  _dispatcher;
+		Input_driver                           &_input_driver;
+
+		void _handle(unsigned)
+		{
+			_irq.ack_irq();
+
+			while (_input_driver.event_pending())
+				_input_driver.handle_event();
+		}
 
 	public:
 
-		Irq_handler(int irq_number, Input_driver &input_driver)
+		Irq_handler(Server::Entrypoint &ep,
+		            int irq_number, Input_driver &input_driver)
 		:
-			Thread("irq_handler"),
 			_irq(irq_number),
+			_dispatcher(ep, *this, &Irq_handler::_handle),
 			_input_driver(input_driver)
 		{
-			start();
+			_irq.sigh(_dispatcher);
+			_irq.ack_irq();
 		}
 
-		void entry()
-		{
-			while (1) {
-				_irq.wait_for_irq();
-				while (_input_driver.event_pending())
-					_input_driver.handle_event();
-			}
-		}
 };
 
 #endif /* _IRQ_HANDLER_H_ */

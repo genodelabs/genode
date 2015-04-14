@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2006-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -22,6 +22,7 @@
 #include <input_session/input_session.h>
 #include <input/event.h>
 #include <base/printf.h>
+#include <os/server.h>
 
 using namespace Genode;
 
@@ -71,28 +72,33 @@ namespace Input {
 }
 
 
-int main(int argc, char **argv)
+struct Main
 {
-	/* create dataspace for event buffer that is shared with the client */
-	try { ev_ds_cap = env()->ram_session()->alloc(MAX_EVENTS*sizeof(Input::Event)); }
-	catch (Ram_session::Alloc_failed) {
-		PERR("Could not allocate dataspace for event buffer");
-		return 1;
+	Server::Entrypoint &ep;
+	Input::Root         root;
+
+	Main(Server::Entrypoint &ep)
+	: ep(ep), root(&ep.rpc_ep(), Genode::env()->heap())
+	{
+		/* create dataspace for event buffer that is shared with the client */
+		try { ev_ds_cap = env()->ram_session()->alloc(MAX_EVENTS*sizeof(Input::Event)); }
+		catch (Ram_session::Alloc_failed) {
+			PERR("Could not allocate dataspace for event buffer");
+			throw Genode::Exception();
+		}
+
+		/* tell parent about the service */
+		env()->parent()->announce(ep.manage(root));
 	}
+};
 
-	/* initialize server entry point */
-	enum { STACK_SIZE = 4096 };
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "input_ep");
 
-	/* entry point serving input root interface */
-	static Input::Root input_root(&ep, env()->heap());
+/************
+ ** Server **
+ ************/
 
-	/* tell parent about the service */
-	env()->parent()->announce(ep.manage(&input_root));
-
-	/* main's done - go to sleep */
-
-	sleep_forever();
-	return 0;
+namespace Server {
+	char const *name()             { return "input_drv_ep";    }
+	size_t stack_size()            { return 1024*sizeof(long); }
+	void construct(Entrypoint &ep) { static Main server(ep);   }
 }

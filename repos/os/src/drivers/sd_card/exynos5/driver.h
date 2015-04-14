@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -19,6 +19,7 @@
 #include <base/printf.h>
 #include <timer_session/connection.h>
 #include <block/component.h>
+#include <os/server.h>
 
 /* local includes */
 #include <dwmmc.h>
@@ -54,6 +55,8 @@ class Block::Exynos5_driver : public Block::Driver
 		};
 
 
+		Server::Entrypoint &_ep;
+
 		/* display sub system registers */
 		Attached_io_mem_dataspace _mmio;
 
@@ -64,10 +67,11 @@ class Block::Exynos5_driver : public Block::Driver
 
 	public:
 
-		Exynos5_driver(bool use_dma)
+		Exynos5_driver(Server::Entrypoint &ep, bool use_dma)
 		:
+			_ep(ep),
 			_mmio(MSH_BASE, MSH_SIZE),
-			_controller((addr_t)_mmio.local_addr<void>(),
+			_controller(ep, (addr_t)_mmio.local_addr<void>(),
 			            _delayer, use_dma),
 			_use_dma(use_dma)
 		{

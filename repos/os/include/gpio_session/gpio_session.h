@@ -7,7 +7,7 @@
 
 /*
  * Copyright (C) 2012 Ksys Labs LLC
- * Copyright (C) 2012-2013 Genode Labs GmbH
+ * Copyright (C) 2012-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -19,6 +19,7 @@
 #include <base/signal.h>
 #include <dataspace/capability.h>
 #include <session/session.h>
+#include <irq_session/capability.h>
 
 namespace Gpio { struct Session; }
 
@@ -62,42 +63,26 @@ struct Gpio::Session : Genode::Session
 	virtual void debouncing(unsigned int us) = 0;
 
 	/**
-	 * Configure the type of interrupt for the GPIO pin
+	 * Rquest IRQ session
 	 *
-	 * \param it  type of IRQ
+	 * \param type  type of IRQ
 	 */
-	virtual void irq_type(Irq_type it) = 0;
-
-	/**
-	 * Enable or disable the interrupt of the GPIO pin
-	 *
-	 * \param enable  interrupt status( true - enable, false - disable)
-	 */
-	virtual void irq_enable(bool enable) = 0;
-
-	/**
-	 * Register signal handler to be notified on interrupt
-	 *
-	 * \param cap  capability of signal-context to handle GPIO interrupt
-	 */
-	virtual void irq_sigh(Genode::Signal_context_capability cap) = 0;
+	virtual Genode::Irq_session_capability irq_session(Irq_type type) = 0;
 
 
 	/*******************
 	 ** RPC interface **
 	 *******************/
 
-	GENODE_RPC(Rpc_direction,  void, direction, Direction);
-	GENODE_RPC(Rpc_write,      void, write, bool);
-	GENODE_RPC(Rpc_read,       bool, read);
-	GENODE_RPC(Rpc_debouncing, void, debouncing, unsigned int);
-	GENODE_RPC(Rpc_irq_type,   void, irq_type, Irq_type);
-	GENODE_RPC(Rpc_irq_enable, void, irq_enable, bool);
-	GENODE_RPC(Rpc_irq_sigh,   void, irq_sigh, Genode::Signal_context_capability);
+	GENODE_RPC(Rpc_direction,   void, direction, Direction);
+	GENODE_RPC(Rpc_write,       void, write, bool);
+	GENODE_RPC(Rpc_read,        bool, read);
+	GENODE_RPC(Rpc_debouncing,  void, debouncing, unsigned int);
+	GENODE_RPC(Rpc_irq_session, Genode::Irq_session_capability,
+	                            irq_session, Irq_type);
 
 	GENODE_RPC_INTERFACE(Rpc_direction, Rpc_write, Rpc_read,
-	                     Rpc_debouncing, Rpc_irq_type, Rpc_irq_enable,
-	                     Rpc_irq_sigh);
+	                     Rpc_debouncing, Rpc_irq_session);
 };
 
 #endif /* _INCLUDE__GPIO_SESSION__GPIO_SESSION_H_ */

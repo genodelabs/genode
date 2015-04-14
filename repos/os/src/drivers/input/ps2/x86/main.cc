@@ -11,13 +11,16 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
 #include <base/env.h>
 #include <base/printf.h>
 #include <base/sleep.h>
 #include <input/component.h>
 #include <input/root.h>
 #include <cap_session/connection.h>
+#include <os/server.h>
 
+/* local includes */
 #include "i8042.h"
 #include "ps2_keyboard.h"
 #include "ps2_mouse.h"
@@ -26,31 +29,39 @@
 using namespace Genode;
 
 
-int main(int argc, char **argv)
+struct Main
 {
-	I8042 i8042;
+	Server::Entrypoint &ep;
 
-	Serial_interface *kbd = i8042.kbd_interface();
-	Serial_interface *aux = i8042.aux_interface();
+	I8042                    i8042;
+	Input::Session_component session;
+	Input::Root_component    root;
 
-	/*
-	 * Initialize server entry point
-	 */
-	enum { STACK_SIZE = 4096 };
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "ps2_ep");
+	Ps2_mouse    ps2_mouse;
+	Ps2_keyboard ps2_keybd;
 
-	static Input::Session_component session;
-	static Input::Root_component root(ep, session);
+	Irq_handler  ps2_mouse_irq;
+	Irq_handler  ps2_keybd_irq;
 
-	Ps2_mouse    ps2_mouse(*aux, session.event_queue());
-	Ps2_keyboard ps2_keybd(*kbd, session.event_queue(), i8042.kbd_xlate());
+	Main(Server::Entrypoint &ep)
+	: ep(ep), root(ep.rpc_ep(), session),
+		ps2_mouse(*i8042.aux_interface(), session.event_queue()),
+		ps2_keybd(*i8042.kbd_interface(), session.event_queue(),
+		          i8042.kbd_xlate()),
+		ps2_mouse_irq(ep, 12, ps2_mouse),
+		ps2_keybd_irq(ep,  1, ps2_keybd)
+	{
+		env()->parent()->announce(ep.manage(root));
+	}
+};
 
-	Irq_handler ps2_mouse_irq(12, ps2_mouse);
-	Irq_handler ps2_keybd_irq( 1, ps2_keybd);
 
-	env()->parent()->announce(ep.manage(&root));
+/************
+ ** Server **
+ ************/
 
-	Genode::sleep_forever();
-	return 0;
+namespace Server {
+	char const *name()             { return "ps2_drv_ep";      }
+	size_t stack_size()            { return 1024*sizeof(long); }
+	void construct(Entrypoint &ep) { static Main server(ep);   }
 }

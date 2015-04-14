@@ -18,6 +18,7 @@
 #include <input/component.h>
 #include <input/root.h>
 #include <cap_session/connection.h>
+#include <os/server.h>
 
 /* local includes */
 #include "ps2_keyboard.h"
@@ -28,34 +29,38 @@
 using namespace Genode;
 
 
-int main(int argc, char **argv)
+struct Main
 {
-	Pl050 pl050;
+	Server::Entrypoint &ep;
 
-	Serial_interface *kbd = pl050.kbd_interface();
-	Serial_interface *aux = pl050.aux_interface();
+	Pl050                    pl050;
+	Input::Session_component session;
+	Input::Root_component    root;
 
-	/*
-	 * Initialize server entry point
-	 */
-	enum { STACK_SIZE = 4096 };
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "ps2_ep");
+	Ps2_mouse    ps2_mouse;
+	Ps2_keyboard ps2_keybd;
 
-	static Input::Session_component session;
-	static Input::Root_component root(ep, session);
+	Irq_handler  ps2_mouse_irq;
+	Irq_handler  ps2_keybd_irq;
 
-	Ps2_mouse    ps2_mouse(*aux, session.event_queue());
-	Ps2_keyboard ps2_keybd(*kbd, session.event_queue(), true);
+	Main(Server::Entrypoint &ep)
+		: ep(ep), root(ep.rpc_ep(), session),
+		ps2_mouse(*pl050.aux_interface(), session.event_queue()),
+		ps2_keybd(*pl050.kbd_interface(), session.event_queue(), true),
+		ps2_mouse_irq(ep, PL050_MOUSE_IRQ, pl050.aux_interface(), ps2_mouse),
+		ps2_keybd_irq(ep, PL050_KEYBD_IRQ, pl050.kbd_interface(), ps2_keybd)
+	{
+		env()->parent()->announce(ep.manage(root));
+	}
+};
 
-	Irq_handler ps2_mouse_irq(PL050_MOUSE_IRQ, aux, ps2_mouse);
-	Irq_handler ps2_keybd_irq(PL050_KEYBD_IRQ, kbd, ps2_keybd);
 
-	/*
-	 * Let the entry point serve the input root interface
-	 */
-	env()->parent()->announce(ep.manage(&root));
+/************
+ ** Server **
+ ************/
 
-	Genode::sleep_forever();
-	return 0;
+namespace Server {
+	char const *name()             { return "ps2_drv_ep";      }
+	size_t stack_size()            { return 1024*sizeof(long); }
+	void construct(Entrypoint &ep) { static Main server(ep);   }
 }

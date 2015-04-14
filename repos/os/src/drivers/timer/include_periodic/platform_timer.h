@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2009-2013 Genode Labs GmbH
+ * Copyright (C) 2009-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -14,8 +14,9 @@
 #ifndef _PLATFORM_TIMER_H_
 #define _PLATFORM_TIMER_H_
 
-/* Genode inludes **/
+/* Genode inludes */
 #include <base/thread.h>
+#include <os/server.h>
 
 
 class Platform_timer

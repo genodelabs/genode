@@ -184,6 +184,10 @@ class Ahci_device : public Ahci_device_base
 					_disable_msi(pci_device);
 
 					device->_irq = new(env()->heap()) Irq_connection(intr & 0xff);
+					Genode::Signal_context_capability cap = device->_irq_rec.manage(&device->_irq_ctx);
+					device->_irq->sigh(cap);
+					device->_irq->ack_irq();
+
 					/* remember pci_device to be able to allocate ram memory which is dma able */
 					device->_pci_device_cap = device_cap;
 					device->_pci_device = pci_device;

@@ -6,7 +6,7 @@
 
 /*
  * Copyright (C) 2012 Ksys Labs LLC
- * Copyright (C) 2012-2013 Genode Labs GmbH
+ * Copyright (C) 2012-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -15,10 +15,12 @@
 #ifndef _GPIO_TEST_H_
 #define _GPIO_TEST_H_
 
-#include <gpio_session/connection.h>
-#include <base/signal.h>
-#include <util/mmio.h>
+/* Genode includes */
 #include <base/printf.h>
+#include <base/signal.h>
+#include <gpio_session/connection.h>
+#include <irq_session/client.h>
+#include <util/mmio.h>
 
 using namespace Genode;
 
@@ -63,7 +65,6 @@ Gpio_test::Gpio_test()
 {
 	/* initialize GPIO_121 */
 	_gpio_button.debouncing(31*100);
-	_gpio_button.irq_sigh(sig_rec.manage(&sig_ctx));
 }
 
 
@@ -102,35 +103,49 @@ bool Gpio_test::irq_test()
 {
 	printf("---------- IRQ test ----------\n");
 
-	_gpio_button.irq_type(Gpio::Session::FALLING_EDGE);
-	_gpio_button.irq_enable(true);
+	{
+		Genode::Irq_session_client
+			irq(_gpio_button.irq_session(Gpio::Session::FALLING_EDGE));
+		irq.sigh(sig_rec.manage(&sig_ctx));
+		/*
+		 * Before any IRQs will be delivered to us, we have to signalize
+		 * that we are ready to handle them by calling 'ack_irq()'.
+		 */
+		irq.ack_irq();
 
-	_gpio_led1.write(true);
-	_gpio_led2.write(false);
+		_gpio_led1.write(true);
+		_gpio_led2.write(false);
 
-	printf("\nPush and hold button...\n");
+		printf("\nPush and hold button...\n");
 
-	wait_for_signal();
-
-	_gpio_button.irq_enable(false);
-
-	printf("OK\n");
-
-	_gpio_button.irq_type(Gpio::Session::RISING_EDGE);
-	_gpio_button.irq_enable(true);
-
-	_gpio_led1.write(false);
-	_gpio_led2.write(true);
-
-	printf("\nRelease button...\n");
-
-	wait_for_signal();
-
-	_gpio_button.irq_enable(false);
+		wait_for_signal();
+		irq.ack_irq();
+	}
 
 	printf("OK\n");
 
-	_gpio_button.irq_type(Gpio::Session::HIGH_LEVEL);
+	{
+		Genode::Irq_session_client
+			irq(_gpio_button.irq_session(Gpio::Session::RISING_EDGE));
+		irq.sigh(sig_rec.manage(&sig_ctx));
+
+		_gpio_led1.write(false);
+		_gpio_led2.write(true);
+
+		printf("\nRelease button...\n");
+
+		wait_for_signal();
+		irq.ack_irq();
+	}
+
+	printf("OK\n");
+
+	{
+		Genode::Irq_session_client
+			irq(_gpio_button.irq_session(Gpio::Session::HIGH_LEVEL));
+		irq.sigh(sig_rec.manage(&sig_ctx));
+	}
+
 	return true;
 }
 

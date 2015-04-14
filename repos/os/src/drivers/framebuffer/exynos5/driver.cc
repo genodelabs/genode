@@ -113,7 +113,19 @@ class I2c_interface : public Attached_mmio
 			TX_DELAY_US = 1,
 		};
 
-		Irq_connection _irq;
+		Irq_connection          _irq;
+		Genode::Signal_receiver _irq_rec;
+		Genode::Signal_context  _irq_ctx;
+
+		/**
+		 * Wait until the IRQ signal was received
+		 */
+		void _wait_for_irq()
+		{
+			_irq_rec.wait_for_signal();
+
+			_irq.ack_irq();
+		}
 
 		/**
 		 * Stop a running transfer as master
@@ -166,7 +178,7 @@ class I2c_interface : public Attached_mmio
 			write<Con>(con);
 			Stat::Busy::set(stat, 1);
 			write<Stat>(stat);
-			_irq.wait_for_irq();
+			_wait_for_irq();
 			if (_arbitration_error()) return -1;
 			return 0;
 		}
@@ -196,6 +208,7 @@ class I2c_interface : public Attached_mmio
 			return 0;
 		}
 
+
 	public:
 
 		/**
@@ -224,7 +237,12 @@ class I2c_interface : public Attached_mmio
 			Lc::Sda_out_delay::set(lc, 2);
 			Lc::Filter_en::set(lc, 1);
 			write<Lc>(lc);
+
+			_irq.sigh(_irq_rec.manage(&_irq_ctx));
+			_irq.ack_irq();
 		}
+
+		~I2c_interface() { _irq_rec.dissolve(&_irq_ctx); }
 
 		/**
 		 * Transmit an I2C message as master
@@ -252,7 +270,7 @@ class I2c_interface : public Attached_mmio
 				/* finish last byte and prepare for next one */
 				off++;
 				write<Con::Irq_pending>(0);
-				_irq.wait_for_irq();
+				_wait_for_irq();
 				if (_arbitration_error()) return -1;
 			}
 			/* end message transfer */
@@ -285,7 +303,7 @@ class I2c_interface : public Attached_mmio
 			while (1)
 			{
 				/* receive next message byte */
-				_irq.wait_for_irq();
+				_wait_for_irq();
 				if (_arbitration_error()) return -1;
 				buf[off] = read<Ds>();
 				off++;
@@ -619,14 +637,6 @@ class I2c_hdmi : public I2c_interface
 		}
 };
 
-/**
- * Return singleton of device instance
- */
-static I2c_hdmi * i2c_hdmi()
-{
-	static I2c_hdmi s;
-	return &s;
-}
 
 /**
  * Converts input stream from video mixer into HDMI packet stream for HDMI PHY
@@ -942,12 +952,15 @@ class Hdmi : public Attached_mmio
 			write<Fp_3d::Value>(0);
 		}
 
+		I2c_hdmi _i2c_hdmi;
+
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Hdmi() : Attached_mmio(0x14530000, 0xa0000) { }
+		Hdmi()
+		: Attached_mmio(0x14530000, 0xa0000), _i2c_hdmi() { }
 
 		/**
 		 * Initialize HDMI controller for video output only
@@ -978,12 +991,12 @@ class Hdmi : public Attached_mmio
 			}
 			/* set-up HDMI PHY */
 			write<Phy_con_0::Pwr_off>(0);
-			if (i2c_hdmi()->stop_hdmi_phy()) return -1;
+			if (_i2c_hdmi.stop_hdmi_phy()) return -1;
 			write<Phy_rstout::Reset>(1);
 			delayer()->usleep(10000);
 			write<Phy_rstout::Reset>(0);
 			delayer()->usleep(10000);
-			if (i2c_hdmi()->setup_and_start_hdmi_phy(pixel_clk)) return -1;
+			if (_i2c_hdmi.setup_and_start_hdmi_phy(pixel_clk)) return -1;
 
 			/* reset HDMI CORE */
 			write<Core_rstout::Reset>(0);
@@ -1095,15 +1108,6 @@ class Hdmi : public Attached_mmio
 		}
 };
 
-/**
- * Return singleton of device instance
- */
-static Hdmi * hdmi()
-{
-	static Hdmi s;
-	return &s;
-}
-
 
 /*************************
  ** Framebuffer::Driver **
@@ -1140,7 +1144,8 @@ int Framebuffer::Driver::_init_hdmi(addr_t fb_phys)
 	if (err) { return -1; }
 
 	/* set-up HDMI to feed connected device */
-	err = hdmi()->init_hdmi(_fb_width, _fb_height);
+	static Hdmi hdmi;
+	err = hdmi.init_hdmi(_fb_width, _fb_height);
 	if (err) { return -1; }
 	return 0;
 }

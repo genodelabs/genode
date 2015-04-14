@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -36,6 +36,7 @@ class Input::Touchscreen {
 		enum I2c_addresses { I2C_ADDR = 0x4    };
 		enum Finger_state  { PRESSED, RELEASED };
 
+		Irq_handler                       _irq_handler;
 		Genode::Attached_io_mem_dataspace _i2c_ds;
 		I2c::I2c                          _i2c;
 		Genode::uint8_t                   _buf[10];
@@ -43,11 +44,14 @@ class Input::Touchscreen {
 
 	public:
 
-		Touchscreen() : _i2c_ds(Genode::Board_base::I2C_3_BASE,
-		                        Genode::Board_base::I2C_3_SIZE),
-		                _i2c((Genode::addr_t)_i2c_ds.local_addr<void>(),
-		                      Genode::Board_base::I2C_3_IRQ),
-		                _state(RELEASED)
+		Touchscreen(Server::Entrypoint &ep)
+		:
+			_irq_handler(ep, Genode::Board_base::I2C_3_IRQ),
+			_i2c_ds(Genode::Board_base::I2C_3_BASE,
+			        Genode::Board_base::I2C_3_SIZE),
+			_i2c((Genode::addr_t)_i2c_ds.local_addr<void>(),
+			     _irq_handler),
+			     _state(RELEASED)
 		{
 			/* ask for touchscreen firmware version */
 			Genode::uint8_t cmd[10] = { 0x03, 0x03, 0xa, 0x01, 0x41 };

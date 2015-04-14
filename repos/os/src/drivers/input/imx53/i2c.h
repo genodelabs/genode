@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -17,7 +17,9 @@
 /* Genode includes */
 #include <util/mmio.h>
 #include <timer_session/connection.h>
-#include <irq_session/connection.h>
+
+/* local includes */
+#include "irq_handler.h"
 
 namespace I2c
 {
@@ -61,11 +63,10 @@ class I2c::I2c : Genode::Mmio
 
 
 		class No_ack : Genode::Exception {};
-		class No_irq : Genode::Exception {};
 
 
-		Timer::Connection      _timer;
-		Genode::Irq_connection _irq;
+		Timer::Connection  _timer;
+		Irq_handler       &_irq_handler;
 
 		void _busy() { while (!read<Status::Busy>()); }
 
@@ -101,15 +102,19 @@ class I2c::I2c : Genode::Mmio
 		{
 			write<Data>(value);
 
-			_irq.wait_for_irq();
-			if (!read<Status::Irq>()) throw No_irq();
+			do { _irq_handler.wait(); }
+			while (!read<Status::Irq>());
+
 			write<Status::Irq>(0);
 			if (read<Status::Rcv_ack>()) throw No_ack();
+
+			_irq_handler.ack();
 		}
 
 	public:
 
-		I2c(Genode::addr_t const base, unsigned irq) : Mmio(base), _irq(irq)
+		I2c(Genode::addr_t const base, Irq_handler &irq_handler)
+		: Mmio(base), _irq_handler(irq_handler)
 		{
 			write<Control>(0);
 			write<Status>(0);
@@ -128,9 +133,7 @@ class I2c::I2c : Genode::Mmio
 
 					_stop();
 					return;
-				} catch(No_ack) {
-				} catch(No_irq) {
-				}
+				} catch(No_ack) { }
 				 _stop();
 			}
 		}
@@ -150,8 +153,9 @@ class I2c::I2c : Genode::Mmio
 
 					for (Genode::size_t i = 0; i < num; i++) {
 
-						_irq.wait_for_irq();
-						if (!read<Status::Irq>()) throw No_irq();
+						do { _irq_handler.wait(); }
+						while (!read<Status::Irq>());
+
 						write<Status::Irq>(0);
 
 						if (i == num-1) {
@@ -167,8 +171,7 @@ class I2c::I2c : Genode::Mmio
 
 					_stop();
 					return;
-				} catch(No_irq) {
-				}
+				} catch(No_ack) { }
 				 _stop();
 			}
 		}

@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2006-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -22,40 +22,47 @@
 #include <input/component.h>
 #include <input/root.h>
 #include <base/printf.h>
+#include <os/server.h>
 
 /* local includes */
 #include <driver.h>
 
 using namespace Genode;
 
-int main(int argc, char **argv)
+
+struct Main
 {
-	/* initialize server entry point */
-	enum { STACK_SIZE = 4096 };
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "input_ep");
+	Server::Entrypoint &ep;
 
-	static Input::Session_component session;
+	Input::Session_component session;
+	Input::Root_component    root;
 
-	Platform::Connection plat_drv;
-	switch (plat_drv.revision()) {
-	case Platform::Session::SMD:
-		plat_drv.enable(Platform::Session::I2C_2);
-		plat_drv.enable(Platform::Session::I2C_3);
-		plat_drv.enable(Platform::Session::BUTTONS);
-		Input::Tablet_driver::factory(session.event_queue());
-		break;
-	default:
-		PWRN("No input driver available for this board");
+	Main(Server::Entrypoint &ep)
+	: ep(ep), root(ep.rpc_ep(), session)
+	{
+		Platform::Connection plat_drv;
+		switch (plat_drv.revision()) {
+			case Platform::Session::SMD:
+				plat_drv.enable(Platform::Session::I2C_2);
+				plat_drv.enable(Platform::Session::I2C_3);
+				plat_drv.enable(Platform::Session::BUTTONS);
+				Input::Tablet_driver::factory(ep, session.event_queue());
+				break;
+			default:
+				PWRN("No input driver available for this board");
+		}
+
+		/* tell parent about the service */
+		env()->parent()->announce(ep.manage(root));
 	}
+};
 
-	/* entry point serving input root interface */
-	static Input::Root_component root(ep, session);
+/************
+ ** Server **
+ ************/
 
-	/* tell parent about the service */
-	env()->parent()->announce(ep.manage(&root));
-
-	/* main's done - go to sleep */
-	sleep_forever();
-	return 0;
+namespace Server {
+	char const *name()             { return "input_drv_ep";    }
+	size_t stack_size()            { return 2*1024*sizeof(long); }
+	void construct(Entrypoint &ep) { static Main server(ep);   }
 }

@@ -370,6 +370,8 @@ class Ahci_device_base
 		Generic_ctrl             *_ctrl;      /* generic host control */
 		Ahci_port                *_port;      /* port base of device */
 		Irq_connection           *_irq;       /* device IRQ */
+		Genode::Signal_receiver   _irq_rec;   /* IRQ signal receiver */
+		Genode::Signal_context    _irq_ctx;   /* IRQ signal context */
 		size_t                    _block_cnt; /* number of blocks on device */
 		Command_list             *_cmd_list;  /* pointer to command list */
 		Command_table            *_cmd_table; /* pointer to command table */
@@ -453,7 +455,7 @@ class Ahci_device_base
 			while (!status) {
 
 				/* wait for interrupt */
-				_irq->wait_for_irq();
+				_irq_rec.wait_for_signal();
 
 				if (verbose)
 					PDBG("Int status (IRQ): global: %x port: %x error: %x",
@@ -478,6 +480,8 @@ class Ahci_device_base
 
 			/* acknowledge global port interrupt */
 			_ctrl->hba_interrupt_ack();
+
+			_irq->ack_irq();
 
 			/* disable hba */
 			_port->hba_disable();

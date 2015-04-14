@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2012-2013 Genode Labs GmbH
+ * Copyright (C) 2012-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -25,6 +25,10 @@ struct Main
 
 	struct Factory : Block::Driver_factory
 	{
+		Server::Entrypoint &ep;
+
+		Factory(Server::Entrypoint &ep) : ep(ep) { }
+
 		Block::Driver *create() {
 			return new (Genode::env()->heap()) Block::Omap4_driver(true); }
 
@@ -36,7 +40,7 @@ struct Main
 	Block::Root root;
 
 	Main(Server::Entrypoint &ep)
-	: ep(ep), root(ep, Genode::env()->heap(), factory)
+	: ep(ep), factory(ep), root(ep, Genode::env()->heap(), factory)
 	{
 		Genode::printf("--- OMAP4 SD card driver ---\n");
 
@@ -54,4 +58,3 @@ namespace Server {
 	size_t stack_size()            { return 2*1024*sizeof(long); }
 	void construct(Entrypoint &ep) { static Main server(ep);     }
 }
-

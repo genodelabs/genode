@@ -7,7 +7,7 @@
 
 /*
  * Copyright (C) 2012 Ksys Labs LLC
- * Copyright (C) 2012-2013 Genode Labs GmbH
+ * Copyright (C) 2012-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -19,35 +19,45 @@
 #include <cap_session/connection.h>
 #include <gpio/component.h>
 #include <gpio/config.h>
+#include <os/server.h>
 
 /* local includes */
 #include <driver.h>
 
 
-int main(int, char **)
+struct Main
 {
-	using namespace Genode;
+	Server::Entrypoint  &ep;
+	Genode::Sliced_heap  sliced_heap;
+	Omap4_driver        &driver;
+	Gpio::Root           root;
 
-	printf("--- omap4 gpio driver ---\n");
+	Main(Server::Entrypoint &ep)
+	:
+		ep(ep),
+		sliced_heap(Genode::env()->ram_session(), Genode::env()->rm_session()),
+		driver(Omap4_driver::factory(ep)),
+		root(&ep.rpc_ep(), &sliced_heap, driver)
+	{
+		using namespace Genode;
 
-	Omap4_driver &driver = Omap4_driver::factory();
-	Gpio::process_config(driver);
+		printf("--- omap4 gpio driver ---\n");
 
-	/*
-	 * Initialize server entry point
-	 */
-	enum { STACK_SIZE = 4096 };
-	static Cap_connection cap;
-	Sliced_heap sliced_heap(env()->ram_session(), env()->rm_session());
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "gpio_ep");
-	static Gpio::Root gpio_root(&ep, &sliced_heap, driver);
+		Gpio::process_config(driver);
 
-	/*
-	 * Announce service
-	 */
-	env()->parent()->announce(ep.manage(&gpio_root));
+		/*
+		 * Announce service
+		 */
+		env()->parent()->announce(ep.manage(root));
+	}
+};
 
-	Genode::sleep_forever();
-	return 0;
+/************
+ ** Server **
+ ************/
+
+namespace Server {
+	char const *name()             { return "gpio_drv_ep";     }
+	size_t stack_size()            { return 1024*sizeof(long); }
+	void construct(Entrypoint &ep) { static Main server(ep);   }
 }
-
