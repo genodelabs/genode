@@ -37,6 +37,7 @@ usage:
 	@echo "                  'hw_odroid_xu'"
 	@echo "                  'hw_rpi'"
 	@echo "                  'hw_x86_64'"
+	@echo "                  'hw_x86_64_muen'"
 	@echo "                  'foc_x86_32'"
 	@echo "                  'foc_x86_64'"
 	@echo "                  'foc_pbxa9'"
@@ -152,7 +153,7 @@ endif
 #
 # Add x86 drivers repositories to x86 build directories
 #
-ifeq ($(filter-out foc_x86_32 foc_x86_64 okl4_x86 nova_x86_32 nova_x86_64 pistachio_x86 fiasco_x86 hw_x86_64 sel4_x86_32,$(PLATFORM)),)
+ifeq ($(filter-out foc_x86_32 foc_x86_64 okl4_x86 nova_x86_32 nova_x86_64 pistachio_x86 fiasco_x86 hw_x86_64 hw_x86_64_muen sel4_x86_32,$(PLATFORM)),)
 $(BUILD_DIR)/etc/build.conf::
 	@cat $(BUILD_CONF).drivers_x86 >> $@
 endif
@@ -261,6 +262,9 @@ hw_odroid_xu::
 hw_x86_64::
 	@echo "SPECS = genode hw_x86_64" > $(BUILD_DIR)/etc/specs.conf
 	@echo "SPECS += acpi" >> $(BUILD_DIR)/etc/specs.conf
+
+hw_x86_64_muen::
+	@echo "SPECS = genode hw_x86_64_muen" > $(BUILD_DIR)/etc/specs.conf
 
 lx_hybrid_x86::
 	@echo "CROSS_DEV_PREFIX =" > $(BUILD_DIR)/etc/tools.conf
