@@ -81,7 +81,7 @@ class I8042
 	};
 
 	class _Channel : public Serial_interface,
-	                 public Ring_buffer<unsigned char, 1024>
+	                 public Genode::Ring_buffer<unsigned char, 1024>
 	{
 		private:
 

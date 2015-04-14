@@ -26,8 +26,8 @@ class Driver : public Block::Driver
 
 		enum { MAX_REQUESTS = 5 };
 
-		typedef Ring_buffer<Block::Packet_descriptor, MAX_REQUESTS,
-		                    Ring_buffer_unsynchronized> Req_buffer;
+		typedef Genode::Ring_buffer<Block::Packet_descriptor, MAX_REQUESTS,
+		                            Genode::Ring_buffer_unsynchronized> Req_buffer;
 
 		Genode::size_t                    _number;
 		Genode::size_t                    _size;

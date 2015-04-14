@@ -43,8 +43,7 @@ struct pl2303_config
 } __attribute__((packed));
 
 
-struct Usb::Pl2303_driver : Completion,
-                            Ring_buffer<char, 4096, Ring_buffer_unsynchronized>
+struct Usb::Pl2303_driver : Completion
 {
 	enum { VENDOR = 0x67b, PRODUCT = 0x2303 /* Prolific 2303 seriral port */ };
 
@@ -57,6 +56,9 @@ struct Usb::Pl2303_driver : Completion,
 	/* Pl2303 endpoints */
 	enum Endpoints { STATUS = 0,  OUT = 1, IN = 2 };
 
+	typedef Genode::Ring_buffer<char, 4096, Genode::Ring_buffer_unsynchronized> Ring_buffer;
+
+	Ring_buffer                              ring_buffer;
 	Server::Entrypoint                      &ep;
 	Server::Signal_rpc_member<Pl2303_driver> dispatcher{ ep, *this, &Pl2303_driver::state_change };
 	Genode::Allocator_avl                    alloc;
@@ -102,12 +104,12 @@ struct Usb::Pl2303_driver : Completion,
 		}
 
 		/* buffer data */
-		bool send_sigh = empty() && p.transfer.actual_size;
+		bool send_sigh = ring_buffer.empty() && p.transfer.actual_size;
 		char *data     = (char *)iface.content(p);
 
 		try {
 			for (int i = 0; i < p.transfer.actual_size; i++)
-				add(data[i]);
+				ring_buffer.add(data[i]);
 		} catch (Ring_buffer::Overflow) {
 			PWRN("Pl2303 buffer overflow");
 		}
@@ -223,6 +225,16 @@ struct Usb::Pl2303_driver : Completion,
 		else if (verbose)
 			PDBG("Device: Unplugged");
 	}
+
+	/**
+	 * Return true if data is available
+	 */
+	bool avail() const { return !ring_buffer.empty(); }
+
+	/**
+	 * Obtain character
+	 */
+	char get() { return ring_buffer.get(); }
 };
 
 
@@ -250,14 +262,14 @@ class Terminal::Session_component : public Rpc_object<Session, Session_component
 		}
 
 		Size size()  { return Size(0, 0); }
-		bool avail() { return !_driver.empty(); }
+		bool avail() { return _driver.avail(); }
 
 		size_t _read(size_t dst_len)
 		{
 			size_t num_bytes = 0;
 			char  *data      = _io_buffer.local_addr<char>();
 
-			for (;num_bytes < dst_len && !_driver.empty(); num_bytes++)
+			for (;num_bytes < dst_len && _driver.avail(); num_bytes++)
 				data[num_bytes] = _driver.get();
 
 			return num_bytes;

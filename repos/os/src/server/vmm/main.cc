@@ -1032,8 +1032,8 @@ class Vmm
 			private:
 
 				using Board = Vea9x4::Genode::Board_base;
-				using Ring_buffer = ::Ring_buffer<char, 1024,
-				                                  Ring_buffer_unsynchronized>;
+				using Ring_buffer = Genode::Ring_buffer<char, 1024,
+				                                        Genode::Ring_buffer_unsynchronized>;
 
 				class Wrong_offset {};
 

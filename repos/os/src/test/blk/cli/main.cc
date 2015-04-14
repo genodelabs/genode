@@ -178,8 +178,8 @@ struct Write_test : Test
 			PINF("Integrity check failed: block %lld - %lld", _nr, _nr+_cnt); }
 	};
 
-	typedef Ring_buffer<Block::Packet_descriptor, BATCH+1,
-	                    Ring_buffer_unsynchronized> Req_buffer;
+	typedef Genode::Ring_buffer<Block::Packet_descriptor, BATCH+1,
+	                            Genode::Ring_buffer_unsynchronized> Req_buffer;
 
 	Req_buffer read_packets;
 	Req_buffer write_packets;

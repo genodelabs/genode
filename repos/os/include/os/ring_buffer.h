@@ -18,8 +18,17 @@
 #include <base/exception.h>
 #include <util/string.h>
 
+namespace Genode {
 
-struct Ring_buffer_unsynchronized
+	struct Ring_buffer_unsynchronized;
+	struct Ring_buffer_synchronized;
+
+	template <typename, int, typename SYNC_POLICY = Ring_buffer_synchronized>
+	class Ring_buffer;
+}
+
+
+struct Genode::Ring_buffer_unsynchronized
 {
 	struct Sem
 	{
@@ -40,7 +49,7 @@ struct Ring_buffer_unsynchronized
 };
 
 
-struct Ring_buffer_synchronized
+struct Genode::Ring_buffer_synchronized
 {
 	typedef Genode::Semaphore Sem;
 	typedef Genode::Lock Lock;
@@ -60,9 +69,8 @@ struct Ring_buffer_synchronized
  * stored in the buffer. Hence, the ring buffer is suited
  * for simple plain-data element types.
  */
-template <typename ET, int QUEUE_SIZE,
-          typename SYNC_POLICY = Ring_buffer_synchronized>
-class Ring_buffer
+template <typename ET, int QUEUE_SIZE, typename SYNC_POLICY>
+class Genode::Ring_buffer
 {
 	private:
 
@@ -75,7 +83,7 @@ class Ring_buffer
 
 	public:
 
-		class Overflow : public Genode::Exception { };
+		class Overflow : public Exception { };
 
 		/**
 		 * Constructor

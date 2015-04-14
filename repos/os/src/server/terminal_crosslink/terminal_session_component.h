@@ -38,7 +38,7 @@ namespace Terminal {
 
 			Attached_ram_dataspace  _io_buffer;
 
-			typedef Ring_buffer<unsigned char, BUFFER_SIZE+1> Local_buffer;
+			typedef Genode::Ring_buffer<unsigned char, BUFFER_SIZE+1> Local_buffer;
 
 			Local_buffer              _buffer;
 			size_t                    _cross_num_bytes_avail;

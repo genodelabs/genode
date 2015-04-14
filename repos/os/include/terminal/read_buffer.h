@@ -26,7 +26,7 @@ namespace Terminal {
 }
 
 
-class Terminal::Read_buffer : public Ring_buffer<unsigned char, READ_BUFFER_SIZE>
+class Terminal::Read_buffer : public Genode::Ring_buffer<unsigned char, READ_BUFFER_SIZE>
 {
 	private:
 
@@ -47,7 +47,7 @@ class Terminal::Read_buffer : public Ring_buffer<unsigned char, READ_BUFFER_SIZE
 		 */
 		void add(unsigned char c)
 		{
-			Ring_buffer<unsigned char, READ_BUFFER_SIZE>::add(c);
+			Genode::Ring_buffer<unsigned char, READ_BUFFER_SIZE>::add(c);
 
 			if (_sigh_cap.valid())
 				Genode::Signal_transmitter(_sigh_cap).submit();
@@ -63,7 +63,7 @@ class Terminal::Read_buffer : public Ring_buffer<unsigned char, READ_BUFFER_SIZE
 
 enum { READ_BUFFER_SIZE = 4096 };
 
-class Read_buffer : public Ring_buffer<unsigned char, READ_BUFFER_SIZE>
+class Read_buffer : public Genode::Ring_buffer<unsigned char, READ_BUFFER_SIZE>
 {
 	private:
 
@@ -84,7 +84,7 @@ class Read_buffer : public Ring_buffer<unsigned char, READ_BUFFER_SIZE>
 		 */
 		void add(unsigned char c)
 		{
-			Ring_buffer<unsigned char, READ_BUFFER_SIZE>::add(c);
+			Genode::Ring_buffer<unsigned char, READ_BUFFER_SIZE>::add(c);
 
 			if (_sigh_cap.valid())
 				Genode::Signal_transmitter(_sigh_cap).submit();

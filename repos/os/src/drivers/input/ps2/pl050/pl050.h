@@ -59,7 +59,7 @@ class Pl050
 
 
 	class _Channel : public Serial_interface,
-	                 public Ring_buffer<unsigned char, 256>
+	                 public Genode::Ring_buffer<unsigned char, 256>
 	{
 		private:
 
