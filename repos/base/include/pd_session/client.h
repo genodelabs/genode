@@ -31,6 +31,14 @@ struct Genode::Pd_session_client : Rpc_client<Pd_session>
 	int assign_parent(Parent_capability parent) override {
 		return call<Rpc_assign_parent>(parent); }
 
+	/**
+	 * Dummy stub for PCI-device assignment operation
+	 *
+	 * The assign_pci function exists only in the NOVA-specific version of the
+	 * PD-session interface. This empty dummy stub merely exists to maintain
+	 * API compatibility accross all base platforms so that drivers don't need
+	 * to distinguish NOVA from non-NOVA.
+	 */
 	bool assign_pci(addr_t) { return false; }
 };
 
