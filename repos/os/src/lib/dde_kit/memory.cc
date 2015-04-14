@@ -152,9 +152,9 @@ class Backing_store_allocator : public Allocator
 			destroy(env()->heap(), b);
 		}
 
-		size_t consumed() { return _consumed; }
+		size_t consumed() const { return _consumed; }
 
-		size_t overhead(size_t size) { return 0; }
+		size_t overhead(size_t size) const { return 0; }
 
 		bool need_size_for_free() const override { return false; }
 };

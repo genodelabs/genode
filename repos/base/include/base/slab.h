@@ -265,10 +265,10 @@ class Genode::Slab : public Allocator
 		 * The 'size' parameter is ignored as only slab entries with
 		 * preconfigured slab-entry size are allocated.
 		 */
-		bool   alloc(size_t size, void **addr);
-		void   free(void *addr, size_t) { free(addr); }
-		size_t consumed();
-		size_t overhead(size_t) { return _block_size/_num_elem; }
+		bool   alloc(size_t size, void **addr) override;
+		void   free(void *addr, size_t) override { free(addr); }
+		size_t consumed() const override;
+		size_t overhead(size_t) const override { return _block_size/_num_elem; }
 		bool   need_size_for_free() const override { return false; }
 };
 

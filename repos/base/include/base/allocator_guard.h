@@ -93,7 +93,7 @@ class Genode::Allocator_guard : public Allocator
 		/**
 		 * Return amount of backing store consumed by the allocator
 		 */
-		size_t consumed() override { return _consumed; }
+		size_t consumed() const override { return _consumed; }
 
 		/**
 		 * Return allocation limit
@@ -103,7 +103,7 @@ class Genode::Allocator_guard : public Allocator
 		/**
 		 * Return meta-data overhead per block
 		 */
-		size_t overhead(size_t size) override { return _allocator->overhead(size); }
+		size_t overhead(size_t size) const override { return _allocator->overhead(size); }
 
 		bool need_size_for_free() const override {
 			return _allocator->need_size_for_free(); }

@@ -159,15 +159,16 @@ class Genode::Core_mem_allocator : public Genode::Core_mem_translator
 				 ** Range allocator interface **
 				 *******************************/
 
-				int add_range(addr_t base, size_t size)    { return -1; }
-				int remove_range(addr_t base, size_t size) { return -1; }
+				int add_range(addr_t base, size_t size) override { return -1; }
+				int remove_range(addr_t base, size_t size) override { return -1; }
 				Alloc_return alloc_aligned(size_t size, void **out_addr,
-				                           int align = 0, addr_t from = 0, addr_t to = ~0UL);
-				Alloc_return alloc_addr(size_t size, addr_t addr) {
+				                           int align = 0, addr_t from = 0,
+				                           addr_t to = ~0UL) override;
+				Alloc_return alloc_addr(size_t size, addr_t addr) override {
 					return Alloc_return::RANGE_CONFLICT; }
-				void         free(void *addr) {}
-				size_t       avail() { return _phys_alloc->avail(); }
-				bool         valid_addr(addr_t addr) {
+				void         free(void *addr) override { }
+				size_t       avail() const override { return _phys_alloc->avail(); }
+				bool         valid_addr(addr_t addr) const override {
 					return _virt_alloc->valid_addr(addr); }
 
 
@@ -175,11 +176,11 @@ class Genode::Core_mem_allocator : public Genode::Core_mem_translator
 				 ** Allocator interface **
 				 *************************/
 
-				bool   alloc(size_t size, void **out_addr) {
+				bool   alloc(size_t size, void **out_addr) override {
 					return alloc_aligned(size, out_addr).is_ok(); }
-				void   free(void *addr, size_t) { free(addr); }
-				size_t consumed() { return _phys_alloc->consumed(); }
-				size_t overhead(size_t size) {
+				void   free(void *addr, size_t) override { free(addr); }
+				size_t consumed() const override { return _phys_alloc->consumed(); }
+				size_t overhead(size_t size) const override {
 					return _phys_alloc->overhead(size); }
 				bool   need_size_for_free() const override {
 					return _phys_alloc->need_size_for_free(); }
@@ -269,39 +270,40 @@ class Genode::Core_mem_allocator : public Genode::Core_mem_translator
 		 ** Range allocator interface **
 		 *******************************/
 
-		int          add_range(addr_t base, size_t size) { return -1; }
-		int          remove_range(addr_t base, size_t size) { return -1; }
-		Alloc_return alloc_addr(size_t size, addr_t addr) {
+		int          add_range(addr_t base, size_t size) override { return -1; }
+		int          remove_range(addr_t base, size_t size) override { return -1; }
+		Alloc_return alloc_addr(size_t size, addr_t addr) override {
 			return Alloc_return::RANGE_CONFLICT; }
 
-		Alloc_return alloc_aligned(size_t size, void **out_addr, int align = 0, addr_t from = 0, addr_t to = ~0UL)
+		Alloc_return alloc_aligned(size_t size, void **out_addr, int align = 0,
+		                           addr_t from = 0, addr_t to = ~0UL) override
 		{
 			Lock::Guard lock_guard(_lock);
 			return _mem_alloc.alloc_aligned(size, out_addr, align, from, to);
 		}
 
-		void free(void *addr)
+		void free(void *addr) override
 		{
 			Lock::Guard lock_guard(_lock);
 			return _mem_alloc.free(addr);
 		}
 
-		size_t avail() { return _phys_alloc.avail(); }
+		size_t avail() const override { return _phys_alloc.avail(); }
 
-		bool valid_addr(addr_t addr) { return _virt_alloc.valid_addr(addr); }
+		bool valid_addr(addr_t addr) const override { return _virt_alloc.valid_addr(addr); }
 
 
 		/*************************
 		 ** Allocator interface **
 		 *************************/
 
-		bool alloc(size_t size, void **out_addr) {
+		bool alloc(size_t size, void **out_addr) override {
 			return alloc_aligned(size, out_addr).is_ok(); }
 
-		void free(void *addr, size_t) { free(addr); }
+		void free(void *addr, size_t) override { free(addr); }
 
-		size_t consumed() { return _phys_alloc.consumed(); }
-		size_t overhead(size_t size) { return _phys_alloc.overhead(size); }
+		size_t consumed()            const override { return _phys_alloc.consumed(); }
+		size_t overhead(size_t size) const override { return _phys_alloc.overhead(size); }
 
 		bool need_size_for_free() const override {
 			return _phys_alloc.need_size_for_free(); }

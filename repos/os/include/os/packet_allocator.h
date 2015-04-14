@@ -67,7 +67,7 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 		 ** Range-allocator interface **
 		 *******************************/
 
-		int add_range(addr_t base, size_t size)
+		int add_range(addr_t base, size_t size) override
 		{
 			if (_base || _array) return -1;
 
@@ -79,7 +79,7 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 			return 0;
 		}
 
-		int remove_range(addr_t base, size_t size)
+		int remove_range(addr_t base, size_t size) override
 		{
 			if (_base != base) return -1;
 
@@ -89,13 +89,13 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 		}
 
 		Alloc_return alloc_aligned(size_t size, void **out_addr, int, addr_t,
-			                       addr_t)
+			                       addr_t) override
 		{
 			return alloc(size, out_addr) ? Alloc_return::OK
 			                             : Alloc_return::RANGE_CONFLICT;
 		}
 
-		bool alloc(size_t size, void **out_addr)
+		bool alloc(size_t size, void **out_addr) override
 		{
 			addr_t const cnt = (size % _block_size) ? size / _block_size + 1
 			                                        : size / _block_size;
@@ -124,7 +124,7 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 			return false;
 		}
 
-		void free(void *addr, size_t size)
+		void free(void *addr, size_t size) override
 		{
 			addr_t i   = (((addr_t)addr) - _base) / _block_size;
 			size_t cnt = (size % _block_size) ? size / _block_size + 1
@@ -139,11 +139,11 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 		 *************/
 
 		bool need_size_for_free() const override { return false; }
-		void free(void *addr) { }
-		size_t overhead(size_t) {  return 0;}
-		size_t avail() { return 0; }
-		bool valid_addr(addr_t) { return 0; }
-		Alloc_return alloc_addr(size_t, addr_t) {
+		void free(void *addr) override { }
+		size_t overhead(size_t) const override {  return 0;}
+		size_t avail() const override { return 0; }
+		bool valid_addr(addr_t) const override { return 0; }
+		Alloc_return alloc_addr(size_t, addr_t) override {
 			return Alloc_return(Alloc_return::OUT_OF_METADATA); }
 };
 

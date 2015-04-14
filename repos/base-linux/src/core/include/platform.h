@@ -59,15 +59,14 @@ namespace Genode {
 					return Alloc_return::OK;;
 				}
 
-				int    add_range(addr_t, size_t)    { return 0; }
-				int    remove_range(addr_t, size_t) { return 0; }
-				void   free(void *)                 { }
-				void   free(void *, size_t)         { }
-				size_t avail()                      { return ~0; }
-				bool   valid_addr(addr_t)           { return true; }
-				size_t overhead(size_t)             { return 0; }
-
-				bool need_size_for_free() const override { return true; }
+				int    add_range(addr_t, size_t)    override { return 0; }
+				int    remove_range(addr_t, size_t) override { return 0; }
+				void   free(void *) override                 { }
+				void   free(void *, size_t) override         { }
+				size_t avail() const override                { return ~0; }
+				bool   valid_addr(addr_t) const override     { return true; }
+				size_t overhead(size_t) const override       { return 0; }
+				bool   need_size_for_free() const override   { return true; }
 			};
 
 			Pseudo_ram_allocator _ram_alloc;

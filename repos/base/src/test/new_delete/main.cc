@@ -45,12 +45,12 @@ struct Allocator : Genode::Allocator
 	Allocator() { }
 	virtual ~Allocator() { }
 
-	Genode::size_t consumed() override
+	Genode::size_t consumed() const override
 	{
 		return heap.consumed();
 	}
 
-	Genode::size_t overhead(Genode::size_t size) override
+	Genode::size_t overhead(Genode::size_t size) const override
 	{
 		return heap.overhead(size);
 	}

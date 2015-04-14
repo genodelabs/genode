@@ -151,8 +151,8 @@ namespace Allocator {
 				return addr;
 			}
 
-			void   free(void *addr, size_t size) { _range.free(addr, size); }
-			size_t overhead(size_t size) { return  0; }
+			void   free(void *addr, size_t size) override { _range.free(addr, size); }
+			size_t overhead(size_t size) const override { return  0; }
 			bool need_size_for_free() const override { return false; }
 
 			/**

@@ -70,7 +70,7 @@ class Malloc : public Genode::Allocator
 		Genode::Slab_alloc *_allocator[NUM_SLABS]; /* slab allocators */
 		Genode::Lock        _lock;
 
-		unsigned long _slab_log2(unsigned long size)
+		unsigned long _slab_log2(unsigned long size) const
 		{
 			unsigned msb = Genode::log2(size);
 			/* size is greater than msb */
@@ -100,7 +100,7 @@ class Malloc : public Genode::Allocator
 		 * Allocator interface
 		 */
 
-		bool alloc(size_t size, void **out_addr)
+		bool alloc(size_t size, void **out_addr) override
 		{
 			Genode::Lock::Guard lock_guard(_lock);
 
@@ -132,7 +132,7 @@ class Malloc : public Genode::Allocator
 			return true;
 		}
 
-		void free(void *ptr, size_t /* size */)
+		void free(void *ptr, size_t /* size */) override
 		{
 			Genode::Lock::Guard lock_guard(_lock);
 
@@ -147,7 +147,7 @@ class Malloc : public Genode::Allocator
 			}
 		}
 
-		size_t overhead(size_t size)
+		size_t overhead(size_t size) const override
 		{
 			size += sizeof(Block_header);
 

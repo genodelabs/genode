@@ -358,14 +358,14 @@ bool Allocator_avl_base::any_block_addr(addr_t *out_addr)
 }
 
 
-size_t Allocator_avl_base::avail()
+size_t Allocator_avl_base::avail() const
 {
 	Block *b = static_cast<Block *>(_addr_tree.first());
 	return b ? b->avail_in_subtree() : 0;
 }
 
 
-bool Allocator_avl_base::valid_addr(addr_t addr)
+bool Allocator_avl_base::valid_addr(addr_t addr) const
 {
 	Block *b = _find_by_address(addr);
 	return b ? true : false;

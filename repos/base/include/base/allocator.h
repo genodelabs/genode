@@ -95,12 +95,12 @@ struct Genode::Allocator : Deallocator
 	/**
 	 * Return total amount of backing store consumed by the allocator
 	 */
-	virtual size_t consumed() { return 0; }
+	virtual size_t consumed() const { return 0; }
 
 	/**
 	 * Return meta-data overhead per block
 	 */
-	virtual size_t overhead(size_t size) = 0;
+	virtual size_t overhead(size_t size) const = 0;
 
 	/**
 	 * Allocate block and signal error as an exception
@@ -193,7 +193,7 @@ struct Genode::Range_allocator : Allocator
 	 * Note that the returned value is not neccessarily allocatable
 	 * because the memory may be fragmented.
 	 */
-	virtual size_t avail() = 0;
+	virtual size_t avail() const = 0;
 
 	/**
 	 * Check if address is inside an allocated block
@@ -203,7 +203,7 @@ struct Genode::Range_allocator : Allocator
 	 * \return      true if address is inside an allocated block, false
 	 *              otherwise
 	 */
-	virtual bool valid_addr(addr_t addr) = 0;
+	virtual bool valid_addr(addr_t addr) const = 0;
 };
 
 

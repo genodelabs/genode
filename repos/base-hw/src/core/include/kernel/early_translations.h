@@ -44,18 +44,18 @@ class Genode::Early_translations_allocator : public Genode::Core_mem_translator
 	public:
 
 		Early_translations_allocator() { }
-		int add_range(addr_t base, size_t size) { return -1; }
-		int remove_range(addr_t base, size_t size) { return -1; }
-		Alloc_return alloc_aligned(size_t, void **, int, addr_t, addr_t) {
+		int add_range(addr_t base, size_t size) override { return -1; }
+		int remove_range(addr_t base, size_t size) override { return -1; }
+		Alloc_return alloc_aligned(size_t, void **, int, addr_t, addr_t) override {
 			return Alloc_return::RANGE_CONFLICT; }
-		Alloc_return alloc_addr(size_t size, addr_t addr) {
+		Alloc_return alloc_addr(size_t size, addr_t addr) override {
 			return Alloc_return::RANGE_CONFLICT; }
-		void   free(void *addr) {}
-		size_t avail() { return 0; }
-		bool valid_addr(addr_t addr) { return false; }
-		bool alloc(size_t size, void **out_addr) { return false; }
-		void free(void *addr, size_t) {  }
-		size_t overhead(size_t size) { return 0; }
+		void   free(void *addr) override { }
+		size_t avail() const override { return 0; }
+		bool valid_addr(addr_t addr) const override { return false; }
+		bool alloc(size_t size, void **out_addr) override { return false; }
+		void free(void *addr, size_t) override { }
+		size_t overhead(size_t size) const override { return 0; }
 		bool need_size_for_free() const override { return false; }
 		void * phys_addr(void * addr) { return addr; }
 		void * virt_addr(void * addr) { return addr; }

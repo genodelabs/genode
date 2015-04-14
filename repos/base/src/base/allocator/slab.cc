@@ -285,7 +285,7 @@ void *Slab::first_used_elem()
 }
 
 
-size_t Slab::consumed()
+size_t Slab::consumed() const
 {
 	/* count number of slab blocks */
 	unsigned sb_cnt = 0;

@@ -86,13 +86,13 @@ class Genode::Synchronized_allocator : public Allocator
 			_alloc.free(addr, size);
 		}
 
-		size_t consumed() override
+		size_t consumed() const override
 		{
 			Lock::Guard lock_guard(*_lock);
 			return _alloc.consumed();
 		}
 
-		size_t overhead(size_t size) override
+		size_t overhead(size_t size) const override
 		{
 			Lock::Guard lock_guard(*_lock);
 			return _alloc.overhead(size);
@@ -191,13 +191,13 @@ class Genode::Synchronized_range_allocator : public Range_allocator
 			_alloc.free(addr, size);
 		}
 
-		size_t consumed() override
+		size_t consumed() const override
 		{
 			Lock::Guard lock_guard(*_lock);
 			return _alloc.consumed();
 		}
 
-		size_t overhead(size_t size) override
+		size_t overhead(size_t size) const override
 		{
 			Lock::Guard lock_guard(*_lock);
 			return _alloc.overhead(size);
@@ -245,13 +245,13 @@ class Genode::Synchronized_range_allocator : public Range_allocator
 			_alloc.free(addr);
 		}
 
-		size_t avail() override
+		size_t avail() const override
 		{
 			Lock::Guard lock_guard(*_lock);
 			return _alloc.avail();
 		}
 
-		bool valid_addr(addr_t addr) override
+		bool valid_addr(addr_t addr) const override
 		{
 			Lock::Guard lock_guard(*_lock);
 			return _alloc.valid_addr(addr);

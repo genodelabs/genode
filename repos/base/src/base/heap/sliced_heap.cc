@@ -120,4 +120,7 @@ void Sliced_heap::free(void *addr, size_t size)
 }
 
 
-size_t Sliced_heap::overhead(size_t size) { return align_addr(size + sizeof(Block), 12) - size; }
+size_t Sliced_heap::overhead(size_t size) const
+{
+	return align_addr(size + sizeof(Block), 12) - size;
+}
