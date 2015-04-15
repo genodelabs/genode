@@ -265,7 +265,7 @@ int main(int argc, char **argv)
 	static Pci_policy     pci_policy(pci_ep, ep, irq_ep);
 
 	/* generate config file for pci_drv */
-	char buf[256];
+	char buf[1024];
 	Acpi::create_pci_config_file(buf, sizeof(buf));
 	pci_policy.configure(buf);
 

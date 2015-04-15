@@ -19,6 +19,7 @@
 #include <io_mem_session/connection.h>
 #include <pci_session/connection.h>
 #include <pci_device/client.h>
+#include <os/attached_rom_dataspace.h>
 
 #include "acpi.h"
 #include "memory.h"
@@ -1016,9 +1017,19 @@ class Element : public List<Element>::Element
 				text += len;
 				max  -= len;
 			}
-			len = snprintf(text, max, "</config>");
-			text += len;
-			max  -= len;
+
+			Attached_rom_dataspace rom("config");
+			char * rom_text = rom.local_addr<char>();
+			size_t rom_len  = strlen(rom_text);
+
+			if (max > rom_len - 9) {
+				rom_text += 9;
+				rom_len  -= 9;
+				memcpy(text, rom_text, rom_len);
+				text += rom_len;
+				max  -= rom_len;
+			} else
+				PERR("could not add pci_drv policy");
 
 			if (max < 2)
 				PERR("config file could not be generated, buffer to small");
