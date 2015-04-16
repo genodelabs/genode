@@ -15,7 +15,6 @@
 #define _KERNEL__SIGNAL_RECEIVER_H_
 
 /* Genode includes */
-#include <util/fifo.h>
 #include <base/signal.h>
 
 /* core include */
@@ -93,11 +92,6 @@ class Kernel::Signal_handler
 		Signal_receiver * _receiver;
 
 		/**
-		 * Backend for for destructor and cancel_waiting
-		 */
-		void _cancel_waiting();
-
-		/**
 		 * Let the handler block for signal receipt
 		 *
 		 * \param receiver  the signal pool that the thread blocks for
@@ -122,24 +116,13 @@ class Kernel::Signal_handler
 
 	public:
 
-		/**
-		 * Constructor
-		 */
-		Signal_handler()
-		:
-			_handlers_fe(this),
-			_receiver(0)
-		{ }
-
-		/**
-		 * Destructor
-		 */
-		virtual ~Signal_handler() { _cancel_waiting(); }
+		Signal_handler();
+		virtual ~Signal_handler();
 
 		/**
 		 * Stop waiting for a signal receiver
 		 */
-		void cancel_waiting() { _cancel_waiting(); }
+		void cancel_waiting();
 };
 
 class Kernel::Signal_context_killer
@@ -149,11 +132,6 @@ class Kernel::Signal_context_killer
 	private:
 
 		Signal_context * _context;
-
-		/**
-		 * Backend for destructor and cancel_waiting
-		 */
-		void _cancel_waiting();
 
 		/**
 		 * Notice that the kill operation is pending
@@ -180,20 +158,13 @@ class Kernel::Signal_context_killer
 
 	public:
 
-		/**
-		 * Constructor
-		 */
-		Signal_context_killer() : _context(0) { }
-
-		/**
-		 * Destructor
-		 */
-		virtual ~Signal_context_killer() { _cancel_waiting(); }
+		Signal_context_killer();
+		virtual ~Signal_context_killer();
 
 		/**
 		 * Stop waiting for a signal context
 		 */
-		void cancel_waiting() { _cancel_waiting(); }
+		void cancel_waiting();
 };
 
 class Kernel::Signal_context
@@ -239,16 +210,12 @@ class Kernel::Signal_context
 		/**
 		 * Called by receiver when all submits have been delivered
 		 */
-		void _delivered()
-		{
-			_submits = 0;
-			_ack     = 0;
-		}
+		void _delivered();
 
 		/**
 		 * Notice that the killer of the context has cancelled waiting
 		 */
-		void _killer_cancelled() { _killer = 0; }
+		void _killer_cancelled();
 
 	public:
 
@@ -272,11 +239,7 @@ class Kernel::Signal_context
 		 *
 		 * \param h  handler that shall be attached or 0 to detach handler
 		 */
-		void ack_handler(Signal_ack_handler * const h)
-		{
-			_ack_handler = h ? h : &_default_ack_handler;
-			_ack_handler->_signal_context = this;
-		}
+		void ack_handler(Signal_ack_handler * const h);
 
 		/**
 		 * Submit the signal
@@ -286,32 +249,12 @@ class Kernel::Signal_context
 		 * \retval  0 succeeded
 		 * \retval -1 failed
 		 */
-		int submit(unsigned const n)
-		{
-			if (_killed || _submits >= (unsigned)~0 - n) { return -1; }
-			_submits += n;
-			if (_ack) { _deliverable(); }
-			return 0;
-		}
+		int submit(unsigned const n);
 
 		/**
 		 * Acknowledge delivery of signal
 		 */
-		void ack()
-		{
-			_ack_handler->_signal_acknowledged();
-			if (_ack) { return; }
-			if (!_killed) {
-				_ack = 1;
-				_deliverable();
-				return;
-			}
-			if (_killer) {
-				_killer->_context = 0;
-				_killer->_signal_context_kill_done();
-				_killer = 0;
-			}
-		}
+		void ack();
 
 		/**
 		 * Destruct context or prepare to do it as soon as delivery is done
@@ -321,25 +264,7 @@ class Kernel::Signal_context
 		 * \retval  0 succeeded
 		 * \retval -1 failed
 		 */
-		int kill(Signal_context_killer * const k)
-		{
-			/* check if in a kill operation or already killed */
-			if (_killed) {
-				if (_ack) { return 0; }
-				return -1;
-			}
-			/* kill directly if there is no unacknowledged delivery */
-			if (_ack) {
-				_killed = 1;
-				return 0;
-			}
-			/* wait for delivery acknowledgement */
-			_killer = k;
-			_killed = 1;
-			_killer->_context = this;
-			_killer->_signal_context_kill_pending();
-			return 0;
-		}
+		int kill(Signal_context_killer * const k);
 };
 
 class Kernel::Signal_receiver
@@ -361,79 +286,33 @@ class Kernel::Signal_receiver
 		/**
 		 * Recognize that context 'c' has submits to deliver
 		 */
-		void _add_deliverable(Signal_context * const c)
-		{
-			if (!c->_deliver_fe.is_enqueued()) {
-				_deliver.enqueue(&c->_deliver_fe);
-			}
-			_listen();
-		}
+		void _add_deliverable(Signal_context * const c);
 
 		/**
 		 * Deliver as much submits as possible
 		 */
-		void _listen()
-		{
-			while (1)
-			{
-				/* check for deliverable signals and waiting handlers */
-				if (_deliver.empty() || _handlers.empty()) { return; }
-
-				/* create a signal data-object */
-				typedef Genode::Signal_context * Signal_imprint;
-				auto const context = _deliver.dequeue()->object();
-				auto const imprint =
-					reinterpret_cast<Signal_imprint>(context->_imprint);
-				Signal::Data data(imprint, context->_submits);
-
-				/* communicate signal data to handler */
-				auto const handler = _handlers.dequeue()->object();
-				handler->_receiver = 0;
-				handler->_receive_signal(&data, sizeof(data));
-				context->_delivered();
-			}
-		}
+		void _listen();
 
 		/**
 		 * Notice that a context of the receiver has been destructed
 		 *
 		 * \param c  destructed context
 		 */
-		void _context_destructed(Signal_context * const c)
-		{
-			_contexts.remove(&c->_contexts_fe);
-			if (!c->_deliver_fe.is_enqueued()) { return; }
-			_deliver.remove(&c->_deliver_fe);
-		}
+		void _context_destructed(Signal_context * const c);
 
 		/**
 		 * Notice that handler 'h' has cancelled waiting
 		 */
-		void _handler_cancelled(Signal_handler * const h)
-		{
-			_handlers.remove(&h->_handlers_fe);
-		}
+		void _handler_cancelled(Signal_handler * const h);
 
 		/**
 		 * Assign context 'c' to the receiver
 		 */
-		void _add_context(Signal_context * const c)
-		{
-			_contexts.enqueue(&c->_contexts_fe);
-		}
+		void _add_context(Signal_context * const c);
 
 	public:
 
-		/**
-		 * Destructor
-		 */
-		~Signal_receiver()
-		{
-			/* destruct all attached contexts */
-			while (Signal_context * c = _contexts.dequeue()->object()) {
-				c->~Signal_context();
-			}
-		}
+		~Signal_receiver();
 
 		/**
 		 * Let a handler 'h' wait for signals of the receiver
@@ -441,20 +320,12 @@ class Kernel::Signal_receiver
 		 * \retval  0 succeeded
 		 * \retval -1 failed
 		 */
-		int add_handler(Signal_handler * const h)
-		{
-			if (h->_receiver) { return -1; }
-			_handlers.enqueue(&h->_handlers_fe);
-			h->_receiver = this;
-			h->_await_signal(this);
-			_listen();
-			return 0;
-		}
+		int add_handler(Signal_handler * const h);
 
 		/**
 		 * Return wether any of the contexts of this receiver is deliverable
 		 */
-		bool deliverable() { return !_deliver.empty(); }
+		bool deliverable();
 };
 
 #endif /* _KERNEL__SIGNAL_RECEIVER_ */

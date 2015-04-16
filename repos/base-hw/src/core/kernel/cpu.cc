@@ -64,12 +64,6 @@ namespace Kernel
  ** Cpu_job **
  *************/
 
-Cpu_job::~Cpu_job()
-{
-	if (!_cpu) { return; }
-	_cpu->scheduler()->remove(this);
-}
-
 void Cpu_job::_activate_own_share() { _cpu->schedule(this); }
 
 
@@ -121,11 +115,25 @@ void Cpu_job::quota(unsigned const q)
 }
 
 
+Cpu_job::Cpu_job(Cpu_priority const p, unsigned const q)
+: Cpu_share(p, q), _cpu(0) { }
+
+
+Cpu_job::~Cpu_job()
+{
+	if (!_cpu) { return; }
+	_cpu->scheduler()->remove(this);
+}
+
+
 /**************
  ** Cpu_idle **
  **************/
 
 void Cpu_idle::proceed(unsigned const cpu) { mtc()->switch_to_user(this, cpu); }
+
+
+void Cpu_idle::_main() { while (1) { Genode::Cpu::wait_for_interrupt(); } }
 
 
 /*********
@@ -156,6 +164,50 @@ void Cpu::Ipi::trigger(unsigned const cpu_id)
 
 
 Cpu::Ipi::Ipi(Irq::Pool &p) : Irq(Pic::IPI, p) { }
+
+
+bool Cpu::interrupt(unsigned const irq_id)
+{
+	Irq * const irq = object(irq_id);
+	if (!irq) return false;
+	irq->occurred();
+	return true;
+}
+
+
+void Cpu::exception()
+{
+	/* update old job */
+	Job * const old_job = scheduled_job();
+	old_job->exception(_id);
+
+	/* update scheduler */
+	unsigned const old_time = _scheduler.head_quota();
+	unsigned const new_time = _timer->value(_id);
+	unsigned quota = old_time > new_time ? old_time - new_time : 1;
+	_scheduler.update(quota);
+
+	/* get new job */
+	Job * const new_job = scheduled_job();
+	quota = _scheduler.head_quota();
+	assert(quota);
+	_timer->start_one_shot(quota, _id);
+
+	/* switch between lazy state of old and new job */
+	Cpu_lazy_state * const old_state = old_job->lazy_state();
+	Cpu_lazy_state * const new_state = new_job->lazy_state();
+	prepare_proceeding(old_state, new_state);
+
+	/* resume new job */
+	new_job->proceed(_id);
+}
+
+
+Cpu::Cpu(unsigned const id, Timer * const timer)
+: _id(id), _idle(this), _timer(timer),
+  _scheduler(&_idle, _quota(), _fill()),
+  _ipi_irq(*this),
+  _timer_irq(_timer->interrupt_id(_id), *this) { }
 
 
 /***********************
@@ -197,4 +249,31 @@ bool Cpu_domain_update::_do_global(unsigned const domain_id)
 		cpu_pool()->cpu(i)->trigger_ip_interrupt();
 	}
 	return true;
+}
+
+
+void Cpu_domain_update::_domain_update() {
+	Genode::Cpu::flush_tlb_by_pid(_domain_id); }
+
+
+Cpu_domain_update::Cpu_domain_update() {
+	for (unsigned i = 0; i < NR_OF_CPUS; i++) { _pending[i] = false; } }
+
+
+/**************
+ ** Cpu_pool **
+ **************/
+
+Cpu * Cpu_pool::cpu(unsigned const id) const
+{
+	assert(id < NR_OF_CPUS);
+	char * const p = const_cast<char *>(_cpus[id]);
+	return reinterpret_cast<Cpu *>(p);
+}
+
+
+Cpu_pool::Cpu_pool()
+{
+	for (unsigned id = 0; id < NR_OF_CPUS; id++) {
+		new (_cpus[id]) Cpu(id, &_timer); }
 }

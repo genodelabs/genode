@@ -16,7 +16,7 @@
 
 /* core includes */
 #include <kernel/fifo.h>
-#include <assert.h>
+#include <kernel/interface.h>
 
 namespace Kernel
 {
@@ -67,21 +67,7 @@ class Kernel::Ipc_node
 		/**
 		 * Buffer next request from request queue in 'r' to handle it
 		 */
-		void _receive_request(Message_buf * const r)
-		{
-			/* FIXME: invalid requests should be discarded */
-			if (r->size > _inbuf.size) {
-				PWRN("oversized request");
-				r->size = _inbuf.size;
-			}
-			/* fetch message */
-			Genode::memcpy(_inbuf.base, r->base, r->size);
-			_inbuf.size = r->size;
-			_inbuf.src  = r->src;
-
-			/* update state */
-			_state = PREPARE_REPLY;
-		}
+		void _receive_request(Message_buf * const r);
 
 		/**
 		 * Receive a given reply if one is expected
@@ -89,105 +75,42 @@ class Kernel::Ipc_node
 		 * \param base  base of the reply payload
 		 * \param size  size of the reply payload
 		 */
-		void _receive_reply(void * const base, size_t const size)
-		{
-			/* FIXME: when discard awaited replies userland must get a hint */
-			if (size > _inbuf.size) {
-				PDBG("discard invalid IPC reply");
-				return;
-			}
-			/* receive reply */
-			Genode::memcpy(_inbuf.base, base, size);
-			_inbuf.size = size;
-
-			/* update state */
-			if (_state != PREPARE_AND_AWAIT_REPLY) { _state = INACTIVE; }
-			else { _state = PREPARE_REPLY; }
-			_send_request_succeeded();
-		}
+		void _receive_reply(void * const base, size_t const size);
 
 		/**
 		 * Insert 'r' into request queue, buffer it if we were waiting for it
 		 */
-		void _announce_request(Message_buf * const r)
-		{
-			/* directly receive request if we've awaited it */
-			if (_state == AWAIT_REQUEST) {
-				_receive_request(r);
-				_await_request_succeeded();
-				return;
-			}
-			/* cannot receive yet, so queue request */
-			_request_queue.enqueue(r);
-		}
+		void _announce_request(Message_buf * const r);
 
 		/**
 		 * Cancel all requests in request queue
 		 */
-		void _cancel_request_queue()
-		{
-			while (1) {
-				Message_buf * const r = _request_queue.dequeue();
-				if (!r) { return; }
-				r->src->_outbuf_request_cancelled();
-			}
-		}
+		void _cancel_request_queue();
 
 		/**
 		 * Cancel request in outgoing buffer
 		 */
-		void _cancel_outbuf_request()
-		{
-			if (_outbuf_dst) {
-				_outbuf_dst->_announced_request_cancelled(&_outbuf);
-				_outbuf_dst = 0;
-			}
-		}
+		void _cancel_outbuf_request();
 
 		/**
 		 * Cancel request in incoming buffer
 		 */
-		void _cancel_inbuf_request()
-		{
-			if (_inbuf.src) {
-				_inbuf.src->_outbuf_request_cancelled();
-				_inbuf.src = 0;
-			}
-		}
+		void _cancel_inbuf_request();
 
 		/**
 		 * A request 'r' in inbuf or request queue was cancelled by sender
 		 */
-		void _announced_request_cancelled(Message_buf * const r)
-		{
-			if (_inbuf.src == r->src) {
-				_inbuf.src = 0;
-				return;
-			}
-			_request_queue.remove(r);
-		}
+		void _announced_request_cancelled(Message_buf * const r);
 
 		/**
 		 * The request in the outbuf was cancelled by receiver
 		 */
-		void _outbuf_request_cancelled()
-		{
-			if (_outbuf_dst) {
-				_outbuf_dst = 0;
-				if (!_inbuf.src) { _state = INACTIVE; }
-				else { _state = PREPARE_REPLY; }
-				_send_request_failed();
-			}
-		}
+		void _outbuf_request_cancelled();
 
 		/**
 		 * Return wether we are the source of a helping relationship
 		 */
-		bool _helps_outbuf_dst()
-		{
-			return (_state == PREPARE_AND_AWAIT_REPLY ||
-			        _state == AWAIT_REPLY) && _outbuf_dst_help;
-		}
+		bool _helps_outbuf_dst();
 
 		/**
 		 * IPC node returned from waiting due to reply receipt
@@ -221,14 +144,8 @@ class Kernel::Ipc_node
 
 	public:
 
-		/**
-		 * Constructor
-		 */
-		Ipc_node() : _state(INACTIVE)
-		{
-			_inbuf.src  = 0;
-			_outbuf_dst = 0;
-		}
+		Ipc_node();
+		~Ipc_node();
 
 		/**
 		 * Send a request and wait for the according reply
@@ -241,41 +158,12 @@ class Kernel::Ipc_node
 		 */
 		void send_request(Ipc_node * const dst, void * const buf_base,
 		                  size_t const buf_size, size_t const msg_size,
-		                  bool help)
-		{
-			/* assertions */
-			assert(_state == INACTIVE || _state == PREPARE_REPLY);
-
-			/* prepare transmission of request message */
-			_outbuf.base     = buf_base;
-			_outbuf.size     = msg_size;
-			_outbuf.src      = this;
-			_outbuf_dst      = dst;
-			_outbuf_dst_help = 0;
-
-			/*
-			 * Prepare reception of reply message but don't clear
-			 * '_inbuf.origin' because we might also prepare a reply.
-			 */
-			_inbuf.base = buf_base;
-			_inbuf.size = buf_size;
-
-			/* update state */
-			if (_state != PREPARE_REPLY) { _state = AWAIT_REPLY; }
-			else { _state = PREPARE_AND_AWAIT_REPLY; }
-
-			/* announce request */
-			dst->_announce_request(&_outbuf);
-
-			/* set help relation after announcement to simplify scheduling */
-			_outbuf_dst_help = help;
-		}
+		                  bool help);
 
 		/**
 		 * Return root destination of the helping-relation tree we are in
 		 */
-		Ipc_node * helping_sink() {
-			return _helps_outbuf_dst() ? _outbuf_dst->helping_sink() : this; }
+		Ipc_node * helping_sink();
 
 		/**
 		 * Call function 'f' of type 'void (Ipc_node *)' for each helper
@@ -300,25 +188,7 @@ class Kernel::Ipc_node
 		 * \return  wether a request could be received already
 		 */
 		bool await_request(void * const buf_base,
-		                   size_t const buf_size)
-		{
-			/* assertions */
-			assert(_state == INACTIVE);
-
-			/* prepare receipt of request */
-			_inbuf.base = buf_base;
-			_inbuf.size = buf_size;
-			_inbuf.src  = 0;
-
-			/* if anybody already announced a request receive it */
-			if (!_request_queue.empty()) {
-				_receive_request(_request_queue.dequeue());
-				return true;
-			}
-			/* no request announced, so wait */
-			_state = AWAIT_REQUEST;
-			return false;
-		}
+		                   size_t const buf_size);
 
 		/**
 		 * Reply to last request if there's any
@@ -327,51 +197,12 @@ class Kernel::Ipc_node
 		 * \param msg_size  size of reply message
 		 */
 		void send_reply(void * const msg_base,
-		                size_t const msg_size)
-		{
-			/* reply to the last request if we have to */
-			if (_state == PREPARE_REPLY) {
-				if (_inbuf.src) {
-					_inbuf.src->_receive_reply(msg_base, msg_size);
-					_inbuf.src = 0;
-				}
-				_state = INACTIVE;
-			}
-		}
-
-		/**
-		 * Destructor
-		 */
-		~Ipc_node()
-		{
-			_cancel_request_queue();
-			_cancel_inbuf_request();
-			_cancel_outbuf_request();
-		}
+		                size_t const msg_size);
 
 		/**
 		 * If IPC node waits, cancel '_outbuf' to stop waiting
 		 */
-		void cancel_waiting()
-		{
-			switch (_state) {
-			case AWAIT_REPLY:
-				_cancel_outbuf_request();
-				_state = INACTIVE;
-				_send_request_failed();
-				return;
-			case AWAIT_REQUEST:
-				_state = INACTIVE;
-				_await_request_failed();
-				return;
-			case PREPARE_AND_AWAIT_REPLY:
-				_cancel_outbuf_request();
-				_state = PREPARE_REPLY;
-				_send_request_failed();
-				return;
-			default: return;
-			}
-		}
+		void cancel_waiting();
 };
 
 #endif /* _KERNEL__IPC_NODE_H_ */

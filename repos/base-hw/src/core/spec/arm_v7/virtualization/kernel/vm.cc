@@ -45,6 +45,7 @@ extern void *         _vt_vm_entry;
 extern void *         _vt_host_entry;
 extern Genode::addr_t _vt_vm_context_ptr;
 extern Genode::addr_t _vt_host_context_ptr;
+extern Genode::addr_t _mt_master_context_begin;
 
 
 struct Kernel::Vm_irq : Kernel::Irq

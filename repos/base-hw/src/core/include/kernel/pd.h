@@ -15,62 +15,10 @@
 #ifndef _KERNEL__PD_H_
 #define _KERNEL__PD_H_
 
-/* Genode includes */
-#include <cpu/atomic.h>
-#include <cpu/memory_barrier.h>
-
 /* core includes */
 #include <kernel/early_translations.h>
 #include <kernel/object.h>
 #include <kernel/cpu.h>
-#include <assert.h>
-#include <page_slab.h>
-
-/* structure of the mode transition */
-extern int            _mt_begin;
-extern int            _mt_end;
-extern int            _mt_user_entry_pic;
-extern Genode::addr_t _mt_client_context_ptr;
-extern Genode::addr_t _mt_master_context_begin;
-extern Genode::addr_t _mt_master_context_end;
-
-namespace Kernel
-{
-	/**
-	 * Lock that enables synchronization inside the kernel
-	 */
-	class Lock;
-}
-
-class Kernel::Lock
-{
-	private:
-
-		int volatile _locked;
-
-	public:
-
-		Lock() : _locked(0) { }
-
-		/**
-		 * Request the lock
-		 */
-		void lock() { while (!Genode::cmpxchg(&_locked, 0, 1)); }
-
-		/**
-		 * Free the lock
-		 */
-		void unlock()
-		{
-			Genode::memory_barrier();
-			_locked = 0;
-		}
-
-		/**
-		 * Provide guard semantic for this type of lock
-		 */
-		typedef Genode::Lock_guard<Kernel::Lock> Guard;
-};
 
 namespace Kernel
 {
@@ -99,8 +47,6 @@ namespace Kernel
 	typedef Object_pool<Pd> Pd_pool;
 
 	Pd_pool * pd_pool();
-
-	Lock & data_lock();
 }
 
 class Kernel::Mode_transition_control
@@ -122,27 +68,17 @@ class Kernel::Mode_transition_control
 		/**
 		 * Return size of the mode transition
 		 */
-		static size_t _size() { return (addr_t)&_mt_end - (addr_t)&_mt_begin; }
+		static size_t _size();
 
 		/**
 		 * Return size of master-context space in the mode transition
 		 */
-		static size_t _master_context_size()
-		{
-			addr_t const begin = (addr_t)&_mt_master_context_begin;
-			addr_t const end = (addr_t)&_mt_master_context_end;
-			return end - begin;
-		}
+		static size_t _master_context_size();
 
 		/**
 		 * Return virtual address of the user entry-code
 		 */
-		static addr_t _virt_user_entry()
-		{
-			addr_t const phys      = (addr_t)&_mt_user_entry_pic;
-			addr_t const phys_base = (addr_t)&_mt_begin;
-			return VIRT_BASE + (phys - phys_base);
-		}
+		static addr_t _virt_user_entry();
 
 	public:
 
@@ -167,15 +103,7 @@ class Kernel::Mode_transition_control
 		 * \param ram  RAM donation for mapping (first try without)
 		 */
 		void map(Genode::Translation_table * tt,
-		         Genode::Page_slab         * alloc)
-		{
-			try {
-				addr_t const phys_base = (addr_t)&_mt_begin;
-				tt->insert_translation(VIRT_BASE, phys_base, SIZE,
-				                       Page_flags::mode_transition(), alloc);
-			} catch(...) {
-				PERR("Inserting exception vector in page table failed!"); }
-		}
+		         Genode::Page_slab         * alloc);
 
 		/**
 		 * Continue execution of client context
@@ -188,21 +116,7 @@ class Kernel::Mode_transition_control
 		void switch_to(Cpu::Context * const context,
 		               unsigned const cpu,
 		               addr_t const entry_raw,
-		               addr_t const context_ptr_base)
-		{
-			/* override client-context pointer of the executing CPU */
-			size_t const context_ptr_offset = cpu * sizeof(context);
-			addr_t const context_ptr = context_ptr_base + context_ptr_offset;
-			*(void * *)context_ptr = context;
-
-			/* unlock kernel data */
-			data_lock().unlock();
-
-			/* call assembly code that applies the virtual-machine context */
-			typedef void (* Entry)();
-			Entry __attribute__((noreturn)) const entry = (Entry)entry_raw;
-			entry();
-		}
+		               addr_t const context_ptr_base);
 
 		/**
 		 * Continue execution of user context
@@ -211,11 +125,7 @@ class Kernel::Mode_transition_control
 		 * \param cpu               kernel name of targeted CPU
 		 */
 		 void switch_to_user(Cpu::Context * const context,
-		                     unsigned const cpu)
-		 {
-			 switch_to(context, cpu, _virt_user_entry(),
-			           (addr_t)&_mt_client_context_ptr);
-		 }
+		                     unsigned const cpu);
 } __attribute__((aligned(Mode_transition_control::ALIGN)));
 
 

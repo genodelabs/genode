@@ -106,8 +106,6 @@ namespace Genode
 	using Level_1_stage_2_translation_table =
 		Level_x_translation_table<Level_2_stage_2_translation_table,
 		STAGE2, SIZE_LOG2_256GB>;
-
-	using Translation_table = Level_1_stage_1_translation_table;
 }
 
 
@@ -519,5 +517,8 @@ class Genode::Level_x_translation_table :
 		void remove_translation(addr_t vo, size_t size, Page_slab * slab) {
 			this->_range_op(vo, 0, size, Remove_func(slab)); }
 };
+
+namespace Genode {
+	class Translation_table : public Level_1_stage_1_translation_table { }; }
 
 #endif /* _ARM_V7__LONG_TRANSLATION_TABLE_H_ */

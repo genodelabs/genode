@@ -66,8 +66,6 @@ namespace Genode
 		Page_directory<Level_3_translation_table,
 		SIZE_LOG2_1GB, SIZE_LOG2_512GB>;
 
-	using Translation_table = Pml4_table;
-
 	/**
 	 * IA-32e common descriptor.
 	 *
@@ -682,5 +680,8 @@ class Genode::Pml4_table
 			_range_op(vo, 0, size, Remove_func(slab));
 		}
 } __attribute__((aligned(1 << ALIGNM_LOG2)));
+
+namespace Genode {
+	class Translation_table : public Pml4_table { }; }
 
 #endif /* _TRANSLATION_TABLE_H_ */

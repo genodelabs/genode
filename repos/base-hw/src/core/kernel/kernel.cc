@@ -24,6 +24,7 @@
  */
 
 /* core includes */
+#include <kernel/lock.h>
 #include <kernel/pd.h>
 #include <platform_pd.h>
 #include <trustzone.h>

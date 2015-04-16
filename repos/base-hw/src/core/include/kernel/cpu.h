@@ -16,14 +16,12 @@
 #define _KERNEL__CPU_H_
 
 /* core includes */
-#include <translation_table.h>
 #include <timer.h>
 #include <cpu.h>
 #include <kernel/cpu_scheduler.h>
 #include <kernel/irq.h>
 
-/* base includes */
-#include <unmanaged_singleton.h>
+namespace Genode { class Translation_table; }
 
 namespace Kernel
 {
@@ -97,7 +95,7 @@ class Kernel::Cpu_domain_update : public Double_list_item
 		/**
 		 * Domain-update back-end
 		 */
-		void _domain_update() { Genode::Cpu::flush_tlb_by_pid(_domain_id); }
+		void _domain_update();
 
 		/**
 		 * Perform the domain update on the executing CPU
@@ -106,13 +104,7 @@ class Kernel::Cpu_domain_update : public Double_list_item
 
 	protected:
 
-		/**
-		 * Constructor
-		 */
-		Cpu_domain_update()
-		{
-			for (unsigned i = 0; i < NR_OF_CPUS; i++) { _pending[i] = false; }
-		}
+		Cpu_domain_update();
 
 		/**
 		 * Do an update of domain 'id' on all CPUs and return if this blocks
@@ -177,8 +169,7 @@ class Kernel::Cpu_job : public Cpu_share
 		/**
 		 * Construct a job with scheduling priority 'p' and time quota 'q'
 		 */
-		Cpu_job(Cpu_priority const p, unsigned const q)
-		: Cpu_share(p, q), _cpu(0) { }
+		Cpu_job(Cpu_priority const p, unsigned const q);
 
 		/**
 		 * Destructor
@@ -219,7 +210,7 @@ class Kernel::Cpu_idle : public Genode::Cpu::User_context, public Cpu_job
 		/**
 		 * Main function of all idle threads
 		 */
-		static void _main() { while (1) { Genode::Cpu::wait_for_interrupt(); } }
+		static void _main();
 
 	public:
 
@@ -289,11 +280,7 @@ class Kernel::Cpu : public Genode::Cpu,
 		/**
 		 * Construct object for CPU 'id' with scheduling timer 'timer'
 		 */
-		Cpu(unsigned const id, Timer * const timer)
-		: _id(id), _idle(this), _timer(timer),
-		  _scheduler(&_idle, _quota(), _fill()),
-		  _ipi_irq(*this),
-		  _timer_irq(_timer->interrupt_id(_id), *this) { }
+		Cpu(unsigned const id, Timer * const timer);
 
 		/**
 		 * Raise the IPI of the CPU
@@ -306,13 +293,7 @@ class Kernel::Cpu : public Genode::Cpu,
 		 * \param irq_id  id of the interrupt that occured
 		 * \returns true if the interrupt belongs to this CPU, otherwise false
 		 */
-		bool interrupt(unsigned const irq_id)
-		{
-			Irq * const irq = object(irq_id);
-			if (!irq) return false;
-			irq->occurred();
-			return true;
-		}
+		bool interrupt(unsigned const irq_id);
 
 		/**
 		 * Schedule 'job' at this CPU
@@ -322,32 +303,8 @@ class Kernel::Cpu : public Genode::Cpu,
 		/**
 		 * Handle recent exception of the CPU and proceed its user execution
 		 */
-		void exception()
-		{
-			/* update old job */
-			Job * const old_job = scheduled_job();
-			old_job->exception(_id);
+		void exception();
 
-			/* update scheduler */
-			unsigned const old_time = _scheduler.head_quota();
-			unsigned const new_time = _timer->value(_id);
-			unsigned quota = old_time > new_time ? old_time - new_time : 1;
-			_scheduler.update(quota);
-
-			/* get new job */
-			Job * const new_job = scheduled_job();
-			quota = _scheduler.head_quota();
-			assert(quota);
-			_timer->start_one_shot(quota, _id);
-
-			/* switch between lazy state of old and new job */
-			Cpu_lazy_state * const old_state = old_job->lazy_state();
-			Cpu_lazy_state * const new_state = new_job->lazy_state();
-			prepare_proceeding(old_state, new_state);
-
-			/* resume new job */
-			new_job->proceed(_id);
-		}
 
 		/***************
 		 ** Accessors **
@@ -372,24 +329,12 @@ class Kernel::Cpu_pool
 
 	public:
 
-		/**
-		 * Construct pool and thereby objects for all available CPUs
-		 */
-		Cpu_pool()
-		{
-			for (unsigned id = 0; id < NR_OF_CPUS; id++) {
-				new (_cpus[id]) Cpu(id, &_timer); }
-		}
+		Cpu_pool();
 
 		/**
 		 * Return object of CPU 'id'
 		 */
-		Cpu * cpu(unsigned const id) const
-		{
-			assert(id < NR_OF_CPUS);
-			char * const p = const_cast<char *>(_cpus[id]);
-			return reinterpret_cast<Cpu *>(p);
-		}
+		Cpu * cpu(unsigned const id) const;
 
 		/**
 		 * Return object of primary CPU
