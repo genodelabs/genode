@@ -86,16 +86,20 @@ struct Pci::Session : Genode::Session
 	 ** RPC declaration **
 	 *********************/
 
-	GENODE_RPC(Rpc_first_device, Device_capability, first_device,
-	           unsigned, unsigned);
-	GENODE_RPC(Rpc_next_device, Device_capability, next_device,
-	           Device_capability, unsigned, unsigned);
+	GENODE_RPC_THROW(Rpc_first_device, Device_capability, first_device,
+	                 GENODE_TYPE_LIST(Pci::Device::Quota_exceeded),
+	                 unsigned, unsigned);
+	GENODE_RPC_THROW(Rpc_next_device, Device_capability, next_device,
+	                 GENODE_TYPE_LIST(Pci::Device::Quota_exceeded),
+	                 Device_capability, unsigned, unsigned);
 	GENODE_RPC(Rpc_release_device, void, release_device, Device_capability);
-	GENODE_RPC(Rpc_config_extended, Genode::Io_mem_dataspace_capability,
-	           config_extended, Device_capability);
+	GENODE_RPC_THROW(Rpc_config_extended, Genode::Io_mem_dataspace_capability,
+	                 config_extended,
+	                 GENODE_TYPE_LIST(Pci::Device::Quota_exceeded),
+	                 Device_capability);
 	GENODE_RPC_THROW(Rpc_alloc_dma_buffer, Genode::Ram_dataspace_capability,
 	                 alloc_dma_buffer,
-	                 GENODE_TYPE_LIST(Genode::Ram_session::Quota_exceeded),
+	                 GENODE_TYPE_LIST(Pci::Device::Quota_exceeded),
 	                 Genode::size_t);
 	GENODE_RPC(Rpc_free_dma_buffer, void, free_dma_buffer,
 	           Genode::Ram_dataspace_capability);

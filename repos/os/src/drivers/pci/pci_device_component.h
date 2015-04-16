@@ -114,7 +114,7 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 		{
 			/* return invalid resource if device is invalid */
 			if (!_device_config.valid())
-				Resource(0, 0);
+				return Resource(0, 0);
 
 			return _device_config.resource(resource_id);
 		}

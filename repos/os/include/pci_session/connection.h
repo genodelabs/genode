@@ -24,7 +24,7 @@ struct Pci::Connection : Genode::Connection<Session>, Session_client
 {
 	Connection()
 	:
-		Genode::Connection<Session>(session("ram_quota=4K")),
+		Genode::Connection<Session>(session("ram_quota=12K")),
 		Session_client(cap())
 	{ }
 };

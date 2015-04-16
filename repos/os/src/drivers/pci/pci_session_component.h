@@ -15,7 +15,10 @@
 #define _PCI_SESSION_COMPONENT_H_
 
 /* base */
+#include <base/allocator_guard.h>
 #include <base/rpc_server.h>
+#include <base/tslab.h>
+
 #include <ram_session/connection.h>
 #include <root/component.h>
 
@@ -40,13 +43,14 @@ namespace Pci {
 	{
 		private:
 
-			Genode::Rpc_entrypoint         *_ep;
-			Genode::Allocator              *_md_alloc;
-			Genode::List<Device_component>  _device_list;
-			Device_pd_client               *_child;
-			Genode::Ram_connection         *_ram;
-			Genode::Session_label           _label;
-			Genode::Session_policy          _policy;
+			Genode::Rpc_entrypoint                     *_ep;
+			Genode::Allocator_guard                     _md_alloc;
+			Genode::Tslab<Device_component, 4096 - 64>  _device_slab;
+			Genode::List<Device_component>              _device_list;
+			Device_pd_client                           *_child;
+			Genode::Ram_connection                     *_ram;
+			Genode::Session_label                       _label;
+			Genode::Session_policy                      _policy;
 
 			/**
 			 * Scan PCI buses for a device
@@ -296,7 +300,9 @@ namespace Pci {
 			                  Genode::Ram_connection *ram,
 			                  const char             *args)
 			:
-				_ep(ep), _md_alloc(md_alloc),
+				_ep(ep),
+				_md_alloc(md_alloc, Genode::Arg_string::find_arg(args, "ram_quota").long_value(0)),
+				_device_slab(&_md_alloc),
 				_child(child), _ram(ram), _label(args), _policy(_label)
 			{
 				/* non-pci devices */
@@ -403,6 +409,10 @@ namespace Pci {
 					release_device(_device_list.first()->cap());
 			}
 
+
+			void upgrade_ram_quota(long quota) { _md_alloc.upgrade(quota); }
+
+
 			static void add_config_space(Genode::uint32_t bdf_start,
 			                             Genode::uint32_t func_count,
 			                             Genode::addr_t base)
@@ -484,17 +494,14 @@ namespace Pci {
 				/*
 				 * A device was found. Create a new device component for the
 				 * device and return its capability.
-				 *
-				 * FIXME: check and adjust session quota
 				 */
-				Device_component *device_component =
-					new (_md_alloc) Device_component(config, config_space, _ep, this);
-
-				if (!device_component)
-					return Device_capability();
-
-				_device_list.insert(device_component);
-				return _ep->manage(device_component);
+				try {
+					Device_component * dev = new (_device_slab) Device_component(config, config_space, _ep, this);
+					_device_list.insert(dev);
+					return _ep->manage(dev);
+				} catch (Genode::Allocator::Out_of_memory) {
+					throw Device::Quota_exceeded();
+				}
 			}
 
 			void release_device(Device_capability device_cap)
@@ -509,11 +516,14 @@ namespace Pci {
 				_device_list.remove(device);
 				_ep->dissolve(device);
 
-				/* FIXME: adjust quota */
 				Genode::Io_mem_connection * io_mem = device->get_config_space();
 				if (io_mem)
 					destroy(_md_alloc, io_mem);
-				destroy(_md_alloc, device);
+
+				if (device->config().valid())
+					destroy(_device_slab, device);
+				else
+					destroy(_md_alloc, device);
 			}
 
 			Genode::Io_mem_dataspace_capability config_extended(Device_capability device_cap)
@@ -533,6 +543,8 @@ namespace Pci {
 				try {
 					io_mem = new (_md_alloc) Io_mem_connection(device->config_space(),
 					                                           0x1000);
+				} catch (Genode::Allocator::Out_of_memory) {
+					throw Device::Quota_exceeded();
 				} catch (Parent::Service_denied) {
 					return Io_mem_dataspace_capability();
 				}
@@ -552,17 +564,30 @@ namespace Pci {
 
 			Ram_capability alloc_dma_buffer(Genode::size_t size)
 			{
-				if (Genode::env()->ram_session()->transfer_quota(_ram->cap(),
-				                                                 size))
+				if (!_md_alloc.withdraw(size))
+					throw Device::Quota_exceeded();
+
+				Genode::Ram_session * const rs = Genode::env()->ram_session();
+				if (rs->transfer_quota(_ram->cap(), size)) {
+					_md_alloc.upgrade(size);
 					return Ram_capability();
+				}
 
-				Ram_capability ram = _ram->alloc(size, Genode::UNCACHED);
-				if (!ram.valid() || !_child)
-					return ram;
+				Ram_capability ram_cap;
+				try {
 
-				_child->attach_dma_mem(ram);
+					ram_cap = _ram->alloc(size, Genode::UNCACHED);
+				} catch (Genode::Ram_session::Quota_exceeded) {
+					_md_alloc.upgrade(size);
+					return Ram_capability();
+				}
 
-				return ram;
+				if (!ram_cap.valid() || !_child)
+					return ram_cap;
+
+				_child->attach_dma_mem(ram_cap);
+
+				return ram_cap;
 			}
 
 			void free_dma_buffer(Ram_capability ram)
@@ -623,9 +648,6 @@ namespace Pci {
 
 			Session_component *_create_session(const char *args)
 			{
-				/* FIXME: extract quota from args */
-				/* FIXME: pass quota to session-component constructor */
-
 				try {
 					return new (md_alloc()) Session_component(ep(), md_alloc(),
 					                                          _pd_device_client,
@@ -636,6 +658,14 @@ namespace Pci {
 					throw Genode::Root::Unavailable();
 				}
 			}
+
+
+			void _upgrade_session(Session_component *s, const char *args) override
+			{
+				long ram_quota = Genode::Arg_string::find_arg(args, "ram_quota").long_value(0);
+				s->upgrade_ram_quota(ram_quota);
+			}
+
 
 		public:
 
@@ -653,7 +683,6 @@ namespace Pci {
 			:
 				Genode::Root_component<Session_component>(ep, md_alloc),
 				_pd_device_client(0),
-				/* restrict physical address to 4G on 32/64bit in general XXX */
 				/* restrict physical address to 3G on 32bit with device_pd */
 				_ram("dma", 0, (pci_device_pd.valid() && sizeof(void *) == 4) ?
 				               0xc0000000UL : 0x100000000ULL)
@@ -661,7 +690,7 @@ namespace Pci {
 				_parse_config();
 
 				if (pci_device_pd.valid())
-					_pd_device_client = new (md_alloc) Device_pd_client(pci_device_pd);
+					_pd_device_client = new (Genode::env()->heap()) Device_pd_client(pci_device_pd);
 
 				/* associate _ram session with ram_session of process */
 				_ram.ref_account(Genode::env()->ram_session_cap());

@@ -56,6 +56,8 @@ namespace Pci {
 				return resource_id >= 0 && resource_id < max_num;
 			}
 
+			enum { INVALID_VENDOR = 0xffffU };
+
 		public:
 
 			enum { MAX_BUSES = 256, MAX_DEVICES = 32, MAX_FUNCTIONS = 8 };
@@ -63,7 +65,8 @@ namespace Pci {
 			/**
 			 * Constructor
 			 */
-			Device_config() { }
+			Device_config() : _vendor_id(INVALID_VENDOR) { }
+
 			Device_config(int bus, int device, int function,
 			              Config_access *pci_config):
 				_bus(bus), _device(device), _function(function)
@@ -71,7 +74,7 @@ namespace Pci {
 				_vendor_id = pci_config->read(bus, device, function, 0, Device::ACCESS_16BIT);
 
 				/* break here if device is invalid */
-				if (_vendor_id == 0xffff)
+				if (_vendor_id == INVALID_VENDOR)
 					return;
 
 				_device_id    = pci_config->read(bus, device, function, 2, Device::ACCESS_16BIT);
@@ -88,7 +91,7 @@ namespace Pci {
 				 */
 				if (function != 0
 				 && !(pci_config->read(bus, device, 0, 0xe, Device::ACCESS_8BIT) & 0x80)) {
-					_vendor_id = 0xffff;
+					_vendor_id = INVALID_VENDOR;
 					return;
 				}
 
@@ -152,7 +155,7 @@ namespace Pci {
 			/**
 			 * Return true if device is valid
 			 */
-			bool valid() { return _vendor_id != 0xffff; }
+			bool valid() { return _vendor_id != INVALID_VENDOR; }
 
 			/**
 			 * Return resource description by resource ID

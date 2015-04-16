@@ -147,7 +147,11 @@ namespace Pci {
 			void close(Genode::Session_capability session) {
 				Genode::Root_client(_pci_provider.root()).close(session); }
 
-			void upgrade(Genode::Session_capability, Upgrade_args const &) { }
+			void upgrade(Genode::Session_capability s, Upgrade_args const & u)
+			{
+				try { Genode::Root_client(_pci_provider.root()).upgrade(s, u); }
+				catch (...) { throw Invalid_args(); }
+			}
 	};
 }
 
@@ -178,7 +182,7 @@ class Pci_policy : public Genode::Slave_policy, public Pci::Provider
 		void _acpi_session()
 		{
 			Pci::Session_capability session;
-			const char *args = "label=\"acpi_drv\", ram_quota=4K";
+			const char *args = "label=\"acpi_drv\", ram_quota=16K";
 
 			try {
 				using namespace Genode;
