@@ -14,8 +14,10 @@
 #ifndef _INCLUDE__PCI_SESSION__CLIENT_H_
 #define _INCLUDE__PCI_SESSION__CLIENT_H_
 
-#include <pci_session/capability.h>
 #include <base/rpc_client.h>
+
+#include <pci_device/client.h>
+#include <pci_session/capability.h>
 
 namespace Pci { struct Session_client; }
 
@@ -45,6 +47,9 @@ struct Pci::Session_client : public Genode::Rpc_client<Session>
 
 	void free_dma_buffer(Genode::Ram_dataspace_capability cap) override {
 		call<Rpc_free_dma_buffer>(cap); }
+
+	Device_capability device(String const &device) override {
+		return call<Rpc_device>(device); }
 };
 
 #endif /* _INCLUDE__PCI_SESSION__CLIENT_H_ */

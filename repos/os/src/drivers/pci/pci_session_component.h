@@ -14,65 +14,26 @@
 #ifndef _PCI_SESSION_COMPONENT_H_
 #define _PCI_SESSION_COMPONENT_H_
 
+/* base */
 #include <base/rpc_server.h>
-#include <pci_session/pci_session.h>
+#include <ram_session/connection.h>
 #include <root/component.h>
 
+/* os */
 #include <io_mem_session/connection.h>
-
 #include <os/config.h>
+#include <pci_session/pci_session.h>
 
+/* local */
 #include "pci_device_component.h"
 #include "pci_config_access.h"
 #include "pci_device_pd_ipc.h"
 
 namespace Pci {
+	bool bus_valid(int bus = 0);
+}
 
-	/**
-	 * Check if given PCI bus was found on initial scan
-	 *
-	 * This tremendously speeds up further scans by other drivers.
-	 */
-	bool bus_valid(int bus = 0)
-	{
-		struct Valid_buses
-		{
-			bool valid[Device_config::MAX_BUSES];
-
-			void scan_bus(Config_access &config_access, int bus = 0)
-			{
-				for (int dev = 0; dev < Device_config::MAX_DEVICES; ++dev) {
-					for (int fun = 0; fun < Device_config::MAX_FUNCTIONS; ++fun) {
-
-						/* read config space */
-						Device_config config(bus, dev, fun, &config_access);
-
-						if (!config.valid())
-							continue;
-
-						/*
-						 * There is at least one device on the current bus, so
-						 * we mark it as valid.
-						 */
-						valid[bus] = true;
-
-						/* scan behind bridge */
-						if (config.is_pci_bridge()) {
-							int sub_bus = config.read(&config_access,
-							                          0x19, Device::ACCESS_8BIT);
-							scan_bus(config_access, sub_bus);
-						}
-					}
-				}
-			}
-
-			Valid_buses() { Config_access c; scan_bus(c); }
-		};
-
-		static Valid_buses buses;
-
-		return buses.valid[bus];
-	}
+namespace Pci {
 
 	class Session_component : public Genode::Rpc_object<Session>
 	{
@@ -335,6 +296,8 @@ namespace Pci {
 				if (ram.valid())
 					_ram->free(ram);
 			}
+
+			Device_capability device(String const &name) override;
 	};
 
 

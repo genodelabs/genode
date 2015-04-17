@@ -16,17 +16,28 @@
 
 #include <base/rpc.h>
 #include <base/signal.h>
+#include <base/exception.h>
 #include <io_mem_session/io_mem_session.h>
 #include <irq_session/capability.h>
+#include <ram_session/ram_session.h>
 
 /* os includes */
 #include <platform/device.h>
+
 
 namespace Pci { struct Device; }
 
 
 struct Pci::Device : Platform::Device
 {
+	/*********************
+	 ** Exception types **
+	 *********************/
+
+	class Alloc_failed    : public Genode::Exception { };
+	class Quota_exceeded  : public Alloc_failed      { };
+
+
 	class Resource
 	{
 		private:

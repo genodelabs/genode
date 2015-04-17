@@ -58,6 +58,16 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 		}
 
 		/**
+		 * Constructor for non PCI devices
+		 */
+		Device_component(Genode::Rpc_entrypoint *ep, unsigned irq)
+		:
+			_config_space(~0UL), _io_mem(0), _ep(ep), _irq_session(irq)
+		{
+			_ep->manage(&_irq_session);
+		}
+
+		/**
 		 * De-constructor
 		 */
 		~Device_component()

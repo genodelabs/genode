@@ -14,13 +14,16 @@
 #ifndef _INCLUDE__PCI_SESSION__PCI_SESSION_H_
 #define _INCLUDE__PCI_SESSION__PCI_SESSION_H_
 
-#include <pci_device/pci_device.h>
+/* base */
 #include <session/session.h>
 #include <ram_session/ram_session.h>
 
+/* os */
+#include <pci_device/pci_device.h>
+
 namespace Pci {
 
-	typedef Genode::Capability<Device> Device_capability;
+	typedef Genode::Capability<Pci::Device> Device_capability;
 
 	struct Session;
 }
@@ -61,15 +64,23 @@ struct Pci::Session : Genode::Session
 	 */
 	virtual Genode::Io_mem_dataspace_capability config_extended(Device_capability) = 0;
 
+	typedef Genode::Rpc_in_buffer<8> String;
+
 	/**
-	 * Allocate memory suitable for DMA.
+	 * Provide non-PCI device known by unique name.
 	 */
+	virtual Device_capability device(String const &string) = 0;
+
+	/**
+	  * Allocate memory suitable for DMA.
+	  */
 	virtual Genode::Ram_dataspace_capability alloc_dma_buffer(Genode::size_t) = 0;
 
 	/**
 	 * Free previously allocated DMA memory
 	 */
 	virtual void free_dma_buffer(Genode::Ram_dataspace_capability) = 0;
+
 
 	/*********************
 	 ** RPC declaration **
@@ -88,10 +99,14 @@ struct Pci::Session : Genode::Session
 	                 Genode::size_t);
 	GENODE_RPC(Rpc_free_dma_buffer, void, free_dma_buffer,
 	           Genode::Ram_dataspace_capability);
+	GENODE_RPC_THROW(Rpc_device, Device_capability, device,
+	                 GENODE_TYPE_LIST(Pci::Device::Quota_exceeded),
+	                 String const &);
 
 	GENODE_RPC_INTERFACE(Rpc_first_device, Rpc_next_device,
 	                     Rpc_release_device, Rpc_config_extended,
-	                     Rpc_alloc_dma_buffer, Rpc_free_dma_buffer);
+	                     Rpc_alloc_dma_buffer, Rpc_free_dma_buffer,
+	                     Rpc_device);
 };
 
 #endif /* _INCLUDE__PCI_SESSION__PCI_SESSION_H_ */
