@@ -140,8 +140,8 @@ class I8042
 
 	private:
 
-		Genode::Io_port_connection _data_port;  /* data port */
-		Genode::Io_port_connection _stat_port;  /* status/command port */
+		Genode::Io_port_session_client _data_port;  /* data port */
+		Genode::Io_port_session_client _stat_port;  /* status/command port */
 		bool                       _kbd_xlate;  /* translation mode to scan-code set 1 */
 
 		/**
@@ -217,9 +217,10 @@ class I8042
 		/**
 		 * Constructor
 		 */
-		I8042() :
-			_data_port(REG_DATA,   1),
-			_stat_port(REG_STATUS, 1),
+		I8042(Genode::Io_port_session_capability cap_data,
+		      Genode::Io_port_session_capability cap_status) :
+			_data_port(cap_data),
+			_stat_port(cap_status),
 			_kbd_interface(*this, false),
 			_aux_interface(*this, true)
 		{

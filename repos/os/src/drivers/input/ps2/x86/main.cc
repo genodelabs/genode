@@ -35,25 +35,30 @@ struct Main
 {
 	Server::Entrypoint &ep;
 
-	I8042                    i8042;
 	Input::Session_component session;
 	Input::Root_component    root;
 
-	Ps2_mouse    ps2_mouse;
-	Ps2_keyboard ps2_keybd;
-
-	Pci::Connection platform;
+	Pci::Connection    platform;
 	Pci::Device_client device_ps2;
+
+	I8042              i8042;
+
+	Ps2_keyboard ps2_keybd;
+	Ps2_mouse    ps2_mouse;
 
 	Irq_handler  ps2_keybd_irq;
 	Irq_handler  ps2_mouse_irq;
 
+	enum { REG_IOPORT_DATA = 0, REG_IOPORT_STATUS};
+
 	Main(Server::Entrypoint &ep)
 	: ep(ep), root(ep.rpc_ep(), session),
-		ps2_mouse(*i8042.aux_interface(), session.event_queue()),
+		device_ps2(platform.device("PS2")),
+		i8042(device_ps2.io_port(REG_IOPORT_DATA),
+		      device_ps2.io_port(REG_IOPORT_STATUS)),
 		ps2_keybd(*i8042.kbd_interface(), session.event_queue(),
 		          i8042.kbd_xlate()),
-		device_ps2(platform.device("PS2")),
+		ps2_mouse(*i8042.aux_interface(), session.event_queue()),
 		ps2_keybd_irq(ep, ps2_keybd, device_ps2.irq(0)),
 		ps2_mouse_irq(ep, ps2_mouse, device_ps2.irq(1))
 	{
