@@ -29,6 +29,7 @@ extern "C" {
 }
 
 #include "pci_tree.h"
+#include "device.h"
 
 static const bool verbose = false;
 

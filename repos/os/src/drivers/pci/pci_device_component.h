@@ -40,6 +40,16 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 		Pci::Session_component    *_session;
 		Irq_session_component      _irq_session;
 
+		enum {
+			IO_BLOCK_SIZE = sizeof(Genode::Io_port_connection) *
+			                Device::NUM_RESOURCES + 32 + 8 * sizeof(void *)
+		};
+		Genode::Tslab<Genode::Io_port_connection, IO_BLOCK_SIZE> _slab_ioport;
+		Genode::Slab_block _slab_ioport_block;
+		char _slab_ioport_block_data[IO_BLOCK_SIZE];
+
+		Genode::Io_port_connection *_io_port_conn [Device::NUM_RESOURCES];
+
 		enum { PCI_IRQ = 0x3c };
 
 	public:
@@ -54,9 +64,16 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 			_device_config(device_config), _config_space(addr),
 			_io_mem(0), _ep(ep), _session(session),
 			_irq_session(_device_config.read(&_config_access, PCI_IRQ,
-			                                 Pci::Device::ACCESS_8BIT))
+			                                 Pci::Device::ACCESS_8BIT)),
+			_slab_ioport(0, &_slab_ioport_block)
 		{
 			_ep->manage(&_irq_session);
+
+			for (unsigned i = 0; i < Device::NUM_RESOURCES; i++)
+				_io_port_conn[i] = nullptr;
+
+			if (_slab_ioport.num_elem() != Device::NUM_RESOURCES)
+				PERR("incorrect amount of space for io port resources");
 		}
 
 		/**
@@ -66,9 +83,13 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 		                 Pci::Session_component * session, unsigned irq)
 		:
 			_config_space(~0UL), _io_mem(0), _ep(ep), _session(session),
-			_irq_session(irq)
+			_irq_session(irq),
+			_slab_ioport(0, &_slab_ioport_block)
 		{
 			_ep->manage(&_irq_session);
+
+			for (unsigned i = 0; i < Device::NUM_RESOURCES; i++)
+				_io_port_conn[i] = nullptr;
 		}
 
 		/**
@@ -77,6 +98,11 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 		~Device_component()
 		{
 			_ep->dissolve(&_irq_session);
+
+			for (unsigned i = 0; i < Device::NUM_RESOURCES; i++) {
+				if (_io_port_conn[i])
+					Genode::destroy(_slab_ioport, _io_port_conn[i]);
+			}
 		}
 
 		/****************************************
@@ -139,6 +165,8 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 				return Genode::Irq_session_capability();
 			return _irq_session.cap();
 		}
+
+		Genode::Io_port_session_capability io_port(Genode::uint8_t) override;
 };
 
 #endif /* _PCI_DEVICE_COMPONENT_H_ */

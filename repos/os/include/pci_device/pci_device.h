@@ -18,6 +18,7 @@
 #include <base/signal.h>
 #include <base/exception.h>
 #include <io_mem_session/io_mem_session.h>
+#include <io_port_session/capability.h>
 #include <irq_session/capability.h>
 #include <ram_session/ram_session.h>
 
@@ -165,6 +166,12 @@ struct Pci::Device : Platform::Device
 	virtual void config_write(unsigned char address, unsigned value,
 	                          Access_size size) = 0;
 
+	/**
+	 * Query Io_port of specified bar
+	 *
+	 * \param id   index of according PCI resource of the device
+	 */
+	virtual Genode::Io_port_session_capability io_port(Genode::uint8_t id) = 0;
 
 	/*
 	 * The base classes are defined as follows:
@@ -211,10 +218,21 @@ struct Pci::Device : Platform::Device
 	GENODE_RPC(Rpc_config_write, void, config_write,
 	           unsigned char, unsigned, Access_size);
 	GENODE_RPC(Rpc_irq, Genode::Irq_session_capability, irq, Genode::uint8_t);
+	GENODE_RPC_THROW(Rpc_io_port, Genode::Io_port_session_capability, io_port,
+	                 GENODE_TYPE_LIST(Quota_exceeded),
+	                 Genode::uint8_t);
 
-	GENODE_RPC_INTERFACE(Rpc_bus_address, Rpc_vendor_id, Rpc_device_id,
-	                     Rpc_class_code, Rpc_resource, Rpc_config_read,
-	                     Rpc_config_write, Rpc_irq);
+	typedef Genode::Meta::Type_tuple<Rpc_bus_address,
+	        Genode::Meta::Type_tuple<Rpc_vendor_id,
+	        Genode::Meta::Type_tuple<Rpc_device_id,
+	        Genode::Meta::Type_tuple<Rpc_class_code,
+	        Genode::Meta::Type_tuple<Rpc_resource,
+	        Genode::Meta::Type_tuple<Rpc_config_read,
+	        Genode::Meta::Type_tuple<Rpc_config_write,
+	        Genode::Meta::Type_tuple<Rpc_irq,
+	        Genode::Meta::Type_tuple<Rpc_io_port,
+	                                 Genode::Meta::Empty>
+	        > > > > > > > > Rpc_functions;
 };
 
 #endif /* _INCLUDE__PCI_DEVICE__PCI_DEVICE_H_ */

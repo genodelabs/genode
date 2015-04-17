@@ -23,16 +23,23 @@ class Nonpci::Ps2 : public Pci::Device_component
 		enum {
 			IRQ_KEYBOARD     = 1,
 			IRQ_MOUSE        = 12,
+
+			ACCESS_WIDTH     = 1,                                               
+			REG_DATA         = 0x60,                                            
+			REG_STATUS       = 0x64,  
 		};
 
 		Genode::Irq_connection      _irq_mouse;
+		Genode::Io_port_connection  _data;
+		Genode::Io_port_connection  _status;
 
 	public:
 
 		Ps2(Genode::Rpc_entrypoint * ep, Pci::Session_component * session)
 		:
 			Pci::Device_component(ep, session, IRQ_KEYBOARD),
-			_irq_mouse(IRQ_MOUSE)
+			_irq_mouse(IRQ_MOUSE),
+			_data(REG_DATA, ACCESS_WIDTH), _status(REG_STATUS, ACCESS_WIDTH)
 		{ }
 
 		Genode::Irq_session_capability irq(Genode::uint8_t virt_irq) override
@@ -45,6 +52,16 @@ class Nonpci::Ps2 : public Pci::Device_component
 				default:
 					return Genode::Irq_session_capability();
 			}
+		}
+
+		Genode::Io_port_session_capability io_port(Genode::uint8_t io_port) override
+		{
+			if (io_port == 0)
+				return _data.cap();
+			if (io_port == 1)
+				return _status.cap();
+
+			return Genode::Io_port_session_capability();
 		}
 };
 
