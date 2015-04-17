@@ -10,7 +10,6 @@
 set use_multiboot     0
 set use_genode_iso    0
 
-set use_block_ide     0
 set use_block_sata    1
 
 set use_nic_session   0
@@ -36,7 +35,6 @@ if {[have_include power_on/qemu]} {
 
 	append qemu_args " -m 1024 "
 	append qemu_args " -cpu phenom"
-	append_if $use_block_ide  qemu_args " -boot d -hda bin/seoul-disc.raw "
 	append_if $use_block_sata qemu_args " -drive id=disk,file=bin/seoul-disc.raw,if=none -device ahci,id=ahci -device ide-drive,drive=disk,bus=ahci.0 -boot d"
 }
 

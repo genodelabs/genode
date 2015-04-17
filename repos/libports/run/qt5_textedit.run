@@ -16,9 +16,10 @@ append build_components {
 }
 
 set use_sd_card_driver [expr [have_spec omap4] || [have_spec platform_arndale]]
+set use_ahci_driver    [have_spec x86]
 
 lappend_if $use_sd_card_driver       build_components drivers/sd_card
-lappend_if [have_spec     pci]       build_components drivers/atapi
+lappend_if $use_ahci_driver          build_components drivers/ahci
 lappend_if [have_spec    acpi]       build_components drivers/acpi
 lappend_if [have_spec   linux]       build_components server/ram_fs
 lappend_if [expr ![have_spec linux]] build_components server/ffat_fs
@@ -48,8 +49,8 @@ append config {
 
 append config [qt5_start_nodes feature]
 
-append_if [have_spec pci] config {
-	<start name="atapi_drv">
+append_if $use_ahci_driver config {
+	<start name="ahci">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Block"/> </provides>
 		<config ata="yes" />
@@ -143,8 +144,8 @@ append boot_modules {
 # platform-specific modules
 lappend_if [have_spec linux]         boot_modules ram_fs
 lappend_if [expr ![have_spec linux]] boot_modules ffat_fs
-lappend_if [have_spec pci]           boot_modules atapi_drv
 lappend_if $use_sd_card_driver       boot_modules sd_card_drv
+lappend_if $use_ahci_driver          boot_modules ahci
 
 build_boot_image $boot_modules
 
@@ -157,7 +158,7 @@ set cmd "mkfs.vfat -F32 $disk_image"
 puts "formating disk image with vfat file system: $cmd"
 catch { exec sh -c $cmd }
 
-append_if [have_spec   pci] qemu_args " -hda $disk_image -boot order=d "
+append_if $use_ahci_driver qemu_args " -drive id=disk,file=$disk_image,if=none -device ahci,id=ahci -device ide-drive,drive=disk,bus=ahci.0 -boot d"
 
 append qemu_args " -m 256"
 

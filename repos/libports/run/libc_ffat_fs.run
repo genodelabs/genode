@@ -5,7 +5,7 @@
 #
 
 set use_sd_card_drv [expr [have_spec omap4] || [have_spec platform_arndale] || [have_spec pl180]]
-set use_atapi_drv   [have_spec x86]
+set use_ahci_drv   [have_spec x86]
 
 if {[catch { exec which mkfs.vfat } ]} {
         puts stderr "Error: mkfs.vfat not installed, aborting test"; exit }
@@ -26,7 +26,7 @@ set build_components {
 
 lappend_if [have_spec  pci] build_components drivers/pci
 lappend_if [have_spec acpi] build_components drivers/acpi
-lappend_if $use_atapi_drv   build_components drivers/atapi
+lappend_if $use_ahci_drv    build_components drivers/ahci
 lappend_if $use_sd_card_drv build_components drivers/sd_card
 
 build $build_components
@@ -96,8 +96,8 @@ append_if [expr ![have_spec acpi] && [have_spec pci]] config {
 		<provides><service name="PCI"/></provides>
 	</start>}
 
-append_if $use_atapi_drv config {
-	<start name="atapi_drv">
+append_if $use_ahci_drv config {
+	<start name="ahci">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Block"/> </provides>
 		<config ata="yes" />
@@ -130,7 +130,7 @@ set boot_modules {
 
 lappend_if [have_spec pci]   boot_modules pci_drv
 lappend_if [have_spec acpi]  boot_modules acpi_drv
-lappend_if $use_atapi_drv    boot_modules atapi_drv
+lappend_if $use_ahci_drv     boot_modules ahci
 lappend_if $use_sd_card_drv  boot_modules sd_card_drv
 
 build_boot_image $boot_modules
@@ -152,7 +152,7 @@ catch { exec sh -c $cmd }
 # Qemu
 #
 append qemu_args " -m 128 -nographic "
-append_if $use_atapi_drv   qemu_args " -hda $disk_image -boot order=d "
+append_if $use_ahci_drv    qemu_args " -drive id=disk,file=$disk_image,if=none -device ahci,id=ahci -device ide-drive,drive=disk,bus=ahci.0 -boot d"
 append_if $use_sd_card_drv qemu_args " -drive file=$disk_image,if=sd,cache=writeback "
 
 run_genode_until {.*child "test-libc_vfs" exited with exit value 0.*} 60

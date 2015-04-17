@@ -28,7 +28,6 @@ if {$use_fancy_stuff} { set use_framebuffer 1 }
 lappend_if [have_spec acpi]     build_components drivers/acpi
 lappend_if [have_spec pci]      build_components drivers/pci/device_pd
 lappend_if $use_usb             build_components drivers/usb
-lappend_if $use_block_ide       build_components drivers/atapi
 lappend_if $use_block_sata      build_components drivers/ahci
 lappend_if $use_nic_session     build_components drivers/nic
 lappend_if $use_nic_bridge      build_components server/nic_bridge
@@ -169,13 +168,6 @@ append_if $use_block_sata config {
 	<start name="ahci" priority="-1">
 		<resource name="RAM" quantum="1M" />
 		<provides><service name="Block"/></provides>
-	</start>}
-
-append_if $use_block_ide config {
-	<start name="atapi_drv" priority="-1">
-		<resource name="RAM" quantum="1M" />
-		<provides><service name="Block"/></provides>
-		<config ata="yes" />
 	</start>}
 
 append_if $use_genode_iso config {
@@ -427,7 +419,6 @@ lappend_if [have_spec acpi]   boot_modules acpi_drv
 lappend_if [have_spec nova]   boot_modules pci_device_pd
 lappend_if [expr !$use_usb]   boot_modules ps2_drv
 lappend_if $use_usb           boot_modules usb_drv
-lappend_if $use_block_ide     boot_modules atapi_drv
 lappend_if $use_block_sata    boot_modules ahci
 lappend_if $use_nic_session   boot_modules nic_drv
 lappend_if $use_nic_bridge    boot_modules nic_bridge
