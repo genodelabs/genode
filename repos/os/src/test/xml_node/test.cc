@@ -116,10 +116,63 @@ static const char *xml_test_attributes =
 	"  <single-tag-with-attr name=\"ein_name\" quantum=\"2K\" />"
 	"</config>";
 
+/* valid example of XML structure with text between nodes */
+static const char *xml_test_text_between_nodes =
+	"<config>"
+	"  sometext1"
+	"  <program attr=\"abcd\"/>"
+	"  sometext2"
+	"  <program>inProgram</program>"
+	"  sometext3"
+	"</config>";
+
 
 /******************
  ** Test program **
  ******************/
+
+/**
+ * Print attributes of XML token
+ */
+template <typename SCANNER_POLICY>
+static const char *token_type_string(typename Token<SCANNER_POLICY>::Type token_type)
+{
+	switch (token_type) {
+	case Token<SCANNER_POLICY>::SINGLECHAR: return "SINGLECHAR";
+	case Token<SCANNER_POLICY>::NUMBER    : return "NUMBER";
+	case Token<SCANNER_POLICY>::IDENT     : return "IDENT";
+	case Token<SCANNER_POLICY>::STRING    : return "STRING";
+	case Token<SCANNER_POLICY>::WHITESPACE: return "WHITESPACE";
+	case Token<SCANNER_POLICY>::END       : return "END";
+	}
+	return "<invalid>";
+}
+
+
+/**
+ * Print attributes of XML token
+ */
+template <typename SCANNER_POLICY>
+static void print_xml_token_info(Token<SCANNER_POLICY> xml_token)
+{
+	static char content_buf[128];
+	xml_token.string(content_buf, sizeof(content_buf));
+	printf("token type=\"%s\", len=%zd, content=\"%s\"\n",
+	       token_type_string<SCANNER_POLICY>(xml_token.type()),
+	       xml_token.len(), content_buf);
+}
+
+
+template <typename SCANNER_POLICY>
+static void print_xml_tokens(const char *xml_string)
+{
+	Token<SCANNER_POLICY> token(xml_string);
+	while (token.type() != Token<SCANNER_POLICY>::END) {
+		print_xml_token_info(token);
+		token = token.next();
+	}
+}
+
 
 /**
  * Print attributes of XML node
@@ -135,7 +188,7 @@ static void print_xml_attr_info(Xml_node xml_node, int indent = 0)
 
 			/* read attribute name and value */
 			char name[32]; name[0] = 0;
-			a.value(name, sizeof(name));
+			a.type(name, sizeof(name));
 			char value[32]; value[0] = 0;
 			a.value(value, sizeof(value));
 
@@ -166,7 +219,7 @@ static void print_xml_node_info(Xml_node xml_node, int indent = 0)
 		xml_node.value(buf, sizeof(buf));
 		printf("leaf content = \"%s\"\n", buf);
 	} else
-		printf("number of subnodes = %d\n",
+		printf("number of subnodes = %zd\n",
 		        xml_node.num_sub_nodes());
 
 	print_xml_attr_info(xml_node, indent + 2);
@@ -213,6 +266,9 @@ static void print_xml_info(const char *xml_string)
 
 int main()
 {
+	printf("--- XML-token test ---\n");
+        print_xml_tokens<Scanner_policy_identifier_with_underline>(xml_test_text_between_nodes);
+
 	printf("--- XML-parser test ---\n");
 
 	printf("-- Test valid XML structure --\n");
@@ -238,6 +294,9 @@ int main()
 
 	printf("-- Test access to XML attributes --\n");
 	print_xml_info(xml_test_attributes);
+
+	printf("-- Test parsing XML with nodes mixed with text --\n");
+	print_xml_info(xml_test_text_between_nodes);
 
 	printf("--- End of XML-parser test ---\n");
 	return 0;
