@@ -58,3 +58,9 @@ bool Pci::bus_valid(int bus)
 
 	return buses.valid[bus];
 }
+
+
+using Pci::Session_component;
+using Genode::Bit_array;
+
+Bit_array<Session_component::MAX_PCI_DEVICES> Session_component::bdf_in_use;

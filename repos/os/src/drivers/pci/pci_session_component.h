@@ -52,6 +52,12 @@ namespace Pci {
 			Genode::Session_label                       _label;
 			Genode::Session_policy                      _policy;
 
+			enum { MAX_PCI_DEVICES = Device_config::MAX_BUSES *
+			                         Device_config::MAX_DEVICES *
+			                         Device_config::MAX_FUNCTIONS };
+
+			static Genode::Bit_array<MAX_PCI_DEVICES> bdf_in_use;
+
 			/**
 			 * Scan PCI buses for a device
 			 *
@@ -496,6 +502,18 @@ namespace Pci {
 				 * device and return its capability.
 				 */
 				try {
+					/* if more than one driver uses the device - warn about */
+					if (bdf_in_use.get(Device_config::MAX_BUSES * bus +
+					                   Device_config::MAX_DEVICES * device +
+					                   function, 1))
+						PERR("Device %2x:%2x.%u is used by more than one "
+						     "driver - session '%s'.", bus, device, function,
+						     _label.string());
+					else
+						bdf_in_use.set(Device_config::MAX_BUSES * bus +
+						               Device_config::MAX_DEVICES * device +
+						               function, 1);
+
 					Device_component * dev = new (_device_slab) Device_component(config, config_space, _ep, this);
 					_device_list.insert(dev);
 					return _ep->manage(dev);
@@ -512,6 +530,13 @@ namespace Pci {
 
 				if (!device)
 					return;
+
+				unsigned const bus  = device->config().bus_number();
+				unsigned const dev  = device->config().device_number();
+				unsigned const func = device->config().function_number();
+
+				bdf_in_use.clear(Device_config::MAX_BUSES * bus +
+				                 Device_config::MAX_DEVICES * dev + func, 1);
 
 				_device_list.remove(device);
 				_ep->dissolve(device);
