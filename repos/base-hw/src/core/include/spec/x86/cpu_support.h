@@ -75,26 +75,44 @@ class Genode::Cpu_lazy_state
 		/**
 		 * Load x87 FPU State from fxsave area.
 		 */
-		inline void load() { asm volatile ("fxrstor %0" : : "m" (*start)); }
+		inline void load()
+		{
+			if (!start) {
+				set_start();
+				init();
+				return;
+			}
+			asm volatile ("fxrstor %0" : : "m" (*start));
+		}
 
 		/**
 		 * Save x87 FPU State to fxsave area.
 		 */
 		inline void save() { asm volatile ("fxsave %0" : "=m" (*start)); }
 
-	public:
+		/**
+		 * Initialize FPU without checking for pending unmasked floating-point
+		 * exceptions.
+		 */
+		inline void init() { asm volatile ("fninit"); };
 
 		/**
-		 * Constructor
-		 *
-		 * Calculate 16-byte aligned start of FXSAVE area if necessary.
+		 * Set 16-byte aligned start of fxsave area.
 		 */
-		inline Cpu_lazy_state()
+		inline void set_start()
 		{
 			start = fxsave_area;
 			if((addr_t)start & 15)
 				start = (char *)((addr_t)start & ~15) + 16;
 		};
+
+	public:
+
+		/**
+		 * Constructor
+		 */
+		inline Cpu_lazy_state() : start(0) { };
+
 } __attribute__((aligned(16)));
 
 
