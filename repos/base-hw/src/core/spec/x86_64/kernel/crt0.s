@@ -41,10 +41,9 @@
 	xor %eax, %eax
 	rep stosl
 
-	/* Enable PAE (prerequisite for IA-32e mode) and OSFXSR */
+	/* Enable PAE (prerequisite for IA-32e mode) */
 	movl %cr4, %eax
 	btsl $5, %eax
-	btsl $9, %eax
 	movl %eax, %cr4
 
 	/* Load initial pagetables */
@@ -58,9 +57,8 @@
 	btsl $11, %eax
 	wrmsr
 
-	/* Enable paging, write protection, caching and FPU error reporting */
+	/* Enable paging, write protection and caching */
 	movl %cr0, %eax
-	btsl $5, %eax
 	btsl $16, %eax
 	btrl $29, %eax
 	btrl $30, %eax
