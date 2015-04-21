@@ -365,12 +365,14 @@ class Genode::Cpu
 		 */
 		static void init_virt_kernel(Kernel::Pd * pd);
 
-		inline static void finish_init_phys_kernel() { _init_fpu(); }
-
 		/**
 		 * Configure this module appropriately for the first kernel run
 		 */
-		static void init_phys_kernel() { Timer::disable_pit(); };
+		static void init_phys_kernel()
+		{
+			Timer::disable_pit();
+			_init_fpu();
+		};
 
 		/**
 		 * Finish all previous data transfers
