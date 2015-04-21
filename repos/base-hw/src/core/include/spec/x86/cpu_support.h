@@ -256,10 +256,25 @@ class Genode::Cpu
 		static void _enable_fpu() { asm volatile ("clts"); }
 
 		/**
-		 * Initialize FPU without checking for pending unmasked floating-point
-		 * exceptions.
+		 * Initialize FPU with SSE extensions by setting required CR0 and CR4
+		 * bits to configure the FPU environment according to Intel SDM Vol.
+		 * 3A, sections 9.2 and 9.6.
 		 */
-		static void _init_fpu() { asm volatile ("fninit"); }
+		static void _init_fpu()
+		{
+			Cr0::access_t cr0_value = Cr0::read();
+			Cr4::access_t cr4_value = Cr4::read();
+
+			Cr0::Mp::set(cr0_value);
+			Cr0::Em::clear(cr0_value);
+			Cr0::Ts::set(cr0_value);
+			Cr0::Ne::set(cr0_value);
+			Cr0::write(cr0_value);
+
+			Cr4::Osfxsr::set(cr4_value);
+			Cr4::Osxmmexcpt::set(cr4_value);
+			Cr4::write(cr4_value);
+		}
 
 		/**
 		 * Returns True if the FPU is enabled.
