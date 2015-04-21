@@ -35,6 +35,11 @@ void Thread::exception(unsigned const cpu)
 		PWRN("%s -> %s: FPU error", pd_label(), label());
 		_stop();
 		return;
+	case UNDEFINED_INSTRUCTION:
+		PWRN("%s -> %s: undefined instruction at ip=%p",
+			 pd_label(), label(), (void*)ip);
+		_stop();
+		return;
 	case SUPERVISOR_CALL:
 		_call();
 		return;
