@@ -17,8 +17,8 @@ SRC_S += spec/x86_64/kernel/crt0_translation_table.s
 SRC_S += spec/x86_64/crt0.s
 
 # add C++ sources
+SRC_CC += spec/x86_64_muen/platform_support.cc
 SRC_CC += spec/x86_64/kernel/thread_base.cc
-SRC_CC += spec/x86_64/platform_support.cc
 SRC_CC += spec/x86_64/idt.cc
 SRC_CC += spec/x86_64/tss.cc
 SRC_CC += spec/x86/platform_support.cc
