@@ -48,8 +48,8 @@ void Thread::exception(unsigned const cpu)
 		_interrupt(cpu);
 		return;
 	}
-	PWRN("%s -> %s: triggered unknown exception %lu with error code %lu",
-	     pd_label(), label(), trapno, errcode);
+	PWRN("%s -> %s: triggered unknown exception %lu with error code %lu"
+		 " at ip=%p", pd_label(), label(), trapno, errcode, (void*)ip);
 	_stop();
 }
 
