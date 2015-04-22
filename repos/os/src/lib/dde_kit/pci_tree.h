@@ -126,7 +126,7 @@ namespace Dde_kit {
 			{
 				/* trigger that the device gets assigned to this driver */
 				pci_drv.config_extended(_device);
-				return pci_drv.alloc_dma_buffer(_device, size);
+				return pci_drv.alloc_dma_buffer(size);
 			}
 	};
 

@@ -40,7 +40,6 @@ class Ahci_device : public Ahci_device_base
 
 		::Pci::Connection        &_pci;
 		::Pci::Device_client     *_pci_device;
-		::Pci::Device_capability  _pci_device_cap;
 
 		/**
 		 * Return next PCI device
@@ -188,8 +187,6 @@ class Ahci_device : public Ahci_device_base
 					device->_irq->sigh(cap);
 					device->_irq->ack_irq();
 
-					/* remember pci_device to be able to allocate ram memory which is dma able */
-					device->_pci_device_cap = device_cap;
 					device->_pci_device = pci_device;
 					/* trigger assignment of pci device to the ahci driver */
 					pci.config_extended(device_cap);
@@ -208,10 +205,10 @@ class Ahci_device : public Ahci_device_base
 		}
 
 		Ram_dataspace_capability alloc_dma_buffer(size_t size) {
-			return _pci.alloc_dma_buffer(_pci_device_cap, size); }
+			return _pci.alloc_dma_buffer(size); }
 
 		void free_dma_buffer(Ram_dataspace_capability cap) {
-			return _pci.free_dma_buffer(_pci_device_cap, cap); }
+			return _pci.free_dma_buffer(cap); }
 };
 
 #endif /* _AHCI_DEVICE_H_ */

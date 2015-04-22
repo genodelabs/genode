@@ -293,11 +293,6 @@ extern "C" int pci_register_driver(struct pci_driver *drv)
 		while (cap.valid()) {
 			Pci_driver *pci_drv = 0;
 			try {
-				/*
-				 * Assign cap already here, since for probing already DMA
-				 * buffer is required and allocated by
-				 * Genode::Mem::alloc_dma_buffer(size_t size)
-				 */
 				pci_device_cap = cap;
 
 				/* trigger that the device get be assigned to the wifi driver */
@@ -449,7 +444,7 @@ extern "C" int pcie_capability_read_word(struct pci_dev *pdev, int pos, u16 *val
 void Ram_object::free() { Genode::env()->ram_session()->free(ram_cap()); }
 
 
-void Dma_object::free() { pci()->free_dma_buffer(pci_device_cap, ram_cap()); }
+void Dma_object::free() { pci()->free_dma_buffer(ram_cap()); }
 
 
 Genode::Ram_dataspace_capability
@@ -463,7 +458,7 @@ Lx::backend_alloc(Genode::addr_t size, Genode::Cache_attribute cached)
 		cap = env()->ram_session()->alloc(size);
 		o = new (env()->heap())	Ram_object(cap);
 	} else {
-		cap = pci()->alloc_dma_buffer(pci_device_cap, size);
+		cap = pci()->alloc_dma_buffer(size);
 		o = new (env()->heap()) Dma_object(cap);
 	}
 

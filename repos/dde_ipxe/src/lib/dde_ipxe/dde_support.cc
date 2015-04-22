@@ -203,7 +203,7 @@ struct Pci_driver
 			/* trigger that the device gets assigned to this driver */
 			_pci.config_extended(_cap);
 			Ram_dataspace_capability ram_cap;
-			ram_cap = _pci.alloc_dma_buffer(_cap, size);
+			ram_cap = _pci.alloc_dma_buffer(size);
 			_region.mapped_base = (Genode::addr_t)env()->rm_session()->attach(ram_cap);
 			_region.base = Dataspace_client(ram_cap).phys_addr();
 

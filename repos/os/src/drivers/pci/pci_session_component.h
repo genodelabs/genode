@@ -315,8 +315,7 @@ namespace Pci {
 			 */
 			typedef Genode::Ram_dataspace_capability Ram_capability;
 
-			Ram_capability alloc_dma_buffer(Device_capability device_cap,
-			                                Genode::size_t size)
+			Ram_capability alloc_dma_buffer(Genode::size_t size)
 			{
 				if (Genode::env()->ram_session()->transfer_quota(_ram->cap(),
 				                                                 size))
@@ -331,7 +330,7 @@ namespace Pci {
 				return ram;
 			}
 
-			void free_dma_buffer(Device_capability, Ram_capability ram)
+			void free_dma_buffer(Ram_capability ram)
 			{
 				if (ram.valid())
 					_ram->free(ram);

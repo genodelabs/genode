@@ -64,14 +64,12 @@ struct Pci::Session : Genode::Session
 	/**
 	 * Allocate memory suitable for DMA.
 	 */
-	virtual Genode::Ram_dataspace_capability alloc_dma_buffer(Device_capability,
-	                                                          Genode::size_t) = 0;
+	virtual Genode::Ram_dataspace_capability alloc_dma_buffer(Genode::size_t) = 0;
 
 	/**
 	 * Free previously allocated DMA memory
 	 */
-	virtual void free_dma_buffer(Device_capability,
-	                             Genode::Ram_dataspace_capability) = 0;
+	virtual void free_dma_buffer(Genode::Ram_dataspace_capability) = 0;
 
 	/*********************
 	 ** RPC declaration **
@@ -87,9 +85,9 @@ struct Pci::Session : Genode::Session
 	GENODE_RPC_THROW(Rpc_alloc_dma_buffer, Genode::Ram_dataspace_capability,
 	                 alloc_dma_buffer,
 	                 GENODE_TYPE_LIST(Genode::Ram_session::Quota_exceeded),
-	                 Device_capability, Genode::size_t);
+	                 Genode::size_t);
 	GENODE_RPC(Rpc_free_dma_buffer, void, free_dma_buffer,
-	                 Device_capability, Genode::Ram_dataspace_capability);
+	           Genode::Ram_dataspace_capability);
 
 	GENODE_RPC_INTERFACE(Rpc_first_device, Rpc_next_device,
 	                     Rpc_release_device, Rpc_config_extended,
