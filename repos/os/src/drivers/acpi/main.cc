@@ -178,7 +178,7 @@ class Pci_policy : public Genode::Slave_policy, public Pci::Provider
 		void _acpi_session()
 		{
 			Pci::Session_capability session;
-			const char *args = "ram_quota=4K";
+			const char *args = "label=\"acpi_drv\", ram_quota=4K";
 
 			try {
 				using namespace Genode;

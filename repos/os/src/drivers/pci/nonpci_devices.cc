@@ -31,7 +31,7 @@ class Nonpci::Ps2 : public Pci::Device_component
 
 		Ps2(Genode::Rpc_entrypoint * ep, Pci::Session_component * session)
 		:
-			Pci::Device_component(ep, IRQ_KEYBOARD),
+			Pci::Device_component(ep, session, IRQ_KEYBOARD),
 			_irq_mouse(IRQ_MOUSE)
 		{ }
 
@@ -69,6 +69,12 @@ Pci::Device_capability Pci::Session_component::device(String const &name) {
 
 	if (devices_i >= sizeof(devices) / sizeof(devices[0])) {
 		PERR("unknown '%s' device name", device_name);
+		return Device_capability();
+	}
+
+	if (!permit_device(devices[devices_i])) {
+		PERR("Denied access to device '%s' for session '%s'", device_name,
+		     _label.string());
 		return Device_capability();
 	}
 

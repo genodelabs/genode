@@ -19,13 +19,13 @@
 #include <base/rpc_server.h>
 #include <base/printf.h>
 
-#include <io_mem_session/io_mem_session.h>
+#include <io_mem_session/connection.h>
 
 #include "pci_device_config.h"
 
 #include "irq.h"
 
-namespace Pci { class Device_component; }
+namespace Pci { class Device_component; class Session_component; }
 
 class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
                               public Genode::List<Device_component>::Element
@@ -37,6 +37,7 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 		Genode::Io_mem_connection *_io_mem;
 		Config_access              _config_access;
 		Genode::Rpc_entrypoint    *_ep;
+		Pci::Session_component    *_session;
 		Irq_session_component      _irq_session;
 
 		enum { PCI_IRQ = 0x3c };
@@ -47,10 +48,11 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 		 * Constructor
 		 */
 		Device_component(Device_config device_config, Genode::addr_t addr,
-		                 Genode::Rpc_entrypoint *ep)
+		                 Genode::Rpc_entrypoint *ep,
+		                 Pci::Session_component * session)
 		:
 			_device_config(device_config), _config_space(addr),
-			_io_mem(0), _ep(ep),
+			_io_mem(0), _ep(ep), _session(session),
 			_irq_session(_device_config.read(&_config_access, PCI_IRQ,
 			                                 Pci::Device::ACCESS_8BIT))
 		{
@@ -60,9 +62,11 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 		/**
 		 * Constructor for non PCI devices
 		 */
-		Device_component(Genode::Rpc_entrypoint *ep, unsigned irq)
+		Device_component(Genode::Rpc_entrypoint * ep,
+		                 Pci::Session_component * session, unsigned irq)
 		:
-			_config_space(~0UL), _io_mem(0), _ep(ep), _irq_session(irq)
+			_config_space(~0UL), _io_mem(0), _ep(ep), _session(session),
+			_irq_session(irq)
 		{
 			_ep->manage(&_irq_session);
 		}
