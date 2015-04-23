@@ -137,6 +137,112 @@ class Genode::Cpu
 		};
 
 		/**
+		 * Control register 4
+		 */
+		struct Cr4 : Register<64>
+		{
+			/**
+			 * Virtual-8086 Mode Extensions
+			 * */
+			struct Vme : Bitfield<0, 1> { };
+
+			/**
+			 * Protected-Mode Virtual Interrupts
+			 */
+			struct Pvi : Bitfield<1, 1> { };
+
+			/**
+			 * Time Stamp Disable
+			 */
+			struct Tsd : Bitfield<2, 1> { };
+
+			/**
+			 * Debugging Exceptions
+			 */
+			struct De : Bitfield<3, 1> { };
+
+			/**
+			 * Page Size Extensions
+			 */
+			struct Pse : Bitfield<4, 1> { };
+
+			/**
+			 * Physical Address Extension
+			 */
+			struct Pae : Bitfield<5, 1> { };
+
+			/**
+			 * Machine-Check Enable
+			 */
+			struct Mce : Bitfield<6, 1> { };
+
+			/**
+			 * Page Global Enable
+			 * */
+			struct Pge : Bitfield<7, 1> { };
+
+			/**
+			 * Performance-Monitoring Counter Enable
+			 */
+			struct Pce : Bitfield<8, 1> { };
+
+			/**
+			 * Operating System Support for FXSAVE and FXRSTOR instructions
+			 */
+			struct Osfxsr : Bitfield<9, 1> { };
+
+			/**
+			 * Operating System Support for Unmasked SIMD Floating-Point Exceptions
+			 */
+			struct Osxmmexcpt : Bitfield<10, 1> { };
+
+			/**
+			 * VMX-Enable
+			 */
+			struct Vmxe : Bitfield<13, 1> { };
+
+			/**
+			 * SMX-Enable
+			 */
+			struct Smxe : Bitfield<14, 1> { };
+
+			/**
+			 * FSGSBASE-Enable
+			 */
+			struct Fsgsbase : Bitfield<16, 1> { };
+
+			/**
+			 * PCIDE-Enable
+			 */
+			struct Pcide : Bitfield<17, 1> { };
+
+			/**
+			 * XSAVE and Processor Extended States-Enable
+			 */
+			struct Osxsave : Bitfield<18, 1> { };
+
+			/**
+			 * SMEP-Enable
+			 */
+			struct Smep : Bitfield<20, 1> { };
+
+			/**
+			 * SMAP-Enable
+			 */
+			struct Smap : Bitfield<21, 1> { };
+
+			static void write(access_t const v) {
+				asm volatile ("mov %0, %%cr4" :: "r" (v) : ); }
+
+			static access_t read()
+			{
+				access_t v;
+				asm volatile ("mov %%cr4, %0" : "=r" (v) :: );
+				return v;
+			}
+		};
+
+		/**
 		 * Disable FPU by setting the TS flag in CR0.
 		 */
 		static void _disable_fpu()
