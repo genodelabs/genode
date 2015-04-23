@@ -59,6 +59,10 @@ class Genode::Cpu_lazy_state
 
 	private:
 
+		enum {
+			MXCSR_DEFAULT = 0x1f80
+		};
+
 		/**
 		 * FXSAVE area providing storage for x87 FPU, MMX, XMM, and MXCSR
 		 * registers.
@@ -91,10 +95,31 @@ class Genode::Cpu_lazy_state
 		inline void save() { asm volatile ("fxsave %0" : "=m" (*start)); }
 
 		/**
-		 * Initialize FPU without checking for pending unmasked floating-point
-		 * exceptions.
+		 * Return current value of MXCSR register.
 		 */
-		inline void init() { asm volatile ("fninit"); };
+		static inline unsigned get_mxcsr()
+		{
+			unsigned value;
+			asm volatile ("stmxcsr %0" : "=m" (value));
+			return value;
+		}
+
+		/**
+		 * Set MXCSR register to given value.
+		 */
+		static inline void set_mxcsr(unsigned value)
+		{
+			asm volatile ("ldmxcsr %0" : : "m" (value));
+		}
+
+		/**
+		 * Initialize FPU without checking for pending unmasked floating-point
+		 * exceptions and explicitly setting the MXCSR to the default value.
+		 */
+		inline void init() {
+			asm volatile ("fninit");
+			set_mxcsr(MXCSR_DEFAULT);
+		};
 
 		/**
 		 * Set 16-byte aligned start of fxsave area.
