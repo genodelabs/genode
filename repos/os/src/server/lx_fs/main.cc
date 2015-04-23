@@ -12,6 +12,7 @@
  */
 
 /* Genode includes */
+#include <file_system/node_handle_registry.h>
 #include <file_system_session/rpc_object.h>
 #include <root/component.h>
 #include <os/attached_rom_dataspace.h>
@@ -22,7 +23,6 @@
 
 /* local includes */
 #include <directory.h>
-#include <node_handle_registry.h>
 
 
 namespace File_system {
@@ -92,7 +92,7 @@ class File_system::Session_component : public Session_rpc_object
 
 			try {
 				Node *node = _handle_registry.lookup_and_lock(packet.handle());
-				Node_lock_guard guard(*node);
+				Node_lock_guard guard(node);
 
 				_process_packet_op(packet, *node);
 			}
@@ -191,7 +191,7 @@ class File_system::Session_component : public Session_rpc_object
 				throw Invalid_name();
 
 			Directory *dir = _handle_registry.lookup_and_lock(dir_handle);
-			Node_lock_guard dir_guard(*dir);
+			Node_lock_guard dir_guard(dir);
 
 			if (!_writable)
 				if (create || (mode != STAT_ONLY && mode != READ_ONLY))
@@ -199,7 +199,7 @@ class File_system::Session_component : public Session_rpc_object
 
 			File *file = dir->file(name.string(), mode, create);
 
-			Node_lock_guard file_guard(*file);
+			Node_lock_guard file_guard(file);
 			return _handle_registry.alloc(file);
 		}
 
@@ -225,7 +225,7 @@ class File_system::Session_component : public Session_rpc_object
 				throw Name_too_long();
 
 			Directory *dir = _root.subdir(path_str, create);
-			Node_lock_guard guard(*dir);
+			Node_lock_guard guard(dir);
 			return _handle_registry.alloc(dir);
 		}
 
@@ -237,7 +237,7 @@ class File_system::Session_component : public Session_rpc_object
 
 			Node *node = _root.node(path_str + 1);
 
-			Node_lock_guard guard(*node);
+			Node_lock_guard guard(node);
 			return _handle_registry.alloc(node);
 		}
 
@@ -250,7 +250,7 @@ class File_system::Session_component : public Session_rpc_object
 		Status status(Node_handle node_handle)
 		{
 			Node *node = _handle_registry.lookup_and_lock(node_handle);
-			Node_lock_guard guard(*node);
+			Node_lock_guard guard(node);
 
 			Status s;
 			s.inode = node->inode();
@@ -292,7 +292,7 @@ class File_system::Session_component : public Session_rpc_object
 				throw Permission_denied();
 
 			File *file = _handle_registry.lookup_and_lock(file_handle);
-			Node_lock_guard file_guard(*file);
+			Node_lock_guard file_guard(file);
 			file->truncate(size);
 		}
 

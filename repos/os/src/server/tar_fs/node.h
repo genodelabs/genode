@@ -15,12 +15,15 @@
 #ifndef _NODE_H_
 #define _NODE_H_
 
+/* Genode includes */
+#include <file_system/node.h>
+
 /* local includes */
 #include <record.h>
 
 namespace File_system {
 
-	class Node
+	class Node : public Node_base
 	{
 		protected:
 

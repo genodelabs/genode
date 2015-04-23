@@ -13,6 +13,7 @@
  */
 
 /* Genode includes */
+#include <file_system/node_handle_registry.h>
 #include <file_system_session/rpc_object.h>
 #include <root/component.h>
 #include <cap_session/connection.h>
@@ -24,7 +25,6 @@
 #include <directory.h>
 #include <file.h>
 #include <lookup.h>
-#include <node_handle_registry.h>
 #include <symlink.h>
 #include <util.h>
 

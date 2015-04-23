@@ -4,8 +4,10 @@
  * \date   2012-04-11
  */
 
-#ifndef _NODE_HANDLE_REGISTRY_H_
-#define _NODE_HANDLE_REGISTRY_H_
+#ifndef _FILE_SYSTEM__NODE_HANDLE_REGISTRY_H_
+#define _FILE_SYSTEM__NODE_HANDLE_REGISTRY_H_
+
+#include <file_system/node.h>
 
 namespace File_system {
 
@@ -43,14 +45,20 @@ namespace File_system {
 
 			Lock mutable _lock;
 
-			Node *_nodes[MAX_NODE_HANDLES];
+			Node_base *_nodes[MAX_NODE_HANDLES];
+
+			/**
+			 * Each open node handle can act as a listener to be informed about
+			 * node changes.
+			 */
+			Listener _listeners[MAX_NODE_HANDLES];
 
 			/**
 			 * Allocate node handle
 			 *
 			 * \throw Out_of_node_handles
 			 */
-			int _alloc(Node *node)
+			int _alloc(Node_base *node)
 			{
 				Lock::Guard guard(_lock);
 
@@ -90,8 +98,30 @@ namespace File_system {
 			{
 				Lock::Guard guard(_lock);
 
-				if (_in_range(handle.value))
-					_nodes[handle.value] = 0;
+				if (!_in_range(handle.value))
+					return;
+
+				/*
+				 * Notify listeners about the changed file.
+				 */
+				Node_base *node = dynamic_cast<Node_base *>(_nodes[handle.value]);
+				if (!node) { return; }
+
+				node->lock();
+				node->notify_listeners();
+
+				/*
+				 * De-allocate handle
+				 */
+				Listener &listener = _listeners[handle.value];
+
+				if (listener.valid())
+					node->remove_listener(&listener);
+
+				_nodes[handle.value] = 0;
+				listener = Listener();
+
+				node->unlock();
 			}
 
 			/**
@@ -115,16 +145,77 @@ namespace File_system {
 				return node;
 			}
 
+			/**
+			 * Lookup node using its handle as key
+			 *
+			 * The node returned by this function is in a locked state.
+			 *
+			 * \throw Invalid_handle
+			 */
+			template <typename HANDLE_TYPE>
+			typename Node_type<HANDLE_TYPE>::Type *lookup_and_lock(HANDLE_TYPE handle)
+			{
+				Lock::Guard guard(_lock);
+
+				if (!_in_range(handle.value))
+					throw Invalid_handle();
+
+				typedef typename Node_type<HANDLE_TYPE>::Type Node_base;
+				Node_base *node = dynamic_cast<Node_base *>(_nodes[handle.value]);
+				if (!node)
+					throw Invalid_handle();
+
+				node->lock();
+				return node;
+			}
+
 			bool refer_to_same_node(Node_handle h1, Node_handle h2) const
 			{
 				Lock::Guard guard(_lock);
 
-				if (!_in_range(h1.value) || !_in_range(h2.value))
+				if (!_in_range(h1.value) || !_in_range(h2.value)) {
+					PDBG("refer_to_same_node -> Invalid_handle");
 					throw Invalid_handle();
+				}
 
 				return _nodes[h1.value] == _nodes[h2.value];
+			}
+
+			/**
+			 * Register signal handler to be notified of node changes
+			 */
+			void sigh(Node_handle handle, Signal_context_capability sigh)
+			{
+				Lock::Guard guard(_lock);
+
+				if (!_in_range(handle.value))
+					throw Invalid_handle();
+
+				Node_base *node = dynamic_cast<Node_base *>(_nodes[handle.value]);
+				if (!node) {
+					PDBG("Invalid_handle");
+					throw Invalid_handle();
+				}
+
+				node->lock();
+				Node_lock_guard node_lock_guard(node);
+
+				Listener &listener = _listeners[handle.value];
+
+				/*
+				 * If there was already a handler registered for the node,
+				 * remove the old handler.
+				 */
+				if (listener.valid())
+					node->remove_listener(&listener);
+
+				/*
+				 * Register new handler
+				 */
+				listener = Listener(sigh);
+				node->add_listener(&listener);
 			}
 	};
 }
 
-#endif /* _NODE_HANDLE_REGISTRY_H_ */
+#endif /* _FILE_SYSTEM__NODE_HANDLE_REGISTRY_H_ */

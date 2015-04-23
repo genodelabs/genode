@@ -14,10 +14,11 @@
 #ifndef _SYMLINK_H_
 #define _SYMLINK_H_
 
+/* Genode includes */
+#include <file_system/util.h>
 #include <os/path.h>
 
 #include "node.h"
-#include "util.h"
 
 namespace File_system {
 	class Symlink;

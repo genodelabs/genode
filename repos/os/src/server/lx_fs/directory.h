@@ -9,11 +9,11 @@
 #define _DIRECTORY_H_
 
 /* Genode include */
+#include <file_system/util.h>
 #include <os/path.h>
 
 /* local includes */
 #include <node.h>
-#include <util.h>
 #include <file.h>
 
 #include <lx_util.h>

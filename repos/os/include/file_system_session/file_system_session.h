@@ -37,8 +37,8 @@ namespace File_system {
 	 */
 	struct Packet_ref;
 
-	typedef uint64_t seek_off_t;
-	typedef uint64_t file_size_t;
+	typedef Genode::uint64_t seek_off_t;
+	typedef Genode::uint64_t file_size_t;
 
 	class Packet_descriptor;
 

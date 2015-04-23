@@ -12,6 +12,7 @@
  */
 
 /* Genode includes */
+#include <file_system/node_handle_registry.h>
 #include <file_system_session/rpc_object.h>
 #include <os/attached_rom_dataspace.h>
 #include <os/config.h>
@@ -25,9 +26,7 @@
 
 /* local includes */
 #include <directory.h>
-#include <node_handle_registry.h>
 #include <util.h>
-
 
 static bool const verbose = false;
 #define PDBGV(...) if (verbose) PDBG(__VA_ARGS__)
@@ -104,7 +103,7 @@ class File_system::Session_component : public Session_rpc_object
 
 			try {
 				Node *node = _handle_registry.lookup_and_lock(packet.handle());
-				Node_lock_guard guard(*node);
+				Node_lock_guard guard(node);
 
 				_process_packet_op(packet, *node);
 			}
@@ -201,7 +200,7 @@ class File_system::Session_component : public Session_rpc_object
 				throw Invalid_name();
 
 			Directory *dir = _handle_registry.lookup_and_lock(dir_handle);
-			Node_lock_guard dir_guard(*dir);
+			Node_lock_guard dir_guard(dir);
 
 			PDBGV("dir: '%s' name: '%s' %s", dir->name(), name.string(),
 			      create ? "create" : "");
@@ -210,7 +209,7 @@ class File_system::Session_component : public Session_rpc_object
 				throw Permission_denied();
 
 			File *file = new (&_md_alloc) File(dir, name.string(), mode, create);
-			Node_lock_guard file_guard(*file);
+			Node_lock_guard file_guard(file);
 
 			return _handle_registry.alloc(file);
 		}
@@ -226,7 +225,7 @@ class File_system::Session_component : public Session_rpc_object
 			    throw Invalid_name();
 
 			Directory *dir = _handle_registry.lookup_and_lock(dir_handle);
-			Node_lock_guard dir_guard(*dir);
+			Node_lock_guard dir_guard(dir);
 
 			PDBGV("dir: '%s' name: '%s'", dir->name(), name.string());
 
@@ -234,7 +233,7 @@ class File_system::Session_component : public Session_rpc_object
 					throw Permission_denied();
 
 			Symlink *symlink = new (&_md_alloc) Symlink(dir, name.string(), create);
-			Node_lock_guard symlink_guard(*symlink);
+			Node_lock_guard symlink_guard(symlink);
 
 			return _handle_registry.alloc(symlink);
 		}
@@ -255,7 +254,7 @@ class File_system::Session_component : public Session_rpc_object
 
 			Directory *dir_node = new (&_md_alloc) Directory(_md_alloc, path_str, create);
 
-			Node_lock_guard guard(*dir_node);
+			Node_lock_guard guard(dir_node);
 			return _handle_registry.alloc(dir_node);
 		}
 
@@ -272,7 +271,7 @@ class File_system::Session_component : public Session_rpc_object
 			PDBGV("path_str: '%s'", path_str);
 			Node *node = _root.node(path_str + 1);
 
-			Node_lock_guard guard(*node);
+			Node_lock_guard guard(node);
 			return _handle_registry.alloc(node);
 		}
 
@@ -301,7 +300,7 @@ class File_system::Session_component : public Session_rpc_object
 		Status status(Node_handle node_handle)
 		{
 			Node *node = _handle_registry.lookup_and_lock(node_handle);
-			Node_lock_guard guard(*node);
+			Node_lock_guard guard(node);
 
 			File *file = dynamic_cast<File *>(node);
 			if (file)
@@ -329,7 +328,7 @@ class File_system::Session_component : public Session_rpc_object
 				throw Permission_denied();
 
 			Directory *dir = _handle_registry.lookup_and_lock(dir_handle);
-			Node_lock_guard dir_guard(*dir);
+			Node_lock_guard dir_guard(dir);
 
 			PDBGV("dir: '%s' name: '%s'", dir->name(), name.string());
 
@@ -361,7 +360,7 @@ class File_system::Session_component : public Session_rpc_object
 			try { file = _handle_registry.lookup_and_lock(file_handle); }
 			catch (Invalid_handle) { throw Lookup_failed(); }
 
-			Node_lock_guard file_guard(*file);
+			Node_lock_guard file_guard(file);
 			file->truncate(size);
 		}
 
@@ -381,8 +380,8 @@ class File_system::Session_component : public Session_rpc_object
 				throw Lookup_failed();
 			}
 
-			Node_lock_guard from_dir_guard(*from_dir);
-			Node_lock_guard to_dir_guard(*to_dir);
+			Node_lock_guard from_dir_guard(from_dir);
+			Node_lock_guard to_dir_guard(to_dir);
 
 			PDBGV("from_dir: '%s' from_name: '%s', to_dir: '%s' to_name: '%s'",
 			      from_dir->name(), from_name.string(), to_dir->name(), to_name.string());

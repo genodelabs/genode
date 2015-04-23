@@ -73,7 +73,7 @@ namespace File_system {
 				switch(res) {
 					case FR_OK:
 						if (verbose)
-							PDBG("result = %zu", result);
+							PDBG("result = %d", result);
 						return result;
 					case FR_DENIED:
 						PDBG("f_read() failed with error code FR_DENIED");
@@ -139,7 +139,7 @@ namespace File_system {
 				switch(res) {
 					case FR_OK:
 						if (verbose)
-							PDBG("result = %zu", result);
+							PDBG("result = %d", result);
 						return result;
 					case FR_DENIED:
 						PERR("f_write() failed with error code FR_DENIED");

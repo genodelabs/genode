@@ -8,6 +8,7 @@
 #define _NODE_H_
 
 /* Genode includes */
+#include <file_system/node.h>
 #include <os/path.h>
 
 /* ffat includes */
@@ -19,7 +20,7 @@ namespace File_system {
 
 	typedef Genode::Path<_MAX_LFN + 1> Absolute_path;
 
-	class Node
+	class Node : public Node_base
 	{
 		protected:
 

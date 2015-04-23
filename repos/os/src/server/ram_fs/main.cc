@@ -12,6 +12,7 @@
  */
 
 /* Genode includes */
+#include <file_system/node_handle_registry.h>
 #include <file_system_session/rpc_object.h>
 #include <root/component.h>
 #include <os/attached_rom_dataspace.h>
@@ -22,7 +23,6 @@
 
 /* local includes */
 #include <directory.h>
-#include <node_handle_registry.h>
 
 
 /*************************
@@ -90,7 +90,7 @@ namespace File_system {
 
 				try {
 					Node *node = _handle_registry.lookup_and_lock(packet.handle());
-					Node_lock_guard guard(*node);
+					Node_lock_guard guard(node);
 
 					_process_packet_op(packet, *node);
 				}
@@ -185,7 +185,7 @@ namespace File_system {
 					throw Invalid_name();
 
 				Directory *dir = _handle_registry.lookup_and_lock(dir_handle);
-				Node_lock_guard dir_guard(*dir);
+				Node_lock_guard dir_guard(dir);
 
 				if (!_writable)
 					if (mode != STAT_ONLY && mode != READ_ONLY)
@@ -209,7 +209,7 @@ namespace File_system {
 				}
 
 				File *file = dir->lookup_and_lock_file(name.string());
-				Node_lock_guard file_guard(*file);
+				Node_lock_guard file_guard(file);
 				return _handle_registry.alloc(file);
 			}
 
@@ -219,7 +219,7 @@ namespace File_system {
 					throw Invalid_name();
 
 				Directory *dir = _handle_registry.lookup_and_lock(dir_handle);
-				Node_lock_guard dir_guard(*dir);
+				Node_lock_guard dir_guard(dir);
 
 				if (create) {
 
@@ -239,7 +239,7 @@ namespace File_system {
 				}
 
 				Symlink *symlink = dir->lookup_and_lock_symlink(name.string());
-				Node_lock_guard file_guard(*symlink);
+				Node_lock_guard file_guard(symlink);
 				return _handle_registry.alloc(symlink);
 			}
 
@@ -262,7 +262,7 @@ namespace File_system {
 
 					Directory *parent = _root.lookup_and_lock_parent(path_str);
 
-					Node_lock_guard guard(*parent);
+					Node_lock_guard guard(parent);
 
 					char const *name = basename(path_str);
 
@@ -277,7 +277,7 @@ namespace File_system {
 				}
 
 				Directory *dir = _root.lookup_and_lock_dir(path_str);
-				Node_lock_guard guard(*dir);
+				Node_lock_guard guard(dir);
 				return _handle_registry.alloc(dir);
 			}
 
@@ -287,7 +287,7 @@ namespace File_system {
 
 				Node *node = _root.lookup_and_lock(path.string() + 1);
 
-				Node_lock_guard guard(*node);
+				Node_lock_guard guard(node);
 				return _handle_registry.alloc(node);
 			}
 
@@ -299,7 +299,7 @@ namespace File_system {
 			Status status(Node_handle node_handle)
 			{
 				Node *node = _handle_registry.lookup_and_lock(node_handle);
-				Node_lock_guard guard(*node);
+				Node_lock_guard guard(node);
 
 				Status s;
 				s.inode = node->inode();
@@ -338,7 +338,7 @@ namespace File_system {
 					throw Permission_denied();
 
 				Directory *dir = _handle_registry.lookup_and_lock(dir_handle);
-				Node_lock_guard dir_guard(*dir);
+				Node_lock_guard dir_guard(dir);
 
 				Node *node = dir->lookup_and_lock(name.string());
 
@@ -357,7 +357,7 @@ namespace File_system {
 					throw Permission_denied();
 
 				File *file = _handle_registry.lookup_and_lock(file_handle);
-				Node_lock_guard file_guard(*file);
+				Node_lock_guard file_guard(file);
 				file->truncate(size);
 			}
 
@@ -374,15 +374,15 @@ namespace File_system {
 					throw Invalid_name();
 
 				Directory *from_dir = _handle_registry.lookup_and_lock(from_dir_handle);
-				Node_lock_guard from_dir_guard(*from_dir);
+				Node_lock_guard from_dir_guard(from_dir);
 
 				Node *node = from_dir->lookup_and_lock(from_name.string());
-				Node_lock_guard node_guard(*node);
+				Node_lock_guard node_guard(node);
 				node->name(to_name.string());
 
 				if (!_handle_registry.refer_to_same_node(from_dir_handle, to_dir_handle)) {
 					Directory *to_dir = _handle_registry.lookup_and_lock(to_dir_handle);
-					Node_lock_guard to_dir_guard(*to_dir);
+					Node_lock_guard to_dir_guard(to_dir);
 
 					from_dir->discard_unsynchronized(node);
 					to_dir->adopt_unsynchronized(node);

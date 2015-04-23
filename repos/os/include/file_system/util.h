@@ -4,8 +4,8 @@
  * \date   2012-04-11
  */
 
-#ifndef _UTIL_H_
-#define _UTIL_H_
+#ifndef _FILE_SYSTEM__UTIL_H_
+#define _FILE_SYSTEM__UTIL_H_
 
 /**
  * Return base-name portion of null-terminated path string
@@ -60,4 +60,4 @@ static inline bool valid_name(char const *str)
 	return true;
 }
 
-#endif /* _UTIL_H_ */
+#endif /* _FILE_SYSTEM__UTIL_H_ */

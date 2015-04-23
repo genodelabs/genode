@@ -12,6 +12,7 @@
  */
 
 /* Genode includes */
+#include <file_system/node_handle_registry.h>
 #include <cap_session/connection.h>
 #include <file_system_session/rpc_object.h>
 #include <os/attached_rom_dataspace.h>
@@ -29,15 +30,30 @@
 #include <buffer.h>
 #include <directory.h>
 #include <followed_subject.h>
-#include <node_handle_registry.h>
 #include <trace_files.h>
-#include <util.h>
 
 
 static bool const verbose = false;
 #define PDBGV(...) if (verbose) PDBG(__VA_ARGS__)
 
+/**
+ * Return true if 'str' is a valid file name
+ */
+static inline bool valid_filename(char const *str)
+{
+	if (!str) return false;
 
+	/* must have at least one character */
+	if (str[0] == 0) return false;
+
+	/* must not contain '/' or '\' or ':' */
+	if (string_contains(str, '/') ||
+		string_contains(str, '\\') ||
+		string_contains(str, ':'))
+		return false;
+
+	return true;
+}
 
 /**
  * This class updates the file system

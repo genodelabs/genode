@@ -12,6 +12,9 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
+#include <file_system/node_handle_registry.h>
+
 #include "undef.h"
 
 #include <file_system_session/rpc_object.h>
@@ -21,8 +24,6 @@
 #include  <rump_fs/fs.h>
 #include "file_system.h"
 #include "directory.h"
-#include "node_handle_registry.h"
-
 
 namespace File_system {
 	struct Main;

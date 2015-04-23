@@ -16,8 +16,10 @@
 #ifndef _FILE_H_
 #define _FILE_H_
 
+/* Genode includes */
+#include <file_system/util.h>
+
 #include "node.h"
-#include "util.h"
 
 namespace File_system {
 	class File;

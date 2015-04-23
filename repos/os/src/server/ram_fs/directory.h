@@ -7,9 +7,11 @@
 #ifndef _DIRECTORY_H_
 #define _DIRECTORY_H_
 
+/* Genode includes */
+#include <file_system/util.h>
+
 /* local includes */
 #include <node.h>
-#include <util.h>
 #include <file.h>
 #include <symlink.h>
 
