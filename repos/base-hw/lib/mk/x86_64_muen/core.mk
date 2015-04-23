@@ -13,7 +13,7 @@ INC_DIR += $(REP_DIR)/src/core/include/spec/x86
 # add assembly sources
 SRC_S += spec/x86_64/mode_transition.s
 SRC_S += spec/x86_64/kernel/crt0.s
-SRC_S += spec/x86_64/kernel/crt0_translation_table.s
+SRC_S += spec/x86_64_muen/kernel/crt0_translation_table.s
 SRC_S += spec/x86_64/crt0.s
 
 # add C++ sources
