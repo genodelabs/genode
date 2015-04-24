@@ -99,6 +99,14 @@ append_if [have_spec acpi] config {
 			<service name="PCI"/>
 			<service name="IRQ" />
 		</provides>
+		<config>
+			<policy label="acpi_drv">
+				<pci class="ALL"/>
+			</policy>
+			<policy label="ahci">
+				<pci class="AHCI"/>
+			</policy>
+		</config>
 		<route>
 			<service name="PCI"> <any-child /> </service>
 			<any-service> <parent/> <any-child /> </any-service>
@@ -109,6 +117,11 @@ append_if [expr ![have_spec acpi] && [have_spec pci]] config {
 	<start name="pci_drv">
 		<resource name="RAM" quantum="5M" constrain_phys="yes"/>
 		<provides><service name="PCI"/></provides>
+		<config>
+			<policy label="ahci">
+				<pci class="AHCI"/>
+			</policy>
+		</config>
 	</start>}
 
 append_if $use_ahci config {

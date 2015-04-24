@@ -140,6 +140,12 @@ append_if [have_spec acpi] config {
 			<service name="PCI"/>
 			<service name="IRQ" />
 		</provides>
+		<config>
+			<policy label="acpi_drv"> <pci class="ALL"/> </policy>
+			<policy label="ps2_drv">  <device name="PS2"/> </policy>
+			<policy label="usb_drv">  <pci class="USB"/> </policy>
+			<policy label="fb_drv">   <pci class="VGA"/> </policy>
+		</config>
 		<route>
 			<service name="PCI"> <any-child /> </service>
 			<any-service> <parent/> <any-child /> </any-service>
@@ -156,6 +162,11 @@ append_if [expr ![have_spec acpi] && [have_spec pci]] config {
 	<start name="pci_drv">
 		<resource name="RAM" quantum="2M" constrain_phys="yes"/>
 		<provides> <service name="PCI"/> </provides>
+		<config>
+			<policy label="ps2_drv">  <device name="PS2"/> </policy>
+			<policy label="usb_drv">  <pci class="USB"/> </policy>
+			<policy label="fb_drv">   <pci class="VGA"/> </policy>
+		</config>
 	</start> }
 
 append_if [have_spec ps2] config {

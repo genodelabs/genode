@@ -14,6 +14,8 @@ if {![have_spec nova]} {
 	exit 0
 }
 
+assert_spec acpi
+
 set build_components {
 	core init
 	drivers/timer
@@ -161,7 +163,7 @@ append_if [expr !$use_usb] config {
 	<start name="ps2_drv" priority="-1">
 		<resource name="RAM" quantum="3M"/>
 		<provides><service name="Input"/></provides>
-		<route> <any-service><parent/></any-service> </route>
+		<route> <any-service><parent/> <any-child/> </any-service> </route>
 	</start> }
 
 append_if $use_block_sata config {
@@ -194,19 +196,20 @@ append_if [have_spec acpi] config {
 			<service name="PCI"/>
 			<service name="IRQ" />
 		</provides>
+		<config>
+			<policy label="acpi_drv"> <pci class="ALL"/> </policy>
+			<policy label="ahci">     <pci class="AHCI"/> </policy>
+			<policy label="nic_drv">  <pci class="ETHERNET"/> </policy>
+			<policy label="ps2_drv">  <device name="PS2"/> </policy>
+			<policy label="usb_drv">  <pci class="USB"/> </policy>
+			<policy label="fb_drv">   <pci class="VGA"/> </policy>
+		</config>
 		<route>
 			<service name="PCI"> <any-child /> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>}
 
-append_if [expr ![have_spec acpi] && [have_spec pci]] config {
-	<start name="pci_drv" priority="-1">
-		<resource name="RAM" quantum="3M" constrain_phys="yes"/>
-		<provides><service name="PCI"/></provides>
-		<route> <any-service><parent/></any-service> </route>
-	</start>
-}
 
 append_if $use_nic_session config {
 	<start name="nic_drv" priority="-2">

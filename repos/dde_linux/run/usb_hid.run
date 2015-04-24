@@ -63,6 +63,14 @@ append_if [have_spec acpi] config {
 			<service name="PCI"/>
 			<service name="IRQ" />
 		</provides>
+		<config>
+			<policy label="acpi_drv">
+				<pci class="ALL"/>
+			</policy>
+			<policy label="usb_drv">
+				<pci class="USB"/>
+			</policy>
+		</config>
 		<route>
 			<service name="PCI"> <any-child /> </service>
 			<any-service> <parent/> <any-child /> </any-service>

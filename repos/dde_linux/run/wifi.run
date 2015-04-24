@@ -122,6 +122,14 @@ append_if [have_spec acpi] config {
 			<service name="PCI"> <any-child /> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
+		<config>
+			<policy label="acpi_drv">
+				<pci class="ALL"/>
+			</policy>
+			<policy label="wifi_drv">
+				<pci class="WIFI"/>
+			</policy>
+		</config>
 	</start>}
 
 append_if [have_spec platform_arndale] config {

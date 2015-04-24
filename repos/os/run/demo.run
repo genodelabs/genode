@@ -63,6 +63,11 @@ append_if [have_spec pci] config {
 	<start name="pci_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="PCI"/></provides>
+		<config>
+			<policy label="ps2_drv"> <device name="PS2"/> </policy>
+			<policy label="usb_drv"> <pci class="USB"/> </policy>
+			<policy label="fb_drv">  <pci class="VGA"/> </policy>
+		</config>
 	</start>}
 
 append_if [have_spec framebuffer] config {
