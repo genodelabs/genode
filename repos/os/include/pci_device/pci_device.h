@@ -202,6 +202,26 @@ struct Pci::Device : Platform::Device
 	unsigned base_class() { return  class_code() >> 16; }
 	unsigned sub_class()  { return (class_code() >>  8) & 0xff; }
 
+	/**
+	 * Convenience method to translate a PCI physical BAR id to a Genode
+	 * virtual one usable with the io_port and io_mem methods. The virtual id
+	 * is solely valid for the specific BAR type.
+	 */
+	Genode::uint8_t phys_bar_to_virt(Genode::uint8_t phys_bar)
+	{
+		Genode::uint8_t virt_io_port = 0, virt_io_mem = 0;
+
+		for (unsigned i = 0; i < phys_bar; i++) {
+			Resource::Type type = resource(i).type();
+			if (type == Resource::Type::IO)
+				virt_io_port ++;
+			else if (type == Resource::Type::MEMORY)
+				virt_io_mem ++;
+		}
+
+		Resource::Type type = resource(phys_bar).type();
+		return type == Resource::Type::IO ? virt_io_port : virt_io_mem;
+	}
 
 	/*********************
 	 ** RPC declaration **
