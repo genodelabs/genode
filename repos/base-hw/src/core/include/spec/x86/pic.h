@@ -97,8 +97,11 @@ class Genode::Pic : public Mmio
 				{
 					/* Remap all supported IRQs */
 					for (unsigned i = 0; i <= IRTE_COUNT; i++) {
+						uint64_t val = _create_irt_entry(i);
+						write<Ioregsel>(IOREDTBL + 2 * i + 1);
+						write<Iowin>(val >> 32);
 						write<Ioregsel>(IOREDTBL + 2 * i);
-						write<Iowin>(_create_irt_entry(i));
+						write<Iowin>(val & 0xffffffff);
 					}
 				};
 
