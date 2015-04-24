@@ -36,12 +36,27 @@ class Genode::Pic
 			NR_OF_IRQ = 256,
 		};
 
+		void irq_occurred(unsigned irq)
+		{
+			isr[irq] = true;
+		}
+
+		bool take_request(unsigned &irq)
+		{
+			for (int i = 0; i < 256; i++) {
+				if (isr[i] == true) {
+					irq = i;
+					isr[i] = false;
+					return true;
+				}
+			}
+			return false;
+		}
 
 		/*
 		 * Dummies
 		 */
 		Pic() { }
-		bool take_request(unsigned &irq) { return false; }
 		void finish_request() { }
 		void unmask(unsigned const i, unsigned) { }
 		void mask(unsigned const i) { }
@@ -49,6 +64,10 @@ class Genode::Pic
 		void init_cpu_local() { }
 		bool is_ip_interrupt(unsigned, unsigned) { return false; }
 		void trigger_ip_interrupt(unsigned) { }
+
+	private:
+
+		bool isr[NR_OF_IRQ] = {false};
 };
 
 namespace Kernel { class Pic : public Genode::Pic { }; }
