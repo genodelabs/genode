@@ -47,9 +47,17 @@ class Ahci_device : public Ahci_device_base
 		static Pci::Device_capability _scan_pci(Pci::Connection &pci, Pci::Device_capability prev_device_cap)
 		{
 			Pci::Device_capability device_cap;
-			device_cap = pci.next_device(prev_device_cap,
-			                             CLASS_MASS_STORAGE | SUBCLASS_AHCI,
-			                             CLASS_MASK);
+
+			for (unsigned i = 0; i < 2; i++) {
+				try {
+					device_cap = pci.next_device(prev_device_cap,
+					                             CLASS_MASS_STORAGE | SUBCLASS_AHCI,
+					                             CLASS_MASK);
+					break;
+				} catch (Pci::Device::Quota_exceeded) {
+					Genode::env()->parent()->upgrade(pci.cap(), "ram_quota=4096");
+				}
+			}
 
 			if (prev_device_cap.valid())
 				pci.release_device(prev_device_cap);
@@ -189,7 +197,12 @@ class Ahci_device : public Ahci_device_base
 
 					device->_pci_device = pci_device;
 					/* trigger assignment of pci device to the ahci driver */
-					pci.config_extended(device_cap);
+					try {
+						pci.config_extended(device_cap);
+					} catch (Pci::Device::Quota_exceeded) {
+						Genode::env()->parent()->upgrade(pci.cap(), "ram_quota=4096");
+						pci.config_extended(device_cap);
+					}
 
 					/* get device ready */
 					device->_init(pci_device);
@@ -204,8 +217,15 @@ class Ahci_device : public Ahci_device_base
 			return 0;
 		}
 
-		Ram_dataspace_capability alloc_dma_buffer(size_t size) {
-			return _pci.alloc_dma_buffer(size); }
+		Ram_dataspace_capability alloc_dma_buffer(size_t size)
+		{
+			/* transfer quota to pci driver, otherwise we get a exception */
+			char quota[32];
+			Genode::snprintf(quota, sizeof(quota), "ram_quota=%zd", size);
+			Genode::env()->parent()->upgrade(_pci.cap(), quota);
+
+			return _pci.alloc_dma_buffer(size);
+		}
 
 		void free_dma_buffer(Ram_dataspace_capability cap) {
 			return _pci.free_dma_buffer(cap); }
