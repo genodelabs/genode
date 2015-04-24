@@ -2,7 +2,7 @@ LICENSE   := OKL4
 VERSION   := 2.1.1
 DOWNLOADS := okl4.archive
 
-URL(okl4) := http://wiki.ok-labs.com/downloads/release-2.1.1-patch.9/okl4_2.1.1-patch.9.tar.gz
+URL(okl4) := http://genode.org/files/okl4_2.1.1-patch.9.tar.gz
 SHA(okl4) := ff3062344fd6b0a3bd69d99583aa271d3bb13911
 DIR(okl4) := src/kernel/okl4
 
