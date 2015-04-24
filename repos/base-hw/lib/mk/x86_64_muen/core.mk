@@ -19,12 +19,12 @@ SRC_S += spec/x86_64/crt0.s
 # add C++ sources
 SRC_CC += spec/x86_64_muen/platform_support.cc
 SRC_CC += spec/x86_64_muen/sinfo.cc
+SRC_CC += spec/x86_64_muen/kernel/thread.cc
+SRC_CC += spec/x86_64_muen/kernel/cpu.cc
 SRC_CC += spec/x86_64/kernel/thread_base.cc
 SRC_CC += spec/x86_64/idt.cc
 SRC_CC += spec/x86_64/tss.cc
 SRC_CC += spec/x86/platform_support.cc
-SRC_CC += spec/x86/kernel/thread.cc
-SRC_CC += spec/x86/kernel/cpu.cc
 SRC_CC += spec/x86/kernel/pd.cc
 SRC_CC += spec/x86/cpu.cc
 SRC_CC += x86/io_port_session_component.cc
