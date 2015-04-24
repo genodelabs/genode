@@ -39,6 +39,7 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 		Genode::Rpc_entrypoint    *_ep;
 		Pci::Session_component    *_session;
 		Irq_session_component      _irq_session;
+		bool                       _rewrite_irq_line;
 
 		enum {
 			IO_BLOCK_SIZE = sizeof(Genode::Io_port_connection) *
@@ -55,7 +56,7 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 		Genode::Io_port_connection *_io_port_conn [Device::NUM_RESOURCES];
 		Genode::Io_mem_connection  *_io_mem_conn  [Device::NUM_RESOURCES];
 
-		enum { PCI_IRQ = 0x3c };
+		enum { PCI_IRQ_LINE = 0x3c };
 
 	public:
 
@@ -64,12 +65,14 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 		 */
 		Device_component(Device_config device_config, Genode::addr_t addr,
 		                 Genode::Rpc_entrypoint *ep,
-		                 Pci::Session_component * session)
+		                 Pci::Session_component * session,
+		                 bool rewrite_irq_line)
 		:
 			_device_config(device_config), _config_space(addr),
 			_io_mem(0), _ep(ep), _session(session),
-			_irq_session(_device_config.read(&_config_access, PCI_IRQ,
+			_irq_session(_device_config.read(&_config_access, PCI_IRQ_LINE,
 			                                 Pci::Device::ACCESS_8BIT)),
+			_rewrite_irq_line(rewrite_irq_line),
 			_slab_ioport(0, &_slab_ioport_block),
 			_slab_iomem(0, &_slab_iomem_block)
 		{
@@ -167,9 +170,31 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 
 		void config_write(unsigned char address, unsigned value, Access_size size)
 		{
-			/*
-			 * XXX implement policy to prevent write access to base-address registers
-			 */
+			/* white list of ports which we permit to write */
+			switch(address) {
+				case 0x40 ... 0xFF:
+					/* all device specific registers are permitted */
+					break;
+				case 0x4: /* COMMAND register - first byte */
+					if (size == Access_size::ACCESS_16BIT)
+						break;
+				case 0x5: /* COMMAND register - second byte */
+				case 0xd: /* Latency timer */
+					if (size == Access_size::ACCESS_8BIT)
+						break;
+				case PCI_IRQ_LINE:
+					/* permitted up to now solely for acpi driver */
+					if (address == PCI_IRQ_LINE && _rewrite_irq_line &&
+					    size == Access_size::ACCESS_8BIT)
+						break;
+				default:
+					PWRN("%x:%x:%x write access to address=%x value=0x%x "
+					     " size=0x%x got dropped", _device_config.bus_number(),
+						_device_config.device_number(),
+						_device_config.function_number(),
+						address, value, size);
+					return;
+			}
 
 			_device_config.write(&_config_access, address, value, size);
 		}

@@ -514,7 +514,8 @@ namespace Pci {
 						               Device_config::MAX_DEVICES * device +
 						               function, 1);
 
-					Device_component * dev = new (_device_slab) Device_component(config, config_space, _ep, this);
+					Device_component * dev = new (_device_slab) Device_component(config, config_space, _ep, this,
+					                                                             !Genode::strcmp(_label.string(), "acpi_drv"));
 					_device_list.insert(dev);
 					return _ep->manage(dev);
 				} catch (Genode::Allocator::Out_of_memory) {
@@ -579,7 +580,12 @@ namespace Pci {
 				if (_child)
 					_child->assign_pci(io_mem->dataspace());
 
-				return io_mem->dataspace();
+				/*
+				 * By now forbid usage of extended pci config space dataspace,
+				 * - until required.
+				 */
+				// return io_mem->dataspace();
+				return Io_mem_dataspace_capability();
 			}
 
 			/**
