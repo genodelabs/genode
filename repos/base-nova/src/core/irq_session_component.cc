@@ -215,7 +215,8 @@ Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
 
 Irq_session_component::~Irq_session_component()
 {
-	if (_proxy) return;
+	if (!_proxy)
+		return;
 
 	if (_irq_sigh.valid())
 		_proxy->remove_sharer(&_irq_sigh);
