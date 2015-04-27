@@ -39,6 +39,14 @@ struct Genode::Irq_connection : Connection<Irq_session>, Irq_session_client
 				        irq, trigger, polarity)),
 			Irq_session_client(cap())
 		{ }
+
+		Irq_connection(unsigned irq, Genode::addr_t device_config_phys)
+		:
+			Connection<Irq_session>(
+				session("ram_quota=4K, irq_number=%u, device_config_phys=0x%lx",
+				        irq, device_config_phys)),
+			Irq_session_client(cap())
+		{ }
 };
 
 #endif /* _INCLUDE__IRQ_SESSION__CONNECTION_H_ */

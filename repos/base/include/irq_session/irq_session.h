@@ -32,6 +32,12 @@ namespace Genode {
 
 struct Genode::Irq_session : Session
 {
+	struct Info {
+		enum Type { INVALID, MSI } type;
+		unsigned long address;
+		unsigned long value;
+	};
+
 	/**
 	 * Interrupt trigger
 	 */
@@ -57,6 +63,12 @@ struct Genode::Irq_session : Session
 	 */
 	virtual void sigh(Genode::Signal_context_capability sigh) = 0;
 
+	/**
+	 * Request information about IRQ, e.g. on x86 request MSI address and
+	 * MSI value to be programmed to device specific PCI registers.
+	 */
+	virtual Info info() = 0;
+
 	/*************
 	 ** Session **
 	 *************/
@@ -70,7 +82,8 @@ struct Genode::Irq_session : Session
 
 	GENODE_RPC(Rpc_ack_irq, void, ack_irq);
 	GENODE_RPC(Rpc_sigh, void, sigh, Genode::Signal_context_capability);
-	GENODE_RPC_INTERFACE(Rpc_ack_irq, Rpc_sigh);
+	GENODE_RPC(Rpc_info, Info, info);
+	GENODE_RPC_INTERFACE(Rpc_ack_irq, Rpc_sigh, Rpc_info);
 };
 
 #endif /* _INCLUDE__IRQ_SESSION__IRQ_SESSION_H_ */

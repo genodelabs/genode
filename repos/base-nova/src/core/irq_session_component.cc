@@ -120,45 +120,39 @@ class Genode::Irq_proxy_component : public Irq_proxy<Irq_thread>
 
 		Genode::addr_t _irq_sel; /* IRQ cap selector */
 		Genode::addr_t _dev_mem; /* used when MSI or HPET is used */
+		bool           _ready;   /* flag to signal that IRQ SM can be used */
+
+		Genode::addr_t _msi_addr;
+		Genode::addr_t _msi_data;
 
 	protected:
 
 		bool _associate()
 		{
-			/* alloc slector where IRQ will be mapped */
-			_irq_sel = cap_map()->insert();
-
-			/* since we run in APIC mode translate IRQ 0 (PIT) to 2 */
-			if (!_irq_number)
-				_irq_number = 2;
-
-			/* map IRQ number to selector */
-			int ret = map_local((Nova::Utcb *)Thread_base::myself()->utcb(),
-			                    Nova::Obj_crd(platform_specific()->gsi_base_sel() + _irq_number, 0),
-			                    Nova::Obj_crd(_irq_sel, 0),
-			                    true);
-			if (ret) {
-				PERR("Could not map IRQ %ld", _irq_number);
-				return false;
-			}
-
-			/* assign IRQ to CPU */
-			addr_t msi_addr = 0;
-			addr_t msi_data = 0;
+			/* assign IRQ to CPU && request msi data to be used by driver */
 			uint8_t res = Nova::assign_gsi(_irq_sel, _dev_mem, boot_cpu(),
-			                               msi_addr, msi_data);
-			if (res != Nova::NOVA_OK)
-				PERR("Error: assign_pci failed -irq:dev:msi_addr:msi_data "
-				     "%lx:%lx:%lx:%lx", _irq_number, _dev_mem, msi_addr,
-				     msi_data);
+			                               _msi_addr, _msi_data);
 
-			return res == Nova::NOVA_OK;
+			_ready = res == Nova::NOVA_OK;
+
+			/*
+			 * Return ever success so that the IRQ proxy thread gets started.
+			 * For MSIs or HPET a separate associate() call with a valid
+			 * dev_mem address is required.
+			 */
+			if (_dev_mem && !_ready)
+				PERR("setting up MSI 0x%lx failed - error %u", _irq_number, res);
+
+			return _dev_mem ? _ready : true;
 		}
 
 		void _wait_for_irq()
 		{
-			if (Nova::sm_ctrl(_irq_sel, Nova::SEMAPHORE_DOWN))
-				nova_die();
+			if (!_ready)
+				PERR("Error: assign_gsi failed for IRQ %ld", _irq_number);
+
+			if (Nova::NOVA_OK != Nova::sm_ctrl(_irq_sel, Nova::SEMAPHORE_DOWN))
+				PERR("Error: blocking for irq %ld failed", _irq_number);
 		}
 
 		void _ack_irq() { }
@@ -167,13 +161,80 @@ class Genode::Irq_proxy_component : public Irq_proxy<Irq_thread>
 
 		Irq_proxy_component(long irq_number)
 		:
-			Irq_proxy(irq_number), _dev_mem(0)
+			/* since we run in APIC mode translate IRQ 0 (PIT) to 2 */
+			Irq_proxy(irq_number ? irq_number : 2),
+			_irq_sel(cap_map()->insert()),
+			_dev_mem(0),
+			_ready(false),
+			_msi_addr(0),
+			_msi_data(0)
 		{
+			/* map IRQ SM cap from kernel to core at _irq_sel selector */
+			using Nova::Obj_crd;
+
+			Obj_crd src(platform_specific()->gsi_base_sel() + _irq_number, 0);
+			Obj_crd dst(_irq_sel, 0);
+			enum { MAP_FROM_KERNEL_TO_CORE = true };
+
+			int ret = map_local((Nova::Utcb *)Thread_base::myself()->utcb(),
+			                    src, dst, MAP_FROM_KERNEL_TO_CORE);
+			if (ret) {
+				PERR("Could not map IRQ %ld", _irq_number);
+				throw Root::Unavailable();
+			}
+
+			/* let thread run */
 			_start();
 		}
+
+		void associate(Genode::addr_t phys_mem)
+		{
+			void * v = 0;
+			if (platform()->region_alloc()->alloc_aligned(4096,
+			                                              &v, 12).is_error())
+				return;
+
+			Genode::addr_t virt_addr = reinterpret_cast<Genode::addr_t>(v);
+
+			if (!virt_addr)
+				return;
+
+			using Nova::Mem_crd;
+			using Nova::Rights;
+
+			if (map_local_phys_to_virt(reinterpret_cast<Nova::Utcb *>(Thread_base::myself()->utcb()),
+			                           Mem_crd(phys_mem >> 12,  0, Rights(true, false, false)),
+			                           Mem_crd(virt_addr >> 12, 0, Rights(true, false, false)))) {
+				platform()->region_alloc()->free(v, 4096);
+				return;
+			}
+
+			/* local attached pci config extended io mem of device */
+			_dev_mem    = virt_addr;
+			/* try to assign MSI to device */
+			_associate();
+
+			/* revert local mapping */
+			_dev_mem    = 0;
+			unmap_local(Mem_crd(virt_addr >> 12, 0, Rights(true, true, true)));
+			platform()->region_alloc()->free(v, 4096);
+		}
+
+		bool           ready()       const { return _ready; }
+		Genode::addr_t msi_address() const { return _msi_addr; }
+		Genode::addr_t msi_value()   const { return _msi_data; }
 };
 
 
+static Nova::Hip * kernel_hip()
+{
+	/**
+	 * Initial value of esp register, saved by the crt0 startup code.
+	 * This value contains the address of the hypervisor information page.
+	 */
+	extern addr_t __initial_sp;
+	return reinterpret_cast<Nova::Hip *>(__initial_sp);
+}
 
 
 /***************************
@@ -195,19 +256,34 @@ void Irq_session_component::ack_irq()
 Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
                                              const char      *args)
 {
+	typedef Irq_proxy<Irq_thread> Proxy;
+
 	long irq_number = Arg_string::find_arg(args, "irq_number").long_value(-1);
-	if (irq_number == -1) {
+	if (irq_number < 0) {
 		PERR("invalid IRQ number requested");
 		throw Root::Unavailable();
 	}
 
+	long device_phys = Arg_string::find_arg(args, "device_config_phys").long_value(0);
+	if (device_phys) {
+		if (irq_number >= kernel_hip()->sel_gsi)
+			throw Root::Unavailable();
+
+		irq_number = kernel_hip()->sel_gsi - 1 - irq_number;
+		/* XXX last GSI number unknown - assume 40 GSIs (depends on IO-APIC) */
+		if (irq_number < 40)
+			throw Root::Unavailable();
+	}
+
 	/* check if IRQ thread was started before */
-	typedef Irq_proxy<Irq_thread> Proxy;
 	_proxy = Proxy::get_irq_proxy<Irq_proxy_component>(irq_number, irq_alloc);
 	if (!_proxy) {
 		PERR("unavailable IRQ %lx requested", irq_number);
 		throw Root::Unavailable();
 	}
+
+	if (device_phys)
+		_proxy->associate(device_phys);
 
 	_irq_number = irq_number;
 }
@@ -239,4 +315,18 @@ void Irq_session_component::sigh(Genode::Signal_context_capability sigh)
 
 	if (!old.valid() && sigh.valid())
 		_proxy->add_sharer(&_irq_sigh);
+}
+
+
+Genode::Irq_session::Info Irq_session_component::info()
+{
+	if (!_proxy || !_proxy->ready() || !_proxy->msi_address() ||
+	    !_proxy->msi_value())
+		return { .type = Genode::Irq_session::Info::Type::INVALID };
+
+	return {
+		.type    = Genode::Irq_session::Info::Type::MSI,
+		.address = _proxy->msi_address(),
+		.value   = _proxy->msi_value()
+	};
 }

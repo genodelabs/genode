@@ -550,7 +550,7 @@ Platform::Platform() :
 	_io_port_alloc.add_range(0, 0x10000);
 
 	/* IRQ allocator */
-	_irq_alloc.add_range(0, hip->sel_gsi - 1);
+	_irq_alloc.add_range(0, hip->sel_gsi);
 	_gsi_base_sel = (hip->mem_desc_offset - hip->cpu_desc_offset) / hip->cpu_desc_size;
 
 	if (verbose_boot_info) {
