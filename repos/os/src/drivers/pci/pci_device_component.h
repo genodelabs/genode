@@ -14,15 +14,17 @@
 #ifndef _PCI_DEVICE_COMPONENT_H_
 #define _PCI_DEVICE_COMPONENT_H_
 
-#include <pci_device/pci_device.h>
-#include <util/list.h>
+/* base */
 #include <base/rpc_server.h>
-#include <base/printf.h>
-
 #include <io_mem_session/connection.h>
+#include <util/list.h>
+#include <util/mmio.h>
 
+/* os */
+#include <pci_device/pci_device.h>
+
+/* local */
 #include "pci_device_config.h"
-
 #include "irq.h"
 
 namespace Pci { class Device_component; class Session_component; }
@@ -32,19 +34,25 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 {
 	private:
 
-		Device_config              _device_config;
-		Genode::addr_t             _config_space;
-		Genode::Io_mem_connection *_io_mem;
-		Config_access              _config_access;
-		Genode::Rpc_entrypoint    *_ep;
-		Pci::Session_component    *_session;
-		Irq_session_component      _irq_session;
-		bool                       _rewrite_irq_line;
+		Device_config                      _device_config;
+		Genode::addr_t                     _config_space;
+		Genode::Io_mem_session_capability  _io_mem_config_extended;
+		Config_access                      _config_access;
+		Genode::Rpc_entrypoint            *_ep;
+		Pci::Session_component            *_session;
+		unsigned short                     _irq_line;
+		Irq_session_component              _irq_session;
+		bool                               _rewrite_irq_line;
 
 		enum {
 			IO_BLOCK_SIZE = sizeof(Genode::Io_port_connection) *
-			                Device::NUM_RESOURCES + 32 + 8 * sizeof(void *)
+			                Device::NUM_RESOURCES + 32 + 8 * sizeof(void *),
+			PCI_CMD_REG   = 0x4,
+			PCI_CMD_DMA   = 0x4,
+			PCI_IRQ_LINE  = 0x3c,
+			PCI_IRQ_PIN   = 0x3d
 		};
+
 		Genode::Tslab<Genode::Io_port_connection, IO_BLOCK_SIZE> _slab_ioport;
 		Genode::Slab_block _slab_ioport_block;
 		char _slab_ioport_block_data[IO_BLOCK_SIZE];
@@ -56,7 +64,95 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 		Genode::Io_port_connection *_io_port_conn [Device::NUM_RESOURCES];
 		Genode::Io_mem_connection  *_io_mem_conn  [Device::NUM_RESOURCES];
 
-		enum { PCI_IRQ_LINE = 0x3c };
+		struct Status : Genode::Register<8> {
+			struct Capabilities : Bitfield<4,1> { };
+
+			inline static access_t read(Genode::uint8_t t) { return t; };
+		};
+
+
+		/**
+		 * Read out msi capabilities of the device.
+		 */
+		Genode::uint16_t _msi_cap()
+		{
+			enum { PCI_STATUS = 0x6, PCI_CAP_OFFSET = 0x34, CAP_MSI = 0x5 };
+
+			Status::access_t status = Status::read(_device_config.read(&_config_access,
+			                                       PCI_STATUS,
+			                                       Pci::Device::ACCESS_16BIT));
+			if (!Status::Capabilities::get(status))
+				return 0;
+
+			Genode::uint8_t cap = _device_config.read(&_config_access,
+			                                          PCI_CAP_OFFSET,
+			                                          Pci::Device::ACCESS_8BIT);
+
+			for (Genode::uint16_t val = 0; cap; cap = val >> 8) {
+				val = _device_config.read(&_config_access, cap,
+				                          Pci::Device::ACCESS_16BIT);
+				if ((val & 0xff) != CAP_MSI)
+					continue;
+
+				return cap;
+			}
+
+			return 0;
+		}
+
+
+		/**
+		 * Disable MSI if already enabled.
+		 */
+		unsigned _disable_msi(unsigned irq)
+		{
+			using Genode::uint16_t;
+			using Genode::uint8_t;
+
+			uint8_t has_irq = _device_config.read(&_config_access, PCI_IRQ_PIN,
+			                                      Pci::Device::ACCESS_8BIT);
+			if (!has_irq)
+				return Irq_session_component::INVALID_IRQ;
+
+			uint16_t cap = _msi_cap();
+			if (!cap)
+				return irq;
+
+			uint16_t msi = _device_config.read(&_config_access, cap + 2,
+			                                   Pci::Device::ACCESS_16BIT);
+
+			enum { MSI_ENABLED = 0x1 };
+
+			if (msi & MSI_ENABLED)
+				/* disable MSI */
+				_device_config.write(&_config_access, cap + 2,
+				                     msi ^ MSI_ENABLED,
+				                     Pci::Device::ACCESS_8BIT);
+
+			return irq;
+		}
+
+
+		/**
+		 * Disable bus master dma if already enabled.
+		 */
+		void _disable_bus_master_dma() {
+
+			/*
+			 * Disabling a bridge may make the devices behind non-functional,
+			 * as we have no driver which will switch it on again
+			 */
+			if (_device_config.is_pci_bridge())
+				return;
+
+			unsigned cmd = _device_config.read(&_config_access, PCI_CMD_REG,
+			                                   Pci::Device::ACCESS_16BIT);
+			if (cmd & PCI_CMD_DMA)
+				_device_config.write(&_config_access, PCI_CMD_REG,
+				                     cmd ^ PCI_CMD_DMA,
+				                     Pci::Device::ACCESS_16BIT);
+		}
+
 
 	public:
 
@@ -69,13 +165,22 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 		                 bool rewrite_irq_line)
 		:
 			_device_config(device_config), _config_space(addr),
-			_io_mem(0), _ep(ep), _session(session),
-			_irq_session(_device_config.read(&_config_access, PCI_IRQ_LINE,
-			                                 Pci::Device::ACCESS_8BIT)),
+			_ep(ep), _session(session),
+			_irq_line(_device_config.read(&_config_access, PCI_IRQ_LINE,
+			                              Pci::Device::ACCESS_8BIT)),
+			_irq_session(_disable_msi(_irq_line), _msi_cap() ? _config_space : ~0UL),
 			_rewrite_irq_line(rewrite_irq_line),
 			_slab_ioport(0, &_slab_ioport_block),
 			_slab_iomem(0, &_slab_iomem_block)
 		{
+			if (_config_space != ~0UL) {
+				try {
+					Genode::Io_mem_connection conn(_config_space, 0x1000);
+					conn.on_destruction(Genode::Io_mem_connection::KEEP_OPEN);
+					_io_mem_config_extended = conn;
+				} catch (Genode::Parent::Service_denied) { }
+			}
+
 			_ep->manage(&_irq_session);
 
 			for (unsigned i = 0; i < Device::NUM_RESOURCES; i++) {
@@ -87,6 +192,43 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 				PERR("incorrect amount of space for io port resources");
 			if (_slab_iomem.num_elem() != Device::NUM_RESOURCES)
 				PERR("incorrect amount of space for io mem resources");
+
+			_disable_bus_master_dma();
+
+			if (!_irq_session.msi())
+				return;
+
+			Genode::addr_t msi_address = _irq_session.msi_address();
+			Genode::uint32_t msi_value = _irq_session.msi_data();
+			Genode::uint16_t msi_cap   = _msi_cap();
+
+			enum { CAP_MSI_64 = 0x80, MSI_ENABLED = 0x1 };
+			Genode::uint16_t msi = _device_config.read(&_config_access,
+			                                           msi_cap + 2,
+			                                           Pci::Device::ACCESS_16BIT);
+
+			_device_config.write(&_config_access, msi_cap + 0x4, msi_address,
+			                     Pci::Device::ACCESS_32BIT);
+
+			if (msi & CAP_MSI_64) {
+				Genode::uint32_t upper_address = sizeof(msi_address) > 4 ?
+				                                 msi_address >> 32 : 0UL;
+
+				_device_config.write(&_config_access, msi_cap + 0x8,
+				                     upper_address,
+				                     Pci::Device::ACCESS_32BIT);
+				_device_config.write(&_config_access, msi_cap + 0xc,
+				                     msi_value,
+				                     Pci::Device::ACCESS_16BIT);
+			}
+			else
+				_device_config.write(&_config_access, msi_cap + 0x8, msi_value,
+				                     Pci::Device::ACCESS_16BIT);
+
+			/* enable MSI */
+			_device_config.write(&_config_access, msi_cap + 2,
+			                     msi ^ MSI_ENABLED,
+			                     Pci::Device::ACCESS_8BIT);
 		}
 
 		/**
@@ -95,8 +237,9 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 		Device_component(Genode::Rpc_entrypoint * ep,
 		                 Pci::Session_component * session, unsigned irq)
 		:
-			_config_space(~0UL), _io_mem(0), _ep(ep), _session(session),
-			_irq_session(irq),
+			_config_space(~0UL), _ep(ep), _session(session),
+			_irq_line(irq),
+			_irq_session(_irq_line, _config_space),
 			_slab_ioport(0, &_slab_ioport_block),
 			_slab_iomem(0, &_slab_iomem_block)
 		{
@@ -121,6 +264,12 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 				if (_io_mem_conn[i])
 					Genode::destroy(_slab_iomem, _io_mem_conn[i]);
 			}
+
+			if (_io_mem_config_extended.valid())
+				Genode::env()->parent()->close(_io_mem_config_extended);
+
+			if (_device_config.valid())
+				_disable_bus_master_dma();
 		}
 
 		/****************************************
@@ -129,32 +278,34 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 
 		Device_config config() { return _device_config; }
 
-		Genode::addr_t config_space() { return _config_space; }
+		Genode::Io_mem_dataspace_capability get_config_space()
+		{
+			if (!_io_mem_config_extended.valid())
+				return Genode::Io_mem_dataspace_capability();
 
-		void set_config_space(Genode::Io_mem_connection * io_mem) {
-			_io_mem = io_mem; }
-
-		Genode::Io_mem_connection * get_config_space() { return _io_mem; }
+			Genode::Io_mem_session_client client(_io_mem_config_extended);
+			return client.dataspace();
+		}
 
 		/**************************
 		 ** PCI-device interface **
 		 **************************/
 
 		void bus_address(unsigned char *bus, unsigned char *dev,
-		                 unsigned char *fn)
+		                 unsigned char *fn) override
 		{
 			*bus = _device_config.bus_number();
 			*dev = _device_config.device_number();
 			*fn  = _device_config.function_number();
 		}
 
-		unsigned short vendor_id() { return _device_config.vendor_id(); }
+		unsigned short vendor_id() override { return _device_config.vendor_id(); }
 
-		unsigned short device_id() { return _device_config.device_id(); }
+		unsigned short device_id() override { return _device_config.device_id(); }
 
-		unsigned class_code() { return _device_config.class_code(); }
+		unsigned class_code() override { return _device_config.class_code(); }
 
-		Resource resource(int resource_id)
+		Resource resource(int resource_id) override
 		{
 			/* return invalid resource if device is invalid */
 			if (!_device_config.valid())
@@ -163,41 +314,13 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 			return _device_config.resource(resource_id);
 		}
 
-		unsigned config_read(unsigned char address, Access_size size)
+		unsigned config_read(unsigned char address, Access_size size) override
 		{
 			return _device_config.read(&_config_access, address, size);
 		}
 
-		void config_write(unsigned char address, unsigned value, Access_size size)
-		{
-			/* white list of ports which we permit to write */
-			switch(address) {
-				case 0x40 ... 0xFF:
-					/* all device specific registers are permitted */
-					break;
-				case 0x4: /* COMMAND register - first byte */
-					if (size == Access_size::ACCESS_16BIT)
-						break;
-				case 0x5: /* COMMAND register - second byte */
-				case 0xd: /* Latency timer */
-					if (size == Access_size::ACCESS_8BIT)
-						break;
-				case PCI_IRQ_LINE:
-					/* permitted up to now solely for acpi driver */
-					if (address == PCI_IRQ_LINE && _rewrite_irq_line &&
-					    size == Access_size::ACCESS_8BIT)
-						break;
-				default:
-					PWRN("%x:%x:%x write access to address=%x value=0x%x "
-					     " size=0x%x got dropped", _device_config.bus_number(),
-						_device_config.device_number(),
-						_device_config.function_number(),
-						address, value, size);
-					return;
-			}
-
-			_device_config.write(&_config_access, address, value, size);
-		}
+		void config_write(unsigned char address, unsigned value,
+		                  Access_size size) override;
 
 		Genode::Irq_session_capability irq(Genode::uint8_t id) override
 		{

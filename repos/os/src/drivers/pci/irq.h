@@ -32,13 +32,28 @@ class Pci::Irq_session_component : public Genode::Rpc_object<Genode::Irq_session
 {
 	private:
 
-		unsigned         _gsi;
-		Genode::Irq_sigh _irq_sigh;
+		unsigned                        _gsi;
+		Genode::Irq_sigh                _irq_sigh;
+		Genode::Irq_session_capability  _irq_cap;
+		Genode::Irq_session::Info       _msi_info;
 
 	public:
 
-		Irq_session_component(unsigned);
+		enum { INVALID_IRQ = 0xffU };
+
+		Irq_session_component(unsigned, Genode::addr_t);
 		~Irq_session_component();
+
+		bool msi()
+		{
+			return _irq_cap.valid() &&
+			       _msi_info.type == Genode::Irq_session::Info::Type::MSI;
+		}
+
+		unsigned gsi() { return _gsi; }
+
+		unsigned long msi_address() const { return _msi_info.address; }
+		unsigned long msi_data()    const { return _msi_info.value; }
 
 		/***************************
 		 ** Irq session interface **
