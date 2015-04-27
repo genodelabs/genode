@@ -29,37 +29,59 @@ namespace Pci {
 }
 
 
-using namespace Genode;
+using Genode::size_t;
+using Genode::addr_t;
 
+enum { LEGACY_UNUSED = 40, LEGACY = 64, GSI = 128 };
 
 /**
  * A simple range allocator implementation used by the Irq_proxy
  */
-class Pci::Irq_allocator : public Range_allocator, Bit_allocator<256>
+class Pci::Irq_allocator : public Genode::Range_allocator, Genode::Bit_allocator<GSI>
 {
-	Alloc_return alloc_addr(size_t size, addr_t addr) override
-	{
-		try {
-			_array.set(addr, size);
-			return Alloc_return::OK;
-		} catch (...) {
-			return Alloc_return::RANGE_CONFLICT;
+	private:
+
+		Genode::Bit_array<LEGACY>   _legacy;
+
+	public:
+
+		Irq_allocator()
+		{
+			_legacy.set(LEGACY_UNUSED, LEGACY - LEGACY_UNUSED);
 		}
-	}
 
-	/* unused methods */
-	int    remove_range(addr_t, size_t) override { return 0; }
-	int    add_range(addr_t, size_t)    override { return 0; }
-	bool   valid_addr(addr_t)     const override { return false; }
-	size_t avail()                const override { return 0; }
-	bool   alloc(size_t, void **)       override { return false; }
-	void   free(void *)                 override { }
-	void   free(void *, size_t)         override { }
-	size_t overhead(size_t)       const override { return 0; }
-	bool   need_size_for_free()   const override { return 0; }
+		unsigned alloc_msi()
+		{
+			try {
+				 return Bit_allocator<GSI>::alloc();
+			} catch (Genode::Bit_allocator<GSI>::Out_of_indices) { return ~0U; }
+		}
 
-	Alloc_return alloc_aligned(size_t, void **, int, addr_t, addr_t) override {
-		 return Alloc_return::RANGE_CONFLICT; }
+		void free_msi(unsigned msi) { Bit_allocator<GSI>::free(msi); }
+
+		Alloc_return alloc_addr(size_t size, addr_t addr) override
+		{
+			try {
+				_legacy.set(addr, size);
+				return Alloc_return::OK;
+			} catch (...) {
+				return Alloc_return::RANGE_CONFLICT;
+			}
+		}
+
+		/* unused methods */
+		int    remove_range(addr_t, size_t) override { return 0; }
+		int    add_range(addr_t, size_t)    override { return 0; }
+		bool   valid_addr(addr_t)     const override { return false; }
+		size_t avail()                const override { return 0; }
+		bool   alloc(size_t, void **)       override { return false; }
+		void   free(void *)                 override { }
+		void   free(void *, size_t)         override { }
+		size_t overhead(size_t)       const override { return 0; }
+		bool   need_size_for_free()   const override { return 0; }
+
+		Alloc_return alloc_aligned(size_t, void **, int, addr_t, addr_t) override {
+			 return Alloc_return::RANGE_CONFLICT; }
 };
 
 
@@ -84,13 +106,13 @@ class Pci::Irq_thread : public Genode::Thread<4096>
 {
 	private:
 
-		Signal_receiver _sig_rec;
+		Genode::Signal_receiver _sig_rec;
 
 	public:
 
 		Irq_thread() : Thread<4096>("irq_sig_recv") { start(); }
 
-		Signal_receiver & sig_rec() { return _sig_rec; }
+		Genode::Signal_receiver & sig_rec() { return _sig_rec; }
 
 		void entry() {
 
@@ -154,7 +176,7 @@ class Pci::Irq_component : public Proxy
 		bool _associate()    { return _associated; }
 		void _wait_for_irq() { }
 
-		virtual bool remove_sharer(Irq_sigh *s) override {
+		virtual bool remove_sharer(Genode::Irq_sigh *s) override {
 			if (!Proxy::remove_sharer(s))
 				return false;
 
@@ -182,6 +204,13 @@ class Pci::Irq_component : public Proxy
 
 void Pci::Irq_session_component::ack_irq()
 {
+	if (msi()) {
+		Genode::Irq_session_client irq_msi(_irq_cap);
+		irq_msi.ack_irq();
+		return;
+	}
+
+	/* shared irq handling */
 	Irq_component *irq_obj = Proxy::get_irq_proxy<Irq_component>(_gsi);
 	if (!irq_obj) {
 		PERR("Expected to find IRQ proxy for IRQ %02x", _gsi);
@@ -193,26 +222,59 @@ void Pci::Irq_session_component::ack_irq()
 }
 
 
-Pci::Irq_session_component::Irq_session_component(unsigned irq) : _gsi(irq)
+Pci::Irq_session_component::Irq_session_component(unsigned irq,
+                                                  addr_t pci_config_space)
+:
+	_gsi(irq)
 {
-	bool valid = false;
-
-	/* invalid irq number for pci devices */
-	if (irq == 0xFF)
+	/* invalid irq number for pci_devices */
+	if (irq >= 0xFF)
 		return;
 
+	if (pci_config_space) {
+		/* msi way */
+		unsigned msi = irq_alloc.alloc_msi();
+		if (msi != ~0U) {
+			try {
+				Genode::Irq_connection conn(msi, pci_config_space);
+
+				_msi_info = conn.info();
+				if (_msi_info.type == Genode::Irq_session::Info::Type::MSI) {
+					_gsi     = msi;
+					_irq_cap = conn;
+
+					conn.on_destruction(Genode::Irq_connection::KEEP_OPEN);
+					return;
+				}
+			} catch (Genode::Parent::Service_denied) { }
+
+			irq_alloc.free_msi(msi);
+		}
+	}
+
 	try {
-		/* check if IRQ object was used before */
-		valid = Proxy::get_irq_proxy<Irq_component>(_gsi, &irq_alloc);
+		/* check if shared IRQ object was used before */
+		if (Proxy::get_irq_proxy<Irq_component>(_gsi, &irq_alloc))
+			return;
 	} catch (Genode::Parent::Service_denied) { }
 
-	if (!valid)
-		PERR("unavailable IRQ object 0x%x requested", _gsi);
+	PERR("unavailable IRQ 0x%x requested", _gsi);
 }
 
 
 Pci::Irq_session_component::~Irq_session_component()
 {
+	if (msi()) {
+		Genode::Irq_session_client irq_msi(_irq_cap);
+		irq_msi.sigh(Genode::Signal_context_capability());
+
+		Genode::env()->parent()->close(_irq_cap);
+
+		irq_alloc.free_msi(_gsi);
+		return;
+	}
+
+	/* shared irq handling */
 	Irq_component *irq_obj = Proxy::get_irq_proxy<Irq_component>(_gsi);
 	if (!irq_obj) return;
 
@@ -223,6 +285,14 @@ Pci::Irq_session_component::~Irq_session_component()
 
 void Pci::Irq_session_component::sigh(Genode::Signal_context_capability sigh)
 {
+	if (msi()) {
+		/* register signal handler for msi directly at parent */
+		Genode::Irq_session_client irq_msi(_irq_cap);
+		irq_msi.sigh(sigh);
+		return;
+	}
+
+	/* shared irq handling */
 	Irq_component *irq_obj = Proxy::get_irq_proxy<Irq_component>(_gsi);
 	if (!irq_obj) {
 		PERR("signal handler got not registered - irq object unavailable");
