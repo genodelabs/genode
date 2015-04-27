@@ -99,8 +99,11 @@ class Genode::Thread_base
 
 				/**
 				 * Top of the stack is accessible via stack_top()
+				 *
+				 * Context provides the first word of the stack to prevent the
+				 * overlapping of stack top and the 'stack_base' member.
 				 */
-				long _stack[];
+				addr_t _stack[1];
 
 			public:
 
