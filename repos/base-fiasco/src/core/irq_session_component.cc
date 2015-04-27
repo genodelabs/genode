@@ -135,9 +135,12 @@ Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
 	long irq_number = Arg_string::find_arg(args, "irq_number").long_value(-1);
 	if (irq_number == -1) {
 		PERR("invalid IRQ number requested");
-
 		throw Root::Unavailable();
 	}
+
+	long msi = Arg_string::find_arg(args, "device_config_phys").long_value(0);
+	if (msi)
+		throw Root::Unavailable();
 
 	/* check if IRQ thread was started before */
 	_proxy = Irq_proxy_component::get_irq_proxy<Irq_proxy_component>(irq_number, irq_alloc);
@@ -175,4 +178,11 @@ void Irq_session_component::sigh(Genode::Signal_context_capability sigh)
 
 	if (!old.valid() && sigh.valid())
 		_proxy->add_sharer(&_irq_sigh);
+}
+
+
+Genode::Irq_session::Info Irq_session_component::info()
+{
+	/* no MSI support */
+	return { .type = Genode::Irq_session::Info::Type::INVALID };
 }

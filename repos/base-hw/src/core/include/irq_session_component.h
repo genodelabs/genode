@@ -56,8 +56,10 @@ class Genode::Irq_session_component : public Rpc_object<Irq_session>,
 		 ** Irq session interface **
 		 ***************************/
 
-		void       ack_irq();
-		void       sigh(Signal_context_capability) override;
+		void ack_irq() override;
+		void sigh(Signal_context_capability) override;
+		Info info() override {
+			return { .type = Genode::Irq_session::Info::Type::INVALID }; }
 };
 
 #endif /* _INCLUDE__IRQ_SESSION_COMPONENT_H_ */

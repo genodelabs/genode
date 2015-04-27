@@ -44,6 +44,8 @@ class Pci::Irq_session_component : public Genode::Rpc_object<Genode::Irq_session
 		 ** Irq session interface **
 		 ***************************/
 
-		void               ack_irq() override;
-		void               sigh(Genode::Signal_context_capability) override;
+		void ack_irq() override;
+		void sigh(Genode::Signal_context_capability) override;
+		Info info() override { 
+			return { .type = Genode::Irq_session::Info::Type::INVALID }; }
 };

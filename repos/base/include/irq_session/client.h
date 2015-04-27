@@ -44,6 +44,8 @@ struct Genode::Irq_session_client : Rpc_client<Irq_session>
 	void ack_irq() override;
 
 	void sigh(Signal_context_capability sigh) override { call<Rpc_sigh>(sigh); }
+
+	Info info() override { return call<Rpc_info>(); }
 };
 
 #endif /* _INCLUDE__IRQ_SESSION__CLIENT_H_ */
