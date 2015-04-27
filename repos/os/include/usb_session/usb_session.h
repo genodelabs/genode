@@ -53,6 +53,7 @@ struct Usb::Packet_descriptor : Genode::Packet_descriptor
 			uint8_t  request_type;
 			uint16_t value;
 			uint16_t index;
+			int      actual_size; /* returned */
 			int      timeout;
 		} control;
 

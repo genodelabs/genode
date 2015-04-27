@@ -95,6 +95,7 @@ class Usb::Worker
 		Signal_context_capability _sigh_ready;
 		Routine                  *_routine     = nullptr;
 		unsigned                  _p_in_flight = 0;
+		bool                      _device_ready = false;
 
 		void _ack_packet(Packet_descriptor &p)
 		{
@@ -142,6 +143,7 @@ class Usb::Worker
 				return;
 			}
 
+			p.control.actual_size = err;
 			p.succeded = true;
 		}
 
@@ -159,8 +161,10 @@ class Usb::Worker
 			                          p.control.request, p.control.request_type,
 			                          p.control.value, p.control.index, buf, p.size(),
 			                          p.control.timeout);
-			if (err >= 0 || err== -EPIPE)
+			if (err >= 0 || err== -EPIPE) {
+				p.control.actual_size = err;
 				p.succeded = true;
+			}
 
 			kfree(buf);
 		}
@@ -176,12 +180,14 @@ class Usb::Worker
 
 		void _async_finish(Packet_descriptor &p, urb *urb, bool read)
 		{
-			p.transfer.actual_size = urb->actual_length;
-			p.succeded             = true;
+			if (urb->status == 0) {
+				p.transfer.actual_size = urb->actual_length;
+				p.succeded             = true;
 
-			if (read)
-				Genode::memcpy(_sink->packet_content(p), urb->transfer_buffer, 
-				               urb->actual_length);
+				if (read)
+					Genode::memcpy(_sink->packet_content(p), urb->transfer_buffer, 
+				               	   urb->actual_length);
+			}
 
 			_ack_packet(p);
 		}
@@ -386,6 +392,8 @@ class Usb::Worker
 
 			if (_sigh_ready.valid())
 				Signal_transmitter(_sigh_ready).submit(1);
+
+			_device_ready = true;
 		}
 
 		/**
@@ -421,8 +429,10 @@ class Usb::Worker
 
 		void start()
 		{
-			if (!_routine)
+			if (!_routine) {
 				_routine = Routine::add(run, this, "worker");
+				Routine::schedule_all();
+			}
 		}
 
 		void stop()
@@ -439,6 +449,8 @@ class Usb::Worker
 			_device       = device;
 			_sigh_ready   = sigh_ready;
 		}
+
+		bool device_ready() { return _device_ready; }
 };
 
 
@@ -488,9 +500,11 @@ class Usb::Session_component : public Session_rpc_object,
 		  _ready_ack(ep, *this, &Session_component::_receive),
 		  _worker(sink())
 		{
-			_device = Device::device(_vendor, _product);
-			if (_device)
+			Device *device = Device::device(_vendor, _product);
+			if (device) {
 				PDBG("Found device");
+				state_change(DEVICE_ADD, device);
+			}
 
 			/* register signal handlers */
 			_tx.sigh_packet_avail(_packet_avail);
@@ -600,7 +614,13 @@ class Usb::Session_component : public Session_rpc_object,
 			return false;
 		}
 
-		void sigh_state_change(Signal_context_capability sigh) { _sigh_state_change = sigh; }
+		void sigh_state_change(Signal_context_capability sigh)
+		{
+			_sigh_state_change = sigh;
+
+			if (_worker.device_ready())
+				Signal_transmitter(_sigh_state_change).submit(1);
+		}
 };
 
 
