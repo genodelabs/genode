@@ -13,7 +13,6 @@ SRC_CC += cpu/cache.cc
 SRC_CC += env/env.cc
 SRC_CC += env/context_area.cc
 SRC_CC += env/reinitialize.cc
-SRC_CC += thread/thread.cc
 SRC_CC += thread/start.cc
 SRC_CC += irq/platform.cc
 

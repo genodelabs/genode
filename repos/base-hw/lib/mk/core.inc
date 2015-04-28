@@ -41,7 +41,6 @@ SRC_CC += rm_session_component.cc
 SRC_CC += rom_session_component.cc
 SRC_CC += signal_session_component.cc
 SRC_CC += trace_session_component.cc
-SRC_CC += thread/thread.cc
 SRC_CC += thread_start.cc
 SRC_CC += rm_session_support.cc
 SRC_CC += pager.cc
@@ -74,4 +73,3 @@ vpath boot_modules.s $(BOOT_MODULES_VPATH)
 vpath %  $(REP_DIR)/src/core
 vpath % $(BASE_DIR)/src/core
 vpath % $(BASE_DIR)/src/platform
-vpath % $(BASE_DIR)/src/base

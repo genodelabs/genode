@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2010-2013 Genode Labs GmbH
+ * Copyright (C) 2010-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -153,26 +153,6 @@ void Thread_base::name(char *dst, size_t dst_len)
 }
 
 
-Thread_base *Thread_base::myself()
-{
-	int dummy = 0; /* used for determining the stack pointer */
-
-	/*
-	 * If the stack pointer is outside the thread-context area, we assume that
-	 * we are the main thread because this condition can never met by any other
-	 * thread.
-	 */
-	addr_t sp = (addr_t)(&dummy);
-	if (sp <  Native_config::context_area_virtual_base() ||
-	    sp >= Native_config::context_area_virtual_base() +
-	          Native_config::context_area_virtual_size())
-		return 0;
-
-	addr_t base = Context_allocator::addr_to_base(&dummy);
-	return Context_allocator::base_to_context(base)->thread_base;
-}
-
-
 void Thread_base::join() { _join_lock.lock(); }
 
 
@@ -191,7 +171,7 @@ void Thread_base::free_secondary_stack(void* stack_addr)
 }
 
 
-Thread_base::Thread_base(size_t quota, const char *name, size_t stack_size,
+Thread_base::Thread_base(size_t weight, const char *name, size_t stack_size,
                          Type type, Cpu_session *cpu_session)
 :
 	_cpu_session(cpu_session),
@@ -200,13 +180,13 @@ Thread_base::Thread_base(size_t quota, const char *name, size_t stack_size,
 	_join_lock(Lock::LOCKED)
 {
 	strncpy(_context->name, name, sizeof(_context->name));
-	_init_platform_thread(quota, type);
+	_init_platform_thread(weight, type);
 }
 
 
-Thread_base::Thread_base(size_t quota, const char *name, size_t stack_size,
+Thread_base::Thread_base(size_t weight, const char *name, size_t stack_size,
                          Type type)
-: Thread_base(quota, name, stack_size, type, nullptr) { }
+: Thread_base(weight, name, stack_size, type, nullptr) { }
 
 
 Thread_base::~Thread_base()

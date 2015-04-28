@@ -21,6 +21,7 @@ SRC_CC += env/spin_lock.cc env/cap_map.cc
 SRC_CC += signal/signal.cc signal/common.cc signal/platform.cc
 SRC_CC += server/server.cc server/common.cc
 SRC_CC += thread/thread.cc thread/thread_bootstrap.cc thread/trace.cc
+SRC_CC += thread/myself.cc
 SRC_CC += thread/context_allocator.cc
 
 INC_DIR +=  $(REP_DIR)/src/base/lock
