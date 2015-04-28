@@ -2,7 +2,11 @@ proc have_platform_drv {} {
 	if {[have_spec linux]} {
 		return 0
 	}
-	return [expr [have_spec platform_arndale] || [have_spec platform_imx53] || [have_spec platform_rpi] || [have_spec x86]]
+	return [expr [have_spec platform_arndale] \
+	          || [have_spec platform_imx53] \
+	          || [have_spec platform_rpi] \
+	          || [have_spec platform_odroid_x2] \
+	          || [have_spec x86]]
 }
 
 proc append_platform_drv_build_components {} {
