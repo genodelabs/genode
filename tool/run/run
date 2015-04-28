@@ -493,8 +493,14 @@ proc wait_for_output { wait_for_re timeout_value running_spawn_id } {
 proc run_boot_string { } { return ""; }
 
 ##
-# Dummy boot_dir maodule
-proc run_boot_dir { } { return true; }
+# Fall-back boot_dir module
+#
+# If this function is called someone forgot to include an appropriate boot_dir
+# module. So, we exit with an error.
+proc run_boot_dir { binaries } {
+	puts stderr "Error: boot_dir module missing, e.g., '--include boot_dir/hw'"
+	exit 1
+}
 
 
 ##
