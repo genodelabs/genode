@@ -32,6 +32,12 @@
 namespace Genode {
 
 	/**
+	 * Function pointer that provides accessor to a pool of address regions.
+	 */
+	typedef Native_region * (*Region_pool)(unsigned const);
+
+
+	/**
 	 * Manages all platform ressources
 	 */
 	class Platform : public Platform_generic
@@ -58,6 +64,11 @@ namespace Genode {
 			 * Initialize I/O port allocator
 			 */
 			 void _init_io_port_alloc();
+
+			/**
+			 * Initialize IO memory allocator
+			 */
+			 void _init_io_mem_alloc();
 
 		public:
 
