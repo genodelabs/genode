@@ -44,37 +44,15 @@ void Rm_client::unmap(addr_t, addr_t virt_base, size_t size)
 
 int Pager_activation_base::apply_mapping()
 {
-	/* prepare mapping */
-	Platform_pd * const pd = (Platform_pd*)_fault.pd;
-
-	Lock::Guard guard(*pd->lock());
-
-	Translation_table * const tt = pd->translation_table();
-	Page_slab * page_slab = pd->page_slab();
-
 	Page_flags const flags =
 	Page_flags::apply_mapping(_mapping.writable,
 	                          _mapping.cacheable,
 	                          _mapping.io_mem);
+	Platform_pd * const pd = (Platform_pd*)_fault.pd;
 
-	/* insert mapping into translation table */
-	try {
-		for (unsigned retry = 0; retry < 2; retry++) {
-			try {
-				tt->insert_translation(_mapping.virt_address, _mapping.phys_address,
-									   1 << _mapping.size_log2, flags, page_slab);
-				return 0;
-			} catch(Page_slab::Out_of_slabs) {
-				page_slab->alloc_slab_block();
-			}
-		}
-	} catch(Allocator::Out_of_memory) {
-		PERR("Translation table needs to much RAM");
-	} catch(...) {
-		PERR("Invalid mapping %p -> %p (%lx)", (void*)_mapping.phys_address,
-			 (void*)_mapping.virt_address, 1UL << _mapping.size_log2);
-	}
-	return -1;
+	return (pd->insert_translation(_mapping.virt_address,
+	                               _mapping.phys_address,
+	                               1 << _mapping.size_log2, flags)) ? 0 : 1;
 }
 
 

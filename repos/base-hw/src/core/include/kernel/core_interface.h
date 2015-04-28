@@ -26,14 +26,6 @@ namespace Kernel
 	class Vm;
 	class User_irq;
 
-	addr_t   mode_transition_base();
-	size_t   mode_transition_size();
-	size_t   thread_size();
-	size_t   pd_size();
-	unsigned pd_alignment_log2();
-	size_t   signal_context_size();
-	size_t   signal_receiver_size();
-
 	/**
 	 * Kernel names of the kernel calls
 	 */

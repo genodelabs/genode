@@ -116,7 +116,7 @@ Platform::Platform()
 	_vm_start(VIRT_ADDR_SPACE_START), _vm_size(VIRT_ADDR_SPACE_SIZE)
 {
 	static Page_slab pslab(&_core_mem_alloc);
-	Kernel::core_pd()->platform_pd()->page_slab(&pslab);
+	Kernel::core_pd()->platform_pd()->_pslab = &pslab;
 	_core_mem_allocator = &_core_mem_alloc;
 
 	/*
@@ -197,48 +197,17 @@ void Core_parent::exit(int exit_value)
 bool Genode::map_local(addr_t from_phys, addr_t to_virt, size_t num_pages,
                        Page_flags flags)
 {
-	Translation_table *tt = Kernel::core_pd()->translation_table();
-
-	try {
-		for (;;) {
-			try {
-				Lock::Guard guard(*Kernel::core_pd()->platform_pd()->lock());
-
-				tt->insert_translation(to_virt, from_phys,
-				                       num_pages * get_page_size(), flags,
-				                       Kernel::core_pd()->platform_pd()->page_slab());
-				return true;
-			} catch(Page_slab::Out_of_slabs) {
-				PDBG("Page_slab::Out_of_slabs");
-				Kernel::core_pd()->platform_pd()->page_slab()->alloc_slab_block();
-			}
-		}
-	} catch(Allocator::Out_of_memory) {
-		PERR("Translation table needs to much RAM");
-	} catch(...) {
-		PERR("Invalid mapping %p -> %p (%zx)", (void*)from_phys, (void*)to_virt,
-			 get_page_size() * num_pages);
-	}
-	return false;
+	Platform_pd * pd = Kernel::core_pd()->platform_pd();
+	return pd->insert_translation(to_virt, from_phys,
+	                              num_pages * get_page_size(), flags);
 }
 
 
 bool Genode::unmap_local(addr_t virt_addr, size_t num_pages)
 {
-	try {
-		Lock::Guard guard(*Kernel::core_pd()->platform_pd()->lock());
-
-		Translation_table *tt = Kernel::core_pd()->translation_table();
-		tt->remove_translation(virt_addr, num_pages * get_page_size(),
-		                       Kernel::core_pd()->platform_pd()->page_slab());
-
-		/* update translation caches of all CPUs */
-		Kernel::update_pd(Kernel::core_pd());
-		return true;
-	} catch(...) {
-		PERR("tried to remove invalid region!");
-	}
-	return false;
+	Platform_pd * pd = Kernel::core_pd()->platform_pd();
+	pd->flush(virt_addr, num_pages * get_page_size());
+	return true;
 }
 
 
@@ -246,7 +215,7 @@ bool Core_mem_allocator::Mapped_mem_allocator::_map_local(addr_t   virt_addr,
                                                           addr_t   phys_addr,
                                                           unsigned size)
 {
-	Genode::Page_slab * slab = Kernel::core_pd()->platform_pd()->page_slab();
+	Genode::Page_slab * slab = Kernel::core_pd()->platform_pd()->_pslab;
 	slab->backing_store(_core_mem_allocator->raw());
 	bool ret = ::map_local(phys_addr, virt_addr, size / get_page_size());
 	slab->backing_store(_core_mem_allocator);
@@ -257,7 +226,7 @@ bool Core_mem_allocator::Mapped_mem_allocator::_map_local(addr_t   virt_addr,
 bool Core_mem_allocator::Mapped_mem_allocator::_unmap_local(addr_t   virt_addr,
                                                             unsigned size)
 {
-	Genode::Page_slab * slab = Kernel::core_pd()->platform_pd()->page_slab();
+	Genode::Page_slab * slab = Kernel::core_pd()->platform_pd()->_pslab;
 	slab->backing_store(_core_mem_allocator->raw());
 	bool ret = ::unmap_local(virt_addr, size / get_page_size());
 	slab->backing_store(_core_mem_allocator);

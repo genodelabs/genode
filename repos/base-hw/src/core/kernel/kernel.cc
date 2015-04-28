@@ -39,13 +39,11 @@
 /* base-hw includes */
 #include <kernel/irq.h>
 #include <kernel/perf_counter.h>
+
 using namespace Kernel;
 
 extern "C" void _core_start(void);
-extern Genode::Native_thread_id _main_thread_id;
-extern void * _start_secondary_cpus;
-extern int _prog_img_beg;
-extern int _prog_img_end;
+extern void *   _start_secondary_cpus;
 
 static_assert(sizeof(Genode::sizet_arithm_t) >= 2 * sizeof(size_t),
 	"Bad result type for size_t arithmetics.");
@@ -65,100 +63,6 @@ namespace Kernel
 	 */
 	void test();
 
-	/**
-	 * Static kernel PD that describes core
-	 */
-	Pd * core_pd()
-	{
-		typedef Early_translations_slab      Slab;
-		typedef Early_translations_allocator Allocator;
-		typedef Genode::Translation_table    Table;
-
-		constexpr addr_t table_align = 1 << Table::ALIGNM_LOG2;
-
-		struct Core_pd : Platform_pd, Pd
-		{
-			/**
-			 * Establish initial one-to-one mappings for core/kernel.
-			 * This function avoids to take the core-pd's translation table
-			 * lock in contrast to normal translation insertions to
-			 * circumvent strex/ldrex problems in early bootstrap code
-			 * on some ARM SoCs.
-			 *
-			 * \param start   physical/virtual start address of area
-			 * \param end     physical/virtual end address of area
-			 * \param io_mem  true if it should be marked as device memory
-			 */
-			void map(addr_t start, addr_t end, bool io_mem)
-			{
-				using namespace Genode;
-
-				Translation_table *tt = Platform_pd::translation_table();
-				const Page_flags flags =
-					Page_flags::apply_mapping(true, io_mem ? UNCACHED : CACHED,
-					                          io_mem);
-
-				start = trunc_page(start);
-				size_t size  = round_page(end) - start;
-
-				try {
-					tt->insert_translation(start, start, size, flags, page_slab());
-				} catch(Page_slab::Out_of_slabs) {
-					PERR("Not enough page slabs");
-				} catch(Allocator::Out_of_memory) {
-					PERR("Translation table needs to much RAM");
-				} catch(...) {
-					PERR("Invalid mapping %p -> %p (%zx)", (void*)start,
-					     (void*)start, size);
-				}
-			}
-
-			/**
-			 * Constructor
-			 */
-			Core_pd(Table * const table, Slab * const slab)
-			: Platform_pd(table, slab), Pd(table, this)
-			{
-				using namespace Genode;
-
-
-				Platform_pd::_kernel_pd = this;
-
-				/* map exception vector for core */
-				Kernel::mtc()->map(table, slab);
-
-				/* map core's program image */
-				map((addr_t)&_prog_img_beg, (addr_t)&_prog_img_end, false);
-
-				/* map core's mmio regions */
-				Native_region * r = Platform::_core_only_mmio_regions(0);
-				for (unsigned i = 0; r;
-				     r = Platform::_core_only_mmio_regions(++i))
-					map(r->base, r->base + r->size, true);
-			}
-		};
-
-		Allocator * const alloc = unmanaged_singleton<Allocator>();
-		Table     * const table = unmanaged_singleton<Table, table_align>();
-		Slab      * const slab  = unmanaged_singleton<Slab, Slab::ALIGN>(alloc);
-		return unmanaged_singleton<Core_pd>(table, slab);
-	}
-
-	/**
-	 * Get attributes of the mode transition region in every PD
-	 */
-	addr_t mode_transition_base() { return mtc()->VIRT_BASE; }
-	size_t mode_transition_size() { return mtc()->SIZE; }
-
-	/**
-	 * Get attributes of the kernel objects
-	 */
-	size_t thread_size()          { return sizeof(Thread); }
-	size_t signal_context_size()  { return sizeof(Signal_context); }
-	size_t signal_receiver_size() { return sizeof(Signal_receiver); }
-	unsigned pd_alignm_log2() { return Genode::Translation_table::ALIGNM_LOG2; }
-	size_t pd_size() { return sizeof(Genode::Translation_table) + sizeof(Pd); }
-
 	enum { STACK_SIZE = 64 * 1024 };
 
 	/**
@@ -169,14 +73,16 @@ namespace Kernel
 		static Lock s;
 		return s;
 	}
-
-	addr_t   core_tt_base;
-	unsigned core_pd_id;
 }
 
 
 Kernel::Id_allocator & Kernel::id_alloc() {
 	return *unmanaged_singleton<Id_allocator>(); }
+
+
+Pd * Kernel::core_pd() {
+	return unmanaged_singleton<Genode::Core_platform_pd>()->kernel_pd(); }
+
 
 Pic * Kernel::pic() { return unmanaged_singleton<Pic>(); }
 
