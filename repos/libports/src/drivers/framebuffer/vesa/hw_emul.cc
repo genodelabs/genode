@@ -52,12 +52,15 @@ class Pci_card
 			 * Iterate through all accessible devices.
 			 */
 			Pci::Device_capability prev_device_cap, device_cap;
+			Genode::env()->parent()->upgrade(_pci_drv.cap(), "ram_quota=4096");
 			for (device_cap = _pci_drv.first_device();
 			     device_cap.valid();
 			     device_cap = _pci_drv.next_device(prev_device_cap)) {
 
 				Pci::Device_client device(device_cap);
 
+				if (prev_device_cap.valid())
+					_pci_drv.release_device(prev_device_cap);
 				/*
 				 * If the device is an VGA compatible controller with base
 				 * class 0x03 and sub class 0x00 stop iteration. (We shift out
