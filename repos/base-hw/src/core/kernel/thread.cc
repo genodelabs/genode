@@ -713,6 +713,10 @@ void Thread::_call_new_irq()
 }
 
 
+void Thread::_call_ack_irq() {
+	reinterpret_cast<User_irq*>(user_arg_1())->enable(); }
+
+
 void Thread::_call_delete_irq() {
 	reinterpret_cast<User_irq*>(user_arg_1())->~User_irq(); }
 
@@ -794,6 +798,7 @@ void Thread::_call()
 	case call_id_pause_thread():           _call_pause_thread(); return;
 	case call_id_new_irq():                _call_new_irq(); return;
 	case call_id_delete_irq():             _call_delete_irq(); return;
+	case call_id_ack_irq():                _call_ack_irq(); return;
 	default:
 		PWRN("%s -> %s: unknown kernel call", pd_label(), label());
 		_stop();

@@ -90,10 +90,7 @@ class Kernel::Irq : public Object_pool<Irq>::Item
 };
 
 
-class Kernel::User_irq
-:
-	public Kernel::Irq,
-	public Signal_ack_handler
+class Kernel::User_irq : public Kernel::Irq
 {
 	private:
 
@@ -104,32 +101,18 @@ class Kernel::User_irq
 		 */
 		static Irq::Pool * _pool();
 
-
-		/************************
-		 ** Signal_ack_handler **
-		 ************************/
-
-		void _signal_acknowledged() { enable(); }
-
 	public:
 
 		/**
-		 * Constructor
-		 *
-		 * \param irq_id  kernel name of the interrupt
+		 * Construct object that signals interrupt 'irq' via signal 'context'
 		 */
-		User_irq(unsigned const irq_id, Signal_context &context)
-		: Irq(irq_id, *_pool()), _context(context)
-		{
-			disable();
-			_context.ack_handler(this);
-		}
+		User_irq(unsigned const irq, Signal_context &context)
+		: Irq(irq, *_pool()), _context(context) { disable(); }
 
-		~User_irq()
-		{
-			_context.ack_handler(nullptr);
-			disable();
-		}
+		/**
+		 * Destructor
+		 */
+		~User_irq() { disable(); }
 
 		/**
 		 * Handle occurence of the interrupt
@@ -141,12 +124,10 @@ class Kernel::User_irq
 		}
 
 		/**
-		 * Handle occurence of an interrupt
-		 *
-		 * \param irq_id  kernel name of targeted interrupt
+		 * Handle occurence of interrupt 'irq'
 		 */
-		static User_irq * object(unsigned const irq_id) {
-			return dynamic_cast<User_irq*>(_pool()->object(irq_id)); }
+		static User_irq * object(unsigned const irq) {
+			return dynamic_cast<User_irq*>(_pool()->object(irq)); }
 };
 
 #endif /* _KERNEL__IRQ_H_ */

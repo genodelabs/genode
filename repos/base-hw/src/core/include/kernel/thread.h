@@ -245,6 +245,7 @@ class Kernel::Thread
 		void _call_route_thread_event();
 		void _call_new_irq();
 		void _call_delete_irq();
+		void _call_ack_irq();
 
 
 		/***************************

@@ -31,7 +31,10 @@ unsigned Irq_session_component::_find_irq_number(const char * const args)
 
 void Irq_session_component::ack_irq()
 {
-	Kernel::ack_signal(_sig_cap.dst());
+	using Kernel::User_irq;
+	if (!_sig_cap.valid()) { return; }
+	User_irq * const kirq = reinterpret_cast<User_irq*>(&_kernel_object);
+	Kernel::ack_irq(kirq);
 }
 
 

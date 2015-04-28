@@ -58,6 +58,7 @@ namespace Kernel
 	constexpr Call_arg call_id_new_irq()                { return 32; }
 	constexpr Call_arg call_id_delete_irq()             { return 33; }
 	constexpr Call_arg call_id_thread_quota()           { return 34; }
+	constexpr Call_arg call_id_ack_irq()                { return 35; }
 
 	/**
 	 * Create a domain
@@ -374,6 +375,16 @@ namespace Kernel
 	                    unsigned signal_context_id)
 	{
 		return call(call_id_new_irq(), (Call_arg) p, irq_nr, signal_context_id);
+	}
+
+	/**
+	 * Acknowledge interrupt
+	 *
+	 * \param irq  pointer to interrupt kernel object
+	 */
+	inline void ack_irq(User_irq * const irq)
+	{
+		call(call_id_ack_irq(), (Call_arg) irq);
 	}
 
 	/**
