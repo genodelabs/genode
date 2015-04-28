@@ -214,8 +214,9 @@ foc_rpi::
 	@echo "SPECS = genode foc_rpi" > $(BUILD_DIR)/etc/specs.conf
 
 foc_odroid_x2::
-	@echo "SPECS = genode foc_odroid-x2" > $(BUILD_DIR)/etc/specs.conf
-	
+	@echo "SPECS = genode foc_odroid_x2" > $(BUILD_DIR)/etc/specs.conf
+
+
 #
 # On all other platforms, the performance counter is assumed to be active by
 # default. On HW, its activation is done by an optional core lib. To be
