@@ -1,5 +1,5 @@
 proc have_platform_drv {} {
-	return [expr [have_spec platform_arndale] || [have_spec platform_imx53] || [have_spec platform_rpi]]
+	return [expr [have_spec platform_arndale] || [have_spec platform_imx53] || [have_spec platform_rpi platform_odroid-x2]]
 }
 
 proc append_platform_drv_build_components {} {
