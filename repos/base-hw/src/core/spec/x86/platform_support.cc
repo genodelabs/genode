@@ -31,19 +31,6 @@ Native_region * Platform::_ram_regions(unsigned const i)
 }
 
 
-Native_region * Platform::_mmio_regions(unsigned const i)
-{
-	static Native_region _regions[] =
-	{
-		{ 0x00000000, 0x0001000 },
-		{ 0x000a0000, 0x0060000 },
-		{ 0xc0000000, 0x1000000 },
-		{ 0xfc000000, 0x1000000 },
-	};
-	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
-}
-
-
 Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 {
 	static Native_region _regions[] =
@@ -58,6 +45,27 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 void Platform::_init_io_port_alloc()
 {
 	_io_port_alloc.add_range(0, 0x10000);
+}
+
+
+/**
+ * Remove given exclude memory regions from specified allocator.
+ */
+static void alloc_exclude_regions(Range_allocator * const alloc,
+                                  Region_pool excl_regions)
+{
+	Native_region * r = excl_regions(0);
+	for (unsigned i = 0; r; r = excl_regions(++i))
+		alloc->remove_range(r->base, r->size);
+}
+
+
+void Platform::_init_io_mem_alloc()
+{
+	/* add entire adress space minus the RAM memory regions */
+	_io_mem_alloc.add_range(0, ~0x0UL);
+	alloc_exclude_regions(&_io_mem_alloc, _ram_regions);
+	alloc_exclude_regions(&_io_mem_alloc, _core_only_ram_regions);
 }
 
 

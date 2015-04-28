@@ -51,11 +51,6 @@ extern Bm_header _boot_modules_headers_end;
 extern int       _boot_modules_binaries_begin;
 extern int       _boot_modules_binaries_end;
 
-/**
- * Functionpointer that provides accessor to a pool of address regions
- */
-typedef Native_region * (*Region_pool)(unsigned const);
-
 
 /**
  * Helper to initialise allocators through include/exclude region lists
@@ -84,19 +79,6 @@ static void init_alloc(Range_allocator * const alloc,
 		}
 		else alloc->remove_range(r->base, r->size);
 	}
-}
-
-
-/**
- * Helper to initialise allocators through include region lists
- */
-static void init_alloc_core_mmio(Range_allocator * const alloc,
-                                 Region_pool incl_regions)
-{
-	/* make all include regions available */
-	Native_region * r = incl_regions(0);
-	for (unsigned i = 0; r; r = incl_regions(++i))
-		alloc->add_range(r->base, r->size);
 }
 
 
@@ -157,13 +139,7 @@ Platform::Platform()
 		_irq_alloc.add_range(i, 1);
 	}
 
-	/*
-	 * Use byte granuarity for MMIO regions because on some platforms, devices
-	 * driven by core share a physical page with devices driven outside of
-	 * core. Using byte granuarlity allows handing out the MMIO page to trusted
-	 * user-level device drivers.
-	 */
-	init_alloc_core_mmio(&_io_mem_alloc, _mmio_regions);
+	_init_io_mem_alloc();
 
 	/* add boot modules to ROM FS */
 	Bm_header * header = &_boot_modules_headers_begin;

@@ -18,5 +18,15 @@ using namespace Genode;
 
 void Platform::_init_io_port_alloc() { };
 
+Native_region * mmio_regions(unsigned);
+
+
+void Platform::_init_io_mem_alloc()
+{
+	Native_region * r = mmio_regions(0);
+	for (unsigned i = 0; r; r = mmio_regions(++i))
+		_io_mem_alloc.add_range(r->base, r->size);
+};
+
 
 long Platform::irq(long const user_irq) { return user_irq; }

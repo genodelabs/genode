@@ -32,6 +32,12 @@
 namespace Genode {
 
 	/**
+	 * Function pointer that provides accessor to a pool of address regions.
+	 */
+	typedef Native_region * (*Region_pool)(unsigned const);
+
+
+	/**
 	 * Manages all platform ressources
 	 */
 	class Platform : public Platform_generic
@@ -59,6 +65,16 @@ namespace Genode {
 			 */
 			 void _init_io_port_alloc();
 
+			/**
+			 * Initialize IO memory allocator
+			 *
+			 * Use byte granularity for MMIO regions because on some platforms,
+			 * devices driven by core share a physical page with devices
+			 * driven outside of core. Using byte granularity allows handing
+			 * out the MMIO page to trusted user-level device drivers.
+			 */
+			 void _init_io_mem_alloc();
+
 		public:
 
 			/**
@@ -71,7 +87,6 @@ namespace Genode {
 			 * on the current platform.
 			 */
 			static Native_region * _ram_regions(unsigned i);
-			static Native_region * _mmio_regions(unsigned i);
 
 			/**
 			 * Get one of the consecutively numbered core regions

@@ -71,7 +71,7 @@ Native_region * Platform::_ram_regions(unsigned const i)
 }
 
 
-Native_region * Platform::_mmio_regions(unsigned const i)
+Native_region * mmio_regions(unsigned const i)
 {
 	static Native_region _regions[] =
 	{
