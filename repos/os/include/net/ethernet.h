@@ -132,7 +132,7 @@ class Net::Ethernet_frame
 		/**
 		 * \return EtherType - type of encapsulated protocol.
 		 */
-		Genode::uint16_t type() { return bswap(_type); }
+		Genode::uint16_t type() { return host_to_big_endian(_type); }
 
 		/**
 		 * \return payload data.
@@ -163,7 +163,7 @@ class Net::Ethernet_frame
 		 *
 		 * \param type  the EtherType to be set.
 		 */
-		void type(Genode::uint16_t type) { _type = bswap(type); }
+		void type(Genode::uint16_t type) { _type = host_to_big_endian(type); }
 
 
 		/***************

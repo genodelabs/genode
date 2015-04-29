@@ -63,8 +63,8 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 			wait_for_completion(&comp);
 
 			Genode::uint32_t *data = (Genode::uint32_t *)scsi_buffer_data(cmnd);
-			_block_count = bswap(data[0]);
-			_block_size  = bswap(data[1]);
+			_block_count = host_to_big_endian(data[0]);
+			_block_size  = host_to_big_endian(data[1]);
 
 			/* if device returns the highest block number */
 			if (!_sdev->fix_capacity)
@@ -100,11 +100,11 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 			*p = packet;
 			cmnd->packet  = (void *)p;
 
-			Genode::uint32_t be_block_nr = bswap<Genode::uint32_t>(block_nr);
+			Genode::uint32_t be_block_nr = host_to_big_endian<Genode::uint32_t>(block_nr);
 			memcpy(&cmnd->cmnd[2], &be_block_nr, 4);
 
 			/* transfer one block */
-			Genode::uint16_t be_block_count =  bswap<Genode::uint16_t>(block_count);
+			Genode::uint16_t be_block_count = host_to_big_endian<Genode::uint16_t>(block_count);
 			memcpy(&cmnd->cmnd[7], &be_block_count, 2);
 
 			/* setup command */

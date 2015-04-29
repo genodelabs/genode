@@ -190,8 +190,8 @@ class Net::Dhcp_packet
 		Genode::uint8_t   htype() { return _htype;       }
 		Genode::uint8_t   hlen()  { return _hlen;        }
 		Genode::uint8_t   hops()  { return _hops;        }
-		Genode::uint32_t  xid()   { return bswap(_xid);  }
-		Genode::uint16_t  secs()  { return bswap(_secs); }
+		Genode::uint32_t  xid()   { return host_to_big_endian(_xid);  }
+		Genode::uint16_t  secs()  { return host_to_big_endian(_secs); }
 
 		bool broadcast() { return _flags & BROADCAST;    }
 
@@ -233,8 +233,8 @@ class Net::Dhcp_packet
 		void htype(Genode::uint8_t htype) { _htype = htype;       }
 		void hlen(Genode::uint8_t hlen)   { _hlen = hlen;         }
 		void hops(Genode::uint8_t hops)   { _hops = hops;         }
-		void xid(Genode::uint32_t xid)    { _xid = bswap(_xid);   }
-		void secs(Genode::uint16_t secs)  { _secs = bswap(_secs); }
+		void xid(Genode::uint32_t xid)    { _xid = host_to_big_endian(_xid);   }
+		void secs(Genode::uint16_t secs)  { _secs = host_to_big_endian(_secs); }
 
 		void broadcast(bool broadcast) {
 			_flags = broadcast ? BROADCAST : 0;       }

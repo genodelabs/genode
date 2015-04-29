@@ -17,7 +17,7 @@
 #include <base/stdint.h>
 
 template <typename T>
-inline T bswap(T x)
+inline T host_to_big_endian(T x)
 {
 	Genode::uint8_t v[sizeof(T)];
 	for (unsigned i=0; i<sizeof(T); i++) {

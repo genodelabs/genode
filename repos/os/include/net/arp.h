@@ -172,13 +172,13 @@ class Net::Arp_packet
 		 * \return link layer type (Arp_packet::Hardware_type).
 		 */
 		Genode::uint16_t hardware_address_type() {
-			return bswap(_hw_addr_type); }
+			return host_to_big_endian(_hw_addr_type); }
 
 		/**
 		 * \return network/internet layer type (Ether_frame::EtherType).
 		 */
 		Genode::uint16_t protocol_address_type() {
-			return bswap(_prot_addr_type); }
+			return host_to_big_endian(_prot_addr_type); }
 
 		/**
 		 * \return size in bytes of hardware address.
@@ -193,7 +193,7 @@ class Net::Arp_packet
 		/**
 		 * \return operation code (Arp_packet::Opcode).
 		 */
-		Genode::uint16_t opcode() { return bswap(_opcode); }
+		Genode::uint16_t opcode() { return host_to_big_endian(_opcode); }
 
 		/**
 		 * \return source MAC address.
@@ -230,7 +230,7 @@ class Net::Arp_packet
 		 * \param opcode  Arp_packet::Opcode to set.
 		 */
 		void opcode(Genode::uint16_t opcode) {
-			_opcode = bswap(opcode); }
+			_opcode = host_to_big_endian(opcode); }
 
 		/**
 		 * Set source MAC address.
@@ -274,8 +274,8 @@ class Net::Arp_packet
 		 *         address resolution with respect to IPv4 addresses.
 		 */
 		bool ethernet_ipv4() {
-			return (   bswap(_hw_addr_type)   == ETHERNET
-			        && bswap(_prot_addr_type) == Ethernet_frame::IPV4
+			return (   host_to_big_endian(_hw_addr_type)   == ETHERNET
+			        && host_to_big_endian(_prot_addr_type) == Ethernet_frame::IPV4
 			        && _hw_addr_sz   == Ethernet_frame::ADDR_LEN
 			        && _prot_addr_sz == Ipv4_packet::ADDR_LEN);
 		}
