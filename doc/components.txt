@@ -61,7 +61,7 @@ Device drivers
 
 Device drivers usually reside in the 'src/drivers' subdirectory of source-code
 repositories. The most predominant repositories hosting device drivers are
-'os', 'linux_drivers', 'dde_ipxe', 'dde_linux'.
+'os', 'dde_ipxe', 'dde_linux'.
 
 
 Platform devices
@@ -188,10 +188,6 @@ All audio-output drivers implement the audio session interface defined at
   Sound drivers for the most common PC sound hardware, ported from the
   Open Sound System project.
 
-:'linux_drivers/src/drivers/audio_out':
-  Sound drivers for the most common PC sound hardware, ported from the Linux
-  kernel.
-
 
 Block drivers
 =============
@@ -212,10 +208,10 @@ All block drivers implement the block-session interface defined at
 :'os/src/drivers/sd_card/exynos5':
   Driver for SD-cards and eMMC connected to Exynos-5-based platforms.
 
-:'linux_drivers/src/drivers/usb':
+:'dde_linux/src/drivers/usb':
   USB driver that makes USB storage devices available as block sessions.
   For an example of using this driver, refer to the run script at
-  'linux_drivers/run/usb_storage'.
+  'dde_linux/run/usb_storage'.
 
 :'os/src/drivers/ahci':
   Driver for SATA disks on x86 PCs.
@@ -238,9 +234,6 @@ defined at 'os/include/nic_session'.
 :'dde_ipxe/src/drivers/nic':
   Device drivers ported from the iPXE project. Supported devices are Intel
   E1000 and pcnet32.
-
-:'linux_drivers/src/drivers/madwifi':
-  The MadWifi wireless stack ported from the Linux kernel.
 
 :'dde_linux/src/drivers/usb':
   For the OMAP4 platform, the USB driver contains the networking driver.
@@ -457,9 +450,9 @@ Libraries:
 :'libports/lib/mk/stdcxx':
   Standard C++ library
 
-:'libports/lib/mk/gallium' + 'linux_drivers/lib/mk/gpu_i915_drv':
+:'libports/lib/mk/gallium':
   Translates the OpenGL API to a framebuffer session using the MESA OpenGL
-  stack and the Intel GEM GPU driver.
+  stack
 
 :'libports/lib/mk/pthread':
   Subset of the POSIX thread and semaphore API.

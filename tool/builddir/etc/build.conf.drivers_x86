@@ -1,14 +1,5 @@
 
 #
-# Additional drivers ported from the Linux kernel (audio, Intel GEM)
-#
-# Not supported on the ARM architecture.
-#
-# This repository is deprecated.
-#
-#REPOSITORIES += $(GENODE_DIR)/repos/linux_drivers
-
-#
 # Drivers ported from the Open Sound System
 #
 #REPOSITORIES += $(GENODE_DIR)/repos/dde_oss
