@@ -13,6 +13,7 @@
 
 /* Genode includes */
 #include <io_mem_session/connection.h>
+#include <irq_session/connection.h>
 #include <util/mmio.h>
 #include <platform_session/connection.h>
 
@@ -227,4 +228,16 @@ void platform_hcd_init(Services *services)
 	pdev->dev.coherent_dma_mask = ~0;
 
 	platform_device_register(pdev);
+}
+
+
+Genode::Irq_session_capability platform_irq_activate(int irq)
+{
+	try {
+		Genode::Irq_connection conn(irq);
+		conn.on_destruction(Genode::Irq_connection::KEEP_OPEN);
+		return conn;
+	} catch (...) { }
+
+	return Genode::Irq_session_capability();
 }

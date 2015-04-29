@@ -11,9 +11,13 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* Genode inludes */
+/* Genode base includes */
 #include <ram_session/client.h>
 #include <base/object_pool.h>
+#include <irq_session/connection.h>
+
+/* Genode os includes */
+#include <os/server.h>
 #include <pci_session/connection.h>
 #include <pci_device/client.h>
 
@@ -29,7 +33,7 @@ struct  bus_type pci_bus_type;
 /**
  * Scan PCI bus and probe for HCDs
  */
-class Pci_driver
+class Pci_driver : public Genode::List<Pci_driver>::Element
 {
 	private:
 
@@ -53,9 +57,12 @@ class Pci_driver
 		{
 			using namespace Pci;
 
-			_dev = new (Genode::env()->heap()) pci_dev;
 			Device_client client(_cap);
+			uint8_t bus, dev, func;
+			client.bus_address(&bus, &dev, &func);
 
+			_dev = new (Genode::env()->heap()) pci_dev;
+			_dev->devfn        = ((uint16_t)bus << 8) | (0xff & PCI_DEVFN(dev, func));
 			_dev->vendor       = client.vendor_id();
 			_dev->device       = client.device_id();
 			_dev->class_       = client.class_code();
@@ -105,6 +112,8 @@ class Pci_driver
 			/* enable bus master */
 			cmd |= 0x4;
 			client.config_write(CMD, cmd, Device::ACCESS_16BIT);
+
+			_drivers().insert(this);
 		}
 
 		/**
@@ -135,6 +144,12 @@ class Pci_driver
 			}
 		}
 
+		static Genode::List<Pci_driver> & _drivers()
+		{
+			static Genode::List<Pci_driver> _list;
+			return _list;
+		}
+
 	public:
 
 		Pci_driver(pci_driver *drv, Pci::Device_capability cap,
@@ -157,6 +172,8 @@ class Pci_driver
 					dde_kit_release_io(r->start, (r->end - r->start) + 1);
 			}
 
+			_drivers().remove(this);
+
 			destroy(Genode::env()->heap(), _dev);
 		}
 
@@ -176,8 +193,20 @@ class Pci_driver
 			Pci::Device_client client(_cap);
 			client.config_write(devfn, val, _access_size(val));
 		}
-};
 
+		static Genode::Irq_session_capability irq_cap(unsigned irq)
+		{
+			for (Pci_driver *d = _drivers().first(); d; d = d->next()) {
+				if (d->_dev && d->_dev->irq != irq)
+					continue;
+
+				Pci::Device_client client(d->_cap);
+				return client.irq(0);
+			}
+
+			return Genode::Irq_session_capability();
+		}
+};
 
 /********************************
  ** Backend memory definitions **
@@ -400,4 +429,14 @@ void Backend_memory::free(Genode::Ram_dataspace_capability cap)
 	o->free();
 	memory_pool.remove_locked(o);
 	destroy(env()->heap(), o);
+}
+
+
+/*****************************************
+ ** Platform specific irq cap discovery **
+ *****************************************/
+
+Genode::Irq_session_capability platform_irq_activate(int irq)
+{
+	return Pci_driver::irq_cap(irq);
 }

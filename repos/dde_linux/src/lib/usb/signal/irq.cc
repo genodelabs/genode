@@ -12,19 +12,17 @@
  */
 
 #include <signal.h>
+#include <irq_session/client.h>
 
 #include <extern_c_begin.h>
 #include <lx_emul.h>
 #include <extern_c_end.h>
 
-extern "C" {
-#include <dde_kit/interrupt.h>
-}
+#include <platform.h>
 
-#include<timer_session/connection.h>
+
 /* our local incarnation of sender and receiver */
 static Signal_helper *_signal = 0;
-static Genode::Lock   _irq_sync(Genode::Lock::LOCKED);
 
 /**
  * This contains the Linux-driver handlers
@@ -52,6 +50,8 @@ class Irq_context : public Genode::List<Irq_context>::Element
 		unsigned int                           _irq;          /* IRQ number */
 		Genode::List<Irq_handler>              _handler_list; /* List of registered handlers */
 		Genode::Signal_rpc_member<Irq_context> _dispatcher;
+		Genode::Irq_session_capability         _irq_cap;
+		Genode::Irq_session_client             _irq_client;
 
 		static Genode::List<Irq_context> *_list()
 		{
@@ -70,26 +70,6 @@ class Irq_context : public Genode::List<Irq_context>::Element
 					return i;
 
 			return 0;
-		}
-
-		/* called by the DDE kit upon IRQ */
-		static void _dde_handler(void *irq)
-		{
-			/*
-			 * Make sure there is only one interrupt handled at a time, since dde_kit
-			 * will use one thread per IRQ
-			 */
-			static Genode::Lock handler_lock;
-			Genode::Lock::Guard guard(handler_lock);
-
-			Irq_context *ctx = static_cast<Irq_context *>(irq);
-
-			/* set context & submit signal */
-			_signal->sender().context(ctx->_dispatcher);
-			_signal->sender().submit();
-
-			/* wait for interrupt to get acked at device side */
-			_irq_sync.lock();
 		}
 
 		/**
@@ -129,8 +109,8 @@ class Irq_context : public Genode::List<Irq_context>::Element
 					break;
 				}
 
-			/* interrupt should be acked at device now */
-			_irq_sync.unlock();
+			/* ack interrupt */
+			_irq_client.ack_irq();
 
 			if (handled)
 				Routine::schedule_all();
@@ -144,14 +124,18 @@ class Irq_context : public Genode::List<Irq_context>::Element
 
 		Irq_context(unsigned int irq)
 		: _irq(irq),
-		  _dispatcher(_signal->ep(), *this, &Irq_context::_handle)
+		  _dispatcher(_signal->ep(), *this, &Irq_context::_handle),
+		  _irq_cap(platform_irq_activate(_irq)),
+		  _irq_client(_irq_cap)
 		{
-			/* register at DDE (shared) */
-			int ret = dde_kit_interrupt_attach(_irq, 0, 0, _dde_handler, this);
-			if (ret)
-				PERR("Interrupt attach return %d for IRQ %u", ret, irq);
+			if (!_irq_cap.valid()) {
+				PERR("Interrupt %d attach failed", irq);
+				return;
+			}
 
-			dde_kit_interrupt_enable(_irq);
+			_irq_client.sigh(_dispatcher);
+			_irq_client.ack_irq();
+
 			_list()->insert(this);
 		}
 

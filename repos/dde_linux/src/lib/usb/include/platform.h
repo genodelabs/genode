@@ -19,6 +19,8 @@
 #include <base/printf.h>
 #include <os/config.h>
 #include <util/xml_node.h>
+#include <os/signal_rpc_dispatcher.h>
+#include <irq_session/capability.h>
 
 struct Services
 {
@@ -111,5 +113,6 @@ struct Services
 };
 
 void platform_hcd_init(Services *services);
+Genode::Irq_session_capability platform_irq_activate(int irq);
 
 #endif /* _PLATFORM_H_ */
