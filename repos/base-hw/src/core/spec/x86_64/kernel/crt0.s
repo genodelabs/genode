@@ -121,7 +121,3 @@
 	.p2align 8
 	.space 32 * 1024
 	_stack_high:
-
-.data
-
-.include "initial_pt.s"

@@ -12,6 +12,10 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+.include "macros.s"
+
+.data
+
 	/********************************************
 	 ** Identity mapping from 2MiB to 4MiB     **
 	 ** plus mappings for LAPIC, I/O APIC MMIO **
@@ -19,6 +23,7 @@
 
 	/* PML4 */
 	.p2align MIN_PAGE_SIZE_LOG2
+	.global _kernel_pml4
 	_kernel_pml4:
 	.quad _kernel_pdp + 0xf
 	.fill 511, 8, 0x0
