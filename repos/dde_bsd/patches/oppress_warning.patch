@@ -1,0 +1,14 @@
+dev/audio.c:XXX:Y: warning: ‘type’ may be used uninitialized in this function [-Wmaybe-uninitialized]
+diff --git a/dev/audio.c b/dev/audio.c
+index a9fa22b..da8a783 100644
+--- a/dev/audio.c
++++ b/dev/audio.c
+@@ -639,7 +639,7 @@ int
+ audioprint(void *aux, const char *pnp)
+ {
+ 	struct audio_attach_args *arg = aux;
+-	const char *type;
++	const char *type = "never printed";
+ 
+ 	if (pnp != NULL) {
+ 		switch (arg->type) {

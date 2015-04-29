@@ -1,0 +1,29 @@
+This repository contains device drivers ported from OpenBSD.
+
+Audio
+#####
+
+The audio driver is ported from OpenBSD 5.7 and includes support for
+Intel HD Audio as well as for Ensoniq AudioPCI (ES1370) compatible
+soundcards. The HDA driver works on real hardware and Virtualbox
+whereas the ES1370 driver is only used in Qemu.
+
+
+Usage
+=====
+
+You have to prepare the contrib sources for this repository by
+executing _tool/ports/prepare_port dde_bsd_. Also you need to make
+sure to add the 'dde_bsd' repository to the REPOSITORIES variable
+in your 'etc/build.conf'.
+
+
+Example
+=======
+
+The driver can be tested by executing the run script 'run/audio_out.run'.
+This example plays a sample file in a loop. The file format is header less
+two channel float 32 at 44100 Hz. You may use the 'sox' utility to create
+these audio files:
+
+! sox -c 2 -r 44100 foo.wav foo.f32

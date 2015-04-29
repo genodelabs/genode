@@ -5,6 +5,11 @@
 #REPOSITORIES += $(GENODE_DIR)/repos/dde_oss
 
 #
+# Drivers ported from the OpenBSD
+#
+#REPOSITORIES += $(GENODE_DIR)/repos/dde_bsd
+
+#
 # Drivers ported from iPXE
 #
 #REPOSITORIES += $(GENODE_DIR)/repos/dde_ipxe

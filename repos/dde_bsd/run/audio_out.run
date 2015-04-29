@@ -1,0 +1,166 @@
+assert_spec x86
+
+#
+# Check used commands
+#
+
+set wget [check_installed wget]
+
+#
+# Configure
+#
+
+set use_mixer 0
+
+#
+# Build
+#
+
+set build_components {
+	core init
+	drivers/timer
+	drivers/audio_out
+	drivers/pci
+	test/audio_out
+}
+
+lappend_if [have_spec acpi] build_components drivers/acpi
+lappend_if [have_spec  pci] build_components drivers/pci/device_pd
+lappend_if $use_mixer build_components server/mixer
+
+build $build_components
+
+create_boot_directory
+
+#
+# Config
+#
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL" />
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>}
+
+append_if [have_spec acpi] config {
+	<start name="acpi_drv">
+		<resource name="RAM" quantum="6M"/>
+		<provides>
+			<service name="PCI"/>
+			<service name="IRQ" />
+		</provides>
+		<route>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+		<config>
+			<policy label="acpi_drv">
+				<pci class="ALL"/>
+			</policy>
+			<policy label="audio_out_drv">
+				<pci class="AUDIO"/>
+			</policy>
+		</config>
+	</start>}
+
+append_if [expr ![have_spec acpi] && [have_spec pci]] config {
+	<start name="pci_drv">
+		<resource name="RAM" quantum="4M" constrain_phys="yes"/>
+		<provides> <service name="PCI"/> </provides>
+		<config>
+			<policy label="audio_out_drv">
+				<pci class="AUDIO"/>
+			</policy>
+		</config>
+	</start>}
+
+append_if $use_mixer config {
+	<start name="mixer">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Audio_out"/></provides>
+		<route>
+			<service name="Audio_out"> <child name="audio_out_drv"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>}
+
+append config {
+	<start name="audio_out_drv">
+		<resource name="RAM" quantum="8M"/>
+		<provides>
+			<service name="Audio_out"/>
+		</provides>
+	</start>
+	<start name="test-audio_out">
+		<resource name="RAM" quantum="4M"/>
+		<config>
+			<filename>sample.raw</filename>
+		</config>
+		<route>}
+append_if $use_mixer config {
+			<service name="Audio_out"><child name="mixer"/></service>}
+append config {
+			<any-service><parent/><any-child/></any-service>
+		</route>
+	</start>
+</config>}
+
+install_config $config
+
+
+#
+# Get sample file
+#
+
+if {[info exists env(GENODE_SAMPLE_RAW)]} {
+	catch { exec $wget $::env(GENODE_SAMPLE_RAW) -O bin/sample.raw }
+}
+
+if {![file exists bin/sample.raw]} {
+	puts ""
+	puts "The sample file is missing. Please take a look at"
+	puts "repos/dde_bsd/README, create 'sample.raw' and put"
+	puts "the file into './bin'. afterwards"
+	puts ""
+	exit 1
+}
+
+#
+# Boot modules
+#
+
+set boot_modules {
+	core init timer audio_out_drv test-audio_out sample.raw }
+
+lappend_if $use_mixer boot_modules mixer
+
+# platform-specific modules
+lappend_if [have_spec acpi] boot_modules acpi_drv
+lappend_if [have_spec  pci] boot_modules pci_drv
+lappend_if [have_spec nova] boot_modules pci_device_pd
+
+build_boot_image $boot_modules
+
+append qemu_args " -m 128 -nographic -soundhw es1370 "
+
+#
+# For obvious reasons the timeout depends on the total
+# length of the used sample file.
+#
+run_genode_until {.*played.*1 time\(s\)} 60

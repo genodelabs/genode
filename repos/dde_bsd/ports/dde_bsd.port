@@ -1,0 +1,25 @@
+LICENSE   := BSD
+VERSION   := 1
+DOWNLOADS := audio.archive
+
+#
+# Audio drivers from OpenBSD 5.7
+#
+SRC_DIR_AUDIO  := src/lib/audio
+VERSION_AUDIO  := 5.7
+URL(audio)     := http://openbsd.cs.fau.de/pub/OpenBSD/$(VERSION_AUDIO)/sys.tar.gz
+SHA(audio)     := 1a60125a7fce6524b0d62643db47acca0b11506a
+DIR(audio)     := $(SRC_DIR_AUDIO)
+TAR_OPT(audio) := --strip-components=2 --files-from $(REP_DIR)/audio.list
+HASH_INPUT     += $(REP_DIR)/audio.list
+
+#
+# Patches
+#
+PATCHES := $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/*.patch)))
+
+AUDIO_OPT := -p1 -d$(SRC_DIR_AUDIO)
+PATCH_OPT(patches/oppress_warning.patch) := $(AUDIO_OPT)
+PATCH_OPT(patches/eap_c.patch)           := $(AUDIO_OPT)
+
+# vi: set ft=make :
