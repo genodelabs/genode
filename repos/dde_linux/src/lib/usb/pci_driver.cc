@@ -91,7 +91,8 @@ class Pci_driver : public Genode::List<Pci_driver>::Element
 
 				/* request port I/O session */
 				if (res.type() == Device::Resource::IO) {
-					if (dde_kit_request_io(res.base(), res.size()))
+					if (dde_kit_request_io(res.base(), res.size(), i, bus, dev,
+					                       func))
 						PERR("Failed to request I/O: [%u,%u)",
 						     res.base(), res.base() + res.size());
 					io = true;

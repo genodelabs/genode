@@ -512,67 +512,6 @@ static void test_resources()
 	PDBG("=== starting resource test ===");
 
 	dde_kit_addr_t addr, a; dde_kit_size_t size, s; int wc;
-
-	/* should succeed */
-	addr = 0xe000; size = 0x10;
-	PDBG("req [%04lx,%04lx) => %d", addr, addr + size, dde_kit_request_io(addr, size));
-	PDBG("rel [%04lx,%04lx) => %d", addr, addr + size, dde_kit_release_io(addr, size));
-
-	/* should succeed */
-	addr = 0x60; size = 0x1;
-	PDBG("req [%04lx,%04lx) => %d", addr, addr + size, dde_kit_request_io(addr, size));
-	addr = 0x64; size = 0x1;
-	PDBG("req [%04lx,%04lx) => %d", addr, addr + size, dde_kit_request_io(addr, size));
-	addr = 0x60; size = 0x1;
-	PDBG("rel [%04lx,%04lx) => %d", addr, addr + size, dde_kit_release_io(addr, size));
-	addr = 0x64; size = 0x1;
-	PDBG("rel [%04lx,%04lx) => %d", addr, addr + size, dde_kit_release_io(addr, size));
-
-	/* use io_delay() port; should succeed */
-	addr = 0x80; size = 0x1;
-	PDBG("req [%04lx,%04lx) => %d", addr, addr + size, dde_kit_request_io(addr, size));
-	for (unsigned i = 0; i < 50; ++i) dde_kit_outb(0x80, 0xff);
-	PDBG("rel [%04lx,%04lx) => %d", addr, addr + size, dde_kit_release_io(addr, size));
-
-	/* PCI config; should fail if PCI driver loaded _and_ used */
-	addr = 0xcf8; size = 0x8;
-	PDBG("req [%04lx,%04lx) => %d", addr, addr + size, dde_kit_request_io(addr, size));
-	PDBG("rel [%04lx,%04lx) => %d", addr, addr + size, dde_kit_release_io(addr, size));
-
-	/* stress range database implementation */
-	enum { MAX_ROUNDS = 15 };
-	struct {
-		dde_kit_addr_t a;
-		dde_kit_size_t s;
-		bool           req;
-	} round[MAX_ROUNDS] = {
-		{ 0xe000, 16, true},
-		{ 0xe010, 16, true},
-		{ 0xe020, 16, true},
-		{ 0xe030, 16, true},
-		{ 0xdfe0, 16, true},
-		{ 0xdfd0, 16, true},
-		{ 0xe010, 16, false},
-		{ 0xe010, 16, false},
-		{ 0xe020,  8, false}, /* XXX currently remove whole allocated region */
-		{ 0xe028,  8, false}, /* XXX and, therefore, this fails */
-		{ 0xdfd0, 32, false}, /* XXX fails because regions are not merged */
-		{ 0xe030, 16, false},
-		{ 0xe000, 16, false},
-		{ 0xdfe0, 16, false},
-		{ 0xdfd0, 16, false},
-	};
-
-	for (unsigned i = 0; i < MAX_ROUNDS; ++i) {
-		if (round[i].req) {
-			PDBG("mreq [%04lx,%04lx) => %d",
-			     round[i].a, round[i].a + round[i].s, dde_kit_request_io(round[i].a, round[i].s));
-		} else {
-			PDBG("mrel [%04lx,%04lx) => %d",
-			     round[i].a, round[i].a + round[i].s, dde_kit_release_io(round[i].a, round[i].s));
-		}
-	}
-
 	dde_kit_addr_t vaddr; int ret;
 
 	/* should succeed */

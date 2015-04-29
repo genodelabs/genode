@@ -23,6 +23,8 @@
 #include <base/printf.h>
 #include <dataspace/client.h>
 
+#include <io_port_session/capability.h>
+
 extern "C" {
 #include <dde_kit/pci.h>
 #include <dde_kit/pgtab.h>
@@ -41,6 +43,10 @@ static Dde_kit::Pci_tree *pci_tree(unsigned device_class = 0,
 
 	return &_pci_tree;
 }
+
+
+Genode::Io_port_session_capability Dde_kit::Device::io_port(int bus, int dev, int fun, unsigned short bda) {
+	return pci_tree()->io_port(bus, dev, fun, bda); }
 
 
 /********************************

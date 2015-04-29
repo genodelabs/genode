@@ -11,6 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 #include <timer_session/connection.h>
+#include <pci_device/client.h>
 
 extern "C"
 {
@@ -115,8 +116,12 @@ extern "C" void *pci_map(oss_device_t *osdev, int resource, addr_t phys, size_t 
 
 extern "C" oss_native_word pci_map_io(struct _oss_device_t *osdev, int resource, unsigned base)
 {
-	if (osdev->res[resource].io)
-		dde_kit_request_io(osdev->res[resource].base, osdev->res[resource].size);
+	if (resource >= Pci::Device::NUM_RESOURCES || resource < 0 ||
+	    !osdev->res[resource].io)
+		return 0;
+
+	dde_kit_request_io(osdev->res[resource].base, osdev->res[resource].size,
+	                   resource, osdev->bus, osdev->dev, osdev->fun);
 
 	return  base;
 }

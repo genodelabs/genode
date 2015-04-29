@@ -25,6 +25,8 @@ extern "C" {
 #include <dde_kit/pgtab.h>
 }
 
+#include "device.h"
+
 using namespace Genode;
 
 static const bool verbose = false;
@@ -152,22 +154,25 @@ static Range_database<Port_range> *ports()
 }
 
 
-class Port_range : public Range, public Io_port_connection
+class Port_range : public Range, public Io_port_session_client
 {
 	public:
 
-		Port_range(addr_t base, size_t size)
-		: Range(base, size), Io_port_connection(base, size) {
+		Port_range(addr_t base, size_t size, Io_port_session_capability cap)
+		: Range(base, size), Io_port_session_client(cap) {
 			ports()->insert(this); }
 
 		~Port_range() { ports()->remove(this); }
 };
 
 
-extern "C" int dde_kit_request_io(dde_kit_addr_t addr, dde_kit_size_t size)
+extern "C" int dde_kit_request_io(dde_kit_addr_t addr, dde_kit_size_t size,
+                                  unsigned short bar, dde_kit_uint8_t bus,
+                                  dde_kit_uint8_t dev, dde_kit_uint8_t func)
 {
 	try {
-		new (env()->heap()) Port_range(addr, size);
+
+		new (env()->heap()) Port_range(addr, size, Dde_kit::Device::io_port(bus, dev, func, bar));
 
 		return 0;
 	} catch (...) {

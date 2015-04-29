@@ -24,7 +24,9 @@
  *
  * \return 0 on success, -1 otherwise
  */
-int dde_kit_request_io(dde_kit_addr_t start, dde_kit_size_t size);
+int dde_kit_request_io(dde_kit_addr_t start, dde_kit_size_t size,
+                       unsigned short bar, dde_kit_uint8_t bus,
+                       dde_kit_uint8_t dev, dde_kit_uint8_t func);
 
 /**
  * Free I/O port range (x86)
