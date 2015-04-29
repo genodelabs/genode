@@ -17,3 +17,26 @@
 
 void Genode::Cpu::init_virt_kernel(Kernel::Pd * pd) {
 	Cr3::write(Cr3::init((addr_t)pd->translation_table())); }
+
+
+void Genode::Cpu::_init_fpu()
+{
+	Cr0::access_t cr0_value = Cr0::read();
+	Cr4::access_t cr4_value = Cr4::read();
+
+	Cr0::Mp::set(cr0_value);
+	Cr0::Em::clear(cr0_value);
+	Cr0::Ts::set(cr0_value);
+	Cr0::Ne::set(cr0_value);
+	Cr0::write(cr0_value);
+
+	Cr4::Osfxsr::set(cr4_value);
+	Cr4::Osxmmexcpt::set(cr4_value);
+	Cr4::write(cr4_value);
+}
+
+
+void Genode::Cpu::_disable_fpu() { Cr0::write(Cr0::read() | Cr0::Ts::bits(1)); }
+
+
+bool Genode::Cpu::_fpu_enabled() { return !Cr0::Ts::get(Cr0::read()); }

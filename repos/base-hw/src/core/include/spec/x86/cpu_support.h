@@ -59,11 +59,9 @@ class Genode::Cpu_lazy_state
 
 	private:
 
-		enum {
-			MXCSR_DEFAULT = 0x1f80
-		};
+		enum { MXCSR_DEFAULT = 0x1f80 };
 
-		/**
+		/*
 		 * FXSAVE area providing storage for x87 FPU, MMX, XMM, and MXCSR
 		 * registers.
 		 *
@@ -71,9 +69,7 @@ class Genode::Cpu_lazy_state
 		 */
 		char fxsave_area[527];
 
-		/**
-		 * 16-byte aligned start of FXSAVE area.
-		 */
+		/* 16-byte aligned start of FXSAVE area. */
 		char *start;
 
 		/**
@@ -113,10 +109,13 @@ class Genode::Cpu_lazy_state
 		}
 
 		/**
-		 * Initialize FPU without checking for pending unmasked floating-point
-		 * exceptions and explicitly setting the MXCSR to the default value.
+		 * Initialize FPU
+		 *
+		 * Doesn't check for pending unmasked floating-point exceptions and
+		 * explicitly sets the MXCSR to the default value.
 		 */
-		inline void init() {
+		inline void init()
+		{
 			asm volatile ("fninit");
 			set_mxcsr(MXCSR_DEFAULT);
 		};
@@ -151,147 +150,13 @@ class Genode::Cpu
 		Tss *_tss;
 		Cpu_lazy_state *_fpu_state;
 
-		/**
-		 * Control register 0
-		 */
-		struct Cr0 : Register<64>
-		{
-			struct Pe : Bitfield<0,  1> { };  /* Protection Enable   */
-			struct Mp : Bitfield<1,  1> { };  /* Monitor Coprocessor */
-			struct Em : Bitfield<2,  1> { };  /* Emulation           */
-			struct Ts : Bitfield<3,  1> { };  /* Task Switched       */
-			struct Et : Bitfield<4,  1> { };  /* Extension Type      */
-			struct Ne : Bitfield<5,  1> { };  /* Numeric Error       */
-			struct Wp : Bitfield<16, 1> { };  /* Write Protect       */
-			struct Am : Bitfield<18, 1> { };  /* Alignment Mask      */
-			struct Nw : Bitfield<29, 1> { };  /* Not Write-through   */
-			struct Cd : Bitfield<30, 1> { };  /* Cache Disable       */
-			struct Pg : Bitfield<31, 1> { };  /* Paging              */
-
-			static void write(access_t const v) {
-				asm volatile ("mov %0, %%cr0" :: "r" (v) : ); }
-
-			static access_t read()
-			{
-				access_t v;
-				asm volatile ("mov %%cr0, %0" : "=r" (v) :: );
-				return v;
-			}
-		};
-
-		/**
-		 * Control register 4
-		 */
-		struct Cr4 : Register<64>
-		{
-			/**
-			 * Virtual-8086 Mode Extensions
-			 * */
-			struct Vme : Bitfield<0, 1> { };
-
-			/**
-			 * Protected-Mode Virtual Interrupts
-			 */
-			struct Pvi : Bitfield<1, 1> { };
-
-			/**
-			 * Time Stamp Disable
-			 */
-			struct Tsd : Bitfield<2, 1> { };
-
-			/**
-			 * Debugging Exceptions
-			 */
-			struct De : Bitfield<3, 1> { };
-
-			/**
-			 * Page Size Extensions
-			 */
-			struct Pse : Bitfield<4, 1> { };
-
-			/**
-			 * Physical Address Extension
-			 */
-			struct Pae : Bitfield<5, 1> { };
-
-			/**
-			 * Machine-Check Enable
-			 */
-			struct Mce : Bitfield<6, 1> { };
-
-			/**
-			 * Page Global Enable
-			 * */
-			struct Pge : Bitfield<7, 1> { };
-
-			/**
-			 * Performance-Monitoring Counter Enable
-			 */
-			struct Pce : Bitfield<8, 1> { };
-
-			/**
-			 * Operating System Support for FXSAVE and FXRSTOR instructions
-			 */
-			struct Osfxsr : Bitfield<9, 1> { };
-
-			/**
-			 * Operating System Support for Unmasked SIMD Floating-Point Exceptions
-			 */
-			struct Osxmmexcpt : Bitfield<10, 1> { };
-
-			/**
-			 * VMX-Enable
-			 */
-			struct Vmxe : Bitfield<13, 1> { };
-
-			/**
-			 * SMX-Enable
-			 */
-			struct Smxe : Bitfield<14, 1> { };
-
-			/**
-			 * FSGSBASE-Enable
-			 */
-			struct Fsgsbase : Bitfield<16, 1> { };
-
-			/**
-			 * PCIDE-Enable
-			 */
-			struct Pcide : Bitfield<17, 1> { };
-
-			/**
-			 * XSAVE and Processor Extended States-Enable
-			 */
-			struct Osxsave : Bitfield<18, 1> { };
-
-			/**
-			 * SMEP-Enable
-			 */
-			struct Smep : Bitfield<20, 1> { };
-
-			/**
-			 * SMAP-Enable
-			 */
-			struct Smap : Bitfield<21, 1> { };
-
-			static void write(access_t const v) {
-				asm volatile ("mov %0, %%cr4" :: "r" (v) : ); }
-
-			static access_t read()
-			{
-				access_t v;
-				asm volatile ("mov %%cr4, %0" : "=r" (v) :: );
-				return v;
-			}
-		};
+		struct Cr0; /* Control register 0 */
+		struct Cr4; /* Control register 4 */
 
 		/**
 		 * Disable FPU by setting the TS flag in CR0.
 		 */
-		static void _disable_fpu()
-		{
-			Cr0::write(Cr0::read() | Cr0::Ts::bits(1));
-		}
+		static void _disable_fpu();
 
 		/**
 		 * Enable FPU by clearing the TS flag in CR0.
@@ -299,30 +164,18 @@ class Genode::Cpu
 		static void _enable_fpu() { asm volatile ("clts"); }
 
 		/**
+		 * Initialize all FPU-related CR flags
+		 *
 		 * Initialize FPU with SSE extensions by setting required CR0 and CR4
 		 * bits to configure the FPU environment according to Intel SDM Vol.
 		 * 3A, sections 9.2 and 9.6.
 		 */
-		static void _init_fpu()
-		{
-			Cr0::access_t cr0_value = Cr0::read();
-			Cr4::access_t cr4_value = Cr4::read();
-
-			Cr0::Mp::set(cr0_value);
-			Cr0::Em::clear(cr0_value);
-			Cr0::Ts::set(cr0_value);
-			Cr0::Ne::set(cr0_value);
-			Cr0::write(cr0_value);
-
-			Cr4::Osfxsr::set(cr4_value);
-			Cr4::Osxmmexcpt::set(cr4_value);
-			Cr4::write(cr4_value);
-		}
+		static void _init_fpu();
 
 		/**
 		 * Returns True if the FPU is enabled.
 		 */
-		static bool is_fpu_enabled() { return !Cr0::Ts::get(Cr0::read()); }
+		static bool _fpu_enabled();
 
 	public:
 
@@ -563,7 +416,7 @@ class Genode::Cpu
 		 */
 		bool retry_fpu_instr(Cpu_lazy_state * const state)
 		{
-			if (is_fpu_enabled())
+			if (_fpu_enabled())
 				return false;
 
 			_enable_fpu();
@@ -608,7 +461,67 @@ class Genode::Cpu
 
 		static void tlb_insertions() { inval_branch_predicts(); }
 		static void translation_added(addr_t, size_t) { }
+};
 
+struct Genode::Cpu::Cr0 : Register<64>
+{
+	struct Pe : Bitfield< 0, 1> { }; /* Protection Enable   */
+	struct Mp : Bitfield< 1, 1> { }; /* Monitor Coprocessor */
+	struct Em : Bitfield< 2, 1> { }; /* Emulation           */
+	struct Ts : Bitfield< 3, 1> { }; /* Task Switched       */
+	struct Et : Bitfield< 4, 1> { }; /* Extension Type      */
+	struct Ne : Bitfield< 5, 1> { }; /* Numeric Error       */
+	struct Wp : Bitfield<16, 1> { }; /* Write Protect       */
+	struct Am : Bitfield<18, 1> { }; /* Alignment Mask      */
+	struct Nw : Bitfield<29, 1> { }; /* Not Write-through   */
+	struct Cd : Bitfield<30, 1> { }; /* Cache Disable       */
+	struct Pg : Bitfield<31, 1> { }; /* Paging              */
+
+	static void write(access_t const v) {
+		asm volatile ("mov %0, %%cr0" :: "r" (v) : ); }
+
+	static access_t read()
+	{
+		access_t v;
+		asm volatile ("mov %%cr0, %0" : "=r" (v) :: );
+		return v;
+	}
+};
+
+struct Genode::Cpu::Cr4 : Register<64>
+{
+	struct Vme        : Bitfield< 0, 1> { }; /* Virtual-8086 Mode Extensions */
+	struct Pvi        : Bitfield< 1, 1> { }; /* Protected-Mode Virtual IRQs */
+	struct Tsd        : Bitfield< 2, 1> { }; /* Time Stamp Disable */
+	struct De         : Bitfield< 3, 1> { }; /* Debugging Exceptions */
+	struct Pse        : Bitfield< 4, 1> { }; /* Page Size Extensions */
+	struct Pae        : Bitfield< 5, 1> { }; /* Physical Address Extension */
+	struct Mce        : Bitfield< 6, 1> { }; /* Machine-Check Enable */
+	struct Pge        : Bitfield< 7, 1> { }; /* Page Global Enable */
+	struct Pce        : Bitfield< 8, 1> { }; /* Performance-Monitoring Counter
+	                                            Enable*/
+	struct Osfxsr     : Bitfield< 9, 1> { }; /* OS Support for FXSAVE and
+	                                            FXRSTOR instructions*/
+	struct Osxmmexcpt : Bitfield<10, 1> { }; /* OS Support for Unmasked
+	                                            SIMD/FPU Exceptions */
+	struct Vmxe       : Bitfield<13, 1> { }; /* VMX Enable */
+	struct Smxe       : Bitfield<14, 1> { }; /* SMX Enable */
+	struct Fsgsbase   : Bitfield<16, 1> { }; /* FSGSBASE-Enable */
+	struct Pcide      : Bitfield<17, 1> { }; /* PCIDE Enable */
+	struct Osxsave    : Bitfield<18, 1> { }; /* XSAVE and Processor Extended
+	                                            States-Enable */
+	struct Smep       : Bitfield<20, 1> { }; /* SMEP Enable */
+	struct Smap       : Bitfield<21, 1> { }; /* SMAP Enable */
+
+	static void write(access_t const v) {
+		asm volatile ("mov %0, %%cr4" :: "r" (v) : ); }
+
+	static access_t read()
+	{
+		access_t v;
+		asm volatile ("mov %%cr4, %0" : "=r" (v) :: );
+		return v;
+	}
 };
 
 #endif /* _SPEC__X86__CPU_SUPPORT_H_ */
