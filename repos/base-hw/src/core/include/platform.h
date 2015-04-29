@@ -67,6 +67,11 @@ namespace Genode {
 
 			/**
 			 * Initialize IO memory allocator
+			 *
+			 * Use byte granuarity for MMIO regions because on some platforms,
+			 * devices driven by core share a physical page with devices
+			 * driven outside of core. Using byte granuarlity allows handing
+			 * out the MMIO page to trusted user-level device drivers.
 			 */
 			 void _init_io_mem_alloc();
 
@@ -82,7 +87,6 @@ namespace Genode {
 			 * on the current platform.
 			 */
 			static Native_region * _ram_regions(unsigned i);
-			static Native_region * _mmio_regions(unsigned i);
 
 			/**
 			 * Get one of the consecutively numbered core regions
