@@ -75,10 +75,10 @@ class Net::Udp_packet
 		 ** UDP field read-accessors **
 		 ******************************/
 
-		Genode::uint16_t src_port()  { return bswap(_src_port); }
-		Genode::uint16_t dst_port()  { return bswap(_dst_port); }
-		Genode::uint16_t length()    { return bswap(_length);   }
-		Genode::uint16_t checksum()  { return bswap(_checksum); }
+		Genode::uint16_t src_port()  { return host_to_big_endian(_src_port); }
+		Genode::uint16_t dst_port()  { return host_to_big_endian(_dst_port); }
+		Genode::uint16_t length()    { return host_to_big_endian(_length);   }
+		Genode::uint16_t checksum()  { return host_to_big_endian(_checksum); }
 		void* data()                 { return &_data;           }
 
 
@@ -124,7 +124,7 @@ class Net::Udp_packet
 				sum += s + d;
 			}
 			Genode::uint8_t prot[] = { 0, IP_ID };
-			sum += bswap(*(Genode::uint16_t*)&prot) + length();
+			sum += host_to_big_endian(*(Genode::uint16_t*)&prot) + length();
 
 			/*
 			 * sum up udp packet itself
@@ -132,13 +132,13 @@ class Net::Udp_packet
 			unsigned max = (length() & 1) ? (length() - 1) : length();
 			Genode::uint16_t *udp = (Genode::uint16_t*) this;
 			for (unsigned i = 0; i < max; i=i+2)
-				sum += bswap(*udp++);
+				sum += host_to_big_endian(*udp++);
 
 			/* if udp length is odd, append a zero byte */
 			if (length() & 1) {
 				Genode::uint8_t last[] =
 					{ *((Genode::uint8_t*)this + (length()-1)), 0 };
-				sum += bswap(*(Genode::uint16_t*)&last);
+				sum += host_to_big_endian(*(Genode::uint16_t*)&last);
 			}
 
 			/*
@@ -149,7 +149,7 @@ class Net::Udp_packet
 				sum = (sum & 0xffff) + (sum >> 16);
 
 			/* one's complement of sum */
-			_checksum = bswap((Genode::uint16_t) ~sum);
+			_checksum = host_to_big_endian((Genode::uint16_t) ~sum);
 		}
 } __attribute__((packed));
 

@@ -140,8 +140,8 @@ class Net::Ipv4_packet
 		bool high_reliability()       { return _diff_service & RELIABILITY;}
 		bool minimize_monetary_cost() { return _diff_service & COST;       }
 
-		Genode::uint16_t total_length()   { return bswap(_total_length);   }
-		Genode::uint16_t identification() { return bswap(_identification); }
+		Genode::uint16_t total_length()   { return host_to_big_endian(_total_length);   }
+		Genode::uint16_t identification() { return host_to_big_endian(_identification); }
 
 		bool no_fragmentation() { return _flags & NO_FRAGMENT;             }
 		bool more_fragments()   { return _flags & MORE_FRAGMENTS;          }
@@ -150,7 +150,7 @@ class Net::Ipv4_packet
 		Genode::uint8_t  time_to_live()    { return _time_to_live;         }
 		Genode::uint8_t  protocol()        { return _protocol;             }
 
-		Genode::uint16_t checksum() { return bswap(_header_checksum);      }
+		Genode::uint16_t checksum() { return host_to_big_endian(_header_checksum);      }
 
 		Ipv4_address dst() { return Ipv4_address(&_dst_addr); }
 		Ipv4_address src() { return Ipv4_address(&_src_addr); }
