@@ -22,18 +22,111 @@
 
 namespace Genode
 {
+	/*
+	 * Redirection table entry
+	 */
+	struct Irte;
+
+	/**
+	 * IO advanced programmable interrupt controller
+	 */
+	class Ioapic;
+
 	/**
 	 * Programmable interrupt controller for core
 	 */
 	class Pic;
 }
 
+struct Genode::Irte : Register<64>
+{
+	struct Pol  : Bitfield<13, 1> { };
+	struct Trg  : Bitfield<15, 1> { };
+	struct Mask : Bitfield<16, 1> { };
+};
 
-class Genode::Pic : public Mmio
+class Genode::Ioapic : public Mmio
 {
 	private:
 
 		enum { REMAP_BASE = Board::VECTOR_REMAP_BASE };
+
+		uint8_t _irt_count;
+
+		enum {
+			/* Number of Redirection Table entries */
+			IRTE_COUNT = 0x17,
+
+			/* Register selectors */
+			IOAPICVER = 0x01,
+			IOREDTBL  = 0x10,
+		};
+
+		/**
+		 * Create redirection table entry for given IRQ
+		 */
+		Irte::access_t _create_irt_entry(unsigned const irq)
+		{
+			Irte::access_t irte = REMAP_BASE + irq;
+
+			/* Use level-triggered, low-active mode for non-legacy IRQs */
+			if (irq > Board::ISA_IRQ_END) {
+				Irte::Pol::set(irte, 1);
+				Irte::Trg::set(irte, 1);
+			}
+			return irte;
+		}
+
+		/**
+		 * Return whether 'irq' is an edge-triggered interrupt
+		 */
+		bool _edge_triggered(unsigned const irq)
+		{
+			return irq <= REMAP_BASE + Board::ISA_IRQ_END ||
+			       irq >  REMAP_BASE + IRTE_COUNT;
+		}
+
+	public:
+
+		Ioapic() : Mmio(Board::MMIO_IOAPIC_BASE)
+		{
+			/* Remap all supported IRQs */
+			for (unsigned i = 0; i <= IRTE_COUNT; i++) {
+				Irte::access_t irte = _create_irt_entry(i);
+				write<Ioregsel>(IOREDTBL + 2 * i + 1);
+				write<Iowin>(irte >> Iowin::ACCESS_WIDTH);
+				write<Ioregsel>(IOREDTBL + 2 * i);
+				write<Iowin>(irte);
+			}
+		};
+
+		/* Set/unset mask bit of IRTE for given vector */
+		void toggle_mask(unsigned const vector, bool const set)
+		{
+			/*
+			 * Only mask existing RTEs and do *not* mask edge-triggered
+			 * interrupts to avoid losing them while masked, see Intel
+			 * 82093AA I/O Advanced Programmable Interrupt Controller
+			 * (IOAPIC) specification, section 3.4.2, "Interrupt Mask"
+			 * flag and edge-triggered interrupts or:
+			 * http://yarchive.net/comp/linux/edge_triggered_interrupts.html
+			 */
+			if (_edge_triggered(vector)) { return; }
+
+			write<Ioregsel>(IOREDTBL + (2 * (vector - REMAP_BASE)));
+			Irte::access_t irte = read<Iowin>();
+			Irte::Mask::set(irte, set);
+			write<Iowin>(irte);
+		}
+
+		/* Registers */
+		struct Ioregsel : Register<0x00, 32> { };
+		struct Iowin    : Register<0x10, 32> { };
+};
+
+class Genode::Pic : public Mmio
+{
+	private:
 
 		/* Registers */
 		struct EOI : Register<0x0b0, 32, true> { };
@@ -47,92 +140,6 @@ class Genode::Pic : public Mmio
 		 * 32-bit ISR values is followed by 12 bytes of padding.
 		 */
 		struct Isr : Register_array<0x100, 32, 8 * 4, 32> { };
-
-		class Ioapic : public Mmio
-		{
-			private:
-
-				uint8_t _irt_count;
-
-				enum {
-					/* Number of Redirection Table entries */
-					IRTE_COUNT = 0x17,
-
-					IRTE_BIT_POL  = 13,
-					IRTE_BIT_TRG  = 15,
-					IRTE_BIT_MASK = 16,
-
-					/* Register selectors */
-					IOAPICVER = 0x01,
-					IOREDTBL  = 0x10,
-				};
-
-				/**
-				 * Create redirection table entry for given IRQ
-				 */
-				uint64_t _create_irt_entry(unsigned irq)
-				{
-					uint32_t entry = REMAP_BASE + irq;
-
-					if (irq > Board::ISA_IRQ_END) {
-						/* Use level-triggered, high-active mode for non-legacy
-						 * IRQs */
-						entry |= 1 << IRTE_BIT_POL | 1 << IRTE_BIT_TRG;
-					}
-					return entry;
-				}
-
-				/**
-				 * Return whether 'irq' is an edge-triggered interrupt
-				 */
-				bool _edge_triggered(unsigned const irq)
-				{
-					return irq <= REMAP_BASE + Board::ISA_IRQ_END ||
-					       irq >  REMAP_BASE + IRTE_COUNT;
-				}
-
-			public:
-
-				Ioapic() : Mmio(Board::MMIO_IOAPIC_BASE)
-				{
-					/* Remap all supported IRQs */
-					for (unsigned i = 0; i <= IRTE_COUNT; i++) {
-						uint64_t val = _create_irt_entry(i);
-						write<Ioregsel>(IOREDTBL + 2 * i + 1);
-						write<Iowin>(val >> 32);
-						write<Ioregsel>(IOREDTBL + 2 * i);
-						write<Iowin>(val & 0xffffffff);
-					}
-				};
-
-				/* Set/unset mask bit of IRTE for given vector */
-				void toggle_mask(unsigned const vector, bool const set)
-				{
-					/*
-					 * Only mask existing RTEs and do *not* mask edge-triggered
-					 * interrupts to avoid losing them while masked, see Intel
-					 * 82093AA I/O Advanced Programmable Interrupt Controller
-					 * (IOAPIC) specification, section 3.4.2, "Interrupt Mask"
-					 * flag and edge-triggered interrupts or:
-					 * http://yarchive.net/comp/linux/edge_triggered_interrupts.html
-					 */
-					if (_edge_triggered(vector)) { return; }
-
-					write<Ioregsel>(IOREDTBL + (2 * (vector - REMAP_BASE)));
-
-					uint32_t val = read<Iowin>();
-					if (set) {
-						val |= 1 << IRTE_BIT_MASK;
-					} else {
-						val &= ~(1 << IRTE_BIT_MASK);
-					}
-					write<Iowin>(val);
-				}
-
-				/* Registers */
-				struct Ioregsel : Register<0x00, 32> { };
-				struct Iowin    : Register<0x10, 32> { };
-		};
 
 		Ioapic _ioapic;
 
