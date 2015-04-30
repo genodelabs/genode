@@ -11,7 +11,7 @@ INC_DIR += $(STDCXX_PORT_INCLUDE_DIR) \
            $(STDCXX_PORT_INCLUDE_DIR)/c_std \
            $(STDCXX_PORT_INCLUDE_DIR)/c_global
 
-LIBS += libc
+LIBS += libc libm
 include $(call select_from_repositories,lib/import/import-libc.mk)
 
 # prevent gcc headers from defining mbstate
