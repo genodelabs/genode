@@ -87,6 +87,7 @@ class Track : Thread<8192>
 			for (int i = 0; i < CHN_CNT; ++i)
 				_audio_out[i]->start();
 
+			unsigned cnt = 0;
 			while (1) {
 
 				for (size_t offset = 0, cnt = 1;
@@ -136,6 +137,8 @@ class Track : Thread<8192>
 					for (int i = 0; i < CHN_CNT; i++)
 						_audio_out[i]->submit(p[i]);
 				}
+
+				PLOG("played '%s' %u time(s)", _file, ++cnt);
 			}
 		}
 
