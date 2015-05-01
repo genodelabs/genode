@@ -16,12 +16,14 @@ SRC_CC += child/child.cc
 SRC_CC += process/process.cc
 SRC_CC += elf/elf_binary.cc
 SRC_CC += lock/lock.cc
-SRC_CC += signal/signal.cc signal/common.cc
-SRC_CC += server/server.cc
-#SRC_CC += thread/thread.cc
+SRC_CC += signal/signal.cc signal/common.cc signal/platform.cc
+SRC_CC += server/server.cc server/common.cc
+SRC_CC += pager/pager.cc   pager/common.cc
+SRC_CC += thread/thread.cc
 SRC_CC += thread/trace.cc
 SRC_CC += thread/myself.cc
 SRC_CC += thread/context_allocator.cc
+SRC_CC += thread/thread_bootstrap.cc
 #SRC_CC += env/cap_map.cc
 
 INC_DIR +=  $(REP_DIR)/src/base/lock

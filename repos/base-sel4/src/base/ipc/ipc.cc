@@ -20,6 +20,22 @@
 using namespace Genode;
 
 
+/*****************************
+ ** IPC marshalling support **
+ *****************************/
+
+void Ipc_ostream::_marshal_capability(Native_capability const &cap)
+{
+	PDBG("not implemented");
+}
+
+
+void Ipc_istream::_unmarshal_capability(Native_capability &cap)
+{
+	PDBG("not implemented");
+}
+
+
 /*****************
  ** Ipc_ostream **
  *****************/
