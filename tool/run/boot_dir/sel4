@@ -24,9 +24,15 @@ proc run_boot_dir {binaries} {
 		puts $fh "default 0"
 		puts $fh "\ntitle Genode on seL4"
 		puts $fh " kernel /sel4"
-		foreach binary $binaries {
-			if {$binary != "core"} {
-				puts $fh " module /genode/$binary" } }
+
+		# if only one binary was specified, use it as root task
+		if {[llength $binaries] == 1} {
+			puts $fh " module /genode/[lindex $binaries 0]"
+
+		# for real scenarios, use core as root task
+		} else {
+			puts $fh " module /genode/core"
+		}
 		close $fh
 	}
 
