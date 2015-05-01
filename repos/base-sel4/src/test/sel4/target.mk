@@ -1,10 +1,7 @@
 TARGET = test-sel4
 SRC_CC = main.cc context_area.cc mini_env.cc thread.cc
 
-LIBS   = base-common syscall
-
-SRC_CC += base/console/core_printf.cc
-INC_DIR += $(REP_DIR)/src/base/console
+LIBS   = base-common core_printf syscall
 
 vpath %.cc $(BASE_DIR)/src
 

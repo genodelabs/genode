@@ -18,16 +18,15 @@
 #include <sel4/arch/functions.h>
 #include <sel4/arch/syscalls.h>
 
-namespace Genode
+namespace Genode { class Core_console; }
+
+
+class Genode::Core_console : public Console
 {
-	class Core_console : public Console
-	{
-		protected:
+	protected:
 
-			void _out_char(char c)
-			{
-				seL4_DebugPutChar(c);
-			}
-	};
-}
-
+		void _out_char(char c)
+		{
+			seL4_DebugPutChar(c);
+		}
+};
