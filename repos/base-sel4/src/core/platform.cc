@@ -20,10 +20,7 @@
 #include <core_parent.h>
 #include <platform.h>
 #include <map_local.h>
-
-/* seL4 includes */
-#include <sel4/bootinfo.h>
-#include <sel4/interfaces/sel4_client.h>
+#include <cnode.h>
 
 using namespace Genode;
 
@@ -61,17 +58,6 @@ bool Core_mem_allocator::Mapped_mem_allocator::_unmap_local(addr_t virt_addr,
  ** Platform interface **
  ************************/
 
-
-/**
- * Obtain seL4 boot info structure
- */
-static seL4_BootInfo const &sel4_boot_info()
-{
-	extern Genode::addr_t __initial_bx;
-	return *(seL4_BootInfo const *)__initial_bx;
-}
-
-
 /**
  * Initialize allocator with untyped memory ranges according to the boot info
  */
@@ -87,6 +73,112 @@ static void init_allocator(Range_allocator &alloc, seL4_BootInfo const &bi,
 		size_t const size = 1UL << bi.untypedSizeBitsList[k];
 
 		alloc.add_range(base, size);
+	}
+}
+
+
+static inline void init_sel4_ipc_buffer()
+{
+	asm volatile ("movl %0, %%gs" :: "r"(IPCBUF_GDT_SELECTOR) : "memory");
+}
+
+
+/* CNode dimensions */
+enum {
+	NUM_TOP_SEL_LOG2  = 12UL,
+	NUM_CORE_SEL_LOG2 = 14UL,
+	NUM_PHYS_SEL_LOG2 = 20UL,
+};
+
+
+/* selectors for statically created CNodes */
+enum Static_cnode_sel {
+	TOP_CNODE_SEL      = 0x200,
+	CORE_PAD_CNODE_SEL = 0x201,
+	CORE_CNODE_SEL     = 0x202,
+	PHYS_CNODE_SEL     = 0x203
+};
+
+
+/* indices within top-level CNode */
+enum Top_cnode_idx {
+	TOP_CNODE_CORE_IDX = 0,
+	TOP_CNODE_PHYS_IDX = 0xfff
+};
+
+
+/**
+ * Replace initial CSpace with custom CSpace layout
+ */
+static void switch_to_core_cspace(Range_allocator &phys_alloc)
+{
+	Cnode_base const initial_cspace(seL4_CapInitThreadCNode, 32);
+
+	/* allocate 1st-level CNode */
+	static Cnode top_cnode(TOP_CNODE_SEL, NUM_TOP_SEL_LOG2, phys_alloc);
+
+	/* allocate 2nd-level CNode to align core's CNode with the LSB of the CSpace*/
+	static Cnode core_pad_cnode(CORE_PAD_CNODE_SEL,
+	                            32UL - NUM_TOP_SEL_LOG2 - NUM_CORE_SEL_LOG2,
+	                            phys_alloc);
+
+	/* allocate 3rd-level CNode for core's objects */
+	static Cnode core_cnode(CORE_CNODE_SEL, NUM_CORE_SEL_LOG2, phys_alloc);
+
+	/* copy initial selectors to core's CNode */
+	core_cnode.copy(initial_cspace, seL4_CapInitThreadTCB);
+	core_cnode.copy(initial_cspace, seL4_CapInitThreadCNode);
+	core_cnode.copy(initial_cspace, seL4_CapInitThreadPD);
+	core_cnode.move(initial_cspace, seL4_CapIRQControl); /* cannot be copied */
+	core_cnode.copy(initial_cspace, seL4_CapIOPort);
+	core_cnode.copy(initial_cspace, seL4_CapBootInfoFrame);
+	core_cnode.copy(initial_cspace, seL4_CapArchBootInfoFrame);
+	core_cnode.copy(initial_cspace, seL4_CapInitThreadIPCBuffer);
+	core_cnode.copy(initial_cspace, seL4_CapIPI);
+	core_cnode.copy(initial_cspace, seL4_CapDomain);
+
+	/* copy untyped memory selectors to core's CNode */
+	seL4_BootInfo const &bi = sel4_boot_info();
+
+	for (unsigned sel = bi.untyped.start; sel < bi.untyped.end; sel++)
+		core_cnode.copy(initial_cspace, sel);
+
+	for (unsigned sel = bi.deviceUntyped.start; sel < bi.deviceUntyped.end; sel++)
+		core_cnode.copy(initial_cspace, sel);
+
+	/* copy statically created CNode selectors to core's CNode */
+	core_cnode.copy(initial_cspace, TOP_CNODE_SEL);
+	core_cnode.copy(initial_cspace, CORE_PAD_CNODE_SEL);
+	core_cnode.copy(initial_cspace, CORE_CNODE_SEL);
+
+	/*
+	 * Construct CNode hierarchy of core's CSpace
+	 */
+
+	/* insert 3rd-level core CNode into 2nd-level core-pad CNode */
+	core_pad_cnode.copy(initial_cspace, CORE_CNODE_SEL, 0);
+
+	/* insert 2nd-level core-pad CNode into 1st-level CNode */
+	top_cnode.copy(initial_cspace, CORE_PAD_CNODE_SEL, TOP_CNODE_CORE_IDX);
+
+	/* allocate 2nd-level CNode for storing page-frame cap selectors */
+	static Cnode phys_cnode(PHYS_CNODE_SEL, NUM_PHYS_SEL_LOG2, phys_alloc);
+
+	/* insert 2nd-level phys-mem CNode into 1st-level CNode */
+	top_cnode.copy(initial_cspace, PHYS_CNODE_SEL, TOP_CNODE_PHYS_IDX);
+
+	/* activate core's CSpace */
+	{
+		seL4_CapData_t null_data = { { 0 } };
+
+		int const ret = seL4_TCB_SetSpace(seL4_CapInitThreadTCB,
+		                                  seL4_CapNull, /* fault_ep */
+		                                  TOP_CNODE_SEL, null_data,
+		                                  seL4_CapInitThreadPD, null_data);
+
+		if (ret != 0) {
+			PERR("%s: seL4_TCB_SetSpace returned %d", __FUNCTION__, ret);
+		}
 	}
 }
 
@@ -133,6 +225,18 @@ Platform::Platform()
 	/* preserve context area in core's virtual address space */
 	_core_mem_alloc.virt_alloc()->remove_range(Native_config::context_area_virtual_base(),
 	                                           Native_config::context_area_virtual_size());
+
+	/*
+	 * Until this point, no interaction with the seL4 kernel was needed.
+	 * However, the next steps involve the invokation of system calls and
+	 * the use of kernel services. To use the kernel bindings, we first
+	 * need to initialize the TLS mechanism that is used to find the IPC
+	 * buffer for the calling thread.
+	 */
+	init_sel4_ipc_buffer();
+
+	/* initialize core's capability space */
+	switch_to_core_cspace(*_core_mem_alloc.phys_alloc());
 
 	/* add boot modules to ROM fs */
 
