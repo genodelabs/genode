@@ -45,6 +45,11 @@ INC_DIR += $(LIBC_ARCH_INC_DIR)
 CC_OPT += -D__FreeBSD__=8
 
 #
+# Provide C99 API functions (needed for C++11 in stdcxx at least)
+#
+CC_OPT += -D__ISO_C_VISIBLE=1999
+
+#
 # Prevent gcc-4.4.5 from generating code for the family of 'sin' and 'cos'
 # functions because the gcc-generated code would actually call 'sincos'
 # or 'sincosf', which is a GNU extension, not provided by our libc.

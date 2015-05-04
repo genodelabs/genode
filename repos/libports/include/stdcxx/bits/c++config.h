@@ -1210,12 +1210,12 @@ namespace std
 
 /* Define if C99 functions or macros from <wchar.h>, <math.h>, <complex.h>,
    <stdio.h>, and <stdlib.h> can be used or exposed. */
-/* #undef _GLIBCXX_USE_C99 */
+#define _GLIBCXX_USE_C99 1
 
 /* Define if C99 functions in <complex.h> should be used in <complex>. Using
    compiler builtins for these functions requires corresponding C99 library
    functions to be present. */
-/* #undef _GLIBCXX_USE_C99_COMPLEX */
+#define _GLIBCXX_USE_C99_COMPLEX 1
 
 /* Define if C99 functions in <complex.h> should be used in <tr1/complex>.
    Using compiler builtins for these functions requires corresponding C99
