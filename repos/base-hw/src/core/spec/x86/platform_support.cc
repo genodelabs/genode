@@ -33,17 +33,6 @@ Native_region * Platform::_ram_regions(unsigned const i)
 }
 
 
-Native_region * Platform::_core_only_mmio_regions(unsigned const i)
-{
-	static Native_region _regions[] =
-	{
-		{ Board::MMIO_LAPIC_BASE,  Board::MMIO_LAPIC_SIZE  },
-		{ Board::MMIO_IOAPIC_BASE, Board::MMIO_IOAPIC_SIZE },
-	};
-	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
-}
-
-
 void Platform::_init_io_port_alloc()
 {
 	_io_port_alloc.add_range(0, 0x10000);
