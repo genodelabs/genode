@@ -30,7 +30,7 @@ void fireGuestMonitorChangedEvent(IEventSource* aSource,
                                   ULONG a_originX,
                                   ULONG a_originY,
                                   ULONG a_width,
-                                  ULONG a_height)                               TRACE()
+                                  ULONG a_height)                               DUMMY()
 
 
 /* DisplayPNGUtil.cpp */
