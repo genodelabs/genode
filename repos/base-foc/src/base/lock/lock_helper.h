@@ -29,14 +29,6 @@ namespace Fiasco {
 #include <l4/sys/thread.h>
 }
 
-/**
- * Resolve 'Thread_base::myself' when not linking the thread library
- *
- * This weak symbol is primarily used by test cases. Most other Genode programs
- * use the thread library. If the thread library is not used, 'myself' can only
- * be called by the main thread, for which 'myself' is defined as zero.
- */
-Genode::Thread_base * __attribute__((weak)) Genode::Thread_base::myself() { return 0; }
 
 /**
  * Yield CPU time
