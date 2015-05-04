@@ -15,7 +15,6 @@
 #define _CORE__INCLUDE__UNTYPED_ADDRESS_H_
 
 /* seL4 includes */
-#include <sel4/interfaces/sel4_client.h>
 #include <sel4/bootinfo.h>
 
 namespace Genode { struct Untyped_address; }
@@ -44,11 +43,11 @@ class Genode::Untyped_address
 
 		seL4_Untyped _sel    = 0;
 		addr_t       _offset = 0;
+		addr_t       _phys   = 0;
 
 		void _init(seL4_BootInfo const &bi, addr_t phys_addr, size_t size,
 		           unsigned const start_idx, unsigned const num_idx)
 		{
-
 			for (unsigned i = start_idx; i < start_idx + num_idx; i++) {
 
 				/* index into 'untypedPaddrList' and 'untypedSizeBitsList' */
@@ -78,6 +77,8 @@ class Genode::Untyped_address
 		 */
 		Untyped_address(addr_t phys_addr, size_t size)
 		{
+			_phys = phys_addr;
+
 			seL4_BootInfo const &bi = sel4_boot_info();
 			_init(bi, phys_addr, size, bi.untyped.start,
 			      bi.untyped.end - bi.untyped.start);
@@ -92,6 +93,7 @@ class Genode::Untyped_address
 
 		unsigned sel()    const { return _sel; }
 		addr_t   offset() const { return _offset; }
+		addr_t   phys()   const { return _phys; }
 };
 
 

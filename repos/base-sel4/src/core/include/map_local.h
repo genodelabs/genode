@@ -19,6 +19,7 @@
 
 /* core includes */
 #include <util.h>
+#include <platform_generic.h>
 
 
 namespace Genode {
@@ -34,9 +35,12 @@ namespace Genode {
 	 */
 	inline bool map_local(addr_t from_phys, addr_t to_virt, size_t num_pages)
 	{
-		PDBG("not implemented");
+		PDBG("map_local from_phys=0x%lx, to_virt=0x%lx, num_pages=%zd",
+		     from_phys, to_virt, num_pages);
 
-		return false;
+		platform_specific()->core_vm_space().map(from_phys, to_virt, num_pages);
+
+		return true;
 	}
 
 

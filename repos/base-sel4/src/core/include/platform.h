@@ -20,6 +20,8 @@
 /* local includes */
 #include <platform_generic.h>
 #include <core_mem_alloc.h>
+#include <vm_space.h>
+#include <core_cspace.h>
 
 namespace Genode { class Platform; }
 
@@ -37,10 +39,65 @@ class Genode::Platform : public Platform_generic
 		Rom_fs             _rom_fs;         /* ROM file system        */
 
 		/**
+		 * Shortcut for physical memory allocator
+		 */
+		Range_allocator &_phys_alloc = *_core_mem_alloc.phys_alloc();
+
+		/**
 		 * Virtual address range usable by non-core processes
 		 */
 		addr_t _vm_base;
 		size_t _vm_size;
+
+		/**
+		 * Initialize core allocators
+		 */
+		void _init_allocators();
+		bool _init_allocators_done;
+
+		/*
+		 * Until this point, no interaction with the seL4 kernel was needed.
+		 * However, the next steps involve the invokation of system calls and
+		 * the use of kernel services. To use the kernel bindings, we first
+		 * need to initialize the TLS mechanism that is used to find the IPC
+		 * buffer for the calling thread.
+		 */
+		bool _init_sel4_ipc_buffer_done;
+
+		/* allocate 1st-level CNode */
+		Cnode _top_cnode { seL4_CapInitThreadCNode, Core_cspace::TOP_CNODE_SEL,
+		                   Core_cspace::NUM_TOP_SEL_LOG2, _phys_alloc };
+
+		/* allocate 2nd-level CNode to align core's CNode with the LSB of the CSpace*/
+		Cnode _core_pad_cnode { seL4_CapInitThreadCNode, Core_cspace::CORE_PAD_CNODE_SEL,
+		                        Core_cspace::NUM_CORE_PAD_SEL_LOG2,
+		                        _phys_alloc };
+
+		/* allocate 3rd-level CNode for core's objects */
+		Cnode _core_cnode { seL4_CapInitThreadCNode, Core_cspace::CORE_CNODE_SEL,
+		                    Core_cspace::NUM_CORE_SEL_LOG2, _phys_alloc };
+
+		/* allocate 2nd-level CNode for storing page-frame cap selectors */
+		Cnode _phys_cnode { seL4_CapInitThreadCNode, Core_cspace::PHYS_CNODE_SEL,
+		                    Core_cspace::NUM_PHYS_SEL_LOG2, _phys_alloc };
+
+		/**
+		 * Replace initial CSpace with custom CSpace layout
+		 */
+		void _switch_to_core_cspace();
+		bool _switch_to_core_cspace_done;
+
+		Page_table_registry _core_page_table_registry;
+
+		/**
+		 * Pre-populate core's '_page_table_registry' with the information
+		 * about the initial page tables and page frames as set up by the
+		 * kernel
+		 */
+		void _init_core_page_table_registry();
+		bool _init_core_page_table_registry_done;
+
+		Vm_space _core_vm_space;
 
 		int _init_rom_fs();
 
@@ -65,6 +122,11 @@ class Genode::Platform : public Platform_generic
 		addr_t           vm_start() const { return _vm_base; }
 		size_t           vm_size()  const { return _vm_size;  }
 		Rom_fs          *rom_fs()         { return &_rom_fs; }
+
+		Cnode &phys_cnode() { return _phys_cnode; }
+		Cnode &top_cnode()  { return _top_cnode; }
+
+		Vm_space &core_vm_space() { return _core_vm_space; }
 
 		void wait_for_exit();
 };

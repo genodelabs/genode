@@ -18,6 +18,10 @@
 #include <rm_session/rm_session.h>
 #include <base/printf.h>
 
+/* core includes */
+#include <core_cspace.h>
+
+
 namespace Genode {
 
 	constexpr size_t get_page_size_log2() { return 12; }
@@ -28,6 +32,7 @@ namespace Genode {
 
 	inline addr_t map_src_addr(addr_t core_local, addr_t phys) { return phys; }
 	inline size_t constrain_map_size_log2(size_t size_log2) { return get_page_size_log2(); }
+
 
 	inline void print_page_fault(const char *msg, addr_t pf_addr, addr_t pf_ip,
 	                             Rm_session::Fault_type pf_type,

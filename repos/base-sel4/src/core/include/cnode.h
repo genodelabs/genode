@@ -15,11 +15,12 @@
 #define _CORE__INCLUDE__CNODE_H_
 
 /* Genode includes */
+#include <util/noncopyable.h>
 #include <base/exception.h>
 #include <base/allocator.h>
 
 /* core includes */
-#include <untyped_address.h>
+#include <untyped_memory.h>
 
 namespace Genode {
 
@@ -100,17 +101,17 @@ class Genode::Cnode_base
 };
 
 
-class Genode::Cnode : public Cnode_base
+class Genode::Cnode : public Cnode_base, Noncopyable
 {
 	public:
 
-		class Phys_alloc_failed     : Exception { };
 		class Untyped_lookup_failed : Exception { };
 		class Retype_untyped_failed : Exception { };
 
 		/**
 		 * Constructor
 		 *
+		 * \param parent      selector of CNode where to place 'dst_sel'
 		 * \param dst_sel     designated selector referring to the created
 		 *                    CNode
 		 * \param size_log2   number of entries in CNode
@@ -120,34 +121,19 @@ class Genode::Cnode : public Cnode_base
 		 * \throw Phys_alloc_failed
 		 * \throw Untyped_address::Lookup_failed
 		 */
-		Cnode(unsigned dst_sel, size_t size_log2, Range_allocator &phys_alloc)
+		Cnode(unsigned parent_sel, unsigned dst_sel, size_t size_log2,
+		      Range_allocator &phys_alloc)
 		:
 			Cnode_base(dst_sel, size_log2)
 		{
-			/*
-			 * Allocate natually-aligned physical memory for cnode
-			 *
-			 * The natual alignment is needed to ensure that the backing store is
-			 * contained in a single untyped memory region.
-			 */
-			void *out_ptr = nullptr;
-			size_t const mem_size = 1UL << mem_size_log2();
-			Range_allocator::Alloc_return alloc_ret =
-				phys_alloc.alloc_aligned(mem_size, &out_ptr, mem_size_log2());
-			addr_t const phys_addr = (addr_t)out_ptr;
-
-			if (alloc_ret.is_error()) {
-				PERR("%s: allocation of backing store for cnode failed", __FUNCTION__);
-				throw Phys_alloc_failed();
-			}
-
-			Untyped_address const untyped_addr(phys_addr, mem_size);
+			Untyped_address const untyped_addr =
+				Untyped_memory::alloc_log2(phys_alloc, mem_size_log2());
 
 			seL4_Untyped const service     = untyped_addr.sel();
 			int          const type        = seL4_CapTableObject;
 			int          const offset      = untyped_addr.offset();
 			int          const size_bits   = size_log2;
-			seL4_CNode   const root        = seL4_CapInitThreadCNode;
+			seL4_CNode   const root        = parent_sel;
 			int          const node_index  = 0;
 			int          const node_depth  = 0;
 			int          const node_offset = dst_sel;

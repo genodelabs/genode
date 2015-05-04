@@ -43,7 +43,11 @@ bool Core_mem_allocator::Mapped_mem_allocator::_map_local(addr_t virt_addr,
                                                           addr_t phys_addr,
                                                           unsigned size)
 {
-	return map_local(phys_addr, virt_addr, size / get_page_size());
+	size_t const num_pages = size / get_page_size();
+
+	Untyped_memory::convert_to_page_frames(phys_addr, num_pages);
+
+	return map_local(phys_addr, virt_addr, num_pages);
 }
 
 
@@ -83,116 +87,8 @@ static inline void init_sel4_ipc_buffer()
 }
 
 
-/* CNode dimensions */
-enum {
-	NUM_TOP_SEL_LOG2  = 12UL,
-	NUM_CORE_SEL_LOG2 = 14UL,
-	NUM_PHYS_SEL_LOG2 = 20UL,
-};
-
-
-/* selectors for statically created CNodes */
-enum Static_cnode_sel {
-	TOP_CNODE_SEL      = 0x200,
-	CORE_PAD_CNODE_SEL = 0x201,
-	CORE_CNODE_SEL     = 0x202,
-	PHYS_CNODE_SEL     = 0x203
-};
-
-
-/* indices within top-level CNode */
-enum Top_cnode_idx {
-	TOP_CNODE_CORE_IDX = 0,
-	TOP_CNODE_PHYS_IDX = 0xfff
-};
-
-
-/**
- * Replace initial CSpace with custom CSpace layout
- */
-static void switch_to_core_cspace(Range_allocator &phys_alloc)
+void Platform::_init_allocators()
 {
-	Cnode_base const initial_cspace(seL4_CapInitThreadCNode, 32);
-
-	/* allocate 1st-level CNode */
-	static Cnode top_cnode(TOP_CNODE_SEL, NUM_TOP_SEL_LOG2, phys_alloc);
-
-	/* allocate 2nd-level CNode to align core's CNode with the LSB of the CSpace*/
-	static Cnode core_pad_cnode(CORE_PAD_CNODE_SEL,
-	                            32UL - NUM_TOP_SEL_LOG2 - NUM_CORE_SEL_LOG2,
-	                            phys_alloc);
-
-	/* allocate 3rd-level CNode for core's objects */
-	static Cnode core_cnode(CORE_CNODE_SEL, NUM_CORE_SEL_LOG2, phys_alloc);
-
-	/* copy initial selectors to core's CNode */
-	core_cnode.copy(initial_cspace, seL4_CapInitThreadTCB);
-	core_cnode.copy(initial_cspace, seL4_CapInitThreadCNode);
-	core_cnode.copy(initial_cspace, seL4_CapInitThreadPD);
-	core_cnode.move(initial_cspace, seL4_CapIRQControl); /* cannot be copied */
-	core_cnode.copy(initial_cspace, seL4_CapIOPort);
-	core_cnode.copy(initial_cspace, seL4_CapBootInfoFrame);
-	core_cnode.copy(initial_cspace, seL4_CapArchBootInfoFrame);
-	core_cnode.copy(initial_cspace, seL4_CapInitThreadIPCBuffer);
-	core_cnode.copy(initial_cspace, seL4_CapIPI);
-	core_cnode.copy(initial_cspace, seL4_CapDomain);
-
-	/* copy untyped memory selectors to core's CNode */
-	seL4_BootInfo const &bi = sel4_boot_info();
-
-	for (unsigned sel = bi.untyped.start; sel < bi.untyped.end; sel++)
-		core_cnode.copy(initial_cspace, sel);
-
-	for (unsigned sel = bi.deviceUntyped.start; sel < bi.deviceUntyped.end; sel++)
-		core_cnode.copy(initial_cspace, sel);
-
-	/* copy statically created CNode selectors to core's CNode */
-	core_cnode.copy(initial_cspace, TOP_CNODE_SEL);
-	core_cnode.copy(initial_cspace, CORE_PAD_CNODE_SEL);
-	core_cnode.copy(initial_cspace, CORE_CNODE_SEL);
-
-	/*
-	 * Construct CNode hierarchy of core's CSpace
-	 */
-
-	/* insert 3rd-level core CNode into 2nd-level core-pad CNode */
-	core_pad_cnode.copy(initial_cspace, CORE_CNODE_SEL, 0);
-
-	/* insert 2nd-level core-pad CNode into 1st-level CNode */
-	top_cnode.copy(initial_cspace, CORE_PAD_CNODE_SEL, TOP_CNODE_CORE_IDX);
-
-	/* allocate 2nd-level CNode for storing page-frame cap selectors */
-	static Cnode phys_cnode(PHYS_CNODE_SEL, NUM_PHYS_SEL_LOG2, phys_alloc);
-
-	/* insert 2nd-level phys-mem CNode into 1st-level CNode */
-	top_cnode.copy(initial_cspace, PHYS_CNODE_SEL, TOP_CNODE_PHYS_IDX);
-
-	/* activate core's CSpace */
-	{
-		seL4_CapData_t null_data = { { 0 } };
-
-		int const ret = seL4_TCB_SetSpace(seL4_CapInitThreadTCB,
-		                                  seL4_CapNull, /* fault_ep */
-		                                  TOP_CNODE_SEL, null_data,
-		                                  seL4_CapInitThreadPD, null_data);
-
-		if (ret != 0) {
-			PERR("%s: seL4_TCB_SetSpace returned %d", __FUNCTION__, ret);
-		}
-	}
-}
-
-
-Platform::Platform()
-:
-	_io_mem_alloc(core_mem_alloc()), _io_port_alloc(core_mem_alloc()),
-	_irq_alloc(core_mem_alloc()),
-	_vm_base(0x1000),
-	_vm_size(2*1024*1024*1024UL - _vm_base) /* use the lower 2GiB */
-{
-	/*
-	 * Initialize core allocators
-	 */
 	seL4_BootInfo const &bi = sel4_boot_info();
 
 	/* interrupt allocator */
@@ -210,8 +106,16 @@ Platform::Platform()
 	_core_mem_alloc.virt_alloc()->add_range(_vm_base, _vm_size);
 
 	/* remove core image from core's virtual address allocator */
+
+	/*
+	 * XXX Why do we need to skip a few KiB after the end of core?
+	 *     When allocating a PTE immediately after _prog_img_end, the
+	 *     kernel would complain "Mapping already present" on the
+	 *     attempt to map a page frame.
+	 */
 	addr_t const core_virt_beg = trunc_page((addr_t)&_prog_img_beg),
-	             core_virt_end = round_page((addr_t)&_prog_img_end);
+	             core_virt_end = round_page((addr_t)&_prog_img_end)
+	                           + 64*1024;
 	size_t const core_size     = core_virt_end - core_virt_beg;
 
 	_core_mem_alloc.virt_alloc()->remove_range(core_virt_beg, core_size);
@@ -225,18 +129,121 @@ Platform::Platform()
 	/* preserve context area in core's virtual address space */
 	_core_mem_alloc.virt_alloc()->remove_range(Native_config::context_area_virtual_base(),
 	                                           Native_config::context_area_virtual_size());
+}
+
+
+void Platform::_switch_to_core_cspace()
+{
+	Cnode_base const initial_cspace(seL4_CapInitThreadCNode, 32);
+
+	/* copy initial selectors to core's CNode */
+	_core_cnode.copy(initial_cspace, seL4_CapInitThreadTCB);
+	_core_cnode.copy(initial_cspace, seL4_CapInitThreadPD);
+	_core_cnode.move(initial_cspace, seL4_CapIRQControl); /* cannot be copied */
+	_core_cnode.copy(initial_cspace, seL4_CapIOPort);
+	_core_cnode.copy(initial_cspace, seL4_CapBootInfoFrame);
+	_core_cnode.copy(initial_cspace, seL4_CapArchBootInfoFrame);
+	_core_cnode.copy(initial_cspace, seL4_CapInitThreadIPCBuffer);
+	_core_cnode.copy(initial_cspace, seL4_CapIPI);
+	_core_cnode.copy(initial_cspace, seL4_CapDomain);
+
+	/* replace seL4_CapInitThreadCNode with new top-level CNode */
+	_core_cnode.copy(initial_cspace, Core_cspace::TOP_CNODE_SEL, seL4_CapInitThreadCNode);
+
+	/* copy untyped memory selectors to core's CNode */
+	seL4_BootInfo const &bi = sel4_boot_info();
+
+	for (unsigned sel = bi.untyped.start; sel < bi.untyped.end; sel++)
+		_core_cnode.copy(initial_cspace, sel);
+
+	for (unsigned sel = bi.deviceUntyped.start; sel < bi.deviceUntyped.end; sel++)
+		_core_cnode.copy(initial_cspace, sel);
+
+	/* copy statically created CNode selectors to core's CNode */
+	_core_cnode.copy(initial_cspace, Core_cspace::TOP_CNODE_SEL);
+	_core_cnode.copy(initial_cspace, Core_cspace::CORE_PAD_CNODE_SEL);
+	_core_cnode.copy(initial_cspace, Core_cspace::CORE_CNODE_SEL);
+	_core_cnode.copy(initial_cspace, Core_cspace::PHYS_CNODE_SEL);
 
 	/*
-	 * Until this point, no interaction with the seL4 kernel was needed.
-	 * However, the next steps involve the invokation of system calls and
-	 * the use of kernel services. To use the kernel bindings, we first
-	 * need to initialize the TLS mechanism that is used to find the IPC
-	 * buffer for the calling thread.
+	 * Construct CNode hierarchy of core's CSpace
 	 */
-	init_sel4_ipc_buffer();
 
-	/* initialize core's capability space */
-	switch_to_core_cspace(*_core_mem_alloc.phys_alloc());
+	/* insert 3rd-level core CNode into 2nd-level core-pad CNode */
+	_core_pad_cnode.copy(initial_cspace, Core_cspace::CORE_CNODE_SEL, 0);
+
+	/* insert 2nd-level core-pad CNode into 1st-level CNode */
+	_top_cnode.copy(initial_cspace, Core_cspace::CORE_PAD_CNODE_SEL,
+	                                Core_cspace::TOP_CNODE_CORE_IDX);
+
+	/* insert 2nd-level phys-mem CNode into 1st-level CNode */
+	_top_cnode.copy(initial_cspace, Core_cspace::PHYS_CNODE_SEL,
+	                                Core_cspace::TOP_CNODE_PHYS_IDX);
+
+	/* activate core's CSpace */
+	{
+		seL4_CapData_t null_data = { { 0 } };
+
+		int const ret = seL4_TCB_SetSpace(seL4_CapInitThreadTCB,
+		                                  seL4_CapNull, /* fault_ep */
+		                                  Core_cspace::TOP_CNODE_SEL, null_data,
+		                                  seL4_CapInitThreadPD, null_data);
+
+		if (ret != 0) {
+			PERR("%s: seL4_TCB_SetSpace returned %d", __FUNCTION__, ret);
+		}
+	}
+}
+
+
+void Platform::_init_core_page_table_registry()
+{
+	seL4_BootInfo const &bi = sel4_boot_info();
+
+	/*
+	 * Register initial page tables
+	 */
+	addr_t virt_addr = (addr_t)(&_prog_img_beg);
+	for (unsigned sel = bi.userImagePTs.start; sel < bi.userImagePTs.end; sel++) {
+
+		_core_page_table_registry.insert_page_table(virt_addr, sel);
+
+		/* one page table has 1024 entries */
+		virt_addr += 1024*get_page_size();
+	}
+
+	/*
+	 * Register initial page frames
+	 */
+	virt_addr = (addr_t)(&_prog_img_beg);
+	for (unsigned sel = bi.userImageFrames.start; sel < bi.userImageFrames.end; sel++) {
+
+		_core_page_table_registry.insert_page_table_entry(virt_addr, sel);
+
+		virt_addr += get_page_size();
+	}
+}
+
+
+Platform::Platform()
+:
+	_io_mem_alloc(core_mem_alloc()), _io_port_alloc(core_mem_alloc()),
+	_irq_alloc(core_mem_alloc()),
+	_vm_base(0x1000),
+	_vm_size(2*1024*1024*1024UL - _vm_base), /* use the lower 2GiB */
+	_init_allocators_done((_init_allocators(), true)),
+	_init_sel4_ipc_buffer_done((init_sel4_ipc_buffer(), true)),
+	_switch_to_core_cspace_done((_switch_to_core_cspace(), true)),
+	_core_page_table_registry(*core_mem_alloc()),
+	_init_core_page_table_registry_done((_init_core_page_table_registry(), true)),
+	_core_vm_space(Core_cspace::CORE_VM_PAD_CNODE_SEL, Core_cspace::CORE_VM_CNODE_SEL,
+	               _phys_alloc,
+	               _top_cnode,
+	               _core_cnode,
+	               _phys_cnode,
+	               Core_cspace::CORE_VM_ID,
+	               _core_page_table_registry)
+{
 
 	/* add boot modules to ROM fs */
 
@@ -250,6 +257,7 @@ Platform::Platform()
 		printf(":virt_alloc:   "); _core_mem_alloc.virt_alloc()->raw()->dump_addr_tree();
 		printf(":io_mem_alloc: "); _io_mem_alloc.raw()->dump_addr_tree();
 	}
+
 }
 
 

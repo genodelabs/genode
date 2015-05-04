@@ -54,5 +54,4 @@ vpath trace_session_component.cc  $(GEN_CORE_DIR)
 vpath dataspace_component.cc      $(GEN_CORE_DIR)
 vpath core_mem_alloc.cc           $(GEN_CORE_DIR)
 vpath dump_alloc.cc               $(GEN_CORE_DIR)
-vpath context_area.cc             $(GEN_CORE_DIR)
 vpath %.cc                        $(REP_DIR)/src/core
