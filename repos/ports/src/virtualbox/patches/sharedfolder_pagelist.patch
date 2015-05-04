@@ -1,5 +1,10 @@
-+++ src/app/virtualbox/src/VBox/HostServices/SharedFolders/service.cpp
-@@ -546,6 +546,14 @@
+sharedfolder_pagelist.patch
+
+diff --git a/src/app/virtualbox/src/VBox/HostServices/SharedFolders/service.cpp b/src/app/virtualbox/src/VBox/HostServices/SharedFolders/service.cpp
+index 49a0006..499d541 100644
+--- a/src/app/virtualbox/src/VBox/HostServices/SharedFolders/service.cpp
++++ b/src/app/virtualbox/src/VBox/HostServices/SharedFolders/service.cpp
+@@ -549,6 +549,14 @@ static DECLCALLBACK(void) svcCall (void *, VBOXHGCMCALLHANDLE callHandle, uint32
                  }
                  else
                  {
@@ -14,7 +19,7 @@
                      /* Execute the function. */
                      if (pStatusLed)
                      {
-@@ -559,13 +567,25 @@
+@@ -562,13 +570,25 @@ static DECLCALLBACK(void) svcCall (void *, VBOXHGCMCALLHANDLE callHandle, uint32
  
                      if (RT_SUCCESS(rc))
                      {
@@ -41,7 +46,7 @@
                  }
              }
              break;
-@@ -613,6 +633,16 @@
+@@ -616,6 +636,16 @@ static DECLCALLBACK(void) svcCall (void *, VBOXHGCMCALLHANDLE callHandle, uint32
                  }
                  else
                  {
@@ -58,7 +63,7 @@
                      /* Execute the function. */
                      if (pStatusLed)
                      {
-@@ -626,13 +656,25 @@
+@@ -629,13 +659,25 @@ static DECLCALLBACK(void) svcCall (void *, VBOXHGCMCALLHANDLE callHandle, uint32
  
                      if (RT_SUCCESS(rc))
                      {

@@ -1,5 +1,10 @@
-+++ src/app/virtualbox/src/VBox/Runtime/common/log/log.cpp
-@@ -3063,7 +3066,8 @@
+time-log-deadlock.patch
+
+diff --git a/src/app/virtualbox/src/VBox/Runtime/common/log/log.cpp b/src/app/virtualbox/src/VBox/Runtime/common/log/log.cpp
+index 62463c4..f10baad 100644
+--- a/src/app/virtualbox/src/VBox/Runtime/common/log/log.cpp
++++ b/src/app/virtualbox/src/VBox/Runtime/common/log/log.cpp
+@@ -3128,7 +3128,8 @@ static DECLCALLBACK(size_t) rtLogOutputPrefixed(void *pv, const char *pachChars,
                  {
  
  #if defined(IN_RING3) || defined(IN_RC)

@@ -11,6 +11,8 @@ REQUIRES += installation_of_iasl
 endif
 
 VIRTUALBOX_DIR = $(call select_from_ports,virtualbox)/src/app/virtualbox
+VIRTUALBOX_SDK_DIR = $(call select_from_ports,virtualbox)/src/app/virtualbox_sdk
+
 VBOX_DIR       = $(VIRTUALBOX_DIR)/src/VBox
 
 VBOX_CC_OPT += -DIN_RING3 -DVBOX -DVBOX_OSE \
@@ -67,10 +69,16 @@ CC_WARN += -Wno-trigraphs
 
 CC_OPT += $(VBOX_CC_OPT)
 
+# VirtualBox expects wchar_t to be a 16-bit type. yasm does not understand this
+# flag, therefore it gets added to CC_OPT instead of VBOX_CC_OPT.
+CC_OPT += -fshort-wchar
+
 LIBS += libc libm 
 
 INC_DIR += $(REP_DIR)/src/virtualbox/include
+INC_DIR += $(REP_DIR)/src/virtualbox/include/xpcom
 INC_DIR += $(VIRTUALBOX_DIR)/include
+INC_DIR += $(VIRTUALBOX_SDK_DIR)/sdk/bindings/xpcom/include
 INC_DIR += $(VBOX_DIR)/Devices/build
 
 vpath %.cpp $(VBOX_DIR)

@@ -1,8 +1,6 @@
 #ifndef nsMemory_h__
 #define nsMemory_h__
 
-#define nsID GUID
-
 #include <stddef.h>
 
 class nsMemory

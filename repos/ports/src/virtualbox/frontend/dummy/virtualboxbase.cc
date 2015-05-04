@@ -3,25 +3,9 @@
 #include "VirtualBoxImpl.h"
 #include "VBox/com/MultiResult.h"
 
+#include "dummy/macros.h"
+
 static bool debug = false;
-
-#define TRACE(X) \
-	{ \
-		if (debug) \
-			PDBG(" called (%s) - eip=%p", __FILE__, \
-			     __builtin_return_address(0)); \
-		return X; \
-	}
-
-#define DUMMY(X) \
-	{ \
-		PERR("%s called (%s:%u), not implemented, eip=%p", __func__, __FILE__, __LINE__, \
-		     __builtin_return_address(0)); \
-		while (1) \
-			asm volatile ("ud2a"); \
-		\
-		return X; \
-	}
 
 HRESULT VirtualBoxBase::setError(HRESULT aResultCode, const char *pcsz, ...)
 {
@@ -50,9 +34,4 @@ HRESULT VirtualBoxBase::handleUnexpectedExceptions(VirtualBoxBase *const,
 HRESULT VirtualBoxBase::setErrorInternal(HRESULT, GUID const&, char const*,
                                          com::Utf8Str, bool, bool)              DUMMY(E_FAIL)
 HRESULT VirtualBoxBase::initializeComForThread(void)                            TRACE(S_OK)
-
-HRESULT VirtualBoxErrorInfo::init(HRESULT, const GUID &, const char *,
-                                  const Utf8Str &, IVirtualBoxErrorInfo *)      DUMMY(E_FAIL)
-
-HRESULT VBoxEventDesc::init(IEventSource* aSource, VBoxEventType_T aType, ...)  TRACE(S_OK)
-HRESULT VBoxEventDesc::reinit(VBoxEventType_T aType, ...)                       TRACE(S_OK)
+void    VirtualBoxBase::uninitializeComForThread(void)                          TRACE()

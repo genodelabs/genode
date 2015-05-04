@@ -3,6 +3,8 @@
 
 #include <VBox/com/defs.h>
 
+#include <base/printf.h>
+
 template <typename T>
 class ComPtr {
 
@@ -16,14 +18,46 @@ class ComPtr {
 
 		/* copy constructor */
 		ComPtr<T> (T *obj) : _obj(obj) { }
+
 		template<typename X>
-		ComPtr<T> (X *obj) : _obj(nullptr) { }
+		ComPtr<T> (X *obj) : _obj(dynamic_cast<T*>(obj))
+		{
+			if (!_obj)
+				PDBG("dynamic cast failed");
+		}
+
 		template <class T2>
-		ComPtr(const ComPtr<T2> &that) : _obj(nullptr) { }
+		ComPtr<T>(const ComPtr<T2> &that) : ComPtr<T>((T2*)that) { }
 
 		/* operators */
 		T * operator->() const  { return _obj; }
         operator T*() const     { return _obj; }
+
+		template <class T2>
+		ComPtr& operator=(const ComPtr<T2> &that)
+		{
+			return operator=((T2*)that);
+		}
+
+		ComPtr& operator=(const ComPtr &that)
+		{
+			return operator=((T*)that);
+		}
+
+		template <class T2>
+		ComPtr& operator=(T2 *p)
+		{
+			_obj = dynamic_cast<T*>(p);
+			if (!_obj)
+				PDBG("dynamic cast failed");
+			return *this;
+		}
+
+		ComPtr& operator=(T *p)
+		{
+			_obj = p;
+			return *this;
+		}
 
 		bool isNull () const    { return _obj == nullptr; }
 
@@ -39,6 +73,13 @@ class ComPtr {
 		}
 
 		void setNull() { _obj = nullptr; }
+
+		template <class T2>
+		bool operator==(T2* p)
+		{
+			return (p == _obj);
+		}
+
 };
 
 

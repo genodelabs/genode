@@ -1,7 +1,9 @@
-diff --git src/app/virtualbox/src/VBox/Main/include/ConsoleImpl.h src/app/virtualbox/src/VBox/Main/include/ConsoleImpl.h
-index 030a601..fe6cb1c 100644
---- src/app/virtualbox/src/VBox/Main/include/ConsoleImpl.h
-+++ src/app/virtualbox/src/VBox/Main/include/ConsoleImpl.h
+vbox_main.patch
+
+diff --git a/src/app/virtualbox/src/VBox/Main/include/ConsoleImpl.h b/src/app/virtualbox/src/VBox/Main/include/ConsoleImpl.h
+index 030a601..7fce453 100644
+--- a/src/app/virtualbox/src/VBox/Main/include/ConsoleImpl.h
++++ b/src/app/virtualbox/src/VBox/Main/include/ConsoleImpl.h
 @@ -50,7 +50,9 @@ class VMMDevMouseInterface;
  class DisplayMouseInterface;
  
@@ -12,7 +14,17 @@ index 030a601..fe6cb1c 100644
  #include <VBox/vmm/pdmdrv.h>
  #ifdef VBOX_WITH_GUEST_PROPS
  # include <VBox/HostServices/GuestPropertySvc.h>  /* For the property notification callback */
-@@ -261,10 +263,12 @@ public:
+@@ -251,7 +253,9 @@ public:
+     void VRDPInterceptUSB(uint32_t u32ClientId, void **ppvIntercept);
+     void VRDPInterceptClipboard(uint32_t u32ClientId);
+ 
++#if 0
+     void processRemoteUSBDevices(uint32_t u32ClientId, VRDEUSBDEVICEDESC *pDevList, uint32_t cbDevList, bool fDescExt);
++#endif /* if 0 */
+     void reportVmStatistics(ULONG aValidStats, ULONG aCpuUser,
+                                ULONG aCpuKernel, ULONG aCpuIdle,
+                                ULONG aMemTotal, ULONG aMemFree,
+@@ -261,10 +265,12 @@ public:
                                 ULONG aBalloonedVMM, ULONG aSharedVMM,
                                 ULONG aVmNetRx, ULONG aVmNetTx)
      {
@@ -25,7 +37,7 @@ index 030a601..fe6cb1c 100644
      }
      void enableVMMStatistics(BOOL aEnable);
  
-@@ -274,12 +278,12 @@ public:
+@@ -274,12 +280,12 @@ public:
  
      // callback callers (partly; for some events console callbacks are notified
      // directly from IInternalSessionControl event handlers declared above)
@@ -44,10 +56,10 @@ index 030a601..fe6cb1c 100644
      void onStateChange(MachineState_T aMachineState);
      void onAdditionsStateChange();
      void onAdditionsOutdated();
-diff --git src/app/virtualbox/src/VBox/Main/include/DisplayImpl.h src/app/virtualbox/src/VBox/Main/include/DisplayImpl.h
-index 585f6b2..368453c 100644
---- src/app/virtualbox/src/VBox/Main/include/DisplayImpl.h
-+++ src/app/virtualbox/src/VBox/Main/include/DisplayImpl.h
+diff --git a/src/app/virtualbox/src/VBox/Main/include/DisplayImpl.h b/src/app/virtualbox/src/VBox/Main/include/DisplayImpl.h
+index 585f6b2..ecb58b9 100644
+--- a/src/app/virtualbox/src/VBox/Main/include/DisplayImpl.h
++++ b/src/app/virtualbox/src/VBox/Main/include/DisplayImpl.h
 @@ -122,7 +122,7 @@ typedef struct _DISPLAYFBINFO
  class DisplayMouseInterface
  {
@@ -57,15 +69,7 @@ index 585f6b2..368453c 100644
                                      ULONG *pcy, ULONG *pcBPP, LONG *pXOrigin, LONG *pYOrigin) = 0;
      virtual void getFramebufferDimensions(int32_t *px1, int32_t *py1,
                                            int32_t *px2, int32_t *py2) = 0;
-@@ -132,6 +132,7 @@ class VMMDev;
- 
- class ATL_NO_VTABLE Display :
-     public VirtualBoxBase,
-+    public IEventListener,
-     VBOX_SCRIPTABLE_IMPL(IEventListener),
-     VBOX_SCRIPTABLE_IMPL(IDisplay),
-     public DisplayMouseInterface
-@@ -192,7 +193,7 @@ public:
+@@ -192,7 +192,7 @@ public:
          return maFramebuffers[VBOX_VIDEO_PRIMARY_SCREEN].pFramebuffer;
      }
      void getFramebufferDimensions(int32_t *px1, int32_t *py1, int32_t *px2, int32_t *py2);
@@ -74,19 +78,21 @@ index 585f6b2..368453c 100644
                              ULONG *pcBPP, LONG *pXOrigin, LONG *pYOrigin)
      {
          return GetScreenResolution(cScreen, pcx, pcy, pcBPP, pXOrigin, pYOrigin);
-@@ -232,6 +233,8 @@ public:
+@@ -232,6 +232,10 @@ public:
  
      static const PDMDRVREG  DrvReg;
  
++#if 0
 +    static void fireGuestMonitorChangedEvent(EventSource*, GuestMonitorChangedEventType, int32_t, int32_t, int32_t, int32_t, int32_t);
++#endif
 +
  private:
  
      int updateDisplayData(void);
-diff --git src/app/virtualbox/src/VBox/Main/include/FramebufferImpl.h src/app/virtualbox/src/VBox/Main/include/FramebufferImpl.h
+diff --git a/src/app/virtualbox/src/VBox/Main/include/FramebufferImpl.h b/src/app/virtualbox/src/VBox/Main/include/FramebufferImpl.h
 index feebfcd..4136d6d 100644
---- src/app/virtualbox/src/VBox/Main/include/FramebufferImpl.h
-+++ src/app/virtualbox/src/VBox/Main/include/FramebufferImpl.h
+--- a/src/app/virtualbox/src/VBox/Main/include/FramebufferImpl.h
++++ b/src/app/virtualbox/src/VBox/Main/include/FramebufferImpl.h
 @@ -70,6 +70,7 @@ public:
      STDMETHOD(SetVisibleRegion)(BYTE *aRectangles, ULONG aCount) = 0;
  
@@ -95,10 +101,10 @@ index feebfcd..4136d6d 100644
  };
  
  #endif // ____H_H_FRAMEBUFFERIMPL
-diff --git src/app/virtualbox/src/VBox/Main/include/MachineImpl.h src/app/virtualbox/src/VBox/Main/include/MachineImpl.h
+diff --git a/src/app/virtualbox/src/VBox/Main/include/MachineImpl.h b/src/app/virtualbox/src/VBox/Main/include/MachineImpl.h
 index bb91290..d3c6d85 100644
---- src/app/virtualbox/src/VBox/Main/include/MachineImpl.h
-+++ src/app/virtualbox/src/VBox/Main/include/MachineImpl.h
+--- a/src/app/virtualbox/src/VBox/Main/include/MachineImpl.h
++++ b/src/app/virtualbox/src/VBox/Main/include/MachineImpl.h
 @@ -1213,7 +1213,7 @@ private:
      HRESULT setMachineState(MachineState_T aMachineState);
      HRESULT updateMachineStateOnClient();
@@ -108,23 +114,10 @@ index bb91290..d3c6d85 100644
  
      ConsoleTaskData mConsoleTaskData;
  
-diff --git src/app/virtualbox/src/VBox/Main/include/MediumFormatImpl.h src/app/virtualbox/src/VBox/Main/include/MediumFormatImpl.h
-index 2acdc6e..88ac27c 100644
---- src/app/virtualbox/src/VBox/Main/include/MediumFormatImpl.h
-+++ src/app/virtualbox/src/VBox/Main/include/MediumFormatImpl.h
-@@ -72,6 +72,8 @@ public:
-     /** Const, no need to lock */
-     const PropertyArray &i_getProperties() const { return m.maProperties; }
- 
-+    HRESULT COMGETTER(Capabilities)(ComSafeArrayOut(MediumFormatCapabilities_T, aCapabilities));
-+
- private:
- 
-     // wrapped IMediumFormat properties
-diff --git src/app/virtualbox/src/VBox/Main/include/NetworkServiceRunner.h src/app/virtualbox/src/VBox/Main/include/NetworkServiceRunner.h
+diff --git a/src/app/virtualbox/src/VBox/Main/include/NetworkServiceRunner.h b/src/app/virtualbox/src/VBox/Main/include/NetworkServiceRunner.h
 index f0ec275..78a390e 100644
---- src/app/virtualbox/src/VBox/Main/include/NetworkServiceRunner.h
-+++ src/app/virtualbox/src/VBox/Main/include/NetworkServiceRunner.h
+--- a/src/app/virtualbox/src/VBox/Main/include/NetworkServiceRunner.h
++++ b/src/app/virtualbox/src/VBox/Main/include/NetworkServiceRunner.h
 @@ -15,6 +15,9 @@
   * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
   */
@@ -141,50 +134,10 @@ index f0ec275..78a390e 100644
  };
 +
 +#endif /* ____H_H_NetworkServiceRunner */
-diff --git src/app/virtualbox/src/VBox/Main/include/ProgressImpl.h src/app/virtualbox/src/VBox/Main/include/ProgressImpl.h
-index 6b01274..70aca28 100644
---- src/app/virtualbox/src/VBox/Main/include/ProgressImpl.h
-+++ src/app/virtualbox/src/VBox/Main/include/ProgressImpl.h
-@@ -103,7 +103,7 @@ public:
- #if !defined (VBOX_COM_INPROC)
-                   VirtualBox *aParent,
- #endif
--                  IUnknown *aInitiator,
-+                  void *aInitiator,
-                   CBSTR aDescription,
-                   BOOL aCancelable,
-                   OUT_GUID aId = NULL)
-@@ -138,7 +138,7 @@ public:
- #if !defined (VBOX_COM_INPROC)
-                   VirtualBox *aParent,
- #endif
--                  IUnknown *aInitiator,
-+                  void *aInitiator,
-                   CBSTR aDescription, BOOL aCancelable,
-                   ULONG cOperations,
-                   CBSTR bstrFirstOperationDescription,
-@@ -162,7 +162,7 @@ public:
- #if !defined (VBOX_COM_INPROC)
-                   VirtualBox *aParent,
- #endif
--                  IUnknown *aInitiator,
-+                  void *aInitiator,
-                   CBSTR aDescription,
-                   BOOL aCancelable,
-                   ULONG cOperations,
-@@ -180,7 +180,7 @@ public:
- #if !defined (VBOX_COM_INPROC)
-                VirtualBox *aParent,
- #endif
--               IUnknown *aInitiator,
-+               void *aInitiator,
-                CBSTR aDescription, OUT_GUID aId = NULL);
-     HRESULT init(AutoInitSpan &aAutoInitSpan);
-     void init(AutoUninitSpan &aAutoUninitSpan);
-diff --git src/app/virtualbox/src/VBox/Main/include/ProgressProxyImpl.h src/app/virtualbox/src/VBox/Main/include/ProgressProxyImpl.h
+diff --git a/src/app/virtualbox/src/VBox/Main/include/ProgressProxyImpl.h b/src/app/virtualbox/src/VBox/Main/include/ProgressProxyImpl.h
 index 66f2b31..0ac7ab8 100644
---- src/app/virtualbox/src/VBox/Main/include/ProgressProxyImpl.h
-+++ src/app/virtualbox/src/VBox/Main/include/ProgressProxyImpl.h
+--- a/src/app/virtualbox/src/VBox/Main/include/ProgressProxyImpl.h
++++ b/src/app/virtualbox/src/VBox/Main/include/ProgressProxyImpl.h
 @@ -52,7 +52,7 @@ public:
  #if !defined (VBOX_COM_INPROC)
                   VirtualBox *pParent,
@@ -194,22 +147,32 @@ index 66f2b31..0ac7ab8 100644
                   CBSTR bstrDescription,
                   BOOL fCancelable,
                   ULONG uTotalOperationsWeight,
-diff --git src/app/virtualbox/src/VBox/Main/include/SessionImpl.h src/app/virtualbox/src/VBox/Main/include/SessionImpl.h
-index b0f600e..4ee298c 100644
---- src/app/virtualbox/src/VBox/Main/include/SessionImpl.h
-+++ src/app/virtualbox/src/VBox/Main/include/SessionImpl.h
-@@ -135,5 +135,7 @@ private:
-     ClientTokenHolder *mClientTokenHolder;
- };
+diff --git a/src/app/virtualbox/src/VBox/Main/include/SessionImpl.h b/src/app/virtualbox/src/VBox/Main/include/SessionImpl.h
+index b0f600e..bcd6b4c 100644
+--- a/src/app/virtualbox/src/VBox/Main/include/SessionImpl.h
++++ b/src/app/virtualbox/src/VBox/Main/include/SessionImpl.h
+@@ -24,6 +24,8 @@
+ # include "win/resource.h"
+ #endif
  
-+class IInternalSessionControl : public Session { };
++class GenodeConsole;
 +
- #endif // !____H_SESSIONIMPL
- /* vi: set tabstop=4 shiftwidth=4 expandtab: */
-diff --git src/app/virtualbox/src/VBox/Main/src-all/EventImpl.cpp src/app/virtualbox/src/VBox/Main/src-all/EventImpl.cpp
+ #ifdef RT_OS_WINDOWS
+ [threading(free)]
+ #endif
+@@ -122,7 +124,7 @@ private:
+     ComPtr<IInternalMachineControl> mControl;
+ 
+ #ifndef VBOX_COM_INPROC_API_CLIENT
+-    ComObjPtr<Console> mConsole;
++    ComObjPtr<GenodeConsole> mConsole;
+ #endif
+ 
+     ComPtr<IMachine> mRemoteMachine;
+diff --git a/src/app/virtualbox/src/VBox/Main/src-all/EventImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-all/EventImpl.cpp
 index 182f267..90b8716 100644
---- src/app/virtualbox/src/VBox/Main/src-all/EventImpl.cpp
-+++ src/app/virtualbox/src/VBox/Main/src-all/EventImpl.cpp
+--- a/src/app/virtualbox/src/VBox/Main/src-all/EventImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-all/EventImpl.cpp
 @@ -1263,7 +1263,8 @@ STDMETHODIMP EventSource::EventProcessed(IEventListener *aListener,
   */
  class ATL_NO_VTABLE PassiveEventListener :
@@ -258,10 +221,10 @@ index 182f267..90b8716 100644
  
  
  STDMETHODIMP EventSource::CreateListener(IEventListener **aListener)
-diff --git src/app/virtualbox/src/VBox/Main/src-all/PCIDeviceAttachmentImpl.cpp src/app/virtualbox/src/VBox/Main/src-all/PCIDeviceAttachmentImpl.cpp
+diff --git a/src/app/virtualbox/src/VBox/Main/src-all/PCIDeviceAttachmentImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-all/PCIDeviceAttachmentImpl.cpp
 index e984238..b02cb45 100644
---- src/app/virtualbox/src/VBox/Main/src-all/PCIDeviceAttachmentImpl.cpp
-+++ src/app/virtualbox/src/VBox/Main/src-all/PCIDeviceAttachmentImpl.cpp
+--- a/src/app/virtualbox/src/VBox/Main/src-all/PCIDeviceAttachmentImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-all/PCIDeviceAttachmentImpl.cpp
 @@ -131,6 +131,6 @@ STDMETHODIMP PCIDeviceAttachment::COMGETTER(GuestAddress)(LONG * aGuestAddress)
  }
  
@@ -271,10 +234,10 @@ index e984238..b02cb45 100644
 +//NS_DECL_CLASSINFO(PCIDeviceAttachment)
 +//NS_IMPL_THREADSAFE_ISUPPORTS1_CI(PCIDeviceAttachment, IPCIDeviceAttachment)
  #endif
-diff --git src/app/virtualbox/src/VBox/Main/src-all/ProgressImpl.cpp src/app/virtualbox/src/VBox/Main/src-all/ProgressImpl.cpp
-index fa3ecea..f372edc 100644
---- src/app/virtualbox/src/VBox/Main/src-all/ProgressImpl.cpp
-+++ src/app/virtualbox/src/VBox/Main/src-all/ProgressImpl.cpp
+diff --git a/src/app/virtualbox/src/VBox/Main/src-all/ProgressImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-all/ProgressImpl.cpp
+index fa3ecea..ac1a203 100644
+--- a/src/app/virtualbox/src/VBox/Main/src-all/ProgressImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-all/ProgressImpl.cpp
 @@ -20,9 +20,9 @@
  
  
@@ -297,15 +260,6 @@ index fa3ecea..f372edc 100644
      }
  #else
      mInitiator.queryInterfaceTo(aInitiator);
-@@ -514,7 +514,7 @@ HRESULT Progress::init(
- #if !defined(VBOX_COM_INPROC)
-                        VirtualBox *aParent,
- #endif
--                       IUnknown *aInitiator,
-+                       void *aInitiator,
-                        CBSTR aDescription,
-                        BOOL aCancelable,
-                        ULONG cOperations,
 @@ -573,8 +573,10 @@ HRESULT Progress::init(
  #endif
  
@@ -334,10 +288,10 @@ index fa3ecea..f372edc 100644
  #endif /* !defined(VBOX_WITH_XPCOM) */
  
          AssertMsg(rc == S_OK, ("Couldn't get error info (rc=%08X) while trying to set a failed result (%08X)!\n",
-diff --git src/app/virtualbox/src/VBox/Main/src-all/VirtualBoxBase.cpp src/app/virtualbox/src/VBox/Main/src-all/VirtualBoxBase.cpp
+diff --git a/src/app/virtualbox/src/VBox/Main/src-all/VirtualBoxBase.cpp b/src/app/virtualbox/src/VBox/Main/src-all/VirtualBoxBase.cpp
 index b43f5a6..6aef9df 100644
---- src/app/virtualbox/src/VBox/Main/src-all/VirtualBoxBase.cpp
-+++ src/app/virtualbox/src/VBox/Main/src-all/VirtualBoxBase.cpp
+--- a/src/app/virtualbox/src/VBox/Main/src-all/VirtualBoxBase.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-all/VirtualBoxBase.cpp
 @@ -23,6 +23,7 @@
  
  #include <typeinfo>
@@ -370,15 +324,14 @@ index b43f5a6..6aef9df 100644
  
  ////////////////////////////////////////////////////////////////////////////////
  //
-diff --git src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl.cpp src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl.cpp
-index 69e3109..289e7f3 100644
---- src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl.cpp
-+++ src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl.cpp
-@@ -51,10 +51,14 @@
+diff --git a/src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl.cpp
+index 69e3109..9ed6cdd 100644
+--- a/src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl.cpp
+@@ -51,23 +51,32 @@
  #include "KeyboardImpl.h"
  #include "MouseImpl.h"
  #include "DisplayImpl.h"
-+#include "MachineImpl.h"
 +#if 0
  #include "MachineDebuggerImpl.h"
  #include "USBDeviceImpl.h"
@@ -389,15 +342,26 @@ index 69e3109..289e7f3 100644
  #include "AudioSnifferInterface.h"
  #include "Nvram.h"
  #ifdef VBOX_WITH_USB_CARDREADER
-@@ -68,6 +72,7 @@
+ # include "UsbCardReader.h"
+ #endif
++#endif
+ #include "ProgressImpl.h"
++#if 0
+ #include "ConsoleVRDPServer.h"
++#endif
+ #include "VMMDev.h"
++#if 0
+ #ifdef VBOX_WITH_EXTPACK
+ # include "ExtPackManagerImpl.h"
  #endif
  #include "BusAssignmentManager.h"
  #include "EmulatedUSBImpl.h"
 +#endif
++#include "VirtualBoxImpl.h"
  
  #include "VBoxEvents.h"
  #include "AutoCaller.h"
-@@ -75,7 +80,9 @@
+@@ -75,7 +84,9 @@
  
  #include <VBox/com/array.h>
  #include "VBox/com/ErrorInfo.h"
@@ -407,7 +371,7 @@ index 69e3109..289e7f3 100644
  
  #include <iprt/asm.h>
  #include <iprt/buildconfig.h>
-@@ -90,6 +97,7 @@
+@@ -90,6 +101,7 @@
  #include <iprt/base64.h>
  #include <iprt/memsafer.h>
  
@@ -415,7 +379,17 @@ index 69e3109..289e7f3 100644
  #include <VBox/vmm/vmapi.h>
  #include <VBox/vmm/vmm.h>
  #include <VBox/vmm/pdmapi.h>
-@@ -117,6 +125,8 @@
+@@ -109,14 +121,17 @@
+ #include <VBox/vusb.h>
+ 
+ #include <VBox/VMMDev.h>
+-
++#endif
+ #include <VBox/HostServices/VBoxClipboardSvc.h>
++#if 0
+ #include <VBox/HostServices/DragAndDropSvc.h>
+ #ifdef VBOX_WITH_GUEST_PROPS
+ # include <VBox/HostServices/GuestPropertySvc.h>
  # include <VBox/com/array.h>
  #endif
  
@@ -424,7 +398,7 @@ index 69e3109..289e7f3 100644
  #include <set>
  #include <algorithm>
  #include <memory> // for auto_ptr
-@@ -278,6 +288,8 @@ struct VMSaveTask : public VMTask
+@@ -278,6 +293,8 @@ struct VMSaveTask : public VMTask
      Reason_T mReason;
  };
  
@@ -433,7 +407,7 @@ index 69e3109..289e7f3 100644
  // Handler for global events
  ////////////////////////////////////////////////////////////////////////////////
  inline static const char *networkAdapterTypeToName(NetworkAdapterType_T adapterType);
-@@ -383,6 +395,7 @@ typedef ListenerImpl<VmEventListener, Console*> VmEventListenerImpl;
+@@ -383,6 +400,7 @@ typedef ListenerImpl<VmEventListener, Console*> VmEventListenerImpl;
  
  VBOX_LISTENER_DECLARE(VmEventListenerImpl)
  
@@ -441,7 +415,7 @@ index 69e3109..289e7f3 100644
  
  // constructor / destructor
  /////////////////////////////////////////////////////////////////////////////
-@@ -530,6 +543,7 @@ HRESULT Console::init(IMachine *aMachine, IInternalMachineControl *aControl, Loc
+@@ -530,6 +548,7 @@ HRESULT Console::init(IMachine *aMachine, IInternalMachineControl *aControl, Loc
          rc = mDisplay->init(this);
          AssertComRCReturnRC(rc);
  
@@ -449,7 +423,7 @@ index 69e3109..289e7f3 100644
          unconst(mVRDEServerInfo).createObject();
          rc = mVRDEServerInfo->init(this);
          AssertComRCReturnRC(rc);
-@@ -538,6 +552,7 @@ HRESULT Console::init(IMachine *aMachine, IInternalMachineControl *aControl, Loc
+@@ -538,6 +557,7 @@ HRESULT Console::init(IMachine *aMachine, IInternalMachineControl *aControl, Loc
          rc = mEmulatedUSB->init(this);
          AssertComRCReturnRC(rc);
  
@@ -457,7 +431,7 @@ index 69e3109..289e7f3 100644
          /* Grab global and machine shared folder lists */
  
          rc = fetchSharedFolders(true /* aGlobal */);
-@@ -545,10 +560,12 @@ HRESULT Console::init(IMachine *aMachine, IInternalMachineControl *aControl, Loc
+@@ -545,10 +565,12 @@ HRESULT Console::init(IMachine *aMachine, IInternalMachineControl *aControl, Loc
          rc = fetchSharedFolders(false /* aGlobal */);
          AssertComRCReturnRC(rc);
  
@@ -470,7 +444,7 @@ index 69e3109..289e7f3 100644
  
          /* Figure out size of meAttachmentType vector */
          ComPtr<IVirtualBox> pVirtualBox;
-@@ -574,9 +591,11 @@ HRESULT Console::init(IMachine *aMachine, IInternalMachineControl *aControl, Loc
+@@ -574,9 +596,11 @@ HRESULT Console::init(IMachine *aMachine, IInternalMachineControl *aControl, Loc
          //     unconst(m_pVMMDev) = new VMMDev(this);
          //     AssertReturn(mVMMDev, E_FAIL);
  
@@ -482,7 +456,7 @@ index 69e3109..289e7f3 100644
          FirmwareType_T enmFirmwareType;
          mMachine->COMGETTER(FirmwareType)(&enmFirmwareType);
          if (   enmFirmwareType == FirmwareType_EFI
-@@ -584,8 +603,10 @@ HRESULT Console::init(IMachine *aMachine, IInternalMachineControl *aControl, Loc
+@@ -584,8 +608,10 @@ HRESULT Console::init(IMachine *aMachine, IInternalMachineControl *aControl, Loc
              || enmFirmwareType == FirmwareType_EFI64
              || enmFirmwareType == FirmwareType_EFIDUAL)
          {
@@ -493,7 +467,7 @@ index 69e3109..289e7f3 100644
          }
  
  #ifdef VBOX_WITH_USB_CARDREADER
-@@ -593,6 +614,7 @@ HRESULT Console::init(IMachine *aMachine, IInternalMachineControl *aControl, Loc
+@@ -593,6 +619,7 @@ HRESULT Console::init(IMachine *aMachine, IInternalMachineControl *aControl, Loc
          AssertReturn(mUsbCardReader, E_FAIL);
  #endif
  
@@ -501,7 +475,7 @@ index 69e3109..289e7f3 100644
          /* VirtualBox events registration. */
          {
              ComPtr<IEventSource> pES;
-@@ -609,6 +631,7 @@ HRESULT Console::init(IMachine *aMachine, IInternalMachineControl *aControl, Loc
+@@ -609,6 +636,7 @@ HRESULT Console::init(IMachine *aMachine, IInternalMachineControl *aControl, Loc
              rc = pES->RegisterListener(aVmListener, ComSafeArrayAsInParam(eventTypes), true);
              AssertComRC(rc);
          }
@@ -509,7 +483,7 @@ index 69e3109..289e7f3 100644
      }
  
      /* Confirm a successful initialization when it's the case */
-@@ -625,6 +648,7 @@ HRESULT Console::init(IMachine *aMachine, IInternalMachineControl *aControl, Loc
+@@ -625,6 +653,7 @@ HRESULT Console::init(IMachine *aMachine, IInternalMachineControl *aControl, Loc
      return S_OK;
  }
  
@@ -517,7 +491,7 @@ index 69e3109..289e7f3 100644
  /**
   * Uninitializes the Console object.
   */
-@@ -1035,6 +1059,8 @@ void Console::guestPropertiesVRDPUpdateDisconnect(uint32_t u32ClientId)
+@@ -1035,6 +1064,8 @@ void Console::guestPropertiesVRDPUpdateDisconnect(uint32_t u32ClientId)
  
  #endif /* VBOX_WITH_GUEST_PROPS */
  
@@ -526,7 +500,7 @@ index 69e3109..289e7f3 100644
  bool Console::isResetTurnedIntoPowerOff(void)
  {
      Bstr value;
-@@ -1046,6 +1072,8 @@ bool Console::isResetTurnedIntoPowerOff(void)
+@@ -1046,6 +1077,8 @@ bool Console::isResetTurnedIntoPowerOff(void)
      return false;
  }
  
@@ -535,7 +509,7 @@ index 69e3109..289e7f3 100644
  #ifdef VBOX_WITH_EXTPACK
  /**
   * Used by VRDEServer and others to talke to the extension pack manager.
-@@ -1505,6 +1533,7 @@ void Console::VRDPInterceptClipboard(uint32_t u32ClientId)
+@@ -1505,6 +1538,7 @@ void Console::VRDPInterceptClipboard(uint32_t u32ClientId)
      return;
  }
  
@@ -543,7 +517,7 @@ index 69e3109..289e7f3 100644
  
  //static
  const char *Console::sSSMConsoleUnit = "ConsoleData";
-@@ -1970,6 +1999,8 @@ STDMETHODIMP Console::COMGETTER(Display)(IDisplay **aDisplay)
+@@ -1970,6 +2004,8 @@ STDMETHODIMP Console::COMGETTER(Display)(IDisplay **aDisplay)
      return S_OK;
  }
  
@@ -552,7 +526,7 @@ index 69e3109..289e7f3 100644
  STDMETHODIMP Console::COMGETTER(Debugger)(IMachineDebugger **aDebugger)
  {
      CheckComArgOutPointerValid(aDebugger);
-@@ -2069,6 +2100,7 @@ Console::COMGETTER(SharedFolders)(ComSafeArrayOut(ISharedFolder *, aSharedFolder
+@@ -2069,6 +2105,7 @@ Console::COMGETTER(SharedFolders)(ComSafeArrayOut(ISharedFolder *, aSharedFolder
      return S_OK;
  }
  
@@ -560,7 +534,7 @@ index 69e3109..289e7f3 100644
  
  STDMETHODIMP Console::COMGETTER(EventSource)(IEventSource ** aEventSource)
  {
-@@ -2085,6 +2117,8 @@ STDMETHODIMP Console::COMGETTER(EventSource)(IEventSource ** aEventSource)
+@@ -2085,6 +2122,8 @@ STDMETHODIMP Console::COMGETTER(EventSource)(IEventSource ** aEventSource)
      return hrc;
  }
  
@@ -569,7 +543,7 @@ index 69e3109..289e7f3 100644
  STDMETHODIMP Console::COMGETTER(AttachedPCIDevices)(ComSafeArrayOut(IPCIDeviceAttachment *, aAttachments))
  {
      CheckComArgOutSafeArrayPointerValid(aAttachments);
-@@ -2134,6 +2168,7 @@ STDMETHODIMP Console::COMSETTER(UseHostClipboard)(BOOL aUseHostClipboard)
+@@ -2134,6 +2173,7 @@ STDMETHODIMP Console::COMSETTER(UseHostClipboard)(BOOL aUseHostClipboard)
  // IConsole methods
  /////////////////////////////////////////////////////////////////////////////
  
@@ -577,7 +551,7 @@ index 69e3109..289e7f3 100644
  
  STDMETHODIMP Console::PowerUp(IProgress **aProgress)
  {
-@@ -2291,6 +2326,8 @@ STDMETHODIMP Console::PowerDown(IProgress **aProgress)
+@@ -2291,6 +2331,8 @@ STDMETHODIMP Console::PowerDown(IProgress **aProgress)
      return rc;
  }
  
@@ -586,7 +560,7 @@ index 69e3109..289e7f3 100644
  STDMETHODIMP Console::Reset()
  {
      LogFlowThisFuncEnter();
-@@ -3451,6 +3488,8 @@ STDMETHODIMP Console::RestoreSnapshot(ISnapshot *aSnapshot, IProgress **aProgres
+@@ -3451,6 +3493,8 @@ STDMETHODIMP Console::RestoreSnapshot(ISnapshot *aSnapshot, IProgress **aProgres
      return S_OK;
  }
  
@@ -595,7 +569,7 @@ index 69e3109..289e7f3 100644
  // Non-interface public methods
  /////////////////////////////////////////////////////////////////////////////
  
-@@ -3526,6 +3565,8 @@ HRESULT Console::convertBusPortDeviceToLun(StorageBus_T enmBus, LONG port, LONG
+@@ -3526,6 +3570,8 @@ HRESULT Console::convertBusPortDeviceToLun(StorageBus_T enmBus, LONG port, LONG
      }
  }
  
@@ -604,7 +578,7 @@ index 69e3109..289e7f3 100644
  // private methods
  /////////////////////////////////////////////////////////////////////////////
      
-@@ -4388,6 +4429,8 @@ HRESULT Console::onNATRedirectRuleChange(ULONG ulInstance, BOOL aNatRuleRemove,
+@@ -4388,6 +4434,8 @@ HRESULT Console::onNATRedirectRuleChange(ULONG ulInstance, BOOL aNatRuleRemove,
      return rc;
  }
  
@@ -613,7 +587,7 @@ index 69e3109..289e7f3 100644
  VMMDevMouseInterface *Console::getVMMDevMouseInterface()
  {
      return m_pVMMDev;
-@@ -4398,6 +4441,8 @@ DisplayMouseInterface *Console::getDisplayMouseInterface()
+@@ -4398,6 +4446,8 @@ DisplayMouseInterface *Console::getDisplayMouseInterface()
      return mDisplay;
  }
  
@@ -622,7 +596,7 @@ index 69e3109..289e7f3 100644
  /**
   * Parses one key value pair.
   *
-@@ -6490,6 +6535,8 @@ void Console::onMouseCapabilityChange(BOOL supportsAbsolute, BOOL supportsRelati
+@@ -6490,6 +6540,8 @@ void Console::onMouseCapabilityChange(BOOL supportsAbsolute, BOOL supportsRelati
      fireMouseCapabilityChangedEvent(mEventSource, supportsAbsolute, supportsRelative, supportsMT, needsHostCursor);
  }
  
@@ -631,7 +605,7 @@ index 69e3109..289e7f3 100644
  void Console::onStateChange(MachineState_T machineState)
  {
      AutoCaller autoCaller(this);
-@@ -6497,6 +6544,8 @@ void Console::onStateChange(MachineState_T machineState)
+@@ -6497,6 +6549,8 @@ void Console::onStateChange(MachineState_T machineState)
      fireStateChangedEvent(mEventSource, machineState);
  }
  
@@ -640,7 +614,7 @@ index 69e3109..289e7f3 100644
  void Console::onAdditionsStateChange()
  {
      AutoCaller autoCaller(this);
-@@ -6555,6 +6604,8 @@ void Console::onUSBDeviceStateChange(IUSBDevice *aDevice, bool aAttached,
+@@ -6555,6 +6609,8 @@ void Console::onUSBDeviceStateChange(IUSBDevice *aDevice, bool aAttached,
      fireUSBDeviceStateChangedEvent(mEventSource, aDevice, aAttached, aError);
  }
  
@@ -649,7 +623,7 @@ index 69e3109..289e7f3 100644
  void Console::onRuntimeError(BOOL aFatal, IN_BSTR aErrorID, IN_BSTR aMessage)
  {
      AutoCaller autoCaller(this);
-@@ -6563,6 +6614,8 @@ void Console::onRuntimeError(BOOL aFatal, IN_BSTR aErrorID, IN_BSTR aMessage)
+@@ -6563,6 +6619,8 @@ void Console::onRuntimeError(BOOL aFatal, IN_BSTR aErrorID, IN_BSTR aMessage)
      fireRuntimeErrorEvent(mEventSource, aFatal, aErrorID, aMessage);
  }
  
@@ -658,7 +632,7 @@ index 69e3109..289e7f3 100644
  HRESULT Console::onShowWindow(BOOL aCheck, BOOL *aCanShow, LONG64 *aWinId)
  {
      AssertReturn(aCanShow, E_POINTER);
-@@ -6626,6 +6679,8 @@ HRESULT Console::onShowWindow(BOOL aCheck, BOOL *aCanShow, LONG64 *aWinId)
+@@ -6626,6 +6684,8 @@ HRESULT Console::onShowWindow(BOOL aCheck, BOOL *aCanShow, LONG64 *aWinId)
      return S_OK;
  }
  
@@ -667,7 +641,7 @@ index 69e3109..289e7f3 100644
  // private methods
  ////////////////////////////////////////////////////////////////////////////////
  
-@@ -6819,6 +6874,8 @@ HRESULT Console::consoleInitReleaseLog(const ComPtr<IMachine> aMachine)
+@@ -6819,6 +6879,8 @@ HRESULT Console::consoleInitReleaseLog(const ComPtr<IMachine> aMachine)
          }
      }
  
@@ -676,7 +650,7 @@ index 69e3109..289e7f3 100644
      char szError[RTPATH_MAX + 128];
      int vrc = com::VBoxLogRelCreate("VM", logFile.c_str(),
                                      RTLOGFLAGS_PREFIX_TIME_PROG | RTLOGFLAGS_RESTRICT_GROUPS,
-@@ -6839,6 +6896,8 @@ HRESULT Console::consoleInitReleaseLog(const ComPtr<IMachine> aMachine)
+@@ -6839,6 +6901,8 @@ HRESULT Console::consoleInitReleaseLog(const ComPtr<IMachine> aMachine)
      if (SUCCEEDED(hrc) || cHistoryFiles)
          RTDirFlush(logDir.c_str());
  
@@ -685,16 +659,18 @@ index 69e3109..289e7f3 100644
      return hrc;
  }
  
-@@ -7113,6 +7172,8 @@ HRESULT Console::powerUp(IProgress **aProgress, bool aPaused)
+@@ -7113,6 +7177,10 @@ HRESULT Console::powerUp(IProgress **aProgress, bool aPaused)
          }
  #endif
  
-+        ComPtr<IVirtualBox> pVirtualBox;
-+        mMachine->COMGETTER(Parent)(pVirtualBox.asOutParam());
++        ComPtr<IVirtualBox> pIVirtualBox;
++        mMachine->COMGETTER(Parent)(pIVirtualBox.asOutParam());
++		VirtualBox *pVirtualBox =
++			dynamic_cast<VirtualBox*>(*pIVirtualBox.asOutParam());
  
          // If there is immutable drive the process that.
          VMPowerUpTask::ProgressList progresses(task->hardDiskProgresses);
-@@ -7123,7 +7184,8 @@ HRESULT Console::powerUp(IProgress **aProgress, bool aPaused)
+@@ -7123,7 +7191,8 @@ HRESULT Console::powerUp(IProgress **aProgress, bool aPaused)
                  ++cOperations;
                  ulTotalOperationsWeight += 1;
              }
@@ -704,7 +680,7 @@ index 69e3109..289e7f3 100644
                                          progressDesc.raw(),
                                          TRUE, // Cancelable
                                          cOperations,
-@@ -7136,13 +7198,15 @@ HRESULT Console::powerUp(IProgress **aProgress, bool aPaused)
+@@ -7136,13 +7205,15 @@ HRESULT Console::powerUp(IProgress **aProgress, bool aPaused)
          else if (    mMachineState == MachineState_Saved
              ||  (!fTeleporterEnabled && !fFaultToleranceSyncEnabled))
          {
@@ -722,7 +698,7 @@ index 69e3109..289e7f3 100644
                                          progressDesc.raw(),
                                          TRUE /* aCancelable */,
                                          3    /* cOperations */,
-@@ -7153,7 +7217,8 @@ HRESULT Console::powerUp(IProgress **aProgress, bool aPaused)
+@@ -7153,7 +7224,8 @@ HRESULT Console::powerUp(IProgress **aProgress, bool aPaused)
          }
          else if (fFaultToleranceSyncEnabled)
          {
@@ -732,7 +708,23 @@ index 69e3109..289e7f3 100644
                                          progressDesc.raw(),
                                          TRUE /* aCancelable */,
                                          3    /* cOperations */,
-@@ -7649,6 +7714,8 @@ HRESULT Console::setMachineState(MachineState_T aMachineState,
+@@ -7399,6 +7471,7 @@ HRESULT Console::powerDown(IProgress *aProgress /*= NULL*/)
+      * safe to release the object lock now if needed)
+      * ---------------------------------------------------------------------- */
+ 
++#if 0
+     /* Stop the VRDP server to prevent new clients connection while VM is being
+      * powered off. */
+     if (mConsoleVRDPServer)
+@@ -7413,6 +7486,7 @@ HRESULT Console::powerDown(IProgress *aProgress /*= NULL*/)
+ 
+         alock.acquire();
+     }
++#endif
+ 
+     /* advance percent count */
+     if (aProgress)
+@@ -7649,6 +7723,8 @@ HRESULT Console::setMachineState(MachineState_T aMachineState,
      return rc;
  }
  
@@ -741,7 +733,7 @@ index 69e3109..289e7f3 100644
  /**
   * Searches for a shared folder with the given logical name
   * in the collection of shared folders.
-@@ -7684,6 +7751,8 @@ HRESULT Console::findSharedFolder(const Utf8Str &strName,
+@@ -7684,6 +7760,8 @@ HRESULT Console::findSharedFolder(const Utf8Str &strName,
      return VBOX_E_FILE_ERROR;
  }
  
@@ -750,7 +742,7 @@ index 69e3109..289e7f3 100644
  /**
   * Fetches the list of global or machine shared folders from the server.
   *
-@@ -8353,6 +8422,8 @@ DECLCALLBACK(void) Console::vmstateChangeCallback(PUVM pUVM, VMSTATE enmState, V
+@@ -8353,6 +8431,8 @@ DECLCALLBACK(void) Console::vmstateChangeCallback(PUVM pUVM, VMSTATE enmState, V
      }
  }
  
@@ -759,7 +751,7 @@ index 69e3109..289e7f3 100644
  /**
   * Changes the clipboard mode.
   *
-@@ -8875,6 +8946,8 @@ HRESULT Console::detachFromTapInterface(INetworkAdapter *networkAdapter)
+@@ -8875,6 +8955,8 @@ HRESULT Console::detachFromTapInterface(INetworkAdapter *networkAdapter)
  }
  #endif /* (RT_OS_LINUX || RT_OS_FREEBSD) && !VBOX_WITH_NETFLT */
  
@@ -768,7 +760,19 @@ index 69e3109..289e7f3 100644
  /**
   * Called at power down to terminate host interface networking.
   *
-@@ -9077,6 +9150,8 @@ void Console::detachAllUSBDevices(bool aDone)
+@@ -9046,9 +9128,10 @@ HRESULT Console::captureUSBDevices(PUVM pUVM)
+          * us back from under its lock (e.g. onUSBDeviceAttach()) which would
+          * produce an inter-process dead-lock otherwise. */
+         alock.release();
+-
++#if 0
+         HRESULT hrc = mControl->AutoCaptureUSBDevices();
+         ComAssertComRCRetRC(hrc);
++#endif
+     }
+ 
+     return S_OK;
+@@ -9077,6 +9160,8 @@ void Console::detachAllUSBDevices(bool aDone)
      mControl->DetachAllUSBDevices(aDone);
  }
  
@@ -777,7 +781,7 @@ index 69e3109..289e7f3 100644
  /**
   * @note Locks this object for writing.
   */
-@@ -9249,6 +9324,8 @@ void Console::processRemoteUSBDevices(uint32_t u32ClientId, VRDEUSBDEVICEDESC *p
+@@ -9249,6 +9334,8 @@ void Console::processRemoteUSBDevices(uint32_t u32ClientId, VRDEUSBDEVICEDESC *p
      LogFlowThisFuncLeave();
  }
  
@@ -786,7 +790,7 @@ index 69e3109..289e7f3 100644
  /**
   * Progress cancelation callback for fault tolerance VM poweron
   */
-@@ -9346,6 +9423,7 @@ DECLCALLBACK(int) Console::powerUpThread(RTTHREAD Thread, void *pvUser)
+@@ -9346,6 +9433,7 @@ DECLCALLBACK(int) Console::powerUpThread(RTTHREAD Thread, void *pvUser)
          /* Create the VRDP server. In case of headless operation, this will
           * also create the framebuffer, required at VM creation.
           */
@@ -794,7 +798,7 @@ index 69e3109..289e7f3 100644
          ConsoleVRDPServer *server = pConsole->consoleVRDPServer();
          Assert(server);
  
-@@ -9392,6 +9470,7 @@ DECLCALLBACK(int) Console::powerUpThread(RTTHREAD Thread, void *pvUser)
+@@ -9392,6 +9480,7 @@ DECLCALLBACK(int) Console::powerUpThread(RTTHREAD Thread, void *pvUser)
                       vrc, errMsg.c_str()));
              throw setErrorStatic(E_FAIL, errMsg.c_str());
          }
@@ -802,7 +806,7 @@ index 69e3109..289e7f3 100644
  
          ComPtr<IMachine> pMachine = pConsole->machine();
          ULONG cCpus = 1;
-@@ -9416,8 +9495,10 @@ DECLCALLBACK(int) Console::powerUpThread(RTTHREAD Thread, void *pvUser)
+@@ -9416,8 +9505,10 @@ DECLCALLBACK(int) Console::powerUpThread(RTTHREAD Thread, void *pvUser)
  
          alock.acquire();
  
@@ -813,7 +817,7 @@ index 69e3109..289e7f3 100644
  
          if (RT_SUCCESS(vrc))
          {
-@@ -9441,9 +9522,11 @@ DECLCALLBACK(int) Console::powerUpThread(RTTHREAD Thread, void *pvUser)
+@@ -9441,9 +9532,11 @@ DECLCALLBACK(int) Console::powerUpThread(RTTHREAD Thread, void *pvUser)
                  /*
                   * Synchronize debugger settings
                   */
@@ -825,7 +829,7 @@ index 69e3109..289e7f3 100644
  
                  /*
                   * Shared Folders
-@@ -9719,6 +9802,7 @@ DECLCALLBACK(int) Console::powerUpThread(RTTHREAD Thread, void *pvUser)
+@@ -9719,6 +9812,7 @@ DECLCALLBACK(int) Console::powerUpThread(RTTHREAD Thread, void *pvUser)
      return VINF_SUCCESS;
  }
  
@@ -833,7 +837,7 @@ index 69e3109..289e7f3 100644
  
  /**
   * Reconfigures a medium attachment (part of taking or deleting an online snapshot).
-@@ -10209,6 +10293,8 @@ DECLCALLBACK(int) Console::saveStateThread(RTTHREAD Thread, void *pvUser)
+@@ -10209,6 +10303,8 @@ DECLCALLBACK(int) Console::saveStateThread(RTTHREAD Thread, void *pvUser)
      return VINF_SUCCESS;
  }
  
@@ -842,23 +846,16 @@ index 69e3109..289e7f3 100644
  /**
   * Thread for powering down the Console.
   *
-@@ -10252,6 +10338,7 @@ DECLCALLBACK(int) Console::powerDownThread(RTTHREAD Thread, void *pvUser)
-     return VINF_SUCCESS;
- }
- 
-+#if 0
- 
- /**
-  * @interface_method_impl{VMM2USERMETHODS,pfnSaveState}
-@@ -10367,6 +10454,7 @@ Console::i_pdmIfSecKey_KeyRelease(PPDMISECKEY pInterface, const char *pszId)
+@@ -10367,8 +10463,6 @@ Console::i_pdmIfSecKey_KeyRelease(PPDMISECKEY pInterface, const char *pszId)
  }
  
  
-+#endif /* #if 0 */
- 
- 
+-
+-
  /**
-@@ -10461,9 +10549,11 @@ DECLCALLBACK(int) Console::drvStatus_MediumEjected(PPDMIMEDIANOTIFY pInterface,
+  * The Main status driver instance data.
+  */
+@@ -10461,9 +10555,11 @@ DECLCALLBACK(int) Console::drvStatus_MediumEjected(PPDMIMEDIANOTIFY pInterface,
                      alock.release();
  
                      ComPtr<IMediumAttachment> pNewMediumAtt;
@@ -870,10 +867,10 @@ index 69e3109..289e7f3 100644
  
                      alock.acquire();
                      if (pNewMediumAtt != pMediumAtt)
-diff --git src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl2.cpp src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl2.cpp
+diff --git a/src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl2.cpp b/src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl2.cpp
 index caed4be..6d02496 100644
---- src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl2.cpp
-+++ src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl2.cpp
+--- a/src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl2.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl2.cpp
 @@ -27,6 +27,7 @@
  #include "VBox/com/ptr.h"
  
@@ -1041,10 +1038,10 @@ index caed4be..6d02496 100644
                  }
  
  #elif defined(VBOX_WITH_NETFLT)
-diff --git src/app/virtualbox/src/VBox/Main/src-client/DisplayImpl.cpp src/app/virtualbox/src/VBox/Main/src-client/DisplayImpl.cpp
+diff --git a/src/app/virtualbox/src/VBox/Main/src-client/DisplayImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-client/DisplayImpl.cpp
 index fed0ac3..bc3c334 100644
---- src/app/virtualbox/src/VBox/Main/src-client/DisplayImpl.cpp
-+++ src/app/virtualbox/src/VBox/Main/src-client/DisplayImpl.cpp
+--- a/src/app/virtualbox/src/VBox/Main/src-client/DisplayImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-client/DisplayImpl.cpp
 @@ -16,9 +16,12 @@
   */
  
@@ -1142,10 +1139,10 @@ index fed0ac3..bc3c334 100644
          }
          return VINF_SUCCESS;
      }
-diff --git src/app/virtualbox/src/VBox/Main/src-client/GuestImpl.cpp src/app/virtualbox/src/VBox/Main/src-client/GuestImpl.cpp
+diff --git a/src/app/virtualbox/src/VBox/Main/src-client/GuestImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-client/GuestImpl.cpp
 index b438f9d..2b9755e 100644
---- src/app/virtualbox/src/VBox/Main/src-client/GuestImpl.cpp
-+++ src/app/virtualbox/src/VBox/Main/src-client/GuestImpl.cpp
+--- a/src/app/virtualbox/src/VBox/Main/src-client/GuestImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-client/GuestImpl.cpp
 @@ -16,6 +16,7 @@
   */
  
@@ -1195,10 +1192,10 @@ index b438f9d..2b9755e 100644
      LogFlowFuncLeave();
  }
  
-diff --git src/app/virtualbox/src/VBox/Main/src-client/MouseImpl.cpp src/app/virtualbox/src/VBox/Main/src-client/MouseImpl.cpp
+diff --git a/src/app/virtualbox/src/VBox/Main/src-client/MouseImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-client/MouseImpl.cpp
 index 652f2df..877b775 100644
---- src/app/virtualbox/src/VBox/Main/src-client/MouseImpl.cpp
-+++ src/app/virtualbox/src/VBox/Main/src-client/MouseImpl.cpp
+--- a/src/app/virtualbox/src/VBox/Main/src-client/MouseImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-client/MouseImpl.cpp
 @@ -816,7 +816,11 @@ HRESULT Mouse::putEventMultiTouch(LONG aCount,
          }
      }
@@ -1212,10 +1209,10 @@ index 652f2df..877b775 100644
      {
          rc = reportMultiTouchEventToDevice(cContacts, cContacts? pau64Contacts: NULL, (uint32_t)aScanTime);
  
-diff --git src/app/virtualbox/src/VBox/Main/src-client/SessionImpl.cpp src/app/virtualbox/src/VBox/Main/src-client/SessionImpl.cpp
-index 6ea10d3..c8ce931 100644
---- src/app/virtualbox/src/VBox/Main/src-client/SessionImpl.cpp
-+++ src/app/virtualbox/src/VBox/Main/src-client/SessionImpl.cpp
+diff --git a/src/app/virtualbox/src/VBox/Main/src-client/SessionImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-client/SessionImpl.cpp
+index 6ea10d3..267be48 100644
+--- a/src/app/virtualbox/src/VBox/Main/src-client/SessionImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-client/SessionImpl.cpp
 @@ -17,8 +17,11 @@
  
  #include "SessionImpl.h"
@@ -1228,7 +1225,16 @@ index 6ea10d3..c8ce931 100644
  
  #include "AutoCaller.h"
  #include "Logging.h"
-@@ -329,7 +332,9 @@ STDMETHODIMP Session::AssignMachine(IMachine *aMachine, LockType_T aLockType,
+@@ -26,6 +29,8 @@
+ #include <VBox/err.h>
+ #include <iprt/process.h>
+ 
++#include "console.h"
++
+ /**
+  *  Local macro to check whether the session is open and return an error if not.
+  *  @note Don't forget to do |Auto[Reader]Lock alock (this);| before using this
+@@ -329,7 +334,9 @@ STDMETHODIMP Session::AssignMachine(IMachine *aMachine, LockType_T aLockType,
  
      /* query IInternalMachineControl interface */
      mControl = aMachine;
@@ -1238,7 +1244,7 @@ index 6ea10d3..c8ce931 100644
  
  #ifndef VBOX_COM_INPROC_API_CLIENT
      HRESULT rc = mConsole.createObject();
-@@ -349,6 +354,7 @@ STDMETHODIMP Session::AssignMachine(IMachine *aMachine, LockType_T aLockType,
+@@ -349,6 +356,7 @@ STDMETHODIMP Session::AssignMachine(IMachine *aMachine, LockType_T aLockType,
      AssertPtr(aToken);
  #endif /* VBOX_WITH_GENERIC_SESSION_WATCHER */
      /* create the machine client token */
@@ -1246,7 +1252,7 @@ index 6ea10d3..c8ce931 100644
      try
      {
  #ifndef VBOX_WITH_GENERIC_SESSION_WATCHER
-@@ -367,6 +373,7 @@ STDMETHODIMP Session::AssignMachine(IMachine *aMachine, LockType_T aLockType,
+@@ -367,6 +375,7 @@ STDMETHODIMP Session::AssignMachine(IMachine *aMachine, LockType_T aLockType,
      {
          rc = E_OUTOFMEMORY;
      }
@@ -1254,7 +1260,7 @@ index 6ea10d3..c8ce931 100644
  
      /*
       *  Reference the VirtualBox object to ensure the server is up
-@@ -1217,12 +1224,14 @@ HRESULT Session::unlockMachine(bool aFinalRelease, bool aFromServer, AutoWriteLo
+@@ -1217,12 +1226,14 @@ HRESULT Session::unlockMachine(bool aFinalRelease, bool aFromServer, AutoWriteLo
  
      if (mType == SessionType_WriteLock)
      {
@@ -1269,10 +1275,10 @@ index 6ea10d3..c8ce931 100644
          if (!aFinalRelease && !aFromServer)
          {
              /*
-diff --git src/app/virtualbox/src/VBox/Main/src-client/VBoxDriversRegister.cpp src/app/virtualbox/src/VBox/Main/src-client/VBoxDriversRegister.cpp
+diff --git a/src/app/virtualbox/src/VBox/Main/src-client/VBoxDriversRegister.cpp b/src/app/virtualbox/src/VBox/Main/src-client/VBoxDriversRegister.cpp
 index 7fa0f99..d85976d 100644
---- src/app/virtualbox/src/VBox/Main/src-client/VBoxDriversRegister.cpp
-+++ src/app/virtualbox/src/VBox/Main/src-client/VBoxDriversRegister.cpp
+--- a/src/app/virtualbox/src/VBox/Main/src-client/VBoxDriversRegister.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-client/VBoxDriversRegister.cpp
 @@ -25,7 +25,9 @@
  #include "VMMDev.h"
  #include "AudioSnifferInterface.h"
@@ -1308,10 +1314,10 @@ index 7fa0f99..d85976d 100644
  
  #ifdef VBOX_WITH_USB_CARDREADER
      rc = pCallbacks->pfnRegister(pCallbacks, &UsbCardReader::DrvReg);
-diff --git src/app/virtualbox/src/VBox/Main/src-client/VMMDevInterface.cpp src/app/virtualbox/src/VBox/Main/src-client/VMMDevInterface.cpp
+diff --git a/src/app/virtualbox/src/VBox/Main/src-client/VMMDevInterface.cpp b/src/app/virtualbox/src/VBox/Main/src-client/VMMDevInterface.cpp
 index b4f4da4..a341e45 100644
---- src/app/virtualbox/src/VBox/Main/src-client/VMMDevInterface.cpp
-+++ src/app/virtualbox/src/VBox/Main/src-client/VMMDevInterface.cpp
+--- a/src/app/virtualbox/src/VBox/Main/src-client/VMMDevInterface.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-client/VMMDevInterface.cpp
 @@ -553,7 +553,9 @@ DECLCALLBACK(int) vmmdevIsPageFusionEnabled(PPDMIVMMDEVCONNECTOR pInterface, boo
  {
      PDRVMAINVMMDEV pDrv = PDMIVMMDEVCONNECTOR_2_MAINVMMDEV(pInterface);
@@ -1322,10 +1328,27 @@ index b4f4da4..a341e45 100644
  
      if (!pfPageFusionEnabled)
          return VERR_INVALID_POINTER;
-diff --git src/app/virtualbox/src/VBox/Main/src-server/DHCPServerImpl.cpp src/app/virtualbox/src/VBox/Main/src-server/DHCPServerImpl.cpp
+diff --git a/src/app/virtualbox/src/VBox/Main/src-server/ClientToken.cpp b/src/app/virtualbox/src/VBox/Main/src-server/ClientToken.cpp
+index be0afb8..54d5ba4 100644
+--- a/src/app/virtualbox/src/VBox/Main/src-server/ClientToken.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-server/ClientToken.cpp
+@@ -179,11 +179,7 @@ Machine::ClientToken::ClientToken(const ComObjPtr<Machine> &pMachine,
+         {
+             mClientToken = pToken;
+             if (mClientToken)
+-            {
+-                rc = mClientToken->AddRef();
+-                if (FAILED(rc))
+-                    mClientToken = NULL;
+-            }
++               mClientToken->AddRef();
+         }
+     }
+     pToken.setNull();
+diff --git a/src/app/virtualbox/src/VBox/Main/src-server/DHCPServerImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-server/DHCPServerImpl.cpp
 index 1cd7ce7..366d693 100644
---- src/app/virtualbox/src/VBox/Main/src-server/DHCPServerImpl.cpp
-+++ src/app/virtualbox/src/VBox/Main/src-server/DHCPServerImpl.cpp
+--- a/src/app/virtualbox/src/VBox/Main/src-server/DHCPServerImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-server/DHCPServerImpl.cpp
 @@ -20,6 +20,7 @@
  #include <string>
  #include "NetworkServiceRunner.h"
@@ -1334,19 +1357,10 @@ index 1cd7ce7..366d693 100644
  #include "AutoCaller.h"
  #include "Logging.h"
  
-diff --git src/app/virtualbox/src/VBox/Main/src-server/MachineImpl.cpp src/app/virtualbox/src/VBox/Main/src-server/MachineImpl.cpp
-index 3889a01..a4df732 100644
---- src/app/virtualbox/src/VBox/Main/src-server/MachineImpl.cpp
-+++ src/app/virtualbox/src/VBox/Main/src-server/MachineImpl.cpp
-@@ -3522,7 +3522,7 @@ STDMETHODIMP Machine::LockMachine(ISession *aSession,
-                         tr("The given session is busy"));
- 
-     // get the client's IInternalSessionControl interface
--    ComPtr<IInternalSessionControl> pSessionControl = aSession;
-+    ComPtr<ISession> pSessionControl = aSession;
-     ComAssertMsgRet(!!pSessionControl, ("No IInternalSessionControl interface"),
-                     E_INVALIDARG);
- 
+diff --git a/src/app/virtualbox/src/VBox/Main/src-server/MachineImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-server/MachineImpl.cpp
+index 3889a01..5fcb53c 100644
+--- a/src/app/virtualbox/src/VBox/Main/src-server/MachineImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-server/MachineImpl.cpp
 @@ -3826,8 +3826,10 @@ STDMETHODIMP Machine::LockMachine(ISession *aSession,
              /* request an IUnknown pointer early from the remote party for later
               * identity checks (it will be internally cached within mDirectControl
@@ -1358,15 +1372,6 @@ index 3889a01..a4df732 100644
          }
  
          /* Release the lock since SessionMachine::uninit() locks VirtualBox which
-@@ -3933,7 +3935,7 @@ STDMETHODIMP Machine::LaunchVMProcess(ISession *aSession,
-         ComObjPtr<ProgressProxy> progress;
-         progress.createObject();
-         rc = progress->init(mParent,
--                            static_cast<IMachine*>(this),
-+                            nullptr,
-                             Bstr(tr("Starting VM")).raw(),
-                             TRUE /* aCancelable */,
-                             fTeleporterEnabled ? 20 : 10 /* uTotalOperationsWeight */,
 @@ -4920,7 +4922,7 @@ STDMETHODIMP Machine::SetHotPluggableForDevice(IN_BSTR aControllerName, LONG aCo
  STDMETHODIMP Machine::SetNoBandwidthGroupForDevice(IN_BSTR aControllerName, LONG aControllerPort,
                                                     LONG aDevice)
@@ -1394,15 +1399,6 @@ index 3889a01..a4df732 100644
      LogFlowThisFunc(("aControllerName=\"%ls\" aControllerPort=%d aDevice=%d aForce=%d\n",
                       aControllerName, aControllerPort, aDevice, aForce));
  
-@@ -5610,7 +5612,7 @@ STDMETHODIMP Machine::DeleteConfig(ComSafeArrayIn(IMedium*, aMedia), IProgress *
- 
-     pTask->pProgress.createObject();
-     pTask->pProgress->init(getVirtualBox(),
--                           static_cast<IMachine*>(this) /* aInitiator */,
-+                           nullptr /* aInitiator */,
-                            Bstr(tr("Deleting files")).raw(),
-                            true /* fCancellable */,
-                            pTask->llFilesToDelete.size() + pTask->llMediums.size() + 1,   // cOperations
 @@ -8025,7 +8027,9 @@ HRESULT Machine::launchVMProcess(IInternalSessionControl *aControl,
      size_t cchBufLeft = strlen(szPath);
      szPath[cchBufLeft++] = RTPATH_DELIMITER;
@@ -1518,10 +1514,10 @@ index 3889a01..a4df732 100644
  }
  
  /**
-diff --git src/app/virtualbox/src/VBox/Main/src-server/MachineImplCloneVM.cpp src/app/virtualbox/src/VBox/Main/src-server/MachineImplCloneVM.cpp
+diff --git a/src/app/virtualbox/src/VBox/Main/src-server/MachineImplCloneVM.cpp b/src/app/virtualbox/src/VBox/Main/src-server/MachineImplCloneVM.cpp
 index 3a7507d..ce9a2b3 100644
---- src/app/virtualbox/src/VBox/Main/src-server/MachineImplCloneVM.cpp
-+++ src/app/virtualbox/src/VBox/Main/src-server/MachineImplCloneVM.cpp
+--- a/src/app/virtualbox/src/VBox/Main/src-server/MachineImplCloneVM.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-server/MachineImplCloneVM.cpp
 @@ -889,7 +889,7 @@ HRESULT MachineCloneVM::start(IProgress **pProgress)
          rc = d->pProgress.createObject();
          if (FAILED(rc)) throw rc;
@@ -1531,19 +1527,21 @@ index 3a7507d..ce9a2b3 100644
                                  Bstr(p->tr("Cloning Machine")).raw(),
                                  true /* fCancellable */,
                                  uCount,
-diff --git src/app/virtualbox/src/VBox/Main/src-server/MediumImpl.cpp src/app/virtualbox/src/VBox/Main/src-server/MediumImpl.cpp
-index c61ea6f..893ac88 100644
---- src/app/virtualbox/src/VBox/Main/src-server/MediumImpl.cpp
-+++ src/app/virtualbox/src/VBox/Main/src-server/MediumImpl.cpp
-@@ -20,6 +20,7 @@
+diff --git a/src/app/virtualbox/src/VBox/Main/src-server/MediumImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-server/MediumImpl.cpp
+index c61ea6f..ed4bb7a 100644
+--- a/src/app/virtualbox/src/VBox/Main/src-server/MediumImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-server/MediumImpl.cpp
+@@ -20,7 +20,9 @@
  #include "ProgressImpl.h"
  #include "SystemPropertiesImpl.h"
  #include "VirtualBoxImpl.h"
 +#include "TokenImpl.h"
  
++#include "Global.h"
  #include "AutoCaller.h"
  #include "Logging.h"
-@@ -679,16 +680,21 @@ DECLCALLBACK(int) Medium::Task::fntMediumTask(RTTHREAD aThread, void *pvUser)
+ 
+@@ -679,16 +681,21 @@ DECLCALLBACK(int) Medium::Task::fntMediumTask(RTTHREAD aThread, void *pvUser)
  
      HRESULT rc = pTask->handler();
  
@@ -1566,7 +1564,7 @@ index c61ea6f..893ac88 100644
      LogFlowFunc(("rc=%Rhrc\n", rc));
      LogFlowFuncLeave();
  
-@@ -1231,7 +1237,7 @@ HRESULT Medium::init(VirtualBox *aVirtualBox,
+@@ -1231,7 +1238,7 @@ HRESULT Medium::init(VirtualBox *aVirtualBox,
          else
          {
              // Otherwise use the old VirtualBox "make absolute path" logic:
@@ -1575,7 +1573,7 @@ index c61ea6f..893ac88 100644
              if (FAILED(rc)) return rc;
          }
      }
-@@ -2578,7 +2584,7 @@ STDMETHODIMP Medium::CreateBaseStorage(LONG64 aLogicalSize,
+@@ -2578,7 +2585,7 @@ STDMETHODIMP Medium::CreateBaseStorage(LONG64 aLogicalSize,
  
          pProgress.createObject();
          rc = pProgress->init(m->pVirtualBox,
@@ -1584,7 +1582,7 @@ index c61ea6f..893ac88 100644
                               (mediumVariantFlags & MediumVariant_Fixed)
                                 ? BstrFmt(tr("Creating fixed medium storage unit '%s'"), m->strLocationFull.c_str()).raw()
                                 : BstrFmt(tr("Creating dynamic medium storage unit '%s'"), m->strLocationFull.c_str()).raw(),
-@@ -2758,7 +2764,7 @@ STDMETHODIMP Medium::CloneToBase(IMedium   *aTarget,
+@@ -2758,7 +2765,7 @@ STDMETHODIMP Medium::CloneToBase(IMedium   *aTarget,
                                    ComSafeArrayIn(MediumVariant_T, aVariant),
                                    IProgress **aProgress)
  {
@@ -1593,10 +1591,10 @@ index c61ea6f..893ac88 100644
       CheckComArgNotNull(aTarget);
       CheckComArgOutPointerValid(aProgress);
       CheckComArgSafeArrayNotNull(aVariant);
-diff --git src/app/virtualbox/src/VBox/Main/src-server/MediumLock.cpp src/app/virtualbox/src/VBox/Main/src-server/MediumLock.cpp
+diff --git a/src/app/virtualbox/src/VBox/Main/src-server/MediumLock.cpp b/src/app/virtualbox/src/VBox/Main/src-server/MediumLock.cpp
 index 567973d..2cda8b2 100644
---- src/app/virtualbox/src/VBox/Main/src-server/MediumLock.cpp
-+++ src/app/virtualbox/src/VBox/Main/src-server/MediumLock.cpp
+--- a/src/app/virtualbox/src/VBox/Main/src-server/MediumLock.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-server/MediumLock.cpp
 @@ -18,7 +18,7 @@
  #include "MediumLock.h"
  #include "MediumImpl.h"
@@ -1606,10 +1604,10 @@ index 567973d..2cda8b2 100644
  
  MediumLock::MediumLock()
      : mMedium(NULL), mMediumCaller(NULL), mLockWrite(false),
-diff --git src/app/virtualbox/src/VBox/Main/src-server/NetworkAdapterImpl.cpp src/app/virtualbox/src/VBox/Main/src-server/NetworkAdapterImpl.cpp
+diff --git a/src/app/virtualbox/src/VBox/Main/src-server/NetworkAdapterImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-server/NetworkAdapterImpl.cpp
 index e3908bb..c5cee5c 100644
---- src/app/virtualbox/src/VBox/Main/src-server/NetworkAdapterImpl.cpp
-+++ src/app/virtualbox/src/VBox/Main/src-server/NetworkAdapterImpl.cpp
+--- a/src/app/virtualbox/src/VBox/Main/src-server/NetworkAdapterImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-server/NetworkAdapterImpl.cpp
 @@ -1332,7 +1332,7 @@ HRESULT NetworkAdapter::saveSettings(settings::NetworkAdapter &data)
  bool NetworkAdapter::isModified() {
      AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
@@ -1619,10 +1617,10 @@ index e3908bb..c5cee5c 100644
      return fChanged;
  }
  
-diff --git src/app/virtualbox/src/VBox/Main/src-server/SnapshotImpl.cpp src/app/virtualbox/src/VBox/Main/src-server/SnapshotImpl.cpp
+diff --git a/src/app/virtualbox/src/VBox/Main/src-server/SnapshotImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-server/SnapshotImpl.cpp
 index ddce18b..55065d2 100644
---- src/app/virtualbox/src/VBox/Main/src-server/SnapshotImpl.cpp
-+++ src/app/virtualbox/src/VBox/Main/src-server/SnapshotImpl.cpp
+--- a/src/app/virtualbox/src/VBox/Main/src-server/SnapshotImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-server/SnapshotImpl.cpp
 @@ -24,6 +24,7 @@
  #include "MediumFormatImpl.h"
  #include "Global.h"
@@ -1640,10 +1638,10 @@ index ddce18b..55065d2 100644
                      childSnapshotId = pChildSnapshot->getId();
                  }
                  pAtt = findAttachment(pMachine->mMediaData->mAttachments, it->mpSource);
-diff --git src/app/virtualbox/src/VBox/Main/src-server/VRDEServerImpl.cpp src/app/virtualbox/src/VBox/Main/src-server/VRDEServerImpl.cpp
+diff --git a/src/app/virtualbox/src/VBox/Main/src-server/VRDEServerImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-server/VRDEServerImpl.cpp
 index a717aff..3d52b9f 100644
---- src/app/virtualbox/src/VBox/Main/src-server/VRDEServerImpl.cpp
-+++ src/app/virtualbox/src/VBox/Main/src-server/VRDEServerImpl.cpp
+--- a/src/app/virtualbox/src/VBox/Main/src-server/VRDEServerImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-server/VRDEServerImpl.cpp
 @@ -31,7 +31,7 @@
  #include <VBox/sup.h>
  #include <VBox/com/array.h>
@@ -1687,10 +1685,10 @@ index a717aff..3d52b9f 100644
  
              if (papszNames)
              {
-diff --git src/app/virtualbox/src/VBox/Main/src-server/VirtualBoxImpl.cpp src/app/virtualbox/src/VBox/Main/src-server/VirtualBoxImpl.cpp
+diff --git a/src/app/virtualbox/src/VBox/Main/src-server/VirtualBoxImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-server/VirtualBoxImpl.cpp
 index 9ce039a..2e6ac11 100644
---- src/app/virtualbox/src/VBox/Main/src-server/VirtualBoxImpl.cpp
-+++ src/app/virtualbox/src/VBox/Main/src-server/VirtualBoxImpl.cpp
+--- a/src/app/virtualbox/src/VBox/Main/src-server/VirtualBoxImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-server/VirtualBoxImpl.cpp
 @@ -42,7 +42,9 @@
  #include <VBox/settings.h>
  #include <VBox/version.h>
@@ -1730,10 +1728,10 @@ index 9ce039a..2e6ac11 100644
  
      return rc;
  }
-diff --git src/app/virtualbox/src/VBox/Main/xml/Settings.cpp src/app/virtualbox/src/VBox/Main/xml/Settings.cpp
+diff --git a/src/app/virtualbox/src/VBox/Main/xml/Settings.cpp b/src/app/virtualbox/src/VBox/Main/xml/Settings.cpp
 index 3520c9c..e3288af 100644
---- src/app/virtualbox/src/VBox/Main/xml/Settings.cpp
-+++ src/app/virtualbox/src/VBox/Main/xml/Settings.cpp
+--- a/src/app/virtualbox/src/VBox/Main/xml/Settings.cpp
++++ b/src/app/virtualbox/src/VBox/Main/xml/Settings.cpp
 @@ -4922,6 +4922,8 @@ void MachineConfigFile::buildStorageControllersXML(xml::ElementNode &elmParent,
                  case DeviceType_Floppy:
                      pcszType = "Floppy";

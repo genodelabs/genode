@@ -1,9 +1,10 @@
-This patch avoids an assertion in the VboxBFE frontend when the PS/2 model does
-not manage to read out the mouse events quick enough. The PS/2 model is still
-alive but reads out the buffer with some delay.
+mouse.patch
 
-+++ src/app/virtualbox/src/VBox/Devices/Input/DrvMouseQueue.cpp
-@@ -101,6 +101,7 @@
+diff --git a/src/app/virtualbox/src/VBox/Devices/Input/DrvMouseQueue.cpp b/src/app/virtualbox/src/VBox/Devices/Input/DrvMouseQueue.cpp
+index 9d0a8d2..7eb6a09 100644
+--- a/src/app/virtualbox/src/VBox/Devices/Input/DrvMouseQueue.cpp
++++ b/src/app/virtualbox/src/VBox/Devices/Input/DrvMouseQueue.cpp
+@@ -119,6 +119,7 @@ static DECLCALLBACK(void *)  drvMouseQueueQueryInterface(PPDMIBASE pInterface, c
  /**
   * @interface_method_impl{PDMIMOUSEPORT,pfnPutEvent}
   */
@@ -11,7 +12,7 @@ alive but reads out the buffer with some delay.
  static DECLCALLBACK(int) drvMouseQueuePutEvent(PPDMIMOUSEPORT pInterface,
                                                 int32_t dx, int32_t dy,
                                                 int32_t dz, int32_t dw,
-@@ -121,7 +122,8 @@
+@@ -141,7 +142,8 @@ static DECLCALLBACK(int) drvMouseQueuePutEvent(PPDMIMOUSEPORT pInterface,
          PDMQueueInsert(pDrv->pQueue, &pItem->Core);
          return VINF_SUCCESS;
      }
@@ -21,7 +22,7 @@ alive but reads out the buffer with some delay.
  }
  
  /**
-@@ -147,7 +149,8 @@
+@@ -169,7 +171,8 @@ static DECLCALLBACK(int) drvMouseQueuePutEventAbs(PPDMIMOUSEPORT pInterface,
          PDMQueueInsert(pDrv->pQueue, &pItem->Core);
          return VINF_SUCCESS;
      }

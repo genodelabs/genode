@@ -1,5 +1,10 @@
-+++ src/app/virtualbox/src/VBox/Devices/Network/DevE1000.cpp
-@@ -5721,22 +5721,29 @@
+dev_e1000.patch
+
+diff --git a/src/app/virtualbox/src/VBox/Devices/Network/DevE1000.cpp b/src/app/virtualbox/src/VBox/Devices/Network/DevE1000.cpp
+index b8f9ebf..aa3eb87 100644
+--- a/src/app/virtualbox/src/VBox/Devices/Network/DevE1000.cpp
++++ b/src/app/virtualbox/src/VBox/Devices/Network/DevE1000.cpp
+@@ -5721,22 +5721,29 @@ static int e1kRegReadUnaligned(PE1KSTATE pThis, uint32_t offReg, void *pv, uint3
              rc = g_aE1kRegMap[index].pfnRead(pThis, offReg & 0xFFFFFFFC, index, &u32);
              u32 &= mask;
              //e1kCsLeave(pThis);

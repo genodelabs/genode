@@ -1,5 +1,10 @@
-+++ src/app/virtualbox/src/VBox/VMM/VMMR3/TRPM.cpp
-@@ -1561,6 +1561,17 @@
+rem_irq.patch
+
+diff --git a/src/app/virtualbox/src/VBox/VMM/VMMR3/TRPM.cpp b/src/app/virtualbox/src/VBox/VMM/VMMR3/TRPM.cpp
+index 8c12949..a7fd67e 100644
+--- a/src/app/virtualbox/src/VBox/VMM/VMMR3/TRPM.cpp
++++ b/src/app/virtualbox/src/VBox/VMM/VMMR3/TRPM.cpp
+@@ -1561,6 +1561,17 @@ VMMR3DECL(int) TRPMR3InjectEvent(PVM pVM, PVMCPU pVCpu, TRPMEVENT enmEvent)
              return HMR3IsActive(pVCpu) ? VINF_EM_RESCHEDULE_HM : VINF_EM_RESCHEDULE_REM; /* (Heed the halted state if this is changed!) */
          }
  #else /* !TRPM_FORWARD_TRAPS_IN_GC */
@@ -17,7 +22,7 @@
          uint8_t u8Interrupt;
          int rc = PDMGetInterrupt(pVCpu, &u8Interrupt);
          Log(("TRPMR3InjectEvent: u8Interrupt=%d (%#x) rc=%Rrc\n", u8Interrupt, u8Interrupt, rc));
-@@ -1571,6 +1582,7 @@
+@@ -1571,6 +1582,7 @@ VMMR3DECL(int) TRPMR3InjectEvent(PVM pVM, PVMCPU pVCpu, TRPMEVENT enmEvent)
              STAM_COUNTER_INC(&pVM->trpm.s.paStatForwardedIRQR3[u8Interrupt]);
              return HMR3IsActive(pVCpu) ? VINF_EM_RESCHEDULE_HM : VINF_EM_RESCHEDULE_REM;
          }

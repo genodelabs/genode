@@ -18,7 +18,11 @@
 
 /* VirtualBox includes */
 
-class Genodefb : public Framebuffer
+#include "Global.h"
+#include "VirtualBoxBase.h"
+
+class Genodefb :
+	VBOX_SCRIPTABLE_IMPL(IFramebuffer)
 {
 	private:
 
@@ -158,7 +162,7 @@ class Genodefb : public Framebuffer
 			return S_OK;
 		}
 
-		STDMETHODIMP COMGETTER(WinId) (ULONG64 *winId)
+		STDMETHODIMP COMGETTER(WinId) (PRInt64 *winId)
 		{
 			Assert(!"FixMe");
 			return S_OK;
@@ -192,5 +196,10 @@ class Genodefb : public Framebuffer
 		STDMETHODIMP ProcessVHWACommand(BYTE *pCommand)
 		{
 		    return E_NOTIMPL;
+		}
+
+		STDMETHODIMP Notify3DEvent(PRUint32, PRUint8*)
+		{
+			return E_NOTIMPL;
 		}
 };

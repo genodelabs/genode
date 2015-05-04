@@ -1,9 +1,6 @@
 #ifndef ___VBox_com_com_h
 #define ___VBox_com_com_h
 
-#define COMGETTER(n)    get_##n
-#define COMSETTER(n)    set_##n
-
 #include <VBox/com/defs.h>
 
 namespace com {

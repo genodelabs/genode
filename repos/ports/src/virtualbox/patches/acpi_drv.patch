@@ -1,4 +1,9 @@
-+++ src/app/virtualbox/src/VBox/Devices/PC/DrvACPI.cpp
+acpi_drv.patch
+
+diff --git a/src/app/virtualbox/src/VBox/Devices/PC/DrvACPI.cpp b/src/app/virtualbox/src/VBox/Devices/PC/DrvACPI.cpp
+index d22fc11..f194326 100644
+--- a/src/app/virtualbox/src/VBox/Devices/PC/DrvACPI.cpp
++++ b/src/app/virtualbox/src/VBox/Devices/PC/DrvACPI.cpp
 @@ -44,6 +44,7 @@
  # include <IOKit/ps/IOPSKeys.h>
  #endif

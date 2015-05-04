@@ -3,18 +3,17 @@
 
 #include <base/printf.h>
 
-#include <iprt/asm.h>
+#include <iprt/cdefs.h>
 #include <iprt/thread.h>
 
 #include <list>
 #include <map>
 
-#include "VBox/com/defs.h"
-#include "VBox/com/ptr.h"
-#include "VBox/com/string.h"
-
 #include "VBox/com/AutoLock.h"
+#include "VBox/com/string.h"
+#include "VBox/com/Guid.h"
 
+#include "VBox/com/VirtualBox.h"
 
 namespace com
 {
@@ -24,12 +23,30 @@ namespace com
 using namespace com;
 using namespace util;
 
+class AutoInitSpan;
+class AutoUninitSpan;
+
+class VirtualBox;
+class Machine;
 class Medium;
 
 typedef std::list<ComObjPtr<Medium> > MediaList;
 typedef std::list<Utf8Str> StringsList;
 
-class VirtualBoxBase : public util::Lockable {
+class VirtualBoxTranslatable : public util::Lockable
+{
+	public:
+
+		/* should be used for translations */
+		inline static const char *tr(const char *pcszSourceText,
+		                             const char *aComment = NULL)
+		{
+			return pcszSourceText;
+		}
+};
+
+class VirtualBoxBase : public VirtualBoxTranslatable
+{
 
 	public:
 
@@ -88,15 +105,9 @@ class VirtualBoxBase : public util::Lockable {
 
 		virtual const char* getComponentName() const = 0;
 
-		/* should be used for translations */
-		inline static const char *tr(const char *pcszSourceText,
-		                             const char *aComment = NULL)
-		{
-			return pcszSourceText;
-		}
-
 		static HRESULT handleUnexpectedExceptions(VirtualBoxBase *const aThis, RT_SRC_POS_DECL);
 		static HRESULT initializeComForThread(void);
+		static void uninitializeComForThread(void);
 		static void clearError(void);
 
 		HRESULT setError(HRESULT aResultCode);
@@ -118,10 +129,19 @@ class VirtualBoxBase : public util::Lockable {
 		RWLockHandle * lockHandle() const;
 };
 
-class VirtualBoxTranslatable : public util::Lockable { };
+
+/**
+ * Dummy macro that is used to shut down Qt's lupdate tool warnings in some
+ * situations. This macro needs to be present inside (better at the very
+ * beginning) of the declaration of the class that inherits from
+ * VirtualBoxTranslatable, to make lupdate happy.
+ */
+#define Q_OBJECT
+
 
 template <typename T>
-class Shareable {
+class Shareable
+{
 
 	private:
 
@@ -153,7 +173,8 @@ class Shareable {
 };
 
 template <typename T>
-class Backupable : public Shareable<T> {
+class Backupable : public Shareable<T>
+{
 
 	public:
 
@@ -410,8 +431,9 @@ class Backupable : public Shareable<T> {
     } while (0)
 
 
+#define DECLARE_EMPTY_CTOR_DTOR(X) public: X(); ~X();
 
-
+#define DEFINE_EMPTY_CTOR_DTOR(X)  X::X() {} X::~X() {}
 
 
 #define VIRTUALBOXBASE_ADD_VIRTUAL_COMPONENT_METHODS(cls, iface) \

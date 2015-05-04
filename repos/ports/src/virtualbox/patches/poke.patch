@@ -1,4 +1,9 @@
-+++ src/app/virtualbox/src/VBox/VMM/VMMR3/VMEmt.cpp
+poke.patch
+
+diff --git a/src/app/virtualbox/src/VBox/VMM/VMMR3/VMEmt.cpp b/src/app/virtualbox/src/VBox/VMM/VMMR3/VMEmt.cpp
+index f52b3c7..8135443 100644
+--- a/src/app/virtualbox/src/VBox/VMM/VMMR3/VMEmt.cpp
++++ b/src/app/virtualbox/src/VBox/VMM/VMMR3/VMEmt.cpp
 @@ -804,6 +804,20 @@ static DECLCALLBACK(int) vmR3HaltGlobal1Wait(PUVMCPU pUVCpu)
   */
  static DECLCALLBACK(void) vmR3HaltGlobal1NotifyCpuFF(PUVMCPU pUVCpu, uint32_t fFlags)

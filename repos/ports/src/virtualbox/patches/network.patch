@@ -1,18 +1,10 @@
-+++ src/app/virtualbox/src/VBox/Devices/Network/DevPCNet.cpp
-@@ -5331,6 +5331,11 @@
-     rc = PDMDevHlpDriverAttach(pDevIns, 0, &pThis->IBase, &pThis->pDrvBase, "Network Port");
-     if (RT_SUCCESS(rc))
-     {
-+        /* Genode: read out the mac address from nic_session interface */
-+        PPDMINETWORKCONFIG  pDrvConfig = PDMIBASE_QUERY_INTERFACE(pThis->pDrvBase, PDMINETWORKCONFIG);
-+        Assert(pDrvConfig && pDrvConfig->pfnGetMac);
-+        pDrvConfig->pfnGetMac(pDrvConfig, &pThis->MacConfigured);
-+
-         if (rc == VINF_NAT_DNS)
-         {
- #ifdef RT_OS_LINUX
-+++ src/app/virtualbox/src/VBox/Devices/Network/DevE1000.cpp
-@@ -7512,6 +7519,35 @@
+network.patch
+
+diff --git a/src/app/virtualbox/src/VBox/Devices/Network/DevE1000.cpp b/src/app/virtualbox/src/VBox/Devices/Network/DevE1000.cpp
+index aa3eb87..fc2660a 100644
+--- a/src/app/virtualbox/src/VBox/Devices/Network/DevE1000.cpp
++++ b/src/app/virtualbox/src/VBox/Devices/Network/DevE1000.cpp
+@@ -7519,6 +7519,35 @@ static DECLCALLBACK(int) e1kR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGM
              pThis->fR0Enabled ? "enabled" : "disabled",
              pThis->fRCEnabled ? "enabled" : "disabled"));
  
@@ -48,7 +40,7 @@
      /* Initialize the EEPROM. */
      pThis->eeprom.init(pThis->macConfigured);
  
-@@ -7670,28 +7706,6 @@
+@@ -7677,28 +7706,6 @@ static DECLCALLBACK(int) e1kR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGM
          return PDMDEV_SET_ERROR(pDevIns, rc, N_("Failed to attach the status LUN"));
      pThis->pLedsConnector = PDMIBASE_QUERY_INTERFACE(pBase, PDMILEDCONNECTORS);
  
@@ -77,3 +69,19 @@
      rc = RTSemEventCreate(&pThis->hEventMoreRxDescAvail);
      if (RT_FAILURE(rc))
          return rc;
+diff --git a/src/app/virtualbox/src/VBox/Devices/Network/DevPCNet.cpp b/src/app/virtualbox/src/VBox/Devices/Network/DevPCNet.cpp
+index 481267e..80f4af9 100644
+--- a/src/app/virtualbox/src/VBox/Devices/Network/DevPCNet.cpp
++++ b/src/app/virtualbox/src/VBox/Devices/Network/DevPCNet.cpp
+@@ -5056,6 +5056,11 @@ static DECLCALLBACK(int) pcnetConstruct(PPDMDEVINS pDevIns, int iInstance, PCFGM
+     rc = PDMDevHlpDriverAttach(pDevIns, 0, &pThis->IBase, &pThis->pDrvBase, "Network Port");
+     if (RT_SUCCESS(rc))
+     {
++        /* Genode: read out the mac address from nic_session interface */
++        PPDMINETWORKCONFIG  pDrvConfig = PDMIBASE_QUERY_INTERFACE(pThis->pDrvBase, PDMINETWORKCONFIG);
++        Assert(pDrvConfig && pDrvConfig->pfnGetMac);
++        pDrvConfig->pfnGetMac(pDrvConfig, &pThis->MacConfigured);
++
+         if (rc == VINF_NAT_DNS)
+         {
+ #ifdef RT_OS_LINUX

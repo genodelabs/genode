@@ -1,5 +1,25 @@
-+++ src/app/virtualbox/include/VBox/com/array.h
-@@ -219,10 +219,10 @@
+vbox_inc.patch
+
+diff --git a/src/app/virtualbox/include/VBox/com/ErrorInfo.h b/src/app/virtualbox/include/VBox/com/ErrorInfo.h
+index 869b998..c6adf70 100644
+--- a/src/app/virtualbox/include/VBox/com/ErrorInfo.h
++++ b/src/app/virtualbox/include/VBox/com/ErrorInfo.h
+@@ -31,8 +31,8 @@
+ #include "VBox/com/Guid.h"
+ #include "VBox/com/assert.h"
+ 
+-struct IProgress;
+-struct IVirtualBoxErrorInfo;
++//struct IProgress;
++//struct IVirtualBoxErrorInfo;
+ 
+ namespace com
+ {
+diff --git a/src/app/virtualbox/include/VBox/com/array.h b/src/app/virtualbox/include/VBox/com/array.h
+index 77f9d60..dcbad41 100644
+--- a/src/app/virtualbox/include/VBox/com/array.h
++++ b/src/app/virtualbox/include/VBox/com/array.h
+@@ -219,10 +219,10 @@ struct SafeArrayTraits
  protected:
  
      /** Initializes memory for aElem. */
@@ -12,49 +32,11 @@
  
      /** Creates a deep copy of aFrom and stores it in aTo. */
      static void Copy(const T &aFrom, T &aTo) { aTo = aFrom; }
-+++ src/app/virtualbox/include/VBox/com/ErrorInfo.h
-@@ -31,8 +31,8 @@
- #include "VBox/com/Guid.h"
- #include "VBox/com/assert.h"
- 
--struct IProgress;
--struct IVirtualBoxErrorInfo;
-+//struct IProgress;
-+//struct IVirtualBoxErrorInfo;
- 
- namespace com
- {
-+++ src/app/virtualbox/include/VBox/com/string.h
-@@ -109,11 +109,13 @@
-     }
- 
- #if defined(VBOX_WITH_XPCOM)
-+/*
-     Bstr(const wchar_t *that)
-     {
-         AssertCompile(sizeof(wchar_t) == sizeof(OLECHAR));
-         copyFrom((const OLECHAR *)that);
-     }
-+*/
- #endif
- 
-     Bstr(const RTCString &that)
-@@ -151,12 +153,14 @@
-     }
- 
- #if defined(VBOX_WITH_XPCOM)
-+/*
-     Bstr& operator=(const wchar_t *that)
-     {
-         cleanup();
-         copyFrom((const OLECHAR *)that);
-         return *this;
-     }
-+*/
- #endif
- 
-     Bstr& setNull()
-@@ -247,7 +251,7 @@
+diff --git a/src/app/virtualbox/include/VBox/com/string.h b/src/app/virtualbox/include/VBox/com/string.h
+index 263dc40..768c336 100644
+--- a/src/app/virtualbox/include/VBox/com/string.h
++++ b/src/app/virtualbox/include/VBox/com/string.h
+@@ -247,7 +247,7 @@ public:
       *  returns a pointer to a global variable containing an empty BSTR with a proper zero
       *  length prefix so that Windows is happy.
       */
@@ -63,8 +45,11 @@
      {
          if (m_bstr)
              return m_bstr;
-+++ src/app/virtualbox/include/VBox/vmm/hm_vmx.h
-@@ -1859,10 +1859,10 @@
+diff --git a/src/app/virtualbox/include/VBox/vmm/hm_vmx.h b/src/app/virtualbox/include/VBox/vmm/hm_vmx.h
+index 7deb357..668764c 100644
+--- a/src/app/virtualbox/include/VBox/vmm/hm_vmx.h
++++ b/src/app/virtualbox/include/VBox/vmm/hm_vmx.h
+@@ -1859,10 +1859,10 @@ DECLINLINE(int) VMXEnable(RTHCPHYS pVMXOn)
         ".byte    0xF3, 0x0F, 0xC7, 0x34, 0x24  # VMXON [esp]    \n\t"
         "ja       2f                                             \n\t"
         "je       1f                                             \n\t"
@@ -77,7 +62,7 @@
         "2:                                                      \n\t"
         "add      $8, %%esp                                      \n\t"
         :"=rm"(rc)
-@@ -1952,7 +1952,7 @@
+@@ -1952,7 +1952,7 @@ DECLINLINE(int) VMXClearVmcs(RTHCPHYS pVMCS)
         "push    %2                                              \n\t"
         ".byte   0x66, 0x0F, 0xC7, 0x34, 0x24  # VMCLEAR [esp]   \n\t"
         "jnc     1f                                              \n\t"
@@ -86,7 +71,7 @@
         "1:                                                      \n\t"
         "add     $8, %%esp                                       \n\t"
         :"=rm"(rc)
-@@ -2009,7 +2009,7 @@
+@@ -2009,7 +2009,7 @@ DECLINLINE(int) VMXActivateVmcs(RTHCPHYS pVMCS)
         "push    %2                                              \n\t"
         ".byte   0x0F, 0xC7, 0x34, 0x24  # VMPTRLD [esp]         \n\t"
         "jnc     1f                                              \n\t"
@@ -95,7 +80,7 @@
         "1:                                                      \n\t"
         "add     $8, %%esp                                       \n\t"
         :"=rm"(rc)
-@@ -2079,10 +2079,10 @@
+@@ -2079,10 +2079,10 @@ DECLINLINE(int) VMXWriteVmcs32(uint32_t idxField, uint32_t u32Val)
         ".byte  0x0F, 0x79, 0xC2        # VMWRITE eax, edx       \n\t"
         "ja     2f                                               \n\t"
         "je     1f                                               \n\t"
@@ -108,7 +93,7 @@
         "2:                                                      \n\t"
         :"=rm"(rc)
         :"0"(VINF_SUCCESS),
-@@ -2207,14 +2207,14 @@
+@@ -2207,14 +2207,14 @@ DECLINLINE(int) VMXReadVmcs32(uint32_t idxField, uint32_t *pData)
  # if RT_INLINE_ASM_GNU_STYLE
      int rc = VINF_SUCCESS;
      __asm__ __volatile__ (

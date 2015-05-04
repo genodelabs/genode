@@ -21,12 +21,15 @@
 #include <iprt/initterm.h>
 #include <iprt/assert.h>
 #include <iprt/err.h>
+#include <VBox/com/com.h>
 #include <VBox/vmm/vmapi.h>
 
 /* Virtualbox includes of generic Main frontend */
 #include "ConsoleImpl.h"
 #include "MachineImpl.h"
 #include "MouseImpl.h"
+#include "SessionImpl.h"
+#include "VirtualBoxImpl.h"
 
 /* Genode port specific includes */
 #include "console.h"
@@ -62,8 +65,6 @@ void * nsMemory::Clone(const void*, size_t)
 /**
  * Other stuff
  */
-Framebuffer::Framebuffer() { }
-Framebuffer::~Framebuffer() { }
 
 int com::GetVBoxUserHomeDirectory(char *aDir, size_t aDirLen, bool fCreateDir)
 {
@@ -111,24 +112,12 @@ HRESULT setupmachine()
 		return rc;
 
 	// open a session
-	ComObjPtr<ISession> session;
+	ComObjPtr<Session> session;
 	rc = session.createObject();
 	if (FAILED(rc))
 		return rc;
 
 	rc = machine->LockMachine(session, LockType_VM);
-	if (FAILED(rc))
-		return rc;
-
-	/* Console object */
-	GenodeConsole * gConsole = new GenodeConsole();
-	/* Derived from Session::AssignMachine method in Main/src-client/SessionImpl.cpp */
-	static IInternalMachineControl control;
-	rc = control.init(machine);
-	if (FAILED(rc))
-		return rc;
-
-	rc = gConsole->init(machine, &control, LockType_VM);
 	if (FAILED(rc))
 		return rc;
 
@@ -153,8 +142,12 @@ HRESULT setupmachine()
 		return E_FAIL;
 	}
 
+	/* Console object */
+	ComPtr<IConsole> gConsole;
+	rc = session->COMGETTER(Console)(gConsole.asOutParam());
+
 	/* Display object */
-	ComPtr<Display> display;
+	ComPtr<IDisplay> display;
 	rc = gConsole->COMGETTER(Display)(display.asOutParam());
 	if (FAILED(rc))
 		return rc;
@@ -191,7 +184,7 @@ HRESULT setupmachine()
 	/* request mouse object */
 	static ComPtr<IMouse> gMouse;
 	rc = gConsole->COMGETTER(Mouse)(gMouse.asOutParam());
-	if (RT_FAILURE(rc))
+	if (FAILED(rc))
 		return rc;
 	Assert (&*gMouse);
 
@@ -203,8 +196,10 @@ HRESULT setupmachine()
 	Assert (&*gKeyboard);
 
 	/* handle input of Genode and forward it to VMM layer */
+	ComPtr<GenodeConsole> genodeConsole = gConsole;
+	RTLogPrintf("genodeConsole = %p\n", genodeConsole);
 	while (true) {
-		gConsole->eventWait(gKeyboard, gMouse);
+		genodeConsole->eventWait(gKeyboard, gMouse);
 	}
 
 	Assert(!"return not expected");

@@ -1,103 +1,10 @@
-+++ src/app/virtualbox/src/VBox/Devices/USB/VUSBDevice.cpp
-@@ -230,7 +230,14 @@
-         if (i != VUSB_PIPE_DEFAULT)
-         {
-             vusbMsgFreeExtraData(pDev->aPipes[i].pCtrl);
-+
-+            int rc = RTCritSectDelete(&pDev->aPipes[i].CritSectCtrl);
-+            AssertRC(rc);
-+
-             memset(&pDev->aPipes[i], 0, sizeof(pDev->aPipes[i]));
-+
-+            rc = RTCritSectInit(&pDev->aPipes[i].CritSectCtrl);
-+            AssertRC(rc);
-         }
-     }
-     memset(pDev->paIfStates, 0, pCfgDesc->Core.bNumInterfaces * sizeof(pDev->paIfStates[0]));
-@@ -1134,7 +1134,7 @@
-             vusbUrbDoReapAsyncDev(pDev, RT_INDEFINITE_WAIT);
- 
-         /* Process any URBs waiting to be cancelled first. */
--        int rc = RTReqQueueProcess(pDev->hReqQueueSync, 0); /* Don't wait if there is nothing to do. */
-+        int rc = RTReqQueueProcess(pDev->hReqQueueSync, pDev->enmState == VUSB_DEVICE_STATE_RESET ? 5 : 0); /* if in reset state (takes 10ms) sleep a bit - otherwise this thread consumes in this loop a lot of cpu time */
-         Assert(RT_SUCCESS(rc) || rc == VERR_TIMEOUT);
-     }
- 
-+++ src/app/virtualbox/src/VBox/Main/src-server/MachineImpl.cpp
-@@ -13571,6 +13582,7 @@
-     AutoCaller autoCaller(this);
-     AssertComRCReturn(autoCaller.rc(), autoCaller.rc());
- 
-+#if 0
- #ifdef VBOX_WITH_USB
-     HRESULT rc = mUSBDeviceFilters->notifyProxy(true /* aInsertFilters */);
-     AssertComRC(rc);
-@@ -13579,6 +13591,7 @@
-     USBProxyService *service = mParent->host()->usbProxyService();
-     AssertReturn(service, E_FAIL);
-     return service->autoCaptureDevicesForVM(this);
-+#endif /* if 0 */
- #else
-     return S_OK;
- #endif
-@@ -13601,6 +13614,7 @@
-     AutoCaller autoCaller(this);
-     AssertComRCReturn(autoCaller.rc(), autoCaller.rc());
- 
-+#if 0
- #ifdef VBOX_WITH_USB
-     HRESULT rc = mUSBDeviceFilters->notifyProxy(false /* aInsertFilters */);
-     AssertComRC(rc);
-@@ -13609,6 +13623,7 @@
-     USBProxyService *service = mParent->host()->usbProxyService();
-     AssertReturn(service, E_FAIL);
-     return service->detachAllDevicesFromVM(this, !!aDone, false /* aAbnormal */);
-+#endif /* if 0 */
- #else
-     NOREF(aDone);
-     return S_OK;
-+++ src/app/virtualbox/src/VBox/Main/include/Matching.h
-@@ -291,10 +291,12 @@
-         return mValueAny || mValue == aValue;
-     }
- 
-+#if 0
-     bool isMatch (const BOOL aValue) const
-     {
-         return isMatch (bool (aValue == TRUE));
-     }
-+#endif /* if 0 */
- 
- private:
- 
-+++ src/app/virtualbox/src/VBox/Main/src-server/USBDeviceFiltersImpl.cpp
-@@ -1037,13 +1037,10 @@
-     LogFlowThisFunc(("aInsertFilters=%RTbool\n", aInsertFilters));
- 
-     AutoCaller autoCaller(this);
--    AssertComRCReturn(autoCaller.rc(), false);
-+    AssertComRCReturnRC(autoCaller.rc());
- 
-     AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
- 
--    USBProxyService *pProxySvc = m->pHost->usbProxyService();
--    AssertReturn(pProxySvc, E_FAIL);
--
-     DeviceFilterList::const_iterator it = m->llDeviceFilters->begin();
-     while (it != m->llDeviceFilters->end())
-     {
-@@ -1054,6 +1051,9 @@
-             && pFilter->getData().mRemote.isMatch(false) /* and if the filter is NOT remote */
-            )
-         {
-+            USBProxyService *pProxySvc = m->pHost->usbProxyService();
-+            AssertReturn(pProxySvc, E_FAIL);
-+
-             if (aInsertFilters)
-             {
-                 AssertReturn(pFilter->getId() == NULL, E_FAIL);
-+++ src/app/virtualbox/src/VBox/Devices/USB/USBProxyDevice.cpp
-@@ -843,10 +843,14 @@
+usb.patch
+
+diff --git a/src/app/virtualbox/src/VBox/Devices/USB/USBProxyDevice.cpp b/src/app/virtualbox/src/VBox/Devices/USB/USBProxyDevice.cpp
+index a51bc36..bed42e8 100644
+--- a/src/app/virtualbox/src/VBox/Devices/USB/USBProxyDevice.cpp
++++ b/src/app/virtualbox/src/VBox/Devices/USB/USBProxyDevice.cpp
+@@ -843,10 +843,14 @@ static DECLCALLBACK(int) usbProxyConstruct(PPDMUSBINS pUsbIns, int iInstance, PC
      /*
       * Select backend and open the device.
       */
@@ -112,8 +19,39 @@
  
      pThis->pvInstanceDataR3 = RTMemAllocZ(pThis->pOps->cbBackend);
      if (!pThis->pvInstanceDataR3)
-+++ src/app/virtualbox/src/VBox/Devices/build/VBoxDD.cpp
-@@ -39,6 +39,7 @@
+diff --git a/src/app/virtualbox/src/VBox/Devices/USB/VUSBDevice.cpp b/src/app/virtualbox/src/VBox/Devices/USB/VUSBDevice.cpp
+index 4790fcb..4efa818 100644
+--- a/src/app/virtualbox/src/VBox/Devices/USB/VUSBDevice.cpp
++++ b/src/app/virtualbox/src/VBox/Devices/USB/VUSBDevice.cpp
+@@ -230,7 +230,14 @@ bool vusbDevDoSelectConfig(PVUSBDEV pDev, PCVUSBDESCCONFIGEX pCfgDesc)
+         if (i != VUSB_PIPE_DEFAULT)
+         {
+             vusbMsgFreeExtraData(pDev->aPipes[i].pCtrl);
++
++            int rc = RTCritSectDelete(&pDev->aPipes[i].CritSectCtrl);
++            AssertRC(rc);
++
+             memset(&pDev->aPipes[i], 0, sizeof(pDev->aPipes[i]));
++
++            rc = RTCritSectInit(&pDev->aPipes[i].CritSectCtrl);
++            AssertRC(rc);
+         }
+     }
+     memset(pDev->paIfStates, 0, pCfgDesc->Core.bNumInterfaces * sizeof(pDev->paIfStates[0]));
+@@ -1134,7 +1141,7 @@ static DECLCALLBACK(int) vusbDevUrbIoThread(RTTHREAD hThread, void *pvUser)
+             vusbUrbDoReapAsyncDev(pDev, RT_INDEFINITE_WAIT);
+ 
+         /* Process any URBs waiting to be cancelled first. */
+-        int rc = RTReqQueueProcess(pDev->hReqQueueSync, 0); /* Don't wait if there is nothing to do. */
++        int rc = RTReqQueueProcess(pDev->hReqQueueSync, pDev->enmState == VUSB_DEVICE_STATE_RESET ? 5 : 0); /* if in reset state (takes 10ms) sleep a bit - otherwise this thread consumes in this loop a lot of cpu time */
+         Assert(RT_SUCCESS(rc) || rc == VERR_TIMEOUT);
+     }
+ 
+diff --git a/src/app/virtualbox/src/VBox/Devices/build/VBoxDD.cpp b/src/app/virtualbox/src/VBox/Devices/build/VBoxDD.cpp
+index 3173a36..8105987 100644
+--- a/src/app/virtualbox/src/VBox/Devices/build/VBoxDD.cpp
++++ b/src/app/virtualbox/src/VBox/Devices/build/VBoxDD.cpp
+@@ -39,6 +39,7 @@ const void *g_apvVBoxDDDependencies[] =
      NULL,
  };
  
@@ -121,7 +59,7 @@
  
  /**
   * Register builtin devices.
-@@ -329,6 +330,7 @@
+@@ -329,6 +330,7 @@ extern "C" DECLEXPORT(int) VBoxDriversRegister(PCPDMDRVREGCB pCallbacks, uint32_
      return VINF_SUCCESS;
  }
  
@@ -129,3 +67,85 @@
  
  /**
   * Register builtin USB device.
+diff --git a/src/app/virtualbox/src/VBox/Main/include/Matching.h b/src/app/virtualbox/src/VBox/Main/include/Matching.h
+index 2f01f69..9b13e37 100644
+--- a/src/app/virtualbox/src/VBox/Main/include/Matching.h
++++ b/src/app/virtualbox/src/VBox/Main/include/Matching.h
+@@ -291,10 +291,12 @@ public:
+         return mValueAny || mValue == aValue;
+     }
+ 
++#if 0
+     bool isMatch (const BOOL aValue) const
+     {
+         return isMatch (bool (aValue == TRUE));
+     }
++#endif /* if 0 */
+ 
+ private:
+ 
+diff --git a/src/app/virtualbox/src/VBox/Main/src-server/MachineImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-server/MachineImpl.cpp
+index 5fcb53c..b4016b2 100644
+--- a/src/app/virtualbox/src/VBox/Main/src-server/MachineImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-server/MachineImpl.cpp
+@@ -13582,6 +13582,7 @@ STDMETHODIMP SessionMachine::AutoCaptureUSBDevices()
+     AutoCaller autoCaller(this);
+     AssertComRCReturn(autoCaller.rc(), autoCaller.rc());
+ 
++#if 0
+ #ifdef VBOX_WITH_USB
+     HRESULT rc = mUSBDeviceFilters->notifyProxy(true /* aInsertFilters */);
+     AssertComRC(rc);
+@@ -13590,6 +13591,7 @@ STDMETHODIMP SessionMachine::AutoCaptureUSBDevices()
+     USBProxyService *service = mParent->host()->usbProxyService();
+     AssertReturn(service, E_FAIL);
+     return service->autoCaptureDevicesForVM(this);
++#endif /* if 0 */
+ #else
+     return S_OK;
+ #endif
+@@ -13612,6 +13614,7 @@ STDMETHODIMP SessionMachine::DetachAllUSBDevices(BOOL aDone)
+     AutoCaller autoCaller(this);
+     AssertComRCReturn(autoCaller.rc(), autoCaller.rc());
+ 
++#if 0
+ #ifdef VBOX_WITH_USB
+     HRESULT rc = mUSBDeviceFilters->notifyProxy(false /* aInsertFilters */);
+     AssertComRC(rc);
+@@ -13620,6 +13623,7 @@ STDMETHODIMP SessionMachine::DetachAllUSBDevices(BOOL aDone)
+     USBProxyService *service = mParent->host()->usbProxyService();
+     AssertReturn(service, E_FAIL);
+     return service->detachAllDevicesFromVM(this, !!aDone, false /* aAbnormal */);
++#endif /* if 0 */
+ #else
+     NOREF(aDone);
+     return S_OK;
+diff --git a/src/app/virtualbox/src/VBox/Main/src-server/USBDeviceFiltersImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-server/USBDeviceFiltersImpl.cpp
+index 09b42f5..c179ca6 100644
+--- a/src/app/virtualbox/src/VBox/Main/src-server/USBDeviceFiltersImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-server/USBDeviceFiltersImpl.cpp
+@@ -1037,13 +1037,10 @@ HRESULT USBDeviceFilters::notifyProxy(bool aInsertFilters)
+     LogFlowThisFunc(("aInsertFilters=%RTbool\n", aInsertFilters));
+ 
+     AutoCaller autoCaller(this);
+-    AssertComRCReturn(autoCaller.rc(), false);
++    AssertComRCReturnRC(autoCaller.rc());
+ 
+     AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
+ 
+-    USBProxyService *pProxySvc = m->pHost->usbProxyService();
+-    AssertReturn(pProxySvc, E_FAIL);
+-
+     DeviceFilterList::const_iterator it = m->llDeviceFilters->begin();
+     while (it != m->llDeviceFilters->end())
+     {
+@@ -1054,6 +1051,9 @@ HRESULT USBDeviceFilters::notifyProxy(bool aInsertFilters)
+             && pFilter->getData().mRemote.isMatch(false) /* and if the filter is NOT remote */
+            )
+         {
++            USBProxyService *pProxySvc = m->pHost->usbProxyService();
++            AssertReturn(pProxySvc, E_FAIL);
++
+             if (aInsertFilters)
+             {
+                 AssertReturn(pFilter->getId() == NULL, E_FAIL);

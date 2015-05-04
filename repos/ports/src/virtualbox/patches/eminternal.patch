@@ -1,10 +1,10 @@
-Triggers misalignment assertion in STAM.cpp
+eminternal.patch
 
-case STAMTYPE_PROFILE_ADV:                                              
-  AssertMsg(!((uintptr_t)pvSample & 7), ("%p - %s - %u\n", pvSample, pszName, enmType));
-
-+++ src/app/virtualbox/src/VBox/VMM/include/EMInternal.h
-@@ -361,6 +361,8 @@
+diff --git a/src/app/virtualbox/src/VBox/VMM/include/EMInternal.h b/src/app/virtualbox/src/VBox/VMM/include/EMInternal.h
+index 11a7ac3..02e6e29 100644
+--- a/src/app/virtualbox/src/VBox/VMM/include/EMInternal.h
++++ b/src/app/virtualbox/src/VBox/VMM/include/EMInternal.h
+@@ -361,6 +361,8 @@ typedef struct EMCPU
  #ifdef VBOX_WITH_RAW_MODE
      /** Pointer to the PATM status structure. (R3 Ptr) */
      R3PTRTYPE(PPATMGCSTATE) pPatmGCState;

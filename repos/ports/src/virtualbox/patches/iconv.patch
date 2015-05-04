@@ -1,5 +1,10 @@
-+++ src/app/virtualbox/src/VBox/Runtime/r3/posix/utf8-posix.cpp
-@@ -324,11 +324,7 @@
+iconv.patch
+
+diff --git a/src/app/virtualbox/src/VBox/Runtime/r3/posix/utf8-posix.cpp b/src/app/virtualbox/src/VBox/Runtime/r3/posix/utf8-posix.cpp
+index cb723eb..d51dd51 100644
+--- a/src/app/virtualbox/src/VBox/Runtime/r3/posix/utf8-posix.cpp
++++ b/src/app/virtualbox/src/VBox/Runtime/r3/posix/utf8-posix.cpp
+@@ -324,11 +324,7 @@ static int rtStrConvertUncached(const void *pvInput, size_t cbInput, const char
              const void *pvInputLeft = pvInput;
              void       *pvOutputLeft = pvOutput;
              size_t      cchNonRev;

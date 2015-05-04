@@ -1,4 +1,5 @@
 VBOX_CC_OPT += -DVBOX_WITH_HARDENING
+VBOX_CC_OPT += -DVBOX_WITH_GENERIC_SESSION_WATCHER
 
 include $(REP_DIR)/lib/mk/virtualbox-common.inc
 
@@ -6,6 +7,9 @@ CC_WARN += -Wall
 
 TARGET = virtualbox
 SRC_CC = frontend/main.cc frontend/console.cc \
+         frontend/VBoxAPIWrap/MediumFormatWrap.cpp \
+         frontend/VBoxAPIWrap/TokenWrap.cpp \
+         frontend/VirtualBoxErrorInfoImpl.cpp \
          devices.cc drivers.cc dummies.cc libc.cc \
          logger.cc mm.cc pdm.cc pgm.cc rt.cc sup.cc iommio.cc ioport.cc \
          hm.cc thread.cc dynlib.cc unimpl.cc  
@@ -39,6 +43,8 @@ INC_DIR += $(VBOX_DIR)/Main/include
 INC_DIR += $(VBOX_DIR)/VMM/include
 
 INC_DIR += $(REP_DIR)/src/virtualbox/frontend
+INC_DIR += $(REP_DIR)/src/virtualbox/frontend/VBoxAPIWrap
+
 INC_DIR += $(VBOX_DIR)/Main/xml
 
 # search path to 'scan_code_set_2.h'

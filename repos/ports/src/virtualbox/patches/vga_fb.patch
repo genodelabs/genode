@@ -1,5 +1,10 @@
-+++ src/app/virtualbox/src/VBox/Devices/Graphics/DevVGA.cpp
-@@ -3468,9 +3475,15 @@
+vga_fb.patch
+
+diff --git a/src/app/virtualbox/src/VBox/Devices/Graphics/DevVGA.cpp b/src/app/virtualbox/src/VBox/Devices/Graphics/DevVGA.cpp
+index a21fe7e..5b3b9b3 100644
+--- a/src/app/virtualbox/src/VBox/Devices/Graphics/DevVGA.cpp
++++ b/src/app/virtualbox/src/VBox/Devices/Graphics/DevVGA.cpp
+@@ -3494,9 +3494,15 @@ static DECLCALLBACK(int) vgaR3LFBAccessHandler(PVM pVM, RTGCPHYS GCPhys, void *p
      int         rc;
      Assert(pThis);
      Assert(GCPhys >= pThis->GCPhysVRAM);

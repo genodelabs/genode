@@ -1,20 +1,21 @@
 LICENSE         := GPLv2
 VERSION         := 4.3.16
-DOWNLOADS       := virtualbox.archive
+DOWNLOADS       := virtualbox.archive virtualbox_sdk.archive
 
-VIRTUALBOX_TBZ2 := VirtualBox-$(VERSION).tar.bz2
+VIRTUALBOX_TBZ2    := VirtualBox-$(VERSION).tar.bz2
+VIRTUALBOX_SDK_ZIP := VirtualBoxSDK-$(VERSION)-95972.zip
 
 URL(virtualbox) := http://download.virtualbox.org/virtualbox/$(VERSION)/$(VIRTUALBOX_TBZ2)
 DIR(virtualbox) := src/app/virtualbox
 SHA(virtualbox) := e4c23b713e8715b8e0172fa066f2197756e901fe
 
-PATCHES_LIST    := acpi_drv dev_e1000 eminternal iconv mouse
-PATCHES_LIST    += pdm_driver poke sharedfolder_pagelist
-PATCHES_LIST    += time-log-deadlock tm_retries vbox_inc vbox_main network
-PATCHES_LIST    += vga_fb vga_vbva vmdk vmmdev avoid_yield serial rem_irq usb
+URL(virtualbox_sdk) := http://download.virtualbox.org/virtualbox/$(VERSION)/$(VIRTUALBOX_SDK_ZIP)
+DIR(virtualbox_sdk) := src/app/virtualbox_sdk
+SHA(virtualbox_sdk) := 8f95a891a6cb5f712fcb0ed34f2b8bf6b1e59f4c
 
-PATCHES         := $(addsuffix .patch, $(PATCHES_LIST))
-PATCHES         := $(addprefix src/virtualbox/patches/, $(PATCHES))
+PATCHES_DIR := src/virtualbox/patches
+PATCHES := $(addprefix $(PATCHES_DIR)/, $(shell cat $(REP_DIR)/$(PATCHES_DIR)/series))
+PATCH_OPT := -p1
 
 $(call check_tool,xsltproc)
 
@@ -29,7 +30,7 @@ VBOX_MAIN_CLI += HGCMObjects
 VBOX_MAIN_CLI += KeyboardImpl SessionImpl VMMDevInterface BusAssignmentManager
 VBOX_MAIN_CLI += ConsoleImpl GuestImpl MouseImpl VBoxDriversRegister
 
-VBOX_MAIN_SRV := AudioAdapterImpl DHCPServerImpl MediumAttachmentImpl
+VBOX_MAIN_SRV := AudioAdapterImpl ClientToken DHCPServerImpl Matching MediumAttachmentImpl
 VBOX_MAIN_SRV += NATEngineImpl SerialPortImpl
 VBOX_MAIN_SRV += BandwidthControlImpl GuestOSTypeImpl MediumFormatImpl
 VBOX_MAIN_SRV += NetworkAdapterImpl SnapshotImpl
@@ -42,7 +43,7 @@ VBOX_MAIN_SRV += USBControllerImpl USBDeviceFilterImpl USBDeviceFiltersImpl
 VBOX_MAIN_INC := AdditionsFacilityImpl AudioAdapterImpl AudioSnifferInterface
 VBOX_MAIN_INC += AutoCaller AutostartDb AutoStateDep BandwidthControlImpl
 VBOX_MAIN_INC += BandwidthGroupImpl BIOSSettingsImpl BusAssignmentManager Nvram
-VBOX_MAIN_INC += ConsoleEvents ConsoleImpl DHCPServerImpl DisplayImpl HostImpl
+VBOX_MAIN_INC += ClientToken ConsoleEvents ConsoleImpl DHCPServerImpl DisplayImpl HostImpl
 VBOX_MAIN_INC += DisplayUtils EventImpl FramebufferImpl Global
 VBOX_MAIN_INC += GuestCtrlImplPrivate GuestDirectoryImpl GuestDnDImpl Logging
 VBOX_MAIN_INC += GuestFileImpl GuestFsObjInfoImpl GuestImpl GuestOSTypeImpl
@@ -56,7 +57,7 @@ VBOX_MAIN_INC += ProgressProxyImpl SerialPortImpl SessionImpl SharedFolderImpl
 VBOX_MAIN_INC += StorageControllerImpl SystemPropertiesImpl TokenImpl VMMDev
 VBOX_MAIN_INC += USBControllerImpl USBDeviceFilterImpl USBDeviceFiltersImpl
 VBOX_MAIN_INC += USBProxyService VirtualBoxImpl VRDEServerImpl GuestProcessImpl
-VBOX_MAIN_INC += USBDeviceImpl HostUSBDeviceImpl Matching
+VBOX_MAIN_INC += USBDeviceImpl HostUSBDeviceImpl Matching Wrapper
 
 VBOX_SRC_VBOX := VMM Devices Runtime GuestHost/HGSMI Storage Disassembler
 VBOX_SRC_VBOX += HostServices/SharedFolders Main/xml/Settings.cpp
@@ -89,6 +90,8 @@ VBOX_CONTENT += src/recompiler include/VBox/vmm include/iprt Config.kmk
 TAR_OPT(virtualbox) := \
 	--strip-components 1 \
 	$(addprefix $(VIRTUALBOX_TBZ2:.tar.bz2=)/,$(VBOX_CONTENT))
+
+UNZIP_OPT(virtualbox_sdk) := $(VIRTUALBOX_SDK_ZIP) sdk/bindings/xpcom/include/VirtualBox_XPCOM.h \#
 
 
 default : additional_steps
