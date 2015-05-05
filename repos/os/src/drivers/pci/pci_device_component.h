@@ -274,9 +274,6 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 		{
 			/* white list of ports which we permit to write */
 			switch(address) {
-				case 0x40 ... 0xFF:
-					/* all device specific registers are permitted */
-					break;
 				case 0x4: /* COMMAND register - first byte */
 					if (size == Access_size::ACCESS_16BIT)
 						break;

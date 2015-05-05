@@ -369,7 +369,7 @@ class Ahci_device_base
 
 		Generic_ctrl             *_ctrl;      /* generic host control */
 		Ahci_port                *_port;      /* port base of device */
-		Irq_connection           *_irq;       /* device IRQ */
+		Irq_session_client       *_irq;       /* device IRQ */
 		Genode::Signal_receiver   _irq_rec;   /* IRQ signal receiver */
 		Genode::Signal_context    _irq_ctx;   /* IRQ signal context */
 		size_t                    _block_cnt; /* number of blocks on device */
