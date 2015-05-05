@@ -200,16 +200,6 @@ struct Pci_driver
 		try {
 			using namespace Genode;
 
-			/* trigger that the device gets assigned to this driver */
-			for (unsigned i = 0; i < 2; i++) {
-				try {
-					_pci.config_extended(_cap);
-					break;
-				} catch (Pci::Device::Quota_exceeded) {
-					Genode::env()->parent()->upgrade(_pci.cap(), "ram_quota=4096");
-				}
-			}
-
 			/* transfer quota to pci driver, otherwise it will give us a exception */
 			char buf[32];
 			Genode::snprintf(buf, sizeof(buf), "ram_quota=%zd", size);

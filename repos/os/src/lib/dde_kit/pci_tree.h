@@ -126,18 +126,6 @@ namespace Dde_kit {
 			Ram_dataspace_capability alloc_dma_buffer(Pci::Connection &pci_drv,
 			                                          size_t size)
 			{
-				/* trigger that the device gets assigned to this driver */
-				for (unsigned i = 0; i < 2; i++) {
-					try {
-						pci_drv.config_extended(_device);
-						break;
-					} catch (Pci::Device::Quota_exceeded) {
-						if (i == 1)
-							return Ram_dataspace_capability();
-						Genode::env()->parent()->upgrade(pci_drv.cap(), "ram_quota=4096");
-					}
-				}
-
 				for (unsigned i = 0; i < 2; i++) {
 					try {
 						return pci_drv.alloc_dma_buffer(size);

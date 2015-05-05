@@ -295,9 +295,6 @@ extern "C" int pci_register_driver(struct pci_driver *drv)
 			try {
 				pci_device_cap = cap;
 
-				/* trigger that the device get be assigned to the wifi driver */
-				pci()->config_extended(cap);
-
 				/* probe device */
 				pci_drv = new (env()->heap()) Pci_driver(drv, cap, id);
 				pci()->on_destruction(Pci::Connection::KEEP_OPEN);

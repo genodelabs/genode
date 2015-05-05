@@ -36,6 +36,7 @@ class Ahci_device : public Ahci_device_base
 			CLASS_MASK          = 0xffff00U,
 			AHCI_BASE_ID        = 0x5,  /* resource id of AHCI base addr <BAR 5> */
 			AHCI_INTR_OFF       = 0x3c, /* offset of interrupt information in config space */
+			PCI_CFG_CMD_REG     = 0x4,
 		};
 
 		::Pci::Connection        &_pci;
@@ -137,6 +138,10 @@ class Ahci_device : public Ahci_device_base
 				     " %08x)\n", pci_device->vendor_id(),
 				     pci_device->device_id(), pci_device->class_code());
 
+				/* enable Bus Master, Memory Space, I/O Space access by dev */
+				pci_device->config_write(PCI_CFG_CMD_REG, 0x7,
+				                         ::Pci::Device::ACCESS_16BIT);
+
 				/* read and map base address of AHCI controller */
 				Pci::Device::Resource resource = pci_device->resource(AHCI_BASE_ID);
 
@@ -173,14 +178,6 @@ class Ahci_device : public Ahci_device_base
 					device->_irq->ack_irq();
 
 					device->_pci_device = pci_device;
-					/* trigger assignment of pci device to the ahci driver */
-					try {
-						pci.config_extended(device_cap);
-					} catch (Pci::Device::Quota_exceeded) {
-						Genode::env()->parent()->upgrade(pci.cap(), "ram_quota=4096");
-						pci.config_extended(device_cap);
-					}
-
 					/* get device ready */
 					device->_init(pci_device);
 
