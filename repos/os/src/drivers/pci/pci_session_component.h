@@ -543,14 +543,30 @@ namespace Pci {
 				_device_list.remove(device);
 				_ep->dissolve(device);
 
-				Genode::Io_mem_connection * io_mem = device->get_config_space();
-				if (io_mem)
-					destroy(_md_alloc, io_mem);
-
 				if (device->config().valid())
 					destroy(_device_slab, device);
 				else
 					destroy(_md_alloc, device);
+			}
+
+			Genode::Io_mem_dataspace_capability assign_device(Device_component * device)
+			{
+				using namespace Genode;
+
+				if (!device || !device->get_config_space().valid())
+					return Io_mem_dataspace_capability();
+
+				Io_mem_dataspace_capability io_mem = device->get_config_space();
+
+				if (_child)
+					_child->assign_pci(io_mem);
+
+				/*
+				 * By now forbid usage of extended pci config space dataspace,
+				 * - until required.
+				 */
+				// return io_mem;
+				return Io_mem_dataspace_capability();
 			}
 
 			Genode::Io_mem_dataspace_capability config_extended(Device_capability device_cap)
@@ -560,33 +576,7 @@ namespace Pci {
 				Object_pool<Device_component>::Guard
 					device(_ep->lookup_and_lock(device_cap));
 
-				if (!device || device->config_space() == ~0UL)
-					return Io_mem_dataspace_capability();
-
-				Io_mem_connection * io_mem = device->get_config_space();
-				if (io_mem)
-					return io_mem->dataspace();
-
-				try {
-					io_mem = new (_md_alloc) Io_mem_connection(device->config_space(),
-					                                           0x1000);
-				} catch (Genode::Allocator::Out_of_memory) {
-					throw Device::Quota_exceeded();
-				} catch (Parent::Service_denied) {
-					return Io_mem_dataspace_capability();
-				}
-
-				device->set_config_space(io_mem);
-
-				if (_child)
-					_child->assign_pci(io_mem->dataspace());
-
-				/*
-				 * By now forbid usage of extended pci config space dataspace,
-				 * - until required.
-				 */
-				// return io_mem->dataspace();
-				return Io_mem_dataspace_capability();
+				return assign_device(device);
 			}
 
 			/**

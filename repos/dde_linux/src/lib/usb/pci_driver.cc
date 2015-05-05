@@ -313,9 +313,6 @@ int pci_register_driver(struct pci_driver *drv)
 
 			Pci_driver *pci_drv = 0;
 			try {
-				/* trigger that the device get be assigned to the usb driver */
-				pci.config_extended(cap);
-
 				/* probe device */
 				pci_drv = new (env()->heap()) Pci_driver(drv, cap, id);
 				pci.on_destruction(Pci::Connection::KEEP_OPEN);
