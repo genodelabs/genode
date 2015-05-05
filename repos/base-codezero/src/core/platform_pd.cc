@@ -98,8 +98,8 @@ Platform_pd::Platform_pd(bool core)
 }
 
 
-Platform_pd::Platform_pd(Allocator * md_alloc, size_t ram_quota,
-                         char const *, signed pd_id, bool create)
+Platform_pd::Platform_pd(Allocator * md_alloc, char const *,
+                         signed pd_id, bool create)
 : _space_id(TASK_ID_INVALID)
 {
 	_space_id = TASK_ID_INVALID;

@@ -15,7 +15,9 @@
 #define _INCLUDE__INIT__CHILD_H_
 
 /* Genode includes */
+#include <pd_session/connection.h>
 #include <ram_session/connection.h>
+#include <rm_session/connection.h>
 #include <cpu_session/connection.h>
 #include <cap_session/connection.h>
 #include <base/printf.h>
@@ -440,6 +442,7 @@ class Init::Child : Genode::Child_policy
 			Genode::size_t         ram_quota;
 			Genode::size_t         cpu_quota_pc;
 			bool                   constrain_phys;
+			Genode::Pd_connection  pd;
 			Genode::Ram_connection ram;
 			Genode::Cpu_connection cpu;
 			Genode::Rm_connection  rm;
@@ -448,20 +451,23 @@ class Init::Child : Genode::Child_policy
 
 			Resources(Genode::Xml_node start_node, const char *label,
 			          long prio_levels_log2,
-			          Genode::Affinity::Space const &affinity_space)
+			          Genode::Affinity::Space const &affinity_space,
+			          Genode::Native_pd_args const * pd_args)
 			:
 				Read_quota(start_node, ram_quota, cpu_quota_pc, constrain_phys),
 				prio_levels_log2(prio_levels_log2),
 				priority(read_priority(start_node)),
 				affinity(affinity_space,
 				         read_affinity_location(affinity_space, start_node)),
+				pd(label, pd_args),
 				ram(label),
 				cpu(label,
 				    priority*(Genode::Cpu_session::PRIORITY_LIMIT >> prio_levels_log2),
 				    affinity)
 			{
 				/* deduce session costs from usable ram quota */
-				Genode::size_t session_donations = Genode::Rm_connection::RAM_QUOTA +
+				Genode::size_t session_donations = Genode::Pd_connection::RAM_QUOTA +
+				                                   Genode::Rm_connection::RAM_QUOTA +
 				                                   Genode::Cpu_connection::RAM_QUOTA +
 				                                   Genode::Ram_connection::RAM_QUOTA;
 
@@ -532,13 +538,14 @@ class Init::Child : Genode::Child_policy
 			_name_registry(name_registry),
 			_name(start_node, name_registry),
 			_pd_args(start_node),
-			_resources(start_node, _name.unique, prio_levels_log2, affinity_space),
+			_resources(start_node, _name.unique, prio_levels_log2,
+			           affinity_space, &_pd_args),
 			_entrypoint(cap_session, ENTRYPOINT_STACK_SIZE, _name.unique, false, _resources.affinity.location()),
 			_binary_rom(_name.file, _name.unique),
 			_binary_rom_ds(_binary_rom.dataspace()),
 			_config(_resources.ram.cap(), start_node),
 			_server(_resources.ram.cap()),
-			_child(_binary_rom_ds, _resources.ram.cap(),
+			_child(_binary_rom_ds, _resources.pd.cap(), _resources.ram.cap(),
 			       _resources.cpu.cap(), _resources.rm.cap(), &_entrypoint, this),
 			_parent_services(parent_services),
 			_child_services(child_services),

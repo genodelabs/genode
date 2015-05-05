@@ -79,6 +79,8 @@ namespace Genode {
 
 		public:
 
+			enum { RAM_QUOTA = 4*1024 };
+
 			/**
 			 * Constructor
 			 *

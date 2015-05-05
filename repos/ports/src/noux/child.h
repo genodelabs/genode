@@ -18,6 +18,7 @@
 #include <base/signal.h>
 #include <base/semaphore.h>
 #include <cap_session/cap_session.h>
+#include <pd_session/connection.h>
 #include <os/attached_ram_dataspace.h>
 
 /* Noux includes */
@@ -123,6 +124,8 @@ namespace Noux {
 
 			enum { STACK_SIZE = 4*1024*sizeof(long) };
 			Rpc_entrypoint _entrypoint;
+
+			Pd_connection _pd;
 
 			/**
 			 * Resources assigned to the child
@@ -338,6 +341,7 @@ namespace Noux {
 				_destruct_context_cap(sig_rec->manage(&_destruct_dispatcher)),
 				_cap_session(cap_session),
 				_entrypoint(cap_session, STACK_SIZE, "noux_process", false),
+				_pd(binary_name),
 				_resources(binary_name, resources_ep, false),
 				_args(ARGS_DS_SIZE, args),
 				_env(env),
@@ -363,7 +367,7 @@ namespace Noux {
 				              *this, parent_exit, *this, _destruct_context_cap,
 				              _resources.ram, verbose),
 				_child(forked ? Dataspace_capability() : _elf._binary_ds,
-				       _resources.ram.cap(), _resources.cpu.cap(),
+				       _pd.cap(), _resources.ram.cap(), _resources.cpu.cap(),
 				       _resources.rm.cap(), &_entrypoint, &_child_policy,
 				       /**
 				        * Override the implicit assignment to _parent_service

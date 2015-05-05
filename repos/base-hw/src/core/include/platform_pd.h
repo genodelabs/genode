@@ -66,8 +66,7 @@ namespace Genode
 			 *
 			 * \param label  name of protection domain
 			 */
-			Platform_pd(Allocator * md_alloc, size_t ram_quota,
-			            char const *label)
+			Platform_pd(Allocator * md_alloc, char const *label)
 			: _main_thread(0), _label(label),
 			  _kernel_pd(reinterpret_cast<Kernel::Pd*>(_kernel_pd_data))
 			{

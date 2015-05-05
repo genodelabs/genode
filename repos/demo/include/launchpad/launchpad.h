@@ -174,6 +174,7 @@ class Launchpad_child : public Genode::List<Launchpad_child>::Element
 
 			Launchpad_child(const char                    *name,
 			                Genode::Dataspace_capability   elf_ds,
+			                Genode::Pd_session_capability  pd,
 			                Genode::Ram_session_capability ram,
 			                Genode::Cpu_session_capability cpu,
 			                Genode::Rm_session_capability  rm,
@@ -189,7 +190,7 @@ class Launchpad_child : public Genode::List<Launchpad_child>::Element
 				_entrypoint(cap_session, ENTRYPOINT_STACK_SIZE, name, false),
 				_policy(name, &_server, parent_services, child_services,
 				        config_ds, elf_ds, &_entrypoint),
-				_child(elf_ds, ram, cpu, rm, &_entrypoint, &_policy) {
+				_child(elf_ds, pd, ram, cpu, rm, &_entrypoint, &_policy) {
 				_entrypoint.activate(); }
 
 			Genode::Rom_session_capability rom_session_cap() { return _rom; }

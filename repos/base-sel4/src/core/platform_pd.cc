@@ -139,8 +139,8 @@ void Platform_pd::flush(addr_t virt_addr, size_t size)
 }
 
 
-Platform_pd::Platform_pd(Allocator * md_alloc, size_t ram_quota,
-                         char const *, signed pd_id, bool create)
+Platform_pd::Platform_pd(Allocator * md_alloc, char const *,
+                         signed pd_id, bool create)
 :
 	_id(pd_id_alloc().alloc()),
 	_page_table_registry(*md_alloc),

@@ -143,14 +143,18 @@ namespace Genode {
 			/**
 			 * Constructor
 			 */
-			Platform_pd(Allocator * md_alloc, size_t ram_quota,
-			            char const *, signed pd_id = PD_INVALID,
-			            bool create = true);
+			Platform_pd(Allocator * md_alloc, char const *,
+			            signed pd_id = PD_INVALID, bool create = true);
 
 			/**
 			 * Destructor
 			 */
 			~Platform_pd();
+
+			/**
+			 * Register quota donation at allocator guard
+			 */
+			void upgrade_ram_quota(size_t ram_quota) { }
 
 			/**
 			 * Initialize L4 task facility

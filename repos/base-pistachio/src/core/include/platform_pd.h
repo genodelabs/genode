@@ -184,14 +184,18 @@ namespace Genode {
 			 * Constructors
 			 */
 			Platform_pd(bool core);
-			Platform_pd(Allocator * md_alloc, size_t ram_quota,
-			            char const *, signed pd_id = PD_INVALID,
-			            bool create = true);
+			Platform_pd(Allocator * md_alloc, char const *,
+			            signed pd_id = PD_INVALID, bool create = true);
 
 			/**
 			 * Destructor
 			 */
 			~Platform_pd();
+
+			/**
+			 * Register quota donation at allocator guard
+			 */
+			void upgrade_ram_quota(size_t ram_quota) { }
 
 			static Pistachio::L4_Word_t _core_utcb_ptr;
 			static void touch_utcb_space();

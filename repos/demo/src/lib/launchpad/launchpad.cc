@@ -261,9 +261,20 @@ Launchpad_child *Launchpad::start_child(const char *filename,
 		return 0;
 	}
 
+	Pd_connection pd;
+	pd.on_destruction(Pd_connection::KEEP_OPEN);
+	if (!pd.cap().valid()) {
+		PWRN("Failed to create PD session");
+		env()->parent()->close(ram.cap());
+		env()->parent()->close(cpu.cap());
+		env()->parent()->close(rom_cap);
+		env()->parent()->close(rm.cap());
+		return 0;
+	}
+
 	try {
 		Launchpad_child *c = new (&_sliced_heap)
-			Launchpad_child(unique_name, file_cap, ram.cap(),
+			Launchpad_child(unique_name, file_cap, pd.cap(), ram.cap(),
 			                cpu.cap(), rm.cap(), rom_cap,
 			                &_cap_session, &_parent_services, &_child_services,
 			                config_ds, this);

@@ -161,6 +161,10 @@ class Genode::Child : protected Rpc_object<Parent>
 
 		class Session;
 
+		/* PD session representing the protection domain of the child */
+		Pd_session_capability   _pd;
+		Pd_session_client       _pd_session_client;
+
 		/* RAM session that contains the quota of the child */
 		Ram_session_capability  _ram;
 		Ram_session_client      _ram_session_client;
@@ -171,7 +175,8 @@ class Genode::Child : protected Rpc_object<Parent>
 		/* RM session representing the address space of the child */
 		Rm_session_capability   _rm;
 
-		/* Services where the RAM, CPU, and RM resources come from */
+		/* Services where the PD, RAM, CPU, and RM resources come from */
+		Service                &_pd_service;
 		Service                &_ram_service;
 		Service                &_cpu_service;
 		Service                &_rm_service;
@@ -235,12 +240,14 @@ class Genode::Child : protected Rpc_object<Parent>
 		 * Constructor
 		 *
 		 * \param elf_ds       dataspace containing the binary
+		 * \param pd           PD session representing the protection domain
 		 * \param ram          RAM session with the child's quota
 		 * \param cpu          CPU session with the child's quota
 		 * \param rm           RM session representing the address space
 		 *                     of the child
 		 * \param entrypoint   server entrypoint to serve the parent interface
 		 * \param policy       child policy
+		 * \param pd_service   provider of the 'pd' session
 		 * \param ram_service  provider of the 'ram' session
 		 * \param cpu_service  provider of the 'cpu' session
 		 * \param rm_service   provider of the 'rm' session
@@ -257,11 +264,13 @@ class Genode::Child : protected Rpc_object<Parent>
 		 * resources are provided by the parent.
 		 */
 		Child(Dataspace_capability    elf_ds,
+		      Pd_session_capability   pd,
 		      Ram_session_capability  ram,
 		      Cpu_session_capability  cpu,
 		      Rm_session_capability   rm,
 		      Rpc_entrypoint         *entrypoint,
 		      Child_policy           *policy,
+		      Service                &pd_service  = *_parent_service(),
 		      Service                &ram_service = *_parent_service(),
 		      Service                &cpu_service = *_parent_service(),
 		      Service                &rm_service  = *_parent_service());
@@ -279,10 +288,11 @@ class Genode::Child : protected Rpc_object<Parent>
 		 */
 		Allocator *heap() { return &_heap; }
 
+		Pd_session_capability  pd_session_cap()  const { return _pd; }
 		Ram_session_capability ram_session_cap() const { return _ram; }
 		Cpu_session_capability cpu_session_cap() const { return _cpu; }
-		Rm_session_capability   rm_session_cap() const { return _rm;  }
-		Parent_capability       parent_cap()     const { return cap(); }
+		Rm_session_capability  rm_session_cap()  const { return _rm;  }
+		Parent_capability      parent_cap()      const { return cap(); }
 
 		/**
 		 * Discard all sessions to specified service

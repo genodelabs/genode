@@ -16,6 +16,8 @@
 #include <base/sleep.h>
 #include <base/service.h>
 #include <base/child.h>
+#include <rm_session/connection.h>
+#include <pd_session/connection.h>
 #include <rom_session/connection.h>
 #include <cpu_session/connection.h>
 
@@ -118,13 +120,15 @@ class Core_child : public Child_policy
 		/**
 		 * Constructor
 		 */
-		Core_child(Dataspace_capability elf_ds, Cap_session *cap_session,
-		           Ram_session_capability ram, Cpu_session_capability cpu,
-		           Rm_session_capability rm, Service_registry &services)
+		Core_child(Dataspace_capability elf_ds, Pd_session_capability pd,
+		           Cap_session *cap_session, Ram_session_capability ram,
+		           Cpu_session_capability cpu, Rm_session_capability rm,
+		           Service_registry &services)
 		:
 			_entrypoint(cap_session, STACK_SIZE, "init", false),
 			_local_services(services),
-			_child(elf_ds, ram, cpu, rm, &_entrypoint, this,
+			_child(elf_ds, pd, ram, cpu, rm, &_entrypoint, this,
+			       *_local_services.find(Pd_session::service_name()),
 			       *_local_services.find(Ram_session::service_name()),
 			       *_local_services.find(Cpu_session::service_name()),
 			       *_local_services.find(Rm_session::service_name()))
@@ -280,9 +284,10 @@ int main()
 	env()->ram_session()->transfer_quota(init_ram_session_cap, init_quota);
 	PDBG("transferred %zu MB to init", init_quota / (1024*1024));
 
+	Pd_connection init_pd("init");
 	Core_child *init = new (env()->heap())
 		Core_child(Rom_session_client(init_rom_session_cap).dataspace(),
-		           core_env()->cap_session(), init_ram_session_cap,
+		           init_pd, core_env()->cap_session(), init_ram_session_cap,
 		           init_cpu.cap(), init_rm.cap(), local_services);
 
 	PDBG("--- init created, waiting for exit condition ---");

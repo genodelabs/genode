@@ -53,6 +53,11 @@ namespace Genode {
 
 			~Pd_session_component();
 
+			/**
+			 * Register quota donation at allocator guard
+			 */
+			void upgrade_ram_quota(size_t ram_quota) { }
+
 
 			/**************************
 			 ** PD session interface **

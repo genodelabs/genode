@@ -22,6 +22,7 @@
 #include <ram_session/connection.h>
 #include <cpu_session/connection.h>
 #include <rm_session/connection.h>
+#include <pd_session/connection.h>
 #include <os/child_policy_dynamic_rom.h>
 
 namespace Genode {
@@ -158,6 +159,7 @@ class Genode::Slave
 
 		struct Resources
 		{
+			Genode::Pd_connection  pd;
 			Genode::Ram_connection ram;
 			Genode::Cpu_connection cpu;
 			Genode::Rm_connection  rm;
@@ -165,7 +167,7 @@ class Genode::Slave
 			class Quota_exceeded : public Genode::Exception { };
 
 			Resources(const char *label, Genode::size_t ram_quota)
-			: ram(label), cpu(label)
+			: pd(label), ram(label), cpu(label)
 			{
 				/*
 				 * XXX derive donated quota from information to be provided by
@@ -191,7 +193,7 @@ class Genode::Slave
 		      Genode::size_t          ram_quota)
 		:
 			_resources(slave_policy.name(), ram_quota),
-			_child(slave_policy.binary(),
+			_child(slave_policy.binary(), _resources.pd.cap(),
 			       _resources.ram.cap(), _resources.cpu.cap(),
 			       _resources.rm.cap(), &entrypoint, &slave_policy)
 		{ }

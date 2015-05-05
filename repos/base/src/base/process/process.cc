@@ -170,18 +170,17 @@ static addr_t _setup_elf(Parent_capability parent_cap,
 
 
 Process::Process(Dataspace_capability    elf_ds_cap,
+                 Pd_session_capability   pd_session_cap,
                  Ram_session_capability  ram_session_cap,
                  Cpu_session_capability  cpu_session_cap,
                  Rm_session_capability   rm_session_cap,
                  Parent_capability       parent_cap,
-                 char const             *name,
-                 Native_pd_args const   *pd_args)
-:
-	_pd(name, pd_args),
-	_cpu_session_client(cpu_session_cap),
-	_rm_session_client(rm_session_cap)
+                 char const             *name)
+: _pd_session_client(pd_session_cap),
+  _cpu_session_client(cpu_session_cap),
+  _rm_session_client(rm_session_cap)
 {
-	if (!_pd.cap().valid())
+	if (!pd_session_cap.valid())
 		return;
 
 	enum Local_exception
@@ -238,13 +237,13 @@ Process::Process(Dataspace_capability    elf_ds_cap,
 		}
 
 		/* register parent interface for new protection domain */
-		if (_pd.assign_parent(parent_cap)) {
+		if (_pd_session_client.assign_parent(parent_cap)) {
 			PERR("Could not assign parent interface to new PD");
 			throw ASSIGN_PARENT_FAIL;
 		}
 
 		/* bind thread0 */
-		err = _pd.bind_thread(_thread0_cap);
+		err = _pd_session_client.bind_thread(_thread0_cap);
 		if (err) {
 			PERR("Thread binding failed (%d)", err);
 			throw THREAD_BIND_FAIL;

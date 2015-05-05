@@ -21,6 +21,8 @@
 #include <base/env.h>
 #include <base/sleep.h>
 #include <base/child.h>
+#include <pd_session/connection.h>
+#include <rm_session/connection.h>
 #include <ram_session/connection.h>
 #include <rom_session/connection.h>
 #include <cpu_session/connection.h>
@@ -88,13 +90,14 @@ class Test_child : public Child_policy
 		 * Constructor
 		 */
 		Test_child(Genode::Dataspace_capability    elf_ds,
+		           Genode::Pd_session_capability   pd,
 		           Genode::Ram_session_capability  ram,
 		           Genode::Cpu_session_capability  cpu,
 		           Genode::Rm_session_capability   rm,
 		           Genode::Cap_session            *cap)
 		:
 			_entrypoint(cap, STACK_SIZE, "child", false),
-			_child(elf_ds, ram, cpu, rm, &_entrypoint, this),
+			_child(elf_ds, pd, ram, cpu, rm, &_entrypoint, this),
 			_log_service("LOG"), _rm_service("RM")
 		{
 			/* start execution of the new child */
@@ -132,6 +135,7 @@ void main_parent(Dataspace_capability elf_ds)
 	printf("parent role started\n");
 
 	/* create environment for new child */
+	static Pd_connection  pd;
 	static Ram_connection ram;
 	static Cpu_connection cpu;
 	static Rm_connection  rm;
@@ -149,7 +153,8 @@ void main_parent(Dataspace_capability elf_ds)
 	rm.fault_handler(fault_handler.manage(&signal_context));
 
 	/* create child */
-	static Test_child child(elf_ds, ram.cap(), cpu.cap(), rm.cap(), &cap);
+	static Test_child child(elf_ds, pd.cap(), ram.cap(), cpu.cap(),
+	                        rm.cap(), &cap);
 
 	/* allocate dataspace used for creating shared memory between parent and child */
 	Dataspace_capability ds = env()->ram_session()->alloc(4096);

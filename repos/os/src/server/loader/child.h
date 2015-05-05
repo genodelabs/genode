@@ -20,7 +20,9 @@
 #include <util/arg_string.h>
 #include <init/child_policy.h>
 #include <ram_session/connection.h>
+#include <rm_session/connection.h>
 #include <cpu_session/connection.h>
+#include <pd_session/connection.h>
 
 
 namespace Loader {
@@ -42,6 +44,7 @@ namespace Loader {
 
 			struct Resources
 			{
+				Pd_connection  pd;
 				Ram_connection ram;
 				Cpu_connection cpu;
 				Rm_connection  rm;
@@ -50,7 +53,7 @@ namespace Loader {
 				          Ram_session_client       &ram_session_client,
 				          size_t                    ram_quota,
 				          Signal_context_capability fault_sigh)
-				: ram(label), cpu(label)
+				: pd(label), ram(label), cpu(label)
 				{
 					/* deduce session costs from usable ram quota */
 					size_t session_donations = Rm_connection::RAM_QUOTA +
@@ -128,7 +131,7 @@ namespace Loader {
 				_binary_policy("binary", _binary_rom_session.dataspace(), &_ep),
 				_labeling_policy(_label.string),
 				_pd_args_policy(&_pd_args),
-				_child(_binary_rom_session.dataspace(),
+				_child(_binary_rom_session.dataspace(), _resources.pd.cap(),
 				       _resources.ram.cap(), _resources.cpu.cap(),
 				       _resources.rm.cap(), &_ep, this)
 			{ }

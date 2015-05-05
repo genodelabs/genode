@@ -340,8 +340,8 @@ Platform_pd::Platform_pd(bool core) :
 }
 
 
-Platform_pd::Platform_pd(Allocator * md_alloc, size_t ram_quota,
-                         char const *, signed pd_id, bool create)
+Platform_pd::Platform_pd(Allocator * md_alloc, char const *,
+                         signed pd_id, bool create)
 {
 	if (!create)
 		panic("create must be true.");

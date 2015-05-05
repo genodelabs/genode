@@ -41,6 +41,13 @@ class Genode::Pd_root
 			                                             _md_alloc, args);
 		}
 
+		void _upgrade_session(Pd_session_component *p, const char *args)
+		{
+			size_t ram_quota =
+				Arg_string::find_arg(args, "ram_quota").ulong_value(0);
+			p->upgrade_ram_quota(ram_quota);
+		}
+
 	public:
 
 		/**

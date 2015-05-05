@@ -68,8 +68,8 @@ class Genode::Platform_pd : public Address_space
 		/**
 		 * Constructors
 		 */
-		Platform_pd(Allocator * md_alloc, size_t ram_quota,
-		            char const *, signed pd_id = -1, bool create = true);
+		Platform_pd(Allocator * md_alloc, char const *,
+		            signed pd_id = -1, bool create = true);
 
 		/**
 		 * Destructor

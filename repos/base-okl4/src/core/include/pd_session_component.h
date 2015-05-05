@@ -37,6 +37,11 @@ namespace Genode {
 			                     Allocator *md_alloc, const char *args)
 			: _thread_ep(thread_ep) { }
 
+			/**
+			 * Register quota donation at allocator guard
+			 */
+			void upgrade_ram_quota(size_t ram_quota) { }
+
 
 			/**************************
 			 ** Pd session interface **

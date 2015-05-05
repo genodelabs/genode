@@ -271,7 +271,7 @@ Session_capability Child::session(Parent::Service_name const &name,
 	if (!strcmp("Env::ram_session", name.string())) return _ram;
 	if (!strcmp("Env::cpu_session", name.string())) return _cpu;
 	if (!strcmp("Env::rm_session",  name.string())) return _rm;
-	if (!strcmp("Env::pd_session",  name.string())) return _process.pd_session_cap();
+	if (!strcmp("Env::pd_session",  name.string())) return _pd;
 
 	/* filter session arguments according to the child policy */
 	strncpy(_args, args.string(), sizeof(_args));
@@ -325,6 +325,8 @@ void Child::upgrade(Session_capability to_session, Parent::Upgrade_args const &a
 		targeted_service = &_cpu_service;
 	if (to_session.local_name() == _rm.local_name())
 		targeted_service = &_rm_service;
+	if (to_session.local_name() == _pd.local_name())
+		targeted_service = &_pd_service;
 
 	/* check if upgrade refers to server */
 	Object_pool<Session>::Guard session(_session_pool.lookup_and_lock(to_session));
@@ -371,7 +373,7 @@ void Child::close(Session_capability session_cap)
 	if (session_cap.local_name() == _ram.local_name()
 	 || session_cap.local_name() == _cpu.local_name()
 	 || session_cap.local_name() == _rm.local_name()
-	 || session_cap.local_name() == _process.pd_session_cap().local_name())
+	 || session_cap.local_name() == _pd.local_name())
 		return;
 
 	Session *s = _session_pool.lookup_and_lock(session_cap);
@@ -464,16 +466,19 @@ void Child::yield_response() { _policy->yield_response(); }
 
 
 Child::Child(Dataspace_capability    elf_ds,
+             Pd_session_capability   pd,
              Ram_session_capability  ram,
              Cpu_session_capability  cpu,
              Rm_session_capability   rm,
              Rpc_entrypoint         *entrypoint,
              Child_policy           *policy,
+             Service                &pd_service,
              Service                &ram_service,
              Service                &cpu_service,
              Service                &rm_service)
 :
-	_ram(ram), _ram_session_client(ram), _cpu(cpu), _rm(rm),
+	_pd(pd), _pd_session_client(pd), _ram(ram), _ram_session_client(ram),
+	_cpu(cpu), _rm(rm), _pd_service(pd_service),
 	_ram_service(ram_service), _cpu_service(cpu_service),
 	_rm_service(rm_service),
 	_heap(&_ram_session_client, env()->rm_session()),
@@ -481,7 +486,7 @@ Child::Child(Dataspace_capability    elf_ds,
 	_parent_cap(_entrypoint->manage(this)),
 	_policy(policy),
 	_server(ram),
-	_process(elf_ds, ram, cpu, rm, _parent_cap, policy->name(), policy->pd_args())
+	_process(elf_ds, pd, ram, cpu, rm, _parent_cap, policy->name())
 { }
 
 

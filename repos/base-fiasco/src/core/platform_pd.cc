@@ -236,8 +236,8 @@ void Platform_pd::unbind_thread(Platform_thread *thread)
 }
 
 
-Platform_pd::Platform_pd(Allocator * md_alloc, size_t ram_quota,
-                         char const *, signed pd_id, bool create)
+Platform_pd::Platform_pd(Allocator * md_alloc, char const *,
+                         signed pd_id, bool create)
 {
 	/* check correct init */
 	if (!_init)

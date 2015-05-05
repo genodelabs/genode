@@ -490,7 +490,7 @@ Platform::Platform() :
 
 	/* setup pd object for core pd */
 	_core_label[0] = 0;
-	_core_pd = new(core_mem_alloc()) Platform_pd(nullptr, 0, _core_label,
+	_core_pd = new(core_mem_alloc()) Platform_pd(nullptr, _core_label,
 	                                             myself.id.task, false);
 
 	/*

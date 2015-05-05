@@ -22,6 +22,8 @@ namespace Genode { struct Pd_connection; }
 
 struct Genode::Pd_connection : Connection<Pd_session>, Pd_session_client
 {
+	enum { RAM_QUOTA = 4*1024 };
+
 	/**
 	 * Constructor
 	 *

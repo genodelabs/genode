@@ -16,9 +16,11 @@
 #include <base/sleep.h>
 #include <base/child.h>
 #include <ram_session/connection.h>
+#include <rm_session/connection.h>
 #include <rom_session/connection.h>
 #include <cpu_session/connection.h>
 #include <cap_session/connection.h>
+#include <pd_session/connection.h>
 #include <loader_session/connection.h>
 
 
@@ -51,11 +53,13 @@ class Test_child : public Genode::Child_policy
 
 		struct Resources
 		{
+			Genode::Pd_connection  pd;
 			Genode::Ram_connection ram;
 			Genode::Cpu_connection cpu;
 			Genode::Rm_connection  rm;
 
-			Resources(Genode::Signal_context_capability sigh)
+			Resources(Genode::Signal_context_capability sigh, char const *label)
+			: pd(label)
 			{
 				using namespace Genode;
 
@@ -93,10 +97,10 @@ class Test_child : public Genode::Child_policy
 		           char const                       *elf_name,
 		           Genode::Signal_context_capability sigh)
 		:
-			_resources(sigh),
+			_resources(sigh, elf_name),
 			_elf(elf_name),
 			_log_service("LOG"), _rm_service("RM"),
-			_child(_elf.dataspace(), _resources.ram.cap(),
+			_child(_elf.dataspace(), _resources.pd.cap(), _resources.ram.cap(),
 			       _resources.cpu.cap(), _resources.rm.cap(), &ep, this)
 		{ }
 
