@@ -62,6 +62,8 @@ namespace Genode {
 				}
 			}
 
+			void upgrade_ram_quota(size_t ram_quota) { }
+
 			Native_capability alloc(Native_capability ep, addr_t entry,
 			                        addr_t mtd)
 			{

@@ -26,6 +26,8 @@ namespace Genode {
 
 			Cap_session_component(Allocator *md_alloc, const char *args) {}
 
+			void upgrade_ram_quota(size_t ram_quota) { }
+
 			Native_capability alloc(Native_capability ep);
 
 			void free(Native_capability cap);

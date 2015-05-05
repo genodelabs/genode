@@ -33,6 +33,13 @@ namespace Genode {
 			Cap_session_component *_create_session(const char *args) {
 				return new (md_alloc()) Cap_session_component(_md_alloc, args); }
 
+			void _upgrade_session(Cap_session_component *c, const char *args)
+			{
+				size_t ram_quota =
+					Arg_string::find_arg(args, "ram_quota").ulong_value(0);
+				c->upgrade_ram_quota(ram_quota);
+			}
+
 		public:
 
 			/**
