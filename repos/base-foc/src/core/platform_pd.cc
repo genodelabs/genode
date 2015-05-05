@@ -43,7 +43,14 @@ static addr_t core_utcb_base() {
 
 int Platform_pd::bind_thread(Platform_thread *thread)
 {
-	for (unsigned i = 0; i < THREAD_MAX; i++) {
+	/*
+	 * Fiasco.OC limits the UTCB area for roottask to 16K. Therefore, the
+	 * number of threads is limited to 16K / L4_UTCB_OFFSET.
+	 * (see kernel/fiasco/src/kern/kernel_thread-std.cpp:94)
+	 */
+	unsigned const thread_max = thread->core_thread() ? 16*1024/L4_UTCB_OFFSET : THREAD_MAX;
+
+	for (unsigned i = 0; i < thread_max; i++) {
 		if (_threads[i])
 			continue;
 
