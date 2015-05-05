@@ -114,26 +114,6 @@ class Ahci_device : public Ahci_device_base
 			_identify_device();
 		}
 
-		static void _disable_msi(::Pci::Device_client *pci)
-		{
-			enum { PM_CAP_OFF = 0x34, MSI_CAP = 0x5, MSI_ENABLED = 0x1 };
-			uint8_t cap = pci->config_read(PM_CAP_OFF, ::Pci::Device::ACCESS_8BIT);
-
-			/* iterate through cap pointers */
-			for (uint16_t val = 0; cap; cap = val >> 8) {
-				val = pci->config_read(cap, ::Pci::Device::ACCESS_16BIT);
-
-				if ((val & 0xff) != MSI_CAP)
-					continue;
-				uint16_t msi = pci->config_read(cap + 2, ::Pci::Device::ACCESS_16BIT);
-
-				if (msi & MSI_ENABLED) {
-					pci->config_write(cap + 2, msi ^ MSI_CAP, ::Pci::Device::ACCESS_8BIT);
-					PINF("Disabled MSIs %x", msi);
-				}
-			}
-		}
-
 	public:
 
 		Ahci_device(addr_t base, Io_mem_session_capability io_cap,
@@ -187,10 +167,7 @@ class Ahci_device : public Ahci_device_base
 						PDBG("Bus address: %x:%02x.%u (0x%x)", bus, dev, func, (bus << 8) | ((dev & 0x1f) << 3) | (func & 0x7));
 					}
 
-					/* disable message signaled interrupts */
-					_disable_msi(pci_device);
-
-					device->_irq = new(env()->heap()) Irq_connection(intr & 0xff);
+					device->_irq = new(env()->heap()) Irq_session_client(pci_device->irq(0));
 					Genode::Signal_context_capability cap = device->_irq_rec.manage(&device->_irq_ctx);
 					device->_irq->sigh(cap);
 					device->_irq->ack_irq();
