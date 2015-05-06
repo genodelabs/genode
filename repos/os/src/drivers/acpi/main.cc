@@ -161,6 +161,10 @@ namespace Pci {
 }
 
 
+static Irq::Root irq_root;
+static Genode::Local_service local_irq("IRQ", &irq_root);
+
+
 class Pci_policy : public Genode::Slave_policy, public Pci::Provider
 {
 	private:
@@ -172,14 +176,24 @@ class Pci_policy : public Genode::Slave_policy, public Pci::Provider
 
 	protected:
 
+		Genode::Service *resolve_session_request(const char *service_name,
+		                                         const char *args) override
+		{
+			if (!Genode::strcmp(service_name, "IRQ"))
+				return &local_irq;
+
+			return Genode::Slave_policy::resolve_session_request(service_name,
+			                                                     args);
+		}
+
 		char const **_permitted_services() const
 		{
 			static char const *permitted_services[] = { "CPU", "CAP", "RM",
 			                                            "LOG", "IO_PORT", "PD",
 			                                            "ROM", "RAM", "SIGNAL",
-			                                            "IO_MEM", "IRQ", 0 };
+			                                            "IO_MEM", 0 };
 			return permitted_services;
-		};
+		}
 
 		/**
 		 * Parse ACPI tables and announce slave PCI service
@@ -199,7 +213,6 @@ class Pci_policy : public Genode::Slave_policy, public Pci::Provider
 
 			/* announce PCI/IRQ services to parent */
 			static Pci::Root pci_root(*this);
-			static Irq::Root irq_root;
 
 			Genode::env()->parent()->announce(_pci_ep.manage(&pci_root));
 			Genode::env()->parent()->announce(_irq_ep.manage(&irq_root));
