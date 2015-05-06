@@ -1,0 +1,78 @@
+
+            =============================================
+            Getting started with 'base-hw' on the Muen SK
+            =============================================
+
+
+                            The Muen Team
+
+Abstract
+########
+
+This is a short tutorial that depicts a handy way to get a Genode image, built
+with 'base-hw', started as subject on the Muen Separation Kernel (SK)
+[http://muen.sk]. For general information about how to build Genode images with
+'base-hw', have a look at '<genode_dir>/repos/base-hw/doc/hw.txt'.
+
+Tutorial
+########
+
+For information on how to download, build and prove the Muen SK refer to the
+project website. In summary, after installing the Ada/SPARK tool-chain and all
+required distribution packages, execute the following commands:
+
+! git clone http://git.codelabs.ch/git/muen.git
+! cd muen
+! make SYSTEM=genode-base_hw_simple COMPONENTS="dbgserver sm tau0" emulate
+
+This will build a Muen SK system and start it using the Bochs x86 emulator
+[http://bochs.sourceforge.net/]. You should get the following error:
+
+! mupack: File '<muen_workdir>/pack/../policy/obj/base_hw' referenced by
+!         physical memory region 'base_hw|bin' not found
+
+This means that the Muen packer tool was unable to find the component binary
+'base_hw', which is expected since it has not yet been compiled.
+
+Now it is time to build the Genode 'base-hw' image for Muen. Ensure that you
+have installed the Genode tool-chain that is available at:
+
+:[http://genode.org/download/tool-chain]:
+  Genode tool-chain
+
+Then execute the following commands:
+
+! cd <genode_dir>
+! <genode_dir>/tool/create_builddir hw_x86_64_muen
+! cd build/hw_x86_64_muen/
+! make run/printf
+
+Copy the resulting RAW binary image to the Muen working directory:
+
+! cp var/run/printf/image.raw <muen_workdir>/policy/obj/base_hw
+
+Change to the Muen working directory and run the command from above to re-start
+emulation:
+
+! make SYSTEM=genode-base_hw_simple COMPONENTS="dbgserver sm tau0" emulate
+
+The serial output of the system can be inspected in the
+'<muen_workdir>/emulate/serial.out' file. You should see the following line:
+
+! [init -> test-printf] -1 = -1 = -1
+
+This indicates the successful execution of the Genode 'run/printf' scenario as
+Muen subject.
+
+Hardware
+########
+
+Muen also provides a system policy to run more elaborate Genode scenarios such
+as 'run/demo' on real hardware. Execute the following command to create an ISO
+file to be run on a Lenovo T440s notebook:
+
+! make SYSTEM=genode-base_hw COMPONENTS="dbgserver sm tau0" HARDWARE=lenovo-t440s iso
+
+The created ISO file can be found at '<muen_workdir>/emulate/muen.iso'. See
+[http://muen.sk/#_deploy] for more information about how to deploy
+Muen system images to real hardware.
