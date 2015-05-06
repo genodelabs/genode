@@ -121,15 +121,6 @@ class Pci_driver : public Bsd::Bus_driver
 		Genode::Ram_dataspace_capability _alloc_dma_memory(Genode::size_t size)
 		{
 			try {
-				/* trigger that the device gets assigned to this driver (needed by IOMMUs) */
-				for (unsigned i = 0; i < 2; i++)
-					try {
-						_pci.config_extended(_cap);
-						break;
-					} catch (Pci::Device::Quota_exceeded) {
-						Genode::env()->parent()->upgrade(_pci.cap(), "ram_quota=4096");
-					}
-
 				char buf[32];
 				Genode::snprintf(buf, sizeof(buf), "ram_quota=%zu", size);
 				Genode::env()->parent()->upgrade(_pci.cap(), buf);
