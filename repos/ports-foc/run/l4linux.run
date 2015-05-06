@@ -109,6 +109,7 @@ append_if $use_platform_drv config {
 		<resource name="RAM" quantum="1M"/>
 		<provides>
 			<service name="Regulator"/>
+			<service name="Platform"/>
 		</provides>
 	</start>}
 
