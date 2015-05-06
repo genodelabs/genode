@@ -14,7 +14,9 @@ if {[have_spec hw_odroid_xu]} {
 	exit 0
 }
 
-set use_usb_driver      [expr [have_spec omap4] || [have_spec platform_arndale] || [have_spec platform_rpi]]
+if {![info exists use_usb_driver]} {
+	set use_usb_driver      [expr [have_spec omap4] || [have_spec platform_arndale] || [have_spec platform_rpi]]
+}
 set use_nic_driver      [expr !$use_usb_driver && ![have_spec platform_imx53] && !$use_wifi_driver]
 set use_platform_driver [expr [have_spec platform_arndale] || [have_spec platform_imx53] || [have_spec platform_rpi]]
 
@@ -236,6 +238,7 @@ append_if [have_spec acpi] config {
 			<policy label="acpi_drv"> <pci class="ALL"/> </policy>
 			<policy label="nic_drv"> <pci class="ETHERNET"/> </policy>
 			<policy label="wifi_drv"> <pci class="WIFI"/> </policy>
+			<policy label="usb_drv"> <pci class="USB"/> </policy>
 		</config>
 		<route>
 			<any-service> <parent/> </any-service>
@@ -249,6 +252,7 @@ append_if [expr ![have_spec acpi] && [have_spec pci]] config {
 		<config>
 			<policy label="nic_drv"> <pci class="ETHERNET"/> </policy>
 			<policy label="wifi_drv"> <pci class="WIFI"/> </policy>
+			<policy label="usb_drv"> <pci class="USB"/> </policy>
 		</config>
 	</start> }
 
