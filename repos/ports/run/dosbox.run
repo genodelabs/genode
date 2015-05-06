@@ -12,6 +12,7 @@ set build_components {
 }
 
 lappend_if [have_spec acpi] build_components drivers/acpi
+lappend_if [have_spec  pci] build_components drivers/pci/device_pd
 
 build $build_components
 
@@ -47,6 +48,7 @@ append_if [have_spec sdl] config {
 			<service name="Input"/>
 			<service name="Framebuffer"/>
 		</provides>
+		<config width="640" height="480"/>
 	</start>}
 
 append_if [have_spec acpi] config {
@@ -57,6 +59,28 @@ append_if [have_spec acpi] config {
 			<service name="PCI"/>
 			<service name="IRQ" />
 		</provides>
+		<route>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+		<config>
+			<policy label="acpi_drv"> <pci class="ALL"/> </policy>
+			<policy label="ps2_drv"> <device name="PS2"/> </policy>
+			<policy label="usb_drv"> <pci class="USB"/> </policy>
+			<policy label="fb_drv">  <pci class="VGA"/> </policy>
+			<policy label="audio_out_drv"> <pci class="AUDIO"/> </policy>
+		</config>
+	</start>}
+
+append_if [expr ![have_spec acpi] && [have_spec pci]] config {
+	<start name="pci_drv">
+			<resource name="RAM" quantum="4M" constrain_phys="yes"/>
+			<provides> <service name="PCI"/> </provides>
+		<config>
+			<policy label="audio_out_drv"> <pci class="AUDIO"/> </policy>
+			<policy label="ps2_drv"> <device name="PS2"/> </policy>
+			<policy label="usb_drv"> <pci class="USB"/> </policy>
+			<policy label="fb_drv">  <pci class="VGA"/> </policy>
+		</config>
 	</start>}
 
 append_if [have_spec vesa] config {
@@ -64,8 +88,12 @@ append_if [have_spec vesa] config {
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Framebuffer"/></provides>
 		<config buffered="yes"> </config>
-		<route>
-			<service name="PCI"><child name="acpi" /></service>
+		<route>}
+
+append_if [have_spec acpi] config {
+			<service name="PCI"><child name="acpi" /></service>}
+
+append_if [have_spec vesa] config {
 			<any-service> <parent /> <any-child /></any-service>
 		</route>
 	</start>}
@@ -148,6 +176,6 @@ lappend_if [have_spec pl11x] boot_modules fb_drv
 
 build_boot_image $boot_modules
 
-append qemu_args " -m 256 -soundhw ac97 "
+append qemu_args " -m 256 -soundhw es1370 "
 
 run_genode_until forever

@@ -57,7 +57,7 @@ append_if [have_spec sdl] config {
 
 append_if [have_spec acpi] config {
 	<start name="acpi">
-		<resource name="RAM" quantum="2M" constrain_phys="yes"/>
+		<resource name="RAM" quantum="8M" constrain_phys="yes"/>
 		<binary name="acpi_drv"/>
 		<provides>
 			<service name="PCI"/>
@@ -66,6 +66,13 @@ append_if [have_spec acpi] config {
 		<route>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
+		<config>
+			<policy label="acpi_drv"> <pci class="ALL"/> </policy>
+			<policy label="ps2_drv"> <device name="PS2"/> </policy>
+			<policy label="usb_drv"> <pci class="USB"/> </policy>
+			<policy label="fb_drv">  <pci class="VGA"/> </policy>
+			<policy label="audio_out_drv"> <pci class="AUDIO"/> </policy>
+		</config>
 	</start>
 }
 
@@ -75,13 +82,19 @@ append_if [expr [have_spec pci] && ![have_spec acpi]] config {
 		<provides>
 			<service name="PCI"/>
 		</provides>
+			<policy label="acpi_drv"> <pci class="ALL"/> </policy>
+			<policy label="ps2_drv"> <device name="PS2"/> </policy>
+			<policy label="usb_drv"> <pci class="USB"/> </policy>
+			<policy label="fb_drv">  <pci class="VGA"/> </policy>
+			<policy label="audio_out_drv"> <pci class="AUDIO"/> </policy>
 	</start>
 }
 
 append_if [have_spec framebuffer] config {
 	<start name="fb_drv">
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="8M"/>
 		<provides><service name="Framebuffer"/></provides>
+		<config buffered="yes"/>
 	</start>}
 
 append_if [have_spec ps2] config {
@@ -96,7 +109,7 @@ append config {
 		<provides><service name="Timer"/></provides>
 	</start>
 	<start name="audio_out_drv">
-		<resource name="RAM" quantum="6M"/>
+		<resource name="RAM" quantum="8M"/>
 		<route>
 			<any-service> <any-child /> <parent /></any-service>
 		</route>
@@ -105,7 +118,7 @@ append config {
 		</provides>
 	</start>
 	<start name="mixer">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Audio_out"/></provides>
 		<route>
 			<service name="Audio_out"> <child name="audio_out_drv"/> </service>
@@ -152,10 +165,11 @@ lappend_if [have_spec         pci] boot_modules pci_drv
 lappend_if [have_spec         pci] boot_modules acpi_drv
 lappend_if [have_spec framebuffer] boot_modules fb_drv
 lappend_if [have_spec         ps2] boot_modules ps2_drv
+lappend_if [have_spec        nova] boot_modules pci_device_pd
 
 build_boot_image $boot_modules
 
-append qemu_args " -m 256 -soundhw all"
+append qemu_args " -m 256 -soundhw es1370"
 
 run_genode_until forever
 

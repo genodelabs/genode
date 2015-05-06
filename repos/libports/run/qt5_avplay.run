@@ -106,7 +106,7 @@ append boot_modules {
 
 build_boot_image $boot_modules
 
-append qemu_args " -m 768 -soundhw all"
+append qemu_args " -m 768 -soundhw es1370"
 
 run_genode_until forever
 
