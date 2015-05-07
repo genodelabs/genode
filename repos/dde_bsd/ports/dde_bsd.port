@@ -20,6 +20,6 @@ PATCHES := $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/*.patch))
 
 AUDIO_OPT := -p1 -d$(SRC_DIR_AUDIO)
 PATCH_OPT(patches/oppress_warning.patch) := $(AUDIO_OPT)
-PATCH_OPT(patches/eap_c.patch)           := $(AUDIO_OPT)
+PATCH_OPT(patches/azalia_c.patch)        := $(AUDIO_OPT)
 
 # vi: set ft=make :
