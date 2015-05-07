@@ -82,6 +82,7 @@ namespace Irq {
 				if (!args.is_valid_string()) throw Root::Invalid_args();
 
 				long irq_number = Arg_string::find_arg(args.string(), "irq_number").long_value(-1);
+				long msi = Arg_string::find_arg(args.string(), "device_config_phys").long_value(0);
 
 				/* check for 'MADT' overrides */
 				unsigned mode;
@@ -89,7 +90,8 @@ namespace Irq {
 
 				/* allocate IRQ at parent*/
 				try {
-					Irq_connection irq(irq_number, _mode2trigger(mode), _mode2polarity(mode));
+					Irq_connection irq(irq_number, _mode2trigger(mode),
+					                   _mode2polarity(mode), msi);
 					irq.on_destruction(Irq_connection::KEEP_OPEN);
 					return irq.cap();
 				} catch (...) { throw Root::Unavailable(); }

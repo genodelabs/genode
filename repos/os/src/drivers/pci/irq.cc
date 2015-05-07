@@ -236,14 +236,18 @@ Pci::Irq_session_component::Irq_session_component(unsigned irq,
 		unsigned msi = irq_alloc.alloc_msi();
 		if (msi != ~0U) {
 			try {
-				Genode::Irq_connection conn(msi, pci_config_space);
+				using namespace Genode;
+
+				Irq_connection conn(msi, Irq_session::TRIGGER_UNCHANGED,
+				                    Irq_session::POLARITY_UNCHANGED,
+				                    pci_config_space);
 
 				_msi_info = conn.info();
-				if (_msi_info.type == Genode::Irq_session::Info::Type::MSI) {
+				if (_msi_info.type == Irq_session::Info::Type::MSI) {
 					_gsi     = msi;
 					_irq_cap = conn;
 
-					conn.on_destruction(Genode::Irq_connection::KEEP_OPEN);
+					conn.on_destruction(Irq_connection::KEEP_OPEN);
 					return;
 				}
 			} catch (Genode::Parent::Service_denied) { }
