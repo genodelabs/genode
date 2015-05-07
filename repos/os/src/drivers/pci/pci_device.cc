@@ -66,6 +66,8 @@ void Pci::Device_component::config_write(unsigned char address, unsigned value,
 {
 	/* white list of ports which we permit to write */
 	switch (address) {
+		case 0x40 ... 0xff: /* allow access to device-specific registers */
+			break;
 		case PCI_CMD_REG: /* COMMAND register - first byte */
 			if (size == Access_size::ACCESS_16BIT)
 				break;
