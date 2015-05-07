@@ -131,6 +131,13 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 		 */
 		void _disable_bus_master_dma() {
 
+			/*
+			 * Disabling a bridge may make the devices behind non-functional,
+			 * as we have no driver which will switch it on again
+			 */
+			if (_device_config.is_pci_bridge())
+				return;
+
 			unsigned cmd = _device_config.read(&_config_access, PCI_CMD_REG,
 			                                   Pci::Device::ACCESS_16BIT);
 			if (cmd & PCI_CMD_DMA)
