@@ -154,7 +154,7 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 			_ep(ep), _session(session),
 			_irq_line(_device_config.read(&_config_access, PCI_IRQ_LINE,
 			                              Pci::Device::ACCESS_8BIT)),
-			_irq_session(_disable_msi(_irq_line), _msi_cap() ? _config_space : 0),
+			_irq_session(_disable_msi(_irq_line), _msi_cap() ? _config_space : ~0UL),
 			_rewrite_irq_line(rewrite_irq_line),
 			_slab_ioport(0, &_slab_ioport_block),
 			_slab_iomem(0, &_slab_iomem_block)

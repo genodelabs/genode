@@ -231,7 +231,7 @@ Pci::Irq_session_component::Irq_session_component(unsigned irq,
 	if (irq >= 0xFF)
 		return;
 
-	if (pci_config_space) {
+	if (pci_config_space != ~0UL) {
 		/* msi way */
 		unsigned msi = irq_alloc.alloc_msi();
 		if (msi != ~0U) {
