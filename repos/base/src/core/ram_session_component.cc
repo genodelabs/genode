@@ -181,13 +181,6 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, Cache_attr
 		throw Out_of_metadata();
 	}
 
-	/*
-	 * Fill new dataspaces with zeros. For non-cached RAM dataspaces, this
-	 * function must also make sure to flush all cache lines related to the
-	 * address range used by the dataspace.
-	 */
-	_clear_ds(ds);
-
 	/* create native shared memory representation of dataspace */
 	try {
 		_export_ram_ds(ds);
@@ -199,6 +192,13 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, Cache_attr
 
 		throw Quota_exceeded();
 	}
+
+	/*
+	 * Fill new dataspaces with zeros. For non-cached RAM dataspaces, this
+	 * function must also make sure to flush all cache lines related to the
+	 * address range used by the dataspace.
+	 */
+	_clear_ds(ds);
 
 	if (verbose)
 		PDBG("ds_size=%zu, used_quota=%zu quota_limit=%zu",
