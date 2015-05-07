@@ -1,0 +1,38 @@
+diff --git a/dev/pci/azalia.c b/dev/pci/azalia.c
+index b126ef6..f73c238 100644
+--- a/dev/pci/azalia.c
++++ b/dev/pci/azalia.c
+@@ -492,7 +492,7 @@ azalia_pci_attach(struct device *parent, struct device *self, void *aux)
+ 	azalia_t *sc;
+ 	struct pci_attach_args *pa;
+ 	pcireg_t v;
+-	uint8_t reg;
++	// uint8_t reg;
+ 	pci_intr_handle_t ih;
+ 	const char *interrupt_str;
+ 
+@@ -518,12 +518,18 @@ azalia_pci_attach(struct device *parent, struct device *self, void *aux)
+ 
+ 	azalia_configure_pci(sc);
+ 
+-	/* disable MSI, use INTx instead */
+-	if (PCI_VENDOR(sc->pciid) == PCI_VENDOR_INTEL) {
+-		reg = azalia_pci_read(sc->pc, sc->tag, ICH_PCI_MMC);
+-		reg &= ~(ICH_PCI_MMC_ME);
+-		azalia_pci_write(sc->pc, sc->tag, ICH_PCI_MMC, reg);
+-	}
++	// This was added in CVS rev 1.168 because certain devices do not
++	// support MSIs. For reasons that are not clear yet, this breaks
++	// when using the platform_drv on x86 with MSI support and IOMMU
++	// enabled. All hw we tested seems to work fine when it is removed,
++	// even older kernels, e.g. OKL4, that use legacy IRQs,
++	//
++	// /* disable MSI, use INTx instead */
++	// if (PCI_VENDOR(sc->pciid) == PCI_VENDOR_INTEL) {
++	// 	reg = azalia_pci_read(sc->pc, sc->tag, ICH_PCI_MMC);
++	// 	reg &= ~(ICH_PCI_MMC_ME);
++	// 	azalia_pci_write(sc->pc, sc->tag, ICH_PCI_MMC, reg);
++	// }
+ 
+ 	/* interrupt */
+ 	if (pci_intr_map_msi(pa, &ih) && pci_intr_map(pa, &ih)) {
