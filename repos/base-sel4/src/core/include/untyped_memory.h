@@ -99,8 +99,6 @@ struct Genode::Untyped_memory
 		int          const node_offset = phys_addr >> get_page_size_log2();
 		int          const num_objects = num_pages;
 
-		PDBG("create frame idx %x", node_offset);
-
 		int const ret = seL4_Untyped_RetypeAtOffset(service,
 		                                            type,
 		                                            offset,

@@ -71,7 +71,18 @@ class Genode::Page_table_registry
 
 			public:
 
+				class Lookup_failed : Exception { };
+
 				Page_table(addr_t addr) : addr(addr) { }
+
+				Entry &lookup(addr_t addr)
+				{
+					for (Entry *e = _entries.first(); e; e = e->next()) {
+						if (_page_frame_base(e->addr) == _page_frame_base(addr))
+							return *e;
+					}
+					throw Lookup_failed();
+				}
 
 				void insert_entry(Allocator &entry_slab, addr_t addr, unsigned sel)
 				{
@@ -81,6 +92,17 @@ class Genode::Page_table_registry
 					}
 
 					_entries.insert(new (entry_slab) Entry(addr, sel));
+				}
+
+				void remove_entry(Allocator &entry_slab, addr_t addr)
+				{
+					try {
+						Entry &entry = lookup(addr);
+						_entries.remove(&entry);
+						destroy(entry_slab, &entry);
+					} catch (Lookup_failed) {
+						PWRN("trying to remove non-existing page frame for 0x%lx", addr);
+					}
 				}
 		};
 
@@ -171,6 +193,40 @@ class Genode::Page_table_registry
 		void insert_page_table_entry(addr_t addr, unsigned sel)
 		{
 			_lookup(addr).insert_entry(_page_table_entry_slab, addr, sel);
+		}
+
+		/**
+		 * Discard the information about the given virtual address
+		 */
+		void forget_page_table_entry(addr_t addr)
+		{
+			try {
+				Page_table &page_table = _lookup(addr);
+				page_table.remove_entry(_page_table_entry_slab, addr);
+			} catch (...) {
+				PDBG("no PT entry found for virtual address 0x%lx", addr);
+			}
+		}
+
+		/**
+		 * Apply functor 'fn' to selector of specified virtual address
+		 *
+		 * \param addr  virtual address
+		 *
+		 * The functor is called with the selector of the page table entry
+		 * (the copy of the phys frame selector) as argument.
+		 */
+		template <typename FN>
+		void apply(addr_t addr, FN const &fn)
+		{
+			try {
+				Page_table        &page_table = _lookup(addr);
+				Page_table::Entry &entry      = page_table.lookup(addr);
+
+				fn(entry.sel);
+			} catch (...) {
+				PDBG("no PT entry found for virtual address 0x%lx", addr);
+			}
 		}
 };
 

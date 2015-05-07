@@ -35,20 +35,18 @@ namespace Genode {
 	 */
 	inline bool map_local(addr_t from_phys, addr_t to_virt, size_t num_pages)
 	{
-		PDBG("map_local from_phys=0x%lx, to_virt=0x%lx, num_pages=%zd",
-		     from_phys, to_virt, num_pages);
-
 		platform_specific()->core_vm_space().map(from_phys, to_virt, num_pages);
-
 		return true;
 	}
 
 
+	/**
+	 * Flush memory mappings from core-local virtual address range
+	 */
 	inline bool unmap_local(addr_t virt_addr, size_t num_pages)
 	{
-		PDBG("not implemented");
-
-		return false;
+		platform_specific()->core_vm_space().unmap(virt_addr, num_pages);
+		return true;
 	}
 }
 

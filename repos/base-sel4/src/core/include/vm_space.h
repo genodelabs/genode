@@ -96,6 +96,17 @@ class Genode::Vm_space
 			}
 		}
 
+		void _unmap_page(addr_t virt)
+		{
+			/* delete copy of the mapping's page-frame selector */
+			_page_table_registry.apply(virt, [&] (unsigned idx) {
+				_vm_cnode.remove(idx);
+			});
+
+			/* release meta data about the mapping */
+			_page_table_registry.forget_page_table_entry(virt);
+		}
+
 		void _map_page_table(unsigned pt_sel, addr_t to_virt)
 		{
 			seL4_IA32_PageTable     const service = pt_sel;
@@ -208,6 +219,14 @@ class Genode::Vm_space
 			for (size_t i = 0; i < num_pages; i++) {
 				off_t const offset = i << get_page_size_log2();
 				_map_page(from_phys + offset, to_virt + offset);
+			}
+		}
+
+		void unmap(addr_t virt, size_t num_pages)
+		{
+			for (size_t i = 0; i < num_pages; i++) {
+				off_t const offset = i << get_page_size_log2();
+				_unmap_page(virt + offset);
 			}
 		}
 };

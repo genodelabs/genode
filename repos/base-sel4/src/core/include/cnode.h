@@ -72,6 +72,14 @@ class Genode::Cnode_base
 		void copy(Cnode_base const &from, unsigned idx) { copy(from, idx, idx); }
 
 		/**
+		 * Delete selector from CNode
+		 */
+		void remove(unsigned idx)
+		{
+			seL4_CNode_Delete(sel(), idx, size_log2());
+		}
+
+		/**
 		 * Move selector from another CNode
 		 */
 		void move(Cnode_base const &from, unsigned from_idx, unsigned to_idx)
