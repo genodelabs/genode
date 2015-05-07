@@ -128,12 +128,9 @@ void Thread_base::_deinit_platform_thread()
 
 void Thread_base::_thread_start()
 {
-	int dummy;
-	PDBG("called, stack at 0x%p, spinning...", &dummy);
-	for (;;);
-
 	Thread_base::myself()->_thread_bootstrap();
 	Thread_base::myself()->entry();
+
 	sleep_forever();
 }
 
