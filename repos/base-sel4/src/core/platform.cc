@@ -244,8 +244,7 @@ Platform::Platform()
 	               Core_cspace::CORE_VM_ID,
 	               _core_page_table_registry)
 {
-
-	/* add boot modules to ROM fs */
+	/* XXX add boot modules to ROM fs */
 
 	/*
 	 * Print statistics about allocator initialization
@@ -258,6 +257,14 @@ Platform::Platform()
 		printf(":io_mem_alloc: "); _io_mem_alloc.raw()->dump_addr_tree();
 	}
 
+}
+
+
+unsigned Platform::alloc_core_sel()
+{
+	Lock::Guard guard(_core_sel_alloc_lock);
+
+	return _core_sel_alloc.alloc();
 }
 
 

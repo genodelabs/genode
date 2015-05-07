@@ -38,6 +38,7 @@ class Genode::Core_cspace
 			PHYS_CNODE_SEL        = 0x203,
 			CORE_VM_PAD_CNODE_SEL = 0x204,
 			CORE_VM_CNODE_SEL     = 0x205,
+			CORE_STATIC_SEL_END,
 		};
 
 		/* indices within top-level CNode */

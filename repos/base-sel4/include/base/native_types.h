@@ -33,7 +33,7 @@ namespace Genode {
 
 	struct Native_thread
 	{
-		int id;
+		unsigned tcb_sel = 0;
 
 		/**
 		 * Only used in core
@@ -42,12 +42,23 @@ namespace Genode {
 		 * the physical thread object, which is going to be destroyed
 		 * on destruction of the 'Thread'.
 		 */
-		Platform_thread *pt;
+		Platform_thread *pt = nullptr;
 	};
 
 	typedef Native_capability_tpl<Cap_dst_policy> Native_capability;
 
-	typedef struct { } Native_utcb;
+	class Native_utcb
+	{
+		private:
+
+			/**
+			 * On seL4 the UTCB is called IPC buffer. We use one page
+			 * for each IPC buffer.
+			 */
+			enum { IPC_BUFFER_SIZE = 4096 };
+
+			addr_t _utcb[IPC_BUFFER_SIZE/sizeof(addr_t)];
+	};
 
 	struct Native_config
 	{

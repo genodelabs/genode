@@ -81,6 +81,13 @@ class Genode::Platform : public Platform_generic
 		Cnode _phys_cnode { seL4_CapInitThreadCNode, Core_cspace::PHYS_CNODE_SEL,
 		                    Core_cspace::NUM_PHYS_SEL_LOG2, _phys_alloc };
 
+		struct Core_sel_alloc : Bit_allocator<1 << Core_cspace::NUM_PHYS_SEL_LOG2>
+		{
+			Core_sel_alloc() { _reserve(0, Core_cspace::CORE_STATIC_SEL_END); }
+		} _core_sel_alloc;
+
+		Lock _core_sel_alloc_lock;
+
 		/**
 		 * Replace initial CSpace with custom CSpace layout
 		 */
@@ -125,8 +132,11 @@ class Genode::Platform : public Platform_generic
 
 		Cnode &phys_cnode() { return _phys_cnode; }
 		Cnode &top_cnode()  { return _top_cnode; }
+		Cnode &core_cnode() { return _core_cnode; }
 
 		Vm_space &core_vm_space() { return _core_vm_space; }
+
+		unsigned alloc_core_sel();
 
 		void wait_for_exit();
 };
