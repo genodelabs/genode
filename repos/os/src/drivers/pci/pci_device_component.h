@@ -232,7 +232,7 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 		:
 			_config_space(~0UL), _ep(ep), _session(session),
 			_irq_line(irq),
-			_irq_session(_irq_line, 0),
+			_irq_session(_irq_line, _config_space),
 			_slab_ioport(0, &_slab_ioport_block),
 			_slab_iomem(0, &_slab_iomem_block)
 		{
