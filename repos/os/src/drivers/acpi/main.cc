@@ -86,7 +86,10 @@ namespace Irq {
 
 				/* check for 'MADT' overrides */
 				unsigned mode;
-				irq_number = Acpi::override(irq_number, &mode);
+				long irq_legacy = Acpi::override(irq_number, &mode);
+				/* rewrite IRQ solely if this is not a MSI request */
+				if (!msi)
+					irq_number = irq_legacy;
 
 				/* allocate IRQ at parent*/
 				try {
