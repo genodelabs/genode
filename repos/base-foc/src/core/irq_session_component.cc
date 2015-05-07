@@ -75,7 +75,6 @@ class Genode::Irq_proxy_component : public Irq_proxy_base
 		Irq_session::Polarity  _polarity; /* interrupt polarity */
 
 		bool                   _running;
-		bool                   _msi;
 		Genode::addr_t         _msi_addr;
 		Genode::addr_t         _msi_data;
 
@@ -243,13 +242,6 @@ Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
 			throw Root::Unavailable();
 	}
 
-	/*
-	 * temporary hack for fiasco.oc using the local-apic,
-	 * where old pic-line 0 maps to 2
-	 */
-	if (irq_number == 0)
-		irq_number = 2;
-
 	long msi = Arg_string::find_arg(args, "device_config_phys").long_value(0);
 	if (msi) {
 		using namespace Fiasco;
@@ -258,6 +250,18 @@ Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
 		l4_msgtag_t res = l4_icu_info(Fiasco::L4_BASE_ICU_CAP, &info);
 		if (l4_error(res) || !(info.features & L4_ICU_FLAG_MSI))
 			throw Root::Unavailable();
+
+		/**
+		 * irq_alloc range [0, max)
+		 *
+		 *  legacy irq [0, max_legacy)
+		 *  msi        [max_legacy, info.nr_msis)
+		 *  unused     [info.nr_msis, max)
+		 *
+		 *  max        - is currently set to 256 in base-foc platform.cc
+		 *  max_legacy - is info.nr_irqs, defined by hardware/kernel
+		 */
+		irq_number = info.nr_msis - 1 - irq_number;
 	}
 
 	/* check if IRQ thread was started before */
