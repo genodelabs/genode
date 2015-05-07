@@ -27,7 +27,6 @@ SRC_CC += thread/thread_bootstrap.cc
 #SRC_CC += env/cap_map.cc
 
 INC_DIR +=  $(REP_DIR)/src/base/lock
-INC_DIR += $(BASE_DIR)/src/base/lock
 INC_DIR += $(BASE_DIR)/src/base/thread
 
 vpath %.cc $(REP_DIR)/src/base
