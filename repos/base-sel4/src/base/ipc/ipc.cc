@@ -17,6 +17,9 @@
 #include <base/blocking.h>
 #include <util/misc_math.h>
 
+/* seL4 includes */
+#include <sel4/interfaces/sel4_client.h>
+
 using namespace Genode;
 
 
@@ -65,6 +68,10 @@ Ipc_ostream::Ipc_ostream(Native_capability dst, Msgbuf_base *snd_msg)
 void Ipc_istream::_wait()
 {
 	PDBG("not implemented");
+
+	for (;;)
+		seL4_Yield();
+
 
 	_read_offset = sizeof(umword_t);
 }

@@ -4,7 +4,7 @@
 # \date   2013-02-14
 #
 
-LIBS += cxx startup
+LIBS += cxx startup syscall
 
 SRC_CC += ipc/ipc.cc ipc/pager.cc
 SRC_CC += avl_tree/avl_tree.cc
