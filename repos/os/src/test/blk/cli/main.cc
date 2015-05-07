@@ -7,9 +7,11 @@
 #include <base/allocator_avl.h>
 #include <block_session/connection.h>
 #include <timer_session/connection.h>
+#include <os/config.h>
 #include <os/ring_buffer.h>
 
 static Genode::size_t             blk_sz;   /* block size of the device   */
+static Block::sector_t            test_cnt; /* number test blocks         */
 static Block::sector_t            blk_cnt;  /* number of blocks of device */
 static Block::Session::Operations blk_ops;  /* supported operations       */
 
@@ -118,15 +120,15 @@ struct Read_test : Test
 	void perform()
 	{
 		PINF("reading block 0 - %llu, %u per request",
-		     blk_cnt - 1, NR_PER_REQ);
+		     test_cnt - 1, NR_PER_REQ);
 
-		for (Block::sector_t nr = 0, cnt = NR_PER_REQ; nr < blk_cnt;
+		for (Block::sector_t nr = 0, cnt = NR_PER_REQ; nr < test_cnt;
 		     nr += cnt) {
 
 			while (!_session.tx()->ready_to_submit())
 				_handle_signal();
 
-			cnt = Genode::min<Block::sector_t>(NR_PER_REQ, blk_cnt-nr);
+			cnt = Genode::min<Block::sector_t>(NR_PER_REQ, test_cnt-nr);
 
 			try {
 				Block::Packet_descriptor p(
@@ -154,7 +156,7 @@ struct Read_test : Test
 				throw Block_exception(p.block_number(), p.block_count(),
 				                      false);
 
-			if ((p.block_number() + p.block_count()) == blk_cnt)
+			if ((p.block_number() + p.block_count()) == test_cnt)
 				done = true;
 
 			_session.tx()->release_packet(p);
@@ -213,10 +215,13 @@ struct Write_test : Test
 					if (!compare(r,w))
 						throw Integrity_exception(r.block_number(),
 						                          r.block_count());
+
+				_session.tx()->release_packet(w);
 					break;
 				}
 				write_packets.add(w);
 			}
+			_session.tx()->release_packet(r);
 		}
 	}
 
@@ -233,6 +238,7 @@ struct Write_test : Test
 			for (Genode::size_t i = 0; i < blk_sz; i++)
 				dst[i] = src[i] + val;
 			_session.tx()->submit_packet(w);
+			_session.tx()->release_packet(r);
 		}
 		while (write_packets.avail_capacity())
 		   _handle_signal();
@@ -242,9 +248,9 @@ struct Write_test : Test
 	{
 		using namespace Block;
 
-		for (sector_t nr = start, cnt = NR_PER_REQ; nr < end;
-		     cnt = Genode::min<sector_t>(NR_PER_REQ, end-nr),
-		     nr += cnt) {
+		for (sector_t nr = start, cnt = Genode::min(NR_PER_REQ, end - start); nr < end;
+		     nr += cnt,
+		     cnt = Genode::min<sector_t>(NR_PER_REQ, end-nr)) {
 			Block::Packet_descriptor p(_session.dma_alloc_packet(cnt*blk_sz),
 			                           Block::Packet_descriptor::READ, nr, cnt);
 			_session.tx()->submit_packet(p);
@@ -267,11 +273,11 @@ struct Write_test : Test
 			return;
 
 		PINF("read/write/compare block 0 - %llu, %u per request",
-		     blk_cnt - 1, NR_PER_REQ);
+		     test_cnt - 1, NR_PER_REQ);
 
-		for (Block::sector_t nr = 0, cnt = BATCH*NR_PER_REQ; nr < blk_cnt;
-		     cnt = Genode::min<Block::sector_t>(BATCH*NR_PER_REQ, blk_cnt-nr),
-		     nr += cnt) {
+		for (Block::sector_t nr = 0, cnt = BATCH*NR_PER_REQ; nr < test_cnt;
+		     nr += cnt,
+		     cnt = Genode::min<Block::sector_t>(BATCH*NR_PER_REQ, test_cnt-nr)) {
 			batch(nr, nr + cnt, 1);
 			batch(nr, nr + cnt, -1);
 		}
@@ -290,7 +296,6 @@ struct Write_test : Test
 				write_packets.add(p);
 			else
 				read_packets.add(p);
-			_session.tx()->release_packet(p);
 		}
 	}
 };
@@ -375,10 +380,20 @@ int main()
 			Genode::Allocator_avl alloc(Genode::env()->heap());
 			Block::Connection blk(&alloc);
 			blk.info(&blk_cnt, &blk_sz, &blk_ops);
+
 		}
 
-		PINF("block device with block size %zd sector count %lld",
-		     blk_sz, blk_cnt);
+		try {
+			Genode::Number_of_bytes test_size;;
+			Genode::config()->xml_node().attribute("test_size").value(&test_size);
+			test_cnt = Genode::min(test_size / blk_sz, blk_cnt);
+		} catch (...) { test_cnt = blk_cnt; }
+
+		/* must be multiple of 16 */
+		test_cnt &= ~0xfLLU;
+
+		PINF("block device with block size %zd sector count %lld (testing %lld sectors)",
+		     blk_sz,  blk_cnt, test_cnt);
 
 		perform<Read_test<Block::Session::TX_QUEUE_SIZE-10,
 		                  Block::Session::TX_QUEUE_SIZE-10> >();
