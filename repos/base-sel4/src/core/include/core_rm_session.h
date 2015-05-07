@@ -26,9 +26,13 @@ namespace Genode { class Core_rm_session; }
 
 class Genode::Core_rm_session : public Rm_session
 {
+	private:
+
+		Rpc_entrypoint *_ds_ep;
+
 	public:
 
-		Core_rm_session(Rpc_entrypoint *) { }
+		Core_rm_session(Rpc_entrypoint *ds_ep): _ds_ep(ds_ep) { }
 
 		Local_addr attach(Dataspace_capability ds_cap, size_t size = 0,
 		                  off_t offset = 0, bool use_local_addr = false,
