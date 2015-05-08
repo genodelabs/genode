@@ -123,8 +123,6 @@ DUMMY(RTPathAppend)
 DUMMY(RTPathChangeToDosSlashes)
 DUMMY(RTSemEventWaitEx)
 
-DUMMY(RTMemDupExTag)
-DUMMY(RTMemDupTag)
 DUMMY(RTMemExecFree)
 
 DUMMY(SELMR3GetSelectorInfo)
