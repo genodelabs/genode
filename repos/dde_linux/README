@@ -178,3 +178,35 @@ component can control the wireless driver. An example therefore is the Qt
 based component in 'src/app/qt_wifi_connect'.
 
 Currently only WPA/WPA2 protection using a pre-shared key is supported.
+
+RAW
+~~~
+
+Allows raw access to USB devices via the 'Usb' session interface.
+
+Configuration snippet:
+
+!<start name="usb_drv">
+!  <resource name="RAM" quantum="8M"/>
+!  <provides><service name="Usb"/></provides>
+!  <config uhci="yes" ehci="yes" xhci="yes">
+!    <raw>
+!        <report devices="yes"/>
+!    </raw>
+!  </config>
+!</start>
+
+The optional 'devices' report lists the connected devices and gets updated when devices are added or removed.
+
+Example report:
+
+<devices>
+    <device vendor_id="0x17ef" product_id="0x4816"/>
+    <device vendor_id="0x0a5c" product_id="0x217f"/>
+    <device vendor_id="0x8087" product_id="0x0020"/>
+    <device vendor_id="0x8087" product_id="0x0020"/>
+    <device vendor_id="0x1d6b" product_id="0x0002"/>
+    <device vendor_id="0x1d6b" product_id="0x0002"/>
+</devices>
+
+There is no distinction yet for multiple devices of the same type.

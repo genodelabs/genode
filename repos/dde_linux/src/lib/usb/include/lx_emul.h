@@ -1337,6 +1337,13 @@ enum {
 
 struct notifier_block {
 	int (*notifier_call)(struct notifier_block *, unsigned long, void *);
+	struct notifier_block *next;
+	int                    priority;
+};
+
+struct raw_notifier_head
+{
+	struct notifier_block *head;
 };
 
 struct atomic_notifier_head {

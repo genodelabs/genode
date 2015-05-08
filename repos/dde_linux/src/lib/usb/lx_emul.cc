@@ -1299,3 +1299,61 @@ int utf16s_to_utf8s(const wchar_t *pwcs, int len,
 
 	return 2 * length;
 }
+
+/**********************
+ ** linux/notifier.h **
+ **********************/
+
+int raw_notifier_chain_register(struct raw_notifier_head *nh,
+                                struct notifier_block *n)
+{
+	struct notifier_block *nl = nh->head;
+	struct notifier_block *pr = 0;
+	while (nl) {
+		if (n->priority > nl->priority)
+			break;
+		pr = nl;
+		nl = nl->next;
+	}
+
+	n->next = nl;
+	if (pr)
+		pr->next = n;
+	else
+		nh->head = n;
+
+	return 0;
+}
+
+
+int raw_notifier_call_chain(struct raw_notifier_head *nh,
+                            unsigned long val, void *v)
+{
+	int ret = NOTIFY_DONE;
+	struct notifier_block *nb = nh->head;
+
+	while (nb) {
+
+		ret = nb->notifier_call(nb, val, v);
+		if ((ret & NOTIFY_STOP_MASK) == NOTIFY_STOP_MASK)
+			break;
+
+		nb = nb->next;
+	}
+
+	return ret;
+}
+
+
+int blocking_notifier_chain_register(struct blocking_notifier_head *nh,
+                                     struct notifier_block *n)
+{
+	return raw_notifier_chain_register((struct raw_notifier_head *)nh, n);
+}
+
+
+int blocking_notifier_call_chain(struct blocking_notifier_head *nh,
+                                 unsigned long val, void *v)
+{
+	return raw_notifier_call_chain((struct raw_notifier_head *)nh, val, v);
+}

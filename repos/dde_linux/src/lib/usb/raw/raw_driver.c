@@ -19,15 +19,12 @@ static int raw_probe(struct usb_device *udev)
 	printk("RAW: vendor: %x product: %x dev %p\n", 
 	       udev->descriptor.idVendor, udev->descriptor.idProduct, udev);
 
-	raw_register_device(udev);
-
 	return -ENODEV;
 }
 
 static void  raw_disconnect(struct usb_device *udev)
 {
 	printk("driver disconnect called\n");
-	raw_unregister_device(udev);
 }
 
 
@@ -67,6 +64,12 @@ struct usb_driver raw_intf_driver =
 };
 
 
+struct notifier_block usb_nb =
+{
+	.notifier_call = raw_notify
+};
+
+
 static int raw_driver_init(void)
 {
 	int err;
@@ -80,6 +83,10 @@ static int raw_driver_init(void)
 		return err;
 
 	printk("RAW: interface driver registered\n");
+
+	usb_register_notify(&usb_nb);
+
+	printk("RAW: notify function registered\n");
 
 	return 0;
 }
