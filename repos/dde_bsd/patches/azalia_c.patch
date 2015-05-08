@@ -1,7 +1,16 @@
 diff --git a/dev/pci/azalia.c b/dev/pci/azalia.c
-index b126ef6..6ac01e2 100644
+index b126ef6..f73c238 100644
 --- a/dev/pci/azalia.c
 +++ b/dev/pci/azalia.c
+@@ -492,7 +492,7 @@ azalia_pci_attach(struct device *parent, struct device *self, void *aux)
+ 	azalia_t *sc;
+ 	struct pci_attach_args *pa;
+ 	pcireg_t v;
+-	uint8_t reg;
++	// uint8_t reg;
+ 	pci_intr_handle_t ih;
+ 	const char *interrupt_str;
+ 
 @@ -518,12 +518,18 @@ azalia_pci_attach(struct device *parent, struct device *self, void *aux)
  
  	azalia_configure_pci(sc);
