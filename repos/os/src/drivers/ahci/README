@@ -3,11 +3,11 @@ This directory contains the implementation of Genode's AHCI driver
 Behavior
 --------
 
-The driver run on x86 32/64 bit platforms while also supporting the Exynos5
-SOC. If more than one AHCI controller are present, the first one will be used.
-Each active device on each AHCI port will be represented by a Genode block
-session. The server must be configured via a policy, that states which client
-can access a certain device:
+The driver supports x86 32/64 bit platforms and the Exynos5 SOC. If
+more than one AHCI controller is present, the first one will be used.
+Each active device on each AHCI port will be represented by a Genode
+block session. The server must be configured via a policy, that states
+which client can access a certain device:
 
 
 !<start name="ahci">
@@ -23,5 +23,5 @@ can access a certain device:
 !  </config>
 !</start>
 
-In the example above, the test-ahci program gains access to device 0, while the
-benchmark program gains access to device 1.
+In the example above, a session request labeled with "test-ahci"
+gains access to device 0, while "bench" gains access to device 1.

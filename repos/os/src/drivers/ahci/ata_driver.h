@@ -110,7 +110,7 @@ struct Ata_driver : Port_driver
 	void handle_irq() override
 	{
 		Is::access_t status = Port::read<Is>();
-		
+
 		if (verbose)
 			PDBG("irq: %x state: %u", status, state);
 
