@@ -97,7 +97,7 @@ class Test::Throughput
 
 			_stop = _timer.elapsed_ms();
 			::printf("%s %zu KB in %lu ms (%.02f MB/s)\n",
-			         !_read_done ? "Read" : "Wrote", 
+			         !_read_done ? "Read" : "Wrote",
 			         _bytes / 1024, _stop - _start,
 			         ((double)_bytes / (1024 * 1024)) / ((double)(_stop - _start) / 1000));
 
