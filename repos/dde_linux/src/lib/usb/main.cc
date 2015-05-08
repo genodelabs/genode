@@ -59,6 +59,14 @@ static void init(Services *services)
 	/* start jiffies */
 	dde_kit_timer_init(0, 0);
 
+	/*
+	 * The RAW driver is initialized first to make sure that it doesn't miss
+	 * notifications about added devices.
+	 */
+	if (services->raw)
+		/* low level interface */
+		module_raw_driver_init();
+
 	/* USB */
 	subsys_usb_init();
 
@@ -82,10 +90,6 @@ static void init(Services *services)
 	/* storage */
 	if (services->stor)
 		module_usb_storage_driver_init();
-
-	if (services->raw)
-		/* low level interface */
-		module_raw_driver_init();
 }
 
 
@@ -103,7 +107,7 @@ void start_usb_driver(Server::Entrypoint &ep)
 	Nic::init(ep);
 
 	if (services.raw)
-		Raw::init(ep);
+		Raw::init(ep, services.raw_report_device_list);
 
 	Routine::add(0, 0, "Main", true);
 	Routine::make_main_current();

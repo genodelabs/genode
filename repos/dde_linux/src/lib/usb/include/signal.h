@@ -100,7 +100,7 @@ namespace Nic
 
 namespace Raw
 {
-	void init(Server::Entrypoint &ep);
+	void init(Server::Entrypoint &ep, bool report_device_list);
 }
 
 #endif /* _SIGNAL_H_ */

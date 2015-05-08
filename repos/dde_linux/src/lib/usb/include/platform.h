@@ -43,6 +43,9 @@ struct Services
 	unsigned long screen_width  = 0;
 	unsigned long screen_height = 0;
 
+	/* report generation */
+	bool raw_report_device_list = false;
+
 	Services()
 	{
 		using namespace Genode;
@@ -79,8 +82,13 @@ struct Services
 		}
 
 		try {
-			config()->xml_node().sub_node("raw");
+			Genode::Xml_node node_raw = config()->xml_node().sub_node("raw");
 			raw = true;
+
+			try {
+				Genode::Xml_node node_report = node_raw.sub_node("report");
+				raw_report_device_list = node_report.attribute("devices").has_value("yes");
+			} catch (...) { }
 		} catch (Xml_node::Nonexistent_sub_node) {
 			PDBG("No <raw> config node found - not starting external USB service");
 		}
