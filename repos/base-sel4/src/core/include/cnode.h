@@ -20,7 +20,7 @@
 #include <base/allocator.h>
 
 /* core includes */
-#include <untyped_memory.h>
+#include <kernel_object.h>
 
 namespace Genode {
 
@@ -40,13 +40,6 @@ class Genode::Cnode_base
 
 		unsigned sel()       const { return _sel; }
 		size_t   size_log2() const { return _size_log2; }
-
-		/**
-		 * Return size of underlying backing store in bytes
-		 *
-		 * One cnode entry takes 16 (2^4) bytes.
-		 */
-		size_t mem_size_log2() const { return _size_log2 + 4; }
 
 		/**
 		 * Copy selector from another CNode
@@ -119,9 +112,10 @@ class Genode::Cnode : public Cnode_base, Noncopyable
 		/**
 		 * Constructor
 		 *
-		 * \param parent      selector of CNode where to place 'dst_sel'
-		 * \param dst_sel     designated selector referring to the created
-		 *                    CNode
+		 * \param parent_sel  CNode where to place the cap selector of the
+		 *                    new CNode
+		 * \param dst_idx     designated index within 'parent_sel' referring to
+		 *                    the created CNode
 		 * \param size_log2   number of entries in CNode
 		 * \param phys_alloc  physical-memory allocator used for allocating
 		 *                    the CNode backing store
@@ -129,37 +123,13 @@ class Genode::Cnode : public Cnode_base, Noncopyable
 		 * \throw Phys_alloc_failed
 		 * \throw Untyped_address::Lookup_failed
 		 */
-		Cnode(unsigned parent_sel, unsigned dst_sel, size_t size_log2,
+		Cnode(unsigned parent_sel, unsigned dst_idx, size_t size_log2,
 		      Range_allocator &phys_alloc)
 		:
-			Cnode_base(dst_sel, size_log2)
+			Cnode_base(dst_idx, size_log2)
 		{
-			Untyped_address const untyped_addr =
-				Untyped_memory::alloc_log2(phys_alloc, mem_size_log2());
-
-			seL4_Untyped const service     = untyped_addr.sel();
-			int          const type        = seL4_CapTableObject;
-			int          const offset      = untyped_addr.offset();
-			int          const size_bits   = size_log2;
-			seL4_CNode   const root        = parent_sel;
-			int          const node_index  = 0;
-			int          const node_depth  = 0;
-			int          const node_offset = dst_sel;
-			int          const num_objects = 1;
-
-			int const ret = seL4_Untyped_RetypeAtOffset(service,
-			                                            type,
-			                                            offset,
-			                                            size_bits,
-			                                            root,
-			                                            node_index,
-			                                            node_depth,
-			                                            node_offset,
-			                                            num_objects);
-			if (ret != 0) {
-				PERR("seL4_Untyped_RetypeAtOffset (CapTable) returned %d", ret);
-				throw Retype_untyped_failed();
-			}
+			Kernel_object::create<Kernel_object::Cnode>(phys_alloc, parent_sel,
+			                                            dst_idx, size_log2);
 		}
 
 		~Cnode()

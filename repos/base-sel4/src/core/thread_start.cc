@@ -19,8 +19,8 @@
 /* core includes */
 #include <platform.h>
 #include <platform_thread.h>
-#include <untyped_memory.h>
 #include <map_local.h>
+#include <kernel_object.h>
 
 using namespace Genode;
 
@@ -44,39 +44,6 @@ static Untyped_address create_and_map_ipc_buffer(Range_allocator &phys_alloc,
 }
 
 
-static void create_tcb(Cnode &core_cnode, Range_allocator &phys_alloc,
-                       unsigned dst_idx)
-{
-	/* create TCB */
-	size_t const tcb_size_log2 = get_page_size_log2();
-	Untyped_address const untyped_addr =
-		Untyped_memory::alloc_log2(phys_alloc, tcb_size_log2);
-
-	seL4_Untyped const service     = untyped_addr.sel();
-	int          const type        = seL4_TCBObject;
-	int          const offset      = untyped_addr.offset();
-	int          const size_bits   = 0;
-	seL4_CNode   const root        = core_cnode.sel();
-	int          const node_index  = 0;
-	int          const node_depth  = 0;
-	int          const node_offset = dst_idx;
-	int          const num_objects = 1;
-
-	int const ret = seL4_Untyped_RetypeAtOffset(service,
-	                                            type,
-	                                            offset,
-	                                            size_bits,
-	                                            root,
-	                                            node_index,
-	                                            node_depth,
-	                                            node_offset,
-	                                            num_objects);
-
-	if (ret != 0)
-		PDBG("seL4_Untyped_RetypeAtOffset (TCB) returned %d", ret);
-}
-
-
 void Thread_base::_init_platform_thread(size_t, Type type)
 {
 	Platform &platform = *platform_specific();
@@ -89,7 +56,9 @@ void Thread_base::_init_platform_thread(size_t, Type type)
 	/* allocate TCB selector within core's CNode */
 	unsigned const tcb_idx = platform.alloc_core_sel();
 
-	create_tcb(platform.core_cnode(), phys_alloc, tcb_idx);
+	Kernel_object::create<Kernel_object::Tcb>(phys_alloc,
+	                                          platform.core_cnode().sel(), tcb_idx);
+
 	unsigned const tcb_sel = tcb_idx;
 	_tid.tcb_sel = tcb_sel;
 

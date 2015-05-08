@@ -134,35 +134,11 @@ class Genode::Vm_space
 
 			/* XXX account the consumed backing store */
 
-			/* allocate backing store for page table */
-			size_t const pt_mem_size_log2 = 12;
-			Untyped_address const untyped_addr =
-				Untyped_memory::alloc_log2(_phys_alloc, pt_mem_size_log2);
-
-			seL4_Untyped const service     = untyped_addr.sel();
-			int          const type        = seL4_IA32_PageTableObject;
-			int          const offset      = untyped_addr.offset();
-			int          const size_bits   = pt_mem_size_log2;
-			seL4_CNode   const root        = _vm_cnode.sel();
-			int          const node_index  = 0;
-			int          const node_depth  = 0;
-			int          const node_offset = pt_idx;
-			int          const num_objects = 1;
-
-			int const ret = seL4_Untyped_RetypeAtOffset(service,
-			                                            type,
-			                                            offset,
-			                                            size_bits,
-			                                            root,
-			                                            node_index,
-			                                            node_depth,
-			                                            node_offset,
-			                                            num_objects);
-
-			if (ret != 0) {
-				PDBG("seL4_Untyped_RetypeAtOffset (page table) returned %d", ret);
-				throw Alloc_page_table_failed();
-			}
+			try {
+				Kernel_object::create<Kernel_object::Page_table>(_phys_alloc,
+				                                                 _vm_cnode.sel(),
+				                                                 pt_idx);
+			} catch (...) { throw Alloc_page_table_failed(); }
 
 			unsigned const pt_sel = _idx_to_sel(pt_idx);
 

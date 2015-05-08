@@ -35,6 +35,7 @@ struct Genode::Untyped_memory
 	 * Allocate natually-aligned physical memory for seL4 kernel object
 	 *
 	 * \throw Phys_alloc_failed
+	 * \throw Untyped_address::Lookup_failed
 	 */
 	static inline Untyped_address alloc_log2(Range_allocator &phys_alloc,
 	                                         size_t const size_log2)
