@@ -48,9 +48,12 @@ set config {
 		<provides><service name="Timer"/></provides>
 	</start>
 	<start name="ahci" priority="-1">
-		<binary name="ahci" />
+		<binary name="ahci_drv" />
 		<resource name="RAM" quantum="10M" />
 		<provides><service name="Block" /></provides>
+		<config>
+			<policy label="part_blk" device="0" />
+		</config>
 		<route>
 			<service name="IRQ"><child name="acpi" /></service>
 			<any-service> <parent /> <any-child /></any-service>
@@ -175,7 +178,7 @@ install_config $config
 
 append boot_modules {
 	core init timer
-	part_blk ahci
+	part_blk ahci_drv
 	ld.lib.so libc.lib.so libm.lib.so pthread.lib.so
 	libc_lock_pipe.lib.so libc_terminal.lib.so
 	libiconv.lib.so stdcxx.lib.so
