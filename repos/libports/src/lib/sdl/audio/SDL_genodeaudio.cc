@@ -186,6 +186,18 @@ static void GENODEAUD_WaitAudio(_THIS)
 
 static void GENODEAUD_PlayAudio(_THIS)
 {
+	/*
+	 * Synchronize the play pointer when this function is first called
+	 */
+	static bool initial_reset = true;
+	if (initial_reset) {
+		for (int channel = 0; channel < AUDIO_CHANNELS; channel++) {
+			Audio_out::Connection *connection = _this->hidden->audio[channel];
+			connection->stream()->reset();
+		}
+		initial_reset = false;
+	}
+
 	Audio_out::Packet *p[AUDIO_CHANNELS];
 
 	for (int channel = 0; channel < AUDIO_CHANNELS; channel++)
