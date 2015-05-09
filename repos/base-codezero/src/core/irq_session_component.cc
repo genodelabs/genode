@@ -13,7 +13,6 @@
 
 /* Genode includes */
 #include <base/printf.h>
-#include <base/sleep.h>
 
 /* core includes */
 #include <irq_root.h>
@@ -22,128 +21,109 @@
 #include <codezero/syscalls.h>
 
 
-namespace Genode {
-       typedef Irq_proxy<Thread<1024 * sizeof(addr_t)> > Irq_proxy_base;
-       class Irq_proxy_component;
-}
-
 using namespace Genode;
 
-/**
- * Platform-specific proxy code
- */
 
-class Genode::Irq_proxy_component : public Irq_proxy_base
+bool Irq_object::_associate() { return true; }
+
+
+void Irq_object::_wait_for_irq()
 {
-	private:
+	using namespace Codezero;
 
-		bool _irq_attached;
-
-	protected:
-
-		bool _associate() { return true; }
-
-		void _wait_for_irq()
-		{
-			using namespace Codezero;
-
-			/* attach thread to IRQ when first called */
-			if (!_irq_attached) {
-				int ret = l4_irq_control(IRQ_CONTROL_REGISTER, 0, _irq_number);
-				if (ret < 0) {
-					PERR("l4_irq_control(IRQ_CONTROL_REGISTER) returned %d", ret);
-					sleep_forever();
-				}
-				_irq_attached = true;
-			}
-
-			/* block for IRQ */
-			int ret = l4_irq_control(IRQ_CONTROL_WAIT, 0, _irq_number);
-			if (ret < 0)
-				PWRN("l4_irq_control(IRQ_CONTROL_WAIT) returned %d", ret);
-		}
-
-		void _ack_irq() { }
-
-	public:
-
-		Irq_proxy_component(long irq_number)
-		:
-			Irq_proxy(irq_number),
-			_irq_attached(false)
-		{
-			_start();
-		}
-};
+	/* block for IRQ */
+	int ret = l4_irq_control(IRQ_CONTROL_WAIT, 0, _irq);
+	if (ret < 0)
+		PWRN("l4_irq_control(IRQ_CONTROL_WAIT) returned %d", ret);
+}
 
 
-/***************************
- ** IRQ session component **
- ***************************/
-
-
-void Irq_session_component::ack_irq()
+void Irq_object::start()
 {
-	if (!_proxy) {
-		PERR("Expected to find IRQ proxy for IRQ %02x", _irq_number);
+	::Thread_base::start();
+	_sync_bootup.lock();
+}
+
+
+void Irq_object::entry()
+{
+	if (!_associate()) {
+		PERR("Could not associate with IRQ 0x%x", _irq);
 		return;
 	}
 
-	_proxy->ack_irq();
+	/* thread is up and ready */
+	_sync_bootup.unlock();
+
+	/* wait for first ack_irq */
+	_sync_ack.lock();
+
+	using namespace Codezero;
+
+	/* attach thread to IRQ when first called */
+	int ret = l4_irq_control(IRQ_CONTROL_REGISTER, 0, _irq);
+	if (ret < 0) {
+		PERR("l4_irq_control(IRQ_CONTROL_REGISTER) returned %d", ret);
+		return;
+	}
+
+	while (true) {
+
+		_wait_for_irq();
+
+		if (!_sig_cap.valid())
+			continue;
+
+		Genode::Signal_transmitter(_sig_cap).submit(1);
+
+		_sync_ack.lock();
+	}
 }
+
+
+Irq_object::Irq_object(unsigned irq)
+:
+	Thread<4096>("irq"),
+	_sync_ack(Lock::LOCKED), _sync_bootup(Lock::LOCKED),
+	_irq(irq)
+{ }
 
 
 Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
                                              const char      *args)
 :
-	_irq_alloc(irq_alloc)
+	_irq_number(Arg_string::find_arg(args, "irq_number").long_value(-1)),
+	_irq_alloc(irq_alloc),
+	_irq_object(_irq_number)
 {
-	long irq_number = Arg_string::find_arg(args, "irq_number").long_value(-1);
-	if (irq_number == -1) {
-		PERR("invalid IRQ number requested");
-		throw Root::Unavailable();
-	}
-
 	long msi = Arg_string::find_arg(args, "device_config_phys").long_value(0);
 	if (msi)
 		throw Root::Unavailable();
 
-	/* check if IRQ thread was started before */
-	_proxy = Irq_proxy_component::get_irq_proxy<Irq_proxy_component>(irq_number, irq_alloc);
-	if (!_proxy) {
-		PERR("unavailable IRQ %lx requested", irq_number);
+	if (!irq_alloc || irq_alloc->alloc_addr(1, _irq_number).is_error()) {
+		PERR("Unavailable IRQ 0x%x requested", _irq_number);
 		throw Root::Unavailable();
 	}
 
-	_irq_number = irq_number;
+	_irq_object.start();
 }
 
 
 Irq_session_component::~Irq_session_component()
 {
-	if (!_proxy) return;
-
-	if (_irq_sigh.valid())
-		_proxy->remove_sharer(&_irq_sigh);
+	PERR("Not yet implemented.");
 }
 
 
-void Irq_session_component::sigh(Genode::Signal_context_capability sigh)
+void Irq_session_component::ack_irq()
 {
-	if (!_proxy) {
-		PERR("signal handler got not registered - irq thread unavailable");
-		return;
-	}
+	_irq_object.ack_irq();
+}
 
-	Genode::Signal_context_capability old = _irq_sigh;
 
-	if (old.valid() && !sigh.valid())
-		_proxy->remove_sharer(&_irq_sigh);
-
-	_irq_sigh = sigh;
-
-	if (!old.valid() && sigh.valid())
-		_proxy->add_sharer(&_irq_sigh);
+void Irq_session_component::sigh(Genode::Signal_context_capability cap)
+{
+	_irq_object.sigh(cap);
 }
 
 
