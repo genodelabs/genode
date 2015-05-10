@@ -53,33 +53,37 @@ void Thread_base::_init_platform_thread(size_t, Type type)
 	Untyped_address const ipc_buffer =
 		create_and_map_ipc_buffer(phys_alloc, utcb_virt_addr);
 
-	/* allocate TCB selector within core's CNode */
-	unsigned const tcb_idx = platform.alloc_core_sel();
-
+	/* allocate TCB within core's CNode */
+	_tid.tcb_sel = platform.alloc_core_sel();
 	Kernel_object::create<Kernel_object::Tcb>(phys_alloc,
-	                                          platform.core_cnode().sel(), tcb_idx);
+	                                          platform.core_cnode().sel(),
+	                                          _tid.tcb_sel);
 
-	unsigned const tcb_sel = tcb_idx;
-	_tid.tcb_sel = tcb_sel;
+	/* allocate synchronous endpoint within core's CNode */
+	_tid.ep_sel = platform.alloc_core_sel();
+	Kernel_object::create<Kernel_object::Endpoint>(phys_alloc,
+	                                               platform.core_cnode().sel(),
+	                                               _tid.ep_sel);
 
 	/* assign IPC buffer to thread */
 	{
 		/* determine page frame selector of the allocated IPC buffer */
 		unsigned ipc_buffer_sel = Untyped_memory::frame_sel(ipc_buffer.phys());
 
-		int const ret = seL4_TCB_SetIPCBuffer(tcb_sel, utcb_virt_addr, ipc_buffer_sel);
+		int const ret = seL4_TCB_SetIPCBuffer(_tid.tcb_sel, utcb_virt_addr,
+		                                      ipc_buffer_sel);
 		if (ret != 0)
 			PDBG("seL4_TCB_SetIPCBuffer returned %d", ret);
 	}
 
 	/* set scheduling priority */
 	enum { PRIORITY_MAX = 0xff };
-	seL4_TCB_SetPriority(tcb_sel, PRIORITY_MAX);
+	seL4_TCB_SetPriority(_tid.tcb_sel, PRIORITY_MAX);
 
 	/* associate thread with core PD */
 	{
 		seL4_CapData_t no_cap_data = { { 0 } };
-		int const ret = seL4_TCB_SetSpace(tcb_sel, 0,
+		int const ret = seL4_TCB_SetSpace(_tid.tcb_sel, 0,
 		                  platform.top_cnode().sel(), no_cap_data,
 		                  seL4_CapInitThreadPD, no_cap_data);
 

@@ -15,7 +15,11 @@
 #include <base/ipc.h>
 #include <base/printf.h>
 #include <base/blocking.h>
+#include <base/thread.h>
 #include <util/misc_math.h>
+
+/* base-internal includes */
+#include <internal/capability_space.h>
 
 /* seL4 includes */
 #include <sel4/interfaces/sel4_client.h>
@@ -127,7 +131,23 @@ void Ipc_server::_prepare_next_reply_wait()
 void Ipc_server::_wait()
 {
 	/* wait for new server request */
-	try { Ipc_istream::_wait(); } catch (Blocking_canceled) { }
+	PDBG("called, do seL4_Wait");
+
+	seL4_MessageInfo_t const msg_info =
+		seL4_Wait(Thread_base::myself()->tid().ep_sel, nullptr);
+	PDBG("returned from seL4_Wait, call seL4_Reply");
+
+	PDBG("msg_info: got unwrapped  %d", seL4_MessageInfo_get_capsUnwrapped(msg_info));
+	PDBG("          got extra caps %d", seL4_MessageInfo_get_extraCaps(msg_info));
+	PDBG("          label          %d", seL4_MessageInfo_get_label(msg_info));
+
+	if (seL4_MessageInfo_get_capsUnwrapped(msg_info)) {
+		PDBG("          badge          %d", seL4_CapData_Badge_get_Badge(seL4_GetBadge(0)));
+	}
+
+	for (;;)
+		seL4_Yield();
+//	try { Ipc_istream::_wait(); } catch (Blocking_canceled) { }
 
 	_prepare_next_reply_wait();
 }
@@ -155,4 +175,6 @@ Ipc_server::Ipc_server(Msgbuf_base *snd_msg,
 :
 	Ipc_istream(rcv_msg), Ipc_ostream(Native_capability(), snd_msg),
 	_reply_needed(false)
-{ }
+{
+	*static_cast<Native_capability *>(this) = Native_capability(Capability_space::create_ep_cap(*Thread_base::myself()));
+}

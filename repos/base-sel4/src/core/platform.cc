@@ -268,6 +268,24 @@ unsigned Platform::alloc_core_sel()
 }
 
 
+unsigned Platform::alloc_core_rcv_sel()
+{
+	unsigned rcv_sel = alloc_core_sel();
+
+	seL4_SetCapReceivePath(_core_cnode.sel(), rcv_sel, 0);
+
+	return rcv_sel;
+}
+
+
+void Platform::free_core_sel(unsigned sel)
+{
+	Lock::Guard guard(_core_sel_alloc_lock);
+
+	_core_sel_alloc.free(sel);
+}
+
+
 void Platform::wait_for_exit()
 {
 	sleep_forever();

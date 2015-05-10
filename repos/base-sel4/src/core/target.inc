@@ -28,12 +28,15 @@ SRC_CC      += \
                core_rm_session.cc \
                core_mem_alloc.cc \
                dump_alloc.cc \
-               context_area.cc
+               context_area.cc \
+               capability_space.cc
+
 
 LIBS        += core_printf base-common syscall
 
 INC_DIR     += $(REP_DIR)/src/core/include \
                $(GEN_CORE_DIR)/include \
+               $(REP_DIR)/src/base \
                $(BASE_DIR)/src/base/thread
 
 include $(GEN_CORE_DIR)/version.inc
@@ -41,7 +44,6 @@ include $(GEN_CORE_DIR)/version.inc
 vpath main.cc                     $(GEN_CORE_DIR)
 vpath ram_session_component.cc    $(GEN_CORE_DIR)
 vpath rom_session_component.cc    $(GEN_CORE_DIR)
-vpath cap_session_component.cc    $(GEN_CORE_DIR)
 vpath cpu_session_component.cc    $(GEN_CORE_DIR)
 vpath pd_session_component.cc     $(GEN_CORE_DIR)
 vpath rm_session_component.cc     $(GEN_CORE_DIR)

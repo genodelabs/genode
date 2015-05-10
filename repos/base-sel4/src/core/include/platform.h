@@ -137,6 +137,8 @@ class Genode::Platform : public Platform_generic
 		Vm_space &core_vm_space() { return _core_vm_space; }
 
 		unsigned alloc_core_sel();
+		unsigned alloc_core_rcv_sel();
+		void free_core_sel(unsigned sel);
 
 		void wait_for_exit();
 };

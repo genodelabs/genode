@@ -23,7 +23,9 @@ SRC_CC += signal/signal.cc signal/common.cc
 SRC_CC += server/server.cc
 SRC_CC += thread/trace.cc
 SRC_CC += thread/context_allocator.cc
+SRC_CC += env/capability.cc env/capability_space.cc
 
+INC_DIR +=  $(REP_DIR)/src/base
 INC_DIR +=  $(REP_DIR)/src/base/lock
 INC_DIR += $(BASE_DIR)/src/base/lock
 INC_DIR += $(BASE_DIR)/src/base/thread

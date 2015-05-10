@@ -1,0 +1,169 @@
+/*
+ * \brief  Instance of the core-local (Genode) capability space
+ * \author Norman Feske
+ * \date   2015-05-08
+ */
+
+/*
+ * Copyright (C) 2015 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
+/* base includes */
+#include <base/native_types.h>
+#include <base/printf.h>
+
+/* base-internal includes */
+#include <internal/capability_data.h>
+#include <internal/capability_space_sel4.h>
+
+/* core includes */
+#include <core_capability_space.h>
+#include <platform.h>
+
+namespace Genode { class Cap_session; }
+
+
+/**
+ * Core-specific supplement of the capability meta data
+ */
+class Genode::Native_capability::Data : public Capability_data
+{
+	private:
+
+		Cap_session const *_cap_session = nullptr;
+
+	public:
+
+		Data(Cap_session const *cap_session, Rpc_obj_key key)
+		:
+			Capability_data(key), _cap_session(cap_session)
+		{ }
+
+		Data() { }
+
+		bool belongs_to(Cap_session const *session) const
+		{
+			return _cap_session == session;
+		}
+};
+
+
+using namespace Genode;
+
+
+/**
+ * Singleton instance of core-specific capability space
+ */
+namespace {
+
+	struct Local_capability_space
+	:
+		Capability_space_sel4<1UL << Core_cspace::NUM_CORE_SEL_LOG2,
+		                      Native_capability::Data>
+	{ };
+
+	static Local_capability_space &local_capability_space()
+	{
+		static Local_capability_space capability_space;
+		return capability_space;
+	}
+}
+
+
+/********************************************************************
+ ** Implementation of the core-specific Capability_space interface **
+ ********************************************************************/
+
+Native_capability
+Capability_space::create_rpc_obj_cap(Native_capability ep_cap,
+                                     Cap_session const *cap_session,
+                                     Rpc_obj_key rpc_obj_key)
+{
+	/* allocate core-local selector for RPC object */
+	unsigned const rpc_obj_sel = platform_specific()->alloc_core_sel();
+
+	/* create Genode capability */
+	Native_capability::Data &data =
+		local_capability_space().create_capability(rpc_obj_sel, cap_session,
+		                                           rpc_obj_key);
+
+	ASSERT(ep_cap.valid());
+
+	unsigned const ep_sel = local_capability_space().sel(*ep_cap.data());
+
+	/* mint endpoint capability into RPC object capability */
+	{
+		seL4_CNode     const service    = seL4_CapInitThreadCNode;
+		seL4_Word      const dest_index = rpc_obj_sel;
+		uint8_t        const dest_depth = 32;
+		seL4_CNode     const src_root   = seL4_CapInitThreadCNode;
+		seL4_Word      const src_index  = ep_sel;
+		uint8_t        const src_depth  = 32;
+		seL4_CapRights const rights     = seL4_AllRights;
+		seL4_CapData_t const badge      = seL4_CapData_Badge_new(rpc_obj_key.value());
+
+		int const ret = seL4_CNode_Mint(service,
+		                                dest_index,
+		                                dest_depth,
+		                                src_root,
+		                                src_index,
+		                                src_depth,
+		                                rights,
+		                                badge);
+		ASSERT(ret == 0);
+	}
+
+	return Native_capability(data);
+}
+
+
+/******************************************************
+ ** Implementation of the Capability_space interface **
+ ******************************************************/
+
+Native_capability Capability_space::create_ep_cap(Thread_base &ep_thread)
+{
+	unsigned const ep_sel = ep_thread.tid().ep_sel;
+
+	/* entrypoint capabilities are not allocated from a CAP session */
+	Cap_session const *cap_session = nullptr;
+
+	Native_capability::Data &data =
+		local_capability_space().create_capability(ep_sel, cap_session,
+		                                           Rpc_obj_key());
+
+	return Native_capability(data);
+}
+
+
+void Capability_space::dec_ref(Native_capability::Data &data)
+{
+	local_capability_space().dec_ref(data);
+}
+
+
+void Capability_space::inc_ref(Native_capability::Data &data)
+{
+	local_capability_space().inc_ref(data);
+}
+
+
+Rpc_obj_key Capability_space::rpc_obj_key(Native_capability::Data const &data)
+{
+	return local_capability_space().rpc_obj_key(data);
+}
+
+
+Capability_space::Ipc_cap_data Capability_space::ipc_cap_data(Native_capability const &cap)
+{
+	return local_capability_space().ipc_cap_data(*cap.data());
+}
+
+
+unsigned Capability_space::alloc_rcv_sel()
+{
+	return platform_specific()->alloc_core_rcv_sel();
+}
