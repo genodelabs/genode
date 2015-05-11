@@ -252,6 +252,19 @@ namespace Noux {
 				return true;
 			}
 
+			bool fcntl(Sysio *sysio) override
+			{
+				switch (sysio->fcntl_in.cmd) {
+
+					case Sysio::FCNTL_CMD_GET_FILE_STATUS_FLAGS:
+						sysio->fcntl_out.result = Sysio::OPEN_MODE_WRONLY;
+						return true;
+
+					default:
+						return false;
+				}
+			}
+
 			bool fstat(Sysio *sysio) override
 			{
 				sysio->fstat_out.st.mode = Sysio::STAT_MODE_CHARDEV;
@@ -313,6 +326,19 @@ namespace Noux {
 					_pipe->read(sysio->read_out.chunk, max_count);
 
 				return true;
+			}
+
+			bool fcntl(Sysio *sysio) override
+			{
+				switch (sysio->fcntl_in.cmd) {
+
+					case Sysio::FCNTL_CMD_GET_FILE_STATUS_FLAGS:
+						sysio->fcntl_out.result = Sysio::OPEN_MODE_RDONLY;
+						return true;
+
+					default:
+						return false;
+				}
 			}
 
 			bool fstat(Sysio *sysio) override
