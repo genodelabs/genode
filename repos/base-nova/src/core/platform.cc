@@ -341,6 +341,11 @@ Platform::Platform() :
 	/* initialize core's physical-memory and I/O memory allocator */
 	_io_mem_alloc.add_range(0, ~0xfffUL);
 	Hip::Mem_desc *mem_desc = (Hip::Mem_desc *)mem_desc_base;
+
+	/*
+	 * All "available" ram must be added to our physical allocator before all
+	 * non "available" regions that overlaps with ram get removed.
+	 */
 	for (unsigned i = 0; i < num_mem_desc; i++, mem_desc++) {
 		if (mem_desc->type != Hip::Mem_desc::AVAILABLE_MEMORY) continue;
 
@@ -366,7 +371,11 @@ Platform::Platform() :
 		ram_alloc()->add_range(base, size);
 	}
 
-	/* exclude all non-available memory from physical allocator */
+	/*
+	 * Exclude all non-available memory from physical allocator AFTER all
+	 * available RAM was added - otherwise the non-available memory gets not
+	 * properly removed from the physical allocator
+	 */
 	mem_desc = (Hip::Mem_desc *)mem_desc_base;
 	for (unsigned i = 0; i < num_mem_desc; i++, mem_desc++) {
 		if (mem_desc->type == Hip::Mem_desc::AVAILABLE_MEMORY) continue;
@@ -382,7 +391,11 @@ Platform::Platform() :
 		else
 			size = round_page(mem_desc->addr + mem_desc->size) - base;
 
-		_io_mem_alloc.add_range(base, size);
+		/* make acpi regions as io_mem available to platform driver */
+		if (mem_desc->type == Hip::Mem_desc::ACPI_RECLAIM_MEMORY ||
+		    mem_desc->type == Hip::Mem_desc::ACPI_NVS_MEMORY)
+			_io_mem_alloc.add_range(base, size);
+
 		ram_alloc()->remove_range(base, size);
 	}
 
