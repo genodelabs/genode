@@ -353,6 +353,14 @@ namespace Genode {
 			Linux_cpu_session      *cpu_session()     { return &_cpu_session_client; }
 			Cpu_session_capability  cpu_session_cap() { return  _cpu_session_cap; }
 			Pd_session             *pd_session()      { return &_pd_session_client; }
+
+			/*
+			 * Support functions for implementing fork on Noux.
+			 *
+			 * Not supported on Linux.
+			 */
+			void reinit(Native_capability::Dst, long) { };
+			void reinit_main_thread(Rm_session_capability &) { };
 	};
 
 
@@ -430,16 +438,6 @@ namespace Genode {
 			 * Destructor
 			 */
 			~Platform_env() { _parent().exit(0); }
-
-			/*
-			 * Support functions for implementing fork on Noux.
-			 *
-			 * Not supported on Linux.
-			 *
-			 * See the documentation in 'base/src/base/env/platform_env.h'
-			 */
-			void reinit(Native_capability::Dst, long);
-			void reinit_main_thread(Rm_session_capability &);
 
 
 			/*************************************
