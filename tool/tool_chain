@@ -60,7 +60,7 @@ MPC_DOWNLOAD_URL     ?= http://www.multiprecision.org/mpc/download
 #
 
 GCC_VERSION       = 4.7.4
-BINUTILS_VERSION  = 2.22
+BINUTILS_VERSION  = 2.25
 GDB_VERSION       = 7.3.1
 GMP_VERSION       = 5.0.2
 MPFR_VERSION      = 3.1.0
