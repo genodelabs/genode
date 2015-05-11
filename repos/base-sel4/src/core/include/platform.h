@@ -32,11 +32,22 @@ class Genode::Platform : public Platform_generic
 
 		typedef Core_mem_allocator::Phys_allocator Phys_allocator;
 
+
 		Core_mem_allocator _core_mem_alloc; /* core-accessible memory */
 		Phys_allocator     _io_mem_alloc;   /* MMIO allocator         */
 		Phys_allocator     _io_port_alloc;  /* I/O port allocator     */
 		Phys_allocator     _irq_alloc;      /* IRQ allocator          */
-		Rom_fs             _rom_fs;         /* ROM file system        */
+
+		/*
+		 * Allocator for tracking unused physical addresses, which is used
+		 * to allocate a range within the phys CNode for ROM modules.
+		 */
+		Phys_allocator _unused_phys_alloc;
+
+		void       _init_unused_phys_alloc();
+		bool const _init_unused_phys_alloc_done;
+
+		Rom_fs _rom_fs;  /* ROM file system */
 
 		/**
 		 * Shortcut for physical memory allocator
@@ -52,8 +63,8 @@ class Genode::Platform : public Platform_generic
 		/**
 		 * Initialize core allocators
 		 */
-		void _init_allocators();
-		bool _init_allocators_done;
+		void       _init_allocators();
+		bool const _init_allocators_done;
 
 		/*
 		 * Until this point, no interaction with the seL4 kernel was needed.
@@ -62,7 +73,7 @@ class Genode::Platform : public Platform_generic
 		 * need to initialize the TLS mechanism that is used to find the IPC
 		 * buffer for the calling thread.
 		 */
-		bool _init_sel4_ipc_buffer_done;
+		bool const _init_sel4_ipc_buffer_done;
 
 		/* allocate 1st-level CNode */
 		Cnode _top_cnode { seL4_CapInitThreadCNode, Core_cspace::TOP_CNODE_SEL,
@@ -91,8 +102,8 @@ class Genode::Platform : public Platform_generic
 		/**
 		 * Replace initial CSpace with custom CSpace layout
 		 */
-		void _switch_to_core_cspace();
-		bool _switch_to_core_cspace_done;
+		void       _switch_to_core_cspace();
+		bool const _switch_to_core_cspace_done;
 
 		Page_table_registry _core_page_table_registry;
 
@@ -101,12 +112,12 @@ class Genode::Platform : public Platform_generic
 		 * about the initial page tables and page frames as set up by the
 		 * kernel
 		 */
-		void _init_core_page_table_registry();
-		bool _init_core_page_table_registry_done;
+		void       _init_core_page_table_registry();
+		bool const _init_core_page_table_registry_done;
 
 		Vm_space _core_vm_space;
 
-		int _init_rom_fs();
+		void _init_rom_modules();
 
 	public:
 

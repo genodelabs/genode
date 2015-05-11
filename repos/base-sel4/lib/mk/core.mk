@@ -31,7 +31,6 @@ SRC_CC      += \
                context_area.cc \
                capability_space.cc
 
-
 LIBS        += core_printf base-common syscall
 
 INC_DIR     += $(REP_DIR)/src/core/include \
@@ -57,3 +56,4 @@ vpath dataspace_component.cc      $(GEN_CORE_DIR)
 vpath core_mem_alloc.cc           $(GEN_CORE_DIR)
 vpath dump_alloc.cc               $(GEN_CORE_DIR)
 vpath %.cc                        $(REP_DIR)/src/core
+

@@ -35,6 +35,23 @@ static bool const verbose_boot_info = true;
 extern unsigned _prog_img_beg, _prog_img_end;
 
 
+/******************
+ ** Boot modules **
+ ******************/
+
+struct Boot_module_header
+{
+	char   const *name;  /* physical address of null-terminated string */
+	addr_t const  base;  /* physical address of module data */
+	size_t const  size;  /* size of module data in bytes */
+};
+
+extern Boot_module_header _boot_modules_headers_begin;
+extern Boot_module_header _boot_modules_headers_end;
+extern int                _boot_modules_binaries_begin;
+extern int                _boot_modules_binaries_end;
+
+
 /****************************************
  ** Support for core memory management **
  ****************************************/
@@ -62,10 +79,18 @@ bool Core_mem_allocator::Mapped_mem_allocator::_unmap_local(addr_t virt_addr,
  ** Platform interface **
  ************************/
 
+void Platform::_init_unused_phys_alloc()
+{
+	_unused_phys_alloc.add_range(0, ~0UL);
+}
+
+
 /**
  * Initialize allocator with untyped memory ranges according to the boot info
  */
-static void init_allocator(Range_allocator &alloc, seL4_BootInfo const &bi,
+static void init_allocator(Range_allocator &alloc,
+                           Range_allocator &unused_phys_alloc,
+                           seL4_BootInfo const &bi,
                            unsigned const start_idx, unsigned const num_idx)
 {
 	for (unsigned i = start_idx; i < start_idx + num_idx; i++) {
@@ -77,6 +102,8 @@ static void init_allocator(Range_allocator &alloc, seL4_BootInfo const &bi,
 		size_t const size = 1UL << bi.untypedSizeBitsList[k];
 
 		alloc.add_range(base, size);
+
+		unused_phys_alloc.remove_range(base, size);
 	}
 }
 
@@ -95,11 +122,13 @@ void Platform::_init_allocators()
 	_irq_alloc.add_range(0, 255);
 
 	/* physical memory ranges */
-	init_allocator(*_core_mem_alloc.phys_alloc(), bi, bi.untyped.start,
+	init_allocator(*_core_mem_alloc.phys_alloc(), _unused_phys_alloc,
+	               bi, bi.untyped.start,
 	               bi.untyped.end - bi.untyped.start);
 
 	/* I/O memory ranges */
-	init_allocator(_io_mem_alloc, bi, bi.deviceUntyped.start,
+	init_allocator(_io_mem_alloc, _unused_phys_alloc,
+	               bi, bi.deviceUntyped.start,
 	               bi.deviceUntyped.end - bi.deviceUntyped.start);
 
 	/* core's virtual memory */
@@ -114,7 +143,7 @@ void Platform::_init_allocators()
 	 *     attempt to map a page frame.
 	 */
 	addr_t const core_virt_beg = trunc_page((addr_t)&_prog_img_beg),
-	             core_virt_end = round_page((addr_t)&_prog_img_end)
+	             core_virt_end = round_page((addr_t)&_boot_modules_binaries_end)
 	                           + 64*1024;
 	size_t const core_size     = core_virt_end - core_virt_beg;
 
@@ -157,6 +186,9 @@ void Platform::_switch_to_core_cspace()
 		_core_cnode.copy(initial_cspace, sel);
 
 	for (unsigned sel = bi.deviceUntyped.start; sel < bi.deviceUntyped.end; sel++)
+		_core_cnode.copy(initial_cspace, sel);
+
+	for (unsigned sel = bi.userImageFrames.start; sel < bi.userImageFrames.end; sel++)
 		_core_cnode.copy(initial_cspace, sel);
 
 	/* copy statically created CNode selectors to core's CNode */
@@ -225,10 +257,90 @@ void Platform::_init_core_page_table_registry()
 }
 
 
+void Platform::_init_rom_modules()
+{
+	seL4_BootInfo const &bi = sel4_boot_info();
+
+	/*
+	 * Slab allocator for allocating 'Rom_module' meta data.
+	 */
+	static long slab_block[4096];
+	static Tslab<Rom_module, sizeof(slab_block)>
+		rom_module_slab(core_mem_alloc(), (Genode::Slab_block *)slab_block);;
+
+	/*
+	 * Allocate unused range of phys CNode address space where to make the
+	 * boot modules available.
+	 */
+	void *out_ptr = nullptr;
+	size_t const modules_size = (addr_t)&_boot_modules_binaries_end
+	                          - (addr_t)&_boot_modules_binaries_begin + 1;
+
+	Range_allocator::Alloc_return const alloc_ret =
+		_unused_phys_alloc.alloc_aligned(modules_size, &out_ptr, get_page_size_log2());
+
+	if (alloc_ret.is_error()) {
+		PERR("could not reserve phys CNode space for boot modules");
+		struct Init_rom_modules_failed { };
+		throw Init_rom_modules_failed();
+	}
+
+	/*
+	 * Calculate frame frame selector used to back the boot modules
+	 */
+	addr_t const unused_range_start      = (addr_t)out_ptr;
+	addr_t const unused_first_frame_sel  = unused_range_start >> get_page_size_log2();
+	addr_t const modules_start           = (addr_t)&_boot_modules_binaries_begin;
+	addr_t const modules_core_offset     = modules_start
+	                                     - (addr_t)&_prog_img_beg;
+	addr_t const modules_first_frame_sel = bi.userImageFrames.start
+	                                     + (modules_core_offset >> get_page_size_log2());
+
+	Boot_module_header const *header = &_boot_modules_headers_begin;
+	for (; header < &_boot_modules_headers_end; header++) {
+
+		/* offset relative to first module */
+		addr_t const module_offset        = header->base - modules_start;
+		addr_t const module_offset_frames = module_offset >> get_page_size_log2();
+		size_t const module_size          = round_page(header->size);
+		addr_t const module_frame_sel     = modules_first_frame_sel
+		                                  + module_offset_frames;
+		size_t const module_num_frames    = module_size >> get_page_size_log2();
+
+		/*
+		 * Destination frame within phys CNode
+		 */
+		addr_t const dst_frame = unused_first_frame_sel + module_offset_frames;
+
+		/*
+		 * Install the module's frame selectors into phys CNode
+		 */
+		Cnode_base const initial_cspace(seL4_CapInitThreadCNode, 32);
+		for (unsigned i = 0; i < module_num_frames; i++)
+			_phys_cnode.copy(initial_cspace, module_frame_sel + i, dst_frame + i);
+
+		PLOG("boot module '%s' (%zd bytes)", header->name, header->size);
+
+		/*
+		 * Register ROM module, the base address refers to location of the
+		 * ROM module within the phys CNode address space.
+		 */
+		Rom_module * rom_module = new (rom_module_slab)
+			Rom_module(dst_frame << get_page_size_log2(), header->size,
+			           (const char*)header->name);
+
+		_rom_fs.insert(rom_module);
+	}
+}
+
+
 Platform::Platform()
 :
+
 	_io_mem_alloc(core_mem_alloc()), _io_port_alloc(core_mem_alloc()),
 	_irq_alloc(core_mem_alloc()),
+	_unused_phys_alloc(core_mem_alloc()),
+	_init_unused_phys_alloc_done((_init_unused_phys_alloc(), true)),
 	_vm_base(0x1000),
 	_vm_size(2*1024*1024*1024UL - _vm_base), /* use the lower 2GiB */
 	_init_allocators_done((_init_allocators(), true)),
@@ -244,19 +356,19 @@ Platform::Platform()
 	               Core_cspace::CORE_VM_ID,
 	               _core_page_table_registry)
 {
-	/* XXX add boot modules to ROM fs */
-
 	/*
 	 * Print statistics about allocator initialization
 	 */
 	printf("VM area at [%08lx,%08lx)\n", _vm_base, _vm_base + _vm_size);
 
 	if (verbose_boot_info) {
-		printf(":phys_alloc:   "); _core_mem_alloc.phys_alloc()->raw()->dump_addr_tree();
-		printf(":virt_alloc:   "); _core_mem_alloc.virt_alloc()->raw()->dump_addr_tree();
-		printf(":io_mem_alloc: "); _io_mem_alloc.raw()->dump_addr_tree();
+		printf(":phys_alloc:       "); _core_mem_alloc.phys_alloc()->raw()->dump_addr_tree();
+		printf(":unused_phys_alloc:"); _unused_phys_alloc.raw()->dump_addr_tree();
+		printf(":virt_alloc:       "); _core_mem_alloc.virt_alloc()->raw()->dump_addr_tree();
+		printf(":io_mem_alloc:     "); _io_mem_alloc.raw()->dump_addr_tree();
 	}
 
+	_init_rom_modules();
 }
 
 

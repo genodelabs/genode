@@ -32,12 +32,12 @@ class Genode::Core_cspace
 
 		/* selectors for statically created CNodes */
 		enum Static_cnode_sel {
-			TOP_CNODE_SEL         = 0x200,
-			CORE_PAD_CNODE_SEL    = 0x201,
-			CORE_CNODE_SEL        = 0x202,
-			PHYS_CNODE_SEL        = 0x203,
-			CORE_VM_PAD_CNODE_SEL = 0x204,
-			CORE_VM_CNODE_SEL     = 0x205,
+			TOP_CNODE_SEL         = 0xa00,
+			CORE_PAD_CNODE_SEL    = 0xa01,
+			CORE_CNODE_SEL        = 0xa02,
+			PHYS_CNODE_SEL        = 0xa03,
+			CORE_VM_PAD_CNODE_SEL = 0xa04,
+			CORE_VM_CNODE_SEL     = 0xa05,
 			CORE_STATIC_SEL_END,
 		};
 
