@@ -82,3 +82,38 @@ Rpc_obj_key Capability_space::rpc_obj_key(Native_capability::Data const &data)
 	return local_capability_space().rpc_obj_key(data);
 }
 
+
+Capability_space::Ipc_cap_data Capability_space::ipc_cap_data(Native_capability const &cap)
+{
+	return local_capability_space().ipc_cap_data(*cap.data());
+}
+
+
+Native_capability Capability_space::lookup(Rpc_obj_key rpc_obj_key)
+{
+	Native_capability::Data *data = local_capability_space().lookup(rpc_obj_key);
+
+	return data ? Native_capability(*data) : Native_capability();
+}
+
+
+unsigned Capability_space::alloc_rcv_sel()
+{
+	PDBG("not implemented");
+	for (;;);
+	return 0;
+}
+
+
+void Capability_space::reset_sel(unsigned sel)
+{
+	PDBG("not implemented");
+}
+
+
+Native_capability Capability_space::import(Ipc_cap_data ipc_cap_data)
+{
+	PDBG("not implemented");
+
+	return Native_capability();
+}

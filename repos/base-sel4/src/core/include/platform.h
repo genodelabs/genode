@@ -138,6 +138,7 @@ class Genode::Platform : public Platform_generic
 
 		unsigned alloc_core_sel();
 		unsigned alloc_core_rcv_sel();
+		void reset_sel(unsigned sel);
 		void free_core_sel(unsigned sel);
 
 		void wait_for_exit();

@@ -272,9 +272,15 @@ unsigned Platform::alloc_core_rcv_sel()
 {
 	unsigned rcv_sel = alloc_core_sel();
 
-	seL4_SetCapReceivePath(_core_cnode.sel(), rcv_sel, 0);
+	seL4_SetCapReceivePath(_core_cnode.sel(), rcv_sel, _core_cnode.size_log2());
 
 	return rcv_sel;
+}
+
+
+void Platform::reset_sel(unsigned sel)
+{
+	_core_cnode.remove(sel);
 }
 
 

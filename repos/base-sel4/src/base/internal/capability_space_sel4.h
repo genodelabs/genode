@@ -22,7 +22,7 @@
 #include <internal/capability_space.h>
 #include <internal/assert.h>
 
-namespace Genode { template <unsigned, typename> class Capability_space_sel4; }
+namespace Genode { template <unsigned, unsigned, typename> class Capability_space_sel4; }
 
 
 /**
@@ -37,6 +37,9 @@ namespace Genode { namespace Capability_space {
 	{
 		Rpc_obj_key rpc_obj_key;
 		unsigned    sel;
+
+		Ipc_cap_data(Rpc_obj_key rpc_obj_key, unsigned sel)
+		: rpc_obj_key(rpc_obj_key), sel(sel) { }
 	};
 
 	/**
@@ -49,6 +52,23 @@ namespace Genode { namespace Capability_space {
 	 */
 	unsigned alloc_rcv_sel();
 
+	/**
+	 * Delete selector but retain allocation
+	 *
+	 * This function is used when a delegated capability selector is replaced
+	 * with an already known selector. The delegated selector is discarded.
+	 */
+	void reset_sel(unsigned sel);
+
+	/**
+	 * Lookup capability by its RPC object key
+	 */
+	Native_capability lookup(Rpc_obj_key key);
+
+	/**
+	 * Import capability into the component's capability space
+	 */
+	Native_capability import(Ipc_cap_data ipc_cap_data);
 } }
 
 
@@ -65,7 +85,7 @@ namespace Genode { namespace Capability_space {
  * freeing capabilities allocated from another component. This information
  * is part of the core-specific 'Native_capability::Data' structure.
  */
-template <unsigned NUM_CAPS, typename CAP_DATA>
+template <unsigned NUM_CAPS, unsigned _NUM_CORE_MANAGED_CAPS, typename CAP_DATA>
 class Genode::Capability_space_sel4
 {
 	public:
@@ -73,10 +93,10 @@ class Genode::Capability_space_sel4
 		/*
 		 * The capability space consists of two parts. The lower part is
 		 * populated with statically-defined capabilities whereas the upper
-		 * part is dynamically managed by the component. The 'NUM_STATIC_CAPS'
-		 * defines the size of the first part.
+		 * part is dynamically managed by the component. The
+		 * 'NUM_CORE_MANAGED_CAPS' defines the size of the first part.
 		 */
-		enum { NUM_STATIC_CAPS = 1024 };
+		enum { NUM_CORE_MANAGED_CAPS = _NUM_CORE_MANAGED_CAPS };
 
 	private:
 
@@ -111,7 +131,7 @@ class Genode::Capability_space_sel4
 
 		Tree_managed_data           _caps_data[NUM_CAPS];
 		Avl_tree<Tree_managed_data> _tree;
-		Lock                        _lock;
+		Lock                mutable _lock;
 
 		/**
 		 * Calculate index into _caps_data for capability data object
@@ -125,9 +145,9 @@ class Genode::Capability_space_sel4
 		/**
 		 * Return true if capability is locally managed by the component
 		 */
-		bool _is_dynamic(Data &data) const
+		bool _is_core_managed(Data &data) const
 		{
-			return _index(data) >= NUM_STATIC_CAPS;
+			return _index(data) < NUM_CORE_MANAGED_CAPS;
 		}
 
 		void _remove(Native_capability::Data &data)
@@ -180,7 +200,7 @@ class Genode::Capability_space_sel4
 		{
 			Lock::Guard guard(_lock);
 
-			if (_is_dynamic(data) && !data.dec_ref()) {
+			if (!_is_core_managed(data) && !data.dec_ref()) {
 				PDBG("remove cap");
 				_remove(data);
 			}
@@ -190,8 +210,9 @@ class Genode::Capability_space_sel4
 		{
 			Lock::Guard guard(_lock);
 
-			if (_is_dynamic(data))
+			if (!_is_core_managed(data)) {
 				data.inc_ref();
+			}
 		}
 
 		Rpc_obj_key rpc_obj_key(Data const &data) const
@@ -202,6 +223,16 @@ class Genode::Capability_space_sel4
 		Capability_space::Ipc_cap_data ipc_cap_data(Data const &data) const
 		{
 			return { rpc_obj_key(data), sel(data) };
+		}
+
+		Data *lookup(Rpc_obj_key key) const
+		{
+			Lock::Guard guard(_lock);
+
+			if (!_tree.first())
+				return nullptr;
+
+			return _tree.first()->find_by_key(key);
 		}
 };
 

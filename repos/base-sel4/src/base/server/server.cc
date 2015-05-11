@@ -64,9 +64,6 @@ void Rpc_entrypoint::entry()
 		/* set default return value */
 		srv.ret(Ipc_client::ERR_INVALID_OBJECT);
 
-		/* check whether capability's label fits global id */
-		PDBG("not implemented");
-
 		/* atomically lookup and lock referenced object */
 		Object_pool<Rpc_object_base>::Guard curr_obj(lookup_and_lock(srv.badge()));
 		if (!curr_obj)

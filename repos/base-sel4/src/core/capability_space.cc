@@ -61,7 +61,7 @@ namespace {
 
 	struct Local_capability_space
 	:
-		Capability_space_sel4<1UL << Core_cspace::NUM_CORE_SEL_LOG2,
+		Capability_space_sel4<1UL << Core_cspace::NUM_CORE_SEL_LOG2, 0UL,
 		                      Native_capability::Data>
 	{ };
 
@@ -163,7 +163,34 @@ Capability_space::Ipc_cap_data Capability_space::ipc_cap_data(Native_capability 
 }
 
 
+Native_capability Capability_space::lookup(Rpc_obj_key rpc_obj_key)
+{
+	Native_capability::Data *data = local_capability_space().lookup(rpc_obj_key);
+
+	return data ? Native_capability(*data) : Native_capability();
+}
+
+
 unsigned Capability_space::alloc_rcv_sel()
 {
 	return platform_specific()->alloc_core_rcv_sel();
+}
+
+
+void Capability_space::reset_sel(unsigned sel)
+{
+	return platform_specific()->reset_sel(sel);
+}
+
+
+Native_capability Capability_space::import(Ipc_cap_data ipc_cap_data)
+{
+	/* imported capabilities are not associated with a CAP session */
+	Cap_session const *cap_session = nullptr;
+
+	Native_capability::Data &data =
+		local_capability_space().create_capability(ipc_cap_data.sel, cap_session,
+		                                           ipc_cap_data.rpc_obj_key);
+
+	return Native_capability(data);
 }
