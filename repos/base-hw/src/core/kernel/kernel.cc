@@ -239,7 +239,7 @@ void init_kernel_mp_primary()
 
 	/* initialize UTCB and map it */
 	Native_utcb * utcb = Kernel::core_main_thread_utcb_phys_addr();
-	Genode::map_local((addr_t)utcb, (addr_t)UTCB_MAIN_THREAD,
+	Genode::map_local((addr_t)utcb, (addr_t)utcb_main_thread(),
 	                  sizeof(Native_utcb) / get_page_size());
 
 	static Kernel::Thread t(Cpu_priority::max, 0, "core");
@@ -249,7 +249,7 @@ void init_kernel_mp_primary()
 	t.ip = (addr_t)&_core_start;
 	t.sp = (addr_t)s + STACK_SIZE;
 	t.init(cpu_pool()->primary_cpu(), core_pd(),
-	       (Native_utcb*)Genode::UTCB_MAIN_THREAD, 1);
+	       Genode::utcb_main_thread(), 1);
 
 	/* kernel initialization finished */
 	Genode::printf("kernel initialized\n");

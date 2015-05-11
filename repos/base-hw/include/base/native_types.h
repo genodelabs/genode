@@ -315,9 +315,12 @@ namespace Genode
 	static constexpr addr_t VIRT_ADDR_SPACE_START = 0x1000;
 	static constexpr size_t VIRT_ADDR_SPACE_SIZE  = 0xfffef000;
 
-	static constexpr Native_utcb * UTCB_MAIN_THREAD = (Native_utcb *)
+	static constexpr Native_utcb * utcb_main_thread()
+	{
+		return (Native_utcb *)
 		((VIRT_ADDR_SPACE_START + VIRT_ADDR_SPACE_SIZE - sizeof(Native_utcb))
 		 & ~((1 << MIN_MAPPING_SIZE_LOG2) - 1));
+	}
 }
 
 #endif /* _BASE__NATIVE_TYPES_H_ */
