@@ -98,7 +98,22 @@ class Context_area_rm_session : public Rm_session
 			return local_addr;
 		}
 
-		void detach(Local_addr local_addr) { PWRN("Not implemented!"); }
+		void detach(Local_addr local_addr)
+		{
+			using Genode::addr_t;
+
+			if ((addr_t)local_addr >= Native_config::context_area_virtual_size())
+				return;
+
+			addr_t const detach = Native_config::context_area_virtual_base() +
+			                      (addr_t)local_addr;
+			addr_t const thread_context = Native_config::context_virtual_size();
+			addr_t const pages = ((detach & ~(thread_context - 1))
+			                      + thread_context
+			                      - detach) >> get_page_size_log2();
+
+			unmap_local(detach, pages);
+		}
 
 		Pager_capability add_client(Thread_capability) {
 			return Pager_capability(); }
@@ -120,8 +135,7 @@ class Context_area_ram_session : public Ram_session
 		Ram_dataspace_capability alloc(size_t size, Cache_attribute cached) {
 			return reinterpret_cap_cast<Ram_dataspace>(Native_capability()); }
 
-		void free(Ram_dataspace_capability ds) {
-			PWRN("Not implemented!"); }
+		void free(Ram_dataspace_capability ds) { }
 
 		int ref_account(Ram_session_capability ram_session) { return 0; }
 
