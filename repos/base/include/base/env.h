@@ -16,6 +16,7 @@
 
 #include <parent/capability.h>
 #include <parent/parent.h>
+#include <rm_session/capability.h>
 #include <rm_session/rm_session.h>
 #include <ram_session/ram_session.h>
 #include <cpu_session/cpu_session.h>
@@ -84,6 +85,35 @@ struct Genode::Env
 	 * Heap backed by the RAM session of the environment
 	 */
 	virtual Allocator *heap() = 0;
+
+	/**
+	 * Reload parent capability and reinitialize environment resources
+	 *
+	 * This function is solely used for implementing fork semantics.
+	 * After forking a process, the new child process is executed
+	 * within a copy of the address space of the forking process.
+	 * Thereby, the new process inherits the original 'env' object of
+	 * the forking process, which is meaningless in the context of the
+	 * new process. By calling this function, the new process is able
+	 * to reinitialize its 'env' with meaningful capabilities obtained
+	 * via its updated parent capability.
+	 *
+	 * \noapi
+	 */
+	virtual void reinit(Native_capability::Dst, long) = 0;
+
+	/**
+	 * Reinitialize main-thread object
+	 *
+	 * \param context_area_rm  new RM session of the context area
+	 *
+	 * This function is solely used for implementing fork semantics
+	 * as provided by the Noux environment.
+	 *
+	 * \noapi
+	 */
+	virtual void reinit_main_thread(Rm_session_capability &) = 0;
+
 };
 
 

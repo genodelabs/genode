@@ -20,7 +20,6 @@
 #include <rom_session/connection.h>
 #include <base/sleep.h>
 #include <dataspace/client.h>
-#include <platform_env.h>
 
 /* noux includes */
 #include <noux_session/connection.h>
@@ -505,8 +504,7 @@ extern "C" void fork_trampoline()
 {
 	/* reinitialize environment */
 	using namespace Genode;
-	Platform_env * const platform_env = dynamic_cast<Platform_env *>(env());
-	platform_env->reinit(new_parent.dst, new_parent.local_name);
+	env()->reinit(new_parent.dst, new_parent.local_name);
 
 	/* reinitialize standard-output connection */
 	stdout_reconnect();
@@ -520,7 +518,7 @@ extern "C" void fork_trampoline()
 
 	/* reinitialize main-thread object which implies reinit of context area */
 	auto context_area_rm = noux_connection()->context_area_rm_session();
-	platform_env->reinit_main_thread(context_area_rm);
+	env()->reinit_main_thread(context_area_rm);
 
 	/* apply processor state that the forker had when he did the fork */
 	longjmp(fork_jmp_buf, 1);
