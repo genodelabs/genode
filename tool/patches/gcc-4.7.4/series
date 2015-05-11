@@ -1,10 +1,7 @@
-tmake_file_extra_parts.patch
+config.patch
 misc.patch
-tmake_file_arm.patch
-link_spec.patch
-inhibit_libc.patch
-cppflags_for_target.patch
-cpp_for_target.patch
 no_short_enums.patch
 host_target_combination.patch
 prefer_pic.patch
+libstdcxx_without_libc.patch
+libgcc_s.patch

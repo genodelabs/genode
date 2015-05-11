@@ -5,7 +5,7 @@ NOUX_CONFIGURE_ARGS += --program-prefix=$(PROGRAM_PREFIX) \
 
 # the configure script calls the linker with "-lexpat", which fails
 NOUX_CONFIGURE_ARGS += --without-expat
-NOUX_CFLAGS += -DHAVE_LIBEXPAT=1
+NOUX_CPPFLAGS += -DHAVE_LIBEXPAT=1
 
 LIBS += ncurses expat
 

@@ -69,17 +69,17 @@ NOUX_BUILD_OUTPUT_FILTER = 2>&1 | sed "s/^/      [$(NOUX_PKG)]  /"
 endif
 
 ifeq ($(findstring arm, $(SPECS)), arm)
-NOUX_CONFIGURE_ARGS += --host arm-elf-eabi
+NOUX_CONFIGURE_ARGS += --host arm-none-eabi
 else
 ifeq ($(findstring x86, $(SPECS)), x86)
-NOUX_CONFIGURE_ARGS += --host x86_64-elf
+NOUX_CONFIGURE_ARGS += --host x86_64-pc-elf
 endif
 endif
 
 NOUX_CONFIGURE_ARGS += --srcdir=$(NOUX_PKG_DIR)
 NOUX_CONFIGURE_ARGS += --prefix /
 
-CONFIG_GUESS_SCRIPT = $(NOUX_PKG_DIR)/config.guess)
+CONFIG_GUESS_SCRIPT = $(NOUX_PKG_DIR)/config.guess
 ifneq ($(wildcard $(CONFIG_GUESS_SCRIPT)),)
 NOUX_CONFIGURE_ARGS += --build $(shell $(CONFIG_GUESS_SCRIPT))
 else
@@ -97,9 +97,13 @@ LIBGCC = $(shell $(CC) $(CC_MARCH) -print-libgcc-file-name)
 
 NOUX_CPPFLAGS += -nostdinc $(INCLUDES)
 NOUX_CPPFLAGS += -D_GNU_SOURCE=1
-NOUX_CPPFLAGS += $(CC_MARCH)
-NOUX_CFLAGS += -ffunction-sections $(CC_OLEVEL) -nostdlib $(NOUX_CPPFLAGS)
-NOUX_CFLAGS += -g
+
+# flags to be used in both CFLAGS and CXXFLAGS
+NOUX_COMMON_CFLAGS_CXXFLAGS += -ffunction-sections $(CC_OLEVEL) $(CC_MARCH)
+NOUX_COMMON_CFLAGS_CXXFLAGS += -g
+
+NOUX_CFLAGS += $(NOUX_COMMON_CFLAGS_CXXFLAGS)
+NOUX_CXXFLAGS += $(NOUX_COMMON_CFLAGS_CXXFLAGS)
 
 #
 # We have to specify 'LINK_ITEMS' twice to resolve inter-library dependencies.
@@ -110,14 +114,6 @@ NOUX_CFLAGS += -g
 NOUX_LIBS_A  = $(filter %.a, $(sort $(LINK_ITEMS)) $(EXT_OBJECTS) $(LIBGCC))
 NOUX_LIBS_SO = $(filter %.so,$(sort $(LINK_ITEMS)) $(EXT_OBJECTS) $(LIBGCC))
 NOUX_LIBS += $(NOUX_LIBS_A) $(NOUX_LIBS_SO) $(NOUX_LIBS_A)
-
-NOUX_ENV += CC='$(CC)' CXX='$(CXX)' LD='$(LD)' AR='$(AR)' NM='$(NM)' RANLIB='$(RANLIB)' STRIP='$(STRIP)' LIBS='$(NOUX_LIBS)' \
-            LDFLAGS='$(NOUX_LDFLAGS)' CFLAGS='$(NOUX_CFLAGS)' \
-            CPPFLAGS='$(NOUX_CPPFLAGS)' CXXFLAGS='$(NOUX_CXXFLAGS)'
-
-NOUX_ENV += CC_FOR_BUILD=gcc LD_FOR_BUILD=ld \
-            CFLAGS_FOR_BUILD='$(NOUX_CFLAGS_FOR_BUILD)' \
-            CPPFLAGS_FOR_BUILD='' LDFLAGS_FOR_BUILD=''
 
 #
 # Re-configure the Makefile if the Genode build environment changes
@@ -145,18 +141,6 @@ noux_env.sh:
 	$(VERBOSE)echo "export CXXFLAGS='$(NOUX_CXXFLAGS)'" >> $@
 	$(VERBOSE)echo "export LDFLAGS='$(NOUX_LDFLAGS)'" >> $@
 	$(VERBOSE)echo "export LIBS='$(NOUX_LIBS)'" >> $@
-	$(VERBOSE)echo "export CC_FOR_TARGET='$(CC)'" >> $@
-	$(VERBOSE)echo "export CXX_FOR_TARGET='$(CXX)'" >> $@
-	$(VERBOSE)echo "export GCC_FOR_TARGET='$(CC)'" >> $@
-	$(VERBOSE)echo "export LD_FOR_TARGET='$(LD)'" >> $@
-	$(VERBOSE)echo "export AS_FOR_TARGET='$(AS)'" >> $@
-	$(VERBOSE)echo "export AR_FOR_TARGET='$(AR)'" >> $@
-	$(VERBOSE)echo "export LDFLAGS_FOR_TARGET='$(NOUX_LDFLAGS)'" >> $@
-	$(VERBOSE)echo "export LIBS_FOR_TARGET='$(NOUX_LIBS)'" >> $@
-	$(VERBOSE)echo "export CFLAGS_FOR_BUILD='$(NOUX_CFLAGS_FOR_BUILD)'" >> $@
-	$(VERBOSE)echo "export CPPFLAGS_FOR_BUILD=''" >> $@
-	$(VERBOSE)echo "export LDFLAGS_FOR_BUILD=''" >> $@
-	$(VERBOSE)echo "export LIBS_FOR_BUILD=''" >> $@
 	$(VERBOSE)echo "export LIBTOOLFLAGS='$(NOUX_LIBTOOLFLAGS)'" >> $@
 	$(VERBOSE)echo "export PS1='<noux>'" >> $@
 

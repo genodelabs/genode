@@ -1,0 +1,44 @@
+stdcxx_without_libc.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ libstdc++-v3/configure.ac |   10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/libstdc++-v3/configure.ac b/libstdc++-v3/configure.ac
+index 59024f2..5245cdd 100644
+--- a/libstdc++-v3/configure.ac
++++ b/libstdc++-v3/configure.ac
+@@ -89,9 +89,9 @@ CXXFLAGS="$save_CXXFLAGS"
+ GLIBCXX_CONFIGURE
+ 
+ # Libtool setup.
+-if test "x${with_newlib}" != "xyes"; then
+-  AC_LIBTOOL_DLOPEN
+-fi
++#if test "x${with_newlib}" != "xyes"; then
++#  AC_LIBTOOL_DLOPEN
++#fi
+ AM_PROG_LIBTOOL
+ ACX_LT_HOST_FLAGS
+ AC_SUBST(enable_shared)
+@@ -191,7 +191,7 @@ GLIBCXX_CHECK_WRITEV
+ GLIBCXX_CHECK_C99_TR1
+ 
+ # For the EOF, SEEK_CUR, and SEEK_END integer constants.
+-GLIBCXX_COMPUTE_STDIO_INTEGER_CONSTANTS
++#GLIBCXX_COMPUTE_STDIO_INTEGER_CONSTANTS
+ 
+ # For gettimeofday support.
+ GLIBCXX_CHECK_GETTIMEOFDAY
+@@ -339,7 +339,7 @@ GCC_CHECK_UNWIND_GETIPINFO
+ 
+ GCC_LINUX_FUTEX([AC_DEFINE(HAVE_LINUX_FUTEX, 1, [Define if futex syscall is available.])])
+ 
+-GCC_HEADER_STDINT(include/gstdint.h)
++#GCC_HEADER_STDINT(include/gstdint.h)
+ 
+ GLIBCXX_ENABLE_SYMVERS([yes])
+ AC_SUBST(libtool_VERSION)

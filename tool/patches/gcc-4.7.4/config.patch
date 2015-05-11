@@ -1,0 +1,123 @@
+config.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ gcc/config.gcc               |    4 ++--
+ gcc/config/arm/unknown-elf.h |   16 ++++++++++++++++
+ gcc/config/i386/x86-64.h     |   19 +++++++++++++++++++
+ libgcc/config.host           |   12 ++++++++++--
+ 4 files changed, 47 insertions(+), 4 deletions(-)
+
+diff --git a/gcc/config.gcc b/gcc/config.gcc
+index 9503b96..b8d6ce1 100644
+--- a/gcc/config.gcc
++++ b/gcc/config.gcc
+@@ -914,7 +914,7 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtems*)
+ 	case ${target} in
+ 	arm*-*-eabi*)
+ 	  tm_file="$tm_file newlib-stdint.h"
+-	  tmake_file="${tmake_file} arm/t-bpabi"
++	  tmake_file="${tmake_file} arm/t-bpabi t-slibgcc"
+ 	  use_gcc_stdint=wrap
+ 	  ;;
+ 	arm*-*-rtems*)
+@@ -2641,7 +2641,7 @@ i[34567]86-*-linux* | x86_64-*-linux*)
+ 	tmake_file="${tmake_file} i386/t-pmm_malloc i386/t-i386"
+ 	;;
+ i[34567]86-*-* | x86_64-*-*)
+-	tmake_file="${tmake_file} i386/t-gmm_malloc i386/t-i386"
++	tmake_file="${tmake_file} i386/t-gmm_malloc i386/t-i386 t-slibgcc"
+ 	;;
+ powerpc*-*-* | rs6000-*-*)
+ 	tm_file="${tm_file} rs6000/option-defaults.h"
+diff --git a/gcc/config/arm/unknown-elf.h b/gcc/config/arm/unknown-elf.h
+index d5df624..6766c5f 100644
+--- a/gcc/config/arm/unknown-elf.h
++++ b/gcc/config/arm/unknown-elf.h
+@@ -95,3 +95,19 @@
+    which will depend on abort, which is defined in libc.  */ 
+ #undef LINK_GCC_C_SEQUENCE_SPEC
+ #define LINK_GCC_C_SEQUENCE_SPEC "--start-group %G %L --end-group"
++
++/* genode.h */
++
++/*
++ * The 'LINK_SPEC' define comprises the rules of how the GCC frontend invokes
++ * the linker.
++ */
++
++#undef LINK_SPEC
++#define LINK_SPEC \
++  "%(shared:-shared) \
++   %{!static:--eh-frame-hdr}"
++
++/* Don't assume anything about the header files.  */
++/* https://gcc.gnu.org/bugzilla/show_bug.cgi?id=57699 */
++#define NO_IMPLICIT_EXTERN_C
+diff --git a/gcc/config/i386/x86-64.h b/gcc/config/i386/x86-64.h
+index d20f326..0cc4dd0 100644
+--- a/gcc/config/i386/x86-64.h
++++ b/gcc/config/i386/x86-64.h
+@@ -104,3 +104,22 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+ 
+ #undef TARGET_ASM_UNIQUE_SECTION
+ #define TARGET_ASM_UNIQUE_SECTION  x86_64_elf_unique_section
++
++/* genode64.h */
++
++/*
++ * The 'LINK_SPEC' macro expresses the policy of how the GCC
++ * frontend invokes 'ld' on multiarch platforms. I.e., on x86, we need to pass
++ * '-melf_i386' to 'ld' when building in '-m32' mode.
++ */
++
++#undef LINK_SPEC
++#define LINK_SPEC \
++  "%{!m32:-m elf_x86_64} \
++   %{m32:-m elf_i386} \
++   %{shared:-shared} \
++   %{!static:--eh-frame-hdr}"
++
++/* Don't assume anything about the header files.  */
++/* https://gcc.gnu.org/bugzilla/show_bug.cgi?id=57699 */
++#define NO_IMPLICIT_EXTERN_C
+diff --git a/libgcc/config.host b/libgcc/config.host
+index b64da4a..096d5b6 100644
+--- a/libgcc/config.host
++++ b/libgcc/config.host
+@@ -261,7 +261,7 @@ case ${host} in
+   tmake_file=t-vxworks
+   ;;
+ *-*-elf)
+-  extra_parts="crtbegin.o crtend.o"
++  extra_parts="crtbegin.o crtbeginS.o crtbeginT.o crtend.o crtendS.o"
+   ;;
+ esac
+ 
+@@ -363,8 +363,12 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtems*)
+ 	tm_file="$tm_file arm/bpabi-lib.h"
+ 	case ${host} in
+ 	arm*-*-eabi* | arm*-*-rtems*)
++	  # The 't-slibgcc' tmake file is needed to have libgcc_eh.a built.
++	  # The 't-eh-dw2-dip' tmake file is needed to let the tool chain use 'unwind-dw2-fde-dip.c',
++	  # needed for the exception handling on Genode in the presence of shared libraries.
++	  tmake_file="${tmake_file} t-crtstuff-pic t-libgcc-pic t-eh-dw2-dip t-slibgcc t-slibgcc-gld t-slibgcc-elf-ver"
+ 	  tmake_file="${tmake_file} arm/t-bpabi"
+-	  extra_parts="crtbegin.o crtend.o crti.o crtn.o"
++	  extra_parts="crtbegin.o crtbeginS.o crtbeginT.o crtend.o crtendS.o"
+ 	  ;;
+ 	arm*-*-symbianelf*)
+ 	  tmake_file="${tmake_file} arm/t-symbian t-slibgcc-nolc-override"
+@@ -524,6 +528,10 @@ i[34567]86-*-elf*)
+ 	tmake_file="$tmake_file i386/t-crtstuff t-crtstuff-pic t-libgcc-pic"
+ 	;;
+ x86_64-*-elf*)
++	# The 't-slibgcc' tmake file is needed to have libgcc_eh.a built.
++	# The 't-eh-dw2-dip' tmake file is needed to let the tool chain use 'unwind-dw2-fde-dip.c',
++	# needed for the exception handling on Genode in the presence of shared libraries.
++	tmake_file="$tmake_file t-eh-dw2-dip t-slibgcc t-slibgcc-gld t-slibgcc-elf-ver"
+ 	tmake_file="$tmake_file i386/t-crtstuff t-crtstuff-pic t-libgcc-pic"
+ 	;;
+ i[34567]86-*-freebsd*)
