@@ -17,14 +17,13 @@ help:
 	$(ECHO) "arm        - create tool chain for arm"
 	$(ECHO) "clean      - clean everything except downloaded archives"
 	$(ECHO) "cleanall   - clean everything including downloaded archives"
-	$(ECHO) "install    - copy tool chain to '$(INSTALL_LOCATION)'"
 	$(ECHO)
 
 #
 # User interface
 #
 
-SUPPORTED_PLATFORMS := x86 microblaze arm
+SUPPORTED_PLATFORMS := x86 arm
 
 PLATFORM := $(firstword $(filter $(SUPPORTED_PLATFORMS),$(MAKECMDGOALS)))
 
@@ -102,8 +101,6 @@ VERBOSE     = @
 #
 # Check if 'autoconf' is installed
 #
-AUTOCONF_VERSION_gcc_4.4.5 = 2.59
-AUTOCONF_VERSION_gcc_4.6.1 = 2.64
 AUTOCONF_VERSION_gcc_4.7.4 = 2.64
 
 AUTOCONF_VERSION = $(AUTOCONF_VERSION_gcc_$(GCC_VERSION))
@@ -167,33 +164,6 @@ $(error Please install missing tools.)
 endif
 
 #
-# Libc stub
-#
-
-LIBC_GEN_SYMLINKS = \
-	stdint.h memory.h string.h stdlib.h unistd.h errno.h wchar.h \
-	ctype.h strings.h wctype.h math.h stdio.h dlfcn.h inttypes.h \
-	malloc.h signal.h fcntl.h assert.h locale.h setjmp.h time.h \
-	link.h gnu-versions.h elf.h
-
-LIBC_GEN_SYS_SYMLINKS = types.h stat.h sem.h
-
-LIBC_DIR    = $(shell pwd)/build/libc/include
-LIBC_STUB_H = $(GENODE_DIR)/tool/libgcc_libc_stub.h
-
-LIBC = $(addprefix $(LIBC_DIR)/,$(LIBC_GEN_SYMLINKS)) \
-       $(addprefix $(LIBC_DIR)/sys/,$(LIBC_GEN_SYS_SYMLINKS))
-
-$(LIBC_DIR) $(LIBC_DIR)/sys:
-	$(VERBOSE)mkdir -p $@
-
-$(addprefix $(LIBC_DIR)/,$(LIBC_GEN_SYMLINKS)): $(LIBC_DIR)
-	$(VERBOSE)ln -sf $(LIBC_STUB_H) $@
-
-$(addprefix $(LIBC_DIR)/sys/,$(LIBC_GEN_SYS_SYMLINKS)): $(LIBC_DIR)/sys
-	$(VERBOSE)ln -sf $(LIBC_STUB_H) $@
-
-#
 # 'configure' parameters for binutils, gcc and gdb
 #
 
@@ -208,9 +178,8 @@ LOCAL_INSTALL_LOCATION = $(shell pwd)/build/install
 #
 LOCAL_LIB_INSTALL_LOCATION = $(shell pwd)/build/lib-install
 
-TARGET_NAME_x86        = x86_64-elf
-TARGET_NAME_microblaze = microblaze-elf
-TARGET_NAME_arm        = arm-elf-eabi
+TARGET_NAME_x86        = x86_64-pc-elf
+TARGET_NAME_arm        = arm-none-eabi
 
 ifneq ($(VERBOSE),)
 CONFIG_QUIET = --quiet
@@ -245,82 +214,40 @@ BINUTILS_CONFIG += $(BINUTILS_CONFIG_$(PLATFORM))
 #
 GDB_CONFIG += $(COMMON_CONFIG) --disable-werror
 
-#
-# Dummy libc symbols to resolve unresolved references when linking
-# 'libgcc_s.so'. Even though, this library is not used on Genode, we want the
-# link command to succeed to complete the build process.
-#
-DUMMY_LIBC_SYMS      = strlen free memcpy malloc memset abort dl_iterate_phdr
-LD_PREFIX            = -Wl,
-LD_DEFSYM_DUMMY_LIBC = $(addprefix $(LD_PREFIX)--defsym=,$(addsuffix =0,$(DUMMY_LIBC_SYMS)))
-
 GCC_CONFIG += $(COMMON_CONFIG) \
-              --enable-languages=c,c++,go --disable-libgo \
+              --enable-languages=c,c++,go \
+              --disable-libgo \
+              --disable-libssp \
+              --disable-libquadmath \
+              --disable-libffi \
               --enable-targets=all \
-              --with-gnu-as --with-gnu-ld --disable-tls --disable-threads \
-              --disable-libstdcxx-pch \
+              --with-gnu-as \
+              --with-gnu-ld \
+              --disable-tls \
+              --disable-threads \
+              --disable-hosted-libstdcxx \
               --enable-shared \
               --enable-multiarch \
+              --disable-sjlj-exceptions \
               --with-gmp=$(LOCAL_LIB_INSTALL_LOCATION) \
               --with-mpfr=$(LOCAL_LIB_INSTALL_LOCATION) \
               --with-mpc=$(LOCAL_LIB_INSTALL_LOCATION) \
-              CPPFLAGS_FOR_TARGET=-I$(LIBC_DIR) \
-              CFLAGS_FOR_TARGET="-I$(LIBC_DIR) -nostdlib $(LD_DEFSYM_DUMMY_LIBC) -fPIC"
+              CFLAGS_FOR_TARGET="-I$(GENODE_DIR)/tool -DUSE_PT_GNU_EH_FRAME -Dinhibit_libc -fPIC" \
+              CXXFLAGS_FOR_TARGET="-fPIC"
 
 GCC_CONFIG += $(GCC_CONFIG_$(PLATFORM))
 
 #
 # Configure options passed to gcc
 #
-HOST_CONFIG_ARGS = $(CONFIG_QUIET) \
-                   host_xm_include_list=$(LINK_SPEC_H_$(PLATFORM)) \
-                   tmake_file='t-slibgcc'
+HOST_CONFIG_ARGS = $(CONFIG_QUIET)
 
 #
 # Passed to target components such as libgcc, libstdc++
 #
-# The 't-slibgcc' tmake file is needed to have libgcc_eh.a built.
-# The 't-eh-dw2-dip' tmake file is needed to let the tool chain use 'unwind-dw2-fde-dip.c',
-# needed for the exception handling on Genode in the presence of shared libraries.
-#
-TARGET_CONFIG_ARGS = $(CONFIG_QUIET) \
-                     tmake_file='t-crtstuff-pic t-libgcc-pic t-eh-dw2-dip t-slibgcc t-slibgcc-gld t-slibgcc-elf-ver' \
-                     extra_parts='crtbegin.o crtbeginS.o crtbeginT.o crtend.o crtendS.o'
-
-# compile libsupc++ as position-independent code
-TARGET_CONFIG_ARGS += PIC_CXXFLAGS='-prefer-pic'
+TARGET_CONFIG_ARGS = $(CONFIG_QUIET)
 
 GCC_INSTALL_RULE = install-strip
-ifeq ($(GCC_VERSION),4.4.5)
-GCC_INSTALL_RULE = install
-endif
-
-#
-# Default linker script
-#
-# Needed only to make target-configure happy.
-#
-
-LD_SCRIPT_microblaze = $(LOCAL_INSTALL_LOCATION)/$(TARGET_NAME_microblaze)/lib/xilinx.ld
-
-$(LD_SCRIPT_$(PLATFORM)):
-	$(VERBOSE)mkdir -p $(dir $@)
-	$(VERBOSE)touch $@
-
-#
-# Link spec
-#
-# The 'LINK_SPEC' define comprises the rules of how the GCC frontend invokes
-# the linker.
-#
-
-LINK_SPEC_H_x86 = $(shell pwd)/build/$(PLATFORM)/link_spec.h
-
-$(LINK_SPEC_H_x86):
-	$(VERBOSE)echo "#define LINK_SPEC \"%{!m32:-m elf_x86_64} %{m32:-m elf_i386} %{shared:-shared} %{!static:--eh-frame-hdr}\"" > $@
-
-$(LINK_SPEC_H_arm):
-	$(VERBOSE)echo "#define LINK_SPEC \"%(shared:-shared) %{!static:--eh-frame-hdr}\"" > $@
 
 #
 # Platform-specific multilib support
@@ -478,8 +405,6 @@ build/$(PLATFORM)/gcc/Makefile:
 		../../../$(CONTRIB_DIR)/gcc-$(GCC_VERSION)/configure $(GCC_CONFIG)
 
 $(GCC_BINARIES): build/$(PLATFORM)/gcc/Makefile \
-                 $(LINK_SPEC_H_$(PLATFORM)) \
-                 $(LD_SCRIPT_$(PLATFORM)) \
                  $(LIBC)
 
 $(GCC_BINARIES): build/$(PLATFORM)/gcc/Makefile

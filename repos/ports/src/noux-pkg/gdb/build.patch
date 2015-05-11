@@ -1,7 +1,8 @@
 diff --git a/gdb/configure b/gdb/configure
+index 30e5e45..9c5ed7f 100755
 --- a/gdb/configure
 +++ b/gdb/configure
-@@ -7917,11 +7917,11 @@
+@@ -7917,11 +7917,11 @@ fi
  # configuration.
  gdb_host_obs=posix-hdep.o
  
@@ -17,7 +18,7 @@ diff --git a/gdb/configure b/gdb/configure
  
  . $srcdir/configure.host
  
-@@ -12919,7 +12919,7 @@
+@@ -12919,7 +12919,7 @@ sigjmp_buf env; while (! sigsetjmp (env, 1)) siglongjmp (env, 1);
    return 0;
  }
  _ACEOF
@@ -27,9 +28,10 @@ diff --git a/gdb/configure b/gdb/configure
  else
    gdb_cv_func_sigsetjmp=no
 diff --git a/missing b/missing
+index 28055d2..031956f 100755
 --- a/missing
 +++ b/missing
-@@ -314,7 +314,7 @@
+@@ -314,7 +314,7 @@ WARNING: \`$1' is $msg.  You should only need it if
      fi
      # If the file does not exist, the user really needs makeinfo;
      # let's fail without touching anything.
@@ -38,3 +40,16 @@ diff --git a/missing b/missing
      touch $file
      ;;
  
+diff --git a/sim/common/Make-common.in b/sim/common/Make-common.in
+index 351f4a0..9b68c87 100644
+--- a/sim/common/Make-common.in
++++ b/sim/common/Make-common.in
+@@ -237,7 +237,7 @@ CSEARCH = -I. -I$(srcdir) -I../common -I$(srccom) \
+   -I../../bfd -I$(srcroot)/bfd \
+   -I../../opcodes -I$(srcroot)/opcodes \
+   @INCINTL@
+-ALL_CFLAGS = $(CONFIG_CFLAGS) $(CSEARCH) $(CFLAGS)
++ALL_CFLAGS = $(CONFIG_CFLAGS) $(CSEARCH) $(CPPFLAGS) $(CFLAGS)
+ BUILD_CFLAGS = -g -O $(CSEARCH)
+ 
+ COMMON_DEP_CFLAGS = $(CONFIG_CFLAGS) $(CSEARCH)

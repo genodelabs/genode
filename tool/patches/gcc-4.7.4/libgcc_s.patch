@@ -1,0 +1,33 @@
+libgcc_s.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ libgcc/Makefile.in |    6 +-----
+ 1 file changed, 1 insertion(+), 5 deletions(-)
+
+diff --git a/libgcc/Makefile.in b/libgcc/Makefile.in
+index 9f45475..a2cb98f 100644
+--- a/libgcc/Makefile.in
++++ b/libgcc/Makefile.in
+@@ -893,7 +893,7 @@ libgcc_s$(SHLIB_EXT): libunwind$(SHLIB_EXT)
+ endif
+ 
+ ifeq ($(enable_shared),yes)
+-all: libgcc_eh.a libgcc_s$(SHLIB_EXT)
++all: libgcc_eh.a
+ ifneq ($(LIBUNWIND),)
+ all: libunwind$(SHLIB_EXT)
+ endif
+@@ -1060,10 +1060,6 @@ install-shared:
+ 	chmod 644 $(DESTDIR)$(inst_libdir)/libgcc_eh.a
+ 	$(RANLIB) $(DESTDIR)$(inst_libdir)/libgcc_eh.a
+ 
+-	$(subst @multilib_dir@,$(MULTIDIR),$(subst \
+-		@shlib_base_name@,libgcc_s,$(subst \
+-		@shlib_slibdir_qual@,$(MULTIOSSUBDIR),$(SHLIB_INSTALL))))
+-
+ install-leaf: $(install-shared) $(install-libunwind)
+ 	$(mkinstalldirs) $(DESTDIR)$(inst_libdir)
+ 
