@@ -337,11 +337,17 @@ Platform::Platform() :
 			nova_die();
 		}
 	}
-
+ 
 	/* initialize core's physical-memory and I/O memory allocator */
 	_io_mem_alloc.add_range(0, ~0xfffUL);
 	Hip::Mem_desc *mem_desc = (Hip::Mem_desc *)mem_desc_base;
 	for (unsigned i = 0; i < num_mem_desc; i++, mem_desc++) {
+		if (mem_desc->type != Hip::Mem_desc::AVAILABLE_MEMORY) continue;
+
+		if (verbose_boot_info)
+			printf("detected physical memory: 0x%16llx - size: 0x%llx\n",
+			        mem_desc->addr, mem_desc->size);
+
 		/* skip regions above 4G on 32 bit, no op on 64 bit */
 		if (mem_desc->addr > ~0UL) continue;
 
@@ -353,20 +359,31 @@ Platform::Platform() :
 		else
 			size = trunc_page(mem_desc->addr + mem_desc->size) - base;
 
-		if (mem_desc->type == Hip::Mem_desc::AVAILABLE_MEMORY)
-		{
-			if (verbose_boot_info) {
-				printf("detected physical memory: 0x%16llx - size: 0x%llx\n",
-						mem_desc->addr, mem_desc->size);
-				printf("use      physical memory: 0x%16lx - size: 0x%zx\n", base, size);
-			}
-			_io_mem_alloc.remove_range(base, size);
-			ram_alloc()->add_range(base, size);
+		if (verbose_boot_info)
+			printf("use      physical memory: 0x%16lx - size: 0x%zx\n", base, size);
 
-		} else {
-			_io_mem_alloc.add_range(base, size);
-			ram_alloc()->remove_range(base, size);
-		}
+		_io_mem_alloc.remove_range(base, size);
+		ram_alloc()->add_range(base, size);
+	}
+
+	/* exclude all non-available memory from physical allocator */
+	mem_desc = (Hip::Mem_desc *)mem_desc_base;
+	for (unsigned i = 0; i < num_mem_desc; i++, mem_desc++) {
+		if (mem_desc->type == Hip::Mem_desc::AVAILABLE_MEMORY) continue;
+
+		/* skip regions above 4G on 32 bit, no op on 64 bit */
+		if (mem_desc->addr > ~0UL) continue;
+
+		addr_t base = trunc_page(mem_desc->addr);
+		size_t size;
+		/* truncate size if base+size larger then natural 32/64 bit boundary */
+		if (mem_desc->addr >= ~0UL - mem_desc->size + 1)
+			size = round_page(~0UL - mem_desc->addr + 1);
+		else
+			size = round_page(mem_desc->addr + mem_desc->size) - base;
+
+		_io_mem_alloc.add_range(base, size);
+		ram_alloc()->remove_range(base, size);
 	}
 
 	/* needed as I/O memory by the VESA driver */
