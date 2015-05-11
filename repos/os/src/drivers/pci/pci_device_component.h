@@ -49,7 +49,8 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 			                Device::NUM_RESOURCES + 32 + 8 * sizeof(void *),
 			PCI_CMD_REG   = 0x4,
 			PCI_CMD_DMA   = 0x4,
-			PCI_IRQ_LINE  = 0x3c
+			PCI_IRQ_LINE  = 0x3c,
+			PCI_IRQ_PIN   = 0x3d
 		};
 
 		Genode::Tslab<Genode::Io_port_connection, IO_BLOCK_SIZE> _slab_ioport;
@@ -106,6 +107,12 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 		unsigned _disable_msi(unsigned irq) {
 
 			using Genode::uint16_t;
+			using Genode::uint8_t;
+
+			uint8_t has_irq = _device_config.read(&_config_access, PCI_IRQ_PIN,
+			                                      Pci::Device::ACCESS_8BIT);
+			if (!has_irq)
+				return Irq_session_component::INVALID_IRQ;
 
 			uint16_t cap = _msi_cap();
 			if (!cap)

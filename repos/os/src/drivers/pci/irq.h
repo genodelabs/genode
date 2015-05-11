@@ -39,6 +39,8 @@ class Pci::Irq_session_component : public Genode::Rpc_object<Genode::Irq_session
 
 	public:
 
+		enum { INVALID_IRQ = 0xffU };
+
 		Irq_session_component(unsigned, Genode::addr_t);
 		~Irq_session_component();
 

@@ -228,7 +228,7 @@ Pci::Irq_session_component::Irq_session_component(unsigned irq,
 	_gsi(irq)
 {
 	/* invalid irq number for pci_devices */
-	if (irq >= 0xFF)
+	if (irq >= INVALID_IRQ)
 		return;
 
 	if (pci_config_space != ~0UL) {
