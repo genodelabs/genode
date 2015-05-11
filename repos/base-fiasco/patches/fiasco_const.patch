@@ -1,0 +1,39 @@
+diff --git fiasco/snapshot/kernel/fiasco/src/kern/kernel_console.cpp fiasco/snapshot/kernel/fiasco/src/kern/kernel_console.cpp
+index ea632ce..4d88354 100644
+--- fiasco/snapshot/kernel/fiasco/src/kern/kernel_console.cpp
++++ fiasco/snapshot/kernel/fiasco/src/kern/kernel_console.cpp
+@@ -9,7 +9,7 @@ public:
+   int  getchar( bool blocking = true );
+   void getchar_chance();
+ 
+-  static Mux_console *console() FIASCO_CONST;
++  static Mux_console *console();
+ 
+ private:
+   static bool initialized;
+diff --git fiasco/snapshot/kernel/fiasco/src/kern/kernel_uart.cpp fiasco/snapshot/kernel/fiasco/src/kern/kernel_uart.cpp
+index 42efe5c..0efb426 100644
+--- fiasco/snapshot/kernel/fiasco/src/kern/kernel_uart.cpp
++++ fiasco/snapshot/kernel/fiasco/src/kern/kernel_uart.cpp
+@@ -39,7 +39,7 @@ IMPLEMENTATION [serial]:
+ #include "config.h"
+ #include "panic.h"
+ 
+-PUBLIC static FIASCO_CONST
++PUBLIC static
+ Uart *
+ Kernel_uart::uart()
+ {
+diff --git fiasco/snapshot/kernel/fiasco/src/kern/map_util-mem.cpp fiasco/snapshot/kernel/fiasco/src/kern/map_util-mem.cpp
+index 2363e65..43d9d8d 100644
+--- fiasco/snapshot/kernel/fiasco/src/kern/map_util-mem.cpp
++++ fiasco/snapshot/kernel/fiasco/src/kern/map_util-mem.cpp
+@@ -128,7 +128,7 @@ save_access_attribs (Mapdb* mapdb, const Mapdb::Frame& mapdb_frame,
+ // Mapdb instance for memory mappings
+ // 
+ 
+-Mapdb * mapdb_instance() FIASCO_CONST;
++Mapdb * mapdb_instance();
+ 
+ //---------------------------------------------------------------------------
+ IMPLEMENTATION[!64bit]:
