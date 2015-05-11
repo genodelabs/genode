@@ -6,9 +6,7 @@
 
 set use_sd_card_drv [expr [have_spec omap4] || [have_spec platform_arndale] || [have_spec pl180]]
 set use_ahci_drv   [have_spec x86]
-
-if {[catch { exec which mkfs.vfat } ]} {
-        puts stderr "Error: mkfs.vfat not installed, aborting test"; exit }
+set mkfs [check_installed mkfs.vfat]
 
 if {[expr [have_spec linux] || [have_spec hw_odroid_xu]]} {
         puts "Run script does not support this platform"; exit }
@@ -85,22 +83,30 @@ append_if [have_spec acpi] config {
 			<service name="IRQ" />
 		</provides>
 		<route>
-			<service name="PCI"> <any-child /> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
+		<config>
+			<policy label="acpi_drv"><pci class="ALL" /></policy>
+			<policy label="ahci_drv"><pci class="AHCI" /></policy>
+		</config>
 	</start>}
 
 append_if [expr ![have_spec acpi] && [have_spec pci]] config {
 	<start name="pci_drv">
 		<resource name="RAM" quantum="5M" constrain_phys="yes"/>
 		<provides><service name="PCI"/></provides>
+		<config>
+			<policy label="ahci_drv"/><pci class="AHCI" /></policy>
+		</config>
 	</start>}
 
 append_if $use_ahci_drv config {
-	<start name="ahci">
+	<start name="ahci_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Block"/> </provides>
-		<config ata="yes" />
+		<config>
+			<policy label="ffat_fs" device="0" />
+		</config>
 	</start>
 }
 
@@ -130,7 +136,7 @@ set boot_modules {
 
 lappend_if [have_spec pci]   boot_modules pci_drv
 lappend_if [have_spec acpi]  boot_modules acpi_drv
-lappend_if $use_ahci_drv     boot_modules ahci
+lappend_if $use_ahci_drv     boot_modules ahci_drv
 lappend_if $use_sd_card_drv  boot_modules sd_card_drv
 
 build_boot_image $boot_modules
@@ -144,7 +150,7 @@ set cmd "dd if=/dev/zero of=$disk_image bs=1024 count=65536"
 puts "creating disk image: $cmd"
 catch { exec sh -c $cmd }
 
-set cmd "mkfs.vfat -F32 $disk_image"
+set cmd "$mkfs -F32 $disk_image"
 puts "formating disk image with vfat file system: $cmd"
 catch { exec sh -c $cmd }
 
