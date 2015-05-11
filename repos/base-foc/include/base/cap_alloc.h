@@ -41,7 +41,7 @@ namespace Genode {
 			                    where normal lock isn't feasible */
 
 			enum {
-				/* everything above START_IDX is managed by core */
+				/* everything below START_IDX is managed by core */
 				START_IDX = Fiasco::USER_BASE_CAP >> Fiasco::L4_CAP_SHIFT
 			};
 
