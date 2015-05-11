@@ -83,6 +83,7 @@ class Block::Driver
 		Genode::size_t                    _blk_size;
 		Genode::Signal_dispatcher<Driver> _source_ack;
 		Genode::Signal_dispatcher<Driver> _source_submit;
+		Block::Session::Operations        _ops;
 
 		void _ready_to_submit(unsigned);
 
@@ -113,12 +114,12 @@ class Block::Driver
 		  _source_ack(receiver, *this, &Driver::_ack_avail),
 		  _source_submit(receiver, *this, &Driver::_ready_to_submit)
 		{
-			Block::Session::Operations ops;
-			_session.info(&_blk_cnt, &_blk_size, &ops);
+			_session.info(&_blk_cnt, &_blk_size, &_ops);
 		}
 
 		Genode::size_t blk_size() { return _blk_size; }
 		Genode::size_t blk_cnt()  { return _blk_cnt;  }
+		Session::Operations ops() { return _ops; }
 		Session_client& session() { return _session;  }
 
 		void work_asynchronously()

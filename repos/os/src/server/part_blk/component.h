@@ -146,7 +146,7 @@ class Block::Session_component : public Block::Session_rpc_object,
 					request.block_count() * Driver::driver().blk_size();
 				Genode::memcpy(tx_sink()->packet_content(request), src, sz);
 			}
-			request.succeeded(true);
+			request.succeeded(reply.succeeded());
 			_ack_packet(request);
 
 			if (_ack_queue_full)
@@ -179,8 +179,7 @@ class Block::Session_component : public Block::Session_rpc_object,
 		{
 			*blk_count = _partition->sectors;
 			*blk_size  = Driver::driver().blk_size();
-			ops->set_operation(Packet_descriptor::READ);
-			ops->set_operation(Packet_descriptor::WRITE);
+			*ops = Driver::driver().ops();
 		}
 
 		void sync() { Driver::driver().session().sync(); }
