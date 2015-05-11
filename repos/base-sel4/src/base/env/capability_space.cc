@@ -1,7 +1,7 @@
 /*
- * \brief  Instance of the component's local capability space
+ * \brief  Instance of the (Genode) capability space for non-core components
  * \author Norman Feske
- * \date   2015-05-08
+ * \date   2015-05-11
  */
 
 /*
@@ -19,14 +19,12 @@
 #include <internal/capability_data.h>
 #include <internal/capability_space_sel4.h>
 
-
 /**
  * Definition of capability meta data
  */
 struct Genode::Native_capability::Data : Capability_data
 {
 	Data(Rpc_obj_key key) : Capability_data(key) { }
-
 	Data() { }
 };
 
@@ -35,13 +33,13 @@ using namespace Genode;
 
 
 /**
- * Singleton instance of core-specific capability space
+ * Singleton instance of component-local capability space
  */
 namespace {
 
 	struct Local_capability_space
 	:
-		Capability_space_sel4<8*1024, Native_capability::Data>
+		Capability_space_sel4<4*1024, 1024UL, Native_capability::Data>
 	{ };
 
 	static Local_capability_space &local_capability_space()
@@ -56,12 +54,14 @@ namespace {
  ** Implementation of the Capability_space interface **
  ******************************************************/
 
-Native_capability::Data &Capability_space::create_ep_cap(Thread_base &ep_thread)
+Native_capability Capability_space::create_ep_cap(Thread_base &ep_thread)
 {
 	unsigned const ep_sel = ep_thread.tid().ep_sel;
 
-	return local_capability_space().create_capability(ep_sel,
-	                                                  Rpc_obj_key());
+	Native_capability::Data &data =
+		local_capability_space().create_capability(ep_sel, Rpc_obj_key());
+
+	return Native_capability(data);
 }
 
 

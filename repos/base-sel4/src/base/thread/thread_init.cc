@@ -1,0 +1,30 @@
+/*
+ * \brief  Implementation of Thread API interface
+ * \author Norman Feske
+ * \date   2015-05-01
+ */
+
+/*
+ * Copyright (C) 2015 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
+/* Genode includes */
+#include <base/thread.h>
+#include <base/printf.h>
+#include <base/sleep.h>
+
+using namespace Genode;
+
+
+void Thread_base::_init_platform_thread(size_t, Type type)
+{
+	/*
+	 * XXX initialize the 'Native_thread' structure with the thread's
+	 *     tcb_sel, ep_sel.
+	 */
+
+	PDBG("not implemented");
+}
