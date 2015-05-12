@@ -182,7 +182,7 @@ int Platform_thread::start(void * const ip, void * const sp)
 {
 	/* attach UTCB in case of a main thread */
 	if (_main_thread) {
-		_utcb_pd_addr = UTCB_MAIN_THREAD;
+		_utcb_pd_addr = utcb_main_thread();
 		if (!_rm_client) {
 			PERR("invalid RM client");
 			return -1;
