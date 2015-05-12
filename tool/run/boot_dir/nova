@@ -33,6 +33,14 @@ proc run_boot_string { } {
 # Populate directory with binaries on NOVA
 #
 proc run_boot_dir {binaries} {
+
+	set pid [eval "spawn make kernel"]
+	expect { eof { } }
+	if {[lindex [wait $pid] end] != 0} {
+		puts stderr "Error: Genode build failed"
+		exit -1
+	}
+
 	#
 	# Collect contents of the ISO image
 	#
