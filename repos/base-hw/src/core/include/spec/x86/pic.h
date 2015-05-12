@@ -67,7 +67,10 @@ class Genode::Ioapic : public Mmio
 		 */
 		bool _edge_triggered(unsigned const irq)
 		{
-			return irq <= Board::ISA_IRQ_END || irq > IRTE_COUNT;
+			if ((irq >= 0 && irq <= 8) || (irq >= 12 && irq <= Board::ISA_IRQ_END))
+				return true;
+
+			return false;
 		}
 
 		/**
