@@ -503,6 +503,9 @@ namespace Pci {
 				 * device and return its capability.
 				 */
 				try {
+					Device_component * dev = new (_device_slab) Device_component(config, config_space, _ep, this,
+					                                                             !Genode::strcmp(_label.string(), "acpi_drv"));
+
 					/* if more than one driver uses the device - warn about */
 					if (bdf_in_use.get(Device_config::MAX_BUSES * bus +
 					                   Device_config::MAX_DEVICES * device +
@@ -515,8 +518,6 @@ namespace Pci {
 						               Device_config::MAX_DEVICES * device +
 						               function, 1);
 
-					Device_component * dev = new (_device_slab) Device_component(config, config_space, _ep, this,
-					                                                             !Genode::strcmp(_label.string(), "acpi_drv"));
 					_device_list.insert(dev);
 					return _ep->manage(dev);
 				} catch (Genode::Allocator::Out_of_memory) {
