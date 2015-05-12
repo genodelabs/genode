@@ -15,65 +15,59 @@
 
 /* Genode includes */
 #include <base/printf.h>
-#include <base/sleep.h>
 
 /* core includes */
 #include <irq_root.h>
 #include <platform.h>
-#include <platform_pd.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>
-#include <nova/util.h>
 #include <nova_util.h>
 
 using namespace Genode;
 
 
-static void thread_start()
+static bool irq_ctrl(Genode::addr_t irq_sel,
+                     Genode::addr_t &msi_addr, Genode::addr_t &msi_data,
+                     Genode::addr_t sig_sel, Genode::addr_t virt_addr = 0)
 {
-	Thread_base::myself()->entry();
-	sleep_forever();
-}
-
-
-static bool associate(unsigned irq, Genode::addr_t irq_sel,
-                      Genode::addr_t &msi_addr, Genode::addr_t &msi_data,
-                      Genode::addr_t virt_addr = 0)
-{
-	/* map IRQ SM cap from kernel to core at irq_sel selector */
-	using Nova::Obj_crd;
-
-	Obj_crd src(platform_specific()->gsi_base_sel() + irq, 0);
-	Obj_crd dst(irq_sel, 0);
-	enum { MAP_FROM_KERNEL_TO_CORE = true };
-
-	int ret = map_local((Nova::Utcb *)Thread_base::myself()->utcb(),
-	                    src, dst, MAP_FROM_KERNEL_TO_CORE);
-	if (ret) {
-		PERR("Could not map IRQ %u", irq);
-		return false;
-	}
-
 	/* assign IRQ to CPU && request msi data to be used by driver */
 	uint8_t res = Nova::assign_gsi(irq_sel, virt_addr, boot_cpu(),
-	                               msi_addr, msi_data);
+	                               msi_addr, msi_data, sig_sel);
 
-	if (virt_addr && res != Nova::NOVA_OK) {
-		PERR("setting up MSI %u failed - error %u", irq, res);
-		return false;
-	}
+	if (res != Nova::NOVA_OK)
+		PERR("setting up MSI failed - error %u", res);
 
 	/* nova syscall interface specifies msi addr/data to be 32bit */
 	msi_addr = msi_addr & ~0U;
 	msi_data = msi_data & ~0U;
 
-	return true;
+	return res == Nova::NOVA_OK;
 }
 
 
-static bool msi(unsigned irq, Genode::addr_t irq_sel, Genode::addr_t phys_mem,
-                Genode::addr_t &msi_addr, Genode::addr_t &msi_data)
+static bool associate(Genode::addr_t irq_sel,
+                      Genode::addr_t &msi_addr, Genode::addr_t &msi_data,
+                      Genode::Signal_context_capability sig_cap,
+                      Genode::addr_t virt_addr = 0)
+{
+	return irq_ctrl(irq_sel, msi_addr, msi_data, sig_cap.local_name(),
+	                virt_addr);
+}
+
+
+static void deassociate(Genode::addr_t irq_sel)
+{
+	addr_t dummy1 = 0, dummy2 = 0;
+
+	if (!irq_ctrl(irq_sel, dummy1, dummy2, irq_sel))
+		PWRN("Irq could not be de-associated");
+}
+
+
+static bool msi(Genode::addr_t irq_sel, Genode::addr_t phys_mem,
+                Genode::addr_t &msi_addr, Genode::addr_t &msi_data,
+                Genode::Signal_context_capability sig_cap)
 {
 	void * virt = 0;
 	if (platform()->region_alloc()->alloc_aligned(4096, &virt, 12).is_error())
@@ -96,7 +90,7 @@ static bool msi(unsigned irq, Genode::addr_t irq_sel, Genode::addr_t phys_mem,
 	}
 
 	/* try to assign MSI to device */
-	bool res = associate(irq, irq_sel, msi_addr, msi_data, virt_addr);
+	bool res = associate(irq_sel, msi_addr, msi_data, sig_cap, virt_addr);
 
 	unmap_local(Nova::Mem_crd(virt_addr >> 12, 0, Rights(true, true, true)));
 	platform()->region_alloc()->free(virt, 4096);
@@ -105,129 +99,83 @@ static bool msi(unsigned irq, Genode::addr_t irq_sel, Genode::addr_t phys_mem,
 }
 
 
-void Irq_object::start()
+void Irq_object::sigh(Signal_context_capability cap)
 {
-	PERR("wrong start method called");
-	throw Root::Unavailable();
+	if (!_sigh_cap.valid() && !cap.valid())
+		return;
+
+	if ((_sigh_cap.valid() && !cap.valid())) {
+		deassociate(irq_sel());
+		_sigh_cap = Signal_context_capability();
+		return;
+	}
+
+	bool ok = false;
+	if (_device_phys)
+		ok = msi(irq_sel(), _device_phys, _msi_addr, _msi_data, cap);
+	else
+	    ok = associate(irq_sel(), _msi_addr, _msi_data, cap);
+
+	if (!ok) {
+		deassociate(irq_sel());
+		_sigh_cap = Signal_context_capability();
+		return;
+	}
+
+	_sigh_cap = cap;
 }
 
 
-/**
- * Create global EC, associate it to SC
- */
+void Irq_object::ack_irq()
+{
+	if (Nova::NOVA_OK != Nova::sm_ctrl(irq_sel(), Nova::SEMAPHORE_DOWN))
+		PERR("Unmasking irq of selector 0x%lx failed", irq_sel());
+}
+
+
 void Irq_object::start(unsigned irq, Genode::addr_t const device_phys)
 {
+	/* map IRQ SM cap from kernel to core at irq_sel selector */
+	using Nova::Obj_crd;
+
+	Obj_crd src(platform_specific()->gsi_base_sel() + irq, 0);
+	Obj_crd dst(irq_sel(), 0);
+	enum { MAP_FROM_KERNEL_TO_CORE = true };
+
+	int ret = map_local((Nova::Utcb *)Thread_base::myself()->utcb(),
+	                    src, dst, MAP_FROM_KERNEL_TO_CORE);
+	if (ret) {
+		PERR("Getting IRQ from kernel failed - %u", irq);
+		throw Root::Unavailable();
+	}
+
 	/* associate GSI or MSI to device belonging to device_phys */
 	bool ok = false;
 	if (device_phys)
-		ok = msi(irq, irq_sel(), device_phys, _msi_addr, _msi_data);
+		ok = msi(irq_sel(), device_phys, _msi_addr, _msi_data, _sigh_cap);
 	else
-		ok = associate(irq, irq_sel(), _msi_addr, _msi_data);
+		ok = associate(irq_sel(), _msi_addr, _msi_data, _sigh_cap);
 
 	if (!ok)
 		throw Root::Unavailable();
 
-	/* start thread having a SC */
-	using namespace Nova;
-	addr_t pd_sel = Platform_pd::pd_core_sel();
-	addr_t utcb   = reinterpret_cast<addr_t>(&_context->utcb);
-
-	/* put IP on stack, it will be read from core pager in platform.cc */
-	addr_t *sp = reinterpret_cast<addr_t *>(_context->stack_top() - sizeof(addr_t));
-	*sp        = reinterpret_cast<addr_t>(thread_start);
-
-	/* create global EC */
-	enum { GLOBAL = true };
-	uint8_t res = create_ec(_tid.ec_sel, pd_sel, boot_cpu(),
-	                        utcb, (mword_t)sp, _tid.exc_pt_sel, GLOBAL);
-	if (res != NOVA_OK) {
-		PERR("%p - create_ec returned %d", this, res);
-		throw Root::Unavailable();
-	}
-
-	/* remap startup portal from main thread */
-	if (map_local((Utcb *)Thread_base::myself()->utcb(),
-	               Obj_crd(PT_SEL_STARTUP, 0),
-	               Obj_crd(_tid.exc_pt_sel + PT_SEL_STARTUP, 0))) {
-		PERR("could not create startup portal");
-		throw Root::Unavailable();
-	}
-
-	/* remap debugging page fault portal for core threads */
-	if (map_local((Utcb *)Thread_base::myself()->utcb(),
-	               Obj_crd(PT_SEL_PAGE_FAULT, 0),
-	               Obj_crd(_tid.exc_pt_sel + PT_SEL_PAGE_FAULT, 0))) {
-		PERR("could not create page fault portal");
-		throw Root::Unavailable();
-	}
-
-	/* default: we don't accept any mappings or translations */
-	Utcb * utcb_obj = reinterpret_cast<Utcb *>(Thread_base::utcb());
-	utcb_obj->crd_rcv = Obj_crd();
-	utcb_obj->crd_xlt = Obj_crd();
-
-	/* create SC */
-	Qpd qpd(Qpd::DEFAULT_QUANTUM, Qpd::DEFAULT_PRIORITY + 1);
-	res = create_sc(sc_sel(), pd_sel, _tid.ec_sel, qpd);
-	if (res != NOVA_OK) {
-		PERR("%p - create_sc returned returned %d", this, res);
-		throw Root::Unavailable();
-	}
-
-	_sync_life.lock();
-}
-
-
-void Irq_object::entry()
-{
-	/* signal that thread is up and ready */
-	_sync_life.unlock();
-
-	/* wait for first ack_irq */
-	_sync_ack.lock();
-
-	while (true) {
-
-		if (Nova::NOVA_OK != Nova::sm_ctrl(irq_sel(), Nova::SEMAPHORE_DOWN))
-			PERR("Error: blocking for irq_sel 0x%lx failed", irq_sel());
-
-		if (_state == SHUTDOWN) {
-			/* signal end of life to entrypoint thread */
-			_sync_life.unlock();
-			while (1) nova_die();
-		}
-
-		if (!_sig_cap.valid())
-			continue;
-
-		notify();
-
-		_sync_ack.lock();
-	}
+	_device_phys = device_phys;
 }
 
 
 Irq_object::Irq_object()
 :
-	Thread<4096>("irq"),
-	_sync_ack(Lock::LOCKED), _sync_life(Lock::LOCKED),
 	_kernel_caps(cap_map()->insert(KERNEL_CAP_COUNT_LOG2)),
-	_msi_addr(0UL), _msi_data(0UL), _state(UNDEFINED)
+	_msi_addr(0UL), _msi_data(0UL)
 { }
 
 
 Irq_object::~Irq_object()
 {
-	/* tell interrupt thread to get in a defined dead state */
-	_state = SHUTDOWN;
-	/* send ack - thread maybe got not the first ack */
-	_sync_ack.unlock();
-	/* unblock thread if it is waiting for interrupts */
-	Nova::sm_ctrl(irq_sel(), Nova::SEMAPHORE_UP);
-	/* wait until thread signals end of life */
-	_sync_life.lock();
+	if (_sigh_cap.valid())
+		deassociate(irq_sel());
 
-	/* revoke SC and SM of interrupt source */
+	/* revoke IRQ SM */
 	Nova::revoke(Nova::Obj_crd(_kernel_caps, KERNEL_CAP_COUNT_LOG2));
 	enum { NO_REVOKE_REQUIRED = false };
 	cap_map()->remove(_kernel_caps, KERNEL_CAP_COUNT_LOG2, NO_REVOKE_REQUIRED);
@@ -259,7 +207,7 @@ Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
 	long device_phys = Arg_string::find_arg(args, "device_config_phys").long_value(0);
 	if (device_phys) {
 
-		if (irq_number >= kernel_hip()->sel_gsi)
+		if ((unsigned long)irq_number >= kernel_hip()->sel_gsi)
 			throw Root::Unavailable();
 
 		irq_number = kernel_hip()->sel_gsi - 1 - irq_number;

@@ -157,17 +157,23 @@ namespace Nova {
 
 	ALWAYS_INLINE
 	inline uint8_t syscall_5(Syscall s, uint8_t flags, mword_t sel,
-	                         mword_t &p1, mword_t &p2)
+	                         mword_t &p1, mword_t &p2, mword_t p3 = ~0UL)
 	{
 		mword_t status = eax(s, flags, sel);
 
-		asm volatile ("  movl %%esp, %%ecx;"
+		asm volatile ("  push %%ebx;"
+
+		              "  mov %%ecx, %%ebx;"
+		              "  movl %%esp, %%ecx;"
 		              "  movl $1f, %%edx;"
+
 		              "sysenter;"
 		              "1:"
-		              : "+a" (status), "+D" (p1), "+S" (p2)
-		              : 
-		              : "ecx", "edx", "memory");
+
+		              "  pop %%ebx;"
+		              : "+a" (status), "+D" (p1), "+S" (p2), "+c" (p3)
+		              :
+		              : "edx", "memory");
 		return status;
 	}
 
@@ -310,12 +316,14 @@ namespace Nova {
 
 
 	ALWAYS_INLINE
-	inline uint8_t assign_gsi(mword_t sm, mword_t dev, mword_t cpu, mword_t &msi_addr, mword_t &msi_data)
+	inline uint8_t assign_gsi(mword_t sm, mword_t dev, mword_t cpu,
+	                          mword_t &msi_addr, mword_t &msi_data,
+	                          mword_t si = ~0UL)
 	{
 		msi_addr = dev;
 		msi_data = cpu;
 
-		return syscall_5(NOVA_ASSIGN_GSI, 0, sm, msi_addr, msi_data);
+		return syscall_5(NOVA_ASSIGN_GSI, 0, sm, msi_addr, msi_data, si);
 	}
 }
 #endif /* _PLATFORM__NOVA_SYSCALLS_H_ */
