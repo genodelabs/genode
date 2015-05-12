@@ -327,7 +327,14 @@ int pci_register_driver(struct pci_driver *drv)
 			}
 
 			Pci::Device_capability free_up = cap;
-			cap = pci.next_device(cap, id->class_, id->class_mask);
+
+			try {
+				cap = pci.next_device(cap, id->class_, id->class_mask);
+			} catch (Pci::Device::Quota_exceeded) {
+				Genode::env()->parent()->upgrade(pci.cap(), "ram_quota=4096");
+				cap = pci.next_device(cap, id->class_, id->class_mask);
+			}
+
 			if (!pci_drv)
 				pci.release_device(free_up);
 		}
