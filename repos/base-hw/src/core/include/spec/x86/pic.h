@@ -83,8 +83,7 @@ class Genode::Ioapic : public Mmio
 		 */
 		bool _edge_triggered(unsigned const irq)
 		{
-			return irq <= REMAP_BASE + Board::ISA_IRQ_END ||
-			       irq >  REMAP_BASE + IRTE_COUNT;
+			return irq <= Board::ISA_IRQ_END || irq >  IRTE_COUNT;
 		}
 
 	public:
@@ -104,6 +103,8 @@ class Genode::Ioapic : public Mmio
 		/* Set/unset mask bit of IRTE for given vector */
 		void toggle_mask(unsigned const vector, bool const set)
 		{
+			const unsigned irq = vector - REMAP_BASE;
+
 			/*
 			 * Only mask existing RTEs and do *not* mask edge-triggered
 			 * interrupts to avoid losing them while masked, see Intel
@@ -112,9 +113,9 @@ class Genode::Ioapic : public Mmio
 			 * flag and edge-triggered interrupts or:
 			 * http://yarchive.net/comp/linux/edge_triggered_interrupts.html
 			 */
-			if (_edge_triggered(vector) && set) { return; }
+			if (_edge_triggered(irq) && set) { return; }
 
-			write<Ioregsel>(IOREDTBL + (2 * (vector - REMAP_BASE)));
+			write<Ioregsel>(IOREDTBL + (2 * irq));
 			Irte::access_t irte = read<Iowin>();
 			Irte::Mask::set(irte, set);
 			write<Iowin>(irte);
