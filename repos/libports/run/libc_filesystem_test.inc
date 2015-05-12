@@ -133,9 +133,9 @@ append_if $use_ahci config {
 			<any-service> <parent /> <any-child /></any-service>
 		</route>
 		<config>}
-append config "
+append_if $use_ahci config "
 			<policy label=\"test-libc_$filesystem\" device=\"0\" />"
-append config {
+append_if $use_ahci config {
 		</config>
 	</start>}
 
