@@ -33,12 +33,13 @@ proc run_boot_string { } {
 # Populate directory with binaries on NOVA
 #
 proc run_boot_dir {binaries} {
+
 	#
 	# Collect contents of the ISO image
 	#
 	copy_and_strip_genode_binaries_to_run_dir $binaries
 
-	if {![nova_external] && ![file exists [nova_kernel]]} { build { kernel } }
+	if {![nova_external]} { build { kernel } }
 
 	puts "using NOVA kernel at [nova_kernel]"
 	exec [cross_dev_prefix]objcopy -O elf32-i386 [nova_kernel] [run_dir]/hypervisor
