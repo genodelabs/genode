@@ -1,0 +1,22 @@
+go_libbacktrace.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+Remove the dependency on libbacktrace, which needs a libc.
+---
+ gcc/go/config-lang.in |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/gcc/go/config-lang.in b/gcc/go/config-lang.in
+index fe9bb75..f965921 100644
+--- a/gcc/go/config-lang.in
++++ b/gcc/go/config-lang.in
+@@ -28,7 +28,7 @@ language="go"
+ 
+ compilers="go1\$(exeext)"
+ 
+-target_libs="target-libgo target-libffi target-libbacktrace"
++target_libs="target-libgo target-libffi"
+ 
+ # The Go frontend is written in C++, so we need to build the C++
+ # compiler during stage 1.

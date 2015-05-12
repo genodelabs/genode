@@ -13,7 +13,7 @@ nothing rather than '-prefer-pic'.
  1 file changed, 6 insertions(+), 6 deletions(-)
 
 diff --git a/libstdc++-v3/configure.ac b/libstdc++-v3/configure.ac
-index ce1f6c4..59024f2 100644
+index 73d430a..3bf1b41 100644
 --- a/libstdc++-v3/configure.ac
 +++ b/libstdc++-v3/configure.ac
 @@ -109,16 +109,16 @@ AC_SUBST(enable_static)

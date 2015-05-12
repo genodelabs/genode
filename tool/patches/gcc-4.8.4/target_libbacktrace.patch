@@ -1,0 +1,21 @@
+target_libbacktrace.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+Don't build libbacktrace, which needs a libc.
+---
+ configure.ac |    1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/configure.ac b/configure.ac
+index 943d93e..b4f20fd 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -152,7 +152,6 @@ libgcj="target-libffi \
+ # the host libraries and the host tools (which may be a cross compiler)
+ # Note that libiberty is not a target library.
+ target_libraries="target-libgcc \
+-		target-libbacktrace \
+ 		target-libgloss \
+ 		target-newlib \
+ 		target-libgomp \

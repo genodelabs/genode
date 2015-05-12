@@ -59,6 +59,14 @@
 # endif
 #endif
 
+#ifndef _GLIBCXX_THROW_OR_ABORT
+# if __EXCEPTIONS
+#  define _GLIBCXX_THROW_OR_ABORT(_EXC) (throw (_EXC))
+# else
+#  define _GLIBCXX_THROW_OR_ABORT(_EXC) (__builtin_abort())
+# endif
+#endif
+
 // Macros for visibility attributes.
 //   _GLIBCXX_HAVE_ATTRIBUTE_VISIBILITY
 //   _GLIBCXX_VISIBILITY
@@ -83,6 +91,11 @@
 # define _GLIBCXX_DEPRECATED __attribute__ ((__deprecated__))
 #else
 # define _GLIBCXX_DEPRECATED
+#endif
+
+// Macros for ABI tag attributes.
+#ifndef _GLIBCXX_ABI_TAG_CXX11
+# define _GLIBCXX_ABI_TAG_CXX11 __attribute ((__abi_tag__ ("cxx11")))
 #endif
 
 #if __cplusplus

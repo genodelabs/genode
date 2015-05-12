@@ -14,10 +14,10 @@ compiler as much as possible.
  1 file changed, 1 deletion(-)
 
 diff --git a/libstdc++-v3/crossconfig.m4 b/libstdc++-v3/crossconfig.m4
-index 361ed0b..98d68ec 100644
+index 943ea67..d379010 100644
 --- a/libstdc++-v3/crossconfig.m4
 +++ b/libstdc++-v3/crossconfig.m4
-@@ -264,7 +264,6 @@ case "${host}" in
+@@ -270,7 +270,6 @@ case "${host}" in
      AC_DEFINE(HAVE_TANHF)
      ;;
    *)
