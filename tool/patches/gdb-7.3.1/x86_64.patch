@@ -1,0 +1,80 @@
+gdb_x86_64.diff
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ gdb/amd64-tdep.c |    5 +++++
+ gdb/defs.h       |    1 +
+ gdb/i386-tdep.c  |    5 +++++
+ gdb/osabi.c      |    6 ++++++
+ 4 files changed, 17 insertions(+)
+
+diff --git a/gdb/amd64-tdep.c b/gdb/amd64-tdep.c
+index db3821a..5f5e165 100644
+--- a/gdb/amd64-tdep.c
++++ b/gdb/amd64-tdep.c
+@@ -2581,6 +2581,11 @@ void _initialize_amd64_tdep (void);
+ void
+ _initialize_amd64_tdep (void)
+ {
++  /* Genode */
++  gdbarch_register_osabi(bfd_arch_i386, bfd_mach_x86_64,
++                         GDB_OSABI_GENODE, amd64_init_abi);
++  /* /Genode */
++
+   initialize_tdesc_amd64 ();
+   initialize_tdesc_amd64_avx ();
+ }
+diff --git a/gdb/defs.h b/gdb/defs.h
+index 9531c5a..7c7258f 100644
+--- a/gdb/defs.h
++++ b/gdb/defs.h
+@@ -996,6 +996,7 @@ enum gdb_osabi
+   GDB_OSABI_DICOS,
+   GDB_OSABI_DARWIN,
+   GDB_OSABI_SYMBIAN,
++  GDB_OSABI_GENODE,
+ 
+   GDB_OSABI_INVALID		/* keep this last */
+ };
+diff --git a/gdb/i386-tdep.c b/gdb/i386-tdep.c
+index 3c13bea..3aaeec5 100644
+--- a/gdb/i386-tdep.c
++++ b/gdb/i386-tdep.c
+@@ -7367,6 +7367,11 @@ is \"default\"."),
+   gdbarch_register_osabi (bfd_arch_i386, 0, GDB_OSABI_GO32,
+ 			  i386_go32_init_abi);
+ 
++  /* Genode */
++  gdbarch_register_osabi(bfd_arch_i386, 0,  GDB_OSABI_GENODE,
++                         i386_elf_init_abi);
++  /* /Genode */
++
+   /* Initialize the i386-specific register groups.  */
+   i386_init_reggroups ();
+ 
+diff --git a/gdb/osabi.c b/gdb/osabi.c
+index a264924..c5e1775 100644
+--- a/gdb/osabi.c
++++ b/gdb/osabi.c
+@@ -73,6 +73,7 @@ static const char * const gdb_osabi_names[] =
+   "DICOS",
+   "Darwin",
+   "Symbian",
++  "Genode",
+ 
+   "<invalid>"
+ };
+@@ -522,6 +523,11 @@ generic_elf_osabi_sniffer (bfd *abfd)
+       bfd_map_over_sections (abfd,
+ 			     generic_elf_osabi_sniff_abi_tag_sections,
+ 			     &osabi);
++/* Genode */
++      if (osabi == GDB_OSABI_UNKNOWN)
++        osabi = GDB_OSABI_GENODE;
++/* /Genode */
++
+       break;
+ 
+     case ELFOSABI_FREEBSD:
