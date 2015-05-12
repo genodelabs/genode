@@ -112,7 +112,7 @@ class Genode::Ioapic : public Mmio
 			 * flag and edge-triggered interrupts or:
 			 * http://yarchive.net/comp/linux/edge_triggered_interrupts.html
 			 */
-			if (_edge_triggered(vector)) { return; }
+			if (_edge_triggered(vector) && set) { return; }
 
 			write<Ioregsel>(IOREDTBL + (2 * (vector - REMAP_BASE)));
 			Irte::access_t irte = read<Iowin>();
