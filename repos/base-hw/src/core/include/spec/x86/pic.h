@@ -68,6 +68,7 @@ class Genode::Ioapic : public Mmio
 		Irte::access_t _create_irt_entry(unsigned const irq)
 		{
 			Irte::access_t irte = REMAP_BASE + irq;
+			Irte::Mask::set(irte, 1);
 
 			/* Use level-triggered, low-active mode for non-legacy IRQs */
 			if (irq > Board::ISA_IRQ_END) {
