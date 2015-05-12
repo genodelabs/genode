@@ -105,7 +105,7 @@ class Irq_context : public Genode::List<Irq_context>::Element
 			/* report IRQ to all clients */
 			for (Irq_handler *h = _handler_list.first(); h; h = h->next())
 				if ((handled = _handle_one(h))) {
-					dde_kit_log(DEBUG_IRQ, "IRQ: %u ret: %u h: %p dev: %p", _irq, handled, h->handler, h->dev);
+					lx_log(DEBUG_IRQ, "IRQ: %u ret: %u h: %p dev: %p", _irq, handled, h->handler, h->dev);
 					break;
 				}
 
@@ -186,7 +186,7 @@ void Irq::check_irq()
 int request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags,
                  const char *name, void *dev)
 {
-	dde_kit_log(DEBUG_IRQ, "Request irq %u handler %p", irq, handler);
+	lx_log(DEBUG_IRQ, "Request irq %u handler %p", irq, handler);
 	Irq_context::request_irq(irq, handler, dev);
 	return 0;
 }

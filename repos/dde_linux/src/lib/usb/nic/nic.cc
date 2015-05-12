@@ -444,7 +444,7 @@ struct sk_buff *netdev_alloc_skb_ip_align(struct net_device *dev, unsigned int l
 
 void dev_kfree_skb(struct sk_buff *skb)
 {
-	dde_kit_log(DEBUG_SKB, "free skb: %p start: %p cloned: %d",
+	lx_log(DEBUG_SKB, "free skb: %p start: %p cloned: %d",
 	            skb, skb->start, skb->cloned);
 
 	if (skb->cloned) {
@@ -475,7 +475,7 @@ void skb_reserve(struct sk_buff *skb, int len)
 		return;
 	}
 	skb->data += len;
-	dde_kit_log(DEBUG_SKB, "skb: %p slen: %u len: %d", skb, skb->len, len);
+	lx_log(DEBUG_SKB, "skb: %p slen: %u len: %d", skb, skb->len, len);
 }
 
 
@@ -493,7 +493,7 @@ unsigned char *skb_push(struct sk_buff *skb, unsigned int len)
 	skb->len  += len;
 	skb->data -= len;
 
-	dde_kit_log(DEBUG_SKB, "skb: %p slen: %u len: %u", skb, skb->len, len);
+	lx_log(DEBUG_SKB, "skb: %p slen: %u len: %u", skb, skb->len, len);
 	return skb->data;
 }
 
@@ -512,7 +512,7 @@ unsigned char *skb_put(struct sk_buff *skb, unsigned int len)
 	unsigned char *old = skb_tail_pointer(skb);
 	skb->len  += len;
 	skb->tail += len;
-	dde_kit_log(DEBUG_SKB, "skb: %p slen: %u len: %u", skb, skb->len, len);
+	lx_log(DEBUG_SKB, "skb: %p slen: %u len: %u", skb, skb->len, len);
 	return old;
 }
 
@@ -544,7 +544,7 @@ unsigned char *skb_pull(struct sk_buff *skb, unsigned int len)
 		return 0;
 	}
 	skb->len -= len;
-	dde_kit_log(DEBUG_SKB, "skb: %p slen: %u len: %u", skb, skb->len, len);
+	lx_log(DEBUG_SKB, "skb: %p slen: %u len: %u", skb, skb->len, len);
 	return skb->data += len;
 }
 
@@ -563,7 +563,7 @@ void skb_trim(struct sk_buff *skb, unsigned int len)
 	skb->len = len;
 	skb_set_tail_pointer(skb, len);
 
-	dde_kit_log(DEBUG_SKB, "skb: %p slen: %u len: %u", skb, skb->len, len);
+	lx_log(DEBUG_SKB, "skb: %p slen: %u len: %u", skb, skb->len, len);
 }
 
 

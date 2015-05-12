@@ -193,7 +193,7 @@ void genode_evdev_event(struct input_handle *handle, unsigned int type,
 
 			if (value != -1) {
 				if (slots[slot].id != -1)
-					dde_kit_printf("warning:: old tracking id in use and got new one\n");
+					lx_printf("warning:: old tracking id in use and got new one\n");
 
 				slots[slot].id = value;
 				return;
@@ -219,7 +219,7 @@ void genode_evdev_event(struct input_handle *handle, unsigned int type,
 			if (disable_multitouch) return;
 
 			if (value >= sizeof(slots) / sizeof(slots[0])) {
-				dde_kit_printf("warning: drop slot id %d\n", value);
+				lx_printf("warning: drop slot id %d\n", value);
 				return;
 			}
 

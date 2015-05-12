@@ -143,14 +143,14 @@ void __wait_event()
 
 void init_completion(struct completion *work)
 {
-	dde_kit_log(DEBUG_COMPLETION, "New completion %p", work);
+	lx_log(DEBUG_COMPLETION, "New completion %p", work);
 	work->done = 0;
 }
 
 
 void complete(struct completion *work)
 {
-	dde_kit_log(DEBUG_COMPLETION, "%p", work);
+	lx_log(DEBUG_COMPLETION, "%p", work);
 	work->done = 1;
 
 	/* send signal */
@@ -160,7 +160,7 @@ void complete(struct completion *work)
 
 void complete_and_exit(struct completion *work, long code)
 {
-	dde_kit_log(DEBUG_COMPLETION, "%p", work);
+	lx_log(DEBUG_COMPLETION, "%p", work);
 	complete(work);
 	Routine::remove();
 }
@@ -186,7 +186,7 @@ __wait_completion_timeout(struct completion *work, unsigned long timeout)
 		__wait_event();
 
 		if (_j <= jiffies) {
-			dde_kit_log(1, "Timeout");
+			lx_log(1, "Timeout");
 			return 0;
 		}
 	}
@@ -200,14 +200,14 @@ __wait_completion_timeout(struct completion *work, unsigned long timeout)
 unsigned long wait_for_completion_timeout(struct completion *work,
                                           unsigned long timeout)
 {
-	dde_kit_log(DEBUG_COMPLETION, "%p state: %u timeout: %lu", work, work->done, timeout);
+	lx_log(DEBUG_COMPLETION, "%p state: %u timeout: %lu", work, work->done, timeout);
 	return __wait_completion_timeout(work, timeout);
 }
 
 
 int wait_for_completion_interruptible(struct completion *work)
 {
-	dde_kit_log(DEBUG_COMPLETION, "%p state: %u", work, work->done);
+	lx_log(DEBUG_COMPLETION, "%p state: %u", work, work->done);
 
 	__wait_completion(work);
 	return 0;
@@ -217,7 +217,7 @@ int wait_for_completion_interruptible(struct completion *work)
 long wait_for_completion_interruptible_timeout(struct completion *work,
                                                unsigned long timeout)
 {
-	dde_kit_log(DEBUG_COMPLETION, "%p state: %u", work, work->done);
+	lx_log(DEBUG_COMPLETION, "%p state: %u", work, work->done);
 	__wait_completion(work);
 	return 1;
 }
@@ -225,7 +225,7 @@ long wait_for_completion_interruptible_timeout(struct completion *work,
 
 void wait_for_completion(struct completion *work)
 {
-	dde_kit_log(DEBUG_COMPLETION, "%p state: %u", work, work->done);
+	lx_log(DEBUG_COMPLETION, "%p state: %u", work, work->done);
 	__wait_completion(work);
 }
 
@@ -236,7 +236,7 @@ void wait_for_completion(struct completion *work)
 
 signed long schedule_timeout_uninterruptible(signed long timeout)
 {
-	dde_kit_log(DEBUG_COMPLETION, "%ld\n", timeout);
+	lx_log(DEBUG_COMPLETION, "%ld\n", timeout);
 	__wait_event();
 	return 0;
 }

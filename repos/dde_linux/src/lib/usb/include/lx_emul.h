@@ -18,15 +18,8 @@
 #ifndef _LX_EMUL_H_
 #define _LX_EMUL_H_
 
-/* DDE Kit includes */
-#include <dde_kit/types.h>
-#include <dde_kit/printf.h>
-#include <dde_kit/panic.h>
-#include <dde_kit/lock.h>
-#include <dde_kit/spin_lock.h>
-#include <dde_kit/timer.h>
-#include <dde_kit/resources.h>
-
+#include <stdarg.h>
+#include <base/fixed_stdint.h>
 
 #define DEBUG_COMPLETION 0
 #define DEBUG_DMA        0
@@ -46,10 +39,21 @@
 
 #define KBUILD_MODNAME "mod-noname"
 
+void lx_printf(char const *, ...) __attribute__((format(printf, 1, 2)));
+void lx_vprintf(char const *, va_list);
+
+#define lx_log(doit, msg...)         \
+	do {                               \
+		if (doit) {                      \
+			lx_printf("%s(): ", __func__); \
+			lx_printf(msg);                \
+			lx_printf("\n");               \
+		}                                \
+	} while(0);
 
 static inline void bt()
 {
-	dde_kit_printf("BT: 0x%p\n", __builtin_return_address(0));
+	lx_printf("BT: 0x%p\n", __builtin_return_address(0));
 }
 
 
@@ -72,16 +76,16 @@ static inline void bt()
 
 #define WARN_ON(condition) ({ \
 	int ret = !!(condition); \
-	if (ret) dde_kit_debug("[%s] WARN_ON(" #condition ") ", __func__); \
+	if (ret) lx_printf("[%s] WARN_ON(" #condition ") ", __func__); \
 	ret; })
 
 #define WARN(condition, fmt, arg...) ({ \
 	int ret = !!(condition); \
-	if (ret) dde_kit_debug("[%s] *WARN* " fmt , __func__ , ##arg); \
+	if (ret) lx_printf("[%s] *WARN* " fmt , __func__ , ##arg); \
 	ret; })
 
 #define BUG() do { \
-	dde_kit_debug("BUG: failure at %s:%d/%s()!\n", __FILE__, __LINE__, __func__); \
+	lx_printf("BUG: failure at %s:%d/%s()!\n", __FILE__, __LINE__, __func__); \
 	while (1); \
 } while (0)
 
@@ -133,15 +137,15 @@ int atomic_inc_return(atomic_t *v);
  ** linux/types.h **
  *******************/
 
-typedef dde_kit_int8_t   int8_t;
-typedef dde_kit_uint8_t  uint8_t;
-typedef dde_kit_int16_t  int16_t;
-typedef dde_kit_uint16_t uint16_t;
-typedef dde_kit_int32_t  int32_t;
-typedef dde_kit_uint32_t uint32_t;
-typedef dde_kit_size_t   size_t;
-typedef dde_kit_int64_t  int64_t;
-typedef dde_kit_uint64_t uint64_t;
+typedef genode_int8_t   int8_t;
+typedef genode_uint8_t  uint8_t;
+typedef genode_int16_t  int16_t;
+typedef genode_uint16_t uint16_t;
+typedef genode_int32_t  int32_t;
+typedef genode_uint32_t uint32_t;
+typedef __SIZE_TYPE__   size_t;
+typedef genode_int64_t  int64_t;
+typedef genode_uint64_t uint64_t;
 
 typedef uint32_t      uint;
 typedef unsigned long ulong;
@@ -292,14 +296,18 @@ typedef unsigned short ushort;
 #define __printf(a, b) __attribute__((format(printf, a, b)))
 
 
+/**************************
+ ** linux/compiler-gcc.h **
+ **************************/
+
+#define __noreturn    __attribute__((noreturn))
+
 /*********************
  ** linux/jiffies.h **
  *********************/
 
 /* we directly map 'jiffies' to 'dde_kit_timer_ticks' */
-#define jiffies dde_kit_timer_ticks
-
-extern volatile unsigned long jiffies;
+extern unsigned long jiffies;
 unsigned long msecs_to_jiffies(const unsigned int m);
 unsigned int jiffies_to_msecs(const unsigned long j);
 long time_after(long a, long b);
@@ -535,14 +543,23 @@ enum {
  * Debug macros
  */
 #if DEBUG_PRINTK
-#define printk  dde_kit_printf
-#define vprintk dde_kit_vprintf
-#define panic   dde_kit_panic
+#define printk  _printk
+#define vprintk _lx_vprintf
 #else
 #define printk(...)
 #define vprintk(...)
-#define panic(...)
 #endif
+
+static inline __printf(1, 2) void panic(const char *fmt, ...) __noreturn;
+static inline void panic(const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	lx_vprintf(fmt, args);
+	va_end(args);
+	lx_printf("panic()");
+	while (1) ;
+}
 
 /*
  * Bits and types
@@ -716,6 +733,16 @@ struct va_format
 	const char *fmt;
 	va_list *va;
 };
+
+static inline int _printk(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
+static inline int _printk(const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	lx_vprintf(fmt, args);
+	va_end(args);
+	return 0;
+}
 
 /**********************************
  ** linux/bitops.h, asm/bitops.h **
@@ -907,13 +934,13 @@ void *kcalloc(size_t n, size_t size, gfp_t flags);
 struct kmem_cache;
 
 /**
- * Create slab cache using DDE kit
+ * Create slab cache
  */
 struct kmem_cache *kmem_cache_create(const char *, size_t, size_t,
                                      unsigned long, void (*)(void *));
 
 /**
- * Destroy slab cache using DDE kit
+ * Destroy slab cache
  */
 void kmem_cache_destroy(struct kmem_cache *);
 
@@ -937,7 +964,7 @@ void  kmem_cache_free(struct kmem_cache *, void *);
  ** linux/spinlock.h **
  **********************/
 
-typedef dde_kit_spin_lock spinlock_t;
+typedef uint32_t spinlock_t;
 #define DEFINE_SPINLOCK(name) spinlock_t name = 0;
 
 void spin_lock(spinlock_t *lock);
@@ -956,7 +983,7 @@ void assert_spin_locked(spinlock_t *lock);
  ** linux/mutex.h **
  *******************/
 
-struct mutex { struct dde_kit_lock *lock; };
+struct mutex { uint8_t d; };
 
 void mutex_init(struct mutex *m);
 void mutex_lock(struct mutex *m);
@@ -964,7 +991,7 @@ void mutex_lock_nested(struct mutex *lock, unsigned int subclass);
 void mutex_unlock(struct mutex *m);
 int  mutex_lock_interruptible(struct mutex *m);
 
-#define DEFINE_MUTEX(mutexname) struct mutex mutexname = { NULL };
+#define DEFINE_MUTEX(mutexname) struct mutex mutexname = { 0 };
 
 
 /***********************
@@ -1586,27 +1613,27 @@ bool device_can_wakeup(struct device *dev);
  ** linux/device.h **
  ********************/
 
-#define dev_info(dev, format, arg...) dde_kit_printf("dev_info: "  format, ## arg)
-#define dev_warn(dev, format, arg...) dde_kit_printf("dev_warn: "  format, ## arg)
-#define dev_WARN(dev, format, arg...) dde_kit_printf("dev_WARN: "  format, ## arg)
-#define dev_err( dev, format, arg...) dde_kit_printf("dev_error: " format, ## arg)
-#define dev_notice(dev, format, arg...) dde_kit_printf("dev_notice: " format, ## arg)
+#define dev_info(dev, format, arg...) lx_printf("dev_info: "  format, ## arg)
+#define dev_warn(dev, format, arg...) lx_printf("dev_warn: "  format, ## arg)
+#define dev_WARN(dev, format, arg...) lx_printf("dev_WARN: "  format, ## arg)
+#define dev_err( dev, format, arg...) lx_printf("dev_error: " format, ## arg)
+#define dev_notice(dev, format, arg...) lx_printf("dev_notice: " format, ## arg)
 #define dev_dbg_ratelimited(dev, format, arg...)
 
 
 #if DEBUG_PRINTK
-#define dev_dbg(dev, format, arg...) dde_kit_printf("dev_dbg: " format, ## arg)
-#define dev_vdbg(dev, format, arg...) dde_kit_printf("dev_dbg: " format, ## arg)
+#define dev_dbg(dev, format, arg...)  lx_printf("dev_dbg: " format, ## arg)
+#define dev_vdbg(dev, format, arg...) lx_printf("dev_dbg: " format, ## arg)
 #else
 #define dev_dbg( dev, format, arg...)
 #define dev_vdbg( dev, format, arg...)
 #endif
 
 #define dev_printk(level, dev, format, arg...) \
-	dde_kit_printf("dev_printk: " format, ## arg)
+	lx_printf("dev_printk: " format, ## arg)
 
 #define dev_warn_ratelimited(dev, format, arg...) \
-	dde_kit_printf("dev_warn_ratelimited: " format "\n", ## arg)
+	lx_printf("dev_warn_ratelimited: " format "\n", ## arg)
 
 enum {
 	BUS_NOTIFY_ADD_DEVICE = 0x00000001,
@@ -1866,8 +1893,8 @@ bool access_ok(int access, void *addr, size_t size);
 size_t copy_from_user(void *to, void const *from, size_t len);
 size_t copy_to_user(void *dst, void const *src, size_t len);
 
-#define get_user(x, ptr) ({ dde_kit_printf("get_user not implemented"); (0);})
-#define put_user(x, ptr) ({ dde_kit_printf("put_user not implemented"); (0);})
+#define get_user(x, ptr) ({ lx_printf("get_user not implemented"); (0);})
+#define put_user(x, ptr) ({ lx_printf("put_user not implemented"); (0);})
 
 
 /*****************
@@ -2237,13 +2264,13 @@ void *phys_to_virt(unsigned long address);
 #define readl(addr) (*(volatile uint32_t *)(addr))
 #define readb(addr) (*(volatile uint8_t  *)(addr))
 
-static inline void outb(u8  value, u32 port) { dde_kit_outb(port, value); }
-static inline void outw(u16 value, u32 port) { dde_kit_outw(port, value); }
-static inline void outl(u32 value, u32 port) { dde_kit_outl(port, value); }
+void outb(u8  value, u32 port);
+void outw(u16 value, u32 port);
+void outl(u32 value, u32 port);
 
-static inline u8  inb(u32 port) { return dde_kit_inb(port); }
-static inline u16 inw(u32 port) { return dde_kit_inw(port); }
-static inline u32 inl(u32 port) { return dde_kit_inl(port); }
+u8  inb(u32 port);
+u16 inw(u32 port);
+u32 inl(u32 port);
 
 void native_io_delay(void);
 
@@ -3112,8 +3139,8 @@ struct scsi_device
 #define to_scsi_device(d)       \
         container_of(d, struct scsi_device, sdev_gendev)
 
-#define shost_for_each_device(sdev, shost) dde_kit_printf("shost_for_each_device called\n");
-#define __shost_for_each_device(sdev, shost) dde_kit_printf("__shost_for_each_device called\n");
+#define shost_for_each_device(sdev, shost) lx_printf("shost_for_each_device called\n");
+#define __shost_for_each_device(sdev, shost) lx_printf("__shost_for_each_device called\n");
 
 int scsi_device_blocked(struct scsi_device *);
 int scsi_device_get(struct scsi_device *);
@@ -3412,18 +3439,18 @@ int ethtool_op_get_ts_info(struct net_device *, struct ethtool_ts_info *);
 
 #include <linux/netdev_features.h>
 
-#define netif_err(priv, type, dev, fmt, args...) dde_kit_printf("netif_err: " fmt, ## args);
-#define netif_info(priv, type, dev, fmt, args...) dde_kit_printf("netif_info: " fmt, ## args);
+#define netif_err(priv, type, dev, fmt, args...) lx_printf("netif_err: " fmt, ## args);
+#define netif_info(priv, type, dev, fmt, args...) lx_printf("netif_info: " fmt, ## args);
 
-#define netdev_err(dev, fmt, args...) dde_kit_printf("nedev_err: " fmt, ##args)
-#define netdev_warn(dev, fmt, args...) dde_kit_printf("nedev_warn: " fmt, ##args)
-#define netdev_info(dev, fmt, args...) dde_kit_printf("nedev_info: " fmt, ##args)
+#define netdev_err(dev, fmt, args...) lx_printf("nedev_err: " fmt, ##args)
+#define netdev_warn(dev, fmt, args...) lx_printf("nedev_warn: " fmt, ##args)
+#define netdev_info(dev, fmt, args...) lx_printf("nedev_info: " fmt, ##args)
 
 #define netdev_for_each_mc_addr(a, b) if (0)
 
 #if DEBUG_PRINTK
-#define netif_dbg(priv, type, dev, fmt, args...) dde_kit_printf("netif_dbg: "  fmt, ## args)
-#define netdev_dbg(dev, fmt, args...)  dde_kit_printf("netdev_dbg: " fmt, ##args)
+#define netif_dbg(priv, type, dev, fmt, args...) lx_printf("netif_dbg: "  fmt, ## args)
+#define netdev_dbg(dev, fmt, args...)  lx_printf("netdev_dbg: " fmt, ##args)
 #else
 #define netif_dbg(priv, type, dev, fmt, args...)
 #define netdev_dbg(dev, fmt, args...)
@@ -3755,7 +3782,7 @@ bool of_property_read_bool(const struct device_node *np, const char *propname);
  ** linux/radix-tree.h **
  ************************/
 
-#define INIT_RADIX_TREE(root, mask) dde_kit_printf("INIT_RADIX_TREE not impelemnted\n")
+#define INIT_RADIX_TREE(root, mask) lx_printf("INIT_RADIX_TREE not impelemnted\n")
 struct radix_tree_root { };
 void *radix_tree_lookup(struct radix_tree_root *root, unsigned long index);
 int   radix_tree_insert(struct radix_tree_root *, unsigned long, void *);

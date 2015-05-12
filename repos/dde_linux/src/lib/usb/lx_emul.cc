@@ -28,16 +28,6 @@
 #include "lx_emul.h"
 #include <extern_c_end.h>
 
-/* DDE kit includes */
-extern "C" {
-#include <dde_kit/semaphore.h>
-#include <dde_kit/memory.h>
-#include <dde_kit/pgtab.h>
-#include <dde_kit/resources.h>
-#include <dde_kit/interrupt.h>
-#include <dde_kit/thread.h>
-}
-
 
 namespace Genode {
 	class Slab_backend_alloc;
@@ -54,8 +44,8 @@ class Genode::Slab_backend_alloc : public Genode::Allocator,
 
 		enum {
 			VM_SIZE       = 64 * 1024 * 1024,       /* size of VM region to reserve */
-			P_BLOCK_SIZE  = 1024 * 1024,            /* 1 MB physical contiguous */
-			V_BLOCK_SIZE  = P_BLOCK_SIZE * 2,       /* 1 MB virtual used, 1 MB virtual left free to avoid that Allocator_avl merges virtual contiguous regions which are physically non-contiguous */
+			P_BLOCK_SIZE  = 2 * 1024 * 1024,        /* 2 MB physical contiguous */
+			V_BLOCK_SIZE  = P_BLOCK_SIZE * 2,       /* 2 MB virtual used, 2 MB virtual left free to avoid that Allocator_avl merges virtual contiguous regions which are physically non-contiguous */
 			ELEMENTS      = VM_SIZE / V_BLOCK_SIZE /* MAX number of dataspaces in VM */
 		};
 
@@ -203,7 +193,7 @@ class Malloc
 
 		enum {
 			SLAB_START_LOG2 = 3,  /* 8 B */
-			SLAB_STOP_LOG2  = 16, /* 64 KB */
+			SLAB_STOP_LOG2  = 17, /* 128 KB */
 			NUM_SLABS = (SLAB_STOP_LOG2 - SLAB_START_LOG2) + 1,
 		};
 
@@ -254,6 +244,8 @@ class Malloc
 				_allocator[i - SLAB_START_LOG2] = new (Genode::env()->heap())
 				                                  Slab_alloc(1U << i, alloc);
 		}
+
+		static unsigned long max_alloc() { return 1U << SLAB_STOP_LOG2; }
 
 		/**
 		 * Alloc in slabs
@@ -348,6 +340,19 @@ class Malloc
 };
 
 
+void lx_printf(char const *fmt, ...)
+{
+	va_list va;
+	va_start(va, fmt);
+	Genode::vprintf(fmt, va);
+	va_end(va);
+}
+
+
+void lx_vprintf(char const *fmt, va_list va) {
+	Genode::vprintf(fmt, va); }
+
+
 /***********************
  ** Atomic operations **
  ***********************/
@@ -365,14 +370,6 @@ void atomic_add(int i, atomic_t *v) { (*(volatile int *)v) += i; }
 void atomic_sub(int i, atomic_t *v) { (*(volatile int *)v) -= i; }
 
 void atomic_set(atomic_t *p, unsigned int v) { (*(volatile int *)p) = v; }
-
-/*******************
- ** linux/mutex.h **
- *******************/
-
-void mutex_init  (struct mutex *m) { if (m->lock) dde_kit_lock_init  (&m->lock); }
-void mutex_lock  (struct mutex *m) { if (m->lock) dde_kit_lock_lock  ( m->lock); }
-void mutex_unlock(struct mutex *m) { if (m->lock) dde_kit_lock_unlock( m->lock); }
 
 
 /*************************************
@@ -427,15 +424,15 @@ void kfree(const void *p)
 
 void *vzalloc(unsigned long size) 
 {
-	void *ptr = dde_kit_simple_malloc(size);
-	if (ptr)
-		Genode::memset(ptr, 0, size);
+	if (size > Malloc::max_alloc()) {
+		PERR("vzalloc: size %lu > %lu", size, Malloc::max_alloc());
+		return 0;
+	}
 
-	return ptr;
+	return kmalloc(size, 0);
 }
 
-
-void vfree(void *addr) { dde_kit_simple_free(addr); }
+void vfree(void *addr) { kfree(addr); }
 
 
 /******************
@@ -444,7 +441,7 @@ void vfree(void *addr) { dde_kit_simple_free(addr); }
 
 void kref_init(struct kref *kref)
 { 
-	dde_kit_log(DEBUG_KREF,"%s ref: %p", __func__, kref);
+	lx_log(DEBUG_KREF,"%s ref: %p", __func__, kref);
 	kref->refcount.v = 1; 
 }
 
@@ -452,13 +449,13 @@ void kref_init(struct kref *kref)
 void kref_get(struct kref *kref)
 {
 	kref->refcount.v++;
-	dde_kit_log(DEBUG_KREF, "%s ref: %p c: %d", __func__, kref, kref->refcount.v);
+	lx_log(DEBUG_KREF, "%s ref: %p c: %d", __func__, kref, kref->refcount.v);
 }
 
 
 int  kref_put(struct kref *kref, void (*release) (struct kref *kref))
 {
-	dde_kit_log(DEBUG_KREF, "%s: ref: %p c: %d", __func__, kref, kref->refcount.v);
+	lx_log(DEBUG_KREF, "%s: ref: %p c: %d", __func__, kref, kref->refcount.v);
 
 	if (!--kref->refcount.v) {
 		release(kref);
@@ -609,15 +606,18 @@ struct kmem_cache
 {
 	const char *name;  /* cache name */
 	unsigned    size;  /* object size */
-
-	struct dde_kit_slab *dde_kit_slab_cache; /* backing DDE kit cache */
 };
 
 
 struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align,
                                      unsigned long falgs, void (*ctor)(void *))
 {
-	dde_kit_log(DEBUG_SLAB, "\"%s\" obj_size=%zd", name, size);
+	lx_log(DEBUG_SLAB, "\"%s\" obj_size=%zd", name, size);
+
+	if (size > Malloc::max_alloc()) {
+		PERR("kmem_cache_create: slab size > %lu", Malloc::max_alloc());
+		return 0;
+	}
 
 	struct kmem_cache *cache;
 
@@ -626,16 +626,9 @@ struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align
 		return 0;
 	}
 
-	cache = (struct kmem_cache *)dde_kit_simple_malloc(sizeof(*cache));
+	cache = (struct kmem_cache *)kmalloc(sizeof(*cache), 0);
 	if (!cache) {
 		printk("No memory for slab cache\n");
-		return 0;
-	}
-
-	/* initialize a physically contiguous cache for kmem */
-	if (!(cache->dde_kit_slab_cache = dde_kit_slab_init(size))) {
-		printk("DDE kit slab init failed\n");
-		dde_kit_simple_free(cache);
 		return 0;
 	}
 
@@ -648,10 +641,8 @@ struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align
 
 void kmem_cache_destroy(struct kmem_cache *cache)
 {
-	dde_kit_log(DEBUG_SLAB, "\"%s\"", cache->name);
-
-	dde_kit_slab_destroy(cache->dde_kit_slab_cache);
-	dde_kit_simple_free(cache);
+	lx_log(DEBUG_SLAB, "\"%s\"", cache->name);
+	kfree(cache);
 }
 
 
@@ -659,24 +650,17 @@ void *kmem_cache_zalloc(struct kmem_cache *cache, gfp_t flags)
 {
 	void *ret;
 
-	dde_kit_log(DEBUG_SLAB, "\"%s\" flags=%x", cache->name, flags);
+	lx_log(DEBUG_SLAB, "\"%s\" flags=%x", cache->name, flags);
 
-	ret = dde_kit_slab_alloc(cache->dde_kit_slab_cache);
-
-	/* return here in case of error */
-	if (!ret) return 0;
-
-	/* zero page */
-	memset(ret, 0, cache->size);
-
+	ret = kzalloc(cache->size, flags);
 	return ret;
 }
 
 
 void kmem_cache_free(struct kmem_cache *cache, void *objp)
 {
-	dde_kit_log(DEBUG_SLAB, "\"%s\" (%p)", cache->name, objp);
-	dde_kit_slab_free(cache->dde_kit_slab_cache, objp);
+	lx_log(DEBUG_SLAB, "\"%s\" (%p)", cache->name, objp);
+	kfree(objp);
 }
 
 
@@ -732,7 +716,7 @@ class Driver : public Genode::List<Driver>::Element
 				return false;
 
 			bool ret = _drv->bus->match ? _drv->bus->match(dev, _drv) : true;
-			dde_kit_log(DEBUG_DRIVER, "MATCH: %s ret: %u match: %p %p",
+			lx_log(DEBUG_DRIVER, "MATCH: %s ret: %u match: %p %p",
 			            _drv->name, ret,  _drv->bus->match, _drv->probe);
 			return ret;
 		}
@@ -745,10 +729,10 @@ class Driver : public Genode::List<Driver>::Element
 			dev->driver = _drv;
 
 			if (dev->bus->probe) {
-				dde_kit_log(DEBUG_DRIVER, "Probing device bus %p", dev->bus->probe);
+				lx_log(DEBUG_DRIVER, "Probing device bus %p", dev->bus->probe);
 				return dev->bus->probe(dev);
 			} else if (_drv->probe) {
-				dde_kit_log(DEBUG_DRIVER, "Probing driver: %s %p", _drv->name, _drv->probe);
+				lx_log(DEBUG_DRIVER, "Probing driver: %s %p", _drv->name, _drv->probe);
 				return _drv->probe(dev);
 			}
 
@@ -759,7 +743,7 @@ class Driver : public Genode::List<Driver>::Element
 
 int driver_register(struct device_driver *drv)
 {
-	dde_kit_log(DEBUG_DRIVER, "%s at %p", drv->name, drv);
+	lx_log(DEBUG_DRIVER, "%s at %p", drv->name, drv);
 	new (Genode::env()->heap()) Driver(drv);
 	return 0;
 }
@@ -774,7 +758,7 @@ int device_add(struct device *dev)
 	for (Driver *driver = Driver::list()->first(); driver; driver = driver->next())
 		if (driver->match(dev)) {
 			int ret = driver->probe(dev);
-			dde_kit_log(DEBUG_DRIVER, "Probe return %d", ret);
+			lx_log(DEBUG_DRIVER, "Probe return %d", ret);
 
 			if (!ret)
 				return 0;
@@ -786,7 +770,7 @@ int device_add(struct device *dev)
 
 void device_del(struct device *dev)
 {
-	dde_kit_log(DEBUG_DRIVER, "Remove device %p", dev);
+	lx_log(DEBUG_DRIVER, "Remove device %p", dev);
 	if (dev->driver && dev->driver->remove)
 		dev->driver->remove(dev);
 }
@@ -927,12 +911,11 @@ void mdelay(unsigned long msecs) { msleep(msecs); }
  ** linux/jiffies.h **
  *********************/
 
-/*
- * We use DDE kit's jiffies in 100Hz granularity.
- */
-enum { JIFFIES_TICK_MS = 1000 / DDE_KIT_HZ };
+enum { JIFFIES_TICK_MS = 1000 / HZ };
 
 unsigned long msecs_to_jiffies(const unsigned int m) { return m / JIFFIES_TICK_MS; }
+unsigned int jiffies_to_msecs(const unsigned long j) { return j * JIFFIES_TICK_MS; }
+
 long time_after_eq(long a, long b) { return (a - b) >= 0; }
 long time_after(long a, long b)    { return (b - a) < 0; }
 
@@ -950,7 +933,7 @@ struct dma_pool
 struct dma_pool *dma_pool_create(const char *name, struct device *d, size_t size,
                                  size_t align, size_t alloc)
 {
-	dde_kit_log(DEBUG_DMA, "size: %zx align:%zx %p", size, align, __builtin_return_address((0)));
+	lx_log(DEBUG_DMA, "size: %zx align:%zx %p", size, align, __builtin_return_address((0)));
 
 	if (align & (align - 1))
 		return 0;
@@ -964,7 +947,7 @@ struct dma_pool *dma_pool_create(const char *name, struct device *d, size_t size
 
 void  dma_pool_destroy(struct dma_pool *d)
 {
-	dde_kit_log(DEBUG_DMA, "close");
+	lx_log(DEBUG_DMA, "close");
 	destroy(Genode::env()->heap(), d);
 }
 
@@ -974,7 +957,7 @@ void *dma_pool_alloc(struct dma_pool *d, gfp_t f, dma_addr_t *dma)
 	void *addr;
 	addr = dma_alloc_coherent(0, d->size, dma, 0);
 
-	dde_kit_log(DEBUG_DMA, "addr: %p size %zx align %x phys: %lx pool %p",
+	lx_log(DEBUG_DMA, "addr: %p size %zx align %x phys: %lx pool %p",
 	            addr, d->size, d->align, *dma, d);
 	return addr;
 }
@@ -982,7 +965,7 @@ void *dma_pool_alloc(struct dma_pool *d, gfp_t f, dma_addr_t *dma)
 
 void  dma_pool_free(struct dma_pool *d, void *vaddr, dma_addr_t a)
 {
-	dde_kit_log(DEBUG_DMA, "free: addr %p, size: %zx", vaddr, d->size);
+	lx_log(DEBUG_DMA, "free: addr %p, size: %zx", vaddr, d->size);
 	Malloc::dma()->free(vaddr);
 }
 
@@ -994,7 +977,7 @@ void *dma_alloc_coherent(struct device *, size_t size, dma_addr_t *dma, gfp_t)
 	if (!addr)
 		return 0;
 
-	dde_kit_log(DEBUG_DMA, "DMA pool alloc addr: %p size %zx align: %d, phys: %lx",
+	lx_log(DEBUG_DMA, "DMA pool alloc addr: %p size %zx align: %d, phys: %lx",
 	            addr, size, PAGE_SHIFT, *dma);
 	return addr;
 }
@@ -1002,7 +985,7 @@ void *dma_alloc_coherent(struct device *, size_t size, dma_addr_t *dma, gfp_t)
 
 void dma_free_coherent(struct device *, size_t size, void *vaddr, dma_addr_t)
 {
-	dde_kit_log(DEBUG_DMA, "free: addr %p, size: %zx", vaddr, size);
+	lx_log(DEBUG_DMA, "free: addr %p, size: %zx", vaddr, size);
 	Malloc::dma()->free(vaddr);
 }
 
@@ -1011,9 +994,6 @@ void dma_free_coherent(struct device *, size_t size, void *vaddr, dma_addr_t)
  ** linux/dma-mapping.h **
  *************************/
 
-/**
- * Translate virt to phys using DDE-kit
- */
 dma_addr_t dma_map_single_attrs(struct device *dev, void *ptr,
                                 size_t size,
                                 enum dma_data_direction dir,
@@ -1025,7 +1005,7 @@ dma_addr_t dma_map_single_attrs(struct device *dev, void *ptr,
 		PERR("translation virt->phys %p->%lx failed, return ip %p", ptr, phys,
 		     __builtin_return_address(0));
 
-	dde_kit_log(DEBUG_DMA, "virt: %p phys: %lx", ptr, phys);
+	lx_log(DEBUG_DMA, "virt: %p phys: %lx", ptr, phys);
 	return phys;
 }
 
@@ -1034,7 +1014,7 @@ dma_addr_t dma_map_page(struct device *dev, struct page *page,
                         size_t offset, size_t size,
                         enum dma_data_direction dir)
 {
-	dde_kit_log(DEBUG_DMA, "virt: %p phys: %lx offs: %zx", page->virt, page->phys, offset);
+	lx_log(DEBUG_DMA, "virt: %p phys: %lx offs: %zx", page->virt, page->phys, offset);
 	return page->phys + offset;
 }
 
@@ -1050,7 +1030,7 @@ int dma_map_sg_attrs(struct device *dev, struct scatterlist *sg,
 
 struct task_struct *kthread_run(int (*fn)(void *), void *arg, const char *n, ...)
 {
-	dde_kit_log(DEBUG_THREAD, "Run %s", n);
+	lx_log(DEBUG_THREAD, "Run %s", n);
 	Routine::add(fn, arg, n);
 	return 0;
 }
@@ -1064,7 +1044,7 @@ struct task_struct *kthread_create(int (*threadfn)(void *data),
 	 * This is just called for delayed device scanning (see
 	 * 'drivers/usb/storage/usb.c')
 	 */
-	dde_kit_log(DEBUG_THREAD, "Create %s", namefmt);
+	lx_log(DEBUG_THREAD, "Create %s", namefmt);
 	Routine::add(threadfn, data, namefmt);
 	return 0;
 }

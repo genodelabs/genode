@@ -11,7 +11,13 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <os/attached_io_mem_dataspace.h>
+
+#include <lx/extern_c_begin.h>
 #include <lx_emul.h>
+#include <lx/extern_c_end.h>
+
+
 
 #define to_platform_driver(drv) (container_of((drv), struct platform_driver, \
                                  driver))
@@ -38,13 +44,15 @@ static int platform_drv_probe(struct device *_dev)
 
 struct bus_type platform_bus_type = {
 	.name  = "platform",
-	.match = platform_match,
-	.probe = platform_drv_probe
 };
 
 
 int platform_driver_register(struct platform_driver *drv)
 {
+	/* init plarform_bus_type */
+	platform_bus_type.match = platform_match;
+	platform_bus_type.probe = platform_drv_probe;
+
 	drv->driver.bus = &platform_bus_type;
 	if (drv->probe)
 		drv->driver.probe = platform_drv_probe;
@@ -57,7 +65,7 @@ int platform_driver_register(struct platform_driver *drv)
 struct resource *platform_get_resource(struct platform_device *dev,
                                        unsigned int type, unsigned int num)
 {
-	int i;
+	unsigned i;
 
 	for (i = 0; i < dev->num_resources; i++) {
 		struct resource *r = &dev->resource[i];
@@ -74,7 +82,7 @@ struct resource *platform_get_resource_byname(struct platform_device *dev,
                                               unsigned int type,
                                               const char *name)
 {
-	int i;
+	unsigned i;
 
 	for (i = 0; i < dev->num_resources; i++) {
 		struct resource *r = &dev->resource[i];
@@ -115,13 +123,13 @@ int platform_device_register(struct platform_device *pdev)
 
 struct platform_device *platform_device_alloc(const char *name, int id)
 {
-	struct platform_device *pdev = kzalloc(sizeof(struct platform_device), GFP_KERNEL);
+	platform_device *pdev = (platform_device *)kzalloc(sizeof(struct platform_device), GFP_KERNEL);
 
 	if (!pdev)
 		return 0;
 
 	int len    = strlen(name);
-	pdev->name = kzalloc(len + 1, GFP_KERNEL);
+	pdev->name = (char *)kzalloc(len + 1, GFP_KERNEL);
 
 	if (!pdev->name) {
 		kfree(pdev);
@@ -162,7 +170,7 @@ int platform_device_add_resources(struct platform_device *pdev,
 	struct resource *r = NULL;
 	
 	if (res) {
-		r = kmemdup(res, sizeof(struct resource) * num, GFP_KERNEL);
+		r = (resource *)kmemdup(res, sizeof(struct resource) * num, GFP_KERNEL);
 		if (!r)
 			return -ENOMEM;
 	}
@@ -192,12 +200,15 @@ void platform_set_drvdata(struct platform_device *pdev, void *data)
 
 void *_ioremap(resource_size_t phys_addr, unsigned long size, int wc)
 {
-	dde_kit_addr_t map_addr;
-	if (dde_kit_request_mem(phys_addr, size, wc, &map_addr)) {
+	try {
+		Genode::Attached_io_mem_dataspace *ds = new(Genode::env()->heap())
+		                                        Genode::Attached_io_mem_dataspace(phys_addr, size, !!wc);
+		/* map base + page offset */
+		return ds->local_addr<char>() + (phys_addr & (PAGE_SIZE - 1));
+	} catch (...) {
 		panic("Failed to request I/O memory: [%zx,%lx)", phys_addr, phys_addr + size);
 		return 0;
 	}
-	return (void *)map_addr;
 }
 
 

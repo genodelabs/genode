@@ -18,8 +18,10 @@
 #include <ram_session/client.h>
 
 /* Genode os includes */
+#include <io_port_session/client.h>
 #include <pci_session/connection.h>
 #include <pci_device/client.h>
+#include <util/volatile_object.h>
 
 /* Linux includes */
 #include <extern_c_begin.h>
@@ -28,6 +30,68 @@
 #include <platform/lx_mem.h>
 
 struct  bus_type pci_bus_type;
+
+using namespace Genode;
+
+class Io_port
+{
+
+	private:
+
+		unsigned                                     _base = 0;
+		unsigned                                     _size = 0;
+		Io_port_session_capability                   _cap;
+		Lazy_volatile_object<Io_port_session_client> _port;
+
+		bool _valid(unsigned port) {
+			return _cap.valid() && port >= _base && port < _base + _size; }
+
+	public:
+
+		~Io_port()
+		{
+			if (_cap.valid())
+				_port.destruct();
+		}
+
+		void session(unsigned base, unsigned size, Io_port_session_capability cap)
+		{
+			_base = base;
+			_size = size;
+			_cap  = cap;
+			_port.construct(_cap);
+		}
+
+		template<typename POD>
+		bool out(unsigned port, POD val)
+		{
+			if (!_valid(port))
+				return false;
+
+			switch (sizeof(POD)) {
+				case 1: _port->outb(port, val); break;
+				case 2: _port->outw(port, val); break;
+				case 4: _port->outl(port, val); break;
+			}
+
+			return true;
+		}
+
+		template<typename POD>
+		bool in(unsigned port, POD *val)
+		{
+			if (!_valid(port))
+				return false;;
+
+			switch (sizeof(POD)) {
+				case 1: *val = _port->inb(port); break;
+				case 2: *val = _port->inw(port); break;
+				case 4: *val = _port->inl(port); break;
+			}
+
+			return true;
+		}
+};
 
 
 /**
@@ -40,6 +104,7 @@ class Pci_driver : public Genode::List<Pci_driver>::Element
 		pci_driver            *_drv;  /* Linux PCI driver */
 		Pci::Device_capability _cap;  /* PCI cap */
 		pci_device_id const   *_id;   /* matched id for this driver */
+		Io_port                _port;
 
 	public:
 
@@ -82,7 +147,7 @@ class Pci_driver : public Genode::List<Pci_driver>::Element
 
 			/* setup resources */
 			bool io = false;
-			for (int i = 0; i < Device::NUM_RESOURCES; i++) {
+			for (unsigned i = 0; i < Device::NUM_RESOURCES; i++) {
 				Device::Resource res = client.resource(i);
 				_dev->resource[i].start = res.base();
 				_dev->resource[i].end   = res.base() + res.size() - 1;
@@ -91,18 +156,16 @@ class Pci_driver : public Genode::List<Pci_driver>::Element
 
 				/* request port I/O session */
 				if (res.type() == Device::Resource::IO) {
-					if (dde_kit_request_io(res.base(), res.size(), i, bus, dev,
-					                       func))
-						PERR("Failed to request I/O: [%u,%u)",
-						     res.base(), res.base() + res.size());
+					uint8_t virt_bar = client.phys_bar_to_virt(i);
+					_port.session(res.base(), res.size(), client.io_port(virt_bar));
 					io = true;
-					dde_kit_log(DEBUG_PCI, "I/O [%u-%u)",
+					lx_log(DEBUG_PCI, "I/O [%u-%u)",
 					            res.base(), res.base() + res.size());
 				}
 
 				/* request I/O memory (write combined) */
 				if (res.type() == Device::Resource::MEMORY)
-					dde_kit_log(DEBUG_PCI, "I/O memory [%x-%x)", res.base(),
+					lx_log(DEBUG_PCI, "I/O memory [%x-%x)", res.base(),
 					            res.base() + res.size());
 			}
 
@@ -166,13 +229,6 @@ class Pci_driver : public Genode::List<Pci_driver>::Element
 			if (!_dev)
 				return;
 
-			for (int i = 0; i < Pci::Device::NUM_RESOURCES; i++) {
-				resource *r = &_dev->resource[i];
-
-				if (r->flags & IORESOURCE_IO)
-					dde_kit_release_io(r->start, (r->end - r->start) + 1);
-			}
-
 			_drivers().remove(this);
 
 			destroy(Genode::env()->heap(), _dev);
@@ -230,6 +286,22 @@ class Pci_driver : public Genode::List<Pci_driver>::Element
 			PERR("Device using i/o memory of address %zx is unknown", phys);
 			return Genode::Io_mem_session_capability();
 		}
+
+		template <typename POD, bool READ = true> 
+		static POD port_io(unsigned port, POD val = 0)
+		{
+			for (Pci_driver *d = _drivers().first(); d; d = d->next()) {
+				if (!d->_dev)
+					continue;
+
+				if (READ && d->_port.in<POD>(port, &val))
+					return val;
+				else if (!READ && d->_port.out<POD>(port, val))
+					return (POD)~0;
+			}
+
+			return (POD)~0;
+		}
 };
 
 /********************************
@@ -279,7 +351,7 @@ static Genode::Object_pool<Memory_object_base> memory_pool;
 
 int pci_register_driver(struct pci_driver *drv)
 {
-	dde_kit_log(DEBUG_PCI, "DRIVER name: %s", drv->name);
+	lx_log(DEBUG_PCI, "DRIVER name: %s", drv->name);
 	drv->driver.name = drv->name;
 
 	pci_device_id const  *id = drv->id_table;
@@ -293,7 +365,7 @@ int pci_register_driver(struct pci_driver *drv)
 	while (id->class_ || id->class_mask || id->class_) {
 
 		if (id->class_ == (unsigned)PCI_ANY_ID) {
-			dde_kit_log(DEBUG_PCI, "Skipping PCI_ANY_ID device class");
+			lx_log(DEBUG_PCI, "Skipping PCI_ANY_ID device class");
 			id++;
 			continue;
 		}
@@ -308,7 +380,7 @@ int pci_register_driver(struct pci_driver *drv)
 				uint8_t bus, dev, func;
 				Pci::Device_client client(cap);
 				client.bus_address(&bus, &dev, &func);
-				dde_kit_log(DEBUG_PCI, "bus: %x  dev: %x func: %x", bus, dev, func);
+				lx_log(DEBUG_PCI, "bus: %x  dev: %x func: %x", bus, dev, func);
 			}
 
 			Pci_driver *pci_drv = 0;
@@ -378,7 +450,7 @@ int pci_bus_read_config_byte(struct pci_bus *bus, unsigned int, int where, u8 *v
 {
 	Pci_driver *drv = (Pci_driver *)bus;
 	drv->config_read(where, val);
-	dde_kit_log(DEBUG_PCI, "READ %p: where: %x val: %x", drv, where, *val);
+	lx_log(DEBUG_PCI, "READ %p: where: %x val: %x", drv, where, *val);
 	return 0;
 }
 
@@ -387,7 +459,7 @@ int pci_bus_read_config_word(struct pci_bus *bus, unsigned int, int where, u16 *
 { 
 	Pci_driver *drv = (Pci_driver *)bus;
 	drv->config_read(where, val);
-	dde_kit_log(DEBUG_PCI, "READ %p: where: %x val: %x", drv, where, *val);
+	lx_log(DEBUG_PCI, "READ %p: where: %x val: %x", drv, where, *val);
 	return 0; 
 }
 
@@ -395,7 +467,7 @@ int pci_bus_read_config_word(struct pci_bus *bus, unsigned int, int where, u16 *
 int pci_bus_write_config_word(struct pci_bus *bus, unsigned int, int where, u16 val)
 {
 	Pci_driver *drv = (Pci_driver *)bus;
-	dde_kit_log(DEBUG_PCI, "WRITE %p: where: %x val: %x", drv, where, val);
+	lx_log(DEBUG_PCI, "WRITE %p: where: %x val: %x", drv, where, val);
 	drv->config_write(where, val);
 	return 0;
 }
@@ -404,7 +476,7 @@ int pci_bus_write_config_word(struct pci_bus *bus, unsigned int, int where, u16 
 int pci_bus_write_config_byte(struct pci_bus *bus, unsigned int, int where, u8 val)
 {
 	Pci_driver *drv = (Pci_driver *)bus;
-	dde_kit_log(DEBUG_PCI, "WRITE %p: where: %x val: %x", drv, where, val);
+	lx_log(DEBUG_PCI, "WRITE %p: where: %x val: %x", drv, where, val);
 	drv->config_write(where, val);
 	return 0;
 }
@@ -460,6 +532,19 @@ void Backend_memory::free(Genode::Ram_dataspace_capability cap)
 	memory_pool.remove_locked(o);
 	destroy(env()->heap(), o);
 }
+
+
+/**********************
+ ** asm-generic/io.h **
+ **********************/
+
+void outb(u8  value, u32 port) { Pci_driver::port_io<u8,  false>(port, value); }
+void outw(u16 value, u32 port) { Pci_driver::port_io<u16, false>(port, value); }
+void outl(u32 value, u32 port) { Pci_driver::port_io<u32, false>(port, value); }
+
+u8  inb(u32 port) { return Pci_driver::port_io<u8>(port);  }
+u16 inw(u32 port) { return Pci_driver::port_io<u16>(port); }
+u32 inl(u32 port) { return Pci_driver::port_io<u32>(port); }
 
 
 /*****************************************
