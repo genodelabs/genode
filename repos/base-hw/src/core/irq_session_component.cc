@@ -69,6 +69,10 @@ Irq_session_component::Irq_session_component(Range_allocator * const irq_alloc,
 	_irq_number(Platform::irq(_find_irq_number(args))),
 	_irq_alloc(irq_alloc)
 {
+	long const msi = Arg_string::find_arg(args, "device_config_phys").long_value(0);
+	if (msi)
+		throw Root::Unavailable();
+
 	/* allocate interrupt */
 	if (_irq_alloc->alloc_addr(1, _irq_number).is_error()) {
 		PERR("unavailable interrupt requested");
