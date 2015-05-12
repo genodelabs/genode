@@ -63,6 +63,14 @@ class Genode::Ioapic : public Mmio
 		};
 
 		/**
+		 * Return whether 'irq' is an edge-triggered interrupt
+		 */
+		bool _edge_triggered(unsigned const irq)
+		{
+			return irq <= Board::ISA_IRQ_END || irq > IRTE_COUNT;
+		}
+
+		/**
 		 * Create redirection table entry for given IRQ
 		 */
 		Irte::access_t _create_irt_entry(unsigned const irq)
@@ -71,19 +79,11 @@ class Genode::Ioapic : public Mmio
 			Irte::Mask::set(irte, 1);
 
 			/* Use level-triggered, low-active mode for non-legacy IRQs */
-			if (irq > Board::ISA_IRQ_END) {
+			if (!_edge_triggered(irq)) {
 				Irte::Pol::set(irte, 1);
 				Irte::Trg::set(irte, 1);
 			}
 			return irte;
-		}
-
-		/**
-		 * Return whether 'irq' is an edge-triggered interrupt
-		 */
-		bool _edge_triggered(unsigned const irq)
-		{
-			return irq <= Board::ISA_IRQ_END || irq >  IRTE_COUNT;
 		}
 
 	public:
