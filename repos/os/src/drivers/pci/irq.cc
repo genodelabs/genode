@@ -32,32 +32,38 @@ namespace Pci {
 using Genode::size_t;
 using Genode::addr_t;
 
-enum { LEGACY_UNUSED = 40, LEGACY = 64, GSI = 128 };
-
 /**
  * A simple range allocator implementation used by the Irq_proxy
  */
-class Pci::Irq_allocator : public Genode::Range_allocator, Genode::Bit_allocator<GSI>
+class Pci::Irq_allocator : public Genode::Range_allocator
 {
 	private:
 
-		Genode::Bit_array<LEGACY>   _legacy;
+		/*
+		 * We partition the IRQ space (128 GSIs) into 40 legacy IRQs and 64 MSIs (and
+		 * hope the partitions will never overlap on any bizarre platform.)
+		 */
+		enum { LEGACY = 40, MSI = 64, LEGACY_ARRAY = 64 };
+
+		Genode::Bit_array<LEGACY_ARRAY> _legacy;
+		Genode::Bit_allocator<MSI>      _msi;
 
 	public:
 
 		Irq_allocator()
 		{
-			_legacy.set(LEGACY_UNUSED, LEGACY - LEGACY_UNUSED);
+			/* reserve the last 24 legacy IRQs - 40 IRQs remaining */
+			_legacy.set(LEGACY, LEGACY_ARRAY - LEGACY);
 		}
 
 		unsigned alloc_msi()
 		{
 			try {
-				 return Bit_allocator<GSI>::alloc();
-			} catch (Genode::Bit_allocator<GSI>::Out_of_indices) { return ~0U; }
+				 return _msi.alloc();
+			} catch (Genode::Bit_allocator<MSI>::Out_of_indices) { return ~0U; }
 		}
 
-		void free_msi(unsigned msi) { Bit_allocator<GSI>::free(msi); }
+		void free_msi(unsigned msi) { _msi.free(msi); }
 
 		Alloc_return alloc_addr(size_t size, addr_t addr) override
 		{

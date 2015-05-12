@@ -104,8 +104,8 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 		/**
 		 * Disable MSI if already enabled.
 		 */
-		unsigned _disable_msi(unsigned irq) {
-
+		unsigned _disable_msi(unsigned irq)
+		{
 			using Genode::uint16_t;
 			using Genode::uint8_t;
 
