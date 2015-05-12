@@ -10,10 +10,10 @@ Changes lacking documentation
  3 files changed, 3 insertions(+), 3 deletions(-)
 
 diff --git a/libgcc/Makefile.in b/libgcc/Makefile.in
-index c301ff0..9f45475 100644
+index 990cd49..31740cb 100644
 --- a/libgcc/Makefile.in
 +++ b/libgcc/Makefile.in
-@@ -859,7 +859,7 @@ LIBGCOV = _gcov _gcov_merge_add _gcov_merge_single _gcov_merge_delta \
+@@ -857,7 +857,7 @@ LIBGCOV = _gcov _gcov_merge_add _gcov_merge_single _gcov_merge_delta \
      _gcov_indirect_call_profiler _gcov_average_profiler _gcov_ior_profiler \
      _gcov_merge_ior
  
@@ -23,7 +23,7 @@ index c301ff0..9f45475 100644
  $(libgcov-objects): %$(objext): $(srcdir)/libgcov.c
  	$(gcc_compile) -DL$* -c $(srcdir)/libgcov.c
 diff --git a/libgcc/config/t-libunwind-elf b/libgcc/config/t-libunwind-elf
-index 47a460b..cd6e291 100644
+index 6f8d0b2..2a4214c 100644
 --- a/libgcc/config/t-libunwind-elf
 +++ b/libgcc/config/t-libunwind-elf
 @@ -32,7 +32,7 @@ SHLIBUNWIND_SONAME = @shlib_base_name@.so.$(SHLIBUNWIND_SOVERSION)
@@ -36,10 +36,10 @@ index 47a460b..cd6e291 100644
  	if [ -f $(SHLIB_DIR)/$(SHLIBUNWIND_SONAME) ]; then \
  	  mv -f $(SHLIB_DIR)/$(SHLIBUNWIND_SONAME) \
 diff --git a/libgcc/config/t-slibgcc b/libgcc/config/t-slibgcc
-index 3727244..89c8e9b 100644
+index e55013f..4a67d27 100644
 --- a/libgcc/config/t-slibgcc
 +++ b/libgcc/config/t-slibgcc
-@@ -27,7 +27,7 @@ SHLIB_MAP = @shlib_map_file@
+@@ -26,7 +26,7 @@ SHLIB_MAP = @shlib_map_file@
  SHLIB_OBJS = @shlib_objs@
  SHLIB_DIR = @multilib_dir@
  SHLIB_SLIBDIR_QUAL = @shlib_slibdir_qual@

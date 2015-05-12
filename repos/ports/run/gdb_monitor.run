@@ -194,8 +194,8 @@ if {![regexp {Breakpoint 3, puts (.*)} $gdb_output]} {
 }
 
 if {![regexp {#0  puts} $gdb_output] ||
-    ![regexp {in func2 ()} $gdb_output] ||
-    ![regexp {in func1 ()} $gdb_output] ||
+    ![regexp {in func2()} $gdb_output] ||
+    ![regexp {in func1()} $gdb_output] ||
     ![regexp {in main ()} $gdb_output]} {
 
 	puts stderr "Error: Stack trace when not in syscall is not as expected"
@@ -230,7 +230,7 @@ if {![regexp {\* 2    Thread 2          Test_thread::entry} $gdb_output] ||
 	exit -1
 }
 
-if {![regexp {46				func()} $gdb_output]} {
+if {![regexp {38				static Timer::Connection timer} $gdb_output]} {
 	puts stderr "Error: Single stepping didn't result in the expected output"
 	exit -1
 }
@@ -240,9 +240,8 @@ if {![regexp {Program received signal SIGSEGV, Segmentation fault.} $gdb_output]
 	exit -1
 }
 
-if {![regexp {thread_stop_myself \(\)} $gdb_output] ||
-    ![regexp {Genode::Cancelable_lock::lock \(this=} $gdb_output] ||
-    ![regexp {Genode::Thread_base::join \(this=} $gdb_output] ||
+if {![regexp {Genode::Cancelable_lock::lock\(\)} $gdb_output] ||
+    ![regexp {Genode::Thread_base::join\(\)} $gdb_output] ||
     ![regexp {in main \(\)} $gdb_output]} {
 
 	puts stderr "Error: Stack trace when in syscall is not as expected"

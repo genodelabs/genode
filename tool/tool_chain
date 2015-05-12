@@ -59,7 +59,7 @@ MPC_DOWNLOAD_URL     ?= http://www.multiprecision.org/mpc/download
 # Tool versions and install location
 #
 
-GCC_VERSION       = 4.7.4
+GCC_VERSION       = 4.8.4
 BINUTILS_VERSION  = 2.25
 GDB_VERSION       = 7.3.1
 GMP_VERSION       = 5.0.2
@@ -101,7 +101,7 @@ VERBOSE     = @
 #
 # Check if 'autoconf' is installed
 #
-AUTOCONF_VERSION_gcc_4.7.4 = 2.64
+AUTOCONF_VERSION_gcc_4.8.4 = 2.64
 
 AUTOCONF_VERSION = $(AUTOCONF_VERSION_gcc_$(GCC_VERSION))
 

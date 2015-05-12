@@ -11,10 +11,10 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  4 files changed, 47 insertions(+), 4 deletions(-)
 
 diff --git a/gcc/config.gcc b/gcc/config.gcc
-index 9503b96..b8d6ce1 100644
+index 57a415b..87c0a72 100644
 --- a/gcc/config.gcc
 +++ b/gcc/config.gcc
-@@ -914,7 +914,7 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtems*)
+@@ -919,7 +919,7 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtems*)
  	case ${target} in
  	arm*-*-eabi*)
  	  tm_file="$tm_file newlib-stdint.h"
@@ -23,7 +23,7 @@ index 9503b96..b8d6ce1 100644
  	  use_gcc_stdint=wrap
  	  ;;
  	arm*-*-rtems*)
-@@ -2641,7 +2641,7 @@ i[34567]86-*-linux* | x86_64-*-linux*)
+@@ -2690,7 +2690,7 @@ i[34567]86-*-linux* | x86_64-*-linux*)
  	tmake_file="${tmake_file} i386/t-pmm_malloc i386/t-i386"
  	;;
  i[34567]86-*-* | x86_64-*-*)
@@ -33,10 +33,10 @@ index 9503b96..b8d6ce1 100644
  powerpc*-*-* | rs6000-*-*)
  	tm_file="${tm_file} rs6000/option-defaults.h"
 diff --git a/gcc/config/arm/unknown-elf.h b/gcc/config/arm/unknown-elf.h
-index d5df624..6766c5f 100644
+index 9d776b0..68faf5b 100644
 --- a/gcc/config/arm/unknown-elf.h
 +++ b/gcc/config/arm/unknown-elf.h
-@@ -95,3 +95,19 @@
+@@ -94,3 +94,19 @@
     which will depend on abort, which is defined in libc.  */ 
  #undef LINK_GCC_C_SEQUENCE_SPEC
  #define LINK_GCC_C_SEQUENCE_SPEC "--start-group %G %L --end-group"
@@ -57,13 +57,13 @@ index d5df624..6766c5f 100644
 +/* https://gcc.gnu.org/bugzilla/show_bug.cgi?id=57699 */
 +#define NO_IMPLICIT_EXTERN_C
 diff --git a/gcc/config/i386/x86-64.h b/gcc/config/i386/x86-64.h
-index d20f326..0cc4dd0 100644
+index 66f96d9..7ccf6ea 100644
 --- a/gcc/config/i386/x86-64.h
 +++ b/gcc/config/i386/x86-64.h
-@@ -104,3 +104,22 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+@@ -106,3 +106,22 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
  
- #undef TARGET_ASM_UNIQUE_SECTION
- #define TARGET_ASM_UNIQUE_SECTION  x86_64_elf_unique_section
+ #undef TARGET_SECTION_TYPE_FLAGS
+ #define TARGET_SECTION_TYPE_FLAGS  x86_64_elf_section_type_flags
 +
 +/* genode64.h */
 +
@@ -84,10 +84,10 @@ index d20f326..0cc4dd0 100644
 +/* https://gcc.gnu.org/bugzilla/show_bug.cgi?id=57699 */
 +#define NO_IMPLICIT_EXTERN_C
 diff --git a/libgcc/config.host b/libgcc/config.host
-index b64da4a..096d5b6 100644
+index 4a76998..05bae91 100644
 --- a/libgcc/config.host
 +++ b/libgcc/config.host
-@@ -261,7 +261,7 @@ case ${host} in
+@@ -263,7 +263,7 @@ case ${host} in
    tmake_file=t-vxworks
    ;;
  *-*-elf)
@@ -96,7 +96,7 @@ index b64da4a..096d5b6 100644
    ;;
  esac
  
-@@ -363,8 +363,12 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtems*)
+@@ -342,8 +342,12 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtems*)
  	tm_file="$tm_file arm/bpabi-lib.h"
  	case ${host} in
  	arm*-*-eabi* | arm*-*-rtems*)
@@ -110,7 +110,7 @@ index b64da4a..096d5b6 100644
  	  ;;
  	arm*-*-symbianelf*)
  	  tmake_file="${tmake_file} arm/t-symbian t-slibgcc-nolc-override"
-@@ -524,6 +528,10 @@ i[34567]86-*-elf*)
+@@ -499,6 +503,10 @@ i[34567]86-*-elf*)
  	tmake_file="$tmake_file i386/t-crtstuff t-crtstuff-pic t-libgcc-pic"
  	;;
  x86_64-*-elf*)
