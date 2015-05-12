@@ -29,7 +29,8 @@ SRC_CC      += \
                core_mem_alloc.cc \
                dump_alloc.cc \
                context_area.cc \
-               capability_space.cc
+               capability_space.cc \
+               pager.cc
 
 LIBS        += core_printf base-common syscall
 

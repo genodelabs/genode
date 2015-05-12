@@ -18,9 +18,13 @@
 #include <base/pager.h>
 #include <base/thread_state.h>
 #include <base/native_types.h>
+#include <util/string.h>
+#include <base/ipc_pager.h>
 
 /* core includes */
 #include <address_space.h>
+#include <thread_sel4.h>
+#include <install_mapping.h>
 
 namespace Genode {
 
@@ -29,16 +33,26 @@ namespace Genode {
 }
 
 
-
-class Genode::Platform_thread
+class Genode::Platform_thread : public List<Platform_thread>::Element
 {
 	private:
 
 		Pager_object *_pager = nullptr;
 
-		Weak_ptr<Address_space> _address_space;
+		String<128> _name;
+
+		Thread_info _info;
+
+		unsigned const _pager_obj_sel;
+
+		/*
+		 * Allocated when the thread is started
+		 */
+		unsigned _fault_handler_sel = 0;
 
 		friend class Platform_pd;
+
+		Platform_pd *_pd = nullptr;
 
 	public:
 
@@ -114,11 +128,7 @@ class Genode::Platform_thread
 		/**
 		 * Return identification of thread when faulting
 		 */
-		unsigned long pager_object_badge() const
-		{
-			PDBG("not implemented");
-			return 0;
-		}
+		unsigned long pager_object_badge() const { return _pager_obj_sel; }
 
 		/**
 		 * Set the executing CPU for this thread
@@ -139,6 +149,15 @@ class Genode::Platform_thread
 		 * Get thread name
 		 */
 		const char *name() const { return "noname"; }
+
+
+		/*****************************
+		 ** seL4-specific interface **
+		 *****************************/
+
+		unsigned tcb_sel() const { return _info.tcb_sel; }
+
+		void install_mapping(Mapping const &mapping);
 };
 
 #endif /* _CORE__INCLUDE__PLATFORM_THREAD_H_ */

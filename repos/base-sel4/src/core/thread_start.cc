@@ -19,77 +19,38 @@
 /* core includes */
 #include <platform.h>
 #include <platform_thread.h>
-#include <map_local.h>
-#include <kernel_object.h>
+#include <thread_sel4.h>
 
 using namespace Genode;
 
 
-static Untyped_address create_and_map_ipc_buffer(Range_allocator &phys_alloc,
-                                                 addr_t virt_addr)
-{
-	/* create IPC buffer of one page */
-	size_t const ipc_buffer_size_log2 = get_page_size_log2();
-	Untyped_address const untyped_addr =
-		Untyped_memory::alloc_log2(phys_alloc, ipc_buffer_size_log2);
-
-	Untyped_memory::convert_to_page_frames(untyped_addr.phys(), 1);
-
-	if (!map_local(untyped_addr.phys(), virt_addr, 1)) {
-		PERR("could not map IPC buffer phys %lx at local %lx",
-		     untyped_addr.phys(), virt_addr);
-	}
-
-	return untyped_addr;
-}
-
-
 void Thread_base::_init_platform_thread(size_t, Type type)
 {
-	Platform &platform = *platform_specific();
-	Range_allocator &phys_alloc = *platform.ram_alloc();
-
 	addr_t const utcb_virt_addr = (addr_t)&_context->utcb;
-	Untyped_address const ipc_buffer =
-		create_and_map_ipc_buffer(phys_alloc, utcb_virt_addr);
 
-	/* allocate TCB within core's CNode */
-	_tid.tcb_sel = platform.alloc_core_sel();
-	Kernel_object::create<Kernel_object::Tcb>(phys_alloc,
-	                                          platform.core_cnode().sel(),
-	                                          _tid.tcb_sel);
-
-	/* allocate synchronous endpoint within core's CNode */
-	_tid.ep_sel = platform.alloc_core_sel();
-	Kernel_object::create<Kernel_object::Endpoint>(phys_alloc,
-	                                               platform.core_cnode().sel(),
-	                                               _tid.ep_sel);
-
-	/* assign IPC buffer to thread */
-	{
-		/* determine page frame selector of the allocated IPC buffer */
-		unsigned ipc_buffer_sel = Untyped_memory::frame_sel(ipc_buffer.phys());
-
-		int const ret = seL4_TCB_SetIPCBuffer(_tid.tcb_sel, utcb_virt_addr,
-		                                      ipc_buffer_sel);
-		if (ret != 0)
-			PDBG("seL4_TCB_SetIPCBuffer returned %d", ret);
+	if (type == MAIN) {
+		_tid.tcb_sel = seL4_CapInitThreadTCB;
+		return;
 	}
 
-	/* set scheduling priority */
-	enum { PRIORITY_MAX = 0xff };
-	seL4_TCB_SetPriority(_tid.tcb_sel, PRIORITY_MAX);
+	Thread_info thread_info;
+	thread_info.init(utcb_virt_addr);
 
-	/* associate thread with core PD */
-	{
-		seL4_CapData_t no_cap_data = { { 0 } };
-		int const ret = seL4_TCB_SetSpace(_tid.tcb_sel, 0,
-		                  platform.top_cnode().sel(), no_cap_data,
-		                  seL4_CapInitThreadPD, no_cap_data);
-
-		if (ret != 0)
-			PDBG("seL4_TCB_SetSpace returned %d", ret);
+	if (!map_local(thread_info.ipc_buffer_phys, utcb_virt_addr, 1)) {
+		PERR("could not map IPC buffer phys %lx at local %lx",
+		     thread_info.ipc_buffer_phys, utcb_virt_addr);
 	}
+
+	_tid.tcb_sel = thread_info.tcb_sel;
+	_tid.ep_sel  = thread_info.ep_sel;
+
+	Platform &platform = *platform_specific();
+
+	seL4_CapData_t no_cap_data = { { 0 } };
+	int const ret = seL4_TCB_SetSpace(_tid.tcb_sel, 0,
+	                                  platform.top_cnode().sel(), no_cap_data,
+	                                  seL4_CapInitThreadPD, no_cap_data);
+	ASSERT(ret == 0);
 }
 
 
@@ -110,21 +71,7 @@ void Thread_base::_thread_start()
 
 void Thread_base::start()
 {
-	/* set register values for the instruction pointer and stack pointer */
-	seL4_UserContext regs;
-	Genode::memset(&regs, 0, sizeof(regs));
-
-	regs.eip = (uint32_t)&_thread_start;
-	regs.esp = (uint32_t)stack_top();
-	regs.gs  = IPCBUF_GDT_SELECTOR;
-	size_t const num_regs = sizeof(regs)/sizeof(seL4_Word);
-	int const ret = seL4_TCB_WriteRegisters(_tid.tcb_sel, false,
-	                                        0, num_regs, &regs);
-
-	if (ret != 0)
-		PDBG("seL4_TCB_WriteRegisters returned %d", ret);
-
-	seL4_TCB_Resume(_tid.tcb_sel);
+	start_sel4_thread(_tid.tcb_sel, (addr_t)&_thread_start, (addr_t)stack_top());
 }
 
 

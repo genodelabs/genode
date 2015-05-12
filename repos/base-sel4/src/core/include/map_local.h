@@ -19,7 +19,7 @@
 
 /* core includes */
 #include <util.h>
-#include <platform_generic.h>
+#include <platform.h>
 
 
 namespace Genode {

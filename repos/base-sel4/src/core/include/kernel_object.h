@@ -51,6 +51,13 @@ namespace Kernel_object {
 	};
 
 
+	struct Page_directory
+	{
+		enum { SEL4_TYPE = seL4_IA32_PageDirectoryObject, SIZE_LOG2 = 12 };
+		static char const *name() { return "page directory"; }
+	};
+
+
 	/**
 	 * Create kernel object from untyped memory
 	 *

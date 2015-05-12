@@ -31,6 +31,7 @@ class Genode::Vm_space
 		Page_table_registry &_page_table_registry;
 
 		unsigned const _id;
+		unsigned const _pd_sel;
 
 		Range_allocator &_phys_alloc;
 
@@ -56,6 +57,8 @@ class Genode::Vm_space
 		 * Allocator for the selectors within '_vm_cnode'
 		 */
 		Bit_allocator<1UL << NUM_VM_SEL_LOG2> _sel_alloc;
+
+		Lock _lock;
 
 		/**
 		 * Return selector for a capability slot within '_vm_cnode'
@@ -83,7 +86,7 @@ class Genode::Vm_space
 			 */
 			{
 				seL4_IA32_Page          const service = _idx_to_sel(pte_idx);
-				seL4_IA32_PageDirectory const pd      = seL4_CapInitThreadPD;
+				seL4_IA32_PageDirectory const pd      = _pd_sel;
 				seL4_Word               const vaddr   = to_virt;
 				seL4_CapRights          const rights  = seL4_AllRights;
 				seL4_IA32_VMAttributes  const attr    = seL4_IA32_Default_VMAttributes;
@@ -110,7 +113,7 @@ class Genode::Vm_space
 		void _map_page_table(unsigned pt_sel, addr_t to_virt)
 		{
 			seL4_IA32_PageTable     const service = pt_sel;
-			seL4_IA32_PageDirectory const pd      = seL4_CapInitThreadPD;
+			seL4_IA32_PageDirectory const pd      = _pd_sel;
 			seL4_Word               const vaddr   = to_virt;
 			seL4_IA32_VMAttributes  const attr    = seL4_IA32_Default_VMAttributes;
 
@@ -152,6 +155,7 @@ class Genode::Vm_space
 		/**
 		 * Constructor
 		 *
+		 * \param pd_sel              selector for page directory
 		 * \param vm_pad_cnode_sel    selector for the (2nd-level) VM pad CNode
 		 * \param vm_cnode_sel        selector for the (3rd-level) VM CNode
 		 * \param phys_alloc          backing store for the CNodes
@@ -160,7 +164,8 @@ class Genode::Vm_space
 		 * \param page_table_registry association of VM CNode selectors with
 		 *                            with virtual addresses
 		 */
-		Vm_space(unsigned             vm_pad_cnode_sel,
+		Vm_space(unsigned             pd_sel,
+		         unsigned             vm_pad_cnode_sel,
 		         unsigned             vm_cnode_sel,
 		         Range_allocator     &phys_alloc,
 		         Cnode               &top_level_cnode,
@@ -169,7 +174,8 @@ class Genode::Vm_space
 		         unsigned             id,
 		         Page_table_registry &page_table_registry)
 		:
-			_page_table_registry(page_table_registry), _id(id),
+			_page_table_registry(page_table_registry),
+			_id(id), _pd_sel(pd_sel),
 			_phys_alloc(phys_alloc),
 			_top_level_cnode(top_level_cnode),
 			_phys_cnode(phys_cnode),
@@ -188,6 +194,8 @@ class Genode::Vm_space
 
 		void map(addr_t from_phys, addr_t to_virt, size_t num_pages)
 		{
+			Lock::Guard guard(_lock);
+
 			/* check if we need to add a page table to core's VM space */
 			if (!_page_table_registry.has_page_table_at(to_virt))
 				_alloc_and_map_page_table(to_virt);
@@ -200,6 +208,8 @@ class Genode::Vm_space
 
 		void unmap(addr_t virt, size_t num_pages)
 		{
+			Lock::Guard guard(_lock);
+
 			for (size_t i = 0; i < num_pages; i++) {
 				off_t const offset = i << get_page_size_log2();
 				_unmap_page(virt + offset);

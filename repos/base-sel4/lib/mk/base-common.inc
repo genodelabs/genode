@@ -6,7 +6,7 @@
 
 LIBS += cxx startup syscall
 
-SRC_CC += ipc/ipc.cc ipc/pager.cc
+SRC_CC += ipc/ipc.cc
 SRC_CC += avl_tree/avl_tree.cc
 SRC_CC += allocator/slab.cc
 SRC_CC += allocator/allocator_avl.cc
@@ -18,7 +18,6 @@ SRC_CC += elf/elf_binary.cc
 SRC_CC += lock/lock.cc
 SRC_CC += signal/signal.cc signal/common.cc signal/platform.cc
 SRC_CC += server/server.cc server/common.cc
-SRC_CC += pager/pager.cc   pager/common.cc
 SRC_CC += thread/thread.cc
 SRC_CC += thread/trace.cc
 SRC_CC += thread/myself.cc
