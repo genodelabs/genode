@@ -72,6 +72,21 @@ namespace Genode { namespace Capability_space {
 } }
 
 
+namespace Genode
+{
+	enum {
+		INITIAL_SEL_PARENT = 1,
+		INITIAL_SEL_CNODE  = 2,
+		INITIAL_SEL_END
+	};
+
+	enum {
+		CSPACE_SIZE_LOG2          = 12,
+		NUM_CORE_MANAGED_SEL_LOG2 = 10,
+	};
+};
+
+
 /**
  * Capability space template
  *
