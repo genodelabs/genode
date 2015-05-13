@@ -17,7 +17,6 @@ help:
 	$(ECHO) "arm        - create tool chain for arm"
 	$(ECHO) "clean      - clean everything except downloaded archives"
 	$(ECHO) "cleanall   - clean everything including downloaded archives"
-	$(ECHO) "install    - copy tool chain to '$(INSTALL_LOCATION)'"
 	$(ECHO)
 
 #
