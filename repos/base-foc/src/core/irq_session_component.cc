@@ -85,6 +85,15 @@ bool Genode::Irq_object::associate(unsigned irq, bool msi,
                                    Irq_session::Trigger trigger,
                                    Irq_session::Polarity polarity)
 {
+	if (msi)
+		/*
+		 * Local APIC address, See Intel x86 Spec - Section MSI 10.11.
+		 *
+		 * XXX local Apic ID encoding missing - address is constructed
+		 *     assuming that local APIC id of boot CPU is 0 XXX
+		 */
+		_msi_addr = 0xfee00000UL;
+
 	_irq      = irq;
 	_trigger  = trigger;
 	_polarity = polarity;
@@ -120,15 +129,6 @@ bool Genode::Irq_object::associate(unsigned irq, bool msi,
 		PERR("Error getting MSI info");
 		return false;
 	}
-
-	if (msi)
-		/*
-		 * Local APIC address, See Intel x86 Spec - Section MSI 10.11.
-		 *
-		 * XXX local Apic ID encoding missing - address is constructed
-		 *     assuming that local APIC id of boot CPU is 0 XXX
-		 */
-		_msi_addr = 0xfee00000UL;
 
 	return true;
 }
@@ -193,13 +193,11 @@ Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
 			throw Root::Unavailable();
 		}
 		msi_alloc.set(irq_number, 1);
-		PINF("MSI %ld", irq_number);
 	} else {
 		if (!irq_alloc || irq_alloc->alloc_addr(1, irq_number).is_error()) {
 			PERR("Unavailable IRQ %ld requested.", irq_number);
 			throw Root::Unavailable();
 		}
-		PINF("IRQ %ld", irq_number);
 	}
 
 	_irq_number = irq_number;
@@ -269,7 +267,7 @@ void Irq_session_component::sigh(Genode::Signal_context_capability cap)
 
 Genode::Irq_session::Info Irq_session_component::info()
 {
-	if (_irq_object.msi_address() || !_irq_object.msi_value())
+	if (!_irq_object.msi_address() || !_irq_object.msi_value())
 		return { .type = Genode::Irq_session::Info::Type::INVALID };
 
 	return {
