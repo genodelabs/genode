@@ -21,6 +21,9 @@
 #include <core_cspace.h>
 #include <kernel_object.h>
 
+/* base-internal includes */
+#include <internal/capability_space_sel4.h>
+
 using namespace Genode;
 
 
@@ -64,6 +67,24 @@ void Platform_pd::unbind_thread(Platform_thread *thread)
 }
 
 
+int Platform_pd::assign_parent(Native_capability parent)
+{
+	Capability_space::Ipc_cap_data const ipc_cap_data =
+		Capability_space::ipc_cap_data(parent);
+
+	_parent = parent;
+
+	/*
+	 * Install parent endpoint selector at the predefined position
+	 * INITIAL_SEL_PARENT within the PD's CSpace.
+	 */
+	_cspace_cnode.copy(platform_specific()->core_cnode(),
+	                   ipc_cap_data.sel,
+	                   INITIAL_SEL_PARENT);
+	return 0;
+}
+
+
 Untyped_address Platform_pd::_init_page_directory()
 {
 	using namespace Kernel_object;
@@ -95,6 +116,17 @@ void Platform_pd::install_mapping(Mapping const &mapping)
 }
 
 
+void Platform_pd::map_ipc_buffer_of_initial_thread(addr_t ipc_buffer_phys)
+{
+	if (_initial_ipc_buffer_mapped)
+		return;
+
+	_vm_space.map(ipc_buffer_phys, INITIAL_IPC_BUFFER_VIRT, 1);
+
+	_initial_ipc_buffer_mapped = true;
+}
+
+
 Platform_pd::Platform_pd(Allocator * md_alloc, size_t ram_quota,
                          char const *, signed pd_id, bool create)
 :
@@ -116,7 +148,12 @@ Platform_pd::Platform_pd(Allocator * md_alloc, size_t ram_quota,
 	_cspace_cnode(platform_specific()->core_cnode().sel(), _cspace_cnode_sel,
 	              CSPACE_SIZE_LOG2,
 	              *platform()->ram_alloc())
-{ }
+{
+	/* install CSpace selector at predefined position in the PD's CSpace */
+	_cspace_cnode.copy(platform_specific()->core_cnode(),
+	                   _cspace_cnode_sel,
+	                   INITIAL_SEL_CNODE);
+}
 
 
 Platform_pd::~Platform_pd()

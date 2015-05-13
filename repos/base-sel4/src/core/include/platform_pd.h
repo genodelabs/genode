@@ -22,6 +22,8 @@
 #include <address_space.h>
 #include <vm_space.h>
 
+/* base-internal includes */
+#include <internal/capability_space_sel4.h>
 
 namespace Genode { class Platform_pd; }
 
@@ -48,19 +50,24 @@ class Genode::Platform_pd : public Address_space
 
 		Cnode _cspace_cnode;
 
-		enum { CSPACE_SIZE_LOG2 = 12 };
+		Native_capability _parent;
 
 		/*
 		 * Allocator for core-managed selectors within the PD's CSpace
 		 */
-		enum { NUM_CORE_MANAGED_SELECTORS_LOG2 = 10 };
-
-		struct Sel_alloc : Bit_allocator<1 << NUM_CORE_MANAGED_SELECTORS_LOG2> { };
+		struct Sel_alloc : Bit_allocator<1 << NUM_CORE_MANAGED_SEL_LOG2>
+		{
+			Sel_alloc() { _reserve(0, INITIAL_SEL_END); }
+		};
 
 		Sel_alloc _sel_alloc;
 		Lock _sel_alloc_lock;
 
+		bool _initial_ipc_buffer_mapped = false;
+
 	public:
+
+		enum { INITIAL_IPC_BUFFER_VIRT = 0x1000 };
 
 		/**
 		 * Constructors
@@ -91,7 +98,7 @@ class Genode::Platform_pd : public Address_space
 		/**
 		 * Assign parent interface to protection domain
 		 */
-		int assign_parent(Native_capability parent) { return 0; }
+		int assign_parent(Native_capability parent);
 
 
 		/*****************************
@@ -116,6 +123,8 @@ class Genode::Platform_pd : public Address_space
 		size_t cspace_size_log2() { return CSPACE_SIZE_LOG2; }
 
 		void install_mapping(Mapping const &mapping);
+
+		void map_ipc_buffer_of_initial_thread(addr_t ipc_buffer_phys);
 };
 
 #endif /* _CORE__INCLUDE__PLATFORM_PD_H_ */

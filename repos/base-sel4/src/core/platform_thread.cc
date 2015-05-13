@@ -94,6 +94,8 @@ int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 	_pd->cspace_cnode().copy(platform_specific()->core_cnode(), pager_sel,
 	                         _fault_handler_sel);
 
+	_pd->map_ipc_buffer_of_initial_thread(_info.ipc_buffer_phys);
+
 	/* bind thread to PD and CSpace */
 	seL4_CapData_t const guard_cap_data =
 		seL4_CapData_Guard_new(0, 32 - _pd->cspace_size_log2());
@@ -162,7 +164,7 @@ Platform_thread::Platform_thread(size_t, const char *name, unsigned priority,
 	_pager_obj_sel(platform_specific()->alloc_core_sel())
 
 {
-	_info.init(utcb);
+	_info.init(Platform_pd::INITIAL_IPC_BUFFER_VIRT);
 	platform_thread_registry().insert(*this);
 }
 
