@@ -15,10 +15,19 @@ proc power_on_softreset_port { } {
 	return [get_cmd_arg_first --power-on-softreset-port ""]
 }
 
+proc power_on_softreset_on { } {
+	return [get_cmd_arg_first --power-on-softreset-on ""]
+}
+
+proc power_on_softreset_off { } {
+	return [get_cmd_arg_first --power-on-softreset-off ""]
+}
 
 proc run_power_on { } {
 	set host [power_on_softreset_host]
 	set port [power_on_softreset_port]
+	set relay_on  [power_on_softreset_on]
+	set relay_off [power_on_softreset_off]
 
 	if {[string equal $host ""]} {
 		puts "Aborting, softreset host not set."
@@ -30,12 +39,22 @@ proc run_power_on { } {
 		exit -1
 	}
 
+	if {[string equal $relay_on ""]} {
+		puts "Aborting, softreset 'on' not set."
+		exit -1
+	}
+
+	if {[string equal $relay_off ""]} {
+		puts "Aborting, softreset 'off' not set."
+		exit -1
+	}
+
 	set telnet [check_installed telnet]
 
 	spawn $telnet $host $port
 	set connection_id $spawn_id
 
-	send -i $connection_id "1\n"
+	send -i $connection_id "$relay_on\n"
 	sleep 1
-	send -i $connection_id "q\n"
+	send -i $connection_id "$relay_off\n"
 }
