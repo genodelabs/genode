@@ -19,3 +19,8 @@ CC_OPT += -D_GLIBCXX_HAVE_MBSTATE_T
 
 # use compiler-builtin atomic operations
 CC_OPT += -D_GLIBCXX_ATOMIC_BUILTINS_4
+
+# GCC's stddef.h defines the 'max_align_t' type, which is used in the 'cstddef'
+# C++ header file. libc's version of stddef.h shadows GCC's version, so it is
+# included explicitly here.
+CC_OPT += -include $(LIBGCC_INC_DIR)/stddef.h

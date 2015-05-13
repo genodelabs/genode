@@ -8,10 +8,10 @@ Ensure -fno-short-enums as default.
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/gcc/config/arm/arm.c b/gcc/config/arm/arm.c
-index 5bc6603..3a836e3 100644
+index 439a4de..948a369 100644
 --- a/gcc/config/arm/arm.c
 +++ b/gcc/config/arm/arm.c
-@@ -24794,7 +24794,7 @@ arm_promote_function_mode (const_tree type ATTRIBUTE_UNUSED,
+@@ -28348,7 +28348,7 @@ arm_promote_function_mode (const_tree type ATTRIBUTE_UNUSED,
  static bool
  arm_default_short_enums (void)
  {

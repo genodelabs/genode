@@ -6,7 +6,7 @@ NOUX_CONFIGURE_ARGS += --program-prefix=$(PROGRAM_PREFIX) \
 # the configure script calls the linker with "-lexpat", which fails
 NOUX_CONFIGURE_ARGS += --without-expat
 NOUX_CPPFLAGS += -DHAVE_LIBEXPAT=1
-NOUX_CFLAGS += -Wno-error=sizeof-pointer-memaccess
+NOUX_CFLAGS += -Wno-error=sizeof-pointer-memaccess -Wno-error=unused-value
 
 LIBS += ncurses expat
 

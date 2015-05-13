@@ -50,6 +50,7 @@ REDEF_SYMBOLS = $(foreach S, $(EH_SYMBOLS), --redefine-sym $(S)=_cxx_$(S) --rede
 #
 KEEP_SYMBOLS += __cxa_guard_acquire
 KEEP_SYMBOLS += __dynamic_cast
+KEEP_SYMBOLS += __cxa_throw_bad_array_new_length
 KEEP_SYMBOLS += _ZTVN10__cxxabiv116__enum_type_infoE
 KEEP_SYMBOLS += _ZN10__cxxabiv121__vmi_class_type_infoD0Ev
 KEEP_SYMBOLS += _ZTVN10__cxxabiv119__pointer_type_infoE
