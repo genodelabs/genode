@@ -342,7 +342,7 @@ $(CONTRIB_DIR)/binutils-$(BINUTILS_VERSION)/configure: $(DOWNLOAD_DIR)/$(BINUTIL
 build/$(PLATFORM)/binutils/Makefile: $(CONTRIB_DIR)/binutils-$(BINUTILS_VERSION)/configure
 	$(ECHO) "$(BRIGHT_COL)configuring binutils...$(DEFAULT_COL)"
 	$(VERBOSE)mkdir -p $(dir $@)
-	$(VERBOSE)cd $(dir $@); ../../../$(CONTRIB_DIR)/binutils-$(BINUTILS_VERSION)/configure $(BINUTILS_CONFIG)
+	$(VERBOSE)cd $(dir $@); $(shell pwd)/$(CONTRIB_DIR)/binutils-$(BINUTILS_VERSION)/configure $(BINUTILS_CONFIG)
 
 $(BINUTILS_BINARIES): build/$(PLATFORM)/binutils/Makefile
 	$(ECHO) "$(BRIGHT_COL)builing binutils...$(DEFAULT_COL)"
@@ -377,7 +377,7 @@ build/gmp/Makefile:
 	$(ECHO) "$(BRIGHT_COL)configuring libgmp...$(DEFAULT_COL)"
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)cd $(dir $@); \
-		../../$(CONTRIB_DIR)/gmp-$(GMP_VERSION)/configure $(GMP_CONFIG)
+		$(shell pwd)/$(CONTRIB_DIR)/gmp-$(GMP_VERSION)/configure $(GMP_CONFIG)
 
 build/mpfr/Makefile: $(CONTRIB_DIR)/mpfr-$(MPFR_VERSION)/configure \
                      $(LOCAL_LIB_INSTALL_LOCATION)/lib/libgmp.a
@@ -386,7 +386,7 @@ build/mpfr/Makefile:
 	$(ECHO) "$(BRIGHT_COL)configuring libmpfr...$(DEFAULT_COL)"
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)cd $(dir $@); \
-		../../$(CONTRIB_DIR)/mpfr-$(MPFR_VERSION)/configure $(MPFR_CONFIG)
+		$(shell pwd)/$(CONTRIB_DIR)/mpfr-$(MPFR_VERSION)/configure $(MPFR_CONFIG)
 
 build/mpc/Makefile: $(CONTRIB_DIR)/mpc-$(MPC_VERSION)/configure \
                     $(LOCAL_LIB_INSTALL_LOCATION)/lib/libgmp.a \
@@ -396,7 +396,7 @@ build/mpc/Makefile:
 	$(ECHO) "$(BRIGHT_COL)configuring libmpc...$(DEFAULT_COL)"
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)cd $(dir $@); \
-		../../$(CONTRIB_DIR)/mpc-$(MPC_VERSION)/configure $(MPC_CONFIG)
+		$(shell pwd)/$(CONTRIB_DIR)/mpc-$(MPC_VERSION)/configure $(MPC_CONFIG)
 
 build/$(PLATFORM)/gcc/Makefile: $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/configure \
                                 $(BINUTILS_INSTALLED_BINARIES) \
@@ -410,7 +410,7 @@ build/$(PLATFORM)/gcc/Makefile:
 	$(VERBOSE)cd $(dir $@); \
 		host_configargs="$(HOST_CONFIG_ARGS)" \
 		target_configargs="$(TARGET_CONFIG_ARGS)" \
-		../../../$(CONTRIB_DIR)/gcc-$(GCC_VERSION)/configure $(GCC_CONFIG)
+		$(shell pwd)/$(CONTRIB_DIR)/gcc-$(GCC_VERSION)/configure $(GCC_CONFIG)
 
 $(GCC_BINARIES): build/$(PLATFORM)/gcc/Makefile \
                  $(LIBC)
@@ -440,7 +440,7 @@ build/$(PLATFORM)/gdb/Makefile: $(CONTRIB_DIR)/gdb-$(GDB_VERSION)/configure
 	$(ECHO) "$(BRIGHT_COL)configuring gdb...$(DEFAULT_COL)"
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)cd $(dir $@); \
-		../../../$(CONTRIB_DIR)/gdb-$(GDB_VERSION)/configure $(GDB_CONFIG)
+		$(shell pwd)/$(CONTRIB_DIR)/gdb-$(GDB_VERSION)/configure $(GDB_CONFIG)
 
 $(GDB_BINARIES): build/$(PLATFORM)/gdb/Makefile
 	$(ECHO) "$(BRIGHT_COL)builing gdb...$(DEFAULT_COL)"
