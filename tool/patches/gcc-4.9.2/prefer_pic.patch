@@ -13,10 +13,10 @@ nothing rather than '-prefer-pic'.
  1 file changed, 6 insertions(+), 6 deletions(-)
 
 diff --git a/libstdc++-v3/configure.ac b/libstdc++-v3/configure.ac
-index 73d430a..3bf1b41 100644
+index 1de0f6c..3e8b9c5 100644
 --- a/libstdc++-v3/configure.ac
 +++ b/libstdc++-v3/configure.ac
-@@ -109,16 +109,16 @@ AC_SUBST(enable_static)
+@@ -115,16 +115,16 @@ fi
  # Use glibcxx_compiler_pic_flag to designate a compile-time flags for
  # creating position-independent objects. This varies with the target
  # hardware and operating system, but is often: -DPIC -fPIC.

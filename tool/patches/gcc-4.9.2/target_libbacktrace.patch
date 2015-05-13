@@ -8,7 +8,7 @@ Don't build libbacktrace, which needs a libc.
  1 file changed, 1 deletion(-)
 
 diff --git a/configure.ac b/configure.ac
-index 943d93e..b4f20fd 100644
+index 27ee905..8174460 100644
 --- a/configure.ac
 +++ b/configure.ac
 @@ -152,7 +152,6 @@ libgcj="target-libffi \

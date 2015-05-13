@@ -1261,7 +1261,7 @@ namespace std
 
 /* Define if C99 types in <stdint.h> should be imported in <tr1/cstdint> in
    namespace std::tr1. */
-#define _GLIBCXX_USE_C99_STDINT_TR1 1
+/* #undef GLIBCXX_USE_C99_STDINT_TR1 */
 
 /* Defined if clock_gettime has monotonic clock support. */
 /* #undef _GLIBCXX_USE_CLOCK_MONOTONIC */

@@ -7,4 +7,3 @@ libstdcxx_without_libc.patch
 libgcc_s.patch
 go_libbacktrace.patch
 target_libbacktrace.patch
-caf62483f30035efca2958615a466f73cc99880e.patch
