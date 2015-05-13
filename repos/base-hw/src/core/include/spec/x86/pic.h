@@ -69,7 +69,7 @@ class Genode::Ioapic : public Mmio
 		{
 			Irte::access_t irte = REMAP_BASE + irq;
 
-			/* Use level-triggered, high-active mode for non-legacy IRQs */
+			/* Use level-triggered, low-active mode for non-legacy IRQs */
 			if (irq > Board::ISA_IRQ_END) {
 				Irte::Pol::set(irte, 1);
 				Irte::Trg::set(irte, 1);
