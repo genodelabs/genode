@@ -51,6 +51,10 @@ proc run_power_on { } {
 	}
 	if {[have_spec platform_vpb926]} { append qemu_args " -M versatilepb     -m 128 " }
 	if {[have_spec platform_vea9x4]} { append qemu_args " -M vexpress-a9 -cpu cortex-a9 -m 256 " }
+	if {[have_spec hw_x86_64]} {
+		regsub -all {\-m ([0-9])+} $qemu_args "" qemu_args
+		append qemu_args " -m 512 "
+	}
 
 	# on x86, we support booting via pxe or iso/disk image
 	if {[have_spec x86]} {
