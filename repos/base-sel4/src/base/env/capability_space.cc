@@ -39,13 +39,51 @@ namespace {
 
 	struct Local_capability_space
 	:
-		Capability_space_sel4<4*1024, 1024UL, Native_capability::Data>
+		Capability_space_sel4<4*1024, 1UL << NUM_CORE_MANAGED_SEL_LOG2,
+		                      Native_capability::Data>
 	{ };
 
 	static Local_capability_space &local_capability_space()
 	{
 		static Local_capability_space capability_space;
 		return capability_space;
+	}
+}
+
+
+/*************************************************
+ ** Allocator for component-local cap selectors **
+ *************************************************/
+
+namespace {
+
+	class Sel_alloc : Bit_allocator<1UL << CSPACE_SIZE_LOG2>
+	{
+		private:
+
+			Lock _lock;
+
+		public:
+
+			Sel_alloc() { _reserve(0, 1UL << NUM_CORE_MANAGED_SEL_LOG2); }
+
+			unsigned alloc()
+			{
+				Lock::Guard guard(_lock);
+				return Bit_allocator::alloc();
+			}
+
+			void free(unsigned sel)
+			{
+				Lock::Guard guard(_lock);
+				Bit_allocator::free(sel);
+			}
+	};
+
+	static Sel_alloc &sel_alloc()
+	{
+		static Sel_alloc inst;
+		return inst;
 	}
 }
 
@@ -99,9 +137,11 @@ Native_capability Capability_space::lookup(Rpc_obj_key rpc_obj_key)
 
 unsigned Capability_space::alloc_rcv_sel()
 {
-	PDBG("not implemented");
-	for (;;);
-	return 0;
+	unsigned const rcv_sel = sel_alloc().alloc();
+
+	seL4_SetCapReceivePath(INITIAL_SEL_CNODE, rcv_sel, CSPACE_SIZE_LOG2);
+
+	return rcv_sel;
 }
 
 
@@ -113,7 +153,9 @@ void Capability_space::reset_sel(unsigned sel)
 
 Native_capability Capability_space::import(Ipc_cap_data ipc_cap_data)
 {
-	PDBG("not implemented");
+	Native_capability::Data &data =
+		local_capability_space().create_capability(ipc_cap_data.sel,
+		                                           ipc_cap_data.rpc_obj_key);
 
-	return Native_capability();
+	return Native_capability(data);
 }
