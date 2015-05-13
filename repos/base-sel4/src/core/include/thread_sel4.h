@@ -36,6 +36,8 @@ namespace Genode {
 
 		addr_t ipc_buffer_phys = 0;
 
+		inline void write_thread_info_to_ipc_buffer(unsigned pd_ep_sel);
+
 		Thread_info() { }
 
 		inline void init(addr_t const utcb_virt_addr);

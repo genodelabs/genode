@@ -21,10 +21,4 @@ using namespace Genode;
 
 void Thread_base::_init_platform_thread(size_t, Type type)
 {
-	/*
-	 * XXX initialize the 'Native_thread' structure with the thread's
-	 *     tcb_sel, ep_sel.
-	 */
-
-	PDBG("not implemented");
 }

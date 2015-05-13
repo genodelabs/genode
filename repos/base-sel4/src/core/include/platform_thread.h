@@ -41,18 +41,31 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 
 		String<128> _name;
 
+		/**
+		 * Virtual address of the IPC buffer within the PDs address space
+		 *
+		 * The value is 0 for the PD's main thread. For all other threads,
+		 * the value is somewhere within the context area.
+		 */
+		addr_t const _utcb;
+
 		Thread_info _info;
 
 		unsigned const _pager_obj_sel;
 
 		/*
-		 * Allocated when the thread is started
+		 * Selectors within the PD's CSpace
+		 *
+		 * Allocated when the thread is started.
 		 */
 		unsigned _fault_handler_sel = 0;
+		unsigned _ep_sel = 0;
 
 		friend class Platform_pd;
 
 		Platform_pd *_pd = nullptr;
+
+		enum { INITIAL_IPC_BUFFER_VIRT = 0x1000 };
 
 	public:
 

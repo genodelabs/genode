@@ -63,11 +63,7 @@ class Genode::Platform_pd : public Address_space
 		Sel_alloc _sel_alloc;
 		Lock _sel_alloc_lock;
 
-		bool _initial_ipc_buffer_mapped = false;
-
 	public:
-
-		enum { INITIAL_IPC_BUFFER_VIRT = 0x1000 };
 
 		/**
 		 * Constructors
@@ -123,8 +119,6 @@ class Genode::Platform_pd : public Address_space
 		size_t cspace_size_log2() { return CSPACE_SIZE_LOG2; }
 
 		void install_mapping(Mapping const &mapping);
-
-		void map_ipc_buffer_of_initial_thread(addr_t ipc_buffer_phys);
 };
 
 #endif /* _CORE__INCLUDE__PLATFORM_PD_H_ */

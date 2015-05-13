@@ -75,6 +75,38 @@ void Genode::install_mapping(Mapping const &mapping, unsigned long pager_object_
 }
 
 
+/********************************************************
+ ** Utilities to support the Platform_thread interface **
+ ********************************************************/
+
+static void prepopulate_ipc_buffer(addr_t ipc_buffer_phys, unsigned ep_sel)
+{
+	/* IPC buffer is one page */
+	size_t const page_rounded_size = get_page_size();
+
+	/* allocate range in core's virtual address space */
+	void *virt_addr;
+	if (!platform()->region_alloc()->alloc(page_rounded_size, &virt_addr)) {
+		PERR("could not allocate virtual address range in core of size %zd\n",
+		     page_rounded_size);
+		return;
+	}
+
+	/* map the IPC buffer to core-local virtual addresses */
+	map_local(ipc_buffer_phys, (addr_t)virt_addr, 1);
+
+	/* populate IPC buffer with thread information */
+	Native_utcb &utcb = *(Native_utcb *)virt_addr;
+	utcb.ep_sel = ep_sel;
+
+	/* unmap IPC buffer from core */
+	unmap_local((addr_t)virt_addr, 1);
+
+	/* free core's virtual address space */
+	platform()->region_alloc()->free(virt_addr, page_rounded_size);
+}
+
+
 /*******************************
  ** Platform_thread interface **
  *******************************/
@@ -94,7 +126,19 @@ int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 	_pd->cspace_cnode().copy(platform_specific()->core_cnode(), pager_sel,
 	                         _fault_handler_sel);
 
-	_pd->map_ipc_buffer_of_initial_thread(_info.ipc_buffer_phys);
+	/* allocate endpoint selector in the PD's CSpace */
+	_ep_sel = _pd->alloc_sel();
+
+	/* install the thread's endpoint selector to the PD's CSpace */
+	_pd->cspace_cnode().copy(platform_specific()->core_cnode(), _info.ep_sel,
+	                         _ep_sel);
+
+	/*
+	 * Populate the thread's IPC buffer with initial information about the
+	 * thread. Once started, the thread picks up this information in the
+	 * 'Thread_base::_thread_bootstrap' method.
+	 */
+	prepopulate_ipc_buffer(_info.ipc_buffer_phys, _ep_sel);
 
 	/* bind thread to PD and CSpace */
 	seL4_CapData_t const guard_cap_data =
@@ -161,10 +205,11 @@ Platform_thread::Platform_thread(size_t, const char *name, unsigned priority,
                                  addr_t utcb)
 :
 	_name(name),
+	_utcb(utcb),
 	_pager_obj_sel(platform_specific()->alloc_core_sel())
 
 {
-	_info.init(Platform_pd::INITIAL_IPC_BUFFER_VIRT);
+	_info.init(_utcb ? _utcb : INITIAL_IPC_BUFFER_VIRT);
 	platform_thread_registry().insert(*this);
 }
 

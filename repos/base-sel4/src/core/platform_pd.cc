@@ -57,6 +57,23 @@ int Platform_pd::bind_thread(Platform_thread *thread)
 	ASSERT(thread);
 
 	thread->_pd = this;
+
+	/*
+	 * Map IPC buffer
+	 *
+	 * XXX The mapping of the IPC buffer could be evicted from the PD's
+	 *     'Vm_space'. In contrast to mapping that are created as a result of
+	 *     the RM-session's page-fault resolution, the IPC buffer's mapping
+	 *     won't be recoverable once flushed. For this reason, it is important
+	 *     to attach the UTCB as a dataspace to the context-area to make the RM
+	 *     session aware to the mapping. This code is missing.
+	 */
+	if (thread->_utcb) {
+		_vm_space.map(thread->_info.ipc_buffer_phys, thread->_utcb, 1);
+	} else {
+		_vm_space.map(thread->_info.ipc_buffer_phys, thread->INITIAL_IPC_BUFFER_VIRT, 1);
+	}
+
 	return 0;
 }
 
@@ -113,17 +130,6 @@ void Platform_pd::free_sel(unsigned sel)
 void Platform_pd::install_mapping(Mapping const &mapping)
 {
 	_vm_space.map(mapping.from_phys(), mapping.to_virt(), mapping.num_pages());
-}
-
-
-void Platform_pd::map_ipc_buffer_of_initial_thread(addr_t ipc_buffer_phys)
-{
-	if (_initial_ipc_buffer_mapped)
-		return;
-
-	_vm_space.map(ipc_buffer_phys, INITIAL_IPC_BUFFER_VIRT, 1);
-
-	_initial_ipc_buffer_mapped = true;
 }
 
 

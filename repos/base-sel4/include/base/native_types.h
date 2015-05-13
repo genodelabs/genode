@@ -108,17 +108,22 @@ namespace Genode {
 			bool valid() const;
 	};
 
-	class Native_utcb
+	struct Native_utcb
 	{
-		private:
+		/**
+		 * On seL4, the UTCB is called IPC buffer. We use one page
+		 * for each IPC buffer.
+		 */
+		enum { IPC_BUFFER_SIZE = 4096 };
 
-			/**
-			 * On seL4, the UTCB is called IPC buffer. We use one page
-			 * for each IPC buffer.
-			 */
-			enum { IPC_BUFFER_SIZE = 4096 };
+		union {
 
-			addr_t _utcb[IPC_BUFFER_SIZE/sizeof(addr_t)];
+			addr_t raw[IPC_BUFFER_SIZE/sizeof(addr_t)];
+
+			struct {
+				addr_t ep_sel;
+			};
+		};
 	};
 
 	struct Native_config

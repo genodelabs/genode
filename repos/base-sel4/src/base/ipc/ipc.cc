@@ -136,7 +136,22 @@ static void decode_seL4_message(umword_t badge,
 
 		Rpc_obj_key const rpc_obj_key(seL4_GetMR(MR_IDX_CAPS + i));
 
-		if (!rpc_obj_key.valid()) {
+		/*
+		 * Detect passing of invalid capabilities as arguments
+		 *
+		 * The second condition of the check handles the case where a non-RPC
+		 * object capability as passed as RPC argument as done by the
+		 * 'Cap_session::alloc' RPC function. Here, the entrypoint capability
+		 * is not an RPC-object capability but a raw seL4 endpoint selector.
+		 *
+		 * XXX Technically, a message may contain one invalid capability
+		 *     followed by a valid one. This check would still wrongly regard
+		 *     the first capability as a valid one. A better approach would
+		 *     be to introduce another state to Rpc_obj_key, which would
+		 *     denote a valid capability that is not an RPC-object capability.
+		 *     Hence it is meaningless as a key.
+		 */
+		if (!rpc_obj_key.valid() && seL4_MessageInfo_get_extraCaps(msg_info) == 0) {
 			dst_msg.append_cap(Native_capability());
 			continue;
 		}
@@ -190,8 +205,6 @@ static void decode_seL4_message(umword_t badge,
 			 */
 
 			bool const delegated = seL4_MessageInfo_get_extraCaps(msg_info);
-
-			ASSERT(delegated);
 
 			ASSERT(delegated);
 

@@ -215,10 +215,8 @@ class Genode::Capability_space_sel4
 		{
 			Lock::Guard guard(_lock);
 
-			if (!_is_core_managed(data) && !data.dec_ref()) {
-				PDBG("remove cap");
+			if (!_is_core_managed(data) && !data.dec_ref())
 				_remove(data);
-			}
 		}
 
 		void inc_ref(Data &data)
