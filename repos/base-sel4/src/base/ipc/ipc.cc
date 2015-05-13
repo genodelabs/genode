@@ -39,6 +39,26 @@ enum {
 
 
 /**
+ * Return reference to receive selector of the calling thread
+ */
+static unsigned &rcv_sel()
+{
+	/*
+	 * When the function is called at the very early initialization phase,
+	 * we cannot access Thread_base::myself()->tid() because the Thread_base
+	 * object of the main thread does not exist yet. During this phase, we
+	 * return a reference to the 'main_rcv_sel' variable.
+	 */
+	if (Thread_base::myself()) {
+		return Thread_base::myself()->tid().rcv_sel;
+	}
+
+	static unsigned main_rcv_sel = Capability_space::alloc_rcv_sel();
+	return main_rcv_sel;
+}
+
+
+/**
  * Convert Genode::Msgbuf_base content into seL4 message
  *
  * \param msg          source message buffer
@@ -77,10 +97,9 @@ static seL4_MessageInfo_t new_seL4_message(Msgbuf_base &msg,
 	/*
 	 * Allocate and define receive selector
 	 */
-	Native_thread &thread = Thread_base::myself()->tid();
 
-	if (!thread.rcv_sel)
-		thread.rcv_sel = Capability_space::alloc_rcv_sel();
+	if (!rcv_sel())
+		rcv_sel() = Capability_space::alloc_rcv_sel();
 
 	/*
 	 * Supply data payload
@@ -174,7 +193,7 @@ static void decode_seL4_message(umword_t badge,
 
 			ASSERT(delegated);
 
-			Native_thread &thread = Thread_base::myself()->tid();
+			ASSERT(delegated);
 
 			Native_capability arg_cap = Capability_space::lookup(rpc_obj_key);
 
@@ -189,14 +208,14 @@ static void decode_seL4_message(umword_t badge,
 				 *      Unfortunaltely, seL4 lacks such a comparison operation.
 				 */
 
-				Capability_space::reset_sel(thread.rcv_sel);
+				Capability_space::reset_sel(rcv_sel());
 
 				dst_msg.append_cap(arg_cap);
 
 			} else {
 
 				Capability_space::Ipc_cap_data const
-					ipc_cap_data(rpc_obj_key, thread.rcv_sel);
+					ipc_cap_data(rpc_obj_key, rcv_sel());
 
 				dst_msg.append_cap(Capability_space::import(ipc_cap_data));
 
@@ -204,7 +223,7 @@ static void decode_seL4_message(umword_t badge,
 				 * Since we keep using the received selector, we need to
 				 * allocate a fresh one for the next incoming delegation.
 				 */
-				thread.rcv_sel = Capability_space::alloc_rcv_sel();
+				rcv_sel() = Capability_space::alloc_rcv_sel();
 			}
 		}
 		curr_sel4_cap_idx++;
@@ -294,6 +313,9 @@ void Ipc_client::_call()
 		PERR("Trying to invoke an invalid capability, stop.");
 		kernel_debugger_panic("IPC destination is invalid");
 	}
+
+	if (!rcv_sel())
+		rcv_sel() = Capability_space::alloc_rcv_sel();
 
 	seL4_MessageInfo_t const request_msg_info =
 		new_seL4_message(*_snd_msg, _write_offset);
