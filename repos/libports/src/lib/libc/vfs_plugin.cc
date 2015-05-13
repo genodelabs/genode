@@ -702,16 +702,16 @@ int Libc::Vfs_plugin::ioctl(Libc::File_descriptor *fd, int request, char *argp)
 	}
 
 	typedef Vfs::File_io_service::Ioctl_result Result;
-	
+
 	Vfs::File_io_service::Ioctl_out out;
 	Genode::memset(&out, 0, sizeof(out));
 
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
 
 	switch (handle->fs().ioctl(handle, opcode, arg, out)) {
-	case Vfs::File_io_service::IOCTL_ERR_INVALID: errno = EINVAL; return -1;
-	case Vfs::File_io_service::IOCTL_ERR_NOTTY:   errno = ENOTTY; return -1;
-	case Vfs::File_io_service::IOCTL_OK:                          break;
+	case Result::IOCTL_ERR_INVALID: errno = EINVAL; return -1;
+	case Result::IOCTL_ERR_NOTTY:   errno = ENOTTY; return -1;
+	case Result::IOCTL_OK:                          break;
 	}
 
 	/*
