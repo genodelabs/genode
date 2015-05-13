@@ -577,6 +577,8 @@ class Genode::Xml_node
 		 * address range.
 		 *
 		 * XXX This method is deprecated. Use 'content_base()' instead.
+		 *
+		 * \noapi
 		 */
 		char *content_addr() const { return _start_tag.next_token().start(); }
 

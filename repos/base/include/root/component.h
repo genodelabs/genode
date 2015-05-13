@@ -80,15 +80,15 @@ struct Genode::Multiple_clients
  *
  * The 'POLICY' class must provide the following two methods:
  *
- * :'aquire(const char *args)': is called with the session arguments
- *   at creation time of each new session. It can therefore implement
- *   a session-creation policy taking session arguments into account.
- *   If the policy denies the creation of a new session, it throws
- *   one of the exceptions defined in the 'Root' interface.
+ * 'aquire(const char *args)' is called with the session arguments
+ * at creation time of each new session. It can therefore implement
+ * a session-creation policy taking session arguments into account.
+ * If the policy denies the creation of a new session, it throws
+ * one of the exceptions defined in the 'Root' interface.
  *
- * :'release': is called at the destruction time of a session. It enables
- *   the policy to keep track of and impose restrictions on the number
- *   of existing sessions.
+ * 'release' is called at the destruction time of a session. It enables
+ * the policy to keep track of and impose restrictions on the number
+ * of existing sessions.
  *
  * The default policy 'Multiple_clients' imposes no restrictions on the
  * creation of new sessions.
