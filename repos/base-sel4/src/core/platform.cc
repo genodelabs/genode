@@ -341,7 +341,7 @@ Platform::Platform()
 	_irq_alloc(core_mem_alloc()),
 	_unused_phys_alloc(core_mem_alloc()),
 	_init_unused_phys_alloc_done((_init_unused_phys_alloc(), true)),
-	_vm_base(0x1000),
+	_vm_base(0x2000), /* 2nd page is used as IPC buffer of main thread */
 	_vm_size(2*1024*1024*1024UL - _vm_base), /* use the lower 2GiB */
 	_init_allocators_done((_init_allocators(), true)),
 	_init_sel4_ipc_buffer_done((init_sel4_ipc_buffer(), true)),
