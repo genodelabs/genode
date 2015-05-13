@@ -6,7 +6,9 @@
 
 LIBS += base-common syscall
 
-SRC_CC += console/log_console.cc
+LIBS += core_printf
+
+#SRC_CC += console/log_console.cc
 SRC_CC += env/env.cc env/context_area.cc env/reinitialize.cc
 SRC_CC += env/capability_space.cc
 SRC_CC += thread/thread_start.cc thread/thread_init.cc
