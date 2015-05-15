@@ -464,8 +464,6 @@ void QPluginWidget::hideEvent(QHideEvent *event)
 		QEmbeddedViewWidget::View_geometry const view_geometry =
 			QEmbeddedViewWidget::_calc_view_geometry();
 
-		typedef Nitpicker::Session::Command Command;
-
 		Loader::Rect geometry(Loader::Point(mapToGlobal(pos()).x(),
 		                                    mapToGlobal(pos()).y()),
 		                      Loader::Area(0, 0));

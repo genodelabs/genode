@@ -18,6 +18,8 @@ $(QT5_PORT_DIR)/src/lib/qt5/qtjsbackend/generated/generated.tag:
 
 include $(REP_DIR)/lib/mk/qt5_v8_generated.inc
 
+CC_WARN = -Wno-unused-local-typedefs -Wno-maybe-uninitialized
+
 #
 # Qt was configured for x86_64.
 # If the Genode target architecture differs, the x86_64-files need to get removed first.
