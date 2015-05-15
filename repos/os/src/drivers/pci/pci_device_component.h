@@ -211,8 +211,9 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 			                     Pci::Device::ACCESS_32BIT);
 
 			if (msi & CAP_MSI_64) {
-				Genode::uint32_t upper_address = sizeof(msi_address) > 4 ?
-				                                 msi_address >> 32 : 0UL;
+				Genode::uint32_t upper_address = sizeof(msi_address) > 4
+				                               ? (Genode::uint64_t)msi_address >> 32
+				                               : 0UL;
 
 				_device_config.write(&_config_access, msi_cap + 0x8,
 				                     upper_address,
