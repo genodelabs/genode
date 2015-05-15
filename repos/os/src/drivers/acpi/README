@@ -3,12 +3,12 @@ This directory contains an implementation of a simple ACPI parser
 Behavior
 --------
 
-This server should be used when using a kernel (like Fiasco.OC or Nova) that
-takes advantage of x86's APIC. The server traverses the ACPI tables and sets the
-interrupt line of devices within the PCI config space to the GSIs found in the
-ACPI tables. The 'MADT' table is parsed by the server as well, enabling clients
-to use the correct IRQ when 'Interrupt Override' structures are found wihtin the
-table.
+This server should be used when using a kernel (like Fiasco.OC, Nova,
+base_hw x86_64) that takes advantage of x86's APIC. The server traverses the
+ACPI tables and sets the interrupt line of devices within the PCI config space
+to the GSIs found in the ACPI tables. The 'MADT' table is parsed by the server
+as well, enabling clients to use the correct IRQ when 'Interrupt Override'
+structures are found wihtin the table.
 
 Usage
 -----
@@ -20,15 +20,18 @@ since this will be used as a slave of the 'acpi_drv'. You still must load the
 Configuration snipped (please note that IRQ service requests of the 'timer' are
 routed to the ACPI-driver):
 
-!<start name="acpi">
-!  <resource name="RAM" quantum="2M"/>
-!    <binary name="acpi_drv"/>
+!<start name="acpi_drv">
+!  <resource name="RAM" quantum="2M" constrain_phys="yes"/>
 !    <provides>
 !      <service name="PCI"/>
 !      <service name="IRQ" />
 !    </provides>
+!    <config>
+!      <policy label="acpi_drv">
+!        <pci class="ALL"/>
+!      </policy>
+!    </config>
 !    <route>
-!      <service name="PCI"> <any-child /> </service>
 !      <any-service> <parent/> <any-child /> </any-service>
 !    </route>
 !</start>
@@ -37,14 +40,15 @@ routed to the ACPI-driver):
 !  <resource name="RAM" quantum="1M"/>
 !  <provides><service name="Timer"/></provides>
 !  <route>
-!    <service name="IRQ"><child name="acpi" /></service>
+!    <service name="IRQ"><child name="acpi_drv" /></service>
 !    <any-service> <parent /> <any-child /></any-service>
 !  </route>
 !</start>
 
-Limitations and known issues
-----------------------------
-
-Currently there is no interface to set the interrupt mode for Irq_sessions
-(e.g., level or edge triggered). This is required by Fiasco.OCs kernel
-interface. We regard this as future work.
+The 'config' node on the 'acpi_drv' requires an policy entry that permits the
+'acpi_drv' to iterate over all pci devices in order to rewrite the
+interrupt numbers according to the 'MADT' table. Furthermore the whole 'config'
+node will be passed on to the 'pci_drv' which obtains from it the required
+policy for each client. Additionally the constrain_phys attribute is a
+feature of init, which applies to the pci_drv. Please read the 'pci_drv'
+README for more details.
