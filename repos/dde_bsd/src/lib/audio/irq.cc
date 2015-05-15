@@ -31,10 +31,6 @@ namespace Bsd {
 
 static void run_irq(void *args);
 
-static Genode::Signal_context_capability _dma_notifier_cap;
-
-void Audio::dma_notifier(Genode::Signal_context_capability cap) {
-	_dma_notifier_cap = cap; }
 
 class Bsd::Irq
 {
@@ -93,13 +89,6 @@ class Bsd::Irq
 				{
 					_intrh(_intarg);
 					_irq.ack_irq();
-
-					/*
-					 * Notify the frontend when a block from the DMA
-					 * was played.
-					 */
-					if (_dma_notifier_cap.valid())
-						Genode::Signal_transmitter(_dma_notifier_cap).submit();
 				}
 		};
 

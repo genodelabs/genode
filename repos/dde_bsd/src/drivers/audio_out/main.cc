@@ -4,21 +4,38 @@
  * \date   2014-11-09
  */
 
+/*
+ * Copyright (C) 2014-2015 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
+
+/* Genode includes */
+#include <audio_in_session/rpc_object.h>
 #include <audio_out_session/rpc_object.h>
 #include <base/env.h>
 #include <base/sleep.h>
 #include <cap_session/connection.h>
+#include <os/config.h>
 #include <os/server.h>
 #include <root/component.h>
 #include <util/misc_math.h>
+#include <trace/timestamp.h>
 
+/* local includes */
 #include <audio/audio.h>
 
-static bool const verbose    = false;
 
 using namespace Genode;
 
 using namespace Audio;
+
+
+/**************
+ ** Playback **
+ **************/
 
 namespace Audio_out {
 	class  Session_component;
@@ -33,7 +50,7 @@ class Audio_out::Session_component : public Audio_out::Session_rpc_object
 {
 	private:
 
-		Channel_number      _channel;
+		Channel_number _channel;
 
 	public:
 
@@ -50,13 +67,14 @@ class Audio_out::Session_component : public Audio_out::Session_rpc_object
 		}
 };
 
+
 class Audio_out::Out
 {
 	private:
 
 		Server::Entrypoint                        &_ep;
 		Genode::Signal_rpc_member<Audio_out::Out>  _data_avail_dispatcher;
-		Genode::Signal_rpc_member<Audio_out::Out>  _dma_notify_dispatcher;
+		Genode::Signal_rpc_member<Audio_out::Out>  _notify_dispatcher;
 
 		bool _active() {
 			return  channel_acquired[LEFT] && channel_acquired[RIGHT] &&
@@ -92,22 +110,26 @@ class Audio_out::Out
 
 		void _play_silence()
 		{
-			static short silence[2 * Audio_out::PERIOD] = { 0 };
+			static short silence[Audio_out::PERIOD * Audio_out::MAX_CHANNELS] = { 0 };
 
-			if (int err = Audio::play(silence, sizeof(silence)))
+			int err = Audio::play(silence, sizeof(silence));
+			if (err && err != 35)
 				PWRN("Error %d during silence playback", err);
 		}
 
 		void _play_packet()
 		{
-			Packet *p_left  = left()->get(left()->pos());
-			Packet *p_right = right()->get(right()->pos());
+			unsigned lpos = left()->pos();
+			unsigned rpos = right()->pos();
 
-			if ((p_left->valid() && p_right->valid())) {
+			Packet *p_left  = left()->get(lpos);
+			Packet *p_right = right()->get(rpos);
+
+			if (p_left->valid() && p_right->valid()) {
 				/* convert float to S16LE */
-				static short data[2 * Audio_out::PERIOD];
+				static short data[Audio_out::PERIOD * Audio_out::MAX_CHANNELS];
 
-				for (int i = 0; i < 2 * Audio_out::PERIOD; i += 2) {
+				for (int i = 0; i < Audio_out::PERIOD * Audio_out::MAX_CHANNELS; i += 2) {
 					data[i] = p_left->content()[i / 2] * 32767;
 					data[i + 1] = p_right->content()[i / 2] * 32767;
 				}
@@ -115,8 +137,9 @@ class Audio_out::Out
 				/* send to driver */
 				if (int err = Audio::play(data, sizeof(data)))
 					PWRN("Error %d during playback", err);
-			} else
+			} else {
 				_play_silence();
+			}
 
 			p_left->invalidate();
 			p_right->invalidate();
@@ -138,18 +161,11 @@ class Audio_out::Out
 
 		/*
 		 * DMA block played
-		 *
-		 * After each block played from the DMA buffer, the hw will
-		 * generated an interrupt. The IRQ handling code will notify
-		 * us as soon as this happens and we will play the next
-		 * packet.
 		 */
-		void _handle_dma_notify(unsigned)
+		void _handle_notify(unsigned)
 		{
-			if (!_active())
-				return;
-
-			_play_packet();
+			if (_active())
+				_play_packet();
 		}
 
 	public:
@@ -158,7 +174,7 @@ class Audio_out::Out
 		:
 			_ep(ep),
 			_data_avail_dispatcher(ep, *this, &Audio_out::Out::_handle_data_avail),
-			_dma_notify_dispatcher(ep, *this, &Audio_out::Out::_handle_dma_notify)
+			_notify_dispatcher(ep, *this, &Audio_out::Out::_handle_notify)
 		{
 			/* play a silence packet to get the driver running */
 			_play_silence();
@@ -166,32 +182,29 @@ class Audio_out::Out
 
 		Signal_context_capability data_avail() { return _data_avail_dispatcher; }
 
-		Signal_context_capability dma_notifier() { return _dma_notify_dispatcher; }
+		Signal_context_capability sigh() { return _notify_dispatcher; }
 
-		const char *debug() { return "Audio out"; }
-};
+		static bool channel_number(const char     *name,
+		                           Channel_number *out_number)
+		{
+			static struct Names {
+				const char     *name;
+				Channel_number  number;
+			} names[] = {
+				{ "left", LEFT }, { "front left", LEFT },
+				{ "right", RIGHT }, { "front right", RIGHT },
+				{ 0, INVALID }
+			};
 
+			for (Names *n = names; n->name; ++n)
+				if (!Genode::strcmp(name, n->name)) {
+					*out_number = n->number;
+					return true;
+				}
 
-static bool channel_number_from_string(const char     *name,
-                                       Channel_number *out_number)
-{
-	static struct Names {
-		const char    *name;
-		Channel_number number;
-	} names[] = {
-		{ "left", LEFT }, { "front left", LEFT },
-		{ "right", RIGHT }, { "front right", RIGHT },
-		{ 0, INVALID }
-	};
-
-	for (Names *n = names; n->name; ++n)
-		if (!Genode::strcmp(name, n->name)) {
-			*out_number = n->number;
-			return true;
+			return false;
 		}
-
-	return false;
-}
+};
 
 
 /**
@@ -218,7 +231,7 @@ struct Audio_out::Root_policy
 		Arg_string::find_arg(args, "channel").string(channel_name,
 		                                             sizeof(channel_name),
 		                                             "left");
-		if (!channel_number_from_string(channel_name, &channel_number))
+		if (!Out::channel_number(channel_name, &channel_number))
 			throw ::Root::Invalid_args();
 		if (Audio_out::channel_acquired[channel_number])
 			throw ::Root::Unavailable();
@@ -253,7 +266,7 @@ class Audio_out::Root : public Audio_out::Root_component
 			Arg_string::find_arg(args, "channel").string(channel_name,
 			                                             sizeof(channel_name),
 			                                             "left");
-			channel_number_from_string(channel_name, &channel_number);
+			Out::channel_number(channel_name, &channel_number);
 
 			return new (md_alloc())
 				Session_component(channel_number, _cap);
@@ -270,6 +283,209 @@ class Audio_out::Root : public Audio_out::Root_component
 };
 
 
+/***************
+ ** Recording **
+ ***************/
+
+namespace Audio_in {
+
+	class Session_component;
+	class In;
+	class Root;
+	struct Root_policy;
+	static Session_component *channel_acquired;
+
+}
+
+
+class Audio_in::Session_component : public Audio_in::Session_rpc_object
+{
+	private:
+
+		Channel_number _channel;
+
+	public:
+
+		Session_component(Channel_number channel,
+		                  Genode::Signal_context_capability cap)
+		: Session_rpc_object(cap), _channel(channel) {
+			channel_acquired = this; }
+
+		~Session_component() { channel_acquired = nullptr; }
+};
+
+
+class Audio_in::In
+{
+	private:
+
+		Server::Entrypoint                      &_ep;
+		Genode::Signal_rpc_member<Audio_in::In>  _notify_dispatcher;
+
+		bool _active() { return channel_acquired && channel_acquired->active(); }
+
+		Stream *stream() { return channel_acquired->stream(); }
+
+		void _record_packet()
+		{
+			static short data[2 * Audio_in::PERIOD];
+			if (int err = Audio::record(data, sizeof(data))) {
+					if (err && err != 35)
+						PWRN("Error %d during recording", err);
+					return;
+			}
+
+			/*
+			 * Check for an overrun first and notify the client later.
+			 */
+			bool overrun = stream()->overrun();
+
+			Packet *p = stream()->alloc();
+
+			float const scale = 32768.0f * 2;
+
+			float * const content = p->content();
+			for (int i = 0; i < 2*Audio_in::PERIOD; i += 2) {
+				float sample = data[i] + data[i+1];
+				content[i/2] = sample / scale;
+			}
+
+			stream()->submit(p);
+
+			channel_acquired->progress_submit();
+
+			if (overrun) channel_acquired->overrun_submit();
+		}
+
+		void _handle_notify(unsigned)
+		{
+			if (_active())
+				_record_packet();
+		}
+
+	public:
+
+		In(Server::Entrypoint &ep)
+		:
+			_ep(ep),
+			_notify_dispatcher(ep, *this, &Audio_in::In::_handle_notify)
+		{ _record_packet(); }
+
+		Signal_context_capability sigh() { return _notify_dispatcher; }
+
+		static bool channel_number(const char     *name,
+		                           Channel_number *out_number)
+		{
+			static struct Names {
+				const char     *name;
+				Channel_number  number;
+			} names[] = {
+				{ "left", LEFT },
+				{ 0, INVALID }
+			};
+
+			for (Names *n = names; n->name; ++n)
+				if (!Genode::strcmp(name, n->name)) {
+					*out_number = n->number;
+					return true;
+				}
+
+			return false;
+		}
+};
+
+
+struct Audio_in::Root_policy
+{
+	void aquire(char const *args)
+	{
+		size_t ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
+		size_t session_size = align_addr(sizeof(Audio_in::Session_component), 12);
+
+		if ((ram_quota < session_size) ||
+		    (sizeof(Stream) > (ram_quota - session_size))) {
+			PERR("insufficient 'ram_quota', got %zu, need %zu",
+			     ram_quota, sizeof(Stream) + session_size);
+			throw Genode::Root::Quota_exceeded();
+		}
+
+		char channel_name[16];
+		Channel_number channel_number;
+		Arg_string::find_arg(args, "channel").string(channel_name,
+		                                             sizeof(channel_name),
+		                                             "left");
+		if (!In::channel_number(channel_name, &channel_number))
+			throw ::Root::Invalid_args();
+		if (Audio_in::channel_acquired)
+			throw Genode::Root::Unavailable();
+	}
+
+	void release() { }
+};
+
+
+namespace Audio_in {
+	typedef Root_component<Session_component, Root_policy> Root_component;
+}
+
+
+/**
+ * Root component, handling new session requests.
+ */
+class Audio_in::Root : public Audio_in::Root_component
+{
+	private:
+
+		Server::Entrypoint        &_ep;
+		Signal_context_capability  _cap;
+
+	protected:
+
+		Session_component *_create_session(char const *args)
+		{
+			char channel_name[16];
+			Channel_number channel_number = INVALID;
+			Arg_string::find_arg(args, "channel").string(channel_name,
+			                                             sizeof(channel_name),
+			                                             "left");
+			In::channel_number(channel_name, &channel_number);
+			return new (md_alloc()) Session_component(channel_number, _cap);
+		}
+
+	public:
+
+		Root(Server::Entrypoint &ep, Allocator &md_alloc,
+		     Signal_context_capability cap)
+		: Root_component(&ep.rpc_ep(), &md_alloc), _ep(ep), _cap(cap) { }
+};
+
+
+/**********
+ ** Main **
+ **********/
+
+static bool disable_playback()
+{
+	using namespace Genode;
+	try {
+		return config()->xml_node().attribute("playback").has_value("no");
+	} catch (...) { }
+
+	return false;
+}
+
+
+static bool enable_recording()
+{
+	using namespace Genode;
+	try {
+		return config()->xml_node().attribute("recording").has_value("yes");
+	} catch (...) { }
+
+	return false;
+}
+
+
 struct Main
 {
 	Server::Entrypoint &ep;
@@ -279,19 +495,36 @@ struct Main
 		Audio::init_driver(ep);
 
 		if (Audio::driver_active()) {
-			static Audio_out::Out out(ep);
-			Audio::dma_notifier(out.dma_notifier());
-			static Audio_out::Root audio_root(ep, *env()->heap(), out.data_avail());
 
-			PINF("--- BSD Audio_out driver started ---");
-			env()->parent()->announce(ep.manage(audio_root));
+			/* playback */
+			if (!disable_playback()) {
+				static Audio_out::Out out(ep);
+				Audio::play_sigh(out.sigh());
+				static Audio_out::Root out_root(ep, *env()->heap(), out.data_avail());
+				env()->parent()->announce(ep.manage(out_root));
+				PINF("--- BSD Audio driver enable playback ---");
+			}
+
+			/* recording */
+			if (enable_recording()) {
+				static Audio_in::In in(ep);
+				Audio::record_sigh(in.sigh());
+				static Audio_in::Root in_root(ep, *env()->heap(),
+				                              Genode::Signal_context_capability());
+				env()->parent()->announce(ep.manage(in_root));
+				PINF("--- BSD Audio driver enable recording ---");
+			}
 		}
 	}
 };
 
 
+/************
+ ** Server **
+ ************/
+
 namespace Server {
 	char const *name()             { return "audio_drv_ep";      }
-	size_t      stack_size()       { return 4*1024*sizeof(long); }
+	size_t      stack_size()       { return 8*1024*sizeof(long); }
 	void construct(Entrypoint &ep) { static Main server(ep);     }
 }
