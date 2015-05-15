@@ -1,0 +1,1216 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 15.05
+              ===============================================
+
+                               Genode Labs
+
+
+
+Version 15.05 represents the most substantial release in the history of Genode.
+It is packed with profound architectural improvements, new device drivers, the
+extension of the supported base platforms, and a brand new documentation.
+
+With the new documentation introduced in Section [Comprehensive architectural
+documentation], the project reaches a mile stone. On our mission to find the
+right architectural abstractions, the past years had a strong research focus.
+We conducted countless of experiments, gathered experience with highly diverse
+hardware platforms and kernels, and explored application scenarios. Our target
+audience used to be technology enthusiasts. Now that we have reached a point
+where the architecture is mature, it is the time to invite a wider audience,
+in particular people who are interested in building Genode-based solutions.
+The new book "Genode Foundations" equips the reader with the holistic view and
+the technological insights needed to get started.
+
+Genode's custom kernel platform, originally conceived as a research vehicle,
+has become feature complete. As explained in Section
+[Feature completion of our custom kernel (base-hw)], the release contains
+three substantial additions. First, with the added support for the 64-bit x86
+architecture, the kernel moves beyond the realms of the ARM architecture. This
+line of work is particularly exciting because it was conducted outside of
+Genode Labs, by the developers of the Muen separation kernel. The second
+addition introduces kernel-protected capabilities to the base-hw kernel. This
+was the last missing functionality that stood in the way of using the kernel
+in security-critical scenarios. Finally, the kernel's scheduler received the
+ability to handle thread weights in a dynamic fashion.
+
+With revising the framework's device-driver infrastructure as described in
+Section [Revised device-driver infrastructure], this release addresses
+long-standing architectural limitations with respect to the effective
+confinement of device drivers. This topic encompasses changes in the NOVA
+kernel, a redesign of the fundamental interfaces for user-level device
+drivers, the design and implementation of a new platform driver, and the
+adaptation of the drivers. Speaking of device drivers, the version 15.05 comes
+with a new AHCI driver, new audio drivers ported from OpenBSD, new SD-card
+drivers for the Raspberry Pi and i.MX53, platform support for i.MX6, and
+multi-touch support.
+
+The icing on the cake is the added support for the seL4 kernel as Genode base
+platform. Section [Proof-of-concept support for the seL4 kernel] covers this
+undertaking. Even though this work is still in its infancy, we are happy to
+present the first simple Genode scenarios running on this kernel.
+
+
+Comprehensive architectural documentation
+#########################################
+
+The popularity of Genode is slowly but steadily growing. Still, for most
+uninitiated who stumble upon it, the project remains largely intangible
+because it does not fit well in the established categories of software. With
+the current release, we hope to change that. The release is accompanied by a
+documentation in the form of the book "Genode OS Framework Foundations"
+completely written from scratch:
+
+[image genode_foundations_cover]
+
+The book is published under the Creative Commons Attribution + ShareAlike
+License (CC-BY-SA) and can be downloaded as
+[http://genode.org/documentation/genode-foundation-15-05.pdf - PDF document].
+
+It first presents the motivation behind our project, followed by a thorough
+description of the Genode OS architecture. The conceptual material is
+complemented with practical information for developers and a discussion of
+framework internals. The second part of the book serves as a reference of
+Genode's programming interfaces.
+
+[http://genode.org/documentation/genode-foundation-15-05.pdf - Download the book (PDF)...]
+
+In the upcoming weeks, we plan to update the documentation section of the
+genode.org website with the new material. Until then, we hope you find the
+book enjoyable.
+
+
+Feature completion of our custom kernel (base-hw)
+#################################################
+
+Kernel-protected capabilities
+=============================
+
+One of the fundamental concepts used within Genode are capabilities. Although
+this security mechanism was present in the Genode API from the very beginning,
+our base-hw kernel could not guarantee the integrity of capabilities so far.
+On top of this kernel, capabilities used to be represented as global IDs that
+could get forged easily until now.
+
+With this release, we introduce a major change of base-hw, which now supports
+capability ID spaces per component. That means every component respectively
+protection-domain has its own local name space for kernel objects. When a
+component invokes a capability to access an RPC object, it provides the
+corresponding capability ID to the kernel's system call. The kernel maintains
+a tree of capability IDs per protection domain and can retrieve whether the
+provided ID is valid and to which kernel object it points to. As all kernel
+objects are constructed on behalf of the core process first, this component
+always owns the initial capability during the lifetime of a kernel object.
+Other components can obtain capabilities via remote-procedure calls (RPC)
+only. Whenever a capability is part of a message transfer between threads,
+the kernel translates the capability IDs within the message buffer from one
+protection domain's capability space to another. If the target protection
+domain does not own the capability during the transfer already, the kernel
+creates a new capability ID for the receiving protection domain.
+
+In contrast to other capability-based kernels that Genode supports, the
+base-hw kernel manages the capability space on behalf of the components.
+Nevertheless, as the kernel does not know whether a component is still using a
+capability ID, even though the kernel object behind it got invalidated
+already, components have to inform the kernel when a capability ID is not used
+anymore so that is can be reused again. Therefore, we introduce a new
+system-call 'delete_cap', which frees a capability ID from the local
+protection domain.
+
+To allocate entries in the capability space of components, the kernel needs
+memory. The required memory is taken from the RAM quota a component provides
+to its protection-domain session. If the kernel determines that the quota does
+not fulfill the requirements when a component wants to receive capabilities,
+the corresponding system-call delivers an error before the actual IPC
+operation takes place. The component first has to upgrade the RAM quota before
+it can retry its IPC operation. The procedure of IPC error-handling is
+transparent to the developer and already solved by the base library
+implementation for the base-hw kernel.
+
+
+Principal support for the 64-bit x86 architecture
+=================================================
+
+_This section was written by Adrian-Ken Rueegsegger and Reto Buerki who_
+_conducted the described line of work independent from Genode Labs._
+
+The [http://muen.sk - Muen Separation Kernel (SK) project] is an Open-Source
+microkernel, which uses the [http://spark-2014.org/ - SPARK] programming
+language to enable light-weight formal methods for high assurance. The 64-bit
+x86 kernel, currently consisting of a little over 5'000 LOC, makes extensive
+use of the latest Intel virtualization features and has been formally proven
+to contain no runtime errors at the source-code level.
+
+As the core team of the Muen SK, we were intrigued by the idea of bringing
+Genode to our kernel. In our view, combining Genode with the Muen project
+makes perfect sense as it would allow us to leverage the entire OS framework
+instead of re-inventing the wheel by implementing yet another user land.
+
+To this end, we met the Genode team in their very cosy office in Dresden.
+After a tour of the premises, we got right down to business: Norman gave us a
+whirlwind tour of Genode and it was quickly decided that the way forward would
+be to run base-hw as a subject on top of Muen. As an intermediate step, we
+needed to port base-hw from ARM to Intel x86_64 first.
+
+The Genode team gave us a head start by setting a roadmap and doing the
+initial steps of extending the 'create_builddir' tool and adding the
+'hw_x86_64' skeleton in a joint coding session. After this productive
+workshop, we flew back to Switzerland with a clear picture of how to proceed.
+
+
+Implementation
+~~~~~~~~~~~~~~
+
+We closely followed the roadmap for porting the base-hw kernel to the 64-bit
+x86 architecture. The following list discusses the work items in detail,
+summarizing the interesting points.
+
+# Assembler startup code
+
+  Prior to the addition of our x86_64 port, base-hw was an ARM-only kernel.
+  Therefore, the boot code for the new platform had to be written from scratch.
+  Having already written a 64-bit x86 kernel, we were able to reuse its boot
+  up code pretty much unchanged.
+
+# Memory management/IA-32e paging
+
+  Since transitioning to the IA-32e (long) mode requires paging, an initial set
+  of static page tables is part of the assembler startup code. For dynamic
+  memory management support however, a C++ implementation for creating IA-32e
+  paging structures was required. Similar to the startup code, we could draw
+  from the experiences made when implementing paging in the Muen project. One
+  minor obstacle was to get reacquainted with the C++ template mechanism.
+  Aside from that, there were no other issues and the subsequent implementation
+  was quite straight-forward.
+
+# Assembler mode-switch code
+
+  The mode-transition code (MTC) takes care of switching from kernel-
+  to user-space and back. It consists of architecture-dependent assembly code
+  accessible to both kernel- and user-land.
+
+  A transition from user- to kernel-space occurs either explicitly by the
+  invocation of a syscall, or when an exception or interrupt occurs. The
+  mode-transition code saves the current context and restores the kernel state
+  or vice-versa when returning to user-mode from the kernel. To unify the
+  exception and syscall code paths on exit, we decided to implement syscall
+  invocation using the _int 0x80_ method instead of using the _SYSCALL/SYSRET_
+  machine instructions.
+
+  The peculiarities of the x86 architecture needed some attention to detail.
+  In contrast to ARM, several data structures such as the GDT (Global
+  Descriptor Table), IDT (Interrupt Descriptor Table) and TSS (Task-State
+  Segment) are implicitly referenced by the hardware and must be accessible on
+  entry into the mode-transition code from user-land. Thus, these tables must
+  be placed in the MTC memory region as otherwise, the hardware would trigger
+  a page fault.
+
+# Interrupt controller implementation
+
+  The interrupt controller handles external interrupts triggered by devices.
+  After a little detour (see _PIC/PIT detour_ below), we ended up using the
+  local and I/O APIC for interrupt management. One annoying implementation
+  detail worth mentioning is the handling of edge-triggered interrupts by the
+  I/O APIC. As described in the Intel 82093AA I/O Advanced Programmable
+  Interrupt Controller (IOAPIC) specification, Section 3.4.2, edge-triggered
+  interrupts are lost if they occur while the mask bit of the corresponding
+  I/O APIC RTE (Routing Table Entry) is set. Therefore, we chose the pragmatic
+  approach not to mask edge-sensitive IRQs at all.
+
+  The issue of lost IRQs came up when dealing with the user-space PIT
+  (Programmable Interval Timer): The PIT driver would program the timer with a
+  short timeout and then unmask the corresponding IRQ line. If the timer fired
+  prior to completion of the unmask operation, the interrupt would be lost,
+  which, in turn, resulted in the driver being blocked forever.
+
+# Kernel-timer implementation
+
+  The x86 platform provides a variety of timer sources, each of which bringing
+  its own bag of problems. After switching to the LAPIC for interrupt
+  management, the obvious choice was to use the LAPIC for the kernel timer as
+  well. The drawback of this timer is that its frequency must be measured
+  using a secondary source as reference. Luckily, we were able to reuse the
+  PIT driver, which resulted from our _PIC/PIT detour_ for this purpose.
+
+# FPU support
+
+  To allow user-space code to use floating-point arithmetics, we needed to
+  handle the state of the x87 FPU. Similar to the ARM code, the FPU state is
+  saved and restored in a lazy manner, meaning the necessary work is only
+  performed if the FPU is actually used.
+
+After making a small number of additional adjustments to core, we were able to
+successfully execute even elaborate run scripts such as 'run/demo' on the
+newly ported x86_64 base-hw kernel.
+
+
+PIC/PIT detour
+--------------
+
+As described in the introduction, porting the base-hw kernel to the Intel
+x86_64 architecture is only an intermediate step towards the ultimate goal of
+bringing Genode to the Muen platform. To this end, we took a pragmatic
+approach with regards to hardware drivers that are required for x86_64 but
+will be paravirtualized on Muen. The interrupt controller and kernel timer
+fall in this category. Because of simplicity reasons, we initially decided to
+use the 8259 Programmable Interrupt Controller (PIC) and the 8253/8254
+Programmable Interval Timer (PIT). We quickly had a working implementation but
+later became aware that the only currently available Genode user-land timer on
+x86 was the PIT. This was obviously a problem because, kernel and user-land
+require separate timer sources.
+
+After some discussion, we decided to rewrite the kernel interrupt controller
+and timer code to use the LAPIC/IOAPIC. This freed up the PIT for use by the
+user-land driver. Since we were able to reuse the PIT code for measuring the
+LAPIC timer frequency, the detour was in fact beneficial to stabilize the
+final implementation. Additionally, these changes lay the foundation for
+future 'hw_x86_64' multiprocessor support.
+
+
+Taking hw_x86_64 for a spin
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In order to try out the new 'hw_x86_64' port, perform the following steps:
+
+! tool/create_builddir hw_x86_64
+
+Prepare the ports required by the demo script:
+
+! tool/ports/prepare_port x86emu
+
+Change to the build directory:
+
+! cd build/hw_x86_64/
+
+Note: Make sure to enable the libports repository by editing the
+_etc/build.conf_ file.
+
+Finally, fire up the demo script:
+
+! make run/demo
+
+
+Limitations
+~~~~~~~~~~~
+
+The current implementation of the x86_64 base-hw kernel has the following
+limitations:
+
+* No dynamic memory discovery: The amount of memory is hard-coded to 256 MiB.
+* No 32-bit support
+* No SMP support
+
+These are not fundamental restrictions of the base-hw x86_64 port but simply
+missing features that can be implemented in the future.
+
+
+Sentiments
+~~~~~~~~~~
+
+Considering that the base-hw kernel was an ARM-only microkernel, the port to
+x86_64 went rather smoothly. In our opinion, this is a testament to the
+modularity and the good overall design of the kernel. Architecture-specific
+code is well encapsulated and the provided abstractions allow the overriding
+of functionality at the appropriate level.
+
+An interesting fact worth mentioning is that while emulators such as Qemu and
+Bochs are great tools for development, it is important to perform tests on
+real hardware as well. Since the hardware is emulated with varying degrees of
+accuracy, subtle differences in behavior can go unnoticed. A recurring source
+of potential problems is the initial state of memory. Whereas emulators
+usually fill unused memory with zeros, on real hardware the content of
+uninitialized memory is undefined. So while code that only partially
+initializes memory may run without issues on Qemu, it is quite possible that
+it simply fails on real hardware.
+
+After finishing the base-hw port to 64-bit x86, we immediately started working
+on the Muen port. As a little spoiler, we can report that the run/demo
+scenario is already running as a subject on top of the Muen SK. We hope that
+it will be part of the next Genode release.
+
+Last but not least, we would like to thank the guys at Genode Labs for their
+support and we are eager to see where this fruitful cooperation will take us.
+
+
+Dynamic thread weights
+======================
+
+With the Genode release 14.11, we introduced an entirely
+[http://genode.org/documentation/release-notes/14.11#Trading_CPU_time_between_components_using_the_HW_kernel - new scheduler]
+in the base-hw kernel that allows for the trading of CPU time between Genode
+components. This scheduler knows two parameters for each scheduling context: A
+priority that models the urgency for low-latency execution and a quota that
+limits the prioritized execution time of a context during one super period.
+The user may adjust these parameters according to his demands by the means of
+userland configuration. Through configuration files, the inter-component
+distribution of priority and quota is configured whereas the
+component-internal distribution of computation time is addressed by Genode's
+thread API.
+
+However, during the last months, the way of configuring the local distribution
+of quota appeared to be not very satisfying for real-world scenarios. To assign
+quota to a thread, one had to state a specific percentage of the component
+quota at construction time. One disadvantage of this pattern becomes apparent
+when looking at the main thread of a component. As the main thread gets
+constructed by the component's parent without using the thread API, the
+component itself has no means to influence the quota of this thread. The quota
+of main threads was therefore always set to zero. Furthermore, a component had
+to keep track of previously consumed thread quotas to be able to not violate
+the local quota limit when creating new threads.
+
+All this begged for a less rigid way of managing local CPU quota. We came to
+the conclusion that a component does not want to manage quota distribution
+itself but only the importance of threads in the quota distribution, their
+so-called _weight_. This thread weight can be any number greater than zero
+regardless of the weights of other threads. It gets translated to a portion of
+the local quota by setting it into relation to the sum of all local thread
+weights. Consequently, all the assigned quota of a component is distributed
+among the local threads according to their weights. There is no slack quota
+anymore. However, this implies that the quota of all local threads gets
+adjusted each time the constellation of local thread weights changes. That is
+when a new thread gets constructed or an existing one gets destructed. So, we
+must be able to dynamically reconfigure the quota of a scheduling context -
+something the base-hw kernel wasn't aware of hitherto. The new core-restricted
+kernel call named 'thread_quota' solves this issue.
+
+But let's get back to the thread API. When not explicitly defined, a thread's
+weight is set to 10. So, logically, the main thread of a component always has
+the weight of 10. This value initially equips the main thread with all the
+quota of the component and should leave enough flexibility when configuring
+secondary threads. If the next thread in the component would have the weight
+30, the main thread, from that point on, would receive 25% of the quota while
+the second thread starts with 75%. Let us go on and add a third thread with
+the weight 960. Now, the local quota distribution would be as follows:
+
+Main thread:    1%
+Second thread:  3%
+Third thread:  96%
+
+Finally, if one of the threads is destructed, its quota logically moves to the
+remaining two threads divided according to their weight ratio.
+
+Now, with the comfort of weight-driven quota distribution, there was only the
+question left, how to determine the weights reasonably. We had to provide a
+way to translate a concrete need of execution time into a local thread weight.
+Two things must be known inside a component to do so: The length of a super
+period at the scheduler and how much of this super period the components quota
+is worth. These two values can now be read via a new CPU-session RPC named
+'quota'. The values returned are given in microseconds. However, when using
+this instrument, one must consider slight rounding errors that can't be
+prevented as the values have to pass up to two independent translations from
+the source parameter to the microseconds value.
+
+
+Revised device-driver infrastructure
+####################################
+
+In Genode, core represents the root of the component hierarchy and holds the
+reins. This includes possession of system resources not reserved for the
+kernel, in particular physical resources like RAM, memory-mapped I/O regions,
+I/O ports, and IRQs. Access to resources is gained via session requests, e.g.,
+an IO_PORT session permits access to a dedicated region of x86 I/O ports. Core
+itself does not define any policy on these resources other than starting its
+only child component init, which is qualified to allocate specific resources
+via dedicated sessions to core. In turn, init employs a configured system
+policy and bootstraps additional system components. From the physical
+resources, init manages memory effectively by applying quota restrictions to
+RAM sessions. It does not further differentiate I/O resources besides routing
+session requests to the rather abstract services for IRQ, IO_MEM, and IO_PORT.
+On the other side, device-driver components wish to access registers or drive
+DMA transfers for specific devices only. What was missing up to now, was the
+notion of a _device_ including its I/O resources or role as DMA actuator.
+
+Motivated by enabling message-signalled interrupt (MSI) support on x86
+platforms, we addressed several shortcomings and revised our device-driver
+infrastructure. First, we noticed that while our ACPI driver (acpi_drv) did a
+proper job with parsing ACPI tables relevant for IRQ remapping, polarity, and
+trigger information, it did not apply any useful policy. The gathered
+information was only propagated to the PCI driver (pci_drv, started as a child
+component) by writing the IRQ remapping information into the PCI configuration
+space of the devices. Though, pci_drv provided the PCI session and thereby
+access to dedicated PCI devices, it did not apply device-specific policies
+either. The PCI session was merely used by device drivers to retrieve
+information about I/O resources, but the session request for the actual
+resources was directed to the driver's parent (and routed to core in most
+cases). Further, the PCI driver was in charge to allocate DMA-able memory on
+behalf of the device driver. This enabled transparent support for IOMMUs on
+NOVA, but also lacked proper quota donation. Last, we identified that the
+current implementation of handling shared IRQs in core completely contradicted
+with our goal of transparently handling interrupts as legacy IRQs or MSIs
+depending on the capabilities of the device as well as the kernel platform.
+
+At the end of our survey, we eagerly longed for real I/O resource management
+in a central component, which provides the notion of a device. I/O resources
+are assigned to those devices from the pool of abstract resources available
+from core, e.g., dedicated IO_MEM dataspaces for regions of a PCI device. The
+approach is not completely new in Genode when looking at certain ARM
+platforms, where we have had a platform driver (platform_drv) for quite some
+time. Now, we want to generalize this approach to fit both dynamic discovery
+(e.g., for the PCI bus) and configuration (e.g., specific ARM SoCs or legacy
+devices on PCs). Also, the configuration is expected to support the expression
+of policy to restrict device drivers to access designated device resources
+only.
+
+The first working step to tackle the issue was to make the IRQ resource
+available per device within the PCI driver. Until now, core implemented the
+handling of IRQs per platform differently. On some platforms, namely x86, it
+had support for shared IRQs, while other platforms got along without this
+special feature. The biggest stumbling block was actually the synchronous RPC
+interface 'wait_for_irq()', which forced a driver to issue a blocking IPC to
+core to wait for IRQs. We simply disposed this relict of the early L4 times
+and changed the IRQ session interface to employ asynchronous IRQ notifications
+on all Genode platforms. For that reason, we had to adapt the various core
+implementations, the platform drivers, and all device drivers. We refactored a
+generalized shared IRQ implementation on x86 and then, moved it from core to
+the PCI driver, which will become our platform_drv for x86 in a future step.
+After we adapted all x86 drivers to request the IRQ session capability from
+the PCI driver, and completed a thorough testing phase of shared IRQ handling,
+we finally removed the shared IRQ support from core on all Genode platforms.
+
+Next, we tackled the issue to transform the previous PCI session into an x86
+platform session (although it is still called PCI session). The platform
+session bundles I/O resources of one or more devices per client. Policies
+define, which of the physical devices are actually visible and are
+discoverable by clients. A client discovers devices either by explicitly
+naming the device, e.g. for non PCI devices like the PS/2 controller, or by
+iterating over a virtual PCI bus as defined by the policy. Besides device
+discovery, a platform session is used for allocating DMA buffers. So, the
+platform driver can take care of associating DMA memory regions with physical
+devices, which is required as soon as IOMMUs are used by the underlying
+kernel.
+
+The result of a successful device discovery is a device capability, which
+serves as the key to get access to device-specific resources like IO_MEM,
+IO_PORT, and IRQs. The RPC interface provides functions to request dedicated
+resource capabilities, which are of the types Io_mem_session_capability,
+Io_port_session_capability, and Irq_session_capability.
+
+If the device capability represents a PCI device, the IO_PORT and IO_MEM
+resources are discovered by the platform driver by parsing the BARs in the PCI
+configuration space. On behalf of the client, the platform driver establishes
+the I/O resource sessions to core. For non-PCI devices, a device-specific
+implementation is required. For now, only the PS/2 device is supported, which
+bundles two IRQ sessions for mouse and keyboard as well as the well-known I/O
+ports. The IRQ resources for PCI devices are handled differently. First, the
+platform driver parses the PCI config space of a device to detect whether this
+device is capable of MSIs. If so, the platform driver tries to open an IRQ
+session at core, which succeeds on kernels supporting this feature, namely
+Fiasco.OC and NOVA. On kernels lacking MSI support, the request will fail and
+the platform driver falls back to allocate legacy IRQs, which are all treated
+as shared. In either case, the driver does not need to handle the IRQ/MSI
+cases separately as these are handled by the platform driver transparently.
+
+The policy is provided by 'policy' entries in the config ROM of the pci_drv.
+An entry corresponds to a virtual bus containing the listed devices, which is
+accessible by drivers with the label configured in the 'label' attribute. PCI
+devices are named by a 'pci' entry either explicitly by the attribute triple
+'bus', 'device', 'function'
+
+!<policy label="usb_drv">
+!  <pci bus="0" device="19" function="0"/>
+!  <pci bus="0" device="5" function="0"/>
+!</policy>
+
+or by a device class alias
+
+!<policy label="usb_drv"> <pci class="USB"/> </policy>
+
+In the first example, the USB driver gets access to two devices, e.g., the
+xHCI and EHCI controller. This explicit approach is useful if the target
+machine and the PCI bus hierarchy are known and security is a concern. Later,
+a dynamic device-manager component could update the config at runtime
+according to a device-discovery report of the platform driver. The second
+option can be used when switching often between machines during development or
+when the target machine is unknown in advance. The downside of the flexibility
+is that a device driver may get access to devices it can't or should not
+drive. For example in a router scenario, the inner network driver should only
+drive the inner NIC while the outer driver gains access to the outer network.
+Both components would then be connected by a secure routing component only.
+Further classes are available and are extended as needed - please consult the
+README of the platform driver for a list.
+
+When the ACPI driver is used for Fiasco.OC, NOVA, and base-hw on x86, the
+configuration for the PCI driver is constructed out of the ACPI config XML
+node. Additionally, an explicit policy entry for the ACPI driver is required,
+which permits rewriting potentially all legacy IRQ numbers for PCI devices as
+discovered during IRQ-remapping-table parsing.
+
+!<start name="acpi_drv">
+! ...
+! <config>
+!  <policy label="acpi_drv">
+!   <pci class="ALL"/>
+!  </policy>
+!  <policy label="usb_drv">
+!   <pci class="USB"/>
+!  </policy>
+! </config>
+!</start>
+
+If, for some reason, MSIs should or can not be used, support may be disabled
+explicitly by setting the 'irq_mode' attribute to 'nomsi' in the policy XML
+node.
+
+!<policy label="usb_drv" irq_mode="nomsi">
+
+The configuration of a non-PCI device is described by a 'device' entry in the
+policy.
+
+!<policy label="ps_drv"> <device name="PS2"/> </policy>
+
+With the changes described above, the platform driver is now in the position
+to hand out solely those devices to drivers, which are explicitly permitted.
+Furthermore, the platform driver can transparently discover I/O resources and
+set up the appropriate interrupt scheme for devices, which removes this burden
+from the device-driver developer.
+
+The next steps in this direction are to co-locate and consolidate the PCI and
+ACPI drivers into the platform driver as done partially for some ARM-based
+platforms already. Then, the implementation should be generalized to comprise
+ARM platforms too, which includes the configuration, the usage of the
+regulator session, and the enforcement of policies per device.
+
+
+Base framework and low-level OS infrastructure
+##############################################
+
+API refinements
+===============
+
+Our documentation efforts as mentioned in Section
+[Comprehensive architectural documentation] provided the right incentive to
+revisit the Genode API with the goal to reach API stability over the next
+year. This section summarizes the API changes that may affect developers
+using the framework.
+
+:Semaphore simplification:
+
+  The semaphore at _base/semaphore.h_ used to be a template, which took the
+  queueing policy as argument. There was a reasonable default, which took a
+  FIFO queue as policy. Since we introduced the semaphore in 2006, we never
+  used a different queueing policy. So this degree of flexibility smells like
+  over-engineering. Hence, we cut it back by hard-wiring the FIFO policy in
+  the semaphore.
+
+:Moving the packet stream and ring buffer into the Genode namespace:
+
+  The packet-stream utilities provided by _os/packet_stream.h_ provide the
+  common code to realize the transfer of bulk data between components in an
+  asynchronous fashion. It is used by several session interfaces such as the
+  NIC session, file-system session, and block session. Until now, however,
+  the utilities used to reside in the root namespace. Now, we have rectified
+  this glitch by moving them to the Genode namespace. We did the same for
+  the commonly used ring-buffer utility provided by _os/ring_buffer.h_.
+
+:Moving 'Xml_node::Attribute' to 'Xml_attribute':
+
+  The XML parser used to represent XML attributes with the nested
+  'Xml_node::Attribute' class. However, the use of non-trivial nested classes
+  at API level tends to be confusing and difficult to document. Hence, we
+  decided to promote 'Xml_node::Attribute' to a dedicated top-level class.
+
+:Unification of text-to-data conversion functions:
+
+  Until now, the set of functions to extract information from text strings has
+  grown rather evolutionary. It became a somehow weird mix of function
+  templates, overloads, and default arguments. To make the Genode API easier
+  to understand, we longed for a simple and more coherent concept. For this
+  reason, we changed the 'ascii_to' functionality of _util/string.h_ in two
+  ways.
+
+  First, each 'ascii_to' function has become a plain overloaded function - not
+  a kind of template specialization of a function-template signature. In some
+  cases, it may actually be a template, but only if the result type is a
+  template.
+
+  Second, the "base" argument has been be discarded. It was used to parse
+  numbers with different integer bases (like 16 for hexadecimal numbers). For
+  most types, however, the base argument made not much sense. For this reason,
+  the argument was mostly ignored. Now, the official way to extract integers
+  of different bases would be the introduction of dedicated types similar to
+  the existing 'Number_of_bytes' type.
+
+
+Support for GPT partitions
+==========================
+
+The old-fashioned MBR partition table is on its way out. Its successor, the
+GUID partition table (GPT), is increasingly used on recent systems. On some,
+namely the ones featuring UEFI firmware without legacy boot support, it is the
+only available option. Therefore, we have extended the 'part_blk' server by
+adding rudimentary support for GPT so that we are able to use Genode on such
+systems.
+
+The support is enabled by configuring 'part_blk' accordingly:
+
+! <start name="part_blk">
+! [...]
+!   <config use_gpt="yes">
+! [...]
+! </start>
+
+It will fall back to trying to use the MBR if it does not find a valid GPT
+header.
+
+The current implementation is limited in the following respects. For one, no
+endian conversion takes place and it therefore only works on little-endian
+platforms. This poses no problem because, for now, Genode does not run on any
+big-endian platform anyway. Furthermore, as the GPT specification defines, the
+content of the name field is encoded in UTF-16 but 'part_blk' will only
+extract valid ASCII-encoded characters. It also ignores all GPE attributes.
+
+
+Network-link state-change handling
+==================================
+
+We extended the NIC session interface with the ability to notify its client
+about changes in the link-state of the session. Adding this mechanism was
+motivated by the need for requesting new network configuration settings, e.g.,
+IP and gateway addresses, when changing the location and switching the
+network.
+
+A NIC-session client can now install a signal handler that is called when the
+link-state changes. After receiving the signal, the client may query the
+current state by executing the 'link_state()' RPC function. In addition, the
+NIC driver interface now provides a notification-callback method that is used
+to forward link-state changes from the driver to the 'Nic::Session_component'.
+
+The lwIP TCP/IP stack was adapted to that feature and always tries to acquire
+new network settings via DHCP when the link state changes.
+
+The following drivers now report link-state changes: dde_ipxe, nic_bridge, and
+usb_drv. On the other hand, OpenVPN, Linux nic_drv, and the lan9118 driver do
+not support it and always report the link-up state.
+
+
+File-system utilities
+=====================
+
+When we introduced Genode's file-system session interface in
+[http://genode.org/documentation/release-notes/12.05#New_file-system_infrastructure - version 12.05],
+it was accompanied with a RAM file system as the first implementation. Since
+then, a growing number of file-system services were developed, which took the
+RAM file system as blue print. Over the years, this practice resulted in the
+duplication of the utilities that were found worthwhile to reuse. The upcoming
+addition of a new 9P file-system service prompted us to make those utilities
+part of the public API, located at _os/include/file_system/_.
+
+
+Device drivers
+##############
+
+New AHCI driver with support for native command queueing
+========================================================
+
+With Genode 15.05, we completely revised our AHCI driver in order to overcome
+some severe limitations of the previous implementation. Specifically, we
+desired support for multiple devices per controller, handle block requests
+asynchronously, and consolidate the Exynos5 and the x86 code to enable code
+sharing of the AHCI-specific features. We also wanted to improve the driver
+performance by taking advantage of modern features like native command
+queuing.
+
+In order to achieve these goals, we implemented a generic AHCI driver by
+taking advantage of Genode's MMIO framework. The code is shared between x86
+and the Exynos5 platform. Additionally, we introduced a 'Platform_hba' class
+that takes care of platform-specific initialisation and platform-dependent
+functions, like the allocation of DMA memory or the handling of the PCI bus on
+x86 platforms.
+
+For supporting multiple devices, we extended Genode's block component by a
+root component with multiple-session support. Sessions are routed much like it
+is done for our partition server (part_blk) by using 'policy' XML nodes (see
+the README file under _repos/os/src/drivers/ahci_).
+
+Since version 15.02, Genode's block component offers support for asynchronous
+block requests. The AHCI driver takes full advantage of this interface by
+using native-command queuing (NCQ). NCQ allows up to 32 read/write requests to
+be executed in parallel. Please note that requests may be processed out of
+order because NCQ is implemented on the device side, giving the device vendor
+the opportunity to optimize seek times for hard disks. With NCQ support and
+asynchronous request processing in place, the driver is able to achieve a
+performance that is on par with modern Linux drivers. We measured a throughput
+of 75 MB/s for HDDs and 180 MB/s for SSDs when issuing sequential 4 KB
+requests.
+
+Feature-wise our AHCI driver offers read/write support for hard disks (HDDs or
+SSDs) and experimental read-only support for ATAPI devices (CDROM, DVD, or
+Blu-ray devices).
+
+
+Multi-touch support
+===================
+
+One motivation to upgrade VirtualBox 4.3 with the Genode release 14.11 was to
+use the multi-touch feature of Windows guests. With this release, we took the
+opportunity to investigate and enable the feature using the multi-touch
+capable Wacom USB driver introduced with release 15.02.
+
+The first step was to capture the multi-touch input events in our USB port and
+extend the input back end to propagate the information via Genode's input
+session. We extended the input interface of Genode by a new event type "TOUCH"
+(class Input::Event), which stores the absolute coordinates of a touch event
+as well as the identifier of the touch contact. Each finger at a time on the
+touch screen is represented as a contact with such a number/identifier.
+
+Nitpicker, nit_fb and the window manager propagate this new type of event to
+clients, which may process them if capable, as is the case for VirtualBox.
+Finally, we extended the input back end of our VirtualBox port to process
+Genode's input touch events so that the USB models in VirtualBox can utilize
+them.
+
+To enable the propagation of multi-touch events, the USB driver must be
+configured explicitly by setting a "multitouch" attribute to "yes":
+
+!<start name="usb_drv">
+!  ...
+!  <config uhci=... ohci=... xhci=...>
+!    <hid>
+!       <touchscreen width="1024" height="768" multitouch="yes"/>
+!    </hid>
+!  ...
+!</start>
+
+To be able to use the multi-touch feature in VirtualBox, make sure to enable a
+USB controller model and a USB multi-touch capable device model in your VM
+configuration (.vbox file):
+
+!<VirtualBox ...>
+!  <Machine ...>
+!    <Hardware ...>
+!      <HID Pointing="USBMultiTouch" Keyboard="USBKeyboard"/>
+!    </Hardware>
+!    ...
+!    <USB>
+!      <Controllers>
+!        <Controller name="OHCI" type="OHCI"/>
+!      </Controllers>
+!    </USB>
+!  <Machine>
+!  ...
+!</VirtualBox>
+
+
+Audio drivers ported from OpenBSD
+=================================
+
+A few years back, we ported OSSv4 to Genode to account for the need of playing
+audio on Genode. It worked fine on a handful of sound cards but unfortunately,
+it did not work well on more recent Intel HD Audio devices. Though that
+shortcoming was more a problem of our own port than of OSSv4 itself, we
+decided to replace it rather than trying to fix the port. The rationale behind
+this decision is the uncertain future of the OSSv4 project. A driver with an
+active upstream development is certainly preferable.
+
+By now, we gained a solid experience in porting drivers from other OSs and
+developed a best practice that served us well. In the past, we mostly chose
+Linux as driver donor. But this time, we went in another direction and picked
+OpenBSD. One of the reasons for favouring it is its comprehensive
+documentation that helped a lot in implementing the APIs. There is normally
+one interface for a specific task used throughout all drivers whereas, on
+Linux, several interfaces and different drivers tend to use the interface that
+was popular at the time of their creation. We found the perceived code hygiene
+noticeably higher on OpenBSD than on Linux.
+
+Since porting a driver from a foreign OS involves picking the right layer to
+extract the driver, we took a closer look at the overall audio architecture of
+OpenBSD. At the highest level, it uses the sndio(7) interface. A user-land
+daemon _sndiod(1)_ performs stream mixing, format conversion, exposes virtual
+devices to its clients, and controls the actual audio device provided in the
+form of the audio(4) device-independent driver layer. This layer abstracts the
+particular audio-device driver. It provides device-agnostic means to configure
+the device and to control the mixer. The device driver plugs into the audio(9)
+kernel interface.
+
+Genode contains its own user-land server/client audio interface, namely the
+Audio_out session. Therefore, we dismissed the use of the sndio(7) interface
+because it would involve porting _sndiod(1)_ as well as changing all our audio
+clients. Merely porting the device driver and using the audio(9) kernel
+interface directly would have given us the most flexibility indeed but we
+would have been in charge of setting up the environment, e.g., DMA buffers
+etc., for the device driver. The audio(4) subsystem, on the other hand, does
+all this already and provides us with the common device interface, i.e.,
+read(2), write(2), and ioctl(2). On these grounds, the audio(4) layer was
+selected as the porting target.
+
+The ported drivers are located in _repos/dde_bsd/_. The driver back end
+resides in the form of library in _repos/dde_bsd/src/lib/audio_ whereas the
+driver front end providing the Audio_out session is placed at
+_repos/dde_bsd/src/drivers/audio_out_. As we did previously with other ported
+drivers, we created an emulation header, in this case called _bsd_emul.h_ that
+contains all needed definitions and data structures. All vanilla OpenBSD
+source files are scanned and symlinks, named after the header files in the
+include directives, are created. Each symlink points to the emulation header.
+After that, the needed functionality is implemented. Since OpenBSD uses a
+rather static approach on how the kernel is configured, i.e., which subsystems
+and drivers are included, we needed to provide the parts required by the
+autoconf(9) framework. Basically, we provide the config data structure that
+contains the drivers (the audio subsystem as well as the audio device drivers)
+and implemented some other functionality that normally would be generated by
+the config mechanism in vanilla OpenBSD (see
+_repos/dde_bsd/src/lib/audio/bsd_emul.c_). The rest of the implementation,
+including the memory management and IRQ handling, turned out to be straight
+forward.
+
+In addition, the back end also implements the functions declared in the
+private 'Audio' namespace (see _repos/dde_bsd/include/audio/audio.h_ and
+_repos/dde_bsd/src/lib/audio/driver.cc_). The front end exclusively calls
+these functions and has no knowledge of the driver back end ported from
+OpenBSD. In this respect, these functions encapsulate the interface exposed by
+the audio(4) interface. To play the content of a packet received via the
+'Audio_out' session, the front end will simply call 'Audio::play()'. This
+function internally calls 'audiowrite()' after preparing the needed 'struct
+uio' argument by this function. 'audiowrite()' is called in a non-blocking
+fashion. This is necessary because the audio-out driver operates as
+single-threaded event-driven process. If it blocked, it could not handle IRQs
+generated by the audio device. Last but not least, the write function copies
+the samples into the DMA buffer and calls the device driver to trigger the
+playback. After a block from the DMA buffer has been played, the audio device
+will generate an interrupt, which will poke the front end. The front end
+responds by requesting the playback of the next audio packet.
+
+The driver currently supports Intel HD Audio (Azalia) and Ensoniq AudioPCI
+(ES1370) compatible audio devices and is based on OpenBSD 5.7. It can be
+tested by executing the run script _repos/dde_bsd/run/audio_out.run_. This run
+script needs a sample file. Please refer to _repos/dde_bsd/README_ for the
+instructions on how to create such a file.
+
+
+SD-card drivers for i.MX53 and Raspberry Pi
+===========================================
+
+We improved the generic SD-card protocol implementation with the ability
+to handle the version 1.0 of the CSD register, which contains the capacity
+information of older SD cards.
+
+At _os/src/drivers/sd_card/rpi_, there is a new driver for the SDHCI
+controller as featured on the Raspberry Pi. As of now, the driver operates in
+PIO mode only. Depending on the block size (512 bytes versus 128 KiB), it has
+a throughput of 2 MiB/sec - 10 MiB/sec for reading and 173 KiB/sec - 8 MiB/sec
+for writing.
+
+At _os/src/drivers/sd_card/imx53_, there is a new driver for the Freescale
+eSDHCv2 SD-card controller as used on the USB Armory platform. The
+configuration of the highest available bus frequency and bus width is still
+open for further optimization.
+
+
+Board support for i.MX6-based Wandboard
+=======================================
+
+The increasing interest in the combination of Genode and the Freescale i.MX6
+SoC motivated us to add official support for a board based on this SoC
+to our custom kernel. We settled on the
+[http://www.wandboard.org/ - Wandboard Quad] that was developed on a volunteer
+basis. Thanks to Praveen Srinivas (IIT Madras, India) and Nikolay Golikov
+(Ksys Labs LLC, Russia) who contributed their work on i.MX6. The Wandboard
+Quad features 2 GiB of DDR3 RAM and a quad-core Cortex-A9 CPU. So, unlike when
+porting i.MX53, our existing kernel drivers for the Cortex-A9 private
+peripherals, namely the core-local timer and the ARM Generic Interrupt
+Controller could be reused.
+
+Although the board even supports SMP and the ARM Security Extensions, we don't
+make use of these advanced features yet. However, our port is intended to
+serve as a starting point for further development in these directions.
+
+To create a build directory for Genode running on Wandboard Quad, use the
+following command:
+
+! ./tool/create_builddir hw_wand_quad
+
+
+USB device-list report
+======================
+
+The USB driver has become able to generate a report with a list of all
+currently connected devices, which gets updated when devices are added or
+removed. This information can be useful to decide if and when a USB session
+for a specific device should be opened or closed.
+
+An example report looks as follows:
+
+!<devices>
+!    <device vendor_id="0x17ef" product_id="0x4816"/>
+!    <device vendor_id="0x0a5c" product_id="0x217f"/>
+!    <device vendor_id="0x8087" product_id="0x0020"/>
+!    <device vendor_id="0x8087" product_id="0x0020"/>
+!    <device vendor_id="0x1d6b" product_id="0x0002"/>
+!    <device vendor_id="0x1d6b" product_id="0x0002"/>
+!</devices>
+
+The report is named 'devices' and an example policy for the report_rom
+component would look like:
+
+!<policy label="vbox -> usb_devices" report="usb_drv -> devices"/>
+
+The report gets generated only when enabled in the configuration of the USB
+driver:
+
+!<config>
+!    <raw>
+!        <report devices="yes"/>
+!    </raw>
+!</config>
+
+There is no distinction yet for multiple devices of the same type.
+
+
+Runtime environments
+####################
+
+VirtualBox on NOVA
+==================
+
+As with the previous releases, we continuously improved our version of
+VirtualBox running on top of the NOVA microhypervisor.
+
+
+Video Acceleration (VBVA)
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We enabled the "VirtualBox Graphics Adapter" device model, which improves the
+performance of screen-region updates in comparison to the standard VGA adapter
+device model, and which allows the integration of the guest mouse pointer with
+the nitpicker GUI server. The mouse pointer integration has been realized in
+two steps. First, we extended VirtualBox to generate a "shape" report with the
+detailed information about the mouse pointer shape. The counterpart is a
+specialized vbox_pointer application, which receives the shape report as ROM
+file (provided by the report_rom component) and draws the mouse pointer
+accordingly when a nitpicker view related to VirtualBox is hovered.
+
+
+USB-device pass-through support
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With the availability of the
+[http://www.genode.org/documentation/release-notes/15.02#USB_session_interface - USB session interface]
+and the new [USB device-list report] feature of the USB driver, it is now
+possible to pass a selection of raw USB devices directly to VirtualBox guests.
+
+VirtualBox obtains the list of available USB devices from a ROM module named
+'usb_devices', which can be connected to the USB driver's device-list report
+using the report_rom component with a policy as follows:
+
+!<policy label="vbox -> usb_devices" report="usb_drv -> devices"/>
+
+The devices to be passed-through need to have a matching device filter in the
+VirtualBox configuration file ('*.vbox'). For example:
+
+!<USB>
+!    <Controllers>
+!        <Controller name="OHCI" type="OHCI"/>
+!    </Controllers>
+!    <DeviceFilters>
+!        <DeviceFilter name="USB Scanner" active="true" vendorId="04a9"
+!                      productId="2220" remote="0"/>
+!    </DeviceFilters>
+!</USB>
+
+The feature was successfully tested with HID devices (mouse, keyboard) and a
+flatbed scanner. Mass storage devices are known to have problems, though we
+also observed these problems with VirtualBox on Linux without the
+closed-source extension pack.
+
+When using this feature, it should be made sure that the USB driver itself
+does not try to control the devices to be passed to VirtualBox. For example,
+when passing-through a HID device, the '<hid/>' config option of the USB
+driver should not be set.
+
+
+Platforms
+#########
+
+Proof-of-concept support for the seL4 kernel
+============================================
+
+Since last summer when the [http://sel4.systems - seL4 kernel] was released
+under the General Public License, we entertained the idea to run Genode on
+this kernel. As the name suggests, the seL4 kernel is a member of the L4
+family of kernels. But there are two things that set this kernel apart from
+all the other family members. First, with the removal of the kernel memory
+management from the kernel, it solves a fundamental robustness and security
+issue that plagues all other L4 kernels so far. This alone would be reason
+enough to embrace seL4. Second, seL4 is the world's first OS kernel that is
+formally proven to be correct. That means, it is void of implementation bugs.
+This makes the kernel extremely valuable in application areas that highly
+depend on the correctness of the kernel.
+
+Since last autumn, we conducted the port of Genode to the seL4 kernel as
+background activity. We took the chance to thoroughly document our experience
+by the following series of articles:
+
+:[http://genode.org/documentation/articles/sel4_part_1 - Building a simple root task from scratch]:
+  The first article describes the integration of the kernel code with Genode's
+  source tree and the steps taken to create a minimalistic root task that runs
+  on the kernel. It is full of hands-on information about the methodology of
+  such a porting effort and describes the experience with using the kernel
+  from the perspective of someone with no prior association with the seL4
+  project.
+
+:[http://genode.org/documentation/articles/sel4_part_2 - IPC and virtual memory]:
+  The second part of the article series examines the seL4 kernel interface
+  with respect to synchronous inter-process communication and the management
+  of virtual memory.
+
+:[http://genode.org/documentation/articles/sel4_part_3 - Porting the core component]:
+  The third article presents the steps taken to bring Genode's core and init
+  components to life. Among the covered topics are the memory and capability
+  management, inter-component communication, and page-fault handling. The
+  article closes with a state of development that principally enables simple
+  Genode scenarios to run on seL4.
+
+With the current release, we have integrated the intermediate result into the
+mainline Genode source tree. At the time of the release, Genode's core and
+init components are running, and init is able launch further child components
+such as simple test programs. Still, the current level of seL4 support should
+be understood as a proof of concept and is still riddled with several interim
+solutions and shortcomings. Please refer to the third article linked above for
+the details. Functionality-wise the most glaring gap is the unimplemented
+support for user-level device drivers, which rules out most of the meaningful
+Genode scenarios for the time being. Still, the current version shows that the
+combination of seL4 and Genode is viable.
+
+To give Genode a quick spin on the seL4 kernel, you may take the following
+steps:
+
+# Download the seL4 kernel
+
+  !./tool/ports/prepare_port sel4
+
+# Create a Genode build directory for seL4:
+
+  !./tool/create_builddir sel4_x86_32
+
+# Change to the build directory and start the _base/run/printf.run_ script:
+
+  !cd build/sel4_x86_32
+  !make run/printf
+
+After compiling the Genode components (init, core, and test-printf), the run
+script will build the kernel, integrate a boot image, and run the image inside
+Qemu. You will be greeted with the output of the test-printf program, which
+demonstrates that core, init, and test-printf are running (each in a different
+protection domain) and that the components can interact with each other by the
+means of capability invocations.
+
+
+NOVA kernel mechanism for asynchronous notifications
+====================================================
+
+The vanilla NOVA kernel provides asynchronous signalling by the means of
+semaphores. This mechanism offers a way to transfer one bit information from a
+sender to one receiver at a time. So a thread may block by issuing a "down"
+operation on a semaphore and wakes up as soon as the sender issues an "up"
+operation. However, Genode's signal abstraction for asynchronous notification
+requires that a receiver may potentially receive from multiple sources at a
+time, which rendered this kernel feature unusable to be directly used by
+Genode's signal framework.
+
+Instead, for base-nova, the signalling phase was implemented as a indirection
+over core for each Genode signal that got submitted. After an initial
+registration at core to ask for incoming signals, a receiver block in its own
+address space on a per-thread semaphore until a signal becomes available. The
+signalling phase looked like that:
+
+# A signal source (thread) generates a Genode signal by sending a synchronous
+  message via an RPC to core,
+# Core notifies the receiver asynchronously via a kernel semaphore "up"
+  operation,
+# The receiver's blocking IPC returns.
+  The context information about the signal is delivered with the IPC reply.
+
+Besides all the book keeping in core, this approach requires at least 4
+inter-address-space context switches. Ideally, this could be just one context
+switch with a proper kernel mechanism in place.
+
+On the course of updating the platform driver and the redesign of Genode's IRQ
+session interface to operate asynchronously across all supported kernels, we
+took the chance to extend the NOVA kernel to meet Genode's needs more closely.
+
+We extended the NOVA kernel semaphores to support signalling via chained
+semaphores. This extension enables the creation of kernel semaphores with a
+per-semaphore value, which can be bound to another kernel semaphore. Each
+bound semaphore corresponds to a Genode signal context. The per-semaphore
+value is used to distinguish different sources of signals. Now, a signal
+sender issues a _submit_ operation on a Genode signal capability via a regular
+_semaphore-up_ syscall on NOVA. If the kernel detects that the used semaphore
+is chained to another semaphore, the up operation is delegated to the chained
+one. If a thread is blocked, it gets woken up directly and the per-semaphore
+value of the bound semaphore gets delivered. In case no thread is currently
+blocked, the signal is stored and delivered as soon as a thread issues the
+next _semaphore-down_ operation.
+
+Chaining semaphores is an operation that is limited to a single level, which
+avoids attacks targeting endless loops in the kernel. The creation of such
+signals can solely be performed if the issuer has a NOVA PD capability with
+the semaphore-create permission set. On Genode, this effectively reserves the
+operation to core. Furthermore, our solution upholds the invariant of the
+original NOVA kernel that a thread may be blocked in only one semaphore at a
+time. This makes our extension non-invasive and easily maintainable.
+
+We applied the same principle to the delivery of interrupts by the NOVA
+kernel, which corresponds to a _semaphore up_ operation. With minor changes,
+we have become able to deliver interrupts as ordinary Genode signals. The main
+benefits are a vastly simplified IRQ-session implementation in core and the
+alleviation of the need for one thread per interrupt. The interrupt gets
+directly delivered to the address space of the driver (MSI), or in case of a
+shared interrupt, to the PCI driver.
+
+
+Tool chain and build system
+###########################
+
+The tool chain has been updated to Binutils version 2.25 and GCC version 4.9.2.
+This update comprises both the cross tool chain running on Linux as
+development environment and the tool chain running within Genode's Noux
+runtime environment.
+
+To use Genode 15.05, please obtain and install the new binary version of the
+tool chain available at [http://genode.org/download/tool-chain] or build it
+manually via the _tool/tool_chain_ script.
+
+
+Removal of deprecated features
+##############################
+
+The following parts have been pruned from the Genode source tree:
+
+* We declared the support for Qt4 as deprecated in 2013. Since we switched
+  to Qt version 5 on Genode long ago, we finally removed the
+  _repos/qt4/_ repository.
+
+* The _repos/base-host/_ repository was originally envisioned to be the ideal
+  place to document the framework-internal interfaces between the
+  kernel-agnostic and kernel-specific parts of the framework. It was
+  meant to provide mere stub functions that enable the compilation of
+  Genode-API-compliant code directly using the host compiler. However, it
+  remained an obscurity. Since it is neither used nor regularly tested, we
+  decided to remove it.
+
+* The GTA01 platform support was originally added in 2006 to run Genode
+  on the Gamepark GP2x handheld console. The code remained unused and
+  unmaintained for several years.
+
+* The original ATAPI driver is superseded by our new AHCI driver, which
+  principally also supports ATAPI devices. However, IDE support has been
+  dropped as it is not relevant on our current-day target platforms.
+
+* The demo device driver (D3M) was created for the OKL4-based live system
+  released in 2010. Since then, it was in irregular use for a few
+  demonstration scenarios but has never evolved into a fully-fledged driver
+  manager. Since all of D3M's functionality except for the probing of boot
+  media is covered by a combination of other components, we decided to remove
+  D3M.
+
+* The _linux_drivers_ repository hosted device drivers ported via the
+  original DDE-Linux approach. We
+  [http://genode.org/documentation/release-notes/12.05#Re-approaching_the_Linux_device-driver_environment - disregarded this approach]
+  in 2012. The only remaining code worth keeping is the i915 GPU driver, which
+  will potentially re-appear in our modern _repos/dde_linux_ repository.
+
+* The _repos/dde_oss_ was an experiment to run the audio drivers of the
+  OSS project directly on Genode. Unfortunately, the contained Intel HD Audio
+  driver did not work on any Thinkpad models newer than T60. With the current
+  release, this repository is superseded by the _repos/dde_bsd_ repository.
+
