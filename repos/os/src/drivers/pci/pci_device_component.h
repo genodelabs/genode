@@ -50,7 +50,10 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 			PCI_CMD_REG   = 0x4,
 			PCI_CMD_DMA   = 0x4,
 			PCI_IRQ_LINE  = 0x3c,
-			PCI_IRQ_PIN   = 0x3d
+			PCI_IRQ_PIN   = 0x3d,
+
+			CAP_MSI_64    = 0x80,
+			MSI_ENABLED   = 0x1
 		};
 
 		Genode::Tslab<Genode::Io_port_connection, IO_BLOCK_SIZE> _slab_ioport;
@@ -120,8 +123,6 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 
 			uint16_t msi = _device_config.read(&_config_access, cap + 2,
 			                                   Pci::Device::ACCESS_16BIT);
-
-			enum { MSI_ENABLED = 0x1 };
 
 			if (msi & MSI_ENABLED)
 				/* disable MSI */
@@ -202,7 +203,6 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 			Genode::uint32_t msi_value = _irq_session.msi_data();
 			Genode::uint16_t msi_cap   = _msi_cap();
 
-			enum { CAP_MSI_64 = 0x80, MSI_ENABLED = 0x1 };
 			Genode::uint16_t msi = _device_config.read(&_config_access,
 			                                           msi_cap + 2,
 			                                           Pci::Device::ACCESS_16BIT);
@@ -327,6 +327,32 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 		{
 			if (id != 0)
 				return Genode::Irq_session_capability();
+
+			if (!_device_config.valid())
+				return _irq_session.cap();
+
+			bool msi_64 = false;
+			Genode::uint16_t msi_cap   = _msi_cap();
+			if (msi_cap) {
+				Genode::uint16_t msi = _device_config.read(&_config_access,
+				                                           msi_cap + 2,
+				                                           Pci::Device::ACCESS_16BIT);
+				msi_64 = msi & CAP_MSI_64;
+			}
+
+			if (_irq_session.msi())
+				PINF("%x:%x.%x uses MSI %s, vector 0x%lx, address 0x%lx",
+				     _device_config.bus_number(),
+				     _device_config.device_number(),
+				     _device_config.function_number(),
+				     msi_64 ? "64bit" : "32bit",
+				     _irq_session.msi_data(), _irq_session.msi_address());
+			else
+				PINF("%x:%x.%x uses IRQ, vector 0x%x",
+				     _device_config.bus_number(),
+				     _device_config.device_number(),
+				     _device_config.function_number(), _irq_line);
+
 			return _irq_session.cap();
 		}
 

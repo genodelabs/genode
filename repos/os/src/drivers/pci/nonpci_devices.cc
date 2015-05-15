@@ -46,8 +46,10 @@ class Nonpci::Ps2 : public Pci::Device_component
 		{
 			switch (virt_irq) {
 				case 0:
+					PINF("PS2 uses IRQ, vector 0x%x", IRQ_KEYBOARD);
 					return Device_component::irq(virt_irq);
 				case 1:
+					PINF("PS2 uses IRQ, vector 0x%x", IRQ_MOUSE);
 					return _irq_mouse.cap();
 				default:
 					return Genode::Irq_session_capability();
