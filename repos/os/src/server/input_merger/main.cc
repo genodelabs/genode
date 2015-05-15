@@ -31,7 +31,7 @@ namespace Input_merger
 
 			Input::Session_capability _create_session(const char *label)
 			{
-				char session_args[sizeof(Parent::Session_args)];
+				char session_args[sizeof(Parent::Session_args)] { 0 };
 
 				Arg_string::set_arg(session_args, sizeof(Parent::Session_args),
 				                    "ram_quota", "16K");
