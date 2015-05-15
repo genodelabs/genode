@@ -170,12 +170,12 @@ struct Genode::Register
 		/**
 		 * Get a mask of this field shifted by its shift in the register
 		 */
-		static constexpr access_t reg_mask() { return mask() << SHIFT; }
+		static constexpr access_t reg_mask() { return (access_t)(mask() << SHIFT); }
 
 		/**
 		 * Get the bitwise negation of 'reg_mask'
 		 */
-		static constexpr access_t clear_mask() { return ~reg_mask(); }
+		static constexpr access_t clear_mask() { return (access_t)~reg_mask(); }
 
 		/**
 		 * Back reference to containing register
