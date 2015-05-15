@@ -162,13 +162,13 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 		Device_component(Device_config device_config, Genode::addr_t addr,
 		                 Genode::Rpc_entrypoint *ep,
 		                 Pci::Session_component * session,
-		                 bool rewrite_irq_line)
+		                 bool rewrite_irq_line, bool use_msi)
 		:
 			_device_config(device_config), _config_space(addr),
 			_ep(ep), _session(session),
 			_irq_line(_device_config.read(&_config_access, PCI_IRQ_LINE,
 			                              Pci::Device::ACCESS_8BIT)),
-			_irq_session(_disable_msi(_irq_line), _msi_cap() ? _config_space : ~0UL),
+			_irq_session(_disable_msi(_irq_line), (!use_msi || !_msi_cap()) ? ~0UL : _config_space),
 			_rewrite_irq_line(rewrite_irq_line),
 			_slab_ioport(0, &_slab_ioport_block),
 			_slab_iomem(0, &_slab_iomem_block)
@@ -237,7 +237,8 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 		Device_component(Genode::Rpc_entrypoint * ep,
 		                 Pci::Session_component * session, unsigned irq)
 		:
-			_config_space(~0UL), _ep(ep), _session(session),
+			_config_space(~0UL),
+			_ep(ep), _session(session),
 			_irq_line(irq),
 			_irq_session(_irq_line, _config_space),
 			_slab_ioport(0, &_slab_ioport_block),
