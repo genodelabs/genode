@@ -35,7 +35,7 @@ SRC_C_asn1     = a_object.c a_bitstr.c a_utctm.c a_gentm.c a_time.c \
                  x_exten.c bio_asn1.c bio_ndef.c asn_mime.c \
                  asn1_gen.c asn1_par.c asn1_lib.c asn1_err.c \
                  a_bytes.c a_strnid.c evp_asn1.c asn_pack.c p5_pbe.c \
-                 p5_pbev2.c p8_pkey.c asn_moid.c)
+                 p5_pbev2.c p8_pkey.c asn_moid.c
 SRC_C_bf       = bf_skey.c bf_ecb.c bf_enc.c bf_cfb64.c bf_ofb64.c bf_enc.c
 SRC_C_bio      = bio_lib.c bio_cb.c bio_err.c \
                  bss_mem.c bss_null.c bss_fd.c \
