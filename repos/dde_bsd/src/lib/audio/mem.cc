@@ -373,9 +373,20 @@ extern "C" void bcopy(const void *src, void *dst, size_t len)
 
 extern "C" int uiomovei(void *buf, int n, struct uio *uio)
 {
-	void *dst  = buf;
-	void *src  = ((char*)uio->buf) + uio->uio_offset;
+	void *dst = nullptr;
+	void *src = nullptr;
 	size_t len = uio->uio_resid < (size_t)n ? uio->uio_resid : (size_t)n;
+
+	switch (uio->uio_rw) {
+	case UIO_READ:
+		dst = buf;
+		src = ((char*)uio->buf) + uio->uio_offset;
+		break;
+	case UIO_WRITE:
+		dst = ((char*)uio->buf) + uio->uio_offset;
+		src = buf;
+		break;
+	}
 
 	Genode::memcpy(dst, src, len);
 

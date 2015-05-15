@@ -1,0 +1,20 @@
+--- a/dev/audio.c
++++ b/dev/audio.c
+@@ -2293,6 +2293,8 @@
+ 		sc->sc_pqui = 1;
+ 		audio_wake(&sc->sc_wchan);
+ 	}
++
++	notify_play();
+ }
+ 
+ /*
+@@ -2400,6 +2402,8 @@
+ 		sc->sc_rqui = 1;
+ 		audio_wake(&sc->sc_rchan);
+ 	}
++
++	notify_record();
+ }
+ 
+ int
