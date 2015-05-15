@@ -43,7 +43,7 @@ using namespace Genode;
 /**
  * Dispatches interrupts from kernel
  */
-class Genode::Interrupt_handler : public Thread<4096>
+class Genode::Interrupt_handler : public Thread<2048*sizeof(long)>
 {
 	private:
 
