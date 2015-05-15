@@ -34,8 +34,8 @@ namespace Property_command {
 
 		struct Response
 		{
-			uint32_t const device_id;
-			uint32_t const state;
+			uint32_t const device_id = 0;
+			uint32_t const state     = 0;
 		};
 	};
 
@@ -57,8 +57,8 @@ namespace Property_command {
 
 		struct Response
 		{
-			uint32_t const device_id;
-			uint32_t const state;
+			uint32_t const device_id = 0;
+			uint32_t const state     = 0;
 		};
 	};
 
