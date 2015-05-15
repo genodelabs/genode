@@ -215,7 +215,7 @@ The default configuration for the VersatilePB926 platform as found at
 'base-codzero/config/vpb926.cml' is paramaterized as follows:
 
 :Default pager parameters:
-! 0x40000  Pager LMA
+! 0x41000  Pager LMA
 ! 0x100000 Pager VMA
 These values are important because they are currently hard-wired in the
 linker script used by Genode. If you need to adopt these values, make
@@ -224,9 +224,9 @@ sure to also update the Genode linker script located at
 
 :Physical Memory Regions:
 ! 1         Number of Physical Regions
-! 0x40000   Physical Region 0 Start Address
+! 0x41000   Physical Region 0 Start Address
 ! 0x4000000 Physical Region 0 End Address
-We only use 64MB of memory. The physical memory between 0 and 0x40000 is
+We only use 64MB of memory. The physical memory between 0 and 0x41000 is
 used by the kernel.
 
 :Virtual Memory Regions:

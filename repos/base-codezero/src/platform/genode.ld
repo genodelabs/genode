@@ -21,7 +21,7 @@
  * the Codezero build system.
  */
 vma_start = 0x100000;
-lma_start = 0x40000;
+lma_start = 0x41000;
 offset = vma_start - lma_start;
 
 
