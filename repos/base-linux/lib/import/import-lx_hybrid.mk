@@ -109,3 +109,6 @@ LD_LIBGCC =
 
 # use the host c++ for linking to find shared libraries in DT_RPATH library paths
 LD_CMD = c++
+
+# disable format-string security checks, which prevent non-literal format strings
+CC_OPT += -Wno-format-security

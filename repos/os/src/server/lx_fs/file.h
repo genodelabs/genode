@@ -129,7 +129,7 @@ class File_system::File : public Node
 
 		void truncate(file_size_t size)
 		{
-			ftruncate(_fd, size);
+			if (ftruncate(_fd, size)) /* nothing */;
 
 			mark_as_updated();
 		}
