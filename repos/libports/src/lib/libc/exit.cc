@@ -32,9 +32,6 @@ extern "C" {
 
 	void exit(int status)
 	{
-		if (status == 4) {
-			PDBG("PT: %p %p %p", __builtin_return_address(0), __builtin_return_address(1), __builtin_return_address(2));
-		}
 		if (__cleanup)
 			(*__cleanup)();
 
