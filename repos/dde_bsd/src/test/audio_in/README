@@ -1,0 +1,3 @@
+This test captures input from an Audio_in session and directly plays
+all packets by sending them to the Audio_out session. It is merely a
+simple audio monitor program.
