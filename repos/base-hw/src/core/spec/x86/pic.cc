@@ -12,8 +12,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <port_io.h>
+/* Genode includes */
+#include <irq_session/irq_session.h>
 
+/* core includes */
+#include <port_io.h>
 #include "pic.h"
 
 using namespace Genode;
@@ -72,10 +75,51 @@ void Pic::finish_request()
 
 void Pic::unmask(unsigned const i, unsigned)
 {
-	_ioapic.toggle_mask(i, false);
+	ioapic.toggle_mask(i, false);
 }
 
 void Pic::mask(unsigned const i)
 {
-	_ioapic.toggle_mask(i, true);
+	ioapic.toggle_mask(i, true);
+}
+
+Ioapic::Irq_mode Ioapic::_irq_mode[IRQ_COUNT];
+
+void Ioapic::setup_irq_mode(unsigned irq_number, unsigned trigger,
+                            unsigned polarity)
+{
+	const unsigned irq_nr = irq_number - REMAP_BASE;
+	bool needs_sync = false;
+
+	switch (trigger) {
+	case Irq_session::TRIGGER_EDGE:
+		_irq_mode[irq_nr].trigger_mode = TRIGGER_EDGE;
+		needs_sync = true;
+		break;
+	case Irq_session::TRIGGER_LEVEL:
+		_irq_mode[irq_nr].trigger_mode = TRIGGER_LEVEL;
+		needs_sync = true;
+		break;
+	default:
+		/* Do nothing */
+		break;
+	}
+
+	switch (polarity) {
+	case Irq_session::POLARITY_HIGH:
+		_irq_mode[irq_nr].polarity = POLARITY_HIGH;
+		needs_sync = true;
+		break;
+	case Irq_session::POLARITY_LOW:
+		_irq_mode[irq_nr].polarity = POLARITY_LOW;
+		needs_sync = true;
+		break;
+	default:
+		/* Do nothing */
+		break;
+	}
+
+	/* Update IR table if IRQ mode changed */
+	if (needs_sync)
+		_update_irt_entry(irq_nr);
 }

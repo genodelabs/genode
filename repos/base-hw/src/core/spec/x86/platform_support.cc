@@ -18,6 +18,8 @@
 #include <platform.h>
 #include <board.h>
 #include <cpu.h>
+#include <pic.h>
+#include <kernel/kernel.h>
 
 using namespace Genode;
 
@@ -74,4 +76,11 @@ long Platform::irq(long const user_irq)
 	/* remap IRQ requests to fit I/O APIC configuration */
 	if (user_irq) return user_irq + Board::VECTOR_REMAP_BASE;
 	return Board::TIMER_VECTOR_USER;
+}
+
+
+void Platform::setup_irq_mode(unsigned irq_number, unsigned trigger,
+                              unsigned polarity)
+{
+	Kernel::pic()->ioapic.setup_irq_mode(irq_number, trigger, polarity);
 }

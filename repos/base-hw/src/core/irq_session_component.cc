@@ -78,4 +78,46 @@ Irq_session_component::Irq_session_component(Range_allocator * const irq_alloc,
 		PERR("unavailable interrupt requested");
 		throw Root::Invalid_args();
 	}
+
+	long irq_trg = Arg_string::find_arg(args, "irq_trigger").long_value(-1);
+	long irq_pol = Arg_string::find_arg(args, "irq_polarity").long_value(-1);
+
+	Irq_session::Trigger irq_trigger;
+	Irq_session::Polarity irq_polarity;
+
+	switch(irq_trg) {
+	case -1:
+	case Irq_session::TRIGGER_UNCHANGED:
+		irq_trigger = Irq_session::TRIGGER_UNCHANGED;
+		break;
+	case Irq_session::TRIGGER_EDGE:
+		irq_trigger = Irq_session::TRIGGER_EDGE;
+		break;
+	case Irq_session::TRIGGER_LEVEL:
+		irq_trigger = Irq_session::TRIGGER_LEVEL;
+		break;
+	default:
+		PERR("invalid trigger mode %ld specified for IRQ %u", irq_trg,
+		     _irq_number);
+		throw Root::Unavailable();
+	}
+
+	switch(irq_pol) {
+	case -1:
+	case POLARITY_UNCHANGED:
+		irq_polarity = POLARITY_UNCHANGED;
+		break;
+	case POLARITY_HIGH:
+		irq_polarity = POLARITY_HIGH;
+		break;
+	case POLARITY_LOW:
+		irq_polarity = POLARITY_LOW;
+		break;
+	default:
+		PERR("invalid polarity %ld specified for IRQ %u", irq_pol,
+		     _irq_number);
+		throw Root::Unavailable();
+	}
+
+	Platform::setup_irq_mode(_irq_number, irq_trigger, irq_polarity);
 }

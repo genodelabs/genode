@@ -36,6 +36,8 @@ namespace Genode
 	 * Programmable interrupt controller for core
 	 */
 	class Pic;
+
+	enum { IRQ_COUNT = 256 };
 }
 
 struct Genode::Irte : Register<64>
@@ -60,17 +62,52 @@ class Genode::Ioapic : public Mmio
 			/* Register selectors */
 			IOAPICVER = 0x01,
 			IOREDTBL  = 0x10,
+
+			/* IRQ modes */
+			TRIGGER_EDGE  = 0,
+			TRIGGER_LEVEL = 1,
+			POLARITY_HIGH = 0,
+			POLARITY_LOW  = 1,
 		};
+
+		/**
+		 * IRQ mode specifies trigger mode and polarity of an IRQ
+		 */
+		struct Irq_mode
+		{
+			unsigned trigger_mode;
+			unsigned polarity;
+		};
+
+		static Irq_mode _irq_mode[IRQ_COUNT];
 
 		/**
 		 * Return whether 'irq' is an edge-triggered interrupt
 		 */
 		bool _edge_triggered(unsigned const irq)
 		{
-			if ((irq >= 0 && irq <= 8) || (irq >= 12 && irq <= Board::ISA_IRQ_END))
-				return true;
+			return _irq_mode[irq].trigger_mode == TRIGGER_EDGE;
+		}
 
-			return false;
+		/**
+		 * Update IRT entry of given IRQ
+		 *
+		 * Note: The polarity and trigger flags are located in the lower
+		 *       32 bits so only the necessary half of the IRT entry is
+		 *       updated.
+		 */
+		void _update_irt_entry(unsigned irq)
+		{
+			Irte::access_t irte;
+
+			write<Ioregsel>(IOREDTBL + 2 * irq);
+			irte = read<Iowin>();
+
+			Irte::Pol::set(irte, _irq_mode[irq].polarity);
+			Irte::Trg::set(irte, _irq_mode[irq].trigger_mode);
+
+			write<Ioregsel>(IOREDTBL + 2 * irq);
+			write<Iowin>(irte);
 		}
 
 		/**
@@ -81,11 +118,9 @@ class Genode::Ioapic : public Mmio
 			Irte::access_t irte = REMAP_BASE + irq;
 			Irte::Mask::set(irte, 1);
 
-			/* Use level-triggered, low-active mode for non-legacy IRQs */
-			if (!_edge_triggered(irq)) {
-				Irte::Pol::set(irte, 1);
-				Irte::Trg::set(irte, 1);
-			}
+			Irte::Pol::set(irte, _irq_mode[irq].polarity);
+			Irte::Trg::set(irte, _irq_mode[irq].trigger_mode);
+
 			return irte;
 		}
 
@@ -93,17 +128,34 @@ class Genode::Ioapic : public Mmio
 
 		Ioapic() : Mmio(Board::MMIO_IOAPIC_BASE)
 		{
-			/* Remap all supported IRQs */
-			for (unsigned i = 0; i <= IRTE_COUNT; i++) {
-				Irte::access_t irte = _create_irt_entry(i);
-				write<Ioregsel>(IOREDTBL + 2 * i + 1);
-				write<Iowin>(irte >> Iowin::ACCESS_WIDTH);
-				write<Ioregsel>(IOREDTBL + 2 * i);
-				write<Iowin>(irte);
+			for (unsigned i = 0; i < IRQ_COUNT; i++)
+			{
+				/* set legacy/ISA IRQs to edge, high */
+				if (i <= Board::ISA_IRQ_END) {
+					_irq_mode[i].trigger_mode = TRIGGER_EDGE;
+					_irq_mode[i].polarity = POLARITY_HIGH;
+				} else {
+					_irq_mode[i].trigger_mode = TRIGGER_LEVEL;
+					_irq_mode[i].polarity = POLARITY_LOW;
+				}
+
+				/* remap all IRQs managed by I/O APIC */
+				if (i <= IRTE_COUNT) {
+					Irte::access_t irte = _create_irt_entry(i);
+					write<Ioregsel>(IOREDTBL + 2 * i + 1);
+					write<Iowin>(irte >> Iowin::ACCESS_WIDTH);
+					write<Ioregsel>(IOREDTBL + 2 * i);
+					write<Iowin>(irte);
+				}
 			}
 		};
 
-		/* Set/unset mask bit of IRTE for given vector */
+		/**
+		 * Set/unset mask bit of IRTE for given vector
+		 *
+		 * \param vector  targeted vector
+		 * \param set     whether to set or to unset the mask bit
+		 */
 		void toggle_mask(unsigned const vector, bool const set)
 		{
 			const unsigned irq = vector - REMAP_BASE;
@@ -124,7 +176,20 @@ class Genode::Ioapic : public Mmio
 			write<Iowin>(irte);
 		}
 
-		/* Registers */
+		/**
+		 * Setup mode of an IRQ to specified trigger mode and polarity
+		 *
+		 * \param irq_number  ID of targeted interrupt
+		 * \param trigger     new interrupt trigger mode
+		 * \param polarity    new interrupt polarity setting
+		 */
+		void setup_irq_mode(unsigned irq_number, unsigned trigger,
+		                    unsigned polarity);
+
+		/*
+		 * Registers
+		 */
+
 		struct Ioregsel : Register<0x00, 32> { };
 		struct Iowin    : Register<0x10, 32> { };
 };
@@ -133,7 +198,10 @@ class Genode::Pic : public Mmio
 {
 	private:
 
-		/* Registers */
+		/*
+		 * Registers
+		 */
+
 		struct EOI : Register<0x0b0, 32, true> { };
 		struct Svr : Register<0x0f0, 32>
 		{
@@ -141,12 +209,11 @@ class Genode::Pic : public Mmio
 		};
 
 		/*
-		 * ISR register, see Intel SDM Vol. 3A, section 10.8.4. Each of the 8
-		 * 32-bit ISR values is followed by 12 bytes of padding.
+		 * ISR register, see Intel SDM Vol. 3A, section 10.8.4.
+		 *
+		 * Each of the 8 32-bit ISR values is followed by 12 bytes of padding.
 		 */
 		struct Isr : Register_array<0x100, 32, 8 * 4, 32> { };
-
-		Ioapic _ioapic;
 
 		/**
 		 * Determine lowest pending interrupt in ISR register
@@ -177,13 +244,15 @@ class Genode::Pic : public Mmio
 			 *        necessary
 			 */
 			IPI       = 255,
-			NR_OF_IRQ = 256,
+			NR_OF_IRQ = IRQ_COUNT,
 		};
 
 		/**
 		 * Constructor
 		 */
 		Pic();
+
+		Ioapic ioapic;
 
 		bool take_request(unsigned &irq);
 
