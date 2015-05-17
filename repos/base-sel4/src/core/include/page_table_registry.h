@@ -51,6 +51,8 @@ class Genode::Page_table_registry
 
 				addr_t const addr;
 
+				static constexpr bool verbose = false;
+
 			private:
 
 				List<Entry> _entries;
@@ -101,7 +103,8 @@ class Genode::Page_table_registry
 						_entries.remove(&entry);
 						destroy(entry_slab, &entry);
 					} catch (Lookup_failed) {
-						PWRN("trying to remove non-existing page frame for 0x%lx", addr);
+						if (verbose)
+							PWRN("trying to remove non-existing page frame for 0x%lx", addr);
 					}
 				}
 		};
@@ -147,6 +150,8 @@ class Genode::Page_table_registry
 			PDBG("page-table lookup failed");
 			throw Lookup_failed();
 		}
+
+		static constexpr bool verbose = false;
 
 	public:
 
@@ -204,7 +209,8 @@ class Genode::Page_table_registry
 				Page_table &page_table = _lookup(addr);
 				page_table.remove_entry(_page_table_entry_slab, addr);
 			} catch (...) {
-				PDBG("no PT entry found for virtual address 0x%lx", addr);
+				if (verbose)
+					PDBG("no PT entry found for virtual address 0x%lx", addr);
 			}
 		}
 
@@ -225,7 +231,8 @@ class Genode::Page_table_registry
 
 				fn(entry.sel);
 			} catch (...) {
-				PDBG("no PT entry found for virtual address 0x%lx", addr);
+				if (verbose)
+					PDBG("no PT entry found for virtual address 0x%lx", addr);
 			}
 		}
 };

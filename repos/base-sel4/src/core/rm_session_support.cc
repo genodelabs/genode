@@ -19,5 +19,8 @@ using namespace Genode;
 
 void Rm_client::unmap(addr_t core_local_base, addr_t virt_base, size_t size)
 {
-	PDBG("not implemented");
+	Locked_ptr<Address_space> locked_address_space(_address_space);
+
+	if (locked_address_space.is_valid())
+		locked_address_space->flush(virt_base, size);
 }

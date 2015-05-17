@@ -39,7 +39,7 @@ class Genode::Core_rm_session : public Rm_session
 		                  Local_addr local_addr = 0,
 		                  bool executable = false) override;
 
-		void detach(Local_addr) override { PDBG("not implemented"); }
+		void detach(Local_addr) override { }
 
 		Pager_capability add_client(Thread_capability) override {
 			return Pager_capability(); }

@@ -133,6 +133,12 @@ void Platform_pd::install_mapping(Mapping const &mapping)
 }
 
 
+void Platform_pd::flush(addr_t virt_addr, size_t size)
+{
+	_vm_space.unmap(virt_addr, round_page(size) >> get_page_size_log2());
+}
+
+
 Platform_pd::Platform_pd(Allocator * md_alloc, size_t ram_quota,
                          char const *, signed pd_id, bool create)
 :
