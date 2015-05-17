@@ -28,7 +28,7 @@
 
 using namespace Genode;
 
-static bool const verbose = true;
+static bool const verbose = false;
 
 
 struct Fault_info
