@@ -45,6 +45,7 @@ usage:
 	@echo "                  'foc_vea9x4'"
 	@echo "                  'foc_panda'"
 	@echo "                  'foc_arndale'"
+	@echo "                  'sel4_x86_32'"
 	@echo "                  'lx_hybrid_x86'"
 	@echo
 	@echo "  The definition of BUILD_DIR is optional. If specified,"
@@ -151,7 +152,7 @@ endif
 #
 # Add x86 drivers repositories to x86 build directories
 #
-ifeq ($(filter-out foc_x86_32 foc_x86_64 okl4_x86 nova_x86_32 nova_x86_64 pistachio_x86 fiasco_x86 hw_x86_64,$(PLATFORM)),)
+ifeq ($(filter-out foc_x86_32 foc_x86_64 okl4_x86 nova_x86_32 nova_x86_64 pistachio_x86 fiasco_x86 hw_x86_64 sel4_x86_32,$(PLATFORM)),)
 $(BUILD_DIR)/etc/build.conf::
 	@cat $(BUILD_CONF).drivers_x86 >> $@
 endif
@@ -192,6 +193,10 @@ nova_x86_32::
 nova_x86_64::
 	@echo "SPECS = genode nova_x86_64" > $(BUILD_DIR)/etc/specs.conf
 	@echo "SPECS += acpi"             >> $(BUILD_DIR)/etc/specs.conf
+
+sel4_x86_32::
+	@echo "SPECS  = genode sel4_x86_32" > $(BUILD_DIR)/etc/specs.conf
+	@echo "SPECS += acpi"              >> $(BUILD_DIR)/etc/specs.conf
 
 foc_pbxa9::
 	@echo "SPECS = genode foc_pbxa9" > $(BUILD_DIR)/etc/specs.conf
