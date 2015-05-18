@@ -4,6 +4,27 @@
                                ===========
 
 
+Genode's core running on the seL4 kernel | 2015-05-18
+#####################################################
+
+| In the third part of our seL4 article series, we describe the steps
+| taken to run Genode's fundamental components on seL4.
+
+The article "Porting the core component" builds upon the experience gained
+from the first two articles to execute Genode-based systems on
+top of seL4. As for the previous articles, it is full of technical insights
+into both seL4 and Genode. Among the many challenges that had to be overcome
+are the management of capabilities and memory, the synchronous RPC
+communication between components, and the handling of page faults. As result,
+simple Genode system scenarios can be readily executed on top of the seL4 kernel.
+[http://genode.org/documentation/articles/sel4_part_3 - Read the article...]
+
+All the steps described in the article can be followed in the
+topic branch [http://github.com/nfeske/genode/commits/sel4] of the ongoing
+development. Furthermore, the principle support for seL4 will be featured
+in the upcoming Genode release 15.05.
+
+
 An in-depth look into the ARM virtualization extensions | 2015-03-12
 ####################################################################
 
