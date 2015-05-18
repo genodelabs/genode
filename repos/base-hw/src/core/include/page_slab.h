@@ -18,6 +18,7 @@
 #include <base/stdint.h>
 #include <util/list.h>
 #include <util/bit_allocator.h>
+#include <util/construct_at.h>
 
 #include <core_mem_alloc.h>
 
@@ -73,8 +74,6 @@ class Genode::Page_slab : public Genode::Allocator
 				indices.free(off / SLAB_SIZE);
 				return true;
 			}
-
-			void * operator new (size_t, void * p) { return p; }
 		};
 
 		Slab_block _initial_sb __attribute__((aligned(1 << ALIGN_LOG2))); /*
@@ -148,7 +147,7 @@ class Genode::Page_slab : public Genode::Allocator
 			                                   ALIGN_LOG2).is_ok()) {
 				throw Out_of_memory();
 			}
-			Slab_block *b = new (p) Slab_block();
+			Slab_block *b = Genode::construct_at<Slab_block>(p);
 			_b_list.insert(&b->list_elem);
 			_free_slab_entries += SLABS_PER_BLOCK;
 			_in_alloc = false;

@@ -457,11 +457,6 @@ class Genode::Translation_table
 	public:
 
 		/**
-		 * Placement new
-		 */
-		void * operator new (size_t, void * p) { return p; }
-
-		/**
 		 * Constructor
 		 */
 		Translation_table()
