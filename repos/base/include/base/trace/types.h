@@ -44,7 +44,7 @@ struct Genode::Trace::Policy_id
 	Policy_id() : id(0) { }
 	Policy_id(unsigned id) : id(id) { }
 
-	bool operator == (Policy_id const &other) { return id == other.id; }
+	bool operator == (Policy_id const &other) const { return id == other.id; }
 };
 
 
@@ -58,7 +58,7 @@ struct Genode::Trace::Subject_id
 	Subject_id() : id(0) { }
 	Subject_id(unsigned id) : id(id) { }
 
-	bool operator == (Subject_id const &other) { return id == other.id; }
+	bool operator == (Subject_id const &other) const { return id == other.id; }
 };
 
 
