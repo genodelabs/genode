@@ -1,0 +1,1040 @@
+
+
+              ===========================================
+              Genode on seL4 - Porting the core component
+              ===========================================
+
+
+                              Norman Feske
+
+
+This is the third part of a series of hands-on articles about bringing Genode
+to the seL4 kernel.
+[http://genode.org/documentation/articles/sel4_part_1 - Read the first part here...]
+[http://genode.org/documentation/articles/sel4_part_2 - Read the second part here...]
+
+After exercising the seL4 kernel interface using a small toy root task, it
+is time to run Genode's core component as seL4 root task.
+We face the following challenges:
+* Building, linking, and running a skeleton of core on the seL4 kernel,
+* Initializing core's allocators,
+* Organizing core's capability space (CSpace),
+* Realizing core-local memory mappings,
+* Initializing core's services while complementing the framework's base
+  libraries such as the IPC marshalling and thread synchronization mechanisms,
+* Finding a way to integrate multiple boot modules into core's ROM service,
+* Bootstrapping the init component.
+
+
+A skeleton of the core component
+################################
+
+Core is the root of Genode's component tree. On seL4 it will play the role
+of the seL4 root task.
+The seL4-specific parts of core will reside at _repos/base-sel4/src/core/_
+whereas the kernel-agnostic parts are located at _repos/base/src/core/_.
+
+It is useful to take one of the existing variants of core as a starting point.
+With less than 800 lines of code, the variant for the Codezero kernel
+(as _repos/base-codezero/src/core/_) is the least complex one. The skeleton
+for seL4 can be derived from the Codezero version by mirroring the files
+and reducing them to a bare minimum. While doing the latter, we already revisit
+the core-internal API that is relevant for our porting work. While stripping
+down the files, we replace the bodies of all methods and functions by the
+statement 'PDBG("not implemented")'. The PDBG macro will nicely print the name
+of the function or method when called.
+
+:_core_rm_session.cc_ and _include/core_rm_session.h_:
+  The supplements for the core-specific RM session that is used to manage the
+  virtual address space of core. I.e., it hosts the implementation of the
+  'attach' method, which makes a dataspace visible within core.
+
+:_thread_start.cc_:
+  The core-specific parts of the 'Thread' API. All components on top of
+  core create threads by using core's services. But for core's local
+  threads (which are needed to implement core's services), those services
+  are unavailable. So the functions 'start'. 'cancel_blocking', and
+  '_thread_start', '_init_platform_thread' are implemented differently
+  for core.
+
+:_rm_session_support.cc_:
+  The way of how a virtual memory page is unmapped from a virtual address
+  space differs from kernel to kernel. This file hosts the kernel-specific
+  implementation of 'Rm_client::unmap'.
+
+:_ram_session_support.cc_:
+  Each RAM dataspace is cleared when allocated. In order to initialize
+  its content with zeros, core has to temporarily make the dataspace
+  visible within its virtual address space. The exact procedure depends
+  on the used kernel and is expressed by the '_clear_ds' method.
+
+:_include/platform_thread.h_ and _platform_thread.cc_:
+  The 'Platform_thread' class contains the functionality for creating and
+  manipulating threads. It is the back end of core's CPU service.
+
+:_include/platform_pd.h_ and _platform_pd.cc_:
+  The 'Platform_pd' class represents a protection domain on the specific
+  kernel. It is the back end of core's PD service and provides an interface
+  to associate threads with their protection domain, and to flush parts
+  of the protection domain's virtual address space.
+
+:_include/platform.h_ and _platform.cc_:
+  The 'Platform' class provides a core-internal interface for accessing
+  platform resources, i.e., physical memory, core-virtual memory,
+  I/O ports, memory-mapped I/O resources, and boot-time ROM modules.
+  The 'Platform' constructor performs the root-task initialization.
+
+:_irq_session_component.cc_:
+  This file contains the kernel-specific way of waiting for device
+  interrupts and acknowledging them.
+
+:_cpu_session_support.cc_:
+  This file contains a function to return a user-level thread control
+  block (aka IPC buffer) of a given thread as RAM dataspace.
+
+:_io_mem_session_support.cc_:
+  This file contains the implementation of the core-local interface
+  for making memory-mapped I/O resources available to core. It is
+  only needed on kernels that employ a traditional L4-style mapping
+  database. In order to hand out a MMIO page to another component,
+  root task must keep a local mapping of the page. On seL4, this is
+  fortunately not needed.
+
+:_include/map_local.h_:
+  This core-local header contains the functionality to make a given
+  physical memory range visible within core's local address space.
+
+:_include/util.h_:
+  This header is the designated place to keep kernel-specific utilities
+  that simplify the use of the kernel bindings. It also contains a few
+  policy functions that are called by the generic code. E.g., the function
+  'contain_map_size_log2' controls the use of large-page mappings.
+
+To compile and link the skeleton of core, the _target.inc_ and _target.mk_
+files of the Codezero version could be reused almost unchanged. The only
+missing piece is the _core_printf_ library, which contains the console
+implementation to be used by core. The minimalistic root task that was
+created in the first article already provides the needed functionality
+in the form of the _base-sel4/src/base/console/core_console.h_ header.
+All we need to do is to create a library description file
+_lib/mk/core_printf.mk_ that compiles _base/src/base/console/core_printf.h_
+with the seL4-specific _core_console.h_
+
+At the link stage, the linker informs us about a number of unresolvable
+symbols. Those are symbols that were not needed for the minimalistic root
+task of the previous articles but are required by core. At this point, the
+base-common sources used by the minimalistic root task will diverge from the
+base-common sources as used by real Genode components such as core. To
+preserve the minimalistic root task, we incorporate the previous base-common
+version into the test/sel4 target description and leave the _base-common.mk_
+library for the real Genode components. Now, the _base-common.mk_ library can
+be extended with the missing features, specifically the full implementation
+of the thread, pager, server, and signal APIs.
+
+At the point where core can successfully be linked, the skeleton code in
+_base-sel4/src/core/_ consists of merely 400 lines of code. To run this
+version of core, we create the following simple run script:
+
+! build { core }
+! create_boot_directory
+! build_boot_image "core"
+! append qemu_args " -nographic -m 64 "
+! run_genode_until forever
+
+After applying some minor tweaks to _tool/run/boot_dir/sel4_ for instructing
+the boot loader to start core instead of the minimalistic root task, we can
+execute core via 'make run/core'. We are greeted by the first life sign of
+the core skeleton:
+
+!:phys_alloc:   Allocator 106d4d8 dump:
+!:virt_alloc:   Allocator 106e534 dump:
+!:io_mem_alloc: Allocator 106f59c dump:
+!Could not allocate physical memory region of size 4096
+!could not allocate backing store for new context
+
+Core first prints the status of its allocators, which are empty.
+Consequently, the first attempt of an allocation fails, which leads us the
+next topic, the proper initialization of core's allocators.
+
+
+Core's allocators
+#################
+
+During the platform initialization in the 'Platform' constructor in
+_base-sel4/src/core/platform.cc_, core initializes the following
+parameters and allocators:
+
+:IRQ allocator:
+  Core's IRQ service hands out each interrupt only once. To track the
+  interrupts that are in use, an allocator is used. Regardless of how
+  many interrupts exists on the actual machine, this allocator
+  is initialized with the range 0 to 255.
+
+:Physical memory:
+  Core's physical memory allocator ('_core_mem_alloc.phys_alloc()') keeps
+  track of unused physical memory.
+  On seL4, this corresponds to the untyped memory ranges as reported by
+  seL4's boot-info structure. For each range found in this structure,
+  we add a corresponding range to the physical-memory allocator.
+
+:I/O memory:
+  Core's I/O memory allocator ('_io_mem_alloc') maintains the unused
+  I/O memory regions. It is used by the IO_MEM service for making sure
+  that each memory-mapped I/O resource is handed out only once.
+  On most kernels, Genode threats all non-RAM physical-memory ranges as
+  I/O memory. On seL4, the boot-info structure conveniently reports
+  device-memory regions, which we can use to initialize the I/O memory
+  allocator without relying on heuristics.
+
+:Virtual memory:
+  Core stores the bounds of the available virtual memory per component
+  in the form of '_vm_base' and '_vm_size'. To detect null-pointer
+  dereferences, we exclude the first virtual-memory page by setting
+  '_vm_base' to 0x1000. Because, we address x86_32 for now, we hard-wire
+  the upper boundary to 2 GiB.
+
+:Core's virtual memory:
+  Core's virtual-memory allocator ('_core_mem_alloc.virt_alloc()') maintains
+  the unused virtual-memory regions of core. As for any component, it is
+  initialized with '_vm_base' and '_vm_size'. However, we have to manually
+  exclude the virtual-address range of the core image and the so-called
+  thread context area. The latter is a virtual-address region designated
+  for the stacks of core's threads.
+
+With the initialized allocators, core produces the following output:
+
+! Starting node #0
+! core image:
+!   virtual address range [01000000,0107f000) size=0x7f000
+! VM area at [00001000,80000000)
+! :phys_alloc:   Allocator 106d4d8 dump:
+!  Block: [00100000,0010a000) size=0000a000 avail=0000a000 max_avail=03e0a800
+!  Block: [001f0000,03ffa800) size=03e0a800 avail=03e0a800 max_avail=03e0a800
+!  => mem_size=65095680 (62 MB) / mem_avail=65095680 (62 MB)
+! :virt_alloc:   Allocator 106e534 dump:
+!  Block: [00001000,01000000) size=00fff000 avail=00fff000 max_avail=00fff000
+!  Block: [0107f000,40000000) size=3ef81000 avail=3ef81000 max_avail=3ef81000
+!  Block: [50000000,80000000) size=30000000 avail=30000000 max_avail=30000000
+!  => mem_size=1878523904 (1791 MB) / mem_avail=1878523904 (1791 MB)
+! :io_mem_alloc: Allocator 106f59c dump:
+!  Block: [00001000,00100000) size=000ff000 avail=000ff000 max_avail=000ff000
+!  Block: [03ffe000,20000000) size=1c002000 avail=1c002000 max_avail=dffff000
+!  Block: [20001000,00000000) size=dffff000 avail=dffff000 max_avail=dffff000
+!  => mem_size=4228907008 (4033 MB) / mem_avail=4228907008 (4033 MB)
+! bool Genode::map_local(Genode::addr_t, Genode::addr_t, Genode::size_t): not implemented
+! bool Genode::map_local(Genode::addr_t, Genode::addr_t, Genode::size_t): not implemented
+! could not map phys 101000 at local 401fe000
+
+The circumstances of the first call of 'map_local' can be revealed by adding
+an infinite loop to the body of the 'map_local' function and attaching
+GDB to Qemu's built-in GDB stub (as described in the
+[http://genode.org/documentation/articles/sel4_part_1#A_root_task_for_exercising_the_kernel_interface - in the first article]).
+The backtrace tells us that core tries to initialize the main thread
+(_base/src/platform/init_main_thread.cc_). That is, it tries to allocate a
+stack within the context area. As a side effect of this step, core's
+Genode environment ('Genode::env()') gets constructed
+(_base/src/core/include/core_env.h_).
+The implementation of core's Genode environment differs from the version
+used in regular components. In particular, it contains core's entrypoint
+that provides core's services. Because this entrypoint is a thread, core
+tries to create a new thread along with the thread's context (i.e., a stack).
+The thread creation, in turn, triggers a memory allocation within core, which
+ultimately results in the attempt to extend the 'core_mem_alloc'.
+Consequently, the first call of 'map_local' refers to the memory block added
+to core's local memory pool.
+
+To proceed, we need to provide a working implementation of the
+'map_local' function. This function will ultimately create and interact with
+kernel objects such as page frames. For this reason, we first need to define
+the way how core manages the capability space for such kernel objects.
+
+
+Capability-space organization within core
+#########################################
+
+The seL4 kernel provides a flexible concept of hierarchical capability spaces
+using guarded page tables. The freedom offered by this concept raises the
+question of how to organize core's capability space in the best way.
+The insights gathered in the
+[http://genode.org/documentation/articles/sel4_part_2 - previous article]
+were helpful to come up with following scheme:
+
+* The 1st-level CNode has a size of 2^12. It contains up to 4096 2nd-level
+  CNodes.
+
+* The 2nd-level CNode (called core CNode) at index 0 contains capability
+  selectors for core-local kernel objects that are unrelated to memory.
+  For example, endpoints, threads, and page directories.
+  For now, we pick a size of 16*1024 = 2^14. To align the capability selectors
+  at the least significant bit of core's CSpace addresses, we pick a guard
+  of 32 - 12 (1st level) - 14 (2nd level) = 6.
+
+* The 2nd-level CNode (called core-VM CNode) at index 1 is designated to
+  contain the of page-frame selectors and page-table selectors currently in
+  use by core's address space.
+
+* The 2nd-level CNode (phys CNode) at index 0xfff contains page-frame
+  capabilities whose indices correspond to their respective untyped memory
+  locations.
+  With 4 GiB of physical address space, we need a maximum of 2^20 4K frames.
+  Hence, we dimension the CNode to contain 2^20 frame capabilities.
+  With one CNode entry being 16 bytes, this CNode takes 16 MiB of
+  untyped memory.
+  The guard must be set to 0 (12 + 20 + 0 = 32).
+  Note that on 64-bit systems, the simple 1:1 correspondence between
+  frame selectors and physical frame numbers may become
+  impractical.
+
+* The remaining 2nd-level CNodes at the indices 2 to 4095 contain CNodes
+  for non-core protection domains, in particular copies of the page-frame
+  selectors and page-table selectors in use by the corresponding protection
+  domain.
+
+In order to construct such a CSpace, we need to create kernel objects by
+using the kernel's "retype-untyped" operation. This operation takes an
+untyped memory range as argument. The argument is a tuple of an untyped
+memory selector and an offset within the untyped memory range. Core's
+physical memory allocator, however, has no notion of untyped memory ranges
+and their associated selectors. For this reason, we will create seL4
+kernel objects with the following procedure:
+
+# Calculation of the needed backing store in bytes.
+# Allocation of the backing store from core's physical memory allocator.
+  The allocated range must lie completely within one of seL4's untyped
+  memory ranges. This can be achieved by performing the allocation
+  with an alignment that corresponds to the allocation size (natural
+  alignment).
+# Lookup of the untyped memory range by using the physical address and
+  size of the allocated backing store as a key. The lookup returns
+  a tuple of an untyped memory selector and an offset relative to the
+  start of the untyped memory range. Within core, we call this tuple
+  'Untyped_address'.
+# Creation of the kernel object by specifying the untyped address as
+  argument to the kernel's untyped-retype operation.
+
+With the facility for constructing kernel objects in place, we can
+create the CNode hierarchy of core's CSpace. After creating CNodes
+for the different levels, the initial capability selectors can be copied
+to the new core CNode, and a selector for core's CNode must be inserted into
+the top-level CNode. Finally, the top-level CSpace is assigned to the
+initial thread using the 'seL4_TCB_SetSpace' operation.
+
+To validate the switch to the new CSpace, we can issue an 'seL4_TCB_Suspend'
+operation onto the initial thread. This operation will work only if the
+specified thread selector is meaningful.
+
+
+Core-local memory mappings
+##########################
+
+At start time, the only memory present in core's virtual address space
+(VSpace) is the core image along with the BSS segment of the ELF executable.
+After the basic initialization, however, core requires dynamic memory
+allocations that depend on the booted system scenario. In general, a
+core-local memory allocation involves the reservation of a physical
+memory range, the reservation of a core-virtual memory range of the same
+size, and the insertion of MMU mappings from the core-virtual address range
+to the physical address range. On seL4, however, a few additional considerations
+are needed.
+
+First, physical memory has the form of untyped memory, which cannot be used
+as memory unless explicitly converted into page frames using the
+retype-untyped operation. This operation results in a number of capability
+selectors, one for each page frame. We store those frame selectors in the
+phys CNode such that the CNode index equals the page-frame number. This
+way, we do not need to dynamically allocate selector slots over the
+lifetime of the system and can easily infer the capability selector of the
+page frame for a given physical address. The conversion of untyped
+memory to page frames and similar functionality will go to a dedicated header
+file _untyped_memory.h_. The function 'Untyped_memory::convert_to_page_frames'
+takes a physical address and the number of page frames as argument and nicely
+wraps the seL4 retype-untyped operation.
+
+Second, to insert a page frame into a virtual address space, we potentially
+also need to allocate and insert a page table, depending on where the
+frame should be inserted. Initially, the kernel sets up the page table of
+core that spans the core image. We have to distinguish the case where a
+frame is inserted at an address where a page table is already installed
+(somewhere within the initial set of page tables) from the case where
+the frame is inserted at a location with no page table installed. To
+distinguish both cases, we have to track the information where page
+tables are installed. This is accomplished with a data structure
+called 'Page_table_registry', which must be instantiated per virtual
+address space. This registry maintains a list of
+page table selectors along with their corresponding virtual addresses.
+When inserting a page frame at a virtual address, the page-table registry
+tells us whether or not we need to install a page table first.
+
+Third, since each page-frame selector can be inserted into only one
+page table, we need to create a copy of the page-frame selector and insert
+the copy into the page table. Otherwise, a page frame could be present in
+only a single virtual address space at a time, which contradicts with Genode's
+dataspace concept. This raises the question how to allocate the copies
+of the page frame selectors and how to name them. The resource demands for
+these copies will ultimately depend on the behaviour of the components.
+For example, if a component decides to allocate a small dataspace of 4 KiB
+and attaches the dataspace a large number of times within its address space,
+we need to allocate a copy of the page frame selector for each attachment.
+The preallocation of a large-enough CNode as we do for the physical
+page-frame selectors is out of question because we would need to preallocate
+a 16-MiB CNode for each virtual address space. This is for a 32-bit system.
+On a 64-bit system, this approach would become entirely impractical.
+Hence, we need to allocate the frame selector copies in an as-needed fashion.
+This, however, requires us maintain an associative data structure to
+store the relationship between a frame-selector copy and its corresponding
+virtual address. This data structure is quite similar to the page-table
+registry described above. For this reason, the problem is covered by
+extending the page-table registry with the ability to register tuples
+of (page frame selector, virtual address).
+
+Fourth, frame selector copies must be allocated from some CNode. Because
+the allocation demands depend on the behaviour of the components, we cannot
+use a global CNode shared between all components. Instead, we have to
+create so-called VM CNode for each virtual address space. This CNode is
+used to allocate page-table selectors and frame selector copies for a
+particular virtual memory space. Within core, VM CNodes are made visible
+as 2nd-level CNodes. One problem remains: The VM Cnode is dimensioned at
+creation time of the virtual address space. By intensely populating a
+virtual address space, we may run out of selectors. Worse, this condition
+will trigger during the page-fault handling. So no error condition can be
+reflected to the component. However, fortunately,
+if we encounter such a situation, we can safely discard existing selectors
+via ('seL4_CNode_Delete') and reuse the selectors for different frames and
+page tables. This would result in the eviction of MMU mappings in this
+situation. So this concept basically corresponds to a software-loaded TLB
+implemented in software.
+
+The problems described above are addressed by the 'Vm_space' class that
+takes care of the VM CNode creation and the allocation of VM-specific
+selectors from the VM CNode. We can skip the implementation of the eviction
+mechanism for now. In order to accommodate the needs of the 'map_local'
+function, a 'Vm_space::map' method suffices.
+
+To solve the problem for the initial call of 'map_local' for a memory
+block allocated from 'Platform::core_mem_alloc', the platform-specific
+implementation of 'Core_mem_allocator::Mapped_mem_allocator::_map_local'
+has to perform the retype-untyped operation of the physical memory range
+before calling 'map_local' ('map_local.h'). The 'map_local' function
+performs the actual VM-space manipulation by calling 'Vm_space::map'.
+With this implementation, the first call of 'map_local' succeeds.
+However, the second call of 'map_local' fails with the following error:
+
+! map_local from_phys=0x1e5000, to_virt=0x401fe000, num_pages=2
+! <<seL4 [decodeCNodeInvocation/107 Te01e9880 @100092c]:
+!   CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+
+The virtual address of 0x401fe000 lies within the thread-context area, which
+indicates that 'map_local' was called to install a stack. To investigate the
+circumstances of the call more closely, it is useful to equip the 'map_local'
+function with a "ghetto breakpoint":
+
+! inline bool map_local(addr_t from_phys, addr_t to_virt, size_t num_pages)
+! {
+!   PDBG("map_local from_phys=0x%lx, to_virt=0x%lx, num_pages=%zd",
+!        from_phys, to_virt, num_pages);
+!
+!   if (to_virt == 0x401fe000)
+!     for (;;);
+!   ...
+! }
+
+A backtrace at the point where core gets stuck at the "breakpoint" reveals
+that core tries to attach a thread context dataspace to the context area by
+calling the 'Context_area_rm_session::attach' function. This function
+allocates a physical memory range from core's phys alloc, manually creates
+a 'Dataspace_component' object, and calls 'map_local'. Clearly, the step for
+converting untyped memory to page frames (as we already did for
+'core_mem_alloc' is missing here. So we have to modify the function in
+perform the conversion. Unfortunately, the 'context_area.cc' is
+generic source code located in _repos/base/_. Since we do not want
+to touch generic code with the seL4 port, we have to create a copy of the file
+to _repose/base-sel4/src/core/_ for now. Of course, this code duplication
+is frowned upon. We will eventually need to add the call of a hook function to
+the generic implementation. So the 'attach' function could remain generic and
+only the hook function would have a platform-specific implementation. However,
+to prevent us from becoming side tracked with changing core interfaces, we
+leave this step for later. In the base-sel4-local copy of _context_area.cc_,
+we insert a call to 'Untyped_memory::convert_to_page_frames'.
+
+
+Enabling core's services
+########################
+
+With the core-internal memory management in place, core succeeds with
+allocating the stack for core's RPC entrypoint. This is followed by the
+attempt to create and start the entrypoint's thread as indicated by the
+following debug message:
+
+!void Genode::Thread_base::_init_platform_thread(...): not implemented
+
+
+Core-local thread creation
+==========================
+
+We have to implement the functionality of _core/thread_start.cc_. The
+'_init_platform_thread' function creates the in-kernel thread control block
+(TCB) along with the thread's IPC buffer. The seL4 IPC buffer corresponds
+to the UTCB (user-level thread control block) as present on other L4 kernels.
+Genode places the UTCB of a thread along with the thread's stack in a slot
+of the context area. All we need to do to reserve the virtual address range
+for the IPC buffer is to tell Genode about the buffer size.
+This is done by defining the 'Genode::Native_utcb' type to contain an
+array that corresponds to the UTCB size. As we will use a dedicated memory
+page for each thread, the array is dimensioned to span 4096 bytes. The
+'Thread_base' class stores platform-specific thread meta data in a variable
+of the 'Native_thread'. On seL4, we use this variable to store the selector
+of the thread's TCB.
+
+The thread creation consists of two steps. The first step is the physical
+creation of the thread in the function '_init_platform_thread' and involves
+the allocation of the thread's IPC buffer, the creation of the TCB, the
+assignment of the IPC buffer to the TCB, the definition of the TCBs
+scheduling priority, and the association of the TCB with core's protection
+domain. The second step is the start of the thread execution via the
+'start' function. It defines the initial register state of the instruction
+pointer and stack pointer, and kicks off the execution via 'seL4_TCB_Resume'.
+
+The thread-creation procedure is the first instance where seL4 kernel objects
+are created without statically defined capability selectors. Hence, we need
+to equip core with an allocator for managing the selectors of the core CNode.
+
+At the current stage, we have not taken any precaution for the synchronization
+of threads. Hence, when starting the execution of the new thread, we are
+likely to corrupt core-internal state. For this reason, it is sensible to
+modify the thread's entry code as follows:
+
+!void Thread_base::_thread_start()
+!{
+!  int dummy;
+!  PDBG("called, stack at 0x%p, spinning...", &dummy);
+!  for (;;);
+!  ..
+!}
+
+This way, we will see a life sign of the new thread without causing any
+rampage. With the implementation of core's _thread_start.cc_, we are greeted
+with the following message:
+
+!static void Genode::Thread_base::_thread_start():
+!  called, stack at 0x401fef8c, spinning...
+
+The address (in particular the leading 0x4 digit) of the local 'dummy'
+variable tells us that the stack of the new thread was properly allocated
+within the context area.
+
+
+Thread synchronization
+======================
+
+After the initial thread has created and started core's entrypoint thread, it
+blocks until the entrypoint's initialization completes. This startup
+synchronization uses Genode's 'Lock' mechanism. The default lock
+implementation relies on a kernel mechanism to block and wake up
+threads. For example, Genode uses futexes on Linux, kernel semaphores on
+NOVA, and vIRQ objects on Fiasco.OC. On seL4, the natural approach would be the
+use of an asynchronous endpoint per thread. However, as we are currently
+concerned about the core services, we are at risk to become side tracked
+by the implementation of the proper lock. Hence, for the current state,
+we can use a simple yielding spinlock as an interim solution. Of all supported
+kernels, L4/Fiasco is the only kernel that lacks a proper base mechanism for
+building synchronization primitives. Hence, we use to employ a yielding
+spinlock on this kernel. We can simply borrow the lock implementation from
+_base-fiasco/src/base/lock/_ and _base-fiasco/include/base/cancelable_lock.h_.
+
+With the stop-gap lock implementation in place, we can activate
+the regular '_thread_start' function and allow core's initialization to
+proceed. We are greeted with the following messages:
+
+!void Genode::Ram_session_component::_export_ram_ds(...): not implemented
+!void Genode::Ram_session_component::_clear_ds(...): not implemented
+!virtual Genode::Rm_session::Local_addr
+!   Genode::Core_rm_session::attach(...): not implemented
+!Caught cap fault in send phase at address 0x0
+!while trying to handle:
+!vm fault on data at address 0x0 with status 0x6
+!in thread 0xe0209880 at address 0x104c8aa
+!void Genode::Ipc_istream::_wait(): not implemented
+!void Genode::Ipc_ostream::_send(): not implemented
+!void Genode::Ipc_istream::_wait(): not implemented
+!...
+
+
+The difficulty in interpreting these messages lies in the fact that we have
+now more than one thread running. So we have to carefully analyze each
+message individually. But we can already gather quite a bit of information
+by just looking at the output:
+
+* Core tries to allocate a RAM dataspace by invoking the RAM service. At
+  the allocation time of a new RAM dataspace, core clears the underlying
+  backing store by calling the '_clear_ds' function. Besides the obvious
+  fact that we have not yet implemented the function, it would be interesting
+  to learn the exact circumstance of its call.
+
+* The VM fault at address 0 (the message comes from the kernel) is most
+  likely a subsequent fault of the missing back-end functionality of the RAM
+  service. It looks like a de-referenced null pointer returned by the
+  non-implemented 'Core_rm_session::attach' function. A quick look at the
+  reported instruction pointer 0x104c8aa via 'objdump -lSd' reveals that
+  the fault happens in the 'malloc' implementation of the C++ runtime's
+  internal heap. A plausible explanation could be that the C++ runtime
+  tried to perform a memory allocation (e.g., for allocating an exception
+  frame), which exceeds the 'initial_block' of the allocator. So the runtime's
+  heap tries to expand its backing store by allocating and using a new RAM
+  dataspace. So the calls of the 'Ram_session_component' functions are
+  indirectly caused by the attempt to expand the C++ runtime's heap.
+
+* The 'Ipc_istream::_wait' function is called by the just-created RPC
+  entrypoint thread. The messages repeat infinitely. To work on the
+  RAM dataspace allocation, we will first need to silence those messages
+  by adding an infinite loop to '_wait' in _base-sel4/src/base/ipc/ipc.cc_.
+
+
+RAM session supplements
+=======================
+
+To enable core to work with RAM dataspaces, we have to focus on the functions
+of _ram_session_support.cc_. A RAM dataspace is allocated from core's physical
+memory allocator. At allocation time, however, the underlying backing store
+is still untyped memory. To use it as RAM dataspace, we need to convert it to
+physical page frames as we already did for the core memory allocator. Placing
+a call of 'Untyped_memory::convert_to_page_frames' in '_export_ram_ds' does
+the trick.
+
+With the implementation of '_clear_ds', we can follow the pattern as used on
+other kernels. The OKL4 kernel is particularly useful because - like seL4 -
+it populates virtual address spaces via an asynchronous map operation that
+targets physical memory. While implementing this function, it becomes
+apparent that we need to implement the counterpart of 'map_local' called
+'unmap_local'. As a side effect, we need to implement 'Cnode_base::remove'
+(for deleting a selector from a CNode) and 'Vm_space::unmap'.
+As for the '_clear_ds' function, we can take the OKL4 version of core as
+blue print for implementing the 'Core_rm_session::attach' function.
+
+At this point, the logging of 'map_local' and 'unmap_local' operation
+starts to produce a lot of noise. So it is a good time to remove this
+no-longer needed messages. Now we are rewarded with the first real life
+signs of core:
+
+!Genode 15.02-336-g7b52dcd <local changes>
+!int main(): --- create local services ---
+!int main(): --- start init ---
+!Could not open ROM session for module "init"
+!ROM module "init" not present
+!virtual void Genode::Pager_activation_base::entry(): not implemented
+!void Genode::Ipc_istream::_wait(): not implemented
+!void Genode::Ipc_ostream::_marshal_capability(...): not implemented
+!void Genode::Ipc_client::_call(): not implemented
+!void Genode::Ipc_ostream::_marshal_capability(...): not implemented
+!void Genode::Ipc_client::_call(): not implemented
+!Transfer CPU quota, core -> init, no reference relation
+!int main(): transferred 45 MB to init
+!void Genode::Ipc_client::_call(): not implemented
+!void Genode::Ipc_istream::_unmarshal_capability(...): not implemented
+!Genode::Platform_pd::Platform_pd(...): not implemented
+!int main(): --- init created, waiting for exit condition ---
+!void Genode::Ipc_istream::_wait(): not implemented
+
+Apparently, the initialization of all core services has succeeded. This means
+that the core-internal mechanics (threading, synchronization, memory
+management) are running fine. Other than that, the output tells us the
+following things:
+
+* Core tries to obtain the ELF image for the init component. As we do not
+  have any ROM module available, this step fails.
+
+* Core spawns the pager thread (Pager activation) for handing incoming page
+  faults. The page fault handler is not implemented yet.
+
+* The core-internal threads try to communicate with each other using IPC.
+  The IPC library, however, is not implemented yet. Hence, RPC calls
+  return immediately with bogus results.
+
+* Core tries to create the protection domain for the init component.
+
+We have to address each of those issues in order to start the init component.
+
+
+Capability lifetime management and IPC
+======================================
+
+Of the open points listed in the previous section, the RPC communication
+between threads (also referred to as IPC) is the most challenging one.
+Without going into extreme details, the following considerations are
+worth mentioning.
+
+
+Representation of Genode capabilities
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For the time being, we will represent a Genode capability as a tuple of
+a badged seL4 endpoint selector and a unique ID. The endpoint can be
+used to invoke the capability whereas the unique ID enables components
+to re-identify capabilities. For a discussion of the latter problem,
+please refer to the corresponding thread at the
+[http://sel4.systems/pipermail/devel/2014-November/000112.html - seL4 mailing list].
+It is important to highlight that the unique ID is merely a stop-gap
+solution as it has two unwelcome ramifications. First, by using globally
+unique values, components can see global information, which could be misused
+to construct covert storage channels. Second, the integrity of the unique
+IDs is not protected by the kernel. A misbehaving component could forge this
+part of the capability representation to interact with RPC objects without
+authority. The second problem exists when capabilities are used as arguments
+to RPC calls where the receiver of the call has not created the capability
+in the first place. Even though this a rare case, it exists within Genode
+in the form of session-control functions of Genode's parent interface.
+For closing a session, a child component specifies a session capability to
+the parent. The session capability, however, was originally created by a
+server component, not the parent.
+
+To remedy the problem, there exist a few approaches such as using core as
+a proxy for capability delegations, using multiple seL4 selectors to
+represent a single Genode capability, or using non-global hint values instead
+of unique IDs combined with a selector-compare operation. However, even
+though those attempts greatly differ with respect to complexity, performance
+overhead, and awkwardness, none of them is both effective and easy to
+implement. So we will stick with the unique IDs for now.
+
+
+Manufacturing and managing capabilities
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Genode capabilities are created and destroyed by core's CAP service. Hence,
+the 'Cap_session_component' interface must be implemented. The 'alloc'
+function takes an entrypoint capability as argument and produces a new
+object identity by minting the entrypoint's endpoint selector. The badge
+of the minted endpoint selector is set to a freshly allocated unique ID.
+
+While working with a Genode capability within the local component, we need
+to keep track of lifetime of the Genode capability. If a Genode capability
+is no longer in use, we want to remove the corresponding endpoint selector
+from the component's CSpace. For this reason, Genode capabilities are
+implemented as reference-counted smart pointers. The framework-internal
+representation of those smart pointers differs between core and non-core
+component. Within core, we need to maintain the information about which CAP
+session was used to create a given capability to ensure that each capability
+can be freed only via the CAP session that created it. Outside of core, this
+information is not needed. Because of this difference between core and
+non-core, the 'Capability_space_sel4' implementation in
+_base-sel4/base/internal/capability_space_sel4.h_ is implemented as a
+class template.
+
+The capability-space management is implemented in a way that cleanly
+separates seL4-specific code from kernel-agnostic code. The latter part
+will eventually move to the _base_ repository to be adapted by other base
+platforms.
+
+
+Capability invocation
+~~~~~~~~~~~~~~~~~~~~~
+
+The functionality needed to call RPC objects is implemented in
+_base-sel4/src/base/ipc/_ and the closely related definition of the message
+buffer at _base-sel4/include/base/ipc_msgbuf.h_. The _ipc/ipc.cc_ file hosts
+the implementation of the low-level IPC mechanism using the seL4 system calls
+'seL4_Call', 'seL4_Wait', and 'seL4_ReplyWait'. The conversion between seL4
+IPC messages and Genode's message buffer as defined in _ipc_msgbuf.h_ is
+performed by the functions 'new_sel4_message' and 'decode_sel4_message'.
+
+
+Building and linking the first non-core component
+#################################################
+
+With the RPC mechanism working between core-local threads, it is time to
+consider the creation of the first non-core component, namely init. To build
+the init binary, however, there are still a few bits missing.
+
+! sel4_x86_32> make init
+! checking library dependencies...
+! Library-description file base.mk is missing
+
+The _base.mk_ library complements the _base-common.mk_ library with
+functionality that is different from core:
+
+* Console output is directed to core's LOG service instead of the kernel
+  debugger.
+* The context area is managed via a nested RM session, provided by core's
+  RM service.
+* The capability space is managed differently. The lower part of the
+  capability space is managed by core. It is populated with selectors of
+  kernel objects that are unrelated to Genode capabilities, e.g., TCB
+  selectors. The upper part is managed locally by the component.
+* The thread API uses core's CPU service.
+
+For creating the _base.mk_ library for seL4, we can take cues from the
+other base platforms. It turns out that we don't need to implement much new
+code. Most functionality can be taken from the generic _base_ repository.
+
+
+Boot-time ROM modules
+#####################
+
+In contrast to most L4 kernels, seL4 does not support the loading of multiple
+boot modules in addition to root task. If we supplied multiple multi-boot
+modules, seL4 would regard them as individual system images in a multi-kernel
+setup.
+
+For this reason, we need a way to include Genode's initial ROM modules such as
+the ELF binary of the init component, the init configuration, and further
+ELF binaries into one ELF image with core. Fortunately, seL4 is not the first
+kernel where we face such an issue. We can simply reuse the solution that we
+created originally for the base-hw kernel:
+
+* Core is built as a library.
+* All boot modules are merged into a single object file called
+* _boot_modules.o_. The object file
+  is created from an automatically generated assembly file that uses the
+  assembler's incbin directive to incorporate binary data. In addition to the
+  binary data, the assembly file contains the module name as meta data.
+  A dummy skeleton of a _boot_modules.s_ file resides at
+  _base-sel4/src/core/_.
+* Both the core library and _boot_modules.o_ are linked at the boot
+  image-creation stage of Genode's run tool. The mechanism is provided by
+  the _run/tool/boot_dir/sel4_ script snippet, which is based on the hw
+  version.
+* Core's platform initialization code (the constructor of 'Platform')
+  accesses the meta data provided by _boot_modules.o_ to populate core's
+  ROM service with ROM modules.
+
+Merging all boot modules with core is only half the way to go. We also need
+to make the boot modules known to core's ROM service. The ROM service
+expect the physical address and size of each ROM module. But since each
+ROM module is just a part of core's virtual address space, we neither
+know its physical address nor do we have the underlying page frames present
+in core's phys CNode. However, the seL4 boot info tells us the frame
+selector range of core (including the boot modules) via the 'userImageFrames'
+field. Given the virtual addresses of the start of core and each of the
+boot modules, we can calculate the page-frame selectors that belongs to the
+corresponding module. Still, we need to make the page selectors available
+within the phys CNode in order to access it. Unfortunately, we do not know
+the physical address where the 'userImageFrames' reside. In theory, however,
+any large-enough range within the phys CNode that is not occupied with RAM
+or device memory will do. To determine the unused ranges with the phys
+Cnode, we introduce a new allocator called 'unused_phys_alloc'. This
+allocator is initialized with the entirety if the address space covered by
+the phys CNode. With each range we add to either the physical memory
+allocator or the I/O memory allocator, we remove the range from the unused
+phys allocator. After the initialization of the allocators completed, we
+can allocate an unused range of the phys CNode from the unused phys allocator
+and copy the page frames of the boot modules to this range of the phys CNode.
+All this magic happens in the function 'Platform::_init_rom_modules'.
+
+After this procedure, the boot modules will appear to core as being part
+of the physical address space, even though we technically don't know the
+actual physical addresses populated by them.
+
+
+Bootstrapping the init component
+################################
+
+With the IPC and boot-module handling in place, core arrives at the following
+point when starting the _base/run/printf.run_ script:
+
+!boot module 'init' (371380 bytes)
+!boot module 'test-printf' (249664 bytes)
+!boot module 'config' (272 bytes)
+!Genode 15.02-348-ge612bff
+!int main(): --- create local services ---
+!int main(): --- start init ---
+!virtual void Genode::Pager_activation_base::entry(): not implemented
+!int main(): transferred 43 MB to init
+!Genode::Platform_pd::Platform_pd(): not implemented
+!Genode::Platform_thread::Platform_thread(): not implemented
+!virtual void Genode::Core_rm_session::detach(): not implemented
+
+According to the log messages, core attempts to create the protection domain
+and the main thread of the init component. Now that we start to deal with
+more than one virtual address space, debugging with Qemu's GDB stub will
+become difficult. Since we don't know, which address space is active when
+attaching GDB, we cannot unambiguously create back traces or refer to
+virtual addresses. A simple work-around for this issue is to use
+disjoint link addresses for the core and init programs. By default, we
+link components (including init) to 0x01000000. By adding the following line
+to core's _target.mk_ file, we force core to use a different virtual-address
+range:
+! LD_TEXT_ADDR ?= 0x02000000
+
+For bootstrapping the init component, we have to solve the creation of
+init's kernel objects, the handling of page faults, the propagation of
+the parent capability to the new PD, and the synchronous inter-component
+communication between init and core.
+
+
+Platform_thread and Platform_pd
+===============================
+
+Core's 'Platform_pd' and 'Platform_thread' classes use seL4 kernel primitives.
+A 'Platform_pd' needs the following ingredients:
+
+* A 'Page_table_registry' (the one we created in
+  Section [Core-local memory mappings]) is used to keep track of the
+  memory mappings installed in the PD's virtual address space.
+* A seL4 page-directory object represents the PD at the kernel.
+* A 'Vm_space' operates on the 'Page_table_registry' and invokes seL4
+  system calls to populate the seL4 page-directory object with the
+  corresponding memory mappings.
+* A CNode for the CSpace of the PD represents the cap selector space
+  within the PD.
+
+The CSpace of the PD is divided into two parts. The lower part is managed
+by core and will hold selectors to kernel objects created or installed by
+core. For example, one unbadged endpoint selector for each thread,
+the parent capability, or a fault-handler selector for each thread.
+The size of the lower part is defined by the
+NUM_CORE_MANAGED_SELECTORS_LOG2 value. To allocate selectors within the
+core-managed part of the PD's CSpace, core maintain an allocator '_sel_alloc'
+per PD. The upper part of CSpace is managed by the PD itself. It is
+designated for holding badged endpoint capabilities.
+
+A 'Platform_thread' consists of an seL4 thread, an IPC buffer, and an unbadged
+endpoint. The code for creating and starting threads outside of core is similar
+to the code we already created for core-local threads. So we can use the
+functionality of _thread_sel4.h_.
+
+With the creation of PDs and non-core threads in place, the main thread
+of init tries to fetch its first instruction from init's start of the
+text segment (0x01000000). We can see the fault as a kernel message.
+
+
+Page-fault handling
+===================
+
+To allow the init's main thread to execute, we have to resolve its page
+faults by implementing the pager-related interfaces within core. In line
+with all L4 kernels, the
+kernel reflects page faults as IPC messages to the pager as defined by
+the 'seL4_TCB_SetSpace' operation. This operation takes a PD-local
+fault-handler selector as argument. When the PD raises a page fault, the
+faulting thread implicitly sends a message through this selector. To direct
+those messages to core's pager endpoint, we have to copy the endpoint selector
+of core's pager endpoint into the CSpace of the PD. To enable the pager
+endpoint to distinguish the origin of page faults, each fault-handler
+selector is badged with a value that reveals the faulting thread.
+
+The resolution of page faults differs from traditional L4 kernels, which
+establish memory mappings as a side effect of the reply to synchronous
+page-fault messages. In contrast, seL4 requires the pager to install a
+mapping using an asynchronous map operation on a page-directory object.
+It turns out that core's pager infrastructure is yet very well prepared
+to handle this case. However, in order to keep Genode's generic code
+untouched during the porting work, I decided to emulate the traditional
+approach by modelling the side effect of populating the faulting address space
+via the global 'install_mapping' function that takes the faulter's badge
+and a mapping as argument. It is called by the
+'Ipc_pager::reply_and_wait_for_fault' function. The implementation resides in
+'platform_thread.cc'. It looks up the faulting thread using its faulter
+badge as key and then installs the mapping into the thread's PD.
+This implementation is meant as an interim solution until core accommodates
+the asynchronous map semantics in the generic code.
+With the page-fault handling in place, we can observe the following log
+output:
+
+!PF: ip=0x1000000, pf=0x1000000, write=0
+!PF: ip=0x100000b, pf=0x1081040, write=1
+!PF: ip=0x103d4e0, pf=0x103d4e0, write=0
+!PF: ip=0x1023f00, pf=0x1023f00, write=0
+!PF: ip=0x102b640, pf=0x102b640, write=0
+
+From observing the instruction-pointer values, we can infer that the main
+thread of the init component starts to execute. It cannot yet interact with
+core because we have not taken care of supplying the component with a proper
+parent capability. However, thanks to the 'seL4_DebugPutChar' system call that
+allows us to output characters directly via the kernel, we can obtain a life
+sign from init by adding a message to the early initialization code.
+
+!void prepare_init_main_thread()
+!{
+!  kernel_debugger_outstring("prepare_init_main_thread called\n");
+!}
+
+On the next run, we can see this message in-between the page-fault
+log messages.
+
+
+Non-core component startup
+==========================
+
+For debugging the non-core startup code, it is useful to temporary
+use the core_printf library also for init. This way, init is able
+to print messages directly via the kernel.
+
+To allow init to interact with its parent (core), we need to make the
+parent capability available to init and implement the management of the
+capability space for non-core components. The code for the latter goes
+to _base/env/capability_space.cc_ and uses the infrastructure that we
+already employ for core. Non-core components define the
+'Native_capability::Data' type differently because - unlike core - they do not
+need to associate capabilities with their corresponding CAP sessions.
+
+As a prerequisite to get the IPC communication from init to core working, we
+need to equip init's main thread with a proper IPC buffer. In particular, we
+have to map the IPC buffer into init's virtual memory. By convention, we
+install it at the second page (0x1000). To prevent this page to be used for
+anything else, we explicitly exclude it from the range of the available
+virtual address space by adjusting 'Platform::_vm_base' accordingly.
+
+With the IPC buffer in place, init tries to contact its parent. But at
+this point, we have not made the parent capability available to init.
+This requires two steps. First, core needs to install the endpoint selector
+for the parent capability to init's CSpace. The designated place to
+implement this functionality is 'Platform_pd::assign_parent'. Second,
+init has to pick up the selector and create a proper Genode capability
+out of it. This is done in the seL4-specific implementation
+'Genode::parent_cap' in _src/platform/_main_parent_cap.h_.
+
+With the propagation of the parent capability to init, we can observe
+init's main thread to successfully initialize the environment of the
+init component. It stops when it tries to create secondary threads, namely
+the signal handler thread and the entrypoint that will serve a "test-printf"
+child of init. To accommodate those threads, core needs to make sure
+to map their corresponding IPC buffers. In contrast to the IPC buffer
+of the main thread, the virtual address of the secondary thread's IPC buffers
+is explicitly specified by the thread-creating code. Hence, core does not
+need to rely on predefined virtual addresses for those. To allow a thread
+to act as an entrypoint, we need to make it aware of its unbadged endpoint
+selector. This selector was allocated within the core-managed part of the PD's
+CSpace during the thread creation. So only core knows its value. However
+core can share this knowledge with the just-created thread by writing it to
+the thread's IPC buffer before starting the thread. Upon startup, the thread
+will readily find the needed information in its IPC buffer when entering
+the 'Thread_base::_thread_bootstrap' method.
+
+After completing this step and re-enabling the LOG console for non-core
+components, we are greeted with the following output:
+
+!boot module 'init' (371556 bytes)
+!boot module 'test-printf' (249776 bytes)
+!boot module 'config' (272 bytes)
+!Genode 15.02-360-gb3cb2ca <local changes>
+!int main(): --- create local services ---
+!int main(): --- start init ---
+!int main(): transferred 43 MB to init
+!int main(): --- init created, waiting for exit condition ---
+![init] Could not open ROM session for module "ld.lib.so"
+![init -> test-printf] -1 = -1 = -1Test succeeded
+
+We have successfully started the first Genode scenario on seL4!
+
+The scenario consists of the three components core, init, and test-printf.
+The latter has been started as a child of init. Each component lives in
+its dedicated protection domain. So we know at this point
+that Genode's recursive structure is working. We have multiple threads
+running, which happily communicate with each other via synchronous RPC.
+The delegation of capabilities works.
+
+
+Next steps
+==========
+
+The _base/run/printf.run_ script is just the start. It is the simplest
+scenario possible. To execute meaningful Genode scenarios, we will need
+to address the following points next:
+
+* Support for asynchronous notifications
+* Full lock implementation to retire the yielding spinlock
+* Interrupts and I/O port access
+* Access to memory-mapped I/O registers
+* Timer driver
+* DMA by user-level device drivers (IOMMU considerations)
+* PIC-compatible system-call bindings
+
+
