@@ -53,9 +53,10 @@ class Genode::Slab_backend_alloc : public Genode::Allocator,
 	private:
 
 		enum {
-			VM_SIZE    = 24 * 1024 * 1024,     /* size of VM region to reserve */
-			BLOCK_SIZE = 1024  * 1024,         /* 1 MB */
-			ELEMENTS   = VM_SIZE / BLOCK_SIZE, /* MAX number of dataspaces in VM */
+			VM_SIZE       = 64 * 1024 * 1024,       /* size of VM region to reserve */
+			P_BLOCK_SIZE  = 1024 * 1024,            /* 1 MB physical contiguous */
+			V_BLOCK_SIZE  = P_BLOCK_SIZE * 2,       /* 1 MB virtual used, 1 MB virtual left free to avoid that Allocator_avl merges virtual contiguous regions which are physically non-contiguous */
+			ELEMENTS      = VM_SIZE / V_BLOCK_SIZE /* MAX number of dataspaces in VM */
 		};
 
 		addr_t                   _base;              /* virt. base address */
@@ -73,19 +74,20 @@ class Genode::Slab_backend_alloc : public Genode::Allocator,
 			}
 
 			try {
-				_ds_cap[_index] = Backend_memory::alloc(BLOCK_SIZE, _cached);
-				/* attach at index * BLOCK_SIZE */
-				Rm_connection::attach_at(_ds_cap[_index], _index * BLOCK_SIZE, BLOCK_SIZE, 0);
+				_ds_cap[_index] = Backend_memory::alloc(P_BLOCK_SIZE, _cached);
+				/* attach at index * V_BLOCK_SIZE */
+				Rm_connection::attach_at(_ds_cap[_index], _index * V_BLOCK_SIZE, P_BLOCK_SIZE, 0);
 
 				/* lookup phys. address */
 				_ds_phys[_index] = Dataspace_client(_ds_cap[_index]).phys_addr();
 			} catch (...) { return false; }
 
 			/* return base + offset in VM area */
-			addr_t block_base = _base + (_index * BLOCK_SIZE);
+			addr_t block_base = _base + (_index * V_BLOCK_SIZE);
 			++_index;
 
-			_range.add_range(block_base, BLOCK_SIZE);
+			_range.add_range(block_base, P_BLOCK_SIZE);
+
 			return true;
 		}
 
@@ -130,7 +132,7 @@ class Genode::Slab_backend_alloc : public Genode::Allocator,
 			if (addr < _base || addr >= (_base + VM_SIZE))
 				return ~0UL;
 
-			int index = (addr - _base) / BLOCK_SIZE;
+			int index = (addr - _base) / V_BLOCK_SIZE;
 
 			/* physical base of dataspace */
 			addr_t phys = _ds_phys[index];
@@ -139,7 +141,7 @@ class Genode::Slab_backend_alloc : public Genode::Allocator,
 				return ~0UL;
 
 			/* add offset */
-			phys += (addr - _base - (index * BLOCK_SIZE));
+			phys += (addr - _base - (index * V_BLOCK_SIZE));
 			return phys;
 		}
 
@@ -152,8 +154,8 @@ class Genode::Slab_backend_alloc : public Genode::Allocator,
 		{
 			for (unsigned i = 0; i < ELEMENTS; i++) {
 				if (_ds_cap[i].valid()
-				 && phys >= _ds_phys[i] && phys < _ds_phys[i] + BLOCK_SIZE)
-					return _base + i*BLOCK_SIZE + phys - _ds_phys[i];
+				 && phys >= _ds_phys[i] && phys < _ds_phys[i] + P_BLOCK_SIZE)
+					return _base + i * V_BLOCK_SIZE + (phys - _ds_phys[i]);
 			}
 
 			PWRN("virt_addr(0x%lx) - no translation", phys);
