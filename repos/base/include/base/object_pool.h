@@ -86,11 +86,9 @@ class Genode::Object_pool
 
 				bool is_dead(bool set_dead = false) {
 					return (set_dead ? (_dead = true) : _dead); }
-				bool is_ref_zero() { return _ref <= 0; } 
+				bool is_ref_zero() { return _ref <= 0; }
 
 			public:
-
-				enum { OBJ_ID_INVALID = 0 };
 
 				/**
 				 * Constructors
