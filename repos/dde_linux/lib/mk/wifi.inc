@@ -3,8 +3,7 @@ LIB_INC_DIR = $(LIB_DIR)/include
 
 SHARED_LIB = yes
 
-# FIXME should we *really* add dde_kit to this shared library?
-LIBS  += dde_kit libc-setjmp libc
+LIBS  += libc-setjmp libc
 
 LD_OPT += --version-script=$(LIB_DIR)/symbol.map
 

@@ -348,7 +348,6 @@ extern unsigned long jiffies;
 
 time_t time(time_t *t)
 {
-	dde_kit_printf("%s:%d from: %p\n", __func__, __LINE__, __builtin_return_address(0));
 	return jiffies;
 }
 
