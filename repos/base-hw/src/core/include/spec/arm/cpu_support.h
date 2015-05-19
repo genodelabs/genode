@@ -38,7 +38,7 @@ class Genode::Arm
 	public:
 
 		static constexpr addr_t exception_entry   = 0xffff0000;
-		static constexpr addr_t mtc_size          = 1 << MIN_PAGE_SIZE_LOG2;
+		static constexpr addr_t mtc_size          = get_page_size();
 		static constexpr addr_t data_access_align = 4;
 
 		/**

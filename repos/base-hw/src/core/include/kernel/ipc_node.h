@@ -1,6 +1,7 @@
 /*
  * \brief   Backend for end points of synchronous interprocess communication
  * \author  Martin Stein
+ * \author  Stefan Kalkowski
  * \date    2012-11-30
  */
 
@@ -14,19 +15,28 @@
 #ifndef _KERNEL__IPC_NODE_H_
 #define _KERNEL__IPC_NODE_H_
 
+/* Genode includes */
+#include <util/construct_at.h>
+
 /* core includes */
 #include <kernel/fifo.h>
 #include <kernel/interface.h>
 
+namespace Genode { class Msgbuf_base; };
+
 namespace Kernel
 {
+	class Pd;
+
 	/**
 	 * Backend for end points of synchronous interprocess communication
 	 */
 	class Ipc_node;
+
+	using Ipc_node_queue = Kernel::Fifo<Ipc_node>;
 }
 
-class Kernel::Ipc_node
+class Kernel::Ipc_node : public Ipc_node_queue::Element
 {
 	protected:
 
@@ -39,48 +49,40 @@ class Kernel::Ipc_node
 			PREPARE_AND_AWAIT_REPLY = 5,
 		};
 
+		void _init(Genode::Native_utcb * utcb, Ipc_node * callee);
+
 	private:
 
-		class Message_buf;
+		friend class Core_thread;
 
-		typedef Kernel::Fifo<Message_buf> Message_fifo;
+		State                 _state    = INACTIVE;
+		capid_t               _capid    = cap_id_invalid();
+		Ipc_node *            _caller   = nullptr;
+		Ipc_node *            _callee   = nullptr;
+		bool                  _help     = false;
+		size_t                _rcv_caps = 0; /* max capability num to receive */
+		Genode::Native_utcb * _utcb     = nullptr;
+		Ipc_node_queue        _request_queue;
 
-		/**
-		 * Describes the buffer for incoming or outgoing messages
-		 */
-		class Message_buf : public Message_fifo::Element
-		{
-			public:
+		/* pre-allocation array for obkject identity references */
+		void * _obj_id_ref_ptr[Genode::Msgbuf_base::MAX_CAP_ARGS];
 
-				void *     base;
-				size_t     size;
-				Ipc_node * src;
-		};
-
-		Message_fifo _request_queue;
-		Message_buf  _inbuf;
-		Message_buf  _outbuf;
-		Ipc_node *   _outbuf_dst;
-		bool         _outbuf_dst_help;
-		State        _state;
+		inline void copy_msg(Ipc_node * const sender);
 
 		/**
 		 * Buffer next request from request queue in 'r' to handle it
 		 */
-		void _receive_request(Message_buf * const r);
+		void _receive_request(Ipc_node * const caller);
 
 		/**
 		 * Receive a given reply if one is expected
-		 *
-		 * \param base  base of the reply payload
-		 * \param size  size of the reply payload
 		 */
-		void _receive_reply(void * const base, size_t const size);
+		void _receive_reply(Ipc_node * callee);
 
 		/**
 		 * Insert 'r' into request queue, buffer it if we were waiting for it
 		 */
-		void _announce_request(Message_buf * const r);
+		void _announce_request(Ipc_node * const node);
 
 		/**
 		 * Cancel all requests in request queue
@@ -100,7 +102,7 @@ class Kernel::Ipc_node
 		/**
 		 * A request 'r' in inbuf or request queue was cancelled by sender
 		 */
-		void _announced_request_cancelled(Message_buf * const r);
+		void _announced_request_cancelled(Ipc_node * const node);
 
 		/**
 		 * The request in the outbuf was cancelled by receiver
@@ -134,31 +136,28 @@ class Kernel::Ipc_node
 
 	protected:
 
+		Pd * _pd; /* pointer to PD this IPC node is part of */
+
+
 		/***************
 		 ** Accessors **
 		 ***************/
 
-		Ipc_node * outbuf_dst() { return _outbuf_dst; }
-
-		State state() { return _state; }
+		Ipc_node * callee() { return _callee; }
+		State      state()  { return _state;  }
 
 	public:
 
-		Ipc_node();
 		~Ipc_node();
 
 		/**
 		 * Send a request and wait for the according reply
 		 *
-		 * \param dst       targeted IPC node
-		 * \param buf_base  base of receive buffer and request message
-		 * \param buf_size  size of receive buffer
-		 * \param msg_size  size of request message
+		 * \param callee    targeted IPC node
 		 * \param help      wether the request implies a helping relationship
 		 */
-		void send_request(Ipc_node * const dst, void * const buf_base,
-		                  size_t const buf_size, size_t const msg_size,
-		                  bool help);
+		void send_request(Ipc_node * const callee, capid_t capid, bool help,
+		                  unsigned rcv_caps);
 
 		/**
 		 * Return root destination of the helping-relation tree we are in
@@ -172,37 +171,38 @@ class Kernel::Ipc_node
 		{
 			/* if we have a helper in the receive buffer, call 'f' for it */
 			if (_state == PREPARE_REPLY || _state == PREPARE_AND_AWAIT_REPLY) {
-				if (_inbuf.src->_outbuf_dst_help) { f(_inbuf.src); } }
+				if (_caller->_help) { f(_caller); } }
 
 			/* call 'f' for each helper in our request queue */
-			_request_queue.for_each([f] (Message_buf * const b) {
-				if (b->src->_outbuf_dst_help) { f(b->src); } });
+			_request_queue.for_each([f] (Ipc_node * const node) {
+					if (node->_help) { f(node); } });
 		}
 
 		/**
 		 * Wait until a request has arrived and load it for handling
 		 *
-		 * \param buf_base  base of receive buffer
-		 * \param buf_size  size of receive buffer
-		 *
 		 * \return  wether a request could be received already
 		 */
-		bool await_request(void * const buf_base,
-		                   size_t const buf_size);
+		bool await_request(unsigned rcv_caps);
 
 		/**
 		 * Reply to last request if there's any
-		 *
-		 * \param msg_base  base of reply message
-		 * \param msg_size  size of reply message
 		 */
-		void send_reply(void * const msg_base,
-		                size_t const msg_size);
+		void send_reply();
 
 		/**
 		 * If IPC node waits, cancel '_outbuf' to stop waiting
 		 */
 		void cancel_waiting();
+
+
+		/***************
+		 ** Accessors **
+		 ***************/
+
+		Pd * const   pd() const { return _pd; }
+		char const * pd_label() const;
+		Genode::Native_utcb * utcb() { return _utcb; }
 };
 
 #endif /* _KERNEL__IPC_NODE_H_ */

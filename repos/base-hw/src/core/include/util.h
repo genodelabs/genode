@@ -22,30 +22,7 @@ namespace Genode
 {
 	enum {
 		ACTIVITY_TABLE_ON_FAULTS = 0,
-		MIN_PAGE_SIZE_LOG2 = 12,
 	};
-
-	/**
-	 * Identification that core threads use to get access to their metadata
-	 */
-	typedef addr_t Core_thread_id;
-
-	/**
-	 * Allows core threads to get their core-thread ID via their stack pointer
-	 */
-	enum { CORE_STACK_ALIGNM_LOG2 = 15 };
-
-	/**
-	 * Get the the minimal supported page-size log 2
-	 */
-	constexpr size_t get_page_size_log2()    { return MIN_PAGE_SIZE_LOG2; }
-
-
-	/**
-	 * Get the the minimal supported page-size
-	 */
-	constexpr size_t get_page_size() { return 1 << get_page_size_log2(); }
-
 
 	/**
 	 * Get the base mask for the minimal supported page-size
@@ -152,4 +129,3 @@ void Genode::print_page_fault(char const * const fault_msg,
 }
 
 #endif /* _UTIL_H_ */
-

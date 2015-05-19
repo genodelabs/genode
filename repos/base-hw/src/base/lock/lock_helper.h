@@ -18,13 +18,15 @@
 #include <base/native_types.h>
 #include <base/thread.h>
 
-extern Genode::Native_thread_id _main_thread_id;
-
+namespace Hw {
+	extern Genode::Untyped_capability _main_thread_cap;
+}
 
 /**
  * Yield execution time-slice of current thread
  */
-static inline void thread_yield() { Kernel::yield_thread(0); }
+static inline void thread_yield() {
+	Kernel::yield_thread(Kernel::cap_id_invalid()); }
 
 
 /**
@@ -33,7 +35,7 @@ static inline void thread_yield() { Kernel::yield_thread(0); }
 static inline Genode::Native_thread_id
 native_thread_id(Genode::Thread_base * const t)
 {
-	return t ? t->tid().thread_id : _main_thread_id;
+	return t ? t->tid().cap.dst() : Hw::_main_thread_cap.dst();
 }
 
 

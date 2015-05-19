@@ -27,8 +27,9 @@ using namespace Genode;
 
 namespace Genode { Rm_session * env_context_area_rm_session(); }
 
-extern Ram_dataspace_capability _main_thread_utcb_ds;
-extern Native_thread_id         _main_thread_id;
+namespace Hw {
+	extern Untyped_capability _main_thread_cap;
+}
 
 void Thread_base::start()
 {
@@ -60,10 +61,10 @@ void Thread_base::_init_platform_thread(size_t, Type type)
 	}
 
 	/* remap initial main-thread UTCB according to context-area spec */
-	Genode::map_local((addr_t)Kernel::core_main_thread_utcb_phys_addr(),
+	Genode::map_local((addr_t)Kernel::Core_thread::singleton().utcb(),
 	                  (addr_t)&_context->utcb,
 	                  max(sizeof(Native_utcb) / get_page_size(), (size_t)1));
 
 	/* adjust initial object state in case of a main thread */
-	tid().thread_id = _main_thread_id;
+	tid().cap = Hw::_main_thread_cap.dst();
 }

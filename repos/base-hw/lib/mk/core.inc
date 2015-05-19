@@ -19,7 +19,6 @@ INC_DIR += $(BASE_DIR)/src/platform
 
 # add C++ sources
 SRC_CC += console.cc
-SRC_CC += cap_session_component.cc
 SRC_CC += cpu_session_component.cc
 SRC_CC += cpu_session_support.cc
 SRC_CC += core_rm_session.cc
@@ -42,6 +41,7 @@ SRC_CC += rom_session_component.cc
 SRC_CC += signal_session_component.cc
 SRC_CC += trace_session_component.cc
 SRC_CC += thread_start.cc
+SRC_CC += env.cc
 SRC_CC += rm_session_support.cc
 SRC_CC += pager.cc
 SRC_CC += _main.cc
@@ -54,7 +54,9 @@ SRC_CC += kernel/ipc_node.cc
 SRC_CC += kernel/irq.cc
 SRC_CC += kernel/pd.cc
 SRC_CC += kernel/cpu.cc
+SRC_CC += kernel/object.cc
 SRC_CC += init_main_thread.cc
+SRC_CC += capability.cc
 
 # add assembly sources
 SRC_S += boot_modules.s

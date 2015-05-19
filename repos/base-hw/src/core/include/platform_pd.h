@@ -15,18 +15,14 @@
 #ifndef _CORE__INCLUDE__PLATFORM_PD_H_
 #define _CORE__INCLUDE__PLATFORM_PD_H_
 
-/* Genode includes */
-#include <base/printf.h>
-#include <root/root.h>
-#include <util/construct_at.h>
-
 /* Core includes */
 #include <translation_table.h>
 #include <platform.h>
-#include <platform_thread.h>
 #include <address_space.h>
 #include <page_slab.h>
-#include <kernel/kernel.h>
+#include <object.h>
+#include <kernel/object.h>
+#include <kernel/pd.h>
 
 namespace Hw
 {
@@ -39,6 +35,8 @@ namespace Hw
 namespace Genode
 {
 	class Platform_thread; /* forward declaration */
+
+	class Capability_space;
 
 	/**
 	 * Platform specific part of a Genode protection domain
@@ -121,14 +119,37 @@ class Hw::Address_space : public Genode::Address_space
 };
 
 
-class Genode::Platform_pd : public Hw::Address_space
+class Genode::Capability_space
 {
 	private:
 
-		Native_capability   _parent;
-		bool                _thread_associated = false;
-		char const * const  _label;
-		uint8_t             _kernel_object[sizeof(Kernel::Pd)];
+		enum { SLAB_SIZE = 2 * get_page_size() };
+
+		using Cap_slab = Tslab<Kernel::Object_identity_reference,
+		                       SLAB_SIZE>;
+
+		uint8_t    _initial_sb[SLAB_SIZE];
+		Cap_slab   _slab;
+
+	public:
+
+		Capability_space();
+
+		Cap_slab & capability_slab() { return _slab; }
+
+		void upgrade_slab(Allocator &alloc);
+};
+
+
+class Genode::Platform_pd : public Hw::Address_space,
+                            public Genode::Capability_space,
+                            public Kernel_object<Kernel::Pd>
+{
+	private:
+
+		Native_capability  _parent;
+		bool               _thread_associated = false;
+		char const * const _label;
 
 	protected:
 
@@ -175,7 +196,8 @@ class Genode::Platform_pd : public Hw::Address_space
 		 ** Accessors **
 		 ***************/
 
-		char const * const  label() { return _label; }
+		char const * const  label()  { return _label;  }
+		Native_capability   parent() { return _parent; }
 };
 
 
@@ -184,7 +206,7 @@ class Genode::Core_platform_pd : public Genode::Platform_pd
 	private:
 
 		static inline Translation_table * const _table();
-		static inline Page_slab * const _slab();
+		static inline Page_slab         * const _slab();
 
 		/**
 		 * Establish initial one-to-one mappings for core/kernel.

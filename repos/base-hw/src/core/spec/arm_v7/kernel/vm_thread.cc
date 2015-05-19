@@ -15,11 +15,21 @@
 #include <kernel/thread.h>
 #include <kernel/vm.h>
 
-void Kernel::Thread::_call_delete_vm()
+void Kernel::Thread::_call_new_vm()
 {
-	reinterpret_cast<Vm*>(user_arg_1())->~Vm();
-	user_arg_0(0);
+	Signal_context * context =
+		pd()->cap_tree().find<Signal_context>(user_arg_4());
+	if (!context) {
+		user_arg_0(cap_id_invalid());
+		return;
+	}
+
+	_call_new<Vm>((Genode::Cpu_state_modes*)user_arg_2(), context,
+	              (void*)user_arg_3());
 }
+
+
+void Kernel::Thread::_call_delete_vm() { _call_delete<Vm>(); }
 
 
 void Kernel::Thread::_call_run_vm()

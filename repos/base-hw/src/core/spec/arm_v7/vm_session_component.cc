@@ -32,15 +32,15 @@ addr_t Vm_session_component::_alloc_ds(size_t &ram_quota)
 
 void Vm_session_component::run(void)
 {
-	if (!_initialized || Kernel::run_vm(_kernel_object()))
-		PWRN("Unknown VM: is the exception handler registered?");
+	if (Kernel_object<Kernel::Vm>::_cap.valid())
+		Kernel::run_vm(kernel_object());
 }
 
 
 void Vm_session_component::pause(void)
 {
-	if (!_initialized || Kernel::pause_vm(_kernel_object()))
-		PWRN("Unknown VM: is the exception handler registered?");
+	if (Kernel_object<Kernel::Vm>::_cap.valid())
+		Kernel::pause_vm(kernel_object());
 }
 
 
@@ -48,8 +48,6 @@ Vm_session_component::~Vm_session_component()
 {
 	/* dissolve VM dataspace from service entry point */
 	_ds_ep->dissolve(&_ds);
-
-	if (Kernel::delete_vm(_kernel_object())) PERR("Cannot destruct unknown VM");
 
 	/* free region in allocator */
 	core_env()->rm_session()->detach(_ds.core_local_addr());

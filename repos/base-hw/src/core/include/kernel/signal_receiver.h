@@ -17,7 +17,7 @@
 /* Genode includes */
 #include <base/signal.h>
 
-/* core include */
+#include <kernel/core_interface.h>
 #include <kernel/object.h>
 
 namespace Kernel
@@ -46,12 +46,6 @@ namespace Kernel
 	 * Combines signal contexts to an entity that handlers can listen to
 	 */
 	class Signal_receiver;
-
-	typedef Object_pool<Signal_context>  Signal_context_pool;
-	typedef Object_pool<Signal_receiver> Signal_receiver_pool;
-
-	Signal_context_pool  * signal_context_pool();
-	Signal_receiver_pool * signal_receiver_pool();
 }
 
 class Kernel::Signal_ack_handler
@@ -167,8 +161,7 @@ class Kernel::Signal_context_killer
 		void cancel_waiting();
 };
 
-class Kernel::Signal_context
-: public Object<Signal_context, signal_context_pool>
+class Kernel::Signal_context : public Kernel::Object
 {
 	friend class Signal_receiver;
 	friend class Signal_context_killer;
@@ -265,10 +258,34 @@ class Kernel::Signal_context
 		 * \retval -1 failed
 		 */
 		int kill(Signal_context_killer * const k);
+
+		/**
+		 * Create a signal context and assign it to a signal receiver
+		 *
+		 * \param p         memory donation for the kernel signal-context object
+		 * \param receiver  pointer to signal receiver kernel object
+		 * \param imprint   user label of the signal context
+		 *
+		 * \retval capability id of the new kernel object
+		 */
+		static capid_t syscall_create(void * p,
+		                              Signal_receiver * const receiver,
+		                              unsigned const imprint)
+		{
+			return call(call_id_new_signal_context(), (Call_arg)p,
+			            (Call_arg)receiver, (Call_arg)imprint);
+		}
+
+		/**
+		 * Destruct a signal context
+		 *
+		 * \param context  pointer to signal context kernel object
+		 */
+		static void syscall_destroy(Signal_context * const context) {
+			call(call_id_delete_signal_context(), (Call_arg)context); }
 };
 
-class Kernel::Signal_receiver
-: public Object<Signal_receiver, signal_receiver_pool>
+class Kernel::Signal_receiver : public Kernel::Object
 {
 	friend class Signal_context;
 	friend class Signal_handler;
@@ -326,6 +343,24 @@ class Kernel::Signal_receiver
 		 * Return wether any of the contexts of this receiver is deliverable
 		 */
 		bool deliverable();
+
+		/**
+		 * Syscall to create a signal receiver
+		 *
+		 * \param p  memory donation for the kernel signal-receiver object
+		 *
+		 * \retval capability id of the new kernel object
+		 */
+		static capid_t syscall_create(void * p) {
+			return call(call_id_new_signal_receiver(), (Call_arg)p); }
+
+		/**
+		 * Syscall to destruct a signal receiver
+		 *
+		 * \param receiver  pointer to signal receiver kernel object
+		 */
+		static void syscall_destroy(Signal_receiver * const receiver) {
+			call(call_id_delete_signal_receiver(), (Call_arg)receiver); }
 };
 
 #endif /* _KERNEL__SIGNAL_RECEIVER_ */

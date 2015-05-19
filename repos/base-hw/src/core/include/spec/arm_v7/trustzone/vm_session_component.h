@@ -22,33 +22,30 @@
 
 /* Core includes */
 #include <dataspace_component.h>
+#include <object.h>
 #include <kernel/vm.h>
 
 namespace Genode {
 	class Vm_session_component;
 }
 
-class Genode::Vm_session_component :
-	public Genode::Rpc_object<Genode::Vm_session>
+class Genode::Vm_session_component
+: public Genode::Rpc_object<Genode::Vm_session>,
+  public Kernel_object<Kernel::Vm>
 {
 	private:
 
 		Rpc_entrypoint      *_ds_ep;
 		Range_allocator     *_ram_alloc;
-		char                 _vm[sizeof(Kernel::Vm)];
 		Dataspace_component  _ds;
 		Dataspace_capability _ds_cap;
 		addr_t               _ds_addr;
-		bool                 _initialized = false;
 
 		static size_t _ds_size() {
 			return align_addr(sizeof(Cpu_state_modes),
 			                  get_page_size_log2()); }
 
 		addr_t _alloc_ds(size_t &ram_quota);
-
-		Kernel::Vm * _kernel_object() {
-			return reinterpret_cast<Kernel::Vm*>(_vm); }
 
 	public:
 

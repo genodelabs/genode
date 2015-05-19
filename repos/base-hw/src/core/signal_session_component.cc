@@ -24,44 +24,42 @@
 using namespace Genode;
 
 
+Signal_session_component::Receiver::Receiver()
+: Kernel_object<Kernel::Signal_receiver>(true),
+  Signal_session_component::Receiver::Pool::Entry(Kernel_object<Kernel::Signal_receiver>::_cap) { }
+
+
+Signal_session_component::Context::Context(Signal_session_component::Receiver &r,
+                                           unsigned const imprint)
+: Kernel_object<Kernel::Signal_context>(true, r.kernel_object(), imprint),
+  Signal_session_component::Context::Pool::Entry(Kernel_object<Kernel::Signal_context>::_cap) { }
+
+
 Signal_receiver_capability Signal_session_component::alloc_receiver()
 {
-	/* allocate resources for receiver */
-	void * p;
-	if (!_receivers_slab.alloc(Receiver::size(), &p)) {
+	try {
+		Receiver * r = new (_receivers_slab) Receiver();
+		_receivers.insert(r);
+		return reinterpret_cap_cast<Signal_receiver>(r->cap());
+	} catch (Allocator::Out_of_memory&) {
 		PERR("failed to allocate signal-receiver resources");
 		throw Out_of_metadata();
 	}
-	/* create kernel object for receiver */
-	addr_t donation = Receiver::kernel_donation(p);
-	unsigned const id = Kernel::new_signal_receiver(donation);
-	if (!id) {
-		/* clean up */
-		_receivers_slab.free(p, Receiver::size());
-		PERR("failed to create signal receiver");
-		throw Create_receiver_failed();
-	}
-	/* remember receiver ressources */
-	Native_capability cap(id, id);
-	Receiver * const r = new (p) Receiver(cap);
-	_receivers.insert(r);
-
-	/* return receiver capability */
-	return reinterpret_cap_cast<Signal_receiver>(cap);
+	return reinterpret_cap_cast<Signal_receiver>(Untyped_capability());
 }
 
 
 void Signal_session_component::free_receiver(Signal_receiver_capability cap)
 {
 	/* look up ressource info */
-	Receiver * const r = _receivers.lookup_and_lock(cap);
+	Receiver::Pool::Guard r(_receivers.lookup_and_lock(cap));
 	if (!r) {
 		PERR("unknown signal receiver");
 		throw Kill_receiver_failed();
 	}
 	/* release resources */
-	_destruct_receiver(r);
-	_receivers_slab.free(r, Receiver::size());
+	_receivers.remove_locked(r);
+	destroy(&_receivers_slab, r.object());
 }
 
 
@@ -75,67 +73,47 @@ Signal_session_component::alloc_context(Signal_receiver_capability src,
 		PERR("unknown signal receiver");
 		throw Create_context_failed();
 	}
-	Kernel::Signal_receiver *sr =
-		(Kernel::Signal_receiver*) Receiver::kernel_donation(r);
-	/* allocate resources for context */
-	void * p;
-	if (!_contexts_slab.alloc(Context::size(), &p)) {
+
+	try {
+		Context * c = new (_contexts_slab) Context(*r.object(), imprint);
+		_contexts.insert(c);
+		return reinterpret_cap_cast<Signal_context>(c->cap());
+	} catch (Allocator::Out_of_memory&) {
 		PERR("failed to allocate signal-context resources");
 		throw Out_of_metadata();
 	}
-	/* create kernel object for context */
-	addr_t donation = Context::kernel_donation(p);
-	unsigned const id = Kernel::new_signal_context(donation, sr, imprint);
-	if (!id) {
-		/* clean up */
-		_contexts_slab.free(p, Context::size());
-		PERR("failed to create signal context");
-		throw Create_context_failed();
-	}
-	/* remember context ressources */
-	Native_capability cap(id, id);
-	_contexts.insert(new (p) Context(cap));
-
-	/* return context capability */
-	return reinterpret_cap_cast<Signal_context>(cap);
+	return reinterpret_cap_cast<Signal_context>(Untyped_capability());
 }
 
 
 void Signal_session_component::free_context(Signal_context_capability cap)
 {
 	/* look up ressource info */
-	Context * const c = _contexts.lookup_and_lock(cap);
+	Context::Pool::Guard c(_contexts.lookup_and_lock(cap));
 	if (!c) {
 		PERR("unknown signal context");
 		throw Kill_context_failed();
 	}
 	/* release resources */
-	_destruct_context(c);
-	_contexts_slab.free(c, Context::size());
-}
-
-
-void Signal_session_component::_destruct_context(Context * const c)
-{
-	/* release kernel resources */
-	Kernel::Signal_context *sc =
-		(Kernel::Signal_context*) Context::kernel_donation(c);
-	Kernel::delete_signal_context(sc);
-
-	/* release core resources */
 	_contexts.remove_locked(c);
-	c->~Signal_session_context();
+	destroy(&_contexts_slab, c.object());
 }
 
 
-void Signal_session_component::_destruct_receiver(Receiver * const r)
-{
-	/* release kernel resources */
-	Kernel::Signal_receiver *sr =
-		(Kernel::Signal_receiver*) Receiver::kernel_donation(r);
-	Kernel::delete_signal_receiver(sr);
+Signal_session_component::Signal_session_component(Allocator * const allocator,
+                                                   size_t const quota)
+: _allocator(allocator, quota), _receivers_slab(&_allocator),
+  _contexts_slab(&_allocator) { }
 
-	/* release core resources */
-	_receivers.remove_locked(r);
-	r->~Signal_session_receiver();
+
+Signal_session_component::~Signal_session_component()
+{
+	while (Context * const c = _contexts.first_locked()) {
+		_contexts.remove_locked(c);
+		destroy(&_contexts_slab, c);
+	}
+	while (Receiver * const r = _receivers.first_locked()) {
+		_receivers.remove_locked(r);
+		destroy(&_receivers_slab, r);
+	}
 }

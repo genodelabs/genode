@@ -15,8 +15,12 @@ SRC_CC += env/context_area.cc
 SRC_CC += env/reinitialize.cc
 SRC_CC += thread/start.cc
 SRC_CC += irq/platform.cc
+SRC_CC += env.cc
+SRC_CC += capability.cc
 
 # add include paths
+INC_DIR +=  $(REP_DIR)/src/base/lock
+INC_DIR += $(BASE_DIR)/src/base/lock
 INC_DIR += $(BASE_DIR)/src/base/env
 
 # declare source locations

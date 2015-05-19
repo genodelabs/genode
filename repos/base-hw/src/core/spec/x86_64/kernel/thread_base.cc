@@ -66,7 +66,7 @@ void Thread::_mmu_exception()
 {
 	_become_inactive(AWAITS_RESUME);
 	_fault_pd     = (addr_t)_pd->platform_pd();
-	_fault_signal = _fault.signal_context_id();
+	_fault_signal = (addr_t)_fault.signal_context();
 	_fault_addr   = Cpu::Cr2::read();
 
 	/**

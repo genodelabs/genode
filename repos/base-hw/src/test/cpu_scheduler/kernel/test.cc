@@ -13,7 +13,7 @@
 
 /* core includes */
 #include <kernel/cpu_scheduler.h>
-
+#include <kernel/test.h>
 
 /*
  * Utilities
@@ -23,8 +23,6 @@ using Genode::size_t;
 using Genode::addr_t;
 using Kernel::Cpu_share;
 using Kernel::Cpu_scheduler;
-
-namespace Kernel { void test(); }
 
 void * operator new(size_t s, void * p) { return p; }
 

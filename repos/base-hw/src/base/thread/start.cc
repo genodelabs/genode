@@ -22,9 +22,10 @@ using namespace Genode;
 
 namespace Genode { Rm_session * env_context_area_rm_session(); }
 
-extern Ram_dataspace_capability _main_thread_utcb_ds;
-extern Native_thread_id         _main_thread_id;
-
+namespace Hw {
+	extern Ram_dataspace_capability _main_thread_utcb_ds;
+	extern Untyped_capability       _main_thread_cap;
+}
 
 /*****************
  ** Thread_base **
@@ -50,14 +51,14 @@ void Thread_base::_init_platform_thread(size_t weight, Type type)
 	if (type == REINITIALIZED_MAIN) { rm->detach(utcb_new); }
 
 	/* remap initial main-thread UTCB according to context-area spec */
-	try { rm->attach_at(_main_thread_utcb_ds, utcb_new, utcb_size); }
+	try { rm->attach_at(Hw::_main_thread_utcb_ds, utcb_new, utcb_size); }
 	catch(...) {
 		PERR("failed to re-map UTCB");
 		while (1) ;
 	}
 	/* adjust initial object state in case of a main thread */
-	tid().thread_id = _main_thread_id;
-	_thread_cap     = env()->parent()->main_thread_cap();
+	tid().cap   = Hw::_main_thread_cap;
+	_thread_cap = env()->parent()->main_thread_cap();
 }
 
 

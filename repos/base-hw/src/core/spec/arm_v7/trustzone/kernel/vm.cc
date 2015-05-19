@@ -20,11 +20,6 @@ extern Genode::addr_t _tz_client_context;
 extern Genode::addr_t _mt_master_context_begin;
 extern Genode::addr_t _tz_master_context;
 
-namespace Kernel
-{
-	Vm_pool * vm_pool() { return unmanaged_singleton<Vm_pool>(); }
-}
-
 using namespace Kernel;
 
 
@@ -40,6 +35,9 @@ Kernel::Vm::Vm(void                   * const state,
 	Genode::memcpy(&_tz_master_context, &_mt_master_context_begin,
 	               sizeof(Cpu_context));
 }
+
+
+Kernel::Vm::~Vm() {}
 
 
 void Vm::exception(unsigned const cpu)

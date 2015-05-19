@@ -104,7 +104,7 @@ Signal_receiver::Signal_receiver()
 				return;
 			}
 			PINF("upgrading quota donation for SIGNAL session");
-			env()->parent()->upgrade(s->cap(), "ram_quota=4K");
+			env()->parent()->upgrade(s->cap(), "ram_quota=8K");
 			session_upgraded = 1;
 		}
 	}
@@ -159,7 +159,7 @@ Signal_context_capability Signal_receiver::manage(Signal_context * const c)
 				return Signal_context_capability();
 			}
 			PINF("upgrading quota donation for signal session");
-			env()->parent()->upgrade(s->cap(), "ram_quota=4K");
+			env()->parent()->upgrade(s->cap(), "ram_quota=8K");
 			session_upgraded = 1;
 		}
 	}
@@ -193,8 +193,9 @@ Signal Signal_receiver::wait_for_signal()
 		PERR("failed to receive signal");
 		return Signal(Signal::Data());
 	}
+
 	/* get signal data */
-	Signal s(*(Signal::Data *)Thread_base::myself()->utcb());
+	Signal s(*(Signal::Data *)Thread_base::myself()->utcb()->base());
 	return s;
 }
 

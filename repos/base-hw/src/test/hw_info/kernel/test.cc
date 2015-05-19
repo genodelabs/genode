@@ -14,9 +14,10 @@
 /* base includes */
 #include <base/printf.h>
 
-using namespace Genode;
+/* core includes */
+#include <kernel/test.h>
 
-namespace Kernel { void test(); }
+using namespace Genode;
 
 void info();
 

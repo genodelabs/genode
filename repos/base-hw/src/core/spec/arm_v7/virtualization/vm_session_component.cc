@@ -25,20 +25,12 @@ using namespace Genode;
 
 void Vm_session_component::exception_handler(Signal_context_capability handler)
 {
-	if (_initialized) {
-		PWRN("Cannot initialize kernel vm object twice!");
-		return;
-	}
-
 	Core_mem_allocator * cma =
 		static_cast<Core_mem_allocator*>(platform()->core_mem_alloc());
-	if (Kernel::new_vm(&_vm, (void*)_ds.core_local_addr(), handler.dst(),
-	                   cma->phys_addr(_table))) {
-		PWRN("Cannot instantiate vm kernel object, invalid signal context?");
-		return;
-	}
 
-	_initialized = true;
+	if (!create((void*)_ds.core_local_addr(), handler.dst(),
+	            cma->phys_addr(_table)))
+		PWRN("Cannot instantiate vm kernel object, invalid signal context?");
 }
 
 

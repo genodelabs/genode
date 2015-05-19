@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2012-2013 Genode Labs GmbH
+ * Copyright (C) 2012-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -16,48 +16,18 @@
 #define _BASE__NATIVE_TYPES_H_
 
 /* Genode includes */
-#include <kernel/interface.h>
-#include <base/native_capability.h>
-#include <base/stdint.h>
-#include <util/string.h>
-
-/* base-hw includes */
 #include <kernel/log.h>
+#include <base/native_capability.h>
+#include <base/ipc_msgbuf.h>
 
 namespace Genode
 {
 	class Platform_thread;
+	class Native_thread;
 
-	typedef unsigned Native_thread_id;
-
-	struct Native_thread
-	{
-		Platform_thread  * platform_thread;
-		Native_thread_id   thread_id;
-	};
+	using Native_thread_id = Kernel::capid_t;
 
 	typedef int Native_connection_state;
-
-	/* FIXME needs to be MMU dependent */
-	enum { MIN_MAPPING_SIZE_LOG2 = 12 };
-
-	/**
-	 * Return kernel thread-name of the caller
-	 */
-	Native_thread_id thread_get_my_native_id();
-
-	/**
-	 * Return an invalid kernel thread-name
-	 */
-	inline Native_thread_id thread_invalid_id() { return 0; }
-
-	/**
-	 * Data bunch with variable size that is communicated between threads
-	 *
-	 * \param MAX_SIZE  maximum size the object is allowed to take
-	 */
-	template <size_t MAX_SIZE>
-	struct Message_tpl;
 
 	/**
 	 * Information that a thread creator hands out to a new thread
@@ -65,250 +35,150 @@ namespace Genode
 	class Start_info;
 
 	/**
-	 * Info that a core-thread creator hands out to Platform_thread::start
+	 * Coherent address region
 	 */
-	class Core_start_info;
+	struct Native_region;
+
+	struct Native_config;
+
+	struct Native_pd_args { };
+
+	/**
+	 * Get the the minimal supported page-size log 2
+	 */
+	constexpr size_t get_page_size_log2() { return 12; }
+
+	/**
+	 * Get the the minimal supported page-size
+	 */
+	constexpr size_t get_page_size() { return 1 << get_page_size_log2(); }
 
 	/**
 	 * Memory region that is exclusive to every thread and known by the kernel
 	 */
 	class Native_utcb;
-
-	struct Cap_dst_policy
-	{
-		typedef Native_thread_id Dst;
-
-		/**
-		 * Validate capability destination
-		 */
-		static bool valid(Dst pt) { return pt != 0; }
-
-		/**
-		 * Get invalid capability destination
-		 */
-		static Dst invalid() { return 0; }
-
-		/**
-		 * Copy capability 'src' to a given memory destination 'dst'
-		 */
-		static void
-		copy(void * dst, Native_capability_tpl<Cap_dst_policy> * src);
-	};
-
-	typedef Native_capability_tpl<Cap_dst_policy> Native_capability;
-
-	/**
-	 * Coherent address region
-	 */
-	struct Native_region
-	{
-		addr_t base;
-		size_t size;
-	};
-
-	struct Native_config
-	{
-		/**
-		 * Thread-context area configuration.
-		 */
-		static constexpr addr_t context_area_virtual_base() {
-			return 0xe0000000UL; }
-		static constexpr addr_t context_area_virtual_size() {
-			return 0x10000000UL; }
-
-		/**
-		 * Size of virtual address region holding the context of one thread
-		 */
-		static constexpr addr_t context_virtual_size() { return 0x00100000UL; }
-	};
-
-	struct Native_pd_args { };
 }
 
-template <Genode::size_t MAX_SIZE>
-class Genode::Message_tpl
+
+struct Genode::Native_thread
 {
-	private:
-
-		size_t  _data_size;
-		uint8_t _data[];
-
-		/**
-		 * Return size of payload-preceding meta data
-		 */
-		size_t _header_size() const { return (addr_t)_data - (addr_t)this; }
-
-		/**
-		 * Return maximum payload size
-		 */
-		size_t _max_data_size() const { return MAX_SIZE - _header_size(); }
-
-		/**
-		 * Return size of header and current payload
-		 */
-		size_t _size() const { return _header_size() + _data_size; }
-
-	public:
-
-		/**
-		 * Get properties of receive buffer
-		 *
-		 * \return buf_base  base of receive buffer
-		 * \return buf_size  size of receive buffer
-		 */
-		void buffer_info(void * & buf_base, size_t & buf_size) const
-		{
-			buf_base = (void *)this;
-			buf_size = MAX_SIZE;
-		}
-
-		/**
-		 * Get properties of request message and receive buffer
-		 *
-		 * \return buf_base  base of receive buffer and request message
-		 * \return buf_size  size of receive buffer
-		 * \return msg_size  size of request message
-		 */
-		void request_info(void * & buf_base, size_t & buf_size,
-		                  size_t & msg_size) const
-		{
-			buf_base = (void *)this;
-			buf_size = MAX_SIZE;
-			msg_size = _size();
-		}
-
-		/**
-		 * Get properties of reply message
-		 *
-		 * \return msg_base  base of reply message
-		 * \return msg_size  size of reply message
-		 */
-		void reply_info(void * & msg_base, size_t & msg_size) const
-		{
-			msg_base = (void *)this;
-			msg_size = _size();
-		}
-
-		/**
-		 * Install message that shall be send
-		 *
-		 * \param data       base of payload
-		 * \param data_size  size of payload
-		 * \param name       local name that shall be the first payload word
-		 */
-		void prepare_send(void * const data, size_t data_size,
-		                  unsigned long const name)
-		{
-			/* limit data size */
-			if (data_size > _max_data_size()) {
-				Kernel::log() << "oversized message outgoing\n";
-				data_size = _max_data_size();
-			}
-			/* copy data */
-			*(unsigned long *)_data = name;
-			void * const data_dst = (void *)((addr_t)_data + sizeof(name));
-			void * const data_src  = (void *)((addr_t)data + sizeof(name));
-			memcpy(data_dst, data_src, data_size - sizeof(name));
-			_data_size = data_size;
-		}
-
-		/**
-		 * Read out message that was received
-		 *
-		 * \param buf_base  base of read buffer
-		 * \param buf_size  size of read buffer
-		 */
-		void finish_receive(void * const buf_base, size_t const buf_size)
-		{
-			/* limit data size */
-			if (_data_size > buf_size) {
-				Kernel::log() << "oversized message incoming\n";
-				_data_size = buf_size;
-			}
-			/* copy data */
-			memcpy(buf_base, _data, _data_size);
-		}
+	Platform_thread  * platform_thread;
+	Native_capability  cap;
 };
 
-class Genode::Start_info
+
+/**
+ * Coherent address region
+ */
+struct Genode::Native_region
 {
-	private:
-
-		Native_thread_id  _thread_id;
-		Native_capability _utcb_ds;
-
-	public:
-
-		/**
-		 * Set-up valid startup message
-		 *
-		 * \param thread_id  kernel name of the thread that is started
-		 */
-		void init(Native_thread_id const thread_id,
-		          Native_capability const & utcb_ds)
-		{
-			_thread_id = thread_id;
-			_utcb_ds = utcb_ds;
-		}
-
-
-		/***************
-		 ** Accessors **
-		 ***************/
-
-		Native_thread_id thread_id() const { return _thread_id; }
-		Native_capability utcb_ds() const { return _utcb_ds; }
+	addr_t base;
+	size_t size;
 };
 
-class Genode::Core_start_info
+
+struct Genode::Native_config
 {
-	private:
+	/**
+	 * Thread-context area configuration.
+	 */
+	static constexpr addr_t context_area_virtual_base() {
+		return 0xe0000000UL; }
+	static constexpr addr_t context_area_virtual_size() {
+		return 0x10000000UL; }
 
-		unsigned _cpu_id;
-
-	public:
-
-		/**
-		 * Set-up valid core startup-message for starting on 'cpu'
-		 */
-		void init(unsigned const cpu) { _cpu_id = cpu; }
-
-
-		/***************
-		 ** Accessors **
-		 ***************/
-
-		unsigned cpu_id() const { return _cpu_id; }
+	/**
+	 * Size of virtual address region holding the context of one thread
+	 */
+	static constexpr addr_t context_virtual_size() { return 0x00100000UL; }
 };
+
 
 class Genode::Native_utcb
 {
+	public:
+
+		enum { MAX_CAP_ARGS = Msgbuf_base::MAX_CAP_ARGS};
+
+		enum Offsets { PARENT, UTCB_DATASPACE, THREAD_MYSELF };
+
 	private:
 
-		uint8_t _data[1 << MIN_MAPPING_SIZE_LOG2];
+		Kernel::capid_t _caps[MAX_CAP_ARGS]; /* capability buffer  */
+		size_t          _cap_cnt = 0;        /* capability counter */
+		size_t          _size    = 0;        /* bytes to transfer  */
+		uint8_t         _buf[get_page_size() - sizeof(_caps) -
+		                     sizeof(_cap_cnt) - sizeof(_size)];
 
 	public:
 
-		typedef Message_tpl<sizeof(_data)/sizeof(_data[0])> Message;
-
-
-		/***************
-		 ** Accessors **
-		 ***************/
-
-		Message * message() const { return (Message *)_data; }
-
-		Start_info * start_info() const { return (Start_info *)_data; }
-
-		Core_start_info * core_start_info() const
+		Native_utcb& operator= (const Native_utcb &o)
 		{
-			return (Core_start_info *)_data;
+			_cap_cnt = 0;
+			_size    = o._size;
+			memcpy(_buf, o._buf, _size);
+			return *this;
 		}
 
-		size_t size() const { return sizeof(_data)/sizeof(_data[0]); }
+		/**
+		 * Set the destination capability id (server object identity)
+		 */
+		void destination(Kernel::capid_t id) {
+			*reinterpret_cast<long*>(_buf) = id; }
 
-		void * base() const { return (void *)_data; }
+		/**
+		 * Return the count of capabilities in the UTCB
+		 */
+		size_t cap_cnt() { return _cap_cnt; }
+
+		/**
+		 * Set the count of capabilities in the UTCB
+		 */
+		void cap_cnt(size_t cnt) { _cap_cnt = cnt;  }
+
+		/**
+		 * Return the start address of the payload data
+		 */
+		void const * base() const { return &_buf; }
+
+		/**
+		 * Copy data from the message buffer 'o' to this UTCB
+		 */
+		void copy_from(Msgbuf_base &o, size_t size)
+		{
+			_size = size;
+
+			_cap_cnt = o._snd_cap_cnt;
+			for (unsigned i = 0; i < _cap_cnt; i++)
+				_caps[i] = o._caps[i].dst();
+
+			memcpy(_buf, o.buf, min(_size, o._size));
+		}
+
+		/**
+		 * Copy data from this UTCB to the message buffer 'o'
+		 */
+		void copy_to(Msgbuf_base &o)
+		{
+			o._snd_cap_cnt = _cap_cnt;
+			for (unsigned i = 0; i < _cap_cnt; i++) o._caps[i] = _caps[i];
+
+			memcpy(o.buf, _buf, min(_size, o._size));
+		}
+
+		/**
+		 * Return the capability id at index 'i'
+		 */
+		Kernel::capid_t cap_get(unsigned i) {
+			return (i < _cap_cnt) ? _caps[i] : Kernel::cap_id_invalid(); }
+
+		/**
+		 * Set the capability id 'cap_id' at the next index
+		 */
+		void cap_add(Kernel::capid_t cap_id) {
+			if (_cap_cnt < MAX_CAP_ARGS) _caps[_cap_cnt++] = cap_id; }
 };
+
 
 namespace Genode
 {
@@ -319,9 +189,8 @@ namespace Genode
 	{
 		return (Native_utcb *)
 		((VIRT_ADDR_SPACE_START + VIRT_ADDR_SPACE_SIZE - sizeof(Native_utcb))
-		 & ~((1 << MIN_MAPPING_SIZE_LOG2) - 1));
+		 & ~(get_page_size() - 1));
 	}
 }
 
 #endif /* _BASE__NATIVE_TYPES_H_ */
-

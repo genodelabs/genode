@@ -17,6 +17,7 @@
 
 /* core includes */
 #include <kernel/double_list.h>
+#include <kernel/test.h>
 
 
 /*
@@ -26,8 +27,6 @@
 using Genode::size_t;
 using Kernel::Double_list_typed;
 using Kernel::Double_list_item;
-
-namespace Kernel { void test(); }
 
 void * operator new(size_t s, void * p) { return p; }
 

@@ -27,19 +27,17 @@ namespace Kernel
 	 * Kernel backend for a virtual machine
 	 */
 	class Vm;
-
-	typedef Object_pool<Vm> Vm_pool;
-
-	Vm_pool * vm_pool();
 }
 
 
-class Kernel::Vm : public Object<Vm, vm_pool>, public Cpu_job
+class Kernel::Vm : public Cpu_job,
+                   public Kernel::Object
 {
 	private:
 
 		enum State { ACTIVE, INACTIVE };
 
+		unsigned                 _id;
 		Genode::Vm_state * const _state;
 		Signal_context   * const _context;
 		void             * const _table;
@@ -58,12 +56,44 @@ class Kernel::Vm : public Object<Vm, vm_pool>, public Cpu_job
 		   Signal_context * const context,
 		   void           * const table);
 
+		~Vm();
+
 		/**
 		 * Inject an interrupt to this VM
 		 *
 		 * \param irq  interrupt number to inject
 		 */
 		void inject_irq(unsigned irq);
+
+
+		/**
+		 * Create a virtual machine that is stopped initially
+		 *
+		 * \param dst                memory donation for the VM object
+		 * \param state              location of the CPU state of the VM
+		 * \param signal_context_id  kernel name of the signal context for VM events
+		 * \param table              guest-physical to host-physical translation
+		 *                           table pointer
+		 *
+		 * \retval cap id when successful, otherwise invalid cap id
+		 */
+		static capid_t syscall_create(void * const dst, void * const state,
+		                              capid_t const signal_context_id,
+		                              void * const table)
+		{
+			return call(call_id_new_vm(), (Call_arg)dst, (Call_arg)state,
+			            (Call_arg)table, signal_context_id);
+		}
+
+		/**
+		 * Destruct a virtual-machine
+		 *
+		 * \param vm  pointer to vm kernel object
+		 *
+		 * \retval 0 when successful, otherwise !=0
+		 */
+		static void syscall_destroy(Vm * const vm) {
+			call(call_id_delete_vm(), (Call_arg) vm); }
 
 
 		/****************

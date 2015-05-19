@@ -17,6 +17,8 @@
 /* base-hw includes */
 #include <kernel/interface.h>
 
+namespace Genode { class Native_utcb; }
+
 namespace Kernel
 {
 	class Pd;
@@ -25,57 +27,35 @@ namespace Kernel
 	class Signal_context;
 	class Vm;
 	class User_irq;
+	using Native_utcb = Genode::Native_utcb;
 
 	/**
 	 * Kernel names of the kernel calls
 	 */
-	constexpr Call_arg call_id_new_thread()             { return 14; }
-	constexpr Call_arg call_id_delete_thread()          { return 15; }
-	constexpr Call_arg call_id_start_thread()           { return 16; }
-	constexpr Call_arg call_id_resume_thread()          { return 17; }
-	constexpr Call_arg call_id_access_thread_regs()     { return 18; }
-	constexpr Call_arg call_id_route_thread_event()     { return 19; }
-	constexpr Call_arg call_id_update_pd()              { return 20; }
-	constexpr Call_arg call_id_new_pd()                 { return 21; }
-	constexpr Call_arg call_id_delete_pd()              { return 22; }
-	constexpr Call_arg call_id_new_signal_receiver()    { return 23; }
-	constexpr Call_arg call_id_new_signal_context()     { return 24; }
-	constexpr Call_arg call_id_delete_signal_context()  { return 25; }
-	constexpr Call_arg call_id_delete_signal_receiver() { return 26; }
-	constexpr Call_arg call_id_new_vm()                 { return 27; }
-	constexpr Call_arg call_id_run_vm()                 { return 28; }
-	constexpr Call_arg call_id_pause_vm()               { return 29; }
-	constexpr Call_arg call_id_pause_thread()           { return 30; }
-	constexpr Call_arg call_id_delete_vm()              { return 31; }
-	constexpr Call_arg call_id_new_irq()                { return 32; }
-	constexpr Call_arg call_id_delete_irq()             { return 33; }
-	constexpr Call_arg call_id_thread_quota()           { return 34; }
-	constexpr Call_arg call_id_ack_irq()                { return 35; }
-
-	/**
-	 * Create a domain
-	 *
-	 * \param dst  appropriate memory donation for the kernel object
-	 * \param pd   core local Platform_pd object
-	 *
-	 * \retval 0 when successful, otherwise !=0
-	 */
-	inline int long new_pd(void * const dst, Platform_pd * const pd)
-	{
-		return call(call_id_new_pd(), (Call_arg)dst, (Call_arg)pd);
-	}
-
-
-	/**
-	 * Destruct a domain
-	 *
-	 * \param pd  pointer to pd kernel object
-	 */
-	inline void delete_pd(Pd * const pd)
-	{
-		call(call_id_delete_pd(), (Call_arg)pd);
-	}
-
+	constexpr Call_arg call_id_new_thread()             { return 15; }
+	constexpr Call_arg call_id_delete_thread()          { return 16; }
+	constexpr Call_arg call_id_start_thread()           { return 17; }
+	constexpr Call_arg call_id_pause_thread()           { return 18; }
+	constexpr Call_arg call_id_resume_thread()          { return 19; }
+	constexpr Call_arg call_id_access_thread_regs()     { return 20; }
+	constexpr Call_arg call_id_route_thread_event()     { return 21; }
+	constexpr Call_arg call_id_thread_quota()           { return 22; }
+	constexpr Call_arg call_id_update_pd()              { return 23; }
+	constexpr Call_arg call_id_new_pd()                 { return 24; }
+	constexpr Call_arg call_id_delete_pd()              { return 25; }
+	constexpr Call_arg call_id_new_signal_receiver()    { return 26; }
+	constexpr Call_arg call_id_new_signal_context()     { return 27; }
+	constexpr Call_arg call_id_delete_signal_context()  { return 28; }
+	constexpr Call_arg call_id_delete_signal_receiver() { return 29; }
+	constexpr Call_arg call_id_new_vm()                 { return 30; }
+	constexpr Call_arg call_id_run_vm()                 { return 31; }
+	constexpr Call_arg call_id_pause_vm()               { return 32; }
+	constexpr Call_arg call_id_delete_vm()              { return 33; }
+	constexpr Call_arg call_id_new_irq()                { return 34; }
+	constexpr Call_arg call_id_delete_irq()             { return 35; }
+	constexpr Call_arg call_id_ack_irq()                { return 36; }
+	constexpr Call_arg call_id_new_obj()                { return 37; }
+	constexpr Call_arg call_id_delete_obj()             { return 38; }
 
 	/**
 	 * Update locally effective domain configuration to in-memory state
@@ -89,25 +69,6 @@ namespace Kernel
 	inline void update_pd(Pd * const pd)
 	{
 		call(call_id_update_pd(), (Call_arg)pd);
-	}
-
-
-	/**
-	 * Create a thread
-	 *
-	 * \param p         memory donation for the new kernel thread object
-	 * \param priority  scheduling priority of the new thread
-	 * \param quota     CPU quota of the new thread
-	 * \param label     debugging label of the new thread
-	 *
-	 * \retval >0  kernel name of the new thread
-	 * \retval  0  failed
-	 */
-	inline unsigned new_thread(void * const p, unsigned const priority,
-	                           size_t const quota, char const * const label)
-	{
-		return call(call_id_new_thread(), (Call_arg)p, (Call_arg)priority,
-		            (Call_arg)quota, (Call_arg)label);
 	}
 
 
@@ -131,17 +92,6 @@ namespace Kernel
 	inline void pause_thread(Thread * const thread)
 	{
 		call(call_id_pause_thread(), (Call_arg)thread);
-	}
-
-
-	/**
-	 * Destruct a thread
-	 *
-	 * \param thread  pointer to thread kernel object
-	 */
-	inline void delete_thread(Thread * const thread)
-	{
-		call(call_id_delete_thread(), (Call_arg)thread);
 	}
 
 
@@ -181,15 +131,15 @@ namespace Kernel
 	 * Set or unset the handler of an event that can be triggered by a thread
 	 *
 	 * \param thread             pointer to thread kernel object
-	 * \param event_id           kernel name of the targeted thread event
-	 * \param signal_context_id  kernel name of the handlers signal context
+	 * \param event_id           capability id of the targeted thread event
+	 * \param signal_context_id  capability id of the handlers signal context
 	 *
 	 * \retval  0  succeeded
 	 * \retval -1  failed
 	 */
 	inline int route_thread_event(Thread * const thread,
-	                              unsigned const event_id,
-	                              unsigned const signal_context_id)
+	                              capid_t  const event_id,
+	                              capid_t  const signal_context_id)
 	{
 		return call(call_id_route_thread_event(), (Call_arg)thread,
 		            event_id, signal_context_id);
@@ -239,108 +189,13 @@ namespace Kernel
 
 
 	/**
-	 * Create a signal receiver
-	 *
-	 * \param p  memory donation for the kernel signal-receiver object
-	 *
-	 * \retval >0  kernel name of the new signal receiver
-	 * \retval  0  failed
-	 */
-	inline unsigned new_signal_receiver(addr_t const p)
-	{
-		return call(call_id_new_signal_receiver(), p);
-	}
-
-
-	/**
-	 * Create a signal context and assign it to a signal receiver
-	 *
-	 * \param p         memory donation for the kernel signal-context object
-	 * \param receiver  pointer to signal receiver kernel object
-	 * \param imprint   user label of the signal context
-	 *
-	 * \retval >0  kernel name of the new signal context
-	 * \retval  0  failed
-	 */
-	inline unsigned new_signal_context(addr_t const   p,
-	                                   Signal_receiver * const receiver,
-	                                   unsigned const imprint)
-	{
-		return call(call_id_new_signal_context(), p,
-		            (Call_arg)receiver, imprint);
-	}
-
-
-	/**
-	 * Destruct a signal context
-	 *
-	 * \param context  pointer to signal context kernel object
-	 */
-	inline void delete_signal_context(Signal_context * const context)
-	{
-		call(call_id_delete_signal_context(), (Call_arg)context);
-	}
-
-
-	/**
-	 * Destruct a signal receiver
-	 *
-	 * \param receiver  pointer to signal receiver kernel object
-	 *
-	 * \retval  0  suceeded
-	 * \retval -1  failed
-	 */
-	inline void delete_signal_receiver(Signal_receiver * const receiver)
-	{
-		call(call_id_delete_signal_receiver(), (Call_arg)receiver);
-	}
-
-
-	/**
-	 * Create a virtual machine that is stopped initially
-	 *
-	 * \param dst                memory donation for the VM object
-	 * \param state              location of the CPU state of the VM
-	 * \param signal_context_id  kernel name of the signal context for VM events
-	 * \param table              guest-physical to host-physical translation
-	 *                           table pointer
-	 *
-	 * \retval 0 when successful, otherwise !=0
-	 *
-	 * Regaining of the supplied memory is not supported by now.
-	 */
-	inline int new_vm(void * const dst, void * const state,
-	                  unsigned const signal_context_id,
-	                  void * const table)
-	{
-		return call(call_id_new_vm(), (Call_arg)dst, (Call_arg)state,
-		            (Call_arg)table, signal_context_id);
-	}
-
-
-	/**
 	 * Execute a virtual-machine (again)
 	 *
 	 * \param vm  pointer to vm kernel object
-	 *
-	 * \retval 0 when successful, otherwise !=0
 	 */
-	inline int run_vm(Vm * const vm)
+	inline void run_vm(Vm * const vm)
 	{
-		return call(call_id_run_vm(), (Call_arg) vm);
-	}
-
-
-	/**
-	 * Destruct a virtual-machine
-	 *
-	 * \param vm  pointer to vm kernel object
-	 *
-	 * \retval 0 when successful, otherwise !=0
-	 */
-	inline int delete_vm(Vm * const vm)
-	{
-		return call(call_id_delete_vm(), (Call_arg) vm);
+		call(call_id_run_vm(), (Call_arg) vm);
 	}
 
 
@@ -348,12 +203,10 @@ namespace Kernel
 	 * Stop execution of a virtual-machine
 	 *
 	 * \param vm  pointer to vm kernel object
-	 *
-	 * \retval 0 when successful, otherwise !=0
 	 */
-	inline int pause_vm(Vm * const vm)
+	inline void pause_vm(Vm * const vm)
 	{
-		return call(call_id_pause_vm(), (Call_arg) vm);
+		call(call_id_pause_vm(), (Call_arg) vm);
 	}
 
 	/**
@@ -361,10 +214,10 @@ namespace Kernel
 	 *
 	 * \param p                 memory donation for the irq object
 	 * \param irq_nr            interrupt number
-	 * \param signal_context_id kernel name of the signal context
+	 * \param signal_context_id capability id of the signal context
 	 */
 	inline int new_irq(addr_t const p, unsigned irq_nr,
-	                    unsigned signal_context_id)
+	                   capid_t signal_context_id)
 	{
 		return call(call_id_new_irq(), (Call_arg) p, irq_nr, signal_context_id);
 	}
@@ -387,6 +240,27 @@ namespace Kernel
 	inline void delete_irq(User_irq * const irq)
 	{
 		call(call_id_delete_irq(), (Call_arg) irq);
+	}
+
+	/**
+	 * Create a new object identity for a thread
+	 *
+	 * \param dst  memory donation for the new object
+	 * \param cap  capability id of the targeted thread
+	 */
+	inline capid_t new_obj(void * const dst, capid_t const cap)
+	{
+		return call(call_id_new_obj(), (Call_arg)dst, (Call_arg)cap);
+	}
+
+	/**
+	 * Destroy an object identity
+	 *
+	 * \param dst pointer to the object identity object
+	 */
+	inline void delete_obj(void * const dst)
+	{
+		call(call_id_delete_obj(), (Call_arg)dst);
 	}
 }
 

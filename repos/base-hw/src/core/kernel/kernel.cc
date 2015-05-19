@@ -17,7 +17,7 @@
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -26,58 +26,29 @@
 /* core includes */
 #include <kernel/lock.h>
 #include <kernel/pd.h>
+#include <kernel/kernel.h>
+#include <kernel/test.h>
 #include <platform_pd.h>
 #include <trustzone.h>
 #include <timer.h>
 #include <pic.h>
-#include <map_local.h>
+#include <platform_thread.h>
 
 /* base includes */
 #include <unmanaged_singleton.h>
 #include <base/native_types.h>
 
 /* base-hw includes */
-#include <kernel/irq.h>
 #include <kernel/perf_counter.h>
 
 using namespace Kernel;
 
-extern "C" void _core_start(void);
-extern void *   _start_secondary_cpus;
+extern void * _start_secondary_cpus;
 
 static_assert(sizeof(Genode::sizet_arithm_t) >= 2 * sizeof(size_t),
 	"Bad result type for size_t arithmetics.");
 
-namespace Kernel
-{
-	/* import Genode types */
-	typedef Genode::Core_thread_id Core_thread_id;
-
-	Pd_pool * pd_pool() { return unmanaged_singleton<Pd_pool>(); }
-	Thread_pool * thread_pool() { return unmanaged_singleton<Thread_pool>(); }
-	Signal_context_pool * signal_context_pool() { return unmanaged_singleton<Signal_context_pool>(); }
-	Signal_receiver_pool * signal_receiver_pool() { return unmanaged_singleton<Signal_receiver_pool>(); }
-
-	/**
-	 * Hook that enables automated testing of kernel internals
-	 */
-	void test();
-
-	enum { STACK_SIZE = 64 * 1024 };
-
-	/**
-	 * Return lock that guards all kernel data against concurrent access
-	 */
-	Lock & data_lock()
-	{
-		static Lock s;
-		return s;
-	}
-}
-
-
-Kernel::Id_allocator & Kernel::id_alloc() {
-	return *unmanaged_singleton<Id_allocator>(); }
+Lock & Kernel::data_lock() { return *unmanaged_singleton<Kernel::Lock>(); }
 
 
 Pd * Kernel::core_pd() {
@@ -85,18 +56,6 @@ Pd * Kernel::core_pd() {
 
 
 Pic * Kernel::pic() { return unmanaged_singleton<Pic>(); }
-
-
-Native_utcb* Kernel::core_main_thread_utcb_phys_addr() {
-	return unmanaged_singleton<Native_utcb,Genode::get_page_size()>(); }
-
-
-/**
- * Enable kernel-entry assembly to get an exclusive stack for every CPU
- */
-unsigned kernel_stack_size = Kernel::STACK_SIZE;
-char     kernel_stack[NR_OF_CPUS][Kernel::STACK_SIZE]
-         __attribute__((aligned(16)));
 
 
 /**
@@ -129,35 +88,7 @@ extern "C" void init_kernel_up()
  */
 void init_kernel_mp_primary()
 {
-	using namespace Genode;
-
-	/* get stack memory that fullfills the constraints for core stacks */
-	enum {
-		STACK_ALIGNM = 1 << CORE_STACK_ALIGNM_LOG2,
-		STACK_SIZE   = DEFAULT_STACK_SIZE,
-	};
-	static_assert(STACK_SIZE <= STACK_ALIGNM - sizeof(Core_thread_id),
-	              "stack size does not fit stack alignment of core");
-	static char s[STACK_SIZE] __attribute__((aligned(STACK_ALIGNM)));
-
-	/* provide thread ident at the aligned base of the stack */
-	*(Core_thread_id *)s = 0;
-
-	/* initialize UTCB and map it */
-	Native_utcb * utcb = Kernel::core_main_thread_utcb_phys_addr();
-	Genode::map_local((addr_t)utcb, (addr_t)utcb_main_thread(),
-	                  sizeof(Native_utcb) / get_page_size());
-
-	static Kernel::Thread t(Cpu_priority::max, 0, "core");
-
-	/* start thread with stack pointer at the top of stack */
-	utcb->start_info()->init(t.id(), Dataspace_capability());
-	t.ip = (addr_t)&_core_start;
-	t.sp = (addr_t)s + STACK_SIZE;
-	t.init(cpu_pool()->primary_cpu(), core_pd(),
-	       Genode::utcb_main_thread(), 1);
-
-	/* kernel initialization finished */
+	Core_thread::singleton();
 	Genode::printf("kernel initialized\n");
 	test();
 }
@@ -222,25 +153,8 @@ extern "C" void init_kernel_mp()
 }
 
 
-/**
- * Main routine of every kernel pass
- */
 extern "C" void kernel()
 {
 	data_lock().lock();
 	cpu_pool()->cpu(Cpu::executing_id())->exception();
-}
-
-
-Kernel::Cpu_context::Cpu_context(Genode::Translation_table * const table)
-{
-	sp = (addr_t)kernel_stack;
-	ip = (addr_t)kernel;
-	core_pd()->admit(this);
-
-	/*
-	 * platform specific initialization, has to be done after
-	 * setting the registers by now
-	 */
-	_init(STACK_SIZE, (addr_t)table);
 }

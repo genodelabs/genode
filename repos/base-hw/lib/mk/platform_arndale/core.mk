@@ -13,7 +13,6 @@ SRC_CC += spec/arndale/pic.cc
 SRC_CC += spec/arndale/platform_services.cc
 SRC_CC += spec/arm_v7/kernel/vm_thread.cc
 SRC_CC += spec/arm_v7/virtualization/kernel/vm.cc
-SRC_CC += spec/arm_v7/virtualization/kernel/vm_thread.cc
 SRC_CC += spec/arm_v7/virtualization/kernel/cpu_context.cc
 SRC_CC += spec/arm_v7/vm_session_component.cc
 SRC_CC += spec/arm_v7/virtualization/vm_session_component.cc

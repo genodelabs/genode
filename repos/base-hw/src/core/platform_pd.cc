@@ -12,8 +12,12 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
+#include <root/root.h>
+
 /* core includes */
 #include <platform_pd.h>
+#include <platform_thread.h>
 
 extern int _prog_img_beg;
 extern int _prog_img_end;
@@ -92,6 +96,25 @@ Hw::Address_space::Address_space(Kernel::Pd * pd)
 }
 
 
+/*************************************
+ ** Capability_space implementation **
+ *************************************/
+
+Capability_space::Capability_space()
+: _slab(nullptr, (Slab_block*)&_initial_sb) { }
+
+
+void Capability_space::upgrade_slab(Allocator &alloc)
+{
+	for (;;) {
+		Slab_block * block;
+		if (!alloc.alloc(SLAB_SIZE, &block)) return;
+		block = construct_at<Slab_block>(block, &_slab);
+		_slab.insert_sb(block);
+	}
+}
+
+
 /********************************
  ** Platform_pd implementation **
  ********************************/
@@ -121,16 +144,17 @@ int Platform_pd::assign_parent(Native_capability parent)
 
 
 Platform_pd::Platform_pd(Translation_table * tt, Page_slab * slab)
-: Hw::Address_space(reinterpret_cast<Kernel::Pd*>(&_kernel_object), tt, slab),
-  _label("core") { new (&_kernel_object) Kernel::Pd(tt, this); }
+: Hw::Address_space(kernel_object(), tt, slab),
+  Kernel_object<Kernel::Pd>(false, tt, this),
+  _label("core") { }
 
 
 Platform_pd::Platform_pd(Allocator * md_alloc, char const *label)
-: Hw::Address_space(reinterpret_cast<Kernel::Pd*>(&_kernel_object)),
+: Hw::Address_space(kernel_object()),
+  Kernel_object<Kernel::Pd>(true, translation_table_phys(), this),
   _label(label)
 {
-	/* create kernel object */
-	if (Kernel::new_pd(reinterpret_cast<Kernel::Pd*>(_kernel_object), this)) {
+	if (!_cap.valid()) {
 		PERR("failed to create kernel object");
 		throw Root::Unavailable();
 	}
@@ -139,7 +163,6 @@ Platform_pd::Platform_pd(Allocator * md_alloc, char const *label)
 
 Platform_pd::~Platform_pd()
 {
-	Kernel::delete_pd(kernel_pd());
 	flush(platform()->vm_start(), platform()->vm_size());
 
 	/* TODO: destroy page slab and translation table!!! */

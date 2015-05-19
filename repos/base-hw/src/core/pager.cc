@@ -76,8 +76,8 @@ void Pager_object::unresolved_page_fault_occurred()
 {
 	Platform_thread * const pt = (Platform_thread *)badge();
 	if (pt && pt->pd())
-		PERR("%s -> %s: unresolved pagefault at ip=%p",
-		     pt->pd()->label(), pt->label(), (void*)pt->state().ip);
+		PERR("%s -> %s: unresolved pagefault at ip=%p sp=%p",
+		     pt->pd()->label(), pt->label(), (void*)pt->state().ip, (void*)pt->state().sp);
 }
 
 Pager_object::Pager_object(unsigned const badge, Affinity::Location)
@@ -137,10 +137,9 @@ Pager_entrypoint::Pager_entrypoint(Cap_session *,
 
 Pager_capability Pager_entrypoint::manage(Pager_object * const o)
 {
-	unsigned const d = _activation->cap().dst();
-	unsigned const b = o->badge();
-	auto const p = reinterpret_cap_cast<Pager_object>(Native_capability(d, b));
-	o->start_paging(_activation->Signal_receiver::manage(o), p);
+	Signal_context_capability scc = _activation->Signal_receiver::manage(o);
+	Pager_capability p = reinterpret_cap_cast<Pager_object>(scc);
+	o->start_paging(scc, p);
 	insert(o);
 	return p;
 }

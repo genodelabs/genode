@@ -17,8 +17,13 @@
 
 /* core includes */
 #include <kernel/early_translations.h>
-#include <kernel/object.h>
 #include <kernel/cpu.h>
+#include <kernel/object.h>
+
+namespace Genode {
+	class Page_slab;
+	class Platform_pd;
+}
 
 namespace Kernel
 {
@@ -43,10 +48,6 @@ namespace Kernel
 	 * Kernel backend of protection domains
 	 */
 	class Pd;
-
-	typedef Object_pool<Pd> Pd_pool;
-
-	Pd_pool * pd_pool();
 }
 
 class Kernel::Mode_transition_control
@@ -129,16 +130,22 @@ class Kernel::Mode_transition_control
 } __attribute__((aligned(Mode_transition_control::ALIGN)));
 
 
-class Kernel::Pd : public Object<Pd, pd_pool>, public Cpu::Pd
+class Kernel::Pd : public Cpu::Pd,
+                   public Kernel::Object
 {
 	public:
 
-		typedef Genode::Translation_table Table;
+		static constexpr unsigned max_cap_ids = 1 << (sizeof(capid_t) * 8);
+
+		using Table           = Genode::Translation_table;
+		using Capid_allocator = Genode::Bit_allocator<max_cap_ids>;
 
 	private:
 
-		Table       * const _table;
-		Platform_pd * const _platform_pd;
+		Table                  * const _table;
+		Genode::Platform_pd    * const _platform_pd;
+		Capid_allocator                _capid_alloc;
+		Object_identity_reference_tree _cap_tree;
 
 	public:
 
@@ -148,7 +155,7 @@ class Kernel::Pd : public Object<Pd, pd_pool>, public Cpu::Pd
 		 * \param table        translation table of the PD
 		 * \param platform_pd  core object of the PD
 		 */
-		Pd(Table * const table, Platform_pd * const platform_pd);
+		Pd(Table * const table, Genode::Platform_pd * const platform_pd);
 
 		~Pd();
 
@@ -158,12 +165,25 @@ class Kernel::Pd : public Object<Pd, pd_pool>, public Cpu::Pd
 		void admit(Cpu::Context * const c);
 
 
+		static capid_t syscall_create(void * const dst,
+		                              Genode::Translation_table * tt,
+		                              Genode::Platform_pd * const pd)
+		{
+			return call(call_id_new_pd(), (Call_arg)dst,
+			            (Call_arg)tt, (Call_arg)pd);
+		}
+
+		static void syscall_destroy(Pd * const pd) {
+			call(call_id_delete_pd(), (Call_arg)pd); }
+
 		/***************
 		 ** Accessors **
 		 ***************/
 
-		Platform_pd * platform_pd() const { return _platform_pd; }
-		Table * translation_table() const { return _table; }
+		Genode::Platform_pd * platform_pd()       const { return _platform_pd; }
+		Table               * translation_table() const { return _table;       }
+		Capid_allocator     & capid_alloc()             { return _capid_alloc; }
+		Object_identity_reference_tree & cap_tree()     { return _cap_tree;    }
 };
 
 #endif /* _KERNEL__PD_H_ */

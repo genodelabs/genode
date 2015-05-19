@@ -22,18 +22,10 @@
 
 using namespace Genode;
 
-Ram_dataspace_capability _main_thread_utcb_ds;
-Native_thread_id         _main_thread_id;
-
-
-/**************************
- ** Native types support **
- **************************/
-
-Native_thread_id Genode::thread_get_my_native_id()
-{
-	Thread_base * const t = Thread_base::myself();
-	return t ? t->tid().thread_id : _main_thread_id;
+namespace Hw {
+	Ram_dataspace_capability _main_thread_utcb_ds;
+	Untyped_capability       _main_thread_cap;
+	Untyped_capability       _parent_cap;
 }
 
 
@@ -44,15 +36,17 @@ Native_thread_id Genode::thread_get_my_native_id()
 void prepare_init_main_thread()
 {
 	using namespace Genode;
+	using namespace Hw;
 
 	/*
 	 * Make data from the startup info persistantly available by copying it
 	 * before the UTCB gets polluted by the following function calls.
 	 */
-	Native_utcb * const utcb = Thread_base::myself()->utcb();
-	_main_thread_id = utcb->start_info()->thread_id();
-	_main_thread_utcb_ds =
-		reinterpret_cap_cast<Ram_dataspace>(utcb->start_info()->utcb_ds());
+	Native_utcb * utcb = Thread_base::myself()->utcb();
+	_parent_cap = utcb->cap_get(Native_utcb::PARENT);
+	Untyped_capability ds_cap(utcb->cap_get(Native_utcb::UTCB_DATASPACE));
+	_main_thread_utcb_ds = reinterpret_cap_cast<Ram_dataspace>(ds_cap);
+	_main_thread_cap = utcb->cap_get(Native_utcb::THREAD_MYSELF);
 }
 
 
@@ -78,8 +72,5 @@ void Thread_base::_thread_start()
 	Genode::sleep_forever();
 }
 
-void Thread_base::_thread_bootstrap()
-{
-	Native_utcb * const utcb = Thread_base::myself()->utcb();
-	_tid.thread_id = utcb->start_info()->thread_id();
-}
+void Thread_base::_thread_bootstrap() {
+	_tid.cap = myself()->utcb()->cap_get(Native_utcb::THREAD_MYSELF); }

@@ -59,7 +59,7 @@ int Pager_activation_base::apply_mapping()
 void Pager_activation_base::entry()
 {
 	/* get ready to receive faults */
-	_cap = Native_capability(thread_get_my_native_id(), 0);
+	_cap = Thread_base::myself()->tid().cap;
 	_cap_valid.unlock();
 	while (1)
 	{
@@ -74,10 +74,8 @@ void Pager_activation_base::entry()
 		 */
 		unsigned const pon = po->cap().local_name();
 		Object_pool<Pager_object>::Guard pog(_ep->lookup_and_lock(pon));
-		if (!pog) {
-			PWRN("failed to lookup pager object");
-			continue;
-		}
+		if (!pog) continue;
+
 		/* let pager object go to fault state */
 		pog->fault_occured(s);
 
@@ -92,10 +90,10 @@ void Pager_activation_base::entry()
 			Reg_id::FAULT_TLB, Reg_id::IP, Reg_id::FAULT_ADDR,
 			Reg_id::FAULT_WRITES, Reg_id::FAULT_SIGNAL };
 		enum { READS = sizeof(read_regs)/sizeof(read_regs[0]) };
-		void * const utcb = Thread_base::myself()->utcb()->base();
-		memcpy(utcb, read_regs, sizeof(read_regs));
+		memcpy((void*)Thread_base::myself()->utcb()->base(),
+		       read_regs, sizeof(read_regs));
 		addr_t * const values = (addr_t *)&_fault;
-		if (Kernel::access_thread_regs(pt->kernel_thread(), READS, 0, values)) {
+		if (Kernel::access_thread_regs(pt->kernel_object(), READS, 0, values)) {
 			PWRN("failed to read fault data");
 			continue;
 		}

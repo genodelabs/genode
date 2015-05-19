@@ -52,7 +52,7 @@ class Kernel::Thread_event : public Signal_ack_handler
 		/**
 		 * Kernel name of assigned signal context or 0 if not assigned
 		 */
-		unsigned signal_context_id() const;
+		Signal_context * const signal_context() const;
 
 		/**
 		 * Override signal context of the event

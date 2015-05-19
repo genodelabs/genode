@@ -16,10 +16,7 @@
 
 namespace Kernel
 {
-	enum {
-		DEFAULT_STACK_SIZE   = 16 * 1024,
-		MAX_KERNEL_OBJECTS   = 8192,
-	};
+	enum { DEFAULT_STACK_SIZE = 16 * 1024 };
 
 	/* amount of priority bands amongst quota owners in CPU scheduling */
 	constexpr unsigned cpu_priorities = 4;

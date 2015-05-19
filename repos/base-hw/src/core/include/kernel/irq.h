@@ -19,6 +19,7 @@
 #include <base/native_types.h>
 #include <irq_session/irq_session.h>
 #include <unmanaged_singleton.h>
+#include <util/avl_tree.h>
 
 /* core includes */
 #include <kernel/signal_receiver.h>
@@ -45,31 +46,35 @@ namespace Genode
 }
 
 
-class Kernel::Irq : public Object_pool<Irq>::Item
+class Kernel::Irq : public Genode::Avl_node<Irq>
 {
 	public:
 
-		using Pool = Object_pool<Irq>;
+		struct Pool : Genode::Avl_tree<Irq>
+		{
+			Irq * object(unsigned const id) const
+			{
+				Irq * const irq = first();
+				if (!irq) return nullptr;
+				return irq->find(id);
+			}
+		};
 
 	protected:
 
-		Pool &_pool;
-
-		/**
-		 * Get kernel name of the interrupt
-		 */
-		unsigned _id() const { return Pool::Item::id(); };
+		unsigned _irq_nr; /* kernel name of the interrupt */
+		Pool    &_pool;
 
 	public:
 
 		/**
 		 * Constructor
 		 *
-		 * \param irq_id  kernel name of the interrupt
-		 * \param pool    pool this interrupt shall belong to
+		 * \param irq   interrupt number
+		 * \param pool  pool this interrupt shall belong to
 		 */
-		Irq(unsigned const irq_id, Pool &pool)
-		: Pool::Item(irq_id), _pool(pool) { _pool.insert(this); }
+		Irq(unsigned const irq, Pool &pool)
+		: _irq_nr(irq), _pool(pool) { _pool.insert(this); }
 
 		virtual ~Irq() { _pool.remove(this); }
 
@@ -87,10 +92,30 @@ class Kernel::Irq : public Object_pool<Irq>::Item
 		 * Allow interrupt to occur
 		 */
 		void enable() const;
+
+		unsigned irq_number() { return _irq_nr; }
+
+
+		/************************
+		 * 'Avl_node' interface *
+		 ************************/
+
+		bool higher(Irq * i) const { return i->_irq_nr > _irq_nr; }
+
+		/**
+		 * Find irq with 'nr' within this AVL subtree
+		 */
+		Irq * find(unsigned const nr)
+		{
+			if (nr == _irq_nr) return this;
+			Irq * const subtree = Genode::Avl_node<Irq>::child(nr > _irq_nr);
+			return (subtree) ? subtree->find(nr): nullptr;
+		}
+
 };
 
 
-class Kernel::User_irq : public Kernel::Irq
+class Kernel::User_irq : public Kernel::Irq, public Kernel::Object
 {
 	private:
 

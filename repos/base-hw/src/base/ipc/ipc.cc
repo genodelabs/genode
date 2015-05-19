@@ -12,19 +12,26 @@
  */
 
 /* Genode includes */
+#include <base/env.h>
 #include <base/ipc.h>
+#include <base/allocator.h>
 #include <base/thread.h>
+#include <base/native_env.h>
+#include <util/construct_at.h>
+#include <util/retry.h>
 
 /* base-hw includes */
 #include <kernel/interface.h>
 #include <kernel/log.h>
+
+namespace Hw { extern Genode::Untyped_capability _main_thread_cap; }
 
 using namespace Genode;
 
 enum
 {
 	/* size of the callee-local name of a targeted RPC object */
-	RPC_OBJECT_ID_SIZE = sizeof(umword_t),
+	RPC_OBJECT_ID_SIZE = sizeof(Native_thread_id),
 
 	/*
 	 * The RPC framework marshalls a return value into reply messages to
@@ -33,6 +40,18 @@ enum
 	 */
 	RPC_RETURN_VALUE_SIZE = sizeof(umword_t),
 };
+
+
+/*****************************
+ ** IPC marshalling support **
+ *****************************/
+
+void Ipc_ostream::_marshal_capability(Native_capability const &cap) {
+	_snd_msg->cap_add(cap); }
+
+
+void Ipc_istream::_unmarshal_capability(Native_capability &cap) {
+	cap = _rcv_msg->cap_get(); }
 
 
 /*****************
@@ -44,7 +63,8 @@ Ipc_ostream::Ipc_ostream(Native_capability dst, Msgbuf_base *snd_msg)
 	Ipc_marshaller(&snd_msg->buf[0], snd_msg->size()),
 	_snd_msg(snd_msg), _dst(dst)
 {
-	_write_offset = RPC_OBJECT_ID_SIZE;
+	_write_offset = align_natural<unsigned>(RPC_OBJECT_ID_SIZE);
+	_snd_msg->reset();
 }
 
 
@@ -62,9 +82,10 @@ void Ipc_istream::_wait()
 Ipc_istream::Ipc_istream(Msgbuf_base *rcv_msg)
 :
 	Ipc_unmarshaller(&rcv_msg->buf[0], rcv_msg->size()),
-	Native_capability(Genode::thread_get_my_native_id(), 0),
+	Native_capability(Thread_base::myself() ? Thread_base::myself()->tid().cap
+	                                        : Hw::_main_thread_cap),
 	_rcv_msg(rcv_msg), _rcv_cs(-1)
-{ _read_offset = RPC_OBJECT_ID_SIZE; }
+{ _read_offset = align_natural<unsigned>(RPC_OBJECT_ID_SIZE); }
 
 
 Ipc_istream::~Ipc_istream() { }
@@ -76,24 +97,35 @@ Ipc_istream::~Ipc_istream() { }
 
 void Ipc_client::_call()
 {
-	/* send request and receive corresponding reply */
-	unsigned const local_name = Ipc_ostream::_dst.local_name();
-	Native_utcb * const utcb = Thread_base::myself()->utcb();
-	utcb->message()->prepare_send(_snd_msg->buf, _write_offset, local_name);
-	if (Kernel::send_request_msg(Ipc_ostream::_dst.dst())) {
-		PERR("failed to receive reply");
-		throw Blocking_canceled();
-	}
-	utcb->message()->finish_receive(_rcv_msg->buf, _rcv_msg->size());
+	retry<Genode::Allocator::Out_of_memory>(
+		[&] () {
 
-	/* reset unmarshaller */
-	_write_offset = _read_offset = RPC_OBJECT_ID_SIZE;
+			/* send request and receive corresponding reply */
+			Thread_base::myself()->utcb()->copy_from(*_snd_msg, _write_offset);
+
+			switch (Kernel::send_request_msg(Ipc_ostream::dst().dst(),
+			                                 _rcv_msg->cap_rcv_window())) {
+			case -1: throw Blocking_canceled();
+			case -2: throw Allocator::Out_of_memory();
+			default:
+				_rcv_msg->reset();
+				_snd_msg->reset();
+				Thread_base::myself()->utcb()->copy_to(*_rcv_msg);
+
+				/* reset unmarshaller */
+				_write_offset = _read_offset =
+					align_natural<unsigned>(RPC_OBJECT_ID_SIZE);
+			}
+
+		},
+		[&] () { upgrade_pd_session_quota(3*4096); });
 }
 
 
 Ipc_client::Ipc_client(Native_capability const &srv, Msgbuf_base *snd_msg,
-                       Msgbuf_base *rcv_msg, unsigned short)
-: Ipc_istream(rcv_msg), Ipc_ostream(srv, snd_msg), _result(0) { }
+                       Msgbuf_base *rcv_msg, unsigned short rcv_caps)
+: Ipc_istream(rcv_msg), Ipc_ostream(srv, snd_msg), _result(0) {
+	rcv_msg->cap_rcv_window(rcv_caps); }
 
 
 /****************
@@ -104,8 +136,7 @@ Ipc_server::Ipc_server(Msgbuf_base *snd_msg,
                        Msgbuf_base *rcv_msg) :
 	Ipc_istream(rcv_msg),
 	Ipc_ostream(Native_capability(), snd_msg),
-	_reply_needed(false)
-{ }
+	_reply_needed(false) { }
 
 
 void Ipc_server::_prepare_next_reply_wait()
@@ -114,34 +145,41 @@ void Ipc_server::_prepare_next_reply_wait()
 	_reply_needed = true;
 
 	/* leave space for RPC method return value */
-	_write_offset = RPC_OBJECT_ID_SIZE + RPC_RETURN_VALUE_SIZE;
+	_write_offset = align_natural<unsigned>(RPC_OBJECT_ID_SIZE +
+	                                        RPC_RETURN_VALUE_SIZE);
 
 	/* reset unmarshaller */
-	_read_offset  = RPC_OBJECT_ID_SIZE;
+	_read_offset  = align_natural<unsigned>(RPC_OBJECT_ID_SIZE);
 }
 
 
 void Ipc_server::_wait()
 {
-	/* receive request */
-	if (Kernel::await_request_msg()) {
-		PERR("failed to receive request");
-		throw Blocking_canceled();
-	}
-	Native_utcb * const utcb = Thread_base::myself()->utcb();
-	utcb->message()->finish_receive(_rcv_msg->buf, _rcv_msg->size());
+	retry<Genode::Allocator::Out_of_memory>(
+		[&] () {
 
-	/* update server state */
-	_prepare_next_reply_wait();
+			/* receive request */
+			switch (Kernel::await_request_msg(Msgbuf_base::MAX_CAP_ARGS)) {
+			case -1: throw Blocking_canceled();
+			case -2: throw Allocator::Out_of_memory();
+			default:
+				_rcv_msg->reset();
+				Thread_base::myself()->utcb()->copy_to(*_rcv_msg);
+
+				/* update server state */
+				_prepare_next_reply_wait();
+			}
+
+		},
+		[&] () { upgrade_pd_session_quota(3*4096); });
 }
 
 
 void Ipc_server::_reply()
 {
-	unsigned const local_name = Ipc_ostream::_dst.local_name();
-	Native_utcb * const utcb = Thread_base::myself()->utcb();
-	utcb->message()->prepare_send(_snd_msg->buf, _write_offset, local_name);
-	Kernel::send_reply_msg(false);
+	Thread_base::myself()->utcb()->copy_from(*_snd_msg, _write_offset);
+	_snd_msg->reset();
+	Kernel::send_reply_msg(0, false);
 }
 
 
@@ -152,16 +190,23 @@ void Ipc_server::_reply_wait()
 		_wait();
 		return;
 	}
-	/* send reply and receive next request */
-	unsigned const local_name = Ipc_ostream::_dst.local_name();
-	Native_utcb * const utcb = Thread_base::myself()->utcb();
-	utcb->message()->prepare_send(_snd_msg->buf, _write_offset, local_name);
-	if (Kernel::send_reply_msg(true)) {
-		PERR("failed to receive request");
-		throw Blocking_canceled();
-	}
-	utcb->message()->finish_receive(_rcv_msg->buf, _rcv_msg->size());
 
-	/* update server state */
-	_prepare_next_reply_wait();
+	retry<Genode::Allocator::Out_of_memory>(
+		[&] () {
+			/* send reply and receive next request */
+			Thread_base::myself()->utcb()->copy_from(*_snd_msg, _write_offset);
+			switch (Kernel::send_reply_msg(Msgbuf_base::MAX_CAP_ARGS, true)) {
+			case -1: throw Blocking_canceled();
+			case -2: throw Allocator::Out_of_memory();
+			default:
+				_rcv_msg->reset();
+				_snd_msg->reset();
+				Thread_base::myself()->utcb()->copy_to(*_rcv_msg);
+
+				/* update server state */
+				_prepare_next_reply_wait();
+			}
+
+		},
+		[&] () { upgrade_pd_session_quota(3*4096); });
 }

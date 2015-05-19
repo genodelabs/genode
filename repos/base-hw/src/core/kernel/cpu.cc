@@ -17,8 +17,10 @@
 #include <kernel/kernel.h>
 #include <kernel/thread.h>
 #include <kernel/irq.h>
+#include <kernel/pd.h>
 #include <pic.h>
 #include <timer.h>
+#include <assert.h>
 
 /* base includes */
 #include <unmanaged_singleton.h>
@@ -179,6 +181,7 @@ void Cpu::exception()
 {
 	/* update old job */
 	Job * const old_job = scheduled_job();
+
 	old_job->exception(_id);
 
 	/* update scheduler */
@@ -276,4 +279,30 @@ Cpu_pool::Cpu_pool()
 {
 	for (unsigned id = 0; id < NR_OF_CPUS; id++) {
 		new (_cpus[id]) Cpu(id, &_timer); }
+}
+
+
+/*****************
+ ** Cpu_context **
+ *****************/
+
+/**
+ * Enable kernel-entry assembly to get an exclusive stack for every CPU
+ */
+enum { KERNEL_STACK_SIZE = 64 * 1024 };
+Genode::size_t  kernel_stack_size = KERNEL_STACK_SIZE;
+Genode::uint8_t kernel_stack[NR_OF_CPUS][KERNEL_STACK_SIZE]
+__attribute__((aligned(16)));
+
+Cpu_context::Cpu_context(Genode::Translation_table * const table)
+{
+	sp = (addr_t)kernel_stack;
+	ip = (addr_t)kernel;
+	core_pd()->admit(this);
+
+	/*
+	 * platform specific initialization, has to be done after
+	 * setting the registers by now
+	 */
+	_init(KERNEL_STACK_SIZE, (addr_t)table);
 }
