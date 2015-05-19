@@ -66,8 +66,16 @@ void Pci::Device_component::config_write(unsigned char address, unsigned value,
 {
 	/* white list of ports which we permit to write */
 	switch (address) {
-		case 0x40 ... 0xff: /* allow access to device-specific registers */
-			break;
+		case 0x40 ... 0xff:
+			/* allow access to device-specific registers if not used by us */
+			if (!_device_config.reg_in_use(&_config_access, address, size))
+				break;
+
+			PERR("%x:%x:%x write access to address=%x value=0x%x"
+			     " size=0x%x denied - it is used by the platform driver.",
+			     _device_config.bus_number(), _device_config.device_number(),
+			     _device_config.function_number(), address, value, size);
+			return;
 		case PCI_CMD_REG: /* COMMAND register - first byte */
 			if (size == Access_size::ACCESS_16BIT)
 				break;
@@ -93,6 +101,7 @@ void Pci::Device_component::config_write(unsigned char address, unsigned value,
 	if (address == PCI_CMD_REG && value & PCI_CMD_DMA && _session)
 		_session->assign_device(this);
 
-	_device_config.write(&_config_access, address, value, size);
+	_device_config.write(&_config_access, address, value, size,
+	                     _device_config.DONT_TRACK_ACCESS);
 }
 

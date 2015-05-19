@@ -318,7 +318,8 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 
 		unsigned config_read(unsigned char address, Access_size size) override
 		{
-			return _device_config.read(&_config_access, address, size);
+			return _device_config.read(&_config_access, address, size,
+			                           _device_config.DONT_TRACK_ACCESS);
 		}
 
 		void config_write(unsigned char address, unsigned value,

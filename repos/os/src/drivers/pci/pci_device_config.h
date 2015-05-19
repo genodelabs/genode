@@ -78,7 +78,7 @@ namespace Pci {
 					return;
 
 				_device_id    = pci_config->read(bus, device, function, 2, Device::ACCESS_16BIT);
-				_class_code   = pci_config->read(bus, device, function, 8) >> 8;
+				_class_code   = pci_config->read(bus, device, function, 8, Device::ACCESS_32BIT) >> 8;
 				_class_code  &= 0xffffff;
 				_header_type  = pci_config->read(bus, device, function, 0xe, Device::ACCESS_8BIT);
 				_header_type &= 0x7f;
@@ -101,7 +101,7 @@ namespace Pci {
 					unsigned bar_idx = 0x10 + 4 * i;
 
 					/* read original base-address register value */
-					unsigned orig_bar = pci_config->read(bus, device, function, bar_idx);
+					unsigned orig_bar = pci_config->read(bus, device, function, bar_idx, Device::ACCESS_32BIT);
 
 					/* check for invalid resource */
 					if (orig_bar == (unsigned)~0) {
@@ -115,9 +115,9 @@ namespace Pci {
 					 * of lowest-significant bits corresponding to the resource size.
 					 * Finally, we write back the original value as assigned by the BIOS.
 					 */
-					pci_config->write(bus, device, function, bar_idx, ~0);
-					unsigned bar = pci_config->read(bus, device, function, bar_idx);
-					pci_config->write(bus, device, function, bar_idx, orig_bar);
+					pci_config->write(bus, device, function, bar_idx, ~0, Device::ACCESS_32BIT);
+					unsigned bar = pci_config->read(bus, device, function, bar_idx, Device::ACCESS_32BIT);
+					pci_config->write(bus, device, function, bar_idx, orig_bar, Device::ACCESS_32BIT);
 
 					/*
 					 * Scan base-address-register value for the lowest set bit but
@@ -172,20 +172,28 @@ namespace Pci {
 			/**
 			 * Read configuration space
 			 */
+			enum { DONT_TRACK_ACCESS = false };
 			unsigned read(Config_access *pci_config, unsigned char address,
-			              Device::Access_size size)
+			              Device::Access_size size, bool track = true)
 			{
-				return pci_config->read(_bus, _device, _function, address, size);
+				return pci_config->read(_bus, _device, _function, address,
+				                        size, track);
 			}
 
 			/**
 			 * Write configuration space
 			 */
 			void write(Config_access *pci_config, unsigned char address,
-			           unsigned long value, Device::Access_size size)
+			           unsigned long value, Device::Access_size size,
+			           bool track = true)
 			{
-				pci_config->write(_bus, _device, _function, address, value, size);
+				pci_config->write(_bus, _device, _function, address, value,
+				                  size, track);
 			}
+
+			bool reg_in_use(Config_access *pci_config, unsigned char address,
+			                Device::Access_size size) {
+				return pci_config->reg_in_use(address, size); }
 	};
 
 	class Config_space : public Genode::List<Config_space>::Element

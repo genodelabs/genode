@@ -67,6 +67,15 @@ namespace Pci {
 				         (function <<  8) |
 				         (addr      & ~3) ); }
 
+			Genode::Bit_array<256> _used;
+
+			void _use_register(unsigned char addr, unsigned short width)
+			{
+				for (unsigned i = 0; i < width; i++)
+					if (!_used.get(addr + i, 1))
+						_used.set(addr + i, 1);
+			}
+
 		public:
 
 			/**
@@ -82,18 +91,32 @@ namespace Pci {
 			 *
 			 * There is no range check for the input values.
 			 */
-			unsigned read(int bus, int device, int function, int addr,
-			              Device::Access_size size = Device::ACCESS_32BIT)
+			unsigned read(int bus, int device, int function,
+			              unsigned char addr, Device::Access_size size,
+			              bool track = true)
 			{
 				/* write target address */
 				_io_port<REG_ADDR>()->outl(REG_ADDR, _cfg_addr(bus, device, function, addr));
 
 				/* return read value */
 				switch (size) {
-				case Device::ACCESS_8BIT:  return _io_port<REG_DATA>()->inb(REG_DATA + (addr & 3));
-				case Device::ACCESS_16BIT: return _io_port<REG_DATA>()->inw(REG_DATA + (addr & 2));
-				case Device::ACCESS_32BIT: return _io_port<REG_DATA>()->inl(REG_DATA);
-				default:                   return ~0;
+				case Device::ACCESS_8BIT:
+					if (track)
+						_use_register(addr, 1);
+
+					return _io_port<REG_DATA>()->inb(REG_DATA + (addr & 3));
+				case Device::ACCESS_16BIT:
+					if (track)
+						_use_register(addr, 2);
+
+					return _io_port<REG_DATA>()->inw(REG_DATA + (addr & 2));
+				case Device::ACCESS_32BIT:
+					if (track)
+						_use_register(addr, 4);
+
+					return _io_port<REG_DATA>()->inl(REG_DATA);
+				default:
+					return ~0U;
 				}
 			}
 
@@ -109,23 +132,48 @@ namespace Pci {
 			 *
 			 * There is no range check for the input values.
 			 */
-			void write(int bus, int device, int function, int addr, unsigned value,
-			           Device::Access_size size = Device::ACCESS_32BIT)
+			void write(int bus, int device, int function, unsigned char addr,
+			           unsigned value, Device::Access_size size,
+			           bool track = true)
 			{
 				/* write target address */
-				_io_port<REG_ADDR>()->outl(REG_ADDR, _cfg_addr(bus, device, function, addr));
+				_io_port<REG_ADDR>()->outl(REG_ADDR, _cfg_addr(bus, device,
+				                                               function, addr));
 
 				/* write value to targeted address */
 				switch (size) {
 				case Device::ACCESS_8BIT:
+					if (track)
+						_use_register(addr, 1);
+
 					_io_port<REG_DATA>()->outb(REG_DATA + (addr & 3), value);
 					break;
 				case Device::ACCESS_16BIT:
+					if (track)
+						_use_register(addr, 2);
+
 					_io_port<REG_DATA>()->outw(REG_DATA + (addr & 2), value);
 					break;
 				case Device::ACCESS_32BIT:
+					if (track)
+						_use_register(addr, 4);
+
 					_io_port<REG_DATA>()->outl(REG_DATA, value);
 					break;
+				}
+			}
+
+			bool reg_in_use(unsigned char addr, Device::Access_size size)
+			{
+				switch (size) {
+				case Device::ACCESS_8BIT:
+					return _used.get(addr, 1);
+				case Device::ACCESS_16BIT:
+					return _used.get(addr, 2);
+				case Device::ACCESS_32BIT:
+					return _used.get(addr, 4);
+				default:
+					return true;
 				}
 			}
 	};
