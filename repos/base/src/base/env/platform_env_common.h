@@ -18,6 +18,7 @@
 
 #include <base/env.h>
 #include <util/arg_string.h>
+#include <util/retry.h>
 #include <parent/client.h>
 #include <ram_session/client.h>
 #include <rm_session/client.h>
@@ -32,31 +33,6 @@ namespace Genode {
 	class Expanding_parent_client;
 
 	Parent_capability parent_cap();
-}
-
-
-/**
- * Repeatedly try to execute a function 'func'
- *
- * If the function 'func' throws an exception of type 'EXC', the 'handler'
- * is called and the function call is retried.
- *
- * \param EXC       exception type to handle
- * \param func      functor to execute
- * \param handler   exception handler executed if 'func' raised an exception
- *                  of type 'EXC'
- * \param attempts  number of attempts to execute 'func' before giving up
- *                  and reflecting the exception 'EXC' to the caller. If not
- *                  specified, attempt infinitely.
- */
-template <typename EXC, typename FUNC, typename HANDLER>
-auto retry(FUNC func, HANDLER handler, unsigned attempts = ~0U) -> decltype(func())
-{
-	for (unsigned i = 0; attempts == ~0U || i < attempts; i++)
-		try { return func(); }
-		catch (EXC) { handler(); }
-
-	throw EXC();
 }
 
 
