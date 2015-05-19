@@ -32,8 +32,8 @@ struct Genode::Rm_connection : Connection<Rm_session>, Rm_session_client
 	 */
 	Rm_connection(addr_t start = ~0UL, size_t size = 0) :
 		Connection<Rm_session>(
-			session("ram_quota=64K, start=0x%p, size=0x%zx",
-			        start, size)),
+			session("ram_quota=%u, start=0x%p, size=0x%zx",
+			        RAM_QUOTA, start, size)),
 		Rm_session_client(cap()) { }
 };
 
