@@ -17,14 +17,7 @@
 #ifndef _LX_EMUL_H_
 #define _LX_EMUL_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
-
-
-#include <dde_kit/panic.h>
-#include <dde_kit/printf.h>
-#include <dde_kit/types.h>
+#include <lx/lx.h>
 
 #define DEBUG_PRINTK 1
 #define DEBUG_SLAB   0
@@ -37,31 +30,6 @@ extern "C" {
 #define LINUX_VERSION_CODE KERNEL_VERSION(3,9,0)
 
 #define KBUILD_MODNAME "mod-noname"
-
-
-/***************
- ** asm/bug.h **
- ***************/
-
-#define WARN_ON(condition) ({ \
-	int ret = !!(condition); \
-	if (ret) dde_kit_printf("[%s] WARN_ON(" #condition ")\n", __func__); \
-	ret; })
-
-#define WARN(condition, format, ...) ({ \
-	int ret = !!(condition); \
-  if (ret) dde_kit_printf("[%s] WARN(" #condition ") " format "\n" , __func__,  __VA_ARGS__); \
-	ret; })
-
-#define WARN_ON_ONCE WARN_ON
-#define WARN_ONCE WARN
-
-#define BUG() do { \
-	dde_kit_debug("BUG: failure at %s:%d/%s()!\n", __FILE__, __LINE__, __func__); \
-	while (1); \
-} while (0)
-
-#define BUG_ON(condition) do { if (condition) BUG(); } while(0)
 
 
 /*******************************
@@ -239,30 +207,9 @@ int try_module_get(struct module *);
 #define CONFIG_DEFAULT_TCP_CONG "cubic"
 
 
-/***************
- ** asm/bug.h **
- ***************/
-
-#define BUG() do { \
-	dde_kit_debug("BUG: failure at %s:%d/%s()!\n", __FILE__, __LINE__, __func__); \
-	while (1); \
-} while (0)
-
-
 /*******************
  ** linux/types.h **
  *******************/
-
-typedef dde_kit_int8_t   int8_t;
-typedef dde_kit_int16_t  int16_t;
-typedef dde_kit_int32_t  int32_t;
-typedef dde_kit_int64_t  int64_t;
-
-typedef dde_kit_uint8_t  uint8_t;
-typedef dde_kit_uint16_t uint16_t;
-typedef dde_kit_uint32_t uint32_t;
-typedef dde_kit_uint64_t uint64_t;
-typedef dde_kit_size_t   size_t;
 
 typedef uint32_t uint;
 
@@ -353,10 +300,7 @@ enum { true = 1, false = 0 };
  ** linux/jiffies.h **
  *********************/
 
-/* we directly map 'jiffies' to 'dde_kit_timer_ticks' */
-#define jiffies dde_kit_timer_ticks
-
-extern volatile unsigned long jiffies;
+extern unsigned long jiffies;
 
 enum { INITIAL_JIFFIES = 0 };
 
@@ -371,6 +315,7 @@ static inline long time_before(long a, long b) { return time_after(b, a); }
 static inline long time_before_eq(long a, long b) { return time_after_eq(b ,a); }
 
 clock_t jiffies_to_clock_t(unsigned long);
+void    update_jiffies(void);
 
 
 /******************
@@ -441,11 +386,11 @@ void sg_set_page(struct scatterlist *, struct page *, unsigned int,
 
 #define KERN_WARNING KERN_WARN
 
-#define pr_crit(fmt, ...)    dde_kit_printf(KERN_CRIT fmt, ##__VA_ARGS__)
-#define pr_emerg(fmt, ...)   dde_kit_printf(KERN_EMERG fmt, ##__VA_ARGS__)
-#define pr_err(fmt, ...)     dde_kit_printf(KERN_ERR fmt, ##__VA_ARGS__)
-#define pr_warn(fmt, ...)    dde_kit_printf(KERN_WARN fmt, ##__VA_ARGS__)
-#define pr_info(fmt, ...)    dde_kit_printf(KERN_INFO fmt, ##__VA_ARGS__)
+#define pr_crit(fmt, ...)    lx_printf(KERN_CRIT fmt, ##__VA_ARGS__)
+#define pr_emerg(fmt, ...)   lx_printf(KERN_EMERG fmt, ##__VA_ARGS__)
+#define pr_err(fmt, ...)     lx_printf(KERN_ERR fmt, ##__VA_ARGS__)
+#define pr_warn(fmt, ...)    lx_printf(KERN_WARN fmt, ##__VA_ARGS__)
+#define pr_info(fmt, ...)    lx_printf(KERN_INFO fmt, ##__VA_ARGS__)
 #define pr_notice(fmt, ...)  printk(KERN_NOTICE fmt, ##__VA_ARGS__)
 #define pr_cont(fmt, ...)    printk(KERN_CONT fmt, ##__VA_ARGS__)
 
@@ -468,15 +413,14 @@ static inline int _printk(const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
-	dde_kit_vprintf(fmt, args);
+	lx_vprintf(fmt, args);
 	va_end(args);
 	return 0;
 }
 
 #if DEBUG_PRINTK
 #define printk  _printk
-#define vprintk dde_kit_vprintf
-#define panic   dde_kit_panic
+#define vprintk lx_vprintf
 #else
 
 static inline int printk(const char *fmt, ...)
@@ -485,7 +429,6 @@ static inline int printk(const char *fmt, ...)
 }
 
 #define vprintk(...)
-#define panic(...)
 #endif
 
 
@@ -974,9 +917,6 @@ enum {
 	PAGE_SHIFT = 12,
 };
 
-#ifdef __cplusplus
-#define private priv
-#endif
 struct page
 {
 	int       pfmemalloc;
@@ -984,9 +924,6 @@ struct page
 	atomic_t _count;
 	void     *addr;
 	unsigned long private;
-#ifdef __cplusplus
-#undef priv
-#endif
 } __attribute((packed));
 
 
@@ -2241,17 +2178,12 @@ ssize_t splice_to_pipe(struct pipe_inode_info *, struct splice_pipe_desc *);
 /*****************
  ** linux/aio.h **
  *****************/
-#ifdef __cplusplus
-#define private priv
-#endif
+
 struct kiocb
 {
 	void *private;
 };
 
-#ifdef __cplusplus
-#undef private
-#endif
 
 /*****************
  ** linux/uio.h **
@@ -2499,9 +2431,7 @@ struct u64_stats_sync { };
  ** net/net_namespace.h **
  *************************/
 
-#define new _new
 #include <linux/list.h>
-#undef new
 #include <uapi/linux/snmp.h>
 #include <net/netns/mib.h>
 #include <net/netns/ipv4.h>
@@ -2795,13 +2725,7 @@ void csum_replace2(__sum16 *, __be16, __be16);
  ** uapi/linux/net_tstamp.h **
  *****************************/
 
-#ifdef __cplusplus
-#define class device_class
-#endif
 #include <uapi/linux/if_link.h>
-#ifdef __cplusplus
-#undef class
-#endif
 #include <net/netlink.h>
 
 enum {
@@ -3326,10 +3250,6 @@ int socket_check_state(struct socket *sock);
 void log_sock(struct socket *sock);
 
 void lx_trace_event(char const *, ...) __attribute__((format(printf, 1, 2)));
-
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
 
 #endif /* _LX_EMUL_H_ */
 

@@ -3,8 +3,7 @@ SHARED_LIB = yes
 LIB_DIR     = $(REP_DIR)/src/lib/lxip
 LIB_INC_DIR = $(LIB_DIR)/include
 
-# FIXME should we *really* effecticely add dde_kit to this shared library?
-LIBS += dde_kit
+LIBS += lx
 
 LX_CONTRIB_DIR := $(call select_from_ports,dde_linux)/src/lib/lxip
 NET_DIR        := $(LX_CONTRIB_DIR)/net

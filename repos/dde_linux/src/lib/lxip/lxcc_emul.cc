@@ -17,12 +17,12 @@
 #include <timer_session/connection.h>
 #include <trace/timestamp.h>
 
+#include <lx/extern_c_begin.h>
 #include <lx_emul.h>
+#include <lx/extern_c_end.h>
+
 #include <env.h>
 
-extern "C" {
-#include <dde_kit/memory.h>
-}
 
 /*
  * VM-area to reserve for back-end allocator
@@ -379,6 +379,7 @@ void *kzalloc_node(size_t size, gfp_t flags, int node)
 	return kzalloc(size, 0);
 }
 
+
 size_t ksize(const void *p)
 {
 	if (!(Malloc::mem()->inside((Genode::addr_t)p))) {
@@ -389,6 +390,32 @@ size_t ksize(const void *p)
 	size_t size =  Malloc::mem()->slab_size(p);
 	return size;
 }
+
+
+void *alloc_large_system_hash(const char *tablename,
+	                            unsigned long bucketsize,
+	                            unsigned long numentries,
+	                            int scale,
+	                            int flags,
+	                            unsigned int *_hash_shift,
+	                            unsigned int *_hash_mask,
+	                            unsigned long low_limit,
+	                            unsigned long high_limit)
+{
+	unsigned long elements = numentries ? numentries : high_limit;
+	unsigned long nlog2 = ilog2(elements);
+	nlog2 <<= (1 << nlog2) < elements ? 1 : 0;
+
+	void *table = Genode::env()->heap()->alloc(elements * bucketsize);
+
+	if (_hash_mask)
+		*_hash_mask = (1 << nlog2) - 1;
+	if (_hash_shift)
+		*_hash_shift = nlog2;
+
+	return table;
+}
+
 
 
 /********************
@@ -515,7 +542,8 @@ static void __wait_event(signed long timeout)
 		while (timeout > jiffies  && !Net::Env::receiver()->pending())
 		{
 			timer.msleep(1);
-			//dde_kit_thread_msleep(1);
+			update_jiffies();
+
 			if (timeout <= jiffies)
 				return;
 		}
@@ -584,7 +612,7 @@ class Avl_page : public Genode::Avl_node<Avl_page>
 			_page->addr = (void *)_addr;
 			atomic_set(&_page->_count, 1);
 
-			dde_kit_log(DEBUG_SLAB, "alloc page: %p addr: %lx-%lx", _page, _addr, _addr + size);
+			lx_log(DEBUG_SLAB, "alloc page: %p addr: %lx-%lx", _page, _addr, _addr + size);
 		}
 
 		virtual ~Avl_page()
@@ -632,7 +660,7 @@ struct page *alloc_pages(gfp_t gfp_mask, unsigned int order)
 struct page *virt_to_head_page(const void *x)
 {
 	Avl_page *p = tree.first()->find_by_address((Genode::addr_t)x);
-	dde_kit_log(DEBUG_SLAB, "virt_to_head_page: %p page %p\n", x,p ? p->page() : 0);
+	lx_log(DEBUG_SLAB, "virt_to_head_page: %p page %p\n", x,p ? p->page() : 0);
 	
 	return p ? p->page() : 0;
 }
@@ -643,7 +671,7 @@ void put_page(struct page *page)
 	if (!atomic_dec_and_test(&page->_count))
 		return;
 
-	dde_kit_log(DEBUG_SLAB, "put_page: %p", page);
+	lx_log(DEBUG_SLAB, "put_page: %p", page);
 	Avl_page *p = tree.first()->find_by_address((Genode::addr_t)page->addr);
 
 	tree.remove(p);

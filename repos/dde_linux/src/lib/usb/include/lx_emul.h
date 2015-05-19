@@ -306,7 +306,6 @@ typedef unsigned short ushort;
  ** linux/jiffies.h **
  *********************/
 
-/* we directly map 'jiffies' to 'dde_kit_timer_ticks' */
 extern unsigned long jiffies;
 unsigned long msecs_to_jiffies(const unsigned int m);
 unsigned int jiffies_to_msecs(const unsigned long j);
