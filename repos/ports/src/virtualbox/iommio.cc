@@ -158,12 +158,24 @@ VMMDECL(VBOXSTRICTRC) IOMMMIORead(PVM pVM, PVMCPU, RTGCPHYS GCPhys,
 	 */
 	if (rc == VERR_IOM_NOT_MMIO_RANGE_OWNER) {
 		/* implement what we need to - extend by need */
-		Assert((GCPhys & 3U) == 0);
 		Assert(bytes == 1 || bytes == 2);
-		uint32_t value;
-		rc = guest_memory()->mmio_read(GCPhys, &value, sizeof(value));
-		Assert(rc == VINF_SUCCESS);
 
+		uint32_t value = 0;
+		if ((GCPhys & 3UL) == 0)
+			rc = guest_memory()->mmio_read(GCPhys, &value, sizeof(value));
+		else {
+			/* only read until word boundary */
+			Assert(((GCPhys & 3UL) + bytes) <= sizeof(value));
+
+			/*
+			 * Do an aligned read and shift the result to get the value at
+			 * the unaligned address.
+			 */
+			rc = guest_memory()->mmio_read((GCPhys & ~3UL), &value, sizeof(value));
+			value >>= (8 * (GCPhys & 3UL));
+		}
+
+		Assert(rc == VINF_SUCCESS);
 		if (rc == VINF_SUCCESS) {
 			switch (bytes) {
 				case 1:
