@@ -32,6 +32,8 @@
 #
 # CONTRIB_DIR   - location of ported 3rd-party source codes
 #
+# REQUIRED_GCC_VERSION - GCC version required for building Genode
+#
 
 ##
 ## Define global configuration variables
@@ -71,6 +73,12 @@ export SHELL := $(shell which bash)
 
 select_from_repositories = $(firstword $(foreach REP,$(REPOSITORIES),$(wildcard $(REP)/$(1))))
 
+-include $(call select_from_repositories,etc/specs.conf)
+-include $(BUILD_BASE_DIR)/etc/specs.conf
+export SPEC_FILES := $(foreach SPEC,$(SPECS),$(call select_from_repositories,mk/spec-$(SPEC).mk))
+include $(SPEC_FILES)
+export SPECS
+
 include $(BASE_DIR)/mk/global.mk
 
 export LIBGCC_INC_DIR = $(shell dirname `$(CUSTOM_CXX_LIB) -print-libgcc-file-name`)/include
@@ -78,23 +86,34 @@ export LIBGCC_INC_DIR = $(shell dirname `$(CUSTOM_CXX_LIB) -print-libgcc-file-na
 #
 # Find out about the target directories to build
 #
-DST_DIRS := $(filter-out all clean bin cleanall again run/%,$(MAKECMDGOALS))
+DST_DIRS := $(filter-out clean cleanall again run/%,$(MAKECMDGOALS))
 
 ifeq ($(MAKECMDGOALS),)
 DST_DIRS := *
 endif
 
 #
+# Tool chain version check
+#
+# If SPECS contains 'always_hybrid' we skip the check as the host tool chain is
+# used. Also, empty DST_DIRS is interpreted as a tool-chain agnostic target,
+# e.g., clean.
+#
+ifeq ($(filter always_hybrid,$(SPECS)),)
+ifneq ($(DST_DIRS),)
+REQUIRED_GCC_VERSION ?= 4.9.2
+GCC_VERSION := $(filter $(REQUIRED_GCC_VERSION) ,$(shell $(CUSTOM_CXX) --version))
+ifneq ($(GCC_VERSION), $(REQUIRED_GCC_VERSION))
+$(error "GCC version $(REQUIRED_GCC_VERSION) is required")
+endif
+endif
+endif
+
+#
 # Default rule: build all directories specified as make arguments
 #
-all $(DST_DIRS): gen_deps_and_build_targets
+_all $(DST_DIRS): gen_deps_and_build_targets
 	@true
-
--include $(call select_from_repositories,etc/specs.conf)
--include $(BUILD_BASE_DIR)/etc/specs.conf
-export SPEC_FILES := $(foreach SPEC,$(SPECS),$(call select_from_repositories,mk/spec-$(SPEC).mk))
-include $(SPEC_FILES)
-export SPECS
 
 ##
 ## First stage: generate library dependencies
