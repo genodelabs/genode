@@ -191,6 +191,7 @@ class Vfs::Block_file_system : public Single_file_system
 
 					written += nbytes;
 					count   -= nbytes;
+					seek_offset += nbytes;
 
 					continue;
 				}
@@ -222,6 +223,7 @@ class Vfs::Block_file_system : public Single_file_system
 
 				written += length;
 				count -= length;
+				seek_offset += length;
 			}
 
 			out_count = written;
@@ -274,6 +276,7 @@ class Vfs::Block_file_system : public Single_file_system
 
 					read  += nbytes;
 					count -= nbytes;
+					seek_offset += nbytes;
 
 					continue;
 				}
@@ -294,6 +297,7 @@ class Vfs::Block_file_system : public Single_file_system
 
 				read  += length;
 				count -= length;
+				seek_offset += length;
 			}
 
 			out_count = read;
