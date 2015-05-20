@@ -234,8 +234,13 @@ extern "C" void kernel()
 
 Kernel::Cpu_context::Cpu_context(Genode::Translation_table * const table)
 {
-	_init(STACK_SIZE, (addr_t)table);
 	sp = (addr_t)kernel_stack;
 	ip = (addr_t)kernel;
 	core_pd()->admit(this);
+
+	/*
+	 * platform specific initialization, has to be done after
+	 * setting the registers by now
+	 */
+	_init(STACK_SIZE, (addr_t)table);
 }
