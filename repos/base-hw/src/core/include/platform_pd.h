@@ -89,6 +89,8 @@ class Hw::Address_space : public Genode::Address_space
 		 */
 		Address_space(Kernel::Pd* pd);
 
+		~Address_space();
+
 		/**
 		 * Insert memory mapping into translation table of the address space
 		 *
@@ -169,8 +171,6 @@ class Genode::Platform_pd : public Hw::Address_space,
 		 * \param label  name of protection domain
 		 */
 		Platform_pd(Allocator * md_alloc, char const *label);
-
-		~Platform_pd();
 
 		/**
 		 * Bind thread 't' to protection domain

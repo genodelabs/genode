@@ -96,6 +96,14 @@ Hw::Address_space::Address_space(Kernel::Pd * pd)
 }
 
 
+Hw::Address_space::~Address_space()
+{
+	flush(platform()->vm_start(), platform()->vm_size());
+	destroy(_cma(), _pslab);
+	destroy(_cma(), _tt);
+}
+
+
 /*************************************
  ** Capability_space implementation **
  *************************************/
@@ -158,14 +166,6 @@ Platform_pd::Platform_pd(Allocator * md_alloc, char const *label)
 		PERR("failed to create kernel object");
 		throw Root::Unavailable();
 	}
-}
-
-
-Platform_pd::~Platform_pd()
-{
-	flush(platform()->vm_start(), platform()->vm_size());
-
-	/* TODO: destroy page slab and translation table!!! */
 }
 
 
