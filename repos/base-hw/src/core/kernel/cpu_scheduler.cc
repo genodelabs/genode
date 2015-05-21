@@ -180,7 +180,18 @@ void Cpu_scheduler::yield() { _head_yields = 1; }
 
 void Cpu_scheduler::remove(Share * const s)
 {
-	assert(s != _idle && s != _head);
+	assert(s != _idle);
+
+	/*
+	 * FIXME
+	 * Thanks to helping, this can happen and shall not be treated as bad
+	 * behavior. But by now, we have no stable solution for it.
+	 *
+	 */
+	if (s == _head) {
+		PERR("Removing the head of the CPU scheduler isn't supported by now.");
+		while (1) ;
+	}
 	if (s->_ready) { _fills.remove(s); }
 	if (!s->_quota) { return; }
 	if (s->_ready) { _rcl[s->_prio].remove(s); }
