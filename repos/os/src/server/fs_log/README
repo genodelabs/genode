@@ -1,0 +1,20 @@
+LOG server that writes log messages onto a file system.
+
+Log files are creating in a directory tree formed from session labels.
+As an example the session label "init -> nitpicker" would create
+a log file at "init/nitpicker.log". The behavior of opening two LOG
+sessions with the same label is undefined.
+
+The only configuration and policy available is the option to truncate
+files at the start of the LOG session, which is disabled by default.
+
+:Example configuration:
+! <start name="log_file">
+!   <resource name="RAM" quantum="1M"/>
+!   <provides><service name="LOG"/></provides>
+!   <config>
+!     <policy label="nic_drv" truncate="no"/>
+!     <policy label="" truncate="yes"/>
+!   </config>
+! </start>
+
