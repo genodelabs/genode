@@ -376,7 +376,9 @@ void Pd_session_component::start(Capability<Dataspace> binary)
 		return; /* XXX reflect error to client */
 	}
 
-	const char *filename = ds->fname().buf;
+	/* we need 's' on stack to make it an lvalue with an lvalue member we use the pointer to */
+	Linux_dataspace::Filename s = ds->fname();
+	const char *filename = s.buf;
 
 	/*
 	 * In order to be executable via 'execve', a program must be represented as
