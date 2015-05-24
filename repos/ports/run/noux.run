@@ -56,6 +56,6 @@ if {[have_spec x86_64]} {
 	append qemu_args " -m 300 "
 }
 
-run_genode_until "child /bin/ls exited with exit value 0.*\n" 30
+run_genode_until {child "noux" exited with exit value 0.*\n} 30
 
 exec rm bin/coreutils.tar

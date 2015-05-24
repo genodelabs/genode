@@ -388,6 +388,9 @@ namespace Noux {
 				_sig_rec->dissolve(&_destruct_dispatcher);
 
 				_entrypoint.dissolve(this);
+
+				if (is_init_process(this))
+					init_process_exited();
 			}
 
 			void start() { _entrypoint.activate(); }
