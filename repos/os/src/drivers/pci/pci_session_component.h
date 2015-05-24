@@ -21,6 +21,7 @@
 
 #include <ram_session/connection.h>
 #include <root/component.h>
+#include <root/client.h>
 
 /* os */
 #include <io_mem_session/connection.h>
@@ -47,7 +48,7 @@ namespace Pci {
 			Genode::Allocator_guard                     _md_alloc;
 			Genode::Tslab<Device_component, 4096 - 64>  _device_slab;
 			Genode::List<Device_component>              _device_list;
-			Device_pd_client                           *_child;
+			Device_pd_client                            _child;
 			Genode::Ram_connection                     *_ram;
 			Genode::Session_label                       _label;
 			Genode::Session_policy                      _policy;
@@ -316,16 +317,16 @@ namespace Pci {
 			/**
 			 * Constructor
 			 */
-			Session_component(Genode::Rpc_entrypoint *ep,
-			                  Genode::Allocator      *md_alloc,
-			                  Device_pd_client       *child,
-			                  Genode::Ram_connection *ram,
-			                  const char             *args)
+			Session_component(Genode::Rpc_entrypoint  *ep,
+			                  Genode::Allocator       *md_alloc,
+			                  Genode::Root_capability &device_pd_root,
+			                  Genode::Ram_connection  *ram,
+			                  const char              *args)
 			:
 				_ep(ep),
 				_md_alloc(md_alloc, Genode::Arg_string::find_arg(args, "ram_quota").long_value(0)),
-				_device_slab(&_md_alloc),
-				_child(child), _ram(ram), _label(args), _policy(_label)
+				_device_slab(&_md_alloc), _child(Genode::reinterpret_cap_cast<Device_pd>(Genode::Native_capability())),
+				_ram(ram), _label(args), _policy(_label)
 			{
 				/* non-pci devices */
 				_policy.for_each_sub_node("device", [&] (Genode::Xml_node device_node) {
@@ -346,6 +347,15 @@ namespace Pci {
 					}
 					throw Genode::Root::Unavailable();
 				});
+
+				if (device_pd_root.valid()) {
+					using Genode::Session_capability;
+					using Genode::Affinity;
+
+					Session_capability session = Genode::Root_client(device_pd_root).session("", Affinity());
+					Genode::Capability <Device_pd> cap = Genode::reinterpret_cap_cast<Device_pd>(session);
+					_child = Device_pd_client(cap);
+				}
 
 				/* pci devices */
 				_policy.for_each_sub_node("pci", [&] (Genode::Xml_node node) {
@@ -574,8 +584,8 @@ namespace Pci {
 
 				Io_mem_dataspace_capability io_mem = device->get_config_space();
 
-				if (_child)
-					_child->assign_pci(io_mem);
+				if (_child.valid())
+					_child.assign_pci(io_mem);
 
 				/*
 				 * By now forbid usage of extended pci config space dataspace,
@@ -620,10 +630,10 @@ namespace Pci {
 					return Ram_capability();
 				}
 
-				if (!ram_cap.valid() || !_child)
+				if (!ram_cap.valid() || !_child.valid())
 					return ram_cap;
 
-				_child->attach_dma_mem(ram_cap);
+				_child.attach_dma_mem(ram_cap);
 
 				return ram_cap;
 			}
@@ -642,8 +652,7 @@ namespace Pci {
 	{
 		private:
 
-			/* for now we have only one device pd for all pci devices */
-			Device_pd_client *_pd_device_client;
+			Genode::Root_capability _device_pd_root;
 			/* Ram_session for allocation of dma capable dataspaces */
 			Genode::Ram_connection _ram;
 
@@ -688,7 +697,7 @@ namespace Pci {
 			{
 				try {
 					return new (md_alloc()) Session_component(ep(), md_alloc(),
-					                                          _pd_device_client,
+					                                          _device_pd_root,
 					                                          &_ram, args);
 				} catch (Genode::Session_policy::No_policy_defined) {
 					PERR("Invalid session request, no matching policy for '%s'",
@@ -717,18 +726,15 @@ namespace Pci {
 			 */
 			Root(Genode::Rpc_entrypoint *ep, Genode::Allocator *md_alloc,
 			     Genode::size_t pci_device_pd_ram_quota,
-			     Genode::Capability <Device_pd> pci_device_pd)
+			     Genode::Root_capability &device_pd_root)
 			:
 				Genode::Root_component<Session_component>(ep, md_alloc),
-				_pd_device_client(0),
+				_device_pd_root(device_pd_root),
 				/* restrict physical address to 3G on 32bit with device_pd */
-				_ram("dma", 0, (pci_device_pd.valid() && sizeof(void *) == 4) ?
+				_ram("dma", 0, (device_pd_root.valid() && sizeof(void *) == 4) ?
 				               0xc0000000UL : 0x100000000ULL)
 			{
 				_parse_config();
-
-				if (pci_device_pd.valid())
-					_pd_device_client = new (Genode::env()->heap()) Device_pd_client(pci_device_pd);
 
 				/* associate _ram session with ram_session of process */
 				_ram.ref_account(Genode::env()->ram_session_cap());

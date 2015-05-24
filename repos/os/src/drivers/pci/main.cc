@@ -89,12 +89,13 @@ int main(int argc, char **argv)
 
 	/* use 'pci_device_pd' as slave service */
 	Session_capability session_dev_pd;
+	Genode::Root_capability device_pd_root;
 	try  {
 		static Rpc_entrypoint   device_pd_ep(&cap, STACK_SIZE, "device_pd_slave");
 		static Device_pd_policy device_pd_policy(device_pd_ep);
 		static Genode::Slave    device_pd_slave(device_pd_ep, device_pd_policy,
 		                                        PCI_DEVICE_PD_RAM_QUOTA);
-		session_dev_pd = Genode::Root_client(device_pd_policy.root()).session("", Affinity());
+		device_pd_root = device_pd_policy.root();
 	} catch (...) {
 		PWRN("PCI device protection domain for IOMMU support is not available");
 	}
@@ -109,7 +110,8 @@ int main(int argc, char **argv)
 	 * Let the entry point serve the PCI root interface
 	 */
 	static Pci::Root root(&ep, &sliced_heap, PCI_DEVICE_PD_RAM_QUOTA,
-	                      Genode::reinterpret_cap_cast<Device_pd>(session_dev_pd));
+	                      device_pd_root);
+
 	env()->parent()->announce(ep.manage(&root));
 
 	sleep_forever();
