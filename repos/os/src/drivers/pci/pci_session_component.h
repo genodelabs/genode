@@ -237,8 +237,10 @@ namespace Pci {
 						} catch (Xml_attribute::Nonexistent_attribute) {
 							return;
 						}
-						/* if this does not identical matches - deny access */
-						if ((class_sub_prog & class_code) != class_sub_prog)
+
+						enum { DONT_CHECK_PROGIF = 8 };
+						/* if class/subclass don't match - deny */
+						if ((class_sub_prog ^ class_code) >> DONT_CHECK_PROGIF)
 							return;
 
 						/* if this bdf is used by some policy - deny */
