@@ -15,6 +15,7 @@ help:
 	$(ECHO) "--- available commands ---"
 	$(ECHO) "x86        - create tool chain for x86"
 	$(ECHO) "arm        - create tool chain for arm"
+	$(ECHO) "riscv      - create tool chain for riscv"
 	$(ECHO) "clean      - clean everything except downloaded archives"
 	$(ECHO) "cleanall   - clean everything including downloaded archives"
 	$(ECHO)
@@ -23,7 +24,7 @@ help:
 # User interface
 #
 
-SUPPORTED_PLATFORMS := x86 arm
+SUPPORTED_PLATFORMS := x86 arm riscv
 
 PLATFORM := $(firstword $(filter $(SUPPORTED_PLATFORMS),$(MAKECMDGOALS)))
 
@@ -188,6 +189,7 @@ LOCAL_LIB_INSTALL_LOCATION = $(shell pwd)/build/lib-install
 
 TARGET_NAME_x86        = x86_64-pc-elf
 TARGET_NAME_arm        = arm-none-eabi
+TARGET_NAME_riscv      = riscv-unknown-elf
 
 ifneq ($(VERBOSE),)
 CONFIG_QUIET = --quiet
@@ -276,7 +278,12 @@ BINUTILS_INSTALLED_BINARIES = $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-o
 GCC_BINARIES                = build/$(PLATFORM)/gcc/gcc/g++
 GCC_INSTALLED_BINARIES      = $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-g++
 GDB_BINARIES                = build/$(PLATFORM)/gdb/gdb/gdb
+
+ifeq ($(PLATFORM),riscv)
+GDB_INSTALLED_BINARIES      =
+else
 GDB_INSTALLED_BINARIES      = $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-gdb
+endif
 
 build_all: $(GCC_INSTALLED_BINARIES) $(GDB_INSTALLED_BINARIES)
 
@@ -334,10 +341,12 @@ $(CONTRIB_DIR)/gcc-$(GCC_VERSION): $(addprefix $(DOWNLOAD_DIR)/,gcc-$(GCC_VERSIO
 
 include $(GENODE_DIR)/tool/tool_chain_gcc_patches.inc
 
-$(CONTRIB_DIR)/binutils-$(BINUTILS_VERSION)/configure: $(DOWNLOAD_DIR)/$(BINUTILS_DOWNLOAD_TBZ2)
+$(CONTRIB_DIR)/binutils-$(BINUTILS_VERSION): $(addprefix $(DOWNLOAD_DIR)/,$(BINUTILS_DOWNLOAD_TBZ2))
 	$(ECHO) "$(BRIGHT_COL)unpacking binutils...$(DEFAULT_COL)"
 	$(VERBOSE)mkdir -p $(CONTRIB_DIR)
 	$(VERBOSE)tar xfj $^ -C $(CONTRIB_DIR) && touch $@
+
+include $(GENODE_DIR)/tool/tool_chain_binutils_patches.inc
 
 build/$(PLATFORM)/binutils/Makefile: $(CONTRIB_DIR)/binutils-$(BINUTILS_VERSION)/configure
 	$(ECHO) "$(BRIGHT_COL)configuring binutils...$(DEFAULT_COL)"

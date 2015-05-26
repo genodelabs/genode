@@ -1,20 +1,8 @@
-config.patch
-
-From: Christian Prochaska <christian.prochaska@genode-labs.com>
-
-
----
- gcc/config.gcc               |    4 ++--
- gcc/config/arm/unknown-elf.h |   16 ++++++++++++++++
- gcc/config/i386/x86-64.h     |   19 +++++++++++++++++++
- libgcc/config.host           |   12 ++++++++++--
- 4 files changed, 47 insertions(+), 4 deletions(-)
-
 diff --git a/gcc/config.gcc b/gcc/config.gcc
-index 9d3fa57..20daf70 100644
+index b7ebc07..5acf469 100644
 --- a/gcc/config.gcc
 +++ b/gcc/config.gcc
-@@ -1056,7 +1056,7 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtems*)
+@@ -1060,7 +1060,7 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtems*)
  	case ${target} in
  	arm*-*-eabi*)
  	  tm_file="$tm_file newlib-stdint.h"
@@ -23,7 +11,16 @@ index 9d3fa57..20daf70 100644
  	  use_gcc_stdint=wrap
  	  ;;
  	arm*-*-rtems*)
-@@ -2890,7 +2890,7 @@ i[34567]86-*-linux* | x86_64-*-linux*)
+@@ -1969,7 +1969,7 @@ riscv*-*-linux*)				# Linux RISC-V
+ 	;;
+ riscv*-*-elf*)				# Linux RISC-V
+ 	tm_file="elfos.h newlib-stdint.h ${tm_file} riscv/elf.h"
+-	tmake_file="${tmake_file} riscv/t-elf"
++	tmake_file="${tmake_file} riscv/t-elf t-slibgcc"
+ 	gnu_ld=yes
+ 	gas=yes
+ 	gcc_cv_initfini_array=yes
+@@ -2915,7 +2915,7 @@ i[34567]86-*-linux* | x86_64-*-linux*)
  	tmake_file="${tmake_file} i386/t-pmm_malloc i386/t-i386"
  	;;
  i[34567]86-*-* | x86_64-*-*)
@@ -83,11 +80,34 @@ index 16fc685..85b07bb 100644
 +/* Don't assume anything about the header files.  */
 +/* https://gcc.gnu.org/bugzilla/show_bug.cgi?id=57699 */
 +#define NO_IMPLICIT_EXTERN_C
+diff --git a/gcc/config/riscv/riscv.h b/gcc/config/riscv/riscv.h
+index 4533cff..1f78497 100644
+--- a/gcc/config/riscv/riscv.h
++++ b/gcc/config/riscv/riscv.h
+@@ -171,14 +171,11 @@ along with GCC; see the file COPYING3.  If not see
+ %(subtarget_asm_spec)"
+ 
+ /* Extra switches sometimes passed to the linker.  */
+-
+-#ifndef LINK_SPEC
++#undef LINK_SPEC
+ #define LINK_SPEC "\
+-%{!T:-dT riscv.ld} \
+-%{m64:-melf64lriscv} \
+-%{m32:-melf32lriscv} \
+-%{shared}"
+-#endif  /* LINK_SPEC defined */
++-melf64lriscv \
++%{shared:-shared} \
++%{!static:--eh-frame-hdr}"
+ 
+ /* This macro defines names of additional specifications to put in the specs
+    that can be used in various specifications like CC1_SPEC.  Its definition
 diff --git a/libgcc/config.host b/libgcc/config.host
-index f4a7428..c9bce6a 100644
+index 8a30368..83b5dba 100644
 --- a/libgcc/config.host
 +++ b/libgcc/config.host
-@@ -297,7 +297,7 @@ case ${host} in
+@@ -300,7 +300,7 @@ case ${host} in
    tmake_file=t-vxworks
    ;;
  *-*-elf)
@@ -96,7 +116,7 @@ index f4a7428..c9bce6a 100644
    ;;
  esac
  
-@@ -384,8 +384,12 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtems*)
+@@ -387,8 +387,12 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtems*)
  	tm_file="$tm_file arm/bpabi-lib.h"
  	case ${host} in
  	arm*-*-eabi* | arm*-*-rtems*)
@@ -110,7 +130,7 @@ index f4a7428..c9bce6a 100644
  	  ;;
  	arm*-*-symbianelf*)
  	  tmake_file="${tmake_file} arm/t-symbian t-slibgcc-nolc-override"
-@@ -543,6 +547,10 @@ i[34567]86-*-elf*)
+@@ -546,6 +550,10 @@ i[34567]86-*-elf*)
  	tmake_file="$tmake_file i386/t-crtstuff t-crtstuff-pic t-libgcc-pic"
  	;;
  x86_64-*-elf*)
@@ -121,3 +141,14 @@ index f4a7428..c9bce6a 100644
  	tmake_file="$tmake_file i386/t-crtstuff t-crtstuff-pic t-libgcc-pic"
  	;;
  i[34567]86-*-freebsd*)
+@@ -1014,8 +1022,8 @@ riscv*-*-linux*)
+ 	extra_parts="$extra_parts crtbegin.o crtend.o crti.o crtn.o crtendS.o crtbeginT.o"
+ 	;;
+ riscv*-*-*)
+-	tmake_file="${tmake_file} riscv/t-fpbit riscv/t-dpbit riscv/t-elf"
+-	extra_parts="$extra_parts crtbegin.o crtend.o crti.o crtn.o"
++	tmake_file="${tmake_file} riscv/t-fpbit riscv/t-dpbit riscv/t-elf t-crtstuff-pic t-libgcc-pic t-eh-dw2-dip t-slibgcc t-slibgcc-gld t-slibgcc-elf-ver"
++	extra_parts="crtbegin.o crtbeginS.o crtbeginT.o crtend.o crtendS.o"
+ 	;;
+ rs6000-ibm-aix4.[3456789]* | powerpc-ibm-aix4.[3456789]*)
+ 	md_unwind_header=rs6000/aix-unwind.h
