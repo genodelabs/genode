@@ -12,10 +12,10 @@ Version 15.05 represents the most substantial release in the history of Genode.
 It is packed with profound architectural improvements, new device drivers, the
 extension of the supported base platforms, and a brand new documentation.
 
-With the new documentation introduced in Section [Comprehensive architectural
-documentation], the project reaches a mile stone. On our mission to find the
-right architectural abstractions, the past years had a strong research focus.
-We conducted countless of experiments, gathered experience with highly diverse
+With the new documentation introduced in Section [Comprehensive architectural documentation],
+the project reaches a mile stone. On our mission to find the right
+architectural abstractions, the past years had a strong research focus. We
+conducted countless of experiments, gathered experience with highly diverse
 hardware platforms and kernels, and explored application scenarios. Our target
 audience used to be technology enthusiasts. Now that we have reached a point
 where the architecture is mature, it is the time to invite a wider audience,
@@ -66,7 +66,7 @@ completely written from scratch:
 
 The book is published under the Creative Commons Attribution + ShareAlike
 License (CC-BY-SA) and can be downloaded as
-[http://genode.org/documentation/genode-foundation-15-05.pdf - PDF document].
+[http://genode.org/documentation/genode-foundations-15-05.pdf - PDF document].
 
 It first presents the motivation behind our project, followed by a thorough
 description of the Genode OS architecture. The conceptual material is
@@ -74,7 +74,7 @@ complemented with practical information for developers and a discussion of
 framework internals. The second part of the book serves as a reference of
 Genode's programming interfaces.
 
-[http://genode.org/documentation/genode-foundation-15-05.pdf - Download the book (PDF)...]
+[http://genode.org/documentation/genode-foundations-15-05.pdf - Download the book (PDF)...]
 
 In the upcoming weeks, we plan to update the documentation section of the
 genode.org website with the new material. Until then, we hope you find the
