@@ -166,9 +166,8 @@ append config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
-	<start name="launchpad">
+	<start name="scout">
 		<resource name="RAM" quantum="64M" />
-		<configfile name="launchpad.config" />
 	</start>
 </config>}
 
