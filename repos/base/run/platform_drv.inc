@@ -7,6 +7,7 @@ proc append_platform_drv_build_components {} {
 
 	lappend_if [have_platform_drv] build_components drivers/platform
 	lappend_if [have_spec acpi]    build_components drivers/acpi
+	lappend_if [have_spec acpi]    build_components server/report_rom
 	lappend_if [have_spec pci]     build_components drivers/pci
 }
 
@@ -15,6 +16,7 @@ proc append_platform_drv_boot_modules {} {
 
 	lappend_if [have_platform_drv] boot_modules platform_drv
 	lappend_if [have_spec acpi]    boot_modules acpi_drv
+	lappend_if [have_spec acpi]    boot_modules report_rom
 	lappend_if [have_spec pci]     boot_modules pci_drv
 	lappend_if [have_spec nova]    boot_modules pci_device_pd
 }
@@ -37,7 +39,6 @@ proc append_platform_drv_config {} {
 
 	if {[have_platform_drv]} {
 		append config {
-
 	<start name="platform_drv">
 		<resource name="RAM" quantum="1M" />
 		<provides>
@@ -50,41 +51,78 @@ proc append_platform_drv_config {} {
 
 	if {[have_spec acpi]} {
 
-	append config "
+		append config "
 	<start name=\"acpi_drv\" [platform_drv_priority]>"
 
-	append config {
-		<resource name="RAM" quantum="5M" constrain_phys="yes"/>
+		append config {
+		<resource name="RAM" quantum="2M"/>
+		<route>
+			<service name="LOG"> <parent/> </service>
+			<service name="IO_MEM"> <parent/> </service>
+			<service name="RM"> <parent/> </service>
+			<service name="Report"> <child name="acpi_report_rom"/> </service>
+		</route>
+	</start>}
+
+		append config "
+	<start name=\"acpi_report_rom\" [platform_drv_priority]>"
+
+		append config {
+		<binary name="report_rom"/>
+		<resource name="RAM" quantum="2M"/>
 		<provides>
-			<service name="PCI"/>
-			<service name="IRQ" />
+			<service name="ROM" />
+			<service name="Report" />
 		</provides>
-		<route> <any-service> <parent/> </any-service> </route>
 		<config>
-			<policy label="acpi_drv"> <pci class="ALL"/> </policy>}
-
-	append config [platform_drv_policy]
-
-	append config {
+			<rom> <policy label="pci_drv -> acpi" report="acpi_drv -> acpi"/> </rom>
 		</config>
+		<route>
+			<service name="LOG"> <parent/> </service>
+			<service name="SIGNAL"> <parent/> </service>
+			<service name="CAP"> <parent/> </service>
+			<service name="RM"> <parent/> </service>
+		</route>
 	</start>}
 
 	}
 
-	if {[expr ![have_spec acpi] && [have_spec pci]]} {
+	if {[have_spec pci]} {
 
-	append config "
+		append config "
 	<start name=\"pci_drv\" [platform_drv_priority]>"
 
-	append config {
+		append config {
 		<resource name="RAM" quantum="3M" constrain_phys="yes"/>
 		<provides> <service name="PCI"/> </provides>
-		<route> <any-service> <parent/> </any-service> </route>
+		<route>}
+
+		if {[have_spec acpi]} {
+			append config {
+			<service name="ROM">
+				<if-arg key="label" value="acpi"/> <child name="acpi_report_rom"/>
+			</service>}
+		}
+
+		append config {
+			<any-service> <parent/> </any-service>
+		</route>}
+
+		if {[have_spec acpi]} {
+
+		append config {
 		<config>}
 
-	append config [platform_drv_policy]
+		} else {
 
-	append config {
+		append config {
+		<config acpi="no">}
+
+		}
+
+		append config [platform_drv_policy]
+
+		append config {
 		</config>
 	</start>}
 

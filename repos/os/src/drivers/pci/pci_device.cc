@@ -83,11 +83,6 @@ void Pci::Device_component::config_write(unsigned char address, unsigned value,
 		case 0xd: /* Latency timer */
 			if (size == Access_size::ACCESS_8BIT)
 				break;
-		case PCI_IRQ_LINE:
-			/* permitted up to now solely for acpi driver */
-			if (address == PCI_IRQ_LINE && _rewrite_irq_line &&
-			    size == Access_size::ACCESS_8BIT)
-				break;
 		default:
 			PWRN("%x:%x:%x write access to address=%x value=0x%x "
 			     " size=0x%x got dropped", _device_config.bus_number(),

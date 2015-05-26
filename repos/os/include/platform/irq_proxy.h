@@ -49,7 +49,7 @@ class Genode::Irq_proxy : public THREAD,
 		char              _name[32];
 		Lock              _startup_lock;
 
-		long              _irq_number;
+		unsigned          _irq_number;
 
 		Lock              _mutex;             /* protects this object */
 		int               _num_sharers;       /* number of clients sharing this IRQ */
@@ -86,9 +86,9 @@ class Genode::Irq_proxy : public THREAD,
 		 ** Implementation **
 		 ********************/
 
-		const char *_construct_name(long irq_number)
+		const char *_construct_name(unsigned irq_number)
 		{
-			snprintf(_name, sizeof(_name), "irqproxy%02lx", irq_number);
+			snprintf(_name, sizeof(_name), "irqproxy%02x", irq_number);
 			return _name;
 		}
 
@@ -128,7 +128,7 @@ class Genode::Irq_proxy : public THREAD,
 
 	public:
 
-		Irq_proxy(long irq_number)
+		Irq_proxy(unsigned irq_number)
 		:
 			THREAD(_construct_name(irq_number)),
 			_startup_lock(Lock::LOCKED), _irq_number(irq_number),
@@ -186,7 +186,7 @@ class Genode::Irq_proxy : public THREAD,
 				s->notify();
 		}
 
-		long irq_number() const { return _irq_number; }
+		unsigned irq_number() const { return _irq_number; }
 
 		virtual bool add_sharer(Irq_sigh *s)
 		{
@@ -217,7 +217,10 @@ class Genode::Irq_proxy : public THREAD,
 		}
 
 		template <typename PROXY>
-		static PROXY *get_irq_proxy(long irq_number, Range_allocator *irq_alloc = 0)
+		static PROXY *get_irq_proxy(unsigned irq_number,
+		                            Range_allocator *irq_alloc = 0,
+		                            Genode::Irq_session::Trigger trigger = Genode::Irq_session::TRIGGER_UNCHANGED,
+		                            Genode::Irq_session::Polarity polarity = Genode::Irq_session::POLARITY_UNCHANGED)
 		{
 			static List<Irq_proxy> proxies;
 			static Lock            proxies_lock;
@@ -233,7 +236,8 @@ class Genode::Irq_proxy : public THREAD,
 			if (!irq_alloc || irq_alloc->alloc_addr(1, irq_number).is_error())
 				return 0;
 
-			PROXY *new_proxy = new (env()->heap()) PROXY(irq_number);
+			PROXY *new_proxy = new (env()->heap()) PROXY(irq_number, trigger,
+			                                             polarity);
 			proxies.insert(new_proxy);
 			return new_proxy;
 		}

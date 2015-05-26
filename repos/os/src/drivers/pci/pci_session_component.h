@@ -25,7 +25,6 @@
 
 /* os */
 #include <io_mem_session/connection.h>
-#include <os/config.h>
 #include <os/session_policy.h>
 #include <pci_session/pci_session.h>
 
@@ -36,6 +35,7 @@
 
 namespace Pci {
 	bool bus_valid(int bus = 0);
+	unsigned short bridge_bdf(unsigned char bus);
 }
 
 namespace Pci {
@@ -58,6 +58,7 @@ namespace Pci {
 			                         Device_config::MAX_FUNCTIONS };
 
 			static Genode::Bit_array<MAX_PCI_DEVICES> bdf_in_use;
+
 
 			/**
 			 * Scan PCI buses for a device
@@ -530,8 +531,7 @@ namespace Pci {
 				 * device and return its capability.
 				 */
 				try {
-					Device_component * dev = new (_device_slab) Device_component(config, config_space, _ep, this,
-					                                                             !Genode::strcmp(_label.string(), "acpi_drv"), msi_usage());
+					Device_component * dev = new (_device_slab) Device_component(config, config_space, _ep, this, msi_usage());
 
 					/* if more than one driver uses the device - warn about */
 					if (bdf_in_use.get(Device_config::MAX_BUSES * bus +
@@ -658,35 +658,62 @@ namespace Pci {
 			/* Ram_session for allocation of dma capable dataspaces */
 			Genode::Ram_connection _ram;
 
-			void _parse_config()
+			void _parse_report_rom(const char * acpi_rom)
 			{
 				using namespace Genode;
 
-				/* check for config file first */
-				try { config(); } catch (...) { return; }
-
 				try {
+					Xml_node xml_acpi(acpi_rom);
+					if (!xml_acpi.has_type("acpi"))
+						throw 1;
+
 					unsigned i;
 
-					for (i = 0; i < config()->xml_node().num_sub_nodes(); i++)
+					for (i = 0; i < xml_acpi.num_sub_nodes(); i++)
 					{
-						Xml_node node = config()->xml_node().sub_node(i);
+						Xml_node node = xml_acpi.sub_node(i);
 
-						if (!node.has_type("bdf"))
-							continue;
+						if (node.has_type("bdf")) {
 
-						uint32_t bdf_start  = 0;
-						uint32_t func_count = 0;
-						addr_t   base       = 0;
-						node.sub_node("start").value(&bdf_start);
-						node.sub_node("count").value(&func_count);
-						node.sub_node("base").value(&base);
+							uint32_t bdf_start  = 0;
+							uint32_t func_count = 0;
+							addr_t   base       = 0;
 
-						PINF("%2u BDF start %x, functions: 0x%x, physical base "
-						     "0x%lx", i, bdf_start, func_count, base);
+							node.attribute("start").value(&bdf_start);
+							node.attribute("count").value(&func_count);
+							node.attribute("base").value(&base);
 
-						Session_component::add_config_space(bdf_start,
-						                                    func_count, base);
+							Session_component::add_config_space(bdf_start,
+							                                    func_count,
+							                                    base);
+						}
+
+						if (node.has_type("irq_override")) {
+							unsigned irq = 0xff;
+							unsigned gsi = 0xff;
+							unsigned flags = 0xff;
+
+							node.attribute("irq").value(&irq);
+							node.attribute("gsi").value(&gsi);
+							node.attribute("flags").value(&flags);
+
+							using Pci::Irq_override;
+							Irq_override::list()->insert(new (env()->heap()) Irq_override(irq, gsi, flags));
+						}
+
+						if (node.has_type("routing")) {
+							unsigned gsi;
+							unsigned bridge_bdf;
+							unsigned device;
+							unsigned device_pin;
+
+							node.attribute("gsi").value(&gsi);
+							node.attribute("bridge_bdf").value(&bridge_bdf);
+							node.attribute("device").value(&device);
+							node.attribute("device_pin").value(&device_pin);
+
+							Irq_routing::list()->insert(new (env()->heap()) Irq_routing(gsi, bridge_bdf, device, device_pin));
+						}
 					}
 				} catch (...) {
 					PERR("PCI config space data could not be parsed.");
@@ -728,7 +755,8 @@ namespace Pci {
 			 */
 			Root(Genode::Rpc_entrypoint *ep, Genode::Allocator *md_alloc,
 			     Genode::size_t pci_device_pd_ram_quota,
-			     Genode::Root_capability &device_pd_root)
+			     Genode::Root_capability &device_pd_root,
+			     const char *acpi_rom)
 			:
 				Genode::Root_component<Session_component>(ep, md_alloc),
 				_device_pd_root(device_pd_root),
@@ -736,14 +764,15 @@ namespace Pci {
 				_ram("dma", 0, (device_pd_root.valid() && sizeof(void *) == 4) ?
 				               0xc0000000UL : 0x100000000ULL)
 			{
-				_parse_config();
+				/* enforce initial bus scan */
+				bus_valid();
+
+				if (acpi_rom)
+					_parse_report_rom(acpi_rom);
 
 				/* associate _ram session with ram_session of process */
 				_ram.ref_account(Genode::env()->ram_session_cap());
 				Genode::env()->ram_session()->transfer_quota(_ram.cap(), 0x1000);
-
-				/* enforce initial bus scan */
-				bus_valid();
 			}
 	};
 

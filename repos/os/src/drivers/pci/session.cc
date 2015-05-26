@@ -12,6 +12,27 @@
  */
 
 #include "pci_session_component.h"
+#include "pci_bridge.h"
+
+
+static Genode::List<Pci::Bridge> *bridges()
+{
+	static Genode::List<Pci::Bridge> list;
+	return &list;
+}
+
+
+unsigned short Pci::bridge_bdf(unsigned char bus)
+{
+	for (Pci::Bridge *bridge = bridges()->first(); bridge;
+	     bridge = bridge->next())
+	{
+		if (bridge->part_of(bus))
+			return bridge->bdf();
+	}
+	return 0;
+}
+
 
 /**
  * Check if given PCI bus was found on initial scan
@@ -24,7 +45,7 @@ bool Pci::bus_valid(int bus)
 	{
 		bool valid[Device_config::MAX_BUSES];
 
-		void scan_bus(Config_access &config_access, int bus = 0)
+		void scan_bus(Config_access &config_access, unsigned char bus = 0)
 		{
 			for (int dev = 0; dev < Device_config::MAX_DEVICES; ++dev) {
 				for (int fun = 0; fun < Device_config::MAX_FUNCTIONS; ++fun) {
@@ -43,9 +64,15 @@ bool Pci::bus_valid(int bus)
 
 					/* scan behind bridge */
 					if (config.is_pci_bridge()) {
-						int sub_bus = config.read(&config_access,
+						/* PCI bridge spec 3.2.5.3, 3.2.5.4 */
+						unsigned char sec_bus = config.read(&config_access,
 						                          0x19, Device::ACCESS_8BIT);
-						scan_bus(config_access, sub_bus);
+						unsigned char sub_bus = config.read(&config_access,
+						                          0x20, Device::ACCESS_8BIT);
+
+						bridges()->insert(new (Genode::env()->heap()) Bridge(bus, dev, fun, sec_bus, sub_bus));
+
+						scan_bus(config_access, sec_bus);
 					}
 				}
 			}

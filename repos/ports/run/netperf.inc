@@ -214,6 +214,7 @@ append_if $use_wifi_driver config {
 			<service name="Rtc"> <any-child/> </service>
 			<service name="File_system"> <child name="config_fs"/> </service>
 			<service name="ROM"> <if-arg key="label" value="wlan_configuration" /> <child name="config_rom" /> </service>
+			<service name="Report"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>}

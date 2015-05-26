@@ -1,6 +1,7 @@
 /*
  * \brief  ACPI parsing and PCI rewriting code
  * \author Sebastian Sumpf <sebastian.sumpf@genode-labs.com>
+ * \author Alexander Boettcher
  * \date   2012-02-25
  *
  * This code parses the DSDT and SSDT-ACPI tables and extracts the PCI-bridge
@@ -10,15 +11,17 @@
  */
 
  /*
-  * Copyright (C) 2009-2013 Genode Labs GmbH
+  * Copyright (C) 2009-2015 Genode Labs GmbH
   *
   * This file is part of the Genode OS framework, which is distributed
   * under the terms of the GNU General Public License version 2.
   */
 
+/* base includes */
 #include <io_mem_session/connection.h>
-#include <pci_session/connection.h>
-#include <pci_device/client.h>
+
+/* os includes */
+#include <os/reporter.h>
 #include <os/attached_rom_dataspace.h>
 
 #include "acpi.h"
@@ -165,7 +168,7 @@ class Irq_override : public List<Irq_override>::Element
 			return &_list;
 		}
 
-		bool     match(uint32_t irq) const { return irq == _irq; }
+		uint32_t irq()               const { return _irq; }
 		uint32_t gsi()               const { return _gsi; }
 		uint32_t flags()             const { return _flags; }
 };
@@ -373,8 +376,9 @@ class Pci_routing : public List<Pci_routing>::Element
 		/**
 		 * Accessors
 		 */
-		uint32_t pin() const { return _pin; }
-		uint32_t gsi() const { return _gsi; }
+		uint32_t pin()    const { return _pin; }
+		uint32_t gsi()    const { return _gsi; }
+		uint32_t device() const { return _adr >> 16; }
 
 		/* debug */
 		void dump() { if (verbose) PDBG("Pci: adr %x pin %x gsi: %u", _adr, _pin, _gsi); }
@@ -818,7 +822,6 @@ class Element : public List<Element>::Element
 			}
 		}
 
-		bool is_device() { return _type == SUB_DEVICE; }
 		bool is_device_name() { return _type == DEVICE_NAME; }
 
 		/**
@@ -852,6 +855,9 @@ class Element : public List<Element>::Element
 		uint32_t       size_len() const    { return _size_len; }
 		uint8_t const *data() const        { return _data; }
 		bool           valid() const       { return _valid; }
+		uint32_t       bdf() const         { return _bdf; }
+		bool           is_device() const   { return _type == SUB_DEVICE; }
+
 
 		static bool supported_acpi_format()
 		{
@@ -995,44 +1001,6 @@ class Element : public List<Element>::Element
 				}
 			}
 			throw -1;
-		}
-
-		static void create_config_file(char * text, size_t max)
-		{
-			Pci_config_space *e = Pci_config_space::list()->first();
-
-			int len = snprintf(text, max, "<config>");
-			text += len;
-			max  -= len;
-			for (; e; e = e->next())
-			{
-				using namespace Genode;
-				len   = snprintf(text, max, "<bdf><start>%u</start>", e->_bdf_start);
-				text += len;
-				max  -= len;
-				len   = snprintf(text, max, "<count>%u</count>"       , e->_func_count);
-				text += len;
-				max  -= len;
-				len   = snprintf(text, max, "<base>0x%lx</base></bdf>" , e->_base);
-				text += len;
-				max  -= len;
-			}
-
-			Attached_rom_dataspace rom("config");
-			char * rom_text = rom.local_addr<char>();
-			size_t rom_len  = strlen(rom_text);
-
-			if (max > rom_len - 9) {
-				rom_text += 9;
-				rom_len  -= 9;
-				memcpy(text, rom_text, rom_len);
-				text += rom_len;
-				max  -= rom_len;
-			} else
-				PERR("could not add pci_drv policy");
-
-			if (max < 2)
-				PERR("config file could not be generated, buffer to small");
 		}
 };
 
@@ -1216,157 +1184,6 @@ class Acpi_table
 
 
 /**
- * Pci::Device_client extensions identifies bridges and adds IRQ line re-write
- */
-class Pci_client : public ::Pci::Device_client
-{
-	public:
-
-		Pci_client(Pci::Device_capability &cap) : ::Pci::Device_client(cap) { }
-
-		/**
-		 * Return true if this is a PCI-PCI bridge
-		 */
-		bool is_bridge()
-		{
-			enum { BRIDGE_CLASS = 0x6 };
-			if ((class_code() >>  16) != BRIDGE_CLASS)
-				return false;
-
-			/* see PCI bridge spec (3.2) */
-			enum { BRIDGE = 0x1 };
-			uint16_t header = config_read(0xe, ::Pci::Device::ACCESS_16BIT);
-
-			/* skip multi function flag 0x80) */
-			return ((header & 0x3f) != BRIDGE) ? false : true;
-		}
-
-		/**
-		 * Return bus-device function of this device
-		 */
-		uint32_t bdf()
-		{
-			uint8_t bus, dev, func;
-			bus_address(&bus, &dev, &func);
-			return (bus << 8) | ((dev & 0x1f) << 3) | (func & 0x7);
-		}
-
-		/**
-		 * Return IRQ pin
-		 */
-		uint32_t irq_pin()
-		{
-			return ((config_read(0x3c, ::Pci::Device::ACCESS_32BIT) >> 8) & 0xf);
-		}
-
-		/**
-		 * Return IRQ line
-		 */
-		uint8_t irq_line()
-		{
-			return (config_read(0x3c, ::Pci::Device::ACCESS_8BIT));
-		}
-
-		/**
-		 * Write line to config space
-		 */
-		void irq_line(uint32_t gsi)
-		{
-			config_write(0x3c, gsi, ::Pci::Device::ACCESS_8BIT);
-		}
-};
-
-
-/**
- * List of PCI-bridge devices
- */
-class Pci_bridge : public List<Pci_bridge>::Element
-{
-	private:
-
-		/* PCI config space fields of bridge */
-		uint32_t _bdf;
-		uint32_t _secondary_bus;
-		uint32_t _subordinate_bus;
-
-		Pci_bridge(Pci_client &client) : _bdf(client.bdf())
-		{
-			/* PCI bridge spec 3.2.5.3, 3.2.5.4 */
-			uint32_t bus = client.config_read(0x18, ::Pci::Device::ACCESS_32BIT);
-			_secondary_bus = (bus >> 8) & 0xff;
-			_subordinate_bus = (bus >> 16) & 0xff;
-
-			if (verbose)
-				PDBG("New bridge: bdf %x se: %u su: %u", _bdf, _secondary_bus, _subordinate_bus);
-		}
-
-		static List<Pci_bridge> *_list()
-		{
-			static List<Pci_bridge> list;
-			return &list;
-		}
-
-	public:
-
-		/**
-		 * Scan PCI bus for bridges
-		 */
-		Pci_bridge(Pci::Session_capability &session)
-		{
-			Pci::Session_client pci(session);
-			Pci::Device_capability device_cap = pci.first_device(), prev_device_cap;
-
-			/* search for bridges */
-			while (device_cap.valid()) {
-				prev_device_cap = device_cap;
-				Pci_client device(device_cap);
-
-				if (device.is_bridge())
-					_list()->insert(new (env()->heap()) Pci_bridge(device));
-
-				device_cap = pci.next_device(device_cap);
-				pci.release_device(prev_device_cap);
-			}
-		}
-
-		/**
-		 * Locate BDF of bridge belonging to given bdf
-		 */
-		static uint32_t bridge_bdf(uint32_t bdf)
-		{
-			Pci_bridge *bridge = _list()->first();
-			uint32_t bus = bdf >> 8;
-
-			for (; bridge; bridge = bridge->next())
-				if (bridge->_secondary_bus <= bus && bridge->_subordinate_bus >= bus)
-					return bridge->_bdf;
-
-			return 0;
-		}
-
-};
-
-
-/**
- * Debugging
- */
-static void dump_bdf(uint32_t a, uint32_t b, uint32_t pin)
-{
-	if (verbose)
-		PDBG("Device bdf %02x:%02x.%u (%x) bridge %02x:%02x.%u (%x) Pin: %u",
-		     (a >> 8), (a >> 3) & 0x1f, (a & 0x7), a,
-		     (b >> 8), (b >> 3) & 0x1f, (b & 0x7), b, pin);
-}
-
-
-static void dump_rewrite(uint32_t bdf, uint8_t line, uint8_t gsi)
-{
-	PINF("Rewriting %02x:%02x.%u IRQ: %02u -> GSI: %02u",
-	     (bdf >> 8), (bdf >> 3) & 0x1f, (bdf & 0x7), line, gsi);
-}
-
-
-/**
  * Parse acpi table
  */
 static void init_acpi_table()
@@ -1375,73 +1192,64 @@ static void init_acpi_table()
 }
 
 
-/**
- * Create config file for pci_drv
- */
-void Acpi::create_pci_config_file(char * config_space,
-                                  Genode::size_t config_space_max)
+void Acpi::generate_report()
 {
 	init_acpi_table();
-	Element::create_config_file(config_space, config_space_max);
-}
 
+	enum { REPORT_SIZE = 4 * 4096 };
+	static Reporter acpi("acpi", REPORT_SIZE);
+	acpi.enabled(true);
 
-/**
- * Rewrite GSIs of PCI config space
- */
-void Acpi::configure_pci_devices(Pci::Session_capability &session)
-{
-	init_acpi_table();
-	static Pci_bridge bridge(session);
+	Genode::Reporter::Xml_generator xml(acpi, [&] () {
+		for (Pci_config_space *e = Pci_config_space::list()->first(); e;
+		     e = e->next())
+		{
+			xml.node("bdf", [&] () {
+				char number[20];
+				Genode::snprintf(number, sizeof(number), "%u", e->_bdf_start);
+				xml.attribute("start", number);
+				Genode::snprintf(number, sizeof(number), "%u", e->_func_count);
+				xml.attribute("count", number);
+				Genode::snprintf(number, sizeof(number), "0x%lx", e->_base);
+				xml.attribute("base", number);
+			});
+		}
 
-	/* if no _PIC method could be found don't rewrite */
-	bool acpi_rewrite = Element::supported_acpi_format();
+		for (Irq_override *i = Irq_override::list()->first(); i; i = i->next())
+		{
+			xml.node("irq_override", [&] () {
+				char number[8];
+				Genode::snprintf(number, sizeof(number), "%u", i->irq());
+				xml.attribute("irq", number);
+				Genode::snprintf(number, sizeof(number), "%u", i->gsi());
+				xml.attribute("gsi", number);
+				Genode::snprintf(number, sizeof(number), "0x%x", i->flags());
+				xml.attribute("flags", number);
+			});
+		}
 
-	if (acpi_rewrite)
-		PINF("ACPI table format is supported - rewrite GSIs");
-	else
-		PWRN("ACPI table format not supported - will not rewrite GSIs");
+		{
+			Element *e = Element::list()->first();
 
-	Pci::Session_client pci(session);
-	Pci::Device_capability device_cap = pci.first_device(), prev_device_cap;
+			for (; e; e = e->next()) {
+				if (!e->is_device())
+					continue;
 
-	while (device_cap.valid()) {
-		prev_device_cap = device_cap;
-		Pci_client device(device_cap);
-
-		/* rewrite IRQs */
-		if (acpi_rewrite && !device.is_bridge()) {
-			uint32_t device_bdf = device.bdf();
-			uint32_t bridge_bdf = Pci_bridge::bridge_bdf(device_bdf);
-			uint32_t irq_pin    = device.irq_pin();
-			if (irq_pin) {
-				dump_bdf(device_bdf, bridge_bdf, irq_pin - 1);
-				try {
-					uint8_t gsi = Element::search_gsi(device_bdf, bridge_bdf, irq_pin - 1);
-					dump_rewrite(device_bdf, device.irq_line(), gsi);
-					device.irq_line(gsi);
-				} catch (...) { }
+				Pci_routing *r = e->pci_list()->first();
+				for (; r; r = r->next()) {
+					xml.node("routing", [&] () {
+						char number[8];
+						Genode::snprintf(number, sizeof(number), "0x%x", r->gsi());
+						xml.attribute("gsi", number);
+						Genode::snprintf(number, sizeof(number), "0x%x", e->bdf());
+						xml.attribute("bridge_bdf", number);
+						Genode::snprintf(number, sizeof(number), "0x%x", r->device());
+						xml.attribute("device", number);
+						Genode::snprintf(number, sizeof(number), "0x%x", r->pin());
+						xml.attribute("device_pin", number);
+					});
+				}
 			}
 		}
-
-		device_cap = pci.next_device(device_cap);
-		pci.release_device(prev_device_cap);
-	}
-
-}
-
-
-/**
- * Search override structures
- */
-unsigned Acpi::override(unsigned irq, unsigned *mode)
-{
-	for (Irq_override *i = Irq_override::list()->first(); i; i = i->next())
-		if (i->match(irq)) {
-			*mode = i->flags();
-			return i->gsi();
-		}
-
-	*mode = 0;
-	return irq;
+	});
 }

@@ -24,7 +24,11 @@
 #include <platform/irq_proxy.h>
 
 
-namespace Pci { class Irq_session_component; }
+namespace Pci {
+	class Irq_session_component;
+	class Irq_override;
+	class Irq_routing;
+}
 
 
 class Pci::Irq_session_component : public Genode::Rpc_object<Genode::Irq_session>,
@@ -63,4 +67,114 @@ class Pci::Irq_session_component : public Genode::Rpc_object<Genode::Irq_session
 		void sigh(Genode::Signal_context_capability) override;
 		Info info() override { 
 			return { .type = Genode::Irq_session::Info::Type::INVALID }; }
+};
+
+
+/**
+ * List that holds interrupt override information
+ */
+class Pci::Irq_override : public Genode::List<Pci::Irq_override>::Element
+{
+	private:
+
+		unsigned short _irq;   /* source IRQ */
+		unsigned short _gsi;   /* target GSI */
+		Genode::Irq_session::Trigger _trigger; /* interrupt trigger mode */
+		Genode::Irq_session::Polarity _polarity; /* interrupt polarity */
+
+		Genode::Irq_session::Trigger _mode2trigger(unsigned mode)
+		{
+			enum { EDGE = 0x4, LEVEL = 0xc };
+
+			switch (mode & 0xc) {
+				case EDGE:
+					return Genode::Irq_session::TRIGGER_EDGE;
+				case LEVEL:
+					return Genode::Irq_session::TRIGGER_LEVEL;
+				default:
+					return Genode::Irq_session::TRIGGER_UNCHANGED;
+			}
+		}
+
+		Genode::Irq_session::Polarity _mode2polarity(unsigned mode)
+		{
+			using namespace Genode;
+			enum { HIGH = 0x1, LOW = 0x3 };
+
+			switch (mode & 0x3) {
+				case HIGH:
+					return Genode::Irq_session::POLARITY_HIGH;
+				case LOW:
+					return Genode::Irq_session::POLARITY_LOW;
+				default:
+					return Genode::Irq_session::POLARITY_UNCHANGED;
+			}
+		}
+
+	public:
+
+		Irq_override(unsigned irq, unsigned gsi, unsigned mode)
+		:
+		  _irq(irq), _gsi(gsi),
+		  _trigger(_mode2trigger(mode)), _polarity(_mode2polarity(mode))
+		{ }
+
+		static Genode::List<Irq_override> *list()
+		{
+			static Genode::List<Irq_override> _list;
+			return &_list;
+		}
+
+		unsigned short irq()                     const { return _irq; }
+		unsigned short gsi()                     const { return _gsi; }
+		Genode::Irq_session::Trigger trigger()   const { return _trigger; }
+		Genode::Irq_session::Polarity polarity() const { return _polarity; }
+
+		static unsigned irq_override (unsigned irq,
+		                              Genode::Irq_session::Trigger &trigger,
+		                              Genode::Irq_session::Polarity &polarity)
+		{
+			for (Irq_override *i = list()->first(); i; i = i->next())
+				if (i->irq() == irq) {
+					trigger  = i->trigger();
+					polarity = i->polarity();
+					return i->gsi();
+				}
+
+			trigger  = Genode::Irq_session::TRIGGER_UNCHANGED;
+			polarity = Genode::Irq_session::POLARITY_UNCHANGED;
+			return irq;
+		}
+};
+
+
+/**
+ * List that holds interrupt rewrite information
+ */
+class Pci::Irq_routing : public Genode::List<Pci::Irq_routing>::Element
+{
+	private:
+
+		unsigned short _gsi;
+		unsigned short _bridge_bdf;
+		unsigned short _device;
+		unsigned char  _device_pin;
+
+	public:
+
+		static Genode::List<Irq_routing> *list()
+		{
+			static Genode::List<Irq_routing> _list;
+			return &_list;
+		}
+
+		Irq_routing(unsigned short gsi, unsigned short bridge_bdf,
+		            unsigned char device, unsigned char device_pin)
+		:
+			_gsi(gsi), _bridge_bdf(bridge_bdf), _device(device),
+			_device_pin(device_pin)
+		{ }
+
+		static unsigned short rewrite(unsigned char bus, unsigned char dev,
+		                              unsigned char func, unsigned char pin);
 };

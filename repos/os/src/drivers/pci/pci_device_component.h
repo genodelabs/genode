@@ -42,7 +42,6 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 		Pci::Session_component            *_session;
 		unsigned short                     _irq_line;
 		Irq_session_component              _irq_session;
-		bool                               _rewrite_irq_line;
 
 		enum {
 			IO_BLOCK_SIZE = sizeof(Genode::Io_port_connection) *
@@ -107,15 +106,33 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 		/**
 		 * Disable MSI if already enabled.
 		 */
-		unsigned _disable_msi(unsigned irq)
+		unsigned _configure_irq(unsigned irq)
 		{
 			using Genode::uint16_t;
 			using Genode::uint8_t;
 
-			uint8_t has_irq = _device_config.read(&_config_access, PCI_IRQ_PIN,
-			                                      Pci::Device::ACCESS_8BIT);
-			if (!has_irq)
+			uint8_t pin = _device_config.read(&_config_access, PCI_IRQ_PIN,
+			                                  Pci::Device::ACCESS_8BIT);
+			if (!pin)
 				return Irq_session_component::INVALID_IRQ;
+
+			/* lookup rewrite information as provided by acpi table */
+			uint16_t irq_r = Irq_routing::rewrite(_device_config.bus_number(),
+			                                      _device_config.device_number(),
+			                                      _device_config.function_number(),
+			                                      pin);
+			if (irq_r) {
+				PINF("%x:%x.%x rewriting IRQ: %u -> %u",
+				     _device_config.bus_number(),
+				     _device_config.device_number(),
+				     _device_config.function_number(), irq, irq_r);
+
+				if (_irq_line != irq_r)
+					_device_config.write(&_config_access, PCI_IRQ_LINE, irq_r,
+					                     Pci::Device::ACCESS_8BIT);
+
+				_irq_line = irq = irq_r;
+			}
 
 			uint16_t cap = _msi_cap();
 			if (!cap)
@@ -163,14 +180,13 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 		Device_component(Device_config device_config, Genode::addr_t addr,
 		                 Genode::Rpc_entrypoint *ep,
 		                 Pci::Session_component * session,
-		                 bool rewrite_irq_line, bool use_msi)
+		                 bool use_msi)
 		:
 			_device_config(device_config), _config_space(addr),
 			_ep(ep), _session(session),
 			_irq_line(_device_config.read(&_config_access, PCI_IRQ_LINE,
 			                              Pci::Device::ACCESS_8BIT)),
-			_irq_session(_disable_msi(_irq_line), (!use_msi || !_msi_cap()) ? ~0UL : _config_space),
-			_rewrite_irq_line(rewrite_irq_line),
+			_irq_session(_configure_irq(_irq_line), (!use_msi || !_msi_cap()) ? ~0UL : _config_space),
 			_slab_ioport(0, &_slab_ioport_block),
 			_slab_iomem(0, &_slab_iomem_block)
 		{
@@ -350,10 +366,12 @@ class Pci::Device_component : public Genode::Rpc_object<Pci::Device>,
 				     msi_64 ? "64bit" : "32bit",
 				     _irq_session.msi_data(), _irq_session.msi_address());
 			else
-				PINF("%x:%x.%x uses IRQ, vector 0x%x",
+				PINF("%x:%x.%x uses IRQ, vector 0x%x%s",
 				     _device_config.bus_number(),
 				     _device_config.device_number(),
-				     _device_config.function_number(), _irq_line);
+				     _device_config.function_number(), _irq_line,
+				     msi_cap ? (msi_64 ? ", MSI 64bit capable" :
+				                         ", MSI 32bit capable") : "");
 
 			return _irq_session.cap();
 		}

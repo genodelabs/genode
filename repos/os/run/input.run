@@ -2,6 +2,8 @@
 # Build
 #
 
+assert_spec x86
+
 set build_components {
 	core init
 	drivers/input
@@ -46,6 +48,9 @@ append config {
 			<service name="RM">  <parent/> </service>
 			<service name="ROM"> <parent/> </service>
 			<service name="SIGNAL"> <parent/> </service>
+			<service name="IO_MEM"> <parent/> </service>
+			<service name="IRQ">    <parent/> </service>
+			<service name="IO_PORT"> <parent/> </service>
 		</route>
 	</start>
 
@@ -58,6 +63,8 @@ append config {
 			<service name="LOG">     <parent/> </service>
 			<service name="RM">      <parent/> </service>
 			<service name="SIGNAL">  <parent/> </service>
+			<service name="IO_MEM">  <parent/> </service>
+			<service name="IRQ">     <parent/> </service>
 			<service name="PCI">     <any-child/> </service>
 		</route>
 	</start>
@@ -93,6 +100,7 @@ set boot_modules {
 	test-input
 }
 
+# platform-specific modules
 append_platform_drv_boot_modules
 
 build_boot_image $boot_modules

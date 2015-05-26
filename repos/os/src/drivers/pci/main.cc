@@ -17,6 +17,7 @@
 #include <cap_session/connection.h>
 
 #include <os/slave.h>
+#include <os/attached_rom_dataspace.h>
 
 #include "pci_session_component.h"
 #include "pci_device_config.h"
@@ -106,14 +107,44 @@ int main(int argc, char **argv)
 	 */
 	static Sliced_heap sliced_heap(env()->ram_session(), env()->rm_session());
 
+
+	/**
+	 * If we are running with ACPI support, wait for the first report_rom
+	 */
+	bool wait_for_acpi = true;
+	char * report_addr = nullptr;
+
+	try {
+		char yesno[4];
+		Genode::config()->xml_node().attribute("acpi").value(yesno, sizeof(yesno));
+		wait_for_acpi = strcmp(yesno, "no");
+	} catch (...) { }
+
+	if (wait_for_acpi) {
+		static Attached_rom_dataspace acpi_rom("acpi");
+
+		Signal_receiver sig_rec;
+		Signal_context  sig_ctx;
+		Signal_context_capability sig_cap = sig_rec.manage(&sig_ctx);
+
+		acpi_rom.sigh(sig_cap);
+
+		while (!acpi_rom.is_valid()) {
+			sig_rec.wait_for_signal();
+			acpi_rom.update();
+		}
+		report_addr = acpi_rom.local_addr<char>();
+		sig_rec.dissolve(&sig_ctx);
+	}
+
 	/*
 	 * Let the entry point serve the PCI root interface
 	 */
 	static Pci::Root root(&ep, &sliced_heap, PCI_DEVICE_PD_RAM_QUOTA,
-	                      device_pd_root);
+	                      device_pd_root, report_addr);
 
 	env()->parent()->announce(ep.manage(&root));
 
-	sleep_forever();
+	Genode::sleep_forever();
 	return 0;
 }

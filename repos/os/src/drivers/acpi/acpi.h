@@ -14,26 +14,12 @@
 #ifndef _ACPI_H_
 #define _ACPI_H_
 
-#include <pci_session/capability.h>
-
 namespace Acpi
 {
 	/**
-	 * Generate config file for pci_drv containing pointers to the
-	 * extended PCI config space (since PCI Express)
+	 * Generate report rom
 	 */
-	void create_pci_config_file(char * config_space,
-	                                   Genode::size_t config_space_max);
-	
-	/**
-	 * Rewrite PCI-config space with GSIs found in ACPI tables.
-	 */
-	void configure_pci_devices(Pci::Session_capability &session);
-
-	/**
-	 * Return override GSI for IRQ
-	 */
-	unsigned override(unsigned irq, unsigned *mode);
+	void generate_report();
 }
 
 #endif /* _ACPI_H_ */

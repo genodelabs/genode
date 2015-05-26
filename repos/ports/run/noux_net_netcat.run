@@ -57,7 +57,7 @@ append config {
 		<service name="SIGNAL"/>
 	</parent-provides>
 	<default-route>
-		<any-service> <any-child/> <parent/> </any-service>
+		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
@@ -67,7 +67,10 @@ append config {
 append_if [have_include "power_on/qemu"] config {
 	<start name="uart_drv">
 		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Terminal"/></provides>
+		<provides>
+			<service name="Terminal"/>
+			<service name="Uart"/>
+		</provides>
 		<config>
 			<policy label="noux" uart="1"/>
 		</config>

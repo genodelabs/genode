@@ -124,6 +124,7 @@ append_if [expr $use_usb] config {
 		</config>
 		<route>
 			<service name="IRQ"><child name="acpi_drv" /></service>
+			<service name="Report"><child name="report_rom" /></service>
 			<any-service> <parent /> <any-child /></any-service>
 		</route>
 	</start>

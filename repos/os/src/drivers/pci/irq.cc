@@ -20,6 +20,7 @@
 
 /* PCI driver include */
 #include "irq.h"
+#include "pci_session_component.h"
 
 
 namespace Pci {
@@ -194,10 +195,13 @@ class Pci::Irq_component : public Proxy
 
 	public:
 
-		Irq_component(unsigned gsi)
+		Irq_component(unsigned gsi, Genode::Irq_session::Trigger trigger,
+		              Genode::Irq_session::Polarity polarity)
 		:
-			Proxy(gsi), _irq(gsi), _irq_dispatcher(irq_thread.sig_rec(), *this,
-			                                       &::Proxy::notify_about_irq),
+			Proxy(gsi),
+			_irq(gsi, trigger, polarity),
+			_irq_dispatcher(irq_thread.sig_rec(), *this,
+			                &::Proxy::notify_about_irq),
 			_associated(false)
 		{ }
 };
@@ -234,7 +238,7 @@ Pci::Irq_session_component::Irq_session_component(unsigned irq,
 	_gsi(irq)
 {
 	/* invalid irq number for pci_devices */
-	if (irq >= INVALID_IRQ)
+	if (_gsi >= INVALID_IRQ)
 		return;
 
 	if (pci_config_space != ~0UL) {
@@ -262,9 +266,20 @@ Pci::Irq_session_component::Irq_session_component(unsigned irq,
 		}
 	}
 
+	Genode::Irq_session::Trigger  trigger;
+	Genode::Irq_session::Polarity polarity;
+
+	_gsi = Pci::Irq_override::irq_override(_gsi, trigger, polarity);
+	if (_gsi != irq || trigger != Genode::Irq_session::TRIGGER_UNCHANGED ||
+	    polarity != Genode::Irq_session::POLARITY_UNCHANGED)
+		PINF("IRQ override %u->%u trigger mode=%s polarity=%s", irq, _gsi,
+		     trigger  == Genode::Irq_session::TRIGGER_LEVEL ? "LEVEL" : trigger == Genode::Irq_session::TRIGGER_EDGE ? "EDGE" : "UNCHANGED",
+		     polarity == Genode::Irq_session::POLARITY_HIGH ? "HIGH" : polarity == Genode::Irq_session::POLARITY_LOW ? "LOW" : "UNCHANGED");
+
 	try {
 		/* check if shared IRQ object was used before */
-		if (Proxy::get_irq_proxy<Irq_component>(_gsi, &irq_alloc))
+		if (Proxy::get_irq_proxy<Irq_component>(_gsi, &irq_alloc, trigger,
+		                                        polarity))
 			return;
 	} catch (Genode::Parent::Service_denied) { }
 
@@ -318,4 +333,16 @@ void Pci::Irq_session_component::sigh(Genode::Signal_context_capability sigh)
 
 	if (!old.valid() && sigh.valid())
 		irq_obj->add_sharer(&_irq_sigh);
+}
+
+
+unsigned short Pci::Irq_routing::rewrite(unsigned char bus, unsigned char dev,
+                                         unsigned char func, unsigned char pin)
+{
+	for (Irq_routing *i = list()->first(); i; i = i->next())
+		if ((dev == i->_device) && (pin - 1 == i->_device_pin) &&
+		    (i->_bridge_bdf == Pci::bridge_bdf(bus)))
+			return i->_gsi;
+
+	return 0;
 }
