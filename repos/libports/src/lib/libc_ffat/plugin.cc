@@ -434,7 +434,7 @@ class Plugin : public Libc::Plugin
 			switch(res) {
 				case FR_OK:
 					/* according to the FatFs documentation this can happen */
-					if (f_tell(_get_ffat_file(fd)) != offset) {
+					if ((off_t)f_tell(_get_ffat_file(fd)) != offset) {
 						errno = EINVAL;
 						return -1;
 					}
