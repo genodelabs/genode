@@ -86,7 +86,7 @@ namespace File_system {
 				_length = max(_length, seek_offset + len);
 
 				mark_as_updated();
-				return 0;
+				return len;
 			}
 
 			file_size_t length() const { return _length; }
