@@ -1,0 +1,35 @@
+assert_spec linux
+
+build "core init test/stdcxx"
+
+create_boot_directory
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="LOG"/>
+			<service name="RM"/>
+			<service name="ROM"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<start name="test-stdcxx">
+			<resource name="RAM" quantum="10M"/>
+			<config>
+				<libc stdout="/dev/log">
+					<vfs> <dir name="dev"> <log/> </dir> </vfs>
+				</libc>
+			</config>
+		</start>
+	</config>
+}
+
+build_boot_image {
+	core init test-stdcxx
+	ld.lib.so libc.lib.so libm.lib.so stdcxx.lib.so
+}
+
+append qemu_args " -nographic -m 64 "
+
+run_genode_until ".*test-stdcxx finished.*\n" 10
