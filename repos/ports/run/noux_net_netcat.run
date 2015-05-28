@@ -1,13 +1,12 @@
 set use_usb_driver   [expr [have_spec omap4] || [have_spec platform_arndale] || [have_spec platform_rpi]]
 set use_nic_driver   [expr !$use_usb_driver && ![have_spec platform_imx53] && ![have_spec linux] && ![have_spec hw_odroid_xu]]
-set use_platform_drv [expr [have_spec platform_arndale] || [have_spec platform_imx53] || [have_spec platform_rpi]]
 
 if {[expr !$use_usb_driver && !$use_nic_driver]} {
 	puts "\n Run script is not supported on this platform. \n"; exit 0 }
 
 set build_components {
 	core init
-	drivers/timer drivers/pci
+	drivers/timer
 	server/tcp_terminal
 	server/nic_bridge
 	noux/net lib/libc_noux
@@ -16,11 +15,11 @@ set build_components {
 
 lappend_if $use_usb_driver                build_components drivers/usb
 lappend_if $use_nic_driver                build_components drivers/nic
-lappend_if [have_spec acpi]               build_components drivers/acpi
-lappend_if [have_spec pci]                build_components drivers/pci/device_pd
 lappend_if [have_spec gpio]               build_components drivers/gpio
 lappend_if [have_include "power_on/qemu"] build_components drivers/uart
-lappend_if $use_platform_drv              build_components drivers/platform
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
 
 build $build_components
 
@@ -107,15 +106,6 @@ append_if $use_nic_driver config {
 		<provides> <service name="Nic"/> </provides>
 	</start>}
 
-append_if $use_platform_drv config {
-	<start name="platform_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides>
-			<service name="Platform"/>
-			<service name="Regulator"/>
-		</provides>
-	</start>}
-
 append_if [have_spec gpio] config {
 	<start name="gpio_drv">
 		<resource name="RAM" quantum="4M"/>
@@ -135,38 +125,8 @@ append_if $use_usb_driver config {
 		</config>
 	</start>}
 
-append_if [have_spec acpi] config {
-	<start name="acpi">
-		<resource name="RAM" quantum="6M" constrain_phys="yes"/>
-		<binary name="acpi_drv"/>
-		<provides>
-			<service name="PCI"/>
-			<service name="IRQ" />
-		</provides>
-		<config>
-			<policy label="acpi_drv">
-				<pci class="ALL"/>
-			</policy>
-			<policy label="nic_drv">
-				<pci class="ETHERNET"/>
-			</policy>
-		</config>
-		<route>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>}
+append_platform_drv_config
 
-append_if [expr ![have_spec acpi] && [have_spec pci]] config {
-	<start name="pci_drv">
-		<resource name="RAM" quantum="2M" constrain_phys="yes"/>
-		<provides> <service name="PCI"/> </provides>
-		<config>
-			<policy label="nic_drv">
-				<pci class="ETHERNET"/>
-			</policy>
-		</config>
-	</start> }
-	
 append config {
 	<start name="noux_net">
 		<resource name="RAM" quantum="1G"/>
@@ -205,12 +165,10 @@ set boot_modules {
 # platform-specific modules
 lappend_if $use_nic_driver                boot_modules nic_drv
 lappend_if $use_usb_driver                boot_modules usb_drv
-lappend_if [have_spec pci]                boot_modules pci_drv
-lappend_if [have_spec acpi]               boot_modules acpi_drv
-lappend_if [have_spec nova]               boot_modules pci_device_pd
 lappend_if [have_include "power_on/qemu"] boot_modules uart_drv
-lappend_if $use_platform_drv              boot_modules platform_drv
 lappend_if [have_spec gpio]               boot_modules gpio_drv
+
+append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 

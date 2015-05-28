@@ -18,7 +18,6 @@ if {![info exists use_usb_driver]} {
 	set use_usb_driver      [expr [have_spec omap4] || [have_spec platform_arndale] || [have_spec platform_rpi]]
 }
 set use_nic_driver      [expr !$use_usb_driver && ![have_spec platform_imx53] && !$use_wifi_driver]
-set use_platform_driver [expr [have_spec platform_arndale] || [have_spec platform_imx53] || [have_spec platform_rpi]]
 
 if {[expr !$use_usb_driver && !$use_nic_driver && !$use_wifi_driver]} {
 	puts "\n Run script is not supported on this platform. \n"; exit 0 }
@@ -66,16 +65,13 @@ if {$use_wifi_driver}   { set network_driver "wifi_drv" }
 
 set build_components {
 	core init
-	drivers/pci drivers/timer
+	drivers/timer
 }
 
 append     build_components     " $netperf_target "
 lappend_if $use_nic_driver      build_components drivers/nic
 lappend_if $use_usb_driver      build_components drivers/usb
-lappend_if $use_platform_driver build_components drivers/platform
 lappend_if $use_nic_bridge      build_components server/nic_bridge
-lappend_if [have_spec acpi]     build_components drivers/acpi
-lappend_if [have_spec pci]      build_components drivers/pci/device_pd
 lappend_if [have_spec gpio]     build_components drivers/gpio
 
 append_if $use_wifi_driver      build_components {
@@ -84,6 +80,9 @@ append_if $use_wifi_driver      build_components {
 	server/ram_fs
 	server/report_rom
 }
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
 
 build $build_components
 
@@ -118,13 +117,6 @@ set config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start> }
-
-append_if $use_platform_driver config {
-	<start name="platform_drv">
-		<resource name="RAM" quantum="1M" />
-		<provides> <service name="Regulator"/>
-		           <service name="Platform"/> </provides>
-	</start>}
 
 append_if [have_spec gpio] config {
 	<start name="gpio_drv">
@@ -226,35 +218,7 @@ append_if $use_wifi_driver config {
 		</route>
 	</start>}
 
-append_if [have_spec acpi] config {
-	<start name="acpi">
-		<resource name="RAM" quantum="16M" constrain_phys="yes"/>
-		<binary name="acpi_drv"/>
-		<provides>
-			<service name="PCI"/>
-			<service name="IRQ" />
-		</provides>
-		<config>
-			<policy label="acpi_drv"> <pci class="ALL"/> </policy>
-			<policy label="nic_drv"> <pci class="ETHERNET"/> </policy>
-			<policy label="wifi_drv"> <pci class="WIFI"/> </policy>
-			<policy label="usb_drv"> <pci class="USB"/> </policy>
-		</config>
-		<route>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>}
-
-append_if [expr ![have_spec acpi] && [have_spec pci]] config {
-	<start name="pci_drv">
-		<resource name="RAM" quantum="3M" constrain_phys="yes"/>
-		<provides> <service name="PCI"/> </provides>
-		<config>
-			<policy label="nic_drv"> <pci class="ETHERNET"/> </policy>
-			<policy label="wifi_drv"> <pci class="WIFI"/> </policy>
-			<policy label="usb_drv"> <pci class="USB"/> </policy>
-		</config>
-	</start> }
+append_platform_drv_config
 
 append config {
 	<start name="netserver_genode">
@@ -301,13 +265,9 @@ append                     boot_modules " $netperf_stack "
 lappend_if $use_nic_bridge boot_modules nic_bridge
 
 # platform-specific modules
-lappend_if $use_platform_driver      boot_modules platform_drv
-lappend_if [have_spec acpi]          boot_modules acpi_drv
-lappend_if [have_spec pci]           boot_modules pci_drv
 lappend_if [have_spec gpio]          boot_modules gpio_drv
 lappend_if $use_usb_driver           boot_modules usb_drv
 lappend_if $use_nic_driver           boot_modules nic_drv
-lappend_if [have_spec nova]          boot_modules pci_device_pd
 
 append_if $use_wifi_driver boot_modules {
 	ram_fs fs_rom report_rom
@@ -321,6 +281,8 @@ append_if $use_wifi_driver boot_modules {
 	iwlwifi-6000g2b-6.ucode
 	iwlwifi-7260-8.ucode
 }
+
+append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 

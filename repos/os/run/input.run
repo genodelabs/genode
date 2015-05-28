@@ -6,9 +6,11 @@ set build_components {
 	core init
 	drivers/input
 	drivers/timer
-	drivers/pci
 	test/input
 }
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
 
 build $build_components
 
@@ -47,28 +49,6 @@ append config {
 		</route>
 	</start>
 
-	<start name="pci_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides>
-			<service name="PCI"/>
-		</provides>
-		<route>
-			<service name="CAP">     <parent/> </service>
-			<service name="IO_PORT"> <parent/> </service>
-			<service name="IRQ">     <parent/> </service>
-			<service name="LOG">     <parent/> </service>
-			<service name="RAM">     <parent/> </service>
-			<service name="RM">      <parent/> </service>
-			<service name="ROM">     <parent/> </service>
-			<service name="SIGNAL">  <parent/> </service>
-		</route>
-		<config>
-			<policy label="ps2_drv">
-				<device name="PS2"/>
-			</policy>
-		</config>
-	</start>
-
 	<start name="ps2_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Input"/></provides>
@@ -78,7 +58,7 @@ append config {
 			<service name="LOG">     <parent/> </service>
 			<service name="RM">      <parent/> </service>
 			<service name="SIGNAL">  <parent/> </service>
-			<service name="PCI">     <child name="pci_drv"/> </service>
+			<service name="PCI">     <any-child/> </service>
 		</route>
 	</start>
 
@@ -92,8 +72,11 @@ append config {
 			<service name="Input">   <child name="ps2_drv"/> </service>
 			<service name="Timer">   <child name="timer"/> </service>
 		</route>
-	</start>
+	</start>}
 
+append_platform_drv_config
+
+append config {
 </config>}
 
 install_config $config
@@ -106,12 +89,11 @@ install_config $config
 set boot_modules {
 	core init
 	timer
-	pci_drv
 	ps2_drv
 	test-input
 }
 
-# platform-specific modules
+append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 

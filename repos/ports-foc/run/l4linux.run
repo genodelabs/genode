@@ -14,17 +14,17 @@ set build_components {
 
 set use_usb_driver   [expr [have_spec omap4] || [have_spec platform_arndale]]
 set use_nic_driver   [expr !$use_usb_driver && [expr [have_spec lan9118] || [have_spec x86]]]
-set use_platform_drv [expr [have_spec platform_arndale] || [have_spec platform_imx53]]
 
-lappend_if $use_usb_driver     build_components drivers/usb
-lappend_if $use_nic_driver     build_components drivers/nic
-lappend_if [have_spec     pci] build_components drivers/pci
-lappend_if [have_spec    acpi] build_components drivers/acpi
-lappend_if [have_spec     ps2] build_components drivers/input/ps2
-lappend_if $use_platform_drv   build_components drivers/platform
-lappend_if [have_spec gpio]    build_components drivers/gpio
+lappend_if $use_usb_driver  build_components drivers/usb
+lappend_if $use_nic_driver  build_components drivers/nic
+lappend_if [have_spec  ps2] build_components drivers/input/ps2
+lappend_if [have_spec gpio] build_components drivers/gpio
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
 
 build $build_components
+
 create_boot_directory
 
 #
@@ -61,36 +61,7 @@ set config  {
 		<config><policy label="l4linux" uart="0"/></config>
 	</start> }
 
-append_if [have_spec acpi] config {
-	<start name="acpi">
-		<resource name="RAM" quantum="6M" constrain_phys="yes"/>
-		<binary name="acpi_drv"/>
-		<provides>
-			<service name="PCI"/>
-			<service name="IRQ" />
-		</provides>
-		<config>
-			<policy label="acpi_drv"> <pci class="ALL"/> </policy>
-			<policy label="nic_drv">  <pci class="ETHERNET"/> </policy>
-			<policy label="fb_drv">   <pci class="VGA"/> </policy>
-			<policy label="ps2_drv">  <device name="PS2"/> </policy>
-		</config>
-		<route>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start> }
-
-append_if [expr ![have_spec acpi] && [have_spec pci]] config {
-	<start name="pci_drv">
-		<resource name="RAM" quantum="3M" constrain_phys="yes"/>
-		<provides> <service name="PCI"/> </provides>
-		<config>
-			<policy label="nic_drv"> <pci class="ETHERNET"/> </policy>
-			<policy label="fb_drv">  <pci class="VGA"/> </policy>
-			<policy label="ps2_drv">  <device name="PS2"/> </policy>
-		</config>
-		<route>
-	</start> }
+append_platform_drv_config
 
 append_if [have_spec framebuffer] config {
 	<start name="fb_drv">
@@ -103,15 +74,6 @@ append_if [have_spec ps2] config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Input"/></provides>
 	</start> }
-
-append_if $use_platform_drv config {
-	<start name="platform_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides>
-			<service name="Regulator"/>
-			<service name="Platform"/>
-		</provides>
-	</start>}
 
 append_if [have_spec gpio] config {
 	<start name="gpio_drv">
@@ -159,13 +121,10 @@ install_config $config
 # Boot modules
 #
 set boot_modules { core init timer kdb_uart_drv l4linux initrd.gz }
-lappend_if [have_spec         pci] boot_modules pci_drv
-lappend_if [have_spec        acpi] boot_modules acpi_drv
 lappend_if [have_spec         ps2] boot_modules ps2_drv
 lappend_if [have_spec framebuffer] boot_modules fb_drv
 lappend_if $use_nic_driver         boot_modules nic_drv
 lappend_if $use_usb_driver         boot_modules usb_drv
-lappend_if $use_platform_drv       boot_modules platform_drv
 lappend_if [have_spec gpio]        boot_modules gpio_drv
 
 if {[have_spec x86]} {
@@ -181,6 +140,8 @@ exec >& /dev/null wget -O bin/initrd.gz.md5 $uri.md5
 cd bin
 exec md5sum -c initrd.gz.md5
 cd ..
+
+append_platform_drv_boot_modules
 
 build_boot_image  [join $boot_modules " "]
 

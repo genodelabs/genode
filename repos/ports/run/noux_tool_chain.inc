@@ -16,12 +16,11 @@ if {[have_spec linux]} {
 	exit 0
 }
 
-set use_platform_driver [expr [have_spec platform_arndale] || [have_spec platform_imx53] || [have_spec platform_rpi]]
 set use_usb_input [expr ![have_spec ps2] && ![have_spec sdl] && [have_spec usb]]
 
 set build_components {
 	core init drivers/timer noux/minimal lib/libc_noux
-	drivers/framebuffer drivers/pci drivers/input
+	drivers/framebuffer drivers/input
 	server/terminal server/ram_fs
 	test/libports/ncurses
 }
@@ -35,10 +34,9 @@ set build_components {
 #
 proc check_xml_syntax {xml_file} { }
 
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
 
-lappend_if [have_spec acpi]     build_components drivers/acpi
-lappend_if [have_spec pci]      build_components drivers/pci/device_pd
-lappend_if $use_platform_driver build_components drivers/platform
 lappend_if $use_usb_input       build_components drivers/usb
 
 set cc_march ""
@@ -116,13 +114,6 @@ append config {
 			<provides><service name="Timer"/></provides>
 		</start> }
 
-append_if $use_platform_driver config {
-		<start name="platform_drv">
-			<resource name="RAM" quantum="1M" />
-			<provides><service name="Regulator"/></provides>
-			<provides><service name="Platform"/></provides>
-		</start>}
-
 append_if [have_spec sdl] config {
 	<start name="fb_sdl">
 		<resource name="RAM" quantum="4M"/>
@@ -132,42 +123,13 @@ append_if [have_spec sdl] config {
 		</provides>
 	</start>}
 
-append_if [have_spec acpi] config {
-	<start name="acpi">
-		<resource name="RAM" quantum="5M" constrain_phys="yes"/>
-		<binary name="acpi_drv"/>
-		<provides>
-			<service name="PCI"/>
-			<service name="IRQ" />
-		</provides>
-		<config>
-			<policy label="acpi_drv"> <pci class="ALL"/> </policy>
-			<policy label="ps2_drv">  <device name="PS2"/> </policy>
-			<policy label="usb_drv">  <pci class="USB"/> </policy>
-			<policy label="fb_drv">   <pci class="VGA"/> </policy>
-		</config>
-		<route>
-			<service name="PCI"> <any-child /> </service>
-			<any-service> <parent/> <any-child /> </any-service>
-		</route>
-	</start>}
+append_platform_drv_config
 
 append_if [have_spec framebuffer] config {
 	<start name="fb_drv">
 		<resource name="RAM" quantum="8M"/>
 		<provides><service name="Framebuffer"/></provides>
 	</start>}
-
-append_if [expr ![have_spec acpi] && [have_spec pci]] config {
-	<start name="pci_drv">
-		<resource name="RAM" quantum="2M" constrain_phys="yes"/>
-		<provides> <service name="PCI"/> </provides>
-		<config>
-			<policy label="ps2_drv">  <device name="PS2"/> </policy>
-			<policy label="usb_drv">  <pci class="USB"/> </policy>
-			<policy label="fb_drv">   <pci class="VGA"/> </policy>
-		</config>
-	</start> }
 
 append_if [have_spec ps2] config {
 	<start name="ps2_drv">
@@ -306,13 +268,11 @@ foreach pkg $platform_pkgs { append boot_modules "$pkg.tar" }
 
 # platform-specific modules
 lappend_if [have_spec       linux] boot_modules fb_sdl
-lappend_if [have_spec         pci] boot_modules pci_drv
 lappend_if [have_spec framebuffer] boot_modules fb_drv
 lappend_if [have_spec         ps2] boot_modules ps2_drv
-lappend_if [have_spec        acpi] boot_modules acpi_drv
-lappend_if [have_spec        nova] boot_modules pci_device_pd
-lappend_if $use_platform_driver    boot_modules platform_drv
 lappend_if $use_usb_input          boot_modules usb_drv
+
+append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 

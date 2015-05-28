@@ -16,10 +16,14 @@ append build_components {
 
 lappend_if [expr $use_ps2]    build_components drivers/input
 lappend_if [expr $use_usb]    build_components drivers/usb
-lappend_if [have_spec acpi]   build_components drivers/acpi
-lappend_if [have_spec pci]    build_components drivers/pci
 lappend_if [have_spec x86]    build_components drivers/rtc
 lappend_if [expr $use_ram_fs] build_components server/ram_fs
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+# override defaults of platform_drv.inc
+proc platform_drv_priority {} { return { priority="-1"} }
+
+append_platform_drv_build_components
 
 build $build_components
 
@@ -47,15 +51,14 @@ set config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="ahci" priority="-1">
-		<binary name="ahci_drv" />
+	<start name="ahci_drv" priority="-1">
 		<resource name="RAM" quantum="10M" />
 		<provides><service name="Block" /></provides>
 		<config>
 			<policy label="part_blk" device="0" />
 		</config>
 		<route>
-			<service name="IRQ"><child name="acpi" /></service>
+			<service name="IRQ"><child name="acpi_drv" /></service>
 			<any-service> <parent /> <any-child /></any-service>
 		</route>
 	</start>
@@ -63,7 +66,7 @@ set config {
 		<resource name="RAM" quantum="10M" />
 		<provides><service name="Block" /></provides>
 		<route>
-			<any-service><child name="ahci"/> <parent/><any-child/></any-service>
+			<any-service><child name="ahci_drv"/> <parent/><any-child/></any-service>
 		</route>
 		<config>
 			<policy label="rump_fs" partition="4"/>
@@ -94,47 +97,14 @@ append_if [expr $use_ram_fs] config {
 		</config>
 	</start>}
 
-append_if [have_spec acpi] config {
-	<start name="acpi" priority="-1">
-		<resource name="RAM" quantum="12M" constrain_phys="yes"/>
-		<binary name="acpi_drv"/>
-		<provides>
-			<service name="PCI"/>
-			<service name="IRQ" />
-		</provides>
-		<config>
-			<policy label="acpi_drv"> <pci class="ALL"/> </policy>
-			<policy label="ahci">     <pci class="AHCI"/> </policy>
-			<policy label="nic_drv">  <pci class="ETHERNET"/> </policy>
-			<policy label="ps2_drv">  <device name="PS2"/> </policy>
-			<policy label="usb_drv">  <pci class="USB"/> </policy>
-			<policy label="fb_drv">   <pci class="VGA"/> </policy>
-		</config>
-		<route>
-			<service name="PCI"> <any-child /> </service>
-			<any-service> <parent/> <any-child /> </any-service>
-		</route>
-	</start>}
-
-append_if [expr ![have_spec acpi] && [have_spec pci]] config {
-	<start name="pci_drv" priority="-1">
-		<resource name="RAM" quantum="2M" constrain_phys="yes"/>
-		<provides> <service name="PCI"/> </provides>
-		<config>
-			<policy label="ahci">     <pci class="AHCI"/> </policy>
-			<policy label="nic_drv">  <pci class="ETHERNET"/> </policy>
-			<policy label="ps2_drv">  <device name="PS2"/> </policy>
-			<policy label="usb_drv">  <pci class="USB"/> </policy>
-			<policy label="fb_drv">   <pci class="VGA"/> </policy>
-		</config>
-	</start>}
+append_platform_drv_config
 
 append_if [expr $use_ps2] config {
 	<start name="ps2_drv" priority="-1">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Input"/></provides>
 		<route>
-			<service name="IRQ"><child name="acpi" /></service>
+			<service name="IRQ"><child name="acpi_drv" /></service>
 			<any-service> <parent /> <any-child /></any-service>
 		</route>
 	</start>}
@@ -153,7 +123,7 @@ append_if [expr $use_usb] config {
 			</raw>
 		</config>
 		<route>
-			<service name="IRQ"><child name="acpi" /></service>
+			<service name="IRQ"><child name="acpi_drv" /></service>
 			<any-service> <parent /> <any-child /></any-service>
 		</route>
 	</start>
@@ -198,8 +168,7 @@ lappend_if [expr $use_ram_fs]      boot_modules ${overlay_image}
 # platform-specific modules
 lappend_if [expr         $use_ps2] boot_modules ps2_drv
 lappend_if [expr         $use_usb] boot_modules usb_drv
-lappend_if [have_spec        acpi] boot_modules acpi_drv
-lappend_if [have_spec         pci] boot_modules pci_drv
 lappend_if [have_spec framebuffer] boot_modules fb_drv
-lappend_if [have_spec        nova] boot_modules pci_device_pd
 lappend_if [have_spec         x86] boot_modules rtc_drv
+
+append_platform_drv_boot_modules

@@ -47,7 +47,6 @@ if {$wrong_version} {
 	exit 1;
 }
 
-
 #
 # Build
 #
@@ -57,15 +56,15 @@ set build_components {
 	drivers/usb
 	drivers/timer
 	drivers/uart
-	drivers/platform
 	server/nic_bridge
 	l4linux
 }
 
-lappend_if [have_spec     pci] build_components drivers/pci
-lappend_if [have_spec    acpi] build_components drivers/acpi
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
 
 build $build_components
+
 create_boot_directory
 
 #
@@ -95,25 +94,7 @@ set config  {
 	</start>
 }
 
-append_if [have_spec acpi] config {
-	<start name="acpi">
-		<resource name="RAM" quantum="12M" constrain_phys="yes"/>
-		<binary name="acpi_drv"/>
-		<provides>
-			<service name="PCI"/>
-			<service name="IRQ" />
-		</provides>
-		<route>
-			<service name="PCI"> <any-child /> </service>
-			<any-service> <parent/> <any-child /> </any-service>
-		</route>
-	</start> }
-
-append_if [expr ![have_spec acpi] && [have_spec pci]] config {
-	<start name="pci_drv">
-		<resource name="RAM" quantum="3M" constrain_phys="yes"/>
-		<provides> <service name="PCI"/> </provides>
-	</start> }
+append_platform_drv_config
 
 append config {
 	<start name="kdb_uart_drv">
@@ -139,12 +120,6 @@ append config {
 		<route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
-	</start>
-}
-append_if [have_spec arm] config {
-	<start name="platform_drv">
-		<resource name="RAM" quantum="1M" />
-		<provides><service name="Regulator"/></provides>
 	</start>
 }
 
@@ -193,10 +168,6 @@ set boot_modules {
 	kdb_uart_drv
 }
 
-lappend_if [have_spec arm] boot_modules  platform_drv
-lappend_if [have_spec pci] boot_modules  pci_drv
-lappend_if [have_spec acpi] boot_modules acpi_drv
-
 set uri "http://genode.org/files/l4linux/initrd-arm-netperf.gz"
 if {[have_spec x86]} {
 	set uri "http://genode.org/files/l4linux/busybox-initrd-x86-20140506.gz"
@@ -212,6 +183,8 @@ if {![file exists bin/initrd.gz]} {
 	exec $md5 -c initrd.gz.md5
 	cd ..
 }
+
+append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 

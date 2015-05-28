@@ -39,12 +39,14 @@ set build_components {
 
 lappend build_components test/libc_$filesystem
 
-lappend_if [have_spec  pci] build_components drivers/pci
-lappend_if [have_spec acpi] build_components drivers/acpi
 lappend_if $use_ahci        build_components drivers/ahci
 lappend_if $use_sd_card_drv build_components drivers/sd_card
 
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
 build $build_components
+
 create_boot_directory
 
 #
@@ -91,42 +93,10 @@ append config {
 		</config>
 	</start>}
 
-append_if [have_spec acpi] config {
-	<start name="acpi">
-		<resource name="RAM" quantum="8M" constrain_phys="yes"/>
-		<binary name="acpi_drv"/>
-		<provides>
-			<service name="PCI"/>
-			<service name="IRQ" />
-		</provides>
-		<config>
-			<policy label="acpi_drv">
-				<pci class="ALL"/>
-			</policy>
-			<policy label="ahci">
-				<pci class="AHCI"/>
-			</policy>
-		</config>
-		<route>
-			<service name="PCI"> <any-child /> </service>
-			<any-service> <parent/> <any-child /> </any-service>
-		</route>
-	</start>}
-
-append_if [expr ![have_spec acpi] && [have_spec pci]] config {
-	<start name="pci_drv">
-		<resource name="RAM" quantum="5M" constrain_phys="yes"/>
-		<provides><service name="PCI"/></provides>
-		<config>
-			<policy label="ahci">
-				<pci class="AHCI"/>
-			</policy>
-		</config>
-	</start>}
+append_platform_drv_config
 
 append_if $use_ahci config {
-	<start name="ahci">
-		<binary name="ahci_drv" />
+	<start name="ahci_drv">
 		<resource name="RAM" quantum="10M" />
 		<provides><service name="Block" /></provides>
 		<route>
@@ -166,10 +136,10 @@ append boot_modules test-libc_$filesystem
 append boot_modules " "
 append boot_modules libc_$filesystem.lib.so
 
-lappend_if [have_spec pci]   boot_modules pci_drv
-lappend_if [have_spec acpi]  boot_modules acpi_drv
 lappend_if $use_ahci         boot_modules ahci_drv
 lappend_if $use_sd_card_drv  boot_modules sd_card_drv
+
+append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 

@@ -16,19 +16,20 @@ if {![have_spec nova]} {
 
 assert_spec acpi
 
+source ${genode_dir}/repos/base/run/platform_drv.inc
+# override defaults of platform_drv.inc
+proc platform_drv_priority {} { return { priority="-1"} }
+
 set build_components {
 	core init
 	drivers/timer
 	drivers/rtc
-	drivers/pci
 	drivers/input
 	app/seoul
 }
 
 if {$use_fancy_stuff} { set use_framebuffer 1 }
 
-lappend_if [have_spec acpi]     build_components drivers/acpi
-lappend_if [have_spec pci]      build_components drivers/pci/device_pd
 lappend_if $use_usb             build_components drivers/usb
 lappend_if $use_block_sata      build_components drivers/ahci
 lappend_if $use_nic_session     build_components drivers/nic
@@ -43,6 +44,8 @@ lappend_if $use_fancy_stuff     build_components server/nitlog
 lappend_if $use_fancy_stuff     build_components server/report_rom
 lappend_if $use_genode_iso      build_components server/iso9660
 lappend_if $use_genode_iso      build_components server/rom_blk
+
+append_platform_drv_build_components
 
 build $build_components
 
@@ -192,28 +195,7 @@ append_if $use_genode_iso config {
 		</route>
 	</start>}
 
-append_if [have_spec acpi] config {
-	<start name="acpi" priority="-1">
-		<resource name="RAM" quantum="8M" constrain_phys="yes"/>
-		<binary name="acpi_drv"/>
-		<provides>
-			<service name="PCI"/>
-			<service name="IRQ" />
-		</provides>
-		<config>
-			<policy label="acpi_drv"> <pci class="ALL"/> </policy>
-			<policy label="ahci">     <pci class="AHCI"/> </policy>
-			<policy label="nic_drv">  <pci class="ETHERNET"/> </policy>
-			<policy label="ps2_drv">  <device name="PS2"/> </policy>
-			<policy label="usb_drv">  <pci class="USB"/> </policy>
-			<policy label="fb_drv">   <pci class="VGA"/> </policy>
-		</config>
-		<route>
-			<service name="PCI"> <any-child /> </service>
-			<any-service> <parent/> <any-child /> </any-service>
-		</route>
-	</start>}
-
+append_platform_drv_config
 
 append_if $use_nic_session config {
 	<start name="nic_drv" priority="-2">
@@ -415,15 +397,12 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init
-	pci_drv
 	timer
 	rtc_drv
 	seoul
 	vm_seoul.cfg
 }
 
-lappend_if [have_spec acpi]   boot_modules acpi_drv
-lappend_if [have_spec nova]   boot_modules pci_device_pd
 lappend_if [expr !$use_usb]   boot_modules ps2_drv
 lappend_if $use_usb           boot_modules usb_drv
 lappend_if $use_block_sata    boot_modules ahci_drv
@@ -477,6 +456,8 @@ if {$use_multiboot} {
 if {$use_usb} {
 	append qemu_args " -usb -usbdevice mouse -usbdevice keyboard "
 }
+
+append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 
