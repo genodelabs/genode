@@ -1,0 +1,20 @@
+
+--- a/include/std/type_traits
++++ b/include/std/type_traits
+@@ -38,15 +38,7 @@
+ #include <bits/c++config.h>
+ 
+ #ifdef _GLIBCXX_USE_C99_STDINT_TR1
+-# if defined (__UINT_LEAST16_TYPE__) && defined(__UINT_LEAST32_TYPE__)
+-namespace std
+-{
+-  typedef __UINT_LEAST16_TYPE__ uint_least16_t;
+-  typedef __UINT_LEAST32_TYPE__ uint_least32_t;
+-}
+-# else
+-#  include <cstdint>
+-# endif
++#include <cstdint>
+ #endif
+ 
+ namespace std _GLIBCXX_VISIBILITY(default)
