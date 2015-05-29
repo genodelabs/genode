@@ -56,9 +56,7 @@ class Periodic_GIP : public Genode::Alarm {
 		 * driver as done for base-nova currently.
 		 */
 
-		static uint64_t tsc_reference = Genode::Trace::timestamp();
-
-		Genode::uint64_t tsc_current = Genode::Trace::timestamp() - tsc_reference;
+		Genode::uint64_t tsc_current = Genode::Trace::timestamp();
 
 		/*
 		 * Convert tsc to nanoseconds.
