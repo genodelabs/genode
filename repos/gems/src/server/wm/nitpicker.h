@@ -52,6 +52,7 @@ namespace Wm { namespace Nitpicker {
 
 	using namespace ::Nitpicker;
 
+	class Click_handler;
 	class View_handle_ctx;
 	class View;
 	class Top_level_view;
@@ -64,6 +65,22 @@ namespace Wm { namespace Nitpicker {
 	typedef Genode::Surface_base::Point Point;
 	typedef Genode::Session_label       Session_label;
 } }
+
+
+/**
+ * Interface used for propagating clicks into unfocused windows to the layouter
+ *
+ * The click handler is invoked only for those click events that are of
+ * interest to the layouter. In particular, a click into an unfocused window
+ * may trigger the layouter to raise the window and change the focus. However,
+ * clicks into an already focused window should be of no interest to the
+ * layouter. So we hide them from the layouter.
+ */
+struct Wm::Nitpicker::Click_handler
+{
+	virtual void handle_click(Point pos) = 0;
+	virtual void handle_enter(Point pos) = 0;
+};
 
 
 struct Nitpicker::View { GENODE_RPC_INTERFACE(); };
@@ -423,6 +440,7 @@ class Wm::Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 		List<Child_view>             _child_views;
 		Input::Session_component     _input_session;
 		Input::Session_capability    _input_session_cap;
+		Click_handler               &_click_handler;
 		Signal_context_capability    _mode_sigh;
 		Area                         _requested_size;
 
@@ -495,6 +513,22 @@ class Wm::Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 			return Input::Event();
 		}
 
+		bool _is_click_into_unfocused_view(Input::Event const ev)
+		{
+			/*
+			 * XXX check if unfocused
+			 *
+			 * Right now, we report more butten events to the layouter
+			 * than the layouter really needs.
+			 */
+			if (ev.type() == Input::Event::PRESS && ev.keycode() == Input::BTN_LEFT)
+				return true;
+
+			return false;
+		}
+
+		bool _first_motion = true;
+
 		void _input_handler(unsigned)
 		{
 			Point const input_origin = _input_origin();
@@ -508,8 +542,29 @@ class Wm::Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 				/* we trust nitpicker to return a valid number of events */
 
-				for (size_t i = 0; i < num_events; i++)
-					_input_session.submit(_translate_event(events[i], input_origin));
+				for (size_t i = 0; i < num_events; i++) {
+
+					Input::Event const ev = events[i];
+
+					/* propagate layout-affecting events to the layouter */
+					if (_is_click_into_unfocused_view(ev))
+						_click_handler.handle_click(Point(ev.ax(), ev.ay()));
+
+					/*
+					 * Reset pointer model for the decorator once the pointer
+					 * enters the application area of a window.
+					 */
+					if (ev.type() == Input::Event::MOTION && _first_motion) {
+						_click_handler.handle_enter(Point(ev.ax(), ev.ay()));
+						_first_motion = false;
+					}
+
+					if (ev.type() == Input::Event::LEAVE)
+						_first_motion = true;
+
+					/* submit event to the client */
+					_input_session.submit(_translate_event(ev, input_origin));
+				}
 			}
 		}
 
@@ -654,7 +709,8 @@ class Wm::Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 		                  Entrypoint            &ep,
 		                  Allocator             &session_alloc,
 		                  Session_label   const &session_label,
-		                  bool            const  direct)
+		                  bool            const  direct,
+		                  Click_handler         &click_handler)
 		:
 			_session_label(session_label),
 			_ram(ram),
@@ -664,6 +720,7 @@ class Wm::Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 			_top_level_view_alloc(&session_alloc),
 			_child_view_alloc(&session_alloc),
 			_input_session_cap(_ep.manage(_input_session)),
+			_click_handler(click_handler),
 			_view_handle_registry(session_alloc)
 		{
 			_nitpicker_input.sigh(_input_dispatcher);
@@ -879,6 +936,8 @@ class Wm::Nitpicker::Root : public Genode::Root_component<Session_component>,
 
 		Window_registry &_window_registry;
 
+		Click_handler &_click_handler;
+
 		List<Session_component> _sessions;
 
 	protected:
@@ -900,7 +959,8 @@ class Wm::Nitpicker::Root : public Genode::Root_component<Session_component>,
 
 			Session_component *session = new (md_alloc())
 				Session_component(_ram, _window_registry,
-				                  _ep, *md_alloc(), session_label, direct);
+				                  _ep, *md_alloc(), session_label, direct,
+				                  _click_handler);
 
 			_sessions.insert(session);
 
@@ -925,10 +985,12 @@ class Wm::Nitpicker::Root : public Genode::Root_component<Session_component>,
 		 */
 		Root(Entrypoint &ep,
 		     Window_registry &window_registry, Allocator &md_alloc,
-		     Ram_session_capability ram)
+		     Ram_session_capability ram,
+		     Click_handler &click_handler)
 		:
 			Root_component<Session_component>(&ep.rpc_ep(), &md_alloc),
-			_ep(ep), _ram(ram), _window_registry(window_registry)
+			_ep(ep), _ram(ram), _window_registry(window_registry),
+			_click_handler(click_handler)
 		{
 			Genode::env()->parent()->announce(_ep.manage(*this));
 		}

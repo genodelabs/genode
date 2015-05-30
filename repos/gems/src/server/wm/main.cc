@@ -85,10 +85,61 @@ struct Wm::Main
 
 	Input::Session_component window_layouter_input;
 
+	/* handler that forwards clicks into unfocused windows to the layouter */
+	struct Click_handler : Nitpicker::Click_handler
+	{
+		Input::Session_component &window_layouter_input;
+		Local_reporter           &pointer_reporter;
+
+		void _submit_button_event(Input::Event::Type type, Nitpicker::Point pos)
+		{
+			window_layouter_input.submit(Input::Event(type, Input::BTN_LEFT,
+			                                          pos.x(), pos.y(), 0, 0));
+		}
+
+		void handle_enter(Nitpicker::Point pos) override
+		{
+			Local_reporter::Xml_generator xml(pointer_reporter, [&] ()
+			{
+				xml.attribute("xpos", pos.x());
+				xml.attribute("ypos", pos.y());
+			});
+		}
+
+		void handle_click(Nitpicker::Point pos) override
+		{
+			/*
+			 * Propagate clicked-at position to decorator such that it can
+			 * update its hover model.
+			 */
+			Local_reporter::Xml_generator xml(pointer_reporter, [&] ()
+			{
+				xml.attribute("xpos", pos.x());
+				xml.attribute("ypos", pos.y());
+			});
+
+			/*
+			 * Supply artificial mouse click to the decorator's input session
+			 * (which is routed to the layouter).
+			 */
+			_submit_button_event(Input::Event::PRESS,   pos);
+			_submit_button_event(Input::Event::RELEASE, pos);
+		}
+
+		Click_handler(Input::Session_component &window_layouter_input,
+		              Local_reporter           &pointer_reporter)
+		:
+			window_layouter_input(window_layouter_input),
+			pointer_reporter(pointer_reporter)
+		{ }
+
+	} click_handler { window_layouter_input, pointer_reporter };
+
 	Window_registry window_registry { *env()->heap(), window_list_reporter };
 
 	Nitpicker::Root nitpicker_root { ep, window_registry,
-	                                 *env()->heap(), env()->ram_session_cap() };
+	                                 *env()->heap(), env()->ram_session_cap(),
+	                                 click_handler };
 
 	Decorator_nitpicker_service decorator_nitpicker_service {
 		ep, *env()->heap(), env()->ram_session_cap(), pointer_reporter,
