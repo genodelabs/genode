@@ -173,12 +173,29 @@ proc run_boot_dir {binaries} {
 	run_image $elf_img
 
 	# set symbolic link to image.elf file in TFTP directory for PXE boot
-	if {[have_include "load/tftp"]} {
+	if {[have_spec arm] && [have_include "load/tftp"]} {
 		exec ln -sf [pwd]/$elf_img [load_tftp_base_dir][load_tftp_offset_dir]
 
 		if {[have_include "image/uboot"]} {
 			exec ln -sf [pwd]/[run_dir]/uImage [load_tftp_base_dir][load_tftp_offset_dir]
 		}
+	}
+
+	if {[have_spec x86] && [have_include "load/tftp"]} {
+		#
+		# Install PXE bootloader pulsar
+		#
+		install_pxe_bootloader_to_run_dir
+
+		#
+		# Generate pulsar config file
+		#
+		set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
+		puts $fh " exec /boot/bender"
+		puts $fh " load /image.elf"
+		close $fh
+
+		generate_tftp_config
 	}
 
 	# retrieve stand-alone core
