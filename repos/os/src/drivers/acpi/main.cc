@@ -128,10 +128,13 @@ namespace Pci {
 		private:
 
 			Provider &_pci_provider;
+			Genode::Ram_session_capability _slave_ram_cap;
 
 		public:
 
-			Root(Provider &pci_provider) : _pci_provider(pci_provider) { }
+			Root(Provider &pci_provider,
+			     Genode::Ram_session_capability ram_cap)
+			: _pci_provider(pci_provider), _slave_ram_cap(ram_cap) { }
 
 			Genode::Session_capability session(Session_args     const &args,
 			                                   Genode::Affinity const &affinity)
@@ -152,10 +155,25 @@ namespace Pci {
 			void close(Genode::Session_capability session) {
 				Genode::Root_client(_pci_provider.root()).close(session); }
 
-			void upgrade(Genode::Session_capability s, Upgrade_args const & u)
+			void upgrade(Genode::Session_capability s,
+			             Upgrade_args const & args)
 			{
-				try { Genode::Root_client(_pci_provider.root()).upgrade(s, u); }
-				catch (...) { throw Invalid_args(); }
+				if (!s.valid() || !args.is_valid_string() ||
+				    !_slave_ram_cap.valid())
+					throw Invalid_args();
+
+				using namespace Genode;
+
+				size_t ram_quota = Arg_string::find_arg(args.string(), "ram_quota").ulong_value(0);
+				Ram_session_client acpi_ram(env()->ram_session_cap());
+				if (acpi_ram.transfer_quota(_slave_ram_cap, ram_quota))
+					throw Invalid_args();
+
+				try { Root_client(_pci_provider.root()).upgrade(s, args); }
+				catch (...) {
+					PDBG("notification about upgrade failed");
+					throw Invalid_args();
+				}
 			}
 	};
 }
@@ -198,7 +216,7 @@ class Pci_policy : public Genode::Slave_policy, public Pci::Provider
 		/**
 		 * Parse ACPI tables and announce slave PCI service
 		 */
-		void _acpi_session()
+		void _acpi_session(Genode::Ram_session_capability ram_cap)
 		{
 			Pci::Session_capability session;
 			const char *args = "label=\"acpi_drv\", ram_quota=16K";
@@ -212,7 +230,7 @@ class Pci_policy : public Genode::Slave_policy, public Pci::Provider
 			Acpi::configure_pci_devices(session);
 
 			/* announce PCI/IRQ services to parent */
-			static Pci::Root pci_root(*this);
+			static Pci::Root pci_root(*this, ram_cap);
 
 			Genode::env()->parent()->announce(_pci_ep.manage(&pci_root));
 			Genode::env()->parent()->announce(_irq_ep.manage(&irq_root));
@@ -247,12 +265,13 @@ class Pci_policy : public Genode::Slave_policy, public Pci::Provider
 			return true;
 		}
 
-		void wait_for_pci_drv() {
+		void wait_for_pci_drv(Genode::Ram_session_capability slave_ram_cap)
+		{
 			/* wait until pci drv is ready */
 			_lock.lock();
 
 			/* connect session and start ACPI parsing */
-			_acpi_session();
+			_acpi_session(slave_ram_cap);
 		}
 
 		Genode::Root_capability root() { return _cap; }
@@ -295,7 +314,7 @@ int main(int argc, char **argv)
 	static Genode::Slave  pci_slave(pci_ep, pci_policy, avail_size);
 
 	/* wait until pci drv is online and then make the acpi work */
-	pci_policy.wait_for_pci_drv();
+	pci_policy.wait_for_pci_drv(pci_slave.ram().cap());
 
 	Genode::sleep_forever();
 	return 0;
