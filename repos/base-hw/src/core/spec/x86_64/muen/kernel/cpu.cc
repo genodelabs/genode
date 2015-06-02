@@ -30,13 +30,14 @@ Cpu_idle::Cpu_idle(Cpu * const cpu) : Cpu_job(Cpu_priority::MIN, 0)
 
 void Cpu_idle::exception(unsigned const cpu)
 {
-	if (trapno == RESET) {
-		return;
-	} else if (trapno >= INTERRUPTS_START && trapno <= INTERRUPTS_END) {
+	if (trapno == RESET) return;
+
+	if (trapno >= INTERRUPTS_START && trapno <= INTERRUPTS_END) {
 		pic()->irq_occurred(trapno);
 		_interrupt(cpu);
 		return;
 	}
+
 	PWRN("Unknown exception %lu with error code %lu at ip=%p", trapno,
 	     errcode, (void *)ip);
 	assert(0);

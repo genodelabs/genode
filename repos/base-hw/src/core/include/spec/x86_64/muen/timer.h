@@ -68,7 +68,7 @@ class Genode::Timer
 			_timer_page = (Subject_timer *)region.address;
 			_timer_page->vector = Board::TIMER_VECTOR_KERNEL;
 			PINF("muen-timer: page @0x%llx, frequency %llu kHz, vector %u",
-					region.address, _tics_per_ms, _timer_page->vector);
+			     region.address, _tics_per_ms, _timer_page->vector);
 		}
 
 		static unsigned interrupt_id(int)
@@ -90,7 +90,7 @@ class Genode::Timer
 		{
 			const uint64_t now = rdtsc();
 			if (_timer_page->value != TIMER_DISABLED
-					&& _timer_page->value > now) {
+			    && _timer_page->value > now) {
 				return _timer_page->value - now;
 			}
 			return 0;

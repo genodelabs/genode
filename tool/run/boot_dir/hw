@@ -146,13 +146,13 @@ proc run_boot_dir {binaries} {
 	set elf_img "[run_dir]/image.elf"
 
 	# Use raw binary object for base-hw on Muen
-	if {[have_spec "hw_x86_64_muen"]} {
+	if {[have_spec "muen"]} {
 		set raw_img "[run_dir]/image.raw"
 		exec [cross_dev_prefix]objcopy -O binary bin/$core_bin $raw_img
 		exit 0
 	}
 
-	if {[have_spec "x86_64"]} {
+	if {[have_spec "x86_64"] && ![have_spec "muen"]} {
 		# as startup is done in 32 bit mode, GRUB expects a 32 bit image
 		exec [cross_dev_prefix]objcopy -O elf32-i386 bin/$core_bin $elf_img
 	}
