@@ -13,8 +13,8 @@
  * version 2.
  */
 
-#ifndef _MEM_REGION_H_
-#define _MEM_REGION_H_
+#ifndef _VIRTUALBOX__ACCLOFF__MEM_REGION_H_
+#define _VIRTUALBOX__ACCLOFF__MEM_REGION_H_
 
 /* Genode includes */
 #include <util/list.h>
@@ -72,4 +72,4 @@ struct Mem_region : public  Genode::List<Mem_region>::Element,
 	T * local_addr() { return reinterpret_cast<T *>(_base); }
 };
 
-#endif /* _MEM_REGION_H_ */
+#endif /* _VIRTUALBOX__ACCLOFF__MEM_REGION_H_ */
