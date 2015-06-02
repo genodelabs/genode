@@ -264,7 +264,7 @@ hw_x86_64::
 	@echo "SPECS += acpi" >> $(BUILD_DIR)/etc/specs.conf
 
 hw_x86_64_muen::
-	@echo "SPECS = genode hw_x86_64_muen" > $(BUILD_DIR)/etc/specs.conf
+	@echo "SPECS = genode hw_x86_64 muen" > $(BUILD_DIR)/etc/specs.conf
 
 lx_hybrid_x86::
 	@echo "CROSS_DEV_PREFIX =" > $(BUILD_DIR)/etc/tools.conf
