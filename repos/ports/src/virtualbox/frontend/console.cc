@@ -5,10 +5,13 @@
 #include "ConsoleImpl.h"
 #include "MachineImpl.h"
 #include "MouseImpl.h"
+#include "DisplayImpl.h"
+#include "GuestImpl.h"
 
 #include "dummy/macros.h"
 
 #include "console.h"
+#include "fb.h"
 
 static const bool debug = false;
 
@@ -72,7 +75,6 @@ HRESULT Console::RestoreSnapshot(ISnapshot*, IProgress**)                       
 HRESULT Console::Teleport(IN_BSTR, ULONG, IN_BSTR, ULONG, IProgress **)         DUMMY(E_FAIL)
 HRESULT Console::setDiskEncryptionKeys(const Utf8Str &strCfg)                   DUMMY(E_FAIL)
 
-void    Console::onAdditionsStateChange()                                       TRACE()
 void    Console::onAdditionsOutdated()                                          DUMMY()
 
 void    Console::onKeyboardLedsChange(bool, bool, bool)                         TRACE()
@@ -110,6 +112,28 @@ void fireRuntimeErrorEvent(IEventSource* aSource, BOOL a_fatal,
 	     Utf8Str(a_id).c_str(), Utf8Str(a_message).c_str());
 
 	TRACE();
+}
+
+void Console::onAdditionsStateChange()
+{
+	dynamic_cast<GenodeConsole *>(this)->update_video_mode();
+}
+
+void GenodeConsole::update_video_mode()
+{
+	Display  *d    = getDisplay();
+	Guest    *g    = getGuest();
+	Genodefb *fb   = dynamic_cast<Genodefb *>(d->getFramebuffer());
+	LONG64 ignored = 0;
+
+	AdditionsFacilityType_T is_graphics;
+	g->GetFacilityStatus(AdditionsFacilityType_Graphics, &ignored, &is_graphics);
+
+	if (fb && is_graphics)
+		d->SetVideoModeHint(0 /*=display*/,
+		                    true /*=enabled*/, false /*=changeOrigin*/,
+		                    0 /*=originX*/, 0 /*=originY*/,
+		                    fb->w(), fb->h(), fb->depth());
 }
 
 void GenodeConsole::eventWait(IKeyboard * gKeyboard, IMouse * gMouse)

@@ -122,7 +122,6 @@ append config_of_app {
 			<service name="Framebuffer" />
 			<service name="Input" />
 		</provides>
-		<config width="1024" height="768" />
 	</start>
 
 	<start name="vbox" priority="-2">

@@ -207,4 +207,6 @@ class GenodeConsole : public Console {
 
 			_shape_report_connection.submit(sizeof(Vbox_pointer::Shape_report));
 		}
+
+		void update_video_mode();
 };

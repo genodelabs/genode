@@ -47,6 +47,10 @@ class Genodefb :
 			Assert(rc == VINF_SUCCESS);
 		}
 
+		int w()     const { return _fb_mode.width(); }
+		int h()     const { return _fb_mode.height(); }
+		int depth() const { return 16; /* XXX */ }
+
 		STDMETHODIMP COMGETTER(Width)(ULONG *width)
 		{
 			if (!width)
