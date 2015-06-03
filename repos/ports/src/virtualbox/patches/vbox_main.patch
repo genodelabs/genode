@@ -1044,16 +1044,14 @@ index caed4be..6d02496 100644
          InsertConfigNode(pDevices, "AudioSniffer", &pDev);
          InsertConfigNode(pDev,     "0", &pInst);
          InsertConfigNode(pInst,    "Config", &pCfg);
-@@ -2300,9 +2311,12 @@ int Console::configConstructorInner(PUVM pUVM, PVM pVM, AutoWriteLock *pAlock)
+@@ -2300,9 +2311,10 @@ int Console::configConstructorInner(PUVM pUVM, PVM pVM, AutoWriteLock *pAlock)
          /*
           * AC'97 ICH / SoundBlaster16 audio / Intel HD Audio
           */
 +#endif
          BOOL fAudioEnabled = FALSE;
          ComPtr<IAudioAdapter> audioAdapter;
-+#if 0
          hrc = pMachine->COMGETTER(AudioAdapter)(audioAdapter.asOutParam());                 H();
-+#endif
          if (audioAdapter)
              hrc = audioAdapter->COMGETTER(Enabled)(&fAudioEnabled);                         H();
  

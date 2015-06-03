@@ -13,6 +13,7 @@ set overlay_image "overlay_${flavor}.vdi"
 set build_components {
 	server/input_merger
 	drivers/nic
+	drivers/audio
 	server/nitpicker
 	app/vbox_pointer
 	server/nit_fb
@@ -22,6 +23,7 @@ set build_components {
 set boot_modules {
 	input_merger
 	nic_drv
+	audio_drv
 	nitpicker
 	vbox_pointer
 	nit_fb
@@ -65,6 +67,24 @@ append config_of_app {
 		<provides>
 			<service name="Nic" />
 		</provides>
+	</start>
+
+	<!--
+		Note: to use audio in the VM, the virtual audio adapter
+		needs to be enabled in the .vbox file (disabled by default).
+		(Recording is configured to use the external mic.)
+	-->
+	<start name="audio_drv">
+		<resource name="RAM" quantum="8M"/>
+		<provides>
+			<service name="Audio_out"/>
+			<service name="Audio_in"/>
+		</provides>
+		<config recording="yes">
+			<mixer field="outputs.master" value="255"/>
+			<mixer field="record.adc-0:1_source" value="sel2"/>
+			<mixer field="record.adc-0:1" value="255"/>
+		</config>
 	</start>
 
 	<start name="report_rom">
