@@ -1,5 +1,5 @@
 /*
- * \brief  Local nitpicker service provided to decorator
+ * \brief  Nitpicker service provided to decorator
  * \author Norman Feske
  * \date   2014-02-14
  */
@@ -16,8 +16,10 @@
 
 /* Genode includes */
 #include <util/string.h>
+#include <ram_session/client.h>
 #include <os/server.h>
 #include <os/attached_dataspace.h>
+#include <os/reporter.h>
 #include <nitpicker_session/connection.h>
 #include <input_session/client.h>
 #include <input/event.h>
@@ -25,6 +27,7 @@
 
 /* local includes */
 #include <window_registry.h>
+#include <last_motion.h>
 
 namespace Wm { class Main;
 	using Genode::size_t;
@@ -37,6 +40,7 @@ namespace Wm { class Main;
 	using Genode::Attached_dataspace;
 	using Genode::Attached_ram_dataspace;
 	using Genode::Signal_rpc_member;
+	using Genode::Reporter;
 }
 
 
@@ -163,7 +167,9 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>
 
 	Attached_dataspace _nitpicker_input_ds { _nitpicker_input.dataspace() };
 
-	Local_reporter &_pointer_reporter;
+	Reporter &_pointer_reporter;
+
+	Last_motion &_last_motion;
 
 	Input::Session_component &_window_layouter_input;
 
@@ -186,12 +192,14 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>
 	 */
 	Decorator_nitpicker_session(Ram_session_capability ram,
 	                            Entrypoint &ep, Allocator &md_alloc,
-	                            Local_reporter &pointer_reporter,
+	                            Reporter &pointer_reporter,
+	                            Last_motion &last_motion,
 	                            Input::Session_component &window_layouter_input,
 	                            Decorator_content_callback &content_callback)
 	:
 		_ram(ram),
 		_pointer_reporter(pointer_reporter),
+		_last_motion(last_motion),
 		_window_layouter_input(window_layouter_input),
 		_content_callback(content_callback),
 		_ep(ep), _md_alloc(md_alloc)
@@ -215,7 +223,10 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>
 				Input::Event const &ev = events[i];
 
 				if (ev.type() == Input::Event::MOTION) {
-					Local_reporter::Xml_generator xml(_pointer_reporter, [&] ()
+
+					_last_motion = LAST_MOTION_DECORATOR;
+
+					Reporter::Xml_generator xml(_pointer_reporter, [&] ()
 					{
 						xml.attribute("xpos", ev.ax());
 						xml.attribute("ypos", ev.ay());
@@ -224,10 +235,19 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>
 
 				if (ev.type() == Input::Event::LEAVE) {
 
-					Local_reporter::Xml_generator xml(_pointer_reporter, [&] ()
-					{
-						/* report empty pointer model */
-					});
+					/*
+					 * Invalidate pointer as reported to the decorator if the
+					 * pointer moved from a window decoration to a position
+					 * with no window known to the window manager. If the last
+					 * motion referred to one of the regular client session,
+					 * this is not needed because the respective session will
+					 * update the pointer model with the entered position
+					 * already.
+					 */
+					if (_last_motion == LAST_MOTION_DECORATOR) {
+						Reporter::Xml_generator xml(_pointer_reporter, [&] ()
+						{ });
+					}
 				}
 
 				_window_layouter_input.submit(ev);
@@ -416,58 +436,6 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>
 	}
 
 	void focus(Genode::Capability<Nitpicker::Session>) { }
-};
-
-
-struct Wm::Decorator_nitpicker_service : Genode::Service, Genode::Noncopyable
-{
-	private:
-
-		Entrypoint                 &_ep;
-		Allocator                  &_md_alloc;
-		Ram_session_capability      _ram;
-		Local_reporter             &_pointer_reporter;
-		Input::Session_component   &_window_layouter_input;
-		Decorator_content_callback &_content_callback;
-
-
-	public:
-
-		Decorator_nitpicker_service(Entrypoint &ep, Allocator &md_alloc,
-		                            Ram_session_capability ram,
-		                            Local_reporter &pointer_reporter,
-		                            Input::Session_component &window_layouter_input,
-		                            Decorator_content_callback &content_callback)
-		:
-			Service("Nitpicker"),
-			_ep(ep), _md_alloc(md_alloc),
-			_ram(ram), _pointer_reporter(pointer_reporter),
-			_window_layouter_input(window_layouter_input),
-			_content_callback(content_callback)
-		{ }
-
-		Genode::Session_capability
-		session(const char *, Genode::Affinity const &) override
-		{
-			Decorator_nitpicker_session *s = new (_md_alloc)
-				Decorator_nitpicker_session(_ram, _ep, _md_alloc,
-				                            _pointer_reporter,
-				                            _window_layouter_input,
-				                            _content_callback);
-
-			return _ep.manage(*s);
-		}
-
-		void upgrade(Genode::Session_capability session, const char *args) override
-		{
-			typedef typename Object_pool<Decorator_nitpicker_session>::Guard Object_guard;
-			Object_guard np_session(_ep.rpc_ep().lookup_and_lock(session));
-
-			if (np_session)
-				np_session->upgrade(args);
-		}
-
-		void close(Genode::Session_capability) { }
 };
 
 #endif /* _DECORATOR_NITPICKER_H_ */

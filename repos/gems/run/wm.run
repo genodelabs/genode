@@ -125,12 +125,53 @@ append config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
+	<start name="report_rom">
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Report"/>
+			<service name="ROM"/>
+		</provides>
+		<config>
+			<rom>
+				<policy label="layouter -> window_list"     report="wm -> window_list"/>
+				<policy label="decorator -> window_layout"  report="layouter -> window_layout"/>
+				<policy label="wm -> resize_request"        report="layouter -> resize_request"/>
+				<policy label="decorator -> pointer"        report="wm -> pointer"/>
+				<policy label="layouter -> hover"           report="decorator -> hover"/>
+				<policy label="wm -> focus"                 report="layouter -> focus"/>
+			</rom>
+		</config>
+	</start>
 	<start name="wm" priority="-1">
-		<resource name="RAM" quantum="32M"/>
-		<provides><service name="Nitpicker"/></provides>
+		<resource name="RAM" quantum="6M"/>
+		<provides>
+			<service name="Nitpicker"/>
+		</provides>
+		<config>
+			<policy label="decorator" role="decorator"/>
+			<policy label="layouter"  role="layouter"/>
+		</config>
 		<route>
 			<any-service>
-				<child name="nitpicker"/> <parent/> <any-child/>
+				<child name="nitpicker"/> <child name="report_rom"/> <parent/> <any-child/>
+			</any-service>
+		</route>
+	</start>
+	<start name="layouter" priority="-1">
+		<binary name="floating_window_layouter"/>
+		<resource name="RAM" quantum="4M"/>
+		<route>
+			<any-service>
+				<child name="wm"/> <child name="report_rom"/> <parent/> <any-child/>
+			</any-service>
+		</route>
+	</start>
+	<start name="decorator" priority="-1">
+		<binary name="decorator"/>
+		<resource name="RAM" quantum="8M"/>
+		<route>
+			<any-service>
+				<child name="wm"/> <child name="report_rom"/> <parent/> <any-child/>
 			</any-service>
 		</route>
 	</start>

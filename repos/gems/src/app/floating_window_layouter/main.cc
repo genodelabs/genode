@@ -16,7 +16,8 @@
 #include <base/signal.h>
 #include <os/attached_rom_dataspace.h>
 #include <os/reporter.h>
-#include <input_session/connection.h>
+#include <nitpicker_session/connection.h>
+#include <input_session/client.h>
 #include <input/event.h>
 #include <input/keycodes.h>
 #include <rom_session/connection.h>
@@ -307,7 +308,6 @@ struct Floating_window_layouter::Main
 
 	Attached_rom_dataspace hover { "hover" };
 
-
 	/**
 	 * Install handler for responding to user input
 	 */
@@ -316,7 +316,9 @@ struct Floating_window_layouter::Main
 	Signal_dispatcher<Main> input_dispatcher = {
 		sig_rec, *this, &Main::handle_input };
 
-	Input::Connection input;
+	Nitpicker::Connection nitpicker;
+
+	Input::Session_client input { nitpicker.input_session() };
 
 	Attached_dataspace input_ds { input.dataspace() };
 
