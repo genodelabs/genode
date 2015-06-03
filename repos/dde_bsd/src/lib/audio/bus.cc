@@ -139,6 +139,10 @@ class Pci_driver : public Bsd::Bus_driver
 
 		int probe()
 		{
+			char buf[32];
+			Genode::snprintf(buf, sizeof(buf), "ram_quota=%u", 8192U);
+			Genode::env()->parent()->upgrade(_pci.cap(), buf);
+
 			/*
 			 * We hide ourself in the bus_dma_tag_t as well as
 			 * in the pci_chipset_tag_t field because they are
@@ -155,9 +159,9 @@ class Pci_driver : public Bsd::Bus_driver
 				uint8_t bus, dev, func;
 				device.bus_address(&bus, &dev, &func);
 
-				/* XXX until we get the platform_drv, we blacklist HDMI/DP HDA devices */
-				if (device.device_id() == PCI_PRODUCT_INTEL_CORE4G_HDA_2) {
-					PWRN("ignore %u:%u:%u device, Intel Core 4G HDA not supported",
+				if ((device.device_id() == PCI_PRODUCT_INTEL_CORE4G_HDA_2) ||
+				    (bus == 0 && dev == 3 && func == 0)) {
+					PWRN("ignore %u:%u:%u not supported HDMI/DP HDA device",
 					     bus, dev, func);
 					continue;
 				}
