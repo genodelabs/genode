@@ -244,6 +244,16 @@ class Audio_out::Stream
 		void reset() { _tail = _pos; }
 
 
+		/**
+		 * Invalidate all packets in stream queue
+		 */
+		void invalidate_all()
+		{
+			for (int i = 0; i < QUEUE_SIZE; i++)
+				_buf[i]._valid = false;
+		}
+
+
 		/**********************************************
 		 ** Intended to be called by the server side **
 		 ***********************************************/
