@@ -12,6 +12,10 @@ SRC_CC += Devices/Serial/DrvChar.cpp
 SRC_CC += Devices/Serial/DrvRawFile.cpp
 SRC_CC += Devices/Serial/DrvHostSerial.cpp
 
+SRC_CC += audiodrv.cpp
 SRC_CC += network.cpp
 
-vpath network.cpp $(REP_DIR)/src/virtualbox
+INC_DIR += $(VBOX_DIR)/Devices/Audio
+
+vpath audiodrv.cpp $(REP_DIR)/src/virtualbox
+vpath network.cpp  $(REP_DIR)/src/virtualbox

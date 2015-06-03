@@ -34,6 +34,14 @@ SRC_CC += GuestHost/HGSMI/HGSMICommon.cpp
 SRC_CC += Devices/Serial/DevSerial.cpp
 SRC_CC += Devices/PC/DevIoApic.cpp
 
+SRC_C  += Devices/Audio/audio.c
+SRC_C  += Devices/Audio/audiosniffer.c
+SRC_C  += Devices/Audio/filteraudio.c
+SRC_C  += Devices/Audio/mixeng.c
+SRC_C  += Devices/Audio/noaudio.c
+SRC_CC += Devices/Audio/DevIchAc97.cpp
+SRC_CC += Devices/Audio/DevIchHda.cpp
+SRC_CC += Devices/Audio/DevIchHdaCodec.cpp
 SRC_CC += Devices/USB/DevOHCI.cpp
 SRC_CC += Devices/USB/USBProxyDevice.cpp
 SRC_CC += Devices/USB/VUSBDevice.cpp
