@@ -16,12 +16,8 @@
 
 namespace Genode
 {
-	/**
-	 * Dummy
-	 */
-	struct Vm_state { };
-
-	using Cpu_state_modes = void*;
+	using Cpu_state_modes = Cpu_state;
+	using Vm_state = Cpu_state;
 }
 
 #endif /* _VM_STATE_H_ */

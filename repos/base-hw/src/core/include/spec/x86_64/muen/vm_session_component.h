@@ -33,6 +33,9 @@ class Genode::Vm_session_component
 : public Genode::Rpc_object<Genode::Vm_session>,
   public Kernel_object<Kernel::Vm>
 {
+	private:
+		Vm_state _state;
+
 	public:
 
 		Vm_session_component(Rpc_entrypoint*, size_t) { }
@@ -47,7 +50,7 @@ class Genode::Vm_session_component
 
 		void exception_handler(Signal_context_capability handler)
 		{
-			if (!create(nullptr, handler.dst(), nullptr))
+			if (!create(&_state, handler.dst(), nullptr))
 				PWRN("Cannot instantiate vm kernel object, "
 				     "invalid signal context?");
 		}
