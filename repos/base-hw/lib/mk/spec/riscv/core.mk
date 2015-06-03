@@ -4,7 +4,7 @@ CC_OPT += -fno-delete-null-pointer-checks -msoft-float
 
 # add C++ sources
 SRC_CC += platform_services.cc
-SRC_CC += kernel/vm_thread.cc kernel/kernel.cc
+SRC_CC += kernel/vm_thread_off.cc kernel/kernel.cc
 SRC_CC += spec/riscv/kernel/cpu_context.cc
 SRC_CC += spec/riscv/kernel/thread.cc
 SRC_CC += spec/riscv/kernel/pd.cc
