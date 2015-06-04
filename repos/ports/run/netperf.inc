@@ -329,6 +329,8 @@ foreach netperf_test $netperf_tests {
 
 	set spawn_id_list [list $netperf_id $serial_id]
 
+	# reset output, so that we get on the second run not the result of the first
+	set output ""
 	run_genode_until "Segment" 60 $spawn_id_list
 
 	# get throughput from netperf output
