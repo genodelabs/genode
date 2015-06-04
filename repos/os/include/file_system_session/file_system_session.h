@@ -82,6 +82,10 @@ struct File_system::Node_handle
 	Node_handle(int v) : value(v) { }
 
 	bool valid() const { return value != -1; }
+
+	bool operator == (Node_handle const &other) const { return other.value == value; }
+	bool operator != (Node_handle const &other) const { return other.value != value; }
+
 };
 
 

@@ -17,18 +17,7 @@
 
 /* Genode includes */
 #include <util/string.h>
-
-
-/**
- * Return true if character 'c' occurs in null-terminated string 'str'
- */
-static inline bool string_contains(char const *str, char c)
-{
-	for (; *str; str++)
-		if (*str == c)
-			return true;
-	return false;
-}
+#include <file_system/util.h>
 
 
 /**
@@ -64,9 +53,9 @@ static inline bool valid_filename(char const *str)
 	if (str[0] == 0) return false;
 
 	/* must not contain '/' or '\' or ':' */
-	if (string_contains(str, '/') ||
-	    string_contains(str, '\\') ||
-	    string_contains(str, ':'))
+	if (File_system::string_contains(str, '/') ||
+	    File_system::string_contains(str, '\\') ||
+	    File_system::string_contains(str, ':'))
 		return false;
 
 	return true;
@@ -85,8 +74,8 @@ static inline bool valid_path(char const *str)
 		return false;
 
 	/* must not contain '\' or ':' */
-	if (string_contains(str, '\\') ||
-	    string_contains(str, ':'))
+	if (File_system::string_contains(str, '\\') ||
+	    File_system::string_contains(str, ':'))
 		return false;
 
 	/* must not contain "/../" */
