@@ -97,10 +97,10 @@ class Decorator::Window : public Window_base
 				{
 					/* quick fade-in when gaining the focus or hover highlight */
 					if ((!_focused && focused) || (!_highlighted && highlighted))
-						return 20;
+						return 15;
 
 					/* slow fade-out when leaving focus or hover highlight */
-					return 180;
+					return 20;
 				}
 
 				bool _apply_state(bool focused, bool highlighted, Color base_color)

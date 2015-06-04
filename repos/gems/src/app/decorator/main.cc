@@ -83,6 +83,20 @@ struct Decorator::Main : Window_factory_base
 	Animator animator;
 
 	/**
+	 * Process the update every 'frame_period' nitpicker sync signals. The
+	 * 'frame_cnt' holds the counter of the nitpicker sync signals.
+	 *
+	 * A lower 'frame_period' value makes the decorations more responsive
+	 * but it also puts more load on the system.
+	 *
+	 * If the nitpicker sync signal fires every 10 milliseconds, a
+	 * 'frame_period' of 2 results in an update rate of 1000/20 = 50 frames per
+	 * second.
+	 */
+	unsigned frame_cnt = 0;
+	unsigned frame_period = 2;
+
+	/**
 	 * Install handler for responding to nitpicker sync events
 	 */
 	void handle_nitpicker_sync(unsigned);
@@ -184,6 +198,11 @@ void Decorator::Main::handle_window_layout_update(unsigned)
 
 void Decorator::Main::handle_nitpicker_sync(unsigned)
 {
+	if (frame_cnt++ < frame_period)
+		return;
+
+	frame_cnt = 0;
+
 	bool model_updated = false;
 
 	if (window_layout_update_needed && window_layout.is_valid()) {
@@ -217,7 +236,13 @@ void Decorator::Main::handle_nitpicker_sync(unsigned)
 
 	bool const windows_animated = window_stack.schedule_animated_windows();
 
-	animator.animate();
+	/*
+	 * To make the perceived animation speed independent from the setting of
+	 * 'frame_period', we update the animation as often as the nitpicker
+	 * sync signal occurs.
+	 */
+	for (unsigned i = 0; i < frame_period; i++)
+		animator.animate();
 
 	if (!model_updated && !windows_animated)
 		return;
