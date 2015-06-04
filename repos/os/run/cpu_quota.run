@@ -170,6 +170,10 @@ proc check_quota { name opt_sp quota_sp opt quota } {
 	}
 }
 
+# pre-define variables if regexp does not match
+set slow_quota "";    set midl_quota "";    set fast_quota ""
+set slow_quota_sp ""; set midl_quota_sp ""; set fast_quota_sp ""
+
 regexp {[0-9]+} [regexp -inline {slow. quota [0-9]+} $output] slow_quota
 regexp {[0-9]+} [regexp -inline {midl. quota [0-9]+} $output] midl_quota
 regexp {[0-9]+} [regexp -inline {fast. quota [0-9]+} $output] fast_quota
