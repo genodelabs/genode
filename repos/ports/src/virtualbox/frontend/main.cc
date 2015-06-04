@@ -198,9 +198,8 @@ HRESULT setupmachine()
 	/* handle input of Genode and forward it to VMM layer */
 	ComPtr<GenodeConsole> genodeConsole = gConsole;
 	RTLogPrintf("genodeConsole = %p\n", genodeConsole);
-	while (true) {
-		genodeConsole->eventWait(gKeyboard, gMouse);
-	}
+
+	genodeConsole->event_loop(gKeyboard, gMouse);
 
 	Assert(!"return not expected");
 	return E_FAIL;

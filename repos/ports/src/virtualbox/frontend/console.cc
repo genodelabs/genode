@@ -133,21 +133,21 @@ void GenodeConsole::update_video_mode()
 		d->SetVideoModeHint(0 /*=display*/,
 		                    true /*=enabled*/, false /*=changeOrigin*/,
 		                    0 /*=originX*/, 0 /*=originY*/,
-		                    fb->w(), fb->h(), fb->depth());
+		                    fb->w(), fb->h(),
+		                    /* Windows 8 only accepts 32-bpp modes */
+		                    32);
 }
 
-void GenodeConsole::eventWait(IKeyboard * gKeyboard, IMouse * gMouse)
+void GenodeConsole::handle_input(unsigned)
 {
 	static LONG64 mt_events [64];
 	unsigned      mt_number = 0;
 
-	_receiver.wait_for_signal();
-
 	/* read out input capabilities of guest */
 	bool guest_abs = false, guest_rel = false, guest_multi = false;
-	gMouse->COMGETTER(AbsoluteSupported)(&guest_abs);
-	gMouse->COMGETTER(RelativeSupported)(&guest_rel);
-	gMouse->COMGETTER(MultiTouchSupported)(&guest_multi);
+	_vbox_mouse->COMGETTER(AbsoluteSupported)(&guest_abs);
+	_vbox_mouse->COMGETTER(RelativeSupported)(&guest_rel);
+	_vbox_mouse->COMGETTER(MultiTouchSupported)(&guest_multi);
 
 	for (int i = 0, num_ev = _input.flush(); i < num_ev; ++i) {
 		Input::Event &ev = _ev_buf[i];
@@ -166,11 +166,11 @@ void GenodeConsole::eventWait(IKeyboard * gKeyboard, IMouse * gMouse)
 				(ev.type() == Input::Event::RELEASE) ? 0x80 : 0;
 
 			if (scan_code.is_normal())
-				gKeyboard->PutScancode(scan_code.code() | release_bit);
+				_vbox_keyboard->PutScancode(scan_code.code() | release_bit);
 
 			if (scan_code.is_ext()) {
-				gKeyboard->PutScancode(0xe0);
-				gKeyboard->PutScancode(scan_code.ext() | release_bit);
+				_vbox_keyboard->PutScancode(0xe0);
+				_vbox_keyboard->PutScancode(scan_code.ext() | release_bit);
 			}
 		}
 
@@ -204,10 +204,10 @@ void GenodeConsole::eventWait(IKeyboard * gKeyboard, IMouse * gMouse)
 					int ry = ev.ay() - _ay;
 					rx = Genode::min(boundary, Genode::max(-boundary, rx));
 					ry = Genode::min(boundary, Genode::max(-boundary, ry));
-					gMouse->PutMouseEvent(rx, ry, 0, 0, buttons);
+					_vbox_mouse->PutMouseEvent(rx, ry, 0, 0, buttons);
 				} else
-					gMouse->PutMouseEventAbsolute(ev.ax(), ev.ay(), 0,
-							                      0, buttons);
+					_vbox_mouse->PutMouseEventAbsolute(ev.ax(), ev.ay(), 0,
+							                           0, buttons);
 
 				_ax = ev.ax();
 				_ay = ev.ay();
@@ -218,11 +218,11 @@ void GenodeConsole::eventWait(IKeyboard * gKeyboard, IMouse * gMouse)
 
 				/* prefer relative motion event */
 				if (guest_rel)
-					gMouse->PutMouseEvent(ev.rx(), ev.ry(), 0, 0, buttons);
+					_vbox_mouse->PutMouseEvent(ev.rx(), ev.ry(), 0, 0, buttons);
 				else if (guest_abs) {
 					_ax += ev.rx();
 					_ay += ev.ry();
-					gMouse->PutMouseEventAbsolute(_ax, _ay, 0, 0, buttons);
+					_vbox_mouse->PutMouseEventAbsolute(_ax, _ay, 0, 0, buttons);
 				}
 			}
 			/* only the buttons changed */
@@ -231,28 +231,28 @@ void GenodeConsole::eventWait(IKeyboard * gKeyboard, IMouse * gMouse)
 				if (_last_received_motion_event_was_absolute) {
 					/* prefer absolute button event */
 					if (guest_abs)
-						gMouse->PutMouseEventAbsolute(_ax, _ay, 0, 0, buttons);
+						_vbox_mouse->PutMouseEventAbsolute(_ax, _ay, 0, 0, buttons);
 					else if (guest_rel)
-						gMouse->PutMouseEvent(0, 0, 0, 0, buttons);
+						_vbox_mouse->PutMouseEvent(0, 0, 0, 0, buttons);
 				} else {
 					/* prefer relative button event */
 					if (guest_rel)
-						gMouse->PutMouseEvent(0, 0, 0, 0, buttons);
+						_vbox_mouse->PutMouseEvent(0, 0, 0, 0, buttons);
 					else if (guest_abs)
-						gMouse->PutMouseEventAbsolute(_ax, _ay, 0, 0, buttons);
+						_vbox_mouse->PutMouseEventAbsolute(_ax, _ay, 0, 0, buttons);
 				}
 
 			}
 		}
 
 		if (is_wheel)
-			gMouse->PutMouseEvent(0, 0, ev.rx(), ev.ry(), 0);
+			_vbox_mouse->PutMouseEvent(0, 0, ev.rx(), ev.ry(), 0);
 
 		if (is_touch) {
 			/* if multitouch queue is full - send it */
 			if (mt_number >= sizeof(mt_events) / sizeof(mt_events[0])) {
-				gMouse->PutEventMultiTouch(mt_number, mt_number,
-						                   mt_events, RTTimeMilliTS());
+				_vbox_mouse->PutEventMultiTouch(mt_number, mt_number,
+						                        mt_events, RTTimeMilliTS());
 				mt_number = 0;
 			}
 
@@ -282,8 +282,39 @@ void GenodeConsole::eventWait(IKeyboard * gKeyboard, IMouse * gMouse)
 
 	/* if there are elements - send it */
 	if (mt_number)
-		gMouse->PutEventMultiTouch(mt_number, mt_number, mt_events,
-				                   RTTimeMilliTS());
+		_vbox_mouse->PutEventMultiTouch(mt_number, mt_number, mt_events,
+				                        RTTimeMilliTS());
+}
+
+void GenodeConsole::handle_mode_change(unsigned)
+{
+	Display  *d  = getDisplay();
+	Genodefb *fb = dynamic_cast<Genodefb *>(d->getFramebuffer());
+
+	fb->update_mode();
+	update_video_mode();
+}
+
+void GenodeConsole::event_loop(IKeyboard * gKeyboard, IMouse * gMouse)
+{
+	_vbox_keyboard = gKeyboard;
+	_vbox_mouse = gMouse;
+
+	/* register the mode change signal dispatcher at the framebuffer */
+	Display  *d  = getDisplay();
+	Genodefb *fb = dynamic_cast<Genodefb *>(d->getFramebuffer());
+	fb->mode_sigh(_mode_change_signal_dispatcher);
+
+	for (;;) {
+
+		Genode::Signal sig = _receiver.wait_for_signal();
+		Genode::Signal_dispatcher_base *dispatcher =
+			dynamic_cast<Genode::Signal_dispatcher_base *>(sig.context());
+
+		if (dispatcher)
+			dispatcher->dispatch(sig.num());
+	}
+
 }
 
 void GenodeConsole::onMouseCapabilityChange(BOOL supportsAbsolute, BOOL supportsRelative,

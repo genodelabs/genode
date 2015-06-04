@@ -107,15 +107,18 @@ class GenodeConsole : public Console {
 
 	private:
 
-		Input::Connection           _input;
-		Genode::Signal_receiver     _receiver;
-		Genode::Signal_context      _context;
-		Input::Event               *_ev_buf;
-		unsigned                    _ax, _ay;
-		bool                        _last_received_motion_event_was_absolute;
-		Report::Connection          _shape_report_connection;
-		Genode::Attached_dataspace  _shape_report_ds;
-		Vbox_pointer::Shape_report *_shape_report;
+		Input::Connection                         _input;
+		Genode::Signal_receiver                   _receiver;
+		Input::Event                             *_ev_buf;
+		unsigned                                  _ax, _ay;
+		bool                                      _last_received_motion_event_was_absolute;
+		Report::Connection                        _shape_report_connection;
+		Genode::Attached_dataspace                _shape_report_ds;
+		Vbox_pointer::Shape_report               *_shape_report;
+		IKeyboard                                *_vbox_keyboard;
+		IMouse                                   *_vbox_mouse;
+		Genode::Signal_dispatcher<GenodeConsole>  _input_signal_dispatcher;
+		Genode::Signal_dispatcher<GenodeConsole>  _mode_change_signal_dispatcher;
 
 		bool _key_status[Input::KEY_MAX + 1];
 
@@ -136,15 +139,19 @@ class GenodeConsole : public Console {
 			_last_received_motion_event_was_absolute(false),
 			_shape_report_connection("shape", sizeof(Vbox_pointer::Shape_report)),
 			_shape_report_ds(_shape_report_connection.dataspace()),
-			_shape_report(_shape_report_ds.local_addr<Vbox_pointer::Shape_report>())
+			_shape_report(_shape_report_ds.local_addr<Vbox_pointer::Shape_report>()),
+			_vbox_keyboard(0),
+			_vbox_mouse(0),
+			_input_signal_dispatcher(_receiver, *this, &GenodeConsole::handle_input),
+			_mode_change_signal_dispatcher(_receiver, *this, &GenodeConsole::handle_mode_change)
 		{
 			for (unsigned i = 0; i <= Input::KEY_MAX; i++)
 				_key_status[i] = 0;
 
-			_input.sigh(_receiver.manage(&_context));
+			_input.sigh(_input_signal_dispatcher);
 		}
 
-		void eventWait(IKeyboard * gKeyboard, IMouse * gMouse);
+		void event_loop(IKeyboard * gKeyboard, IMouse * gMouse);
 
 		void onMouseCapabilityChange(BOOL supportsAbsolute, BOOL supportsRelative,
 		                             BOOL supportsMT, BOOL needsHostCursor);
@@ -209,4 +216,7 @@ class GenodeConsole : public Console {
 		}
 
 		void update_video_mode();
+
+		void handle_input(unsigned);
+		void handle_mode_change(unsigned);
 };
