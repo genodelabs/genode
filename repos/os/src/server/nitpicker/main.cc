@@ -1195,8 +1195,6 @@ struct Nitpicker::Main
 
 	Main(Server::Entrypoint &ep) : ep(ep)
 	{
-//		tmp_fb = &framebuffer;
-
 		user_state.default_background(background);
 		user_state.stack(pointer_origin);
 		user_state.stack(background);
@@ -1343,6 +1341,13 @@ void Nitpicker::Main::handle_config(unsigned)
 	try {
 		config()->xml_node().sub_node("background")
 		.attribute("color").value(&background.color);
+	} catch (...) { }
+
+	/* enable or disable redraw debug mode */
+	try {
+		tmp_fb = nullptr;
+		if (config()->xml_node().attribute("flash").has_value("yes"))
+			tmp_fb = &framebuffer;
 	} catch (...) { }
 
 	configure_reporter(pointer_reporter);
