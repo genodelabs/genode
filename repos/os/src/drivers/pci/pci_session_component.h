@@ -240,7 +240,7 @@ namespace Pci {
 
 						enum { DONT_CHECK_PROGIF = 8 };
 						/* if class/subclass don't match - deny */
-						if ((class_sub_prog ^ class_code) >> DONT_CHECK_PROGIF)
+						if (class_sub_prog && (class_sub_prog ^ class_code) >> DONT_CHECK_PROGIF)
 							return;
 
 						/* if this bdf is used by some policy - deny */
