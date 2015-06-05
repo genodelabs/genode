@@ -18,7 +18,7 @@ install_config {
 			<any-service> <parent/> </any-service>
 		</default-route>
 		<start name="test-platform">
-			<resource name="RAM" quantum="1M"/>
+			<resource name="RAM" quantum="2M"/>
 		</start>
 	</config>
 }
@@ -27,6 +27,6 @@ build_boot_image "core init test-platform"
 
 append qemu_args "-nographic -m 128"
 
-run_genode_until {Test finished} 15
+run_genode_until {Test finished} 150
 
 puts "\nTest succeeded"
