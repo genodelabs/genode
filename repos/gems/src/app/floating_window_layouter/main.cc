@@ -549,6 +549,14 @@ void Floating_window_layouter::Main::handle_hover_update(unsigned)
 
 			hovered_window_id = id;
 			hovered_element   = hovered;
+
+			/* XXX read from config */
+			bool const focus_follows_pointer = true;
+			if (id && focus_follows_pointer) {
+				focused_window_id = id;
+				generate_focus_model();
+			}
+
 			generate_window_layout_model();
 		}
 	} catch (...) {
