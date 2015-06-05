@@ -1,0 +1,89 @@
+#
+# Build
+#
+
+if {[have_spec hw_odroid_xu]} {
+	puts "Run script not supported for this platform."; exit 0 }
+
+set build_components { core init test/fb_bench drivers/framebuffer drivers/timer }
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>}
+
+append_if [have_spec sdl] config {
+	<start name="fb_sdl">
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Input"/>
+			<service name="Framebuffer"/>
+		</provides>
+	</start>}
+
+append_platform_drv_config
+
+append_if [have_spec framebuffer] config {
+	<start name="fb_drv">
+		<resource name="RAM" quantum="8M"/>
+		<provides><service name="Framebuffer"/></provides>
+	</start>}
+
+append config {
+	<start name="test-fb_bench">
+		<resource name="RAM" quantum="92M"/>
+	</start>
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer
+	test-fb_bench
+}
+
+# platform-specific modules
+append_platform_drv_boot_modules
+
+lappend_if [have_spec sdl]              boot_modules fb_sdl
+lappend_if [have_spec framebuffer]      boot_modules fb_drv
+
+build_boot_image $boot_modules
+
+run_genode_until forever
+
