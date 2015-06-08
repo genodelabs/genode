@@ -198,9 +198,11 @@ int Platform_thread::start(void * const ip, void * const sp)
 
 	/* reset capability counter */
 	utcb->cap_cnt(0);
-	utcb->cap_add(_pd->parent().dst());
-	utcb->cap_add(_utcb.dst());
 	utcb->cap_add(_cap.dst());
+	if (_main_thread) {
+		utcb->cap_add(_pd->parent().dst());
+		utcb->cap_add(_utcb.dst());
+	}
 	Kernel::start_thread(kernel_object(), cpu, _pd->kernel_pd(),
 	                     _utcb_core_addr);
 	return 0;
