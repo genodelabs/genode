@@ -1,6 +1,9 @@
-# Tested for nova. 
-assert_spec nova
- 
+# Tested for nova and hw_x86_64_muen.
+if {(![have_spec nova] && ![have_spec hw_x86_64_muen])} {
+	puts "Platform is unsupported."
+	exit 0
+}
+
 if {[have_include "power_on/qemu"]} {
 	puts "\nRun script does not support Qemu.\n"
 	exit 0

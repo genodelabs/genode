@@ -1,4 +1,7 @@
-assert_spec nova
+if {(![have_spec nova] && ![have_spec hw_x86_64_muen])} {
+	puts "Platform is unsupported."
+	exit 0
+}
 
 if {[have_include "power_on/qemu"]} {
 	puts "\nRun script does not support Qemu.\n"
@@ -6,7 +9,7 @@ if {[have_include "power_on/qemu"]} {
 }
 
 append build_components {
-	core init virtualbox 
+	core init virtualbox
 	server/part_blk
 	server/rump_fs
 	server/fs_rom
@@ -42,7 +45,12 @@ set config {
 		<service name="PD"/>
 		<service name="RM"/>
 		<service name="CPU"/>
-		<service name="LOG"/>
+		<service name="LOG"/>}
+
+append_if [have_spec muen] config {
+		<service name="VM"/>}
+
+append config {
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
@@ -116,8 +124,15 @@ append_if [expr $use_usb] config {
 		<provides><service name="File_system"/></provides>
 		<config verbose="yes">
 			<content>
-				<inline name="usb_drv.config">
-<config uhci="yes" ehci="yes" xhci="yes">
+				<inline name="usb_drv.config">}
+
+append_if [expr $use_usb && ![have_spec hw_x86_64_muen]] config {
+<config uhci="yes" ehci="yes" xhci="yes">}
+
+append_if [expr $use_usb && [have_spec hw_x86_64_muen]] config {
+<config uhci="no" ehci="no" xhci="yes">}
+
+append_if [expr $use_usb] config {
 	<hid/>
 	<raw>
 		<report devices="yes"/>

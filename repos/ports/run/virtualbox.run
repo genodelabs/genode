@@ -37,7 +37,12 @@ set config {
 		<service name="PD"/>
 		<service name="RM"/>
 		<service name="CPU"/>
-		<service name="LOG"/>
+		<service name="LOG"/>}
+
+append_if [have_spec muen] config {
+		<service name="VM"/>}
+
+append config {
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
@@ -58,8 +63,15 @@ append_if [expr $use_ps2] config {
 append_if [expr $use_usb] config {
 	<start name="usb_drv" priority="-1">
 		<resource name="RAM" quantum="7M"/>
-		<provides><service name="Input"/></provides>
-		<config uhci="yes" ehci="yes" xhci="yes">
+		<provides><service name="Input"/></provides>}
+
+append_if [expr $use_usb && ![have_spec hw_x86_64_muen]] config {
+		<config uhci="yes" ehci="yes" xhci="yes">}
+
+append_if [expr $use_usb && [have_spec hw_x86_64_muen]] config {
+		<config uhci="no" ehci="no" xhci="yes">}
+
+append_if [expr $use_usb] config {
 			<hid/>
 		</config>
 	</start>}
