@@ -124,8 +124,21 @@ build_boot_image $boot_modules
 
 append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
 append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
+append_if [have_spec cadence_gem] qemu_args " -net nic,model=cadence_gem"
 
 append qemu_args " -net user -redir tcp:5555::80 "
 append qemu_args " -nographic -serial mon:stdio "
+
+
+# Only for testing the network interface
+# before starting run
+# $ sudo brctl addbr br0
+# to create an bridge device and run
+# $ sudo brctl addif br0 eth0
+# to add the host ethernet interface to this bridge device.
+# To verify this configiration you can run
+# $ sudo brctl show
+#append qemu_args " -net tap"
+
 
 run_genode_until forever

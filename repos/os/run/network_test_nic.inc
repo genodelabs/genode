@@ -3,6 +3,18 @@
 # \author Alexander Boettcher
 # \date   2013-03-26
 #
+# After qemu is started the following steps
+# have to be done for configuriering the tap device
+# $ sudo brctl addbr br0
+# $ sudo ip link set tap0 master br0
+# $ sudo ifconfig tap0 0.0.0.0 up
+#
+# After this the nic can be tested with
+# $ ./bin/nic_drv_test_client tap0 52:54:00:12:34:56 256 5
+# $ ./bin/nic_drv_test_client tap0 FF:FF:FF:FF:FF:FF 256 5
+# $ ./bin/nic_drv_test_client tap0 bc:9a:78:56:34:12 256 5
+
+
 
 if {[expr [have_spec linux] || [have_spec hw_odroid_xu]]} {
 	puts "Run script not supported for this platform."; exit 0 }
@@ -36,6 +48,8 @@ if {[expr $use_nic_client && ![have_spec omap4] && ![have_spec platform_arndale]
 	set network_driver "nic_drv" }
 if {[expr !$use_nic_client && ![have_spec omap4] && ![have_spec platform_arndale]]} {
 	set network_driver "nic_drv_stat" }
+if {[have_spec cadence_gem]} {
+	set network_driver "nic_drv" }
 
 build $build_components
 
@@ -173,6 +187,17 @@ if {![regexp cap_net_raw $cap_rights]} {
 	eval "exec $sudo_command"
 }
 
+
+# set nic configuration for qemu depending on used hardware
+append_if [have_spec x86]     qemu_args " -net nic,model=e1000"
+append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118"
+append_if [have_spec cadence_gem] qemu_args " -net nic,model=cadence_gem"
+
+# using a tap device for make it possible to
+# testing the application with raw ethernet packages
+append qemu_args " -net tap -nographic"
+
+
 #
 # Execute test case
 #
@@ -185,6 +210,7 @@ if {[expr [have_spec omap4] || [have_spec platform_arndale]]} {
 
 	sleep 10
 } else {
+run_genode_until forever
 	set match_string {--- get MAC address }
 	run_genode_until "$match_string.*\n" 30
 	set serial_id $spawn_id
