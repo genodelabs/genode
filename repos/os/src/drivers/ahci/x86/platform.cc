@@ -12,8 +12,8 @@
  */
 
 #include <irq_session/connection.h>
-#include <pci_session/connection.h>
-#include <pci_device/client.h>
+#include <platform_session/connection.h>
+#include <platform_device/client.h>
 #include <util/volatile_object.h>
 
 #include <ahci.h>
@@ -32,12 +32,12 @@ struct X86_hba : Platform::Hba
 		PCI_CMD            = 0x4,
 	};
 
-	Pci::Connection                          pci;
-	Pci::Device_capability                   pci_device_cap;
-	Lazy_volatile_object<Pci::Device_client> pci_device;
-	Lazy_volatile_object<Irq_session_client> irq;
-	addr_t                                   res_base;
-	size_t                                   res_size;
+	Platform::Connection                          pci;
+	Platform::Device_capability                   pci_device_cap;
+	Lazy_volatile_object<Platform::Device_client> pci_device;
+	Lazy_volatile_object<Irq_session_client>      irq;
+	addr_t                                        res_base;
+	size_t                                        res_size;
 
 	X86_hba()
 	{
@@ -49,7 +49,7 @@ struct X86_hba : Platform::Hba
 					throw -1;
 				}
 				break;
-			} catch (Pci::Device::Quota_exceeded) {
+			} catch (Platform::Device::Quota_exceeded) {
 				Genode::env()->parent()->upgrade(pci.cap(), "ram_quota=4096");
 			}
 
@@ -60,7 +60,7 @@ struct X86_hba : Platform::Hba
 		     pci_device->device_id(), pci_device->class_code());
 
 		/* read base address of controller */
-		Pci::Device::Resource resource = pci_device->resource(AHCI_BASE_ID);
+		Platform::Device::Resource resource = pci_device->resource(AHCI_BASE_ID);
 		res_base = resource.base();
 		res_size = resource.size();
 
@@ -68,9 +68,9 @@ struct X86_hba : Platform::Hba
 			PDBG("base: %lx size: %zx", res_base, res_size);
 
 		/* enable bus master */
-		uint16_t cmd = pci_device->config_read(PCI_CMD, Pci::Device::ACCESS_16BIT);
+		uint16_t cmd = pci_device->config_read(PCI_CMD, Platform::Device::ACCESS_16BIT);
 		cmd |= 0x4;
-		pci_device->config_write(PCI_CMD, cmd, Pci::Device::ACCESS_16BIT);
+		pci_device->config_write(PCI_CMD, cmd, Platform::Device::ACCESS_16BIT);
 
 		irq.construct(pci_device->irq(0));
 	}
@@ -78,19 +78,19 @@ struct X86_hba : Platform::Hba
 	void disable_msi()
 	{
 		enum { PM_CAP_OFF = 0x34, MSI_CAP = 0x5, MSI_ENABLED = 0x1 };
-		uint8_t cap = pci_device->config_read(PM_CAP_OFF, ::Pci::Device::ACCESS_8BIT);
+		uint8_t cap = pci_device->config_read(PM_CAP_OFF, Platform::Device::ACCESS_8BIT);
 
 		/* iterate through cap pointers */
 		for (uint16_t val = 0; cap; cap = val >> 8) {
-			val = pci_device->config_read(cap, ::Pci::Device::ACCESS_16BIT);
+			val = pci_device->config_read(cap, Platform::Device::ACCESS_16BIT);
 
 			if ((val & 0xff) != MSI_CAP)
 				continue;
 
-			uint16_t msi = pci_device->config_read(cap + 2, ::Pci::Device::ACCESS_16BIT);
+			uint16_t msi = pci_device->config_read(cap + 2, Platform::Device::ACCESS_16BIT);
 
 			if (msi & MSI_ENABLED) {
-				pci_device->config_write(cap + 2, msi ^ MSI_CAP, ::Pci::Device::ACCESS_8BIT);
+				pci_device->config_write(cap + 2, msi ^ MSI_CAP, Platform::Device::ACCESS_8BIT);
 				PINF("Disabled MSIs %x", msi);
 			}
 		}

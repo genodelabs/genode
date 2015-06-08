@@ -1,4 +1,4 @@
-TARGET   = pci_device_pd
+TARGET   = device_pd
 SRC_CC   = main.cc
 LIBS     = base
 

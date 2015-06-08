@@ -1,5 +1,8 @@
 proc have_platform_drv {} {
-	return [expr [have_spec platform_arndale] || [have_spec platform_imx53] || [have_spec platform_rpi]]
+	if {[have_spec linux]} {
+		return 0
+	}
+	return [expr [have_spec platform_arndale] || [have_spec platform_imx53] || [have_spec platform_rpi] || [have_spec x86]]
 }
 
 proc append_platform_drv_build_components {} {
@@ -8,7 +11,7 @@ proc append_platform_drv_build_components {} {
 	lappend_if [have_platform_drv] build_components drivers/platform
 	lappend_if [have_spec acpi]    build_components drivers/acpi
 	lappend_if [have_spec acpi]    build_components server/report_rom
-	lappend_if [have_spec pci]     build_components drivers/pci
+	lappend_if [have_spec nova]    build_components drivers/platform/x86/device_pd
 }
 
 proc append_platform_drv_boot_modules {} {
@@ -17,37 +20,28 @@ proc append_platform_drv_boot_modules {} {
 	lappend_if [have_platform_drv] boot_modules platform_drv
 	lappend_if [have_spec acpi]    boot_modules acpi_drv
 	lappend_if [have_spec acpi]    boot_modules report_rom
-	lappend_if [have_spec pci]     boot_modules pci_drv
-	lappend_if [have_spec nova]    boot_modules pci_device_pd
+	lappend_if [have_spec nova]    boot_modules device_pd
 }
 
 proc platform_drv_policy {} {
 
-	return {
+	if ([have_spec x86]) {
+		return {
 			<policy label="ps2_drv">  <device name="PS2"/> </policy>
 			<policy label="nic_drv">  <pci class="ETHERNET"/> </policy>
 			<policy label="fb_drv">   <pci class="VGA"/> </policy>
 			<policy label="wifi_drv"> <pci class="WIFI"/> </policy>
 			<policy label="usb_drv">  <pci class="USB"/> </policy>
 			<policy label="ahci_drv"> <pci class="AHCI"/> </policy>}
+	} else {
+		return {}
+	}
 }
 
 proc platform_drv_priority {} { return "" }
 
 proc append_platform_drv_config {} {
 	global config
-
-	if {[have_platform_drv]} {
-		append config {
-	<start name="platform_drv">
-		<resource name="RAM" quantum="1M" />
-		<provides>
-			<service name="Regulator"/>
-			<service name="Platform"/>
-		</provides>
-	</start>}
-
-	}
 
 	if {[have_spec acpi]} {
 
@@ -75,7 +69,7 @@ proc append_platform_drv_config {} {
 			<service name="Report" />
 		</provides>
 		<config>
-			<rom> <policy label="pci_drv -> acpi" report="acpi_drv -> acpi"/> </rom>
+			<rom> <policy label="platform_drv -> acpi" report="acpi_drv -> acpi"/> </rom>
 		</config>
 		<route>
 			<service name="LOG"> <parent/> </service>
@@ -87,28 +81,36 @@ proc append_platform_drv_config {} {
 
 	}
 
-	if {[have_spec pci]} {
+	if {[have_platform_drv]} {
 
 		append config "
-	<start name=\"pci_drv\" [platform_drv_priority]>"
+	<start name=\"platform_drv\" [platform_drv_priority]>"
 
 		append config {
 		<resource name="RAM" quantum="3M" constrain_phys="yes"/>
-		<provides> <service name="PCI"/> </provides>
+		<provides>
+			<service name="Platform"/>}
+
+		append_if [have_spec arm] config {
+			<service name="Regulator"/>}
+
+		append config {
+		</provides>
 		<route>}
 
-		if {[have_spec acpi]} {
-			append config {
+		append_if [have_spec acpi] config {
 			<service name="ROM">
 				<if-arg key="label" value="acpi"/> <child name="acpi_report_rom"/>
 			</service>}
-		}
+
+		append_if [have_spec platform_rpi] config {
+			<service name="Timer"> <any-child/> </service>}
 
 		append config {
 			<any-service> <parent/> </any-service>
 		</route>}
 
-		if {[have_spec acpi]} {
+		if {[have_spec acpi] || [have_spec arm]} {
 
 		append config {
 		<config>}

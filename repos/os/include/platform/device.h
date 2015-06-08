@@ -16,9 +16,9 @@
 #include <irq_session/capability.h>
 #include <io_mem_session/capability.h>
 
-namespace Platform { class Device; }
+namespace Platform { class Abstract_device; }
 
-struct Platform::Device
+struct Platform::Abstract_device
 {
 	/**
 	 * Get IRQ session capability

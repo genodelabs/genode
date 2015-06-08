@@ -1,5 +1,5 @@
 /*
- * \brief  PCI-session component
+ * \brief  platform session component
  * \author Norman Feske
  * \date   2008-01-28
  */
@@ -15,16 +15,16 @@
 #include "pci_bridge.h"
 
 
-static Genode::List<Pci::Bridge> *bridges()
+static Genode::List<Platform::Bridge> *bridges()
 {
-	static Genode::List<Pci::Bridge> list;
+	static Genode::List<Platform::Bridge> list;
 	return &list;
 }
 
 
-unsigned short Pci::bridge_bdf(unsigned char bus)
+unsigned short Platform::bridge_bdf(unsigned char bus)
 {
-	for (Pci::Bridge *bridge = bridges()->first(); bridge;
+	for (Platform::Bridge *bridge = bridges()->first(); bridge;
 	     bridge = bridge->next())
 	{
 		if (bridge->part_of(bus))
@@ -39,7 +39,7 @@ unsigned short Pci::bridge_bdf(unsigned char bus)
  *
  * This tremendously speeds up further scans by other drivers.
  */
-bool Pci::bus_valid(int bus) 
+bool Platform::bus_valid(int bus) 
 {
 	struct Valid_buses
 	{
@@ -87,7 +87,7 @@ bool Pci::bus_valid(int bus)
 }
 
 
-using Pci::Session_component;
+using Platform::Session_component;
 using Genode::Bit_array;
 
 Bit_array<Session_component::MAX_PCI_DEVICES> Session_component::bdf_in_use;

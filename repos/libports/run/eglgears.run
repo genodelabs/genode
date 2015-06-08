@@ -4,7 +4,7 @@ build {
 	server/nitpicker server/nit_fb
 	app/launchpad app/pointer
 	app/eglgears
-	drivers/framebuffer drivers/pci drivers/input
+	drivers/framebuffer drivers/input
 	lib/gallium
 }
 
@@ -39,11 +39,7 @@ append_if [have_spec sdl] config {
 		</provides>
 	</start>}
 
-append_if [have_spec pci] config {
-	<start name="pci_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="PCI"/></provides>
-	</start>}
+append_platform_drv_config
 
 append_if [have_spec framebuffer] config {
 	<start name="fb_drv">
@@ -92,7 +88,7 @@ append config {
 						<service name="RM"/>
 						<service name="CPU"/>
 						<service name="LOG"/>
-						<service name="PCI"/>
+						<service name="Platform"/>
 						<service name="SIGNAL"/>
 						<service name="Nitpicker"/>
 						<service name="Timer"/>
@@ -128,10 +124,11 @@ set boot_modules {
 }
 
 lappend_if [have_spec       linux] boot_modules fb_sdl
-lappend_if [have_spec         pci] boot_modules pci_drv
 lappend_if [have_spec framebuffer] boot_modules fb_drv
 lappend_if [have_spec         ps2] boot_modules ps2_drv
 lappend_if [have_spec        i915] boot_modules gallium-i915.lib.so
+
+append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 

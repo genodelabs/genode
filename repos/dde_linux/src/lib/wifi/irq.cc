@@ -17,7 +17,7 @@
 #include <base/tslab.h>
 #include <timer_session/connection.h>
 #include <irq_session/connection.h>
-#include <pci_device/client.h>
+#include <platform_device/client.h>
 
 /* local includes */
 #include <lx.h>
@@ -81,7 +81,7 @@ namespace Lx {
 
 static void run_irq(void *args);
 
-extern "C" Pci::Device_capability pci_device_cap;
+extern "C" Platform::Device_capability pci_device_cap;
 
 /**
  * Lx::Irq
@@ -147,11 +147,11 @@ class Lx::Irq
 				 * Constructor
 				 */
 				Context(Server::Entrypoint &ep, unsigned irq,
-				        Pci::Device_capability pci_dev)
+				        Platform::Device_capability pci_dev)
 				:
 					_name(irq),
 					_irq(irq),
-					_irq_sess(Pci::Device_client(pci_dev).irq(0)),
+					_irq_sess(Platform::Device_client(pci_dev).irq(0)),
 					_task(run_irq, this, _name.name),
 					_dispatcher(ep, *this, &Context::_handle)
 				{

@@ -21,7 +21,7 @@ if {[have_spec x86]} {
 
 set build_components {
 	core init drivers/timer noux lib/libc_noux
-	drivers/framebuffer drivers/pci drivers/input drivers/usb
+	drivers/framebuffer drivers/input drivers/usb
 	server/terminal server/terminal_crosslink
 	app/gdb_monitor
 }
@@ -33,6 +33,9 @@ lappend build_components noux-pkg/[noux_gdb_pkg_name]
 # the application to be debugged with GDB
 lappend build_components test/gdb_monitor
 set gdb_target_binary_name test-gdb_monitor
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
 
 build $build_components
 
@@ -81,11 +84,7 @@ append_if [have_spec sdl] config {
 			</provides>
 		</start>}
 
-append_if [have_spec pci] config {
-		<start name="pci_drv">
-			<resource name="RAM" quantum="1M"/>
-			<provides><service name="PCI"/></provides>
-		</start>}
+append_platform_drv_config
 
 append_if [have_spec framebuffer] config {
 		<start name="fb_drv">
@@ -216,11 +215,12 @@ set boot_modules {
 
 # platform-specific modules
 lappend_if [have_spec       linux] boot_modules fb_sdl
-lappend_if [have_spec         pci] boot_modules pci_drv
 lappend_if [have_spec framebuffer] boot_modules fb_drv
 lappend_if [have_spec         ps2] boot_modules ps2_drv
 lappend_if [have_spec         usb] boot_modules usb_drv
 lappend_if [have_spec        gpio] boot_modules gpio_drv
+
+append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 

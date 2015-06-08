@@ -6,7 +6,7 @@ if {![have_spec x86]} {
 set build_components {
 	core init drivers/timer
 	noux/net lib/libc_noux
-	drivers/framebuffer drivers/pci drivers/input
+	drivers/framebuffer drivers/input
 	drivers/nic
 	drivers/timer
 	server/terminal server/ram_fs
@@ -23,6 +23,9 @@ set noux_pkgs "bash coreutils vim"
 
 foreach pkg $noux_pkgs {
 	lappend_if [expr ![file exists bin/$pkg]] build_components noux-pkg/$pkg }
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
 
 build $build_components
 
@@ -94,11 +97,7 @@ append_if [have_spec sdl] config {
 		</provides>
 	</start>}
 
-append_if [have_spec pci] config {
-	<start name="pci_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="PCI"/></provides>
-	</start>}
+append_platform_drv_config
 
 append_if [have_spec framebuffer] config {
 	<start name="fb_drv">
@@ -218,9 +217,10 @@ foreach pkg $noux_pkgs {
 
 # platform-specific modules
 lappend_if [have_spec       linux] boot_modules fb_sdl
-lappend_if [have_spec         pci] boot_modules pci_drv
 lappend_if [have_spec framebuffer] boot_modules fb_drv
 lappend_if [have_spec         ps2] boot_modules ps2_drv
+
+append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 

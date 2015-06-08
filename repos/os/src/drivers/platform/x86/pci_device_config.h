@@ -5,19 +5,18 @@
  */
 
 /*
- * Copyright (C) 2008-2013 Genode Labs GmbH
+ * Copyright (C) 2008-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _DEVICE_CONFIG_H_
-#define _DEVICE_CONFIG_H_
+#pragma once
 
-#include <pci_device/pci_device.h>
+#include <platform_device/platform_device.h>
 #include "pci_config_access.h"
 
-namespace Pci {
+namespace Platform {
 
 	class Device_config
 	{
@@ -219,5 +218,3 @@ namespace Pci {
 			}
 	};
 }
-
-#endif /* _DEVICE_CONFIG_H_ */

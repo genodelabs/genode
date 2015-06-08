@@ -20,19 +20,19 @@
 #include <irq_session/irq_session.h>
 #include <irq_session/capability.h>
 
-/* PCI local includes */
+/* platform local includes */
 #include <platform/irq_proxy.h>
 
 
-namespace Pci {
+namespace Platform {
 	class Irq_session_component;
 	class Irq_override;
 	class Irq_routing;
 }
 
 
-class Pci::Irq_session_component : public Genode::Rpc_object<Genode::Irq_session>,
-                                   public Genode::List<Irq_session_component>::Element
+class Platform::Irq_session_component : public Genode::Rpc_object<Genode::Irq_session>,
+                                        public Genode::List<Irq_session_component>::Element
 {
 	private:
 
@@ -73,7 +73,7 @@ class Pci::Irq_session_component : public Genode::Rpc_object<Genode::Irq_session
 /**
  * List that holds interrupt override information
  */
-class Pci::Irq_override : public Genode::List<Pci::Irq_override>::Element
+class Platform::Irq_override : public Genode::List<Platform::Irq_override>::Element
 {
 	private:
 
@@ -151,7 +151,7 @@ class Pci::Irq_override : public Genode::List<Pci::Irq_override>::Element
 /**
  * List that holds interrupt rewrite information
  */
-class Pci::Irq_routing : public Genode::List<Pci::Irq_routing>::Element
+class Platform::Irq_routing : public Genode::List<Platform::Irq_routing>::Element
 {
 	private:
 

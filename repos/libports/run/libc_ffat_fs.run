@@ -22,10 +22,11 @@ set build_components {
 	test/libc_vfs
 }
 
-lappend_if [have_spec  pci] build_components drivers/pci
-lappend_if [have_spec acpi] build_components drivers/acpi
 lappend_if $use_ahci_drv    build_components drivers/ahci
 lappend_if $use_sd_card_drv build_components drivers/sd_card
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
 
 build $build_components
 create_boot_directory
@@ -71,34 +72,9 @@ set config {
 				</vfs>
 			</libc>
 		</config>
-	</start>
-}
-
-append_if [have_spec acpi] config {
-	<start name="acpi">
-		<resource name="RAM" quantum="8M" constrain_phys="yes"/>
-		<binary name="acpi_drv"/>
-		<provides>
-			<service name="PCI"/>
-			<service name="IRQ" />
-		</provides>
-		<route>
-			<any-service> <parent/> <any-child /> </any-service>
-		</route>
-		<config>
-			<policy label="acpi_drv"><pci class="ALL" /></policy>
-			<policy label="ahci_drv"><pci class="AHCI" /></policy>
-		</config>
 	</start>}
 
-append_if [expr ![have_spec acpi] && [have_spec pci]] config {
-	<start name="pci_drv">
-		<resource name="RAM" quantum="5M" constrain_phys="yes"/>
-		<provides><service name="PCI"/></provides>
-		<config>
-			<policy label="ahci_drv"/><pci class="AHCI" /></policy>
-		</config>
-	</start>}
+append_platform_drv_config
 
 append_if $use_ahci_drv config {
 	<start name="ahci_drv">
@@ -134,10 +110,10 @@ set boot_modules {
 	test-libc_vfs
 }
 
-lappend_if [have_spec pci]   boot_modules pci_drv
-lappend_if [have_spec acpi]  boot_modules acpi_drv
 lappend_if $use_ahci_drv     boot_modules ahci_drv
 lappend_if $use_sd_card_drv  boot_modules sd_card_drv
+
+append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 

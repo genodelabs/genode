@@ -1,5 +1,5 @@
 /*
- * \brief  Implementation of shared IRQs in PCI driver
+ * \brief  Implementation of shared IRQs in platform driver
  * \author Alexander Boettcher
  * \date   2015-03-27
  */
@@ -18,12 +18,12 @@
 /* Genode OS includes */
 #include <platform/irq_proxy.h>
 
-/* PCI driver include */
+/* Platform driver include */
 #include "irq.h"
 #include "pci_session_component.h"
 
 
-namespace Pci {
+namespace Platform {
 	class Irq_component;
 	class Irq_allocator;
 	class Irq_thread;
@@ -36,7 +36,7 @@ using Genode::addr_t;
 /**
  * A simple range allocator implementation used by the Irq_proxy
  */
-class Pci::Irq_allocator : public Genode::Range_allocator
+class Platform::Irq_allocator : public Genode::Range_allocator
 {
 	private:
 
@@ -94,7 +94,7 @@ class Pci::Irq_allocator : public Genode::Range_allocator
 
 /**
  * Required by Irq_proxy if we would like to have a thread per IRQ,
- * which we don't want to in the PCI driver - one thread is sufficient.
+ * which we don't want to in the platform driver - one thread is sufficient.
  */
 class NoThread
 {
@@ -109,7 +109,7 @@ class NoThread
 /**
  * Thread waiting for signals caused by IRQs 
  */
-class Pci::Irq_thread : public Genode::Thread<4096>
+class Platform::Irq_thread : public Genode::Thread<4096>
 {
 	private:
 
@@ -145,8 +145,8 @@ class Pci::Irq_thread : public Genode::Thread<4096>
  * One allocator for managing in use IRQ numbers and one IRQ thread waiting
  * for Genode signals of all hardware IRQs.
  */
-static Pci::Irq_allocator irq_alloc;
-static Pci::Irq_thread    irq_thread;
+static Platform::Irq_allocator irq_alloc;
+static Platform::Irq_thread    irq_thread;
 
 
 /**
@@ -154,12 +154,12 @@ static Pci::Irq_thread    irq_thread;
  */
 typedef Genode::Irq_proxy<NoThread> Proxy;
 
-class Pci::Irq_component : public Proxy
+class Platform::Irq_component : public Proxy
 {
 	private:
 
 		Genode::Irq_connection _irq;
-		Genode::Signal_dispatcher<Pci::Irq_component> _irq_dispatcher;
+		Genode::Signal_dispatcher<Platform::Irq_component> _irq_dispatcher;
 
 		bool _associated;
 
@@ -212,7 +212,7 @@ class Pci::Irq_component : public Proxy
  ** PCI IRQ session component **
  *******************************/
 
-void Pci::Irq_session_component::ack_irq()
+void Platform::Irq_session_component::ack_irq()
 {
 	if (msi()) {
 		Genode::Irq_session_client irq_msi(_irq_cap);
@@ -232,8 +232,8 @@ void Pci::Irq_session_component::ack_irq()
 }
 
 
-Pci::Irq_session_component::Irq_session_component(unsigned irq,
-                                                  addr_t pci_config_space)
+Platform::Irq_session_component::Irq_session_component(unsigned irq,
+                                                       addr_t pci_config_space)
 :
 	_gsi(irq)
 {
@@ -269,7 +269,7 @@ Pci::Irq_session_component::Irq_session_component(unsigned irq,
 	Genode::Irq_session::Trigger  trigger;
 	Genode::Irq_session::Polarity polarity;
 
-	_gsi = Pci::Irq_override::irq_override(_gsi, trigger, polarity);
+	_gsi = Platform::Irq_override::irq_override(_gsi, trigger, polarity);
 	if (_gsi != irq || trigger != Genode::Irq_session::TRIGGER_UNCHANGED ||
 	    polarity != Genode::Irq_session::POLARITY_UNCHANGED)
 		PINF("IRQ override %u->%u trigger mode=%s polarity=%s", irq, _gsi,
@@ -287,7 +287,7 @@ Pci::Irq_session_component::Irq_session_component(unsigned irq,
 }
 
 
-Pci::Irq_session_component::~Irq_session_component()
+Platform::Irq_session_component::~Irq_session_component()
 {
 	if (msi()) {
 		Genode::Irq_session_client irq_msi(_irq_cap);
@@ -308,7 +308,7 @@ Pci::Irq_session_component::~Irq_session_component()
 }
 
 
-void Pci::Irq_session_component::sigh(Genode::Signal_context_capability sigh)
+void Platform::Irq_session_component::sigh(Genode::Signal_context_capability sigh)
 {
 	if (msi()) {
 		/* register signal handler for msi directly at parent */
@@ -336,12 +336,12 @@ void Pci::Irq_session_component::sigh(Genode::Signal_context_capability sigh)
 }
 
 
-unsigned short Pci::Irq_routing::rewrite(unsigned char bus, unsigned char dev,
+unsigned short Platform::Irq_routing::rewrite(unsigned char bus, unsigned char dev,
                                          unsigned char func, unsigned char pin)
 {
 	for (Irq_routing *i = list()->first(); i; i = i->next())
 		if ((dev == i->_device) && (pin - 1 == i->_device_pin) &&
-		    (i->_bridge_bdf == Pci::bridge_bdf(bus)))
+		    (i->_bridge_bdf == Platform::bridge_bdf(bus)))
 			return i->_gsi;
 
 	return 0;

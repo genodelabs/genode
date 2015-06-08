@@ -1,5 +1,5 @@
 /*
- * \brief  PCI-session component
+ * \brief  platform session component
  * \author Norman Feske
  * \date   2008-01-28
  */
@@ -11,8 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _PCI_SESSION_COMPONENT_H_
-#define _PCI_SESSION_COMPONENT_H_
+#pragma once
 
 /* base */
 #include <base/allocator_guard.h>
@@ -26,19 +25,19 @@
 /* os */
 #include <io_mem_session/connection.h>
 #include <os/session_policy.h>
-#include <pci_session/pci_session.h>
+#include <platform_session/platform_session.h>
 
 /* local */
 #include "pci_device_component.h"
 #include "pci_config_access.h"
 #include "pci_device_pd_ipc.h"
 
-namespace Pci {
+namespace Platform {
 	bool bus_valid(int bus = 0);
 	unsigned short bridge_bdf(unsigned char bus);
 }
 
-namespace Pci {
+namespace Platform {
 
 	class Session_component : public Genode::Rpc_object<Session>
 	{
@@ -697,7 +696,7 @@ namespace Pci {
 							node.attribute("gsi").value(&gsi);
 							node.attribute("flags").value(&flags);
 
-							using Pci::Irq_override;
+							using Platform::Irq_override;
 							Irq_override::list()->insert(new (env()->heap()) Irq_override(irq, gsi, flags));
 						}
 
@@ -777,5 +776,3 @@ namespace Pci {
 	};
 
 }
-
-#endif /* _PCI_SESSION_COMPONENT_H_ */

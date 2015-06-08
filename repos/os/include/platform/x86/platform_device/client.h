@@ -11,18 +11,17 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__PCI_DEVICE__CLIENT_H_
-#define _INCLUDE__PCI_DEVICE__CLIENT_H_
+#pragma once
 
-#include <pci_session/pci_session.h>
-#include <pci_device/pci_device.h>
+#include <platform_session/platform_session.h>
+#include <platform_device/platform_device.h>
 #include <base/rpc_client.h>
 #include <io_mem_session/io_mem_session.h>
 
-namespace Pci { struct Device_client; }
+namespace Platform { struct Device_client; }
 
 
-struct Pci::Device_client : public Genode::Rpc_client<Device>
+struct Platform::Device_client : public Genode::Rpc_client<Device>
 {
 	Device_client(Device_capability device)
 	: Genode::Rpc_client<Device>(device) { }
@@ -57,5 +56,3 @@ struct Pci::Device_client : public Genode::Rpc_client<Device>
 	Genode::Io_mem_session_capability io_mem(Genode::uint8_t id) override {
 		return call<Rpc_io_mem>(id); }
 };
-
-#endif /* _INCLUDE__PCI_DEVICE__CLIENT_H_ */

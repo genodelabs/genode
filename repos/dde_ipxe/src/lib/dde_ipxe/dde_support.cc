@@ -30,8 +30,8 @@
 #include <io_port_session/connection.h>
 #include <irq_session/connection.h>
 #include <os/server.h>
-#include <pci_device/client.h>
-#include <pci_session/connection.h>
+#include <platform_device/client.h>
+#include <platform_session/connection.h>
 #include <rm_session/connection.h>
 #include <timer_session/connection.h>
 #include <util/misc_math.h>
@@ -124,9 +124,9 @@ struct Pci_driver
 		CLASS_NETWORK          = PCI_BASE_CLASS_NETWORK << 16
 	};
 
-	Pci::Connection        _pci;
-	Pci::Device_capability _cap;
-	Pci::Device_capability _last_cap;
+	Platform::Connection        _pci;
+	Platform::Device_capability _cap;
+	Platform::Device_capability _last_cap;
 
 	struct Region
 	{
@@ -135,21 +135,21 @@ struct Pci_driver
 	} _region;
 
 	template <typename T>
-	Pci::Device::Access_size _access_size(T t)
+	Platform::Device::Access_size _access_size(T t)
 	{
 		switch (sizeof(T)) {
 		case 1:
-			return Pci::Device::ACCESS_8BIT;
+			return Platform::Device::ACCESS_8BIT;
 		case 2:
-			return Pci::Device::ACCESS_16BIT;
+			return Platform::Device::ACCESS_16BIT;
 		default:
-			return Pci::Device::ACCESS_32BIT;
+			return Platform::Device::ACCESS_32BIT;
 		}
 	}
 
 	void _bus_address(int *bus, int *dev, int *fun)
 	{
-		Pci::Device_client client(_cap);
+		Platform::Device_client client(_cap);
 		unsigned char b, d, f;
 		client.bus_address(&b, &d, &f);
 
@@ -164,14 +164,14 @@ struct Pci_driver
 	template <typename T>
 	void config_read(unsigned int devfn, T *val)
 	{
-		Pci::Device_client client(_cap);
+		Platform::Device_client client(_cap);
 		*val = client.config_read(devfn, _access_size(*val));
 	}
 
 	template <typename T>
 	void config_write(unsigned int devfn, T val)
 	{
-		Pci::Device_client client(_cap);
+		Platform::Device_client client(_cap);
 		client.config_write(devfn, val, _access_size(val));
 	}
 
@@ -302,7 +302,7 @@ extern "C" int dde_interrupt_attach(void(*handler)(void *), void *priv)
 	}
 
 	try {
-		Pci::Device_client device(pci_drv()._cap);
+		Platform::Device_client device(pci_drv()._cap);
 		_irq_handler = new (Genode::env()->heap())
 			Irq_handler(*_ep, device.irq(0), handler, priv);
 	} catch (...) { return -1; }
@@ -375,7 +375,7 @@ extern "C" void dde_request_io(dde_uint8_t virt_bar_ioport)
 		sleep_forever();
 	}
 
-	Pci::Device_client device(pci_drv()._cap);
+	Platform::Device_client device(pci_drv()._cap);
 	Io_port_session_capability cap = device.io_port(virt_bar_ioport);
 
 	_io_port = new (env()->heap()) Io_port_session_client(cap);
@@ -622,13 +622,13 @@ extern "C" int dde_request_iomem(dde_addr_t start, dde_addr_t *vaddr)
 		Genode::sleep_forever();
 	}
 
-	Pci::Device_client device(pci_drv()._cap);
+	Platform::Device_client device(pci_drv()._cap);
 	Genode::Io_mem_session_capability cap;
 
 	Genode::uint8_t virt_iomem_bar = 0;
-	for (unsigned i = 0; i < Pci::Device::NUM_RESOURCES; i++) {
-		Pci::Device::Resource res = device.resource(i);
-		if (res.type() == Pci::Device::Resource::MEMORY) {
+	for (unsigned i = 0; i < Platform::Device::NUM_RESOURCES; i++) {
+		Platform::Device::Resource res = device.resource(i);
+		if (res.type() == Platform::Device::Resource::MEMORY) {
 			if (res.base() == start) {
 				cap = device.io_mem(virt_iomem_bar);
 				break;

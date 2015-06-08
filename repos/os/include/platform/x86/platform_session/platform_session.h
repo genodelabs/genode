@@ -1,5 +1,5 @@
 /*
- * \brief  PCI session interface
+ * \brief  Platform session interface
  * \author Norman Feske
  * \date   2008-01-28
  */
@@ -11,27 +11,22 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__PCI_SESSION__PCI_SESSION_H_
-#define _INCLUDE__PCI_SESSION__PCI_SESSION_H_
+#pragma once
 
 /* base */
 #include <session/session.h>
 #include <ram_session/ram_session.h>
 
 /* os */
-#include <pci_device/pci_device.h>
+#include <platform_device/platform_device.h>
+#include <platform_device/capability.h>
 
-namespace Pci {
-
-	typedef Genode::Capability<Pci::Device> Device_capability;
-
-	struct Session;
-}
+namespace Platform { struct Session; }
 
 
-struct Pci::Session : Genode::Session
+struct Platform::Session : Genode::Session
 {
-	static const char *service_name() { return "PCI"; }
+	static const char *service_name() { return "Platform"; }
 
 	virtual ~Session() { }
 
@@ -87,24 +82,24 @@ struct Pci::Session : Genode::Session
 	 *********************/
 
 	GENODE_RPC_THROW(Rpc_first_device, Device_capability, first_device,
-	                 GENODE_TYPE_LIST(Pci::Device::Quota_exceeded),
+	                 GENODE_TYPE_LIST(Platform::Device::Quota_exceeded),
 	                 unsigned, unsigned);
 	GENODE_RPC_THROW(Rpc_next_device, Device_capability, next_device,
-	                 GENODE_TYPE_LIST(Pci::Device::Quota_exceeded),
+	                 GENODE_TYPE_LIST(Platform::Device::Quota_exceeded),
 	                 Device_capability, unsigned, unsigned);
 	GENODE_RPC(Rpc_release_device, void, release_device, Device_capability);
 	GENODE_RPC_THROW(Rpc_config_extended, Genode::Io_mem_dataspace_capability,
 	                 config_extended,
-	                 GENODE_TYPE_LIST(Pci::Device::Quota_exceeded),
+	                 GENODE_TYPE_LIST(Platform::Device::Quota_exceeded),
 	                 Device_capability);
 	GENODE_RPC_THROW(Rpc_alloc_dma_buffer, Genode::Ram_dataspace_capability,
 	                 alloc_dma_buffer,
-	                 GENODE_TYPE_LIST(Pci::Device::Quota_exceeded),
+	                 GENODE_TYPE_LIST(Platform::Device::Quota_exceeded),
 	                 Genode::size_t);
 	GENODE_RPC(Rpc_free_dma_buffer, void, free_dma_buffer,
 	           Genode::Ram_dataspace_capability);
 	GENODE_RPC_THROW(Rpc_device, Device_capability, device,
-	                 GENODE_TYPE_LIST(Pci::Device::Quota_exceeded),
+	                 GENODE_TYPE_LIST(Platform::Device::Quota_exceeded),
 	                 String const &);
 
 	GENODE_RPC_INTERFACE(Rpc_first_device, Rpc_next_device,
@@ -112,5 +107,3 @@ struct Pci::Session : Genode::Session
 	                     Rpc_alloc_dma_buffer, Rpc_free_dma_buffer,
 	                     Rpc_device);
 };
-
-#endif /* _INCLUDE__PCI_SESSION__PCI_SESSION_H_ */

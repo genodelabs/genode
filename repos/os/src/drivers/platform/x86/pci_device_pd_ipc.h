@@ -11,19 +11,18 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _PCI_DEVICE_PD_IPC_H_
-#define _PCI_DEVICE_PD_IPC_H_
+#pragma once
 
 #include <base/rpc_server.h>
 
 #include <io_mem_session/capability.h>
 #include <ram_session/ram_session.h>
 
-namespace Pci {
+namespace Platform {
 
 		struct Device_pd : Genode::Session
 		{
-			static const char *service_name() { return "PCI_DEV_PD"; }
+			static const char *service_name() { return "DEVICE_PD"; }
 
 			GENODE_RPC(Rpc_attach_dma_mem, void, attach_dma_mem,
 			           Genode::Ram_dataspace_capability);
@@ -54,4 +53,3 @@ namespace Pci {
 		};
 
 }
-#endif /* _PCI_DEVICE_PD_IPC_H_ */

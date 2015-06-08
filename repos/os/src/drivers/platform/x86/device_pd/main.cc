@@ -1,11 +1,11 @@
 /*
- * \brief  Pci device protection domain service for pci_drv 
+ * \brief  Pci device protection domain service for platform driver 
  * \author Alexander Boettcher
  * \date   2013-02-10
  */
 
 /*
- * Copyright (C) 2013-2013 Genode Labs GmbH
+ * Copyright (C) 2013-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -24,7 +24,7 @@
 #include "../pci_device_pd_ipc.h"
 
 
-void Pci::Device_pd_component::attach_dma_mem(Genode::Ram_dataspace_capability ds_cap)
+void Platform::Device_pd_component::attach_dma_mem(Genode::Ram_dataspace_capability ds_cap)
 {
 	using namespace Genode;
 
@@ -52,7 +52,7 @@ void Pci::Device_pd_component::attach_dma_mem(Genode::Ram_dataspace_capability d
 		touch_read(reinterpret_cast<unsigned char *>(page));
 }
 
-void Pci::Device_pd_component::assign_pci(Genode::Io_mem_dataspace_capability io_mem_cap)
+void Platform::Device_pd_component::assign_pci(Genode::Io_mem_dataspace_capability io_mem_cap)
 {
 	using namespace Genode;
 
@@ -78,7 +78,7 @@ int main(int argc, char **argv)
 {
 	using namespace Genode;
 
-	Genode::printf("PCI device pd starting ...\n");
+	Genode::printf("Device protection domain starting ...\n");
 
 	/*
 	 * Initialize server entry point
@@ -88,18 +88,18 @@ int main(int argc, char **argv)
 	};
 
 	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "pci_device_pd_ep");
+	static Rpc_entrypoint ep(&cap, STACK_SIZE, "device_pd_ep");
 
-	static Pci::Device_pd_component pci_device_component;
+	static Platform::Device_pd_component pd_component;
 
 	/*
 	 * Attach input root interface to the entry point
 	 */
-	static Static_root<Pci::Device_pd> root(ep.manage(&pci_device_component));
+	static Static_root<Platform::Device_pd> root(ep.manage(&pd_component));
 
 	env()->parent()->announce(ep.manage(&root));
 
-	printf("PCI device pd started\n");
+	printf("Device protection domain started\n");
 
 	Genode::sleep_forever();
 	return 0;

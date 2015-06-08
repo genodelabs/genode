@@ -1,5 +1,5 @@
 /*
- * \brief  PCI-bus driver
+ * \brief  Platform driver for x86
  * \author Norman Feske
  * \date   2008-01-28
  */
@@ -23,7 +23,7 @@
 #include "pci_device_config.h"
 
 using namespace Genode;
-using namespace Pci;
+using namespace Platform;
 
 class Device_pd_policy : public Genode::Slave_policy
 {
@@ -45,7 +45,7 @@ class Device_pd_policy : public Genode::Slave_policy
 
 		Device_pd_policy(Genode::Rpc_entrypoint &slave_ep)
 		:
-			Slave_policy("pci_device_pd", slave_ep),
+			Slave_policy("device_pd", slave_ep),
 			_lock(Genode::Lock::LOCKED)
 		{ }
 
@@ -54,8 +54,8 @@ class Device_pd_policy : public Genode::Slave_policy
 		                      Genode::Allocator      *alloc,
 		                      Genode::Server         *server)
 		{
-			/* wait for 'pci_drv' to announce the PCI service */
-			if (Genode::strcmp(service_name, "PCI_DEV_PD"))
+			/* wait for 'platform_drv' to announce the DEVICE_PD service */
+			if (Genode::strcmp(service_name, "DEVICE_PD"))
 				return false;
 
 			_cap = root;
@@ -75,27 +75,27 @@ class Device_pd_policy : public Genode::Slave_policy
 
 int main(int argc, char **argv)
 {
-	printf("PCI driver started\n");
+	printf("platform driver started\n");
 
 	/*
 	 * Initialize server entry point
 	 */
 	enum {
 		STACK_SIZE              = 2 * sizeof(addr_t)*1024,
-		PCI_DEVICE_PD_RAM_QUOTA = 196 * 4096,
+		DEVICE_PD_RAM_QUOTA = 196 * 4096,
 	};
 
 	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "pci_ep");
+	static Rpc_entrypoint ep(&cap, STACK_SIZE, "platform_ep");
 
-	/* use 'pci_device_pd' as slave service */
+	/* use 'device_pd' as slave service */
 	Session_capability session_dev_pd;
 	Genode::Root_capability device_pd_root;
 	try  {
 		static Rpc_entrypoint   device_pd_ep(&cap, STACK_SIZE, "device_pd_slave");
 		static Device_pd_policy device_pd_policy(device_pd_ep);
 		static Genode::Slave    device_pd_slave(device_pd_ep, device_pd_policy,
-		                                        PCI_DEVICE_PD_RAM_QUOTA);
+		                                        DEVICE_PD_RAM_QUOTA);
 		device_pd_root = device_pd_policy.root();
 	} catch (...) {
 		PWRN("PCI device protection domain for IOMMU support is not available");
@@ -140,8 +140,8 @@ int main(int argc, char **argv)
 	/*
 	 * Let the entry point serve the PCI root interface
 	 */
-	static Pci::Root root(&ep, &sliced_heap, PCI_DEVICE_PD_RAM_QUOTA,
-	                      device_pd_root, report_addr);
+	static Platform::Root root(&ep, &sliced_heap, DEVICE_PD_RAM_QUOTA,
+	                           device_pd_root, report_addr);
 
 	env()->parent()->announce(ep.manage(&root));
 

@@ -11,8 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__PCI_DEVICE__PCI_DEVICE_H_
-#define _INCLUDE__PCI_DEVICE__PCI_DEVICE_H_
+#pragma once
 
 #include <base/rpc.h>
 #include <base/signal.h>
@@ -26,10 +25,10 @@
 #include <platform/device.h>
 
 
-namespace Pci { struct Device; }
+namespace Platform { struct Device; }
 
 
-struct Pci::Device : Platform::Device
+struct Platform::Device : Platform::Abstract_device
 {
 	/*********************
 	 ** Exception types **
@@ -258,5 +257,3 @@ struct Pci::Device : Platform::Device
 	                                 Genode::Meta::Empty>
 	        > > > > > > > > > Rpc_functions;
 };
-
-#endif /* _INCLUDE__PCI_DEVICE__PCI_DEVICE_H_ */

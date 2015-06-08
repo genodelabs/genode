@@ -4,12 +4,15 @@
 
 set build_components {
 	core init
-	drivers/timer drivers/input drivers/pci drivers/nic
+	drivers/timer drivers/input drivers/nic
 	server/nic_bridge
 	app/lighttpd
 	test/lwip/http_clnt
 
 }
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
 
 build $build_components
 
@@ -38,12 +41,7 @@ append config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>}
 
-append_if [have_spec pci] config {
-	<start name="pci_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="PCI"/></provides>
-	</start>}
-
+append_platform_drv_config
 
 append config {
 	<start name="timer">
@@ -155,8 +153,9 @@ set boot_modules {
 
 # platform-specific modules
 lappend_if [have_spec linux] boot_modules fb_sdl
-lappend_if [have_spec pci]   boot_modules pci_drv
 lappend_if [have_spec ps2]   boot_modules ps2_drv
+
+append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 

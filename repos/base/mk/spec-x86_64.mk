@@ -8,6 +8,7 @@ SPECS += x86 64bit
 #
 REP_INC_DIR += include/x86
 REP_INC_DIR += include/x86_64
+REP_INC_DIR += include/platform/x86
 
 CC_MARCH ?= -m64
 

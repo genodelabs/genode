@@ -13,7 +13,7 @@
 #include "pci_session_component.h"
 #include "pci_device_component.h"
 
-Genode::Io_port_session_capability Pci::Device_component::io_port(Genode::uint8_t v_id)
+Genode::Io_port_session_capability Platform::Device_component::io_port(Genode::uint8_t v_id)
 {
 	Genode::uint8_t max = sizeof(_io_port_conn) / sizeof(_io_port_conn[0]);
 	Genode::uint8_t i = 0, r_id = 0;
@@ -37,7 +37,7 @@ Genode::Io_port_session_capability Pci::Device_component::io_port(Genode::uint8_
 	return Genode::Io_port_session_capability();
 }
 
-Genode::Io_mem_session_capability Pci::Device_component::io_mem(Genode::uint8_t v_id)
+Genode::Io_mem_session_capability Platform::Device_component::io_mem(Genode::uint8_t v_id)
 {
 	Genode::uint8_t max = sizeof(_io_mem_conn) / sizeof(_io_mem_conn[0]);
 	Genode::uint8_t i = 0, r_id = 0;
@@ -61,7 +61,7 @@ Genode::Io_mem_session_capability Pci::Device_component::io_mem(Genode::uint8_t 
 	return Genode::Io_mem_session_capability();
 }
 
-void Pci::Device_component::config_write(unsigned char address, unsigned value,
+void Platform::Device_component::config_write(unsigned char address, unsigned value,
                                          Access_size size)
 {
 	/* white list of ports which we permit to write */

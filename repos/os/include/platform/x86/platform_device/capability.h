@@ -11,12 +11,9 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__PCI_DEVICE__CAPABILITY_H_
-#define _INCLUDE__PCI_DEVICE__CAPABILITY_H_
+#pragma once
 
 #include <base/capability.h>
-#include <pci_device/pci_device.h>
+#include <platform_device/platform_device.h>
 
-namespace Pci { typedef Genode::Capability<Device> Device_capability; }
-
-#endif /* _INCLUDE__PCI_DEVICE__CAPABILITY_H_ */
+namespace Platform { typedef Genode::Capability<Device> Device_capability; }

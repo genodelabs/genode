@@ -19,8 +19,8 @@
 
 /* Genode os includes */
 #include <io_port_session/client.h>
-#include <pci_session/connection.h>
-#include <pci_device/client.h>
+#include <platform_session/connection.h>
+#include <platform_device/client.h>
 #include <util/volatile_object.h>
 
 /* Linux includes */
@@ -102,7 +102,7 @@ class Pci_driver : public Genode::List<Pci_driver>::Element
 	private:
 
 		pci_driver            *_drv;  /* Linux PCI driver */
-		Pci::Device_capability _cap;  /* PCI cap */
+		Platform::Device_capability _cap;  /* PCI cap */
 		pci_device_id const   *_id;   /* matched id for this driver */
 		Io_port                _port;
 
@@ -120,7 +120,7 @@ class Pci_driver : public Genode::List<Pci_driver>::Element
 		 */
 		void _setup_pci_device()
 		{
-			using namespace Pci;
+			using namespace Platform;
 
 			Device_client client(_cap);
 			uint8_t bus, dev, func;
@@ -195,16 +195,16 @@ class Pci_driver : public Genode::List<Pci_driver>::Element
 		}
 
 		template <typename T>
-		Pci::Device::Access_size _access_size(T t)
+		Platform::Device::Access_size _access_size(T t)
 		{
 			switch (sizeof(T))
 			{
 				case 1:
-					return Pci::Device::ACCESS_8BIT;
+					return Platform::Device::ACCESS_8BIT;
 				case 2:
-					return Pci::Device::ACCESS_16BIT;
+					return Platform::Device::ACCESS_16BIT;
 				default:
-					return Pci::Device::ACCESS_32BIT;
+					return Platform::Device::ACCESS_32BIT;
 			}
 		}
 
@@ -216,7 +216,7 @@ class Pci_driver : public Genode::List<Pci_driver>::Element
 
 	public:
 
-		Pci_driver(pci_driver *drv, Pci::Device_capability cap,
+		Pci_driver(pci_driver *drv, Platform::Device_capability cap,
 		           pci_device_id const * id)
 		: _drv(drv), _cap(cap), _id(id), _dev(0)
 		{
@@ -240,14 +240,14 @@ class Pci_driver : public Genode::List<Pci_driver>::Element
 		template <typename T>
 		void config_read(unsigned int devfn, T *val)
 		{
-			Pci::Device_client client(_cap);
+			Platform::Device_client client(_cap);
 			*val = client.config_read(devfn, _access_size(*val));
 		}
 
 		template <typename T>
 		void config_write(unsigned int devfn, T val)
 		{
-			Pci::Device_client client(_cap);
+			Platform::Device_client client(_cap);
 			client.config_write(devfn, val, _access_size(val));
 		}
 
@@ -257,7 +257,7 @@ class Pci_driver : public Genode::List<Pci_driver>::Element
 				if (d->_dev && d->_dev->irq != irq)
 					continue;
 
-				Pci::Device_client client(d->_cap);
+				Platform::Device_client client(d->_cap);
 				return client.irq(0);
 			}
 
@@ -279,7 +279,7 @@ class Pci_driver : public Genode::List<Pci_driver>::Element
 				if (bar >= PCI_ROM_RESOURCE)
 					continue;
 
-				Pci::Device_client client(d->_cap);
+				Platform::Device_client client(d->_cap);
 				return client.io_mem(bar);
 			}
 
@@ -346,7 +346,7 @@ struct Dma_object : Memory_object_base
  ** Linux interface **
  *********************/
 
-static Pci::Connection pci;
+static Platform::Connection pci;
 static Genode::Object_pool<Memory_object_base> memory_pool;
 
 int pci_register_driver(struct pci_driver *drv)
@@ -372,13 +372,13 @@ int pci_register_driver(struct pci_driver *drv)
 
 		Genode::env()->parent()->upgrade(pci.cap(), "ram_quota=4096");
 
-		Pci::Device_capability cap = pci.first_device(id->class_,
-		                                              id->class_mask);
+		Platform::Device_capability cap = pci.first_device(id->class_,
+		                                                   id->class_mask);
 		while (cap.valid()) {
 
 			if (DEBUG_PCI) {
 				uint8_t bus, dev, func;
-				Pci::Device_client client(cap);
+				Platform::Device_client client(cap);
 				client.bus_address(&bus, &dev, &func);
 				lx_log(DEBUG_PCI, "bus: %x  dev: %x func: %x", bus, dev, func);
 			}
@@ -387,10 +387,10 @@ int pci_register_driver(struct pci_driver *drv)
 			try {
 				/* probe device */
 				pci_drv = new (env()->heap()) Pci_driver(drv, cap, id);
-				pci.on_destruction(Pci::Connection::KEEP_OPEN);
+				pci.on_destruction(Platform::Connection::KEEP_OPEN);
 				found = true;
 
-			} catch (Pci::Device::Quota_exceeded) {
+			} catch (Platform::Device::Quota_exceeded) {
 				Genode::env()->parent()->upgrade(pci.cap(), "ram_quota=4096");
 				continue;
 			} catch (...) {
@@ -398,11 +398,11 @@ int pci_register_driver(struct pci_driver *drv)
 				pci_drv = 0;
 			}
 
-			Pci::Device_capability free_up = cap;
+			Platform::Device_capability free_up = cap;
 
 			try {
 				cap = pci.next_device(cap, id->class_, id->class_mask);
-			} catch (Pci::Device::Quota_exceeded) {
+			} catch (Platform::Device::Quota_exceeded) {
 				Genode::env()->parent()->upgrade(pci.cap(), "ram_quota=4096");
 				cap = pci.next_device(cap, id->class_, id->class_mask);
 			}

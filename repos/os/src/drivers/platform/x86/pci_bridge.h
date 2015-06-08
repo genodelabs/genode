@@ -13,7 +13,7 @@
 
 #pragma once
 
-namespace Pci { class Bridge; }
+namespace Platform { class Bridge; }
 
 #include <util/list.h>
 
@@ -21,7 +21,7 @@ namespace Pci { class Bridge; }
 /**
  * List of PCI-bridge devices
  */
-class Pci::Bridge : public Genode::List<Bridge>::Element
+class Platform::Bridge : public Genode::List<Bridge>::Element
 {
 	private:
 

@@ -16,7 +16,7 @@
 
 namespace Nonpci { class Ps2; }
 
-class Nonpci::Ps2 : public Pci::Device_component
+class Nonpci::Ps2 : public Platform::Device_component
 {
 	private:
 
@@ -35,9 +35,9 @@ class Nonpci::Ps2 : public Pci::Device_component
 
 	public:
 
-		Ps2(Genode::Rpc_entrypoint * ep, Pci::Session_component * session)
+		Ps2(Genode::Rpc_entrypoint * ep, Platform::Session_component * session)
 		:
-			Pci::Device_component(ep, session, IRQ_KEYBOARD),
+			Platform::Device_component(ep, session, IRQ_KEYBOARD),
 			_irq_mouse(IRQ_MOUSE),
 			_data(REG_DATA, ACCESS_WIDTH), _status(REG_STATUS, ACCESS_WIDTH)
 		{ }
@@ -74,9 +74,9 @@ class Nonpci::Ps2 : public Pci::Device_component
 
 
 /**
- * PCI session component devices which are non PCI devices, e.g. PS2
+ * Platform session component devices which are non PCI devices, e.g. PS2
  */
-Pci::Device_capability Pci::Session_component::device(String const &name) {
+Platform::Device_capability Platform::Session_component::device(String const &name) {
 
 	if (!name.is_valid_string())
 		return Device_capability();
@@ -116,7 +116,7 @@ Pci::Device_capability Pci::Session_component::device(String const &name) {
 		_device_list.insert(dev);
 		return _ep->manage(dev);
 	} catch (Genode::Allocator::Out_of_memory) {
-		throw Pci::Device::Quota_exceeded();
+		throw Platform::Device::Quota_exceeded();
 	} catch (Genode::Parent::Service_denied) {
 		return Device_capability();
 	}
