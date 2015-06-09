@@ -2,9 +2,9 @@ LICENSE   := GPLv2
 VERSION   := git
 DOWNLOADS := nova.git
 
+# r9 branch
 URL(nova) := https://github.com/alex-ab/NOVA.git
-# r9_pae branch
-REV(nova) := 902ccd998fddbf140bb6f87b75d7c9df97e6380f
+REV(nova) := 923421d94e9c2542ee5db7c7ae6e7748f0a35827
 DIR(nova) := src/kernel/nova
 
 PATCHES   := $(wildcard $(REP_DIR)/patches/*.patch)

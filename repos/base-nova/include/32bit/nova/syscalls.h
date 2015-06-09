@@ -67,7 +67,8 @@ namespace Nova {
 
 
 	ALWAYS_INLINE
-	inline uint8_t syscall_1(Syscall s, uint8_t flags, unsigned sel, mword_t p1)
+	inline uint8_t syscall_1(Syscall s, uint8_t flags, mword_t sel, mword_t p1,
+	                         mword_t * p2 = 0)
 	{
 		mword_t status = eax(s, flags, sel);
 
@@ -78,9 +79,10 @@ namespace Nova {
 		              "  mov (%%esp), %%edx;"
 		              "  sysenter;"
 		              "1:"
-		              : "+a" (status)
-		              : "D" (p1)
-		              : "ecx", "edx");
+		              : "+a" (status), "+D" (p1)
+		              :
+		              : "ecx", "edx", "memory");
+		if (p2) *p2 = p1;
 		return status;
 	}
 
@@ -180,7 +182,7 @@ namespace Nova {
 	ALWAYS_INLINE
 	inline uint8_t call(unsigned pt)
 	{
-		return syscall_0(NOVA_CALL, 0, pt);
+		return syscall_1(NOVA_CALL, 0, pt, 0);
 	}
 
 
@@ -199,17 +201,34 @@ namespace Nova {
 
 
 	ALWAYS_INLINE
-	inline uint8_t create_pd(unsigned pd0, unsigned pd, Crd crd)
+	inline uint8_t create_pd(unsigned pd0, unsigned pd, Crd crd,
+	                         unsigned short lower_limit, unsigned upper_limit)
 	{
-		return syscall_2(NOVA_CREATE_PD, 0, pd0, pd, crd.value());
+		return syscall_3(NOVA_CREATE_PD, 0, pd0, pd, crd.value(),
+		                 upper_limit << 16 | lower_limit);
 	}
 
 
+	/**
+	 * Create an EC.
+	 *
+	 * \param ec     two selectors - ec && ec + 1
+	 *               First selector must be unused and second selector is
+	 *               either unused or must be a valid portal selector.
+	 *               The thread will call this portal if the PD it runs in runs
+	 *               out of kernel memory.
+	 * \param pd     selector of PD the EC will created in
+	 * \param cpu    CPU number the EC will run on
+	 * \param utcb   PD local address where the UTCB of the EC will be appear
+	 * \param esp    initial stack address
+	 * \param evt    base selector for all exception portals of the EC
+	 * \param global if true  - thread requires a SC to be runnable
+	 *               if false - thread is runnable solely if it receives a IPC
+	 *                          (worker thread)
+	 */
 	ALWAYS_INLINE
-	inline uint8_t create_ec(unsigned ec, unsigned pd,
-	                         mword_t cpu, mword_t utcb,
-	                         mword_t esp, mword_t evt,
-	                         bool global = 0)
+	inline uint8_t create_ec(mword_t ec, mword_t pd, mword_t cpu, mword_t utcb,
+	                         mword_t esp, mword_t evt, bool global = false)
 	{
 		return syscall_4(NOVA_CREATE_EC, global, ec, pd,
 		                 (cpu & 0xfff) | (utcb & ~0xfff),
@@ -265,32 +284,39 @@ namespace Nova {
 	}
 
 
+	/**
+	 * Revoke memory, capabilities or i/o ports from a PD
+	 *
+	 * \param crd    describes region and type of resource
+	 * \param self   also revoke from source PD iif self == true
+	 * \param remote if true the 'pd' parameter below is used, otherwise
+	 *               current PD is used as source PD
+	 * \param pd     selector describing remote PD
+	 * \param sm     SM selector which gets an up() by the kernel if the
+	 *               memory of the current revoke invocation gets freed up
+	 *               (end of RCU period)
+	 */
 	ALWAYS_INLINE
-	inline uint8_t revoke(Crd crd, bool self = true)
+	inline uint8_t revoke(Crd crd, bool self = true, bool remote = false,
+	                      mword_t pd = 0, mword_t sm = 0)
 	{
-		return syscall_1(NOVA_REVOKE, self, 0, crd.value());
+		uint8_t flags = self ? 0x1 : 0;
+
+		if (remote)
+			flags |= 0x2;
+
+		mword_t value_crd = crd.value();
+		return syscall_5(NOVA_REVOKE, flags, sm, value_crd, pd);
 	}
 
 
 	ALWAYS_INLINE
 	inline uint8_t lookup(Crd &crd)
 	{
-		mword_t status = eax(NOVA_LOOKUP, 0, 0);
-		mword_t raw = crd.value();
-
-		asm volatile ("  mov %%esp, %%ecx;"
-		              "  call 0f;"
-		              "0:"
-		              "  addl $(1f-0b), (%%esp);"
-		              "  mov (%%esp), %%edx;"
-		              "  sysenter;"
-		              "1:"
-		              : "+a" (status), "+D" (raw)
-		              :
-		              : "ecx", "edx", "memory");
-
-		crd = Crd(raw);
-		return status;
+		mword_t crd_r;
+		uint8_t res = syscall_1(NOVA_LOOKUP, 0, 0, crd.value(), &crd_r);
+		crd = Crd(crd_r);
+		return res;
 	}
 
 
@@ -305,6 +331,21 @@ namespace Nova {
 	inline uint8_t si_ctrl(mword_t sm, Sem_op op, mword_t &value, mword_t &cnt)
 	{
 		return syscall_5(NOVA_SM_CTRL, op, sm, value, cnt);
+	}
+
+
+	ALWAYS_INLINE
+	inline uint8_t pd_ctrl(mword_t pd_src, Pd_op op, mword_t pd_dst,
+	                       mword_t transfer)
+	{
+		return syscall_5(NOVA_PD_CTRL, op, pd_src, pd_dst, transfer);
+	}
+
+
+	ALWAYS_INLINE
+	inline uint8_t pd_ctrl_debug(mword_t pd, mword_t &limit, mword_t &usage)
+	{
+		return syscall_5(NOVA_PD_CTRL, Pd_op::PD_DEBUG, pd, limit, usage);
 	}
 
 

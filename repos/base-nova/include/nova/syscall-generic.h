@@ -63,6 +63,7 @@ namespace Nova {
 		NOVA_SM_CTRL    = 0xc,
 		NOVA_ASSIGN_PCI = 0xd,
 		NOVA_ASSIGN_GSI = 0xe,
+		NOVA_PD_CTRL    = 0xf,
 	};
 
 	/**
@@ -79,6 +80,7 @@ namespace Nova {
 		NOVA_INV_FEATURE    = 6,
 		NOVA_INV_CPU        = 7,
 		NOVA_INVD_DEVICE_ID = 8,
+		NOVA_PD_OOM         = 9,
 	};
 
 	/**
@@ -159,6 +161,11 @@ namespace Nova {
 	 * Ec operations
 	 */
 	enum Ec_op { EC_RECALL = 0U, EC_YIELD = 1U, EC_DONATE_SC = 2U, EC_RESCHEDULE = 3U };
+
+	/**
+	 * Pd operations
+	 */
+	enum Pd_op { TRANSFER_QUOTA = 0U, PD_DEBUG = 2U };
 
 
 	class Descriptor
