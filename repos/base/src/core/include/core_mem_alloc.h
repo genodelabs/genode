@@ -68,12 +68,16 @@ class Genode::Core_mem_allocator : public Genode::Core_mem_translator
 		 */
 		struct Metadata { void * map_addr; };
 
+		class Mapped_mem_allocator;
+
 		/**
 		 * Page-size granular allocator that links ranges to related ones.
 		 */
 		class Mapped_avl_allocator
 		: public Allocator_avl_tpl<Metadata, get_page_size()>
 		{
+			friend class Mapped_mem_allocator;
+
 			public:
 
 				/**
@@ -166,7 +170,7 @@ class Genode::Core_mem_allocator : public Genode::Core_mem_translator
 				                           addr_t to = ~0UL) override;
 				Alloc_return alloc_addr(size_t size, addr_t addr) override {
 					return Alloc_return::RANGE_CONFLICT; }
-				void         free(void *addr) override { }
+				void         free(void *addr) override;
 				size_t       avail() const override { return _phys_alloc->avail(); }
 				bool         valid_addr(addr_t addr) const override {
 					return _virt_alloc->valid_addr(addr); }
@@ -178,7 +182,7 @@ class Genode::Core_mem_allocator : public Genode::Core_mem_translator
 
 				bool   alloc(size_t size, void **out_addr) override {
 					return alloc_aligned(size, out_addr).is_ok(); }
-				void   free(void *addr, size_t) override { free(addr); }
+				void   free(void *addr, size_t) override;
 				size_t consumed() const override { return _phys_alloc->consumed(); }
 				size_t overhead(size_t size) const override {
 					return _phys_alloc->overhead(size); }
@@ -300,7 +304,11 @@ class Genode::Core_mem_allocator : public Genode::Core_mem_translator
 		bool alloc(size_t size, void **out_addr) override {
 			return alloc_aligned(size, out_addr).is_ok(); }
 
-		void free(void *addr, size_t) override { free(addr); }
+		void free(void *addr, size_t size) override
+		{
+			Lock::Guard lock_guard(_lock);
+			return _mem_alloc.free(addr, size);
+		}
 
 		size_t consumed()            const override { return _phys_alloc.consumed(); }
 		size_t overhead(size_t size) const override { return _phys_alloc.overhead(size); }

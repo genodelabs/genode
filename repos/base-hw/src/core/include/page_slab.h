@@ -188,13 +188,14 @@ class Genode::Page_slab : public Genode::Allocator
 		 */
 		void free(void *addr)
 		{
-			for (List_element<Slab_block> *le = _b_list.first();
-			     le; le = le->next()) {
-				if (!le->object()->free(addr)) continue;
+			for (List_element<Slab_block> *le = _b_list.first(); le;) {
+				List_element<Slab_block> *cur = le;
+				le = le->next();
+				if (!cur->object()->free(addr)) continue;
 
 				if (_free_slab_entries++ > (MIN_SLABS+SLABS_PER_BLOCK)
-				    && !le->object()->ref_counter)
-					_free_slab_block(le->object());
+				    && !cur->object()->ref_counter)
+					_free_slab_block(cur->object());
 			}
 		}
 
