@@ -48,8 +48,9 @@ namespace Genode {
 
 			char               _name[Thread_base::Context::NAME_LEN];
 
-			addr_t _sel_ec() const { return _id_base; }
-			addr_t _sel_sc() const { return _id_base + 1; }
+			addr_t _sel_ec()     const { return _id_base; }
+			addr_t _sel_pt_oom() const { return _id_base + 1; }
+			addr_t _sel_sc()     const { return _id_base + 2; }
 
 			/* convenience function to access _feature variable */
 			inline bool is_main_thread() { return _features & MAIN_THREAD; }

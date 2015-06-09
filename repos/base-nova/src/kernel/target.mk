@@ -13,7 +13,7 @@ CC_WARN          = -Wall -Wextra -Waggregate-return -Wcast-align -Wcast-qual \
                    -Wpointer-arith -Wredundant-decls -Wshadow -Wwrite-strings \
                    -Wabi -Wctor-dtor-privacy -Wno-non-virtual-dtor \
                    -Wold-style-cast -Woverloaded-virtual -Wsign-promo \
-                   -Wframe-larger-than=64 -Wlogical-op -Wstrict-null-sentinel \
+                   -Wframe-larger-than=112 -Wlogical-op -Wstrict-null-sentinel \
                    -Wstrict-overflow=5 -Wvolatile-register-var
 CC_OPT          += -pipe \
                    -fdata-sections -fomit-frame-pointer -freg-struct-return \

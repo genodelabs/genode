@@ -184,7 +184,7 @@ static void init_core_page_fault_handler()
 		EXC_BASE   = 0
 	};
 
-	addr_t ec_sel = cap_map()->insert();
+	addr_t ec_sel = cap_map()->insert(1);
 
 	uint8_t ret = create_ec(ec_sel, __core_pd_sel, boot_cpu(),
 	                        CORE_PAGER_UTCB_ADDR, core_pager_stack_top(),
