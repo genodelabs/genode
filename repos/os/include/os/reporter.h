@@ -48,6 +48,16 @@ class Genode::Reporter : Noncopyable
 
 		Lazy_volatile_object<Connection> _conn;
 
+		/**
+		 * Return size of report buffer
+		 */
+		size_t _size() const { return _enabled ? _conn->ds.size() : 0; }
+
+		/**
+		 * Return pointer to report buffer
+		 */
+		char *_base() { return _enabled ? _conn->ds.local_addr<char>() : 0; }
+
 	public:
 
 		Reporter(char const *report_name, size_t buffer_size = 4096)
@@ -73,14 +83,21 @@ class Genode::Reporter : Noncopyable
 		Name name() const { return _name; }
 
 		/**
-		 * Return size of report buffer
+		 * Report data buffer
+		 *
+		 * \param data    data buffer
+		 * \param length  number of bytes to report
 		 */
-		size_t size() const { return _enabled ? _conn->ds.size() : 0; }
+		void report(void const *data, size_t length)
+		{
+			void *base = _base();
 
-		/**
-		 * Return pointer to report buffer
-		 */
-		char *base() { return _enabled ? _conn->ds.local_addr<char>() : 0; }
+			if (!base || length > _size())
+				return;
+
+			memcpy(base, data, length);
+			_conn->report.submit(length);
+		}
 
 		/**
 		 * XML generator targeting a reporter
@@ -90,8 +107,8 @@ class Genode::Reporter : Noncopyable
 			template <typename FUNC>
 			Xml_generator(Reporter &reporter, FUNC const &func)
 			:
-				Genode::Xml_generator(reporter.base(),
-				                      reporter.size(),
+				Genode::Xml_generator(reporter._base(),
+				                      reporter._size(),
 				                      reporter._name.string(),
 				                      func)
 			{
