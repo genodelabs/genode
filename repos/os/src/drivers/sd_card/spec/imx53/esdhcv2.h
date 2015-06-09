@@ -436,6 +436,9 @@ struct Esdhcv2_controller : private Esdhcv2, public Sd_card::Host_controller
 		 */
 		Sd_card::Card_info _init()
 		{
+			/* install IRQ signal */
+			_irq.sigh(_irq_rec.manage(&_irq_ctx));
+
 			/* configure host for initialization stage */
 			using namespace Sd_card;
 			if (!reset_all(_delayer)) { _detect_err("Host reset failed"); }
@@ -758,10 +761,7 @@ struct Esdhcv2_controller : private Esdhcv2, public Sd_card::Host_controller
 		                   Delayer & delayer, bool const use_dma)
 		:
 			Esdhcv2(mmio_base), _irq(irq), 
-			_delayer(delayer), _card_info(_init()), _use_dma(use_dma)
-		{
-			_irq.sigh(_irq_rec.manage(&_irq_ctx));
-		}
+			_delayer(delayer), _card_info(_init()), _use_dma(use_dma) { }
 
 		~Esdhcv2_controller() { _irq_rec.dissolve(&_irq_ctx); }
 
