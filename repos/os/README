@@ -16,5 +16,4 @@ This is the example operating system based on the Genode OS framework:
   against shared libraries.
 
 :_Lib_: contains libraries used by the components of the OS repository,
-  in particular the device-driver kit, the alarm framework, and support
-  for dynamic linking.
+  for example, the alarm framework.
