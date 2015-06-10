@@ -192,6 +192,8 @@ struct Rom::Module : Module_list::Element
 		}
 
 		size_t size() const { return _size; }
+
+		Name name() const { return _name; }
 };
 
 #endif /* _ROM_MODULE_ */

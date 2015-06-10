@@ -22,3 +22,6 @@ client obtains the data from the report client with the label specified in the
 'report' attribute. In the example above, the nitpicker GUI server sends
 reports about the pointer position to the report-ROM service. Those reports
 are handed out to a window decorator (labeled "decorator") as ROM module.
+
+The component can be configured to write all incoming reports to the LOG
+output by setting the 'verbose' attribute of the '<config>' node to "yes".

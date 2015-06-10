@@ -50,7 +50,16 @@ struct Server::Main
 
 	Xml_node rom_config = _rom_config_node();
 
-	Report::Root report_root = { ep, sliced_heap, rom_registry };
+	bool _verbose_config()
+	{
+		char const *attr = "verbose";
+		return Genode::config()->xml_node().has_attribute(attr)
+		    && Genode::config()->xml_node().attribute(attr).has_value("yes");
+	}
+
+	bool verbose = _verbose_config();
+
+	Report::Root report_root = { ep, sliced_heap, rom_registry, verbose };
 	Rom   ::Root    rom_root = { ep, sliced_heap, rom_registry, rom_config};
 
 	Main(Entrypoint &ep) : ep(ep)
