@@ -156,13 +156,22 @@ struct Rom::Module : Module_list::Element
 		{
 			_size = 0;
 
-			/* realloc backing store if needed */
-			if (!_ds.is_constructed() || _ds->size() < src_len)
-				_ds.construct(Genode::env()->ram_session(), src_len);
+			/*
+			 * Realloc backing store if needed
+			 *
+			 * Take a terminating zero into account, which we append to each
+			 * report. This way, we do not need to trust report clients to
+			 * append a zero termination to textual reports.
+			 */
+			if (!_ds.is_constructed() || _ds->size() < (src_len + 1))
+				_ds.construct(Genode::env()->ram_session(), (src_len + 1));
 
 			/* copy content into backing store */
 			_size = src_len;
 			Genode::memcpy(_ds->local_addr<char>(), src, _size);
+
+			/* append zero termination */
+			_ds->local_addr<char>()[src_len] = 0;
 
 			/* notify ROM clients that access the module */
 			for (Reader const *r = _readers.first(); r; r = r->next())
