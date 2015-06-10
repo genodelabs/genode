@@ -661,6 +661,8 @@ namespace Platform {
 			{
 				using namespace Genode;
 
+				Config_access config_access;
+
 				try {
 					Xml_node xml_acpi(acpi_rom);
 					if (!xml_acpi.has_type("acpi"))
@@ -711,7 +713,31 @@ namespace Platform {
 							node.attribute("device").value(&device);
 							node.attribute("device_pin").value(&device_pin);
 
-							Irq_routing::list()->insert(new (env()->heap()) Irq_routing(gsi, bridge_bdf, device, device_pin));
+							/* check that bridge bdf is actually a valid device */
+							Device_config config((bridge_bdf >> 8 & 0xff),
+							                     (bridge_bdf >> 3) & 0x1f,
+							                      bridge_bdf & 0x7,
+							                     &config_access);
+
+							if (config.valid()) {
+								if (!config.is_pci_bridge() && bridge_bdf != 0)
+									/**
+									 * If the bridge bdf has not a type header
+									 * of a bridge in the pci config space,
+									 * then it should be the host bridge
+									 * device. The host bridge device need not
+									 * to be necessarily at 0:0.0, it may be
+									 * on another location. The irq routing
+									 * information for the host bridge however
+									 * contain entries for the bridge bdf to be
+									 * 0:0.0 - therefore we override it here
+									 * for the irq rerouting information of
+									 * host bridge devices.
+									 */
+									bridge_bdf = 0;
+
+								Irq_routing::list()->insert(new (env()->heap()) Irq_routing(gsi, bridge_bdf, device, device_pin));
+							}
 						}
 					}
 				} catch (...) {
