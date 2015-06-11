@@ -4,7 +4,7 @@
 # \date   2011-05-27
 #
 
-if {[have_spec hw_odroid_xu]} {
+if {[have_spec hw_odroid_xu] || [have_spec hw_zynq]} {
 	puts "Run script does not support this platform."
 	exit 0
 }
