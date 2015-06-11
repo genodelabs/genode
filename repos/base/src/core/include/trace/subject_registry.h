@@ -236,7 +236,21 @@ class Genode::Trace::Subject
 
 		Subject_info info()
 		{
-			return Subject_info(_label, _name, _state(), _policy_id);
+			Execution_time execution_time;
+			Affinity::Location affinity;
+
+			{
+				Locked_ptr<Source> source(_source);
+
+				if (source.is_valid()) {
+					Trace::Source::Info const info = source->info();
+					execution_time = info.execution_time;
+					affinity       = info.affinity;
+				}
+			}
+
+			return Subject_info(_label, _name, _state(), _policy_id,
+			                    execution_time, affinity);
 		}
 
 		Dataspace_capability buffer() const { return _buffer.dataspace(); }

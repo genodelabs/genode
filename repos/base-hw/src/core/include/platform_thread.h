@@ -178,6 +178,11 @@ namespace Genode {
 			 */
 			Weak_ptr<Address_space> address_space();
 
+			/**
+			 * Return execution time consumed by the thread
+			 */
+			unsigned long long execution_time() const { return 0; }
+
 
 			/***************
 			 ** Accessors **

@@ -126,6 +126,11 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		 */
 		Weak_ptr<Address_space> address_space();
 
+		/**
+		 * Return execution time consumed by the thread
+		 */
+		unsigned long long execution_time() const { return 0; }
+
 
 		/************************
 		 ** Accessor functions **
@@ -151,7 +156,7 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		/**
 		 * Get the executing CPU for this thread
 		 */
-		Affinity::Location affinity() { return Affinity::Location(); }
+		Affinity::Location affinity() const { return Affinity::Location(); }
 
 		/**
 		 * Set CPU quota of the thread

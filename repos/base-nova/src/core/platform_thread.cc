@@ -45,7 +45,7 @@ void Platform_thread::affinity(Affinity::Location location)
 }
 
 
-Affinity::Location Platform_thread::affinity() { return _location; }
+Affinity::Location Platform_thread::affinity() const { return _location; }
 
 
 int Platform_thread::start(void *ip, void *sp)
@@ -292,6 +292,21 @@ unsigned long Platform_thread::pager_object_badge() const
 Weak_ptr<Address_space> Platform_thread::address_space()
 {
 	return _pd->Address_space::weak_ptr();
+}
+
+
+unsigned long long Platform_thread::execution_time() const
+{
+	unsigned long long time = 0;
+
+	/*
+	 * Ignore the return value, which indicates success only for global ECs.
+	 * For local ECs, we simply return 0 as local ECs are executed with the
+	 * time of their callers.
+	 */
+	(void) Nova::sc_ctrl(_sel_sc(), time);
+
+	return time;
 }
 
 

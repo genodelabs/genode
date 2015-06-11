@@ -56,7 +56,7 @@ void Platform_thread::affinity(Affinity::Location location)
 }
 
 
-Affinity::Location Platform_thread::affinity()
+Affinity::Location Platform_thread::affinity() const
 {
 	return _location;
 }

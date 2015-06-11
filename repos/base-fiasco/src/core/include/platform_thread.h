@@ -126,7 +126,7 @@ namespace Genode {
 			/**
 			 * Request the affinity of this thread
 			 */
-			Affinity::Location affinity() { return Affinity::Location(); }
+			Affinity::Location affinity() const { return Affinity::Location(); }
 
 			/**
 			 * Return the address space to which the thread is bound
@@ -154,6 +154,11 @@ namespace Genode {
 			 * Set CPU quota of the thread to 'quota'
 			 */
 			void quota(size_t const quota) { /* not supported*/ }
+
+			/**
+			 * Return execution time consumed by the thread
+			 */
+			unsigned long long execution_time() const { return 0; }
 
 
 			/*******************************

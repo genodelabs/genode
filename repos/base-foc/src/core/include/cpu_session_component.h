@@ -46,7 +46,8 @@ namespace Genode {
 
 
 	class Cpu_thread_component : public Rpc_object<Cpu_thread>,
-	                             public List<Cpu_thread_component>::Element
+	                             public List<Cpu_thread_component>::Element,
+	                             public Trace::Source::Info_accessor
 	{
 		public:
 
@@ -55,6 +56,7 @@ namespace Genode {
 
 		private:
 
+			Session_label       const _session_label;
 			Thread_name         const _name;
 			Platform_thread           _platform_thread;
 			bool                      _bound;            /* pd binding flag */
@@ -73,12 +75,24 @@ namespace Genode {
 			                     unsigned trace_control_index,
 			                     Trace::Control &trace_control)
 			:
-				_name(name),
+				_session_label(label), _name(name),
 				_platform_thread(name.string(), priority, utcb), _bound(false),
 				_sigh(sigh), _trace_control_index(trace_control_index),
-				_trace_source(label, _name, trace_control)
+				_trace_source(*this, trace_control)
 			{
 				update_exception_sigh();
+			}
+
+
+			/********************************************
+			 ** Trace::Source::Info_accessor interface **
+			 ********************************************/
+
+			Trace::Source::Info trace_source_info() const
+			{
+				return { _session_label, _name,
+				         _platform_thread.execution_time(),
+				         _platform_thread.affinity() };
 			}
 
 
@@ -228,7 +242,7 @@ namespace Genode {
 			Dataspace_capability trace_buffer(Thread_capability);
 			Dataspace_capability trace_policy(Thread_capability);
 			int ref_account(Cpu_session_capability c);
-			int transfer_quota(Cpu_session_capability c, size_t q);
+			int transfer_quota(Cpu_session_capability, size_t);
 			Quota quota() override;
 
 

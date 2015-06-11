@@ -43,25 +43,40 @@ class Genode::Trace::Source
 	public Genode::Weak_object<Genode::Trace::Source>,
 	public Genode::List<Genode::Trace::Source>::Element
 {
+	public:
+
+		struct Info
+		{
+			Session_label      label;
+			Thread_name        name;
+			Execution_time     execution_time;
+			Affinity::Location affinity;
+		};
+
+		/**
+		 * Interface for querying trace-source information
+		 */
+		struct Info_accessor
+		{
+			virtual Info trace_source_info() const = 0;
+		};
+
 	private:
 
 		unsigned      const  _unique_id;
-		Session_label const &_label;
-		Thread_name   const  _name;
+		Info_accessor const &_info;
 		Control             &_control;
 		Dataspace_capability _policy;
 		Dataspace_capability _buffer;
-		Source_owner  const *_owner;
+		Source_owner  const *_owner = nullptr;
 
 		static unsigned _alloc_unique_id();
 
 	public:
 
-		Source(Session_label const &label, Thread_name const &name,
-		       Control &control)
+		Source(Info_accessor const &info, Control &control)
 		:
-			_unique_id(_alloc_unique_id()),
-			_label(label), _name(name), _control(control), _owner(0)
+			_unique_id(_alloc_unique_id()), _info(info), _control(control)
 		{ }
 
 
@@ -69,8 +84,7 @@ class Genode::Trace::Source
 		 ** Interface used by TRACE service **
 		 *************************************/
 
-		Session_label const &label() const { return _label; }
-		Thread_name   const &name()  const { return _name; }
+		Info const info() const { return _info.trace_source_info(); }
 
 		void trace(Dataspace_capability policy, Dataspace_capability buffer)
 		{
@@ -153,8 +167,10 @@ class Genode::Trace::Source_registry
 		void export_sources(TEST &test, INSERT &insert)
 		{
 			for (Source *s = _entries.first(); s; s = s->next())
-				if (!test(s->unique_id()))
-					insert(s->unique_id(), s->weak_ptr(), s->label(), s->name());
+				if (!test(s->unique_id())) {
+					Source::Info const info = s->info();
+					insert(s->unique_id(), s->weak_ptr(), info.label, info.name);
+				}
 		}
 
 };

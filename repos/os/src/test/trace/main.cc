@@ -184,12 +184,13 @@ int main(int argc, char **argv)
 		for (size_t i = 0; i < num_subjects; i++) {
 
 			Trace::Subject_info info = trace.subject_info(subjects[i]);
-			printf("ID:%d label:\"%s\" name:\"%s\" state:%s policy:%d\n",
+			printf("ID:%d label:\"%s\" name:\"%s\" state:%s policy:%d time:%lld\n",
 			       subjects[i].id,
 			       info.session_label().string(),
 			       info.thread_name().string(),
 			       state_name(info.state()),
-			       info.policy_id().id);
+			       info.policy_id().id,
+			       info.execution_time().value);
 
 			/* enable tracing */
 			if (!policy_set
