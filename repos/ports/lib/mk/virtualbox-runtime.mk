@@ -156,3 +156,8 @@ errmsgdata.h: $(VIRTUALBOX_DIR)/include/iprt/err.h \
 	$(MSG_CONVERT)$@
 	$(VERBOSE)sed -f $(VBOX_DIR)/Runtime/common/err/errmsg.sed $^ > $@
 
+SRC_CC += Runtime/common/err/errmsgxpcom.cpp
+Runtime/common/err/errmsgxpcom.o: errmsgvboxcomdata.h
+
+errmsgvboxcomdata.h:
+	touch $@
