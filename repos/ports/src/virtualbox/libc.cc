@@ -106,7 +106,7 @@ extern "C" char *getenv(const char *name)
 
 	if (Genode::strcmp(name, "VBOX_LOG") == 0 ||
 	    Genode::strcmp(name, "VBOX_RELEASE_LOG") == 0) 
-		return (char *)"+rem_dias.e.l.f"
+		return (char *)"+rem_disas.e.l.f"
 		               "+rem_printf.e.l.f"
 //		               "+rem_run.e.l.f"
 //		               "+pgm.e.l.f"
