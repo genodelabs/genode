@@ -24,8 +24,6 @@ void name(void) { \
 	while (1) { Assert(!"not implemented"); } \
 }
 
-DUMMY(RTErrCOMGet)
-
 DUMMY(DBGFR3CoreWrite)
 DUMMY(DBGCRegisterCommands)
 DUMMY(DBGFR3EventAssertion)
