@@ -57,6 +57,9 @@ proc run_power_on { } {
 		append qemu_args " -m 512 "
 	}
 
+	# add devices for specific platforms
+	if {[have_spec platform_zynq] && [have_spec cadence_gem]} { append qemu_args " -net nic,model=cadence_gem" }
+
 	# on x86, we support booting via pxe or iso/disk image
 	if {[have_spec x86]} {
 		if {[have_include "load/tftp"]} {
