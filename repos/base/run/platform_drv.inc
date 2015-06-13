@@ -32,7 +32,8 @@ proc platform_drv_policy {} {
 			<policy label="fb_drv">   <pci class="VGA"/> </policy>
 			<policy label="wifi_drv"> <pci class="WIFI"/> </policy>
 			<policy label="usb_drv">  <pci class="USB"/> </policy>
-			<policy label="ahci_drv"> <pci class="AHCI"/> </policy>}
+			<policy label="ahci_drv"> <pci class="AHCI"/> </policy>
+			<policy label="audio_out_drv"> <pci class="AUDIO"/> <pci class="HDAUDIO"/> </policy>}
 	} else {
 		return {}
 	}
