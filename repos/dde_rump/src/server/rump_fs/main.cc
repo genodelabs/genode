@@ -313,9 +313,40 @@ class File_system::Session_component : public Session_rpc_object
 			file->truncate(size);
 		}
 
-		void move(Dir_handle, Name const &, Dir_handle, Name const &)
+		void move(Dir_handle from_dir_handle, Name const &from_name,
+		          Dir_handle   to_dir_handle, Name const   &to_name)
 		{
-			PERR("%s not implemented", __func__);
+			if (!_writable)
+				throw Permission_denied();
+
+			char const *from_str = from_name.string();
+			char const   *to_str =   to_name.string();
+
+			if (!(valid_name(from_str) && valid_name(to_str)))
+				throw Lookup_failed();
+
+			Directory *from_dir = _handle_registry.lookup(from_dir_handle);
+			Directory   *to_dir = _handle_registry.lookup(  to_dir_handle);
+
+			if (rump_sys_renameat(from_dir->fd(), from_str,
+			                        to_dir->fd(),   to_str) == 0) {
+				from_dir->mark_as_updated();
+				from_dir->notify_listeners();
+				if (!_handle_registry.refer_to_same_node(from_dir_handle,
+				                                         to_dir_handle)) {
+					to_dir->mark_as_updated();
+					to_dir->notify_listeners();
+				}
+
+				return;
+			}
+
+			switch (errno) {
+			case ENOTEMPTY: throw Node_already_exists();
+			}
+
+			PWRN("renameat produced unhandled error");
+			throw Permission_denied();
 		}
 
 		void sigh(Node_handle node_handle, Signal_context_capability sigh)
