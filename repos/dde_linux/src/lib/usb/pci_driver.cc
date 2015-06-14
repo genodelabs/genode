@@ -95,6 +95,15 @@ class Io_port
 
 
 /**
+ * Virtual IRQ number (monotonically increasing)
+ */
+static unsigned virq_num()
+{
+	static unsigned instance = 128;
+	return ++instance;
+}
+
+/**
  * Scan PCI bus and probe for HCDs
  */
 class Pci_driver : public Genode::List<Pci_driver>::Element
@@ -139,8 +148,15 @@ class Pci_driver : public Genode::List<Pci_driver>::Element
 			_dev->dev.dma_mask = &dma_mask;
 			_dev->dev.coherent_dma_mask = ~0;
 
-			/* read interrupt line */
-			_dev->irq          = client.config_read(IRQ, Device::ACCESS_8BIT);
+			/*
+			 * We initialize the IRQ line with a virtual number to ensure that
+			 * each device gets a unique number and, hence, requests its
+			 * associated IRQ capability at the platform driver. Consequently,
+			 * we give a away the questionable option to implement IRQ sharing
+			 * locally and leave it to the platform driver, which just uses
+			 * signalling anyway.
+			 */
+			_dev->irq = virq_num();
 
 			/* hide ourselfs in  bus structure */
 			_dev->bus          = (struct pci_bus *)this;
