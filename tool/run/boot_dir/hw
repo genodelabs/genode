@@ -139,6 +139,7 @@ proc run_boot_dir {binaries} {
 		exit -1
 	}
 	clean_boot_modules
+	exec mv [run_dir]/genode/config [run_dir]/config
 	exec rm -rf "[run_dir]/genode"
 
 	# offer ELF image
