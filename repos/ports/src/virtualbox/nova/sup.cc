@@ -61,10 +61,14 @@ void SUPR3QueryHWACCLonGenodeSupport(VM * pVM)
 		pVM->hm.s.svm.fSupported = hip->has_feature_svm();
 		pVM->hm.s.vmx.fSupported = hip->has_feature_vmx();
 
-		PINF("support svm %u vmx %u", hip->has_feature_svm(), hip->has_feature_vmx());
-	} catch (...) {
-		PWRN("No hardware acceleration available - execution will be slow!");
-	} /* if we get an exception let hardware support off */
+		if (hip->has_feature_svm() || hip->has_feature_vmx()) {
+			PINF("Using %s virtualization extension.",
+			     hip->has_feature_svm() ? "SVM" : "VMX");
+			return;
+		}
+	} catch (...) { /* if we get an exception let hardware support off */ }
+
+	PWRN("No virtualization hardware acceleration available");
 }
 
 
@@ -116,7 +120,8 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned
 		return VINF_SUCCESS;
 
 	case VMMR0_DO_GVMM_SCHED_POKE:
-		vcpu_handler->recall();
+		if (vcpu_handler)
+			vcpu_handler->recall();
 		return VINF_SUCCESS;
 
 	default:
