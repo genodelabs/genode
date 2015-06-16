@@ -23,6 +23,8 @@
 #include <platform.h>
 #include <nova_util.h>
 #include <util.h>
+#include <trace/source_registry.h>
+#include <base/snprintf.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>
@@ -630,6 +632,43 @@ Platform::Platform() :
 */
 
 		index = range->base() + range->elements();
+	}
+
+	/* add idle ECs to trace sources */
+	for (unsigned i = 0; i < hip->cpus(); i++) {
+
+		struct Idle_trace_source : Trace::Source::Info_accessor, Trace::Control,
+		                           Trace::Source
+		{
+			Affinity::Location const affinity;
+			unsigned           const sc_sel;
+
+			/**
+			 * Trace::Source::Info_accessor interface
+			 */
+			Info trace_source_info() const override
+			{
+				char name[32];
+				snprintf(name, sizeof(name), "idle%d", affinity.xpos());
+
+				uint64_t execution_time = 0;
+				Nova::sc_ctrl(sc_sel, execution_time);
+
+				return { Trace::Session_label("kernel"), Trace::Thread_name(name),
+				         Trace::Execution_time(execution_time), affinity };
+			}
+
+			Idle_trace_source(Affinity::Location affinity, unsigned sc_sel)
+			:
+				Trace::Source(*this, *this), affinity(affinity), sc_sel(sc_sel)
+			{ }
+		};
+
+		Idle_trace_source *source = new (core_mem_alloc())
+			Idle_trace_source(Affinity::Location(i, 0, hip->cpus(), 1),
+			                  sc_idle_base + i);
+
+		Trace::sources().insert(source);
 	}
 }
 

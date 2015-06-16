@@ -27,6 +27,11 @@ namespace Genode { namespace Trace {
 	class Source;
 	class Source_owner;
 	class Source_registry;
+
+	/**
+	 * Return singleton instance of trace-source registry
+	 */
+	Source_registry &sources();
 } }
 
 

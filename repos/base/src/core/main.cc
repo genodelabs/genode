@@ -169,6 +169,17 @@ class Core_child : public Child_policy
 };
 
 
+/*******************
+ ** Trace support **
+ *******************/
+
+Trace::Source_registry &Trace::sources()
+{
+	static Trace::Source_registry inst;
+	return inst;
+}
+
+
 /***************
  ** Core main **
  ***************/
@@ -189,7 +200,6 @@ int main()
 
 	PDBG("--- create local services ---");
 
-	static Trace::Source_registry trace_sources;
 	static Trace::Policy_registry trace_policies;
 
 	/*
@@ -219,14 +229,14 @@ int main()
 	static Rm_root      rm_root      (e, e, e, &sliced_heap, core_env()->cap_session(),
 	                                  platform()->vm_start(), platform()->vm_size());
 	static Cpu_root     cpu_root     (e, e, rm_root.pager_ep(), &sliced_heap,
-	                                  trace_sources);
+	                                  Trace::sources());
 	static Pd_root      pd_root      (e, e, &sliced_heap);
 	static Log_root     log_root     (e, &sliced_heap);
 	static Io_mem_root  io_mem_root  (e, e, platform()->io_mem_alloc(),
 	                                  platform()->ram_alloc(), &sliced_heap);
 	static Irq_root     irq_root     (core_env()->cap_session(),
 	                                  platform()->irq_alloc(), &sliced_heap);
-	static Trace::Root  trace_root   (e, &sliced_heap, trace_sources, trace_policies);
+	static Trace::Root  trace_root   (e, &sliced_heap, Trace::sources(), trace_policies);
 
 	/*
 	 * Play our role as parent of init and declare our services.
@@ -269,7 +279,7 @@ int main()
 
 	/* create CPU session for init and transfer all of the CPU quota to it */
 	static Cpu_session_component
-		cpu(e, e, rm_root.pager_ep(), &sliced_heap, trace_sources,
+		cpu(e, e, rm_root.pager_ep(), &sliced_heap, Trace::sources(),
 		    "label=\"core\"", Affinity(), Cpu_session::QUOTA_LIMIT);
 	Cpu_session_capability cpu_cap = core_env()->entrypoint()->manage(&cpu);
 	Cpu_connection init_cpu("init");
