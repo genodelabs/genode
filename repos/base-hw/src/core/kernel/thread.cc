@@ -19,6 +19,7 @@
 #include <util/construct_at.h>
 
 /* core includes */
+#include <assert.h>
 #include <kernel/kernel.h>
 #include <kernel/thread.h>
 #include <kernel/irq.h>

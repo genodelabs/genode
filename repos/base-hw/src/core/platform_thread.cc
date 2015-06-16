@@ -13,6 +13,7 @@
  */
 
 /* core includes */
+#include <assert.h>
 #include <platform_thread.h>
 #include <platform_pd.h>
 #include <core_env.h>

@@ -16,12 +16,11 @@
 #define _KERNEL__PD_H_
 
 /* core includes */
-#include <kernel/early_translations.h>
+#include <translation_table.h>
 #include <kernel/cpu.h>
 #include <kernel/object.h>
 
 namespace Genode {
-	class Page_slab;
 	class Platform_pd;
 }
 
@@ -56,13 +55,15 @@ class Kernel::Mode_transition_control
 
 	private:
 
-		typedef Early_translations_allocator Allocator;
-		typedef Early_translations_slab      Slab;
-		typedef Genode::Translation_table    Table;
-		typedef Genode::Page_flags           Page_flags;
+		/*
+		 * set the table allocator to the current minimum of bits-of-one-mword
+		 * this is a limitation of the Bit_allocator used within this allocator.
+		 * actually only one page-mapping is needed by the MTC allocator
+		 */
+		typedef Genode::Translation_table_allocator_tpl<64> Allocator;
+		typedef Genode::Translation_table  Table;
 
-		Allocator   _allocator;
-		Slab        _slab;
+		Allocator   _alloc;
 		Table       _table;
 		Cpu_context _master;
 
@@ -100,11 +101,11 @@ class Kernel::Mode_transition_control
 		/**
 		 * Map the mode transition page to a virtual address space
 		 *
-		 * \param tt   translation buffer of the address space
-		 * \param ram  RAM donation for mapping (first try without)
+		 * \param tt     translation buffer of the address space
+		 * \param alloc  translation table allocator used for the mapping
 		 */
 		void map(Genode::Translation_table * tt,
-		         Genode::Page_slab         * alloc);
+		         Genode::Translation_table_allocator * alloc);
 
 		/**
 		 * Continue execution of client context

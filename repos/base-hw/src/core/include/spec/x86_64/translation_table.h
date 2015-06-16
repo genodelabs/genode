@@ -22,7 +22,7 @@
 
 /* base-hw includes */
 #include <page_flags.h>
-#include <page_slab.h>
+#include <translation_table_allocator.h>
 
 namespace Genode
 {
@@ -152,11 +152,12 @@ class Genode::Level_4_translation_table
 
 		struct Insert_func
 		{
-			Page_flags const & flags;
-			Page_slab        * slab;
+			Page_flags const    & flags;
+			Translation_table_allocator * alloc;
 
 			Insert_func(Page_flags const & flags,
-			            Page_slab * slab) : flags(flags), slab(slab) { }
+			            Translation_table_allocator * alloc)
+			: flags(flags), alloc(alloc) { }
 
 			void operator () (addr_t const vo, addr_t const pa,
 			                  size_t const size,
@@ -181,9 +182,9 @@ class Genode::Level_4_translation_table
 
 		struct Remove_func
 		{
-				Page_slab * slab;
+				Translation_table_allocator * alloc;
 
-				Remove_func(Page_slab * slab) : slab(slab) { }
+				Remove_func(Translation_table_allocator * alloc) : alloc(alloc) { }
 
 				void operator () (addr_t const vo, addr_t const pa,
 				                  size_t const size,
@@ -247,12 +248,13 @@ class Genode::Level_4_translation_table
 		 * \param pa     base of the physical backing store
 		 * \param size   size of the translated region
 		 * \param flags  mapping flags
-		 * \param slab   second level page slab allocator
+		 * \param alloc  second level translation table allocator
 		 */
 		void insert_translation(addr_t vo, addr_t pa, size_t size,
-		                        Page_flags const & flags, Page_slab * slab)
+		                        Page_flags const & flags,
+		                        Translation_table_allocator * alloc)
 		{
-			this->_range_op(vo, pa, size, Insert_func(flags, slab));
+			this->_range_op(vo, pa, size, Insert_func(flags, alloc));
 		}
 
 		/**
@@ -260,11 +262,12 @@ class Genode::Level_4_translation_table
 		 *
 		 * \param vo    region offset within the tables virtual region
 		 * \param size  region size
-		 * \param slab  second level page slab allocator
+		 * \param alloc second level translation table allocator
 		 */
-		void remove_translation(addr_t vo, size_t size, Page_slab * slab)
+		void remove_translation(addr_t vo, size_t size,
+		                        Translation_table_allocator * alloc)
 		{
-			this->_range_op(vo, 0, size, Remove_func(slab));
+			this->_range_op(vo, 0, size, Remove_func(alloc));
 		}
 } __attribute__((aligned(1 << ALIGNM_LOG2)));
 
@@ -355,11 +358,12 @@ class Genode::Page_directory
 
 		struct Insert_func
 		{
-			Page_flags const & flags;
-			Page_slab        * slab;
+			Page_flags const    & flags;
+			Translation_table_allocator * alloc;
 
 			Insert_func(Page_flags const & flags,
-			            Page_slab * slab) : flags(flags), slab(slab) { }
+			            Translation_table_allocator * alloc)
+			: flags(flags), alloc(alloc) { }
 
 			void operator () (addr_t const vo, addr_t const pa,
 			                  size_t const size,
@@ -385,12 +389,12 @@ class Genode::Page_directory
 				/* we need to use a next level table */
 				ENTRY *table;
 				if (!Base_descriptor::present(desc)) {
-					if (!slab)
+					if (!alloc)
 						throw Allocator::Out_of_memory();
 
 					/* create and link next level table */
-					table = new (slab) ENTRY();
-					ENTRY * phys_addr = (ENTRY*) slab->phys_addr(table);
+					table = new (alloc) ENTRY();
+					ENTRY * phys_addr = (ENTRY*) alloc->phys_addr(table);
 					addr_t const pa = (addr_t)(phys_addr ? phys_addr : table);
 					desc = (typename Base_descriptor::access_t)
 						Table_descriptor::create(flags, pa);
@@ -401,21 +405,21 @@ class Genode::Page_directory
 					Base_descriptor::merge_access_rights(desc, flags);
 					ENTRY * phys_addr = (ENTRY*)
 						Table_descriptor::Pa::masked(desc);
-					table = (ENTRY*) slab->virt_addr(phys_addr);
+					table = (ENTRY*) alloc->virt_addr(phys_addr);
 					table = table ? table : (ENTRY*)phys_addr;
 				}
 
 				/* insert translation */
 				table->insert_translation(vo - (vo & PAGE_MASK),
-			                          pa, size, flags, slab);
+			                          pa, size, flags, alloc);
 			}
 		};
 
 		struct Remove_func
 		{
-				Page_slab * slab;
+				Translation_table_allocator * alloc;
 
-				Remove_func(Page_slab * slab) : slab(slab) { }
+				Remove_func(Translation_table_allocator * alloc) : alloc(alloc) { }
 
 				void operator () (addr_t const vo, addr_t const pa,
 				                  size_t const size,
@@ -428,12 +432,12 @@ class Genode::Page_directory
 							/* use allocator to retrieve virt address of table */
 							ENTRY* phys_addr = (ENTRY*)
 								Table_descriptor::Pa::masked(desc);
-							ENTRY* table = (ENTRY*) slab->virt_addr(phys_addr);
+							ENTRY* table = (ENTRY*) alloc->virt_addr(phys_addr);
 							table = table ? table : (ENTRY*)phys_addr;
 							addr_t const table_vo = vo - (vo & PAGE_MASK);
-							table->remove_translation(table_vo, size, slab);
+							table->remove_translation(table_vo, size, alloc);
 							if (table->empty()) {
-								destroy(slab, table);
+								destroy(alloc, table);
 								desc = 0;
 							}
 						}
@@ -494,12 +498,13 @@ class Genode::Page_directory
 		 * \param pa     base of the physical backing store
 		 * \param size   size of the translated region
 		 * \param flags  mapping flags
-		 * \param slab   second level page slab allocator
+		 * \param alloc  second level translation table allocator
 		 */
 		void insert_translation(addr_t vo, addr_t pa, size_t size,
-		                        Page_flags const & flags, Page_slab * slab)
+		                        Page_flags const & flags,
+		                        Translation_table_allocator * alloc)
 		{
-			_range_op(vo, pa, size, Insert_func(flags, slab));
+			_range_op(vo, pa, size, Insert_func(flags, alloc));
 		}
 
 		/**
@@ -507,11 +512,12 @@ class Genode::Page_directory
 		 *
 		 * \param vo    region offset within the tables virtual region
 		 * \param size  region size
-		 * \param slab  second level page slab allocator
+		 * \param alloc second level translation table allocator
 		 */
-		void remove_translation(addr_t vo, size_t size, Page_slab * slab)
+		void remove_translation(addr_t vo, size_t size,
+		                        Translation_table_allocator * alloc)
 		{
-			_range_op(vo, 0, size, Remove_func(slab));
+			_range_op(vo, 0, size, Remove_func(alloc));
 		}
 } __attribute__((aligned(1 << ALIGNM_LOG2)));
 
@@ -547,11 +553,12 @@ class Genode::Pml4_table
 
 		struct Insert_func
 		{
-				Page_flags const & flags;
-				Page_slab        * slab;
+				Page_flags const    & flags;
+				Translation_table_allocator * alloc;
 
 				Insert_func(Page_flags const & flags,
-				            Page_slab * slab) : flags(flags), slab(slab) { }
+				            Translation_table_allocator * alloc)
+				: flags(flags), alloc(alloc) { }
 
 				void operator () (addr_t const vo, addr_t const pa,
 				                  size_t const size,
@@ -560,33 +567,33 @@ class Genode::Pml4_table
 					/* we need to use a next level table */
 					ENTRY *table;
 					if (!Descriptor::present(desc)) {
-						if (!slab)
+						if (!alloc)
 							throw Allocator::Out_of_memory();
 
 						/* create and link next level table */
-						table = new (slab) ENTRY();
-						ENTRY * phys_addr = (ENTRY*) slab->phys_addr(table);
+						table = new (alloc) ENTRY();
+						ENTRY * phys_addr = (ENTRY*) alloc->phys_addr(table);
 						addr_t const pa = (addr_t)(phys_addr ? phys_addr : table);
 						desc = Descriptor::create(flags, pa);
 					} else {
 						Descriptor::merge_access_rights(desc, flags);
 						ENTRY * phys_addr = (ENTRY*)
 							Descriptor::Pa::masked(desc);
-						table = (ENTRY*) slab->virt_addr(phys_addr);
+						table = (ENTRY*) alloc->virt_addr(phys_addr);
 						table = table ? table : (ENTRY*)phys_addr;
 					}
 
 					/* insert translation */
 					addr_t const table_vo = vo - (vo & PAGE_MASK);
-					table->insert_translation(table_vo, pa, size, flags, slab);
+					table->insert_translation(table_vo, pa, size, flags, alloc);
 				}
 		};
 
 		struct Remove_func
 		{
-				Page_slab * slab;
+				Translation_table_allocator * alloc;
 
-				Remove_func(Page_slab * slab) : slab(slab) { }
+				Remove_func(Translation_table_allocator * alloc) : alloc(alloc) { }
 
 				void operator () (addr_t const vo, addr_t const pa,
 				                  size_t const size,
@@ -596,12 +603,12 @@ class Genode::Pml4_table
 						/* use allocator to retrieve virt address of table */
 						ENTRY* phys_addr = (ENTRY*)
 							Descriptor::Pa::masked(desc);
-						ENTRY* table = (ENTRY*) slab->virt_addr(phys_addr);
+						ENTRY* table = (ENTRY*) alloc->virt_addr(phys_addr);
 						table = table ? table : (ENTRY*)phys_addr;
 						addr_t const table_vo = vo - (vo & PAGE_MASK);
-						table->remove_translation(table_vo, size, slab);
+						table->remove_translation(table_vo, size, alloc);
 						if (table->empty()) {
-							destroy(slab, table);
+							destroy(alloc, table);
 							desc = 0;
 						}
 					}
@@ -660,12 +667,13 @@ class Genode::Pml4_table
 		 * \param pa     base of the physical backing store
 		 * \param size   size of the translated region
 		 * \param flags  mapping flags
-		 * \param slab   second level page slab allocator
+		 * \param alloc  second level translation table allocator
 		 */
 		void insert_translation(addr_t vo, addr_t pa, size_t size,
-		                        Page_flags const & flags,  Page_slab * slab)
+		                        Page_flags const & flags,
+		                        Translation_table_allocator * alloc)
 		{
-			_range_op(vo, pa, size, Insert_func(flags, slab));
+			_range_op(vo, pa, size, Insert_func(flags, alloc));
 		}
 
 		/**
@@ -673,11 +681,12 @@ class Genode::Pml4_table
 		 *
 		 * \param vo    region offset within the tables virtual region
 		 * \param size  region size
-		 * \param slab  second level page slab allocator
+		 * \param alloc second level translation table allocator
 		 */
-		void remove_translation(addr_t vo, size_t size, Page_slab * slab)
+		void remove_translation(addr_t vo, size_t size,
+		                        Translation_table_allocator * alloc)
 		{
-			_range_op(vo, 0, size, Remove_func(slab));
+			_range_op(vo, 0, size, Remove_func(alloc));
 		}
 } __attribute__((aligned(1 << ALIGNM_LOG2)));
 

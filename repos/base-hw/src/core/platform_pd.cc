@@ -33,7 +33,7 @@ Core_mem_allocator * Hw::Address_space::_cma() {
 	return static_cast<Core_mem_allocator*>(platform()->core_mem_alloc()); }
 
 
-void * Hw::Address_space::_tt_alloc()
+void * Hw::Address_space::_table_alloc()
 {
 	void * ret;
 	if (!_cma()->alloc_aligned(sizeof(Translation_table), (void**)&ret,
@@ -50,14 +50,12 @@ bool Hw::Address_space::insert_translation(addr_t virt, addr_t phys,
 		for (;;) {
 			try {
 				Lock::Guard guard(_lock);
-				_tt->insert_translation(virt, phys, size, flags, _pslab);
+				_tt->insert_translation(virt, phys, size, flags, _tt_alloc);
 				return true;
-			} catch(Page_slab::Out_of_slabs) {
-				_pslab->alloc_slab_block();
+			} catch(Allocator::Out_of_memory) {
+				flush(platform()->vm_start(), platform()->vm_size());
 			}
 		}
-	} catch(Allocator::Out_of_memory) {
-		PWRN("Translation table needs to much RAM");
 	} catch(...) {
 		PERR("Invalid mapping %p -> %p (%zx)", (void*)phys, (void*)virt, size);
 	}
@@ -70,7 +68,7 @@ void Hw::Address_space::flush(addr_t virt, size_t size)
 	Lock::Guard guard(_lock);
 
 	try {
-		if (_tt) _tt->remove_translation(virt, size, _pslab);
+		if (_tt) _tt->remove_translation(virt, size, _tt_alloc);
 
 		/* update translation caches */
 		Kernel::update_pd(_kernel_pd);
@@ -81,25 +79,25 @@ void Hw::Address_space::flush(addr_t virt, size_t size)
 
 
 Hw::Address_space::Address_space(Kernel::Pd* pd, Translation_table * tt,
-                                 Page_slab * slab)
-: _tt(tt), _tt_phys(tt), _pslab(slab), _kernel_pd(pd) { }
+                                 Translation_table_allocator * tt_alloc)
+: _tt(tt), _tt_phys(tt), _tt_alloc(tt_alloc), _kernel_pd(pd) { }
 
 
 Hw::Address_space::Address_space(Kernel::Pd * pd)
-: _tt(construct_at<Translation_table>(_tt_alloc())),
+: _tt(construct_at<Translation_table>(_table_alloc())),
   _tt_phys(reinterpret_cast<Translation_table*>(_cma()->phys_addr(_tt))),
-  _pslab(new (_cma()) Page_slab(_cma())),
+  _tt_alloc((new (_cma()) Table_allocator(_cma()))->alloc()),
   _kernel_pd(pd)
 {
 	Lock::Guard guard(_lock);
-	Kernel::mtc()->map(_tt, _pslab);
+	Kernel::mtc()->map(_tt, _tt_alloc);
 }
 
 
 Hw::Address_space::~Address_space()
 {
 	flush(platform()->vm_start(), platform()->vm_size());
-	destroy(_cma(), _pslab);
+	destroy(_cma(), Table_allocator::base(_tt_alloc));
 	destroy(_cma(), _tt);
 }
 
@@ -151,8 +149,9 @@ int Platform_pd::assign_parent(Native_capability parent)
 }
 
 
-Platform_pd::Platform_pd(Translation_table * tt, Page_slab * slab)
-: Hw::Address_space(kernel_object(), tt, slab),
+Platform_pd::Platform_pd(Translation_table * tt,
+                         Translation_table_allocator * alloc)
+: Hw::Address_space(kernel_object(), tt, alloc),
   Kernel_object<Kernel::Pd>(false, tt, this),
   _label("core") { }
 
@@ -180,13 +179,19 @@ Translation_table * const Core_platform_pd::_table()
 }
 
 
-Page_slab * const Core_platform_pd::_slab()
+Translation_table_allocator * const Core_platform_pd::_table_alloc()
 {
-	using Slab      = Kernel::Early_translations_slab;
-	using Allocator = Kernel::Early_translations_allocator;
-
-	return unmanaged_singleton<Slab,
-	                           Slab::ALIGN>(unmanaged_singleton<Allocator>());
+	/**
+	 * Core's translation table allocator should contain as much tables
+	 * needed to populate the whole virtual memory available to core.
+	 * By now, we do not cover the limitation of core's virtula memory
+	 * when opening e.g. sessions on behalf of clients. Therefore, for
+	 * the time being the number of tables is set to some reasonable
+	 * high number.
+	 */
+	using Pa = Translation_table_allocator_tpl<1024>;
+	static Pa * pa = unmanaged_singleton<Pa, Pa::ALIGN>();
+	return pa->alloc();
 }
 
 
@@ -199,9 +204,7 @@ void Core_platform_pd::_map(addr_t start, addr_t end, bool io_mem)
 	size_t size  = round_page(end) - start;
 
 	try {
-		_table()->insert_translation(start, start, size, flags, _slab());
-	} catch(Page_slab::Out_of_slabs) {
-		PERR("Not enough page slabs");
+		_table()->insert_translation(start, start, size, flags, _table_alloc());
 	} catch(Allocator::Out_of_memory) {
 		PERR("Translation table needs to much RAM");
 	} catch(...) {
@@ -212,10 +215,10 @@ void Core_platform_pd::_map(addr_t start, addr_t end, bool io_mem)
 
 
 Core_platform_pd::Core_platform_pd()
-: Platform_pd(_table(), _slab())
+: Platform_pd(_table(), _table_alloc())
 {
 	/* map exception vector for core */
-	Kernel::mtc()->map(_table(), _slab());
+	Kernel::mtc()->map(_table(), _table_alloc());
 
 	/* map core's program image */
 	_map((addr_t)&_prog_img_beg, (addr_t)&_prog_img_end, false);

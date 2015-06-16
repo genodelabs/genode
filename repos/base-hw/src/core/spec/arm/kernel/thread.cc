@@ -13,6 +13,7 @@
  */
 
 /* core includes */
+#include <assert.h>
 #include <kernel/thread.h>
 #include <kernel/pd.h>
 #include <kernel/kernel.h>

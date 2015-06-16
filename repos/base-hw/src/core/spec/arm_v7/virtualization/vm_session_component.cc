@@ -39,13 +39,8 @@ void Vm_session_component::_attach(addr_t phys_addr, addr_t vm_addr, size_t size
 	Page_flags pflags = Page_flags::apply_mapping(true, CACHED, false);
 
 	try {
-		for (;;)
-			try {
-				_table->insert_translation(vm_addr, phys_addr, size, pflags, _pslab);
-				return;
-			} catch(Page_slab::Out_of_slabs) {
-				_pslab->alloc_slab_block();
-			}
+		_table->insert_translation(vm_addr, phys_addr, size, pflags, _tt_alloc);
+		return;
 	} catch(Allocator::Out_of_memory) {
 		PERR("Translation table needs to much RAM");
 	} catch(...) {
@@ -73,7 +68,7 @@ void Vm_session_component::attach_pic(addr_t vm_addr)
 
 
 void Vm_session_component::detach(addr_t vm_addr, size_t size) {
-	_table->remove_translation(vm_addr, size, _pslab); }
+	_table->remove_translation(vm_addr, size, _tt_alloc); }
 
 
 Vm_session_component::Vm_session_component(Rpc_entrypoint  *ds_ep,
@@ -94,6 +89,21 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint  *ds_ep,
 		throw Root::Quota_exceeded();
 	}
 
-	_table = construct_at<Translation_table>(tt);
-	_pslab = new (cma) Page_slab(cma);
+	_table    = construct_at<Translation_table>(tt);
+	_tt_alloc = (new (cma) Table_allocator(cma))->alloc();
+}
+
+
+Vm_session_component::~Vm_session_component()
+{
+	/* dissolve VM dataspace from service entry point */
+	_ds_ep->dissolve(&_ds);
+
+	/* free region in allocator */
+	core_env()->rm_session()->detach(_ds.core_local_addr());
+	platform()->ram_alloc()->free((void*)_ds.phys_addr());
+
+	/* free guest-to-host page tables */
+	destroy(platform()->core_mem_alloc(), _table);
+	destroy(platform()->core_mem_alloc(), Table_allocator::base(_tt_alloc));
 }

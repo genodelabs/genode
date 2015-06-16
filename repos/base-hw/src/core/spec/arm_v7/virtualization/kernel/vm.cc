@@ -11,6 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <assert.h>
 #include <platform_pd.h>
 #include <kernel/vm.h>
 

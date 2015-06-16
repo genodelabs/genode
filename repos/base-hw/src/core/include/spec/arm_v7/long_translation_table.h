@@ -21,7 +21,7 @@
 
 /* base-hw includes */
 #include <page_flags.h>
-#include <page_slab.h>
+#include <translation_table_allocator.h>
 
 namespace Genode
 {
@@ -324,11 +324,12 @@ class Genode::Level_3_translation_table :
 
 		struct Insert_func
 		{
-				Page_flags const & flags;
-				Page_slab        * slab;
+				Page_flags const    & flags;
+				Translation_table_allocator * alloc;
 
 				Insert_func(Page_flags const & flags,
-				            Page_slab * slab) : flags(flags), slab(slab) { }
+				            Translation_table_allocator * alloc)
+				: flags(flags), alloc(alloc) { }
 
 				void operator () (addr_t const          vo,
 				                  addr_t const          pa,
@@ -354,9 +355,9 @@ class Genode::Level_3_translation_table :
 
 		struct Remove_func
 		{
-				Page_slab * slab;
+				Translation_table_allocator * alloc;
 
-				Remove_func(Page_slab * slab) : slab(slab) { }
+				Remove_func(Translation_table_allocator * alloc) : alloc(alloc) { }
 
 				void operator () (addr_t const          vo,
 				                  addr_t const          pa,
@@ -371,11 +372,12 @@ class Genode::Level_3_translation_table :
 		                        addr_t pa,
 		                        size_t size,
 		                        Page_flags const & flags,
-		                        Page_slab * slab) {
-			_range_op(vo, pa, size, Insert_func(flags, slab)); }
+		                        Translation_table_allocator * alloc) {
+			_range_op(vo, pa, size, Insert_func(flags, alloc)); }
 
-		void remove_translation(addr_t vo, size_t size, Page_slab * slab) {
-			_range_op(vo, 0, size, Remove_func(slab)); }
+		void remove_translation(addr_t vo, size_t size,
+		                        Translation_table_allocator * alloc) {
+			_range_op(vo, 0, size, Remove_func(alloc)); }
 };
 
 
@@ -392,11 +394,12 @@ class Genode::Level_x_translation_table :
 
 		struct Insert_func
 		{
-			Page_flags const & flags;
-			Page_slab        * slab;
+			Page_flags const    & flags;
+			Translation_table_allocator * alloc;
 
 			Insert_func(Page_flags const & flags,
-			            Page_slab * slab) : flags(flags), slab(slab) { }
+			            Translation_table_allocator * alloc)
+			: flags(flags), alloc(alloc) { }
 
 			void operator () (addr_t const          vo,
 			                  addr_t const          pa,
@@ -420,11 +423,11 @@ class Genode::Level_x_translation_table :
 
 				case Descriptor::INVALID: /* no entry */
 					{
-						if (!slab) throw Allocator::Out_of_memory();
+						if (!alloc) throw Allocator::Out_of_memory();
 
 						/* create and link next level table */
-						table = new (slab) ENTRY();
-						ENTRY * phys_addr = (ENTRY*) slab->phys_addr(table);
+						table = new (alloc) ENTRY();
+						ENTRY * phys_addr = (ENTRY*) alloc->phys_addr(table);
 						desc = Table_descriptor::create(phys_addr ?
 						                                phys_addr : table);
 					}
@@ -434,7 +437,7 @@ class Genode::Level_x_translation_table :
 						/* use allocator to retrieve virt address of table */
 						ENTRY * phys_addr = (ENTRY*)
 							Table_descriptor::Next_table::masked(desc);
-						table = (ENTRY*) slab->virt_addr(phys_addr);
+						table = (ENTRY*) alloc->virt_addr(phys_addr);
 						table = table ? table : (ENTRY*)phys_addr;
 						break;
 					}
@@ -447,16 +450,16 @@ class Genode::Level_x_translation_table :
 
 				/* insert translation */
 				table->insert_translation(vo - (vo & Base::BLOCK_MASK),
-				                          pa, size, flags, slab);
+				                          pa, size, flags, alloc);
 			}
 		};
 
 
 		struct Remove_func
 		{
-			Page_slab * slab;
+			Translation_table_allocator * alloc;
 
-			Remove_func(Page_slab * slab) : slab(slab) { }
+			Remove_func(Translation_table_allocator * alloc) : alloc(alloc) { }
 
 			void operator () (addr_t const                   vo,
 			                  addr_t const                   pa,
@@ -469,13 +472,13 @@ class Genode::Level_x_translation_table :
 						/* use allocator to retrieve virt address of table */
 						ENTRY * phys_addr = (ENTRY*)
 							Table_descriptor::Next_table::masked(desc);
-						ENTRY * table = (ENTRY*) slab->virt_addr(phys_addr);
+						ENTRY * table = (ENTRY*) alloc->virt_addr(phys_addr);
 						table = table ? table : (ENTRY*)phys_addr;
 						table->remove_translation(vo - (vo & Base::BLOCK_MASK),
-						                          size, slab);
+						                          size, alloc);
 						if (!table->empty())
 							break;
-						destroy(slab, table);
+						destroy(alloc, table);
 					}
 				case Descriptor::BLOCK:
 				case Descriptor::INVALID:
@@ -492,30 +495,31 @@ class Genode::Level_x_translation_table :
 		/**
 		 * Insert translations into this table
 		 *
-		 * \param vo           offset of the virtual region represented
-		 *                     by the translation within the virtual
-		 *                     region represented by this table
-		 * \param pa           base of the physical backing store
-		 * \param size         size of the translated region
-		 * \param flags        mapping flags
-		 * \param slab  second level page slab allocator
+		 * \param vo      offset of the virtual region represented
+		 *                by the translation within the virtual
+		 *                region represented by this table
+		 * \param pa      base of the physical backing store
+		 * \param size    size of the translated region
+		 * \param flags   mapping flags
+		 * \param alloc   second level translation table allocator
 		 */
 		void insert_translation(addr_t vo,
 		                        addr_t pa,
 		                        size_t size,
 		                        Page_flags const & flags,
-		                        Page_slab * slab) {
-			this->_range_op(vo, pa, size, Insert_func(flags, slab)); }
+		                        Translation_table_allocator * alloc) {
+			this->_range_op(vo, pa, size, Insert_func(flags, alloc)); }
 
 		/**
 		 * Remove translations that overlap with a given virtual region
 		 *
-		 * \param vo    region offset within the tables virtual region
-		 * \param size  region size
-		 * \param slab  second level page slab allocator
+		 * \param vo     region offset within the tables virtual region
+		 * \param size   region size
+		 * \param alloc  second level translation table allocator
 		 */
-		void remove_translation(addr_t vo, size_t size, Page_slab * slab) {
-			this->_range_op(vo, 0, size, Remove_func(slab)); }
+		void remove_translation(addr_t vo, size_t size,
+		                        Translation_table_allocator * alloc) {
+			this->_range_op(vo, 0, size, Remove_func(alloc)); }
 };
 
 namespace Genode {
