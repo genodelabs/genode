@@ -245,8 +245,12 @@ void GenodeConsole::handle_input(unsigned)
 			}
 		}
 
-		if (is_wheel)
-			_vbox_mouse->PutMouseEvent(0, 0, ev.rx(), ev.ry(), 0);
+		if (is_wheel) {
+			if (_last_received_motion_event_was_absolute)
+				_vbox_mouse->PutMouseEventAbsolute(_ax, _ay, -ev.ry(), -ev.rx(), 0);
+			else
+				_vbox_mouse->PutMouseEvent(0, 0, -ev.ry(), -ev.rx(), 0);
+		}
 
 		if (is_touch) {
 			/* if multitouch queue is full - send it */
