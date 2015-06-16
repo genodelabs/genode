@@ -83,6 +83,11 @@ class Genode::Reporter : Noncopyable
 		Name name() const { return _name; }
 
 		/**
+		 * Clear report buffer
+		 */
+		void clear() { memset(_base(), 0, _size()); }
+
+		/**
 		 * Report data buffer
 		 *
 		 * \param data    data buffer
@@ -116,6 +121,5 @@ class Genode::Reporter : Noncopyable
 			}
 		};
 };
-
 
 #endif /* _INCLUDE__OS__REPORTER_H_ */
