@@ -53,7 +53,6 @@ class Vcpu_handler_vmx : public Vcpu_handler
 			/* from src/VBox/VMM/VMMR0/HWVMXR0.cpp of virtualbox sources  */
 			next_utcb.ctrl[0] = VMX_VMCS_CTRL_PROC_EXEC_HLT_EXIT |
 			                    VMX_VMCS_CTRL_PROC_EXEC_MOV_DR_EXIT |
-			                    VMX_VMCS_CTRL_PROC_EXEC_RDPMC_EXIT |
 			                    VMX_VMCS_CTRL_PROC_EXEC_UNCOND_IO_EXIT |
 /* XXX commented out because TinyCore Linux won't run as guest otherwise
 			                    VMX_VMCS_CTRL_PROC_EXEC_MONITOR_EXIT |
