@@ -129,7 +129,7 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 				 */
 				typedef typename This_rpc_function::Exceptions Exceptions;
 
-				typename This_rpc_function::Ret_type ret;
+				typename This_rpc_function::Ret_type ret { };
 				Rpc_exception_code exc;
 				exc = _do_serve(args, ret, Overload_selector<This_rpc_function, Exceptions>());
 				os << ret;
