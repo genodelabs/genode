@@ -52,3 +52,4 @@ vmm
 bomb
 cpu_quota
 stdcxx
+nic_loopback
