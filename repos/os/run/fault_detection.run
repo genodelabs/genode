@@ -13,8 +13,8 @@ if {[have_spec fiasco]} {
 	#
 	# The L4/Fiasco kernel has known problems with the destruction of threads
 	# that are currently participating in IPC (the "red-thread issue"). The
-	# failsafe test reliably triggers the problem. Since the development of
-	# the kernel has been stopped, however, this issue is expected to remain
+	# fault-detection test reliably triggers the problem. Since the development
+	# of the kernel has been stopped, however, this issue is expected to remain
 	# unresolved. Newer kernels such as Fiasco.OC do not have the problem.
 	#
 	exit 0
@@ -24,7 +24,7 @@ if {[have_spec fiasco]} {
 # Build
 #
 
-build { core init server/loader test/failsafe test/segfault }
+build { core init server/loader test/fault_detection test/segfault }
 
 create_boot_directory
 
@@ -51,7 +51,7 @@ install_config {
 			<resource name="RAM" quantum="10M"/>
 			<provides> <service name="Loader"/> </provides>
 		</start>
-		<start name="test-failsafe">
+		<start name="test-fault_detection">
 			<resource name="RAM" quantum="10M"/>
 		</start>
 	</config>
@@ -62,7 +62,7 @@ install_config {
 #
 
 # generic modules
-set boot_modules { core init loader test-failsafe test-segfault }
+set boot_modules { core init loader test-fault_detection test-segfault }
 
 build_boot_image $boot_modules
 
@@ -72,4 +72,4 @@ build_boot_image $boot_modules
 
 append qemu_args "-nographic -m 64"
 
-run_genode_until "--- finished failsafe test ---.*\n" 30
+run_genode_until "--- finished fault_detection test ---.*\n" 30

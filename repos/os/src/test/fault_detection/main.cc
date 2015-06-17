@@ -1,5 +1,5 @@
 /*
- * \brief  Test program for failsafe monitoring
+ * \brief  Test program for detecting faults
  * \author Norman Feske
  * \date   2013-01-03
  */
@@ -128,7 +128,7 @@ class Test_child : public Genode::Child_policy
 };
 
 
-void failsafe_child_test()
+void faulting_child_test()
 {
 	using namespace Genode;
 
@@ -180,7 +180,7 @@ void failsafe_child_test()
  ** Test for detecting failures in a child started by the loader **
  ******************************************************************/
 
-void failsafe_loader_child_test()
+void faulting_loader_child_test()
 {
 	using namespace Genode;
 
@@ -218,7 +218,7 @@ void failsafe_loader_child_test()
  ** Test for detecting failures in a grandchild started by the loader **
  ***********************************************************************/
 
-void failsafe_loader_grand_child_test()
+void faulting_loader_grand_child_test()
 {
 	using namespace Genode;
 
@@ -289,15 +289,15 @@ int main(int argc, char **argv)
 {
 	using namespace Genode;
 
-	printf("--- failsafe test started ---\n");
+	printf("--- fault_detection test started ---\n");
 
-	failsafe_child_test();
+	faulting_child_test();
 
-	failsafe_loader_child_test();
+	faulting_loader_child_test();
 
-	failsafe_loader_grand_child_test();
+	faulting_loader_grand_child_test();
 
-	printf("--- finished failsafe test ---\n");
+	printf("--- finished fault_detection test ---\n");
 	return 0;
 }
 

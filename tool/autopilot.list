@@ -19,7 +19,7 @@ lx_hybrid_exception
 lx_hybrid_pthread_ipc
 moon
 thread_join
-failsafe
+fault_detection
 netperf_lwip
 netperf_lwip_usb30
 netperf_lwip_bridge
