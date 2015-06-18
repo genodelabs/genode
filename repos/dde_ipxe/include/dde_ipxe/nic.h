@@ -46,6 +46,12 @@ extern void dde_ipxe_nic_register_callbacks(dde_ipxe_nic_rx_cb rx_cb,
                                             dde_ipxe_nic_link_cb link_cb);
 
 /**
+ * Clear callbacks
+ */
+extern void dde_ipxe_nic_unregister_callbacks();
+
+
+/**
  * Send packet
  *
  * \param   if_index    index of the network interface to be used for sending

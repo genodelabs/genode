@@ -53,10 +53,6 @@ namespace Ipxe {
 			       Nic::Driver_notification &notify)
 			: _ep(ep), _alloc(alloc), _notify(notify)
 			{
-				PINF("--- init iPXE NIC");
-				int cnt = dde_ipxe_nic_init(&ep);
-				PINF("    number of devices: %d", cnt);
-
 				PINF("--- init callbacks");
 				dde_ipxe_nic_register_callbacks(_rx_callback, _link_callback);
 
@@ -66,6 +62,8 @@ namespace Ipxe {
 				     _mac_addr.addr[2] & 0xff, _mac_addr.addr[3] & 0xff,
 				     _mac_addr.addr[4] & 0xff, _mac_addr.addr[5] & 0xff);
 			}
+
+			~Driver() { dde_ipxe_nic_unregister_callbacks(); }
 
 			void rx_handler(const char *packet, unsigned packet_len)
 			{
@@ -146,6 +144,11 @@ struct Main
 		root(&ep.rpc_ep(), &sliced_heap, factory)
 	{
 		PINF("--- iPXE NIC driver started ---\n");
+
+		PINF("--- init iPXE NIC");
+		int cnt = dde_ipxe_nic_init(&ep);
+		PINF("    number of devices: %d", cnt);
+
 		Genode::env()->parent()->announce(ep.manage(root));
 	}
 };
