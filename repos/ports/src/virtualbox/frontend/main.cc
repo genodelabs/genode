@@ -228,7 +228,7 @@ int main(int argc, char **argv)
 
 	HRESULT hrc = setupmachine();
 	if (FAILED(hrc)) {
-		PERR("Start-up of VMM failed - reason %d - exiting ...", hrc);
+		PERR("Start-up of VMM failed - reason 0x%x - exiting ...", hrc);
 		return -2;
 	}
 
