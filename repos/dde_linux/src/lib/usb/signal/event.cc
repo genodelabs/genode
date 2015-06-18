@@ -181,8 +181,6 @@ __wait_completion_timeout(struct completion *work, unsigned long timeout)
 {
 	unsigned long _j = jiffies + timeout;
 	while (!work->done) {
-		/* send signal */
-		Event_context::e()->submit();
 		__wait_event();
 
 		if (_j <= jiffies) {
