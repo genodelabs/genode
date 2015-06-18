@@ -180,7 +180,7 @@
  }
  
  
-+void wpa_report_connect_event(struct wpa_ssid *);
++void wpa_report_connect_event(struct wpa_supplicant *);
 +
 +
  /**
@@ -190,7 +190,7 @@
  
  	if (state == WPA_COMPLETED && wpa_s->new_connection) {
  		struct wpa_ssid *ssid = wpa_s->current_ssid;
-+		wpa_report_connect_event(ssid);
++		wpa_report_connect_event(wpa_s);
  #if defined(CONFIG_CTRL_IFACE) || !defined(CONFIG_NO_STDOUT_DEBUG)
  		wpa_msg(wpa_s, MSG_INFO, WPA_EVENT_CONNECTED "- Connection to "
  			MACSTR " completed [id=%d id_str=%s]",
