@@ -2,8 +2,8 @@ LICENSE   := unknown
 VERSION   := 0.11.0
 DOWNLOADS := arora.archive
 
-URL(arora) := http://arora.googlecode.com/files/arora-$(VERSION).tar.gz
-SHA(arora) := 480cfd7482cccbb7ece866fa10afe9acace29b31
+URL(arora) := https://github.com/Arora/arora/archive/$(VERSION).tar.gz
+SHA(arora) := ed54f052bf3212ce612cd81b965148b4c54f4e90
 DIR(arora) := src/app/arora
 
 PATCHES := $(foreach P,$(shell cat $(REP_DIR)/src/app/arora/patches/series),\
