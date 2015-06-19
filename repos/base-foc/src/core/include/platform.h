@@ -19,7 +19,7 @@
 /* Genode includes */
 #include <base/sync_allocator.h>
 #include <base/allocator_avl.h>
-#include <base/pager.h>
+#include <pager.h>
 
 /* Core includes */
 #include <cap_id_alloc.h>

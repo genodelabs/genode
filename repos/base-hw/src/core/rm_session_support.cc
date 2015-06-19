@@ -13,7 +13,7 @@
  */
 
 /* Genode includes */
-#include <base/pager.h>
+#include <pager.h>
 
 /* core includes */
 #include <rm_session_component.h>

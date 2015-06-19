@@ -21,7 +21,7 @@
 #include <base/allocator_guard.h>
 #include <base/tslab.h>
 #include <base/lock.h>
-#include <base/pager.h>
+#include <pager.h>
 #include <base/rpc_server.h>
 #include <nova_cpu_session/nova_cpu_session.h>
 

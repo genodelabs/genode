@@ -16,7 +16,7 @@
 #ifndef _CORE__INCLUDE__LINUX__PLATFORM_THREAD_H_
 #define _CORE__INCLUDE__LINUX__PLATFORM_THREAD_H_
 
-#include <base/pager.h>
+#include <pager.h>
 #include <base/thread_state.h>
 #include <cpu_session/cpu_session.h>
 

@@ -20,7 +20,7 @@
 #include <base/thread_state.h>
 #include <base/native_types.h>
 #include <base/thread.h>
-#include <base/pager.h>
+#include <pager.h>
 
 /* core includes */
 #include <address_space.h>

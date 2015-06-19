@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <base/native_types.h>
-#include <base/pager.h>
+#include <pager.h>
 #include <base/thread_state.h>
 
 /* core includes */

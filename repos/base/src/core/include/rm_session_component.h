@@ -19,7 +19,7 @@
 #include <base/stdint.h>
 #include <base/lock.h>
 #include <base/capability.h>
-#include <base/pager.h>
+#include <pager.h>
 #include <base/allocator_avl.h>
 #include <base/allocator_guard.h>
 #include <base/sync_allocator.h>

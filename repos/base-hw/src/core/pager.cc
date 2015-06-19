@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/pager.h>
+#include <pager.h>
 #include <base/printf.h>
 
 /* core includes*/

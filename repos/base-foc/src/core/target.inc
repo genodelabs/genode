@@ -1,23 +1,25 @@
 TARGET       = core
-REQUIRES     = foc
-
-LD_TEXT_ADDR = 0x500000
+REQUIRES    += foc
 
 GEN_CORE_DIR = $(BASE_DIR)/src/core
 
 LIBS        += base-common
 
-SRC_CC       = cap_session_component.cc \
+SRC_CC      += cap_session_component.cc \
                context_area.cc \
+               core_printf.cc \
                cpu_session_component.cc \
                cpu_session_extension.cc \
                dataspace_component.cc \
                dump_alloc.cc \
                io_mem_session_component.cc \
                io_mem_session_support.cc \
+               ipc_pager.cc \
                irq_session_component.cc \
                main.cc \
                multiboot_info.cc \
+               pager.cc \
+               pager_common.cc \
                pd_session_component.cc \
                pd_session_extension.cc \
                platform.cc \
@@ -31,9 +33,8 @@ SRC_CC       = cap_session_component.cc \
                rom_session_component.cc \
                signal_session_component.cc \
                signal_source_component.cc \
-               trace_session_component.cc \
                thread_start.cc \
-               core_printf.cc
+               trace_session_component.cc
 
 INC_DIR     += $(REP_DIR)/src/core/include \
                $(GEN_CORE_DIR)/include \
@@ -58,6 +59,7 @@ vpath rm_session_component.cc     $(GEN_CORE_DIR)
 vpath rom_session_component.cc    $(GEN_CORE_DIR)
 vpath signal_session_component.cc $(GEN_CORE_DIR)
 vpath trace_session_component.cc  $(GEN_CORE_DIR)
+vpath pager_common.cc             $(GEN_CORE_DIR)
 vpath core_printf.cc              $(BASE_DIR)/src/base/console
 vpath %.cc                        $(REP_DIR)/src/core
 vpath %.cc                        $(REP_DIR)/src/base/thread

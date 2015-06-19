@@ -21,7 +21,7 @@
 #include <base/allocator_guard.h>
 #include <base/tslab.h>
 #include <base/lock.h>
-#include <base/pager.h>
+#include <pager.h>
 #include <base/rpc_server.h>
 #include <foc_cpu_session/foc_cpu_session.h>
 

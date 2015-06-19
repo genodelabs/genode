@@ -7,8 +7,7 @@
 LIBS += cxx startup
 
 SRC_CC += cap_copy.cc
-SRC_CC += ipc/ipc.cc ipc/pager.cc ipc/ipc_marshal_cap.cc
-SRC_CC += pager/pager.cc pager/common.cc
+SRC_CC += ipc/ipc.cc ipc/ipc_marshal_cap.cc
 SRC_CC += avl_tree/avl_tree.cc
 SRC_CC += allocator/slab.cc
 SRC_CC += allocator/allocator_avl.cc

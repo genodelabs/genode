@@ -17,7 +17,7 @@
 #define _CORE__INCLUDE__LINUX__RM_SESSION_COMPONENT_H_
 
 /* Genode */
-#include <base/pager.h>
+#include <pager.h>
 #include <base/allocator.h>
 #include <base/rpc_server.h>
 #include <rm_session/rm_session.h>

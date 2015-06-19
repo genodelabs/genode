@@ -19,7 +19,7 @@
 #include <util/list.h>
 #include <base/allocator_guard.h>
 #include <base/lock.h>
-#include <base/pager.h>
+#include <pager.h>
 #include <base/rpc_server.h>
 #include <linux_cpu_session/linux_cpu_session.h>
 

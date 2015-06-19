@@ -1,38 +1,39 @@
 TARGET       = core
-LIBS         = base-common
+LIBS         = base-common core
 
 GEN_CORE_DIR = $(BASE_DIR)/src/core
 
-SRC_CC       = main.cc \
-               ram_session_component.cc \
-               ram_session_support.cc \
-               rom_session_component.cc \
+SRC_CC       = context_area.cc \
+               core_mem_alloc.cc \
+               core_printf.cc \
+               core_rm_session.cc \
                cpu_session_component.cc \
+               cpu_session_extension.cc \
                cpu_session_support.cc \
-               pd_session_component.cc \
+               dataspace_component.cc \
+               dump_alloc.cc \
+               echo.cc \
                io_mem_session_component.cc \
                io_mem_session_support.cc \
-               thread_start.cc \
-               platform_thread.cc \
-               platform_pd.cc \
+               io_port_session_component.cc \
+               ipc_pager.cc \
+               irq_session_component.cc \
+               main.cc \
+               pager.cc \
+               pd_session_component.cc \
+               pd_session_extension.cc \
                platform.cc \
+               platform_pd.cc \
                platform_services.cc \
-               core_mem_alloc.cc \
-               dataspace_component.cc \
+               platform_thread.cc \
+               ram_session_component.cc \
+               ram_session_support.cc \
                rm_session_component.cc \
                rm_session_support.cc \
-               io_port_session_component.cc \
-               irq_session_component.cc \
+               rom_session_component.cc \
                signal_session_component.cc \
-               trace_session_component.cc \
-               core_rm_session.cc \
-               context_area.cc \
-               echo.cc \
-               dump_alloc.cc \
-               cpu_session_extension.cc \
-               pd_session_extension.cc \
-               core_printf.cc \
-               pager.cc
+               thread_start.cc \
+               trace_session_component.cc
 
 INC_DIR      = $(REP_DIR)/src/core/include \
                $(REP_DIR)/src/base/console \
@@ -58,4 +59,3 @@ vpath platform_services.cc         $(GEN_CORE_DIR)/x86
 vpath context_area.cc              $(GEN_CORE_DIR)
 vpath core_printf.cc               $(BASE_DIR)/src/base/console
 vpath %.cc                         $(REP_DIR)/src/core
-vpath pager.cc                     $(REP_DIR)/src/base/pager

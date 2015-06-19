@@ -15,7 +15,7 @@
 #define _CORE__INCLUDE__PLATFORM_THREAD_H_
 
 /* Genode includes */
-#include <base/pager.h>
+#include <pager.h>
 #include <base/thread_state.h>
 #include <base/native_types.h>
 
