@@ -12,10 +12,10 @@
  */
 
 /* Genode includes */
-#include <base/pager.h>
 #include <base/printf.h>
 
 /* core includes*/
+#include <pager.h>
 #include <platform_thread.h>
 #include <platform_pd.h>
 

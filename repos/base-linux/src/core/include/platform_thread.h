@@ -16,9 +16,12 @@
 #ifndef _CORE__INCLUDE__LINUX__PLATFORM_THREAD_H_
 #define _CORE__INCLUDE__LINUX__PLATFORM_THREAD_H_
 
-#include <base/pager.h>
+/* Genode includes */
 #include <base/thread_state.h>
 #include <cpu_session/cpu_session.h>
+
+/* Core includes */
+#include <pager.h>
 
 namespace Genode {
 

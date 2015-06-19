@@ -21,11 +21,11 @@
 #include <base/allocator_guard.h>
 #include <base/tslab.h>
 #include <base/lock.h>
-#include <base/pager.h>
 #include <base/rpc_server.h>
 #include <nova_cpu_session/nova_cpu_session.h>
 
 /* core includes */
+#include <pager.h>
 #include <platform_thread.h>
 #include <trace/control_area.h>
 #include <trace/source_registry.h>

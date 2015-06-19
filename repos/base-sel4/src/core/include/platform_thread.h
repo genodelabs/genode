@@ -15,13 +15,13 @@
 #define _CORE__INCLUDE__PLATFORM_THREAD_H_
 
 /* Genode includes */
-#include <base/pager.h>
 #include <base/thread_state.h>
 #include <base/native_types.h>
 #include <util/string.h>
-#include <base/ipc_pager.h>
 
 /* core includes */
+#include <pager.h>
+#include <ipc_pager.h>
 #include <address_space.h>
 #include <thread_sel4.h>
 #include <install_mapping.h>

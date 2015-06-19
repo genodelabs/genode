@@ -12,10 +12,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* Genode includes */
-#include <base/pager.h>
-
 /* core includes */
+#include <pager.h>
 #include <rm_session_component.h>
 #include <platform.h>
 #include <platform_pd.h>

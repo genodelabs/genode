@@ -12,10 +12,10 @@
  */
 
 /* Genode includes */
-#include <base/pager.h>
 #include <base/sleep.h>
 
 /* core includes */
+#include <pager.h>
 #include <core_capability_space.h>
 #include <install_mapping.h>
 

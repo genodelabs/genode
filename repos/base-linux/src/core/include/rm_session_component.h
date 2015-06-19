@@ -16,11 +16,13 @@
 #ifndef _CORE__INCLUDE__LINUX__RM_SESSION_COMPONENT_H_
 #define _CORE__INCLUDE__LINUX__RM_SESSION_COMPONENT_H_
 
-/* Genode */
-#include <base/pager.h>
+/* Genode includes */
 #include <base/allocator.h>
 #include <base/rpc_server.h>
 #include <rm_session/rm_session.h>
+
+/* Core includes */
+#include <pager.h>
 
 namespace Genode {
 

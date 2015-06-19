@@ -15,9 +15,9 @@
 
 /* Genode includes */
 #include <base/printf.h>
-#include <base/ipc_pager.h>
 
 /* core includes */
+#include <ipc_pager.h>
 #include <platform_thread.h>
 #include <platform_pd.h>
 #include <util.h>
