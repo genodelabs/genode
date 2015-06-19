@@ -14,6 +14,8 @@
 /* core includes */
 #include <platform.h>
 #include <board.h>
+#include <pic.h>
+#include <kernel/kernel.h>
 
 using namespace Genode;
 
@@ -25,4 +27,11 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 		{ Board::MMIO_IOAPIC_BASE, Board::MMIO_IOAPIC_SIZE },
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
+}
+
+
+void Platform::setup_irq_mode(unsigned irq_number, unsigned trigger,
+                              unsigned polarity)
+{
+	Kernel::pic()->ioapic.setup_irq_mode(irq_number, trigger, polarity);
 }
