@@ -45,6 +45,7 @@ usage:
 	@echo "                  'foc_vea9x4'"
 	@echo "                  'foc_panda'"
 	@echo "                  'foc_arndale'"
+	@echo "                  'foc_rpi'"
 	@echo "                  'sel4_x86_32'"
 	@echo "                  'lx_hybrid_x86'"
 	@echo
@@ -144,7 +145,7 @@ $(BUILD_DIR)/Makefile:
 #
 # Add 'ports-foc' repository to Fiasco.OC build directory
 #
-ifeq ($(filter-out foc_x86_32 foc_imx53 foc_pbxa9 foc_vea9x4 foc_panda foc_arndale,$(PLATFORM)),)
+ifeq ($(filter-out foc_x86_32 foc_imx53 foc_pbxa9 foc_vea9x4 foc_panda foc_arndale foc_rpi,$(PLATFORM)),)
 $(BUILD_DIR)/etc/build.conf::
 	@cat $(BUILD_CONF).ports-foc >> $@
 endif
@@ -160,7 +161,7 @@ endif
 #
 # Add ARM drivers repositories to ARM build directories
 #
-ifeq ($(filter-out foc_panda foc_arndale hw_panda hw_arndale hw_odroid_xu foc_imx53,$(PLATFORM)),)
+ifeq ($(filter-out foc_panda foc_arndale hw_panda hw_arndale hw_odroid_xu foc_imx53 foc_rpi,$(PLATFORM)),)
 $(BUILD_DIR)/etc/build.conf::
 	@cat $(BUILD_CONF).drivers_arm >> $@
 endif
@@ -212,6 +213,9 @@ foc_imx53::
 
 foc_arndale::
 	@echo "SPECS = genode foc_arndale" > $(BUILD_DIR)/etc/specs.conf
+
+foc_rpi::
+	@echo "SPECS = genode foc_rpi" > $(BUILD_DIR)/etc/specs.conf
 
 #
 # On all other platforms, the performance counter is assumed to be active by

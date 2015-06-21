@@ -93,6 +93,7 @@ proc bin_dir { } {
 	if {[have_spec x86_32]}  { return "[l4_dir]/bin/x86_586" }
 	if {[have_spec x86_64]}  { return "[l4_dir]/bin/amd64_K8" }
 	if {[have_spec arm_v7a]} { return "[l4_dir]/bin/arm_armv7a" }
+	if {[have_spec arm_v6]}  { return "[l4_dir]/bin/arm_armv6" }
 
 	puts stderr "Error: Cannot determine bin directory"
 	exit 1
