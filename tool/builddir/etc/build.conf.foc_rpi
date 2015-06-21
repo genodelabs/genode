@@ -1,0 +1,8 @@
+REPOSITORIES = $(GENODE_DIR)/repos/base-foc
+
+##
+## Kernel-specific run tool configuration
+##
+
+RUN_OPT = --include boot_dir/foc \
+          --include power_on/qemu --include log/qemu
