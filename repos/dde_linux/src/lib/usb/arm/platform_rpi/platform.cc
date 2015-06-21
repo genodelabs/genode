@@ -30,6 +30,9 @@
 #include <dwc_otg_dbg.h>
 #undef new
 
+#include <usb_irq.h>
+
+
 using namespace Genode;
 
 
@@ -40,8 +43,6 @@ using namespace Genode;
 enum {
 	DWC_BASE = 0x20980000,
 	DWC_SIZE = 0x20000,
-
-	DWC_IRQ  = 17,
 };
 
 
