@@ -214,7 +214,7 @@ void Platform_thread::pager(Pager_object * const pager)
 {
 	typedef Kernel::Thread_event_id Event_id;
 	if (pager) {
-		unsigned const sc_id = pager->signal_context_id();
+		unsigned const sc_id = pager->cap().dst();
 		if (sc_id) {
 			if (!Kernel::route_thread_event(kernel_object(), Event_id::FAULT,
 			                                sc_id)) {

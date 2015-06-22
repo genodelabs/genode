@@ -20,6 +20,8 @@
 #include <base/signal.h>
 #include <pager/capability.h>
 #include <unmanaged_singleton.h>
+#include <kernel/signal_receiver.h>
+#include <object.h>
 
 namespace Genode
 {
@@ -124,53 +126,16 @@ class Genode::Ipc_pager
 		void set_reply_mapping(Mapping m);
 };
 
-class Genode::Pager_object : public Object_pool<Pager_object>::Entry,
-                             public Signal_context
+class Genode::Pager_object
+: public Object_pool<Pager_object>::Entry,
+  public Genode::Kernel_object<Kernel::Signal_context>
 {
 	friend class Pager_entrypoint;
 
 	private:
 
-		Signal_context_capability _signal_context_cap;
-		Thread_capability         _thread_cap;
-		bool                      _signal_valid;
-		char                      _signal_buf[sizeof(Signal)];
-		unsigned long const       _badge;
-
-		/**
-		 * Remember an incoming fault for handling
-		 *
-		 * \param s  fault signal
-		 */
-		void _take_fault(Signal const & s)
-		{
-			new (_signal_buf) Signal(s);
-			_signal_valid = 1;
-		}
-
-		/**
-		 * End handling of current fault
-		 */
-		void _end_fault()
-		{
-			_signal()->~Signal();
-			_signal_valid = 0;
-		}
-
-		/**
-		 * End handling of current fault if there is one
-		 */
-		void _end_fault_if_pending()
-		{
-			if (_signal_valid) { _end_fault(); }
-		}
-
-
-		/***************
-		 ** Accessors **
-		 ***************/
-
-		Signal * _signal() const;
+		Thread_capability   _thread_cap;
+		unsigned long const _badge;
 
 	public:
 
@@ -180,18 +145,6 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry,
 		 * \param badge  user identifaction of pager object
 		 */
 		Pager_object(unsigned const badge, Affinity::Location);
-
-		/**
-		 * The faulter has caused a fault and awaits paging
-		 *
-		 * \param s  signal that communicated the fault
-		 */
-		void fault_occured(Signal const & s) { _take_fault(s); }
-
-		/**
-		 * Current fault has been resolved so resume faulter
-		 */
-		void fault_resolved() { _end_fault(); }
 
 		/**
 		 * User identification of pager object
@@ -211,25 +164,9 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry,
 		/**
 		 * Install information that is necessary to handle page faults
 		 *
-		 * \param c  linkage between signal context and a signal receiver
-		 * \param p  linkage between pager object and a pager entry-point
+		 * \param receiver  signal receiver that receives the page faults
 		 */
-		void start_paging(Signal_context_capability const & c,
-		                  Pager_capability const & p)
-		{
-			_signal_context_cap = c;
-			Object_pool<Pager_object>::Entry::cap(p);
-		}
-
-		/**
-		 * Uninstall paging information and cancel unresolved faults
-		 */
-		void stop_paging()
-		{
-			Object_pool<Pager_object>::Entry::cap(Native_capability());
-			_signal_context_cap = Signal_context_capability();
-			_end_fault_if_pending();
-		}
+		void start_paging(Kernel::Signal_receiver * receiver);
 
 		/**
 		 * Called when a page-fault finally could not be resolved
@@ -259,18 +196,16 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry,
 		Thread_capability thread_cap() const;
 
 		void thread_cap(Thread_capability const & c);
-
-		unsigned signal_context_id() const;
 };
 
-class Genode::Pager_activation_base : public Thread_base,
-                                      public Signal_receiver,
-                                      public Ipc_pager
+class Genode::Pager_activation_base
+: public Thread_base,
+  public Kernel_object<Kernel::Signal_receiver>,
+  public Ipc_pager
 {
 	private:
 
-		Native_capability  _cap;
-		Lock               _cap_valid;
+		Lock               _startup_lock;
 		Pager_entrypoint * _ep;
 
 	public:
@@ -303,8 +238,6 @@ class Genode::Pager_activation_base : public Thread_base,
 		/***************
 		 ** Accessors **
 		 ***************/
-
-		Native_capability cap();
 
 		void ep(Pager_entrypoint * const ep);
 };

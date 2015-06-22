@@ -57,13 +57,13 @@ int Pager_activation_base::apply_mapping()
 void Pager_activation_base::entry()
 {
 	/* get ready to receive faults */
-	_cap = Thread_base::myself()->tid().cap;
-	_cap_valid.unlock();
+	_startup_lock.unlock();
 	while (1)
 	{
 		/* receive fault */
-		Signal s = Signal_receiver::wait_for_signal();
-		Pager_object * po = static_cast<Pager_object *>(s.context());
+		if (Kernel::await_signal(_cap.dst())) continue;
+		Pager_object * po =
+			*(Pager_object**)Thread_base::myself()->utcb()->base();
 
 		/*
 		 * Synchronize access and ensure that the object is still managed
@@ -73,9 +73,6 @@ void Pager_activation_base::entry()
 		unsigned const pon = po->cap().local_name();
 		Object_pool<Pager_object>::Guard pog(_ep->lookup_and_lock(pon));
 		if (!pog) continue;
-
-		/* let pager object go to fault state */
-		pog->fault_occured(s);
 
 		/* fetch fault data */
 		Platform_thread * const pt = (Platform_thread *)pog->badge();
@@ -104,6 +101,6 @@ void Pager_activation_base::entry()
 			continue;
 		}
 		/* let pager object go back to no-fault state */
-		pog->fault_resolved();
+		pog->wake_up();
 	}
 }

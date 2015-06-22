@@ -66,9 +66,20 @@ Thread_capability Pager_object::thread_cap() const { return _thread_cap; }
 
 void Pager_object::thread_cap(Thread_capability const & c) { _thread_cap = c; }
 
-Signal * Pager_object::_signal() const { return (Signal *)_signal_buf; }
+void Pager_object::wake_up()
+{
+	using Object = Kernel_object<Kernel::Signal_context>;
+	Kernel::ack_signal(Object::_cap.dst());
+}
 
-void Pager_object::wake_up() { fault_resolved(); }
+void Pager_object::start_paging(Kernel::Signal_receiver * receiver)
+{
+	using Object = Kernel_object<Kernel::Signal_context>;
+	using Entry  = Object_pool<Pager_object>::Entry;
+
+	create(receiver, (unsigned long)this);
+	Entry::cap(Object::_cap);
+}
 
 void Pager_object::exception_handler(Signal_context_capability) { }
 
@@ -81,16 +92,9 @@ void Pager_object::unresolved_page_fault_occurred()
 }
 
 Pager_object::Pager_object(unsigned const badge, Affinity::Location)
-:
-	_signal_valid(0),
-	_badge(badge)
+: Object_pool<Pager_object>::Entry(Kernel_object<Kernel::Signal_context>::_cap),
+  _badge(badge)
 { }
-
-
-unsigned Pager_object::signal_context_id() const
-{
-	return _signal_context_cap.dst();
-}
 
 
 /***************************
@@ -102,16 +106,10 @@ void Pager_activation_base::ep(Pager_entrypoint * const ep) { _ep = ep; }
 
 Pager_activation_base::Pager_activation_base(char const * const name,
                                              size_t const stack_size)
-:
-	Thread_base(0, name, stack_size), _cap_valid(Lock::LOCKED), _ep(0)
+: Thread_base(0, name, stack_size),
+  Kernel_object<Kernel::Signal_receiver>(true),
+  _startup_lock(Lock::LOCKED), _ep(0)
 { }
-
-
-Native_capability Pager_activation_base::cap()
-{
-	if (!_cap.valid()) { _cap_valid.lock(); }
-	return _cap;
-}
 
 
 /**********************
@@ -121,25 +119,18 @@ Native_capability Pager_activation_base::cap()
 void Pager_entrypoint::dissolve(Pager_object * const o)
 {
 	remove_locked(o);
-	o->stop_paging();
-	_activation->Signal_receiver::dissolve(o);
 }
 
 
 Pager_entrypoint::Pager_entrypoint(Cap_session *,
                                    Pager_activation_base * const activation)
-:
-	_activation(activation)
-{
-	_activation->ep(this);
-}
+: _activation(activation) {
+	_activation->ep(this); }
 
 
 Pager_capability Pager_entrypoint::manage(Pager_object * const o)
 {
-	Signal_context_capability scc = _activation->Signal_receiver::manage(o);
-	Pager_capability p = reinterpret_cap_cast<Pager_object>(scc);
-	o->start_paging(scc, p);
+	o->start_paging(_activation->kernel_object());
 	insert(o);
-	return p;
+	return reinterpret_cap_cast<Pager_object>(o->cap());
 }
