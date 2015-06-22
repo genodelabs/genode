@@ -82,6 +82,15 @@ void Signal_context::submit(unsigned num)
 Signal_connection * Signal_transmitter::connection() { return signal_connection(); }
 
 
+void Signal_transmitter::submit(unsigned cnt)
+{
+	{
+		Trace::Signal_submit trace_event(cnt);
+	}
+	Kernel::submit_signal(_context.dst(), cnt);
+}
+
+
 /*********************
  ** Signal_receiver **
  *********************/
