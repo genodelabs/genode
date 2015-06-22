@@ -12,11 +12,14 @@
  */
 
 /* Genode includes */
-#include <ipc_pager.h>
 #include <base/thread.h>
+
+/* Core includes */
+#include <ipc_pager.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>
+
 
 enum { verbose_page_fault = false };
 

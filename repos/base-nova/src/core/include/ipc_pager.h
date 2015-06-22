@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__BASE__IPC_PAGER_H_
-#define _INCLUDE__BASE__IPC_PAGER_H_
+#ifndef _CORE__INCLUDE__IPC_PAGER_H_
+#define _CORE__INCLUDE__IPC_PAGER_H_
 
 /* Genode includes */
 #include <base/cache.h>
@@ -138,4 +138,4 @@ namespace Genode {
 	};
 }
 
-#endif /* _INCLUDE__BASE__IPC_PAGER_H_ */
+#endif /* _CORE__INCLUDE__IPC_PAGER_H_ */

@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _BASE__PAGER_H_
-#define _BASE__PAGER_H_
+#ifndef _CORE__INCLUDE__PAGER_H_
+#define _CORE__INCLUDE__PAGER_H_
 
 /* Genode includes */
 #include <base/thread.h>
@@ -351,4 +351,4 @@ class Genode::Pager_activation : public Pager_activation_base
 		}
 };
 
-#endif /* _BASE__PAGER_H_ */
+#endif /* _CORE__INCLUDE__PAGER_H_ */

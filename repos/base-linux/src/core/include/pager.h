@@ -14,8 +14,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__BASE__PAGER_H_
-#define _INCLUDE__BASE__PAGER_H_
+#ifndef _CORE__INCLUDE__PAGER_H_
+#define _CORE__INCLUDE__PAGER_H_
 
 #include <base/signal.h>
 #include <pager/capability.h>
@@ -55,4 +55,4 @@ namespace Genode {
 	template <int FOO> class Pager_activation : public Pager_activation_base { };
 }
 
-#endif /* _INCLUDE__BASE__PAGER_H_ */
+#endif /* _CORE__INCLUDE__PAGER_H_ */

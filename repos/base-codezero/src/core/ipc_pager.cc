@@ -12,10 +12,10 @@
  */
 
 /* Genode includes */
-#include <ipc_pager.h>
 #include <base/printf.h>
 
 /* Codezero includes */
+#include <ipc_pager.h>
 #include <codezero/syscalls.h>
 
 

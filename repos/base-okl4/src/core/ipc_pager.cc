@@ -11,8 +11,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <ipc_pager.h>
+/* Genode includes */
 #include <base/printf.h>
+
+/* Core includes */
+#include <ipc_pager.h>
 
 namespace Okl4 { extern "C" {
 #include <l4/message.h>

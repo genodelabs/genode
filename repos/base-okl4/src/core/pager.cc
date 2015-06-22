@@ -11,6 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Core includes */
 #include <pager.h>
 
 using namespace Genode;

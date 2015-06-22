@@ -14,12 +14,12 @@
  */
 
 /* Genode includes */
-#include <pager.h>
 #include <base/sleep.h>
-
 #include <util/construct_at.h>
-
 #include <rm_session/rm_session.h>
+
+/* Core includes */
+#include <pager.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>

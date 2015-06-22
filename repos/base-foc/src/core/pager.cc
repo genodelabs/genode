@@ -16,10 +16,12 @@
  */
 
 /* Genode includes */
-#include <pager.h>
 #include <base/env.h>
 #include <base/printf.h>
 #include <base/lock.h>
+
+/* Core includes */
+#include <pager.h>
 
 /* Fiasco.OC includes */
 namespace Fiasco {

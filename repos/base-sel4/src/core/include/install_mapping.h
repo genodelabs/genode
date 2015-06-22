@@ -14,7 +14,7 @@
 #ifndef _CORE__INCLUDE__INSTALL_MAPPING_H_
 #define _CORE__INCLUDE__INSTALL_MAPPING_H_
 
-/* Genode includes */
+/* Core includes */
 #include <ipc_pager.h>
 #include <pager.h>
 

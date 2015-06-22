@@ -11,6 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* core includes */
 #include <ipc_pager.h>
 
 namespace Fiasco {
