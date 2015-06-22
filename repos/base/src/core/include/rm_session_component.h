@@ -162,31 +162,12 @@ namespace Genode {
 	 * of threads (region-manager clients). This class represents the client's
 	 * role as member of this address space.
 	 */
-	class Rm_member : public List<Rm_client>
-	{
-		private:
-
-			Rm_session_component *_rm_session;
-
-		public:
-
-			/**
-			 * Constructor
-			 */
-			Rm_member(Rm_session_component *rm_session): _rm_session(rm_session) { }
-
-			/**
-			 * Return region-manager session that the RM client is member of
-			 */
-			Rm_session_component *member_rm_session() { return _rm_session; }
-	};
-
-
-	class Rm_client : public Pager_object, public Rm_member, public Rm_faulter,
+	class Rm_client : public Pager_object, public Rm_faulter,
 	                  public List<Rm_client>::Element
 	{
 		private:
 
+			Rm_session_component   *_rm_session;
 			Weak_ptr<Address_space> _address_space;
 
 		public:
@@ -203,8 +184,9 @@ namespace Genode {
 			          Weak_ptr<Address_space> &address_space,
 			          Affinity::Location location)
 			:
-				Pager_object(badge, location), Rm_member(session),
-				Rm_faulter(this), _address_space(address_space) { }
+				Pager_object(badge, location), Rm_faulter(this),
+				_rm_session(session), _address_space(address_space)
+			{ }
 
 			int pager(Ipc_pager &pager);
 
@@ -217,6 +199,11 @@ namespace Genode {
 			{
 				return other._address_space == _address_space;
 			}
+
+			/**
+			 * Return region-manager session that the RM client is member of
+			 */
+			Rm_session_component *member_rm_session() { return _rm_session; }
 	};
 
 
