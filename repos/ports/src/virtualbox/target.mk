@@ -11,7 +11,7 @@ SRC_CC = frontend/main.cc frontend/console.cc \
          frontend/VBoxAPIWrap/TokenWrap.cpp \
          frontend/VirtualBoxErrorInfoImpl.cpp \
          devices.cc drivers.cc dummies.cc libc.cc \
-         logger.cc mm.cc pdm.cc pgm.cc rt.cc sup.cc iommio.cc ioport.cc \
+         logger.cc mm.cc pdm.cc rt.cc sup.cc iommio.cc ioport.cc \
          hm.cc thread.cc dynlib.cc unimpl.cc
 
 LIBS  += base
