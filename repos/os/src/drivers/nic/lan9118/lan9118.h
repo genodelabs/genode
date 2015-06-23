@@ -19,9 +19,10 @@
 #include <os/attached_io_mem_dataspace.h>
 #include <os/irq_activation.h>
 #include <timer_session/connection.h>
-#include <nic/driver.h>
+#include <nic/component.h>
 
-class Lan9118 : public Nic::Driver
+class Lan9118 : public Nic::Session_component,
+                public Genode::Irq_handler
 {
 	private:
 
@@ -70,9 +71,7 @@ class Lan9118 : public Nic::Driver
 		Genode::Attached_io_mem_dataspace _mmio;
 		volatile Genode::uint32_t        *_reg_base;
 		Timer::Connection                 _timer;
-		Nic::Rx_buffer_alloc             &_rx_buffer_alloc;
 		Nic::Mac_address                  _mac_addr;
-		Nic::Driver_notification         &_notify;
 
 		enum { IRQ_STACK_SIZE = 4096 };
 		Genode::Irq_activation _irq_activation;
@@ -189,6 +188,67 @@ class Lan9118 : public Nic::Driver
 			return _reg_read(RX_FIFO_INF) & 0xffff;
 		}
 
+	protected:
+
+		bool _send()
+		{
+			if (!_tx.sink()->ready_to_ack())
+				return false;
+
+			if (!_tx.sink()->packet_avail())
+				return false;
+
+			Genode::Packet_descriptor packet = _tx.sink()->get_packet();
+			if (!packet.valid()) {
+				PWRN("Invalid tx packet");
+				return true;
+			}
+
+			/* limit size to 11 bits, the maximum supported by lan9118 */
+			enum { MAX_PACKET_SIZE_LOG2 = 11 };
+			Genode::size_t const max_size = (1 << MAX_PACKET_SIZE_LOG2) - 1;
+			if (packet.size() > max_size) {
+				PERR("packet size %zd too large, limit is %zd", packet.size(), max_size);
+				return true;
+			}
+
+			enum { FIRST_SEG = (1 << 13),
+			       LAST_SEG  = (1 << 12) };
+
+			Genode::uint32_t const cmd_a = packet.size() | FIRST_SEG | LAST_SEG,
+			                       cmd_b = packet.size();
+
+			unsigned count = Genode::align_addr(packet.size(), 2) >> 2;
+			Genode::uint32_t *src = (Genode::uint32_t *)_tx.sink()->packet_content(packet);
+
+			/* check space left in tx data fifo */
+			Genode::size_t const fifo_avail = _reg_read(TX_FIFO_INF) & 0xffff;
+			if (fifo_avail < count*4 + sizeof(cmd_a) + sizeof(cmd_b)) {
+				PERR("tx fifo overrun, ignore packet");
+				_tx.sink()->acknowledge_packet(packet);
+				return false;
+			}
+
+			_reg_write(TX_DATA_FIFO, cmd_a);
+			_reg_write(TX_DATA_FIFO, cmd_b);
+
+			/* supply payload to transmit fifo */
+			for (; count--; src++)
+				_reg_write(TX_DATA_FIFO, *src);
+
+			_tx.sink()->acknowledge_packet(packet);
+			return true;
+		}
+
+		void _handle_packet_stream() override
+		{
+			while (_rx.source()->ack_avail())
+				_rx.source()->release_packet(_rx.source()->get_acked_packet());
+
+			while (_send()) ;
+		}
+
+
 	public:
 
 		/**
@@ -202,13 +262,14 @@ class Lan9118 : public Nic::Driver
 		 * \throw  Device_not_supported
 		 */
 		Lan9118(Genode::addr_t mmio_base, Genode::size_t mmio_size, int irq,
-		        Nic::Rx_buffer_alloc &rx_buffer_alloc,
-		        Nic::Driver_notification &notify)
-		:
+		        Genode::size_t const tx_buf_size,
+		        Genode::size_t const rx_buf_size,
+		        Genode::Allocator   &rx_block_md_alloc,
+		        Genode::Ram_session &ram_session,
+		        Server::Entrypoint  &ep)
+		: Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, ram_session, ep),
 			_mmio(mmio_base, mmio_size),
 			_reg_base(_mmio.local_addr<Genode::uint32_t>()),
-			_rx_buffer_alloc(rx_buffer_alloc),
-			_notify(notify),
 			_irq_activation(irq, *this, IRQ_STACK_SIZE)
 		{
 			unsigned long const id_rev     = _reg_read(ID_REV),
@@ -290,56 +351,19 @@ class Lan9118 : public Nic::Driver
 			_mac_csr_write(MAC_CR, 0);
 		}
 
-		void link_state_changed() { _notify.link_state_changed(); }
+		/**************************************
+		 ** Nic::Session_component interface **
+		 **************************************/
 
-
-		/***************************
-		 ** Nic::Driver interface **
-		 ***************************/
-
-		Nic::Mac_address mac_address()
+		Nic::Mac_address mac_address() override
 		{
 			return _mac_addr;
 		}
 
-		bool link_state()
+		bool link_state() override
 		{
 			/* XXX always return true for now */
 			return true;
-		}
-
-		void tx(char const *packet, Genode::size_t size)
-		{
-			/* limit size to 11 bits, the maximum supported by lan9118 */
-			enum { MAX_PACKET_SIZE_LOG2 = 11 };
-			Genode::size_t const max_size = (1 << MAX_PACKET_SIZE_LOG2) - 1;
-			if (size > max_size) {
-				PERR("packet size %zd too large, limit is %zd", size, max_size);
-				return;
-			}
-
-			enum { FIRST_SEG = (1 << 13),
-			       LAST_SEG  = (1 << 12) };
-
-			Genode::uint32_t const cmd_a = size | FIRST_SEG | LAST_SEG,
-			                       cmd_b = size;
-
-			unsigned count = Genode::align_addr(size, 2) >> 2;
-			Genode::uint32_t *src = (Genode::uint32_t *)packet;
-
-			/* check space left in tx data fifo */
-			Genode::size_t const fifo_avail = _reg_read(TX_FIFO_INF) & 0xffff;
-			if (fifo_avail < count*4 + sizeof(cmd_a) + sizeof(cmd_b)) {
-				PERR("tx fifo overrun, ignore packet");
-				return;
-			}
-
-			_reg_write(TX_DATA_FIFO, cmd_a);
-			_reg_write(TX_DATA_FIFO, cmd_b);
-
-			/* supply payload to transmit fifo */
-			for (; count--; src++)
-				_reg_write(TX_DATA_FIFO, *src);
 		}
 
 
@@ -351,7 +375,9 @@ class Lan9118 : public Nic::Driver
 		{
 			using namespace Genode;
 
-			while (_rx_packet_avail()) {
+			_handle_packet_stream();
+
+			while (_rx_packet_avail() && _rx.source()->ready_to_submit()) {
 
 				/* read packet from NIC, copy to client buffer */
 				Rx_packet_info packet = _rx_packet_info();
@@ -360,7 +386,12 @@ class Lan9118 : public Nic::Driver
 				size_t const size = align_addr(packet.size, 2);
 
 				/* allocate rx packet buffer */
-				uint32_t *dst = (uint32_t *)_rx_buffer_alloc.alloc(size);
+				Nic::Packet_descriptor p;
+				try {
+					p = _rx.source()->alloc_packet(size);
+				} catch (Session::Rx::Source::Packet_alloc_failed) { return; }
+
+				uint32_t *dst = (uint32_t *)_rx.source()->packet_content(p);
 
 				/* calculate number of words to be read from rx fifo */
 				size_t count = min(size, _rx_data_pending()) >> 2;
@@ -369,7 +400,7 @@ class Lan9118 : public Nic::Driver
 				for (; count--; )
 					*dst++ = _reg_read(RX_DATA_FIFO);
 
-				_rx_buffer_alloc.submit();
+				_rx.source()->submit_packet(p);
 			}
 
 			/* acknowledge all pending irqs */

@@ -1,6 +1,7 @@
 /*
  * \brief  NIC driver based on iPXE
  * \author Christian Helmuth
+ * \author Sebastian Sumpf
  * \date   2011-11-17
  */
 
@@ -17,131 +18,133 @@
 #include <base/printf.h>
 #include <cap_session/connection.h>
 #include <nic/component.h>
+#include <nic/root.h>
 #include <os/server.h>
 
 #include <dde_ipxe/nic.h>
 
 
-namespace Ipxe {
+class Ipxe_session_component  : public Nic::Session_component
+{
+	public:
 
-	class Driver : public Nic::Driver
-	{
-		public:
+		static Ipxe_session_component *instance;
 
-			static Driver *instance;
+	private:
 
-		private:
+		Nic::Mac_address _mac_addr;
 
-			Server::Entrypoint   &_ep;
+		static void _rx_callback(unsigned    if_index,
+		                         const char *packet,
+		                         unsigned    packet_len)
+		{
+			if (instance)
+				instance->_receive(packet, packet_len);
+		}
 
-			Nic::Mac_address          _mac_addr;
-			Nic::Rx_buffer_alloc     &_alloc;
-			Nic::Driver_notification &_notify;
+		static void _link_callback()
+		{
+			if (instance)
+				instance->_link_state_changed();
+		}
 
-			static void _rx_callback(unsigned    if_index,
-			                         const char *packet,
-			                         unsigned    packet_len)
-			{
-				instance->rx_handler(packet, packet_len);
+		bool _send()
+		{
+			using namespace Genode;
+
+			if (!_tx.sink()->ready_to_ack())
+				return false;
+
+			if (!_tx.sink()->packet_avail())
+				return false;
+
+			Packet_descriptor packet = _tx.sink()->get_packet();
+			if (!packet.valid()) {
+				PWRN("Invalid tx packet");
+				return true;
 			}
 
-			static void _link_callback() { instance->link_state_changed(); }
+			if (dde_ipxe_nic_tx(1, _tx.sink()->packet_content(packet), packet.size()))
+				PWRN("Sending packet failed!");
 
-		public:
+			_tx.sink()->acknowledge_packet(packet);
+			return true;
+		}
 
-			Driver(Server::Entrypoint &ep, Nic::Rx_buffer_alloc &alloc,
-			       Nic::Driver_notification &notify)
-			: _ep(ep), _alloc(alloc), _notify(notify)
-			{
-				PINF("--- init callbacks");
-				dde_ipxe_nic_register_callbacks(_rx_callback, _link_callback);
+		void _receive(const char *packet, unsigned packet_len)
+		{
+			_handle_packet_stream();
 
-				dde_ipxe_nic_get_mac_addr(1, _mac_addr.addr);
-				PINF("--- get MAC address %02x:%02x:%02x:%02x:%02x:%02x",
-				     _mac_addr.addr[0] & 0xff, _mac_addr.addr[1] & 0xff,
-				     _mac_addr.addr[2] & 0xff, _mac_addr.addr[3] & 0xff,
-				     _mac_addr.addr[4] & 0xff, _mac_addr.addr[5] & 0xff);
+			if (!_rx.source()->ready_to_submit())
+				return;
+
+			try {
+				Nic::Packet_descriptor p = _rx.source()->alloc_packet(packet_len);
+				Genode::memcpy(_rx.source()->packet_content(p), packet, packet_len);
+				_rx.source()->submit_packet(p);
+			} catch (...) {
+				PDBG("failed to process received packet");
 			}
+		}
 
-			~Driver() { dde_ipxe_nic_unregister_callbacks(); }
+		void _handle_packet_stream() override
+		{
+			while (_rx.source()->ack_avail())
+				_rx.source()->release_packet(_rx.source()->get_acked_packet());
 
-			void rx_handler(const char *packet, unsigned packet_len)
-			{
-				try {
-					void *buffer = _alloc.alloc(packet_len);
-					Genode::memcpy(buffer, packet, packet_len);
-					_alloc.submit();
-				} catch (...) {
-					PDBG("failed to process received packet");
-				}
-			}
+			while (_send()) ;
+		}
 
-			void link_state_changed() { _notify.link_state_changed(); }
+	public:
+
+		Ipxe_session_component(Genode::size_t const tx_buf_size,
+		                       Genode::size_t const rx_buf_size,
+		                       Genode::Allocator   &rx_block_md_alloc,
+		                       Genode::Ram_session &ram_session,
+		                       Server::Entrypoint  &ep)
+		: Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, ram_session, ep)
+		{
+			instance = this;
+
+			PINF("--- init callbacks");
+			dde_ipxe_nic_register_callbacks(_rx_callback, _link_callback);
+
+			dde_ipxe_nic_get_mac_addr(1, _mac_addr.addr);
+			PINF("--- get MAC address %02x:%02x:%02x:%02x:%02x:%02x",
+			     _mac_addr.addr[0] & 0xff, _mac_addr.addr[1] & 0xff,
+			     _mac_addr.addr[2] & 0xff, _mac_addr.addr[3] & 0xff,
+			     _mac_addr.addr[4] & 0xff, _mac_addr.addr[5] & 0xff);
+		}
+
+		~Ipxe_session_component()
+		{
+			instance = nullptr;
+			dde_ipxe_nic_unregister_callbacks();
+		}
+
+		/**************************************
+		 ** Nic::Session_component interface **
+		 **************************************/
+
+		Nic::Mac_address mac_address() override { return _mac_addr; }
+
+		bool link_state() override
+		{
+			return dde_ipxe_nic_link_state(1);
+		}
+};
 
 
-			/***************************
-			 ** Nic::Driver interface **
-			 ***************************/
-
-			Nic::Mac_address mac_address() override { return _mac_addr; }
-
-			bool link_state() override
-			{
-				return dde_ipxe_nic_link_state(1);
-			}
-
-			void tx(char const *packet, Genode::size_t size)
-			{
-				if (dde_ipxe_nic_tx(1, packet, size))
-					PWRN("Sending packet failed!");
-			}
-
-			/******************************
-			 ** Irq_activation interface **
-			 ******************************/
-
-			void handle_irq(int) { /* not used */ }
-	};
-
-} /* namespace Ipxe */
-
-
-Ipxe::Driver * Ipxe::Driver::instance = 0;
+Ipxe_session_component *Ipxe_session_component::instance;
 
 
 struct Main
 {
-	Server::Entrypoint   &ep;
-	Genode::Sliced_heap   sliced_heap;
+	Server::Entrypoint &ep;
 
-	struct Factory : public Nic::Driver_factory
-	{
-		Server::Entrypoint &ep;
+	Nic::Root<Ipxe_session_component> root {ep, *Genode::env()->heap() };
 
-		Factory(Server::Entrypoint &ep) : ep(ep) { }
-
-		Nic::Driver *create(Nic::Rx_buffer_alloc &alloc,
-		                    Nic::Driver_notification &notify)
-		{
-			Ipxe::Driver::instance = new (Genode::env()->heap()) Ipxe::Driver(ep, alloc, notify);
-			return Ipxe::Driver::instance;
-		}
-
-		void destroy(Nic::Driver *)
-		{
-			Genode::destroy(Genode::env()->heap(), Ipxe::Driver::instance);
-			Ipxe::Driver::instance = 0;
-		}
-	} factory;
-
-	Nic::Root root;
-
-	Main(Server::Entrypoint &ep)
-	:
-		ep(ep),
-		sliced_heap(Genode::env()->ram_session(), Genode::env()->rm_session()),
-		factory(ep),
-		root(&ep.rpc_ep(), &sliced_heap, factory)
+	Main(Server::Entrypoint &ep) : ep(ep)
 	{
 		PINF("--- iPXE NIC driver started ---\n");
 

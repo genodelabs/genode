@@ -82,14 +82,12 @@ Tuntap_device *tuntap_dev()
  ** Implementation of the Nic service **
  ***************************************/
 
-class Nic_driver : public Tuntap_device,
-                   public Nic::Driver
+class Openvpn_component : public Tuntap_device,
+                          public Nic::Session_component
 {
 	private:
 
 		Nic::Mac_address          _mac_addr {{ 0x02, 0x00, 0x00, 0x00, 0x00, 0x01 }};
-		Nic::Rx_buffer_alloc     &_alloc;
-		Nic::Driver_notification &_notify;
 
 		char const *_packet;
 
@@ -99,12 +97,52 @@ class Nic_driver : public Tuntap_device,
 		Genode::Semaphore _startup_lock;
 		Genode::Semaphore _tx_lock;
 
+	protected:
+
+		bool _send()
+		{
+			using namespace Genode;
+
+			if (!_tx.sink()->ready_to_ack())
+				return false;
+
+			if (!_tx.sink()->packet_avail())
+				return false;
+
+			Packet_descriptor packet = _tx.sink()->get_packet();
+			if (!packet.valid()) {
+				PWRN("Invalid tx packet");
+				return true;
+			}
+
+			_packet = _tx.sink()->packet_content(packet);
+
+			/* notify openvpn */
+			::write(_pipefd[WRITE], "1", 1);
+
+			/* block while openvpn handles the packet */
+			_tx_lock.down();
+			_tx.sink()->acknowledge_packet(packet);
+
+			return true;
+		}
+
+		void _handle_packet_stream() override
+		{
+			while (_rx.source()->ack_avail())
+				_rx.source()->release_packet(_rx.source()->get_acked_packet());
+
+			while (_send()) ;
+		}
 
 	public:
 
-		Nic_driver(Nic::Rx_buffer_alloc &alloc, Nic::Driver_notification &notify)
-		:
-			_alloc(alloc), _notify(notify), _packet(0)
+		Openvpn_component(Genode::size_t const tx_buf_size,
+		                  Genode::size_t const rx_buf_size,
+		                  Genode::Allocator   &rx_block_md_alloc,
+		                  Genode::Ram_session &ram_session,
+		                  Server::Entrypoint  &ep)
+		: Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, ram_session, ep)
 		{
 			if (pipe(_pipefd)) {
 				PERR("could not create pipe");
@@ -112,40 +150,17 @@ class Nic_driver : public Tuntap_device,
 			}
 		}
 
-		~Nic_driver() { PDBG("should probably be implemented"); }
+		/**************************************
+		 ** Nic::Session_component interface **
+		 **************************************/
 
-		void link_state_changed() { _notify.link_state_changed(); }
+		Nic::Mac_address mac_address() override { return _mac_addr; }
 
-		/***************************
-		 ** Nic::Driver interface **
-		 ***************************/
-
-		Nic::Mac_address mac_address() { return _mac_addr; }
-
-		bool link_state()
+		bool link_state() override
 		{
 			/* XXX always return true for now */
 			return true;
 		}
-
-		void tx(char const *packet, Genode::size_t size)
-		{
-			PDBGV("packet:0x%p size:%zu", packet, size);
-
-			_packet = packet;
-
-			/* notify openvpn */
-			::write(_pipefd[WRITE], "1", 1);
-
-			/* block while openvpn handles the packet */
-			_tx_lock.down();
-		}
-
-		/******************************
-		 ** Irq_activation interface **
-		 ******************************/
-
-		void handle_irq(int) { }
 
 		/***********************
 		 ** TUN/TAP interface **
@@ -171,10 +186,16 @@ class Nic_driver : public Tuntap_device,
 		int write(char const *buf, Genode::size_t len)
 		{
 			PDBGV("buf:0x%p len:%zu", len);
+			_handle_packet_stream();
 
-			void *buffer = _alloc.alloc(len);
-			Genode::memcpy(buffer, buf, len);
-			_alloc.submit();
+			if (!_rx.source()->ready_to_submit())
+				return 0;
+
+			try {
+				Genode::Packet_descriptor packet = _rx.source()->alloc_packet(len);
+				Genode::memcpy(_rx.source()->packet_content(packet), buf, len);
+				_rx.source()->submit_packet(packet);
+			} catch (...) { return 0; }
 
 			return len;
 		}
@@ -185,57 +206,86 @@ class Nic_driver : public Tuntap_device,
 };
 
 
-struct Main
+class Root : public Genode::Root_component<Openvpn_component, Genode::Single_client>
 {
-	struct Nic_driver_factory : Nic::Driver_factory
-	{
-		Nic_driver     *drv { 0 };
-		Openvpn_thread *openvpn { 0 };
+	private:
 
-		Nic::Driver *create(Nic::Rx_buffer_alloc &alloc,
-		                    Nic::Driver_notification &notify)
+		Server::Entrypoint &_ep;
+		Openvpn_thread     *_thread = nullptr;
+
+	protected:
+
+		Openvpn_component *_create_session(const char *args)
 		{
-			/* there can be only one */
-			if (!drv) {
-				drv = new (Genode::env()->heap()) Nic_driver(alloc, notify);
+			using namespace Genode;
 
-				/**
-				 * Setting the pointer in this manner is quite hackish but it has
-				 * to be valid before OpenVPN calls open_tun(), which unfortunatly
-				 * is early.
-				 */
-				_tuntap_dev = drv;
+			size_t ram_quota   = Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
+			size_t tx_buf_size = Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
+			size_t rx_buf_size = Arg_string::find_arg(args, "rx_buf_size").ulong_value(0);
 
-				PDBGV("start OpenVPN main thread");
-				Openvpn_thread *openvpn = new (Genode::env()->heap()) Openvpn_thread(genode_argc,
-				                                                                     genode_argv);
+			/* deplete ram quota by the memory needed for the session structure */
+			size_t session_size = max(4096UL, (unsigned long)sizeof(Openvpn_component));
+			if (ram_quota < session_size)
+				throw Genode::Root::Quota_exceeded();
 
-				openvpn->start();
-
-				/* wait until OpenVPN configured the TUN/TAP device for the first time */
-				_tuntap_dev->down();
-
-				return drv;
+			/*
+			 * Check if donated ram quota suffices for both communication
+			 * buffers. Also check both sizes separately to handle a
+			 * possible overflow of the sum of both sizes.
+			 */
+			if (tx_buf_size               > ram_quota - session_size
+			 || rx_buf_size               > ram_quota - session_size
+			 || tx_buf_size + rx_buf_size > ram_quota - session_size) {
+				PERR("insufficient 'ram_quota', got %zd, need %zd",
+				     ram_quota, tx_buf_size + rx_buf_size + session_size);
+				throw Genode::Root::Quota_exceeded();
 			}
 
-			return 0;
+			Openvpn_component *component = new (Root::md_alloc())
+			                               Openvpn_component(tx_buf_size, rx_buf_size,
+			                                                *env()->heap(),
+			                                                *env()->ram_session(),
+			                                                _ep);
+			/**
+			 * Setting the pointer in this manner is quite hackish but it has
+			 * to be valid before OpenVPN calls open_tun(), which unfortunatly
+			 * is early.
+			 */
+			_tuntap_dev = component;
+
+			PDBGV("start OpenVPN main thread");
+			_thread = new (Genode::env()->heap()) Openvpn_thread(genode_argc, genode_argv);
+			_thread->start();
+
+			/* wait until OpenVPN configured the TUN/TAP device for the first time */
+			_tuntap_dev->down();
+
+			return component;
 		}
 
-		void destroy(Nic::Driver *driver)
+		void _destroy_session(Openvpn_component *session)
 		{
-			Genode::destroy(Genode::env()->heap(), static_cast<Nic_driver *>(driver));
-			drv = 0;
-			Genode::destroy(Genode::env()->heap(), openvpn);
-			openvpn = 0;
+			Genode::destroy(Root::md_alloc(), session);
+			Genode::destroy(Root::md_alloc(), _thread);
+			_thread = nullptr;
 		}
-	} driver_factory;
 
+	public:
+
+		Root(Server::Entrypoint &ep, Genode::Allocator &md_alloc)
+		: Genode::Root_component<Openvpn_component, Genode::Single_client>(&ep.rpc_ep(), &md_alloc),
+			_ep(ep)
+		{ }
+};
+
+
+struct Main
+{
 	Server::Entrypoint &ep;
+	::Root              nic_root { ep, *Genode::env()->heap() };
 
 	Main(Server::Entrypoint &ep) : ep(ep)
 	{
-		static Nic::Root nic_root(&ep.rpc_ep(), Genode::env()->heap(), driver_factory);
-
 		Genode::env()->parent()->announce(ep.manage(nic_root));
 	}
 };
