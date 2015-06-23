@@ -216,7 +216,7 @@ void genode_update_tsc(void (*update_func)(void), unsigned long update_us)
 }
 
 
-bool Vmm_memory::revoke_from_vm(Region *r)
+bool Vmm_memory::revoke_from_vm(Mem_region *r)
 {
 	Assert(r);
 
