@@ -2,6 +2,7 @@
  * \brief  NIC driver for Linux TUN/TAP device
  * \author Stefan Kalkowski
  * \author Christian Helmuth
+ * \author Sebastian Sumpf
  * \date   2011-08-08
  *
  * Configuration options are:
@@ -23,9 +24,8 @@
  */
 
 /* Genode */
-#include <base/sleep.h>
-#include <cap_session/connection.h>
-#include <nic/component.h>
+#include <base/thread.h>
+#include <nic/root_single.h>
 #include <nic/xml_node.h>
 #include <os/config.h>
 
@@ -37,18 +37,20 @@
 #include <net/if.h>
 #include <linux/if_tun.h>
 
+namespace Server { struct Main; }
 
-class Linux_driver : public Nic::Driver
+
+class Linux_session_component : public Nic::Session_component
 {
 	private:
 
 		struct Rx_thread : Genode::Thread<0x2000>
 		{
-			int          fd;
-			Nic::Driver &driver;
+			int                               fd;
+			Genode::Signal_context_capability data_sigh;
 
-			Rx_thread(int fd, Nic::Driver &driver)
-			: Genode::Thread<0x2000>("rx"), fd(fd), driver(driver) { }
+			Rx_thread(int fd, Genode::Signal_context_capability data_sigh)
+			: Genode::Thread<0x2000>("rx"), fd(fd), data_sigh(data_sigh) { }
 
 			void entry()
 			{
@@ -61,19 +63,16 @@ class Linux_driver : public Nic::Driver
 					FD_SET(fd, &rfds);
 					do { ret = select(fd + 1, &rfds, 0, 0, 0); } while (ret < 0);
 
-					/* inform driver about incoming packet */
-					driver.handle_irq(fd);
+					/* signal data reception */
+					Genode::Signal_transmitter(data_sigh).submit();
 				}
 			}
 		};
 
-		Nic::Mac_address          _mac_addr;
-		Nic::Rx_buffer_alloc     &_alloc;
-		Nic::Driver_notification &_notify;
+		Nic::Mac_address _mac_addr;
+		int              _tap_fd;
+		Rx_thread        _rx_thread;
 
-		char      _packet_buffer[1514];  /* maximum ethernet packet length */
-		int       _tap_fd;
-		Rx_thread _rx_thread;
 
 		int _setup_tap_fd()
 		{
@@ -85,6 +84,12 @@ class Linux_driver : public Nic::Driver
 			if (fd < 0) {
 				PERR("could not open /dev/net/tun: no virtual network emulation");
 				/* this error is fatal */
+				throw Genode::Exception();
+			}
+
+			/* set fd to non-blocking */
+			if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0) {
+				PERR("could not set /dev/net/tun to non-blocking");
 				throw Genode::Exception();
 			}
 
@@ -113,125 +118,134 @@ class Linux_driver : public Nic::Driver
 			return fd;
 		}
 
-	public:
-
-		Linux_driver(Nic::Rx_buffer_alloc &alloc,
-		             Nic::Driver_notification &notify)
-		:
-			_alloc(alloc), _notify(notify),
-			_tap_fd(_setup_tap_fd()), _rx_thread(_tap_fd, *this)
+		bool _send()
 		{
-			/* try using configured MAC address */
-			try {
-				Genode::Xml_node nic_config = Genode::config()->xml_node().sub_node("nic");
-				nic_config.attribute("mac").value(&_mac_addr);
-				PINF("Using configured MAC address \"%02x:%02x:%02x:%02x:%02x:%02x\"",
-						_mac_addr.addr[0],
-						_mac_addr.addr[1],
-						_mac_addr.addr[2],
-						_mac_addr.addr[3],
-						_mac_addr.addr[4],
-						_mac_addr.addr[5]	);
-			} catch (...) {
-				/* fall back to fake MAC address (unicast, locally managed) */
-				_mac_addr.addr[0] = 0x02;
-				_mac_addr.addr[1] = 0x00;
-				_mac_addr.addr[2] = 0x00;
-				_mac_addr.addr[3] = 0x00;
-				_mac_addr.addr[4] = 0x00;
-				_mac_addr.addr[5] = 0x01;
+			using namespace Genode;
+
+			if (!_tx.sink()->ready_to_ack())
+				return false;
+
+			if (!_tx.sink()->packet_avail())
+				return false;
+
+			Packet_descriptor packet = _tx.sink()->get_packet();
+			if (!packet.valid()) {
+				PWRN("Invalid tx packet");
+				return true;
 			}
 
-			_rx_thread.start();
-		}
+			int ret;
 
-		void link_state_changed() { _notify.link_state_changed(); }
+			/* non-blocking-write packet to TAP */
+			do {
+				ret = write(_tap_fd, _tx.sink()->packet_content(packet), packet.size());
+				if (ret < 0 && errno == EAGAIN)
+					continue;
 
+				if (ret < 0) PERR("write: errno=%d", errno);
+			} while (ret < 0);
 
-		/***************************
-		 ** Nic::Driver interface **
-		 ***************************/
+			_tx.sink()->acknowledge_packet(packet);
 
-		Nic::Mac_address mac_address() { return _mac_addr; }
-
-		bool link_state()
-		{
-			/* XXX return always true for now */
 			return true;
 		}
 
-		void tx(char const *packet, Genode::size_t size)
+		bool _receive()
 		{
-			int ret;
+			unsigned const  max_size = Nic::Packet_allocator::DEFAULT_PACKET_SIZE;
 
-			/* blocking-write packet to TAP */
-			do {
-				ret = write(_tap_fd, packet, size); 
-				if (ret < 0) PERR("write: errno=%d", errno);
-			} while (ret < 0);
+			if (!_rx.source()->ready_to_submit())
+				return false;
+
+			Nic::Packet_descriptor p;
+			try {
+				p = _rx.source()->alloc_packet(max_size);
+			} catch (Session::Rx::Source::Packet_alloc_failed) { return false; }
+
+			int size = read(_tap_fd, _rx.source()->packet_content(p), max_size);
+			if (size <= 0) {
+				_rx.source()->release_packet(p);
+				return false;
+			}
+
+			/* adjust packet size */
+			Nic::Packet_descriptor p_adjust(p.offset(), size);
+			_rx.source()->submit_packet(p_adjust);
+
+			return true;
 		}
 
+	protected:
 
-		/******************************
-		 ** Irq_activation interface **
-		 ******************************/
-
-		void handle_irq(int)
+		void _handle_packet_stream() override
 		{
-			int ret;
+			while (_rx.source()->ack_avail())
+				_rx.source()->release_packet(_rx.source()->get_acked_packet());
 
-			/* blocking read incoming packet */
-			do {
-				ret = read(_tap_fd, _packet_buffer, sizeof(_packet_buffer));
-				if (ret < 0) PERR("read: errno=%d", errno);
-			} while (ret < 0);
-
-			void *buffer = _alloc.alloc(ret);
-			Genode::memcpy(buffer, _packet_buffer, ret);
-			_alloc.submit();
+			while (_send()) ;
+			while (_receive());
 		}
+
+	public:
+
+		Linux_session_component(Genode::size_t const tx_buf_size,
+		                        Genode::size_t const rx_buf_size,
+		                        Genode::Allocator   &rx_block_md_alloc,
+		                        Genode::Ram_session &ram_session,
+		                        Server::Entrypoint  &ep)
+		: Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, ram_session, ep),
+		  _tap_fd(_setup_tap_fd()), _rx_thread(_tap_fd, _packet_stream_dispatcher)
+	{
+		/* try using configured MAC address */
+		try {
+			Genode::Xml_node nic_config = Genode::config()->xml_node().sub_node("nic");
+			nic_config.attribute("mac").value(&_mac_addr);
+			PINF("Using configured MAC address \"%02x:%02x:%02x:%02x:%02x:%02x\"",
+					_mac_addr.addr[0],
+					_mac_addr.addr[1],
+					_mac_addr.addr[2],
+					_mac_addr.addr[3],
+					_mac_addr.addr[4],
+					_mac_addr.addr[5]	);
+		} catch (...) {
+			/* fall back to fake MAC address (unicast, locally managed) */
+			_mac_addr.addr[0] = 0x02;
+			_mac_addr.addr[1] = 0x00;
+			_mac_addr.addr[2] = 0x00;
+			_mac_addr.addr[3] = 0x00;
+			_mac_addr.addr[4] = 0x00;
+			_mac_addr.addr[5] = 0x01;
+		}
+
+		_rx_thread.start();
+	}
+
+	bool link_state() override              { return true; }
+	Nic::Mac_address mac_address() override { return _mac_addr; }
 };
 
 
-/*
- * Manually initialize the 'lx_environ' pointer, needed because 'nic_drv' is not
- * using the normal Genode startup code.
- */
-extern char **environ;
-char **lx_environ = environ;
-
-
-int main(int, char **)
+struct Server::Main
 {
-	using namespace Genode;
+	Entrypoint &ep;
+	Nic::Root<Linux_session_component> nic_root{ ep, *Genode::env()->heap() };
 
-	printf("--- Linux/tap NIC driver started ---\n");
-
-	/**
-	 * Factory used by 'Nic::Root' at session creation/destruction time
-	 */
-	struct Linux_driver_factory : Nic::Driver_factory
+	Main(Entrypoint &ep) : ep(ep)
 	{
-		Nic::Driver *create(Nic::Rx_buffer_alloc &alloc,
-		                    Nic::Driver_notification &notify)
-		{
-			return new (env()->heap()) Linux_driver(alloc, notify);
-		}
+		Genode::env()->parent()->announce(ep.manage(nic_root));
+	}
+};
 
-		void destroy(Nic::Driver *driver)
-		{
-			Genode::destroy(env()->heap(), static_cast<Linux_driver *>(driver));
-		}
-	} driver_factory;
 
-	enum { STACK_SIZE = 2*4096 };
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "nic_ep");
+namespace Server {
 
-	static Nic::Root nic_root(&ep, env()->heap(), driver_factory);
-	env()->parent()->announce(ep.manage(&nic_root));
+	char const *name() { return "nic_ep"; }
 
-	sleep_forever();
-	return 0;
+	size_t stack_size() { return 2*1024*sizeof(long); }
+
+	void construct(Entrypoint &ep)
+	{
+		static Main main(ep);
+	}
 }
 

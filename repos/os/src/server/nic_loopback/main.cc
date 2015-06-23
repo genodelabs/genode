@@ -15,19 +15,16 @@
 
 #include <base/env.h>
 #include <base/sleep.h>
-#include <os/attached_ram_dataspace.h>
 #include <os/server.h>
-#include <os/signal_rpc_dispatcher.h>
 #include <root/component.h>
 #include <util/arg_string.h>
 #include <util/misc_math.h>
-#include <nic_session/rpc_object.h>
-#include <nic_session/client.h>
+#include <nic/component.h>
+#include <nic/packet_allocator.h>
 
 namespace Nic {
 
-	class Communication_buffers;
-	class Session_component;
+	class Loopback_component;
 	class Root;
 }
 
@@ -35,36 +32,8 @@ namespace Nic {
 namespace Server { struct Main; }
 
 
-class Nic::Communication_buffers
+class Nic::Loopback_component : public Nic::Session_component
 {
-	protected:
-
-		Genode::Allocator_avl _rx_packet_alloc;
-
-		Genode::Attached_ram_dataspace _tx_ds, _rx_ds;
-
-		Communication_buffers(Genode::Allocator &rx_block_md_alloc,
-		                      Genode::Ram_session &ram_session,
-		                      Genode::size_t tx_size, Genode::size_t rx_size)
-		:
-			_rx_packet_alloc(&rx_block_md_alloc),
-			_tx_ds(&ram_session, tx_size),
-			_rx_ds(&ram_session, rx_size)
-		{ }
-};
-
-
-class Nic::Session_component : Communication_buffers, public Session_rpc_object
-{
-	private:
-
-		Server::Entrypoint &_ep;
-
-		void _handle_packet_stream(unsigned);
-
-		Genode::Signal_rpc_member<Session_component> _packet_stream_dispatcher {
-			_ep, *this, &Session_component::_handle_packet_stream };
-
 	public:
 
 		/**
@@ -78,45 +47,36 @@ class Nic::Session_component : Communication_buffers, public Session_rpc_object
 		 * \param ep                 entry point used for packet stream
 		 *                           channels
 		 */
-		Session_component(Genode::size_t const tx_buf_size,
-		                  Genode::size_t const rx_buf_size,
-		                  Genode::Allocator   &rx_block_md_alloc,
-		                  Genode::Ram_session &ram_session,
-		                  Server::Entrypoint  &ep)
-		:
-			Communication_buffers(rx_block_md_alloc, ram_session,
-			                      tx_buf_size, rx_buf_size),
-			Session_rpc_object(this->_tx_ds.cap(),
-			                   this->_rx_ds.cap(),
-			                   &this->_rx_packet_alloc, ep.rpc_ep()),
-			_ep(ep)
-		{
-			/* install data-flow signal handlers for both packet streams */
-			_tx.sigh_ready_to_ack(_packet_stream_dispatcher);
-			_tx.sigh_packet_avail(_packet_stream_dispatcher);
-			_rx.sigh_ready_to_submit(_packet_stream_dispatcher);
-			_rx.sigh_ack_avail(_packet_stream_dispatcher);
-		}
+		Loopback_component(Genode::size_t const tx_buf_size,
+		                   Genode::size_t const rx_buf_size,
+		                   Genode::Allocator   &rx_block_md_alloc,
+		                   Genode::Ram_session &ram_session,
+		                   Server::Entrypoint  &ep)
+		: Session_component(tx_buf_size, rx_buf_size,
+		                    rx_block_md_alloc, ram_session, ep)
+		{ }
 
-		Mac_address mac_address()
+		Mac_address mac_address() override
 		{
 			Mac_address result = {{1,2,3,4,5,6}};
 			return result;
 		}
 
-		bool link_state()
+		bool link_state() override
 		{
 			/* XXX always return true, for now */
 			return true;
 		}
 
-		void link_state_sigh(Genode::Signal_context_capability sigh) { }
+		void _handle_packet_stream() override;
 };
 
 
-void Nic::Session_component::_handle_packet_stream(unsigned)
+void Nic::Loopback_component::_handle_packet_stream()
 {
 	using namespace Genode;
+
+	unsigned const alloc_size = Nic::Packet_allocator::DEFAULT_PACKET_SIZE;
 
 	/* loop unless we cannot make any progress */
 	for (;;) {
@@ -154,35 +114,36 @@ void Nic::Session_component::_handle_packet_stream(unsigned)
 		 * We are safe to process one packet without blocking.
 		 */
 
+
+		Packet_descriptor packet_to_client;
+		try {
+				packet_to_client = _rx.source()->alloc_packet(alloc_size);
+		} catch (Session::Rx::Source::Packet_alloc_failed) {
+			continue;
+		}
+
 		/* obtain packet */
 		Packet_descriptor const packet_from_client = _tx.sink()->get_packet();
 		if (!packet_from_client.valid()) {
 			PWRN("received invalid packet");
+			_rx.source()->release_packet(packet_to_client);
 			continue;
 		}
 
-		try {
-			size_t const packet_size = packet_from_client.size();
-
-			Packet_descriptor const packet_to_client =
-				_rx.source()->alloc_packet(packet_size);
-
 			Genode::memcpy(_rx.source()->packet_content(packet_to_client),
 			               _tx.sink()->packet_content(packet_from_client),
-			               packet_size);
+			               packet_from_client.size());
 
+			packet_to_client = Packet_descriptor(packet_to_client.offset(), packet_from_client.size());
 			_rx.source()->submit_packet(packet_to_client);
 
-		} catch (Session::Rx::Source::Packet_alloc_failed) {
-			PWRN("transmit packet allocation failed, drop packet");
-		}
 
 		_tx.sink()->acknowledge_packet(packet_from_client);
 	}
 }
 
 
-class Nic::Root : public Genode::Root_component<Session_component>
+class Nic::Root : public Genode::Root_component<Loopback_component>
 {
 	private:
 
@@ -190,7 +151,7 @@ class Nic::Root : public Genode::Root_component<Session_component>
 
 	protected:
 
-		Session_component *_create_session(const char *args)
+		Loopback_component*_create_session(const char *args)
 		{
 			using namespace Genode;
 
@@ -216,7 +177,7 @@ class Nic::Root : public Genode::Root_component<Session_component>
 				throw Root::Quota_exceeded();
 			}
 
-			return new (md_alloc()) Session_component(tx_buf_size, rx_buf_size,
+			return new (md_alloc()) Loopback_component(tx_buf_size, rx_buf_size,
 			                                          *env()->heap(),
 			                                          *env()->ram_session(),
 			                                          _ep);
@@ -226,7 +187,7 @@ class Nic::Root : public Genode::Root_component<Session_component>
 
 		Root(Server::Entrypoint &ep, Genode::Allocator &md_alloc)
 		:
-			Genode::Root_component<Session_component>(&ep.rpc_ep(), &md_alloc),
+			Genode::Root_component<Loopback_component>(&ep.rpc_ep(), &md_alloc),
 			_ep(ep)
 		{ }
 };

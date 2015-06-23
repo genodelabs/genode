@@ -25,7 +25,7 @@
 #include <linux/usb/usbnet.h>
 #include <extern_c_end.h>
 
-#include <nic/component.h>
+#include <usb_nic_component.h>
 #include "signal.h"
 
 
@@ -137,7 +137,7 @@ typedef struct sk_buff* (*fixup_t)(struct usbnet *, struct sk_buff *, gfp_t);
 /**
  * Net_device to session glue code
  */
-class Nic_device : public Nic::Device
+class Nic_device : public Usb_nic::Device
 {
 	public:
 
@@ -320,7 +320,7 @@ int register_netdev(struct net_device *ndev)
 
 	/* XXX: move to 'main' */
 	if (!announce) {
-		static Nic::Root root(_signal->ep(), env()->heap(), nic);
+		static ::Root root(_signal->ep(), *env()->heap(), nic);
 
 		announce = true;
 
@@ -333,10 +333,6 @@ int register_netdev(struct net_device *ndev)
 		if (ndev->netdev_ops->ndo_set_rx_mode)
 			ndev->netdev_ops->ndo_set_rx_mode(ndev);
 
-/*
-		if(ndev->netdev_ops->ndo_change_mtu)
-			ndev->netdev_ops->ndo_change_mtu(ndev, 4000);
-*/
 		_nic = nic;
 		env()->parent()->announce(_signal->ep().rpc_ep().manage(&root));
 	}
