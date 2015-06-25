@@ -19,7 +19,7 @@ CC_MARCH ?= -m64
 #
 # See http://sourceware.org/ml/binutils/2009-04/msg00099.html
 #
-LD_MARCH ?= -melf_x86_64 -z max-page-size=0x1000
+LD_MARCH ?= -melf_x86_64
 
 
 include $(call select_from_repositories,mk/spec-64bit.mk)
