@@ -25,8 +25,15 @@ class Genode::Bit_allocator
 {
 	protected:
 
-		addr_t          _next;
-		Bit_array<BITS> _array;
+		static constexpr size_t _BITS_PER_BYTE = 8UL;
+		static constexpr size_t _BITS_PER_WORD = sizeof(addr_t) *
+		                                        _BITS_PER_BYTE;
+		static constexpr size_t _BITS_ALIGNED  = (BITS + _BITS_PER_WORD - 1)
+		                                         & ~(_BITS_PER_WORD-1);
+		using Array = Bit_array<_BITS_ALIGNED>;
+
+		addr_t _next;
+		Array  _array;
 
 		/**
 		 * Reserve consecutive number of bits
@@ -44,7 +51,12 @@ class Genode::Bit_allocator
 
 		class Out_of_indices : Exception {};
 
-		Bit_allocator() : _next(0) { }
+		Bit_allocator() : _next(0)
+		{
+			/* mark supernumerous bits at the end of the array allocator */
+			for (addr_t i = BITS; i < _BITS_ALIGNED; i++)
+				_array.set(i, 1);
+		}
 
 		addr_t alloc(size_t const num_log2 = 0)
 		{
@@ -62,7 +74,7 @@ class Genode::Bit_allocator
 						_next = i + step;
 						return i;
 					}
-				} catch (typename Bit_array<BITS>::Invalid_index_access) { }
+				} catch (typename Array::Invalid_index_access) { }
 
 				max = _next;
 				_next = 0;
