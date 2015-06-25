@@ -279,11 +279,15 @@ class Genode::Translation_table
 	public:
 
 		enum {
-			SIZE_LOG2          = 14,
-			SIZE               = 1 << SIZE_LOG2,
-			ALIGNM_LOG2        = SIZE_LOG2,
-			MAX_PAGE_SIZE_LOG2 = 20,
-			MIN_PAGE_SIZE_LOG2 = 12,
+			SIZE_LOG2               = 14,
+			SIZE                    = 1 << SIZE_LOG2,
+			ALIGNM_LOG2             = SIZE_LOG2,
+			MAX_PAGE_SIZE_LOG2      = 20,
+			MIN_PAGE_SIZE_LOG2      = 12,
+			TABLE_LEVEL_X_VIRT_SIZE = 1 << MAX_PAGE_SIZE_LOG2,
+			TABLE_LEVEL_X_SIZE_LOG2 = MIN_PAGE_SIZE_LOG2,
+			CORE_VM_AREA_SIZE       = 1024 * 1024 * 1024,
+			CORE_TRANS_TABLE_COUNT  = CORE_VM_AREA_SIZE / TABLE_LEVEL_X_VIRT_SIZE,
 		};
 
 		/**

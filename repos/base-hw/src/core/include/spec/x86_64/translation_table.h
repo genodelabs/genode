@@ -21,6 +21,7 @@
 #include <assert.h>
 
 /* base-hw includes */
+#include <util.h>
 #include <page_flags.h>
 #include <translation_table_allocator.h>
 
@@ -634,6 +635,14 @@ class Genode::Pml4_table
 			}
 		}
 
+	protected:
+
+		/**
+		 * Return how many entries of an alignment fit into region
+		 */
+		static constexpr size_t _count(size_t region, size_t alignment) {
+			return align_addr<size_t>(region, alignment) / (1UL << alignment); }
+
 	public:
 
 		static constexpr size_t MIN_PAGE_SIZE_LOG2 = SIZE_LOG2_4KB;
@@ -690,7 +699,23 @@ class Genode::Pml4_table
 		}
 } __attribute__((aligned(1 << ALIGNM_LOG2)));
 
+
 namespace Genode {
-	class Translation_table : public Pml4_table { }; }
+	class Translation_table;
+}
+
+class Genode::Translation_table : public Pml4_table
+{
+	public:
+
+		enum {
+			TABLE_LEVEL_X_SIZE_LOG2 = SIZE_LOG2_4KB,
+			CORE_VM_AREA_SIZE       = 1024 * 1024 * 1024,
+			CORE_TRANS_TABLE_COUNT  =
+			_count(CORE_VM_AREA_SIZE, SIZE_LOG2_512GB)
+			+ _count(CORE_VM_AREA_SIZE, SIZE_LOG2_1GB)
+			+ _count(CORE_VM_AREA_SIZE, SIZE_LOG2_2MB)
+		};
+};
 
 #endif /* _TRANSLATION_TABLE_H_ */

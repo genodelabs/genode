@@ -22,9 +22,11 @@
 
 /* base-hw includes */
 #include <kernel/log.h>
+#include <kernel/configuration.h>
 #include <kernel/core_interface.h>
 
 /* core includes */
+#include <translation_table_allocator_tpl.h>
 #include <platform_generic.h>
 #include <core_rm_session.h>
 #include <core_mem_alloc.h>
@@ -120,6 +122,20 @@ namespace Genode {
 			 */
 			static void setup_irq_mode(unsigned irq_number, unsigned trigger,
 			                           unsigned polarity);
+
+			/**
+			 * Return address of cores translation table allocator
+			 */
+			static addr_t core_translation_tables();
+
+			/**
+			 * Return size of cores translation table allocator
+			 */
+			static constexpr size_t core_translation_tables_size()
+			{
+				return round_page(sizeof(Translation_table_allocator_tpl<
+				                         Translation_table::CORE_TRANS_TABLE_COUNT>));
+			}
 
 			/********************************
 			 ** Platform_generic interface **

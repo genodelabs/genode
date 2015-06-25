@@ -16,7 +16,7 @@
 #define _KERNEL__PD_H_
 
 /* core includes */
-#include <translation_table.h>
+#include <translation_table_allocator_tpl.h>
 #include <kernel/cpu.h>
 #include <kernel/object.h>
 
