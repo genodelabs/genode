@@ -26,7 +26,7 @@ namespace Init { bool config_verbose = false; }
 /**
  * Read priority-levels declaration from config
  */
-inline long read_prio_levels_log2()
+inline long read_prio_levels()
 {
 	using namespace Genode;
 
@@ -35,11 +35,11 @@ inline long read_prio_levels_log2()
 		config()->xml_node().attribute("prio_levels").value(&prio_levels); }
 	catch (...) { }
 
-	if (prio_levels && prio_levels != (1 << log2(prio_levels))) {
+	if (prio_levels && (prio_levels != (1 << log2(prio_levels)))) {
 		printf("Warning: Priolevels is not power of two, priorities are disabled\n");
-		prio_levels = 0;
+		return 0;
 	}
-	return prio_levels ? log2(prio_levels) : 0;
+	return prio_levels;
 }
 
 
@@ -334,7 +334,7 @@ int main(int, char **)
 				try {
 					children.insert(new (env()->heap())
 					                Init::Child(start_node, default_route_node,
-					                            &children, read_prio_levels_log2(),
+					                            &children, read_prio_levels(),
 					                            read_affinity_space(),
 					                            &parent_services, &child_services, &cap));
 				}

@@ -51,7 +51,7 @@ namespace Init {
 		Genode::printf("         Proceeding with a quota of %zu.\n", avail);
 	}
 
-	inline long read_priority(Genode::Xml_node start_node)
+	inline long read_priority(Genode::Xml_node start_node, long prio_levels)
 	{
 		long priority = Genode::Cpu_session::DEFAULT_PRIORITY;
 		try { start_node.attribute("priority").value(&priority); }
@@ -64,7 +64,18 @@ namespace Init {
 		 * calculations, we use inverted values. Lower values
 		 * correspond to higher priorities.
 		 */
-		return -priority;
+		priority = -priority;
+
+		if (priority && (priority >= prio_levels)) {
+			long new_prio = prio_levels-1;
+			char name[Genode::Service::MAX_NAME_LEN];
+			start_node.attribute("name").value(name, sizeof(name));
+			PERR("%s: invalid priority, upgrading from -%ld to -%ld",
+			     name, priority, new_prio);
+			return new_prio;
+		}
+
+		return priority;
 	}
 
 
@@ -450,13 +461,13 @@ class Init::Child : Genode::Child_policy
 			inline void transfer_cpu_quota();
 
 			Resources(Genode::Xml_node start_node, const char *label,
-			          long prio_levels_log2,
+			          long prio_levels,
 			          Genode::Affinity::Space const &affinity_space,
 			          Genode::Native_pd_args const * pd_args)
 			:
 				Read_quota(start_node, ram_quota, cpu_quota_pc, constrain_phys),
-				prio_levels_log2(prio_levels_log2),
-				priority(read_priority(start_node)),
+				prio_levels_log2(Genode::log2(prio_levels)),
+				priority(read_priority(start_node, prio_levels)),
 				affinity(affinity_space,
 				         read_affinity_location(affinity_space, start_node)),
 				pd(label, pd_args),
@@ -526,7 +537,7 @@ class Init::Child : Genode::Child_policy
 		Child(Genode::Xml_node              start_node,
 		      Genode::Xml_node              default_route_node,
 		      Name_registry                *name_registry,
-		      long                          prio_levels_log2,
+		      long                          prio_levels,
 		      Genode::Affinity::Space const &affinity_space,
 		      Genode::Service_registry      *parent_services,
 		      Genode::Service_registry      *child_services,
@@ -538,7 +549,7 @@ class Init::Child : Genode::Child_policy
 			_name_registry(name_registry),
 			_name(start_node, name_registry),
 			_pd_args(start_node),
-			_resources(start_node, _name.unique, prio_levels_log2,
+			_resources(start_node, _name.unique, prio_levels,
 			           affinity_space, &_pd_args),
 			_entrypoint(cap_session, ENTRYPOINT_STACK_SIZE, _name.unique, false, _resources.affinity.location()),
 			_binary_rom(_name.file, _name.file),
