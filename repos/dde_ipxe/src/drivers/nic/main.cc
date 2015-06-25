@@ -18,7 +18,7 @@
 #include <base/printf.h>
 #include <cap_session/connection.h>
 #include <nic/component.h>
-#include <nic/root_single.h>
+#include <nic/root.h>
 #include <os/server.h>
 
 #include <dde_ipxe/nic.h>
@@ -141,7 +141,8 @@ Ipxe_session_component *Ipxe_session_component::instance;
 struct Main
 {
 	Server::Entrypoint &ep;
-	Nic::Root<Ipxe_session_component> nic_root{ep, *Genode::env()->heap() };
+
+	Nic::Root<Ipxe_session_component> root {ep, *Genode::env()->heap() };
 
 	Main(Server::Entrypoint &ep) : ep(ep)
 	{
@@ -151,7 +152,7 @@ struct Main
 		int cnt = dde_ipxe_nic_init(&ep);
 		PINF("    number of devices: %d", cnt);
 
-		Genode::env()->parent()->announce(ep.manage(nic_root));
+		Genode::env()->parent()->announce(ep.manage(root));
 	}
 };
 

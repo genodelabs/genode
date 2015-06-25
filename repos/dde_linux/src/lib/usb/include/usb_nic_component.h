@@ -225,40 +225,40 @@ class Root : public Root_component
 		Server::Entrypoint &_ep;
 		Usb_nic::Device    *_device;
 
-protected:
+	protected:
 
-	Usb_nic::Session_component *_create_session(const char *args)
-	{
-		using namespace Genode;
+		Usb_nic::Session_component *_create_session(const char *args)
+		{
+			using namespace Genode;
 
-		size_t ram_quota   = Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
-		size_t tx_buf_size = Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
-		size_t rx_buf_size = Arg_string::find_arg(args, "rx_buf_size").ulong_value(0);
+			size_t ram_quota   = Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
+			size_t tx_buf_size = Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
+			size_t rx_buf_size = Arg_string::find_arg(args, "rx_buf_size").ulong_value(0);
 
-		/* deplete ram quota by the memory needed for the session structure */
-		size_t session_size = max(4096UL, (unsigned long)sizeof(Usb_nic::Session_component));
-		if (ram_quota < session_size)
-			throw Genode::Root::Quota_exceeded();
+			/* deplete ram quota by the memory needed for the session structure */
+			size_t session_size = max(4096UL, (unsigned long)sizeof(Usb_nic::Session_component));
+			if (ram_quota < session_size)
+				throw Genode::Root::Quota_exceeded();
 
-		/*
-		 * Check if donated ram quota suffices for both communication
-		 * buffers. Also check both sizes separately to handle a
-		 * possible overflow of the sum of both sizes.
-		 */
-		if (tx_buf_size               > ram_quota - session_size
-		 || rx_buf_size               > ram_quota - session_size
-		 || tx_buf_size + rx_buf_size > ram_quota - session_size) {
-			PERR("insufficient 'ram_quota', got %zd, need %zd",
-			     ram_quota, tx_buf_size + rx_buf_size + session_size);
-			throw Genode::Root::Quota_exceeded();
+			/*
+			 * Check if donated ram quota suffices for both communication
+			 * buffers. Also check both sizes separately to handle a
+			 * possible overflow of the sum of both sizes.
+			 */
+			if (tx_buf_size               > ram_quota - session_size
+			 || rx_buf_size               > ram_quota - session_size
+			 || tx_buf_size + rx_buf_size > ram_quota - session_size) {
+				PERR("insufficient 'ram_quota', got %zd, need %zd",
+				     ram_quota, tx_buf_size + rx_buf_size + session_size);
+				throw Genode::Root::Quota_exceeded();
+			}
+
+			return new (Root::md_alloc())
+			            Usb_nic::Session_component(tx_buf_size, rx_buf_size,
+			                                       *env()->heap(),
+			                                       *env()->ram_session(),
+			                                       _ep, _device);
 		}
-
-		return new (Root::md_alloc())
-		            Usb_nic::Session_component(tx_buf_size, rx_buf_size,
-		                                       *env()->heap(),
-		                                       *env()->ram_session(),
-		                                       _ep, _device);
-	}
 
 	public:
 
@@ -268,6 +268,5 @@ protected:
 			_ep(ep), _device(device)
 		{ }
 };
-
 
 #endif /* _USB_NIC_COMPONENT_H_ */

@@ -1,4 +1,4 @@
-/**
+/*
  * \brief  Server::Entrypoint based NIC session component
  * \author Norman Feske
  * \author Sebastian Sumpf
@@ -11,8 +11,9 @@
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
-#ifndef _NIC__COMPONENT_H_
-#define _NIC__COMPONENT_H_
+
+#ifndef _INCLUDE__NIC__COMPONENT_H_
+#define _INCLUDE__NIC__COMPONENT_H_
 
 #include <os/attached_ram_dataspace.h>
 #include <os/server.h>
@@ -62,8 +63,8 @@ class Nic::Session_component : Communication_buffers, public Session_rpc_object
 		}
 
 		/**
-		 * Sub-classes must implement this function, it is called upon all packet stream
-		 * signals
+		 * Sub-classes must implement this function, it is called upon all
+		 * packet-stream signals.
 		 */
 		virtual void _handle_packet_stream() = 0;
 
@@ -122,4 +123,4 @@ class Nic::Session_component : Communication_buffers, public Session_rpc_object
 };
 
 
-#endif /* _NIC__COMPONENT_H_ */
+#endif /* _INCLUDE__NIC__COMPONENT_H_ */

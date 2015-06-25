@@ -25,7 +25,7 @@
 
 /* Genode */
 #include <base/thread.h>
-#include <nic/root_single.h>
+#include <nic/root.h>
 #include <nic/xml_node.h>
 #include <os/config.h>
 
@@ -44,13 +44,13 @@ class Linux_session_component : public Nic::Session_component
 {
 	private:
 
-		struct Rx_thread : Genode::Thread<0x2000>
+		struct Rx_signal_thread : Genode::Thread<0x1000>
 		{
 			int                               fd;
-			Genode::Signal_context_capability data_sigh;
+			Genode::Signal_context_capability sigh;
 
-			Rx_thread(int fd, Genode::Signal_context_capability data_sigh)
-			: Genode::Thread<0x2000>("rx"), fd(fd), data_sigh(data_sigh) { }
+			Rx_signal_thread(int fd, Genode::Signal_context_capability sigh)
+			: Genode::Thread<0x1000>("rx_signal"), fd(fd), sigh(sigh) { }
 
 			void entry()
 			{
@@ -63,16 +63,15 @@ class Linux_session_component : public Nic::Session_component
 					FD_SET(fd, &rfds);
 					do { ret = select(fd + 1, &rfds, 0, 0, 0); } while (ret < 0);
 
-					/* signal data reception */
-					Genode::Signal_transmitter(data_sigh).submit();
+					/* signal incoming packet */
+					Genode::Signal_transmitter(sigh).submit();
 				}
 			}
 		};
 
 		Nic::Mac_address _mac_addr;
 		int              _tap_fd;
-		Rx_thread        _rx_thread;
-
+		Rx_signal_thread _rx_thread;
 
 		int _setup_tap_fd()
 		{
@@ -139,6 +138,7 @@ class Linux_session_component : public Nic::Session_component
 			/* non-blocking-write packet to TAP */
 			do {
 				ret = write(_tap_fd, _tx.sink()->packet_content(packet), packet.size());
+				/* drop packet if write would block */
 				if (ret < 0 && errno == EAGAIN)
 					continue;
 
@@ -152,7 +152,7 @@ class Linux_session_component : public Nic::Session_component
 
 		bool _receive()
 		{
-			unsigned const  max_size = Nic::Packet_allocator::DEFAULT_PACKET_SIZE;
+			unsigned const max_size = Nic::Packet_allocator::DEFAULT_PACKET_SIZE;
 
 			if (!_rx.source()->ready_to_submit())
 				return false;
@@ -183,7 +183,7 @@ class Linux_session_component : public Nic::Session_component
 				_rx.source()->release_packet(_rx.source()->get_acked_packet());
 
 			while (_send()) ;
-			while (_receive());
+			while (_receive()) ;
 		}
 
 	public:
@@ -193,32 +193,33 @@ class Linux_session_component : public Nic::Session_component
 		                        Genode::Allocator   &rx_block_md_alloc,
 		                        Genode::Ram_session &ram_session,
 		                        Server::Entrypoint  &ep)
-		: Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, ram_session, ep),
-		  _tap_fd(_setup_tap_fd()), _rx_thread(_tap_fd, _packet_stream_dispatcher)
-	{
-		/* try using configured MAC address */
-		try {
-			Genode::Xml_node nic_config = Genode::config()->xml_node().sub_node("nic");
-			nic_config.attribute("mac").value(&_mac_addr);
-			PINF("Using configured MAC address \"%02x:%02x:%02x:%02x:%02x:%02x\"",
-					_mac_addr.addr[0],
-					_mac_addr.addr[1],
-					_mac_addr.addr[2],
-					_mac_addr.addr[3],
-					_mac_addr.addr[4],
-					_mac_addr.addr[5]	);
-		} catch (...) {
-			/* fall back to fake MAC address (unicast, locally managed) */
-			_mac_addr.addr[0] = 0x02;
-			_mac_addr.addr[1] = 0x00;
-			_mac_addr.addr[2] = 0x00;
-			_mac_addr.addr[3] = 0x00;
-			_mac_addr.addr[4] = 0x00;
-			_mac_addr.addr[5] = 0x01;
-		}
+		:
+			Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, ram_session, ep),
+			_tap_fd(_setup_tap_fd()), _rx_thread(_tap_fd, _packet_stream_dispatcher)
+		{
+			/* try using configured MAC address */
+			try {
+				Genode::Xml_node nic_config = Genode::config()->xml_node().sub_node("nic");
+				nic_config.attribute("mac").value(&_mac_addr);
+				PINF("Using configured MAC address \"%02x:%02x:%02x:%02x:%02x:%02x\"",
+						_mac_addr.addr[0],
+						_mac_addr.addr[1],
+						_mac_addr.addr[2],
+						_mac_addr.addr[3],
+						_mac_addr.addr[4],
+						_mac_addr.addr[5]	);
+			} catch (...) {
+				/* fall back to fake MAC address (unicast, locally managed) */
+				_mac_addr.addr[0] = 0x02;
+				_mac_addr.addr[1] = 0x00;
+				_mac_addr.addr[2] = 0x00;
+				_mac_addr.addr[3] = 0x00;
+				_mac_addr.addr[4] = 0x00;
+				_mac_addr.addr[5] = 0x01;
+			}
 
-		_rx_thread.start();
-	}
+			_rx_thread.start();
+		}
 
 	bool link_state() override              { return true; }
 	Nic::Mac_address mac_address() override { return _mac_addr; }
@@ -237,15 +238,6 @@ struct Server::Main
 };
 
 
-namespace Server {
-
-	char const *name() { return "nic_ep"; }
-
-	size_t stack_size() { return 2*1024*sizeof(long); }
-
-	void construct(Entrypoint &ep)
-	{
-		static Main main(ep);
-	}
-}
-
+char const * Server::name()            { return "nic_ep"; }
+size_t Server::stack_size()            { return 2*1024*sizeof(long); }
+void Server::construct(Entrypoint &ep) { static Main main(ep); }

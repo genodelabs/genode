@@ -10,8 +10,9 @@
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
-#ifndef _NIC__ROOT_SINGLE_
-#define _NIC__ROOT_SINGLE_
+
+#ifndef _INCLUDE__NIC__ROOT_H_
+#define _INCLUDE__NIC__ROOT_H_
 
 #include <nic/component.h>
 #include <root/component.h>
@@ -73,5 +74,4 @@ class Nic::Root : public Genode::Root_component<SESSION_COMPONENT,
 		{ }
 };
 
-
-#endif /* _NIC__ROOT_SINGLE_ */
+#endif /* _INCLUDE__NIC__ROOT_H_ */
