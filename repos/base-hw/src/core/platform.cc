@@ -86,6 +86,14 @@ static void init_alloc(Range_allocator * const alloc,
  ** Platform **
  **************/
 
+addr_t Platform::core_translation_tables()
+{
+	size_t sz = max((size_t)Translation_table::TABLE_LEVEL_X_SIZE_LOG2,
+	                get_page_size_log2());
+	return align_addr<addr_t>((addr_t)&_boot_modules_binaries_end, sz);
+}
+
+
 Native_region * Platform::_core_only_ram_regions(unsigned const i)
 {
 	static Native_region _r[] =
@@ -97,7 +105,10 @@ Native_region * Platform::_core_only_ram_regions(unsigned const i)
 		/* boot modules */
 		{ (addr_t)&_boot_modules_binaries_begin,
 		  (size_t)((addr_t)&_boot_modules_binaries_end -
-		           (addr_t)&_boot_modules_binaries_begin) }
+		           (addr_t)&_boot_modules_binaries_begin) },
+
+		/* translation table allocator */
+		{ core_translation_tables(), core_translation_tables_size() }
 	};
 	return i < sizeof(_r)/sizeof(_r[0]) ? &_r[i] : 0;
 }

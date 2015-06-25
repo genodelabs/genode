@@ -181,17 +181,15 @@ Translation_table * const Core_platform_pd::_table()
 
 Translation_table_allocator * const Core_platform_pd::_table_alloc()
 {
-	/**
-	 * Core's translation table allocator should contain as much tables
-	 * needed to populate the whole virtual memory available to core.
-	 * By now, we do not cover the limitation of core's virtula memory
-	 * when opening e.g. sessions on behalf of clients. Therefore, for
-	 * the time being the number of tables is set to some reasonable
-	 * high number.
-	 */
-	using Pa = Translation_table_allocator_tpl<1024>;
-	static Pa * pa = unmanaged_singleton<Pa, Pa::ALIGN>();
-	return pa->alloc();
+	constexpr size_t count = Genode::Translation_table::CORE_TRANS_TABLE_COUNT;
+	using Allocator = Translation_table_allocator_tpl<count>;
+
+	static Allocator * alloc = nullptr;
+	if (!alloc) {
+		void * base = (void*) Platform::core_translation_tables();
+		alloc = construct_at<Allocator>(base);
+	}
+	return alloc->alloc();
 }
 
 
@@ -222,6 +220,11 @@ Core_platform_pd::Core_platform_pd()
 
 	/* map core's program image */
 	_map((addr_t)&_prog_img_beg, (addr_t)&_prog_img_end, false);
+
+	/* map core's page table allocator */
+	_map(Platform::core_translation_tables(),
+	     Platform::core_translation_tables() +
+	     Platform::core_translation_tables_size(), false);
 
 	/* map core's mmio regions */
 	Native_region * r = Platform::_core_only_mmio_regions(0);

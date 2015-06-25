@@ -522,7 +522,25 @@ class Genode::Level_x_translation_table :
 			this->_range_op(vo, 0, size, Remove_func(alloc)); }
 };
 
-namespace Genode {
-	class Translation_table : public Level_1_stage_1_translation_table { }; }
 
+namespace Genode {
+	class Translation_table;
+}
+
+class Genode::Translation_table : public Level_1_stage_1_translation_table
+{
+	public:
+
+		enum {
+			TABLE_LEVEL_X_SIZE_LOG2 = SIZE_LOG2_4KB,
+			TABLE_LEVEL_X_ENTRIES   = (1 << SIZE_LOG2_4KB) / sizeof(addr_t),
+			CORE_VM_AREA_SIZE       = 1024 * 1024 * 1024,
+			SIZE_1GB                = 1 << SIZE_LOG2_1GB,
+			CORE_LEVEL_2_TT_COUNT   = ((uint64_t)CORE_VM_AREA_SIZE +
+			                           SIZE_1GB - 1) / SIZE_1GB,
+			CORE_TRANS_TABLE_COUNT  = CORE_LEVEL_2_TT_COUNT +
+			                          CORE_LEVEL_2_TT_COUNT *
+			                          TABLE_LEVEL_X_ENTRIES,
+		};
+};
 #endif /* _ARM_V7__LONG_TRANSLATION_TABLE_H_ */
