@@ -102,16 +102,6 @@ namespace Genode {
 			static Native_region * _core_only_mmio_regions(unsigned i);
 
 			/**
-			 * Get one of the consecutively numbered user interrupts
-			 *
-			 * \param i  index of interrupt
-			 *
-			 * \return  >0  pointer to the name of the requested interrupt
-			 *          0   no interrupt for that index
-			 */
-			static unsigned * _irq(unsigned const i);
-
-			/**
 			 * Constructor
 			 */
 			Platform();
