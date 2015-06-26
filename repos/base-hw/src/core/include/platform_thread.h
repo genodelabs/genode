@@ -45,7 +45,7 @@ namespace Genode {
 
 		Platform_pd *                 _pd;
 		Weak_ptr<Address_space>       _address_space;
-		Rm_client *                   _rm_client;
+		Pager_object *                _pager;
 		Native_utcb *                 _utcb_core_addr; /* UTCB addr in core */
 		Native_utcb *                 _utcb_pd_addr;   /* UTCB addr in pd   */
 		Ram_dataspace_capability      _utcb;           /* UTCB dataspace    */
