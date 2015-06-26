@@ -374,7 +374,8 @@ class Lan9118 : public Nic::Session_component,
 		void handle_irq(int)
 		{
 			using namespace Genode;
-			_handle_packet_stream()
+
+			_handle_packet_stream();
 
 			while (_rx_packet_avail() && _rx.source()->ready_to_submit()) {
 
