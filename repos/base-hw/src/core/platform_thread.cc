@@ -30,50 +30,21 @@ using namespace Genode;
 void Platform_thread::_init() { }
 
 
-bool Platform_thread::_attaches_utcb_by_itself()
-{
-	/*
-	 * If this is a main thread outside of core it'll not manage its
-	 * virtual context area by itself, as it is done for other threads
-	 * through a sub RM-session.
-	 */
-	return _pd == Kernel::core_pd()->platform_pd() || !_main_thread;
-}
-
-
-Weak_ptr<Address_space> Platform_thread::address_space()
-{
-	return _address_space;
-}
+Weak_ptr<Address_space> Platform_thread::address_space() {
+	return _address_space; }
 
 
 Platform_thread::~Platform_thread()
 {
-	/* detach UTCB */
-	if (!_attaches_utcb_by_itself()) {
-
-		/* the RM client may be destructed before platform thread */
-		if (_rm_client) {
-			Rm_session_component * const rm = _rm_client->member_rm_session();
-			rm->detach(_utcb_pd_addr);
-		}
+	/* detach UTCB of main threads */
+	if (_main_thread) {
+		Locked_ptr<Address_space> locked_ptr(_address_space);
+		if (locked_ptr.is_valid())
+			locked_ptr->flush((addr_t)_utcb_pd_addr, sizeof(Native_utcb));
 	}
 
 	/* free UTCB */
-	Ram_session_component * const ram =
-		dynamic_cast<Ram_session_component *>(core_env()->ram_session());
-	assert(ram);
-	ram->free(_utcb);
-
-	/* release from pager */
-	if (_rm_client) {
-		Pager_object * const object = dynamic_cast<Pager_object *>(_rm_client);
-		assert(object);
-		Rm_session_component * const rm = _rm_client->member_rm_session();
-		assert(rm);
-		Pager_capability cap = reinterpret_cap_cast<Pager_object>(object->Object_pool<Pager_object>::Entry::cap());
-		rm->remove_client(cap);
-	}
+	core_env()->ram_session()->free(_utcb);
 }
 
 
@@ -85,7 +56,7 @@ Platform_thread::Platform_thread(const char * const label,
                                  Native_utcb * utcb)
 : Kernel_object<Kernel::Thread>(true, Kernel::Cpu_priority::MAX, 0, _label),
   _pd(Kernel::core_pd()->platform_pd()),
-  _rm_client(nullptr),
+  _pager(nullptr),
   _utcb_core_addr(utcb),
   _utcb_pd_addr(utcb),
   _main_thread(false)
@@ -109,22 +80,16 @@ Platform_thread::Platform_thread(size_t const quota,
                                  addr_t const utcb)
 : Kernel_object<Kernel::Thread>(true, _priority(virt_prio), 0, _label),
   _pd(nullptr),
-  _rm_client(nullptr),
+  _pager(nullptr),
   _utcb_pd_addr((Native_utcb *)utcb),
   _main_thread(false)
 {
 	strncpy(_label, label, LABEL_MAX_LEN);
 
-	/*
-	 * Allocate UTCB backing store for a thread outside of core. Page alignment
-	 * is done by RAM session by default. It's save to use core env because
-	 * this cannot be its server activation thread.
-	 */
-	Ram_session_component * const ram =
-		dynamic_cast<Ram_session_component *>(core_env()->ram_session());
-	assert(ram);
-	try { _utcb = ram->alloc(sizeof(Native_utcb), CACHED); }
-	catch (...) {
+	try {
+		_utcb = core_env()->ram_session()->alloc(sizeof(Native_utcb),
+		                                         CACHED);
+	} catch (...) {
 		PERR("failed to allocate UTCB");
 		throw Cpu_session::Out_of_metadata();
 	}
@@ -162,18 +127,28 @@ int Platform_thread::start(void * const ip, void * const sp)
 {
 	/* attach UTCB in case of a main thread */
 	if (_main_thread) {
-		_utcb_pd_addr = utcb_main_thread();
-		if (!_rm_client) {
+
+		/* lookup dataspace component for physical address */
+		Rpc_entrypoint * ep = core_env()->entrypoint();
+		Object_pool<Dataspace_component>::Guard dsc(ep->lookup_and_lock(_utcb));
+		if (!dsc) return -1;
+
+		/* lock the address space */
+		Locked_ptr<Address_space> locked_ptr(_address_space);
+		if (!locked_ptr.is_valid()) {
 			PERR("invalid RM client");
 			return -1;
 		};
-		Rm_session_component * const rm = _rm_client->member_rm_session();
-		try { rm->attach(_utcb, 0, 0, true, _utcb_pd_addr, 0); }
-		catch (...) {
+		Page_flags const flags = Page_flags::apply_mapping(true, CACHED, false);
+		_utcb_pd_addr           = utcb_main_thread();
+		Hw::Address_space * as = static_cast<Hw::Address_space*>(&*locked_ptr);
+		if (!as->insert_translation((addr_t)_utcb_pd_addr, dsc->phys_addr(),
+		                            sizeof(Native_utcb), flags)) {
 			PERR("failed to attach UTCB");
 			return -1;
 		}
 	}
+
 	/* initialize thread registers */
 	typedef Kernel::Thread_reg_id Reg_id;
 	enum { WRITES = 2 };
@@ -212,34 +187,17 @@ int Platform_thread::start(void * const ip, void * const sp)
 
 void Platform_thread::pager(Pager_object * const pager)
 {
-	typedef Kernel::Thread_event_id Event_id;
-	if (pager) {
-		unsigned const sc_id = pager->cap().dst();
-		if (sc_id) {
-			if (!Kernel::route_thread_event(kernel_object(), Event_id::FAULT,
-			                                sc_id)) {
-				_rm_client = dynamic_cast<Rm_client *>(pager);
-				return;
-			}
-		}
-		PERR("failed to attach signal context to fault");
-		return;
-	} else {
-		if (!Kernel::route_thread_event(kernel_object(), Event_id::FAULT, 0)) {
-			_rm_client = 0;
-			return;
-		}
-		PERR("failed to detach signal context from fault");
-		return;
-	}
-	return;
+	using namespace Kernel;
+
+	if (route_thread_event(kernel_object(), Thread_event_id::FAULT,
+	                       pager ? pager->cap().dst() : cap_id_invalid()))
+		PERR("failed to set pager object for thread %s", label());
+
+	_pager = pager;
 }
 
 
-Genode::Pager_object * Platform_thread::pager()
-{
-	return _rm_client ? static_cast<Pager_object *>(_rm_client) : 0;
-}
+Genode::Pager_object * Platform_thread::pager() { return _pager; }
 
 
 addr_t const * cpu_state_regs();
