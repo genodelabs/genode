@@ -49,7 +49,8 @@ class File_system::Symlink : public Node
 
 		size_t write(char const *src, size_t len, seek_off_t seek_offset)
 		{
-			if (!_create)
+			/* Ideal symlink operations are atomic. */
+			if (!_create || seek_offset)
 				return 0;
 
 			int ret = rump_sys_symlink(src, _path.base());

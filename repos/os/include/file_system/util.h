@@ -103,7 +103,7 @@ namespace File_system {
 	/**
 	 * Read file content
 	 */
-	static inline size_t read(Session &fs, File_handle const &file_handle,
+	static inline size_t read(Session &fs, Node_handle const &node_handle,
 	                          void *dst, size_t count, seek_off_t seek_offset = 0)
 	{
 		bool success = true;
@@ -122,7 +122,7 @@ namespace File_system {
 			Packet_descriptor
 				packet(source.alloc_packet(curr_packet_size),
 				       0,
-				       file_handle,
+				       node_handle,
 				       File_system::Packet_descriptor::READ,
 				       curr_packet_size,
 				       seek_offset);
@@ -160,7 +160,7 @@ namespace File_system {
 	/**
 	 * Write file content
 	 */
-	static inline size_t write(Session &fs, File_handle const &file_handle,
+	static inline size_t write(Session &fs, Node_handle const &node_handle,
 	                          void const *src, size_t count, seek_off_t seek_offset = 0)
 	{
 		bool success = true;
@@ -179,7 +179,7 @@ namespace File_system {
 			Packet_descriptor
 				packet(source.alloc_packet(curr_packet_size),
 				       0,
-				       file_handle,
+				       node_handle,
 				       File_system::Packet_descriptor::WRITE,
 				       curr_packet_size,
 				       seek_offset);

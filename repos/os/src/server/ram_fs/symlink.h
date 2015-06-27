@@ -31,6 +31,9 @@ namespace File_system {
 
 			size_t write(char const *src, size_t len, seek_off_t seek_offset)
 			{
+				/* Ideal symlink operations are atomic. */
+				if (seek_offset) return 0;
+
 				size_t count = min(len, sizeof(_link_to) + 1);
 				Genode::strncpy(_link_to, src, count);
 				return count;
