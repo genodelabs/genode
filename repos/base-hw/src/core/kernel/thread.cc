@@ -751,7 +751,7 @@ void Thread::_call()
  *****************/
 
 Core_thread::Core_thread()
-: Core_object<Thread>(Cpu_priority::max, 0, "core")
+: Core_object<Thread>(Cpu_priority::MAX, 0, "core")
 {
 	using Genode::Native_utcb;
 

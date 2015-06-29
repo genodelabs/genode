@@ -55,13 +55,15 @@ class Kernel::Cpu_priority
 
 	public:
 
-		static constexpr signed min = 0;
-		static constexpr signed max = cpu_priorities - 1;
+		enum {
+			MIN = 0,
+			MAX = cpu_priorities - 1,
+		};
 
 		/**
 		 * Construct priority with value 'v'
 		 */
-		Cpu_priority(signed const v) : _value(Genode::min(v, max)) { }
+		Cpu_priority(signed const v) : _value(Genode::min(v, MAX)) { }
 
 		/*
 		 * Standard operators
@@ -69,7 +71,7 @@ class Kernel::Cpu_priority
 
 		Cpu_priority & operator =(signed const v)
 		{
-			_value = Genode::min(v, max);
+			_value = Genode::min(v, MAX);
 			return *this;
 		}
 
@@ -118,8 +120,8 @@ class Kernel::Cpu_scheduler
 		typedef Double_list_typed<Fill>  Fill_list;
 		typedef Cpu_priority             Prio;
 
-		Claim_list     _rcl[Prio::max + 1]; /* ready claims */
-		Claim_list     _ucl[Prio::max + 1]; /* unready claims */
+		Claim_list     _rcl[Prio::MAX + 1]; /* ready claims */
+		Claim_list     _ucl[Prio::MAX + 1]; /* unready claims */
 		Fill_list      _fills;              /* ready fills */
 		Share * const  _idle;
 		Share *        _head;
@@ -131,7 +133,7 @@ class Kernel::Cpu_scheduler
 		unsigned const _fill;
 
 		template <typename F> void _for_each_prio(F f) {
-			for (signed p = Prio::max; p > Prio::min - 1; p--) { f(p); } }
+			for (signed p = Prio::MAX; p > Prio::MIN - 1; p--) { f(p); } }
 
 		template <typename T>
 		static Share * _share(T * const t) { return static_cast<Share *>(t); }
