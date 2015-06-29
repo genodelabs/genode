@@ -110,6 +110,10 @@ extern "C" void *abort(void)
 		myself->name(thread_name, sizeof(thread_name));
 	PWRN("abort called - thread: '%s'", thread_name);
 
+	/* Notify the parent of failure */
+	if (!strcmp("main", thread_name, sizeof(thread_name)))
+		env()->parent()->exit(1);
+
 	sleep_forever();
 	return 0;
 }
