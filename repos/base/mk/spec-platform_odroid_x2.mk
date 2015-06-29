@@ -10,7 +10,7 @@
 SPECS +=  exynos4 cortex_a9
 
 # add repository relative paths
-REP_INC_DIR += include/platform/odroid-x2
+REP_INC_DIR += include/platform/odroid_x2
 REP_INC_DIR += include/platform/exynos4
 
 # include implied specs
