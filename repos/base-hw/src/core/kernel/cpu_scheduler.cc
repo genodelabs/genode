@@ -77,7 +77,7 @@ void Cpu_scheduler::_head_filled(unsigned const r)
 
 bool Cpu_scheduler::_claim_for_head()
 {
-	for (signed p = Prio::max; p > Prio::min - 1; p--) {
+	for (signed p = Prio::MAX; p > Prio::MIN - 1; p--) {
 		Share * const s = _share(_rcl[p].head());
 		if (!s) { continue; }
 		if (!s->_claim) { continue; }

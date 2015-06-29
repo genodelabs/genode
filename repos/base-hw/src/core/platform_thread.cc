@@ -83,7 +83,7 @@ void Platform_thread::quota(size_t const quota) {
 
 Platform_thread::Platform_thread(const char * const label,
                                  Native_utcb * utcb)
-: Kernel_object<Kernel::Thread>(true, Kernel::Cpu_priority::max, 0, _label),
+: Kernel_object<Kernel::Thread>(true, Kernel::Cpu_priority::MAX, 0, _label),
   _pd(Kernel::core_pd()->platform_pd()),
   _rm_client(nullptr),
   _utcb_core_addr(utcb),
