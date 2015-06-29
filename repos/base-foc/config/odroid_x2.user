@@ -25,6 +25,7 @@ CONFIG_CPU_ARMV6KPLUS=y
 CONFIG_CPU_ARMV6PLUS=y
 CONFIG_PLATFORM_TYPE_exynos4=y
 # CONFIG_PLATFORM_TYPE_imx6 is not set
+# CONFIG_PLATFORM_TYPE_zedboard is not set
 # CONFIG_PLATFORM_TYPE_imx35 is not set
 # CONFIG_PLATFORM_TYPE_rv_pbx is not set
 # CONFIG_PLATFORM_TYPE_exynos5 is not set
@@ -33,15 +34,17 @@ CONFIG_PLATFORM_TYPE_exynos4=y
 # CONFIG_PLATFORM_TYPE_pandaboard is not set
 # CONFIG_PLATFORM_TYPE_tegra3 is not set
 # CONFIG_PLATFORM_TYPE_tegra2 is not set
+# CONFIG_PLATFORM_TYPE_cubieboard2 is not set
 # CONFIG_PLATFORM_TYPE_omap3_am33xx is not set
+# CONFIG_PLATFORM_TYPE_parallella is not set
 # CONFIG_PLATFORM_TYPE_rpi_b is not set
 # CONFIG_PLATFORM_TYPE_rv_vexpress_a15 is not set
 # CONFIG_PLATFORM_TYPE_imx51 is not set
 # CONFIG_PLATFORM_TYPE_omap3evm is not set
 # CONFIG_PLATFORM_TYPE_beagleboard is not set
 # CONFIG_PLATFORM_TYPE_imx21 is not set
+# CONFIG_PLATFORM_TYPE_omap5 is not set
 # CONFIG_PLATFORM_TYPE_rv_vexpress is not set
-# CONFIG_PLATFORM_TYPE_imx53 is not set
 # CONFIG_PLATFORM_TYPE_rpi_a is not set
 # CONFIG_PLATFORM_TYPE_integrator is not set
 # CONFIG_PLATFORM_TYPE_custom is not set
@@ -64,7 +67,9 @@ CONFIG_INT_CPP_NAME_SWITCH=y
 CONFIG_INT_LD_NAME_SWITCH=y
 # CONFIG_BID_STRIP_PROGS is not set
 # CONFIG_BID_GCC_OMIT_FP is not set
-# CONFIG_BID_GENERATE_MAPFILE is not set
+CONFIG_BID_GCC_ENABLE_STACK_PROTECTOR=y
+# CONFIG_BID_GCC_STACK_PROTECTOR_ALL is not set
+CONFIG_BID_GCC_STACK_PROTECTOR=y
 # CONFIG_BID_BUILD_DOC is not set
 # CONFIG_RELEASE_MODE is not set
 CONFIG_MAKECONFS_ADD=""
