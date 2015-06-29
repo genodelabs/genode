@@ -46,7 +46,7 @@ usage:
 	@echo "                  'foc_rpi'"
 	@echo "                  'sel4_x86_32'"
 	@echo "                  'lx_hybrid_x86'"
-	@echo "                  'foc_odroid-x2'"
+	@echo "                  'foc_odroid_x2'"
 	@echo
 	@echo "  The definition of BUILD_DIR is optional. If specified,"
 	@echo "  <build-dir> is the location of the build directory to create."
