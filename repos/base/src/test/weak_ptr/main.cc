@@ -40,7 +40,7 @@ static int weak_ptr_is_valid;
 
 void Genode::Weak_ptr_base::debug_info() const
 {
-	weak_ptr_is_valid = _valid;
+	weak_ptr_is_valid = (_obj != nullptr);
 }
 
 
@@ -82,7 +82,7 @@ static bool object_is_constructed;
 struct Object : Genode::Weak_object<Object>
 {
 	Object() { object_is_constructed = true; }
-	
+
 	~Object()
 	{
 		Weak_object<Object>::lock_for_destruction();
@@ -142,9 +142,10 @@ static void test_weak_pointer_tracking()
  ** Test for deferring object destruction **
  *******************************************/
 
+template <typename O>
 struct Destruct_thread : Genode::Thread<4096>
 {
-	Object *obj;
+	O *obj;
 
 	void entry()
 	{
@@ -154,7 +155,7 @@ struct Destruct_thread : Genode::Thread<4096>
 		PLOG("thread: destruction completed, job done");
 	}
 
-	Destruct_thread(Object *obj) : Thread("object_destructor"), obj(obj) { }
+	Destruct_thread(O *obj) : Thread("object_destructor"), obj(obj) { }
 };
 
 
@@ -183,7 +184,7 @@ static void test_deferred_destruction()
 	assert_constructed(true);
 
 	/* create thread that will be used to destruct the object */
-	Destruct_thread destruct_thread(obj);
+	Destruct_thread<Object> destruct_thread(obj);
 
 	{
 		/* acquire possession over the object */
@@ -252,6 +253,59 @@ static void test_acquisition_failure()
 }
 
 
+/*******************************************************
+ ** Test the failed aquisition during the destruction **
+ *******************************************************/
+
+struct Object_with_delayed_destruction
+: Genode::Weak_object<Object_with_delayed_destruction>
+{
+	Timer::Connection timer;
+
+	Object_with_delayed_destruction() { object_is_constructed = true; }
+
+	~Object_with_delayed_destruction()
+	{
+		Weak_object<Object_with_delayed_destruction>::lock_for_destruction();
+		timer.msleep(2000);
+		object_is_constructed = false;
+	}
+};
+
+
+static void test_acquisition_during_destruction()
+{
+	using namespace Genode;
+
+	static Timer::Connection timer;
+
+	Object_with_delayed_destruction *obj =
+		new (env()->heap()) Object_with_delayed_destruction();
+
+	Weak_ptr<Object_with_delayed_destruction> ptr = obj->weak_ptr();
+	assert_weak_ptr_cnt(obj, 1);
+	assert_weak_ptr_valid(ptr, true);
+	assert_constructed(true);
+
+	/* create and start thread that will be used to destruct the object */
+	Destruct_thread<Object_with_delayed_destruction> destruct_thread(obj);
+	destruct_thread.start();
+
+	/* wait so that the thread enters the destructor */
+	timer.msleep(500);
+
+	{
+		/* acquire possession over the object */
+		Locked_ptr<Object_with_delayed_destruction> locked_ptr(ptr);
+
+		/* the object should be invalid */
+		assert_weak_ptr_valid(ptr, false);
+	}
+
+	/* synchronize destruction of thread */
+	destruct_thread.join();
+}
+
 /******************
  ** Main program **
  ******************/
@@ -270,6 +324,9 @@ int main(int argc, char **argv)
 
 	printf("\n-- test acquisition failure --\n");
 	test_acquisition_failure();
+
+	printf("\n-- test acquisition during destruction --\n");
+	test_acquisition_during_destruction();
 
 	printf("\n--- finished test-weak_ptr ---\n");
 	return 0;
