@@ -272,8 +272,8 @@ Platform::Platform() :
 	}
 
 	/* map idle SCs */
-	unsigned const log2cpu = log2(hip->cpus());
-	if ((1U << log2cpu) != hip->cpus()) {
+	unsigned const log2cpu = log2(hip->cpu_max());
+	if ((1U << log2cpu) != hip->cpu_max()) {
 		PERR("number of max CPUs is not of power of 2");
 		nova_die();
 	}
@@ -289,7 +289,11 @@ Platform::Platform() :
 
 	/* test reading out idle SCs */
 	bool sc_init = true;
-	for (unsigned i = 0; i < hip->cpus(); i++) {
+	for (unsigned i = 0; i < hip->cpu_max(); i++) {
+
+		if (!hip->is_cpu_enabled(i))
+			continue;
+
 		uint64_t n_time;
 		uint8_t res = Nova::sc_ctrl(sc_idle_base + i, n_time);
 		if (res != Nova::NOVA_OK) {
@@ -635,7 +639,10 @@ Platform::Platform() :
 	}
 
 	/* add idle ECs to trace sources */
-	for (unsigned i = 0; i < hip->cpus(); i++) {
+	for (unsigned i = 0; i < hip->cpu_max(); i++) {
+
+		if (!hip->is_cpu_enabled(i))
+			continue;
 
 		struct Idle_trace_source : Trace::Source::Info_accessor, Trace::Control,
 		                           Trace::Source
@@ -665,7 +672,7 @@ Platform::Platform() :
 		};
 
 		Idle_trace_source *source = new (core_mem_alloc())
-			Idle_trace_source(Affinity::Location(i, 0, hip->cpus(), 1),
+			Idle_trace_source(Affinity::Location(i, 0, hip->cpu_max(), 1),
 			                  sc_idle_base + i);
 
 		Trace::sources().insert(source);
