@@ -704,19 +704,18 @@ namespace Genode {
 	class Translation_table;
 }
 
-class Translation_table : public Pml4_table
+class Genode::Translation_table : public Pml4_table
 {
 	public:
 
 		enum {
 			TABLE_LEVEL_X_SIZE_LOG2 = SIZE_LOG2_4KB,
-			CORE_VM_AREA_SIZE       = 1024 * 1024 * 1024
-		};
-
-		static constexpr size_t CORE_TRANS_TABLE_COUNT =
+			CORE_VM_AREA_SIZE       = 1024 * 1024 * 1024,
+			CORE_TRANS_TABLE_COUNT  =
 			_count(CORE_VM_AREA_SIZE, SIZE_LOG2_512GB)
 			+ _count(CORE_VM_AREA_SIZE, SIZE_LOG2_1GB)
-			+ _count(CORE_VM_AREA_SIZE, SIZE_LOG2_2MB);
+			+ _count(CORE_VM_AREA_SIZE, SIZE_LOG2_2MB)
+		};
 };
 
 #endif /* _TRANSLATION_TABLE_H_ */
