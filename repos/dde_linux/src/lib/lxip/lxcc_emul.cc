@@ -360,6 +360,8 @@ void *kcalloc(size_t n, size_t size, gfp_t flags)
 
 void kfree(const void *p)
 {
+	if (!p) return;
+
 	if (Malloc::mem()->inside((Genode::addr_t)p))
 		Malloc::mem()->free(p);
 	else 
