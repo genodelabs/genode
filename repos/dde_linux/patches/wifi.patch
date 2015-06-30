@@ -67,7 +67,7 @@
  #include <linux/in6.h>
 --- a/drivers/net/wireless/iwlwifi/pcie/drv.c
 +++ b/drivers/net/wireless/iwlwifi/pcie/drv.c
-@@ -78,318 +78,325 @@
+@@ -78,318 +78,327 @@
  
  /* Hardware specific file defines the PCI IDs table for that hardware module */
  static DEFINE_PCI_DEVICE_TABLE(iwl_hw_card_ids) = {
@@ -265,6 +265,8 @@
 +	{IWL_PCI_DEVICE(0x4238, 0x1111, iwl6000_3agn_cfg)}, /* x201 */
 +	{IWL_PCI_DEVICE(0x0085, 0x1311, iwl6005_2agn_cfg)}, /* x220 */
 +	{IWL_PCI_DEVICE(0x088E, 0x4060, iwl6035_2agn_cfg)}, /* plumbum */
++	{IWL_PCI_DEVICE(0x4239, 0x1311, iwl6000i_2agn_cfg)},
++	{IWL_PCI_DEVICE(0x4239, 0x1316, iwl6000i_2abg_cfg)},
  	{IWL_PCI_DEVICE(0x08B1, 0x4070, iwl7260_2ac_cfg)},
 -	{IWL_PCI_DEVICE(0x08B1, 0x4072, iwl7260_2ac_cfg)},
 -	{IWL_PCI_DEVICE(0x08B1, 0x4170, iwl7260_2ac_cfg)},
