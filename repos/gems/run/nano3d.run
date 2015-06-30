@@ -1,0 +1,149 @@
+#
+# Build
+#
+if {![have_spec linux]} {
+	puts "Runs on Linux only"
+	exit 0
+}
+
+set build_components {
+	core init
+	drivers/timer
+	server/nitpicker server/dynamic_rom app/nano3d
+	drivers/framebuffer
+	app/backdrop
+}
+
+lappend_if [have_spec usb] build_components drivers/usb
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<start name="fb_sdl">
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Input"/>
+			<service name="Framebuffer"/>
+		</provides>
+	</start>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="nitpicker">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Nitpicker"/></provides>
+		<config>
+			<domain name=""       layer="2" />
+			<domain name="nano3d" layer="1" origin="pointer"/>
+
+			<policy label="nano3d" domain="nano3d"/>
+			<policy label=""       domain=""/>
+		</config>
+	</start>
+
+	<start name="backdrop">
+		<resource name="RAM" quantum="4M"/>
+		<config>
+			<libc>
+				<vfs>
+					<rom name="genode_logo.png"/>
+					<rom name="grid.png"/>
+				</vfs>
+			</libc>
+			<fill color="#122334" />
+			<image png="grid.png"        tiled="yes" alpha="200" />
+			<image png="genode_logo.png" anchor="bottom_right" alpha="150"/>
+		</config>
+	</start>
+
+	<start name="dynamic_rom">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="ROM"/></provides>
+		<config verbose="yes">
+			<rom name="nano3d.config">
+				<inline description="initial state">
+					<config painter="textures"/>
+				</inline>
+				<sleep milliseconds="1000" />
+				<inline description="RGBA shading">
+					<config painter="shaded"/>
+				</inline>
+				<sleep milliseconds="1000" />
+				<inline description="switch to cube">
+					<config painter="shaded" shape="cube" />
+				</inline>
+				<sleep milliseconds="1000" />
+				<inline description="texturing">
+					<config painter="textured" shape="cube" />
+				</inline>
+				<sleep milliseconds="1000" />
+			</rom>
+		</config>
+	</start>
+
+	<start name="nano3d">
+		<resource name="RAM" quantum="8M"/>
+		<configfile name="nano3d.config"/>
+		<route>
+			<service name="ROM">
+				<if-arg key="label" value="nano3d.config" />
+				<child name="dynamic_rom" />
+			</service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+</config>}
+
+install_config $config
+
+# copy backdrop PNG images to bin directory
+foreach file { genode_logo.png grid.png } {
+	file copy -force [genode_dir]/repos/gems/src/app/backdrop/$file bin/ }
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init
+	timer
+	nitpicker dynamic_rom nano3d
+	backdrop
+	ld.lib.so libpng.lib.so libc.lib.so libm.lib.so zlib.lib.so
+	genode_logo.png grid.png
+}
+
+# platform-specific modules
+lappend_if [have_spec linux] boot_modules fb_sdl
+
+build_boot_image $boot_modules
+
+run_genode_until forever
