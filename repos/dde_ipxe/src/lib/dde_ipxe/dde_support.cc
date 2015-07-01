@@ -39,9 +39,6 @@
 #include <dde_support.h>
 
 
-//using namespace Genode;
-
-
 /****************
  ** Migriation **
  ****************/
@@ -79,10 +76,9 @@ extern "C" void dde_udelay(unsigned long usecs)
 {
 	/*
 	 * This function is called only once during rdtsc calibration (usecs will be
-	 * 10000, see dde.c 'udelay'. We do not use DDE timers here, since Genode's
-	 * timer connection is the most precise one around.
+	 * 10000, see dde.c 'udelay'.
 	 */
-	Timer::Connection timer;
+	static Timer::Connection timer;
 	timer.usleep(usecs);
 }
 
@@ -311,31 +307,28 @@ extern "C" int dde_interrupt_attach(void(*handler)(void *), void *priv)
 }
 
 
-
-
 /***************************************************
  ** Support for aligned and DMA memory allocation **
  ***************************************************/
 
 enum { BACKING_STORE_SIZE = 1024 * 1024 };
 
+struct Backing_store
+{
+	Genode::Allocator_avl _avl{Genode::env()->heap()};
+	Backing_store(){
+		Genode::addr_t base = pci_drv().alloc_dma_memory(BACKING_STORE_SIZE);
+		/* add to allocator */
+		_avl.add_range(base, BACKING_STORE_SIZE);
+	}
+};
+
 
 static Genode::Allocator_avl& allocator()
 {
-	static Genode::Allocator_avl _avl(Genode::env()->heap());
-	return _avl;
-}
+	static Backing_store _instance;
+	return _instance._avl;
 
-
-extern "C" int dde_dma_mem_init()
-{
-	try {
-		Genode::addr_t base = pci_drv().alloc_dma_memory(BACKING_STORE_SIZE);
-		/* add to allocator */
-		allocator().add_range(base, BACKING_STORE_SIZE);
-	} catch (...) { return false; }
-
-	return true;
 }
 
 
@@ -414,7 +407,7 @@ struct Slab_backend_alloc : public Genode::Allocator,
                             public Genode::Rm_connection
 {
 	enum {
-		VM_SIZE    = 512 * 1024,
+		VM_SIZE    = 1024 * 1024,
 		BLOCK_SIZE =  64 * 1024,
 		ELEMENTS   = VM_SIZE / BLOCK_SIZE,
 	};
@@ -516,7 +509,7 @@ struct Slab
 {
 	enum {
 		SLAB_START_LOG2 = 5,  /* 32 B */
-		SLAB_STOP_LOG2  = 10, /* 1 KiB */
+		SLAB_STOP_LOG2  = 13, /* 8 KiB */
 		NUM_SLABS = (SLAB_STOP_LOG2 - SLAB_START_LOG2) + 1,
 	};
 

@@ -40,7 +40,9 @@ extern struct pci_driver
 	realtek_driver,
 	ifec_driver,
 	intel_driver,
-	pcnet32_driver;
+	pcnet32_driver,
+	tg3_pci_driver;
+
 
 /**
  * Driver database (used for probing)PCI_BASE_CLASS_NETWORK
@@ -49,7 +51,8 @@ static struct pci_driver *pci_drivers[] = {
 	&realtek_driver,
 	&ifec_driver,
 	&intel_driver,
-	&pcnet32_driver
+	&pcnet32_driver,
+	&tg3_pci_driver
 };
 
 /**
@@ -302,12 +305,6 @@ int dde_ipxe_nic_init(void *ep)
 
 	/* find iPXE NIC device */
 	net_dev = find_netdev_by_location(BUS_TYPE_PCI, location);
-
-	/* initialize DMA memory backend allocator for nic driver */
-	if (!dde_dma_mem_init()) {
-		LOG("initialization of block memory failed!");
-		return 0;
-	}
 
 	/* open iPXE NIC device */
 	if (netdev_open(net_dev)) {
