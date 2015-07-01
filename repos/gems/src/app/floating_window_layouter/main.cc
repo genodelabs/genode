@@ -117,6 +117,11 @@ class Floating_window_layouter::Window : public List<Window>::Element
 		 */
 		Area _requested_size;
 
+		/**
+		 * Window may be partially transparent
+		 */
+		bool _has_alpha = false;
+
 		/*
 		 * Number of times the window has been topped. This value is used by
 		 * the decorator to detect the need for bringing the window to the
@@ -146,6 +151,8 @@ class Floating_window_layouter::Window : public List<Window>::Element
 		Point position() const { return _geometry.p1(); }
 
 		void position(Point pos) { _geometry = Rect(pos, _geometry.area()); }
+
+		void has_alpha(bool has_alpha) { _has_alpha = has_alpha; }
 
 		/**
 		 * Return true if user drags a window border
@@ -208,6 +215,9 @@ class Floating_window_layouter::Window : public List<Window>::Element
 						xml.node(highlight.name());
 					});
 				}
+
+				if (_has_alpha)
+					xml.attribute("has_alpha", "yes");
 			});
 		}
 
@@ -393,6 +403,8 @@ void Floating_window_layouter::Main::import_window_list(Xml_node window_list_xml
 
 			win->size(area_attribute(node));
 			win->title(string_attribute(node, "title", Window::Title("untitled")));
+			win->has_alpha(node.has_attribute("has_alpha")
+			            && node.attribute("has_alpha").has_value("yes"));
 		}
 	} catch (...) { }
 }

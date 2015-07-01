@@ -51,6 +51,8 @@ class Decorator::Window : public Window_base
 
 		Color _base_color() const { return Color(45, 49, 65); }
 
+		bool _has_alpha = false;
+
 		class Element : public Animator::Item
 		{
 			public:
@@ -306,7 +308,7 @@ class Decorator::Window : public Window_base
 			_animator(animator)
 		{ }
 
-		void draw(Canvas_base &canvas, Rect clip) const override;
+		void draw(Canvas_base &canvas, Rect clip, Draw_behind_fn const &) const override;
 
 		bool update(Xml_node window_node) override;
 
@@ -324,7 +326,8 @@ class Decorator::Window : public Window_base
 
 
 void Decorator::Window::draw(Decorator::Canvas_base &canvas,
-                             Decorator::Rect clip) const
+                             Decorator::Rect clip,
+                             Draw_behind_fn const &draw_behind_fn) const
 {
 	Clip_guard clip_guard(canvas, clip);
 
@@ -334,10 +337,8 @@ void Decorator::Window::draw(Decorator::Canvas_base &canvas,
 	Point p1 = rect.p1();
 	Point p2 = rect.p2();
 
-	bool const draw_content = false;
-
-	if (draw_content)
-		canvas.draw_box(geometry(), Color(10, 20, 40));
+	if (_has_alpha)
+		draw_behind_fn.draw_behind(canvas, *this, canvas.clip());
 
 	_draw_corner(canvas, Rect(p1, corner), _border_size, true, true,
 	             element(Element::TOP_LEFT).color());
@@ -402,6 +403,9 @@ bool Decorator::Window::update(Genode::Xml_node window_node)
 
 	_focused = window_node.has_attribute("focused")
 	        && window_node.attribute("focused").has_value("yes");
+
+	_has_alpha = window_node.has_attribute("has_alpha")
+	          && window_node.attribute("has_alpha").has_value("yes");
 
 	try {
 		Xml_node highlight = window_node.sub_node("highlight");

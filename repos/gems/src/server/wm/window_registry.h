@@ -62,6 +62,8 @@ class Wm::Window_registry
 
 				typedef Genode::String<200> Title;
 
+				enum Has_alpha { HAS_ALPHA, HAS_NO_ALPHA };
+
 			private:
 
 				Id const _id;
@@ -69,6 +71,8 @@ class Wm::Window_registry
 				Title _title;
 
 				Area _size;
+
+				Has_alpha _has_alpha;
 
 				friend class Window_registry;
 
@@ -81,8 +85,9 @@ class Wm::Window_registry
 				/*
 				 * Accessors for setting attributes
 				 */
-				void attr(Title const &title) { _title = title; }
-				void attr(Area size)          { _size  = size;  }
+				void attr(Title const &title)  { _title = title; }
+				void attr(Area size)           { _size  = size;  }
+				void attr(Has_alpha has_alpha) { _has_alpha = has_alpha; }
 
 				void generate_window_list_entry_xml(Xml_generator &xml) const
 				{
@@ -91,6 +96,9 @@ class Wm::Window_registry
 						xml.attribute("title",  _title.string());
 						xml.attribute("width",  _size.w());
 						xml.attribute("height", _size.h());
+
+						if (_has_alpha == HAS_ALPHA)
+							xml.attribute("has_alpha", "yes");
 					});
 				}
 		};
@@ -183,6 +191,11 @@ class Wm::Window_registry
 		void size(Id id, Area size) { _set_attr(id, size); }
 
 		void title(Id id, Window::Title title) { _set_attr(id, title); }
+
+		void has_alpha(Id id, bool has_alpha)
+		{
+			_set_attr(id, has_alpha ? Window::HAS_ALPHA : Window::HAS_NO_ALPHA);
+		}
 };
 
 #endif /* _WINDOW_REGISTRY_H_ */

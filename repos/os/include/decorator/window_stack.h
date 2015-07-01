@@ -27,7 +27,7 @@
 namespace Decorator { class Window_stack; }
 
 
-class Decorator::Window_stack
+class Decorator::Window_stack : public Window_base::Draw_behind_fn
 {
 	private:
 
@@ -147,6 +147,16 @@ class Decorator::Window_stack
 
 			return Window_base::Hover();
 		}
+
+
+		/**************************************
+		 ** Window::Draw_behind_fn interface **
+		 **************************************/
+
+		void draw_behind(Canvas_base &canvas, Window_base const &window, Rect clip) const override
+		{
+			_draw_rec(canvas, window.next(), clip);
+		}
 };
 
 
@@ -175,7 +185,7 @@ void Decorator::Window_stack::_draw_rec(Decorator::Canvas_base       &canvas,
 	}
 
 	/* draw current window */
-	win->draw(canvas, clipped);
+	win->draw(canvas, clipped, *this);
 }
 
 

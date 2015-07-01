@@ -108,11 +108,14 @@ class Wm::Nitpicker::View : public Genode::Weak_object<View>,
 		Point                      _buffer_offset;
 		Weak_ptr<View>             _neighbor_ptr;
 		bool                       _neighbor_behind;
+		bool                       _has_alpha;
 
 		View(Nitpicker::Session_client &real_nitpicker,
-		     Session_label       const &session_label)
+		     Session_label       const &session_label,
+		     bool                       has_alpha)
 		:
-			_session_label(session_label), _real_nitpicker(real_nitpicker)
+			_session_label(session_label), _real_nitpicker(real_nitpicker),
+			_has_alpha(has_alpha)
 		{ }
 
 		/**
@@ -204,6 +207,8 @@ class Wm::Nitpicker::View : public Genode::Weak_object<View>,
 				_real_nitpicker.execute();
 			}
 		}
+
+		bool has_alpha() const { return _has_alpha; }
 };
 
 
@@ -246,9 +251,10 @@ class Wm::Nitpicker::Top_level_view : public View,
 
 		Top_level_view(Nitpicker::Session_client &real_nitpicker,
 		               Session_label       const &session_label,
+		               bool                       has_alpha,
 		               Window_registry           &window_registry)
 		:
-			View(real_nitpicker, session_label),
+			View(real_nitpicker, session_label, has_alpha),
 			_window_registry(window_registry),
 			_window_title(session_label, "")
 		{ }
@@ -271,6 +277,7 @@ class Wm::Nitpicker::Top_level_view : public View,
 			if (!_win_id.valid()) {
 				_win_id = _window_registry.create();
 				_window_registry.title(_win_id, _window_title.string());
+				_window_registry.has_alpha(_win_id, View::has_alpha());
 			}
 
 			_window_registry.size(_win_id, geometry.area());
@@ -334,9 +341,10 @@ class Wm::Nitpicker::Child_view : public View,
 
 		Child_view(Nitpicker::Session_client &real_nitpicker,
 		           Session_label       const &session_label,
+		           bool                       has_alpha,
 		           Weak_ptr<View>             parent)
 		:
-			View(real_nitpicker, session_label), _parent(parent)
+			View(real_nitpicker, session_label, has_alpha), _parent(parent)
 		{
 			try_to_init_real_view();
 		}
@@ -418,6 +426,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 		Click_handler               &_click_handler;
 		Signal_context_capability    _mode_sigh;
 		Area                         _requested_size;
+		bool                         _has_alpha = false;
 
 		/*
 		 * Command buffer
@@ -553,7 +562,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 				Weak_ptr<View> parent_ptr = _view_handle_registry.lookup(parent_handle);
 
 				Child_view *view = new (_child_view_alloc)
-					Child_view(_session, _session_label, parent_ptr);
+					Child_view(_session, _session_label, _has_alpha, parent_ptr);
 
 				_child_views.insert(view);
 				return *view;
@@ -564,7 +573,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 			 */
 			else {
 				Top_level_view *view = new (_top_level_view_alloc)
-					Top_level_view(_session, _session_label, _window_registry);
+					Top_level_view(_session, _session_label, _has_alpha, _window_registry);
 
 				_top_level_views.insert(view);
 				return *view;
@@ -873,9 +882,10 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 			_mode_sigh = sigh;
 		}
 
-		void buffer(Framebuffer::Mode mode, bool use_alpha) override
+		void buffer(Framebuffer::Mode mode, bool has_alpha) override
 		{
-			_session.buffer(mode, use_alpha);
+			_session.buffer(mode, has_alpha);
+			_has_alpha = has_alpha;
 		}
 
 		void focus(Genode::Capability<Nitpicker::Session>) { }
