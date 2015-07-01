@@ -147,7 +147,7 @@ struct Server::Main
 {
 	Entrypoint &ep;
 
-	Genode::Trace::Connection trace { 256*1024, 32*1024, 0 };
+	Genode::Trace::Connection trace { 512*1024, 32*1024, 0 };
 
 	Genode::Reporter reporter { "trace_subjects", 64*1024 };
 
