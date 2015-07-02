@@ -206,6 +206,14 @@ static void init_core_page_fault_handler()
 }
 
 
+static bool cpuid_invariant_tsc()
+{
+	unsigned long cpuid = 0x80000007, edx = 0;
+	asm volatile ("cpuid" : "+a" (cpuid), "=d" (edx) : : "ebx", "ecx");
+	return edx & 0x100;
+}
+
+
 /**************
  ** Platform **
  **************/
@@ -315,10 +323,14 @@ Platform::Platform() :
 	init_core_page_fault_handler();
 
 	if (verbose_boot_info) {
-		printf("Hypervisor %s VMX\n", hip->has_feature_vmx() ? "features" : "does not feature");
-		printf("Hypervisor %s SVM\n", hip->has_feature_svm() ? "features" : "does not feature");
+		if (hip->has_feature_vmx())
+			printf("Hypervisor features VMX\n");
+		if (hip->has_feature_svm())
+			printf("Hypervisor features SVM\n");
 		printf("Hypervisor reports %ux%u CPU%c - boot CPU is %lu\n",
 		       _cpus.width(), _cpus.height(), _cpus.total() > 1 ? 's' : ' ', boot_cpu());
+		if (!cpuid_invariant_tsc())
+			PWRN("CPU has no invariant TSC.");
 	}
 
 	/* initialize core allocators */
