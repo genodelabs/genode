@@ -1,7 +1,7 @@
 /*
  * \brief   Muen subject info
- * \author  Stefan Kalkowski
- * \date    2015-06-02
+ * \author  Reto Buerki
+ * \date    2015-04-21
  */
 
 /*
@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CORE__SPEC__X86_64__MUEN__MUSINFO_H_
-#define _CORE__SPEC__X86_64__MUEN__MUSINFO_H_
+#ifndef _BASE__MUEN__MUSINFO_H_
+#define _BASE__MUEN__MUSINFO_H_
 
 #include <base/stdint.h>
 
@@ -82,4 +82,4 @@ struct subject_info_type {
 	struct dev_info_type dev_info[MAX_RESOURCE_COUNT];
 } __attribute__((packed, aligned (8)));
 
-#endif /* _CORE__SPEC__X86_64__MUEN__MUSINFO_H_ */
+#endif /* _BASE__MUEN__MUSINFO_H_ */

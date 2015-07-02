@@ -14,12 +14,13 @@
 #ifndef _CORE__INCLUDE__SPEC__X86_64__MUEN__TIMER_H_
 #define _CORE__INCLUDE__SPEC__X86_64__MUEN__TIMER_H_
 
+/* base includes */
 #include <base/printf.h>
 #include <kernel/types.h>
 
 /* core includes */
 #include <board.h>
-#include <sinfo.h>
+#include <sinfo_instance.h>
 
 namespace Genode
 {
@@ -47,6 +48,7 @@ class Genode::Timer
 
 		struct Subject_timer * _timer_page;
 
+
 		inline uint64_t rdtsc()
 		{
 			uint32_t lo, hi;
@@ -58,10 +60,15 @@ class Genode::Timer
 
 	public:
 
-		Timer() : _tics_per_ms(Sinfo::get_tsc_khz())
+		Timer() :
+			_tics_per_ms(sinfo()->get_tsc_khz())
 		{
+
+			/* first sinfo instance, output status */
+			sinfo()->log_status();
+
 			struct Sinfo::Memregion_info region;
-			if (!Sinfo::get_memregion_info("timer", &region)) {
+			if (!sinfo()->get_memregion_info("timer", &region)) {
 				PERR("muen-timer: Unable to retrieve time memory region");
 				throw Invalid_region();
 			}

@@ -1,5 +1,5 @@
 /*
- * \brief  x86 mmio constants
+ * \brief  x86 constants
  * \author Reto Buerki
  * \date   2015-03-18
  */

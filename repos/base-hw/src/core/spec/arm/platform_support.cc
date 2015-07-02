@@ -18,6 +18,8 @@ using namespace Genode;
 
 void Platform::_init_io_port_alloc() { };
 
+void Platform::_init_additional() { };
+
 void Platform::setup_irq_mode(unsigned, unsigned, unsigned) { }
 
 Native_region * mmio_regions(unsigned);

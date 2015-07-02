@@ -16,8 +16,9 @@
 #include <util/mmio.h>
 
 /* core includes */
+#include <board.h>
 #include <platform.h>
-#include <sinfo.h>
+#include <sinfo_instance.h>
 
 using namespace Genode;
 
@@ -61,10 +62,9 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 	static Native_region _regions[] =
 	{
 		/* Sinfo pages */
-		{ 0x000e00000000, 0x7000 },
-
+		{ Sinfo::PHYSICAL_BASE_ADDR, Sinfo::SIZE },
 		/* Timer page */
-		{ 0x000e00010000, 0x1000 },
+		{ Board::TIMER_BASE_ADDR, Board::TIMER_SIZE },
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
@@ -79,7 +79,7 @@ bool Platform::get_msi_params(const addr_t mmconf, addr_t &address,
 	const unsigned sid = Mmconf_address::to_sid(mmconf);
 
 	struct Sinfo::Dev_info dev_info;
-	if (!Sinfo::get_dev_info(sid, &dev_info)) {
+	if (!sinfo()->get_dev_info(sid, &dev_info)) {
 		PERR("error retrieving Muen info for device with SID 0x%x", sid);
 		return false;
 	}
@@ -100,9 +100,28 @@ bool Platform::get_msi_params(const addr_t mmconf, addr_t &address,
 
 Native_region * Platform::_ram_regions(unsigned const i)
 {
-	static Native_region _regions[] =
-	{
-		{ 25*1024*1024, 256*1024*1024 }
-	};
-	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
+	if (i)
+		return 0;
+
+	static Native_region result = { .base = 0, .size = 0 };
+
+	if (!result.size) {
+		struct Sinfo::Memregion_info region;
+		if (!sinfo()->get_memregion_info("ram", &region)) {
+			PERR("Unable to retrieve base-hw ram region");
+			return 0;
+		}
+
+		result = { .base = region.address, .size = region.size };
+	}
+	return &result;
+}
+
+
+void Platform::_init_additional()
+{
+	/* export subject info page as ROM module */
+	_rom_fs.insert(new (core_mem_alloc())
+	               Rom_module((addr_t)Sinfo::PHYSICAL_BASE_ADDR,
+	               Sinfo::SIZE, "subject_info_page"));
 }
