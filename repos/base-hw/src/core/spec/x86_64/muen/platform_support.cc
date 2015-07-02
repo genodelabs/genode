@@ -16,6 +16,7 @@
 #include <util/mmio.h>
 
 /* core includes */
+#include <board.h>
 #include <platform.h>
 #include <sinfo.h>
 
@@ -61,10 +62,9 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 	static Native_region _regions[] =
 	{
 		/* Sinfo pages */
-		{ 0x000e00000000, 0x7000 },
-
+		{ Board::SINFO_BASE_ADDR, Board::SINFO_SIZE },
 		/* Timer page */
-		{ 0x000e00010000, 0x1000 },
+		{ Board::TIMER_BASE_ADDR, Board::TIMER_SIZE },
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
