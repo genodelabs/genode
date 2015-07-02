@@ -75,6 +75,11 @@ namespace Genode {
 			 */
 			 void _init_io_mem_alloc();
 
+			 /**
+			  * Perform additional platform-specific initialization.
+			  */
+			 void _init_additional();
+
 		public:
 
 			/**

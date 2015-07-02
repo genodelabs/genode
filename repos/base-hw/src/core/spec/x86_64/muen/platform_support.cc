@@ -106,3 +106,6 @@ Native_region * Platform::_ram_regions(unsigned const i)
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
+
+
+void Platform::_init_additional() { }
