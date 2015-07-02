@@ -28,7 +28,6 @@ usage:
 	@echo "                  'nova_x86_64'"
 	@echo "                  'codezero_vpb926'"
 	@echo "                  'hw_panda'"
-	@echo "                  'hw_vea9x4'"
 	@echo "                  'hw_pbxa9'"
 	@echo "                  'hw_imx53_qsb'"
 	@echo "                  'hw_imx53_qsb_tz'"
@@ -42,7 +41,6 @@ usage:
 	@echo "                  'foc_x86_64'"
 	@echo "                  'foc_pbxa9'"
 	@echo "                  'foc_imx53'"
-	@echo "                  'foc_vea9x4'"
 	@echo "                  'foc_panda'"
 	@echo "                  'foc_arndale'"
 	@echo "                  'foc_rpi'"
@@ -145,7 +143,7 @@ $(BUILD_DIR)/Makefile:
 #
 # Add 'ports-foc' repository to Fiasco.OC build directory
 #
-ifeq ($(filter-out foc_x86_32 foc_imx53 foc_pbxa9 foc_vea9x4 foc_panda foc_arndale foc_rpi,$(PLATFORM)),)
+ifeq ($(filter-out foc_x86_32 foc_imx53 foc_pbxa9 foc_panda foc_arndale foc_rpi,$(PLATFORM)),)
 $(BUILD_DIR)/etc/build.conf::
 	@cat $(BUILD_CONF).ports-foc >> $@
 endif
@@ -202,9 +200,6 @@ sel4_x86_32::
 foc_pbxa9::
 	@echo "SPECS = genode foc_pbxa9" > $(BUILD_DIR)/etc/specs.conf
 
-foc_vea9x4::
-	@echo "SPECS = genode foc_vea9x4" > $(BUILD_DIR)/etc/specs.conf
-
 foc_panda::
 	@echo "SPECS = genode foc_panda" > $(BUILD_DIR)/etc/specs.conf
 
@@ -225,10 +220,6 @@ foc_rpi::
 #
 hw_pbxa9::
 	@echo "SPECS = genode hw_pbxa9" > $(BUILD_DIR)/etc/specs.conf
-	@echo "SPECS += perf_counter" >> $(BUILD_DIR)/etc/specs.conf
-
-hw_vea9x4::
-	@echo "SPECS = genode hw_vea9x4" > $(BUILD_DIR)/etc/specs.conf
 	@echo "SPECS += perf_counter" >> $(BUILD_DIR)/etc/specs.conf
 
 hw_panda::

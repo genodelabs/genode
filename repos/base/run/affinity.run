@@ -8,7 +8,6 @@ if {
 	![have_spec hw_arndale]  &&
 	![have_spec foc_x86_32]  &&
 	![have_spec foc_x86_64]  &&
-	![have_spec foc_vea9x4]  &&
 	![have_spec foc_panda]   &&
 	![have_spec foc_arndale] &&
 	![have_spec nova]

@@ -26,10 +26,7 @@
 #include <util/avl_tree.h>
 #include <util/mmio.h>
 #include <vm_state.h>
-
-namespace Vea9x4 {
-#include <platform/vea9x4/drivers/board_base.h>
-}
+#include <board.h>
 
 struct State : Genode::Vm_state
 {
@@ -1031,7 +1028,7 @@ class Vmm
 		{
 			private:
 
-				using Board = Vea9x4::Genode::Board_base;
+				using Board = Vea9x4::Board;
 				using Ring_buffer = Genode::Ring_buffer<char, 1024,
 				                                        Genode::Ring_buffer_unsynchronized>;
 

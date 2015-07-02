@@ -65,7 +65,6 @@ you aim at:
 'panda'     - PandaBoard A2
 'pbxa9'     - Realview PBXA9
 'rpi'       - Raspberry PI
-'vea9x4'    - Versatile Express A9X4
 
 Please notice that not all of these targets might be emulateable with Qemu.
 To be on the safe side use 'pbxa9'. For informations about how to boot

@@ -14,7 +14,7 @@
 #ifndef _INCLUDE__PLATFORM__VEA9X4__DRIVERS__BOARD_BASE_H_
 #define _INCLUDE__PLATFORM__VEA9X4__DRIVERS__BOARD_BASE_H_
 
-namespace Genode { struct Board_base; }
+namespace Vea9x4 { struct Board; }
 
 
 /**
@@ -22,7 +22,7 @@ namespace Genode { struct Board_base; }
  *
  * Implies the uATX motherboard and the CoreTile Express A9X4 daughterboard
  */
-struct Genode::Board_base
+struct Vea9x4::Board
 {
 	enum
 	{
