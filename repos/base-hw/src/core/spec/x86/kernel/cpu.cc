@@ -36,5 +36,7 @@ void Cpu_idle::exception(unsigned const cpu)
 		_interrupt(cpu);
 		return;
 	}
+	PWRN("Unknown exception %lu with error code %lu at ip=%p", trapno,
+	     errcode, (void *)ip);
 	assert(0);
 }
