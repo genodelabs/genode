@@ -162,6 +162,8 @@ Platform::Platform()
 		_rom_fs.insert(rom_module);
 	}
 
+	_init_additional();
+
 	/* print ressource summary */
 	if (VERBOSE) {
 		printf("Core virtual memory allocator\n");

@@ -23,6 +23,7 @@ using namespace Genode;
 /* contains physical pointer to multiboot */
 extern "C" Genode::addr_t __initial_bx;
 
+void Platform::_init_additional() { };
 
 Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 {
