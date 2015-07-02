@@ -128,6 +128,9 @@ Platform_pd::Platform_pd()
 
 Platform_pd::~Platform_pd()
 {
+	/* invalidate weak pointers to this object */
+	Address_space::lock_for_destruction();
+
 	for (unsigned i = 0; i < THREAD_MAX; i++) {
 		if (_threads[i])
 			_threads[i]->unbind();

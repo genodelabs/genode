@@ -84,6 +84,11 @@ class Genode::Trace::Source
 			_unique_id(_alloc_unique_id()), _info(info), _control(control)
 		{ }
 
+		~Source()
+		{
+			/* invalidate weak pointers to this object */
+			lock_for_destruction();
+		}
 
 		/*************************************
 		 ** Interface used by TRACE service **

@@ -123,5 +123,8 @@ Platform_pd::Platform_pd(Allocator * md_alloc, char const *,
 
 Platform_pd::~Platform_pd()
 {
+	/* invalidate weak pointers to this object */
+	Address_space::lock_for_destruction();
+
 	PWRN("not yet implemented");
 }

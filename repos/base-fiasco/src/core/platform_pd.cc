@@ -258,6 +258,9 @@ Platform_pd::Platform_pd(Allocator * md_alloc, char const *,
 
 Platform_pd::~Platform_pd()
 {
+	/* invalidate weak pointers to this object */
+	Address_space::lock_for_destruction();
+
 	/* unbind all threads */
 	while (Platform_thread *t = _next_thread()) unbind_thread(t);
 

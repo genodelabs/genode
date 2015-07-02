@@ -15,6 +15,7 @@
 #define _INCLUDE__BASE__WEAK_PTR_H_
 
 #include <base/lock.h>
+#include <base/printf.h>
 #include <util/list.h>
 
 namespace Genode {
@@ -43,20 +44,17 @@ class Genode::Weak_ptr_base : public Genode::List<Weak_ptr_base>::Element
 
 		Lock mutable      _lock;
 		Weak_object_base *_obj;
-		bool              _valid; /* true if '_obj' points to an
-		                             existing object */
+
+		/*
+		 * This lock is used to synchronize destruction of a weak pointer
+		 * and its corresponding weak object that happen simultanously
+		 */
+		Lock mutable _destruct_lock { Lock::LOCKED };
 
 		inline void _adopt(Weak_object_base *obj);
 		inline void _disassociate();
 
 	protected:
-
-		/**
-		 * Return pointer to object if it exists, or 0 if object vanished
-		 *
-		 * \noapi
-		 */
-		Weak_object_base *obj() const { return _valid ? _obj: 0; }
 
 		explicit inline Weak_ptr_base(Weak_object_base *obj);
 
@@ -78,6 +76,13 @@ class Genode::Weak_ptr_base : public Genode::List<Weak_ptr_base>::Element
 		 * Test for equality
 		 */
 		inline bool operator == (Weak_ptr_base const &other) const;
+
+		/**
+		 * Return pointer to object if it exists, or 0 if object vanished
+		 *
+		 * \noapi
+		 */
+		Weak_object_base *obj() const { return _obj; }
 
 		/**
 		 * Inspection hook for unit test
@@ -105,19 +110,16 @@ class Genode::Weak_object_base
 		List<Weak_ptr_base> _list;
 
 		/**
-		 * Lock used to defer the destruction of an object derived from
-		 * 'Weak_object_base'
+		 * Buffers dequeued weak pointer that get invalidated currently
 		 */
-		Lock _destruct_lock;
-
-	protected:
+		Weak_ptr_base *_ptr_in_destruction = nullptr;
 
 		/**
-		 * Destructor
-		 *
-		 * \noapi
+		 * Lock to synchronize access to object
 		 */
-		inline ~Weak_object_base();
+		Lock _lock;
+
+	protected:
 
 		/**
 		 * To be called from 'Weak_object<T>' only
@@ -130,12 +132,83 @@ class Genode::Weak_object_base
 	public:
 
 		/**
+		 * This exception signals a weak pointer that the object
+		 * is in destruction progress
+		 */
+		class In_destruction : Exception {};
+
+		~Weak_object_base()
+		{
+			if (_list.first())
+				PERR("Weak object %p not destructed properly "
+				     "there are still dangling pointers to it", this);
+		}
+
+		void disassociate(Weak_ptr_base *ptr)
+		{
+			if (!ptr) return;
+
+			{
+				Lock::Guard guard(_list_lock);
+
+				/*
+				 * If the weak pointer that tries to disassociate is currently
+				 * removed to invalidate it by the weak object's destructor,
+				 * signal that fact to the pointer, so it can free it's lock,
+				 * and block until invalidation is finished.
+				 */
+				if (_ptr_in_destruction == ptr)
+					throw In_destruction();
+
+				_list.remove(ptr);
+			}
+		}
+
+		/**
 		 * Mark object as safe to be destructed
 		 *
 		 * This method must be called by the destructor of a weak object to
 		 * defer the destruction until no 'Locked_ptr' is held to the object.
 		 */
-		void lock_for_destruction() { _destruct_lock.lock(); }
+		void lock_for_destruction()
+		{
+			/*
+			 * Loop through the list of weak pointers and invalidate them
+			 */
+			while (true) {
+
+				/*
+				 * To prevent dead-locks we always have to hold
+				 * the order of lock access, therefore we first
+				 * dequeue one weak pointer and free the list lock again
+				 */
+				{
+					Lock::Guard guard(_list_lock);
+					_ptr_in_destruction = _list.first();
+
+					/* if the list is empty we're done */
+					if (!_ptr_in_destruction) break;
+					_list.remove(_ptr_in_destruction);
+				}
+
+				{
+					Lock::Guard guard(_ptr_in_destruction->_lock);
+					_ptr_in_destruction->_obj = nullptr;
+
+					/*
+					 * unblock a weak pointer that tried to disassociate
+					 * in the meantime
+					 */
+					_ptr_in_destruction->_destruct_lock.unlock();
+				}
+			}
+
+			/*
+			 * synchronize with locked pointers that already aquired
+			 * the lock before the corresponding weak pointer got invalidated
+			 */
+			_lock.lock();
+		}
 
 		/**
 		 * Inspection hook for unit test
@@ -249,7 +322,7 @@ struct Genode::Locked_ptr : Genode::Locked_ptr_base
 	 * Only if valid, the locked pointer can be de-referenced. Otherwise,
 	 * the attempt will result in a null-pointer access.
 	 */
-	bool is_valid() const { return curr != 0; }
+	bool is_valid() const { return curr != nullptr; }
 };
 
 
@@ -263,41 +336,24 @@ void Genode::Weak_ptr_base::_adopt(Genode::Weak_object_base *obj)
 		return;
 
 	_obj = obj;
-	_valid = true;
 
-	Lock::Guard guard(_obj->_list_lock);
-	_obj->_list.insert(this);
+	{
+		Lock::Guard guard(_obj->_list_lock);
+		_obj->_list.insert(this);
+	}
 }
 
 
 void Genode::Weak_ptr_base::_disassociate()
 {
 	/* defer destruction of object */
-	{
+	try {
 		Lock::Guard guard(_lock);
 
-		if (!_valid)
-			return;
-
-		_obj->_destruct_lock.lock();
+		if (_obj) _obj->disassociate(this);
+	} catch(Weak_object_base::In_destruction&) {
+		_destruct_lock.lock();
 	}
-
-	/*
-	 * Disassociate reference from object
-	 *
-	 * Because we hold the '_destruct_lock', we are safe to do
-	 * the list operation. However, after we have released the
-	 * 'Weak_ptr_base::_lock', the object may have invalidated
-	 * the reference. So we must check for validity again.
-	 */
-	{
-		Lock::Guard guard(_obj->_list_lock);
-		if (_valid)
-			_obj->_list.remove(this);
-	}
-
-	/* release object */
-	_obj->_destruct_lock.unlock();
 }
 
 
@@ -307,7 +363,7 @@ Genode::Weak_ptr_base::Weak_ptr_base(Genode::Weak_object_base *obj)
 }
 
 
-Genode::Weak_ptr_base::Weak_ptr_base() : _obj(0), _valid(false) { }
+Genode::Weak_ptr_base::Weak_ptr_base() : _obj(nullptr) { }
 
 
 void Genode::Weak_ptr_base::operator = (Weak_ptr_base const &other)
@@ -316,9 +372,11 @@ void Genode::Weak_ptr_base::operator = (Weak_ptr_base const &other)
 	if (&other == this)
 		return;
 
-	Weak_object_base *obj = other.obj();
 	_disassociate();
-	_adopt(obj);
+	{
+		Lock::Guard guard(other._lock);
+		_adopt(other._obj);
+	}
 }
 
 
@@ -329,8 +387,7 @@ bool Genode::Weak_ptr_base::operator == (Weak_ptr_base const &other) const
 
 	Lock::Guard guard_this(_lock), guard_other(other._lock);
 
-	return (!_valid && !other._valid)
-	    || (_valid && other._valid && _obj == other._obj);
+	return (_obj == other._obj);
 }
 
 
@@ -348,39 +405,22 @@ Genode::Weak_ptr<T> Genode::Weak_object_base::_weak_ptr()
 }
 
 
-Genode::Weak_object_base::~Weak_object_base()
-{
-	{
-		Lock::Guard guard(_list_lock);
-
-		Weak_ptr_base *curr = 0;
-		while ((curr = _list.first())) {
-
-			Lock::Guard guard(curr->_lock);
-			curr->_valid = false;
-			_list.remove(curr);
-		}
-	}
-}
-
-
 Genode::Locked_ptr_base::Locked_ptr_base(Weak_ptr_base &weak_ptr)
-: curr(0)
+: curr(nullptr)
 {
 	Lock::Guard guard(weak_ptr._lock);
 
-	if (!weak_ptr._valid)
-		return;
+	if (!weak_ptr.obj()) return;
 
-	curr = weak_ptr._obj;
-	curr->_destruct_lock.lock();
+	curr = weak_ptr.obj();
+	curr->_lock.lock();
 }
 
 
 Genode::Locked_ptr_base::~Locked_ptr_base()
 {
 	if (curr)
-		curr->_destruct_lock.unlock();
+		curr->_lock.unlock();
 }
 
 #endif /* _INCLUDE__BASE__WEAK_PTR_H_ */

@@ -126,6 +126,9 @@ class View : public Same_buffer_list_elem,
 
 		virtual ~View()
 		{
+			/* invalidate weak pointers to this object */
+			lock_for_destruction();
+
 			/* break link to our parent */
 			if (_parent)
 				_parent->remove_child(*this);
