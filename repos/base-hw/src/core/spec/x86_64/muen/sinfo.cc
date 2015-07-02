@@ -13,6 +13,7 @@
 
 #include <base/printf.h>
 #include <util/string.h>
+#include <board.h>
 #include <sinfo.h>
 
 #include "musinfo.h"
@@ -22,7 +23,7 @@ enum {
 };
 
 static const subject_info_type *
-const sinfo = ((subject_info_type *)SINFO_BASE_ADDR);
+const sinfo = ((subject_info_type *)Board::SINFO_BASE_ADDR);
 
 
 /* Log channel information */
