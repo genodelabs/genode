@@ -1269,7 +1269,7 @@ void __wait_event(void);
 
 #define _wait_event_timeout(condition, timeout) \
 ({ \
-	unsigned long _j = jiffies + (timeout / HZ); \
+	unsigned long _j = jiffies + timeout; \
 	while(1) { \
 		__wait_event();     \
 		if (condition || _j <= jiffies)     \

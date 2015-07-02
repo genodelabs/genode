@@ -135,8 +135,6 @@ class Routine : public Genode::List<Routine>::Element
 			if (!_list()->first() && !_main)
 				return;
 
-			Timer::update_jiffies();
-
 			if (_current == _main)
 				all = true;
 

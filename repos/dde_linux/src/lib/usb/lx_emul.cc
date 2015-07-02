@@ -193,7 +193,7 @@ class Malloc
 
 		enum {
 			SLAB_START_LOG2 = 3,  /* 8 B */
-			SLAB_STOP_LOG2  = 17, /* 128 KB */
+			SLAB_STOP_LOG2  = 16, /* 64 KB */
 			NUM_SLABS = (SLAB_STOP_LOG2 - SLAB_START_LOG2) + 1,
 		};
 
@@ -410,6 +410,9 @@ void *kcalloc(size_t n, size_t size, gfp_t flags)
 
 void kfree(const void *p)
 {
+	if (!p)
+		return;
+
 	if (Malloc::mem()->inside((Genode::addr_t)p))
 		Malloc::mem()->free(p);
 	
@@ -422,17 +425,27 @@ void kfree(const void *p)
  ** linux/vmalloc.h **
  *********************/
 
-void *vzalloc(unsigned long size) 
+void *vzalloc(unsigned long size)
 {
-	if (size > Malloc::max_alloc()) {
-		PERR("vzalloc: size %lu > %lu", size, Malloc::max_alloc());
-		return 0;
-	}
+	size_t real_size = size + sizeof(size_t);
+	size_t *addr;
+	try { addr = (size_t *)Genode::env()->heap()->alloc(real_size); }
+	catch (...) { return 0; }
 
-	return kmalloc(size, 0);
+	*addr = real_size;
+	memset(addr + 1, 0, size);
+
+	return addr + 1;
 }
 
-void vfree(void *addr) { kfree(addr); }
+
+void vfree(void *addr)
+{
+	if (!addr) return;
+
+	size_t size = *(((size_t *)addr) - 1);
+	Genode::env()->heap()->free(const_cast<void *>(addr), size);
+}
 
 
 /******************
