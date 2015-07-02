@@ -1,0 +1,27 @@
+The bomb test starts as many components as configured and as RAM
+resources admit. This utilitiy acts as a fork bomb to stress test core, init,
+and of course the kernel.
+
+The master component (bomb-master) starts a given number of children and it
+donates the available memory in equal shares to the children. The children
+again start new children until all their memory resources are depleted or a
+given generation count of children is reached (depth of the fork tree).
+The bomb-master begins to kill all children after a given period of time and
+restarts the creation of children afterwards.
+
+Configuration
+-------------
+
+! ...
+! <config rounds="1" generations="1" children="2" sleep="2000" demand="1048576"/>
+! ...
+
+rounds:      solely used by master bomb - number of start/kill rounds
+generations: maximum generations of children, i.e. tree depth, to create
+children:    number of children per bomb parent to create
+sleep:       time in ms to wait between creation and killing of children by
+             bomb-master
+demand:      amount of RAM in bytes which are required to spawn a new child
+
+The xml attributes are all optional. If the XML attributes are not set,
+the values given in the example config are used as default by the bomb-master.

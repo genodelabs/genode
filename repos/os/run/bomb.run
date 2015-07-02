@@ -21,12 +21,13 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<start name="timer">
-		<resource name="RAM" quantum="768K"/>
+		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="bomb" priority="-1">
+	<start name="bomb-master" priority="-1">
+		<binary name="bomb"/>
 		<resource name="RAM" quantum="2G"/>
-		<config rounds="20"/>
+		<config rounds="20" generations="6" sleep="1500"/>
 	</start>
 </config>}
 

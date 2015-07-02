@@ -29,6 +29,7 @@
 #include <timer_session/connection.h>
 
 #include <os/config.h>
+#include <os/child_policy_dynamic_rom.h>
 #include <util/xml_node.h>
 
 using namespace Genode;
@@ -75,8 +76,9 @@ class Bomb_child : private Bomb_child_resources,
 		enum { STACK_SIZE =  2048 * sizeof(Genode::addr_t) };
 		Genode::Rpc_entrypoint _entrypoint;
 
-		Genode::Child             _child;
-		Genode::Service_registry *_parent_services;
+		Genode::Child                          _child;
+		Genode::Service_registry              *_parent_services;
+		Genode::Child_policy_dynamic_rom_file  _config_policy;
 
 	public:
 
@@ -84,15 +86,24 @@ class Bomb_child : private Bomb_child_resources,
 		           const char       *unique_name,
 		           Genode::size_t    ram_quota,
 		           Cap_session      *cap_session,
-		           Service_registry *parent_services)
+		           Service_registry *parent_services,
+		           unsigned          generation)
 		:
 			Bomb_child_resources(file_name, unique_name, ram_quota),
 			Init::Child_policy_enforce_labeling(Bomb_child_resources::_name),
-			_entrypoint(cap_session, STACK_SIZE, "bomb", false),
+			_entrypoint(cap_session, STACK_SIZE, "bomb_ep_child", false),
 			_child(_rom.dataspace(), _pd.cap(), _ram.cap(), _cpu.cap(),
 			       _rm.cap(), &_entrypoint, this),
-			_parent_services(parent_services) {
-			_entrypoint.activate(); }
+			_parent_services(parent_services),
+			_config_policy("config", _entrypoint, &_ram)
+		{
+			char client_config[64];
+			snprintf(client_config, sizeof(client_config),
+			         "<config generations=\"%u\"/>", generation);
+			_config_policy.load(client_config, strlen(client_config) + 1);
+
+			_entrypoint.activate();
+		}
 
 		~Bomb_child() { PLOG("%s", __PRETTY_FUNCTION__); }
 
@@ -103,7 +114,7 @@ class Bomb_child : private Bomb_child_resources,
 
 		const char *name() const { return Bomb_child_resources::_name; }
 
-		void filter_session_args(const char *, char *args, Genode::size_t args_len)
+		void filter_session_args(const char * x, char *args, Genode::size_t args_len)
 		{
 			Child_policy_enforce_labeling::filter_session_args(0, args, args_len);
 		}
@@ -111,6 +122,13 @@ class Bomb_child : private Bomb_child_resources,
 		Service *resolve_session_request(const char *service_name,
 		                                 const char *args)
 		{
+			Service * service = nullptr;
+
+			/* check for config file request */
+			if ((service = _config_policy.resolve_session_request(service_name,
+			                                                      args)))
+				return service;
+
 			return _parent_services->find(service_name);
 		}
 };
@@ -147,7 +165,8 @@ static bool child_name_exists(const char *name)
  * If a program with the filename as name already exists, we
  * add a counting number as suffix.
  */
-static void get_unique_child_name(const char *filename, char *dst, size_t dst_len)
+static void get_unique_child_name(const char *filename, char *dst,
+                                  size_t dst_len, unsigned generation)
 {
 	Lock::Guard lock_guard(_children_lock);
 
@@ -158,7 +177,7 @@ static void get_unique_child_name(const char *filename, char *dst, size_t dst_le
 	for (int cnt = 1; true; cnt++) {
 
 		/* build program name composed of filename and numeric suffix */
-		snprintf(buf, sizeof(buf), "%s%s", filename, suffix);
+		snprintf(buf, sizeof(buf), "%s_g%u%s", filename, generation, suffix);
 
 		/* if such a program name does not exist yet, we are happy */
 		if (!child_name_exists(buf)) {
@@ -176,13 +195,15 @@ static void get_unique_child_name(const char *filename, char *dst, size_t dst_le
  * Start a child
  */
 static int start_child(const char *file_name, Cap_session *cap_session,
-                       size_t ram_quota, Service_registry *parent_services)
+                       size_t ram_quota, Service_registry *parent_services,
+                       unsigned generation)
 {
 	char name[64];
-	get_unique_child_name(file_name, name, sizeof(name));
+	get_unique_child_name(file_name, name, sizeof(name), generation);
 
 	Bomb_child *c = new (env()->heap())
-		Bomb_child(file_name, name, ram_quota, cap_session, parent_services);
+		Bomb_child(file_name, name, ram_quota, cap_session, parent_services,
+		           generation);
 
 	Lock::Guard lock_guard(_children_lock);
 	_children.insert(c);
@@ -217,11 +238,13 @@ Timer::Session *timer()
 
 int main(int argc, char **argv)
 {
-	unsigned long rounds = 5;
+	Genode::Xml_node node = config()->xml_node();
 
-	try {
-		config()->xml_node().attribute("rounds").value(&rounds);
-	} catch(...) { }
+	unsigned const rounds      = node.attribute_value("rounds", 1U);
+	unsigned const generation  = node.attribute_value("generations", 1U);
+	unsigned const children    = node.attribute_value("children", 2U);
+	unsigned const sleeptime   = node.attribute_value("sleep", 2000U);
+	unsigned long const demand = node.attribute_value("demand", 1024UL * 1024);
 
 	printf("--- bomb started ---\n");
 
@@ -236,24 +259,26 @@ int main(int argc, char **argv)
 	for (unsigned i = 0; names[i]; i++)
 		parent_services.insert(new (env()->heap()) Parent_service(names[i]));
 
-	const long children = 2;
-	const long demand   = 1024 * 1024;
-
 	unsigned long avail = env()->ram_session()->avail();
-	long amount = (avail - demand) / children;
-	if (amount < (children * demand)) {
-		PLOG("I'm a leaf node.");
+	unsigned long amount = (avail - demand) / children;
+	if (amount < (demand * children)) {
+		PLOG("I'm a leaf node - generation %u - not enough memory.",
+		     generation);
+		sleep_forever();
+	}
+	if (generation == 0) {
+		PLOG("I'm a leaf node - generation 0");
 		sleep_forever();
 	}
 
-	for (unsigned round = 1; round < rounds ; ++round) {
+	for (unsigned round = 0; round < rounds ; ++round) {
 		for (unsigned i = children; i; --i)
-			start_child("bomb", &cap, amount, &parent_services);
+			start_child("bomb", &cap, amount, &parent_services, generation - 1);
 
 		/* is init our parent? */
 		if (!timer()) sleep_forever();
 
-		timer()->msleep(2000);
+		timer()->msleep(sleeptime);
 		PINF("[%03d] It's time to kill all my children...", round);
 
 		while (1) {
@@ -271,7 +296,9 @@ int main(int argc, char **argv)
 		PINF("[%03d] Done.", round);
 	}
 
-	PINF("Done. Going to sleep");
+	/* master if rounds != 0 */
+	if (rounds != 0)
+		PINF("Done. Going to sleep");
 
 	sleep_forever();
 	return 0;
