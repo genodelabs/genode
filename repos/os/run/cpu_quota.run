@@ -140,33 +140,35 @@ run_genode_until ".*done.*\n.*done.*\n.*done.*\n" 100
 #
 # Conclusion
 #
+set err_cnt 0
 
 proc check_counter { name opt cnt total_cnt } {
 
+	global err_cnt
 	set err         0.01
 	set is          [expr double($cnt) / $total_cnt ]
 	set is_pc       [expr double(round($is  * 100000)) / 1000]
 	set opt_pc      [expr double(round($opt * 100000)) / 1000]
+	set err_str     "Good: "
 
 	if {[expr $is > $opt + $err || $is < $opt - $err]} {
-		puts stderr "Error: $name received $is_pc % of the CPU time."
-		puts stderr "       Should receive $opt_pc %."
-		exit -1
+
+		set err_str "Bad:  "
+		set err_cnt [expr $err_cnt + 1]
 	}
-	puts "$name: $is_pc % (optimal $opt_pc %)"
+	puts "$err_str$name received $is_pc % CPU (goal $opt_pc %)"
 }
 
 proc check_quota { name opt_sp quota_sp opt quota } {
 
+	global err_cnt
 	if {[expr $quota != $opt]} {
-		puts stderr "Error: $name has CPU quota of $quota us."
-		puts stderr "       Should have $opt us."
-		exit -1
+		puts "Bad:  $name has quota $quota us (goal $opt us)"
+		set err_cnt [expr $err_cnt + 1]
 	}
 	if {[expr $quota_sp != $opt_sp]} {
-		puts stderr "Error: $name has CPU quota super-period of $quota_sp us."
-		puts stderr "       Should have $opt_sp us."
-		exit -1
+		puts "Bad:  $name has super period $quota_sp us (goal $opt_sp us)"
+		set err_cnt [expr $err_cnt + 1]
 	}
 }
 
@@ -245,4 +247,9 @@ check_counter "Middle counter B" 0.15375 $midl_b_cnt $total_cnt
 check_counter "Fast counter A" 0.22625 $fast_a_cnt $total_cnt
 check_counter "Fast counter B" 0.42375 $fast_b_cnt $total_cnt
 
+# final conclusion and return
+if {[expr $err_cnt > 0]} {
+	puts "Test failed because of $err_cnt errors"
+	exit -1
+}
 puts "Test succeeded"
