@@ -79,6 +79,9 @@
 		/* Linux */
 		lx_syscall;
 
+		/* Linux hybrid */
+		lx_environ;
+
 		/* Base HW */
 		extern "C++" {
 			Kernel::*;
