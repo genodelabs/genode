@@ -27,61 +27,6 @@ using namespace Genode;
 namespace Genode { bool inhibit_tracing = true; /* cleared by '_main' */ }
 
 
-/**
- * Return trace-control structure for specified thread
- */
-static Trace::Control *trace_control(Cpu_session *cpu, Rm_session *rm,
-                                     Thread_capability thread_cap)
-{
-	struct Area
-	{
-		Cpu_session           &cpu;
-		Rm_session            &rm;
-		Dataspace_capability   ds;
-		size_t           const size;
-		Trace::Control * const base;
-
-		Area(Cpu_session &cpu, Rm_session &rm)
-		:
-			cpu(cpu), rm(rm),
-			ds(cpu.trace_control()),
-			size(ds.valid() ? Dataspace_client(ds).size() : 0),
-			base(ds.valid() ? (Trace::Control * const)rm.attach(ds) : 0)
-		{ }
-
-		Trace::Control *slot(Thread_capability thread)
-		{
-			if (!thread.valid() || base == 0)
-				return 0;
-
-			unsigned const index = cpu.trace_control_index(thread);
-
-			if ((index + 1)*sizeof(Trace::Control) > size) {
-				PERR("thread control index is out of range");
-				return 0;
-			}
-
-			return base + index;
-		}
-	};
-
-	/**
-	 * We have to construct the Area object explicitly because otherwise
-	 * the destructor may use a invalid capability. This is mainly the
-	 * case by e.g. forked processes in noux.
-	 */
-
-	static char area_mem[sizeof (Area)];
-	static Area *area = 0;
-
-	if (!area) {
-		area = construct_at<Area>(area_mem, *cpu, *rm);
-	}
-
-	return area->slot(thread_cap);
-}
-
-
 /*******************
  ** Trace::Logger **
  *******************/
@@ -129,7 +74,7 @@ bool Trace::Logger::_evaluate_control()
 		Control::Inhibit_guard guard(*control);
 
 		/* obtain policy */
-		Dataspace_capability policy_ds = env()->cpu_session()->trace_policy(thread_cap);
+		Dataspace_capability policy_ds = cpu->trace_policy(thread_cap);
 
 		if (!policy_ds.valid()) {
 			PWRN("could not obtain trace policy");
@@ -155,7 +100,7 @@ bool Trace::Logger::_evaluate_control()
 
 		/* obtain buffer */
 		buffer = 0;
-		Dataspace_capability buffer_ds = env()->cpu_session()->trace_buffer(thread_cap);
+		Dataspace_capability buffer_ds = cpu->trace_buffer(thread_cap);
 
 		if (!buffer_ds.valid()) {
 			PWRN("could not obtain trace buffer");
@@ -185,17 +130,31 @@ void Trace::Logger::log(char const *msg, size_t len)
 }
 
 
-void Trace::Logger::init(Thread_capability thread)
+void Trace::Logger::init(Thread_capability thread, Cpu_session *cpu_session,
+                         Trace::Control *attached_control)
 {
-	thread_cap = thread;
+	if (!attached_control)
+		return;
 
-	control = trace_control(env()->cpu_session(), env()->rm_session(), thread);
+	thread_cap = thread;
+	cpu        = cpu_session;
+
+	unsigned const index    = cpu->trace_control_index(thread);
+	Dataspace_capability ds = cpu->trace_control();
+	size_t size             = Dataspace_client(ds).size();
+	if ((index + 1)*sizeof(Trace::Control) > size) {
+		PERR("thread control index is out of range");
+		return;
+	}
+
+	control = attached_control + index;
 }
 
 
 Trace::Logger::Logger()
 :
-	control(0),
+	cpu(nullptr),
+	control(nullptr),
 	enabled(false),
 	policy_version(0),
 	policy_module(0),
@@ -218,6 +177,9 @@ static Trace::Logger *main_trace_logger()
 }
 
 
+static Trace::Control *main_trace_control;
+
+
 Trace::Logger *Thread_base::_logger()
 {
 	if (inhibit_tracing)
@@ -235,9 +197,24 @@ Trace::Logger *Thread_base::_logger()
 	/* lazily initialize trace object */
 	if (!logger->is_initialized()) {
 		logger->init_pending(true);
-		logger->init(myself ? myself->_thread_cap : env()->parent()->main_thread_cap());
+
+		Thread_capability thread_cap = myself ? myself->_thread_cap
+		                                      : env()->parent()->main_thread_cap();
+
+		Genode::Cpu_session *cpu = myself ? myself->_cpu_session
+		                                  : env()->cpu_session();
+		if (!cpu) cpu = env()->cpu_session();
+
+		if (!myself)
+			if (!main_trace_control) {
+				Dataspace_capability ds = env()->cpu_session()->trace_control();
+				if (ds.valid())
+					main_trace_control = env()->rm_session()->attach(ds);
+			}
+
+		logger->init(thread_cap, cpu,
+		             myself ? myself->_trace_control : main_trace_control);
 	}
 
 	return logger;
 }
-
