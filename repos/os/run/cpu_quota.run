@@ -145,11 +145,14 @@ set err_cnt 0
 proc check_counter { name opt cnt total_cnt } {
 
 	global err_cnt
-	set err         0.01
-	set is          [expr double($cnt) / $total_cnt ]
-	set is_pc       [expr double(round($is  * 100000)) / 1000]
-	set opt_pc      [expr double(round($opt * 100000)) / 1000]
-	set err_str     "Good: "
+	set    err_str "Good: "
+	set    err     0.01
+	set    is      0
+
+	if {[expr $total_cnt != 0]} { set is [expr double($cnt) / $total_cnt ] }
+
+	set is_pc  [expr double(round($is  * 100000)) / 1000]
+	set opt_pc [expr double(round($opt * 100000)) / 1000]
 
 	if {[expr $is > $opt + $err || $is < $opt - $err]} {
 
