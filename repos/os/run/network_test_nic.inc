@@ -154,7 +154,7 @@ lappend_if [have_spec pci]           boot_modules pci_drv
 lappend_if [expr [have_spec omap4] || [have_spec platform_arndale]] boot_modules usb_drv
 lappend_if [expr [have_spec omap4] || [have_spec platform_arndale]] boot_modules usb_drv_net_stat
 lappend_if [expr ![have_spec omap4] && ![have_spec platform_arndale]] boot_modules nic_drv
-lappend_if [expr ![have_spec omap4] && ![have_spec platform_arndale]] boot_modules nic_drv_stat
+lappend_if [expr ![have_spec omap4] && ![have_spec platform_arndale] && ![have_spec platform_zynq]] boot_modules nic_drv_stat
 lappend_if [have_spec nova]          boot_modules pci_device_pd
 
 build_boot_image $boot_modules
