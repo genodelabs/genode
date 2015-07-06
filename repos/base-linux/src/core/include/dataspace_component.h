@@ -98,6 +98,11 @@ namespace Genode {
 			 */
 			bool owner(Dataspace_owner * const o) const { return _owner == o; }
 
+			/**
+			 * Detach dataspace from all rm sessions.
+			 */
+			void detach_from_rm_sessions() { }
+
 			/*************************
 			 ** Dataspace interface **
 			 *************************/

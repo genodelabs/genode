@@ -42,10 +42,11 @@ void Ram_session_component::_free_ds(Dataspace_component *ds)
 	/* tell entry point to forget the dataspace */
 	_ds_ep->dissolve(ds);
 
+	/* remove dataspace from all RM sessions */
+	ds->detach_from_rm_sessions();
+
 	/* destroy native shared memory representation */
 	_revoke_ram_ds(ds);
-
-	/* XXX: remove dataspace from all RM sessions */
 
 	/* free physical memory that was backing the dataspace */
 	_ram_alloc->free((void *)ds->phys_addr(), ds_size);

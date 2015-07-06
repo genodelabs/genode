@@ -43,8 +43,6 @@ void Ram_session_component::_revoke_ram_ds(Dataspace_component *ds)
 
 	platform()->region_alloc()->free((void*)ds->core_local_addr(),
 	                                 page_rounded_size);
-
-	ds->assign_core_local_addr(0);
 }
 
 
