@@ -78,7 +78,7 @@ Platform_thread::Platform_thread(size_t const quota,
                                  const char * const label,
                                  unsigned const virt_prio,
                                  addr_t const utcb)
-: Kernel_object<Kernel::Thread>(true, _priority(virt_prio), 0, _label),
+: Kernel_object<Kernel::Thread>(true, _priority(virt_prio), quota, _label),
   _pd(nullptr),
   _pager(nullptr),
   _utcb_pd_addr((Native_utcb *)utcb),
