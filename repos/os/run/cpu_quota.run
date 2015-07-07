@@ -2,15 +2,8 @@
 # Check platform
 #
 # HW is the only kernel that provides appliance of quota to the scheduling.
-# On X86, the timer driver uses the PIT with a timeout of max. 54 ms. Thus,
-# the driver needs to restart the timer permanently which is a hard job with 6
-# high-priority counter-threads in the background. As a consequence, timeouts
-# take much longer than requested and the test fails.  However, as the PIT
-# tends to be replaced by a better timing source, we simply skip X86 for now.
-#
 #
 assert_spec hw
-assert_spec arm
 
 #
 # Build
@@ -43,11 +36,6 @@ install_config {
 		<any-service><parent/><any-child/></any-service>
 	</default-route>
 
-	<start name="timer">
-		<resource name="RAM" quantum="10M"/>
-		<provides><service name="Timer"/></provides>
-	</start>
-
 	<start name="test-sync">
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Sync"/></provides>
@@ -55,9 +43,9 @@ install_config {
 
 	<start name="init_1" priority="-1">
 		<binary name="init"/>
-		<resource name="RAM" quantum="10M"/>
+		<resource name="RAM" quantum="20M"/>
 		<resource name="CPU" quantum="10"/>
-		<config prio_levels="2">
+		<config>
 			<parent-provides>
 				<service name="ROM"/>
 				<service name="RAM"/>
@@ -77,7 +65,7 @@ install_config {
 				<any-service><parent/><any-child/></any-service>
 			</default-route>
 
-			<start name="test_slow" priority="-1">
+			<start name="test_slow">
 				<binary name="test-cpu_quota"/>
 				<resource name="RAM" quantum="10M"/>
 				<resource name="CPU" quantum="50"/>
@@ -88,9 +76,9 @@ install_config {
 
 	<start name="init_2" priority="-2">
 		<binary name="init"/>
-		<resource name="RAM" quantum="100M"/>
+		<resource name="RAM" quantum="30M"/>
 		<resource name="CPU" quantum="80"/>
-		<config>
+		<config prio_levels="2">
 			<parent-provides>
 				<service name="ROM"/>
 				<service name="RAM"/>
@@ -110,13 +98,13 @@ install_config {
 				<any-service><parent/></any-service>
 			</default-route>
 
-			<start name="test_midl">
+			<start name="test_midl" priority="0">
 				<binary name="test-cpu_quota"/>
 				<resource name="RAM" quantum="10M"/>
 				<resource name="CPU" quantum="25"/>
 			</start>
 
-			<start name="test_fast">
+			<start name="test_fast" priority="-1">
 				<binary name="test-cpu_quota"/>
 				<resource name="RAM" quantum="10M"/>
 				<resource name="CPU" quantum="75"/>
@@ -124,6 +112,13 @@ install_config {
 
 		</config>
 	</start>
+
+	<start name="timer" priority="0">
+		<resource name="RAM" quantum="10M"/>
+		<resource name="CPU" quantum="10"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
 </config>
 }
 
@@ -148,6 +143,15 @@ proc check_counter { name opt cnt total_cnt } {
 	set    err_str "Good: "
 	set    err     0.01
 	set    is      0
+
+	#
+	# On X86, the timer driver uses the PIT with a maximum timeout of 54 ms.
+	# Thus, the driver frequently interrupts the counters with highest
+	# priority to update the timer. This is why we need a higher error
+	# tolerance as for ARM where the driver, once configured, can sleep for
+	# the whole test timeout.
+	#
+	if {[have_spec x86]} { set err 0.02 }
 
 	if {[expr $total_cnt != 0]} { set is [expr double($cnt) / $total_cnt ] }
 
