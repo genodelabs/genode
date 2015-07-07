@@ -12,6 +12,12 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* libsupc++ includes */
+#include <cxxabi.h>
+
+/* Genode includes */
+#include <base/printf.h>
+
 extern "C" char __eh_frame_start__[];                  /* from linker script */
 extern "C" void __register_frame (const void *begin);  /* from libgcc_eh     */
 
@@ -33,6 +39,28 @@ extern "C" int dl_iterate_phdr(int (*callback) (void *info, unsigned long size, 
 extern "C" int dl_iterate_phdr(int (*callback) (void *info, unsigned long size, void *data), void *data) {
 	return -1; }
 
-void init_exception_handling() {
-	__register_frame(__eh_frame_start__); }
 
+/*
+ * Terminate handler
+ */
+
+void terminate_handler()
+{
+	std::type_info *t = __cxxabiv1::__cxa_current_exception_type();
+
+	if (t)
+		PERR("Uncaught exception of type '%s' (use 'c++filt -t' to demangle)",
+		     t->name());
+}
+
+
+/*
+ * Initialization
+ */
+
+void init_exception_handling()
+{
+	__register_frame(__eh_frame_start__);
+
+	std::set_terminate(terminate_handler);
+}

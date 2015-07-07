@@ -26,18 +26,17 @@ static const bool verbose = false;
 
 
 namespace Linux {
-	extern "C" {
+		#include <lx/extern_c_begin.h>
 		#include <lx_emul.h>
 		#include <linux/socket.h>
 		#include <uapi/linux/in.h>
-	
 		extern int sock_setsockopt(struct socket *sock, int level,
 		                           int op, char __user *optval,
 		                           unsigned int optlen);
 		extern int sock_getsockopt(struct socket *sock, int level,
 		                           int op, char __user *optval,
 		                           int __user *optlen);
-	}
+		#include <lx/extern_c_end.h>
 }
 
 namespace Net

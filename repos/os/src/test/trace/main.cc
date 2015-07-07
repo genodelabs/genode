@@ -16,6 +16,7 @@
 #include <trace_session/connection.h>
 #include <timer_session/connection.h>
 #include <os/config.h>
+#include <base/sleep.h>
 
 static char const *state_name(Genode::Trace::Subject_info::State state)
 {
@@ -117,11 +118,46 @@ class Trace_buffer_monitor
 };
 
 
+static void test_out_of_metadata()
+{
+	printf("test Out_of_metadata exception of Trace::Session::subjects call\n");
+
+	/*
+	 * The call of 'subjects' will prompt core's TRACE service to import those
+	 * threads as trace subjects into the TRACE session. This step should fail
+	 * because we dimensioned the TRACE session with a very low amount of
+	 * session quota. The allocation failure is propagated to the TRACE client
+	 * by the 'Out_of_metadata' exception. The test validates this
+	 * error-handling procedure.
+	 */
+
+	enum { MAX_SUBJECT_IDS = 16 };
+	Genode::Trace::Subject_id subject_ids[MAX_SUBJECT_IDS];
+
+	Genode::Trace::Connection trace(sizeof(subject_ids) + 4096, sizeof(subject_ids), 0);
+
+	try {
+		trace.subjects(subject_ids, MAX_SUBJECT_IDS);
+
+		/* we should never arrive here */
+		struct Unexpectedly_got_no_exception{};
+		throw  Unexpectedly_got_no_exception();
+
+	} catch (Trace::Out_of_metadata) {
+		printf("got Trace::Out_of_metadata exception as expected\n");
+	}
+
+	printf("passed Out_of_metadata test\n");
+}
+
+
 int main(int argc, char **argv)
 {
 	using namespace Genode;
 
 	printf("--- test-trace started ---\n");
+
+	test_out_of_metadata();
 
 	static Genode::Trace::Connection trace(1024*1024, 64*1024, 0);
 
@@ -184,12 +220,13 @@ int main(int argc, char **argv)
 		for (size_t i = 0; i < num_subjects; i++) {
 
 			Trace::Subject_info info = trace.subject_info(subjects[i]);
-			printf("ID:%d label:\"%s\" name:\"%s\" state:%s policy:%d\n",
+			printf("ID:%d label:\"%s\" name:\"%s\" state:%s policy:%d time:%lld\n",
 			       subjects[i].id,
 			       info.session_label().string(),
 			       info.thread_name().string(),
 			       state_name(info.state()),
-			       info.policy_id().id);
+			       info.policy_id().id,
+			       info.execution_time().value);
 
 			/* enable tracing */
 			if (!policy_set

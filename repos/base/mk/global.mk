@@ -129,11 +129,15 @@ CC_CXX_OPT     += $(CC_CXX_OPT_STD)
 # Use '-gc-sections' by default but allow a platform to disable this feature by
 # defining 'LD_GC_SECTIONS' empty. This is needed for older tool chains (gcc
 # version 4.11 and binutils version 2.16), which happen to produce broken
-# code when '-gc-sections' is enabled.
+# code when '-gc-sections' is enabled. Also, set max-page-size to 4KiB to
+# prevent the linker from aligning the text segment to any built-in default
+# (e.g., 4MiB on x86_64 or 64KiB on ARM). Otherwise, the padding bytes are
+# wasted at the beginning of the final binary.
 #
 LD_OPT_GC_SECTIONS ?= -gc-sections
+LD_OPT_ALIGN_SANE   = -z max-page-size=0x1000
 LD_OPT_PREFIX      := -Wl,
-LD_OPT             += $(LD_MARCH) $(LD_OPT_GC_SECTIONS)
+LD_OPT             += $(LD_MARCH) $(LD_OPT_GC_SECTIONS) $(LD_OPT_ALIGN_SANE)
 CXX_LINK_OPT       += $(addprefix $(LD_OPT_PREFIX),$(LD_OPT))
 CXX_LINK_OPT       += $(LD_OPT_NOSTDLIB)
 

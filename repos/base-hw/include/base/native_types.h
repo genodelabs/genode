@@ -100,7 +100,7 @@ class Genode::Native_utcb
 
 		enum { MAX_CAP_ARGS = Msgbuf_base::MAX_CAP_ARGS};
 
-		enum Offsets { PARENT, UTCB_DATASPACE, THREAD_MYSELF };
+		enum Offsets { THREAD_MYSELF, PARENT, UTCB_DATASPACE };
 
 	private:
 

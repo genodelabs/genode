@@ -11,11 +11,8 @@ set build_components {
 	test/audio_out
 }
 
-# platform-specific components
-if {![have_spec linux]} {
-	lappend build_components drivers/pci
-	lappend build_components drivers/acpi
-}
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
 
 build $build_components
 create_boot_directory
@@ -43,49 +40,13 @@ set config  {
 		<default-route>
 			<service name="Audio_out"> <child name="mixer"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-}
+		</default-route>}
 
-if {![have_spec linux]} {
-	append config {
-		<start name="acpi">
-			<resource name="RAM" quantum="2M" constrain_phys="yes"/>
-			<binary name="acpi_drv"/>
-			<provides>
-				<service name="PCI"/>
-				<service name="IRQ" />
-			</provides>
-			<route>
-				<service name="PCI"> <any-child /> </service>
-				<any-service> <parent/> <any-child /> </any-service>
-			</route>
-		</start>
-		<start name="audio_out_drv">
-			<resource name="RAM" quantum="6M"/>
-			<route>
-				<service name="IRQ"><child name="acpi" /></service>
-				<any-service> <parent /> <any-child /></any-service>
-			</route>
-			<provides>
-				<service name="Audio_out" />
-			</provides>
-		</start>
-	}
-}
+append_platform_drv_config
 
 append config {
 		<start name="audio_out_drv">
 			<resource name="RAM" quantum="6M"/>
-}
-
-append_if [expr ![have_spec linux]] config {
-			<route>
-				<service name="IRQ"><child name="acpi" /></service>
-				<any-service> <parent /> <any-child /></any-service>
-			</route>
-}
-
-append config {
 			<provides>
 				<service name="Audio_out"/>
 			</provides>
@@ -137,10 +98,7 @@ set boot_modules {
 }
 
 # platform-specific components
-if {![have_spec linux]} {
-	lappend boot_modules acpi_drv
-	lappend boot_modules pci_drv
-}
+append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 append qemu_args "-m 256 -soundhw es1370 -nographic"

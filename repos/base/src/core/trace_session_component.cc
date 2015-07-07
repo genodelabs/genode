@@ -29,7 +29,14 @@ Dataspace_capability Session_component::dataspace()
 
 size_t Session_component::subjects()
 {
-	_subjects.import_new_sources(_sources);
+	try {
+		_subjects.import_new_sources(_sources);
+
+	} catch (Allocator::Out_of_memory) {
+
+		PWRN("TRACE session ran out of memory");
+		throw Out_of_metadata();
+	}
 
 	return _subjects.subjects((Subject_id *)_argument_buffer.base,
 	                          _argument_buffer.size/sizeof(Subject_id));
@@ -155,7 +162,7 @@ Session_component::Session_component(Allocator &md_alloc, size_t ram_quota,
 	_subjects(_subjects_slab, _ram, _sources),
 	_argument_buffer(_ram, arg_buffer_size)
 {
-	_md_alloc.withdraw(arg_buffer_size);
+	_md_alloc.withdraw(_argument_buffer.size);
 }
 
 

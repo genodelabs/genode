@@ -2,17 +2,25 @@
 # Build
 #
 
-
 set build_components {
 	core init
 	drivers/timer
 	drivers/audio_out
-	drivers/framebuffer drivers/pci drivers/input
+	drivers/framebuffer drivers/input
 	app/dosbox
 }
 
-lappend_if [have_spec acpi] build_components drivers/acpi
-lappend_if [have_spec  pci] build_components drivers/pci/device_pd
+source ${genode_dir}/repos/base/run/platform_drv.inc
+# override default platform driver policy
+proc platform_drv_policy {} {
+	return {
+			<policy label="ps2_drv"> <device name="PS2"/> </policy>
+			<policy label="usb_drv"> <pci class="USB"/> </policy>
+			<policy label="fb_drv">  <pci class="VGA"/> </policy>
+			<policy label="audio_out_drv"> <pci class="AUDIO"/> </policy>}
+}
+
+append_platform_drv_build_components
 
 build $build_components
 
@@ -51,51 +59,13 @@ append_if [have_spec sdl] config {
 		<config width="640" height="480"/>
 	</start>}
 
-append_if [have_spec acpi] config {
-	<start name="acpi">
-		<resource name="RAM" quantum="8M" constrain_phys="yes"/>
-		<binary name="acpi_drv"/>
-		<provides>
-			<service name="PCI"/>
-			<service name="IRQ" />
-		</provides>
-		<route>
-			<any-service> <parent/> <any-child /> </any-service>
-		</route>
-		<config>
-			<policy label="acpi_drv"> <pci class="ALL"/> </policy>
-			<policy label="ps2_drv"> <device name="PS2"/> </policy>
-			<policy label="usb_drv"> <pci class="USB"/> </policy>
-			<policy label="fb_drv">  <pci class="VGA"/> </policy>
-			<policy label="audio_out_drv"> <pci class="AUDIO"/> </policy>
-		</config>
-	</start>}
-
-append_if [expr ![have_spec acpi] && [have_spec pci]] config {
-	<start name="pci_drv">
-			<resource name="RAM" quantum="4M" constrain_phys="yes"/>
-			<provides> <service name="PCI"/> </provides>
-		<config>
-			<policy label="audio_out_drv"> <pci class="AUDIO"/> </policy>
-			<policy label="ps2_drv"> <device name="PS2"/> </policy>
-			<policy label="usb_drv"> <pci class="USB"/> </policy>
-			<policy label="fb_drv">  <pci class="VGA"/> </policy>
-		</config>
-	</start>}
+append_platform_drv_config
 
 append_if [have_spec vesa] config {
 	<start name="fb_drv">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Framebuffer"/></provides>
 		<config buffered="yes"> </config>
-		<route>}
-
-append_if [have_spec acpi] config {
-			<service name="PCI"><child name="acpi" /></service>}
-
-append_if [have_spec vesa] config {
-			<any-service> <parent /> <any-child /></any-service>
-		</route>
 	</start>}
 
 append_if [have_spec pl11x] config {
@@ -112,14 +82,7 @@ append_if [have_spec ps2] config {
 
 append config {
 	<start name="audio_out_drv">
-		<resource name="RAM" quantum="6M"/>}
-append_if [have_spec acpi] config {
-		<route>
-			<service name="IRQ"><child name="acpi" /></service>
-			<service name="PCI"><child name="acpi" /></service>
-			<any-service> <parent /> <any-child /></any-service>
-		</route>}
-append config {
+		<resource name="RAM" quantum="6M"/>
 		<provides><service name="Audio_out"/></provides>
 	</start>
 	<start name="timer">
@@ -166,13 +129,12 @@ set boot_modules {
 }
 
 # platform-specific modules
-lappend_if [have_spec nova]  boot_modules pci_device_pd
-lappend_if [have_spec acpi]  boot_modules acpi_drv
 lappend_if [have_spec linux] boot_modules fb_sdl
-lappend_if [have_spec pci]   boot_modules pci_drv
 lappend_if [have_spec vesa]  boot_modules fb_drv
 lappend_if [have_spec ps2]   boot_modules ps2_drv
 lappend_if [have_spec pl11x] boot_modules fb_drv
+
+append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 

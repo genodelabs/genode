@@ -8,6 +8,7 @@ SPECS += x86 32bit
 #
 REP_INC_DIR += include/x86
 REP_INC_DIR += include/x86_32
+REP_INC_DIR += include/platform/x86
 
 #
 # x86-specific flags

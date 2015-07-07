@@ -17,7 +17,7 @@
 .data
 
 	/********************************************
-	 ** Identity mapping from 2MiB to 4MiB     **
+	 ** Identity mapping from 2MiB to 16MiB    **
 	 ** plus mappings for LAPIC, I/O APIC MMIO **
 	 ********************************************/
 
@@ -41,7 +41,13 @@
 	_kernel_pd:
 	.quad 0
 	.quad 0x20018f
-	.fill 510, 8, 0x0
+	.quad 0x40018f
+	.quad 0x60018f
+	.quad 0x80018f
+	.quad 0xa0018f
+	.quad 0xc0018f
+	.quad 0xe0018f
+	.fill 504, 8, 0x0
 
 	.p2align MIN_PAGE_SIZE_LOG2
 	_kernel_pd_503:

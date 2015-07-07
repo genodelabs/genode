@@ -25,7 +25,17 @@ class Genode::Irq_root : public Root_component<Irq_session_component>
 
 	private:
 
-		Range_allocator            *_irq_alloc;    /* platform irq allocator */
+		/*
+		 * Use a dedicated entrypoint for IRQ session to decouple the interrupt
+		 * handling from other core services. If we used the same entrypoint, a
+		 * long-running operation (like allocating and clearing a dataspace
+		 * from the RAM service) would delay the response to time-critical
+		 * calls of the 'Irq_session::ack_irq' function.
+		 */
+		enum { STACK_SIZE = sizeof(long)*1024 };
+		Rpc_entrypoint _session_ep;
+
+		Range_allocator *_irq_alloc;    /* platform irq allocator */
 
 	protected:
 
@@ -37,15 +47,17 @@ class Genode::Irq_root : public Root_component<Irq_session_component>
 		/**
 		 * Constructor
 		 *
-		 * \param session_ep  entry point for managing irq session objects
-		 * \param irq_alloc   IRQ range that can be assigned to clients
-		 * \param md_alloc    meta-data allocator to be used by root component
+		 * \param cap_session  capability allocator
+		 * \param irq_alloc    IRQ range that can be assigned to clients
+		 * \param md_alloc     meta-data allocator to be used by root component
 		 */
-		Irq_root(Rpc_entrypoint *session_ep, Range_allocator *irq_alloc,
-		         Allocator *md_alloc)
+		Irq_root(Cap_session *cap_session,
+		         Range_allocator *irq_alloc, Allocator *md_alloc)
 		:
-		  Root_component<Irq_session_component>(session_ep, md_alloc),
-		  _irq_alloc(irq_alloc) { }
+			Root_component<Irq_session_component>(&_session_ep, md_alloc),
+			_session_ep(cap_session, STACK_SIZE, "irq"),
+			_irq_alloc(irq_alloc)
+		{ }
 };
 
 #endif /* _CORE__INCLUDE__IRQ_ROOT_H_ */

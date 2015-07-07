@@ -19,6 +19,7 @@
 #include <util/construct_at.h>
 
 /* core includes */
+#include <assert.h>
 #include <kernel/kernel.h>
 #include <kernel/thread.h>
 #include <kernel/irq.h>
@@ -750,7 +751,7 @@ void Thread::_call()
  *****************/
 
 Core_thread::Core_thread()
-: Core_object<Thread>(Cpu_priority::max, 0, "core")
+: Core_object<Thread>(Cpu_priority::MAX, 0, "core")
 {
 	using Genode::Native_utcb;
 
@@ -762,9 +763,9 @@ Core_thread::Core_thread()
 	Genode::map_local((addr_t)utcb, (addr_t)Genode::utcb_main_thread(),
 	                  sizeof(Native_utcb) / Genode::get_page_size());
 
-	utcb->cap_add(cap_id_invalid());
-	utcb->cap_add(cap_id_invalid());
 	utcb->cap_add(core_capid());
+	utcb->cap_add(cap_id_invalid());
+	utcb->cap_add(cap_id_invalid());
 
 	/* start thread with stack pointer at the top of stack */
 	sp = (addr_t)&stack + DEFAULT_STACK_SIZE;

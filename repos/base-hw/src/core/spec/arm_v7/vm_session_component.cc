@@ -42,14 +42,3 @@ void Vm_session_component::pause(void)
 	if (Kernel_object<Kernel::Vm>::_cap.valid())
 		Kernel::pause_vm(kernel_object());
 }
-
-
-Vm_session_component::~Vm_session_component()
-{
-	/* dissolve VM dataspace from service entry point */
-	_ds_ep->dissolve(&_ds);
-
-	/* free region in allocator */
-	core_env()->rm_session()->detach(_ds.core_local_addr());
-	platform()->ram_alloc()->free((void*)_ds.phys_addr());
-}

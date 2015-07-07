@@ -13,14 +13,14 @@ set build_components {
 	app/decorator
 	server/nitpicker server/report_rom
 	test/decorator_stress
-	drivers/framebuffer drivers/pci drivers/input
+	drivers/framebuffer drivers/input
 }
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
 
 lappend_if [have_spec usb]              build_components drivers/usb
 lappend_if [have_spec gpio]             build_components drivers/gpio
-lappend_if [have_spec imx53]            build_components drivers/platform
-lappend_if [have_spec platform_arndale] build_components drivers/platform
-lappend_if [have_spec platform_rpi]     build_components drivers/platform
 
 build $build_components
 
@@ -58,11 +58,7 @@ append_if [have_spec sdl] config {
 		</provides>
 	</start>}
 
-append_if [have_spec pci] config {
-	<start name="pci_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="PCI"/></provides>
-	</start>}
+append_platform_drv_config
 
 append_if [have_spec framebuffer] config {
 	<start name="fb_drv">
@@ -77,26 +73,7 @@ append_if [have_spec gpio] config {
 		<config/>
 	</start>}
 
-append_if [have_spec platform_arndale] config {
-	<start name="platform_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Regulator"/></provides>
-		<config/>
-	</start>}
-
-append_if [have_spec platform_rpi] config {
-	<start name="platform_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Platform"/></provides>
-		<config/>
-	</start>}
-
 append_if [have_spec imx53] config {
-	<start name="platform_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Platform"/></provides>
-		<config/>
-	</start>
 	<start name="input_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Input"/></provides>
@@ -129,6 +106,10 @@ append config {
 			<policy label="" domain=""/>
 			<report pointer="yes" />
 		</config>
+		<route>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
 	</start>
 	<start name="report_rom">
 		<resource name="RAM" quantum="2M"/>
@@ -145,6 +126,10 @@ append config {
 	</start>
 	<start name="test-decorator_stress">
 		<resource name="RAM" quantum="2M"/>
+		<route>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
 	</start>
 	<start name="decorator">
 		<resource name="RAM" quantum="8M"/>
@@ -157,6 +142,7 @@ append config {
 				<if-arg key="label" value="window_layout" />
 				<child name="report_rom" />
 			</service>
+			<service name="Report"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -180,15 +166,13 @@ set boot_modules {
 }
 
 # platform-specific modules
+append_platform_drv_boot_modules
+
 lappend_if [have_spec linux]            boot_modules fb_sdl
-lappend_if [have_spec pci]              boot_modules pci_drv
 lappend_if [have_spec ps2]              boot_modules ps2_drv
 lappend_if [have_spec framebuffer]      boot_modules fb_drv
 lappend_if [have_spec usb]              boot_modules usb_drv
 lappend_if [have_spec gpio]             boot_modules gpio_drv
-lappend_if [have_spec imx53]            boot_modules platform_drv
-lappend_if [have_spec platform_arndale] boot_modules platform_drv
-lappend_if [have_spec platform_rpi]     boot_modules platform_drv
 lappend_if [have_spec imx53]            boot_modules input_drv
 
 build_boot_image $boot_modules

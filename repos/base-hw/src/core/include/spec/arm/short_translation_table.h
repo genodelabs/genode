@@ -23,7 +23,7 @@
 #include <util.h>
 #include <assert.h>
 #include <page_flags.h>
-#include <page_slab.h>
+#include <translation_table_allocator.h>
 #include <cpu.h>
 
 namespace Genode
@@ -279,11 +279,15 @@ class Genode::Translation_table
 	public:
 
 		enum {
-			SIZE_LOG2          = 14,
-			SIZE               = 1 << SIZE_LOG2,
-			ALIGNM_LOG2        = SIZE_LOG2,
-			MAX_PAGE_SIZE_LOG2 = 20,
-			MIN_PAGE_SIZE_LOG2 = 12,
+			SIZE_LOG2               = 14,
+			SIZE                    = 1 << SIZE_LOG2,
+			ALIGNM_LOG2             = SIZE_LOG2,
+			MAX_PAGE_SIZE_LOG2      = 20,
+			MIN_PAGE_SIZE_LOG2      = 12,
+			TABLE_LEVEL_X_VIRT_SIZE = 1 << MAX_PAGE_SIZE_LOG2,
+			TABLE_LEVEL_X_SIZE_LOG2 = MIN_PAGE_SIZE_LOG2,
+			CORE_VM_AREA_SIZE       = 1024 * 1024 * 1024,
+			CORE_TRANS_TABLE_COUNT  = CORE_VM_AREA_SIZE / TABLE_LEVEL_X_VIRT_SIZE,
 		};
 
 		/**
@@ -412,22 +416,22 @@ class Genode::Translation_table
 		 * \param pa    physical start address of range
 		 * \param size  size of range
 		 * \param flags mapping flags
-		 * \param slab  second level page slab allocator
+		 * \param alloc second level translation table allocator
 		 */
 		void _insert_second_level(unsigned i, addr_t const vo, addr_t const pa,
 		                          size_t const size, Page_flags const & flags,
-		                          Page_slab * const slab)
+		                          Translation_table_allocator * const alloc)
 		{
 			Page_table * pt = 0;
 			switch (Descriptor::type(_entries[i])) {
 
 			case Descriptor::FAULT:
 				{
-					if (!slab) throw Allocator::Out_of_memory();
+					if (!alloc) throw Allocator::Out_of_memory();
 
 					/* create and link page table */
-					pt = new (slab) Page_table();
-					Page_table * pt_phys = (Page_table*) slab->phys_addr(pt);
+					pt = new (alloc) Page_table();
+					Page_table * pt_phys = (Page_table*) alloc->phys_addr(pt);
 					pt_phys = pt_phys ? pt_phys : pt; /* hack for core */
 					_entries[i] = Page_table_descriptor::create(pt_phys);
 
@@ -441,7 +445,7 @@ class Genode::Translation_table
 					/* use allocator to retrieve virtual addr. of page table */
 					void * pt_phys = (void*)
 						Page_table_descriptor::Pa::masked(_entries[i]);
-					pt = (Page_table *) slab->virt_addr(pt_phys);
+					pt = (Page_table *) alloc->virt_addr(pt_phys);
 					pt = pt ? pt : (Page_table *)pt_phys ; /* hack for core */
 					break;
 				}
@@ -481,10 +485,11 @@ class Genode::Translation_table
 		 * \param pa    base of physical backing store
 		 * \param size  size of translated region
 		 * \param f     mapping flags
-		 * \param s     second level page slab allocator
+		 * \param alloc second level translation table allocator
 		 */
 		void insert_translation(addr_t vo, addr_t pa, size_t size,
-		                        Page_flags const & f, Page_slab * const s)
+		                        Page_flags const & f,
+		                        Translation_table_allocator * const alloc)
 		{
 			/* check sanity */
 			assert(!(vo & Page_table::Descriptor::VIRT_OFFSET_MASK) &&
@@ -515,7 +520,8 @@ class Genode::Translation_table
 					}
 
 				default:
-					_insert_second_level(i, vo, pa, min(size, end - vo), f, s);
+					_insert_second_level(i, vo, pa, min(size, end - vo), f,
+					                     alloc);
 				};
 
 				/* check whether we wrap */
@@ -533,9 +539,10 @@ class Genode::Translation_table
 		 *
 		 * \param vo    region offset within the tables virtual region
 		 * \param size  region size
-		 * \param slab  second level page slab allocator
+		 * \param alloc second level translation table allocator
 		 */
-		void remove_translation(addr_t vo, size_t size, Page_slab * slab)
+		void remove_translation(addr_t vo, size_t size,
+		                        Translation_table_allocator * alloc)
 		{
 			/* check sanity */
 			assert(vo <= (vo + size));
@@ -553,7 +560,7 @@ class Genode::Translation_table
 						typedef Page_table            Pt;
 
 						Pt * pt_phys = (Pt *) Ptd::Pa::masked(_entries[i]);
-						Pt * pt      = (Pt *) slab->virt_addr(pt_phys);
+						Pt * pt      = (Pt *) alloc->virt_addr(pt_phys);
 						pt = pt ? pt : pt_phys; // TODO hack for core
 
 						addr_t const pt_vo = vo - Section::Pa::masked(vo);
@@ -561,7 +568,7 @@ class Genode::Translation_table
 
 						if (pt->empty()) {
 							Descriptor::invalidate(_entries[i]);
-							destroy(slab, pt);
+							destroy(alloc, pt);
 						}
 						break;
 					}

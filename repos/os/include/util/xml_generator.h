@@ -232,7 +232,10 @@ class Genode::Xml_generator
 		:
 			_out_buffer(dst, dst_len)
 		{
-			if (dst) node(name, func);
+			if (dst) {
+				node(name, func);
+				_out_buffer.append('\n');
+			}
 		}
 
 		template <typename FUNC>

@@ -26,46 +26,76 @@ class Genodefb :
 {
 	private:
 
-		Fb_Genode::Connection _fb;
-		Fb_Genode::Mode const _fb_mode;
-		void            *     _fb_base;
-		RTCRITSECT            _fb_lock;
+		Fb_Genode::Connection  _fb;
 
-		unsigned long         _width;
-		unsigned long         _height;
+		/* The mode matching the currently attached dataspace */
+		Fb_Genode::Mode        _fb_mode;
+
+		/* The mode at the time when the mode change signal was received */
+		Fb_Genode::Mode        _next_fb_mode;
+
+		/*
+		 * The mode currently used by the VM. Can be smaller than the
+		 * framebuffer mode.
+		 */
+		Fb_Genode::Mode        _virtual_fb_mode;
+
+		void                  *_fb_base;
+		RTCRITSECT             _fb_lock;
+
+		void _clear_screen()
+		{
+			size_t const num_pixels = _fb_mode.width() * _virtual_fb_mode.height();
+			memset(_fb_base, 0, num_pixels * _fb_mode.bytes_per_pixel());
+			_fb.refresh(0, 0, _virtual_fb_mode.width(), _virtual_fb_mode.height());
+		}
 
 	public:
 
 		Genodefb ()
 		:
 			_fb_mode(_fb.mode()),
-			_fb_base(Genode::env()->rm_session()->attach(_fb.dataspace())),
-			_width(_fb_mode.width()),
-			_height(_fb_mode.height())
+			_next_fb_mode(_fb_mode),
+			_virtual_fb_mode(_fb_mode),
+			_fb_base(Genode::env()->rm_session()->attach(_fb.dataspace()))
 		{
 			int rc = RTCritSectInit(&_fb_lock);
 			Assert(rc == VINF_SUCCESS);
 		}
 
-		int w()     const { return _fb_mode.width(); }
-		int h()     const { return _fb_mode.height(); }
-		int depth() const { return 16; /* XXX */ }
+		/* Return the next mode of the framebuffer */ 
+		int w() const { return _next_fb_mode.width(); }
+		int h() const { return _next_fb_mode.height(); }
+
+		void mode_sigh(Genode::Signal_context_capability sigh)
+		{
+			_fb.mode_sigh(sigh);
+		}
+
+		void update_mode()
+		{
+			Lock();
+			_next_fb_mode = _fb.mode();
+			Unlock();
+		}
 
 		STDMETHODIMP COMGETTER(Width)(ULONG *width)
 		{
 			if (!width)
 				return E_INVALIDARG;
 
-			*width = (int)_width > _fb_mode.width() ? _fb_mode.width() : _width;
+			*width = _virtual_fb_mode.width();
+
 			return S_OK;
 		}
-		
+
 		STDMETHODIMP COMGETTER(Height)(ULONG *height)
 		{
 			if (!height)
 				return E_INVALIDARG;
 
-			*height = (int)_height > _fb_mode.height() ? _fb_mode.height() : _height;
+			*height = _virtual_fb_mode.height();
+
 			return S_OK;
 		}
 
@@ -90,7 +120,8 @@ class Genodefb :
 			if (!bits)
 				return E_INVALIDARG;
 
-			*bits = _fb_mode.bytes_per_pixel() * 8;
+			*bits = _virtual_fb_mode.bytes_per_pixel() * 8;
+
 			return S_OK;
 		}
 
@@ -111,29 +142,44 @@ class Genodefb :
 		                           ULONG bytesPerLine, ULONG w, ULONG h,
 		                           BOOL *finished)
 		{
-			/* clear screen to avoid artefacts during resize */
-			size_t const num_pixels = _fb_mode.width() * _fb_mode.height();
-			memset(_fb_base, 0, num_pixels * _fb_mode.bytes_per_pixel());
+			HRESULT result = E_FAIL;
 
-			_fb.refresh(0, 0, _fb_mode.width(), _fb_mode.height());
+			Lock();
 
-			/* bitsPerPixel == 0 is set by DevVGA when in text mode */
-			bool ok = ((bitsPerPixel == 16) || (bitsPerPixel == 0)) &&
-			          (w <= (ULONG)_fb_mode.width()) &&
-			          (h <= (ULONG)_fb_mode.height());
-			if (ok)
-				PINF("fb resize : %lux%lu@%zu -> %ux%u@%u", _width, _height,
-				     _fb_mode.bytes_per_pixel() * 8, w, h, bitsPerPixel);
-			else
-				PWRN("fb resize : %lux%lu@%zu -> %ux%u@%u ignored", _width, _height,
-				     _fb_mode.bytes_per_pixel() * 8, w, h, bitsPerPixel);
+			bool ok = (w <= (ULONG)_next_fb_mode.width()) &&
+			          (h <= (ULONG)_next_fb_mode.height());
 
-			_width  = w;
-			_height = h;
+			if (ok) {
+				PINF("fb resize : %dx%d@%zu -> %ux%u@%u",
+				     _virtual_fb_mode.width(), _virtual_fb_mode.height(),
+				     _virtual_fb_mode.bytes_per_pixel() * 8, w, h, bitsPerPixel);
+
+				if ((w < (ULONG)_next_fb_mode.width()) ||
+				    (h < (ULONG)_next_fb_mode.height())) {
+					/* clear the old content around the new, smaller area. */
+				    _clear_screen();
+				}
+
+				_fb_mode = _next_fb_mode;
+
+				_virtual_fb_mode = Fb_Genode::Mode(w, h, Fb_Genode::Mode::RGB565);
+
+				Genode::env()->rm_session()->detach(_fb_base);
+
+				_fb_base = Genode::env()->rm_session()->attach(_fb.dataspace());
+
+				result = S_OK;
+
+			} else
+				PWRN("fb resize : %dx%d@%zu -> %ux%u@%u ignored",
+				     _virtual_fb_mode.width(), _virtual_fb_mode.height(),
+				     _virtual_fb_mode.bytes_per_pixel() * 8, w, h, bitsPerPixel);
 
 			*finished = true;
 
-			return S_OK;
+			Unlock();
+
+			return result;
 		}
 
 		STDMETHODIMP COMGETTER(PixelFormat) (ULONG *format)
@@ -177,9 +223,8 @@ class Genodefb :
 			if (!supported)
 				return E_POINTER;
 
-			*supported = ((width <= (ULONG)_fb_mode.width()) &&
-			              (height <= (ULONG)_fb_mode.height()) &&
-			              (bpp == _fb_mode.bytes_per_pixel() * 8));
+			*supported = ((width <= (ULONG)_next_fb_mode.width()) &&
+			              (height <= (ULONG)_next_fb_mode.height()));
 
 			return S_OK;
 		}

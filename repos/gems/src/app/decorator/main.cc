@@ -130,6 +130,50 @@ struct Decorator::Main : Window_factory_base
 };
 
 
+static Decorator::Window_base::Hover
+find_hover(Genode::Xml_node pointer_node, Decorator::Window_stack &window_stack)
+{
+	if (!pointer_node.has_attribute("xpos")
+	 || !pointer_node.has_attribute("ypos"))
+		return Decorator::Window_base::Hover();
+
+	return window_stack.hover(Decorator::point_attribute(pointer_node));
+}
+
+
+static void update_hover_report(Genode::Xml_node pointer_node,
+                                Decorator::Window_stack &window_stack,
+                                Decorator::Window_base::Hover &hover,
+                                Genode::Reporter &hover_reporter)
+{
+	Decorator::Window_base::Hover const new_hover =
+		find_hover(pointer_node, window_stack);
+
+	/* produce report only if hover state changed */
+	if (new_hover != hover) {
+
+		hover = new_hover;
+
+		Genode::Reporter::Xml_generator xml(hover_reporter, [&] ()
+		{
+			if (hover.window_id > 0) {
+
+				xml.node("window", [&] () {
+
+					xml.attribute("id", hover.window_id);
+
+					if (hover.left_sizer)   xml.node("left_sizer");
+					if (hover.right_sizer)  xml.node("right_sizer");
+					if (hover.top_sizer)    xml.node("top_sizer");
+					if (hover.bottom_sizer) xml.node("bottom_sizer");
+					if (hover.title)        xml.node("title");
+				});
+			}
+		});
+	}
+}
+
+
 void Decorator::Main::handle_window_layout_update(unsigned)
 {
 	window_layout.update();
@@ -150,6 +194,14 @@ void Decorator::Main::handle_nitpicker_sync(unsigned)
 			window_stack.update_model(xml);
 
 			model_updated = true;
+
+			/*
+			 * A decorator element might have appeared or disappeared under
+			 * the pointer.
+			 */
+			if (pointer.is_valid())
+				update_hover_report(Xml_node(pointer.local_addr<char>()),
+				                    window_stack, hover, hover_reporter);
 
 		} catch (Xml_node::Invalid_syntax) {
 
@@ -181,49 +233,13 @@ void Decorator::Main::handle_nitpicker_sync(unsigned)
 }
 
 
-static Decorator::Window_base::Hover
-find_hover(Genode::Xml_node pointer_node, Decorator::Window_stack &window_stack)
-{
-	if (!pointer_node.has_attribute("xpos")
-	 || !pointer_node.has_attribute("ypos"))
-		return Decorator::Window_base::Hover();
-
-	return window_stack.hover(Decorator::point_attribute(pointer_node));
-}
-
-
 void Decorator::Main::handle_pointer_update(unsigned)
 {
 	pointer.update();
 
-	if (!pointer.is_valid())
-		return;
-
-	Xml_node const pointer_node(pointer.local_addr<char>());
-
-	Window_base::Hover const new_hover = find_hover(pointer_node, window_stack);
-
-	/* produce report only if hover state changed */
-	if (new_hover != hover) {
-		hover = new_hover;
-
-		Reporter::Xml_generator xml(hover_reporter, [&] ()
-		{
-			if (hover.window_id > 0) {
-
-				xml.node("window", [&] () {
-
-					xml.attribute("id", hover.window_id);
-
-					if (hover.left_sizer)   xml.node("left_sizer");
-					if (hover.right_sizer)  xml.node("right_sizer");
-					if (hover.top_sizer)    xml.node("top_sizer");
-					if (hover.bottom_sizer) xml.node("bottom_sizer");
-					if (hover.title)        xml.node("title");
-				});
-			}
-		});
-	}
+	if (pointer.is_valid())
+		update_hover_report(Xml_node(pointer.local_addr<char>()),
+		                    window_stack, hover, hover_reporter);
 }
 
 

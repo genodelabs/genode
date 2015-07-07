@@ -33,13 +33,14 @@ namespace Genode
 	/**
 	 * Round down to the minimal page-size alignment
 	 */
-	inline addr_t trunc_page(addr_t addr) { return addr & get_page_mask(); }
+	constexpr addr_t trunc_page(addr_t addr) {
+		return addr & get_page_mask(); }
 
 
 	/**
 	 * Round up to the minimal page-size alignment
 	 */
-	inline addr_t round_page(addr_t addr)
+	constexpr addr_t round_page(addr_t addr)
 	{ return trunc_page(addr + get_page_size() - 1); }
 
 

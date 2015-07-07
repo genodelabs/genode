@@ -42,6 +42,26 @@ struct Sdhci : Genode::Mmio
 	struct Resp2 : Register<0x18, 32> { };
 	struct Resp3 : Register<0x1c, 32> { };
 
+	/*
+	 * Handle the SDHCI quirk that responses of 136-bit requests are shifted
+	 * by 8 bits.
+	 */
+	template <Genode::off_t OFFSET>
+	struct Cmdresp_tpl : Register<OFFSET, 32>
+	{
+		struct Resp_8_24 : Register<OFFSET, 32>::template Bitfield<0, 24> { };
+		struct Resp_0_8  : Register<OFFSET, 32>::template Bitfield<24, 8> { };
+	};
+	struct Cmdresp0  : Cmdresp_tpl<0x10> { };
+	struct Cmdresp1  : Cmdresp_tpl<0x14> { };
+	struct Cmdresp2  : Cmdresp_tpl<0x18> { };
+	struct Cmdresp3  : Cmdresp_tpl<0x1c> { };
+
+	struct Resp0_136 : Genode::Bitset_2<Cmdresp3::Resp_0_8, Cmdresp0::Resp_8_24> { };
+	struct Resp1_136 : Genode::Bitset_2<Cmdresp0::Resp_0_8, Cmdresp1::Resp_8_24> { };
+	struct Resp2_136 : Genode::Bitset_2<Cmdresp1::Resp_0_8, Cmdresp2::Resp_8_24> { };
+	struct Resp3_136 : Genode::Bitset_2<Cmdresp2::Resp_0_8, Cmdresp3::Resp_8_24> { };
+
 	struct Data : Register<0x20, 32> { };
 
 	struct Control0 : Register<0x28, 32>
@@ -355,20 +375,20 @@ struct Sdhci_controller : private Sdhci, public Sd_card::Host_controller
 		Sd_card::Cid _read_cid()
 		{
 			Sd_card::Cid cid;
-			cid.raw_0 = read<Resp0>();
-			cid.raw_1 = read<Resp1>();
-			cid.raw_2 = read<Resp2>();
-			cid.raw_3 = read<Resp3>();
+			cid.raw_0 = read<Resp0_136>();
+			cid.raw_1 = read<Resp1_136>();
+			cid.raw_2 = read<Resp2_136>();
+			cid.raw_3 = read<Resp3_136>();
 			return cid;
 		}
 
 		Sd_card::Csd _read_csd()
 		{
 			Sd_card::Csd csd;
-			csd.csd0 = read<Resp0>();
-			csd.csd1 = read<Resp1>();
-			csd.csd2 = read<Resp2>();
-			csd.csd3 = read<Resp3>();
+			csd.csd0 = read<Resp0_136>();
+			csd.csd1 = read<Resp1_136>();
+			csd.csd2 = read<Resp2_136>();
+			csd.csd3 = read<Resp3_136>();
 			return csd;
 		}
 

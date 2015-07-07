@@ -220,6 +220,17 @@ void dde_ipxe_nic_register_callbacks(dde_ipxe_nic_rx_cb rx_cb,
 }
 
 
+void dde_ipxe_nic_unregister_callbacks(void)
+{
+	dde_lock_enter();
+
+	rx_callback   = (dde_ipxe_nic_rx_cb)0;
+	link_callback = (dde_ipxe_nic_link_cb)0;
+
+	dde_lock_leave();
+}
+
+
 int dde_ipxe_nic_link_state(unsigned if_index)
 {
 	if (if_index != 1)

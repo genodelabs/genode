@@ -57,7 +57,7 @@ Irq_session_component::~Irq_session_component()
 	using namespace Kernel;
 
 	User_irq * kirq = reinterpret_cast<User_irq*>(&_kernel_object);
-	_irq_alloc->free((void *)(addr_t)static_cast<Kernel::Irq*>(kirq)->irq_number());
+	_irq_alloc->free((void *)_irq_number);
 	if (_sig_cap.valid())
 		Kernel::delete_irq(kirq);
 }
@@ -66,8 +66,7 @@ Irq_session_component::~Irq_session_component()
 Irq_session_component::Irq_session_component(Range_allocator * const irq_alloc,
                                              const char      * const      args)
 :
-	_irq_number(Platform::irq(_find_irq_number(args))),
-	_irq_alloc(irq_alloc)
+	_irq_number(Platform::irq(_find_irq_number(args))), _irq_alloc(irq_alloc)
 {
 	long const msi = Arg_string::find_arg(args, "device_config_phys").long_value(0);
 	if (msi)
@@ -75,7 +74,7 @@ Irq_session_component::Irq_session_component(Range_allocator * const irq_alloc,
 
 	/* allocate interrupt */
 	if (_irq_alloc->alloc_addr(1, _irq_number).is_error()) {
-		PERR("unavailable interrupt requested");
+		PERR("unavailable interrupt %d requested", _irq_number);
 		throw Root::Invalid_args();
 	}
 

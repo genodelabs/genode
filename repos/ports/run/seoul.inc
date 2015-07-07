@@ -222,7 +222,7 @@ append_if $use_framebuffer config {
 		<provides><service name="Framebuffer"/></provides>
 		<route>
 			<service name="Timer"><child name="timer"/></service>
-			<service name="PCI"><any-child/></service>
+			<service name="Platform"><any-child/></service>
 			<any-service><parent/></any-service>
 		</route>
 		<config width="1024" height="768" depth="16" buffered="yes"/>

@@ -144,7 +144,7 @@ class Genode::Packet_descriptor
 		Genode::off_t  offset() const { return _offset; }
 		Genode::size_t size()   const { return _size; }
 
-		bool valid() { return _size != 0; }
+		bool valid() const { return _size != 0; }
 };
 
 

@@ -6,11 +6,13 @@
 
 set build_components {
 	core init
-	drivers/pci
 	drivers/nic
 	drivers/timer
 	app/lighttpd
 }
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
 
 build $build_components
 
@@ -39,11 +41,7 @@ append config {
 		<provides><service name="Timer"/></provides>
 	</start>}
 
-append_if [have_spec pci] config {
-	<start name="pci_drv">
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="PCI"/></provides>
-	</start>}
+append_platform_drv_config
 
 append config {
 	<start name="nic_drv">
@@ -118,7 +116,7 @@ set boot_modules {
 }
 
 # platform-specific modules
-lappend_if [have_spec pci] boot_modules pci_drv
+append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 

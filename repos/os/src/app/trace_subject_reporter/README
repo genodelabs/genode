@@ -1,0 +1,26 @@
+This component obtains the information about the existing trace subjects from
+core's "TRACE" service and delivers a report to a "Report" server. The report,
+in turn, can be used by top-like applications to present the consumed execution
+time per thread.
+
+Configuration
+-------------
+
+The interval of report generation can be defined via the 'period_ms' attribute
+of the '<config>' node. The value is specified in milliseconds.
+
+The level of detail of the generated reports can be influenced by the
+'<report>' sub node of the configuration. The following example shows the
+default values.
+
+! <config period_ms="5000" >
+!   <report activity="no" affinity="no"/>
+! </config>
+
+When setting 'activity' to "yes", the report contains an '<activity>' sub node
+for each subject. The sub node has the two attributes 'total' and 'recent'. The
+'recent' value represents the execution time consumed in the last period.
+
+When setting 'affinity' to "yes", the report contains an '<affinity>' sub node
+for each subject. The sub node shows the thread's physical CPU affinity,
+expressed via the 'xpos' and 'ypos' attributes.

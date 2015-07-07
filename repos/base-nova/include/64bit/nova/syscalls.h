@@ -255,18 +255,12 @@ namespace Nova {
 
 
 	ALWAYS_INLINE
-	inline uint8_t sc_ctrl(mword_t sm, Sem_op op, mword_t &time)
+	inline uint8_t sc_ctrl(mword_t sm, unsigned long long &time)
 	{
-		mword_t status = rdi(NOVA_SC_CTRL, op, sm);
-		mword_t time_h;
-
-		uint8_t res = syscall_5(NOVA_SC_CTRL, op, sm, time_h, time);
-		asm volatile ("syscall"
-		              : "+D" (status), "=S"(time_h), "=d"(time)
-			      :
-		              : "rcx", "r11", "memory");
-		
-		time = (time_h & ~0xFFFFFFFFULL) | (time & 0xFFFFFFFFULL);
+		mword_t time_h = 0, time_l = 0;
+		uint8_t res = syscall_5(NOVA_SC_CTRL, 0, sm, time_h, time_l);
+		time = time_h;
+		time = (time << 32ULL) | (time_l & 0xFFFFFFFFULL);
 		return res;
 	}
 

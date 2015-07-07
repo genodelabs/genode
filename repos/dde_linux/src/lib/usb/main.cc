@@ -26,10 +26,6 @@
 #include <routine.h>
 #include <signal.h>
 
-extern "C" {
-#include <dde_kit/timer.h>
-}
-
 using namespace Genode;
 
 extern "C" int subsys_usb_init();
@@ -56,9 +52,6 @@ void breakpoint() { PDBG("BREAK"); }
 
 static void init(Services *services)
 {
-	/* start jiffies */
-	dde_kit_timer_init(0, 0);
-
 	/*
 	 * The RAW driver is initialized first to make sure that it doesn't miss
 	 * notifications about added devices.

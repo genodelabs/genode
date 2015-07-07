@@ -61,6 +61,8 @@ struct Genode::Trace::Session_client : Genode::Rpc_client<Genode::Trace::Session
 
 		/**
 		 * Retrieve subject directory
+		 *
+		 * \throw Out_of_metadata
 		 */
 		size_t subjects(Subject_id *dst, size_t dst_len)
 		{

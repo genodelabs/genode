@@ -131,7 +131,8 @@ struct Genode::Trace::Session : Genode::Session
 	GENODE_RPC_THROW(Rpc_resume, void, resume,
 	                 GENODE_TYPE_LIST(Nonexistent_subject, Source_is_dead),
 	                 Subject_id);
-	GENODE_RPC(Rpc_subjects, size_t, subjects);
+	GENODE_RPC_THROW(Rpc_subjects, size_t, subjects,
+	                 GENODE_TYPE_LIST(Out_of_metadata));
 	GENODE_RPC_THROW(Rpc_subject_info, Subject_info, subject_info,
 	                 GENODE_TYPE_LIST(Nonexistent_subject), Subject_id);
 	GENODE_RPC_THROW(Rpc_buffer, Dataspace_capability, buffer,

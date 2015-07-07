@@ -198,9 +198,8 @@ HRESULT setupmachine()
 	/* handle input of Genode and forward it to VMM layer */
 	ComPtr<GenodeConsole> genodeConsole = gConsole;
 	RTLogPrintf("genodeConsole = %p\n", genodeConsole);
-	while (true) {
-		genodeConsole->eventWait(gKeyboard, gMouse);
-	}
+
+	genodeConsole->event_loop(gKeyboard, gMouse);
 
 	Assert(!"return not expected");
 	return E_FAIL;
@@ -229,7 +228,7 @@ int main(int argc, char **argv)
 
 	HRESULT hrc = setupmachine();
 	if (FAILED(hrc)) {
-		PERR("Start-up of VMM failed - reason %d - exiting ...", hrc);
+		PERR("Start-up of VMM failed - reason 0x%x - exiting ...", hrc);
 		return -2;
 	}
 

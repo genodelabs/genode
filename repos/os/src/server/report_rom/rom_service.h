@@ -41,6 +41,8 @@ class Rom::Session_component : public Genode::Rpc_object<Genode::Rom_session>,
 
 		Lazy_volatile_object<Genode::Attached_ram_dataspace> _ds;
 
+		size_t _content_size = 0;
+
 		Genode::Signal_context_capability _sigh;
 
 	public:
@@ -65,7 +67,7 @@ class Rom::Session_component : public Genode::Rpc_object<Genode::Rom_session>,
 			_ds.construct(env()->ram_session(), _module.size());
 
 			/* fill dataspace content with report contained in module */
-			_module.read_content(_ds->local_addr<char>(), _ds->size());
+			_content_size = _module.read_content(_ds->local_addr<char>(), _ds->size());
 
 			/* cast RAM into ROM dataspace capability */
 			Dataspace_capability ds_cap = static_cap_cast<Dataspace>(_ds->cap());
@@ -78,7 +80,16 @@ class Rom::Session_component : public Genode::Rpc_object<Genode::Rom_session>,
 			if (!_ds.is_constructed() || _module.size() > _ds->size())
 				return false;
 
-			_module.read_content(_ds->local_addr<char>(), _ds->size());
+			size_t const new_content_size =
+				_module.read_content(_ds->local_addr<char>(), _ds->size());
+
+			/* clear difference between old and new content */
+			if (new_content_size < _content_size)
+				Genode::memset(_ds->local_addr<char>() + new_content_size, 0,
+				               _content_size - new_content_size);
+
+			_content_size = new_content_size;
+
 			return true;
 		}
 

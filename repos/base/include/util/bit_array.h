@@ -35,39 +35,38 @@ class Genode::Bit_array_base
 		class Invalid_clear        : public Exception {};
 		class Invalid_set          : public Exception {};
 
-	protected:
-
-		static constexpr size_t _BITS_PER_BYTE = 8UL;
-		static constexpr size_t _BITS_PER_WORD = sizeof(addr_t) *
-		                                        _BITS_PER_BYTE;
-
 	private:
+
+		enum {
+			BITS_PER_BYTE = 8UL,
+			BITS_PER_WORD = sizeof(addr_t) * BITS_PER_BYTE
+		};
 
 		unsigned _bit_cnt;
 		unsigned _word_cnt;
 		addr_t  *_words;
 
 		addr_t _word(addr_t index) const {
-			return index / _BITS_PER_WORD; }
+			return index / BITS_PER_WORD; }
 
 		void _check_range(addr_t const index,
 		                  addr_t const width) const
 		{
-			if ((index >= _word_cnt * _BITS_PER_WORD) ||
-			    width > _word_cnt * _BITS_PER_WORD ||
-			    _word_cnt * _BITS_PER_WORD - width < index)
+			if ((index >= _word_cnt * BITS_PER_WORD) ||
+			    width > _word_cnt * BITS_PER_WORD ||
+			    _word_cnt * BITS_PER_WORD - width < index)
 				throw Invalid_index_access();
 		}
 
 		addr_t _mask(addr_t const index, addr_t const width,
 		             addr_t &rest) const
 		{
-			addr_t const shift = index - _word(index) * _BITS_PER_WORD;
+			addr_t const shift = index - _word(index) * BITS_PER_WORD;
 
-			rest = width + shift > _BITS_PER_WORD ?
-			       width + shift - _BITS_PER_WORD : 0;
+			rest = width + shift > BITS_PER_WORD ?
+			       width + shift - BITS_PER_WORD : 0;
 
-			return (width >= _BITS_PER_WORD) ? ~0UL << shift
+			return (width >= BITS_PER_WORD) ? ~0UL << shift
 			                                : ((1UL << width) - 1) << shift;
 		}
 
@@ -90,7 +89,7 @@ class Genode::Bit_array_base
 					_words[word] |= mask;
 				}
 
-				index = (_word(index) + 1) * _BITS_PER_WORD;
+				index = (_word(index) + 1) * BITS_PER_WORD;
 				width = rest;
 			} while (rest);
 		}
@@ -99,10 +98,10 @@ class Genode::Bit_array_base
 
 		Bit_array_base(unsigned bits, addr_t *addr, bool clear)
 		: _bit_cnt(bits),
-		  _word_cnt(_bit_cnt / _BITS_PER_WORD),
+		  _word_cnt(_bit_cnt / BITS_PER_WORD),
 		  _words(addr)
 		{
-			if (!bits || bits % _BITS_PER_WORD) throw Invalid_bit_count();
+			if (!bits || bits % BITS_PER_WORD) throw Invalid_bit_count();
 
 			if (clear) memset(_words, 0, sizeof(addr_t)*_word_cnt);
 		}
@@ -120,7 +119,7 @@ class Genode::Bit_array_base
 			do {
 				mask  = _mask(index, width, rest);
 				used  = _words[_word(index)] & mask;
-				index = (_word(index) + 1) * _BITS_PER_WORD;
+				index = (_word(index) + 1) * BITS_PER_WORD;
 				width = rest;
 			} while (!used && rest);
 
@@ -140,9 +139,9 @@ class Genode::Bit_array : public Bit_array_base
 {
 	private:
 
-		static constexpr size_t _WORDS = BITS / _BITS_PER_WORD;
+		static constexpr size_t _WORDS = BITS / BITS_PER_WORD;
 
-		static_assert(BITS % _BITS_PER_WORD == 0,
+		static_assert(BITS % BITS_PER_WORD == 0,
 		              "Count of bits need to be word aligned!");
 
 		addr_t _array[_WORDS];

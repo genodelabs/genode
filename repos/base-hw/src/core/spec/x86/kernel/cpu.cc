@@ -19,7 +19,7 @@
 using namespace Kernel;
 
 
-Cpu_idle::Cpu_idle(Cpu * const cpu) : Cpu_job(Cpu_priority::min, 0)
+Cpu_idle::Cpu_idle(Cpu * const cpu) : Cpu_job(Cpu_priority::MIN, 0)
 {
 	Cpu_job::cpu(cpu);
 	ip = (addr_t)&_main;

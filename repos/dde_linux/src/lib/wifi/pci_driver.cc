@@ -15,8 +15,8 @@
 /* Genode inludes */
 #include <ram_session/client.h>
 #include <base/object_pool.h>
-#include <pci_session/connection.h>
-#include <pci_device/client.h>
+#include <platform_session/connection.h>
+#include <platform_device/client.h>
 #include <io_mem_session/connection.h>
 
 /* local includes */
@@ -41,9 +41,9 @@ class Pci_driver
 {
 	private:
 
-		pci_driver            *_drv;  /* Linux PCI driver */
-		Pci::Device_capability _cap;  /* PCI cap */
-		pci_device_id const   *_id;   /* matched id for this driver */
+		pci_driver                  *_drv;  /* Linux PCI driver */
+		Platform::Device_capability  _cap;  /* PCI cap */
+		pci_device_id const         *_id;   /* matched id for this driver */
 
 	public:
 
@@ -62,7 +62,7 @@ class Pci_driver
 		 */
 		bool _setup_pci_device()
 		{
-			using namespace Pci;
+			using namespace Platform;
 
 			Device_client client(_cap);
 			if (client.device_id() != _id->device)
@@ -159,22 +159,22 @@ class Pci_driver
 		}
 
 		template <typename T>
-		Pci::Device::Access_size _access_size(T t)
+		Platform::Device::Access_size _access_size(T t)
 		{
 			switch (sizeof(T))
 			{
 				case 1:
-					return Pci::Device::ACCESS_8BIT;
+					return Platform::Device::ACCESS_8BIT;
 				case 2:
-					return Pci::Device::ACCESS_16BIT;
+					return Platform::Device::ACCESS_16BIT;
 				default:
-					return Pci::Device::ACCESS_32BIT;
+					return Platform::Device::ACCESS_32BIT;
 			}
 		}
 
 	public:
 
-		Pci_driver(pci_driver *drv, Pci::Device_capability cap,
+		Pci_driver(pci_driver *drv, Platform::Device_capability cap,
 		           pci_device_id const * id)
 		: _drv(drv), _cap(cap), _id(id), _dev(0)
 		{
@@ -196,14 +196,14 @@ class Pci_driver
 		template <typename T>
 		void config_read(unsigned int devfn, T *val)
 		{
-			Pci::Device_client client(_cap);
+			Platform::Device_client client(_cap);
 			*val = client.config_read(devfn, _access_size(*val));
 		}
 
 		template <typename T>
 		void config_write(unsigned int devfn, T val)
 		{
-			Pci::Device_client client(_cap);
+			Platform::Device_client client(_cap);
 			client.config_write(devfn, val, _access_size(val));
 		}
 };
@@ -251,10 +251,10 @@ struct Dma_object : Memory_object_base
  ** Linux interface **
  *********************/
 
-extern "C" { Pci::Device_capability pci_device_cap; }
-static Pci::Connection *pci()
+extern "C" { Platform::Device_capability pci_device_cap; }
+static Platform::Connection *pci()
 {
-	static Pci::Connection _pci;
+	static Platform::Connection _pci;
 	return &_pci;
 }
 static Genode::Object_pool<Memory_object_base> memory_pool;
@@ -287,7 +287,7 @@ extern "C" int pci_register_driver(struct pci_driver *drv)
 			continue;
 		}
 
-		Pci::Device_capability cap = pci()->first_device(PCI_CLASS_WIFI,
+		Platform::Device_capability cap = pci()->first_device(PCI_CLASS_WIFI,
 		                                                 PCI_CLASS_MASK);
 
 		while (cap.valid()) {
@@ -297,10 +297,10 @@ extern "C" int pci_register_driver(struct pci_driver *drv)
 
 				/* probe device */
 				pci_drv = new (env()->heap()) Pci_driver(drv, cap, id);
-				pci()->on_destruction(Pci::Connection::KEEP_OPEN);
+				pci()->on_destruction(Platform::Connection::KEEP_OPEN);
 				found++;
 
-			} catch (Pci::Device::Quota_exceeded) {
+			} catch (Platform::Device::Quota_exceeded) {
 				Genode::env()->parent()->upgrade(pci()->cap(), "ram_quota=4096");
 				continue;
 			} catch (...) {
@@ -311,7 +311,7 @@ extern "C" int pci_register_driver(struct pci_driver *drv)
 			if (found)
 				break;
 
-			Pci::Device_capability free_up = cap;
+			Platform::Device_capability free_up = cap;
 			cap = pci()->next_device(cap, PCI_CLASS_WIFI, PCI_CLASS_MASK);
 			if (!pci_drv)
 				pci()->release_device(free_up);
@@ -362,7 +362,7 @@ extern "C" void *pci_ioremap_bar(struct pci_dev *dev, int bar)
 
 	Io_mem_session_client *io_mem;
 	try {
-		Pci::Device_client device(pci_device_cap);
+		Platform::Device_client device(pci_device_cap);
 		io_mem = new (env()->heap()) Io_mem_session_client(device.io_mem(device.phys_bar_to_virt(bar)));
 	} catch (...) {
 		PERR("Failed to request I/O memory: [%zx,%zx)", start, start + size);

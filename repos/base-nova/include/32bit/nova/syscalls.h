@@ -325,5 +325,16 @@ namespace Nova {
 
 		return syscall_5(NOVA_ASSIGN_GSI, 0, sm, msi_addr, msi_data, si);
 	}
+
+
+	ALWAYS_INLINE
+	inline uint8_t sc_ctrl(unsigned sc, unsigned long long &time)
+	{
+		mword_t time_h = 0, time_l = 0;
+		uint8_t res = syscall_5(NOVA_SC_CTRL, 0, sc, time_h, time_l);
+		time = time_h;
+		time = (time << 32ULL) | time_l;
+		return res;
+	}
 }
 #endif /* _PLATFORM__NOVA_SYSCALLS_H_ */

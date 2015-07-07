@@ -65,7 +65,7 @@ append config {
 			<service name="SIGNAL">  <parent/> </service>
 			<service name="IO_MEM">  <parent/> </service>
 			<service name="IRQ">     <parent/> </service>
-			<service name="PCI">     <any-child/> </service>
+			<service name="Platform"> <any-child/> </service>
 		</route>
 	</start>
 

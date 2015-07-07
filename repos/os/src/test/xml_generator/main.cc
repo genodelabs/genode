@@ -58,7 +58,7 @@ int main(int argc, char **argv)
 	 * corresponding run script).
 	 */
 	size_t used = fill_buffer_with_xml(dst, sizeof(dst));
-	printf("result:\n\n%s\n\nused %zd bytes\n", dst, used);
+	printf("result:\n\n%s\nused %zd bytes\n", dst, used);
 
 	/*
 	 * Test buffer overflow

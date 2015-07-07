@@ -20,9 +20,9 @@
 #include <base/thread_state.h>
 #include <base/native_types.h>
 #include <base/thread.h>
-#include <base/pager.h>
 
 /* core includes */
+#include <pager.h>
 #include <address_space.h>
 
 namespace Genode {
@@ -146,7 +146,7 @@ namespace Genode {
 			/**
 			 * Get the executing CPU for this thread
 			 */
-			Affinity::Location affinity();
+			Affinity::Location affinity() const;
 
 			/**
 			 * Get thread name
@@ -169,6 +169,11 @@ namespace Genode {
 			 * Set CPU quota of the thread to 'quota'
 			 */
 			void quota(size_t const quota) { /* not supported*/ }
+
+			/**
+			 * Return execution time consumed by the thread
+			 */
+			unsigned long long execution_time() const;
 	};
 }
 

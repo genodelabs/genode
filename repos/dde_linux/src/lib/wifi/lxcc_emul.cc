@@ -1190,7 +1190,7 @@ int request_firmware_nowait(struct module *module, bool uevent,
 		return -1;
 	}
 
-	/* use dde_kit_large_malloc because our slab only goes up to 64KiB */
+	/* use Genode env because our slab only goes up to 64KiB */
 	fw->data = (u8*)Genode::env()->heap()->alloc(fwl->size);
 	if (!fw->data) {
 		PERR("could not allocate memory for firmware image");

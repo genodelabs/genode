@@ -20,7 +20,7 @@
 #include <input/component.h>
 #include <input/root.h>
 #include <os/server.h>
-#include <pci_session/connection.h>
+#include <platform_session/connection.h>
 
 /* local includes */
 #include "i8042.h"
@@ -38,8 +38,8 @@ struct Main
 	Input::Session_component session;
 	Input::Root_component    root;
 
-	Pci::Connection    platform;
-	Pci::Device_client device_ps2;
+	Platform::Connection    platform;
+	Platform::Device_client device_ps2;
 
 	I8042              i8042;
 

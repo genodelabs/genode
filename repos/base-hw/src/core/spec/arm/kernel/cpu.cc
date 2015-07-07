@@ -13,6 +13,7 @@
  */
 
 /* core includes */
+#include <assert.h>
 #include <kernel/cpu.h>
 #include <kernel/kernel.h>
 #include <kernel/pd.h>
@@ -20,7 +21,7 @@
 using namespace Kernel;
 
 
-Cpu_idle::Cpu_idle(Cpu * const cpu) : Cpu_job(Cpu_priority::min, 0)
+Cpu_idle::Cpu_idle(Cpu * const cpu) : Cpu_job(Cpu_priority::MIN, 0)
 {
 	Cpu_job::cpu(cpu);
 	cpu_exception = RESET;

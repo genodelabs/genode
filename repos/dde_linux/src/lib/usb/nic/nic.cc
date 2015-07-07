@@ -25,7 +25,7 @@
 #include <linux/usb/usbnet.h>
 #include <extern_c_end.h>
 
-#include <nic/component.h>
+#include <usb_nic_component.h>
 #include "signal.h"
 
 
@@ -137,7 +137,7 @@ typedef struct sk_buff* (*fixup_t)(struct usbnet *, struct sk_buff *, gfp_t);
 /**
  * Net_device to session glue code
  */
-class Nic_device : public Nic::Device
+class Nic_device : public Usb_nic::Device
 {
 	public:
 
@@ -320,7 +320,7 @@ int register_netdev(struct net_device *ndev)
 
 	/* XXX: move to 'main' */
 	if (!announce) {
-		static Nic::Root root(_signal->ep(), env()->heap(), nic);
+		static ::Root root(_signal->ep(), *env()->heap(), nic);
 
 		announce = true;
 
@@ -333,10 +333,6 @@ int register_netdev(struct net_device *ndev)
 		if (ndev->netdev_ops->ndo_set_rx_mode)
 			ndev->netdev_ops->ndo_set_rx_mode(ndev);
 
-/*
-		if(ndev->netdev_ops->ndo_change_mtu)
-			ndev->netdev_ops->ndo_change_mtu(ndev, 4000);
-*/
 		_nic = nic;
 		env()->parent()->announce(_signal->ep().rpc_ep().manage(&root));
 	}
@@ -444,7 +440,7 @@ struct sk_buff *netdev_alloc_skb_ip_align(struct net_device *dev, unsigned int l
 
 void dev_kfree_skb(struct sk_buff *skb)
 {
-	dde_kit_log(DEBUG_SKB, "free skb: %p start: %p cloned: %d",
+	lx_log(DEBUG_SKB, "free skb: %p start: %p cloned: %d",
 	            skb, skb->start, skb->cloned);
 
 	if (skb->cloned) {
@@ -475,7 +471,7 @@ void skb_reserve(struct sk_buff *skb, int len)
 		return;
 	}
 	skb->data += len;
-	dde_kit_log(DEBUG_SKB, "skb: %p slen: %u len: %d", skb, skb->len, len);
+	lx_log(DEBUG_SKB, "skb: %p slen: %u len: %d", skb, skb->len, len);
 }
 
 
@@ -493,7 +489,7 @@ unsigned char *skb_push(struct sk_buff *skb, unsigned int len)
 	skb->len  += len;
 	skb->data -= len;
 
-	dde_kit_log(DEBUG_SKB, "skb: %p slen: %u len: %u", skb, skb->len, len);
+	lx_log(DEBUG_SKB, "skb: %p slen: %u len: %u", skb, skb->len, len);
 	return skb->data;
 }
 
@@ -512,7 +508,7 @@ unsigned char *skb_put(struct sk_buff *skb, unsigned int len)
 	unsigned char *old = skb_tail_pointer(skb);
 	skb->len  += len;
 	skb->tail += len;
-	dde_kit_log(DEBUG_SKB, "skb: %p slen: %u len: %u", skb, skb->len, len);
+	lx_log(DEBUG_SKB, "skb: %p slen: %u len: %u", skb, skb->len, len);
 	return old;
 }
 
@@ -544,7 +540,7 @@ unsigned char *skb_pull(struct sk_buff *skb, unsigned int len)
 		return 0;
 	}
 	skb->len -= len;
-	dde_kit_log(DEBUG_SKB, "skb: %p slen: %u len: %u", skb, skb->len, len);
+	lx_log(DEBUG_SKB, "skb: %p slen: %u len: %u", skb, skb->len, len);
 	return skb->data += len;
 }
 
@@ -563,7 +559,7 @@ void skb_trim(struct sk_buff *skb, unsigned int len)
 	skb->len = len;
 	skb_set_tail_pointer(skb, len);
 
-	dde_kit_log(DEBUG_SKB, "skb: %p slen: %u len: %u", skb, skb->len, len);
+	lx_log(DEBUG_SKB, "skb: %p slen: %u len: %u", skb, skb->len, len);
 }
 
 

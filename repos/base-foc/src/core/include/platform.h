@@ -19,9 +19,9 @@
 /* Genode includes */
 #include <base/sync_allocator.h>
 #include <base/allocator_avl.h>
-#include <base/pager.h>
 
 /* Core includes */
+#include <pager.h>
 #include <cap_id_alloc.h>
 #include <platform_generic.h>
 #include <platform_thread.h>

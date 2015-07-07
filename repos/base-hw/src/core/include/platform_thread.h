@@ -45,7 +45,7 @@ namespace Genode {
 
 		Platform_pd *                 _pd;
 		Weak_ptr<Address_space>       _address_space;
-		Rm_client *                   _rm_client;
+		Pager_object *                _pager;
 		Native_utcb *                 _utcb_core_addr; /* UTCB addr in core */
 		Native_utcb *                 _utcb_pd_addr;   /* UTCB addr in pd   */
 		Ram_dataspace_capability      _utcb;           /* UTCB dataspace    */
@@ -75,7 +75,7 @@ namespace Genode {
 
 		unsigned _priority(unsigned virt_prio)
 		{
-			return Cpu_session::scale_priority(Kernel::Cpu_priority::max,
+			return Cpu_session::scale_priority(Kernel::Cpu_priority::MAX,
 			                                   virt_prio);
 		}
 
@@ -177,6 +177,11 @@ namespace Genode {
 			 * Return the address space to which the thread is bound
 			 */
 			Weak_ptr<Address_space> address_space();
+
+			/**
+			 * Return execution time consumed by the thread
+			 */
+			unsigned long long execution_time() const { return 0; }
 
 
 			/***************

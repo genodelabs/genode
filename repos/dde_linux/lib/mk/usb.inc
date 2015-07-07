@@ -1,8 +1,7 @@
 LIB_DIR     = $(REP_DIR)/src/lib/usb
 LIB_INC_DIR = $(LIB_DIR)/include
 
-# FIXME should we *really* dde_kit to this shared library?
-LIBS     += dde_kit libc-setjmp config
+LIBS     += libc-setjmp config
 SRC_CC   += main.cc lx_emul.cc irq.cc timer.cc event.cc storage.cc \
             input_component.cc nic.cc raw.cc
 SRC_C    += dummies.c scsi.c evdev.c raw_driver.c

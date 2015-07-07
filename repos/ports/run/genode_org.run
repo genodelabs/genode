@@ -22,17 +22,16 @@ set build_components {
 
 set use_usb_driver      [expr [have_spec omap4] || [have_spec platform_arndale] || [have_spec platform_rpi]]
 set use_nic_driver      [expr !$use_usb_driver]
-set use_platform_driver [expr [have_spec platform_arndale] || [have_spec platform_imx53] || [have_spec platform_rpi]]
 
 if {$use_usb_driver}    { set network_driver "usb_drv" }
 if {$use_nic_driver}    { set network_driver "nic_drv" }
 
-lappend_if $use_platform_driver build_components drivers/platform
 lappend_if $use_usb_driver      build_components drivers/usb
 lappend_if $use_nic_driver      build_components drivers/nic
-lappend_if [have_spec acpi]     build_components drivers/acpi
-lappend_if [have_spec pci]      build_components drivers/pci/device_pd
 lappend_if [have_spec gpio]     build_components drivers/gpio
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
 
 build $build_components
 
@@ -61,13 +60,6 @@ append config {
 		<provides><service name="Timer"/></provides>
 	</start>}
 
-append_if $use_platform_driver config {
-	<start name="platform_drv">
-		<resource name="RAM" quantum="1M" />
-		<provides><service name="Regulator"/></provides>
-		<provides><service name="Platform"/></provides>
-	</start>}
-
 append_if [have_spec gpio] config {
 	<start name="gpio_drv">
 		<resource name="RAM" quantum="4M"/>
@@ -92,25 +84,7 @@ append_if $use_nic_driver config {
 		<provides><service name="Nic"/></provides>
 	</start>}
 
-append_if [have_spec acpi] config {
-	<start name="acpi">
-		<resource name="RAM" quantum="6M" constrain_phys="yes"/>
-		<binary name="acpi_drv"/>
-		<provides>
-			<service name="PCI"/>
-			<service name="IRQ" />
-		</provides>
-		<route>
-			<service name="PCI"> <any-child /> </service>
-			<any-service> <parent/> <any-child /> </any-service>
-		</route>
-	</start>}
-
-append_if [expr ![have_spec acpi] && [have_spec pci]] config {
-	<start name="pci_drv">
-		<resource name="RAM" quantum="3M" constrain_phys="yes"/>
-		<provides> <service name="PCI"/> </provides>
-	</start> }
+append_platform_drv_config
 
 append config {
 	<start name="lighttpd">
@@ -190,13 +164,11 @@ set boot_modules {
 }
 
 # platform-specific modules
-lappend_if $use_platform_driver      boot_modules platform_drv
-lappend_if [have_spec acpi]          boot_modules acpi_drv
-lappend_if [have_spec pci]           boot_modules pci_drv
 lappend_if $use_usb_driver           boot_modules usb_drv
 lappend_if $use_nic_driver           boot_modules nic_drv
-lappend_if [have_spec nova]          boot_modules pci_device_pd
 lappend_if [have_spec gpio]          boot_modules gpio_drv
+
+append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 

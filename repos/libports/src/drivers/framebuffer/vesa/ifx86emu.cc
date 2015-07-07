@@ -21,7 +21,7 @@
 
 #include <io_port_session/connection.h>
 #include <io_mem_session/connection.h>
-#include <pci_session/connection.h>
+#include <platform_session/connection.h>
 
 #include "ifx86emu.h"
 #include "framebuffer.h"
@@ -512,7 +512,7 @@ int X86emu::init(void)
 	 * concurrently accesses by this driver and the Acpi/Pci driver to the
 	 * graphic device (PCI config space).
 	 */
-	Pci::Connection conn;
+	Platform::Connection conn;
 
 	if (map_code_area())
 		return -1;

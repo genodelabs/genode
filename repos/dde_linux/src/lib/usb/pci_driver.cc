@@ -18,8 +18,10 @@
 #include <ram_session/client.h>
 
 /* Genode os includes */
-#include <pci_session/connection.h>
-#include <pci_device/client.h>
+#include <io_port_session/client.h>
+#include <platform_session/connection.h>
+#include <platform_device/client.h>
+#include <util/volatile_object.h>
 
 /* Linux includes */
 #include <extern_c_begin.h>
@@ -29,6 +31,77 @@
 
 struct  bus_type pci_bus_type;
 
+using namespace Genode;
+
+class Io_port
+{
+
+	private:
+
+		unsigned                                     _base = 0;
+		unsigned                                     _size = 0;
+		Io_port_session_capability                   _cap;
+		Lazy_volatile_object<Io_port_session_client> _port;
+
+		bool _valid(unsigned port) {
+			return _cap.valid() && port >= _base && port < _base + _size; }
+
+	public:
+
+		~Io_port()
+		{
+			if (_cap.valid())
+				_port.destruct();
+		}
+
+		void session(unsigned base, unsigned size, Io_port_session_capability cap)
+		{
+			_base = base;
+			_size = size;
+			_cap  = cap;
+			_port.construct(_cap);
+		}
+
+		template<typename POD>
+		bool out(unsigned port, POD val)
+		{
+			if (!_valid(port))
+				return false;
+
+			switch (sizeof(POD)) {
+				case 1: _port->outb(port, val); break;
+				case 2: _port->outw(port, val); break;
+				case 4: _port->outl(port, val); break;
+			}
+
+			return true;
+		}
+
+		template<typename POD>
+		bool in(unsigned port, POD *val)
+		{
+			if (!_valid(port))
+				return false;;
+
+			switch (sizeof(POD)) {
+				case 1: *val = _port->inb(port); break;
+				case 2: *val = _port->inw(port); break;
+				case 4: *val = _port->inl(port); break;
+			}
+
+			return true;
+		}
+};
+
+
+/**
+ * Virtual IRQ number (monotonically increasing)
+ */
+static unsigned virq_num()
+{
+	static unsigned instance = 128;
+	return ++instance;
+}
 
 /**
  * Scan PCI bus and probe for HCDs
@@ -38,8 +111,9 @@ class Pci_driver : public Genode::List<Pci_driver>::Element
 	private:
 
 		pci_driver            *_drv;  /* Linux PCI driver */
-		Pci::Device_capability _cap;  /* PCI cap */
+		Platform::Device_capability _cap;  /* PCI cap */
 		pci_device_id const   *_id;   /* matched id for this driver */
+		Io_port                _port;
 
 	public:
 
@@ -55,7 +129,7 @@ class Pci_driver : public Genode::List<Pci_driver>::Element
 		 */
 		void _setup_pci_device()
 		{
-			using namespace Pci;
+			using namespace Platform;
 
 			Device_client client(_cap);
 			uint8_t bus, dev, func;
@@ -74,15 +148,22 @@ class Pci_driver : public Genode::List<Pci_driver>::Element
 			_dev->dev.dma_mask = &dma_mask;
 			_dev->dev.coherent_dma_mask = ~0;
 
-			/* read interrupt line */
-			_dev->irq          = client.config_read(IRQ, Device::ACCESS_8BIT);
+			/*
+			 * We initialize the IRQ line with a virtual number to ensure that
+			 * each device gets a unique number and, hence, requests its
+			 * associated IRQ capability at the platform driver. Consequently,
+			 * we give a away the questionable option to implement IRQ sharing
+			 * locally and leave it to the platform driver, which just uses
+			 * signalling anyway.
+			 */
+			_dev->irq = virq_num();
 
 			/* hide ourselfs in  bus structure */
 			_dev->bus          = (struct pci_bus *)this;
 
 			/* setup resources */
 			bool io = false;
-			for (int i = 0; i < Device::NUM_RESOURCES; i++) {
+			for (unsigned i = 0; i < Device::NUM_RESOURCES; i++) {
 				Device::Resource res = client.resource(i);
 				_dev->resource[i].start = res.base();
 				_dev->resource[i].end   = res.base() + res.size() - 1;
@@ -91,18 +172,16 @@ class Pci_driver : public Genode::List<Pci_driver>::Element
 
 				/* request port I/O session */
 				if (res.type() == Device::Resource::IO) {
-					if (dde_kit_request_io(res.base(), res.size(), i, bus, dev,
-					                       func))
-						PERR("Failed to request I/O: [%u,%u)",
-						     res.base(), res.base() + res.size());
+					uint8_t virt_bar = client.phys_bar_to_virt(i);
+					_port.session(res.base(), res.size(), client.io_port(virt_bar));
 					io = true;
-					dde_kit_log(DEBUG_PCI, "I/O [%u-%u)",
+					lx_log(DEBUG_PCI, "I/O [%u-%u)",
 					            res.base(), res.base() + res.size());
 				}
 
 				/* request I/O memory (write combined) */
 				if (res.type() == Device::Resource::MEMORY)
-					dde_kit_log(DEBUG_PCI, "I/O memory [%x-%x)", res.base(),
+					lx_log(DEBUG_PCI, "I/O memory [%x-%x)", res.base(),
 					            res.base() + res.size());
 			}
 
@@ -132,16 +211,16 @@ class Pci_driver : public Genode::List<Pci_driver>::Element
 		}
 
 		template <typename T>
-		Pci::Device::Access_size _access_size(T t)
+		Platform::Device::Access_size _access_size(T t)
 		{
 			switch (sizeof(T))
 			{
 				case 1:
-					return Pci::Device::ACCESS_8BIT;
+					return Platform::Device::ACCESS_8BIT;
 				case 2:
-					return Pci::Device::ACCESS_16BIT;
+					return Platform::Device::ACCESS_16BIT;
 				default:
-					return Pci::Device::ACCESS_32BIT;
+					return Platform::Device::ACCESS_32BIT;
 			}
 		}
 
@@ -153,7 +232,7 @@ class Pci_driver : public Genode::List<Pci_driver>::Element
 
 	public:
 
-		Pci_driver(pci_driver *drv, Pci::Device_capability cap,
+		Pci_driver(pci_driver *drv, Platform::Device_capability cap,
 		           pci_device_id const * id)
 		: _drv(drv), _cap(cap), _id(id), _dev(0)
 		{
@@ -166,13 +245,6 @@ class Pci_driver : public Genode::List<Pci_driver>::Element
 			if (!_dev)
 				return;
 
-			for (int i = 0; i < Pci::Device::NUM_RESOURCES; i++) {
-				resource *r = &_dev->resource[i];
-
-				if (r->flags & IORESOURCE_IO)
-					dde_kit_release_io(r->start, (r->end - r->start) + 1);
-			}
-
 			_drivers().remove(this);
 
 			destroy(Genode::env()->heap(), _dev);
@@ -184,14 +256,14 @@ class Pci_driver : public Genode::List<Pci_driver>::Element
 		template <typename T>
 		void config_read(unsigned int devfn, T *val)
 		{
-			Pci::Device_client client(_cap);
+			Platform::Device_client client(_cap);
 			*val = client.config_read(devfn, _access_size(*val));
 		}
 
 		template <typename T>
 		void config_write(unsigned int devfn, T val)
 		{
-			Pci::Device_client client(_cap);
+			Platform::Device_client client(_cap);
 			client.config_write(devfn, val, _access_size(val));
 		}
 
@@ -201,7 +273,7 @@ class Pci_driver : public Genode::List<Pci_driver>::Element
 				if (d->_dev && d->_dev->irq != irq)
 					continue;
 
-				Pci::Device_client client(d->_cap);
+				Platform::Device_client client(d->_cap);
 				return client.irq(0);
 			}
 
@@ -223,12 +295,28 @@ class Pci_driver : public Genode::List<Pci_driver>::Element
 				if (bar >= PCI_ROM_RESOURCE)
 					continue;
 
-				Pci::Device_client client(d->_cap);
+				Platform::Device_client client(d->_cap);
 				return client.io_mem(bar);
 			}
 
 			PERR("Device using i/o memory of address %zx is unknown", phys);
 			return Genode::Io_mem_session_capability();
+		}
+
+		template <typename POD, bool READ = true> 
+		static POD port_io(unsigned port, POD val = 0)
+		{
+			for (Pci_driver *d = _drivers().first(); d; d = d->next()) {
+				if (!d->_dev)
+					continue;
+
+				if (READ && d->_port.in<POD>(port, &val))
+					return val;
+				else if (!READ && d->_port.out<POD>(port, val))
+					return (POD)~0;
+			}
+
+			return (POD)~0;
 		}
 };
 
@@ -274,12 +362,12 @@ struct Dma_object : Memory_object_base
  ** Linux interface **
  *********************/
 
-static Pci::Connection pci;
+static Platform::Connection pci;
 static Genode::Object_pool<Memory_object_base> memory_pool;
 
 int pci_register_driver(struct pci_driver *drv)
 {
-	dde_kit_log(DEBUG_PCI, "DRIVER name: %s", drv->name);
+	lx_log(DEBUG_PCI, "DRIVER name: %s", drv->name);
 	drv->driver.name = drv->name;
 
 	pci_device_id const  *id = drv->id_table;
@@ -293,32 +381,32 @@ int pci_register_driver(struct pci_driver *drv)
 	while (id->class_ || id->class_mask || id->class_) {
 
 		if (id->class_ == (unsigned)PCI_ANY_ID) {
-			dde_kit_log(DEBUG_PCI, "Skipping PCI_ANY_ID device class");
+			lx_log(DEBUG_PCI, "Skipping PCI_ANY_ID device class");
 			id++;
 			continue;
 		}
 
 		Genode::env()->parent()->upgrade(pci.cap(), "ram_quota=4096");
 
-		Pci::Device_capability cap = pci.first_device(id->class_,
-		                                              id->class_mask);
+		Platform::Device_capability cap = pci.first_device(id->class_,
+		                                                   id->class_mask);
 		while (cap.valid()) {
 
 			if (DEBUG_PCI) {
 				uint8_t bus, dev, func;
-				Pci::Device_client client(cap);
+				Platform::Device_client client(cap);
 				client.bus_address(&bus, &dev, &func);
-				dde_kit_log(DEBUG_PCI, "bus: %x  dev: %x func: %x", bus, dev, func);
+				lx_log(DEBUG_PCI, "bus: %x  dev: %x func: %x", bus, dev, func);
 			}
 
 			Pci_driver *pci_drv = 0;
 			try {
 				/* probe device */
 				pci_drv = new (env()->heap()) Pci_driver(drv, cap, id);
-				pci.on_destruction(Pci::Connection::KEEP_OPEN);
+				pci.on_destruction(Platform::Connection::KEEP_OPEN);
 				found = true;
 
-			} catch (Pci::Device::Quota_exceeded) {
+			} catch (Platform::Device::Quota_exceeded) {
 				Genode::env()->parent()->upgrade(pci.cap(), "ram_quota=4096");
 				continue;
 			} catch (...) {
@@ -326,11 +414,11 @@ int pci_register_driver(struct pci_driver *drv)
 				pci_drv = 0;
 			}
 
-			Pci::Device_capability free_up = cap;
+			Platform::Device_capability free_up = cap;
 
 			try {
 				cap = pci.next_device(cap, id->class_, id->class_mask);
-			} catch (Pci::Device::Quota_exceeded) {
+			} catch (Platform::Device::Quota_exceeded) {
 				Genode::env()->parent()->upgrade(pci.cap(), "ram_quota=4096");
 				cap = pci.next_device(cap, id->class_, id->class_mask);
 			}
@@ -378,7 +466,7 @@ int pci_bus_read_config_byte(struct pci_bus *bus, unsigned int, int where, u8 *v
 {
 	Pci_driver *drv = (Pci_driver *)bus;
 	drv->config_read(where, val);
-	dde_kit_log(DEBUG_PCI, "READ %p: where: %x val: %x", drv, where, *val);
+	lx_log(DEBUG_PCI, "READ %p: where: %x val: %x", drv, where, *val);
 	return 0;
 }
 
@@ -387,7 +475,7 @@ int pci_bus_read_config_word(struct pci_bus *bus, unsigned int, int where, u16 *
 { 
 	Pci_driver *drv = (Pci_driver *)bus;
 	drv->config_read(where, val);
-	dde_kit_log(DEBUG_PCI, "READ %p: where: %x val: %x", drv, where, *val);
+	lx_log(DEBUG_PCI, "READ %p: where: %x val: %x", drv, where, *val);
 	return 0; 
 }
 
@@ -395,7 +483,7 @@ int pci_bus_read_config_word(struct pci_bus *bus, unsigned int, int where, u16 *
 int pci_bus_write_config_word(struct pci_bus *bus, unsigned int, int where, u16 val)
 {
 	Pci_driver *drv = (Pci_driver *)bus;
-	dde_kit_log(DEBUG_PCI, "WRITE %p: where: %x val: %x", drv, where, val);
+	lx_log(DEBUG_PCI, "WRITE %p: where: %x val: %x", drv, where, val);
 	drv->config_write(where, val);
 	return 0;
 }
@@ -404,7 +492,7 @@ int pci_bus_write_config_word(struct pci_bus *bus, unsigned int, int where, u16 
 int pci_bus_write_config_byte(struct pci_bus *bus, unsigned int, int where, u8 val)
 {
 	Pci_driver *drv = (Pci_driver *)bus;
-	dde_kit_log(DEBUG_PCI, "WRITE %p: where: %x val: %x", drv, where, val);
+	lx_log(DEBUG_PCI, "WRITE %p: where: %x val: %x", drv, where, val);
 	drv->config_write(where, val);
 	return 0;
 }
@@ -460,6 +548,19 @@ void Backend_memory::free(Genode::Ram_dataspace_capability cap)
 	memory_pool.remove_locked(o);
 	destroy(env()->heap(), o);
 }
+
+
+/**********************
+ ** asm-generic/io.h **
+ **********************/
+
+void outb(u8  value, u32 port) { Pci_driver::port_io<u8,  false>(port, value); }
+void outw(u16 value, u32 port) { Pci_driver::port_io<u16, false>(port, value); }
+void outl(u32 value, u32 port) { Pci_driver::port_io<u32, false>(port, value); }
+
+u8  inb(u32 port) { return Pci_driver::port_io<u8>(port);  }
+u16 inw(u32 port) { return Pci_driver::port_io<u16>(port); }
+u32 inl(u32 port) { return Pci_driver::port_io<u32>(port); }
 
 
 /*****************************************

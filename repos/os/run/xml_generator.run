@@ -45,7 +45,7 @@ compare_output_to {
 	[init -> test-xml_generator] 	</label>
 	[init -> test-xml_generator] </config>
 	[init -> test-xml_generator] 
-	[init -> test-xml_generator] used 199 bytes
+	[init -> test-xml_generator] used 200 bytes
 	[init -> test-xml_generator] buffer exceeded (expected error)
 	[init -> test-xml_generator] --- XML generator test finished ---
 }

@@ -30,8 +30,8 @@ static const bool verbose = false;
  ** PCI virtualization **
  ************************/
 
-#include <pci_session/connection.h>
-#include <pci_device/client.h>
+#include <platform_session/connection.h>
+#include <platform_device/client.h>
 
 enum {
 	PCI_ADDR_REG = 0xcf8,
@@ -42,22 +42,22 @@ class Pci_card
 {
 	private:
 
-		Pci::Connection    _pci_drv;
-		Pci::Device_client _device;
+		Platform::Connection    _pci_drv;
+		Platform::Device_client _device;
 		unsigned short     _devfn;
 
-		Pci::Device_capability _find_vga_card()
+		Platform::Device_capability _find_vga_card()
 		{
 			/*
 			 * Iterate through all accessible devices.
 			 */
-			Pci::Device_capability prev_device_cap, device_cap;
+			Platform::Device_capability prev_device_cap, device_cap;
 			Genode::env()->parent()->upgrade(_pci_drv.cap(), "ram_quota=4096");
 			for (device_cap = _pci_drv.first_device();
 			     device_cap.valid();
 			     device_cap = _pci_drv.next_device(prev_device_cap)) {
 
-				Pci::Device_client device(device_cap);
+				Platform::Device_client device(device_cap);
 
 				if (prev_device_cap.valid())
 					_pci_drv.release_device(prev_device_cap);
@@ -93,7 +93,7 @@ class Pci_card
 				PDBG("Found PCI VGA at %x:%x.%x", bus, dev, fn);
 		}
 
-		Pci::Device_client &device()       { return _device; }
+		Platform::Device_client &device()       { return _device; }
 		unsigned short      devfn()  const { return _devfn; }
 };
 
@@ -190,7 +190,7 @@ static bool handle_pci_port_read(unsigned short port, T *val)
 			case 4: /* status and command */
 			case 8: /* class code / revision ID */
 				raw_val = pci_card()->device().config_read(pci_cfg_addr,
-				                                           Pci::Device::ACCESS_32BIT);
+				                                           Platform::Device::ACCESS_32BIT);
 				break;
 
 			case 0x10: /* base address register 0 */
@@ -201,8 +201,8 @@ static bool handle_pci_port_read(unsigned short port, T *val)
 			case 0x24: /* base address register 5 */
 				{
 					unsigned bar = (pci_cfg_addr - 0x10) / 4;
-					Pci::Device::Resource res = pci_card()->device().resource(bar);
-					if (res.type() == Pci::Device::Resource::INVALID) {
+					Platform::Device::Resource res = pci_card()->device().resource(bar);
+					if (res.type() == Platform::Device::Resource::INVALID) {
 						PWRN("requested PCI resource 0x%x invalid", bar);
 						*val = 0;
 						return true;

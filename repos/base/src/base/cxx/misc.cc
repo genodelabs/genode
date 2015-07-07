@@ -15,6 +15,7 @@
 #include <base/printf.h>
 #include <base/stdint.h>
 #include <base/sleep.h>
+#include <base/thread.h>
 #include <util/string.h>
 
 using namespace Genode;
@@ -102,7 +103,13 @@ extern "C" __attribute__((weak)) void raise()
 
 extern "C" void *abort(void)
 {
-	PDBG("abort called");
+	Genode::Thread_base * myself = Genode::Thread_base::myself();
+	char thread_name[64] = { "unknown" };
+
+	if (myself)
+		myself->name(thread_name, sizeof(thread_name));
+	PWRN("abort called - thread: '%s'", thread_name);
+
 	sleep_forever();
 	return 0;
 }
