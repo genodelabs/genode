@@ -16,16 +16,17 @@ namespace File_system {
 	{
 		private:
 
-			char _link_to[MAX_PATH_LEN];
+			char   _link_to[MAX_PATH_LEN];
+			size_t _len;
 
 		public:
 
-			Symlink(char const *name) { Node::name(name); }
+			Symlink(char const *name): _len(0) { Node::name(name); }
 
 			size_t read(char *dst, size_t len, seek_off_t seek_offset)
 			{
-				size_t count = min(len, sizeof(_link_to) + 1);
-				Genode::strncpy(dst, _link_to, count);
+				size_t count = min(len, _len-seek_offset);
+				Genode::memcpy(dst, _link_to+seek_offset, count);
 				return count;
 			}
 
@@ -34,12 +35,12 @@ namespace File_system {
 				/* Ideal symlink operations are atomic. */
 				if (seek_offset) return 0;
 
-				size_t count = min(len, sizeof(_link_to) + 1);
-				Genode::strncpy(_link_to, src, count);
-				return count;
+				_len = min(len, sizeof(_link_to));
+				Genode::memcpy(_link_to, src, _len);
+				return _len;
 			}
 
-			file_size_t length() const { return strlen(_link_to) + 1; }
+			file_size_t length() const { return _len; }
 	};
 }
 
