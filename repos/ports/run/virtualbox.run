@@ -118,11 +118,7 @@ append_if [expr $use_serial] config {
 
 append config {
 					<rom name="test.vbox" />
-					<dir name="VirtualBox VMs">
-						<dir name="TestVM">
-							<rom name="test.iso" />
-						</dir>
-					</dir>
+					<rom name="test.iso" />
 				</vfs>
 			</libc>
 		</config>
