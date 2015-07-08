@@ -3,7 +3,7 @@
  * \author Alexy Gallardo Segura <alexy@uclv.cu>
  * \author Humberto Lopez Leon <humberto@uclv.cu>
  * \author Reinier Millo Sanchez <rmillo@uclv.cu>
- * \date   2015-04-30
+ * \date   2015-07-08
  */
 
 /*
@@ -24,14 +24,17 @@
 
 struct Driver_factory: Regulator::Driver_factory
 {
-
 	Cmu _cmu;
+	Pmu _pmu;
 
 	Regulator::Driver &create(Regulator::Regulator_id id)
 	{
 		switch (id) {
 		case Regulator::CLK_CPU:
+		case Regulator::CLK_USB20:
 			return _cmu;
+		case Regulator::PWR_USB20:
+			return _pmu;
 		default:
 			throw Root::Invalid_args(); /* invalid regulator */
 		};
@@ -39,7 +42,6 @@ struct Driver_factory: Regulator::Driver_factory
 
 	void destroy(Regulator::Driver &driver) {
 	}
-
 };
 
 int main(int, char **)
@@ -53,7 +55,7 @@ int main(int, char **)
 	static ::Driver_factory driver_factory;
 	static Regulator::Root reg_root(&ep, env()->heap(), driver_factory);
 	env()->parent()->announce(ep.manage(&reg_root));
-
+	PINF("--- Odroid-x2 platform driver. Done ---\n");
 	sleep_forever();
 	return 0;
 }
