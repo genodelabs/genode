@@ -3,7 +3,7 @@
  * \author Alexy Gallardo Segura <alexy@uclv.cu>
  * \author Humberto Lopez Leon <humberto@uclv.cu>
  * \author Reinier Millo Sanchez <rmillo@uclv.cu>
- * \date   2015-04-30
+ * \date   2015-07-08
  */
 
 /*
@@ -58,9 +58,10 @@ class Cmu : public Regulator::Driver,
 		 ** CMU CPU registers **
 		 ***********************/
 		typedef Pll_lock<4000>   Apll_lock;
-		typedef Pll_con0<0x4100> Apll_con0;
+		typedef Pll_con0<0x14100> Apll_con0;
 
-		struct Clk_src_cpu : Register<0x4200, 32>
+
+		struct Clk_src_cpu : Register<0x14200, 32>
 		{
 			struct Mux_core_sel : Bitfield<16, 1>
 			{
@@ -68,28 +69,30 @@ class Cmu : public Regulator::Driver,
 			};
 		};
 
-		struct Clk_mux_stat_cpu : Register<0x4400, 32>
+		struct Clk_mux_stat_cpu : Register<0x14400, 32>
 		{
+
 			struct Core_sel : Bitfield<16, 3>
 			{
 				enum { MOUT_APLL = 0b1, SCLK_MPLL = 0b10 };
 			};
 		};
 
-		struct Clk_div_cpu0 : Register<0x4500, 32>
+		struct Clk_div_cpu0 : Register<0x14500, 32>
 		{
 			/* Cpu0 divider values for frequencies 200 - 1400 */
 			static const Genode::uint32_t values[];
 		};
 
-		struct Clk_div_cpu1 : Register<0x4504, 32>
+		struct Clk_div_cpu1 : Register<0x14504, 32>
 		{
 			/* Divider for cpu1 doesn't change */
 			enum { FIX_VALUE = 32 };
 		};
 
-		struct Clk_div_stat_cpu0 : Register<0x4600, 32>
+		struct Clk_div_stat_cpu0 : Register<0x14600, 32>
 		{
+
 			struct Div_core      : Bitfield< 0, 1> {};
 			struct Div_corem0     : Bitfield< 4, 1> {};
 			struct Div_corem1      : Bitfield< 8, 1> {};
@@ -98,6 +101,7 @@ class Cmu : public Regulator::Driver,
 			struct Div_pclk_dbg : Bitfield<20, 1> {};
 			struct Div_apll     : Bitfield<24, 1> {};
 			struct Div_core2     : Bitfield<28, 1> {};
+
 
 			static bool in_progress(access_t stat_word)
 			{
@@ -112,7 +116,7 @@ class Cmu : public Regulator::Driver,
 			}
 		};
 
-		struct Clk_div_stat_cpu1 : Register<0x4604, 32>
+		struct Clk_div_stat_cpu1 : Register<0x14604, 32>
 		{
 			struct Div_copy : Bitfield<0, 1> { };
 			struct Div_hpm  : Bitfield<4, 1> { };
@@ -128,17 +132,36 @@ class Cmu : public Regulator::Driver,
 		/************************
 		 ** CMU CORE registers **
 		 ************************/
+
 		typedef Pll_lock<0x0008> Mpll_lock;
 		typedef Pll_con0<0x0108> Mpll_con0;
 
-		struct Clk_src_dmc : Register<0x4200, 32>
+		struct Clk_src_dmc : Register<0x10200, 32>
+
 		{
 			struct Mux_mpll_sel : Bitfield<12, 1> { enum { XXTI, MPLL_FOUT_RGT }; };
 		};
 
-		struct Clk_gate_ip_dmc   : Register<0x0900, 32> { };
+
+
+		struct Clk_gate_ip_acp   : Register<0x0900, 32> { };
 		struct Clk_gate_ip_isp0  : Register<0x8800, 32> { };
 		struct Clk_gate_ip_isp1  : Register<0x8804, 32> { };
+
+
+
+		/***********************
+		 ** CMU TOP registers **
+		 ***********************/
+
+		struct Clk_gate_ip_fsys : Register<0xC940, 32>
+		{
+			struct Usbhost20         : Bitfield<12, 1> { };
+			struct Usbdevice	 : Bitfield<13, 1> { };
+
+		};
+
+
 
 		/*******************
 		 ** CPU functions **
@@ -148,7 +171,7 @@ class Cmu : public Regulator::Driver,
 
 		void _cpu_clk_freq(unsigned long level)
 		{
-			PINF("Setting CPU frequency %lu\n",level);
+			PINF("Changing CPU frequency to %lu",level);
 			unsigned freq;
 			switch (level) {
 			case CPU_FREQ_200:
@@ -218,6 +241,34 @@ class Cmu : public Regulator::Driver,
 			       != Clk_mux_stat_cpu::Core_sel::MOUT_APLL) ;
 
 			_cpu_freq = static_cast<Cpu_clock_freq>(level);
+			PINF("End of Changing CPU frequency to %lu",level);
+		}
+
+
+		void _enable(Regulator_id id)
+		{
+			switch (id) {
+			case CLK_USB20:
+			    {
+			     write<Clk_gate_ip_fsys::Usbdevice>(1);
+			     return write<Clk_gate_ip_fsys::Usbhost20>(1);
+			    }
+			default:
+				PWRN("Unsupported for %s", names[id].name);
+			}
+		}
+
+		void _disable(Regulator_id id)
+		{
+			switch (id) {
+			case CLK_USB20:
+			{
+				write<Clk_gate_ip_fsys::Usbdevice>(0);
+				return write<Clk_gate_ip_fsys::Usbhost20>(0);
+			}
+			default:
+				PWRN("Unsupported for %s", names[id].name);
+			}
 		}
 
 	public:
@@ -230,9 +281,19 @@ class Cmu : public Regulator::Driver,
 		                        Genode::Board_base::CMU_MMIO_SIZE),
 		  _cpu_freq(CPU_FREQ_1400)
 		{
+
+
+			/**
+			 * Close certain clock gates by default (~ 0.7 Watt reduction)
+			 */
+
+			write<Clk_gate_ip_fsys>(0);
+
 			/**
 			 * Set default CPU frequency
 			 */
+
+
 			_cpu_clk_freq(_cpu_freq);
 
 		}
@@ -265,10 +326,21 @@ class Cmu : public Regulator::Driver,
 
 		void state(Regulator_id id, bool enable)
 		{
+			if (enable)
+				_enable(id);
+			else
+				_disable(id);
 		}
 
 		bool state(Regulator_id id)
 		{
+
+			switch (id) {
+			case CLK_USB20:
+				return read<Clk_gate_ip_fsys::Usbhost20>();
+			default:
+				PWRN("Unsupported for %s", names[id].name);
+			}
 			return true;
 		}
 };

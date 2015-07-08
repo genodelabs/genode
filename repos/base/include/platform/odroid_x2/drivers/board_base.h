@@ -3,7 +3,7 @@
  * \author Alexy Gallardo Segura <alexy@uclv.cu>
  * \author Humberto López León <humberto@uclv.cu>
  * \author Reinier Millo Sánchez <rmillo@uclv.cu>
- * \date   2015-04-27
+ * \date   2015-07-08
  */
 
 /*
@@ -30,12 +30,16 @@ struct Genode::Board_base : Exynos4
 	enum
 	{
 		/* clock management unit */
-		CMU_MMIO_BASE = 0x10040000,
+		CMU_MMIO_BASE = 0x10030000,
 		CMU_MMIO_SIZE = 0x18000,
 
 		/* power management unit */
 		PMU_MMIO_BASE = 0x10020000,
+
 		PMU_MMIO_SIZE = 0x5000,
+
+		/* USB HOST interrupt */
+		USB_HOST20_IRQ = 102,
 	};
 };
 

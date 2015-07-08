@@ -3,7 +3,7 @@
  * \author Alexy Gallardo Segura <alexy@uclv.cu>
  * \author Humberto Lopez Leon <humberto@uclv.cu>
  * \author Reinier Millo Sanchez <rmillo@uclv.cu>
- * \date   2015-04-30
+ * \date   2015-07-08
  */
 
 /*
@@ -65,68 +65,19 @@ class Pmu : public Regulator::Driver,
 			struct Div_ratio : Bitfield<16, 10> { };
 		};
 
-		typedef Control<0x704> Usbdrd_phy_control;
-		typedef Control<0x708> Usbhost_phy_control;
-		typedef Control<0x70c> Efnand_phy_control;
-		typedef Control<0x718> Adc_phy_control;
-		typedef Control<0x71c> Mtcadc_phy_control;
-		typedef Control<0x720> Dptx_phy_control;
-		typedef Control<0x724> Sata_phy_control;
+		typedef Control<0x0704> Usbdrd_phy_control;
+		typedef Control<0x0708> Usbhost_phy1_control;
+		typedef Control<0x70c> Usbhost_phy2_control;
 
-		typedef Sysclk_configuration<0x2a40> Vpll_sysclk_configuration;
-		typedef Sysclk_status<0x2a44>        Vpll_sysclk_status;
-		typedef Sysclk_configuration<0x2a60> Epll_sysclk_configuration;
-		typedef Sysclk_status<0x2a64>        Epll_sysclk_status;
-		typedef Sysclk_configuration<0x2aa0> Cpll_sysclk_configuration;
-		typedef Sysclk_status<0x2aa4>        Cpll_sysclk_status;
-		typedef Sysclk_configuration<0x2ac0> Gpll_sysclk_configuration;
-		typedef Sysclk_status<0x2ac4>        Gpll_sysclk_status;
-
-		typedef Configuration<0x4000> Gscl_configuration;
-		typedef Status<0x4004>        Gscl_status;
-		typedef Configuration<0x4020> Isp_configuration;
-		typedef Status<0x4024>        Isp_status;
-		typedef Configuration<0x4040> Mfc_configuration;
-		typedef Status<0x4044>        Mfc_status;
-		typedef Configuration<0x4060> G3d_configuration;
-		typedef Status<0x4064>        G3d_status;
-		typedef Configuration<0x40A0> Disp1_configuration;
-		typedef Status<0x40A4>        Disp1_status;
-		typedef Configuration<0x40C0> Mau_configuration;
-		typedef Status<0x40C4>        Mau_status;
-
-
-		template <typename C, typename S>
-		void _disable_domain()
-		{
-			if (read<typename S::Stat>() == 0)
-				return;
-			write<typename C::Local_pwr_cfg>(0);
-			while (read<typename S::Stat>() != 0) ;
-		}
-
-		template <typename C, typename S>
-		void _enable_domain()
-		{
-			if (read<typename S::Stat>() == 7)
-				return;
-			write<typename C::Local_pwr_cfg>(7);
-			while (read<typename S::Stat>() != 7) ;
-		}
 
 		void _enable(unsigned long id)
 		{
 			switch (id) {
 			case PWR_USB20:
-				write<Usbhost_phy_control::Enable>(1);
+				write<Usbdrd_phy_control::Enable>(1);
+				write<Usbhost_phy1_control::Enable>(1);
+				write<Usbhost_phy2_control::Enable>(1);
 				break;
-			case PWR_HDMI: {
-				_enable_domain<Disp1_configuration, Disp1_status>();
-				Hdmi_phy_control::access_t hpc = read<Hdmi_phy_control>();
-				Hdmi_phy_control::Div_ratio::set(hpc, 150);
-				Hdmi_phy_control::Enable::set(hpc, 1);
-				write<Hdmi_phy_control>(hpc);
-				break; }
 			default:
 				PWRN("Unsupported for %s", names[id].name);
 			}
@@ -136,7 +87,9 @@ class Pmu : public Regulator::Driver,
 		{
 			switch (id) {
 			case PWR_USB20:
-				write<Usbhost_phy_control::Enable>(0);
+				write<Usbdrd_phy_control::Enable>(0);
+				write<Usbhost_phy1_control::Enable>(0);
+				write<Usbhost_phy2_control::Enable>(0);
 				break;
 			default:
 				PWRN("Unsupported for %s", names[id].name);
@@ -151,26 +104,9 @@ class Pmu : public Regulator::Driver,
 		Pmu() : Genode::Attached_mmio(Genode::Board_base::PMU_MMIO_BASE,
 		                              Genode::Board_base::PMU_MMIO_SIZE)
 		{
-			write<Hdmi_phy_control   ::Enable>(0);
 			write<Usbdrd_phy_control ::Enable>(0);
-			write<Usbhost_phy_control::Enable>(0);
-			write<Efnand_phy_control ::Enable>(0);
-			write<Adc_phy_control    ::Enable>(0);
-			write<Mtcadc_phy_control ::Enable>(0);
-			write<Dptx_phy_control   ::Enable>(0);
-
-
-			_disable_domain<Gscl_configuration,  Gscl_status>();
-			_disable_domain<Isp_configuration,   Isp_status>();
-			_disable_domain<Mfc_configuration,   Mfc_status>();
-			_disable_domain<G3d_configuration,   G3d_status>();
-			_disable_domain<Disp1_configuration, Disp1_status>();
-			_disable_domain<Mau_configuration,   Mau_status>();
-
-			_disable_domain<Vpll_sysclk_configuration, Vpll_sysclk_status>();
-			_disable_domain<Epll_sysclk_configuration, Epll_sysclk_status>();
-			_disable_domain<Cpll_sysclk_configuration, Cpll_sysclk_status>();
-			_disable_domain<Gpll_sysclk_configuration, Gpll_sysclk_status>();
+			write<Usbhost_phy1_control::Enable>(0);
+			write<Usbhost_phy2_control::Enable>(0);
 		}
 
 
@@ -207,7 +143,7 @@ class Pmu : public Regulator::Driver,
 		{
 			switch (id) {
 			case PWR_USB20:
-				return read<Usbhost_phy_control::Enable>();
+				return read<Usbdrd_phy_control::Enable>();
 			default:
 				PWRN("Unsupported for %s", names[id].name);
 			}
