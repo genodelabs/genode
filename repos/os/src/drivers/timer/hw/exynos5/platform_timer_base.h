@@ -27,7 +27,10 @@ namespace Genode
 	 */
 	class Pwm : public Mmio
 	{
-		enum { PRESCALER = 2 };
+		enum {
+			PRESCALER   = 2,
+			TICS_PER_US = Board_base::PWM_CLOCK / PRESCALER / 1000 / 1000,
+		};
 
 		/**
 		 * Timer configuration 0
@@ -110,17 +113,6 @@ namespace Genode
 			}
 		};
 
-		/**
-		 * Timer tics per microsecond
-		 */
-		static float tics_per_us() {
-			return (float)Board_base::PWM_CLOCK / PRESCALER / 1000 / 1000; }
-
-		/**
-		 * Microseconds per timer tic
-		 */
-		static float us_per_tic() { return (float)1 / tics_per_us(); }
-
 		public:
 
 			/**
@@ -159,20 +151,14 @@ namespace Genode
 			/**
 			 * Translate timer tics to microseconds
 			 */
-			unsigned long tics_to_us(unsigned long const tics) const
-			{
-				float const us = tics * us_per_tic();
-				return (unsigned long)us;
-			}
+			unsigned long tics_to_us(unsigned long const tics) const {
+				return tics / TICS_PER_US; }
 
 			/**
 			 * Translate microseconds to timer tics
 			 */
-			unsigned long us_to_tics(unsigned long const us)
-			{
-				float const tics = us * tics_per_us();
-				return (unsigned long)tics;
-			}
+			unsigned long us_to_tics(unsigned long const us) const {
+				return us * TICS_PER_US; }
 
 			/**
 			 * Sample the timer counter and according wrapped status
