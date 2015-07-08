@@ -16,6 +16,9 @@
 #include <libc/component.h>
 #include <framebuffer_session/connection.h>
 #include <base/sleep.h>
+#include <util/reconstructible.h>
+#include <base/attached_rom_dataspace.h>
+#include <util/geometry.h>
 #include <input_session/connection.h>
 #include <input/event.h>
 #include <input/keycodes.h>
@@ -123,23 +126,64 @@ class Pdf_view
 
 		struct _Framebuffer : Framebuffer::Connection
 		{
+			Genode::Env &env;
+
 			typedef uint16_t pixel_t;
 
 			Framebuffer::Mode mode;
-			pixel_t          *base;
 
 			_Framebuffer(Genode::Env &env, Framebuffer::Mode &mode)
 			:
-				Framebuffer::Connection(env, mode),
-				mode(Framebuffer::Connection::mode()),
-				base(env.rm().attach(dataspace()))
+				Framebuffer::Connection(env, mode), env(env),
+				mode(Framebuffer::Connection::mode())
 			{
+				handle_resize();
+			}
+
+			Genode::Constructible<Genode::Attached_dataspace> ds;
+
+			void handle_resize()
+			{
+				mode = Framebuffer::Connection::mode();
 				if (mode.format() != Framebuffer::Mode::RGB565) {
 					Genode::error("Color modes other than RGB565 are not supported. Exiting.");
 					throw Non_supported_framebuffer_mode();
 				}
+				Genode::log("Framebuffer is ", mode);
+
+				ds.construct(env.rm(), Framebuffer::Connection::dataspace());
 			}
+
+			pixel_t *base() { return ds->local_addr<pixel_t>(); }
+
 		} _framebuffer;
+
+		void _update_pdfapp_parameters()
+		{
+			_pdfapp.scrw = _framebuffer.mode.width();
+			_pdfapp.scrh = _framebuffer.mode.height();
+
+			/*
+			 * XXX replace heuristics with a meaningful computation
+			 *
+			 * The magic values are hand-tweaked manually to accommodating the
+			 * use case of showing slides.
+			 */
+			_pdfapp.resolution = Genode::min(_framebuffer.mode.width()/5,
+			                                 _framebuffer.mode.height()/3.8);
+		}
+
+		void _handle_resize()
+		{
+			_framebuffer.handle_resize();
+
+			_update_pdfapp_parameters();
+
+			/* reload file */
+			Libc::with_libc([&] () { pdfapp_onkey(&_pdfapp, 'r'); });
+		}
+
+		Genode::Signal_handler<Pdf_view> _resize_handler;
 
 		pdfapp_t _pdfapp;
 
@@ -155,13 +199,14 @@ class Pdf_view
 		Pdf_view(Genode::Env &env, char const *file_name)
 		:
 			_framebuffer_mode(0, 0, Framebuffer::Mode::RGB565),
-			_framebuffer(env, _framebuffer_mode)
+			_framebuffer(env, _framebuffer_mode),
+			_resize_handler(env.ep(), *this, &Pdf_view::_handle_resize)
 		{
+			_framebuffer.mode_sigh(_resize_handler);
+
 			pdfapp_init(&_pdfapp);
 			_pdfapp.userdata = this;
-			_pdfapp.scrw       = _framebuffer.mode.width();
-			_pdfapp.scrh       = _framebuffer.mode.height();
-			_pdfapp.resolution = 75;   /* XXX read from config */
+			_update_pdfapp_parameters();
 			_pdfapp.pageno     = 0;    /* XXX read from config */
 
 			int fd = open(file_name, O_BINARY | O_RDONLY, 0666);
@@ -189,16 +234,33 @@ class Pdf_view
 
 void Pdf_view::show()
 {
-	int const x_max = Genode::min(_framebuffer.mode.width(),  _pdfapp.image->w);
-	int const y_max = Genode::min(_framebuffer.mode.height(), _pdfapp.image->h);
+	Genode::Area<> const fb_size(_framebuffer.mode.width(), _framebuffer.mode.height());
+	int const x_max = Genode::min((int)fb_size.w(), _pdfapp.image->w);
+	int const y_max = Genode::min((int)fb_size.h(), _pdfapp.image->h);
+
+	/* clear framebuffer */
+	memset(_framebuffer.base(), 0, sizeof(_Framebuffer::pixel_t)*fb_size.count());
 
 	Genode::size_t src_line_bytes   = _pdfapp.image->n * _pdfapp.image->w;
 	unsigned char *src_line         = _pdfapp.image->samples;
 
-	Genode::size_t dst_line_width   = _framebuffer.mode.width(); /* in pixels */
-	_Framebuffer::pixel_t *dst_line = _framebuffer.base;
+	Genode::size_t dst_line_width   = fb_size.w(); /* in pixels */
+	_Framebuffer::pixel_t *dst_line = _framebuffer.base();
 
-	for (int y = 0; y < y_max; y++) {
+	/* skip first two lines as they contain white (XXX) */
+	src_line += 2*src_line_bytes;
+	dst_line += 2*dst_line_width;
+	int const tweaked_y_max = y_max - 2;
+
+	/* center vertically if the dst buffer is higher than the image */
+	if (_pdfapp.image->h < (int)fb_size.h())
+		dst_line += dst_line_width*((fb_size.h() - _pdfapp.image->h)/2);
+
+	/* center horizontally if the dst buffer is wider than the image */
+	if (_pdfapp.image->w < (int)fb_size.w())
+		dst_line += (fb_size.w() - _pdfapp.image->w)/2;
+
+	for (int y = 0; y < tweaked_y_max; y++) {
 		convert_line_rgba_to_rgb565(src_line, dst_line, x_max, y);
 		src_line += src_line_bytes;
 		dst_line += dst_line_width;
@@ -233,7 +295,6 @@ void winrepaintsearch(pdfapp_t *)
 
 void wincursor(pdfapp_t *, int curs)
 {
-	Genode::warning(__func__, " curs=%d - not implemented", curs);
 }
 
 
@@ -272,10 +333,14 @@ void winreloadfile(pdfapp_t *)
 }
 
 
-void wintitle(pdfapp_t *app, char *s) { }
+void wintitle(pdfapp_t *app, char *s)
+{
+}
 
 
-void winresize(pdfapp_t *app, int w, int h) { }
+void winresize(pdfapp_t *app, int w, int h)
+{
+}
 
 
 /******************
@@ -293,6 +358,8 @@ static int keycode_to_ascii(int code)
 	case Input::KEY_ENTER:     return ' ';
 	case Input::KEY_PAGEUP:
 	case Input::KEY_BACKSPACE: return 'b';
+	case Input::KEY_9:         return '-';
+	case Input::KEY_0:         return '+';
 	default:                   return 0;
 	}
 }
@@ -319,12 +386,12 @@ struct Main
 		});
 	}
 
-	Genode::Signal_handler<Main> _input_dispatcher {
+	Genode::Signal_handler<Main> _input_handler {
 		_env.ep(), *this, &Main::_handle_input };
 
 	Main(Genode::Env &env) : _env(env)
 	{
-		_input.sigh(_input_dispatcher);
+		_input.sigh(_input_handler);
 	}
 };
 
