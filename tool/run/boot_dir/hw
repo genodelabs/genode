@@ -166,7 +166,8 @@ proc run_boot_dir {binaries} {
 		puts $fh "timeout 0"
 		puts $fh "default 0"
 		puts $fh "\ntitle Genode on base-hw"
-		puts $fh " kernel /image.elf"
+		puts $fh " kernel /boot/bender"
+		puts $fh " module /image.elf"
 		close $fh
 	}
 
