@@ -10,6 +10,7 @@ if {
 	![have_spec foc_x86_64]  &&
 	![have_spec foc_panda]   &&
 	![have_spec foc_arndale] &&
+	![have_spec foc_odroid_x2] &&
 	![have_spec nova]
 } {
 	puts "Platform is unsupported."

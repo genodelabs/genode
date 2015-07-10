@@ -27,8 +27,10 @@ set build_components {
 
 lappend_if $use_nic_bridge build_components server/nic_bridge
 
-lappend_if [expr [have_spec omap4] || [have_spec platform_arndale]] build_components drivers/platform
-lappend_if [expr [have_spec omap4] || [have_spec platform_arndale]] build_components drivers/usb
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
+lappend_if [expr [have_spec omap4] || [have_spec platform_arndale] || [have_spec platform_odroid_x2]] build_components drivers/usb
 lappend_if [have_spec acpi]  build_components drivers/acpi
 lappend_if [have_spec pci]   build_components drivers/pci/device_pd
 lappend_if [have_spec pci]   build_components drivers/pci
@@ -98,13 +100,9 @@ append config {
 		</route>
 	</start> }
 
-append_if [have_spec platform_arndale] config {
-	<start name="platform_drv">
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Regulator"/></provides>
-	</start>}
+append_platform_drv_config
 
-append_if [expr [have_spec omap4] || [have_spec platform_arndale]] config {
+append_if [expr [have_spec omap4] || [have_spec platform_arndale]|| [have_spec platform_odroid_x2]] config {
 	<start name="usb_drv">
 		<resource name="RAM" quantum="12M"/>
 		<provides>
@@ -165,10 +163,11 @@ lappend boot_modules $test_server_name
 # platform-specific modules
 lappend_if [have_spec pci]           boot_modules pci_drv
 lappend_if [have_spec acpi]          boot_modules acpi_drv
-lappend_if [expr [have_spec omap4] || [have_spec platform_arndale]] boot_modules usb_drv
+lappend_if [expr [have_spec omap4] || [have_spec platform_arndale] || [have_spec platform_odroid_x2]] boot_modules usb_drv
 lappend_if [expr ![have_spec omap4] && ![have_spec platform_arndale]] boot_modules nic_drv
 lappend_if [have_spec nova]          boot_modules pci_device_pd
-lappend_if [have_spec platform_arndale]       boot_modules platform_drv
+
+append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 
