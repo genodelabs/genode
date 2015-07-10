@@ -47,6 +47,14 @@ proc generate_tftp_config { } {
 	set tftp_offset_dir [load_tftp_offset_dir]
 
 	if {[string length $tftp_base_dir] > 0 && [string length $tftp_offset_dir] > 0} {
+
+		# if the link target exists as directory this leads to bad behavior
+		if {[file exists $tftp_base_dir$tftp_offset_dir] &&
+		    [string compare [file type $tftp_base_dir$tftp_offset_dir] "directory"] == 0} {
+
+			puts stderr "Error: TFTP symlink target $tftp_base_dir$tftp_offset_dir is a directory"
+			exit -1
+		}
 		exec ln -nfs "[pwd]" "$tftp_base_dir$tftp_offset_dir"
 
 		set tftp_base ""
