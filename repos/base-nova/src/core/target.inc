@@ -33,11 +33,13 @@ SRC_CC       = context_area.cc \
                rom_session_component.cc \
                signal_session_component.cc \
                thread_start.cc \
+               bios_data_area.cc \
                trace_session_component.cc
 
 INC_DIR      = $(REP_DIR)/src/core/include \
                $(REP_DIR)/src/base/console \
                $(BASE_DIR)/src/base/thread \
+               $(BASE_DIR)/src/base/include \
                $(GEN_CORE_DIR)/include
 
 include $(GEN_CORE_DIR)/version.inc

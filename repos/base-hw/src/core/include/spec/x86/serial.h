@@ -14,56 +14,10 @@
 #pragma once
 
 /* Genode includes */
+#include <bios_data_area.h>
 #include <drivers/uart/x86_uart_base.h>
-#include <util/mmio.h>
-#include <unmanaged_singleton.h>
 
-namespace Genode
-{
-	enum { BDA_MMIO_BASE_VIRT = 0x1ff000 };
-
-	class Bios_data_area;
-	class Serial;
-
-	Bios_data_area * bda();
-}
-
-class Genode::Bios_data_area : Mmio
-{
-	friend Unmanaged_singleton_constructor;
-
-	private:
-
-		struct Serial_base_com1 : Register<0x400, 16> { };
-		struct Equipment        : Register<0x410, 16>
-		{
-			struct Serial_count : Bitfield<9, 3> { };
-		};
-
-		/*
-		 * Constructor
-		 *
-		 * The BDA page must be mapped already (see crt0_translation_table.s).
-		 */
-		Bios_data_area() : Mmio(BDA_MMIO_BASE_VIRT) { }
-
-	public:
-
-		/**
-		 * Obtain I/O ports of COM interfaces from BDA
-		 */
-		addr_t serial_port() const
-		{
-			Equipment::access_t count = read<Equipment::Serial_count>();
-			return count ? read<Serial_base_com1>() : 0;
-		}
-
-		/**
-		 * Return BDA singleton
-		 */
-		static Bios_data_area * singleton() {
-			return unmanaged_singleton<Bios_data_area>(); }
-};
+namespace Genode { class Serial; }
 
 /**
  * Serial output driver for core
