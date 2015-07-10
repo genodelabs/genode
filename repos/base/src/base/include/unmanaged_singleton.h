@@ -43,6 +43,22 @@
 inline void * operator new(Genode::size_t, void * p) { return p; }
 
 /**
+ * Helper class for the use of unmanaged_singleton with the singleton pattern
+ *
+ * If a class wants to make its constructor private to force the singleton
+ * pattern, it can declare this class as friend to be able to still use the
+ * unmanaged_singleton template.
+ */
+struct Unmanaged_singleton_constructor
+{
+	/**
+	 * Call the constructor of 'T' with arguments 'args' at 'dst'
+	 */
+	template <typename T, typename... ARGS>
+	static void call(char * const dst, ARGS... args) { new (dst) T(args...); }
+};
+
+/**
  * Create a singleton object that isn't implicitly constructed or destructed
  *
  * \param T          object type
@@ -66,7 +82,7 @@ static inline T * unmanaged_singleton(ARGS... args)
 	/* execute constructor on first call */
 	if (!object_constructed) {
 		object_constructed = true;
-		new (&object_space) T(args...);
+		Unmanaged_singleton_constructor::call<T>(object_space, args...);
 	}
 	return reinterpret_cast<T *>(object_space);
 }
