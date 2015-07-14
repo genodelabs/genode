@@ -159,10 +159,8 @@ void Rpc_entrypoint::_activation_entry()
 		tmp->release();
 	}
 
-	/* if we can't setup receive window, die in order to recognize the issue */
 	if (!ep->_rcv_buf.prepare_rcv_window((Nova::Utcb *)ep->utcb()))
-		/* printf doesn't work here since for IPC also prepare_rcv_window is used */
-		nova_die();
+		PWRN("out of capability selectors for handling server requests");
 
 	srv << IPC_REPLY;
 }
