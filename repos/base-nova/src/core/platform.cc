@@ -627,7 +627,7 @@ Platform::Platform() :
 
 	/* add capability selector ranges to map */
 	unsigned index = 0x2000;
-	for (unsigned i = 0; i < 16; i++)
+	for (unsigned i = 0; i < 32; i++)
 	{
 		void * phys_ptr = 0;
 		ram_alloc()->alloc(4096, &phys_ptr);
