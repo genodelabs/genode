@@ -294,8 +294,11 @@ int main(int, char **)
 	 * Signal receiver for config changes
 	 */
 	Signal_receiver sig_rec;
-	Signal_context  sig_ctx;
-	config()->sigh(sig_rec.manage(&sig_ctx));
+	Signal_context  sig_ctx_config;
+	Signal_context  sig_ctx_res_avail;
+	config()->sigh(sig_rec.manage(&sig_ctx_config));
+	/* prevent init to block for resource upgrades (never satisfied by core) */
+	env()->parent()->resource_avail_sigh(sig_rec.manage(&sig_ctx_res_avail));
 
 	for (;;) {
 
@@ -364,7 +367,13 @@ int main(int, char **)
 		 */
 
 		/* wait for config change */
-		sig_rec.wait_for_signal();
+		while (true) {
+			Signal signal = sig_rec.wait_for_signal();
+			if (signal.context() == &sig_ctx_config)
+				break;
+
+			PWRN("unexpected signal received - drop it");
+		}
 
 		/* kill all currently running children */
 		while (children.any()) {
