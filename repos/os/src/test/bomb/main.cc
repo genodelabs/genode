@@ -278,6 +278,14 @@ int main(int argc, char **argv)
 		/* is init our parent? */
 		if (!timer()) sleep_forever();
 
+		/* don't ask parent for further resources if we ran out of memory */
+		static Signal_receiver sig_rec;
+		static Signal_context  sig_ctx_res_avail;
+		if (round == 0) {
+			/* prevent to block for resource upgrades caused by clients */
+			env()->parent()->resource_avail_sigh(sig_rec.manage(&sig_ctx_res_avail));
+		}
+
 		timer()->msleep(sleeptime);
 		PINF("[%03d] It's time to kill all my children...", round);
 
@@ -296,8 +304,8 @@ int main(int argc, char **argv)
 		PINF("[%03d] Done.", round);
 	}
 
-	/* master if rounds != 0 */
-	if (rounds != 0)
+	/* master if we have a timer connection */
+	if (timer())
 		PINF("Done. Going to sleep");
 
 	sleep_forever();
