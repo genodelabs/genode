@@ -158,6 +158,13 @@ class Genode::Ioapic : public Mmio
 		 */
 		void toggle_mask(unsigned const vector, bool const set)
 		{
+			/*
+			 * Ignore toggle requests for vectors not handled by the I/O APIC.
+			 */
+			if (vector < REMAP_BASE || vector >= REMAP_BASE + IRTE_COUNT) {
+				return;
+			}
+
 			const unsigned irq = vector - REMAP_BASE;
 
 			/*
