@@ -50,9 +50,10 @@ static bool verbose = false;
 namespace Noux {
 
 	static Noux::Child *init_child;
+	static int exit_value = ~0;
 
 	bool is_init_process(Child *child) { return child == init_child; }
-	void init_process_exited() { init_child = 0; }
+	void init_process_exited(int exit) { init_child = 0; exit_value = exit; }
 
 };
 
@@ -1169,6 +1170,6 @@ int main(int argc, char **argv)
 				 env()->ram_session()->used());
 	}
 
-	PINF("-- exiting noux ---");
-	return 0;
+	PINF("--- exiting noux ---");
+	return exit_value;
 }

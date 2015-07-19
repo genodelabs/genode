@@ -45,6 +45,7 @@ namespace Noux {
 			File_descriptor_registry           &_file_descriptor_registry;
 			Signal_context_capability           _destruct_context_cap;
 			Ram_session                        &_ref_ram_session;
+			int                                 _exit_value;
 			bool                                _verbose;
 
 		public:
@@ -79,8 +80,15 @@ namespace Noux {
 				_file_descriptor_registry(file_descriptor_registry),
 				_destruct_context_cap(destruct_context_cap),
 				_ref_ram_session(ref_ram_session),
+				_exit_value(~0),
 				_verbose(verbose)
 			{ }
+
+			int exit_value() const { return _exit_value; }
+
+			/****************************
+			 ** Child policy interface **
+			 ****************************/
 
 			const char *name() const { return _name; }
 
@@ -124,6 +132,8 @@ namespace Noux {
 
 			void exit(int exit_value)
 			{
+				_exit_value = exit_value;
+
 				if (_verbose || (exit_value != 0))
 					PERR("child %s exited with exit value %d", _name, exit_value);
 

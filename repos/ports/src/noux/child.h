@@ -99,7 +99,7 @@ namespace Noux {
 	class Child;
 
 	bool is_init_process(Child *child);
-	void init_process_exited();
+	void init_process_exited(int);
 
 	class Child : public Rpc_object<Session>,
 	              public File_descriptor_registry,
@@ -390,7 +390,7 @@ namespace Noux {
 				_entrypoint.dissolve(this);
 
 				if (is_init_process(this))
-					init_process_exited();
+					init_process_exited(_child_policy.exit_value());
 			}
 
 			void start() { _entrypoint.activate(); }
@@ -412,7 +412,7 @@ namespace Noux {
 					PINF("init process exited");
 
 					/* trigger exit of main event loop */
-					init_process_exited();
+					init_process_exited(_child_policy.exit_value());
 				} else {
 					Signal_transmitter(_destruct_context_cap).submit();
 				}
