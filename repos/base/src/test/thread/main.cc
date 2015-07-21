@@ -47,6 +47,8 @@ struct Helper : Thread<0x2000>
 
 static void test_context_alloc()
 {
+	printf("running '%s'\n", __func__);
+
 	/*
 	 * Create HELPER threads, which concurrently create CHILDREN threads each.
 	 * This most likely triggers any race in the thread-context allocation.
@@ -108,6 +110,8 @@ struct Stack_helper : Thread<0x2000>
 
 static void test_stack_alignment()
 {
+	printf("running '%s'\n", __func__);
+
 	Stack_helper helper;
 
 	helper.start();
@@ -124,6 +128,8 @@ static void test_stack_alignment()
 
 static void test_main_thread()
 {
+	printf("running '%s'\n", __func__);
+
 	/* check wether my thread object exists */
 	Thread_base * myself = Genode::Thread_base::myself();
 	if (!myself) { throw -1; }
@@ -169,6 +175,8 @@ struct Cpu_helper : Thread<0x1000>
 
 static void test_cpu_session()
 {
+	printf("running '%s'\n", __func__);
+
 	Cpu_helper thread0("prio high  ", env()->cpu_session());
 	thread0.start();
 	thread0.join();
@@ -207,6 +215,8 @@ struct Pause_helper : Thread<0x1000>
 			if (beep) {
 				PINF("beep");
 				beep = false;
+				loop ++;
+				return;
 			}
 		}
 	}
@@ -214,6 +224,8 @@ struct Pause_helper : Thread<0x1000>
 
 static void test_pause_resume()
 {
+	printf("running '%s'\n", __func__);
+
 	Pause_helper thread("pause", env()->cpu_session());
 	thread.start();
 
@@ -242,8 +254,52 @@ static void test_pause_resume()
 	while (thread.loop == loop_paused) { }
 
 	printf("--- thread resumed ---\n");
+	thread.join();
 }
 
+/*
+ * Test to check that core as the used kernel behaves well if up to the
+ * supported Genode maximum threads are created.
+ */
+static void test_create_as_many_threads()
+{
+	printf("running '%s'\n", __func__);
+
+	addr_t const max = Native_config::context_area_virtual_size() /
+	                   Native_config::context_virtual_size();
+
+	static Cpu_helper * threads[max];
+	static char thread_name[8];
+
+	unsigned i = 0;
+	try {
+		for (; i < max; i++) {
+			try {
+				snprintf(thread_name, sizeof(thread_name), "%u", i + 1);
+				threads[i] = new (env()->heap()) Cpu_helper(thread_name, env()->cpu_session());
+				threads[i]->start();
+				threads[i]->join();
+			} catch (Cpu_session::Thread_creation_failed) {
+				throw "Thread_creation_failed";
+			} catch (Thread_base::Context_alloc_failed) {
+				throw "Context_alloc_failed";
+			}
+		}
+	} catch (const char * ex) {
+		PINF("created %u threads before I got '%s'", i, ex);
+		for (unsigned j = i; j > 0; j--) {
+			destroy(env()->heap(), threads[j - 1]);
+			threads[j - 1] = nullptr;
+		}
+		return;
+	}
+
+	/*
+	 * We have to get a context_alloc_failed message, because we can't create
+	 * up to max threads, because already the main thread is running ...
+	 */
+	throw -21;
+}
 
 int main()
 {
@@ -255,6 +311,7 @@ int main()
 		test_main_thread();
 		test_cpu_session();
 		test_pause_resume();
+		test_create_as_many_threads();
 	} catch (int error) {
 		return error;
 	}
