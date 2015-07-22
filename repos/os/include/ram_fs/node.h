@@ -4,6 +4,13 @@
  * \date   2012-04-11
  */
 
+/*
+ * Copyright (C) 2012-2015 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
 #ifndef _INCLUDE__RAM_FS__NODE_H_
 #define _INCLUDE__RAM_FS__NODE_H_
 
@@ -12,47 +19,46 @@
 #include <file_system/node.h>
 #include <util/list.h>
 
-namespace File_system {
+namespace File_system { class Node; }
 
-	class Node : public Node_base, public List<Node>::Element
-	{
-		public:
 
-			typedef char Name[128];
+class File_system::Node : public Node_base, public List<Node>::Element
+{
+	public:
 
-		private:
+		typedef char Name[128];
 
-			int                 _ref_count;
-			Name                _name;
-			unsigned long const _inode;
+	private:
 
-			/**
-			 * Generate unique inode number
-			 */
-			static unsigned long _unique_inode()
-			{
-				static unsigned long inode_count;
-				return ++inode_count;
-			}
+		int                 _ref_count;
+		Name                _name;
+		unsigned long const _inode;
 
-		public:
+		/**
+		 * Generate unique inode number
+		 */
+		static unsigned long _unique_inode()
+		{
+			static unsigned long inode_count;
+			return ++inode_count;
+		}
 
-			Node()
-			: _ref_count(0), _inode(_unique_inode())
-			{ _name[0] = 0; }
+	public:
 
-			unsigned long inode() const { return _inode; }
-			char   const *name()  const { return _name; }
+		Node()
+		: _ref_count(0), _inode(_unique_inode())
+		{ _name[0] = 0; }
 
-			/**
-			 * Assign name
-			 */
-			void name(char const *name) { strncpy(_name, name, sizeof(_name)); }
+		unsigned long inode() const { return _inode; }
+		char   const *name()  const { return _name; }
 
-			virtual size_t read(char *dst, size_t len, seek_off_t) = 0;
-			virtual size_t write(char const *src, size_t len, seek_off_t) = 0;
-	};
+		/**
+		 * Assign name
+		 */
+		void name(char const *name) { strncpy(_name, name, sizeof(_name)); }
 
-}
+		virtual size_t read(char *dst, size_t len, seek_off_t) = 0;
+		virtual size_t write(char const *src, size_t len, seek_off_t) = 0;
+};
 
 #endif /* _INCLUDE__RAM_FS__NODE_H_ */

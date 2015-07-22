@@ -4,6 +4,13 @@
  * \date   2012-04-11
  */
 
+/*
+ * Copyright (C) 2012-2015 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
 #ifndef _INCLUDE__RAM_FS__FILE_H_
 #define _INCLUDE__RAM_FS__FILE_H_
 
@@ -14,93 +21,93 @@
 #include <ram_fs/node.h>
 #include <ram_fs/chunk.h>
 
-namespace File_system {
+namespace File_system { class File; }
 
-	class File : public Node
-	{
-		private:
 
-			typedef Chunk<4096>                     Chunk_level_3;
-			typedef Chunk_index<128, Chunk_level_3> Chunk_level_2;
-			typedef Chunk_index<64,  Chunk_level_2> Chunk_level_1;
-			typedef Chunk_index<64,  Chunk_level_1> Chunk_level_0;
+class File_system::File : public Node
+{
+	private:
 
-			Chunk_level_0 _chunk;
+		typedef Chunk<4096>                     Chunk_level_3;
+		typedef Chunk_index<128, Chunk_level_3> Chunk_level_2;
+		typedef Chunk_index<64,  Chunk_level_2> Chunk_level_1;
+		typedef Chunk_index<64,  Chunk_level_1> Chunk_level_0;
 
-			file_size_t _length;
+		Chunk_level_0 _chunk;
 
-		public:
+		file_size_t _length;
 
-			File(Allocator &alloc, char const *name)
-			: _chunk(alloc, 0), _length(0) { Node::name(name); }
+	public:
 
-			size_t read(char *dst, size_t len, seek_off_t seek_offset)
-			{
-				file_size_t const chunk_used_size = _chunk.used_size();
+		File(Allocator &alloc, char const *name)
+		: _chunk(alloc, 0), _length(0) { Node::name(name); }
 
-				if (seek_offset >= _length)
-					return 0;
+		size_t read(char *dst, size_t len, seek_off_t seek_offset)
+		{
+			file_size_t const chunk_used_size = _chunk.used_size();
 
-				/*
-				 * Constrain read transaction to available chunk data
-				 *
-				 * Note that 'chunk_used_size' may be lower than '_length'
-				 * because 'Chunk' may have truncated tailing zeros.
-				 */
-				if (seek_offset + len >= _length)
-					len = _length - seek_offset;
+			if (seek_offset >= _length)
+				return 0;
 
-				file_size_t read_len = len;
+			/*
+			 * Constrain read transaction to available chunk data
+			 *
+			 * Note that 'chunk_used_size' may be lower than '_length'
+			 * because 'Chunk' may have truncated tailing zeros.
+			 */
+			if (seek_offset + len >= _length)
+				len = _length - seek_offset;
 
-				if (seek_offset + read_len > chunk_used_size) {
-					if (chunk_used_size >= seek_offset)
-						read_len = chunk_used_size - seek_offset;
-					else
-						read_len = 0;
-				}
+			file_size_t read_len = len;
 
-				_chunk.read(dst, read_len, seek_offset);
-
-				/* add zero padding if needed */
-				if (read_len < len)
-					memset(dst + read_len, 0, len - read_len);
-
-				return len;
+			if (seek_offset + read_len > chunk_used_size) {
+				if (chunk_used_size >= seek_offset)
+					read_len = chunk_used_size - seek_offset;
+				else
+					read_len = 0;
 			}
 
-			size_t write(char const *src, size_t len, seek_off_t seek_offset)
-			{
-				if (seek_offset == (seek_off_t)(~0))
-					seek_offset = _chunk.used_size();
+			_chunk.read(dst, read_len, seek_offset);
 
-				if (seek_offset + len >= Chunk_level_0::SIZE)
-					throw Size_limit_reached();
+			/* add zero padding if needed */
+			if (read_len < len)
+				memset(dst + read_len, 0, len - read_len);
 
-				_chunk.write(src, len, (size_t)seek_offset);
+			return len;
+		}
 
-				/*
-				 * Keep track of file length. We cannot use 'chunk.used_size()'
-				 * as file length because trailing zeros may by represented
-				 * by zero chunks, which do not contribute to 'used_size()'.
-				 */
-				_length = max(_length, seek_offset + len);
+		size_t write(char const *src, size_t len, seek_off_t seek_offset)
+		{
+			if (seek_offset == (seek_off_t)(~0))
+				seek_offset = _chunk.used_size();
 
-				mark_as_updated();
-				return len;
-			}
+			if (seek_offset + len >= Chunk_level_0::SIZE)
+				throw Size_limit_reached();
 
-			file_size_t length() const { return _length; }
+			_chunk.write(src, len, (size_t)seek_offset);
 
-			void truncate(file_size_t size)
-			{
-				if (size < _chunk.used_size())
-					_chunk.truncate(size);
+			/*
+			 * Keep track of file length. We cannot use 'chunk.used_size()'
+			 * as file length because trailing zeros may by represented
+			 * by zero chunks, which do not contribute to 'used_size()'.
+			 */
+			_length = max(_length, seek_offset + len);
 
-				_length = size;
+			mark_as_updated();
+			return len;
+		}
 
-				mark_as_updated();
-			}
-	};
-}
+		file_size_t length() const { return _length; }
+
+		void truncate(file_size_t size)
+		{
+			if (size < _chunk.used_size())
+				_chunk.truncate(size);
+
+			_length = size;
+
+			mark_as_updated();
+		}
+};
 
 #endif /* _INCLUDE__RAM_FS__FILE_H_ */
