@@ -22,7 +22,7 @@
 #include <util/xml_node.h>
 
 /* local includes */
-#include <directory.h>
+#include <ram_fs/directory.h>
 
 
 /*************************

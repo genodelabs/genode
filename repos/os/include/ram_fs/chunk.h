@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CHUNK_H_
-#define _CHUNK_H_
+#ifndef _INCLUDE__RAM_FS__CHUNK_H_
+#define _INCLUDE__RAM_FS__CHUNK_H_
 
 /* Genode includes */
 #include <util/noncopyable.h>
@@ -438,4 +438,4 @@ namespace File_system {
 	};
 };
 
-#endif /* _CHUNK_H_ */
+#endif /* _INCLUDE__RAM_FS__CHUNK_H_ */

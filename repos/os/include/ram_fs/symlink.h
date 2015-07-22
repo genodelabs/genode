@@ -4,11 +4,11 @@
  * \date   2012-04-11
  */
 
-#ifndef _SYMLINK_H_
-#define _SYMLINK_H_
+#ifndef _INCLUDE__RAM_FS__SYMLINK_H_
+#define _INCLUDE__RAM_FS__SYMLINK_H_
 
 /* local includes */
-#include <node.h>
+#include <ram_fs/node.h>
 
 namespace File_system {
 
@@ -44,4 +44,4 @@ namespace File_system {
 	};
 }
 
-#endif /* _SYMLINK_H_ */
+#endif /* _INCLUDE__RAM_FS__SYMLINK_H_ */
