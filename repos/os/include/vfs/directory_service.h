@@ -160,8 +160,8 @@ struct Vfs::Directory_service
 	 *************/
 
 	enum Symlink_result { SYMLINK_ERR_EXISTS,        SYMLINK_ERR_NO_ENTRY,
-	                      SYMLINK_ERR_NAME_TOO_LONG, SYMLINK_ERR_NO_PERM,
-	                      SYMLINK_OK };
+	                      SYMLINK_ERR_NO_SPACE,      SYMLINK_ERR_NO_PERM,
+	                      SYMLINK_ERR_NAME_TOO_LONG, SYMLINK_OK };
 
 	virtual Symlink_result symlink(char const *from, char const *to) = 0;
 

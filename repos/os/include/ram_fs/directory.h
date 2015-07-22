@@ -4,16 +4,16 @@
  * \date   2012-04-11
  */
 
-#ifndef _DIRECTORY_H_
-#define _DIRECTORY_H_
+#ifndef _INCLUDE__RAM_FS__DIRECTORY_H_
+#define _INCLUDE__RAM_FS__DIRECTORY_H_
 
 /* Genode includes */
 #include <file_system/util.h>
 
 /* local includes */
-#include <node.h>
-#include <file.h>
-#include <symlink.h>
+#include <ram_fs/node.h>
+#include <ram_fs/file.h>
+#include <ram_fs/symlink.h>
 
 namespace File_system {
 
@@ -27,6 +27,13 @@ namespace File_system {
 		public:
 
 			Directory(char const *name) : _num_entries(0) { Node::name(name); }
+
+			Node *entry_unsynchronized(size_t index)
+			{
+				Node *node = _entries.first();
+				for (unsigned i = 0; i < index && node; node = node->next(), i++);
+				return node;
+			}
 
 			bool has_sub_node_unsynchronized(char const *name) const
 			{
@@ -184,9 +191,7 @@ namespace File_system {
 					return 0;
 				}
 
-				/* find list element */
-				Node *node = _entries.first();
-				for (unsigned i = 0; i < index && node; node = node->next(), i++);
+				Node *node = entry_unsynchronized(index);
 
 				/* index out of range */
 				if (!node)
@@ -213,4 +218,4 @@ namespace File_system {
 	};
 }
 
-#endif /* _DIRECTORY_H_ */
+#endif /* _INCLUDE__RAM_FS__DIRECTORY_H_ */

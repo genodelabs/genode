@@ -4,8 +4,8 @@
  * \date   2012-04-11
  */
 
-#ifndef _NODE_H_
-#define _NODE_H_
+#ifndef _INCLUDE__RAM_FS__NODE_H_
+#define _INCLUDE__RAM_FS__NODE_H_
 
 /* Genode includes */
 #include <file_system/listener.h>
@@ -55,4 +55,4 @@ namespace File_system {
 
 }
 
-#endif /* _NODE_H_ */
+#endif /* _INCLUDE__RAM_FS__NODE_H_ */

@@ -4,15 +4,15 @@
  * \date   2012-04-11
  */
 
-#ifndef _FILE_H_
-#define _FILE_H_
+#ifndef _INCLUDE__RAM_FS__FILE_H_
+#define _INCLUDE__RAM_FS__FILE_H_
 
 /* Genode includes */
 #include <base/allocator.h>
 
 /* local includes */
-#include <node.h>
-#include <chunk.h>
+#include <ram_fs/node.h>
+#include <ram_fs/chunk.h>
 
 namespace File_system {
 
@@ -103,4 +103,4 @@ namespace File_system {
 	};
 }
 
-#endif /* _FILE_H_ */
+#endif /* _INCLUDE__RAM_FS__FILE_H_ */
