@@ -27,7 +27,7 @@ class Genode::Trace::Control_area
 {
 	public:
 
-		enum { SIZE = 1024*sizeof(long) };
+		enum { SIZE = 8192 };
 
 	private:
 
