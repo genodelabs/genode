@@ -113,6 +113,37 @@ class Vcpu_handler_vmx : public Vcpu_handler
 			Vcpu_handler::_default_handler();
 		}
 
+		/*
+		 * This VM exit is in part handled by the NOVA kernel (writing the CR
+		 * register) and in part by VirtualBox (updating the PDPTE registers,
+		 * which requires access to the guest physical memory).
+		 * Intel manual sections 4.4.1 of Vol. 3A and 26.3.2.4 of Vol. 3C
+		 * indicate the conditions when the PDPTE registers need to get
+		 * updated.
+		 */
+		__attribute__((noreturn)) void _vmx_mov_crx()
+		{
+			unsigned long value;
+			void *stack_reply = reinterpret_cast<void *>(&value - 1);
+
+			Genode::Thread_base *myself = Genode::Thread_base::myself();
+			Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(myself->utcb());
+
+			Genode::uint64_t *pdpte = (Genode::uint64_t*)
+				guest_memory()->lookup(utcb->cr3, sizeof(utcb->pdpte));
+
+			Assert(pdpte != 0);
+
+			utcb->pdpte[0] = pdpte[0];
+			utcb->pdpte[1] = pdpte[1];
+			utcb->pdpte[2] = pdpte[2];
+			utcb->pdpte[3] = pdpte[3];
+
+			utcb->mtd = Nova::Mtd::PDPTE | Nova::Mtd::FPU;
+
+			Nova::reply(stack_reply);
+		}
+
 	public:
 
 		Vcpu_handler_vmx(size_t stack_size, const pthread_attr_t *attr,
@@ -160,6 +191,8 @@ class Vcpu_handler_vmx : public Vcpu_handler
 //				&This::_vmx_default> (exc_base, Mtd::ALL | Mtd::FPU);
 			register_handler<VMX_EXIT_WBINVD, This,
 				&This::_vmx_default> (exc_base, Mtd::ALL | Mtd::FPU);
+			register_handler<VMX_EXIT_MOV_CRX, This,
+				&This::_vmx_mov_crx> (exc_base, Mtd::ALL | Mtd::FPU);
 			register_handler<VMX_EXIT_MOV_DRX, This,
 				&This::_vmx_default> (exc_base, Mtd::ALL | Mtd::FPU);
 			register_handler<VMX_EXIT_EPT_VIOLATION, This,
