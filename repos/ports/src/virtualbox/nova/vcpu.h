@@ -74,7 +74,8 @@ extern "C" int MMIO2_MAPPED_SYNC(PVM pVM, RTGCPHYS GCPhys, size_t cbWrite,
                                  bool &writeable);
 
 
-class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
+class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
+                     public Genode::List<Vcpu_handler>::Element
 {
 	private:
 
@@ -86,6 +87,9 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 
 		Genode::addr_t _ec_sel; 
 		bool _irq_win;
+
+		unsigned int      _cpu_id;
+		Genode::Semaphore _halt_sem;
 
 		void fpu_save(char * data) {
 			Assert(!(reinterpret_cast<Genode::addr_t>(data) & 0xF));
@@ -219,7 +223,6 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			using namespace Genode;
 
 			Assert(utcb->actv_state == ACTIVITY_STATE_ACTIVE);
-			Assert(utcb->intr_state == INTERRUPT_STATE_NONE);
 
 			if (utcb->inj_info & IRQ_INJ_VALID_MASK)
 				Vmm::printf("inj_info %x\n", utcb->inj_info);
@@ -635,15 +638,19 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 		Vcpu_handler(size_t stack_size, const pthread_attr_t *attr,
 		             void *(*start_routine) (void *), void *arg,
 		             Genode::Cpu_session * cpu_session,
-		             Genode::Affinity::Location location)
+		             Genode::Affinity::Location location,
+		             unsigned int cpu_id)
 		:
 			Vmm::Vcpu_dispatcher<pthread>(stack_size, _cap_connection,
 			                              cpu_session, location, 
 			                              attr ? *attr : 0, start_routine, arg),
 			_vcpu(cpu_session, location),
 			_ec_sel(Genode::cap_map()->insert()),
-			_irq_win(false)
+			_irq_win(false),
+			_cpu_id(cpu_id)
 		{ }
+
+		unsigned int cpu_id() { return _cpu_id; }
 
 		void start() {
 			_vcpu.start(_ec_sel);
@@ -658,6 +665,16 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 				Genode::Lock lock(Genode::Lock::LOCKED);
 				lock.lock();
 			}
+		}
+
+		void halt()
+		{
+			_halt_sem.down();
+		}
+
+		void wake_up()
+		{
+			_halt_sem.up();
 		}
 
 		inline void dump_register_state(PCPUMCTX pCtx)
@@ -742,10 +759,10 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			PLOG("%x %x %x", utcb->intr_state, utcb->actv_state, utcb->mtd);
 		}
 
-		int run_hw(PVMR0 pVMR0, VMCPUID idCpu)
+		int run_hw(PVMR0 pVMR0)
 		{
 			VM     * pVM   = reinterpret_cast<VM *>(pVMR0);
-			PVMCPU   pVCpu = &pVM->aCpus[idCpu];
+			PVMCPU   pVCpu = &pVM->aCpus[_cpu_id];
 			PCPUMCTX pCtx  = CPUMQueryGuestCtxPtr(pVCpu);
 
 			Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(Thread_base::utcb());
