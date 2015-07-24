@@ -348,6 +348,22 @@ class Vfs::Tar_file_system : public File_system
 		}
 	} _cached_num_dirent;
 
+	/**
+	 * Walk hardlinks until we reach a file
+	 *
+	 * XXX: check for hardlink loops
+	 */
+	Node const *dereference(char const *path)
+	{
+		Node const *node = _root_node.lookup(path);
+		if (!node) return 0;
+
+		Record const *record = node->record;
+		if (!record || record->type() != Record::TYPE_HARDLINK)
+			return node;
+
+		return dereference(record->linked_name());
+	}
 
 	public:
 
@@ -373,34 +389,14 @@ class Vfs::Tar_file_system : public File_system
 
 		Dataspace_capability dataspace(char const *path) override
 		{
-			/*
-			 * Walk hardlinks until we reach a file
-			 */
-			Record const *record = 0;
-			for (;;) {
-				Node *node = _root_node.lookup(path);
+			Node const *node = dereference(path);
+			if (!node || !node->record)
+				return Dataspace_capability();
 
-				if (!node)
-					return Dataspace_capability();
-
-				record = node->record;
-
-				if (record) {
-					if (record->type() == Record::TYPE_HARDLINK) {
-						path = record->linked_name();
-						continue;
-					}
-
-					if (record->type() == Record::TYPE_FILE)
-						break;
-
-					PERR("TAR record \"%s\" has unsupported type %d",
-					     record->name(), record->type());
-				}
-
+			Record const *record = node->record;
+			if (record->type() != Record::TYPE_FILE) {
 				PERR("TAR record \"%s\" has unsupported type %d",
-				     path, Record::TYPE_DIR);
-
+				     path, record->type());
 				return Dataspace_capability();
 			}
 
@@ -429,35 +425,20 @@ class Vfs::Tar_file_system : public File_system
 			if (verbose)
 				PDBG("path = %s", path);
 
-			Node const *node = 0;
-			Record const *record = 0;
+			Node const *node = dereference(path);
+			if (!node)
+				return STAT_ERR_NO_ENTRY;
 
-			/*
-			 * Walk hardlinks until we reach a file
-			 */
-			for (;;) {
-				node = _root_node.lookup(path);
+			if (!node->record) {
+				if (verbose)
+					PDBG("found a virtual directoty node");
 
-				if (!node)
-					return STAT_ERR_NO_ENTRY;
-
-				record = node->record;
-
-				if (record) {
-					if (record->type() == Record::TYPE_HARDLINK) {
-						path = record->linked_name();
-						continue;
-					} else
-						break;
-				} else {
-					if (verbose)
-						PDBG("found a virtual directoty node");
-
-					memset(&out, 0, sizeof(out));
-					out.mode = STAT_MODE_DIRECTORY;
-					return STAT_OK;
-				}
+				memset(&out, 0, sizeof(out));
+				out.mode = STAT_MODE_DIRECTORY;
+				return STAT_OK;
 			}
+
+			Record const *record = node->record;
 
 			/* convert TAR record modes to stat modes */
 			unsigned mode = record->mode();
@@ -581,9 +562,8 @@ class Vfs::Tar_file_system : public File_system
 
 		Open_result open(char const *path, unsigned, Vfs_handle **out_handle) override
 		{
-			Node *node = _root_node.lookup(path);
-
-			if (!node)
+			Node const *node = dereference(path);
+			if (!node || !node->record || node->record->type() != Record::TYPE_FILE)
 				return OPEN_ERR_UNACCESSIBLE;
 
 			*out_handle = new (env()->heap())
