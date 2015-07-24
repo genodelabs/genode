@@ -362,6 +362,32 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 				utcb->mtd  |= Mtd::EFER;
 				utcb->write_efer(CPUMGetGuestEFER(pVCpu));
 
+				/*
+				 * Update the PDPTE registers if necessary
+				 *
+				 * Intel manual sections 4.4.1 of Vol. 3A and 26.3.2.4 of Vol. 3C
+				 * indicate the conditions when this is the case. The following
+				 * code currently does not check if the recompiler modified any
+				 * CR registers, which means the update can happen more often
+				 * than really necessary.
+				 */
+				if (pVM->hm.s.vmx.fSupported &&
+				    CPUMIsGuestPagingEnabledEx(pCtx) &&
+				    CPUMIsGuestInPAEModeEx(pCtx)) {
+
+					utcb->mtd |= Mtd::PDPTE;
+
+					Genode::uint64_t *pdpte = (Genode::uint64_t*)
+						guest_memory()->lookup(utcb->cr3, sizeof(utcb->pdpte));
+
+					Assert(pdpte != 0);
+
+					utcb->pdpte[0] = pdpte[0];
+					utcb->pdpte[1] = pdpte[1];
+					utcb->pdpte[2] = pdpte[2];
+					utcb->pdpte[3] = pdpte[3];
+				}
+
 			Assert(!(VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_INHIBIT_INTERRUPTS)));
 
 			return true;
