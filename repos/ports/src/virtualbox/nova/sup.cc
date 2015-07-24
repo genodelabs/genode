@@ -38,14 +38,26 @@
 #include "vcpu_svm.h"
 #include "vcpu_vmx.h"
 
+/* libc memory allocator */
+#include <libc_mem_alloc.h>
 
-static Vcpu_handler *vcpu_handler = 0;
 
-
-static Genode::Semaphore *r0_halt_sem()
+static Genode::List<Vcpu_handler> &vcpu_handler_list()
 {
-	static Genode::Semaphore sem;
-	return &sem;
+	static Genode::List<Vcpu_handler> _inst;
+	return _inst;
+}
+
+
+static Vcpu_handler *lookup_vcpu_handler(unsigned int cpu_id)
+{
+	for (Vcpu_handler *vcpu_handler = vcpu_handler_list().first();
+	     vcpu_handler;
+	     vcpu_handler = vcpu_handler->next())
+		if (vcpu_handler->cpu_id() == cpu_id)
+			return vcpu_handler;
+
+	return 0;
 }
 
 
@@ -80,7 +92,9 @@ int SUPR3CallVMMR0Fast(PVMR0 pVMR0, unsigned uOperation, VMCPUID idCpu)
 {
 	switch (uOperation) {
 	case SUP_VMMR0_DO_HM_RUN:
-		return vcpu_handler->run_hw(pVMR0, idCpu);
+		Vcpu_handler *vcpu_handler = lookup_vcpu_handler(idCpu);
+		Assert(vcpu_handler);
+		return vcpu_handler->run_hw(pVMR0);
 	}
 	return VERR_INTERNAL_ERROR;
 }
@@ -95,13 +109,25 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned
 		genode_VMMR0_DO_GVMM_CREATE_VM(pReqHdr);
 		return VINF_SUCCESS;
 
-	case VMMR0_DO_GVMM_SCHED_HALT:
-		r0_halt_sem()->down();
+	case VMMR0_DO_GVMM_REGISTER_VMCPU:
+		genode_VMMR0_DO_GVMM_REGISTER_VMCPU(pVMR0, idCpu);
 		return VINF_SUCCESS;
 
-	case VMMR0_DO_GVMM_SCHED_WAKE_UP:
-		r0_halt_sem()->up();
+	case VMMR0_DO_GVMM_SCHED_HALT:
+	{
+		Vcpu_handler *vcpu_handler = lookup_vcpu_handler(idCpu);
+		Assert(vcpu_handler);
+		vcpu_handler->halt();
 		return VINF_SUCCESS;
+	}
+
+	case VMMR0_DO_GVMM_SCHED_WAKE_UP:
+	{
+		Vcpu_handler *vcpu_handler = lookup_vcpu_handler(idCpu);
+		Assert(vcpu_handler);
+		vcpu_handler->wake_up();
+		return VINF_SUCCESS;
+	}
 
 	/* called by 'vmR3HaltGlobal1Halt' */
 	case VMMR0_DO_GVMM_SCHED_POLL:
@@ -120,9 +146,13 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned
 		return VINF_SUCCESS;
 
 	case VMMR0_DO_GVMM_SCHED_POKE:
+	{
+		Vcpu_handler *vcpu_handler = lookup_vcpu_handler(idCpu);
+		Assert(vcpu_handler);
 		if (vcpu_handler)
 			vcpu_handler->recall();
 		return VINF_SUCCESS;
+	}
 
 	default:
 		PERR("SUPR3CallVMMR0Ex: unhandled uOperation %d", uOperation);
@@ -213,22 +243,29 @@ bool create_emt_vcpu(pthread_t * pthread, size_t stack,
                      const pthread_attr_t *attr,
                      void *(*start_routine)(void *), void *arg,
                      Genode::Cpu_session * cpu_session,
-                     Genode::Affinity::Location location)
+                     Genode::Affinity::Location location,
+                     unsigned int cpu_id)
 {
 	Nova::Hip * hip = hip_rom.local_addr<Nova::Hip>();
 
 	if (!hip->has_feature_vmx() && !hip->has_feature_svm())
 		return false;
 
+	Vcpu_handler *vcpu_handler = 0;
+
 	if (hip->has_feature_vmx())
 		vcpu_handler = new (0x10) Vcpu_handler_vmx(stack, attr, start_routine,
-		                                           arg, cpu_session, location);
+		                                           arg, cpu_session, location,
+		                                           cpu_id);
 
 	if (hip->has_feature_svm())
 		vcpu_handler = new (0x10) Vcpu_handler_svm(stack, attr, start_routine,
-		                                           arg, cpu_session, location);
+		                                           arg, cpu_session, location,
+		                                           cpu_id);
 
 	Assert(!(reinterpret_cast<unsigned long>(vcpu_handler) & 0xf));
+
+	vcpu_handler_list().insert(vcpu_handler);
 
 	*pthread = vcpu_handler;
 	return true;

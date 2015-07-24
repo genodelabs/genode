@@ -672,6 +672,31 @@ extern "C" int MMIO2_MAPPED_SYNC(PVM pVM, RTGCPHYS GCPhys, size_t cbWrite,
 }
 
 
+/**
+ * Resets a virtual CPU when unplugged.
+ *
+ * @param   pVM                 Pointer to the VM.
+ * @param   pVCpu               Pointer to the VMCPU.
+ */
+VMMR3DECL(void) PGMR3ResetCpu(PVM pVM, PVMCPU pVCpu)
+{
+    int rc = PGMR3ChangeMode(pVM, pVCpu, PGMMODE_REAL);
+    AssertRC(rc);
+
+    /*
+     * Re-init other members.
+     */
+    pVCpu->pgm.s.fA20Enabled = true;
+    pVCpu->pgm.s.GCPhysA20Mask = ~((RTGCPHYS)!pVCpu->pgm.s.fA20Enabled << 20);
+
+    /*
+     * Clear the FFs PGM owns.
+     */
+    VMCPU_FF_CLEAR(pVCpu, VMCPU_FF_PGM_SYNC_CR3);
+    VMCPU_FF_CLEAR(pVCpu, VMCPU_FF_PGM_SYNC_CR3_NON_GLOBAL);
+}
+
+
 void PGMR3Reset(PVM pVM)
 {
 	VM_ASSERT_EMT(pVM);

@@ -25,6 +25,8 @@
 /* libc */
 #include <pthread.h>
 #include <errno.h>
+#include <stdio.h>
+#include <string.h>
 
 /* vbox */
 #include <internal/thread.h>
@@ -51,7 +53,7 @@ static Genode::Cpu_connection * cpu_connection(RTTHREADTYPE type) {
 
 	char * data = new (env()->heap()) char[16];
 
-	snprintf(data, 16, "vbox %u", type);
+	Genode::snprintf(data, 16, "vbox %u", type);
 
 	con[type - 1] = new (env()->heap()) Cpu_connection(data, prio);
 
@@ -77,14 +79,20 @@ static int create_thread(pthread_t *thread, const pthread_attr_t *attr,
 		     stack_size);
 
 	/* sanity check - emt and vcpu thread have to have same prio class */
-	if (!Genode::strcmp(rtthread->szName, "EMT"))
+	if (strstr(rtthread->szName, "EMT") == rtthread->szName)
 		Assert(rtthread->enmType == RTTHREADTYPE_EMULATION);
 
 	if (rtthread->enmType == RTTHREADTYPE_EMULATION) {
+
+		unsigned int cpu_id = 0;
+		sscanf(rtthread->szName, "EMT-%u", &cpu_id);
+
 		Genode::Cpu_session * cpu_session = cpu_connection(RTTHREADTYPE_EMULATION);
-		Genode::Affinity::Location location;
+		Genode::Affinity::Space space = cpu_session->affinity_space();
+		Genode::Affinity::Location location(space.location_of_index(cpu_id));
+
 		if (create_emt_vcpu(thread, stack_size, attr, start_routine, arg,
-		                    cpu_session, location))
+		                    cpu_session, location, cpu_id))
 			return 0;
 		/*
 		 * The virtualization layer had no need to setup the EMT

@@ -79,7 +79,6 @@ DUMMY(PGMR3LockCall)
 DUMMY(PGMR3PoolGrow)
 DUMMY(PGMR3QueryGlobalMemoryStats)
 DUMMY(PGMR3QueryMemoryStats)
-DUMMY(PGMR3ResetCpu)
 
 DUMMY(PGMR3PhysAllocateHandyPages)
 DUMMY(PGMR3PhysAllocateLargeHandyPage)

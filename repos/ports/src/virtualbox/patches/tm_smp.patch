@@ -1,0 +1,27 @@
+tm_smp.patch
+
+diff --git a/src/app/virtualbox/src/VBox/VMM/VMMR3/TM.cpp b/src/app/virtualbox/src/VBox/VMM/VMMR3/TM.cpp
+index a5dc16e..df851a1 100644
+--- a/src/app/virtualbox/src/VBox/VMM/VMMR3/TM.cpp
++++ b/src/app/virtualbox/src/VBox/VMM/VMMR3/TM.cpp
+@@ -1901,10 +1901,19 @@ static DECLCALLBACK(void) tmR3TimerCallback(PRTTIMER pTimer, void *pvUser, uint6
+     NOREF(pTimer);
+ 
+     AssertCompile(TMCLOCK_MAX == 4);
++
++    if (VMCPU_FF_IS_SET(pVCpuDst, VMCPU_FF_TIMER)) {
+ #ifdef DEBUG_Sander /* very annoying, keep it private. */
+-    if (VMCPU_FF_IS_SET(pVCpuDst, VMCPU_FF_TIMER))
+         Log(("tmR3TimerCallback: timer event still pending!!\n"));
+ #endif
++        /*
++         * The VMCPU_FF_TIMER flag could have been set by a non-destination
++         * EMT thread without waking the destination EMT thread.
++         */
++        VMR3NotifyCpuFFU(pVCpuDst->pUVCpu, VMNOTIFYFF_FLAGS_DONE_REM);
++        return;
++	}
++
+     if (    !VMCPU_FF_IS_SET(pVCpuDst, VMCPU_FF_TIMER)
+         &&  (   pVM->tm.s.paTimerQueuesR3[TMCLOCK_VIRTUAL_SYNC].offSchedule /** @todo FIXME - reconsider offSchedule as a reason for running the timer queues. */
+             ||  pVM->tm.s.paTimerQueuesR3[TMCLOCK_VIRTUAL].offSchedule
