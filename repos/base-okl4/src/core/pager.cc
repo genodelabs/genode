@@ -1,5 +1,5 @@
 /*
- * \brief  OKL4-specific pager framework
+ * \brief  Pager support for OKL4
  * \author Norman Feske
  * \date   2009-03-31
  */
@@ -11,85 +11,137 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
+#include <base/printf.h>
+
 /* Core includes */
+#include <ipc_pager.h>
 #include <pager.h>
 
+namespace Okl4 { extern "C" {
+#include <l4/message.h>
+#include <l4/ipc.h>
+#include <l4/schedule.h>
+#include <l4/kdebug.h>
+} }
+
+static const bool verbose_page_fault = false;
+static const bool verbose_exception  = false;
+
+
 using namespace Genode;
+using namespace Okl4;
 
-
-/**********************
- ** Pager activation **
- **********************/
-
-void Pager_activation_base::entry()
+/**
+ * Print page-fault information in a human-readable form
+ */
+static inline void print_page_fault(L4_Word_t type, L4_Word_t addr, L4_Word_t ip,
+                                    unsigned long badge)
 {
-	Ipc_pager pager;
-	_cap = pager;
-	_cap_valid.unlock();
+	printf("page (%s%s%s) fault at fault_addr=%lx, fault_ip=%lx, from=%lx\n",
+	       type & L4_Readable   ? "r" : "-",
+	       type & L4_Writable   ? "w" : "-",
+	       type & L4_eXecutable ? "x" : "-",
+	       addr, ip, badge);
+}
 
-	bool reply_pending = false;
-	while (1) {
 
-		if (reply_pending)
-			pager.reply_and_wait_for_fault();
-		else
-			pager.wait_for_fault();
+/**
+ * Return the global thread ID of the calling thread
+ *
+ * On OKL4 we cannot use 'L4_Myself()' to determine our own thread's
+ * identity. By convention, each thread stores its global ID in a
+ * defined entry of its UTCB.
+ */
+static inline Okl4::L4_ThreadId_t thread_get_my_global_id()
+{
+	Okl4::L4_ThreadId_t myself;
+	myself.raw = Okl4::__L4_TCR_ThreadWord(UTCB_TCR_THREAD_WORD_MYSELF);
+	return myself;
+}
 
-		reply_pending = false;
 
-		/* lookup referenced object */
-		Object_pool<Pager_object>::Guard _obj(_ep ? _ep->lookup_and_lock(pager.badge()) : 0);
-		Pager_object *obj = _obj;
+/*************
+ ** Mapping **
+ *************/
 
-		/* handle request */
-		if (obj) {
-			if (pager.is_exception()) {
-				obj->submit_exception_signal();
-				continue;
-			}
+Mapping::Mapping(addr_t dst_addr, addr_t src_addr,
+                 Cache_attribute cacheability, bool io_mem,
+                 unsigned l2size, bool rw)
+:
+	_fpage(L4_FpageLog2(dst_addr, l2size)),
+	/*
+	 * OKL4 does not support write-combining as mapping attribute.
+	 */
+	_phys_desc(L4_PhysDesc(src_addr, 0))
+{
+	L4_Set_Rights(&_fpage, rw ? L4_ReadWriteOnly : L4_ReadeXecOnly);
+}
 
-			/* send reply if page-fault handling succeeded */
-			if (!obj->pager(pager))
-				reply_pending = true;
 
-			continue;
+Mapping::Mapping() { }
 
-		} else {
 
-			/*
-			 * Prevent threads outside of core to mess with our wake-up
-			 * interface. This condition can trigger if a process gets
-			 * destroyed which triggered a page fault shortly before getting
-			 * killed. In this case, 'wait_for_fault()' returns (because of
-			 * the page fault delivery) but the pager-object lookup will fail
-			 * (because core removed the process already).
-			 */
-			enum { CORE_SPACE = 0 };
-			if (pager.last_space() == CORE_SPACE) {
+/***************
+ ** IPC pager **
+ ***************/
 
-				/*
-				 * We got a request from one of cores region-manager sessions
-				 * to answer the pending page fault of a resolved region-manager
-				 * client. Hence, we have to send the page-fault reply to the
-				 * specified thread and answer the call of the region-manager
-				 * session.
-				 *
-				 * When called from a region-manager session, we receive the
-				 * core-local address of the targeted pager object via the
-				 * first message word, which corresponds to the 'fault_ip'
-				 * argument of normal page-fault messages.
-				 */
-				obj = reinterpret_cast<Pager_object *>(pager.fault_ip());
+void Ipc_pager::wait_for_fault()
+{
+	/* wait for fault */
+	_faulter_tag = L4_Wait(&_last);
 
-				/* send reply to the calling region-manager session */
-				pager.acknowledge_wakeup();
+	/*
+	 * Read fault information
+	 */
 
-				/* answer page fault of resolved pager object */
-				pager.set_reply_dst(obj->cap());
-				pager.acknowledge_wakeup();
-			}
-		}
-	};
+	/* exception */
+	if (is_exception()) {
+		L4_StoreMR(1, &_fault_ip);
+
+		if (verbose_exception)
+			PERR("Exception (label 0x%x) occured in space %d at IP 0x%p",
+			     (int)L4_Label(_faulter_tag), (int)L4_SenderSpace().raw,
+			     (void *)_fault_ip);
+	}
+
+	/* page fault */
+	else {
+		L4_StoreMR(1, &_fault_addr);
+		L4_StoreMR(2, &_fault_ip);
+
+		if (verbose_page_fault)
+			print_page_fault(L4_Label(_faulter_tag), _fault_addr, _fault_ip, _last.raw);
+	}
+	_last_space = L4_SenderSpace().raw;
+}
+
+
+void Ipc_pager::reply_and_wait_for_fault()
+{
+	L4_SpaceId_t to_space;
+	to_space.raw = L4_ThreadNo(_last) >> Thread_id_bits::THREAD;
+
+	/* map page to faulting space */
+	int ret = L4_MapFpage(to_space, _reply_mapping.fpage(),
+	                                _reply_mapping.phys_desc());
+
+	if (ret != 1)
+		PERR("L4_MapFpage returned %d, error_code=%d",
+		     ret, (int)L4_ErrorCode());
+
+	/* reply to page-fault message to resume the faulting thread */
+	acknowledge_wakeup();
+
+	wait_for_fault();
+}
+
+
+void Ipc_pager::acknowledge_wakeup()
+{
+	/* answer wakeup call from one of core's region-manager sessions */
+	L4_LoadMR(0, 0);
+	L4_Send(_last);
 }
 
 
@@ -97,28 +149,7 @@ void Pager_activation_base::entry()
  ** Pager entrypoint **
  **********************/
 
-Pager_entrypoint::Pager_entrypoint(Cap_session *, Pager_activation_base *a)
-: _activation(a)
-{ _activation->ep(this); }
-
-
-void Pager_entrypoint::dissolve(Pager_object *obj)
+Untyped_capability Pager_entrypoint::_manage(Pager_object *obj)
 {
-	remove_locked(obj);
-}
-
-
-Pager_capability Pager_entrypoint::manage(Pager_object *obj)
-{
-	/* return invalid capability if no activation is present */
-	if (!_activation) return Pager_capability();
-
-	Native_capability cap = Native_capability(_activation->cap().dst(), obj->badge());
-
-	/* add server object to object pool */
-	obj->cap(cap);
-	insert(obj);
-
-	/* return capability that uses the object id as badge */
-	return reinterpret_cap_cast<Pager_object>(cap);
+	return Untyped_capability(_tid.l4id, obj->badge());
 }

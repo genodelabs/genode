@@ -19,7 +19,7 @@ SRC_CC      += cap_session_component.cc \
                main.cc \
                multiboot_info.cc \
                pager.cc \
-               pager_common.cc \
+               pager_object.cc \
                pd_session_component.cc \
                pd_session_extension.cc \
                platform.cc \
@@ -59,7 +59,7 @@ vpath rm_session_component.cc     $(GEN_CORE_DIR)
 vpath rom_session_component.cc    $(GEN_CORE_DIR)
 vpath signal_session_component.cc $(GEN_CORE_DIR)
 vpath trace_session_component.cc  $(GEN_CORE_DIR)
-vpath pager_common.cc             $(GEN_CORE_DIR)
+vpath pager_object.cc             $(GEN_CORE_DIR)
 vpath core_printf.cc              $(BASE_DIR)/src/base/console
 vpath %.cc                        $(REP_DIR)/src/core
 vpath %.cc                        $(REP_DIR)/src/base/thread

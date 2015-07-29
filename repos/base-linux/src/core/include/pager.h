@@ -45,14 +45,12 @@ namespace Genode {
 		void release() { }
 	};
 
-	class Pager_activation_base { };
 	struct Pager_entrypoint
 	{
-		Pager_entrypoint(Cap_session *, Pager_activation_base *) { }
+		Pager_entrypoint(Cap_session *) { }
 
 		Pager_object *lookup_and_lock(Pager_capability) { return 0; }
 	};
-	template <int FOO> class Pager_activation : public Pager_activation_base { };
 }
 
 #endif /* _CORE__INCLUDE__PAGER_H_ */

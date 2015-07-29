@@ -2,11 +2,12 @@
  * \brief  Paging-server framework
  * \author Norman Feske
  * \author Christian Helmuth
+ * \author Stefan Kalkowski
  * \date   2006-04-28
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2006-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -16,31 +17,31 @@
 #define _CORE__INCLUDE__PAGER_H_
 
 #include <base/thread.h>
-#include <base/thread_state.h>
-#include <ipc_pager.h>
-#include <base/printf.h>
 #include <base/object_pool.h>
-#include <base/signal.h>
 #include <cap_session/cap_session.h>
 #include <pager/capability.h>
+#include <ipc_pager.h>
 
 namespace Genode {
 
+	/**
+	 * Special server object for paging
+	 *
+	 * A 'Pager_object' is very similar to a 'Rpc_object'. It is just a
+	 * special implementation for page-fault handling, which does not allow to
+	 * define a "badge" for pager capabilities.
+	 */
 	class Pager_object;
+
+	/**
+	 * Paging entry point
+	 */
 	class Pager_entrypoint;
-	class Pager_activation_base;
-	template <int> class Pager_activation;
+
+	enum { PAGER_EP_STACK_SIZE = sizeof(addr_t) * 2048 };
 }
 
 
-
-/**
- * Special server object for paging
- *
- * A 'Pager_object' is very similar to a 'Rpc_object'. It is just a
- * special implementation for page-fault handling, which does not allow to
- * define a "badge" for pager capabilities.
- */
 class Genode::Pager_object : public Object_pool<Pager_object>::Entry
 {
 	protected:
@@ -125,69 +126,15 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry
 };
 
 
-/**
- * A 'Pager_activation' processes one page fault of a 'Pager_object' at a time.
- */
-class Genode::Pager_activation_base: public Thread_base
+class Genode::Pager_entrypoint : public Object_pool<Pager_object>,
+                                 public Thread<PAGER_EP_STACK_SIZE>
 {
 	private:
 
-		enum { WEIGHT = Cpu_session::DEFAULT_WEIGHT };
+		Ipc_pager    _pager;
+		Cap_session *_cap_session;
 
-		Native_capability _cap;
-		Pager_entrypoint *_ep;       /* entry point to which the
-		                                activation belongs */
-		/**
-		 * Lock used for blocking until '_cap' is initialized
-		 */
-		Lock _cap_valid;
-
-	public:
-
-		Pager_activation_base(const char *name, size_t stack_size)
-		: Thread_base(WEIGHT, name, stack_size), _cap(Native_capability()),
-		              _ep(0), _cap_valid(Lock::LOCKED) { }
-
-		/**
-		 * Set entry point, which the activation serves
-		 *
-		 * This method is only called by the 'Pager_entrypoint'
-		 * constructor.
-		 */
-		void ep(Pager_entrypoint *ep) { _ep = ep; }
-
-		/**
-		 * Thread interface
-		 */
-		void entry();
-
-		/**
-		 * Return capability to this activation
-		 *
-		 * This method should only be called from 'Pager_entrypoint'
-		 */
-		Native_capability cap()
-		{
-			/* ensure that the initialization of our 'Ipc_pager' is done */
-			if (!_cap.valid())
-				_cap_valid.lock();
-			return _cap;
-		}
-};
-
-
-/**
- * Paging entry point
- *
- * For a paging entry point can hold only one activation. So, paging is
- * strictly serialized for one entry point.
- */
-class Genode::Pager_entrypoint : public Object_pool<Pager_object>
-{
-	private:
-
-		Pager_activation_base *_activation;
-		Cap_session           *_cap_session;
+		Untyped_capability _manage(Pager_object *obj);
 
 	public:
 
@@ -197,9 +144,10 @@ class Genode::Pager_entrypoint : public Object_pool<Pager_object>
 		 * \param cap_session  Cap_session for creating capabilities
 		 *                     for the pager objects managed by this
 		 *                     entry point
-		 * \param a            initial activation
 		 */
-		Pager_entrypoint(Cap_session *cap_session, Pager_activation_base *a = 0);
+		Pager_entrypoint(Cap_session *cap_session)
+		: Thread<PAGER_EP_STACK_SIZE>("pager_ep"),
+		  _cap_session(cap_session) { start(); }
 
 		/**
 		 * Associate Pager_object with the entry point
@@ -210,16 +158,13 @@ class Genode::Pager_entrypoint : public Object_pool<Pager_object>
 		 * Dissolve Pager_object from entry point
 		 */
 		void dissolve(Pager_object *obj);
-};
 
 
-template <int STACK_SIZE>
-class Genode::Pager_activation : public Pager_activation_base
-{
-	public:
+		/**********************
+		 ** Thread interface **
+		 **********************/
 
-		Pager_activation() : Pager_activation_base("pager", STACK_SIZE)
-		{ start(); }
+		void entry();
 };
 
 #endif /* _CORE__INCLUDE__PAGER_H_ */

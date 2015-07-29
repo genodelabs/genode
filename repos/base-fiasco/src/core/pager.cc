@@ -1,10 +1,7 @@
 /*
- * \brief  Fiasco pager framework
- * \author Norman Feske
+ * \brief  Pager support for Fiasco
  * \author Christian Helmuth
- * \date   2006-07-14
- *
- * FIXME Isn't this file generic?
+ * \date   2006-06-14
  */
 
 /*
@@ -14,7 +11,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
+#include <base/printf.h>
+
 /* Core includes */
+#include <ipc_pager.h>
 #include <pager.h>
 
 namespace Fiasco {
@@ -23,101 +24,61 @@ namespace Fiasco {
 }
 
 using namespace Genode;
+using namespace Fiasco;
 
 
-/**********************
- ** Pager activation **
- **********************/
+/***************
+ ** Ipc_pager **
+ ***************/
 
-void Pager_activation_base::entry()
+void Ipc_pager::wait_for_fault()
 {
-	Ipc_pager pager;
-	_cap = pager;
-	_cap_valid.unlock();
+	l4_msgdope_t  result;
 
-	Pager_object * obj;
-	bool reply = false;
+	do {
+		l4_ipc_wait(&_last,
+		            L4_IPC_SHORT_MSG, &_pf_addr, &_pf_ip,
+		            L4_IPC_NEVER, &result);
 
-	while (1) {
+		if (L4_IPC_IS_ERROR(result))
+			PERR("Ipc error %lx", L4_IPC_ERROR(result));
 
-		if (reply)
-			pager.reply_and_wait_for_fault();
-		else
-			pager.wait_for_fault();
+	} while (L4_IPC_IS_ERROR(result));
+}
 
-		/* lookup referenced object */
-		Object_pool<Pager_object>::Guard _obj(_ep ? _ep->lookup_and_lock(pager.badge()) : 0);
-		obj   = _obj;
-		reply = false;
 
-		/* handle request */
-		if (obj) {
-			reply = !obj->pager(pager);
-			/* something strange occurred - leave thread in pagefault */
-			continue;
-		} else {
+void Ipc_pager::reply_and_wait_for_fault()
+{
+	l4_msgdope_t  result;
 
-			/* prevent threads outside of core to mess with our wake-up interface */
-			enum { CORE_TASK_ID = 4 };
-			if (pager.last().id.task != CORE_TASK_ID) {
+	l4_ipc_reply_and_wait(_last,
+	                      L4_IPC_SHORT_FPAGE, _reply_mapping.dst_addr(),
+	                      _reply_mapping.fpage().fpage, &_last,
+	                      L4_IPC_SHORT_MSG, &_pf_addr, &_pf_ip,
+	                      L4_IPC_SEND_TIMEOUT_0, &result);
 
-				PWRN("page fault from unknown partner %x.%02x",
-				     (int)pager.last().id.task, (int)pager.last().id.lthread);
+	if (L4_IPC_IS_ERROR(result)) {
+		PERR("Ipc error %lx", L4_IPC_ERROR(result));
 
-			} else {
+		/* ignore all errors and wait for next proper message */
+		wait_for_fault();
+	}
+}
 
-				/*
-				 * We got a request from one of cores region-manager sessions
-				 * to answer the pending page fault of a resolved region-manager
-				 * client. Hence, we have to send the page-fault reply to the
-				 * specified thread and answer the call of the region-manager
-				 * session.
-				 *
-				 * When called from a region-manager session, we receive the
-				 * core-local address of the targeted pager object via the
-				 * first message word, which corresponds to the 'fault_ip'
-				 * argument of normal page-fault messages.
-				 */
-				obj = reinterpret_cast<Pager_object *>(pager.fault_ip());
 
-				/* send reply to the calling region-manager session */
-				pager.acknowledge_wakeup();
-
-				/* answer page fault of resolved pager object */
-				pager.set_reply_dst(obj->cap());
-				pager.acknowledge_wakeup();
-			}
-		}
-	};
+void Ipc_pager::acknowledge_wakeup()
+{
+	/* answer wakeup call from one of core's region-manager sessions */
+	l4_msgdope_t result;
+	l4_ipc_send(_last, L4_IPC_SHORT_MSG, 0, 0, L4_IPC_SEND_TIMEOUT_0, &result);
 }
 
 
 /**********************
- ** Pager entrypoint **
+ ** Pager Entrypoint **
  **********************/
 
-Pager_entrypoint::Pager_entrypoint(Cap_session *, Pager_activation_base *a)
-: _activation(a)
-{ _activation->ep(this); }
-
-
-void Pager_entrypoint::dissolve(Pager_object *obj)
+Untyped_capability Pager_entrypoint::_manage(Pager_object *obj)
 {
-	remove_locked(obj);
-}
-
-
-Pager_capability Pager_entrypoint::manage(Pager_object *obj)
-{
-	/* return invalid capability if no activation is present */
-	if (!_activation) return Pager_capability();
-
-	Native_capability cap(_activation->cap().dst(), obj->badge());
-
-	/* add server object to object pool */
-	obj->cap(cap);
-	insert(obj);
-
-	/* return capability that uses the object id as badge */
-	return reinterpret_cap_cast<Pager_object>(cap);
+	return Untyped_capability(_tid.l4id, obj->badge());
 }
