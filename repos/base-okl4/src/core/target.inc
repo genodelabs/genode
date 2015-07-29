@@ -15,12 +15,12 @@ SRC_CC += cap_session_component.cc \
           dump_alloc.cc \
           io_mem_session_component.cc \
           io_mem_session_support.cc \
-          ipc_pager.cc \
           irq_session_component.cc \
           main.cc \
           okl4_pd_session_component.cc \
           pager.cc \
-          pager_common.cc \
+          pager_ep.cc \
+          pager_object.cc \
           pd_session_component.cc \
           platform.cc \
           platform_pd.cc \
@@ -61,7 +61,8 @@ vpath dataspace_component.cc      $(GEN_CORE_DIR)
 vpath core_mem_alloc.cc           $(GEN_CORE_DIR)
 vpath dump_alloc.cc               $(GEN_CORE_DIR)
 vpath context_area.cc             $(GEN_CORE_DIR)
-vpath pager_common.cc             $(GEN_CORE_DIR)
+vpath pager_ep.cc                 $(GEN_CORE_DIR)
+vpath pager_object.cc             $(GEN_CORE_DIR)
 vpath %.cc                        $(REP_DIR)/src/core
 vpath core_printf.cc              $(BASE_DIR)/src/base/console
 

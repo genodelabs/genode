@@ -1,10 +1,7 @@
 /*
- * \brief  Pistachio pager framework
- * \author Norman Feske
+ * \brief  Pager support for Pistachio
  * \author Christian Helmuth
- * \date   2006-07-14
- *
- * FIXME Isn't this file generic?
+ * \date   2006-06-14
  */
 
 /*
@@ -14,83 +11,128 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
+#include <base/printf.h>
+#include <base/sleep.h>
+
 /* Core includes */
+#include <ipc_pager.h>
 #include <pager.h>
 
-using namespace Genode;
-
-
-namespace Pistachio {
-#include <l4/thread.h>
+namespace Pistachio
+{
+#include <l4/message.h>
+#include <l4/ipc.h>
+#include <l4/schedule.h>
+#include <l4/kdebug.h>
 }
 
-/**********************
- ** Pager activation **
- **********************/
+using namespace Genode;
+using namespace Pistachio;
 
-void Pager_activation_base::entry()
+
+/*************
+ ** Mapping **
+ *************/
+
+Mapping::Mapping(addr_t dst_addr, addr_t src_addr,
+                 Cache_attribute, bool io_mem, unsigned l2size,
+                 bool rw, bool grant)
 {
-	Ipc_pager pager;
-	_cap = pager;
-	_cap_valid.unlock();
+	L4_Fpage_t fpage = L4_FpageLog2(src_addr, l2size);
 
-	Pager_object * obj;
-	bool reply = false;
+	fpage += rw ? L4_FullyAccessible : L4_Readable;
 
-	while (1) {
+	if (grant)
+		_grant_item = L4_GrantItem(fpage, dst_addr);
+	else
+		_map_item = L4_MapItem(fpage, dst_addr);
+}
 
-		if (reply)
-			pager.reply_and_wait_for_fault();
-		else
-			pager.wait_for_fault();
 
-		/* lookup referenced object */
-		Object_pool<Pager_object>::Guard _obj(_ep ? _ep->lookup_and_lock(pager.badge()) : 0);
-		obj   = _obj;
-		reply = false;
+Mapping::Mapping() { _map_item = L4_MapItem(L4_Nilpage, 0); }
 
-		/* handle request */
-		if (obj) {
-			/* if something strange occurred - leave thread in pagefault */
-			reply = !obj->pager(pager);
-			continue;
-		} else {
 
-			/* prevent threads outside of core to mess with our wake-up interface */
-//			enum { CORE_TASK_ID = 4 };
-//			if (pager.last().id.task != CORE_TASK_ID) {
+/***************
+ ** IPC pager **
+ ***************/
 
-#warning Check for messages from outside of core
-			if (0) {
-				PWRN("page fault to 0x%08lx from unknown partner %lx.",
-				 Pistachio::L4_Myself().raw,
-				 pager.last().raw);
+void Ipc_pager::wait_for_fault()
+{
+	L4_MsgTag_t result;
+	L4_ThreadId_t sender = L4_nilthread;
+	bool failed;
 
-			} else {
+	do {
+		L4_Accept(L4_UntypedWordsAcceptor);
+		result = L4_Wait(&sender);
+		failed = L4_IpcFailed(result);
+		if (failed)
+			PERR("Page fault IPC error. (continuable)");
 
-				/*
-				 * We got a request from one of cores region-manager sessions
-				 * to answer the pending page fault of a resolved region-manager
-				 * client. Hence, we have to send the page-fault reply to the
-				 * specified thread and answer the call of the region-manager
-				 * session.
-				 *
-				 * When called from a region-manager session, we receive the
-				 * core-local address of the targeted pager object via the
-				 * first message word, which corresponds to the 'fault_ip'
-				 * argument of normal page-fault messages.
-				 */
-				obj = reinterpret_cast<Pager_object *>(pager.fault_ip());
-
-				/* send reply to the calling region-manager session */
-				pager.acknowledge_wakeup();
-
-				/* answer page fault of resolved pager object */
-				pager.set_reply_dst(obj->cap());
-				pager.acknowledge_wakeup();
-			}
+		if (L4_UntypedWords(result) != 2) {
+			PERR("Malformed page-fault ipc. (sender = 0x%08lx)",
+			 sender.raw);
+			failed = true;
 		}
+
+	} while (failed);
+
+	L4_Msg_t msg;
+	// TODO Error checking. Did we really receive 2 words?
+	L4_Store(result, &msg);
+
+	_pf_addr = L4_Get(&msg, 0);
+	_pf_ip = L4_Get(&msg, 1);
+	_flags = L4_Label(result);
+
+	_last = sender;
+}
+
+
+void Ipc_pager::reply_and_wait_for_fault()
+{
+	/*
+	 * XXX  call memory-control if mapping has enabled write-combining
+	 */
+
+	L4_Msg_t msg;
+	L4_Accept(L4_UntypedWordsAcceptor);
+	L4_Clear(&msg);
+
+	/* this should work even if _map_item is a grant item */
+	L4_Append(&msg, _map_item);
+	L4_Load(&msg);
+	L4_MsgTag_t result = L4_ReplyWait(_last, &_last);
+
+	if (L4_IpcFailed(result)) {
+		PERR("Page fault IPC error. (continuable)");
+		wait_for_fault();
+		return;
 	}
+
+	if (L4_UntypedWords(result) != 2) {
+		PERR("Malformed page-fault ipc. (sender = 0x%08lx)", _last.raw);
+		wait_for_fault();
+		return;
+	}
+
+	L4_Clear(&msg);
+	// TODO Error checking. Did we really receive 2 words?
+	L4_Store(result, &msg);
+
+	_pf_addr = L4_Get(&msg, 0);
+	_pf_ip = L4_Get(&msg, 1);
+	_flags = L4_Label(result);
+}
+
+
+void Ipc_pager::acknowledge_wakeup()
+{
+	PERR("acknowledge_wakeup called, not yet implemented");
+//	/* answer wakeup call from one of core's region-manager sessions */
+//	l4_msgdope_t result;
+//	l4_ipc_send(_last, L4_IPC_SHORT_MSG, 0, 0, L4_IPC_SEND_TIMEOUT_0, &result);
 }
 
 
@@ -98,28 +140,7 @@ void Pager_activation_base::entry()
  ** Pager entrypoint **
  **********************/
 
-Pager_entrypoint::Pager_entrypoint(Cap_session *, Pager_activation_base *a)
-: _activation(a)
-{ _activation->ep(this); }
-
-
-void Pager_entrypoint::dissolve(Pager_object *obj)
+Untyped_capability Pager_entrypoint::_manage(Pager_object *obj)
 {
-	remove_locked(obj);
-}
-
-
-Pager_capability Pager_entrypoint::manage(Pager_object *obj)
-{
-	/* return invalid capability if no activation is present */
-	if (!_activation) return Pager_capability();
-
-	Native_capability cap = Native_capability(_activation->cap().dst(), obj->badge());
-
-	/* add server object to object pool */
-	obj->cap(cap);
-	insert(obj);
-
-	/* return capability that uses the object id as badge */
-	return reinterpret_cap_cast<Pager_object>(cap);
+	return Untyped_capability(_tid.l4id, obj->badge());
 }

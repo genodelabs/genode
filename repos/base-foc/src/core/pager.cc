@@ -4,8 +4,6 @@
  * \author Christian Helmuth
  * \author Stefan Kalkowski
  * \date   2006-07-14
- *
- * FIXME Isn't this file generic?
  */
 
 /*
@@ -32,33 +30,20 @@ namespace Fiasco {
 using namespace Genode;
 
 
-/**********************
- ** Pager activation **
- **********************/
-
-void Pager_activation_base::entry()
+void Pager_entrypoint::entry()
 {
-	Ipc_pager pager;
-	_cap = Native_capability(Thread_base::_thread_cap);
-	_cap_valid.unlock();
-
 	bool reply_pending = false;
 	while (1) {
 
 		if (reply_pending)
-			pager.reply_and_wait_for_fault();
+			_pager.reply_and_wait_for_fault();
 		else
-			pager.wait_for_fault();
+			_pager.wait_for_fault();
 
 		reply_pending = false;
 
-		if (!_ep) {
-			PWRN("Pager entrypoint not yet defined");
-			continue;
-		}
-
 		/* lookup referenced object */
-		Object_pool<Pager_object>::Guard obj(_ep->lookup_and_lock(pager.badge()));
+		Object_pool<Pager_object>::Guard obj(lookup_and_lock(_pager.badge()));
 
 		/* the pager_object might be destroyed, while we got the message */
 		if (!obj) {
@@ -66,14 +51,14 @@ void Pager_activation_base::entry()
 			continue;
 		}
 
-		switch (pager.msg_type()) {
+		switch (_pager.msg_type()) {
 
 		case Ipc_pager::PAGEFAULT:
 		case Ipc_pager::EXCEPTION:
 			{
-				if (pager.is_exception()) {
+				if (_pager.is_exception()) {
 					Lock::Guard guard(obj->state.lock);
-					pager.get_regs(&obj->state);
+					_pager.get_regs(&obj->state);
 					obj->state.exceptions++;
 					obj->state.in_exception = true;
 					obj->submit_exception_signal();
@@ -81,12 +66,12 @@ void Pager_activation_base::entry()
 				}
 
 				/* handle request */
-				if (obj->pager(pager)) {
+				if (obj->pager(_pager)) {
 					/* could not resolv - leave thread in pagefault */
 					PDBG("Could not resolve pf=%p ip=%p",
-					     (void*)pager.fault_addr(), (void*)pager.fault_ip());
+					     (void*)_pager.fault_addr(), (void*)_pager.fault_ip());
 				} else {
-					pager.set_reply_dst(obj->badge());
+					_pager.set_reply_dst(obj->badge());
 					reply_pending = true;
 					continue;
 				}
@@ -104,20 +89,20 @@ void Pager_activation_base::entry()
 				 */
 
 				/* send reply to the caller */
-				pager.set_reply_dst(Native_thread());
-				pager.acknowledge_wakeup();
+				_pager.set_reply_dst(Native_thread());
+				_pager.acknowledge_wakeup();
 
 				{
 					Lock::Guard guard(obj->state.lock);
 					/* revert exception flag */
 					obj->state.in_exception = false;
 					/* set new register contents */
-					pager.set_regs(obj->state);
+					_pager.set_regs(obj->state);
 				}
 
 				/* send wake up message to requested thread */
-				pager.set_reply_dst(obj->badge());
-				pager.acknowledge_exception();
+				_pager.set_reply_dst(obj->badge());
+				_pager.acknowledge_exception();
 				break;
 			}
 
@@ -128,7 +113,7 @@ void Pager_activation_base::entry()
 		case Ipc_pager::PAUSE:
 			{
 				Lock::Guard guard(obj->state.lock);
-				pager.get_regs(&obj->state);
+				_pager.get_regs(&obj->state);
 				obj->state.exceptions++;
 				obj->state.in_exception = true;
 
@@ -138,28 +123,16 @@ void Pager_activation_base::entry()
 				 * that case we unblock it immediately.
 				 */
 				if (!obj->state.paused) {
-					pager.set_reply_dst(obj->badge());
+					_pager.set_reply_dst(obj->badge());
 					reply_pending = true;
 				}
 				break;
 			}
 
 		default:
-			PERR("Got unknown message type %x!", pager.msg_type());
+			PERR("Got unknown message type %x!", _pager.msg_type());
 		}
 	};
-}
-
-
-/**********************
- ** Pager entrypoint **
- **********************/
-
-Pager_entrypoint::Pager_entrypoint(Cap_session           *cap_session,
-                                   Pager_activation_base *a)
-: _activation(a), _cap_session(cap_session)
-{
-	_activation->ep(this);
 }
 
 
@@ -176,11 +149,7 @@ Pager_capability Pager_entrypoint::manage(Pager_object *obj)
 {
 	using namespace Fiasco;
 
-	/* return invalid capability if no activation is present */
-	if (!_activation) return Pager_capability();
-
-	Native_capability c = _activation->cap();
-	Native_capability cap(_cap_session->alloc(c));
+	Native_capability cap(_cap_session->alloc({Thread_base::_thread_cap}));
 
 	/* add server object to object pool */
 	obj->cap(cap);

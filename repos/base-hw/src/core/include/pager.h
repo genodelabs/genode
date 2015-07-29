@@ -47,15 +47,7 @@ namespace Genode
 	 */
 	class Pager_entrypoint;
 
-	/**
-	 * A thread that processes one page fault of a pager object at a time
-	 */
-	class Pager_activation_base;
-
-	/**
-	 * Pager-activation base with custom stack size
-	 */
-	template <unsigned STACK_SIZE> class Pager_activation;
+	enum { PAGER_EP_STACK_SIZE = sizeof(addr_t) * 2048 };
 }
 
 struct Genode::Mapping
@@ -198,26 +190,30 @@ class Genode::Pager_object
 		void thread_cap(Thread_capability const & c);
 };
 
-class Genode::Pager_activation_base
-: public Thread_base,
-  public Kernel_object<Kernel::Signal_receiver>,
-  public Ipc_pager
+
+class Genode::Pager_entrypoint : public Object_pool<Pager_object>,
+                                 public Thread<PAGER_EP_STACK_SIZE>,
+                                 public Kernel_object<Kernel::Signal_receiver>,
+                                 public Ipc_pager
 {
-	private:
-
-		Lock               _startup_lock;
-		Pager_entrypoint * _ep;
-
 	public:
 
 		/**
 		 * Constructor
 		 *
-		 * \param name        name of the new thread
-		 * \param stack_size  stack size of the new thread
+		 * \param a  activation that shall handle the objects of the entrypoint
 		 */
-		Pager_activation_base(char const * const name,
-		                      size_t const stack_size);
+		Pager_entrypoint(Cap_session * cap_session);
+
+		/**
+		 * Associate pager object 'obj' with entry point
+		 */
+		Pager_capability manage(Pager_object * const obj);
+
+		/**
+		 * Dissolve pager object 'obj' from entry point
+		 */
+		void dissolve(Pager_object * const obj);
 
 		/**
 		 * Bring current mapping data into effect
@@ -233,55 +229,6 @@ class Genode::Pager_activation_base
 		 **********************/
 
 		void entry();
-
-
-		/***************
-		 ** Accessors **
-		 ***************/
-
-		void ep(Pager_entrypoint * const ep);
-};
-
-class Genode::Pager_entrypoint : public Object_pool<Pager_object>
-{
-	private:
-
-		Pager_activation_base * const _activation;
-
-	public:
-
-		/**
-		 * Constructor
-		 *
-		 * \param a  activation that shall handle the objects of the entrypoint
-		 */
-		Pager_entrypoint(Cap_session *, Pager_activation_base * const a);
-
-		/**
-		 * Associate pager object 'obj' with entry point
-		 */
-		Pager_capability manage(Pager_object * const obj);
-
-		/**
-		 * Dissolve pager object 'obj' from entry point
-		 */
-		void dissolve(Pager_object * const obj);
-};
-
-template <unsigned STACK_SIZE>
-class Genode::Pager_activation : public Pager_activation_base
-{
-	public:
-
-		/**
-		 * Constructor
-		 */
-		Pager_activation()
-		:
-			Pager_activation_base("pager_activation", STACK_SIZE)
-		{
-			start();
-		}
 };
 
 #endif /* _CORE__INCLUDE__PAGER_H_ */

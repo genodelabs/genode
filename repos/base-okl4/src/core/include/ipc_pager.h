@@ -73,7 +73,7 @@ namespace Genode {
 	/**
 	 * Special paging server class
 	 */
-	class Ipc_pager : public Native_capability
+	class Ipc_pager
 	{
 		private:
 
@@ -98,11 +98,6 @@ namespace Genode {
 			void _reply_and_wait();
 
 		public:
-
-			/**
-			 * Constructor
-			 */
-			Ipc_pager();
 
 			/**
 			 * Wait for a new fault received as short message IPC
@@ -147,14 +142,13 @@ namespace Genode {
 			void acknowledge_wakeup();
 
 			/**
-			 * Return thread ID of last faulter
+			 * Returns true if the last request was send from a core thread
 			 */
-			Native_thread_id last() const { return _last; }
-
-			/**
-			 * Return address space where the last page fault occurred
-			 */
-			unsigned long last_space() const { return _last_space; }
+			bool request_from_core() const
+			{
+				enum { CORE_SPACE = 0 };
+				return _last_space == CORE_SPACE;
+			}
 
 			/**
 			 * Return badge for faulting thread

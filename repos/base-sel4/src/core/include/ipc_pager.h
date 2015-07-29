@@ -129,9 +129,9 @@ namespace Genode {
 			void acknowledge_wakeup();
 
 			/**
-			 * Return thread ID of last faulter
+			 * Returns true if the last request was send from a core thread
 			 */
-			Native_thread_id last() const { return _last; }
+			bool request_from_core() { return false; }
 
 			/**
 			 * Return badge for faulting thread

@@ -620,9 +620,8 @@ void Pager_activation_base::entry() { }
  **********************/
 
 
-Pager_entrypoint::Pager_entrypoint(Cap_session           *cap_session,
-                                   Pager_activation_base *a)
-: _activation(a), _cap_session(cap_session)
+Pager_entrypoint::Pager_entrypoint(Cap_session *cap_session)
+: _cap_session(cap_session)
 {
 	/* sanity check space for pager threads */
 	if (kernel_hip()->cpu_max() > PAGER_CPUS) {
@@ -631,20 +630,11 @@ Pager_entrypoint::Pager_entrypoint(Cap_session           *cap_session,
 		nova_die();
 	}
 
-	/* determine boot cpu */
-	unsigned master_cpu = boot_cpu();
-
 	/* detect enabled CPUs and create per CPU a pager thread */
 	typedef Pager_activation<PAGER_STACK_SIZE> Pager;
 	Pager * pager_of_cpu = reinterpret_cast<Pager *>(&pager_activation_mem);
 
 	for (unsigned i = 0; i < kernel_hip()->cpu_max(); i++, pager_of_cpu++) {
-		if (i == master_cpu) {
-			pager_threads[master_cpu] = a;
-			a->ep(this);
-			continue;
-		}
-
 		if (!kernel_hip()->is_cpu_enabled(i))
 			continue;
 

@@ -36,11 +36,11 @@ void Rm_client::unmap(addr_t, addr_t virt_base, size_t size)
 }
 
 
-/***************************
- ** Pager_activation_base **
- ***************************/
+/**********************
+ ** Pager_entrypoint **
+ **********************/
 
-int Pager_activation_base::apply_mapping()
+int Pager_entrypoint::apply_mapping()
 {
 	Page_flags const flags =
 	Page_flags::apply_mapping(_mapping.writable,
@@ -54,10 +54,8 @@ int Pager_activation_base::apply_mapping()
 }
 
 
-void Pager_activation_base::entry()
+void Pager_entrypoint::entry()
 {
-	/* get ready to receive faults */
-	_startup_lock.unlock();
 	while (1)
 	{
 		/* receive fault */
@@ -71,7 +69,7 @@ void Pager_activation_base::entry()
 		 * FIXME: The implicit lookup of the oject isn't needed.
 		 */
 		unsigned const pon = po->cap().local_name();
-		Object_pool<Pager_object>::Guard pog(_ep->lookup_and_lock(pon));
+		Object_pool<Pager_object>::Guard pog(lookup_and_lock(pon));
 		if (!pog) continue;
 
 		/* fetch fault data */

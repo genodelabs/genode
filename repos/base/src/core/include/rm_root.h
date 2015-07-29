@@ -29,12 +29,7 @@ namespace Genode {
 			Rpc_entrypoint         *_ds_ep;
 			Rpc_entrypoint         *_thread_ep;
 			Allocator              *_md_alloc;
-
-			enum { PAGER_STACK_SIZE = 2*4096 };
-			Pager_activation<PAGER_STACK_SIZE> _pager_thread;
-
 			Pager_entrypoint        _pager_ep;
-
 			addr_t                  _vm_start;
 			size_t                  _vm_size;
 
@@ -105,8 +100,8 @@ namespace Genode {
 			:
 				Root_component<Rm_session_component>(session_ep, md_alloc),
 				_ds_ep(ds_ep), _thread_ep(thread_ep), _md_alloc(md_alloc),
-				_pager_thread(), _pager_ep(cap_session, &_pager_thread),
-				_vm_start(vm_start), _vm_size(vm_size) { }
+				_pager_ep(cap_session), _vm_start(vm_start), _vm_size(vm_size)
+			{ }
 
 			/**
 			 * Return pager entrypoint

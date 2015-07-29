@@ -97,21 +97,6 @@ Pager_object::Pager_object(unsigned const badge, Affinity::Location)
 { }
 
 
-/***************************
- ** Pager_activation_base **
- ***************************/
-
-void Pager_activation_base::ep(Pager_entrypoint * const ep) { _ep = ep; }
-
-
-Pager_activation_base::Pager_activation_base(char const * const name,
-                                             size_t const stack_size)
-: Thread_base(0, name, stack_size),
-  Kernel_object<Kernel::Signal_receiver>(true),
-  _startup_lock(Lock::LOCKED), _ep(0)
-{ }
-
-
 /**********************
  ** Pager_entrypoint **
  **********************/
@@ -122,15 +107,16 @@ void Pager_entrypoint::dissolve(Pager_object * const o)
 }
 
 
-Pager_entrypoint::Pager_entrypoint(Cap_session *,
-                                   Pager_activation_base * const activation)
-: _activation(activation) {
-	_activation->ep(this); }
+Pager_entrypoint::Pager_entrypoint(Cap_session *)
+: Thread<PAGER_EP_STACK_SIZE>("pager_ep"),
+  Kernel_object<Kernel::Signal_receiver>(true)
+{ start(); }
 
 
 Pager_capability Pager_entrypoint::manage(Pager_object * const o)
 {
-	o->start_paging(_activation->kernel_object());
+	o->start_paging(kernel_object());
 	insert(o);
 	return reinterpret_cap_cast<Pager_object>(o->cap());
 }
+

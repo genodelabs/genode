@@ -85,7 +85,7 @@ namespace Genode {
 	/**
 	 * Special paging server class
 	 */
-	class Ipc_pager : public Native_capability
+	class Ipc_pager
 	{
 		private:
 
@@ -95,11 +95,6 @@ namespace Genode {
 			Mapping          _reply_mapping;  /* page-fault answer              */
 
 		public:
-
-			/**
-			 * Constructor
-			 */
-			Ipc_pager();
 
 			/**
 			 * Wait for a new page fault received as short message IPC
@@ -144,9 +139,13 @@ namespace Genode {
 			void acknowledge_wakeup();
 
 			/**
-			 * Return thread ID of last faulter
+			 * Returns true if the last request was send from a core thread
 			 */
-			Native_thread_id last() const { return _last; }
+			bool request_from_core()
+			{
+				enum { CORE_TASK_ID = 4 };
+				return _last.id.task == CORE_TASK_ID;
+			}
 
 			/**
 			 * Return badge for faulting thread

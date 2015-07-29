@@ -379,9 +379,8 @@ namespace Genode {
 			 * \param cap_session  Cap_session for creating capabilities
 			 *                     for the pager objects managed by this
 			 *                     entry point
-			 * \param a            initial activation
 			 */
-			Pager_entrypoint(Cap_session *cap_session, Pager_activation_base *a = 0);
+			Pager_entrypoint(Cap_session *cap_session);
 
 			/**
 			 * Associate Pager_object with the entry point
