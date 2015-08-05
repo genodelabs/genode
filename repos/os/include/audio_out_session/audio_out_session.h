@@ -37,8 +37,9 @@
 #define _INCLUDE__AUDIO_OUT_SESSION__AUDIO_OUT_SESSION_H_
 
 #include <base/allocator.h>
-#include <dataspace/capability.h>
 #include <base/rpc.h>
+#include <base/signal.h>
+#include <dataspace/capability.h>
 #include <session/session.h>
 
 
