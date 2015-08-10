@@ -146,9 +146,6 @@ int Platform_thread::start(void *ip, void *sp)
 	                        KEEP_FREE_PAGES_NOT_AVAILABLE_FOR_UPGRADE, UPPER_LIMIT_PAGES);
 	if (res != NOVA_OK) {
 		PERR("create_pd returned %d", res);
-
-		_pager->dump_kernel_quota_usage();
-
 		goto cleanup_pd;
 	}
 

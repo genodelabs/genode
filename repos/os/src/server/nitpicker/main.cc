@@ -841,12 +841,12 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 		View_handle view_handle(View_capability view_cap, View_handle handle) override
 		{
-			View *view = dynamic_cast<View *>(_ep.lookup_and_lock(view_cap));
-			if (!view) return View_handle();
-
-			Object_pool<Rpc_object_base>::Guard guard(view);
-
-			return _view_handle_registry.alloc(*view, handle);
+			auto lambda = [&] (View *view)
+			{
+				return (view) ? _view_handle_registry.alloc(*view, handle)
+				              : View_handle();
+			};
+			return _ep.apply(view_cap, lambda);
 		}
 
 		View_capability view_capability(View_handle handle) override
@@ -924,15 +924,12 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 				return;
 
 			/* lookup targeted session object */
-			Session_component * const session =
-				session_cap.valid() ? dynamic_cast<Session_component *>(_ep.lookup_and_lock(session_cap)) : 0;
-
-			_mode.focused_session(session);
-
-			if (session)
-				session->release();
-
-			report_session(_focus_reporter, session);
+			auto lambda = [this] (Session_component *session)
+			{
+				_mode.focused_session(session);
+				report_session(_focus_reporter, session);
+			};
+			_ep.apply(session_cap, lambda);
 		}
 
 		void session_control(Label suffix, Session_control control) override

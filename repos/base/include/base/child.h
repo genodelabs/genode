@@ -224,6 +224,8 @@ class Genode::Child : protected Rpc_object<Parent>
 		 */
 		void _remove_session(Session *s);
 
+		void _close(Session *s);
+
 		/**
 		 * Return service interface targetting the parent
 		 *

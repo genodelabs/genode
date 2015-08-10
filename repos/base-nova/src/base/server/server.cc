@@ -89,19 +89,7 @@ void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
 	Nova::revoke(Nova::Obj_crd(obj->cap().local_name(), 0), true);
 
 	/* make sure nobody is able to find this object */
-	remove_locked(obj);
-
-	/*
-	 * The activation may execute a blocking operation in a dispatch function.
-	 * Before resolving the corresponding object, we need to ensure that it is
-	 * no longer used by an activation. Therefore, we to need cancel an
-	 * eventually blocking operation and let the activation leave the context
-	 * of the object.
-	 */
-	_leave_server_object(obj);
-
-	/* wait until nobody is inside dispatch */
-	obj->acquire();
+	remove(obj);
 }
 
 void Rpc_entrypoint::_activation_entry()
@@ -115,10 +103,9 @@ void Rpc_entrypoint::_activation_entry()
 
 	Rpc_entrypoint *ep = static_cast<Rpc_entrypoint *>(Thread_base::myself());
 
-	/* delay start if requested so */
-	if (ep->_curr_obj) {
-		ep->_delay_start.lock();
-		ep->_delay_start.unlock();
+	{
+		/* potentially delay start */
+		Lock::Guard lock_guard(ep->_delay_start);
 	}
 
 	/* required to decrease ref count of capability used during last reply */
@@ -134,30 +121,25 @@ void Rpc_entrypoint::_activation_entry()
 	srv.ret(Ipc_client::ERR_INVALID_OBJECT);
 
 	/* atomically lookup and lock referenced object */
-	ep->_curr_obj = ep->lookup_and_lock(id_pt);
-	if (!ep->_curr_obj) {
+	auto lambda = [&] (Rpc_object_base *obj) {
+		if (!obj) {
 
-		/*
-		 * Badge is used to suppress error message solely.
-		 * It's non zero during cleanup call of an
-		 * rpc_object_base object, see _leave_server_object.
-		 */
-		if (!srv.badge())
-			PERR("could not look up server object, "
-			     " return from call id_pt=%lx",
-			     id_pt);
-
-	} else {
+			/*
+			 * Badge is used to suppress error message solely.
+			 * It's non zero during cleanup call of an
+			 * rpc_object_base object, see _leave_server_object.
+			 */
+			if (!srv.badge())
+				PERR("could not look up server object, "
+				     " return from call id_pt=%lx", id_pt);
+			return;
+		}
 
 		/* dispatch request */
-		try { srv.ret(ep->_curr_obj->dispatch(opcode, srv, srv)); }
+		try { srv.ret(obj->dispatch(opcode, srv, srv)); }
 		catch (Blocking_canceled) { }
-
-		Rpc_object_base * tmp = ep->_curr_obj;
-		ep->_curr_obj = 0;
-
-		tmp->release();
-	}
+	};
+	ep->apply(id_pt, lambda);
 
 	if (!ep->_rcv_buf.prepare_rcv_window((Nova::Utcb *)ep->utcb()))
 		PWRN("out of capability selectors for handling server requests");
@@ -171,30 +153,6 @@ void Rpc_entrypoint::entry()
 	/*
 	 * Thread entry is not used for activations on NOVA
 	 */
-}
-
-
-void Rpc_entrypoint::_leave_server_object(Rpc_object_base *)
-{
-	using namespace Nova;
-
-	Utcb *utcb = reinterpret_cast<Utcb *>(Thread_base::myself()->utcb());
-	/* don't call ourself */
-	if (utcb == reinterpret_cast<Utcb *>(this->utcb()))
-		return;
-
-	/*
-	 * Required outside of core. E.g. launchpad needs it to forcefully kill
-	 * a client which blocks on a session opening request where the service
-	 * is not up yet.
-	 */
-	cancel_blocking();
-
-	utcb->msg[0] = 0xdead;
-	utcb->set_msg_word(1);
-	if (uint8_t res = call(_cap.local_name()))
-		PERR("%8p - could not clean up entry point of thread 0x%p - res %u",
-		     utcb, this->utcb(), res);
 }
 
 
@@ -220,7 +178,6 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
                                Affinity::Location location)
 :
 	Thread_base(Cpu_session::DEFAULT_WEIGHT, name, stack_size),
-	_curr_obj(start_on_construction ? 0 : (Rpc_object_base *)~0UL),
 	_delay_start(Lock::LOCKED),
 	_cap_session(cap_session)
 {
@@ -260,13 +217,10 @@ Rpc_entrypoint::~Rpc_entrypoint()
 {
 	typedef Object_pool<Rpc_object_base> Pool;
 
-	if (Pool::first()) {
+	Pool::remove_all([&] (Rpc_object_base *obj) {
 		PWRN("Object pool not empty in %s", __func__);
-
-		/* dissolve all objects - objects are not destroyed! */
-		while (Rpc_object_base *obj = Pool::first())
-			_dissolve(obj);
-	}
+		_dissolve(obj);
+	});
 
 	if (!_cap.valid())
 		return;

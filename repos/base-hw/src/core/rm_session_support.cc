@@ -60,40 +60,42 @@ void Pager_entrypoint::entry()
 	{
 		/* receive fault */
 		if (Kernel::await_signal(_cap.dst())) continue;
-		Pager_object * po =
-			*(Pager_object**)Thread_base::myself()->utcb()->base();
+
+		Untyped_capability cap =
+			(*(Pager_object**)Thread_base::myself()->utcb()->base())->cap();
 
 		/*
 		 * Synchronize access and ensure that the object is still managed
 		 *
 		 * FIXME: The implicit lookup of the oject isn't needed.
 		 */
-		unsigned const pon = po->cap().local_name();
-		Object_pool<Pager_object>::Guard pog(lookup_and_lock(pon));
-		if (!pog) continue;
+		auto lambda = [&] (Pager_object *po) {
+			if (!po) return;
 
-		/* fetch fault data */
-		Platform_thread * const pt = (Platform_thread *)pog->badge();
-		if (!pt) {
-			PWRN("failed to get platform thread of faulter");
-			continue;
-		}
+			/* fetch fault data */
+			Platform_thread * const pt = (Platform_thread *)po->badge();
+			if (!pt) {
+				PWRN("failed to get platform thread of faulter");
+				return;
+			}
 
-		_fault.pd     = pt->kernel_object()->fault_pd();
-		_fault.ip     = pt->kernel_object()->ip;
-		_fault.addr   = pt->kernel_object()->fault_addr();
-		_fault.writes = pt->kernel_object()->fault_writes();
-		_fault.signal = pt->kernel_object()->fault_signal();
+			_fault.pd     = pt->kernel_object()->fault_pd();
+			_fault.ip     = pt->kernel_object()->ip;
+			_fault.addr   = pt->kernel_object()->fault_addr();
+			_fault.writes = pt->kernel_object()->fault_writes();
+			_fault.signal = pt->kernel_object()->fault_signal();
 
-		/* try to resolve fault directly via local region managers */
-		if (pog->pager(*this)) { continue; }
+			/* try to resolve fault directly via local region managers */
+			if (po->pager(*this)) return;
 
-		/* apply mapping that was determined by the local region managers */
-		if (apply_mapping()) {
-			PWRN("failed to apply mapping");
-			continue;
-		}
-		/* let pager object go back to no-fault state */
-		pog->wake_up();
+			/* apply mapping that was determined by the local region managers */
+			if (apply_mapping()) {
+				PWRN("failed to apply mapping");
+				return;
+			}
+			/* let pager object go back to no-fault state */
+			po->wake_up();
+		};
+		apply(cap, lambda);
 	}
 }

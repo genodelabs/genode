@@ -40,14 +40,16 @@ void Genode::Cpu_session_component::enable_vcpu(Genode::Thread_capability thread
 	using namespace Genode;
 	using namespace Fiasco;
 
-	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
-	if (!thread) return;
+	auto lambda = [&] (Cpu_thread_component *thread) {
+		if (!thread) return;
 
-	Native_thread tid = thread->platform_thread()->thread().local.dst();
+		Native_thread tid = thread->platform_thread()->thread().local.dst();
 
-	l4_msgtag_t tag = l4_thread_vcpu_control(tid, vcpu_state);
-	if (l4_msgtag_has_error(tag))
-		PWRN("l4_thread_vcpu_control failed");
+		l4_msgtag_t tag = l4_thread_vcpu_control(tid, vcpu_state);
+		if (l4_msgtag_has_error(tag))
+			PWRN("l4_thread_vcpu_control failed");
+	};
+	_thread_ep->apply(thread_cap, lambda);
 }
 
 
@@ -56,10 +58,11 @@ Genode::Cpu_session_component::native_cap(Genode::Thread_capability cap)
 {
 	using namespace Genode;
 
-	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(cap));
-	if (!thread) return Native_capability();
-
-	return thread->platform_thread()->thread().local;
+	auto lambda = [&] (Cpu_thread_component *thread) {
+		return (!thread) ? Native_capability()
+		                 : thread->platform_thread()->thread().local;
+	};
+	return _thread_ep->apply(cap, lambda);
 }
 
 
@@ -97,15 +100,17 @@ void Genode::Cpu_session_component::single_step(Genode::Thread_capability thread
 {
 	using namespace Genode;
 
-	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
-	if (!thread) return;
+	auto lambda = [&] (Cpu_thread_component *thread) {
+		if (!thread) return;
 
-	Native_thread tid = thread->platform_thread()->thread().local.dst();
+		Native_thread tid = thread->platform_thread()->thread().local.dst();
 
-	enum { THREAD_SINGLE_STEP = 0x40000 };
-	int flags = enable ? THREAD_SINGLE_STEP : 0;
+		enum { THREAD_SINGLE_STEP = 0x40000 };
+		int flags = enable ? THREAD_SINGLE_STEP : 0;
 
-	Fiasco::l4_thread_ex_regs(tid, ~0UL, ~0UL, flags);
+		Fiasco::l4_thread_ex_regs(tid, ~0UL, ~0UL, flags);
+	};
+	_thread_ep->apply(thread_cap, lambda);
 }
 
 

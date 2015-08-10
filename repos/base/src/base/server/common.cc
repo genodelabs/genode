@@ -22,31 +22,11 @@ using namespace Genode;
 void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
 {
 	/* make sure nobody is able to find this object */
-	remove_locked(obj);
-
-	/*
-	 * The activation may execute a blocking operation in a dispatch function.
-	 * Before resolving the corresponding object, we need to ensure that it is
-	 * no longer used. Therefore, we to need cancel an eventually blocking
-	 * operation and let the activation leave the context of the object.
-	 */
-	_leave_server_object(obj);
-
-	/* wait until nobody is inside dispatch */
-	obj->acquire();
+	remove(obj);
 
 	_cap_session->free(obj->cap());
 
 	/* now the object may be safely destructed */
-}
-
-
-void Rpc_entrypoint::_leave_server_object(Rpc_object_base *obj)
-{
-	Lock::Guard lock_guard(_curr_obj_lock);
-
-	if (obj == _curr_obj)
-		cancel_blocking();
 }
 
 
@@ -104,7 +84,7 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 :
 	Thread_base(Cpu_session::DEFAULT_WEIGHT, name, stack_size),
 	_cap(Untyped_capability()),
-	_curr_obj(0), _cap_valid(Lock::LOCKED), _delay_start(Lock::LOCKED),
+	_cap_valid(Lock::LOCKED), _delay_start(Lock::LOCKED),
 	_delay_exit(Lock::LOCKED),
 	_cap_session(cap_session)
 {
@@ -124,8 +104,6 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 
 Rpc_entrypoint::~Rpc_entrypoint()
 {
-	typedef Object_pool<Rpc_object_base> Pool;
-
 	/*
 	 * We have to make sure the server loop is running which is only the case
 	 * if the Rpc_entrypoint was actived before we execute the RPC call.
@@ -137,13 +115,8 @@ Rpc_entrypoint::~Rpc_entrypoint()
 
 	dissolve(&_exit_handler);
 
-	if (Pool::first()) {
+	if (!empty())
 		PWRN("Object pool not empty in %s", __func__);
-
-		/* dissolve all objects - objects are not destroyed! */
-		while (Rpc_object_base *obj = Pool::first())
-			_dissolve(obj);
-	}
 
 	/*
 	 * Now that we finished the 'dissolve' steps above (which need a working

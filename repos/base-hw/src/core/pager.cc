@@ -104,7 +104,7 @@ Pager_object::Pager_object(unsigned const badge, Affinity::Location)
 
 void Pager_entrypoint::dissolve(Pager_object * const o)
 {
-	remove_locked(o);
+	remove(o);
 }
 
 

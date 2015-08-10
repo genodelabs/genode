@@ -170,7 +170,6 @@ namespace Genode {
 			 */
 			void assign_pd(addr_t pd_sel) { _pd = pd_sel; }
 			addr_t pd_sel() const { return _pd; }
-			void dump_kernel_quota_usage(Pager_object * = (Pager_object *)~0UL);
 
 			void exception(uint8_t exit_id);
 
@@ -385,12 +384,6 @@ namespace Genode {
 			 * constructor.
 			 */
 			void ep(Pager_entrypoint *ep) { _ep = ep; }
-
-			/*
-			 * Used for diagnostic/debugging purposes
-			 * - see Pager_object::dump_kernel_quota_usage
-			 */
-			Pager_object * pager_head();
 
 			/**
 			 * Thread interface

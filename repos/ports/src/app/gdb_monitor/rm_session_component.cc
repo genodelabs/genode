@@ -42,13 +42,12 @@ Rm_session_component::Region *Rm_session_component::find_region(void *local_addr
 	*offset_in_region = ((addr_t)local_addr - (addr_t)region->start());
 //	PDBG("offset_in_region = %lx", *offset_in_region);
 
-	Object_pool<Dataspace_object>::Guard managed_ds_obj(_managed_ds_map->lookup_and_lock(region->ds_cap()));
-	if (managed_ds_obj) {
-//		PDBG("managed dataspace detected");
-		region = managed_ds_obj->rm_session_component()->find_region((void*)*offset_in_region, offset_in_region);
-//		if (region)
-//			PDBG("found sub region: start = %p, offset = %lx", region->start(), *offset_in_region);
-	}
+	_managed_ds_map->apply(region->ds_cap(), [&] (Dataspace_object *managed_ds_obj) {
+		if (managed_ds_obj)
+			region =
+				managed_ds_obj->rm_session_component()->find_region((void*)*offset_in_region,
+				                                                    offset_in_region);
+	});
 
 	return region;
 }

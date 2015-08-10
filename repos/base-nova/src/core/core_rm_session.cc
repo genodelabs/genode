@@ -32,20 +32,22 @@ Core_rm_session::attach(Dataspace_capability ds_cap, size_t size,
                         Rm_session::Local_addr local_addr,
                         bool executable)
 {
-	Object_pool<Dataspace_component>::Guard ds(_ds_ep->lookup_and_lock(ds_cap));
-	if (!ds)
-		throw Invalid_dataspace();
+	auto lambda = [&] (Dataspace_component *ds) -> Local_addr {
+		if (!ds)
+			throw Invalid_dataspace();
 
-	if (use_local_addr) {
-		PERR("Parameter 'use_local_addr' not supported within core");
-		return 0UL;
-	}
+		if (use_local_addr) {
+			PERR("Parameter 'use_local_addr' not supported within core");
+			return nullptr;
+		}
 
-	if (offset) {
-		PERR("Parameter 'offset' not supported within core");
-		return 0UL;
-	}
+		if (offset) {
+			PERR("Parameter 'offset' not supported within core");
+			return nullptr;
+		}
 
-	/* allocate range in core's virtual address space */
-	return ds->core_local_addr();
+		/* allocate range in core's virtual address space */
+		return ds->core_local_addr();
+	};
+	return _ds_ep->apply(ds_cap, lambda);
 }

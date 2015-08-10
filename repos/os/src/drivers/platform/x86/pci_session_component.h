@@ -479,102 +479,109 @@ namespace Platform {
 				Config_access config_access;
 
 				/* lookup device component for previous device */
-				Genode::Object_pool<Device_component>::Guard
-					prev(_ep->lookup_and_lock(prev_device));
+				auto lambda = [&] (Device_component *prev)
+				{
 
-				/*
-				 * Start bus scanning after the previous device's location.
-				 * If no valid device was specified for 'prev_device', start at
-				 * the beginning.
-				 */
-				int bus = 0, device = 0, function = -1;
+					/*
+					 * Start bus scanning after the previous device's location.
+					 * If no valid device was specified for 'prev_device',
+					 * start at the beginning.
+					 */
+					int bus = 0, device = 0, function = -1;
 
-				if (prev) {
-					Device_config config = prev->config();
-					bus      = config.bus_number();
-					device   = config.device_number();
-					function = config.function_number();
-				}
+					if (prev) {
+						Device_config config = prev->config();
+						bus      = config.bus_number();
+						device   = config.device_number();
+						function = config.function_number();
+					}
 
-				/*
-				 * Scan buses for devices.
-				 * If no device is found, return an invalid capability.
-				 */
-				Device_config config;
+					/*
+					 * Scan buses for devices.
+					 * If no device is found, return an invalid capability.
+					 */
+					Device_config config;
 
-				while (true) {
-					function += 1;
-					if (!_find_next(bus, device, function, &config, &config_access))
-						return Device_capability();
+					while (true) {
+						function += 1;
+						if (!_find_next(bus, device, function, &config,
+						                &config_access))
+							return Device_capability();
 
-					/* get new bdf values */
-					bus      = config.bus_number();
-					device   = config.device_number();
-					function = config.function_number();
+						/* get new bdf values */
+						bus      = config.bus_number();
+						device   = config.device_number();
+						function = config.function_number();
 
-					/* if filter of driver don't match skip and continue */
-					if ((config.class_code() ^ device_class) & class_mask)
-						continue;
+						/* if filter of driver don't match skip and continue */
+						if ((config.class_code() ^ device_class) & class_mask)
+							continue;
 
-					/* check that policy permit access to the matched device */
-					if (permit_device(bus, device, function,
-					                  config.class_code()))
-						break;
-				}
+						/* check that policy permit access to the matched device */
+						if (permit_device(bus, device, function,
+						    config.class_code()))
+							break;
+					}
 
-				/* lookup if we have a extended pci config space */
-				Genode::addr_t config_space = lookup_config_space(bus, device,
-				                                                  function);
+					/* lookup if we have a extended pci config space */
+					Genode::addr_t config_space =
+						lookup_config_space(bus, device, function);
 
-				/*
-				 * A device was found. Create a new device component for the
-				 * device and return its capability.
-				 */
-				try {
-					Device_component * dev = new (_device_slab) Device_component(config, config_space, _ep, this, msi_usage());
+					/*
+					 * A device was found. Create a new device component for the
+					 * device and return its capability.
+					 */
+					try {
+						Device_component * dev = new (_device_slab)
+							Device_component(config, config_space, _ep, this,
+							                 msi_usage());
 
-					/* if more than one driver uses the device - warn about */
-					if (bdf_in_use.get(Device_config::MAX_BUSES * bus +
-					                   Device_config::MAX_DEVICES * device +
-					                   function, 1))
-						PERR("Device %2x:%2x.%u is used by more than one "
-						     "driver - session '%s'.", bus, device, function,
-						     _label.string());
-					else
-						bdf_in_use.set(Device_config::MAX_BUSES * bus +
-						               Device_config::MAX_DEVICES * device +
-						               function, 1);
+						/* if more than one driver uses the device - warn about */
+						if (bdf_in_use.get(Device_config::MAX_BUSES * bus +
+						    Device_config::MAX_DEVICES * device +
+						    function, 1))
+							PERR("Device %2x:%2x.%u is used by more than one "
+							     "driver - session '%s'.", bus, device, function,
+							     _label.string());
+						else
+							bdf_in_use.set(Device_config::MAX_BUSES * bus +
+							               Device_config::MAX_DEVICES * device +
+							               function, 1);
 
-					_device_list.insert(dev);
-					return _ep->manage(dev);
-				} catch (Genode::Allocator::Out_of_memory) {
-					throw Device::Quota_exceeded();
-				}
+						_device_list.insert(dev);
+						return _ep->manage(dev);
+					} catch (Genode::Allocator::Out_of_memory) {
+						throw Device::Quota_exceeded();
+					}
+				};
+				return _ep->apply(prev_device, lambda);
 			}
 
 			void release_device(Device_capability device_cap)
 			{
+				auto lambda = [&] (Device_component *device)
+				{
+					if (!device)
+						return;
+
+					unsigned const bus  = device->config().bus_number();
+					unsigned const dev  = device->config().device_number();
+					unsigned const func = device->config().function_number();
+
+					bdf_in_use.clear(Device_config::MAX_BUSES * bus +
+					                 Device_config::MAX_DEVICES * dev + func, 1);
+
+					_device_list.remove(device);
+					_ep->dissolve(device);
+
+					if (device->config().valid())
+						destroy(_device_slab, device);
+					else
+						destroy(_md_alloc, device);
+				};
+
 				/* lookup device component for previous device */
-				Device_component *device = dynamic_cast<Device_component *>
-				                           (_ep->lookup_and_lock(device_cap));
-
-				if (!device)
-					return;
-
-				unsigned const bus  = device->config().bus_number();
-				unsigned const dev  = device->config().device_number();
-				unsigned const func = device->config().function_number();
-
-				bdf_in_use.clear(Device_config::MAX_BUSES * bus +
-				                 Device_config::MAX_DEVICES * dev + func, 1);
-
-				_device_list.remove(device);
-				_ep->dissolve(device);
-
-				if (device->config().valid())
-					destroy(_device_slab, device);
-				else
-					destroy(_md_alloc, device);
+				_ep->apply(device_cap, lambda);
 			}
 
 			Genode::Io_mem_dataspace_capability assign_device(Device_component * device)
@@ -601,10 +608,8 @@ namespace Platform {
 			{
 				using namespace Genode;
 
-				Object_pool<Device_component>::Guard
-					device(_ep->lookup_and_lock(device_cap));
-
-				return assign_device(device);
+				return _ep->apply(device_cap, [&] (Device_component *device) {
+					return assign_device(device);});
 			}
 
 			/**

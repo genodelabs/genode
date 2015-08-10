@@ -59,18 +59,20 @@ namespace Noux {
 			void close(Genode::Session_capability session)
 			{
 				/* acquire locked session object */
-				Rom_session_component *rom_session =
-					dynamic_cast<Rom_session_component *>(_ep.lookup_and_lock(session));
+				Rom_session_component *rom_session;
 
-				if (!rom_session) {
-					PWRN("Unexpected call of close with non-ROM-session argument");
-					return;
-				}
+				_ep.apply(session, [&] (Rom_session_component *rsc) {
+					rom_session = rsc;
 
-				_ep.dissolve(rom_session);
+					if (!rom_session) {
+						PWRN("Unexpected call of close with non-ROM-session argument");
+						return;
+					}
+
+					_ep.dissolve(rom_session);
+				});
 
 				destroy(env()->heap(), rom_session);
-
 			}
 	};
 }

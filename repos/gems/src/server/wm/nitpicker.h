@@ -807,12 +807,9 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 
 		View_handle view_handle(View_capability view_cap, View_handle handle) override
 		{
-			View *view = dynamic_cast<View *>(_ep.rpc_ep().lookup_and_lock(view_cap));
-			if (!view) return View_handle();
-
-			Object_pool<Rpc_object_base>::Guard guard(view);
-
-			return _view_handle_registry.alloc(*view, handle);
+			return _ep.rpc_ep().apply(view_cap, [&] (View *view) {
+				return (view) ? _view_handle_registry.alloc(*view, handle)
+				              : View_handle(); });
 		}
 
 		View_capability view_capability(View_handle handle) override
@@ -1071,50 +1068,64 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 		{
 			if (!args.is_valid_string()) throw Root::Invalid_args();
 
-			Rpc_object_base *session = _ep.rpc_ep().lookup_and_lock(session_cap);
+			auto lambda = [&] (Rpc_object_base *session) {
+				if (!session) {
+					PDBG("session lookup failed");
+					return;
+				}
 
-			if (!session) {
-				PDBG("session lookup failed");
-				return;
-			}
+				Session_component *regular_session =
+					dynamic_cast<Session_component *>(session);
 
-			Session_component *regular_session =
-				dynamic_cast<Session_component *>(session);
+				if (regular_session)
+					regular_session->upgrade(args.string());
 
-			if (regular_session)
-				regular_session->upgrade(args.string());
+				Decorator_nitpicker_session *decorator_session =
+					dynamic_cast<Decorator_nitpicker_session *>(session);
 
-			Decorator_nitpicker_session *decorator_session =
-				dynamic_cast<Decorator_nitpicker_session *>(session);
-
-			if (decorator_session)
-				decorator_session->upgrade(args.string());
-
-			session->release();
+				if (decorator_session)
+					decorator_session->upgrade(args.string());
+			};
+			_ep.rpc_ep().apply(session_cap, lambda);
 		}
 
 		void close(Genode::Session_capability session_cap) override
 		{
-			Rpc_object_base *session = _ep.rpc_ep().lookup_and_lock(session_cap);
+			Genode::Rpc_entrypoint &ep = _ep.rpc_ep();
 
-			Session_component *regular_session = dynamic_cast<Session_component *>(session);
+			Session_component *regular_session =
+				ep.apply(session_cap, [this] (Session_component *session) {
+					if (session) {
+						_sessions.remove(session);
+						_ep.dissolve(*session);
+					}
+					return session;
+				});
 			if (regular_session) {
-				_sessions.remove(regular_session);
-				_ep.dissolve(*regular_session);
 				Genode::destroy(_md_alloc, regular_session);
 				return;
 			}
 
-			if (session == _decorator_session) {
+			auto decorator_lambda = [this] (Decorator_nitpicker_session *session) {
 				_ep.dissolve(*_decorator_session);
-				Genode::destroy(_md_alloc, _decorator_session);
 				_decorator_session = nullptr;
+				return session;
+			};
+
+			if (ep.apply(session_cap, decorator_lambda) == _decorator_session) {
+				Genode::destroy(_md_alloc, _decorator_session);
+				return;
 			}
 
-			if (session == _layouter_session) {
+			auto layouter_lambda = [this] (Layouter_nitpicker_session *session) {
 				_ep.dissolve(*_layouter_session);
-				Genode::destroy(_md_alloc, _layouter_session);
 				_layouter_session = nullptr;
+				return session;
+			};
+
+			if (ep.apply(session_cap, layouter_lambda) == _layouter_session) {
+				Genode::destroy(_md_alloc, _layouter_session);
+				return;
 			}
 		}
 

@@ -24,6 +24,7 @@
 
 namespace Genode {
 
+	class Dataspace_component;
 	class Pd_session_component : public Rpc_object<Linux_pd_session, Pd_session_component>
 	{
 		private:
@@ -38,6 +39,8 @@ namespace Genode {
 			unsigned           _gid;
 			Parent_capability  _parent;
 			Rpc_entrypoint    *_ds_ep;
+
+			void _start(Dataspace_component *ds);
 
 		public:
 

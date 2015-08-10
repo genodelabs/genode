@@ -53,10 +53,11 @@ void Vm_session_component::_attach(addr_t phys_addr, addr_t vm_addr, size_t size
 void Vm_session_component::attach(Dataspace_capability ds_cap, addr_t vm_addr)
 {
 	/* check dataspace validity */
-	Object_pool<Dataspace_component>::Guard dsc(_ds_ep->lookup_and_lock(ds_cap));
-	if (!dsc) throw Invalid_dataspace();
+	_ds_ep->apply(ds_cap, [&] (Dataspace_component *dsc) {
+		if (!dsc) throw Invalid_dataspace();
 
-	_attach(dsc->phys_addr(), vm_addr, dsc->size());
+		_attach(dsc->phys_addr(), vm_addr, dsc->size());
+	});
 }
 
 

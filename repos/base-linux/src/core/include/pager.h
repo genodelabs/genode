@@ -40,16 +40,15 @@ namespace Genode {
 		 */
 		Thread_capability thread_cap() { return _thread_cap; } const
 		void thread_cap(Thread_capability cap) { _thread_cap = cap; }
-
-		/* required by lookup_and_lock, provided by Object_pool::Entry normally */
-		void release() { }
 	};
 
 	struct Pager_entrypoint
 	{
 		Pager_entrypoint(Cap_session *) { }
 
-		Pager_object *lookup_and_lock(Pager_capability) { return 0; }
+		template <typename FUNC>
+		auto apply(Pager_capability, FUNC f) -> decltype(f(nullptr)) {
+			return f(nullptr); }
 	};
 }
 

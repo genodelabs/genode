@@ -165,6 +165,8 @@ namespace Genode {
 
 int Rm_client::pager(Ipc_pager &pager)
 {
+	using Fault_area = Rm_session_component::Fault_area;
+
 	Rm_session::Fault_type pf_type = pager.is_write_fault() ? Rm_session::WRITE_FAULT
 	                                                        : Rm_session::READ_FAULT;
 	addr_t pf_addr = pager.fault_addr();
@@ -173,132 +175,87 @@ int Rm_client::pager(Ipc_pager &pager)
 	if (verbose_page_faults)
 		print_page_fault("page fault", pf_addr, pf_ip, pf_type, badge());
 
-	Rm_session_component            *curr_rm_session = member_rm_session();
-	Rm_session_component            *sub_rm_session  = 0; 
-	addr_t                           curr_rm_base    = 0;
-	Dataspace_component             *src_dataspace   = 0;
-	Rm_session_component::Fault_area src_fault_area;
-	Rm_session_component::Fault_area dst_fault_area(pf_addr);
-	bool lookup;
+	auto lambda = [&] (Rm_session_component *rm_session,
+	                   Rm_region            *region,
+	                   addr_t                ds_offset,
+	                   addr_t                region_offset) -> int
+	{
+		Dataspace_component * dsc = region ? region->dataspace() : nullptr;
+		if (!dsc) {
 
-	unsigned level;
-	enum { MAX_NESTING_LEVELS = 5 };
+			/*
+			 * We found no attachment at the page-fault address and therefore have
+			 * to reflect the page fault as region-manager fault. The signal
+			 * handler is then expected to request the state of the region-manager
+			 * session.
+			 */
 
-	/* helper guard to release the rm_session lock on return */
-	class Guard {
-		private:
+			/* print a warning if it's no managed-dataspace */
+			if (rm_session == member_rm_session())
+				print_page_fault("no RM attachment", pf_addr, pf_ip,
+				                 pf_type, badge());
 
-			Rm_session_component ** _release_session;
-			unsigned * _level;
+			/* register fault at responsible region-manager session */
+			if (rm_session)
+				rm_session->fault(this, pf_addr - region_offset, pf_type);
 
-		public:
-
-			explicit Guard(Rm_session_component ** rs, unsigned * level)
-			: _release_session(rs), _level(level) {}
-
-			~Guard() {
-				if ((*_level > 0) && (*_release_session))
-					(*_release_session)->release();
-			}
-	} release_guard(&curr_rm_session, &level);
-
-	/* traverse potentially nested dataspaces until we hit a leaf dataspace */
-	for (level = 0; level < MAX_NESTING_LEVELS; level++) {
-		lookup = curr_rm_session->reverse_lookup(curr_rm_base,
-		                                        &dst_fault_area,
-		                                        &src_dataspace,
-		                                        &src_fault_area,
-		                                        &sub_rm_session);
-		/* check if we need to traverse into a nested dataspace */
-		if (!sub_rm_session)
-			break;
-
-		if (!lookup) {
-			sub_rm_session->release();
-			break;
+			/* there is no attachment return an error condition */
+			return 1;
 		}
 
-		/* set up next iteration */
-
-		curr_rm_base = dst_fault_area.fault_addr()
-		             - src_fault_area.fault_addr() + src_dataspace->map_src_addr();
-
-		if (level > 0)
-			curr_rm_session->release();
-		curr_rm_session = sub_rm_session;
-		sub_rm_session  = 0;
-	}
-
-	if (level == MAX_NESTING_LEVELS) {
-		PWRN("Too many nesting levels of managed dataspaces");
-		return -1;
-	}
-
-	if (!lookup) {
+		addr_t ds_base = dsc->map_src_addr();
+		Fault_area src_fault_area(ds_base + ds_offset);
+		Fault_area dst_fault_area(pf_addr);
+		src_fault_area.constrain(ds_base, dsc->size());
+		dst_fault_area.constrain(region_offset + region->base(), region->size());
 
 		/*
-		 * We found no attachment at the page-fault address and therefore have
-		 * to reflect the page fault as region-manager fault. The signal
-		 * handler is then expected to request the state of the region-manager
-		 * session.
+		 * Determine mapping size compatible with source and destination,
+		 * and apply platform-specific constraint of mapping sizes.
 		 */
+		size_t map_size_log2 = dst_fault_area.common_size_log2(dst_fault_area,
+		                                                       src_fault_area);
+		map_size_log2 = constrain_map_size_log2(map_size_log2);
 
-		/* print a warning if it's no managed-dataspace */
-		if (curr_rm_session == member_rm_session())
-			print_page_fault("no RM attachment", pf_addr, pf_ip, pf_type, badge());
+		src_fault_area.constrain(map_size_log2);
+		dst_fault_area.constrain(map_size_log2);
+		if (!src_fault_area.valid() || !dst_fault_area.valid())
+			PERR("Invalid mapping");
 
-		/* register fault at responsible region-manager session */
-		curr_rm_session->fault(this, dst_fault_area.fault_addr() - curr_rm_base, pf_type);
-		/* there is no attachment return an error condition */
-		return 1;
-	}
+		/*
+		 * Check if dataspace is compatible with page-fault type
+		 */
+		if (pf_type == Rm_session::WRITE_FAULT && !dsc->writable()) {
 
-	/*
-	 * Determine mapping size compatible with source and destination,
-	 * and apply platform-specific constraint of mapping sizes.
-	 */
-	size_t map_size_log2 = dst_fault_area.common_size_log2(dst_fault_area,
-	                                                       src_fault_area);
-	map_size_log2 = constrain_map_size_log2(map_size_log2);
+			/* attempted there is no attachment return an error condition */
+			print_page_fault("attempted write at read-only memory",
+			                 pf_addr, pf_ip, pf_type, badge());
 
-	src_fault_area.constrain(map_size_log2);
-	dst_fault_area.constrain(map_size_log2);
+			/* register fault at responsible region-manager session */
+			rm_session->fault(this, src_fault_area.fault_addr(), pf_type);
+			return 2;
+		}
 
-	/*
-	 * Check if dataspace is compatible with page-fault type
-	 */
-	if (pf_type == Rm_session::WRITE_FAULT && !src_dataspace->writable()) {
+		Mapping mapping(dst_fault_area.base(), src_fault_area.base(),
+		                dsc->cacheability(), dsc->is_io_mem(),
+		                map_size_log2, dsc->writable());
 
-		/* attempted there is no attachment return an error condition */
-		print_page_fault("attempted write at read-only memory",
-		                 pf_addr, pf_ip, pf_type, badge());
+		/*
+		 * On kernels with a mapping database, the 'dsc' dataspace is a leaf
+		 * dataspace that corresponds to a virtual address range within core. To
+		 * prepare the answer for the page fault, we make sure that this range is
+		 * locally mapped in core. On platforms that support map operations of
+		 * pages that are not locally mapped, the 'map_core_local' function may be
+		 * empty.
+		 */
+		if (!dsc->is_io_mem())
+			mapping.prepare_map_operation();
 
-		/* register fault at responsible region-manager session */
-		curr_rm_session->fault(this, src_fault_area.fault_addr(), pf_type);
-		return 2;
-	}
-
-	Mapping mapping(dst_fault_area.base(),
-	                src_fault_area.base(),
-	                src_dataspace->cacheability(),
-	                src_dataspace->is_io_mem(),
-	                map_size_log2,
-	                src_dataspace->writable());
-
-	/*
-	 * On kernels with a mapping database, the 'dsc' dataspace is a leaf
-	 * dataspace that corresponds to a virtual address range within core. To
-	 * prepare the answer for the page fault, we make sure that this range is
-	 * locally mapped in core. On platforms that support map operations of
-	 * pages that are not locally mapped, the 'map_core_local' function may be
-	 * empty.
-	 */
-	if (!src_dataspace->is_io_mem())
-		mapping.prepare_map_operation();
-
-	/* answer page fault with a flex-page mapping */
-	pager.set_reply_mapping(mapping);
-	return 0;
+		/* answer page fault with a flex-page mapping */
+		pager.set_reply_mapping(mapping);
+		return 0;
+	};
+	return member_rm_session()->apply_to_dataspace(pf_addr, lambda);
 }
 
 
@@ -357,107 +314,111 @@ Rm_session_component::attach(Dataspace_capability ds_cap, size_t size,
 	if (offset < 0 || align_addr(offset, get_page_size_log2()) != offset)
 		throw Invalid_args();
 
-	/* check dataspace validity */
-	Object_pool<Dataspace_component>::Guard dsc(_ds_ep->lookup_and_lock(ds_cap));
-	if (!dsc) throw Invalid_dataspace();
+	auto lambda = [&] (Dataspace_component *dsc) {
+		/* check dataspace validity */
+		if (!dsc) throw Invalid_dataspace();
 
-	if (!size)
-		size = dsc->size() - offset;
+		if (!size)
+			size = dsc->size() - offset;
 
-	/* work with page granularity */
-	size = align_addr(size, get_page_size_log2());
+		/* work with page granularity */
+		size = align_addr(size, get_page_size_log2());
 
-	/* deny creation of regions larger then the actual dataspace */
-	if (dsc->size() < size + offset)
-		throw Invalid_args();
+		/* deny creation of regions larger then the actual dataspace */
+		if (dsc->size() < size + offset)
+			throw Invalid_args();
 
-	/* allocate region for attachment */
-	void *r = 0;
-	if (use_local_addr) {
-		switch (_map.alloc_addr(size, local_addr).value) {
+		/* allocate region for attachment */
+		void *r = 0;
+		if (use_local_addr) {
+			switch (_map.alloc_addr(size, local_addr).value) {
 
-		case Range_allocator::Alloc_return::OUT_OF_METADATA:
-			throw Out_of_metadata();
+			case Range_allocator::Alloc_return::OUT_OF_METADATA:
+				throw Out_of_metadata();
 
-		case Range_allocator::Alloc_return::RANGE_CONFLICT:
-			throw Region_conflict();
+			case Range_allocator::Alloc_return::RANGE_CONFLICT:
+				throw Region_conflict();
 
-		case Range_allocator::Alloc_return::OK:
-			r = local_addr;
-			break;
-		}
-	} else {
-
-		/*
-		 * Find optimal alignment for new region. First try natural alignment.
-		 * If that is not possible, try again with successively less alignment
-		 * constraints.
-		 */
-		size_t align_log2 = log2(size);
-		for (; align_log2 >= get_page_size_log2(); align_log2--) {
+			case Range_allocator::Alloc_return::OK:
+				r = local_addr;
+				break;
+			}
+		} else {
 
 			/*
-			 * Don't use an aligment higher than the alignment of the backing
-			 * store. The backing store would constrain the mapping size
-			 * anyway such that a higher alignment of the region is of no use.
+			 * Find optimal alignment for new region. First try natural alignment.
+			 * If that is not possible, try again with successively less alignment
+			 * constraints.
 			 */
-			if (((dsc->map_src_addr() + offset) & ((1UL << align_log2) - 1)) != 0)
-				continue;
+			size_t align_log2 = log2(size);
+			for (; align_log2 >= get_page_size_log2(); align_log2--) {
 
-			/* try allocating the align region */
-			Range_allocator::Alloc_return alloc_return =
-				_map.alloc_aligned(size, &r, align_log2);
+				/*
+				 * Don't use an aligment higher than the alignment of the backing
+				 * store. The backing store would constrain the mapping size
+				 * anyway such that a higher alignment of the region is of no use.
+				 */
+				if (((dsc->map_src_addr() + offset) & ((1UL << align_log2) - 1)) != 0)
+					continue;
 
-			if (alloc_return.is_ok())
-				break;
-			else if (alloc_return.value == Range_allocator::Alloc_return::OUT_OF_METADATA) {
+				/* try allocating the align region */
+				Range_allocator::Alloc_return alloc_return =
+					_map.alloc_aligned(size, &r, align_log2);
+
+				if (alloc_return.is_ok())
+					break;
+				else if (alloc_return.value == Range_allocator::Alloc_return::OUT_OF_METADATA) {
+					_map.free(r);
+					throw Out_of_metadata();
+				}
+			}
+
+			if (align_log2 < get_page_size_log2()) {
 				_map.free(r);
-				throw Out_of_metadata();
+				throw Region_conflict();
 			}
 		}
 
-		if (align_log2 < get_page_size_log2()) {
+		/* store attachment info in meta data */
+		_map.metadata(r, Rm_region((addr_t)r, size, true, dsc, offset, this));
+		Rm_region *region = _map.metadata(r);
+
+		/* also update region list */
+		Rm_region_ref *p;
+		try { p = new(&_ref_slab) Rm_region_ref(region); }
+		catch (Allocator::Out_of_memory) {
 			_map.free(r);
-			throw Region_conflict();
-		}
-	}
-
-	/* store attachment info in meta data */
-	_map.metadata(r, Rm_region((addr_t)r, size, true, dsc, offset, this));
-	Rm_region *region = _map.metadata(r);
-
-	/* also update region list */
-	Rm_region_ref *p;
-	try { p = new(&_ref_slab) Rm_region_ref(region); }
-	catch (Allocator::Out_of_memory) {
-		_map.free(r);
-		throw Out_of_metadata();
-	}
-
-	_regions.insert(p);
-
-	/* inform dataspace about attachment */
-	dsc->attached_to(region);
-
-	if (verbose)
-		PDBG("attach ds %p (a=%lx,s=%zx,o=%lx) @ [%lx,%lx)",
-		     (Dataspace_component *)dsc, dsc->phys_addr(), dsc->size(), offset, (addr_t)r, (addr_t)r + size);
-
-	/* check if attach operation resolves any faulting region-manager clients */
-	for (Rm_faulter *faulter = _faulters.head(); faulter; ) {
-
-		/* remember next pointer before possibly removing current list element */
-		Rm_faulter *next = faulter->next();
-
-		if (faulter->fault_in_addr_range((addr_t)r, size)) {
-			_faulters.remove(faulter);
-			faulter->continue_after_resolved_fault();
+			throw Out_of_metadata();
 		}
 
-		faulter = next;
-	}
+		_regions.insert(p);
 
-	return r;
+		/* inform dataspace about attachment */
+		dsc->attached_to(region);
+
+		if (verbose)
+			PDBG("attach ds %p (a=%lx,s=%zx,o=%lx) @ [%lx,%lx)",
+			     (Dataspace_component *)dsc, dsc->phys_addr(), dsc->size(),
+			     offset, (addr_t)r, (addr_t)r + size);
+
+		/* check if attach operation resolves any faulting region-manager clients */
+		for (Rm_faulter *faulter = _faulters.head(); faulter; ) {
+
+			/* remember next pointer before possibly removing current list element */
+			Rm_faulter *next = faulter->next();
+
+			if (faulter->fault_in_addr_range((addr_t)r, size)) {
+				_faulters.remove(faulter);
+				faulter->continue_after_resolved_fault();
+			}
+
+			faulter = next;
+		}
+
+		return r;
+	};
+
+	return _ds_ep->apply(ds_cap, lambda);
 }
 
 
@@ -612,19 +573,20 @@ Pager_capability Rm_session_component::add_client(Thread_capability thread)
 
 	{
 		/* lookup thread and setup correct parameters */
-		Object_pool<Cpu_thread_component>::Guard
-			cpu_thread(_thread_ep->lookup_and_lock(thread));
-		if (!cpu_thread) throw Invalid_thread();
+		auto lambda = [&] (Cpu_thread_component *cpu_thread) {
+			if (!cpu_thread) throw Invalid_thread();
 
-		/* determine identification of client when faulting */
-		badge = cpu_thread->platform_thread()->pager_object_badge();
+			/* determine identification of client when faulting */
+			badge = cpu_thread->platform_thread()->pager_object_badge();
 
-		/* determine cpu affinity of client thread */
-		location = cpu_thread->platform_thread()->affinity();
+			/* determine cpu affinity of client thread */
+			location = cpu_thread->platform_thread()->affinity();
 
-		address_space = cpu_thread->platform_thread()->address_space();
-		if (!Locked_ptr<Address_space>(address_space).is_valid())
-			throw Unbound_thread();
+			address_space = cpu_thread->platform_thread()->address_space();
+			if (!Locked_ptr<Address_space>(address_space).is_valid())
+				throw Unbound_thread();
+		};
+		_thread_ep->apply(thread, lambda);
 	}
 
 	/* serialize access */
@@ -644,112 +606,45 @@ Pager_capability Rm_session_component::add_client(Thread_capability thread)
 
 void Rm_session_component::remove_client(Pager_capability pager_cap)
 {
+	Rm_client *client;
 
-	Rm_client * cl = dynamic_cast<Rm_client *>(_pager_ep->lookup_and_lock(pager_cap));
-	if (!cl) return;
+	auto lambda = [&] (Rm_client *cl) {
+		client = cl;
 
-	/*
-	 * Rm_client is derived from Pager_object. If the Pager_object is also
-	 * derived from Thread_base then the Rm_client object must be
-	 * destructed without holding the rm_session_object lock. The native
-	 * platform specific Thread_base implementation has to take care that
-	 * all in-flight page handling requests are finished before
-	 * destruction. (Either by waiting until the end of or by
-	 * <deadlock free> cancellation of the last in-flight request.
-	 * This operation can also require taking the rm_session_object lock.
-	 */
-	{
-		Lock::Guard lock_guard(_lock);
-		_clients.remove(cl);
-	}
+		if (!client) return;
 
-	/* call platform specific dissolve routines */
-	_pager_ep->dissolve(cl);
+		/*
+		 * Rm_client is derived from Pager_object. If the Pager_object is also
+		 * derived from Thread_base then the Rm_client object must be
+		 * destructed without holding the rm_session_object lock. The native
+		 * platform specific Thread_base implementation has to take care that
+		 * all in-flight page handling requests are finished before
+		 * destruction. (Either by waiting until the end of or by
+		 * <deadlock free> cancellation of the last in-flight request.
+		 * This operation can also require taking the rm_session_object lock.
+		 */
+		{
+			Lock::Guard lock_guard(_lock);
+			_clients.remove(client);
+		}
 
-	{
-		Lock::Guard lock_guard(_lock);
-		cl->dissolve_from_faulting_rm_session(this);
-	}
+		/* call platform specific dissolve routines */
+		_pager_ep->dissolve(client);
 
-	destroy(&_client_slab, cl);
-}
+		{
+			Lock::Guard lock_guard(_lock);
+			client->dissolve_from_faulting_rm_session(this);
+		}
+	};
+	_pager_ep->apply(pager_cap, lambda);
 
-
-bool Rm_session_component::reverse_lookup(addr_t                dst_base,
-                                          Fault_area           *dst_fault_area,
-                                          Dataspace_component **src_dataspace,
-                                          Fault_area           *src_fault_area,
-                                          Rm_session_component **sub_rm_session)
-{
-	/* serialize access */
-	Lock::Guard lock_guard(_lock);
-
-	/* rm-session-relative fault address */
-	addr_t fault_addr = dst_fault_area->fault_addr() - dst_base;
-
-	/* lookup region */
-	Rm_region *region = _map.metadata((void*)fault_addr);
-	if (!region)
-		return false;
-
-	/* request dataspace  backing the region */
-	*src_dataspace = region->dataspace();
-	if (!*src_dataspace)
-		return false;
-
-	/*
-	 * Constrain destination fault area to region
-	 *
-	 * Handle corner case when the 'dst_base' is negative. In this case, we
-	 * determine the largest flexpage within the positive portion of the
-	 * region.
-	 */
-	addr_t region_base = region->base() + dst_base;
-	size_t region_size = region->size();
-
-	/* check for overflow condition */
-	while ((long)region_base < 0 && (long)(region_base + region_size) > 0) {
-
-		/* increment base address by half of the region size */
-		region_base += region_size >> 1;
-
-		/* lower the region size by one log2 step */
-		region_size >>= 1;
-	}
-	dst_fault_area->constrain(region_base, region_size);
-
-	/* calculate source fault address relative to 'src_dataspace' */
-	addr_t src_fault_offset = fault_addr - region->base() + region->offset();
-
-	addr_t src_base = (*src_dataspace)->map_src_addr();
-	*src_fault_area = Fault_area(src_base + src_fault_offset);
-
-	/* constrain source fault area by the source dataspace dimensions */
-	src_fault_area->constrain(src_base, (*src_dataspace)->size());
-
-	if (!src_fault_area->valid() || !dst_fault_area->valid())
-		return false;
-
-	/* lookup and lock nested dataspace if required */
-	Native_capability session_cap = (*src_dataspace)->sub_rm_session();
-	if (session_cap.valid()) {
-		*sub_rm_session = dynamic_cast<Rm_session_component *>(_session_ep->lookup_and_lock(session_cap));
-		return (*sub_rm_session != 0);
-	}
-
-	/* loop refer to leaf */
-	*sub_rm_session = 0;
-	return true;
+	destroy(&_client_slab, client);
 }
 
 
 void Rm_session_component::fault(Rm_faulter *faulter, addr_t pf_addr,
                                  Rm_session::Fault_type pf_type)
 {
-
-	/* serialize access */
-	Lock::Guard lock_guard(_lock);
-
 	/* remember fault state in faulting thread */
 	faulter->fault(this, Rm_session::State(pf_type, pf_addr));
 
@@ -869,13 +764,12 @@ Rm_session_component::~Rm_session_component()
 
 		_lock.unlock();
 
-		{
-			/* lookup thread and reset pager pointer */
-			Object_pool<Cpu_thread_component>::Guard
-				cpu_thread(_thread_ep->lookup_and_lock(thread_cap));
+		/* lookup thread and reset pager pointer */
+		auto lambda = [&] (Cpu_thread_component *cpu_thread) {
 			if (cpu_thread && (cpu_thread->platform_thread()->pager() == cl))
 				cpu_thread->platform_thread()->pager(0);
-		}
+		};
+		_thread_ep->apply(thread_cap, lambda);
 
 		destroy(&_client_slab, cl);
 

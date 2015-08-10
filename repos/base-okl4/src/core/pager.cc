@@ -149,7 +149,7 @@ void Ipc_pager::acknowledge_wakeup()
  ** Pager entrypoint **
  **********************/
 
-Untyped_capability Pager_entrypoint::_manage(Pager_object *obj)
+Untyped_capability Pager_entrypoint::_pager_object_cap(unsigned long badge)
 {
-	return Untyped_capability(_tid.l4id, obj->badge());
+	return Untyped_capability(_tid.l4id, badge);
 }

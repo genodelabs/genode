@@ -500,29 +500,6 @@ Exception_handlers::Exception_handlers(Pager_object *obj)
  ******************/
 
 
-void Pager_object::dump_kernel_quota_usage(Pager_object *obj)
-{
-	if (obj == (Pager_object *)~0UL) {
-		unsigned use_cpu = location.xpos();
-		obj = pager_threads[use_cpu]->pager_head();
-		PINF("-- kernel memory usage of Genode PDs --");
-	}
-
-	if (!obj)
-		return;
-
-	addr_t limit = 0; addr_t usage = 0;
-	Nova::pd_ctrl_debug(obj->pd_sel(), limit, usage);
-
-	char const * thread_name = reinterpret_cast<char const *>(obj->badge());
-	PINF("pd=0x%lx pager=%p thread='%s' limit=0x%lx usage=0x%lx",
-	     obj->pd_sel(), obj, thread_name, limit, usage);
-
-	dump_kernel_quota_usage(static_cast<Pager_object *>(obj->child(Genode::Avl_node_base::LEFT)));
-	dump_kernel_quota_usage(static_cast<Pager_object *>(obj->child(Genode::Avl_node_base::RIGHT)));
-}
-
-
 Pager_object::Pager_object(unsigned long badge, Affinity::Location location)
 :
 	_badge(badge),
@@ -847,9 +824,6 @@ Pager_activation_base::Pager_activation_base(const char *name, size_t stack_size
 void Pager_activation_base::entry() { }
 
 
-Pager_object * Pager_activation_base::pager_head() {
-	return _ep ? _ep->first() : nullptr; }
-
 /**********************
  ** Pager entrypoint **
  **********************/
@@ -918,7 +892,7 @@ void Pager_entrypoint::dissolve(Pager_object *obj)
 	/* revoke cap selector locally */
 	revoke(pager_obj.dst(), true);
 	/* remove object from pool */
-	remove_locked(obj);
+	remove(obj);
 	/* take care that no faults are in-flight */
 	obj->cleanup_call();
 }

@@ -540,13 +540,17 @@ void Backend_memory::free(Genode::Ram_dataspace_capability cap)
 {
 	using namespace Genode;
 
-	Memory_object_base *o = memory_pool.lookup_and_lock(cap);
-	if (!o)
-		return;
+	Memory_object_base *object;
+	auto lambda = [&] (Memory_object_base *o) {
+		object = o;
 
-	o->free();
-	memory_pool.remove_locked(o);
-	destroy(env()->heap(), o);
+		if (object) {
+			object->free();
+			memory_pool.remove(object);
+		}
+	};
+	memory_pool.apply(cap, lambda);
+	destroy(env()->heap(), object);
 }
 
 

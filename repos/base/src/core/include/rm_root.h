@@ -56,18 +56,20 @@ namespace Genode {
 				Session_capability cap = Root_component<Rm_session_component>::session(args, affinity);
 
 				/* lookup rm_session_component object */
-				Object_pool<Rm_session_component>::Guard rm_session(ep()->lookup_and_lock(cap));
-				if (!rm_session)
-					/* should never happen */
-					return cap;
+				auto lambda = [] (Rm_session_component *rm_session) {
+					if (!rm_session)
+						/* should never happen */
+						return;
 
-				/**
-				 * Assign rm_session capability to dataspace component. It can
-				 * not be done beforehand because the dataspace_component is
-				 * constructed before the rm_session
-				 */
-				if (rm_session->dataspace_component())
-					rm_session->dataspace_component()->sub_rm_session(rm_session->cap());
+					/**
+					 * Assign rm_session capability to dataspace component. It can
+					 * not be done beforehand because the dataspace_component is
+					 * constructed before the rm_session
+					 */
+					if (rm_session->dataspace_component())
+						rm_session->dataspace_component()->sub_rm_session(rm_session->cap());
+				};
+				ep()->apply(cap, lambda);
 				return cap;
 			}
 

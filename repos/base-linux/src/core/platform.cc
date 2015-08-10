@@ -193,10 +193,8 @@ Platform_env_base::Rm_session_mmap::_dataspace_size(Capability<Dataspace> ds_cap
 	}
 
 	/* use local function call if called from the entrypoint */
-	Object_pool<Rpc_object_base>::Guard
-		ds_rpc(core_env()->entrypoint()->lookup_and_lock(ds_cap));
-	Dataspace * ds = dynamic_cast<Dataspace *>(&*ds_rpc);
-	return ds ? ds->size() : 0;
+	return core_env()->entrypoint()->apply(ds_cap, [] (Dataspace *ds) {
+		return ds ? ds->size() : 0; });
 }
 
 
@@ -212,10 +210,6 @@ int Platform_env_base::Rm_session_mmap::_dataspace_fd(Capability<Dataspace> ds_c
 
 	Capability<Linux_dataspace> lx_ds_cap = static_cap_cast<Linux_dataspace>(ds_cap);
 
-	Object_pool<Rpc_object_base>::Guard
-		ds_rpc(core_env()->entrypoint()->lookup_and_lock(lx_ds_cap));
-	Linux_dataspace * ds = dynamic_cast<Linux_dataspace *>(&*ds_rpc);
-
 	/*
 	 * Return a duplicate of the dataspace file descriptor, which will be freed
 	 * immediately after mmap'ing the file (see 'Rm_session_mmap').
@@ -225,7 +219,8 @@ int Platform_env_base::Rm_session_mmap::_dataspace_fd(Capability<Dataspace> ds_c
 	 * socket descriptor during the RPC handling). When later destroying the
 	 * dataspace, the descriptor would unexpectedly be closed again.
 	 */
-	return ds ? lx_dup(ds->fd().dst().socket) : -1;
+	return core_env()->entrypoint()->apply(lx_ds_cap, [] (Linux_dataspace *ds) {
+		return ds ? lx_dup(ds->fd().dst().socket) : -1; });
 }
 
 
@@ -239,9 +234,6 @@ bool Platform_env_base::Rm_session_mmap::_dataspace_writable(Dataspace_capabilit
 		return writable;
 	}
 
-	Object_pool<Rpc_object_base>::Guard
-		ds_rpc(core_env()->entrypoint()->lookup_and_lock(ds_cap));
-	Dataspace * ds = dynamic_cast<Dataspace *>(&*ds_rpc);
-
-	return ds ? ds->writable() : false;
+	return core_env()->entrypoint()->apply(ds_cap, [] (Dataspace *ds) {
+		return ds ? ds->writable() : false; });
 }

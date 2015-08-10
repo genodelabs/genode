@@ -120,14 +120,14 @@ void Pager_object::unresolved_page_fault_occurred()
  ** Pager entrypoint **
  **********************/
 
-Untyped_capability Pager_entrypoint::_manage(Pager_object *obj)
+Untyped_capability Pager_entrypoint::_pager_object_cap(unsigned long badge)
 {
 	/*
 	 * Create minted endpoint capability of the pager entrypoint.
 	 * The badge of the page-fault message is used to find the pager
 	 * object for faulted thread.
 	 */
-	Rpc_obj_key rpc_obj_key((addr_t)obj->badge());
+	Rpc_obj_key rpc_obj_key((addr_t)badge);
 
 	Untyped_capability ep_cap(Capability_space::create_ep_cap(*this));
 	return Capability_space::create_rpc_obj_cap(ep_cap, nullptr, rpc_obj_key);

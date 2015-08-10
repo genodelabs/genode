@@ -204,36 +204,46 @@ namespace Gdb_monitor {
 					{
 						using namespace Genode;
 
-						Child_session *session = _sessions.lookup_and_lock(session_cap);
-						if (!session) {
-							PERR("attempt to upgrade unknown session");
-							return;
-						}
+						auto lambda = [&] (Child_session *session) {
+							if (!session) {
+								PERR("attempt to upgrade unknown session");
+								return;
+							}
 
-						Genode::size_t ram_quota =
-							Arg_string::find_arg(args.string(),
-							                     "ram_quota").ulong_value(0);
+							Genode::size_t ram_quota =
+								Arg_string::find_arg(args.string(),
+								                     "ram_quota").ulong_value(0);
 
-						/* forward session quota to child */
-						env()->ram_session()->transfer_quota(_child_ram, ram_quota);
+							/* forward session quota to child */
+							env()->ram_session()->transfer_quota(_child_ram, ram_quota);
 
-						session->ram_quota += ram_quota;
+							session->ram_quota += ram_quota;
 
-						/* inform child about quota upgrade */
-						_child_root.upgrade(session_cap, args);
+							/* inform child about quota upgrade */
+							_child_root.upgrade(session_cap, args);
+						};
+
+						_sessions.apply(session_cap, lambda);
 					}
 
 					void close(Session_capability session_cap)
 					{
 						using namespace Genode;
 
-						Child_session *session = _sessions.lookup_and_lock(session_cap);
-						if (!session) {
-							PERR("attempt to close unknown session");
-							return;
-						}
+						Child_session *session;
+
+						auto lambda = [&] (Child_session *s) {
+							session = s;
+
+							if (!session) {
+								PERR("attempt to close unknown session");
+								return;
+							}
+							_sessions.remove(session);
+						};
+						_sessions.apply(session_cap, lambda);
+
 						Genode::size_t ram_quota = session->ram_quota;
-						_sessions.remove_locked(session);
 						destroy(env()->heap(), session);
 
 						_child_root.close(session_cap);

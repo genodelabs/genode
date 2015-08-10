@@ -43,6 +43,23 @@ namespace Genode {
 
 	namespace Meta {
 
+		/***********************************
+		 ** Variadic template type access **
+		 ***********************************/
+
+		template <unsigned long N, typename HEAD, typename... TAIL>
+		struct Variadic_type_tuple
+		{
+			using Type = typename Variadic_type_tuple<N-1, TAIL...>::Type;
+		};
+
+		template <typename HEAD, typename... TAIL>
+		struct Variadic_type_tuple<0, HEAD, TAIL...>
+		{
+			using Type = HEAD;
+		};
+
+
 		/***************
 		 ** Type list **
 		 ***************/
@@ -643,6 +660,28 @@ namespace Genode {
 		template <bool VALUE> struct Bool_to_type { enum { V = VALUE }; };
 
 	} /* namespace Meta */
+
+	namespace Trait {
+
+		template<typename T> struct Functor;
+
+		template<typename RET, typename T, typename... ARGS>
+		struct Functor<RET (T::*)(ARGS...) const>
+		{
+			static constexpr unsigned long argument_count = sizeof...(ARGS);
+
+			using Return_type = RET;
+
+			template <unsigned long N>
+			struct Argument
+			{
+				static_assert(N < argument_count, "Invalid index");
+
+				using Type =
+					typename Meta::Variadic_type_tuple<N, ARGS...>::Type;
+			};
+		};
+	} /* namespace Trait */
 }
 
 #endif /* _INCLUDE__BASE__UTIL__META_H_ */

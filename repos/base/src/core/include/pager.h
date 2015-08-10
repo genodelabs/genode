@@ -134,7 +134,7 @@ class Genode::Pager_entrypoint : public Object_pool<Pager_object>,
 		Ipc_pager    _pager;
 		Cap_session *_cap_session;
 
-		Untyped_capability _manage(Pager_object *obj);
+		Untyped_capability _pager_object_cap(unsigned long badge);
 
 	public:
 

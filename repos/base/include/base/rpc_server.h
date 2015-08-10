@@ -275,8 +275,6 @@ class Genode::Rpc_entrypoint : Thread_base, public Object_pool<Rpc_object_base>
 	protected:
 
 		Ipc_server      *_ipc_server;
-		Rpc_object_base *_curr_obj;       /* currently dispatched RPC object       */
-		Lock             _curr_obj_lock;  /* for the protection of '_curr_obj'     */
 		Lock             _cap_valid;      /* thread startup synchronization        */
 		Lock             _delay_start;    /* delay start of request dispatching    */
 		Lock             _delay_exit;     /* delay destructor until server settled */
@@ -297,13 +295,6 @@ class Genode::Rpc_entrypoint : Thread_base, public Object_pool<Rpc_object_base>
 		 * \noapi
 		 */
 		void _dissolve(Rpc_object_base *obj);
-
-		/**
-		 * Force activation to cancel dispatching the specified server object
-		 *
-		 * \noapi
-		 */
-		void _leave_server_object(Rpc_object_base *obj);
 
 		/**
 		 * Wait until the entrypoint activation is initialized

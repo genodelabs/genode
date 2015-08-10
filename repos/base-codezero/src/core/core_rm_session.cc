@@ -30,39 +30,41 @@ Core_rm_session::attach(Dataspace_capability ds_cap, size_t size,
 {
 	using namespace Codezero;
 
-	Object_pool<Dataspace_component>::Guard ds(_ds_ep->lookup_and_lock(ds_cap));
-	if (!ds)
-		throw Invalid_dataspace();
+	auto lambda = [&] (Dataspace_component *ds) -> Local_addr {
+		if (!ds)
+			throw Invalid_dataspace();
 
-	if (size == 0)
-		size = ds->size();
+		if (size == 0)
+			size = ds->size();
 
-	size_t page_rounded_size = (size + get_page_size() - 1) & get_page_mask();
-	size_t num_pages         = page_rounded_size >> get_page_size_log2();
+		size_t page_rounded_size = (size + get_page_size() - 1) & get_page_mask();
+		size_t num_pages         = page_rounded_size >> get_page_size_log2();
 
-	if (use_local_addr) {
-		PERR("Parameter 'use_local_addr' not supported within core");
-		return 0;
-	}
+		if (use_local_addr) {
+			PERR("Parameter 'use_local_addr' not supported within core");
+			return nullptr;
+		}
 
-	if (offset) {
-		PERR("Parameter 'offset' not supported within core");
-		return 0;
-	}
+		if (offset) {
+			PERR("Parameter 'offset' not supported within core");
+			return nullptr;
+		}
 
-	/* allocate range in core's virtual address space */
-	void *virt_addr;
-	if (!platform()->region_alloc()->alloc(page_rounded_size, &virt_addr)) {
-		PERR("Could not allocate virtual address range in core of size %zd\n",
-		     page_rounded_size);
-		return false;
-	}
+		/* allocate range in core's virtual address space */
+		void *virt_addr;
+		if (!platform()->region_alloc()->alloc(page_rounded_size, &virt_addr)) {
+			PERR("Could not allocate virtual address range in core of size %zd\n",
+			     page_rounded_size);
+			return nullptr;
+		}
 
-	if (!map_local(ds->phys_addr(), (addr_t)virt_addr, num_pages)) {
-		PERR("core-local memory mapping failed virt=%lx, phys=%lx\n",
-		     (addr_t)virt_addr, ds->phys_addr());
-		return 0;
-	}
+		if (!map_local(ds->phys_addr(), (addr_t)virt_addr, num_pages)) {
+			PERR("core-local memory mapping failed virt=%lx, phys=%lx\n",
+			     (addr_t)virt_addr, ds->phys_addr());
+			return nullptr;
+		}
 
-	return virt_addr;
+		return virt_addr;
+	};
+	return _ds_ep->apply(ds_cap, lambda);
 }

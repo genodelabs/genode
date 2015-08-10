@@ -26,9 +26,12 @@ static const bool verbose = false;
 
 addr_t Ram_session_component::phys_addr(Ram_dataspace_capability ds)
 {
-	Object_pool<Dataspace_component>::Guard dsc(_ds_ep->lookup_and_lock(ds));
-	if (!dsc) throw Invalid_dataspace();
-	return dsc->phys_addr();
+	auto lambda = [] (Dataspace_component *dsc) {
+		if (!dsc) throw Invalid_dataspace();
+		return dsc->phys_addr();
+	};
+
+	return _ds_ep->apply(ds, lambda);
 }
 
 
@@ -217,12 +220,12 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, Cache_attr
 
 void Ram_session_component::free(Ram_dataspace_capability ds_cap)
 {
-	Dataspace_component * ds =
-		dynamic_cast<Dataspace_component *>(_ds_ep->lookup_and_lock(ds_cap));
-	if (!ds)
-		return;
+	auto lambda = [this] (Dataspace_component *ds) {
+		if (!ds) return;
+		_free_ds(ds);
+	};
 
-	_free_ds(ds);
+	_ds_ep->apply(ds_cap, lambda);
 }
 
 
@@ -231,18 +234,21 @@ int Ram_session_component::ref_account(Ram_session_capability ram_session_cap)
 	/* the reference account cannot be defined twice */
 	if (_ref_account) return -2;
 
-	Object_pool<Ram_session_component>::Guard ref(_ram_session_ep->lookup_and_lock(ram_session_cap));
+	auto lambda = [this] (Ram_session_component *ref) {
 
-	/* check if recipient is a valid Ram_session_component */
-	if (!ref) return -1;
+		/* check if recipient is a valid Ram_session_component */
+		if (!ref) return -1;
 
-	/* deny the usage of the ram session as its own ref account */
-	/* XXX also check for cycles along the tree of ref accounts */
-	if (ref == this) return -3;
+		/* deny the usage of the ram session as its own ref account */
+		/* XXX also check for cycles along the tree of ref accounts */
+		if (ref == this) return -3;
 
-	_ref_account = ref;
-	_ref_account->_register_ref_account_member(this);
-	return 0;
+		_ref_account = ref;
+		_ref_account->_register_ref_account_member(this);
+		return 0;
+	};
+
+	return _ram_session_ep->apply(ram_session_cap, lambda);
 }
 
 
@@ -252,8 +258,9 @@ int Ram_session_component::transfer_quota(Ram_session_capability ram_session_cap
 	if (verbose)
 		PDBG("amount=%zu", amount);
 
-	Object_pool<Ram_session_component>::Guard dst(_ram_session_ep->lookup_and_lock(ram_session_cap));
-	return _transfer_quota(dst, amount);
+	auto lambda = [&] (Ram_session_component *dst) {
+		return _transfer_quota(dst, amount); };
+	return _ram_session_ep->apply(ram_session_cap, lambda);
 }
 
 

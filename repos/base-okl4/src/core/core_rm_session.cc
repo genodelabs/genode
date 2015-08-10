@@ -26,37 +26,40 @@ Core_rm_session::attach(Dataspace_capability ds_cap, size_t size,
 {
 	using namespace Okl4;
 
-	Object_pool<Dataspace_component>::Guard ds(_ds_ep->lookup_and_lock(ds_cap));
-	if (!ds)
-		throw Invalid_dataspace();
+	auto lambda = [&] (Dataspace_component *ds) -> void* {
+		if (!ds)
+			throw Invalid_dataspace();
 
-	if (size == 0)
-		size = ds->size();
+		if (size == 0)
+			size = ds->size();
 
-	size_t page_rounded_size = (size + get_page_size() - 1) & get_page_mask();
+		size_t page_rounded_size = (size + get_page_size() - 1)
+			& get_page_mask();
 
-	if (use_local_addr) {
-		PERR("Parameter 'use_local_addr' not supported within core");
-		return 0;
-	}
+		if (use_local_addr) {
+			PERR("Parameter 'use_local_addr' not supported within core");
+			return nullptr;
+		}
 
-	if (offset) {
-		PERR("Parameter 'offset' not supported within core");
-		return 0;
-	}
+		if (offset) {
+			PERR("Parameter 'offset' not supported within core");
+			return nullptr;
+		}
 
-	/* allocate range in core's virtual address space */
-	void *virt_addr;
-	if (!platform()->region_alloc()->alloc(page_rounded_size, &virt_addr)) {
-		PERR("Could not allocate virtual address range in core of size %zd\n",
-		     page_rounded_size);
-		return false;
-	}
+		/* allocate range in core's virtual address space */
+		void *virt_addr;
+		if (!platform()->region_alloc()->alloc(page_rounded_size, &virt_addr)) {
+			PERR("Could not allocate virtual address range in core of size %zd\n",
+			     page_rounded_size);
+			return nullptr;
+		}
 
-	/* map the dataspace's physical pages to corresponding virtual addresses */
-	unsigned num_pages = page_rounded_size >> get_page_size_log2();
-	if (!map_local(ds->phys_addr(), (addr_t)virt_addr, num_pages))
-		return 0;
+		/* map the dataspace's physical pages to corresponding virtual addresses */
+		unsigned num_pages = page_rounded_size >> get_page_size_log2();
+		if (!map_local(ds->phys_addr(), (addr_t)virt_addr, num_pages))
+			return nullptr;
+		return virt_addr;
+	};
 
-	return virt_addr;
+	return _ds_ep->apply(ds_cap, lambda);
 }
