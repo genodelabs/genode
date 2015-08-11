@@ -2,10 +2,6 @@
  * \brief  Genode audio driver backend
  * \author Josef Soentgen
  * \date   2015-05-17
- *
- * TODO:
- *       - avoid excessive copying by mixing hw.mix_buf directly to
- *         Audio_out packet
  */
 
 /*
@@ -42,9 +38,11 @@ static bool const verbose = false;
 
 enum {
 	AUDIO_CHANNELS    = 2,
-	AUDIO_SAMPLE_SIZE = sizeof(short),
+	AUDIO_SAMPLE_SIZE = sizeof(int16_t),
 	AUDIO_FREQ        = 44100,
 	SIZE_PER_FRAME    = AUDIO_CHANNELS * AUDIO_SAMPLE_SIZE,
+
+	RECORD_BUFFER_SAMPLES = 2 * Audio_in::PERIOD,
 };
 static const char *channel_names[] = { "front left", "front right" };
 
@@ -55,22 +53,30 @@ struct GenodeVoiceOut
 	Audio_out::Connection *audio[AUDIO_CHANNELS];
 	Audio_out::Packet     *packet[AUDIO_CHANNELS];
 	uint8_t               *packet_buf;
-	uint8_t               *pcm_buf;
-	int                    wpos;
+	int                    wpos;             /* in samples */
 	unsigned               packets;
-	int                    last_submitted;
+	unsigned               last_pos;
 };
 
 
 struct GenodeVoiceIn {
 	HWVoiceIn             hw;
 	Audio_in::Connection *audio;
-	void                 *pcm_buf;
+	uint8_t              *pcm_buf;
+	int                   pcm_rpos;   /* in bytes */
 	uint8_t              *packet_buf;
-	int                   wpos;
-	int                   rpos;
+	int                   avail;
+	int                   wpos;       /* in samples */
+	int                   rpos;       /* in samples */
 	unsigned              packets;
 };
+
+
+static inline int16_t *advance_buffer(void *buffer, int samples)
+{
+	enum { CHANNELS = 2 };
+	return ((int16_t*)buffer) + (samples * CHANNELS);
+}
 
 
 static inline void copy_samples(void *dst, void const *src, int samples) {
@@ -111,19 +117,19 @@ static int write_samples(GenodeVoiceOut *out, int16_t *src, int samples)
 			out->audio[i]->submit(out->packet[i]);
 			out->packet[i] = nullptr;
 		}
-		out->last_submitted = pos;
+		out->last_pos = pos;
 
 		/* move remaining samples if any to front of buffer */
 		int const remaining_samples = out->wpos - Audio_out::PERIOD;
 		if (remaining_samples) {
-			copy_samples(buf, buf + (2*Audio_out::PERIOD), remaining_samples);
+			copy_samples(buf, advance_buffer(buf, Audio_out::PERIOD), remaining_samples);
 		}
 		out->wpos = remaining_samples;
 		out->packets++;
 	}
 
 	/* copy new samples */
-	copy_samples(buf + (2*out->wpos), src, samples);
+	copy_samples(advance_buffer(buf, out->wpos), src, samples);
 	out->wpos += samples;
 
 	return samples;
@@ -139,18 +145,17 @@ static int genode_run_out(HWVoiceOut *hw)
 		return 0;
 
 	int const samples = audio_MIN(live, out->hw.samples);
-	int const rpos    = out->hw.rpos;
 
-	out->hw.clip(out->pcm_buf, (st_sample_t*)(out->hw.mix_buf + rpos), samples);
-	write_samples(out, (int16_t*)out->pcm_buf, samples);
-	out->hw.rpos = (rpos + samples) % out->hw.samples;
-
+	out->hw.rpos = (out->hw.rpos + samples) % out->hw.samples;
 	return samples;
 }
 
 
-static int genode_write(SWVoiceOut *sw, void *buf, int len) {
-	return audio_pcm_sw_write(sw, buf, len); }
+static int genode_write(SWVoiceOut *sw, void *buf, int size)
+{
+	GenodeVoiceOut *out = (GenodeVoiceOut*)sw->hw;
+	return write_samples(out, (int16_t*)buf, size / 4) * 4;
+}
 
 
 static int genode_init_out(HWVoiceOut *hw, audsettings_t *as)
@@ -189,15 +194,14 @@ static int genode_init_out(HWVoiceOut *hw, audsettings_t *as)
 		out->packet[i] = nullptr;
 	}
 
-	out->wpos           = 0;
-	out->last_submitted = 0;
-	out->packets        = 0;
+	out->wpos     = 0;
+	out->packets  = 0;
+	out->last_pos = 0;
 
 	audio_pcm_init_info(&out->hw.info, as);
 	out->hw.samples    = Audio_out::PERIOD;
 
 	size_t const bytes = (out->hw.samples << out->hw.info.shift);
-	out->pcm_buf       = (uint8_t*)RTMemAllocZ(bytes);
 	out->packet_buf    = (uint8_t*)RTMemAllocZ(2 * bytes);
 
 	return 0;
@@ -211,7 +215,6 @@ static void genode_fini_out(HWVoiceOut *hw)
 	for (int i = 0; i < AUDIO_CHANNELS; i++)
 		Genode::destroy(Genode::env()->heap(), out->audio[i]);
 
-	RTMemFree((void*)out->pcm_buf);
 	RTMemFree((void*)out->packet_buf);
 }
 
@@ -223,7 +226,8 @@ static int genode_ctl_out(HWVoiceOut *hw, int cmd, ...)
 	case VOICE_ENABLE:
 		{
 			PLOGV("enable playback");
-			out->packets = 0;
+			out->wpos      = 0;
+			out->packets   = 0;
 
 			for (int i = 0; i < AUDIO_CHANNELS; i++) {
 				out->audio[i]->stream()->reset();
@@ -241,7 +245,6 @@ static int genode_ctl_out(HWVoiceOut *hw, int cmd, ...)
 				out->audio[i]->stream()->invalidate_all();
 				out->packet[i] = nullptr;
 			}
-			out->wpos = 0;
 
 			break;
 		}
@@ -250,6 +253,10 @@ static int genode_ctl_out(HWVoiceOut *hw, int cmd, ...)
 	return 0;
 }
 
+
+/***************
+ ** Recording **
+ ***************/
 
 static int genode_init_in(HWVoiceIn *hw, audsettings_t *as)
 {
@@ -270,12 +277,15 @@ static int genode_init_in(HWVoiceIn *hw, audsettings_t *as)
 
 	audio_pcm_init_info(&in->hw.info, as);
 	in->hw.samples = Audio_in::PERIOD;
-	in->pcm_buf    = RTMemAllocZ(in->hw.samples << in->hw.info.shift);
-	in->packet_buf = (uint8_t*)RTMemAllocZ(in->hw.samples << in->hw.info.shift);
 
-	in->rpos    = 0;
-	in->wpos    = 0;
-	in->packets = 0;
+	in->pcm_buf    = (uint8_t*)RTMemAllocZ(in->hw.samples << in->hw.info.shift);
+	in->pcm_rpos   = 0;
+
+	in->packet_buf = (uint8_t*)RTMemAllocZ(RECORD_BUFFER_SAMPLES << in->hw.info.shift);
+	in->avail      = 0;
+	in->rpos       = 0;
+	in->wpos       = 0;
+	in->packets    = 0;
 
 	return 0;
 }
@@ -293,52 +303,72 @@ static void genode_fini_in(HWVoiceIn *hw)
 
 static int read_samples(GenodeVoiceIn *in, int16_t *dst, int samples)
 {
-	enum { PACKET_BUF_LEN = 2 * Audio_in::PERIOD };
-
-	/*
-	 * Acquire next Audio_in packet first and copy the content into the
-	 * packet buffer.
-	 */
-	Audio_in::Stream &stream = *in->audio->stream();
-	Audio_in::Packet *p      = stream.get(stream.pos());
-
-	if (!p->valid())
-		return 0;
-
-	if ((in->wpos + (Audio_in::PERIOD)) > PACKET_BUF_LEN)
-		in->wpos = 0;
-
-	int16_t *buf = (int16_t*)in->packet_buf + (in->wpos * sizeof(int16_t));
-	float   *content = p->content();
-	for (int i = 0; i < PACKET_BUF_LEN; i++) {
-		int16_t const v = content[i/2] * 32767;
-		buf[i]          = v;
-		buf[i+1]        = v;
-	}
-
-	p->invalidate();
-	p->mark_as_recorded();
-	stream.increment_position();
-
-	in->packets++;
-	in->wpos += Audio_in::PERIOD;
-
-	/*
-	 * Copy number of given samples from packet buffer to dst buffer.
-	 */
 	int remaining_samples = samples;
-	if ((in->rpos + remaining_samples) > PACKET_BUF_LEN) {
-		int n = PACKET_BUF_LEN - in->rpos;
-		copy_samples(dst, buf + in->rpos, n);
-		remaining_samples -= n;
-		dst               += (sizeof(int16_t) * n); /* advance in bytes */
-		in->rpos           = 0;
+
+	/*
+	 * If there are fewer samples samples available acquire next Audio_in
+	 * packet and copy the content into the packet buffer. If that is not
+	 * possible, check if there are at least enough samples left to satisfy
+	 * the request.
+	 */
+	while (in->avail < Audio_in::PERIOD) {
+		Audio_in::Stream &stream = *in->audio->stream();
+		Audio_in::Packet *p      = stream.get(stream.pos());
+
+		if (!p->valid()) {
+			if (in->avail < samples)
+				return 0;
+			break;
+		}
+
+		in->packets++;
+
+		int16_t *buf = advance_buffer(in->packet_buf, in->wpos);
+		float   *content = p->content();
+		for (int i = 0; i < Audio_in::PERIOD; i++) {
+			int16_t const v = content[i] * 32767;
+			int     const j = i * 2;
+			buf[j + 0]      = v;
+			buf[j + 1]      = v;
+		}
+
+		p->invalidate();
+		p->mark_as_recorded();
+		stream.increment_position();
+
+		in->wpos   = (in->wpos + Audio_in::PERIOD) % RECORD_BUFFER_SAMPLES;
+		in->avail += Audio_in::PERIOD;
+
+		break;
 	}
 
-	copy_samples(dst, buf + in->rpos, remaining_samples);
-	in->rpos = (in->rpos + remaining_samples) % PACKET_BUF_LEN;
+	/*
+	 * Get number of samples from the packet buffer, wrap the packet
+	 * buffer if necessary
+	 */
+	{
+		if ((in->rpos + remaining_samples) > RECORD_BUFFER_SAMPLES) {
+			int n = RECORD_BUFFER_SAMPLES - in->rpos;
+			int16_t const *src = advance_buffer(in->packet_buf, in->rpos);
 
-	return samples;
+			copy_samples(dst, src, n);
+			in->rpos   = 0;
+			in->avail -= n;
+
+			remaining_samples -= n;
+			dst                = advance_buffer(dst, n);
+		}
+
+		int16_t const *src = advance_buffer(in->packet_buf, in->rpos);
+		copy_samples(dst, src, remaining_samples);
+
+		in->rpos   = (in->rpos + remaining_samples) % RECORD_BUFFER_SAMPLES;
+		in->avail -= remaining_samples;
+		/* there are no remaining samples because all samples were copied */
+		remaining_samples = 0;
+	}
+
+	return samples - remaining_samples;
 }
 
 
@@ -353,14 +383,33 @@ static int genode_run_in(HWVoiceIn *hw)
 	int const dead    = in->hw.samples - live;
 	int const samples = read_samples(in, (int16_t*)in->pcm_buf, dead);
 
-	in->hw.conv(in->hw.conv_buf, in->pcm_buf, samples, &pcm_in_volume);
 	in->hw.wpos = (in->hw.wpos + samples) % in->hw.samples;
 	return samples;
 }
 
 
-static int genode_read(SWVoiceIn *sw, void *buf, int size) {
-	return audio_pcm_sw_read(sw, buf, size); }
+static int genode_read(SWVoiceIn *sw, void *buf, int size)
+{
+	GenodeVoiceIn *in = (GenodeVoiceIn*)sw->hw;
+
+	void const *src = in->pcm_buf + in->pcm_rpos;
+	Genode::memcpy(buf, src, size);
+	in->pcm_rpos += size;
+
+	/* needed by audio_pcm_hw_get_live_in() to calculate ``live'' samples */
+	sw->total_hw_samples_acquired += (size / 4);
+
+	/*
+	 * This assumption totally blows if the guest uses other
+	 * parameters to configure the device model.
+	 */
+	enum { PCM_BUFFER_SIZE = 448 /* samples */ * 2 /* ch */ * 2 /* int16_t */ };
+	if (in->pcm_rpos >= PCM_BUFFER_SIZE) {
+		in->pcm_rpos = 0;
+	}
+
+	return size;
+}
 
 
 static int genode_ctl_in(HWVoiceIn *hw, int cmd, ...)
@@ -370,12 +419,18 @@ static int genode_ctl_in(HWVoiceIn *hw, int cmd, ...)
 	case VOICE_ENABLE:
 		{
 			PLOGV("enable recording");
+			in->wpos     = 0;
+			in->rpos     = 0;
+			in->avail    = 0;
+			in->pcm_rpos = 0;
+			in->packets  = 0;
+
 			in->audio->start();
 			break;
 		}
 	case VOICE_DISABLE:
 		{
-			PLOGV("disable recording");
+			PLOGV("disable recording (packets recorded: %u)", in->packets);
 			in->audio->stop();
 			break;
 		}
