@@ -104,7 +104,7 @@ ifneq ($(DST_DIRS),)
 REQUIRED_GCC_VERSION ?= 4.9.2
 GCC_VERSION := $(filter $(REQUIRED_GCC_VERSION) ,$(shell $(CUSTOM_CXX) --version))
 ifneq ($(GCC_VERSION), $(REQUIRED_GCC_VERSION))
-$(error "GCC version $(REQUIRED_GCC_VERSION) is required")
+$(error "$(CUSTOM_CXX) version $(REQUIRED_GCC_VERSION) is required")
 endif
 endif
 endif
