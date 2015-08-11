@@ -1,4 +1,5 @@
 acpi_drv.patch
+audio.patch
 dev_e1000.patch
 eminternal.patch
 iconv.patch
