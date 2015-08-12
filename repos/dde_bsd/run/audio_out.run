@@ -19,7 +19,7 @@ set use_mixer 0
 set build_components {
 	core init
 	drivers/timer
-	drivers/audio_out
+	drivers/audio
 	test/audio_out
 }
 
@@ -66,13 +66,13 @@ append_if $use_mixer config {
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Audio_out"/></provides>
 		<route>
-			<service name="Audio_out"> <child name="audio_out_drv"/> </service>
+			<service name="Audio_out"> <child name="audio_drv"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>}
 
 append config {
-	<start name="audio_out_drv">
+	<start name="audio_drv">
 		<resource name="RAM" quantum="8M"/>
 		<provides>
 			<service name="Audio_out"/>
@@ -117,7 +117,7 @@ if {![file exists bin/sample.raw]} {
 #
 
 set boot_modules {
-	core init timer audio_out_drv test-audio_out sample.raw }
+	core init timer audio_drv test-audio_out sample.raw }
 
 lappend_if $use_mixer boot_modules mixer
 

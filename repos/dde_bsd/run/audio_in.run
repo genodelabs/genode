@@ -1,5 +1,16 @@
 assert_spec x86
 
+if {[have_include "power_on/qemu"]} {
+	puts "\nAudio_in test running on Qemu is not supported.\n"
+	exit 0
+}
+
+if {[have_spec linux]} {
+	puts"\nAudio_in test running on Linux is not supported.\n"
+	exit 0
+}
+
+
 #
 # Build
 #
@@ -7,7 +18,7 @@ assert_spec x86
 set build_components {
 	core init
 	drivers/timer
-	drivers/audio_out
+	drivers/audio
 	test/audio_in
 }
 
@@ -48,7 +59,7 @@ append config {
 append_platform_drv_config
 
 append config {
-	<start name="audio_out_drv">
+	<start name="audio_drv">
 		<resource name="RAM" quantum="8M"/>
 		<provides>
 			<service name="Audio_out"/>
@@ -73,13 +84,11 @@ install_config $config
 #
 
 set boot_modules {
-	core init timer audio_out_drv test-audio_in
+	core init timer audio_drv test-audio_in
 }
 
 append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
-
-append qemu_args " -m 128 -nographic -soundhw es1370 "
 
 run_genode_until forever

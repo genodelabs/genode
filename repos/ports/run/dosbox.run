@@ -5,7 +5,7 @@
 set build_components {
 	core init
 	drivers/timer
-	drivers/audio_out
+	drivers/audio
 	drivers/framebuffer drivers/input
 	app/dosbox
 }
@@ -17,7 +17,7 @@ proc platform_drv_policy {} {
 			<policy label="ps2_drv"> <device name="PS2"/> </policy>
 			<policy label="usb_drv"> <pci class="USB"/> </policy>
 			<policy label="fb_drv">  <pci class="VGA"/> </policy>
-			<policy label="audio_out_drv"> <pci class="AUDIO"/> </policy>}
+			<policy label="audio_drv"> <pci class="AUDIO"/> <pci class="HDAUDIO"/> </policy>}
 }
 
 append_platform_drv_build_components
@@ -81,7 +81,7 @@ append_if [have_spec ps2] config {
 	</start>}
 
 append config {
-	<start name="audio_out_drv">
+	<start name="audio_drv">
 		<resource name="RAM" quantum="6M"/>
 		<provides><service name="Audio_out"/></provides>
 	</start>
@@ -120,7 +120,7 @@ if {![file exists bin/dosbox.tar]} {
 
 # generic modules
 set boot_modules {
-	core init timer audio_out_drv
+	core init timer audio_drv
 	ld.lib.so
 	libc.lib.so
 	libm.lib.so lwip.lib.so libpng.lib.so
