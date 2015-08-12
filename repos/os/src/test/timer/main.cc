@@ -75,6 +75,24 @@ class Timer_client : public Genode::List<Timer_client>::Element,
 };
 
 
+/**
+ * Timer client that continuously reprograms timeouts
+ */
+struct Timer_stressful_client : Timer::Connection, Genode::Thread<STACK_SIZE>
+{
+	unsigned long us;
+
+	void entry() { for (;;) trigger_once(us); }
+
+	Timer_stressful_client(unsigned long us)
+	:
+		Thread("timer_stressful_client"), us(us)
+	{
+		Genode::Thread<STACK_SIZE>::start();
+	}
+};
+
+
 using namespace Genode;
 
 extern "C" int usleep(unsigned long usec);
@@ -87,10 +105,18 @@ int main(int argc, char **argv)
 	static Genode::List<Timer_client> timer_clients;
 	static Timer::Connection main_timer;
 
-	/* check long single timeout */
-	printf("register two-seconds timeout...\n");
-	main_timer.msleep(2000);
-	printf("timeout fired\n");
+	/*
+	 * Check long single timeout in the presence of another client that
+	 * reprograms timeouts all the time.
+	 */
+	{
+		/* will get destructed at the end of the current scope */
+		Timer_stressful_client stressful_client(250*1000);
+
+		printf("register two-seconds timeout...\n");
+		main_timer.msleep(2000);
+		printf("timeout fired\n");
+	}
 
 	/* check periodic timeouts */
 	Signal_receiver           sig_rcv;
