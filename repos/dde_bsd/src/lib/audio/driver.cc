@@ -350,7 +350,7 @@ static bool config_verbose()
 static void parse_config(Mixer &mixer)
 {
 	using namespace Genode;
-	
+
 	PLOG("--- parse config ---");
 
 	Xml_node config_node = config()->xml_node();
