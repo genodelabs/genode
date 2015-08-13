@@ -19,9 +19,10 @@ using namespace Genode;
 
 void Alarm_scheduler::_unsynchronized_enqueue(Alarm *alarm)
 {
-	/* do not enqueue twice */
-	if (alarm->_active)
+	if (alarm->_active) {
+		PERR("trying to insert the same alarm twice!");
 		return;
+	}
 
 	alarm->_active++;
 
@@ -146,12 +147,27 @@ void Alarm_scheduler::handle(Alarm::Time curr_time)
 }
 
 
+void Alarm_scheduler::_setup_alarm(Alarm &alarm, Alarm::Time period, Alarm::Time deadline)
+{
+	/*
+	 * If the alarm is already present in the queue, re-consider its queue
+	 * position because its deadline might have changed. I.e., if an alarm is
+	 * rescheduled with a new timeout before the original timeout triggered.
+	 */
+	if (alarm._active)
+		_unsynchronized_dequeue(&alarm);
+
+	alarm._assign(period, deadline, this);
+
+	_unsynchronized_enqueue(&alarm);
+}
+
+
 void Alarm_scheduler::schedule_absolute(Alarm *alarm, Alarm::Time timeout)
 {
 	Lock::Guard alarm_list_lock_guard(_lock);
 
-	alarm->_assign(0, timeout, this);
-	_unsynchronized_enqueue(alarm);
+	_setup_alarm(*alarm, 0, timeout);
 }
 
 
@@ -160,8 +176,7 @@ void Alarm_scheduler::schedule(Alarm *alarm, Alarm::Time period)
 	Lock::Guard alarm_list_lock_guard(_lock);
 
 	/* first deadline is overdue */
-	alarm->_assign(period, _now, this);
-	_unsynchronized_enqueue(alarm);
+	_setup_alarm(*alarm, period, _now);
 }
 
 
