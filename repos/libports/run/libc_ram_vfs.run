@@ -40,7 +40,7 @@ install_config {
 			<libc stdout="/dev/log" cwd="/tmp" >
 				<vfs>
 					<dir name="tmp" >
-						<ram_fs/>
+						<ram/>
 					</dir>
 					<dir name="dev"> <log/> </dir>
 				</vfs>

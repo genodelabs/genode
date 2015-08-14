@@ -712,6 +712,7 @@ int Libc::Vfs_plugin::symlink(const char *oldpath, const char *newpath)
 	case Result::SYMLINK_ERR_NO_ENTRY:      errno = ENOENT;       return -1;
 	case Result::SYMLINK_ERR_NAME_TOO_LONG: errno = ENAMETOOLONG; return -1;
 	case Result::SYMLINK_ERR_NO_PERM:       errno = ENOSYS;       return -1;
+	case Result::SYMLINK_ERR_NO_SPACE:      errno = ENOSPC;       return -1;
 	case Result::SYMLINK_OK:                                      break;
 	}
 	return 0;
