@@ -193,19 +193,13 @@ class Genode::Pic
 		static constexpr unsigned min_spi     = 32;
 		static constexpr unsigned spurious_id = 1023;
 
-		Distr          _distr;
-		Cpui           _cpui;
-		unsigned const _max_irq;
-		unsigned       _last_request;
+		Distr               _distr;
+		Cpui                _cpui;
+		Cpui::Iar::access_t _last_iar;
+		unsigned const      _max_irq;
 
-		/**
-		 * Platform specific initialization
-		 */
 		void _init();
 
-		/**
-		 * Return wether kernel name 'irq_id' addresses a valid IRQ
-		 */
 		bool _valid(unsigned const irq_id) const { return irq_id <= _max_irq; }
 
 	public:
@@ -218,8 +212,11 @@ class Genode::Pic
 		Pic()
 		: _distr(Board::IRQ_CONTROLLER_DISTR_BASE),
 		  _cpui (Board::IRQ_CONTROLLER_CPU_BASE),
-		  _max_irq(_distr.max_irq()),
-		  _last_request(spurious_id) { _init(); }
+		  _last_iar(Cpui::Iar::Irq_id::bits(spurious_id)),
+		  _max_irq(_distr.max_irq())
+		{
+			_init();
+		}
 
 		/**
 		 * Initialize CPU local interface of the controller
@@ -229,13 +226,13 @@ class Genode::Pic
 		/**
 		 * Try to take an IRQ and return wether it was successful
 		 *
-		 * \param irq_id  contains kernel name of taken IRQ on success
+		 * \param irq  contains kernel name of taken IRQ on success
 		 */
-		bool take_request(unsigned & irq_id)
+		bool take_request(unsigned & irq)
 		{
-			_last_request = _cpui.read<Cpui::Iar::Irq_id>();
-			irq_id = _last_request;
-			return _valid(irq_id);
+			_last_iar = _cpui.read<Cpui::Iar>();
+			irq = Cpui::Iar::Irq_id::get(_last_iar);
+			return _valid(irq);
 		}
 
 		/**
@@ -243,9 +240,8 @@ class Genode::Pic
 		 */
 		void finish_request()
 		{
-			if (!_valid(_last_request)) { return; }
-			_cpui.write<Cpui::Eoir::Irq_id>(_last_request);
-			_last_request = spurious_id;
+			_cpui.write<Cpui::Eoir>(_last_iar);
+			_last_iar = Cpui::Iar::Irq_id::bits(spurious_id);
 		}
 
 		/**
