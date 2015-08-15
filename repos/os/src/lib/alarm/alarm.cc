@@ -175,6 +175,17 @@ void Alarm_scheduler::schedule(Alarm *alarm, Alarm::Time period)
 {
 	Lock::Guard alarm_list_lock_guard(_lock);
 
+	/*
+	 * Refuse to schedule a periodic timeout of 0 because it would trigger
+	 * infinitely in the 'handle' function. To account for the case where the
+	 * alarm object was already scheduled, we make sure to remove it from the
+	 * queue.
+	 */
+	if (period == 0) {
+		_unsynchronized_dequeue(alarm);
+		return;
+	}
+
 	/* first deadline is overdue */
 	_setup_alarm(*alarm, period, _now);
 }
