@@ -1,7 +1,6 @@
 TARGET = openvpn
 
 LIBS += libc libc_lock_pipe libc_lwip_nic_dhcp \
-        vfs_jitterentropy \
         libcrypto libssl config_args server
 
 OPENVPN_PORT_DIR := $(call select_from_ports,openvpn)

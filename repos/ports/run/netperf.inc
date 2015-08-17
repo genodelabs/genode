@@ -79,6 +79,7 @@ append_if $use_wifi_driver      build_components {
 	server/fs_rom
 	server/ram_fs
 	server/report_rom
+	lib/vfs/jitterentropy
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
