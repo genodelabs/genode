@@ -37,10 +37,10 @@ static bool const verbose = false;
 
 
 enum {
-	AUDIO_CHANNELS   = 2,
-	AUDIO_SAMPE_SIZE = sizeof(short),
-	AUDIO_FREQ       = 44100,
-	SIZE_PER_FRAME   = AUDIO_CHANNELS * AUDIO_SAMPE_SIZE,
+	AUDIO_CHANNELS    = 2,
+	AUDIO_SAMPLE_SIZE = sizeof(short),
+	AUDIO_FREQ        = 44100,
+	SIZE_PER_FRAME    = AUDIO_CHANNELS * AUDIO_SAMPLE_SIZE,
 };
 static const char *channel_names[] = { "front left", "front right" };
 
