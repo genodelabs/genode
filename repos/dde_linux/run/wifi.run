@@ -10,6 +10,7 @@ set build_components {
 	server/ram_fs
 	server/fs_rom
 	test/lwip/http_srv
+	lib/vfs/jitterentropy
 }
 
 lappend_if [have_spec gpio]             build_components drivers/gpio
