@@ -53,6 +53,12 @@ struct Arm::Pl310 : Genode::Mmio
 	struct Invalidate_by_way       : Register <0x77c, 32> { };
 	struct Clean_invalidate_by_way : Register <0x7fc, 32> { };
 
+	struct Debug : Register<0xf40, 32>
+	{
+		struct Dcl : Bitfield<0,1> { };
+		struct Dwb : Bitfield<1,1> { };
+	};
+
 	Pl310(Genode::addr_t const base) : Mmio(base) { }
 
 	inline void sync() { while (read<Cache_sync>()) ; }

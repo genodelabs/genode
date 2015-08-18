@@ -77,9 +77,12 @@ class Genode::L2_cache
 
 		void flush()
 		{
-			_secure_monitor.call(Secure_monitor::L2_CACHE_SET_DEBUG_REG, 0x3);
+			Arm::Pl310::Debug::access_t v = 0;
+			Arm::Pl310::Debug::Dwb::set(v, 1);
+			Arm::Pl310::Debug::Dcl::set(v, 1);
+			_secure_monitor.call(Secure_monitor::L2_CACHE_SET_DEBUG_REG, v);
 			_pl310.flush();
-			_secure_monitor.call(Secure_monitor::L2_CACHE_SET_DEBUG_REG, 0x0);
+			_secure_monitor.call(Secure_monitor::L2_CACHE_SET_DEBUG_REG, 0);
 		}
 
 		void invalidate() { _pl310.invalidate(); }
