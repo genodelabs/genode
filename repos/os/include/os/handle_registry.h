@@ -188,6 +188,16 @@ class Genode::Handle_registry
 		 * \throw Lookup_failed
 		 */
 		Weak_ptr<OBJ> &lookup(HANDLE handle) const { return _lookup(handle); }
+
+		/**
+		 * Return true if 'obj' is registered under the specified handle
+		 *
+		 * \throw Lookup_failed
+		 */
+		bool has_handle(OBJ const &obj, HANDLE handle) const
+		{
+			return obj.weak_ptr_const() == _lookup(handle);
+		}
 };
 
 #endif /* _INCLUDE__OS__HANDLE_REGISTRY_H_ */
