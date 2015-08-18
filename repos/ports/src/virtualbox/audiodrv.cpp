@@ -364,6 +364,8 @@ static int read_samples(GenodeVoiceIn *in, int16_t *dst, int samples)
 
 		in->rpos   = (in->rpos + remaining_samples) % RECORD_BUFFER_SAMPLES;
 		in->avail -= remaining_samples;
+		/* there are no remaining samples because all samples were copied */
+		remaining_samples = 0;
 	}
 
 	return samples - remaining_samples;
