@@ -290,6 +290,22 @@ struct Genode::Weak_object : Genode::Weak_object_base
 	 * Obtain a weak pointer referring to the weak object
 	 */
 	Weak_ptr<T> weak_ptr() { return _weak_ptr<T>(); }
+
+	/**
+	 * Const version of 'weak_ptr'
+	 *
+	 * This function is useful in cases where the returned weak pointer is
+	 * merely used for comparison operations.
+	 */
+	Weak_ptr<T const> const weak_ptr_const() const
+	{
+		/*
+		 * We strip off the constness of 'this' to reuse the internal non-const
+		 * code of the weak object. The executed operations are known to not
+		 * alter the state of the weak object.
+		 */
+		return const_cast<Weak_object *>(this)->_weak_ptr<T const>();
+	}
 };
 
 
