@@ -60,6 +60,28 @@ namespace Genode {
 				bool   del;
 			} _rcv_pt_sel [MAX_CAP_ARGS];
 
+			/**
+			 * Normally the received capabilities start from the beginning of
+			 * the receive window (_rcv_pt_base), densely packed ascending.
+			 * However, a receiver may send invalid caps, which will cause
+			 * capability-selector gaps in the receiver window. Or a
+			 * misbehaving sender may even intentionally place a cap at the end
+			 * of the receive window. The position of a cap within the receive
+			 * window is fundamentally important to correctly maintain the
+			 * component-local capability-selector reference count.
+			 *
+			 * Additionally, the position is also required to decide whether a
+			 * kernel capability must be revoked during the receive window
+			 * cleanup/re-usage. '_rcv_pt_cap_free' is used to track this
+			 * information in order to free up and revoke selectors
+			 * (message-buffer cleanup).
+			 *
+			 * Meanings of the enums:
+			 * - FREE_INVALID - invalid cap selector, no cap_map entry
+			 * - FREE_SEL     - valid cap selector, invalid kernel capability
+			 * - UNUSED_CAP   - valid selector and cap, not read/used yet
+			 * - USED_CAP     - valid sel and cap, read/used by stream operator
+			 */
 			enum { FREE_INVALID, FREE_SEL, UNUSED_CAP, USED_CAP }
 				_rcv_pt_cap_free [MAX_CAP_ARGS];
 
@@ -246,7 +268,6 @@ namespace Genode {
 							nova_die();
 
 					_rcv_pt_cap_free [_rcv_pt_sel[i].sel - rcv_pt_base()] = USED_CAP;
-					cap_map()->remove(_rcv_pt_sel[i].sel - rcv_pt_base(), 0);
 
 					reinit = true;
 				}
@@ -275,9 +296,11 @@ namespace Genode {
 				}
 
 				/* decrease ref count if valid selector */
-				for (unsigned i = 0; i < MAX_CAP_ARGS; i++)
-					if (_rcv_pt_cap_free[i] != FREE_INVALID)
-						cap_map()->remove(rcv_pt_base() + i, 0, _rcv_pt_cap_free[i] == FREE_SEL);
+				for (unsigned i = 0; i < MAX_CAP_ARGS; i++) {
+					if (_rcv_pt_cap_free[i] == FREE_INVALID)
+						continue;
+					cap_map()->remove(rcv_pt_base() + i, 0, _rcv_pt_cap_free[i] != FREE_SEL);
+				}
 
 				return true;
 			}
