@@ -62,28 +62,25 @@ namespace Genode {
 
 			/**
 			 * Normally the received capabilities start from the beginning of
-			 * the receive window (_rcv_pt_base) dense packed ascending.
-			 * However, a receiver may send invalid caps which will cause
-			 * in the receiver window unused capability selector gaps or a
-			 * sender may intentionally place a cap at the end of the receive
-			 * window which contradicts the normal expected behaviour.
-			 * Where which cap got placed to within the receive window is
-			 * fundamentally important in order to correctly maintain the
-			 * capability selector reference count in a Genode process and to
-			 * decide whether a capability must be revoked or must be kept
-			 * during receive window cleanup/re-usage.
-			 * _rcv_pt_cap_free is used to track this information in order to
-			 * free up and revoke capabilities.
+			 * the receive window (_rcv_pt_base), densely packed ascending.
+			 * However, a receiver may send invalid caps, which will cause
+			 * capability-selector gaps in the receiver window. Or a
+			 * misbehaving sender may even intentionally place a cap at the end
+			 * of the receive window. The position of a cap within the receive
+			 * window is fundamentally important to correctly maintain the
+			 * component-local capability-selector reference count.
+			 *
+			 * Additionally, the position is also required to decide whether a
+			 * kernel capability must be revoked during the receive window
+			 * cleanup/re-usage. '_rcv_pt_cap_free' is used to track this
+			 * information in order to free up and revoke selectors
+			 * (message-buffer cleanup).
 			 *
 			 * Meanings of the enums:
 			 * - FREE_INVALID - invalid cap selector, no cap_map entry
 			 * - FREE_SEL     - valid cap selector, invalid kernel capability
 			 * - UNUSED_CAP   - valid selector and cap, not read/used yet
 			 * - USED_CAP     - valid sel and cap, read/used by stream operator
-			 *
-			 * Depending on the enums during message buffer cleanup and whether
-			 * a receive window can be/should be reused the reference count in
-			 * Genode as revocation of capabilities are maintained.
 			 */
 			enum { FREE_INVALID, FREE_SEL, UNUSED_CAP, USED_CAP }
 				_rcv_pt_cap_free [MAX_CAP_ARGS];
