@@ -54,3 +54,4 @@ cpu_quota
 stdcxx
 nic_loopback
 platform
+report_rom
