@@ -53,6 +53,15 @@ struct Report::Session_component : Genode::Rpc_object<Session>, Rom::Writer
 			return i;
 		}
 
+		Rom::Module &_create_module(Rom::Module::Name const &name)
+		{
+			try {
+				return _registry.lookup(*this, name);
+			} catch (...) {
+				throw Genode::Root::Invalid_args();
+			}
+		}
+
 	public:
 
 		Session_component(Rom::Module::Name const &name, size_t buffer_size,
@@ -60,7 +69,7 @@ struct Report::Session_component : Genode::Rpc_object<Session>, Rom::Writer
 		:
 			_registry(registry),
 			_ds(Genode::env()->ram_session(), buffer_size),
-			_module(_registry.lookup(*this, name)),
+			_module(_create_module(name)),
 			_verbose(verbose)
 		{ }
 

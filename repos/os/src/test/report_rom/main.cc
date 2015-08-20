@@ -47,7 +47,7 @@ int main(int argc, char **argv)
 	report_brightness(brightness_reporter, 10);
 
 	printf("ROM client: request brightness report\n");
-	Attached_rom_dataspace brightness_rom("test-report_rom/brightness");
+	Attached_rom_dataspace brightness_rom("brightness");
 
 	ASSERT(brightness_rom.is_valid());
 
@@ -72,8 +72,8 @@ int main(int argc, char **argv)
 	sig_rec.wait_for_signal();
 
 	brightness_rom.update();
-	ASSERT(!brightness_rom.is_valid());
-	printf("ROM client: detected vanished report\n");
+	ASSERT(brightness_rom.is_valid());
+	printf("ROM client: ROM is available despite report was closed - OK\n");
 
 	printf("Reporter: start reporting (while the ROM client still listens)\n");
 	brightness_reporter.enabled(true);
@@ -81,6 +81,16 @@ int main(int argc, char **argv)
 
 	printf("ROM client: wait for update notification\n");
 	sig_rec.wait_for_signal();
+
+	try {
+		printf("ROM client: try to open the same report again\n");
+		Reporter again("brightness");
+		again.enabled(true);
+		PERR("expected Service_denied");
+		return -3;
+	} catch (Genode::Parent::Service_denied) {
+		printf("ROM client: catched Parent::Service_denied - OK\n");
+	}
 
 	printf("--- test-report_rom finished ---\n");
 
