@@ -161,10 +161,10 @@ static void test_main_thread()
  ** Using cpu-session for thread creation *
  ******************************************/
 
-struct Cpu_helper : Thread<0x1000>
+struct Cpu_helper : Thread<0x2000>
 {
 	Cpu_helper(const char * name, Cpu_session * cpu)
-	: Thread<0x1000>(name, cpu) { }
+	: Thread<0x2000>(name, cpu) { }
 
 	void entry()
 	{
