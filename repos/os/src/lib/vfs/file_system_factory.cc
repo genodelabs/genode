@@ -27,6 +27,7 @@
 #include <vfs/inline_file_system.h>
 #include <vfs/rtc_file_system.h>
 #include <vfs/ram_file_system.h>
+#include <vfs/symlink_file_system.h>
 
 
 class Default_file_system_factory : public Vfs::Global_file_system_factory
@@ -201,6 +202,7 @@ class Default_file_system_factory : public Vfs::Global_file_system_factory
 			_add_builtin_fs<Vfs::Inline_file_system>();
 			_add_builtin_fs<Vfs::Rtc_file_system>();
 			_add_builtin_fs<Vfs::Ram_file_system>();
+			_add_builtin_fs<Vfs::Symlink_file_system>();
 		}
 };
 
