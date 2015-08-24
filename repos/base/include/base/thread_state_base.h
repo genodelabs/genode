@@ -25,6 +25,7 @@ struct Genode::Thread_state_base : Cpu_state
 	bool unresolved_page_fault;
 
 	Thread_state_base() : unresolved_page_fault(false) { };
+	Thread_state_base(Cpu_state &c) : Cpu_state(c), unresolved_page_fault(false) { };
 };
 
 #endif /* _INCLUDE__BASE__THREAD_STATE_BASE_H_ */

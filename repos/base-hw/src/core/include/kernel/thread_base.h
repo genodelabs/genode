@@ -41,6 +41,14 @@ class Kernel::Thread_base
 		 * \param t  generic part of kernel thread-object
 		 */
 		Thread_base(Thread * const t);
+
+	public:
+
+		/* Accessors */
+		addr_t fault_pd()     const { return _fault_pd; }
+		addr_t fault_addr()   const { return _fault_addr; }
+		addr_t fault_writes() const { return _fault_writes; }
+		addr_t fault_signal() const { return _fault_signal; }
 };
 
 #endif /* _KERNEL__THREAD_BASE_H_ */

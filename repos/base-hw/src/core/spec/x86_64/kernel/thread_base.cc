@@ -39,20 +39,6 @@ Thread_base::Thread_base(Thread * const t)
  ** Kernel::Thread **
  ********************/
 
-addr_t Thread::* Thread::_reg(addr_t const id) const
-{
-	static addr_t Thread::* const _regs[] = {
-		/* [0] */ (addr_t Thread::*)&Thread::ip,
-		/* [1] */ (addr_t Thread::*)&Thread::sp,
-		/* [2] */ (addr_t Thread::*)&Thread::_fault_pd,
-		/* [3] */ (addr_t Thread::*)&Thread::_fault_addr,
-		/* [4] */ (addr_t Thread::*)&Thread::_fault_writes,
-		/* [5] */ (addr_t Thread::*)&Thread::_fault_signal
-	};
-	return id < sizeof(_regs)/sizeof(_regs[0]) ? _regs[id] : 0;
-}
-
-
 Thread_event Thread::* Thread::_event(unsigned const id) const
 {
 	static Thread_event Thread::* _events[] = {
@@ -94,21 +80,4 @@ void Kernel::Cpu_context::_init(size_t const stack_size, addr_t const table)
 	 * it is sufficient to increase it by the stack's size
 	 */
 	sp = sp + stack_size;
-}
-
-
-/*************************
- ** CPU-state utilities **
- *************************/
-
-typedef Thread_reg_id Reg_id;
-
-static addr_t const _cpu_state_regs[] = { };
-
-addr_t const * cpu_state_regs() { return _cpu_state_regs; }
-
-
-size_t cpu_state_regs_length()
-{
-	return sizeof(_cpu_state_regs)/sizeof(_cpu_state_regs[0]);
 }

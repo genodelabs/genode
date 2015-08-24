@@ -78,18 +78,13 @@ void Pager_entrypoint::entry()
 			PWRN("failed to get platform thread of faulter");
 			continue;
 		}
-		typedef Kernel::Thread_reg_id Reg_id;
-		static addr_t const read_regs[] = {
-			Reg_id::FAULT_TLB, Reg_id::IP, Reg_id::FAULT_ADDR,
-			Reg_id::FAULT_WRITES, Reg_id::FAULT_SIGNAL };
-		enum { READS = sizeof(read_regs)/sizeof(read_regs[0]) };
-		memcpy((void*)Thread_base::myself()->utcb()->base(),
-		       read_regs, sizeof(read_regs));
-		addr_t * const values = (addr_t *)&_fault;
-		if (Kernel::access_thread_regs(pt->kernel_object(), READS, 0, values)) {
-			PWRN("failed to read fault data");
-			continue;
-		}
+
+		_fault.pd     = pt->kernel_object()->fault_pd();
+		_fault.ip     = pt->kernel_object()->ip;
+		_fault.addr   = pt->kernel_object()->fault_addr();
+		_fault.writes = pt->kernel_object()->fault_writes();
+		_fault.signal = pt->kernel_object()->fault_signal();
+
 		/* try to resolve fault directly via local region managers */
 		if (pog->pager(*this)) { continue; }
 

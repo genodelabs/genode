@@ -150,16 +150,8 @@ int Platform_thread::start(void * const ip, void * const sp)
 	}
 
 	/* initialize thread registers */
-	typedef Kernel::Thread_reg_id Reg_id;
-	enum { WRITES = 2 };
-	addr_t * write_regs = (addr_t*) Thread_base::myself()->utcb()->base();
-	write_regs[0] = Reg_id::IP;
-	write_regs[1] = Reg_id::SP;
-	addr_t values[] = { (addr_t)ip, (addr_t)sp };
-	if (Kernel::access_thread_regs(kernel_object(), 0, WRITES, values)) {
-		PERR("failed to initialize thread registers");
-		return -1;
-	}
+	kernel_object()->ip = reinterpret_cast<addr_t>(ip);
+	kernel_object()->sp = reinterpret_cast<addr_t>(sp);
 
 	/* start executing new thread */
 	if (!_pd) {
@@ -200,38 +192,15 @@ void Platform_thread::pager(Pager_object * const pager)
 Genode::Pager_object * Platform_thread::pager() { return _pager; }
 
 
-addr_t const * cpu_state_regs();
-
-size_t cpu_state_regs_length();
-
-
 Thread_state Platform_thread::state()
 {
-	static addr_t const * const src = cpu_state_regs();
-	static size_t const length = cpu_state_regs_length();
-	static size_t const size = length * sizeof(src[0]);
-	void  * dst = (void*)Thread_base::myself()->utcb()->base();
-	Genode::memcpy(dst, src, size);
-	Thread_state thread_state;
-	Cpu_state * const cpu_state = static_cast<Cpu_state *>(&thread_state);
-	if (Kernel::access_thread_regs(kernel_object(), length, 0,
-	                               (addr_t *)cpu_state)) {
-		throw Cpu_session::State_access_failed();
-	}
-	return thread_state;
-};
+	Thread_state_base bstate(*kernel_object());
+	return Thread_state(bstate);
+}
 
 
 void Platform_thread::state(Thread_state thread_state)
 {
-	static addr_t const * const src = cpu_state_regs();
-	static size_t const length = cpu_state_regs_length();
-	static size_t const size = length * sizeof(src[0]);
-	void  * dst = (void*)Thread_base::myself()->utcb()->base();
-	Genode::memcpy(dst, src, size);
-	Cpu_state * const cpu_state = static_cast<Cpu_state *>(&thread_state);
-	if (Kernel::access_thread_regs(kernel_object(), 0, length,
-	                               (addr_t *)cpu_state)) {
-		throw Cpu_session::State_access_failed();
-	}
-};
+	Cpu_state * cstate = static_cast<Cpu_state *>(kernel_object());
+	*cstate = static_cast<Cpu_state>(thread_state);
+}

@@ -23,21 +23,6 @@ namespace Kernel
 	typedef Genode::uint64_t Call_ret;
 
 	/**
-	 * Registers that are provided by a kernel thread-object for user access
-	 */
-	struct Thread_reg_id
-	{
-		enum {
-			IP           = 0,
-			SP           = 1,
-			FAULT_TLB    = 2,
-			FAULT_ADDR   = 3,
-			FAULT_WRITES = 4,
-			FAULT_SIGNAL = 5,
-		};
-	};
-
-	/**
 	 * Events that are provided by a kernel thread-object for user handling
 	 */
 	struct Thread_event_id

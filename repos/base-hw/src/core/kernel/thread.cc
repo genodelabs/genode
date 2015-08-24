@@ -362,42 +362,6 @@ Signal_context * const Thread_event::signal_context() const {
 	return _signal_context; }
 
 
-void Thread::_call_access_thread_regs()
-{
-	/* get targeted thread */
-	unsigned const reads = user_arg_2();
-	unsigned const writes = user_arg_3();
-	Thread * const t = (Thread*) user_arg_1();
-	if (!t) {
-		PWRN("unknown thread");
-		user_arg_0(reads + writes);
-		return;
-	}
-	/* execute read operations */
-	addr_t * const utcb = (addr_t *) this->utcb()->base();
-	addr_t * const read_ids = &utcb[0];
-	addr_t * values = (addr_t *)user_arg_4();
-	for (unsigned i = 0; i < reads; i++) {
-		if (t->_read_reg(read_ids[i], *values)) {
-			user_arg_0(reads + writes - i);
-			return;
-		}
-		values++;
-	}
-	/* execute write operations */
-	addr_t * const write_ids = &utcb[reads];
-	for (unsigned i = 0; i < writes; i++) {
-		if (t->_write_reg(write_ids[i], *values)) {
-			user_arg_0(writes - i);
-			return;
-		}
-		values++;
-	}
-	user_arg_0(0);
-	return;
-}
-
-
 void Thread::_call_update_data_region()
 {
 	/*
@@ -648,32 +612,6 @@ void Thread::_call_delete_cap()
 }
 
 
-int Thread::_read_reg(addr_t const id, addr_t & value) const
-{
-	addr_t Thread::* const reg = _reg(id);
-	if (reg) {
-		value = this->*reg;
-		return 0;
-	}
-	PWRN("%s -> %s: cannot read unknown thread register %p",
-	     pd_label(), label(), (void*)id);
-	return -1;
-}
-
-
-int Thread::_write_reg(addr_t const id, addr_t const value)
-{
-	addr_t Thread::* const reg = _reg(id);
-	if (reg) {
-		this->*reg = value;
-		return 0;
-	}
-	PWRN("%s -> %s: cannot write unknown thread register %p",
-	     pd_label(), label(), (void*)id);
-	return -1;
-}
-
-
 void Thread::_call()
 {
 	try {
@@ -712,7 +650,6 @@ void Thread::_call()
 	case call_id_delete_thread():          _call_delete<Thread>(); return;
 	case call_id_start_thread():           _call_start_thread(); return;
 	case call_id_resume_thread():          _call_resume_thread(); return;
-	case call_id_access_thread_regs():     _call_access_thread_regs(); return;
 	case call_id_route_thread_event():     _call_route_thread_event(); return;
 	case call_id_update_pd():              _call_update_pd(); return;
 	case call_id_new_pd():

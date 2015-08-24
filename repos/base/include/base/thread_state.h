@@ -21,6 +21,10 @@
 
 namespace Genode { struct Thread_state; }
 
-struct Genode::Thread_state : Thread_state_base { };
+struct Genode::Thread_state : Thread_state_base
+{
+	Thread_state() {}
+	Thread_state(Thread_state_base &base) : Thread_state_base(base) {}
+};
 
 #endif /* _INCLUDE__BASE__THREAD_STATE_H_ */
