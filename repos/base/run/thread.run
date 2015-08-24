@@ -22,7 +22,7 @@ build_boot_image "core init test-thread"
 
 append qemu_args "-nographic -m 64"
 
-run_genode_until {child "test-thread" exited with exit value .*\n} 20
+run_genode_until {child "test-thread" exited with exit value .*\n} 40
 
 # determine error code of child exit
 set exit_code [regexp -inline {child "test-thread" exited with exit value .*\n} $output]
