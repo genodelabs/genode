@@ -16,16 +16,8 @@
 /* core includes */
 #include <kernel/thread.h>
 #include <kernel/pd.h>
-#include <kernel/kernel.h>
 
-using namespace Kernel;
-
-
-/********************
- ** Kernel::Thread **
- ********************/
-
-void Thread::_mmu_exception()
+void Kernel::Thread::_mmu_exception()
 {
 	_become_inactive(AWAITS_RESUME);
 	_fault_pd     = (addr_t)_pd->platform_pd();
@@ -45,22 +37,7 @@ void Thread::_mmu_exception()
 }
 
 
-void Thread::_init() { }
+void Kernel::Thread::_init() { }
 
 
-void Thread::_call_update_pd() { }
-
-
-/*************************
- ** Kernel::Cpu_context **
- *************************/
-
-void Kernel::Cpu_context::_init(size_t const stack_size, addr_t const table)
-{
-	/*
-	 * the stack pointer already contains the stack base address
-	 * of all CPU's kernel stacks, on this uni-processor platform
-	 * it is sufficient to increase it by the stack's size
-	 */
-	sp = sp + stack_size;
-}
+void Kernel::Thread::_call_update_pd() { }
