@@ -18,12 +18,6 @@
 
 using namespace Kernel;
 
-Thread::Thread(unsigned const priority, unsigned const quota,
-               char const * const label)
-: Thread_base(this), Cpu_job(priority, quota), _state(AWAITS_START),
-  _signal_receiver(0), _label(label) { }
-
-
 void Thread::exception(unsigned const cpu)
 {
 	switch (trapno) {
@@ -52,6 +46,3 @@ void Thread::exception(unsigned const cpu)
 		 " at ip=%p", pd_label(), label(), trapno, errcode, (void*)ip);
 	_stop();
 }
-
-
-void Thread::_call_update_pd() { }

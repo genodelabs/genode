@@ -20,12 +20,7 @@
 
 using namespace Kernel;
 
-
-Thread::Thread(unsigned const priority, unsigned const quota,
-               char const * const label)
-: Thread_base(this), Cpu_job(priority, quota),
-  _state(AWAITS_START), _signal_receiver(0),
-  _label(label) { cpu_exception = RESET; }
+void Kernel::Thread::_init() { cpu_exception = RESET; }
 
 
 void Thread::exception(unsigned const cpu)
@@ -60,15 +55,6 @@ void Thread::exception(unsigned const cpu)
 		_stop();
 		return;
 	}
-}
-
-
-Thread_event Thread::* Thread::_event(unsigned const id) const
-{
-	static Thread_event Thread::* _events[] = {
-		/* [0] */ &Thread::_fault
-	};
-	return id < sizeof(_events)/sizeof(_events[0]) ? _events[id] : 0;
 }
 
 

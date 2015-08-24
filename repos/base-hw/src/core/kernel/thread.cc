@@ -1,5 +1,5 @@
 /*
- * \brief  Kernel backend for execution contexts in userland
+ * \brief  Kernel back-end for execution contexts in userland
  * \author Martin Stein
  * \author Stefan Kalkowski
  * \date   2013-09-15
@@ -236,7 +236,7 @@ void Thread::_call_start_thread()
 			Genode::printf("on CPU %u/%u ", cpu->id(), NR_OF_CPUS); }
 		Genode::printf("\n");
 	}
-	thread->_init((Native_utcb *)user_arg_4(), this);
+	thread->Ipc_node::_init((Native_utcb *)user_arg_4(), this);
 	thread->_become_active();
 }
 
@@ -680,6 +680,24 @@ void Thread::_call()
 		return;
 	}
 	} catch (Genode::Allocator::Out_of_memory &e) { user_arg_0(-2); }
+}
+
+
+Thread::Thread(unsigned const priority, unsigned const quota,
+                       char const * const label)
+:
+	Cpu_job(priority, quota), _fault(this), _fault_pd(0), _fault_addr(0),
+	_fault_writes(0), _fault_signal(0), _state(AWAITS_START),
+	_signal_receiver(0), _label(label)
+{
+	_init();
+}
+
+
+Thread_event Thread::* Thread::_event(unsigned const id) const
+{
+	static Thread_event Thread::* _events[] = { &Thread::_fault };
+	return id < sizeof(_events)/sizeof(_events[0]) ? _events[id] : 0;
 }
 
 

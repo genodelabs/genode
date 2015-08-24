@@ -1,5 +1,5 @@
 /*
- * \brief   CPU specific implementations of core
+ * \brief   Kernel back-end for execution contexts in userland
  * \author  Martin Stein
  * \author  Reto Buerki
  * \author  Stefan Kalkowski
@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2013, 2015 Genode Labs GmbH
+ * Copyright (C) 2013-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -21,32 +21,9 @@
 using namespace Kernel;
 
 
-/*************************
- ** Kernel::Thread_base **
- *************************/
-
-Thread_base::Thread_base(Thread * const t)
-:
-	_fault(t),
-	_fault_pd(0),
-	_fault_addr(0),
-	_fault_writes(0),
-	_fault_signal(0)
-{ }
-
-
 /********************
  ** Kernel::Thread **
  ********************/
-
-Thread_event Thread::* Thread::_event(unsigned const id) const
-{
-	static Thread_event Thread::* _events[] = {
-		/* [0] */ &Thread::_fault
-	};
-	return id < sizeof(_events)/sizeof(_events[0]) ? _events[id] : 0;
-}
-
 
 void Thread::_mmu_exception()
 {
@@ -66,6 +43,12 @@ void Thread::_mmu_exception()
 	_fault.submit();
 	return;
 }
+
+
+void Thread::_init() { }
+
+
+void Thread::_call_update_pd() { }
 
 
 /*************************
