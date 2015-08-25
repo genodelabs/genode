@@ -1,5 +1,5 @@
 /*
- * \brief  RaspberryPI specific IRQ definitions
+ * \brief  GPIO interrupt number
  * \author Reinier Millo Sánchez <rmillo@uclv.cu>
  * \date   2015-07-27
  */
@@ -11,18 +11,15 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__PLATFORM__RPI__DRIVERS__IRQS_H_
-#define _INCLUDE__PLATFORM__RPI__DRIVERS__IRQS_H_
+#ifndef _IRQ_H_
+#define _IRQ_H_
 
 /* Genode includes */
 #include <drivers/board_base.h>
 
-namespace Rpi_irqs
+namespace Gpio
 {
-	enum {
-		GPIO_IRQ = Genode::Board_base::GPU_IRQ_BASE + 49,
-	};
+	enum { IRQ = Genode::Board_base::GPU_IRQ_BASE + 49 };
 }
 
-#endif /* _INCLUDE__PLATFORM__RPI__DRIVERS__IRQS_H_ */
-
+#endif /* _IRQ_H_ */

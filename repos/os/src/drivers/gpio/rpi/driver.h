@@ -20,11 +20,11 @@
 /* Genode includes */
 #include <base/printf.h>
 #include <drivers/board_base.h>
-#include <drivers/irqs.h>
 #include <gpio/driver.h>
 #include <irq_session/connection.h>
 
 /* local includes */
+#include <irq.h>
 #include "gpio.h"
 
 static int verbose = 1;
@@ -53,7 +53,7 @@ class Rpi_driver : public Gpio::Driver
 		Rpi_driver(Server::Entrypoint &ep)
 		:	_ep(ep),
 			_reg(Genode::Board_base::GPIO_CONTROLLER_BASE,0x0,Genode::Board_base::GPIO_CONTROLLER_SIZE),
-			_irq(Rpi_irqs::GPIO_IRQ),
+			_irq(Gpio::IRQ),
 			_dispatcher(ep,*this,&Rpi_driver::_handle),
 			_async(false)
 		{
