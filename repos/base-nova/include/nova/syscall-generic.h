@@ -540,7 +540,8 @@ namespace Nova {
 		                 bool kern_pd = false,
 		                 bool update_guest_pt = false,
 		                 bool translate_map = false,
-		                 bool dma_mem = false)
+		                 bool dma_mem = false,
+		                 bool write_combined = false)
 		{
 			/* transfer items start at the end of the UTCB */
 			items += 1 << 16;
@@ -556,16 +557,19 @@ namespace Nova {
 			/* map from hypervisor or current pd */
 			unsigned h = kern_pd ? (1 << 11) : 0;
 
+			/* map write-combined */
+			unsigned wc = write_combined ? (1 << 10) : 0;
+
 			/* update guest page table */
-			unsigned g = update_guest_pt ? (1 << 10) : 0;
+			unsigned g = update_guest_pt ? (1 << 9) : 0;
 
 			/* mark memory dma able */
-			unsigned d = dma_mem ? (1 << 9) : 0;
+			unsigned d = dma_mem ? (1 << 8) : 0;
 
 			/* set type of delegation, either 'map' or 'translate and map' */
 			unsigned m = translate_map ? 2 : 1;
 
-			item->hotspot = crd.hotspot(sel_hotspot) | g | h | d | m;
+			item->hotspot = crd.hotspot(sel_hotspot) | g | h | wc | d | m;
 			item->crd = crd.value();
 
 			return true;

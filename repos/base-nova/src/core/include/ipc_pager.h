@@ -32,7 +32,7 @@ namespace Genode {
 
 			addr_t _dst_addr;
 			addr_t _core_local_addr;
-			bool   _write_combined;
+			Cache_attribute _attr;
 			size_t _size_log2;
 			bool   _rw;
 
@@ -49,8 +49,7 @@ namespace Genode {
 			        bool rw = true)
 			:
 				_dst_addr(dst_addr), _core_local_addr(map_addr),
-				_write_combined(c != CACHED), _size_log2(size_log2),
-				_rw(rw)
+				_attr(c), _size_log2(size_log2), _rw(rw)
 			{ }
 
 			/**
@@ -67,7 +66,8 @@ namespace Genode {
 				                     Nova::Rights(true, _rw, true));
 			}
 
-			bool  write_combined() { return _write_combined; };
+			bool dma() { return _attr != CACHED; };
+			bool write_combined() { return _attr == WRITE_COMBINED; };
 
 			addr_t dst_addr() { return _dst_addr; }
 	};

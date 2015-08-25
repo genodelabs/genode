@@ -44,12 +44,13 @@ static void echo_reply()
 	Nova::mword_t offset = echo()->utcb()->msg[1];
 	bool kern_pd         = echo()->utcb()->msg[2];
 	bool dma_mem         = echo()->utcb()->msg[3];
+	bool write_combined  = echo()->utcb()->msg[4];
 
 	/* reset message transfer descriptor */
 	echo()->utcb()->set_msg_word(0);
 	/* append capability-range as message-transfer item */
 	bool res = echo()->utcb()->append_item(snd_rcv, offset, kern_pd, false,
-	                                       false, dma_mem);
+	                                       false, dma_mem, write_combined);
 
 	/* set return code, 0 means failure */
 	echo()->utcb()->msg[0] = res;
