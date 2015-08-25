@@ -167,6 +167,12 @@ Platform_pd::Platform_pd(Allocator * md_alloc, char const *label)
 	}
 }
 
+Platform_pd::~Platform_pd()
+{
+	/* invalidate weak pointers to this object */
+	Address_space::lock_for_destruction();
+}
+
 
 /*************************************
  ** Core_platform_pd implementation **

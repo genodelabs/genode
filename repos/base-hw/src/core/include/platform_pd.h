@@ -181,6 +181,11 @@ class Genode::Platform_pd : public Hw::Address_space,
 		Platform_pd(Allocator * md_alloc, char const *label);
 
 		/**
+		 * Destructor
+		 */
+		~Platform_pd();
+
+		/**
 		 * Bind thread 't' to protection domain
 		 *
 		 * \return  0  on success or
