@@ -1,8 +1,13 @@
 build "core init test/platform"
 
+set check_pat 1
+if {[have_include power_on/qemu]} {
+	set check_pat 0
+}
+
 create_boot_directory
 
-install_config {
+set config {
 	<config>
 		<parent-provides>
 			<service name="ROM"/>
@@ -18,10 +23,17 @@ install_config {
 			<any-service> <parent/> </any-service>
 		</default-route>
 		<start name="test-platform">
-			<resource name="RAM" quantum="2M"/>
+			<resource name="RAM" quantum="96M"/>}
+
+append config "
+			<config check_pat=\"$check_pat\"/\>"
+
+append config {
 		</start>
 	</config>
 }
+
+install_config $config
 
 build_boot_image "core init test-platform"
 

@@ -19,11 +19,115 @@
 #include <util/touch.h>
 #include <rm_session/connection.h>
 
+#include <os/attached_rom_dataspace.h>
+#include <os/config.h>
+
+#include <trace/timestamp.h>
+
 #include "server.h"
 
 static unsigned failed = 0;
 
+static unsigned check_pat = 1;
+
 using namespace Genode;
+
+void test_pat()
+{
+	/* read out the tsc frequenzy once */
+	Genode::Attached_rom_dataspace _ds("hypervisor_info_page");
+	Nova::Hip * const hip = _ds.local_addr<Nova::Hip>();
+
+	enum { DS_ORDER = 12, PAGE_4K = 12 };
+
+	Ram_dataspace_capability ds = env()->ram_session()->alloc (1 << (DS_ORDER + PAGE_4K), WRITE_COMBINED);
+	addr_t map_addr = env()->rm_session()->attach(ds);
+
+	enum { STACK_SIZE = 4096 };
+
+	static Cap_connection cap;
+	static Rpc_entrypoint ep(&cap, STACK_SIZE, "rpc_ep");
+
+	Test::Component  component;
+	Test::Capability session_cap = ep.manage(&component);
+	Test::Client     client(session_cap);
+
+	Genode::Rm_connection rm_free_area(0, 1 << (DS_ORDER + PAGE_4K));
+	addr_t remap_addr = Genode::env()->rm_session()->attach(rm_free_area.dataspace());
+
+	/* trigger mapping of whole area */
+	for (addr_t i = map_addr; i < map_addr + (1 << (DS_ORDER + PAGE_4K)); i += (1 << PAGE_4K))
+		touch_read(reinterpret_cast<unsigned char *>(map_addr));
+
+	/*
+	 * Manipulate entrypoint
+	 */
+	Nova::Rights all(true, true, true);
+	Genode::addr_t  utcb_ep_addr_t = client.leak_utcb_address();
+	Nova::Utcb *utcb_ep = reinterpret_cast<Nova::Utcb *>(utcb_ep_addr_t);
+	/* overwrite receive window of entrypoint */
+	utcb_ep->crd_rcv = Nova::Mem_crd(remap_addr >> PAGE_4K, DS_ORDER, all);
+
+	/*
+	 * Set-up current (client) thread to delegate write-combined memory
+	 */
+	Nova::Mem_crd snd_crd(map_addr >> PAGE_4K, DS_ORDER, all);
+
+	Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(Thread_base::myself()->utcb());
+	enum {
+		HOTSPOT = 0, USER_PD = false, HOST_PGT = false, SOLELY_MAP = false,
+		NO_DMA = false, EVILLY_DONT_WRITE_COMBINE = false
+	};
+
+	Nova::Crd old = utcb->crd_rcv;
+
+	utcb->set_msg_word(0);
+	bool ok = utcb->append_item(snd_crd, HOTSPOT, USER_PD, HOST_PGT,
+	                            SOLELY_MAP, NO_DMA, EVILLY_DONT_WRITE_COMBINE);
+	(void)ok;
+
+	uint8_t res = Nova::call(session_cap.local_name());
+	(void)res;
+
+	utcb->crd_rcv = old;
+
+	/* sanity check - touch re-mapped area */
+	for (addr_t i = remap_addr; i < remap_addr + (1 << (DS_ORDER + PAGE_4K)); i += (1 << PAGE_4K))
+		touch_read(reinterpret_cast<unsigned char *>(remap_addr));
+
+	/*
+	 * measure time to write to the memory
+	 */
+	memset(reinterpret_cast<void *>(map_addr), 0, 1 << (DS_ORDER + PAGE_4K));
+	Trace::Timestamp map_start = Trace::timestamp();
+	memset(reinterpret_cast<void *>(map_addr), 0, 1 << (DS_ORDER + PAGE_4K));
+	Trace::Timestamp map_end = Trace::timestamp();
+
+	memset(reinterpret_cast<void *>(remap_addr), 0, 1 << (DS_ORDER + PAGE_4K));
+	Trace::Timestamp remap_start = Trace::timestamp();
+	memset(reinterpret_cast<void *>(remap_addr), 0, 1 << (DS_ORDER + PAGE_4K));
+	Trace::Timestamp remap_end = Trace::timestamp();
+
+	Trace::Timestamp map_run   = map_end - map_start;
+	Trace::Timestamp remap_run = remap_end - remap_start;
+
+	Trace::Timestamp diff_run = map_run > remap_run ? map_run - remap_run : remap_run - map_run;
+
+	if (check_pat && diff_run * 100 / hip->tsc_freq) {
+		failed ++;
+
+		PERR("map=%llx remap=%llx --> diff=%llx freq_tsc=%u %llu us",
+		     map_run, remap_run, diff_run, hip->tsc_freq,
+		     diff_run * 1000 / hip->tsc_freq);
+	}
+
+	Nova::revoke(Nova::Mem_crd(remap_addr >> PAGE_4K, DS_ORDER, all));
+
+	/*
+	 * note: server entrypoint died because of unexpected receive window
+	 *       state - that is expected
+	 */
+}
 
 void test_server_oom()
 {
@@ -155,6 +259,10 @@ int main(int argc, char **argv)
 {
 	printf("testing base-nova platform\n");
 
+	try {
+		Genode::config()->xml_node().attribute("check_pat").value(&check_pat);
+	} catch (...) { }
+
 	Thread_base * myself = Thread_base::myself();
 	if (!myself)
 		return -__LINE__;
@@ -196,6 +304,9 @@ int main(int argc, char **argv)
 
 		index = range->base() + range->elements();
 	};
+
+	/* test PAT kernel feature */
+	test_pat();
 
 	/**
 	 * Test to provoke out of memory during capability transfer of
