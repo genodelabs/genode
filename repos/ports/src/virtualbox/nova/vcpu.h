@@ -168,18 +168,21 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 			Nova::Utcb * utcb = reinterpret_cast<Nova::Utcb *>(Thread_base::utcb());
 
 			Assert(utcb->actv_state == ACTIVITY_STATE_ACTIVE);
-			if (utcb->intr_state != INTERRUPT_STATE_NONE)
-				Vmm::printf("intr state %x %x\n", utcb->intr_state, utcb->intr_state & 0xF);
-
-			Assert(utcb->intr_state == INTERRUPT_STATE_NONE);
 
 			if (utcb->inj_info & IRQ_INJ_VALID_MASK) {
+
 				Assert(utcb->flags & X86_EFL_IF);
+
+				if (utcb->intr_state != INTERRUPT_STATE_NONE)
+					Vmm::printf("intr state %x %x\n", utcb->intr_state, utcb->intr_state & 0xF);
+
+				Assert(utcb->intr_state == INTERRUPT_STATE_NONE);
+
 /*
 				if (!continue_hw_accelerated(utcb))
 					Vmm::printf("WARNING - recall ignored during IRQ delivery\n");
 */
-				/* got recall during irq injection and X86_EFL_IF set for
+				/* got recall during irq injection and the guest is ready for
 				 * delivery of IRQ - just continue */
 				Nova::reply(_stack_reply);
 			}
