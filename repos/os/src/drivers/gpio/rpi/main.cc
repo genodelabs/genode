@@ -24,23 +24,22 @@
 /* local includes */
 #include "driver.h"
 
-
 struct Main
 {
 	Server::Entrypoint   &ep;
 	Genode::Sliced_heap  sliced_heap;
-	Rpi_driver           &driver;
+	Gpio::Rpi_driver     &driver;
 	Gpio::Root           root;
 
 	Main(Server::Entrypoint &ep)
-		:ep(ep),
+	:
+		ep(ep),
 		sliced_heap(Genode::env()->ram_session(), Genode::env()->rm_session()),
-		driver(Rpi_driver::factory(ep)),
+		driver(Gpio::Rpi_driver::factory(ep)),
 		root(&ep.rpc_ep(), &sliced_heap, driver)
 	{
 		using namespace Genode;
 		printf("--- RaspberryPI gpio driver ---\n");
-
 
 		/*
 		 * Check configuration for async events detect
@@ -51,12 +50,10 @@ struct Main
 		} catch (...) { }
 		driver.set_async_events(async>0);
 
-
 		/*
 		 * Check for common GPIO configuration
 		 */
 		Gpio::process_config(driver);
-
 
 		/*
 		 * Check configuration for specific function
@@ -73,36 +70,20 @@ struct Main
 					gpio_node.attribute("function").value(&function);
 
 					switch(function){
-					case 0:
-						driver.set_custom_function(num,Gpio_reg::GPIO_FSEL_ALT0);
-						break;
-					case 1:
-						driver.set_custom_function(num,Gpio_reg::GPIO_FSEL_ALT1);
-						break;
-					case 2:
-						driver.set_custom_function(num,Gpio_reg::GPIO_FSEL_ALT2);
-						break;
-					case 3:
-						driver.set_custom_function(num,Gpio_reg::GPIO_FSEL_ALT3);
-						break;
-					case 4:
-						driver.set_custom_function(num,Gpio_reg::GPIO_FSEL_ALT4);
-						break;
-					case 5:
-						driver.set_custom_function(num,Gpio_reg::GPIO_FSEL_ALT5);
-						break;
-					default:
-						PWRN("Wrong pin function. Ignore node.");
+					case 0: driver.set_func(num, Gpio::Reg::FSEL_ALT0); break;
+					case 1: driver.set_func(num, Gpio::Reg::FSEL_ALT1); break;
+					case 2: driver.set_func(num, Gpio::Reg::FSEL_ALT2); break;
+					case 3: driver.set_func(num, Gpio::Reg::FSEL_ALT3); break;
+					case 4: driver.set_func(num, Gpio::Reg::FSEL_ALT4); break;
+					case 5: driver.set_func(num, Gpio::Reg::FSEL_ALT5); break;
+					default: PWRN("Wrong pin function. Ignore node.");
 					}
 				} catch(Xml_node::Nonexistent_attribute) {
 					PWRN("Missing attribute. Ignore node.");
 				}
 				if (gpio_node.is_last("gpio")) break;
 			}
-		} catch (Xml_node::Nonexistent_sub_node) {
-			PWRN("No GPIO config");
-		}
-
+		} catch (Xml_node::Nonexistent_sub_node) { PWRN("No GPIO config"); }
 
 		/*
 		 * Announce service
