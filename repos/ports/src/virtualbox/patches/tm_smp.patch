@@ -1,9 +1,18 @@
 tm_smp.patch
 
 diff --git a/src/app/virtualbox/src/VBox/VMM/VMMR3/TM.cpp b/src/app/virtualbox/src/VBox/VMM/VMMR3/TM.cpp
-index a5dc16e..df851a1 100644
+index c3bc22d..33d705c 100644
 --- a/src/app/virtualbox/src/VBox/VMM/VMMR3/TM.cpp
 +++ b/src/app/virtualbox/src/VBox/VMM/VMMR3/TM.cpp
+@@ -210,7 +210,7 @@ VMM_INT_DECL(int) TMR3Init(PVM pVM)
+     pVM->tm.s.paTimerQueuesRC = MMHyperR3ToRC(pVM, pv);
+ 
+     pVM->tm.s.offVM = RT_OFFSETOF(VM, tm.s);
+-    pVM->tm.s.idTimerCpu = pVM->cCpus - 1; /* The last CPU. */
++    pVM->tm.s.idTimerCpu = 0; /* The first CPU. */
+     pVM->tm.s.paTimerQueuesR3[TMCLOCK_VIRTUAL].enmClock        = TMCLOCK_VIRTUAL;
+     pVM->tm.s.paTimerQueuesR3[TMCLOCK_VIRTUAL].u64Expire       = INT64_MAX;
+     pVM->tm.s.paTimerQueuesR3[TMCLOCK_VIRTUAL_SYNC].enmClock   = TMCLOCK_VIRTUAL_SYNC;
 @@ -1901,10 +1901,19 @@ static DECLCALLBACK(void) tmR3TimerCallback(PRTTIMER pTimer, void *pvUser, uint6
      NOREF(pTimer);
  
