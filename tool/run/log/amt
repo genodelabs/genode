@@ -3,6 +3,7 @@
 #
 # \param --amt-host       network address of target machine
 # \param --amt-password   AMT password for target machine
+# \param --amt-filter     Sanitize output by piping it through a filter
 #
 
 source [genode_dir]/tool/run/log.inc
@@ -18,6 +19,9 @@ proc log_amt_password { } {
 	return [get_cmd_arg_first --log-amt-password ""]
 }
 
+proc log_amt_filter { } {
+	return [get_cmd_arg_first --log-amt-filter ""]
+}
 
 ##
 # Log output of the test machine using Intel's AMT
@@ -33,7 +37,11 @@ proc run_log { wait_for_re timeout_value } {
 	#
 	# grab output
 	#
-	set amtterm  "amtterm -u admin -p [log_amt_password] -v [log_amt_host]"
+	set amt_cmd "amtterm -u admin -p [log_amt_password] -v [log_amt_host]"
+	if {[get_cmd_switch --log-amt-filter]} {
+		set amt_cmd "$amt_cmd | [log_amt_filter]"
+	}
+
 	if {$wait_for_re == "forever"} {
 		set timeout -1
 	} else {
@@ -41,7 +49,7 @@ proc run_log { wait_for_re timeout_value } {
 	}
 	set exit_result 1
 
-	eval spawn $amtterm
+	spawn /bin/sh -c "$amt_cmd"
 	set output_spawn_id $spawn_id
 
 	set kernel_msg [run_boot_string]
