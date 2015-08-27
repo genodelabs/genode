@@ -171,6 +171,13 @@ class Audio_out::Stream
 		unsigned pos() const { return _pos; }
 
 		/**
+		 * Current audio allocation position
+		 *
+		 * \return position
+		 */
+		unsigned tail() const { return _tail; }
+
+		/**
 		 * Retrieve next packet for given packet
 		 *
 		 * \param packet  preceding packet
