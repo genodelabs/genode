@@ -1,7 +1,8 @@
 /*
- * \brief   Platform implementations specific for x86_64
+ * \brief   Platform implementations specific for x86_64_muen
  * \author  Reto Buerki
- * \date    2015-05-04
+ * \author  Adrian-Ken Rueegsegger
+ * \date    2015-04-21
  */
 
 /*
@@ -13,9 +14,6 @@
 
 /* core includes */
 #include <platform.h>
-#include <board.h>
-#include <pic.h>
-#include <kernel/kernel.h>
 
 using namespace Genode;
 
@@ -23,15 +21,12 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 {
 	static Native_region _regions[] =
 	{
-		{ Board::MMIO_LAPIC_BASE,  Board::MMIO_LAPIC_SIZE  },
-		{ Board::MMIO_IOAPIC_BASE, Board::MMIO_IOAPIC_SIZE },
+		/* Sinfo pages */
+		{ 0x000e00000000, 0x7000 },
+		/* Timer page */
+		{ 0x000e00010000, 0x1000 },
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
 
-
-void Platform::setup_irq_mode(unsigned irq_number, unsigned trigger,
-                              unsigned polarity)
-{
-	Kernel::pic()->ioapic.setup_irq_mode(irq_number, trigger, polarity);
-}
+void Platform::setup_irq_mode(unsigned, unsigned, unsigned) { }
