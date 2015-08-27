@@ -183,6 +183,12 @@ proc run_boot_dir_x86 {binaries} {
 
 		generate_tftp_config
 	}
+
+	if {[have_include "load/ipxe"]} {
+		create_ipxe_iso_config
+		update_ipxe_boot_dir
+		create_symlink_for_iso
+	}
 }
 
 
