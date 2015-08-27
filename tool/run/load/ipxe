@@ -46,3 +46,23 @@ proc create_symlink_for_iso { } {
 proc update_ipxe_boot_dir { } {
 	exec ln -sfn [pwd]/[run_dir] [load_ipxe_base_dir]/[load_ipxe_boot_dir]
 }
+
+##
+# Create iPXE config file which directly boots an ISO file.
+#
+proc create_ipxe_iso_config { } {
+	if {[have_include "image/iso"]} {
+		set fh [open "[run_dir]/boot.cfg" "WRONLY CREAT TRUNC"]
+		puts $fh "#!ipxe"
+		puts $fh "sanboot [run_name].iso || goto failed"
+		puts $fh
+		puts $fh ":failed"
+		puts $fh "echo Booting failed, dropping to shell"
+		puts $fh "shell"
+		puts $fh "boot"
+		close $fh
+	} else {
+		puts "Warning, iPXE requires ISO image."
+		exit -1
+	}
+}
