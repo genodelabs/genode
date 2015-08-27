@@ -1,0 +1,48 @@
+##
+# Load files needed by the scenario via iPXE/HTTP
+#
+# \param --load-ipxe-base-dir    base directory of iPXE/HTTP server
+# \param --load-ipxe-boot-dir    boot directory relative to HTTP base
+#
+
+source [genode_dir]/tool/run/load.inc
+
+
+##
+# The files are loaded implicitly via iPXE/HTTP to the target machine
+#
+proc run_load { } {
+	global load_spawn_id
+	set load_spawn_id -1
+	return true
+}
+
+
+proc load_ipxe_base_dir { } { return [get_cmd_arg --load-ipxe-base-dir ""] }
+
+
+proc load_ipxe_boot_dir { } { return [get_cmd_arg --load-ipxe-boot-dir ""] }
+
+
+##
+# Install files needed to boot via iPXE
+#
+proc install_bender_to_run_dir { } {
+	exec mkdir -p [run_dir]/boot
+	exec cp [genode_dir]/tool/boot/bender [run_dir]/boot/bender
+}
+
+
+##
+# Create symlink for ISO image in current run directory.
+#
+proc create_symlink_for_iso { } {
+	exec ln -sfn [pwd]/[run_dir].iso [pwd]/[run_dir]/[run_name].iso
+}
+
+##
+# Update iPXE boot directory to point to current run directory.
+#
+proc update_ipxe_boot_dir { } {
+	exec ln -sfn [pwd]/[run_dir] [load_ipxe_base_dir]/[load_ipxe_boot_dir]
+}
