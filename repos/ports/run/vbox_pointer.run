@@ -329,7 +329,7 @@ set boot_modules {
 	fb_sdl
 	report_rom dynamic_rom
 	nitpicker
-	vbox_pointer arrow.shape cross.shape smiley.shape
+	vbox_pointer
 	test-vbox_pointer
 	testnit
 }
