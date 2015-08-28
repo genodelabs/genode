@@ -57,7 +57,7 @@ Irq_session_component::~Irq_session_component()
 	using namespace Kernel;
 
 	User_irq * kirq = reinterpret_cast<User_irq*>(&_kernel_object);
-	_irq_alloc->free((void *)_irq_number);
+	_irq_alloc->free((void *)(addr_t)_irq_number);
 	if (_sig_cap.valid())
 		Kernel::delete_irq(kirq);
 }
