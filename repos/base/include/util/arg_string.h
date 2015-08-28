@@ -139,32 +139,26 @@ class Genode::Arg
 
 		bool bool_value(bool default_value) const
 		{
-			/* check for known idents */
-			if (_value.type() == Token::IDENT) {
-				char   *p = _value.start();
-				size_t  l = _value.len();
+			bool result = default_value;
+			switch(_value.type()) {
 
-				if (!strcmp(p, "yes",  l)) return true;
-				if (!strcmp(p, "true", l)) return true;
-				if (!strcmp(p, "on",   l)) return true;
+			/* result is passed to 'ascii_to' by reference */
+			case Token::IDENT:;
+				if (ascii_to(_value.start(), result) ==  _value.len())
+					return result;
 
-				if (!strcmp(p, "no",    l)) return false;
-				if (!strcmp(p, "false", l)) return false;
-				if (!strcmp(p, "off",   l)) return false;
+			case Token::STRING:
+				if (ascii_to(_value.start()+1, result) == _value.len()-2)
+					return result;
 
-				/* saxony mode ;) */
-				if (!strcmp(p, "nu",  l)) return true;
-				if (!strcmp(p, "nee", l)) return false;
+			default:
+				/* read values 0 (false) / !0 (true) */
+				unsigned long value;
+				int sign;
+				bool valid = read_ulong(&value, &sign);
 
-				return default_value;
+				return valid ? value : default_value;
 			}
-
-			/* read values 0 (false) / !0 (true) */
-			unsigned long value;
-			int sign;
-			bool valid = read_ulong(&value, &sign);
-
-			return valid ? value : default_value;
 		}
 
 		void key(char *dst, size_t dst_len) const

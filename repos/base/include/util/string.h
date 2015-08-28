@@ -310,6 +310,24 @@ namespace Genode {
 
 
 	/**
+	 * Read boolean value from string
+	 *
+	 * \return number of consumed characters
+	 */
+	inline size_t ascii_to(char const *s, bool &result)
+	{
+		if (!strcmp(s, "yes",   3)) { result = true;  return 3; }
+		if (!strcmp(s, "true",  4)) { result = true;  return 4; }
+		if (!strcmp(s, "on",    2)) { result = true;  return 2; }
+		if (!strcmp(s, "no",    2)) { result = false; return 2; }
+		if (!strcmp(s, "false", 5)) { result = false; return 5; }
+		if (!strcmp(s, "off",   3)) { result = false; return 3; }
+
+		return 0;
+	}
+
+
+	/**
 	 * Read unsigned long value from string
 	 *
 	 * \return number of consumed characters
