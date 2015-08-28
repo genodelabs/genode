@@ -26,7 +26,7 @@
 #include <base/env.h>
 #include <base/lock.h>
 #include <util/list.h>
-#include <os/attached_ram_dataspace.h>
+#include <rm_session/connection.h>
 
 #define PAGE_SIZE BACKUP_PAGESIZE
 
@@ -42,12 +42,11 @@ class Vmm_memory
 	typedef Genode::Rm_session             Rm_session;
 	typedef Genode::size_t                 size_t;
 	typedef Genode::Lock                   Lock;
-	typedef Genode::Attached_ram_dataspace Attached_ram_dataspace;
 	typedef Genode::List<Region>           Region_list;
 
 	private:
 
-		struct Region : Region_list::Element, Attached_ram_dataspace
+		struct Region : Region_list::Element, Genode::Rm_connection
 		{
 			PPDMDEVINS           pDevIns;
 			unsigned const       iRegion;
@@ -56,14 +55,35 @@ class Vmm_memory
 			void                *pvUserR3;
 			PGMPHYSHANDLERTYPE   enmType;
 
+			Genode::addr_t       _base;
+			Genode::size_t       _size;
+
 			Region(Ram_session &ram, size_t size, PPDMDEVINS pDevIns,
-			           unsigned iRegion)
+			           unsigned iRegion, unsigned sub_rm_max_ds = 32 * 1024 * 1024)
 			:
-				Attached_ram_dataspace(&ram, size),
+				Rm_connection(0, size),
 				pDevIns(pDevIns),
 				iRegion(iRegion),
-				vm_phys(0), pfnHandlerR3(0), pvUserR3(0)
-			{ }
+				vm_phys(0), pfnHandlerR3(0), pvUserR3(0),
+				_base(Genode::env()->rm_session()->attach(Rm_connection::dataspace())),
+				_size(size)
+			{
+				Genode::addr_t rest_size = _size;
+				Genode::addr_t map_size  = rest_size < sub_rm_max_ds ? rest_size : sub_rm_max_ds;
+
+				do {
+					Genode::Ram_dataspace_capability ds = Genode::env()->ram_session()->alloc(map_size);
+					attach_at(ds, _size - rest_size, map_size);
+
+					rest_size -= map_size;
+					map_size   = rest_size < sub_rm_max_ds ? rest_size : sub_rm_max_ds;
+				} while (rest_size);
+ 			}
+
+			size_t size() { return _size; }
+
+			template <typename T>
+			T * local_addr() { return reinterpret_cast<T *>(_base); }
 		};
 
 		Lock        _lock;
