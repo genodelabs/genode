@@ -61,10 +61,9 @@ but build upon of each other:
     Codezero microkernel developed by B-Labs
     See [http://genode.org/documentation/platforms/codezero]
 
-  :'host':
-    Pseudo platform documenting the interface between the generic and
-    platform-specific parts of the base framework. This is not a functional
-    base platform.
+  :'sel4':
+    seL4 microkernel developed at NICTA/General Dynamics
+    See[https://sel4.systems/]
 
 :'os':
 
@@ -102,10 +101,10 @@ but build upon of each other:
   This source-code repository contains the device-driver environment for
   executing drivers of the iPXE project.
 
-:'dde_oss':
+:'dde_bsd':
 
-  This source-code repository contains the device-driver environment for the
-  audio drivers of the Open Sound System (OSS).
+  This source-code repository contains the device-driver environment for
+  drivers of the OpenBSD operating system.
 
 :'dde_rump':
 

@@ -28,7 +28,7 @@ of them is briefly characterized as follows:
   via core's IO_MEM, IO_PORT, and IRQ services. The functionality of
   the driver is made available to other system components by announcing
   one of Genode's device-independent session interfaces, which are
-  'pci_session', 'framebuffer_session', 'input_session', 'block_session',
+  'platform_session', 'framebuffer_session', 'input_session', 'block_session',
   'audio_out_session', 'log_session', 'nic_session', and 'timer_session'
   (see 'os/include/' for the interface definitions). Those interfaces are
   uniform across hardware platforms and kernel base platforms. Usually,
@@ -67,20 +67,17 @@ repositories. The most predominant repositories hosting device drivers are
 Platform devices
 ================
 
-:'os/src/drivers/platform/': Platform drivers for various ARM boards.
-
-:'os/src/drivers/pci':
-  Implements the PCI-session interface using the PCI controller as found on
-  x86 PC hardware. Using this interface, a client can probe for a particular
-  device and request information about physical device resources (using the
-  'pci_device' interface). I/O resources for MMIO regions, I/O ports, and
-  interrupts can be requested by the provided PCI device abstraction.
+:'os/src/drivers/platform/': Platform drivers for various platforms.
+  On x86, the platform driver uses the PCI controller as found on x86 PC
+  hardware. A client can probe for a particular device and request information
+  about physical device resources (using the 'platform_device' interface). I/O
+  resources for MMIO regions, I/O ports, and interrupts can be requested by the
+  provided device abstraction.
 
 :'os/src/drivers/acpi':
   On x86 platforms that use the APIC (namely Fiasco.OC, NOVA, and hw_x86_64)
-  this simple ACPI parser traverses the ACPI tables and updates interrupt line
-  information of PCI devices within the PCI config space. It uses the pci_drv as
-  a utility started as a child and exports its interface.
+  this simple ACPI parser traverses the ACPI tables and reports device-resource
+  information (e.g., interrupt lines of PCI devices).
 
 
 UART devices
@@ -180,16 +177,17 @@ provided by the kernel, or a pseudo time source (busy):
 :'linux':     nanosleep as time source
 
 
-Audio output drivers
-====================
+Audio drivers
+=============
 
-All audio-output drivers implement the audio session interface defined at
-'os/include/audio_out_session/'.
+Audio drivers implement the Audio_out session interface defined at
+'os/include/audio_out_session/' for playback and optionally the audio_in
+interface for recording.
 
-:'os/src/drivers/audio_out/linux':
-  Uses ALSA as back-end on the Linux base platform.
+:'os/src/drivers/audio/linux':
+  Uses ALSA as back-end on the Linux base platform and supports only playback.
 
-:'dde_bsd/src/drivers/audio_out':
+:'dde_bsd/src/drivers/audio':
   Sound drivers ported from OpenBSD. Currently, the repository
   includes support for Intel HD Audio as well as for Ensoniq AudioPCI
   (ES1370) compatible sound cards.
@@ -261,6 +259,9 @@ General-purpose I/O drivers
 
 :'os/src/drivers/gpio/imx53':
   Driver for accessing the GPIO pins of i.MX53 platforms.
+
+:'os/src/drivers/gpio/rpi':
+  Driver for accessing the GPIO pins of Raspberry Pi platforms.
 
 
 Resource multiplexers
