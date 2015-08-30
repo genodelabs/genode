@@ -45,7 +45,7 @@ Slab_entry *Slab_block::slab_entry(int idx)
 	 * of 'num_elem' bytes. We align the first slot to a four-aligned
 	 * address.
 	 */
-	return (Slab_entry *)&_data[align_addr(_slab->num_elem(), 2)
+	return (Slab_entry *)&_data[align_addr(_slab->num_elem(), log2(sizeof(addr_t)))
 	                            + _slab->entry_size()*idx];
 }
 
