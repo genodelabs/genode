@@ -15,14 +15,6 @@ PRG_DIR := $(dir $(TARGET_MK))
 include $(TARGET_MK)
 
 #
-# Enforce use of 'lx_hybrid' library for all targets when 'always_hybrid' is
-# enabled
-#
-ifeq ($(filter-out $(SPECS),always_hybrid),)
-LIBS += lx_hybrid
-endif
-
-#
 # Include lib-import description files
 #
 include $(foreach LIB,$(LIBS),$(call select_from_repositories,lib/import/import-$(LIB).mk))

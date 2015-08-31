@@ -47,7 +47,6 @@ usage:
 	@echo "                  'foc_rpi'"
 	@echo "                  'foc_odroid_x2'"
 	@echo "                  'sel4_x86_32'"
-	@echo "                  'lx_hybrid_x86'"
 	@echo
 	@echo "  The definition of BUILD_DIR is optional. If specified,"
 	@echo "  <build-dir> is the location of the build directory to create."
@@ -129,15 +128,13 @@ $(BUILD_DIR)/etc/build.conf:: $(BUILD_CONF_PLATFORM)
 	@cat $(BUILD_CONF).generic >> $@
 
 #
-# Add optional repositories for all platforms except for lx_hybrid
+# Add optional repositories for all platforms
 #
 # Those repositories rely on Genode's libc or contain device drivers.
 # Both prerequisites are not available for hybrid Linux/Genode programs.
 #
-ifneq ($(PLATFORM),lx_hybrid_x86)
 $(BUILD_DIR)/etc/build.conf::
 	@cat $(BUILD_CONF).optional >> $@
-endif
 
 $(BUILD_DIR)/Makefile:
 	@ln -sf $(GENODE_ABS_DIR)/tool/builddir/build.mk $@
@@ -265,10 +262,6 @@ hw_x86_64::
 
 hw_x86_64_muen::
 	@echo "SPECS = genode hw_x86_64_muen" > $(BUILD_DIR)/etc/specs.conf
-
-lx_hybrid_x86::
-	@echo "CROSS_DEV_PREFIX =" > $(BUILD_DIR)/etc/tools.conf
-	@echo "SPECS += always_hybrid" >> $(BUILD_DIR)/etc/specs.conf
 
 $(PLATFORM)::
 	@echo "Successfully created build directory at $(BUILD_DIR)."

@@ -95,17 +95,13 @@ endif
 #
 # Tool chain version check
 #
-# If SPECS contains 'always_hybrid' we skip the check as the host tool chain is
-# used. Also, empty DST_DIRS is interpreted as a tool-chain agnostic target,
-# e.g., clean.
+# Empty DST_DIRS is interpreted as a tool-chain agnostic target, e.g., clean.
 #
-ifeq ($(filter always_hybrid,$(SPECS)),)
 ifneq ($(DST_DIRS),)
 REQUIRED_GCC_VERSION ?= 4.9.2
 GCC_VERSION := $(filter $(REQUIRED_GCC_VERSION) ,$(shell $(CUSTOM_CXX) --version))
 ifneq ($(GCC_VERSION), $(REQUIRED_GCC_VERSION))
 $(error "$(CUSTOM_CXX) version $(REQUIRED_GCC_VERSION) is required")
-endif
 endif
 endif
 
