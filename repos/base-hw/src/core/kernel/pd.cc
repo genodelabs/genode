@@ -69,13 +69,13 @@ void Mode_transition_control::switch_to(Cpu::Context * const context,
                                         addr_t const entry_raw,
                                         addr_t const context_ptr_base)
 {
+	/* unlock kernel data */
+	data_lock().unlock();
+
 	/* override client-context pointer of the executing CPU */
 	size_t const context_ptr_offset = cpu * sizeof(context);
 	addr_t const context_ptr = context_ptr_base + context_ptr_offset;
 	*(void * *)context_ptr = context;
-
-	/* unlock kernel data */
-	data_lock().unlock();
 
 	/* call assembly code that applies the virtual-machine context */
 	typedef void (* Entry)();
