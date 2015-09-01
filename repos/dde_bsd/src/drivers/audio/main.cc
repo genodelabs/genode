@@ -103,9 +103,6 @@ class Audio_out::Out
 
 			if (full_right)
 				channel_right->alloc_submit();
-
-			channel_left->progress_submit();
-			channel_right->progress_submit();
 		}
 
 		void _play_silence()
@@ -137,17 +134,24 @@ class Audio_out::Out
 				/* send to driver */
 				if (int err = Audio::play(data, sizeof(data)))
 					PWRN("Error %d during playback", err);
+
+				p_left->invalidate();
+				p_right->invalidate();
+
+				p_left->mark_as_played();
+				p_right->mark_as_played();
+
+				_advance_position(p_left, p_right);
 			} else {
 				_play_silence();
 			}
 
-			p_left->invalidate();
-			p_right->invalidate();
 
-			p_left->mark_as_played();
-			p_right->mark_as_played();
-
-			_advance_position(p_left, p_right);
+			/* always report when a period has passed */
+			Session_component *channel_left  = channel_acquired[LEFT];
+			Session_component *channel_right = channel_acquired[RIGHT];
+			channel_left->progress_submit();
+			channel_right->progress_submit();
 		}
 
 		/*
