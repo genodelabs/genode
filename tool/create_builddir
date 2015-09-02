@@ -36,6 +36,7 @@ usage:
 	@echo "                  'hw_arndale'"
 	@echo "                  'hw_odroid_xu'"
 	@echo "                  'hw_rpi'"
+	@echo "                  'hw_zynq'"
 	@echo "                  'hw_x86_64'"
 	@echo "                  'hw_x86_64_muen'"
 	@echo "                  'foc_x86_32'"
@@ -251,6 +252,9 @@ hw_arndale::
 hw_rpi::
 	@echo "SPECS = genode hw_rpi" > $(BUILD_DIR)/etc/specs.conf
 	@echo "SPECS += perf_counter" >> $(BUILD_DIR)/etc/specs.conf
+
+hw_zynq::
+	@echo "SPECS = genode hw_zynq" > $(BUILD_DIR)/etc/specs.conf
 
 hw_odroid_xu::
 	@echo "SPECS = genode hw_odroid_xu" > $(BUILD_DIR)/etc/specs.conf
