@@ -30,7 +30,7 @@ using namespace Genode;
 void Platform_thread::_init() { }
 
 
-Weak_ptr<Address_space> Platform_thread::address_space() {
+Weak_ptr<Address_space>& Platform_thread::address_space() {
 	return _address_space; }
 
 

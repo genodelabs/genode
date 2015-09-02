@@ -40,20 +40,6 @@ void Rm_client::unmap(addr_t, addr_t virt_base, size_t size)
  ** Pager_entrypoint **
  **********************/
 
-int Pager_entrypoint::apply_mapping()
-{
-	Page_flags const flags =
-	Page_flags::apply_mapping(_mapping.writable,
-	                          _mapping.cacheable,
-	                          _mapping.io_mem);
-	Platform_pd * const pd = (Platform_pd*)_fault.pd;
-
-	return (pd->insert_translation(_mapping.virt_address,
-	                               _mapping.phys_address,
-	                               1 << _mapping.size_log2, flags)) ? 0 : 1;
-}
-
-
 void Pager_entrypoint::entry()
 {
 	while (1)
@@ -79,7 +65,6 @@ void Pager_entrypoint::entry()
 				return;
 			}
 
-			_fault.pd     = pt->kernel_object()->fault_pd();
 			_fault.ip     = pt->kernel_object()->ip;
 			_fault.addr   = pt->kernel_object()->fault_addr();
 			_fault.writes = pt->kernel_object()->fault_writes();
@@ -89,10 +74,20 @@ void Pager_entrypoint::entry()
 			if (po->pager(*this)) return;
 
 			/* apply mapping that was determined by the local region managers */
-			if (apply_mapping()) {
-				PWRN("failed to apply mapping");
-				return;
+			{
+				Locked_ptr<Address_space> locked_ptr(pt->address_space());
+				if (!locked_ptr.is_valid()) return;
+
+				Hw::Address_space * as = static_cast<Hw::Address_space*>(&*locked_ptr);
+				Page_flags const flags =
+					Page_flags::apply_mapping(_mapping.writable,
+											  _mapping.cacheable,
+											  _mapping.io_mem);
+				as->insert_translation(_mapping.virt_address,
+									   _mapping.phys_address,
+									   1 << _mapping.size_log2, flags);
 			}
+
 			/* let pager object go back to no-fault state */
 			po->wake_up();
 		};

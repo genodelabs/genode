@@ -85,7 +85,6 @@ class Genode::Ipc_pager
 		 */
 		struct Fault_thread_regs
 		{
-			addr_t pd;
 			addr_t ip;
 			addr_t addr;
 			addr_t writes;
@@ -214,14 +213,6 @@ class Genode::Pager_entrypoint : public Object_pool<Pager_object>,
 		 * Dissolve pager object 'obj' from entry point
 		 */
 		void dissolve(Pager_object * const obj);
-
-		/**
-		 * Bring current mapping data into effect
-		 *
-		 * \retval  0  succeeded
-		 * \retval -1  failed
-		 */
-		int apply_mapping();
 
 
 		/**********************
