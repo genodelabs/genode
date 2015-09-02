@@ -292,10 +292,10 @@ class Audio_out::Mixer : public Thread<1024 * sizeof(addr_t)>
 					continue;
 				}
 
-				_mix();
-
 				/* advance position of clients */
 				_advance_position();
+
+				_mix();
 
 				if (!_left.stream()->empty())
 					_wait_for_progress();
