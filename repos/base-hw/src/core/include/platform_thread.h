@@ -176,7 +176,7 @@ namespace Genode {
 			/**
 			 * Return the address space to which the thread is bound
 			 */
-			Weak_ptr<Address_space> address_space();
+			Weak_ptr<Address_space>& address_space();
 
 			/**
 			 * Return execution time consumed by the thread
