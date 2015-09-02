@@ -16,7 +16,6 @@
 #include <audio_out_session/connection.h>
 #include <terminal_session/connection.h>
 #include <timer_session/connection.h>
-#include <trace/timestamp.h>
 
 /* VirtualBox includes */
 #include "VBoxDD.h"
@@ -36,115 +35,210 @@ static bool const verbose = false;
 #define PLOGV(...) if (verbose) PLOG(__VA_ARGS__);
 
 
-enum {
-	AUDIO_CHANNELS    = 2,
-	AUDIO_SAMPLE_SIZE = sizeof(int16_t),
-	AUDIO_FREQ        = 44100,
-	SIZE_PER_FRAME    = AUDIO_CHANNELS * AUDIO_SAMPLE_SIZE,
+template <size_t CAPACITY>
+struct A_ring_buffer_to_bind_them
+{
+	size_t wpos { 0 };
+	size_t rpos { 0 };
 
-	RECORD_BUFFER_SAMPLES = 2 * Audio_in::PERIOD,
+	char _data[CAPACITY];
+
+	A_ring_buffer_to_bind_them() { }
+
+	size_t read_avail() const
+	{
+		if (wpos > rpos) return wpos - rpos;
+		else return (wpos - rpos + CAPACITY) % CAPACITY;
+	}
+
+	size_t write_avail() const
+	{
+		if (wpos > rpos) return ((rpos - wpos + CAPACITY) % CAPACITY) - 2;
+		else if (wpos < rpos) return rpos - wpos;
+		else return CAPACITY - 2;
+	}
+
+	size_t write(void const *src, size_t len)
+	{
+		size_t const avail = write_avail();
+		if (avail == 0) return 0;
+
+		size_t const limit_len = len > avail ? avail : len;
+		size_t const total = wpos + len;
+		size_t first, rest;
+
+		if (total > CAPACITY) {
+			first = CAPACITY - wpos;
+			rest  = total % CAPACITY;
+		} else {
+			first = limit_len;
+			rest  = 0;
+		}
+
+		Genode::memcpy(&_data[wpos], src, first);
+		wpos = (wpos + first) % CAPACITY;
+
+		if (rest) {
+			Genode::memcpy(&_data[wpos], ((char const*)src) + first, rest);
+			wpos = (wpos + rest) % CAPACITY;
+		}
+
+		return limit_len;
+	}
+
+	size_t read(void *dst, size_t len, bool peek = false)
+	{
+		size_t const avail = read_avail();
+		if (avail == 0) return 0;
+
+		size_t new_rpos = rpos;
+
+		size_t const limit_len = len > avail ? avail : len;
+		size_t const total = new_rpos + len;
+		size_t first, rest;
+
+		if (total > CAPACITY) {
+			first = CAPACITY - new_rpos;
+			rest  = total % CAPACITY;
+		} else {
+			first = limit_len;
+			rest  = 0;
+		}
+
+		Genode::memcpy(dst, &_data[new_rpos], first);
+		new_rpos = (new_rpos + first) % CAPACITY;
+
+		if (rest) {
+			Genode::memcpy(((char*)dst) + first, &_data[new_rpos], rest);
+			new_rpos = (new_rpos + rest) % CAPACITY;
+		}
+
+		if (!peek) rpos = new_rpos;
+
+		return limit_len;
+	}
+
+	void read_advance(size_t len) { rpos = (rpos + len) % CAPACITY; }
 };
-static const char *channel_names[] = { "front left", "front right" };
+
+
+enum {
+	VBOX_CHANNELS    = 2,
+	VBOX_SAMPLE_SIZE = sizeof(int16_t),
+
+	OUT_PACKET_NUM = 16, /* number of buffered packets */
+	IN_PACKET_NUM  =  2, /* number of buffered in packets */
+
+	OUT_PCM_SIZE = Audio_out::PERIOD * VBOX_SAMPLE_SIZE * VBOX_CHANNELS,
+	IN_PCM_SIZE  = Audio_in::PERIOD  * VBOX_SAMPLE_SIZE * VBOX_CHANNELS,
+	OUT_PCM_BUFFER_SIZE = OUT_PCM_SIZE * OUT_PACKET_NUM,
+	IN_PCM_BUFFER_SIZE  = IN_PCM_SIZE  * IN_PACKET_NUM,
+
+	OUT_PACKET_SIZE = Audio_out::PERIOD * VBOX_SAMPLE_SIZE * VBOX_CHANNELS,
+	IN_PACKET_SIZE  = Audio_in::PERIOD  * VBOX_SAMPLE_SIZE * VBOX_CHANNELS,
+	OUT_PACKET_BUFFER_SIZE = OUT_PACKET_SIZE * 2,
+	IN_PACKET_BUFFER_SIZE  = IN_PACKET_SIZE  * 2,
+};
+
+
+static char const * const channel_names[] = { "front left", "front right" };
+
+
+typedef A_ring_buffer_to_bind_them<OUT_PCM_BUFFER_SIZE>    Pcm_out_buffer;
+typedef A_ring_buffer_to_bind_them<OUT_PACKET_BUFFER_SIZE> Out_packet_buffer;
+typedef A_ring_buffer_to_bind_them<IN_PCM_BUFFER_SIZE>     Pcm_in_buffer;
+typedef A_ring_buffer_to_bind_them<IN_PACKET_BUFFER_SIZE>  In_packet_buffer;
 
 
 struct GenodeVoiceOut
 {
 	HWVoiceOut             hw;
-	Audio_out::Connection *audio[AUDIO_CHANNELS];
-	Audio_out::Packet     *packet[AUDIO_CHANNELS];
-	uint8_t               *packet_buf;
-	int                    wpos;             /* in samples */
+	Audio_out::Connection *audio[VBOX_CHANNELS];
+	Out_packet_buffer      packet_buf;
+	Pcm_out_buffer         pcm_buf;
 	unsigned               packets;
-	unsigned               last_pos;
 };
 
 
 struct GenodeVoiceIn {
 	HWVoiceIn             hw;
 	Audio_in::Connection *audio;
-	uint8_t              *pcm_buf;
-	int                   pcm_rpos;   /* in bytes */
-	uint8_t              *packet_buf;
-	int                   avail;
-	int                   wpos;       /* in samples */
-	int                   rpos;       /* in samples */
+	In_packet_buffer      packet_buf;
+	Pcm_in_buffer         pcm_buf;
 	unsigned              packets;
 };
 
 
-static inline int16_t *advance_buffer(void *buffer, int samples)
-{
-	enum { CHANNELS = 2 };
-	return ((int16_t*)buffer) + (samples * CHANNELS);
-}
-
-
-static inline void copy_samples(void *dst, void const *src, int samples) {
-	Genode::memcpy(dst, src, samples * SIZE_PER_FRAME); }
-
-
 static int write_samples(GenodeVoiceOut *out, int16_t *src, int samples)
 {
-	int16_t *buf = (int16_t*)out->packet_buf;
+	Out_packet_buffer &packet_buf = out->packet_buf;
 
-	/* fill and submit packet */
-	if (out->wpos >= Audio_out::PERIOD) {
-		/* alloc new packet */
-		while (true) {
-			Audio_out::Connection *c = out->audio[0];
-			try {
-				out->packet[0] = c->stream()->alloc();
-				break;
-			} catch (Audio_out::Stream::Alloc_failed) {
-				c->wait_for_alloc();
-			}
-		}
+	/* try to fill and submit packet */
+	if (packet_buf.read_avail() >= OUT_PACKET_SIZE) {
+		Audio_out::Connection *c = out->audio[0];
 
-		unsigned const pos = out->audio[0]->stream()->packet_position(out->packet[0]);
-		out->packet[1]     = out->audio[1]->stream()->get(pos);
+		/* check how many submitted packets are still in the queue */
+		if (c->stream()->queued() > OUT_PACKET_NUM) return 0;
+
+		/* alloc new packets */
+		Audio_out::Packet *p[2] { nullptr, nullptr };
+
+		try { p[0] = c->stream()->alloc(); }
+		catch (Audio_out::Stream::Alloc_failed) { return 0; }
+
+		unsigned const ppos = out->audio[0]->stream()->packet_position(p[0]);
+		p[1]                = out->audio[1]->stream()->get(ppos);
 
 		/* copy */
-		float *left_content  = out->packet[0]->content();
-		float *right_content = out->packet[1]->content();
+		float *left_content  = p[0]->content();
+		float *right_content = p[1]->content();
+
+		int16_t buf[Audio_out::PERIOD*2];
+		size_t const n = packet_buf.read(buf, sizeof(buf));
+		if (n != sizeof(buf))
+			PERR("%s: n: %zu buf: %zu", __func__, n, buf);
 
 		for (int i = 0; i < Audio_out::PERIOD; i++) {
-			left_content[i]  = (float)(buf[i * AUDIO_CHANNELS + 0]) / 32768.0f;
-			right_content[i] = (float)(buf[i * AUDIO_CHANNELS + 1]) / 32768.0f;
+			left_content[i]  = (float)(buf[i * VBOX_CHANNELS + 0]) / 32768.0f;
+			right_content[i] = (float)(buf[i * VBOX_CHANNELS + 1]) / 32768.0f;
 		}
 
 		/* submit */
-		for (int i = 0; i < AUDIO_CHANNELS; i++) {
-			out->audio[i]->submit(out->packet[i]);
-			out->packet[i] = nullptr;
-		}
-		out->last_pos = pos;
+		for (int i = 0; i < VBOX_CHANNELS; i++)
+			out->audio[i]->submit(p[i]);
 
-		/* move remaining samples if any to front of buffer */
-		int const remaining_samples = out->wpos - Audio_out::PERIOD;
-		if (remaining_samples) {
-			copy_samples(buf, advance_buffer(buf, Audio_out::PERIOD), remaining_samples);
-		}
-		out->wpos = remaining_samples;
 		out->packets++;
 	}
 
 	/* copy new samples */
-	copy_samples(advance_buffer(buf, out->wpos), src, samples);
-	out->wpos += samples;
-
-	return samples;
+	int const bytes = samples * VBOX_SAMPLE_SIZE * VBOX_SAMPLE_SIZE;
+	size_t const n  = packet_buf.write(src, bytes);
+	return n / (VBOX_SAMPLE_SIZE * VBOX_SAMPLE_SIZE);
 }
 
 
 static int genode_run_out(HWVoiceOut *hw)
 {
-	GenodeVoiceOut *out = (GenodeVoiceOut *)hw;
+	GenodeVoiceOut * const out = (GenodeVoiceOut *)hw;
+	Pcm_out_buffer & pcm_buf   = out->pcm_buf;
 
 	int const live = audio_pcm_hw_get_live_out(&out->hw);
 	if (!live)
 		return 0;
 
-	int const samples = audio_MIN(live, out->hw.samples);
+	int const decr     = audio_MIN(live, out->hw.samples);
+	size_t const avail = pcm_buf.read_avail();
+
+	if ((avail / (VBOX_SAMPLE_SIZE*VBOX_CHANNELS)) < decr)
+		PERR("%s: avail: %zu < decr %d", __func__, avail, decr);
+
+	char buf[decr*VBOX_SAMPLE_SIZE*VBOX_CHANNELS];
+	pcm_buf.read(buf, sizeof(buf), true);
+
+	int const samples = write_samples(out, (int16_t*)buf, decr);
+	if (samples == 0) return 0;
+
+	pcm_buf.read_advance(samples * (VBOX_SAMPLE_SIZE*VBOX_CHANNELS));
 
 	out->hw.rpos = (out->hw.rpos + samples) % out->hw.samples;
 	return samples;
@@ -153,34 +247,40 @@ static int genode_run_out(HWVoiceOut *hw)
 
 static int genode_write(SWVoiceOut *sw, void *buf, int size)
 {
-	GenodeVoiceOut *out = (GenodeVoiceOut*)sw->hw;
-	return write_samples(out, (int16_t*)buf, size / 4) * 4;
+	GenodeVoiceOut * const out = (GenodeVoiceOut*)sw->hw;
+	Pcm_out_buffer &pcm_buf    = out->pcm_buf;
+
+	size_t const avail = pcm_buf.write_avail();
+	if (size > avail)
+		PWRN("%s: size: %d available: %zu", __func__, size, avail);
+
+	size_t const n = pcm_buf.write(buf, size);
+	if (n < size)
+		PWRN("%s: written: %zu expected: %d", __func__, n, size);
+
+	/* needed by audio_pcm_hw_get_live_out() to calculate ``live'' samples */
+	sw->total_hw_samples_mixed += (size / 4);
+	return size;
 }
 
 
 static int genode_init_out(HWVoiceOut *hw, audsettings_t *as)
 {
-	GenodeVoiceOut *out = (GenodeVoiceOut *)hw;
+	GenodeVoiceOut * const out = (GenodeVoiceOut *)hw;
 
-	PLOG("--- using Audio_out session ---");
-	PLOGV("freq: %d", as->freq);
-	PLOGV("channels: %d", as->nchannels);
-	PLOGV("format: %d", as->fmt);
-	PLOGV("endianness: %d", as->endianness);
-
-	if (as->nchannels != AUDIO_CHANNELS) {
+	if (as->nchannels != VBOX_CHANNELS) {
 		PERR("only %d channels supported (%d were requested)",
-		     AUDIO_CHANNELS, as->nchannels);
+		     VBOX_CHANNELS, as->nchannels);
 		return -1;
 	}
 
-	if (as->freq != AUDIO_FREQ) {
-		PERR("only %d frequency supported (%d were requested)",
-		     AUDIO_FREQ, as->freq);
+	if (as->freq != Audio_out::SAMPLE_RATE) {
+		PERR("only %d frequency supported (%d was requested)",
+		     Audio_out::SAMPLE_RATE, as->freq);
 		return -1;
 	}
 
-	for (int i = 0; i < AUDIO_CHANNELS; i++) {
+	for (int i = 0; i < VBOX_CHANNELS; i++) {
 		try {
 			out->audio[i] = new (Genode::env()->heap())
 				Audio_out::Connection(channel_names[i]);
@@ -190,19 +290,17 @@ static int genode_init_out(HWVoiceOut *hw, audsettings_t *as)
 				Genode::destroy(Genode::env()->heap(), out->audio[i]);
 			return -1;
 		}
-
-		out->packet[i] = nullptr;
 	}
 
-	out->wpos     = 0;
-	out->packets  = 0;
-	out->last_pos = 0;
-
 	audio_pcm_init_info(&out->hw.info, as);
-	out->hw.samples    = Audio_out::PERIOD;
+	out->hw.samples = Audio_out::PERIOD;
+	out->packets = 0;
 
-	size_t const bytes = (out->hw.samples << out->hw.info.shift);
-	out->packet_buf    = (uint8_t*)RTMemAllocZ(2 * bytes);
+	PLOG("--- using Audio_out session ---");
+	PLOGV("freq: %d", as->freq);
+	PLOGV("channels: %d", as->nchannels);
+	PLOGV("format: %d", as->fmt);
+	PLOGV("endianness: %d", as->endianness);
 
 	return 0;
 }
@@ -210,12 +308,9 @@ static int genode_init_out(HWVoiceOut *hw, audsettings_t *as)
 
 static void genode_fini_out(HWVoiceOut *hw)
 {
-	GenodeVoiceOut *out = (GenodeVoiceOut *)hw;
-
-	for (int i = 0; i < AUDIO_CHANNELS; i++)
+	GenodeVoiceOut * const out = (GenodeVoiceOut *)hw;
+	for (int i = 0; i < VBOX_CHANNELS; i++)
 		Genode::destroy(Genode::env()->heap(), out->audio[i]);
-
-	RTMemFree((void*)out->packet_buf);
 }
 
 
@@ -224,32 +319,19 @@ static int genode_ctl_out(HWVoiceOut *hw, int cmd, ...)
 	GenodeVoiceOut *out = (GenodeVoiceOut*)hw;
 	switch (cmd) {
 	case VOICE_ENABLE:
-		{
-			PLOGV("enable playback");
-			out->wpos      = 0;
-			out->packets   = 0;
-
-			for (int i = 0; i < AUDIO_CHANNELS; i++) {
-				out->audio[i]->stream()->reset();
+		PLOGV("enable playback");
+		out->packets = 0;
+		for (int i = 0; i < VBOX_CHANNELS; i++)
 				out->audio[i]->start();
-			}
-
-			break;
-		}
+		break;
 	case VOICE_DISABLE:
-		{
-			PLOGV("disable playback (packets played: %u)", out->packets);
-
-			for (int i = 0; i < AUDIO_CHANNELS; i++) {
-				out->audio[i]->stop();
-				out->audio[i]->stream()->invalidate_all();
-				out->packet[i] = nullptr;
-			}
-
-			break;
+		PLOGV("disable playback (packets: %u)", out->packets);
+		for (int i = 0; i < VBOX_CHANNELS; i++) {
+			out->audio[i]->stop();
+			out->audio[i]->stream()->invalidate_all();
 		}
+		break;
 	}
-
 	return 0;
 }
 
@@ -262,12 +344,6 @@ static int genode_init_in(HWVoiceIn *hw, audsettings_t *as)
 {
 	GenodeVoiceIn *in = (GenodeVoiceIn*)hw;
 
-	PLOG("--- using Audio_in session ---");
-	PLOGV("freq: %d", as->freq);
-	PLOGV("channels: %d", as->nchannels);
-	PLOGV("format: %d", as->fmt);
-	PLOGV("endianness: %d", as->endianness);
-
 	try {
 		in->audio = new (Genode::env()->heap()) Audio_in::Connection("left");
 	} catch (...) {
@@ -277,15 +353,13 @@ static int genode_init_in(HWVoiceIn *hw, audsettings_t *as)
 
 	audio_pcm_init_info(&in->hw.info, as);
 	in->hw.samples = Audio_in::PERIOD;
-
-	in->pcm_buf    = (uint8_t*)RTMemAllocZ(in->hw.samples << in->hw.info.shift);
-	in->pcm_rpos   = 0;
-
-	in->packet_buf = (uint8_t*)RTMemAllocZ(RECORD_BUFFER_SAMPLES << in->hw.info.shift);
-	in->avail      = 0;
-	in->rpos       = 0;
-	in->wpos       = 0;
 	in->packets    = 0;
+
+	PLOG("--- using Audio_in session ---");
+	PLOGV("freq: %d", as->freq);
+	PLOGV("channels: %d", as->nchannels);
+	PLOGV("format: %d", as->fmt);
+	PLOGV("endianness: %d", as->endianness);
 
 	return 0;
 }
@@ -293,38 +367,33 @@ static int genode_init_in(HWVoiceIn *hw, audsettings_t *as)
 
 static void genode_fini_in(HWVoiceIn *hw)
 {
-	GenodeVoiceIn *in = (GenodeVoiceIn*)hw;
-
+	GenodeVoiceIn * const in = (GenodeVoiceIn*)hw;
 	Genode::destroy(Genode::env()->heap(), in->audio);
-	RTMemFree(in->pcm_buf);
-	RTMemFree(in->packet_buf);
 }
 
 
-static int read_samples(GenodeVoiceIn *in, int16_t *dst, int samples)
+static int read_samples(GenodeVoiceIn *in, int samples)
 {
-	int remaining_samples = samples;
+	In_packet_buffer &packet_buf = in->packet_buf;
+	Pcm_in_buffer    &pcm_buf    = in->pcm_buf;
 
-	/*
-	 * If there are fewer samples samples available acquire next Audio_in
-	 * packet and copy the content into the packet buffer. If that is not
-	 * possible, check if there are at least enough samples left to satisfy
-	 * the request.
-	 */
-	while (in->avail < Audio_in::PERIOD) {
+	while (packet_buf.read_avail() < IN_PACKET_SIZE) {
 		Audio_in::Stream &stream = *in->audio->stream();
 		Audio_in::Packet *p      = stream.get(stream.pos());
 
 		if (!p->valid()) {
-			if (in->avail < samples)
+			if (packet_buf.read_avail() < (samples*VBOX_SAMPLE_SIZE*VBOX_CHANNELS)) {
 				return 0;
+			}
 			break;
 		}
 
-		in->packets++;
+		int16_t buf[Audio_in::PERIOD*VBOX_CHANNELS];
 
-		int16_t *buf = advance_buffer(in->packet_buf, in->wpos);
-		float   *content = p->content();
+		if (packet_buf.write_avail() < sizeof(buf))
+			return 0;
+
+		float *content = p->content();
 		for (int i = 0; i < Audio_in::PERIOD; i++) {
 			int16_t const v = content[i] * 32767;
 			int     const j = i * 2;
@@ -332,43 +401,27 @@ static int read_samples(GenodeVoiceIn *in, int16_t *dst, int samples)
 			buf[j + 1]      = v;
 		}
 
+		size_t const w = packet_buf.write(buf, sizeof(buf));
+		if (w != sizeof(buf))
+			PERR("%s: write n: %zu buf: %zu", __func__, w, sizeof(buf));
+
 		p->invalidate();
 		p->mark_as_recorded();
 		stream.increment_position();
 
-		in->wpos   = (in->wpos + Audio_in::PERIOD) % RECORD_BUFFER_SAMPLES;
-		in->avail += Audio_in::PERIOD;
-
+		in->packets++;
 		break;
 	}
 
-	/*
-	 * Get number of samples from the packet buffer, wrap the packet
-	 * buffer if necessary
-	 */
-	{
-		if ((in->rpos + remaining_samples) > RECORD_BUFFER_SAMPLES) {
-			int n = RECORD_BUFFER_SAMPLES - in->rpos;
-			int16_t const *src = advance_buffer(in->packet_buf, in->rpos);
+	int16_t buf[samples*VBOX_CHANNELS];
+	size_t const r = packet_buf.read(buf, sizeof(buf), true);
+	size_t const w = pcm_buf.write(buf, r);
+	if (w != r)
+		PERR("%s: w: %zu != r: %zu", __func__, w, r);
 
-			copy_samples(dst, src, n);
-			in->rpos   = 0;
-			in->avail -= n;
+	packet_buf.read_advance(w);
 
-			remaining_samples -= n;
-			dst                = advance_buffer(dst, n);
-		}
-
-		int16_t const *src = advance_buffer(in->packet_buf, in->rpos);
-		copy_samples(dst, src, remaining_samples);
-
-		in->rpos   = (in->rpos + remaining_samples) % RECORD_BUFFER_SAMPLES;
-		in->avail -= remaining_samples;
-		/* there are no remaining samples because all samples were copied */
-		remaining_samples = 0;
-	}
-
-	return samples - remaining_samples;
+	return w / (VBOX_SAMPLE_SIZE*VBOX_CHANNELS);
 }
 
 
@@ -381,7 +434,7 @@ static int genode_run_in(HWVoiceIn *hw)
 		return 0;
 
 	int const dead    = in->hw.samples - live;
-	int const samples = read_samples(in, (int16_t*)in->pcm_buf, dead);
+	int const samples = read_samples(in, dead);
 
 	in->hw.wpos = (in->hw.wpos + samples) % in->hw.samples;
 	return samples;
@@ -390,58 +443,43 @@ static int genode_run_in(HWVoiceIn *hw)
 
 static int genode_read(SWVoiceIn *sw, void *buf, int size)
 {
-	GenodeVoiceIn *in = (GenodeVoiceIn*)sw->hw;
+	GenodeVoiceIn * const in = (GenodeVoiceIn*)sw->hw;
+	Pcm_in_buffer &pcm_buf   = in->pcm_buf;
 
-	void const *src = in->pcm_buf + in->pcm_rpos;
-	Genode::memcpy(buf, src, size);
-	in->pcm_rpos += size;
+	size_t const avail = pcm_buf.read_avail();
+	if (avail < size)
+		PERR("%s: avail: %zu size: %zu", __func__, avail, size);
+
+	size_t const r = pcm_buf.read(buf, size);
+	if (r != size)
+		PERR("%s: r: %zu size: %d", __func__, r, size);
 
 	/* needed by audio_pcm_hw_get_live_in() to calculate ``live'' samples */
-	sw->total_hw_samples_acquired += (size / 4);
-
-	/*
-	 * This assumption totally blows if the guest uses other
-	 * parameters to configure the device model.
-	 */
-	enum { PCM_BUFFER_SIZE = 448 /* samples */ * 2 /* ch */ * 2 /* int16_t */ };
-	if (in->pcm_rpos >= PCM_BUFFER_SIZE) {
-		in->pcm_rpos = 0;
-	}
-
+	sw->total_hw_samples_acquired += (r / (VBOX_SAMPLE_SIZE*VBOX_CHANNELS));
 	return size;
 }
 
 
 static int genode_ctl_in(HWVoiceIn *hw, int cmd, ...)
 {
-	GenodeVoiceIn *in = (GenodeVoiceIn*)hw;
+	GenodeVoiceIn * const in = (GenodeVoiceIn*)hw;
 	switch (cmd) {
 	case VOICE_ENABLE:
-		{
-			PLOGV("enable recording");
-			in->wpos     = 0;
-			in->rpos     = 0;
-			in->avail    = 0;
-			in->pcm_rpos = 0;
-			in->packets  = 0;
-
-			in->audio->start();
-			break;
-		}
+		PLOGV("enable recording");
+		in->packets = 0;
+		in->audio->start();
+		break;
 	case VOICE_DISABLE:
-		{
-			PLOGV("disable recording (packets recorded: %u)", in->packets);
-			in->audio->stop();
-			break;
-		}
+		PLOGV("disable recording (packets: %u)", in->packets);
+		in->audio->stop();
+		break;
 	}
 
 	return 0;
 }
 
 
-static void *genode_audio_init(void) {
-	return &oss_audio_driver; }
+static void *genode_audio_init(void) { return &oss_audio_driver; }
 
 
 static void genode_audio_fini(void *) { }
