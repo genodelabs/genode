@@ -64,7 +64,7 @@ proc run_boot_dir {binaries} {
 		puts $fh " module /genode/config"
 		foreach binary $binaries {
 			if {$binary != "core"} {
-				puts $fh " module /genode/$binary" } }
+				puts $fh " modulenounzip /genode/$binary" } }
 		close $fh
 	}
 
