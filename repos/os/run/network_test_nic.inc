@@ -79,7 +79,7 @@ append_if [expr [have_spec omap4] || [have_spec arndale]] config "
 		</config>
 	</start>"
 
-append_if [expr ![have_spec omap4] && ![have_spec arndale]] config "
+append_if [expr ![have_spec omap4] && ![have_spec platform_arndale]] config "
 	<start name=\"$network_driver\">
 		<resource name=\"RAM\" quantum=\"4M\"/>
 		<provides><service name=\"Nic\"/></provides>
@@ -154,7 +154,7 @@ lappend_if [have_spec pci]           boot_modules pci_drv
 lappend_if [expr [have_spec omap4] || [have_spec arndale]] boot_modules usb_drv
 lappend_if [expr [have_spec omap4] || [have_spec arndale]] boot_modules usb_drv_net_stat
 lappend_if [expr ![have_spec omap4] && ![have_spec arndale]] boot_modules nic_drv
-lappend_if [expr ![have_spec omap4] && ![have_spec arndale]] boot_modules nic_drv_stat
+lappend_if [expr ![have_spec omap4] && ![have_spec arndale] && ![have_spec zynq]] boot_modules nic_drv_stat
 lappend_if [have_spec nova]          boot_modules pci_device_pd
 
 build_boot_image $boot_modules
