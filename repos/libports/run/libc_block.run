@@ -1,4 +1,4 @@
-set use_sd_card_drv [expr [have_spec omap4] || [have_spec platform_arndale] || [have_spec pl180]]
+set use_sd_card_drv [expr [have_spec omap4] || [have_spec arndale] || [have_spec pl180]]
 set use_ahci_drv    [have_spec x86]
 
 if {[expr [have_spec linux] || [have_spec hw_odroid_xu]]} {

@@ -3,10 +3,10 @@ proc have_platform_drv {} {
 		return 0
 	}
 
-	return [expr [have_spec platform_arndale] \
-	          || [have_spec platform_imx53] \
-	          || [have_spec platform_rpi] \
-	          || [have_spec platform_odroid_x2] \
+	return [expr [have_spec arndale] \
+	          || [have_spec imx53] \
+	          || [have_spec rpi] \
+	          || [have_spec odroid_x2] \
 	          || [have_spec x86]]
 }
 
@@ -16,7 +16,7 @@ proc append_platform_drv_build_components {} {
 	lappend_if [have_platform_drv] build_components drivers/platform
 	lappend_if [have_spec acpi]    build_components drivers/acpi
 	lappend_if [have_spec acpi]    build_components server/report_rom
-	lappend_if [have_spec nova]    build_components drivers/platform/x86/device_pd
+	lappend_if [have_spec nova]    build_components drivers/platform/spec/x86/device_pd
 }
 
 proc append_platform_drv_boot_modules {} {
@@ -109,7 +109,7 @@ proc append_platform_drv_config {} {
 				<if-arg key="label" value="acpi"/> <child name="acpi_report_rom"/>
 			</service>}
 
-		append_if [have_spec platform_rpi] config {
+		append_if [have_spec rpi] config {
 			<service name="Timer"> <any-child/> </service>}
 
 		append config {

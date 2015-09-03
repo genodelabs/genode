@@ -19,7 +19,7 @@
 #include <board.h>
 
 /* Genode includes */
-#include <drivers/uart/exynos_uart_base.h>
+#include <drivers/uart_base.h>
 
 namespace Genode
 {

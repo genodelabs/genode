@@ -15,7 +15,7 @@
 #pragma once
 
 /* Genode includes */
-#include <drivers/uart/x86_uart_base.h>
+#include <drivers/uart_base.h>
 
 namespace Genode { class Serial; }
 

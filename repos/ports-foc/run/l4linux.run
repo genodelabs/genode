@@ -12,12 +12,12 @@ set build_components {
 	drivers/framebuffer
 	l4linux }
 
-set use_usb_driver   [expr [have_spec omap4] || [have_spec platform_arndale]]
+set use_usb_driver   [expr [have_spec omap4] || [have_spec arndale]]
 set use_nic_driver   [expr !$use_usb_driver && [expr [have_spec lan9118] || [have_spec x86]]]
 
 lappend_if $use_usb_driver  build_components drivers/usb
 lappend_if $use_nic_driver  build_components drivers/nic
-lappend_if [have_spec  ps2] build_components drivers/input/ps2
+lappend_if [have_spec  ps2] build_components drivers/input/spec/ps2
 lappend_if [have_spec gpio] build_components drivers/gpio
 
 source ${genode_dir}/repos/base/run/platform_drv.inc

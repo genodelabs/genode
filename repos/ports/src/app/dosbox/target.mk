@@ -40,10 +40,10 @@ INC_DIR += $(addprefix $(DOSBOX_DIR)/src, cpu debug dos fpu gui hardware hardwar
 
 CC_OPT  = -DHAVE_CONFIG_H -D_GNU_SOURCE=1 -D_REENTRANT
 ifeq ($(filter-out $(SPECS),x86_32),)
-INC_DIR += $(PRG_DIR)/x86_32
+INC_DIR += $(PRG_DIR)/spec/x86_32
 CC_OPT  += -DC_TARGETCPU=X86
 else ifeq ($(filter-out $(SPECS),x86_64),)
-INC_DIR += $(PRG_DIR)/x86_64
+INC_DIR += $(PRG_DIR)/spec/x86_64
 CC_OPT  += -DC_TARGETCPU=X86_64
 endif
 

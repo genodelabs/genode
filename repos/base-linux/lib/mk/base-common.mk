@@ -25,7 +25,7 @@ SRC_CC += irq/platform.cc
 INC_DIR +=  $(REP_DIR)/src/base/lock $(BASE_DIR)/src/base/lock
 INC_DIR +=  $(REP_DIR)/src/base/ipc
 INC_DIR +=  $(REP_DIR)/src/base/env $(BASE_DIR)/src/base/env
-INC_DIR +=  $(REP_DIR)/src/platform $(BASE_DIR)/src/platform
+INC_DIR +=  $(BASE_DIR)/src/lib/startup
 INC_DIR += $(BASE_DIR)/src/base/thread
 
 vpath %.cc $(REP_DIR)/src/base

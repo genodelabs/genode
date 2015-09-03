@@ -79,7 +79,7 @@ proc drivers_build_components { feature_arg } {
 	lappend_if [use_gpio_drv feature]      build_components drivers/gpio
 	lappend_if [use_nic_drv feature]       build_components drivers/nic
 	lappend_if [use_pci_drv feature]       build_components drivers/pci
-	lappend_if [use_ps2_drv feature]       build_components drivers/input/ps2
+	lappend_if [use_ps2_drv feature]       build_components drivers/input/spec/ps2
 	lappend_if [use_timer feature]         build_components drivers/timer
 	lappend_if [use_usb_drv feature]       build_components drivers/usb
 

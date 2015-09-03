@@ -15,7 +15,7 @@ append build_components {
 	app/qt5/examples/textedit
 }
 
-set use_sd_card_driver [expr [have_spec omap4] || [have_spec platform_arndale]]
+set use_sd_card_driver [expr [have_spec omap4] || [have_spec arndale]]
 set use_ahci_driver    [have_spec x86]
 
 lappend_if $use_sd_card_driver       build_components drivers/sd_card

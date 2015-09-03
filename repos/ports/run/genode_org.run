@@ -20,7 +20,7 @@ set build_components {
 	app/lighttpd
 }
 
-set use_usb_driver      [expr [have_spec omap4] || [have_spec platform_arndale] || [have_spec platform_rpi]]
+set use_usb_driver      [expr [have_spec omap4] || [have_spec arndale] || [have_spec rpi]]
 set use_nic_driver      [expr !$use_usb_driver]
 
 if {$use_usb_driver}    { set network_driver "usb_drv" }

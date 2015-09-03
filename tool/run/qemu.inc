@@ -23,9 +23,9 @@ proc qemu_args { } {
 proc is_qemu_available { } {
 	if {[have_spec linux]} { return false }
 
-	if {[have_spec platform_panda]
-	 || [have_spec platform_arndale]
-	 || [have_spec platform_rpi]} {
+	if {[have_spec panda]
+	 || [have_spec arndale]
+	 || [have_spec rpi]} {
 		puts stderr "skipping execution because platform is not supported by qemu"
 		return false
 	}

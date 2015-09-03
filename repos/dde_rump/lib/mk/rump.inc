@@ -17,7 +17,7 @@ SHARED_LIB  = yes
 LD_OPT      += --whole-archive --start-group $(ARCHIVE) --end-group \
                --no-whole-archiv
 
-LD_SCRIPT_SO = $(call select_from_repositories,src/platform/genode_rel.ld) \
-               -T$(REP_DIR)/src/platform/rump.ld
+LD_SCRIPT_SO = $(call select_from_repositories,src/ld/genode_rel.ld) \
+               -T$(REP_DIR)/src/ld/rump.ld
 
 # vi:set ft=make :

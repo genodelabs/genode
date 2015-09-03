@@ -15,7 +15,7 @@ INC_DIR +=  $(REP_DIR)/src/core/include
 INC_DIR += $(BASE_DIR)/src/core/include
 INC_DIR += $(BASE_DIR)/src/base/include
 INC_DIR += $(BASE_DIR)/src/base/thread
-INC_DIR += $(BASE_DIR)/src/platform
+INC_DIR += $(BASE_DIR)/src/lib/startup
 
 # add C++ sources
 SRC_CC += console.cc
@@ -77,4 +77,4 @@ vpath boot_modules.s $(BOOT_MODULES_VPATH)
 # declare source locations
 vpath %  $(REP_DIR)/src/core
 vpath % $(BASE_DIR)/src/core
-vpath % $(BASE_DIR)/src/platform
+vpath % $(BASE_DIR)/src/lib/startup

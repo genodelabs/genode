@@ -38,7 +38,7 @@ if {[have_include "power_on/qemu"]} {
 
 	# pbxa9 - foc does only use 1 cpu even if more are configured
 	# pbxa9 - hw does not support multiple CPUs
-	if {[have_spec platform_pbxa9]} { set want_cpus 1 }
+	if {[have_spec pbxa9]} { set want_cpus 1 }
 	# okl4, pistachio, fiasco only use one CPU even if more are configured
 	if {[have_spec okl4]}           { set want_cpus 1 }
 	if {[have_spec pistachio]}      { set want_cpus 1 }

@@ -1,3 +1,5 @@
+REQUIRES = x86
+
 TARGET   = wifi_drv
 SRC_CC   = main.cc
 LIBS     = wifi iwl_firmware wpa_supplicant server

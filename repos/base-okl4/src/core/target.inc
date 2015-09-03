@@ -40,8 +40,7 @@ INC_DIR += $(REP_DIR)/src/core/include \
            $(GEN_CORE_DIR)/include \
            $(REP_DIR)/src/base/console \
            $(BASE_DIR)/src/base/thread \
-           $(BASE_DIR)/src/platform \
-           $(REP_DIR)/src/platform
+           $(BASE_DIR)/src/lib/startup
 
 include $(GEN_CORE_DIR)/version.inc
 

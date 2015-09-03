@@ -18,7 +18,7 @@
 #include <board.h>
 
 /* Genode includes */
-#include <drivers/uart/xilinx_uartps_base.h>
+#include <drivers/uart_base.h>
 
 namespace Genode { class Serial; }
 

@@ -20,7 +20,7 @@ if {
 
 set build_components { core init test/affinity }
 
-lappend_if [have_spec platform_arndale] build_components drivers/platform
+lappend_if [have_spec arndale] build_components drivers/platform
 
 build $build_components
 
@@ -42,7 +42,7 @@ set config {
 			<any-service> <parent/> </any-service>
 		</default-route> }
 
-append_if [have_spec platform_arndale] config {
+append_if [have_spec arndale] config {
 	<start name="platform_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Regulator"/></provides>
@@ -58,7 +58,7 @@ install_config $config
 
 set boot_modules { core init test-affinity }
 
-lappend_if [have_spec platform_arndale] boot_modules platform_drv
+lappend_if [have_spec arndale] boot_modules platform_drv
 
 build_boot_image $boot_modules
 

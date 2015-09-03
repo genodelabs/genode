@@ -18,7 +18,7 @@
 #include <input_session/connection.h>
 #include <timer_session/connection.h>
 
-/* included from os/src/drivers/input/ps2 */
+/* included from os/src/drivers/input/spec/ps2 */
 #include <scan_code_set_1.h>
 
 /* VirtualBox includes */

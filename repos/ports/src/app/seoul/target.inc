@@ -22,12 +22,12 @@ SRC_CC += $(filter-out $(FILTER_OUT),$(addprefix executor/,$(EXECUTOR_SRC_CC)))
 
 INC_DIR += $(SEOUL_CONTRIB_DIR)/include
 INC_DIR += $(SEOUL_GENODE_DIR)/include
-INC_DIR += $(PRG_DIR)/../include
+INC_DIR += $(REP_DIR)/src/app/seoul/include
 
 CC_WARN += -Wno-parentheses -Wall
 CC_CXX_OPT += -march=core2
 CC_CXX_OPT += -mssse3
 
-vpath %.cc $(SEOUL_CONTRIB_DIR)
-vpath %.cc $(PRG_DIR)/..
-vpath %.tff $(PRG_DIR)/..
+vpath %.cc  $(SEOUL_CONTRIB_DIR)
+vpath %.cc  $(REP_DIR)/src/app/seoul
+vpath %.tff $(REP_DIR)/src/app/seoul

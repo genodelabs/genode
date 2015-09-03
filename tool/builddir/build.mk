@@ -75,7 +75,7 @@ select_from_repositories = $(firstword $(foreach REP,$(REPOSITORIES),$(wildcard 
 
 -include $(call select_from_repositories,etc/specs.conf)
 -include $(BUILD_BASE_DIR)/etc/specs.conf
-export SPEC_FILES := $(foreach SPEC,$(SPECS),$(call select_from_repositories,mk/spec-$(SPEC).mk))
+export SPEC_FILES := $(foreach SPEC,$(SPECS),$(call select_from_repositories,mk/spec/$(SPEC).mk))
 include $(SPEC_FILES)
 export SPECS
 

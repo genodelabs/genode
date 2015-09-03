@@ -51,13 +51,13 @@ vpath cpu_session_component.cc     $(GEN_CORE_DIR)
 vpath pd_session_component.cc      $(GEN_CORE_DIR)
 vpath rm_session_component.cc      $(GEN_CORE_DIR)
 vpath trace_session_component.cc   $(GEN_CORE_DIR)
-vpath io_port_session_component.cc $(GEN_CORE_DIR)/x86
+vpath io_port_session_component.cc $(GEN_CORE_DIR)/spec/x86
 vpath io_mem_session_component.cc  $(GEN_CORE_DIR)
 vpath io_mem_session_support.cc    $(GEN_CORE_DIR)
 vpath dataspace_component.cc       $(GEN_CORE_DIR)
 vpath core_mem_alloc.cc            $(GEN_CORE_DIR)
 vpath dump_alloc.cc                $(GEN_CORE_DIR)
-vpath platform_services.cc         $(GEN_CORE_DIR)/x86
+vpath platform_services.cc         $(GEN_CORE_DIR)/spec/x86
 vpath context_area.cc              $(GEN_CORE_DIR)
 vpath core_printf.cc               $(BASE_DIR)/src/base/console
 vpath %.cc                         $(REP_DIR)/src/core

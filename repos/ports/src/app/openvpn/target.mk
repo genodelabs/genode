@@ -97,7 +97,7 @@ ifeq ($(filter-out $(SPECS),32bit),)
 else ifeq ($(filter-out $(SPECS),64bit),)
 	TARGET_CPUBIT=64bit
 endif
-INC_DIR += $(REP_DIR)/src/app/openvpn/$(TARGET_CPUBIT)
+INC_DIR += $(REP_DIR)/src/app/openvpn/spec/$(TARGET_CPUBIT)
 INC_DIR += $(REP_DIR)/src/app/openvpn/
 
 vpath compat-%.c $(OPENVPN_DIR)/src/compat

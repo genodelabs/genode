@@ -36,7 +36,7 @@ endif
 append_lib_to_progress_log:
 	@echo "LIBS_READY  += $(LIB)" >> $(LIB_PROGRESS_LOG)
 
-LIB_MK_DIRS = $(foreach REP,$(REPOSITORIES),$(addprefix $(REP)/lib/mk/,$(SPECS)) $(REP)/lib/mk)
+LIB_MK_DIRS = $(foreach REP,$(REPOSITORIES),$(addprefix $(REP)/lib/mk/spec/,$(SPECS)) $(REP)/lib/mk)
 
 #
 # Of all possible file locations, use the (first) one that actually exist.

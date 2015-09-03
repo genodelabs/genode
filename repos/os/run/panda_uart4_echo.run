@@ -2,7 +2,7 @@
 # Build
 #
 assert_spec foc
-assert_spec platform_panda
+assert_spec panda
 
 # generic components
 set build_components {

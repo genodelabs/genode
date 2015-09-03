@@ -15,7 +15,7 @@
 
 /* Genode includes */
 #include <bios_data_area.h>
-#include <drivers/uart/x86_uart_base.h>
+#include <drivers/uart_base.h>
 
 namespace Genode { class Serial; }
 

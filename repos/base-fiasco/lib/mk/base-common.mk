@@ -26,6 +26,6 @@ SRC_CC += thread/context_allocator.cc
 INC_DIR +=  $(REP_DIR)/src/base/lock
 INC_DIR += $(BASE_DIR)/src/base/thread
 
-vpath cap_copy.cc $(BASE_DIR)/src/platform
+vpath cap_copy.cc $(BASE_DIR)/src/lib/startup
 vpath %.cc        $(REP_DIR)/src/base
 vpath %.cc        $(BASE_DIR)/src/base

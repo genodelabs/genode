@@ -4,7 +4,7 @@
 # \date   2012-07-03
 #
 
-set use_sd_card_drv [expr [have_spec omap4] || [have_spec platform_arndale] || [have_spec pl180]]
+set use_sd_card_drv [expr [have_spec omap4] || [have_spec arndale] || [have_spec pl180]]
 set use_ahci_drv   [have_spec x86]
 set mkfs [check_installed mkfs.vfat]
 
