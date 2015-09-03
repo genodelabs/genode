@@ -169,7 +169,6 @@ different time sources. Time sources are either hardware timers, a time source
 provided by the kernel, or a pseudo time source (busy):
 
 :'nova':      NOVA kernel semaphores as time source
-:'codezero':  busy time source
 :'okl4_x86':  PIT as time source
 :'foc':       IPC timeout as time source
 :'fiasco':    IPC timeout as time source

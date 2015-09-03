@@ -35,14 +35,6 @@ class Irq_handler
 		{
 			_irq.ack_irq();
 
-#ifdef __CODEZERO__
-			/*
-			 * (Re-)enable device interrupt because Codezero tends to
-			 * disable it in its IRQ handler.
-			 */
-			_channel->enable_irq();
-#endif
-
 			/* check for pending PS/2 input */
 			while (_input_driver.event_pending())
 				_input_driver.handle_event();

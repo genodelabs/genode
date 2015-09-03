@@ -26,7 +26,6 @@ usage:
 	@echo "                  'okl4_x86'"
 	@echo "                  'nova_x86_32'"
 	@echo "                  'nova_x86_64'"
-	@echo "                  'codezero_vpb926'"
 	@echo "                  'hw_panda'"
 	@echo "                  'hw_pbxa9'"
 	@echo "                  'hw_imx53_qsb'"
@@ -174,9 +173,6 @@ $(PLATFORM):: $(BUILD_DIR)/Makefile
 #
 # Platform-specific dependencies
 #
-codezero_vpb926::
-	@echo "SPECS += codezero_platform_vpb926" > $(BUILD_DIR)/etc/specs.conf
-
 foc_x86_32::
 	@echo "SPECS  = genode foc_x86_32" > $(BUILD_DIR)/etc/specs.conf
 	@echo "SPECS += acpi"             >> $(BUILD_DIR)/etc/specs.conf

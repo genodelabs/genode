@@ -516,7 +516,7 @@ void Rm_session_component::detach(Local_addr local_addr)
 		 *     This is the case for Fiasco, Pistachio, and NOVA. On those
 		 *     kernels, the unmap operation must be issued for each leaf
 		 *     dataspace the managed dataspace is composed of. For kernels with
-		 *     support for directed unmap (OKL4 or Codezero), unmap can be
+		 *     support for directed unmap (OKL4), unmap can be
 		 *     simply applied for the contiguous virtual address region in the
 		 *     client.
 		 */

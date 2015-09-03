@@ -56,7 +56,7 @@ namespace Genode {
 			/**
 			 * Prepare map operation
 			 *
-			 * No preparations are needed on Codezero because all mapping
+			 * No preparations are needed on seL4 because all mapping
 			 * originate from the physical address space.
 			 */
 			void prepare_map_operation() { }

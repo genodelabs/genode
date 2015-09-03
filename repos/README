@@ -57,10 +57,6 @@ but build upon of each other:
     L4/Fiasco kernel developed at University of Technology Dresden.
     See [http://genode.org/documentation/platforms/fiasco]
 
-  :'codezero':
-    Codezero microkernel developed by B-Labs
-    See [http://genode.org/documentation/platforms/codezero]
-
   :'sel4':
     seL4 microkernel developed at NICTA/General Dynamics
     See[https://sel4.systems/]

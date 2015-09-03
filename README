@@ -13,7 +13,7 @@ the project's official website:
   [http://genode.org/documentation/general-overview]
 
 The current implementation can be compiled for 8 different kernels: Linux,
-L4ka::Pistachio, L4/Fiasco, OKL4, NOVA, Fiasco.OC, Codezero, and a custom
+L4ka::Pistachio, L4/Fiasco, OKL4, NOVA, Fiasco.OC, seL4, and a custom
 kernel for running Genode directly on ARM-based hardware. Whereas the Linux
 version serves us as development vehicle and enables us to rapidly develop the
 generic parts of the system, the actual target platforms of the framework are
