@@ -14,47 +14,73 @@
 /* Genode includes */
 #include <base/sleep.h>
 #include <cap_session/connection.h>
-#include <nic/component.h>
 #include <drivers/board_base.h>
+#include <os/server.h>
+#include <nic/xml_node.h>
+#include <nic/root.h>
+
+#include <os/config.h>
 
 #include "cadence_gem.h"
 
-
-int main(int, char **)
+class Gem_session_component
+:
+	public Cadence_gem
 {
-	using namespace Genode;
+	public:
+		Gem_session_component(Genode::size_t const tx_buf_size,
+		                      Genode::size_t const rx_buf_size,
+		                      Genode::Allocator   &rx_block_md_alloc,
+		                      Genode::Ram_session &ram_session,
+		                      Server::Entrypoint  &ep)
+		:
+			Cadence_gem(tx_buf_size, rx_buf_size, rx_block_md_alloc, ram_session, ep,
+			            Board_base::EMAC_0_MMIO_BASE,
+			            Board_base::EMAC_0_MMIO_SIZE,
+			            Board_base::EMAC_0_IRQ)
+		{
+			Nic::Mac_address mac_addr;
 
-	printf("--- Xilinx Ethernet MAC PS NIC driver started ---\n");
+			/* try using configured MAC address */
+			try {
+				Genode::Xml_node nic_config = Genode::config()->xml_node().sub_node("nic");
+				nic_config.attribute("mac").value(&mac_addr);
+				PINF("Using configured MAC address \"%02x:%02x:%02x:%02x:%02x:%02x\"",
+						mac_addr.addr[0],
+						mac_addr.addr[1],
+						mac_addr.addr[2],
+						mac_addr.addr[3],
+						mac_addr.addr[4],
+						mac_addr.addr[5]	);
+			} catch (...) {
+				/* fall back to fake MAC address (unicast, locally managed) */
+				mac_addr.addr[0] = 0x02;
+				mac_addr.addr[1] = 0x00;
+				mac_addr.addr[2] = 0x00;
+				mac_addr.addr[3] = 0x00;
+				mac_addr.addr[4] = 0x00;
+				mac_addr.addr[5] = 0x01;
+			}
 
-	/**
-	 * Factory used by 'Nic::Root' at session creation/destruction time
-	 */
-	struct Emacps_driver_factory : Nic::Driver_factory
+			/* set mac address */
+			mac_address(mac_addr);
+		}
+};
+
+namespace Server { struct Main; }
+
+struct Server::Main
+{
+	Entrypoint &ep;
+	Nic::Root<Gem_session_component> nic_root{ ep, *Genode::env()->heap() };
+
+	Main(Entrypoint &ep) : ep(ep)
 	{
-		Nic::Driver *create(Nic::Rx_buffer_alloc &alloc,
-		                    Nic::Driver_notification &notify)
-		{
-			return new (env()->heap())
-				Cadence_gem(Board_base::EMAC_0_MMIO_BASE,
-								   Board_base::EMAC_0_MMIO_SIZE,
-								   Board_base::EMAC_0_IRQ,
-								   alloc, notify);
-		}
+		Genode::env()->parent()->announce(ep.manage(nic_root));
+	}
+};
 
-		void destroy(Nic::Driver *driver)
-		{
-			Genode::destroy(env()->heap(), static_cast<Cadence_gem*>(driver));
-		}
 
-	} driver_factory;
-
-	enum { STACK_SIZE = 4096 };
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "nic_ep");
-
-	static Nic::Root nic_root(&ep, env()->heap(), driver_factory);
-	env()->parent()->announce(ep.manage(&nic_root));
-
-	Genode::sleep_forever();
-	return 0;
-}
+char const * Server::name()            { return "nic_ep"; }
+size_t Server::stack_size()            { return 2*1024*sizeof(long); }
+void Server::construct(Entrypoint &ep) { static Main main(ep); }

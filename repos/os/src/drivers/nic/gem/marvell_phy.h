@@ -18,7 +18,6 @@
 /* Genode includes */
 #include <os/attached_mmio.h>
 #include <nic_session/nic_session.h>
-#include <nic/driver.h>
 #include <timer_session/connection.h>
 
 #include "phyio.h"

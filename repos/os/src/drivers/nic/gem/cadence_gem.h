@@ -1,5 +1,6 @@
 /*
  * \brief  Base EMAC driver for the Xilinx EMAC PS used on Zynq devices
+ * \author Johannes Schlatow
  * \author Timo Wischer
  * \date   2015-03-10
  */
@@ -17,9 +18,11 @@
 /* Genode includes */
 #include <os/attached_mmio.h>
 #include <nic_session/nic_session.h>
-#include <nic/driver.h>
 #include <timer_session/connection.h>
+#include <os/irq_activation.h>
+#include <nic/component.h>
 
+/* local includes */
 #include "system_control.h"
 #include "tx_buffer_descriptor.h"
 #include "rx_buffer_descriptor.h"
@@ -31,7 +34,12 @@ namespace Genode
 	/**
 	 * Base driver Xilinx EMAC PS module
 	 */
-	class Cadence_gem : private Genode::Attached_mmio, public Nic::Driver, public Phyio
+	class Cadence_gem
+	:
+		private Genode::Attached_mmio,
+		public Nic::Session_component,
+		public Phyio,
+		public Genode::Irq_handler
 	{
 		private:
 			/**
@@ -261,9 +269,6 @@ namespace Genode
 			Tx_buffer_descriptor _tx_buffer;
 			Rx_buffer_descriptor _rx_buffer;
 
-			Nic::Rx_buffer_alloc& _rx_buffer_alloc;
-			Nic::Driver_notification &_notify;
-
 			enum { IRQ_STACK_SIZE = 4096 };
 			const Genode::Irq_activation _irq_activation;
 
@@ -283,17 +288,6 @@ namespace Genode
 					Config::Mdc_clk_div::bits(Config::Mdc_clk_div::DIV_32) |
 					Config::Fcs_remove::bits(1)
 				);
-
-
-				/* 2. set mac address */
-				Nic::Mac_address mac;
-				mac.addr[5] = 0x12;
-				mac.addr[4] = 0x34;
-				mac.addr[3] = 0x56;
-				mac.addr[2] = 0x78;
-				mac.addr[1] = 0x9A;
-				mac.addr[0] = 0xBC;
-				mac_address(mac);
 
 
 				write<Rx_qbar>( _rx_buffer.phys_addr() );
@@ -411,11 +405,15 @@ namespace Genode
 			 *
 			 * \param  base       MMIO base address
 			 */
-			Cadence_gem(addr_t const base, size_t const size, const int irq, Nic::Rx_buffer_alloc& alloc,
-		             Nic::Driver_notification &notify) :
+			Cadence_gem(Genode::size_t const tx_buf_size,
+			            Genode::size_t const rx_buf_size,
+			            Genode::Allocator   &rx_block_md_alloc,
+			            Genode::Ram_session &ram_session,
+			            Server::Entrypoint  &ep,
+			            addr_t const base, size_t const size, const int irq)
+			:
 				Genode::Attached_mmio(base, size),
-				_rx_buffer_alloc(alloc),
-				_notify(notify),
+				Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, ram_session, ep),
 				_irq_activation(irq, *this, IRQ_STACK_SIZE),
 				_phy(*this)
 			{
@@ -444,7 +442,7 @@ namespace Genode
 			}
 
 
-			void mac_address(const Nic::Mac_address mac)
+			void mac_address(const Nic::Mac_address &mac)
 			{
 				const uint32_t* const low_addr_pointer = reinterpret_cast<const uint32_t*>(&mac.addr[0]);
 				const uint16_t* const high_addr_pointer = reinterpret_cast<const uint16_t*>(&mac.addr[4]);
@@ -453,9 +451,34 @@ namespace Genode
 				write<Mac_addr_1::High_addr>(*high_addr_pointer);
 			}
 
-			/***************************
-			 ** Nic::Driver interface **
-			 ***************************/
+
+			bool _send()
+			{
+				if (!_tx.sink()->ready_to_ack())
+					return false;
+
+				if (!_tx.sink()->packet_avail())
+					return false;
+
+				Genode::Packet_descriptor packet = _tx.sink()->get_packet();
+				if (!packet.valid()) {
+					PWRN("Invalid tx packet");
+					return true;
+				}
+
+				char *src = (char *)_tx.sink()->packet_content(packet);
+
+				_tx_buffer.add_to_queue(src, packet.size());
+				write<Control>(Control::start_tx());
+
+				_tx.sink()->acknowledge_packet(packet);
+				return true;
+			}
+
+
+			/**************************************
+			 ** Nic::Session_component interface **
+			 **************************************/
 
 			virtual Nic::Mac_address mac_address()
 			{
@@ -475,10 +498,12 @@ namespace Genode
 				return true;
 			}
 
-			virtual void tx(char const *packet, Genode::size_t size)
+			void _handle_packet_stream() override
 			{
-				_tx_buffer.add_to_queue(packet, size);
-				write<Control>(Control::start_tx());
+				while (_rx.source()->ack_avail())
+					_rx.source()->release_packet(_rx.source()->get_acked_packet());
+
+				while (_send()) ;
 			}
 
 			/******************************
@@ -492,19 +517,28 @@ namespace Genode
 				const Interrupt_status::access_t status = read<Interrupt_status>();
 				const Rx_status::access_t rxStatus = read<Rx_status>();
 
+				/* FIXME strangely, this handler is also called without any status bit set in Interrupt_status */
 				if ( Interrupt_status::Rx_complete::get(status) ) {
 
 					while (_rx_buffer.package_available()) {
 						// TODO use this buffer directly as the destination for the DMA controller
 						// to minimize the overrun errors
 						const size_t buffer_size = _rx_buffer.package_length();
-						char* const buffer = static_cast<char*>( _rx_buffer_alloc.alloc(buffer_size) );
+
+						/* allocate rx packet buffer */
+						Nic::Packet_descriptor p;
+						try {
+							p = _rx.source()->alloc_packet(buffer_size);
+						} catch (Session::Rx::Source::Packet_alloc_failed) { return; }
+
+						char *dst = (char *)_rx.source()->packet_content(p);
+
 						/*
 						 * copy data from rx buffer to new allocated buffer.
 						 * Has to be copied,
 						 * because the extern allocater possibly is using the cache.
 						 */
-						if ( _rx_buffer.get_package(buffer, buffer_size) != buffer_size ) {
+						if ( _rx_buffer.get_package(dst, buffer_size) != buffer_size ) {
 							PWRN("Package not fully copiied. Package ignored.");
 							return;
 						}
@@ -514,7 +548,7 @@ namespace Genode
 						write<Rx_status::Buffer_not_available>(1);
 
 						/* comit buffer to system services */
-						_rx_buffer_alloc.submit();
+						_rx.source()->submit_packet(p);
 					}
 
 					/* check, if there was lost some packages */
@@ -527,8 +561,6 @@ namespace Genode
 					/* reset reveive complete interrupt */
 					write<Rx_status>(Rx_status::Frame_reveived::bits(1));
 					write<Interrupt_status>(Interrupt_status::Rx_complete::bits(1));
-				} else {
-					PWRN("IRQ %d with unkown reasone recevied (status: %08x).", irq_number, status);
 				}
 			}
 	};
