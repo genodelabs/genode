@@ -1,0 +1,76 @@
+#
+# \brief  Test for using the vfs server
+# \author Emery Hemingway
+# \date   2015-08-17
+#
+
+#
+# Build
+#
+
+build { core init server/vfs test/libc_vfs }
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="vfs">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<vfs> <ram quota="1M"/> </vfs>
+			<policy label="" root="/" writeable="yes" />
+		</config>
+	</start>
+	<start name="test-libc_vfs">
+		<resource name="RAM" quantum="2M"/>
+		<config>
+			<iterations value="1"/>
+			<libc stdout="/dev/log" cwd="/tmp" >
+				<vfs>
+					<dir name="tmp" >
+						<fs/>
+					</dir>
+					<dir name="dev"> <log/> </dir>
+				</vfs>
+			</libc>
+		</config>
+	</start>
+</config>
+}
+
+#
+# Boot modules
+#
+
+build_boot_image {
+	core init vfs
+	ld.lib.so libc.lib.so
+	test-libc_vfs
+}
+
+#
+# Execute test case
+#
+
+append qemu_args " -m 128 -nographic "
+run_genode_until {.*child "test-libc_vfs" exited with exit value 0.*} 60
+
+# vi: set ft=tcl :
