@@ -53,9 +53,9 @@ namespace Genode {
 			addr_t _sel_sc()     const { return _id_base + 2; }
 
 			/* convenience function to access _feature variable */
-			inline bool is_main_thread() { return _features & MAIN_THREAD; }
-			inline bool is_vcpu()        { return _features & VCPU; }
-			inline bool is_worker()      { return _features & WORKER; }
+			inline bool is_main_thread() const { return _features & MAIN_THREAD; }
+			inline bool is_vcpu()        const { return _features & VCPU; }
+			inline bool is_worker()      const { return _features & WORKER; }
 
 		public:
 

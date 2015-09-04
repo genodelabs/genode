@@ -324,11 +324,15 @@ unsigned long long Platform_thread::execution_time() const
 	unsigned long long time = 0;
 
 	/*
-	 * Ignore the return value, which indicates success only for global ECs.
 	 * For local ECs, we simply return 0 as local ECs are executed with the
 	 * time of their callers.
 	 */
-	(void) Nova::sc_ctrl(_sel_sc(), time);
+	if (is_worker())
+		return time;
+
+	uint8_t res = Nova::sc_ctrl(_sel_sc(), time);
+	if (res != Nova::NOVA_OK)
+		PDBG("sc_ctrl failed res=%x", res);
 
 	return time;
 }
