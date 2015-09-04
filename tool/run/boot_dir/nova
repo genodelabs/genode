@@ -43,6 +43,7 @@ proc run_boot_dir {binaries} {
 
 	puts "using NOVA kernel at [nova_kernel]"
 	exec [cross_dev_prefix]objcopy -O elf32-i386 [nova_kernel] [run_dir]/hypervisor
+	exec [cross_dev_prefix]strip [run_dir]/hypervisor
 
 	if {[have_include "image/iso"] || [have_include "image/disk"]} {
 		#
