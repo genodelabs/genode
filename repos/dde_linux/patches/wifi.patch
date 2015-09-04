@@ -1,16 +1,34 @@
- drivers/net/wireless/iwlwifi/iwl-debug.c |  18 +-
- drivers/net/wireless/iwlwifi/mvm/mvm.h   |   2 +-
- drivers/net/wireless/iwlwifi/pcie/drv.c  | 628 ++++++++++++++++---------------
- net/core/sock.c                          |   2 +
- net/packet/af_packet.c                   |   6 +
- net/wireless/core.h                      |   2 +-
- net/wireless/sysfs.c                     |   2 +-
- wifi/include/linux/ieee80211.h           |   2 +-
- wifi/include/net/cfg80211.h              |   5 +-
- wifi/include/net/netlink.h               |   8 +-
- wifi/include/net/sock.h                  |   4 +-
- 11 files changed, 349 insertions(+), 330 deletions(-)
+ drivers/net/wireless/iwlwifi/dvm/rs.c       |    2 
+ drivers/net/wireless/iwlwifi/iwl-debug.c    |   18 +
+ drivers/net/wireless/iwlwifi/mvm/mac80211.c |    2 
+ drivers/net/wireless/iwlwifi/mvm/mvm.h      |    2 
+ drivers/net/wireless/iwlwifi/mvm/ops.c      |   10 
+ drivers/net/wireless/iwlwifi/pcie/drv.c     |  628 ++++++++++++++-------------
+ include/linux/ieee80211.h                   |    2 
+ include/net/cfg80211.h                      |    5 
+ include/net/netlink.h                       |    8 
+ include/net/sock.h                          |    4 
+ net/core/sock.c                             |    2 
+ net/packet/af_packet.c                      |    6 
+ net/wireless/core.h                         |    2 
+ net/wireless/sysfs.c                        |    2 
+ 14 files changed, 359 insertions(+), 334 deletions(-)
 
+diff --git a/drivers/net/wireless/iwlwifi/dvm/rs.c b/drivers/net/wireless/iwlwifi/dvm/rs.c
+index 0977d93..3ccfd0e 100644
+--- a/drivers/net/wireless/iwlwifi/dvm/rs.c
++++ b/drivers/net/wireless/iwlwifi/dvm/rs.c
+@@ -2309,7 +2309,7 @@ static void rs_rate_scale_perform(struct iwl_priv *priv,
+ 		rate_scale_index_msk = rate_mask;
+ 
+ 	if (!((1 << index) & rate_scale_index_msk)) {
+-		IWL_ERR(priv, "Current Rate is not valid\n");
++		// IWL_ERR(priv, "Current Rate is not valid\n");
+ 		if (lq_sta->search_better_tbl) {
+ 			/* revert to active table if search table is not valid*/
+ 			tbl->lq_type = LQ_NONE;
+diff --git a/drivers/net/wireless/iwlwifi/iwl-debug.c b/drivers/net/wireless/iwlwifi/iwl-debug.c
+index 8a44f59..1045fe5 100644
 --- a/drivers/net/wireless/iwlwifi/iwl-debug.c
 +++ b/drivers/net/wireless/iwlwifi/iwl-debug.c
 @@ -80,7 +80,9 @@ void __iwl_ ##fn(struct device *dev, const char *fmt, ...)	\
@@ -54,6 +72,21 @@
  #endif
  	trace_iwlwifi_dbg(level, in_interrupt(), function, &vaf);
  	va_end(args);
+diff --git a/drivers/net/wireless/iwlwifi/mvm/mac80211.c b/drivers/net/wireless/iwlwifi/mvm/mac80211.c
+index 9a856e5..e70f9b7 100644
+--- a/drivers/net/wireless/iwlwifi/mvm/mac80211.c
++++ b/drivers/net/wireless/iwlwifi/mvm/mac80211.c
+@@ -1923,7 +1923,7 @@ struct ieee80211_ops iwl_mvm_hw_ops = {
+ 	.add_interface = iwl_mvm_mac_add_interface,
+ 	.remove_interface = iwl_mvm_mac_remove_interface,
+ 	.config = iwl_mvm_mac_config,
+-	.prepare_multicast = iwl_mvm_prepare_multicast,
++	.prepare_multicast = 0,
+ 	.configure_filter = iwl_mvm_configure_filter,
+ 	.bss_info_changed = iwl_mvm_bss_info_changed,
+ 	.hw_scan = iwl_mvm_mac_hw_scan,
+diff --git a/drivers/net/wireless/iwlwifi/mvm/mvm.h b/drivers/net/wireless/iwlwifi/mvm/mvm.h
+index 2b0ba1f..8de16d0 100644
 --- a/drivers/net/wireless/iwlwifi/mvm/mvm.h
 +++ b/drivers/net/wireless/iwlwifi/mvm/mvm.h
 @@ -64,7 +64,7 @@
@@ -65,9 +98,39 @@
  #include <linux/spinlock.h>
  #include <linux/leds.h>
  #include <linux/in6.h>
+diff --git a/drivers/net/wireless/iwlwifi/mvm/ops.c b/drivers/net/wireless/iwlwifi/mvm/ops.c
+index 529d991..5b4c766 100644
+--- a/drivers/net/wireless/iwlwifi/mvm/ops.c
++++ b/drivers/net/wireless/iwlwifi/mvm/ops.c
+@@ -385,6 +385,11 @@ iwl_op_mode_mvm_start(struct iwl_trans *trans, const struct iwl_cfg *cfg,
+ 	trans_cfg.n_no_reclaim_cmds = ARRAY_SIZE(no_reclaim_cmds);
+ 	trans_cfg.rx_buf_size_8k = iwlwifi_mod_params.amsdu_size_8K;
+ 
++	if (mvm->fw->ucode_capa.flags & IWL_UCODE_TLV_FLAGS_PM_CMD_SUPPORT)
++		mvm->pm_ops = &pm_mac_ops;
++	else
++		mvm->pm_ops = &pm_legacy_ops;
++
+ 	if (mvm->fw->ucode_capa.flags & IWL_UCODE_TLV_FLAGS_DW_BC_TABLE)
+ 		trans_cfg.bc_table_dword = true;
+ 
+@@ -462,11 +467,6 @@ iwl_op_mode_mvm_start(struct iwl_trans *trans, const struct iwl_cfg *cfg,
+ 	if (err)
+ 		goto out_unregister;
+ 
+-	if (mvm->fw->ucode_capa.flags & IWL_UCODE_TLV_FLAGS_PM_CMD_SUPPORT)
+-		mvm->pm_ops = &pm_mac_ops;
+-	else
+-		mvm->pm_ops = &pm_legacy_ops;
+-
+ 	memset(&mvm->rx_stats, 0, sizeof(struct mvm_statistics_rx));
+ 
+ 	return op_mode;
+diff --git a/drivers/net/wireless/iwlwifi/pcie/drv.c b/drivers/net/wireless/iwlwifi/pcie/drv.c
+index 3872ead..357ee20 100644
 --- a/drivers/net/wireless/iwlwifi/pcie/drv.c
 +++ b/drivers/net/wireless/iwlwifi/pcie/drv.c
-@@ -78,318 +78,327 @@
+@@ -78,318 +78,328 @@
  
  /* Hardware specific file defines the PCI IDs table for that hardware module */
  static DEFINE_PCI_DEVICE_TABLE(iwl_hw_card_ids) = {
@@ -142,8 +205,11 @@
 -	{IWL_PCI_DEVICE(0x422C, 0x1326, iwl6000i_2abg_cfg)},
 -	{IWL_PCI_DEVICE(0x4238, 0x1111, iwl6000_3agn_cfg)},
 -	{IWL_PCI_DEVICE(0x4238, 0x1118, iwl6000_3agn_cfg)},
--	{IWL_PCI_DEVICE(0x4239, 0x1311, iwl6000i_2agn_cfg)},
--	{IWL_PCI_DEVICE(0x4239, 0x1316, iwl6000i_2abg_cfg)},
++	{IWL_PCI_DEVICE(0x4238, 0x1111, iwl6000_3agn_cfg)}, /* x201 */
++	{IWL_PCI_DEVICE(0x0085, 0x1311, iwl6005_2agn_cfg)}, /* x220 */
++	{IWL_PCI_DEVICE(0x088E, 0x4060, iwl6035_2agn_cfg)}, /* plumbum */
+ 	{IWL_PCI_DEVICE(0x4239, 0x1311, iwl6000i_2agn_cfg)},
+ 	{IWL_PCI_DEVICE(0x4239, 0x1316, iwl6000i_2abg_cfg)},
 -
 -/* 6x05 Series */
 -	{IWL_PCI_DEVICE(0x0082, 0x1301, iwl6005_2agn_cfg)},
@@ -262,11 +328,6 @@
 -
 -#if IS_ENABLED(CONFIG_IWLMVM)
 -/* 7260 Series */
-+	{IWL_PCI_DEVICE(0x4238, 0x1111, iwl6000_3agn_cfg)}, /* x201 */
-+	{IWL_PCI_DEVICE(0x0085, 0x1311, iwl6005_2agn_cfg)}, /* x220 */
-+	{IWL_PCI_DEVICE(0x088E, 0x4060, iwl6035_2agn_cfg)}, /* plumbum */
-+	{IWL_PCI_DEVICE(0x4239, 0x1311, iwl6000i_2agn_cfg)},
-+	{IWL_PCI_DEVICE(0x4239, 0x1316, iwl6000i_2abg_cfg)},
  	{IWL_PCI_DEVICE(0x08B1, 0x4070, iwl7260_2ac_cfg)},
 -	{IWL_PCI_DEVICE(0x08B1, 0x4072, iwl7260_2ac_cfg)},
 -	{IWL_PCI_DEVICE(0x08B1, 0x4170, iwl7260_2ac_cfg)},
@@ -353,7 +414,7 @@
 -	{IWL_PCI_DEVICE(0x08B3, 0x8570, iwl3160_2ac_cfg)},
 -	{IWL_PCI_DEVICE(0x08B3, 0x1070, iwl3160_2ac_cfg)},
 -	{IWL_PCI_DEVICE(0x08B3, 0x1170, iwl3160_2ac_cfg)},
- 
+-
 -/* 7265 Series */
 -	{IWL_PCI_DEVICE(0x095A, 0x5010, iwl7265_2ac_cfg)},
 -	{IWL_PCI_DEVICE(0x095A, 0x5110, iwl7265_2ac_cfg)},
@@ -388,6 +449,8 @@
 -	{IWL_PCI_DEVICE(0x095B, 0x5290, iwl7265_2ac_cfg)},
 -	{IWL_PCI_DEVICE(0x095A, 0x5490, iwl7265_2ac_cfg)},
 -#endif /* CONFIG_IWLMVM */
++	{IWL_PCI_DEVICE(0x095B, 0x5210, iwl7265_2ac_cfg)},  /* x250 */
++
 +//#if IS_ENABLED(CONFIG_IWLDVM)
 +//	{IWL_PCI_DEVICE(0x4232, 0x1201, iwl5100_agn_cfg)}, /* Mini Card */
 +//	{IWL_PCI_DEVICE(0x4232, 0x1301, iwl5100_agn_cfg)}, /* Half Mini Card */
@@ -705,77 +768,8 @@
  
  	{0}
  };
---- a/net/core/sock.c
-+++ b/net/core/sock.c
-@@ -142,6 +142,8 @@
- 
- #include <net/busy_poll.h>
- 
-+#include <net/timewait_sock.h>
-+
- static DEFINE_MUTEX(proto_list_mutex);
- static LIST_HEAD(proto_list);
- 
---- a/net/packet/af_packet.c
-+++ b/net/packet/af_packet.c
-@@ -93,6 +93,8 @@
- #include <net/inet_common.h>
- #endif
- 
-+#include <linux/if_ether.h>
-+
- #include "internal.h"
- 
- /*
-@@ -3508,6 +3510,7 @@ static int packet_notifier(struct notifier_block *this,
- 	struct net_device *dev = netdev_notifier_info_to_dev(ptr);
- 	struct net *net = dev_net(dev);
- 
-+#if 0
- 	rcu_read_lock();
- 	sk_for_each_rcu(sk, &net->packet.sklist) {
- 		struct packet_sock *po = pkt_sk(sk);
-@@ -3548,6 +3551,7 @@ static int packet_notifier(struct notifier_block *this,
- 		}
- 	}
- 	rcu_read_unlock();
-+#endif
- 	return NOTIFY_DONE;
- }
- 
-@@ -4062,8 +4066,10 @@ static int __net_init packet_net_init(struct net *net)
- 	mutex_init(&net->packet.sklist_lock);
- 	INIT_HLIST_HEAD(&net->packet.sklist);
- 
-+#ifdef CONFIG_PROC_FS
- 	if (!proc_create("packet", 0, net->proc_net, &packet_seq_fops))
- 		return -ENOMEM;
-+#endif
- 
- 	return 0;
- }
---- a/net/wireless/core.h
-+++ b/net/wireless/core.h
-@@ -82,7 +82,7 @@ struct cfg80211_registered_device {
- 
- 	/* must be last because of the way we do wiphy_priv(),
- 	 * and it should at least be aligned to NETDEV_ALIGN */
--	struct wiphy wiphy __aligned(NETDEV_ALIGN);
-+	struct wiphy wiphy __attribute__((__aligned__(32)));
- };
- 
- static inline
---- a/net/wireless/sysfs.c
-+++ b/net/wireless/sysfs.c
-@@ -156,7 +156,7 @@ struct class ieee80211_class = {
- 	.resume = wiphy_resume,
- #endif
- 	.ns_type = &net_ns_type_operations,
--	.namespace = wiphy_namespace,
-+	._namespace = wiphy_namespace,
- };
- 
- int wiphy_sysfs_init(void)
+diff --git a/include/linux/ieee80211.h b/include/linux/ieee80211.h
+index e526a8c..f3134fe 100644
 --- a/include/linux/ieee80211.h
 +++ b/include/linux/ieee80211.h
 @@ -2231,7 +2231,7 @@ static inline bool ieee80211_is_robust_mgmt_frame(struct ieee80211_hdr *hdr)
@@ -787,6 +781,8 @@
  
  	if (len < IEEE80211_MIN_ACTION_SIZE)
  		return false;
+diff --git a/include/net/cfg80211.h b/include/net/cfg80211.h
+index b1f84b0..890da1b 100644
 --- a/include/net/cfg80211.h
 +++ b/include/net/cfg80211.h
 @@ -191,6 +191,7 @@ struct ieee80211_channel {
@@ -815,6 +811,8 @@
  };
  
  static inline struct net *wiphy_net(struct wiphy *wiphy)
+diff --git a/include/net/netlink.h b/include/net/netlink.h
+index 2b47eaa..6bd2cb1 100644
 --- a/include/net/netlink.h
 +++ b/include/net/netlink.h
 @@ -308,7 +308,7 @@ static inline int nlmsg_len(const struct nlmsghdr *nlh)
@@ -853,6 +851,8 @@
  }
  
  /**
+diff --git a/include/net/sock.h b/include/net/sock.h
+index b9586a1..d95959f 100644
 --- a/include/net/sock.h
 +++ b/include/net/sock.h
 @@ -1854,7 +1854,7 @@ static inline int skb_add_data_nocache(struct sock *sk, struct sk_buff *skb,
@@ -873,51 +873,82 @@
  				       copy, skb->len);
  	if (err)
  		return err;
---- a/drivers/net/wireless/iwlwifi/dvm/rs.c
-+++ b/drivers/net/wireless/iwlwifi/dvm/rs.c
-@@ -2309,7 +2309,7 @@ static void rs_rate_scale_perform(struct iwl_priv *priv,
- 		rate_scale_index_msk = rate_mask;
+diff --git a/net/core/sock.c b/net/core/sock.c
+index c0fc6bd..29f7035 100644
+--- a/net/core/sock.c
++++ b/net/core/sock.c
+@@ -142,6 +142,8 @@
  
- 	if (!((1 << index) & rate_scale_index_msk)) {
--		IWL_ERR(priv, "Current Rate is not valid\n");
-+		// IWL_ERR(priv, "Current Rate is not valid\n");
- 		if (lq_sta->search_better_tbl) {
- 			/* revert to active table if search table is not valid*/
- 			tbl->lq_type = LQ_NONE;
---- a/drivers/net/wireless/iwlwifi/mvm/ops.c
-+++ b/drivers/net/wireless/iwlwifi/mvm/ops.c
-@@ -385,6 +385,11 @@
- 	trans_cfg.n_no_reclaim_cmds = ARRAY_SIZE(no_reclaim_cmds);
- 	trans_cfg.rx_buf_size_8k = iwlwifi_mod_params.amsdu_size_8K;
+ #include <net/busy_poll.h>
  
-+	if (mvm->fw->ucode_capa.flags & IWL_UCODE_TLV_FLAGS_PM_CMD_SUPPORT)
-+		mvm->pm_ops = &pm_mac_ops;
-+	else
-+		mvm->pm_ops = &pm_legacy_ops;
++#include <net/timewait_sock.h>
 +
- 	if (mvm->fw->ucode_capa.flags & IWL_UCODE_TLV_FLAGS_DW_BC_TABLE)
- 		trans_cfg.bc_table_dword = true;
+ static DEFINE_MUTEX(proto_list_mutex);
+ static LIST_HEAD(proto_list);
  
-@@ -462,11 +467,6 @@
- 	if (err)
- 		goto out_unregister;
+diff --git a/net/packet/af_packet.c b/net/packet/af_packet.c
+index 48a6a93..598f469 100644
+--- a/net/packet/af_packet.c
++++ b/net/packet/af_packet.c
+@@ -93,6 +93,8 @@
+ #include <net/inet_common.h>
+ #endif
  
--	if (mvm->fw->ucode_capa.flags & IWL_UCODE_TLV_FLAGS_PM_CMD_SUPPORT)
--		mvm->pm_ops = &pm_mac_ops;
--	else
--		mvm->pm_ops = &pm_legacy_ops;
--
- 	memset(&mvm->rx_stats, 0, sizeof(struct mvm_statistics_rx));
++#include <linux/if_ether.h>
++
+ #include "internal.h"
  
- 	return op_mode;
---- a/drivers/net/wireless/iwlwifi/mvm/mac80211.c
-+++ b/drivers/net/wireless/iwlwifi/mvm/mac80211.c
-@@ -1923,7 +1923,7 @@
- 	.add_interface = iwl_mvm_mac_add_interface,
- 	.remove_interface = iwl_mvm_mac_remove_interface,
- 	.config = iwl_mvm_mac_config,
--	.prepare_multicast = iwl_mvm_prepare_multicast,
-+	.prepare_multicast = 0,
- 	.configure_filter = iwl_mvm_configure_filter,
- 	.bss_info_changed = iwl_mvm_bss_info_changed,
- 	.hw_scan = iwl_mvm_mac_hw_scan,
+ /*
+@@ -3508,6 +3510,7 @@ static int packet_notifier(struct notifier_block *this,
+ 	struct net_device *dev = netdev_notifier_info_to_dev(ptr);
+ 	struct net *net = dev_net(dev);
+ 
++#if 0
+ 	rcu_read_lock();
+ 	sk_for_each_rcu(sk, &net->packet.sklist) {
+ 		struct packet_sock *po = pkt_sk(sk);
+@@ -3548,6 +3551,7 @@ static int packet_notifier(struct notifier_block *this,
+ 		}
+ 	}
+ 	rcu_read_unlock();
++#endif
+ 	return NOTIFY_DONE;
+ }
+ 
+@@ -4062,8 +4066,10 @@ static int __net_init packet_net_init(struct net *net)
+ 	mutex_init(&net->packet.sklist_lock);
+ 	INIT_HLIST_HEAD(&net->packet.sklist);
+ 
++#ifdef CONFIG_PROC_FS
+ 	if (!proc_create("packet", 0, net->proc_net, &packet_seq_fops))
+ 		return -ENOMEM;
++#endif
+ 
+ 	return 0;
+ }
+diff --git a/net/wireless/core.h b/net/wireless/core.h
+index f1d193b..24220b3 100644
+--- a/net/wireless/core.h
++++ b/net/wireless/core.h
+@@ -82,7 +82,7 @@ struct cfg80211_registered_device {
+ 
+ 	/* must be last because of the way we do wiphy_priv(),
+ 	 * and it should at least be aligned to NETDEV_ALIGN */
+-	struct wiphy wiphy __aligned(NETDEV_ALIGN);
++	struct wiphy wiphy __attribute__((__aligned__(32)));
+ };
+ 
+ static inline
+diff --git a/net/wireless/sysfs.c b/net/wireless/sysfs.c
+index 9ee6bc1..02d740d 100644
+--- a/net/wireless/sysfs.c
++++ b/net/wireless/sysfs.c
+@@ -156,7 +156,7 @@ struct class ieee80211_class = {
+ 	.resume = wiphy_resume,
+ #endif
+ 	.ns_type = &net_ns_type_operations,
+-	.namespace = wiphy_namespace,
++	._namespace = wiphy_namespace,
+ };
+ 
+ int wiphy_sysfs_init(void)

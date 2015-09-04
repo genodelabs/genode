@@ -282,6 +282,7 @@ append_if $use_wifi_driver boot_modules {
 	iwlwifi-6000g2a-6.ucode
 	iwlwifi-6000g2b-6.ucode
 	iwlwifi-7260-8.ucode
+	iwlwifi-7265-8.ucode
 }
 
 append_platform_drv_boot_modules
