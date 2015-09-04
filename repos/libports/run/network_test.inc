@@ -172,12 +172,20 @@ lappend_if [have_spec arndale]       boot_modules platform_drv
 
 build_boot_image $boot_modules
 
+append qemu_args " -net user,hostfwd=tcp::10000-:10000 "
+append qemu_args " -nographic -serial mon:stdio "
+
 # get IP address from server
 set match_string "got IP address (.*)\033.*\n"
 run_genode_until $match_string 30
-set server_spawn_id $spawn_id
+if {[have_include power_on/qemu]} {
+	set server_spawn_id $output_spawn_id
+	set ip_addr "127.0.0.1"
+} else {
+	set server_spawn_id $spawn_id
+	regexp $match_string $output all ip_addr
+}
 
-regexp $match_string $output all ip_addr
 puts "got server IP address: $ip_addr"
 
 set match_string "wait....*\n"
@@ -235,6 +243,7 @@ if {[expr [have_spec omap4] || [have_spec arndale]]} {
 	send -i $server_spawn_id "\x01\x18" ;# Ctrl-A Ctrl-X
 }
 
+set qemu_args ""
 exec rm -f bin/network_test_client
 
 # vi: set ft=tcl :
