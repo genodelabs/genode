@@ -467,8 +467,10 @@ class Display : public native_display
 	_get_connectors(struct native_display *ndpy,
 	                int *num_connectors, int *num_crtcs)
 	{
-		static struct native_connector conn;
-		static const struct native_connector *conn_list[1] = { &conn };
+		static native_connector conn;
+		const native_connector **conn_list =
+			(const native_connector **)malloc(sizeof(native_connector **));
+		conn_list[0] = &conn;
 		printf("called, return 1 connector\n");
 
 		if (num_connectors) *num_connectors = 1;
