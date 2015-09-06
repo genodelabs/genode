@@ -98,15 +98,11 @@ class Vancouver_disk : public Genode::Thread<8192>, public StaticReceiver<Vancou
 		char        * const _backing_store_base;
 		size_t        const _backing_store_size;
 
-		/* slabs for temporary holding DMADescriptor and MessageDisk objects */
+		/* slabs for temporary holding MessageDisk objects */
 		typedef Genode::Tslab<MessageDisk, 128> MessageDisk_Slab;
 		typedef Genode::Synced_allocator<MessageDisk_Slab> MessageDisk_Slab_Sync;
 
-		typedef Genode::Tslab<DmaDescriptor, 256> DmaDesc_Slab;
-		typedef Genode::Synced_allocator<DmaDesc_Slab> DmaDesc_Slab_Sync;
-
 		MessageDisk_Slab_Sync _tslab_msg;
-		DmaDesc_Slab_Sync _tslab_dma;
 
 		/* Structure to find back the MessageDisk object out of a Block Ack */
 		typedef Genode::Tslab<Avl_entry, 128> Avl_entry_slab;

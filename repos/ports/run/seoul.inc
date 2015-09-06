@@ -31,6 +31,7 @@ set build_components {
 if {$use_fancy_stuff} { set use_framebuffer 1 }
 
 lappend_if $use_usb             build_components drivers/usb
+lappend_if $use_block_ram       build_components server/ram_blk
 lappend_if $use_block_sata      build_components drivers/ahci
 lappend_if $use_nic_session     build_components drivers/nic
 lappend_if $use_nic_bridge      build_components server/nic_bridge
@@ -170,13 +171,19 @@ append_if [expr !$use_usb] config {
 	</start> }
 
 append_if $use_block_sata config {
-	<start name="ahci" priority="-1">
-		<binary name="ahci_drv" />
+	<start name="ahci_drv" priority="-1">
 		<resource name="RAM" quantum="1M" />
 		<provides><service name="Block"/></provides>
 		<config>
-			<policy label="seoul" device="0" />
+			<policy label="seoul -> VirtualDisk 0" device="0" />
 		</config>
+	</start>}
+
+append_if $use_block_ram config {
+	<start name="ram_blk" priority="-1">
+		<resource name="RAM" quantum="1M" />
+		<provides><service name="Block"/></provides>
+		<config file="seoul-disc.raw" block_size="512"/>
 	</start>}
 
 append_if $use_genode_iso config {
@@ -405,6 +412,7 @@ set boot_modules {
 
 lappend_if [expr !$use_usb]   boot_modules ps2_drv
 lappend_if $use_usb           boot_modules usb_drv
+lappend_if $use_block_ram     boot_modules ram_blk
 lappend_if $use_block_sata    boot_modules ahci_drv
 lappend_if $use_nic_session   boot_modules nic_drv
 lappend_if $use_nic_bridge    boot_modules nic_bridge
@@ -422,6 +430,8 @@ lappend_if $use_fancy_stuff   boot_modules report_rom
 lappend_if $use_genode_iso    boot_modules rom_blk
 lappend_if $use_genode_iso    boot_modules iso9660
 lappend_if $use_genode_iso    boot_modules genode.iso
+
+lappend_if $use_block_ram     boot_modules seoul-disc.raw
 
 #
 # Add OS binaries of guest
