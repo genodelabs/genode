@@ -129,10 +129,8 @@ class Guest_ioports
 		Range *_lookup(RTIOPORT PortStart, RTUINT cPorts)
 		{
 			for (Range *r = _ranges.first(); r; r = r->next())
-				if (r->contains(PortStart, cPorts)) {
-//					PINF("lookuped %lx %lx", r->_PortStart, r->_cPorts);
+				if (r->contains(PortStart, cPorts))
 					return r;
-				}
 
 			return 0;
 		}
@@ -143,24 +141,6 @@ class Guest_ioports
 				PINF("0x%x+0x%x - '%s'\n",
 				     r->_PortStart, r->_cPorts,
 				     r->_pDevIns && r->_pDevIns->pReg ? r->_pDevIns->pReg->szName : 0);
-		}
-
-		/*
-		 * The whitelist is used to suppress log messages, which the VM tries
-		 * to access I/O ports with no device model associated. TinyCore Linux
-		 * seems to probe a lot of I/O ports, e.g. the LPT3 ports.
-		 */
-		bool _white_listed(RTIOPORT port)
-		{
-			/* LPT1 */ if (port >= 0x0378 && port <= 0x037f) return true;
-			/* LPT3 */ if (port >= 0x0278 && port <= 0x027f) return true;
-			/* ECP  */ if (port >= 0x0778 && port <= 0x077a) return true;
-			/* IDE1 */ if (port >= 0x0170 && port <= 0x017f) return true;
-			/* COM1 */ if (port >= 0x03f8 && port <= 0x03ff) return true;
-			/* COM2 */ if (port >= 0x02f8 && port <= 0x02ff) return true;
-			/* COM3 */ if (port >= 0x03e8 && port <= 0x03ef) return true;
-			/* COM4 */ if (port >= 0x02e8 && port <= 0x02ef) return true;
-			return false;
 		}
 
 	public:
@@ -229,12 +209,12 @@ class Guest_ioports
 			if (r)
 				return r->write(port, u32Value, cbValue);
 
-			if (_white_listed(port))
-				return VINF_SUCCESS;
+			if (verbose) {
+				char c = u32Value & 0xff;
+				PWRN("attempted to write to non-existing port 0x%x+%zu  %c (%02x)",
+				     port, cbValue, c >= 32 && c <= 176 ? c : '.', c);
+			}
 
-			char c = u32Value & 0xff;
-			PWRN("attempted to write to non-existing port 0x%x+%zu  %c (%02x)",
-			     port, cbValue, c >= 32 && c <= 176 ? c : '.', c);
 			return VINF_SUCCESS;
 		}
 
@@ -246,9 +226,9 @@ class Guest_ioports
 				if (err != VERR_IOM_IOPORT_UNUSED)
 					return err;
 			} else
-			if (!_white_listed(port))
-				PWRN("attempted to read from non-existing port 0x%x+%zu %p",
-				     port, cbValue, r);
+				if (verbose)
+					PWRN("attempted to read from non-existing port 0x%x+%zu %p",
+					     port, cbValue, r);
 
 			switch (cbValue)
 			{
