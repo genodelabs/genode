@@ -20,7 +20,7 @@ ifeq ($(filter-out $(SPECS),x86),)
 
   ifeq ($(filter-out $(SPECS),64bit),)
     LIBC_ARCH_INC_DIR := $(LIBC_PORT_DIR)/include/libc-amd64
-  endif # 32bit
+  endif # 64bit
 endif # x86
 
 ifeq ($(filter-out $(SPECS),arm),)
