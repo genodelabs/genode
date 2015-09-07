@@ -26,6 +26,9 @@ void Signal_transmitter::submit(unsigned cnt)
 		Trace::Signal_submit trace_event(cnt);
 	}
 
+	if (!_context.valid())
+		return;
+
 	using namespace Nova;
 
 	uint8_t res = NOVA_OK;
@@ -33,5 +36,6 @@ void Signal_transmitter::submit(unsigned cnt)
 		res = sm_ctrl(_context.local_name(), SEMAPHORE_UP);
 
 	if (res != NOVA_OK)
-		PDBG("failed - error %u", res);
+		PDBG("submitting signal failed - error %u - context=0x%lx", res,
+		     _context.local_name());
 }
