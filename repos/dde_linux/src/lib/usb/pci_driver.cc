@@ -167,8 +167,11 @@ class Pci_driver : public Genode::List<Pci_driver>::Element
 				Device::Resource res = client.resource(i);
 				_dev->resource[i].start = res.base();
 				_dev->resource[i].end   = res.base() + res.size() - 1;
-				_dev->resource[i].flags = res.type() == Device::Resource::IO
-				                        ? IORESOURCE_IO : 0;
+
+				unsigned flags = 0;
+				if (res.type() == Device::Resource::IO)     flags |= IORESOURCE_IO;
+				if (res.type() == Device::Resource::MEMORY) flags |= IORESOURCE_MEM;
+				_dev->resource[i].flags = flags;
 
 				/* request port I/O session */
 				if (res.type() == Device::Resource::IO) {
@@ -286,8 +289,8 @@ class Pci_driver : public Genode::List<Pci_driver>::Element
 				if (!d->_dev)
 					continue;
 
-				uint8_t bar = 0;
-				for (unsigned bar = 0; bar < PCI_ROM_RESOURCE; bar++) {
+				unsigned bar = 0;
+				for (; bar < PCI_ROM_RESOURCE; bar++) {
 					if ((pci_resource_flags(d->_dev, bar) & IORESOURCE_MEM) &&
 					    (pci_resource_start(d->_dev, bar) == phys))
 						break;
