@@ -92,18 +92,18 @@ for output while loading the files via TFTP:
 !                              --tftp-offset-dir /x86 \
 !          --include log/serial --log-serial-cmd 'picocom -b 115200 /dev/ttyUSB0'
 
-Executing hw on a rpi using powerplug to reset the hardware, JTAG to load the
-image and USB serial to capture the output:
+Executing hw on a rpi using NETIO powerplug to reset the hardware, JTAG to load
+the image and USB serial to capture the output:
 
 !RUN_OPT = --include boot_dir/hw \
-!          --include power_on/powerplug --power-on-powerplug-ip 10.23.42.5 \
-!                                       --power-on-powerplug-user admin \
-!                                       --power-on-powerplug-password secret \
-!                                       --power-on-powerplug-port 1
-!          --include power_off/powerplug --power-off-powerplug-ip 10.23.42.5 \
-!                                        --power-off-powerplug-user admin \
-!                                        --power-off-powerplug-password secret \
-!                                        --power-off-powerplug-port 1
+!          --include power_on/netio --power-on-netio-host 10.23.42.5 \
+!                                   --power-on-netio-user admin \
+!                                   --power-on-netio-password secret \
+!                                   --power-on-netio-port 1
+!          --include power_off/netio --power-off-netio-host 10.23.42.5 \
+!                                    --power-off-netio-user admin \
+!                                    --power-off-netio-password secret \
+!                                    --power-off-netio-port 1
 !          --include load/jtag \
 !          --load-jtag-debugger /usr/share/openocd/scripts/interface/flyswatter2.cfg \
 !          --load-jtag-board /usr/share/openocd/scripts/interface/raspberrypi.cfg \

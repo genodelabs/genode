@@ -1,7 +1,7 @@
 ##
 # Get output of the target machine via Intel AMT's SoL feature
 #
-# \param --amt-host       IP address of target machine
+# \param --amt-host       network address of target machine
 # \param --amt-password   AMT password for target machine
 #
 

@@ -1,0 +1,45 @@
+##
+# Reset the target machine via NETIO4/NETIO230 powerplug by Koukaam
+#
+# \param --power-off-netio-host       network address of device
+# \param --power-off-netio-user       user for device
+# \param --power-off-netio-password   password for device
+# \param --power-off-netio-port       target port of device
+#
+
+
+source [genode_dir]/tool/run/power_netio.inc
+
+
+proc power_off_netio_host { } {
+	return [get_cmd_arg_first --power-off-netio-host 1]
+}
+
+
+proc power_off_netio_user { } {
+	return [get_cmd_arg_first --power-off-netio-user 1]
+}
+
+
+proc power_off_netio_password { } {
+	return [get_cmd_arg_first --power-off-netio-password 1]
+}
+
+
+proc power_off_netio_port { } {
+	return [get_cmd_arg_first --power-off-netio-port 1]
+}
+
+
+proc run_power_off { } {
+	set host [power_off_netio_host]
+	set user_name [power_off_netio_user]
+	set password  [power_off_netio_password]
+	set power_port [power_off_netio_port]
+
+	set connection_id [power_netio_connect $host $user_name $password]
+
+	puts "switch port $power_port off"
+	send -i $connection_id "port $power_port 0\n"
+	expect -i $connection_id "250 OK"
+}
