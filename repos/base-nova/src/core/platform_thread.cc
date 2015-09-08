@@ -346,6 +346,16 @@ Platform_thread::Platform_thread(const char *name, unsigned prio, int thread_id)
 	_priority(Cpu_session::scale_priority(Nova::Qpd::DEFAULT_PRIORITY, prio))
 {
 	strncpy(_name, name, sizeof(_name));
+
+	if (_priority == 0) {
+		PWRN("priority of thread '%s' below minimum - boost to 1", _name);
+		_priority = 1;
+	}
+	if (_priority > Nova::Qpd::DEFAULT_PRIORITY) {
+		PWRN("priority of thread '%s' above maximum - limit to %u",
+		     _name, Nova::Qpd::DEFAULT_PRIORITY);
+		_priority = Nova::Qpd::DEFAULT_PRIORITY;
+	}
 }
 
 
