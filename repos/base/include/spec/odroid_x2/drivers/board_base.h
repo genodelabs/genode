@@ -67,11 +67,29 @@ struct Genode::Board_base : Exynos4
 		/* HDMI base */
 		HDMI_BASE  = 0x12D00000,
 
-		/* IC2 BASE*/
+		/* IC2 BASE */
 		I2C_BASE = 0x138E0000,
 
-		/* HDMI IRQ*/
+		/* HDMI IRQ */
 		I2C_HDMI_IRQ = 125,
+
+		/* GPIO */
+		GPIO1_MMIO_BASE = 0x11400000,
+		GPIO1_MMIO_SIZE = 0x0F88,
+		GPIO1_IRQ       = 79, /* TODO Check the irq number */
+
+		GPIO2_MMIO_BASE = 0x11000000,
+		GPIO2_MMIO_SIZE = 0x0F88,
+		GPIO2_IRQ       = 79, /* TODO Check the irq number */
+
+		GPIO3_MMIO_BASE = 0x03860000,
+		GPIO3_MMIO_SIZE = 0x0F88,
+		GPIO3_IRQ       = 79, /* TODO Check the irq number */
+
+		GPIO4_MMIO_BASE = 0x106E0000,
+		GPIO4_MMIO_SIZE = 0x0F88,
+		GPIO4_IRQ       = 79, /* TODO Check the irq number */
+
 
 		/* wether board provides security extension */
 		SECURITY_EXTENSION = 0, /* TODO Check this value */
