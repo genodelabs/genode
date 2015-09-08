@@ -203,8 +203,7 @@ void *_ioremap(resource_size_t phys_addr, unsigned long size, int wc)
 	try {
 		Genode::Attached_io_mem_dataspace *ds = new(Genode::env()->heap())
 		                                        Genode::Attached_io_mem_dataspace(phys_addr, size, !!wc);
-		/* map base + page offset */
-		return ds->local_addr<char>() + (phys_addr & (PAGE_SIZE - 1));
+		return ds->local_addr<void>();
 	} catch (...) {
 		panic("Failed to request I/O memory: [%zx,%lx)", phys_addr, phys_addr + size);
 		return 0;

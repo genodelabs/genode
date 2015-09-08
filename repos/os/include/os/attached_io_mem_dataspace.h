@@ -55,7 +55,10 @@ class Genode::Attached_io_mem_dataspace
 			_mmio(base, size, write_combined),
 			_ds(_mmio.dataspace()),
 			_local_addr(env()->rm_session()->attach(_ds))
-		{ }
+		{
+			/* apply sub-page offset to virtual address */
+			_local_addr = (void *)((addr_t)_local_addr | (base & (addr_t)0xfff));
+		}
 
 		/**
 		 * Destructor

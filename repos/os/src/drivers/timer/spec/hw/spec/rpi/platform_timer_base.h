@@ -29,7 +29,6 @@
  * The dataspace base address will correspond to 0x2000b000.
  */
 enum { TIMER_MMIO_BASE   = 0x2000b400,
-       TIMER_MMIO_OFFSET = 0x400,
        TIMER_MMIO_SIZE   = 0x100,
        TIMER_CLOCK       = 1984*1000 };
 
@@ -42,7 +41,7 @@ struct Platform_timer_base
 
 	Platform_timer_base() :
 		Attached_io_mem_dataspace(TIMER_MMIO_BASE, TIMER_MMIO_SIZE),
-		Sp804_base((Genode::addr_t)local_addr<void>() + TIMER_MMIO_OFFSET)
+		Sp804_base((Genode::addr_t)local_addr<void>())
 	{ }
 };
 

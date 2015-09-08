@@ -50,7 +50,7 @@ class Genode::Attached_mmio : public Attached_io_mem_dataspace,
 		Attached_mmio(addr_t base, size_t size,
 		              bool write_combined = false)
 		: Attached_io_mem_dataspace(base, size, write_combined),
-		  Mmio((addr_t)local_addr<void>() | (base & 0xfff)) { }
+		  Mmio((addr_t)local_addr<void>()) { }
 };
 
 #endif /* _INCLUDE__OS__ATTACHED_MMIO_H_ */
