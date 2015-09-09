@@ -1,0 +1,79 @@
+#
+# Build
+#
+
+set build_components {
+	core init
+	drivers/timer
+	drivers/framebuffer/intel
+}
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
+build $build_components
+
+create_boot_directory
+
+proc platform_drv_policy {} {
+	return {
+		<policy label="intel_fb_drv">
+			<pci class="VGA"/>
+			<pci bus="0" device="0" function="0"/>
+			<pci class="ISABRIDGE"/>
+		</policy>
+	}
+}
+
+#
+# Generate config
+#
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL" />
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>}
+
+append_platform_drv_config
+
+append config {
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="intel_fb_drv">
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="Input"/></provides>
+	</start>
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer intel_fb_drv
+}
+
+append_platform_drv_boot_modules
+
+build_boot_image $boot_modules
+
+run_genode_until forever

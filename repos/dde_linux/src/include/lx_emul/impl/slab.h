@@ -1,0 +1,175 @@
+/*
+ * \brief  Implementation of linux/slab.h
+ * \author Norman Feske
+ * \date   2015-09-09
+ */
+
+/*
+ * Copyright (C) 2015 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
+#include <lx_emul/impl/internal/malloc.h>
+
+
+void *kmalloc(size_t size, gfp_t flags)
+{
+	if (flags & __GFP_DMA)
+		PWRN("GFP_DMA memory (below 16 MiB) requested (%p)", __builtin_return_address(0));
+	if (flags & __GFP_DMA32)
+		PWRN("GFP_DMA32 memory (below 4 GiB) requested (%p)", __builtin_return_address(0));
+
+	void *addr = flags & GFP_LX_DMA ? Lx::Malloc::dma().alloc(size, 12)
+	                                : Lx::Malloc::mem().alloc(size);
+
+	if ((Genode::addr_t)addr & 0x3)
+		PERR("unaligned kmalloc %lx", (Genode::addr_t)addr);
+
+	if (flags & __GFP_ZERO)
+		Genode::memset(addr, 0, size);
+
+	return addr;
+}
+
+
+void *kzalloc(size_t size, gfp_t flags)
+{
+	return kmalloc(size, flags | __GFP_ZERO);
+}
+
+
+void *kzalloc_node(size_t size, gfp_t flags, int node)
+{
+	return kzalloc(size, 0);
+}
+
+
+void *kcalloc(size_t n, size_t size, gfp_t flags)
+{
+	if (size != 0 && n > (~0UL / size))
+		return 0;
+
+	return kzalloc(n * size, flags);
+}
+
+
+void kfree(void const *p)
+{
+	if (!p) return;
+
+	if (Lx::Malloc::mem().inside((Genode::addr_t)p))
+		Lx::Malloc::mem().free(p);
+	else if (Lx::Malloc::dma().inside((Genode::addr_t)p))
+		Lx::Malloc::dma().free(p);
+	else
+		PERR("%s: unknown block at %p, called from %p", __func__,
+		     p, __builtin_return_address(0));
+}
+
+
+static size_t _ksize(void *p)
+{
+	size_t size = 0;
+
+	if (Lx::Malloc::mem().inside((Genode::addr_t)p))
+		size = Lx::Malloc::mem().size(p);
+	else if (Lx::Malloc::dma().inside((Genode::addr_t)p))
+		size = Lx::Malloc::dma().size(p);
+	else
+		PERR("%s: unknown block at %p", __func__, p);
+
+	return size;
+}
+
+
+size_t ksize(void *p)
+{
+	return _ksize(p);
+}
+
+
+void kzfree(void const *p)
+{
+	if (!p) return;
+
+	size_t len = ksize(const_cast<void*>(p));
+
+	Genode::memset((void*)p, 0, len);
+
+	kfree(p);
+}
+
+
+void *kmalloc_node_track_caller(size_t size, gfp_t flags, int node)
+{
+	return kmalloc(size, flags);
+}
+
+
+void *krealloc(void *p, size_t size, gfp_t flags)
+{
+	/* XXX handle short-cut where size == old_size */
+	void *addr = kmalloc(size, flags);
+
+	if (addr && p) {
+		size_t old_size = _ksize(p);
+
+		Genode::memcpy(addr, p, old_size);
+		kfree(p);
+	}
+
+	return addr;
+}
+
+
+void *kmemdup(const void *src, size_t size, gfp_t flags)
+{
+	void *addr = kmalloc(size, flags);
+
+	if (addr)
+		Genode::memcpy(addr, src, size);
+
+	return addr;
+}
+
+
+struct kmem_cache : Lx::Slab_alloc
+{
+	kmem_cache(size_t object_size, bool dma)
+	:
+		Lx::Slab_alloc(object_size, dma ? Lx::Slab_backend_alloc::dma()
+		                                : Lx::Slab_backend_alloc::mem())
+	{ }
+};
+
+
+struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align,
+                                     unsigned long flags, void (*ctor)(void *))
+{
+	if (ctor) {
+		PERR("%s: ctor not supported", __func__);
+		return nullptr;
+	}
+
+	/*
+	 * Copied from wifi_drv.
+	 *
+	 * XXX SLAB_LX_DMA is never used anywhere else, remove it?
+	 */
+	enum { SLAB_LX_DMA = 0x80000000ul, };
+	return new (Genode::env()->heap()) kmem_cache(size, flags & SLAB_LX_DMA);
+}
+
+
+void * kmem_cache_alloc(struct kmem_cache *cache, gfp_t flags)
+{
+	return (void *)cache->alloc();
+}
+
+
+void kmem_cache_free(struct kmem_cache *cache, void *objp)
+{
+	cache->free(objp);
+}

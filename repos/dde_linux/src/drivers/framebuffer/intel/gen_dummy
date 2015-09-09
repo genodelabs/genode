@@ -1,0 +1,99 @@
+#!/usr/bin/tclsh
+
+#
+# \brief  Private utility to generate a dummy function from a symbol name
+# \date   2015-08-21
+# \author Norman Feske
+#
+# The script must be executed in its directory and takes a symbol name as last
+# argument. It searches the following places for a declaration that corresponds
+# to the specified symbol:
+#
+# - the local include/ directory
+# - the dde_linux/src/include/lx_emul/ directory
+# - the contrib/dde_linux-<hash>/src/drivers/framebuffer/intel directory
+#
+# If a declaration could be found, the script generates a dummy implementation
+# with the signature of the declarated function.
+#
+
+set symbol $argv
+
+# determine contrib directory of dde_linux
+set lx_drv_path [exec ../../../../../../tool/ports/current dde_linux]
+append lx_drv_path "/src/drivers/framebuffer/intel"
+
+# grep for lines that contain the symbol and have with no leading whitespace
+if {[catch {
+set header [exec grep -rl "^\\w.*$symbol\\>" include ../../../include/lx_emul $lx_drv_path | grep -v "~"]
+}]} {
+	puts stderr "failed to lookup symbol $symbol"
+	exit 1
+}
+
+if {[llength $header] != 1} {
+	puts stderr "cannot generate dummy for symbol $symbol"
+	exit 1
+}
+
+puts stderr "found declaration of $symbol in $header"
+
+set statements [split [exec cat $header] ";{}"]
+
+foreach statement $statements {
+
+	# strip off comments and preprocessor commands
+	regsub -all {/\*.*?\*/} $statement "" statement
+	regsub -all {//.*?\n} $statement "" statement
+	regsub -all {#.*?\n} $statement "\n" statement
+
+	# delete consecutive newlines
+	while {[regexp {\n\n} $statement dummy]} {
+		regsub -all {\n\n} $statement "\n" statement
+	}
+
+	# function declarations have no leading tabs
+	if {[regexp {^\t} $statement dummy]} continue
+
+	# skip statements where the symbol does not occur
+	if {![regexp "$symbol\\(" $statement dummy]} continue
+
+	# strip leading whitespace (linefeed)
+	regsub {^\s*} $statement "" statement
+
+	# strip leading extern keyword
+	regsub {^extern\s*} $statement "" statement
+
+	# strip leading inline keyword
+	regsub {^inline\s*} $statement "" statement
+
+	# merge multi-line parameter list into a single line
+	regsub -all {\s*\n\s*} $statement " " statement
+
+	# strip function attributes starting with '__'
+	regsub -all {\)\s*__.*} $statement ")" statement
+
+	# determine return type 'ret' of the function
+	regexp {^[^\(]*} $statement func_ret
+	regsub {\s[^\s\*]*$} $func_ret "" ret
+
+	# output function definition
+	puts "$statement"
+	puts "{"
+	puts "\tTRACE_AND_STOP;"
+	if {[regexp {\*} $ret]} {
+		# function returns a pointer
+		puts "\treturn NULL;"
+	} elseif {[regexp {void} $ret dummy]} {
+		# void function
+	} else {
+		# function with return value
+		puts "\treturn -1;"
+	}
+	puts "}\n"
+
+	# success
+	exit 0
+}
+
+puts stderr "failed to match declaration of $symbol in $header"
