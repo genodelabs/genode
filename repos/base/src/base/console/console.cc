@@ -335,6 +335,8 @@ void Console::vprintf(const char *format, va_list list)
 			case Format_command::INVALID:
 
 				_out_string("<warning: unsupported format string argument>");
+				/* consume the argument of the unsupported command */
+				va_arg(list, long);
 				break;
 		}
 
