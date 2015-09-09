@@ -940,11 +940,12 @@ class Machine : public StaticReceiver<Machine>
 
 					_vcpus_up ++;
 
-					Vmm::Vcpu_thread * vcpu_thread;
-					Genode::Cpu_session * cpu_session = Genode::env()->cpu_session();
+					long const prio = Genode::Cpu_session::PRIORITY_LIMIT / 16;
+					static Genode::Cpu_connection * cpu_session = new (Genode::env()->heap()) Genode::Cpu_connection("Seoul vCPUs", prio);
 					Genode::Affinity::Space cpu_space = cpu_session->affinity_space();
 					Genode::Affinity::Location location = cpu_space.location_of_index(_vcpus_up);
 
+					Vmm::Vcpu_thread * vcpu_thread;
 					if (_colocate_vm_vmm)
 						vcpu_thread = new Vmm::Vcpu_same_pd(Vcpu_dispatcher::STACK_SIZE, cpu_session, location);
 					else
