@@ -263,6 +263,8 @@ class Wm::Nitpicker::Top_level_view : public View,
 		{
 			if (_win_id.valid())
 				_window_registry.destroy(_win_id);
+
+			View::lock_for_destruction();
 		}
 
 		void _propagate_view_geometry() override { }
@@ -347,6 +349,11 @@ class Wm::Nitpicker::Child_view : public View,
 			View(real_nitpicker, session_label, has_alpha), _parent(parent)
 		{
 			try_to_init_real_view();
+		}
+
+		~Child_view()
+		{
+			View::lock_for_destruction();
 		}
 
 		void _propagate_view_geometry() override
