@@ -16,6 +16,10 @@
 
 int main(int argc, char **argv)
 {
+	/* test that unsupported commands don't crash the printf parser */
+	Genode::printf("%#x %s\n", 0x38, "test 1");
+	Genode::printf("%#lx %s\n", 0x38L, "test 2");
+
 	Genode::printf("-1 = %d = %ld\n", -1, -1L);
 
 	return 0;
