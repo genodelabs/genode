@@ -42,8 +42,18 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 		unsigned short                     _irq_line;
 		Irq_session_component              _irq_session;
 
+		class Io_mem : public Genode::Io_mem_connection,
+		               public Genode::List<Io_mem>::Element
+		{
+			public:
+				Io_mem (Genode::addr_t base, Genode::size_t size, bool wc)
+				: Genode::Io_mem_connection(base, size, wc) { }
+		};
+
 		enum {
 			IO_BLOCK_SIZE = sizeof(Genode::Io_port_connection) *
+			                Device::NUM_RESOURCES + 32 + 8 * sizeof(void *),
+			IO_MEM_SIZE   = sizeof(Io_mem) *
 			                Device::NUM_RESOURCES + 32 + 8 * sizeof(void *),
 			PCI_CMD_REG   = 0x4,
 			PCI_CMD_DMA   = 0x4,
@@ -58,12 +68,12 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 		Genode::Slab_block _slab_ioport_block;
 		char _slab_ioport_block_data[IO_BLOCK_SIZE];
 
-		Genode::Tslab<Genode::Io_mem_connection, IO_BLOCK_SIZE> _slab_iomem;
+		Genode::Tslab<Io_mem, IO_MEM_SIZE> _slab_iomem;
 		Genode::Slab_block _slab_iomem_block;
-		char _slab_iomem_block_data[IO_BLOCK_SIZE];
+		char _slab_iomem_block_data[IO_MEM_SIZE];
 
 		Genode::Io_port_connection *_io_port_conn [Device::NUM_RESOURCES];
-		Genode::Io_mem_connection  *_io_mem_conn  [Device::NUM_RESOURCES];
+		Genode::List<Io_mem> _io_mem [Device::NUM_RESOURCES];
 
 		struct Status : Genode::Register<8> {
 			struct Capabilities : Bitfield<4,1> { };
@@ -179,6 +189,7 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 		Device_component(Device_config device_config, Genode::addr_t addr,
 		                 Genode::Rpc_entrypoint *ep,
 		                 Platform::Session_component * session,
+		                 Genode::Allocator * md_alloc,
 		                 bool use_msi)
 		:
 			_device_config(device_config), _config_space(addr),
@@ -186,8 +197,8 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 			_irq_line(_device_config.read(&_config_access, PCI_IRQ_LINE,
 			                              Platform::Device::ACCESS_8BIT)),
 			_irq_session(_configure_irq(_irq_line), (!use_msi || !_msi_cap()) ? ~0UL : _config_space),
-			_slab_ioport(0, &_slab_ioport_block),
-			_slab_iomem(0, &_slab_iomem_block)
+			_slab_ioport(md_alloc, &_slab_ioport_block),
+			_slab_iomem(md_alloc, &_slab_iomem_block)
 		{
 			if (_config_space != ~0UL) {
 				try {
@@ -201,7 +212,6 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 
 			for (unsigned i = 0; i < Device::NUM_RESOURCES; i++) {
 				_io_port_conn[i] = nullptr;
-				_io_mem_conn[i] = nullptr;
 			}
 
 			if (_slab_ioport.num_elem() != Device::NUM_RESOURCES)
@@ -262,10 +272,8 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 		{
 			_ep->manage(&_irq_session);
 
-			for (unsigned i = 0; i < Device::NUM_RESOURCES; i++) {
+			for (unsigned i = 0; i < Device::NUM_RESOURCES; i++)
 				_io_port_conn[i] = nullptr;
-				_io_mem_conn[i] = nullptr;
-			}
 		}
 
 		/**
@@ -278,8 +286,11 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 			for (unsigned i = 0; i < Device::NUM_RESOURCES; i++) {
 				if (_io_port_conn[i])
 					Genode::destroy(_slab_ioport, _io_port_conn[i]);
-				if (_io_mem_conn[i])
-					Genode::destroy(_slab_iomem, _io_mem_conn[i]);
+
+				while (Io_mem * io_mem = _io_mem[i].first()) {
+					_io_mem[i].remove(io_mem);
+					Genode::destroy(_slab_iomem, io_mem);
+				}
 			}
 
 			if (_io_mem_config_extended.valid())
@@ -377,5 +388,8 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 
 		Genode::Io_port_session_capability io_port(Genode::uint8_t) override;
 
-		Genode::Io_mem_session_capability io_mem(Genode::uint8_t) override;
+		Genode::Io_mem_session_capability io_mem(Genode::uint8_t,
+		                                         Genode::Cache_attribute,
+		                                         Genode::addr_t,
+		                                         Genode::size_t) override;
 };

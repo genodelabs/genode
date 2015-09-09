@@ -242,7 +242,8 @@ struct Platform::Device : Platform::Abstract_device
 	                 Genode::uint8_t);
 	GENODE_RPC_THROW(Rpc_io_mem, Genode::Io_mem_session_capability, io_mem,
 	                 GENODE_TYPE_LIST(Quota_exceeded),
-	                 Genode::uint8_t);
+	                 Genode::uint8_t, Genode::Cache_attribute,
+	                 Genode::addr_t, Genode::size_t);
 
 	typedef Genode::Meta::Type_tuple<Rpc_bus_address,
 	        Genode::Meta::Type_tuple<Rpc_vendor_id,

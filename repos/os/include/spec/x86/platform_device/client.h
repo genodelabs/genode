@@ -54,8 +54,11 @@ struct Platform::Device_client : public Genode::Rpc_client<Device>
 	Genode::Io_port_session_capability io_port(Genode::uint8_t id) override {
 		return call<Rpc_io_port>(id); }
 
-	Genode::Io_mem_session_capability io_mem(Genode::uint8_t id) override {
-		return call<Rpc_io_mem>(id); }
+	Genode::Io_mem_session_capability io_mem(Genode::uint8_t id,
+	                                         Genode::Cache_attribute caching = Genode::Cache_attribute::UNCACHED,
+	                                         Genode::addr_t offset = 0,
+	                                         Genode::size_t size = ~0UL) override {
+		return call<Rpc_io_mem>(id, caching, offset, size); }
 };
 
 #endif /* _INCLUDE__SPEC__X86__PLATFORM_DEVICE__CLIENT_H_ */
