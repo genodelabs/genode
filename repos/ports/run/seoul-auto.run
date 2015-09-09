@@ -11,6 +11,8 @@ assert_spec nova
 
 set use_multiboot     1
 set use_genode_iso    0
+set use_model_ahci    0
+set use_model_ide     0
 
 set use_block_ram     0
 set use_block_sata    0
