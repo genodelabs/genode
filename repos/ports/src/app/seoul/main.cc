@@ -634,9 +634,8 @@ class Vcpu_dispatcher : public Vcpu_handler,
 			} else {
 				order = utcb->qual[0] & 7;
 				if (order > 2) order = 2;
+				_handle_io(utcb->qual[0] & 8, order, utcb->qual[0] >> 16);
 			}
-
-			_handle_io(utcb->qual[0] & 8, order, utcb->qual[0] >> 16);
 		}
 
 		void _vmx_ept()
