@@ -417,7 +417,7 @@ class Video_mixer : public Attached_mmio
 		/**
 		 * Constructor
 		 */
-		Video_mixer() : Attached_mmio(0x14450000, 0x10000) { }
+		Video_mixer() : Attached_mmio(Genode::Board_base::MIXER_BASE, 0x10000) { }
 
 		/**
 		 * Initialize mixer for displaying one graphical input fullscreen
@@ -520,14 +520,16 @@ class Video_mixer : public Attached_mmio
 			cfg = read<Cfg>();
 			switch (fb_height) {
 			case 480:
-				Cfg::Hd_sd::set(cfg, 0);
+				Cfg::Hd_sd::set(cfg, 1);
+				Cfg::Hd_mode::set(cfg, 1);
 				break;
 			case 576:
-				Cfg::Hd_sd::set(cfg, 0);
+				Cfg::Hd_sd::set(cfg, 1);
+				Cfg::Hd_mode::set(cfg, 1);
 				break;
 			case 720:
 				Cfg::Hd_sd::set(cfg, 1);
-				Cfg::Hd_mode::set(cfg, 0);
+				Cfg::Hd_mode::set(cfg, 1);
 				break;
 			case 1080:
 				Cfg::Hd_sd::set(cfg, 1);
@@ -577,7 +579,7 @@ class I2c_hdmi : public I2c_interface
 		 * Constructor
 		 */
 		I2c_hdmi()
-		: I2c_interface(0x12ce0000, Genode::Board_base::I2C_HDMI_IRQ) { }
+		: I2c_interface(Genode::Board_base::I2C_BASE, Genode::Board_base::I2C_HDMI_IRQ) { }
 
 		/**
 		 * Stop HDMI PHY from operating
@@ -960,7 +962,7 @@ class Hdmi : public Attached_mmio
 		 * Constructor
 		 */
 		Hdmi()
-		: Attached_mmio(0x14530000, 0xa0000), _i2c_hdmi() { }
+		: Attached_mmio(Genode::Board_base::HDMI_BASE, 0xa0000), _i2c_hdmi() { }
 
 		/**
 		 * Initialize HDMI controller for video output only

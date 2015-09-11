@@ -69,7 +69,6 @@ class Pmu : public Regulator::Driver,
 		typedef Control<0x0708> Usbhost_phy1_control;
 		typedef Control<0x70c> Usbhost_phy2_control;
 
-
 		void _enable(unsigned long id)
 		{
 			switch (id) {
@@ -78,6 +77,13 @@ class Pmu : public Regulator::Driver,
 				write<Usbhost_phy1_control::Enable>(1);
 				write<Usbhost_phy2_control::Enable>(1);
 				break;
+			case PWR_HDMI: {
+				Hdmi_phy_control::access_t hpc = read<Hdmi_phy_control>();
+				Hdmi_phy_control::Div_ratio::set(hpc, 150);
+				Hdmi_phy_control::Enable::set(hpc, 1);
+				write<Hdmi_phy_control>(hpc);
+				break; }
+
 			default:
 				PWRN("Unsupported for %s", names[id].name);
 			}
@@ -90,6 +96,9 @@ class Pmu : public Regulator::Driver,
 				write<Usbdrd_phy_control::Enable>(0);
 				write<Usbhost_phy1_control::Enable>(0);
 				write<Usbhost_phy2_control::Enable>(0);
+				break;
+			case PWR_HDMI:
+				write<Hdmi_phy_control::Enable>(0);
 				break;
 			default:
 				PWRN("Unsupported for %s", names[id].name);
@@ -104,9 +113,10 @@ class Pmu : public Regulator::Driver,
 		Pmu() : Genode::Attached_mmio(Genode::Board_base::PMU_MMIO_BASE,
 		                              Genode::Board_base::PMU_MMIO_SIZE)
 		{
-			write<Usbdrd_phy_control ::Enable>(0);
+			write<Usbdrd_phy_control::Enable>(0);
 			write<Usbhost_phy1_control::Enable>(0);
 			write<Usbhost_phy2_control::Enable>(0);
+			write<Hdmi_phy_control::Enable>(0);
 		}
 
 

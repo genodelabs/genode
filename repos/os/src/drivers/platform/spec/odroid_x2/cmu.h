@@ -136,23 +136,14 @@ class Cmu : public Regulator::Driver,
 		typedef Pll_lock<0x0008> Mpll_lock;
 		typedef Pll_con0<0x0108> Mpll_con0;
 
-		struct Clk_src_dmc : Register<0x10200, 32>
-
-		{
-			struct Mux_mpll_sel : Bitfield<12, 1> { enum { XXTI, MPLL_FOUT_RGT }; };
-		};
-
-
-
-		struct Clk_gate_ip_acp   : Register<0x0900, 32> { };
-		struct Clk_gate_ip_isp0  : Register<0x8800, 32> { };
-		struct Clk_gate_ip_isp1  : Register<0x8804, 32> { };
-
-
-
 		/***********************
 		 ** CMU TOP registers **
 		 ***********************/
+		struct Clk_gate_ip_tv : Register<0x10928, 32>
+		{
+			struct Clk_mixer     : Bitfield<1, 1> { };
+			struct Clk_hdmi      : Bitfield<3, 1> { };
+		};
 
 		struct Clk_gate_ip_fsys : Register<0xC940, 32>
 		{
@@ -161,7 +152,27 @@ class Cmu : public Regulator::Driver,
 
 		};
 
+		struct Clk_src_tv : Register<0xC224, 32> /* old name Clk_src_disp1_0 */
+		{
+			struct Hdmi_sel : Bitfield<0, 1> { };
+		};
 
+		struct Clk_src_mask_tv : Register<0xC324, 32>
+		{
+			struct Hdmi_mask : Bitfield<0, 1> { };
+		};
+
+		struct Clk_gate_ip_peric : Register<0xC950, 32>
+		{
+			struct Clk_uart2   : Bitfield<2,  1> { };
+			struct Clk_i2chdmi : Bitfield<14, 1> { };
+			struct Clk_pwm     : Bitfield<24, 1> { };
+		};
+
+		struct Clk_gate_block : Register<0xC970, 32>
+		{
+			struct Clk_tv 	 : Bitfield<1, 1> { };
+		};
 
 		/*******************
 		 ** CPU functions **
@@ -245,6 +256,25 @@ class Cmu : public Regulator::Driver,
 		}
 
 
+		/**********************
+		 ** Device functions **
+		 **********************/
+
+		void _hdmi_enable()
+		{
+
+			write<Clk_gate_ip_peric::Clk_i2chdmi>(1);
+
+			Clk_gate_ip_tv::access_t gd1 = read<Clk_gate_ip_tv>();
+			Clk_gate_ip_tv::Clk_mixer::set(gd1, 1);
+			Clk_gate_ip_tv::Clk_hdmi::set(gd1, 1);
+			write<Clk_gate_ip_tv>(gd1);
+			write<Clk_gate_block::Clk_tv>(1);
+			write<Clk_src_mask_tv::Hdmi_mask>(1);
+			write<Clk_src_tv::Hdmi_sel>(1);
+
+		}
+
 		void _enable(Regulator_id id)
 		{
 			switch (id) {
@@ -253,6 +283,10 @@ class Cmu : public Regulator::Driver,
 			     write<Clk_gate_ip_fsys::Usbdevice>(1);
 			     return write<Clk_gate_ip_fsys::Usbhost20>(1);
 			    }
+
+			case CLK_HDMI:
+				_hdmi_enable();
+				break;
 			default:
 				PWRN("Unsupported for %s", names[id].name);
 			}
@@ -281,23 +315,19 @@ class Cmu : public Regulator::Driver,
 		                        Genode::Board_base::CMU_MMIO_SIZE),
 		  _cpu_freq(CPU_FREQ_1400)
 		{
-
-
 			/**
 			 * Close certain clock gates by default (~ 0.7 Watt reduction)
 			 */
-
 			write<Clk_gate_ip_fsys>(0);
+			write<Clk_gate_ip_peric::Clk_uart2>(1);
+			write<Clk_gate_ip_peric::Clk_pwm>(1);
 
 			/**
 			 * Set default CPU frequency
 			 */
-
-
 			_cpu_clk_freq(_cpu_freq);
 
 		}
-
 		/********************************
 		 ** Regulator driver interface **
 		 ********************************/
@@ -334,7 +364,6 @@ class Cmu : public Regulator::Driver,
 
 		bool state(Regulator_id id)
 		{
-
 			switch (id) {
 			case CLK_USB20:
 				return read<Clk_gate_ip_fsys::Usbhost20>();
