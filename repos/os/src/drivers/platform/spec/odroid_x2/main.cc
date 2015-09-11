@@ -32,9 +32,14 @@ struct Driver_factory: Regulator::Driver_factory
 		switch (id) {
 		case Regulator::CLK_CPU:
 		case Regulator::CLK_USB20:
-			return _cmu;
+		case Regulator::CLK_HDMI:
+	
+		return _cmu;
 		case Regulator::PWR_USB20:
-			return _pmu;
+		case Regulator::PWR_HDMI:
+		return _pmu;
+
+
 		default:
 			throw Root::Invalid_args(); /* invalid regulator */
 		};
