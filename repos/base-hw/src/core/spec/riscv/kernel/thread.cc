@@ -35,8 +35,8 @@ void Thread::exception(unsigned const cpu)
 		_mmu_exception();
 		break;
 	default:
-		PWRN("%s -> %s: unhandled exception %lu at ip=%lx",
-		     pd_label(), label(), cpu_exception, ip);
+		PWRN("%s -> %s: unhandled exception %lu at ip=%lx addr=%lx",
+		     pd_label(), label(), cpu_exception, ip, Cpu::sbadaddr());
 		_stop();
 	}
 }

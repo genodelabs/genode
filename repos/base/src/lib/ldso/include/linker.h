@@ -34,9 +34,6 @@ constexpr bool verbose_exception  = false;
 constexpr bool verbose_shared     = false;
 constexpr bool verbose_loading    = false;
 
-
-extern const unsigned long _GLOBAL_OFFSET_TABLE_[] __attribute__((visibility("hidden")));
-extern unsigned long       _DYNAMIC[] __attribute__((visibility("hidden")));
 extern Elf::Addr           etext;
 
 /**
@@ -131,32 +128,6 @@ namespace Linker {
 	 */
 	constexpr char const *binary_name() { return "binary"; }
 	constexpr char const *linker_name() { return "ld.lib.so"; }
-
-	/**
-	 * Address of .dynamic section in GOT
-	 */
-	static inline unsigned long dynamic_address_got()
-	{
-		return _GLOBAL_OFFSET_TABLE_[0];
-	}
-
-	/**
-	 * Address of .dynamic section from symbol
-	 */
-	static inline unsigned long dynamic_address()
-	{
-		return (unsigned long)&_DYNAMIC;
-	}
-
-	/**
-	 * Return the run-time load address of the shared object.
-	 */
-	static inline unsigned long relocation_address(void)
-	{
-		return dynamic_address() < dynamic_address_got() ?
-		       dynamic_address_got() - dynamic_address() :
-		       dynamic_address() - dynamic_address_got();
-	}
 }
 
 
