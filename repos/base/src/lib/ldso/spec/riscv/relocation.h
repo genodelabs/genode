@@ -1,33 +1,37 @@
 /**
- * \brief  x86_64  specific relocations
+ * \brief  RISC-V 64  specific relocations
  * \author Sebastian Sumpf
- * \date   2014-10-26
+ * \date   2015-09-07
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2015-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _LIB__LDSO__SPEC__X86_64__RELOCATION_H_
-#define _LIB__LDSO__SPEC__X86_64__RELOCATION_H_
+#ifndef _INCLUDE__RISCV_64__RELOCATION_H_
+#define _INCLUDE__RISCV_64__RELOCATION_H_
 
 #include <relocation_generic.h>
-#include <dynamic_generic.h>
 
 namespace Linker {
+
+	inline Elf::Addr dynamic_section_address()
+	{
+		Elf::Addr d;
+		asm volatile ("lla %0, _DYNAMIC" : "=r"(d));
+		return d;
+	}
 
 /**
  * Relocation types
  */
 	enum Reloc_types {
-		R_64       = 1, /* add 64 bit symbol value.       */
-		R_COPY     = 5,
-		R_GLOB_DAT = 6, /* GOT entry to data address      */
-		R_JMPSLOT  = 7, /* jump slot                      */
-		R_RELATIVE = 8, /* add load addr of shared object */
+		R_64       = 2, /* add 64 bit symbol valu with addend */
+		R_RELATIVE = 3, /* add load addr of shared object     */
+		R_JMPSLOT  = 5, /* jump slot                          */
 	};
 
 	class Reloc_non_plt;
@@ -76,10 +80,12 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 			for (; rel < end; rel++) {
 				Elf::Addr *addr = (Elf::Addr *)(_dep->obj->reloc_base() + rel->offset);
 
+				if (verbose_reloc(_dep))
+					PDBG("reloc: %p type: %u", rel, rel->type());
+
 				switch(rel->type()) {
+					case R_JMPSLOT:  _glob_dat_64(rel, addr, false); break;
 					case R_64:       _glob_dat_64(rel, addr, true);  break;
-					case R_GLOB_DAT: _glob_dat_64(rel, addr, false); break;
-					case R_COPY:     _copy<Elf::Rela>(rel, addr);    break;
 					case R_RELATIVE: _relative(rel, addr);           break;
 
 					default:
@@ -100,4 +106,4 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 		}
 };
 
-#endif /* _LIB__LDSO__SPEC__X86_64__RELOCATION_H_ */
+#endif /* _INCLUDE__RISCV_64__RELOCATION_H_ */
