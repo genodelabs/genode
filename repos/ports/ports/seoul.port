@@ -3,8 +3,8 @@ VERSION   := git
 DOWNLOADS := seoul.git
 
 URL(seoul) := https://github.com/alex-ab/seoul.git
-# branch genode_15_08 - containing smp and vbios patches
-REV(seoul) := 5522d06563fa09a532e0e69e845866bd21605fa2
+# branch genode_15_08
+REV(seoul) := 2861f495ddcbf714c8b7944ce1c39985a164348c
 DIR(seoul) := src/app/seoul
 
 #

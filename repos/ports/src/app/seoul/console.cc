@@ -336,6 +336,8 @@ void Vancouver_console::entry()
 		}
 
 		for (int i = 0, num_ev = input.flush(); i < num_ev; i++) {
+			if (!fb_active) fb_active = true;
+
 			Input::Event *ev = &ev_buf[i];
 
 			/* update mouse model (PS2) */

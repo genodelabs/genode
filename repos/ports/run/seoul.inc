@@ -76,7 +76,7 @@ if {!$use_multiboot} {
 }
 
 	puts $vm_cfg_fd {
-		<vbios_keyboard/>
+		<vbios_keyboard host_keyboard="0x10000"/>
 		<vbios_mem/>
 		<vbios_time/>
 		<vbios_reset/>}
