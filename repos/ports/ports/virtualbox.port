@@ -18,6 +18,8 @@ PATCHES := $(addprefix $(PATCHES_DIR)/, $(shell cat $(REP_DIR)/$(PATCHES_DIR)/se
 PATCH_OPT := -p1
 
 $(call check_tool,xsltproc)
+$(call check_tool,yasm)
+$(call check_tool,iasl)
 
 VBOX_MAIN_GLUE := AutoLock EventQueue string xpcom/helpers
 
