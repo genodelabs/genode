@@ -1,3 +1,4 @@
 TARGET   = gpio_drv
-REQUIRES = rpi
+REQUIRES = platform_rpi
 LIBS    += gpio
+SRC_CC   = empty.cc
