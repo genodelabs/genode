@@ -455,11 +455,6 @@ void Thread::_print_activity_when_awaits_ipc()
 	case AWAIT_REQUEST: {
 		Genode::printf("\033[32m await REQ\033[0m");
 		break; }
-	case PREPARE_AND_AWAIT_REPLY: {
-		Thread * const server = dynamic_cast<Thread *>(Ipc_node::callee());
-		Genode::printf("\033[32m prep RPL await RPL %s -> %s\033[0m",
-		               server->pd_label(), server->label());
-		break; }
 	default: break;
 	}
 }

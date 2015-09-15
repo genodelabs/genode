@@ -42,11 +42,9 @@ class Kernel::Ipc_node : public Ipc_node_queue::Element
 
 		enum State
 		{
-			INACTIVE                = 1,
-			AWAIT_REPLY             = 2,
-			AWAIT_REQUEST           = 3,
-			PREPARE_REPLY           = 4,
-			PREPARE_AND_AWAIT_REPLY = 5,
+			INACTIVE      = 1,
+			AWAIT_REPLY   = 2,
+			AWAIT_REQUEST = 3,
 		};
 
 		void _init(Genode::Native_utcb * utcb, Ipc_node * callee);
@@ -170,12 +168,11 @@ class Kernel::Ipc_node : public Ipc_node_queue::Element
 		template <typename F> void for_each_helper(F f)
 		{
 			/* if we have a helper in the receive buffer, call 'f' for it */
-			if (_state == PREPARE_REPLY || _state == PREPARE_AND_AWAIT_REPLY) {
-				if (_caller->_help) { f(_caller); } }
+			if (_caller && _caller->_help) f(_caller);
 
 			/* call 'f' for each helper in our request queue */
 			_request_queue.for_each([f] (Ipc_node * const node) {
-					if (node->_help) { f(node); } });
+				if (node->_help) f(node); });
 		}
 
 		/**
