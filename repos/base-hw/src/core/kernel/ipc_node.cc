@@ -86,15 +86,14 @@ void Ipc_node::_receive_request(Ipc_node * const caller)
 {
 	copy_msg(caller);
 	_caller  = caller;
-	_state   = PREPARE_REPLY;
+	_state   = INACTIVE;
 }
 
 
 void Ipc_node::_receive_reply(Ipc_node * callee)
 {
 	copy_msg(callee);
-	_state = (_state != PREPARE_AND_AWAIT_REPLY) ? INACTIVE
-	                                             : PREPARE_REPLY;
+	_state = INACTIVE;
 	_send_request_succeeded();
 }
 
@@ -151,16 +150,12 @@ void Ipc_node::_outbuf_request_cancelled()
 	if (_callee == nullptr) return;
 
 	_callee = nullptr;
-	_state = (!_caller) ? INACTIVE : PREPARE_REPLY;
+	_state  = INACTIVE;
 	_send_request_failed();
 }
 
 
-bool Ipc_node::_helps_outbuf_dst()
-{
-	return (_state == PREPARE_AND_AWAIT_REPLY ||
-	        _state == AWAIT_REPLY) && _help;
-}
+bool Ipc_node::_helps_outbuf_dst() { return (_state == AWAIT_REPLY) && _help; }
 
 
 void Ipc_node::_init(Genode::Native_utcb * utcb, Ipc_node * starter)
@@ -177,16 +172,15 @@ void Ipc_node::_init(Genode::Native_utcb * utcb, Ipc_node * starter)
 void Ipc_node::send_request(Ipc_node * const callee, capid_t capid, bool help,
                             unsigned rcv_caps)
 {
-	/* assertions */
-	assert(_state == INACTIVE || _state == PREPARE_REPLY);
-
+	if (_state != INACTIVE) {
+		PERR("IPC send request: bad state");
+		return;
+	}
 	Genode::Allocator &slab = pd()->platform_pd()->capability_slab();
 	for (unsigned i = 0; i < rcv_caps; i++)
 		_obj_id_ref_ptr[i] = slab.alloc(sizeof(Object_identity_reference));
 
-	/* update state */
-	_state = (_state != PREPARE_REPLY) ? AWAIT_REPLY
-	                                   : PREPARE_AND_AWAIT_REPLY;
+	_state    = AWAIT_REPLY;
 	_callee   = callee;
 	_capid    = capid;
 	_help     = false;
@@ -205,9 +199,10 @@ Ipc_node * Ipc_node::helping_sink() {
 
 bool Ipc_node::await_request(unsigned rcv_caps)
 {
-	/* assertions */
-	assert(_state == INACTIVE);
-
+	if (_state != INACTIVE) {		
+		PERR("IPC await request: bad state");
+		return true;
+	}
 	Genode::Allocator &slab = pd()->platform_pd()->capability_slab();
 	for (unsigned i = 0; i < rcv_caps; i++)
 		_obj_id_ref_ptr[i] = slab.alloc(sizeof(Object_identity_reference));
@@ -229,12 +224,9 @@ bool Ipc_node::await_request(unsigned rcv_caps)
 void Ipc_node::send_reply()
 {
 	/* reply to the last request if we have to */
-	if (_state == PREPARE_REPLY) {
-		if (_caller != nullptr) {
-			_caller->_receive_reply(this);
-			_caller = nullptr;
-		}
-		_state = INACTIVE;
+	if (_state == INACTIVE && _caller) {
+		_caller->_receive_reply(this);
+		_caller = nullptr;
 	}
 }
 
@@ -251,10 +243,6 @@ void Ipc_node::cancel_waiting()
 		_state = INACTIVE;
 		_await_request_failed();
 		break;
-	case PREPARE_AND_AWAIT_REPLY:
-		_cancel_outbuf_request();
-		_state = PREPARE_REPLY;
-		_send_request_failed();
 		return;
 	default: return;
 	}
