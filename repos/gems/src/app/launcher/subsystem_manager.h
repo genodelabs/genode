@@ -73,7 +73,8 @@ class Launcher::Subsystem_manager
 			      Cap_session              &cap_session,
 			      size_t                    ram_quota,
 			      size_t                    ram_limit,
-			      Signal_context_capability yield_response_sig_cap)
+			      Signal_context_capability yield_response_sig_cap,
+			      Signal_context_capability exit_sig_cap)
 			:
 				Child_base(ram,
 				           label.string(),
@@ -81,7 +82,8 @@ class Launcher::Subsystem_manager
 				           cap_session,
 				           ram_quota,
 				           ram_limit,
-				           yield_response_sig_cap)
+				           yield_response_sig_cap,
+				           exit_sig_cap)
 			{ }
 		};
 
@@ -139,6 +141,8 @@ class Launcher::Subsystem_manager
 			_try_response_to_resource_request();
 		}
 
+		Genode::Signal_context_capability _exited_child_sig_cap;
+
 		Ram _ram { ram_preservation_from_config(),
 		           _yield_broadcast_dispatcher,
 		           _resource_avail_dispatcher };
@@ -179,9 +183,10 @@ class Launcher::Subsystem_manager
 
 	public:
 
-		Subsystem_manager(Server::Entrypoint &ep, Cap_session &cap)
+		Subsystem_manager(Server::Entrypoint &ep, Cap_session &cap,
+		                  Genode::Signal_context_capability exited_child_sig_cap)
 		:
-			_ep(ep), _cap(cap)
+			_ep(ep), _cap(cap), _exited_child_sig_cap(exited_child_sig_cap)
 		{ }
 
 		/**
@@ -204,7 +209,8 @@ class Launcher::Subsystem_manager
 				Child *child = new (env()->heap())
 					Child(_ram, label, binary_name.string(), _cap,
 					      ram_config.quantum, ram_config.limit,
-					      _yield_broadcast_dispatcher);
+					      _yield_broadcast_dispatcher,
+					      _exited_child_sig_cap);
 
 				/* configure child */
 				try {
@@ -230,6 +236,22 @@ class Launcher::Subsystem_manager
 					destroy(env()->heap(), c);
 					return;
 				}
+			}
+		}
+
+		/**
+		 * Call functor for each exited child
+		 *
+		 * The functor takes a 'Child_base::Label' as argument.
+		 */
+		template <typename FUNC>
+		void for_each_exited_child(FUNC const &func)
+		{
+			Child *next = nullptr;
+			for (Child *child = _children.first(); child; child = next) {
+				next = child->next();
+				if (child->exited())
+					func(child->label());
 			}
 		}
 };

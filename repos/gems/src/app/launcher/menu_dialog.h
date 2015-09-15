@@ -325,10 +325,9 @@ class Launcher::Menu_dialog : Input_event_handler, Dialog_generator,
 
 					if (!_running(hovered))
 						_start(hovered);
-				} else {
-					_touch("");
 				}
 
+				_touch("");
 				_clicked = Label("");
 				_click_in_progress = false;
 			}
@@ -359,6 +358,8 @@ class Launcher::Menu_dialog : Input_event_handler, Dialog_generator,
 			if (!visible)
 				_context_dialog.visible(false);
 		}
+
+		void kill(Child_base::Label const &label) { _kill(label); }
 
 		void update()
 		{

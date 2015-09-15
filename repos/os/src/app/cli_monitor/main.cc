@@ -131,6 +131,10 @@ int main(int argc, char **argv)
 	static Signal_context_capability kill_gdb_sig_cap =
 		sig_rec.manage(&kill_gdb_sig_ctx);
 
+	static Signal_context exited_child_sig_ctx;
+	static Signal_context_capability exited_child_sig_cap =
+		sig_rec.manage(&exited_child_sig_ctx);
+
 	static Ram ram(ram_preservation_from_config(),
 	               sig_rec.manage(&yield_broadcast_sig_ctx),
 	               sig_rec.manage(&resource_avail_sig_ctx));
@@ -142,10 +146,12 @@ int main(int argc, char **argv)
 	commands.insert(new Gdb_command(ram, cap, children,
 	                                subsystem_config_registry(),
 	                                yield_response_sig_cap,
-	                                kill_gdb_sig_cap));
+	                                kill_gdb_sig_cap,
+	                                exited_child_sig_cap));
 	commands.insert(new Start_command(ram, cap, children,
 	                                  subsystem_config_registry(),
-	                                  yield_response_sig_cap));
+	                                  yield_response_sig_cap,
+	                                  exited_child_sig_cap));
 	commands.insert(new Status_command(ram, children));
 	commands.insert(new Yield_command(children));
 	commands.insert(new Ram_command(children));
@@ -207,6 +213,18 @@ int main(int argc, char **argv)
 					Genode::destroy(Genode::env()->heap(), gdb_command_child);
 					line_editor.reset();
 					break;
+				}
+			}
+			continue;
+		}
+
+		if (signal.context() == &exited_child_sig_ctx) {
+			Child *next = nullptr;
+			for (Child *child = children.first(); child; child = next) {
+				next = child->next();
+				if (child->exited()) {
+					children.remove(child);
+					Genode::destroy(Genode::env()->heap(), child);
 				}
 			}
 			continue;

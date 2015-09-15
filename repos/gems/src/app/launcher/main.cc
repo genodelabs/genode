@@ -49,7 +49,10 @@ struct Launcher::Main
 	 */
 	Nitpicker::Connection nitpicker;
 
-	Subsystem_manager subsystem_manager { ep, cap };
+	Genode::Signal_rpc_member<Main> _exited_child_dispatcher =
+		{ ep, *this, &Main::_handle_exited_child };
+
+	Subsystem_manager subsystem_manager { ep, cap, _exited_child_dispatcher };
 
 	Menu_dialog menu_dialog { ep, cap, *env()->ram_session(), report_rom_slave,
 	                          subsystem_manager, nitpicker };
@@ -68,6 +71,12 @@ struct Launcher::Main
 
 	void handle_xray_update(unsigned);
 
+	void _handle_exited_child(unsigned)
+	{
+		auto kill_child_fn = [&] (Child_base::Label label) { menu_dialog.kill(label); };
+
+		subsystem_manager.for_each_exited_child(kill_child_fn);
+	}
 
 	/**
 	 * Constructor

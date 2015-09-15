@@ -36,6 +36,8 @@ class Gdb_command_child : public Child
 	private:
 
 		Genode::Signal_context_capability _kill_gdb_sig_cap;
+		Genode::Signal_context_capability _exit_sig_cap;
+
 		Terminal::Session &_terminal;
 
 		bool _kill_requested;
@@ -56,10 +58,12 @@ class Gdb_command_child : public Child
 		                  Genode::size_t                    ram_limit,
 		                  Genode::Signal_context_capability yield_response_sig_cap,
 		                  Genode::Signal_context_capability kill_gdb_sig_cap,
+		                  Genode::Signal_context_capability exit_sig_cap,
 		                  Terminal::Session                &terminal)
 		: Child(ram, label, binary, cap_session, ram_quota, ram_limit,
-		        yield_response_sig_cap),
+		        yield_response_sig_cap, exit_sig_cap),
 		  _kill_gdb_sig_cap(kill_gdb_sig_cap),
+		  _exit_sig_cap(exit_sig_cap),
 		  _terminal(terminal),
 		  _kill_requested(false)
 		  { }
@@ -138,6 +142,7 @@ class Gdb_command : public Command
 		Subsystem_config_registry &_subsystem_configs;
 		Signal_context_capability  _yield_response_sigh_cap;
 		Signal_context_capability  _kill_gdb_sig_cap;
+		Signal_context_capability  _exit_sig_cap;
 
 		/**
 		 * Generate the config node for the GDB subsystem
@@ -412,7 +417,7 @@ class Gdb_command : public Command
 				child = new (Genode::env()->heap())
 					Gdb_command_child(_ram, label, "init", _cap, ram, ram_limit,
 					                  _yield_response_sigh_cap, _kill_gdb_sig_cap,
-					                  terminal);
+					                  _exit_sig_cap, terminal);
 
 				/* configure child */
 				try {
@@ -455,13 +460,15 @@ class Gdb_command : public Command
 		Gdb_command(Ram &ram, Genode::Cap_session &cap, Child_registry &children,
 		            Subsystem_config_registry &subsustem_configs,
 		            Signal_context_capability yield_response_sigh_cap,
-		            Signal_context_capability kill_gdb_sig_cap)
+		            Signal_context_capability kill_gdb_sig_cap,
+		            Signal_context_capability exit_sig_cap)
 		:
 			Command("gdb", "create new subsystem with GDB"),
 			_ram(ram), _children(children), _cap(cap),
 			_subsystem_configs(subsustem_configs),
 			_yield_response_sigh_cap(yield_response_sigh_cap),
-			_kill_gdb_sig_cap(kill_gdb_sig_cap)
+			_kill_gdb_sig_cap(kill_gdb_sig_cap),
+			_exit_sig_cap(exit_sig_cap)
 		{
 			add_parameter(new Parameter("--ram",       Parameter::NUMBER, "initial RAM quota"));
 			add_parameter(new Parameter("--ram-limit", Parameter::NUMBER, "limit for expanding RAM quota"));

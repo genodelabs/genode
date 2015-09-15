@@ -33,6 +33,7 @@ class Start_command : public Command
 		Subsystem_config_registry &_subsystem_configs;
 		List<Argument>             _arguments;
 		Signal_context_capability  _yield_response_sigh_cap;
+		Signal_context_capability  _exit_sig_cap;
 
 		void _execute_subsystem(char const *name, Command_line &cmd,
 		                        Terminal::Session &terminal,
@@ -105,7 +106,7 @@ class Start_command : public Command
 				try {
 					child = new (Genode::env()->heap())
 						Child(_ram, label, binary_name, _cap, ram, ram_limit,
-						      _yield_response_sigh_cap);
+						      _yield_response_sigh_cap, _exit_sig_cap);
 				}
 				catch (Genode::Rom_connection::Rom_connection_failed) {
 					tprintf(terminal, "Error: could not obtain ROM module \"%s\"\n",
@@ -145,12 +146,14 @@ class Start_command : public Command
 
 		Start_command(Ram &ram, Genode::Cap_session &cap, Child_registry &children,
 		              Subsystem_config_registry &subsustem_configs,
-		              Signal_context_capability yield_response_sigh_cap)
+		              Signal_context_capability yield_response_sigh_cap,
+		              Signal_context_capability exit_sig_cap)
 		:
 			Command("start", "create new subsystem"),
 			_ram(ram), _children(children), _cap(cap),
 			_subsystem_configs(subsustem_configs),
-			_yield_response_sigh_cap(yield_response_sigh_cap)
+			_yield_response_sigh_cap(yield_response_sigh_cap),
+			_exit_sig_cap(exit_sig_cap)
 		{
 			add_parameter(new Parameter("--count",     Parameter::NUMBER, "number of instances"));
 			add_parameter(new Parameter("--ram",       Parameter::NUMBER, "initial RAM quota"));

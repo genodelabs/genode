@@ -26,6 +26,7 @@
 /* CLI-monitor includes */
 #include <cli_monitor/ram.h>
 
+
 class Child_base : public Genode::Child_policy
 {
 	public:
@@ -94,6 +95,11 @@ class Child_base : public Genode::Child_policy
 
 		Genode::Signal_context_capability _yield_response_sigh_cap;
 
+		Genode::Signal_context_capability _exit_sig_cap;
+
+		/* true if child is scheduled for destruction */
+		bool _exited = false;
+
 	public:
 
 		Child_base(Ram                              &ram,
@@ -102,7 +108,8 @@ class Child_base : public Genode::Child_policy
 		           Genode::Cap_session              &cap_session,
 		           Genode::size_t                    ram_quota,
 		           Genode::size_t                    ram_limit,
-		           Genode::Signal_context_capability yield_response_sig_cap)
+		           Genode::Signal_context_capability yield_response_sig_cap,
+		           Genode::Signal_context_capability exit_sig_cap)
 		:
 			_ram(ram),
 			_label(label),
@@ -117,7 +124,8 @@ class Child_base : public Genode::Child_policy
 			_child(_binary_rom.dataspace(), _resources.pd.cap(),
 			       _resources.ram.cap(), _resources.cpu.cap(),
 			       _resources.rm.cap(), &_entrypoint, this),
-			_yield_response_sigh_cap(yield_response_sig_cap)
+			_yield_response_sigh_cap(yield_response_sig_cap),
+			_exit_sig_cap(exit_sig_cap)
 		{ }
 
 		Label label() const { return _label; }
@@ -252,6 +260,11 @@ class Child_base : public Genode::Child_policy
 			                  requested_ram_quota());
 		}
 
+		/**
+		 * Return true if child exited and should be destructed
+		 */
+		bool exited() const { return _exited; }
+
 
 		/****************************
 		 ** Child_policy interface **
@@ -310,6 +323,15 @@ class Child_base : public Genode::Child_policy
 		{
 			_resource_args = args;
 			try_response_to_resource_request();
+		}
+
+		void exit(int exit_value) override
+		{
+			PINF("subsystem \"%s\" exited with value %d", name(), exit_value);
+			_exited = true;
+
+			/* trigger destruction of the child */
+			Genode::Signal_transmitter(_exit_sig_cap).submit();
 		}
 };
 
