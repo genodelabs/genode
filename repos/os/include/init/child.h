@@ -802,6 +802,23 @@ class Init::Child : Genode::Child_policy
 			_child.notify_resource_avail();
 		}
 
+		void exit(int exit_value) override
+		{
+			try {
+				if (_start_node.sub_node("exit").attribute("propagate").has_value("yes")) {
+					Genode::env()->parent()->exit(exit_value);
+					return;
+				}
+			} catch (...) { }
+
+			/*
+			 * Print a message as the exit is not handled otherwise. There are
+			 * a number of automated tests that rely on this message. It is
+			 * printed by the default implementation of 'Child_policy::exit'.
+			 */
+			Child_policy::exit(exit_value);
+		}
+
 		Genode::Native_pd_args const *pd_args() const { return &_pd_args; }
 };
 

@@ -299,6 +299,27 @@ as LOG output. To enable the verbose mode, assign the value "yes" to the
 'verbose' attribute of the '<config>' node.
 
 
+Propagation of exit events
+==========================
+
+A component can notify its parent about its graceful exit via the exit RPC
+function of the parent interface. By default, init responds to such a
+notification from one of its children by merely printing a log message but
+ignores it otherwise. However, there are scenarios where the exit of a
+particular child should result in the exit of the entire init component. To
+propagate the exit of a child to the parent of init, start nodes can host the
+optional sub node '<exit>' with the attribute 'propagate' set to "yes".
+
+! <config>
+!   <start name="noux">
+!     <exit propagate="yes"/>
+!     ...
+!   </start>
+! </config>
+
+The exit value specified by the exiting child is forwarded to init's parent.
+
+
 Executing children in chroot environments on Linux
 ==================================================
 
