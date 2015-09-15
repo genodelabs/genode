@@ -772,14 +772,14 @@ index 69e3109..141bb98 100644
  /**
   * Fetches the list of global or machine shared folders from the server.
   *
-@@ -8353,6 +8437,8 @@ DECLCALLBACK(void) Console::vmstateChangeCallback(PUVM pUVM, VMSTATE enmState, V
-     }
+@@ -8390,6 +8474,8 @@
+     pVMMDev->hgcmHostCall("VBoxSharedClipboard", VBOX_SHARED_CLIPBOARD_HOST_FN_SET_MODE, 1, &parm);
  }
  
 +#if 0
 +
  /**
-  * Changes the clipboard mode.
+  * Changes the drag'n_drop mode.
   *
 @@ -8426,7 +8512,7 @@ void Console::changeDragAndDropMode(DragAndDropMode_T aDragAndDropMode)
  

@@ -1,0 +1,20 @@
++++ a/src/app/virtualbox/src/VBox/HostServices/SharedFolders/service.cpp
+@@ -1445,7 +1489,7 @@
+     return rc;
+ }
+ 
+-extern "C" DECLCALLBACK(DECLEXPORT(int)) VBoxHGCMSvcLoad (VBOXHGCMSVCFNTABLE *ptable)
++extern "C" DECLCALLBACK(DECLEXPORT(int)) VBoxHGCMSvcLoad_sf (VBOXHGCMSVCFNTABLE *ptable)
+ {
+     int rc = VINF_SUCCESS;
+ 
++++ a/src/app/virtualbox/src/VBox/HostServices/SharedClipboard/service.cpp
+@@ -966,7 +966,7 @@
+     return VINF_SUCCESS;
+ }
+ 
+-extern "C" DECLCALLBACK(DECLEXPORT(int)) VBoxHGCMSvcLoad (VBOXHGCMSVCFNTABLE *ptable)
++extern "C" DECLCALLBACK(DECLEXPORT(int)) VBoxHGCMSvcLoad_cb (VBOXHGCMSVCFNTABLE *ptable)
+ {
+     int rc = VINF_SUCCESS;
+ 

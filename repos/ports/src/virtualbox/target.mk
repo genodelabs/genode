@@ -13,7 +13,7 @@ SRC_CC = frontend/main.cc frontend/console.cc \
          frontend/USBProxyDevice-genode.cpp \
          devices.cc drivers.cc dummies.cc libc.cc \
          logger.cc mm.cc pdm.cc pgm.cc rt.cc sup.cc iommio.cc ioport.cc \
-         hm.cc thread.cc dynlib.cc unimpl.cc  
+         hm.cc thread.cc dynlib.cc unimpl.cc
 
 LIBS  += base
 LIBS  += config_args
@@ -38,6 +38,8 @@ SRC_CC += HostServices/SharedFolders/mappings.cpp
 SRC_CC += HostServices/SharedFolders/vbsf.cpp
 SRC_CC += HostServices/SharedFolders/shflhandle.cpp
 
+SRC_CC += HostServices/SharedClipboard/service.cpp
+
 SRC_CC += frontend/dummy/errorinfo.cc frontend/dummy/virtualboxbase.cc
 SRC_CC += frontend/dummy/autostart.cc frontend/dummy/rest.cc
 SRC_CC += frontend/dummy/host.cc
@@ -50,6 +52,7 @@ INC_DIR += $(REP_DIR)/src/virtualbox/frontend/VBoxAPIWrap
 
 INC_DIR += $(VBOX_DIR)/Main/xml
 INC_DIR += $(VBOX_DIR)/Devices/USB
+INC_DIR += $(VBOX_DIR)/HostServices
 
 # search path to 'scan_code_set_2.h'
 INC_DIR += $(call select_from_repositories,src/drivers/input/spec/ps2)

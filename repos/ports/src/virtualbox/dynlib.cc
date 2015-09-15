@@ -22,14 +22,18 @@
 
 extern "C" {
 
-DECLCALLBACK(DECLEXPORT(int)) VBoxHGCMSvcLoad (VBOXHGCMSVCFNTABLE *ptable);
+DECLCALLBACK(DECLEXPORT(int)) VBoxHGCMSvcLoad_sf (VBOXHGCMSVCFNTABLE *ptable);
+DECLCALLBACK(DECLEXPORT(int)) VBoxHGCMSvcLoad_cb (VBOXHGCMSVCFNTABLE *ptable);
 
 
 static struct shared {
 	const char * name;
 	const char * symbol;
 	void * func;
-} shared[] = {{ "VBoxSharedFolders", VBOX_HGCM_SVCLOAD_NAME, (void *)VBoxHGCMSvcLoad }};
+} shared[] = {
+	{ "VBoxSharedFolders", VBOX_HGCM_SVCLOAD_NAME, (void *)VBoxHGCMSvcLoad_sf },
+	{ "VBoxSharedClipboard", VBOX_HGCM_SVCLOAD_NAME, (void *)VBoxHGCMSvcLoad_cb }
+};
 
 
 int RTLdrLoad(const char *pszFilename, PRTLDRMOD phLdrMod)

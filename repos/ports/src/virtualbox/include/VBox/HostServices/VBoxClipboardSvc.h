@@ -1,6 +1,0 @@
-#ifndef ___VBox_HostService_VBoxClipboardSvc_h
-#define ___VBox_HostService_VBoxClipboardSvc_h
-
-#define VBOX_SHARED_CLIPBOARD_HOST_FN_SET_HEADLESS  2
-
-#endif

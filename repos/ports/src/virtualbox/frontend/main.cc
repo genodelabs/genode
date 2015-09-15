@@ -145,6 +145,12 @@ HRESULT setupmachine()
 	ComPtr<IConsole> gConsole;
 	rc = session->COMGETTER(Console)(gConsole.asOutParam());
 
+	/* handle input of Genode and forward it to VMM layer */
+	ComPtr<GenodeConsole> genodeConsole = gConsole;
+	RTLogPrintf("genodeConsole = %p\n", genodeConsole);
+
+	genodeConsole->init_clipboard();
+
 	/* Display object */
 	ComPtr<IDisplay> display;
 	rc = gConsole->COMGETTER(Display)(display.asOutParam());
@@ -193,10 +199,6 @@ HRESULT setupmachine()
 	if (FAILED(rc))
 		return rc;
 	Assert (&*gKeyboard);
-
-	/* handle input of Genode and forward it to VMM layer */
-	ComPtr<GenodeConsole> genodeConsole = gConsole;
-	RTLogPrintf("genodeConsole = %p\n", genodeConsole);
 
 	genodeConsole->event_loop(gKeyboard, gMouse);
 
