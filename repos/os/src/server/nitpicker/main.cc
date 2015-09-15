@@ -933,6 +933,9 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 				report_session(_focus_reporter, session);
 			};
 			_ep.apply(session_cap, lambda);
+
+			if (_mode.xray())
+				_view_stack.update_all_views();
 		}
 
 		void session_control(Label suffix, Session_control control) override
