@@ -51,7 +51,11 @@ class Decorator::Window_base : public Window_list::Element
 				 right_sizer  = false,
 				 top_sizer    = false,
 				 bottom_sizer = false,
-				 title        = false;
+				 title        = false,
+				 closer       = false,
+				 minimizer    = false,
+				 maximizer    = false,
+				 unmaximizer  = false;
 
 			unsigned window_id = 0;
 
@@ -62,6 +66,10 @@ class Decorator::Window_base : public Window_list::Element
 				    || other.top_sizer    != top_sizer
 				    || other.bottom_sizer != bottom_sizer
 				    || other.title        != title
+				    || other.closer       != closer
+				    || other.minimizer    != minimizer
+				    || other.maximizer    != maximizer
+				    || other.unmaximizer  != unmaximizer
 				    || other.window_id    != window_id;
 			}
 		};

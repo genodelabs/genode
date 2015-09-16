@@ -19,10 +19,6 @@
 #include <os/attached_rom_dataspace.h>
 #include <os/reporter.h>
 
-/* Nitpicker graphics backend */
-#include <nitpicker_gfx/text_painter.h>
-#include <nitpicker_gfx/box_painter.h>
-
 /* decorator includes */
 #include <decorator/window_stack.h>
 #include <decorator/xml_utils.h>
@@ -104,11 +100,21 @@ struct Decorator::Main : Window_factory_base
 	Signal_dispatcher<Main> nitpicker_sync_dispatcher = {
 		sig_rec, *this, &Main::handle_nitpicker_sync };
 
+	Config config { *Genode::env()->heap() };
+
+	void handle_config(unsigned);
+
+	Signal_dispatcher<Main> config_dispatcher = {
+		sig_rec, *this, &Main::handle_config};
+
 	/**
 	 * Constructor
 	 */
 	Main(Signal_receiver &sig_rec) : sig_rec(sig_rec)
 	{
+		Genode::config()->sigh(config_dispatcher);
+		handle_config(0);
+
 		window_layout.sigh(window_layout_dispatcher);
 		pointer.sigh(pointer_dispatcher);
 
@@ -125,7 +131,7 @@ struct Decorator::Main : Window_factory_base
 		for (unsigned retry = 0 ; retry < 2; retry ++) {
 			try {
 				return new (env()->heap())
-					Window(attribute(window_node, "id", 0UL), nitpicker, animator);
+					Window(attribute(window_node, "id", 0UL), nitpicker, animator, config);
 			} catch (Nitpicker::Session::Out_of_metadata) {
 				PINF("Handle Out_of_metadata of nitpicker session - upgrade by 8K");
 				Genode::env()->parent()->upgrade(nitpicker.cap(), "ram_quota=8192");
@@ -142,6 +148,21 @@ struct Decorator::Main : Window_factory_base
 		Genode::destroy(env()->heap(), static_cast<Window *>(window));
 	}
 };
+
+
+void Decorator::Main::handle_config(unsigned)
+{
+	Genode::config()->reload();
+
+	config.update();
+
+	/* notify all windows to consider the updated policy */
+	window_stack.for_each_window([&] (Window_base &window) {
+		static_cast<Window &>(window).adapt_to_changed_config(); });
+
+	/* trigger redraw of the window stack */
+	handle_window_layout_update(0);
+}
 
 
 static Decorator::Window_base::Hover
@@ -181,6 +202,10 @@ static void update_hover_report(Genode::Xml_node pointer_node,
 					if (hover.top_sizer)    xml.node("top_sizer");
 					if (hover.bottom_sizer) xml.node("bottom_sizer");
 					if (hover.title)        xml.node("title");
+					if (hover.closer)       xml.node("closer");
+					if (hover.minimizer)    xml.node("minimizer");
+					if (hover.maximizer)    xml.node("maximizer");
+					if (hover.unmaximizer)  xml.node("unmaximizer");
 				});
 			}
 		});

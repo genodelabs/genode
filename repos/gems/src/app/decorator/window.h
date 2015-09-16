@@ -14,11 +14,12 @@
 #ifndef _WINDOW_H_
 #define _WINDOW_H_
 
-#include <util/lazy_value.h>
+/* Genode includes */
 #include <decorator/window.h>
 
-/* gems includes */
-#include <gems/animator.h>
+/* local includes */
+#include "config.h"
+#include "window_element.h"
 
 
 namespace Decorator { class Window; }
@@ -26,17 +27,15 @@ namespace Decorator { class Window; }
 
 class Decorator::Window : public Window_base
 {
-	public:
-
-		typedef Genode::String<200> Title;
-
 	private:
 
-		Title _title;
+		Window_title _title;
 
 		bool _focused = false;
 
 		Animator &_animator;
+
+		Config const &_config;
 
 		static unsigned const _corner_size = 16;
 		static unsigned const _border_size = 4;
@@ -49,141 +48,39 @@ class Decorator::Window : public Window_base
 		Color _bright = { 255, 255, 255, 64 };
 		Color _dark   = { 0, 0, 0, 127 };
 
-		Color _base_color() const { return Color(45, 49, 65); }
+		Color _base_color = _config.base_color(_title);
 
 		bool _has_alpha = false;
 
-		class Element : public Animator::Item
-		{
-			public:
+		Area const _icon_size { 16, 16 };
 
-				enum Type { TITLE, LEFT, RIGHT, TOP, BOTTOM,
-				            TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT,
-				            UNDEFINED };
 
-			private:
+		/*
+		 * Intensity of the title-bar radient in percent. A value of 0 produces
+		 * no gradient. A value of 100 creates a gradient from white over
+		 * 'color' to black.
+		 */
+		Lazy_value<int> _gradient_percent = _config.gradient_percent(_title);
 
-				static Color _add(Color c1, Color c2)
-				{
-					return Color(Genode::min(c1.r + c2.r, 255),
-					             Genode::min(c1.g + c2.g, 255),
-					             Genode::min(c1.b + c2.b, 255));
-				}
-
-				Type _type;
-
-				/*
-				 * Color value in 8.4 fixpoint format. We use four bits to
-				 * represent the fractional part to enable smooth
-				 * interpolation between the color values.
-				 */
-				Lazy_value<unsigned> _r, _g, _b;
-
-				bool _focused     = false;
-				bool _highlighted = false;
-
-				static Color _dst_color(bool focused, bool highlighted, Color base)
-				{
-					Color result = base;
-
-					if (focused)
-						result = _add(result, Color(70, 70, 70));
-
-					if (highlighted)
-						result = _add(result, Color(65, 60, 55));
-
-					return result;
-				}
-
-				unsigned _anim_steps(bool focused, bool highlighted) const
-				{
-					/* quick fade-in when gaining the focus or hover highlight */
-					if ((!_focused && focused) || (!_highlighted && highlighted))
-						return 15;
-
-					/* slow fade-out when leaving focus or hover highlight */
-					return 20;
-				}
-
-				bool _apply_state(bool focused, bool highlighted, Color base_color)
-				{
-					Color const dst_color = _dst_color(focused, highlighted, base_color);
-					unsigned const steps = _anim_steps(focused, highlighted);
-
-					_r.dst(dst_color.r << 4, steps);
-					_g.dst(dst_color.g << 4, steps);
-					_b.dst(dst_color.b << 4, steps);
-
-					/* schedule animation */
-					animate();
-
-					_focused     = focused;
-					_highlighted = highlighted;
-
-					return true;
-				}
-
-			public:
-
-				Element(Type type, Animator &animator, Color base_color)
-				:
-					Animator::Item(animator),
-					_type(type)
-				{
-					_apply_state(false, false, base_color);
-				}
-
-				Type type() const { return _type; }
-
-				char const *type_name() const
-				{
-					switch (_type) {
-					case UNDEFINED:    return "";
-					case TITLE:        return "title";
-					case LEFT:         return "left";
-					case RIGHT:        return "right";
-					case TOP:          return "top";
-					case BOTTOM:       return "bottom";
-					case TOP_LEFT:     return "top_left";
-					case TOP_RIGHT:    return "top_right";
-					case BOTTOM_LEFT:  return "bottom_left";
-					case BOTTOM_RIGHT: return "bottom_right";
-					}
-					return "";
-				}
-
-				Color color() const { return Color(_r >> 4, _g >> 4, _b >> 4); }
-
-				/**
-				 * \return true if state has changed
-				 */
-				bool apply_state(bool focused, bool highlighted, Color base_color)
-				{
-					if (_focused == focused && _highlighted == highlighted)
-						return false;
-
-					return _apply_state(focused, highlighted, base_color);
-				}
-
-				/**
-				 * Animator::Item interface
-				 */
-				void animate() override;
-		};
+		typedef Window_element Element;
 
 		/*
 		 * The element order must correspond to the order of enum values
 		 * because the type is used as index into the '_elements' array.
 		 */
-		Element _elements[9] { { Element::TITLE,        _animator, _base_color() },
-		                       { Element::LEFT,         _animator, _base_color() },
-		                       { Element::RIGHT,        _animator, _base_color() },
-		                       { Element::TOP,          _animator, _base_color() },
-		                       { Element::BOTTOM,       _animator, _base_color() },
-		                       { Element::TOP_LEFT,     _animator, _base_color() },
-		                       { Element::TOP_RIGHT,    _animator, _base_color() },
-		                       { Element::BOTTOM_LEFT,  _animator, _base_color() },
-		                       { Element::BOTTOM_RIGHT, _animator, _base_color() } };
+		Element _elements[13] { { Element::TITLE,        _animator, _base_color },
+		                        { Element::LEFT,         _animator, _base_color },
+		                        { Element::RIGHT,        _animator, _base_color },
+		                        { Element::TOP,          _animator, _base_color },
+		                        { Element::BOTTOM,       _animator, _base_color },
+		                        { Element::TOP_LEFT,     _animator, _base_color },
+		                        { Element::TOP_RIGHT,    _animator, _base_color },
+		                        { Element::BOTTOM_LEFT,  _animator, _base_color },
+		                        { Element::BOTTOM_RIGHT, _animator, _base_color },
+		                        { Element::CLOSER,       _animator, _base_color },
+		                        { Element::MAXIMIZE,     _animator, _base_color },
+		                        { Element::MINIMIZE,     _animator, _base_color },
+		                        { Element::UNMAXIMIZE,   _animator, _base_color } };
 
 		Element &element(Element::Type type)
 		{
@@ -196,6 +93,70 @@ class Decorator::Window : public Window_base
 		}
 
 		unsigned num_elements() const { return sizeof(_elements)/sizeof(Element); }
+
+		bool _apply_state(Window::Element::Type type, bool focused, bool highlighted)
+		{
+			return element(type).apply_state(_focused, highlighted, _base_color);
+		}
+
+		typedef Config::Window_control Control;
+
+		class Controls
+		{
+			public:
+
+				enum { MAX_CONTROLS = 10 };
+
+			private:
+
+				Control _controls[MAX_CONTROLS];
+	
+				unsigned _num = 0;
+
+			public:
+
+				/**
+				 * Add window control
+				 */
+				void add(Control control)
+				{
+					if (_num < MAX_CONTROLS)
+						_controls[_num++] = control;
+				}
+
+				unsigned num() const { return _num; }
+
+				class Index_out_of_range { };
+
+				/**
+				 * Obtain Nth window control
+				 */
+				Control control(unsigned n) const
+				{
+					if (n >= MAX_CONTROLS)
+						throw Index_out_of_range();
+
+					return _controls[n];
+				}
+
+				bool operator != (Controls const &other) const
+				{
+					if (_num != other._num) return true;
+
+					for (unsigned i = 0; i < _num; i++)
+						if (_controls[i] != other._controls[i])
+							return true;
+
+					return false;
+				}
+		};
+
+		Controls _controls;
+
+
+		/***********************
+		 ** Drawing utilities **
+		 ***********************/
 
 		void _draw_hline(Canvas_base &canvas, Point pos, unsigned w,
 		                 bool at_left, bool at_right,
@@ -235,13 +196,43 @@ class Decorator::Window : public Window_base
 			_draw_raised_frame(canvas, rect);
 		}
 
+		static Color _mix_colors(Color c1, Color c2, int alpha)
+		{
+			return Color((c1.r*alpha + c2.r*(255 - alpha)) >> 8,
+			             (c1.g*alpha + c2.g*(255 - alpha)) >> 8,
+			             (c1.b*alpha + c2.b*(255 - alpha)) >> 8);
+		}
+
 		void _draw_title_box(Canvas_base &canvas, Rect rect, Color color) const
 		{
-			canvas.draw_box(rect, color);
-			for (unsigned i = 0; i < rect.h(); i++)
+			/*
+			 * Produce gradient such that the upper half becomes brighter and
+			 * the lower half becomes darker. The gradient is created by mixing
+			 * the base color with white (for the upper half) and black (for
+			 * the lower half).
+			 */
+
+			/* alpha ascent as 8.8 fixpoint number */
+			int const ascent = (_gradient_percent*255 << 8) / (rect.h()*100);
+
+			int const mid_y = rect.h() / 2;
+
+			Color const white(255, 255, 255), black(0, 0, 0);
+
+			for (unsigned i = 0; i < rect.h(); i++) {
+
+				bool const upper_half = (int)i < mid_y;
+
+				int const alpha = upper_half
+				                ? (ascent*(mid_y - i)) >> 8
+				                : (ascent*(i - mid_y)) >> 8;
+
+				Color const line_color =
+					_mix_colors(upper_half ? white : black, color, alpha);
+
 				canvas.draw_box(Rect(rect.p1() + Point(0, i),
-				                     Area(rect.w(), 1)),
-				                     Color(255,255,255, 30 + (rect.h() - i)*4));
+				                     Area(rect.w(), 1)), line_color);
+			}
 
 			_draw_raised_frame(canvas, rect);
 		}
@@ -295,18 +286,57 @@ class Decorator::Window : public Window_base
 			            right || top, right || bottom, border, _dark);
 		}
 
-		bool _apply_state(Window::Element::Type type, bool focused, bool highlighted)
+		Color _window_control_color(Control window_control) const
 		{
-			return element(type).apply_state(_focused, highlighted, _base_color());
+			switch (window_control.type()) {
+			case Control::TYPE_CLOSER:      return element(Element::CLOSER).color();
+			case Control::TYPE_MAXIMIZER:   return element(Element::MAXIMIZE).color();
+			case Control::TYPE_MINIMIZER:   return element(Element::MINIMIZE).color();
+			case Control::TYPE_UNMAXIMIZER: return element(Element::UNMAXIMIZE).color();
+			case Control::TYPE_TITLE:       return element(Element::TITLE).color();
+			case Control::TYPE_UNDEFINED:   break;
+			};
+			return Color(0, 0, 0);
+		}
+
+		Texture_id _window_control_texture(Control window_control) const
+		{
+			switch (window_control.type()) {
+			case Control::TYPE_CLOSER:      return TEXTURE_ID_CLOSER;
+			case Control::TYPE_MAXIMIZER:   return TEXTURE_ID_MAXIMIZE;
+			case Control::TYPE_MINIMIZER:   return TEXTURE_ID_MINIMIZE;
+			case Control::TYPE_UNMAXIMIZER: return TEXTURE_ID_WINDOWED;
+			case Control::TYPE_TITLE:
+			case Control::TYPE_UNDEFINED:
+				break;
+			};
+
+			class No_texture_for_window_control { };
+			throw No_texture_for_window_control();
+		}
+
+		void _draw_window_control(Canvas_base &canvas, Rect rect,
+		                          Control control) const
+		{
+			_draw_title_box(canvas, rect, _window_control_color(control));
+
+			canvas.draw_texture(rect.p1() + Point(1,1),
+			                    _window_control_texture(control));
 		}
 
 	public:
 
-		Window(unsigned id, Nitpicker::Session_client &nitpicker, Animator &animator)
+		Window(unsigned id, Nitpicker::Session_client &nitpicker,
+		       Animator &animator, Config const &config)
 		:
 			Window_base(id, nitpicker, _border()),
-			_animator(animator)
+			_animator(animator), _config(config)
 		{ }
+
+		void adapt_to_changed_config()
+		{
+			_base_color = _config.base_color(_title);
+		}
 
 		void draw(Canvas_base &canvas, Rect clip, Draw_behind_fn const &) const override;
 
@@ -323,154 +353,5 @@ class Decorator::Window : public Window_base
 			return false;
 		}
 };
-
-
-void Decorator::Window::draw(Decorator::Canvas_base &canvas,
-                             Decorator::Rect clip,
-                             Draw_behind_fn const &draw_behind_fn) const
-{
-	Clip_guard clip_guard(canvas, clip);
-
-	Rect rect = outer_geometry();
-	Area corner(_corner_size, _corner_size);
-
-	Point p1 = rect.p1();
-	Point p2 = rect.p2();
-
-	if (_has_alpha)
-		draw_behind_fn.draw_behind(canvas, *this, canvas.clip());
-
-	_draw_corner(canvas, Rect(p1, corner), _border_size, true, true,
-	             element(Element::TOP_LEFT).color());
-
-	_draw_corner(canvas, Rect(Point(p1.x(), p2.y() - _corner_size + 1), corner),
-	             _border_size, true, false,
-	             element(Element::BOTTOM_LEFT).color());
-
-	_draw_corner(canvas, Rect(Point(p2.x() - _corner_size + 1, p1.y()), corner),
-	             _border_size, false, true,
-	             element(Element::TOP_RIGHT).color());
-
-	_draw_corner(canvas, Rect(Point(p2.x() - _corner_size + 1, p2.y() - _corner_size + 1), corner),
-	             _border_size, false, false,
-	             element(Element::BOTTOM_RIGHT).color());
-
-	_draw_raised_box(canvas, Rect(Point(p1.x() + _corner_size, p1.y()),
-	                              Area(rect.w() - 2*_corner_size, _border_size)),
-	                              element(Element::TOP).color());
-
-	_draw_raised_box(canvas, Rect(Point(p1.x() + _corner_size, p2.y() - _border_size + 1),
-	                              Area(rect.w() - 2*_corner_size, _border_size)),
-	                              element(Element::BOTTOM).color());
-
-	_draw_raised_box(canvas, Rect(Point(p1.x(), p1.y() + _corner_size),
-	                              Area(_border_size, rect.h() - 2*_corner_size)),
-	                              element(Element::LEFT).color());
-
-	_draw_raised_box(canvas, Rect(Point(p2.x() - _border_size + 1, p1.y() + _corner_size),
-	                              Area(_border_size, rect.h() - 2*_corner_size)),
-	                              element(Element::RIGHT).color());
-
-	Rect title_rect(Point(p1.x() + _border_size, p1.y() + _border_size),
-	                Area(rect.w() - 2*_border_size, _title_height));
-
-	_draw_title_box(canvas, title_rect, element(Element::TITLE).color());
-
-	char const * const text = _title.string();
-
-	Area const label_area(default_font().str_w(text),
-	                      default_font().str_h(text));
-
-	Point text_pos = title_rect.center(label_area) - Point(0, 1);
-
-	{
-		Clip_guard clip_guard(canvas, title_rect);
-
-		canvas.draw_text(text_pos + Point(1, 1), default_font(),
-		                 Color(0, 0, 0, 128), text);
-
-		Color title_color = element(Element::TITLE).color();
-
-		canvas.draw_text(text_pos, default_font(),
-		                 Color(255, 255, 255, (2*255 + title_color.r) / 3), text);
-	}
-}
-
-
-bool Decorator::Window::update(Genode::Xml_node window_node)
-{
-	bool updated = Window_base::update(window_node);
-
-	_focused = window_node.has_attribute("focused")
-	        && window_node.attribute("focused").has_value("yes");
-
-	_has_alpha = window_node.has_attribute("has_alpha")
-	          && window_node.attribute("has_alpha").has_value("yes");
-
-	try {
-		Xml_node highlight = window_node.sub_node("highlight");
-
-		for (unsigned i = 0; i < num_elements(); i++)
-			updated |= _apply_state(_elements[i].type(), _focused,
-			                        highlight.has_sub_node(_elements[i].type_name()));
-	} catch (...) {
-
-		/* window node has no "highlight" sub node, reset highlighting */
-		for (unsigned i = 0; i < num_elements(); i++)
-			updated |= _apply_state(_elements[i].type(), _focused, false);
-	}
-
-	Title title = Decorator::string_attribute(window_node, "title", Title("<untitled>"));
-	updated |= !(title == _title);
-	_title = title;
-
-	return updated;
-}
-
-
-Decorator::Window_base::Hover Decorator::Window::hover(Point abs_pos) const
-{
-	Hover hover;
-
-	if (!outer_geometry().contains(abs_pos))
-		return hover;
-
-	hover.window_id = id();
-
-	unsigned const x = abs_pos.x() - outer_geometry().x1(),
-	               y = abs_pos.y() - outer_geometry().y1();
-
-	Area const area = outer_geometry().area();
-
-	bool const at_border = x <  _border_size
-	                    || x >= area.w() - _border_size
-	                    || y <  _border_size
-	                    || y >= area.h() - _border_size;
-
-	if (at_border) {
-
-		hover.left_sizer   = (x < _corner_size);
-		hover.top_sizer    = (y < _corner_size);
-		hover.right_sizer  = (x >= area.w() - _corner_size);
-		hover.bottom_sizer = (y >= area.h() - _corner_size);
-
-	} else {
-
-		hover.title = (y < _border_size + _title_height);
-	}
-
-	return hover;
-}
-
-
-void Decorator::Window::Element::animate()
-{
-	_r.animate();
-	_g.animate();
-	_b.animate();
-
-	/* keep animation running until the destination values are reached */
-	Animator::Item::animated(_r != _r.dst() || _g != _g.dst() || _b != _b.dst());
-}
 
 #endif /* _WINDOW_H_ */

@@ -14,27 +14,31 @@
 #ifndef _CANVAS_H_
 #define _CANVAS_H_
 
+/* Painters of the nitpicker and scout graphics backends */
+#include <nitpicker_gfx/text_painter.h>
+#include <nitpicker_gfx/box_painter.h>
+#include <scout_gfx/icon_painter.h>
+
+/* decorator includes */
 #include <decorator/types.h>
 
 namespace Decorator {
+
 	typedef Text_painter::Font Font;
 	Font &default_font();
+
+	enum Texture_id {
+		TEXTURE_ID_CLOSER,
+		TEXTURE_ID_MINIMIZE,
+		TEXTURE_ID_MAXIMIZE,
+		TEXTURE_ID_WINDOWED
+	};
+
+	Genode::Texture_base const &texture_by_id(Texture_id);
+
+	class Canvas_base;
 	template <typename PT> class Canvas;
 	class Clip_guard;
-}
-
-
-#define FONT_START_SYMBOL _binary_droidsansb10_tff_start
-extern char FONT_START_SYMBOL;
-
-
-/**
- * Return default font
- */
-Decorator::Font &Decorator::default_font()
-{
-	static Font font(&FONT_START_SYMBOL);
-	return font;
 }
 
 
@@ -47,6 +51,7 @@ struct Decorator::Canvas_base
 	virtual void clip(Rect) = 0;
 	virtual void draw_box(Rect, Color) = 0;
 	virtual void draw_text(Point, Font const &, Color, char const *) = 0;
+	virtual void draw_texture(Point, Texture_id) = 0;
 };
 
 
@@ -74,6 +79,17 @@ class Decorator::Canvas : public Decorator::Canvas_base
 		               Color color, char const *string) override
 		{
 			Text_painter::paint(_surface, pos, font, color, string);
+		}
+
+		void draw_texture(Point pos, Texture_id id)
+		{
+			Genode::Texture<PT> const &texture =
+				static_cast<Genode::Texture<PT> const &>(texture_by_id(id));
+
+			unsigned const alpha = 255;
+
+			Icon_painter::paint(_surface, Rect(pos, texture.size()), texture, alpha);
+			                    
 		}
 };
 

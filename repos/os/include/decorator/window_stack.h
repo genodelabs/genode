@@ -114,6 +114,18 @@ class Decorator::Window_stack : public Window_base::Draw_behind_fn
 			return redraw_needed;
 		}
 
+		/**
+		 * Apply functor to each window
+		 *
+		 * The functor is called with 'Window_base &' as argument.
+		 */
+		template <typename FUNC>
+		void for_each_window(FUNC const &func)
+		{
+			for (Window_base *win = _windows.first(); win; win = win->next())
+				func(*win);
+		}
+
 		void update_nitpicker_views()
 		{
 			/*
