@@ -51,8 +51,9 @@ static inline void lwip_FD_SET(int lwip_fd, lwip_fd_set *set)
 	FD_SET(lwip_fd, set);
 }
 
-static const long lwip_FIONBIO = FIONBIO;
-static const long lwip_FIONREAD = FIONREAD;
+static constexpr long lwip_FIONBIO = FIONBIO;
+static constexpr long lwip_FIONREAD = FIONREAD;
+static constexpr int  lwip_O_NONBLOCK = O_NONBLOCK;
 
 /* undefine lwip type names that are also defined in libc headers and have
  * been renamed to lwip_*() */
@@ -65,6 +66,7 @@ static const long lwip_FIONREAD = FIONREAD;
 
 /* undefine lwip macros that are also defined in libc headers and cannot be
  * renamed */
+#undef AF_INET6
 #undef BIG_ENDIAN
 #undef BYTE_ORDER
 #undef FD_CLR
@@ -73,6 +75,8 @@ static const long lwip_FIONREAD = FIONREAD;
 #undef FD_ZERO
 #undef FIONBIO
 #undef FIONREAD
+#undef O_NDELAY
+#undef O_NONBLOCK
 #undef HOST_NOT_FOUND
 #undef IOCPARM_MASK
 #undef IOC_VOID
@@ -110,6 +114,7 @@ static const long lwip_FIONREAD = FIONREAD;
 
 #include <assert.h>
 #include <sys/ioctl.h>
+#include <sys/fcntl.h>
 
 
 namespace {
@@ -320,15 +325,20 @@ int Plugin::fcntl(Libc::File_descriptor *sockfdo, int cmd, long val)
 
 	switch (cmd) {
 	case F_GETFL:
+		/* lwip_fcntl() supports only the 'O_NONBLOCK' flag */
+		result = lwip_fcntl(s, cmd, val);
+		if (result == lwip_O_NONBLOCK)
+			result = O_NONBLOCK;
+		break;
 	case F_SETFL:
 		/*
-                 * lwip_fcntl() supports only the 'O_NONBLOCK' flag and only if
-                 * no other flag is set.
-                 */
-		result = lwip_fcntl(s, cmd, val & O_NONBLOCK);
+		 * lwip_fcntl() supports only the 'O_NONBLOCK' flag and only if
+		 * no other flag is set.
+		 */
+		result = lwip_fcntl(s, cmd, (val & O_NONBLOCK) ? lwip_O_NONBLOCK : 0);
 		break;
 	default:
-		PERR("unsupported fcntl() request: %d", cmd);
+		PERR("libc_lwip: unsupported fcntl() request: %d", cmd);
 		break;
 	}
 
@@ -381,16 +391,16 @@ int Plugin::getsockopt(Libc::File_descriptor *sockfdo, int level,
 int Plugin::ioctl(Libc::File_descriptor *sockfdo, int request, char *argp)
 {
 	switch (request) {
-		case FIONBIO:
-			return lwip_ioctl(get_lwip_fd(sockfdo), lwip_FIONBIO, argp);
-			break;
-		case FIONREAD:
-			return lwip_ioctl(get_lwip_fd(sockfdo), lwip_FIONREAD, argp);;
-			break;
-		default:
-			PERR("unsupported ioctl() request");
-			errno = ENOSYS;
-			return -1;
+	case FIONBIO:
+		return lwip_ioctl(get_lwip_fd(sockfdo), lwip_FIONBIO, argp);
+		break;
+	case FIONREAD:
+		return lwip_ioctl(get_lwip_fd(sockfdo), lwip_FIONREAD, argp);;
+		break;
+	default:
+		PERR("unsupported ioctl() request");
+		errno = ENOSYS;
+		return -1;
 	}
 }
 
