@@ -15,6 +15,7 @@
 #define _INCLUDE__GEMS__CHUNKY_TEXTURE_H_
 
 #include <os/surface.h>
+#include <os/texture.h>
 #include <os/attached_ram_dataspace.h>
 
 template <typename PT>
