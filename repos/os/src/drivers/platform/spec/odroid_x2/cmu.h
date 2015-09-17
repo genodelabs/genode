@@ -139,7 +139,7 @@ class Cmu : public Regulator::Driver,
 		/***********************
 		 ** CMU TOP registers **
 		 ***********************/
-		struct Clk_gate_ip_tv : Register<0x10928, 32>  
+		struct Clk_gate_ip_tv : Register<0x10928, 32>
 		{
 			struct Clk_mixer     : Bitfield<1, 1> { };
 			struct Clk_hdmi      : Bitfield<3, 1> { };
@@ -171,7 +171,7 @@ class Cmu : public Regulator::Driver,
 
 		struct Clk_gate_block : Register<0xC970, 32>
 		{
-			struct Clk_tv 	 : Bitfield<1, 1> { };			
+			struct Clk_tv 	 : Bitfield<1, 1> { };
 		};
 
 		/*******************

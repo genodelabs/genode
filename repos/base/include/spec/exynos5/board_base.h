@@ -74,15 +74,19 @@ struct Genode::Exynos5
 		/* SD card */
 		SDMMC0_IRQ = 107,
 
-		/*HDMI memory map and irqs*/
-		/*Mixer base*/
+
+		/******************************
+		 ** HDMI memory map and irqs **
+		 ******************************/
+
+		/* Mixer base */
 		MIXER_BASE = 0x14450000,
 
-		/*HDMI base */
-		HDMI_BASE  = 0x14530000,
+		/* HDMI base */
+		HDMI_BASE = 0x14530000,
 
-		/*IC2 BASE*/
-		I2C_BASE = 0x12ce0000,		
+		/* I2C BASE */
+		I2C_BASE = 0x12ce0000,
 
 		/* I2C */
 		I2C_HDMI_IRQ = 96,

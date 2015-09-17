@@ -52,21 +52,25 @@ struct Genode::Board_base : Exynos4
 		MCT_IRQ_L3    = 28,
 
 		TIMER_IRQ = 28,
-		
-		/*USB IRQ*/
-		USB_HOST20_IRQ = 102, 
 
-		/*HDMI memory map and irqs*/
-		/*Mixer base*/
+		/* USB IRQ */
+		USB_HOST20_IRQ = 102,
+
+
+		/******************************
+		 ** HDMI memory map and irqs **
+		 ******************************/
+
+		/* Mixer base */
 		MIXER_BASE = 0x12C10000,
 
-		/*HDMI base */
+		/* HDMI base */
 		HDMI_BASE  = 0x12D00000,
 
-		/*IC2 BASE*/
+		/* IC2 BASE*/
 		I2C_BASE = 0x138E0000,
-		
-		/*HDMI IRQ*/
+
+		/* HDMI IRQ*/
 		I2C_HDMI_IRQ = 125,
 
 		/* wether board provides security extension */
