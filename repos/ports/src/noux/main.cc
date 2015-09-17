@@ -1002,6 +1002,55 @@ Terminal::Connection *Noux::terminal()
 }
 
 
+static Noux::Io_channel *connect_stdio(Vfs::Dir_file_system            &root,
+                                       Noux::Terminal_io_channel::Type  type,
+                                       Genode::Signal_receiver         &sig_rec)
+{
+	using namespace Vfs;
+	using namespace Noux;
+	typedef Terminal_io_channel Tio; /* just a local abbreviation */
+
+	char path[MAX_PATH_LEN];
+	Vfs_handle *vfs_handle = nullptr;
+	char const *stdio_name = "";
+	unsigned mode = 0;
+
+	switch (type) {
+	case Tio::STDIN:
+		stdio_name = "stdin";
+		mode = Directory_service::OPEN_MODE_RDONLY;
+		break;
+	case Tio::STDOUT:
+		stdio_name = "stdout";
+		mode = Directory_service::OPEN_MODE_WRONLY;
+		break;
+	case Tio::STDERR:
+		stdio_name = "stderr";
+		mode = Directory_service::OPEN_MODE_WRONLY;
+		break;
+	};
+
+	try {
+		config()->xml_node().attribute(stdio_name).value(
+			path, sizeof(path));
+
+		if (root.open(path, mode, &vfs_handle) != Directory_service::OPEN_OK) {
+			PERR("failed to connect %s to '%s'", stdio_name, path);
+			Genode::env()->parent()->exit(1);
+		}
+
+		return new (Genode::env()->heap())
+			Vfs_io_channel("", path, &root, vfs_handle, sig_rec);
+
+	} catch (Genode::Xml_node::Nonexistent_attribute) {
+		PWRN("%s VFS path not defined, connecting to Terminal session", stdio_name);
+	}
+
+	return new (Genode::env()->heap())
+		Tio(*Noux::terminal(), type, sig_rec);
+}
+
+
 Genode::Dataspace_capability Noux::ldso_ds_cap()
 {
 	try {
@@ -1135,9 +1184,9 @@ int main(int argc, char **argv)
 	 */
 	typedef Terminal_io_channel Tio; /* just a local abbreviation */
 	Shared_pointer<Io_channel>
-		channel_0(new Tio(*Noux::terminal(), Tio::STDIN,  sig_rec), Genode::env()->heap()),
-		channel_1(new Tio(*Noux::terminal(), Tio::STDOUT, sig_rec), Genode::env()->heap()),
-		channel_2(new Tio(*Noux::terminal(), Tio::STDERR, sig_rec), Genode::env()->heap());
+		channel_0(connect_stdio(root_dir, Tio::STDIN,  sig_rec), Genode::env()->heap()),
+		channel_1(connect_stdio(root_dir, Tio::STDOUT, sig_rec), Genode::env()->heap()),
+		channel_2(connect_stdio(root_dir, Tio::STDERR, sig_rec), Genode::env()->heap());
 
 	init_child->add_io_channel(channel_0, 0);
 	init_child->add_io_channel(channel_1, 1);

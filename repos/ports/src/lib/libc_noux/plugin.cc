@@ -1450,8 +1450,9 @@ namespace {
 		if (!noux_syscall(Noux::Session::SYSCALL_FTRUNCATE)) {
 			switch (sysio()->error.ftruncate) {
 			case Vfs::File_io_service::FTRUNCATE_OK: /* never reached */
-			case Vfs::File_io_service::FTRUNCATE_ERR_NO_PERM:   errno = EPERM; break;
-			case Vfs::File_io_service::FTRUNCATE_ERR_INTERRUPT: errno = EINTR; break;
+			case Vfs::File_io_service::FTRUNCATE_ERR_NO_PERM:   errno = EPERM;  break;
+			case Vfs::File_io_service::FTRUNCATE_ERR_INTERRUPT: errno = EINTR;  break;
+			case Vfs::File_io_service::FTRUNCATE_ERR_NO_SPACE:  errno = ENOSPC; break;
 			}
 			return -1;
 		}

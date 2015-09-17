@@ -126,7 +126,7 @@ namespace Noux {
 
 			void close(Genode::Session_capability session)
 			{
-				Dataspace_info *info;
+				Dataspace_info *info = nullptr;;
 
 				auto lambda = [&] (Rm_session_component *rm_session) {
 					if (!rm_session) {
