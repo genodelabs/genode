@@ -15,9 +15,9 @@
 #ifndef _CORE__INCLUDE__PLATFORM_H_
 #define _CORE__INCLUDE__PLATFORM_H_
 
-#include <base/sync_allocator.h>
 #include <base/allocator_avl.h>
 
+#include "synced_range_allocator.h"
 #include "platform_generic.h"
 #include "platform_thread.h"
 #include "platform_pd.h"
@@ -33,7 +33,7 @@ namespace Genode {
 			/*
 			 * Shortcut for the type of allocator instances for physical resources
 			 */
-			typedef Synchronized_range_allocator<Allocator_avl> Phys_allocator;
+			typedef Synced_range_allocator<Allocator_avl> Phys_allocator;
 
 			char             _core_label[1];  /* to satisfy _core_pd */
 			Platform_pd     *_core_pd;        /* core protection domain object */

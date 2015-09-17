@@ -15,13 +15,13 @@
 #ifndef _CORE__INCLUDE__LINUX__PLATFORM_H_
 #define _CORE__INCLUDE__LINUX__PLATFORM_H_
 
-#include <base/sync_allocator.h>
 #include <base/allocator_avl.h>
 #include <base/lock_guard.h>
 
 #include <platform_generic.h>
 #include <platform_pd.h>
 #include <platform_thread.h>
+#include <synced_range_allocator.h>
 
 namespace Genode {
 
@@ -34,7 +34,7 @@ namespace Genode {
 			/**
 			 * Allocator for core-internal meta data
 			 */
-			Synchronized_range_allocator<Allocator_avl> _core_mem_alloc;
+			Synced_range_allocator<Allocator_avl> _core_mem_alloc;
 
 			/**
 			 * Allocator for pseudo physical memory

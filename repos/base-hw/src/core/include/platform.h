@@ -16,7 +16,7 @@
 #define _CORE__INCLUDE__PLATFORM_H_
 
 /* Genode includes */
-#include <base/sync_allocator.h>
+#include <base/synced_allocator.h>
 #include <base/allocator_avl.h>
 #include <irq_session/irq_session.h>
 
@@ -45,8 +45,6 @@ namespace Genode {
 	class Platform : public Platform_generic
 	{
 		private:
-
-			typedef Core_mem_allocator::Phys_allocator Phys_allocator;
 
 			Core_mem_allocator _core_mem_alloc; /* core-accessible memory */
 			Phys_allocator     _io_mem_alloc;   /* MMIO allocator         */

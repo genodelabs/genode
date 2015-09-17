@@ -53,14 +53,12 @@ static int num_boot_module_objects;
  ** Support for core memory management **
  ****************************************/
 
-bool Core_mem_allocator::Mapped_mem_allocator::_map_local(addr_t virt_addr,
-                                                          addr_t phys_addr,
-                                                          unsigned size) {
+bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr,
+                                      unsigned size) {
 	return map_local(phys_addr, virt_addr, size / get_page_size()); }
 
 
-bool Core_mem_allocator::Mapped_mem_allocator::_unmap_local(addr_t virt_addr,
-                                                            unsigned size) {
+bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, unsigned size) {
 	return unmap_local(virt_addr, size / get_page_size()); }
 
 
@@ -284,11 +282,11 @@ Platform::Platform() :
 	 * hold the meta data for the ROM modules as initialized by '_setup_rom'.
 	 */
 	if (verbose_boot_info) {
-		printf(":phys_alloc: ");   _core_mem_alloc.phys_alloc()->raw()->dump_addr_tree();
-		printf(":virt_alloc: ");   _core_mem_alloc.virt_alloc()->raw()->dump_addr_tree();
-		printf(":io_mem: ");       _io_mem_alloc.raw()->dump_addr_tree();
-		printf(":io_port: ");      _io_port_alloc.raw()->dump_addr_tree();
-		printf(":irq: ");          _irq_alloc.raw()->dump_addr_tree();
+		printf(":phys_alloc: ");   (*_core_mem_alloc.phys_alloc())()->dump_addr_tree();
+		printf(":virt_alloc: ");   (*_core_mem_alloc.virt_alloc())()->dump_addr_tree();
+		printf(":io_mem: ");       _io_mem_alloc()->dump_addr_tree();
+		printf(":io_port: ");      _io_port_alloc()->dump_addr_tree();
+		printf(":irq: ");          _irq_alloc()->dump_addr_tree();
 		printf(":rom_fs: ");       _rom_fs.print_fs();
 	}
 

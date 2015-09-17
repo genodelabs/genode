@@ -21,7 +21,7 @@
 /* Genode includes */
 #include <base/allocator_avl.h>
 #include <base/exception.h>
-#include <base/sync_allocator.h>
+#include <base/synced_allocator.h>
 #include <platform_thread.h>
 #include <base/thread.h>
 

@@ -159,23 +159,23 @@ Platform::Platform()
 	if (VERBOSE) {
 		printf("Core virtual memory allocator\n");
 		printf("---------------------\n");
-		_core_mem_alloc.virt_alloc()->raw()->dump_addr_tree();
+		(*_core_mem_alloc.virt_alloc())()->dump_addr_tree();
 		printf("\n");
 		printf("RAM memory allocator\n");
 		printf("---------------------\n");
-		_core_mem_alloc.phys_alloc()->raw()->dump_addr_tree();
+		(*_core_mem_alloc.phys_alloc())()->dump_addr_tree();
 		printf("\n");
 		printf("IO memory allocator\n");
 		printf("-------------------\n");
-		_io_mem_alloc.raw()->dump_addr_tree();
+		_io_mem_alloc()->dump_addr_tree();
 		printf("\n");
 		printf("IO port allocator\n");
 		printf("-------------------\n");
-		_io_port_alloc.raw()->dump_addr_tree();
+		_io_port_alloc()->dump_addr_tree();
 		printf("\n");
 		printf("IRQ allocator\n");
 		printf("-------------------\n");
-		_irq_alloc.raw()->dump_addr_tree();
+		_irq_alloc()->dump_addr_tree();
 		printf("\n");
 		printf("ROM filesystem\n");
 		printf("--------------\n");
@@ -217,12 +217,10 @@ bool Genode::unmap_local(addr_t virt_addr, size_t num_pages)
 }
 
 
-bool Core_mem_allocator::Mapped_mem_allocator::_map_local(addr_t   virt_addr,
-                                                          addr_t   phys_addr,
-                                                          unsigned size) {
+bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr,
+                                      unsigned size) {
 	return ::map_local(phys_addr, virt_addr, size / get_page_size()); }
 
 
-bool Core_mem_allocator::Mapped_mem_allocator::_unmap_local(addr_t   virt_addr,
-                                                            unsigned size) {
+bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, unsigned size) {
 	return ::unmap_local(virt_addr, size / get_page_size()); }

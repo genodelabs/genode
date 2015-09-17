@@ -754,7 +754,7 @@ Rm_session_component::~Rm_session_component()
 		faulter->dissolve_from_faulting_rm_session(this);
 
 	/* remove all clients, invalidate rm_client pointers in cpu_thread objects */
-	while (Rm_client *cl = _client_slab.raw()->first_object()) {
+	while (Rm_client *cl = _client_slab()->first_object()) {
 		cl->dissolve_from_faulting_rm_session(this);
 
 		Thread_capability thread_cap = cl->thread_cap();

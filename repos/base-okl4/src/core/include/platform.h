@@ -35,7 +35,6 @@ namespace Genode {
 	{
 		private:
 
-			using Phys_allocator = Core_mem_allocator::Phys_allocator;
 			using Rom_slab       = Tslab<Rom_module, get_page_size()>;
 			using Thread_slab    = Tslab<Platform_thread, get_page_size()>;
 

@@ -30,9 +30,6 @@ class Genode::Platform : public Platform_generic
 {
 	private:
 
-		typedef Core_mem_allocator::Phys_allocator Phys_allocator;
-
-
 		Core_mem_allocator _core_mem_alloc; /* core-accessible memory */
 		Phys_allocator     _io_mem_alloc;   /* MMIO allocator         */
 		Phys_allocator     _io_port_alloc;  /* I/O port allocator     */
