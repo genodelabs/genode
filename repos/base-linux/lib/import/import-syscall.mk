@@ -3,7 +3,13 @@ HOST_INC_DIR += /usr/include
 
 # needed for Ubuntu >= 11.04
 HOST_INC_DIR += /usr/include/$(shell gcc -dumpmachine)
+
+#
+# Explicitly add some well-known paths as the dumpmachine magic above does not
+# suffice on all Linux distros (e.g., Debian Stretch).
+#
 HOST_INC_DIR += /usr/include/i386-linux-gnu
+HOST_INC_DIR += /usr/include/x86_64-linux-gnu
 
 #
 # Some header files installed on GNU/Linux test for the GNU compiler. For
