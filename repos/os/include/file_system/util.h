@@ -121,7 +121,6 @@ namespace File_system {
 
 			Packet_descriptor
 				packet(source.alloc_packet(curr_packet_size),
-				       0,
 				       node_handle,
 				       File_system::Packet_descriptor::READ,
 				       curr_packet_size,
@@ -178,7 +177,6 @@ namespace File_system {
 
 			Packet_descriptor
 				packet(source.alloc_packet(curr_packet_size),
-				       0,
 				       node_handle,
 				       File_system::Packet_descriptor::WRITE,
 				       curr_packet_size,
