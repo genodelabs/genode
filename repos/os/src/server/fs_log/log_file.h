@@ -74,7 +74,6 @@ class Fs_log::Log_file : public List<Log_file>::Element
 
 			File_system::Packet_descriptor
 				packet(raw_packet,
-				       0, /* The result struct. */
 				       _handle, File_system::Packet_descriptor::WRITE,
 				       msg_len, _offset);
 

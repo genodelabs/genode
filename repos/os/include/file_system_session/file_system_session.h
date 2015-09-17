@@ -28,15 +28,6 @@ namespace File_system {
 	struct Dir_handle;
 	struct Symlink_handle;
 
-	/**
-	 * Type of client context embedded in each packet descriptor
-	 *
-	 * Using the opaque refererence, the client is able to attribute incoming
-	 * packet acknowledgements to a context that is meaningful for the client.
-	 * It has no meaning at the server side.
-	 */
-	struct Packet_ref;
-
 	typedef Genode::uint64_t seek_off_t;
 	typedef Genode::uint64_t file_size_t;
 
@@ -123,8 +114,6 @@ class File_system::Packet_descriptor : public Genode::Packet_descriptor
 		seek_off_t  _position; /* seek offset in bytes */
 		size_t      _length;   /* transaction length in bytes */
 		bool        _success;  /* indicates success of operation */
-		Packet_ref *_ref;      /* opaque reference used at the client side
-		                          for recognizing acknowledgements */
 
 	public:
 
@@ -141,14 +130,13 @@ class File_system::Packet_descriptor : public Genode::Packet_descriptor
 		 *
 		 * \param position  seek offset in bytes (by default, append)
 		 */
-		Packet_descriptor(Packet_descriptor p, Packet_ref *ref,
+		Packet_descriptor(Packet_descriptor p,
 		                  Node_handle handle, Opcode op, size_t length,
 		                  seek_off_t position = ~0)
 		:
 			Genode::Packet_descriptor(p.offset(), p.size()),
 			_handle(handle), _op(op),
-			_position(position), _length(length), _success(false),
-			_ref(ref)
+			_position(position), _length(length), _success(false)
 		{ }
 
 		Node_handle handle()    const { return _handle;   }
@@ -156,7 +144,6 @@ class File_system::Packet_descriptor : public Genode::Packet_descriptor
 		seek_off_t  position()  const { return _position; }
 		size_t      length()    const { return _length;   }
 		bool        succeeded() const { return _success;  }
-		Packet_ref *ref()       const { return _ref;      }
 
 		/*
 		 * Accessors called at the server side

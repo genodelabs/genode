@@ -100,7 +100,6 @@ class Vfs::Fs_file_system : public File_system
 
 			::File_system::Packet_descriptor const
 				packet_in(source.alloc_packet(clipped_count),
-				          0,
 				          node_handle,
 				          ::File_system::Packet_descriptor::READ,
 				          clipped_count,
@@ -137,7 +136,6 @@ class Vfs::Fs_file_system : public File_system
 
 			::File_system::Packet_descriptor
 				packet(source.alloc_packet(count),
-				       0,
 				       node_handle,
 				       ::File_system::Packet_descriptor::WRITE,
 				       count,
@@ -217,7 +215,6 @@ class Vfs::Fs_file_system : public File_system
 
 					::File_system::Packet_descriptor
 						packet(source.alloc_packet(count),
-							   0,
 							   file,
 							   ::File_system::Packet_descriptor::READ,
 							   count,
@@ -298,7 +295,6 @@ class Vfs::Fs_file_system : public File_system
 
 			::File_system::Packet_descriptor
 				packet(source.alloc_packet(DIRENT_SIZE),
-				       0,
 				       dir_handle,
 				       ::File_system::Packet_descriptor::READ,
 				       DIRENT_SIZE,
