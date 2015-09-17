@@ -73,7 +73,7 @@ struct Genode::Board_base : Exynos4
 		/* HDMI IRQ */
 		I2C_HDMI_IRQ = 125,
 
-		/*GPIO*/
+		/* GPIO */
 		GPIO1_MMIO_BASE = 0x11400000,
 		GPIO1_MMIO_SIZE = 0x0F88,
 		GPIO1_IRQ       = 79,  //TODO Check the irq number

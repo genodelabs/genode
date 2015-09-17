@@ -27,17 +27,16 @@
 
 struct Main
 {
-	Server::Entrypoint   &ep;
-	Genode::Sliced_heap  sliced_heap;
-	Gpio::Odroid_x2_driver     &driver;
-	Gpio::Root           root;
+	Server::Entrypoint     &ep;
+	Genode::Sliced_heap     sliced_heap;
+	Gpio::Odroid_x2_driver &driver;
+	Gpio::Root              root;
 
 	Main(Server::Entrypoint &ep)
-	:
-		ep(ep),
-		sliced_heap(Genode::env()->ram_session(), Genode::env()->rm_session()),
-		driver(Gpio::Odroid_x2_driver::factory(ep)),
-		root(&ep.rpc_ep(), &sliced_heap, driver)
+	: ep(ep),
+	  sliced_heap(Genode::env()->ram_session(), Genode::env()->rm_session()),
+	  driver(Gpio::Odroid_x2_driver::factory(ep)),
+	  root(&ep.rpc_ep(), &sliced_heap, driver)
 	{
 		using namespace Genode;
 
