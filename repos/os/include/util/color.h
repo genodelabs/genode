@@ -34,6 +34,12 @@ struct Genode::Color
 	: r(red), g(green), b(blue), a(alpha) { }
 
 	Color(): r(0), g(0), b(0), a(0) { }
+
+	bool operator == (Color const &other) const {
+		return other.r == r && other.g == g && other.b == b; }
+
+	bool operator != (Color const &other) const {
+		return !operator == (other); }
 };
 
 
