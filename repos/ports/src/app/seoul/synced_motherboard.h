@@ -15,7 +15,7 @@
 #define _SYNCED_MOTHERBOARD_H_
 
 #include <nul/motherboard.h>
-#include <os/synced_interface.h>
+#include <base/synced_interface.h>
 
 typedef Genode::Synced_interface<Motherboard> Synced_motherboard;
 

@@ -291,7 +291,7 @@ Ram_session_component::Ram_session_component(Rpc_entrypoint  *ds_ep,
 Ram_session_component::~Ram_session_component()
 {
 	/* destroy all dataspaces */
-	for (Dataspace_component *ds; (ds = _ds_slab.raw()->first_object()); _free_ds(ds));
+	for (Dataspace_component *ds; (ds = _ds_slab()->first_object()); _free_ds(ds));
 
 	if (_payload != 0)
 		PWRN("Remaining payload of %zu in ram session to destroy", _payload);

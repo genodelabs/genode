@@ -22,7 +22,7 @@
 #include <pager.h>
 #include <base/allocator_avl.h>
 #include <base/allocator_guard.h>
-#include <base/sync_allocator.h>
+#include <base/synced_allocator.h>
 #include <base/signal.h>
 #include <base/rpc_server.h>
 #include <util/list.h>
@@ -263,7 +263,7 @@ namespace Genode {
 			};
 
 
-			typedef Synchronized_allocator<Tslab<Rm_client, 1024> > Client_slab_alloc;
+			typedef Synced_allocator<Tslab<Rm_client, 1024> > Client_slab_alloc;
 			Client_slab_alloc              _client_slab; /* backing store for
 			                                                client structures, synchronized */
 			Tslab<Rm_region_ref, 1024>    _ref_slab;     /* backing store for

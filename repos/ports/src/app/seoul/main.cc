@@ -44,7 +44,7 @@
 #include <nic/packet_allocator.h>
 #include <os/config.h>
 #include <os/alarm.h>
-#include <os/synced_interface.h>
+#include <base/synced_interface.h>
 #include <timer_session/connection.h>
 #include <rtc_session/connection.h>
 

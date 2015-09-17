@@ -19,7 +19,7 @@
 #include <base/tslab.h>
 #include <base/rpc_server.h>
 #include <base/allocator_guard.h>
-#include <base/sync_allocator.h>
+#include <base/synced_allocator.h>
 
 /* core includes */
 #include <dataspace_component.h>
@@ -40,8 +40,7 @@ namespace Genode {
 
 			static constexpr size_t SBS = get_page_size();
 
-			using Ds_slab = Synchronized_allocator<Tslab<Dataspace_component,
-			                                             SBS> >;
+			using Ds_slab = Synced_allocator<Tslab<Dataspace_component, SBS> >;
 
 			Rpc_entrypoint         *_ds_ep;
 			Rpc_entrypoint         *_ram_session_ep;

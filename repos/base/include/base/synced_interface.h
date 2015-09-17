@@ -4,8 +4,8 @@
  * \date   2013-05-16
  */
 
-#ifndef _INCLUDE__OS__SYNCED_INTERFACE_H_
-#define _INCLUDE__OS__SYNCED_INTERFACE_H_
+#ifndef _INCLUDE__BASE__SYNCED_INTERFACE_H_
+#define _INCLUDE__BASE__SYNCED_INTERFACE_H_
 
 /* Genode includes */
 #include <base/lock.h>
@@ -67,6 +67,11 @@ class Genode::Synced_interface
 		{
 			return Guard(_lock, _interface);
 		}
+
+		Guard operator () () const
+		{
+			return Guard(_lock, _interface);
+		}
 };
 
-#endif /* _INCLUDE__OS__SYNCED_INTERFACE_H_ */
+#endif /* _INCLUDE__BASE__SYNCED_INTERFACE_H_ */

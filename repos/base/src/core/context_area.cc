@@ -16,6 +16,7 @@
 #include <rm_session/rm_session.h>
 #include <ram_session/ram_session.h>
 #include <base/printf.h>
+#include <base/synced_allocator.h>
 #include <base/thread.h>
 
 /* local includes */
@@ -42,8 +43,8 @@ class Context_area_rm_session : public Rm_session
 {
 	private:
 
-		using Ds_slab = Synchronized_allocator<Tslab<Dataspace_component,
-		                                             get_page_size()> >;
+		using Ds_slab = Synced_allocator<Tslab<Dataspace_component,
+		                                       get_page_size()> >;
 
 		Ds_slab _ds_slab { platform()->core_mem_alloc() };
 

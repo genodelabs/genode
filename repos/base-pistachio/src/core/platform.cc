@@ -50,9 +50,9 @@ static const bool verbose_region_alloc = false;
  ** Core address space management **
  ***********************************/
 
-static Synchronized_range_allocator<Allocator_avl> &_core_address_ranges()
+static Synced_range_allocator<Allocator_avl> &_core_address_ranges()
 {
-	static Synchronized_range_allocator<Allocator_avl> _core_address_ranges(0);
+	static Synced_range_allocator<Allocator_avl> _core_address_ranges(nullptr);
 	return _core_address_ranges;
 }
 
@@ -625,7 +625,7 @@ Platform_pd *Platform::core_pd()
 
 
 Platform::Platform() :
-	_ram_alloc(0), _io_mem_alloc(core_mem_alloc()),
+	_ram_alloc(nullptr), _io_mem_alloc(core_mem_alloc()),
 	_io_port_alloc(core_mem_alloc()), _irq_alloc(core_mem_alloc()),
 	_region_alloc(core_mem_alloc())
 {
@@ -649,13 +649,13 @@ Platform::Platform() :
 	 * hold the meta data for the ROM modules as initialized by '_setup_rom'.
 	 */
 	if (verbose) {
-		printf(":ram_alloc: ");    _ram_alloc.raw()->dump_addr_tree();
-		printf(":region_alloc: "); _region_alloc.raw()->dump_addr_tree();
-		printf(":io_mem: ");       _io_mem_alloc.raw()->dump_addr_tree();
-		printf(":io_port: ");      _io_port_alloc.raw()->dump_addr_tree();
-		printf(":irq: ");          _irq_alloc.raw()->dump_addr_tree();
+		printf(":ram_alloc: ");    _ram_alloc()->dump_addr_tree();
+		printf(":region_alloc: "); _region_alloc()->dump_addr_tree();
+		printf(":io_mem: ");       _io_mem_alloc()->dump_addr_tree();
+		printf(":io_port: ");      _io_port_alloc()->dump_addr_tree();
+		printf(":irq: ");          _irq_alloc()->dump_addr_tree();
 		printf(":rom_fs: ");       _rom_fs.print_fs();
-		printf(":core ranges: ");  _core_address_ranges().raw()->dump_addr_tree();
+		printf(":core ranges: ");  _core_address_ranges()()->dump_addr_tree();
 	}
 
 	/*

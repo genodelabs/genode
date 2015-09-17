@@ -59,7 +59,7 @@ class Hw::Address_space : public Genode::Address_space
 	private:
 
 		friend class Genode::Platform;
-		friend class Genode::Core_mem_allocator::Mapped_mem_allocator;
+		friend class Genode::Mapped_mem_allocator;
 
 		using Table_allocator =
 			Translation_table_allocator_tpl<DEFAULT_TRANSLATION_TABLE_MAX>;

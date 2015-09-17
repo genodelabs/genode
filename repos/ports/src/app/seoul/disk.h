@@ -28,7 +28,7 @@
 #include <base/thread.h>
 #include <block_session/connection.h>
 #include <util/string.h>
-#include <base/sync_allocator.h>
+#include <base/synced_allocator.h>
 
 /* local includes */
 #include "synced_motherboard.h"
@@ -100,17 +100,17 @@ class Vancouver_disk : public Genode::Thread<8192>, public StaticReceiver<Vancou
 
 		/* slabs for temporary holding DMADescriptor and MessageDisk objects */
 		typedef Genode::Tslab<MessageDisk, 128> MessageDisk_Slab;
-		typedef Genode::Synchronized_allocator<MessageDisk_Slab> MessageDisk_Slab_Sync;
+		typedef Genode::Synced_allocator<MessageDisk_Slab> MessageDisk_Slab_Sync;
 
 		typedef Genode::Tslab<DmaDescriptor, 256> DmaDesc_Slab;
-		typedef Genode::Synchronized_allocator<DmaDesc_Slab> DmaDesc_Slab_Sync;
+		typedef Genode::Synced_allocator<DmaDesc_Slab> DmaDesc_Slab_Sync;
 
 		MessageDisk_Slab_Sync _tslab_msg;
 		DmaDesc_Slab_Sync _tslab_dma;
 
 		/* Structure to find back the MessageDisk object out of a Block Ack */
 		typedef Genode::Tslab<Avl_entry, 128> Avl_entry_slab;
-		typedef Genode::Synchronized_allocator<Avl_entry_slab> Avl_entry_slab_sync;
+		typedef Genode::Synced_allocator<Avl_entry_slab> Avl_entry_slab_sync;
 
 		Avl_entry_slab_sync _tslab_avl;
 

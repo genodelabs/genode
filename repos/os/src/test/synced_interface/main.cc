@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <os/synced_interface.h>
+#include <base/synced_interface.h>
 #include <base/printf.h>
 
 

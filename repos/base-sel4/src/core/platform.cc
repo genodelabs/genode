@@ -56,9 +56,8 @@ extern int                _boot_modules_binaries_end;
  ** Support for core memory management **
  ****************************************/
 
-bool Core_mem_allocator::Mapped_mem_allocator::_map_local(addr_t virt_addr,
-                                                          addr_t phys_addr,
-                                                          unsigned size)
+bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr,
+                                      unsigned size)
 {
 	size_t const num_pages = size / get_page_size();
 
@@ -68,8 +67,7 @@ bool Core_mem_allocator::Mapped_mem_allocator::_map_local(addr_t virt_addr,
 }
 
 
-bool Core_mem_allocator::Mapped_mem_allocator::_unmap_local(addr_t virt_addr,
-                                                            unsigned size)
+bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, unsigned size)
 {
 	return unmap_local(virt_addr, size / get_page_size());
 }
@@ -364,10 +362,10 @@ Platform::Platform()
 	printf("VM area at [%08lx,%08lx)\n", _vm_base, _vm_base + _vm_size);
 
 	if (verbose_boot_info) {
-		printf(":phys_alloc:       "); _core_mem_alloc.phys_alloc()->raw()->dump_addr_tree();
-		printf(":unused_phys_alloc:"); _unused_phys_alloc.raw()->dump_addr_tree();
-		printf(":virt_alloc:       "); _core_mem_alloc.virt_alloc()->raw()->dump_addr_tree();
-		printf(":io_mem_alloc:     "); _io_mem_alloc.raw()->dump_addr_tree();
+		printf(":phys_alloc:       "); (*_core_mem_alloc.phys_alloc())()->dump_addr_tree();
+		printf(":unused_phys_alloc:"); _unused_phys_alloc()->dump_addr_tree();
+		printf(":virt_alloc:       "); (*_core_mem_alloc.virt_alloc())()->dump_addr_tree();
+		printf(":io_mem_alloc:     "); _io_mem_alloc()->dump_addr_tree();
 	}
 
 	_init_rom_modules();

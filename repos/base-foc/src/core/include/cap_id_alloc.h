@@ -18,7 +18,7 @@
 #include <base/allocator_avl.h>
 #include <base/exception.h>
 #include <base/lock.h>
-#include <base/sync_allocator.h>
+#include <synced_range_allocator.h>
 
 namespace Genode {
 
@@ -33,8 +33,8 @@ namespace Genode {
 				CAP_ID_OFFSET  = 1 << 2
 			};
 
-			Synchronized_range_allocator<Allocator_avl> _id_alloc;
-			Lock                                        _lock;
+			Synced_range_allocator<Allocator_avl> _id_alloc;
+			Lock                                  _lock;
 
 		public:
 

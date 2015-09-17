@@ -84,7 +84,7 @@ static void sigchld_handler(int signnum)
 
 
 Platform::Platform()
-: _core_mem_alloc(0)
+: _core_mem_alloc(nullptr)
 {
 	/* catch control-c */
 	lx_sigaction(LX_SIGINT, sigint_handler);
