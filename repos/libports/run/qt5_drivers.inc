@@ -1,14 +1,18 @@
+#
+# Global variables required by platform_drv-related functions
+#
+
+set build_components { }
+set config { }
+set boot_modules { }
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
 
 #
 # Helper functions
 #
 
-proc use_acpi_drv { feature_arg } {
-	upvar $feature_arg feature
-	return [have_spec acpi]
-}
-
-proc use_audio_out_drv { feature_arg } {
+proc use_audio_drv { feature_arg } {
 	upvar $feature_arg feature
 	return [info exists feature(Audio_out)]
 }
@@ -33,16 +37,6 @@ proc use_nic_drv { feature_arg } {
 	upvar $feature_arg feature
 	return [expr {[info exists feature(Nic)] &&
 	              ![use_usb_drv feature]}]
-}
-
-proc use_pci_device_pd { feature_arg } {
-	upvar $feature_arg feature
-	return [expr [use_pci_drv feature] && [have_spec nova]]
-}
-
-proc use_pci_drv { feature_arg } {
-	upvar $feature_arg feature
-	return [have_spec pci]
 }
 
 proc use_ps2_drv { feature_arg } {
@@ -72,16 +66,18 @@ proc drivers_build_components { feature_arg } {
 
 	set build_components { }
 
-	lappend_if [use_acpi_drv feature]      build_components drivers/acpi
-	lappend_if [use_audio_out_drv feature] build_components drivers/audio_out
-	lappend_if [use_fb_drv feature]        build_components drivers/framebuffer
-	lappend_if [use_fb_sdl feature]        build_components drivers/framebuffer
-	lappend_if [use_gpio_drv feature]      build_components drivers/gpio
-	lappend_if [use_nic_drv feature]       build_components drivers/nic
-	lappend_if [use_pci_drv feature]       build_components drivers/pci
-	lappend_if [use_ps2_drv feature]       build_components drivers/input/spec/ps2
-	lappend_if [use_timer feature]         build_components drivers/timer
-	lappend_if [use_usb_drv feature]       build_components drivers/usb
+	# This function appends to the global 'build_components' variable, not to
+	# the local version defined above.
+	append_platform_drv_build_components
+
+	lappend_if [use_audio_drv feature] build_components drivers/audio
+	lappend_if [use_fb_drv feature]    build_components drivers/framebuffer
+	lappend_if [use_fb_sdl feature]    build_components drivers/framebuffer
+	lappend_if [use_gpio_drv feature]  build_components drivers/gpio
+	lappend_if [use_nic_drv feature]   build_components drivers/nic
+	lappend_if [use_ps2_drv feature]   build_components drivers/input/spec/ps2
+	lappend_if [use_timer feature]     build_components drivers/timer
+	lappend_if [use_usb_drv feature]   build_components drivers/usb
 
 	return $build_components
 }
@@ -121,41 +117,11 @@ proc drivers_start_nodes { feature_arg } {
 
 	set start_nodes { }
 
-	append_if [use_acpi_drv feature] start_nodes {
-		<start name="acpi">
-			<resource name="RAM" quantum="10M" constrain_phys="yes"/>
-			<binary name="acpi_drv"/>
-			<provides>
-				<service name="PCI"/>
-				<service name="IRQ" />
-			</provides>
-			<binary name="acpi_drv"/>
-			<provides>
-				<service name="PCI"/>
-				<service name="IRQ" />
-			</provides>
-			<config>
-				<policy label="acpi_drv">
-					<pci class="ALL"/>
-				</policy>
-				<policy label="ahci">
-					<pci class="AHCI"/>
-				</policy>
-				<policy label="ps2_drv">
-					<device name="PS2" />
-				</policy>
-				<policy label="fb_drv">
-					<pci class="VGA" />
-				</policy>
-			</config>
-			<route>
-				<service name="PCI"> <any-child /> </service>
-				<any-service> <parent/> <any-child /> </any-service>
-			</route>
-		</start>
-	}
+	# This function appends to the global 'config' variable, not to the
+	# 'start_nodes' variable defined above.
+	append_platform_drv_config
 
-	append_if [use_audio_out_drv feature] start_nodes {
+	append_if [use_audio_drv feature] start_nodes {
 		<start name="audio_drv">
 			<resource name="RAM" quantum="4M"/>
 			<provides><service name="Audio_out"/></provides>
@@ -191,24 +157,6 @@ proc drivers_start_nodes { feature_arg } {
 		<start name="nic_drv">
 			<resource name="RAM" quantum="2M"/>
 			<provides><service name="Nic"/></provides>
-		</start>
-	}
-
-	append_if [expr [use_pci_drv feature] && ![use_acpi_drv feature]] start_nodes {
-		<start name="pci_drv">
-			<resource name="RAM" quantum="2M" constrain_phys="yes"/>
-			<provides><service name="PCI"/></provides>
-			<config>
-				<policy label="ahci">
-					<pci class="AHCI"/>
-				</policy>
-				<policy label="ps2_drv">
-					<device name="PS2" />
-				</policy>
-				<policy label="fb_drv">
-					<pci class="VGA" />
-				</policy>
-			</config>
 		</start>
 	}
 
@@ -261,17 +209,18 @@ proc drivers_boot_modules { feature_arg } {
 
 	set boot_modules { }
 
-	lappend_if [use_acpi_drv feature]      boot_modules acpi_drv
-	lappend_if [use_audio_out_drv feature] boot_modules audio_out_drv
-	lappend_if [use_fb_drv feature]        boot_modules fb_drv
-	lappend_if [use_fb_sdl feature]        boot_modules fb_sdl
-	lappend_if [use_gpio_drv feature]      boot_modules gpio_drv
-	lappend_if [use_nic_drv feature]       boot_modules nic_drv
-	lappend_if [use_pci_drv feature]       boot_modules pci_drv
-	lappend_if [use_pci_device_pd feature] boot_modules pci_device_pd
-	lappend_if [use_ps2_drv feature]       boot_modules ps2_drv
-	lappend_if [use_timer feature]         boot_modules timer
-	lappend_if [use_usb_drv feature]       boot_modules usb_drv
+	# This function appends to the global 'boot_modules' variable, not to the
+	# local version defined above.
+	append_platform_drv_boot_modules
+
+	lappend_if [use_audio_drv feature] boot_modules audio_drv
+	lappend_if [use_fb_drv feature]    boot_modules fb_drv
+	lappend_if [use_fb_sdl feature]    boot_modules fb_sdl
+	lappend_if [use_gpio_drv feature]  boot_modules gpio_drv
+	lappend_if [use_nic_drv feature]   boot_modules nic_drv
+	lappend_if [use_ps2_drv feature]   boot_modules ps2_drv
+	lappend_if [use_timer feature]     boot_modules timer
+	lappend_if [use_usb_drv feature]   boot_modules usb_drv
 
 	return $boot_modules
 }

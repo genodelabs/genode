@@ -6,7 +6,7 @@ set feature(Audio_out) 1
 # Build
 #
 
-set build_components [qt5_build_components feature]
+append build_components [qt5_build_components feature]
 
 append build_components {
 	app/avplay
@@ -37,7 +37,7 @@ create_qt5_fs_tar_archive "qt_avplay" "gui"
 # Generate config
 #
 
-set config {
+append config {
 <config>
 	<parent-provides>}
 append config [qt5_parent_provides feature]
@@ -71,7 +71,7 @@ install_config $config
 # Boot modules
 #
 
-set boot_modules [qt5_boot_modules feature]
+append boot_modules [qt5_boot_modules feature]
 
 append boot_modules {
 	qt_avplay

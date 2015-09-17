@@ -9,7 +9,7 @@ if {[have_spec hw_odroid_xu]} {
 	exit 0
 }
 
-set build_components [qt5_build_components feature]
+append build_components [qt5_build_components feature]
 
 append build_components {
 	app/qt5/examples/textedit
@@ -50,8 +50,7 @@ append config {
 append config [qt5_start_nodes feature]
 
 append_if $use_ahci_driver config {
-	<start name="ahci">
-		<binary name="ahci_drv" />
+	<start name="ahci_drv">
 		<resource name="RAM" quantum="5M"/>
 		<provides> <service name="Block"/> </provides>
 		<config>
@@ -121,7 +120,7 @@ install_config $config
 # Boot modules
 #
 
-set boot_modules [qt5_boot_modules feature]
+append boot_modules [qt5_boot_modules feature]
 
 append boot_modules {
 	textedit

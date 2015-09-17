@@ -4,7 +4,7 @@ source ${genode_dir}/repos/libports/run/qt5_common.inc
 # Build
 #
 
-set build_components [qt5_build_components feature]
+append build_components [qt5_build_components feature]
 
 append build_components {
 	app/qt5/qt_quicktest
@@ -25,7 +25,7 @@ create_qt5_fs_tar_archive "qt_quicktest" "gui quick"
 # Generate config
 #
 
-set config {
+append config {
 <config>
 	<parent-provides>}
 append config [qt5_parent_provides feature]
@@ -61,7 +61,7 @@ install_config $config
 # The QtQuick plugin currently needs to be provided both in the file system
 # (for Qt) and as ROM module (for 'dlopen()').
 
-set boot_modules [qt5_boot_modules feature]
+append boot_modules [qt5_boot_modules feature]
 
 append boot_modules {
 	qt_quicktest

@@ -6,7 +6,7 @@ set feature(Nic) 1
 # Build
 #
 
-set build_components [qt5_build_components feature]
+append build_components [qt5_build_components feature]
 
 append build_components {
 	server/loader server/tar_rom server/nit_fb app/launchpad test/nitpicker
@@ -32,7 +32,7 @@ exec tar cf bin/nitpicker_plugin.tar -C [genode_dir]/repos/ports/src/app/arora/d
 # Generate config
 #
 
-set config {
+append config {
 <config>
 	<parent-provides>}
 append config [qt5_parent_provides feature]
@@ -68,7 +68,7 @@ install_config $config
 # Boot modules
 #
 
-set boot_modules [qt5_boot_modules feature]
+append boot_modules [qt5_boot_modules feature]
 
 append boot_modules {
 	loader

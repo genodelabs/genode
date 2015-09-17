@@ -4,7 +4,7 @@ source ${genode_dir}/repos/libports/run/qt5_common.inc
 # Build
 #
 
-set build_components [qt5_build_components feature]
+append build_components [qt5_build_components feature]
 
 append build_components {
 	app/qt5/examples/calculatorform
@@ -25,7 +25,7 @@ create_qt5_fs_tar_archive "calculatorform" "gui"
 # Generate config
 #
 
-set config {
+append config {
 <config>
 	<parent-provides>}
 append config [qt5_parent_provides feature]
@@ -58,7 +58,7 @@ install_config $config
 # Boot modules
 #
 
-set boot_modules [qt5_boot_modules feature]
+append boot_modules [qt5_boot_modules feature]
 
 append boot_modules {
 	calculatorform
@@ -83,7 +83,7 @@ append boot_modules {
 
 build_boot_image $boot_modules
 
-append qemu_args " -m 128"
+append qemu_args " -m 256"
 
 run_genode_until forever
 
