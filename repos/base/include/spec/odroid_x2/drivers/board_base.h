@@ -35,16 +35,16 @@ struct Genode::Board_base : Exynos4
 
 		/* power management unit */
 		PMU_MMIO_BASE = 0x10020000,
-		PMU_MMIO_SIZE = 0x5000, // TODO Check the region size
+		PMU_MMIO_SIZE = 0x5000, /* TODO Check the region size */
 
 		/* UART */
 		UART_1_MMIO_BASE = 0x13810000,
 		UART_1_IRQ       = 85,
-		UART_1_CLOCK     = 100000000, // TODO Check SCLK_UART1
+		UART_1_CLOCK     = 100000000, /* TODO Check SCLK_UART1 */
 
 		UART_2_MMIO_BASE = 0x13820000,
 		UART_2_IRQ       = 86,
-		UART_2_CLOCK     = 100000000, // TODO Check SCLK_UART2
+		UART_2_CLOCK     = 100000000, /* TODO Check SCLK_UART2 */
 
 		MCT_IRQ_L0    = 28,
 		MCT_IRQ_L1    = 28,
@@ -74,7 +74,7 @@ struct Genode::Board_base : Exynos4
 		I2C_HDMI_IRQ = 125,
 
 		/* wether board provides security extension */
-		SECURITY_EXTENSION = 0, // TODO Check this value
+		SECURITY_EXTENSION = 0, /* TODO Check this value */
 	};
 };
 

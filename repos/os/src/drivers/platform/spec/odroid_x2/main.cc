@@ -33,11 +33,11 @@ struct Driver_factory: Regulator::Driver_factory
 		case Regulator::CLK_CPU:
 		case Regulator::CLK_USB20:
 		case Regulator::CLK_HDMI:
+			return _cmu;
 
-		return _cmu;
 		case Regulator::PWR_USB20:
 		case Regulator::PWR_HDMI:
-		return _pmu;
+			return _pmu;
 
 
 		default:

@@ -98,7 +98,7 @@ class Pmu : public Regulator::Driver,
 				write<Usbhost_phy2_control::Enable>(0);
 				break;
 			case PWR_HDMI:
-				write<Hdmi_phy_control   ::Enable>(0);
+				write<Hdmi_phy_control::Enable>(0);
 				break;
 			default:
 				PWRN("Unsupported for %s", names[id].name);
@@ -113,10 +113,10 @@ class Pmu : public Regulator::Driver,
 		Pmu() : Genode::Attached_mmio(Genode::Board_base::PMU_MMIO_BASE,
 		                              Genode::Board_base::PMU_MMIO_SIZE)
 		{
-			write<Usbdrd_phy_control ::Enable>(0);
+			write<Usbdrd_phy_control::Enable>(0);
 			write<Usbhost_phy1_control::Enable>(0);
 			write<Usbhost_phy2_control::Enable>(0);
-			write<Hdmi_phy_control   ::Enable>(0);
+			write<Hdmi_phy_control::Enable>(0);
 		}
 
 

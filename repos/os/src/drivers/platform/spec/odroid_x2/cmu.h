@@ -152,7 +152,7 @@ class Cmu : public Regulator::Driver,
 
 		};
 
-		struct Clk_src_tv : Register<0xC224, 32> // old name Clk_src_disp1_0
+		struct Clk_src_tv : Register<0xC224, 32> /* old name Clk_src_disp1_0 */
 		{
 			struct Hdmi_sel : Bitfield<0, 1> { };
 		};
@@ -182,7 +182,7 @@ class Cmu : public Regulator::Driver,
 
 		void _cpu_clk_freq(unsigned long level)
 		{
-			PINF("Changing CPU frequency to %lu\n",level);
+			PINF("Changing CPU frequency to %lu",level);
 			unsigned freq;
 			switch (level) {
 			case CPU_FREQ_200:
