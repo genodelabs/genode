@@ -68,7 +68,7 @@ append config {
 			<service name="SIGNAL"/>
 		</parent-provides>
 		<default-route>
-			<any-service> <any-child/> <parent/> </any-service>
+			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 		<start name="timer">
 			<resource name="RAM" quantum="1M"/>
