@@ -343,9 +343,10 @@ class File_system::Session_component : public Session_rpc_object
 
 			switch (errno) {
 			case ENOTEMPTY: throw Node_already_exists();
+			case ENOENT: throw Lookup_failed();
 			}
 
-			PWRN("renameat produced unhandled error");
+			PWRN("renameat produced unhandled error %x %s %s", errno, from_str, to_str);
 			throw Permission_denied();
 		}
 
