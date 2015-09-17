@@ -76,19 +76,19 @@ struct Genode::Board_base : Exynos4
 		/* GPIO */
 		GPIO1_MMIO_BASE = 0x11400000,
 		GPIO1_MMIO_SIZE = 0x0F88,
-		GPIO1_IRQ       = 79,  //TODO Check the irq number
+		GPIO1_IRQ       = 79, /* TODO Check the irq number */
 
 		GPIO2_MMIO_BASE = 0x11000000,
 		GPIO2_MMIO_SIZE = 0x0F88,
-		GPIO2_IRQ       = 79,//TODO Check the irq number
+		GPIO2_IRQ       = 79, /* TODO Check the irq number */
 
 		GPIO3_MMIO_BASE = 0x03860000,
 		GPIO3_MMIO_SIZE = 0x0F88,
-		GPIO3_IRQ       = 79,//TODO Check the irq number
+		GPIO3_IRQ       = 79, /* TODO Check the irq number */
 
 		GPIO4_MMIO_BASE = 0x106E0000,
 		GPIO4_MMIO_SIZE = 0x0F88,
-		GPIO4_IRQ       = 79,//TODO Check the irq number
+		GPIO4_IRQ       = 79, /* TODO Check the irq number */
 
 
 		/* wether board provides security extension */

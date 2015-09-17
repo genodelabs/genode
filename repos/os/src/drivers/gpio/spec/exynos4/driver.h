@@ -6,7 +6,6 @@
  * \date   2015-07-03
  */
 
-
 /*
  * Copyright (C) 2012 Ksys Labs LLC
  * Copyright (C) 2012-2013 Genode Labs GmbH

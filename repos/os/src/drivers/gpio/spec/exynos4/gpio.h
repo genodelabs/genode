@@ -6,7 +6,6 @@
  * \date   2015-07-03
  */
 
-
 /*
  * Copyright (C) 2012 Ksys Labs LLC
  * Copyright (C) 2012-2013 Genode Labs GmbH
@@ -30,7 +29,7 @@ namespace Gpio {
 	using namespace Genode;
 }
 
-class Gpio::Reg : Attached_io_mem_dataspace, Mmio
+struct Gpio::Reg : Attached_io_mem_dataspace, Mmio
 {
 	struct Regs : Genode::Mmio
 	{
@@ -77,8 +76,6 @@ class Gpio::Reg : Attached_io_mem_dataspace, Mmio
 			}
 		}
 	};
-
-public:
 
 	Reg(addr_t base, size_t size)
 	: Attached_io_mem_dataspace(base, size),
@@ -134,7 +131,7 @@ enum Irqs_triggers {
 };
 
 const int _bank_sizes[MAX_PINS] = {
-	//TODO check value of registes type ETC.
+	/* TODO check value of registes type ETC. */
 	/* GPIO Part1 */
 	/* GPA0  GPA1  GPB  GPC0 GPC1  GPD0  GPD1  GPF0  GPF1  GPF2  GPF3  ETC1  GPJ0  GPJ1 */
 	   8,    6,    8,   5,   5,    4,    4,    8,    8,    8,    6,    6,    8,    5,
