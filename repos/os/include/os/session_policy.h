@@ -18,38 +18,33 @@
 #include <os/config.h>
 
 namespace Genode {
-	
-	class Session_label;
-	class Session_policy;
+
+	struct Session_label;
+	class  Session_policy;
 }
 
 
-class Genode::Session_label
+struct Genode::Session_label : String<128>
 {
-	public:
+	Session_label() { }
 
-		enum { MAX_LEN = 128 };
+	/**
+	 * Constructor
+	 *
+	 * \param args  session arguments as null-terminated string
+	 *
+	 * The constructor extracts the label from the supplied session-argument
+	 * string.
+	 */
+	explicit Session_label(char const *args)
+	{
+		typedef String<128> String;
 
-	private:
-
-		char _buf[MAX_LEN];
-
-	public:
-
-		Session_label() { _buf[0] = 0; }
-
-		/**
-		 * Constructor
-		 *
-		 * \param args  session arguments as null-terminated string
-		 */
-		explicit Session_label(char const *args)
-		{
-			Arg_string::find_arg(args, "label").string(_buf, sizeof(_buf),
-			                                           "<undefined>");
-		}
-
-		char const *string() const { return _buf; }
+		char buf[String::capacity()];
+		Arg_string::find_arg(args, "label").string(buf, sizeof(buf),
+		                                           "<undefined>");
+		*static_cast<String *>(this) = String(buf);
+	}
 };
 
 
@@ -71,41 +66,43 @@ class Genode::Session_policy : public Xml_node
 		 * Returns true if the start of the label matches the specified
 		 * match string
 		 */
-		static bool _label_matches(Session_label const &label, char const *match) {
-			return strcmp(label.string(), match, strlen(match)) == 0; }
+		static bool _label_matches(char const *label, char const *match) {
+			return strcmp(label, match, strlen(match)) == 0; }
 
 		/**
 		 * Query session policy from session label
 		 */
-		static Xml_node _query_policy(Session_label const &label)
+		static Xml_node _query_policy(char const *label, Xml_node config)
 		{
-			/* find index of policy node that matches best */
-			int best_match = -1;
-			try {
-				unsigned label_len = 0;
-				Xml_node policy = config()->xml_node().sub_node();
+			/*
+			 * Find policy node that matches best
+			 */
+			Xml_node best_match("<none/>");
 
-				for (int i = 0;; i++, policy = policy.next()) {
+			unsigned label_len = 0;
 
-					if (!policy.has_type("policy"))
-						continue;
+			/*
+			 * Functor to be applied to each policy node
+			 */
+			auto lambda = [&] (Xml_node policy) {
 
-					/* label attribute from policy node */
-					char policy_label[Session_label::MAX_LEN];
-					policy.attribute("label").value(policy_label,
-					                                sizeof(policy_label));
+				/* label attribute from policy node */
+				char policy_label[Session_label::capacity()];
+				policy.attribute("label").value(policy_label,
+				                                sizeof(policy_label));
 
-					if (!_label_matches(label, policy_label)
-					 || strlen(policy_label) < label_len)
-						continue;
+				if (!_label_matches(label, policy_label)
+				 || strlen(policy_label) < label_len)
+					return;
 
-					label_len = strlen(policy_label);
-					best_match = i;
-				}
-			} catch (...) { }
+				label_len = strlen(policy_label);
+				best_match = policy;
+			};
 
-			if (best_match != -1)
-				return config()->xml_node().sub_node(best_match);
+			config.for_each_sub_node("policy", lambda);
+
+			if (!best_match.has_type("none"))
+				return best_match;
 
 			throw No_policy_defined();
 		}
@@ -115,23 +112,28 @@ class Genode::Session_policy : public Xml_node
 		/**
 		 * Constructor
 		 *
-		 * \param args  session arguments
+		 * \param label   label used as the selector of a policy
+		 * \param config  XML node that contains the policies as sub nodes,
+		 *                using the component's top-level config node by
+		 *                default
 		 *
-		 * \throw No_policy_defined  if the server configuration has no
-		 *                           policy defined for the session
-		 *                           request
+		 * \throw No_policy_defined  the server configuration has no
+		 *                           policy defined for the specified label
 		 *
-		 * On construction, the 'Session_policy' looks up the 'policy' XML
-		 * node that matches the label provided as argument. The
-		 * server-side policies are defined in one or more policy subnodes
-		 * of the server's 'config' node. Each policy node has a label
-		 * attribute. If the policy label matches the first part of the
-		 * label delivered as session argument, the policy matches. If
-		 * multiple policies match, the one with the largest label is
-		 * selected.
+		 * On construction, the 'Session_policy' looks up the 'policy' XML node
+		 * that matches the label provided as argument. The server-side
+		 * policies are defined in one or more policy subnodes of the server's
+		 * 'config' node. Each policy node has a label attribute. If the policy
+		 * label matches the first part of the label as delivered as session
+		 * argument, the policy matches. If multiple policies match, the one
+		 * with the longest label is selected.
 		 */
-		explicit Session_policy(Session_label const &label)
-		: Xml_node(_query_policy(label)) { }
+		template <size_t N>
+		explicit Session_policy(String<N> const &label,
+		                        Xml_node config = Genode::config()->xml_node())
+		:
+			Xml_node(_query_policy(label.string(), config))
+		{ }
 };
 
 #endif /* _INCLUDE__OS__SESSION_POLICY_H_ */

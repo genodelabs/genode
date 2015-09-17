@@ -69,7 +69,7 @@ class Session : public Session_list::Element
 			 * Append label separator to match selectors with a trailing
 			 * separator.
 			 */
-			char label[Genode::Session_label::MAX_LEN + 4];
+			char label[Genode::Session_label::capacity() + 4];
 			Genode::snprintf(label, sizeof(label), "%s ->", _label.string());
 			return Genode::strcmp(label, selector,
 			                      Genode::strlen(selector)) == 0;
