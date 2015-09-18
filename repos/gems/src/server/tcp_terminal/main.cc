@@ -159,7 +159,7 @@ class Open_socket : public Genode::List<Open_socket>::Element
 			socklen_t len = sizeof(addr);
 			_sd = accept(_listen_sd, &addr, &len);
 
-			if (_sd > 0)
+			if (_sd != -1)
 				Genode::printf("connection established\n");
 
 			/*
@@ -208,6 +208,10 @@ class Open_socket : public Genode::List<Open_socket>::Element
 			_read_buf_bytes_read += num_bytes;
 			if (_read_buf_bytes_read >= _read_buf_bytes_used)
 				_read_buf_bytes_used = _read_buf_bytes_read = 0;
+
+			/* notify client if there are still bytes available for reading */
+			if (_read_avail_sigh.valid() && !read_buffer_empty())
+				Genode::Signal_transmitter(_read_avail_sigh).submit();
 
 			return num_bytes;
 		}
