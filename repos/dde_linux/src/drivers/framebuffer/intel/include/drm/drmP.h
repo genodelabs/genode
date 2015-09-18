@@ -111,7 +111,7 @@ enum { DRM_CALLED_FROM_VBLIRQ = 1 };
 ///*
 // * Debug macros
 // */
-#define DRM_VERBOSE 1
+#define DRM_VERBOSE 0
 
 #if DRM_VERBOSE
 #define DRM_INFO(fmt, arg...) do { \
@@ -158,6 +158,7 @@ struct drm_display_mode;
 struct drm_connector;
 struct drm_mode_create_dumb;
 struct drm_mode_fb_cmd2;
+struct drm_cmdline_mode;
 
 
 /**
@@ -286,6 +287,10 @@ struct drm_driver {
 
 struct drm_i915_private;
 
+struct drm_vblank_crtc {
+	u32 last;
+};
+
 struct drm_device {
 //	int pci_device;
 	struct pci_dev *pdev;
@@ -316,6 +321,9 @@ struct drm_device {
 	int switch_power_state;
 	spinlock_t event_lock;
 	struct device *dev; /* i915_gem_stolen.c */
+	struct drm_vblank_crtc *vblank; /* needed by intel_pm.c */
+	spinlock_t vbl_lock; /* needed by intel_pm.c */
+	struct timer_list vblank_disable_timer;
 };
 
 //
@@ -424,6 +432,9 @@ struct drm_file {
 	int event_space;
 };
 //
+
+#define DRM_MINOR_LEGACY 1
+
 ///*
 // * needed for drm_agpsupport.c
 // */
@@ -467,9 +478,6 @@ struct drm_minor {
 struct drm_pending_vblank_event;
 
 
-struct drm_fb_helper { int dummy; };
-
-
 #include <drm/drm_dp_helper.h>
 
 
@@ -491,6 +499,26 @@ struct drm_pending_vblank_event {
 	struct drm_pending_event base;
 //	int pipe;
 	struct drm_event_vblank event;
+};
+
+
+/***************************
+ ** drm/drm_crtc_helper.h **
+ ***************************/
+
+struct drm_cmdline_mode
+{
+	bool specified;
+	bool refresh_specified;
+	bool bpp_specified;
+	int xres, yres;
+	int bpp;
+	int refresh;
+	bool rb;
+	bool interlace;
+	bool cvt;
+	bool margins;
+	enum drm_connector_force force;
 };
 
 
@@ -674,8 +702,9 @@ extern const char *drm_get_connector_status_name(enum drm_connector_status statu
 extern void drm_kms_helper_hotplug_event(struct drm_device *dev);
 extern bool drm_handle_vblank(struct drm_device *dev, int crtc);
 extern void drm_gem_private_object_init(struct drm_device *dev, struct drm_gem_object *obj, size_t size);
-
-
+extern void drm_sysfs_hotplug_event(struct drm_device *dev);
+extern bool drm_mode_parse_command_line_for_connector(const char *mode_option, struct drm_connector *connector, struct drm_cmdline_mode *mode);
+extern struct drm_display_mode * drm_mode_create_from_cmdline_mode(struct drm_device *dev, struct drm_cmdline_mode *cmd);
 
 #ifdef __cplusplus
 }

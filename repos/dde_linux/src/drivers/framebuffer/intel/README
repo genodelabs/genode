@@ -1,0 +1,55 @@
+This driver is for Intel i915 compatible graphic cards.
+
+Default behaviour
+~~~~~~~~~~~~~~~~~
+When no configuration is provided to the driver, it will switch on all devices
+the graphic card is initially connected to. It will use the best resolution as
+provided by the BIOS or EDID information from the display devices for each
+connector. The virtual resolution delivered to the client is the maximum in
+width and height of the different connectors. The framebuffer memory is
+directly exported to the client of the driver. When newly connected devices are
+detected by the hardware, the new connectors are enabled, probed, and again the
+'best' resolution will be chosen for the device. Nevertheless, it won't have an
+effect on the virtual resolution.
+
+Configuration
+~~~~~~~~~~~~~
+Each of the connector can be configured explicitly in terms of resolution and
+whether it should be enabled or not. This looks like the following:
+
+! <config>
+!   <connector name="LVDS-11" width="1280" height="800" enabled="true"/>
+! </config>
+
+When the configuration changes during run-time, the driver will adapt to it. In
+this case it will also change the current virtual resolution to the maximum of
+the configured resolutions in width and height, and it will inform its client
+about the change in resolution.
+
+It is possible to run the driver in 'buffered' mode, which means it does not
+export the framebuffer memory directly to the client, but provides a simple RAM
+dataspace instead. The copying from the RAM dataspace to the framebuffer memory
+is done by the framebuffer driver when triggered by a refresh operation. This
+option can alleviate tearing effects, and has to be enabled via the
+configuration like this:
+
+! <config buffered="yes"/>
+
+To present all available connectors and their possible resolutions to the user
+the driver is able to export a corresponding report ROM. This has to be
+configured too, like in the following:
+
+! <config>
+!   <report connectors="yes"/>
+! </config>
+
+The exported report has the following format:
+
+! <connectors>
+!   <connector name="LVDS-11" connected="1">
+!     <mode width="1280" height="800" hz="60"/>
+!     ...
+!   </connector>
+!   ...
+! </connectors>
+

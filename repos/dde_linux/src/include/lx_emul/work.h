@@ -183,17 +183,17 @@ void __wait_event(wait_queue_head_t);
 #define wait_event(wq, condition) ({ _wait_event(wq, condition); })
 #define wait_event_interruptible(wq, condition) ({ _wait_event(wq, condition); 0; })
 
-#define _wait_event_timeout(wq, condition, timeout)    \
-	({ int res = 1;                                    \
-		prepare_to_wait(&wq, 0, 0);                    \
-		while (1) {                                    \
-			if ((condition) || !res) {                 \
-				break;                                 \
-			}                                          \
-			res = schedule_timeout(jiffies + timeout); \
-		}                                              \
-		finish_wait(&wq, 0);                           \
-		res;                                           \
+#define _wait_event_timeout(wq, condition, timeout) \
+	({ int res = 1;                                 \
+		prepare_to_wait(&wq, 0, 0);                 \
+		while (1) {                                 \
+			if ((condition) || !res) {              \
+				break;                              \
+			}                                       \
+			res = schedule_timeout(timeout);        \
+		}                                           \
+		finish_wait(&wq, 0);                        \
+		res;                                        \
 	})
 
 #define wait_event_timeout(wq, condition, timeout)               \

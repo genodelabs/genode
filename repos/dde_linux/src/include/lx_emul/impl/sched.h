@@ -26,14 +26,15 @@ signed long schedule_timeout(signed long timeout)
 {
 	struct timer_list timer;
 
+	unsigned long expire = timeout + jiffies;
 	setup_timer(&timer, unblock_task, (unsigned long)Lx::scheduler().current());
-	mod_timer(&timer, timeout);
+	mod_timer(&timer, expire);
 
 	Lx::scheduler().current()->block_and_schedule();
 
 	del_timer(&timer);
 
-	timeout = (timeout - jiffies);
+	timeout = (expire - jiffies);
 
 	return timeout < 0 ? 0 : timeout;
 }

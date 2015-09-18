@@ -78,12 +78,17 @@ Lx::backend_alloc(Genode::addr_t size, Genode::Cache_attribute cached)
 		cap = env()->ram_session()->alloc(size);
 		o = new (env()->heap())	Ram_object(cap);
 	} else {
-		/* transfer quota to pci driver, otherwise it will give us a exception */
-		char buf[32];
-		Genode::snprintf(buf, sizeof(buf), "ram_quota=%ld", size);
-		Genode::env()->parent()->upgrade(Lx::pci()->cap(), buf);
+		size_t donate = size;
+		cap = retry<Platform::Session::Out_of_metadata>(
+			[&] () { return Lx::pci()->alloc_dma_buffer(size); },
+			[&] () {
+				char quota[32];
+				Genode::snprintf(quota, sizeof(quota), "ram_quota=%zd",
+				                 donate);
+				Genode::env()->parent()->upgrade(Lx::pci()->cap(), quota);
+				donate = donate * 2 > size ? 4096 : donate * 2;
+			});
 
-		cap = Lx::pci()->alloc_dma_buffer(size);
 		o = new (env()->heap()) Dma_object(cap);
 	}
 
@@ -96,13 +101,16 @@ void Lx::backend_free(Genode::Ram_dataspace_capability cap)
 {
 	using namespace Genode;
 
-	Memory_object_base *o = memory_pool.lookup_and_lock(cap);
-	if (!o)
-		return;
+	Memory_object_base *object;
+	memory_pool.apply(cap, [&] (Memory_object_base *o) {
+		object = o;
+		if (!object)
+			return;
 
-	o->free();
-	memory_pool.remove_locked(o);
-	destroy(env()->heap(), o);
+		object->free();
+		memory_pool.remove(object);
+	});
+	destroy(env()->heap(), object);
 }
 
 

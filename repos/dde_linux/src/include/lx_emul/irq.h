@@ -24,3 +24,10 @@ typedef enum irqreturn {
 	IRQ_HANDLED     = 1,
 	IRQ_WAKE_THREAD = 2,
 } irqreturn_t;
+
+
+/***********************
+ ** linux/interrupt.h **
+ ***********************/
+
+typedef irqreturn_t (*irq_handler_t)(int, void *);

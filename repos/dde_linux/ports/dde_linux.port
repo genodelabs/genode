@@ -4,9 +4,6 @@ DOWNLOADS   := dwc_otg.git usb.archive lxip.archive intel_fb.archive wifi.archiv
                libnl.archive wpa_supplicant.archive \
                fw_6000.archive fw_6205a.archive fw_6205b.archive fw_7260.archive fw_7265.archive
 
-# XXX disable all parts except for intel_fb
-DOWNLOADS := intel_fb.archive
-
 #
 # Tools
 #
@@ -175,7 +172,11 @@ PATCH_OPT(patches/libnl.patch) := -p1 -d ${DIR(libnl)}
 # WPA supplicant
 PATCH_OPT(patches/wpa_supplicant.patch) := -p1 -d ${DIR(wpa_supplicant)}
 
-# XXX disable all patches of non-intel_fb subsystems
-PATCHES :=
+# Intel fb
+PATCH_OPT(patches/intel_fb_16bit.patch)  := -p1 -d ${DIR(intel_fb)}
+PATCH_OPT(patches/intel_fb_edp.patch)    := -p1 -d ${DIR(intel_fb)}
+PATCH_OPT(patches/intel_fb_update.patch) := -p1 -d ${DIR(intel_fb)}
+PATCH_OPT(patches/intel_fb_x201.patch)   := -p1 -d ${DIR(intel_fb)}
+PATCH_OPT(patches/intel_fb_report.patch) := -p1 -d ${DIR(intel_fb)}
 
 # vi: set ft=make :

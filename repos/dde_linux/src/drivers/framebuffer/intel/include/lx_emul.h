@@ -22,6 +22,7 @@
 
 enum { HZ = 100UL };
 
+#define DEBUG_LINUX_PRINTK 1
 
 #include <lx_emul/compiler.h>
 #include <lx_emul/printf.h>
@@ -36,6 +37,7 @@ void atomic_set_mask(unsigned int mask, atomic_t *v);
 #include <lx_emul/types.h>
 
 typedef unsigned long kernel_ulong_t;
+typedef unsigned int  u_int;
 
 
 /************************
@@ -60,6 +62,8 @@ enum { DUMP_PREFIX_NONE, };
 void print_hex_dump(const char *level, const char *prefix_str,
                     int prefix_type, int rowsize, int groupsize,
                     const void *buf, size_t len, bool ascii);
+
+#define printk_once(fmt, ...) ({})
 
 
 /*********************
@@ -89,7 +93,6 @@ void print_hex_dump(const char *level, const char *prefix_str,
 #define PAGE_SIZE 4096UL
 #define PAGE_MASK (~(PAGE_SIZE-1))
 
-dma_addr_t page_to_phys(void *page);
 
 enum {
 	PAGE_SHIFT = 12,
@@ -100,18 +103,30 @@ struct page
 //	unsigned long flags;
 //	int       pfmemalloc;
 //	int       mapping;
-	atomic_t _count;
-	void     *addr;
-	unsigned long private;
+	atomic_t   _count;
+	void      *addr;
+	dma_addr_t paddr;
 } __attribute((packed));
 
 /* needed for agp/generic.c */
 struct page *virt_to_page(void *addr);
 
+dma_addr_t page_to_phys(struct page *page);
 
 #include <lx_emul/bitops.h>
 
 unsigned long find_first_zero_bit(const unsigned long *addr, unsigned long size);
+
+#define __const_hweight8(w)             \
+      ( (!!((w) & (1ULL << 0))) +       \
+        (!!((w) & (1ULL << 1))) +       \
+        (!!((w) & (1ULL << 2))) +       \
+        (!!((w) & (1ULL << 3))) +       \
+        (!!((w) & (1ULL << 4))) +       \
+        (!!((w) & (1ULL << 5))) +       \
+        (!!((w) & (1ULL << 6))) +       \
+        (!!((w) & (1ULL << 7))) )
+#define hweight16(w) (__const_hweight8(w)  + __const_hweight8((w)  >> 8 ))
 
 #include <asm-generic/getorder.h>
 
@@ -128,14 +143,15 @@ void *memchr_inv(const void *s, int c, size_t n);
 #include <lx_emul/list.h>
 #include <lx_emul/kernel.h>
 
+extern long simple_strtol(const char *,char **,unsigned int);
 typedef __kernel_time_t time_t;
 
 extern int oops_in_progress;
 
-#define pr_debug(fmt, ...)      printk(KERN_INFO pr_fmt(fmt), ##__VA_ARGS__)
-#define pr_info(fmt, ...)       printk(KERN_INFO pr_fmt(fmt), ##__VA_ARGS__)
-#define pr_err(fmt, ...)        printk(KERN_ERR pr_fmt(fmt), ##__VA_ARGS__)
-#define pr_warn(fmt, ...)       printk(KERN_ERR pr_fmt(fmt), ##__VA_ARGS__)
+#define pr_debug(fmt, ...)      printk(KERN_INFO fmt, ##__VA_ARGS__)
+#define pr_info(fmt, ...)       printk(KERN_INFO fmt, ##__VA_ARGS__)
+#define pr_err(fmt, ...)        printk(KERN_ERR fmt,  ##__VA_ARGS__)
+#define pr_warn(fmt, ...)       printk(KERN_ERR fmt,  ##__VA_ARGS__)
 #define pr_info_once(fmt, ...)  printk(KERN_INFO fmt, ##__VA_ARGS__)
 
 int sprintf(char *buf, const char *fmt, ...);
@@ -150,6 +166,18 @@ enum { SPRINTF_STR_LEN = 64 };
 	sprintf(buf, fmt, __VA_ARGS__); \
 	buf; \
 })
+
+#define DIV_ROUND_UP_ULL(ll,d) \
+	({ unsigned long long _tmp = (ll)+(d)-1; do_div(_tmp, d); _tmp; })
+
+#define mult_frac(x, numer, denom) ({                \
+	 typeof(x) quot = (x) / (denom);                 \
+	 typeof(x) rem  = (x) % (denom);                 \
+	 (quot * (numer)) + ((rem * (numer)) / (denom)); \
+	 })
+
+extern int panic_timeout;
+extern struct atomic_notifier_head panic_notifier_list;
 
 /* linux/i2c.h */
 #define __deprecated
@@ -181,6 +209,9 @@ extern void hex_dump_to_buffer(const void *buf, size_t len,
 
 /* i2c-core.c */
 #define postcore_initcall(fn) void postcore_##fn(void) { fn(); }
+
+#define symbol_get(x) ({ extern typeof(x) x __attribute__((weak)); &(x); })
+#define symbol_put(x) do { } while (0)
 
 
 /**************************
@@ -231,13 +262,11 @@ void mutex_lock_nest_lock(struct mutex *, struct mutex *);
  ** linux/rtmutex.h **
  *********************/
 
-struct rt_mutex { int dummy; };
-
-void rt_mutex_lock(struct rt_mutex *lock);
-int rt_mutex_trylock(struct rt_mutex *lock);
-void rt_mutex_unlock(struct rt_mutex *lock);
-
-#define rt_mutex_init(mutex)
+#define rt_mutex            mutex
+#define rt_mutex_init(m)    mutex_init(m)
+#define rt_mutex_lock(m)    mutex_lock(m)
+#define rt_mutex_trylock(m) mutex_trylock(m)
+#define rt_mutex_unlock(m)  mutex_unlock(m)
 
 
 /******************
@@ -305,6 +334,8 @@ int on_each_cpu(void (*func) (void *info), void *info, int wait);
 /* normally defined in asm/current.h, included by sched.h */
 extern struct task_struct *current;
 
+void yield(void);
+
 
 /************************
  ** linux/completion.h **
@@ -315,6 +346,7 @@ struct completion { unsigned done; };
 void __wait_completion(struct completion *work);
 void complete(struct completion *); /* i2c-core.c */
 void init_completion(struct completion *x);
+void wait_for_completion(struct completion *);
 
 
 /*********************
@@ -744,6 +776,13 @@ enum {
 
 #define SET_RUNTIME_PM_OPS(suspend_fn, resume_fn, idle_fn)
 
+enum rpm_status {
+	RPM_ACTIVE = 0,
+	RPM_RESUMING,
+	RPM_SUSPENDED,
+	RPM_SUSPENDING,
+};
+
 
 /********************
  ** linux/device.h **
@@ -885,6 +924,8 @@ void  iounmap(volatile void *addr);
 
 void __iomem *ioremap(phys_addr_t offset, unsigned long size);
 
+#define mmiowb() barrier()
+
 /**
  * Map I/O memory write combined
  */
@@ -892,12 +933,14 @@ void *ioremap_wc(resource_size_t phys_addr, unsigned long size);
 
 #define ioremap_nocache ioremap_wc
 
-void  *memset_io(void *s, int c, size_t n);
-
 int arch_phys_wc_add(unsigned long base, unsigned long size);
 static inline void arch_phys_wc_del(int handle) { }
 
 phys_addr_t virt_to_phys(volatile void *address);
+
+void memset_io(void *s, int c, size_t n);
+void memcpy_toio(volatile void __iomem *dst, const void *src, size_t count);
+void memcpy_fromio(void *dst, const volatile void __iomem *src, size_t count);
 
 
 /*********************
@@ -942,6 +985,9 @@ void io_mapping_unmap_atomic(void *vaddr);
 struct io_mapping *io_mapping_create_wc(resource_size_t base, unsigned long size);
 void io_mapping_free(struct io_mapping *mapping);
 
+void __iomem * io_mapping_map_wc(struct io_mapping *mapping, unsigned long offset);
+void io_mapping_unmap(void __iomem *vaddr);
+
 #include <lx_emul/mmio.h>
 
 
@@ -956,14 +1002,6 @@ extern struct resource iomem_resource;
 int request_resource(struct resource *root, struct resource *); /* intel-gtt.c */
 
 int release_resource(struct resource *r);  /* i915_dma.c */
-
-
-/************************
- ** linux/pm_runtime.h **
- ************************/
-
-int pm_generic_runtime_suspend(struct device *dev);
-int pm_generic_runtime_resume(struct device *dev);
 
 
 /*****************
@@ -1045,6 +1083,9 @@ static inline dma_addr_t pci_bus_address(struct pci_dev *pdev, int bar)
 
 struct pci_dev *pci_dev_get(struct pci_dev *dev);
 
+void __iomem __must_check *pci_map_rom(struct pci_dev *pdev, size_t *size);
+void pci_unmap_rom(struct pci_dev *pdev, void __iomem *rom);
+
 
 /**********************************
  ** asm-generic/pci-dma-compat.h **
@@ -1079,63 +1120,6 @@ void pci_iounmap(struct pci_dev *dev, void __iomem *p);
 bool capable(int cap);
 
 #define CAP_SYS_ADMIN 21
-
-
-/******************
- ** linux/hdmi.h **
- ******************/
-
-#define HDMI_IEEE_OUI 0x000c03
-
-enum hdmi_infoframe_type { HDMI_INFOFRAME_TYPE_DUMMY };
-
-enum hdmi_picture_aspect {
-	HDMI_PICTURE_ASPECT_NONE,
-	HDMI_PICTURE_ASPECT_4_3,
-	HDMI_PICTURE_ASPECT_16_9,
-};
-
-enum hdmi_active_aspect {
-	HDMI_ACTIVE_ASPECT_16_9_TOP = 2,
-	HDMI_ACTIVE_ASPECT_14_9_TOP = 3,
-	HDMI_ACTIVE_ASPECT_16_9_CENTER = 4,
-	HDMI_ACTIVE_ASPECT_PICTURE = 8,
-	HDMI_ACTIVE_ASPECT_4_3 = 9,
-	HDMI_ACTIVE_ASPECT_16_9 = 10,
-	HDMI_ACTIVE_ASPECT_14_9 = 11,
-	HDMI_ACTIVE_ASPECT_4_3_SP_14_9 = 13,
-	HDMI_ACTIVE_ASPECT_16_9_SP_14_9 = 14,
-	HDMI_ACTIVE_ASPECT_16_9_SP_4_3 = 15,
-};
-
-enum hdmi_3d_structure {
-	HDMI_3D_STRUCTURE_INVALID = -1,
-	HDMI_3D_STRUCTURE_FRAME_PACKING = 0,
-	HDMI_3D_STRUCTURE_FIELD_ALTERNATIVE,
-	HDMI_3D_STRUCTURE_LINE_ALTERNATIVE,
-	HDMI_3D_STRUCTURE_SIDE_BY_SIDE_FULL,
-	HDMI_3D_STRUCTURE_L_DEPTH,
-	HDMI_3D_STRUCTURE_L_DEPTH_GFX_GFX_DEPTH,
-	HDMI_3D_STRUCTURE_TOP_AND_BOTTOM,
-	HDMI_3D_STRUCTURE_SIDE_BY_SIDE_HALF = 8,
-};
-
-struct hdmi_avi_infoframe {
-	int dummy;
-	enum hdmi_picture_aspect picture_aspect;
-	enum hdmi_active_aspect active_aspect;
-	unsigned char video_code;
-	unsigned char pixel_repeat;
-};
-
-struct hdmi_vendor_infoframe {
-	enum hdmi_infoframe_type type;
-	u8 vic;
-	enum hdmi_3d_structure s3d_struct;
-};
-
-int hdmi_avi_infoframe_init(struct hdmi_avi_infoframe *frame);
-int hdmi_vendor_infoframe_init(struct hdmi_vendor_infoframe *frame);
 
 
 /*************************
@@ -1182,6 +1166,11 @@ typedef int (*notifier_fn_t)(struct notifier_block *nb, unsigned long action, vo
 struct notifier_block { notifier_fn_t notifier_call; };
 
 enum { NOTIFY_OK = 0x0001 };
+
+struct atomic_notifier_head { unsigned dummy; };
+
+extern int atomic_notifier_chain_unregister(struct atomic_notifier_head *nh, struct notifier_block *nb);
+extern int atomic_notifier_chain_register(struct atomic_notifier_head *nh, struct notifier_block *nb);
 
 
 /*******************
@@ -1242,11 +1231,6 @@ void console_unlock(void);
 int console_trylock(void);
 
 
-/****************
- ** linux/fb.h **
- ****************/
-
-enum { FBINFO_STATE_RUNNING = 0, FBINFO_STATE_SUSPENDED = 1 };
 
 
 /****************
@@ -1452,6 +1436,165 @@ void gpio_free(unsigned gpio);
 bool gpio_is_valid(int number);
 
 
+/* needed by drivers/gpu/drm/drm_modes.c */
+#include <linux/list_sort.h>
+
+
+/*********************
+ ** linux/cpufreq.h **
+ *********************/
+
+struct cpufreq_cpuinfo {
+	unsigned int max_freq;
+	unsigned int min_freq;
+};
+
+struct cpufreq_policy {
+	struct cpufreq_cpuinfo cpuinfo;
+};
+
+struct cpufreq_policy *cpufreq_cpu_get(unsigned int cpu);
+void cpufreq_cpu_put(struct cpufreq_policy *policy);
+
+
+/********************************
+ ** arch/x86/include/asm/tsc.h **
+ ********************************/
+
+extern unsigned int tsc_khz;
+
+
+/**************************************
+ ** drivers/platform/x86/intel_ips.h **
+ **************************************/
+
+void ips_link_to_i915_driver(void);
+
+
+/******************
+ ** linux/kgdb.h **
+ ******************/
+
+#define in_dbg_master() (0)
+
+
+/*************************
+ ** asm-generic/div64.h **
+ *************************/
+
+#define do_div(n,base) ({ \
+	unsigned long __base = (base); \
+	unsigned long __rem; \
+	__rem = ((uint64_t)(n)) % __base; \
+	(n)   = ((uint64_t)(n)) / __base; \
+	__rem; \
+})
+
+
+/**************************************
+ ** definitions needed by intel_pm.c **
+ **************************************/
+
+void trace_intel_gpu_freq_change(int);
+
+
+/****************
+ ** linux/fb.h **
+ ****************/
+
+#include <uapi/linux/fb.h>
+
+enum {
+	FBINFO_STATE_RUNNING = 0,
+	FBINFO_STATE_SUSPENDED = 1,
+	FBINFO_CAN_FORCE_OUTPUT = 0x200000,
+	FBINFO_DEFAULT = 0,
+};
+
+struct fb_cmap_user {
+	__u32 start;
+	__u32 len;
+	__u16 __user *red;
+	__u16 __user *green;
+	__u16 __user *blue;
+	__u16 __user *transp;
+};
+
+struct aperture {
+	resource_size_t base;
+	resource_size_t size;
+};
+
+struct apertures_struct {
+	unsigned int count;
+	struct aperture ranges[0];
+};
+
+struct fb_info {
+	int node;
+	int flags;
+	struct fb_var_screeninfo var;   /* Current var */
+	struct fb_fix_screeninfo fix;   /* Current fix */
+	struct fb_cmap cmap;
+	struct fb_ops *fbops;
+	char __iomem *screen_base;
+	unsigned long screen_size;
+	void *pseudo_palette;
+	void * par;
+	struct apertures_struct *apertures;
+	bool skip_vt_switch;
+};
+
+struct fb_ops {
+	struct module *owner;
+	int (*fb_check_var)(struct fb_var_screeninfo *var, struct fb_info *info);
+	int (*fb_set_par)(struct fb_info *info);
+	int (*fb_setcolreg)(unsigned regno, unsigned red, unsigned green,
+			unsigned blue, unsigned transp, struct fb_info *info);
+	int (*fb_setcmap)(struct fb_cmap *cmap, struct fb_info *info);
+	int (*fb_blank)(int blank, struct fb_info *info);
+	int (*fb_pan_display)(struct fb_var_screeninfo *var, struct fb_info *info);
+	void (*fb_fillrect) (struct fb_info *info, const struct fb_fillrect *rect);
+	void (*fb_copyarea) (struct fb_info *info, const struct fb_copyarea *region);
+	void (*fb_imageblit) (struct fb_info *info, const struct fb_image *image);
+	int (*fb_debug_enter)(struct fb_info *info);
+	int (*fb_debug_leave)(struct fb_info *info);
+};
+
+extern int fb_get_options(const char *name, char **option);
+extern int register_framebuffer(struct fb_info *fb_info);
+extern void cfb_fillrect(struct fb_info *info, const struct fb_fillrect *rect);
+extern void cfb_copyarea(struct fb_info *info, const struct fb_copyarea *area);
+extern void cfb_imageblit(struct fb_info *info, const struct fb_image *image);
+extern struct fb_info *framebuffer_alloc(size_t size, struct device *dev);
+extern int fb_alloc_cmap(struct fb_cmap *cmap, int len, int transp);
+extern struct apertures_struct *alloc_apertures(unsigned int max_num);
+extern int unregister_framebuffer(struct fb_info *fb_info);
+extern void fb_dealloc_cmap(struct fb_cmap *cmap);
+extern void framebuffer_release(struct fb_info *info);
+extern void fb_set_suspend(struct fb_info *info, int state);
+extern int fb_copy_cmap(const struct fb_cmap *from, struct fb_cmap *to);
+extern const struct fb_cmap *fb_default_cmap(int len);
+extern int lock_fb_info(struct fb_info *info);
+extern void unlock_fb_info(struct fb_info *info);
+
+/***************************
+ ** linux vgaswitcheroo.h **
+ ***************************/
+
+void vga_switcheroo_client_fb_set(struct pci_dev *dev, struct fb_info *info);
+
+
+/*******************
+ ** linux/sysrq.h **
+ *******************/
+
+struct sysrq_key_op { unsigned dummy; };
+
+int register_sysrq_key(int key, struct sysrq_key_op *op);
+int unregister_sysrq_key(int key, struct sysrq_key_op *op);
+
+
 /*******************
  ** Configuration **
  *******************/
@@ -1459,6 +1602,9 @@ bool gpio_is_valid(int number);
 /* evaluated in i915_drv.c */
 enum { CONFIG_DRM_I915_PRELIMINARY_HW_SUPPORT = 1 };
 
+#define CONFIG_DRM_I915_FBDEV 1
+
+void update_genode_report();
 
 /**************************
  ** Dummy trace funtions **
@@ -1484,7 +1630,6 @@ enum { CONFIG_DRM_I915_PRELIMINARY_HW_SUPPORT = 1 };
 #define trace_i915_flip_request(...)
 #define trace_i915_reg_rw(...)
 #define trace_i915_gem_request_complete(...)
-
 
 #include <lx_emul/extern_c_end.h>
 

@@ -42,39 +42,10 @@ struct timespec ns_to_timespec(const s64 nsec)
 	return { 0, 0 };
 }
 
-void hex_dump_to_buffer(const void *buf, size_t len, int rowsize, int groupsize, char *linebuf, size_t linebuflen, bool ascii)
-{
-	TRACE_AND_STOP;
-}
-
-bool mod_delayed_work(struct workqueue_struct *, struct delayed_work *, unsigned long)
-{
-	TRACE_AND_STOP;
-	return false;
-}
-
 bool capable(int cap)
 {
 	TRACE_AND_STOP;
 	return false;
-}
-
-int drm_dp_bw_code_to_link_rate(u8 link_bw)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-bool intel_fbc_enabled(struct drm_device *dev)
-{
-	TRACE_AND_STOP;
-	return false;
-}
-
-int i2c_dp_aux_add_bus(struct i2c_adapter *adapter)
-{
-	TRACE_AND_STOP;
-	return -1;
 }
 
 int i915_gem_execbuffer(struct drm_device *dev, void *data, struct drm_file *file_priv)
@@ -96,18 +67,6 @@ int i915_gem_set_tiling(struct drm_device *dev, void *data, struct drm_file *fil
 }
 
 int i915_gem_get_tiling(struct drm_device *dev, void *data, struct drm_file *file)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-int intel_overlay_put_image(struct drm_device *dev, void *data, struct drm_file *file_priv)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-int intel_overlay_attrs(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
 	TRACE_AND_STOP;
 	return -1;
@@ -135,5 +94,49 @@ void device_unregister(struct device *dev)
 	TRACE_AND_STOP;
 }
 
+int i2c_algo_bit_xfer(struct i2c_adapter *i2c_adap, struct i2c_msg msgs[], int num)
+{
+	TRACE_AND_STOP;
+	return -1;
+}
+
+u32 i2c_algo_bit_func(struct i2c_adapter *adap)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+void i915_setup_sysfs(struct drm_device *dev_priv)
+{
+	TRACE;
+}
+
+int acpi_video_register(void)
+{
+	TRACE;
+	return 0;
+}
+
+void ips_link_to_i915_driver(void)
+{
+	TRACE;
+}
+
+void spin_lock(spinlock_t *lock)
+{
+	TRACE;
+}
+
+void drm_sysfs_hotplug_event(struct drm_device *dev)
+{
+	TRACE;
+}
+
+const char *acpi_dev_name(struct acpi_device *)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
 
 } /* extern "C" */
+

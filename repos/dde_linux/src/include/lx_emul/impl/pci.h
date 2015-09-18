@@ -44,7 +44,7 @@ extern "C" int pci_register_driver(struct pci_driver *driver)
 
 		/* look if we find the device ID in the driver's 'id_table' */
 		pci_device_id const *matching_id = nullptr;
-		for (pci_device_id const *id = id_table; id->class_ != (unsigned)PCI_ANY_ID; id++)
+		for (pci_device_id const *id = id_table; id->class_ != 0; id++)
 			if (id->device == device_id)
 				matching_id = id;
 
@@ -62,7 +62,7 @@ extern "C" int pci_register_driver(struct pci_driver *driver)
 		pci_dev->dev.driver = &driver->driver;
 
 		/* call probe function of the Linux driver */
-		if (!driver->probe(pci_dev, matching_id)) {
+		if (driver->probe(pci_dev, matching_id)) {
 
 			/* if the probing failed, revert the creation of 'pci_dev' */
 			pci_dev_put(pci_dev);
@@ -88,6 +88,13 @@ extern "C" size_t pci_resource_start(struct pci_dev *dev, unsigned bar)
 	return dev->resource[bar].start;
 }
 
+extern "C" size_t pci_resource_end(struct pci_dev *dev, unsigned bar)
+{
+	if (bar >= DEVICE_COUNT_RESOURCE)
+		return 0;
+
+	return dev->resource[bar].end;
+}
 
 extern "C" size_t pci_resource_len(struct pci_dev *dev, unsigned bar)
 {

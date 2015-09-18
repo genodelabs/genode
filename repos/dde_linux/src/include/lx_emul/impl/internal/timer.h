@@ -23,6 +23,7 @@
 
 /* Linux emulation environment includes */
 #include <lx_emul/impl/internal/task.h>
+#include <lx_emul/impl/internal/scheduler.h>
 
 namespace Lx {
 

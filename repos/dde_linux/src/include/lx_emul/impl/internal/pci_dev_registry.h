@@ -29,6 +29,7 @@ namespace Lx {
 	Pci_dev_registry *pci_dev_registry();
 }
 
+
 class Lx::Pci_dev_registry
 {
 	private:
@@ -45,7 +46,8 @@ class Lx::Pci_dev_registry
 
 		Genode::Io_mem_dataspace_capability io_mem(resource_size_t         phys,
 		                                           Genode::Cache_attribute cache_attribute,
-		                                           Genode::size_t          size)
+		                                           Genode::size_t          size,
+		                                           Genode::addr_t         &offset)
 		{
 			enum { PCI_ROM_RESOURCE = 6 };
 
@@ -54,23 +56,18 @@ class Lx::Pci_dev_registry
 				unsigned bar = 0;
 				for (; bar < PCI_ROM_RESOURCE; bar++) {
 					if ((pci_resource_flags(d, bar) & IORESOURCE_MEM) &&
-					    (pci_resource_start(d, bar) == phys))
+					    (pci_resource_start(d, bar) <= phys) &&
+					    (pci_resource_end(d, bar) >= (phys+size-1)))
 						break;
 				}
 				if (bar >= PCI_ROM_RESOURCE)
 					continue;
 
-				Platform::Device &device = d->client();
-
-				unsigned const resource_id =
-					device.phys_bar_to_virt(bar);
-
 				/* offset from the beginning of the PCI resource */
-				Genode::addr_t const offset =
-					phys - pci_resource_start(d, bar);
+				offset = phys - pci_resource_start(d, bar);
 
 				Genode::Io_mem_session_capability io_mem_cap =
-					device.io_mem(resource_id, cache_attribute, offset, size);
+					d->io_mem(bar, cache_attribute);
 
 				return Genode::Io_mem_session_client(io_mem_cap).dataspace();
 			}
@@ -82,7 +79,6 @@ class Lx::Pci_dev_registry
 		template <typename T>
 		T io_read(unsigned port)
 		{
-			PDBG("io_read %u", port);
 			/* try I/O access on all PCI devices */
 			for (Pci_dev *d = _devs.first(); d; d = d->next()) {
 				T value = 0;
@@ -97,8 +93,6 @@ class Lx::Pci_dev_registry
 		template <typename T>
 		void io_write(unsigned port, T value)
 		{
-			PDBG("io_write %u", port);
-
 			/* try I/O access on all PCI devices, return on first success */
 			for (Pci_dev *d = _devs.first(); d; d = d->next())
 				if (d->io_port().out<T>(port, value))

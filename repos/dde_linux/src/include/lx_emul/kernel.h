@@ -39,6 +39,15 @@
 #define KERN_WARNING "WARNING: "
 #define KERN_WARN   "WARNING: "
 
+static inline int _printk(const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	lx_vprintf(fmt, args);
+	va_end(args);
+	return 0;
+}
+
 /*
  * Debug macros
  */

@@ -52,7 +52,7 @@ class Lx::Scheduler
 {
 	private:
 
-		bool verbose = true;
+		bool verbose = false;
 
 		Lx::List<Lx::Task> _present_list;
 		Genode::Lock       _present_list_mutex;

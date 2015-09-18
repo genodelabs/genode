@@ -41,7 +41,9 @@ struct sg_table
 struct sg_page_iter
 {
 	struct scatterlist *sg;
-	unsigned int		sg_pgoffset;	/* page offset within the sg */
+	unsigned int        sg_pgoffset;	/* page offset within the sg */
+	unsigned int        __nents;
+	int                 __pg_advance;
 };
 
 struct sg_mapping_iter

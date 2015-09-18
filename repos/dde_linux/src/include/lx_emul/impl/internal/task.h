@@ -120,6 +120,8 @@ class Lx::Task : public Lx::List<Lx::Task>::Element
 
 		void wait_enqueue(List *list)
 		{
+			if (_wait_le_enqueued && _wait_list == list) return;
+
 			if (_wait_le_enqueued) {
 				PERR("%p already queued in %p", this, _wait_list);
 				Genode::sleep_forever();

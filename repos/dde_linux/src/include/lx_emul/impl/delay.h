@@ -14,6 +14,8 @@
 /* Genode includes */
 #include <timer_session/connection.h>
 
+#include <lx_emul/impl/internal/timer.h>
+
 /*
  * XXX  We may consider to use the Lx::Timer instead of opening a dedicated
  *      timer session.
@@ -24,7 +26,11 @@ static Timer::Connection _delay_timer;
 void udelay(unsigned long usecs) { _delay_timer.usleep(usecs); }
 
 
-void msleep(unsigned int msecs) { _delay_timer.msleep(msecs); }
+void msleep(unsigned int msecs)
+{
+	_delay_timer.msleep(msecs);
+	Lx::timer_update_jiffies();
+}
 
 
 void mdelay(unsigned long msecs) { msleep(msecs); }

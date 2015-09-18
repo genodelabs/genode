@@ -1,0 +1,15 @@
++++ a/drivers/gpu/drm/i915/i915_gem_gtt.c
++++ b/drivers/gpu/drm/i915/i915_gem_gtt.c
+@@ -1034,7 +1034,11 @@
+ 				  unsigned int num_entries,
+ 				  bool unused)
+ {
+-	intel_gtt_clear_range(first_entry, num_entries);
++	if (!unused)
++		intel_gtt_clear_range(first_entry, num_entries);
++	else
++		/* Fixes DMA issues on Lenovo X201 */
++		printk("Disable %s for Genode\n", __func__);
+ }
+ 
+ 

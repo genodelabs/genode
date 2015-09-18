@@ -15,7 +15,7 @@
 #include <lx_emul/impl/internal/mapped_io_mem_range.h>
 
 
-void *ioremap(resource_size_t phys_addr, unsigned long size)
+void *ioremap(phys_addr_t phys_addr, unsigned long size)
 {
 	return Lx::ioremap(phys_addr, size, Genode::UNCACHED);
 }

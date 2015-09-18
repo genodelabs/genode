@@ -96,6 +96,7 @@ return pci_bus_write_config_dword(dev->bus, dev->devfn, where, val); }
 
 size_t pci_resource_len(struct pci_dev *dev, unsigned bar);
 size_t pci_resource_start(struct pci_dev *dev, unsigned bar);
+size_t pci_resource_end(struct pci_dev *dev, unsigned bar);
 void pci_dev_put(struct pci_dev *dev);
 struct pci_dev *pci_get_device(unsigned int vendor, unsigned int device, struct pci_dev *from);
 

@@ -54,6 +54,7 @@ class Lx::Pci_dev : public pci_dev, public Lx::List<Pci_dev>::Element
 		Platform::Device_client _client;
 
 		Io_port _io_port;
+		Genode::Io_mem_session_capability _io_mem[DEVICE_COUNT_RESOURCE];
 
 		/* offset used in PCI config space */
 		enum Pci_config { IRQ = 0x3c, REV = 0x8, CMD = 0x4,
@@ -143,7 +144,7 @@ class Lx::Pci_dev : public pci_dev, public Lx::List<Pci_dev>::Element
 
 			/* enable bus master */
 			cmd |= 0x4;
-			_client.config_write(CMD, cmd, Device::ACCESS_16BIT);
+			config_write(CMD, cmd);
 
 			/* get pci express capability */
 			this->pcie_cap = 0;
@@ -178,12 +179,34 @@ class Lx::Pci_dev : public pci_dev, public Lx::List<Pci_dev>::Element
 		template <typename T>
 		void config_write(unsigned int devfn, T val)
 		{
-			_client.config_write(devfn, val, _access_size(val));
+			Genode::size_t donate = 4096;
+			Genode::retry<Platform::Device::Quota_exceeded>(
+				[&] () { _client.config_write(devfn, val, _access_size(val)); },
+				[&] () {
+					char quota[32];
+					Genode::snprintf(quota, sizeof(quota), "ram_quota=%zd",
+					                 donate);
+					Genode::env()->parent()->upgrade(pci()->cap(), quota);
+					donate *= 2;
+				});
 		}
 
 		Platform::Device &client() { return _client; }
 
 		Io_port &io_port() { return _io_port; }
+
+		Genode::Io_mem_session_capability io_mem(unsigned bar,
+		                                         Genode::Cache_attribute cache_attribute)
+		{
+			if (bar >= DEVICE_COUNT_RESOURCE)
+				return Genode::Io_mem_session_capability();
+
+			if (!_io_mem[bar].valid())
+				_io_mem[bar] = _client.io_mem(_client.phys_bar_to_virt(bar),
+				                              cache_attribute);
+
+			return _io_mem[bar];
+		}
 };
 
 
@@ -200,7 +223,7 @@ void Lx::for_each_pci_device(FUNC const &func)
 {
 	/*
 	 * Functor that is called if the platform driver throws a
-	 * 'Quota_exceeded' exception.
+	 * 'Out_of_metadata' exception.
 	 */
 	auto handler = [&] () {
 		Genode::env()->parent()->upgrade(Lx::pci()->cap(),
@@ -212,7 +235,7 @@ void Lx::for_each_pci_device(FUNC const &func)
 	 */
 	Platform::Device_capability cap;
 	auto attempt = [&] () { cap = Lx::pci()->first_device(); };
-	Genode::retry<Platform::Device::Quota_exceeded>(attempt, handler);
+	Genode::retry<Platform::Session::Out_of_metadata>(attempt, handler);
 
 	/*
 	 * Iterate over the devices of the platform session.
@@ -234,7 +257,7 @@ void Lx::for_each_pci_device(FUNC const &func)
 			Lx::pci()->release_device(cap);
 			cap = next_cap;
 		};
-		Genode::retry<Platform::Device::Quota_exceeded>(attempt, handler);
+		Genode::retry<Platform::Session::Out_of_metadata>(attempt, handler);
 	}
 }
 

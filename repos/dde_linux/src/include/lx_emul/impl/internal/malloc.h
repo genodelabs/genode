@@ -119,7 +119,7 @@ class Lx::Malloc
 				msb = SLAB_STOP_LOG2;
 
 			if (msb > SLAB_STOP_LOG2) {
-				// PERR("Slab too large %u reqested %zu cached %d", 1U << msb, size, _cached);
+				PERR("Slab too large %u reqested %zu cached %d", 1U << msb, size, _cached);
 				return 0;
 			}
 
