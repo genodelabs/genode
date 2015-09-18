@@ -43,7 +43,6 @@ ret_type name args \
 	return ret_val; \
 }
 
-DUMMY(int   , -1, access, (const char *, int))
 DUMMY(int   , -1, chmod, (const char *, mode_t))
 DUMMY(int   , -1, chown, (const char *, uid_t, gid_t))
 DUMMY(int   , -1, chroot, (const char *))

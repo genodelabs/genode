@@ -214,6 +214,19 @@ static void resolve_symlinks_except_last_element(char const *path, Absolute_path
  ** Libc functions **
  ********************/
 
+extern "C" int access(const char *path, int amode)
+{
+	try {
+		Absolute_path resolved_path;
+		resolve_symlinks(path, resolved_path);
+		FNAME_FUNC_WRAPPER(access, resolved_path.base(), amode);
+	} catch (Symlink_resolve_error) {
+		errno = ENOENT;
+		return -1;
+	}
+}
+
+
 extern "C" int chdir(const char *path)
 {
 	struct stat stat_buf;
