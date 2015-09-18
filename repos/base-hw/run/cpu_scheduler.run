@@ -18,7 +18,7 @@ build_boot_image "test-cpu_scheduler"
 append qemu_args " -m 64 -nographic"
 
 # execute the test in qemu if the targeted platform is supported
-run_genode_until "done.*\n" 10
+run_genode_until "done.*" 10
 
 # check the output
 grep_output {\[test\]}

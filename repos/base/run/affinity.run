@@ -73,7 +73,7 @@ if {[have_include "power_on/qemu"]} {
 	if {[have_spec x86]} { set rounds "40" }
 }
 
-run_genode_until "Round $rounds:.*\n" 120
+run_genode_until "Round $rounds:.*" 120
 
 set cpus [regexp -inline {Detected [0-9x]+ CPU[s\.]} $output]
 set cpus [regexp -all -inline {[0-9]+} $cpus]

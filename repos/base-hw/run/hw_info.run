@@ -18,4 +18,4 @@ build_boot_image "test-hw_info"
 append qemu_args " -m 64 -nographic"
 
 # execute the test in qemu if the targeted platform is supported
-run_genode_until "------ End ------.*\n" 60
+run_genode_until "------ End ------.*" 60

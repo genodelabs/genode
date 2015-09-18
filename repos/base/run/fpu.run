@@ -40,7 +40,7 @@ build_boot_image "core init test-fpu"
 
 append qemu_args "-nographic -m 64"
 
-run_genode_until "test done.*\n" 60
+run_genode_until "test done.*" 60
 
 grep_output {^\[init -\> test\]}
 

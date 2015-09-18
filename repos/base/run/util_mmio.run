@@ -39,7 +39,7 @@ build_boot_image "core init test-util_mmio"
 
 append qemu_args "-nographic -m 64"
 
-run_genode_until "Test done.*\n" 10
+run_genode_until "Test done.*" 10
 
 #
 # Conclusion

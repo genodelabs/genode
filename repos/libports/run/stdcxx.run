@@ -32,4 +32,4 @@ build_boot_image {
 
 append qemu_args " -nographic -m 64 "
 
-run_genode_until ".*test-stdcxx finished.*\n" 10
+run_genode_until ".*test-stdcxx finished.*" 10

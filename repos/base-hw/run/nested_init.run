@@ -73,7 +73,7 @@ append qemu_args " -m 64 -nographic"
 
 # execute the test in qemu if the targeted platform is supported
 if {[have_spec hw_pbxa9]} {
-	run_genode_until "No children to start.*\n" 10
+	run_genode_until "No children to start.*" 10
 	puts "Test succeeded"
 }
 
