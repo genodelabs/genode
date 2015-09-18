@@ -210,6 +210,7 @@ class Libc::Vfs_plugin : public Libc::Plugin
 
 		~Vfs_plugin() { }
 
+		bool supports_access(const char *, int)              override { return true; }
 		bool supports_mkdir(const char *, mode_t)            override { return true; }
 		bool supports_open(const char *, int)                override { return true; }
 		bool supports_readlink(const char *, char *, size_t) override { return true; }
@@ -227,6 +228,7 @@ class Libc::Vfs_plugin : public Libc::Plugin
 			return open(path, flags, Libc::ANY_FD);
 		}
 
+		int     access(char const *, int) override;
 		int     close(Libc::File_descriptor *) override;
 		int     dup2(Libc::File_descriptor *, Libc::File_descriptor *) override;
 		int     fcntl(Libc::File_descriptor *, int, long) override;
@@ -249,6 +251,10 @@ class Libc::Vfs_plugin : public Libc::Plugin
 		void   *mmap(void *, ::size_t, int, int, Libc::File_descriptor *, ::off_t) override;
 		int     munmap(void *, ::size_t) override;
 };
+
+
+int Libc::Vfs_plugin::access(const char *path, int amode) {
+	return _root_dir.leaf_path(path) ? 0 : -1; }
 
 
 Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags,

@@ -24,7 +24,8 @@ namespace Libc {
 	class Plugin_registry : public List<Plugin>
 	{
 		public:
-		
+
+			Plugin *get_plugin_for_access(char const *pathname, int amode);
 			Plugin *get_plugin_for_execve(char const *filename, char *const argv[],
 		                                  char *const envp[]);
 			Plugin *get_plugin_for_freeaddrinfo(struct addrinfo *res);

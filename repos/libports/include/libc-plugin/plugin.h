@@ -44,6 +44,7 @@ namespace Libc {
 
 			virtual int priority();
 
+			virtual bool supports_access(char const *path, int amode);
 			virtual bool supports_execve(char const *filename, char *const argv[],
 			                             char *const envp[]);
 			virtual bool supports_mkdir(const char *path, mode_t mode);
@@ -70,6 +71,7 @@ namespace Libc {
 			virtual File_descriptor *accept(File_descriptor *,
 			                                struct ::sockaddr *addr,
 			                                socklen_t *addrlen);
+			virtual int access(char const *, int);
 			virtual int bind(File_descriptor *,
 			                 const struct ::sockaddr *addr,
 			                 socklen_t addrlen);
