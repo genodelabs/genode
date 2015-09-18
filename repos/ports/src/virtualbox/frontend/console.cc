@@ -24,20 +24,29 @@ HRESULT Console::updateMachineState(MachineState_T aMachineState)               
 
 HRESULT Console::attachToTapInterface(INetworkAdapter *networkAdapter)
 {
-	HRESULT rc = S_OK;
-
 	ULONG slot = 0;
-	rc = networkAdapter->COMGETTER(Slot)(&slot);
+	HRESULT rc = networkAdapter->COMGETTER(Slot)(&slot);
 	AssertComRC(rc);
 
 	maTapFD[slot] = (RTFILE)1;
 
-	TRACE(S_OK)
+	TRACE(rc)
+}
+
+HRESULT Console::detachFromTapInterface(INetworkAdapter *networkAdapter)
+{
+	ULONG slot = 0;
+	HRESULT rc = networkAdapter->COMGETTER(Slot)(&slot);
+	AssertComRC(rc);
+
+	if (maTapFD[slot] != NIL_RTFILE)
+		maTapFD[slot] = NIL_RTFILE;
+
+	TRACE(rc)
 }
 
 HRESULT Console::teleporterTrg(PUVM, IMachine*, com::Utf8Str*, bool, Progress*,
                                bool*)                                           DUMMY(E_FAIL)
-HRESULT Console::detachFromTapInterface(INetworkAdapter *networkAdapter)        DUMMY(E_FAIL)
 HRESULT Console::saveState(Reason_T aReason, IProgress **aProgress)             DUMMY(E_FAIL)
 
 STDMETHODIMP Console::COMGETTER(Debugger)(IMachineDebugger **aDebugger)                                    DUMMY(E_FAIL)
@@ -103,7 +112,13 @@ HRESULT Console::onlineMergeMedium(IMediumAttachment *aMediumAttachment,
                                    IProgress *aProgress)                        DUMMY(E_FAIL)
 
 void fireStateChangedEvent(IEventSource* aSource,
-                           MachineState_T a_state)                              TRACE()
+                           MachineState_T a_state)
+{
+	if (a_state != MachineState_PoweredOff)
+		return;
+
+	Genode::env()->parent()->exit(0);
+}
 
 void fireRuntimeErrorEvent(IEventSource* aSource, BOOL a_fatal,
                            CBSTR a_id, CBSTR a_message)

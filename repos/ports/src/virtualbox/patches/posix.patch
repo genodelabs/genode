@@ -1,0 +1,11 @@
+--- a/src/app/virtualbox/src/VBox/Runtime/r3/posix/path-posix.cpp
++++ b/src/app/virtualbox/src/VBox/Runtime/r3/posix/path-posix.cpp
+@@ -401,8 +401,6 @@
+                     rc = errno == ENOENT ? VINF_SUCCESS : RTErrConvertFromErrno(errno);
+                 else
+                 {
+-                    Assert(SrcStat.st_dev && DstStat.st_dev);
+-                    Assert(SrcStat.st_ino && DstStat.st_ino);
+                     if (    SrcStat.st_dev == DstStat.st_dev
+                         &&  SrcStat.st_ino == DstStat.st_ino
+                         &&  (SrcStat.st_mode & S_IFMT) == (DstStat.st_mode & S_IFMT))

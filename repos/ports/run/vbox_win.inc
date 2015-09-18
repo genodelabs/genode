@@ -149,7 +149,7 @@ append config_of_app {
 		<binary name="virtualbox" />
 		<resource name="RAM" quantum="1280M"/>}
 append config_of_app "
-			<config vbox_file=\"${vbox_file}\" vm_name=\"${flavor}\">"
+			<config ld_verbose=\"yes\" vbox_file=\"${vbox_file}\" vm_name=\"${flavor}\">"
 append config_of_app {
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc">
 				<vfs>
