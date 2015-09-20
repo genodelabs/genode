@@ -253,8 +253,14 @@ class Libc::Vfs_plugin : public Libc::Plugin
 };
 
 
-int Libc::Vfs_plugin::access(const char *path, int amode) {
-	return _root_dir.leaf_path(path) ? 0 : -1; }
+int Libc::Vfs_plugin::access(const char *path, int amode)
+{
+	if (_root_dir.leaf_path(path))
+		return 0;
+
+	errno = ENOENT;
+	return -1;
+}
 
 
 Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags,

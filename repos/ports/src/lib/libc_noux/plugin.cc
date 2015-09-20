@@ -567,20 +567,6 @@ extern "C" pid_t getpid(void)
 extern "C" pid_t getppid(void) { return getpid(); }
 
 
-extern "C" int access(char const *pathname, int mode)
-{
-	if (verbose)
-		PDBG("access '%s' (mode=%x) called, not implemented", pathname, mode);
-
-	struct stat stat;
-	if (::stat(pathname, &stat) == 0)
-		return 0;
-
-	errno = ENOENT;
-	return -1;
-}
-
-
 extern "C" int chmod(char const *path, mode_t mode)
 {
 	if (verbose)
@@ -889,6 +875,7 @@ namespace {
 				}
 			}
 
+			bool supports_access(const char *, int)              { return true; }
 			bool supports_execve(char const *, char *const[],
 			                     char *const[])                  { return true; }
 			bool supports_open(char const *, int)                { return true; }
@@ -903,6 +890,7 @@ namespace {
 			bool supports_socket(int, int, int)                  { return true; }
 			bool supports_mmap()                                 { return true; }
 
+			int access(char const *, int);
 			Libc::File_descriptor *open(char const *, int);
 			ssize_t write(Libc::File_descriptor *, const void *, ::size_t);
 			int close(Libc::File_descriptor *);
@@ -955,6 +943,20 @@ namespace {
 				       socklen_t);
 			int shutdown(Libc::File_descriptor *, int how);
 	};
+
+
+	int Plugin::access(char const *pathname, int mode)
+	{
+		if (verbose)
+			PDBG("access '%s' (mode=%x) called, not implemented", pathname, mode);
+
+		struct stat stat;
+		if (::stat(pathname, &stat) == 0)
+			return 0;
+
+		errno = ENOENT;
+		return -1;
+	}
 
 
 	int Plugin::execve(char const *filename, char *const argv[],
