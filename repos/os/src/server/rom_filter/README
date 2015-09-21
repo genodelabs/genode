@@ -1,0 +1,46 @@
+The ROM filter provides a ROM module that depends on the content
+of other ROM modules. Its designated use is the dynamic switching between
+configuration variants dependent on the state of the system. For example,
+the configuration of the window decorator may be toggled depending on whether
+nitpicker's X-ray mode is active or not.
+
+
+Configuration
+~~~~~~~~~~~~~
+
+The configuration consists of two parts. The first part is the declaration of
+input values that are taken into the account. The input values are obtained
+from ROM modules that contain XML-formatted data. Each input value is
+represented by an '<input>' node with a unique 'name' attribute. The 'rom'
+attribute specifies the ROM module to take the input from. If not specified,
+the 'name' is used as the ROM name. The type of the top-level XML node can be
+specified via the 'node' attribute. If not present, the top-level XML node is
+expected to correspond to the 'name' attribute.
+
+The second part of the configuration defines the output via an '<output>' node.
+The type of the top-level XML node must be specified via the 'node' attribute.
+The '<output>' node can contain the following sub nodes:
+
+:'<inline>':
+  Contains content to be written to the output.
+
+:'<if>':
+  Produces output depending on a condition (see below). If the condition
+  is satisfied, the '<then>' sub node is evaluated. Otherwise, the '<else>'
+  sub node is evaluated. Each of those sub nodes can contain the same
+  nodes as the '<output>' node.
+
+
+Conditions
+----------
+
+The '<has_value>' condition compares an input value (specified as 'input'
+attribute) with a predefined value (specified as 'value' attribute). The
+condition is satisfied if both values are equal.
+
+
+Example
+~~~~~~~
+
+For an example that illustrates the use of the component, please refer to the
+_os/run/conditional_rom.run_ script.

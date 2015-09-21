@@ -1,0 +1,137 @@
+#
+# Build
+#
+
+set build_components {
+	core init drivers/timer
+	server/dynamic_rom server/rom_filter app/rom_logger
+}
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="RM"/>
+		<service name="LOG"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="dynamic_rom">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="ROM"/></provides>
+		<config verbose="yes">
+			<rom name="xray">
+				<sleep milliseconds="1000" />
+				<inline description="disable X-ray mode">
+					<xray enabled="no"/>
+				</inline>
+				<sleep milliseconds="1000" />
+				<inline description="enable X-ray mode">
+					<xray enabled="yes"/>
+				</inline>
+				<sleep milliseconds="1000" />
+				<inline description="leave X-ray mode undefined">
+					<xray/> <!-- undefined -->
+				</inline>
+				<sleep milliseconds="1000" />
+				<inline description="finished"/>
+			</rom>
+		</config>
+	</start>
+
+	<start name="rom_filter">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="ROM"/></provides>
+		<config verbose="no">
+
+			<input name="xray_enabled" rom="xray" node="xray">
+				<attribute name="enabled" />
+			</input>
+
+			<output node="config">
+				<if>
+					<has_value input="xray_enabled" value="no" />
+					<then>
+						<inline><!-- .. flat window decorations ... --></inline>
+					</then>
+					<else>
+						<if>
+							<has_value input="xray_enabled" value="yes" />
+							<then>
+								<inline><!-- ... colored window decorations ... --></inline>
+							</then>
+							<else>
+								<inline><!-- ... fallback ... --></inline>
+							</else>
+						</if>
+					</else>
+				</if>
+			</output>
+
+		</config>
+		<route>
+			<service name="ROM"> <child name="dynamic_rom"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="rom_logger">
+		<resource name="RAM" quantum="1M"/>
+		<config rom="generated" />
+		<route>
+			<service name="ROM"> <child name="rom_filter"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+set boot_modules { core init timer dynamic_rom rom_filter rom_logger }
+
+build_boot_image $boot_modules
+
+append qemu_args " -nographic "
+
+run_genode_until {.*finished.*\n} 20
+
+# pay only attention to the output of the rom_logger
+grep_output {^\[init -> rom_logger}
+
+compare_output_to {
+[init -> rom_logger] ROM 'generated':
+[init -> rom_logger]   <config><!-- ... fallback ... --></config>
+[init -> rom_logger] ROM 'generated':
+[init -> rom_logger]   <config><!-- .. flat window decorations ... --></config>
+[init -> rom_logger] ROM 'generated':
+[init -> rom_logger]   <config><!-- ... colored window decorations ... --></config>
+[init -> rom_logger] ROM 'generated':
+[init -> rom_logger]   <config><!-- ... fallback ... --></config>
+}
+
