@@ -155,10 +155,7 @@ void Ipc_node::_outbuf_request_cancelled()
 }
 
 
-bool Ipc_node::_helps_outbuf_dst()
-{
-	return (_state == AWAIT_REPLY) && _help;
-}
+bool Ipc_node::_helps_outbuf_dst() { return (_state == AWAIT_REPLY) && _help; }
 
 
 void Ipc_node::_init(Genode::Native_utcb * utcb, Ipc_node * starter)
@@ -175,8 +172,10 @@ void Ipc_node::_init(Genode::Native_utcb * utcb, Ipc_node * starter)
 void Ipc_node::send_request(Ipc_node * const callee, capid_t capid, bool help,
                             unsigned rcv_caps)
 {
-	if (_state != INACTIVE) return;
-
+	if (_state != INACTIVE) {
+		PERR("IPC send request: bad state");
+		return;
+	}
 	Genode::Allocator &slab = pd()->platform_pd()->capability_slab();
 	for (unsigned i = 0; i < rcv_caps; i++)
 		_obj_id_ref_ptr[i] = slab.alloc(sizeof(Object_identity_reference));
@@ -200,8 +199,10 @@ Ipc_node * Ipc_node::helping_sink() {
 
 bool Ipc_node::await_request(unsigned rcv_caps)
 {
-	if (_state != INACTIVE) return true;
-
+	if (_state != INACTIVE) {		
+		PERR("IPC await request: bad state");
+		return true;
+	}
 	Genode::Allocator &slab = pd()->platform_pd()->capability_slab();
 	for (unsigned i = 0; i < rcv_caps; i++)
 		_obj_id_ref_ptr[i] = slab.alloc(sizeof(Object_identity_reference));
