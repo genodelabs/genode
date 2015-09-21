@@ -111,12 +111,62 @@ void QNitpickerPlatformWindow::_process_mouse_event(Input::Event *ev)
 			                                 _mouse_button_state);
 }
 
+
 void QNitpickerPlatformWindow::_process_key_event(Input::Event *ev)
 {
 	const bool pressed = (ev->type() == Input::Event::PRESS);
 	const int keycode = ev->code();
 	_keyboard_handler.processKeycode(keycode, pressed, false);
 }
+
+
+void QNitpickerPlatformWindow::_handle_input(unsigned int)
+{
+	for (int i = 0, num_ev = _input_session.flush(); i < num_ev; i++) {
+
+		Input::Event *ev = &_ev_buf[i];
+
+		bool const is_key_event = ev->type() == Input::Event::PRESS ||
+					              ev->type() == Input::Event::RELEASE;
+
+		bool const is_mouse_button_event =
+			is_key_event && (ev->code() == Input::BTN_LEFT ||
+					         ev->code() == Input::BTN_MIDDLE ||
+					         ev->code() == Input::BTN_RIGHT);
+
+		if (ev->type() == Input::Event::MOTION ||
+			ev->type() == Input::Event::WHEEL ||
+			is_mouse_button_event) {
+
+			_process_mouse_event(ev);
+
+		} else if (is_key_event && (ev->code() < 128)) {
+
+			_process_key_event(ev);
+
+		}
+	}
+}
+
+
+void QNitpickerPlatformWindow::_handle_mode_changed(unsigned int)
+{
+	Framebuffer::Mode mode(_nitpicker_session.mode());
+
+	if ((mode.width() != _current_mode.width()) ||
+	    (mode.height() != _current_mode.height()) ||
+	    (mode.format() != _current_mode.format())) {
+
+		QRect geo(geometry());
+		geo.setWidth(mode.width());
+		geo.setHeight(mode.height());
+
+		QWindowSystemInterface::handleGeometryChange(window(), geo);
+
+		setGeometry(geo);
+	}
+}
+
 
 Nitpicker::Session::View_handle QNitpickerPlatformWindow::_create_view()
 {
@@ -176,27 +226,33 @@ void QNitpickerPlatformWindow::_adjust_and_set_geometry(const QRect &rect)
 	emit framebuffer_changed();
 }
 
-QNitpickerPlatformWindow::QNitpickerPlatformWindow(QWindow *window, Genode::Rpc_entrypoint &ep,
-		                 int screen_width, int screen_height)
+QNitpickerPlatformWindow::QNitpickerPlatformWindow(QWindow *window,
+                                                   Genode::Signal_receiver &signal_receiver,
+                                                   int screen_width, int screen_height)
 : QPlatformWindow(window),
   _framebuffer_session(_nitpicker_session.framebuffer_session()),
   _framebuffer(0),
   _framebuffer_changed(false),
   _geometry_changed(false),
+  _signal_receiver(signal_receiver),
   _view_handle(_create_view()),
   _input_session(_nitpicker_session.input_session()),
-  _timer(this),
   _keyboard_handler("", -1, false, false, ""),
   _resize_handle(!window->flags().testFlag(Qt::Popup)),
   _decoration(!window->flags().testFlag(Qt::Popup)),
-  _egl_surface(EGL_NO_SURFACE)
+  _egl_surface(EGL_NO_SURFACE),
+  _input_signal_dispatcher(_signal_receiver, *this,
+                           &QNitpickerPlatformWindow::_input),
+  _mode_changed_signal_dispatcher(_signal_receiver, *this,
+                                  &QNitpickerPlatformWindow::_mode_changed)
 {
 	if (qnpw_verbose)
 		if (window->transientParent())
 			qDebug() << "QNitpickerPlatformWindow(): child window of" << window->transientParent();
 
-	_mode_changed_signal_context_capability = _signal_receiver.manage(&_mode_changed_signal_context);
-	_nitpicker_session.mode_sigh(_mode_changed_signal_context_capability);
+	_input_session.sigh(_input_signal_dispatcher);
+
+	_nitpicker_session.mode_sigh(_mode_changed_signal_dispatcher);
 
 	_adjust_and_set_geometry(geometry());
 
@@ -211,8 +267,13 @@ QNitpickerPlatformWindow::QNitpickerPlatformWindow(QWindow *window, Genode::Rpc_
 		_nitpicker_session.execute();
 	}
 
-	connect(_timer, SIGNAL(timeout()), this, SLOT(handle_events()));
-	_timer->start(10);
+	connect(this, SIGNAL(_input(unsigned int)),
+	        this, SLOT(_handle_input(unsigned int)),
+	        Qt::QueuedConnection);
+
+	connect(this, SIGNAL(_mode_changed(unsigned int)),
+	        this, SLOT(_handle_mode_changed(unsigned int)),
+	        Qt::QueuedConnection);
 }
 
 QWindow *QNitpickerPlatformWindow::window() const
@@ -584,61 +645,4 @@ Nitpicker::View_capability QNitpickerPlatformWindow::view_cap() const
 	return npw->_nitpicker_session.view_capability(_view_handle);
 }
 
-void QNitpickerPlatformWindow::handle_events()
-{
-	/* handle resize events */
-
-	if (_signal_receiver.pending()) {
-
-		_signal_receiver.wait_for_signal();
-
-		Framebuffer::Mode mode(_nitpicker_session.mode());
-
-		if ((mode.width() != _current_mode.width()) ||
-	    	(mode.height() != _current_mode.height()) ||
-	    	(mode.format() != _current_mode.format())) {
-
-			QRect geo(geometry());
-			geo.setWidth(mode.width());
-			geo.setHeight(mode.height());
-
-			QWindowSystemInterface::handleGeometryChange(window(), geo);
-
-			setGeometry(geo);
-		}
-	}
-
-	/* handle input events */
-
-	if (_input_session.is_pending()) {
-		for (int i = 0, num_ev = _input_session.flush(); i < num_ev; i++) {
-
-			Input::Event *ev = &_ev_buf[i];
-
-			bool const is_key_event = ev->type() == Input::Event::PRESS ||
-					                  ev->type() == Input::Event::RELEASE;
-
-			bool const is_mouse_button_event =
-				is_key_event && (ev->code() == Input::BTN_LEFT ||
-					             ev->code() == Input::BTN_MIDDLE ||
-					             ev->code() == Input::BTN_RIGHT);
-
-			if (ev->type() == Input::Event::MOTION ||
-				ev->type() == Input::Event::WHEEL ||
-				is_mouse_button_event) {
-
-				_process_mouse_event(ev);
-
-			} else if (is_key_event && (ev->code() < 128)) {
-
-				_process_key_event(ev);
-
-			}
-		}
-
-	}
-
-}
-
 QT_END_NAMESPACE
-
