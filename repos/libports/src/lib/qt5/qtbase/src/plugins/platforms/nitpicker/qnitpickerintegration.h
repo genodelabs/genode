@@ -21,6 +21,7 @@
 #include <qpa/qplatformscreen.h>
 
 #include "qnitpickerscreen.h"
+#include "qsignalhandlerthread.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -28,22 +29,32 @@ class QNitpickerIntegration : public QPlatformIntegration
 {
 	private:
 
+		QSignalHandlerThread      _signal_handler_thread;
+
 		QNitpickerScreen         *_nitpicker_screen;
 	    QAbstractEventDispatcher *_event_dispatcher;
+
+		/*
+		 * A reference to the signal receiver gets passed to newly created
+		 * objects, for example in 'createPlatformWindow()'. Since this is
+		 * a const member function, the signal receiver cannot be a member
+		 * variable of QNitpickerIntegration.
+		 */
+		static Genode::Signal_receiver &_signal_receiver();
 
 	public:
 
 		QNitpickerIntegration();
 
-		bool hasCapability(QPlatformIntegration::Capability cap) const;
+		bool hasCapability(QPlatformIntegration::Capability cap) const override;
 
-		QPlatformWindow *createPlatformWindow(QWindow *window) const;
-		QPlatformBackingStore *createPlatformBackingStore(QWindow *window) const;
-	    QAbstractEventDispatcher *guiThreadEventDispatcher() const;
+		QPlatformWindow *createPlatformWindow(QWindow *window) const override;
+		QPlatformBackingStore *createPlatformBackingStore(QWindow *window) const override;
+		QAbstractEventDispatcher *guiThreadEventDispatcher() const override;
 
-		QPlatformFontDatabase *fontDatabase() const;
+		QPlatformFontDatabase *fontDatabase() const override;
 
-		QPlatformOpenGLContext *createPlatformOpenGLContext(QOpenGLContext *context) const;
+		QPlatformOpenGLContext *createPlatformOpenGLContext(QOpenGLContext *context) const override;
 };
 
 QT_END_NAMESPACE

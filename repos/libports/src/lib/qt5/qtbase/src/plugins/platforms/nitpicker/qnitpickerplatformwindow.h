@@ -37,25 +37,25 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 
 	private:
 
-		Nitpicker::Connection             _nitpicker_session;
-		Framebuffer::Session_client       _framebuffer_session;
-		unsigned char                    *_framebuffer;
-		bool                              _framebuffer_changed;
-		bool                              _geometry_changed;
-		Framebuffer::Mode                 _current_mode;
-		Genode::Signal_context            _mode_changed_signal_context;
-		Genode::Signal_context_capability _mode_changed_signal_context_capability;
-		Genode::Signal_receiver           _signal_receiver;
-		Nitpicker::Session::View_handle   _view_handle;
-		Input::Session_client             _input_session;
-		Input::Event                     *_ev_buf;
-		QMember<QTimer>                   _timer;
-		Qt::MouseButtons                  _mouse_button_state;
-		QEvdevKeyboardHandler             _keyboard_handler;
-		QByteArray                        _title;
-		bool                              _resize_handle;
-		bool                              _decoration;
-		EGLSurface                        _egl_surface;
+		Nitpicker::Connection            _nitpicker_session;
+		Framebuffer::Session_client      _framebuffer_session;
+		unsigned char                   *_framebuffer;
+		bool                             _framebuffer_changed;
+		bool                             _geometry_changed;
+		Framebuffer::Mode                _current_mode;
+		Genode::Signal_receiver         &_signal_receiver;
+		Nitpicker::Session::View_handle  _view_handle;
+		Input::Session_client            _input_session;
+		Input::Event                    *_ev_buf;
+		Qt::MouseButtons                 _mouse_button_state;
+		QEvdevKeyboardHandler            _keyboard_handler;
+		QByteArray                       _title;
+		bool                             _resize_handle;
+		bool                             _decoration;
+		EGLSurface                       _egl_surface;
+
+		Genode::Signal_dispatcher<QNitpickerPlatformWindow> _input_signal_dispatcher;
+		Genode::Signal_dispatcher<QNitpickerPlatformWindow> _mode_changed_signal_dispatcher;
 
 		void _process_mouse_event(Input::Event *ev);
 		void _process_key_event(Input::Event *ev);
@@ -63,9 +63,20 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 		Nitpicker::Session::View_handle _create_view();
 		void _adjust_and_set_geometry(const QRect &rect);
 
+	private Q_SLOTS:
+
+		void _handle_input(unsigned int);
+		void _handle_mode_changed(unsigned int);
+
+	Q_SIGNALS:
+
+		void _input(unsigned int);
+		void _mode_changed(unsigned int);
+
 	public:
 
-		QNitpickerPlatformWindow(QWindow *window, Genode::Rpc_entrypoint &ep,
+		QNitpickerPlatformWindow(QWindow *window,
+		                         Genode::Signal_receiver &signal_receiver,
 		                         int screen_width, int screen_height);
 
 	    QWindow *window() const;
@@ -161,10 +172,6 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 	signals:
 
 		void framebuffer_changed();
-
-	private slots:
-
-		void handle_events();
 
 };
 
