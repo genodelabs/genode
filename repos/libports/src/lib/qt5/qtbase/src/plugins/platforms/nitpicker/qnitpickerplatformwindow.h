@@ -37,6 +37,11 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 
 	private:
 
+		enum {
+			KEY_REPEAT_DELAY_MS = 500, /* 500 ms delay before first repetition */
+			KEY_REPEAT_RATE_MS  =  50  /* 50 ms delay between repetitions */
+		};
+
 		Nitpicker::Connection            _nitpicker_session;
 		Framebuffer::Session_client      _framebuffer_session;
 		unsigned char                   *_framebuffer;
@@ -53,6 +58,8 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 		bool                             _resize_handle;
 		bool                             _decoration;
 		EGLSurface                       _egl_surface;
+		QMember<QTimer>                  _key_repeat_timer;
+		int                              _last_keycode;
 
 		Genode::Signal_dispatcher<QNitpickerPlatformWindow> _input_signal_dispatcher;
 		Genode::Signal_dispatcher<QNitpickerPlatformWindow> _mode_changed_signal_dispatcher;
@@ -67,6 +74,7 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 
 		void _handle_input(unsigned int);
 		void _handle_mode_changed(unsigned int);
+		void _key_repeat();
 
 	Q_SIGNALS:
 

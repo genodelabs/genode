@@ -116,7 +116,21 @@ void QNitpickerPlatformWindow::_process_key_event(Input::Event *ev)
 {
 	const bool pressed = (ev->type() == Input::Event::PRESS);
 	const int keycode = ev->code();
+
+	if (pressed) {
+		_last_keycode = keycode;
+		_key_repeat_timer->start(KEY_REPEAT_DELAY_MS);
+	} else
+		_key_repeat_timer->stop();
+
 	_keyboard_handler.processKeycode(keycode, pressed, false);
+}
+
+
+void QNitpickerPlatformWindow::_key_repeat()
+{
+	_key_repeat_timer->start(KEY_REPEAT_RATE_MS);
+	_keyboard_handler.processKeycode(_last_keycode, true, true);
 }
 
 
@@ -241,6 +255,8 @@ QNitpickerPlatformWindow::QNitpickerPlatformWindow(QWindow *window,
   _resize_handle(!window->flags().testFlag(Qt::Popup)),
   _decoration(!window->flags().testFlag(Qt::Popup)),
   _egl_surface(EGL_NO_SURFACE),
+  _key_repeat_timer(this),
+  _last_keycode(0),
   _input_signal_dispatcher(_signal_receiver, *this,
                            &QNitpickerPlatformWindow::_input),
   _mode_changed_signal_dispatcher(_signal_receiver, *this,
@@ -274,6 +290,9 @@ QNitpickerPlatformWindow::QNitpickerPlatformWindow(QWindow *window,
 	connect(this, SIGNAL(_mode_changed(unsigned int)),
 	        this, SLOT(_handle_mode_changed(unsigned int)),
 	        Qt::QueuedConnection);
+
+	connect(_key_repeat_timer, SIGNAL(timeout()),
+	        this, SLOT(_key_repeat()));
 }
 
 QWindow *QNitpickerPlatformWindow::window() const
