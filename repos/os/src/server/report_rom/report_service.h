@@ -18,6 +18,7 @@
 #include <util/arg_string.h>
 #include <report_session/report_session.h>
 #include <root/component.h>
+#include <os/print_lines.h>
 
 /* local includes */
 #include <rom_registry.h>
@@ -41,18 +42,6 @@ struct Report::Session_component : Genode::Rpc_object<Session>, Rom::Writer
 
 		bool &_verbose;
 
-		size_t const _str_line_end(char const * const str, size_t const len)
-		{
-			size_t i = 0;
-			for (; str[i] && i < len && str[i] != '\n'; i++);
-
-			/* the newline character belongs to the line */
-			if (str[i] == '\n')
-				i++;
-
-			return i;
-		}
-
 		Rom::Module &_create_module(Rom::Module::Name const &name)
 		{
 			try {
@@ -60,6 +49,12 @@ struct Report::Session_component : Genode::Rpc_object<Session>, Rom::Writer
 			} catch (...) {
 				throw Genode::Root::Invalid_args();
 			}
+		}
+
+		static void _log_lines(char const *string, size_t len)
+		{
+			Genode::print_lines<200>(string, len,
+			                         [&] (char const *line) { PLOG("  %s", line); });
 		}
 
 	public:
@@ -91,41 +86,8 @@ struct Report::Session_component : Genode::Rpc_object<Session>, Rom::Writer
 			length = Genode::min(length, _ds.size());
 
 			if (_verbose) {
-
 				PLOG("report '%s'", _module.name().string());
-
-				/*
-				 * We cannot simply print the content of the report dataspace
-				 * as one string because we cannot expect the client to null-
-				 * terminate the content properly. Therefore, we output the
-				 * report line by line while keeping track of the dataspace
-				 * size.
-				 */
-
-				/* pointer and length of remaining string */
-				char const *str = _ds.local_addr<char>();
-				size_t      len = length;
-
-				while (*str && len) {
-
-					size_t const line_len = _str_line_end(str, len);
-
-					if (!line_len)
-						break;
-
-					/*
-					 * Copy line from (untrusted) report dataspace to local
-					 * line buffer,
-					 */
-					char line_buf[200];
-					Genode::strncpy(line_buf, str, Genode::min(line_len, sizeof(line_buf)));
-					PLOG("  %s", line_buf);
-
-					str += line_len;
-					len -= line_len;
-				}
-
-				PLOG("\n");
+				_log_lines(_ds.local_addr<char>(), length);
 			}
 
 			_module.write_content(_ds.local_addr<char>(), length);
