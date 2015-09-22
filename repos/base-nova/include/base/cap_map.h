@@ -61,7 +61,7 @@ namespace Genode {
 			Cap_range *find_by_id(addr_t);
 
 			void inc(unsigned id, bool inc_if_one = false);
-			void dec(unsigned id, bool revoke = true);
+			void dec(unsigned id, bool revoke = true, unsigned num_log2 = 0);
 
 			addr_t alloc(size_t const num_log2);
 

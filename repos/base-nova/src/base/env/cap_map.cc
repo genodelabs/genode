@@ -63,15 +63,20 @@ void Cap_range::inc(unsigned id, bool inc_if_one)
 }
 
 
-void Cap_range::dec(unsigned id, bool revoke)
+void Cap_range::dec(unsigned const id_start, bool revoke, unsigned num_log_2)
 {
 	bool failure = false;
 	{
+		unsigned const end = min(id_start + (1U << num_log_2), elements());
+
 		Lock::Guard guard(_lock);
 
-		if (_cap_array[id] == 0)
-			failure = true;
-		else {
+		for (unsigned id = id_start; id < end; id++) {
+			if (_cap_array[id] == 0) {
+				failure = true;
+				continue;
+			}
+
 			if (revoke && _cap_array[id] == 1)
 				Nova::revoke(Nova::Obj_crd(_base + id, 0));
 
@@ -80,8 +85,8 @@ void Cap_range::dec(unsigned id, bool revoke)
 	}
 
 	if (failure)
-		PERR("cap reference counting error - count of cap=%lx is already zero",
-		     _base + id);
+		PERR("cap reference counting error - one counter of cap range %lx+%x "
+		     "has been already zero", _base + id_start, 1 << num_log_2);
 }
 
 
@@ -161,12 +166,23 @@ addr_t Capability_map::insert(size_t const num_log_2, addr_t const sel)
 }
 
 
-void Capability_map::remove(Genode::addr_t sel, uint8_t num_log_2, bool revoke)
+void Capability_map::remove(Genode::addr_t const sel, uint8_t num_log_2,
+                            bool revoke)
 {
 	Cap_range * range = _tree.first() ? _tree.first()->find_by_id(sel) : 0;
 	if (!range)
 		return;
 
-	for (unsigned i = 0; i < 1UL << num_log_2; i++)
-		range->dec(sel + i - range->base(), revoke);
+	range->dec(sel - range->base(), revoke, num_log_2);
+
+	Genode::addr_t last_sel   = sel + (1UL << num_log_2);
+	Genode::addr_t last_range = range->base() + range->elements();
+
+	while (last_sel > last_range) {
+		uint8_t left_log2 = log2(last_sel - last_range);
+
+		remove(last_range, left_log2, revoke);
+
+		last_range += 1UL << left_log2;
+	}
 }

@@ -134,12 +134,11 @@ void Thread_base::_deinit_platform_thread()
 		cap_map()->remove(_tid.ec_sel, 1, false);
 	}
 
-	revoke(Obj_crd(_tid.exc_pt_sel, NUM_INITIAL_PT_LOG2));
-	cap_map()->remove(_tid.exc_pt_sel, NUM_INITIAL_PT_LOG2, false);
-
 	/* de-announce thread */
 	if (_thread_cap.valid())
 		_cpu_session->kill_thread(_thread_cap);
+
+	cap_map()->remove(_tid.exc_pt_sel, NUM_INITIAL_PT_LOG2);
 
 	if (_pager_cap.valid())
 		env()->rm_session()->remove_client(_pager_cap);
