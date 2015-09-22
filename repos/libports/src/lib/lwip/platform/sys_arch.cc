@@ -451,7 +451,7 @@ extern "C" {
 	 *
 	 * Afterwards sys_mbox_valid() returns 0.
 	 * ATTENTION: This does NOT mean that the mailbox shall be deallocated:
-         * sys_mbox_free() is always called before calling this function!
+	 * sys_mbox_free() is always called before calling this function!
 	 *
 	 * \param mbox mailbox to set invalid
 	 */
@@ -530,21 +530,23 @@ extern "C" {
 		if (!mbox)
 			return 0;
 
+		u32_t ret = 0;
+
 		try {
-			Mailbox* _mbox = reinterpret_cast<Mailbox*>(mbox->ptr);
-			if (!_mbox) {
-				//PERR("Invalid mailbox pointer at %lx", *mbox->ptr);
-				return EINVAL;
-			}
-			return _mbox->get(msg, timeout);
+			Mailbox* _mbox = reinterpret_cast<Mailbox *>(mbox->ptr);
+			if (!_mbox)
+				return 0;
+			ret = _mbox->get(msg, timeout);
 		} catch (Genode::Timeout_exception) {
-			return SYS_ARCH_TIMEOUT;
+			ret = SYS_ARCH_TIMEOUT;
 		} catch (Genode::Nonblocking_exception) {
-			return SYS_MBOX_EMPTY;
+			ret = SYS_MBOX_EMPTY;
 		} catch (...) {
 			PERR("Unknown Exception occured!");
-			return -1;
+			ret = SYS_ARCH_TIMEOUT;
 		}
+
+		return ret;
 	}
 
 
@@ -652,3 +654,11 @@ extern "C" {
 		Genode::memcpy(dst, src, size);
 	}
 } /* extern "C" */
+
+
+extern "C" void lwip_sleep_forever()
+{
+	int dummy = 1;
+	PDBG("thread %u", (unsigned)(((Genode::addr_t)&dummy)>>20)&0xff);
+	Genode::sleep_forever();
+}

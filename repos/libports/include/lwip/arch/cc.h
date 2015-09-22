@@ -36,15 +36,19 @@ typedef unsigned long     mem_ptr_t;
 #define X32_F "x"
 
 void lwip_printf(const char *format, ...);
+void lwip_sleep_forever(void);
 
 #define LWIP_PLATFORM_DIAG(x)   do { lwip_printf x; } while(0)
 
 #ifdef GENODE_RELEASE
 #define LWIP_PLATFORM_ASSERT(x)
 #else /* GENODE_RELEASE */
-#define LWIP_PLATFORM_ASSERT(x) do { \
-	lwip_printf("Assertion \"%s\" failed at line %d in %s\n", \
-	x, __LINE__, __FILE__); } while(0)
+#define LWIP_PLATFORM_ASSERT(x)                           \
+	do {                                                  \
+		lwip_printf("Assertion \"%s\" failed at %s:%u\n", \
+		            x, __FILE__, __LINE__);               \
+		lwip_sleep_forever();                             \
+	} while (0)
 #endif /* GENODE_RELEASE */
 
 #define PACK_STRUCT_FIELD(x) x
