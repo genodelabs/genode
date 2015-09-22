@@ -70,6 +70,9 @@ class File_system::Symlink : public Node
 
 		size_t write(char const *src, size_t len, seek_off_t seek_offset)
 		{
+			/* Ideal symlink operations are atomic. */
+			if (seek_offset) return 0;
+
 			int res = Fuse::fuse()->op.symlink(src, _path.base());
 			if (res != 0)
 				return 0;

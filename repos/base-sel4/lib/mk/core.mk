@@ -30,7 +30,8 @@ SRC_CC      += \
                dump_alloc.cc \
                context_area.cc \
                capability_space.cc \
-               pager.cc
+               pager.cc \
+               pager_ep.cc
 
 LIBS        += core_printf base-common syscall
 
@@ -56,5 +57,6 @@ vpath trace_session_component.cc  $(GEN_CORE_DIR)
 vpath dataspace_component.cc      $(GEN_CORE_DIR)
 vpath core_mem_alloc.cc           $(GEN_CORE_DIR)
 vpath dump_alloc.cc               $(GEN_CORE_DIR)
+vpath pager_ep.cc                 $(GEN_CORE_DIR)
 vpath %.cc                        $(REP_DIR)/src/core
 

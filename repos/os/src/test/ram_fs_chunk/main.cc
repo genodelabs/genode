@@ -7,9 +7,7 @@
 /* Genode includes */
 #include <base/env.h>
 #include <base/printf.h>
-
-/* local 'ram_fs' include */
-#include <chunk.h>
+#include <ram_fs/chunk.h>
 
 namespace File_system {
 	typedef Chunk<2>                      Chunk_level_3;

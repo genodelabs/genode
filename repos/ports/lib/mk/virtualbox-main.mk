@@ -74,4 +74,4 @@ INC_DIR += $(REP_DIR)/src/virtualbox/frontend
 INC_DIR += $(REP_DIR)/src/virtualbox/frontend/VBoxAPIWrap
 
 # search path to 'scan_code_set_2.h'
-INC_DIR += $(call select_from_repositories,src/drivers/input/ps2)
+INC_DIR += $(call select_from_repositories,src/drivers/input/spec/ps2)

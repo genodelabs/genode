@@ -4,6 +4,40 @@
                                ===========
 
 
+Genode OS Framework release 15.08 | 2015-08-31
+##############################################
+
+| Version 15.08 marks the starting point of Genode used as day-to-day
+| operating system, which underlines the maturity and scalability of the
+| framework. A further highlight is the ability to execute Genode on
+| top of the Muen separation kernel.
+
+Since the first release of Genode seven years ago, we dreamed of being able
+to use our OS technology as the underlying platform for our day-to-day
+computing needs. With the current version, the day has come: One of
+Genode's core developers has made the switch and others plan to follow
+soon. Hence, the use of Genode as day-to-day OS is the underlying
+theme of most improvements seen in the new version. It addresses
+long-standing deficiencies of the kernel-memory management of the NOVA kernel
+and Genode's custom kernel platform, extends the framework's
+system-monitoring and file-system abilities, and significantly improves the
+integration of VirtualBox with Genode.
+
+The second highlight of version 15.08 is the ability to execute Genode
+system scenarios on top of the Muen separation kernel. Compared to
+microkernels, Muen takes the ambition to reduce kernel complexity to an
+extreme. Written in the safe implementation language SPARK and with a code
+complexity of merely 5,000 lines, it lends itself to be high assuring about
+its correct behavior. From Genode's point of view, Muen represents an
+additional target architecture of the framework's custom base-hw kernel. The
+component isolation enforced by base-hw and the static isolation boundaries
+enforced by Muen represent two lines of defense for protecting
+security-critical system functions from untrusted components.
+
+More details about all the improvements are provided by the
+[http:/documentation/release-notes/15.08 - release documentation of version 15.08...]
+
+
 Genode OS Framework release 15.05 | 2015-05-26
 ##############################################
 

@@ -72,6 +72,11 @@ int main()
 	if (valid_mbr)
 		partition_table = &Mbr_partition_table::table();
 
+	if (!partition_table) {
+		PERR("Aborting: no partition table found.");
+		return 1;
+	}
+
 	enum { STACK_SIZE = 1024 * sizeof(Genode::size_t) };
 	static Cap_connection cap;
 	static Rpc_entrypoint ep(&cap, STACK_SIZE, "part_ep");

@@ -77,7 +77,7 @@ void prepare_init_main_thread()
 	/* for Core we can't perform the following code so early */
 	if (!__initial_sp) {
 
-		enum { CAP_RANGES = 16 };
+		enum { CAP_RANGES = 32 };
 
 		unsigned index = initial_cap_range()->base() +
 		                 initial_cap_range()->elements();

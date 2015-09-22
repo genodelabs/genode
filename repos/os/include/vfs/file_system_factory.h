@@ -16,12 +16,34 @@
 
 #include <vfs/file_system.h>
 
-namespace Vfs { class File_system_factory; }
+namespace Vfs {
+
+	struct File_system_factory;
+	struct Global_file_system_factory;
+
+	/**
+	 * Return singleton instance of a file-system factory
+	 */
+	Global_file_system_factory &global_file_system_factory();
+}
 
 
 struct Vfs::File_system_factory
 {
 	virtual File_system *create(Xml_node node) = 0;
 };
+
+
+struct Vfs::Global_file_system_factory : File_system_factory
+{
+	/**
+	 * Register an additional factory for new file-system type
+	 *
+	 * \name     name of file-system type
+	 * \factory  factory to create instances of this file-system type
+	 */
+	virtual void extend(char const *name, File_system_factory &factory) = 0;
+};
+
 
 #endif /* _INCLUDE__VFS__FILE_SYSTEM_FACTORY_H_ */

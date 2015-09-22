@@ -269,7 +269,23 @@ void Genode::destroy(DEALLOC && dealloc, T *obj)
 	/* call destructors */
 	obj->~T();
 
-	/* free memory at the allocator */
+	/*
+	 * Free memory at the allocator
+	 *
+	 * We have to use the delete operator instead of just calling
+	 * 'dealloc.free' because the 'obj' pointer might not always point to the
+	 * begin of the allocated block:
+	 *
+	 * If 'T' is the base class of another class 'A', 'obj' may refer
+	 * to an instance of 'A'. In particular when 'A' used multiple inheritance
+	 * with 'T' not being the first inhertited class, the pointer to the actual
+	 * object differs from 'obj'.
+	 *
+	 * Given the pointer to the base class 'T', however, the delete operator is
+	 * magically (by the means of the information found in the vtable of 'T')
+	 * able to determine the actual pointer to the instance of 'A' and passes
+	 * this pointer to 'free'.
+	 */
 	operator delete (obj, dealloc);
 }
 

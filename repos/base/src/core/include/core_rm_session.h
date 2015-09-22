@@ -41,12 +41,13 @@ namespace Genode {
 			                  Local_addr local_addr = 0,
 			                  bool executable = false)
 			{
-				Object_pool<Dataspace_component>::Guard
-					ds(_ds_ep->lookup_and_lock(ds_cap));
-				if (!ds)
-					throw Invalid_dataspace();
+				auto lambda = [] (Dataspace_component *ds) {
+					if (!ds)
+						throw Invalid_dataspace();
 
-				return (void *)ds->phys_addr();
+					return (void *)ds->phys_addr();
+				};
+				return _ds_ep->apply(ds_cap, lambda);
 			}
 
 			void detach(Local_addr local_addr) { }

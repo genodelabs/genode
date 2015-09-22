@@ -17,6 +17,7 @@
 #include <base/native_types.h>
 
 /* core includes */
+#include <assert.h>
 #include <platform_pd.h>
 #include <kernel/ipc_node.h>
 #include <kernel/pd.h>

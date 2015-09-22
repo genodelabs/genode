@@ -53,8 +53,6 @@ void dde_printf(const char *fmt, ...);
  ** Support for aligned and DMA memory allocation **
  ***************************************************/
 
-int dde_dma_mem_init();
-
 void *dde_dma_alloc(dde_size_t size, dde_size_t align, dde_size_t offset);
 void  dde_dma_free(void *p, dde_size_t size);
 

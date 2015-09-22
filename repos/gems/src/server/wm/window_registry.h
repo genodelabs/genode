@@ -17,9 +17,9 @@
 /* Genode includes */
 #include <util/bit_allocator.h>
 #include <util/list.h>
-#include <util/xml_generator.h>
 #include <base/allocator.h>
 #include <os/surface.h>
+#include <os/reporter.h>
 
 /* gems includes */
 #include <gems/local_reporter.h>
@@ -31,6 +31,7 @@ namespace Wm {
 	using Genode::Allocator;
 	using Genode::List;
 	using Genode::Xml_generator;
+	using Genode::Reporter;
 
 	typedef Genode::Surface_base::Area  Area;
 	typedef Genode::Surface_base::Point Point;
@@ -61,6 +62,8 @@ class Wm::Window_registry
 
 				typedef Genode::String<200> Title;
 
+				enum Has_alpha { HAS_ALPHA, HAS_NO_ALPHA };
+
 			private:
 
 				Id const _id;
@@ -68,6 +71,8 @@ class Wm::Window_registry
 				Title _title;
 
 				Area _size;
+
+				Has_alpha _has_alpha;
 
 				friend class Window_registry;
 
@@ -80,8 +85,9 @@ class Wm::Window_registry
 				/*
 				 * Accessors for setting attributes
 				 */
-				void attr(Title const &title) { _title = title; }
-				void attr(Area size)          { _size  = size;  }
+				void attr(Title const &title)  { _title = title; }
+				void attr(Area size)           { _size  = size;  }
+				void attr(Has_alpha has_alpha) { _has_alpha = has_alpha; }
 
 				void generate_window_list_entry_xml(Xml_generator &xml) const
 				{
@@ -90,14 +96,17 @@ class Wm::Window_registry
 						xml.attribute("title",  _title.string());
 						xml.attribute("width",  _size.w());
 						xml.attribute("height", _size.h());
+
+						if (_has_alpha == HAS_ALPHA)
+							xml.attribute("has_alpha", "yes");
 					});
 				}
 		};
 
 	private:
 
-		Allocator      &_alloc;
-		Local_reporter &_window_list_reporter;
+		Allocator &_alloc;
+		Reporter  &_window_list_reporter;
 
 		enum { MAX_WINDOWS = 1024 };
 
@@ -116,7 +125,7 @@ class Wm::Window_registry
 
 		void _report_updated_window_list_model() const
 		{
-			Local_reporter::Xml_generator xml(_window_list_reporter, [&] ()
+			Reporter::Xml_generator xml(_window_list_reporter, [&] ()
 			{
 				for (Window const *w = _windows.first(); w; w = w->next())
 					w->generate_window_list_entry_xml(xml);
@@ -140,7 +149,7 @@ class Wm::Window_registry
 
 	public:
 
-		Window_registry(Allocator &alloc, Local_reporter &window_list_reporter)
+		Window_registry(Allocator &alloc, Reporter &window_list_reporter)
 		:
 			_alloc(alloc), _window_list_reporter(window_list_reporter)
 		{
@@ -182,6 +191,11 @@ class Wm::Window_registry
 		void size(Id id, Area size) { _set_attr(id, size); }
 
 		void title(Id id, Window::Title title) { _set_attr(id, title); }
+
+		void has_alpha(Id id, bool has_alpha)
+		{
+			_set_attr(id, has_alpha ? Window::HAS_ALPHA : Window::HAS_NO_ALPHA);
+		}
 };
 
 #endif /* _WINDOW_REGISTRY_H_ */

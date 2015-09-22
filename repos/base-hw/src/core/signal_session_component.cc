@@ -52,14 +52,16 @@ Signal_receiver_capability Signal_session_component::alloc_receiver()
 void Signal_session_component::free_receiver(Signal_receiver_capability cap)
 {
 	/* look up ressource info */
-	Receiver::Pool::Guard r(_receivers.lookup_and_lock(cap));
-	if (!r) {
-		PERR("unknown signal receiver");
-		throw Kill_receiver_failed();
-	}
-	/* release resources */
-	_receivers.remove_locked(r);
-	destroy(&_receivers_slab, r.object());
+	auto lambda = [&] (Receiver *r) {
+		if (!r) {
+			PERR("unknown signal receiver");
+			throw Kill_receiver_failed();
+		}
+		/* release resources */
+		_receivers.remove(r);
+		destroy(&_receivers_slab, r);
+	};
+	_receivers.apply(cap, lambda);
 }
 
 
@@ -68,35 +70,39 @@ Signal_session_component::alloc_context(Signal_receiver_capability src,
                                         unsigned const imprint)
 {
 	/* look up ressource info */
-	Receiver::Pool::Guard r(_receivers.lookup_and_lock(src));
-	if (!r) {
-		PERR("unknown signal receiver");
-		throw Create_context_failed();
-	}
+	auto lambda = [&] (Receiver *r) {
+		if (!r) {
+			PERR("unknown signal receiver");
+			throw Create_context_failed();
+		}
 
-	try {
-		Context * c = new (_contexts_slab) Context(*r.object(), imprint);
-		_contexts.insert(c);
-		return reinterpret_cap_cast<Signal_context>(c->cap());
-	} catch (Allocator::Out_of_memory&) {
-		PERR("failed to allocate signal-context resources");
-		throw Out_of_metadata();
-	}
-	return reinterpret_cap_cast<Signal_context>(Untyped_capability());
+		try {
+			Context * c = new (_contexts_slab) Context(*r, imprint);
+			_contexts.insert(c);
+			return reinterpret_cap_cast<Signal_context>(c->cap());
+		} catch (Allocator::Out_of_memory&) {
+			PERR("failed to allocate signal-context resources");
+			throw Out_of_metadata();
+		}
+		return reinterpret_cap_cast<Signal_context>(Untyped_capability());
+	};
+	return _receivers.apply(src, lambda);
 }
 
 
 void Signal_session_component::free_context(Signal_context_capability cap)
 {
 	/* look up ressource info */
-	Context::Pool::Guard c(_contexts.lookup_and_lock(cap));
-	if (!c) {
-		PERR("unknown signal context");
-		throw Kill_context_failed();
-	}
-	/* release resources */
-	_contexts.remove_locked(c);
-	destroy(&_contexts_slab, c.object());
+	auto lambda = [&] (Context *c) {
+		if (!c) {
+			PERR("unknown signal context");
+			throw Kill_context_failed();
+		}
+		/* release resources */
+		_contexts.remove(c);
+		destroy(&_contexts_slab, c);
+	};
+	_contexts.apply(cap, lambda);
 }
 
 
@@ -108,12 +114,8 @@ Signal_session_component::Signal_session_component(Allocator * const allocator,
 
 Signal_session_component::~Signal_session_component()
 {
-	while (Context * const c = _contexts.first_locked()) {
-		_contexts.remove_locked(c);
-		destroy(&_contexts_slab, c);
-	}
-	while (Receiver * const r = _receivers.first_locked()) {
-		_receivers.remove_locked(r);
-		destroy(&_receivers_slab, r);
-	}
+	_contexts.remove_all([this] (Context * c) {
+		destroy(&_contexts_slab, c);});
+	_receivers.remove_all([this] (Receiver * r) {
+		destroy(&_receivers_slab, r);});
 }

@@ -248,26 +248,29 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 		{
 			if (!args.is_valid_string()) throw Root::Invalid_args();
 
-			typedef typename Object_pool<SESSION_TYPE>::Guard Object_guard;
-			Object_guard s(_ep->lookup_and_lock(session));
-			if (!s) return;
+			_ep->apply(session, [&] (SESSION_TYPE *s) {
+				if (!s) return;
 
-			_upgrade_session(s, args.string());
+				_upgrade_session(s, args.string());
+			});
 		}
 
-		void close(Session_capability session) override
+		void close(Session_capability session_cap) override
 		{
-			SESSION_TYPE * s =
-				dynamic_cast<SESSION_TYPE *>(_ep->lookup_and_lock(session));
-			if (!s) return;
+			SESSION_TYPE * session;
 
-			/* let the entry point forget the session object */
-			_ep->dissolve(s);
+			_ep->apply(session_cap, [&] (SESSION_TYPE *s) {
+				session = s;
 
-			_destroy_session(s);
+				/* let the entry point forget the session object */
+				if (session) _ep->dissolve(session);
+			});
+
+			if (!session) return;
+
+			_destroy_session(session);
 
 			POLICY::release();
-			return;
 		}
 };
 

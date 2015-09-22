@@ -12,6 +12,9 @@ install_config {
 			<service name="RAM"/>
 			<service name="RM"/>
 			<service name="PD"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
 			<service name="SIGNAL"/>
 		</parent-provides>
 		<default-route>

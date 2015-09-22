@@ -31,14 +31,6 @@ PRG_DIR := $(REP_DIR)/src/$(PRG_REL_DIR)
 include $(PRG_DIR)/target.mk
 
 #
-# Enforce use of 'lx_hybrid' library for all targets when 'always_hybrid' is
-# enabled
-#
-ifeq ($(filter-out $(SPECS),always_hybrid),)
-LIBS += lx_hybrid
-endif
-
-#
 # Include lib-import description files
 #
 include $(foreach LIB,$(LIBS),$(call select_from_repositories,lib/import/import-$(LIB).mk))
@@ -68,7 +60,7 @@ CXX_LINK_OPT += $(CC_MARCH)
 #
 # Generic linker script for statically linked binaries
 #
-LD_SCRIPT_STATIC ?= $(call select_from_repositories,src/platform/genode.ld)
+LD_SCRIPT_STATIC ?= $(call select_from_repositories,src/ld/genode.ld)
 
 include $(BASE_DIR)/mk/generic.mk
 include $(BASE_DIR)/mk/base-libs.mk
@@ -119,7 +111,7 @@ else
 #
 # Add a list of symbols that shall always be added to the dynsym section
 #
-LD_OPT += --dynamic-list=$(call select_from_repositories,src/platform/genode_dyn.dl)
+LD_OPT += --dynamic-list=$(call select_from_repositories,src/ld/genode_dyn.dl)
 
 LD_SCRIPTS  := $(LD_SCRIPT_DYN)
 LD_CMD      += -Wl,--dynamic-linker=$(DYNAMIC_LINKER).lib.so \

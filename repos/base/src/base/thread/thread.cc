@@ -175,12 +175,19 @@ Thread_base::Thread_base(size_t weight, const char *name, size_t stack_size,
                          Type type, Cpu_session *cpu_session)
 :
 	_cpu_session(cpu_session),
+	_trace_control(nullptr),
 	_context(type == REINITIALIZED_MAIN ?
 	         _context : _alloc_context(stack_size, type == MAIN)),
 	_join_lock(Lock::LOCKED)
 {
 	strncpy(_context->name, name, sizeof(_context->name));
 	_init_platform_thread(weight, type);
+
+	if (_cpu_session) {
+		Dataspace_capability ds = _cpu_session->trace_control();
+		if (ds.valid())
+			_trace_control = env()->rm_session()->attach(ds);
+	}
 }
 
 
@@ -193,4 +200,12 @@ Thread_base::~Thread_base()
 {
 	_deinit_platform_thread();
 	_free_context(_context);
+
+	/*
+	 * We have to detach the trace control dataspace last because
+	 * we cannot invalidate the pointer used by the Trace::Logger
+	 * from here and any following RPC call will stumple upon the
+	 * detached trace control dataspace.
+	 */
+	env()->rm_session()->detach(_trace_control);
 }

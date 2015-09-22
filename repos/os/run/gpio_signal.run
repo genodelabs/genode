@@ -1,0 +1,76 @@
+#
+# Build
+#
+if {[have_spec gpio] == 0} {
+	puts "Runs only on platforms with GPIO"
+	exit 0
+}
+
+set build_components {
+	core init
+	drivers/timer drivers/gpio
+	test/gpio_signal
+}
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+# Example preconfigured for RaspberryPI ACT Led
+#
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="gpio_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Gpio"/></provides>
+		<config async_events="0">
+			<gpio num="14" function="0"/>
+			<gpio num="15" function="0"/>
+			<gpio num="17" mode="I"/>
+			<gpio num="16" mode="O" value="0"/>
+		</config>
+	</start>
+	<start name="signal_gpio_drv">
+		<config gpio_pin="16" gpio_pin_in="17" gpio_pin_out="18" state="1"/>
+		<resource name="RAM" quantum="1M"/>
+	</start>
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init
+	timer
+	gpio_drv
+	signal_gpio_drv
+}
+
+build_boot_image $boot_modules

@@ -198,7 +198,6 @@ void Child::_add_session(Child::Session const &s)
 void Child::_remove_session(Child::Session *s)
 {
 	/* forget about this session */
-	_session_pool.remove_locked(s);
 	_session_list.remove(s);
 
 	/* return session quota to the ram session of the child */
@@ -216,6 +215,51 @@ Service *Child::_parent_service()
 }
 
 
+void Child::_close(Session* s)
+{
+	if (!s) {
+		PWRN("no session structure found");
+		return;
+	}
+
+	/*
+	 * There is a chance that the server is not responding to the 'close' call,
+	 * making us block infinitely. However, by using core's cancel-blocking
+	 * mechanism, we can cancel the 'close' call by another (watchdog) thread
+	 * that invokes 'cancel_blocking' at our thread after a timeout. The
+	 * unblocking is reflected at the API level as an 'Blocking_canceled'
+	 * exception. We catch this exception to proceed with normal operation
+	 * after being unblocked.
+	 */
+	try { s->service()->close(s->cap()); }
+	catch (Blocking_canceled) {
+		PDBG("Got Blocking_canceled exception during %s->close call\n",
+		     s->ident()); }
+
+	/*
+	 * If the session was provided by a child of us,
+	 * 'server()->ram_session_cap()' returns the RAM session of the
+	 * corresponding child. Since the session to the server is closed now, we
+	 * expect that the server released all donated resources and we can
+	 * decrease the servers' quota.
+	 *
+	 * If this goes wrong, the server is misbehaving.
+	 */
+	if (s->service()->ram_session_cap().valid()) {
+		Ram_session_client server_ram(s->service()->ram_session_cap());
+		if (server_ram.transfer_quota(env()->ram_session_cap(),
+		                              s->donated_ram_quota())) {
+			PERR("Misbehaving server '%s'!", s->service()->name());
+		}
+	}
+
+	{
+		Lock::Guard lock_guard(_lock);
+		_remove_session(s);
+	}
+}
+
+
 void Child::revoke_server(Server const *server)
 {
 	Lock::Guard lock_guard(_lock);
@@ -228,6 +272,8 @@ void Child::revoke_server(Server const *server)
 		/* if no matching session exists, we are done */
 		if (!s) return;
 
+		_session_pool.apply(s->cap(), [&] (Session *s) {
+			if (s) _session_pool.remove(s); });
 		_remove_session(s);
 	}
 }
@@ -329,41 +375,43 @@ void Child::upgrade(Session_capability to_session, Parent::Upgrade_args const &a
 		targeted_service = &_pd_service;
 
 	/* check if upgrade refers to server */
-	Object_pool<Session>::Guard session(_session_pool.lookup_and_lock(to_session));
-	if (session)
-		targeted_service = session->service();
+	_session_pool.apply(to_session, [&] (Session *session)
+	{
+		if (session)
+			targeted_service = session->service();
 
-	if (!targeted_service) {
-		PWRN("could not lookup service for session upgrade");
-		return;
-	}
+		if (!targeted_service) {
+			PWRN("could not lookup service for session upgrade");
+			return;
+		}
 
-	if (!args.is_valid_string()) {
-		PWRN("no valid session-upgrade arguments");
-		return;
-	}
+		if (!args.is_valid_string()) {
+			PWRN("no valid session-upgrade arguments");
+			return;
+		}
 
-	size_t const ram_quota =
-		Arg_string::find_arg(args.string(), "ram_quota").ulong_value(0);
+		size_t const ram_quota =
+			Arg_string::find_arg(args.string(), "ram_quota").ulong_value(0);
 
-	/* transfer quota from client to ourself */
-	Transfer donation_from_child(ram_quota, _ram,
-	                             env()->ram_session_cap());
+		/* transfer quota from client to ourself */
+		Transfer donation_from_child(ram_quota, _ram,
+		                             env()->ram_session_cap());
 
-	/* transfer session quota from ourself to the service provider */
-	Transfer donation_to_service(ram_quota, env()->ram_session_cap(),
-	                             targeted_service->ram_session_cap());
+		/* transfer session quota from ourself to the service provider */
+		Transfer donation_to_service(ram_quota, env()->ram_session_cap(),
+		                             targeted_service->ram_session_cap());
 
-	try { targeted_service->upgrade(to_session, args.string()); }
-	catch (Service::Quota_exceeded) { throw Quota_exceeded(); }
+		try { targeted_service->upgrade(to_session, args.string()); }
+		catch (Service::Quota_exceeded) { throw Quota_exceeded(); }
 
-	/* remember new amount attached to the session */
-	if (session)
-		session->upgrade_ram_quota(ram_quota);
+		/* remember new amount attached to the session */
+		if (session)
+			session->upgrade_ram_quota(ram_quota);
 
-	/* finish transaction */
-	donation_from_child.acknowledge();
-	donation_to_service.acknowledge();
+		/* finish transaction */
+		donation_from_child.acknowledge();
+		donation_to_service.acknowledge();
+	});
 }
 
 
@@ -376,46 +424,13 @@ void Child::close(Session_capability session_cap)
 	 || session_cap.local_name() == _pd.local_name())
 		return;
 
-	Session *s = _session_pool.lookup_and_lock(session_cap);
-
-	if (!s) {
-		PWRN("no session structure found");
-		return;
-	}
-
-	/*
-	 * There is a chance that the server is not responding to the 'close' call,
-	 * making us block infinitely. However, by using core's cancel-blocking
-	 * mechanism, we can cancel the 'close' call by another (watchdog) thread
-	 * that invokes 'cancel_blocking' at our thread after a timeout. The
-	 * unblocking is reflected at the API level as an 'Blocking_canceled'
-	 * exception. We catch this exception to proceed with normal operation
-	 * after being unblocked.
-	 */
-	try { s->service()->close(s->cap()); }
-	catch (Blocking_canceled) {
-		PDBG("Got Blocking_canceled exception during %s->close call\n",
-		     s->ident()); }
-
-	/*
-	 * If the session was provided by a child of us,
-	 * 'server()->ram_session_cap()' returns the RAM session of the
-	 * corresponding child. Since the session to the server is closed now, we
-	 * expect that the server released all donated resources and we can
-	 * decrease the servers' quota.
-	 *
-	 * If this goes wrong, the server is misbehaving.
-	 */
-	if (s->service()->ram_session_cap().valid()) {
-		Ram_session_client server_ram(s->service()->ram_session_cap());
-		if (server_ram.transfer_quota(env()->ram_session_cap(),
-		                              s->donated_ram_quota())) {
-			PERR("Misbehaving server '%s'!", s->service()->name());
-		}
-	}
-
-	Lock::Guard lock_guard(_lock);
-	_remove_session(s);
+	Session *session = nullptr;
+	_session_pool.apply(session_cap, [&] (Session *s)
+	{
+		session = s;
+		if (s) _session_pool.remove(s);
+	});
+	_close(session);
 }
 
 
@@ -495,7 +510,6 @@ Child::~Child()
 	_entrypoint->dissolve(this);
 	_policy->unregister_services();
 
-	for (Session *s; (s = _session_pool.first()); )
-		close(s->cap());
+	_session_pool.remove_all([&] (Session *s) { _close(s); });
 }
 

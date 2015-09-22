@@ -129,8 +129,8 @@ void View::draw(Canvas_base &canvas, Mode const &mode) const
 	if (!canvas.clip().valid() || !&_session) return;
 
 	if (tmp_fb) {
-		for (unsigned i = 0; i < 7; i++) {
-			canvas.draw_box(view_rect, Color(i*2,i*6,i*16*2));
+		for (unsigned i = 0; i < 2; i++) {
+			canvas.draw_box(view_rect, Color(i*8,i*24,i*16*8));
 			tmp_fb->refresh(0,0,1024,768);
 		}
 	}

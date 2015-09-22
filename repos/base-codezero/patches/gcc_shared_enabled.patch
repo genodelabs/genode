@@ -1,8 +1,0 @@
---- src/kernel/codezero/loader/main.c
-+++ src/kernel/codezero/loader/main.c
-@@ -135,3 +135,5 @@ int main(void)
- 	return -1;
- }
- 
-+
-+asm(".global __aeabi_unwind_cpp_pr0; __aeabi_unwind_cpp_pr0:");

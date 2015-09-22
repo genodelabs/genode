@@ -29,12 +29,7 @@ namespace Genode {
 			Rpc_entrypoint         *_ds_ep;
 			Rpc_entrypoint         *_thread_ep;
 			Allocator              *_md_alloc;
-
-			enum { PAGER_STACK_SIZE = 2*4096 };
-			Pager_activation<PAGER_STACK_SIZE> _pager_thread;
-
 			Pager_entrypoint        _pager_ep;
-
 			addr_t                  _vm_start;
 			size_t                  _vm_size;
 
@@ -61,18 +56,20 @@ namespace Genode {
 				Session_capability cap = Root_component<Rm_session_component>::session(args, affinity);
 
 				/* lookup rm_session_component object */
-				Object_pool<Rm_session_component>::Guard rm_session(ep()->lookup_and_lock(cap));
-				if (!rm_session)
-					/* should never happen */
-					return cap;
+				auto lambda = [] (Rm_session_component *rm_session) {
+					if (!rm_session)
+						/* should never happen */
+						return;
 
-				/**
-				 * Assign rm_session capability to dataspace component. It can
-				 * not be done beforehand because the dataspace_component is
-				 * constructed before the rm_session
-				 */
-				if (rm_session->dataspace_component())
-					rm_session->dataspace_component()->sub_rm_session(rm_session->cap());
+					/**
+					 * Assign rm_session capability to dataspace component. It can
+					 * not be done beforehand because the dataspace_component is
+					 * constructed before the rm_session
+					 */
+					if (rm_session->dataspace_component())
+						rm_session->dataspace_component()->sub_rm_session(rm_session->cap());
+				};
+				ep()->apply(cap, lambda);
 				return cap;
 			}
 
@@ -105,8 +102,8 @@ namespace Genode {
 			:
 				Root_component<Rm_session_component>(session_ep, md_alloc),
 				_ds_ep(ds_ep), _thread_ep(thread_ep), _md_alloc(md_alloc),
-				_pager_thread(), _pager_ep(cap_session, &_pager_thread),
-				_vm_start(vm_start), _vm_size(vm_size) { }
+				_pager_ep(cap_session), _vm_start(vm_start), _vm_size(vm_size)
+			{ }
 
 			/**
 			 * Return pager entrypoint

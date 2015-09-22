@@ -56,7 +56,11 @@ namespace Noux {
 			}
 		}
 
-		~Terminal_io_channel() { sig_rec.dissolve(this); }
+		~Terminal_io_channel()
+		{
+			try { sig_rec.dissolve(this); }
+			catch (Genode::Signal_receiver::Context_not_associated) { }
+		}
 
 		bool write(Sysio *sysio, size_t &offset) override
 		{

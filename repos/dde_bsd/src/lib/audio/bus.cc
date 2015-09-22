@@ -17,8 +17,8 @@
 #include <dataspace/client.h>
 #include <io_port_session/connection.h>
 #include <io_mem_session/connection.h>
-#include <pci_session/connection.h>
-#include <pci_device/client.h>
+#include <platform_session/connection.h>
+#include <platform_device/client.h>
 
 /* local includes */
 #include "bsd.h"
@@ -43,8 +43,8 @@ class Pci_driver : public Bsd::Bus_driver
 
 		struct pci_attach_args _pa { 0, 0, 0, 0, 0 };
 
-		Pci::Connection        _pci;
-		Pci::Device_capability _cap;
+		Platform::Connection        _pci;
+		Platform::Device_capability _cap;
 
 		Genode::Io_port_connection *_io_port { nullptr };
 
@@ -104,9 +104,9 @@ class Pci_driver : public Bsd::Bus_driver
 		/**
 		 * Scan pci bus for sound devices
 		 */
-		Pci::Device_capability _scan_pci(Pci::Device_capability const &prev)
+		Platform::Device_capability _scan_pci(Platform::Device_capability const &prev)
 		{
-			Pci::Device_capability cap;
+			Platform::Device_capability cap;
 			/* shift values for Pci interface used by Genode */
 			cap = _pci.next_device(prev, PCI_CLASS_MULTIMEDIA << 16,
 			                             PCI_CLASS_MASK << 16);
@@ -133,12 +133,16 @@ class Pci_driver : public Bsd::Bus_driver
 
 		Pci_driver() : _dma_region_manager(*Genode::env()->heap(), *this) { }
 
-		Pci::Device_capability cap() { return _cap; }
+		Platform::Device_capability cap() { return _cap; }
 
-		Pci::Connection &pci() { return _pci; }
+		Platform::Connection &pci() { return _pci; }
 
 		int probe()
 		{
+			char buf[32];
+			Genode::snprintf(buf, sizeof(buf), "ram_quota=%u", 8192U);
+			Genode::env()->parent()->upgrade(_pci.cap(), buf);
+
 			/*
 			 * We hide ourself in the bus_dma_tag_t as well as
 			 * in the pci_chipset_tag_t field because they are
@@ -150,14 +154,14 @@ class Pci_driver : public Bsd::Bus_driver
 
 			int found = 0;
 			while ((_cap = _scan_pci(_cap)).valid()) {
-				Pci::Device_client device(_cap);
+				Platform::Device_client device(_cap);
 
 				uint8_t bus, dev, func;
 				device.bus_address(&bus, &dev, &func);
 
-				/* XXX until we get the platform_drv, we blacklist HDMI/DP HDA devices */
-				if (device.device_id() == PCI_PRODUCT_INTEL_CORE4G_HDA_2) {
-					PWRN("ignore %u:%u:%u device, Intel Core 4G HDA not supported",
+				if ((device.device_id() == PCI_PRODUCT_INTEL_CORE4G_HDA_2) ||
+				    (bus == 0 && dev == 3 && func == 0)) {
+					PWRN("ignore %u:%u:%u not supported HDMI/DP HDA device",
 					     bus, dev, func);
 					continue;
 				}
@@ -181,7 +185,7 @@ class Pci_driver : public Bsd::Bus_driver
 		 **************************/
 
 		Genode::Irq_session_capability irq_session() override {
-			return Pci::Device_client(_cap).irq(0); }
+			return Platform::Device_client(_cap).irq(0); }
 
 		Genode::addr_t alloc(Genode::size_t size, int align) override {
 			return _dma_region_manager.alloc(size, align); }
@@ -326,26 +330,26 @@ extern "C" int pci_mapreg_map(struct pci_attach_args *pa,
 
 	Pci_driver *drv = (Pci_driver*)pa->pa_pc;
 
-	Pci::Device_capability cap = drv->cap();
-	Pci::Device_client device(cap);
-	Pci::Device::Resource res = device.resource(r);
+	Platform::Device_capability cap = drv->cap();
+	Platform::Device_client device(cap);
+	Platform::Device::Resource res = device.resource(r);
 
 	switch (res.type()) {
-	case Pci::Device::Resource::IO:
+	case Platform::Device::Resource::IO:
 		{
 			Io_port *iop = new (Genode::env()->heap())
 			                   Io_port(res.base(), device.io_port(r));
 			*tagp = (Genode::addr_t) iop;
 			break;
 		}
-	case Pci::Device::Resource::MEMORY:
+	case Platform::Device::Resource::MEMORY:
 		{
 			Io_memory *iom = new (Genode::env()->heap())
 			                     Io_memory(res.base(), device.io_mem(r));
 			*tagp = (Genode::addr_t) iom;
 			break;
 		}
-	case Pci::Device::Resource::INVALID:
+	case Platform::Device::Resource::INVALID:
 		{
 			PERR("PCI resource type invalid");
 			return -1;
@@ -360,8 +364,8 @@ extern "C" int pci_mapreg_map(struct pci_attach_args *pa,
 		*sizep = maxsize > 0 && res.size() > maxsize ? maxsize : res.size();
 
 	/* enable bus master and I/O or memory bits */
-	uint16_t cmd = device.config_read(Pci_driver::CMD, Pci::Device::ACCESS_16BIT);
-	if (res.type() == Pci::Device::Resource::IO) {
+	uint16_t cmd = device.config_read(Pci_driver::CMD, Platform::Device::ACCESS_16BIT);
+	if (res.type() == Platform::Device::Resource::IO) {
 		cmd &= ~Pci_driver:: CMD_MEMORY;
 		cmd |= Pci_driver::CMD_IO;
 	} else {
@@ -370,7 +374,7 @@ extern "C" int pci_mapreg_map(struct pci_attach_args *pa,
 	}
 
 	cmd |= Pci_driver::CMD_MASTER;
-	device.config_write(Pci_driver::CMD, cmd, Pci::Device::ACCESS_16BIT);
+	device.config_write(Pci_driver::CMD, cmd, Platform::Device::ACCESS_16BIT);
 
 	return 0;
 }
@@ -383,8 +387,8 @@ extern "C" int pci_mapreg_map(struct pci_attach_args *pa,
 extern "C" pcireg_t pci_conf_read(pci_chipset_tag_t pc, pcitag_t tag, int reg)
 {
 	Pci_driver *drv = (Pci_driver *)pc;
-	Pci::Device_client device(drv->cap());
-	return device.config_read(reg, Pci::Device::ACCESS_32BIT);
+	Platform::Device_client device(drv->cap());
+	return device.config_read(reg, Platform::Device::ACCESS_32BIT);
 }
 
 
@@ -392,8 +396,8 @@ extern "C" void pci_conf_write(pci_chipset_tag_t pc, pcitag_t tag, int reg,
                                pcireg_t val)
 {
 	Pci_driver *drv = (Pci_driver *)pc;
-	Pci::Device_client device(drv->cap());
-	return device.config_write(reg, val, Pci::Device::ACCESS_32BIT);
+	Platform::Device_client device(drv->cap());
+	return device.config_write(reg, val, Platform::Device::ACCESS_32BIT);
 }
 
 

@@ -13,7 +13,6 @@
 #include <linux/netdevice.h>
 #include <net/ip_fib.h>
 #include <uapi/linux/rtnetlink.h>
-#include <dde_kit/memory.h>
 #include <net/sock.h>
 #include <net/route.h>
 #include <net/tcp.h>
@@ -33,7 +32,7 @@ struct kmem_cache
 struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align,
                                      unsigned long falgs, void (*ctor)(void *))
 {
-	dde_kit_log(DEBUG_SLAB, "\"%s\" obj_size=%zd", name, size);
+	lx_log(DEBUG_SLAB, "\"%s\" obj_size=%zd", name, size);
 
 	struct kmem_cache *cache;
 
@@ -57,48 +56,24 @@ struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align
 
 void *kmem_cache_alloc_node(struct kmem_cache *cache, gfp_t flags, int node)
 {
-	dde_kit_log(DEBUG_SLAB, "\"%s\" alloc obj_size=%u",  cache->name,cache->size);
+	lx_log(DEBUG_SLAB, "\"%s\" alloc obj_size=%u",  cache->name,cache->size);
 	return kmalloc(cache->size, 0);
 }
 
 
 void *kmem_cache_alloc(struct kmem_cache *cache, gfp_t flags)
 {
-	dde_kit_log(DEBUG_SLAB, "\"%s\" alloc obj_size=%u",  cache->name,cache->size);
+	lx_log(DEBUG_SLAB, "\"%s\" alloc obj_size=%u",  cache->name,cache->size);
 	return kmalloc(cache->size, 0);
 }
 
 
 void kmem_cache_free(struct kmem_cache *cache, void *objp)
 {
-	dde_kit_log(DEBUG_SLAB, "\"%s\" (%p)", cache->name, objp);
+	lx_log(DEBUG_SLAB, "\"%s\" (%p)", cache->name, objp);
 	kfree(objp);
 }
 
-
-void *alloc_large_system_hash(const char *tablename,
-	                            unsigned long bucketsize,
-	                            unsigned long numentries,
-	                            int scale,
-	                            int flags,
-	                            unsigned int *_hash_shift,
-	                            unsigned int *_hash_mask,
-	                            unsigned long low_limit,
-	                            unsigned long high_limit)
-{
-	unsigned long elements = numentries ? numentries : high_limit;
-	unsigned long nlog2 = ilog2(elements);
-	nlog2 <<= (1 << nlog2) < elements ? 1 : 0;
-
-	void *table = dde_kit_simple_malloc(elements * bucketsize);
-
-	if (_hash_mask)
-		*_hash_mask = (1 << nlog2) - 1;
-	if (_hash_shift)
-		*_hash_shift = nlog2;
-
-	return table;
-}
 
 /********************
  ** linux/bitmap.h **

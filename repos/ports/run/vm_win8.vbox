@@ -21,7 +21,7 @@
       <ExtraDataItem name="GUI/LastNormalWindowPosition" value="0,12,1439,863"/>
     </ExtraData>
     <Hardware version="2">
-      <CPU count="1" hotplug="false">
+      <CPU count="2" hotplug="false">
         <HardwareVirtEx enabled="true"/>
         <HardwareVirtExNestedPaging enabled="true"/>
         <HardwareVirtExVPID enabled="true"/>

@@ -145,7 +145,7 @@ struct Linker::Elf_file : File
 
 		if (ehdr->e_ident[EI_CLASS] != ELFCLASS) {
 			PERR("LD: support for 32/64-bit objects only");
-			return false;;
+			return false;
 		}
 
 		return true;

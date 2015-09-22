@@ -15,6 +15,7 @@
 #include <util/bit_allocator.h>
 
 /* core includes */
+#include <assert.h>
 #include <kernel/pd.h>
 
 using Asid_allocator = Genode::Bit_allocator<256>;

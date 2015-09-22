@@ -10,7 +10,6 @@
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
-#include <dde_kit/timer.h>
 #include <linux/inetdevice.h>
 #include <net/tcp.h>
 #include <init.h>
@@ -57,9 +56,6 @@ int lxip_init(char *address_config)
 {
 	/* init data */
 	INIT_LIST_HEAD(&init_net.dev_base_head);
-
-	/*start jiffies */
-	dde_kit_timer_init(0, 0);
 
 	/* call __setup stuff */
 	__ip_auto_config_setup(address_config);

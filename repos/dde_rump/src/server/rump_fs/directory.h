@@ -98,6 +98,8 @@ class File_system::Directory : public Node
 			rump_sys_close(_fd);
 		}
 
+		int fd() const { return _fd; }
+
 		File * file(char const *name, Mode mode, bool create)
 		{
 			return new (&_alloc) File(_fd, name, mode, create);

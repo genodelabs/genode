@@ -11,11 +11,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _TIMER_H_
-#define _TIMER_H_
+#ifndef _CORE__INCLUDE__SPEC__IMX53__TIMER_H_
+#define _CORE__INCLUDE__SPEC__IMX53__TIMER_H_
 
 /* Genode includes */
-#include <drivers/timer/epit_base.h>
+#include <drivers/timer_base.h>
 
 /* core includes */
 #include <board.h>
@@ -45,4 +45,4 @@ class Genode::Timer : public Epit_base
 
 namespace Kernel { class Timer : public Genode::Timer { }; }
 
-#endif /* _TIMER_H_ */
+#endif /* _CORE__INCLUDE__SPEC__IMX53__TIMER_H_ */

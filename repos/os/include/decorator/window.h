@@ -66,6 +66,18 @@ class Decorator::Window_base : public Window_list::Element
 			}
 		};
 
+		/**
+		 * Functor for drawing the elements behind a window
+		 *
+		 * This functor is used for drawing the decorations of partially
+		 * transparent windows. It is implemented by the window stack.
+		 */
+		struct Draw_behind_fn
+		{
+			virtual void draw_behind(Canvas_base &, Window_base const &, Rect) const = 0;
+		};
+
+
 	private:
 
 		Nitpicker::Session_client &_nitpicker;
@@ -195,7 +207,7 @@ class Decorator::Window_base : public Window_list::Element
 		 * \param canvas  graphics back end
 		 * \param clip    clipping area to apply
 		 */
-		virtual void draw(Canvas_base &canvas, Rect clip) const = 0;
+		virtual void draw(Canvas_base &canvas, Rect clip, Draw_behind_fn const &) const = 0;
 
 		/**
 		 * Update internal window representation from XML model

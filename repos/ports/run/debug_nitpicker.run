@@ -16,14 +16,19 @@
 # Build
 #
 
-build {
+set build_components {
 	core init
 	drivers/timer drivers/uart
 	app/gdb_monitor
 	test/gdb_monitor
 	server/nitpicker app/pointer app/scout
-	drivers/framebuffer drivers/pci drivers/input
+	drivers/framebuffer drivers/input
 }
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
+build $build_components
 
 create_boot_directory
 
@@ -85,11 +90,7 @@ set config {
 		<resource name="RAM" quantum="32M"/>
 	</start>}
 
-append_if [have_spec pci] config {
-	<start name="pci_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="PCI"/></provides>
-	</start>}
+append_platform_drv_config
 
 append_if [have_spec framebuffer] config {
 	<start name="fb_drv">
@@ -123,9 +124,10 @@ set boot_modules {
 }
 
 # platform-specific modules
-lappend_if [have_spec         pci] boot_modules pci_drv
 lappend_if [have_spec framebuffer] boot_modules fb_drv
 lappend_if [have_spec         ps2] boot_modules ps2_drv
+
+append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 

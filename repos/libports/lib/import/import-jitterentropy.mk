@@ -10,6 +10,6 @@ endif
 
 INC_DIR += $(call select_from_ports,jitterentropy)/include/jitterentropy
 INC_DIR += $(call select_from_repositories,src/lib/jitterentropy)
-INC_DIR += $(call select_from_repositories,src/lib/jitterentropy/$(TARGET_CPUARCH))
+INC_DIR += $(call select_from_repositories,src/lib/jitterentropy/spec/$(TARGET_CPUARCH))
 
 CC_OPT += -DJITTERENTROPY_GENODE

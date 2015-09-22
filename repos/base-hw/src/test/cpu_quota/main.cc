@@ -42,6 +42,8 @@ class Single_signal
 		void receive() { _sigr.wait_for_signal(); }
 
 		void submit() { _sigt.submit(); }
+
+		operator Signal_context_capability() { return _sigc; }
 };
 
 class Sync::Signal
@@ -75,14 +77,14 @@ class Counter : private Thread<8 * 1024>
 {
 	private:
 
-		char const          _name;
-		unsigned volatile   _value;
-		Sync::Signal        _sync_sig;
-		unsigned volatile   _stage;
-		Single_signal       _stage_1_end;
-		Single_signal       _stage_2_reached;
+		char const                  _name;
+		unsigned long long volatile _value;
+		Sync::Signal                _sync_sig;
+		unsigned volatile           _stage;
+		Single_signal               _stage_1_end;
+		Single_signal               _stage_2_reached;
 
-		inline void _stage_0_and_1(unsigned volatile & value)
+		inline void _stage_0_and_1(unsigned long long volatile & value)
 		{
 			_stage_1_end.receive();
 			_stage = 0;
@@ -92,7 +94,7 @@ class Counter : private Thread<8 * 1024>
 
 		void entry()
 		{
-			unsigned volatile value = 0;
+			unsigned long long volatile value = 0;
 			while (_stage < 2) { _stage_0_and_1(value); }
 			_value = value;
 			_stage_2_reached.submit();
@@ -121,33 +123,45 @@ class Counter : private Thread<8 * 1024>
 
 		void go() { _stage_1_end.submit(); }
 
-		void result() { printf("counter %c %u\n", _name, _value); }
+		void result() { printf("counter %c %llu\n", _name, _value); }
 };
+
+
+void measure(Timer::Connection & timer, Single_signal & timer_sig,
+             Sync::Signal & sync_sig, unsigned const sec)
+{
+	timer.trigger_once(sec * 1000 * 1000);
+	sync_sig.sync();
+	timer_sig.receive();
+}
 
 
 int main()
 {
+	enum { DURATION_BASE_SEC = 20 };
+
 	/* prepare */
+	Single_signal     timer_sig;
 	Timer::Connection timer;
 	Sync::Connection  sync;
 	Sync::Signal      sync_sig(&sync, SYNC_SIG);
 	Counter           counter_a('A', Cpu_session::quota_lim_upscale(10, 100), &sync);
 	Counter           counter_b('B', Cpu_session::quota_lim_upscale(90, 100), &sync);
 
+	timer.sigh(timer_sig);
+
 	/* measure stage 1 */
 	sync_sig.threshold(9);
 	counter_a.go();
 	counter_b.go();
-	sync_sig.sync();
-	timer.msleep(45000);
+	measure(timer, timer_sig, sync_sig, 3 * DURATION_BASE_SEC);
 	counter_a.pause();
 	counter_b.destruct();
 
 	/* measure stage 2 */
 	sync_sig.threshold(6);
 	counter_a.go();
-	sync_sig.sync();
-	timer.msleep(15000);
+	measure(timer, timer_sig, sync_sig, DURATION_BASE_SEC);
 	counter_a.destruct();
 
 	/* print results */

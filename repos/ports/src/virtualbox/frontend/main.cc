@@ -89,7 +89,6 @@ HRESULT setupmachine()
 
 	static com::Utf8Str vm_config(c_vbox_file);
 	static com::Utf8Str vm_name(c_vbox_vmname);
-	settings::MachineConfigFile * machine_config = new settings::MachineConfigFile(&vm_config);
 
 	/* Machine object */
 	ComObjPtr<Machine> machine;
@@ -103,7 +102,7 @@ HRESULT setupmachine()
 	if (FAILED(rc))
 		return rc;
 
-	rc = machine->init(virtualbox, vm_name, *machine_config);
+	rc = machine->initFromSettings(virtualbox, vm_config, nullptr);
 	if (FAILED(rc))
 		return rc;
 
@@ -198,9 +197,8 @@ HRESULT setupmachine()
 	/* handle input of Genode and forward it to VMM layer */
 	ComPtr<GenodeConsole> genodeConsole = gConsole;
 	RTLogPrintf("genodeConsole = %p\n", genodeConsole);
-	while (true) {
-		genodeConsole->eventWait(gKeyboard, gMouse);
-	}
+
+	genodeConsole->event_loop(gKeyboard, gMouse);
 
 	Assert(!"return not expected");
 	return E_FAIL;
@@ -229,7 +227,7 @@ int main(int argc, char **argv)
 
 	HRESULT hrc = setupmachine();
 	if (FAILED(hrc)) {
-		PERR("Start-up of VMM failed - reason %d - exiting ...", hrc);
+		PERR("Start-up of VMM failed - reason 0x%x - exiting ...", hrc);
 		return -2;
 	}
 

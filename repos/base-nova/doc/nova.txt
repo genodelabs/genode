@@ -116,7 +116,7 @@ on NOVA:
   comport 0.
 
 * Because NOVA does not allow rootask to have a BSS segment, we need a slightly
-  modified linker script for core (see 'src/platform/roottask.ld').
+  modified linker script for core (see 'src/core/core.ld').
   All other Genode programs use Genode's generic linker script.
 
 * The Genode 'Capability' type consists of a portal selector expressing the

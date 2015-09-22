@@ -124,21 +124,22 @@ class Noux::Rm_session_component : public Rpc_object<Rm_session>
 			Region * const region = _lookup_region_by_addr(addr);
 			if (!region) { return cap(); }
 
-			/* if there is no info for the region it can't be a sub RM */
-			Dataspace_capability ds_cap = region->ds;
-			typedef Object_pool<Dataspace_info>::Guard Info_guard;
-			Info_guard info(_ds_registry.lookup_info(ds_cap));
-			if (!info) { return cap(); }
+			auto lambda = [&] (Dataspace_info *info)
+			{
+				/* if there is no info for the region it can't be a sub RM */
+				if (!info) { return cap(); }
 
-			/* ask the dataspace info for an appropriate sub RM */
-			addr_t const region_base = region->local_addr;
-			addr_t const region_off = region->offset;
-			addr_t const sub_addr = addr - region_base + region_off;
-			Rm_session_capability sub_rm = info->lookup_rm_session(sub_addr);
+				/* ask the dataspace info for an appropriate sub RM */
+				addr_t const region_base = region->local_addr;
+				addr_t const region_off = region->offset;
+				addr_t const sub_addr = addr - region_base + region_off;
+				Rm_session_capability sub_rm = info->lookup_rm_session(sub_addr);
 
-			/* if the result is invalid the dataspace is no sub RM */
-			if (!sub_rm.valid()) { return cap(); }
-			return sub_rm;
+				/* if the result is invalid the dataspace is no sub RM */
+				if (!sub_rm.valid()) { return cap(); }
+				return sub_rm;
+			};
+			return _ds_registry.apply(region->ds, lambda);
 		}
 
 		/**
@@ -158,49 +159,49 @@ class Noux::Rm_session_component : public Rpc_object<Rm_session>
 		{
 			Lock::Guard guard(_region_lock);
 			for (Region *curr = _regions.first(); curr; curr = curr->next_region()) {
+				auto lambda = [&] (Dataspace_info *info)
+				{
+					Dataspace_capability ds;
+					if (info) {
 
-				Dataspace_capability ds;
+						ds = info->fork(dst_ram, ds_registry, ep);
 
-				Object_pool<Dataspace_info>::Guard info(_ds_registry.lookup_info(curr->ds));
+						/*
+						 * XXX We could detect dataspaces that are attached
+						 *     more than once. For now, we create a new fork
+						 *     for each attachment.
+						 */
 
-				if (info) {
+					} else {
 
-					ds = info->fork(dst_ram, ds_registry, ep);
+						PWRN("replay: missing ds_info for dataspace at addr 0x%lx",
+								curr->local_addr);
 
-					/*
-					 * XXX We could detect dataspaces that are attached
-					 *     more than once. For now, we create a new fork
-					 *     for each attachment.
-					 */
+						/*
+						 * If the dataspace is not a RAM dataspace, assume that
+						 * it's a ROM dataspace.
+						 *
+						 * XXX Handle ROM dataspaces explicitly. For once, we
+						 *     need to make sure that they remain available
+						 *     until the child process exits even if the parent
+						 *     process exits earlier. Furthermore, we would
+						 *     like to detect unexpected dataspaces.
+						 */
+						ds = curr->ds;
+					}
 
-				} else {
+					if (!ds.valid()) {
+						PERR("replay: Error while forking dataspace");
+						return;
+					}
 
-					PWRN("replay: missing ds_info for dataspace at addr 0x%lx",
-					     curr->local_addr);
-
-					/*
-					 * If the dataspace is not a RAM dataspace, assume that
-					 * it's a ROM dataspace.
-					 *
-					 * XXX Handle ROM dataspaces explicitly. For once, we
-					 *     need to make sure that they remain available
-					 *     until the child process exits even if the parent
-					 *     process exits earlier. Furthermore, we would
-					 *     like to detect unexpected dataspaces.
-					 */
-					ds = curr->ds;
-				}
-
-				if (!ds.valid()) {
-					PERR("replay: Error while forking dataspace");
-					continue;
-				}
-
-				Rm_session_client(dst_rm).attach(ds, curr->size,
-				                                 curr->offset,
-				                                 true,
-				                                 curr->local_addr);
-			}
+					Rm_session_client(dst_rm).attach(ds, curr->size,
+					                  curr->offset,
+					                  true,
+					                  curr->local_addr);
+				};
+				_ds_registry.apply(curr->ds, lambda);
+			};
 		}
 
 		void poke(addr_t dst_addr, void const *src, size_t len)
@@ -235,14 +236,13 @@ class Noux::Rm_session_component : public Rpc_object<Rm_session>
 				local_addr = region->local_addr;
 			}
 
-			Object_pool<Dataspace_info>::Guard info(_ds_registry.lookup_info(ds_cap));
-			if (!info) {
-				PERR("attempt to write to unknown dataspace type");
-				for (;;);
-				return;
-			}
-
-			info->poke(dst_addr - local_addr, src, len);
+			_ds_registry.apply(ds_cap, [&] (Dataspace_info *info) {
+				if (!info) {
+					PERR("attempt to write to unknown dataspace type");
+					for (;;);
+				}
+				info->poke(dst_addr - local_addr, src, len);
+			});
 		}
 
 
@@ -275,20 +275,21 @@ class Noux::Rm_session_component : public Rpc_object<Rm_session>
 			                  Region(*this, ds, size, offset, local_addr);
 
 			/* register region as user of RAM dataspaces */
+			auto lambda = [&] (Dataspace_info *info)
 			{
-				Object_pool<Dataspace_info>::Guard info(_ds_registry.lookup_info(ds));
-
 				if (info) {
 					info->register_user(*region);
 				} else {
 					if (verbose_attach) {
 						PWRN("Trying to attach unknown dataspace type");
 						PWRN("  ds_info@%p at 0x%lx size=%zd offset=0x%lx",
-						     info.object(), (long)local_addr,
+						     info, (long)local_addr,
 						     Dataspace_client(ds).size(), (long)offset);
 					}
 				}
-			}
+			};
+			_ds_registry.apply(ds, lambda);
+
 
 			/*
 			 * Record attachment for later replay (needed during
@@ -315,10 +316,8 @@ class Noux::Rm_session_component : public Rpc_object<Rm_session>
 				_regions.remove(region);
 			}
 
-			{
-				Object_pool<Dataspace_info>::Guard info(_ds_registry.lookup_info(region->ds));
-				if (info) info->unregister_user(*region);
-			}
+			_ds_registry.apply(region->ds, [&] (Dataspace_info *info) {
+				if (info) info->unregister_user(*region); });
 
 			destroy(env()->heap(), region);
 

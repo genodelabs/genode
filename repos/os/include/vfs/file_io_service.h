@@ -78,7 +78,7 @@ struct Vfs::File_io_service
 	{
 		union
 		{
-			/* if request was 'IOCTL_OP_TIOCGSIZE' */
+			/* if request was 'IOCTL_OP_TIOCGWINSZ' */
 			struct {
 				int rows;
 				int columns;

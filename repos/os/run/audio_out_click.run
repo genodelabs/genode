@@ -1,0 +1,119 @@
+assert_spec x86
+
+#
+# Build
+#
+
+set build_components {
+	core init
+	drivers/timer
+	drivers/audio
+	drivers/input
+	server/mixer
+	test/audio_out
+	test/audio_out_click
+}
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
+build $build_components
+
+create_boot_directory
+
+#
+# Config
+#
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL" />
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>}
+
+append_platform_drv_config
+
+append config {
+	<start name="mixer">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Audio_out"/></provides>
+		<route>
+			<service name="Audio_out"> <child name="audio_drv"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="ps2_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Input"/></provides>
+	</start>
+	<start name="audio_drv">
+		<resource name="RAM" quantum="8M"/>
+		<provides>
+			<service name="Audio_out"/>
+		</provides>
+	</start>
+	<start name="test-audio_out">
+		<resource name="RAM" quantum="4M"/>
+		<config>
+			<filename>sample.raw</filename>
+		</config>
+		<route>
+			<service name="Audio_out"><child name="mixer"/></service>
+			<any-service><parent/><any-child/></any-service>
+		</route>
+	</start>
+	<start name="test-audio_out_click">
+		<resource name="RAM" quantum="4M"/>
+		<route>
+			<service name="Audio_out"><child name="mixer"/></service>
+			<any-service><parent/><any-child/></any-service>
+		</route>
+	</start>
+</config>}
+
+install_config $config
+
+
+if {[expr ![file exists bin/sample.raw] || ![file exists bin/click.raw]]} {
+	puts ""
+	puts "The sample and/or click file is missing. Please take a look at"
+	puts "repos/dde_bsd/README, create 'sample.raw' and/or 'click.raw'"
+	puts "and put the file(s) into './bin'. afterwards"
+	puts ""
+	exit 1
+}
+
+#
+# Boot modules
+#
+
+set boot_modules {
+	core init timer mixer ps2_drv audio_drv
+	test-audio_out test-audio_out_click
+	sample.raw click.raw }
+
+# platform-specific modules
+append_platform_drv_boot_modules
+
+build_boot_image $boot_modules
+
+append qemu_args " -m 128 -nographic -soundhw es1370 "
+
+run_genode_until forever

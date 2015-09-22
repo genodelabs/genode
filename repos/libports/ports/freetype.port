@@ -3,7 +3,7 @@ VERSION := 2.3.9
 
 DOWNLOADS := freetype.archive
 
-BASE_URL := http://mirrors.zerg.biz/nongnu/freetype/freetype-old
+BASE_URL := https://savory.googlecode.com/files
 
 URL(freetype) := $(BASE_URL)/freetype-$(VERSION).tar.gz
 SIG(freetype) := ${URL(freetype)}.sig

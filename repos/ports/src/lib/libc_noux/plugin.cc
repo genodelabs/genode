@@ -689,7 +689,7 @@ extern "C" int nanosleep(const struct timespec *timeout,
 
 extern "C" unsigned int sleep(unsigned int seconds)
 {
-	struct timespec dummy = { seconds, 0 };
+	struct timespec dummy = { Genode::min<int>(seconds, __INT_MAX__), 0 };
 
 	/*
 	 * Always return 0 because our nanosleep() cannot not be interrupted.

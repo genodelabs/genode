@@ -52,7 +52,6 @@ class Loader::Session_component : public Rpc_object<Session>
 
 			void _close(Rom_session_component *rom)
 			{
-				_ep.dissolve(rom);
 				_rom_sessions.remove(rom);
 				destroy(&_md_alloc, rom);
 			}
@@ -73,7 +72,9 @@ class Loader::Session_component : public Rpc_object<Session>
 				Lock::Guard guard(_lock);
 
 				while (_rom_sessions.first()) {
-					_close(_rom_sessions.first()); }
+					_ep.remove(_rom_sessions.first());
+					_close(_rom_sessions.first());
+				}
 			}
 
 			Genode::Session_capability session(char     const *args,
@@ -108,10 +109,12 @@ class Loader::Session_component : public Rpc_object<Session>
 			{
 				Lock::Guard guard(_lock);
 
-				Rpc_object_base *rom = _ep.lookup_and_lock(session);
+				Rom_session_component *component;
 
-				Rom_session_component *component =
-					dynamic_cast<Rom_session_component *>(rom);
+				_ep.apply(session, [&] (Rom_session_component *rsc) {
+					component = rsc;
+					if (component) _ep.remove(component);
+				});
 
 				if (component) {
 					_close(component);

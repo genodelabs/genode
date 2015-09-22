@@ -18,15 +18,13 @@
 #include <util/list.h>
 #include <setjmp.h>
 
-extern "C" {
-#include <dde_kit/memory.h>
-}
-
 #include <platform/platform.h>
 
 static const bool verbose = false;
 
-
+namespace Timer {
+	void update_jiffies();
+}
 /**
  * Allows pseudo-parallel execution of functions
  */

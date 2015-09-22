@@ -12,7 +12,7 @@ LD_OPT      += -Bsymbolic-functions --version-script=$(DIR)/symbol.map
 ENTRY_POINT  = _start
 
 ifneq ($(filter linux, $(SPECS)),)
-LD_OPT += -T$(call select_from_repositories,src/platform/context_area.nostdlib.ld)
+LD_OPT += -T$(call select_from_repositories,src/ld/context_area.nostdlib.ld)
 else
 LD_OPT += -T$(DIR)/linker.ld
 endif

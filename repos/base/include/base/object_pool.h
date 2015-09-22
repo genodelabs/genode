@@ -1,7 +1,8 @@
 /*
- * \brief  Object pool - map ids to objects
+ * \brief  Object pool - map capabilities to objects
  * \author Norman Feske
  * \author Alexander Boettcher
+ * \author Stafen Kalkowski
  * \date   2006-06-26
  */
 
@@ -23,7 +24,7 @@ namespace Genode { template <typename> class Object_pool; }
 
 
 /**
- * Map object ids to local objects
+ * Map capabilities to local objects
  *
  * \param OBJ_TYPE  object type (must be inherited from Object_pool::Entry)
  *
@@ -35,66 +36,25 @@ class Genode::Object_pool
 {
 	public:
 
-		class Guard
-		{
-			private:
-
-				OBJ_TYPE * _object;
-
-			public:
-				operator OBJ_TYPE*()    const { return _object; }
-				OBJ_TYPE * operator->() const { return _object; }
-				OBJ_TYPE * object()     const { return _object; }
-
-				template <class X>
-				explicit Guard(X * object) {
-					_object = dynamic_cast<OBJ_TYPE *>(object); }
-
-				~Guard()
-				{
-					if (!_object) return;
-
-					_object->release();
-				}
-		};
-
 		class Entry : public Avl_node<Entry>
 		{
 			private:
 
 				Untyped_capability _cap;
-				short int          _ref;
-				bool               _dead;
-
-				Lock               _entry_lock;
+				Lock               _lock;
 
 				inline unsigned long _obj_id() { return _cap.local_name(); }
 
 				friend class Object_pool;
 				friend class Avl_tree<Entry>;
 
-				/*
-				 * Support methods for atomic lookup and lock functionality of
-				 * class Object_pool.
-				 */
-
-				void lock()   { _entry_lock.lock(); };
-				void unlock() { _entry_lock.unlock(); };
-
-				void add_ref() { _ref += 1; }
-				void del_ref() { _ref -= 1; }
-
-				bool is_dead(bool set_dead = false) {
-					return (set_dead ? (_dead = true) : _dead); }
-				bool is_ref_zero() { return _ref <= 0; }
-
 			public:
 
 				/**
 				 * Constructors
 				 */
-				Entry() : _ref(0), _dead(false) { }
-				Entry(Untyped_capability cap) : _cap(cap), _ref(0), _dead(false) { }
+				Entry() { }
+				Entry(Untyped_capability cap) : _cap(cap) { }
 
 				/**
 				 * Avl_node interface
@@ -120,18 +80,65 @@ class Genode::Object_pool
 				void cap(Untyped_capability c) { _cap = c; }
 
 				Untyped_capability const cap() const { return _cap; }
-
-				/**
-				 * Function used - ideally - solely by the Guard.
-				 */
-				void release() { del_ref(); unlock(); }
-				void acquire() { lock(); add_ref();   }
+				Lock& lock() { return _lock; }
 		};
 
 	private:
 
 		Avl_tree<Entry> _tree;
 		Lock            _lock;
+
+		OBJ_TYPE* _obj_by_capid(unsigned long capid)
+		{
+			Entry *ret = _tree.first() ? _tree.first()->find_by_obj_id(capid)
+			                           : nullptr;
+			return static_cast<OBJ_TYPE*>(ret);
+		}
+
+		template <typename FUNC, typename RET>
+		struct Apply_functor
+		{
+			RET operator()(OBJ_TYPE *obj, FUNC f)
+			{
+				using Functor = Trait::Functor<decltype(&FUNC::operator())>;
+				using Object_pointer = typename Functor::template Argument<0>::Type;
+
+				try {
+					auto ret = f(dynamic_cast<Object_pointer>(obj));
+					if (obj) obj->_lock.unlock();
+					return ret;
+				} catch(...) {
+					if (obj) obj->_lock.unlock();
+					throw;
+				}
+			}
+		};
+
+		template <typename FUNC>
+		struct Apply_functor<FUNC, void>
+		{
+			void operator()(OBJ_TYPE *obj, FUNC f)
+			{
+				using Functor = Trait::Functor<decltype(&FUNC::operator())>;
+				using Object_pointer = typename Functor::template Argument<0>::Type;
+
+				try {
+					f(dynamic_cast<Object_pointer>(obj));
+					if (obj) obj->_lock.unlock();
+				} catch(...) {
+					if (obj) obj->_lock.unlock();
+					throw;
+				}
+			}
+		};
+
+	protected:
+
+		bool empty()
+		{
+			Lock::Guard lock_guard(_lock);
+			return _tree.first() == nullptr;
+		}
 
 	public:
 
@@ -141,74 +148,60 @@ class Genode::Object_pool
 			_tree.insert(obj);
 		}
 
-		void remove_locked(OBJ_TYPE *obj)
+		void remove(OBJ_TYPE *obj)
 		{
-			obj->is_dead(true);
-			obj->del_ref();
-
-			while (true) {
-				obj->unlock();
-				{
-					Lock::Guard lock_guard(_lock);
-					if (obj->is_ref_zero()) {
-						_tree.remove(obj);
-						return;
-					}
-				}
-				obj->lock();
-			}
+			Lock::Guard lock_guard(_lock);
+			_tree.remove(obj);
 		}
 
-		/**
-		 * Lookup object
-		 */
-		OBJ_TYPE *lookup_and_lock(addr_t obj_id)
+		template <typename FUNC>
+		auto apply(unsigned long capid, FUNC func)
+		-> typename Trait::Functor<decltype(&FUNC::operator())>::Return_type
 		{
-			OBJ_TYPE * obj_typed;
+			using Functor = Trait::Functor<decltype(&FUNC::operator())>;
+
+			OBJ_TYPE * obj;
+
 			{
 				Lock::Guard lock_guard(_lock);
-				Entry *obj = _tree.first();
-				if (!obj) return 0;
 
-				obj_typed = (OBJ_TYPE *)obj->find_by_obj_id(obj_id);
-				if (!obj_typed || obj_typed->is_dead())
-					return 0;
+				obj = _obj_by_capid(capid);
 
-				obj_typed->add_ref();
+				if (obj) obj->_lock.lock();
 			}
 
-			obj_typed->lock();
-			return obj_typed;
+			Apply_functor<FUNC, typename Functor::Return_type> hf;
+			return hf(obj, func);
 		}
 
-		OBJ_TYPE *lookup_and_lock(Untyped_capability cap)
+		template <typename FUNC>
+		auto apply(Untyped_capability cap, FUNC func)
+		-> typename Trait::Functor<decltype(&FUNC::operator())>::Return_type
 		{
-			return lookup_and_lock(cap.local_name());
+			return apply(cap.local_name(), func);
 		}
 
-		/**
-		 * Return first element of tree
-		 *
-		 * This function is used for removing tree elements step by step.
-		 */
-		OBJ_TYPE *first()
+		template <typename FUNC>
+		void remove_all(FUNC func)
 		{
-			Lock::Guard lock_guard(_lock);
-			return (OBJ_TYPE *)_tree.first();
-		}
+			for (;;) {
+				OBJ_TYPE * obj;
 
-		/**
-		 * Return first element of tree locked
-		 *
-		 * This function is used for removing tree elements step by step.
-		 */
-		OBJ_TYPE *first_locked()
-		{
-			Lock::Guard lock_guard(_lock);
-			OBJ_TYPE * const obj_typed = (OBJ_TYPE *)_tree.first();
-			if (!obj_typed) { return 0; }
-			obj_typed->lock();
-			return obj_typed;
+				{
+					Lock::Guard lock_guard(_lock);
+
+					obj = (OBJ_TYPE*) _tree.first();
+
+					if (!obj) return;
+
+					{
+						Lock::Guard object_guard(obj->_lock);
+						_tree.remove(obj);
+					}
+				}
+
+				func(obj);
+			}
 		}
 };
 

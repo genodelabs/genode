@@ -270,7 +270,7 @@ class Kernel::Signal_context : public Kernel::Object
 		 */
 		static capid_t syscall_create(void * p,
 		                              Signal_receiver * const receiver,
-		                              unsigned const imprint)
+		                              addr_t const imprint)
 		{
 			return call(call_id_new_signal_context(), (Call_arg)p,
 			            (Call_arg)receiver, (Call_arg)imprint);

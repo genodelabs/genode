@@ -16,21 +16,18 @@
 /* Linux kernel API */
 #include <lx_emul.h>
 
-/* DDE-Kit includes */
-#include <dde_kit/printf.h>
-
 /* Linux includes */
 #include <linux/input.h>
 
 #define SKIP_VERBOSE    0
 
 #if DEBUG_TRACE
-#define TRACE dde_kit_printf("\033[32m%s\033[0m called from %p, not implemented\n", __PRETTY_FUNCTION__, __builtin_return_address(0))
+#define TRACE lx_printf("\033[32m%s\033[0m called from %p, not implemented\n", __PRETTY_FUNCTION__, __builtin_return_address(0))
 #else
 #define TRACE
 #endif
 #if SKIP_VERBOSE
-#define SKIP dde_kit_printf("\033[34m%s\033[0m: skipped\n", __PRETTY_FUNCTION__)
+#define SKIP lx_printf("\033[34m%s\033[0m: skipped\n", __PRETTY_FUNCTION__)
 #else
 #define SKIP
 #endif
@@ -137,6 +134,9 @@ void assert_spin_locked(spinlock_t *lock) { TRACE;}
 
 void mutex_lock_nested(struct mutex *lock, unsigned int subclass) { TRACE; }
 int  mutex_lock_interruptible(struct mutex *m) { TRACE; return 0; }
+void mutex_init  (struct mutex *m) { TRACE; }
+void mutex_lock  (struct mutex *m) { TRACE; }
+void mutex_unlock(struct mutex *m) { TRACE; }
 
 
 /*******************
@@ -668,7 +668,7 @@ void dma_unmap_sg_attrs(struct device *dev, struct scatterlist *sg,
 
 
 void dma_unmap_page(struct device *dev, dma_addr_t dma_address, size_t size,
-                    enum dma_data_direction direction) { SKIP;; }
+                    enum dma_data_direction direction) { SKIP; }
 
 int dma_mapping_error(struct device *dev, dma_addr_t dma_addr) { SKIP; return 0; }
 

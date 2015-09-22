@@ -297,6 +297,11 @@ class Genode::Thread_base
 		Genode::Cpu_session *_cpu_session;
 
 		/**
+		 * Base pointer to Trace::Control area used by this thread
+		 */
+		Trace::Control *_trace_control;
+
+		/**
 		 * Pointer to primary thread context
 		 */
 		Context *_context;

@@ -4,13 +4,12 @@
 # \date   2012-05-21
 #
 
-build {
+set build_components {
 	core
 	init
 	drivers/framebuffer
 	drivers/input
 	drivers/timer
-	drivers/pci
 	server/nitpicker
 	server/nit_fb
 	server/terminal
@@ -19,6 +18,12 @@ build {
 	app/launchpad
 	app/pointer
 }
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
+build $build_components
+
 create_boot_directory
 
 append config {
@@ -40,7 +45,7 @@ append config {
 		<service name="Nitpicker"> <child name="nitpicker"/> </service>
 		<service name="Timer">     <child name="timer"/> </service>
 		<service name="Terminal">  <child name="terminal"/> </service>
-		<service name="PCI">       <child name="pci_drv"/> </service>
+		<service name="Platform">  <child name="platform_drv"/> </service>
 		<any-service><parent/></any-service>
 	</default-route>
 	<start name="timer">
@@ -73,11 +78,7 @@ append_if [have_spec sdl] config {
 		</route>
 	</start>}
 
-append_if [have_spec pci] config {
-	<start name="pci_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="PCI"/></provides>
-	</start>}
+append_platform_drv_config
 
 append_if [have_spec framebuffer] config {
 	<start name="fb_drv">
@@ -86,8 +87,7 @@ append_if [have_spec framebuffer] config {
 	</start>}
 
 append_if [have_spec ps2] config {
-	<start name="input_drv">
-		<binary name="ps2_drv"/>
+	<start name="ps2_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Input"/></provides>
 	</start> }
@@ -103,7 +103,7 @@ append_if [expr ! [have_spec sdl]] config {
 			<policy label=""        domain=""/>
 		</config>
 		<route>
-			<service name="Input">       <child name="input_drv"/> </service>
+			<service name="Input">       <child name="ps2_drv"/> </service>
 			<service name="Framebuffer"> <child name="fb_drv"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
@@ -164,9 +164,10 @@ set boot_modules {
 
 # platform-specific modules
 lappend_if [have_spec       linux] boot_modules fb_sdl
-lappend_if [have_spec         pci] boot_modules pci_drv
 lappend_if [have_spec framebuffer] boot_modules fb_drv
 lappend_if [have_spec         ps2] boot_modules ps2_drv
+
+append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 

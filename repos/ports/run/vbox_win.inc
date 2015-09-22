@@ -13,6 +13,7 @@ set overlay_image "overlay_${flavor}.vdi"
 set build_components {
 	server/input_merger
 	drivers/nic
+	drivers/audio
 	server/nitpicker
 	app/vbox_pointer
 	server/nit_fb
@@ -22,6 +23,7 @@ set build_components {
 set boot_modules {
 	input_merger
 	nic_drv
+	audio_drv
 	nitpicker
 	vbox_pointer
 	nit_fb
@@ -67,6 +69,24 @@ append config_of_app {
 		</provides>
 	</start>
 
+	<!--
+		Note: to use audio in the VM, the virtual audio adapter
+		needs to be enabled in the .vbox file (disabled by default).
+		(Recording is configured to use the external mic.)
+	-->
+	<start name="audio_drv">
+		<resource name="RAM" quantum="8M"/>
+		<provides>
+			<service name="Audio_out"/>
+			<service name="Audio_in"/>
+		</provides>
+		<config recording="yes">
+			<mixer field="outputs.master" value="255"/>
+			<mixer field="record.adc-0:1_source" value="sel2"/>
+			<mixer field="record.adc-0:1" value="255"/>
+		</config>
+	</start>
+
 	<start name="report_rom">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
@@ -86,6 +106,7 @@ append config_of_app {
 		<route>
 			<service name="Framebuffer"> <child name="fb_drv" /> </service>
 			<service name="Input"> <child name="input_merger" /> </service>
+			<service name="Report"> <child name="report_rom" /> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 		<config>
@@ -122,7 +143,6 @@ append config_of_app {
 			<service name="Framebuffer" />
 			<service name="Input" />
 		</provides>
-		<config width="1024" height="768" />
 	</start>
 
 	<start name="vbox" priority="-2">
@@ -157,6 +177,7 @@ append config_of_app {
 			<service name="File_system"> <child name="rump_fs"/> </service>
 			<service name="Framebuffer"> <child name="nit_fb" /> </service>
 			<service name="Input"> <child name="nit_fb" /> </service>
+			<service name="Report"><child name="report_rom" /></service>
 			<service name="ROM">
 				<if-arg key="label" value="usb_devices"/> <child name="report_rom"/>
 			</service>

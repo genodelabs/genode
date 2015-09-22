@@ -13,8 +13,8 @@
 
 #include <base/env.h>
 #include <base/printf.h>
-#include <pci_session/connection.h>
-#include <pci_device/client.h>
+#include <platform_session/connection.h>
+#include <platform_device/client.h>
 
 using namespace Genode;
 
@@ -24,14 +24,14 @@ enum { INTEL_VENDOR_ID = 0x8086 };
 /**
  * Print device information
  */
-static void print_device_info(Pci::Device_capability device_cap)
+static void print_device_info(Platform::Device_capability device_cap)
 {
 	if (!device_cap.valid()) {
 		PERR("Invalid device capability");
 		return;
 	}
 
-	Pci::Device_client device(device_cap);
+	Platform::Device_client device(device_cap);
 
 	unsigned char bus = 0, dev = 0, fun = 0;
 	device.bus_address(&bus, &dev, &fun);
@@ -45,11 +45,11 @@ static void print_device_info(Pci::Device_capability device_cap)
 
 	for (int resource_id = 0; resource_id < 6; resource_id++) {
 
-		Pci::Device::Resource resource = device.resource(resource_id);
+		Platform::Device::Resource resource = device.resource(resource_id);
 
-		if (resource.type() != Pci::Device::Resource::INVALID)
+		if (resource.type() != Platform::Device::Resource::INVALID)
 			printf("  Resource %d (%s): base=0x%08x size=0x%08x %s\n", resource_id,
-			       resource.type() == Pci::Device::Resource::IO ? "I/O" : "MEM",
+			       resource.type() == Platform::Device::Resource::IO ? "I/O" : "MEM",
 			       resource.base(), resource.size(),
 			       resource.prefetchable() ? "prefetchable" : "");
 	}
@@ -58,16 +58,16 @@ static void print_device_info(Pci::Device_capability device_cap)
 
 int main(int argc, char **argv)
 {
-	printf("--- PCI test started ---\n");
+	printf("--- Platform test started ---\n");
 
 	/* open session to pci service */
-	static Pci::Connection pci;
+	static Platform::Connection pci;
 
 	/*
 	 * Iterate through all installed devices
 	 * and print the available device information.
 	 */
-	Pci::Device_capability prev_device_cap,
+	Platform::Device_capability prev_device_cap,
 	                            device_cap = pci.first_device();
 	while (device_cap.valid()) {
 		print_device_info(device_cap);
@@ -80,7 +80,7 @@ int main(int argc, char **argv)
 	/* release last device */
 	pci.release_device(prev_device_cap);
 
-	printf("--- PCI test finished ---\n");
+	printf("--- Platform test finished ---\n");
 
 	return 0;
 }

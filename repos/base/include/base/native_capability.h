@@ -4,7 +4,7 @@
  * \date   2011-03-07
  *
  * This file is a generic variant of the Native_capability, which is
- * suitable many platforms such as Fiasco, Pistachio, OKL4, Linux, Codezero,
+ * suitable many platforms such as Fiasco, Pistachio, OKL4, Linux,
  * and some more.
  */
 

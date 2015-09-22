@@ -121,6 +121,7 @@ extern "C" char *getenv(const char *name)
 //		               "+hgcm.e.l.f"
 //		               "+shared_folders.e.l.f"
 //		               "+drv_host_serial.e.l.f"
+//		               "+dev_audio.e.l.f"
 		               ;
 
 	if (Genode::strcmp(name, "VBOX_LOG_FLAGS") == 0 ||
@@ -137,7 +138,7 @@ extern "C" int sigaction(int signum, const struct sigaction *act,
 {
 	/*
 	 * Break infinite loop at 'VBox/Runtime/r3/init.cpp' :451
-	 */;
+	 */
 	if (oldact)
 		oldact->sa_flags = SA_SIGINFO;
 

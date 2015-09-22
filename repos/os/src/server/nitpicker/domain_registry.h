@@ -222,8 +222,10 @@ class Domain_registry
 
 		~Domain_registry()
 		{
-			while (Entry *e = _entries.first())
+			while (Entry *e = _entries.first()) {
+				_entries.remove(e);
 				Genode::destroy(_alloc, e);
+			}
 		}
 
 		Entry const *lookup(Entry::Name const &name) const

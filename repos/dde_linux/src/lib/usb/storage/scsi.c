@@ -46,7 +46,7 @@
 
 struct Scsi_Host *scsi_host_alloc(struct scsi_host_template *t, int priv_size)
 {
-	dde_kit_log(DEBUG_SCSI, "t=%p, priv_size=%d", t, priv_size);
+	lx_log(DEBUG_SCSI, "t=%p, priv_size=%d", t, priv_size);
 
 	static int free = 1;
 
@@ -143,9 +143,9 @@ void _scsi_free_command(struct scsi_cmnd *cmnd)
 static void inquiry_done(struct scsi_cmnd *cmnd)
 {
 	char *data = (char *)scsi_buffer_data(cmnd);
-	dde_kit_printf("Vendor id: %c%c%c%c%c%c%c%c Product id: %s\n",
-	               data[8], data[9], data[10], data[11], data[12],
-	               data[13], data[14], data[15], &data[16]);
+	lx_printf("Vendor id: %c%c%c%c%c%c%c%c Product id: %s\n",
+	          data[8], data[9], data[10], data[11], data[12],
+	          data[13], data[14], data[15], &data[16]);
 	complete(cmnd->back);
 }
 

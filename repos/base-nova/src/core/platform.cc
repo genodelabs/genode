@@ -23,6 +23,8 @@
 #include <platform.h>
 #include <nova_util.h>
 #include <util.h>
+#include <trace/source_registry.h>
+#include <base/snprintf.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>
@@ -53,6 +55,12 @@ Utcb *__main_thread_utcb;
  * Virtual address range consumed by core's program image
  */
 extern unsigned _prog_img_beg, _prog_img_end;
+
+
+
+extern addr_t sc_idle_base;
+addr_t sc_idle_base = 0;
+
 
 
 /**
@@ -176,7 +184,7 @@ static void init_core_page_fault_handler()
 		EXC_BASE   = 0
 	};
 
-	addr_t ec_sel = cap_map()->insert();
+	addr_t ec_sel = cap_map()->insert(1);
 
 	uint8_t ret = create_ec(ec_sel, __core_pd_sel, boot_cpu(),
 	                        CORE_PAGER_UTCB_ADDR, core_pager_stack_top(),
@@ -195,6 +203,14 @@ static void init_core_page_fault_handler()
 	          Mtd(Mtd::EIP | Mtd::ESP),
 	          (addr_t)startup_handler);
 	revoke(Obj_crd(PT_SEL_STARTUP, 0, Obj_crd::RIGHT_PT_CTRL));
+}
+
+
+static bool cpuid_invariant_tsc()
+{
+	unsigned long cpuid = 0x80000007, edx = 0;
+	asm volatile ("cpuid" : "+a" (cpuid), "=d" (edx) : : "ebx", "ecx");
+	return edx & 0x100;
 }
 
 
@@ -263,6 +279,39 @@ Platform::Platform() :
 		nova_die();
 	}
 
+	/* map idle SCs */
+	unsigned const log2cpu = log2(hip->cpu_max());
+	if ((1U << log2cpu) != hip->cpu_max()) {
+		PERR("number of max CPUs is not of power of 2");
+		nova_die();
+	}
+
+	sc_idle_base = cap_map()->insert(log2cpu + 1);
+	if (sc_idle_base & ((1UL << log2cpu) - 1)) {
+		PERR("unaligned sc_idle_base value %lx", sc_idle_base);
+		nova_die();
+	}
+	if(map_local(__main_thread_utcb, Obj_crd(0, log2cpu),
+	             Obj_crd(sc_idle_base, log2cpu), true))
+		nova_die();
+
+	/* test reading out idle SCs */
+	bool sc_init = true;
+	for (unsigned i = 0; i < hip->cpu_max(); i++) {
+
+		if (!hip->is_cpu_enabled(i))
+			continue;
+
+		uint64_t n_time;
+		uint8_t res = Nova::sc_ctrl(sc_idle_base + i, n_time);
+		if (res != Nova::NOVA_OK) {
+			sc_init = false;
+			printf("%u %u %llu - failed\n", i, res, n_time);
+		}
+	}
+	if (!sc_init)
+		nova_die();
+
 	/* configure virtual address spaces */
 #ifdef __x86_64__
 	_vm_size = 0x7FFFFFFFF000UL - _vm_base;
@@ -274,10 +323,14 @@ Platform::Platform() :
 	init_core_page_fault_handler();
 
 	if (verbose_boot_info) {
-		printf("Hypervisor %s VMX\n", hip->has_feature_vmx() ? "features" : "does not feature");
-		printf("Hypervisor %s SVM\n", hip->has_feature_svm() ? "features" : "does not feature");
+		if (hip->has_feature_vmx())
+			printf("Hypervisor features VMX\n");
+		if (hip->has_feature_svm())
+			printf("Hypervisor features SVM\n");
 		printf("Hypervisor reports %ux%u CPU%c - boot CPU is %lu\n",
 		       _cpus.width(), _cpus.height(), _cpus.total() > 1 ? 's' : ' ', boot_cpu());
+		if (!cpuid_invariant_tsc())
+			PWRN("CPU has no invariant TSC.");
 	}
 
 	/* initialize core allocators */
@@ -574,7 +627,7 @@ Platform::Platform() :
 
 	/* add capability selector ranges to map */
 	unsigned index = 0x2000;
-	for (unsigned i = 0; i < 16; i++)
+	for (unsigned i = 0; i < 32; i++)
 	{
 		void * phys_ptr = 0;
 		ram_alloc()->alloc(4096, &phys_ptr);
@@ -595,6 +648,46 @@ Platform::Platform() :
 */
 
 		index = range->base() + range->elements();
+	}
+
+	/* add idle ECs to trace sources */
+	for (unsigned i = 0; i < hip->cpu_max(); i++) {
+
+		if (!hip->is_cpu_enabled(i))
+			continue;
+
+		struct Idle_trace_source : Trace::Source::Info_accessor, Trace::Control,
+		                           Trace::Source
+		{
+			Affinity::Location const affinity;
+			unsigned           const sc_sel;
+
+			/**
+			 * Trace::Source::Info_accessor interface
+			 */
+			Info trace_source_info() const override
+			{
+				char name[32];
+				snprintf(name, sizeof(name), "idle%d", affinity.xpos());
+
+				uint64_t execution_time = 0;
+				Nova::sc_ctrl(sc_sel, execution_time);
+
+				return { Trace::Session_label("kernel"), Trace::Thread_name(name),
+				         Trace::Execution_time(execution_time), affinity };
+			}
+
+			Idle_trace_source(Affinity::Location affinity, unsigned sc_sel)
+			:
+				Trace::Source(*this, *this), affinity(affinity), sc_sel(sc_sel)
+			{ }
+		};
+
+		Idle_trace_source *source = new (core_mem_alloc())
+			Idle_trace_source(Affinity::Location(i, 0, hip->cpu_max(), 1),
+			                  sc_idle_base + i);
+
+		Trace::sources().insert(source);
 	}
 }
 

@@ -1,0 +1,16 @@
+Omit the filter layer in VirtualBox and use the actual driver directly.
+This is needed because we want to use our genode_write() function but
+the filter layer always calls audio_pcm_sw_write() instead.
+--- a/src/app/virtualbox/src/VBox/Devices/Audio/audio.c        2015-06-05 16:48:33.535360035 +0200
++++ b/src/app/virtualbox/src/VBox/Devices/Audio/audio.c        2015-06-05 16:49:25.077358248 +0200
+@@ -1579,8 +1579,8 @@
+     s->drv_opaque = drv->init ();
+
+     if (s->drv_opaque) {
+-        /* Filter must be installed before initializing voices. */
+-        drv = filteraudio_install(drv, s->drv_opaque);
++        // we do not use the filter layer so use the drv directly;
++        drv = s->drv_opaque;
+         audio_init_nb_voices_out (s, drv);
+         audio_init_nb_voices_in (s, drv);
+         s->drv = drv;

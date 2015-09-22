@@ -1,0 +1,75 @@
+#
+# \brief  Test reflection of segmentation faults to the user land
+# \author Norman Feske
+# \date   2012-11-01
+#
+
+if {[have_spec pistachio]} {
+	puts "Pistachio is unsupported (see https://github.com/genodelabs/genode/issues/16)"
+	exit 0
+}
+if {[have_spec fiasco]} {
+	puts "Fiasco is unsupported (see run script for details)"
+	#
+	# The L4/Fiasco kernel has known problems with the destruction of threads
+	# that are currently participating in IPC (the "red-thread issue"). The
+	# fault-detection test reliably triggers the problem. Since the development
+	# of the kernel has been stopped, however, this issue is expected to remain
+	# unresolved. Newer kernels such as Fiasco.OC do not have the problem.
+	#
+	exit 0
+}
+
+#
+# Build
+#
+
+build { core init server/loader test/fault_detection test/segfault }
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="CAP"/>
+			<service name="CPU"/>
+			<service name="RAM"/>
+			<service name="RM"/>
+			<service name="PD"/>
+			<service name="SIGNAL"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<start name="loader">
+			<resource name="RAM" quantum="10M"/>
+			<provides> <service name="Loader"/> </provides>
+		</start>
+		<start name="test-fault_detection">
+			<resource name="RAM" quantum="10M"/>
+		</start>
+	</config>
+}
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules { core init loader test-fault_detection test-segfault }
+
+build_boot_image $boot_modules
+
+#
+# Execute test case
+#
+
+append qemu_args "-nographic -m 64"
+
+run_genode_until "--- finished fault_detection test ---.*\n" 30

@@ -1,0 +1,13 @@
+diff --git a/src/drivers/net/tg3/tg3.c b/src/drivers/net/tg3/tg3.c
+index 32ca160..85dcc56 100644
+--- a/src/drivers/net/tg3/tg3.c
++++ b/src/drivers/net/tg3/tg3.c
+@@ -772,7 +772,7 @@ static int tg3_init_one(struct pci_device *pdev)
+ 	tp->regs = ioremap(reg_base, reg_size);
+ 	if (!tp->regs) {
+ 		DBGC(&pdev->dev, "Failed to remap device registers\n");
+-		errno = -ENOENT;
++		//errno = -ENOENT;
+ 		goto err_out_disable_pdev;
+ 	}
+ 

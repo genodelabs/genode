@@ -18,27 +18,68 @@
 #include <kernel/signal_receiver.h>
 #include <kernel/ipc_node.h>
 #include <kernel/cpu.h>
-#include <kernel/thread_base.h>
 #include <kernel/object.h>
 #include <base/signal.h>
 
 namespace Kernel
 {
 	class Thread;
-
-	/**
-	 * Kernel backend for userland execution-contexts
-	 */
-	class Thread;
-
+	class Thread_event;
 	class Core_thread;
 }
 
+/**
+ * Event that is provided by kernel thread-objects for user handling
+ */
+class Kernel::Thread_event : public Signal_ack_handler
+{
+	private:
+
+		Thread * const   _thread;
+		Signal_context * _signal_context;
+
+
+		/************************
+		 ** Signal_ack_handler **
+		 ************************/
+
+		void _signal_acknowledged();
+
+	public:
+
+		/**
+		 * Constructor
+		 *
+		 * \param t  thread that blocks on the event
+		 */
+		Thread_event(Thread * const t);
+
+		/**
+		 * Submit to listening handlers just like a signal context
+		 */
+		void submit();
+
+		/**
+		 * Kernel name of assigned signal context or 0 if not assigned
+		 */
+		Signal_context * const signal_context() const;
+
+		/**
+		 * Override signal context of the event
+		 *
+		 * \param c  new signal context or 0 to dissolve current signal context
+		 */
+		void signal_context(Signal_context * const c);
+};
+
+/**
+ * Kernel back-end for userland execution-contexts
+ */
 class Kernel::Thread
-: public Kernel::Object,
-  public Cpu::User_context,
-  public Cpu_domain_update, public Ipc_node, public Signal_context_killer,
-  public Signal_handler, public Thread_base, public Cpu_job
+:
+	public Kernel::Object, public Cpu::User_context, public Cpu_domain_update,
+	public Ipc_node, public Signal_context_killer, public Signal_handler,
+	public Cpu_job
 {
 	friend class Thread_event;
 	friend class Core_thread;
@@ -58,9 +99,16 @@ class Kernel::Thread
 			STOPPED                     = 7,
 		};
 
-		State                     _state;
-		Signal_receiver *         _signal_receiver;
-		char const * const        _label;
+		Thread_event       _fault;
+		addr_t             _fault_pd;
+		addr_t             _fault_addr;
+		addr_t             _fault_writes;
+		addr_t             _fault_signal;
+		State              _state;
+		Signal_receiver *  _signal_receiver;
+		char const * const _label;
+
+		void _init();
 
 		/**
 		 * Notice that another thread yielded the CPU to this thread
@@ -142,41 +190,9 @@ class Kernel::Thread
 		void _call();
 
 		/**
-		 * Read a thread register
-		 *
-		 * \param id     kernel name of targeted thread register
-		 * \param value  read-value buffer
-		 *
-		 * \retval  0  succeeded
-		 * \retval -1  failed
-		 */
-		int _read_reg(addr_t const id, addr_t & value) const;
-
-		/**
 		 * Return amount of timer tics that 'quota' is worth 
 		 */
 		size_t _core_to_kernel_quota(size_t const quota) const;
-
-		/**
-		 * Override a thread register
-		 *
-		 * \param id     kernel name of targeted thread register
-		 * \param value  write-value buffer
-		 *
-		 * \retval  0  succeeded
-		 * \retval -1  failed
-		 */
-		int _write_reg(addr_t const id, addr_t const value);
-
-		/**
-		 * Map kernel names of thread registers to the corresponding data
-		 *
-		 * \param id  kernel name of thread register
-		 *
-		 * \retval  0  failed
-		 * \retval >0  pointer to register content
-		 */
-		addr_t Thread::* _reg(addr_t const id) const;
 
 		/**
 		 * Print the activity of the thread
@@ -224,7 +240,6 @@ class Kernel::Thread
 		void _call_delete_vm();
 		void _call_run_vm();
 		void _call_pause_vm();
-		void _call_access_thread_regs();
 		void _call_route_thread_event();
 		void _call_new_irq();
 		void _call_ack_irq();
@@ -335,7 +350,11 @@ class Kernel::Thread
 		 ** Accessors **
 		 ***************/
 
-		char const * label() const { return _label;       }
+		char const * label()  const { return _label; }
+		addr_t fault_pd()     const { return _fault_pd; }
+		addr_t fault_addr()   const { return _fault_addr; }
+		addr_t fault_writes() const { return _fault_writes; }
+		addr_t fault_signal() const { return _fault_signal; }
 };
 
 

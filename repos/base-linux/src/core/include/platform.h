@@ -56,7 +56,7 @@ namespace Genode {
 
 				Alloc_return alloc_addr(size_t, addr_t)
 				{
-					return Alloc_return::OK;;
+					return Alloc_return::OK;
 				}
 
 				int    add_range(addr_t, size_t)    override { return 0; }

@@ -1,0 +1,791 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 15.08
+              ===============================================
+
+                               Genode Labs
+
+
+
+The version 15.08 marks the beginning of Genode as day-to-day OS as one of the
+project's core developers switched to using Genode/NOVA on his machine,
+stressing the OS infrastructure we created over the course of the last seven
+years. Thanks to components like VirtualBox, the Noux runtime for GNU software,
+the Linux wireless stack and Rump-kernel-based file systems, the transition
+went actually much smoother than expected. So other members of the team plan
+to follow soon. Section [Genode as day-to-day operating system] gives an
+overview of the taken approach. Genode's use as general-purpose OS provided
+the incentive for most of the improvements featured by the current release,
+starting with the addressing of the long-standing kernel-memory management
+deficiencies of the NOVA kernel (Section [NOVA kernel-resource management]),
+over enhancements of Genode's tracing and file-system facilities, to vast
+improvements of the guest-host integration of VirtualBox when running on
+Genode.
+
+The release is accompanied with a second line of work led by our friends
+at Codelabs: Enabling Genode to run on top of their Muen separation
+kernel as described in Section [Genode on top of the Muen Separation Kernel].
+Muen is a low-complexity kernel for the 64-bit x86 architecture that
+statically partitions the machine into multiple domains. In contrast to
+microkernels like the ones already supported by Genode, the assignment
+of physical resources (such as memory, CPU time, and devices) happens at
+system-integration time. Since an isolation kernel does not have to deal
+with dynamic resource management at runtime, it is less complex than
+a general-purpose microkernel. This makes it relatively easy to reason about
+its strong isolation properties, which, in turn, makes it attractive for
+high-assurance computing. With Genode being able to run within a Muen
+domain, the rich component infrastructure of Genode can be combined with
+the strong isolation guarantees of Muen.
+
+
+Genode on top of the Muen Separation Kernel
+###########################################
+
+_This section was written by Adrian-Ken Rueegsegger and Reto Buerki who_
+_conducted the described line of work independent from Genode Labs._
+
+After completing our x86_64 port of the Genode base-hw kernel, which was
+featured in the
+[http://genode.org/documentation/release-notes/15.05#Principal_support_for_the_64-bit_x86_architecture - previous release (15.05)],
+we immediately started working on our main goal: running a Genode system as
+guest on the Muen Separation Kernel (SK). This would enable the Muen platform
+to benefit from the rich ecosystem of Genode.
+
+For those who have not read the 15.05 Genode release notes, [http://muen.sk - Muen]
+is an Open-Source microkernel, which uses the [http://spark-2014.org/ - SPARK]
+programming language to enable light-weight formal methods for high assurance.
+The 64-bit x86 kernel, currently consisting of a little over 5'000 LOC, makes
+extensive use of the latest Intel virtualization features and has been formally
+proven to contain no runtime errors at the source-code level.
+
+The new 'hw_x86_64_muen' platform, as the name implies, extends the 'hw_x86_64'
+base-hw kernel by replacing the PIC and timer drivers with paravirtualized
+variants.
+
+In contrast to other kernels supported by Genode, the architecture with Muen is
+different in the sense that the entire 'hw_x86_64_muen' Genode system runs as
+guest VM in VMX non-root mode on the SK. From the perspective of Muen, Genode
+is executed on top of the kernel like any other guest OS without special
+privileges.
+
+[image muen_system_overview]
+  Genode running on top of the Muen Separation Kernel alongside other subjects
+
+This loose coupling of Muen and Genode base-hw enables the robust combination
+of a static, low-complexity SK with a feature-rich and extensive OS framework.
+The result is a flexible platform for the construction of component-based
+high-assurance systems.
+
+People interested in giving the 'hw_x86_64_muen' platform a spin can find a
+small tutorial at _repos/base-hw/doc/x86_64_muen.txt_.
+
+
+NOVA kernel-resource management
+###############################
+
+For several years, the NOVA kernel has served as Genode's primary base
+platform on x86. The main reasons for this choice are: the kernel provides -
+among the supported x86 kernels - the richest feature set like the support of
+IOMMUs, virtualization, and SMP. It also offers a clean design and a stable
+kernel interface. The available kernel-interface specification and the
+readable and modern source base are a pleasure to work with. Hence, Genode
+Labs is able to fully commit to the maintenance and further evolution of this
+kernel.
+
+Nevertheless, since the beginning, the vanilla kernel lacks one essential
+feature to reliably host Genode as user-land, namely the proper management of
+the memory used by the kernel itself (in short kernel-memory management). In
+the past, we already extended the kernel to free up kernel resources when
+destroying kernel objects, e.g., protection domains and page-tables, threads,
+semaphores, and portals. Still, on Genode/NOVA, a component may trigger
+arbitrary kernel-memory consumption during RPC by delegating memory,
+capabilities, or by creating other components via Genode's core component. If
+the kernel memory gets depleted, the kernel panics with an "Out of memory"
+message and the entire Genode scenario stops.
+
+In principal, the consumption of kernel memory can be deliberately provoked by
+a misbehaving (greedy) component. But also during the regular day-to-day usage
+of Genode, can such a situation occur when the system is used in a highly
+dynamic fashion. For example, compiling and linking source code within the
+noux environment constantly creates and destroys protection domains, threads,
+and memory mappings. Our nightly test of compiling Genode within noux triggers
+this condition every once in a while.
+
+The main issue here is that the consumption of kernel memory is not accounted
+by Genode. The kernel interface does not support such a feature. Kernels like
+seL4 as well as Genode's custom base-hw kernel show how this problem can be
+solved.
+
+To improve the current situation - where the overall kernel memory is a fixed
+amount - we extended NOVA in the following ways: First, the NOVA kernel
+accounts any kernel memory consumption per protection domain. Second, each
+process has a limited amount of kernel-memory quota it can use. Last, the
+kernel detects when the quota limit of a protection domain is reached.
+
+If the third condition occurs, the kernel stops the offending thread and
+(optionally) notifies a handler thread. This so called out-of-memory (OOM)
+handler thread receives information about the current situation and may
+respond to it in the following ways:
+
+* Stop the thread of the depleted protection domain, or
+* Transfer kernel-memory quota between protection domains (upgrading the limit
+  if desired), or
+* Free up kernel memory if possible, e.g., revoke memory delegations, which
+  can be re-created.
+
+We implemented the steps above inside the NOVA kernel and extended Genode's
+core component to handle such OOM situations. All system calls beside the IPC
+call/reply may now return an error code upon depletion of the quota. Most of
+these system calls can solely be performed by core and are handled inside
+core's NOVA-specific platform code.
+
+In the case of IPC call/reply operations, we desired to handle OOM cases
+transparently to Genode user-level components. Therefore, each thread in
+Genode/NOVA now gets constructed with an OOM IPC portal attached. This portal
+is served by the pager thread in core and is traversed on OOM occurrences
+during IPC operations. If a pager thread receives such an OOM IPC, it decodes
+the involved IPC sender and IPC receiver and locates the appropriate
+core-internal paging objects. The currently implemented out-of-memory policy
+tries to upgrade the quota. If this is not possible, an attempt to revoke
+memory mappings from the OOM-causing protection domain is made. This
+implicitly frees-up some kernel memory (e.g., mapping nodes). If none of the
+responses suffices, the handler stops the OOM-causing thread and writes a
+message to the system log.
+
+The current policy implementation constitutes a rather rough heuristic, which
+may not suffice under all circumstances. In the future, we would like to
+specify a distinct policy per component, e.g. depending on prior known memory
+usage patterns. For example, some components follow well-known usage patterns
+and therefore a fixed upper quota limit can be specified. Other components are
+highly dynamic and desire quota upgrades on demand. There are many more
+combinations imaginable.
+
+Our current plan is to collect more experience over the next months with this
+new kernel mechanism. Based on our observations, we may externalize such
+policy decisions and possibly make them configurable per component.
+
+The current implementation however, already avoids the situation that the
+kernel goes out of service if a single component misbehaves
+kernel-memory-wise.
+
+
+Genode as day-to-day operating system
+#####################################
+
+At the beginning of June, Genode reached the probably most symbolic milestone
+in the project's history: Norman - one of the core developers - replaced his
+Linux-based working environment with a Genode-based system. This system is
+composed of the following ingredients:
+
+[image turmvilla_scenario]
+
+The machine used is a Lenovo Thinkpad X201. We settled on this five-year-old
+machine for several reasons. First, it is a very solid platform with a nice
+form factor. Second, it features Intel's AMT (Active Management Technology),
+which is handy to obtain low-level system logs in the case something goes
+wrong. Third, refurbished machines of this type can be obtained for as little
+as 200 EUR. Finally, an older machine reinforces the need for good performance
+of the operating system. So it creates a natural incentive for Norman to find
+and address performance bottlenecks.
+
+Our modified version of the NOVA microhypervisor is the used kernel.
+
+The user interface is based on our custom GUI stack including the nitpicker
+GUI server as well as the window manager and its companion components
+(decorator, layouter, pointer) we introduced in
+[http://genode.org/documentation/release-notes/14.08#New_GUI_architecture - version 14.08].
+The display is driven by the VESA driver. User input is handled by the PS/2
+driver for handling the laptop keyboard and trackpoint, and the USB driver for
+handling an externally connected keyboard and mouse.
+
+Network connectivity is provided by our port of the Intel Wireless stack that
+we introduced with the version
+[http://genode.org/documentation/release-notes/14.11#Intel_wireless_stack - 14.11].
+
+Our custom AHCI driver provides access to the physical hard disk. File-system
+access is provided by our
+[http://genode.org/documentation/release-notes/14.02#NetBSD_file_systems_using_rump_kernels - Rump-kernel-based file-system server].
+
+A simple Genode shell called CLI monitor allows the user to start and kill
+subsystems dynamically. Initially, the two most important subsystems are
+VirtualBox and Noux.
+
+VirtualBox executes a GNU/Linux-based guest OS that we refer to as "rich OS".
+The rich OS serves as a migration path from GNU/Linux to Genode. It is used
+for all tasks that cannot be accomplished directly on Genode yet. At the
+beginning of the transition, the daily routine still very much depends on the
+rich OS. By moving more and more functionality over to the Genode world, we
+will eventually be able to make the rich OS obsolete step by step. Thanks to
+VirtualBox' excellent host-guest-integration features, the VirtualBox window
+can be dynamically resized and the guest mouse cursor integrates seamlessly
+with Genode's pointer. VirtualBox is directly connected to the wireless
+network driver. So common applications like Firefox can be used.
+
+The noux runtime allows us to use command-line-based GNU software directly on
+Genode. Coreutils and Bash are used for managing files. Vim is used for
+editing files. Unlike the rich OS, the noux environment has access to the
+Genode partition of the hard disk. In particular, it can be used to update the
+Genode system. It has access to a number of pseudo files that contain status
+information of the underlying components, e.g., the list of wireless access
+points. Furthermore, it has limited access to the configuration interfaces of
+the base components. For example, it can point the wireless driver to the
+access point to use, or change the configuration of the nitpicker GUI server
+at runtime.
+
+As a bridge between the rich OS and the Genode world, we combine VirtualBox'
+shared-folder mechanism with Genode's VFS infrastructure. The shared folder is
+represented by a dedicated instance of a RAM file system, which is mounted in
+both the VFS of VirtualBox and the VFS of noux.
+
+As evidenced by Norman's use since June, the described system setup is
+sufficient to be productive. So other members of the Genode team plan to
+follow in his footsteps soon. At the same time, the continued use of the
+system from day to day revealed a number of shortcomings, performance
+limitations, and rough edges, which we eventually eliminated. It goes without
+saying that this is an ongoing effort. Eating our own dog food forces us to
+address the right issues to make the daily life more comfortable.
+
+Feature-wise the switch to Genode motivated three developments, namely the
+enhancement of Genode's CLI monitor, the improvement of the window manager,
+and the creation of a CPU-load monitoring tool.
+
+
+Interactive management of subsystem configurations
+==================================================
+
+The original version of CLI monitor obtained the configuration data of its
+subsystems at start time via the Genode::config mechanism. But for managing
+complex scenarios, the config node becomes very complex. Hence, it is
+preferable to have a distinct file for each subsystem configuration.
+
+The new version of CLI monitor scans the directory '/subsystems' for files
+ending with ".subsystem". Each file has the same syntax as the formerly used
+subsystem nodes. This change has the welcome implication that subsystem
+configurations can be changed during the runtime of the CLI monitor, e.g., by
+using a concurrently running instance of noux with access to the _subsystems/_
+directory. This procedure has become an essential part of the daily work flow
+as it enables the interactive evolution of the Genode system.
+
+
+Window-management improvements
+==============================
+
+To make the window manager more flexible while reducing its complexity at the
+same time, we removed the formerly built-in policy hosting the decorator and
+layout components as children of the window manager. Those components are no
+longer child components but siblings. The relationship of the components is
+now solely expressed by the configuration of their common parent, i.e., init.
+This change clears the way to dynamically replace those components during
+runtime (e.g., switching between different decorators).
+
+To improve the usability of the windowed GUI, we enabled the layouter to
+raise windows on click and to let the keyboard focus follow the pointer.
+Furthermore, the window manager, the decorator, and the floating window
+layouter became able to propagate the usage of an alpha channel from the
+client application to the decorator. This way, the decorator can paint the
+decoration elements behind the affected windows, which would otherwise be
+skipped. Consequently, partially transparent windows can be properly displayed.
+
+
+CPU-load monitoring
+===================
+
+During daily system use, we started to wish to know in detail where the CPU
+cycles are spent. For example, the access of a file by the rich OS involves
+several components, including the guest OS itself, VirtualBox, rump_fs (file
+system), part_blk (partition access), ahci_drv (SATA device access), core, and
+NOVA. Investigating performance issues requires a holistic view of all those
+components. For this reason, we enhanced our existing tracing infrastructure
+(Section [Enhanced tracing facilities]) to allow the creation of CPU-load
+monitoring tools. The first tool in this category is the graphical CPU-load
+monitor located at _gems/app/cpu_load_display/_, which displays a timeline of
+the CPU load where each thread is depicted with a different color. Thanks to
+this tool, we have become able to explore performance issues in an interactive
+way. In particular, it helped us to identify and resolve a long-standing
+inaccuracy problem in our low-level timer service.
+
+
+Base framework and low-level OS infrastructure
+##############################################
+
+Improved audio support
+======================
+
+In the previous release, we replaced our old audio driver with a new one that
+provided the same audio-out session interface. Complementing the audio-out
+session, we are now introducing a new audio-in session interface that can be
+used to record audio frames. It is modeled after the audio-out interface in
+the way how it handles the communication between the client and the server. It
+uses shared memory in the form of the Audio_in::Stream to transport the frames
+between the components. A server component captures frames and puts them into
+a packet queue, which is embedded in the Audio_in::Stream. The server
+allocates packets from this queue to store the recorded audio frames. If the
+queue is already full, the server will override already allocated packets and
+will notify the client by submitting an 'overrun' signal. The client has to
+cope with this situation, e.g., by consuming packets more frequently. A client
+can install a signal handler to respond to a progress signal, which is sent by
+the server when a new Audio_in::Packet has been submitted to the packet queue.
+For now, all audio-in server components only support one channel (left)
+although the audio-in session interface principally supports multiple
+channels.
+
+The _dde_bsd_ audio_drv is the first and currently only audio driver component
+that was extended to provide the audio-in session. To express this fact, the
+driver was renamed from _audio_out_drv_ to _audio_drv_. In contrast to its
+playback functionality, which is enabled by default, recording has to be
+enabled explicitly by setting the configuration attribute 'recording' to
+'yes'. If the need arises, playback may be disabled by setting 'playback' to
+'no'. In addition, it is now possible to configure the driver by adjusting the
+mixer in the driver's configuration node. For the time being, the interface as
+employed by the original OpenBSD mixer utility is used.
+
+The following snippet shows how to enable and configure recording on a
+Thinkpad X220 where the headset instead of the internal microphone is used as
+source:
+
+! <start name="audio_drv">
+!   <resource name="RAM" quantum="8M"/>
+!   <provides>
+!     <service name="Audio_out"/>
+!     <service name="Audio_in"/>
+!   </provides>
+!   <config recording="yes">
+!     <mixer field="outputs.master" value="255"/>
+!     <mixer field="record.adc-0:1_source" value="sel2"/>
+!     <mixer field="record.adc-0:1" value="255"/>
+!   </config>
+! </start>
+
+In addition to selecting the recording source, the playback as well as the
+recording volume are raised to the maximum. Information about all available
+mixers and settings in general may be obtained by specifying the 'verbose'
+attribute in the config node.
+
+The enriched driver is accompanied by a simple monitor application, which
+directly plays back all recorded audio frames and shows how to use the
+audio-in session. It can be tested by executing the
+_repos/dde_bsd/run/audio_in.run_ run script.
+
+There are also changes to the audio-out session itself. The length of a period
+was reduced from 2048 to 512 samples to accommodate for a lower latency when
+mixing audio-out packets. A method for invalidating all packets in the queue
+was also added.
+
+
+File-system infrastructure
+==========================
+
+Unlike traditional operating systems that rely on a global name space for
+files, each Genode component has a distinct view on files. Many low-level
+components do not even have the notion of files. Whereas traditional operating
+systems rely on a virtual file system (VFS) implemented in the OS kernel,
+Genode's VFS has the form of a library that can optionally be linked to a
+component. The implementation of this library originated from the noux runtime
+introduced in version
+[http://genode.org/documentation/release-notes/11.02#Noux_-_an_execution_environment_for_the_GNU_userland - 11.02],
+and was later integrated into our C runtime in version
+[http://genode.org/documentation/release-notes/14.05#Per-process_virtual_file_systems - 14.05].
+With the current release, we take the VFS a step further by making it
+available to components without a C runtime. Thereby, low-complexity
+security-sensitive components such as CLI monitor become able to benefit from
+the powerful VFS infrastructure.
+
+The VFS itself received a welcome improvement in the form of private RAM file
+systems. A need for process-local storage motivated a conversion of the
+existing ram_fs server component to an embeddable VFS file system. This
+addition to the set of VFS plugins enables components to use temporary file
+systems without relying on the resources of an external component.
+
+
+Unified networking components
+=============================
+
+Having had a good experience with our Block::Driver implementation, which
+wraps the block-session interface and takes care of the packet-stream
+handling, thus easing the implementation of driver and other block components,
+we observed that this approach did not provide enough flexibility for
+NIC-session servers. For example, NIC servers are bi-directional and when a
+network packet arrives the server has to make sure that there are enough
+resources available to dispatch the network packet to the client. This has to
+be done because the server must never block, e.g., by waiting for allocations
+to succeed or for an empty spot in the packet queue of a client. Therefore,
+such a non-blocking NIC server needs to validate all preconditions for
+dispatching the packet in advance and, if they cannot be met, drop the network
+packet.
+
+In order to implement this kind of behavior, NIC-session servers must have
+direct access to the actual NIC session. For this reason, we removed the
+Nic::Driver interface from Genode and added a Nic::Session_component that
+offers common basic packet-stream-signal dispatch functionality. Servers may
+now inherit from this component and implement their own policy.
+
+We adjusted all servers that implement NIC sessions to the new interface
+(dde_ipxe, wifi, usb, nic_bridge, OpenVPN, ...), and thereby unified all
+networking components within Genode.
+
+
+Enhanced tracing facilities
+===========================
+
+Recent Genode-based system scenarios like the one described in Section
+[Genode as day-to-day operating system] consist of dozens of components that
+interact with each other. For reasoning about the behaviour of such scenarios
+and identifying effective optimization vectors, tools for gathering a holistic
+view of the system are highly desired.
+
+With the introduction of our light-weight
+[http://genode.org/documentation/release-notes/13.08#Light-weight_event_tracing - event-tracing facility]
+in version 13.08, we laid the foundation for such tools. The current release
+extends core's TRACE service with the ability to obtain statistics about CPU
+utilization. More specifically, it enables clients of core's TRACE service to
+obtain the execution times of trace subjects (i.e., threads). The execution
+time is delivered as part of the 'Subject_info' structure. In addition to the
+execution time, the structure delivers the information about the affinity of
+the subject with a physical CPU.
+
+At the current stage, the feature is available solely on NOVA since this is
+our kernel of choice for using Genode as our day-to-day OS. On all other base
+platforms, the returned execution times are 0. To give a complete picture of
+the system's threads, the kernel's idle threads (one per CPU) are featured as
+trace subjects as well. Of course, idle threads cannot be traced but their
+corresponding trace subjects allow TRACE clients to obtain the idle time of
+each CPU.
+
+By obtaining the trace-subject information in periodic intervals, a TRACE
+client is able to gather statistics about the CPU utilization attributed to
+the individual threads present (or no longer present) in the system. One
+instance of such a tool is the new trace-subject reporter located at
+_os/src/app/trace_subject_reporter_. It acts as a TRACE client, which delivers
+the gathered trace-subject information in the form of XML-formatted data to a
+report session. This information, in turn, can be consumed by a separate
+component that analyses the data. In contrast to the low-complexity
+trace-subject reporter, which requires access to the privileged TRACE services
+of core, the (potentially complex) analysing component does not require access
+to core's TRACE service. So it isn't as critical as the trace-subject monitor.
+The first representative of a consumer of trace-subject reports is the
+CPU-load display mentioned in Section [CPU-load monitoring] and depicted in
+Figure [nano3d].
+
+In addition to the CPU-monitoring additions, the tracing facilities received
+minor refinements. Up to now, it was not possible to trace threads that use a
+CPU session other than the component's initial one. A specific example is
+VirtualBox, which employs several CPU sessions, one for each priority. This
+problem has been solved by associating the event logger of each thread with
+its actual CPU session. Consequently, the tracing mechanism has become able to
+trace VirtualBox, which is pivotal for our further optimizations.
+
+
+Low-complexity software rendering functions
+===========================================
+
+Our ambition to use Genode as our day-to-day OS raises the need for custom
+graphical applications. Granted, it is principally possible to base such
+applications on Qt5, which is readily available to native Genode components.
+However, for certain applications like status displays, we prefer to avoid the
+dependency on an overly complex GUI tool kit. To accommodate such
+applications, Genode hosts a small collection of low-complexity graphics
+functions called painters. All of Genode's low-complexity graphical components
+such as nitpicker, launchpad, window decorator, or the terminal are based on
+this infrastructure.
+
+With the current release, we extend the collection with two new painters
+located at _gems/include/polygon_gfx_. Both draw convex polygons with an
+arbitrary number of points. The shaded-polygon painter interpolates the color
+and alpha values whereas the textured-polygon painter applies a texture to the
+polygon. The painters are accompanied by simplistic 3D routines located at
+_gems/include/nano3d/_ and a corresponding example (_gems/run/nano3d.run_).
+
+[image nano3d]
+
+With the nano3d demo and our new CPU load display, the screenshot above shows
+two applications that make use of the new graphics operations.
+
+
+Device drivers
+##############
+
+Completing the transition to the new platform driver
+====================================================
+
+Until now, the platform driver on x86-based machines was formed by the ACPI
+and PCI drivers. The ACPI driver originally executed the PCI driver as a slave
+(child) service. The ACPI driver parsed the ACPI tables and provided the
+relevant information as configuration during the PCI-driver startup. We
+changed this close coupling to the more modern and commonly used
+[http://genode.org/documentation/release-notes/14.02#New_session_interface_for_status_reporting - report_rom mechanism].
+
+When the new ACPI driver finishes the ACPI table parsing, it provides the
+information via a report to any interested and registered components. The
+report contains among other the IRQ re-routing information. The PCI driver is
+a component, which - according to its session routing configuration - plays
+the role of a consumer of the ACPI report.
+
+With this change of interaction of ACPI and PCI driver, the policy for devices
+must be configured solely at the PCI driver and not at the ACPI driver. The
+syntax, however, stayed the same as introduced with release 15.05.
+
+Finally, the PCI driver 'pci_drv' got renamed to 'platform_drv' as already
+used on most ARM platforms. All files and session interfaces containing
+PCI/pci in the names were renamed to Platform/platform. The x86 platform
+interfaces moved to _repos/os/include/platform/x86/_ and the implementation of
+the platform driver to _repos/os/src/drivers/platform/x86/_.
+
+An example x86 platform configuration snippet looks like this:
+
+!<start name="acpi_drv" >
+! <resource .../>
+! <route>
+!  ...
+!  <service name="Report"> <child name="acpi_report_rom"/> </service>
+! </route>
+!</start>
+!
+!<start name="acpi_report_rom" >
+! <binary name="report_rom"/>
+! <resource .../>
+! <provides> <service name="ROM" /> <service name="Report" /> </provides>
+! <config>
+!  <rom> <policy label="platform_drv -> acpi" report="acpi_drv -> acpi"/> </rom>
+! </config>
+! <route> ... </route>
+!</start>
+!
+!<start name="platform_drv" >
+! <resource name="RAM" quantum="3M" constrain_phys="yes"/>
+! <provides> <service name="Platform"/> </provides>
+! <route>
+!  <service name="ROM">
+!   <if-arg key="label" value="acpi"/> <child name="acpi_report_rom"/>
+!  </service>
+!  ...
+! </route>
+! <config>
+!  <policy label="ps2_drv"> <device name="PS2"/> </policy>
+!  <policy label="nic_drv"> <pci class="ETHERNET"/> </policy>
+!  <policy label="fb_drv"> <pci class="VGA"/> </policy>
+!  <policy label="wifi_drv"> <pci class="WIFI"/> </policy>
+!  <policy label="usb_drv"> <pci class="USB"/> </policy>
+!  <policy label="ahci_drv"> <pci class="AHCI"/> </policy>
+!  <policy label="audio_drv"> <pci class="AUDIO"/> <pci class="HDAUDIO"/> </policy>
+! </config>
+!</start>
+
+In order to unify and simplify the writing of run scripts, we added the
+commonly used platform configuration to the file
+_repos/base/run/platform_drv.inc_. This file may be included by any test run
+script in order to setup a default platform driver configuration.
+
+In addition, the snippet provides the following functions:
+'append_platform_drv_build_components', 'append_platform_drv_config' and
+'append_platform_drv_boot_modules'. The functions add necessary information to
+the 'build_components', 'config' and 'boot_modules' run variables. The
+_platform_drv.inc_ also contains the distinction between various ARM/x86
+platforms and includes the necessary pieces. Hence, run scripts are largely
+relieved from platform-specific peculiarities.
+
+The body of an example run script looks like this:
+
+! set build_components { ... }
+!
+! source ${genode_dir}/repos/base/run/platform_drv.inc
+! append_platform_drv_build_components
+!
+! build $build_components
+!
+! create_boot_directory
+!
+! set config { ... }
+!
+! append_platform_drv_config
+!
+! append config { ... }
+!
+! install_config $config
+!
+! append_platform_drv_boot_modules
+!
+! build_boot_image $boot_modules
+!
+! run_genode_until ...
+
+
+BCM57cxx network cards
+======================
+
+During Hack'n Hike 2015, we had access to a server that featured a Broadcom
+network card. Therefore Guido Witmond performed the first steps to enable
+Broadcom's BCM 57cxx cards. With this preliminary work in place, we were
+quickly able to perform the additional steps required to add BCM 57cxx support
+to Genode.
+
+
+VESA driver refinements
+=======================
+
+The VESA driver now reports the frame buffer's line width instead of the
+visible width to the client. This fixes a possible distortion if these widths
+differ, at the cost that content in the right-most area might be invisible in
+such cases.
+
+
+VirtualBox
+##########
+
+Policy-based mouse pointer
+==========================
+
+In the previous release, we implemented support for the transparent
+integration of the guest mouse pointer with nitpicker via the VirtualBox guest
+additions and the vbox_pointer component, which is capable of rendering
+guest-provided mouse-pointer shapes. Now, we extended vbox_pointer by a
+policy-based configuration that allows the selection of ROMs containing the
+actual mouse shape based on the nitpicker session label or domain. With this
+feature in place, it is possible to integrate several VirtualBox instances as
+well as dedicated pointer shapes for specific components. To see the improved
+vbox_pointer in action give _run/vbox_pointer_ a shot.
+
+
+Dynamic adaptation to screen size changes
+=========================================
+
+VirtualBox now notifies the guest operating system about screen-size changes
+(for example if the user resizes a window, which shows the guest frame
+buffer). The VirtualBox guest additions can use this information to adapt the
+guest frame buffer to the new size.
+
+
+SMP support
+===========
+
+Guest operating systems can now use multiple virtual CPUs, which are mapped to
+multiple host CPUs. The number of virtual CPUs can be configured in the
+'.vbox' file.
+
+
+Preliminary audio support
+=========================
+
+At some point, the use of VirtualBox as a stop-gap solution for using Genode
+as everyday OS raises the need to handle audio. With this release, we address
+this matter by enabling preliminary audio support in our VirtualBox port. A
+back end that uses the audio-out and audio-in sessions to playback and record
+sound samples has been added. It disguises itself as the OSS back end that is
+already used by vanilla VirtualBox. Since Genode pretends to be FreeBSD in the
+eyes of VirtualBox (because Genode's libc is based on FreeBSD's libc), the
+provisioning of an implementation of the OSS back end as used on FreeBSD host
+systems is the most natural approach. The audio support is complemented by
+adding the necessary device models for the virtual HDA as well as the AC97
+devices to our VirtualBox port.
+
+For now, it is vital to have the guest OS configure the virtual device in a
+way that considers the current implementation. For example, we cannot
+guarantee distortion-free playback or recording if the guest OS uses a period
+that is too short, typically 10ms or less. There are also remaining issues
+with the mixing/filtering code in VirtualBox. Therefore, we bypass it to
+achieve better audio quality. As a consequence, the device model of the VM has
+to use the same sample rate as is used by the audio-out and audio-in sessions
+(44.1kHz).
+
+Enabling audio support is done be adding
+! <AudioAdapter controller="HDA" driver="OSS" enabled="true"/>
+to the .vbox file manually or configuring the VM accordingly by using the GUI.
+
+
+Platforms
+#########
+
+Execution on bare hardware (base-hw)
+====================================
+
+Bender chain loader on base-hw x86_64
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+On Intel platforms, we use the Bender chain loader from the
+[https://github.com/alex-ab/morbo - Morbo multiboot suite] to detect available
+COM ports of PCI plug-in cards, the AMT SOL device, or as fall back the
+default comport 1. The loader stores the I/O port information of the detected
+cards into the BIOS data area (BDA), from where it is retrieved by core on
+boot and subsequently used for logging. With this release, we added the BDA
+parsing to base-hw on x86-64 and enabled the feature in the run tool. As a
+prerequisite, we had to fix an issue in bender triggered by the loading of
+only one (large) multi-boot kernel. Consequently, its binary in
+_tool/boot/bender_ was updated.
+
+
+Revised page-table handling
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+One of the main advantages of the base-hw platform is that the memory trading
+concept of Genode is universally applied even with regard to kernel objects.
+For instance, whenever a component wants to create a thread, it pays for the
+thread's stack, UTCB, and for the corresponding kernel object. The same
+applies to objects needed to manage the virtual address space of a component
+with the single exception of page tables.
+
+Normally, when the quota, which was donated by a component to a specific
+service, runs out, the component receives an exception the next time it tries
+to invoke the service. The component can respond by upgrading the respective
+session quota. However, in the context of page-fault resolution, this is
+particularly difficult to do. The allocation and thereby the shortage of
+memory becomes evident only when the client produces a page fault. Therefore,
+there is no way to inform the component to upgrade its session quota before
+resolving the fault.
+
+Instead of designing a sophisticated protocol between core and the other
+components to solve this problem, we decided to simplify the current
+page-fault resolution by using a static set of page-tables per component.
+Formerly, page tables were dynamically allocated from core's memory allocator.
+Now, an array of page tables gets allocated during construction of a
+protection domain. When a component runs out of page tables, all of its
+mappings get flushed, and the page tables are populated from scratch. This
+change greatly simplifies the page-table handling inside of base-hw.
+
+
+Dynamic interrupt mode setting on x86_64
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+On x86-based hardware, user-level device drivers have become able to specify
+the trigger mode and polarity of the interrupts when requesting an IRQ
+session. On ARM, those session parameters are ignored. This change enables the
+x86_64 platform to support devices, which use arbitrary trigger modes and
+polarity settings, e.g., AHCI on QEMU and real hardware.
+
+
+Fiasco.OC
+=========
+
+Genode's device-driver support when using the Fiasco.OC kernel as base
+platform received an upgrade.
+
+First, principle support for the Raspberry Pi was added. To make this platform
+useful in practice, a working USB driver is important. I.e., the network
+interface is connected via USB. Hence the USB driver got enabled for
+Fiasco.OC, too. As a result, Genode's software stack can now be used on the
+Raspberry Pi by using either our custom base-hw kernel or Fiasco.OC.
+
+Second, support for the Odroid-X2 platform using the Exynos4412 SoC was added,
+which includes the drivers for clock management (CMU), power management
+(PMU) as well as USB.
+
+Thanks to Reinier Millo Sánchez and Alexy Gallardo Segura for having
+contributed this line of work.
+
+
+Removal of deprecated features
+##############################
+
+We dropped the support for the *ARM Versatile Express* board from the Genode
+source tree to relieve our automated testing infrastructure from supporting a
+platform that remained unused for more than two years.
+
+The device driver environment kit (DDE Kit) was originally intended as a
+common API among the execution environments of ported user-level device
+drivers. However, over the course of the past years, we found that this
+approach could not fulfill its promise while introducing a number of new
+problems. We reported our experiences in the release notes of versions
+[http://genode.org/documentation/release-notes/12.05#Re-approaching_the_Linux_device-driver_environment - 12.05] and
+[http://genode.org/documentation/release-notes/14.11#Roundup - 14.11].
+To be able to remove the DDE-Kit API, we reworked the USB driver, our port of
+the Linux TCP/IP stack, and the wireless driver accordingly.
+

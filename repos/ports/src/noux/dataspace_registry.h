@@ -118,12 +118,8 @@ namespace Noux {
 	};
 
 
-	class Dataspace_registry
+	class Dataspace_registry : public Object_pool<Dataspace_info>
 	{
-		private:
-
-			Object_pool<Dataspace_info> _pool;
-
 		public:
 
 			~Dataspace_registry()
@@ -136,25 +132,8 @@ namespace Noux {
 				 * created via 'Rm_dataspace_info::fork', are not handled by
 				 * those destructors. So we have to clean them up here.
 				 */
-				while(Dataspace_info *info = _pool.first()) {
-					_pool.remove_locked(info);
-					destroy(env()->heap(), info);
-				}
-			}
-
-			void insert(Dataspace_info *info)
-			{
-				_pool.insert(info);
-			}
-
-			void remove(Dataspace_info *info)
-			{
-				_pool.remove_locked(info);
-			}
-
-			Dataspace_info *lookup_info(Dataspace_capability ds_cap)
-			{
-				return _pool.lookup_and_lock(ds_cap);
+				remove_all([&] (Dataspace_info *info) {
+					destroy(env()->heap(), info); });
 			}
 	};
 
@@ -172,18 +151,17 @@ namespace Noux {
 
 		~Static_dataspace_info()
 		{
-			Static_dataspace_info *info =
-				dynamic_cast<Static_dataspace_info *>(_ds_registry.lookup_info(ds_cap()));
+			auto lambda = [this] (Static_dataspace_info *info) {
+				if (!info) {
+					PERR("lookup of binary ds info failed");
+					return;
+				}
 
-			if (!info) {
-				PERR("lookup of binary ds info failed");
-				return;
-			}
+				_ds_registry.remove(info);
 
-			_ds_registry.remove(info);
-
-			info->dissolve_users();
-
+				info->dissolve_users();
+			};
+			_ds_registry.apply(ds_cap(), lambda);
 		}
 
 		Dataspace_capability fork(Ram_session_capability,

@@ -815,24 +815,38 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 		void destroy_view(View_handle handle) override
 		{
-			try {
-				Locked_ptr<View> view(_view_handle_registry.lookup(handle));
-				if (view.is_valid())
-					_destroy_view(*view);
+			/*
+			 * Search view object given the handle
+			 *
+			 * We cannot look up the view directly from the
+			 * '_view_handle_registry' because we would obtain a weak
+			 * pointer to the view object. If we called the object's
+			 * destructor from the corresponding locked pointer, the
+			 * call of 'lock_for_destruction' in the view's destructor
+			 * would attempt to take the lock again.
+			 */
+			for (Session_view_list_elem *v = _view_list.first(); v; v = v->next()) {
+
+				try {
+					View &view = *static_cast<View *>(v);
+					if (_view_handle_registry.has_handle(view, handle)) {
+						_destroy_view(view);
+						break;
+					}
+				} catch (View_handle_registry::Lookup_failed) { }
 			}
-			catch (View_handle_registry::Lookup_failed) { }
 
 			_view_handle_registry.free(handle);
 		}
 
 		View_handle view_handle(View_capability view_cap, View_handle handle) override
 		{
-			View *view = dynamic_cast<View *>(_ep.lookup_and_lock(view_cap));
-			if (!view) return View_handle();
-
-			Object_pool<Rpc_object_base>::Guard guard(view);
-
-			return _view_handle_registry.alloc(*view, handle);
+			auto lambda = [&] (View *view)
+			{
+				return (view) ? _view_handle_registry.alloc(*view, handle)
+				              : View_handle();
+			};
+			return _ep.apply(view_cap, lambda);
 		}
 
 		View_capability view_capability(View_handle handle) override
@@ -910,15 +924,12 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 				return;
 
 			/* lookup targeted session object */
-			Session_component * const session =
-				session_cap.valid() ? dynamic_cast<Session_component *>(_ep.lookup_and_lock(session_cap)) : 0;
-
-			_mode.focused_session(session);
-
-			if (session)
-				session->release();
-
-			report_session(_focus_reporter, session);
+			auto lambda = [this] (Session_component *session)
+			{
+				_mode.focused_session(session);
+				report_session(_focus_reporter, session);
+			};
+			_ep.apply(session_cap, lambda);
 		}
 
 		void session_control(Label suffix, Session_control control) override
@@ -1195,8 +1206,6 @@ struct Nitpicker::Main
 
 	Main(Server::Entrypoint &ep) : ep(ep)
 	{
-//		tmp_fb = &framebuffer;
-
 		user_state.default_background(background);
 		user_state.stack(pointer_origin);
 		user_state.stack(background);
@@ -1343,6 +1352,13 @@ void Nitpicker::Main::handle_config(unsigned)
 	try {
 		config()->xml_node().sub_node("background")
 		.attribute("color").value(&background.color);
+	} catch (...) { }
+
+	/* enable or disable redraw debug mode */
+	try {
+		tmp_fb = nullptr;
+		if (config()->xml_node().attribute("flash").has_value("yes"))
+			tmp_fb = &framebuffer;
 	} catch (...) { }
 
 	configure_reporter(pointer_reporter);

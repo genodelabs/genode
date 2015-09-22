@@ -3,12 +3,15 @@
 #
 
 set build_components {
-	core init drivers/timer drivers/framebuffer drivers/input drivers/pci
+	core init drivers/timer drivers/framebuffer drivers/input
 	server/dynamic_rom server/nitpicker server/report_rom
 	app/pointer app/menu_view
 	app/scout app/launchpad app/launcher test/nitpicker
 	server/nit_fader
 }
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
 
 build $build_components
 
@@ -46,11 +49,7 @@ append_if [have_spec sdl] config {
 		</provides>
 	</start>}
 
-append_if [have_spec pci] config {
-	<start name="pci_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="PCI"/></provides>
-	</start>}
+append_platform_drv_config
 
 append_if [have_spec framebuffer] config {
 	<start name="fb_drv">
@@ -89,6 +88,10 @@ append config {
 			<global-key name="KEY_F11"        operation="kill" />
 			<global-key name="KEY_F12"        operation="xray" />
 		</config>
+		<route>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
 	</start>
 	<start name="pointer">
 		<resource name="RAM" quantum="1M"/>
@@ -167,8 +170,9 @@ set boot_modules {
 }
 
 # platform-specific modules
+append_platform_drv_boot_modules
+
 lappend_if [have_spec linux]        boot_modules fb_sdl
-lappend_if [have_spec pci]          boot_modules pci_drv
 lappend_if [have_spec ps2]          boot_modules ps2_drv
 lappend_if [have_spec framebuffer]  boot_modules fb_drv
 

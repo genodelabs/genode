@@ -63,6 +63,18 @@ class Child_registry : public List<Child>
 				snprintf(suffix, sizeof(suffix), ".%d", cnt + 1);
 			}
 		}
+
+		/**
+		 * Call functor 'fn' for each child
+		 *
+		 * The functor receives the child name as 'char const *'.
+		 */
+		template <typename FN>
+		void for_each_child_name(FN const &fn) const
+		{
+			for (Child const *child = first() ; child; child = child->next())
+				fn(child->name());
+		}
 };
 
 #endif /* _CHILD_REGISTRY_H_ */

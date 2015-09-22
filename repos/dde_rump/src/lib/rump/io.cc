@@ -314,7 +314,7 @@ void rumpuser_bio(int fd, int op, void *data, size_t dlen, int64_t off,
 	Packet *p = backend()->alloc();
 
 	if (verbose)
-		PDBG("fd: %d op: %d len: %zu off: %lx p %p bio %p sync %u", fd, op, dlen, off,
+		PDBG("fd: %d op: %d len: %zu off: %lx p %p bio %p sync %u", fd, op, dlen, (unsigned long)off,
 		     p, donearg, !!(op & RUMPUSER_BIO_SYNC));
 
 	p->opcode= op & RUMPUSER_BIO_WRITE ? Block::Packet_descriptor::WRITE :

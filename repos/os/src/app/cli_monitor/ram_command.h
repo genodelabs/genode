@@ -16,18 +16,15 @@
 
 /* local includes */
 #include <child_registry.h>
-#include <process_arg_registry.h>
 
 struct Ram_command : Command
 {
 	Child_registry       &_children;
-	Process_arg_registry &_process_args;
 
-	Ram_command(Child_registry &children, Process_arg_registry &process_args)
+	Ram_command(Child_registry &children)
 	:
 		Command("ram", "set RAM quota of subsystem"),
-		_children(children),
-		_process_args(process_args)
+		_children(children)
 	{
 		add_parameter(new Parameter("--quota", Parameter::NUMBER, "new RAM quota"));
 		add_parameter(new Parameter("--limit", Parameter::NUMBER, "on-demand quota limit"));
@@ -83,6 +80,16 @@ struct Ram_command : Command
 		}
 	}
 
+	void _for_each_argument(Argument_fn const &fn) const override
+	{
+		auto child_name_fn = [&] (char const *child_name) {
+			Argument arg(child_name, "");
+			fn(arg);
+		};
+
+		_children.for_each_child_name(child_name_fn);
+	}
+
 	void execute(Command_line &cmd, Terminal::Session &terminal)
 	{
 		char label[128];
@@ -116,8 +123,6 @@ struct Ram_command : Command
 			_set_quota(terminal, *child, quota);
 		}
 	}
-
-	List<Argument> &arguments() { return _process_args.list; }
 };
 
 #endif /* _RAM_COMMAND_H_ */

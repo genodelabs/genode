@@ -1,14 +1,12 @@
 set build_components {
 	core init drivers/timer noux/minimal lib/libc_noux
-	drivers/framebuffer drivers/pci drivers/input
+	drivers/framebuffer drivers/input
 	server/terminal server/ram_fs
 	test/libports/ncurses
 }
 set use_usb_input [expr ![have_spec ps2] && ![have_spec sdl] && [have_spec usb]]
-set use_platform_driver [expr [have_spec platform_arndale] || [have_spec platform_imx53] || [have_spec platform_rpi]]
 
 lappend_if $use_usb_input       build_components drivers/usb
-lappend_if $use_platform_driver build_components drivers/platform
 
 #
 # Build Noux packages only once
@@ -17,6 +15,9 @@ set noux_pkgs {bash coreutils make}
 
 foreach pkg $noux_pkgs {
 	lappend_if [expr ![file exists bin/$pkg]] build_components noux-pkg/$pkg }
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
 
 build $build_components
 
@@ -72,11 +73,7 @@ append_if $use_usb_input config {
 		<config uhci="yes" ehci="no" xhci="no"> <hid/> </config>
 	</start> }
 
-append_if [have_spec pci] config {
-	<start name="pci_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="PCI"/></provides>
-	</start>}
+append_platform_drv_config
 
 append_if [have_spec framebuffer] config {
 	<start name="fb_drv">
@@ -89,13 +86,6 @@ append_if [have_spec ps2] config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Input"/></provides>
 	</start> }
-
-append_if $use_platform_driver config {
-	<start name="platform_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Regulator"/></provides>
-		<provides><service name="Platform"/></provides>
-	</start>}
 
 append config {
 	<start name="terminal">
@@ -176,11 +166,11 @@ foreach pkg $noux_pkgs {
 
 # platform-specific modules
 lappend_if [have_spec       linux] boot_modules fb_sdl
-lappend_if [have_spec         pci] boot_modules pci_drv
 lappend_if [have_spec framebuffer] boot_modules fb_drv
 lappend_if [have_spec         ps2] boot_modules ps2_drv
-lappend_if $use_platform_driver    boot_modules platform_drv
 lappend_if $use_usb_input          boot_modules usb_drv
+
+append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 

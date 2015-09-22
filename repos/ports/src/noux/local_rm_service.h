@@ -126,26 +126,31 @@ namespace Noux {
 
 			void close(Genode::Session_capability session)
 			{
-				Rm_session_component * rm_session = 
-					dynamic_cast<Rm_session_component *>(_ep.lookup_and_lock(session));
-				if (!rm_session) {
-					PWRN("Unexpected call of close with non-RM-session argument");
-					return;
-				}
+				Dataspace_info *info;
 
-				/* use RM dataspace as key to obtain the dataspace info object */
-				Dataspace_capability ds_cap = rm_session->dataspace();
+				auto lambda = [&] (Rm_session_component *rm_session) {
+					if (!rm_session) {
+						PWRN("Unexpected call of close with non-RM-session argument");
+						return;
+					}
 
-				/* release dataspace info */
-				Dataspace_info *info = _ds_registry.lookup_info(ds_cap);
-				if (!info) {
-					PWRN("Could not lookup dataspace info for local RM session");
-					return;
-				}
+					/* use RM dataspace as key to obtain the dataspace info object */
+					Dataspace_capability ds_cap = rm_session->dataspace();
 
-				_ds_registry.remove(info);
+					/* release dataspace info */
+					_ds_registry.apply(ds_cap, [&] (Dataspace_info *di) {
+						info = di;
+						if (!info) {
+							PWRN("Could not lookup dataspace info for local RM session");
+							return;
+						}
 
-				info->dissolve_users();
+						_ds_registry.remove(info);
+
+						info->dissolve_users();
+					});
+				};
+				_ep.apply(session, lambda);
 
 				/* 'rm_session' is deleted by deleting Rm_dataspace_info 'info' */
 				destroy(env()->heap(), info);

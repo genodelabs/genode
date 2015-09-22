@@ -19,14 +19,14 @@ set use_mixer 0
 set build_components {
 	core init
 	drivers/timer
-	drivers/audio_out
-	drivers/pci
+	drivers/audio
 	test/audio_out
 }
 
-lappend_if [have_spec acpi] build_components drivers/acpi
-lappend_if [have_spec  pci] build_components drivers/pci/device_pd
 lappend_if $use_mixer build_components server/mixer
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
 
 build $build_components
 
@@ -59,49 +59,20 @@ append config {
 		<provides><service name="Timer"/></provides>
 	</start>}
 
-append_if [have_spec acpi] config {
-	<start name="acpi_drv">
-		<resource name="RAM" quantum="6M"/>
-		<provides>
-			<service name="PCI"/>
-			<service name="IRQ" />
-		</provides>
-		<route>
-			<any-service> <parent/> <any-child /> </any-service>
-		</route>
-		<config>
-			<policy label="acpi_drv">
-				<pci class="ALL"/>
-			</policy>
-			<policy label="audio_out_drv">
-				<pci class="AUDIO"/>
-			</policy>
-		</config>
-	</start>}
-
-append_if [expr ![have_spec acpi] && [have_spec pci]] config {
-	<start name="pci_drv">
-		<resource name="RAM" quantum="4M" constrain_phys="yes"/>
-		<provides> <service name="PCI"/> </provides>
-		<config>
-			<policy label="audio_out_drv">
-				<pci class="AUDIO"/>
-			</policy>
-		</config>
-	</start>}
+append_platform_drv_config
 
 append_if $use_mixer config {
 	<start name="mixer">
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Audio_out"/></provides>
 		<route>
-			<service name="Audio_out"> <child name="audio_out_drv"/> </service>
+			<service name="Audio_out"> <child name="audio_drv"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>}
 
 append config {
-	<start name="audio_out_drv">
+	<start name="audio_drv">
 		<resource name="RAM" quantum="8M"/>
 		<provides>
 			<service name="Audio_out"/>
@@ -146,14 +117,11 @@ if {![file exists bin/sample.raw]} {
 #
 
 set boot_modules {
-	core init timer audio_out_drv test-audio_out sample.raw }
+	core init timer audio_drv test-audio_out sample.raw }
 
 lappend_if $use_mixer boot_modules mixer
 
-# platform-specific modules
-lappend_if [have_spec acpi] boot_modules acpi_drv
-lappend_if [have_spec  pci] boot_modules pci_drv
-lappend_if [have_spec nova] boot_modules pci_device_pd
+append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 

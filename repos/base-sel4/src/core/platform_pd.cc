@@ -170,6 +170,9 @@ Platform_pd::Platform_pd(Allocator * md_alloc, char const *,
 
 Platform_pd::~Platform_pd()
 {
+	/* invalidate weak pointers to this object */
+	Address_space::lock_for_destruction();
+
 	platform_specific()->free_core_sel(_vm_cnode_sel);
 	platform_specific()->free_core_sel(_vm_pad_cnode_sel);
 	platform_specific()->free_core_sel(_cspace_cnode_sel);

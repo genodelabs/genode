@@ -1,0 +1,34 @@
+##
+# Reset the target machine via EnerGenie poweplug by Gembird
+#
+# \param --power-off-energenie-host       network address of device
+# \param --power-off-energenie-password   password for device
+# \param --power-off-energenie-port       target port of device
+#
+
+
+proc power_off_energenie_host { } {
+	return [get_cmd_arg_first --power-off-energenie-host 1]
+}
+
+
+proc power_off_energenie_password { } {
+	return [get_cmd_arg_first --power-off-energenie-password 1]
+}
+
+
+proc power_off_energenie_port { } {
+	return [get_cmd_arg_first --power-off-energenie-port 1]
+}
+
+
+proc run_power_off { } {
+	set host      [power_off_energenie_host]
+	set password  [power_off_energenie_password]
+	set power_port [power_off_energenie_port]
+
+	puts "switch port $power_port off"
+	exec curl -s -o /dev/null -d pw=$password     http://$host/login.html
+	exec curl -s -o /dev/null -d ctl$power_port=0 http://$host/status.html
+	exec curl -s -o /dev/null                     http://$host/login.html
+}

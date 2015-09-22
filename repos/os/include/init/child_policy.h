@@ -290,14 +290,16 @@ class Init::Child_policy_redirect_rom_file
 			if (Genode::strcmp(service, "ROM")) return;
 
 			/* drop out if request refers to another file name */
-			enum { FILENAME_MAX_LEN = 32 };
-			char buf[FILENAME_MAX_LEN];
-			Genode::Arg_string::find_arg(args, "filename").string(buf, sizeof(buf), "");
-			if (Genode::strcmp(_from, buf) != 0) return;
+			{
+				enum { FILENAME_MAX_LEN = 32 };
+				char buf[FILENAME_MAX_LEN];
+				Genode::Arg_string::find_arg(args, "filename").string(buf, sizeof(buf), "");
+				if (Genode::strcmp(_from, buf) != 0) return;
 
-			/* replace filename argument */
-			Genode::snprintf(buf, sizeof(buf), "\"%s\"", _to);
-			Genode::Arg_string::set_arg(args, args_len, "filename", buf);
+				/* replace filename argument */
+				Genode::snprintf(buf, sizeof(buf), "\"%s\"", _to);
+				Genode::Arg_string::set_arg(args, args_len, "filename", buf);
+			}
 
 			/* replace characters after last label delimiter by filename */
 			enum { LABEL_MAX_LEN = 200 };
@@ -309,6 +311,7 @@ class Init::Child_policy_redirect_rom_file
 					last_elem = i + 3;
 			label[last_elem] = 0;
 
+			char buf[LABEL_MAX_LEN];
 			Genode::snprintf(buf, sizeof(buf), "\"%s%s\"", label, _to);
 			Genode::Arg_string::set_arg(args, args_len, "label", buf);
 		}

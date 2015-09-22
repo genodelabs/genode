@@ -31,6 +31,19 @@ class Vfs::Vfs_handle
 
 	public:
 
+		struct Guard
+		{
+			Vfs_handle *handle;
+
+			Guard(Vfs_handle *handle) : handle(handle) { }
+
+			~Guard()
+			{
+				if (handle)
+					Genode::destroy(Genode::env()->heap(), handle);
+			}
+		};
+
 		enum { STATUS_RDONLY = 0, STATUS_WRONLY = 1, STATUS_RDWR = 2 };
 
 		Vfs_handle(Directory_service &ds, File_io_service &fs, int status_flags)

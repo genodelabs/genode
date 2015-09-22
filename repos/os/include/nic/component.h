@@ -1,11 +1,12 @@
 /*
- * \brief  Glue between device-specific NIC driver code and Genode
+ * \brief  Server::Entrypoint based NIC session component
  * \author Norman Feske
- * \date   2011-05-21
+ * \author Sebastian Sumpf
+ * \date   2015-06-22
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -14,100 +15,63 @@
 #ifndef _INCLUDE__NIC__COMPONENT_H_
 #define _INCLUDE__NIC__COMPONENT_H_
 
-#include <base/env.h>
+#include <os/attached_ram_dataspace.h>
+#include <os/server.h>
+#include <nic/packet_allocator.h>
 #include <nic_session/rpc_object.h>
-#include <base/allocator_avl.h>
-#include <util/arg_string.h>
-#include <base/rpc_server.h>
-#include <root/component.h>
-#include <nic/driver.h>
-
-enum { VERBOSE_RX = false };
 
 namespace Nic {
 
+	class Communication_buffers;
 	class Session_component;
-
-	/**
-	 * Shortcut for single-client NIC root component
-	 */
-	typedef Genode::Root_component<Session_component, Genode::Single_client>
-	        Root_component;
-
-	class Root;
 }
 
 
-class Nic::Session_component : public Genode::Allocator_avl,
-                               public Session_rpc_object, public Rx_buffer_alloc,
-                               public Driver_notification
+class Nic::Communication_buffers
 {
-	private:
+	protected:
 
-		Driver_factory &_driver_factory;
-		Driver         &_driver;
+		Nic::Packet_allocator          _rx_packet_alloc;
+		Genode::Attached_ram_dataspace _tx_ds, _rx_ds;
 
+		Communication_buffers(Genode::Allocator &rx_block_md_alloc,
+		                      Genode::Ram_session &ram_session,
+		                      Genode::size_t tx_size, Genode::size_t rx_size)
+		:
+			_rx_packet_alloc(&rx_block_md_alloc),
+			_tx_ds(&ram_session, tx_size),
+			_rx_ds(&ram_session, rx_size)
+		{ }
+};
+
+
+class Nic::Session_component : Communication_buffers, public Session_rpc_object
+{
+	protected:
+
+		Server::Entrypoint               &_ep;
 		Genode::Signal_context_capability _link_state_sigh;
 
-		/* rx packet descriptor */
-		Genode::Packet_descriptor _curr_rx_packet;
 
-		enum { TX_STACK_SIZE = 8*1024 };
-		class Tx_thread : public Genode::Thread<TX_STACK_SIZE>
+		/**
+		 * Signal link-state change to client
+		 */
+		void _link_state_changed()
 		{
-			private:
-
-				Tx::Sink *_tx_sink;
-				Driver   &_driver;
-
-			public:
-
-				Tx_thread(Tx::Sink *tx_sink, Driver &driver)
-				:
-					Genode::Thread<TX_STACK_SIZE>("tx"),
-					_tx_sink(tx_sink), _driver(driver)
-				{
-					start();
-				}
-
-				void entry()
-				{
-					using namespace Genode;
-
-					while (true) {
-
-						/* block for packet from client */
-						Packet_descriptor packet = _tx_sink->get_packet();
-						if (!packet.valid()) {
-							PWRN("received invalid packet");
-							continue;
-						}
-
-						_driver.tx(_tx_sink->packet_content(packet),
-						           packet.size());
-
-						/* acknowledge packet to the client */
-						if (!_tx_sink->ready_to_ack())
-							PDBG("need to wait until ready-for-ack");
-						_tx_sink->acknowledge_packet(packet);
-					}
-				}
-		} _tx_thread;
-
-		void dump()
-		{
-			using namespace Genode;
-
-			if (!VERBOSE_RX) return;
-
-			char  *buf  = (char *)_rx.source()->packet_content(_curr_rx_packet);
-			size_t size = _curr_rx_packet.size();
-
-			printf("rx packet:");
-			for (unsigned i = 0; i < size; i++)
-				printf("%02x,", buf[i]);
-			printf("\n");
+			if (_link_state_sigh.valid())
+				Genode::Signal_transmitter(_link_state_sigh).submit();
 		}
+
+		/**
+		 * Sub-classes must implement this function, it is called upon all
+		 * packet-stream signals.
+		 */
+		virtual void _handle_packet_stream() = 0;
+
+		void _dispatch(unsigned) { _handle_packet_stream(); }
+
+		Genode::Signal_rpc_member<Session_component> _packet_stream_dispatcher {
+			_ep, *this, &Session_component::_dispatch };
 
 	public:
 
@@ -116,149 +80,47 @@ class Nic::Session_component : public Genode::Allocator_avl,
 		 *
 		 * \param tx_buf_size        buffer size for tx channel
 		 * \param rx_buf_size        buffer size for rx channel
-		 * \param rx_block_alloc     rx block allocator
+		 * \param rx_block_md_alloc  backing store of the meta data of the
+		 *                           rx block allocator
+		 * \param ram_session        RAM session to allocate tx and rx buffers
 		 * \param ep                 entry point used for packet stream
+		 *                           channels
 		 */
-		Session_component(Genode::size_t          tx_buf_size,
-		                  Genode::size_t          rx_buf_size,
-		                  Nic::Driver_factory    &driver_factory,
-		                  Genode::Rpc_entrypoint &ep)
+		Session_component(Genode::size_t const tx_buf_size,
+		                  Genode::size_t const rx_buf_size,
+		                  Genode::Allocator   &rx_block_md_alloc,
+		                  Genode::Ram_session &ram_session,
+		                  Server::Entrypoint  &ep)
 		:
-			Genode::Allocator_avl(Genode::env()->heap()),
-			Session_rpc_object(Genode::env()->ram_session()->alloc(tx_buf_size),
-			                   Genode::env()->ram_session()->alloc(rx_buf_size),
-			                   static_cast<Genode::Range_allocator *>(this), ep),
-			_driver_factory(driver_factory),
-			_driver(*driver_factory.create(*this, *this)),
-			_tx_thread(_tx.sink(), _driver)
-		{ }
-
-		/**
-		 * Destructor
-		 */
-		~Session_component()
+			Communication_buffers(rx_block_md_alloc, ram_session,
+			                      tx_buf_size, rx_buf_size),
+			Session_rpc_object(_tx_ds.cap(),
+			                   _rx_ds.cap(),
+			                  &_rx_packet_alloc, ep.rpc_ep()),
+			_ep(ep)
 		{
-			_driver_factory.destroy(&_driver);
+			/* install data-flow signal handlers for both packet streams */
+			_tx.sigh_ready_to_ack(_packet_stream_dispatcher);
+			_tx.sigh_packet_avail(_packet_stream_dispatcher);
+			_rx.sigh_ready_to_submit(_packet_stream_dispatcher);
+			_rx.sigh_ack_avail(_packet_stream_dispatcher);
 		}
 
-		/***********************************
-		 ** Driver-notification interface **
-		 ***********************************/
-
-		void link_state_changed() override
-		{
-			if (_link_state_sigh.valid())
-				Genode::Signal_transmitter(_link_state_sigh).submit();
-		}
-
-		/*******************************
-		 ** Rx_buffer_alloc interface **
-		 *******************************/
-
-		void *alloc(Genode::size_t size) override
-		{
-			/* assign rx packet descriptor */
-			_curr_rx_packet = _rx.source()->alloc_packet(size);
-
-			return _rx.source()->packet_content(_curr_rx_packet);
-		}
-
-		void submit() override
-		{
-			/* check for acknowledgements from the client */
-			while (_rx.source()->ack_avail()) {
-				Genode::Packet_descriptor packet = _rx.source()->get_acked_packet();
-
-				/* free packet buffer */
-				_rx.source()->release_packet(packet);
-			}
-
-			dump();
-
-			_rx.source()->submit_packet(_curr_rx_packet);
-
-			/* invalidate rx packet descriptor */
-			_curr_rx_packet = Packet_descriptor();
-		}
-
-
-		/****************************
-		 ** Nic::Session interface **
-		 ****************************/
-
-		Mac_address mac_address() { return _driver.mac_address(); }
-		bool        link_state()  { return _driver.link_state(); }
-		Tx::Sink*   tx_sink()     { return _tx.sink();   }
-		Rx::Source* rx_source()   { return _rx.source(); }
-
-		void link_state_sigh(Genode::Signal_context_capability sigh) override
+		void link_state_sigh(Genode::Signal_context_capability sigh)
 		{
 			_link_state_sigh = sigh;
 		}
-};
 
-
-/*
- * Root component, handling new session requests.
- */
-class Nic::Root : public Root_component
-{
-	private:
-
-		Driver_factory         &_driver_factory;
-		Genode::Rpc_entrypoint &_ep;
-
-	protected:
-
-		/*
-		 * Always returns the singleton nic-session component.
+		/**
+		 * Return the current link state
 		 */
-		Session_component *_create_session(const char *args)
-		{
-			using namespace Genode;
+		virtual bool link_state() = 0;
 
-			Genode::size_t ram_quota =
-				Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
-			Genode::size_t tx_buf_size =
-				Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
-			Genode::size_t rx_buf_size =
-				Arg_string::find_arg(args, "rx_buf_size").ulong_value(0);
-
-			/* delete ram quota by the memory needed for the session */
-			Genode::size_t session_size = max((Genode::size_t)4096, sizeof(Session_component)
-			                                  + sizeof(Allocator_avl));
-			if (ram_quota < session_size)
-				throw Root::Quota_exceeded();
-
-			/*
-			 * Check if donated ram quota suffices for both
-			 * communication buffers. Also check both sizes separately
-			 * to handle a possible overflow of the sum of both sizes.
-			 */
-			if (tx_buf_size                  > ram_quota - session_size
-				|| rx_buf_size               > ram_quota - session_size
-				|| tx_buf_size + rx_buf_size > ram_quota - session_size) {
-				PERR("insufficient 'ram_quota', got %zd, need %zd",
-				     ram_quota, tx_buf_size + rx_buf_size + session_size);
-				throw Root::Quota_exceeded();
-			}
-
-			return new (md_alloc()) Session_component(tx_buf_size,
-			                                          rx_buf_size,
-			                                          _driver_factory,
-			                                          _ep);
-		}
-
-	public:
-
-		Root(Genode::Rpc_entrypoint *session_ep,
-		     Genode::Allocator      *md_alloc,
-		     Nic::Driver_factory    &driver_factory)
-		:
-			Root_component(session_ep, md_alloc),
-			_driver_factory(driver_factory),
-			_ep(*session_ep)
-		{ }
+		/**
+		 * Return the MAC address of the device
+		 */
+		virtual Mac_address mac_address() = 0;
 };
+
 
 #endif /* _INCLUDE__NIC__COMPONENT_H_ */

@@ -79,7 +79,7 @@ proc drivers_build_components { feature_arg } {
 	lappend_if [use_gpio_drv feature]      build_components drivers/gpio
 	lappend_if [use_nic_drv feature]       build_components drivers/nic
 	lappend_if [use_pci_drv feature]       build_components drivers/pci
-	lappend_if [use_ps2_drv feature]       build_components drivers/input/ps2
+	lappend_if [use_ps2_drv feature]       build_components drivers/input/spec/ps2
 	lappend_if [use_timer feature]         build_components drivers/timer
 	lappend_if [use_usb_drv feature]       build_components drivers/usb
 
@@ -156,7 +156,7 @@ proc drivers_start_nodes { feature_arg } {
 	}
 
 	append_if [use_audio_out_drv feature] start_nodes {
-		<start name="audio_out_drv">
+		<start name="audio_drv">
 			<resource name="RAM" quantum="4M"/>
 			<provides><service name="Audio_out"/></provides>
 		</start>

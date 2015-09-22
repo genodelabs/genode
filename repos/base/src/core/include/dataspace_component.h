@@ -141,6 +141,11 @@ namespace Genode {
 			void detached_from(Rm_region *region);
 
 			/**
+			 * Detach dataspace from all rm sessions.
+			 */
+			void detach_from_rm_sessions();
+
+			/**
 			 * Check if dataspace is owned by a specific owner
 			 */
 			bool owner(Dataspace_owner * const o) const { return _owner == o; }

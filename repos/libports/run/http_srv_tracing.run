@@ -28,11 +28,16 @@ requires_installation_of lynx
 # Build
 #
 
-build {
+set build_components {
 	core init
-	drivers/acpi drivers/pci drivers/timer drivers/nic
+	drivers/timer drivers/nic
 	test/lwip/http_srv_tracing
 }
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
+build $build_components
 
 create_boot_directory
 
@@ -75,25 +80,7 @@ set config {
 		</config>
 	</start>}
 
-append_if [have_spec acpi] config {
-	<start name="acpi">
-		<resource name="RAM" quantum="6M" constrain_phys="yes"/>
-		<binary name="acpi_drv"/>
-		<provides>
-			<service name="PCI"/>
-			<service name="IRQ" />
-		</provides>
-		<route>
-			<service name="PCI"> <any-child /> </service>
-			<any-service> <parent/> <any-child /> </any-service>
-		</route>
-	</start>}
-
-append_if [expr ![have_spec acpi] && [have_spec pci]] config {
-	<start name="pci_drv">
-		<resource name="RAM" quantum="3M" constrain_phys="yes"/>
-		<provides> <service name="PCI"/> </provides>
-	</start>}
+append_platform_drv_config
 
 append config {
 </config>
@@ -114,8 +101,7 @@ set boot_modules {
 }
 
 # platform-specific modules
-lappend_if [have_spec pci]  boot_modules pci_drv
-lappend_if [have_spec acpi] boot_modules acpi_drv
+append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 

@@ -404,7 +404,7 @@ class Genode::Cpu
 		/**
 		 * Wait for the next interrupt as cheap as possible
 		 */
-		static void wait_for_interrupt() { }
+		static void wait_for_interrupt() { asm volatile ("pause"); }
 
 		/**
 		 * Return wether to retry an undefined user instruction after this call

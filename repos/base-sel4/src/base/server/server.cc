@@ -17,6 +17,7 @@
  */
 
 /* Genode includes */
+#include <internal/capability_space_sel4.h>
 #include <base/rpc_server.h>
 
 using namespace Genode;
@@ -65,23 +66,14 @@ void Rpc_entrypoint::entry()
 		srv.ret(Ipc_client::ERR_INVALID_OBJECT);
 
 		/* atomically lookup and lock referenced object */
-		Object_pool<Rpc_object_base>::Guard curr_obj(lookup_and_lock(srv.badge()));
-		if (!curr_obj)
-			continue;
+		auto lambda = [&] (Rpc_object_base *obj) {
+			if (!obj) return;
 
-		{
-			Lock::Guard lock_guard(_curr_obj_lock);
-			_curr_obj = curr_obj;
-		}
-
-		/* dispatch request */
-		try { srv.ret(_curr_obj->dispatch(opcode, srv, srv)); }
-		catch (Blocking_canceled) { }
-
-		{
-			Lock::Guard lock_guard(_curr_obj_lock);
-			_curr_obj = 0;
-		}
+			/* dispatch request */
+			try { srv.ret(obj->dispatch(opcode, srv, srv)); }
+			catch (Blocking_canceled) { }
+		};
+		apply(srv.badge(), lambda);
 	}
 
 	/* answer exit call, thereby wake up '~Rpc_entrypoint' */
@@ -89,6 +81,4 @@ void Rpc_entrypoint::entry()
 
 	/* defer the destruction of 'Ipc_server' until '~Rpc_entrypoint' is ready */
 	_delay_exit.lock();
-
-
 }

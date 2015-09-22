@@ -75,3 +75,21 @@ Core_mem_allocator::Mapped_mem_allocator::alloc_aligned(size_t size, void **out_
 
 	return Alloc_return::OK;
 }
+
+
+void Core_mem_allocator::Mapped_mem_allocator::free(void *addr, size_t size)
+{
+	using Block = Mapped_avl_allocator::Block;
+	Block *b = static_cast<Block *>(_virt_alloc->_find_by_address((addr_t)addr));
+	if (!b) return;
+
+	_unmap_local((addr_t)addr, b->size());
+	_phys_alloc->free(b->map_addr, b->size());
+	_virt_alloc->free(addr, b->size());
+}
+
+
+void Core_mem_allocator::Mapped_mem_allocator::free(void *addr)
+{
+	PWRN("Not implemented!");
+}

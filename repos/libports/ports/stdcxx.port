@@ -10,6 +10,9 @@ KEY(gcc) := GNU
 
 TAR_OPT(gcc) := gcc-$(VERSION)/libstdc++-v3 --strip-components=2
 
+PATCHES   := src/lib/stdcxx/type_traits.patch
+PATCH_OPT := -p1 -d src/lib/stdcxx
+
 DIRS := include/stdcxx
 DIR_CONTENT(include/stdcxx) := \
     src/lib/stdcxx/include/* \

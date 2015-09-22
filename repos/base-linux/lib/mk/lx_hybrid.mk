@@ -1,7 +1,7 @@
 SRC_CC += lx_hybrid.cc new_delete.cc
 
 vpath new_delete.cc $(BASE_DIR)/src/base/cxx
-vpath lx_hybrid.cc   $(REP_DIR)/src/platform
+vpath lx_hybrid.cc   $(REP_DIR)/src/lib/lx_hybrid
 
 # add parts of the base library that are shared with core
 LIBS += base-common

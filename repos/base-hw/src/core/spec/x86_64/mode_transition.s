@@ -170,6 +170,7 @@
 
 	/* Restore kernel segment registers */
 	mov $0x10, %rbx
+	mov %rbx, %ss
 	mov %rbx, %ds
 	mov %rbx, %es
 	mov %rbx, %fs

@@ -18,8 +18,6 @@
 #include <platform.h>
 #include <board.h>
 #include <cpu.h>
-#include <pic.h>
-#include <kernel/kernel.h>
 
 using namespace Genode;
 
@@ -28,17 +26,6 @@ Native_region * Platform::_ram_regions(unsigned const i)
 	static Native_region _regions[] =
 	{
 		{ 2*1024*1024, 1024*1024*254 }
-	};
-	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
-}
-
-
-Native_region * Platform::_core_only_mmio_regions(unsigned const i)
-{
-	static Native_region _regions[] =
-	{
-		{ Board::MMIO_LAPIC_BASE,  Board::MMIO_LAPIC_SIZE  },
-		{ Board::MMIO_IOAPIC_BASE, Board::MMIO_IOAPIC_SIZE },
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
@@ -76,11 +63,4 @@ long Platform::irq(long const user_irq)
 	/* remap IRQ requests to fit I/O APIC configuration */
 	if (user_irq) return user_irq + Board::VECTOR_REMAP_BASE;
 	return Board::TIMER_VECTOR_USER;
-}
-
-
-void Platform::setup_irq_mode(unsigned irq_number, unsigned trigger,
-                              unsigned polarity)
-{
-	Kernel::pic()->ioapic.setup_irq_mode(irq_number, trigger, polarity);
 }

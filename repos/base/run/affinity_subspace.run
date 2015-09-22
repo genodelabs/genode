@@ -3,7 +3,7 @@
 # \author Norman Feske
 #
 
-if {[have_spec platform_pbxa9] || (![have_spec nova] && ![have_spec foc])} {
+if {[have_spec pbxa9] || (![have_spec nova] && ![have_spec foc])} {
 	puts "Platform is unsupported."
 	exit 0
 }

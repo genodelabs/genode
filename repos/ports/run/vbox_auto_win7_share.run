@@ -214,7 +214,8 @@ append config_of_app {
 				</vfs>
 			</libc>
 		</config>
-		<route>}
+		<route>
+			<service name="Report"> <child name="report_rom" /> </service>}
 
 append_if [expr $use_ram_fs] config_of_app {
 			<service name="File_system">

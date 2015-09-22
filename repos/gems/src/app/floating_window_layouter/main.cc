@@ -16,7 +16,8 @@
 #include <base/signal.h>
 #include <os/attached_rom_dataspace.h>
 #include <os/reporter.h>
-#include <input_session/connection.h>
+#include <nitpicker_session/connection.h>
+#include <input_session/client.h>
 #include <input/event.h>
 #include <input/keycodes.h>
 #include <rom_session/connection.h>
@@ -116,6 +117,11 @@ class Floating_window_layouter::Window : public List<Window>::Element
 		 */
 		Area _requested_size;
 
+		/**
+		 * Window may be partially transparent
+		 */
+		bool _has_alpha = false;
+
 		/*
 		 * Number of times the window has been topped. This value is used by
 		 * the decorator to detect the need for bringing the window to the
@@ -145,6 +151,8 @@ class Floating_window_layouter::Window : public List<Window>::Element
 		Point position() const { return _geometry.p1(); }
 
 		void position(Point pos) { _geometry = Rect(pos, _geometry.area()); }
+
+		void has_alpha(bool has_alpha) { _has_alpha = has_alpha; }
 
 		/**
 		 * Return true if user drags a window border
@@ -207,6 +215,9 @@ class Floating_window_layouter::Window : public List<Window>::Element
 						xml.node(highlight.name());
 					});
 				}
+
+				if (_has_alpha)
+					xml.attribute("has_alpha", "yes");
 			});
 		}
 
@@ -267,12 +278,14 @@ struct Floating_window_layouter::Main
 
 	List<Window> windows;
 
+	unsigned hovered_window_id = 0;
 	unsigned focused_window_id = 0;
 	unsigned key_cnt = 0;
 
 	Window::Element hovered_element = Window::Element::UNDEFINED;
 
-	bool drag_state = false;
+	bool drag_state     = false;
+	bool drag_init_done = true;
 
 	Window *lookup_window_by_id(unsigned id)
 	{
@@ -305,7 +318,6 @@ struct Floating_window_layouter::Main
 
 	Attached_rom_dataspace hover { "hover" };
 
-
 	/**
 	 * Install handler for responding to user input
 	 */
@@ -314,7 +326,9 @@ struct Floating_window_layouter::Main
 	Signal_dispatcher<Main> input_dispatcher = {
 		sig_rec, *this, &Main::handle_input };
 
-	Input::Connection input;
+	Nitpicker::Connection nitpicker;
+
+	Input::Session_client input { nitpicker.input_session() };
 
 	Attached_dataspace input_ds { input.dataspace() };
 
@@ -389,6 +403,8 @@ void Floating_window_layouter::Main::import_window_list(Xml_node window_list_xml
 
 			win->size(area_attribute(node));
 			win->title(string_attribute(node, "title", Window::Title("untitled")));
+			win->has_alpha(node.has_attribute("has_alpha")
+			            && node.attribute("has_alpha").has_value("yes"));
 		}
 	} catch (...) { }
 }
@@ -400,10 +416,11 @@ void Floating_window_layouter::Main::generate_window_layout_model()
 	{
 		for (Window *w = windows.first(); w; w = w->next()) {
 
+			bool const is_hovered = w->has_id(hovered_window_id);
 			bool const is_focused = w->has_id(focused_window_id);
 
 			Window::Element const highlight =
-				is_focused ? hovered_element : Window::Element::UNDEFINED;
+				is_hovered ? hovered_element : Window::Element::UNDEFINED;
 
 			w->serialize(xml, is_focused, highlight);
 		}
@@ -476,6 +493,8 @@ void Floating_window_layouter::Main::initiate_window_drag(Window &window)
 {
 	window.initiate_drag_operation(hovered_element);
 
+	drag_init_done = true;
+
 	/* bring focused window to front */
 	if (&window != windows.first()) {
 		windows.remove(&window);
@@ -526,9 +545,10 @@ void Floating_window_layouter::Main::handle_hover_update(unsigned)
 		 * when the model is updated and we are still in dragged state, we can
 		 * finally initiate the window-drag operation for the now-known window.
 		 */
-		if (id && drag_state && dragged_window_id == 0)
+		if (id && !drag_init_done && dragged_window_id == 0)
 		{
 			dragged_window_id = id;
+			hovered_window_id = id;
 			focused_window_id = id;
 
 			Window *window = lookup_window_by_id(id);
@@ -539,18 +559,26 @@ void Floating_window_layouter::Main::handle_hover_update(unsigned)
 			}
 		}
 
-		if (!drag_state && (id != focused_window_id || hovered != hovered_element)) {
+		if (!drag_state && (id != hovered_window_id || hovered != hovered_element)) {
 
-			focused_window_id = id;
+			hovered_window_id = id;
 			hovered_element   = hovered;
+
+			/* XXX read from config */
+			bool const focus_follows_pointer = true;
+			if (id && focus_follows_pointer) {
+				focused_window_id = id;
+				generate_focus_model();
+			}
+
 			generate_window_layout_model();
-			generate_focus_model();
 		}
 	} catch (...) {
 
 		/* reset focused window if pointer does not hover over any window */
 		if (!drag_state) {
 			hovered_element = Window::Element::UNDEFINED;
+			hovered_window_id = 0;
 			generate_window_layout_model();
 			generate_focus_model();
 		}
@@ -563,7 +591,7 @@ void Floating_window_layouter::Main::handle_input(unsigned)
 	bool need_regenerate_window_layout_model  = false;
 	bool need_regenerate_resize_request_model = false;
 
-	Window *focused_window = lookup_window_by_id(focused_window_id);
+	Window *hovered_window = lookup_window_by_id(hovered_window_id);
 
 	while (input.is_pending()) {
 
@@ -587,19 +615,25 @@ void Floating_window_layouter::Main::handle_input(unsigned)
 			 && e.keycode() == Input::BTN_LEFT) {
 
 				drag_state        = true;
-				dragged_window_id = focused_window_id;
+				drag_init_done    = false;
+				dragged_window_id = hovered_window_id;
 				pointer_clicked   = pointer_curr;
 				pointer_last      = pointer_clicked;
 
 				/*
-				 * If the focused window is known at the time of the press
+				 * If the hovered window is known at the time of the press
 				 * event, we can initiate the drag operation immediately.
 				 * Otherwise, we the initiation is deferred to the next
 				 * update of the hover model.
 				 */
-				if (focused_window) {
-					initiate_window_drag(*focused_window);
+				if (hovered_window) {
+					initiate_window_drag(*hovered_window);
 					need_regenerate_window_layout_model = true;
+
+					if (focused_window_id != hovered_window_id) {
+						focused_window_id  = hovered_window_id;
+						generate_focus_model();
+					}
 				}
 			}
 

@@ -42,6 +42,8 @@ Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 
 void Rpc_entrypoint::entry()
 {
+	using Pool = Object_pool<Rpc_object_base>;
+
 	Ipc_server srv(&_snd_buf, &_rcv_buf);
 	_ipc_server = &srv;
 	_cap = srv;
@@ -65,24 +67,13 @@ void Rpc_entrypoint::entry()
 		/* set default return value */
 		srv.ret(Ipc_client::ERR_INVALID_OBJECT);
 
-		/* atomically lookup and lock referenced object */
-		Object_pool<Rpc_object_base>::Guard curr_obj(lookup_and_lock(srv.badge()));
-		if (!curr_obj)
-			continue;
-
+		Pool::apply(srv.badge(), [&] (Rpc_object_base *obj)
 		{
-			Lock::Guard lock_guard(_curr_obj_lock);
-			_curr_obj = curr_obj;
-		}
-
-		/* dispatch request */
-		try { srv.ret(_curr_obj->dispatch(opcode, srv, srv)); }
-		catch (Blocking_canceled) { }
-
-		{
-			Lock::Guard lock_guard(_curr_obj_lock);
-			_curr_obj = 0;
-		}
+			if (!obj) { return;}
+			try {
+				srv.ret(obj->dispatch(opcode, srv, srv));
+			} catch(Blocking_canceled&) { }
+		});
 	}
 
 	/* answer exit call, thereby wake up '~Rpc_entrypoint' */

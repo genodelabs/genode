@@ -26,23 +26,24 @@ using namespace Genode;
 
 int Pd_session_component::bind_thread(Thread_capability thread)
 {
-	Object_pool<Cpu_thread_component>::Guard cpu_thread(_thread_ep->lookup_and_lock(thread));
-	if (!cpu_thread) return -1;
+	return _thread_ep->apply(thread, [&] (Cpu_thread_component *cpu_thread) {
+		if (!cpu_thread) return -1;
 
-	if (cpu_thread->bound()) {
-		PWRN("rebinding of threads not supported");
-		return -2;
-	}
+		if (cpu_thread->bound()) {
+			PWRN("rebinding of threads not supported");
+			return -2;
+		}
 
-	Platform_thread *p_thread = cpu_thread->platform_thread();
+		Platform_thread *p_thread = cpu_thread->platform_thread();
 
-	int res = _pd.bind_thread(p_thread);
+		int res = _pd.bind_thread(p_thread);
 
-	if (res)
-		return res;
+		if (res)
+			return res;
 
-	cpu_thread->bound(true);
-	return 0;
+		cpu_thread->bound(true);
+		return 0;
+	});
 }
 
 

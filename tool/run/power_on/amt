@@ -1,7 +1,7 @@
 ##
 # Reset the target machine via Intel AMT
 #
-# \param --power-on-amt-host       IP address of target machine
+# \param --power-on-amt-host       network address of target machine
 # \param --power-on-amt-password   AMT password for target machine
 #
 

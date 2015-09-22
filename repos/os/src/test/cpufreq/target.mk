@@ -1,4 +1,4 @@
 TARGET   = test-cpufreq
-REQUIRES = platform_arndale
+REQUIRES = arndale
 SRC_CC   = main.cc
 LIBS     = base

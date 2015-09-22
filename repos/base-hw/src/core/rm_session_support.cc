@@ -12,10 +12,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* Genode includes */
-#include <base/pager.h>
-
 /* core includes */
+#include <pager.h>
 #include <rm_session_component.h>
 #include <platform.h>
 #include <platform_pd.h>
@@ -38,11 +36,11 @@ void Rm_client::unmap(addr_t, addr_t virt_base, size_t size)
 }
 
 
-/***************************
- ** Pager_activation_base **
- ***************************/
+/**********************
+ ** Pager_entrypoint **
+ **********************/
 
-int Pager_activation_base::apply_mapping()
+int Pager_entrypoint::apply_mapping()
 {
 	Page_flags const flags =
 	Page_flags::apply_mapping(_mapping.writable,
@@ -56,56 +54,48 @@ int Pager_activation_base::apply_mapping()
 }
 
 
-void Pager_activation_base::entry()
+void Pager_entrypoint::entry()
 {
-	/* get ready to receive faults */
-	_cap = Thread_base::myself()->tid().cap;
-	_cap_valid.unlock();
 	while (1)
 	{
 		/* receive fault */
-		Signal s = Signal_receiver::wait_for_signal();
-		Pager_object * po = static_cast<Pager_object *>(s.context());
+		if (Kernel::await_signal(_cap.dst())) continue;
+
+		Untyped_capability cap =
+			(*(Pager_object**)Thread_base::myself()->utcb()->base())->cap();
 
 		/*
 		 * Synchronize access and ensure that the object is still managed
 		 *
 		 * FIXME: The implicit lookup of the oject isn't needed.
 		 */
-		unsigned const pon = po->cap().local_name();
-		Object_pool<Pager_object>::Guard pog(_ep->lookup_and_lock(pon));
-		if (!pog) continue;
+		auto lambda = [&] (Pager_object *po) {
+			if (!po) return;
 
-		/* let pager object go to fault state */
-		pog->fault_occured(s);
+			/* fetch fault data */
+			Platform_thread * const pt = (Platform_thread *)po->badge();
+			if (!pt) {
+				PWRN("failed to get platform thread of faulter");
+				return;
+			}
 
-		/* fetch fault data */
-		Platform_thread * const pt = (Platform_thread *)pog->badge();
-		if (!pt) {
-			PWRN("failed to get platform thread of faulter");
-			continue;
-		}
-		typedef Kernel::Thread_reg_id Reg_id;
-		static addr_t const read_regs[] = {
-			Reg_id::FAULT_TLB, Reg_id::IP, Reg_id::FAULT_ADDR,
-			Reg_id::FAULT_WRITES, Reg_id::FAULT_SIGNAL };
-		enum { READS = sizeof(read_regs)/sizeof(read_regs[0]) };
-		memcpy((void*)Thread_base::myself()->utcb()->base(),
-		       read_regs, sizeof(read_regs));
-		addr_t * const values = (addr_t *)&_fault;
-		if (Kernel::access_thread_regs(pt->kernel_object(), READS, 0, values)) {
-			PWRN("failed to read fault data");
-			continue;
-		}
-		/* try to resolve fault directly via local region managers */
-		if (pog->pager(*this)) { continue; }
+			_fault.pd     = pt->kernel_object()->fault_pd();
+			_fault.ip     = pt->kernel_object()->ip;
+			_fault.addr   = pt->kernel_object()->fault_addr();
+			_fault.writes = pt->kernel_object()->fault_writes();
+			_fault.signal = pt->kernel_object()->fault_signal();
 
-		/* apply mapping that was determined by the local region managers */
-		if (apply_mapping()) {
-			PWRN("failed to apply mapping");
-			continue;
-		}
-		/* let pager object go back to no-fault state */
-		pog->fault_resolved();
+			/* try to resolve fault directly via local region managers */
+			if (po->pager(*this)) return;
+
+			/* apply mapping that was determined by the local region managers */
+			if (apply_mapping()) {
+				PWRN("failed to apply mapping");
+				return;
+			}
+			/* let pager object go back to no-fault state */
+			po->wake_up();
+		};
+		apply(cap, lambda);
 	}
 }

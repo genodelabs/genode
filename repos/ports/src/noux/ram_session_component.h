@@ -153,22 +153,26 @@ namespace Noux {
 
 			void free(Ram_dataspace_capability ds_cap)
 			{
-				Ram_dataspace_info *ds_info =
-					dynamic_cast<Ram_dataspace_info *>(_registry.lookup_info(ds_cap));
+				Ram_dataspace_info *ds_info;
 
-				if (!ds_info) {
-					PERR("RAM free: dataspace lookup failed");
-					return;
-				}
+				auto lambda = [&] (Ram_dataspace_info *rdi) {
+					ds_info = rdi;
 
-				_registry.remove(ds_info);
+					if (!ds_info) {
+						PERR("RAM free: dataspace lookup failed");
+						return;
+					}
 
-				ds_info->dissolve_users();
+					_registry.remove(ds_info);
 
-				_list.remove(ds_info);
-				_used_quota -= ds_info->size();
+					ds_info->dissolve_users();
 
-				env()->ram_session()->free(ds_cap);
+					_list.remove(ds_info);
+					_used_quota -= ds_info->size();
+
+					env()->ram_session()->free(ds_cap);
+				};
+				_registry.apply(ds_cap, lambda);
 				destroy(env()->heap(), ds_info);
 			}
 

@@ -21,7 +21,7 @@
       <ExtraDataItem name="GUI/LastNormalWindowPosition" value="513,100,1024,790"/>
     </ExtraData>
     <Hardware version="2">
-      <CPU count="1" hotplug="false">
+      <CPU count="2" hotplug="false">
         <HardwareVirtEx enabled="true"/>
         <HardwareVirtExNestedPaging enabled="true"/>
         <HardwareVirtExVPID enabled="true"/>
@@ -46,7 +46,7 @@
       <RemoteDisplay enabled="false" authType="Null"/>
       <BIOS>
         <ACPI enabled="true"/>
-        <IOAPIC enabled="false"/>
+        <IOAPIC enabled="true"/>
         <Logo fadeIn="true" fadeOut="true" displayTime="0"/>
         <BootMenu mode="MessageAndMenu"/>
         <TimeOffset value="0"/>

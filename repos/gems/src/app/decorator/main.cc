@@ -83,6 +83,20 @@ struct Decorator::Main : Window_factory_base
 	Animator animator;
 
 	/**
+	 * Process the update every 'frame_period' nitpicker sync signals. The
+	 * 'frame_cnt' holds the counter of the nitpicker sync signals.
+	 *
+	 * A lower 'frame_period' value makes the decorations more responsive
+	 * but it also puts more load on the system.
+	 *
+	 * If the nitpicker sync signal fires every 10 milliseconds, a
+	 * 'frame_period' of 2 results in an update rate of 1000/20 = 50 frames per
+	 * second.
+	 */
+	unsigned frame_cnt = 0;
+	unsigned frame_period = 2;
+
+	/**
 	 * Install handler for responding to nitpicker sync events
 	 */
 	void handle_nitpicker_sync(unsigned);
@@ -130,57 +144,6 @@ struct Decorator::Main : Window_factory_base
 };
 
 
-void Decorator::Main::handle_window_layout_update(unsigned)
-{
-	window_layout.update();
-
-	window_layout_update_needed = true;
-}
-
-
-void Decorator::Main::handle_nitpicker_sync(unsigned)
-{
-	bool model_updated = false;
-
-	if (window_layout_update_needed && window_layout.is_valid()) {
-
-		try {
-			Xml_node xml(window_layout.local_addr<char>(),
-			             window_layout.size());
-			window_stack.update_model(xml);
-
-			model_updated = true;
-
-		} catch (Xml_node::Invalid_syntax) {
-
-			/*
-			 * An error occured with processing the XML model. Flush the
-			 * internal representation.
-			 */
-			window_stack.flush();
-		}
-
-		window_layout_update_needed = false;
-	}
-
-	bool const windows_animated = window_stack.schedule_animated_windows();
-
-	animator.animate();
-
-	if (!model_updated && !windows_animated)
-		return;
-
-	Dirty_rect dirty = window_stack.draw(canvas);
-
-	window_stack.update_nitpicker_views();
-
-	nitpicker.execute();
-
-	dirty.flush([&] (Rect const &r) {
-		nitpicker.framebuffer()->refresh(r.x1(), r.y1(), r.w(), r.h()); });
-}
-
-
 static Decorator::Window_base::Hover
 find_hover(Genode::Xml_node pointer_node, Decorator::Window_stack &window_stack)
 {
@@ -192,22 +155,20 @@ find_hover(Genode::Xml_node pointer_node, Decorator::Window_stack &window_stack)
 }
 
 
-void Decorator::Main::handle_pointer_update(unsigned)
+static void update_hover_report(Genode::Xml_node pointer_node,
+                                Decorator::Window_stack &window_stack,
+                                Decorator::Window_base::Hover &hover,
+                                Genode::Reporter &hover_reporter)
 {
-	pointer.update();
-
-	if (!pointer.is_valid())
-		return;
-
-	Xml_node const pointer_node(pointer.local_addr<char>());
-
-	Window_base::Hover const new_hover = find_hover(pointer_node, window_stack);
+	Decorator::Window_base::Hover const new_hover =
+		find_hover(pointer_node, window_stack);
 
 	/* produce report only if hover state changed */
 	if (new_hover != hover) {
+
 		hover = new_hover;
 
-		Reporter::Xml_generator xml(hover_reporter, [&] ()
+		Genode::Reporter::Xml_generator xml(hover_reporter, [&] ()
 		{
 			if (hover.window_id > 0) {
 
@@ -224,6 +185,86 @@ void Decorator::Main::handle_pointer_update(unsigned)
 			}
 		});
 	}
+}
+
+
+void Decorator::Main::handle_window_layout_update(unsigned)
+{
+	window_layout.update();
+
+	window_layout_update_needed = true;
+}
+
+
+void Decorator::Main::handle_nitpicker_sync(unsigned)
+{
+	if (frame_cnt++ < frame_period)
+		return;
+
+	frame_cnt = 0;
+
+	bool model_updated = false;
+
+	if (window_layout_update_needed && window_layout.is_valid()) {
+
+		try {
+			Xml_node xml(window_layout.local_addr<char>(),
+			             window_layout.size());
+			window_stack.update_model(xml);
+
+			model_updated = true;
+
+			/*
+			 * A decorator element might have appeared or disappeared under
+			 * the pointer.
+			 */
+			if (pointer.is_valid())
+				update_hover_report(Xml_node(pointer.local_addr<char>()),
+				                    window_stack, hover, hover_reporter);
+
+		} catch (Xml_node::Invalid_syntax) {
+
+			/*
+			 * An error occured with processing the XML model. Flush the
+			 * internal representation.
+			 */
+			window_stack.flush();
+		}
+
+		window_layout_update_needed = false;
+	}
+
+	bool const windows_animated = window_stack.schedule_animated_windows();
+
+	/*
+	 * To make the perceived animation speed independent from the setting of
+	 * 'frame_period', we update the animation as often as the nitpicker
+	 * sync signal occurs.
+	 */
+	for (unsigned i = 0; i < frame_period; i++)
+		animator.animate();
+
+	if (!model_updated && !windows_animated)
+		return;
+
+	Dirty_rect dirty = window_stack.draw(canvas);
+
+	window_stack.update_nitpicker_views();
+
+	nitpicker.execute();
+
+	dirty.flush([&] (Rect const &r) {
+		nitpicker.framebuffer()->refresh(r.x1(), r.y1(), r.w(), r.h()); });
+}
+
+
+void Decorator::Main::handle_pointer_update(unsigned)
+{
+	pointer.update();
+
+	if (pointer.is_valid())
+		update_hover_report(Xml_node(pointer.local_addr<char>()),
+		                    window_stack, hover, hover_reporter);
 }
 
 

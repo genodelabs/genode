@@ -24,17 +24,31 @@
  ** private Audio namespace **
  *****************************/
 
-namespace Audio {
+namespace Audio_out {
 
 	enum Channel_number { LEFT, RIGHT, MAX_CHANNELS, INVALID = MAX_CHANNELS };
+}
+
+
+namespace Audio_in {
+
+	enum Channel_number { LEFT, MAX_CHANNELS, INVALID = MAX_CHANNELS };
+}
+
+
+namespace Audio {
 
 	void init_driver(Server::Entrypoint &ep);
 
 	bool driver_active();
 
-	void dma_notifier(Genode::Signal_context_capability cap);
+	void play_sigh(Genode::Signal_context_capability cap);
+
+	void record_sigh(Genode::Signal_context_capability cap);
 
 	int play(short *data, Genode::size_t size);
+
+	int record(short *data, Genode::size_t size);
 }
 
 #endif /* _AUDIO__AUDIO_H_ */

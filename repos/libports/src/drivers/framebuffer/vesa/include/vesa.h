@@ -69,7 +69,7 @@ namespace Vesa {
 	};
 
 	enum {
-		MODE_COUNT     = sizeof(mode_table),
+		MODE_COUNT     = sizeof(mode_table)/sizeof(*mode_table),
 		VESA_CTRL_OFFS = 0x100,
 		VESA_MODE_OFFS = 0x800,
 	};

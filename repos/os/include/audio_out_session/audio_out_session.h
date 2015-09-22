@@ -37,8 +37,9 @@
 #define _INCLUDE__AUDIO_OUT_SESSION__AUDIO_OUT_SESSION_H_
 
 #include <base/allocator.h>
-#include <dataspace/capability.h>
 #include <base/rpc.h>
+#include <base/signal.h>
+#include <dataspace/capability.h>
 #include <session/session.h>
 
 
@@ -49,7 +50,7 @@ namespace Audio_out {
 
 	enum {
 		QUEUE_SIZE  = 16,            /* buffer queue size */
-		PERIOD      = 2048,          /* samples per period */
+		PERIOD      = 512,           /* samples per period (~11.6ms) */
 		SAMPLE_RATE = 44100,
 		SAMPLE_SIZE = sizeof(float),
 	};
@@ -241,6 +242,16 @@ class Audio_out::Stream
 		 * This means that allocation will start at current queue position.
 		 */
 		void reset() { _tail = _pos; }
+
+
+		/**
+		 * Invalidate all packets in stream queue
+		 */
+		void invalidate_all()
+		{
+			for (int i = 0; i < QUEUE_SIZE; i++)
+				_buf[i]._valid = false;
+		}
 
 
 		/**********************************************

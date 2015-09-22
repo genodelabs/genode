@@ -92,6 +92,11 @@ class Genode::Alarm_scheduler
 		 */
 		Alarm *_get_pending_alarm();
 
+		/**
+		 * Assign timeout values to alarm object and add it to the schedule
+		 */
+		void _setup_alarm(Alarm &alarm, Alarm::Time period, Alarm::Time deadline);
+
 	public:
 
 		Alarm_scheduler() : _head(0), _now(0) { }

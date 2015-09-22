@@ -139,11 +139,20 @@ proc run_boot_dir {binaries} {
 		exit -1
 	}
 	clean_boot_modules
+	exec mv [run_dir]/genode/config [run_dir]/config
 	exec rm -rf "[run_dir]/genode"
 
 	# offer ELF image
 	set elf_img "[run_dir]/image.elf"
-	if {[have_spec "x86_64"]} {
+
+	# Use raw binary object for base-hw on Muen
+	if {[have_spec "muen"]} {
+		set raw_img "[run_dir]/image.raw"
+		exec [cross_dev_prefix]objcopy -O binary bin/$core_bin $raw_img
+		exit 0
+	}
+
+	if {[have_spec "x86_64"] && ![have_spec "muen"]} {
 		# as startup is done in 32 bit mode, GRUB expects a 32 bit image
 		exec [cross_dev_prefix]objcopy -O elf32-i386 bin/$core_bin $elf_img
 	}
@@ -165,19 +174,37 @@ proc run_boot_dir {binaries} {
 		puts $fh "timeout 0"
 		puts $fh "default 0"
 		puts $fh "\ntitle Genode on base-hw"
-		puts $fh " kernel /image.elf"
+		puts $fh " kernel /boot/bender"
+		puts $fh " module /image.elf"
 		close $fh
 	}
 
 	run_image $elf_img
 
 	# set symbolic link to image.elf file in TFTP directory for PXE boot
-	if {[have_include "load/tftp"]} {
+	if {[have_spec arm] && [have_include "load/tftp"]} {
 		exec ln -sf [pwd]/$elf_img [load_tftp_base_dir][load_tftp_offset_dir]
 
 		if {[have_include "image/uboot"]} {
 			exec ln -sf [pwd]/[run_dir]/uImage [load_tftp_base_dir][load_tftp_offset_dir]
 		}
+	}
+
+	if {[have_spec x86] && [have_include "load/tftp"]} {
+		#
+		# Install PXE bootloader pulsar
+		#
+		install_pxe_bootloader_to_run_dir
+
+		#
+		# Generate pulsar config file
+		#
+		set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
+		puts $fh " exec /boot/bender"
+		puts $fh " load /image.elf"
+		close $fh
+
+		generate_tftp_config
 	}
 
 	# retrieve stand-alone core

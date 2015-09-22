@@ -26,7 +26,7 @@ namespace Init { bool config_verbose = false; }
 /**
  * Read priority-levels declaration from config
  */
-inline long read_prio_levels_log2()
+inline long read_prio_levels()
 {
 	using namespace Genode;
 
@@ -35,11 +35,11 @@ inline long read_prio_levels_log2()
 		config()->xml_node().attribute("prio_levels").value(&prio_levels); }
 	catch (...) { }
 
-	if (prio_levels && prio_levels != (1 << log2(prio_levels))) {
+	if (prio_levels && (prio_levels != (1 << log2(prio_levels)))) {
 		printf("Warning: Priolevels is not power of two, priorities are disabled\n");
-		prio_levels = 0;
+		return 0;
 	}
-	return prio_levels ? log2(prio_levels) : 0;
+	return prio_levels;
 }
 
 
@@ -294,8 +294,11 @@ int main(int, char **)
 	 * Signal receiver for config changes
 	 */
 	Signal_receiver sig_rec;
-	Signal_context  sig_ctx;
-	config()->sigh(sig_rec.manage(&sig_ctx));
+	Signal_context  sig_ctx_config;
+	Signal_context  sig_ctx_res_avail;
+	config()->sigh(sig_rec.manage(&sig_ctx_config));
+	/* prevent init to block for resource upgrades (never satisfied by core) */
+	env()->parent()->resource_avail_sigh(sig_rec.manage(&sig_ctx_res_avail));
 
 	for (;;) {
 
@@ -334,7 +337,7 @@ int main(int, char **)
 				try {
 					children.insert(new (env()->heap())
 					                Init::Child(start_node, default_route_node,
-					                            &children, read_prio_levels_log2(),
+					                            &children, read_prio_levels(),
 					                            read_affinity_space(),
 					                            &parent_services, &child_services, &cap));
 				}
@@ -364,7 +367,13 @@ int main(int, char **)
 		 */
 
 		/* wait for config change */
-		sig_rec.wait_for_signal();
+		while (true) {
+			Signal signal = sig_rec.wait_for_signal();
+			if (signal.context() == &sig_ctx_config)
+				break;
+
+			PWRN("unexpected signal received - drop it");
+		}
 
 		/* kill all currently running children */
 		while (children.any()) {

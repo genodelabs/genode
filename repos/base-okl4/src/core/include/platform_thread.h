@@ -15,11 +15,11 @@
 #define _CORE__INCLUDE__PLATFORM_THREAD_H_
 
 /* Genode includes */
-#include <base/pager.h>
 #include <base/thread_state.h>
 #include <base/native_types.h>
 
 /* core includes */
+#include <pager.h>
 #include <platform_pd.h>
 #include <address_space.h>
 
@@ -145,12 +145,17 @@ namespace Genode {
 			/**
 			 * Request the affinity of this thread
 			 */
-			Affinity::Location affinity() { return Affinity::Location(); }
+			Affinity::Location affinity() const { return Affinity::Location(); }
 
 			/**
 			 * Set CPU quota of the thread
 			 */
 			void quota(size_t) { /* not supported */ }
+
+			/**
+			 * Return execution time consumed by the thread
+			 */
+			unsigned long long execution_time() const { return 0; }
 
 
 			/*****************************

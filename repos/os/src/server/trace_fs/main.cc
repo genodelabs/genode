@@ -25,6 +25,7 @@
 #include <util/list.h>
 #include <util/string.h>
 #include <util/xml_node.h>
+#include <file_system/util.h>
 
 /* local includes */
 #include <buffer.h>
@@ -47,9 +48,9 @@ static inline bool valid_filename(char const *str)
 	if (str[0] == 0) return false;
 
 	/* must not contain '/' or '\' or ':' */
-	if (string_contains(str, '/') ||
-		string_contains(str, '\\') ||
-		string_contains(str, ':'))
+	if (File_system::string_contains(str, '/') ||
+		File_system::string_contains(str, '\\') ||
+		File_system::string_contains(str, ':'))
 		return false;
 
 	return true;

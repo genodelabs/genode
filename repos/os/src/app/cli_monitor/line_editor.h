@@ -35,18 +35,14 @@ using Genode::off_t;
 
 struct Completable
 {
-	template <size_t MAX_LEN> struct String
-	{
-		char buf[MAX_LEN];
-		String(char const *string) { strncpy(buf, string, sizeof(buf)); }
-	};
+	typedef Genode::String<64>  Name;
+	typedef Genode::String<160> Short_help;
 
-	enum { NAME_MAX_LEN = 64, SHORT_HELP_MAX_LEN = 160 };
-	String<NAME_MAX_LEN>       const _name;
-	String<SHORT_HELP_MAX_LEN> const _short_help;
+	Name       const _name;
+	Short_help const _short_help;
 
-	char const *name()        const { return _name.buf; }
-	char const *short_help()  const { return _short_help.buf; }
+	Name       name()        const { return _name; }
+	Short_help short_help()  const { return _short_help; }
 
 	Completable(char const *name, char const *short_help)
 	: _name(name), _short_help(short_help) { }
@@ -56,7 +52,7 @@ struct Completable
 /**
  * Representation of normal command-line argument
  */
-struct Argument : List<Argument>::Element, Completable
+struct Argument : Completable
 {
 	Argument(char const *name, char const *short_help)
 	: Completable(name, short_help) { }
@@ -103,6 +99,14 @@ struct Command : List<Command>::Element, Completable
 {
 	List<Parameter> _parameters;
 
+	/**
+	 * Functor that takes a command 'Argument' object as argument
+	 */
+	struct Argument_fn
+	{
+		virtual void operator () (Argument const &) const = 0;
+	};
+
 	Command(char const *name, char const *short_help)
 	: Completable(name, short_help) { }
 
@@ -112,16 +116,28 @@ struct Command : List<Command>::Element, Completable
 
 	List<Parameter> &parameters() { return _parameters; }
 
-	/**
-	 * To be overridden by commands that accept auto-completion of arguments
-	 */
-	virtual List<Argument> &arguments()
-	{
-		static List<Argument> empty;
-		return empty;
-	}
-
 	virtual void execute(Command_line &, Terminal::Session &terminal) = 0;
+
+	/**
+	 * Command-specific support for 'for_each_argument'
+	 */
+	virtual void _for_each_argument(Argument_fn const &fn) const { };
+
+	/**
+	 * Execute functor 'fn' for each command argument
+	 */
+	template <typename FN>
+	void for_each_argument(FN const &fn) const
+	{
+		struct _Fn : Argument_fn
+		{
+			FN const &fn;
+			void operator () (Argument const &arg) const override { fn(arg); }
+			_Fn(FN const &fn) : fn(fn) { }
+		} _fn(fn);
+
+		_for_each_argument(_fn);
+	}
 };
 
 
@@ -162,22 +178,24 @@ struct Argument_tracker
 		 * Return true if there is exactly one complete match and no additional
 		 * partial matches
 		 */
-		template <typename T>
-		static bool _one_match(char const *str, size_t str_len,
-		                       List<T> &list)
+		static bool _one_matching_argument(char const *str, size_t str_len,
+		                                   Command const &command)
 		{
 			unsigned complete_cnt = 0, partial_cnt = 0;
 
-			Token tag(str, str_len);
-			for (T *curr = list.first(); curr; curr = curr->next()) {
-				if (strcmp(tag.start(), curr->name(), tag.len()) == 0) {
+			auto argument_fn = [&] (Argument const &arg) {
+
+				if (strcmp(arg.name().string(), str, str_len) == 0) {
 					partial_cnt++;
-					if (strlen(curr->name()) == tag.len())
+
+					if (strlen(arg.name().string()) == str_len)
 						complete_cnt++;
 				}
-			}
+			};
 
-			return partial_cnt == 1 && complete_cnt == 1;;
+			command.for_each_argument(argument_fn);
+
+			return partial_cnt == 1 && complete_cnt == 1;
 		}
 
 	public:
@@ -191,8 +209,8 @@ struct Argument_tracker
 		{
 			Token tag(str, str_len);
 			for (T *curr = list.first(); curr; curr = curr->next())
-				if (strcmp(tag.start(), curr->name(), tag.len()) == 0
-				 && strlen(curr->name()) == tag.len())
+				if (strcmp(tag.start(), curr->name().string(), tag.len()) == 0
+				 && strlen(curr->name().string()) == tag.len())
 					return curr;
 
 			return 0;
@@ -238,7 +256,7 @@ struct Argument_tracker
 					}
 
 					if (!token_may_be_incomplete
-					 || _one_match(token.start(), token.len(), _command.arguments()))
+					 || _one_matching_argument(token.start(), token.len(), _command))
 						_state = EXPECT_SPACE_BEFORE_ARG;
 				}
 				break;
@@ -469,7 +487,7 @@ class Line_editor
 		{
 			Token cmd(_buf, _cursor_pos);
 			for (Command *curr = _commands.first(); curr; curr = curr->next())
-				if (strcmp(cmd.start(), curr->name(), cmd.len()) == 0
+				if (strcmp(cmd.start(), curr->name().string(), cmd.len()) == 0
 				 && _cursor_pos > cmd.len())
 					return curr;
 			return 0;
@@ -482,12 +500,28 @@ class Line_editor
 
 			unsigned num_partial_matches = 0;
 			for (T *curr = list.first(); curr; curr = curr->next()) {
-				if (strcmp(token.start(), curr->name(), token.len()) != 0)
+				if (strcmp(token.start(), curr->name().string(), token.len()) != 0)
 					continue;
 
 				num_partial_matches++;
 			}
 			return num_partial_matches;
+		}
+
+		unsigned _num_matching_arguments(char const *str, size_t str_len,
+		                                 Command const &command) const
+		{
+			unsigned num_matches = 0;
+
+			auto argument_fn = [&] (Argument const &arg) {
+
+				if (strcmp(arg.name().string(), str, str_len) == 0)
+					num_matches++;
+			};
+
+			command.for_each_argument(argument_fn);
+
+			return num_matches;
 		}
 
 		/**
@@ -501,13 +535,32 @@ class Line_editor
 
 			size_t max_name_len = 0;
 			for (T *curr = list.first(); curr; curr = curr->next()) {
-				if (strcmp(token.start(), curr->name(), token.len()) != 0)
+				if (strcmp(token.start(), curr->name().string(), token.len()) != 0)
 					continue;
 
-				size_t const name_len = strlen(curr->name())
+				size_t const name_len = strlen(curr->name().string())
 				                      + strlen(curr->name_suffix());
 				max_name_len = max(max_name_len, name_len);
 			}
+			return max_name_len;
+		}
+
+		unsigned _width_of_matching_arguments(char const *str, size_t str_len,
+		                                      Command const &command) const
+		{
+			size_t max_name_len = 0;
+
+			auto argument_fn = [&] (Argument const &arg) {
+
+				if (strcmp(arg.name().string(), str, str_len) == 0) {
+					size_t const name_len = strlen(arg.name().string());
+					if (name_len > max_name_len)
+						max_name_len = name_len;
+				}
+			};
+
+			command.for_each_argument(argument_fn);
+
 			return max_name_len;
 		}
 
@@ -518,10 +571,26 @@ class Line_editor
 			Token token(str, str_len);
 
 			for (T *curr = list.first(); curr; curr = curr->next())
-				if (strcmp(token.start(), curr->name(), token.len()) == 0)
-					return curr->name();
+				if (strcmp(token.start(), curr->name().string(), token.len()) == 0)
+					return curr->name().string();
 
 			return 0;
+		}
+
+		Argument::Name _any_matching_argument(char const *str, size_t str_len,
+		                                      Command const &command) const
+		{
+			Argument::Name name;
+
+			auto argument_fn = [&] (Argument const &arg) {
+
+				if (strcmp(arg.name().string(), str, str_len) == 0)
+					name = arg.name();
+			};
+
+			command.for_each_argument(argument_fn);
+
+			return name;
 		}
 
 		template <typename T>
@@ -531,21 +600,45 @@ class Line_editor
 			Token token(str, str_len);
 
 			for (T *curr = list.first(); curr; curr = curr->next()) {
-				if (strcmp(token.start(), curr->name(), token.len()) != 0)
+				if (strcmp(token.start(), curr->name().string(), token.len()) != 0)
 					continue;
 
 				_write_newline();
 				_write_spaces(2);
-				_write(curr->name());
+				_write(curr->name().string());
 				_write_spaces(1);
 				_write(curr->name_suffix());
 
 				/* pad short help with whitespaces */
-				size_t const name_len = strlen(curr->name())
+				size_t const name_len = strlen(curr->name().string())
 				                      + strlen(curr->name_suffix());
 				_write_spaces(pad + 3 - name_len);
-				_write(curr->short_help());
+				_write(curr->short_help().string());
 			}
+		}
+
+		void _list_matching_arguments(char const *str, size_t str_len,
+		                              unsigned pad, Command const &command)
+		{
+			auto argument_fn = [&] (Argument const &arg) {
+
+				if (strcmp(arg.name().string(), str, str_len) == 0) {
+
+					_write_newline();
+					_write_spaces(2);
+					_write(arg.name().string());
+					_write_spaces(1);
+					_write(arg.name_suffix());
+
+					/* pad short help with whitespaces */
+					size_t const name_len = strlen(arg.name().string())
+					                      + strlen(arg.name_suffix());
+					_write_spaces(pad + 3 - name_len);
+					_write(arg.short_help().string());
+				}
+			};
+
+			command.for_each_argument(argument_fn);
 		}
 
 		template <typename T>
@@ -556,7 +649,7 @@ class Line_editor
 			/* look up completable token */
 			T *partial_match = 0;
 			for (T *curr = list.first(); curr; curr = curr->next()) {
-				if (strcmp(token.start(), curr->name(), token.len()) == 0) {
+				if (strcmp(token.start(), curr->name().string(), token.len()) == 0) {
 					partial_match = curr;
 					break;
 				}
@@ -565,8 +658,27 @@ class Line_editor
 			if (!partial_match)
 				return;
 
-			for (unsigned i = token.len(); i < strlen(partial_match->name()); i++)
-				_insert_character(partial_match->name()[i]);
+			for (unsigned i = token.len(); i < strlen(partial_match->name().string()); i++)
+				_insert_character(partial_match->name().string()[i]);
+
+			_insert_character(' ');
+		}
+
+		void _do_argument_completion(char const *str, size_t str_len,
+		                             Command const &command)
+		{
+			Argument::Name partial_match;
+
+			auto argument_fn = [&] (Argument const &arg) {
+
+				if (strcmp(arg.name().string(), str, str_len) == 0)
+					partial_match = arg.name();
+			};
+
+			command.for_each_argument(argument_fn);
+
+			for (unsigned i = str_len; i < strlen(partial_match.string()); i++)
+				_insert_character(partial_match.string()[i]);
 
 			_insert_character(' ');
 		}
@@ -577,7 +689,7 @@ class Line_editor
 				_num_partial_matches(str, str_len, command.parameters());
 
 			unsigned const matching_arguments =
-				_num_partial_matches(str, str_len, command.arguments());
+				_num_matching_arguments(str, str_len, command);
 
 			/* matches are ambiguous */
 			if (matching_arguments + matching_parameters > 1) {
@@ -586,13 +698,17 @@ class Line_editor
 				 * Try to complete additional characters that are common among
 				 * all matches.
 				 */
-				char buf[Completable::NAME_MAX_LEN];
+				char buf[Completable::Name::size()];
 				strncpy(buf, str, Genode::min(sizeof(buf), str_len + 1));
 
 				/* pick any representative as a template to take characters from */
 				char const *name = _any_partial_match_name(str, str_len, command.parameters());
-				if (!name)
-					name = _any_partial_match_name(str, str_len, command.arguments());
+				Argument::Name arg_name;
+				if (!name) {
+					arg_name = _any_matching_argument(str, str_len, command);
+					if (strlen(arg_name.string()))
+						name = arg_name.string();
+				}
 
 				size_t i = str_len;
 				for (; (i < sizeof(buf) - 1) && (i < strlen(name)); i++) {
@@ -605,7 +721,7 @@ class Line_editor
 						break;
 
 					if (matching_arguments !=
-					    _num_partial_matches(buf, i + 1, command.arguments()))
+					    _num_matching_arguments(buf, i + 1, command))
 						break;
 
 					_insert_character(buf[i]);
@@ -624,10 +740,10 @@ class Line_editor
 				 */
 				size_t const pad =
 					max(_width_of_partial_matches(str, str_len, command.parameters()),
-					    _width_of_partial_matches(str, str_len, command.arguments()));
+					    _width_of_matching_arguments(str, str_len, command));
 
 				_list_partial_matches(str, str_len, pad, command.parameters());
-				_list_partial_matches(str, str_len, pad, command.arguments());
+				_list_matching_arguments(str, str_len, pad, command);
 
 				_write_newline();
 				_fresh_prompt();
@@ -639,7 +755,7 @@ class Line_editor
 				_do_completion(str, str_len, command.parameters());
 
 			if (matching_arguments == 1)
-				_do_completion(str, str_len, command.arguments());
+				_do_argument_completion(str, str_len, command);
 		}
 
 		void _perform_completion()

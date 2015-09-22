@@ -359,9 +359,9 @@ Platforms
 :Evaluation of MP scheduling models on different Genode base platforms:
 
   Several of Genode's supported base platforms come with multi-processor
-  support, i.e., Linux, NOVA, L4ka::Pistachio, Codezero, and Fiasco.OC. Each of
+  support, i.e., Linux, NOVA, L4ka::Pistachio, and Fiasco.OC. Each of
   these kernels follows a different approach for utilizing multiple CPUs. For
-  example, Linux and Codezero manage the association of threads with CPUs
+  example, Linux manages the association of threads with CPUs
   largely transparent for user-level programs. In contrast, NOVA makes the use
   of multiple CPUs explicit and constraints the modes of IPC interaction of
   threads running on different CPUs. Furthermore, kernels differ with regard to

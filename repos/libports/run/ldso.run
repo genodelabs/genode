@@ -1,7 +1,3 @@
-
-if {[have_spec always_hybrid]} {
-	puts "Run script does not support hybrid Linux/Genode."; exit 0 }
-
 build "core init test/ldso test/ldso/dl"
 
 create_boot_directory

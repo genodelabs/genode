@@ -64,7 +64,8 @@ inline Genode::addr_t boot_cpu()
  * from the echo EC to the calling EC.
  */
 static int map_local(Nova::Utcb *utcb, Nova::Crd src_crd, Nova::Crd dst_crd,
-                     bool kern_pd = false, bool dma_mem = false)
+                     bool kern_pd = false, bool dma_mem = false,
+                     bool write_combined = false)
 {
 	/* open receive window at current EC */
 	utcb->crd_rcv = dst_crd;
@@ -74,7 +75,8 @@ static int map_local(Nova::Utcb *utcb, Nova::Crd src_crd, Nova::Crd dst_crd,
 	utcb->msg[1] = 0;
 	utcb->msg[2] = kern_pd;
 	utcb->msg[3] = dma_mem;
-	utcb->set_msg_word(4);
+	utcb->msg[4] = write_combined;
+	utcb->set_msg_word(5);
 
 	/* establish the mapping via a portal traversal during reply phase */
 	Nova::uint8_t res = Nova::call(echo()->pt_sel());
@@ -131,7 +133,8 @@ inline int map_local(Nova::Utcb *utcb,
                      Genode::addr_t from_start, Genode::addr_t to_start,
                      Genode::size_t num_pages,
                      Nova::Rights const &permission,
-                     bool kern_pd = false, bool dma_mem = false)
+                     bool kern_pd = false, bool dma_mem = false,
+                     bool write_combined = false)
 {
 	if (verbose_local_map)
 		Genode::printf("::map_local: from %lx to %lx, %zd pages from kernel %u\n",
@@ -173,7 +176,7 @@ inline int map_local(Nova::Utcb *utcb,
 		int const res = map_local(utcb,
 		                          Mem_crd((from_curr >> 12), order - get_page_size_log2(), permission),
 		                          Mem_crd((to_curr   >> 12), order - get_page_size_log2(), permission),
-		                          kern_pd, dma_mem);
+		                          kern_pd, dma_mem, write_combined);
 		if (res) return res;
 
 		/* advance offset by current flexpage size */

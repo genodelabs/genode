@@ -19,7 +19,7 @@
 #include <base/stdint.h>
 #include <base/lock.h>
 #include <base/capability.h>
-#include <base/pager.h>
+#include <pager.h>
 #include <base/allocator_avl.h>
 #include <base/allocator_guard.h>
 #include <base/sync_allocator.h>
@@ -162,31 +162,12 @@ namespace Genode {
 	 * of threads (region-manager clients). This class represents the client's
 	 * role as member of this address space.
 	 */
-	class Rm_member : public List<Rm_client>
-	{
-		private:
-
-			Rm_session_component *_rm_session;
-
-		public:
-
-			/**
-			 * Constructor
-			 */
-			Rm_member(Rm_session_component *rm_session): _rm_session(rm_session) { }
-
-			/**
-			 * Return region-manager session that the RM client is member of
-			 */
-			Rm_session_component *member_rm_session() { return _rm_session; }
-	};
-
-
-	class Rm_client : public Pager_object, public Rm_member, public Rm_faulter,
+	class Rm_client : public Pager_object, public Rm_faulter,
 	                  public List<Rm_client>::Element
 	{
 		private:
 
+			Rm_session_component   *_rm_session;
 			Weak_ptr<Address_space> _address_space;
 
 		public:
@@ -203,8 +184,9 @@ namespace Genode {
 			          Weak_ptr<Address_space> &address_space,
 			          Affinity::Location location)
 			:
-				Pager_object(badge, location), Rm_member(session),
-				Rm_faulter(this), _address_space(address_space) { }
+				Pager_object(badge, location), Rm_faulter(this),
+				_rm_session(session), _address_space(address_space)
+			{ }
 
 			int pager(Ipc_pager &pager);
 
@@ -217,6 +199,11 @@ namespace Genode {
 			{
 				return other._address_space == _address_space;
 			}
+
+			/**
+			 * Return region-manager session that the RM client is member of
+			 */
+			Rm_session_component *member_rm_session() { return _rm_session; }
 	};
 
 
@@ -295,6 +282,43 @@ namespace Genode {
 			Rm_dataspace_component        _ds;           /* dataspace representation of region map */
 			Dataspace_capability          _ds_cap;
 
+			template <typename F>
+			auto _apply_to_dataspace(addr_t addr, F f, addr_t offset, unsigned level)
+			-> typename Trait::Functor<decltype(&F::operator())>::Return_type
+			{
+				using Functor = Trait::Functor<decltype(&F::operator())>;
+				using Return_type = typename Functor::Return_type;
+
+				Lock::Guard lock_guard(_lock);
+
+				/* skip further lookup when reaching the recursion limit */
+				if (!level) return f(this, nullptr, 0, 0);
+
+				/* lookup region and dataspace */
+				Rm_region *region        = _map.metadata((void*)addr);
+				Dataspace_component *dsc = region ? region->dataspace()
+				                                  : nullptr;
+
+				/* calculate offset in dataspace */
+				addr_t ds_offset = region ? (addr - region->base()
+				                             + region->offset()) : 0;
+
+				/* check for nested dataspace */
+				Native_capability cap = dsc ? dsc->sub_rm_session()
+				                            : Native_capability();
+				if (!cap.valid()) return f(this, region, ds_offset, offset);
+
+				/* in case of a nested dataspace perform a recursive lookup */
+				auto lambda = [&] (Rm_session_component *rsc) -> Return_type
+				{
+					return (!rsc) ? f(nullptr, nullptr, ds_offset, offset)
+					              : rsc->_apply_to_dataspace(ds_offset, f,
+					                                         offset+region->base(),
+					                                         --level);
+				};
+				return _session_ep->apply(cap, lambda);
+			}
+
 		public:
 
 			/**
@@ -312,17 +336,6 @@ namespace Genode {
 			~Rm_session_component();
 
 			class Fault_area;
-
-			/**
-			 * Reversely lookup dataspace and offset matching the specified address
-			 *
-			 * \return true  lookup succeeded
-			 */
-			bool reverse_lookup(addr_t                 dst_base,
-			                    Fault_area            *dst_fault_region,
-			                    Dataspace_component  **src_dataspace,
-			                    Fault_area            *src_fault_region,
-			                    Rm_session_component **sub_rm_session);
 
 			/**
 			 * Register fault
@@ -354,6 +367,20 @@ namespace Genode {
 			 */
 			void upgrade_ram_quota(size_t ram_quota) { _md_alloc.upgrade(ram_quota); }
 
+			/**
+			 * Apply a function to dataspace attached at a given address
+			 *
+			 * /param addr   address where the dataspace is attached
+			 * /param f      functor or lambda to apply
+			 */
+			template <typename F>
+			auto apply_to_dataspace(addr_t addr, F f)
+			-> typename Trait::Functor<decltype(&F::operator())>::Return_type
+			{
+				enum { RECURSION_LIMIT = 5 };
+
+				return _apply_to_dataspace(addr, f, 0, RECURSION_LIMIT);
+			}
 
 			/**************************************
 			 ** Region manager session interface **

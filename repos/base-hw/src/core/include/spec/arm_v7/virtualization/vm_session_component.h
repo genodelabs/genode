@@ -38,14 +38,16 @@ class Genode::Vm_session_component
 
 		using Translation_table =
 			Genode::Level_1_stage_2_translation_table;
+		using Table_allocator = Translation_table_allocator_tpl<
+			Kernel::DEFAULT_TRANSLATION_TABLE_MAX>;
 
-		Rpc_entrypoint      *_ds_ep;
-		Range_allocator     *_ram_alloc;
-		Dataspace_component  _ds;
-		Dataspace_capability _ds_cap;
-		addr_t               _ds_addr;
-		Translation_table   *_table;
-		Page_slab           *_pslab;
+		Rpc_entrypoint              *_ds_ep;
+		Range_allocator             *_ram_alloc;
+		Dataspace_component          _ds;
+		Dataspace_capability         _ds_cap;
+		addr_t                       _ds_addr;
+		Translation_table           *_table;
+		Translation_table_allocator *_tt_alloc;
 
 		static size_t _ds_size() {
 			return align_addr(sizeof(Cpu_state_modes),

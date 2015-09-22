@@ -1,5 +1,5 @@
 /*
- * \brief  Kernel backend for execution contexts in userland
+ * \brief  Kernel back-end for execution contexts in userland
  * \author Martin Stein
  * \author Stefan Kalkowski
  * \date   2013-09-15
@@ -19,6 +19,7 @@
 #include <util/construct_at.h>
 
 /* core includes */
+#include <assert.h>
 #include <kernel/kernel.h>
 #include <kernel/thread.h>
 #include <kernel/irq.h>
@@ -235,7 +236,7 @@ void Thread::_call_start_thread()
 			Genode::printf("on CPU %u/%u ", cpu->id(), NR_OF_CPUS); }
 		Genode::printf("\n");
 	}
-	thread->_init((Native_utcb *)user_arg_4(), this);
+	thread->Ipc_node::_init((Native_utcb *)user_arg_4(), this);
 	thread->_become_active();
 }
 
@@ -359,42 +360,6 @@ void Thread_event::signal_context(Signal_context * const c)
 
 Signal_context * const Thread_event::signal_context() const {
 	return _signal_context; }
-
-
-void Thread::_call_access_thread_regs()
-{
-	/* get targeted thread */
-	unsigned const reads = user_arg_2();
-	unsigned const writes = user_arg_3();
-	Thread * const t = (Thread*) user_arg_1();
-	if (!t) {
-		PWRN("unknown thread");
-		user_arg_0(reads + writes);
-		return;
-	}
-	/* execute read operations */
-	addr_t * const utcb = (addr_t *) this->utcb()->base();
-	addr_t * const read_ids = &utcb[0];
-	addr_t * values = (addr_t *)user_arg_4();
-	for (unsigned i = 0; i < reads; i++) {
-		if (t->_read_reg(read_ids[i], *values)) {
-			user_arg_0(reads + writes - i);
-			return;
-		}
-		values++;
-	}
-	/* execute write operations */
-	addr_t * const write_ids = &utcb[reads];
-	for (unsigned i = 0; i < writes; i++) {
-		if (t->_write_reg(write_ids[i], *values)) {
-			user_arg_0(writes - i);
-			return;
-		}
-		values++;
-	}
-	user_arg_0(0);
-	return;
-}
 
 
 void Thread::_call_update_data_region()
@@ -647,32 +612,6 @@ void Thread::_call_delete_cap()
 }
 
 
-int Thread::_read_reg(addr_t const id, addr_t & value) const
-{
-	addr_t Thread::* const reg = _reg(id);
-	if (reg) {
-		value = this->*reg;
-		return 0;
-	}
-	PWRN("%s -> %s: cannot read unknown thread register %p",
-	     pd_label(), label(), (void*)id);
-	return -1;
-}
-
-
-int Thread::_write_reg(addr_t const id, addr_t const value)
-{
-	addr_t Thread::* const reg = _reg(id);
-	if (reg) {
-		this->*reg = value;
-		return 0;
-	}
-	PWRN("%s -> %s: cannot write unknown thread register %p",
-	     pd_label(), label(), (void*)id);
-	return -1;
-}
-
-
 void Thread::_call()
 {
 	try {
@@ -711,7 +650,6 @@ void Thread::_call()
 	case call_id_delete_thread():          _call_delete<Thread>(); return;
 	case call_id_start_thread():           _call_start_thread(); return;
 	case call_id_resume_thread():          _call_resume_thread(); return;
-	case call_id_access_thread_regs():     _call_access_thread_regs(); return;
 	case call_id_route_thread_event():     _call_route_thread_event(); return;
 	case call_id_update_pd():              _call_update_pd(); return;
 	case call_id_new_pd():
@@ -745,12 +683,30 @@ void Thread::_call()
 }
 
 
+Thread::Thread(unsigned const priority, unsigned const quota,
+                       char const * const label)
+:
+	Cpu_job(priority, quota), _fault(this), _fault_pd(0), _fault_addr(0),
+	_fault_writes(0), _fault_signal(0), _state(AWAITS_START),
+	_signal_receiver(0), _label(label)
+{
+	_init();
+}
+
+
+Thread_event Thread::* Thread::_event(unsigned const id) const
+{
+	static Thread_event Thread::* _events[] = { &Thread::_fault };
+	return id < sizeof(_events)/sizeof(_events[0]) ? _events[id] : 0;
+}
+
+
 /*****************
  ** Core_thread **
  *****************/
 
 Core_thread::Core_thread()
-: Core_object<Thread>(Cpu_priority::max, 0, "core")
+: Core_object<Thread>(Cpu_priority::MAX, 0, "core")
 {
 	using Genode::Native_utcb;
 
@@ -762,9 +718,9 @@ Core_thread::Core_thread()
 	Genode::map_local((addr_t)utcb, (addr_t)Genode::utcb_main_thread(),
 	                  sizeof(Native_utcb) / Genode::get_page_size());
 
-	utcb->cap_add(cap_id_invalid());
-	utcb->cap_add(cap_id_invalid());
 	utcb->cap_add(core_capid());
+	utcb->cap_add(cap_id_invalid());
+	utcb->cap_add(cap_id_invalid());
 
 	/* start thread with stack pointer at the top of stack */
 	sp = (addr_t)&stack + DEFAULT_STACK_SIZE;

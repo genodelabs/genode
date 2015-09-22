@@ -13,13 +13,16 @@
 
 #include <base/cap_map.h>
 
+#include <base/printf.h>
+
 /* base-nova specific include */
 #include <nova/syscalls.h>
 
 using namespace Genode;
 
 
-Capability_map *Genode::cap_map() {
+Capability_map *Genode::cap_map()
+{
 	static Genode::Capability_map map;
 	return &map;
 }
@@ -39,34 +42,46 @@ Cap_range *Cap_range::find_by_id(addr_t id)
 }
 
 
-void Cap_range::inc(unsigned id, bool inc_if_one) {
+void Cap_range::inc(unsigned id, bool inc_if_one)
+{
+	bool failure = false;
+	{
+		Lock::Guard guard(_lock);
 
-	Lock::Guard guard(_lock);
+		if (inc_if_one && _cap_array[id] != 1)
+			return;
 
-	if (inc_if_one && _cap_array[id] != 1)
-		return;
-
-	if (_cap_array[id] == 255) {
-//		PERR("cap overflow - selector %lx - return address %p",
-//		     _base + id, __builtin_return_address(0));
-		*reinterpret_cast<addr_t *>(0) = 0xdead;
+		if (_cap_array[id] + 1 == 0)
+			failure = true;
+		else
+			_cap_array[id]++;
 	}
 
-	_cap_array[id]++;
+	if (failure)
+		PERR("cap reference counting error - reference overflow of cap=%lx",
+		     _base + id);
 }
 
 
-void Cap_range::dec(unsigned id, bool revoke) {
+void Cap_range::dec(unsigned id, bool revoke)
+{
+	bool failure = false;
+	{
+		Lock::Guard guard(_lock);
 
-	Lock::Guard guard(_lock);
+		if (_cap_array[id] == 0)
+			failure = true;
+		else {
+			if (revoke && _cap_array[id] == 1)
+				Nova::revoke(Nova::Obj_crd(_base + id, 0));
 
-	if (_cap_array[id] == 0)
-		*reinterpret_cast<addr_t *>(0) = 0xdead;
+			_cap_array[id]--;
+		}
+	}
 
-	if (revoke && _cap_array[id] == 1)
-		Nova::revoke(Nova::Obj_crd(_base + id, 0));
-
-	_cap_array[id]--;
+	if (failure)
+		PERR("cap reference counting error - count of cap=%lx is already zero",
+		     _base + id);
 }
 
 

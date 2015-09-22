@@ -103,91 +103,108 @@ void Cpu_session_component::_unsynchronized_kill_thread(Cpu_thread_component *th
 
 void Cpu_session_component::kill_thread(Thread_capability thread_cap)
 {
-	Cpu_thread_component * thread =
-		dynamic_cast<Cpu_thread_component *>(_thread_ep->lookup_and_lock(thread_cap));
-	if (!thread) return;
+	auto lambda = [this] (Cpu_thread_component *thread) {
+		if (!thread) return;
 
-	Lock::Guard lock_guard(_thread_list_lock);
-	_unsynchronized_kill_thread(thread);
+		Lock::Guard lock_guard(_thread_list_lock);
+		_unsynchronized_kill_thread(thread);
+	};
+	_thread_ep->apply(thread_cap, lambda);
 }
 
 
 int Cpu_session_component::set_pager(Thread_capability thread_cap,
                                      Pager_capability  pager_cap)
 {
-	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
-	if (!thread) return -1;
+	auto lambda = [&] (Cpu_thread_component *thread) {
+		if (!thread) return -1;
 
-	Object_pool<Pager_object>::Guard p(_pager_ep->lookup_and_lock(pager_cap));
-	if (!p) return -2;
+		auto p_lambda = [&] (Pager_object *p) {
+			if (!p) return -2;
 
-	thread->platform_thread()->pager(p);
+			thread->platform_thread()->pager(p);
 
-	p->thread_cap(thread->cap());
-   
-	return 0;
+			p->thread_cap(thread->cap());
+
+			return 0;
+		};
+		return _pager_ep->apply(pager_cap, p_lambda);
+	};
+	return _thread_ep->apply(thread_cap, lambda);
 }
 
 
 int Cpu_session_component::start(Thread_capability thread_cap,
                                  addr_t ip, addr_t sp)
 {
-	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
-	if (!thread) return -1;
+	auto lambda = [&] (Cpu_thread_component *thread) {
+		if (!thread) return -1;
 
-	/*
-	 * If an exception handler was installed prior to the call of 'set_pager',
-	 * we need to update the pager object with the current exception handler.
-	 */
-	thread->update_exception_sigh();
+		/*
+		 * If an exception handler was installed prior to the call of 'set_pager',
+		 * we need to update the pager object with the current exception handler.
+		 */
+		thread->update_exception_sigh();
 
-	return thread->platform_thread()->start((void *)ip, (void *)sp);
+		return thread->platform_thread()->start((void *)ip, (void *)sp);
+	};
+	return _thread_ep->apply(thread_cap, lambda);
 }
 
 
 void Cpu_session_component::pause(Thread_capability thread_cap)
 {
-	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
-	if (!thread) return;
+	auto lambda = [this] (Cpu_thread_component *thread) {
+		if (!thread) return;
 
-	thread->platform_thread()->pause();
+		thread->platform_thread()->pause();
+	};
+	_thread_ep->apply(thread_cap, lambda);
 }
 
 
 void Cpu_session_component::resume(Thread_capability thread_cap)
 {
-	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
-	if (!thread) return;
+	auto lambda = [this] (Cpu_thread_component *thread) {
+		if (!thread) return;
 
-	thread->platform_thread()->resume();
+		thread->platform_thread()->resume();
+	};
+	_thread_ep->apply(thread_cap, lambda);
 }
 
 
 void Cpu_session_component::cancel_blocking(Thread_capability thread_cap)
 {
-	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
-	if (!thread) return;
+	auto lambda = [this] (Cpu_thread_component *thread) {
+		if (!thread) return;
 
-	thread->platform_thread()->cancel_blocking();
+		thread->platform_thread()->cancel_blocking();
+	};
+	_thread_ep->apply(thread_cap, lambda);
 }
 
 
 Thread_state Cpu_session_component::state(Thread_capability thread_cap)
 {
-	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
-	if (!thread) throw State_access_failed();
+	auto lambda = [this] (Cpu_thread_component *thread) {
+		if (!thread) throw State_access_failed();
 
-	return thread->platform_thread()->state();
+		return thread->platform_thread()->state();
+	};
+	return _thread_ep->apply(thread_cap, lambda);
 }
 
 
 void Cpu_session_component::state(Thread_capability thread_cap,
                                   Thread_state const &state)
 {
-	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
-	if (!thread) throw State_access_failed();
+	auto lambda = [&] (Cpu_thread_component *thread) {
+		if (!thread) throw State_access_failed();
 
-	thread->platform_thread()->state(state);
+		thread->platform_thread()->state(state);
+	};
+	_thread_ep->apply(thread_cap, lambda);
 }
 
 
@@ -212,10 +229,12 @@ Cpu_session_component::exception_handler(Thread_capability         thread_cap,
 		sigh_cap = _default_exception_handler;
 	}
 
-	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
-	if (!thread) return;
+	auto lambda = [&] (Cpu_thread_component *thread) {
+		if (!thread) return;
 
-	thread->sigh(sigh_cap);
+		thread->sigh(sigh_cap);
+	};
+	_thread_ep->apply(thread_cap, lambda);
 }
 
 
@@ -232,23 +251,25 @@ Affinity::Space Cpu_session_component::affinity_space() const
 void Cpu_session_component::affinity(Thread_capability  thread_cap,
                                      Affinity::Location location)
 {
-	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
-	if (!thread) return;
+	auto lambda = [&] (Cpu_thread_component *thread) {
+		if (!thread) return;
 
-	/* convert session-local location to physical location */
-	int const x1 = location.xpos() + _location.xpos(),
-	          y1 = location.ypos() + _location.ypos(),
-	          x2 = location.xpos() +  location.width(),
-	          y2 = location.ypos() +  location.height();
+		/* convert session-local location to physical location */
+		int const x1 = location.xpos() + _location.xpos(),
+			y1 = location.ypos() + _location.ypos(),
+			x2 = location.xpos() +  location.width(),
+			y2 = location.ypos() +  location.height();
 
-	int const clipped_x1 = max(_location.xpos(), x1),
-	          clipped_y1 = max(_location.ypos(), y1),
-	          clipped_x2 = max(_location.xpos() + (int)_location.width()  - 1, x2),
-	          clipped_y2 = max(_location.ypos() + (int)_location.height() - 1, y2);
+		int const clipped_x1 = max(_location.xpos(), x1),
+			clipped_y1 = max(_location.ypos(), y1),
+			clipped_x2 = max(_location.xpos() + (int)_location.width()  - 1, x2),
+			clipped_y2 = max(_location.ypos() + (int)_location.height() - 1, y2);
 
-	thread->platform_thread()->affinity(Affinity::Location(clipped_x1, clipped_y1,
-	                                                       clipped_x2 - clipped_x1 + 1,
-	                                                       clipped_y2 - clipped_y1 + 1));
+		thread->platform_thread()->affinity(Affinity::Location(clipped_x1, clipped_y1,
+		                                    clipped_x2 - clipped_x1 + 1,
+		                                    clipped_y2 - clipped_y1 + 1));
+	};
+	_thread_ep->apply(thread_cap, lambda);
 }
 
 
@@ -260,28 +281,34 @@ Dataspace_capability Cpu_session_component::trace_control()
 
 unsigned Cpu_session_component::trace_control_index(Thread_capability thread_cap)
 {
-	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
-	if (!thread) return 0;
+	auto lambda = [] (Cpu_thread_component *thread) -> unsigned {
+		if (!thread) return 0;
 
-	return thread->trace_control_index();
+		return thread->trace_control_index();
+	};
+	return _thread_ep->apply(thread_cap, lambda);
 }
 
 
 Dataspace_capability Cpu_session_component::trace_buffer(Thread_capability thread_cap)
 {
-	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
-	if (!thread) return Dataspace_capability();
+	auto lambda = [this] (Cpu_thread_component *thread) {
+		if (!thread) return Dataspace_capability();
 
-	return thread->trace_source()->buffer();
+		return thread->trace_source()->buffer();
+	};
+	return _thread_ep->apply(thread_cap, lambda);
 }
 
 
 Dataspace_capability Cpu_session_component::trace_policy(Thread_capability thread_cap)
 {
-	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
-	if (!thread) return Dataspace_capability();
+	auto lambda = [this] (Cpu_thread_component *thread) {
+		if (!thread) return Dataspace_capability();
 
-	return thread->trace_source()->policy();
+		return thread->trace_source()->policy();
+	};
+	return _thread_ep->apply(thread_cap, lambda);
 }
 
 
@@ -309,29 +336,30 @@ int Cpu_session_component::transfer_quota(Cpu_session_capability dst_cap,
                                           size_t amount)
 {
 	/* lookup targeted CPU session */
-	Object_pool<Cpu_session_component>::Guard
-		dst(_session_ep->lookup_and_lock(dst_cap));
-	if (!dst) {
-		PWRN("Transfer CPU quota, %s, targeted session not found",
-		     _label.string());
-		return -1;
-	}
-	/* check reference relationship */
-	if (dst->_ref != this && dst != _ref) {
-		PWRN("Transfer CPU quota, %s -> %s, no reference relation",
-		     _label.string(), dst->_label.string());
-		return -2;
-	}
-	/* check quota availability */
-	size_t const quota = quota_lim_downscale(_quota, amount);
-	if (quota > _quota) {
-		PWRN("Transfer CPU quota, %s -> %s, insufficient quota %zu, need %zu",
-		     _label.string(), dst->_label.string(), _quota, quota);
-		return -3;
-	}
-	/* transfer quota */
-	_transfer_quota(dst, quota);
-	return 0;
+	auto lambda = [&] (Cpu_session_component *dst) {
+		if (!dst) {
+			PWRN("Transfer CPU quota, %s, targeted session not found",
+			     _label.string());
+			return -1;
+		}
+		/* check reference relationship */
+		if (dst->_ref != this && dst != _ref) {
+			PWRN("Transfer CPU quota, %s -> %s, no reference relation",
+			     _label.string(), dst->_label.string());
+			return -2;
+		}
+		/* check quota availability */
+		size_t const quota = quota_lim_downscale(_quota, amount);
+		if (quota > _quota) {
+			PWRN("Transfer CPU quota, %s -> %s, insufficient quota %zu, need %zu",
+			     _label.string(), dst->_label.string(), _quota, quota);
+			return -3;
+		}
+		/* transfer quota */
+		_transfer_quota(dst, quota);
+		return 0;
+	};
+	return _session_ep->apply(dst_cap, lambda);
 }
 
 
@@ -348,22 +376,23 @@ int Cpu_session_component::ref_account(Cpu_session_capability ref_cap)
 		return -2; }
 
 	/* lookup and check targeted CPU-session */
-	Object_pool<Cpu_session_component>::Guard
-		ref(_session_ep->lookup_and_lock(ref_cap));
-	if (!ref) {
-		PWRN("Set ref account, %s, targeted session not found",
-		     _label.string());
-		return -1;
-	}
-	if (ref == this) {
-		PWRN("Set ref account, %s, self reference not allowed",
-		     _label.string());
-		return -3;
-	}
-	/* establish ref-account relation from targeted CPU-session to us */
-	_ref = ref;
-	_ref->_insert_ref_member(this);
-	return 0;
+	auto lambda = [&] (Cpu_session_component *ref) {
+		if (!ref) {
+			PWRN("Set ref account, %s, targeted session not found",
+			     _label.string());
+			return -1;
+		}
+		if (ref == this) {
+			PWRN("Set ref account, %s, self reference not allowed",
+			     _label.string());
+			return -3;
+		}
+		/* establish ref-account relation from targeted CPU-session to us */
+		_ref = ref;
+		_ref->_insert_ref_member(this);
+		return 0;
+	};
+	return _session_ep->apply(ref_cap, lambda);
 }
 
 

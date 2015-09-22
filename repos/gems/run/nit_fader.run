@@ -101,7 +101,7 @@ append config {
 		<provides><service name="Nitpicker"/></provides>
 		<configfile name="nit_fader.config" />
 		<route>
-			<service name="ROM"> <if-args key="label" value="nit_fader.config"/>
+			<service name="ROM"> <if-arg key="label" value="nit_fader.config"/>
 				<child name="dynamic_rom" />
 			</service>
 			<service name="Nitpicker"> <child name="nitpicker" /> </service>

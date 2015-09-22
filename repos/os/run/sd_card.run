@@ -9,8 +9,8 @@ set build_components {
 	drivers/sd_card
 	test/blk/cli
 }
-lappend_if [have_spec platform_arndale] build_components drivers/platform
-lappend_if [have_spec platform_rpi]     build_components drivers/platform
+lappend_if [have_spec arndale] build_components drivers/platform
+lappend_if [have_spec rpi]     build_components drivers/platform
 
 build $build_components
 create_boot_directory
@@ -38,7 +38,7 @@ set config  {
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route> }
 
-append_if [expr [have_spec platform_arndale] || [have_spec platform_rpi]] config {
+append_if [expr [have_spec arndale] || [have_spec rpi]] config {
 		<start name="platform_drv">
 			<resource name="RAM" quantum="1M"/>
 			<provides> <service name="Regulator"/>
@@ -73,8 +73,8 @@ set boot_modules {
 	sd_card_drv
 	test-blk-cli
 }
-lappend_if [have_spec platform_arndale] boot_modules platform_drv
-lappend_if [have_spec platform_rpi]     boot_modules platform_drv
+lappend_if [have_spec arndale] boot_modules platform_drv
+lappend_if [have_spec rpi]     boot_modules platform_drv
 
 set disk_image "bin/sd_card.img"
 

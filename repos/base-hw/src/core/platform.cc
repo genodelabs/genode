@@ -19,10 +19,10 @@
 
 /* core includes */
 #include <core_parent.h>
-#include <page_slab.h>
 #include <map_local.h>
 #include <platform.h>
 #include <platform_pd.h>
+#include <page_flags.h>
 #include <util.h>
 #include <pic.h>
 #include <kernel/kernel.h>
@@ -86,6 +86,14 @@ static void init_alloc(Range_allocator * const alloc,
  ** Platform **
  **************/
 
+addr_t Platform::core_translation_tables()
+{
+	size_t sz = max((size_t)Translation_table::TABLE_LEVEL_X_SIZE_LOG2,
+	                get_page_size_log2());
+	return align_addr<addr_t>((addr_t)&_boot_modules_binaries_end, sz);
+}
+
+
 Native_region * Platform::_core_only_ram_regions(unsigned const i)
 {
 	static Native_region _r[] =
@@ -97,7 +105,10 @@ Native_region * Platform::_core_only_ram_regions(unsigned const i)
 		/* boot modules */
 		{ (addr_t)&_boot_modules_binaries_begin,
 		  (size_t)((addr_t)&_boot_modules_binaries_end -
-		           (addr_t)&_boot_modules_binaries_begin) }
+		           (addr_t)&_boot_modules_binaries_begin) },
+
+		/* translation table allocator */
+		{ core_translation_tables(), core_translation_tables_size() }
 	};
 	return i < sizeof(_r)/sizeof(_r[0]) ? &_r[i] : 0;
 }
@@ -106,7 +117,6 @@ static Native_region * virt_region(unsigned const i) {
 	static Native_region r = { VIRT_ADDR_SPACE_START, VIRT_ADDR_SPACE_SIZE };
 	return i ? 0 : &r; }
 
-static Core_mem_allocator * _core_mem_allocator = 0;
 
 Platform::Platform()
 :
@@ -115,10 +125,6 @@ Platform::Platform()
 	_irq_alloc(core_mem_alloc()),
 	_vm_start(VIRT_ADDR_SPACE_START), _vm_size(VIRT_ADDR_SPACE_SIZE)
 {
-	static Page_slab pslab(&_core_mem_alloc);
-	Kernel::core_pd()->platform_pd()->_pslab = &pslab;
-	_core_mem_allocator = &_core_mem_alloc;
-
 	/*
 	 * Initialise platform resource allocators.
 	 * Core mem alloc must come first because it is
@@ -213,22 +219,10 @@ bool Genode::unmap_local(addr_t virt_addr, size_t num_pages)
 
 bool Core_mem_allocator::Mapped_mem_allocator::_map_local(addr_t   virt_addr,
                                                           addr_t   phys_addr,
-                                                          unsigned size)
-{
-	Genode::Page_slab * slab = Kernel::core_pd()->platform_pd()->_pslab;
-	slab->backing_store(_core_mem_allocator->raw());
-	bool ret = ::map_local(phys_addr, virt_addr, size / get_page_size());
-	slab->backing_store(_core_mem_allocator);
-	return ret;
-}
+                                                          unsigned size) {
+	return ::map_local(phys_addr, virt_addr, size / get_page_size()); }
 
 
 bool Core_mem_allocator::Mapped_mem_allocator::_unmap_local(addr_t   virt_addr,
-                                                            unsigned size)
-{
-	Genode::Page_slab * slab = Kernel::core_pd()->platform_pd()->_pslab;
-	slab->backing_store(_core_mem_allocator->raw());
-	bool ret = ::unmap_local(virt_addr, size / get_page_size());
-	slab->backing_store(_core_mem_allocator);
-	return ret;
-}
+                                                            unsigned size) {
+	return ::unmap_local(virt_addr, size / get_page_size()); }

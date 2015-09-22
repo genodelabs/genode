@@ -1,9 +1,0 @@
-#!/bin/sh
-#
-# usage: dde_kit_adapt_sources <list of source files>
-#
-
-sed -i "s#l4/dde/ddekit#dde_kit#" "$@"
-sed -i "s#l4/dde/linux26#dde_linux26#" "$@"
-sed -i "s/ddekit/dde_kit/g" "$@"
-sed -i "s/DDEKIT/DDE_KIT/g" "$@"

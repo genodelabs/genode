@@ -189,7 +189,7 @@ struct Wlan_configration
 			node.attribute("psk").value(psk, sizeof(psk));
 
 		/* psk must be between 8 and 63 characters long */
-		if (Genode::strlen(psk) < MIN_PSK_LENGTH) {
+		if (use_protection && (Genode::strlen(psk) < MIN_PSK_LENGTH)) {
 			_active_dummy_configuration();
 			return;
 		}

@@ -396,7 +396,7 @@ at _ports/run/dosbox.run_.
 First, we specify the components that need to be built
 
 ! set build_components {
-!   core init drivers/audio_out drivers/framebuffer drivers/input
+!   core init drivers/audio drivers/framebuffer drivers/input
 !   drivers/pci drivers/timer server/tar_fs app/dosbox
 ! }
 ! build $build_components
@@ -429,7 +429,7 @@ Nextm we provide the scenario's configuration 'config':
 !   <default-route>
 !     <any-service> <parent/> <any-child/> </any-service>
 !   </default-route>
-!   <start name="audio_out_drv">
+!   <start name="audio_drv">
 !     <resource name="RAM" quantum="6M"/>}
 !     <provides><service name="Audio_out"/></provides>
 !   </start>
@@ -466,7 +466,7 @@ components and application of the scenario, including DosBox.
 Thereafter we declare all boot modules:
 
 ! set boot_modules {
-!   core init timer audio_out_drv fb_drv ps2_drv ld.lib.so
+!   core init timer audio_drv fb_drv ps2_drv ld.lib.so
 !   libc.lib.so libm.lib.so
 !   lwip.lib.so libpng.lib.so stdcxx.lib.so sdl.lib.so
 !   pthread.lib.so zlib.lib.so dosbox dosbox.tar
@@ -1137,7 +1137,7 @@ Even though Genode encourages writing native device drivers, this task sometimes
 becomes infeasible. Especially if there is no documentation available for a
 certain device or if there are not enough programming resources at hand to
 implement a fully fledged driver. Examples of ported drivers can be found in
-the 'dde_linux', 'dde_oss', and 'dde_ipxe' repositories.
+the 'dde_linux', 'dde_bsd', and 'dde_ipxe' repositories.
 
 In this chapter we will exemplary discuss how to port a Linux driver for an ARM
 based SoC to Genode. The goal is to execute driver code in user land directly on

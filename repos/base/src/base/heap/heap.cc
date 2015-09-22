@@ -140,48 +140,45 @@ bool Heap::_unsynchronized_alloc(size_t size, void **out_addr)
 		*out_addr = ds->local_addr;
 
 		return true;
+	}
+
+	/* try allocation at our local allocator */
+	if (_try_local_alloc(size, out_addr))
+		return true;
+
+	/*
+	 * Calculate block size of needed backing store. The block must hold the
+	 * requested 'size' and we add some space for meta data
+	 * ('Dataspace' structures, AVL nodes).
+	 * Finally, we align the size to a 4K page.
+	 */
+	dataspace_size = size + META_DATA_SIZE;
+
+	/*
+	 * '_chunk_size' is a multiple of 4K, so 'dataspace_size' becomes
+	 * 4K-aligned, too.
+	 */
+	size_t const request_size = _chunk_size * sizeof(umword_t);
+
+	if ((dataspace_size < request_size) &&
+		_allocate_dataspace(request_size, false)) {
+
+		/*
+		 * Exponentially increase chunk size with each allocated chunk until
+		 * we hit 'MAX_CHUNK_SIZE'.
+		 */
+		_chunk_size = min(2*_chunk_size, (size_t)MAX_CHUNK_SIZE);
 
 	} else {
 
-		/* try allocation at our local allocator */
-		if (_try_local_alloc(size, out_addr))
-			return true;
-
-		/*
-	 	 * Calculate block size of needed backing store. The block must hold the
-	 	 * requested 'size' and we add some space for meta data
-	 	 * ('Dataspace' structures, AVL nodes).
-	 	 * Finally, we align the size to a 4K page.
-	 	 */
-		dataspace_size = size + META_DATA_SIZE;
-
-		if (dataspace_size < _chunk_size * sizeof(umword_t)) {
-
-			/* 
-		 	 * '_chunk_size' is a multiple of 4K, so 'dataspace_size' becomes
-		 	 * 4K-aligned, too.
-		 	 */
-			dataspace_size = _chunk_size * sizeof(umword_t);
-
-			/*
-		 	 * Exponentially increase chunk size with each allocated chunk until
-		 	 * we hit 'MAX_CHUNK_SIZE'.
-		 	 */
-			_chunk_size = min(2*_chunk_size, (size_t)MAX_CHUNK_SIZE);
-
-		} else {
-
-			/* align to 4K page */
-			dataspace_size = align_addr(dataspace_size, 12);
-
-		}
-
-		_allocate_dataspace(dataspace_size, false);
-
-		/* allocate originally requested block */
-		return _try_local_alloc(size, out_addr);
+		/* align to 4K page */
+		dataspace_size = align_addr(dataspace_size, 12);
+		if (!_allocate_dataspace(dataspace_size, false))
+			return false;
 	}
 
+	/* allocate originally requested block */
+	return _try_local_alloc(size, out_addr);
 }
 
 

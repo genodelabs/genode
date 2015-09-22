@@ -16,29 +16,34 @@
 
 /* local includes */
 #include <child_registry.h>
-#include <process_arg_registry.h>
 
 struct Kill_command : Command
 {
 	Child_registry &_children;
 
-	Process_arg_registry &_process_args;
-
 	void _destroy_child(Child *child, Terminal::Session &terminal)
 	{
 		tprintf(terminal, "destroying subsystem '%s'\n", child->name());
-		_process_args.list.remove(&child->argument);
 		_children.remove(child);
 		Genode::destroy(Genode::env()->heap(), child);
 	}
 
-	Kill_command(Child_registry &children, Process_arg_registry &process_args)
+	Kill_command(Child_registry &children)
 	:
 		Command("kill", "destroy subsystem"),
-		_children(children),
-		_process_args(process_args)
+		_children(children)
 	{
 		add_parameter(new Parameter("--all", Parameter::VOID, "kill all subsystems"));
+	}
+
+	void _for_each_argument(Argument_fn const &fn) const override
+	{
+		auto child_name_fn = [&] (char const *child_name) {
+			Argument arg(child_name, "");
+			fn(arg);
+		};
+
+		_children.for_each_child_name(child_name_fn);
 	}
 
 	void execute(Command_line &cmd, Terminal::Session &terminal)
@@ -68,8 +73,6 @@ struct Kill_command : Command
 
 		tprintf(terminal, "Error: subsystem '%s' does not exist\n", label);
 	}
-
-	List<Argument> &arguments() { return _process_args.list; }
 };
 
 #endif /* _KILL_COMMAND_H_ */

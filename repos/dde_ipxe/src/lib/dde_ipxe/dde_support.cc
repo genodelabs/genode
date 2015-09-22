@@ -30,16 +30,13 @@
 #include <io_port_session/connection.h>
 #include <irq_session/connection.h>
 #include <os/server.h>
-#include <pci_device/client.h>
-#include <pci_session/connection.h>
+#include <platform_device/client.h>
+#include <platform_session/connection.h>
 #include <rm_session/connection.h>
 #include <timer_session/connection.h>
 #include <util/misc_math.h>
 /* local includes */
 #include <dde_support.h>
-
-
-//using namespace Genode;
 
 
 /****************
@@ -79,10 +76,9 @@ extern "C" void dde_udelay(unsigned long usecs)
 {
 	/*
 	 * This function is called only once during rdtsc calibration (usecs will be
-	 * 10000, see dde.c 'udelay'. We do not use DDE timers here, since Genode's
-	 * timer connection is the most precise one around.
+	 * 10000, see dde.c 'udelay'.
 	 */
-	Timer::Connection timer;
+	static Timer::Connection timer;
 	timer.usleep(usecs);
 }
 
@@ -124,9 +120,9 @@ struct Pci_driver
 		CLASS_NETWORK          = PCI_BASE_CLASS_NETWORK << 16
 	};
 
-	Pci::Connection        _pci;
-	Pci::Device_capability _cap;
-	Pci::Device_capability _last_cap;
+	Platform::Connection        _pci;
+	Platform::Device_capability _cap;
+	Platform::Device_capability _last_cap;
 
 	struct Region
 	{
@@ -135,21 +131,21 @@ struct Pci_driver
 	} _region;
 
 	template <typename T>
-	Pci::Device::Access_size _access_size(T t)
+	Platform::Device::Access_size _access_size(T t)
 	{
 		switch (sizeof(T)) {
 		case 1:
-			return Pci::Device::ACCESS_8BIT;
+			return Platform::Device::ACCESS_8BIT;
 		case 2:
-			return Pci::Device::ACCESS_16BIT;
+			return Platform::Device::ACCESS_16BIT;
 		default:
-			return Pci::Device::ACCESS_32BIT;
+			return Platform::Device::ACCESS_32BIT;
 		}
 	}
 
 	void _bus_address(int *bus, int *dev, int *fun)
 	{
-		Pci::Device_client client(_cap);
+		Platform::Device_client client(_cap);
 		unsigned char b, d, f;
 		client.bus_address(&b, &d, &f);
 
@@ -164,14 +160,14 @@ struct Pci_driver
 	template <typename T>
 	void config_read(unsigned int devfn, T *val)
 	{
-		Pci::Device_client client(_cap);
+		Platform::Device_client client(_cap);
 		*val = client.config_read(devfn, _access_size(*val));
 	}
 
 	template <typename T>
 	void config_write(unsigned int devfn, T val)
 	{
-		Pci::Device_client client(_cap);
+		Platform::Device_client client(_cap);
 		client.config_write(devfn, val, _access_size(val));
 	}
 
@@ -302,7 +298,7 @@ extern "C" int dde_interrupt_attach(void(*handler)(void *), void *priv)
 	}
 
 	try {
-		Pci::Device_client device(pci_drv()._cap);
+		Platform::Device_client device(pci_drv()._cap);
 		_irq_handler = new (Genode::env()->heap())
 			Irq_handler(*_ep, device.irq(0), handler, priv);
 	} catch (...) { return -1; }
@@ -311,31 +307,28 @@ extern "C" int dde_interrupt_attach(void(*handler)(void *), void *priv)
 }
 
 
-
-
 /***************************************************
  ** Support for aligned and DMA memory allocation **
  ***************************************************/
 
 enum { BACKING_STORE_SIZE = 1024 * 1024 };
 
+struct Backing_store
+{
+	Genode::Allocator_avl _avl{Genode::env()->heap()};
+	Backing_store(){
+		Genode::addr_t base = pci_drv().alloc_dma_memory(BACKING_STORE_SIZE);
+		/* add to allocator */
+		_avl.add_range(base, BACKING_STORE_SIZE);
+	}
+};
+
 
 static Genode::Allocator_avl& allocator()
 {
-	static Genode::Allocator_avl _avl(Genode::env()->heap());
-	return _avl;
-}
+	static Backing_store _instance;
+	return _instance._avl;
 
-
-extern "C" int dde_dma_mem_init()
-{
-	try {
-		Genode::addr_t base = pci_drv().alloc_dma_memory(BACKING_STORE_SIZE);
-		/* add to allocator */
-		allocator().add_range(base, BACKING_STORE_SIZE);
-	} catch (...) { return false; }
-
-	return true;
 }
 
 
@@ -375,7 +368,7 @@ extern "C" void dde_request_io(dde_uint8_t virt_bar_ioport)
 		sleep_forever();
 	}
 
-	Pci::Device_client device(pci_drv()._cap);
+	Platform::Device_client device(pci_drv()._cap);
 	Io_port_session_capability cap = device.io_port(virt_bar_ioport);
 
 	_io_port = new (env()->heap()) Io_port_session_client(cap);
@@ -414,7 +407,7 @@ struct Slab_backend_alloc : public Genode::Allocator,
                             public Genode::Rm_connection
 {
 	enum {
-		VM_SIZE    = 512 * 1024,
+		VM_SIZE    = 1024 * 1024,
 		BLOCK_SIZE =  64 * 1024,
 		ELEMENTS   = VM_SIZE / BLOCK_SIZE,
 	};
@@ -516,7 +509,7 @@ struct Slab
 {
 	enum {
 		SLAB_START_LOG2 = 5,  /* 32 B */
-		SLAB_STOP_LOG2  = 10, /* 1 KiB */
+		SLAB_STOP_LOG2  = 13, /* 8 KiB */
 		NUM_SLABS = (SLAB_STOP_LOG2 - SLAB_START_LOG2) + 1,
 	};
 
@@ -622,13 +615,13 @@ extern "C" int dde_request_iomem(dde_addr_t start, dde_addr_t *vaddr)
 		Genode::sleep_forever();
 	}
 
-	Pci::Device_client device(pci_drv()._cap);
+	Platform::Device_client device(pci_drv()._cap);
 	Genode::Io_mem_session_capability cap;
 
 	Genode::uint8_t virt_iomem_bar = 0;
-	for (unsigned i = 0; i < Pci::Device::NUM_RESOURCES; i++) {
-		Pci::Device::Resource res = device.resource(i);
-		if (res.type() == Pci::Device::Resource::MEMORY) {
+	for (unsigned i = 0; i < Platform::Device::NUM_RESOURCES; i++) {
+		Platform::Device::Resource res = device.resource(i);
+		if (res.type() == Platform::Device::Resource::MEMORY) {
 			if (res.base() == start) {
 				cap = device.io_mem(virt_iomem_bar);
 				break;

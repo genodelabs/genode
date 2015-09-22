@@ -31,8 +31,7 @@ void Dataspace_component::detached_from(Rm_region *region)
 	_regions.remove(region);
 }
 
-
-Dataspace_component::~Dataspace_component()
+void Dataspace_component::detach_from_rm_sessions()
 {
 	_lock.lock();
 
@@ -49,4 +48,9 @@ Dataspace_component::~Dataspace_component()
 	}
 
 	_lock.unlock();
+}
+
+Dataspace_component::~Dataspace_component()
+{
+	detach_from_rm_sessions();
 }

@@ -39,10 +39,10 @@ namespace Genode {
 				WORDS = (CAP_RANGE_SIZE - HEADER - sizeof(Avl_node<Cap_range>)) / sizeof(addr_t),
 			};
 
-			uint8_t _cap_array[WORDS * sizeof(addr_t)];
+			uint16_t _cap_array[WORDS * sizeof(addr_t) / 2];
 
 			bool _match(addr_t id) {
-				return _base <= id && id < _base + sizeof(_cap_array); };
+				return _base <= id && id < _base + elements(); };
 
 		public:
 
@@ -51,12 +51,12 @@ namespace Genode {
 				static_assert(sizeof(*this) == CAP_RANGE_SIZE,
 				              "Cap_range misconfigured");
 
-				for (unsigned i=0; i < sizeof(_cap_array); i++)
+				for (unsigned i = 0; i < elements(); i++)
 					_cap_array[i] = 0;
 			}
 
 			addr_t const base() const { return _base; }
-			unsigned const elements() { return sizeof(_cap_array); }
+			unsigned const elements() { return sizeof(_cap_array) / sizeof(_cap_array[0]); }
 
 			Cap_range *find_by_id(addr_t);
 

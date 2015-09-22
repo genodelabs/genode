@@ -50,9 +50,10 @@ static bool verbose = false;
 namespace Noux {
 
 	static Noux::Child *init_child;
+	static int exit_value = ~0;
 
 	bool is_init_process(Child *child) { return child == init_child; }
-	void init_process_exited() { init_child = 0; }
+	void init_process_exited(int exit) { init_child = 0; exit_value = exit; }
 
 };
 
@@ -1031,56 +1032,13 @@ void *operator new (Genode::size_t size) {
 	return Genode::env()->heap()->alloc(size); }
 
 
-
-class File_system_factory : public Vfs::File_system_factory
+template <typename FILE_SYSTEM>
+struct File_system_factory : Vfs::File_system_factory
 {
-	public:
-
-		struct Entry_base : Genode::List<Entry_base>::Element
-		{
-			char const * const name;
-
-			Entry_base(char const *name) : name(name) { }
-
-			virtual Vfs::File_system *create(Genode::Xml_node node) = 0;
-
-			bool matches(Genode::Xml_node node) const
-			{
-				return node.has_type(name);
-			}
-		};
-
-		template <typename FILE_SYSTEM>
-		struct Entry : Entry_base
-		{
-			Entry(char const *name) : Entry_base(name) { }
-
-			Vfs::File_system *create(Genode::Xml_node node) override
-			{
-				return new FILE_SYSTEM(node);
-			}
-		};
-
-	private:
-
-		Genode::List<Entry_base> _list;
-
-	public:
-
-		template <typename FS>
-		void add_fs_type()
-		{
-			_list.insert(new Entry<FS>(FS::name()));
-		}
-
-		Vfs::File_system *create(Genode::Xml_node node) override
-		{
-			for (Entry_base *e = _list.first(); e; e = e->next())
-				if (e->matches(node))
-					return e->create(node);
-
-			return 0;
-		}
+	Vfs::File_system *create(Genode::Xml_node node)
+	{
+		return new FILE_SYSTEM(node);
+	}
 };
 
 
@@ -1108,18 +1066,14 @@ int main(int argc, char **argv)
 		verbose = config()->xml_node().attribute("verbose").has_value("yes");
 	} catch (Xml_node::Nonexistent_attribute) { }
 
-	/* register file systems */
-	static File_system_factory fs_factory;
-	fs_factory.add_fs_type<Vfs::Tar_file_system>();
-	fs_factory.add_fs_type<Vfs::Fs_file_system>();
-	fs_factory.add_fs_type<Vfs::Terminal_file_system>();
-	fs_factory.add_fs_type<Vfs::Null_file_system>();
-	fs_factory.add_fs_type<Vfs::Zero_file_system>();
-	fs_factory.add_fs_type<Vfs::Block_file_system>();
-	fs_factory.add_fs_type<Vfs::Block_file_system>();
-	fs_factory.add_fs_type<Vfs::Rtc_file_system>();
-	fs_factory.add_fs_type<Stdio_file_system>();
-	fs_factory.add_fs_type<Random_file_system>();
+	/* register additional file systems to the VFS */
+	Vfs::Global_file_system_factory &fs_factory = Vfs::global_file_system_factory();
+
+	File_system_factory<Stdio_file_system>   stdio_file_system_factory;
+	File_system_factory<Random_file_system> random_file_system_factory;
+
+	fs_factory.extend("stdio",   stdio_file_system_factory);
+	fs_factory.extend("random", random_file_system_factory);
 
 	/* initialize virtual file system */
 	static Vfs::Dir_file_system
@@ -1216,6 +1170,6 @@ int main(int argc, char **argv)
 				 env()->ram_session()->used());
 	}
 
-	PINF("-- exiting noux ---");
-	return 0;
+	PINF("--- exiting noux ---");
+	return exit_value;
 }

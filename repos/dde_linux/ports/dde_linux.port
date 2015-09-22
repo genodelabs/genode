@@ -2,7 +2,7 @@ LICENSE     := GPL
 VERSION     := 1
 DOWNLOADS   := dwc_otg.git usb.archive lxip.archive wifi.archive \
                libnl.archive wpa_supplicant.archive \
-               fw_6000.archive fw_6205a.archive fw_6205b.archive fw_7260.archive
+               fw_6000.archive fw_6205a.archive fw_6205b.archive fw_7260.archive fw_7265.archive
 
 #
 # Tools
@@ -119,6 +119,13 @@ DIR(fw_6205b)     := firmware
 URL(fw_7260)     := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-7260-ucode-22.24.8.0.tgz
 SHA(fw_7260)     := d4ef19560464b9dc9a2278c31d6158f0615871c7
 DIR(fw_7260)     := firmware
+
+#
+# Firmware images for iwlwifi Wireless 7265
+#
+URL(fw_7265)     := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-7265-ucode-22.24.8.0.tgz
+SHA(fw_7265)     := 92ab0629010c2545689a868bc53b808474410159
+DIR(fw_7265)     := firmware
 
 #
 # Patches

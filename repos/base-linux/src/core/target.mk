@@ -36,16 +36,6 @@ INC_DIR      += $(REP_DIR)/src/core/include \
 
 HOST_INC_DIR += /usr/include
 
-#
-# core does not use POSIX threads when built for the 'lx_hybrid_x86' platform,
-# so we need to reserve the thread-context area via a segment in the program to
-# prevent clashes with vdso and shared libraries.
-#
-ifeq ($(findstring always_hybrid, $(SPECS)), always_hybrid)
-LD_SCRIPT_STATIC = $(LD_SCRIPT_DEFAULT) \
-                   $(call select_from_repositories,src/platform/context_area.stdlib.ld)
-endif
-
 include $(GEN_CORE_DIR)/version.inc
 
 vpath main.cc                     $(GEN_CORE_DIR)

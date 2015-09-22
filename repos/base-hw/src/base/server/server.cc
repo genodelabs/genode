@@ -72,23 +72,13 @@ void Rpc_entrypoint::entry()
 		srv.ret(Ipc_client::ERR_INVALID_OBJECT);
 
 		/* atomically lookup and lock referenced object */
-		Object_pool<Rpc_object_base>::Guard curr_obj(lookup_and_lock(srv.badge()));
-		if (!curr_obj)
-			continue;
+		apply(srv.badge(), [&] (Rpc_object_base *curr_obj) {
+			if (!curr_obj) return;
 
-		{
-			Lock::Guard lock_guard(_curr_obj_lock);
-			_curr_obj = curr_obj;
-		}
-
-		/* dispatch request */
-		try { srv.ret(_curr_obj->dispatch(opcode, srv, srv)); }
-		catch (Blocking_canceled) { }
-
-		{
-			Lock::Guard lock_guard(_curr_obj_lock);
-			_curr_obj = 0;
-		}
+			/* dispatch request */
+			try { srv.ret(curr_obj->dispatch(opcode, srv, srv)); }
+			catch (Blocking_canceled) { }
+		});
 	}
 
 	/* answer exit call, thereby wake up '~Rpc_entrypoint' */

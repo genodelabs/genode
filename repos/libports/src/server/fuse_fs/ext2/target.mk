@@ -15,8 +15,9 @@ CC_OPT += -DHAVE_CONFIG_H -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
 
 CC_OPT += -Wno-unused-function -Wno-unused-variable \
           -Wno-unused-but-set-variable -Wno-cpp \
-          -Wno-implicit-function-declaration \
           -Wno-maybe-uninitialized
+
+CC_C_OPT += -Wno-implicit-function-declaration
 
 
 INC_DIR += $(REP_DIR)/src/lib/fuse-ext2 \

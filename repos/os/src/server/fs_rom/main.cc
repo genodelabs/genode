@@ -16,109 +16,12 @@
 #include <root/component.h>
 #include <cap_session/connection.h>
 #include <file_system_session/connection.h>
+#include <file_system/util.h>
 #include <util/arg_string.h>
 #include <base/rpc_server.h>
 #include <base/env.h>
 #include <base/printf.h>
 #include <os/path.h>
-
-
-/*********************************************
- ** Utilities for accessing the file system **
- *********************************************/
-
-/*
- * XXX The following generic utilities should be moved to a public place.
- *     They are based on those found in the 'libc_fs' plugin. We should
- *     unify them.
- */
-
-namespace File_system {
-
-	/**
-	 * Collect pending packet acknowledgements, freeing the space occupied
-	 * by the packet in the bulk buffer
-	 *
-	 * This function should be called prior enqueing new packets into the
-	 * packet stream to free up space in the bulk buffer.
-	 */
-	static void collect_acknowledgements(Session::Tx::Source &source)
-	{
-		while (source.ack_avail())
-			source.release_packet(source.get_acked_packet());
-	}
-
-
-	/**
-	 * Read file content
-	 */
-	static inline size_t read(Session &fs, File_handle const &file_handle,
-	                          void *dst, size_t count, off_t seek_offset = 0)
-	{
-		Session::Tx::Source &source = *fs.tx();
-
-		size_t const max_packet_size = source.bulk_buffer_size() / 2;
-
-		size_t remaining_count = count;
-
-		while (remaining_count) {
-
-			collect_acknowledgements(source);
-
-			size_t const curr_packet_size = min(remaining_count, max_packet_size);
-
-			Packet_descriptor
-				packet(source.alloc_packet(curr_packet_size),
-				       0,
-				       file_handle,
-				       File_system::Packet_descriptor::READ,
-				       curr_packet_size,
-				       seek_offset);
-
-			/* pass packet to server side */
-			source.submit_packet(packet);
-
-			packet = source.get_acked_packet();
-
-			size_t const read_num_bytes = min(packet.length(), curr_packet_size);
-
-			/* copy-out payload into destination buffer */
-			memcpy(dst, source.packet_content(packet), read_num_bytes);
-
-			source.release_packet(packet);
-
-			/* prepare next iteration */
-			seek_offset += read_num_bytes;
-			dst = (void *)((Genode::addr_t)dst + read_num_bytes);
-			remaining_count -= read_num_bytes;
-
-			/*
-			 * If we received less bytes than requested, we reached the end
-			 * of the file.
-			 */
-			if (read_num_bytes < curr_packet_size)
-				break;
-		}
-
-		return count - remaining_count;
-	}
-
-
-	struct Handle_guard
-	{
-		private:
-
-			Session     &_session;
-			Node_handle  _handle;
-
-		public:
-
-			Handle_guard(Session &session, Node_handle handle)
-			: _session(session), _handle(handle) { }
-
-			~Handle_guard() { _session.close(_handle); }
-	};
-}
 
 
 /*****************

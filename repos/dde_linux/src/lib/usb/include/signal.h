@@ -43,6 +43,8 @@ class Service_handler
 		 */
 		void process()
 		{
+			Timer::update_jiffies();
+
 			if (Routine::all()) {
 				Routine::schedule();
 				return;

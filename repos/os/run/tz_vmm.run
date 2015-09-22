@@ -6,7 +6,7 @@
 #
 
 assert_spec hw
-assert_spec platform_imx53
+assert_spec imx53
 assert_spec trustzone
 
 build "core init server/tz_vmm"
