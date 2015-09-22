@@ -1,0 +1,163 @@
+assert_spec linux
+
+set build_components {
+	core init
+	drivers/timer drivers/nic server/ram_fs server/vfs
+	test/netty
+	lib/vfs/lxip
+}
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
+build $build_components
+
+create_boot_directory
+
+set config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+	<start name="nic_drv">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Nic"/> </provides>
+	</start>
+
+	<start name="socket_fs">}
+
+if { false } { append config {
+		<binary name="ram_fs"/>
+		<resource name="RAM" quantum="10M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<content>
+				<inline name="new_socket">33</inline>
+				<dir name="33">
+					<inline name="bind"></inline>
+					<inline name="listen"></inline>
+					<inline name="accept">44</inline>
+					<inline name="local">10.0.2.55:8888</inline>
+					<!-- not connected <inline name="remote"></inline> -->
+					<!-- not connected <inline name="data"></inline> -->
+				</dir>
+				<dir name="44">
+					<inline name="local">10.0.2.55:8888</inline>
+					<inline name="remote">10.0.2.1:13001</inline>
+					<inline name="data">REQUEST</inline>
+				</dir>
+			</content>
+			<default-policy root="/" writeable="yes" />
+		</config>}
+} else { append config {
+		<binary name="vfs"/>
+		<resource name="RAM" quantum="32M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config ld_verbose="yes">
+			<vfs>
+				<dir name="socket">
+					<lxip ip_addr="10.0.2.55" netmask="255.255.255.0" gateway="10.0.2.1" nameserver="8.8.8.8"/>
+					<!-- <lxip dhcp="yes"/> -->
+				</dir>
+			</vfs>
+			<default-policy root="/socket" writeable="yes" />
+		</config>}
+}
+append config {
+	</start>
+
+	<start name="netty-server-80">
+		<binary name="test-netty"/>
+		<resource name="RAM" quantum="4M"/>
+		<config ld_verbose="yes" port="80" read_write="no">
+			<vfs>
+				<dir name="dev">    <log/> </dir>
+				<dir name="socket"> <fs/>  </dir>
+				<dir name="tmp">    <ram/> </dir>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
+		</config>
+	</start>
+	<!--
+	<start name="netty-server-8080">
+		<binary name="test-netty"/>
+		<resource name="RAM" quantum="4M"/>
+		<config ld_verbose="yes" mode="server" port="8080">
+			<vfs>
+				<dir name="dev">    <log/> </dir>
+				<dir name="socket"> <fs/>  </dir>
+				<dir name="tmp">    <ram/> </dir>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
+		</config>
+	</start>
+	-->
+
+	<!--
+	<start name="netty-client-A">
+		<binary name="test-netty"/>
+		<resource name="RAM" quantum="4M"/>
+		<config ld_verbose="yes" mode="client" ip="10.0.2.1" port="8080">
+			<vfs>
+				<dir name="dev">    <log/> </dir>
+				<dir name="socket"> <fs/>  </dir>
+				<dir name="tmp">    <ram/> </dir>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
+		</config>
+	</start>
+	<start name="netty-client-B">
+		<binary name="test-netty"/>
+		<resource name="RAM" quantum="4M"/>
+		<config ld_verbose="yes" mode="client" ip="10.0.2.1" port="12345">
+			<vfs>
+				<dir name="dev">    <log/> </dir>
+				<dir name="socket"> <fs/>  </dir>
+				<dir name="tmp">    <ram/> </dir>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
+		</config>
+	</start>
+	-->
+}
+
+append_platform_drv_config
+
+append config {
+</config>
+}
+
+install_config $config
+
+set boot_modules {
+	core init timer nic_drv ram_fs vfs
+	ld.lib.so libc.lib.so libm.lib.so
+	libc_resolv.lib.so stdcxx.lib.so libc_pipe.lib.so
+	vfs_lxip.lib.so lxip.lib.so
+	test-netty
+}
+
+append_platform_drv_boot_modules
+
+build_boot_image $boot_modules
+
+run_genode_until forever
+
+# vi: set ft=tcl :
