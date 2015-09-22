@@ -1,0 +1,5 @@
+The rom_logger component requests a ROM session and writes the content of the
+ROM dataspace to the LOG. It responds to configuration and ROM-module updates.
+
+The name of the ROM module must be specified via the 'rom' attribute of the
+components '<config>' node. For example: '<config rom="pointer"/>'.
