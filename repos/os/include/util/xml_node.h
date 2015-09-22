@@ -119,11 +119,8 @@ class Genode::Xml_attribute
 
 		/**
 		 * Return attribute value as null-terminated string
-		 *
-		 * \return true on success, or
-		 *         false if attribute is invalid
 		 */
-		bool value(char *dst, size_t max_len) const
+		void value(char *dst, size_t max_len) const
 		{
 			/*
 			 * The value of 'max_len' denotes the maximum number of
@@ -134,7 +131,6 @@ class Genode::Xml_attribute
 			 */
 			max_len = min(max_len, _value.len() - 2 + 1);
 			strncpy(dst, _value.start() + 1, max_len);
-			return true;
 		}
 
 		/**
@@ -162,6 +158,17 @@ class Genode::Xml_attribute
 			 * and the trailing quote character.
 			 */
 			return ascii_to(_value.start() + 1, *out) == _value.len() - 2;
+		}
+
+		/**
+		 * Return attribute value as Genode::String
+		 */
+		template <size_t N>
+		void value(String<N> *out) const
+		{
+			char buf[N];
+			value(buf, sizeof(buf));
+			*out = String<N>(buf);
 		}
 
 		/**
