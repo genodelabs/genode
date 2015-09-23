@@ -27,6 +27,9 @@ extern "C"
 	int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 	                   void *(*start_routine) (void *), void *arg)
 	{
+		/* cleanup threads which tried to self-destruct */
+		pthread_cleanup();
+
 		pthread_t thread_obj = new (Genode::env()->heap())
 		                           pthread(attr ? *attr : 0, start_routine,
 		                           arg, STACK_SIZE, "pthread", nullptr);

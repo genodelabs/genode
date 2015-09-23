@@ -70,6 +70,8 @@ extern "C" {
 			pthread_exit(exit_status);
 		}
 	};
+
+	void pthread_cleanup();
 }
 
 #endif /* _INCLUDE__SRC_LIB_PTHREAD_THREAD_H_ */

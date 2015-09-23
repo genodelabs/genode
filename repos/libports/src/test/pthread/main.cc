@@ -52,6 +52,8 @@ void *thread_func(void *arg)
 	return 0;
 }
 
+void *thread_func_self_destruct(void *arg) { return 0; }
+
 static inline void compare_semaphore_values(int reported_value, int expected_value)
 {
     if (reported_value != expected_value) {
@@ -59,7 +61,6 @@ static inline void compare_semaphore_values(int reported_value, int expected_val
     	exit(-1);
     }
 }
-
 
 int main(int argc, char **argv)
 {
@@ -130,6 +131,16 @@ int main(int argc, char **argv)
 
 	for (int i = 0; i < NUM_THREADS; i++)
 		sem_destroy(&thread[i].thread_args.thread_finished_sem);
+
+	printf("main thread: create pthreads which self de-struct\n");
+
+	for (unsigned i = 0 ; i < 100; i++) {
+		pthread_t t;
+		if (pthread_create(&t, 0, thread_func_self_destruct, 0) != 0) {
+			printf("error: pthread_create() failed\n");
+			return -1;
+		}
+	}
 
 	printf("--- returning from main ---\n");
 	return 0;

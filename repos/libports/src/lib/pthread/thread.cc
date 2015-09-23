@@ -25,6 +25,25 @@
 
 using namespace Genode;
 
+/*
+ * Structure to handle self-destructing pthreads.
+ */
+struct thread_cleanup : List<thread_cleanup>::Element
+{
+	pthread_t thread;
+
+	thread_cleanup(pthread_t t) : thread(t) { }
+
+	~thread_cleanup() {
+		if (thread)
+			destroy(env()->heap(), thread);
+	}
+};
+
+static Lock pthread_cleanup_list_lock;
+static List<thread_cleanup> pthread_cleanup_list;
+
+
 extern "C" {
 
 	/* Thread */
@@ -53,12 +72,31 @@ extern "C" {
 	}
 
 
-	int pthread_cancel(pthread_t thread)
+	void pthread_cleanup()
 	{
-		destroy(env()->heap(), thread);
-		return 0;
+		{
+			Lock_guard<Lock> lock_guard(pthread_cleanup_list_lock);
+
+			while (thread_cleanup * t = pthread_cleanup_list.first()) {
+				pthread_cleanup_list.remove(t);
+				destroy(env()->heap(), t);
+			}
+		}
 	}
 
+	int pthread_cancel(pthread_t thread)
+	{
+		/* cleanup threads which tried to self-destruct */
+		pthread_cleanup();
+
+		if (pthread_equal(pthread_self(), thread)) {
+			Lock_guard<Lock> lock_guard(pthread_cleanup_list_lock);
+			pthread_cleanup_list.insert(new (env()->heap()) thread_cleanup(thread));
+		} else
+			destroy(env()->heap(), thread);
+
+		return 0;
+	}
 
 	void pthread_exit(void *value_ptr)
 	{

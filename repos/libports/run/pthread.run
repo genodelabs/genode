@@ -20,7 +20,7 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<start name="test-pthread">
-		<resource name="RAM" quantum="2M"/>
+		<resource name="RAM" quantum="64M"/>
 		<config>
 			<libc stdout="/dev/log">
 				<vfs> <dir name="dev"> <log/> </dir> </vfs>
@@ -35,6 +35,6 @@ build_boot_image {
 	ld.lib.so libc.lib.so pthread.lib.so
 }
 
-append qemu_args " -nographic -m 64 "
+append qemu_args " -nographic -m 128 "
 
 run_genode_until {--- returning from main ---.*\n} 10

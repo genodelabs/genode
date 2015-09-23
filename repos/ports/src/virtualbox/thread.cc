@@ -118,6 +118,9 @@ static int create_thread(pthread_t *thread, const pthread_attr_t *attr,
 extern "C" int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
                               void *(*start_routine) (void *), void *arg)
 {
+	/* cleanup threads which tried to self-destruct */
+	pthread_cleanup();
+
 	PRTTHREADINT rtthread = reinterpret_cast<PRTTHREADINT>(arg);
 
 	/* retry thread creation once after CPU session upgrade */
