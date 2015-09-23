@@ -35,31 +35,37 @@ addr_t Ram_session_component::phys_addr(Ram_dataspace_capability ds)
 }
 
 
-void Ram_session_component::_free_ds(Dataspace_component *ds)
+void Ram_session_component::_free_ds(Dataspace_capability ds_cap)
 {
-	if (!ds) return;
-	if (!ds->owner(this)) return;
+	Dataspace_component *ds;
+	_ds_ep->apply(ds_cap, [&] (Dataspace_component *c)
+	{
+		ds = c;
 
-	size_t ds_size = ds->size();
+		if (!ds) return;
+		if (!ds->owner(this)) return;
 
-	/* tell entry point to forget the dataspace */
-	_ds_ep->dissolve(ds);
+		size_t ds_size = ds->size();
 
-	/* remove dataspace from all RM sessions */
-	ds->detach_from_rm_sessions();
+		/* tell entry point to forget the dataspace */
+		_ds_ep->dissolve(ds);
 
-	/* destroy native shared memory representation */
-	_revoke_ram_ds(ds);
+		/* remove dataspace from all RM sessions */
+		ds->detach_from_rm_sessions();
 
-	/* free physical memory that was backing the dataspace */
-	_ram_alloc->free((void *)ds->phys_addr(), ds_size);
+		/* destroy native shared memory representation */
+		_revoke_ram_ds(ds);
+
+		/* free physical memory that was backing the dataspace */
+		_ram_alloc->free((void *)ds->phys_addr(), ds_size);
+
+		/* adjust payload */
+		Lock::Guard lock_guard(_ref_members_lock);
+		_payload -= ds_size;
+	});
 
 	/* call dataspace destructors and free memory */
 	destroy(&_ds_slab, ds);
-
-	/* adjust payload */
-	Lock::Guard lock_guard(_ref_members_lock);
-	_payload -= ds_size;
 }
 
 
@@ -218,15 +224,8 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, Cache_attr
 }
 
 
-void Ram_session_component::free(Ram_dataspace_capability ds_cap)
-{
-	auto lambda = [this] (Dataspace_component *ds) {
-		if (!ds) return;
-		_free_ds(ds);
-	};
-
-	_ds_ep->apply(ds_cap, lambda);
-}
+void Ram_session_component::free(Ram_dataspace_capability ds_cap) {
+	_free_ds(ds_cap); }
 
 
 int Ram_session_component::ref_account(Ram_session_capability ram_session_cap)
@@ -291,7 +290,8 @@ Ram_session_component::Ram_session_component(Rpc_entrypoint  *ds_ep,
 Ram_session_component::~Ram_session_component()
 {
 	/* destroy all dataspaces */
-	for (Dataspace_component *ds; (ds = _ds_slab()->first_object()); _free_ds(ds));
+	for (Dataspace_component *ds; (ds = _ds_slab()->first_object());
+	     _free_ds(ds->cap()));
 
 	if (_payload != 0)
 		PWRN("Remaining payload of %zu in ram session to destroy", _payload);

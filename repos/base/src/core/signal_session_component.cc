@@ -71,15 +71,17 @@ Signal_context_capability Signal_session_component::alloc_context(long imprint)
 
 void Signal_session_component::free_context(Signal_context_capability context_cap)
 {
-	_context_ep->apply(context_cap, [this] (Signal_context_component *context) {
+	Signal_context_component *context;
+	_context_ep->apply(context_cap, [&] (Signal_context_component *c) {
+		context = c;
 		if (!context) {
 			PWRN("specified signal-context capability has wrong type");
 			return;
 		}
 
 		_context_ep->dissolve(context);
-		destroy(&_contexts_slab, context);
 	});
+	destroy(&_contexts_slab, context);
 }
 
 

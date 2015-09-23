@@ -153,13 +153,15 @@ void Cap_session_component::free(Native_capability cap)
 	/* proof whether the capability was created by this cap_session */
 	if (static_cast<Core_cap_index*>(cap.idx())->session() != this) return;
 
-	_pool.apply(cap, [this] (Entry *e) {
+	Entry * entry;
+	_pool.apply(cap, [&] (Entry *e) {
+		entry = e;
 		if (e) {
 			_pool.remove(e);
-			destroy(_md_alloc, e);
 		} else
 			PWRN("Could not find capability to be deleted");
 	});
+	if (entry) destroy(_md_alloc, entry);
 }
 
 

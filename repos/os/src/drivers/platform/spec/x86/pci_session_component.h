@@ -559,8 +559,10 @@ namespace Platform {
 
 			void release_device(Device_capability device_cap)
 			{
-				auto lambda = [&] (Device_component *device)
+				Device_component * device;
+				auto lambda = [&] (Device_component *d)
 				{
+					device = d;
 					if (!device)
 						return;
 
@@ -573,15 +575,17 @@ namespace Platform {
 
 					_device_list.remove(device);
 					_ep->dissolve(device);
-
-					if (device->config().valid())
-						destroy(_device_slab, device);
-					else
-						destroy(_md_alloc, device);
 				};
 
 				/* lookup device component for previous device */
 				_ep->apply(device_cap, lambda);
+
+				if (!device) return;
+
+				if (device->config().valid())
+					destroy(_device_slab, device);
+				else
+					destroy(_md_alloc, device);
 			}
 
 			Genode::Io_mem_dataspace_capability assign_device(Device_component * device)

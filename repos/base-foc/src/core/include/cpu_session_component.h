@@ -190,7 +190,7 @@ namespace Genode {
 			 * by themselves and call this function to perform the actual
 			 * killing.
 			 */
-			void _unsynchronized_kill_thread(Cpu_thread_component *thread);
+			void _unsynchronized_kill_thread(Thread_capability cap);
 
 		public:
 

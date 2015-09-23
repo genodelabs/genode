@@ -83,9 +83,14 @@ Thread_capability Cpu_session_component::create_thread(size_t weight,
 }
 
 
-void Cpu_session_component::_unsynchronized_kill_thread(Cpu_thread_component *thread)
+void Cpu_session_component::_unsynchronized_kill_thread(Thread_capability thread_cap)
 {
-	_thread_ep->dissolve(thread);
+	Cpu_thread_component *thread;
+	_thread_ep->apply(thread_cap, [&] (Cpu_thread_component *t) {
+		if ((thread = t)) _thread_ep->dissolve(thread); });
+
+	if (!thread) return;
+
 	_thread_list.remove(thread);
 
 	_trace_sources.remove(thread->trace_source());
@@ -94,8 +99,10 @@ void Cpu_session_component::_unsynchronized_kill_thread(Cpu_thread_component *th
 
 	_decr_weight(thread->weight());
 
-	Lock::Guard lock_guard(_thread_alloc_lock);
-	destroy(&_thread_alloc, thread);
+	{
+		Lock::Guard lock_guard(_thread_alloc_lock);
+		destroy(&_thread_alloc, thread);
+	}
 
 	_trace_control_area.free(trace_control_index);
 }
@@ -103,13 +110,9 @@ void Cpu_session_component::_unsynchronized_kill_thread(Cpu_thread_component *th
 
 void Cpu_session_component::kill_thread(Thread_capability thread_cap)
 {
-	auto lambda = [this] (Cpu_thread_component *thread) {
-		if (!thread) return;
+	Lock::Guard lock_guard(_thread_list_lock);
 
-		Lock::Guard lock_guard(_thread_list_lock);
-		_unsynchronized_kill_thread(thread);
-	};
-	_thread_ep->apply(thread_cap, lambda);
+	_unsynchronized_kill_thread(thread_cap);
 }
 
 
@@ -469,7 +472,7 @@ void Cpu_session_component::_deinit_threads()
 	 */
 
 	for (Cpu_thread_component *thread; (thread = _thread_list.first()); )
-		_unsynchronized_kill_thread(thread);
+		_unsynchronized_kill_thread(thread->cap());
 }
 
 

@@ -484,10 +484,10 @@ void Lx::backend_free(Genode::Ram_dataspace_capability cap)
 	auto lambda = [&] (Memory_object_base *o) {
 		object = o;
 		if (object) {
-			o->free();
-			memory_pool.remove(o);
+			object->free();
+			memory_pool.remove(object);
 		}
 	};
 	memory_pool.apply(cap, lambda);
-	destroy(env()->heap(), object);
+	if (object) destroy(env()->heap(), object);
 }

@@ -81,7 +81,7 @@ namespace Genode {
 			/**
 			 * Free dataspace
 			 */
-			void _free_ds(Dataspace_component *ds);
+			void _free_ds(Dataspace_capability ds_cap);
 
 			/**
 			 * Transfer quota to another RAM session

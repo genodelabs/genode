@@ -52,16 +52,18 @@ Signal_receiver_capability Signal_session_component::alloc_receiver()
 void Signal_session_component::free_receiver(Signal_receiver_capability cap)
 {
 	/* look up ressource info */
+	Receiver * receiver;
 	auto lambda = [&] (Receiver *r) {
-		if (!r) {
+		receiver = r;
+		if (!receiver) {
 			PERR("unknown signal receiver");
 			throw Kill_receiver_failed();
 		}
 		/* release resources */
-		_receivers.remove(r);
-		destroy(&_receivers_slab, r);
+		_receivers.remove(receiver);
 	};
 	_receivers.apply(cap, lambda);
+	destroy(&_receivers_slab, receiver);
 }
 
 
@@ -93,16 +95,18 @@ Signal_session_component::alloc_context(Signal_receiver_capability src,
 void Signal_session_component::free_context(Signal_context_capability cap)
 {
 	/* look up ressource info */
+	Context * context;
 	auto lambda = [&] (Context *c) {
-		if (!c) {
+		context = c;
+		if (!context) {
 			PERR("unknown signal context");
 			throw Kill_context_failed();
 		}
 		/* release resources */
-		_contexts.remove(c);
-		destroy(&_contexts_slab, c);
+		_contexts.remove(context);
 	};
 	_contexts.apply(cap, lambda);
+	destroy(&_contexts_slab, context);
 }
 
 
