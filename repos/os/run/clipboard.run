@@ -1,0 +1,105 @@
+#
+# Build
+#
+
+set build_components {
+	core init drivers/timer
+	server/clipboard server/report_rom test/clipboard drivers/timer
+}
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="RM"/>
+		<service name="LOG"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="report_rom">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="yes">
+			<rom>
+				<policy label="clipboard -> focus" report="test-clipboard -> focus"/>
+			</rom>
+		</config>
+	</start>
+
+	<start name="clipboard">
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="ROM"/>
+			<service name="Report"/>
+		</provides>
+		<config verbose="yes">
+
+			<flow from="hobby" to="work"  />
+			<flow from="hobby" to="admin" />
+			<flow from="work"  to="admin" />
+
+			<policy label="test-clipboard -> win7"  domain="work"  />
+			<policy label="test-clipboard -> linux" domain="hobby" />
+			<policy label="test-clipboard -> noux"  domain="admin" />
+
+		</config>
+		<route>
+			<any-service> <child name="report_rom"/> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="test-clipboard">
+		<resource name="RAM" quantum="4M"/>
+		<route>
+			<!-- for the simulation of nitpicker's focus reports -->
+			<service name="Report">
+				<if-arg key="label" value="focus"/>
+				<child name="report_rom" />
+			</service>
+
+			<!-- for the simulation of clipboard clients -->
+			<any-service>
+				<child name="clipboard"/> <any-child/> <parent/>
+			</any-service>
+		</route>
+	</start>
+
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+set boot_modules { core init timer report_rom clipboard test-clipboard }
+
+build_boot_image $boot_modules
+
+append qemu_args " -nographic "
+
+run_genode_until {.*-- state WAIT_FOR_SUCCESS --.*\n} 40
+
+

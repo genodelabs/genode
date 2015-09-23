@@ -1,0 +1,4 @@
+The "clipboard" component is both a report service and a ROM service. The
+clients of the report service can issue new clipboard content, which is then
+propagated to the clients of the ROM service according to a configurable
+information-flow policy.
