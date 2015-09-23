@@ -17,8 +17,9 @@
 #define _INCLUDE__BASE__OBJECT_POOL_H_
 
 #include <util/avl_tree.h>
+#include <util/noncopyable.h>
 #include <base/capability.h>
-#include <base/lock.h>
+#include <base/weak_ptr.h>
 
 namespace Genode { template <typename> class Object_pool; }
 
@@ -40,21 +41,29 @@ class Genode::Object_pool
 		{
 			private:
 
-				Untyped_capability _cap;
-				Lock               _lock;
-
-				inline unsigned long _obj_id() { return _cap.local_name(); }
-
 				friend class Object_pool;
 				friend class Avl_tree<Entry>;
 
+				struct Entry_lock : Weak_object<Entry_lock>, Noncopyable
+				{
+					Entry &obj;
+
+					Entry_lock(Entry &e) : obj(e) { }
+					~Entry_lock() {
+						Weak_object<Entry_lock>::lock_for_destruction(); }
+				};
+
+				Untyped_capability _cap;
+				Entry_lock         _lock { *this };
+
+				inline unsigned long _obj_id() { return _cap.local_name(); }
+
 			public:
 
-				/**
-				 * Constructors
-				 */
 				Entry() { }
 				Entry(Untyped_capability cap) : _cap(cap) { }
+
+				virtual ~Entry() { }
 
 				/**
 				 * Avl_node interface
@@ -80,57 +89,12 @@ class Genode::Object_pool
 				void cap(Untyped_capability c) { _cap = c; }
 
 				Untyped_capability const cap() const { return _cap; }
-				Lock& lock() { return _lock; }
 		};
 
 	private:
 
 		Avl_tree<Entry> _tree;
 		Lock            _lock;
-
-		OBJ_TYPE* _obj_by_capid(unsigned long capid)
-		{
-			Entry *ret = _tree.first() ? _tree.first()->find_by_obj_id(capid)
-			                           : nullptr;
-			return static_cast<OBJ_TYPE*>(ret);
-		}
-
-		template <typename FUNC, typename RET>
-		struct Apply_functor
-		{
-			RET operator()(OBJ_TYPE *obj, FUNC f)
-			{
-				using Functor = Trait::Functor<decltype(&FUNC::operator())>;
-				using Object_pointer = typename Functor::template Argument<0>::Type;
-
-				try {
-					auto ret = f(dynamic_cast<Object_pointer>(obj));
-					if (obj) obj->_lock.unlock();
-					return ret;
-				} catch(...) {
-					if (obj) obj->_lock.unlock();
-					throw;
-				}
-			}
-		};
-
-		template <typename FUNC>
-		struct Apply_functor<FUNC, void>
-		{
-			void operator()(OBJ_TYPE *obj, FUNC f)
-			{
-				using Functor = Trait::Functor<decltype(&FUNC::operator())>;
-				using Object_pointer = typename Functor::template Argument<0>::Type;
-
-				try {
-					f(dynamic_cast<Object_pointer>(obj));
-					if (obj) obj->_lock.unlock();
-				} catch(...) {
-					if (obj) obj->_lock.unlock();
-					throw;
-				}
-			}
-		};
 
 	protected:
 
@@ -158,20 +122,28 @@ class Genode::Object_pool
 		auto apply(unsigned long capid, FUNC func)
 		-> typename Trait::Functor<decltype(&FUNC::operator())>::Return_type
 		{
-			using Functor = Trait::Functor<decltype(&FUNC::operator())>;
+			using Functor        = Trait::Functor<decltype(&FUNC::operator())>;
+			using Object_pointer = typename Functor::template Argument<0>::Type;
+			using Weak_ptr       = Weak_ptr<typename Entry::Entry_lock>;
+			using Locked_ptr     = Locked_ptr<typename Entry::Entry_lock>;
 
-			OBJ_TYPE * obj;
+			Weak_ptr ptr;
 
 			{
 				Lock::Guard lock_guard(_lock);
 
-				obj = _obj_by_capid(capid);
+				Entry * entry = _tree.first() ?
+					_tree.first()->find_by_obj_id(capid) : nullptr;
 
-				if (obj) obj->_lock.lock();
+				if (entry) ptr = entry->_lock.weak_ptr();
 			}
 
-			Apply_functor<FUNC, typename Functor::Return_type> hf;
-			return hf(obj, func);
+			{
+				Locked_ptr lock_ptr(ptr);
+				Object_pointer op = lock_ptr.is_valid()
+					? dynamic_cast<Object_pointer>(&lock_ptr->obj) : nullptr;
+				return func(op);
+			}
 		}
 
 		template <typename FUNC>
@@ -184,18 +156,22 @@ class Genode::Object_pool
 		template <typename FUNC>
 		void remove_all(FUNC func)
 		{
+			using Weak_ptr   = Weak_ptr<typename Entry::Entry_lock>;
+			using Locked_ptr = Locked_ptr<typename Entry::Entry_lock>;
+
 			for (;;) {
 				OBJ_TYPE * obj;
 
 				{
 					Lock::Guard lock_guard(_lock);
 
-					obj = (OBJ_TYPE*) _tree.first();
+					if (!((obj = (OBJ_TYPE*) _tree.first()))) return;
 
-					if (!obj) return;
-
+					Weak_ptr ptr = obj->_lock.weak_ptr();
 					{
-						Lock::Guard object_guard(obj->_lock);
+						Locked_ptr lock_ptr(ptr);
+						if (!lock_ptr.is_valid()) return;
+
 						_tree.remove(obj);
 					}
 				}
