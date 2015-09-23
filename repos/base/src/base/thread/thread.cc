@@ -13,6 +13,7 @@
 
 #include <base/thread.h>
 #include <base/env.h>
+#include <base/sleep.h>
 #include <base/snprintf.h>
 #include <util/string.h>
 #include <util/misc_math.h>
@@ -198,6 +199,12 @@ Thread_base::Thread_base(size_t weight, const char *name, size_t stack_size,
 
 Thread_base::~Thread_base()
 {
+	if (Thread_base::myself() == this) {
+		PERR("thread '%s' tried to self de-struct - sleeping forever.",
+		     _context->name);
+		sleep_forever();
+	}
+
 	_deinit_platform_thread();
 	_free_context(_context);
 
