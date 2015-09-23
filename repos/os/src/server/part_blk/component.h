@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -14,6 +14,7 @@
 #ifndef _PART_BLK__COMPONENT_H_
 #define _PART_BLK__COMPONENT_H_
 
+#include <os/session_policy.h>
 #include <base/exception.h>
 #include <root/component.h>
 #include <block_session/rpc_object.h>
@@ -198,31 +199,6 @@ class Block::Root :
 		Signal_receiver        &_receiver;
 		Block::Partition_table &_table;
 
-		long _partition_num(const char *session_label)
-		{
-			long num = -1;
-
-			try {
-				using namespace Genode;
-
-				Xml_node policy = Genode::config()->xml_node().sub_node("policy");
-
-				for (;; policy = policy.next("policy")) {
-					char label_buf[64];
-					policy.attribute("label").value(label_buf, sizeof(label_buf));
-
-					if (Genode::strcmp(session_label, label_buf))
-						continue;
-
-					/* read partition attribute */
-					policy.attribute("partition").value(&num);
-					break;
-				}
-			} catch (...) {}
-
-			return num;
-		}
-
 	protected:
 
 		/**
@@ -230,10 +206,36 @@ class Block::Root :
 		 */
 		Session_component *_create_session(const char *args)
 		{
+			long num = -1;
+
+			Session_label label(args);
+			char const *label_str = label.string();
+			try {
+				Session_policy policy(label);
+
+				/* read partition attribute */
+				policy.attribute("partition").value(&num);
+
+			} catch (Xml_node::Nonexistent_attribute) {
+				PERR("policy does not define partition number for for '%s'", label_str);
+				throw Root::Unavailable();
+			} catch (Session_policy::No_policy_defined) {
+				PERR("rejecting session request, no matching policy for '%s'", label_str);
+				throw Root::Unavailable();
+			}
+
+			if (!_table.partition(num)) {
+				PERR("Partition %ld unavailable for '%s'", num, label_str);
+				throw Root::Unavailable();
+			}
+
 			size_t ram_quota =
 				Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
 			size_t tx_buf_size =
 				Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
+
+			if (!tx_buf_size)
+				throw Root::Invalid_args();
 
 			/* delete ram quota by the memory needed for the session */
 			size_t session_size = max((size_t)4096,
@@ -253,29 +255,15 @@ class Block::Root :
 				throw Root::Quota_exceeded();
 			}
 
-			/* Search for configured partition number and the corresponding partition */
-			char label_buf[64];
-			Genode::Arg_string::find_arg(args,
-			                             "label").string(label_buf,
-			                                             sizeof(label_buf),
-			                                             "<unlabeled>");
-			long num = _partition_num(label_buf);
-			if (num < 0) {
-				PERR("No confguration found for client: %s", label_buf);
-				throw Root::Invalid_args();
-			}
-
-			if (!_table.partition(num)) {
-				PERR("Partition %ld unavailable", num);
-				throw Root::Unavailable();
-			}
-
 			Ram_dataspace_capability ds_cap;
 			ds_cap = Genode::env()->ram_session()->alloc(tx_buf_size);
-			return new (md_alloc())
+			Session_component *session = new (md_alloc())
 				Session_component(ds_cap,
 				                  _table.partition(num),
 				                  _ep, _receiver);
+
+			PLOG("session opened at partition %ld for '%s'", num, label_str);
+			return session;
 		}
 
 	public:
