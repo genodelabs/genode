@@ -16,10 +16,11 @@
 #include <base/env.h>
 #include <os/server.h>
 #include <os/config.h>
+#include <report_rom/rom_service.h>
+#include <report_rom/report_service.h>
 
 /* local includes */
-#include <rom_service.h>
-#include <report_service.h>
+#include "rom_registry.h"
 
 
 namespace Server {
@@ -36,9 +37,7 @@ struct Server::Main
 	Genode::Sliced_heap sliced_heap = { env()->ram_session(),
 	                                    env()->rm_session() };
 
-	Rom::Registry rom_registry = { sliced_heap };
-
-	Xml_node _rom_config_node()
+	Xml_node _rom_config_node() const
 	{
 		try {
 			return Genode::config()->xml_node().sub_node("rom"); }
@@ -48,7 +47,7 @@ struct Server::Main
 		}
 	}
 
-	Xml_node rom_config = _rom_config_node();
+	Rom::Registry rom_registry = { sliced_heap, _rom_config_node() };
 
 	bool _verbose_config()
 	{
@@ -60,7 +59,7 @@ struct Server::Main
 	bool verbose = _verbose_config();
 
 	Report::Root report_root = { ep, sliced_heap, rom_registry, verbose };
-	Rom   ::Root    rom_root = { ep, sliced_heap, rom_registry, rom_config};
+	Rom   ::Root    rom_root = { ep, sliced_heap, rom_registry };
 
 	Main(Entrypoint &ep) : ep(ep)
 	{

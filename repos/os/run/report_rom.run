@@ -69,7 +69,6 @@ compare_output_to {
 	[init -> test-report_rom]          -> <brightness brightness="77"/>
 	[init -> test-report_rom]
 	[init -> test-report_rom] Reporter: close report session
-	[init -> test-report_rom] ROM client: wait for update notification
 	[init -> test-report_rom] ROM client: ROM is available despite report was closed - OK
 	[init -> test-report_rom] Reporter: start reporting (while the ROM client still listens)
 	[init -> test-report_rom] ROM client: wait for update notification

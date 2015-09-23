@@ -14,6 +14,7 @@
 #include <base/printf.h>
 #include <os/reporter.h>
 #include <os/attached_rom_dataspace.h>
+#include <timer_session/connection.h>
 
 
 #define ASSERT(cond) \
@@ -68,8 +69,9 @@ int main(int argc, char **argv)
 	printf("Reporter: close report session\n");
 	brightness_reporter.enabled(false);
 
-	printf("ROM client: wait for update notification\n");
-	sig_rec.wait_for_signal();
+	/* give report_rom some time to close the report session */
+	static Timer::Connection timer;
+	timer.msleep(250);
 
 	brightness_rom.update();
 	ASSERT(brightness_rom.is_valid());
