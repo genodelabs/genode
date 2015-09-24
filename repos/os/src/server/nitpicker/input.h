@@ -62,14 +62,23 @@ static Input::Event merge_motion_events(Input::Event const *ev, unsigned n)
 }
 
 
-static void import_input_events(Input::Event *ev_buf, unsigned num_ev,
+/**
+ * Feed input event to the user state
+ *
+ * \return true if user has been active. A user is active as long as at
+ *              least one key/button is pressed (during drag operations)
+ *              and when a key/button changes it state.
+ */
+static bool import_input_events(Input::Event *ev_buf, unsigned num_ev,
                                 User_state &user_state)
 {
+	bool user_is_active = false;
+
 	if (num_ev > 0) {
 		/*
-	 	 * Take events from input event buffer, merge consecutive motion
-	 	 * events, and pass result to the user state.
-	 	 */
+		 * Take events from input event buffer, merge consecutive motion
+		 * events, and pass result to the user state.
+		 */
 		for (unsigned src_ev_cnt = 0; src_ev_cnt < num_ev; src_ev_cnt++) {
 
 			Input::Event *e = &ev_buf[src_ev_cnt];
@@ -84,12 +93,19 @@ static void import_input_events(Input::Event *ev_buf, unsigned num_ev,
 			}
 
 			/*
-		 	 * If subsequential relative motion events are merged to
-		 	 * a zero-motion event, drop it. Otherwise, it would be
-		 	 * misinterpreted as absolute event pointing to (0, 0).
-		 	 */
+			 * If subsequential relative motion events are merged to
+			 * a zero-motion event, drop it. Otherwise, it would be
+			 * misinterpreted as absolute event pointing to (0, 0).
+			 */
 			if (e->is_relative_motion() && curr.rx() == 0 && curr.ry() == 0)
 				continue;
+
+			/*
+			 * If we detect a pressed key sometime during the event processing,
+			 * we regard the user as active. This check captures the presence
+			 * of press-release combinations within one batch of input events.
+			 */
+			user_is_active |= user_state.key_is_pressed();
 
 			/* pass event to user state */
 			user_state.handle_event(curr);
@@ -102,6 +118,13 @@ static void import_input_events(Input::Event *ev_buf, unsigned num_ev,
 		 */
 		user_state.handle_event(Input::Event());
 	}
+
+	/*
+	 * If at least one key is kept pressed, we regard the user as active.
+	 */
+	user_is_active |= user_state.key_is_pressed();
+
+	return user_is_active;
 }
 
 #endif /* _INPUT_H_ */

@@ -53,6 +53,8 @@ class Mode
 
 		bool has_key_cnt(unsigned cnt) const { return cnt == _key_cnt; }
 
+		bool key_is_pressed() const { return _key_cnt > 0; }
+
 		Session       *focused_session()       { return _focused_session; }
 		Session const *focused_session() const { return _focused_session; }
 

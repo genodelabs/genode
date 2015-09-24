@@ -76,7 +76,8 @@ Framebuffer::Session *tmp_fb;
  ** Utilities **
  ***************/
 
-static void report_session(Genode::Reporter &reporter, Session *session)
+static void report_session(Genode::Reporter &reporter, Session *session,
+                           bool active = false)
 {
 	if (!reporter.is_enabled())
 		return;
@@ -92,6 +93,8 @@ static void report_session(Genode::Reporter &reporter, Session *session)
 			Genode::snprintf(buf, sizeof(buf), "#%02x%02x%02x",
 			                 color.r, color.g, color.b);
 			xml.attribute("color", buf);
+
+			if (active) xml.attribute("active", "yes");
 		}
 	});
 }
@@ -1195,6 +1198,30 @@ struct Nitpicker::Main
 	Timer::Connection timer;
 
 	/**
+	 * Counter that is incremented periodically
+	 */
+	unsigned period_cnt = 0;
+
+	/**
+	 * Period counter when the user was active the last time
+	 */
+	unsigned last_active_period = 0;
+
+	/**
+	 * Number of periods after the last user activity when we regard the user
+	 * as becoming inactive
+	 */
+	unsigned activity_threshold = 50;
+
+	/**
+	 * True if the user was recently active
+	 *
+	 * This state is reported as part of focus reports to allow the clipboard
+	 * to dynamically adjust its information-flow policy to the user activity.
+	 */
+	bool user_active = false;
+
+	/**
 	 * Perform redraw and flush pixels to the framebuffer
 	 */
 	void draw_and_flush()
@@ -1225,6 +1252,8 @@ struct Nitpicker::Main
 
 void Nitpicker::Main::handle_input(unsigned)
 {
+	period_cnt++;
+
 	/*
 	 * If kill mode is already active, we got recursively called from
 	 * within this 'input_func' (via 'wait_and_dispatch_one_signal').
@@ -1240,15 +1269,23 @@ void Nitpicker::Main::handle_input(unsigned)
 		::Session * const old_focused_session = user_state.Mode::focused_session();
 		bool        const old_kill_mode       = user_state.kill();
 		bool        const old_xray_mode       = user_state.xray();
+		bool        const old_user_active     = user_active;
 
 		/* handle batch of pending events */
-		import_input_events(ev_buf, input.flush(), user_state);
+		if (import_input_events(ev_buf, input.flush(), user_state)) {
+			last_active_period = period_cnt;
+			user_active        = true;
+		}
 
 		Point       const new_pointer_pos     = user_state.pointer_pos();
 		::Session * const new_pointed_session = user_state.pointed_session();
 		::Session * const new_focused_session = user_state.Mode::focused_session();
 		bool        const new_kill_mode       = user_state.kill();
 		bool        const new_xray_mode       = user_state.xray();
+
+		/* flag user as inactive after activity threshold is reached */
+		if (period_cnt == last_active_period + activity_threshold)
+			user_active = false;
 
 		/* report mouse-position updates */
 		if (pointer_reporter.is_enabled() && old_pointer_pos != new_pointer_pos) {
@@ -1273,8 +1310,9 @@ void Nitpicker::Main::handle_input(unsigned)
 			report_session(hover_reporter, new_pointed_session);
 
 		/* report focus changes */
-		if (old_focused_session != new_focused_session)
-			report_session(focus_reporter, new_focused_session);
+		if (old_focused_session != new_focused_session
+		 || old_user_active     != user_active)
+			report_session(focus_reporter, new_focused_session, user_active);
 
 		/* report kill mode */
 		if (old_kill_mode != new_kill_mode) {
