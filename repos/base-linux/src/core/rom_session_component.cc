@@ -30,45 +30,11 @@
 using namespace Genode;
 
 
-static Genode::size_t file_size(const char *path)
-{
-	struct stat64 s;
-	if (lx_stat(path, &s) < 0)
-		return 0;
-	else
-		return s.st_size;
-}
-
-
 Rom_session_component::Rom_session_component(Rom_fs         *rom_fs,
                                              Rpc_entrypoint *ds_ep,
                                              const char     *args)
-: _ds_ep(ds_ep)
+: _ds(args), _ds_ep(ds_ep)
 {
-	/* extract filename from session arguments */
-	char fname[Linux_dataspace::FNAME_LEN];
-	Arg_string::find_arg(args, "filename").string(fname, sizeof(fname), "");
-
-	/* only files inside the current working directory are allowed */
-	for (const char *c = fname; *c; c++)
-		if (*c == '/')
-			throw Root::Invalid_args();
-
-	Genode::size_t const fsize = file_size(fname);
-
-	/* use invalid capability as default value */
-	_ds_cap = Rom_dataspace_capability();
-
-	/* ROM module not found */
-	if (fsize == 0)
-		throw Root::Invalid_args();
-
-	int const fd = lx_open(fname, O_RDONLY | LX_O_CLOEXEC, S_IRUSR | S_IXUSR);
-
-	_ds = Dataspace_component(fsize, 0, CACHED, false, 0);
-	_ds.fd(fd);
-	_ds.fname(fname);
-
 	Dataspace_capability ds_cap = _ds_ep->manage(&_ds);
 	_ds_cap = static_cap_cast<Rom_dataspace>(ds_cap);
 }

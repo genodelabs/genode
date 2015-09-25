@@ -36,15 +36,18 @@ namespace Genode {
 	{
 		private:
 
+			Filename       _fname;              /* filename for mmap          */
 			size_t         _size;               /* size of dataspace in bytes */
 			addr_t         _addr;               /* meaningless on linux       */
-			Filename       _fname;              /* filename for mmap          */
 			int            _fd;                 /* file descriptor            */
 			bool           _writable;           /* false if read-only         */
 
 			/* Holds the dataspace owner if a distinction between owner and
 			 * others is necessary on the dataspace, otherwise it is 0 */
 			Dataspace_owner * _owner;
+
+			static Filename _file_name(const char *args);
+			size_t _file_size();
 
 		public:
 
@@ -78,12 +81,11 @@ namespace Genode {
 			}
 
 			/**
-			 * Define corresponding filename of dataspace
+			 * This constructor is especially used for ROM dataspaces
 			 *
-			 * The file name is only relevant for ROM dataspaces that should
-			 * be executed via execve.
+			 * \param args  session parameters containing 'filename' key/value
 			 */
-			void fname(const char *fname) { strncpy(_fname.buf, fname, sizeof(_fname.buf)); }
+			Dataspace_component(const char *args);
 
 			/**
 			 * Assign file descriptor to dataspace
