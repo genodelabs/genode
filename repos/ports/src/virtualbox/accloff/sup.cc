@@ -16,6 +16,7 @@
 /* Genode includes */
 #include <base/printf.h>
 #include <base/semaphore.h>
+#include <timer_session/connection.h>
 
 /* VirtualBox includes */
 #include <VBox/vmm/vm.h>
@@ -98,6 +99,27 @@ bool create_emt_vcpu(pthread_t * thread, size_t stack_size,
 
 uint64_t genode_cpu_hz() {
 	return 1000000000ULL; /* XXX fixed 1GHz return value */
+}
+
+
+void genode_update_tsc(void (*update_func)(void), unsigned long update_us)
+{
+	using namespace Genode;
+
+	Timer::Connection timer;
+	Signal_context    sig_ctx;
+	Signal_receiver   sig_rec;
+	Signal_context_capability sig_cap = sig_rec.manage(&sig_ctx);
+
+	timer.sigh(sig_cap);
+	timer.trigger_once(update_us);
+
+	for (;;) {
+		Signal s = sig_rec.wait_for_signal();
+		update_func();
+
+		timer.trigger_once(update_us);
+	}
 }
 
 

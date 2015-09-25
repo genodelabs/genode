@@ -39,8 +39,7 @@ struct Attached_gip : Genode::Attached_ram_dataspace
 
 
 enum {
-	UPDATE_HZ  = 100,                     /* Hz */
-	/* Note: UPDATE_MS < 10ms is not supported by alarm timer, take care !*/
+	UPDATE_HZ  = 1000,
 	UPDATE_MS  = 1000 / UPDATE_HZ,
 	UPDATE_NS  = UPDATE_MS * 1000 * 1000,
 };
@@ -49,9 +48,11 @@ enum {
 PSUPGLOBALINFOPAGE g_pSUPGlobalInfoPage;
 
 
-class Periodic_GIP : public Genode::Alarm {
+struct Periodic_gip : public Genode::Thread<4096>
+{
+	Periodic_gip() : Thread("periodic_gip") { start(); }
 
-	bool on_alarm(unsigned) override
+	static void update()
 	{
 		/**
 		 * We're using rdtsc here since timer_session->elapsed_ms produces
@@ -98,11 +99,10 @@ class Periodic_GIP : public Genode::Alarm {
 		 * read struct SUPGIPCPU description for more details.
 		 */
 		ASMAtomicIncU32(&cpu->u32TransactionId);
-
-		return true;
 	}
-};
 
+	void entry() override { genode_update_tsc(update, UPDATE_MS * 1000); }
+};
 
 
 int SUPR3Init(PSUPDRVSESSION *ppSession)
@@ -149,8 +149,7 @@ int SUPR3Init(PSUPDRVSESSION *ppSession)
 	cpu->idApic                  = 0;
 
 	/* schedule periodic call of GIP update function */
-	static Periodic_GIP alarm;
-	Genode::Timeout_thread::alarm_timer()->schedule(&alarm, UPDATE_MS);
+	static Periodic_gip periodic_gip;
 
 	initialized = true;
 

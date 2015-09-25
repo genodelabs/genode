@@ -19,6 +19,7 @@
 #include <rom_session/connection.h>
 #include <timer_session/connection.h>
 #include <os/attached_rom_dataspace.h>
+#include <trace/timestamp.h>
 
 #include <vmm/vcpu_thread.h>
 #include <vmm/vcpu_dispatcher.h>
@@ -186,6 +187,32 @@ uint64_t genode_cpu_hz()
 	}
 
 	return cpu_freq;
+}
+
+
+void genode_update_tsc(void (*update_func)(void), unsigned long update_us)
+{
+	using namespace Genode;
+	using namespace Nova;
+
+	enum { TSC_FACTOR = 1000ULL };
+
+	Genode::addr_t sem = Thread_base::myself()->tid().exc_pt_sel + Nova::SM_SEL_EC;
+	unsigned long tsc_khz = (genode_cpu_hz() / 1000) / TSC_FACTOR;
+
+	Trace::Timestamp us_64 = update_us;
+
+	for (;;) {
+		update_func();
+
+		Trace::Timestamp now = Trace::timestamp();
+
+		/* block until timeout fires or it gets canceled */
+		unsigned long long tsc_absolute = now + us_64 * tsc_khz;
+		Genode::uint8_t res = sm_ctrl(sem, SEMAPHORE_DOWN, tsc_absolute);
+		if (res != Nova::NOVA_OK && res != Nova::NOVA_TIMEOUT)
+			nova_die();
+	}
 }
 
 
