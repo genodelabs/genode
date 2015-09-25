@@ -88,6 +88,30 @@ class Genode::Xml_generator
 				void append(char const *src) { append(src, strlen(src)); }
 
 				/**
+				 * Append character, sanitize it if needed
+				 */
+				void append_sanitized(char const c)
+				{
+					switch (c) {
+					case 0:    append("&#x00;"); break;
+					case '>':  append("&gt;");   break;
+					case '<':  append("&lt;");   break;
+					case '&':  append("&amp;");  break;
+					case '"':  append("&quot;"); break;
+					case '\'': append("&apos;"); break;
+					default:   append(c);        break;
+					}
+				}
+
+				/**
+				 * Append character buffer, sanitize characters if needed
+				 */
+				void append_sanitized(char const *src, size_t len)
+				{
+					for (; len--; append_sanitized(*src++));
+				}
+
+				/**
 				 * Return unused part of the buffer
 				 */
 				Out_buffer remainder() const {
@@ -192,7 +216,7 @@ class Genode::Xml_generator
 					dst.append(' ');
 					dst.append(name);
 					dst.append("=\"");
-					dst.append(value);
+					dst.append(value, strlen(value));
 					dst.append("\"");
 
 					_attr_offset += gap;
@@ -201,9 +225,14 @@ class Genode::Xml_generator
 				void append(char const *src, size_t src_len)
 				{
 					Out_buffer content_buffer = _content_buffer(false);
-
 					content_buffer.append(src, src_len);
+					_commit_content(content_buffer);
+				}
 
+				void append_sanitized(char const *src, size_t src_len)
+				{
+					Out_buffer content_buffer = _content_buffer(false);
+					content_buffer.append_sanitized(src, src_len);
 					_commit_content(content_buffer);
 				}
 
@@ -298,6 +327,16 @@ class Genode::Xml_generator
 		void append(char const *str, size_t str_len = ~0UL)
 		{
 			_curr_node->append(str, str_len == ~0UL ? strlen(str) : str_len);
+		}
+
+		/**
+		 * Append sanitized content to XML node
+		 *
+		 * This method must not be followed by calls of 'attribute'.
+		 */
+		void append_sanitized(char const *str, size_t str_len = ~0UL)
+		{
+			_curr_node->append_sanitized(str, str_len == ~0UL ? strlen(str) : str_len);
 		}
 
 		size_t used() const { return _out_buffer.used(); }

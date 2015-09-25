@@ -396,6 +396,66 @@ class Genode::Xml_node
 				Token next_token() const { return _next; }
 		};
 
+		/**
+		 * Helper class to decode XML character entities
+		 */
+		struct Decoded_character
+		{
+			char   character   = 0;
+			size_t encoded_len = 1;
+
+			struct Translation
+			{
+				char        character;
+				char const *seq;
+				size_t      seq_len;
+			};
+
+			static Translation translate(char const *src, size_t src_len)
+			{
+				enum { NUM = 6 };
+				static Translation translations[NUM] = {
+					{ '>',  "&gt;",   4 },
+					{ '<',  "&lt;",   4 },
+					{ '&',  "&amp;",  5 },
+					{ '"',  "&quot;", 6 },
+					{ '\'', "&apos;", 6 },
+					{ 0,    "&#x00;", 6 }
+				};
+
+				if (src_len == 0)
+					return { 0, nullptr, 0 };
+
+				for (unsigned i = 0; i < NUM; i++) {
+
+					Translation const &translation = translations[i];
+
+					if (src_len < translation.seq_len
+					 || memcmp(src, translation.seq, translation.seq_len))
+						continue;
+
+					/* translation matches */
+					return translation;
+				}
+
+				/* sequence is not known, pass single character as is */
+				return { *src, nullptr, 1 };
+			}
+
+			Decoded_character(char const *src, size_t src_len)
+			{
+				if (*src != '&' || src_len == 0) {
+					character = *src;
+					return;
+				}
+
+				Translation const translation = translate(src, src_len);
+
+				character   = translation.character;
+				encoded_len = translation.seq_len;
+			}
+		};
+
 		const char *_addr;          /* first character of XML data      */
 		size_t      _max_len;       /* length of XML data in characters */
 		int         _num_sub_nodes; /* number of immediate sub nodes    */
@@ -603,6 +663,47 @@ class Genode::Xml_node
 				return 0;
 
 			return _end_tag.token().start() - content_addr();
+		}
+
+		/**
+		 * Export decoded node content from XML node
+		 *
+		 * \param dst      destination buffer
+		 * \param dst_len  size of destination buffer in bytes
+		 * \return         number of bytes written to the destination buffer
+		 *
+		 * This function transforms XML character entities into their
+		 * respective characters.
+		 */
+		size_t decoded_content(char *dst, size_t dst_len) const
+		{
+			size_t      result_len = 0;
+			char const *src        = content_base();
+			size_t      src_len    = content_size();
+
+			for (; dst_len > 1 && src_len; result_len++) {
+
+				Decoded_character const decoded_character(src, src_len);
+
+				*dst++ = decoded_character.character;
+
+				src     += decoded_character.encoded_len;
+				src_len -= decoded_character.encoded_len;
+			}
+
+			return result_len;
+		}
+
+		/**
+		 * Read decoded node content as Genode::String
+		 */
+		template <typename STRING>
+		STRING decoded_content() const
+		{
+			char buf[STRING::capacity() + 1];
+			size_t const len = decoded_content(buf, sizeof(buf));
+			buf[min(len, STRING::capacity())] = 0;
+			return STRING(buf);
 		}
 
 		/**
