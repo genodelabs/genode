@@ -166,9 +166,12 @@ namespace Nova {
 		asm volatile ("  push %%ebx;"
 
 		              "  mov %%ecx, %%ebx;"
-		              "  movl %%esp, %%ecx;"
-		              "  movl $1f, %%edx;"
+		              "  mov %%esp, %%ecx;"
 
+		              "  call 0f;"
+		              "0:"
+		              "  addl $(1f-0b), (%%esp);"
+		              "  mov (%%esp), %%edx;"
 		              "sysenter;"
 		              "1:"
 
