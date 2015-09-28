@@ -296,9 +296,20 @@ namespace Noux {
 
 			bool _syscall_net(Syscall sc);
 
+			void _destruct() {
+
+				_sig_rec->dissolve(&_destruct_dispatcher);
+
+				_entrypoint.dissolve(this);
+
+				if (is_init_process(this))
+					init_process_exited(_child_policy.exit_value());
+			}
+
 		public:
 
 			struct Binary_does_not_exist : Exception { };
+			struct Insufficient_memory : Exception { };
 
 			/**
 			 * Constructor
@@ -312,6 +323,8 @@ namespace Noux {
 			 *                               specified name could not be
 			 *                               looked up at the virtual file
 			 *                               system
+			 * \throw Insufficent_memory if the child could not be started by
+			 *                           the parent
 			 */
 			Child(char const           *binary_name,
 			      Parent_exit          *parent_exit,
@@ -379,19 +392,17 @@ namespace Noux {
 
 				if (!forked && !_elf._binary_ds.valid()) {
 					PERR("Lookup of executable \"%s\" failed", binary_name);
+
+					_destruct();
 					throw Binary_does_not_exist();
+				}
+				if (!_child.main_thread_cap().valid()) {
+					_destruct();
+					throw Insufficient_memory();
 				}
 			}
 
-			~Child()
-			{
-				_sig_rec->dissolve(&_destruct_dispatcher);
-
-				_entrypoint.dissolve(this);
-
-				if (is_init_process(this))
-					init_process_exited(_child_policy.exit_value());
-			}
+			~Child() { _destruct(); }
 
 			void start() { _entrypoint.activate(); }
 

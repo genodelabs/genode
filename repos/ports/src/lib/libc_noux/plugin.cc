@@ -549,6 +549,11 @@ extern "C" pid_t fork(void)
 
 		if (!noux_syscall(Noux::Session::SYSCALL_FORK)) {
 			PERR("fork error %d", sysio()->error.general);
+			switch (sysio()->error.fork) {
+			case Noux::Sysio::FORK_NOMEM:       errno = ENOMEM; break;
+			default: errno = EAGAIN;
+			}
+			return -1;
 		}
 
 		return sysio()->fork_out.pid;
@@ -1008,6 +1013,7 @@ namespace {
 			PWRN("exec syscall failed for path \"%s\"", filename);
 			switch (sysio()->error.execve) {
 			case Noux::Sysio::EXECVE_NONEXISTENT: errno = ENOENT; break;
+			case Noux::Sysio::EXECVE_NOMEM:       errno = ENOMEM; break;
 			}
 			return -1;
 		}

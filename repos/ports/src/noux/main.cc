@@ -387,6 +387,8 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				}
 				catch (Child::Binary_does_not_exist) {
 					_sysio->error.execve = Sysio::EXECVE_NONEXISTENT; }
+				catch (Child::Insufficient_memory) {
+					_sysio->error.execve = Sysio::EXECVE_NOMEM; }
 
 				break;
 			}
@@ -583,28 +585,34 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				Genode::addr_t parent_cap_addr = _sysio->fork_in.parent_cap_addr;
 
 				int const new_pid = pid_allocator()->alloc();
+				Child * child = nullptr;
 
-				/*
-				 * XXX To ease debugging, it would be useful to generate a
-				 *     unique name that includes the PID instead of just
-				 *     reusing the name of the parent.
-				 */
-				Child *child = new Child(_child_policy.name(),
-				                         this,
-				                         _kill_broadcaster,
-				                         *this,
-				                         new_pid,
-				                         _sig_rec,
-				                         root_dir(),
-				                         _args,
-				                         _env.env(),
-				                         _cap_session,
-				                         _parent_services,
-				                         _resources.ep,
-				                         true,
-				                         env()->heap(),
-				                         _destruct_queue,
-				                         verbose);
+				try {
+					/*
+					 * XXX To ease debugging, it would be useful to generate a
+					 *     unique name that includes the PID instead of just
+					 *     reusing the name of the parent.
+					 */
+					child = new Child(_child_policy.name(),
+					                  this,
+					                  _kill_broadcaster,
+					                  *this,
+					                  new_pid,
+					                  _sig_rec,
+					                  root_dir(),
+					                  _args,
+					                  _env.env(),
+					                  _cap_session,
+					                  _parent_services,
+					                  _resources.ep,
+					                  true,
+					                  env()->heap(),
+					                  _destruct_queue,
+					                  verbose);
+				} catch (Child::Insufficient_memory) {
+					_sysio->error.fork = Sysio::FORK_NOMEM;
+					break;
+				}
 
 				Family_member::insert(child);
 
@@ -1078,7 +1086,24 @@ Genode::Lock &Noux::signal_lock()
 
 
 void *operator new (Genode::size_t size) {
-	return Genode::env()->heap()->alloc(size); }
+	void * ptr = Genode::env()->heap()->alloc(size);
+	if (!ptr)
+		return ptr;
+
+	Genode::memset(ptr, 0, size);
+	return ptr;
+}
+
+
+void operator delete (void * ptr)
+{
+	if (Genode::env()->heap()->need_size_for_free()) {
+		PWRN("leaking memory");
+		return;
+	}
+
+	Genode::env()->heap()->free(ptr, 0);
+}
 
 
 template <typename FILE_SYSTEM>

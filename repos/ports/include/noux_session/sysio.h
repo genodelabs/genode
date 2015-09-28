@@ -266,7 +266,8 @@ namespace Noux {
 		enum Clock_Id        { CLOCK_ID_SECOND };
 
 		enum Fcntl_error     { FCNTL_ERR_CMD_INVALID = Vfs::Directory_service::NUM_GENERAL_ERRORS };
-		enum Execve_error    { EXECVE_NONEXISTENT    = Vfs::Directory_service::NUM_GENERAL_ERRORS };
+		enum Execve_error    { EXECVE_NONEXISTENT    = Vfs::Directory_service::NUM_GENERAL_ERRORS, EXECVE_NOMEM };
+		enum Fork_error      { FORK_NOMEM = Vfs::Directory_service::NUM_GENERAL_ERRORS };
 		enum Select_error    { SELECT_ERR_INTERRUPT };
 
 		/**
@@ -339,6 +340,7 @@ namespace Noux {
 			Utimes_error   utimes;
 			Wait4_error    wait4;
 			Kill_error     kill;
+			Fork_error     fork;
 
 		} error;
 
