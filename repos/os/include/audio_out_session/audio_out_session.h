@@ -49,7 +49,7 @@ namespace Audio_out {
 	class Session;
 
 	enum {
-		QUEUE_SIZE  = 16,            /* buffer queue size */
+		QUEUE_SIZE  = 256,           /* buffer queue size */
 		PERIOD      = 512,           /* samples per period (~11.6ms) */
 		SAMPLE_RATE = 44100,
 		SAMPLE_SIZE = sizeof(float),
