@@ -9,7 +9,7 @@ if {[have_include "power_on/qemu"]} {
 	exit
 }
 
-if {[have_spec hw_odroid_xu]} {
+if {[have_spec hw_odroid_xu] || [have_spec hw_wand_quad]} {
 	puts "Run script does not support this platform."
 	exit 0
 }
@@ -20,7 +20,9 @@ if {![info exists use_usb_driver]} {
 set use_nic_driver      [expr !$use_usb_driver && ![have_spec imx53] && !$use_wifi_driver]
 
 if {[expr !$use_usb_driver && !$use_nic_driver && !$use_wifi_driver]} {
-	puts "\n Run script is not supported on this platform. \n"; exit 0 }
+	puts "Run script is not supported on this platform.";
+	exit 0
+}
 
 # provide wifi related variables in case we do not use the wifi driver
 if {!$use_wifi_driver} {
