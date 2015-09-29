@@ -33,6 +33,7 @@
 #include <window_registry.h>
 #include <decorator_nitpicker.h>
 #include <layouter_nitpicker.h>
+#include <direct_nitpicker.h>
 
 
 namespace Wm {
@@ -675,8 +676,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 		/**
 		 * Constructor
 		 *
-		 * \param nitpicker  real nitpicker service
-		 * \param ep         entrypoint used for managing the views
+		 * \param ep  entrypoint used for managing the views
 		 */
 		Session_component(Ram_session_capability ram,
 		                  Window_registry       &window_registry,
@@ -1027,6 +1027,11 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 
 		Decorator_nitpicker_session *_decorator_session = nullptr;
 
+		/**
+		 * Nitpicker session used to perform session-control operations
+		 */
+		Nitpicker::Session &_focus_nitpicker_session;
+
 	public:
 
 		/**
@@ -1035,12 +1040,14 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 		Root(Entrypoint &ep,
 		     Window_registry &window_registry, Allocator &md_alloc,
 		     Ram_session_capability ram,
-		     Reporter &pointer_reporter, Reporter &focus_request_reporter)
+		     Reporter &pointer_reporter, Reporter &focus_request_reporter,
+		     Nitpicker::Session &focus_nitpicker_session)
 		:
 			_ep(ep), _md_alloc(md_alloc), _ram(ram),
 			_pointer_reporter(pointer_reporter),
 			_focus_request_reporter(focus_request_reporter),
-			_window_registry(window_registry)
+			_window_registry(window_registry),
+			_focus_nitpicker_session(focus_nitpicker_session)
 		{
 			_window_layouter_input.event_queue().enabled(true);
 
@@ -1057,7 +1064,8 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 		{
 			Genode::Session_label session_label(args.string());
 
-			enum Role { ROLE_DECORATOR, ROLE_LAYOUTER, ROLE_REGULAR };
+
+			enum Role { ROLE_DECORATOR, ROLE_LAYOUTER, ROLE_REGULAR, ROLE_DIRECT };
 			Role role = ROLE_REGULAR;
 
 			/*
@@ -1074,6 +1082,9 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 
 					if (policy.attribute(role_attr).has_value("decorator"))
 						role = ROLE_DECORATOR;
+
+					if (policy.attribute(role_attr).has_value("direct"))
+						role = ROLE_DIRECT;
 				}
 			}
 			catch (...) { }
@@ -1109,6 +1120,14 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 
 					return _ep.manage(*_layouter_session);
 				}
+
+			case ROLE_DIRECT:
+				{
+					Direct_nitpicker_session *session = new (_md_alloc)
+						Direct_nitpicker_session(session_label);
+
+					return _ep.manage(*session);
+				}
 			}
 
 			return Session_capability();
@@ -1135,6 +1154,12 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 
 				if (decorator_session)
 					decorator_session->upgrade(args.string());
+
+				Direct_nitpicker_session *direct_session =
+					dynamic_cast<Direct_nitpicker_session *>(session);
+
+				if (direct_session)
+					direct_session->upgrade(args.string());
 			};
 			_ep.rpc_ep().apply(session_cap, lambda);
 		}
@@ -1153,6 +1178,18 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 				});
 			if (regular_session) {
 				Genode::destroy(_md_alloc, regular_session);
+				return;
+			}
+
+			Direct_nitpicker_session *direct_session =
+				ep.apply(session_cap, [this] (Direct_nitpicker_session *session) {
+					if (session) {
+						_ep.dissolve(*session);
+					}
+					return session;
+				});
+			if (direct_session) {
+				Genode::destroy(_md_alloc, direct_session);
 				return;
 			}
 
@@ -1212,6 +1249,13 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 					break;
 				}
 			}
+
+			/*
+			 * Forward the request to the nitpicker control session to apply
+			 * the show/hide/to-front operations on "direct" nitpicker
+			 * sessions.
+			 */
+			_focus_nitpicker_session.session_control(selector, operation);
 		}
 
 

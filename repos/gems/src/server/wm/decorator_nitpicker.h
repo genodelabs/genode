@@ -47,7 +47,6 @@ namespace Wm { class Main;
 namespace Wm {
 
 	struct Decorator_nitpicker_session;
-	struct Decorator_nitpicker_service;
 	struct Decorator_content_callback;
 	struct Decorator_content_registry;
 }

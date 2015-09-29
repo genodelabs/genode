@@ -59,11 +59,12 @@ struct Wm::Main
 
 	Window_registry window_registry { *env()->heap(), window_list_reporter };
 
+	Nitpicker::Connection focus_nitpicker_session;
+
 	Nitpicker::Root nitpicker_root { ep, window_registry,
 	                                 *env()->heap(), env()->ram_session_cap(),
-	                                 pointer_reporter, focus_request_reporter };
-
-	Nitpicker::Connection focus_nitpicker_session;
+	                                 pointer_reporter, focus_request_reporter,
+	                                 focus_nitpicker_session };
 
 	void handle_focus_update(unsigned)
 	{
