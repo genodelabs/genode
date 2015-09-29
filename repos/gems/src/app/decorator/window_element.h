@@ -33,7 +33,7 @@ class Decorator::Window_element : public Animator::Item
 
 		enum Type { TITLE, LEFT, RIGHT, TOP, BOTTOM,
 		            TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT,
-		            CLOSER, MAXIMIZE, MINIMIZE, UNMAXIMIZE, UNDEFINED };
+		            CLOSER, MAXIMIZER, MINIMIZER, UNMAXIMIZER, UNDEFINED };
 
 	private:
 
@@ -130,9 +130,9 @@ class Decorator::Window_element : public Animator::Item
 			case BOTTOM_LEFT:  return "bottom_left";
 			case BOTTOM_RIGHT: return "bottom_right";
 			case CLOSER:       return "closer";
-			case MINIMIZE:     return "minimize";
-			case MAXIMIZE:     return "maximize";
-			case UNMAXIMIZE:   return "unmaximize";
+			case MINIMIZER:    return "minimizer";
+			case MAXIMIZER:    return "maximizer";
+			case UNMAXIMIZER:  return "unmaximizer";
 			}
 			return "";
 		}

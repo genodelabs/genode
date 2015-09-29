@@ -78,9 +78,9 @@ class Decorator::Window : public Window_base
 		                        { Element::BOTTOM_LEFT,  _animator, _base_color },
 		                        { Element::BOTTOM_RIGHT, _animator, _base_color },
 		                        { Element::CLOSER,       _animator, _base_color },
-		                        { Element::MAXIMIZE,     _animator, _base_color },
-		                        { Element::MINIMIZE,     _animator, _base_color },
-		                        { Element::UNMAXIMIZE,   _animator, _base_color } };
+		                        { Element::MAXIMIZER,    _animator, _base_color },
+		                        { Element::MINIMIZER,    _animator, _base_color },
+		                        { Element::UNMAXIMIZER,  _animator, _base_color } };
 
 		Element &element(Element::Type type)
 		{
@@ -290,9 +290,9 @@ class Decorator::Window : public Window_base
 		{
 			switch (window_control.type()) {
 			case Control::TYPE_CLOSER:      return element(Element::CLOSER).color();
-			case Control::TYPE_MAXIMIZER:   return element(Element::MAXIMIZE).color();
-			case Control::TYPE_MINIMIZER:   return element(Element::MINIMIZE).color();
-			case Control::TYPE_UNMAXIMIZER: return element(Element::UNMAXIMIZE).color();
+			case Control::TYPE_MAXIMIZER:   return element(Element::MAXIMIZER).color();
+			case Control::TYPE_MINIMIZER:   return element(Element::MINIMIZER).color();
+			case Control::TYPE_UNMAXIMIZER: return element(Element::UNMAXIMIZER).color();
 			case Control::TYPE_TITLE:       return element(Element::TITLE).color();
 			case Control::TYPE_UNDEFINED:   break;
 			};

@@ -68,6 +68,8 @@ class Wm::Window_registry
 
 				enum Is_hidden { IS_HIDDEN, IS_NOT_HIDDEN };
 
+				enum Resizeable { RESIZEABLE, NOT_RESIZEABLE };
+
 			private:
 
 				Id const _id;
@@ -81,6 +83,8 @@ class Wm::Window_registry
 				Has_alpha _has_alpha = HAS_NO_ALPHA;
 
 				Is_hidden _is_hidden = IS_NOT_HIDDEN;
+
+				Resizeable _resizeable = NOT_RESIZEABLE;
 
 				friend class Window_registry;
 
@@ -98,6 +102,7 @@ class Wm::Window_registry
 				void attr(Area size)                  { _size  = size;  }
 				void attr(Has_alpha has_alpha)        { _has_alpha = has_alpha; }
 				void attr(Is_hidden is_hidden)        { _is_hidden = is_hidden; }
+				void attr(Resizeable resizeable)      { _resizeable = resizeable; }
 
 				void generate_window_list_entry_xml(Xml_generator &xml) const
 				{
@@ -113,6 +118,9 @@ class Wm::Window_registry
 
 						if (_is_hidden == IS_HIDDEN)
 							xml.attribute("hidden", "yes");
+
+						if (_resizeable == RESIZEABLE)
+							xml.attribute("resizeable", "yes");
 					});
 				}
 		};
@@ -216,6 +224,11 @@ class Wm::Window_registry
 		void is_hidden(Id id, bool is_hidden)
 		{
 			_set_attr(id, is_hidden ? Window::IS_HIDDEN : Window::IS_NOT_HIDDEN);
+		}
+
+		void resizeable(Id id, bool resizeable)
+		{
+			_set_attr(id, resizeable ? Window::RESIZEABLE : Window::NOT_RESIZEABLE);
 		}
 };
 

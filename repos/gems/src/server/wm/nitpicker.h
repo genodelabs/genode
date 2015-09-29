@@ -229,6 +229,8 @@ class Wm::Nitpicker::Top_level_view : public View,
 		 */
 		Rect _content_geometry;
 
+		bool _resizeable = false;
+
 		Title         _window_title;
 		Session_label _session_label;
 
@@ -268,6 +270,7 @@ class Wm::Nitpicker::Top_level_view : public View,
 				_window_registry.title(_win_id, _window_title.string());
 				_window_registry.label(_win_id, _session_label);
 				_window_registry.has_alpha(_win_id, View::has_alpha());
+				_window_registry.resizeable(_win_id, _resizeable);
 			}
 
 			_window_registry.size(_win_id, geometry.area());
@@ -319,6 +322,14 @@ class Wm::Nitpicker::Top_level_view : public View,
 		}
 
 		void is_hidden(bool is_hidden) { _window_registry.is_hidden(_win_id, is_hidden); }
+
+		void resizeable(bool resizeable)
+		{
+			_resizeable = resizeable;
+
+			if (_win_id.valid())
+				_window_registry.resizeable(_win_id, resizeable);
+		}
 };
 
 
@@ -579,6 +590,8 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 			else {
 				Top_level_view *view = new (_top_level_view_alloc)
 					Top_level_view(_session, _session_label, _has_alpha, _window_registry);
+
+				view->resizeable(_mode_sigh.valid());
 
 				_top_level_views.insert(view);
 				return *view;
@@ -905,6 +918,15 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 		void mode_sigh(Genode::Signal_context_capability sigh) override
 		{
 			_mode_sigh = sigh;
+
+			/*
+			 * We consider a window as resizable if the client shows interest
+			 * in mode-change notifications.
+			 */
+			bool const resizeable = _mode_sigh.valid();
+
+			for (Top_level_view *v = _top_level_views.first(); v; v = v->next())
+				v->resizeable(resizeable);
 		}
 
 		void buffer(Framebuffer::Mode mode, bool has_alpha) override

@@ -75,7 +75,8 @@ class Floating_window_layouter::Window : public List<Window>::Element
 		struct Element
 		{
 			enum Type { UNDEFINED, TITLE, LEFT, RIGHT, TOP, BOTTOM,
-			            TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT };
+			            TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT,
+			            CLOSER, MAXIMIZER, MINIMIZER };
 
 			Type type;
 
@@ -92,6 +93,9 @@ class Floating_window_layouter::Window : public List<Window>::Element
 				case TOP_RIGHT:    return "top_right";
 				case BOTTOM_LEFT:  return "bottom_left";
 				case BOTTOM_RIGHT: return "bottom_right";
+				case CLOSER:       return "closer";
+				case MAXIMIZER:    return "maximizer";
+				case MINIMIZER:    return "minimizer";
 				}
 				return "";
 			}
@@ -131,6 +135,8 @@ class Floating_window_layouter::Window : public List<Window>::Element
 		 */
 		bool _is_hidden = false;
 
+		bool _is_resizeable = false;
+
 		/*
 		 * Number of times the window has been topped. This value is used by
 		 * the decorator to detect the need for bringing the window to the
@@ -166,6 +172,8 @@ class Floating_window_layouter::Window : public List<Window>::Element
 		void has_alpha(bool has_alpha) { _has_alpha = has_alpha; }
 
 		void is_hidden(bool is_hidden) { _is_hidden = is_hidden; }
+
+		void is_resizeable(bool is_resizeable) { _is_resizeable = is_resizeable; }
 
 		bool label_matches(Label const &label) const { return label == _label; }
 
@@ -251,6 +259,11 @@ class Floating_window_layouter::Window : public List<Window>::Element
 
 				if (_has_alpha)
 					xml.attribute("has_alpha", "yes");
+
+				if (_is_resizeable) {
+					xml.attribute("maximizer", "yes");
+					xml.attribute("closer", "yes");
+				}
 			});
 		}
 
@@ -458,6 +471,8 @@ void Floating_window_layouter::Main::import_window_list(Xml_node window_list_xml
 			            && node.attribute("has_alpha").has_value("yes"));
 			win->is_hidden(node.has_attribute("hidden")
 			            && node.attribute("hidden").has_value("yes"));
+			win->is_resizeable(node.has_attribute("resizeable")
+			            && node.attribute("resizeable").has_value("yes"));
 		}
 	} catch (...) { }
 }
@@ -536,7 +551,11 @@ element_from_hover_model(Genode::Xml_node hover_window_xml)
 	if (top_sizer)    return Type::TOP;
 	if (bottom_sizer) return Type::BOTTOM;
 
-	if (hover_window_xml.has_sub_node("title")) return Type::TITLE;
+	if (hover_window_xml.has_sub_node("title"))     return Type::TITLE;
+	if (hover_window_xml.has_sub_node("closer"))    return Type::CLOSER;
+	if (hover_window_xml.has_sub_node("maximizer")) return Type::MAXIMIZER;
+	if (hover_window_xml.has_sub_node("minimizer")) return Type::MINIMIZER;
+
 
 	return Type::UNDEFINED;
 }
