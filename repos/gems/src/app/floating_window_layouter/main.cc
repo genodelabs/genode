@@ -16,6 +16,7 @@
 #include <base/signal.h>
 #include <os/attached_rom_dataspace.h>
 #include <os/reporter.h>
+#include <os/session_policy.h>
 #include <nitpicker_session/connection.h>
 #include <input_session/client.h>
 #include <input/event.h>
@@ -69,6 +70,7 @@ class Floating_window_layouter::Window : public List<Window>::Element
 	public:
 
 		typedef String<256> Title;
+		typedef String<256> Label;
 
 		struct Element
 		{
@@ -104,6 +106,8 @@ class Floating_window_layouter::Window : public List<Window>::Element
 		unsigned const _id = 0;
 
 		Title _title;
+
+		Label _label;
 
 		Rect _geometry;
 
@@ -151,6 +155,8 @@ class Floating_window_layouter::Window : public List<Window>::Element
 
 		void title(Title const &title) { _title = title; }
 
+		void label(Label const &label) { _label = label; }
+
 		void geometry(Rect geometry) { _geometry = geometry; }
 
 		Point position() const { return _geometry.p1(); }
@@ -160,6 +166,8 @@ class Floating_window_layouter::Window : public List<Window>::Element
 		void has_alpha(bool has_alpha) { _has_alpha = has_alpha; }
 
 		void is_hidden(bool is_hidden) { _is_hidden = is_hidden; }
+
+		bool label_matches(Label const &label) const { return label == _label; }
 
 		/**
 		 * Return true if user drags a window border
@@ -210,8 +218,22 @@ class Floating_window_layouter::Window : public List<Window>::Element
 				return;
 
 			xml.node("window", [&]() {
-				xml.attribute("id",     _id);
-				xml.attribute("title",  _title.string());
+
+				xml.attribute("id", _id);
+
+				/* present concatenation of label and title in the window's title bar */
+				{
+					bool const has_title = Genode::strlen(_title.string()) > 0;
+
+					char buf[Label::capacity()];
+					Genode::snprintf(buf, sizeof(buf), "%s%s%s",
+					                 _label.string(),
+					                 has_title ? " " : "",
+					                 _title.string());
+
+					xml.attribute("title",  buf);
+				}
+
 				xml.attribute("xpos",   _geometry.x1());
 				xml.attribute("ypos",   _geometry.y1());
 				xml.attribute("width",  _geometry.w());
@@ -320,6 +342,21 @@ struct Floating_window_layouter::Main
 
 
 	/**
+	 * Install handler for responding to focus requests
+	 */
+	void handle_focus_request_update(unsigned);
+
+	void _apply_focus_request();
+
+	int handled_focus_request_id = 0;
+
+	Signal_dispatcher<Main> focus_request_dispatcher = {
+		sig_rec, *this, &Main::handle_focus_request_update };
+
+	Attached_rom_dataspace focus_request { "focus_request" };
+
+
+	/**
 	 * Install handler for responding to hover changes
 	 */
 	void handle_hover_update(unsigned);
@@ -365,6 +402,8 @@ struct Floating_window_layouter::Main
 	Main(Signal_receiver &sig_rec) : sig_rec(sig_rec)
 	{
 		window_list.sigh(window_list_dispatcher);
+
+		focus_request.sigh(focus_request_dispatcher);
 
 		hover.sigh(hover_dispatcher);
 
@@ -413,7 +452,8 @@ void Floating_window_layouter::Main::import_window_list(Xml_node window_list_xml
 			}
 
 			win->size(area_attribute(node));
-			win->title(string_attribute(node, "title", Window::Title("untitled")));
+			win->label(string_attribute(node, "label", Window::Label("")));
+			win->title(string_attribute(node, "title", Window::Title("")));
 			win->has_alpha(node.has_attribute("has_alpha")
 			            && node.attribute("has_alpha").has_value("yes"));
 			win->is_hidden(node.has_attribute("hidden")
@@ -526,6 +566,74 @@ void Floating_window_layouter::Main::handle_window_list_update(unsigned)
 		import_window_list(Xml_node(window_list.local_addr<char>())); }
 	catch (...) {
 		PERR("Error while importing window list"); }
+
+	generate_window_layout_model();
+}
+
+
+void Floating_window_layouter::Main::_apply_focus_request()
+{
+	try {
+		Xml_node node(focus_request.local_addr<char>());
+
+		Window::Label const label = node.attribute_value("label", Window::Label(""));
+
+		int const id = node.attribute_value("id", 0L);
+
+		/* don't apply the same focus request twice */
+		if (id == handled_focus_request_id)
+			return;
+
+		bool focus_redefined = false;
+
+		/*
+		 * Move all windows that match the requested label to the front while
+		 * maintaining their ordering.
+		 */
+		Window *at = nullptr;
+		for (Window *w = windows.first(); w; w = w->next()) {
+
+			if (!w->label_matches(label))
+				continue;
+
+			focus_redefined = true;
+
+			/*
+			 * Move window to behind the previous window that we moved to
+			 * front. If 'w' is the first window that matches the selector,
+			 * move it to the front ('at' argument of 'insert' is 0).
+			 */
+			windows.remove(w);
+			windows.insert(w, at);
+
+			/*
+			 * Bring top-most window to the front of nitpicker's global view
+			 * stack and set the focus to the top-most window.
+			 */
+			if (at == nullptr) {
+				w->topped();
+
+				focused_window_id = w->id();
+				generate_focus_model();
+			}
+
+			at = w;
+		}
+
+		if (focus_redefined)
+			handled_focus_request_id = id;
+
+	}
+	catch (...) {
+		PERR("Error while handling focus request"); }
+}
+
+
+void Floating_window_layouter::Main::handle_focus_request_update(unsigned)
+{
+	focus_request.update();
+
+	_apply_focus_request();
 
 	generate_window_layout_model();
 }

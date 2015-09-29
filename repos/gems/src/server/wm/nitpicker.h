@@ -228,23 +228,8 @@ class Wm::Nitpicker::Top_level_view : public View,
 		 */
 		Rect _content_geometry;
 
-		/*
-		 * The window title is the concatenation of the session label with
-		 * view title.
-		 */
-		struct Window_title : Title
-		{
-			Window_title(Session_label const session_label, Title const &title)
-			{
-				bool const has_title = Genode::strlen(title.string()) > 0;
-				char buf[256];
-				Genode::snprintf(buf, sizeof(buf), "%s%s%s",
-				                 session_label.string(),
-				                 has_title ? " " : "", title.string());
-
-				*static_cast<Title *>(this) = Title(buf);
-			}
-		} _window_title;
+		Title         _window_title;
+		Session_label _session_label;
 
 		typedef Nitpicker::Session::Command Command;
 
@@ -257,7 +242,7 @@ class Wm::Nitpicker::Top_level_view : public View,
 		:
 			View(real_nitpicker, session_label, has_alpha),
 			_window_registry(window_registry),
-			_window_title(session_label, "")
+			_session_label(session_label)
 		{ }
 
 		~Top_level_view()
@@ -280,6 +265,7 @@ class Wm::Nitpicker::Top_level_view : public View,
 			if (!_win_id.valid()) {
 				_win_id = _window_registry.create();
 				_window_registry.title(_win_id, _window_title.string());
+				_window_registry.label(_win_id, _session_label);
 				_window_registry.has_alpha(_win_id, View::has_alpha());
 			}
 
@@ -294,7 +280,7 @@ class Wm::Nitpicker::Top_level_view : public View,
 		{
 			View::title(title);
 
-			_window_title = Window_title(_session_label, title);
+			_window_title = Title(title);
 
 			if (_win_id.valid())
 				_window_registry.title(_win_id, _window_title.string());
@@ -773,6 +759,8 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 			return false;
 		}
 
+		Session_label session_label() const { return _session_label; }
+
 		bool matches_session_label(char const *selector) const
 		{
 			/*
@@ -961,6 +949,10 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 
 		Reporter &_pointer_reporter;
 
+		Reporter &_focus_request_reporter;
+
+		unsigned _focus_request_cnt = 0;
+
 		Last_motion _last_motion = LAST_MOTION_DECORATOR;
 
 		Window_registry &_window_registry;
@@ -1043,10 +1035,11 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 		Root(Entrypoint &ep,
 		     Window_registry &window_registry, Allocator &md_alloc,
 		     Ram_session_capability ram,
-		     Reporter &pointer_reporter)
+		     Reporter &pointer_reporter, Reporter &focus_request_reporter)
 		:
 			_ep(ep), _md_alloc(md_alloc), _ram(ram),
 			_pointer_reporter(pointer_reporter),
+			_focus_request_reporter(focus_request_reporter),
 			_window_registry(window_registry)
 		{
 			_window_layouter_input.event_queue().enabled(true);
@@ -1208,7 +1201,14 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 					break;
 
 				case Session::SESSION_CONTROL_TO_FRONT:
-					PWRN("SESSION_CONTROL_TO_FRONT not implemented");
+
+					/* post focus request to the layouter */
+					Genode::Reporter::Xml_generator
+						xml(_focus_request_reporter, [&] () {
+							xml.attribute("label", s->session_label().string());
+							xml.attribute("id", ++_focus_request_cnt);
+						});
+
 					break;
 				}
 			}

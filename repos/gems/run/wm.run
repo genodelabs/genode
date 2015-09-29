@@ -134,6 +134,7 @@ append config {
 		<config>
 			<rom>
 				<policy label="layouter -> window_list"     report="wm -> window_list"/>
+				<policy label="layouter -> focus_request"   report="wm -> focus_request"/>
 				<policy label="decorator -> window_layout"  report="layouter -> window_layout"/>
 				<policy label="wm -> resize_request"        report="layouter -> resize_request"/>
 				<policy label="decorator -> pointer"        report="wm -> pointer"/>
