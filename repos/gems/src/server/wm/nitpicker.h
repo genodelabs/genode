@@ -63,6 +63,7 @@ namespace Wm { namespace Nitpicker {
 	class View;
 	class Top_level_view;
 	class Child_view;
+	class Session_control_fn;
 	class Session_component;
 	class Root;
 
@@ -329,6 +330,8 @@ class Wm::Nitpicker::Top_level_view : public View,
 
 			return _real_nitpicker.view_capability(_real_handle);
 		}
+
+		void is_hidden(bool is_hidden) { _window_registry.is_hidden(_win_id, is_hidden); }
 };
 
 
@@ -411,6 +414,13 @@ class Wm::Nitpicker::Child_view : public View,
 };
 
 
+struct Wm::Nitpicker::Session_control_fn
+{
+	virtual void session_control(char const *selector, Session::Session_control) = 0;
+	
+};
+
+
 class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
                                          public List<Session_component>::Element
 {
@@ -423,6 +433,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 		Nitpicker::Connection _session { _session_label.string() };
 
 		Window_registry             &_window_registry;
+		Session_control_fn          &_session_control_fn;
 		Entrypoint                  &_ep;
 		Tslab<Top_level_view, 4000>  _top_level_view_alloc;
 		Tslab<Child_view, 4000>      _child_view_alloc;
@@ -686,11 +697,13 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 		                  Entrypoint            &ep,
 		                  Allocator             &session_alloc,
 		                  Session_label   const &session_label,
-		                  Click_handler         &click_handler)
+		                  Click_handler         &click_handler,
+		                  Session_control_fn    &session_control_fn)
 		:
 			_session_label(session_label),
 			_ram(ram),
 			_window_registry(window_registry),
+			_session_control_fn(session_control_fn),
 			_ep(ep),
 			_top_level_view_alloc(&session_alloc),
 			_child_view_alloc(&session_alloc),
@@ -760,6 +773,20 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 			return false;
 		}
 
+		bool matches_session_label(char const *selector) const
+		{
+			/*
+			 * Append label separator to match selectors with a trailing
+			 * separator.
+			 *
+			 * The code originates from nitpicker's 'session.h'.
+			 */
+			char label[Genode::Session_label::capacity() + 4];
+			Genode::snprintf(label, sizeof(label), "%s ->", _session_label.string());
+			return Genode::strcmp(label, selector,
+			                      Genode::strlen(selector)) == 0;
+		}
+
 		void request_resize(Area size)
 		{
 			_requested_size = size;
@@ -767,6 +794,12 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 			/* notify client */
 			if (_mode_sigh.valid())
 				Signal_transmitter(_mode_sigh).submit();
+		}
+
+		void is_hidden(bool is_hidden)
+		{
+			for (Top_level_view *v = _top_level_views.first(); v; v = v->next())
+				v->is_hidden(is_hidden);
 		}
 
 		/**
@@ -893,11 +926,28 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 		}
 
 		void focus(Genode::Capability<Nitpicker::Session>) { }
+
+		void session_control(Label suffix, Session_control operation) override
+		{
+			/*
+			 * Append label argument to session label
+			 *
+			 * The code originates from nitpicker's 'main.cc'.
+			 */
+			char selector[Label::size()];
+
+			Genode::snprintf(selector, sizeof(selector), "%s%s%s",
+			                 _session_label.string(),
+			                 suffix.length() ? " -> " : "", suffix.string());
+
+			_session_control_fn.session_control(selector, operation);
+		}
 };
 
 
 class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session> >,
-                            public Decorator_content_callback
+                            public Decorator_content_callback,
+                            public Session_control_fn
 {
 	private:
 
@@ -1042,7 +1092,7 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 					auto session = new (_md_alloc)
 						Session_component(_ram, _window_registry,
 						                  _ep, _md_alloc, session_label,
-						                  _click_handler);
+						                  _click_handler, *this);
 					_sessions.insert(session);
 					return _ep.manage(*session);
 				}
@@ -1133,6 +1183,34 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 			if (ep.apply(session_cap, layouter_lambda) == _layouter_session) {
 				Genode::destroy(_md_alloc, _layouter_session);
 				return;
+			}
+		}
+
+
+		/**********************************
+		 ** Session_control_fn interface **
+		 **********************************/
+
+		void session_control(char const *selector, Session::Session_control operation) override
+		{
+			for (Session_component *s = _sessions.first(); s; s = s->next()) {
+
+				if (!s->matches_session_label(selector))
+					continue;
+
+				switch (operation) {
+				case Session::SESSION_CONTROL_SHOW:
+					s->is_hidden(false);
+					break;
+
+				case Session::SESSION_CONTROL_HIDE:
+					s->is_hidden(true);
+					break;
+
+				case Session::SESSION_CONTROL_TO_FRONT:
+					PWRN("SESSION_CONTROL_TO_FRONT not implemented");
+					break;
+				}
 			}
 		}
 

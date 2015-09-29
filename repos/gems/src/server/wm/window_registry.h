@@ -64,6 +64,8 @@ class Wm::Window_registry
 
 				enum Has_alpha { HAS_ALPHA, HAS_NO_ALPHA };
 
+				enum Is_hidden { IS_HIDDEN, IS_NOT_HIDDEN };
+
 			private:
 
 				Id const _id;
@@ -72,7 +74,9 @@ class Wm::Window_registry
 
 				Area _size;
 
-				Has_alpha _has_alpha;
+				Has_alpha _has_alpha = HAS_NO_ALPHA;
+
+				Is_hidden _is_hidden = IS_NOT_HIDDEN;
 
 				friend class Window_registry;
 
@@ -88,6 +92,7 @@ class Wm::Window_registry
 				void attr(Title const &title)  { _title = title; }
 				void attr(Area size)           { _size  = size;  }
 				void attr(Has_alpha has_alpha) { _has_alpha = has_alpha; }
+				void attr(Is_hidden is_hidden) { _is_hidden = is_hidden; }
 
 				void generate_window_list_entry_xml(Xml_generator &xml) const
 				{
@@ -99,6 +104,9 @@ class Wm::Window_registry
 
 						if (_has_alpha == HAS_ALPHA)
 							xml.attribute("has_alpha", "yes");
+
+						if (_is_hidden == IS_HIDDEN)
+							xml.attribute("hidden", "yes");
 					});
 				}
 		};
@@ -195,6 +203,11 @@ class Wm::Window_registry
 		void has_alpha(Id id, bool has_alpha)
 		{
 			_set_attr(id, has_alpha ? Window::HAS_ALPHA : Window::HAS_NO_ALPHA);
+		}
+
+		void is_hidden(Id id, bool is_hidden)
+		{
+			_set_attr(id, is_hidden ? Window::IS_HIDDEN : Window::IS_NOT_HIDDEN);
 		}
 };
 
