@@ -21,115 +21,154 @@
 #include <nitpicker_session/connection.h>
 
 /* local includes */
-#include <menu_dialog.h>
+#include <panel_dialog.h>
 
 
 namespace Launcher { struct Main; }
 
 struct Launcher::Main
 {
-	Server::Entrypoint ep;
+	Server::Entrypoint _ep;
 
-	Genode::Cap_connection cap;
+	Genode::Cap_connection _cap;
 
-	char const *report_rom_config =
+	char const *_report_rom_config =
 		"<config> <rom>"
 		"  <policy label=\"menu_dialog\"    report=\"menu_dialog\"/>"
 		"  <policy label=\"menu_hover\"     report=\"menu_hover\"/>"
+		"  <policy label=\"panel_dialog\"   report=\"panel_dialog\"/>"
+		"  <policy label=\"panel_hover\"    report=\"panel_hover\"/>"
 		"  <policy label=\"context_dialog\" report=\"context_dialog\"/>"
 		"  <policy label=\"context_hover\"  report=\"context_hover\"/>"
 		"</rom> </config>";
 
-	Report_rom_slave report_rom_slave = { cap, *env()->ram_session(), report_rom_config };
-
+	Report_rom_slave _report_rom_slave = { _cap, *env()->ram_session(), _report_rom_config };
 
 	/**
 	 * Nitpicker session used to perform session-control operations on the
-	 * subsystem's nitpicker sessions.
+	 * subsystem's nitpicker sessions and to receive global keyboard
+	 * shortcuts.
 	 */
-	Nitpicker::Connection nitpicker;
+	Nitpicker::Connection _nitpicker;
+
+	Genode::Attached_dataspace _input_ds { _nitpicker.input()->dataspace() };
+
+	Input::Event const *_ev_buf() { return _input_ds.local_addr<Input::Event>(); }
+
+	Genode::Signal_rpc_member<Main> _input_dispatcher =
+		{ _ep, *this, &Main::_handle_input };
+
+	void _handle_input(unsigned);
+
+	unsigned _key_cnt = 0;
 
 	Genode::Signal_rpc_member<Main> _exited_child_dispatcher =
-		{ ep, *this, &Main::_handle_exited_child };
+		{ _ep, *this, &Main::_handle_exited_child };
 
-	Subsystem_manager subsystem_manager { ep, cap, _exited_child_dispatcher };
+	Subsystem_manager _subsystem_manager { _ep, _cap, _exited_child_dispatcher };
 
-	Menu_dialog menu_dialog { ep, cap, *env()->ram_session(), report_rom_slave,
-	                          subsystem_manager, nitpicker };
+	Panel_dialog _panel_dialog { _ep, _cap, *env()->ram_session(), *env()->heap(),
+	                             _report_rom_slave, _subsystem_manager, _nitpicker };
 
-
-	Lazy_volatile_object<Attached_rom_dataspace> xray_rom_ds;
-
-	enum Visibility { VISIBILITY_ALWAYS, VISIBILITY_XRAY };
-
-	Visibility visibility = VISIBILITY_ALWAYS;
-
-	void handle_config(unsigned);
-
-	Genode::Signal_rpc_member<Main> xray_update_dispatcher =
-		{ ep, *this, &Main::handle_xray_update };
-
-	void handle_xray_update(unsigned);
+	void _handle_config(unsigned);
 
 	void _handle_exited_child(unsigned)
 	{
-		auto kill_child_fn = [&] (Child_base::Label label) { menu_dialog.kill(label); };
+		auto kill_child_fn = [&] (Child_base::Label label) { _panel_dialog.kill(label); };
 
-		subsystem_manager.for_each_exited_child(kill_child_fn);
+		_subsystem_manager.for_each_exited_child(kill_child_fn);
 	}
+
+	Label _focus_prefix;
+
+	Genode::Attached_rom_dataspace _focus_rom { "focus" };
+
+	void _handle_focus_update(unsigned);
+
+	Genode::Signal_rpc_member<Main> _focus_update_dispatcher =
+		{ _ep, *this, &Main::_handle_focus_update };
 
 	/**
 	 * Constructor
 	 */
-	Main(Server::Entrypoint &ep) : ep(ep)
+	Main(Server::Entrypoint &ep) : _ep(ep)
 	{
-		handle_config(0);
+		_nitpicker.input()->sigh(_input_dispatcher);
+		_focus_rom.sigh(_focus_update_dispatcher);
 
-		if (visibility == VISIBILITY_ALWAYS)
-			menu_dialog.visible(true);
+		_handle_config(0);
+
+		_panel_dialog.visible(true);
 	}
 };
 
 
-void Launcher::Main::handle_config(unsigned)
+void Launcher::Main::_handle_config(unsigned)
 {
 	config()->reload();
 
-	/* set default visibility */
-	visibility = VISIBILITY_ALWAYS;
+	_focus_prefix = config()->xml_node().attribute_value("focus_prefix", Label());
 
-	/* obtain model about nitpicker's xray mode */
-	if (config()->xml_node().has_attribute("visibility")) {
-		if (config()->xml_node().attribute("visibility").has_value("xray")) {
-			xray_rom_ds.construct("xray");
-			xray_rom_ds->sigh(xray_update_dispatcher);
-
-			visibility = VISIBILITY_XRAY;
-
-			/* manually import the initial xray state */
-			handle_xray_update(0);
-		}
-	}
-
-	menu_dialog.update();
+	_panel_dialog.update(config()->xml_node());
 }
 
 
-void Launcher::Main::handle_xray_update(unsigned)
+void Launcher::Main::_handle_input(unsigned)
 {
-	xray_rom_ds->update();
-	if (!xray_rom_ds->is_valid()) {
-		PWRN("could not access xray info");
-		menu_dialog.visible(false);
-		return;
+	unsigned const num_ev = _nitpicker.input()->flush();
+
+	for (unsigned i = 0; i < num_ev; i++) {
+
+		Input::Event const &e = _ev_buf()[i];
+
+		if (e.type() == Input::Event::PRESS)   _key_cnt++;
+		if (e.type() == Input::Event::RELEASE) _key_cnt--;
+
+		/*
+		 * The _key_cnt can become 2 only when the global key (as configured
+		 * in the nitpicker config) is pressed together with another key.
+		 * Hence, the following condition triggers on key combinations with
+		 * the global modifier key, whatever the global modifier key is.
+		 */
+		if (e.type() == Input::Event::PRESS && _key_cnt == 2) {
+
+			if (e.keycode() == Input::KEY_TAB)
+				_panel_dialog.focus_next();
+		}
 	}
+}
 
-	Xml_node xray(xray_rom_ds->local_addr<char>());
 
-	bool const visible = xray.has_attribute("enabled")
-	                  && xray.attribute("enabled").has_value("yes");
+void Launcher::Main::_handle_focus_update(unsigned)
+{
+	try {
+		_focus_rom.update();
 
-	menu_dialog.visible(visible);
+		Xml_node focus_node(_focus_rom.local_addr<char>());
+
+		/*
+		 * Propagate focus information to panel such that the focused
+		 * subsystem gets highlighted.
+		 */
+		Label label = focus_node.attribute_value("label", Label());
+
+		size_t const prefix_len = Genode::strlen(_focus_prefix.string());
+		if (!Genode::strcmp(_focus_prefix.string(), label.string(), prefix_len)) {
+			label = Label(label.string() + prefix_len);
+
+		} else {
+
+			/*
+			 * A foreign nitpicker client not started by ourself has the focus.
+			 */
+			label = Label();
+		}
+
+		_panel_dialog.focus_changed(label);
+
+	} catch (...) {
+		PWRN("no focus model available");
+	}
 }
 
 

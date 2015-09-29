@@ -131,7 +131,7 @@ class Launcher::Menu_view_slave
 		Genode::size_t   const _ep_stack_size = 4*1024*sizeof(Genode::addr_t);
 		Genode::Rpc_entrypoint _ep;
 		Policy                 _policy;
-		Genode::size_t   const _quota = 4*1024*1024;
+		Genode::size_t   const _quota = 6*1024*1024;
 		Genode::Slave          _slave;
 
 	public:

@@ -93,6 +93,8 @@ class Launcher::Context_dialog : Input_event_handler, Dialog_generator,
 
 		Fading_dialog _dialog;
 
+		bool _open = false;
+
 		unsigned _key_cnt = 0;
 		Label    _clicked;
 		bool     _click_in_progress = false;
@@ -166,8 +168,23 @@ class Launcher::Context_dialog : Input_event_handler, Dialog_generator,
 		 */
 		bool handle_input_event(Input::Event const &ev) override
 		{
-			if (ev.type() == Input::Event::MOTION)
+			if (ev.type() == Input::Event::MOTION) {
+
+				/*
+				 * Re-enable the visibility of the menu if we detect motion
+				 * events over the menu. This way, it reappears in situations
+				 * where the pointer temporarily leaves the view and returns.
+				 */
+				if (_open)
+					visible(true);
+
 				return true;
+			}
+
+			if (ev.type() == Input::Event::LEAVE) {
+				visible(false);
+				return true;
+			}
 
 			if (ev.type() == Input::Event::PRESS)   _key_cnt++;
 			if (ev.type() == Input::Event::RELEASE) _key_cnt--;
@@ -210,8 +227,12 @@ class Launcher::Context_dialog : Input_event_handler, Dialog_generator,
 
 		void visible(bool visible)
 		{
+			if (visible == _dialog.visible())
+				return;
+
 			/* reset touch state when (re-)opening the context dialog */
 			if (visible) {
+				_open = true;
 				_touch("");
 				_reset_hover();
 				dialog_changed();
@@ -219,6 +240,12 @@ class Launcher::Context_dialog : Input_event_handler, Dialog_generator,
 			}
 
 			_dialog.visible(visible);
+		}
+
+		void close()
+		{
+			_open = false;
+			visible(false);
 		}
 
 		void position(Fading_dialog::Position position)

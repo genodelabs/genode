@@ -26,10 +26,20 @@ namespace Launcher { struct Menu_dialog; }
 
 
 class Launcher::Menu_dialog : Input_event_handler, Dialog_generator,
-                              Hover_handler, Dialog_model,
-                              Context_dialog::Response_handler
+                              Hover_handler, Dialog_model
 {
+	public:
+
+		struct Response_handler
+		{
+			virtual void handle_selection(Label const &) = 0;
+			virtual void handle_menu_leave() = 0;
+			virtual void handle_menu_motion() = 0;
+		};
+
 	private:
+
+		Response_handler &_response_handler;
 
 		typedef String<128> Title;
 
@@ -58,7 +68,7 @@ class Launcher::Menu_dialog : Input_event_handler, Dialog_generator,
 				xml.node("button", [&] () {
 					xml.attribute("name", e->label.string());
 
-					if ((e->hovered && !_click_in_progress)
+					if ((e->hovered)
 					 || (e->hovered && e->touched))
 						xml.attribute("hovered", "yes");
 
@@ -72,43 +82,15 @@ class Launcher::Menu_dialog : Input_event_handler, Dialog_generator,
 			}
 		}
 
-		class Lookup_failed { };
+		Fading_dialog::Position _position { 0 - 4, 28 - 4 };
 
-		Element const &_lookup_const(Label const &label) const
-		{
-			for (Element const *e = _elements.first(); e; e = e->next())
-				if (e->label == label)
-					return *e;
-
-			throw Lookup_failed();
-		}
-
-		Element &_lookup(Label const &label)
-		{
-			for (Element *e = _elements.first(); e; e = e->next())
-				if (e->label == label)
-					return *e;
-
-			throw Lookup_failed();
-		}
-
-		Fading_dialog::Position _position { 32, 32 };
-
-		Timer::Connection   _timer;
-		Subsystem_manager  &_subsystem_manager;
-		Nitpicker::Session &_nitpicker;
-		Fading_dialog       _dialog;
+		Fading_dialog _dialog;
 
 		Rect _hovered_rect;
 
+		bool _open = false;
+
 		unsigned _key_cnt = 0;
-		Label    _clicked;
-		bool     _click_in_progress = false;
-
-		Signal_rpc_member<Menu_dialog> _timer_dispatcher;
-
-		Label          _context_subsystem;
-		Context_dialog _context_dialog;
 
 		Label _hovered() const
 		{
@@ -119,102 +101,17 @@ class Launcher::Menu_dialog : Input_event_handler, Dialog_generator,
 			return Label("");
 		}
 
-		bool _running(Label const &label) const
-		{
-			try { return _lookup_const(label).running; }
-			catch (Lookup_failed) { return false; }
-		}
-
-		void _running(Label const &label, bool running)
-		{
-			try { _lookup(label).running = running; }
-			catch (Lookup_failed) { }
-		}
-
-		void _touch(Label const &label)
-		{
-			for (Element *e = _elements.first(); e; e = e->next())
-				e->touched = (e->label == label);
-		}
-
-		/**
-		 * Lookup subsystem in config
-		 */
-		static Xml_node _subsystem(Xml_node config, char const *name)
-		{
-			Xml_node node = config.sub_node("subsystem");
-			for (;; node = node.next("subsystem")) {
-				if (node.attribute("name").has_value(name))
-					return node;
-			}
-		}
-
-		void _start(Label const &label)
-		{
-			try {
-				_subsystem_manager.start(_subsystem(config()->xml_node(),
-				                                    label.string()));
-				_running(label, true);
-
-				dialog_changed();
-
-			} catch (Xml_node::Nonexistent_sub_node) {
-				PERR("no subsystem config found for \"%s\"", label.string());
-			} catch (Subsystem_manager::Invalid_config) {
-				PERR("invalid subsystem configuration for \"%s\"", label.string());
-			}
-		}
-
-		void _kill(Label const &label)
-		{
-			_subsystem_manager.kill(label.string());
-			_running(label, false);
-			dialog_changed();
-			_dialog.update();
-
-			_context_dialog.visible(false);
-		}
-
-		void _hide(Label const &label)
-		{
-			_nitpicker.session_control(selector(label.string()),
-			                           Nitpicker::Session::SESSION_CONTROL_HIDE);
-
-			_context_dialog.visible(false);
-		}
-
-		void _handle_timer(unsigned)
-		{
-			if (_click_in_progress && _hovered() == _clicked) {
-
-				_touch("");
-
-				Fading_dialog::Position position(_hovered_rect.p2().x(),
-				                                 _hovered_rect.p1().y() - 44);
-				_context_subsystem = _clicked;
-				_context_dialog.position(_position + position);
-				_context_dialog.visible(true);
-			}
-
-			_click_in_progress = false;
-		}
-
 	public:
 
 		Menu_dialog(Server::Entrypoint &ep, Cap_session &cap, Ram_session &ram,
 		            Report_rom_slave &report_rom_slave,
-		            Subsystem_manager &subsystem_manager,
-		            Nitpicker::Session &nitpicker)
+		            Response_handler &response_handler)
 		:
-			_subsystem_manager(subsystem_manager),
-			_nitpicker(nitpicker),
+			_response_handler(response_handler),
 			_dialog(ep, cap, ram, report_rom_slave, "menu_dialog", "menu_hover",
 			        *this, *this, *this, *this,
-			        _position),
-			_timer_dispatcher(ep, *this, &Menu_dialog::_handle_timer),
-			_context_dialog(ep, cap, ram, report_rom_slave, *this)
+			        _position)
 		{
-			_timer.sigh(_timer_dispatcher);
 		}
 
 		/**
@@ -287,8 +184,25 @@ class Launcher::Menu_dialog : Input_event_handler, Dialog_generator,
 		 */
 		bool handle_input_event(Input::Event const &ev) override
 		{
-			if (ev.type() == Input::Event::MOTION)
+			if (ev.type() == Input::Event::LEAVE) {
+				_response_handler.handle_menu_leave();
+				return false;
+			}
+
+			if (ev.type() == Input::Event::MOTION) {
+
+				_response_handler.handle_menu_motion();
+
+				/*
+				 * Re-enable the visibility of the menu if we detect motion
+				 * events over the menu. This way, it reappears in situations
+				 * where the pointer temporarily leaves the view and returns.
+				 */
+				if (_open)
+					visible(true);
+
 				return true;
+			}
 
 			if (ev.type() == Input::Event::PRESS)   _key_cnt++;
 			if (ev.type() == Input::Event::RELEASE) _key_cnt--;
@@ -297,71 +211,39 @@ class Launcher::Menu_dialog : Input_event_handler, Dialog_generator,
 			 && ev.keycode() == Input::BTN_LEFT
 			 && _key_cnt == 1) {
 
-			 	_context_dialog.visible(false);
-
-				Label const hovered = _hovered();
-
-				_click_in_progress = true;
-				_clicked = hovered;
-				_touch(hovered);
-
-				enum { CONTEXT_DELAY = 500 };
-
-				if (_running(hovered)) {
-					_nitpicker.session_control(selector(hovered.string()),
-					                           Nitpicker::Session::SESSION_CONTROL_TO_FRONT);
-					_nitpicker.session_control(selector(hovered.string()),
-					                           Nitpicker::Session::SESSION_CONTROL_SHOW);
-					_timer.trigger_once(CONTEXT_DELAY*1000);
-				}
-			}
-
-			if (ev.type() == Input::Event::RELEASE
-			 && _click_in_progress && _key_cnt == 0) {
-
-				Label const hovered = _hovered();
-
-				if (_clicked == hovered) {
-
-					if (!_running(hovered))
-						_start(hovered);
-				}
-
-				_touch("");
-				_clicked = Label("");
-				_click_in_progress = false;
+			 	_response_handler.handle_selection(_hovered());
 			}
 
 			return false;
 		}
 
-		/**
-		 * Context_dialog::Response_handler interface
-		 */
-		void handle_context_kill() override
-		{
-			_kill(_context_subsystem);
-		}
-
-		/**
-		 * Context_dialog::Response_handler interface
-		 */
-		void handle_context_hide() override
-		{
-			_hide(_context_subsystem);
-		}
-
 		void visible(bool visible)
 		{
+			if (visible == _dialog.visible())
+				return;
+
 			_dialog.visible(visible);
 
-			if (!visible)
-				_context_dialog.visible(false);
+			if (visible)
+				_open = true;
 		}
 
-		void kill(Child_base::Label const &label) { _kill(label); }
+		void close()
+		{
+			_open = false;
+			visible(false);
+		}
 
-		void update()
+		void running(Label const &label, bool running)
+		{
+			for (Element *e = _elements.first(); e; e = e->next())
+				if (e->label == label)
+					e->running = running;
+
+			_dialog.update();
+		}
+
+		void update(Xml_node subsystems)
 		{
 			if (_elements.first()) {
 				PERR("subsequent updates are not supported");
@@ -369,8 +251,6 @@ class Launcher::Menu_dialog : Input_event_handler, Dialog_generator,
 			}
 
 			Element *last = nullptr;
-
-			Xml_node subsystems = config()->xml_node();
 
 			subsystems.for_each_sub_node("subsystem",
 			                             [&] (Xml_node subsystem)

@@ -7,7 +7,9 @@ set build_components {
 	server/dynamic_rom server/nitpicker server/report_rom
 	app/pointer app/menu_view
 	app/scout app/launchpad app/launcher test/nitpicker
-	server/nit_fader
+	server/nit_fader server/rom_filter server/wm app/decorator
+	app/floating_window_layouter app/status_bar server/nit_fb
+	app/backdrop app/xray_trigger
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -47,6 +49,7 @@ append_if [have_spec sdl] config {
 			<service name="Input"/>
 			<service name="Framebuffer"/>
 		</provides>
+		<config width="640" height="480"/>
 	</start>}
 
 append_platform_drv_config
@@ -73,20 +76,23 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nitpicker"/></provides>
 		<config>
-			<report xray="yes" />
-			<domain name="pointer" layer="1" xray="no" origin="pointer" />
-			<domain name="panel"   layer="2" xray="no" />
-			<domain name=""        layer="3" />
+			<report hover="yes" focus="yes" />
+			<domain name="pointer"   layer="1" content="client" label="no" origin="pointer" />
+			<domain name="panel"     layer="2" content="client" label="no" hover="always" focus="transient" />
+			<domain name=""          layer="3" color="#ff0000" hover="always" focus="click" />
+			<domain name="decorator" layer="3" content="client" label="no" hover="always" focus="transient" />
 
-			<policy label="pointer"          domain="pointer"/>
-			<policy label="launcher -> menu" domain="panel"/>
-			<policy label=""                 domain=""/>
+			<policy label="pointer"                domain="pointer"/>
+			<policy label="wm -> launcher -> menu" domain="panel"/>
+			<policy label=""                       domain=""/>
+			<policy label="wm -> decorator"        domain="decorator"/>
+			<policy label="status_bar"             domain="panel"/>
 
-			<global-key name="KEY_SCROLLLOCK" operation="xray" />
-			<global-key name="KEY_SYSRQ"      operation="kill" />
-			<global-key name="KEY_PRINT"      operation="kill" />
-			<global-key name="KEY_F11"        operation="kill" />
-			<global-key name="KEY_F12"        operation="xray" />
+			<global-key name="KEY_SCROLLLOCK" label="xray_trigger" />
+			<global-key name="KEY_F1"         label="xray_trigger" />
+			<global-key name="KEY_F2"         label="xray_trigger" />
+			<global-key name="KEY_LEFTMETA"   label="wm -> launcher" />
+			<global-key name="KEY_F3"         label="wm -> launcher" />
 		</config>
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
@@ -100,18 +106,129 @@ append config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
+
+	<start name="xray_trigger">
+		<resource name="RAM" quantum="1M"/>
+		<config>
+			<press   name="KEY_F1" xray="on"/>
+			<release name="KEY_F1" xray="off"/>
+			<press   name="KEY_F2" xray="toggle"/>
+			<hover domain="panel"/>
+			<hover domain="decorator"/>
+		</config>
+		<route>
+			<service name="ROM">       <child name="report_rom"/> </service>
+			<service name="Nitpicker"> <child name="nitpicker"/>  </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="status_bar">
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="ROM"> <child name="report_rom"/> </service>
+			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
 	<start name="report_rom">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config>
+		<config verbose="no">
 			<rom>
-				<policy label="launcher -> xray" report="nitpicker -> xray"/>
+				<policy label="decorator_config -> xray"   report="xray_trigger -> xray"/>
+				<policy label="layouter -> window_list"    report="wm -> window_list"/>
+				<policy label="layouter -> focus_request"  report="wm -> focus_request" />
+				<policy label="decorator -> window_layout" report="layouter -> window_layout"/>
+				<policy label="wm -> resize_request"       report="layouter -> resize_request"/>
+				<policy label="decorator -> pointer"       report="wm -> pointer"/>
+				<policy label="layouter -> hover"          report="decorator -> hover"/>
+				<policy label="wm -> focus"                report="layouter -> focus"/>
+				<policy label="status_bar -> focus"        report="nitpicker -> focus"/>
+				<policy label="launcher -> focus"          report="nitpicker -> focus"/>
+				<policy label="xray_trigger -> hover"      report="nitpicker -> hover"/>
 			</rom>
 		</config>
 	</start>
+
+	<start name="wm">
+		<resource name="RAM" quantum="6M"/>
+		<provides>
+			<service name="Nitpicker"/>
+		</provides>
+		<config>
+			<policy label="decorator" role="decorator"/>
+			<policy label="layouter"  role="layouter"/>
+			<policy label="launcher -> menu" role="direct"/>
+			<policy label="launcher -> testnit" role="direct"/>
+		</config>
+		<route>
+			<any-service>
+				<child name="nitpicker"/> <child name="report_rom"/> <parent/> <any-child/>
+			</any-service>
+		</route>
+	</start>
+
+	<start name="layouter">
+		<binary name="floating_window_layouter"/>
+		<resource name="RAM" quantum="4M"/>
+		<route>
+			<any-service>
+				<child name="wm"/> <child name="report_rom"/> <parent/> <any-child/>
+			</any-service>
+		</route>
+	</start>
+
+	<start name="decorator">
+		<binary name="decorator"/>
+		<resource name="RAM" quantum="8M"/>
+		<configfile name="decorator.config"/>
+		<route>
+			<service name="ROM" label="decorator.config">
+				<child name="decorator_config"/> </service>
+			<any-service>
+				<child name="wm"/> <child name="report_rom"/> <parent/> <any-child/>
+			</any-service>
+		</route>
+	</start>
+
+	<start name="decorator_config">
+		<binary name="rom_filter"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="ROM"/></provides>
+		<config verbose="yes">
+
+			<input name="xray_enabled" rom="xray" node="xray">
+				<attribute name="enabled" />
+			</input>
+
+			<output node="config">
+				<inline>
+					<controls>
+						<title/> <minimizer/> <maximizer/> <closer/>
+					</controls>
+				</inline>
+				<if>
+					<has_value input="xray_enabled" value="yes" />
+					<then>
+						<inline>
+							<policy label="" color="#ff0000" gradient="75" />
+						</inline>
+					</then>
+				</if>
+			</output>
+
+		</config>
+		<route>
+			<service name="ROM"> <child name="report_rom"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
 	<start name="launcher">
 		<resource name="RAM" quantum="60M" />
-		<config visibility="xray">
+		<config focus_prefix="wm -> launcher -> ">
 			<subsystem name="scout" title="Scout">
 				<resource name="RAM" quantum="20M" />
 				<binary name="scout" />
@@ -136,20 +253,28 @@ append config {
 				<resource name="RAM" quantum="2M" />
 				<binary name="testnit" />
 			</subsystem>
-			<subsystem name="testnit5">
+			<subsystem name="testnit5" title="Nitpicker Test5">
 				<resource name="RAM" quantum="2M" />
 				<binary name="testnit" />
 			</subsystem>
-			<subsystem name="testnit6">
-				<resource name="RAM" quantum="2M" />
-				<binary name="testnit" />
+			<subsystem name="backdrop" title="Backdrop">
+				<resource name="RAM" quantum="4M"/>
+				<binary name="backdrop" />
+				<config>
+					<libc>
+						<vfs>
+						</vfs>
+					</libc>
+					<fill color="#224433" />
+				</config>
 			</subsystem>
+
 		</config>
 		<route>
-			<service name="ROM"> <if-arg key="label" value="xray"/>
+			<service name="ROM"> <if-arg key="label" value="focus"/>
 				<child name="report_rom" />
 			</service>
-			<any-service> <parent/> <any-child/> </any-service>
+			<any-service> <child name="wm"/> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 </config>}
@@ -166,7 +291,8 @@ set boot_modules {
 	ld.lib.so libpng.lib.so libc.lib.so libm.lib.so zlib.lib.so
 	menu_view_styles.tar
 	scout launchpad testnit
-	nit_fader report_rom launcher
+	nit_fader report_rom launcher rom_filter xray_trigger
+	decorator wm floating_window_layouter status_bar nit_fb backdrop
 }
 
 # platform-specific modules

@@ -192,6 +192,7 @@ class Launcher::Fading_dialog : private Input_event_handler
 		Nit_fader_slave   _nit_fader_slave;
 		Menu_view_slave   _menu_view_slave;
 
+		bool _visible = false;
 
 	public:
 
@@ -246,7 +247,13 @@ class Launcher::Fading_dialog : private Input_event_handler
 			});
 		}
 
-		void visible(bool visible) { _nit_fader_slave.visible(visible); }
+		void visible(bool visible)
+		{
+			_nit_fader_slave.visible(visible);
+			_visible = visible;
+		}
+
+		bool visible() const { return _visible; }
 
 		void position(Position position) { _menu_view_slave.position(position); }
 };
