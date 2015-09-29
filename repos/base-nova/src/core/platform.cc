@@ -521,11 +521,12 @@ Platform::Platform() :
 		addr_t const rom_mem_size  = rom_mem_end - rom_mem_start;
 		bool const aux_in_rom_area = (rom_mem_start <= mem_desc->aux) &&
 		                             (mem_desc->aux < rom_mem_end);
+		addr_t const pages_mapped  = (rom_mem_size >> get_page_size_log2()) +
+		                             (aux_in_rom_area ? 1 : 0);
 
 		/* map ROM + extra page for the case aux crosses page boundary */
 		addr_t core_local_addr = _map_pages(rom_mem_start >> get_page_size_log2(),
-		                                    (rom_mem_size >> get_page_size_log2()) +
-		                                    (aux_in_rom_area ? 1 : 0));
+		                                    pages_mapped);
 		if (!core_local_addr) {
 			PERR("could not map multi boot module");
 			nova_die();
@@ -535,9 +536,8 @@ Platform::Platform() :
 		core_local_addr += mem_desc->addr - rom_mem_start;
 
 		if (verbose_boot_info)
-			printf("map multi-boot module: physical 0x%8lx -> [0x%8lx-0x%8lx)"
-			       " - ", (addr_t)mem_desc->addr, (addr_t)core_local_addr,
-			       (addr_t)(core_local_addr + mem_desc->size));
+			printf("map multi-boot module: physical 0x%8lx+0x%8llx"
+			       " - ", (addr_t)mem_desc->addr, mem_desc->size);
 
 		char * name;
 		if (aux_in_rom_area) {
@@ -597,20 +597,35 @@ Platform::Platform() :
 
 		printf("%s\n", name);
 
-		/* revoke write permission on rom module */
+		/* revoke mapping of rom module - not needed */
 		unmap_local(__main_thread_utcb, trunc_page(core_local_addr),
-		            rom_mem_size >> get_page_size_log2(), true,
-		            Nova::Rights(false, true, false));
+		            pages_mapped);
+		region_alloc()->free(reinterpret_cast<void *>(trunc_page(core_local_addr)),
+		                     pages_mapped << get_page_size_log2());
 
 		/* create rom module */
 		Rom_module *rom_module = new (core_mem_alloc())
-		                         Rom_module(core_local_addr, mem_desc->size, name);
+		                         Rom_module(rom_mem_start, mem_desc->size, name);
 		_rom_fs.insert(rom_module);
 	}
 
 	/* export hypervisor info page as ROM module */
-	_rom_fs.insert(new (core_mem_alloc())
-	               Rom_module((addr_t)hip, get_page_size(), "hypervisor_info_page"));
+	{
+		void * phys_ptr = 0;
+		ram_alloc()->alloc(get_page_size(), &phys_ptr);
+		addr_t phys_addr = reinterpret_cast<addr_t>(phys_ptr);
+
+		addr_t core_local_addr = _map_pages(phys_addr >> get_page_size_log2(), 1);
+
+		memcpy(reinterpret_cast<void *>(core_local_addr), hip, get_page_size());
+
+		unmap_local(__main_thread_utcb, core_local_addr, 1);
+		region_alloc()->free(reinterpret_cast<void *>(core_local_addr), get_page_size());
+
+		_rom_fs.insert(new (core_mem_alloc())
+		               Rom_module(phys_addr, get_page_size(),
+		                          "hypervisor_info_page"));
+	}
 
 	/* I/O port allocator (only meaningful for x86) */
 	_io_port_alloc.add_range(0, 0x10000);

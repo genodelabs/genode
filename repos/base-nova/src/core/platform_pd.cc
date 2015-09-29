@@ -13,6 +13,7 @@
 
 /* Genode includes */
 #include <base/printf.h>
+#include <util/flex_iterator.h>
 
 /* core includes */
 #include <platform_pd.h>
@@ -61,4 +62,20 @@ Platform_pd::~Platform_pd()
 	/* Revoke and free cap, pd is gone */
 	Nova::revoke(Nova::Obj_crd(_pd_sel, 0));
 	cap_map()->remove(_pd_sel, 0, false);
+}
+
+
+void Platform_pd::flush(addr_t remote_virt, size_t size)
+{
+	Nova::Rights const revoke_rwx(true, true, true);
+
+	Flexpage_iterator flex(remote_virt, size, remote_virt, size, 0);
+	Flexpage page = flex.page();
+
+	while (page.valid()) {
+		Nova::Mem_crd mem(page.addr >> 12, page.log2_order - 12, revoke_rwx);
+		Nova::revoke(mem, true, true, pd_sel());
+
+		page = flex.page();
+	}
 }

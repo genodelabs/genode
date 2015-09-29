@@ -83,7 +83,7 @@ namespace Genode {
 			 *
 			 * \return PD selector
 			 */
-			addr_t pd_sel() { return _pd_sel; }
+			addr_t pd_sel() const { return _pd_sel; }
 
 			/**
 			 * Capability selector of core protection domain
@@ -97,11 +97,7 @@ namespace Genode {
 			 ** Address-space interface **
 			 *****************************/
 
-			/*
-			 * On NOVA, we don't use directed unmap but rely on the
-			 * in-kernel mapping database. See 'rm_session_support.cc'.
-			 */
-			void flush(addr_t, size_t) { PDBG("not implemented"); }
+			void flush(addr_t, size_t);
 	};
 }
 

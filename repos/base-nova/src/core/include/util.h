@@ -22,14 +22,13 @@ namespace Genode {
 
 	constexpr size_t get_page_size_log2()       { return 12; }
 	constexpr size_t get_page_size()            { return 1 << get_page_size_log2(); }
-	constexpr addr_t get_page_mask()            { return ~(get_page_size() - 1); }
 	constexpr size_t get_super_page_size_log2() { return 22; }
 	constexpr size_t get_super_page_size()      { return 1 << get_super_page_size_log2(); }
-	inline addr_t trunc_page(addr_t addr)    { return addr & get_page_mask(); }
+	inline addr_t trunc_page(addr_t addr)    { return addr & _align_mask(get_page_size_log2()); }
 	inline addr_t round_page(addr_t addr)    { return trunc_page(addr + get_page_size() - 1); }
 
 
-	inline addr_t map_src_addr(addr_t core_local, addr_t phys) { return core_local; }
+	inline addr_t map_src_addr(addr_t core_local, addr_t phys) { return phys; }
 
 
 	inline size_t constrain_map_size_log2(size_t size_log2) { return size_log2; }

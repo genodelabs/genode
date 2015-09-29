@@ -35,28 +35,21 @@ namespace Genode {
 			Local_addr attach(Dataspace_capability ds_cap, size_t size=0,
 			                  off_t offset=0, bool use_local_addr = false,
 			                  Local_addr local_addr = 0,
-			                  bool executable = false);
+			                  bool executable = false) override;
 
-			void detach(Local_addr)
-			{
-				/*
-				 * The core-local mapping gets established in
-				 * 'Ram_session_component::_clear_ds()' and reverted in
-				 * 'Ram_session_component::_revoke_ram_ds(), so there's
-				 * nothing to do here.
-				 */
-			}
+			void detach(Local_addr) override;
 
-			Pager_capability add_client(Thread_capability thread) {
+			Pager_capability add_client(Thread_capability thread) override {
 				return Pager_capability(); }
 
-			void remove_client(Pager_capability) { }
+			void remove_client(Pager_capability) override { }
 
-			void fault_handler(Signal_context_capability handler) { }
+			void fault_handler(Signal_context_capability handler) override { }
 
-			State state() { return State(); }
+			State state() override { return State(); }
 
-			Dataspace_capability dataspace() { return Dataspace_capability(); }
+			Dataspace_capability dataspace() override {
+				return Dataspace_capability(); }
 	};
 }
 

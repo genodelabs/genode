@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2009-2013 Genode Labs GmbH
+ * Copyright (C) 2009-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -24,31 +24,12 @@
 /* NOVA includes */
 #include <nova/syscalls.h>
 
-enum { verbose_ram_ds = false };
-
 using namespace Genode;
 
 
-void Ram_session_component::_revoke_ram_ds(Dataspace_component *ds)
-{
-	size_t page_rounded_size = (ds->size() + get_page_size() - 1) & get_page_mask();
-
-	if (verbose_ram_ds)
-		printf("-- revoke - ram ds size=0x%8zx phys 0x%8lx has core-local addr 0x%8lx - thread 0x%8p\n",
-		       page_rounded_size, ds->phys_addr(), ds->core_local_addr(), Thread_base::myself()->utcb());
-
-	unmap_local((Nova::Utcb *)Thread_base::myself()->utcb(),
-	            ds->core_local_addr(),
-	            page_rounded_size >> get_page_size_log2());
-
-	platform()->region_alloc()->free((void*)ds->core_local_addr(),
-	                                 page_rounded_size);
-}
+void Ram_session_component::_revoke_ram_ds(Dataspace_component *ds) { }
 
 
-/**
- * Map dataspace core-locally
- */
 static inline void * alloc_region(Dataspace_component *ds, const size_t size)
 {
 	/*
@@ -71,33 +52,41 @@ static inline void * alloc_region(Dataspace_component *ds, const size_t size)
 
 void Ram_session_component::_clear_ds(Dataspace_component *ds)
 {
-	memset((void *)ds->core_local_addr(), 0, ds->size());
+	size_t page_rounded_size = align_addr(ds->size(), get_page_size_log2());
+
+	memset((void *)ds->core_local_addr(), 0, page_rounded_size);
+
+	/* we don't keep any core-local mapping */
+	unmap_local(reinterpret_cast<Nova::Utcb *>(Thread_base::myself()->utcb()),
+	            ds->core_local_addr(),
+	            page_rounded_size >> get_page_size_log2());
+
+	platform()->region_alloc()->free((void*)ds->core_local_addr(),
+	                                 page_rounded_size);
+
+	ds->assign_core_local_addr(nullptr);
 }
 
 
 void Ram_session_component::_export_ram_ds(Dataspace_component *ds) {
 
-	const size_t page_rounded_size = (ds->size() + get_page_size() - 1) & get_page_mask();
+	size_t page_rounded_size = align_addr(ds->size(), get_page_size_log2());
 
 	/* allocate the virtual region contiguous for the dataspace */
 	void * virt_ptr = alloc_region(ds, page_rounded_size);
 	if (!virt_ptr)
 		throw Out_of_metadata();
 
-	/* map it */
+	/* map it writeable for _clear_ds */
 	Nova::Utcb * const utcb = reinterpret_cast<Nova::Utcb *>(Thread_base::myself()->utcb());
-	const Nova::Rights rights(true, ds->writable(), true);
+	const Nova::Rights rights_rw(true, true, false);
 
 	if (map_local(utcb, ds->phys_addr(), reinterpret_cast<addr_t>(virt_ptr),
-	              page_rounded_size >> get_page_size_log2(), rights, true)) {
+	              page_rounded_size >> get_page_size_log2(), rights_rw, true)) {
 		platform()->region_alloc()->free(virt_ptr, page_rounded_size);
 		throw Out_of_metadata();
 	}
 
-	/* we succeeded, so assign the virtual address to the dataspace */
+	/* assign virtual address to the dataspace to be used by clear_ds */
 	ds->assign_core_local_addr(virt_ptr);
-
-	if (verbose_ram_ds)
-		printf("-- map    - ram ds size=0x%8zx phys 0x%8lx has core-local addr 0x%8lx\n",
-		       page_rounded_size, ds->phys_addr(), ds->core_local_addr());
 }

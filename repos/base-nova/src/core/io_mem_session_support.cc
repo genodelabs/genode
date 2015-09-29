@@ -23,7 +23,7 @@ using namespace Genode;
 
 void Io_mem_session_component::_unmap_local(addr_t base, size_t size)
 {
-	size_t page_rounded_size = (size + get_page_size() - 1) & get_page_mask();
+	size_t page_rounded_size = align_addr(size, get_page_size_log2());
 
 	Nova::Rights rwx(true, true, true);
 	int count = page_rounded_size >> 12;
@@ -35,7 +35,7 @@ void Io_mem_session_component::_unmap_local(addr_t base, size_t size)
 
 addr_t Io_mem_session_component::_map_local(addr_t base, size_t size)
 {
-	size_t page_rounded_size = (size + get_page_size() - 1) & get_page_mask();
+	size_t page_rounded_size = align_addr(size, get_page_size_log2());
 
 	/* align large I/O dataspaces on a super-page boundary within core */
 	size_t alignment = (size >= get_super_page_size()) ? get_super_page_size_log2()
