@@ -122,6 +122,11 @@ class Floating_window_layouter::Window : public List<Window>::Element
 		 */
 		bool _has_alpha = false;
 
+		/**
+		 * Window is temporarily not visible
+		 */
+		bool _is_hidden = false;
+
 		/*
 		 * Number of times the window has been topped. This value is used by
 		 * the decorator to detect the need for bringing the window to the
@@ -153,6 +158,8 @@ class Floating_window_layouter::Window : public List<Window>::Element
 		void position(Point pos) { _geometry = Rect(pos, _geometry.area()); }
 
 		void has_alpha(bool has_alpha) { _has_alpha = has_alpha; }
+
+		void is_hidden(bool is_hidden) { _is_hidden = is_hidden; }
 
 		/**
 		 * Return true if user drags a window border
@@ -198,6 +205,10 @@ class Floating_window_layouter::Window : public List<Window>::Element
 
 		void serialize(Xml_generator &xml, bool focused, Element highlight)
 		{
+			/* omit window from the layout if hidden */
+			if (_is_hidden)
+				return;
+
 			xml.node("window", [&]() {
 				xml.attribute("id",     _id);
 				xml.attribute("title",  _title.string());
@@ -405,6 +416,8 @@ void Floating_window_layouter::Main::import_window_list(Xml_node window_list_xml
 			win->title(string_attribute(node, "title", Window::Title("untitled")));
 			win->has_alpha(node.has_attribute("has_alpha")
 			            && node.attribute("has_alpha").has_value("yes"));
+			win->is_hidden(node.has_attribute("hidden")
+			            && node.attribute("hidden").has_value("yes"));
 		}
 	} catch (...) { }
 }
