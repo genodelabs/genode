@@ -136,6 +136,12 @@ class Wm::Decorator_content_registry
 			return _lookup(view_handle).win_id;
 		}
 
+		bool is_registered(Nitpicker::Session::View_handle view_handle) const
+		{
+			try { lookup(view_handle); return true; } catch (...) { }
+			return false;
+		}
+
 		/**
 		 * Remove entry
 		 *
@@ -383,6 +389,15 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>
 
 	void destroy_view(View_handle view) override
 	{
+		/*
+		 * Reset view geometry when destroying a content view
+		 */
+		if (_content_registry.is_registered(view)) {
+			Nitpicker::Rect rect(Nitpicker::Point(0, 0), Nitpicker::Area(0, 0));
+			_nitpicker_session.enqueue<Nitpicker::Session::Command::Geometry>(view, rect);
+			_nitpicker_session.execute();
+		}
+
 		_nitpicker_session.destroy_view(view);
 	}
 
