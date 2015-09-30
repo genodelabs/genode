@@ -127,6 +127,13 @@ class Floating_window_layouter::Window : public List<Window>::Element
 		Area _requested_size;
 
 		/**
+		 * Backup of the original geometry while the window is maximized
+		 */
+		Rect _unmaximized_geometry;
+
+		Rect const _maximized_geometry;
+
+		/** 
 		 * Window may be partially transparent
 		 */
 		bool _has_alpha = false;
@@ -137,6 +144,8 @@ class Floating_window_layouter::Window : public List<Window>::Element
 		bool _is_hidden = false;
 
 		bool _is_resizeable = false;
+
+		bool _is_maximized = false;
 
 		/*
 		 * Number of times the window has been topped. This value is used by
@@ -154,7 +163,10 @@ class Floating_window_layouter::Window : public List<Window>::Element
 
 	public:
 
-		Window(unsigned id) : _id(id) { }
+		Window(unsigned id, Rect maximized_geometry)
+		:
+			_id(id), _maximized_geometry(maximized_geometry)
+		{ }
 
 		bool has_id(unsigned id) const { return id == _id; }
 
@@ -194,6 +206,11 @@ class Floating_window_layouter::Window : public List<Window>::Element
 		 */
 		void size(Area size)
 		{
+			if (_is_maximized) {
+				_geometry = Rect(_maximized_geometry.p1(), size);
+				return;
+			}
+
 			if (!_drag_border()) {
 				_geometry = Rect(_geometry.p1(), size);
 				return;
@@ -318,6 +335,25 @@ class Floating_window_layouter::Window : public List<Window>::Element
 		void topped() { _topped_cnt++; }
 
 		void close() { _requested_size = Area(0, 0); }
+
+		bool is_maximized() const { return _is_maximized; }
+
+		void is_maximized(bool is_maximized)
+		{
+			/* enter maximized state */
+			if (!_is_maximized && is_maximized) {
+				_unmaximized_geometry = _geometry;
+				_requested_size = _maximized_geometry.area();
+			}
+
+			/* leave maximized state */
+			if (_is_maximized && !is_maximized) {
+				_requested_size = _unmaximized_geometry.area();
+				_geometry = Rect(_unmaximized_geometry.p1(), _geometry.area());
+			}
+
+			_is_maximized = is_maximized;
+		}
 };
 
 
@@ -393,6 +429,8 @@ struct Floating_window_layouter::Main
 
 	Nitpicker::Connection nitpicker;
 
+	Rect maximized_window_geometry;
+
 	Input::Session_client input { nitpicker.input_session() };
 
 	Attached_dataspace input_ds { input.dataspace() };
@@ -418,6 +456,18 @@ struct Floating_window_layouter::Main
 	 */
 	Main(Signal_receiver &sig_rec) : sig_rec(sig_rec)
 	{
+		/* determine maximized window geometry */
+		Framebuffer::Mode const mode =
+			nitpicker.mode();
+
+		/*
+		 * XXX obtain decorator constraints dynamically
+		 */
+		enum { PAD_LEFT = 5, PAD_RIGHT = 5, PAD_TOP = 20 + 16, PAD_BOTTOM = 5 };
+		maximized_window_geometry = Rect(Point(PAD_LEFT, PAD_TOP),
+		                                 Area(mode.width() - PAD_LEFT - PAD_RIGHT,
+		                                      mode.height() - PAD_TOP - PAD_BOTTOM));
+
 		window_list.sigh(window_list_dispatcher);
 
 		focus_request.sigh(focus_request_dispatcher);
@@ -459,7 +509,7 @@ void Floating_window_layouter::Main::import_window_list(Xml_node window_list_xml
 
 			Window *win = lookup_window_by_id(id);
 			if (!win) {
-				win = new (env()->heap()) Window(id);
+				win = new (env()->heap()) Window(id, maximized_window_geometry);
 				windows.insert(win);
 
 				/*
@@ -758,25 +808,60 @@ void Floating_window_layouter::Main::handle_input(unsigned)
 			if (e.type()    == Input::Event::PRESS
 			 && e.keycode() == Input::BTN_LEFT) {
 
-				drag_state        = true;
-				drag_init_done    = false;
-				dragged_window_id = hovered_window_id;
-				pointer_clicked   = pointer_curr;
-				pointer_last      = pointer_clicked;
+				/*
+				 * Toggle maximized state
+				 */
+				if (hovered_element == Window::Element::MAXIMIZER) {
+
+					if (hovered_window) {
+
+						dragged_window_id = hovered_window_id;
+						hovered_window->is_maximized(!hovered_window->is_maximized());
+
+						/* bring focused window to front */
+						if (hovered_window != windows.first()) {
+							windows.remove(hovered_window);
+							windows.insert(hovered_window);
+						}
+						hovered_window->topped();
+
+						focused_window_id = hovered_window_id;
+
+						need_regenerate_window_layout_model  = true;
+						need_regenerate_resize_request_model = true;
+					}
+				}
+
+				bool const hovered_window_is_maximized =
+					hovered_window ? hovered_window->is_maximized() : false;
 
 				/*
-				 * If the hovered window is known at the time of the press
-				 * event, we can initiate the drag operation immediately.
-				 * Otherwise, we the initiation is deferred to the next
-				 * update of the hover model.
+				 * Change window geometry unless the window is in maximized
+				 * state.
 				 */
-				if (hovered_window) {
-					initiate_window_drag(*hovered_window);
-					need_regenerate_window_layout_model = true;
+				if (hovered_element != Window::Element::MAXIMIZER
+				 && !hovered_window_is_maximized) {
 
-					if (focused_window_id != hovered_window_id) {
-						focused_window_id  = hovered_window_id;
-						generate_focus_model();
+					drag_state        = true;
+					drag_init_done    = false;
+					dragged_window_id = hovered_window_id;
+					pointer_clicked   = pointer_curr;
+					pointer_last      = pointer_clicked;
+
+					/*
+					 * If the hovered window is known at the time of the press
+					 * event, we can initiate the drag operation immediately.
+					 * Otherwise, we the initiation is deferred to the next
+					 * update of the hover model.
+					 */
+					if (hovered_window) {
+						initiate_window_drag(*hovered_window);
+						need_regenerate_window_layout_model = true;
+
+						if (focused_window_id != hovered_window_id) {
+							focused_window_id  = hovered_window_id;
+							generate_focus_model();
+						}
 					}
 				}
 			}
