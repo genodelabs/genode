@@ -103,6 +103,7 @@ class Floating_window_layouter::Window : public List<Window>::Element
 			Element(Type type) : type(type) { }
 
 			bool operator != (Element const &other) const { return other.type != type; }
+			bool operator == (Element const &other) const { return other.type == type; }
 		};
 
 	private:
@@ -315,6 +316,8 @@ class Floating_window_layouter::Window : public List<Window>::Element
 		}
 
 		void topped() { _topped_cnt++; }
+
+		void close() { _requested_size = Area(0, 0); }
 };
 
 
@@ -328,7 +331,8 @@ struct Floating_window_layouter::Main
 	unsigned focused_window_id = 0;
 	unsigned key_cnt = 0;
 
-	Window::Element hovered_element = Window::Element::UNDEFINED;
+	Window::Element hovered_element     = Window::Element::UNDEFINED;
+	Window::Element hovered_element_now = Window::Element::UNDEFINED;
 
 	bool drag_state     = false;
 	bool drag_init_done = true;
@@ -669,7 +673,7 @@ void Floating_window_layouter::Main::handle_hover_update(unsigned)
 
 		unsigned const id = attribute(hover_window_xml, "id", 0UL);
 
-		Window::Element hovered = element_from_hover_model(hover_window_xml);
+		hovered_element_now = element_from_hover_model(hover_window_xml);
 
 		/*
 		 * Check if we have just received an update while already being in
@@ -699,10 +703,10 @@ void Floating_window_layouter::Main::handle_hover_update(unsigned)
 			}
 		}
 
-		if (!drag_state && (id != hovered_window_id || hovered != hovered_element)) {
+		if (!drag_state && (id != hovered_window_id || hovered_element_now != hovered_element)) {
 
 			hovered_window_id = id;
-			hovered_element   = hovered;
+			hovered_element   = hovered_element_now;
 
 			/* XXX read from config */
 			bool const focus_follows_pointer = true;
@@ -783,8 +787,12 @@ void Floating_window_layouter::Main::handle_input(unsigned)
 					drag_state = false;
 					generate_focus_model();
 
+					bool const manipulate_geometry =
+						hovered_element != Window::Element::CLOSER;
+
 					Window *dragged_window = lookup_window_by_id(dragged_window_id);
-					if (dragged_window) {
+
+					if (dragged_window && manipulate_geometry) {
 
 						Area const last_requested_size = dragged_window->requested_size();
 						dragged_window->finalize_drag_operation();
@@ -799,6 +807,20 @@ void Floating_window_layouter::Main::handle_input(unsigned)
 						 * resize handle, the resize handle is no longer
 						 * hovered.
 						 */
+					}
+
+					/**
+					 * Issue resize to 0x0 when releasing the the window closer
+					 */
+					if (dragged_window && hovered_element == Window::Element::CLOSER) {
+
+						if (hovered_element_now == hovered_element) {
+							dragged_window->close();
+							need_regenerate_resize_request_model = true;
+						}
+					}
+
+					if (dragged_window) {
 						handle_hover_update(0);
 					}
 				}
@@ -810,8 +832,11 @@ void Floating_window_layouter::Main::handle_input(unsigned)
 
 		pointer_last = pointer_curr;
 
+		bool const manipulate_geometry =
+			hovered_element != Window::Element::CLOSER;
+
 		Window *dragged_window = lookup_window_by_id(dragged_window_id);
-		if (dragged_window) {
+		if (dragged_window && manipulate_geometry) {
 
 			Point const last_pos            = dragged_window->position();
 			Area  const last_requested_size = dragged_window->requested_size();
