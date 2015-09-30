@@ -36,24 +36,26 @@ The properties of each domain are declared via '<domain>' nodes. For example:
 
 ! <config>
 !   ...
-!  <domain name="pointer" layer="1" xray="no" origin="pointer" />
-!  <domain name="panel"   layer="2" xray="no" />
-!  <domain name=""        layer="3" ypos="18" height="-18" />
+!  <domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
+!  <domain name="panel"   layer="2" content="client" label="no" />
+!  <domain name=""        layer="3" content="tinted" label="yes"
+!                         focus="click" ypos="18" height="-18" />
 !   ...
 ! </config>
+
+The 'name' attribute of a '<domain>' node corresponds to the 'domain'
+declarations of the '<policy>' nodes.
 
 
 Layering
 --------
 
-The 'name' attribute of a '<domain>' node corresponds to the 'domain'
-declarations of the '<policy>' nodes. Each domain requires the definition
-of a 'layer', which is number. It allows for constraining the stacking
-position of the domain's views to a certain part of the global view stack.
-The front-most layer has the number 0. In the example above, all views
-of the "pointer" domain are presented in front of all others because the
-"pointer" domain is assigned to the lowest layer. All views of the "panel"
-domain are placed behind the "pointer" but in front to all other views
+Each domain requires the definition of a 'layer', which is number. It allows
+for constraining the stacking position of the domain's views to a certain part
+of the global view stack. The front-most layer has the number 0. In the example
+above, all views of the "pointer" domain are presented in front of all others
+because the "pointer" domain is assigned to the lowest layer. All views of the
+"panel" domain are placed behind the "pointer" but in front to all other views
 that belong to the unnamed domain.
 
 
@@ -100,56 +102,74 @@ value is subtracted from the physical dimensions. It is thereby possible to
 shrink the reported screen size independent of the physical screen size.
 
 
-X-Ray mode
-----------
+Input-focus policy
+------------------
 
-The behavior of nitpicker's X-ray mode can be defined for each domain
-individually. Each domain can have an associated color configured via the
-'color' attribute. This color is used by nitpicker when the X-ray mode
-is active.
+The 'focus' attribute denotes if and how nitpicker assigns the input focus
+to sessions of the configured domain.
 
-By setting the 'xray' attribute to "frame" (default), the views of the
-domain will be surrounded by a thin frame of the domain color. The content
-of all non-focussed views will be tinted using the domain color.
+:"none": No session of the domain ever receives the focus.
 
-When setting the 'xray' value to "opaque", the view's content will be
-replaced by the opaque session color. This is useful for domains that
-display many tiny views, e.g., window handles.
+:"click": A session receives the focus when clicked with the mouse. After
+  the mouse button is released, the session keeps the focus.
 
-By assigning the value "none", the X-ray mode will not be applied to the
-domain. This is useful for trusted domains such as the pointer or a global
-panel. When X-ray mode gets activated, the views of those trusted clients
-remain unobstructed.
+:"transient": A clicked session temporarily receives the input focus
+  while a mouse button is pressed. Upon the release of the mouse button,
+  the input focus is restored to the original session.
+
+If not specified, the focus attribute defaults to 'none'.
+
+Note that the input focus may also be manipulated via nitpicker's session
+interface, which allows a client to yield the focus to other clients.
+
+
+Hovering policy
+---------------
+
+By default, a client receives motion events only when in possession of the
+input focus and when the pointer is located over one of the client's views.
+However, certain clients such as a window decorator or a panel expect to
+observe motion events referring to their part of the GUI regardless of the
+current input focus. Otherwise, such a client cannot give visual feedback about
+the currently hovered window control. To accommodate such clients, the 'hover'
+domain attribute can be set to the value "always" instead of the default value
+"focused".
+
+
+Tinting and labeling of screen regions
+--------------------------------------
+
+Nitpicker is able to tint and label screen regions according to the clients
+that are present on screen. The tinting and labeling assists the user to
+uncover Trojan Horses, which are applications that mimic the appearance of
+trusted applications to sneak credentials from the user. Both the tinting
+and labeling are influenced by a color configured via the 'color' attribute of
+the domain.
+
+If the domain's 'label' attribute is set to "yes", each view of the domain is
+surrounded by a frame painted with the domain color. Furthermore, the textual
+label of the session is painted as watermark over the view content.
+
+If the 'content' attribute is set to "tinted", the client-provided content
+is mixed with the domain color unless the client has the input focus. If set
+to "client", no tinting is performed. The latter is useful for trusted domains
+such as the pointer or a global panel.
 
 
 Global key definitions
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Nitpicker has a few built-in function that can be activated via global
-keyboard shortcuts, namely the X-ray mode and the kill mode. The keys
-for toggling those functions can be defined as follows:
-
-! <config>
-!   ...
-!   <global-key name="KEY_SCROLLLOCK" operation="xray" />
-!   <global-key name="KEY_PRINT"      operation="kill" />
-!   ...
-! </config>
-
-Each '<global-key>' node expresses a rule for a named key. The 'operation'
-attribute refers nitpicker's built-in operations. In the example above, the
-X-ray mode can be activated via the scroll-lock key and the kill mode can be
-activated via the print key.
-
-Alternatively to specifying an 'operation' attribute, a key node can contain
-a 'label' attribute. If specified, all events regarding the key will be
-reported to the client with the specified label. This enables clients to
-handle global shortcuts. The client with the matching label will receive
-all events until the number of concurrently pressed keys reaches zero.
-This way, it is possible to handle chords of multiple keys starting with
-the key specified in the '<key>' node. For the routing of global keys to
-clients, the order of '<key>' nodes is important. If multiple nodes exists for
-different labels, the first match will take effect. For example:
+Nitpicker is able to direct global key sequences to dedicated clients using
+'<global-key>' nodes. Such a node contains the key name of the initiating key
+of the sequence as 'name' attribute and the designated receiver of the sequence
+as 'label' attribute. If specified, all events belonging to the sequence will
+be reported to the client with the specified label. This enables clients to
+handle global shortcuts. The client with the matching label will receive all
+events until the number of concurrently pressed keys reaches zero. This way, it
+is possible to handle chords of multiple keys starting with the key specified
+in the '<key>' node. For the routing of global keys to clients, the order of
+'<key>' nodes is important. If multiple nodes exists for different labels, the
+first match will take effect. For example:
 
 ! <config>
 !   ...

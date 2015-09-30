@@ -51,8 +51,6 @@ Rect View_stack::_outline(View const &view) const
 {
 	Rect const rect = view.abs_geometry();
 
-	if (_mode.flat()) return rect;
-
 	/* request thickness of view frame */
 	int const frame_size = view.frame_size(_mode);
 
@@ -135,8 +133,9 @@ void View_stack::_optimize_label_rec(View const *cv, View const *lv, Rect rect, 
 
 void View_stack::_place_labels(Rect rect)
 {
-	/* do not calculate label positions in flat mode */
-	if (_mode.flat()) return;
+	/*
+	 * XXX We may skip this if none of the domains have the labeling enabled.
+	 */
 
 	/* ignore mouse cursor */
 	View const *start = _next_view(*_first_view());

@@ -23,10 +23,6 @@ using namespace Input;
  ** Utilities **
  ***************/
 
-static inline bool _masked_key(Global_keys &global_keys, Keycode keycode) {
-	return global_keys.is_kill_key(keycode) || global_keys.is_xray_key(keycode); }
-
-
 static inline bool _mouse_button(Keycode keycode) {
 		return keycode >= BTN_LEFT && keycode <= BTN_MIDDLE; }
 
@@ -127,19 +123,7 @@ void User_state::handle_event(Input::Event ev)
 	 */
 	if (type == Event::PRESS && Mode::has_key_cnt(1)) {
 
-		/*
-		 * Detect mouse press event in kill mode, used to select the session
-		 * to lock out.
-		 */
-		if (kill() && keycode == Input::BTN_LEFT) {
-			if (_pointed_session)
-				lock_out_session(*_pointed_session);
-
-			/* leave kill mode */
-			update_all_guard.update = true;
-			Mode::leave_kill();
-			return;
-		}
+		::Session *global_receiver = nullptr;
 
 		/* update focused session */
 		if (pointed_session != Mode::focused_session() && _mouse_button(keycode)) {
@@ -159,7 +143,10 @@ void User_state::handle_event(Input::Event ev)
 				pointed_session->submit_input_event(focus_ev);
 			}
 
-			focused_session(_pointed_session);
+			if (_pointed_session->has_transient_focusable_domain())
+				global_receiver = _pointed_session;
+			else if (_pointed_session->has_click_focusable_domain())
+				focused_session(_pointed_session);
 		}
 
 		/*
@@ -172,7 +159,9 @@ void User_state::handle_event(Input::Event ev)
 		 * to the global receiver. To reflect that change, we need to update
 		 * the whole screen.
 		 */
-		::Session * const global_receiver = _global_keys.global_receiver(keycode);
+		if (!global_receiver)
+			global_receiver = _global_keys.global_receiver(keycode);
+
 		if (global_receiver) {
 			_global_key_sequence    = true;
 			_input_receiver         = global_receiver;
@@ -186,53 +175,37 @@ void User_state::handle_event(Input::Event ev)
 		if (!global_receiver) {
 			_input_receiver = Mode::focused_session();
 		}
-
-		/*
-		 * Toggle kill and xray modes. If one of those keys is pressed,
-		 * suppress the delivery to clients.
-		 */
-		if (_global_keys.is_operation_key(keycode)) {
-
-			if (_global_keys.is_kill_key(keycode)) {
-				Mode::toggle_kill();
-				_input_receiver = 0;
-			}
-
-			if (_global_keys.is_xray_key(keycode)) Mode::toggle_xray();
-
-			update_all_guard.update = true;
-		}
 	}
 
 	/*
-	 * Deliver event to session except when kill mode is activated
+	 * Deliver event to session
 	 */
-	if (kill()) return;
-
 	if (type == Event::MOTION || type == Event::WHEEL || type == Event::TOUCH) {
 
 		if (Mode::has_key_cnt(0)) {
 
-			/*
-			 * In flat mode, we deliver motion events to the pointed-at
-			 * session. In xray mode, we deliver motion events only to the
-			 * focused session.
-			 */
-			if (flat() || (xray() && Mode::focused_session() == pointed_session)
-			 || (pointed_session && pointed_session->xray_no()))
-				if (pointed_session)
+			if (pointed_session) {
+
+				/*
+				 * Unless the domain of the pointed session is configured to
+				 * always receive hover events, we deliver motion events only
+				 * to the focused domain.
+				 */
+				if (pointed_session->hover_always()
+				 || pointed_session->has_same_domain(Mode::focused_session()))
 					pointed_session->submit_input_event(ev);
+			}
 
 		} else if (_input_receiver)
 			_input_receiver->submit_input_event(ev);
 	}
 
 	/*
-	 * Deliver press/release event to focused session. Never deliver events
-	 * for keys that are configured for global operations.
+	 * Deliver press/release event to focused session or the receiver of global
+	 * key.
 	 */
 	if (type == Event::PRESS || type == Event::RELEASE)
-		if (_input_receiver && !_global_keys.is_operation_key(keycode))
+		if (_input_receiver)
 			_input_receiver->submit_input_event(ev);
 
 	/*

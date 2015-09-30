@@ -290,23 +290,18 @@ append_if $use_fancy_stuff config {
 		<resource name="RAM" quantum="8M"/>
 		<config>
 			<report focus="yes" />
-			<domain name="pointer" layer="1" xray="no" origin="pointer" />
-			<domain name="panel"   layer="2" xray="no" />
-			<domain name=""        layer="3" ypos="18" height="-18" />
-
+			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
+			<domain name="panel"   layer="2" content="client" label="no" focus="none" />
+			<domain name=""        layer="3" content="client" focus="click"
+			                       hover="always" ypos="18" height="-18" />
 			<policy label="pointer"    domain="pointer"/>
 			<policy label="status_bar" domain="panel"/>
 			<policy label=""           domain=""/>
-
-			<global-key name="KEY_SCROLLLOCK" operation="xray" />
-			<global-key name="KEY_SYSRQ"      operation="kill" />
-			<global-key name="KEY_PRINT"      operation="kill" />
-			<global-key name="KEY_F11"        operation="kill" />
-			<global-key name="KEY_F12"        operation="xray" />
 		</config>
 		<route>
 			<service name="Timer">      <child name="timer"/></service>
 			<service name="Framebuffer"><child name="fb_drv"/></service>
+			<service name="Report">     <child name="report_rom"/></service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
 		<provides><service name="Nitpicker"/></provides>

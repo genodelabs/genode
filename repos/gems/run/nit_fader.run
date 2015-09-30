@@ -7,7 +7,7 @@ if {![have_spec linux]} {
 }
 
 set build_components {
-	core init drivers/timer drivers/framebuffer/sdl
+	core init drivers/timer drivers/framebuffer
 	server/dynamic_rom server/nitpicker app/scout server/nit_fader
 	app/pointer
 }
@@ -51,17 +51,11 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nitpicker"/></provides>
 		<config>
-			<domain name="pointer" layer="1" xray="no" origin="pointer" />
-			<domain name="" layer="3" />
+			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
+			<domain name=""        layer="3" content="client" label="no" focus="click" hover="always" />
 
-			<policy label="pointer"    domain="pointer"/>
-			<policy label="" domain=""/>
-
-			<global-key name="KEY_SCROLLLOCK" operation="xray" />
-			<global-key name="KEY_SYSRQ"      operation="kill" />
-			<global-key name="KEY_PRINT"      operation="kill" />
-			<global-key name="KEY_F11"        operation="kill" />
-			<global-key name="KEY_F12"        operation="xray" />
+			<policy label="pointer" domain="pointer"/>
+			<policy label=""        domain=""/>
 		</config>
 	</start>
 	<start name="pointer">

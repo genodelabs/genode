@@ -10,15 +10,15 @@ if {[have_spec hw_odroid_xu]} {
 set build_components {
 	core init
 	drivers/timer
-	server/nitpicker app/pointer app/status_bar
+	server/nitpicker app/pointer app/status_bar app/xray_trigger
 	server/liquid_framebuffer app/launchpad app/scout
 	test/nitpicker server/nitlog
 	drivers/framebuffer drivers/input
-	server/report_rom
+	server/report_rom server/rom_filter
 }
 
-lappend_if [have_spec usb]              build_components drivers/usb
-lappend_if [have_spec gpio]             build_components drivers/gpio
+lappend_if [have_spec usb]  build_components drivers/usb
+lappend_if [have_spec gpio] build_components drivers/gpio
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
 append_platform_drv_build_components
@@ -99,42 +99,108 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
+
 	<start name="report_rom">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
 			<rom>
-				<policy label="status_bar -> focus" report="nitpicker -> focus"/>
+				<policy label="status_bar -> focus"      report="nitpicker -> focus"/>
+				<policy label="nitpicker_config -> xray" report="xray_trigger -> xray"/>
+				<policy label="xray_trigger -> hover"    report="nitpicker -> hover"/>
 			</rom>
 		</config>
 	</start>
-	<start name="nitpicker">
+
+	<start name="nitpicker_config">
+		<binary name="rom_filter"/>
 		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Nitpicker"/></provides>
+		<provides><service name="ROM"/></provides>
 		<config>
-			<report focus="yes" />
-			<domain name="pointer" layer="1" xray="no" origin="pointer" />
-			<domain name="panel"   layer="2" xray="no" />
-			<domain name=""        layer="3" ypos="18" height="-18" />
+			<input name="xray_enabled" rom="xray" node="xray">
+				<attribute name="enabled" /> </input>
 
-			<policy label="pointer"    domain="pointer"/>
-			<policy label="status_bar" domain="panel"/>
-			<policy label=""           domain=""/>
+			<output node="config">
+				<inline>
+					<report focus="yes" xray="yes" hover="yes" />
+					<domain name="pointer" layer="1" origin="pointer"
+					        content="client" label="no"/>
+					<domain name="panel" layer="2"
+					        content="client" label="no" hover="always"/>
+				</inline>
+				<if>
+					<has_value input="xray_enabled" value="no" />
+					<then>
+						<inline>
+							<domain name="launchpad" layer="3"
+							        content="client" label="no" hover="always" focus="click"
+							        ypos="18" height="-18" />
+							<domain name="" layer="3"
+							        content="client" label="no" hover="always" focus="click"
+							        ypos="18" height="-18" />
+						</inline>
+					</then>
+					<else>
+						<inline>
+							<domain name="launchpad" layer="3" color="#dd0000"
+							        content="tinted" label="yes" hover="focused" focus="click"
+							        ypos="18" height="-18" />
+							<domain name="" layer="3" color="#55dd34"
+							        content="tinted" label="yes" hover="focused" focus="click"
+							        ypos="18" height="-18" />
+						</inline>
+					</else>
+				</if>
+				<inline>
+					<policy label="pointer"            domain="pointer"/>
+					<policy label="status_bar"         domain="panel"/>
+					<policy label="scout -> launchpad" domain="launchpad"/>
+					<policy label=""                   domain=""/>
 
-			<global-key name="KEY_SCROLLLOCK" operation="xray" />
-			<global-key name="KEY_SYSRQ"      operation="kill" />
-			<global-key name="KEY_PRINT"      operation="kill" />
-			<global-key name="KEY_F11"        operation="kill" />
-			<global-key name="KEY_F12"        operation="xray" />
+					<global-key name="KEY_SCROLLLOCK" label="xray_trigger" />
+					<global-key name="KEY_F1"         label="xray_trigger" />
+					<global-key name="KEY_F2"         label="xray_trigger" />
+				</inline>
+			</output>
+		</config>
+		<route>
+			<service name="ROM"> <child name="report_rom"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="xray_trigger">
+		<resource name="RAM" quantum="1M"/>
+		<config>
+			<press   name="KEY_F1" xray="on"/>
+			<release name="KEY_F1" xray="off"/>
+			<press   name="KEY_F2" xray="toggle"/>
+			<hover domain="panel"/>
 		</config>
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
+			<service name="ROM"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
+
+	<start name="nitpicker">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Nitpicker"/></provides>
+		<configfile name="nitpicker.config"/>
+		<route>
+			<service name="ROM" label="nitpicker.config">
+				<child name="nitpicker_config"/> </service>
+			<service name="Report">
+				<child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
 	<start name="pointer">
 		<resource name="RAM" quantum="1M"/>
 	</start>
+
 	<start name="status_bar">
 		<resource name="RAM" quantum="1M"/>
 		<route>
@@ -142,6 +208,7 @@ append config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
+
 	<start name="scout">
 		<resource name="RAM" quantum="64M" />
 	</start>
@@ -181,18 +248,18 @@ close $launchpad_config_fd
 set boot_modules {
 	core init
 	timer
-	nitpicker pointer status_bar report_rom liquid_fb launchpad scout
-	testnit nitlog
+	nitpicker pointer status_bar report_rom rom_filter xray_trigger
+	liquid_fb launchpad scout testnit nitlog
 	launchpad.config
 }
 
 # platform-specific modules
-lappend_if [have_spec linux]            boot_modules fb_sdl
-lappend_if [have_spec ps2]              boot_modules ps2_drv
-lappend_if [have_spec framebuffer]      boot_modules fb_drv
-lappend_if [have_spec usb]              boot_modules usb_drv
-lappend_if [have_spec gpio]             boot_modules gpio_drv
-lappend_if [have_spec imx53]            boot_modules input_drv
+lappend_if [have_spec linux]       boot_modules fb_sdl
+lappend_if [have_spec ps2]         boot_modules ps2_drv
+lappend_if [have_spec framebuffer] boot_modules fb_drv
+lappend_if [have_spec usb]         boot_modules usb_drv
+lappend_if [have_spec gpio]        boot_modules gpio_drv
+lappend_if [have_spec imx53]       boot_modules input_drv
 
 append_platform_drv_boot_modules
 

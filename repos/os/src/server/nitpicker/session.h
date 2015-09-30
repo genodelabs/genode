@@ -75,10 +75,13 @@ class Session : public Session_list::Element
 			                      Genode::strlen(selector)) == 0;
 		}
 
-		bool xray_opaque() const { return _domain && _domain->xray_opaque(); }
-
-		bool xray_no() const { return _domain && _domain->xray_no(); }
-
+		/**
+		 * Accessors to the domain configuration used in conditions
+		 */
+		bool label_visible()  const { return !_domain || _domain->label_visible(); }
+		bool content_client() const { return _domain && _domain->content_client(); }
+		bool hover_focused()  const { return !_domain || _domain->hover_focused(); }
+		bool hover_always()   const { return _domain && _domain->hover_always(); }
 		bool origin_pointer() const { return _domain && _domain->origin_pointer(); }
 
 		unsigned layer() const { return _domain ? _domain->layer() : ~0UL; }
@@ -164,6 +167,16 @@ class Session : public Session_list::Element
 		bool has_same_domain(Session const *s) const
 		{
 			return s && (s->_domain == _domain);
+		}
+
+		bool has_click_focusable_domain()
+		{
+			return has_valid_domain() && _domain->focus_click();
+		}
+
+		bool has_transient_focusable_domain()
+		{
+			return has_valid_domain() && _domain->focus_transient();
 		}
 
 		bool has_valid_domain() const

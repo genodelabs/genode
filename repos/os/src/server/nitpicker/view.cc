@@ -70,20 +70,10 @@ void View::title(const char *title)
 
 void View::frame(Canvas_base &canvas, Mode const &mode) const
 {
-	/* do not draw frame in flat mode */
-	if (mode.flat()) return;
+	if (!_session.label_visible())
+		return;
 
 	Rect const geometry = abs_geometry();
-
-	if (_session.xray_no())
-		return;
-
-	if (_session.xray_opaque()) {
-		Point frame_offset(frame_size(mode), frame_size(mode));
-		Rect  rect(geometry.p1() - frame_offset, geometry.p2() + frame_offset);
-		canvas.draw_box(rect, _session.color());
-		return;
-	}
 
 	draw_frame(canvas, geometry, _session.color(), frame_size(mode));
 }
@@ -95,13 +85,11 @@ void View::frame(Canvas_base &canvas, Mode const &mode) const
 static Texture_painter::Mode
 texture_painter_mode(Mode const &mode, Session const &session)
 {
-	bool const is_focused = session.has_same_domain(mode.focused_session());
-
 	/*
-	 * Use dimming in x-ray and kill mode, but do not dim the focused view in
-	 * x-ray mode.
+	 * Tint view unless it belongs to a domain that is explicitly configured to
+	 * display the raw client content or if belongs to the focused domain.
 	 */
-	if (mode.flat() || (session.xray_no()) || (mode.xray() && is_focused))
+	if (session.content_client() || session.has_same_domain(mode.focused_session()))
 		return Texture_painter::SOLID;
 
 	return Texture_painter::MIXED;
@@ -135,28 +123,22 @@ void View::draw(Canvas_base &canvas, Mode const &mode) const
 		}
 	}
 
-	/* allow alpha blending only in flat mode */
-	bool allow_alpha = mode.flat() || _session.xray_no();
+	/* allow alpha blending only if the raw client content is enabled */
+	bool allow_alpha = _session.content_client();
 
 	/* draw view content */
-	Color const mix_color = mode.kill() ? KILL_COLOR
-	                      : Color(_session.color().r >> 1,
+	Color const mix_color = Color(_session.color().r >> 1,
 	                              _session.color().g >> 1,
 	                              _session.color().b >> 1);
 
-	if (mode.xray() && _session.xray_opaque()) {
-		canvas.draw_box(view_rect, _session.color());
-
+	if (_session.texture()) {
+		canvas.draw_texture(_buffer_off + view_rect.p1(), *_session.texture(),
+		                    op, mix_color, allow_alpha);
 	} else {
-		if (_session.texture()) {
-			canvas.draw_texture(_buffer_off + view_rect.p1(), *_session.texture(),
-			                    op, mix_color, allow_alpha);
-		} else {
-			canvas.draw_box(view_rect, BLACK);
-		}
+		canvas.draw_box(view_rect, BLACK);
 	}
 
-	if (mode.flat() || _session.xray_opaque() || _session.xray_no()) return;
+	if (!_session.label_visible()) return;
 
 	/* draw label */
 	Color const frame_color = _session.color();

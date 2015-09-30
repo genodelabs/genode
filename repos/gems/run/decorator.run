@@ -7,7 +7,7 @@ if {![have_spec linux]} {
 }
 
 set build_components {
-	core init drivers/timer drivers/framebuffer/sdl
+	core init drivers/timer drivers/framebuffer
 	server/dynamic_rom server/report_rom server/nitpicker app/decorator
 }
 
@@ -61,13 +61,8 @@ append config {
 		<provides><service name="Nitpicker"/></provides>
 		<config>
 			<report pointer="yes" />
-			<domain name="" layer="2" />
+			<domain name="" layer="2" content="client" label="no"/>
 			<policy label="" domain=""/>
-			<global-key name="KEY_SCROLLLOCK" operation="xray" />
-			<global-key name="KEY_SYSRQ"      operation="kill" />
-			<global-key name="KEY_PRINT"      operation="kill" />
-			<global-key name="KEY_F11"        operation="kill" />
-			<global-key name="KEY_F12"        operation="xray" />
 		</config>
 	</start>
 	<start name="dynamic_rom">

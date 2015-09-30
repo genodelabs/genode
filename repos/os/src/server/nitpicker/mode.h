@@ -20,13 +20,9 @@ class Mode
 {
 	private:
 
-		bool _xray = false;
-		bool _kill = false;
-
 		/*
-		 * Number of currently pressed keys.
-		 * This counter is used to determine if the user
-		 * is dragging an item.
+		 * Number of currently pressed keys. This counter is used to determine
+		 * if the user is dragging an item.
 		 */
 		unsigned _key_cnt = 0;
 
@@ -39,14 +35,7 @@ class Mode
 		/**
 		 * Accessors
 		 */
-		bool xray() const { return _xray; }
-		bool kill() const { return _kill; }
-		bool flat() const { return !_xray && !_kill; }
 		bool drag() const { return _key_cnt > 0; }
-
-		void leave_kill()  { _kill = false; }
-		void toggle_kill() { _kill = !_kill; }
-		void toggle_xray() { _xray = !_xray; }
 
 		void inc_key_cnt() { _key_cnt++; }
 		void dec_key_cnt() { _key_cnt--; }

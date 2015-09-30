@@ -31,7 +31,7 @@ Global_keys::Policy *Global_keys::_lookup_policy(char const *key_name)
 void Global_keys::apply_config(Session_list &session_list)
 {
 	for (unsigned i = 0; i < NUM_POLICIES; i++)
-		_policies[i].undefine();
+		_policies[i] = Policy();
 
 	char const *node_type = "global-key";
 
@@ -58,23 +58,6 @@ void Global_keys::apply_config(Session_list &session_list)
 			/* if two policies match, give precedence to policy defined first */
 			if (policy->defined())
 				continue;
-
-			if (node.has_attribute("operation")) {
-				Xml_node::Attribute operation = node.attribute("operation");
-
-				if (operation.has_value("kill")) {
-					policy->operation_kill();
-					continue;
-				} else if (operation.has_value("xray")) {
-					policy->operation_xray();
-					continue;
-				} else {
-					char buf[32]; buf[0] = 0;
-					operation.value(buf, sizeof(buf));
-					PWRN("unknown operation \"%s\" for key %s", buf, name);
-				}
-				continue;
-			}
 
 			if (!node.has_attribute("label")) {
 				PWRN("missing 'label' attribute for key %s", name);

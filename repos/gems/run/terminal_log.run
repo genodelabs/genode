@@ -62,21 +62,8 @@ append_if [have_spec sdl] config {
 			<service name="Framebuffer"/>
 		</provides>
 	</start>
-	<start name="nitpicker">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Nitpicker"/></provides>
-		<config>
-			<domain name="pointer" layer="1" xray="no" origin="pointer" />
-			<domain name=""        layer="2" />
-			<policy label="pointer" domain="pointer"/>
-			<policy label=""        domain=""/>
-		</config>
-		<route>
-			<service name="Input">       <child name="fb_sdl"/> </service>
-			<service name="Framebuffer"> <child name="fb_sdl"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>}
+	<alias name="fb_drv"    child="fb_sdl"/>
+	<alias name="input_drv" child="fb_sdl"/>}
 
 append_platform_drv_config
 
@@ -90,26 +77,25 @@ append_if [have_spec ps2] config {
 	<start name="ps2_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Input"/></provides>
-	</start> }
+	</start>
+	<alias name="input_drv" child="ps2_drv"/>}
 
-append_if [expr ! [have_spec sdl]] config {
+append config {
 	<start name="nitpicker">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nitpicker"/></provides>
 		<config>
-			<domain name="pointer" layer="1" xray="no" origin="pointer" />
-			<domain name=""        layer="2" />
+			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
+			<domain name=""        layer="2" content="client" label="no" focus="click" hover="always" />
 			<policy label="pointer" domain="pointer"/>
 			<policy label=""        domain=""/>
 		</config>
 		<route>
-			<service name="Input">       <child name="ps2_drv"/> </service>
-			<service name="Framebuffer"> <child name="fb_drv"/> </service>
+			<service name="Input">       <child name="input_drv"/> </service>
+			<service name="Framebuffer"> <child name="fb_drv"/>    </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
-	</start>}
-
-append config {
+	</start>
 	<start name="pointer">
 		<resource name="RAM" quantum="1M"/>
 	</start>

@@ -9,7 +9,7 @@ assert_spec linux
 set build_components {
 	core init
 	drivers/timer
-	drivers/framebuffer/sdl
+	drivers/framebuffer
 	server/report_rom
 	server/dynamic_rom
 	server/nitpicker
@@ -94,15 +94,14 @@ set config {
 		<provides><service name="Nitpicker"/></provides>
 		<config>
 			<report focus="yes" hover="yes" xray="yes"/>
-			<domain name="pointer"    layer="1" xray="no" origin="pointer"/>
-			<domain name="smiley"     layer="3"/>
-			<domain name=""           layer="3"/>
+			<domain name="pointer"    layer="1" content="client" label="no" origin="pointer"/>
+			<domain name="smiley"     layer="3" content="client" label="no"/>
+			<domain name=""           layer="3" content="client" label="no"/>
 
 			<policy label="pointer"            domain="pointer"/>
 			<policy label="test-domain-smiley" domain="smiley"/>
 			<policy label=""                   domain=""/>
 
-			<global-key name="KEY_F12" operation="xray"/>
 			<background color="#00426f"/> <!-- indigo -->
 		</config>
 		<route>

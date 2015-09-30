@@ -70,19 +70,11 @@ proc qt5_start_nodes { feature_arg } {
 				<any-service> <parent /> <any-child /> </any-service>
 			</route>
 			<config>
-				<domain name="pointer"   layer="1" xray="no" origin="pointer" />
-				<domain name="decorator" layer="2" xray="opaque" />
-				<domain name="default"   layer="2" />
+				<domain name="pointer" layer="1" label="no" content="client" origin="pointer" />
+				<domain name="default" layer="2" label="no" content="client" focus="click" hover="always" />
 
-				<policy label="pointer"         domain="pointer"/>
-				<policy label=""                domain="default"/>
-				<policy label="wm -> decorator" domain="decorator"/>
-
-				<global-key name="KEY_SCROLLLOCK" operation="xray" />
-				<global-key name="KEY_SYSRQ"      operation="kill" />
-				<global-key name="KEY_PRINT"      operation="kill" />
-				<global-key name="KEY_F11"        operation="kill" />
-				<global-key name="KEY_F12"        operation="xray" />
+				<policy label="pointer" domain="pointer"/>
+				<policy label=""        domain="default"/>
 			</config>
 		</start>
 

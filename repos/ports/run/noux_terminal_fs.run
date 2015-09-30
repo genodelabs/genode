@@ -90,8 +90,8 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nitpicker"/></provides>
 		<config>
-			<domain name="pointer" layer="1" xray="no" origin="pointer" />
-			<domain name=""        layer="2" />
+			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
+			<domain name=""        layer="2" content="client" focus="click" />
 			<policy label="pointer" domain="pointer"/>
 			<policy label=""        domain=""/>
 		</config>

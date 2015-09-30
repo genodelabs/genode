@@ -100,20 +100,6 @@ static void report_session(Genode::Reporter &reporter, Session *session,
 }
 
 
-static void report_kill_focus(Genode::Reporter &reporter)
-{
-	if (!reporter.is_enabled())
-		return;
-
-	Genode::Reporter::Xml_generator xml(reporter, [&] ()
-	{
-		xml.attribute("label",  "");
-		xml.attribute("domain", "");
-		xml.attribute("color",  "#ff4444");
-	});
-}
-
-
 /*
  * Font initialization
  */
@@ -934,8 +920,11 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 			};
 			_ep.apply(session_cap, lambda);
 
-			if (_mode.xray())
-				_view_stack.update_all_views();
+			/*
+			 * XXX We may skip this if all domains are configured to show the
+			 *     raw client content.
+			 */
+			_view_stack.update_all_views();
 		}
 
 		void session_control(Label suffix, Session_control control) override
@@ -1171,7 +1160,6 @@ struct Nitpicker::Main
 	Genode::Reporter pointer_reporter = { "pointer" };
 	Genode::Reporter hover_reporter   = { "hover" };
 	Genode::Reporter focus_reporter   = { "focus" };
-	Genode::Reporter xray_reporter    = { "xray" };
 
 	Root<PT> np_root = { session_list, *domain_registry, global_keys,
 	                     ep.rpc_ep(), user_state, user_state, pointer_origin,
@@ -1257,112 +1245,60 @@ void Nitpicker::Main::handle_input(unsigned)
 {
 	period_cnt++;
 
-	/*
-	 * If kill mode is already active, we got recursively called from
-	 * within this 'input_func' (via 'wait_and_dispatch_one_signal').
-	 * In this case, return immediately. New input events will be
-	 * processed in the local 'do' loop.
-	 */
-	if (user_state.kill())
-		return;
+	Point       const old_pointer_pos     = user_state.pointer_pos();
+	::Session * const old_pointed_session = user_state.pointed_session();
+	::Session * const old_focused_session = user_state.Mode::focused_session();
+	bool        const old_user_active     = user_active;
 
-	do {
-		Point       const old_pointer_pos     = user_state.pointer_pos();
-		::Session * const old_pointed_session = user_state.pointed_session();
-		::Session * const old_focused_session = user_state.Mode::focused_session();
-		bool        const old_kill_mode       = user_state.kill();
-		bool        const old_xray_mode       = user_state.xray();
-		bool        const old_user_active     = user_active;
+	/* handle batch of pending events */
+	if (import_input_events(ev_buf, input.flush(), user_state)) {
+		last_active_period = period_cnt;
+		user_active        = true;
+	}
 
-		/* handle batch of pending events */
-		if (import_input_events(ev_buf, input.flush(), user_state)) {
-			last_active_period = period_cnt;
-			user_active        = true;
-		}
+	Point       const new_pointer_pos     = user_state.pointer_pos();
+	::Session * const new_pointed_session = user_state.pointed_session();
+	::Session * const new_focused_session = user_state.Mode::focused_session();
 
-		Point       const new_pointer_pos     = user_state.pointer_pos();
-		::Session * const new_pointed_session = user_state.pointed_session();
-		::Session * const new_focused_session = user_state.Mode::focused_session();
-		bool        const new_kill_mode       = user_state.kill();
-		bool        const new_xray_mode       = user_state.xray();
+	/* flag user as inactive after activity threshold is reached */
+	if (period_cnt == last_active_period + activity_threshold)
+		user_active = false;
 
-		/* flag user as inactive after activity threshold is reached */
-		if (period_cnt == last_active_period + activity_threshold)
-			user_active = false;
+	/* report mouse-position updates */
+	if (pointer_reporter.is_enabled() && old_pointer_pos != new_pointer_pos) {
 
-		/* report mouse-position updates */
-		if (pointer_reporter.is_enabled() && old_pointer_pos != new_pointer_pos) {
+		Genode::Reporter::Xml_generator xml(pointer_reporter, [&] ()
+		{
+			xml.attribute("xpos", new_pointer_pos.x());
+			xml.attribute("ypos", new_pointer_pos.y());
+		});
+	}
 
-			Genode::Reporter::Xml_generator xml(pointer_reporter, [&] ()
-			{
-				xml.attribute("xpos", new_pointer_pos.x());
-				xml.attribute("ypos", new_pointer_pos.y());
-			});
-		}
+	/* report hover changes */
+	if (!user_state.Mode::key_is_pressed()
+	 && old_pointed_session != new_pointed_session) {
+		report_session(hover_reporter, new_pointed_session);
+	}
 
-		if (xray_reporter.is_enabled() && old_xray_mode != new_xray_mode) {
+	/* report focus changes */
+	if (old_focused_session != new_focused_session
+	 || old_user_active     != user_active)
+		report_session(focus_reporter, new_focused_session, user_active);
 
-			Genode::Reporter::Xml_generator xml(xray_reporter, [&] ()
-			{
-				xml.attribute("enabled", new_xray_mode ? "yes" : "no");
-			});
-		}
+	/* update mouse cursor */
+	if (old_pointer_pos != new_pointer_pos)
+		user_state.geometry(pointer_origin, Rect(new_pointer_pos, Area()));
 
-		/* report hover changes */
-		if (old_pointed_session != new_pointed_session)
-			report_session(hover_reporter, new_pointed_session);
+	/* perform redraw and flush pixels to the framebuffer */
+	user_state.draw(fb_screen->screen).flush([&] (Rect const &rect) {
+		framebuffer.refresh(rect.x1(), rect.y1(),
+		                    rect.w(),  rect.h()); });
 
-		/* report focus changes */
-		if (old_focused_session != new_focused_session
-		 || old_user_active     != user_active)
-			report_session(focus_reporter, new_focused_session, user_active);
+	user_state.mark_all_views_as_clean();
 
-		/* report kill mode */
-		if (old_kill_mode != new_kill_mode) {
-
-			if (new_kill_mode)
-				report_kill_focus(focus_reporter);
-
-			if (!new_kill_mode)
-				report_session(focus_reporter, new_focused_session);
-		}
-
-		/*
-		 * Continuously redraw the whole screen when kill mode is active.
-		 * Otherwise client updates (e.g., the status bar) would stay invisible
-		 * because we do not dispatch the RPC interface during kill mode.
-		 */
-		if (new_kill_mode)
-			user_state.update_all_views();
-
-		/* update mouse cursor */
-		if (old_pointer_pos != new_pointer_pos)
-			user_state.geometry(pointer_origin, Rect(new_pointer_pos, Area()));
-
-		/* perform redraw and flush pixels to the framebuffer */
-		user_state.draw(fb_screen->screen).flush([&] (Rect const &rect) {
-			framebuffer.refresh(rect.x1(), rect.y1(),
-			                    rect.w(),  rect.h()); });
-
-		user_state.mark_all_views_as_clean();
-
-		/* deliver framebuffer synchronization events */
-		if (!user_state.kill()) {
-			for (::Session *s = session_list.first(); s; s = s->next())
-				s->submit_sync();
-		}
-
-		/*
-		 * In kill mode, we do not leave the dispatch function in order to
-		 * block RPC calls from Nitpicker clients. We block for signals
-		 * here to stay responsive to user input and configuration changes.
-		 * Nested calls of 'input_func' are prevented by the condition
-		 * check for 'user_state.kill()' at the beginning of the handler.
-		 */
-		if (user_state.kill())
-			Server::wait_and_dispatch_one_signal();
-
-	} while (user_state.kill());
+	/* deliver framebuffer synchronization events */
+	for (::Session *s = session_list.first(); s; s = s->next())
+		s->submit_sync();
 }
 
 
@@ -1405,7 +1341,6 @@ void Nitpicker::Main::handle_config(unsigned)
 	configure_reporter(pointer_reporter);
 	configure_reporter(hover_reporter);
 	configure_reporter(focus_reporter);
-	configure_reporter(xray_reporter);
 
 	/* update domain registry and session policies */
 	for (::Session *s = session_list.first(); s; s = s->next())

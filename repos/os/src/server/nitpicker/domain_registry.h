@@ -28,14 +28,10 @@ class Domain_registry
 				typedef Genode::String<64> Name;
 				typedef Genode::Color      Color;
 
-				/**
-				 * Behaviour of the views of the domain when X-ray is activated
-				 */
-				enum Xray {
-					XRAY_NO,     /* views are not subjected to X-ray mode */
-					XRAY_FRAME,  /* views are tinted and framed */
-					XRAY_OPAQUE, /* views are replaced by opaque domain color */
-				};
+				enum Label   { LABEL_NO, LABEL_YES };
+				enum Content { CONTENT_CLIENT, CONTENT_TINTED };
+				enum Hover   { HOVER_FOCUSED, HOVER_ALWAYS };
+				enum Focus   { FOCUS_NONE, FOCUS_CLICK, FOCUS_TRANSIENT };
 
 				/**
 				 * Origin of the domain's coordiate system
@@ -49,21 +45,26 @@ class Domain_registry
 
 			private:
 
-				Name     _name;
-				Color    _color;
-				Xray     _xray;
-				Origin   _origin;
-				unsigned _layer;
-				Point    _offset;
-				Point    _area;
+				Name      _name;
+				Color     _color;
+				Label     _label;
+				Content   _content;
+				Hover     _hover;
+				Focus     _focus;
+				Origin    _origin;
+				unsigned  _layer;
+				Point     _offset;
+				Point     _area;
 
 				friend class Domain_registry;
 
-				Entry(Name const &name, Color color, Xray xray, Origin origin,
-				      unsigned layer, Point offset, Point area)
+				Entry(Name const &name, Color color, Label label,
+				      Content content, Hover hover, Focus focus,
+				      Origin origin, unsigned layer, Point offset, Point area)
 				:
-					_name(name), _color(color), _xray(xray), _origin(origin),
-					_layer(layer), _offset(offset), _area(area)
+					_name(name), _color(color), _label(label),
+					_content(content), _hover(hover), _focus(focus),
+					_origin(origin), _layer(layer), _offset(offset), _area(area)
 				{ }
 
 				Point _corner(Area screen_area) const
@@ -83,15 +84,19 @@ class Domain_registry
 
 				bool has_name(Name const &name) const { return name == _name; }
 
-				Name name() const { return _name; }
+				Name      name()      const { return _name;    }
+				Color     color()     const { return _color;   }
+				unsigned  layer()     const { return _layer;   }
+				Content   content()   const { return _content; }
+				Hover     hover()     const { return _hover;   }
 
-				Color color() const { return _color; }
-
-				unsigned layer() const { return _layer; }
-
-				bool xray_opaque()    const { return _xray == XRAY_OPAQUE; }
-				bool xray_no()        const { return _xray == XRAY_NO; }
-				bool origin_pointer() const { return _origin == ORIGIN_POINTER; }
+				bool label_visible()   const { return _label == LABEL_YES; }
+				bool content_client()  const { return _content == CONTENT_CLIENT; }
+				bool hover_focused()   const { return _hover == HOVER_FOCUSED; }
+				bool hover_always()    const { return _hover == HOVER_ALWAYS; }
+				bool focus_click()     const { return _focus == FOCUS_CLICK; }
+				bool focus_transient() const { return _focus == FOCUS_TRANSIENT; }
+				bool origin_pointer()  const { return _origin == ORIGIN_POINTER; }
 
 				Point phys_pos(Point pos, Area screen_area) const
 				{
@@ -112,44 +117,67 @@ class Domain_registry
 				}
 		};
 
-		static Entry::Xray _xray(Genode::Xml_node domain)
+		static Entry::Label _label(Genode::Xml_node domain)
 		{
-			char const * const attr_name = "xray";
+			typedef Genode::String<32> Value;
+			Value const value = domain.attribute_value("label", Value("yes"));
 
-			Entry::Xray const default_xray = Entry::XRAY_FRAME;
+			if (value == "no")  return Entry::LABEL_NO;
+			if (value == "yes") return Entry::LABEL_YES;
 
-			if (!domain.has_attribute(attr_name))
-				return default_xray;
-
-			Genode::Xml_node::Attribute const attr = domain.attribute(attr_name);
-
-			if (attr.has_value("no"))     return Entry::XRAY_NO;
-			if (attr.has_value("frame"))  return Entry::XRAY_FRAME;
-			if (attr.has_value("opaque")) return Entry::XRAY_OPAQUE;
-
-			PWRN("invalid value of xray attribute");
-			return default_xray;
+			PWRN("invalid value of label attribute in <domain>");
+			return Entry::LABEL_YES;
 		}
 
-		Entry::Origin _origin(Genode::Xml_node domain)
+		static Entry::Content _content(Genode::Xml_node domain)
 		{
-			char const * const attr_name = "origin";
+			typedef Genode::String<32> Value;
+			Value const value = domain.attribute_value("content", Value("tinted"));
 
-			Entry::Origin const default_origin = Entry::ORIGIN_TOP_LEFT;
+			if (value == "client") return Entry::CONTENT_CLIENT;
+			if (value == "tinted") return Entry::CONTENT_TINTED;
 
-			if (!domain.has_attribute(attr_name))
-				return default_origin;
+			return Entry::CONTENT_TINTED;
+		}
 
-			Genode::Xml_node::Attribute const attr = domain.attribute(attr_name);
+		static Entry::Hover _hover(Genode::Xml_node domain)
+		{
+			typedef Genode::String<32> Value;
+			Value const value = domain.attribute_value("hover", Value("focused"));
 
-			if (attr.has_value("top_left"))     return Entry::ORIGIN_TOP_LEFT;
-			if (attr.has_value("top_right"))    return Entry::ORIGIN_TOP_RIGHT;
-			if (attr.has_value("bottom_left"))  return Entry::ORIGIN_BOTTOM_LEFT;
-			if (attr.has_value("bottom_right")) return Entry::ORIGIN_BOTTOM_RIGHT;
-			if (attr.has_value("pointer"))      return Entry::ORIGIN_POINTER;
+			if (value == "focused") return Entry::HOVER_FOCUSED;
+			if (value == "always")  return Entry::HOVER_ALWAYS;
 
-			PWRN("invalid value of origin attribute");
-			return default_origin;
+			PWRN("invalid value of hover attribute in <domain>");
+			return Entry::HOVER_FOCUSED;
+		}
+
+		static Entry::Focus _focus(Genode::Xml_node domain)
+		{
+			typedef Genode::String<32> Value;
+			Value const value = domain.attribute_value("focus", Value("none"));
+
+			if (value == "none")      return Entry::FOCUS_NONE;
+			if (value == "click")     return Entry::FOCUS_CLICK;
+			if (value == "transient") return Entry::FOCUS_TRANSIENT;
+
+			PWRN("invalid value of focus attribute in <domain>");
+			return Entry::FOCUS_NONE;
+		}
+
+		static Entry::Origin _origin(Genode::Xml_node domain)
+		{
+			typedef Genode::String<32> Value;
+			Value const value = domain.attribute_value("origin", Value("top_left"));
+
+			if (value == "top_left")     return Entry::ORIGIN_TOP_LEFT;
+			if (value == "top_right")    return Entry::ORIGIN_TOP_RIGHT;
+			if (value == "bottom_left")  return Entry::ORIGIN_BOTTOM_LEFT;
+			if (value == "bottom_right") return Entry::ORIGIN_BOTTOM_RIGHT;
+			if (value == "pointer")      return Entry::ORIGIN_POINTER;
+
+			PWRN("invalid value of origin attribute in <domain>");
+			return Entry::ORIGIN_BOTTOM_LEFT;
 		}
 
 		void _insert(Genode::Xml_node domain)
@@ -189,7 +217,9 @@ class Domain_registry
 
 			Entry::Color const color = domain.attribute_value("color", WHITE);
 
-			_entries.insert(new (_alloc) Entry(name, color, _xray(domain),
+			_entries.insert(new (_alloc) Entry(name, color, _label(domain),
+			                                   _content(domain), _hover(domain),
+			                                   _focus(domain),
 			                                   _origin(domain), layer, offset, area));
 		}
 

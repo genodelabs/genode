@@ -241,22 +241,6 @@ class View_stack
 		 */
 		bool is_default_background(View const &view) const { return &view == _default_background; }
 
-		/**
-		 * Remove all views of specified session from view stack
-		 *
-		 * Rather than removing the views from the view stack, this function moves
-		 * the session views out of the visible screen area.
-		 */
-		void lock_out_session(Session const &session)
-		{
-			View const *view = _first_view(), *next_view = view->view_stack_next();
-			while (view) {
-				if (view->belongs_to(session)) remove_view(*view);
-				view = next_view;
-				next_view = view ? view->view_stack_next() : 0;
-			}
-		}
-
 		void apply_origin_policy(View &pointer_origin)
 		{
 			for (View *v = _first_view(); v; v = v->view_stack_next())
