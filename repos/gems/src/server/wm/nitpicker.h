@@ -442,6 +442,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 		Click_handler               &_click_handler;
 		Signal_context_capability    _mode_sigh;
 		Area                         _requested_size;
+		bool                         _resize_requested = false;
 		bool                         _has_alpha = false;
 
 		/*
@@ -790,7 +791,8 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 
 		void request_resize(Area size)
 		{
-			_requested_size = size;
+			_requested_size   = size;
+			_resize_requested = true;
 
 			/* notify client */
 			if (_mode_sigh.valid())
@@ -894,7 +896,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 			 * While resizing the window, return requested window size as
 			 * mode
 			 */
-			if (_requested_size.valid())
+			if (_resize_requested)
 				return Framebuffer::Mode(_requested_size.w(),
 				                         _requested_size.h(),
 				                         real_mode.format());
