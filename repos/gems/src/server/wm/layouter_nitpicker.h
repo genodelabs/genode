@@ -32,15 +32,19 @@ struct Wm::Layouter_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>
 	typedef Nitpicker::View_capability      View_capability;
 	typedef Nitpicker::Session::View_handle View_handle;
 
-	Input::Session_capability input_session_cap;
+	Input::Session_capability _input_session_cap;
 
-	Attached_ram_dataspace command_ds;
+	Attached_ram_dataspace _command_ds;
+
+	Framebuffer::Mode const _mode;
 
 	Layouter_nitpicker_session(Genode::Ram_session &ram,
-	                           Input::Session_capability input_session_cap)
+	                           Input::Session_capability input_session_cap,
+	                           Framebuffer::Mode mode)
 	:
-		input_session_cap(input_session_cap),
-		command_ds(&ram, 4096)
+		_input_session_cap(input_session_cap),
+		_command_ds(&ram, 4096),
+		_mode(mode)
 	{ }
 
 
@@ -55,7 +59,7 @@ struct Wm::Layouter_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>
 
 	Input::Session_capability input_session() override
 	{
-		return input_session_cap;
+		return _input_session_cap;
 	}
 
 	View_handle create_view(View_handle) override { return View_handle(); }
@@ -76,12 +80,12 @@ struct Wm::Layouter_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>
 
 	Genode::Dataspace_capability command_dataspace() override
 	{
-		return command_ds.cap();
+		return _command_ds.cap();
 	}
 
 	void execute() override { }
 
-	Framebuffer::Mode mode() override { return Framebuffer::Mode(); }
+	Framebuffer::Mode mode() override { return _mode; }
 
 	void mode_sigh(Genode::Signal_context_capability) override { }
 

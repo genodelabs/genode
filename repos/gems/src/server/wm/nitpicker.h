@@ -1140,7 +1140,8 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 				{
 					_layouter_session = new (_md_alloc)
 						Layouter_nitpicker_session(*Genode::env()->ram_session(),
-						                           _window_layouter_input_cap);
+						                           _window_layouter_input_cap,
+						                           _focus_nitpicker_session.mode());
 
 					return _ep.manage(*_layouter_session);
 				}
