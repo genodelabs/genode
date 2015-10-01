@@ -51,6 +51,8 @@ struct Vfs::Directory_service
 		OPEN_ERR_UNACCESSIBLE,
 		OPEN_ERR_NO_PERM,
 		OPEN_ERR_EXISTS,
+		OPEN_ERR_NAME_TOO_LONG,
+		OPEN_ERR_NO_SPACE,
 		OPEN_OK
 	};
 

@@ -55,7 +55,8 @@ struct Vfs::File_io_service
 	 ***************/
 
 	enum Ftruncate_result { FTRUNCATE_ERR_NO_PERM = NUM_GENERAL_ERRORS,
-	                        FTRUNCATE_ERR_INTERRUPT, FTRUNCATE_OK };
+	                        FTRUNCATE_ERR_INTERRUPT, FTRUNCATE_ERR_NO_SPACE,
+	                        FTRUNCATE_OK };
 
 	virtual Ftruncate_result ftruncate(Vfs_handle *vfs_handle, file_size len) = 0;
 

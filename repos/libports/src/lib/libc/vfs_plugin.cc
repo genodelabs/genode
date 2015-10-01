@@ -295,14 +295,18 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags,
 					/* file has been created by someone else in the meantime */
 					break;
 
-				case Result::OPEN_ERR_NO_PERM:      errno = EPERM;  return 0;
-				case Result::OPEN_ERR_UNACCESSIBLE: errno = ENOENT; return 0;
+				case Result::OPEN_ERR_NO_PERM:       errno = EPERM;        return 0;
+				case Result::OPEN_ERR_UNACCESSIBLE:  errno = ENOENT;       return 0;
+				case Result::OPEN_ERR_NAME_TOO_LONG: errno = ENAMETOOLONG; return 0;
+				case Result::OPEN_ERR_NO_SPACE:      errno = ENOSPC;       return 0;
 				}
 			}
 			break;
 
-		case Result::OPEN_ERR_NO_PERM: errno = EPERM;  return 0;
-		case Result::OPEN_ERR_EXISTS:  errno = EEXIST; return 0;
+		case Result::OPEN_ERR_NO_PERM:       errno = EPERM;        return 0;
+		case Result::OPEN_ERR_EXISTS:        errno = EEXIST;       return 0;
+		case Result::OPEN_ERR_NAME_TOO_LONG: errno = ENAMETOOLONG; return 0;
+		case Result::OPEN_ERR_NO_SPACE:      errno = ENOSPC;       return 0;
 		}
 	}
 
@@ -662,9 +666,10 @@ int Libc::Vfs_plugin::ftruncate(Libc::File_descriptor *fd, ::off_t length)
 	typedef Vfs::File_io_service::Ftruncate_result Result;
 
 	switch (handle->fs().ftruncate(handle, length)) {
-	case Result::FTRUNCATE_ERR_NO_PERM:   errno = EPERM; return -1;
-	case Result::FTRUNCATE_ERR_INTERRUPT: errno = EINTR; return -1;
-	case Result::FTRUNCATE_OK:                           break;
+	case Result::FTRUNCATE_ERR_NO_PERM:   errno = EPERM;  return -1;
+	case Result::FTRUNCATE_ERR_INTERRUPT: errno = EINTR;  return -1;
+	case Result::FTRUNCATE_ERR_NO_SPACE:  errno = ENOSPC; return -1;
+	case Result::FTRUNCATE_OK:                            break;
 	}
 	return 0;
 }
