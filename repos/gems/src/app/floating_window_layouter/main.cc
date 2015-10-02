@@ -774,7 +774,15 @@ void Floating_window_layouter::Main::handle_hover_update(unsigned)
 			hovered_element = Window::Element::UNDEFINED;
 			hovered_window_id = 0;
 			generate_window_layout_model();
-			generate_focus_model();
+
+			/*
+			 * Don't generate a focus-model update here. In a situation where
+			 * the pointer has moved over a native nitpicker view (outside
+			 * the realm of the window manager), the hover model as generated
+			 * by the decorator naturally becomes empty. If we posted a
+			 * focus update, this would steal the focus away from the native
+			 * nitpicker view.
+			 */
 		}
 	}
 }
