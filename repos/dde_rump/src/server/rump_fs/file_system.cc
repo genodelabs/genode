@@ -40,7 +40,9 @@ static char const *fs_types[] = { RUMP_MOUNT_CD9660, RUMP_MOUNT_EXT2FS,
                                   RUMP_MOUNT_FFS, RUMP_MOUNT_MSDOS,
                                   RUMP_MOUNT_NTFS, RUMP_MOUNT_UDF, 0 };
 
-static char _fs_type[10];
+typedef Genode::String<16> Fs_type;
+static Fs_type _fs_type;
+
 static bool _supports_symlinks;
 
 static bool _check_type(char const *type)
@@ -62,10 +64,10 @@ static void _print_types()
 
 static bool check_symlinks()
 {
-	if (!Genode::strcmp(_fs_type, RUMP_MOUNT_EXT2FS))
+	if (!Genode::strcmp(_fs_type.string(), RUMP_MOUNT_EXT2FS))
 		return true;
 
-	if (!Genode::strcmp(_fs_type, RUMP_MOUNT_FFS))
+	if (!Genode::strcmp(_fs_type.string(), RUMP_MOUNT_FFS))
 		return true;
 
 	return false;
@@ -74,7 +76,7 @@ static bool check_symlinks()
 
 static bool check_read_only()
 {
-	if (!Genode::strcmp(_fs_type, RUMP_MOUNT_CD9660))
+	if (!Genode::strcmp(_fs_type.string(), RUMP_MOUNT_CD9660))
 		return true;
 
 	return false;
@@ -121,13 +123,14 @@ class File_system::Sync : public Genode::Thread<1024 * sizeof(Genode::addr_t)>
 
 void File_system::init(Server::Entrypoint &ep)
 {
-	if (!Genode::config()->xml_node().attribute("fs").value(_fs_type, 10) ||
-	    !_check_type(_fs_type)) {
+	_fs_type = Genode::config()->xml_node().attribute_value("fs", Fs_type());
+
+	if (!_check_type(_fs_type.string())) {
 		PERR("Invalid or no file system given (use \'<config fs=\"<fs type>\"/>)");
 		_print_types();
 		throw Genode::Exception();
 	}
-	PINF("Using %s as file system", _fs_type);
+	PINF("Using %s as file system", _fs_type.string());
 
 	/* start rump kernel */
 	rump_init();
@@ -140,8 +143,8 @@ void File_system::init(Server::Entrypoint &ep)
 	int            opts = check_read_only() ? RUMP_MNT_RDONLY : 0;
 
 	args.fspec =  (char *)GENODE_DEVICE;
-	if (rump_sys_mount(_fs_type, "/", opts, &args, sizeof(args)) == -1) {
-		PERR("Mounting '%s' file system failed (errno %u)", _fs_type, errno);
+	if (rump_sys_mount(_fs_type.string(), "/", opts, &args, sizeof(args)) == -1) {
+		PERR("Mounting '%s' file system failed (errno %u)", _fs_type.string(), errno);
 		throw Genode::Exception();
 	}
 
