@@ -22,6 +22,7 @@
 #include <cap_session/connection.h>
 #include <base/printf.h>
 #include <base/child.h>
+#include <os/session_policy.h>
 
 /* init includes */
 #include <init/child_config.h>
@@ -123,19 +124,6 @@ namespace Init {
 
 
 	/**
-	 * Return true if service XML node matches the specified service name
-	 */
-	inline bool service_node_matches(Genode::Xml_node service_node, const char *service_name)
-	{
-		if (service_node.has_type("any-service"))
-			return true;
-
-		return service_node.has_type("service")
-		    && service_node.attribute("name").has_value(service_name);
-	}
-
-
-	/**
 	 * Return sub string of label with the leading child name stripped out
 	 *
 	 */
@@ -167,6 +155,40 @@ namespace Init {
 
 		PWRN("cannot skip label prefix while processing <if-arg>");
 		return label;
+	}
+
+
+	/**
+	 * Return true if service XML node matches service request
+	 *
+	 * \param args          session arguments, inspected for the session label
+	 * \param child_name    name of the originator of the session request
+	 * \param service_name  name of the requested service
+	 */
+	inline bool service_node_matches(Genode::Xml_node service_node,
+	                                 char const *args,
+	                                 char const *child_name,
+	                                 char const *service_name)
+	{
+		bool const service_matches =
+			service_node.has_type("any-service") ||
+			(service_node.has_type("service") &&
+			 service_node.attribute("name").has_value(service_name));
+
+		if (!service_matches)
+			return false;
+
+		if (!service_node.has_attribute("label"))
+			return true;
+
+		typedef Genode::String<160> Label;
+
+		Label const expected = service_node.attribute_value("label", Label());
+
+		Label const session_label =
+			Label(skip_label_prefix(child_name, Genode::Session_label(args).string()));
+
+		return session_label == expected;
 	}
 
 
@@ -651,7 +673,7 @@ class Init::Child : Genode::Child_policy
 
 					bool service_wildcard = service_node.has_type("any-service");
 
-					if (!service_node_matches(service_node, service_name))
+					if (!service_node_matches(service_node, args, name(), service_name))
 						continue;
 
 					if (!service_node_args_condition_satisfied(service_node, args, name()))
