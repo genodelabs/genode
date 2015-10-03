@@ -1,3 +1,6 @@
+# enable special handling in tool/run/boot_dir/sel4
+set core_test "sel4"
+
 build { test/sel4 }
 
 create_boot_directory

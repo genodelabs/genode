@@ -27,8 +27,8 @@ proc run_boot_dir {binaries} {
 	# adapt to wether this is a core-internal test or a common scenario
 	global core_test
 	if {[info exists core_test]} {
-		set core_bin "test-[run_name]"
-		set core_target "test/[run_name]"
+		set core_bin "test-$core_test"
+		set core_target "test/$core_test"
 	} else {
 		set core_bin "core"
 		set core_target "core"

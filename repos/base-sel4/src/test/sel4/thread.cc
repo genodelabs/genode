@@ -39,6 +39,12 @@ static Thread_base::Context *main_context()
 Thread_base *Thread_base::myself() { return nullptr; }
 
 
+void Thread_base::name(char *dst, size_t dst_len)
+{
+	strncpy(dst, _context->name, dst_len);
+}
+
+
 Thread_base::Thread_base(size_t, const char *name, size_t stack_size, Type type,
                          Cpu_session *cpu_session)
 :
