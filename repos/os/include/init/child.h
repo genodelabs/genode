@@ -67,11 +67,11 @@ namespace Init {
 		priority = -priority;
 
 		if (priority && (priority >= prio_levels)) {
-			long new_prio = prio_levels-1;
+			long new_prio = prio_levels ? prio_levels-1 : 0;
 			char name[Genode::Service::MAX_NAME_LEN];
 			start_node.attribute("name").value(name, sizeof(name));
-			PERR("%s: invalid priority, upgrading from -%ld to -%ld",
-			     name, priority, new_prio);
+			PWRN("%s: invalid priority, upgrading from %ld to %ld",
+			     name, -priority, -new_prio);
 			return new_prio;
 		}
 
