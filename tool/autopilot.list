@@ -56,3 +56,5 @@ nic_loopback
 platform
 report_rom
 printf
+rom_filter
+clipboard
