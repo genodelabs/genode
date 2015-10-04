@@ -36,6 +36,7 @@ class Fs_log::Log_file : public List<Log_file>::Element
 		File_system::Session &_fs;
 		File_handle           _handle;
 		seek_off_t            _offset;
+		int                   _clients;
 
 	public:
 
@@ -46,11 +47,13 @@ class Fs_log::Log_file : public List<Log_file>::Element
 		         char const *dir_path, char const *file_name,
 		         seek_off_t offset)
 		:
-			_fs(fs), _handle(handle), _offset(offset)
+			_fs(fs), _handle(handle), _offset(offset), _clients(0)
 		{
 			strncpy(_dir_path,   dir_path,  sizeof(_dir_path));
 			strncpy(_file_name, file_name, sizeof(_file_name));
 		}
+
+		~Log_file() { _fs.close(_handle); }
 
 		bool match(char const *dir, char const *filename) const
 		{
@@ -58,6 +61,10 @@ class Fs_log::Log_file : public List<Log_file>::Element
 				(strcmp(_dir_path,  dir,      MAX_PATH_LEN) == 0) &&
 				(strcmp(_file_name, filename, MAX_NAME_LEN) == 0);
 		}
+
+		void incr() { ++_clients; }
+		void decr() { --_clients; }
+		int client_count() const { return _clients; }
 
 		/**
 		 * Write a log message to the packet buffer.

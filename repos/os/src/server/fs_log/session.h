@@ -33,15 +33,24 @@ namespace Fs_log {
 
 class Fs_log::Session_component : public Rpc_object<Log_session, Unlabeled_session_component>
 {
+	protected:
+
+		Log_file &_log_file;
+
 	public:
+
+		Session_component(Log_file &log_file)
+		: _log_file(log_file) { _log_file.incr(); }
+
+		~Session_component() { _log_file.decr(); }
+
+		Log_file *file() const { return &_log_file; }
+
 		virtual size_t write(String const &string) = 0;
 };
 
 class Fs_log::Unlabeled_session_component : public Session_component
 {
-	private:
-
-		Log_file &_log_file;
 
 	public:
 
@@ -49,7 +58,7 @@ class Fs_log::Unlabeled_session_component : public Session_component
 		 * Constructor
 		 */
 		Unlabeled_session_component(Log_file &log_file)
-		: _log_file(log_file) { }
+		: Session_component(log_file) { }
 
 		/*****************
 		 ** Log session **
@@ -75,7 +84,6 @@ class Fs_log::Labeled_session_component : public Session_component
 
 		char      _label[Log_session::String::MAX_SIZE];
 		size_t    _label_len;
-		Log_file &_log_file;
 
 	public:
 
@@ -83,7 +91,7 @@ class Fs_log::Labeled_session_component : public Session_component
 		 * Constructor
 		 */
 		Labeled_session_component(char const *label, Log_file &log_file)
-		: _log_file(log_file)
+		: Session_component(log_file)
 		{
 			snprintf(_label, sizeof(_label), "[%s] ", label);
 			_label_len = strlen(_label);

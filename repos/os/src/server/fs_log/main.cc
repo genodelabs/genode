@@ -212,6 +212,16 @@ class Fs_log::Root_component :
 			return new (md_alloc()) Unlabeled_session_component(*file);
 		}
 
+		void _destroy_session(Session_component *session)
+		{
+			Log_file *file = session->file();
+			destroy(md_alloc(), session);
+			if (file->client_count() < 1) {
+				_log_files.remove(file);
+				destroy(env()->heap(), file);
+			}
+		}
+
 	public:
 
 		/**
