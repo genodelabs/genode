@@ -32,6 +32,19 @@ char **lx_environ;
 int main_thread_futex_counter __attribute__((aligned(sizeof(addr_t))));
 
 /**
+ * Genode console hook
+ */
+extern "C" int stdout_write(char const *);
+
+/*
+ * Core lacks the hook, so provide a base-linux specific weak implementation
+ */
+extern "C" __attribute__((weak)) int stdout_write(char const *s)
+{
+	return raw_write_str(s);
+}
+
+/**
  * Signal handler for exceptions like segmentation faults
  */
 static void exception_signal_handler(int signum)
@@ -46,7 +59,18 @@ static void exception_signal_handler(int signum)
 
 	default: /* unexpected signal */ return;
 	}
-	PERR("%s (signum=%d), see Linux kernel log for details", reason, signum);
+
+	/*
+	 * We can't use Genode::printf() as the exception may have occurred in the
+	 * Genode console library itself, which uses a mutex. Therefore, we use
+	 * Genode::snprintf() and call the console hook directly to minimize
+	 * overlaps with other code paths.
+	 */
+	static char msg[128];
+	snprintf(msg, sizeof(msg),
+	         ESC_ERR "%s (signum=%d), see Linux kernel log for details" ESC_END "\n",
+	         reason, signum);
+	stdout_write(msg);
 
 	/*
 	 * We reset the signal handler to SIG_DFL and trigger exception again,
