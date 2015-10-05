@@ -14,7 +14,8 @@ PATCHES := $(addprefix src/lib/lwip/,window_scaling.patch \
                                      errno.patch \
                                      libc_select_notify.patch \
                                      sockets_c_errno.patch \
-                                     sol_socket_definition.patch)
+                                     sol_socket_definition.patch \
+                                     api_msg.patch)
 
 PATCH_OPT := -p1 -d src/lib/lwip
 

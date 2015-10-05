@@ -1,0 +1,13 @@
+The write offset was not always reset after a write finished resulting in the
+failed assertion "already writing or closing".
+
+--- a/src/api/api_msg.c
++++ b/src/api/api_msg.c
+@@ -1340,6 +1340,7 @@ err_mem:
+        and back to application task */
+     conn->current_msg->err = err;
+     conn->current_msg = NULL;
++    conn->write_offset = 0;
+     conn->state = NETCONN_NONE;
+ #if LWIP_TCPIP_CORE_LOCKING
+     if ((conn->flags & NETCONN_FLAG_WRITE_DELAYED) != 0)
