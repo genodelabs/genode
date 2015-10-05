@@ -524,6 +524,16 @@ class Genode::String
 
 		char const *string() const { return valid() ? _buf : ""; }
 
+		bool operator == (char const *other) const
+		{
+			return strcmp(string(), other) == 0;
+		}
+
+		bool operator != (char const *other) const
+		{
+			return strcmp(string(), other) != 0;
+		}
+
 		template <size_t OTHER_CAPACITY>
 		bool operator == (String<OTHER_CAPACITY> const &other) const
 		{
