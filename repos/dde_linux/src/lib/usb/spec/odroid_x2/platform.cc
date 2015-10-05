@@ -23,6 +23,7 @@
 #include <timer_session/connection.h>
 #include <irq_session/connection.h>
 #include <util/mmio.h>
+#include <gpio_session/connection.h>
 
 /* Emulation */
 #include <platform/platform.h>
@@ -70,22 +71,6 @@ struct Ehci : Genode::Mmio
 	{
 		struct Reset : Bitfield<1, 1> { };
 	};
-};
-
-/**
- * Gpio ETC6 register handling
- */
-
-struct Etc6 :  Genode::Mmio
-{
-	Etc6(Genode::addr_t base):Genode::Mmio (base)
-	{
-		unsigned int value;
-		value = read<Pud>();
-		write<Pud>((value & ~(0x3 << 14)) | (0x3 << 14));
-		value = read<Pud>();
-	}
-	struct Pud : Register<0x0228, 16>{};
 };
 
 /**
@@ -138,58 +123,8 @@ struct Usb_Otg : Genode::Mmio
 	struct Rstcon : Register <0x8,32>{};
 };
 
-
-/**
- * Gpio handling
- */
-
-class Gpio_bank :  Genode::Mmio
-{
-	public:
-	Gpio_bank(Genode::addr_t base):Genode::Mmio (base){}
-
-	struct Con : Register<0x0C60, 32>{};
-	struct Dat : Register<0x0C64, 32>{};
-
-	void setDirection(int gpio , int en)
-	{
-		unsigned int value;
-		enum { GPIO_OUTPUT = 0x1 };
-
-		value = read<Dat>();
-		value &= ~(0x1 << gpio);
-		if (en)
-			value |= 0x1 << gpio;
-		write<Dat>(value);
-		configurePin(gpio, GPIO_OUTPUT);
-		write<Dat>(value);
-	}
-
-	private:
-	void configurePin(int gpio, int cfg)
-	{
-		unsigned int value;
-
-		value = read<Con>();
-		value &= ~con_mask(gpio);
-		value |= con_sfr(gpio, cfg);
-		write<Con>(value);
-	}
-	static inline
-	unsigned con_mask(unsigned val) { return 0xf << ((val) << 2); }
-
-	static inline
-	unsigned con_sfr(unsigned x, unsigned v) { return (v) << ((x) << 2); }
-};
-
 static void clock_pwr_init()
 {
-	/*Initialization of register etc6*/
-	Io_mem_connection io_gpio(GPIO_BASE, 0x1000);
-	addr_t gpio_base = (addr_t)env()->rm_session()->attach(io_gpio.dataspace());
-	Etc6 etc6(gpio_base);
-	env()->rm_session()->detach(gpio_base);
-
 	/* enable USB2 clock and power up */
 	static Regulator::Connection reg_clk(Regulator::CLK_USB20);
 	reg_clk.state(true);
@@ -212,21 +147,21 @@ static void odroidx2_ehci_init()
 	usb_phy_init();
 
 	/* reset hub via GPIO */
-	Io_mem_connection io_gpio(GPIO_BASE, 0x1000);
-	addr_t gpio_base = (addr_t)env()->rm_session()->attach(io_gpio.dataspace());
+	enum { X30 = 294, X34 = 298, X35 = 299 };
 
-	Gpio_bank x3(gpio_base);
+	Gpio::Connection gpio_x30(X30);
+	Gpio::Connection gpio_x34(X34);
+	Gpio::Connection gpio_x35(X35);
 
 	/* Set Ref freq 0 => 24MHz, 1 => 26MHz*/
 	/* Odroid Us have it at 24MHz, Odroid Xs at 26MHz */
-	x3.setDirection(0,1);
+	gpio_x30.write(true);
 
 	/* Disconnect, Reset, Connect */
-	x3.setDirection(4,0);
-	x3.setDirection(5,0);
-	x3.setDirection(5,1);
-	x3.setDirection(4,1);
-	env()->rm_session()->detach(gpio_base);
+	gpio_x34.write(false);
+	gpio_x35.write(false);
+	gpio_x35.write(true);
+	gpio_x34.write(true);
 
 	/* reset ehci controller */
 	Io_mem_connection io_ehci(EHCI_BASE, 0x1000);
