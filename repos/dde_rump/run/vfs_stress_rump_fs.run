@@ -1,0 +1,76 @@
+#
+# \brief  VFS stress test
+# \author Emery Hemingway
+# \date   2015-08-30
+#
+
+#
+# Check used commands
+#
+set mke2fs [check_installed mke2fs]
+set dd     [check_installed dd]
+
+build "core init drivers/timer test/vfs_stress server/ram_blk server/rump_fs"
+
+#
+# Build EXT2-file-system image
+#
+catch { exec $dd if=/dev/zero of=bin/ext2.raw bs=1M count=16 }
+catch { exec $mke2fs -F bin/ext2.raw }
+
+create_boot_directory
+
+install_config {
+<config>
+	<affinity-space width="3" height="2" />
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="vfs_stress">
+		<resource name="RAM" quantum="32M"/>
+		<config depth="32" threads="1">
+			<vfs> <fs/> </vfs>
+		</config>
+	</start>
+	<start name="ram_blk">
+		<resource name="RAM" quantum="24M"/>
+		<provides><service name="Block"/></provides>
+		<config file="ext2.raw" block_size="512"/>
+	</start>
+	<start name="rump_fs">
+		<resource name="RAM" quantum="24M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config fs="ext2fs">
+			<policy label="" root="/" writeable="yes"/>
+		</config>
+	</start>
+</config>
+}
+
+set boot_modules {
+ 	core init ld.lib.so timer vfs_stress
+	rump.lib.so rump_fs.lib.so rump_fs
+	ram_blk ext2.raw
+}
+
+build_boot_image $boot_modules
+
+append qemu_args "-nographic -smp cpus=6"
+
+run_genode_until {child "vfs_stress" exited with exit value 0} 180
+
+exec rm -f bin/ext2.raw

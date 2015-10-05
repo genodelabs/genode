@@ -1,0 +1,5 @@
+The vfs_rump plugin enables access to block device backed file systems
+supported by the rump kernel. A single rump kernel is in use for any
+number of <rump> nodes. The configuration node takes two arguments:
+'fs' specifies the file system type, and 'writeable' specifies if the
+mount is read only or writeable, 'writeable' defaults to true.

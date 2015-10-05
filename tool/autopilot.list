@@ -45,6 +45,7 @@ part_blk
 xml_generator
 blk_cache
 rump_ext2
+libc_vfs_ext2
 thread
 pthread
 vbox_auto_win7
