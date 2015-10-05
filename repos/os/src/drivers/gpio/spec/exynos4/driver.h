@@ -26,7 +26,7 @@
 /* local includes */
 #include <gpio.h>
 
-static int verbose = 1;
+static int verbose = 0;
 
 namespace Gpio { class Odroid_x2_driver; }
 
