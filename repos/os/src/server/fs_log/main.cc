@@ -104,7 +104,13 @@ class Fs_log::Root_component :
 					if ((strcmp((dir_path+label_len)-3, " ->", 4) == 0) ||
 					    (strcmp((dir_path+label_len)-4, " -> ", 5) == 0)) {
 
-						for (size_t i = 0; *(label_str+i); ++i) {
+						for (size_t i = 0;; ++i) {
+							if (label_prefix[i] == '\0') {
+								strncpy(dir_path+1, label_str, MAX_PATH_LEN-1);
+								label_prefix = nullptr;
+								break;
+							}
+
 							if (strcmp(label_prefix+i, " -> ", 4))
 								continue;
 
@@ -112,8 +118,6 @@ class Fs_log::Root_component :
 							label_prefix += i+4;
 							break;
 						}
-
-						if (*label_prefix == ' ') ++label_prefix;
 					}
 
 				} else
