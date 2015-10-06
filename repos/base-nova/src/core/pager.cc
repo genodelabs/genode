@@ -442,8 +442,10 @@ void Exception_handlers::register_handler(Pager_object *obj, Mtd mtd,
                                           void (* __attribute__((regparm(1))) func)(addr_t))
 {
 	unsigned use_cpu = obj->location.xpos();
-	if (!kernel_hip()->is_cpu_enabled(use_cpu) || !pager_threads[use_cpu])
+	if (!kernel_hip()->is_cpu_enabled(use_cpu) || !pager_threads[use_cpu]) {
+		PWRN("invalid CPU parameter used in pager object");
 		throw Rm_session::Invalid_thread();
+	}
 
 	addr_t const ec_sel = pager_threads[use_cpu]->tid().ec_sel;
 
@@ -527,8 +529,10 @@ Pager_object::Pager_object(unsigned long badge, Affinity::Location location)
 
 	/* place Pager_object on specified CPU by selecting proper pager thread */
 	unsigned use_cpu = location.xpos();
-	if (!kernel_hip()->is_cpu_enabled(use_cpu) || !pager_threads[use_cpu])
+	if (!kernel_hip()->is_cpu_enabled(use_cpu) || !pager_threads[use_cpu]) {
+		PWRN("invalid CPU parameter used in pager object");
 		throw Rm_session::Invalid_thread();
+	}
 
 	addr_t ec_sel    = pager_threads[use_cpu]->tid().ec_sel;
 
@@ -788,14 +792,17 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 addr_t Pager_object::get_oom_portal()
 {
 	addr_t const pt_oom     = sel_oom_portal();
-
 	unsigned const use_cpu  = location.xpos();
-	addr_t const ec_sel     = pager_threads[use_cpu]->tid().ec_sel;
 
-	uint8_t res = create_portal(pt_oom, __core_pd_sel, ec_sel, Mtd(0),
-	                            reinterpret_cast<addr_t>(_oom_handler), this);
-	if (res == Nova::NOVA_OK)
-		return pt_oom;
+	if (kernel_hip()->is_cpu_enabled(use_cpu) && pager_threads[use_cpu]) {
+		addr_t const ec_sel     = pager_threads[use_cpu]->tid().ec_sel;
+
+		uint8_t res = create_portal(pt_oom, __core_pd_sel, ec_sel, Mtd(0),
+		                            reinterpret_cast<addr_t>(_oom_handler),
+		                            this);
+		if (res == Nova::NOVA_OK)
+			return pt_oom;
+	}
 
 	PERR("creating portal for out of memory notification failed");
 	return 0;
