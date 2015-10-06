@@ -200,14 +200,6 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 			_slab_ioport(md_alloc, &_slab_ioport_block),
 			_slab_iomem(md_alloc, &_slab_iomem_block)
 		{
-			if (_config_space != ~0UL) {
-				try {
-					Genode::Io_mem_connection conn(_config_space, 0x1000);
-					conn.on_destruction(Genode::Io_mem_connection::KEEP_OPEN);
-					_io_mem_config_extended = conn;
-				} catch (Genode::Parent::Service_denied) { }
-			}
-
 			_ep->manage(&_irq_session);
 
 			for (unsigned i = 0; i < Device::NUM_RESOURCES; i++) {
@@ -308,6 +300,19 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 
 		Genode::Io_mem_dataspace_capability get_config_space()
 		{
+			if (_config_space == ~0UL)
+				return Genode::Io_mem_dataspace_capability();
+
+			if (!_io_mem_config_extended.valid()) {
+				try {
+					Genode::Io_mem_connection conn(_config_space, 0x1000);
+					conn.on_destruction(Genode::Io_mem_connection::KEEP_OPEN);
+					_io_mem_config_extended = conn;
+				} catch (...) {
+					_config_space = ~0UL;
+				}
+			}
+
 			if (!_io_mem_config_extended.valid())
 				return Genode::Io_mem_dataspace_capability();
 
