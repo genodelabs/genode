@@ -180,6 +180,10 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 		}
 
 
+	protected:
+
+		Genode::Rpc_entrypoint * ep() { return _ep; }
+
 	public:
 
 		/**

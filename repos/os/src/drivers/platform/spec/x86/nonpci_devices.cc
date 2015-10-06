@@ -10,8 +10,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <irq_session/connection.h>
 #include "pci_session_component.h"
+#include "irq.h"
 
 
 namespace Nonpci { class Ps2; }
@@ -29,18 +29,24 @@ class Nonpci::Ps2 : public Platform::Device_component
 			REG_STATUS       = 0x64,  
 		};
 
-		Genode::Irq_connection      _irq_mouse;
-		Genode::Io_port_connection  _data;
-		Genode::Io_port_connection  _status;
+		Platform::Irq_session_component _irq_mouse;
+		Genode::Io_port_connection      _data;
+		Genode::Io_port_connection      _status;
 
 	public:
 
 		Ps2(Genode::Rpc_entrypoint * ep, Platform::Session_component * session)
 		:
 			Platform::Device_component(ep, session, IRQ_KEYBOARD),
-			_irq_mouse(IRQ_MOUSE),
+			_irq_mouse(IRQ_MOUSE, ~0UL),
 			_data(REG_DATA, ACCESS_WIDTH), _status(REG_STATUS, ACCESS_WIDTH)
-		{ }
+		{
+			ep->manage(&_irq_mouse);
+		}
+
+		~Ps2() {
+			ep()->dissolve(&_irq_mouse);
+		}
 
 		Genode::Irq_session_capability irq(Genode::uint8_t virt_irq) override
 		{
