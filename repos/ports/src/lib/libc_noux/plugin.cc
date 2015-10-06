@@ -282,16 +282,14 @@ extern "C" int getrlimit(int resource, struct rlimit *rlim)
 			using namespace Genode;
 
 			Thread_base * me = Thread_base::myself();
-			if (me) {
-				addr_t top = reinterpret_cast<addr_t>(me->stack_top());
-				addr_t cur = reinterpret_cast<addr_t>(me->stack_base());
 
-				rlim->rlim_cur = rlim->rlim_max = top - cur;
-				return 0;
-			}
+			if (!me)
+				break;
 
-			/* XXX - fix Thread_base::myself to be working also for main thread */
-			rlim->rlim_cur = rlim->rlim_max = 64 * 1024;
+			addr_t top = reinterpret_cast<addr_t>(me->stack_top());
+			addr_t cur = reinterpret_cast<addr_t>(me->stack_base());
+
+			rlim->rlim_cur = rlim->rlim_max = top - cur;
 			return 0;
 		}
 		case RLIMIT_AS:
@@ -303,6 +301,10 @@ extern "C" int getrlimit(int resource, struct rlimit *rlim)
 			return 0;
 		case RLIMIT_RSS:
 			rlim->rlim_cur = rlim->rlim_max = Genode::env()->ram_session()->quota();
+			return 0;
+		case RLIMIT_NPROC:
+		case RLIMIT_NOFILE:
+			rlim->rlim_cur = rlim->rlim_max = RLIM_INFINITY;
 			return 0;
 	}
 	errno = ENOSYS;
