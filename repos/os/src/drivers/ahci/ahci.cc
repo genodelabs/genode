@@ -106,18 +106,18 @@ struct Ahci
 		PINF("\tversion: %x.%04x", hba.read<Hba::Version::Major>(),
 		                           hba.read<Hba::Version::Minor>());
 		PINF("\tcommand slots: %u", hba.command_slots());
-		PINF("\tnative command queuing: %s", hba.ncg() ? "yes" : "no");
+		PINF("\tnative command queuing: %s", hba.ncq() ? "yes" : "no");
 		PINF("\t64 bit support: %s", hba.supports_64bit() ? "yes" : "no");
 	}
 
 	void scan_ports()
 	{
 		PINF("\tnumber of ports: %u pi: %x", hba.port_count(), hba.read<Hba::Pi>());
-		unsigned avaiable = hba.read<Hba::Pi>();
+		unsigned available = hba.read<Hba::Pi>();
 		for (unsigned i = 0; i < hba.port_count(); i++) {
 
 			/* check if port is implemented */
-			if (!(avaiable & (1U << i)))
+			if (!(available & (1U << i)))
 				continue;
 
 			Port port(hba, platform_hba, i);

@@ -82,13 +82,13 @@ struct Hba : Genode::Attached_mmio
 		struct Np   : Bitfield<0, 4> { };  /* number of ports */
 		struct Ncs  : Bitfield<8, 5> { };  /* number of command slots */
 		struct Iss  : Bitfield<20, 4> { }; /* interface speed support */
-		struct Sncg : Bitfield<30, 1> { }; /* supports native command queuing */
+		struct Sncq : Bitfield<30, 1> { }; /* supports native command queuing */
 		struct Sa64 : Bitfield<31, 1> { }; /* supports 64 bit addressing */
 	};
 
 	unsigned port_count()    { return read<Cap::Np>() + 1; }
 	unsigned command_slots() { return read<Cap::Ncs>() + 1; }
-	bool     ncg()           { return !!read<Cap::Sncg>(); }
+	bool     ncq()           { return !!read<Cap::Sncq>(); }
 	bool     supports_64bit(){ return !!read<Cap::Sa64>(); }
 
 	/**
@@ -384,56 +384,6 @@ struct Command_table
 };
 
 
-struct Identity : Genode::Mmio
-{
-	Identity(Genode::addr_t base) : Mmio(base) { }
-
-	struct Queue_depth : Register<0x96, 16>
-	{
-		struct Max_depth : Bitfield<0, 5> { };
-	};
-
-	struct Sata_caps   : Register<0x98, 16>
-	{
-		struct Ncq_support : Bitfield<8, 1> { };
-	};
-
-	struct Sector_count : Register<0xc8, 64> { };
-
-	struct Logical_block  : Register<0xd4, 16>
-	{
-		struct Per_physical : Bitfield<0,  3> { }; /* 2^X logical per physical */
-		struct Longer_512   : Bitfield<12, 1> { };
-		struct Multiple     : Bitfield<13, 1> { }; /* multiple logical blocks per physical */
-	};
-
-	struct Logical_words : Register<0xea, 32> { }; /* words (16 bit) per logical block */
-
-	struct Alignment : Register<0x1a2, 16>
-	{
-		struct Logical_offset : Bitfield<0, 14> { }; /* offset first logical block in physical */
-	};
-
-	void info()
-	{
-		PLOG("\t\tqueue depth: %u ncg: %u",
-		     read<Queue_depth::Max_depth>() + 1,
-		     read<Sata_caps::Ncq_support>());
-		PLOG("\t\tnumer of sectors: %llu", read<Sector_count>());
-		PLOG("\t\tmultiple logical blocks per physical: %s",
-		     read<Logical_block::Multiple>() ? "yes" : "no");
-		PLOG("\t\tlogical blocks per physical: %u",
-		     1U << read<Logical_block::Per_physical>());
-		PLOG("\t\tlogical block size is above 512 byte: %s",
-		     read<Logical_block::Longer_512>() ? "yes" : "no");
-		PLOG("\t\twords (16bit) per logical block: %u",
-		     read<Logical_words>());
-		PLOG("\t\toffset of first logical block within physical: %u",
-		     read<Alignment::Logical_offset>());
-	}
-};
-
-
 /**
  * AHCI port
  */
@@ -539,6 +489,12 @@ struct Port : Genode::Mmio
 		struct Prcs : Bitfield<22, 1> { }; /* PhyRdy change status */
 		struct Infs : Bitfield<26, 1> { }; /* interface non-fatal error */
 		struct Ifs  : Bitfield<27, 1> { }; /* interface fatal error */
+
+		/* ncq irq */
+		struct Fpdma_irq   : Sdbs { };
+
+		/* non-ncq irq */
+		struct Dma_ext_irq : Bitfield<0, 3> { };
 	};
 
 	void ack_irq()
@@ -562,9 +518,9 @@ struct Port : Genode::Mmio
 	struct Ie : Register<0x14, 32, 1>
 	{
 		struct Dhre : Bitfield<0, 1> { };  /* device to host register FIS interrupt */
-		struct Pse  : Bitfield<1, 2> { };  /* PIO setup FIS interrupt */
+		struct Pse  : Bitfield<1, 1> { };  /* PIO setup FIS interrupt */
 		struct Dse  : Bitfield<2, 1> { };  /* DMA setup FIS interrupt */
-		struct Sdbe : Bitfield<3, 1> { };  /* set device bits FIS interrupt (ncg) */
+		struct Sdbe : Bitfield<3, 1> { };  /* set device bits FIS interrupt (ncq) */
 		struct Ufe  : Bitfield<4, 1> { };  /* unknown FIS */
 		struct Dpe  : Bitfield<5, 1> { };  /* descriptor processed */
 		struct Ifne : Bitfield<26, 1> { }; /* interface non-fatal error */
