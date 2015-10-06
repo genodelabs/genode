@@ -572,8 +572,11 @@ namespace Platform {
 					unsigned const dev  = device->config().device_number();
 					unsigned const func = device->config().function_number();
 
-					bdf_in_use.clear(Device_config::MAX_BUSES * bus +
-					                 Device_config::MAX_DEVICES * dev + func, 1);
+					if (bdf_in_use.get(Device_config::MAX_BUSES * bus +
+					                   Device_config::MAX_DEVICES * dev +
+					                   func, 1))
+						bdf_in_use.clear(Device_config::MAX_BUSES * bus +
+						                 Device_config::MAX_DEVICES * dev + func, 1);
 
 					_device_list.remove(device);
 					_ep->dissolve(device);
