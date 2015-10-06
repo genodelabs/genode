@@ -18,6 +18,7 @@
 #include <io_mem_session/connection.h>
 #include <util/list.h>
 #include <util/mmio.h>
+#include <util/construct_at.h>
 
 /* os */
 #include <platform_device/platform_device.h>
@@ -40,7 +41,7 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 		Genode::Rpc_entrypoint            *_ep;
 		Platform::Session_component       *_session;
 		unsigned short                     _irq_line;
-		Irq_session_component              _irq_session;
+		Irq_session_component             *_irq_session;
 
 		class Io_mem : public Genode::Io_mem_connection,
 		               public Genode::List<Io_mem>::Element
@@ -71,6 +72,8 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 		Genode::Tslab<Io_mem, IO_MEM_SIZE> _slab_iomem;
 		Genode::Slab_block _slab_iomem_block;
 		char _slab_iomem_block_data[IO_MEM_SIZE];
+
+		char _mem_irq_component[sizeof(Irq_session_component)];
 
 		Genode::Io_port_connection *_io_port_conn [Device::NUM_RESOURCES];
 		Genode::List<Io_mem> _io_mem [Device::NUM_RESOURCES];
@@ -131,14 +134,10 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 			                                      _device_config.function_number(),
 			                                      pin);
 			if (irq_r) {
-				PINF("%x:%x.%x rewriting IRQ: %u -> %u",
+				PINF("%x:%x.%x adjust IRQ as reported by ACPI: %u -> %u",
 				     _device_config.bus_number(),
 				     _device_config.device_number(),
 				     _device_config.function_number(), irq, irq_r);
-
-				if (_irq_line != irq_r)
-					_device_config.write(&_config_access, PCI_IRQ_LINE, irq_r,
-					                     Platform::Device::ACCESS_8BIT);
 
 				_irq_line = irq = irq_r;
 			}
@@ -189,19 +188,16 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 		Device_component(Device_config device_config, Genode::addr_t addr,
 		                 Genode::Rpc_entrypoint *ep,
 		                 Platform::Session_component * session,
-		                 Genode::Allocator * md_alloc,
-		                 bool use_msi)
+		                 Genode::Allocator * md_alloc)
 		:
 			_device_config(device_config), _config_space(addr),
 			_ep(ep), _session(session),
 			_irq_line(_device_config.read(&_config_access, PCI_IRQ_LINE,
 			                              Platform::Device::ACCESS_8BIT)),
-			_irq_session(_configure_irq(_irq_line), (!use_msi || !_msi_cap()) ? ~0UL : _config_space),
+			_irq_session(nullptr),
 			_slab_ioport(md_alloc, &_slab_ioport_block),
 			_slab_iomem(md_alloc, &_slab_iomem_block)
 		{
-			_ep->manage(&_irq_session);
-
 			for (unsigned i = 0; i < Device::NUM_RESOURCES; i++) {
 				_io_port_conn[i] = nullptr;
 			}
@@ -213,40 +209,6 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 
 			_disable_bus_master_dma();
 
-			if (!_irq_session.msi())
-				return;
-
-			Genode::addr_t msi_address = _irq_session.msi_address();
-			Genode::uint32_t msi_value = _irq_session.msi_data();
-			Genode::uint16_t msi_cap   = _msi_cap();
-
-			Genode::uint16_t msi = _device_config.read(&_config_access,
-			                                           msi_cap + 2,
-			                                           Platform::Device::ACCESS_16BIT);
-
-			_device_config.write(&_config_access, msi_cap + 0x4, msi_address,
-			                     Platform::Device::ACCESS_32BIT);
-
-			if (msi & CAP_MSI_64) {
-				Genode::uint32_t upper_address = sizeof(msi_address) > 4
-				                               ? (Genode::uint64_t)msi_address >> 32
-				                               : 0UL;
-
-				_device_config.write(&_config_access, msi_cap + 0x8,
-				                     upper_address,
-				                     Platform::Device::ACCESS_32BIT);
-				_device_config.write(&_config_access, msi_cap + 0xc,
-				                     msi_value,
-				                     Platform::Device::ACCESS_16BIT);
-			}
-			else
-				_device_config.write(&_config_access, msi_cap + 0x8, msi_value,
-				                     Platform::Device::ACCESS_16BIT);
-
-			/* enable MSI */
-			_device_config.write(&_config_access, msi_cap + 2,
-			                     msi ^ MSI_ENABLED,
-			                     Platform::Device::ACCESS_8BIT);
 		}
 
 		/**
@@ -258,12 +220,10 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 			_config_space(~0UL),
 			_ep(ep), _session(session),
 			_irq_line(irq),
-			_irq_session(_irq_line, _config_space),
+			_irq_session(nullptr),
 			_slab_ioport(0, &_slab_ioport_block),
 			_slab_iomem(0, &_slab_iomem_block)
 		{
-			_ep->manage(&_irq_session);
-
 			for (unsigned i = 0; i < Device::NUM_RESOURCES; i++)
 				_io_port_conn[i] = nullptr;
 		}
@@ -273,7 +233,10 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 		 */
 		~Device_component()
 		{
-			_ep->dissolve(&_irq_session);
+			if (_irq_session) {
+				_ep->dissolve(_irq_session);
+				_irq_session->~Irq_session();
+			}
 
 			for (unsigned i = 0; i < Device::NUM_RESOURCES; i++) {
 				if (_io_port_conn[i])
@@ -356,40 +319,7 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 		void config_write(unsigned char address, unsigned value,
 		                  Access_size size) override;
 
-		Genode::Irq_session_capability irq(Genode::uint8_t id) override
-		{
-			if (id != 0)
-				return Genode::Irq_session_capability();
-
-			if (!_device_config.valid())
-				return _irq_session.cap();
-
-			bool msi_64 = false;
-			Genode::uint16_t msi_cap   = _msi_cap();
-			if (msi_cap) {
-				Genode::uint16_t msi = _device_config.read(&_config_access,
-				                                           msi_cap + 2,
-				                                           Platform::Device::ACCESS_16BIT);
-				msi_64 = msi & CAP_MSI_64;
-			}
-
-			if (_irq_session.msi())
-				PINF("%x:%x.%x uses MSI %s, vector 0x%lx, address 0x%lx",
-				     _device_config.bus_number(),
-				     _device_config.device_number(),
-				     _device_config.function_number(),
-				     msi_64 ? "64bit" : "32bit",
-				     _irq_session.msi_data(), _irq_session.msi_address());
-			else
-				PINF("%x:%x.%x uses IRQ, vector 0x%x%s",
-				     _device_config.bus_number(),
-				     _device_config.device_number(),
-				     _device_config.function_number(), _irq_line,
-				     msi_cap ? (msi_64 ? ", MSI 64bit capable" :
-				                         ", MSI 32bit capable") : "");
-
-			return _irq_session.cap();
-		}
+		Genode::Irq_session_capability irq(Genode::uint8_t) override;
 
 		Genode::Io_port_session_capability io_port(Genode::uint8_t) override;
 

@@ -164,21 +164,6 @@ namespace Platform {
 			}
 
 			/**
-			 * Check whether msi usage was explicitly switched off
-			 */
-			bool msi_usage()
-			{
-				try {
-					char mode[8];
-					_policy.attribute("irq_mode").value(mode, sizeof(mode));
-					if (!Genode::strcmp("nomsi", mode))
-						 return false;
-				} catch (Genode::Xml_node::Nonexistent_attribute) { }
-
-				return true;
-			}
-
-			/**
 			 * Check device usage according to session policy
 			 */
 			bool permit_device(const char * name)
@@ -461,6 +446,22 @@ namespace Platform {
 			}
 
 
+			/**
+			 * Check whether msi usage was explicitly switched off
+			 */
+			bool msi_usage()
+			{
+				try {
+					char mode[8];
+					_policy.attribute("irq_mode").value(mode, sizeof(mode));
+					if (!Genode::strcmp("nomsi", mode))
+						 return false;
+				} catch (Genode::Xml_node::Nonexistent_attribute) { }
+
+				return true;
+			}
+
+
 			/***************************
 			 ** PCI session interface **
 			 ***************************/
@@ -535,7 +536,7 @@ namespace Platform {
 					try {
 						Device_component * dev = new (_device_slab)
 							Device_component(config, config_space, _ep, this,
-							                 &_md_alloc, msi_usage());
+							                 &_md_alloc);
 
 						/* if more than one driver uses the device - warn about */
 						if (bdf_in_use.get(Device_config::MAX_BUSES * bus +
