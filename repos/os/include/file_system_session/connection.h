@@ -18,7 +18,14 @@
 #include <base/connection.h>
 #include <base/allocator.h>
 
-namespace File_system { struct Connection; }
+namespace File_system {
+
+	struct Connection;
+
+	/* recommended packet transmission buffer size */
+	enum { DEFAULT_TX_BUF_SIZE = 128*1024 };
+
+}
 
 
 struct File_system::Connection : Genode::Connection<Session>, Session_client
@@ -31,13 +38,22 @@ struct File_system::Connection : Genode::Connection<Session>, Session_client
 	 * \param tx_buf_size      size of transmission buffer in bytes
 	 */
 	Connection(Range_allocator &tx_block_alloc,
-	           size_t           tx_buf_size = 128*1024,
-	           const char      *label = "")
+	           size_t           tx_buf_size = DEFAULT_TX_BUF_SIZE,
+	           char const      *label       = "",
+	           char const      *root        = "/",
+	           bool             writeable   = true)
 	:
 		Genode::Connection<Session>(
-			session("ram_quota=%zd, tx_buf_size=%zd, label=\"%s\"",
-			        4*1024*sizeof(long) + tx_buf_size, tx_buf_size, label)),
-		Session_client(cap(), tx_block_alloc) { }
+			session("ram_quota=%zd, "
+			        "tx_buf_size=%zd, "
+			        "label=\"%s\", "
+			        "root=\"%s\", "
+			        "writeable=%d",
+			        4*1024*sizeof(long) + tx_buf_size,
+			        tx_buf_size,
+			        label, root, writeable)),
+		Session_client(cap(), tx_block_alloc)
+	{ }
 };
 
 #endif /* _INCLUDE__FILE_SYSTEM_SESSION__CONNECTION_H_ */

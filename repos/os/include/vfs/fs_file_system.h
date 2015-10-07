@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <base/allocator_avl.h>
 #include <file_system_session/connection.h>
+#include <util/string.h>
 
 namespace Vfs { class Fs_file_system; }
 
@@ -38,18 +39,11 @@ class Vfs::Fs_file_system : public File_system
 
 		Genode::Allocator_avl _fs_packet_alloc;
 
-		struct Label
-		{
-			enum { LABEL_MAX_LEN = 64 };
-			char string[LABEL_MAX_LEN];
+		typedef Genode::String<64> Label_string;
+		Label_string _label;
 
-			Label(Xml_node config)
-			{
-				string[0] = 0;
-				try { config.attribute("label").value(string, sizeof(string)); }
-				catch (...) { }
-			}
-		} _label;
+		typedef Genode::String<::File_system::MAX_NAME_LEN> Root_string;
+		Root_string _root;
 
 		::File_system::Connection _fs;
 
@@ -159,14 +153,15 @@ class Vfs::Fs_file_system : public File_system
 
 	public:
 
-		/*
-		 * XXX read label from config
-		 */
 		Fs_file_system(Xml_node config)
 		:
 			_fs_packet_alloc(env()->heap()),
-			_label(config),
-			_fs(_fs_packet_alloc, 128*1024, _label.string)
+			_label(config.attribute_value("label", Label_string())),
+			_root( config.attribute_value("root",  Root_string())),
+			_fs(_fs_packet_alloc,
+			    ::File_system::DEFAULT_TX_BUF_SIZE,
+			    _label.string(), _root.string(),
+			    config.attribute_value("writeable", true))
 		{ }
 
 
