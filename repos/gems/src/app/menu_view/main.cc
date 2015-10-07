@@ -280,6 +280,7 @@ void Menu_view::Main::handle_dialog_update(unsigned)
 		Xml_node dialog_xml(dialog_rom.local_addr<char>());
 
 		root_widget.update(dialog_xml);
+		root_widget.size(root_widget.min_size());
 	} catch (...) {
 		PERR("failed to construct widget tree");
 	}

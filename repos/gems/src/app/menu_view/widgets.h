@@ -37,7 +37,7 @@ namespace Menu_view {
 	struct Frame_widget;
 	struct Button_widget;
 	struct Label_widget;
-	struct Vbox_widget;
+	struct Box_layout_widget;
 	struct Widget_factory;
 	struct Main;
 
@@ -114,8 +114,6 @@ class Menu_view::Widget : public List<Widget>::Element
 
 	private:
 
-		Widget *_previously_inserted = nullptr;
-
 		Type_name const _type_name;
 		Name      const _name;
 
@@ -144,15 +142,75 @@ class Menu_view::Widget : public List<Widget>::Element
 			return Type_name(type);
 		}
 
+		static bool _named_sub_node_exists(Xml_node node, Name const &name)
+		{
+			bool result = false;
+
+			node.for_each_sub_node([&] (Xml_node sub_node) {
+				if (sub_node.attribute_value("name", Name()) == name)
+					result = true; });
+			
+			return result;
+		}
+
 		static Name _node_name(Xml_node node)
 		{
 			return Decorator::string_attribute(node, "name", _node_type_name(node));
 		}
 
+		void _remove_child(Widget *w)
+		{
+			_children.remove(w);
+			_factory.destroy(w);
+		}
+
+		void _update_child(Xml_node node)
+		{
+			Widget *w = _children.first();
+
+			unsigned const num_sub_nodes = node.num_sub_nodes();
+
+			/* remove widget of vanished child */
+			if (w && num_sub_nodes == 0)
+				_remove_child(w);
+
+			if (num_sub_nodes == 0)
+				return;
+
+			/* update exiting widgets and create new ones */
+			{
+				Xml_node const child_node = node.sub_node();
+				Name const name = _node_name(child_node);
+				Widget *w = _lookup_child(name);
+				if (!w) {
+					w = _factory.create(child_node);
+
+					/* append after previously inserted widget */
+					if (w)
+						_children.insert(w);
+				}
+
+				if (w)
+					w->update(child_node);
+			}
+		}
+
 		void _update_children(Xml_node node)
 		{
-			_previously_inserted = nullptr;
+			/*
+			 * Remove no-longer present widgets
+			 */
+			Widget *next = nullptr;
+			for (Widget *w = _children.first(); w; w = next) {
+				next = w->next();
 
+				if (!_named_sub_node_exists(node, w->_name))
+					_remove_child(w);
+			}
+
+			/*
+			 * Create and update widgets
+			 */
 			for (unsigned i = 0; i < node.num_sub_nodes(); i++) {
 
 				Xml_node const child_node = node.sub_node(i);
@@ -168,14 +226,44 @@ class Menu_view::Widget : public List<Widget>::Element
 					if (!w) continue;
 
 					/* append after previously inserted widget */
-					_children.insert(w, _previously_inserted);
-
-					_previously_inserted = w;
+					_children.insert(w);
 				}
 
 				if (w)
 					w->update(child_node);
 			}
+
+			/*
+			 * Sort widgets according to the order of sub nodes
+			 */
+			Widget *previous = 0;
+			Widget *w        = _children.first();
+
+			node.for_each_sub_node([&] (Xml_node node) {
+
+				if (!w) {
+					PERR("unexpected end of widget list during re-ordering");
+					return;
+				}
+
+				Name const name = node.attribute_value("name", Name());
+
+				if (w->_name != name) {
+					w = _lookup_child(name);
+					if (!w) {
+						PERR("widget lookup unexpectedly failed during re-ordering");
+						return;
+					}
+
+					_children.remove(w);
+					_children.insert(w, previous);
+				}
+
+				previous = w;
+				w        = w->next();
+			});
+
+
 		}
 
 		void _draw_children(Surface<Pixel_rgb888> &pixel_surface,
@@ -303,7 +391,7 @@ struct Menu_view::Root_widget : Widget
 			return;
 		}
 
-		_update_children(node);
+		_update_child(node);
 	}
 
 	Area min_size() const override
@@ -335,7 +423,7 @@ struct Menu_view::Frame_widget : Widget
 {
 	Texture<Pixel_rgb888> const * texture = nullptr;
 
-	Padding padding {  6,  6, 16, 16 };
+	Padding padding {  2,  2, 2, 2 };
 
 	Area _space() const
 	{
@@ -347,14 +435,14 @@ struct Menu_view::Frame_widget : Widget
 	:
 		Widget(factory, node, unique_id)
 	{
-		margin = { 14, 14, 14, 14 };
+		margin = { 4, 4, 4, 4 };
 	}
 
 	void update(Xml_node node) override
 	{
 		texture = _factory.styles.texture(node, "background");
 
-		_update_children(node);
+		_update_child(node);
 
 		/*
 		 * layout
@@ -400,13 +488,18 @@ struct Menu_view::Frame_widget : Widget
 };
 
 
-struct Menu_view::Vbox_widget : Widget
+struct Menu_view::Box_layout_widget : Widget
 {
 	Area _min_size; /* value cached from layout computation */
 
-	Vbox_widget(Widget_factory &factory, Xml_node node, Unique_id unique_id)
+	enum Direction { VERTICAL, HORIZONTAL };
+
+	Direction const _direction;
+
+	Box_layout_widget(Widget_factory &factory, Xml_node node, Unique_id unique_id)
 	:
-		Widget(factory, node, unique_id)
+		Widget(factory, node, unique_id),
+		       _direction(node.has_type("vbox") ? VERTICAL : HORIZONTAL)
 	{ }
 
 	void update(Xml_node node) override
@@ -417,30 +510,33 @@ struct Menu_view::Vbox_widget : Widget
 		 * Apply layout to the children
 		 */
 
-		/* determine largest width among our children */
-		unsigned width = 0;
+		/* determine largest size among our children */
+		unsigned largest_size = 0;
 		for (Widget *w = _children.first(); w; w = w->next())
-			width = max(width, w->min_size().w());
+			largest_size =
+				max(largest_size, _direction == VERTICAL ? w->min_size().w()
+				                                         : w->min_size().h());
 
-		/* position children on one column */
-		unsigned height = 0;
+		/* position children on one row/column */
 		Point position(0, 0);
 		for (Widget *w = _children.first(); w; w = w->next()) {
 
-			unsigned const child_min_h = w->min_size().h();
+			Area const child_min_size = w->min_size();
 
-			w->geometry = Rect(position, Area(width, child_min_h));
+			if (_direction == VERTICAL) {
+				w->geometry = Rect(position, Area(largest_size, child_min_size.h()));
+				unsigned const next_top_margin = w->next() ? w->next()->margin.top : 0;
+				unsigned const dy = child_min_size.h() - min(w->margin.bottom, next_top_margin);
+				position = position + Point(0, dy);
+			} else {
+				w->geometry = Rect(position, Area(child_min_size.w(), largest_size));
+				unsigned const next_left_margin = w->next() ? w->next()->margin.left : 0;
+				unsigned const dx = child_min_size.w() - min(w->margin.right, next_left_margin);
+				position = position + Point(dx, 0);
+			}
 
-			unsigned const next_top_margin = w->next() ? w->next()->margin.top : 0;
-
-			unsigned const dy = child_min_h - min(w->margin.bottom, next_top_margin);
-
-			position = position + Point(0, dy);
-
-			height = w->geometry.y2() + 1;
+			_min_size = Area(w->geometry.x2() + 1, w->geometry.y2() + 1);
 		}
-
-		_min_size = Area(width, height);
 	}
 
 	Area min_size() const override
@@ -457,8 +553,12 @@ struct Menu_view::Vbox_widget : Widget
 
 	void _layout() override
 	{
-		for (Widget *w = _children.first(); w; w = w->next())
-			w->size(Area(geometry.w(), w->min_size().h()));
+		for (Widget *w = _children.first(); w; w = w->next()) {
+			if (_direction == VERTICAL)
+				w->size(Area(geometry.w(), w->min_size().h()));
+			else
+				w->size(Area(w->min_size().w(), geometry.h()));
+		}
 	}
 };
 
@@ -563,7 +663,7 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 	:
 		Widget(factory, node, unique_id), Animator::Item(factory.animator)
 	{
-		margin = { 8, 8, 8, 8 };
+		margin = { 4, 4, 4, 4 };
 	}
 
 	void update(Xml_node node)
@@ -592,7 +692,7 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 		hovered  = new_hovered;
 		selected = new_selected;
 
-		_update_children(node);
+		_update_child(node);
 
 		bool const dy = selected ? 1 : 0;
 
@@ -726,10 +826,11 @@ Menu_view::Widget_factory::create(Xml_node node)
 
 	Widget::Unique_id const unique_id(++_unique_id_cnt);
 
-	if (node.has_type("label"))  w = new (alloc) Label_widget (*this, node, unique_id);
-	if (node.has_type("button")) w = new (alloc) Button_widget(*this, node, unique_id);
-	if (node.has_type("vbox"))   w = new (alloc) Vbox_widget  (*this, node, unique_id);
-	if (node.has_type("frame"))  w = new (alloc) Frame_widget (*this, node, unique_id);
+	if (node.has_type("label"))  w = new (alloc) Label_widget      (*this, node, unique_id);
+	if (node.has_type("button")) w = new (alloc) Button_widget     (*this, node, unique_id);
+	if (node.has_type("vbox"))   w = new (alloc) Box_layout_widget (*this, node, unique_id);
+	if (node.has_type("hbox"))   w = new (alloc) Box_layout_widget (*this, node, unique_id);
+	if (node.has_type("frame"))  w = new (alloc) Frame_widget      (*this, node, unique_id);
 
 	if (!w) {
 		char type[64];
