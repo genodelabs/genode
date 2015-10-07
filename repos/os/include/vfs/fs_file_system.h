@@ -420,7 +420,7 @@ class Vfs::Fs_file_system : public File_system
 			Absolute_path abs_path(path);
 
 			try {
-				_fs.dir(abs_path.base(), true);
+				_fs.close(_fs.dir(abs_path.base(), true));
 				return MKDIR_OK;
 			}
 			catch (::File_system::Permission_denied)   { return MKDIR_ERR_NO_PERM; }
