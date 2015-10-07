@@ -28,6 +28,8 @@ class Mode
 
 		Session *_focused_session = nullptr;
 
+		Session *_next_focused_session = nullptr;
+
 	public:
 
 		virtual ~Mode() { }
@@ -47,16 +49,35 @@ class Mode
 		Session       *focused_session()       { return _focused_session; }
 		Session const *focused_session() const { return _focused_session; }
 
-		virtual void focused_session(Session *session) { _focused_session = session; }
+		virtual void focused_session(Session *session)
+		{
+			_focused_session      = session;
+			_next_focused_session = session;
+		}
 
 		bool is_focused(Session const &session) const { return &session == _focused_session; }
+
+		void next_focused_session(Session *session) { _next_focused_session = session; }
+
+		/**
+		 * Apply pending focus-change request that was issued during drag state
+		 */
+		void apply_pending_focus_change()
+		{
+			if (key_is_pressed())
+				return;
+
+			if (_focused_session != _next_focused_session)
+				_focused_session = _next_focused_session;
+		}
 
 		/**
 		 * Discard all references to specified view
 		 */
 		virtual void forget(Session const &session)
 		{
-			if (is_focused(session)) _focused_session = nullptr;
+			if (&session == _focused_session)      _focused_session      = nullptr;
+			if (&session == _next_focused_session) _next_focused_session = nullptr;
 		}
 };
 

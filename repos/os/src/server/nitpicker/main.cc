@@ -908,23 +908,20 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 				return;
 			}
 
-			/* prevent focus changes during drag operations */
-			if (_mode.drag())
-				return;
-
 			/* lookup targeted session object */
 			auto lambda = [this] (Session_component *session)
 			{
-				_mode.focused_session(session);
-				report_session(_focus_reporter, session);
+				_mode.next_focused_session(session);
 			};
 			_ep.apply(session_cap, lambda);
 
 			/*
-			 * XXX We may skip this if all domains are configured to show the
-			 *     raw client content.
+			 * To avoid changing the focus in the middle of a drag operation,
+			 * we cannot perform the focus change immediately. Instead, it
+			 * comes into effect via the 'Mode::apply_pending_focus_change()'
+			 * function called the next time when the user input is handled and
+			 * no drag operation is in flight.
 			 */
-			_view_stack.update_all_views();
 		}
 
 		void session_control(Label suffix, Session_control control) override
@@ -1256,9 +1253,14 @@ void Nitpicker::Main::handle_input(unsigned)
 		user_active        = true;
 	}
 
+	user_state.Mode::apply_pending_focus_change();
+
 	Point       const new_pointer_pos     = user_state.pointer_pos();
 	::Session * const new_pointed_session = user_state.pointed_session();
 	::Session * const new_focused_session = user_state.Mode::focused_session();
+
+	if (old_focused_session != new_focused_session)
+		user_state.update_all_views();
 
 	/* flag user as inactive after activity threshold is reached */
 	if (period_cnt == last_active_period + activity_threshold)
