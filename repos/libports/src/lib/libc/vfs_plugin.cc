@@ -715,7 +715,7 @@ int Libc::Vfs_plugin::fcntl(Libc::File_descriptor *fd, int cmd, long arg)
 
 int Libc::Vfs_plugin::fsync(Libc::File_descriptor *fd)
 {
-	_root_dir.sync();
+	_root_dir.sync(fd->fd_path);
 	return 0;
 }
 

@@ -32,11 +32,9 @@ struct Vfs::File_system : Directory_service, File_io_service
 	/**
 	 * Synchronize file system
 	 *
-	 * This method is only used by a Fs_file_system because such a file
-	 * system may employ a backend, which maintains a internal cache, that
-	 * needs to be flushed.
+	 * This method flushes any delayed operations from the file system.
 	 */
-	virtual void sync() { }
+	virtual void sync(char const *path) { }
 };
 
 #endif /* _INCLUDE__VFS__FILE_SYSTEM_H_ */

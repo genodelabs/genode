@@ -440,9 +440,6 @@ namespace File_system {
 			{
 				PWRN("File_system::Session::sigh not supported");
 			}
-
-			/* merely readonly, no need to sync */
-			void sync() { }
 	};
 
 

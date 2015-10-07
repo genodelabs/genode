@@ -568,9 +568,13 @@ class Vfs::Fs_file_system : public File_system
 
 		static char const *name() { return "fs"; }
 
-		void sync() override
+		void sync(char const *path) override
 		{
-			_fs.sync();
+			try {
+				::File_system::Node_handle node = _fs.node(path);
+				Fs_handle_guard node_guard(_fs, node);
+				_fs.sync(node);
+			} catch (...) { }
 		}
 
 

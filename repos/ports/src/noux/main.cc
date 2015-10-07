@@ -835,7 +835,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 		case SYSCALL_SYNC:
 			{
-				root_dir()->sync();
+				root_dir()->sync("/");
 				result = true;
 				break;
 			}

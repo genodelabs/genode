@@ -514,10 +514,20 @@ class Vfs::Dir_file_system : public File_system
 		/**
 		 * Synchronize all file systems
 		 */
-		void sync() override
+		void sync(char const *path) override
 		{
+			if (strcmp("/", path, 2) == 0) {
+				for (File_system *fs = _first_file_system; fs; fs = fs->next)
+					fs->sync("/");
+				return;
+			}
+
+			path = _sub_path(path);
+			if (!path)
+				return;
+
 			for (File_system *fs = _first_file_system; fs; fs = fs->next)
-				fs->sync();
+				fs->sync(path);
 		}
 
 

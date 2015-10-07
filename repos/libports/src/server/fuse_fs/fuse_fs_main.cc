@@ -418,7 +418,7 @@ class File_system::Session_component : public Session_rpc_object
 			_handle_registry.sigh(node_handle, sigh);
 		}
 
-		void sync()
+		void sync(Node_handle) override
 		{
 			Fuse::sync_fs();
 		}

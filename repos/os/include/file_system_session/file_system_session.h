@@ -289,7 +289,7 @@ struct File_system::Session : public Genode::Session
 	 * cache, which needs to be flushed on certain occasions. Therefore,
 	 * the default implementation just serves as a reminder.
 	 */
-	virtual void sync() { PWRN("sync() not implemented!"); }
+	virtual void sync(Node_handle) { }
 
 
 	/*******************
@@ -328,7 +328,7 @@ struct File_system::Session : public Genode::Session
 	GENODE_RPC_THROW(Rpc_sigh, void, sigh,
 	                 GENODE_TYPE_LIST(Invalid_handle),
 	                 Node_handle, Signal_context_capability);
-	GENODE_RPC(Rpc_sync, void, sync);
+	GENODE_RPC(Rpc_sync, void, sync, Node_handle);
 
 	/*
 	 * Manual type-list definition, needed because the RPC interface

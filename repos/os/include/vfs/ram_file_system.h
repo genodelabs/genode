@@ -57,8 +57,6 @@ class Vfs::Ram_file_system : public File_system, private ::File_system::Director
 
 		static char const *name() { return "ram"; }
 
-		void sync() { }
-
 		/********************************
 		 ** File I/O service interface **
 		 ********************************/

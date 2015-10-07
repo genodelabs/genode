@@ -408,8 +408,6 @@ namespace File_system {
 			{
 				_handle_registry.sigh(node_handle, sigh);
 			}
-
-			void sync() { }
 	};
 
 

@@ -914,8 +914,6 @@ class File_system::Session_component : public Session_rpc_object
 
 		void sigh(Node_handle node_handle, Signal_context_capability sigh) {
 			_handle_registry.sigh(node_handle, sigh); }
-
-		void sync() { }
 };
 
 

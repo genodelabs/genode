@@ -106,9 +106,9 @@ class File_system::Session_client : public Rpc_client<Session>
 			call<Rpc_sigh>(node, sigh);
 		}
 
-		void sync() override
+		void sync(Node_handle node) override
 		{
-			call<Rpc_sync>();
+			call<Rpc_sync>(node);
 		}
 };
 

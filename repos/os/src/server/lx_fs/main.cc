@@ -311,7 +311,7 @@ class File_system::Session_component : public Session_rpc_object
 		 * reminder because besides testing, there is currently no
 		 * use-case.
 		 */
-		void sync() { PWRN("sync() not implemented!"); }
+		void sync(Node_handle) override { PWRN("sync() not implemented!"); }
 };
 
 
