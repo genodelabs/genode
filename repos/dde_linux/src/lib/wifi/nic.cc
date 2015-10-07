@@ -203,12 +203,10 @@ class Root : public Genode::Root_component<Wifi_session_component,
 
 			/*
 			 * Check if donated ram quota suffices for both communication
-			 * buffers. Also check both sizes separately to handle a
-			 * possible overflow of the sum of both sizes.
+			 * buffers and check for overflow
 			 */
-			if (tx_buf_size               > ram_quota - session_size
-			 || rx_buf_size               > ram_quota - session_size
-			 || tx_buf_size + rx_buf_size > ram_quota - session_size) {
+			if (tx_buf_size + rx_buf_size < tx_buf_size ||
+			    tx_buf_size + rx_buf_size > ram_quota - session_size) {
 				PERR("insufficient 'ram_quota', got %zd, need %zd",
 				     ram_quota, tx_buf_size + rx_buf_size + session_size);
 				throw Genode::Root::Quota_exceeded();
