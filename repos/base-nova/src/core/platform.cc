@@ -17,14 +17,15 @@
 #include <base/printf.h>
 #include <base/sleep.h>
 #include <base/thread.h>
+#include <base/snprintf.h>
+#include <trace/source_registry.h>
 
 /* core includes */
 #include <core_parent.h>
 #include <platform.h>
 #include <nova_util.h>
 #include <util.h>
-#include <trace/source_registry.h>
-#include <base/snprintf.h>
+#include <ipc_pager.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>
@@ -115,7 +116,7 @@ static void page_fault_handler()
 	addr_t pf_type = utcb->qual[0];
 
 	print_page_fault("\nPAGE-FAULT IN CORE", pf_addr, pf_ip,
-	                 (Genode::Rm_session::Fault_type)pf_type, 0);
+	                 (pf_type & Ipc_pager::ERR_W) ? Rm_session::WRITE_FAULT : Rm_session::READ_FAULT, 0);
 
 	/* dump stack trace */
 	struct Core_img

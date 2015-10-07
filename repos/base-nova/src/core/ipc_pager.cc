@@ -21,23 +21,7 @@
 #include <nova/syscalls.h>
 
 
-enum { verbose_page_fault = false };
-
 using namespace Genode;
-
-/**
- * Print page-fault information in a human-readable form
- */
-inline void print_page_fault(unsigned type, addr_t addr, addr_t ip)
-{
-	enum { TYPE_READ  = 0x4, TYPE_WRITE = 0x2, TYPE_EXEC  = 0x1, };
-	printf("page (%s%s%s) fault at fault_addr=%lx, fault_ip=%lx\n",
-	       type & TYPE_READ  ? "r" : "-",
-	       type & TYPE_WRITE ? "w" : "-",
-	       type & TYPE_EXEC  ? "x" : "-",
-	       addr, ip);
-}
-
 
 void Ipc_pager::wait_for_fault()
 {
@@ -47,12 +31,9 @@ void Ipc_pager::wait_for_fault()
 	 * page-fault information from our UTCB.
 	 */
 	Nova::Utcb *utcb = (Nova::Utcb *)Thread_base::myself()->utcb();
-	_fault_type = (Pf_type)utcb->qual[0];
+	_fault_type = utcb->qual[0];
 	_fault_addr = utcb->qual[1];
 	_fault_ip   = utcb->ip;
-
-	if (verbose_page_fault)
-		print_page_fault(_fault_type, _fault_addr, _fault_ip);
 }
 
 

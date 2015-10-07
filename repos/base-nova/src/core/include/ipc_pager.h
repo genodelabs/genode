@@ -77,20 +77,23 @@ namespace Genode {
 	{
 		private:
 
-			/**
-			 * Page-fault type
-			 */
-			enum Pf_type {
-				TYPE_READ  = 0x4,
-				TYPE_WRITE = 0x2,
-				TYPE_EXEC  = 0x1,
-			};
-
 			addr_t  _fault_ip;
 			addr_t  _fault_addr;
-			Pf_type _fault_type;
+			uint8_t _fault_type;
 
 		public:
+
+			/*
+			 * Intel manual: 6.15 EXCEPTION AND INTERRUPT REFERENCE
+			 *                    Interrupt 14—Page-Fault Exception (#PF)
+			 */
+			enum {
+				ERR_I = 1 << 4,
+				ERR_R = 1 << 3,
+				ERR_U = 1 << 2,
+				ERR_W = 1 << 1,
+				ERR_P = 1 << 0,
+			};
 
 			/**
 			 * Wait for page-fault info
@@ -123,7 +126,7 @@ namespace Genode {
 			/**
 			 * Return true if fault was a write fault
 			 */
-			bool is_write_fault() const { return _fault_type == TYPE_WRITE; }
+			bool is_write_fault() const { return _fault_type & ERR_W; }
 
 			/**
 			 * Return true if last fault was an exception
