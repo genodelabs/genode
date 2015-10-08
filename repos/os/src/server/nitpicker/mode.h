@@ -30,6 +30,13 @@ class Mode
 
 		Session *_next_focused_session = nullptr;
 
+	protected:
+
+		/*
+		 * True while a global key sequence is processed
+		 */
+		bool _global_key_sequence = false;
+
 	public:
 
 		virtual ~Mode() { }
@@ -64,7 +71,13 @@ class Mode
 		 */
 		void apply_pending_focus_change()
 		{
-			if (key_is_pressed())
+			/*
+			 * Defer focus changes to a point where no drag operation is in
+			 * flight because otherwise, the involved sessions would obtain
+			 * inconsistent press and release events. However, focus changes
+			 * during global key sequences are fine.
+			 */
+			if (key_is_pressed() && !_global_key_sequence)
 				return;
 
 			if (_focused_session != _next_focused_session)

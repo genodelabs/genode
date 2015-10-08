@@ -46,11 +46,6 @@ class User_state : public Mode, public View_stack
 		 */
 		Session *_input_receiver = nullptr;
 
-		/*
-		 * True while a global key sequence is processed
-		 */
-		bool _global_key_sequence = false;
-
 		void _update_all();
 
 	public:
