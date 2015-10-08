@@ -47,53 +47,41 @@ static Genode::Signal_receiver &global_sig_rec()
 }
 
 
-static void wait_and_dispatch_one_signal(bool entrypoint)
+static void dispatch(Signal &sig)
 {
-	/*
-	 * We call the signal dispatcher outside of the scope of 'Signal'
-	 * object because we block the RPC interface in the input handler
-	 * when the kill mode gets actived. While kill mode is active, we
-	 * do not serve incoming RPC requests but we need to stay responsive
-	 * to user input. Hence, we wait for signals in the input dispatcher
-	 * in this case. An already existing 'Signal' object would lock the
-	 * signal receiver and thereby prevent this nested way of signal
-	 * handling.
-	 */
-	Signal_rpc_dispatcher_base *dispatcher = 0;
-	unsigned num = 0;
-
-	{
-		Signal sig = global_sig_rec().wait_for_signal();
-		dispatcher = dynamic_cast<Signal_rpc_dispatcher_base *>(sig.context());
-		num        = sig.num();
-	}
+	Signal_dispatcher_base *dispatcher = 0;
+	dispatcher = dynamic_cast<Signal_dispatcher_base *>(sig.context());
 
 	if (!dispatcher)
 		return;
 
-	if (entrypoint)
-		dispatcher->dispatch_at_entrypoint(num);
-	else
-		dispatcher->dispatch(num);
-}
-
-Signal_context_capability Entrypoint::manage(Signal_rpc_dispatcher_base &dispatcher)
-{
-	return dispatcher.manage(global_sig_rec(), global_rpc_ep());
+	dispatcher->dispatch(sig.num());
 }
 
 
-void Server::Entrypoint::dissolve(Signal_rpc_dispatcher_base &dispatcher)
+/**
+ * Dispatch a signal at entry point
+ */
+void Server::wait_and_dispatch_one_signal()
 {
-	dispatcher.dissolve(global_sig_rec(), global_rpc_ep());
+	Signal sig = global_sig_rec().wait_for_signal();
+	dispatch(sig);
+}
+
+
+Signal_context_capability Entrypoint::manage(Signal_dispatcher_base &dispatcher)
+{
+	return global_sig_rec().manage(&dispatcher);
+}
+
+
+void Server::Entrypoint::dissolve(Signal_dispatcher_base &dispatcher)
+{
+	global_sig_rec().dissolve(&dispatcher);
 }
 
 
 Server::Entrypoint::Entrypoint() : _rpc_ep(global_rpc_ep()) { }
-
-
-void Server::wait_and_dispatch_one_signal() {
-	::wait_and_dispatch_one_signal(true); }
 
 
 namespace Server {
@@ -105,7 +93,8 @@ namespace Server {
 struct Server::Constructor
 {
 	GENODE_RPC(Rpc_construct, void, construct);
-	GENODE_RPC_INTERFACE(Rpc_construct);
+	GENODE_RPC(Rpc_signal, void, signal);
+	GENODE_RPC_INTERFACE(Rpc_construct, Rpc_signal);
 };
 
 
@@ -113,6 +102,14 @@ struct Server::Constructor_component : Rpc_object<Server::Constructor,
                                                   Server::Constructor_component>
 {
 	void construct() { Server::construct(global_ep()); }
+
+	void signal()
+	{
+		try {
+			Signal sig = global_sig_rec().pending_signal();
+			::dispatch(sig);
+		} catch (Signal_receiver::Signal_not_pending) { }
+	}
 };
 
 
@@ -130,13 +127,15 @@ int main(int argc, char **argv)
 	/* process incoming signals */
 	for (;;) {
 
+		global_sig_rec().block_for_signal();
+
 		/*
 		 * It might happen that we try to forward a signal to the entrypoint,
 		 * while the context of that signal is already destroyed. In that case
 		 * we will get an ipc error exception as result, which has to be caught.
 		 */
 		try {
-			wait_and_dispatch_one_signal(false);
+			constructor_cap.call<Server::Constructor::Rpc_signal>();
 		} catch(Genode::Ipc_error) { }
 	}
 }

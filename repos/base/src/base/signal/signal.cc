@@ -332,52 +332,66 @@ bool Signal_receiver::pending()
 }
 
 
+Signal Signal_receiver::pending_signal()
+{
+	Lock::Guard list_lock_guard(_contexts_lock);
+
+	/* look up the contexts for the pending signal */
+	for (List_element<Signal_context> *le = _contexts.first(); le; le = le->next()) {
+
+		Signal_context *context = le->object();
+
+		Lock::Guard lock_guard(context->_lock);
+
+		/* check if context has a pending signal */
+		if (!context->_pending)
+			continue;
+
+		context->_pending = false;
+		Signal::Data result = context->_curr_signal;
+
+		/* invalidate current signal in context */
+		context->_curr_signal = Signal::Data(0, 0);
+
+		if (result.num == 0)
+			PWRN("returning signal with num == 0");
+
+		Trace::Signal_received trace_event(*context, result.num);
+
+		/* return last received signal */
+		return result;
+	}
+
+	/*
+	 * Normally, we should never arrive at this point because that would
+	 * mean, the '_signal_available' semaphore was increased without
+	 * registering the signal in any context associated to the receiver.
+	 *
+	 * However, if a context gets dissolved right after submitting a
+	 * signal, we may have increased the semaphore already. In this case
+	 * the signal-causing context is absent from the list.
+	 */
+	throw Signal_not_pending();
+}
+
+
+void Signal_receiver::block_for_signal()
+{
+	_signal_available.down();
+}
+
+
 Signal Signal_receiver::wait_for_signal()
 {
 	for (;;) {
 
 		/* block until the receiver has received a signal */
-		_signal_available.down();
+		block_for_signal();
 
-		Lock::Guard list_lock_guard(_contexts_lock);
-
-		/* look up the contexts for the pending signal */
-		for (List_element<Signal_context> *le = _contexts.first(); le; le = le->next()) {
-
-			Signal_context *context = le->object();
-
-			Lock::Guard lock_guard(context->_lock);
-
-			/* check if context has a pending signal */
-			if (!context->_pending)
-				continue;
-
-			context->_pending = false;
-			Signal::Data result = context->_curr_signal;
-
-			/* invalidate current signal in context */
-			context->_curr_signal = Signal::Data(0, 0);
-
-			if (result.num == 0)
-				PWRN("returning signal with num == 0");
-
-			Trace::Signal_received trace_event(*context, result.num);
-
-			/* return last received signal */
-			return result;
-		}
-
-		/*
-		 * Normally, we should never arrive at this point because that would
-		 * mean, the '_signal_available' semaphore was increased without
-		 * registering the signal in any context associated to the receiver.
-		 *
-		 * However, if a context gets dissolved right after submitting a
-		 * signal, we may have increased the semaphore already. In this case
-		 * the signal-causing context is absent from the list.
-		 */
+		try {
+			return pending_signal();
+		} catch (Signal_not_pending) { }
 	}
-	return Signal::Data(0, 0); /* unreachable */
 }
 
 

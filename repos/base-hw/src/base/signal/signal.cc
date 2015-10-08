@@ -195,6 +195,41 @@ void Signal_receiver::dissolve(Signal_context * const context)
 bool Signal_receiver::pending() { return Kernel::signal_pending(_cap.dst()); }
 
 
+/*
+ * Last signal received by 'block_for_signal'
+ */
+void Signal_receiver::block_for_signal()
+{
+	/* await a signal */
+	if (Kernel::await_signal(_cap.dst())) {
+		PERR("failed to receive signal");
+		return;
+	}
+
+	/* get signal */
+	Signal::Data *data = (Signal::Data *)Thread_base::myself()->utcb()->base();
+	Signal s(*data);
+
+	/* save signal data in context list */
+	s.context()->_curr_signal = *data;
+	_contexts.insert(&s.context()->_receiver_le);
+}
+
+
+Signal Signal_receiver::pending_signal()
+{
+	List_element<Signal_context> *le = _contexts.first();
+	if (!le)
+		throw Signal_not_pending();
+
+	/* remove from context list */
+	Signal_context *context = le->object();
+	_contexts.remove(le);
+
+	return Signal(context->_curr_signal);
+}
+
+
 Signal Signal_receiver::wait_for_signal()
 {
 	/* await a signal */

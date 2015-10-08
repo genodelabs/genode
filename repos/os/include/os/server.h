@@ -69,12 +69,12 @@ class Server::Entrypoint
 		/**
 		 * Associate signal dispatcher with entry point
 		 */
-		Signal_context_capability manage(Signal_rpc_dispatcher_base &);
+		Signal_context_capability manage(Signal_dispatcher_base &);
 
 		/**
 		 * Disassociate signal dispatcher from entry point
 		 */
-		void dissolve(Signal_rpc_dispatcher_base &);
+		void dissolve(Signal_dispatcher_base &);
 
 		/**
 		 * Return RPC entrypoint
