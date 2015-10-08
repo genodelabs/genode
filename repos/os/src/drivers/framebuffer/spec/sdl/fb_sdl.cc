@@ -1,11 +1,12 @@
 /*
  * \brief  SDL-based implementation of the Genode framebuffer
  * \author Norman Feske
+ * \author Christian Helmuth
  * \date   2006-07-10
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2006-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -119,7 +120,7 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 /**
  * Main program
  */
-extern "C" int main(int, char**)
+int main()
 {
 	using namespace Genode;
 	using namespace Framebuffer;
@@ -132,12 +133,27 @@ extern "C" int main(int, char**)
 	 */
 	if (SDL_Init(SDL_INIT_VIDEO) < 0)
 	{
-		PERR("SDL_Init failed\n");
+		PERR("SDL_Init failed (%s)", SDL_GetError());
 		return -1;
+	}
+
+	/*
+	 * We're testing only X11.
+	 */
+	static char driver[16] = { 0 };
+	SDL_VideoDriverName(driver, sizeof(driver));
+	if (::strcmp(driver, "x11") != 0) {
+		PERR("fb_sdl works on X11 only. Your SDL backend is \"%s\".", driver);
+		return -2;
 	}
 
 	Genode::size_t bpp = Framebuffer::Mode::bytes_per_pixel(scr_format);
 	screen = SDL_SetVideoMode(scr_width, scr_height, bpp*8, SDL_SWSURFACE);
+	if (!screen) {
+		PERR("SDL_SetVideoMode failed (%s)", SDL_GetError());
+		return -3;
+	}
+
 	SDL_ShowCursor(0);
 
 	Genode::printf("creating virtual framebuffer for mode %ldx%ld@%zd\n",
@@ -152,7 +168,7 @@ extern "C" int main(int, char**)
 		fb_ds_addr = fb_ds.local_addr<void>();
 	} catch (...) {
 		PERR("Could not allocate dataspace for virtual frame buffer");
-		return -2;
+		return -4;
 	}
 
 	/*

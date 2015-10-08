@@ -1,11 +1,12 @@
 /*
  * \brief  SDL input support
  * \author Norman Feske
+ * \author Christian Helmuth
  * \date   2006-08-16
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2006-2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -138,7 +139,7 @@ static long convert_keycode(int sdl_keycode)
 };
 
 
-Input::Event wait_for_event()
+static Input::Event wait_for_sdl_event()
 {
 	using namespace Input;
 
@@ -166,18 +167,30 @@ Input::Event wait_for_event()
 	case SDL_MOUSEBUTTONUP:
 
 		switch (event.button.button) {
-		case SDL_BUTTON_LEFT:  keycode = BTN_LEFT;  break;
-		case SDL_BUTTON_RIGHT: keycode = BTN_RIGHT; break;
-		default:               keycode = 0;
+		case SDL_BUTTON_LEFT:   keycode = BTN_LEFT;   break;
+		case SDL_BUTTON_MIDDLE: keycode = BTN_MIDDLE; break;
+		case SDL_BUTTON_RIGHT:  keycode = BTN_RIGHT;  break;
+		default:                keycode = 0;
 		}
 	}
 
 	/* determine event type */
 	Event::Type type;
 	switch (event.type) {
-	case SDL_MOUSEMOTION:     type = Event::MOTION;  break;
+	case SDL_MOUSEMOTION:
+		type = Event::MOTION;
+		break;
+
 	case SDL_KEYUP:
-	case SDL_MOUSEBUTTONUP:   type = Event::RELEASE; break;
+	case SDL_MOUSEBUTTONUP:
+		if (event.button.button == SDL_BUTTON_WHEELUP
+		 || event.button.button == SDL_BUTTON_WHEELDOWN)
+			/* ignore */
+			return Event();
+
+		type = Event::RELEASE;
+		break;
+
 	case SDL_KEYDOWN:
 	case SDL_MOUSEBUTTONDOWN:
 		if (event.button.button == SDL_BUTTON_WHEELUP) {
@@ -189,8 +202,22 @@ Input::Event wait_for_event()
 		}
 		type = Event::PRESS;
 		break;
-	default:                  type = Event::INVALID;
+
+	default:
+		return Event();
 	}
 
 	return Event(type, keycode, mx, my, mx - ox, my - oy);
+}
+
+Input::Event wait_for_event()
+{
+	Input::Event e;
+
+	/* prevent flooding of client with invalid events */
+	do {
+		e = wait_for_sdl_event();
+	} while (e.type() == Input::Event::INVALID);
+
+	return e;
 }
