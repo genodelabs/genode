@@ -118,6 +118,46 @@ static void page_fault_handler()
 	print_page_fault("\nPAGE-FAULT IN CORE", pf_addr, pf_ip,
 	                 (pf_type & Ipc_pager::ERR_W) ? Rm_session::WRITE_FAULT : Rm_session::READ_FAULT, 0);
 
+	printf("\nstack pointer 0x%lx, qualifiers 0x%lx %s%s%s%s%s\n",
+	       pf_sp, pf_type,
+	       pf_type & Ipc_pager::ERR_I ? "I" : "i",
+	       pf_type & Ipc_pager::ERR_R ? "R" : "r",
+	       pf_type & Ipc_pager::ERR_U ? "U" : "u",
+	       pf_type & Ipc_pager::ERR_W ? "W" : "w",
+	       pf_type & Ipc_pager::ERR_P ? "P" : "p");
+
+	if ((Native_config::context_area_virtual_base() <= pf_sp) &&
+		(pf_sp < Native_config::context_area_virtual_base() +
+		         Native_config::context_area_virtual_size()))
+	{
+		addr_t utcb_addr_f  = pf_sp / Native_config::context_virtual_size();
+		utcb_addr_f        *= Native_config::context_virtual_size();
+		utcb_addr_f        += Native_config::context_virtual_size();
+		utcb_addr_f        -= 4096;
+
+		Nova::Utcb * utcb_fault = reinterpret_cast<Nova::Utcb *>(utcb_addr_f);
+		unsigned last_items = utcb_fault->msg_items();
+
+		printf("faulter utcb %p, last message item count %u\n",
+		       utcb_fault, last_items);
+
+		for (unsigned i = 0; i < last_items; i++) {
+			Nova::Utcb::Item * item = utcb_fault->get_item(i);
+			if (!item)
+				break;
+
+			Nova::Crd crd(item->crd);
+			if (crd.is_null())
+				continue;
+
+			printf("%u - type=%x rights=0x%x region=0x%lx+0x%lx "
+			       "hotspot %lx(%lx) - %s\n", i, crd.type(), crd.rights(),
+			       crd.addr(), 1UL << (12 +crd.order()),
+			       crd.hotspot(item->hotspot), item->hotspot,
+			       item->is_del() ? "delegated" : "translated");
+		}
+	}
+
 	/* dump stack trace */
 	struct Core_img
 	{

@@ -398,10 +398,6 @@ void Pager_object::cleanup_call()
 	/* revoke all portals handling the client. */
 	revoke(Obj_crd(exc_pt_sel_client(), NUM_INITIAL_PT_LOG2));
 
-	/* if we are paused or waiting for a page fault nothing is in-flight */
-	if (_state.blocked())
-		return;
-
 	Utcb *utcb = reinterpret_cast<Utcb *>(Thread_base::myself()->utcb());
 	utcb->set_msg_word(0);
 	utcb->mtd = 0;
