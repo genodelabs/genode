@@ -54,7 +54,14 @@ void Ram_session_component::_clear_ds(Dataspace_component *ds)
 {
 	size_t page_rounded_size = align_addr(ds->size(), get_page_size_log2());
 
-	memset((void *)ds->core_local_addr(), 0, page_rounded_size);
+	size_t memset_count = page_rounded_size / 4;
+	addr_t memset_ptr   = ds->core_local_addr();
+
+	if ((memset_count * 4 == page_rounded_size) && !(memset_ptr & 0x3))
+		asm volatile ("rep stosl" : "+D" (memset_ptr), "+c" (memset_count)
+		                          : "a" (0)  : "memory");
+	else
+		memset(reinterpret_cast<void *>(memset_ptr), 0, page_rounded_size);
 
 	/* we don't keep any core-local mapping */
 	unmap_local(reinterpret_cast<Nova::Utcb *>(Thread_base::myself()->utcb()),
