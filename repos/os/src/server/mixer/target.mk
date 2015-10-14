@@ -1,3 +1,3 @@
 TARGET = mixer
 SRC_CC = mixer.cc
-LIBS   = base server
+LIBS   = base config server

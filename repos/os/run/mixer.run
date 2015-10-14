@@ -8,6 +8,8 @@ set build_components {
 	drivers/timer
 	drivers/audio
 	server/mixer
+	server/dynamic_rom
+	server/report_rom
 	test/audio_out
 }
 
@@ -45,41 +47,127 @@ set config  {
 append_platform_drv_config
 
 append config {
-		<start name="audio_drv">
-			<resource name="RAM" quantum="6M"/>
-			<provides>
-				<service name="Audio_out"/>
-			</provides>
-		</start>
-
 		<start name="timer">
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
 		</start>
+
+		<start name="audio_drv">
+			<resource name="RAM" quantum="8M"/>
+			<provides><service name="Audio_out"/></provides>
+			<config/>
+		</start>
+
+		<start name="report_rom">
+			<resource name="RAM" quantum="2M"/>
+			<provides>
+				<service name="ROM"/>
+				<service name="Report"/>
+			</provides>
+			<config verbose="yes">
+				<rom>
+					<policy label="to_whom_it_may_concern" report="mixer -> channel_list"/>
+				</rom>
+			</config>
+		</start>
+
+		<start name="dynamic_rom">
+			<resource name="RAM" quantum="4M"/>
+			<provides><service name="ROM"/></provides>
+			<config verbose="yes">
+				<rom name="mixer.config">
+					<inline description="client1 plays">
+<mixer.config>
+	<default out_volume="75" volume="42" muted="0"/>
+	<channel_list>
+		<channel type="input" label="client1" name="right" number="1" active="1" volume="70" muted="0"/>
+		<channel type="input" label="client1" name="left" number="0" active="1" volume="70" muted="0"/>
+		<channel type="input" label="client2" name="right" number="1" active="1" volume="0" muted="0"/>
+		<channel type="input" label="client2" name="left" number="0" active="1" volume="0" muted="0"/>
+		<channel type="output" label="master" name="left" number="0" active="1" volume="100" muted="0"/>
+		<channel type="output" label="master" name="right" number="1" active="1" volume="100" muted="0"/>
+	</channel_list>
+</mixer.config>
+					</inline>
+					<sleep milliseconds="10000" />
+					<inline description="client2 plays">
+<mixer.config>
+	<default out_volume="75" volume="42" muted="0"/>
+	<channel_list>
+		<channel type="input" label="client1" name="right" number="1" active="1" volume="0" muted="0"/>
+		<channel type="input" label="client1" name="left" number="0" active="1" volume="0" muted="0"/>
+		<channel type="input" label="client2" name="right" number="1" active="1" volume="70" muted="0"/>
+		<channel type="input" label="client2" name="left" number="0" active="1" volume="70" muted="0"/>
+		<channel type="output" label="master" name="left" number="0" active="1" volume="100" muted="0"/>
+		<channel type="output" label="master" name="right" number="1" active="1" volume="100" muted="0"/>
+	</channel_list>
+</mixer.config>
+					</inline>
+					<sleep milliseconds="10000" />
+					<inline description="both play">
+<mixer.config>
+	<default out_volume="75" volume="42" muted="0"/>
+	<channel_list>
+		<channel type="input" label="client1" name="right" number="1" active="1" volume="50" muted="0"/>
+		<channel type="input" label="client1" name="left" number="0" active="1" volume="50" muted="0"/>
+		<channel type="input" label="client2" name="right" number="1" active="1" volume="50" muted="0"/>
+		<channel type="input" label="client2" name="left" number="0" active="1" volume="50" muted="0"/>
+		<channel type="output" label="master" name="left" number="0" active="1" volume="100" muted="0"/>
+		<channel type="output" label="master" name="right" number="1" active="1" volume="100" muted="0"/>
+	</channel_list>
+</mixer.config>
+					</inline>
+					<sleep milliseconds="10000" />
+				</rom>
+			</config>
+		</start>
+
 		<start name="mixer">
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Audio_out"/></provides>
+			<configfile name="mixer.config"/>
 			<route>
 				<service name="Audio_out"> <child name="audio_drv"/> </service>
+				<service name="Report"> <child name="report_rom"/> </service>
+				<service name="ROM" label="mixer.config"> <child name="dynamic_rom"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>
 			</route>
 		</start>
-		<start name="audio0">
+
+		<start name="client1">
 			<binary name="test-audio_out"/>
-			<resource name="RAM" quantum="8M"/>
+			<resource name="RAM" quantum="4M"/>
 			<config>
-				<filename>sample.raw</filename>
-				<filename>vogel.f32</filename>
+				<filename>client1.f32</filename>
 			</config>
 			<route>
 				<service name="Audio_out"> <child name="mixer"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>
 			</route>
 		</start>
-	</config>
-}
+
+		<start name="client2">
+			<binary name="test-audio_out"/>
+			<resource name="RAM" quantum="4M"/>
+			<config>
+				<filename>client2.f32</filename>
+			</config>
+			<route>
+				<service name="Audio_out"> <child name="mixer"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+	</config>}
 
 install_config $config
+
+if {[expr ![file exists bin/client1.f32] || ![file exists bin/client2.f32]]} {
+	puts ""
+	puts "The sample files are missing. Please take a look at repos/dde_bsd/README"
+	puts "and create 'client1.f32' and 'client2.f32'. Afterwards put them into './bin'."
+	puts ""
+	exit 1
+}
 
 
 #
@@ -88,13 +176,10 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init
-	timer
-	audio_drv
-	test-audio_out
-	sample.raw
-	vogel.f32
-	mixer
+	core init timer
+	report_rom dynamic_rom
+	audio_drv test-audio_out
+	mixer client1.f32 client2.f32
 }
 
 # platform-specific components
