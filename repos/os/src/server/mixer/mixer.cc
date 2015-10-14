@@ -19,6 +19,7 @@
 /* Genode includes */
 #include <os/server.h>
 #include <root/component.h>
+#include <util/retry.h>
 #include <util/string.h>
 #include <audio_out_session/connection.h>
 #include <audio_out_session/rpc_object.h>
@@ -92,6 +93,9 @@ struct Audio_out::Session_elem : Audio_out::Session_rpc_object,
 
 	Session_elem(char const *label, Genode::Signal_context_capability data_cap)
 	: Session_rpc_object(data_cap), label(label) { }
+
+	Packet *get_packet(unsigned offset) {
+		return stream()->get(stream()->pos() + offset); }
 };
 
 
@@ -109,18 +113,22 @@ class Audio_out::Mixer
 		Connection *_out[MAX_CHANNELS];
 
 		/**
+		 * Remix all exception
+		 */
+		struct Remix_all { };
+
+		/**
 		 * A channel contains multiple session components
 		 */
 		struct Channel : public Genode::List<Session_elem>
 		{
 			void insert(Session_elem *session) { List<Session_elem>::insert(session); }
 			void remove(Session_elem *session) { List<Session_elem>::remove(session); }
-			Session_elem* first()              { return List<Session_elem>::first();  }
 
 			template <typename FUNC> void for_each_session(FUNC const &func)
 			{
-				for (Session_elem *elem = first(); elem; elem = elem->next())
-					func(*elem);
+				for (Session_elem *elem = List<Session_elem>::first(); elem;
+				     elem = elem->next()) func(*elem);
 			}
 		} _channels[MAX_CHANNELS];
 
@@ -128,7 +136,7 @@ class Audio_out::Mixer
 		 * Helper method for walking over session in a channel
 		 */
 		template <typename FUNC> void _for_each_channel(FUNC const &func) {
-			for (int i = 0; i < MAX_CHANNELS; i++) func(&_channels[i]); }
+			for (int i = LEFT; i < MAX_CHANNELS; i++) func(&_channels[i]); }
 
 		bool _check_active()
 		{
@@ -154,10 +162,8 @@ class Audio_out::Mixer
 				stream->increment_position();
 			}
 
-			/* send 'progress' sginal */
 			session->progress_submit();
 
-			/* send 'alloc' signal */
 			if (full) session->alloc_submit();
 		}
 
@@ -173,11 +179,9 @@ class Audio_out::Mixer
 
 		void _mix_packet(Packet *out, Packet *in, bool clear)
 		{
-			/* when clear is set, set input an zero out remainder */
 			if (clear) {
-				out->content(in->content(), PERIOD);
+				out->content(in->content(), Audio_out::PERIOD);
 			} else {
-				/* mix */
 				for_each_index(Audio_out::PERIOD, [&] (int const i) {
 					out->content()[i] += in->content()[i];
 
@@ -185,14 +189,11 @@ class Audio_out::Mixer
 					if (out->content()[i] < -1) out->content()[i] = -1;
 				});
 			}
-			/* mark packet as processed */
-			in->invalidate();
-		}
 
-		Packet *_session_packet(Session *session, unsigned offset)
-		{
-			Stream *s = session->stream();
-			return s->get(s->pos() + offset);
+			/*
+			 * Mark the packet as processed by invalidating it
+			 */
+			in->invalidate();
 		}
 
 		bool _mix_channel(Channel_number nr, unsigned out_pos, unsigned offset)
@@ -205,37 +206,36 @@ class Audio_out::Mixer
 			bool       mix_all   = false;
 			bool const out_valid = out->valid();
 
-			for (Session_elem *session = channel->first();
-			     session;
-			     session = session->next()) {
-			
-				if (session->stopped()) continue;
+			Genode::retry<Remix_all>(
+				[&] () {
+					channel->for_each_session([&] (Session_elem &session) {
+						if (session.stopped()) return;
 
-				Packet *in = _session_packet(session, offset);
+						Packet *in = session.get_packet(offset);
 
-				/*
-				 * When there already is an out packet, start over and mix
-				 * everything.
-				 */
-				if (in->valid() && out_valid && !mix_all) {
+						/*
+						 * When there already is an out packet, start over and mix
+						 * everything.
+						 */
+						if (in->valid() && out_valid && !mix_all) throw Remix_all();
+
+						/* skip if packet has been processed or was already played */
+						if ((!in->valid() && !mix_all) || in->played()) return;
+
+						_mix_packet(out, in, clear);
+
+						if (verbose)
+							PLOG("mix: ch %u in %u -> out %u all %d o: %u",
+							     nr, session.stream()->packet_position(in),
+							     stream->packet_position(out), mix_all, offset);
+
+						clear = false;
+					});
+				},
+				[&] () {
 					clear   = true;
 					mix_all = true;
-					session = channel->first();
-					in      = _session_packet(session, offset);
-				}
-
-				/* skip if packet has been processed or was already played */
-				if ((!in->valid() && !mix_all) || in->played()) continue;
-
-				_mix_packet(out, in, clear);
-
-				if (verbose)
-					PLOG("mix: ch %u in %u -> out %u all %d o: %u",
-					     nr, session->stream()->packet_position(in),
-					     stream->packet_position(out), mix_all, offset);
-
-				clear = false;
-			}
+				});
 
 			return !clear;
 		}
@@ -250,10 +250,11 @@ class Audio_out::Mixer
 			 * Look for packets that are valid, mix channels in an alternating
 			 * way.
 			 */
-			for_each_index(QUEUE_SIZE, [&] (int const i) {
+			for_each_index(Audio_out::QUEUE_SIZE, [&] (int const i) {
 				bool mix_one = true;
-				for (int j = LEFT; j < MAX_CHANNELS; j++)
-					mix_one &= _mix_channel((Channel_number)j, pos[j], i);
+				for_each_index(MAX_CHANNELS, [&] (int const j) {
+					mix_one = _mix_channel((Channel_number)j, pos[j], i);
+				});
 
 				if (mix_one) {
 					_out[LEFT]->submit(_out[LEFT]->stream()->get(pos[LEFT] + i));
