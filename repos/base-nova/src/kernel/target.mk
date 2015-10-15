@@ -13,7 +13,7 @@ CC_WARN          = -Wall -Wextra -Waggregate-return -Wcast-align -Wcast-qual \
                    -Wpointer-arith -Wredundant-decls -Wshadow -Wwrite-strings \
                    -Wabi -Wctor-dtor-privacy -Wno-non-virtual-dtor \
                    -Wold-style-cast -Woverloaded-virtual -Wsign-promo \
-                   -Wframe-larger-than=112 -Wlogical-op -Wstrict-null-sentinel \
+                   -Wlogical-op -Wstrict-null-sentinel \
                    -Wstrict-overflow=5 -Wvolatile-register-var
 CC_OPT          += -pipe \
                    -fdata-sections -fomit-frame-pointer -freg-struct-return \
@@ -21,9 +21,11 @@ CC_OPT          += -pipe \
                    -fno-stack-protector -fvisibility-inlines-hidden \
                    -fno-asynchronous-unwind-tables -std=gnu++0x 
 ifeq ($(filter-out $(SPECS),32bit),)
+CC_WARN         += -Wframe-larger-than=64
 CC_OPT          += -mpreferred-stack-boundary=2 -mregparm=3
 else
 ifeq ($(filter-out $(SPECS),64bit),)
+CC_WARN         += -Wframe-larger-than=128
 CC_OPT          += -mpreferred-stack-boundary=4 -mcmodel=kernel -mno-red-zone
 else
 $(error Unsupported environment)
