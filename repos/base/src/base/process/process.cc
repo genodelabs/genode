@@ -292,6 +292,7 @@ Process::Process(Dataspace_capability    elf_ds_cap,
 		case ELF_FAIL:
 
 			_cpu_session_client.kill_thread(_thread0_cap);
+			_thread0_cap = Thread_capability();
 
 		case THREAD_FAIL:
 
