@@ -15,6 +15,9 @@ set build_components {
 set use_usb_driver   [expr [have_spec omap4] || [have_spec arndale]]
 set use_nic_driver   [expr !$use_usb_driver && [expr [have_spec lan9118] || [have_spec x86]]]
 
+if {[expr !$use_usb_driver && !$use_nic_driver]} {
+	puts "\n Run script is not supported on this platform. \n"; exit 0 }
+
 lappend_if $use_usb_driver  build_components drivers/usb
 lappend_if $use_nic_driver  build_components drivers/nic
 lappend_if [have_spec  ps2] build_components drivers/input/spec/ps2
