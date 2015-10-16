@@ -29,10 +29,11 @@ if {[have_spec arm]} {
 
 	if {[have_spec panda]}   {
 		set platform "hw_panda"
-		set tool_chain_timeout  1000
+		set tool_chain_timeout  1500
 	}
 	if {[have_spec arndale]} {
 		set platform "hw_arndale"
+		set tool_chain_timeout  1500
 	}
 	if {[have_spec pbxa9]}   { set platform "hw_pbxa9" }
 
