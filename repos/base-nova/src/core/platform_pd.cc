@@ -42,6 +42,8 @@ void Platform_pd::unbind_thread(Platform_thread *thread)
 int Platform_pd::assign_parent(Native_capability parent)
 {
 	if (_parent.valid()) return -1;
+	if (!parent.valid()) return -2;
+
 	_parent = parent;
 	return 0;
 }
