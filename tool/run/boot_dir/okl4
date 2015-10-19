@@ -57,7 +57,7 @@ set weaver_xml_template {
 			<region base="0x100000" size="0x1800000" type="dedicated" />
 		</physical_memory>
 		<physical_memory name="physical">
-			<region base="0x2000000" size="0x1d000000" type="conventional" />
+			<region base="0x2000000" size="0x30000000" type="conventional" />
 		</physical_memory>
 		<phys_device name="timer_dev">
 			<interrupt name="int_timer0" number="0" />
