@@ -214,5 +214,6 @@ Thread_base::~Thread_base()
 	 * from here and any following RPC call will stumple upon the
 	 * detached trace control dataspace.
 	 */
-	env()->rm_session()->detach(_trace_control);
+	if (_trace_control)
+		env()->rm_session()->detach(_trace_control);
 }
