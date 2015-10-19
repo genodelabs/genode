@@ -1,9 +1,9 @@
 LICENSE   := GPLv2
-VERSION   := 2.8.8.dev12
+VERSION   := 2.8.8dev.12
 DOWNLOADS := lynx.archive
 
-URL(lynx) := http://lynx.isc.org/gnumatic/lynx-$(VERSION).tar.gz
-SHA(lynx) := 73cb60708e9746c74b3ee22ddcfe7d7a8fcb01b8
+URL(lynx) := ftp://invisible-island.net/lynx/tarballs/lynx$(VERSION).tar.gz
+SHA(lynx) := d9cb802a7acf480c75059da8d7bfb1f101183125
 SIG(lynx) := ${URL(lynx)}.asc
 DIR(lynx) := src/noux-pkg/lynx
 
