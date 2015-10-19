@@ -1,0 +1,263 @@
+#
+# Build
+#
+
+if {![have_spec linux]} {
+	puts "This run script requires linux!"
+	exit 1
+}
+
+set build_components {
+	core init
+	drivers/timer
+	server/ram_fs
+	drivers/framebuffer
+	server/dynamic_rom
+	server/report_rom
+	server/nitpicker
+	server/fs_rom
+	server/wm
+	app/pointer
+	app/floating_window_layouter
+	app/decorator
+	app/mixer_gui_qt
+}
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+set config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="CAP"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="IRQ"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>}
+
+append_platform_drv_config
+
+append_if [have_spec sdl] config {
+	<start name="fb_sdl">
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Input"/>
+			<service name="Framebuffer"/>
+		</provides>
+	</start>}
+
+append config {
+	<start name="report_rom">
+		<resource name="RAM" quantum="2M"/>
+		<provides>
+			<service name="ROM"/>
+			<service name="Report"/>
+		</provides>
+		<config>
+			<rom>
+				<policy label="layouter -> window_list"     report="wm -> window_list"/>
+				<policy label="layouter -> focus_request"   report="wm -> focus_request"/>
+				<policy label="decorator -> window_layout"  report="layouter -> window_layout"/>
+				<policy label="wm -> resize_request"        report="layouter -> resize_request"/>
+				<policy label="decorator -> pointer"        report="wm -> pointer"/>
+				<policy label="layouter -> hover"           report="decorator -> hover"/>
+				<policy label="wm -> focus"                 report="layouter -> focus"/>
+				<policy label="mixer_gui_qt -> channel_list"    report="mixer -> channel_list"/>
+				<policy label="mixer -> channel_list"           report="mixer_gui_qt -> channel_list"/>
+			</rom>
+		</config>
+	</start>
+	<start name="nitpicker">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Nitpicker"/></provides>
+		<config>
+			<report focus="yes" xray="yes" />
+			<domain name="pointer"   layer="1" content="client" label="no" origin="pointer" />
+			<domain name="default"   layer="2" content="client" label="no" hover="always" focus="click"/>
+
+			<policy label="pointer"         domain="pointer"/>
+			<policy label=""                domain="default"/>
+
+			<background color="#000000" />
+		</config>
+		<route>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="pointer">
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="wm" >
+		<resource name="RAM" quantum="16M"/>
+		<provides><service name="Nitpicker"/></provides>
+		<config>
+			<policy label="decorator" role="decorator"/>
+			<policy label="layouter"  role="layouter"/>
+		</config>
+		<route>
+			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<any-service> <child name="report_rom"/> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="layouter">
+		<binary name="floating_window_layouter"/>
+		<resource name="RAM" quantum="4M"/>
+		<route>
+			<any-service>
+				<child name="wm"/> <child name="report_rom"/> <parent/> <any-child/>
+			</any-service>
+		</route>
+	</start>
+	<start name="decorator">
+		<binary name="decorator"/>
+		<resource name="RAM" quantum="8M"/>
+		<route>
+			<any-service>
+				<child name="wm"/> <child name="report_rom"/> <parent/> <any-child/>
+			</any-service>
+		</route>
+	</start>
+	}
+
+append config {
+	<start name="dynamic_rom">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="ROM"/></provides>
+		<config verbose="yes">
+			<rom name="channel_list">
+				<sleep milliseconds="1000" />
+				<inline description="first config update">
+<channel_list>
+	<channel type="input" label="test-audio_out0" name="right" number="1" active="1" volume="0" muted="0"/>
+	<channel type="input" label="test-audio_out_click" name="left" number="0" active="1" volume="75" muted="0"/>
+	<channel type="input" label="fancy_init -> test-audio_out1" name="left" number="0" active="1" volume="75" muted="0"/>
+	<channel type="input" label="test-audio_out0" name="left" number="0" active="1" volume="0" muted="0"/>
+	<channel type="input" label="test-audio_out_click" name="right" number="1" active="1" volume="75" muted="0"/>
+	<channel type="input" label="fancy_init -> test-audio_out1" name="right" number="1" active="1" volume="75" muted="0"/>
+	<channel type="output" label="master" name="left" number="0" active="1" volume="100" muted="0"/>
+	<channel type="output" label="master" name="right" number="1" active="1" volume="100" muted="0"/>
+</channel_list>
+				</inline>
+				<sleep milliseconds="1000" />
+				<inline description="second config update">
+<channel_list>
+	<channel type="input" label="test-audio_out0" name="right" number="1" active="1" volume="100" muted="0"/>
+	<channel type="input" label="test-audio_out_click" name="left" number="0" active="1" volume="75" muted="1"/>
+	<channel type="input" label="fancy_init -> test-audio_out1" name="left" number="0" active="1" volume="25" muted="0"/>
+	<channel type="input" label="test-audio_out0" name="left" number="0" active="1" volume="100" muted="0"/>
+	<channel type="input" label="test-audio_out_click" name="right" number="1" active="1" volume="15" muted="1"/>
+	<channel type="input" label="fancy_init -> test-audio_out1" name="right" number="1" active="1" volume="25" muted="0"/>
+	<channel type="output" label="master" name="left" number="0" active="1" volume="100" muted="0"/>
+	<channel type="output" label="master" name="right" number="1" active="1" volume="100" muted="0"/>
+</channel_list>
+				</inline>
+			</rom>
+		</config>
+	</start>
+
+	<start name="mixer_gui_qt">
+		<resource name="RAM" quantum="32M"/>
+		<config ld_verbose="yes">
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs>
+					<dir name="dev"> <log/> </dir>
+					<tar name="qt5_fs_mixer_gui_qt.tar"/>
+					<!--<dir name="config"> <fs label="config"/> </dir>-->
+				</vfs>
+			</libc>
+		</config>
+		<route>
+			<service name="Nitpicker"> <child name="wm"/> </service>
+			<service name="ROM"> <if-arg key="label" value="channel_list" /> <child name="dynamic_rom" /> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>}
+
+append config {
+</config>
+}
+
+install_config $config
+
+#
+# Prepare resources needed by the application
+#
+
+# get fonts
+exec rm -rf bin/qt5_fs/mixer_gui_qt/qt
+exec mkdir -p bin/qt5_fs/mixer_gui_qt/qt/lib
+exec ln -sf [pwd]/bin/qt5_fs/qt/lib/fonts bin/qt5_fs/mixer_gui_qt/qt/lib/fonts
+
+# create tar archive containg Qt5 resources
+exec tar chf bin/qt5_fs_mixer_gui_qt.tar -C bin/qt5_fs/mixer_gui_qt .
+
+#
+# Boot modules
+#
+
+set boot_modules {
+	core init timer
+	ld.lib.so libc.lib.so
+
+	report_rom dynamic_rom ram_fs
+	fs_rom
+
+	qt5_gui.lib.so
+	qt5_widgets.lib.so
+	qt5_xml.lib.so
+	qt5_core.lib.so
+	freetype.lib.so
+	gallium.lib.so
+	icu.lib.so
+	libc_lock_pipe.lib.so
+	libm.lib.so
+	libpng.lib.so
+	jpeg.lib.so
+	zlib.lib.so
+	stdcxx.lib.so
+	pthread.lib.so
+	mixer_gui_qt
+	qt5_fs_mixer_gui_qt.tar
+	nitpicker
+	wm
+	pointer
+	floating_window_layouter
+	decorator
+}
+
+append_platform_drv_boot_modules
+
+lappend_if [have_spec linux]            boot_modules fb_sdl
+
+build_boot_image $boot_modules
+
+run_genode_until forever
+
+# vi: set ft=tcl :

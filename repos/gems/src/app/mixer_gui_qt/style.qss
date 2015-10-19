@@ -1,0 +1,5 @@
+Main_window { min-width: 100; min-height: 100px; }
+
+Client_widget QFrame {
+	padding: 5px;
+}
