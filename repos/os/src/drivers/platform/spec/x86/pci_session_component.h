@@ -44,17 +44,36 @@ namespace Platform {
 
 class Platform::Rmrr : public Genode::List<Platform::Rmrr>::Element
 {
+	public:
+
+		class Bdf : public Genode::List<Bdf>::Element {
+
+			private:
+
+				Genode::uint8_t _bus, _dev, _func;
+
+			public:
+
+				Bdf(Genode::uint8_t bus, Genode::uint8_t dev,
+				    Genode::uint8_t func)
+				: _bus(bus), _dev(dev), _func(func) { }
+
+				bool match(Genode::uint8_t bus, Genode::uint8_t dev,
+				           Genode::uint8_t func) {
+					return bus == _bus && dev == _dev && func == _func; }
+		};
+
 	private:
 
 		Genode::uint64_t _start, _end;
 		Genode::Io_mem_dataspace_capability _cap;
-		Genode::uint8_t _bus, _dev, _func;
+
+		Genode::List<Bdf> _bdf_list;
 
 	public:
 
-		Rmrr(Genode::uint64_t start, Genode::uint64_t end,
-		     Genode::uint8_t bus, Genode::uint8_t dev, Genode::uint8_t func)
-		: _start(start), _end(end), _bus(bus), _dev(dev), _func(func)
+		Rmrr(Genode::uint64_t start, Genode::uint64_t end)
+		: _start(start), _end(end)
 		{ }
 
 		Genode::Io_mem_dataspace_capability match(Device_config config) {
@@ -62,18 +81,23 @@ class Platform::Rmrr : public Genode::List<Platform::Rmrr>::Element
 			Genode::uint8_t device   = config.device_number();
 			Genode::uint8_t function = config.function_number();
 
-			if (!(_bus == bus && _dev == device && _func == function))
-				return Genode::Io_mem_dataspace_capability();
+			for (Bdf *bdf = _bdf_list.first(); bdf; bdf = bdf->next()) {
+				if (!bdf->match(bus, device, function))
+					continue;
 
-			if (_cap.valid())
+				if (_cap.valid())
+					return _cap;
+
+				Genode::Io_mem_connection io_mem(_start, _end - _start + 1);
+				io_mem.on_destruction(Genode::Io_mem_connection::KEEP_OPEN);
+				_cap = io_mem.dataspace();
+
 				return _cap;
-
-			Genode::Io_mem_connection io_mem(_start, _end - _start + 1);
-			io_mem.on_destruction(Genode::Io_mem_connection::KEEP_OPEN);
-			_cap = io_mem.dataspace();
-
-			return _cap;
+			}
+			return Genode::Io_mem_dataspace_capability();
 		}
+
+		void add(Bdf * bdf) { _bdf_list.insert(bdf); }
 
 		static Genode::List<Rmrr> *list()
 		{
@@ -780,6 +804,9 @@ class Platform::Root : public Genode::Root_component<Session_component>
 					if (node.num_sub_nodes() == 0)
 						throw 2;
 
+					Rmrr * rmrr = new (env()->heap()) Rmrr(mem_start, mem_end);
+					Rmrr::list()->insert(rmrr);
+
 					for (unsigned s = 0; s < node.num_sub_nodes(); s++) {
 						Xml_node scope = node.sub_node(s);
 						if (!scope.num_sub_nodes() || !scope.has_type("scope"))
@@ -804,10 +831,8 @@ class Platform::Root : public Genode::Root_component<Session_component>
 								                  Device::ACCESS_8BIT);
 						}
 
-						Rmrr * rmrr = new (env()->heap()) Rmrr(mem_start,
-						                                       mem_end, bus,
-						                                       dev, func);
-						Rmrr::list()->insert(rmrr);
+						rmrr->add(new (env()->heap()) Rmrr::Bdf(bus, dev,
+						                                        func));
 					}
 				}
 

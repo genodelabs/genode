@@ -255,7 +255,9 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init timer ld.lib.so noux terminal ram_fs
-	libc.lib.so libm.lib.so libc_noux.lib.so ncurses.lib.so stdcxx.lib.so }
+	libc.lib.so libm.lib.so libc_noux.lib.so ncurses.lib.so stdcxx.lib.so
+	pcre.lib.so zlib.lib.so readline.lib.so
+}
 
 append boot_modules { gmp.lib.so mpfr.lib.so mpc.lib.so }
 
