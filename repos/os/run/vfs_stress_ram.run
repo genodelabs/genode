@@ -1,0 +1,42 @@
+#
+# \brief  VFS stress test
+# \author Emery Hemingway
+# \date   2015-08-30
+#
+
+build "core init drivers/timer test/vfs_stress"
+
+create_boot_directory
+
+install_config {
+<config>
+	<affinity-space width="3" height="2" />
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="vfs_stress">
+		<resource name="RAM" quantum="1G"/>
+		<config depth="16"> <vfs> <ram/> </vfs> </config>
+	</start>
+</config>
+}
+
+build_boot_image "core init ld.lib.so timer vfs_stress"
+
+append qemu_args "-nographic -smp cpus=6"
+
+run_genode_until ".*child \"vfs_stress\" exited with exit value 0.*"  600

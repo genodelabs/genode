@@ -1,0 +1,7 @@
+Vfs_stress populates, writes, and reads a file system using multiple threads.
+The following attributes on the <config> node control test behaviour:
+ * depth   - maximum tree depth, defaults to sixteen
+ * threads - number of threads to start, defaults to six
+ * write   - perform write test
+ * read    - perform read test
+ * unlink  - unlink all generated files
