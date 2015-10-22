@@ -493,9 +493,6 @@ struct Esdhcv2_controller : private Esdhcv2, public Sd_card::Host_controller
 			if (!issue_command(Sd_send_op_cond(0, false))) {
 				_detect_err("Sd_send_op_cond command failed"); }
 
-			if (read<Cmdrsp0>() != 0xff8000) {
-				_detect_err("Unexpected response of Sd_send_op_cond command"); }
-
 			_delayer.usleep(1000);
 			if (!issue_command(Go_idle_state())) {
 				_detect_err("Go_idle_state command failed"); }
