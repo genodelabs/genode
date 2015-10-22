@@ -23,6 +23,34 @@ namespace Sd_card {
 	using namespace Genode;
 
 	/**
+	 * Structure of the first word of a native mode R1 response
+	 */
+	struct R1_response_0 : Register<32>
+	{
+		struct Ready_for_data : Bitfield<8, 1> { };
+		struct State          : Bitfield<9, 4>
+		{
+			enum { PROGRAM = 7 };
+		};
+		struct Error          : Bitfield<19, 1> { };
+
+		/**
+		 * Return wether the card is ready for data
+		 *
+		 * \param resp  R1 response, word 0
+		 */
+		static bool card_ready(access_t const resp)
+		{
+			/*
+			 * Check both ready bit and state because not all cards handle
+			 * the status bits correctly.
+			 */
+			return Ready_for_data::get(resp) &&
+			       State::get(resp) != State::PROGRAM;
+		}
+	};
+
+	/**
 	 * Returned by 'Sd_send_op_cond'
 	 */
 	struct Ocr : Register<32>
@@ -147,6 +175,14 @@ namespace Sd_card {
 		{
 			Response::Rca::set(arg, rca);
 		}
+	};
+
+	struct Send_status : Command<13, RESPONSE_48_BIT>
+	{
+		struct Arg : Sd_card::Arg
+		{
+			struct Rca : Bitfield<16, 16> { };
+		};
 	};
 
 	struct Select_card : Command<7, RESPONSE_48_BIT>

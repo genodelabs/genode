@@ -177,6 +177,8 @@ struct Esdhcv2 : Genode::Mmio
 				_48BIT_BUSY = 3,
 			};
 		};
+		struct Cccen  : Bitfield<19, 1> { };
+		struct Cicen  : Bitfield<20, 1> { };
 		struct Dpsel  : Bitfield<21, 1> { };
 		struct Cmdtyp : Bitfield<22, 2>
 		{
@@ -626,6 +628,57 @@ struct Esdhcv2_controller : private Esdhcv2, public Sd_card::Host_controller
 			return true;
 		}
 
+		int _wait_for_card_ready_mbw()
+		{
+			/*
+			 * Poll card status
+			 *
+			 * The maximum number of attempts and the delay between two attempts are
+			 * freely chosen.
+			 */
+			using namespace Sd_card;
+			unsigned           attempts          = 5;
+			unsigned constexpr attempts_delay_us = 100000;
+			while (1) {
+				if (!attempts) {
+					PERR("Reading card status after multiblock write failed");
+					return -1;
+				}
+				/* assemble argument register value */
+				Send_status::Arg::access_t cmdarg = 0;
+				Send_status::Arg::Rca::set(cmdarg, _card_info.rca());
+
+				/* assemble command register value */
+				Xfertyp::access_t xfertyp = 0;
+				Xfertyp::Cmdinx::set(xfertyp, Send_status::INDEX);
+				Xfertyp::Cicen::set(xfertyp, 1);
+				Xfertyp::Cccen::set(xfertyp, 1);
+				Xfertyp::Rsptyp::set(xfertyp, Xfertyp::Rsptyp::_48BIT);
+				Xfertyp::Msbsel::set(xfertyp,  1);
+				Xfertyp::Bcen::set(xfertyp, 1);
+				Xfertyp::Dmaen::set(xfertyp, 1);
+
+				/* send command as soon as the host allows it */
+				if (_wait_for_cmd_allowed()) { return -1; }
+				write<Cmdarg>(cmdarg);
+				write<Xfertyp>(xfertyp);
+
+				/* wait for command completion */
+				if (_wait_for_cmd_complete()) { return -1; }
+
+				/* check for errors */
+				R1_response_0::access_t const resp = read<Cmdrsp0>();
+				if (R1_response_0::Error::get(resp)) {
+					PERR("Reading card status after multiblock write failed");
+					return -1;
+				}
+				/* if card is in a ready state, return success, retry otherwise */
+				if (R1_response_0::card_ready(resp)) { break; }
+				_delayer.usleep(attempts_delay_us);
+			}
+			return 0;
+		}
+
 		/**
 		 * Abort transmission by manually issuing stop command
 		 *
@@ -637,7 +690,12 @@ struct Esdhcv2_controller : private Esdhcv2, public Sd_card::Host_controller
 			Xfertyp::access_t xfertyp = 0;
 			Xfertyp::Cmdinx::set(xfertyp, Sd_card::Stop_transmission::INDEX);
 			Xfertyp::Cmdtyp::set(xfertyp, Xfertyp::Cmdtyp::ABORT_CMD12);
-			Xfertyp::Rsptyp::set(xfertyp, Xfertyp::Rsptyp::_48BIT);
+			Xfertyp::Cccen::set(xfertyp, 1);
+			Xfertyp::Cicen::set(xfertyp, 1);
+			Xfertyp::Rsptyp::set(xfertyp, Xfertyp::Rsptyp::_48BIT_BUSY);
+			Xfertyp::Msbsel::set(xfertyp, 1);
+			Xfertyp::Bcen::set(xfertyp, 1);
+			Xfertyp::Dmaen::set(xfertyp, 1);
 			write<Xfertyp>(xfertyp);
 			return _wait_for_cmd_complete();
 		}
@@ -686,6 +744,7 @@ struct Esdhcv2_controller : private Esdhcv2, public Sd_card::Host_controller
 				 * manually.
 				 */
 				if (!_abort_transmission())  { return false; }
+				if (_wait_for_card_ready_mbw()) { return false; }
 			}
 			return true;
 		}
