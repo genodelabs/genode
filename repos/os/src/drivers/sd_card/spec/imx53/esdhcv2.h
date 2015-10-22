@@ -112,6 +112,8 @@ namespace Adma2
 					_base_virt[index] = desc;
 					consumed += curr;
 				}
+				/* ensure that all descriptor writes were actually executed */
+				asm volatile ("dsb");
 				return true;
 			}
 
