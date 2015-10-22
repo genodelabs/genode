@@ -665,21 +665,19 @@ struct Esdhcv2_controller : private Esdhcv2, public Sd_card::Host_controller
 			 * therefore not wait for a second IRQ when we've received a
 			 * single signal the first time.
 			 */
-			Irqstat::access_t constexpr irq_cc_tc =
+			Irqstat::access_t constexpr irq_goal =
 				Irq::Cc::reg_mask() | Irq::Tc::reg_mask();
-			switch (irq) {
-			case Irq::Cc::reg_mask():
-			case Irq::Tc::reg_mask():
 
-				/* poll for the missing signal */
-				if (!wait_for<Irqstat>(irq_cc_tc, _delayer)) {
+			/* poll for the missing signal */
+			if (irq != irq_goal) {
+				if (!wait_for<Irqstat>(irq_goal, _delayer)) {
 					PERR("completion host signal timed out");
 					return false;
 				}
-			case irq_cc_tc:
-
-				/* acknowledge both completion signals */
-				write<Irqstat>(irq_cc_tc);
+			}
+			/* acknowledge both completion signals */
+			write<Irqstat>(irq_goal);
+			if (!r) {
 
 				/*
 				 * The "Auto Command 12" feature of the ESDHC seems to be
@@ -687,11 +685,9 @@ struct Esdhcv2_controller : private Esdhcv2, public Sd_card::Host_controller
 				 * timeout errors sometimes. Thus, we end such transfers
 				 * manually.
 				 */
-				return r ? true : _abort_transmission();
-			default:
-				PERR("received unexpected host signal");
-				return false;
+				if (!_abort_transmission())  { return false; }
 			}
+			return true;
 		}
 
 		/**
