@@ -32,14 +32,24 @@ namespace Adma2
 	 */
 	struct Desc : Register<64>
 	{
-		static size_t constexpr max_size = 64 * 1024 - 4;
-
 		struct Valid   : Bitfield<0, 1> { };
 		struct End     : Bitfield<1, 1> { };
 		struct Int     : Bitfield<2, 1> { };
 		struct Act1    : Bitfield<4, 1> { };
 		struct Act2    : Bitfield<5, 1> { };
-		struct Length  : Bitfield<16, 16> { };
+		struct Length  : Bitfield<16, 16>
+		{
+			/*
+			 * According to the 'SD Specifications, Part A2, SD Host
+			 * Controller, Simplified Specification, Version 2.00, February 8,
+			 * 2007, Table 1-10', a maximum length of 65536 bytes is achieved
+			 * by value 0. However, if we do so, the completion host-signal
+			 * times out now and then. Thus, we use the next lower possible
+			 * value.
+			 */
+			static constexpr addr_t align_log2 = 2;
+			static constexpr size_t max = (1 << WIDTH) - (1 << align_log2);
+		};
 		struct Address : Bitfield<32, 32> { };
 	};
 
@@ -84,7 +94,7 @@ namespace Adma2
 				 * the driver partition large requests into ones that are
 				 * supported.
 				 */
-				static size_t constexpr max_size = _max_desc * Desc::max_size;
+				static size_t constexpr max_size = _max_desc * Desc::Length::max;
 				if (size > max_size) {
 					PERR("Block request too large");
 					return false;
@@ -95,7 +105,7 @@ namespace Adma2
 
 					/* clamp current request to maximum request size */
 					size_t const remaining = size - consumed;
-					size_t const curr = min(Desc::max_size, remaining);
+					size_t const curr = min(Desc::Length::max, remaining);
 
 					/* assemble new descriptor */
 					Desc::access_t desc = 0;
