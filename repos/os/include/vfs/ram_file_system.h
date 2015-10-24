@@ -14,102 +14,677 @@
 #ifndef _INCLUDE__VFS__RAM_FILE_SYSTEM_H_
 #define _INCLUDE__VFS__RAM_FILE_SYSTEM_H_
 
-#include <vfs/dir_file_system.h>
-#include <ram_fs/directory.h>
+#include <ram_fs/chunk.h>
+#include <vfs/file_system.h>
+#include <base/allocator_guard.h>
+#include <dataspace/client.h>
+#include <util/avl_tree.h>
 
-namespace Vfs {
-	using namespace ::File_system;
-	class Ram_file_system;
+namespace Vfs_ram {
+
+	using namespace Genode;
+	using namespace Vfs;
+
+	class Node;
+	class File;
+	class Symlink;
+	class Directory;
+
+	enum { MAX_NAME_LEN = 128 };
+
+	/**
+	 * Return base-name portion of null-terminated path string
+	 */
+	static inline char const *basename(char const *path)
+	{
+		char const *start = path;
+
+		for (; *path; ++path)
+			if (*path == '/')
+				start = path + 1;
+
+		return start;
+	}
+
 }
 
+namespace Vfs { class Ram_file_system; }
 
-class Vfs::Ram_file_system : public File_system, private ::File_system::Directory
+
+class Vfs_ram::Node : public Genode::Avl_node<Node>, public Genode::Lock
 {
 	private:
 
-		struct Ram_vfs_handle : Vfs_handle
+		char _name[MAX_NAME_LEN];
+
+		unsigned long const _inode;
+
+		/**
+		 * Generate unique inode number
+		 *
+		 * XXX: these inodes could clash with other VFS plugins
+		 */
+		static unsigned long _unique_inode()
 		{
-			private:
-
-				::File_system::Node *_node;
-
-			public:
-
-				Ram_vfs_handle(File_system &fs, int status_flags,
-				               ::File_system::Node *node)
-				: Vfs_handle(fs, fs, status_flags), _node(node)
-				{ }
-
-				::File_system::Node *node() const { return _node; }
-		};
+			static unsigned long inode_count;
+			return ++inode_count;
+		}
 
 	public:
 
+		Node(char const *node_name)
+		: _inode(_unique_inode()) { name(node_name); }
+
+		virtual ~Node() { };
+
+		unsigned long inode() const { return _inode; }
+
+		char const *name() { return _name; }
+		void name(char const *name) { strncpy(_name, name, MAX_NAME_LEN); }
+
+		virtual Vfs::file_size length() = 0;
+
+		/************************
+		 ** Avl node interface **
+		 ************************/
+
+		bool higher(Node *c) { return (strcmp(c->_name, _name) > 0); }
+
 		/**
-		 * Constructor
+		 * Find index N by walking down the tree N times,
+		 * not the most efficient way to do this.
 		 */
+		Node *index(file_offset &i)
+		{
+			if (i-- == 0)
+				return this;
+
+			Node *n;
+
+			n = child(LEFT);
+			if (n)
+				n = n->index(i);
+
+			if (n) return n;
+
+			n = child(RIGHT);
+			if (n)
+				n = n->index(i);
+
+			return n;
+		}
+
+		Node *sibling(const char *name)
+		{
+			if (strcmp(name, _name) == 0) return this;
+
+			Node *c =
+				Avl_node<Node>::child(strcmp(name, _name) > 0);
+			return c ? c->sibling(name) : 0;
+		}
+
+		struct Guard
+		{
+			Node *node;
+
+			Guard(Node *guard_node) : node(guard_node) { node->lock(); }
+
+			~Guard() { node->unlock(); }
+		};
+
+};
+
+
+class Vfs_ram::File : public Vfs_ram::Node
+{
+	private:
+
+		typedef ::File_system::Chunk<4096>      Chunk_level_3;
+		typedef ::File_system::Chunk_index<128, Chunk_level_3> Chunk_level_2;
+		typedef ::File_system::Chunk_index<64,  Chunk_level_2> Chunk_level_1;
+		typedef ::File_system::Chunk_index<64,  Chunk_level_1> Chunk_level_0;
+
+		Chunk_level_0 _chunk;
+
+		file_size _length;
+
+	public:
+
+		File(char const *name, Allocator &alloc)
+		: Node(name), _chunk(alloc, 0), _length(0) { }
+
+		size_t read(char *dst, size_t len, file_size seek_offset)
+		{
+			file_size const chunk_used_size = _chunk.used_size();
+
+			if (seek_offset >= _length)
+				return 0;
+
+			/*
+			 * Constrain read transaction to available chunk data
+			 *
+			 * Note that 'chunk_used_size' may be lower than '_length'
+			 * because 'Chunk' may have truncated tailing zeros.
+			 */
+			if (seek_offset + len >= _length)
+				len = _length - seek_offset;
+
+			file_size read_len = len;
+
+			if (seek_offset + read_len > chunk_used_size) {
+				if (chunk_used_size >= seek_offset)
+					read_len = chunk_used_size - seek_offset;
+				else
+					read_len = 0;
+			}
+
+			_chunk.read(dst, read_len, seek_offset);
+
+			/* add zero padding if needed */
+			if (read_len < len)
+				memset(dst + read_len, 0, len - read_len);
+
+			return len;
+		}
+
+		size_t write(char const *src, size_t len, file_size seek_offset)
+		{
+			if (seek_offset == (file_size)(~0))
+				seek_offset = _chunk.used_size();
+
+			if (seek_offset + len >= Chunk_level_0::SIZE)
+				len = Chunk_level_0::SIZE - (seek_offset + len);
+
+			_chunk.write(src, len, (size_t)seek_offset);
+
+			/*
+			 * Keep track of file length. We cannot use 'chunk.used_size()'
+			 * as file length because trailing zeros may by represented
+			 * by zero chunks, which do not contribute to 'used_size()'.
+			 */
+			_length = max(_length, seek_offset + len);
+
+			return len;
+		}
+
+		file_size length() { return _length; }
+
+		void truncate(file_size size)
+		{
+			if (size < _chunk.used_size())
+				_chunk.truncate(size);
+
+			_length = size;
+		}
+};
+
+
+class Vfs_ram::Symlink : public Vfs_ram::Node
+{
+	private:
+
+		char   _target[MAX_PATH_LEN];
+		size_t _len;
+
+	public:
+
+		Symlink(char const *name) : Node(name), _len(0) { }
+
+		file_size length() { return _len; }
+
+		void set(char const *target, size_t len)
+		{
+			_len = min(len, MAX_PATH_LEN);
+			memcpy(_target, target, _len);
+		}
+
+		size_t get(char *buf, size_t len)
+		{
+			size_t out = min(len, _len);
+			memcpy(buf, _target, out);
+			return out;
+		}
+};
+
+
+class Vfs_ram::Directory : public Vfs_ram::Node
+{
+	private:
+
+		Avl_tree<Node> _entries;
+		file_size _count;
+
+	public:
+
+		Directory(char const *name) : Node(name) { }
+
+		~Directory()
+		{
+			while (Node *node = _entries.first()) {
+				_entries.remove(node);
+				/*
+				 * Not destroying from the allocator guard because
+				 * non-empty directories are only destroyed with
+				 * the rest of the file system.
+				 */
+				destroy(env()->heap(), node);
+			}
+		}
+
+		void adopt(Node *node)
+		{
+			_entries.insert(node);
+			++_count;
+		}
+
+		Node *child(char const *name)
+		{
+			Node *node = _entries.first();
+			return node ? node->sibling(name) : 0;
+		}
+
+		void release(Node *node)
+		{
+			_entries.remove(node);
+			--_count;
+		}
+
+		file_size length() override { return _count; }
+
+		void dirent(file_offset index, Directory_service::Dirent &dirent)
+		{
+			dirent.fileno = index+1;
+			dirent.type = Directory_service::DIRENT_TYPE_END;
+			dirent.name[0] = '\0';
+
+			Node *node = _entries.first();
+			if (node) {
+				node = node->index(index);
+				if (!node) return;
+
+				strncpy(dirent.name, node->name(), sizeof(dirent.name));
+
+				File *file = dynamic_cast<File *>(node);
+				if (file) {
+					dirent.type = Directory_service::DIRENT_TYPE_FILE;
+					return;
+				}
+
+				Directory *dir = dynamic_cast<Directory *>(node);
+				if (dir) {
+					dirent.type = Directory_service::DIRENT_TYPE_DIRECTORY;
+					return;
+				}
+
+				Symlink *symlink = dynamic_cast<Symlink *>(node);
+				if (symlink) {
+					dirent.type = Directory_service::DIRENT_TYPE_SYMLINK;
+				}
+			}
+		}
+};
+
+
+class Vfs::Ram_file_system : public Vfs::File_system
+{
+	private:
+
+		class Ram_vfs_handle : public Vfs_handle
+		{
+			private:
+
+				Vfs_ram::File *_file;
+
+			public:
+ 
+				Ram_vfs_handle(File_system &fs, int status_flags, Vfs_ram::File *file)
+				: Vfs_handle(fs, fs, status_flags), _file(file)
+				{ }
+ 
+				Vfs_ram::File *file() const { return _file; }
+		};
+
+		Genode::Allocator_guard _alloc;
+		Vfs_ram::Directory      _root;
+
+		template<unsigned size>
+		bool no_space_for()
+		{
+			return _alloc.quota() <
+				(_alloc.consumed() + size + _alloc.overhead(size));
+		}
+
+		Vfs_ram::Node *lookup(char const *path, bool return_parent = false)
+		{
+			using namespace Vfs_ram;
+
+			if (*path ==  '/') ++path;
+			if (*path == '\0') return &_root;
+
+			char buf[Vfs::MAX_PATH_LEN];
+			strncpy(buf, path, Vfs::MAX_PATH_LEN);
+			Directory *dir = &_root;
+
+			char *name = &buf[0];
+			for (size_t i = 0; i < MAX_NAME_LEN; ++i) {
+				if (buf[i] == '/') {
+					buf[i] = '\0';
+
+					Node *node = dir->child(name);
+					if (!node) return 0;
+
+					dir = dynamic_cast<Directory *>(node);
+					if (!dir) return 0;
+
+					/* set the current name aside */
+					name = &buf[i+1];
+				} else if (buf[i] == '\0') {
+					if (return_parent)
+						return dir;
+					else
+						return dir->child(name);
+				}
+			}
+			return 0;
+		}
+
+		Vfs_ram::Directory *lookup_parent(char const *path)
+		{
+			using namespace Vfs_ram;
+
+			Node *node = lookup(path, true);
+			if (node)
+				return dynamic_cast<Directory *>(node);
+			return 0;
+		}
+
+	public:
+
 		Ram_file_system(Xml_node config)
-		: Directory("/") { }
-
-		/***************************
-		 ** File_system interface **
-		 ***************************/
-
-		static char const *name() { return "ram"; }
-
-		/********************************
-		 ** File I/O service interface **
-		 ********************************/
-
-		Write_result write(Vfs_handle *vfs_handle,
-		                   char const *buf, file_size buf_size,
-		                   file_size &out_count)
+		: _alloc(env()->heap(), 0), _root("")
 		{
-			Ram_vfs_handle const *handle = static_cast<Ram_vfs_handle *>(vfs_handle);
-
-			out_count = handle->node()->write(buf, buf_size, handle->seek());
-			return WRITE_OK;
+			try {
+				Genode::Number_of_bytes ram_bytes = 0;
+				config.attribute("quota").value(&ram_bytes);
+				_alloc.upgrade(ram_bytes);
+			} catch (...) {
+				_alloc.upgrade(
+					env()->ram_session()->avail() - 4*1024*sizeof(long));
+			}
 		}
-
-		Read_result read(Vfs_handle *vfs_handle, char *dst, file_size count,
-		                 file_size &out_count)
-		{
-			Ram_vfs_handle const *handle = static_cast<Ram_vfs_handle *>(vfs_handle);
-
-			out_count = handle->node()->read(dst, count, handle->seek());
-			return READ_OK;
-		}
-
-		Ftruncate_result ftruncate(Vfs_handle *vfs_handle, file_size len)
-		{
-			Ram_vfs_handle const *handle = static_cast<Ram_vfs_handle *>(vfs_handle);
-
-			File *file = dynamic_cast<File *>(handle->node());
-			if (!file)
-				return FTRUNCATE_ERR_INTERRUPT;
-
-			file->truncate(len);
-			return FTRUNCATE_OK;
-		}
-
-		void register_read_ready_sigh(Vfs_handle *vfs_handle,
-		                              Signal_context_capability sigh)
-		{ }
-
 
 		/*********************************
 		 ** Directory service interface **
 		 *********************************/
 
-		Dataspace_capability dataspace(char const *path)
+		file_size num_dirent(char const *path) override
 		{
-			Ram_dataspace_capability ds_cap;
-			char *local_addr = 0;
-			try {
-				File *file = lookup_and_lock_file(path);
-				Node_lock_guard guard(file);
+			using namespace Vfs_ram;
 
-				ds_cap = env()->ram_session()->alloc(file->length());
+			if (Node *node = lookup(path)) {
+				Node::Guard guard(node);
+				if (Directory *dir = dynamic_cast<Directory *>(node))
+					return dir->length();
+			}
+
+			return 0;
+		}
+
+		bool is_directory(char const *path)
+		{
+			using namespace Vfs_ram;
+
+			Node *node = lookup(path);
+			return node ? dynamic_cast<Directory *>(node) : 0;
+		}
+
+		char const *leaf_path(char const *path) {
+			return lookup(path) ? path : 0; }
+
+		Mkdir_result mkdir(char const *path, unsigned mode) override
+		{
+			using namespace Vfs_ram;
+
+			Directory *parent = lookup_parent(path);
+			if (!parent) return MKDIR_ERR_NO_ENTRY;
+			Node::Guard guard(parent);
+
+			char const *name = basename(path);
+
+			if (strlen(name) >= MAX_NAME_LEN)
+				return MKDIR_ERR_NAME_TOO_LONG;
+
+			if (parent->child(name)) return MKDIR_ERR_EXISTS;
+
+			if (no_space_for<sizeof(Directory)>())
+				return MKDIR_ERR_NO_SPACE;
+
+			parent->adopt(new (_alloc) Directory(name));
+			return MKDIR_OK;
+		}
+
+		Open_result open(char const *path, unsigned mode, Vfs_handle **handle) override
+		{
+			using namespace Vfs_ram;
+
+			File *file;
+			char const *name = basename(path);
+
+			if (mode & OPEN_MODE_CREATE) {
+				Directory *parent = lookup_parent(path);
+				Node::Guard guard(parent);
+
+				if (!parent) return OPEN_ERR_UNACCESSIBLE;
+				if (parent->child(name)) return OPEN_ERR_EXISTS;
+
+				if (strlen(name) >= MAX_NAME_LEN)
+					return OPEN_ERR_NAME_TOO_LONG;
+
+				if (no_space_for<sizeof(File)>())
+					return OPEN_ERR_NO_SPACE;
+
+				file = new (_alloc) File(name, _alloc);
+				parent->adopt(file);
+			} else {
+				Node *node = lookup(path);
+				if (!node) return OPEN_ERR_UNACCESSIBLE;
+
+				file = dynamic_cast<File *>(node);
+				if (!file) return OPEN_ERR_UNACCESSIBLE;
+			}
+
+			/* allocate handle on the heap */
+			*handle = new (env()->heap()) Ram_vfs_handle(*this, mode, file);
+			return OPEN_OK;
+		}
+
+		Stat_result stat(char const *path, Stat &stat) override
+		{
+			using namespace Vfs_ram;
+
+			Node *node = lookup(path);
+			if (!node) return STAT_ERR_NO_ENTRY;
+			Node::Guard guard(node);
+
+			stat.inode = node->inode();
+			stat.size  = node->length();
+
+			File *file = dynamic_cast<File *>(node);
+			if (file) {
+				stat.mode = STAT_MODE_FILE | 0777;
+				return STAT_OK;
+			}
+
+			Directory *dir = dynamic_cast<Directory *>(node);
+			if (dir) {
+				stat.mode = STAT_MODE_DIRECTORY | 0777;
+				return STAT_OK;
+			}
+
+			Symlink *symlink = dynamic_cast<Symlink *>(node);
+			if (symlink) {
+				stat.mode = STAT_MODE_SYMLINK | 0777;
+				return STAT_OK;
+			}
+
+			return STAT_ERR_NO_ENTRY;
+		}
+
+		Dirent_result dirent(char const *path, file_offset index, Dirent &dirent) override
+		{
+			using namespace Vfs_ram;
+
+			Node *node = lookup(path);
+			if (!node) return DIRENT_ERR_INVALID_PATH;
+			Node::Guard guard(node);
+
+			Directory *dir = dynamic_cast<Directory *>(node);
+			if (!dir) return DIRENT_ERR_INVALID_PATH;
+
+			dir->dirent(index, dirent);
+			return DIRENT_OK;
+		}
+
+		Symlink_result symlink(char const *target, char const *path) override
+		{
+			using namespace Vfs_ram;
+
+			Symlink *link;
+			Directory *parent = lookup_parent(path);
+			if (!parent) return SYMLINK_ERR_NO_ENTRY;
+			Node::Guard guard(parent);
+
+			char const *name = basename(path);
+
+			Node *node = parent->child(name);
+			if (node) {
+				node->lock();
+				link = dynamic_cast<Symlink *>(node);
+				if (!link) {
+					node->unlock();
+					return SYMLINK_ERR_EXISTS;
+				}
+			} else {
+				if (strlen(name) >= MAX_NAME_LEN)
+					return SYMLINK_ERR_NAME_TOO_LONG;
+
+				if (no_space_for<sizeof(Symlink)>())
+					return SYMLINK_ERR_NO_SPACE;
+
+				link = new (_alloc) Symlink(name);
+				link->lock();
+				parent->adopt(link);
+			}
+
+			if (*target)
+				link->set(target, strlen(target));
+			link->unlock();
+			return SYMLINK_OK;
+		}
+
+		Readlink_result readlink(char const *path, char *buf,
+		                         file_size buf_size, file_size &out_len) override
+		{
+			using namespace Vfs_ram;
+
+			Directory *parent = lookup_parent(path);
+			if (!parent)
+				return READLINK_ERR_NO_ENTRY;
+			Node::Guard parent_guard(parent);
+
+			Node *node = parent->child(basename(path));
+			if (!node) return READLINK_ERR_NO_ENTRY;
+			Node::Guard guard(node);
+
+			Symlink *link = dynamic_cast<Symlink *>(node);
+			if (!link) return READLINK_ERR_NO_ENTRY;
+
+			out_len = link->get(buf, buf_size);
+			return READLINK_OK;
+		}
+
+		Rename_result rename(char const *from, char const *to) override
+		{
+			using namespace Vfs_ram;
+
+			char const *new_name = basename(to);
+			if (strlen(new_name) >= MAX_NAME_LEN)
+				return RENAME_ERR_NO_PERM;
+
+			Directory *from_dir = lookup_parent(from);
+			if (!from_dir) return RENAME_ERR_NO_ENTRY;
+			Node::Guard from_guard(from_dir);
+
+			Directory *to_dir = lookup_parent(to);
+			if (!to_dir) return RENAME_ERR_NO_ENTRY;
+
+			if (from_dir == to_dir) {
+
+				Node *node = from_dir->child(basename(from));
+				if (!node) return RENAME_ERR_NO_ENTRY;
+				Node::Guard guard(node);
+
+				if (from_dir->child(new_name)) return RENAME_ERR_NO_PERM;
+				node->name(new_name);
+
+			} else {
+
+				Node::Guard toguard(to_dir);
+
+				if (to_dir->child(new_name)) return RENAME_ERR_NO_PERM;
+
+				Node *node = from_dir->child(basename(from));
+				if (!node) return RENAME_ERR_NO_ENTRY;
+
+				node->name(new_name);
+				to_dir->adopt(node);
+				from_dir->release(node);
+			}
+			return RENAME_OK;
+		}
+
+		Unlink_result unlink(char const *path) override
+		{
+			using namespace Vfs_ram;
+
+			Directory *parent = lookup_parent(path);
+			if (!parent) return UNLINK_ERR_NO_ENTRY;
+			Node::Guard guard(parent);
+
+			Node *node = parent->child(basename(path));
+			if (!node) return UNLINK_ERR_NO_ENTRY;
+			node->lock();
+
+			Directory *dir = dynamic_cast<Directory *>(node);
+			if (dir && dir->length()) {
+				node->unlock();
+				return UNLINK_ERR_NO_PERM;
+			}
+
+			parent->release(node);
+			destroy(_alloc, node);
+			return UNLINK_OK;
+		}
+
+		Dataspace_capability dataspace(char const *path) override
+		{
+			using namespace Vfs_ram;
+
+			Ram_dataspace_capability ds_cap;
+
+			Node *node = lookup(path);
+			if (!node) return ds_cap;
+			Node::Guard guard(node);
+
+			File *file = dynamic_cast<File *>(node);
+			if (!file) return ds_cap;
+
+			size_t len = file->length();
+
+			char *local_addr = nullptr;
+			try {
+				_alloc.withdraw(len);
+				ds_cap = env()->ram_session()->alloc(len);
 
 				local_addr = env()->rm_session()->attach(ds_cap);
 				file->read(local_addr, file->length(), 0);
@@ -118,249 +693,77 @@ class Vfs::Ram_file_system : public File_system, private ::File_system::Director
 			} catch(...) {
 				env()->rm_session()->detach(local_addr);
 				env()->ram_session()->free(ds_cap);
+				_alloc.upgrade(len);
 				return Dataspace_capability();
 			}
 			return ds_cap;
 		}
 
-		void release(char const *path, Dataspace_capability ds_cap)
-		{
-			env()->ram_session()->free(static_cap_cast<Genode::Ram_dataspace>(ds_cap));
-		}
+		void release(char const *path, Dataspace_capability ds_cap) override {
+			env()->ram_session()->free(
+				static_cap_cast<Genode::Ram_dataspace>(ds_cap)); }
 
-		Open_result open(char const *path, unsigned mode, Vfs_handle **handle)
+
+		/************************
+		 ** File I/O interface **
+		 ************************/
+
+		Write_result write(Vfs_handle *vfs_handle,
+		                   char const *buf, file_size len,
+		                   Vfs::file_size &out) override
 		{
-			bool const create = mode & OPEN_MODE_CREATE;
-			char const *name = basename(++path);
-			Node *node;
+			if (!(vfs_handle->status_flags() & (OPEN_MODE_WRONLY|OPEN_MODE_RDWR)))
+				return WRITE_ERR_INVALID;
+
+			Ram_vfs_handle const *handle =
+				static_cast<Ram_vfs_handle *>(vfs_handle);
 
 			try {
-				if (create) {
-					Directory *parent = lookup_and_lock_parent(path);
-					Node_lock_guard parent_guard(parent);
+				Vfs_ram::Node::Guard guard(handle->file());
+				out = handle->file()->write(buf, len, handle->seek());
+			} catch (Genode::Allocator::Out_of_memory) { }
+			return WRITE_OK;
+		}
 
-					if (parent->has_sub_node_unsynchronized(name))
-						return OPEN_ERR_EXISTS;
+		Read_result read(Vfs_handle *vfs_handle,
+		                 char *buf, file_size len,
+		                 file_size &out) override
+		{
+			if ((vfs_handle->status_flags() & OPEN_MODE_ACCMODE) == OPEN_MODE_WRONLY)
+				return READ_ERR_INVALID;
 
-					node = new (env()->heap())
-						File(*env()->heap(), name);
+			Ram_vfs_handle const *handle =
+				static_cast<Ram_vfs_handle *>(vfs_handle);
 
-					parent->adopt_unsynchronized(node);
+			Vfs_ram::Node::Guard guard(handle->file());
 
-				} else {
-					node = lookup_and_lock(path);
-					node->unlock();
-				}
-			} catch (Lookup_failed) {
-				return OPEN_ERR_UNACCESSIBLE;
+			out = handle->file()->read(buf, len, handle->seek());
+			return READ_OK;
+		}
+
+		Ftruncate_result ftruncate(Vfs_handle *vfs_handle, file_size len) override
+		{
+			if (!(vfs_handle->status_flags() & (OPEN_MODE_WRONLY|OPEN_MODE_RDWR)))
+				return FTRUNCATE_ERR_NO_PERM;
+
+			Ram_vfs_handle const *handle =
+				static_cast<Ram_vfs_handle *>(vfs_handle);
+
+			try {
+				Vfs_ram::Node::Guard guard(handle->file());
+				handle->file()->truncate(len);
+			} catch (Genode::Allocator::Out_of_memory) {
+				return FTRUNCATE_ERR_NO_SPACE;
 			}
-
-			*handle = new (env()->heap())
-				Ram_vfs_handle(*this, mode, node);
-
-			return OPEN_OK;
+			return FTRUNCATE_OK;
 		}
 
-		Stat_result stat(char const *path, Stat &stat)
-		{
-			try {
-				Node *node = lookup_and_lock(++path);
-				Node_lock_guard node_guard(node);
 
-				memset(&stat, 0x00, sizeof(stat));
-				stat.inode = node->inode();
+		/***************************
+		 ** File_system interface **
+		 ***************************/
 
-				File *file = dynamic_cast<File *>(node);
-				if (file) {
-					stat.size = file->length();
-					stat.mode = STAT_MODE_FILE | 0777;
-					return STAT_OK;
-				}
-
-				Directory *dir = dynamic_cast<Directory *>(node);
-				if (dir) {
-					stat.size = dir->num_entries();
-					stat.mode = STAT_MODE_DIRECTORY | 0777;
-					return STAT_OK;
-				}
-
-				Symlink *symlink = dynamic_cast<Symlink *>(node);
-				if (symlink) {
-					stat.size = symlink->length();
-					stat.mode = STAT_MODE_SYMLINK | 0777;
-					return STAT_OK;
-				}
-
-			} catch (Lookup_failed) { }
-			return STAT_ERR_NO_ENTRY;
-		}
-
-		Dirent_result dirent(char const *path, file_offset index, Dirent &dirent)
-		{
-			try {
-				Directory *dir = lookup_and_lock_dir(++path);
-				Node_lock_guard guard(dir);
-
-				Node *node = dir->entry_unsynchronized(index);
-				if (!node) {
-					dirent.fileno = 0;
-					dirent.type = DIRENT_TYPE_END;
-					dirent.name[0] = '\0';
-					return DIRENT_OK;
-				}
-
-				dirent.fileno = index+1;
-
-				if (dynamic_cast<File      *>(node))
-					dirent.type = DIRENT_TYPE_FILE;
-				else if (dynamic_cast<Directory *>(node))
-					dirent.type = DIRENT_TYPE_DIRECTORY;
-				else if (dynamic_cast<Symlink   *>(node))
-					dirent.type = DIRENT_TYPE_SYMLINK;
-
-				strncpy(dirent.name, node->name(), sizeof(dirent.name));
-
-			} catch (Lookup_failed) {
-				return DIRENT_ERR_INVALID_PATH;
-			}
-			return DIRENT_OK;
-		}
-
-		Unlink_result unlink(char const *path)
-		{
-			try {
-				Directory *parent = lookup_and_lock_parent(++path);
-				Node_lock_guard parent_guard(parent);
-
-				char const *name = basename(path);
-
-				Node *node = parent->lookup_and_lock(name);
-				parent->discard_unsynchronized(node);
-				destroy(env()->heap(), node);
-			} catch (Lookup_failed) {
-				return UNLINK_ERR_NO_ENTRY;
-			}
-			return UNLINK_OK;
-		}
-
-		Readlink_result readlink(char const *path, char *buf,
-		                         file_size buf_size, file_size &out_len)
-		{
-			try {
-				Symlink *symlink = lookup_and_lock_symlink(++path);
-				Node_lock_guard guard(symlink);
-
-				out_len = symlink->read(buf, buf_size, 0);
-			} catch (Lookup_failed) {
-				return READLINK_ERR_NO_ENTRY;
-			}
-			return READLINK_OK;
-		}
-
-		Rename_result rename(char const *from, char const *to)
-		{
-			try {
-				Directory *from_dir = lookup_and_lock_parent(++from);
-				Node_lock_guard from_guard(from_dir);
-				Directory   *to_dir = lookup_and_lock_parent(++to);
-				Node_lock_guard to_guard(to_dir);
-
-				Node *node = from_dir->lookup_and_lock(basename(from));
-				Node_lock_guard guard(node);
-
-				from_dir->discard_unsynchronized(node);
-				node->name(basename(to));
-				to_dir->adopt_unsynchronized(node);
-
-			} catch (Lookup_failed) {
-				return RENAME_ERR_NO_ENTRY;
-			}
-			return RENAME_OK;
-		}
-
-		Mkdir_result mkdir(char const *path, unsigned mode)
-		{
-			try {
-				Directory *parent = lookup_and_lock_parent(++path);
-				Node_lock_guard parent_guard(parent);
-
-				char const *name = basename(path);
-
-				if (strlen(name) > MAX_NAME_LEN)
-					return MKDIR_ERR_NAME_TOO_LONG;
-
-				if (parent->has_sub_node_unsynchronized(name))
-					return MKDIR_ERR_EXISTS;
-
-				parent->adopt_unsynchronized(new (env()->heap())
-					Directory(name));
-
-			} catch (Lookup_failed) {
-				return MKDIR_ERR_NO_ENTRY;
-			} catch (Allocator::Out_of_memory) {
-				return MKDIR_ERR_NO_SPACE;
-			}
-			return MKDIR_OK;
-		}
-
-		Symlink_result symlink(char const *from, char const *to)
-		{
-			try {
-				Directory *parent = lookup_and_lock_parent(++to);
-				Node_lock_guard parent_guard(parent);
-
-				char const *name = basename(to);
-
-				if (strlen(name) > MAX_NAME_LEN)
-					return SYMLINK_ERR_NAME_TOO_LONG;
-
-				if (parent->has_sub_node_unsynchronized(name))
-					return SYMLINK_ERR_EXISTS;
-
-				Symlink * const symlink = new (env()->heap())
-					Symlink(name);
-
-				parent->adopt_unsynchronized(symlink);
-				symlink->write(from, strlen(from), 0);
-
-			} catch (Lookup_failed) {
-				return SYMLINK_ERR_NO_ENTRY;
-			} catch (Allocator::Out_of_memory) {
-				return SYMLINK_ERR_NO_SPACE;
-			}
-			return SYMLINK_OK;
-		}
-
-		file_size num_dirent(char const *path)
-		{
-			try {
-				Directory *dir = lookup_and_lock_dir(++path);
-				Node_lock_guard guard(dir);
-				return dir->num_entries();
-			} catch (Lookup_failed) {
-				return 0;
-			}
-		}
-
-		bool is_directory(char const *path)
-		{
-			try {
-				lookup_and_lock_dir(++path)->unlock();
-				return true;
-			} catch (...) {
-				return false;
-			}
-		}
-
-		char const *leaf_path(char const *path)
-		{
-			try {
-				lookup_and_lock(path+1)->unlock();
-				return path;
-			} catch (...) { }
-			return 0;
-		}
-
+		static char const *name() { return "ram"; }
 };
 
 #endif /* _INCLUDE__VFS__RAM_FILE_SYSTEM_H_ */
