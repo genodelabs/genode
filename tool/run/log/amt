@@ -41,30 +41,24 @@ proc run_log { wait_for_re timeout_value } {
 	}
 	set exit_result 1
 
-	while { $exit_result != 0 } {
-		set time_start [ clock seconds ]
-		eval spawn $amtterm
-		set output_spawn_id $spawn_id
-		expect {
-			-i $output_spawn_id -re $wait_for_re { break }
-			eof     { continue }
-			timeout { puts "Error: Test execution timed out"; exit -2 }
+	eval spawn $amtterm
+	set output_spawn_id $spawn_id
+
+	set kernel_msg [run_boot_string]
+
+	expect {
+		-i $output_spawn_id $kernel_msg { }
+		eof         {
+			puts stderr "Aborting, received EOF"
+			return false
 		}
-		catch wait result
-		set time_end [ clock seconds ]
-		if {[expr $time_end - $time_start] <= 1} {
-			incr timeout -1
-		} else {
-			incr timeout [expr -1 * ($time_end - $time_start)]
+		timeout     {
+			puts stderr "Boot process timed out"
+			close
+			return false
 		}
-		if {$timeout < 0} {
-			set timeout 0
-		}
-		set exit_result [lindex $result 3]
 	}
 
-	global output
-	set output $expect_out(buffer)
-
+	wait_for_output $wait_for_re $timeout_value $output_spawn_id
 	return true
 }

@@ -12,6 +12,23 @@ proc run_log { wait_for_re timeout_value } {
 
 	set output_spawn_id $qemu_spawn_id
 
+	set kernel_msg [run_boot_string]
+
+	set timeout $timeout_value
+
+	expect {
+		-i $output_spawn_id $kernel_msg { }
+		eof         {
+			puts stderr "Aborting, received EOF"
+			return false
+		}
+		timeout     {
+			puts stderr "Boot process timed out"
+			close
+			return false
+		}
+	}
+
 	wait_for_output $wait_for_re $timeout_value $qemu_spawn_id
-	return true;
+	return true
 }

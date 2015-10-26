@@ -475,7 +475,13 @@ proc wait_for_output { wait_for_re timeout_value running_spawn_id } {
 		set timeout $timeout_value
 	}
 
+	set platform_msg [run_boot_string]
+	if {$platform_msg eq ""} {
+		set platform_msg "undefined platform command startup string sequence"
+	}
+
 	expect {
+		-i $running_spawn_id $platform_msg { puts stderr "Error: platform rebooted unexpectedly"; exit -4 }
 		-i $running_spawn_id -re $wait_for_re { }
 		eof     { puts stderr "Error: Spawned process died unexpectedly"; exit -3 }
 		timeout { puts stderr "Error: Test execution timed out"; exit -2 }
