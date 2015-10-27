@@ -45,10 +45,7 @@ class Genode::Multiboot_info : Mmio
 			struct Size   : Register <0x00, 32> { };
 			struct Addr   : Register <0x04, 64> { };
 			struct Length : Register <0x0c, 64> { };
-			struct Type   : Register <0x14,  8> {
-				struct Memory   : Bitfield<0, 1> { };
-				struct Reserved : Bitfield<1, 1> { };
-			};
+			struct Type   : Register <0x14,  8> { enum { MEMORY = 1 }; };
 
 			Mmap(addr_t mmap = 0) : Mmio(mmap) { }
 		};
@@ -87,6 +84,41 @@ class Genode::Multiboot_info : Mmio
 		 * The module is marked as invalid in MBI and cannot be gotten again
 		 */
 		Rom_module get_module(unsigned num);
+
+		/**
+		 * Physical ram regions
+		 */
+		Mmap phys_ram(unsigned i, bool solely_within_4k_base = true) {
+
+			if (!read<Flags::Mem_map>())
+				return Mmap(0);
+
+			Mmap_length::access_t const mmap_length = read<Mmap_length>();
+			Mmap_addr::access_t const mmap_start  = read<Mmap_addr>();
+
+			for (Genode::uint32_t j = 0, mmap = mmap_start;
+			     mmap < mmap_start + mmap_length;) {
+
+				enum { MMAP_SIZE_SIZE_OF = 4, MMAP_SIZE_OF = 4 + 8 + 1 };
+
+				if (solely_within_4k_base &&
+				    (mmap + MMAP_SIZE_OF >= Genode::align_addr(base + 1, 12)))
+					return Mmap(0);
+
+				Mmap r(mmap);
+				mmap += r.read<Mmap::Size>() + MMAP_SIZE_SIZE_OF;
+
+				if (r.read<Mmap::Type>() != Mmap::Type::MEMORY)
+					continue;
+
+				if (i == j)
+					return r;
+
+				j++;
+			}
+
+			return Mmap(0);
+		}
 };
 
 #endif /* _CORE__INCLUDE__MULTIBOOT_H_ */
