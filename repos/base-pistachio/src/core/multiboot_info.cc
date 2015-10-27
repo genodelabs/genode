@@ -35,12 +35,6 @@ static const bool verbose = false;
 #define VPRINTF(fmt...) if (verbose) printf(fmt); else {}
 
 
-void Multiboot_info::print_debug()
-{
-	printf("TODO Multiboot_info does not support print_debug.");
-}
-
-
 unsigned Multiboot_info::num_modules()
 {
 	using namespace Pistachio;
@@ -48,8 +42,8 @@ unsigned Multiboot_info::num_modules()
 	unsigned int i = 0;
 	L4_Word_t entries;
 	L4_BootRec_t *rec;
-	for (entries = L4_BootInfo_Entries(_mb_info),
-	     rec = L4_BootInfo_FirstEntry(_mb_info);
+	for (entries = L4_BootInfo_Entries(reinterpret_cast<void *>(Mmio::base)),
+	     rec = L4_BootInfo_FirstEntry(reinterpret_cast<void *>(Mmio::base));
 	     entries > 0;
 	     entries--, rec = L4_Next(rec))
 	{
@@ -71,8 +65,8 @@ Rom_module Multiboot_info::get_module(unsigned num)
 	unsigned int i = 0;
 	L4_Word_t entries;
 	L4_BootRec_t *rec;
-	for (entries = L4_BootInfo_Entries(_mb_info),
-	     rec = L4_BootInfo_FirstEntry(_mb_info);
+	for (entries = L4_BootInfo_Entries(reinterpret_cast<void *>(Mmio::base)),
+	     rec = L4_BootInfo_FirstEntry(reinterpret_cast<void *>(Mmio::base));
 	     entries > 0;
 	     entries--, rec = L4_Next(rec))
 	{
@@ -115,48 +109,4 @@ Rom_module Multiboot_info::get_module(unsigned num)
 
 	Rom_module ret = Rom_module(start, size, name);
 	return ret;
-}
-
-
-bool Multiboot_info::check_module(unsigned num, addr_t *start, addr_t *end)
-{
-	panic("TODO Who calls check_module?");
-	return false;
-}
-
-
-Multiboot_info::Multiboot_info(void *mb_info)
-: _mb_info(mb_info)
-{
-	using namespace Pistachio;
-
-	if (!L4_BootInfo_Valid(mb_info))
-		panic("Invalid BootInfo.");
-
-	/* some debug info, can probably be removed */
-	unsigned int i;
-	L4_Word_t entries;
-	L4_BootRec_t *rec;
-	for (entries = L4_BootInfo_Entries(mb_info),
-	     rec = L4_BootInfo_FirstEntry(mb_info),
-	     i = 0;
-	     entries > 0;
-	     entries--, i++, rec = L4_Next(rec)) {
-
-		VPRINTF("Entry[%d]\n", i);
-		switch (L4_Type(rec)) {
-		case L4_BootInfo_Module:
-			VPRINTF(" Type: Module\n");
-			VPRINTF(" Cmd : %s\n", L4_Module_Cmdline(rec));
-			break;
-		case L4_BootInfo_SimpleExec:
-			VPRINTF(" Type: SimpleExec (ignored)\n");
-			VPRINTF(" Cmd : %s\n", L4_SimpleExec_Cmdline(rec));
-			break;
-		case L4_BootInfo_EFITables:
-			VPRINTF(" Type: EFITables (ignored)\n"); break;
-		case L4_BootInfo_Multiboot:
-			VPRINTF(" Type: Multiboot (ignored)\n"); break;
-		}
-	}
 }

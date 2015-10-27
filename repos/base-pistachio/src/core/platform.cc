@@ -466,15 +466,23 @@ void Platform::_setup_preemption()
 }
 
 
-void Platform::_setup_basics()
+static Pistachio::L4_KernelInterfacePage_t *init_kip()
 {
 	using namespace Pistachio;
 
 	/* completely map program image */
 	addr_t beg = trunc_page((addr_t)&_prog_img_beg);
 	addr_t end = round_page((addr_t)&_prog_img_end);
-	for ( ; beg < end; beg += get_page_size())
-		L4_Sigma0_GetPage(get_sigma0(), L4_Fpage(beg, get_page_size()));
+	for ( ; beg < end; beg += Pistachio::get_page_size())
+		L4_Sigma0_GetPage(get_sigma0(), L4_Fpage(beg, Pistachio::get_page_size()));
+
+	return get_kip();
+}
+
+
+void Platform::_setup_basics()
+{
+	using namespace Pistachio;
 
 	/* store mapping base from received mapping */
 	L4_KernelInterfacePage_t *kip = get_kip();
@@ -515,7 +523,6 @@ void Platform::_setup_basics()
 
 	/* done magic */
 
-	_mb_info = Multiboot_info(mb_info_ptr);
 	if (verbose) printf("MBI @ %p\n", mb_info_ptr);
 
 	/* get UTCB memory */
@@ -627,7 +634,8 @@ Platform_pd *Platform::core_pd()
 Platform::Platform() :
 	_ram_alloc(nullptr), _io_mem_alloc(core_mem_alloc()),
 	_io_port_alloc(core_mem_alloc()), _irq_alloc(core_mem_alloc()),
-	_region_alloc(core_mem_alloc())
+	_region_alloc(core_mem_alloc()),
+	_mb_info(init_kip()->BootInfo)
 {
 	/*
 	 * We must be single-threaded at this stage and so this is safe.

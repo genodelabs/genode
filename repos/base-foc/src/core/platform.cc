@@ -282,6 +282,10 @@ static Fiasco::l4_kernel_info_t *sigma0_map_kip()
 		return 0;
 
 	l4_addr_t ret = l4_trunc_page(l4_utcb_mr()->mr[0]);
+
+	if (!ret)
+		panic("kip mapping failed");
+
 	return (l4_kernel_info_t*) ret;
 }
 
@@ -352,8 +356,6 @@ void Platform::_setup_basics()
 	using namespace Fiasco;
 
 	kip = sigma0_map_kip();
-	if (!kip)
-		panic("kip mapping failed");
 
 	if (kip->magic != L4_KERNEL_INFO_MAGIC)
 		panic("Sigma0 mapped something but not the KIP");
@@ -373,9 +375,8 @@ void Platform::_setup_basics()
 	_rom_fs.insert(&_kip_rom);
 
 	/* update multi-boot info pointer from KIP */
-	void *mb_info_ptr = (void *)kip->user_ptr;
-	_mb_info = Multiboot_info(mb_info_ptr);
-	if (verbose) printf("MBI @ %p\n", mb_info_ptr);
+	addr_t mb_info_addr = kip->user_ptr;
+	if (verbose) printf("MBI @ %lx\n", mb_info_addr);
 
 	/* parse memory descriptors - look for virtual memory configuration */
 	/* XXX we support only one VM region (here and also inside RM) */
@@ -413,8 +414,8 @@ void Platform::_setup_basics()
 	/* remove KIP and MBI area from region and IO_MEM allocator */
 	remove_region(Region((addr_t)kip, (addr_t)kip + L4_PAGESIZE), _region_alloc);
 	remove_region(Region((addr_t)kip, (addr_t)kip + L4_PAGESIZE), _io_mem_alloc);
-	remove_region(Region((addr_t)mb_info_ptr, (addr_t)mb_info_ptr + _mb_info.size()), _region_alloc);
-	remove_region(Region((addr_t)mb_info_ptr, (addr_t)mb_info_ptr + _mb_info.size()), _io_mem_alloc);
+	remove_region(Region(mb_info_addr, mb_info_addr + _mb_info.size()), _region_alloc);
+	remove_region(Region(mb_info_addr, mb_info_addr + _mb_info.size()), _io_mem_alloc);
 
 	/* remove core program image memory from region and IO_MEM allocator */
 	addr_t img_start = (addr_t) &_prog_img_beg;
@@ -468,6 +469,7 @@ Platform::Platform() :
 	_ram_alloc(nullptr), _io_mem_alloc(core_mem_alloc()),
 	_io_port_alloc(core_mem_alloc()), _irq_alloc(core_mem_alloc()),
 	_region_alloc(core_mem_alloc()), _cap_id_alloc(core_mem_alloc()),
+	_mb_info(sigma0_map_kip()->user_ptr, true),
 	_sigma0(cap_map()->insert(_cap_id_alloc.alloc(), Fiasco::L4_BASE_PAGER_CAP))
 {
 	/*
