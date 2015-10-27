@@ -3,8 +3,6 @@
  * \author  Norman Feske
  * \author  Reto Buerki
  * \date    2013-04-05
- *
- * XXX dimension allocators according to the available physical memory
  */
 
 /*
@@ -20,16 +18,6 @@
 #include <cpu.h>
 
 using namespace Genode;
-
-Native_region * Platform::_ram_regions(unsigned const i)
-{
-	static Native_region _regions[] =
-	{
-		{ 2*1024*1024, 1024*1024*254 }
-	};
-	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
-}
-
 
 void Platform::_init_io_port_alloc()
 {
@@ -55,6 +43,10 @@ void Platform::_init_io_mem_alloc()
 	_io_mem_alloc.add_range(0, ~0x0UL);
 	alloc_exclude_regions(&_io_mem_alloc, _ram_regions);
 	alloc_exclude_regions(&_io_mem_alloc, _core_only_ram_regions);
+	alloc_exclude_regions(&_io_mem_alloc, _core_only_mmio_regions);
+
+	/* exclude all mmio regions from virt allocator of core */
+	alloc_exclude_regions(_core_mem_alloc.virt_alloc(), _core_only_mmio_regions);
 }
 
 

@@ -91,6 +91,9 @@
 	leaq _stack_high@GOTPCREL(%rip),%rax
 	movq (%rax), %rsp
 
+	movq __initial_bx@GOTPCREL(%rip),%rax
+	movq %rbx, (%rax)
+
 	/* uniprocessor kernel-initialization which activates multiprocessor */
 	call init_kernel_up
 
@@ -121,3 +124,6 @@
 	.p2align 8
 	.space 32 * 1024
 	_stack_high:
+	.globl __initial_bx
+	__initial_bx:
+	.space 8

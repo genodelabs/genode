@@ -30,3 +30,13 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 }
 
 void Platform::setup_irq_mode(unsigned, unsigned, unsigned) { }
+
+
+Native_region * Platform::_ram_regions(unsigned const i)
+{
+	static Native_region _regions[] =
+	{
+		{ 2*1024*1024, 1024*1024*254 }
+	};
+	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
+}
