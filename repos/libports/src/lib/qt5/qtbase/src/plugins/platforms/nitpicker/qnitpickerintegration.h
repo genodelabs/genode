@@ -54,6 +54,9 @@ class QNitpickerIntegration : public QPlatformIntegration
 
 		QPlatformFontDatabase *fontDatabase() const override;
 
+#ifndef QT_NO_CLIPBOARD
+		QPlatformClipboard *clipboard() const override;
+#endif
 		QPlatformOpenGLContext *createPlatformOpenGLContext(QOpenGLContext *context) const override;
 };
 

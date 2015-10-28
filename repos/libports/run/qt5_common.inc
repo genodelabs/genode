@@ -67,9 +67,12 @@ proc qt5_start_nodes { feature_arg } {
 				<service name="Input"> <child name="ps2_drv" /> </service>
 	}
 	append start_nodes {
+				<service name="Report"> <child name="report_rom"/> </service>
 				<any-service> <parent /> <any-child /> </any-service>
 			</route>
 			<config>
+				<report focus="yes"/>
+
 				<domain name="pointer" layer="1" label="no" content="client" origin="pointer" />
 				<domain name="default" layer="2" label="no" content="client" focus="click" hover="always" />
 
@@ -101,6 +104,7 @@ proc qt5_start_nodes { feature_arg } {
 					<policy label="decorator -> pointer"        report="wm -> pointer"/>
 					<policy label="layouter -> hover"           report="decorator -> hover"/>
 					<policy label="wm -> focus"                 report="layouter -> focus"/>
+					<policy label="clipboard -> focus"          report="nitpicker -> focus"/>
 				</rom>
 			</config>
 		</start>

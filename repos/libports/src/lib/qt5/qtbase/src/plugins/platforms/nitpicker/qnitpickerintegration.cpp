@@ -13,6 +13,7 @@
 
 /* Qt includes */
 #include <QtGui/private/qguiapplication_p.h>
+#include "qgenodeclipboard.h"
 #include "qnitpickerglcontext.h"
 #include "qnitpickerintegration.h"
 #include "qnitpickerplatformwindow.h"
@@ -87,10 +88,18 @@ QPlatformFontDatabase *QNitpickerIntegration::fontDatabase() const
 }
 
 
+#ifndef QT_NO_CLIPBOARD
+QPlatformClipboard *QNitpickerIntegration::clipboard() const
+{
+	static QGenodeClipboard cb(_signal_receiver());
+	return &cb;
+}
+#endif
+
+
 QPlatformOpenGLContext *QNitpickerIntegration::createPlatformOpenGLContext(QOpenGLContext *context) const
 {
     return new QNitpickerGLContext(context);
 }
 
 QT_END_NAMESPACE
-
