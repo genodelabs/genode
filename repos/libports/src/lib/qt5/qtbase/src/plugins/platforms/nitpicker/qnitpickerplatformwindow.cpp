@@ -167,6 +167,11 @@ void QNitpickerPlatformWindow::_handle_mode_changed(unsigned int)
 {
 	Framebuffer::Mode mode(_nitpicker_session.mode());
 
+	if ((mode.width() == 0) && (mode.height() == 0)) {
+		/* interpret a size of 0x0 as indication to close the window */
+		QWindowSystemInterface::handleCloseEvent(window(), 0);
+	}
+
 	if ((mode.width() != _current_mode.width()) ||
 	    (mode.height() != _current_mode.height()) ||
 	    (mode.format() != _current_mode.format())) {
