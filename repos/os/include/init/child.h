@@ -434,6 +434,9 @@ class Init::Child : Genode::Child_policy
 			           Genode::size_t & cpu_quota_pc,
 			           bool           & constrain_phys)
 			{
+				cpu_quota_pc   = 0;
+				constrain_phys = false;
+
 				Genode::Number_of_bytes ram_bytes = 0;
 
 				try {
