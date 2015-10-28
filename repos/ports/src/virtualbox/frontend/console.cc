@@ -81,7 +81,6 @@ STDMETHODIMP Console::COMSETTER(UseHostClipboard)(BOOL aUseHostClipboard)       
 HRESULT Console::Reset()                                                        DUMMY(E_FAIL)
 HRESULT Console::Pause()                                                        DUMMY(E_FAIL)
 HRESULT Console::Resume()                                                       DUMMY(E_FAIL)
-HRESULT Console::PowerButton()                                                  DUMMY(E_FAIL)
 HRESULT Console::SleepButton()                                                  DUMMY(E_FAIL)
 HRESULT Console::GetPowerButtonHandled(bool*)                                   DUMMY(E_FAIL)
 HRESULT Console::GetGuestEnteredACPIMode(bool*)                                 DUMMY(E_FAIL)
@@ -159,6 +158,13 @@ void GenodeConsole::update_video_mode()
 	Guest    *g    = getGuest();
 	Genodefb *fb   = dynamic_cast<Genodefb *>(d->getFramebuffer());
 	LONG64 ignored = 0;
+
+	if (fb && (fb->w() == 0) && (fb->h() == 0)) {
+		/* interpret a size of 0x0 as indication to quit VirtualBox */
+		if (PowerButton() != S_OK)
+			PERR("ACPI shutdown failed");
+		return;
+	}
 
 	AdditionsFacilityType_T is_graphics;
 	g->GetFacilityStatus(AdditionsFacilityType_Graphics, &ignored, &is_graphics);
