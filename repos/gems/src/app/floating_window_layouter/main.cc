@@ -847,29 +847,41 @@ void Floating_window_layouter::Main::handle_input(unsigned)
 				 * Change window geometry unless the window is in maximized
 				 * state.
 				 */
-				if (hovered_element != Window::Element::MAXIMIZER
-				 && !hovered_window_is_maximized) {
+				if (hovered_element != Window::Element::MAXIMIZER) {
 
-					drag_state        = true;
-					drag_init_done    = false;
-					dragged_window_id = hovered_window_id;
-					pointer_clicked   = pointer_curr;
-					pointer_last      = pointer_clicked;
+					 if (!hovered_window_is_maximized) {
 
-					/*
-					 * If the hovered window is known at the time of the press
-					 * event, we can initiate the drag operation immediately.
-					 * Otherwise, we the initiation is deferred to the next
-					 * update of the hover model.
-					 */
+						drag_state        = true;
+						drag_init_done    = false;
+						dragged_window_id = hovered_window_id;
+						pointer_clicked   = pointer_curr;
+						pointer_last      = pointer_clicked;
+
+						/*
+					 	 * If the hovered window is known at the time of the press
+					 	 * event, we can initiate the drag operation immediately.
+					 	 * Otherwise, we the initiation is deferred to the next
+					 	 * update of the hover model.
+					 	 */
+						if (hovered_window)
+							initiate_window_drag(*hovered_window);
+					}
+
 					if (hovered_window) {
-						initiate_window_drag(*hovered_window);
-						need_regenerate_window_layout_model = true;
-
 						if (focused_window_id != hovered_window_id) {
 							focused_window_id  = hovered_window_id;
+
+							/* bring focused window to front */
+							if (hovered_window != windows.first()) {
+								windows.remove(hovered_window);
+								windows.insert(hovered_window);
+							}
+
+							hovered_window->topped();
+
 							generate_focus_model();
 						}
+						need_regenerate_window_layout_model = true;
 					}
 				}
 			}
