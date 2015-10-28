@@ -463,7 +463,7 @@ struct Floating_window_layouter::Main
 		/*
 		 * XXX obtain decorator constraints dynamically
 		 */
-		enum { PAD_LEFT = 5, PAD_RIGHT = 5, PAD_TOP = 20 + 16, PAD_BOTTOM = 5 };
+		enum { PAD_LEFT = 4, PAD_RIGHT = 4, PAD_TOP = 20, PAD_BOTTOM = 4 };
 		maximized_window_geometry = Rect(Point(PAD_LEFT, PAD_TOP),
 		                                 Area(mode.width() - PAD_LEFT - PAD_RIGHT,
 		                                      mode.height() - PAD_TOP - PAD_BOTTOM));
