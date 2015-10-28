@@ -673,9 +673,18 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 
 			case Command::OP_TITLE:
 				{
+					char sanitized_title[command.title.title.capacity()];
+
+					Genode::strncpy(sanitized_title, command.title.title.string(),
+					                sizeof(sanitized_title));
+
+					for (char *c = sanitized_title; *c; c++)
+						if (*c == '"')
+							*c = '\'';
+
 					Locked_ptr<View> view(_view_handle_registry.lookup(command.title.view));
 					if (view.is_valid())
-						view->title(command.title.title.string());
+						view->title(sanitized_title);
 
 					return;
 				}
