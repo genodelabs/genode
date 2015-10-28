@@ -33,6 +33,7 @@ static const bool debug = false;
 
 static Genode::Attached_rom_dataspace *clipboard_rom = nullptr;
 static Genode::Reporter               *clipboard_reporter = nullptr;
+static char                           *decoded_clipboard_content = nullptr;
 
 void    Console::uninit()                                                       DUMMY()
 HRESULT Console::resume(Reason_T aReason)                                       DUMMY(E_FAIL)
@@ -417,6 +418,7 @@ int vboxClipboardInit (void) { return VINF_SUCCESS; }
 
 void vboxClipboardDestroy (void)
 {
+	free(decoded_clipboard_content);
 	clipboard_rom = nullptr;
 }
 
@@ -484,11 +486,21 @@ int vboxClipboardReadData (VBOXCLIPBOARDCLIENTDATA *pClient, uint32_t format,
 			return VERR_INVALID_PARAMETER;
 		}
 
-		size_t const len = node.content_size();
+		free(decoded_clipboard_content);
+
+		decoded_clipboard_content = (char*)malloc(node.content_size());
+
+		if (!decoded_clipboard_content) {
+			PERR("could not allocate buffer for decoded clipboard content");
+			return 0;
+		}
+
+		size_t const len = node.decoded_content(decoded_clipboard_content,
+		                                        node.content_size());
 		size_t written = 0;
 
 		PRTUTF16 utf16_string = reinterpret_cast<PRTUTF16>(pv);
-		int rc = RTStrToUtf16Ex(node.content_base(), len, &utf16_string, cb, &written);
+		int rc = RTStrToUtf16Ex(decoded_clipboard_content, len, &utf16_string, cb, &written);
 
 		if (RT_SUCCESS(rc)) {
 			if ((written * 2) + 2 > cb)
