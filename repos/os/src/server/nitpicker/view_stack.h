@@ -282,6 +282,9 @@ class View_stack
 				if (!v->session().matches_session_label(selector))
 					continue;
 
+				if (v->background())
+					continue;
+
 				/*
 				 * Move view to behind the previous view that we moved to
 				 * front. If 'v' is the first view that matches the selector,
