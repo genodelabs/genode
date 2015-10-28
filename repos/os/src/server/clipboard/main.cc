@@ -33,8 +33,16 @@ struct Rom::Registry : Rom::Registry_for_reader, Rom::Registry_for_writer
 	/**
 	 * Rom::Registry_for_writer interface
 	 */
-	Module &lookup(Writer &, Module::Name const &) override { return module; }
-	void release(Writer &, Module &) override { }
+	Module &lookup(Writer &writer, Module::Name const &) override
+	{
+		module._register(writer);
+		return module;
+	}
+
+	void release(Writer &writer, Module &) override
+	{
+		module._unregister(writer);
+	}
 
 	/**
 	 * Rom::Registry_for_reader interface
