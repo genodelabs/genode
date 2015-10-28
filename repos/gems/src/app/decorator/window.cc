@@ -324,7 +324,7 @@ Decorator::Window_base::Hover Decorator::Window::hover(Point abs_pos) const
 					if (_controls.control(i).type() == Control::TYPE_TITLE)
 						break;
 
-					if (Rect(pos, _icon_size).contains(Point(x, y)))
+					if (Rect(pos, _icon_size).contains(Point(x + _border_size, y)))
 						hovered_control = _controls.control(i);
 
 					pos = pos + Point(_icon_size.w(), 0);
@@ -343,7 +343,7 @@ Decorator::Window_base::Hover Decorator::Window::hover(Point abs_pos) const
 					if (_controls.control(i).type() == Control::TYPE_TITLE)
 						break;
 
-					if (Rect(pos, _icon_size).contains(Point(x, y)))
+					if (Rect(pos, _icon_size).contains(Point(x + _border_size, y)))
 						hovered_control = _controls.control(i);
 
 					pos = pos + Point(-_icon_size.w(), 0);
