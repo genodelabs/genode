@@ -129,9 +129,16 @@ extern "C" {
 		if (is_main && !strcmp(name, "main")) {
 			/* create a pthread object containing copy of main Thread_base */
 			static struct pthread_attr main_thread_attr;
-			static struct pthread main(*myself, &main_thread_attr);
+			static struct pthread *main = nullptr;
+			if (!main) {
+				/*
+				 * The pthread object does not get deleted, because this would
+				 * also delete the 'Thread_base' of the main thread.
+				 */
+				main = new (Genode::env()->heap()) struct pthread(*myself, &main_thread_attr);
+			}
 
-			return &main;
+			return main;
 		}
 
 		PERR("pthread_self() called from alien thread named '%s'", name);
