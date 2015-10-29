@@ -164,12 +164,24 @@ Valid state values are 'connected', 'disconnected', 'connecting' and
 'disconnecting'.
 
 In return, the wifi_drv get its configuration via a ROM module. This ROM
-module contains the selected accesspoint. To connect to a accesspoint
-a report like the following is used:
+module contains the configuration for the selected accesspoint.
+To connect to an open accesspoint a configuration like the following is used:
 
-!<selected_accesspoint ssid="foobar" bssid="01:02:03:04:05:06" protection="WPA-PSK" psk="foobar123!"/>
+!<selected_accesspoint ssid="foobar"/>
 
-To disconnect from an accesspoint, a empty report is sent:
+If the network is protected by, e.g., WPA/WPA2, the protection type as well
+as the the pre-shared key have to be specified:
+
+!<selected_accesspoint ssid="securefoobar" protection="WPA-PSK" psk="foobar123!"/>
+
+If a network consists of several different access points and a particular one
+should be used it can be selected by specifing its BSSID in a 'bssid'
+attribute.
+
+Of all attributes only the 'ssid' attribute is mandatory, all others are
+optional and should only be used when needed.
+
+To disconnect from an accesspoint, a empty configuration is sent:
 
 !<selected_accesspoint/>
 

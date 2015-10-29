@@ -18,6 +18,7 @@
 #include <os/config.h>
 #include <os/server.h>
 #include <util/xml_node.h>
+#include <util/string.h>
 
 /* local includes */
 #include "wpa.h"
@@ -72,7 +73,7 @@ namespace {
 static int generate_wpa_supplicant_conf(char const **p, Genode::size_t *len, char const *ssid,
                        char const *bssid, bool protection = false, char const *psk = 0)
 {
-	static char const *start_fmt = "network={\n";
+	static char const *start_fmt = "network={\n\tscan_ssid=1\n";
 	static char const *ssid_fmt  = "\tssid=\"%s\"\n";
 	static char const *bssid_fmt = "\tbssid=%s\n";
 	static char const *prot_fmt  = "\tkey_mgmt=%s\n";
@@ -139,7 +140,9 @@ struct Wlan_configration
 	 */
 	void _update_configuration()
 	{
-		Genode::Lock::Guard guard(update_lock);
+		using namespace Genode;
+
+		Lock::Guard guard(update_lock);
 
 		config_rom.update();
 
@@ -153,15 +156,13 @@ struct Wlan_configration
 			return;
 		}
 
-		Genode::Xml_node node(config_rom.local_addr<char>(), config_rom.size());
+		Xml_node node(config_rom.local_addr<char>(), config_rom.size());
 
 		/**
-		 * Since <selected_accesspoint/> is empty we also generate a dummy
-		 * configuration.
+		 * Since <selected_accesspoint/> is empty or missing an ssid attribute
+		 * we also generate a dummy configuration.
 		 */
-		bool use_ssid  = node.has_attribute("ssid");
-		bool use_bssid = node.has_attribute("bssid");
-		if (!use_ssid && !use_bssid) {
+		if (!node.has_attribute("ssid")) {
 			_active_dummy_configuration();
 			return;
 		}
@@ -169,35 +170,41 @@ struct Wlan_configration
 		/**
 		 * Try to generate a valid configuration.
 		 */
-		enum { MAX_SSID_LENGTH = 32,
-		       BSSID_LENGTH    = 12 + 5,
-		       MIN_PSK_LENGTH  =  8,
-		       MAX_PSK_LENGTH  = 63 };
+		enum { MAX_SSID_LENGTH = 32 + 1,
+		       BSSID_LENGTH    = 12 + 5 + 1,
+		       PROT_LENGTH     = 7 + 1,
+		       MIN_PSK_LENGTH  = 8,
+		       MAX_PSK_LENGTH  = 63 + 1};
 
-		char ssid[MAX_SSID_LENGTH + 1] = { 0 };
-		if (use_ssid)
-			node.attribute("ssid").value(ssid, sizeof(ssid));
+		String<MAX_SSID_LENGTH> ssid;
+		node.attribute("ssid").value(&ssid);
 
-		char bssid[BSSID_LENGTH + 1] = { 0 };
+		bool use_bssid = node.has_attribute("bssid");
+		String<BSSID_LENGTH> bssid;
 		if (use_bssid)
-			node.attribute("bssid").value(bssid, sizeof(bssid));
+			node.attribute("bssid").value(&bssid);
 
-		bool use_protection = node.has_attribute("protection");
+		bool use_protection = false;
+		if (node.has_attribute("protection")) {
+			String<PROT_LENGTH> prot;
+			node.attribute("protection").value(&prot);
+			use_protection = (prot == "WPA-PSK");
+		}
 
-		char psk[MAX_PSK_LENGTH + 1] = { 0 };
+		String<MAX_PSK_LENGTH> psk;
 		if (use_protection && node.has_attribute("psk"))
-			node.attribute("psk").value(psk, sizeof(psk));
+			node.attribute("psk").value(&psk);
 
 		/* psk must be between 8 and 63 characters long */
-		if (use_protection && (Genode::strlen(psk) < MIN_PSK_LENGTH)) {
+		if (use_protection && (psk.length() < MIN_PSK_LENGTH)) {
+			PERR("error: given psk is too short");
 			_active_dummy_configuration();
 			return;
 		}
 
-		if (generate_wpa_supplicant_conf(&buffer, &size,
-		                                 use_ssid ? ssid : 0,
-		                                 use_bssid ? bssid : 0,
-		                                 use_protection, psk) == 0)
+		if (generate_wpa_supplicant_conf(&buffer, &size, ssid.string(),
+		                                 use_bssid ? bssid.string() : 0,
+		                                 use_protection, psk.string()) == 0)
 			_activate_configuration();
 	}
 
