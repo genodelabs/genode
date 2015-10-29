@@ -27,7 +27,6 @@ if {[expr !$use_usb_driver && !$use_nic_driver && !$use_wifi_driver]} {
 # provide wifi related variables in case we do not use the wifi driver
 if {!$use_wifi_driver} {
 	set wifi_ssid ""
-	set wifi_bssid ""
 	set wifi_psk ""
 }
 
@@ -182,7 +181,7 @@ append_if $use_wifi_driver config {
 			<content>
 				<inline name="wlan_configuration">}
 append_if $use_wifi_driver config "
-<selected_network ssid=\"$wifi_ssid\" bssid=\"$wifi_bssid\" protection=\"WPA-PSK\" psk=\"$wifi_psk\"/>"
+<selected_network ssid=\"$wifi_ssid\" protection=\"WPA-PSK\" psk=\"$wifi_psk\"/>"
 append_if $use_wifi_driver config {
 				</inline>
 				<inline name="wpa_supplicant.conf"></inline>
