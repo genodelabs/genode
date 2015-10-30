@@ -30,7 +30,6 @@ extern "C" {
 
 #include <db.h>
 #include <netdb.h>
-#include <signal.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <pwd.h>
@@ -118,8 +117,6 @@ DUMMY(int   , -1, _sigaction, (int, const struct sigaction *, struct sigaction *
 DUMMY(int   , -1, sigaction, (int, const struct sigaction *, struct sigaction *))
 DUMMY(int   , -1, sigblock, (int))
 DUMMY(int   , -1, sigpause, (int))
-DUMMY(int   , -1, _sigprocmask, (int, const sigset_t *, sigset_t *))
-DUMMY(int   , -1, sigprocmask, (int, const sigset_t *, sigset_t *))
 DUMMY(int   , -1, _sigsuspend, (const sigset_t *))
 DUMMY(int   , -1, sigsuspend, (const sigset_t *))
 DUMMY(int   , -1, socketpair, (int, int, int, int *))
