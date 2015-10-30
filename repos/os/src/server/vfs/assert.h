@@ -80,8 +80,9 @@ namespace File_system {
 	{
 		typedef Directory_service::Unlink_result Result;
 		switch (r) {
-		case Result::UNLINK_ERR_NO_ENTRY: throw Lookup_failed();
-		case Result::UNLINK_ERR_NO_PERM:  throw Permission_denied();
+		case Result::UNLINK_ERR_NO_ENTRY:  throw Lookup_failed();
+		case Result::UNLINK_ERR_NO_PERM:   throw Permission_denied();
+		case Result::UNLINK_ERR_NOT_EMPTY: throw Not_empty();
 		case Result::UNLINK_OK: break;
 		}
 	}
