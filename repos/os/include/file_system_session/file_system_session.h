@@ -60,6 +60,7 @@ namespace File_system {
 	class Invalid_handle      : Exception { };
 	class Invalid_name        : Exception { };
 	class Size_limit_reached  : Exception { };
+	class Not_empty           : Exception { };
 
 	struct Session;
 }
@@ -275,6 +276,12 @@ struct File_system::Session : public Genode::Session
 
 	/**
 	 * Delete file or directory
+	 *
+	 * \throw Permission_denied
+	 * \throw Invalid_name
+	 * \throw Lookup_failed
+	 * \throw Not_empty      argument is a non-empty directory and
+	 *                       the backend does not support recursion
 	 */
 	virtual void unlink(Dir_handle, Name const &) = 0;
 
@@ -336,7 +343,8 @@ struct File_system::Session : public Genode::Session
 	GENODE_RPC(Rpc_status, Status, status, Node_handle);
 	GENODE_RPC(Rpc_control, void, control, Node_handle, Control);
 	GENODE_RPC_THROW(Rpc_unlink, void, unlink,
-	                 GENODE_TYPE_LIST(Permission_denied, Invalid_name, Lookup_failed),
+	                 GENODE_TYPE_LIST(Permission_denied, Invalid_name,
+	                                  Lookup_failed,     Not_empty),
 	                 Dir_handle, Name const &);
 	GENODE_RPC_THROW(Rpc_truncate, void, truncate,
 	                 GENODE_TYPE_LIST(Permission_denied, Invalid_handle, No_space),

@@ -1634,9 +1634,12 @@ namespace {
 
 		if (!noux_syscall(Noux::Session::SYSCALL_UNLINK)) {
 			PWRN("unlink syscall failed for path \"%s\"", path);
+			typedef Vfs::Directory_service::Unlink_result Result;
 			switch (sysio()->error.unlink) {
-			case Vfs::Directory_service::UNLINK_ERR_NO_ENTRY: errno = ENOENT; break;
-			default:                                          errno = EPERM;  break;
+			case Result::UNLINK_ERR_NO_ENTRY:  errno = ENOENT;    break;
+			case Result::UNLINK_ERR_NOT_EMPTY: errno = ENOTEMPTY; break;
+			case Result::UNLINK_ERR_NO_PERM:   errno = EPERM;     break;
+			case Result::UNLINK_OK: break; /* only here to complete the enumeration */
 			}
 			return -1;
 		}

@@ -130,6 +130,8 @@ inline void assert_unlink(Vfs::Directory_service::Unlink_result r)
 		PERR("UNLINK_ERR_NO_ENTRY"); break;
 	case Result::UNLINK_ERR_NO_PERM:
 		PERR("UNLINK_ERR_NO_PERM"); break;
+	case Result::UNLINK_ERR_NOT_EMPTY:
+		PERR("UNLINK_ERR_NOT_EMPTY"); break;
 	}
 	throw Exception();
 }
@@ -145,15 +147,18 @@ struct Stress_thread : public Genode::Thread<4*1024*sizeof(Genode::addr_t)>
 	Vfs::file_size    count;
 	Vfs::File_system &vfs;
 
-	Stress_thread(Vfs::File_system &vfs, char const *parent)
-	: Thread(parent), path(parent), count(0), vfs(vfs) { }
+	Stress_thread(Vfs::File_system &vfs, char const *parent, Affinity::Location affinity)
+	: Thread(parent), path(parent), count(0), vfs(vfs)
+	{
+		env()->cpu_session()->affinity(cap(), affinity);
+	}
 };
 
 
 struct Mkdir_thread : public Stress_thread
 {
-	Mkdir_thread(Vfs::File_system &vfs, char const *parent)
-	: Stress_thread(vfs, parent) { start(); }
+	Mkdir_thread(Vfs::File_system &vfs, char const *parent, Affinity::Location affinity)
+	: Stress_thread(vfs, parent, affinity) { start(); }
 
 	void mkdir_b(int depth)
 	{
@@ -201,8 +206,8 @@ struct Mkdir_thread : public Stress_thread
 
 struct Populate_thread : public Stress_thread
 {
-	Populate_thread(Vfs::File_system &vfs, char const *parent)
-	: Stress_thread(vfs, parent) { start(); }
+	Populate_thread(Vfs::File_system &vfs, char const *parent, Affinity::Location affinity)
+	: Stress_thread(vfs, parent, affinity) { start(); }
 
 
 	void populate(int depth)
@@ -266,8 +271,8 @@ struct Populate_thread : public Stress_thread
 
 struct Write_thread : public Stress_thread
 {
-	Write_thread(Vfs::File_system &vfs, char const *parent)
-	: Stress_thread(vfs, parent) { start(); }
+	Write_thread(Vfs::File_system &vfs, char const *parent, Affinity::Location affinity)
+	: Stress_thread(vfs, parent, affinity) { start(); }
 
 	void write(int depth)
 	{
@@ -334,8 +339,8 @@ struct Write_thread : public Stress_thread
 
 struct Read_thread : public Stress_thread
 {
-	Read_thread(Vfs::File_system &vfs, char const *parent)
-	: Stress_thread(vfs, parent) { start(); }
+	Read_thread(Vfs::File_system &vfs, char const *parent, Affinity::Location affinity)
+	: Stress_thread(vfs, parent, affinity) { start(); }
 
 	void read(int depth)
 	{
@@ -404,8 +409,8 @@ struct Read_thread : public Stress_thread
 
 struct Unlink_thread : public Stress_thread
 {
-	Unlink_thread(Vfs::File_system &vfs, char const *parent)
-	: Stress_thread(vfs, parent) { start(); }
+	Unlink_thread(Vfs::File_system &vfs, char const *parent, Affinity::Location affinity)
+	: Stress_thread(vfs, parent, affinity) { start(); }
 
 	void empty_dir(char const *path)
 	{
@@ -427,6 +432,7 @@ struct Unlink_thread : public Stress_thread
 			default:
 				try {
 					assert_unlink(vfs.unlink(subpath.base()));
+					++count;
 				} catch (...) {
 					PERR("unlink %s failed", subpath.base());
 					throw;
@@ -438,10 +444,32 @@ struct Unlink_thread : public Stress_thread
 
 	void entry()
 	{
+		typedef Vfs::Directory_service::Unlink_result Result;
 		try {
-			empty_dir(path.base());
-			vfs.unlink(path.base());
-		} catch (...) { }
+			Result r = vfs.unlink(path.base());
+			switch (r) {
+			case Result::UNLINK_ERR_NOT_EMPTY:
+				PLOG("recursive unlink not supported");
+				empty_dir(path.base());
+				r = vfs.unlink(path.base());
+
+			case Result::UNLINK_OK:
+				PLOG("recursive unlink supported");
+				++count;
+				return;
+
+			default: break;
+			}
+			assert_unlink(r);
+		} catch (...) {
+			PERR("unlink %s failed", path.base());
+		}
+	}
+
+	int wait()
+	{
+		join();
+		return count;
 	}
 };
 
@@ -468,6 +496,8 @@ int main()
 	/* populate the directory file system at / */
 	vfs_root.num_dirent("/");
 
+	Affinity::Space space = env()->cpu_session()->affinity_space();
+
 	size_t initial_consumption = env()->ram_session()->used();
 
 	/**************************
@@ -483,7 +513,7 @@ int main()
 			snprintf(path, 3, "/%lu", i);
 			vfs_root.mkdir(path, 0);
 			threads[i] = new (Genode::env()->heap())
-				Mkdir_thread(vfs_root, path);
+				Mkdir_thread(vfs_root, path, space.location_of_index(i));
 		}
 
 		for (size_t i = 0; i < thread_count; ++i) {
@@ -510,9 +540,8 @@ int main()
 
 		for (size_t i = 0; i < thread_count; ++i) {
 			snprintf(path, 3, "/%lu", i);
-			vfs_root.mkdir(path, 0);
 			threads[i] = new (Genode::env()->heap())
-				Populate_thread(vfs_root, path);
+				Populate_thread(vfs_root, path, space.location_of_index(i));
 		}
 
 		for (size_t i = 0; i < thread_count; ++i) {
@@ -549,9 +578,8 @@ int main()
 
 		for (size_t i = 0; i < thread_count; ++i) {
 			snprintf(path, 3, "/%lu", i);
-			vfs_root.mkdir(path, 0);
 			threads[i] = new (Genode::env()->heap())
-				Write_thread(vfs_root, path);
+				Write_thread(vfs_root, path, space.location_of_index(i));
 		}
 
 		for (size_t i = 0; i < thread_count; ++i) {
@@ -588,9 +616,8 @@ int main()
 
 		for (size_t i = 0; i < thread_count; ++i) {
 			snprintf(path, 3, "/%lu", i);
-			vfs_root.mkdir(path, 0);
 			threads[i] = new (Genode::env()->heap())
-				Read_thread(vfs_root, path);
+				Read_thread(vfs_root, path, space.location_of_index(i));
 		}
 
 		for (size_t i = 0; i < thread_count; ++i) {
@@ -620,19 +647,20 @@ int main()
 		return 0;
 	}
 	{
+		Vfs::file_size count = 0;
+
 		Unlink_thread *threads[thread_count];
 		PLOG("unlink files...");
 		elapsed_ms = timer.elapsed_ms();
 
 		for (size_t i = 0; i < thread_count; ++i) {
 			snprintf(path, 3, "/%lu", i);
-			vfs_root.mkdir(path, 0);
 			threads[i] = new (Genode::env()->heap())
-				Unlink_thread(vfs_root, path);
+				Unlink_thread(vfs_root, path, space.location_of_index(i));
 		}
 
 		for (size_t i = 0; i < thread_count; ++i) {
-			threads[i]->join();
+			count += threads[i]->wait();
 			destroy(Genode::env()->heap(), threads[i]);
 		}
 
@@ -640,8 +668,8 @@ int main()
 
 		vfs_root.sync("/");
 
-		PINF("unlink in %lums, %luKB consumed",
-		     elapsed_ms, env()->ram_session()->used()/1024);
+		PINF("unlinked %llu files in %lums, %luKB consumed",
+		     count, elapsed_ms, env()->ram_session()->used()/1024);
 	}
 
 	PINF("total: %lums, %luKB consumed",

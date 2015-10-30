@@ -121,7 +121,8 @@ struct Vfs::Directory_service
 	 ** Unlink **
 	 ************/
 
-	enum Unlink_result { UNLINK_ERR_NO_ENTRY, UNLINK_ERR_NO_PERM, UNLINK_OK };
+	enum Unlink_result { UNLINK_ERR_NO_ENTRY,  UNLINK_ERR_NO_PERM,
+	                     UNLINK_ERR_NOT_EMPTY, UNLINK_OK };
 
 	virtual Unlink_result unlink(char const *path) = 0;
 

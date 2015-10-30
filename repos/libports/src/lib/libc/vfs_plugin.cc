@@ -762,9 +762,10 @@ int Libc::Vfs_plugin::unlink(char const *path)
 	typedef Vfs::Directory_service::Unlink_result Result;
 
 	switch (_root_dir.unlink(path)) {
-	case Result::UNLINK_ERR_NO_ENTRY: errno = ENOENT; return -1;
-	case Result::UNLINK_ERR_NO_PERM:  errno = EPERM;  return -1;
-	case Result::UNLINK_OK:                           break;
+	case Result::UNLINK_ERR_NO_ENTRY:  errno = ENOENT;    return -1;
+	case Result::UNLINK_ERR_NO_PERM:   errno = EPERM;     return -1;
+	case Result::UNLINK_ERR_NOT_EMPTY: errno = ENOTEMPTY; return -1;
+	case Result::UNLINK_OK:            break;
 	}
 	return 0;
 }
