@@ -18,6 +18,9 @@
 #include <util/mmio.h>
 #include <util/register.h>
 
+/* core includes */
+#include <csu_config.h>
+
 namespace Genode {
 
 	class Csu : Mmio
@@ -115,17 +118,23 @@ namespace Genode {
 				write<Csl04::Slave_a>(Csl00::UNSECURE);
 
 				/* UART 1-5 */
-				write<Csl07::Slave_b>(Csl00::UNSECURE);
-				write<Csl08::Slave_a>(Csl00::UNSECURE);
-				write<Csl26::Slave_a>(Csl00::UNSECURE);
-				write<Csl30::Slave_b>(Csl00::UNSECURE);
-				write<Csl19::Slave_a>(Csl00::UNSECURE);
+				Csl00::access_t constexpr uart_csl =
+					Csu_config::SECURE_UART ? Csl00::SECURE :
+					                          Csl00::UNSECURE;
+				write<Csl07::Slave_b>(uart_csl);
+				write<Csl08::Slave_a>(uart_csl);
+				write<Csl26::Slave_a>(uart_csl);
+				write<Csl30::Slave_b>(uart_csl);
+				write<Csl19::Slave_a>(uart_csl);
 
 				/* GPIO */
-				write<Csl00::Slave_b>(Csl00::SECURE);
-				write<Csl01::Slave_a>(Csl00::SECURE);
-				write<Csl01::Slave_b>(Csl00::SECURE);
-				write<Csl02::Slave_a>(Csl00::SECURE);
+				Csl00::access_t constexpr gpio_csl =
+					Csu_config::SECURE_GPIO ? Csl00::SECURE :
+					                          Csl00::UNSECURE;
+				write<Csl00::Slave_b>(gpio_csl);
+				write<Csl01::Slave_a>(gpio_csl);
+				write<Csl01::Slave_b>(gpio_csl);
+				write<Csl02::Slave_a>(gpio_csl);
 
 				/* IOMUXC TODO */
 				write<Csl05::Slave_a>(Csl00::UNSECURE);
@@ -140,9 +149,12 @@ namespace Genode {
 				write<Csl22::Slave_b>(Csl00::SECURE);
 
 				/* I2C */
-				write<Csl18::Slave_a>(Csl00::SECURE);
-				write<Csl17::Slave_b>(Csl00::SECURE);
-				write<Csl31::Slave_a>(Csl00::SECURE);
+				Csl00::access_t constexpr i2c_csl =
+					Csu_config::SECURE_I2C ? Csl00::SECURE :
+					                         Csl00::UNSECURE;
+				write<Csl18::Slave_a>(i2c_csl);
+				write<Csl17::Slave_b>(i2c_csl);
+				write<Csl31::Slave_a>(i2c_csl);
 
 				/* IPU */
 				write<Csl24::Slave_a>(Csl00::SECURE);
@@ -157,10 +169,13 @@ namespace Genode {
 				write<Csl22::Slave_a>(Csl00::UNSECURE);
 
 				/* SDHCI 1-4 */
-				write<Csl25::Slave_a>(Csl00::UNSECURE);
-				write<Csl25::Slave_b>(Csl00::UNSECURE);
-				write<Csl28::Slave_a>(Csl00::UNSECURE);
-				write<Csl28::Slave_b>(Csl00::UNSECURE);
+				Csl00::access_t constexpr esdhc_csl =
+					Csu_config::SECURE_ESDHC ? Csl00::SECURE :
+					                           Csl00::UNSECURE;
+				write<Csl25::Slave_a>(esdhc_csl);
+				write<Csl25::Slave_b>(esdhc_csl);
+				write<Csl28::Slave_a>(esdhc_csl);
+				write<Csl28::Slave_b>(esdhc_csl);
 
 				/* SPDIF */
 				write<Csl29::Slave_a>(Csl00::UNSECURE);
@@ -212,10 +227,14 @@ namespace Genode {
 				write<Master::Pata>(Master::UNSECURE_UNLOCKED);
 				write<Master::Fec>(Master::UNSECURE_UNLOCKED);
 				write<Master::Dap>(Master::UNSECURE_UNLOCKED);
-				write<Master::Esdhc1>(Master::UNSECURE_UNLOCKED);
-				write<Master::Esdhc2>(Master::UNSECURE_UNLOCKED);
-				write<Master::Esdhc3>(Master::UNSECURE_UNLOCKED);
-				write<Master::Esdhc4>(Master::UNSECURE_UNLOCKED);
+
+				Master::access_t constexpr esdhc_master =
+					Csu_config::SECURE_ESDHC ? Master::SECURE_UNLOCKED :
+					                           Master::UNSECURE_UNLOCKED;
+				write<Master::Esdhc1>(esdhc_master);
+				write<Master::Esdhc2>(esdhc_master);
+				write<Master::Esdhc3>(esdhc_master);
+				write<Master::Esdhc4>(esdhc_master);
 			}
 	};
 }
