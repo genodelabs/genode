@@ -63,10 +63,13 @@ class Vcpu_handler_vmx : public Vcpu_handler
 */
 			                    VMX_VMCS_CTRL_PROC_EXEC_CR8_LOAD_EXIT |
 			                    VMX_VMCS_CTRL_PROC_EXEC_CR8_STORE_EXIT |
-			                    VMX_VMCS_CTRL_PROC_EXEC_RDPMC_EXIT |
+			                    VMX_VMCS_CTRL_PROC_EXEC_RDPMC_EXIT;
 /*			                    VMX_VMCS_CTRL_PROC_EXEC_PAUSE_EXIT | */
-			/* we don't support tsc offsetting for now - so let the rdtsc exit */
-			                    VMX_VMCS_CTRL_PROC_EXEC_RDTSC_EXIT;
+			/*
+			 * Disable trapping RDTSC for now as it creates a huge load with
+			 * VM guests that execute it frequently.
+			 */
+			                    // VMX_VMCS_CTRL_PROC_EXEC_RDTSC_EXIT;
 
 			next_utcb.ctrl[1] = VMX_VMCS_CTRL_PROC_EXEC2_VIRT_APIC |
 			                    VMX_VMCS_CTRL_PROC_EXEC2_WBINVD_EXIT |
