@@ -26,6 +26,17 @@ using namespace Genode;
 /* monitor exception vector address */
 extern int _mon_kernel_entry;
 
+bool secure_irq(unsigned const i)
+{
+	if (i == Board::EPIT_1_IRQ)                           return true;
+	if (i == Board::EPIT_2_IRQ)                           return true;
+	if (i == Board::I2C_2_IRQ)                            return true;
+	if (i == Board::I2C_3_IRQ)                            return true;
+	if (i >= Board::GPIO1_IRQL && i <= Board::GPIO4_IRQH) return true;
+	if (i >= Board::GPIO5_IRQL && i <= Board::GPIO7_IRQH) return true;
+	return false;
+}
+
 
 void Kernel::init_trustzone(Pic * pic)
 {
@@ -47,14 +58,7 @@ void Kernel::init_trustzone(Pic * pic)
 
 	/* configure non-secure interrupts */
 	for (unsigned i = 0; i < Pic::NR_OF_IRQ; i++) {
-		if ((i != Board::EPIT_1_IRQ) &&
-			(i != Board::EPIT_2_IRQ) &&
-			(i != Board::I2C_2_IRQ)  &&
-			(i != Board::I2C_3_IRQ)  &&
-			(i < Board::GPIO1_IRQL || i > Board::GPIO4_IRQH) &&
-			(i < Board::GPIO5_IRQL || i > Board::GPIO7_IRQH))
-			pic->unsecure(i);
-	}
+		if (!secure_irq(i)) { pic->unsecure(i); } }
 
 	/* configure central security unit */
 	Genode::Csu csu(Board::CSU_BASE);

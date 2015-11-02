@@ -56,8 +56,19 @@ void Vm::exception(unsigned const cpu)
 }
 
 
+bool secure_irq(unsigned const i);
+
 void Vm::proceed(unsigned const cpu)
 {
+	unsigned const irq = _state->irq_injection;
+	if (irq) {
+		if (secure_irq(irq)) {
+			PWRN("Refuse to inject secure IRQ into VM");
+		} else {
+			pic()->trigger(irq);
+			_state->irq_injection = 0;
+		}
+	}
 	mtc()->switch_to(reinterpret_cast<Cpu::Context*>(_state), cpu,
 	                 (addr_t)&_mt_nonsecure_entry_pic,
 	                 (addr_t)&_tz_client_context);

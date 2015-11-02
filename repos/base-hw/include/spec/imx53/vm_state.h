@@ -31,6 +31,7 @@ struct Genode::Vm_state : Genode::Cpu_state_modes
 	Genode::addr_t dfar;
 	Genode::addr_t ttbr[2];
 	Genode::addr_t ttbrc;
+	Genode::addr_t irq_injection;
 };
 
 #endif /* _INCLUDE__SPEC__IMX53__VM_STATE_H_ */

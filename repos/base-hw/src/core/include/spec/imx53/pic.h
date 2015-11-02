@@ -44,6 +44,12 @@ class Genode::Pic : public Mmio
 	protected:
 
 		/**
+		 * Software Interrupt Trigger Register
+		 */
+		struct Swint : Register<0xf00, 32> {
+			struct Intid  : Bitfield<0,10> { }; };
+
+		/**
 		 * Interrupt control register
 		 */
 		struct Intctrl : Register<0, 32>
@@ -152,6 +158,13 @@ class Genode::Pic : public Mmio
 		 */
 		void mask(unsigned const i) {
 			if (valid(i)) { write<Enclear::Clear_enable>(1, i); } }
+
+
+		/*
+		 * Trigger interrupt 'i' from software if possible
+		 */
+		void trigger(unsigned const i) {
+			write<Swint>(Swint::Intid::bits(i)); }
 
 
 		/*************
