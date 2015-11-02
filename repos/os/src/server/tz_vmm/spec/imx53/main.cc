@@ -22,6 +22,8 @@
 /* local includes */
 #include <vm.h>
 #include <m4if.h>
+#include <serial.h>
+#include <block.h>
 
 using namespace Genode;
 
@@ -35,6 +37,8 @@ enum {
 
 static const char* cmdline_tablet = "console=ttymxc0,115200";
 
+void on_vmm_entry();
+void on_vmm_exit();
 
 namespace Vmm {
 	class Vmm;
@@ -45,24 +49,27 @@ class Vmm::Vmm : public Thread<8192>
 {
 	private:
 
-		enum Devices {
-			FRAMEBUFFER,
-			INPUT,
-		};
-
 		Signal_receiver           _sig_rcv;
 		Signal_context            _vm_context;
 		Vm                       *_vm;
 		Io_mem_connection         _m4if_io_mem;
 		M4if                      _m4if;
+		Serial                    _serial;
+		Block                     _block;
 
 		void _handle_hypervisor_call()
 		{
-			/* check device number*/
-			switch (_vm->state()->r0) {
-			case FRAMEBUFFER:
-			case INPUT:
-				break;
+			enum {
+				FRAMEBUFFER = 0,
+				INPUT       = 1,
+				SERIAL      = 2,
+				BLOCK       = 3,
+			};
+			switch (_vm->smc_arg_0()) {
+			case FRAMEBUFFER:                      break;
+			case INPUT:                            break;
+			case SERIAL:      _serial.handle(_vm); break;
+			case BLOCK:       _block.handle(_vm);  break;
 			default:
 				PERR("Unknown hypervisor call!");
 				_vm->dump();
@@ -106,6 +113,7 @@ class Vmm::Vmm : public Thread<8192>
 
 			while (true) {
 				Signal s = _sig_rcv.wait_for_signal();
+				on_vmm_entry();
 				if (s.context() == &_vm_context) {
 					if (_handle_vm())
 						_vm->run();
@@ -113,6 +121,7 @@ class Vmm::Vmm : public Thread<8192>
 					PWRN("Invalid context");
 					continue;
 				}
+				on_vmm_exit();
 			}
 		};
 
@@ -132,7 +141,7 @@ class Vmm::Vmm : public Thread<8192>
 
 int main()
 {
-	static Vm vm("linux", "initrd.gz", cmdline_tablet,
+	static Vm vm("linux", cmdline_tablet,
 	             Trustzone::NONSECURE_RAM_BASE, Trustzone::NONSECURE_RAM_SIZE,
 	             KERNEL_OFFSET, MACH_TYPE_QSB);
 	static Vmm::Vmm vmm(&vm);

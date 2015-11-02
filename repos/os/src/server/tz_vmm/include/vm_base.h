@@ -28,13 +28,9 @@ class Vm_base {
 
 	protected:
 
-		enum { INITRD_OFFSET = 0x1000000, };
-
 		Genode::Vm_connection     _vm_con;
 		Genode::Rom_connection    _kernel_rom;
-		Genode::Rom_connection    _initrd_rom;
 		Genode::Dataspace_client  _kernel_cap;
-		Genode::Dataspace_client  _initrd_cap;
 		const char*               _cmdline;
 		Genode::Vm_state         *_state;
 		Genode::Io_mem_connection _ram_iomem;
@@ -54,45 +50,39 @@ class Vm_base {
 			env()->rm_session()->detach((void*)addr);
 		}
 
-		void _load_initrd()
-		{
-			using namespace Genode;
-
-			addr_t addr = env()->rm_session()->attach(_initrd_cap);
-			memcpy((void*)(_ram.local() + INITRD_OFFSET),
-			       (void*)addr, _initrd_cap.size());
-			env()->rm_session()->detach((void*)addr);
-		}
-
-		virtual Genode::addr_t _load_board_info() = 0;
+		virtual void           _load_kernel_surroundings() = 0;
+		virtual Genode::addr_t _board_info_offset() const = 0;
 
 	public:
 
-		Vm_base(const char *kernel, const char *initrd, const char *cmdline,
+		class Inject_irq_failed : public Genode::Exception { };
+
+		Vm_base(const char *kernel, const char *cmdline,
 		        Genode::addr_t ram_base, Genode::size_t ram_size,
 		        Genode::addr_t kernel_offset, unsigned long mach_type,
 		        unsigned long board_rev = 0)
 		: _kernel_rom(kernel),
-		  _initrd_rom(initrd),
 		  _kernel_cap(_kernel_rom.dataspace()),
-		  _initrd_cap(_initrd_rom.dataspace()),
 		  _cmdline(cmdline),
 		  _state((Genode::Vm_state*)Genode::env()->rm_session()->attach(_vm_con.cpu_state())),
 		  _ram_iomem(ram_base, ram_size),
 		  _ram(ram_base, ram_size, (Genode::addr_t)Genode::env()->rm_session()->attach(_ram_iomem.dataspace())),
 		  _kernel_offset(kernel_offset),
 		  _mach_type(mach_type),
-		  _board_rev(board_rev) { }
+		  _board_rev(board_rev)
+		{
+			_state->irq_injection = 0;
+		}
 
 		void start()
 		{
 			Genode::memset((void*)_state, 0, sizeof(Genode::Vm_state));
 			_load_kernel();
-			_load_initrd();
+			_load_kernel_surroundings();
 			_state->cpsr = 0x93; /* SVC mode and IRQs disabled */
 			_state->r0   = 0;
 			_state->r1   = _mach_type;
-			_state->r2   = _ram.base() + _load_board_info(); /* board info addr */
+			_state->r2   = _ram.base() + _board_info_offset();
 		}
 
 		void sig_handler(Genode::Signal_context_capability sig_cap) {
@@ -100,6 +90,12 @@ class Vm_base {
 
 		void run()   { _vm_con.run();   }
 		void pause() { _vm_con.pause(); }
+
+		void inject_irq(unsigned const irq)
+		{
+			if (_state->irq_injection) { throw Inject_irq_failed(); }
+			_state->irq_injection = irq;
+		}
 
 		void dump()
 		{
@@ -175,6 +171,36 @@ class Vm_base {
 
 		Genode::Vm_state *state() const { return  _state; }
 		Ram              *ram()         { return &_ram;   }
+
+		/*
+		 * Read accessors for argument values of a Secure Monitor Call
+		 */
+
+		Genode::addr_t smc_arg_0() { return _state->r0; }
+		Genode::addr_t smc_arg_1() { return _state->r1; }
+		Genode::addr_t smc_arg_2() { return _state->r2; }
+		Genode::addr_t smc_arg_3() { return _state->r3; }
+		Genode::addr_t smc_arg_4() { return _state->r4; }
+		Genode::addr_t smc_arg_5() { return _state->r5; }
+		Genode::addr_t smc_arg_6() { return _state->r6; }
+		Genode::addr_t smc_arg_7() { return _state->r7; }
+		Genode::addr_t smc_arg_8() { return _state->r8; }
+		Genode::addr_t smc_arg_9() { return _state->r9; }
+
+		/*
+		 * Write accessors for return values of a Secure Monitor Call
+		 */
+
+		void smc_ret(Genode::addr_t const ret_0)
+		{
+			_state->r0 = ret_0;
+		}
+
+		void smc_ret(Genode::addr_t const ret_0, Genode::addr_t const ret_1)
+		{
+			_state->r0 = ret_0;
+			_state->r1 = ret_1;
+		}
 };
 
 #endif /* _SRC__SERVER__VMM__INCLUDE__VM_H_ */
