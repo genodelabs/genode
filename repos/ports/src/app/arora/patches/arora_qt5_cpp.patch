@@ -12,7 +12,7 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  src/bookmarks/bookmarksmanager.cpp                 |    8 +++
  src/bookmarks/bookmarksmodel.cpp                   |    2 +
  src/browserapplication.cpp                         |   14 +++++-
- src/downloadmanager.cpp                            |    4 ++
+ src/downloadmanager.cpp                            |    8 ++-
  src/history/history.cpp                            |   49 +++++++++++++++++++-
  src/locationbar/locationbar.cpp                    |    2 +
  src/locationbar/locationbarsiteicon.cpp            |    3 +
@@ -35,7 +35,7 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  src/webview.cpp                                    |   14 ++++--
  tools/cacheinfo/main.cpp                           |    5 ++
  tools/htmlToXBel/main.cpp                          |    5 ++
- 31 files changed, 220 insertions(+), 12 deletions(-)
+ 31 files changed, 222 insertions(+), 14 deletions(-)
 
 diff --git a/src/aboutdialog.cpp b/src/aboutdialog.cpp
 index 42e1c81..ce70df2 100644
@@ -154,10 +154,10 @@ index 7e1acd1..d3cb89c 100644
  
  QVariant AutoFillModel::headerData(int section, Qt::Orientation orientation, int role) const
 diff --git a/src/autofillmanager.cpp b/src/autofillmanager.cpp
-index b39e747..42e9519 100644
+index b4c713e..03cf2f5 100644
 --- a/src/autofillmanager.cpp
 +++ b/src/autofillmanager.cpp
-@@ -43,6 +43,10 @@
+@@ -44,6 +44,10 @@
  #include <qwebpage.h>
  #include <qwebsettings.h>
  
@@ -168,7 +168,7 @@ index b39e747..42e9519 100644
  #include <qdebug.h>
  
  // #define AUTOFILL_DEBUG
-@@ -90,7 +94,11 @@ void AutoFillManager::loadSettings()
+@@ -91,7 +95,11 @@ void AutoFillManager::loadSettings()
  
  QString AutoFillManager::autoFillDataFile()
  {
@@ -180,7 +180,7 @@ index b39e747..42e9519 100644
      fileName += QLatin1String("/autofill.dat");
      return fileName;
  }
-@@ -225,7 +233,11 @@ AutoFillManager::Form AutoFillManager::findForm(QWebPage *webPage, const QByteAr
+@@ -227,7 +235,11 @@ AutoFillManager::Form AutoFillManager::findForm(QWebPage *webPage, const QByteAr
  {
      Form form;
      QUrl argsUrl = QUrl::fromEncoded(QByteArray("foo://bar.com/?" + outgoingData));
@@ -192,7 +192,7 @@ index b39e747..42e9519 100644
      QSet<QPair<QString, QString> > args;
      // XXX Is there a Qt function to do this? (unencode '+' to ' ')
      for (int i = 0; i < encodedArgs.count(); ++i) {
-@@ -291,7 +303,9 @@ AutoFillManager::Form AutoFillManager::findForm(QWebPage *webPage, const QByteAr
+@@ -293,7 +305,9 @@ AutoFillManager::Form AutoFillManager::findForm(QWebPage *webPage, const QByteAr
  QUrl AutoFillManager::stripUrl(const QUrl &url)
  {
      QUrl cleanUrl = url;
@@ -244,7 +244,7 @@ index b6f2869..d137dc5 100644
      : QAbstractItemModel(parent)
      , m_endMacro(false)
 diff --git a/src/browserapplication.cpp b/src/browserapplication.cpp
-index c7c0d4b..75e9954 100644
+index 4514a80..f0187fe 100644
 --- a/src/browserapplication.cpp
 +++ b/src/browserapplication.cpp
 @@ -303,9 +303,15 @@ void BrowserApplication::quitBrowser()
@@ -281,7 +281,7 @@ index c7c0d4b..75e9954 100644
      defaultSettings->setFontFamily(QWebSettings::FixedFont, fixedFont.family());
      defaultSettings->setFontSize(QWebSettings::DefaultFixedFontSize, fixedFont.pointSize());
  
-@@ -657,7 +663,11 @@ QString BrowserApplication::installedDataDirectory()
+@@ -658,7 +664,11 @@ QString BrowserApplication::installedDataDirectory()
  
  QString BrowserApplication::dataFilePath(const QString &fileName)
  {
@@ -294,10 +294,10 @@ index c7c0d4b..75e9954 100644
          directory = QDir::homePath() + QLatin1String("/.") + QCoreApplication::applicationName();
      if (!QFile::exists(directory)) {
 diff --git a/src/downloadmanager.cpp b/src/downloadmanager.cpp
-index 84091f8..a5cfe06 100644
+index 8196353..b0da144 100644
 --- a/src/downloadmanager.cpp
 +++ b/src/downloadmanager.cpp
-@@ -468,7 +468,11 @@ DownloadManager::DownloadManager(QWidget *parent)
+@@ -471,7 +471,11 @@ DownloadManager::DownloadManager(QWidget *parent)
  
      QSettings settings;
      settings.beginGroup(QLatin1String("downloadmanager"));
@@ -309,8 +309,20 @@ index 84091f8..a5cfe06 100644
      setDownloadDirectory(settings.value(QLatin1String("downloadDirectory"), defaultLocation).toString());
  
      downloadsView->setShowGrid(false);
+@@ -601,9 +605,9 @@ void DownloadManager::updateActiveItemCount()
+ {
+     int acCount = activeDownloads();
+     if (acCount > 0) {
+-        setWindowTitle(QApplication::translate("DownloadDialog", "Downloading %1", 0, QApplication::UnicodeUTF8).arg(acCount));
++        setWindowTitle(QApplication::translate("DownloadDialog", "Downloading %1", 0).arg(acCount));
+     } else {
+-        setWindowTitle(QApplication::translate("DownloadDialog", "Downloads", 0, QApplication::UnicodeUTF8));
++        setWindowTitle(QApplication::translate("DownloadDialog", "Downloads", 0));
+     }
+ }
+ 
 diff --git a/src/history/history.cpp b/src/history/history.cpp
-index 23e4119..2f5916c 100644
+index 7419cf0..6f976b1 100644
 --- a/src/history/history.cpp
 +++ b/src/history/history.cpp
 @@ -104,7 +104,12 @@ HistoryModel::HistoryModel(HistoryManager *history, QObject *parent)
@@ -326,7 +338,7 @@ index 23e4119..2f5916c 100644
  }
  
  void HistoryModel::entryAdded()
-@@ -535,7 +540,12 @@ void HistoryFilterModel::recalculateFrecencies()
+@@ -558,7 +563,12 @@ void HistoryFilterModel::recalculateFrecencies()
  void HistoryFilterModel::sourceReset()
  {
      m_loaded = false;
@@ -339,7 +351,7 @@ index 23e4119..2f5916c 100644
  }
  
  int HistoryFilterModel::rowCount(const QModelIndex &parent) const
-@@ -671,7 +681,14 @@ bool HistoryFilterModel::removeRows(int row, int count, const QModelIndex &paren
+@@ -694,7 +704,14 @@ bool HistoryFilterModel::removeRows(int row, int count, const QModelIndex &paren
              this, SLOT(sourceRowsRemoved(const QModelIndex &, int, int)));
      m_loaded = false;
      if (oldCount - count != rowCount())
@@ -354,7 +366,7 @@ index 23e4119..2f5916c 100644
      return true;
  }
  
-@@ -815,7 +832,11 @@ QModelIndex HistoryTreeModel::index(int row, int column, const QModelIndex &pare
+@@ -838,7 +855,11 @@ QModelIndex HistoryTreeModel::index(int row, int column, const QModelIndex &pare
          return QModelIndex();
  
      if (!parent.isValid())
@@ -366,7 +378,7 @@ index 23e4119..2f5916c 100644
      return createIndex(row, column, parent.row() + 1);
  }
  
-@@ -824,7 +845,11 @@ QModelIndex HistoryTreeModel::parent(const QModelIndex &index) const
+@@ -847,7 +868,11 @@ QModelIndex HistoryTreeModel::parent(const QModelIndex &index) const
      int offset = index.internalId();
      if (offset == 0 || !index.isValid())
          return QModelIndex();
@@ -378,7 +390,7 @@ index 23e4119..2f5916c 100644
  }
  
  bool HistoryTreeModel::hasChildren(const QModelIndex &parent) const
-@@ -864,13 +889,23 @@ void HistoryTreeModel::setSourceModel(QAbstractItemModel *newSourceModel)
+@@ -887,13 +912,23 @@ void HistoryTreeModel::setSourceModel(QAbstractItemModel *newSourceModel)
                  this, SLOT(sourceRowsRemoved(const QModelIndex &, int, int)));
      }
  
@@ -402,7 +414,7 @@ index 23e4119..2f5916c 100644
  }
  
  void HistoryTreeModel::sourceRowsInserted(const QModelIndex &parent, int start, int end)
-@@ -879,7 +914,12 @@ void HistoryTreeModel::sourceRowsInserted(const QModelIndex &parent, int start,
+@@ -902,7 +937,12 @@ void HistoryTreeModel::sourceRowsInserted(const QModelIndex &parent, int start,
      Q_ASSERT(!parent.isValid());
      if (start != 0 || start != end) {
          m_sourceRowCache.clear();
@@ -416,7 +428,7 @@ index 23e4119..2f5916c 100644
          return;
      }
  
-@@ -941,7 +981,12 @@ bool HistoryTreeModel::removeRows(int row, int count, const QModelIndex &parent)
+@@ -964,7 +1004,12 @@ bool HistoryTreeModel::removeRows(int row, int count, const QModelIndex &parent)
  void HistoryTreeModel::sourceRowsRemoved(const QModelIndex &parent, int start, int end)
  {
      if (!removingDown) {
@@ -565,10 +577,10 @@ index ea35737..bb19aa1 100644
  
  QT_BEGIN_NAMESPACE
 diff --git a/src/network/networkaccessmanager.cpp b/src/network/networkaccessmanager.cpp
-index 7e99d46..9253a8e 100644
+index 56fb343..576957b 100644
 --- a/src/network/networkaccessmanager.cpp
 +++ b/src/network/networkaccessmanager.cpp
-@@ -212,7 +212,11 @@ void NetworkAccessManager::authenticationRequired(QNetworkReply *reply, QAuthent
+@@ -213,7 +213,11 @@ void NetworkAccessManager::authenticationRequired(QNetworkReply *reply, QAuthent
      passwordDialog.iconLabel->setPixmap(mainWindow->style()->standardIcon(QStyle::SP_MessageBoxQuestion, 0, mainWindow).pixmap(32, 32));
  
      QString introMessage = tr("<qt>Enter username and password for \"%1\" at %2</qt>");
@@ -580,7 +592,7 @@ index 7e99d46..9253a8e 100644
      passwordDialog.introLabel->setText(introMessage);
      passwordDialog.introLabel->setWordWrap(true);
  
-@@ -239,7 +243,11 @@ void NetworkAccessManager::proxyAuthenticationRequired(const QNetworkProxy &prox
+@@ -240,7 +244,11 @@ void NetworkAccessManager::proxyAuthenticationRequired(const QNetworkProxy &prox
      proxyDialog.iconLabel->setPixmap(mainWindow->style()->standardIcon(QStyle::SP_MessageBoxQuestion, 0, mainWindow).pixmap(32, 32));
  
      QString introMessage = tr("<qt>Connect to proxy \"%1\" using:</qt>");
@@ -592,7 +604,7 @@ index 7e99d46..9253a8e 100644
      proxyDialog.introLabel->setText(introMessage);
      proxyDialog.introLabel->setWordWrap(true);
  
-@@ -254,11 +262,19 @@ QString NetworkAccessManager::certToFormattedString(QSslCertificate cert)
+@@ -255,11 +263,19 @@ QString NetworkAccessManager::certToFormattedString(QSslCertificate cert)
  {
      QStringList message;
      message << cert.subjectInfo(QSslCertificate::CommonName);
@@ -703,7 +715,7 @@ index d9bb0a2..9641ac8 100644
  }
  
 diff --git a/src/settings.cpp b/src/settings.cpp
-index 22b9e06..6082fd7 100644
+index 3cbe7e8..8f5e46e 100644
 --- a/src/settings.cpp
 +++ b/src/settings.cpp
 @@ -123,7 +123,11 @@ void SettingsDialog::loadDefaults()
@@ -718,7 +730,7 @@ index 22b9e06..6082fd7 100644
  
      blockPopupWindows->setChecked(!defaultSettings->testAttribute(QWebSettings::JavascriptCanOpenWindows));
      enableJavascript->setChecked(defaultSettings->testAttribute(QWebSettings::JavascriptEnabled));
-@@ -184,8 +188,8 @@ void SettingsDialog::loadFromSettings()
+@@ -185,8 +189,8 @@ void SettingsDialog::loadFromSettings()
  
      // Appearance
      settings.beginGroup(QLatin1String("websettings"));
