@@ -178,6 +178,21 @@ class Audio_out::Stream
 		unsigned tail() const { return _tail; }
 
 		/**
+		 * Number of packets between playback and allocation position
+		 *
+		 * \return number
+		 */
+		unsigned queued() const
+		{
+			if (_tail > _pos)
+				return _tail - _pos;
+			else if (_pos > _tail)
+				return QUEUE_SIZE - (_pos - _tail);
+			else
+				return 0;
+		}
+
+		/**
 		 * Retrieve next packet for given packet
 		 *
 		 * \param packet  preceding packet
