@@ -91,10 +91,10 @@ class Audio_out::Session_client : public Genode::Rpc_client<Session>
 
 		void start()
 		{
-			call<Rpc_start>();
-
 			/* reset tail pointer */
 			stream()->reset();
+
+			call<Rpc_start>();
 		}
 
 		void stop() { call<Rpc_stop>();  }
