@@ -228,6 +228,8 @@ struct Rom_filter::Main : Input_rom_registry::Input_rom_changed_fn,
 	{
 		env()->parent()->announce(_ep.manage(_root));
 
+		Genode::config()->sigh(_config_dispatcher);
+
 		_handle_config(0);
 	}
 };
