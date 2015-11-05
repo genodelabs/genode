@@ -23,7 +23,7 @@ struct Platform::Connection : Genode::Connection<Session>, Client
 {
 	Connection()
 	:
-		Genode::Connection<Session>(session("ram_quota=12K")),
+		Genode::Connection<Session>(session("ram_quota=20K")),
 		Client(cap())
 	{ }
 };
