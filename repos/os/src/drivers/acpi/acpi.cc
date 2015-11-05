@@ -19,6 +19,7 @@
 
 /* base includes */
 #include <io_mem_session/connection.h>
+#include <util/mmio.h>
 
 /* os includes */
 #include <os/reporter.h>
@@ -72,7 +73,6 @@ struct Apic_override : Apic_struct
 } __attribute__((packed));
 
 struct Dmar_struct_header;
-struct Dmar_struct;
 
 /* ACPI spec 5.2.6 */
 struct Generic
@@ -97,16 +97,21 @@ struct Generic
 	Mcfg_struct *mcfg_struct() { return reinterpret_cast<Mcfg_struct *>(&creator_rev + 3); }
 	Mcfg_struct *mcfg_end()    { return reinterpret_cast<Mcfg_struct *>(signature + size); }
 
-	/* DMAR Intel VT-d structures */
 	Dmar_struct_header *dmar_header() { return reinterpret_cast<Dmar_struct_header *>(this); }
-	Dmar_struct *dmar_struct() { return reinterpret_cast<Dmar_struct *>(&creator_rev + 4); }
-	Dmar_struct *dmar_end()    { return reinterpret_cast<Dmar_struct *>(signature + size); }
 } __attribute__((packed));
 
 
-/**
- * DMA Remapping structures
- */
+struct Dmar_common : Genode::Mmio
+{
+	struct Type : Register<0x0, 16> {
+		enum { DRHD= 0U, RMRR = 0x1U, ATSR = 0x2U, RHSA = 0x3U }; };
+	struct Length : Register<0x2, 16> { };
+
+	Dmar_common(addr_t mmio) : Genode::Mmio(mmio) { }
+};
+
+
+/* DMA Remapping Reporting Structure - Intel VT-d IO Spec - 8.1. */
 struct Dmar_struct_header : Generic
 {
 	enum { INTR_REMAP_MASK = 0x1U };
@@ -114,37 +119,96 @@ struct Dmar_struct_header : Generic
 	uint8_t width;
 	uint8_t flags;
 	uint8_t reserved[10];
+
+	/* DMAR Intel VT-d structures */
+	addr_t dmar_entry_start() { return reinterpret_cast<addr_t>(&creator_rev + 4); }
+	addr_t dmar_entry_end() { return reinterpret_cast<addr_t>(signature + size); }
+
+	template <typename FUNC>
+	void apply(FUNC const &func = [] () { } )
+	{
+		addr_t addr = dmar_entry_start();
+		do {
+			Dmar_common dmar(addr);
+
+			func(dmar);
+
+			addr = dmar.base + dmar.read<Dmar_common::Length>();
+		} while (addr < dmar_entry_end());
+	}
+
+	struct Dmar_struct_header * clone()
+	{
+		size_t const size = dmar_entry_end() - reinterpret_cast<addr_t>(this);
+		char * clone = new (env()->heap()) char[size];
+		memcpy(clone, this, size);
+
+		return reinterpret_cast<Dmar_struct_header *>(clone);
+	}
 } __attribute__((packed));
 
-/* Reserved Memory Region Reporting structure - Intel VT-d IO Spec - 8.4. */
-struct Rmrr_struct
+
+/* Intel VT-d IO Spec - 8.3.1. */
+struct Device_scope : Genode::Mmio
 {
-	uint16_t type;
-	uint16_t length;
-	uint16_t reserved;
-	uint16_t pci_segment;
-	uint64_t start;
-	uint64_t end;
-} __attribute__((packed));
+	Device_scope(addr_t a) : Genode::Mmio(a) { }
 
-/* DMA Remapping Reporting structure - Intel VT-d IO Spec - 8.1. */
-struct Dmar_struct
+	struct Type   : Register<0x0, 8> { enum { PCI_END_POINT = 0x1 }; };
+	struct Length : Register<0x1, 8> { };
+	struct Bus    : Register<0x5, 8> { };
+
+	struct Path   : Register_array<0x6, 8, 1, 16> {
+		struct Dev  : Bitfield<0,8> { };
+		struct Func : Bitfield<8,8> { };
+	};
+
+	unsigned count() const { return (read<Length>() - 6) / 2; }
+};
+
+
+/* DMA Remapping Reporting structure - Intel VT-d IO Spec - 8.3. */
+struct Dmar_rmrr : Genode::Mmio
 {
-	enum { DRHD= 0U, RMRR = 0x1U, ATSR = 0x2U, RHSA = 0x3U };
-	uint16_t type;
-	uint16_t length;
-	uint8_t  flags;
-	uint8_t  reserved;
-	uint16_t pci_segment;
-	uint64_t base;
-	uint64_t limit;
+	struct Length : Register<0x02, 16> { };
+	struct Base   : Register<0x08, 64> { };
+	struct Limit  : Register<0x10, 64> { };
 
-	Dmar_struct *next() {
-		return reinterpret_cast<Dmar_struct *>((uint8_t *)this + length); }
+	Dmar_rmrr(addr_t a) : Genode::Mmio(a) { }
 
-	Rmrr_struct *rmrr() { return reinterpret_cast<Rmrr_struct *>(&base + 1); }
-} __attribute__((packed));
+	template <typename FUNC>
+	void apply(FUNC const &func = [] () { } )
+	{
+		addr_t addr = base + 24;
+		do {
+			Device_scope scope(addr);
 
+			func(scope);
+
+			addr = scope.base + scope.read<Device_scope::Length>();
+		} while (addr < base + read<Length>());
+	}
+};
+
+
+class Dmar_entry : public List<Dmar_entry>::Element
+{
+	private:
+
+		Dmar_struct_header *_header;
+
+	public:
+
+		Dmar_entry(Dmar_struct_header * h) : _header(h) { }
+
+		template <typename FUNC>
+		void apply(FUNC const &func = [] () { } ) { _header->apply(func); }
+
+		static List<Dmar_entry> *list()
+		{
+			static List<Dmar_entry> _list;
+			return &_list;
+		}
+};
 
 /**
  * List that holds interrupt override information
@@ -319,11 +383,11 @@ class Table_wrapper
 			     head->flags & Dmar_struct_header::INTR_REMAP_MASK ?
 			     " , IRQ remapping supported" : "");
 
-			Dmar_struct *dmar = _table->dmar_struct();
-			for (; dmar < _table->dmar_end(); dmar = dmar->next())
-				if (dmar->type == Dmar_struct::RMRR)
-					PLOG("RMRR: [0x%llx,0x%llx] - DMA region reported by BIOS",
-					     dmar->base, dmar->limit);
+			head->apply([&] (Dmar_common const &dmar) {
+				PLOG("DMA remapping structure type=%u", dmar.read<Dmar_common::Type>());
+			});
+
+			Dmar_entry::list()->insert(new (env()->heap()) Dmar_entry(head->clone()));
 		}
 
 		Table_wrapper(addr_t base) : _base(base), _table(0)
@@ -1228,6 +1292,50 @@ void Acpi::generate_report()
 			});
 		}
 
+		/* lambda definition for scope evaluation in rmrr */
+		auto func_scope = [&] (Device_scope const &scope)
+		{
+			xml.node("scope", [&] () {
+				char number[8];
+				Genode::snprintf(number, sizeof(number), "%u",
+				                 scope.read<Device_scope::Bus>());
+				xml.attribute("bus_start", number);
+				for (unsigned j = 0 ; j < scope.count(); j++) {
+					xml.node("path", [&] () {
+						char number[8];
+						Genode::snprintf(number, sizeof(number), "0x%x",
+						                 scope.read<Device_scope::Path::Dev>(j));
+						xml.attribute("dev", number);
+						Genode::snprintf(number, sizeof(number), "0x%x",
+						                 scope.read<Device_scope::Path::Func>(j));
+						xml.attribute("func", number);
+					});
+				}
+			});
+		};
+
+		for (Dmar_entry *entry = Dmar_entry::list()->first();
+		     entry; entry = entry->next()) {
+
+			entry->apply([&] (Dmar_common const &dmar) {
+				if (dmar.read<Dmar_common::Type>() != Dmar_common::Type::RMRR)
+					return;
+
+				Dmar_rmrr rmrr(dmar.base);
+
+				xml.node("rmrr", [&] () {
+					char number[20];
+					Genode::snprintf(number, sizeof(number), "0x%llx",
+					                 rmrr.read<Dmar_rmrr::Base>());
+					xml.attribute("start", number);
+					Genode::snprintf(number, sizeof(number), "0x%llx",
+					                 rmrr.read<Dmar_rmrr::Limit>());
+					xml.attribute("end", number);
+
+					rmrr.apply(func_scope);
+				});
+			});
+		}
 		{
 			Element *e = Element::list()->first();
 
