@@ -109,6 +109,10 @@ namespace Noux {
 				sysio->fcntl_out.result = _fh->status_flags();
 				return true;
 
+			case Sysio::FCNTL_CMD_SET_FILE_STATUS_FLAGS:
+				_fh->status_flags(sysio->fcntl_in.long_arg);
+				return true;
+
 			default:
 
 				PWRN("invalid fcntl command %d", sysio->fcntl_in.cmd);

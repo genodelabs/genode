@@ -58,6 +58,8 @@ class Vfs::Vfs_handle
 
 		int status_flags() const { return _status_flags; }
 
+		void status_flags(int flags) { _status_flags = flags; }
+
 		/**
 		 * Return seek offset in bytes
 		 */
