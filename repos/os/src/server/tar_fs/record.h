@@ -47,7 +47,7 @@ namespace File_system {
 				strncpy(buf, field, sizeof(buf));
 
 				unsigned long value = 0;
-				ascii_to_unsigned_long(buf, value, 8);
+				ascii_to_unsigned(buf, value, 8);
 				return value;
 			}
 

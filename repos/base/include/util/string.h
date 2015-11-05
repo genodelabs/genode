@@ -276,10 +276,10 @@ namespace Genode {
 	 * characters in front of the number. If the number is prefixed with "0x",
 	 * a base of 16 is used, otherwise a base of 10.
 	 */
-	inline size_t ascii_to_unsigned_long(const char *s, unsigned long &result,
-	                                     unsigned base)
+	template <typename T>
+	inline size_t ascii_to_unsigned(const char *s, T &result, unsigned base)
 	{
-		unsigned long i = 0, value = 0;
+		T i = 0, value = 0;
 
 		if (!*s) return i;
 
@@ -334,8 +334,20 @@ namespace Genode {
 	 */
 	inline size_t ascii_to(const char *s, unsigned long &result)
 	{
-		return ascii_to_unsigned_long(s, result, 0);
+		return ascii_to_unsigned(s, result, 0);
 	}
+
+
+	/**
+	 * Read unsigned long long value from string
+	 *
+	 * \return number of consumed characters
+	 */
+	inline size_t ascii_to(const char *s, unsigned long long &result)
+	{
+		return ascii_to_unsigned(s, result, 0);
+	}
+
 
 
 	/**
@@ -345,10 +357,7 @@ namespace Genode {
 	 */
 	inline size_t ascii_to(const char *s, unsigned int &result)
 	{
-		unsigned long result_long = 0;
-		size_t ret = ascii_to_unsigned_long(s, result_long, 0);
-		result = result_long;
-		return ret;
+		return ascii_to_unsigned(s, result, 0);
 	}
 
 
@@ -369,7 +378,7 @@ namespace Genode {
 		int j = 0;
 		unsigned long value = 0;
 
-		j = ascii_to_unsigned_long(s, value, 10);
+		j = ascii_to_unsigned(s, value, 10);
 
 		if (!j) return i;
 
@@ -391,7 +400,7 @@ namespace Genode {
 		unsigned long res = 0;
 
 		/* convert numeric part of string */
-		int i = ascii_to_unsigned_long(s, res, 0);
+		int i = ascii_to_unsigned(s, res, 0);
 
 		/* handle suffixes */
 		if (i > 0)

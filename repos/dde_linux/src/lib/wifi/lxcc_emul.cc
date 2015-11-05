@@ -1034,7 +1034,7 @@ int dev_set_name(struct device *dev, const char *fmt, ...)
 int strict_strtoul(const char *s, unsigned int base, unsigned long *res)
 {
 	unsigned long r = -EINVAL;
-	Genode::ascii_to_unsigned_long(s, r, base);
+	Genode::ascii_to_unsigned(s, r, base);
 	*res = r;
 
 	return r;

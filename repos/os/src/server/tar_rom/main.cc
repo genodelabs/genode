@@ -79,8 +79,8 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 			while (block_id < block_cnt) {
 
 				unsigned long file_size = 0;
-				Genode::ascii_to_unsigned_long(_tar_addr + block_id*_BLOCK_LEN + _FIELD_SIZE_LEN,
-				                               file_size, 8);
+				Genode::ascii_to_unsigned(_tar_addr + block_id*_BLOCK_LEN +
+				                          _FIELD_SIZE_LEN, file_size, 8);
 
 				/* get name of tar record */
 				char const *record_filename = _tar_addr + block_id*_BLOCK_LEN;
