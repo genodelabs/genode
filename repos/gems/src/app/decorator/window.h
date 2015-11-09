@@ -29,6 +29,82 @@ class Decorator::Window : public Window_base
 {
 	private:
 
+		Nitpicker::Session_client &_nitpicker;
+
+		/*
+		 * Flag indicating that the current window position has been propagated
+		 * to the window's corresponding nitpicker views.
+		 */
+		bool _nitpicker_views_up_to_date = false;
+
+		/*
+		 * Flag indicating that the stacking position of the window within the
+		 * window stack has changed. The new stacking position must be
+		 * propagated to nitpicker.
+		 */
+		bool _nitpicker_stacking_up_to_date = false;
+
+		Nitpicker::Session::View_handle _neighbor;
+
+		struct Nitpicker_view
+		{
+			Nitpicker::Session_client      &_nitpicker;
+			Nitpicker::Session::View_handle _handle { _nitpicker.create_view() };
+
+			typedef Nitpicker::Session::Command Command;
+
+			Nitpicker_view(Nitpicker::Session_client &nitpicker, unsigned id = 0)
+			:
+				_nitpicker(nitpicker)
+			{
+				/*
+				 * We supply the window ID as label for the anchor view.
+				 */
+				if (id) {
+					char buf[128];
+					Genode::snprintf(buf, sizeof(buf), "%d", id);
+
+					_nitpicker.enqueue<Command::Title>(_handle, buf);
+				}
+			}
+
+			~Nitpicker_view()
+			{
+				_nitpicker.destroy_view(_handle);
+			}
+
+			Nitpicker::Session::View_handle handle() const { return _handle; }
+
+			void stack(Nitpicker::Session::View_handle neighbor)
+			{
+				_nitpicker.enqueue<Command::To_front>(_handle, neighbor);
+			}
+
+			void place(Rect rect)
+			{
+				_nitpicker.enqueue<Command::Geometry>(_handle, rect);
+				Point offset = Point(0, 0) - rect.p1();
+				_nitpicker.enqueue<Command::Offset>(_handle, offset);
+			}
+		};
+
+		Nitpicker_view _bottom_view { _nitpicker },
+		               _right_view  { _nitpicker },
+		               _left_view   { _nitpicker },
+		               _top_view    { _nitpicker };
+
+		Nitpicker_view _content_view { _nitpicker, id() };
+
+		static Border _init_border() {
+			return Border(_border_size + _title_height,
+			              _border_size, _border_size, _border_size); }
+
+		Border const _border { _init_border() };
+
+		bool _global_to_front = false;
+
+		unsigned _topped_cnt = 0;
+
 		Window_title _title;
 
 		bool _focused = false;
@@ -41,9 +117,6 @@ class Decorator::Window : public Window_base
 		static unsigned const _border_size = 4;
 		static unsigned const _title_height = 16;
 
-		static Border _border() {
-			return Border(_border_size + _title_height,
-			              _border_size, _border_size, _border_size); }
 
 		Color _bright = { 255, 255, 255, 64 };
 		Color _dark   = { 0, 0, 0, 127 };
@@ -53,7 +126,6 @@ class Decorator::Window : public Window_base
 		bool _has_alpha = false;
 
 		Area const _icon_size { 16, 16 };
-
 
 		/*
 		 * Intensity of the title-bar radient in percent. A value of 0 produces
@@ -329,9 +401,77 @@ class Decorator::Window : public Window_base
 		Window(unsigned id, Nitpicker::Session_client &nitpicker,
 		       Animator &animator, Config const &config)
 		:
-			Window_base(id, nitpicker, _border()),
+			Window_base(id),
+			_nitpicker(nitpicker),
 			_animator(animator), _config(config)
 		{ }
+
+		void stack(Nitpicker::Session::View_handle neighbor) override
+		{
+			_neighbor = neighbor;
+			_nitpicker_stacking_up_to_date = false;
+		}
+
+		Nitpicker::Session::View_handle frontmost_view() const override
+		{
+			return _bottom_view.handle();
+		}
+
+		Rect outer_geometry() const override
+		{
+			return Rect(geometry().p1() - Point(_border.left,  _border.top),
+			            geometry().p2() + Point(_border.right, _border.bottom));
+		}
+
+		void border_rects(Rect *top, Rect *left, Rect *right, Rect *bottom) const
+		{
+			outer_geometry().cut(geometry(), top, left, right, bottom);
+		}
+
+		bool is_in_front_of(Window_base const &neighbor) const override
+		{
+			return _neighbor == neighbor.frontmost_view();
+		}
+
+		void update_nitpicker_views() override
+		{
+			if (!_nitpicker_views_up_to_date) {
+
+				/* update view positions */
+				Rect top, left, right, bottom;
+				border_rects(&top, &left, &right, &bottom);
+
+				_content_view.place(geometry());
+				_top_view    .place(top);
+				_left_view   .place(left);
+				_right_view  .place(right);
+				_bottom_view .place(bottom);
+
+				_nitpicker_views_up_to_date = true;
+			}
+
+			if (!_nitpicker_stacking_up_to_date) {
+
+				/*
+				 * Bring the view to the global top of the view stack if the
+				 * 'topped' counter changed. Otherwise, we refer to a
+				 * session-local neighbor for the restacking operation.
+				 */
+				Nitpicker::Session::View_handle neighbor = _neighbor;
+				if (_global_to_front) {
+					neighbor = Nitpicker::Session::View_handle();
+					_global_to_front = false;
+				}
+
+				_content_view.stack(neighbor);
+				_top_view.stack(_content_view.handle());
+				_left_view.stack(_top_view.handle());
+				_right_view.stack(_left_view.handle());
+				_bottom_view.stack(_right_view.handle());
+
+				_nitpicker_stacking_up_to_date = true;
+			}
+		}
 
 		void adapt_to_changed_config()
 		{

@@ -205,7 +205,35 @@ static bool attribute_has_value(Genode::Xml_node node,
 
 bool Decorator::Window::update(Genode::Xml_node window_node)
 {
-	bool updated = Window_base::update(window_node);
+	bool updated = false;
+
+	/*
+	 * Detect the need to bring the window to the top of the global
+	 * view stack.
+	 */
+	unsigned const topped_cnt = attribute(window_node, "topped", 0UL);
+	if (topped_cnt != _topped_cnt) {
+
+		_global_to_front               = true;
+		_topped_cnt                    = topped_cnt;
+		_nitpicker_stacking_up_to_date = false;
+
+		updated |= true;
+	}
+
+	/*
+	 * Detect geometry changes
+	 */
+	Rect new_geometry = rect_attribute(window_node);
+	if (new_geometry.p1() != geometry().p1()
+	 || new_geometry.p2() != geometry().p2()) {
+
+		geometry(new_geometry);
+
+		_nitpicker_views_up_to_date = false;
+
+		updated |= true;
+	}
 
 	_focused   = attribute_has_value(window_node, "focused",   "yes");
 	_has_alpha = attribute_has_value(window_node, "has_alpha", "yes");

@@ -1,5 +1,5 @@
 /*
- * \brief  Accessor for the default font
+ * \brief  Accessor for textures
  * \author Norman Feske
  * \date   2015-09-16
  */
