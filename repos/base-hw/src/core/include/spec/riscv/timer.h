@@ -14,19 +14,18 @@
 #ifndef _TIMER_H_
 #define _TIMER_H_
 
+/* Genode includes */
 #include <base/printf.h>
 #include <base/stdint.h>
 
+/* Core includes */
 #include <machine_call.h>
 
-namespace Genode
-{
-	/**
-	 * Timer driver for core
-	 */
-	class Timer;
-}
+namespace Genode { class Timer; }
 
+/**
+ * Timer driver for core
+ */
 struct Genode::Timer
 {
 	private:
@@ -62,7 +61,7 @@ struct Genode::Timer
 		void start_one_shot(unsigned const tics, unsigned /* cpu */)
 		{
 			_timeout = _stime() + tics;
-			asm volatile ("csrw stimecmp, %0" : : "r"(_timeout));
+			Machine::set_sys_timer(_timeout);
 		}
 
 		/**
