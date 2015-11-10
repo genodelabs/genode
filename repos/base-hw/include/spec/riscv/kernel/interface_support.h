@@ -25,11 +25,7 @@ namespace Kernel
 	/**
 	 * Events that are provided by a kernel thread-object for user handling
 	 */
-	struct Thread_event_id
-	{
-		enum { FAULT = 0 };
-	};
+	struct Thread_event_id { enum { FAULT = 0 }; };
 }
 
 #endif /* _KERNEL__INTERFACE_SUPPORT_H_ */
-

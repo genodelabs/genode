@@ -11,6 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Core includes */
 #include <kernel/cpu.h>
 
 extern int _machine_begin, _machine_end;

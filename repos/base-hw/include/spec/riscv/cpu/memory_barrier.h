@@ -1,4 +1,4 @@
-/**
+/*
  * \brief  Memory barrier
  * \author Sebastian Sumpf
  * \date   2015-06-01
@@ -16,10 +16,8 @@
 
 namespace Genode {
 
-	static inline void memory_barrier()
-	{
-		asm volatile ("fence" ::: "memory");
-	}
+	static inline void memory_barrier() {
+		asm volatile ("fence" ::: "memory"); }
 }
 
 #endif /* _INCLUDE__RISCV__CPU__MEMORY_BARRIER_H_ */

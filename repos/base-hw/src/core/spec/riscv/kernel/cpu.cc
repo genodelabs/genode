@@ -38,7 +38,8 @@ struct Mstatus : Genode::Register<64>
 };
 
 
-void Kernel::Cpu::init(Kernel::Pic &pic, Kernel::Pd & core_pd, Genode::Board & board)
+void Kernel::Cpu::init(Kernel::Pic &pic, Kernel::Pd & core_pd,
+                       Genode::Board & board)
 {
 	/* read status register */
 	Mstatus::access_t mstatus = 0;
@@ -50,6 +51,8 @@ void Kernel::Cpu::init(Kernel::Pic &pic, Kernel::Pd & core_pd, Genode::Board & b
 	Mstatus::Ie::set(mstatus, 0);                     /* disable interrupts  */
 	Mstatus::Priv::set(mstatus, Mstatus::SUPERVISOR); /* set supervisor mode */
 
+	addr_t client_context_ptr_off = (addr_t)&_mt_client_context_ptr & 0xfff;
+	addr_t client_context_ptr     = exception_entry | client_context_ptr_off;
 	asm volatile ("csrw sasid,   %0\n" /* address space id  */
 	              "csrw sptbr,   %1\n" /* set page table    */
 	              "csrw mstatus, %2\n" /* change mode       */
@@ -60,7 +63,7 @@ void Kernel::Cpu::init(Kernel::Pic &pic, Kernel::Pd & core_pd, Genode::Board & b
 	                "r" (core_pd.translation_table()),
 	                "r" (mstatus),
 	                "r" (exception_entry),
-	                "r" (exception_entry | ((addr_t)&_mt_client_context_ptr & 0xfff))
+	                "r" (client_context_ptr)
 	              : "memory");
 }
 

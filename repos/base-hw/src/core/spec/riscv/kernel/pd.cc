@@ -1,7 +1,7 @@
 /*
  * \brief   Kernel backend for protection domains
- * \author  Stefan Kalkowski
- * \date    2015-03-20
+ * \author  Seastian Sumpf
+ * \date    2015-06-02
  */
 
 /*
@@ -38,7 +38,7 @@ Kernel::Pd::~Pd()
 		oir->~Object_identity_reference();
 
 	/* clean up buffers of memory management */
-	Cpu::flush_tlb_by_pid(asid);
+	Cpu::invalidate_tlb_by_pid(asid);
 	alloc().free(asid);
 }
 
