@@ -25,7 +25,7 @@ void Thread::exception(unsigned const cpu)
 		return;
 
 	switch(cpu_exception) {
-	case SUPERVISOR_CALL:
+	case ECALL_FROM_USER:
 		_call();
 		ip += 4; /* set to next instruction */
 		break;
@@ -55,11 +55,14 @@ void Thread::_mmu_exception()
 
 void Thread::_call_update_pd()
 {
-	asm volatile ("sfence.vm");
+	Cpu::sfence();
 }
 
 
-void Thread::_call_update_data_region() { }
+void Thread::_call_update_data_region()
+{
+	Cpu::sfence();
+}
 
 
 void Thread::_call_update_instr_region() { }

@@ -14,9 +14,12 @@
 #ifndef _TRANSLATION_TABLE_H_
 #define _TRANSLATION_TABLE_H_
 
+/* Genode includes */
 #include <util/misc_math.h>
 #include <util/register.h>
 
+/* Core includes */
+#include <cpu.h>
 #include <page_flags.h>
 #include <translation_table_allocator.h>
 
@@ -186,6 +189,9 @@ class Sv39::Level_x_translation_table
 
 				func(vo, pa, sz, _entries[i]);
 
+				/* flush cached table entry address */
+				Cpu::translation_added((addr_t)&_entries[i], sz);
+
 				/* check whether we wrap */
 				if (end < vo) return;
 
@@ -215,7 +221,7 @@ class Sv39::Level_x_translation_table
 					typename Descriptor::access_t blk_desc =
 						Block_descriptor::create(flags, pa);
 
-					if (Descriptor::valid(desc) && desc != blk_desc)
+					if (Descriptor::valid(desc) && desc == blk_desc)
 						throw Double_insertion();
 
 					desc = blk_desc;
@@ -372,7 +378,7 @@ namespace Sv39 {
 				Descriptor::access_t blk_desc =
 					Block_descriptor::create(flags, pa);
 
-				if (Descriptor::valid(desc) && desc != blk_desc)
+				if (Descriptor::valid(desc) && desc == blk_desc)
 					throw Double_insertion();
 
 				desc = blk_desc;
@@ -382,7 +388,7 @@ namespace Sv39 {
 	template <> template <>
 	struct Level_3_translation_table::Remove_func<None>
 	{
-		Remove_func(Translation_table_allocator * /* alloc */) { }
+		Remove_func(Translation_table_allocator *) { }
 
 		void operator () (addr_t const          vo,
 		                  addr_t const          pa,
@@ -400,12 +406,12 @@ namespace Genode {
 
 			enum {
 				TABLE_LEVEL_X_SIZE_LOG2 = Sv39::SIZE_LOG2_4K,
-				CORE_VM_AREA_SIZE  = 128 * 1024 * 1024,
-				CORE_TRANS_TABLE_COUNT  =
-				_count(CORE_VM_AREA_SIZE, Sv39::SIZE_LOG2_1G)
-				+ _count(CORE_VM_AREA_SIZE, Sv39::SIZE_LOG2_2M),
+				CORE_VM_AREA_SIZE = 128 * 1024 * 1024,
+				CORE_TRANS_TABLE_COUNT =
+					_count(CORE_VM_AREA_SIZE, Sv39::SIZE_LOG2_1G) +
+					_count(CORE_VM_AREA_SIZE, Sv39::SIZE_LOG2_2M),
 			};
 	};
-} /* namespace Genode */
+}
 
 #endif /* _TRANSLATION_TABLE_H_ */

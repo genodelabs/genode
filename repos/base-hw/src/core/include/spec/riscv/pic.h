@@ -16,16 +16,11 @@
 #ifndef _PIC_H_
 #define _PIC_H_
 
-#include <base/printf.h>
+namespace Genode { class Pic; }
 
-namespace Genode
-{
-	/**
-	 * Programmable interrupt controller for core
-	 */
-	class Pic;
-}
-
+/**
+ * Dummy PIC driver for core
+ */
 class Genode::Pic
 {
 	public:
@@ -39,32 +34,10 @@ class Genode::Pic
 			NR_OF_IRQ = 15,
 		};
 
-		/**
-		 * Constructor
-		 */
 		Pic() { }
-
-		/**
-		 * Receive a pending request number 'i'
-		 */
-		bool take_request(unsigned & i) {
-			return true;
-		}
-
-		/**
-		 * Unmask interrupt 'i'
-		 */
+		bool take_request(unsigned & i) { return true; }
 		void unmask(unsigned const i, unsigned) { }
-
-		/**
-		 * Mask interrupt 'i'
-		 */
 		void mask(unsigned const i) { }
-
-		/*************
-		 ** Dummies **
-		 *************/
-
 		void finish_request() { }
 };
 

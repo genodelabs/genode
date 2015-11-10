@@ -108,15 +108,33 @@ class Genode::Cpu
 		static void wait_for_interrupt() { asm volatile ("wfi"); };
 
 		/**
+		 * From the manual
+		 *
+		 * The behavior of SFENCE.VM depends on the current value of the sasid
+		 * register. If sasid is nonzero, SFENCE.VM takes effect only for address
+		 * translations in the current address space. If sasid is zero, SFENCE.VM
+		 * affects address translations for all address spaces. In this case, it
+		 * also affects global mappings, which are described in Section 4.5.1.
+		 *
+		 * Right no we will flush anything
+		 */
+		static void sfence()
+		{
+			asm volatile ("csrrw t0, sasid, x0\n"
+			              "sfence.vm\n"
+			              "csrw sasid, t0\n"
+			              : : : "t0");
+		}
+
+		/**
 		 * Post processing after a translation was added to a translation table
 		 *
 		 * \param addr  virtual address of the translation
 		 * \param size  size of the translation
 		 */
-		static void translation_added(addr_t const addr, size_t const size)
-		{
-			PDBG("not impl");
-		}
+		static void translation_added(addr_t const addr, size_t const size);
+
+		static void invalidate_tlb_by_pid(unsigned const pid) { sfence(); }
 
 		/**
 		 * Return kernel name of the executing CPU
@@ -128,11 +146,6 @@ class Genode::Cpu
 		 */
 		static unsigned primary_id() { return 0; }
 
-		static void flush_tlb_by_pid(unsigned const pid)
-		{
-			PDBG("not impl");
-		}
-
 		static addr_t sbadaddr()
 		{
 			addr_t addr;
@@ -140,20 +153,11 @@ class Genode::Cpu
 			return addr;
 		}
 
-		static void data_synchronization_barrier() {
-			asm volatile ("fence\n" : : : "memory"); }
-
 		/*************
 		 ** Dummies **
 		 *************/
 
 		void switch_to(User_context&) { }
-		static void prepare_proceeding(Cpu_lazy_state *, Cpu_lazy_state *) { }
-		static void invalidate_instr_caches() { }
-		static void invalidate_data_caches() { }
-		static void flush_data_caches() { }
-		static void flush_data_caches_by_virt_region(addr_t, size_t) { }
-		static void invalidate_instr_caches_by_virt_region(addr_t, size_t) { }
 };
 
 #endif /* _CPU_H_ */

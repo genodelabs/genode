@@ -11,6 +11,7 @@ SRC_CC += spec/riscv/kernel/pd.cc
 SRC_CC += spec/riscv/kernel/cpu.cc
 SRC_CC += spec/riscv/kernel/exception_vector.cc
 SRC_CC += spec/riscv/platform_support.cc
+SRC_CC += spec/riscv/cpu.cc
 
 #add assembly sources
 SRC_S += spec/riscv/mode_transition.s

@@ -1,6 +1,7 @@
 /**
  * \brief  Calls supported by machine mode (or SBI interface in RISC-V)
  * \author Sebastian Sumpf
+ * \author Martin Stein
  * \date   2015-06-14
  */
 
@@ -14,23 +15,29 @@
 #ifndef _MACHINE_CALL_H_
 #define _MACHINE_CALL_H_
 
-#include <base/stdint.h>
+/* base-hw includes */
+#include <kernel/interface.h>
 
 namespace Machine {
 
-	enum Call {
-		PUT_CHAR      = 0x100, /* output character */
-		SET_SYS_TIMER = 0x101, /* set timer */
-		IS_USER_MODE  = 0x102, /* check if we are in user mode */
-	};
+	using namespace Kernel;
 
-	inline void call(Call const number, Genode::addr_t const arg0)
-	{
-		register Genode::addr_t a0 asm("a0") = number;;
-		register Genode::addr_t a1 asm("a1") = arg0;
+	/**
+	 * SBI calls to machine mode.
+	 *
+	 * Keep in sync with mode_transition.s.
+	 */
+	constexpr Call_arg call_id_put_char()      { return 0x100; }
+	constexpr Call_arg call_id_set_sys_timer() { return 0x101; }
+	constexpr Call_arg call_id_is_user_mode()  { return 0x102; }
 
-		asm volatile ("ecall\n" : : "r"(a0), "r"(a1));
-	}
+	inline void put_char(Genode::uint64_t const c) {
+		call(call_id_put_char(), (Call_arg)c); }
+
+	inline void set_sys_timer(addr_t const t) {
+		call(call_id_set_sys_timer(), (Call_arg)t); }
+
+	inline bool is_user_mode() { return call(call_id_is_user_mode()); }
 }
 
 #endif /* _MACHINE_CALL_H_ */

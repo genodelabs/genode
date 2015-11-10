@@ -11,11 +11,6 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-
-/***************************************************
- ** Constant values that are pretty commonly used **
- ***************************************************/
-
 /* alignment constraints */
-.set DATA_ACCESS_ALIGNM_LOG2, 2
+.set DATA_ACCESS_ALIGNM_LOG2, 3
 .set MIN_PAGE_SIZE_LOG2, 12

@@ -18,40 +18,22 @@
 
 using namespace Genode;
 
-Cpu::User_context::User_context() { }
-
 
 Native_region * Platform::_ram_regions(unsigned const i)
 {
-	static Native_region _regions[] =
-	{
-		{ 0, 128 * 1024 * 1024 }
-	};
+	static Native_region _regions[] = { { 0, 128 * 1024 * 1024 } };
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
 
 
-Native_region * Platform::_core_only_mmio_regions(unsigned const i)
-{
-	static Native_region _regions[] =
-	{
-	};
-	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
-}
+Cpu::User_context::User_context() { }
 
+Native_region * Platform::_core_only_mmio_regions(unsigned) { return 0; }
 
-void Platform::_init_io_port_alloc()
-{ }
+void Platform::_init_io_port_alloc() { }
 
+void Platform::_init_io_mem_alloc() { }
 
-void Platform::_init_io_mem_alloc()
-{ }
+void Platform::setup_irq_mode(unsigned, unsigned, unsigned) { }
 
-void Platform::setup_irq_mode(unsigned, unsigned, unsigned) { PDBG("not impl");}
-
-
-long Platform::irq(long const user_irq)
-{
-	PDBG("not impl");
-	return 0;
-}
+long Platform::irq(long const user_irq) { return 0; }

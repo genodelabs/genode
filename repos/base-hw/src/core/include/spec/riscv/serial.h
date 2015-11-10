@@ -44,9 +44,9 @@ class Genode::Serial
 				struct Stdout    : Bitfield<56, 1> { };
 			};
 
-			Machine::call(Machine::PUT_CHAR, Arg::Char::bits(c) |
-			                                 Arg::Stdout::bits(1) |
-			                                 Arg::Write_cmd::bits(1));
+			Machine::put_char(Arg::Char::bits(c) |
+			                  Arg::Stdout::bits(1) |
+			                  Arg::Write_cmd::bits(1));
 		}
 };
 

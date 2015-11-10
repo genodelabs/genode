@@ -217,9 +217,6 @@ void Core_platform_pd::_map(addr_t start, addr_t end, bool io_mem)
 	if (start < VIRT_ADDR_SPACE_START)
 		start = VIRT_ADDR_SPACE_START;
 
-	if (end > VIRT_ADDR_SPACE_START + VIRT_ADDR_SPACE_SIZE)
-		end = VIRT_ADDR_SPACE_START + VIRT_ADDR_SPACE_SIZE;
-
 	size_t size  = round_page(end) - start;
 	try {
 		_table()->insert_translation(start, start, size, flags, _table_alloc());
