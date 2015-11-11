@@ -2,7 +2,7 @@ LIB_DIR     := $(REP_DIR)/src/lib/wpa_driver_nl80211
 LIB_INC_DIR := $(LIB_DIR)/include
 INC_DIR     += $(LIB_INC_DIR)
 
-LIBS += libc libnl
+LIBS += libc libnl libnl_include
 
 SHARED_LIB = yes
 LD_OPT += --version-script=$(LIB_DIR)/symbol.map
