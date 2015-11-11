@@ -24,10 +24,10 @@
 
 /* gems includes */
 #include <gems/animator.h>
+#include <gems/dither_painter.h>
 
 /* local includes */
 #include "style_database.h"
-#include <dither_painter.h>
 
 namespace Menu_view {
 
