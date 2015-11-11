@@ -18,6 +18,7 @@
 #include <os/pixel_rgb565.h>
 #include <os/attached_rom_dataspace.h>
 #include <os/reporter.h>
+#include <os/server.h>
 
 /* decorator includes */
 #include <decorator/window_stack.h>
@@ -36,7 +37,7 @@ namespace Decorator {
 
 struct Decorator::Main : Window_factory_base
 {
-	Signal_receiver &sig_rec;
+	Server::Entrypoint &ep;
 
 	Nitpicker::Connection nitpicker;
 
@@ -55,8 +56,8 @@ struct Decorator::Main : Window_factory_base
 	 */
 	void handle_window_layout_update(unsigned);
 
-	Signal_dispatcher<Main> window_layout_dispatcher = {
-		sig_rec, *this, &Main::handle_window_layout_update };
+	Signal_rpc_member<Main> window_layout_dispatcher = {
+		ep, *this, &Main::handle_window_layout_update };
 
 	Attached_rom_dataspace window_layout { "window_layout" };
 
@@ -65,8 +66,8 @@ struct Decorator::Main : Window_factory_base
 	 */
 	void handle_pointer_update(unsigned);
 
-	Signal_dispatcher<Main> pointer_dispatcher = {
-		sig_rec, *this, &Main::handle_pointer_update };
+	Signal_rpc_member<Main> pointer_dispatcher = {
+		ep, *this, &Main::handle_pointer_update };
 
 	Attached_rom_dataspace pointer { "pointer" };
 
@@ -97,20 +98,20 @@ struct Decorator::Main : Window_factory_base
 	 */
 	void handle_nitpicker_sync(unsigned);
 
-	Signal_dispatcher<Main> nitpicker_sync_dispatcher = {
-		sig_rec, *this, &Main::handle_nitpicker_sync };
+	Signal_rpc_member<Main> nitpicker_sync_dispatcher = {
+		ep, *this, &Main::handle_nitpicker_sync };
 
 	Config config { *Genode::env()->heap() };
 
 	void handle_config(unsigned);
 
-	Signal_dispatcher<Main> config_dispatcher = {
-		sig_rec, *this, &Main::handle_config};
+	Signal_rpc_member<Main> config_dispatcher = {
+		ep, *this, &Main::handle_config};
 
 	/**
 	 * Constructor
 	 */
-	Main(Signal_receiver &sig_rec) : sig_rec(sig_rec)
+	Main(Server::Entrypoint &ep) : ep(ep)
 	{
 		Genode::config()->sigh(config_dispatcher);
 		handle_config(0);
@@ -121,6 +122,10 @@ struct Decorator::Main : Window_factory_base
 		nitpicker.framebuffer()->sync_sigh(nitpicker_sync_dispatcher);
 
 		hover_reporter.enabled(true);
+
+		/* import initial state */
+		handle_pointer_update(0);
+		handle_window_layout_update(0);
 	}
 
 	/**
@@ -293,25 +298,18 @@ void Decorator::Main::handle_pointer_update(unsigned)
 }
 
 
-int main(int argc, char **argv)
-{
-	static Genode::Signal_receiver sig_rec;
+/************
+ ** Server **
+ ************/
 
-	static Decorator::Main application(sig_rec);
+namespace Server {
 
-	/* import initial state */
-	application.handle_pointer_update(0);
-	application.handle_window_layout_update(0);
+	char const *name() { return "decorator_ep"; }
 
-	/* process incoming signals */
-	for (;;) {
-		using namespace Genode;
+	size_t stack_size() { return 8*1024*sizeof(long); }
 
-		Signal sig = sig_rec.wait_for_signal();
-		Signal_dispatcher_base *dispatcher =
-			dynamic_cast<Signal_dispatcher_base *>(sig.context());
-
-		if (dispatcher)
-			dispatcher->dispatch(sig.num());
+	void construct(Entrypoint &ep)
+	{
+		static Decorator::Main main(ep);
 	}
 }
