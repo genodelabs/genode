@@ -61,28 +61,32 @@ Rect View_stack::_outline(View const &view) const
 
 View const *View_stack::_target_stack_position(View const *neighbor, bool behind)
 {
-	View const *cv = _first_view();
+	if (behind) {
 
-	for (; cv; cv = _next_view(*cv)) {
+		if (!neighbor)
+			return nullptr;
 
-		/* bring view to front? */
-		if (behind && !neighbor)
-			break;
+		/* find target position behind neighbor */
+		for (View const *cv = _first_view(); cv; cv = _next_view(*cv))
+			if (cv == neighbor)
+				return cv;
 
-		/* insert view after cv? */
-		if (behind && (cv == neighbor))
-			break;
+	} else {
 
-		/* insert view in front of cv? */
-		if (!behind && (_next_view(*cv) == neighbor))
-			break;
+		if (neighbor == _first_view())
+			return nullptr;
 
-		/* insert view in front of the background? */
-		if (!behind && !neighbor && _next_view(*cv)->background())
-			break;
+		/* find target position in front of neighbor */
+		for (View const *cv = _first_view(), *next = nullptr; cv; cv = next) {
+
+			next = _next_view(*cv);
+			if (!next || next == neighbor || next->background())
+				return cv;
+		}
 	}
 
-	return cv ? cv : _first_view();
+	/* we should never reach this point */
+	return nullptr;
 }
 
 
