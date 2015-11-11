@@ -364,6 +364,14 @@ extern "C" void free(void *addr, int type, size_t size)
  ** sys/systm.h **
  *****************/
 
+extern "C" void bzero(void *b, size_t len)
+{
+	if (b == nullptr) return;
+
+	Genode::memset(b, 0, len);
+}
+
+
 extern "C" void bcopy(const void *src, void *dst, size_t len)
 {
 	/* XXX may overlap */
