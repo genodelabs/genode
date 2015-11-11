@@ -61,12 +61,16 @@ int rumpuser_init(int version, const struct rumpuser_hyperup *hyp)
  ** Threads **
  *************/
 
-static Hard_context _main_thread(0);
+static Hard_context * main_thread()
+{
+	static Hard_context inst(0);
+	return &inst;
+}
 
 static Hard_context *myself()
 {
 	Hard_context *h = dynamic_cast<Hard_context *>(Genode::Thread_base::myself());
-	return h ? h : &_main_thread;
+	return h ? h : main_thread();
 }
 
 
@@ -181,12 +185,12 @@ void rumpuser_putchar(int ch)
 	if (ch == '\n') {
 		buf[count] = 0;
 		int nlocks;
-		if (myself() != &_main_thread)
+		if (myself() != main_thread())
 			rumpkern_unsched(&nlocks, 0);
 
 		PLOG("rump: %s", buf);
 
-		if (myself() != &_main_thread)
+		if (myself() != main_thread())
 			rumpkern_sched(nlocks, 0);
 
 		count = 0;
@@ -204,21 +208,26 @@ struct Allocator_policy
 	{
 		int nlocks;
 
-		if (myself() != &_main_thread)
+		if (myself() != main_thread())
 			rumpkern_unsched(&nlocks, 0);
 		return nlocks;
 	}
 
 	static void unblock(int nlocks)
 	{
-		if (myself() != &_main_thread)
+		if (myself() != main_thread())
 			rumpkern_sched(nlocks, 0);
 	}
 };
 
 
 typedef Allocator::Fap<128 * 1024 * 1024, Allocator_policy> Rump_alloc;
-static Genode::Lock _alloc_lock;
+
+static Genode::Lock & alloc_lock()
+{
+	static Genode::Lock inst;
+	return inst;
+}
 
 static Rump_alloc* allocator()
 {
@@ -228,7 +237,7 @@ static Rump_alloc* allocator()
 
 int rumpuser_malloc(size_t len, int alignment, void **memp)
 {
-	Genode::Lock::Guard guard(_alloc_lock);
+	Genode::Lock::Guard guard(alloc_lock());
 
 	int align = alignment ? Genode::log2(alignment) : 0;
 	*memp     = allocator()->alloc(len, align);
@@ -243,7 +252,7 @@ int rumpuser_malloc(size_t len, int alignment, void **memp)
 
 void rumpuser_free(void *mem, size_t len)
 {
-	Genode::Lock::Guard guard(_alloc_lock);
+	Genode::Lock::Guard guard(alloc_lock());
 
 	allocator()->free(mem, len);
 
