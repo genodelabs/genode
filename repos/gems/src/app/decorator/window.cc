@@ -214,10 +214,9 @@ bool Decorator::Window::update(Genode::Xml_node window_node)
 	unsigned const topped_cnt = attribute(window_node, "topped", 0UL);
 	if (topped_cnt != _topped_cnt) {
 
-		_global_to_front               = true;
-		_topped_cnt                    = topped_cnt;
-		_nitpicker_stacking_up_to_date = false;
+		_topped_cnt = topped_cnt;
 
+		stack(Nitpicker::Session::View_handle());
 		updated |= true;
 	}
 

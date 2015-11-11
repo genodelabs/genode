@@ -37,13 +37,6 @@ class Decorator::Window : public Window_base
 		 */
 		bool _nitpicker_views_up_to_date = false;
 
-		/*
-		 * Flag indicating that the stacking position of the window within the
-		 * window stack has changed. The new stacking position must be
-		 * propagated to nitpicker.
-		 */
-		bool _nitpicker_stacking_up_to_date = false;
-
 		Nitpicker::Session::View_handle _neighbor;
 
 		struct Nitpicker_view
@@ -100,8 +93,6 @@ class Decorator::Window : public Window_base
 			              _border_size, _border_size, _border_size); }
 
 		Border const _border { _init_border() };
-
-		bool _global_to_front = false;
 
 		unsigned _topped_cnt = 0;
 
@@ -409,7 +400,12 @@ class Decorator::Window : public Window_base
 		void stack(Nitpicker::Session::View_handle neighbor) override
 		{
 			_neighbor = neighbor;
-			_nitpicker_stacking_up_to_date = false;
+
+			_content_view.stack(neighbor);
+			_top_view.stack(_content_view.handle());
+			_left_view.stack(_top_view.handle());
+			_right_view.stack(_left_view.handle());
+			_bottom_view.stack(_right_view.handle());
 		}
 
 		Nitpicker::Session::View_handle frontmost_view() const override
@@ -448,28 +444,6 @@ class Decorator::Window : public Window_base
 				_bottom_view .place(bottom);
 
 				_nitpicker_views_up_to_date = true;
-			}
-
-			if (!_nitpicker_stacking_up_to_date) {
-
-				/*
-				 * Bring the view to the global top of the view stack if the
-				 * 'topped' counter changed. Otherwise, we refer to a
-				 * session-local neighbor for the restacking operation.
-				 */
-				Nitpicker::Session::View_handle neighbor = _neighbor;
-				if (_global_to_front) {
-					neighbor = Nitpicker::Session::View_handle();
-					_global_to_front = false;
-				}
-
-				_content_view.stack(neighbor);
-				_top_view.stack(_content_view.handle());
-				_left_view.stack(_top_view.handle());
-				_right_view.stack(_left_view.handle());
-				_bottom_view.stack(_right_view.handle());
-
-				_nitpicker_stacking_up_to_date = true;
 			}
 		}
 

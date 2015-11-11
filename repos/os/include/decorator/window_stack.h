@@ -259,9 +259,7 @@ void Decorator::Window_stack::update_model(Genode::Xml_node root_node)
 				 * Immediately propagate the new stacking position of the new
 				 * window to nitpicker ('update_nitpicker_views'). Otherwise,
 				 */
-				new_window->stack(_windows.first()
-				                ? _windows.first()->frontmost_view()
-				                : Nitpicker::Session::View_handle());
+				new_window->stack(Nitpicker::Session::View_handle());
 
 				_windows.insert(new_window);
 
