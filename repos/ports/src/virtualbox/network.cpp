@@ -452,11 +452,17 @@ static DECLCALLBACK(void) drvNicDestruct(PPDMDRVINS pDrvIns)
 	PDRVNIC pThis = PDMINS_2_DATA(pDrvIns, PDRVNIC);
 	Nic_client *nic_client = pThis->nic_client;
 
-	Genode::Signal_transmitter(nic_client->dispatcher()).submit();
+	if (!nic_client)
+		PERR("nic_client not valid at destruction time");
+
+	if (nic_client)
+		Genode::Signal_transmitter(nic_client->dispatcher()).submit();
 
 	/* wait until the recv thread exits */
 	destruct_lock()->lock();
-	destroy(Genode::env()->heap(), nic_client);
+
+	if (nic_client)
+		destroy(Genode::env()->heap(), nic_client);
 }
 
 
