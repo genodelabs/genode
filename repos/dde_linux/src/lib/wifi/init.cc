@@ -113,10 +113,6 @@ static void run_linux(void *)
 		module_iwl_drv_init();
 	}
 
-	PINF("+-----------------------+");
-	PINF("|   iwl driver loaded   |");
-	PINF("+-----------------------+");
-
 	_wpa_lock->unlock();
 
 	while (1) {

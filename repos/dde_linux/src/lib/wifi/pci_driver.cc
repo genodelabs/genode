@@ -313,6 +313,8 @@ extern "C" int pci_register_driver(struct pci_driver *drv)
 			pci()->release_device(free_up);
 	}
 
+	if (!found) PERR("no usable wireless device found");
+
 	return found ? 0 : -ENODEV;
 }
 
