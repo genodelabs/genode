@@ -1,0 +1,7 @@
+<theme>
+	<aura  top="8"  bottom="8" left="8" right="8"/>
+	<decor top="20" bottom="8" left="1" right="1"/>
+	<title xpos="16" ypos="9" width="32" height="20"/>
+	<closer xpos="36" ypos="10"/>
+	<maximizer xpos="10" ypos="10"/>
+</theme>
