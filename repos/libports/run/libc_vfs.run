@@ -16,7 +16,7 @@ create_boot_directory
 # Generate config
 #
 
-install_config {
+set config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
@@ -39,7 +39,10 @@ install_config {
 	<start name="test-libc_vfs">
 		<resource name="RAM" quantum="2M"/>
 		<config>
-			<iterations value="1"/>
+			<iterations value="1"/>}
+append_if [have_include "power_on/qemu"] config {
+			<write-read size="1M" buffer_size="8K"/>}
+append config {
 			<libc stdout="/dev/log" cwd="/tmp" >
 				<vfs>
 					<dir name="tmp" >
@@ -52,6 +55,8 @@ install_config {
 	</start>
 </config>
 }
+
+install_config $config
 
 #
 # Boot modules

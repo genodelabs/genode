@@ -19,11 +19,63 @@
 #include <dirent.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/uio.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+
+
+static void test_write_read()
+{
+	size_t rounds      = 4;
+	size_t size        = 4*1024*1024;
+	size_t buffer_size = 32*1024;
+
+	try {
+		Genode::Xml_node config = Genode::config()->xml_node().sub_node("write-read");
+
+		try { config.attribute("rounds").value(&rounds); } catch (...) { }
+
+		Genode::Number_of_bytes n;
+		try {
+			config.attribute("size").value(&n);
+			size = n;
+		} catch (...) { }
+		try {
+			config.attribute("buffer_size").value(&n);
+			buffer_size = n;
+		} catch (...) { }
+	} catch (...) { }
+
+	void *buf = malloc(buffer_size);
+	char const *file_name = "write_read.tst";
+
+	printf("write-read test: %zu rounds of %zu MiB (buffer size %zu)\n",
+	       rounds, size/(1024*1024), buffer_size);
+
+	for (unsigned round = 0; buf && round < rounds; ++round) {
+		printf("starting round %u\n", round);
+
+		unlink(file_name);
+
+		int fd = open(file_name, O_CREAT | O_RDWR);
+
+		memset(buf, round, buffer_size);
+
+		/* write-read i_max times the buffer */
+		unsigned const i_max = size/buffer_size;
+		for (unsigned i = 0; i < i_max; ++i) write(fd, buf, buffer_size);
+		lseek(fd, SEEK_SET, 0);
+		for (unsigned i = 0; i < i_max; ++i) read(fd, buf, buffer_size);
+
+		close(fd);
+		printf("finished round %u\n", round);
+	}
+
+	free(buf);
+}
 
 
 #define CALL_AND_CHECK(ret, operation, condition, info_string, ...) \
@@ -233,6 +285,8 @@ int main(int argc, char *argv[])
 		if (i < (iterations - 1))
 			sleep(2);
 	}
+
+	test_write_read();
 
 	printf("test finished\n");
 

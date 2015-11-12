@@ -80,7 +80,10 @@ append config "
 append config {
 		<resource name="RAM" quantum="8M"/>
 		<config>
-			<iterations value="1"/>
+			<iterations value="1"/>}
+append_if [have_include "power_on/qemu"] config {
+			<write-read size="1M" buffer_size="8K"/>}
+append config {
 			<libc stdout="/dev/log" stderr="/dev/log">
 				<vfs>
 					<dir name="dev">}
