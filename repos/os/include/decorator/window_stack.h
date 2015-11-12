@@ -154,8 +154,12 @@ class Decorator::Window_stack : public Window_base::Draw_behind_fn
 		Window_base::Hover hover(Point pos) const
 		{
 			for (Window_base const *win = _windows.first(); win; win = win->next())
-				if (win->outer_geometry().contains(pos))
-					return win->hover(pos);
+				if (win->outer_geometry().contains(pos)) {
+
+					Window_base::Hover const hover = win->hover(pos);
+					if (hover.window_id != 0)
+						return hover;
+				}
 
 			return Window_base::Hover();
 		}
