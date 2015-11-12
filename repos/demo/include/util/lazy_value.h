@@ -46,7 +46,7 @@ class Lazy_value
 				_accel = 1;
 		}
 
-		T dst() { return _dst; }
+		T dst() const { return _dst; }
 
 		void assign(T value) { _curr = value; }
 
