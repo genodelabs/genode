@@ -15,6 +15,8 @@
 extern "C" {
 #include <sys/cdefs.h>
 }
+#include <base/lock.h>
+#include <util/fifo.h>
 #include <os/timed_semaphore.h>
 #include "sched.h"
 
@@ -23,72 +25,81 @@ extern "C" {
  ** Mutexes **
  *************/
 
+/**
+ * Mutex with support for try_enter()
+ *
+ * The mutex is a binary semaphore based on the implementation of
+ * Genode::Semaphore using an applicant FIFO.
+ */
 struct rumpuser_mtx
 {
-	Genode::Semaphore sem;
-	Genode::Lock      counter_lock;
-	struct lwp       *owner;
-	int               flags;
-
-	rumpuser_mtx(int flags) : sem(1), owner(0), flags(flags) { }
-	
-
-	bool down(bool try_lock = false)
+	struct Applicant : Genode::Fifo<Applicant>::Element
 	{
-		Genode::Lock::Guard guard(counter_lock);
+		Genode::Lock lock { Genode::Lock::LOCKED };
 
-		if (sem.cnt() > 1)
-			PERR("%p: SEM cnt > 1 (%d) %p", rumpuser_curlwp(), sem.cnt(), this);
+		void block()   { lock.lock();   }
+		void wake_up() { lock.unlock(); }
+	};
 
-		bool locked = sem.cnt() <= 0;
+	Genode::Fifo<Applicant> fifo;
+	bool                    occupied = false;
+	Genode::Lock            meta_lock;
 
-		if (locked && try_lock)
-			return false;
+	struct lwp *owner = nullptr;
+	int         flags;
 
-		if (!try_lock)
-			counter_lock.unlock();
+	rumpuser_mtx(int flags) : flags(flags) { }
 
-		sem.down();
-		set_owner();
-
-		return true;
-	}
-
-	void up()
+	bool _enter(bool try_enter)
 	{
-		Genode::Lock::Guard guard(counter_lock);
+		while (true) {
+			/*
+			 * We need a freshly constructed applicant instance on each loop
+			 * iteration to potentially add ourself to the applicant FIFO
+			 * again.
+			 */
+			Applicant applicant;
+			{
+				Genode::Lock::Guard guard(meta_lock);
 
-		if (sem.cnt() >= 1)
-			return;
+				if (!occupied) {
+					occupied = true;
 
-		clear_owner();
-		sem.up();
-	}
+					if (flags & RUMPUSER_MTX_KMUTEX) {
+						if (owner != nullptr)
+							PERR("OWNER already set on KMUTEX enter");
+						owner = rumpuser_curlwp();
+					}
 
-	bool try_lock()
-	{
-		return down(true);
-	}
+					return true;
+				}
 
-	void set_owner()
-	{
-		if (flags & RUMPUSER_MTX_KMUTEX) {
-			if(owner != 0) {
-				PERR("OWNER != 0 %d", sem.cnt());
+				if (try_enter)
+					return false;
+
+				fifo.enqueue(&applicant);
 			}
-			owner = rumpuser_curlwp();
+			applicant.block();
 		}
 	}
 
-	void clear_owner()
-	{
-		if (flags & RUMPUSER_MTX_KMUTEX) {
+	bool enter()     { return _enter(false); }
+	bool try_enter() { return _enter(true); }
 
-			if(owner == 0) {
-				PERR("OWNER 0");
-			}
-			owner = 0;
+	void exit()
+	{
+		Genode::Lock::Guard guard(meta_lock);
+
+		occupied = false;
+
+		if (flags & RUMPUSER_MTX_KMUTEX) {
+			if (owner == nullptr)
+				PERR("OWNER not set on KMUTEX exit");
+			owner = nullptr;
 		}
+
+		if (Applicant *applicant = fifo.dequeue())
+			applicant->wake_up();
 	}
 };
 
@@ -101,13 +112,14 @@ void rumpuser_mutex_init(struct rumpuser_mtx **mtxp, int flags)
 
 void rumpuser_mutex_owner(struct rumpuser_mtx *mtx, struct lwp **lp)
 {
+	/* XXX we set the owner in KMUTEX only */
 	*lp = mtx->owner;
 }
 
 
 void rumpuser_mutex_enter_nowrap(struct rumpuser_mtx *mtx)
 {
-	mtx->down();
+	mtx->enter();
 }
 
 
@@ -118,10 +130,10 @@ void rumpuser_mutex_enter(struct rumpuser_mtx *mtx)
 		return;
 	}
 
-	if (!mtx->try_lock()) {
+	if (!mtx->try_enter()) {
 		int nlocks;
 		rumpkern_unsched(&nlocks, 0);
-		mtx->down();
+		mtx->enter();
 		rumpkern_sched(nlocks, 0);
 	}
 }
@@ -129,13 +141,13 @@ void rumpuser_mutex_enter(struct rumpuser_mtx *mtx)
 
 int rumpuser_mutex_tryenter(struct rumpuser_mtx *mtx)
 {
-	return mtx->try_lock() ? 0 : 1;
+	return mtx->try_enter() ? 0 : 1;
 }
 
 
 void rumpuser_mutex_exit(struct rumpuser_mtx *mtx)
 {
-	mtx->up();
+	mtx->exit();
 }
 
 
@@ -182,7 +194,7 @@ struct Cond
 		num_waiters++;
 		counter_lock.unlock();
 	
-		mutex->up();
+		mutex->exit();
 	
 		if (!abstime)
 			signal_sem.down();
@@ -213,7 +225,7 @@ struct Cond
 		num_waiters--;
 		counter_lock.unlock();
 	
-		mutex->down();
+		mutex->enter();
 	
 		return result == -2 ? ETIMEDOUT : 0;
 	}
@@ -298,7 +310,7 @@ static void cv_reschedule(struct rumpuser_mtx *mtx, int nlocks)
 	 */
 	if ((mtx->flags & (RUMPUSER_MTX_SPIN | RUMPUSER_MTX_KMUTEX)) ==
 	    (RUMPUSER_MTX_SPIN | RUMPUSER_MTX_KMUTEX)) {
-	  mtx->up();
+		mtx->exit();
 		rumpkern_sched(nlocks, mtx);
 		rumpuser_mutex_enter_nowrap(mtx);
 	} else {
