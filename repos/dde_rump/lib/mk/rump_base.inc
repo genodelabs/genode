@@ -29,7 +29,8 @@ BUILD_CMD = BUILD_CC=cc BUILD_AR=ar BUILD_NM=nm BUILD_OBJCOPY=objcopy \
             AR=$(AR) NM=$(NM) OBJCOPY=$(OBJCOPY) CC_TARGET=$(shell basename $(CC)) \
             $(RUMP_CONTRIB_DIR)/buildrump.sh -k -V'MAKEVERBOSE=$(VERBOSE_LEVEL)' \
             -V'NOGCCERROR=1' $(RUMP_OPT) -V'RUMP_LOCKS_UP=yes' \
-            -s $(RUMP_SRC) -T $(RUMP_TOOLS) -o $(RUMP_OBJ) -d $(RUMP_BASE)
+            -s $(RUMP_SRC) -T $(RUMP_TOOLS) -o $(RUMP_OBJ) -d $(RUMP_BASE) \
+            -F"DBG=$(CC_OLEVEL) -g"
 
 #
 # Linkage
