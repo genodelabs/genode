@@ -113,6 +113,9 @@ void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
 	 */
 	cancel_blocking();
 
+	/* activate entrypoint now - otherwise cleanup call will block forever */
+	_delay_start.unlock();
+
 	/* make a IPC to ensure that cap() identifier is not used anymore */
 	utcb->msg[0] = 0xdead;
 	utcb->set_msg_word(1);
@@ -133,11 +136,6 @@ void Rpc_entrypoint::_activation_entry()
 
 	Rpc_entrypoint *ep = static_cast<Rpc_entrypoint *>(Thread_base::myself());
 
-	{
-		/* potentially delay start */
-		Lock::Guard lock_guard(ep->_delay_start);
-	}
-
 	/* required to decrease ref count of capability used during last reply */
 	ep->_snd_buf.snd_reset();
 
@@ -150,18 +148,23 @@ void Rpc_entrypoint::_activation_entry()
 	/* set default return value */
 	srv.ret(Ipc_client::ERR_INVALID_OBJECT);
 
+	/* in case of a portal cleanup call we are done here - just reply */
+	if (ep->_cap.local_name() == id_pt) {
+		if (!ep->_rcv_buf.prepare_rcv_window((Nova::Utcb *)ep->utcb()))
+			PWRN("out of capability selectors for handling server requests");
+		srv << IPC_REPLY;
+	}
+
+	{
+		/* potentially delay start */
+		Lock::Guard lock_guard(ep->_delay_start);
+	}
+
 	/* atomically lookup and lock referenced object */
 	auto lambda = [&] (Rpc_object_base *obj) {
 		if (!obj) {
-
-			/*
-			 * Badge is used to suppress error message solely.
-			 * It's non zero during cleanup call of an
-			 * rpc_object_base object, see _leave_server_object.
-			 */
-			if (!srv.badge())
-				PERR("could not look up server object, "
-				     " return from call id_pt=%lx", id_pt);
+			PERR("could not look up server object, return from call id_pt=%lx",
+			     id_pt);
 			return;
 		}
 
