@@ -195,8 +195,8 @@ class Icon_painter
 			int const y4 = y1 + rect.h() - 1;
 			int const x2 = x1 + icon_w/2;
 			int const y2 = y1 + icon_h/2;
-			int const x3 = Genode::max(x4 - (int)icon_w/2, x2);
-			int const y3 = Genode::max(y4 - (int)icon_h/2, y2);
+			int const x3 = Genode::max(x4 - (int)icon_w/2 + 1, x2);
+			int const y3 = Genode::max(y4 - (int)icon_h/2 + 1, y2);
 
 			int const tx1 = 0;
 			int const ty1 = 0;
@@ -204,8 +204,8 @@ class Icon_painter
 			int const ty4 = icon_h - 1;
 			int const tx2 = icon_w/2;
 			int const ty2 = icon_h/2;
-			int const tx3 = Genode::max(tx4 - (int)icon_w/2, tx2);
-			int const ty3 = Genode::max(ty4 - (int)icon_h/2, ty2);
+			int const tx3 = Genode::max(tx4 - (int)icon_w/2 + 1, tx2);
+			int const ty3 = Genode::max(ty4 - (int)icon_h/2 + 1, ty2);
 
 			TPT           const *src   = icon.pixel() + icon_w*ty1;
 			unsigned char const *src_a = icon.alpha() + icon_w*ty1;
