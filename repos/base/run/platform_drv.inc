@@ -93,7 +93,7 @@ proc append_platform_drv_config {} {
 	<start name=\"platform_drv\" [platform_drv_priority]>"
 
 		append config {
-		<resource name="RAM" quantum="3M" constrain_phys="yes"/>
+		<resource name="RAM" quantum="4M" constrain_phys="yes"/>
 		<provides>
 			<service name="Platform"/>}
 

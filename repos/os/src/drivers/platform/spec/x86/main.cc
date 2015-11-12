@@ -82,7 +82,7 @@ int main(int argc, char **argv)
 	 */
 	enum {
 		STACK_SIZE              = 2 * sizeof(addr_t)*1024,
-		DEVICE_PD_RAM_QUOTA = 196 * 4096,
+		DEVICE_PD_RAM_QUOTA = 256 * 4096,
 	};
 
 	static Cap_connection cap;

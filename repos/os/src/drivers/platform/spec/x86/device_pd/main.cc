@@ -84,7 +84,7 @@ int main(int argc, char **argv)
 	 * Initialize server entry point
 	 */
 	enum {
-		STACK_SIZE       = 4096
+		STACK_SIZE       = 1024*sizeof(Genode::addr_t)
 	};
 
 	static Cap_connection cap;
