@@ -18,7 +18,7 @@
 
 namespace Genode {
 
-	typedef Pixel_rgba<unsigned long, Surface_base::RGB888,
+	typedef Pixel_rgba<uint32_t, Surface_base::RGB888,
 	                  0xff0000, 16, 0xff00, 8, 0xff, 0, 0, 0>
 	        Pixel_rgb888;
 
