@@ -86,7 +86,7 @@ class Decorator::Window : public Window_base
 		               _left_view   { _nitpicker },
 		               _top_view    { _nitpicker };
 
-		Nitpicker_view _content_view { _nitpicker, id() };
+		Nitpicker_view _content_view { _nitpicker, (unsigned)id() };
 
 		static Border _init_border() {
 			return Border(_border_size + _title_height,
