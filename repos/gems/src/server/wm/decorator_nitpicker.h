@@ -153,7 +153,8 @@ class Wm::Decorator_content_registry
 };
 
 
-struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>
+struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>,
+                                         List<Decorator_nitpicker_session>::Element
 {
 	typedef Nitpicker::View_capability      View_capability;
 	typedef Nitpicker::Session::View_handle View_handle;

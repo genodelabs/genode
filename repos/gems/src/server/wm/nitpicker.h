@@ -1058,7 +1058,7 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 
 		Layouter_nitpicker_session *_layouter_session = nullptr;
 
-		Decorator_nitpicker_session *_decorator_session = nullptr;
+		List<Decorator_nitpicker_session> _decorator_sessions;
 
 		/**
 		 * Nitpicker session used to perform session-control operations
@@ -1136,13 +1136,14 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 
 			case ROLE_DECORATOR:
 				{
-					_decorator_session = new (_md_alloc)
+					auto session = new (_md_alloc)
 						Decorator_nitpicker_session(_ram, _ep, _md_alloc,
 						                            _pointer_reporter,
 						                            _last_motion,
 						                            _window_layouter_input,
 						                            *this);
-					return _ep.manage(*_decorator_session);
+					_decorator_sessions.insert(session);
+					return _ep.manage(*session);
 				}
 
 			case ROLE_LAYOUTER:
@@ -1227,14 +1228,16 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 				return;
 			}
 
-			auto decorator_lambda = [this] (Decorator_nitpicker_session *session) {
-				_ep.dissolve(*_decorator_session);
-				_decorator_session = nullptr;
-				return session;
-			};
-
-			if (ep.apply(session_cap, decorator_lambda) == _decorator_session) {
-				Genode::destroy(_md_alloc, _decorator_session);
+			Decorator_nitpicker_session *decorator_session =
+				ep.apply(session_cap, [this] (Decorator_nitpicker_session *session) {
+					if (session) {
+						_decorator_sessions.remove(session);
+						_ep.dissolve(*session);
+					}
+					return session;
+				});
+			if (decorator_session) {
+				Genode::destroy(_md_alloc, decorator_session);
 				return;
 			}
 
