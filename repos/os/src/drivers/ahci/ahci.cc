@@ -71,6 +71,11 @@ struct Ahci
 		return sig == ATAPI_SIG_QEMU || sig == ATAPI_SIG;
 	}
 
+	bool is_ata(unsigned sig)
+	{
+		return sig == ATA_SIG;
+	}
+
 	/**
 	 * Forward IRQs to ports
 	 */
@@ -121,12 +126,21 @@ struct Ahci
 				continue;
 
 			Port port(hba, platform_hba, i);
-			bool enabled = port.enable();
-			unsigned sig = port.read<Port::Sig>();
 
-			PINF("\t\t#%u: %s", i, enabled ?
-			                       (is_atapi(sig) ? "ATAPI" : "ATA") :
-			                       "off");
+			/* check for ATA/ATAPI devices */
+			unsigned sig = port.read<Port::Sig>();
+			if (!is_atapi(sig) && !is_ata(sig)) {
+				PINF("\t\t#%u: off", i);
+				continue;
+			}
+
+			port.reset();
+
+			bool enabled = false;
+			try { enabled = port.enable(); }
+			catch (Port::Not_ready) { PERR("Could not enable port %u", i); }
+
+			PINF("\t\t#%u: %s", i, is_atapi(sig) ? "ATAPI" : "ATA");
 
 			if (!enabled)
 				continue;

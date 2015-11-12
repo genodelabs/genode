@@ -16,6 +16,7 @@
 
 #include <block/component.h>
 #include <os/attached_mmio.h>
+#include <util/retry.h>
 #include <util/volatile_object.h>
 
 static bool constexpr verbose = false;
@@ -389,6 +390,9 @@ struct Command_table
  */
 struct Port : Genode::Mmio
 {
+	struct Not_ready : Genode::Exception { };
+
+
 	Hba           &hba;
 	Platform::Hba &platform_hba;
 	unsigned       cmd_slots = hba.command_slots();
@@ -639,9 +643,16 @@ struct Port : Genode::Mmio
 			/* try to wake up device */
 			write<Cmd::Icc>(Ssts::Ipm::ACTIVE);
 
-			while ((Ssts::Dec::get(status) != Ssts::Dec::ESTABLISHED) ||
-			      !(Ssts::Ipm::get(status) &  Ssts::Ipm::ACTIVE))
-				status = read<Ssts>();
+			Genode::retry<Not_ready>(
+				[&] {
+							if ((Ssts::Dec::get(status) != Ssts::Dec::ESTABLISHED) ||
+							    !(Ssts::Ipm::get(status) &  Ssts::Ipm::ACTIVE))
+								throw Not_ready();
+				},
+				[&] {
+					hba.delayer().usleep(1000);
+					status = read<Ssts>();
+				}, 10);
 		}
 
 		return ((Ssts::Dec::get(status) == Ssts::Dec::ESTABLISHED) &&
