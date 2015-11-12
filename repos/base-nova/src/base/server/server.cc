@@ -90,7 +90,37 @@ void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
 
 	/* make sure nobody is able to find this object */
 	remove(obj);
+
+
+	/*
+	 * The activation may execute a blocking operation in a dispatch function.
+	 * Before resolving the corresponding object, we need to ensure that it is
+	 * no longer used by an activation. Therefore, we to need cancel an
+	 * eventually blocking operation and let the activation leave the context
+	 * of the object.
+	 */
+	using namespace Nova;
+
+	Utcb *utcb = reinterpret_cast<Utcb *>(Thread_base::myself()->utcb());
+	/* don't call ourself */
+	if (utcb == reinterpret_cast<Utcb *>(this->utcb()))
+		return;
+
+	/*
+	 * Required outside of core. E.g. launchpad needs it to forcefully kill
+	 * a client which blocks on a session opening request where the service
+	 * is not up yet.
+	 */
+	cancel_blocking();
+
+	/* make a IPC to ensure that cap() identifier is not used anymore */
+	utcb->msg[0] = 0xdead;
+	utcb->set_msg_word(1);
+	if (uint8_t res = call(_cap.local_name()))
+		PERR("%8p - could not clean up entry point of thread 0x%p - res %u",
+		     utcb, this->utcb(), res);
 }
+
 
 void Rpc_entrypoint::_activation_entry()
 {
