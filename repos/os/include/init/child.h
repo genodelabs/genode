@@ -852,7 +852,7 @@ void Init::Child::Resources::transfer_cpu_quota()
 	static size_t avail = Cpu_session::quota_lim_upscale(         100, 100);
 	size_t const   need = Cpu_session::quota_lim_upscale(cpu_quota_pc, 100);
 	size_t need_adj;
-	if (need > avail) {
+	if (need > avail || avail == 0) {
 		warn_insuff_quota(Cpu_session::quota_lim_downscale(avail, 100));
 		need_adj = Cpu_session::quota_lim_upscale(100, 100);
 		avail    = 0;
