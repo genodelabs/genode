@@ -340,11 +340,6 @@ class Kernel::Signal_receiver : public Kernel::Object
 		int add_handler(Signal_handler * const h);
 
 		/**
-		 * Return wether any of the contexts of this receiver is deliverable
-		 */
-		bool deliverable();
-
-		/**
 		 * Syscall to create a signal receiver
 		 *
 		 * \param p  memory donation for the kernel signal-receiver object

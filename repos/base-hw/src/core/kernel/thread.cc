@@ -483,21 +483,6 @@ void Thread::_call_await_signal()
 }
 
 
-void Thread::_call_signal_pending()
-{
-	/* lookup signal receiver */
-	Signal_receiver * const r = pd()->cap_tree().find<Signal_receiver>(user_arg_1());
-	if (!r) {
-		PWRN("%s -> %s: no pending, unknown signal receiver",
-		     pd_label(), label());
-		user_arg_0(0);
-		return;
-	}
-	/* get pending state */
-	user_arg_0(r->deliverable());
-}
-
-
 void Thread::_call_submit_signal()
 {
 	/* lookup signal context */
@@ -625,7 +610,6 @@ void Thread::_call()
 	case call_id_kill_signal_context():  _call_kill_signal_context(); return;
 	case call_id_submit_signal():        _call_submit_signal(); return;
 	case call_id_await_signal():         _call_await_signal(); return;
-	case call_id_signal_pending():       _call_signal_pending(); return;
 	case call_id_ack_signal():           _call_ack_signal(); return;
 	case call_id_print_char():           _call_print_char(); return;
 	case call_id_delete_cap():           _call_delete_cap(); return;

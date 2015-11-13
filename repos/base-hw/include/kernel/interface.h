@@ -37,12 +37,11 @@ namespace Kernel
 	constexpr Call_arg call_id_kill_signal_context()  { return 6; }
 	constexpr Call_arg call_id_submit_signal()        { return 7; }
 	constexpr Call_arg call_id_await_signal()         { return 8; }
-	constexpr Call_arg call_id_signal_pending()       { return 9; }
-	constexpr Call_arg call_id_ack_signal()           { return 10; }
-	constexpr Call_arg call_id_print_char()           { return 11; }
-	constexpr Call_arg call_id_update_data_region()   { return 12; }
-	constexpr Call_arg call_id_update_instr_region()  { return 13; }
-	constexpr Call_arg call_id_delete_cap()           { return 14; }
+	constexpr Call_arg call_id_ack_signal()           { return 9; }
+	constexpr Call_arg call_id_print_char()           { return 10; }
+	constexpr Call_arg call_id_update_data_region()   { return 11; }
+	constexpr Call_arg call_id_update_instr_region()  { return 12; }
+	constexpr Call_arg call_id_delete_cap()           { return 13; }
 
 
 	/*****************************************************************
@@ -225,20 +224,6 @@ namespace Kernel
 	inline int await_signal(capid_t const receiver_id)
 	{
 		return call(call_id_await_signal(), receiver_id);
-	}
-
-
-	/**
-	 * Return wether any context of a receiver is pending
-	 *
-	 * \param receiver  capability id of the targeted signal receiver
-	 *
-	 * \retval 0  none of the contexts is pending or the receiver doesn't exist
-	 * \retval 1  a context of the signal receiver is pending
-	 */
-	inline bool signal_pending(capid_t const receiver)
-	{
-		return call(call_id_signal_pending(), receiver);
 	}
 
 

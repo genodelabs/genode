@@ -36,6 +36,7 @@ namespace Genode {
 	class Signal_dispatcher_base;
 	class Signal_connection;
 	template <typename> class Signal_dispatcher;
+	Signal_connection * signal_connection();
 }
 
 
@@ -199,6 +200,12 @@ class Genode::Signal_receiver : Noncopyable
 		 * Hook to platform specific destructor parts
 		 */
 		void _platform_destructor();
+
+		/**
+		 * Hooks to platform specific dissolve parts
+		 */
+		void _platform_begin_dissolve(Signal_context * const c);
+		void _platform_finish_dissolve(Signal_context * const c);
 
 	public:
 

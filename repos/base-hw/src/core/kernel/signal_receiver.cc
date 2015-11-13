@@ -223,9 +223,6 @@ int Signal_receiver::add_handler(Signal_handler * const h)
 }
 
 
-bool Signal_receiver::deliverable() { return !_deliver.empty(); }
-
-
 Signal_receiver::~Signal_receiver()
 {
 	/* destruct all attached contexts */

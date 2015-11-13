@@ -21,66 +21,15 @@
 
 using namespace Genode;
 
-
-/**
- * Provide one signal connection per program
- */
-static Signal_connection * signal_connection()
-{
-	static Signal_connection _object;
-	return &_object;
-}
-
-
-/************
- ** Signal **
- ************/
-
-void Signal::_dec_ref_and_unlock()
-{
-	if (_data.context) {
-		Lock::Guard lock_guard(_data.context->_lock);
-		_data.context->_ref_cnt--;
-
-		/* acknowledge as soon as receipt is fully processed */
-		if (_data.context->_ref_cnt == 0) {
-			Kernel::ack_signal(_data.context->_cap.dst());
-		}
-	}
-}
-
-
-void Signal::_inc_ref()
-{
-	if (_data.context) {
-		Lock::Guard lock_guard(_data.context->_lock);
-		_data.context->_ref_cnt++;
-	}
-}
-
-
-Signal::Signal(Signal::Data data) : _data(data)
-{
-	if (_data.context) { _data.context->_ref_cnt = 1; }
-}
-
-
 /********************
  ** Signal context **
  ********************/
 
-void Signal_context::submit(unsigned num)
-{
-	Kernel::submit_signal(_cap.dst(), num);
-}
-
+void Signal_context::submit(unsigned) { PERR("not implemented"); }
 
 /************************
  ** Signal transmitter **
  ************************/
-
-Signal_connection * Signal_transmitter::connection() { return signal_connection(); }
-
 
 void Signal_transmitter::submit(unsigned cnt)
 {
@@ -127,21 +76,12 @@ void Signal_receiver::_platform_destructor()
 }
 
 
-void Signal_receiver::_unsynchronized_dissolve(Signal_context * const c)
+void Signal_receiver::_platform_begin_dissolve(Signal_context * const c)
 {
-	/* wait untill all context references disappear and put context to sleep */
 	Kernel::kill_signal_context(c->_cap.dst());
-
-	/* release server resources of context */
-	signal_connection()->free_context(c->_cap);
-
-	/* reset the context */
-	c->_receiver = 0;
-	c->_cap = Signal_context_capability();
-
-	/* forget the context */
-	_contexts.remove(&c->_receiver_le);
 }
+
+void Signal_receiver::_platform_finish_dissolve(Signal_context *) { }
 
 
 Signal_context_capability Signal_receiver::manage(Signal_context * const c)
@@ -175,76 +115,27 @@ Signal_context_capability Signal_receiver::manage(Signal_context * const c)
 }
 
 
-void Signal_receiver::dissolve(Signal_context * const context)
-{
-	if (context->_receiver != this) { throw Context_not_associated(); }
-	Lock::Guard list_lock_guard(_contexts_lock);
-	_unsynchronized_dissolve(context);
-
-	/*
-	 * We assume that dissolve is always called before the context destructor.
-	 * On other platforms a 'context->_destroy_lock' is locked and unlocked at
-	 * this point to block until all remaining signals of this context get
-	 * destructed and prevent the context from beeing destructed to early.
-	 * However on this platform we don't have to wait because
-	 * 'kill_signal_context' in '_unsynchronized_dissolve' already does it.
-	 */
-}
-
-
-bool Signal_receiver::pending() { return Kernel::signal_pending(_cap.dst()); }
-
-
-/*
- * Last signal received by 'block_for_signal'
- */
 void Signal_receiver::block_for_signal()
 {
-	/* await a signal */
+	/* wait for a signal */
 	if (Kernel::await_signal(_cap.dst())) {
 		PERR("failed to receive signal");
 		return;
 	}
-
-	/* get signal */
-	Signal::Data *data = (Signal::Data *)Thread_base::myself()->utcb()->base();
-	Signal s(*data);
-
-	/* save signal data in context list */
-	s.context()->_curr_signal = *data;
-	_contexts.insert(&s.context()->_receiver_le);
-}
-
-
-Signal Signal_receiver::pending_signal()
-{
-	List_element<Signal_context> *le = _contexts.first();
-	if (!le)
-		throw Signal_not_pending();
-
-	/* remove from context list */
-	Signal_context *context = le->object();
-	_contexts.remove(le);
-
-	return Signal(context->_curr_signal);
-}
-
-
-Signal Signal_receiver::wait_for_signal()
-{
-	/* await a signal */
-	if (Kernel::await_signal(_cap.dst())) {
-		PERR("failed to receive signal");
-		return Signal(Signal::Data());
+	/* read signal data */
+	const void * const     utcb    = Thread_base::myself()->utcb()->base();
+	Signal::Data * const   data    = (Signal::Data *)utcb;
+	Signal_context * const context = data->context;
+	{
+		/* update signal context */
+		Lock::Guard lock_guard(context->_lock);
+		unsigned const num    = context->_curr_signal.num + data->num;
+		context->_pending     = true;
+		context->_curr_signal = Signal::Data(context, num);
 	}
-
-	/* get signal data */
-	Signal s(*(Signal::Data *)Thread_base::myself()->utcb()->base());
-	return s;
+	/* end kernel-aided life-time management */
+	Kernel::ack_signal(data->context->_cap.dst());
 }
 
 
-void Signal_receiver::local_submit(Signal::Data signal)
-{
-	PERR("not implemented");
-}
+void Signal_receiver::local_submit(Signal::Data) { PERR("not implemented"); }
