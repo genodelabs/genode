@@ -72,8 +72,8 @@ UBOOT_IMG_SPL := $(UBOOT_BUILD_DIR)/SPL
 UBOOT_IMGS    := $(UBOOT_IMG) $(UBOOT_IMG_SPL)
 UBOOT_CONF    := wandboard_config
 FINISH_IMAGE  := \
-	dd if=$(UBOOT_IMG_SPL) of=$(MMC_IMG) bs=1k seek=1  conv=notrunc,fsync; \
-	dd if=$(UBOOT_IMG)     of=$(MMC_IMG) bs=1k seek=69 conv=notrunc,fsync;
+	dd if=$(UBOOT_IMG_SPL) of=$(MMC_IMG) bs=1k seek=0  conv=notrunc,fsync; \
+	dd if=$(UBOOT_IMG)     of=$(MMC_IMG) bs=1k seek=68 conv=notrunc,fsync;
 endif
 
 #
@@ -89,7 +89,7 @@ $(MMC_IMG): $(UBOOT_IMGS)
 	$(ECHO)
 	$(ECHO) "Successfully created MMC image."
 	$(ECHO) "You can install the image on an empty MMC for example via:"
-	$(ECHO) "sudo dd if=$(MMC_IMG) of=/dev/<YOUR_MMC> conv=fsync"
+	$(ECHO) "sudo dd if=$(MMC_IMG) of=/dev/<YOUR_MMC> bs=1K seek=1 conv=fsync"
 	$(ECHO)
 
 $(UBOOT_IMGS): $(UBOOT_BUILD_CONF) $(UBOOT_DIR)
