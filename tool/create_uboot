@@ -19,12 +19,13 @@ help:
 	$(ECHO)
 	$(ECHO) "  <platform>   can be:"
 	$(ECHO) "                  'hw_wand_quad'"
+	$(ECHO) "                  'hw_usb_armory'"
 	$(ECHO)
 	$(ECHO) "  The image will be located at:"
 	$(ECHO) "  $(UBOOT_BUILD_DIR)<platform>/$(shell basename $(MMC_IMG))"
 	$(ECHO)
 
-PLATFORMS_ARM := hw_wand_quad
+PLATFORMS_ARM := hw_wand_quad hw_usb_armory
 PLATFORMS     := $(PLATFORMS_ARM)
 
 # get targeted platform based on the make target
@@ -74,6 +75,13 @@ UBOOT_CONF    := wandboard_config
 FINISH_IMAGE  := \
 	dd if=$(UBOOT_IMG_SPL) of=$(MMC_IMG) bs=1k seek=0  conv=notrunc,fsync; \
 	dd if=$(UBOOT_IMG)     of=$(MMC_IMG) bs=1k seek=68 conv=notrunc,fsync;
+endif
+
+ifeq ($(PLATFORM), hw_usb_armory)
+UBOOT_IMG     := $(UBOOT_BUILD_DIR)/u-boot.imx
+UBOOT_IMGS    := $(UBOOT_IMG)
+UBOOT_CONF    := usbarmory_config
+FINISH_IMAGE  := dd if=$(UBOOT_IMG) of=$(MMC_IMG) bs=512 seek=0 conv=fsync
 endif
 
 #
