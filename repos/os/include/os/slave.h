@@ -166,20 +166,15 @@ class Genode::Slave
 
 			class Quota_exceeded : public Genode::Exception { };
 
-			Resources(const char *label, Genode::size_t ram_quota)
+			Resources(const char *label, Genode::size_t ram_quota,
+			          Ram_session_capability ram_ref_cap)
 			: pd(label), ram(label), cpu(label)
 			{
-				/*
-				 * XXX derive donated quota from information to be provided by
-				 *     the used 'Connection' interfaces
-				 */
-				enum { DONATED_RAM_QUOTA = 128*1024 };
-				if (ram_quota >  DONATED_RAM_QUOTA)
-					ram_quota -= DONATED_RAM_QUOTA;
-				else
+				ram.ref_account(ram_ref_cap);
+				Ram_session_client ram_ref(ram_ref_cap);
+
+				if (ram_ref.transfer_quota(ram.cap(), ram_quota))
 					throw Quota_exceeded();
-				ram.ref_account(Genode::env()->ram_session_cap());
-				Genode::env()->ram_session()->transfer_quota(ram.cap(), ram_quota);
 			}
 		};
 
@@ -190,9 +185,10 @@ class Genode::Slave
 
 		Slave(Genode::Rpc_entrypoint &entrypoint,
 		      Slave_policy           &slave_policy,
-		      Genode::size_t          ram_quota)
+		      Genode::size_t          ram_quota,
+		      Ram_session_capability  ram_ref_cap = env()->ram_session_cap())
 		:
-			_resources(slave_policy.name(), ram_quota),
+			_resources(slave_policy.name(), ram_quota, ram_ref_cap),
 			_child(slave_policy.binary(), _resources.pd.cap(),
 			       _resources.ram.cap(), _resources.cpu.cap(),
 			       _resources.rm.cap(), &entrypoint, &slave_policy)
