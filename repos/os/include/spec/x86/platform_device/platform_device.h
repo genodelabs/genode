@@ -234,8 +234,9 @@ struct Platform::Device : Platform::Abstract_device
 	GENODE_RPC(Rpc_resource, Resource, resource, int);
 	GENODE_RPC(Rpc_config_read, unsigned, config_read,
 	           unsigned char, Access_size);
-	GENODE_RPC(Rpc_config_write, void, config_write,
-	           unsigned char, unsigned, Access_size);
+	GENODE_RPC_THROW(Rpc_config_write, void, config_write,
+	                 GENODE_TYPE_LIST(Quota_exceeded),
+	                 unsigned char, unsigned, Access_size);
 	GENODE_RPC(Rpc_irq, Genode::Irq_session_capability, irq, Genode::uint8_t);
 	GENODE_RPC_THROW(Rpc_io_port, Genode::Io_port_session_capability, io_port,
 	                 GENODE_TYPE_LIST(Quota_exceeded),

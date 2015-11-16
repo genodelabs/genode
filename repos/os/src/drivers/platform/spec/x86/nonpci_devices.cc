@@ -125,7 +125,7 @@ Platform::Device_capability Platform::Session_component::device(String const &na
 		_device_list.insert(dev);
 		return _ep->manage(dev);
 	} catch (Genode::Allocator::Out_of_memory) {
-		throw Platform::Device::Quota_exceeded();
+		throw Out_of_metadata();
 	} catch (Genode::Parent::Service_denied) {
 		return Device_capability();
 	}

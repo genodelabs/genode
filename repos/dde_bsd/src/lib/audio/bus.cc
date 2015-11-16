@@ -19,6 +19,7 @@
 #include <io_mem_session/connection.h>
 #include <platform_session/connection.h>
 #include <platform_device/client.h>
+#include <util/retry.h>
 
 /* local includes */
 #include "bsd.h"
@@ -120,13 +121,17 @@ class Pci_driver : public Bsd::Bus_driver
 		 */
 		Genode::Ram_dataspace_capability _alloc_dma_memory(Genode::size_t size)
 		{
-			try {
-				char buf[32];
-				Genode::snprintf(buf, sizeof(buf), "ram_quota=%zu", size);
-				Genode::env()->parent()->upgrade(_pci.cap(), buf);
+			size_t donate = size;
 
-				return _pci.alloc_dma_buffer(size);
-			} catch (...) { return Genode::Ram_dataspace_capability(); }
+			return Genode::retry<Platform::Session::Out_of_metadata>(
+				[&] () { return _pci.alloc_dma_buffer(size); },
+				[&] () {
+					char quota[32];
+					Genode::snprintf(quota, sizeof(quota), "ram_quota=%zd",
+					                 donate);
+					Genode::env()->parent()->upgrade(_pci.cap(), quota);
+					donate = donate * 2 > size ? 4096 : donate * 2;
+				});
 		}
 
 	public:
@@ -374,7 +379,18 @@ extern "C" int pci_mapreg_map(struct pci_attach_args *pa,
 	}
 
 	cmd |= Pci_driver::CMD_MASTER;
-	device.config_write(Pci_driver::CMD, cmd, Platform::Device::ACCESS_16BIT);
+
+	Genode::size_t donate = 4096;
+	Genode::retry<Platform::Device::Quota_exceeded>(
+		[&] () { device.config_write(Pci_driver::CMD, cmd,
+		                             Platform::Device::ACCESS_16BIT); },
+		[&] () {
+			char quota[32];
+			Genode::snprintf(quota, sizeof(quota), "ram_quota=%zd",
+			                 donate);
+			Genode::env()->parent()->upgrade(drv->pci().cap(), quota);
+			donate *= 2;
+		});
 
 	return 0;
 }

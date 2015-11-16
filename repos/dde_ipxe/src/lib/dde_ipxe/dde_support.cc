@@ -35,6 +35,8 @@
 #include <rm_session/connection.h>
 #include <timer_session/connection.h>
 #include <util/misc_math.h>
+#include <util/retry.h>
+
 /* local includes */
 #include <dde_support.h>
 
@@ -168,7 +170,17 @@ struct Pci_driver
 	void config_write(unsigned int devfn, T val)
 	{
 		Platform::Device_client client(_cap);
-		client.config_write(devfn, val, _access_size(val));
+
+		Genode::size_t donate = 4096;
+		Genode::retry<Platform::Device::Quota_exceeded>(
+			[&] () { client.config_write(devfn, val, _access_size(val)); } ,
+			[&] () {
+				char quota[32];
+				Genode::snprintf(quota, sizeof(quota), "ram_quota=%zd",
+				                 donate);
+				Genode::env()->parent()->upgrade(_pci.cap(), quota);
+				donate *= 2;
+			});
 	}
 
 	int first_device(int *bus, int *dev, int *fun)
@@ -196,18 +208,26 @@ struct Pci_driver
 		try {
 			using namespace Genode;
 
-			/* transfer quota to pci driver, otherwise it will give us a exception */
-			char buf[32];
-			Genode::snprintf(buf, sizeof(buf), "ram_quota=%zd", size);
-			Genode::env()->parent()->upgrade(_pci.cap(), buf);
+			size_t donate = size;
 
-			Ram_dataspace_capability ram_cap = _pci.alloc_dma_buffer(size);
+			Ram_dataspace_capability ram_cap = Genode::retry<Platform::Session::Out_of_metadata>(
+				[&] () { return _pci.alloc_dma_buffer(size); },
+				[&] () {
+					char quota[32];
+					Genode::snprintf(quota, sizeof(quota), "ram_quota=%zd",
+					                 donate);
+					Genode::env()->parent()->upgrade(_pci.cap(), quota);
+					donate = donate * 2 > size ? 4096 : donate * 2;
+				});
 
 			_region.mapped_base = (Genode::addr_t)env()->rm_session()->attach(ram_cap);
 			_region.base = Dataspace_client(ram_cap).phys_addr();
 
 			return _region.mapped_base;
-		} catch (...) { return 0; }
+		} catch (...) {
+			PERR("failed to allocate dma memory");
+			return 0;
+		}
 	}
 
 	Genode::addr_t virt_to_phys(Genode::addr_t virt) {

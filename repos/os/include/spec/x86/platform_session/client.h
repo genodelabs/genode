@@ -38,9 +38,6 @@ struct Platform::Client : public Genode::Rpc_client<Session>
 	void release_device(Device_capability device) override {
 		call<Rpc_release_device>(device); }
 
-	Genode::Io_mem_dataspace_capability config_extended(Device_capability device_cap) override {
-		return call<Rpc_config_extended>(device_cap); }
-
 	Genode::Ram_dataspace_capability alloc_dma_buffer(Genode::size_t size) override {
 		return call<Rpc_alloc_dma_buffer>(size); }
 

@@ -214,7 +214,7 @@ append_platform_drv_config
 
 append_if $use_nic_session config {
 	<start name="nic_drv" priority="-2">
-		<resource name="RAM" quantum="3M"/>
+		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nic"/></provides>
 		<route> <any-service><any-child/><parent/></any-service> </route>
 	</start>

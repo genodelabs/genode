@@ -17,11 +17,57 @@
 
 #include <cap_session/connection.h>
 #include <dataspace/client.h>
+#include <rm_session/client.h>
 #include <pd_session/client.h>
 
 #include <util/flex_iterator.h>
+#include <util/retry.h>
 
 #include "../pci_device_pd_ipc.h"
+
+/**
+ *
+ */
+struct Expanding_rm_session_client : Genode::Rm_session_client
+{
+	Genode::Rm_session_capability _cap;
+
+	Expanding_rm_session_client(Genode::Rm_session_capability cap)
+	: Rm_session_client(cap), _cap(cap) { }
+
+	Local_addr attach(Genode::Dataspace_capability ds,
+	                          Genode::size_t size, Genode::off_t offset,
+	                          bool use_local_addr,
+	                          Local_addr local_addr,
+	                          bool executable) override
+	{
+		return Genode::retry<Rm_session::Out_of_metadata>(
+			[&] () {
+				return Rm_session_client::attach(ds, size, offset,
+				                                 use_local_addr,
+				                                 local_addr,
+				                                 executable); },
+			[&] () {
+				enum { UPGRADE_QUOTA = 4096 };
+
+				if (Genode::env()->ram_session()->avail() < UPGRADE_QUOTA)
+					throw;
+
+				char buf[32];
+				Genode::snprintf(buf, sizeof(buf), "ram_quota=%u",
+				                 UPGRADE_QUOTA);
+
+				Genode::env()->parent()->upgrade(_cap, buf);
+			});
+	}
+};
+
+static Genode::Rm_session *rm_session() {
+	using namespace Genode;
+	static Expanding_rm_session_client rm (static_cap_cast<Rm_session>(env()->parent()->session("Env::rm_session", "")));
+	return &rm;
+}
+
 
 static bool map_eager(Genode::addr_t const page, unsigned log2_order)
 {
@@ -56,13 +102,15 @@ void Platform::Device_pd_component::attach_dma_mem(Genode::Dataspace_capability 
 	addr_t page = ~0UL;
 
 	try {
-		page = env()->rm_session()->attach_at(ds_cap, phys);
+		page = rm_session()->attach_at(ds_cap, phys);
+	} catch (Rm_session::Out_of_metadata) {
+		throw;
 	} catch (...) { }
 
 	/* sanity check */
 	if ((page == ~0UL) || (page != phys)) {
 		if (page != ~0UL)
-			env()->rm_session()->detach(page);
+			rm_session()->detach(page);
 
 		PERR("attachment of DMA memory @ %lx+%zx failed", phys, size);
 		return;
@@ -85,7 +133,7 @@ void Platform::Device_pd_component::assign_pci(Genode::Io_mem_dataspace_capabili
 
 	Dataspace_client ds_client(io_mem_cap);
 
-	addr_t page = env()->rm_session()->attach(io_mem_cap);
+	addr_t page = rm_session()->attach(io_mem_cap);
 	/* sanity check */
 	if (!page)
 		throw Rm_session::Region_conflict();
@@ -99,7 +147,7 @@ void Platform::Device_pd_component::assign_pci(Genode::Io_mem_dataspace_capabili
 		PERR("assignment of PCI device failed");
 
 	/* we don't need the mapping anymore */
-	env()->rm_session()->detach(page);
+	rm_session()->detach(page);
 }
 
 int main(int argc, char **argv)

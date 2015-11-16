@@ -24,6 +24,7 @@
 #include <root/client.h>
 
 #include <util/retry.h>
+#include <util/volatile_object.h>
 
 /* os */
 #include <io_mem_session/connection.h>
@@ -118,20 +119,49 @@ namespace Platform {
 			Genode::Allocator_guard                     _md_alloc;
 			Genode::Tslab<Device_component, 4096 - 64>  _device_slab;
 			Genode::List<Device_component>              _device_list;
+			Genode::Rpc_entrypoint                     &_device_pd_ep;
+
+			struct Resources {
+				Genode::Ram_connection                  _ram;
+
+				Resources() :
+					/* restrict physical address to 3G on 32bit */
+					_ram("dma", 0, (sizeof(void *) == 4)
+					               ? 0xc0000000UL : 0x100000000ULL)
+				{
+					/* associate _ram session with platform_drv _ram session */
+					_ram.ref_account(Genode::env()->ram_session_cap());
+				}
+
+				Genode::Ram_connection &ram() { return _ram; }
+			} _resources;
 
 			struct Devicepd {
-				Platform::Device_pd_policy *policy;
-				Device_pd_client            child;
+				Device_pd_policy        *policy;
+				Device_pd_client         child;
+				Genode::Allocator_guard &_md_alloc;
 
+				enum { DEVICE_PD_RAM_QUOTA = 160 * 4096 };
 
 				Devicepd (Genode::Rpc_entrypoint &ep,
-				          Genode::Allocator_guard &md_alloc)
+				          Genode::Allocator_guard &md_alloc,
+				          Genode::Ram_session_capability ram_ref_cap)
 				:
 				  policy(nullptr),
-				  child(Genode::reinterpret_cap_cast<Device_pd>(Genode::Native_capability()))
+				  child(Genode::reinterpret_cap_cast<Device_pd>(Genode::Native_capability())),
+				  _md_alloc(md_alloc)
 				{
+					if (!md_alloc.withdraw(DEVICE_PD_RAM_QUOTA))
+						throw Out_of_metadata();
+
+					if (Genode::env()->ram_session()->transfer_quota(ram_ref_cap, DEVICE_PD_RAM_QUOTA)) {
+						PERR("Transferring quota for device pd failed");
+						md_alloc.upgrade(DEVICE_PD_RAM_QUOTA);
+						throw Platform::Session::Fatal();
+					}
+
 					try {
-						policy = new (md_alloc) Device_pd_policy(ep);
+						policy = new (md_alloc) Device_pd_policy(ep, ram_ref_cap, DEVICE_PD_RAM_QUOTA);
 
 						using Genode::Session_capability;
 						using Genode::Affinity;
@@ -141,13 +171,36 @@ namespace Platform {
 					} catch (Genode::Rom_connection::Rom_connection_failed) {
 						PWRN("PCI device protection domain for IOMMU support "
 						     "is not available");
+
+						if (policy) {
+							destroy(md_alloc, policy);
+							policy = nullptr;
+						}
+
+						md_alloc.upgrade(DEVICE_PD_RAM_QUOTA);
+					} catch (Genode::Allocator::Out_of_memory) {
+						md_alloc.upgrade(DEVICE_PD_RAM_QUOTA);
+						throw Out_of_metadata();
+					} catch(...) {
+						PERR("unknown exception");
+						md_alloc.upgrade(DEVICE_PD_RAM_QUOTA);
+						throw Platform::Session::Fatal();
 					}
 				}
 
-				bool valid() { return policy && policy->root().valid(); }
-			} _device_pd;
+				~Devicepd() {
+					if (!policy)
+						return;
 
-			Genode::Ram_connection                      _ram;
+					destroy(_md_alloc, policy);
+					_md_alloc.upgrade(DEVICE_PD_RAM_QUOTA);
+				}
+
+				bool valid() { return policy && policy->root().valid() && child.valid(); }
+			};
+
+			Genode::Lazy_volatile_object<struct Devicepd> _device_pd;
+
 			Genode::Session_label                       _label;
 			Genode::Session_policy                      _policy;
 
@@ -413,16 +466,9 @@ namespace Platform {
 				_ep(ep),
 				_md_alloc(md_alloc, Genode::Arg_string::find_arg(args, "ram_quota").long_value(0)),
 				_device_slab(&_md_alloc),
-				_device_pd(device_pd_ep, _md_alloc),
-				/* restrict physical address to 3G on 32bit with device_pd */
-				_ram("dma", 0, (_device_pd.valid() && sizeof(void *) == 4)
-				               ? 0xc0000000UL : 0x100000000ULL),
+				_device_pd_ep(device_pd_ep),
 				_label(args), _policy(_label)
 			{
-				/* associate _ram session with platform_drv _ram session */
-				_ram.ref_account(Genode::env()->ram_session_cap());
-				Genode::env()->ram_session()->transfer_quota(_ram.cap(), 0x1000);
-
 				/* non-pci devices */
 				_policy.for_each_sub_node("device", [&] (Genode::Xml_node device_node) {
 					try {
@@ -650,7 +696,7 @@ namespace Platform {
 						_device_list.insert(dev);
 						return _ep->manage(dev);
 					} catch (Genode::Allocator::Out_of_memory) {
-						throw Device::Quota_exceeded();
+						throw Out_of_metadata();
 					}
 				};
 				return _ep->apply(prev_device, lambda);
@@ -690,40 +736,33 @@ namespace Platform {
 					destroy(_md_alloc, device);
 			}
 
-			Genode::Io_mem_dataspace_capability assign_device(Device_component * device)
+			void assign_device(Device_component * device)
 			{
 				using namespace Genode;
 
 				if (!device || !device->get_config_space().valid())
-					return Io_mem_dataspace_capability();
+					return;
 
 				Io_mem_dataspace_capability io_mem = device->get_config_space();
 
-				if (!_device_pd.child.valid())
-					return Io_mem_dataspace_capability();
+				if (!_device_pd.is_constructed())
+					_device_pd.construct(_device_pd_ep, _md_alloc,
+					                     _resources.ram().cap());
 
-				_device_pd.child.assign_pci(io_mem);
+				if (!_device_pd->valid())
+					return;
 
-				for (Rmrr *r = Rmrr::list()->first(); r; r = r->next()) {
-					Io_mem_dataspace_capability rmrr_cap = r->match(device->config());
-					if (rmrr_cap.valid())
-						_device_pd.child.attach_dma_mem(rmrr_cap);
+				try {
+					_device_pd->child.assign_pci(io_mem);
+
+					for (Rmrr *r = Rmrr::list()->first(); r; r = r->next()) {
+						Io_mem_dataspace_capability rmrr_cap = r->match(device->config());
+						if (rmrr_cap.valid())
+							_device_pd->child.attach_dma_mem(rmrr_cap);
+					}
+				} catch (...) {
+					PERR("assignment to device pd or of RMRR region failed");
 				}
-
-				/*
-				 * By now forbid usage of extended pci config space dataspace,
-				 * - until required.
-				 */
-				// return io_mem;
-				return Io_mem_dataspace_capability();
-			}
-
-			Genode::Io_mem_dataspace_capability config_extended(Device_capability device_cap)
-			{
-				using namespace Genode;
-
-				return _ep->apply(device_cap, [&] (Device_component *device) {
-					return assign_device(device);});
 			}
 
 			/**
@@ -731,34 +770,63 @@ namespace Platform {
 			 */
 			typedef Genode::Ram_dataspace_capability Ram_capability;
 
-			Ram_capability alloc_dma_buffer(Genode::size_t size)
+			Ram_capability alloc_dma_buffer(Genode::size_t const size)
 			{
+				if (!_device_pd.is_constructed())
+					_device_pd.construct(_device_pd_ep, _md_alloc,
+					                     _resources.ram().cap());
+
 				if (!_md_alloc.withdraw(size))
-					throw Device::Quota_exceeded();
+					throw Out_of_metadata();
 
+				/* transfer ram quota to session specific ram session */
 				Genode::Ram_session * const rs = Genode::env()->ram_session();
-				if (rs->transfer_quota(_ram.cap(), size)) {
+				if (rs->transfer_quota(_resources.ram().cap(), size)) {
 					_md_alloc.upgrade(size);
-					return Ram_capability();
+					throw Fatal();
 				}
 
-				Ram_capability ram_cap;
-				try {
-					ram_cap = Genode::retry<Genode::Ram_session::Out_of_metadata>(
-						[&] () { return _ram.alloc(size, Genode::UNCACHED); },
-						[&] () { Genode::env()->parent()->upgrade(_ram.cap(), "ram_quota=4K"); });
-				} catch (Genode::Ram_session::Quota_exceeded) { }
+				enum { UPGRADE_QUOTA = 4096 };
 
-				if (!ram_cap.valid()) {
-					_ram.transfer_quota(Genode::env()->ram_session_cap(), size);
-					_md_alloc.upgrade(size);
+				/* allocate dataspace from session specific ram session */
+				Ram_capability ram_cap = Genode::retry<Genode::Ram_session::Out_of_metadata>(
+					[&] () { return _resources.ram().alloc(size, Genode::UNCACHED); },
+					[&] () {
+						if (!_md_alloc.withdraw(UPGRADE_QUOTA)) {
+							/* role-back */
+							if (_resources.ram().transfer_quota(Genode::env()->ram_session_cap(), size))
+								throw Fatal();
+							_md_alloc.upgrade(size);
+							throw Out_of_metadata();
+						}
+						char buf[32];
+						Genode::snprintf(buf, sizeof(buf), "ram_quota=%u",
+						                 UPGRADE_QUOTA);
+						Genode::env()->parent()->upgrade(_resources.ram().cap(), buf);
+					});
+
+				if (!_device_pd->valid())
 					return ram_cap;
-				}
 
-				if (!_device_pd.child.valid())
-					return ram_cap;
+				Genode::retry<Genode::Rm_session::Out_of_metadata>(
+					[&] () { _device_pd->child.attach_dma_mem(ram_cap); },
+					[&] () {
+						if (!_md_alloc.withdraw(UPGRADE_QUOTA)) {
+							/* role-back */
+							_resources.ram().free(ram_cap);
+							if (_resources.ram().transfer_quota(Genode::env()->ram_session_cap(), size))
+								throw Fatal();
+							_md_alloc.upgrade(size);
+							throw Out_of_metadata();
+						}
 
-				_device_pd.child.attach_dma_mem(ram_cap);
+						if (rs->transfer_quota(_resources.ram().cap(), UPGRADE_QUOTA))
+							throw Fatal();
+
+						Genode::Ram_connection &slave = _device_pd->policy->ram_slave();
+						if (_resources.ram().transfer_quota(slave.cap(), UPGRADE_QUOTA))
+							throw Fatal();
+					});
 
 				return ram_cap;
 			}
@@ -766,7 +834,7 @@ namespace Platform {
 			void free_dma_buffer(Ram_capability ram)
 			{
 				if (ram.valid())
-					_ram.free(ram);
+					_resources.ram().free(ram);
 			}
 
 			Device_capability device(String const &name) override;

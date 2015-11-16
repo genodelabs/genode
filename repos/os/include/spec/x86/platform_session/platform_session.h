@@ -26,6 +26,14 @@ namespace Platform { struct Session; }
 
 struct Platform::Session : Genode::Session
 {
+	/*********************
+	 ** Exception types **
+	 *********************/
+
+	class Alloc_failed    : public Genode::Exception { };
+	class Out_of_metadata : public Alloc_failed { };
+	class Fatal           : public Alloc_failed { };
+
 	static const char *service_name() { return "Platform"; }
 
 	virtual ~Session() { }
@@ -53,12 +61,6 @@ struct Platform::Session : Genode::Session
 	 */
 	virtual void release_device(Device_capability device) = 0;
 
-	/**
-	 * Provide mapping to device configuration space of 4k, known as
-	 * "Enhanced Configuration Access Mechanism (ECAM) for PCI Express
-	 */
-	virtual Genode::Io_mem_dataspace_capability config_extended(Device_capability) = 0;
-
 	typedef Genode::Rpc_in_buffer<8> String;
 
 	/**
@@ -82,28 +84,23 @@ struct Platform::Session : Genode::Session
 	 *********************/
 
 	GENODE_RPC_THROW(Rpc_first_device, Device_capability, first_device,
-	                 GENODE_TYPE_LIST(Platform::Device::Quota_exceeded),
+	                 GENODE_TYPE_LIST(Out_of_metadata),
 	                 unsigned, unsigned);
 	GENODE_RPC_THROW(Rpc_next_device, Device_capability, next_device,
-	                 GENODE_TYPE_LIST(Platform::Device::Quota_exceeded),
+	                 GENODE_TYPE_LIST(Out_of_metadata),
 	                 Device_capability, unsigned, unsigned);
 	GENODE_RPC(Rpc_release_device, void, release_device, Device_capability);
-	GENODE_RPC_THROW(Rpc_config_extended, Genode::Io_mem_dataspace_capability,
-	                 config_extended,
-	                 GENODE_TYPE_LIST(Platform::Device::Quota_exceeded),
-	                 Device_capability);
 	GENODE_RPC_THROW(Rpc_alloc_dma_buffer, Genode::Ram_dataspace_capability,
 	                 alloc_dma_buffer,
-	                 GENODE_TYPE_LIST(Platform::Device::Quota_exceeded),
+	                 GENODE_TYPE_LIST(Out_of_metadata, Fatal),
 	                 Genode::size_t);
 	GENODE_RPC(Rpc_free_dma_buffer, void, free_dma_buffer,
 	           Genode::Ram_dataspace_capability);
 	GENODE_RPC_THROW(Rpc_device, Device_capability, device,
-	                 GENODE_TYPE_LIST(Platform::Device::Quota_exceeded),
+	                 GENODE_TYPE_LIST(Out_of_metadata),
 	                 String const &);
 
 	GENODE_RPC_INTERFACE(Rpc_first_device, Rpc_next_device,
-	                     Rpc_release_device, Rpc_config_extended,
-	                     Rpc_alloc_dma_buffer, Rpc_free_dma_buffer,
-	                     Rpc_device);
+	                     Rpc_release_device, Rpc_alloc_dma_buffer,
+	                     Rpc_free_dma_buffer, Rpc_device);
 };

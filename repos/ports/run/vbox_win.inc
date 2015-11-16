@@ -75,7 +75,7 @@ append config_of_app {
 		(Recording is configured to use the external mic.)
 	-->
 	<start name="audio_drv">
-		<resource name="RAM" quantum="8M"/>
+		<resource name="RAM" quantum="9M"/>
 		<provides>
 			<service name="Audio_out"/>
 			<service name="Audio_in"/>

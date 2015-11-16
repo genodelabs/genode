@@ -41,17 +41,15 @@ struct X86_hba : Platform::Hba
 
 	X86_hba()
 	{
-		for (unsigned i = 0; i < 2; i++)
-			try {
-				if (!(pci_device_cap =
-				      pci.next_device(pci_device_cap, AHCI_DEVICE, CLASS_MASK)).valid()) {
-					PERR("No AHCI controller found");
-					throw -1;
-				}
-				break;
-			} catch (Platform::Device::Quota_exceeded) {
-				Genode::env()->parent()->upgrade(pci.cap(), "ram_quota=4096");
-			}
+		pci_device_cap = retry<Platform::Session::Out_of_metadata>(
+			[&] () { return pci.next_device(pci_device_cap, AHCI_DEVICE,
+				                            CLASS_MASK); },
+			[&] () { env()->parent()->upgrade(pci.cap(), "ram_quota=4096"); });
+
+		if (!pci_device_cap.valid()) {
+			PERR("No AHCI controller found");
+				throw -1;
+		}
 
 		/* construct pci client */
 		pci_device.construct(pci_device_cap);
@@ -70,7 +68,7 @@ struct X86_hba : Platform::Hba
 		/* enable bus master */
 		uint16_t cmd = pci_device->config_read(PCI_CMD, Platform::Device::ACCESS_16BIT);
 		cmd |= 0x4;
-		pci_device->config_write(PCI_CMD, cmd, Platform::Device::ACCESS_16BIT);
+		_config_write(PCI_CMD, cmd, Platform::Device::ACCESS_16BIT);
 
 		irq.construct(pci_device->irq(0));
 	}
@@ -90,10 +88,26 @@ struct X86_hba : Platform::Hba
 			uint16_t msi = pci_device->config_read(cap + 2, Platform::Device::ACCESS_16BIT);
 
 			if (msi & MSI_ENABLED) {
-				pci_device->config_write(cap + 2, msi ^ MSI_CAP, Platform::Device::ACCESS_8BIT);
+				_config_write(cap + 2, msi ^ MSI_CAP,
+				              Platform::Device::ACCESS_8BIT);
 				PINF("Disabled MSIs %x", msi);
 			}
 		}
+	}
+
+	void _config_write(uint8_t op, uint16_t cmd,
+	                   Platform::Device::Access_size width)
+	{
+		Genode::size_t donate = 4096;
+		Genode::retry<Platform::Device::Quota_exceeded>(
+			[&] () { pci_device->config_write(op, cmd, width); },
+			[&] () {
+				char quota[32];
+				Genode::snprintf(quota, sizeof(quota), "ram_quota=%zd",
+				                 donate);
+				Genode::env()->parent()->upgrade(pci.cap(), quota);
+				donate *= 2;
+			});
 	}
 
 
@@ -115,12 +129,16 @@ struct X86_hba : Platform::Hba
 	Ram_dataspace_capability
 	alloc_dma_buffer(Genode::size_t size) override
 	{
-		/* transfer quota to pci driver, otherwise we get a exception */
-		char quota[32];
-		snprintf(quota, sizeof(quota), "ram_quota=%zd", size);
-		env()->parent()->upgrade(pci.cap(), quota);
+		size_t donate = size;
 
-		return pci.alloc_dma_buffer(size);
+		return retry<Platform::Session::Out_of_metadata>(
+			[&] () { return pci.alloc_dma_buffer(size); },
+			[&] () {
+				char quota[32];
+				snprintf(quota, sizeof(quota), "ram_quota=%zd", donate);
+				env()->parent()->upgrade(pci.cap(), quota);
+				donate = donate * 2 > size ? 4096 : donate * 2;
+			});
 	}
 
 	void free_dma_buffer(Genode::Ram_dataspace_capability ds)

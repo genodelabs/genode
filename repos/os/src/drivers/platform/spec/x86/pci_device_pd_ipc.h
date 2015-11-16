@@ -27,10 +27,13 @@ struct Platform::Device_pd : Genode::Session
 {
 	static const char *service_name() { return "DEVICE_PD"; }
 
-	GENODE_RPC(Rpc_attach_dma_mem, void, attach_dma_mem,
-	           Genode::Dataspace_capability);
-	GENODE_RPC(Rpc_assign_pci, void, assign_pci,
-	           Genode::Io_mem_dataspace_capability);
+	GENODE_RPC_THROW(Rpc_attach_dma_mem, void, attach_dma_mem,
+	                 GENODE_TYPE_LIST(Genode::Rm_session::Out_of_metadata),
+	                 Genode::Dataspace_capability);
+	GENODE_RPC_THROW(Rpc_assign_pci, void, assign_pci,
+	                 GENODE_TYPE_LIST(Genode::Rm_session::Out_of_metadata,
+	                                  Genode::Rm_session::Region_conflict),
+	                 Genode::Io_mem_dataspace_capability);
 
 	GENODE_RPC_INTERFACE(Rpc_attach_dma_mem, Rpc_assign_pci);
 };
