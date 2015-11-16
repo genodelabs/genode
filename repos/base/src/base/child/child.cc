@@ -247,7 +247,7 @@ void Child::_close(Session* s)
 	 */
 	if (s->service()->ram_session_cap().valid()) {
 		Ram_session_client server_ram(s->service()->ram_session_cap());
-		if (server_ram.transfer_quota(env()->ram_session_cap(),
+		if (server_ram.transfer_quota(_policy->ref_ram_cap(),
 		                              s->donated_ram_quota())) {
 			PERR("Misbehaving server '%s'!", s->service()->name());
 		}
@@ -329,7 +329,7 @@ Session_capability Child::session(Parent::Service_name const &name,
 	/* transfer the quota donation from the child's account to ourself */
 	size_t ram_quota = Arg_string::find_arg(_args, "ram_quota").ulong_value(0);
 
-	Transfer donation_from_child(ram_quota, _ram, env()->ram_session_cap());
+	Transfer donation_from_child(ram_quota, _ram, _policy->ref_ram_cap());
 
 	Service *service = _policy->resolve_session_request(name.string(), _args);
 
@@ -338,7 +338,7 @@ Session_capability Child::session(Parent::Service_name const &name,
 		throw Service_denied();
 
 	/* transfer session quota from ourself to the service provider */
-	Transfer donation_to_service(ram_quota, env()->ram_session_cap(),
+	Transfer donation_to_service(ram_quota, _policy->ref_ram_cap(),
 	                             service->ram_session_cap());
 
 	/* create session */
@@ -394,11 +394,10 @@ void Child::upgrade(Session_capability to_session, Parent::Upgrade_args const &a
 			Arg_string::find_arg(args.string(), "ram_quota").ulong_value(0);
 
 		/* transfer quota from client to ourself */
-		Transfer donation_from_child(ram_quota, _ram,
-		                             env()->ram_session_cap());
+		Transfer donation_from_child(ram_quota, _ram, _policy->ref_ram_cap());
 
 		/* transfer session quota from ourself to the service provider */
-		Transfer donation_to_service(ram_quota, env()->ram_session_cap(),
+		Transfer donation_to_service(ram_quota, _policy->ref_ram_cap(),
 		                             targeted_service->ram_session_cap());
 
 		try { targeted_service->upgrade(to_session, args.string()); }

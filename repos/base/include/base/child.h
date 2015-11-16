@@ -109,6 +109,7 @@ struct Genode::Child_policy
 	 * transfers.
 	 */
 	virtual Ram_session *ref_ram_session() { return env()->ram_session(); }
+	virtual Ram_session_capability ref_ram_cap() const { return env()->ram_session_cap(); }
 
 	/**
 	 * Return platform-specific PD-session arguments
