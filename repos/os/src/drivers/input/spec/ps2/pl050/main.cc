@@ -18,6 +18,7 @@
 #include <input/component.h>
 #include <input/root.h>
 #include <cap_session/connection.h>
+#include <os/config.h>
 #include <os/server.h>
 
 /* local includes */
@@ -43,10 +44,20 @@ struct Main
 	Irq_handler  ps2_mouse_irq;
 	Irq_handler  ps2_keybd_irq;
 
+	bool _check_verbose(const char * verbose) {
+		using namespace Genode;
+		try {
+			return config()->xml_node().attribute(verbose).has_value("yes");
+		} catch (...) { return false; }
+	}
+
 	Main(Server::Entrypoint &ep)
 		: ep(ep), root(ep.rpc_ep(), session),
-		ps2_mouse(*pl050.aux_interface(), session.event_queue()),
-		ps2_keybd(*pl050.kbd_interface(), session.event_queue(), true),
+		ps2_mouse(*pl050.aux_interface(), session.event_queue(),
+		          _check_verbose("verbose_mouse")),
+		ps2_keybd(*pl050.kbd_interface(), session.event_queue(), true,
+		          _check_verbose("verbose_keyboard"),
+		          _check_verbose("verbose_scancodes")),
 		ps2_mouse_irq(ep, PL050_MOUSE_IRQ, pl050.aux_interface(), ps2_mouse),
 		ps2_keybd_irq(ep, PL050_KEYBD_IRQ, pl050.kbd_interface(), ps2_keybd)
 	{

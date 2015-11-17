@@ -19,6 +19,7 @@
 /* os includes */
 #include <input/component.h>
 #include <input/root.h>
+#include <os/config.h>
 #include <os/server.h>
 #include <platform_session/connection.h>
 
@@ -51,14 +52,23 @@ struct Main
 
 	enum { REG_IOPORT_DATA = 0, REG_IOPORT_STATUS};
 
+	bool _check_verbose(const char * verbose) {
+		using namespace Genode;
+		try {
+			return config()->xml_node().attribute(verbose).has_value("yes");
+		} catch (...) { return false; }
+	}
+
 	Main(Server::Entrypoint &ep)
 	: ep(ep), root(ep.rpc_ep(), session),
 		device_ps2(platform.device("PS2")),
 		i8042(device_ps2.io_port(REG_IOPORT_DATA),
 		      device_ps2.io_port(REG_IOPORT_STATUS)),
 		ps2_keybd(*i8042.kbd_interface(), session.event_queue(),
-		          i8042.kbd_xlate()),
-		ps2_mouse(*i8042.aux_interface(), session.event_queue()),
+		          i8042.kbd_xlate(), _check_verbose("verbose_keyboard"),
+		          _check_verbose("verbose_scancodes")),
+		ps2_mouse(*i8042.aux_interface(), session.event_queue(),
+		          _check_verbose("verbose_mouse")),
 		ps2_keybd_irq(ep, ps2_keybd, device_ps2.irq(0)),
 		ps2_mouse_irq(ep, ps2_mouse, device_ps2.irq(1))
 	{

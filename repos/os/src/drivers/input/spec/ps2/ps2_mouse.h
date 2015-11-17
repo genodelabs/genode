@@ -69,13 +69,12 @@ class Ps2_mouse : public Input_driver
 
 	private:
 
-		static const bool verbose = false;
-
 		Serial_interface   &_aux;
 		Input::Event_queue &_ev_queue;
 
 		Type                _type;
 
+		bool                _verbose;
 		bool                _button_state[NUM_BUTTONS];
 
 		unsigned char _packet[MAX_PACKET_LEN];
@@ -103,7 +102,7 @@ class Ps2_mouse : public Input_driver
 		{
 			if (*old_state == new_state) return;
 
-			if (verbose)
+			if (_verbose)
 				Genode::printf("post %s, key_code = %d\n", new_state ? "PRESS" : "RELEASE", key_code);
 
 			_check_for_event_queue_overflow();
@@ -160,10 +159,11 @@ class Ps2_mouse : public Input_driver
 
 	public:
 
-		Ps2_mouse(Serial_interface &aux, Input::Event_queue &ev_queue)
+		Ps2_mouse(Serial_interface &aux, Input::Event_queue &ev_queue,
+		          bool verbose)
 		:
 			_aux(aux),
-			_ev_queue(ev_queue), _type(PS2),
+			_ev_queue(ev_queue), _type(PS2), _verbose(verbose),
 			_packet_len(PS2_PACKET_LEN), _packet_idx(0)
 		{
 			for (unsigned i = 0; i < NUM_BUTTONS; ++i)
@@ -231,7 +231,7 @@ class Ps2_mouse : public Input_driver
 				/* mirror y axis to make the movement correspond to screen coordinates */
 				rel_y = -rel_y;
 
-				if (verbose)
+				if (_verbose)
 					Genode::printf("post MOTION, rel_x = %d, rel_y = %d\n", rel_x, rel_y);
 
 				_check_for_event_queue_overflow();
@@ -253,7 +253,7 @@ class Ps2_mouse : public Input_driver
 				/* mirror y axis to make "scroll up" generate positive values */
 				rel_z = -rel_z;
 
-				if (verbose)
+				if (_verbose)
 					Genode::printf("post WHEEL, rel_z = %d\n", rel_z);
 
 				_check_for_event_queue_overflow();

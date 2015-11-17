@@ -55,8 +55,9 @@ append config {
 	</start>
 
 	<start name="ps2_drv">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Input"/></provides>
+		<config verbose_keyboard="no" verbose_mouse="no" verbose_scancodes="no"/>
 		<route>
 			<service name="CAP">     <parent/> </service>
 			<service name="IO_PORT"> <parent/> </service>
