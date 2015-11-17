@@ -32,7 +32,7 @@ set config {
 		<service name="SIGNAL"/>
 	</parent-provides>
 	<start name="test-libc_vfs">
-		<resource name="RAM" quantum="2M"/>
+		<resource name="RAM" quantum="12M"/>
 		<route>
 			<any-service> <parent/> </any-service>
 		</route>

@@ -32,10 +32,10 @@ set config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<start name="vfs">
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="12M"/>
 		<provides> <service name="File_system"/> </provides>
 		<config>
-			<vfs> <ram quota="1M"/> </vfs>
+			<vfs> <ram/> </vfs>
 			<policy label="" root="/" writeable="yes" />
 		</config>
 	</start>
