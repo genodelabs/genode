@@ -112,9 +112,9 @@ append config_of_app {
 		<config>
 			<report focus="yes" hover="yes" xray="yes" />
 
-			<domain name="pointer" layer="1" content="origin" label="no" origin="pointer" />
-			<domain name="vbox"    layer="2" content="origin" focus="click" hover="always" />
-			<domain name=""        layer="2" content="origin" focus="click" hover="always" />
+			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
+			<domain name="vbox"    layer="2" content="client" focus="click" hover="always" />
+			<domain name=""        layer="2" content="client" focus="click" hover="always" />
 
 			<policy label="vbox_pointer" domain="pointer"/>
 			<policy label="nit_fb"       domain="vbox"/>
