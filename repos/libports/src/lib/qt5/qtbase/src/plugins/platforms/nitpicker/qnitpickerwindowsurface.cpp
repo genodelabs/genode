@@ -34,6 +34,9 @@ QNitpickerWindowSurface::QNitpickerWindowSurface(QWindow *window)
 {
     //qDebug() << "QNitpickerWindowSurface::QNitpickerWindowSurface:" << (long)this;
 
+    /* Calling 'QWindow::winId()' ensures that the platform window has been created */
+    window->winId();
+
     _platform_window = static_cast<QNitpickerPlatformWindow*>(window->handle());
     connect(_platform_window, SIGNAL(framebuffer_changed()), this, SLOT(framebuffer_changed()));
 }
