@@ -60,11 +60,11 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nitpicker"/></provides>
 		<config>
-			<domain name=""       layer="2" content="client" label="no"/>
-			<domain name="nano3d" layer="1" content="client" label="no" origin="pointer"/>
+			<domain name="default" layer="2" content="client" label="no"/>
+			<domain name="nano3d"  layer="1" content="client" label="no" origin="pointer"/>
 
 			<policy label="nano3d" domain="nano3d"/>
-			<policy label=""       domain=""/>
+			<policy domain="default"/>
 		</config>
 	</start>
 

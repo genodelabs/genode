@@ -34,7 +34,7 @@ set config {
 	<start name="ram_fs">
 		<resource name="RAM" quantum="12M"/>
 		<provides> <service name="File_system"/> </provides>
-		<config> <policy label="" root="/" writeable="yes" /> </config>
+		<config> <policy root="/" writeable="yes" /> </config>
 	</start>
 	<start name="test-libc_vfs">
 		<resource name="RAM" quantum="2M"/>

@@ -72,7 +72,7 @@ append_if [have_include "power_on/qemu"] config {
 			<service name="Uart"/>
 		</provides>
 		<config>
-			<policy label="noux" uart="1"/>
+			<policy label="noux_net" uart="1"/>
 		</config>
 	</start>}
 

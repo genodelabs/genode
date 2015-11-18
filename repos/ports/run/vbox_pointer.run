@@ -96,11 +96,11 @@ set config {
 			<report focus="yes" hover="yes" xray="yes"/>
 			<domain name="pointer"    layer="1" content="client" label="no" origin="pointer"/>
 			<domain name="smiley"     layer="3" content="client" label="no"/>
-			<domain name=""           layer="3" content="client" label="no"/>
+			<domain name="default"    layer="3" content="client" label="no"/>
 
 			<policy label="pointer"            domain="pointer"/>
 			<policy label="test-domain-smiley" domain="smiley"/>
-			<policy label=""                   domain=""/>
+			<policy                            domain="default"/>
 
 			<background color="#00426f"/> <!-- indigo -->
 		</config>

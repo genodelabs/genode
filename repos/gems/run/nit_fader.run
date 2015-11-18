@@ -52,10 +52,10 @@ append config {
 		<provides><service name="Nitpicker"/></provides>
 		<config>
 			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
-			<domain name=""        layer="3" content="client" label="no" focus="click" hover="always" />
+			<domain name="default" layer="3" content="client" label="no" focus="click" hover="always" />
 
 			<policy label="pointer" domain="pointer"/>
-			<policy label=""        domain=""/>
+			<policy domain="default"/>
 		</config>
 	</start>
 	<start name="pointer">

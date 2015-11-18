@@ -60,9 +60,9 @@ append config {
 			<flow from="hobby" to="admin" />
 			<flow from="work"  to="admin" />
 
-			<policy label="test-clipboard -> win7"  domain="work"  />
-			<policy label="test-clipboard -> linux" domain="hobby" />
-			<policy label="test-clipboard -> noux"  domain="admin" />
+			<policy label_prefix="test-clipboard -> win7"  domain="work"  />
+			<policy label_prefix="test-clipboard -> linux" domain="hobby" />
+			<policy label_prefix="test-clipboard -> noux"  domain="admin" />
 
 		</config>
 		<route>

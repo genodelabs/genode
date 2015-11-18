@@ -296,7 +296,7 @@ append_if $use_fancy_stuff config {
 			                       hover="always" ypos="18" height="-18" />
 			<policy label="pointer"    domain="pointer"/>
 			<policy label="status_bar" domain="panel"/>
-			<policy label=""           domain=""/>
+			<policy domain=""/>
 		</config>
 		<route>
 			<service name="Timer">      <child name="timer"/></service>

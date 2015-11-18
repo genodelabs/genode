@@ -56,7 +56,7 @@ append config {
 	<start name="rump_fs">
 		<resource name="RAM" quantum="8M" />
 		<provides><service name="File_system"/></provides>
-		<config fs="cd9660"><policy label="" root="/" writeable="no"/></config>
+		<config fs="cd9660"><policy label="fs_rom" root="/" writeable="no"/></config>
 	</start>
 	<start name="fs_rom">
 		<resource name="RAM" quantum="2M"/>

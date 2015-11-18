@@ -61,8 +61,8 @@ append config {
 		<provides><service name="Nitpicker"/></provides>
 		<config>
 			<report pointer="yes" />
-			<domain name="" layer="2" content="client" label="no"/>
-			<policy label="" domain=""/>
+			<domain name="default" layer="2" content="client" label="no"/>
+			<policy domain="default"/>
 		</config>
 	</start>
 	<start name="dynamic_rom">

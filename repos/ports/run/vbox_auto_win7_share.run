@@ -176,7 +176,7 @@ set config_of_app {
 				<rom name="test.bin" />
 				<rom name="template.bat" />
 			</content>
-			<policy label="" root="/" writeable="no" />
+			<policy root="/" writeable="no" />
 		</config>
 	</start>
 
@@ -185,7 +185,7 @@ set config_of_app {
 		<resource name="RAM" quantum="64M"/>
 		<provides><service name="File_system"/></provides>
 		<config>
-			<policy label="" root="/" writeable="yes" />
+			<policy root="/" writeable="yes" />
 		</config>
 	</start>
 

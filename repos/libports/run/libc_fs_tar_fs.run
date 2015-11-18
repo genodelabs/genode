@@ -48,7 +48,7 @@ set config {
 		<provides> <service name="File_system"/> </provides>
 		<config>
 			<archive name="libc_fs_tar_fs.tar" />
-			<policy label="" root="/testdir" />
+			<policy root="/testdir" />
 		</config>
 	</start>
 	<start name="test-libc_fs_tar_fs">

@@ -77,7 +77,7 @@ proc qt5_start_nodes { feature_arg } {
 				<domain name="default" layer="2" label="no" content="client" focus="click" hover="always" />
 
 				<policy label="pointer" domain="pointer"/>
-				<policy label=""        domain="default"/>
+				<policy domain="default"/>
 			</config>
 		</start>
 

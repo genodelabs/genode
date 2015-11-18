@@ -110,7 +110,7 @@ append config {
 			<domain name="default" layer="2" label="no" content="client" hover="always" />
 
 			<policy label="pointer" domain="pointer"/>
-			<policy label=""        domain="default"/>
+			<policy domain="default"/>
 		</config>
 	</start>
 

@@ -77,15 +77,15 @@ append config {
 		</provides>
 		<config>
 			<rom>
-				<policy label="layouter -> window_list"     report="wm -> window_list"/>
-				<policy label="layouter -> focus_request"   report="wm -> focus_request"/>
-				<policy label="decorator -> window_layout"  report="layouter -> window_layout"/>
-				<policy label="wm -> resize_request"        report="layouter -> resize_request"/>
-				<policy label="decorator -> pointer"        report="wm -> pointer"/>
-				<policy label="layouter -> hover"           report="decorator -> hover"/>
-				<policy label="wm -> focus"                 report="layouter -> focus"/>
-				<policy label="mixer_gui_qt -> channel_list"    report="mixer -> channel_list"/>
-				<policy label="mixer -> channel_list"           report="mixer_gui_qt -> channel_list"/>
+				<policy label="layouter -> window_list"      report="wm -> window_list"/>
+				<policy label="layouter -> focus_request"    report="wm -> focus_request"/>
+				<policy label="decorator -> window_layout"   report="layouter -> window_layout"/>
+				<policy label="wm -> resize_request"         report="layouter -> resize_request"/>
+				<policy label="decorator -> pointer"         report="wm -> pointer"/>
+				<policy label="layouter -> hover"            report="decorator -> hover"/>
+				<policy label="wm -> focus"                  report="layouter -> focus"/>
+				<policy label="mixer_gui_qt -> channel_list" report="mixer -> channel_list"/>
+				<policy label="mixer -> channel_list"        report="mixer_gui_qt -> channel_list"/>
 			</rom>
 		</config>
 	</start>
@@ -94,11 +94,11 @@ append config {
 		<provides><service name="Nitpicker"/></provides>
 		<config>
 			<report focus="yes" xray="yes" />
-			<domain name="pointer"   layer="1" content="client" label="no" origin="pointer" />
-			<domain name="default"   layer="2" content="client" label="no" hover="always" focus="click"/>
+			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
+			<domain name="default" layer="2" content="client" label="no" hover="always" focus="click"/>
 
-			<policy label="pointer"         domain="pointer"/>
-			<policy label=""                domain="default"/>
+			<policy label="pointer" domain="pointer"/>
+			<policy                 domain="default"/>
 
 			<background color="#000000" />
 		</config>

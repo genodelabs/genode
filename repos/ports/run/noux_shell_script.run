@@ -136,7 +136,7 @@ foreach pkg $noux_pkgs {
 
 append config {
 				<dir name="home"> <fs label="home" /> </dir>
-				<dir name="ram"> <fs label="root" /> </dir>
+				<dir name="ram">  <fs label="root" /> </dir>
 
 			</fstab>
 			<start name="/bin/bash">

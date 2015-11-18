@@ -36,7 +36,7 @@ install_config {
 		<resource name="RAM" quantum="1G"/>
 		<provides><service name="File_system"/></provides>
 		<config>
-			<policy label="" root="/" writeable="yes"/>
+			<policy root="/" writeable="yes"/>
 		</config>
 	</start>
 </config>

@@ -75,7 +75,7 @@ set config {
 	<start name="rump_fs" priority="-1">
 		<resource name="RAM" quantum="32M" />
 		<provides><service name="File_system"/></provides>
-		<config fs="ext2fs"><policy label="" root="/" writeable="yes"/></config>
+		<config fs="ext2fs"><policy root="/" writeable="yes"/></config>
 		<route>
 			<any-service><child name="part_blk"/> <parent/><any-child/></any-service>
 		</route>

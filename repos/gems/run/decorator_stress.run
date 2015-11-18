@@ -103,7 +103,7 @@ append config {
 		<provides><service name="Nitpicker"/></provides>
 		<config>
 			<domain name="" layer="2" content="client" label="no" />
-			<policy label="" domain=""/>
+			<policy domain=""/>
 			<report pointer="yes" />
 		</config>
 		<route>

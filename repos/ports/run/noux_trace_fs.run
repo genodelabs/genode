@@ -166,9 +166,9 @@ append config {
 foreach pkg $noux_pkgs {
 append config "								<tar name=\"$pkg.tar\" />" }
 append config {
-				<dir name="home"> <fs label="home" /> </dir>
-				<dir name="ram"> <fs label="root" /> </dir>
-				<dir name="tmp"> <fs label="tmp" /> </dir>
+				<dir name="home">  <fs label="home" />  </dir>
+				<dir name="ram">   <fs label="root" />  </dir>
+				<dir name="tmp">   <fs label="tmp" />   </dir>
 				<dir name="trace"> <fs label="trace" /> </dir>
 
 				<dir name="dev">

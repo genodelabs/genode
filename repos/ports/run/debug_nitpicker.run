@@ -72,9 +72,9 @@ set config {
 			<target name="nitpicker">
 				<config>
 					<domain name="pointer" layer="1" xray="no" origin="pointer" />
-					<domain name=""        layer="3" />
+					<domain name="default" layer="3" />
 					<policy label="pointer" domain="pointer"/>
-					<policy label=""        domain=""/>
+					<policy domain="default"/>
 				</config>
 			</target>
 			<preserve name="RAM" quantum="2M"/>
