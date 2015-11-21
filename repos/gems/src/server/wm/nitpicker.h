@@ -942,7 +942,17 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 
 		void buffer(Framebuffer::Mode mode, bool has_alpha) override
 		{
-			_session.buffer(mode, has_alpha);
+			/*
+			 * We must not perform the 'buffer' operation on the connection
+			 * object because the 'Nitpicker::Connection::buffer'
+			 * implementation implicitly performs upgrade operations.
+			 *
+			 * Here, we merely want to forward the buffer RPC call to the
+			 * wrapped nitpicker session. Otherwise, we would perform
+			 * session upgrades initiated by the wm client's buffer
+			 * operation twice.
+			 */
+			Nitpicker::Session_client(_session.cap()).buffer(mode, has_alpha);
 			_has_alpha = has_alpha;
 		}
 

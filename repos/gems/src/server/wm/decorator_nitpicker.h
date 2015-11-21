@@ -447,7 +447,10 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>,
 
 	void buffer(Framebuffer::Mode mode, bool use_alpha) override
 	{
-		_nitpicker_session.buffer(mode, use_alpha);
+		/*
+		 * See comment in 'Wm::Nitpicker::Session_component::buffer'.
+		 */
+		Nitpicker::Session_client(_nitpicker_session.cap()).buffer(mode, use_alpha);
 	}
 
 	void focus(Genode::Capability<Nitpicker::Session>) { }
