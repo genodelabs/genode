@@ -776,6 +776,8 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 				}
 				catch (View_handle_registry::Lookup_failed) {
 					return View_handle(); }
+				catch (View_handle_registry::Out_of_memory) {
+					throw Nitpicker::Session::Out_of_metadata(); }
 				catch (Genode::Allocator::Out_of_memory) {
 					throw Nitpicker::Session::Out_of_metadata(); }
 			}
@@ -799,7 +801,9 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 			_view_list.insert(view);
 			_ep.manage(view);
 
-			return _view_handle_registry.alloc(*view);
+			try { return _view_handle_registry.alloc(*view); }
+			catch (View_handle_registry::Out_of_memory) {
+				throw Nitpicker::Session::Out_of_metadata(); }
 		}
 
 		void destroy_view(View_handle handle) override
@@ -835,7 +839,10 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 				return (view) ? _view_handle_registry.alloc(*view, handle)
 				              : View_handle();
 			};
-			return _ep.apply(view_cap, lambda);
+
+			try { return _ep.apply(view_cap, lambda); }
+			catch (View_handle_registry::Out_of_memory) {
+				throw Nitpicker::Session::Out_of_metadata(); }
 		}
 
 		View_capability view_capability(View_handle handle) override
