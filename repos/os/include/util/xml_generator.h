@@ -312,6 +312,12 @@ class Genode::Xml_generator
 			_curr_node->insert_attribute(name, str);
 		}
 
+		template <size_t N>
+		void attribute(char const *name, String<N> const &str)
+		{
+			_curr_node->insert_attribute(name, str.string());
+		}
+
 		void attribute(char const *name, long value)
 		{
 			char buf[64];
