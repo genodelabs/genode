@@ -21,6 +21,7 @@ namespace Genode {
 
 	class Xml_attribute;
 	class Xml_node;
+
 }
 
 
@@ -103,6 +104,10 @@ class Genode::Xml_attribute
 			max_len = min(max_len, _name.len() + 1);
 			strncpy(dst, _name.start(), max_len);
 		}
+
+		typedef String<64> Name;
+		Name name() const {
+			return Name(_name.start(), _name.len()); }
 
 		/**
 		 * Return true if attribute has specified type
@@ -606,6 +611,13 @@ class Genode::Xml_node
 		 */
 		void type_name(char *dst, size_t max_len) const {
 			_start_tag.name().string(dst, max_len); }
+
+		typedef String<64> Type;
+		Type type() const
+		{
+			Token name = _start_tag.name();
+			return Type(name.start(), name.len());
+		}
 
 		/**
 		 * Return true if tag is of specified type
