@@ -125,6 +125,13 @@ class Rom::Session_component : public Genode::Rpc_object<Genode::Rom_session>,
 		void sigh(Genode::Signal_context_capability sigh) override
 		{
 			_sigh = sigh;
+
+			/*
+			 * Notify client initially to enforce a client-side ROM update.
+			 * Otherwise, a server-side ROM update between session creation and
+			 * signal-handler registration would go unnoticed.
+			 */
+			_notify_client();
 		}
 
 		/**
