@@ -210,6 +210,8 @@ class Vfs::Dir_file_system : public File_system
 		:
 			_first_file_system(0)
 		{
+			using namespace Genode;
+
 			/* remember directory name */
 			if (node.has_type("fstab") || node.has_type("vfs"))
 				_name[0] = 0;
@@ -233,9 +235,16 @@ class Vfs::Dir_file_system : public File_system
 					continue;
 				}
 
-				char type_name[64];
-				sub_node.type_name(type_name, sizeof(type_name));
-				PWRN("unknown fstab node type <%s>", type_name);
+				PERR("failed to create <%s> VFS node", sub_node.type().string());
+				try {
+					String<64> value;
+					for (unsigned i = 0; i < 16; ++i) {
+						Xml_attribute attr = sub_node.attribute(i);
+						attr.value(&value);
+
+						PERR("\t%s=\"%s\"", attr.name().string(), value.string());
+					}
+				} catch (Xml_node::Nonexistent_attribute) { }
 			}
 		}
 
