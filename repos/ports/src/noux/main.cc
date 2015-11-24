@@ -1062,7 +1062,7 @@ static Noux::Io_channel *connect_stdio(Vfs::Dir_file_system            &root,
 		}
 
 		return new (Genode::env()->heap())
-			Vfs_io_channel("", path, &root, vfs_handle, sig_rec);
+			Vfs_io_channel(path, root.leaf_path(path), &root, vfs_handle, sig_rec);
 
 	} catch (Genode::Xml_node::Nonexistent_attribute) {
 		PWRN("%s VFS path not defined, connecting to Terminal session", stdio_name);
