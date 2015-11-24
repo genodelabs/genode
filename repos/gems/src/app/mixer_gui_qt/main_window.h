@@ -50,6 +50,12 @@ class Main_window : public Compound_widget<QWidget, QHBoxLayout>
 
 	private:
 
+		int  _default_out_volume;
+		int  _default_volume;
+		bool _default_muted;
+
+		bool _verbose;
+
 		void _update_clients(Genode::Xml_node &);
 
 	private Q_SLOTS:

@@ -15,6 +15,7 @@
 #include <base/printf.h>
 #include <mixer/channel.h>
 #include <os/attached_rom_dataspace.h>
+#include <os/config.h>
 #include <os/reporter.h>
 #include <rom_session/connection.h>
 
@@ -109,7 +110,7 @@ class Channel_widget : public Compound_widget<QFrame, QVBoxLayout>,
 
 			connect(&_slider, SIGNAL(sliderReleased()),
 			        this,     SIGNAL(channel_changed()));
-			connect(&_muted_checkbox, SIGNAL(stateChanged(int)),
+			connect(&_muted_checkbox, SIGNAL(clicked(bool)),
 			        this,             SIGNAL(channel_changed()));
 		}
 
@@ -308,15 +309,39 @@ static Client_widget_registry *client_registry()
 }
 
 
-static Genode::Reporter config_reporter { "mixer.config" };
+static char const * const config_file = "/config/mixer.config";
+
+
+static int write_config(char const *file, char const *data, size_t length)
+{
+	if (length == 0) return 0;
+
+	QFile mixer_file(file);
+	if (!mixer_file.open(QIODevice::WriteOnly)) {
+		PERR("could not open '%s'", file);
+		return -1;
+	}
+
+	mixer_file.write(data, length);
+	mixer_file.close();
+
+	return 0;
+}
 
 
 void Main_window::_update_config()
 {
-	config_reporter.enabled(true);
+	char   xml_data[2048];
+	size_t xml_used = 0;
 
 	try {
-		Genode::Reporter::Xml_generator xml(config_reporter, [&] {
+		Genode::Xml_generator xml(xml_data, sizeof(xml_data), "config", [&] {
+
+			xml.node("default", [&] {
+				xml.attribute("out_volume", _default_out_volume);
+				xml.attribute("volume",     _default_volume);
+				xml.attribute("muted",      _default_muted);
+			});
 
 			xml.node("channel_list", [&] {
 				for (Client_widget const *c = client_registry()->first(); c; c = c->next()) {
@@ -340,11 +365,20 @@ void Main_window::_update_config()
 							xml.attribute("volume", combined ? vol   : w->volume());
 							xml.attribute("muted",  combined ? muted : w->muted());
 						});
+
+						if (_verbose)
+							PLOG("label: '%s' volume: %d muted: %d", c->label().string(),
+							     combined ? vol   : w->volume(),
+							     combined ? muted : w->muted());
 					}
 				}
 			});
 		});
-	} catch (...) { PWRN("could not report channels"); }
+		xml_used = xml.used();
+
+	} catch (...) { PWRN("could generate 'mixer.config'"); }
+
+	write_config(config_file, xml_data, xml_used);
 }
 
 
@@ -401,9 +435,27 @@ void Main_window::report_changed(void *l, void const *p)
 
 
 Main_window::Main_window()
+:
+	_default_out_volume(0),
+	_default_volume(0),
+	_default_muted(true)
 {
 	connect(client_registry(), SIGNAL(registry_changed()),
 	        this, SLOT(_update_config()));
+
+	using namespace Genode;
+
+	try {
+		Xml_node config_node = config()->xml_node();
+		_verbose = config_node.attribute("verbose").has_value("yes");
+	} catch (...) { _verbose = false; }
+
+	try {
+		Xml_node node = config()->xml_node().sub_node("default");
+		_default_out_volume = node.attribute_value<long>("out_volume", 0);
+		_default_volume     = node.attribute_value<long>("volume", 0);
+		_default_muted      = node.attribute_value<long>("muted", 1);
+	} catch (...) { PWRN("no <default> node found, fallback is 'muted=1'"); }
 }
 
 

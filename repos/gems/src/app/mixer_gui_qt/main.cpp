@@ -44,7 +44,9 @@ struct Report_thread : Genode::Thread<THREAD_STACK_SIZE>
 	void _handle_channels(unsigned)
 	{
 		channels_rom.update();
-		_report(channels_rom.local_addr<char>(), channels_rom.size());
+
+		if (channels_rom.is_valid())
+			_report(channels_rom.local_addr<char>(), channels_rom.size());
 	}
 
 	Report_thread()
