@@ -1,0 +1,1084 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 15.11
+              ===============================================
+
+                               Genode Labs
+
+
+
+; intro
+; * Mention Emery's work on Nix
+; * Point to USB-Armory work by mstein
+
+;@nfeske
+
+
+Genode as desktop OS
+####################
+
+Uniform run-time configuration concept
+======================================
+
+;@nfeske
+
+
+GUI stack
+=========
+
+;@nfeske
+
+commit afac1e86bb59c8c3a4a4e104601a2a223084e289
+Author: Norman Feske <norman.feske@genode-labs.com>
+Date:   Wed Sep 16 23:15:17 2015 +0200
+
+    decorator: window colors and controls
+    
+    This patch improves the decorator in two ways. First, it enables the
+    assignment of window colors depending on the window labels. This
+    configuration can be changed dynamically. Second, it adds the handling
+    of window controls for closing, maximizing, minimizing windows.
+    
+    Issue #1689
+    Fixes #1688
+
+commit 0ab74e61d7763ba0229dd8e83fa633d0278ecc35
+Author: Norman Feske <norman.feske@genode-labs.com>
+Date:   Tue Sep 29 18:49:53 2015 +0200
+
+    wm: handle Nitpicker::Session::session_control
+
+commit e0233604fa69da3aeeffd0a80ef67390c4cab320
+Author: Norman Feske <norman.feske@genode-labs.com>
+Date:   Tue Sep 29 19:13:17 2015 +0200
+
+    wm: handling of temporarily hidden views
+
+commit cdb87a7c4fa104d0ed4c47ecb5d521ff54d74802
+Author: Norman Feske <norman.feske@genode-labs.com>
+Date:   Tue Sep 29 19:14:21 2015 +0200
+
+    window layouter: handle hidden windows
+
+commit e27ebd0368d2422fb0447145910269dd4c5d6f7f
+Author: Norman Feske <norman.feske@genode-labs.com>
+Date:   Tue Sep 29 20:16:28 2015 +0200
+
+    wm/layouter: respond to external focus requests
+
+commit 0efd908e27e19065975e0c46c794eedbc456bbec
+Author: Norman Feske <norman.feske@genode-labs.com>
+Date:   Tue Sep 29 22:23:36 2015 +0200
+
+    wm: support clients in "direct" role
+
+commit dcc4b8c31318e785270d636fe19486aef9ccae17
+Author: Norman Feske <norman.feske@genode-labs.com>
+Date:   Tue Sep 29 23:43:59 2015 +0200
+
+    wm/layouter/decorator: propagate window controls
+
+commit 4164c9edec5b68aa04efe850862da87a931ff7e7
+Author: Norman Feske <norman.feske@genode-labs.com>
+Date:   Wed Sep 30 16:07:32 2015 +0200
+
+    wm: allow resize requests to 0x0
+
+commit a8cca8e1b38192ee34e5cae821315f26fd48764d
+Author: Norman Feske <norman.feske@genode-labs.com>
+Date:   Wed Sep 30 16:09:03 2015 +0200
+
+    window layouter: respond to window closer
+
+commit 818840ca6a0e6a66ea8b1e4ddbea74329041f221
+Author: Norman Feske <norman.feske@genode-labs.com>
+Date:   Wed Sep 30 17:03:41 2015 +0200
+
+    wm: provide physical screen mode to layouter
+
+commit 57ce50a3d42b574a6e93e2a33fccf74b1855c5b6
+Author: Norman Feske <norman.feske@genode-labs.com>
+Date:   Wed Sep 30 17:42:45 2015 +0200
+
+    window layouter: handle maximize/unmaximize
+
+commit 7c968d4c60a230cae01e32eaa234414457313f0c
+Author: Norman Feske <norman.feske@genode-labs.com>
+Date:   Wed Sep 30 11:30:02 2015 +0200
+
+    nitpicker: externalize xray policy
+    
+    This patch removes the policy for controlling the X-Ray mode from
+    nitpicker to the separate component os/app/xray_trigger.
+    
+    Fixes #1690
+
+commit 519eb334e9e2c4718437ad1b03a8c404f626c4e6
+Author: Norman Feske <norman.feske@genode-labs.com>
+Date:   Thu Oct 8 00:12:34 2015 +0200
+
+    menu view: add hbox layout, support widget reorder
+    
+    This patch, complements the existing vbox layout with a hbox layout and
+    improves the response to dynamic dialog updates. The new version support
+    disappearing widgets and the reordering of widgets. Furthermore, this
+    patch ensures that the 'Widget::_layout' functions are executed after
+    updating a new version of the dialog.
+
+commit 755d2cce056e223cdd25b7d337f0c8b3847c9aff
+Author: Norman Feske <norman.feske@genode-labs.com>
+Date:   Tue Sep 29 17:17:08 2015 +0200
+
+    gems: turn launcher into a panel-like application
+
+commit de8a49a4b0bb77f9bf095514ce24d1fd4cafb5c9
+Author: Norman Feske <norman.feske@genode-labs.com>
+Date:   Wed Nov 11 16:54:08 2015 +0100
+
+    Window decorator that can be styled
+
+
+Audio stack
+===========
+
+commit 7a70833ba1df77af76eb989a162fb3f83b81d6b4
+Author: Josef Söntgen <josef.soentgen@genode-labs.com>
+Date:   Wed Oct 14 17:59:36 2015 +0200
+
+    mixer: add reporting and config handling
+    
+    Fixes #1770.
+
+commit 5f2d92f9167547e312d20f61144b349cb3a22b11
+Author: Josef Söntgen <josef.soentgen@genode-labs.com>
+Date:   Mon Oct 19 14:04:11 2015 +0200
+
+    gems: add experimental mixer_gui based on Qt
+    
+    Issue #1770.
+
+
+Copy and paste
+==============
+
+;@nfeske
+
+commit 59014a50f1283d41b7f870a78f9bf35adcc162be
+Author: Norman Feske <norman.feske@genode-labs.com>
+Date:   Wed Sep 23 17:08:53 2015 +0200
+
+    os: new clipboard component and test
+    
+    Fixes #1712
+
+commit 1460105f71357092c9f92166bdad32df74a08e47
+Author: Norman Feske <norman.feske@genode-labs.com>
+Date:   Thu Sep 24 14:48:08 2015 +0200
+
+    nitpicker: provide user activity in focus reports
+    
+    This patch supplements the existing focus reports with the new attribute
+    'active', which indicates recent user activity when set to "yes". This
+    information is consumed by the clipboard to dynamically adjust its
+    information-flow policy depending on the user activity.
+    
+    Issue #1712
+
+
+Graceful exiting of subsystems
+==============================
+
+;@nfeske
+
+commit 0f052357ef8e0a36dd931b17ae749cf9885ed2b8
+Author: Norman Feske <norman.feske@genode-labs.com>
+Date:   Tue Sep 15 18:16:31 2015 +0200
+
+    init: propagate exit conditions of children
+    
+    This patch extends the configuration concept of init with an additional
+    sub node for the <start> node:
+    
+    <start name="noux">
+      <exit propagate="yes"/>
+      ...
+    </start>
+    
+    If the 'propagate' attribute is set to "yes", the exit of the respective
+    child will appear to init's parent as the exit of the entire init
+    subsystem.
+    
+    Fixes #1686
+
+commit 20f961cbd8666fba6ae7c014c687e5f453645e59
+Author: Norman Feske <norman.feske@genode-labs.com>
+Date:   Tue Sep 15 15:37:42 2015 +0200
+
+    cli_monitor, launcher: handle exiting subsystems
+    
+    Until now, the CLI monitor and the laucher allowed the user to explitly
+    kill subsystems but both used to ignore gracefully exiting subsystems.
+    It was the user's job to remove the remains of those subsystems. The
+    patch takes the burden of manually killing exited subsystems from the
+    user.
+    
+    Fixes #1685
+
+
+Base framework and low-level OS infrastructure
+##############################################
+
+Changes at the system-integration level
+=======================================
+
+Label-dependent session routing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+;@nfeske
+
+commit a528aa097a7fa3387ad41fcd9bebcc6669580afb
+Author: Norman Feske <norman.feske@genode-labs.com>
+Date:   Sat Oct 3 21:32:42 2015 +0200
+
+    init: add 'label' criterion for session routing
+    
+    This patch introduces a shortcut for conditional session routes of the
+    form '<if-arg key="label" value="..."/>'. With this change, the label
+    can be directly specified as 'label' attribute of an '<any-service>' or
+    a '<service>' node. The '<if-arg>' mechanism was not documented anyway
+    and I hope to be able to ultimately remove it.
+
+
+New VFS server component
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+;@emery
+
+commit b6c558dce961075248c497307bdb8ce751c156fa
+Author: Emery Hemingway <emery@vfemail.net>
+Date:   Fri Sep 4 16:06:03 2015 +0200
+
+    Vfs: File_system server backed by VFS library
+    
+    Test available at libc_vfs_fs.
+    
+    Fixes #1648
+
+
+New VFS-local symlink file system
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+;@emery
+
+commit 7ce19216f4aa290e17527982f611d97fd17b2181
+Author: Emery Hemingway <emery@vfemail.net>
+Date:   Fri Aug 21 21:55:33 2015 +0200
+
+    VFS: symlink file system
+    
+    add symlinks to a VFS tree with <symlink name="..." target="..."/>
+    
+    Issue #1648
+    Fixes #1653
+
+
+New file-system server for aggregating LOG data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+;@emery
+
+commit ce1e6c16fb785208d99fea735369e5722dfe3633
+Author: Emery Hemingway <emery@vfemail.net>
+Date:   Sat May 23 23:33:24 2015 +0200
+
+    fs_log: new log file server using native FS sessions
+    
+    Fixes #1538
+
+
+New ROM logger component
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+;@nfeske
+
+commit 8763b6925a1699e6b988a6eb60c4d3581418d60c
+Author: Norman Feske <norman.feske@genode-labs.com>
+Date:   Tue Sep 22 12:24:51 2015 +0200
+
+    os: new ROM logger component
+
+
+New ROM filter component
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+;@nfeske
+
+commit 702646a4a3b2b9d5205b250c3cd6c283957ecc1f
+Author: Norman Feske <norman.feske@genode-labs.com>
+Date:   Mon Sep 21 20:08:09 2015 +0200
+
+    os: new ROM filter component
+    
+    Related to #1690
+
+
+Source-code reorganization
+==========================
+
+;@skalk
+
+Coherent directory structure of spec-dependent source codes
+
+commit ed52d5a2119559050ac5e2f81ba6b4f4fa03e9bd
+Author: Stefan Kalkowski <stefan.kalkowski@genode-labs.com>
+Date:   Thu Sep 3 14:55:05 2015 +0200
+
+    Introduce 'spec' subdirectories to outline aspects
+    
+    Instead of holding SPEC-variable dependent files and directories inline
+    within the repository structure, move them into 'spec' subdirectories
+    at the corresponding levels, e.g.:
+    
+      repos/base/include/spec
+      repos/base/mk/spec
+      repos/base/lib/mk/spec
+      repos/base/src/core/spec
+      ...
+    
+    Moreover, this commit removes the 'platform' directories. That term was
+    used in an overloaded sense. All SPEC-relative 'platform' directories are
+    now named 'spec'. Other files, like for instance those related to the
+    kernel/architecture specific startup library, where moved from 'platform'
+    directories to explicit, more meaningful places like e.g.: 'src/lib/startup'.
+    
+    Fix #1673
+
+
+API-level changes
+=================
+
+String and XML-handling utilities
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+;@nfeske
+
+commit df0bbe0b0eac1b7c1f6fcd3c7b26d44ae9b4176d
+Author: Emery Hemingway <emery@vfemail.net>
+Date:   Fri Aug 28 14:42:22 2015 +0200
+
+    ascii_to() utility for boolean values
+    
+    Also, Genode::Arg was adapted to use the new utility for boolean tokens
+    and strings.
+    
+    Issue #1648
+
+commit 3789a75ed6c6aa821872ec3e08a997343767d458
+Author: Alexander Boettcher <alexander.boettcher@genode-labs.com>
+Date:   Thu Nov 5 20:37:08 2015 +0100
+
+    base: support ascii_to for uint64_t
+    
+    Issue #1764
+
+commit dce6e14e3eb349e14c708f01aa67208b17fce697
+Author: Norman Feske <norman.feske@genode-labs.com>
+Date:   Thu Sep 17 16:59:09 2015 +0200
+
+    os: generalize Session_label, Session_policy
+    
+    The utilities in os/session_policy.h used to be tailored for the
+    matching of session arguments against a server-side policy
+    configuration. However, the policy-matching part is useful in other
+    situations, too. This patch removes the tight coupling with the
+    session-argument parsing (via Arg_string) and the hard-wired use of
+    'Genode::config()'.
+    
+    To make the utilities more versatile, the 'Session_label' has become a
+    'Genode::String' (at the time when we originally introduced the
+    'Session_label', there was no 'Genode::String'). The parsing of the
+    session arguments happens in the constructor of this special 'String'.
+    The constructor of 'Session_policy' now takes a 'Genode::String' as
+    argument. So it can be used with the 'Session_label' but also with other
+    'String' types. Furthermore, the implicit use of 'Genode::config()' can
+    be overridden by explicitly specifying the config node as an argument.
+
+commit a80d944944e022db769d1ac82b830801e3af8c64
+Author: Norman Feske <norman.feske@genode-labs.com>
+Date:   Tue Sep 22 11:52:20 2015 +0200
+
+    os: add Xml_attribute::value(String<N> *out)
+    
+    This overload of the value member eases the retrieval of Genode::String
+    objects from XML attributes. So we won't need to deal with C-style
+    character buffers anymore.
+
+commit e590d90bf60ad0d798289143bc5e21c9abe1d39c
+Author: Norman Feske <norman.feske@genode-labs.com>
+Date:   Tue Sep 22 17:09:22 2015 +0200
+
+    xml_generator: support appending of node content
+    
+    The new 'Xml_generator::append' method can be used to append strings
+    into the body of an XML node.
+
+commit 6ecbc419c0234bf880947708cc7e3aa2afe2d503
+Author: Norman Feske <norman.feske@genode-labs.com>
+Date:   Fri Sep 25 15:49:33 2015 +0200
+
+    Xml_node, Xml_generator: sanitize node content
+    
+    Fixes #1698
+
+commit 7920b57d34d1627701081939f35931f1ec30a811
+Author: Norman Feske <norman.feske@genode-labs.com>
+Date:   Tue Sep 8 20:43:39 2015 +0200
+
+    Consider byte offset in Attached_io_mem_dataspace
+    
+    Ref #1764
+
+commit 24b1f269be5190b36d659c3ccffe4fa5ba58c78a
+Author: Christian Helmuth <christian.helmuth@genode-labs.com>
+Date:   Thu Sep 17 15:33:46 2015 +0200
+
+    Remove Packet_ref from File_system::Packet_descriptor
+    
+    The intention of Packet_ref was to allow clients to place opaque
+    references into the packet descriptor itself, which could be observed on
+    packet completion. Currently no component in our sources uses this
+    feature and beyond that it is questionable if it should be used at all:
+    If the server tampers with the ref the client may easily be confused
+    into observing an incorrect or invalid context. It seems better to
+    remove the opaque context from the descriptor and leave the actual
+    implementation to the client and its needs.
+
+
+VFS and file-system API
+~~~~~~~~~~~~~~~~~~~~~~~
+
+;@emery
+
+commit 1779a0511b5221ceaaedeac94b22b3f32000da19
+Author: Emery Hemingway <emery@vfemail.net>
+Date:   Thu Oct 1 11:53:00 2015 +0200
+
+    vfs: add new error codes
+    
+    The codes are OPEN_ERR_NAME_TOO_LONG, OPEN_ERR_NO_SPACE, and
+    FTRUNCATE_ERR_NO_SPACE.
+    
+    Issue #1693
+
+
+commit 2da239d0c8efd2e14a76afa6e0baae9edd1664be
+Author: Emery Hemingway <emery@vfemail.net>
+Date:   Wed Oct 7 17:02:52 2015 +0200
+
+    void sync(char const *path)
+    
+    Sync now takes a path argument at VFS and File system interfaces.
+    
+    Issue #1648
+
+commit 48fd034cfeb4648b975d4f7dbec50c9e42032c11
+Author: Emery Hemingway <emery@vfemail.net>
+Date:   Wed Oct 7 18:31:52 2015 +0200
+
+    New session arguments at File_system connection
+    
+    Session root and writeablity may be specified at the session
+    convenience constructor.
+    
+    Issue #1648
+
+
+Object-pool redesign
+~~~~~~~~~~~~~~~~~~~~
+
+;@skalk
+
+commit 458b4d6fc4711f2503618eff5bd4f6558a34a844
+Author: Stefan Kalkowski <stefan.kalkowski@genode-labs.com>
+Date:   Mon Aug 10 13:34:16 2015 +0200
+
+    base: redesign object pool using lambda interface
+    
+    Instead of returning pointers to locked objects via a lookup function,
+    the new object pool implementation restricts object access to
+    functors resp. lambda expressions that are applied to the objects
+    within the pool itself.
+    
+    Fix #884
+    Fix #1658
+
+
+Libraries, applications, and runtime environments
+#################################################
+
+Qt5 improvements
+================
+
+;@cproc
+
+commit fd533b0c936c81326a81ec9cdd21b28a09d15924
+Author: Christian Prochaska <christian.prochaska@genode-labs.com>
+Date:   Mon Sep 21 16:58:46 2015 +0200
+
+    qt5: key repeat support
+    
+    Fixes #1692
+
+commit f6863e3f4b3ff60d40abd286951404b793cb41d6
+Author: Christian Prochaska <christian.prochaska@genode-labs.com>
+Date:   Wed Oct 28 16:14:12 2015 +0100
+
+    qt5: add clipboard support
+    
+    If a Qt application shall use the clipboard, this must be configured as:
+    
+    <config clipboard="yes">
+    
+    Fixes #1749
+
+
+VirtualBox
+==========
+
+;@alexab
+;@cnuke
+;@cproc
+
+commit b6c440852b6fc9670a30ad8494eeea24109371d7
+Author: Alexander Boettcher <alexander.boettcher@genode-labs.com>
+Date:   Fri Aug 28 10:35:42 2015 +0200
+
+    vbox: allocate guest memory in chunks
+    
+    Fixes #1575
+
+commit 6f3e9c12fbb59c6123aa8e1d9c492a3dbe2ec6d7
+Author: Alexander Boettcher <alexander.boettcher@genode-labs.com>
+Date:   Fri Sep 18 16:15:43 2015 +0200
+
+    vbox: support shutdown of VMM
+    
+    - send exit signal to parent
+    - avoid assertion in vbox posix backend
+    
+    Fixes #1687
+
+commit 5aec67d5bb5c8c593a1637692ad8ac1c47ec4c0d
+Author: Alexander Boettcher <alexander.boettcher@genode-labs.com>
+Date:   Tue Sep 15 14:08:35 2015 +0200
+
+    vbox: enable clipboard support"
+    
+    Fixes #1696
+
+commit 5b6fdc96fc1d9e7f6a00895cd6918930025b30f6
+Author: Josef Söntgen <josef.soentgen@genode-labs.com>
+Date:   Mon Nov 2 14:06:27 2015 +0100
+
+    vbox: disable rdtsc VM exit
+    
+    Trapping rdtsc creates a huge load in some guests, e.g. Windows 8.1,
+    that use this instruction very frequently. This influences audio
+    playback/recording in a bad way (distorted sounds, …). As a interim
+    solution disable the virtualization of rdtsc completely. As long
+    as each guest VM runs on its own CPU core it should be fine as there
+    should not be that much interference (TSC warping).
+    
+    That being said, TSC offsetting as well as adjusting within vbox have to
+    be evaluated.
+    
+    Fixes #1768.
+
+commit 953d0fd59c3c362c31d14a3843bedbd9afc05d69
+Author: Christian Prochaska <christian.prochaska@genode-labs.com>
+Date:   Wed Oct 28 16:14:14 2015 +0100
+
+    vbox: respond to zero-resized framebuffer
+
+commit 02b4ea67f8d018ecdf94e3753b68ed3258e51353
+Author: Christian Prochaska <christian.prochaska@genode-labs.com>
+Date:   Tue Nov 24 18:45:54 2015 +0100
+
+    vbox: 64-bit guest support
+    
+    Fixes #1791
+
+
+Seoul VMM
+=========
+
+;@alexab
+
+commit 2d15c6d99043d81ab40510d43e7361ecb002b264
+Author: Alexander Boettcher <alexander.boettcher@genode-labs.com>
+Date:   Wed Sep 9 16:50:58 2015 +0200
+
+    seoul: handle a MSR to let Genode/Nova guest boot
+    
+    Issue #1702
+
+commit e5ea76c689a9dd06d446b555b7ea91fab1ae6d76
+Author: Alexander Boettcher <alexander.boettcher@genode-labs.com>
+Date:   Wed Sep 9 21:17:10 2015 +0200
+
+    seoul: set vCPU priority below seoul threads
+    
+    Issue #1702
+
+commit 4da7e89d6b5caadd9038e4e31384a0ade184563a
+Author: Alexander Boettcher <alexander.boettcher@genode-labs.com>
+Date:   Thu Sep 10 12:46:33 2015 +0200
+
+    seoul: avoid assertion, adhere to original vancouver version
+    
+    Issue #1702
+
+commit 21e86227bca3a9d0943a70bf1e8b6328c94385c7
+Author: Alexander Boettcher <alexander.boettcher@genode-labs.com>
+Date:   Fri Sep 11 16:56:37 2015 +0200
+
+    seoul: make input available via bios
+    
+    Enables us to interact with GRUB bootloader during early boot.
+    
+    Issue #1702
+
+commit 36947cef3a9979dbe1613f29d799de6cb8997f04
+Author: Alexander Boettcher <alexander.boettcher@genode-labs.com>
+Date:   Sun Sep 6 11:24:42 2015 +0200
+
+    seoul: fix raw disc boot for 512B sectorsize
+    
+    Fixes #1702
+
+commit f7ad6cf4e6d797fc2f581703a43430d06d5966f3
+Author: Alexander Boettcher <alexander.boettcher@genode-labs.com>
+Date:   Wed Sep 9 23:38:07 2015 +0200
+
+    seoul: support ide disk model
+    
+    Issue #1702
+
+
+Device drivers
+##############
+
+Intel-KMS framebuffer driver
+============================
+
+;@skalk
+
+
+Framebuffer support for Exynos 4
+================================
+
+@nfeske
+
+commit 49b3d520a9ef6eb38a9630a8b9cf7992b58f3904
+Author: Alexy Gallardo Segura <alexy@uclv.cu>
+Date:   Fri Sep 11 01:32:28 2015 -0400
+
+    exynos: generalize Exynos5 fb_drv for Exynos4/5
+    
+    Fixes #1678
+
+
+AHCI support for ATA devices with no native command queuing
+===========================================================
+
+@ssumpf
+
+commit 2426c58b9f68d19a745ba41073d567827cb38c32
+Author: Sebastian Sumpf <sebastian.sumpf@genode-labs.com>
+Date:   Tue Oct 6 15:36:34 2015 +0200
+
+    ahci: support for non-ncq ATA devices
+    
+    * use '_dma_ext' or '_fdpma' commands
+    * handle interrupts depending on mode of operation
+    * spelling fixes
+    * move ATA 'Idendity' struct to ata header
+    
+    issue #1734
+
+
+Intel wireless stack
+====================
+
+@cnuke
+
+commit 9fc75199724316d06e6ff48cb66c457b2effabe2
+Author: Josef Söntgen <josef.soentgen@genode-labs.com>
+Date:   Thu Oct 29 13:53:22 2015 +0100
+
+    wifi_drv: handle hidden SSID
+    
+    Form now on always generate a configuration that handles nidden SSIDs
+    well and document the configuration in more detail.
+    
+    Fixes #1746.
+
+commit dd933de84fbd8f120ac6182b97bfd6a2a7904496
+Author: Josef Söntgen <jws@sysret.de>
+Date:   Wed Nov 11 14:22:20 2015 +0100
+
+    wifi_drv: remove device white-list patch
+    
+    Issue #1774.
+
+
+ACPI driver improvements
+========================
+
+;@alexab
+
+commit 74e89727ee6c442b5f612d4d7e669b7ea998d1a3
+Author: Alexander Boettcher <alexander.boettcher@genode-labs.com>
+Date:   Thu Nov 5 11:12:38 2015 +0100
+
+    acpi - report rmrr via acpi report rom
+    
+    Issue #1764
+
+
+SD-card driver for i.MX53
+=========================
+
+;@mstein
+
+commit 1315af8ef348f86fd4d80bdf33ccd6e845522b69
+Author: Martin Stein <martin.stein@genode-labs.com>
+Date:   Tue Jun 9 15:56:20 2015 +0200
+
+    sd_card & imx53: install IRQ signal handler
+    
+    Previously, it was not necessary to acknowledge an IRQ initially before using
+    it. However, since the IRQ framework changed lately it is. Adapt to this.
+    
+    Ref #1497
+
+commit 4361f9f62dd307dfe3c5158cbc3ba04ccda71e44
+Author: Martin Stein <martin.stein@genode-labs.com>
+Date:   Thu Oct 22 15:05:02 2015 +0200
+
+    sd_card & imx53: fix initialization problem on QSB
+    
+    On i.MX53 QSB, a "Send Op Cond" command during the driver initialization
+    returns another response value than on the USB Armory. As the check for
+    this response seems to have no relevance for the driver functionality (Linux
+    reads the value from MMIO but I can't find a place in the source code where
+    it is used), we simply remove it.
+    
+    Ref #1497
+
+commit 3a0f2d60ce257395159b8f814ea0d0eacf150dbe
+Author: Martin Stein <martin.stein@genode-labs.com>
+Date:   Thu Oct 22 16:29:02 2015 +0200
+
+    sd_card & imx53: flush ADMA2 writes via DSB
+    
+    We have to issue a data synchronization barrier after writing a ADMA2
+    table to ensure that the corresponding write commands were actually
+    executed before issuing the SD command.
+    
+    Ref #1497
+
+commit 44514cef5bd70f3a5e79db7b3f5943b2332d92af
+Author: Martin Stein <martin.stein@genode-labs.com>
+Date:   Thu Oct 22 16:57:03 2015 +0200
+
+    sd_card & imx53: simplify IRQ handler
+    
+    Less switch cases.
+    
+    Ref #1497
+
+commit 036feee36dc37c979e7a003e7d0f69e5061ce67b
+Author: Martin Stein <martin.stein@genode-labs.com>
+Date:   Thu Oct 22 17:06:00 2015 +0200
+
+    sd_card & imx53: fix multiblock write termination
+    
+    The manual termination of multi-block writes via "Stop Transmission" commands
+    seems to leave the card in a busy state sometimes. This causes errors on
+    subsequent commands. Thus, we have to synchronize manually with the
+    card-internal state via "Send State" commands. Additionally, the method
+    for issuing the manual "Stop Transmission" commands was refined.
+    
+    Ref #1497
+
+commit 95c3fe60adceeca9e3a3246ee876ed3d58aee038
+Author: Martin Stein <martin.stein@genode-labs.com>
+Date:   Thu Oct 22 17:50:56 2015 +0200
+
+    sd_card & imx53: set ADMA entry size more clean
+    
+    Less heuristics.
+    
+    Ref #1497
+
+commit 4d706b7073142063b7ab9b946c6ee53846486570
+Author: Martin Stein <martin.stein@genode-labs.com>
+Date:   Thu Oct 22 18:17:41 2015 +0200
+
+    sd_card & imx53: refactor and clean-up
+    
+    Move ADMA2 stuff to extra header and unit. Move ESDHCv2 implementations to
+    extra unit. Use exceptions instead of error codes. Clean-up documentation.
+    
+    Ref #1497
+
+
+Platforms
+#########
+
+Execution on bare hardware (base-hw)
+====================================
+
+Xilinx Zynq-7000
+~~~~~~~~~~~~~~~~
+
+;@mstein
+
+commit 40b31876d27dd6143bdad65acda8ef244e7c3d50
+Author: Johannes Schlatow <schlatow@ida.ing.tu-bs.de>
+Date:   Wed Sep 2 13:59:31 2015 +0200
+
+    base-hw: Add basic Zynq-7000 support (QEMU)
+    
+    Ref #1599
+
+commit be994641efd79e061bcb750614875456e2adf164
+Author: Johannes Schlatow <schlatow@ida.ing.tu-bs.de>
+Date:   Wed Sep 2 14:03:22 2015 +0200
+
+    timer: Add Zynq-7000 support (QEMU)
+    
+    Ref #1599
+
+
+Physical memory detection on the 64-bit x86 architecture
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+;@alexab
+
+commit 826c81ac180e5b868e6f42928fa0c5fbf55f88c0
+Author: Alexander Boettcher <alexander.boettcher@genode-labs.com>
+Date:   Tue Oct 27 14:26:40 2015 +0100
+
+    hw_x86: discover all physical memory in core
+    
+    Fixes #1741
+
+
+Improved TrustZone support on USB Armory
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+;@mstein
+
+commit 1c78196c4e8b329eee13c0ebd4c22092437047fc
+Author: Martin Stein <martin.stein@genode-labs.com>
+Date:   Mon Nov 2 14:36:01 2015 +0100
+
+    hw & imx53: IRQ injection via Vm::proceed
+    
+    Enhance the VM state, that can be accessed by a VMM, by a member
+    'unsigned irq_injection'. In Kernel::Vm::proceed check, whether
+    irq_injection is set.  If so, check whether irq_injection is a
+    non-secure IRQ.  If so, let the PIC raise this IRQ in the VM and reset
+    irq_injection.
+    
+    Ref #1497
+
+commit c909821ca8535efff529bb583293e53257f5b096
+Author: Martin Stein <martin.stein@genode-labs.com>
+Date:   Mon Nov 2 14:29:04 2015 +0100
+
+    hw & imx53: kernel Trustzone config for USB armory
+    
+    On the USB Armory, we want to secure different devices than on other i.MX53
+    implementations. Thus, add a board specific configuration that is interpreted
+    by the kernel Trustzone initialization.
+    
+    Ref #1497
+
+commit 21427ca612180e73b2084fd4501206370e51a42f
+Author: Martin Stein <martin.stein@genode-labs.com>
+Date:   Mon Nov 2 14:34:49 2015 +0100
+
+    TZ VMM & USB Armory: Demo
+    
+    * Provide paravirtualized block API for accessing the second partition
+      of the block device that is provided by the ESDHC driver.
+    
+    * Provide paravirtualized serial API for sending log-output over Genodes
+      serial port.
+    
+    * Use the latest Linux suggested in the USB Armory Wiki [1] when on USB Armory
+      while still using the older vendor Linux when on i.MX53 QSB. I.e.,
+      provide a device tree through RAM and a rootfs through the paravirtualized
+      block device when on USB Armory while providing ATAGs and Initrd when on
+      i.MX53 QSB.
+    
+    * Switch on the LED on the USB Armory when the VMM catches a VM-exception
+      and switch it off again when as soon as the exception is handled. This
+      merely show-cases the ability to instrument the LED for such purposes. In an
+      ideal world, the LED is switched on as long as we're on the "Secure Side"
+      and switched off as long as we're not.
+    
+    * For further information see repos/os/run/tz_vmm.run
+    
+    [1] https://github.com/inversepath/usbarmory/wiki/Preparing-a-bootable-microSD-image
+    
+    Fixes #1497
+
+
+NOVA
+====
+
+;@alexab
+
+commit 2e62543fdb02a17f7fc263a4de6830a749973e10
+Author: Alexander Boettcher <alexander.boettcher@genode-labs.com>
+Date:   Tue Sep 29 22:03:03 2015 +0200
+
+    nova: use remote revoke
+    
+    Fixes #1733
+
+
+Tools and build system
+======================
+
+Run-tool support for booting via the iPXE boot loader
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+;@nfeske
+
+commit 94afc1a34048e2a4eedf05989a1825ebe0ad23fe
+Author: Adrian-Ken Rueegsegger <ken@codelabs.ch>
+Date:   Thu Aug 27 18:23:05 2015 +0200
+
+    run: support loading images via iPXE/HTTP
+    
+    iPXE is an open source network boot firmware which supports booting from
+    a web server via HTTP [1].
+    
+    The following two parameters can be used to specify the iPXE/HTTP setup:
+    
+    --load-ipxe-base-dir
+      This parameter specifies the base directory of the HTTP server from
+      which the target machine downloads the files.
+    
+    --load-ipxe-boot-dir
+      The directory relative to iPXE base dir which contains the iPXE
+      chainload configuration and all necessary files.
+    
+    The target machine is expected to request the following iPXE
+    configuration via HTTP:
+    
+    http://${HOST_URL}/${ipxe-boot-dir}/boot.cfg
+    
+    This can be achieved by building iPXE with the following embedded
+    script:
+    
+      #!ipxe
+      dhcp
+      chain http://${HOST_URL}/${ipxe-boot-dir}/boot.cfg
+    
+    See also [2] for additional information.
+    
+    [1] - http://ipxe.org/
+    [2] - http://ipxe.org/howto/chainloading#breaking_the_loop_with_an_embedded_script
+    
+    Fixes #1708
+
+commit 8eec0928518366f9a2422daecfc572225381e5ea
+Author: Adrian-Ken Rueegsegger <ken@codelabs.ch>
+Date:   Thu Aug 27 19:03:57 2015 +0200
+
+    Add support for ipxe load (nova, foc, fiasco)
+    
+    This makes use of the iPXE sanboot command [1] which downloads and
+    boots an ISO image directly via HTTP. Therefore, your RUN_OPT needs
+    both
+    
+      --include image/iso   and
+      --include load/ipxe
+    
+    NOTE: The webserver serving the ISO image must support ranged requests,
+          see [2].
+    
+    [1] - http://ipxe.org/cmd/sanboot
+    [2] - http://forum.ipxe.org/showthread.php?tid=7295&pid=10482#pid10482
+
+
+Tool for creating U-Boot images for Genode's supported platforms
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+;@mstein
+
+commit 2d9d55a6d35ae63d42f098aea44b121cf4c89d03
+Author: Martin Stein <martin.stein@genode-labs.com>
+Date:   Thu Oct 1 13:25:19 2015 +0200
+
+    tool: create_uboot
+    
+    To make the creation of a bootstrap medium for most ARM platforms more
+    comfortable this tool shall bundle all the different U-Boot source
+    states, patches, and MMC preparation rules that we gathered over the
+    year for that purpose. As input, the tool merely needs the targeted
+    platform (analogous to the platform parameter of 'create_builddir'). By
+    now, 'hw_wand_quad' is the only supported platform. Further platforms
+    can be added successively. As output, the tool creates a head image file
+    of small size (8MiB) that can be copied (dd) with offset 0 to the MMC.
+    
+    Fixes #1730
+
+commit be0b969ace9a4f979288af3c05b5b5869518a703
+Author: Martin Stein <martin.stein@genode-labs.com>
+Date:   Fri Nov 13 13:35:22 2015 +0100
+
+    create_uboot: support for hw_usb_armory
+    
+    The platform name 'hw_usb_armory' targets Genode scenarios with base-hw
+    as kernel and the Inversepath USB-Armory as target hardware.
+    
+    Ref #1497
+
+commit c82ed69af1f6072d1871f6db4e73021228cbabe5
+Author: Martin Stein <martin.stein@genode-labs.com>
+Date:   Fri Nov 13 13:28:22 2015 +0100
+
+    create_uboot: spare out first 1K of target medium
+    
+    This enables installation of the bootloader image without wiping the
+    partition table which is needed at least for the tz_vmm tutorial with
+    hw_usb_armory.
+    
+    Ref #1497
+
+
+Removal of deprecated features
+##############################
+
+The development of the *Codezero* kernel came to a halt several years ago, its
+supported hardware platforms are outdated, and there is no active community of
+users. We still kept the platform on life support by the means of nightly
+build tests and sporadic runtime tests. However, because each non-trivial
+change of kernel-dependent code required us to spend energy on the kernel to
+no apparent benefit, we finally dropped it.
+
+We introduced the *lx_hybrid* base platform to ease the building of Genode
+completely with the Linux host tools and linked to the host libc. With this
+feature, we tried to accommodate the use of Genode as component middleware on
+top of regular Linux distributions. For quite some time, however, this feature
+remained unused. So we the lx_hybrid special case and the corresponding
+always_hybrid spec value.
+
