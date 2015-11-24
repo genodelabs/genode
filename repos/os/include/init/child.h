@@ -178,17 +178,12 @@ namespace Init {
 		if (!service_matches)
 			return false;
 
-		if (!service_node.has_attribute("label"))
-			return true;
-
-		typedef Genode::String<160> Label;
-
-		Label const expected = service_node.attribute_value("label", Label());
+		typedef Genode::String<128> Label;
 
 		Label const session_label =
 			Label(skip_label_prefix(child_name, Genode::Session_label(args).string()));
 
-		return session_label == expected;
+		return !Genode::Xml_node_label_score(service_node, session_label).conflict();
 	}
 
 
