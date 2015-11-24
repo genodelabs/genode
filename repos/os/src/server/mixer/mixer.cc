@@ -425,6 +425,12 @@ class Audio_out::Mixer
 
 				v = default_node.attribute_value<long>("muted", 1);
 				_default_muted = v ;
+
+				PLOGV("default settings: out_volume: %d volume: %d muted: %d",
+				      (int)(MAX_VOLUME*_default_out_volume),
+				      (int)(MAX_VOLUME*_default_volume),
+				      _default_muted);
+
 			} catch (...) { PWRN("could not read mixer default values"); }
 		}
 
@@ -437,13 +443,20 @@ class Audio_out::Mixer
 
 			config()->reload();
 
+			Xml_node config_node = config()->xml_node();
+			try { verbose = config_node.attribute("verbose").has_value("yes"); }
+			catch (...) { verbose = false; }
+
+			_set_default_config(config_node);
+
+			/* set initial out volume */
+			if (sig_num == 0) {
+				for_each_index(MAX_CHANNELS, [&] (int const i) {
+					_out_volume[i] = _default_out_volume;
+				});
+			}
+
 			try {
-				Xml_node config_node = config()->xml_node();
-				try { verbose = config_node.attribute("verbose").has_value("yes"); }
-				catch (...) { verbose = false; }
-
-				_set_default_config(config_node);
-
 				Xml_node channel_list_node = config_node.sub_node("channel_list");
 
 				channel_list_node.for_each_sub_node([&] (Xml_node const &node) {
@@ -460,7 +473,7 @@ class Audio_out::Mixer
 
 								PLOGV("label: '%s' nr: %d vol: %d muted: %d",
 								      ch.label.string(), (int)ch.number,
-								      (int)(MAX_VOLUME*ch.volume), ch.muted);
+								      (int)(MAX_VOLUME*session.volume), ch.muted);
 							});
 						});
 					}
@@ -472,11 +485,11 @@ class Audio_out::Mixer
 
 							PLOGV("label: '%s' nr: %d vol: %d muted: %d",
 							      "master", (int)ch.number,
-							      (int)(MAX_VOLUME*ch.volume), ch.muted);
+							      (int)(MAX_VOLUME*_out_volume[i]), ch.muted);
 						});
 					}
 				});
-			} catch (...) { PWRN("mixer config was invalid"); }
+			} catch (...) { PWRN("mixer channel_list was invalid"); }
 
 			/*
 			 * Report back any changes so a front-end can update its state
@@ -542,11 +555,13 @@ class Audio_out::Mixer
 		 */
 		void add_session(Channel::Number ch, Session_elem &session)
 		{
-			PLOG("add label: \"%s\" channel: \"%s\" nr: %u",
-			     session.label.string(), string_from_number(ch), ch);
-
 			session.volume = _default_volume;
 			session.muted  = _default_muted;
+
+			PLOG("add label: \"%s\" channel: \"%s\" nr: %u volume: %d muted: %d",
+			     session.label.string(), string_from_number(ch), ch,
+			     (int)(MAX_VOLUME*session.volume), session.muted);
+
 
 			_channels[ch].insert(&session);
 			_report_channels();
