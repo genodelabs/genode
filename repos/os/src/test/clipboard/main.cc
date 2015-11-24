@@ -114,6 +114,10 @@ class Subsystem
 			PLOG("\n%s: import new content:", _name.string());
 
 			_import_rom.update();
+
+			if (!_import_rom.is_valid())
+				return;
+
 			_import_content = _import_rom.local_addr<char>();
 			_log_lines(_import_content, _import_rom.size());
 
