@@ -66,6 +66,8 @@ class Vfs::Symlink_file_system : public File_system
 		                         file_size   buf_size,
 		                         file_size  &out_len) override
 		{
+			if (!_is_single_file(path))
+				return READLINK_ERR_NO_ENTRY;
 			out_len = min(buf_size, file_size(sizeof(_target)));
 			strncpy(buf, _target, out_len);
 			return READLINK_OK;
@@ -104,7 +106,7 @@ class Vfs::Symlink_file_system : public File_system
 
 		char const *leaf_path(char const *path) override
 		{
-			return path;
+			return _is_single_file(path) ? path : 0;
 		}
 
 		Dirent_result dirent(char const *path, file_offset index, Dirent &out) override
@@ -112,11 +114,13 @@ class Vfs::Symlink_file_system : public File_system
 			if (!_is_root(path))
 				return DIRENT_ERR_INVALID_PATH;
 
+			out.fileno = 1;
 			if (index == 0) {
 				out.type = DIRENT_TYPE_SYMLINK;
 				strncpy(out.name, _filename, sizeof(out.name));
 			} else {
 				out.type = DIRENT_TYPE_END;
+				out.name[0] = '\0';
 			}
 
 			return DIRENT_OK;
