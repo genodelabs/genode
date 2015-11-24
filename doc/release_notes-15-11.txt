@@ -1,0 +1,1429 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 15.11
+              ===============================================
+
+                               Genode Labs
+
+
+
+In the
+[http://genode.org/documentation/release-notes/15.08 - previous release],
+we proudly reported the initial use of Genode as day-to-day OS. With the
+current release, we maintained the strong focus on making Genode viable as the
+foundation of a desktop OS. There are many aspects to be considered, ranging
+from configuration concepts, over the GUI and audio architectures, to
+device-driver support. Section [Genode as desktop OS] gives insights into this
+development and our train of thoughts.
+
+Speaking of device drivers, the current release comes with the Intel KMS
+driver ported from the Linux kernel and running as a user-level component. The
+driver allows us to drive multiple displays and change screen resolutions on
+the fly. Since the driver code relies on the Intel GEM infrastructure of the
+Linux kernel, we had to port those subsystems as well. So the new driver could
+be taken as starting point for a user-level GPU multiplexer in the future.
+
+In addition to those prominent features, the release comes with numerous
+improvements and additions. For example, we enhanced the support for the USB
+Armory (a dedicated article about this work will follow soon), added support
+for Xilinx Zynq-7000, and optimized our version of VirtualBox for NOVA.
+
+According to our
+[http://genode.org/about/road-map - road map], we planned to address package
+management, a modern web browser, and cross-kernel binary compatibility with
+the version 15.11. However, we decided to put emphasis on the general
+usability, robustness, and scalability first, before entering new
+developments. So those topics are not covered by the current release.  That
+said, package management is a topic of ongoing active development within our
+community. Most of the file-system improvements featured in the current
+version were motivated by this line of work.
+
+Where do we stand with the use of Genode as desktop OS? Currently, there is a
+hand full of people using Genode as day-to-day OS. By eating our own dog food,
+we are able to recognize and remedy all the little issues that stand in our
+way. Hence, the user experience is steadily evolving. Still, at the current
+stage, it is not palatable for end users with no background in the development
+with Genode. For installing a Genode-based desktop OS, one has to compile and
+configure all components from source, there is no package management, there
+are no wizards that guide you, and there are no GUI dialogs for configuring
+the system. However, all the pieces for creating a system that is practically
+usable are [https://github.com/genodelabs/genode/issues/1552 - available], and
+putting them together is a lot of fun!
+
+
+Genode as desktop OS
+####################
+
+The overall theme of the current release is the use of Genode as a desktop
+operating system. The state of development is best expressed by the screenshot
+of the Genode/NOVA-based setup used by Norman on his x201 Thinkpad.
+
+[image turmvilla_screenshot_small]
+
+Under the hood, the new Intel KMS driver
+(Section [Intel-KMS framebuffer driver]) drives the external '1920x1200'
+display in addition to the internal LCD display of the laptop. The wireless
+network has just been configured via the noux session located at the bottom left
+facilitating the configuration concept explained in Section
+[Uniform run-time configuration concept]. The windows are decorated with a new
+window decorator that supports drop shadows and translucent decorations. The
+decorator can be tweaked and even replaced at runtime.
+
+
+Uniform run-time configuration concept
+======================================
+
+For using Genode as a desktop OS, we had to find answers to a number of
+questions regarding the configuration of both long-living low-level components
+as well as high-level applications:
+
+* How to pass parameters to applications when they are started?
+
+  Whereas the common approach of argc-argv-based command-line arguments is
+  nice for the interactive use at a shell, it does not scale well: Structured
+  information is hard to express and the syntax varies from application to
+  application.
+
+* Where are configurations stored and how do applications obtain them?
+
+  Traditionally, programs obtain their configuration data from well-known
+  locations at the file system like the _/etc/_ directory or dot files in the
+  home directory. On Genode, however, there is no common file system structure
+  and the notion of a home directory does not even exist.
+
+  Alternatively, configuration data could be stored at a central "registry"
+  service. But such a database-like mechanism is less transparent to the user
+  and creates a bunch of new problems with respect to management and access
+  control. Furthermore, the impact of such a nontrivial central component on
+  the system's trusted computing base cannot be neglected.
+
+* Is it possible to cover the configuration needs of low-level components like
+  device drivers and file systems with the same mechanism as used by
+  high-level applications?
+
+* How can the configuration of a long-living component be tweaked at runtime
+  without the need to restart it?
+
+We attempted to answer these questions with a single mechanism in version
+[http://genode.org/documentation/release-notes/12.05#System_reconfiguration_at_runtime - 12.05].
+But the scalability of the approach remained unproven until now.
+
+In short, configuration information is supplied to a component by its
+immediate parent component in the form of a ROM session with the name
+"config". A ROM session represents a piece of data (ROM module) that can be
+made visible in the component's address space. Furthermore, the ROM session
+allows the component to register a signal handler that is notified should a
+new version of the ROM module become available. The component can - at its
+discretion - respond to such a signal by requesting the new version.
+Consequently, a ROM session is a way to transfer information from the ROM
+server to the ROM client in a transactional manner. When used as configuration
+mechanism, the server is the parent and the client is the child component.
+From the child's perspective, it is irrelevant where the information comes
+from. The parent could have read it from a file system, or obtained it from
+another ROM service, or could have generated it. By convention, configuration
+data has an XML-like syntax, which allows us to express arbitrarily structured
+information.
+
+[image backdrop_edit_config]
+
+The figure above illustrates an example scenario. The backdrop component
+obtains a description of the background composition as its "config" ROM
+module. The init component routes this ROM-session request to the FS-ROM
+server, which provides a ROM service by reading the content of ROM modules
+from a file system. The same file system can, of course, also be accessed by
+other clients. At the right side, a noux instance executes an editor like Vim
+to edit files in the file system. Each time, the file is saved by the editor,
+FS-ROM gets notified, which, in turn, notifies the backdrop to update its
+configuration. This way, a desktop background can be interactively changed
+using Vim.
+
+With the current release, we have incorporated the ability to dynamically
+respond to configuration changes into many components to make them ready for
+the use in a desktop environment. To illustrate the flexibility of the
+mechanism, we can perform the following operations by merely editing text files
+as explained in the backdrop example above.
+
+* Letting our new Intel KMS driver (Section [Intel-KMS framebuffer driver])
+  change screen resolutions or enable/disable connectors.
+
+* Changing the volume of audio channels per application or the master volume.
+
+* Changing the colors, style, and the placement of window controls of the
+  window system.
+
+* Changing the policy of the nitpicker GUI server such as the tinting of
+  screen regions depending on the labels of the visible applications.
+
+* Connecting to a wireless network by editing the configuration of the Intel
+  wireless driver.
+
+* Replacing an entire subsystem by a new one by replacing the configuration of
+  a nested instance of the init component.
+
+* Assigning a USB device to a subsystem by editing the USB driver's
+  configuration.
+
+All these use cases are covered by the same mechanism. Because configurations
+have a textual form with a uniform syntax (XML), the approach implicitly gives
+us the following benefits:
+
+* Configurations can be annotated with comments, managed via a revision-control
+  system like Git, and compared to older versions via diff tools.
+
+* Because the mechanism is based on a textual representation, accessibility
+  of all configuration-related operations is built-in into Genode by default.
+
+* The response of components to configuration changes can be subjected to
+  automated tests, which merely need to present varying ROM modules to
+  components (as done by the _dynamic_rom_ server).
+
+Combined with the report-session facility that allows components to report
+state to its parent, the configuration concept makes the creation of graphical
+front ends a straight forward experience. For example, a hypothetical
+display-settings dialog would obtain the framebuffer driver's report about the
+available connectors and supported resolutions, present a dialog of options,
+and, in turn, generate new configurations for the framebuffer driver. If a new
+display gets connected, the driver would update its report, triggering the
+dialog to present the new options. Section [Audio stack] presents a similar
+scenario for mixing audio.
+
+
+GUI stack
+=========
+
+Since the first release in 2008, Genode is equipped with a GUI server called
+nitpicker, which plays the role of a secure "hypervisor for graphics". With
+less than 2000 lines of code, it multiplexes the framebuffer and routes input
+events in a secure way. Its low complexity stems from the fact that it does
+contain almost no policy. In particular, it has no notion of "windows" or
+similar common GUI elements. These parts of the GUI must be implemented at the
+client side.
+
+In
+[http://genode.org/documentation/release-notes/14.08#New_GUI_architecture - version 14.08],
+we laid the foundation for a scalable GUI architecture that further reduced
+the functional scope of nitpicker and complements nitpicker with higher-level
+components for managing windows. Thanks to this architecture, most of
+nitpicker's formerly built-in policies such as the pointer shape could be
+moved to separate components that are easy to replace and customize. We were
+ultimately able to incorporate the notion of windows into the architecture
+without introducing a new interface. Instead, the window manager implements
+the same interface as the nitpicker GUI server. Applications are unaware
+whether they talk to nitpicker or the window manager.
+
+[image nitpicker_wm]
+  Both nitpicker and the window manager provide the same (nitpicker
+  session) interface.
+
+With the current release, we push this architecture even further. By
+eliminating the notion of the X-ray mode from nitpicker as explained in
+Section [Rigid separation of policy and mechanism], we further reduce
+nitpicker's responsibilities and greatly improve its flexibility. We managed
+to completely decouple the components for painting window decorations and
+managing window layouts from the window manager to the point where we can
+dynamically replace those components at runtime. Furthermore, we introduce a
+new window decorator
+(Section [Enhanced window-decorator and window-layouter flexibility])
+that can be styled in a very easy way.
+
+
+Rigid separation of policy and mechanism
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Nitpicker's X-ray mode is a distinctive feature of the GUI server. It allows
+the user to reveal the identity of applications by pushing a special button at
+any time. The following picture shows the effect. In contrast to the original
+version of nitpicker, the new GUI stack allows the window decorator to
+properly respond to X-ray mode changes. Whereas nitpicker is responsible for
+tinting the window content and painting the client's labels as a watermark,
+the window decorator applies the color change to the window decorations.
+
+[image decorator_xray]
+  Normal (left) and X-ray mode (right). While X-ray mode is enabled, the user
+  is able to validate the authenticity of the presented applications
+  and thereby uncover Trojan Horses.
+
+Nitpicker actually does no longer have an X-ray mode. Instead, the individual
+features of the former X-ray mode can be configured for specific client
+labels. Those features are input-focus policy, the tinting with a session
+color, the labeling, and the hovering policy. Behind the scenes, nitpicker is
+reconfigured each time the X-ray mode is enabled or disabled. The following
+diagram shows the scenario:
+
+[image nitpicker_xray_trigger]
+  Interplay of the nitpicker GUI server with externalized policy
+  components.
+
+The X-ray trigger component is a nitpicker client that receives certain global
+key sequences according to nitpicker's configuration. It is thereby able to
+exclusively respond to the X-ray key. Furthermore, it is able to incorporate
+any number of other conditions to decide whether to enable or disable the
+X-ray mode. For example, by making nitpicker's hover reports available to the
+X-ray trigger, X-ray could be automatically enabled while the pointer hovers
+over a panel or the window decorations. The X-ray trigger, in turn, reports
+its decision via an "xray" report. This report is routed as input to the ROM
+filter. The ROM filter responds by generating a new configuration for
+nitpicker.
+
+In addition to the flexibility of making X-ray trigger policy and the actual
+X-ray effect easily customizable, the new approach allows other components
+outside of nitpicker to respond to the X-ray mode, most particularly the
+window decorator.
+
+
+Loose coupling of policy components
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Genode's window manager is not a single program but a composition of several
+components with different responsibilities:
+
+[image window_manager]
+  The window manager merely acts as a low-complexity mediator of potentially
+  complex and policy-rich components like the window decorator and the window
+  layouter.
+
+Both the decorator and the layouter are mere clients of the window manager.
+Window-related information is exchanged between these components via the
+report-ROM component, which provides a publisher-subscriber mechanism by
+implementing Genode's report and ROM session interfaces. Because state
+information is always kept at the report-ROM server outside the decorator and
+the layouter, it is possible to replace those components at runtime without
+losing any information about the state of the present windows. The following
+screenshot shows how the classical window decorator gets replaced by the new
+themed window decorator introduced in the next section.
+
+[image switching_decorators]
+
+
+Enhanced window-decorator and window-layouter flexibility
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+*Handling of window controls*
+
+We added support for the common window controls _close_ and _maximize_ to the
+window layouter and decorator. The order of those controls in the window title
+can be configured, and can even be changed at runtime.
+
+When activating the window closer, the window manager sends a resize request
+for the size 0x0 to the corresponding client. It is up to the client to
+implement a meaningful response such as exiting the application.
+
+
+*Tinting of window controls*
+
+Thanks to the separation of the X-ray policy from nitpicker as explained in
+Section [Rigid separation of policy and mechanism], components other than
+nitpicker have become able to respond to the X-ray mode. This is particularly
+useful for the window decorator, which can now take the X-ray mode into
+account for tinting window decorations according to the session colors. We
+enhanced the existing window decorator by a configurable assignment of colors
+for different windows depending on the window labels. Similar to nitpicker,
+the decorator is able to respond to configuration updates at runtime. Even
+though the decorator has no notion of an X-ray mode, it can respond to the
+X-ray mode when combined with a ROM filter, analogously to the configuration
+depicted for nitpicker in Figure [nitpicker_xray_trigger].
+
+
+*New themed decorator*
+
+We created a second decorator to illustrate the versatility of the GUI
+architecture, and to give users a modern-looking alternative to the original
+Motif-inspired decorator. The new themed decorator is located at
+_gems/src/app/themed_decorator/_. In contrast to the original decorator that
+has a built-in style, the new decorator obtains the style information from a
+few PNG images, a font, and a bit of metadata. Those files need to be mounted
+into the VFS of the decorator at the _/theme/_ directory. The following Figure
+[theme] shows the three images _default.png_, _closer.png_, and
+_maximizer.png_ of the default theme.
+
+[image theme]
+
+The corresponding _metadata_ has the following content:
+
+! <theme>
+!   <aura  top="8"  bottom="8" left="8" right="8"/>
+!   <decor top="20" bottom="8" left="1" right="1"/>
+!   <title xpos="16" ypos="9" width="32" height="20"/>
+!   <closer xpos="36" ypos="10"/>
+!   <maximizer xpos="10" ypos="10"/>
+! </theme>
+
+The '<aura>' node contains the margins for the area around the decorations,
+which gives us room for drop shadows. The '<decor>' node contains the margins
+of the actual decorations. The '<title>', '<closer>', and '<maximizer>' nodes
+contain the positions of the corresponding window controls with the
+coordinates referring to the coordinates in the _default.png_ image.
+
+
+Audio stack
+===========
+
+While working on the audio stack and improving the support for audio
+applications in VirtualBox, we took the chance to modernize the mixer
+component and applied Genode's dynamic configuration concept to the mixer.
+
+Like all other configurable components, the mixer obtains its configuration
+via a ROM module from its parent. The following configuration snippet
+illustrates its structure:
+
+! <config>
+!   <default out_volume="75" volume="25" muted="0"/>
+!   <channel_list>
+!     <channel type="input"  label="client" number="0" volume="75" muted="1"/>
+!     <channel type="input"  label="client" number="1" volume="15" muted="1"/>
+!     <channel type="output" label="master" number="0" volume="100" muted="0"/>
+!     <channel type="output" label="master" number="1" volume="100" muted="0"/>
+!   </channel_list>
+! </config>
+
+The '<default>' node is used to set up the initial settings for new clients.
+According to this configuration, every new client will start with a volume
+level set to 25 and is not muted. The initial output volume level is set to 75
+(the volume level ranges from 0 to 100). The '<channel_list>' node contains
+all (pre-)configured channels. Each '<channel>' node has several mandatory
+attributes:
+
+* 'type' is either 'input' or 'output',
+* 'label' contains the label of a client for an input node and the value
+  'master' for an output node,
+* 'number' specifies the channel number (0 for left and 1 for right),
+* 'volume' sets the volume level,
+* 'muted' marks the channel as muted.
+
+In addition, there are optional read-only channel attributes, which are mainly
+used by the channel-list report.
+
+The mixer reports all available channels in its 'channel_list' report. The
+report contains a `<channel_list>' node that is similar to the one used in the
+mixer configuration:
+
+! <channel_list>
+!   <channel type="input" label="client0" name="left"  number="0" active="1" volume="100" muted="0"/>
+!   <channel type="input" label="client0" name="right" number="1" active="1" volume="100" muted="0"/>
+!   <channel type="input" label="client1" name="left"  number="0" active="0" volume="25"  muted="0"/>
+!   <channel type="input" label="client1" name="right" number="1" active="0" volume="25"  muted="0"/>
+!   <channel type="output" label="master" name="left"  number="0" active="1" volume="100" muted="0"/>
+!   <channel type="output" label="master" name="right" number="1" active="1" volume="100" muted="0"/>
+! </channel_list>
+
+Each channel node features all mandatory attributes as well as a few optional
+ones. The 'name' attribute contains the name of the channel. It is the
+alphanumeric description of the numeric 'number' attribute. The 'active'
+attribute indicates whether a channel is currently playing or not.
+
+A channel-list report may be used to create a new configuration for the mixer.
+Each time the available channels change, e.g., when a new client appears, a
+new report is generated by the mixer. This report can then be used to
+configure the volume level of the new client. A new report is also generated
+after a new configuration has been applied to the mixer. Thereby, a mixer
+agent becomes able to adapt itself to recent changes.
+
+As an example, there is an experimental mixer agent based on Qt5
+_repos/gems/src/app/mixer_gui_qt_ that processes the mixer generated
+channel-list reports. It takes the report and writes a new configuration to
+the file 'mixer.config' that can then be used by the mixer.
+
+A basic scenario that uses the mixer as well as the experimental mixer agent
+looks like this:
+
+[image mixer_agent]
+  Interplay of the graphical mixer front end (mixer agent) with the audio mixer.
+
+This scenario is available in the form of the run script at
+_gems/run/mixer_gui_qt_test.run_. In addition to the mixer and mixer agent, it
+features a few more components. We therefore also discuss their roles here.
+The mixer component receives its configuration from the _FS-ROM_ component and
+reports a list of its channels to the report-ROM component. The mixer agent
+accesses the channel-list report as ROM module provided by the report-ROM
+component. It writes the configuration to the file _/config/mixer.config_,
+which is stored by the _config-file-system_ component. The FS-ROM component
+exports each file as ROM module. One of those modules is the _mixer.config_
+that is, in turn, presented as configuration to the mixer component. Each time
+the _mixer.config_ file is altered, the mixer receives a signal, reloads the
+new version of the configuration, and adapts itself accordingly. In return,
+the mixer sends a new report every time its channel list changes. This report
+is consumed by the mixer agent to adjust itself, i.e., to display or remove a
+client widget. All this mechanics is hidden behind a simple GUI dialog. By
+moving a slider, the user generates a new mixer configuration.
+
+
+Copy and paste
+==============
+
+When using Genode as a desktop OS, users need to be able to copy and paste
+text between different subsystems such as guest OSes running in VirtualBox and
+Qt5 applications running directly on Genode.
+
+This integration feature requires two ingredients. First, the respective
+subsystems need to interface their internal clipboard mechanisms (like the
+clipboard of the guest OS) with the Genode world. Second, we need a clipboard
+component that manages the information flows between the subsystems.
+
+*Import/export of clipboard data of subsystems*
+
+From the subsystem's perspective, Genode's clipboard protocol looks as follows:
+
+* A subsystem propagates new clipboard content to the Genode world via a
+  report session with the label "clipboard". Each time its internal clipboard
+  content changes, it issues a report with the new content.
+
+* For importing clipboard content from the Genode world, the subsystem opens
+  a ROM session with the label "clipboard" and registers a signal handler for
+  ROM-changed signals. Upon the reception of such a signal, the subsystem
+  requests the updated ROM content and forwards it to its internal clipboard.
+
+The session labels for the ROM and report sessions are merely a convention
+that should be followed to enable the session routing in a uniform way.
+
+A clipboard report has the following format:
+
+! <clipboard>
+!      ... UFT8-encoded and XML-sanitized text ...
+! </clipboard>
+
+*Clipboard component*
+
+The clipboard component is similar to the existing report-ROM server in that
+it provides both a report service and a ROM service. In contrast to the
+report-ROM server, however, all report sessions refer to the same (clipboard)
+report. Reports by different clients override each other. Each time the report
+changes, all ROM clients are notified, which can respond to the notification
+by requesting the updated version of their clipboard ROM module.
+
+*Security considerations*
+
+Given the principle design, the clipboard component could be used to let
+information flow between arbitrary clients. However, in multi-level scenarios,
+we need to constrain the flow of information between different domains. For
+example, we want to prevent a crypto domain from leaking credentials to a
+domain that is connected to the network. To express an information-flow
+policy, the clipboard component has the notion of "domains", which correspond
+to the domains already present in the nitpicker GUI server. Clipboard clients
+are associated with domains via the clipboard configuration:
+
+! <config>
+!   ...
+!   <policy label="vbox_linux" domain="hobby"/>
+!   <policy label="vbox_win7"  domain="work/>
+!   <policy label="noux"       domain="admin"/>
+!   ...
+! </config>
+
+By default, a clipboard report is propagated solely to clients of the same
+domain as the originator. All other clients will receive an empty clipboard
+ROM module (this enables those subsystems to clear their local clipboard
+selection). To propagate clipboard data across domains, a white list of
+information-flow policies must be defined as follows:
+
+! <config>
+!   ...
+!   <flow from="work"  to="admin"/>
+!   <flow from="hobby" to="admin"/>
+!   <flow from="hobby" to="work"/>
+!   ...
+! </config>
+
+This example defines a policy where data can flow from the work and hobby
+domains to the admin domain but not in the other direction. Furthermore, data
+copied in the hobby domain can be pasted in the work domain but not vice
+versa.
+
+Even though the transport of the actual clipboard content can be subjected to
+the stated information-flow policy, two conspiring clipboard clients can still
+misuse the clipboard to establish a covert channel: Because each time a report
+is generated, a clipboard ROM update is propagated to all clients (some
+receive the actual content whereas some receive an empty clipboard), two
+presumably isolated clients can use those notifications to send bits of
+information. For this reason, we need to limit the bandwidth of those
+notifications. The biggest problem is that the clipboard reports are generated
+by the (untrusted) subsystem software, which can issue reports at an arbitrary
+rate. Ideally, we wish to let the user give its consent for each generated
+clipboard report. But this would interfere with the work flow universally
+expected by users. The clipboard component addresses the problem by
+dynamically incorporating status information of the nitpicker GUI server into
+the information-flow policy:
+
+* The clipboard server accepts reports only when they originate from the
+  domain that is focused by nitpicker. Nitpicker already provides "focus"
+  reports that contain this information. Conveniently, the focus reports
+  already contain the name of the focused domain (in addition to the client's
+  session label). With the correspondence of the clipboard's domains to
+  nitpicker's domains, the clipboard is able to take nitpicker's focus reports
+  into account for the information-flow policy.
+
+* To further limit the rate of artificial clipboard reports, the clipboard
+  component accepts reports only from a domain where a corresponding nitpicker
+  client received user input recently. The term "recently" refers to a
+  reasonable upper bound of the time needed by a guest OS or an application
+  to respond to Control-C or a similar key sequence, i.e., 500 milliseconds.
+  This way, a subsystem can submit new clipboard content only shortly after
+  the user interacted with the subsystem, which is always the case when the
+  user triggers the copy operation. To accommodate this mechanism, nitpicker's
+  focus reports had to be slightly enhanced by a new attribute "active" that is
+  set to "yes" if the user interacted with the domain recently.
+
+As another measure to limit the bandwidth of the covert channel, the clipboard
+server notifies its ROM clients only if their ROM module actually changed.
+This way, not each report from an unrelated domain results in a ROM-changed
+signal but only the one that invalidated the formerly visible clipboard
+content. So the active help of the user is required to transfer bits of
+information.
+
+*Clipboard supporting subsystems*
+
+With the current release, the clipboard protocol has been implemented into
+Qt5 applications and VirtualBox. On VirtualBox, we leverage the shared
+clipboard mechanism provided by the VirtualBox guest additions.
+
+
+Graceful exiting of subsystems
+==============================
+
+In dynamic scenarios like desktop computing, subsystems should be able to
+gracefully exit. For applications manually started via a panel or a shell-like
+command interface (CLI monitor), the user expects the system to free the
+application's resources after the exit of the application. Originally most of
+Genode's runtime environments used to respond to the exit of a child by merely
+printing a message to the log. It was up to the user to manually regain the
+resources by explicitly killing the subsystem afterwards. To make the CLI
+monitor and the graphical launcher more pleasant to use, we enhanced them
+to perform the kill operation automatically once a child exits gracefully.
+
+In many cases, subsystems are assembled out of several components using a
+nested instance of init. E.g., such subsystems are a composition of protocol
+stacks like nit_fb, terminal, ram_fs in addition to the actual application.
+The lifetime of such a composed subsystem mostly depends on one of those
+components (e.g., the noux runtime or VirtualBox VMM). To enable the CLI
+monitor (or the launcher) to automatically respond to an exiting noux
+instance, we need to propagate the exit of the noux component through the
+intermediate init runtime to the CLI monitor. To do that, we extended the
+configuration concept of init with an additional sub node for the '<start>'
+node:
+
+! <start name="noux">
+!   <exit propagate="yes"/>
+! ...
+! </start>
+
+If the propagate attribute is set to yes, the exit of the respective child
+will result in the exit of the entire init component, including all siblings
+of the exited component. The approach gives us the freedom to define even
+multiple children that may trigger the exit condition of init (by specifying
+an '<exit>' node at several '<start>' nodes.
+
+
+Base framework and low-level OS infrastructure
+##############################################
+
+Changes at the system-integration level
+=======================================
+
+Label-dependent session routing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Access-control policies in Genode systems are based on session labels. When a
+server receives a new session request, the session label is passed along with
+the request.
+
+A session label is a string that is assembled by the components that are
+involved with routing the session request from the client along the branches
+of the component tree to the server. The client may specify the least
+significant part of the label by itself. This part gives the parent a hint
+for routing the request. For example, a client may create two file-system
+sessions, one labeled with "home" and one labeled with "bin". The parent may
+take this information into account and route the individual requests to
+different file-system servers. The label is successively superseded (prefixed)
+by additional parts along the chain of components on the route of the session
+request. The first part of the label is the most significant part as it is
+imposed by the component in the intermediate proximity of the server. The last
+part is the least trusted part of the label because it originated from the
+client. Once the session request arrives at the server, the server takes the
+session label as the key to select a server-side policy.
+
+Whereas the use of session labels for selecting server-side policies has
+been a common practice for a long time, label-dependent session routing
+was rarely needed. In most cases, routing decisions were simply based on
+the type of the requested sessions. However, as Genode's system scenarios get
+more sophisticated, label-dependent routing becomes increasingly important.
+As we wished to express the criterion of routing decisions and the
+server-side policy selection in a uniform way, we introduced the following
+common label-matching rules.
+
+Both a '<service>' node in init's routing configuration as well as a
+'<policy>' node in the server's configuration can be equipped with the
+following attributes to match session labels:
+
+:'label="<string>"': The session label must perfectly match the specified
+  string.
+
+:'label_prefix="<string>"': The first part of the label must match the
+  specified string.
+
+:'label_suffix="<string>"': The last part of the label must match the
+  specified string.
+
+If no attributes are present, the route/policy matches. The attributes can be
+combined. If any of the specified attributes mismatch, the route/policy is
+neglected.
+
+If multiple '<service>' nodes match in init's routing configuration, the first
+matching rule is taken. So the order of the nodes is important.
+
+If multiple '<policy>' nodes match at the server side, the most specific
+policy is selected. Exact matches are considered as most specific, prefixes as
+less specific, and suffixes as least specific. If multiple prefixes or
+suffixes match, the longest is considered as the most specific.
+
+*Note* This change requires slight adaptations of existing configurations
+because the semantics of the original 'label' attribute of server-side policy
+nodes has changed. Originally, the attribute value was taken as a prefix for
+matching the session label. Now, the attribute would be taken as a perfect
+match. The adaptation of existing configurations is as simple as replacing
+"label" by "label_prefix". Since the change tightens the semantics of the
+label attribute, it will not weaken the security of existing policies. In the
+worst case, a server will reject sessions that formerly passed the label
+checks, but not vice versa.
+
+
+New VFS server component
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Genode has traditionally featured a number of file system servers, each
+designed for a specific storage back end. The implementation of new servers
+and features came with the additional effort of maintaining consistent code
+and behavior between server varieties. The VFS server is a solution to this
+redundancy.  By building a server around the VFS library, new storage back
+ends need to implement the VFS plugin interface only. This unification is not
+without runtime benefit, as it leads the way to more discretion in component
+composition. The server allows clients to share the burden of plug-ins that
+come with a large consumption of resources, but this potentially reduces
+privacy and can act as covert communication medium. From another perspective,
+clients may host plug-ins to reduce context switches between the file system
+and raw storage, or the VFS server may host high complexity plug-ins to
+maintain low complexity in a security sensitive address space. For the time
+being, the VFS server should be considered a resource multiplexer without
+strong client isolation.
+
+The following two configurations contrast the traditional ram_fs with the VFS
+server.
+
+! <start name="ram_fs">
+!   <config>
+!     <content>
+!       <dir name="data">
+!         <tar name="data.tar"/>
+!       </dir>
+!       <dir name="tmp"/>
+!     </content>
+!     ...
+!   </config>
+!   ...
+! </start>
+
+! <start name="vfs">
+!   <config>
+!     <vfs>
+!       <dir name="data">
+!         <tar name="data.tar"/>
+!       </dir>
+!       <dir name="tmp"> <ram/> </dir>
+!       <ram/>
+!     </vfs>
+!     ...
+!   </config>
+!   ...
+! </start>
+
+
+New VFS-local symlink file system
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A goal of the VFS library is to provide declarative file system composition.
+This release adds a symlink built-in to the library, which allows the
+configuration to populate file systems with symlinks.
+
+! <vfs>
+!   ...
+!   <dir name="usr">
+!     <tar name="bash.tar"/>
+!   </dir>
+!   <dir name="bin">
+!     <symlink name="sh" target="/usr/bin/bash"/>
+!   </dir>
+!   ...
+! </vfs>
+
+
+New server for aggregating LOG data to file-system storage
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The fs_log component has been refactored to better express the source of
+logging streams as well as to operate at lower complexity. For each client
+session, the session label is converted to a directory tree with the trailing
+element being the file, to which log messages are written. Logs may also be
+merged using session-policy selectors with a label prefix. See
+_os/src/server/fs_log/README_ for details.
+
+
+New ROM logger component
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+The new ROM logger component located at _os/src/app/rom_logger/_ is a simple
+utility to monitor the content of a ROM module. It is meant to be used for
+test automation and during debugging. Each time, the monitored ROM module
+changes, the ROM logger prints its content to the LOG.
+
+
+New ROM filter component
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+The new ROM filter component located at _os/src/server/rom_filter/_ provides a
+ROM module that depends on the content of other ROM modules. Its designated
+use is the dynamic switching between configuration variants dependent on the
+state of the system. For example, the configuration of the window decorator
+may be toggled depending on whether nitpicker's X-ray mode is active or not.
+
+
+*Configuration*
+
+The configuration consists of two parts. The first part is the declaration of
+input values that are taken into account. The input values are obtained from
+ROM modules that contain XML-formatted data. Each input value is represented
+by an '<input>' node with a unique 'name' attribute. The 'rom' attribute
+specifies the ROM module to take the input from. If not specified, the value
+of 'name' is used as the ROM name. The type of the top-level XML node can be
+specified via the 'node' attribute. If not present, the top-level XML node is
+expected to correspond to the 'name' attribute.
+
+The second part of the configuration defines the output via an '<output>' node.
+The type of the top-level XML node must be specified via the 'node' attribute.
+The '<output>' node can contain the following sub nodes:
+
+:'<inline>':
+  Contains content to be written to the output.
+
+:'<if>':
+  Produces output depending on a condition (see below). If the condition
+  is satisfied, the '<then>' sub node is evaluated. Otherwise, the '<else>'
+  sub node is evaluated. Each of those sub nodes can contain the same
+  nodes as the '<output>' node.
+
+
+*Conditions*
+
+The '<has_value>' condition compares an input value (specified as 'input'
+attribute) with a predefined value (specified as 'value' attribute). The
+condition is satisfied if both values are equal.
+
+
+*Example*
+
+For an example that illustrates the use of the component, please refer to the
+_os/run/rom_filter.run_ script.
+
+
+Source-code reorganization
+==========================
+
+By broadening the diversity of hardware and kernels that Genode supports, the
+file structure of some subdirectories of the source tree became increasingly
+confusing. Although our build system already provides a mechanism - the so
+called _spec values_ - to choose between different aspects like kernels or
+devices, source codes depending on certain spec values were not always easily
+recognizable as such. Moreover, some of the spec values used the prefix
+"platform", or were grouped in "platform" subdirectories, others did not use
+that term. Thereby, the semantics of "platform" became more and more blurry
+over the years, describing either a board, processor architecture, SoC, or
+kernel-hardware amalgam.
+
+To achieve a consistent view on all aspects, whose compilation is dependent on
+spec values, code has been moved into _spec/_ subdirectories instead of holding
+them inline within the repository structure. At each directory level of the
+source tree, a _spec/_ directory can be found when different aspects make this
+necessary, for example:
+
+! repos/base/include/spec/
+! repos/base/mk/spec/
+! repos/base/lib/mk/spec/
+! repos/base/src/core/spec/
+! ...
+
+Automatically added _include_ paths of sub-repositories, which are dependent
+on spec values and which formerly resided in _repos/*/include/platform/_,
+were moved to _repos/*/spec/_. Library descriptions that depend on spec values
+now reside in _repos/*/lib/mk/spec/_. The "platform" names mainly vanished
+from the source tree.
+
+It is strongly recommended to clean-up older build directories completely
+before compiling the new release because of the significant changes of the
+directory structure.
+
+
+API-level changes
+=================
+
+String and XML-handling utilities
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+*String parsing*
+
+The new overloads of the 'ascii_to' function for 'bool' and 'uint64_t' allow
+the easy extraction of such values from XML nodes and session-argument
+strings.
+
+
+*XML node-content sanitizing*
+
+The introduction of the clipboard component called for a way to embed and
+extract data (like clipboard content) from untrusted sources into an XML node
+without breaking the XML structure.
+
+The embedding of such data is accommodated by the new 'append_sanitized'
+method of the 'Xml_generator'. For the extraction of such data from XML nodes,
+we added corresponding accessor methods ('decoded_content') to the 'Xml_node'.
+
+
+*Generalized session-label and session-policy utilities*
+
+The utilities provided by _os/session_policy.h_ used to be tailored for the
+matching of session arguments against a server-side policy configuration.
+However, the policy-matching part is useful in other situations, too. Hence,
+we removed the tight coupling with the session-argument parsing (via
+'Arg_string') and the hard-wired use of 'Genode::config()'.
+
+To make the utilities more versatile, the 'Session_label' has become a
+'Genode::String' (at the time when we originally introduced the
+'Session_label', there was no 'Genode::String'). The parsing of session
+arguments is performed by the constructor of this special 'String'. The
+constructor of 'Session_policy' now takes a 'Genode::String' as argument. So
+it can be used with the 'Session_label' but also with other 'String' types.
+Furthermore, the implicit use of 'Genode::config()' can be overridden by
+explicitly specifying the compound XML node as an argument.
+
+The common problem of scoring XML nodes against a given label, label prefix,
+and label suffix as explained in Section [Label-dependent session routing] is
+addressed by the new 'Xml_node_label_score' utility. It is used by the init
+component to take routing decisions and by servers to select policies
+dependent on session labels.
+
+
+VFS and file-system API
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The file system APIs received a few simple amendments. New error codes were
+added to broaden error handling, and session arguments were added to the
+file-system service.
+
+File-system session requests now carry a _writeable_ and _root_ argument. The
+latter enables clients to request a root offset when connecting to the service
+that is appended to the root policy of the server. The _writeable_ argument
+gives the client a way to express its intention to never write. If _writeable_
+is set to true, the ability to perform write operations can still be
+overridden by a server-side policy.
+
+
+Object-pool redesign
+~~~~~~~~~~~~~~~~~~~~
+
+The object pool is one of the eldest abstractions in Genode. It is in
+particular used for thread-safe RPC-object lookup. However, with the
+increasing number of requirements over the years, its API and semantics became
+difficult to understand. Moreover, the synchronization primitives had to be
+handled by the user of the interface appropriately. So it was possible to
+access an object without holding its lock. We observed some corner cases where
+the object pool's insufficiencies led to inconsistencies within the RPC server
+framework. Therefore, we decided to rework the object pool's API and
+implementation.
+
+Now, instead of returning pointers to objects via a look-up function, one has
+to provide a functor that should be applied to the object of interest. In
+general, the object's locking primitives are transparent to the developer and
+are only used within the object pool's implementation internally. The look-up
+function looks as follows:
+
+! template <typename FUNC> auto apply(Untyped_capability cap, FUNC func)
+
+The functor that is provided must have one argument, which is a pointer to the
+expected object's type. The object pool implementation will search for the
+object with the designated capability and will dynamically cast it to the type
+given by the functor. If the object could not be found, or if the cast fails,
+the functor gets called with a null-pointer as argument. Thereby, the user is
+able to handle mismatches explicitly.
+
+Caution has still to be taken when destroying objects. Deleting an object
+during a look-up leads to a deadlock situation. As the object pool will unlock
+an object again after applying the functor to it, the object must not be
+deleted in the scope of the functor. Users of the object pool should use the
+'apply' function to remove an object from the pool instead, and afterwards
+delete it. To raise the convenience here, we will possibly enrich the object
+pool's API in one of the upcoming releases by appropriated factory/deletion
+methods so that the entire object's lifetime is handled safely via the object
+pool.
+
+
+Handling sub-page resources in 'Attached_io_mem_dataspace'
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+On some hardware platforms, memory-mapped registers of different devices
+happen to be co-located at the same physical memory page. Since memory-mapped
+I/O resource can be handed out to drivers at the granularity of 4K pages only,
+drivers had to deal with sub-page register offsets as special cases. To remove
+this burden from the driver developers, the 'Attached_io_mem_dataspace' has
+been changed to accept physical addresses at byte granularity and hands out
+the corresponding virtual addresses including the sub-page offset
+transparently for the driver.
+
+
+Libraries, applications, and runtime environments
+#################################################
+
+Qt5 improvements
+================
+
+We enhanced our version of Qt5 with the support for *key repeat* and the
+ability to use the new *clipboard* mechanism presented in Section
+[Copy and paste]. Clipboard support must be explicitly enabled by setting the
+attribute 'clipboard' in the application's '<config>' to "yes".
+
+
+VirtualBox
+==========
+
+*Improved support for large guest-memory allocations*
+
+We changed the allocation of guest VM memory from a few large contiguous
+memory dataspaces to more and smaller dataspaces. The change enables us to
+start VMs even if there is no contiguous memory chunk available for a VM.
+
+
+*VM shutdown detection*
+
+Additionally, we implemented the detection of VM shutdowns. If the VM finally
+powers off, our Virtualbox virtual-machine monitor (VMM) notifies its parent
+via the exit operation of the parent interface. The parent may respond to such
+a signal, e.g., by destructing the entire VMM subsystem including the virtual
+machine.
+
+
+*Clipboard support*
+
+In order to exchange clipboard data of a guest OS with Genode, we enabled the
+VirtualBox guest-addition support to receive and transfer clipboard data.
+Depending on the configured clipboard mode in the _.vbox_ file of the VM,
+clipboard data may get exchanged - bidirectional, host-to-guest only, or
+guest-to-host only. In the bidirectional and host-to-guest cases, a dataspace
+with the name "clipboard" will be requested and evaluated each time the
+content changes. In the bidirectional and guest-to-host cases, the VMM acts as
+Genode ROM reporter.
+
+
+*Omitting the overhead of rdtsc emulation*
+
+While debugging load problems within VirtualBox, we observed that a running
+Windows 8 guest VM did generate a lot of VM exits by using the 'rdtsc'
+instruction at a high rate. Since this instruction traps into the VMM, it can
+impose a huge load in the VMM that - amongst other - severely influences audio
+playback/recording (e.g., distorted sounds and the like). As an interim
+solution, we have disabled the virtualization of the 'rdtsc' instruction
+completely. This works well as long as each guest VM runs on its own CPU core.
+However, when sharing one CPU by multiple VMs, time-stamp-counter (TSC)
+warping occurs. Building a more robust solution regarding TSC warping and
+drifting requires further evaluations, which we will conduct in the future.
+
+
+*Safe VM shutdown when closing the framebuffer window*
+
+When using VirtualBox with the window manager, clicking the window-close
+button initiates an ACPI shutdown of the VM, which allows the guest operating
+system to quit safely.
+
+
+*64-bit guest operating system support*
+
+VirtualBox can now run 64-bit guest operating systems. For Windows guests,
+only one guest CPU is supported at the moment.
+
+
+Seoul VMM
+=========
+
+In the context of using Genode as a desktop OS, we extended our Seoul VMM port
+to be able to start lightweight VMs for specific use-cases, such as
+web-browsing, more easily. One step into this direction was to enable, extend,
+and stress test the AHCI and IDE disk-device models of Seoul. Based on our
+improvements, we were able to come up with a user-friendly reproducible
+work-flow to setup customized Tinycore VMs.
+
+
+Device drivers
+##############
+
+Intel-KMS framebuffer driver
+============================
+
+With the current release, we proudly present a port of the Intel i915 driver
+from Linux kernel 3.14.5 to Genode. We successfully tested it on machines
+containing Intel GPUs from generation five up to generation eight. With the
+port of the Intel driver to Genode, we followed the approach that we already
+used to enable the USB stack on Genode described in
+[http://genode.org/documentation/release-notes/12.05#Re-approaching_the_Linux_device-driver_environment - release 12.05],
+to enable the Linux TCP/IP stack in
+[http://genode.org/documentation/release-notes/13.11#Gigabit_networking_using_the_Linux_TCP_IP_stack - release 13.11],
+and more recently to enable the Intel wireless stack in
+[http://genode.org/documentation/release-notes/14.11#Intel_wireless_stack - release 14.11].
+
+The driver can be configured dynamically at run-time via the config
+ROM-mechanism. Each connector of the graphics card can be configured
+separately using the following syntax:
+
+! <config>
+!   <connector name="LVDS-11" width="1280" height="800" enabled="true"/>
+! </config>
+
+The driver adapts to every change of its configuration immediately. Thereby
+users can enable or disable display devices, or change their resolution by
+simply editing the configuration file of the driver at run time.
+
+Moreover, to alleviate tearing effects, the driver supports buffering. That
+means, instead of providing the framebuffer memory directly to the client, it
+exports a simple RAM dataspace to the client and copies over changes from it
+to the actual framebuffer memory during dedicated refresh operations. This
+behavior can be enabled within the driver's configuration as follows:
+
+! <config buffered="yes"/>
+
+The driver distributes all available connectors of the graphics card and their
+supported resolutions via a report that looks as follows:
+
+! <connectors>
+!   <connector name="LVDS-11" connected="1">
+!     <mode width="1280" height="800" hz="60"/>
+!     ...
+!   </connector>
+!   ...
+! </connectors>
+
+To generate such reports, the driver configuration needs to contain a
+corresponding '<report>' node:
+
+! <config>
+!   <report connectors="yes"/>
+! </config>
+
+
+Framebuffer support for Exynos 4
+================================
+
+The existing framebuffer driver for the Samsung Exynos 5 SoC has been
+generalized to also cover the Exynos 4 SoC, specifically the ODROID-x2
+platform. Thanks to Alexy Gallardo Segura for this contribution.
+
+
+AHCI support for ATA devices w/o native command queuing
+=======================================================
+
+Up to now Genode's AHCI driver supported hard disks that offered the native
+command queuing feature (NCQ) only. While NCQ vastly improves the performance
+of a hard disk, some drives simply do not support this feature. Therefore, we
+extended the AHCI driver and enabled NCQ detection during device
+initialization.  If a device does not support NCQ, the driver programs the
+controller accordingly during block requests.
+
+
+Intel wireless stack
+====================
+
+As an artefact from our initial porting effort, the WLAN driver used a device
+white list because it would scan the PCI bus in a suboptimal way. To reduce
+the time it takes to iterate over all possible matches in the driver's ID
+table, we reduced the list to only those few devices we explicitly wished to
+support. With this release we finally addressed this issue and got rid of the
+device white list. The driver is now expected to work on a broader range of
+machines out of the box.
+
+We also refined the driver with respect to the way it searches for networks.
+Prior to the change it was not possible to connect to a network with a hidden
+SSID.
+
+
+ACPI driver improvements
+========================
+
+During the development of the Intel framebuffer driver, we encountered several
+DMA remapping faults caused by the IOMMU (Intel terminology: DMA remapping
+units). It turned out that the faults happened in a region, which the Intel
+GPU uses. Those regions get reported via an ACPI structure called "Reserved
+Memory Region Reporting Structure" (RMRR), which is defined by the
+documentation "Intel ® Virtualization Technology for Directed I/O Architecture
+Specification" in the chapter "BIOS Considerations".
+
+For PCI devices, the RMRR regions report information about physical ranges,
+which the device implicitly uses for DMA operations to work flawlessly. An
+operating system using the IOMMU feature must therefore take precautions to
+make such RMRR regions accessible for DMA operations of a specific PCI device.
+Our ACPI driver already detected such RMRR regions and printed the
+information. Until now, however, we had no need to actually make use of it.
+
+We extended our ACPI driver to propagate the RMRR region information via
+Genode's Report-ROM mechanism. The platform driver as the consumer of the
+report got extended to store the RMRR region information until a device driver
+for a specific PCI device gets started. As soon as the device driver gets
+assigned to the PCI device via the platform driver, the RMRR regions are added
+to the device PD of the driver. This enables the device to operate on the RMRR
+regions with DMA operations.
+
+
+SD-card driver for i.MX53
+=========================
+
+In the context of our work on the USB Armory, we improved the robustness of
+our SD-card driver for the i.MX53 eSDHC. The new version has become able to
+deal with bogus transfer state information on multi-block writes, and copes
+well with the weak memory-ordering of ADMA-table accesses. Additionally, the
+driver was re-factored. A more detailed explanation and the background story
+are provided in Section [Improved TrustZone support on USB Armory].
+
+
+Network driver for Zynq-7000 platform
+=====================================
+
+Thanks to the contribution of Johannes Schlatow and Timo Wischer (TU
+Braunschweig, Germany), Genode has received support for the network controller
+on the Xilinx Zynq-7000 platform. With a Qemu version greater or equal than
+2.3, you can test this feature via:
+
+! make run/lwip
+
+
+Platforms
+#########
+
+Execution on bare hardware (base-hw)
+====================================
+
+Xilinx Zynq-7000
+~~~~~~~~~~~~~~~~
+
+The increasing interest in the combination of Genode and the Xilinx Zynq-7000
+board motivated us to add official support to our custom kernel.  The platform
+features a Cortex-A9 CPU. Thus, our existing kernel drivers for the Cortex-A9
+private peripherals, namely the core-local timer and the ARM Generic Interrupt
+Controller, could be reused. The steps to enable the new platform included the
+creation of a new UART driver (UARTPS), the generalization of the PL310
+L2-cache-controller driver, and the addition of board-specific declarations.
+Furthermore, support for the user-land timer driver was implemented using the
+Triple Timer Counter (TTC) on Zynq platforms. Although the board even supports
+SMP and a Xilinx FPGA, we don't make use of these features yet. However, the
+port is intended to serve as a starting point for further development in these
+directions.
+
+To create a build directory for Genode running on Xilinx Zynq-7000, use the
+following command:
+
+! ./tool/create_builddir hw_zynq
+
+Thanks to Johannes Schlatow, Timo Wischer, and Mark Albers (TU Braunschweig,
+Germany) who contributed their work on Xilinx Zynq-7000!
+
+
+Physical memory detection on the 64-bit x86 architecture
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The x86 version of our custom kernel has been enhanced to evaluate the
+multiboot structure of the boot loader to detect all available physical
+memory. The core-physical allocator gets populated with this information
+enabling Genode to use all available memory instead of a preconfigured amount.
+
+
+Improved TrustZone support on USB Armory
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With Genode 15.02, we introduced basic support for the USB Armory through our
+custom kernel in the _base-hw_ repository. Alongside this, we also announced
+the support for the TrustZone VMM demo - a scenario that demonstrates a guest
+OS being monitored by a Genode hypervisor leveraging the protection mechanism
+of ARM TrustZone. The guest OS was a Linux 3.18 with a BusyBox RAM disk. This
+setting was sufficient to showcase the physical separation of software but it
+lacks the full feature set of the native Linux setup delivered with the board
+and promoted in the
+[https://github.com/inversepath/usbarmory/wiki - online documentation]. Most
+significant was the missing USB support and CDC Ethernet that enable the USB
+Armory to communicate via TCP/IP with its host. With this line of work, we
+have the goal to reach feature parity with the original USB Armory setup while
+putting Linux ("normal" world) under the supervision of Genode ("secure"
+world). We will explain those developments in a separate article. The current
+state of the tz_vmm scenario provides the following features:
+
+* A fully-featured USB-Armory Linux as TrustZone-encapsulated guest OS
+  requiring only slight source-code modifications,
+
+* A light-weight Genode as TrustZone monitor,
+
+* Protection of the eSDHC and UART against direct access by the guest OS,
+
+* Selective export of SD-card partitions into the guest OS using a
+  para-virtualized block driver while the other partitions remain trusted,
+
+* A para-virtualized serial driver in the guest OS to capture its log output
+  and distinguishably incorporate it into the UART output of the monitor,
+
+* Bringing the scenario to your own USB Armory by using a fully documented
+  and widely automated reproducible process,
+
+* And switching the on-board LED from within the monitor in order to signal
+  trusted/untrusted code execution.
+
+But there are still open issues that can be taken as motivation for further
+development:
+
+* The GPIO and clock controls are accessible by both the monitor and the guest.
+  The guest OS cooperates by making no changes to the settings that would
+  affect the monitor functionality. As a solution to this, guest access to the
+  GPIO control should be para-virtualized. Please note, that one aspect of
+  this is that the on-board LED is currently not trusted. Another consequence
+  is the current lack of power management as the guest doesn't disable clocks
+  in favour of Genode, and Genode, on the other hand, lacks support.
+
+* The Genode driver for the USB-Armory eSDHC currently does not aim for maximum
+  performance. The bus width and frequency are set statically to low values,
+  aiming for broad support rather than getting the best out of each SD card.
+
+* The on-board LED is currently switched on and off by the so-called TZ-VMM, a
+  user-land component of the Genode system. For a more comprehensive
+  indication of trusted execution, it would have to be controlled from within
+  the Genode kernel.
+
+You can build the demo by executing
+
+! ./tool/create_build_dir hw_usb_armory
+! cd build/hw_usb_armory
+! make run/tz_vmm
+
+A tutorial on how to create a bootable SD card can be found in the
+corresponding run script _os/tz_vmm.run_. A tutorial on how to reproduce the
+pre-built Linux image, Rootfs and DTB - used by the run script - can be found
+at [https://github.com/m-stein/genode_binaries/blob/master/tz_vmm/usb_armory/README].
+
+
+NOVA
+====
+
+With the release 15.08, we
+[http://genode.org/documentation/release-notes/15.08#NOVA_kernel-resource_management - extended the kernel]
+to handle memory quota per Genode component. The line of work for the current
+release built upon those new mechanisms and simplifies the memory management
+within Genode's core component.
+
+In the original version of NOVA, all the memory used by user-level components
+had to be present in core's protection domain. This was needed to allow core
+to revoke the memory mappings from the components, e.g., when a dataspace is
+destructed or detached from the address space of a component. When revoking
+memory mappings core had to present evidence authorizing it to revoke those
+mappings to the kernel. Hence, the core-local mappings served as some kind of
+authorization token. Core would actually not use the core-local mappings
+except for the rare case of clearing a dataspace. Still, even though core was
+not expected to access the mapped memory that belongs to non-core components,
+it could still accidentally do so. For example, a dangling-pointer bug within
+core could read or overwrite memory in non-core components.
+
+The *remote revoke* extension of the kernel that we introduced in the previous
+release paved the ground to eventually remove core-local mappings for non-core
+memory. In the new version, core installs memory mappings directly into the
+user-level components. To revoke mappings, core specifies the PD selector of
+the targeted component and a component-virtual address range to the remote
+revoke operation of the kernel. This practice, which we also employ on our
+custom base-hw kernel, improves the fail-security of the system. In the
+unexpected case that something goes wrong within core (which should never
+happen, but still could), information between components can no longer
+accidentally cross address-space boundaries.
+
+
+Tools and build system
+======================
+
+Run-tool support for booting via the iPXE boot loader
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+[http://ipxe.org - iPXE] is an open source network boot firmware, which
+supports booting from a web server
+[http://ipxe.org/howto/chainloading#breaking_the_loop_with_an_embedded_script - via HTTP].
+
+With the new load module at _tool/run/load/ipxe_, Genode's run tool has become
+able to load images via iPXE/HTTP to the test hardware. The following two
+parameters can be used to specify the iPXE/HTTP setup:
+
+:--load-ipxe-base-dir:
+  This parameter specifies the base directory of the HTTP server, from
+  which the target machine downloads the files.
+
+:--load-ipxe-boot-dir:
+  The directory which contains the iPXE chainload configuration and all
+  necessary files given relative to the iPXE base directory.
+
+The target machine is expected to request the following iPXE configuration via
+HTTP:
+
+! http://${HOST_URL}/${ipxe-boot-dir}/boot.cfg
+
+This can be achieved by building iPXE with the following embedded script:
+
+! #!ipxe
+! dhcp
+! chain http://${HOST_URL}/${ipxe-boot-dir}/boot.cfg
+
+In addition to loading an image, an iPXE boot configuration is required to
+boot the loaded image on the target machine. The run-tool back ends for NOVA,
+Fiasco.OC, and L4/Fiasco have been enhanced to automatically generate such
+configurations, which use the [http://ipxe.org/cmd/sanboot - sanboot command]
+to download and boot an ISO image via HTTP. To use this boot method, your
+RUN_OPT configuration must specify both the ISO-image and the iPXE-load
+modules:
+
+! RUN_OPT +=  --include image/iso --include load/ipxe
+
+Note that the webserver serving the ISO image must support
+[http://forum.ipxe.org/showthread.php?tid=7295&pid=10482#pid10482 - ranged requests].
+
+Thanks to Adrian-Ken Rueegsegger for these improvements!
+
+
+Tool for creating U-Boot images for Genode's supported platforms
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With the support for the Wandboard Quad in base-hw and the implied integration
+of such a board into our testing arsenal, we felt once more motivated to
+provide an easy way to reproduce the boot loader images we use for the
+different ARM platforms. The new _tool/create_uboot_ tool is the result of our
+first investigation into this direction. Called without a parameter, it offers
+a short documentation on how to use it. Apart from that, the only parameter is
+the targeted platform:
+
+! ./tool/create_uboot <PLATFORM>
+
+The platforms are named similar to the _tool/create_builddir_ tool. Currently,
+the platforms _hw_usb_armory_ and _hw_wand_quad_ are supported by create_uboot
+but further platforms shall be enabled in the future. The output of the tool
+can be copied to the SD card via tools like 'dd' using an offset of 1024 bytes
+to save the partition table if existent:
+
+! sudo dd if=<IMAGE> of=/dev/<YOUR_MMC> bs=1K seek=1 conv=fsync
+
+
+Removal of deprecated features
+##############################
+
+The development of the *Codezero* kernel came to a halt several years ago, its
+supported hardware platforms are outdated, and there is no active community of
+users. We still kept the platform on life by the means of nightly build tests
+and sporadic runtime tests. However, because each non-trivial change of
+kernel-dependent code required us to spend energy on the kernel to no apparent
+benefit, we finally dropped it.
+
+We originally introduced the so-called *lx_hybrid* base platform to ease the
+building of Genode completely with the Linux host tools and linked to the host
+libc. With this feature, we tried to accommodate the use of Genode as
+component middleware on top of regular Linux distributions. For quite some
+time, however, this feature remained unused. So we removed the lx_hybrid
+special case and the corresponding 'always_hybrid' spec value.
+
