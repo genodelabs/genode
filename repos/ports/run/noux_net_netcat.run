@@ -1,5 +1,5 @@
 set use_usb_driver   [expr [have_spec omap4] || [have_spec arndale] || [have_spec rpi]]
-set use_nic_driver   [expr !$use_usb_driver && ![have_spec imx53] && ![have_spec linux] && ![have_spec hw_odroid_xu] && ![have_spec hw_wand_quad] && ![have_spec hw_zynq]]
+set use_nic_driver   [expr !$use_usb_driver && ![have_spec imx53] && ![have_spec linux] && ![have_spec hw_odroid_xu] && ![have_spec hw_wand_quad]]
 
 if {[expr !$use_usb_driver && !$use_nic_driver]} {
 	puts "\n Run script is not supported on this platform. \n"; exit 0 }
