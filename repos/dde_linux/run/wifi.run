@@ -73,8 +73,10 @@ set config {
 			<policy label="config_rom" root="/"/>
 			<policy label="wifi_drv -> config" root="/" writeable="yes"/>
 			<content>
-				<inline name="wlan_configuration">
-<selected_network ssid="foobar" protection="WPA-PSK" psk="foobarfoobar"/>
+				<inline name="wlan_configuration">}
+append config "
+					<selected_network ssid=\"$::env(GENODE_WIFI_SSID)\" protection=\"WPA-PSK\" psk=\"$::env(GENODE_WIFI_PSK)\"/>"
+append config {
 				</inline>
 				<inline name="wpa_supplicant.conf"></inline>
 			</content>
