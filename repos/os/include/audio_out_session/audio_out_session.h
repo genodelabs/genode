@@ -263,7 +263,7 @@ class Audio_out::Stream
 		 *
 		 * This means that allocation will start at current queue position.
 		 */
-		void reset() { _tail = _pos; }
+		void reset() { _tail = (_pos + 1) % QUEUE_SIZE; }
 
 
 		/**
