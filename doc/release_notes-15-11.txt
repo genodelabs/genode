@@ -717,35 +717,24 @@ Libraries, applications, and runtime environments
 Qt5 improvements
 ================
 
-;@cproc
+Key repeat
+~~~~~~~~~~
 
-commit fd533b0c936c81326a81ec9cdd21b28a09d15924
-Author: Christian Prochaska <christian.prochaska@genode-labs.com>
-Date:   Mon Sep 21 16:58:46 2015 +0200
+Key repeat now works in Qt applications.
 
-    qt5: key repeat support
-    
-    Fixes #1692
+Clipboard support
+~~~~~~~~~~~~~~~~~
 
-commit f6863e3f4b3ff60d40abd286951404b793cb41d6
-Author: Christian Prochaska <christian.prochaska@genode-labs.com>
-Date:   Wed Oct 28 16:14:12 2015 +0100
+Qt applications can use the new clipboard component if this feature is
+enabled in the application's configuration:
 
-    qt5: add clipboard support
-    
-    If a Qt application shall use the clipboard, this must be configured as:
-    
-    <config clipboard="yes">
-    
-    Fixes #1749
-
+<config clipboard="yes">
 
 VirtualBox
 ==========
 
 ;@alexab
 ;@cnuke
-;@cproc
 
 commit b6c440852b6fc9670a30ad8494eeea24109371d7
 Author: Alexander Boettcher <alexander.boettcher@genode-labs.com>
@@ -788,20 +777,18 @@ However, building a more robust solution regarding TSC warping and
 drifting requires more evaluation which we will conduct in future.
 
 
-commit 953d0fd59c3c362c31d14a3843bedbd9afc05d69
-Author: Christian Prochaska <christian.prochaska@genode-labs.com>
-Date:   Wed Oct 28 16:14:14 2015 +0100
+Safe VM shutdown when closing the framebuffer window
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    vbox: respond to zero-resized framebuffer
+When using VirtualBox with the window manager, clicking the window close
+button initiates an ACPI shutdown of the VM, which allows the guest
+operating system to quit safely.
 
-commit 02b4ea67f8d018ecdf94e3753b68ed3258e51353
-Author: Christian Prochaska <christian.prochaska@genode-labs.com>
-Date:   Tue Nov 24 18:45:54 2015 +0100
+64-bit guest operating system support
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    vbox: 64-bit guest support
-    
-    Fixes #1791
-
+VirtualBox can now run 64-bit guest operating systems. For Windows guests,
+only one guest CPU is supported at the moment.
 
 Seoul VMM
 =========
