@@ -933,35 +933,25 @@ enabled in the application's configuration:
 VirtualBox
 ==========
 
-;@alexab
 ;@cnuke
 
-commit b6c440852b6fc9670a30ad8494eeea24109371d7
-Author: Alexander Boettcher <alexander.boettcher@genode-labs.com>
-Date:   Fri Aug 28 10:35:42 2015 +0200
+We changed the allocation of the guest VM memory from few large contiguos
+memory dataspaces to more and smaller dataspaces. The change enables us to
+start VMs even if no contiguos memory for the whole VM memory is available.
 
-    vbox: allocate guest memory in chunks
-    
-    Fixes #1575
+Additionally we enabled support to detect the shutdown of a VM. If the VM
+finally powers off, our Virtualbox VMM sends a Genode exit signal to the
+Genode parent. The parent may react to such a signal, e.g. by destructing the
+whole VMM and VM.
 
-commit 6f3e9c12fbb59c6123aa8e1d9c492a3dbe2ec6d7
-Author: Alexander Boettcher <alexander.boettcher@genode-labs.com>
-Date:   Fri Sep 18 16:15:43 2015 +0200
-
-    vbox: support shutdown of VMM
-    
-    - send exit signal to parent
-    - avoid assertion in vbox posix backend
-    
-    Fixes #1687
-
-commit 5aec67d5bb5c8c593a1637692ad8ac1c47ec4c0d
-Author: Alexander Boettcher <alexander.boettcher@genode-labs.com>
-Date:   Tue Sep 15 14:08:35 2015 +0200
-
-    vbox: enable clipboard support"
-    
-    Fixes #1696
+In order to exchange clipboard data of a VM with Genode, we enabled the
+Virtualbox guest addition support to receive and transfer clipboard data.
+Depending on the configured clipboard mode in the .vbox file of the VM,
+clipboard data may get exchanged - bidirectional, host-to-guest only or
+guest-to-host only. In the cases bidirectional and host-to-guest a dataspace
+with the name "clipboard" gets requested and evaluated on every content change.
+In the case bidirectional and guest-to-host the VMM acts as Genode ROM
+reporter.
 
 While debugging load problems within VirtualBox we observed that
 the running Windows 8 guest VM did generate a lot of VM exits by
@@ -993,58 +983,12 @@ only one guest CPU is supported at the moment.
 Seoul VMM
 =========
 
-;@alexab
-
-commit 2d15c6d99043d81ab40510d43e7361ecb002b264
-Author: Alexander Boettcher <alexander.boettcher@genode-labs.com>
-Date:   Wed Sep 9 16:50:58 2015 +0200
-
-    seoul: handle a MSR to let Genode/Nova guest boot
-    
-    Issue #1702
-
-commit e5ea76c689a9dd06d446b555b7ea91fab1ae6d76
-Author: Alexander Boettcher <alexander.boettcher@genode-labs.com>
-Date:   Wed Sep 9 21:17:10 2015 +0200
-
-    seoul: set vCPU priority below seoul threads
-    
-    Issue #1702
-
-commit 4da7e89d6b5caadd9038e4e31384a0ade184563a
-Author: Alexander Boettcher <alexander.boettcher@genode-labs.com>
-Date:   Thu Sep 10 12:46:33 2015 +0200
-
-    seoul: avoid assertion, adhere to original vancouver version
-    
-    Issue #1702
-
-commit 21e86227bca3a9d0943a70bf1e8b6328c94385c7
-Author: Alexander Boettcher <alexander.boettcher@genode-labs.com>
-Date:   Fri Sep 11 16:56:37 2015 +0200
-
-    seoul: make input available via bios
-    
-    Enables us to interact with GRUB bootloader during early boot.
-    
-    Issue #1702
-
-commit 36947cef3a9979dbe1613f29d799de6cb8997f04
-Author: Alexander Boettcher <alexander.boettcher@genode-labs.com>
-Date:   Sun Sep 6 11:24:42 2015 +0200
-
-    seoul: fix raw disc boot for 512B sectorsize
-    
-    Fixes #1702
-
-commit f7ad6cf4e6d797fc2f581703a43430d06d5966f3
-Author: Alexander Boettcher <alexander.boettcher@genode-labs.com>
-Date:   Wed Sep 9 23:38:07 2015 +0200
-
-    seoul: support ide disk model
-    
-    Issue #1702
-
+We extended - in the context of Turmvilla - our Seoul VMM port to be able to
+more easily start lightweight VMs for specific use-cases, e.g. web-browsing.
+One step into this direction was to enable, extend and stress test the ahci and
+ide disc device models of Seoul. Based on the improvements we were able
+to come up with user-friendly re-produciable work-flow to setup custimized
+Tinycore VMs.
 
 Device drivers
 ##############
@@ -1092,16 +1036,29 @@ Now it works without any complications.
 ACPI driver improvements
 ========================
 
-;@alexab
+During the development of the new intel_fb driver we encountered several
+DMA remapping faults caused by the IOMMU (Intel speak: DMA remapping units).
+It turned out that the faults happened in a region, which the Intel GPU
+uses. Those regions gets reported via a ACPI structure called
+"Reserved Memory Region Reporting Structure" (RMRR), which is defined by the
+documentation "Intel ® Virtualization Technology for Directed I/O Architecture Specification" in
+the chapter "BIOS Considerations".
 
-commit 74e89727ee6c442b5f612d4d7e669b7ea998d1a3
-Author: Alexander Boettcher <alexander.boettcher@genode-labs.com>
-Date:   Thu Nov 5 11:12:38 2015 +0100
+The RMRR regions reports for PCI devices information about physical ranges,
+which the device uses implicitly for DMA operations to work flawlessly. An
+operating system using the IOMMU feature must therefore take care to make
+such RMRR regions accessible for DMA operations of the specific PCI device.
 
-    acpi - report rmrr via acpi report rom
-    
-    Issue #1764
+Our ACPI driver already detected such rmrr regions and printed the information.
+Until now, however, we had no need to actual make use of it.
 
+We extended our ACPI driver to propagate the RMRR region information
+via the Genode report_rom mechanism. The platform driver, as consumer of the
+report, got extended to store the RMRR region information until a device driver
+for the specific PCI device gets started. As soon as the device driver gets
+assigned to the PCI device via the platform driver, the RMRR regions are added
+to the device pd of the driver. This enables the device to operate on the
+RMRR regions with DMA operations.
 
 SD-card driver for i.MX53
 =========================
@@ -1233,16 +1190,10 @@ Date:   Wed Sep 2 14:03:22 2015 +0200
 Physical memory detection on the 64-bit x86 architecture
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-;@alexab
-
-commit 826c81ac180e5b868e6f42928fa0c5fbf55f88c0
-Author: Alexander Boettcher <alexander.boettcher@genode-labs.com>
-Date:   Tue Oct 27 14:26:40 2015 +0100
-
-    hw_x86: discover all physical memory in core
-    
-    Fixes #1741
-
+Our own kernel -hw- on x86 evaluates now the multiboot structure of the
+bootloader to detect all available physical memory. The core physical
+allocator gets populated with the information, so that Genode on hw_x86_64
+is capabable of utilizing all available memory of a machine.
 
 Improved TrustZone support on USB Armory
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1309,16 +1260,19 @@ Date:   Mon Nov 2 14:34:49 2015 +0100
 NOVA
 ====
 
-;@alexab
+With the release 15.08 we extended the kernel to handle memory
+quota per process. One feature we required and added at this time was the
+ability to revoke memory of a protection domain (PD) by explicitly specifing
+the target by a NOVA PD capability. Before this change it was solely possible
+to revoke memory of a target PD if the caller PD has the same memory attached
+to the caller address-space. In order to be able to revoke memory from all
+Genode processes during a Genode dataspace destruction, core had to keep for
+all memory in the system core local mappings. That means in principle core
+can easily modify the content of those regions - although this is not desired.
 
-commit 2e62543fdb02a17f7fc263a4de6830a749973e10
-Author: Alexander Boettcher <alexander.boettcher@genode-labs.com>
-Date:   Tue Sep 29 22:03:03 2015 +0200
-
-    nova: use remote revoke
-    
-    Fixes #1733
-
+With this -remote revoke- extension of the kernel, core got changed to keep
+no core local mappings anymore - as already done e.g. for base-okl4 and
+base-hw.
 
 Tools and build system
 ======================
