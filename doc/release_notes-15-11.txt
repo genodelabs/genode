@@ -758,15 +758,9 @@ Intel-KMS framebuffer driver
 Framebuffer support for Exynos 4
 ================================
 
-@nfeske
-
-commit 49b3d520a9ef6eb38a9630a8b9cf7992b58f3904
-Author: Alexy Gallardo Segura <alexy@uclv.cu>
-Date:   Fri Sep 11 01:32:28 2015 -0400
-
-    exynos: generalize Exynos5 fb_drv for Exynos4/5
-    
-    Fixes #1678
+The existing framebuffer driver for the Samsung Exynos 5 SoC has been
+generalized to also cover the Exynos 4 SoC, specifically the ODROID-x2
+platform. Thanks to Alexy Gallardo Segura for this contribution.
 
 
 AHCI support for ATA devices with no native command queuing
