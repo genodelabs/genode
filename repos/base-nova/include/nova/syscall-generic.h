@@ -208,32 +208,35 @@ namespace Nova {
 		public:
 
 			enum {
-				ACDB  = 1U << 0,   /* eax, ecx, edx, ebx */
-				EBSD  = 1U << 1,   /* ebp, esi, edi */
-				ESP   = 1U << 2,
-				EIP   = 1U << 3,
-				EFL   = 1U << 4,   /* eflags */
-				ESDS  = 1U << 5,
-				FSGS  = 1U << 6,
-				CSSS  = 1U << 7,
-				TR    = 1U << 8,
-				LDTR  = 1U << 9,
-				GDTR  = 1U << 10,
-				IDTR  = 1U << 11,
-				CR    = 1U << 12,
-				DR    = 1U << 13,  /* DR7 */
-				SYS   = 1U << 14,  /* Sysenter MSRs CS, ESP, EIP */
-				QUAL  = 1U << 15,  /* exit qualification */
-				CTRL  = 1U << 16,  /* execution controls */
-				INJ   = 1U << 17,  /* injection info */
-				STA   = 1U << 18,  /* interruptibility state */
-				TSC   = 1U << 19,  /* time-stamp counter */
-				EFER  = 1U << 20,  /* EFER MSR */
-				PDPTE = 1U << 21,  /* PDPTE0 .. PDPTE3 */
-				FPU   = 1U << 31,  /* FPU state */
+				ACDB           = 1U << 0,   /* eax, ecx, edx, ebx */
+				EBSD           = 1U << 1,   /* ebp, esi, edi */
+				ESP            = 1U << 2,
+				EIP            = 1U << 3,
+				EFL            = 1U << 4,   /* eflags */
+				ESDS           = 1U << 5,
+				FSGS           = 1U << 6,
+				CSSS           = 1U << 7,
+				TR             = 1U << 8,
+				LDTR           = 1U << 9,
+				GDTR           = 1U << 10,
+				IDTR           = 1U << 11,
+				CR             = 1U << 12,
+				DR             = 1U << 13,  /* DR7 */
+				SYS            = 1U << 14,  /* Sysenter MSRs CS, ESP, EIP */
+				QUAL           = 1U << 15,  /* exit qualification */
+				CTRL           = 1U << 16,  /* execution controls */
+				INJ            = 1U << 17,  /* injection info */
+				STA            = 1U << 18,  /* interruptibility state */
+				TSC            = 1U << 19,  /* time-stamp counter */
+				EFER           = 1U << 20,  /* EFER MSR */
+				PDPTE          = 1U << 21,  /* PDPTE0 .. PDPTE3 */
+				R8_R15         = 1U << 22,  /* R8 .. R15 */
+				SYSCALL_SWAPGS = 1U << 23,  /* SYSCALL and SWAPGS MSRs */
+				TPR            = 1U << 24,  /* TPR and TPR threshold */
+				FPU            = 1U << 31,  /* FPU state */
 
 				IRQ   = EFL | STA | INJ | TSC,
-				ALL   = 0x000fffff & ~CTRL,
+				ALL   = (0x000fffff & ~CTRL) | EFER | R8_R15 | SYSCALL_SWAPGS | TPR,
 			};
 
 			Mtd(mword_t value) : _value(value) { }
@@ -475,6 +478,12 @@ namespace Nova {
 				mword_t pdpte[4];
 #ifdef __x86_64__
 				mword_t cr8, efer;
+				unsigned long long star;
+				unsigned long long lstar;
+				unsigned long long fmask;
+				unsigned long long kernel_gs_base;
+				unsigned tpr;
+				unsigned tpr_threshold;
 #endif
 				mword_t dr7, sysenter_cs, sysenter_sp, sysenter_ip;
 
@@ -505,11 +514,67 @@ namespace Nova {
 		};
 
 #ifdef __x86_64__
+		inline mword_t read_r8() { return r8; }
+		inline void write_r8(mword_t value) { r8 = value; }
+		inline mword_t read_r9() { return r9; }
+		inline void write_r9(mword_t value) { r9 = value; }
+		inline mword_t read_r10() { return r10; }
+		inline void write_r10(mword_t value) { r10 = value; }
+		inline mword_t read_r11() { return r11; }
+		inline void write_r11(mword_t value) { r11 = value; }
+		inline mword_t read_r12() { return r12; }
+		inline void write_r12(mword_t value) { r12 = value; }
+		inline mword_t read_r13() { return r13; }
+		inline void write_r13(mword_t value) { r13 = value; }
+		inline mword_t read_r14() { return r14; }
+		inline void write_r14(mword_t value) { r14 = value; }
+		inline mword_t read_r15() { return r15; }
+		inline void write_r15(mword_t value) { r15 = value; }
 		inline mword_t read_efer() { return efer; }
-		inline void write_efer(mword_t e) { efer = e; }
+		inline void write_efer(mword_t value) { efer = value; }
+		inline mword_t read_star() { return star; }
+		inline void write_star(mword_t value) { star = value; }
+		inline mword_t read_lstar() { return lstar; }
+		inline void write_lstar(mword_t value) { lstar = value; }
+		inline mword_t read_fmask() { return fmask; }
+		inline void write_fmask(mword_t value) { fmask = value; }
+		inline mword_t read_kernel_gs_base() { return kernel_gs_base; }
+		inline void write_kernel_gs_base(mword_t value) { kernel_gs_base = value; }
+		inline uint32_t read_tpr() { return tpr; }
+		inline void write_tpr(uint32_t value) { tpr = value; }
+		inline uint32_t read_tpr_threshold() { return tpr_threshold; }
+		inline void write_tpr_threshold(uint32_t value) { tpr_threshold = value; }
 #else
+		inline mword_t read_r8() { return 0UL; }
+		inline void write_r8(mword_t) { }
+		inline mword_t read_r9() { return 0UL; }
+		inline void write_r9(mword_t) { }
+		inline mword_t read_r10() { return 0UL; }
+		inline void write_r10(mword_t) { }
+		inline mword_t read_r11() { return 0UL; }
+		inline void write_r11(mword_t) { }
+		inline mword_t read_r12() { return 0UL; }
+		inline void write_r12(mword_t) { }
+		inline mword_t read_r13() { return 0UL; }
+		inline void write_r13(mword_t) { }
+		inline mword_t read_r14() { return 0UL; }
+		inline void write_r14(mword_t) { }
+		inline mword_t read_r15() { return 0UL; }
+		inline void write_r15(mword_t) { }
 		inline mword_t read_efer() { return 0UL; }
 		inline void write_efer(mword_t) { }
+		inline mword_t read_star() { return 0UL; }
+		inline void write_star(mword_t) { }
+		inline mword_t read_lstar() { return 0UL; }
+		inline void write_lstar(mword_t) { }
+		inline mword_t read_fmask() { return 0UL; }
+		inline void write_fmask(mword_t) { }
+		inline mword_t read_kernel_gs_base() { return 0UL; }
+		inline void write_kernel_gs_base(mword_t) { }
+		inline uint32_t read_tpr() { return 0; }
+		inline void write_tpr(uint32_t) { }
+		inline uint32_t read_tpr_threshold() { return 0; }
+		inline void write_tpr_threshold(uint32_t) { }
 #endif
 
 		/**
