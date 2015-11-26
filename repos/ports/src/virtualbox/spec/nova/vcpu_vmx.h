@@ -15,6 +15,9 @@
 #ifndef _VIRTUALBOX__SPEC__NOVA__VCPU_VMX_H_
 #define _VIRTUALBOX__SPEC__NOVA__VCPU_VMX_H_
 
+/* libc includes */
+#include <stdlib.h>
+
 /* VirtualBox includes */
 #include <VBox/vmm/hm_vmx.h>
 
@@ -61,8 +64,9 @@ class Vcpu_handler_vmx : public Vcpu_handler
 			                    VMX_VMCS_CTRL_PROC_EXEC_MONITOR_EXIT |
 			                    VMX_VMCS_CTRL_PROC_EXEC_MWAIT_EXIT |
 */
-			                    VMX_VMCS_CTRL_PROC_EXEC_CR8_LOAD_EXIT |
-			                    VMX_VMCS_CTRL_PROC_EXEC_CR8_STORE_EXIT |
+/*			                    VMX_VMCS_CTRL_PROC_EXEC_CR8_LOAD_EXIT |
+			                    VMX_VMCS_CTRL_PROC_EXEC_CR8_STORE_EXIT |*/
+			                    VMX_VMCS_CTRL_PROC_EXEC_USE_TPR_SHADOW |
 			                    VMX_VMCS_CTRL_PROC_EXEC_RDPMC_EXIT;
 /*			                    VMX_VMCS_CTRL_PROC_EXEC_PAUSE_EXIT | */
 			/*
@@ -87,12 +91,8 @@ class Vcpu_handler_vmx : public Vcpu_handler
 
 		__attribute__((noreturn)) void _vmx_triple()
 		{
-			Genode::Thread_base *myself = Genode::Thread_base::myself();
-			using namespace Nova;
-
 			Vmm::printf("triple fault - dead\n");
-
-			_default_handler();
+			exit(-1);
 		}
 
 		__attribute__((noreturn)) void _vmx_irqwin() { _irq_window(); }
@@ -115,7 +115,8 @@ class Vcpu_handler_vmx : public Vcpu_handler
 				            utcb->inj_info, utcb->inj_error,
 				            utcb->intr_state, utcb->actv_state);
 
-			Vcpu_handler::_default_handler();
+			Vmm::printf("invalid guest state - dead\n");
+			exit(-1);
 		}
 
 		/*
@@ -133,6 +134,11 @@ class Vcpu_handler_vmx : public Vcpu_handler
 
 			Genode::Thread_base *myself = Genode::Thread_base::myself();
 			Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(myself->utcb());
+
+			unsigned int cr = utcb->qual[0] & 0xf;
+
+			if (cr == 8)
+				_default_handler();
 
 			Genode::uint64_t *pdpte = (Genode::uint64_t*)
 				guest_memory()->lookup(utcb->cr3, sizeof(utcb->pdpte));
@@ -201,6 +207,8 @@ class Vcpu_handler_vmx : public Vcpu_handler
 				&This::_vmx_mov_crx> (exc_base, Mtd::ALL | Mtd::FPU);
 			register_handler<VMX_EXIT_MOV_DRX, This,
 				&This::_vmx_default> (exc_base, Mtd::ALL | Mtd::FPU);
+			register_handler<VMX_EXIT_TPR_BELOW_THRESHOLD, This,
+				&This::_vmx_default> (exc_base, Mtd::ALL | Mtd::FPU);
 			register_handler<VMX_EXIT_EPT_VIOLATION, This,
 				&This::_vmx_ept<VMX_EXIT_EPT_VIOLATION>> (exc_base, Mtd::ALL | Mtd::FPU);
 			register_handler<VCPU_STARTUP, This,
@@ -217,6 +225,19 @@ class Vcpu_handler_vmx : public Vcpu_handler
 
 		bool hw_load_state(Nova::Utcb * utcb, VM * pVM, PVMCPU pVCpu) {
 			return vmx_load_state(utcb, pVM, pVCpu);
+		}
+
+		bool vm_exit_requires_instruction_emulation()
+		{
+			if (exit_reason == VMX_EXIT_TPR_BELOW_THRESHOLD) {
+				/* the instruction causing the exit has already been executed */
+				return false;
+			}
+
+			if (exit_reason == RECALL)
+				return false;
+
+			return true;
 		}
 };
 

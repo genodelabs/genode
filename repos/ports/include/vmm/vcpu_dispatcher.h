@@ -50,6 +50,8 @@ class Vmm::Vcpu_dispatcher : public T
 			Genode::Thread_base *myself = Genode::Thread_base::myself();
 			DISPATCHER *vd = static_cast<DISPATCHER *>(myself);
 
+			vd->exit_reason = EV;
+
 			/* call event-specific handler function */
 			(vd->*FUNC)();
 
@@ -58,6 +60,8 @@ class Vmm::Vcpu_dispatcher : public T
 		}
 
 	public:
+
+		unsigned int exit_reason = 0;
 
 		Vcpu_dispatcher(size_t stack_size, Cap_connection &cap,
 		                Cpu_session * cpu_session,

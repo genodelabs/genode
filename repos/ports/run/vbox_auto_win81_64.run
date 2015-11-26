@@ -1,0 +1,15 @@
+#
+# Windows 8.1 (64 bit) in VirtualBox
+#
+
+assert_spec 64bit
+
+set flavor   "win81_64"
+
+# Write overlay back to harddisk if set to 0
+set use_ram_fs 0
+
+set use_usb 1
+set use_ps2 [have_spec ps2]
+
+source ${genode_dir}/repos/ports/run/vbox_win.inc

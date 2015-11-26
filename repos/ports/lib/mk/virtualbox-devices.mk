@@ -61,6 +61,9 @@ CC_OPT += -DVBOX_WITH_WDDM -DVBOX_WITH_WDDM_W8 -DVBOXWDDM_WITH_VBVA
 CC_OPT += -DVBOX_WITH_VDMA
 CC_OPT += -DVBOX_WITH_VMSVGA
 
+# found in src/VBox/Devices/Makefile.kmk
+CC_OPT += -DVBOX_HGCM_HOST_CODE
+
 Devices/Graphics/DevVGA.o: vbetables.h
 
 vbetables.h: vbetables-gen

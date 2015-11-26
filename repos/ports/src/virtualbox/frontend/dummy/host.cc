@@ -122,7 +122,7 @@ HRESULT Host::GetProcessorFeature(ProcessorFeature_T feature, BOOL *supported)
 			*supported = true;
 			break;
 		case ProcessorFeature_LongMode:
-			*supported = false;
+			*supported = (sizeof(void *) > 4);
 			break;
 		case ProcessorFeature_NestedPaging:
 			*supported = true;

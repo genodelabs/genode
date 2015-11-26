@@ -1,8 +1,8 @@
 VBOX_MACH := $(filter $(SPECS), x86_32 x86_64)
 
-VBOX_MACH_CC_OPT_x86_32  = -DRT_ARCH_X86 -D__X86__ -DHC_ARCH_BITS=32
+VBOX_MACH_CC_OPT_x86_32  = -DRT_ARCH_X86 -D__X86__
 VBOX_MACH_ASM_OPT_x86_32 = -f elf32
-VBOX_MACH_CC_OPT_x86_64  = -DRT_ARCH_AMD64 -D__AMD64__ -DHC_ARCH_BITS=64
+VBOX_MACH_CC_OPT_x86_64  = -DRT_ARCH_AMD64 -D__AMD64__
 VBOX_MACH_ASM_OPT_x86_64 = -f elf64
 
 ifeq ($(shell which yasm),)
@@ -16,13 +16,12 @@ VIRTUALBOX_SDK_DIR = $(call select_from_ports,virtualbox)/src/app/virtualbox_sdk
 VBOX_DIR       = $(VIRTUALBOX_DIR)/src/VBox
 
 VBOX_CC_OPT += -DIN_RING3 -DVBOX -DVBOX_OSE \
-               -DGC_ARCH_BITS=64 \
                -D_FILE_OFFSET_BITS=64 -DLOG_ENABLED
 
 VBOX_CC_OPT += $(VBOX_MACH_CC_OPT_$(VBOX_MACH))
 
-# Required if on a 32bit host 64bit VMs should be executed
-# VBOX_CC_OPT += -DVBOX_WITH_64_BITS_GUESTS
+VBOX_CC_OPT += -DVBOX_WITH_64_BITS_GUESTS
+VBOX_CC_OPT += -DVBOX_WITH_NEW_MSR_CODE
 
 VBOX_CC_OPT += -DIN_SUP_R3 -DIN_VMM_R3
 

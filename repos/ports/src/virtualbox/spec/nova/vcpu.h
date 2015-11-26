@@ -51,7 +51,7 @@ static bool debug_map_memory = false;
 
 /*
  * VirtualBox stores segment attributes in Intel format using a 32-bit
- * value. NOVA represents the attributes in packet format using a 16-bit
+ * value. NOVA represents the attributes in packed format using a 16-bit
  * value.
  */
 static inline Genode::uint16_t sel_ar_conv_to_nova(Genode::uint32_t v)
@@ -140,8 +140,6 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 		void *   _stack_reply;
 		jmp_buf  _env;
 
-		bool     _last_exit_was_recall;
-
 		void switch_to_hw()
 		{
 			unsigned long value;
@@ -159,7 +157,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 			Assert(utcb->actv_state == ACTIVITY_STATE_ACTIVE);
 			Assert(!(utcb->inj_info & IRQ_INJ_VALID_MASK));
 
-			/* go back to re-compiler */
+			/* go back to VirtualBox */
 			_fpu_save_and_longjmp();
 		}
 
@@ -189,7 +187,6 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 
 			/* are we forced to go back to emulation mode ? */
 			if (!continue_hw_accelerated(utcb)) {
-				_last_exit_was_recall = true;
 				/* go back to emulation mode */
 				_fpu_save_and_longjmp();
 			}
@@ -317,82 +314,115 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 
 			using namespace Nova;
 
-				utcb->mtd |= Mtd::EIP;
-				utcb->ip   = pCtx->rip;
+			utcb->mtd |= Mtd::EIP;
+			utcb->ip   = pCtx->rip;
 
-				utcb->mtd |= Mtd::ESP;
-				utcb->sp   = pCtx->rsp;
+			utcb->mtd |= Mtd::ESP;
+			utcb->sp   = pCtx->rsp;
 
-				utcb->mtd |= Mtd::ACDB;
-				utcb->ax   = pCtx->rax;
-				utcb->bx   = pCtx->rbx;
-				utcb->cx   = pCtx->rcx;
-				utcb->dx   = pCtx->rdx;
+			utcb->mtd |= Mtd::ACDB;
+			utcb->ax   = pCtx->rax;
+			utcb->bx   = pCtx->rbx;
+			utcb->cx   = pCtx->rcx;
+			utcb->dx   = pCtx->rdx;
 
-				utcb->mtd |= Mtd::EBSD;
-				utcb->bp   = pCtx->rbp;
-				utcb->si   = pCtx->rsi;
-				utcb->di   = pCtx->rdi;
+			utcb->mtd |= Mtd::EBSD;
+			utcb->bp   = pCtx->rbp;
+			utcb->si   = pCtx->rsi;
+			utcb->di   = pCtx->rdi;
 
-				utcb->mtd |= Mtd::EFL;
-				utcb->flags = pCtx->rflags.u;
+			utcb->mtd |= Mtd::R8_R15;
+			utcb->write_r8(pCtx->r8);
+			utcb->write_r9(pCtx->r9);
+			utcb->write_r10(pCtx->r10);
+			utcb->write_r11(pCtx->r11);
+			utcb->write_r12(pCtx->r12);
+			utcb->write_r13(pCtx->r13);
+			utcb->write_r14(pCtx->r14);
+			utcb->write_r15(pCtx->r15);
 
-				utcb->mtd |= Mtd::SYS;
-				utcb->sysenter_cs = pCtx->SysEnter.cs;
-				utcb->sysenter_sp = pCtx->SysEnter.esp;
-				utcb->sysenter_ip = pCtx->SysEnter.eip;
+			utcb->mtd |= Mtd::EFL;
+			utcb->flags = pCtx->rflags.u;
 
-				utcb->mtd |= Mtd::DR;
-				utcb->dr7  = pCtx->dr[7];
+			utcb->mtd |= Mtd::SYS;
+			utcb->sysenter_cs = pCtx->SysEnter.cs;
+			utcb->sysenter_sp = pCtx->SysEnter.esp;
+			utcb->sysenter_ip = pCtx->SysEnter.eip;
 
-				utcb->mtd |= Mtd::CR;
-				utcb->cr0  = pCtx->cr0;
+			utcb->mtd |= Mtd::DR;
+			utcb->dr7  = pCtx->dr[7];
 
-				utcb->mtd |= Mtd::CR;
-				utcb->cr2  = pCtx->cr2;
+			utcb->mtd |= Mtd::CR;
+			utcb->cr0  = pCtx->cr0;
 
-				utcb->mtd |= Mtd::CR;
-				utcb->cr3  = pCtx->cr3;
+			utcb->mtd |= Mtd::CR;
+			utcb->cr2  = pCtx->cr2;
 
-				utcb->mtd |= Mtd::CR;
-				utcb->cr4  = pCtx->cr4;
+			utcb->mtd |= Mtd::CR;
+			utcb->cr3  = pCtx->cr3;
 
-				utcb->mtd        |= Mtd::IDTR;
-				utcb->idtr.limit  = pCtx->idtr.cbIdt;
-				utcb->idtr.base   = pCtx->idtr.pIdt;
+			utcb->mtd |= Mtd::CR;
+			utcb->cr4  = pCtx->cr4;
 
-				utcb->mtd        |= Mtd::GDTR;
-				utcb->gdtr.limit  = pCtx->gdtr.cbGdt;
-				utcb->gdtr.base   = pCtx->gdtr.pGdt;
+			utcb->mtd        |= Mtd::IDTR;
+			utcb->idtr.limit  = pCtx->idtr.cbIdt;
+			utcb->idtr.base   = pCtx->idtr.pIdt;
 
-				utcb->mtd  |= Mtd::EFER;
-				utcb->write_efer(CPUMGetGuestEFER(pVCpu));
+			utcb->mtd        |= Mtd::GDTR;
+			utcb->gdtr.limit  = pCtx->gdtr.cbGdt;
+			utcb->gdtr.base   = pCtx->gdtr.pGdt;
 
-				/*
-				 * Update the PDPTE registers if necessary
-				 *
-				 * Intel manual sections 4.4.1 of Vol. 3A and 26.3.2.4 of Vol. 3C
-				 * indicate the conditions when this is the case. The following
-				 * code currently does not check if the recompiler modified any
-				 * CR registers, which means the update can happen more often
-				 * than really necessary.
-				 */
-				if (pVM->hm.s.vmx.fSupported &&
-				    CPUMIsGuestPagingEnabledEx(pCtx) &&
-				    CPUMIsGuestInPAEModeEx(pCtx)) {
+			utcb->mtd  |= Mtd::EFER;
+			utcb->write_efer(CPUMGetGuestEFER(pVCpu));
 
-					utcb->mtd |= Mtd::PDPTE;
+			/*
+			 * Update the PDPTE registers if necessary
+			 *
+			 * Intel manual sections 4.4.1 of Vol. 3A and 26.3.2.4 of Vol. 3C
+			 * indicate the conditions when this is the case. The following
+			 * code currently does not check if the recompiler modified any
+			 * CR registers, which means the update can happen more often
+			 * than really necessary.
+			 */
+			if (pVM->hm.s.vmx.fSupported &&
+				CPUMIsGuestPagingEnabledEx(pCtx) &&
+				CPUMIsGuestInPAEModeEx(pCtx)) {
 
-					Genode::uint64_t *pdpte = (Genode::uint64_t*)
-						guest_memory()->lookup(utcb->cr3, sizeof(utcb->pdpte));
+				utcb->mtd |= Mtd::PDPTE;
 
-					Assert(pdpte != 0);
+				Genode::uint64_t *pdpte = (Genode::uint64_t*)
+					guest_memory()->lookup(utcb->cr3, sizeof(utcb->pdpte));
 
-					utcb->pdpte[0] = pdpte[0];
-					utcb->pdpte[1] = pdpte[1];
-					utcb->pdpte[2] = pdpte[2];
-					utcb->pdpte[3] = pdpte[3];
-				}
+				Assert(pdpte != 0);
+
+				utcb->pdpte[0] = pdpte[0];
+				utcb->pdpte[1] = pdpte[1];
+				utcb->pdpte[2] = pdpte[2];
+				utcb->pdpte[3] = pdpte[3];
+			}
+
+			utcb->mtd |= Mtd::SYSCALL_SWAPGS;
+			utcb->write_star(pCtx->msrSTAR);
+			utcb->write_lstar(pCtx->msrLSTAR);
+			utcb->write_fmask(pCtx->msrSFMASK);
+			utcb->write_kernel_gs_base(pCtx->msrKERNELGSBASE);
+
+			/* from HMVMXR0.cpp */
+			bool interrupt_pending    = false;
+			uint8_t tpr               = 0;
+			uint8_t pending_interrupt = 0;
+			PDMApicGetTPR(pVCpu, &tpr, &interrupt_pending, &pending_interrupt);
+			utcb->mtd |= Mtd::TPR;
+			utcb->write_tpr(tpr);
+			utcb->write_tpr_threshold(0);
+			if (interrupt_pending) {
+				const uint8_t pending_priority = (pending_interrupt >> 4) & 0xf;
+				const uint8_t tpr_priority = (tpr >> 4) & 0xf;
+				if (pending_priority <= tpr_priority)
+					utcb->write_tpr_threshold(pending_priority);
+				else
+					utcb->write_tpr_threshold(tpr_priority);
+			}
 
 			Assert(!(VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_INHIBIT_INTERRUPTS)));
 
@@ -416,6 +446,15 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 			pCtx->rsi = utcb->si;
 			pCtx->rdi = utcb->di;
 			pCtx->rflags.u = utcb->flags;
+
+			pCtx->r8  = utcb->read_r8();
+			pCtx->r9  = utcb->read_r9();
+			pCtx->r10 = utcb->read_r10();
+			pCtx->r11 = utcb->read_r11();
+			pCtx->r12 = utcb->read_r12();
+			pCtx->r13 = utcb->read_r13();
+			pCtx->r14 = utcb->read_r14();
+			pCtx->r15 = utcb->read_r15();
 
 			pCtx->dr[7] = utcb->dr7;
 
@@ -449,6 +488,20 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 
 			if (pCtx->cr4 != utcb->cr4)
 				CPUMSetGuestCR4(pVCpu, utcb->cr4);
+
+			if (pCtx->msrSTAR != utcb->read_star())
+				CPUMSetGuestMsr(pVCpu, MSR_K6_STAR, utcb->read_star());
+
+			if (pCtx->msrLSTAR != utcb->read_lstar())
+				CPUMSetGuestMsr(pVCpu, MSR_K8_LSTAR, utcb->read_lstar());
+
+			if (pCtx->msrSFMASK != utcb->read_fmask())
+				CPUMSetGuestMsr(pVCpu, MSR_K8_SF_MASK, utcb->read_fmask());
+
+			if (pCtx->msrKERNELGSBASE != utcb->read_kernel_gs_base())
+				CPUMSetGuestMsr(pVCpu, MSR_K8_KERNEL_GS_BASE, utcb->read_kernel_gs_base());
+
+			PDMApicSetTPR(pVCpu, utcb->read_tpr());
 
 			VMCPU_FF_CLEAR(pVCpu, VMCPU_FF_TO_R3);
 
@@ -623,6 +676,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 
 		virtual bool hw_load_state(Nova::Utcb *, VM *, PVMCPU) = 0;
 		virtual bool hw_save_state(Nova::Utcb *, VM *, PVMCPU) = 0;
+		virtual bool vm_exit_requires_instruction_emulation() = 0;
 
 	public:
 
@@ -812,8 +866,6 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 			_current_vm   = pVM;
 			_current_vcpu = pVCpu;
 
-			_last_exit_was_recall = false;
-
 			/* switch to hardware accelerated mode */
 			switch_to_hw();
 
@@ -859,7 +911,8 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 			REMFlushTBs(pVM);
 #endif
 
-			return _last_exit_was_recall ? VINF_SUCCESS : VINF_EM_RAW_EMULATE_INSTR;
+			return vm_exit_requires_instruction_emulation() ? VINF_EM_RAW_EMULATE_INSTR
+			                                                : VINF_SUCCESS;
 		}
 };
 

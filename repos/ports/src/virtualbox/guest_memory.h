@@ -348,7 +348,7 @@ class Guest_memory
 			if (vmm_local)
 				return vmm_local;
 
-			it = Genode::Flexpage_iterator((addr_t)r->pv_at_offset(GCPhys - r->GCPhys()), size, GCPhys, size, GCPhys - r->GCPhys());
+			it = Genode::Flexpage_iterator((addr_t)r->pv_at_offset(GCPhys - r->GCPhys()), size, GCPhys, size, GCPhys);
 
 			return r->pv_at_offset(GCPhys - r->GCPhys());
 		}

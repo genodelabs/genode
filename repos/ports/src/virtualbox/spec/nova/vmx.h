@@ -65,17 +65,7 @@ enum { VMCS_SEG_UNUSABLE = 0x10000 };
 	utcb->REG.sel   = pCtx->REG.Sel; \
 	utcb->REG.limit = pCtx->REG.u32Limit; \
 	utcb->REG.base  = pCtx->REG.u64Base; \
-	\
-	/* attribute fixup according to 'VMX_WRITE_SELREG' in 'HWVMXR0.h' */ \
-	if (( pCtx->REG.Sel \
-	   || !CPUMIsGuestInPagedProtectedModeEx(pCtx) \
-	   || (!pCtx->cs.Attr.n.u1DefBig && !CPUMIsGuestIn64BitCodeEx(pCtx))) \
-	  && pCtx->REG.Attr.n.u1Present == 1) \
-	{ \
-		utcb->REG.ar = sel_ar_conv_to_nova(pCtx->REG.Attr.u | X86_SEL_TYPE_ACCESSED); \
-	} else { \
-		utcb->REG.ar = sel_ar_conv_to_nova(VMCS_SEG_UNUSABLE); \
-	}
+	utcb->REG.ar    = sel_ar_conv_to_nova(pCtx->REG.Attr.u ? : VMCS_SEG_UNUSABLE);
 
 static inline bool vmx_load_state(Nova::Utcb * utcb, VM * pVM, PVMCPU pVCpu)
 {

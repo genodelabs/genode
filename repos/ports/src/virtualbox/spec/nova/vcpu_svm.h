@@ -128,6 +128,14 @@ class Vcpu_handler_svm : public Vcpu_handler
 		bool hw_load_state(Nova::Utcb * utcb, VM * pVM, PVMCPU pVCpu) {
 			return svm_load_state(utcb, pVM, pVCpu);
 		}
+
+		bool vm_exit_requires_instruction_emulation()
+		{
+			if (exit_reason == RECALL)
+				return false;
+
+			return true;
+		}
 };
 
 #endif /* _VIRTUALBOX__SPEC__NOVA__VCPU_SVM_H_ */
