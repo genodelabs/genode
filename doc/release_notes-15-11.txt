@@ -1036,64 +1036,47 @@ Tools and build system
 Run-tool support for booting via the iPXE boot loader
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-;@nfeske
+[http://ipxe.org - iPXE] is an open source network boot firmware which
+supports booting from a web server
+[http://ipxe.org/howto/chainloading#breaking_the_loop_with_an_embedded_script - via HTTP]. 
 
-commit 94afc1a34048e2a4eedf05989a1825ebe0ad23fe
-Author: Adrian-Ken Rueegsegger <ken@codelabs.ch>
-Date:   Thu Aug 27 18:23:05 2015 +0200
+With the new load module at _tool/run/load/ipxe_, Genode's run tool has become
+able to load images via iPXE/HTTP to the test hardware. The following two
+parameters can be used to specify the iPXE/HTTP setup:
 
-    run: support loading images via iPXE/HTTP
-    
-    iPXE is an open source network boot firmware which supports booting from
-    a web server via HTTP [1].
-    
-    The following two parameters can be used to specify the iPXE/HTTP setup:
-    
-    --load-ipxe-base-dir
-      This parameter specifies the base directory of the HTTP server from
-      which the target machine downloads the files.
-    
-    --load-ipxe-boot-dir
-      The directory relative to iPXE base dir which contains the iPXE
-      chainload configuration and all necessary files.
-    
-    The target machine is expected to request the following iPXE
-    configuration via HTTP:
-    
-    http://${HOST_URL}/${ipxe-boot-dir}/boot.cfg
-    
-    This can be achieved by building iPXE with the following embedded
-    script:
-    
-      #!ipxe
-      dhcp
-      chain http://${HOST_URL}/${ipxe-boot-dir}/boot.cfg
-    
-    See also [2] for additional information.
-    
-    [1] - http://ipxe.org/
-    [2] - http://ipxe.org/howto/chainloading#breaking_the_loop_with_an_embedded_script
-    
-    Fixes #1708
+:--load-ipxe-base-dir:
+  This parameter specifies the base directory of the HTTP server, from
+  which the target machine downloads the files.
 
-commit 8eec0928518366f9a2422daecfc572225381e5ea
-Author: Adrian-Ken Rueegsegger <ken@codelabs.ch>
-Date:   Thu Aug 27 19:03:57 2015 +0200
+:--load-ipxe-boot-dir:
+  The directory relative to iPXE base dir which contains the iPXE
+  chainload configuration and all necessary files.
 
-    Add support for ipxe load (nova, foc, fiasco)
-    
-    This makes use of the iPXE sanboot command [1] which downloads and
-    boots an ISO image directly via HTTP. Therefore, your RUN_OPT needs
-    both
-    
-      --include image/iso   and
-      --include load/ipxe
-    
-    NOTE: The webserver serving the ISO image must support ranged requests,
-          see [2].
-    
-    [1] - http://ipxe.org/cmd/sanboot
-    [2] - http://forum.ipxe.org/showthread.php?tid=7295&pid=10482#pid10482
+The target machine is expected to request the following iPXE configuration via
+HTTP:
+
+! http://${HOST_URL}/${ipxe-boot-dir}/boot.cfg
+
+This can be achieved by building iPXE with the following embedded script:
+
+! #!ipxe
+! dhcp
+! chain http://${HOST_URL}/${ipxe-boot-dir}/boot.cfg
+
+In addition to loading an image, an iPXE boot configuration is required to
+boot the loaded image on the target machine. The run-tool back ends for NOVA,
+Fiasco.OC, and L4/Fiasco have been enhanced to automatically generate such
+configurations, which use the [http://ipxe.org/cmd/sanboot - sanboot command]
+to download and boot an ISO image via HTTP. To use this boot method, your
+RUN_OPT configuration must specify both the ISO-image and the iPXE-load
+modules:
+
+! RUN_OPT +=  --include image/iso --include load/ipxe
+
+Note that the webserver serving the ISO image must support
+[http://forum.ipxe.org/showthread.php?tid=7295&pid=10482#pid10482 - ranged requests].
+
+Thanks to Adrian-Ken Rueegsegger for these improvements!
 
 
 Tool for creating U-Boot images for Genode's supported platforms
