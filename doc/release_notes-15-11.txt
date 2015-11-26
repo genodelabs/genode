@@ -441,98 +441,46 @@ API-level changes
 String and XML-handling utilities
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-;@nfeske
+*String parsing*
 
-commit df0bbe0b0eac1b7c1f6fcd3c7b26d44ae9b4176d
-Author: Emery Hemingway <emery@vfemail.net>
-Date:   Fri Aug 28 14:42:22 2015 +0200
+The new overloads of the 'ascii_to' function for 'bool' and 'uint64_t' allow
+the use easy extraction of such values from XML nodes and session-argument
+strings.
 
-    ascii_to() utility for boolean values
-    
-    Also, Genode::Arg was adapted to use the new utility for boolean tokens
-    and strings.
-    
-    Issue #1648
 
-commit 3789a75ed6c6aa821872ec3e08a997343767d458
-Author: Alexander Boettcher <alexander.boettcher@genode-labs.com>
-Date:   Thu Nov 5 20:37:08 2015 +0100
+*XML node content sanitizing*
 
-    base: support ascii_to for uint64_t
-    
-    Issue #1764
+The introduction of the clipboard component called for a way to embed and
+extract data (like clipboard content) from untrusted sources into an XML node
+without breaking the XML structure.
 
-commit dce6e14e3eb349e14c708f01aa67208b17fce697
-Author: Norman Feske <norman.feske@genode-labs.com>
-Date:   Thu Sep 17 16:59:09 2015 +0200
+The embedding of such data is accommodated by the new 'append_sanitized'
+method of the 'Xml_generator'. For the extraction of such data from XML nodes,
+we added corresponding accessor methods ('decoded_content') to the 'Xml_node'.
 
-    os: generalize Session_label, Session_policy
-    
-    The utilities in os/session_policy.h used to be tailored for the
-    matching of session arguments against a server-side policy
-    configuration. However, the policy-matching part is useful in other
-    situations, too. This patch removes the tight coupling with the
-    session-argument parsing (via Arg_string) and the hard-wired use of
-    'Genode::config()'.
-    
-    To make the utilities more versatile, the 'Session_label' has become a
-    'Genode::String' (at the time when we originally introduced the
-    'Session_label', there was no 'Genode::String'). The parsing of the
-    session arguments happens in the constructor of this special 'String'.
-    The constructor of 'Session_policy' now takes a 'Genode::String' as
-    argument. So it can be used with the 'Session_label' but also with other
-    'String' types. Furthermore, the implicit use of 'Genode::config()' can
-    be overridden by explicitly specifying the config node as an argument.
 
-commit a80d944944e022db769d1ac82b830801e3af8c64
-Author: Norman Feske <norman.feske@genode-labs.com>
-Date:   Tue Sep 22 11:52:20 2015 +0200
+*Generalized session-label and session-policy utilities*
 
-    os: add Xml_attribute::value(String<N> *out)
-    
-    This overload of the value member eases the retrieval of Genode::String
-    objects from XML attributes. So we won't need to deal with C-style
-    character buffers anymore.
+The utilities provided by _os/session_policy.h_ used to be tailored for the
+matching of session arguments against a server-side policy configuration.
+However, the policy-matching part is useful in other situations, too. Hence,
+we removed the tight coupling with the session-argument parsing (via
+Arg_string) and the hard-wired use of 'Genode::config()'.
 
-commit e590d90bf60ad0d798289143bc5e21c9abe1d39c
-Author: Norman Feske <norman.feske@genode-labs.com>
-Date:   Tue Sep 22 17:09:22 2015 +0200
+To make the utilities more versatile, the 'Session_label' has become a
+'Genode::String' (at the time when we originally introduced the
+'Session_label', there was no 'Genode::String'). The parsing of the session
+arguments happens in the constructor of this special 'String'. The constructor
+of 'Session_policy' now takes a 'Genode::String' as argument. So it can be
+used with the 'Session_label' but also with other 'String' types. Furthermore,
+the implicit use of 'Genode::config()' can be overridden by explicitly
+specifying the config node as an argument.
 
-    xml_generator: support appending of node content
-    
-    The new 'Xml_generator::append' method can be used to append strings
-    into the body of an XML node.
-
-commit 6ecbc419c0234bf880947708cc7e3aa2afe2d503
-Author: Norman Feske <norman.feske@genode-labs.com>
-Date:   Fri Sep 25 15:49:33 2015 +0200
-
-    Xml_node, Xml_generator: sanitize node content
-    
-    Fixes #1698
-
-commit 7920b57d34d1627701081939f35931f1ec30a811
-Author: Norman Feske <norman.feske@genode-labs.com>
-Date:   Tue Sep 8 20:43:39 2015 +0200
-
-    Consider byte offset in Attached_io_mem_dataspace
-    
-    Ref #1764
-
-commit 24b1f269be5190b36d659c3ccffe4fa5ba58c78a
-Author: Christian Helmuth <christian.helmuth@genode-labs.com>
-Date:   Thu Sep 17 15:33:46 2015 +0200
-
-    Remove Packet_ref from File_system::Packet_descriptor
-    
-    The intention of Packet_ref was to allow clients to place opaque
-    references into the packet descriptor itself, which could be observed on
-    packet completion. Currently no component in our sources uses this
-    feature and beyond that it is questionable if it should be used at all:
-    If the server tampers with the ref the client may easily be confused
-    into observing an incorrect or invalid context. It seems better to
-    remove the opaque context from the descriptor and leave the actual
-    implementation to the client and its needs.
+The common problem of scoring XML nodes against a given label, label prefix,
+and label suffix as explained in Section [Label-dependent session routing] is
+addressed by the new 'Xml_node_label_score' utility. It is used by the init
+component to take routing decisions and by servers to select policies
+dependent on session labels.
 
 
 VFS and file-system API
@@ -574,6 +522,18 @@ Date:   Wed Oct 7 18:31:52 2015 +0200
     Issue #1648
 
 
+*Removal of 'Packet_ref' from 'File_system::Packet_descriptor'*
+
+The intention of Packet_ref was to allow clients to place opaque
+references into the packet descriptor itself, which could be observed on
+packet completion. Currently no component in our sources uses this
+feature and beyond that it is questionable if it should be used at all:
+If the server tampers with the ref the client may easily be confused
+into observing an incorrect or invalid context. It seems better to
+remove the opaque context from the descriptor and leave the actual
+implementation to the client and its needs.
+
+
 Object-pool redesign
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -592,6 +552,21 @@ Date:   Mon Aug 10 13:34:16 2015 +0200
     
     Fix #884
     Fix #1658
+
+
+Handling sub-page resources in 'Attached_io_mem_dataspace'
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+On some hardware platforms, memory-mapped registers of different devices
+happen to be co-located at the same physical memory page. Since memory-mapped
+I/O resource can be handed out to drivers drivers only at the granularity
+of 4K pages, drivers had to deal with sub-page register offsets as special
+cases. To remove this burden from the driver developers, the
+'Attached_io_mem_dataspace' has been changed to accept physical addresses
+at byte granularity and hands out the corresponding virtual addresses
+including the sub-page offset transparently for the driver.
+
+
 
 
 Libraries, applications, and runtime environments
