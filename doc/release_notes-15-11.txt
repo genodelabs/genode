@@ -750,33 +750,37 @@ _os/run/conditional_rom.run_ script.
 Source-code reorganization
 ==========================
 
-;@skalk
+By broadening the diversity of hardware and kernels that Genode supports, the
+file-structure of some subdirectories of the source tree became confusing in the
+past. Although, our build system already provides a mechanism, the so called
+'specifiers', to choose between different aspects like kernels or devices,
+specifiers were not always easily recognizable as such. Moreover, some of the
+specifiers used the prefix 'platform', or were grouped in 'platform'
+subdirectories, others did not used that term. Thereby, the semantic of
+'platform' got overloaded over the years describing either a board, processor
+architecture, or kernel-hardware amalgan.
 
-Coherent directory structure of spec-dependent source codes
+To have a consistent view on all aspects, whose compilation is dependent on
+specifiers, they were all moved into 'spec' subdirectories instead of holding
+them inline within the repository structure. At each directory level of the
+source tree now there is a 'spec' directory when different aspects make this
+necessary, e.g.:
 
-commit ed52d5a2119559050ac5e2f81ba6b4f4fa03e9bd
-Author: Stefan Kalkowski <stefan.kalkowski@genode-labs.com>
-Date:   Thu Sep 3 14:55:05 2015 +0200
+! repos/base/include/spec
+! repos/repos/base/mk/spec
+! repos/base/lib/mk/spec
+! repos/base/src/core/spec
+! ...
 
-    Introduce 'spec' subdirectories to outline aspects
-    
-    Instead of holding SPEC-variable dependent files and directories inline
-    within the repository structure, move them into 'spec' subdirectories
-    at the corresponding levels, e.g.:
-    
-      repos/base/include/spec
-      repos/base/mk/spec
-      repos/base/lib/mk/spec
-      repos/base/src/core/spec
-      ...
-    
-    Moreover, this commit removes the 'platform' directories. That term was
-    used in an overloaded sense. All SPEC-relative 'platform' directories are
-    now named 'spec'. Other files, like for instance those related to the
-    kernel/architecture specific startup library, where moved from 'platform'
-    directories to explicit, more meaningful places like e.g.: 'src/lib/startup'.
-    
-    Fix #1673
+Automatically added 'include' pathes of sub-repositories, which are dependent on
+'SPEC' variables and which formerly resided in 'repos/*/include/platform', moved
+to 'repos/*/spec'. Library makefiles that have to be chosen by a specifier now
+reside in 'repos/*/lib/mk/spec'. The 'platform' names mainly vanished from the
+source tree.
+
+It is strongly recommended to cleanup older build directories completely before
+compiling the new release, because of the significant changes of the directory
+structure.
 
 
 API-level changes
@@ -881,21 +885,38 @@ implementation to the client and its needs.
 Object-pool redesign
 ~~~~~~~~~~~~~~~~~~~~
 
-;@skalk
+The object pool is one of the eldest abstractions in Genode. It is especially
+used to look-up RPC server object in a thread-safe manner. However, with the
+increasing number of requirements its API and semantic got hard to understand
+over the years. Moreover, the synchronization primitives had to be handled by
+the user of the interface appropriately. So it was possible to access an object
+without holding its lock. We observed some corner cases where the object pool's
+insufficiencies led to inconsistencies within the RPC server framework.
+Therefore, we decided to rework the object pool's API and implementation.
 
-commit 458b4d6fc4711f2503618eff5bd4f6558a34a844
-Author: Stefan Kalkowski <stefan.kalkowski@genode-labs.com>
-Date:   Mon Aug 10 13:34:16 2015 +0200
+Now, instead of returning pointers to objects via a look-up function, one has to
+provide a functor that should be applied to the object of interest. In general,
+the object's locking primitives are transparent to the developer and are only
+used within the object pool's implementation internally. The look-up function
+looks like the following:
 
-    base: redesign object pool using lambda interface
-    
-    Instead of returning pointers to locked objects via a lookup function,
-    the new object pool implementation restricts object access to
-    functors resp. lambda expressions that are applied to the objects
-    within the pool itself.
-    
-    Fix #884
-    Fix #1658
+! template <typename FUNC> auto apply(Untyped_capability cap, FUNC func)
+
+The functor that is provided must have one argument, which is a pointer to the
+expected object's type. The object pool implementation will search for the
+object with the designated capability and will dynamically cast it to the type
+given by the functor. If the object is not found, or the cast fails, the functor
+gets called with a null-pointer as argument. Thereby, the user is able to
+handle mismatches explicitly.
+
+Caution has still to be taken when destroying objects. Deleting an object during
+a look-up leads to a deadlock situation. As the object pool will unlock an
+object again after applying the functor to it, the object must not be deleted
+in the scope of the functor. Users of the object pool should use the 'apply'
+function to remove an object from the pool instead, and afterwards delete it.
+To raise the convenience here, we will possibly enrich the object pool's API in
+one of the upcoming releases by appropriated factory/deletion methods so that
+the whole object's lifetime is handled safely via the object pool.
 
 
 Handling sub-page resources in 'Attached_io_mem_dataspace'
@@ -993,8 +1014,55 @@ Device drivers
 Intel-KMS framebuffer driver
 ============================
 
-;@skalk
+With the current release we proudly present a port of the Intel i915 driver from
+Linux kernel 3.14.5 to Genode. We successfully tested it on machines containing
+Intel GPUs from generation five up to generation eight. To port the Intel driver
+to Genode we followed the same approach that was firstly used to enable an USB
+stack on Genode described in 
+[http://genode.org/documentation/release-notes/12.05#Re-approaching_the_Linux_device-driver_environment
+- release 12.05], to enable the Linux TCP/IP stack in
+[http://genode.org/documentation/release-notes/13.11#Gigabit_networking_using_the_Linux_TCP_IP_stack
+- release 13.11], and more recently to enable the Intel wireless stack in
+[http://genode.org/documentation/release-notes/14.11#Intel_wireless_stack -
+release 14.11].
 
+The driver can be configured dynamically at run-time via the config ROM. Every
+connector of the graphic card can be configured separately using the following
+syntax:
+
+! <config>
+!   <connector name="LVDS-11" width="1280" height="800" enabled="true"/>
+! </config>
+
+The driver adapts to every change of its configuration immediately. Thereby
+users can enable or disable display devices, or change their resolution by
+simply editing the configuration file of the driver at run-time.
+
+Moreover, to alleviate tearing effects the driver supports buffering. That means
+instead of providing the framebuffer memory directly to the client, it exports a
+simple RAM dataspace to the client, and copies over changes from it to the
+actual framebuffer memory during dedicated refresh operations. This behavior can
+be enabled within the driver's configuration like the following:
+
+! <config buffered="yes"/>
+
+The driver distributes all available connectors of the graphic card and
+their supported resolutions via a report. It looks like follows:
+
+! <connectors>
+!   <connector name="LVDS-11" connected="1">
+!     <mode width="1280" height="800" hz="60"/>
+!     ...
+!   </connector>
+!   ...
+! </connectors>
+
+The driver distributes such a report in case of a corresponding configuration
+entry only:
+
+! <config>
+!   <report connectors="yes"/>
+! </config>
 
 Framebuffer support for Exynos 4
 ================================
