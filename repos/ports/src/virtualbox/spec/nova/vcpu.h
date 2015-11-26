@@ -91,6 +91,9 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 		unsigned int      _cpu_id;
 		Genode::Semaphore _halt_sem;
 
+		unsigned int _last_inj_info;
+		unsigned int _last_inj_error;
+
 		void fpu_save(char * data) {
 			Assert(!(reinterpret_cast<Genode::addr_t>(data) & 0xF));
  			asm volatile ("fxsave %0" : "=m" (*data));
@@ -224,11 +227,6 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 
 			Assert(utcb->actv_state == ACTIVITY_STATE_ACTIVE);
 
-			if (utcb->inj_info & IRQ_INJ_VALID_MASK)
-				Vmm::printf("inj_info %x\n", utcb->inj_info);
-
-			Assert(!(utcb->inj_info & IRQ_INJ_VALID_MASK));
-
 			if (unmap) {
 				PERR("unmap not implemented\n");
 				Nova::reply(_stack_reply);
@@ -252,12 +250,26 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 			}
 
 			/* emulator has to take over if fault region is not ram */	
-			if (!pv)
+			if (!pv) {
+				/* event re-injection is not handled yet for this case */
+				Assert(!(utcb->inj_info & IRQ_INJ_VALID_MASK));
 				_fpu_save_and_longjmp();
+			}
 
 			/* fault region can be mapped - prepare utcb */
 			utcb->set_msg_word(0);
 			utcb->mtd = Mtd::FPU;
+
+			if (utcb->inj_info & IRQ_INJ_VALID_MASK) {
+				/*
+				 * The EPT violation occurred during event injection,
+				 * so the event needs to be injected again.
+				 */
+				utcb->mtd |= Mtd::INJ;
+				utcb->inj_info = _last_inj_info;
+				utcb->inj_error = _last_inj_error;
+			}
+
 			enum {
 				USER_PD   = false, GUEST_PGT = true,
 				READABLE  = true, EXECUTABLE = true
@@ -600,6 +612,9 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 
 			utcb->inj_info  = Event.u; 
 			utcb->inj_error = Event.n.u32ErrorCode;
+
+			_last_inj_info = utcb->inj_info;
+			_last_inj_error = utcb->inj_error;
 
 /*
 			Vmm::printf("type:info:vector %x:%x:%x intr:actv - %x:%x mtd %x\n",
