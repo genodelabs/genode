@@ -304,28 +304,123 @@ slider a user can generate a new configuration.
 Copy and paste
 ==============
 
-;@nfeske
+When using Genode as a desktop OS, users need to be able to copy and paste text
+between different subsystems such as guest OSes running in VirtualBox and Qt5
+applications running directly on Genode. This integration feature consists of
+two parts. First, the respective subsystems need to interface their internal
+clipboard mechanisms (like the clipboard of the guest OS) with the Genode
+world. Second, we need a clipboard component that manages the information
+flows between the subsystems.
 
-commit 59014a50f1283d41b7f870a78f9bf35adcc162be
-Author: Norman Feske <norman.feske@genode-labs.com>
-Date:   Wed Sep 23 17:08:53 2015 +0200
+*Import/export of clipboard data of subsystems*
 
-    os: new clipboard component and test
-    
-    Fixes #1712
+From the subsystem's perspective, Genode's clipboard protocol looks as follows:
 
-commit 1460105f71357092c9f92166bdad32df74a08e47
-Author: Norman Feske <norman.feske@genode-labs.com>
-Date:   Thu Sep 24 14:48:08 2015 +0200
+* A subsystem propagates new clipboard content to the Genode world via a
+  report session with the label "clipboard". Each time its internal clipboard
+  content changes, it issues a report with the new content.
 
-    nitpicker: provide user activity in focus reports
-    
-    This patch supplements the existing focus reports with the new attribute
-    'active', which indicates recent user activity when set to "yes". This
-    information is consumed by the clipboard to dynamically adjust its
-    information-flow policy depending on the user activity.
-    
-    Issue #1712
+* For importing clipboard content from the Genode world, the subsystem opens
+  a ROM session with the label "clipboard" and registers a signal handler for
+  ROM-changed signals. Upon the reception of such a signal, the subsystem
+  requests the updated ROM content and forwards it to its internal clipboard.
+
+The session labels for the ROM and report sessions are merely a convention
+that should be followed to enable the session routing in a uniform way.
+
+A clipboard report has the following format:
+
+! <clipboard>
+!      ... UFT8-encoded and XML-sanitized text ...
+! </clipboard>
+
+*Clipboard component*
+
+The clipboard component is similar to the existing report-rom server in that
+it provides both a report service and a ROM service. In contrast to the
+report-rom server, however, all report sessions refer to the same (clipboard)
+report. Reports by different clients override each other. Each time the report
+changes, all ROM clients are notified, which can respond to the notification
+be requesting the updated version of their clipboard ROM module.
+
+*Security considerations*
+
+Given the principle design, the clipboard component could be used to let
+information flow between arbitrary clients. However, in multi-level scenarios,
+we need to constrain the flow of information between different domains. For
+example, we want to prevent a crypto domain from leaking credentials to a
+domain that is connected to the network. To express an information-flow
+policy, the clipboard component has the notion of "domains", which correspond
+to the notion already present in the nitpicker GUI server. Clipboard clients
+are associated with domains via the clipboard configuration:
+
+! <config>
+!   ...
+!   <policy label="vbox_linux" domain="hobby"/>
+!   <policy label="vbox_win7"  domain="work/>
+!   <policy label="noux"       domain="admin"/>
+!   ...
+! </config>
+
+By default, a clipboard report is propagated only to clients of the same
+domain as the originator. All other clients will receive an empty clipboard
+ROM module (this enables those subsystems to clear their local clipboard
+selection). To propagate clipboard data across domains, a white list of
+information-flow policies must be defined as follows:
+
+! <config>
+!   ...
+!   <flow from="work"  to="admin"/>
+!   <flow from="hobby" to="admin"/>
+!   <flow from="hobby" to="work"/>
+!   ...
+! </config>
+
+This example defines a policy where data can flow from the work and hobby
+domains to the admin domain but not in the other direction. Furthermore, data
+copied in the hobby domain can be pasted in the work domain but not vice
+versa.
+
+Even though the transport of the actual clipboard content can be subjected to
+the stated information-flow policy, two conspiring clipboard clients can still
+misuse the clipboard to establish a covert channel: Because each time a report
+is generated, a clipboard ROM update is propagated to all clients (some
+receive the actual content whereas some receive an empty clipboard), two
+presumably isolated clients can use those notifications to send bits of
+information. For this reason, we need to limit the bandwidth of those
+notifications. The biggest problem is that the clipboard reports are generated
+by the (untrusted) subsystem software, which can issue reports at an arbitrary
+rate. Ideally, we wish to let the user give its consent for each generated
+clipboard report. But this would interfere with the work flow universally
+expected by users. The clipboard component addresses the problem by
+dynamically incorporating status information of the nitpicker GUI server into
+the information-flow policy:
+
+* The clipboard server accepts reports only when they originate from the
+  domain that is focused by nitpicker. Nitpicker already provides "focus"
+  reports that contain this information. Conveniently, the focus reports
+  already contain the name of the focused domain (in addition to the client's
+  session label). With the correspondence of the clipboard's domains with to
+  nitpicker's domains, the clipboard is able take nitpicker's focus reports
+  into account for the information-flow policy.
+
+* To further limit the rate of artificial clipboard reports, the clipboard
+  component accepts reports only from a domain where a corresponding nitpicker
+  client received user input recently. The term "recently" refers to a
+  reasonable upper bound of the time needed by a guest OS or an application
+  to respond to Control-C or a similar key sequence, i.e., 500 milliseconds.
+  This way, a subsystem can submit new clipboard content only shortly after
+  the user interacted with the subsystem, which is always the case when the
+  user triggers the copy operation. To accommodate this mechanism, nitpicker's
+  focus reports had to be slightly enhanced a new attribute "active" that is
+  set to "yes" if the user interacted with the domain recently.
+
+As another measure to limit the bandwidth of the covert channel, the clipboard
+server notifies its ROM clients only if their ROM module actually
+changed. This way, not each report from an unrelated domain results in a
+ROM-changed signal but only the single one that invalidated the formerly
+visible clipboard content. So the active help of the user is needed to
+transfer bits of information.
 
 
 Graceful exiting of subsystems
