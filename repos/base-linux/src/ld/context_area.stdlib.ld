@@ -16,5 +16,4 @@ SECTIONS
 	. = 0x40000000;
 	_context_area_start = .;
 	.context_area : { . += 0x10000000; }
-	_context_area_end = .;
 }

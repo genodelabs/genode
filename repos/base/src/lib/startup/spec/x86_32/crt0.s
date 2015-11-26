@@ -17,6 +17,26 @@
  ** .text (program code) **
  **************************/
 
+.section ".text.crt0.ld"
+
+	/* ld.lib.so entry point for Linux */
+	.global _start_initial_stack
+	_start_initial_stack:
+
+	/* set GOT */
+	call 1f
+	1:
+	pop %ebx
+	addl $_GLOBAL_OFFSET_TABLE_ + 1, %ebx
+
+	/* init_rtld relocates the linker */
+	call init_rtld
+
+	/* the address of __initial_sp is now correct */
+	movl %esp, __initial_sp@GOTOFF(%ebx)
+
+	jmp 2f
+
 .section ".text.crt0"
 
 	/* program entry-point */
@@ -44,11 +64,16 @@
 	/* if this is the dynamic linker, init_rtld relocates the linker */
 	call init_rtld
 
+	jmp 2f
+
+.section ".text.crt0.common"
+2:
+
 	/* create proper environment for the main thread */
 	call init_main_thread
 
 	/* apply environment that was created by init_main_thread */
-	movl init_main_thread_result, %esp
+	movl init_main_thread_result@GOTOFF(%ebx), %esp
 
 	/* clear the base pointer in order that stack backtraces will work */
 	xor %ebp, %ebp

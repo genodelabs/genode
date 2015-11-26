@@ -19,6 +19,12 @@
 
 extern "C" int raw_write_str(const char *str);
 
+/**
+ * Define context area
+ */
+Genode::addr_t _context_area_start;
+
+
 enum { verbose_atexit = false };
 
 

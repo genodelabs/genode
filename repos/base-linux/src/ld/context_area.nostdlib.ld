@@ -20,6 +20,9 @@ SECTIONS
 {
 	. = 0x40000000;
 	_context_area_start = .;
-	.context_area : { . += 0x10000000; } : context_area
-	_context_area_end = .;
+	/*
+	 * Since Linux loads ldso page aligned, we align the context area after
+	 * loading to a 1 MiB boundary, therefore we reserve one MiB more here.
+	 */
+	.context_area : { . += 0x10100000; } : context_area
 }

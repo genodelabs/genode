@@ -42,7 +42,6 @@ void Thread_base::Context::stack_size(size_t const size)
 	/* check if the stack enhancement fits the context region */
 	enum {
 		CONTEXT_SIZE      = Native_config::context_virtual_size(),
-		CONTEXT_AREA_BASE = Native_config::context_area_virtual_base(),
 		UTCB_SIZE         = sizeof(Native_utcb),
 		PAGE_SIZE_LOG2    = 12,
 		PAGE_SIZE         = (1UL << PAGE_SIZE_LOG2),
@@ -52,7 +51,8 @@ void Thread_base::Context::stack_size(size_t const size)
 	if (stack_base - ds_size < context_base) { throw Stack_too_large(); }
 
 	/* allocate and attach backing store for the stack enhancement */
-	addr_t const ds_addr = stack_base - ds_size - CONTEXT_AREA_BASE;
+	addr_t const ds_addr = stack_base - ds_size -
+	                       Native_config::context_area_virtual_base();
 	try {
 		Ram_session * const ram = env_context_area_ram_session();
 		Ram_dataspace_capability const ds_cap = ram->alloc(ds_size);

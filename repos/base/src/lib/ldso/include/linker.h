@@ -34,6 +34,11 @@ constexpr bool verbose_exception  = false;
 constexpr bool verbose_shared     = false;
 constexpr bool verbose_loading    = false;
 
+
+extern const unsigned long _GLOBAL_OFFSET_TABLE_[] __attribute__((visibility("hidden")));
+extern unsigned long       _DYNAMIC[] __attribute__((visibility("hidden")));
+extern Elf::Addr           etext;
+
 /**
  * Forward declartions and helpers
  */
@@ -126,6 +131,32 @@ namespace Linker {
 	 */
 	constexpr char const *binary_name() { return "binary"; }
 	constexpr char const *linker_name() { return "ld.lib.so"; }
+
+	/**
+	 * Address of .dynamic section in GOT
+	 */
+	static inline unsigned long dynamic_address_got()
+	{
+		return _GLOBAL_OFFSET_TABLE_[0];
+	}
+
+	/**
+	 * Address of .dynamic section from symbol
+	 */
+	static inline unsigned long dynamic_address()
+	{
+		return (unsigned long)&_DYNAMIC;
+	}
+
+	/**
+	 * Return the run-time load address of the shared object.
+	 */
+	static inline unsigned long relocation_address(void)
+	{
+		return dynamic_address() < dynamic_address_got() ?
+		       dynamic_address_got() - dynamic_address() :
+		       dynamic_address() - dynamic_address_got();
+	}
 }
 
 
@@ -141,12 +172,13 @@ class Linker::Object : public Genode::Fifo<Object>::Element,
 
 		char        _name[MAX_PATH];
 		File const *_file = nullptr;
+		Elf::Addr   _reloc_base = 0;
 
 	public:
 
-		Object() { }
+		Object(Elf::Addr reloc_base) : _reloc_base(reloc_base) { }
 		Object(char const *path, File const *file)
-		: _file(file)
+		: _file(file), _reloc_base(file->reloc_base)
 		{
 			Genode::strncpy(_name, Linker::file(path), MAX_PATH);
 		}
@@ -157,8 +189,8 @@ class Linker::Object : public Genode::Fifo<Object>::Element,
 				destroy(Genode::env()->heap(), const_cast<File *>(_file));
 		}
 
-		Elf::Addr  reloc_base() const { return _file ? _file->reloc_base : 0; }
-		char const *name()      const { return _name; }
+		Elf::Addr reloc_base() const { return _reloc_base; }
+		char const *name() const { return _name; }
 
 		File      const *file() { return _file; }
 		Elf::Size const  size() const { return _file ? _file->size : 0; }
@@ -168,7 +200,7 @@ class Linker::Object : public Genode::Fifo<Object>::Element,
 
 		virtual void relocate() = 0;
 
-		virtual void load()   = 0;
+		virtual void load() = 0;
 		virtual bool unload() { return false;}
 
 		/**

@@ -19,6 +19,22 @@
 
 .section ".text.crt0"
 
+	/* ld.lib.so entry point for Linux */
+	.global _start_initial_stack
+	_start_initial_stack:
+
+	/* initialize GLOBAL OFFSET TABLE */
+	leaq _GLOBAL_OFFSET_TABLE_(%rip), %r15
+
+	/* init_rtld relocates the linker */
+	call init_rtld
+
+	/* the address of __initial_sp is now correct */
+	movq __initial_sp@GOTPCREL(%rip), %rax
+	movq %rsp, (%rax)
+
+	jmp 1f
+
 	/* program entry-point */
 	.global _start
 	_start:
@@ -41,9 +57,10 @@
 	leaq _stack_high@GOTPCREL(%rip),%rax
 	movq (%rax), %rsp
 
-	/* if this is the dynamic linker, init_rtld relocates the linker */
+	/* init_rtld relocates the linker */
 	call init_rtld
 
+1:
 	/* create proper environment for the main thread */
 	call init_main_thread
 

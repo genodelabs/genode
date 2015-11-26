@@ -22,6 +22,8 @@
 	/* program entry-point */
 	.global _start
 	_start:
+	.global _start_initial_stack
+	_start_initial_stack:
 
 	/* make initial value of some registers available to higher-level code */
 	ldr r4, =__initial_sp

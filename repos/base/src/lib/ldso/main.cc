@@ -64,7 +64,8 @@ struct Linker::Elf_object : Object, Genode::Fifo<Elf_object>::Element
 	unsigned flags     = 0;
 	bool     relocated = false;
 
-	Elf_object(Dependency const *dep) : dyn(dep)
+	Elf_object(Dependency const *dep, Elf::Addr reloc_base)
+	: Object(reloc_base), dyn(dep)
 	{ }
 
 	Elf_object(char const *path, Dependency const *dep, unsigned flags = 0)
@@ -248,7 +249,8 @@ struct Linker::Elf_object : Object, Genode::Fifo<Elf_object>::Element
  */
 struct Linker::Ld : Dependency, Elf_object
 {
-	Ld() : Dependency(this, nullptr), Elf_object(this)
+	Ld()
+	: Dependency(this, nullptr), Elf_object(this, relocation_address())
 	{
 		Genode::strncpy(_name, linker_name(), Object::MAX_PATH);
 	}
@@ -525,7 +527,7 @@ extern "C" void init_rtld()
 	linker_stack.ref_count++;
 
 	/*
-	 * Create actual linker object with different vtable type  and set PLT to new
+	 * Create actual linker object with different vtable type and set PLT to new
 	 * DAG.
 	 */
 	Ld::linker()->dynamic()->plt_setup();
@@ -569,8 +571,12 @@ int main()
 
 	/* print loaded object information */
 	try {
-		if (Genode::config()->xml_node().attribute("ld_verbose").has_value("yes"))
+		if (Genode::config()->xml_node().attribute("ld_verbose").has_value("yes")) {
+			PINF("  %lx .. %lx: context area", Genode::Native_config::context_area_virtual_base(),
+			     Genode::Native_config::context_area_virtual_base() +
+			     Genode::Native_config::context_area_virtual_size() - 1);
 			dump_loaded();
+		}
 	} catch (...) {  }
 
 	Link_map::dump();
