@@ -692,20 +692,12 @@ Date:   Fri Sep 11 01:32:28 2015 -0400
 AHCI support for ATA devices with no native command queuing
 ===========================================================
 
-@ssumpf
-
-commit 2426c58b9f68d19a745ba41073d567827cb38c32
-Author: Sebastian Sumpf <sebastian.sumpf@genode-labs.com>
-Date:   Tue Oct 6 15:36:34 2015 +0200
-
-    ahci: support for non-ncq ATA devices
-    
-    * use '_dma_ext' or '_fdpma' commands
-    * handle interrupts depending on mode of operation
-    * spelling fixes
-    * move ATA 'Idendity' struct to ata header
-    
-    issue #1734
+Up to now Genode's AHCI driver supported hard disks that offered the native
+command queuing feature (NCQ) only. While NCQ vastly improves the performance of
+a hard disk, some drives simply do not support this feature. Therefore, we
+extended the AHCI driver and enabled NCQ detection during device initialization.
+If a device does not support NCQ, the driver programs the controller accordingly
+during block requests.
 
 
 Intel wireless stack
