@@ -77,7 +77,7 @@ int main()
 		return 1;
 	}
 
-	enum { STACK_SIZE = 1024 * sizeof(Genode::size_t) };
+	enum { STACK_SIZE = 2048 * sizeof(Genode::size_t) };
 	static Cap_connection cap;
 	static Rpc_entrypoint ep(&cap, STACK_SIZE, "part_ep");
 	static Block::Root block_root(&ep, env()->heap(), receiver,
