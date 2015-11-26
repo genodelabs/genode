@@ -235,19 +235,68 @@ Changes at the system-integration level
 Label-dependent session routing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-;@nfeske
+Access-control policies in Genode systems are based on session labels.
+When a server receives the request for a new session, it receives the
+session label along with the request.
 
-commit a528aa097a7fa3387ad41fcd9bebcc6669580afb
-Author: Norman Feske <norman.feske@genode-labs.com>
-Date:   Sat Oct 3 21:32:42 2015 +0200
+A session label is a string that is assembled by the components that are
+involved with routing the session request from the client along the branches
+of the component tree to the server. The client may specify the least
+significant part of the label by itself. This part gives the parent a hint to
+for routing the request. For example, a client may create two file-system
+sessions, one labeled with "home" and one labeled with "bin". The parent may
+take this information into account for routing the individual requests to
+different file-system servers. The label is successively superseded (prefixed)
+by additional parts along the chain of components on the route of the session
+request. The first part of the label is the most significant part as it is
+imposed by the component in the intermediate proximity of the server. The last
+part is the least trusted part of the label because it originated from the
+client. Once the session request arrives at the server, the server takes the
+session label as the key to select a server-side policy.
 
-    init: add 'label' criterion for session routing
-    
-    This patch introduces a shortcut for conditional session routes of the
-    form '<if-arg key="label" value="..."/>'. With this change, the label
-    can be directly specified as 'label' attribute of an '<any-service>' or
-    a '<service>' node. The '<if-arg>' mechanism was not documented anyway
-    and I hope to be able to ultimately remove it.
+Whereas the use of session labels for selecting server-side policies has
+been a common practice for a long time, label-dependent session routing
+was rarely needed. In most cases, routing decisions were simply based on
+the type of the requested sessions. However, Genode's system scenarios get
+more sophisticated label-dependent routing becomes increasingly important.
+As we wished to express the criterion of routing decisions and the
+server-side policy selection in a uniform way, we introduced the following
+common label-matching rules.
+
+Both a '<service>' node in init's routing configuration as well as a
+'<policy>' node as the server's configuration can be equipped with the
+following attributes to match session labels:
+
+:'label="<string>"': The session label must perfectly match the specified
+  string.
+
+:'label_prefix="<string>"': The first part of the label must match the
+  specified string.
+
+:'label_suffix="<string>"': The last part of the label must match the
+  specified string.
+
+If no attributes are present, the route/policy matches. The attributes can be
+combined. If any of the specified attributes mismatch, the route/policy is
+discarded.
+
+If multiple '<service>' nodes match in init's routing configuration, the
+first matching rule is taken. So the order is the nodes is important.
+
+If multiple '<policy>' nodes match at the server side, the most specific
+policy is selected. Exact matches are considered as most specific,
+prefixes as less specific, and suffixes as least specific. If multiple
+prefixes or suffixes match, the longest is considered as the most specific.
+
+*Note* This change requires slight adaptations of exiting configurations
+because the semantics of the original 'label' attribute of server-side policy
+nodes has changed. Originally, the attribute value was taken as a prefix for
+matching the session label. Now, the attribute would be taken as a perfect
+match. The adaptation of existing configurations is as simple as replacing
+"label" by "label_prefix". Since the change tightens the semantics of the
+label attribute, it will not weaken the security of existing policies. In the
+worst case, a server will reject sessions that formerly worked, but not vice
+versa.
 
 
 New VFS server component
@@ -826,6 +875,17 @@ Date:   Thu Oct 22 18:17:41 2015 +0200
     
     Ref #1497
 
+
+Network driver for Zynq-7000 platform
+=====================================
+
+commit 4a593d0d3fc29dbc523a6769d9a8c1083d1a7cae
+Author: Timo Wischer <t.wischer@tu-bs.de>
+Date:   Thu Sep 3 12:52:28 2015 +0200
+
+    nic: support Zynq-7000
+    
+    Ref #1667
 
 Platforms
 #########
