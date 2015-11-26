@@ -21,7 +21,112 @@ Genode as desktop OS
 Uniform run-time configuration concept
 ======================================
 
-;@nfeske
+For using Genode as a desktop OS, we had to find answers to a number of
+tricky questions:
+
+* How to pass parameters to applications when they are started?
+
+  Whereas the common approach of argc-argv-based command-line arguments is
+  nice for the interactive use at a shell, it does not scale well:
+  Structured information is hard to express and the syntax varies
+  from application to application.
+
+* Where are configurations stored and how do applications obtain them?
+
+  Traditionally, programs obtain their configuration data from well-known
+  locations at the file system like the _/etc/_ directory or dot files
+  in the home directory.
+  On Genode, however, there is no common file system structure and the notion
+  of a home directory does not even exist.
+
+  Alternatively, configuration data could be stored at a central "registry"
+  service. But such a database-like mechanism is less transparent to the user
+  and creates a bunch of new problems with respect to management and access
+  control. Furthermore, the impact of such a nontrivial central component on
+  the system's trusted computing base cannot be neglected.
+
+* Can the configuration needs of low-level components like device drivers and
+  file systems be served by the same mechanism as high-level applications?
+
+* How can configuration of long-living components be tweaked at runtime
+  without the need to restart them?
+
+We originally answered these questions with a single mechanism in version
+[http://genode.org/documentation/release-notes/12-05#System_reconfiguration_at_runtime - 12.05].
+But the scalability of the approach remained unproven until now.
+
+In short, configuration information is supplied to a component by its
+immediate parent component in the form of a ROM session with the name
+"config". A ROM session represents a piece of data (ROM module) that can be
+attached to the component's address space. Furthermore, the ROM session allows
+the component to register a signal handler that is notified should a new
+version of the ROM module become available. The component can - at its
+discretion - respond to such a signal by requesting the new version.
+Consequently, a ROM session is a way to transfer information from the ROM
+server to the ROM client in a transactional fashion. When used as
+configuration mechanism, the server is the parent and the client is the child
+component. From the child's perspective, it is irrelevant where the
+information comes from. The parent could have read it from a file, or obtained
+it from a another ROM service, or could have generated it. By convention,
+configuration data has an XML-like syntax, which allows us to express
+arbitrarily structured information and annotate configurations with
+human-readable comments.
+
+;;; image of backdrop
+
+With the current release, we have incorporated the ability to dynamically
+respond to configuration changes into many components to make them ready
+for the use in a desktop environment. To illustrate the flexibility of the
+mechanism, we can perform the following operation by merely editing text
+files in an editor like Vim:
+
+* Letting our new Intel KMS driver (Section [Intel-KMS framebuffer driver])
+  change screen resolutions, or enable/disable connectors by editing the
+  graphics driver's configuration.
+
+* Change the volume of audio channels per application or the master
+  volume by editing the mixer's configuration.
+
+* Changing the colors, style, and the placement of window controls
+  of the window system by editing the window decorator's configuration.
+
+* Changing the policy of the nitpicker GUI server such as the tinting
+  of screen regions depending on the labels of the visible applications.
+
+* Connecting to a wireless network by editing the configuration of
+  the Intel wireless driver.
+
+* Changing the composition of the desktop background from different
+  images by editing the backdrop's configuration.
+
+* Replacing an entire subsystem by a new one by replacing the
+  configuration of a nested instance of the init component.
+
+* Assigning a USB device to a subsystem by editing the USB driver's
+  configuration.
+
+All these use cases are covered by the same mechanism. Because configurations
+have a textual form with a uniform syntax (XML), the approach implicitly gives
+us a number of benefits:
+
+* Configurations can be annotated, managed via a revision-control system
+  like Git, and compared to older versions via diff tools.
+
+* Because the mechanism is based on a textual representation, accessibility
+  of all configuration-related operations is built-in into Genode by default.
+
+* The response of components to configuration changes can be subjected to
+  automated tests, which merely need to present varying ROM modules to
+  components (as done by the _dynamic_rom_ server).
+
+Combined with the report-session facility that allows components to report
+state to its parent, the configuration concept makes the creation of graphical
+front ends almost trivial. For example, a hypothetical display-settings dialog
+would obtain the framebuffer driver's report about the available connectors
+and supported resolutions, present a dialog of options, and, in turn,
+generates new configurations for the framebuffer driver. If a new display gets
+connected, the driver would update its report, triggering the dialog to
+present the new options.
 
 
 GUI stack
