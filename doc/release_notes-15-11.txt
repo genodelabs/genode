@@ -390,6 +390,8 @@ looks like this:
 !   </route>
 ! </start>
 
+;;; XXX replace config snippet with an illustration
+
 In addition to the mixer and mixer agent this scenario features a few more
 components. We therefore also discuess their roles. In this scenario the
 mixer component gets its configuration from the 'config_rom' component and
@@ -917,23 +919,15 @@ Libraries, applications, and runtime environments
 Qt5 improvements
 ================
 
-Key repeat
-~~~~~~~~~~
+We enhanced our version of Qt5 with the support for *key repeat* and the
+ability to use the new *clipboard* mechanism presented in Section
+[Copy and paste]. Clipboard support must be explicitly enabled
+by setting the attribute 'clipboard' in the application's
+'<config>' to "yes".
 
-Key repeat now works in Qt applications.
-
-Clipboard support
-~~~~~~~~~~~~~~~~~
-
-Qt applications can use the new clipboard component if this feature is
-enabled in the application's configuration:
-
-<config clipboard="yes">
 
 VirtualBox
 ==========
-
-;@cnuke
 
 We changed the allocation of the guest VM memory from few large contiguos
 memory dataspaces to more and smaller dataspaces. The change enables us to
@@ -974,21 +968,24 @@ When using VirtualBox with the window manager, clicking the window close
 button initiates an ACPI shutdown of the VM, which allows the guest
 operating system to quit safely.
 
+
 64-bit guest operating system support
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 VirtualBox can now run 64-bit guest operating systems. For Windows guests,
 only one guest CPU is supported at the moment.
 
+
 Seoul VMM
 =========
 
-We extended - in the context of Turmvilla - our Seoul VMM port to be able to
-more easily start lightweight VMs for specific use-cases, e.g. web-browsing.
-One step into this direction was to enable, extend and stress test the ahci and
-ide disc device models of Seoul. Based on the improvements we were able
-to come up with user-friendly re-produciable work-flow to setup custimized
-Tinycore VMs.
+We extended - in the context of using Genode as a desktop OS - our Seoul VMM
+port to be able to more easily start lightweight VMs for specific use-cases,
+e.g. web-browsing. One step into this direction was to enable, extend and
+stress test the ahci and ide disc device models of Seoul. Based on the
+improvements we were able to come up with user-friendly reproducible work-flow
+to setup customized Tinycore VMs.
+
 
 Device drivers
 ##############
@@ -1041,8 +1038,8 @@ DMA remapping faults caused by the IOMMU (Intel speak: DMA remapping units).
 It turned out that the faults happened in a region, which the Intel GPU
 uses. Those regions gets reported via a ACPI structure called
 "Reserved Memory Region Reporting Structure" (RMRR), which is defined by the
-documentation "Intel ® Virtualization Technology for Directed I/O Architecture Specification" in
-the chapter "BIOS Considerations".
+documentation "Intel ® Virtualization Technology for Directed I/O Architecture
+Specification" in the chapter "BIOS Considerations".
 
 The RMRR regions reports for PCI devices information about physical ranges,
 which the device uses implicitly for DMA operations to work flawlessly. An
@@ -1059,6 +1056,7 @@ for the specific PCI device gets started. As soon as the device driver gets
 assigned to the PCI device via the platform driver, the RMRR regions are added
 to the device pd of the driver. This enables the device to operate on the
 RMRR regions with DMA operations.
+
 
 SD-card driver for i.MX53
 =========================
@@ -1151,6 +1149,8 @@ Date:   Thu Oct 22 18:17:41 2015 +0200
 Network driver for Zynq-7000 platform
 =====================================
 
+;@mstein
+
 commit 4a593d0d3fc29dbc523a6769d9a8c1083d1a7cae
 Author: Timo Wischer <t.wischer@tu-bs.de>
 Date:   Thu Sep 3 12:52:28 2015 +0200
@@ -1158,6 +1158,7 @@ Date:   Thu Sep 3 12:52:28 2015 +0200
     nic: support Zynq-7000
     
     Ref #1667
+
 
 Platforms
 #########
@@ -1194,6 +1195,7 @@ Our own kernel -hw- on x86 evaluates now the multiboot structure of the
 bootloader to detect all available physical memory. The core physical
 allocator gets populated with the information, so that Genode on hw_x86_64
 is capabable of utilizing all available memory of a machine.
+
 
 Improved TrustZone support on USB Armory
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
