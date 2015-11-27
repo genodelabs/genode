@@ -447,6 +447,8 @@ Platform::Platform() :
 			printf("detected physical memory: 0x%16llx - size: 0x%llx\n",
 			        mem_desc->addr, mem_desc->size);
 
+		if (!mem_desc->size) continue;
+
 		/* skip regions above 4G on 32 bit, no op on 64 bit */
 		if (mem_desc->addr > ~0UL) continue;
 
@@ -478,12 +480,16 @@ Platform::Platform() :
 		if (mem_desc->addr > ~0UL) continue;
 
 		addr_t base = trunc_page(mem_desc->addr);
-		size_t size;
+		size_t size = mem_desc->size;
+
 		/* truncate size if base+size larger then natural 32/64 bit boundary */
-		if (mem_desc->addr >= ~0UL - mem_desc->size + 1)
-			size = round_page(~0UL - mem_desc->addr + 1);
+		if (mem_desc->addr + size < mem_desc->addr)
+			size = 0UL - base;
 		else
-			size = round_page(mem_desc->addr + mem_desc->size) - base;
+			size = round_page(mem_desc->addr + size) - base;
+
+		if (!size)
+			continue;
 
 		/* make acpi regions as io_mem available to platform driver */
 		if (mem_desc->type == Hip::Mem_desc::ACPI_RECLAIM_MEMORY ||
