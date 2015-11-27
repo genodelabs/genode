@@ -1,0 +1,72 @@
+#
+# Test logging to file system
+#
+
+build {
+	core init drivers/timer
+	server/vfs server/fs_log
+	test/bomb
+}
+
+set timeout 240
+set rounds 20
+
+set config {
+<config prio_levels="2">
+	<parent-provides>
+		<service name="CAP"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="PD"/>
+		<service name="RAM"/>
+		<service name="RM"/>
+		<service name="ROM"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="CPU" quantum="10"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="vfs">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="File_system"/></provides>
+		<config>
+			<vfs>
+				<log name="bomb-master.log"/>
+				<dir name="bomb-master"> <log name="bomb_g5.log"/> </dir>
+			</vfs>
+			<policy label="fs_log" writeable="yes"/>
+		</config>
+	</start>
+	<start name="fs_log">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="LOG"/></provides>
+		<config>
+			<policy label="bomb-master"/>
+			<policy label_prefix="bomb-master" merge="true"/>
+		</config>
+	</start>
+	<start name="bomb-master" priority="-1">
+		<binary name="bomb"/>
+		<resource name="CPU" quantum="90"/>
+		<resource name="RAM" quantum="2G"/>
+		<route>
+			<any-service> <any-child/> <parent/> </any-service>
+		</route>
+		<config rounds="1" generations="1" sleep="500"/>
+	</start>
+</config>}
+
+create_boot_directory
+
+install_config $config
+
+build_boot_image "core init ld.lib.so bomb timer vfs fs_log"
+
+append qemu_args " -nographic"
+
+run_genode_until "Done\. Going to sleep\." $timeout

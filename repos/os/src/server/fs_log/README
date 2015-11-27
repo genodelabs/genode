@@ -15,8 +15,8 @@ trailing "->", the log filename takes the name of the next label element.
 !   <provides><service name="LOG"/></provides>
 !   <config>
 !     <policy label="nic_drv" truncate="no"/>
-!     <policy label="cli_monitor -> " merge="yes"/>
-!     <policy label="" truncate="yes"/>
+!     <policy label_prefix="cli_monitor -> " merge="yes"/>
+!     <policy truncate="yes"/>
 !   </config>
 ! </start>
 

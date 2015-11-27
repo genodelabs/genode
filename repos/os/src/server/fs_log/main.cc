@@ -12,6 +12,7 @@
  */
 
 /* Genode includes */
+#include <os/path.h>
 #include <file_system_session/connection.h>
 #include <file_system/util.h>
 #include <root/component.h>
@@ -36,6 +37,8 @@ namespace Fs_log {
 		 QUEUE_SIZE = File_system::Session::TX_QUEUE_SIZE,
 		TX_BUF_SIZE = BLOCK_SIZE * (QUEUE_SIZE*2 + 1)
 	};
+
+	typedef Genode::Path<File_system::MAX_PATH_LEN> Path;
 
 }
 
@@ -71,61 +74,38 @@ class Fs_log::Root_component :
 			bool truncate = false;
 			Session_label session_label(args);
 			char const *label_str = session_label.string();
-			char const *label_prefix = nullptr;
+			char const *label_prefix = "";
+
+			strncpy(dir_path+1, label_str, MAX_PATH_LEN-1);
 
 			try {
 				Session_policy policy(session_label);
-				try {
-					truncate = policy.attribute("truncate").has_value("yes");
-				} catch (Xml_node::Nonexistent_attribute) { }
+				truncate = policy.attribute_value("truncate", truncate);
 
-				bool merge = false;
-				try {
-					merge = policy.attribute("merge").has_value("yes");
-				} catch (Xml_node::Nonexistent_attribute) { }
-				if (merge) {
-					/*
-					 * Use the policy label that was matched rather than
-					 * full session label for the path of the log file.
-					 */
-					policy.attribute("label").value(dir_path+1, sizeof(dir_path)-1);
+				if (policy.attribute_value("merge", false)
+				 && policy.has_attribute("label_prefix")) {
+
 					if (!dir_path[1]) {
 						PERR("cannot merge an empty policy label");
 						throw Root::Unavailable();
 					}
 
 					/*
-					 * If the policy has a trailing '->', move first element
-					 * from the log prefix to the end of the log path.
+					 * split the label between what will be the log file
+					 * and what will be prepended to messages in the file
 					 */
-					size_t label_len = strlen(dir_path);
-					label_prefix = label_str+(label_len-1);
+					size_t offset = policy.attribute("label_prefix").value_size();
+					for (size_t i = offset; i < session_label.length()-4; ++i) {
+						if (strcmp(label_str+i, " -> ", 4))
+							continue;
 
-					if ((strcmp((dir_path+label_len)-3, " ->", 4) == 0) ||
-					    (strcmp((dir_path+label_len)-4, " -> ", 5) == 0)) {
-
-						for (size_t i = 0;; ++i) {
-							if (label_prefix[i] == '\0') {
-								strncpy(dir_path+1, label_str, MAX_PATH_LEN-1);
-								label_prefix = nullptr;
-								break;
-							}
-
-							if (strcmp(label_prefix+i, " -> ", 4))
-								continue;
-
-							strncpy(dir_path+label_len, label_prefix, i+1);
-							label_prefix += i+4;
-							break;
-						}
+						dir_path[i+1] = '\0';
+						label_prefix = label_str+i+4;
+						break;
 					}
+				}
+			} catch (Session_policy::No_policy_defined) { }
 
-				} else
-					strncpy(dir_path+1, label_str, MAX_PATH_LEN-1);
-
-			} catch (Session_policy::No_policy_defined) {
-				strncpy(dir_path+1, label_str, MAX_PATH_LEN-1);
-			}
 
 			{
 				/* Parse out a directory and file name. */
@@ -171,6 +151,7 @@ class Fs_log::Root_component :
 						offset = _fs.status(handle).size;
 
 				} catch (File_system::Lookup_failed) {
+					PDBG("create");
 					handle = _fs.file(dir_handle, file_name,
 					                  File_system::WRITE_ONLY, true);
 				}
@@ -181,33 +162,29 @@ class Fs_log::Root_component :
 				_log_files.insert(file);
 
 			} catch (Permission_denied) {
-				PERR("%s:%s: permission denied", dir_path, file_name);
-
-			} catch (Name_too_long) {
-				PERR("%s:%s: name too long", dir_path, file_name);
+				PERR("%s: permission denied", Path(file_name, dir_path).base());
 
 			} catch (No_space) {
-				PERR("%s:%s: no space", dir_path, file_name);
+				PERR("file system out of space");
 
 			} catch (Out_of_node_handles) {
-				PERR("%s:%s: out of node handles", dir_path, file_name);
+				PERR("too many open file handles");
 
 			} catch (Invalid_name) {
-				PERR("%s:%s: invalid_name", dir_path, file_name);
+				PERR("%s: invalid path", Path(file_name, dir_path).base());
 
-			} catch (Size_limit_reached) {
-				PERR("%s:%s: size limit reached", dir_path, file_name);
+			} catch (Name_too_long) {
+				PERR("%s: name too long", Path(file_name, dir_path).base());
 
 			} catch (...) {
-				PERR("%s:%s: unknown error", dir_path, file_name);
+				PERR("cannot open log file %s", Path(file_name, dir_path).base());
 				throw;
 			}
-			if (!file) {
-				PERR("file was null");
-				throw Root::Unavailable();
-			}
 
-			if (label_prefix && *label_prefix)
+			if (!file)
+				throw Root::Unavailable();
+
+			if (*label_prefix)
 				return new (md_alloc()) Labeled_session_component(label_prefix, *file);
 			return new (md_alloc()) Unlabeled_session_component(*file);
 		}
