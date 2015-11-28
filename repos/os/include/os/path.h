@@ -294,6 +294,16 @@ class Genode::Path_base
 		}
 
 		void append(char const *str) { _append(str); _canonicalize(); }
+
+		bool operator == (char const *other) const
+		{
+			return strcmp(_path, other) == 0;
+		}
+
+		bool operator != (char const *other) const
+		{
+			return strcmp(_path, other) != 0;
+		}
 };
 
 
@@ -318,6 +328,8 @@ class Genode::Path : public Path_base {
 		 */
 		Path(char const *path, char const *pwd = 0)
 		: Path_base(_buf, sizeof(_buf), path, pwd) { }
+
+		constexpr size_t capacity() { return MAX_LEN; }
 };
 
 #endif /* _INCLUDE__OS__PATH_H_ */
