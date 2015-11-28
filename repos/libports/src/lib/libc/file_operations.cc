@@ -351,6 +351,36 @@ extern "C" int fstat(int libc_fd, struct stat *buf)
 }
 
 
+extern "C" int fstatat(int libc_fd, char const *path, struct stat *buf, int flags)
+{
+	if (*path == '/') {
+		if (flags & AT_SYMLINK_NOFOLLOW)
+			return lstat(path, buf);
+		return stat(path, buf);
+	}
+
+	Libc::Absolute_path cwd;
+
+	if (libc_fd == AT_FDCWD) {
+		getcwd(cwd.base(), cwd.max_len());
+		cwd.append("/");
+		cwd.append(path);
+	} else {
+		Libc::File_descriptor *fd =
+			Libc::file_descriptor_allocator()->find_by_libc_fd(libc_fd);
+		if (!fd) {
+			errno = EBADF;
+			return -1;
+		}
+		cwd.import(path, fd->fd_path);
+	}
+
+	if (flags & AT_SYMLINK_NOFOLLOW)
+		return lstat(cwd.base(), buf);
+	return stat(cwd.base(), buf);
+}
+
+
 extern "C" int _fstatfs(int libc_fd, struct statfs *buf) {
 	FD_FUNC_WRAPPER(fstatfs, libc_fd, buf); }
 
@@ -366,6 +396,8 @@ extern "C" int ftruncate(int libc_fd, ::off_t length) {
 extern "C" ssize_t _getdirentries(int libc_fd, char *buf, ::size_t nbytes, ::off_t *basep) {
 	FD_FUNC_WRAPPER(getdirentries, libc_fd, buf, nbytes, basep); }
 
+
+extern "C" int getdtablesize(void) { return MAX_NUM_FDS; }
 
 
 extern "C" int ioctl(int libc_fd, int request, char *argp) {
