@@ -351,6 +351,36 @@ extern "C" int fstat(int libc_fd, struct stat *buf)
 }
 
 
+extern "C" int fstatat(int libc_fd, char const *path, struct stat *buf, int flags)
+{
+	if (*path == '/') {
+		if (flags & AT_SYMLINK_NOFOLLOW)
+			return lstat(path, buf);
+		return stat(path, buf);
+	}
+
+	Libc::Absolute_path abs_path;
+
+	if (libc_fd == AT_FDCWD) {
+		getcwd(abs_path.base(), abs_path.capacity());
+		abs_path.append("/");
+		abs_path.append(path);
+	} else {
+		Libc::File_descriptor *fd =
+			Libc::file_descriptor_allocator()->find_by_libc_fd(libc_fd);
+		if (!fd) {
+			errno = EBADF;
+			return -1;
+		}
+		abs_path.import(path, fd->fd_path);
+	}
+
+	return (flags & AT_SYMLINK_NOFOLLOW)
+		? lstat(abs_path.base(), buf)
+		:  stat(abs_path.base(), buf);
+}
+
+
 extern "C" int _fstatfs(int libc_fd, struct statfs *buf) {
 	FD_FUNC_WRAPPER(fstatfs, libc_fd, buf); }
 
