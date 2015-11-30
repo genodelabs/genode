@@ -85,16 +85,16 @@ UART devices
 
 The UART device drivers implement the UART-session interface.
 
-:'os/src/drivers/uart/pl011':
+:'os/src/drivers/uart/spec/pl011':
   Driver for the PL011 UART as found on many ARM-based platforms.
 
-:'os/src/drivers/uart/i8250':
+:'os/src/drivers/uart/spec/i8250':
   Driver for the i8250 UART as found on PC hardware.
 
-:'os/src/drivers/uart/omap4':
+:'os/src/drivers/uart/spec/omap4':
   Driver for the UART as found on OMAP4-based hardware.
 
-:'os/src/drivers/uart/exynos5':
+:'os/src/drivers/uart/spec/exynos5':
   Driver for the UART as found on Exynos-5-based hardware.
 
 
@@ -109,15 +109,11 @@ input-session interfaces respectively.
   to resolve a dependency from an input session for scenarios where no user
   input is required.
 
-:'os/src/drivers/input/fiasco_ux':
-  Driver for the virtual hardware provided by the user-mode version of the
-  Fiasco kernel.
-
-:'os/src/drivers/input/ps2/x86':
+:'os/src/drivers/input/spec/ps2/x86':
   Driver for the 'i8042' PS/2 controller as found in x86 PCs. It supports both
   mouse (including ImPS/2, ExPS/2) and keyboard.
 
-:'os/src/drivers/input/ps2/pl050':
+:'os/src/drivers/input/spec/ps2/pl050':
   Driver for the PL050 PS/2 controller as found on ARM platforms such as
   VersatilePB. The physical base address used by the driver is obtained at
   compile time from a header file called 'pl050_defs.h'. The version of the
@@ -125,31 +121,36 @@ input-session interfaces respectively.
   is made available to the driver via the SPECS machinery of the Genode build
   system.
 
+:'os/src/drivers/input/spec/imx53':
+  Input driver for Egalaxy touchscreen and Freescale's MPR121
+  capacitative touch buttons on i.MX53.
+
 :'libports/src/drivers/framebuffer/vesa':
   Driver using VESA mode setting on x86 PCs. For more information, please refer
   to the README file in the driver directory.
 
-:'os/src/drivers/framebuffer/pl11x':
+:'os/src/drivers/framebuffer/spec/pl11x':
   Driver for the PL110/PL111 LCD display.
 
-:'os/src/drivers/framebuffer/omap4':
+:'os/src/drivers/framebuffer/spec/omap4':
   Driver for HDMI output on OMAP4 SoCs.
 
-:'os/src/drivers/framebuffer/exynos5':
+:'os/src/drivers/framebuffer/spec/exynos5':
   Driver for HDMI output on Exynos-5 SoCs.
 
-:'os/src/drivers/framebuffer/imx53':
+:'os/src/drivers/framebuffer/spec/imx53':
   Driver for LCD output on i.MX53 SoCs.
 
-:'os/src/drivers/framebuffer/imx53':
-  Driver for touchscreen input on i.MX53 quick start board.
-
-:'os/src/drivers/framebuffer/rpi':
+:'os/src/drivers/framebuffer/spec/rpi':
   Driver for the HDMI output of the Raspberry Pi.
 
-:'os/src/drivers/framebuffer/sdl':
+:'os/src/drivers/framebuffer/spec/sdl':
   Serves as both framebuffer and input driver on Linux using libSDL. This
   driver is only usable on the Linux base platform.
+
+:'dde_linux/src/drivers/framebuffer/intel':
+  Framebuffer driver for Intel i915 compatible graphic cards based on
+  the Linux Intel KMS driver.
 
 :'dde_linux/src/drivers/usb':
   USB driver that makes USB HID and USB storage devices available as input
@@ -162,9 +163,9 @@ Timer drivers
 =============
 
 The timer driver located at 'os/src/drivers/timer' implements the timer-session
-interface. Technically, it is is both a device driver (accessing a timer
+interface. Technically, it is both a device driver (accessing a timer
 device) and a resource multiplexer (supporting multiple timer-session clients
-at the same time). Depending on the base platform, the implementation uses of
+at the same time). Depending on the base platform, the implementation uses
 different time sources. Time sources are either hardware timers, a time source
 provided by the kernel, or a pseudo time source (busy):
 
@@ -174,6 +175,7 @@ provided by the kernel, or a pseudo time source (busy):
 :'fiasco':    IPC timeout as time source
 :'pistachio': IPC timeout as time source
 :'linux':     nanosleep as time source
+:'hw':        hardware timers depending on platform, e.g., PIT on x86
 
 
 Audio drivers
@@ -183,7 +185,7 @@ Audio drivers implement the Audio_out session interface defined at
 'os/include/audio_out_session/' for playback and optionally the audio_in
 interface for recording.
 
-:'os/src/drivers/audio/linux':
+:'os/src/drivers/audio/spec/linux':
   Uses ALSA as back-end on the Linux base platform and supports only playback.
 
 :'dde_bsd/src/drivers/audio':
@@ -198,21 +200,21 @@ Block drivers
 All block drivers implement the block-session interface defined at
 'os/include/block_session/'.
 
-:'os/src/drivers/sd_card/pl180':
+:'os/src/drivers/sd_card/spec/pl180':
   Driver for SD-cards connected via the PL180 device as found on the PBX-A9
   platform.
 
-:'os/src/drivers/sd_card/omap4':
+:'os/src/drivers/sd_card/spec/omap4':
   Driver for SD-cards connected to the SD-card controller of the OMAP4 SoC.
 
-:'os/src/drivers/sd_card/exynos5':
+:'os/src/drivers/sd_card/spec/exynos5':
   Driver for SD-cards and eMMC connected to Exynos-5-based platforms.
 
-:'os/src/drivers/sd_card/imx53':
+:'os/src/drivers/sd_card/spec/imx53':
   Driver for SD-cards connected to the Freescale i.MX53 platform like the
   Quick Start Board or the USB armory device.
 
-:'os/src/drivers/sd_card/rpi':
+:'os/src/drivers/sd_card/spec/rpi':
   Driver for SD-cards connected to the Raspberry Pi.
 
 :'dde_linux/src/drivers/usb':
@@ -230,13 +232,17 @@ Network interface drivers
 All network interface drivers implement the NIC session interface
 defined at 'os/include/nic_session'.
 
-:'os/src/drivers/nic/linux':
+:'os/src/drivers/nic/spec/linux':
   Driver that uses a Linux tap device as back end. It is only useful on the
   Linux base platform.
 
-:'os/src/drivers/nic/lan9118':
+:'os/src/drivers/nic/spec/lan9118':
   Native device driver for the LAN9118 network adaptor as featured on the
   PBX-A9 platform.
+
+:'os/src/drivers/nic/gem':
+  Device driver for Cadence EMAC PS network adaptor as featured on the
+  Xilinx Zynq.
 
 :'dde_ipxe/src/drivers/nic':
   Device drivers ported from the iPXE project. Supported devices are Intel
@@ -253,14 +259,18 @@ defined at 'os/include/nic_session'.
 General-purpose I/O drivers
 ===========================
 
-:'os/src/drivers/gpio/omap4':
+:'os/src/drivers/gpio/spec/omap4':
   Driver for accessing the GPIO pins of OMAP4 platforms.
 
-:'os/src/drivers/gpio/imx53':
+:'os/src/drivers/gpio/spec/imx53':
   Driver for accessing the GPIO pins of i.MX53 platforms.
 
-:'os/src/drivers/gpio/rpi':
+:'os/src/drivers/gpio/spec/rpi':
   Driver for accessing the GPIO pins of Raspberry Pi platforms.
+
+:'os/src/drivers/gpio/spec/exynos5':
+  Driver for accessing the GPIO pins of Exynos4 platforms, e.g.,
+  Odroid-X2.
 
 
 Resource multiplexers
@@ -368,12 +378,25 @@ Separate components:
 :'os/src/server/log_terminal':
   Adapter for forwarding terminal output to a LOG session.
 
-:'libports/src/server/fs_log':
+:'os/src/server/fs_log':
   Adapter that writes LOG messages to files on a file system.
 
 :'demo/src/server/nitlog':
   Provides a LOG session, printing log output on screen via a nitpicker
   session.
+
+:'os/src/app/rom_logger':
+  The rom_logger component requests a ROM session and writes the
+  content of the ROM dataspace to the LOG.
+
+:'os/src/server/rom_filter':
+  The ROM filter provides a ROM module that depends on the content of
+  other ROM modules steered by the filter configuration, e.g., dynamic
+  switching between configuration variants dependent on the state of
+  the system.
+
+:'os/src/server/vfs':
+  A file-system server using the VFS library and plugins as backend.
 
 :'os/src/server/log_terminal':
   Forwards terminal output to a LOG session.
@@ -410,6 +433,12 @@ Separate components:
 :'os/src/server/report_rom':
   A service that implements both the report session interface and the ROM
   session interface. It reflects incoming reports as ROM modules.
+
+:'os/src/server/clipboard':
+  This component is both a report service and a ROM service. The
+  clients of the report service can issue new clipboard content, which
+  is then propagated to the clients of the ROM service according to a
+  configurable information-flow policy.
 
 :'ports/src/app/openvpn':
   OpenVPN enables access to remote network resources through a secure tunnel
