@@ -794,7 +794,7 @@ class Genode::Xml_node
 		 * Execute functor 'fn' for each sub node of specified type
 		 */
 		template <typename FN>
-		void for_each_sub_node(char const *type, FN const &fn)
+		void for_each_sub_node(char const *type, FN const &fn) const
 		{
 			if (_num_sub_nodes == 0)
 				return;
@@ -814,7 +814,7 @@ class Genode::Xml_node
 		 * Execute functor 'fn' for each sub node
 		 */
 		template <typename FN>
-		void for_each_sub_node(FN const &fn)
+		void for_each_sub_node(FN const &fn) const
 		{
 			for_each_sub_node(nullptr, fn);
 		}
