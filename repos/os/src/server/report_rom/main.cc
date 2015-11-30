@@ -25,7 +25,6 @@
 
 namespace Server {
 	using Genode::env;
-	using Genode::Xml_node;
 	struct Main;
 }
 
@@ -37,26 +36,9 @@ struct Server::Main
 	Genode::Sliced_heap sliced_heap = { env()->ram_session(),
 	                                    env()->rm_session() };
 
-	Xml_node _rom_config_node() const
-	{
-		try {
-			return Genode::config()->xml_node().sub_node("rom"); }
-		catch (Xml_node::Nonexistent_sub_node) {
-			PWRN("missing <rom> configuration");
-			return Xml_node("<rom>");
-		}
-	}
+	Rom::Registry rom_registry = { sliced_heap };
 
-	Rom::Registry rom_registry = { sliced_heap, _rom_config_node() };
-
-	bool _verbose_config()
-	{
-		char const *attr = "verbose";
-		return Genode::config()->xml_node().has_attribute(attr)
-		    && Genode::config()->xml_node().attribute(attr).has_value("yes");
-	}
-
-	bool verbose = _verbose_config();
+	bool verbose = Genode::config()->xml_node().attribute_value("verbose", false);
 
 	Report::Root report_root = { ep, sliced_heap, rom_registry, verbose };
 	Rom   ::Root    rom_root = { ep, sliced_heap, rom_registry };
