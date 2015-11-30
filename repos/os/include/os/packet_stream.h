@@ -213,6 +213,14 @@ class Genode::Packet_descriptor_queue
 		}
 
 		/**
+		 * Return current packet descriptor
+		 */
+		PACKET_DESCRIPTOR peek()
+		{
+			return _queue[_tail%QUEUE_SIZE];
+		}
+
+		/**
 		 * Return true if packet-descriptor queue is empty
 		 */
 		bool empty() { return _tail == _head; }
@@ -403,6 +411,12 @@ class Genode::Packet_descriptor_receiver
 
 			if (_rx_queue->single_slot_free())
 				_tx_ready.submit();
+		}
+
+		typename RX_QUEUE::Packet_descriptor_queue rx_peek()
+		{
+			Genode::Lock::Guard lock_guard(_rx_queue_lock);
+			return _rx_queue->peek();
 		}
 };
 
@@ -796,6 +810,16 @@ class Genode::Packet_stream_sink : private Packet_stream_base
 			do { _submit_receiver.rx(&packet); }
 			while (!packet_valid(packet));
 			return packet;
+		}
+
+		/**
+		 * Return but do not dequeue next packet
+		 *
+		 * If there is no packet, an invalid packet descriptor is returned.
+		 */
+		Packet_descriptor peek_packet()
+		{
+			return _submit_receiver.rx_peek();
 		}
 
 		/**
