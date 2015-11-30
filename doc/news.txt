@@ -4,6 +4,42 @@
                                ===========
 
 
+Genode OS Framework release 15.11 | 2015-11-30
+##############################################
+
+| The primary focus of version 15.11 is the use of Genode as a desktop
+| OS. It vastly improves the GUI and audio stacks, features the port of Intel
+| KMS from Linux, extends the support for the USB Armory and Xilinx Zynq-7000,
+| and introduces new file-system infrastructure such as a VFS server.
+
+Whereas the previous release marked the point where the very first user adopted
+Genode as day-to-day OS, we maintained the direction to create a Genode-based
+desktop OS. Most improvements of the new version are related to this goal:
+The GUI and audio stacks have become much more modular, dynamic, and flexible.
+With a new copy-and-paste mechanism, we added a universally expected
+desktop-integration feature in a unique way that mitigates the misuse of the
+clipboard as a covert communication mechanism. Those higher-level features
+are complemented with profound low-level device-driver improvements, most
+noteworthy the addition of the Intel KMS driver. This driver allows us to
+drive multiple displays and switch screen resolutions on the fly.
+
+What high- and low-level components have in common, is the use of Genode's
+uniform configuration concept, which solves a variety of configuration
+problems with a single low-complexity mechanism. It allows us to modify
+all kinds of system configurations - ranging from the wireless driver
+to the style of window decoration - live by merely editing and saving
+text files.
+
+Even though the majority of improvements are attributed to the use of
+Genode as desktop OS, the release also covers other areas.
+Xilinx Zynq-7000 has been added to the supported platforms, TrustZone on
+the USB Armory received a lot of attention, and a new VFS server makes
+Genode's file-system infrastructure much more flexible.
+
+These and many more topics are covered in detail by the
+[http:/documentation/release-notes/15.11 - release documentation of version 15.11...]
+
+
 Genode OS Framework release 15.08 | 2015-08-31
 ##############################################
 
