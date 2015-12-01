@@ -106,6 +106,7 @@ class Kernel::Object_identity_reference
 		capid_t          _capid;
 		Object_identity *_identity;
 		Pd              &_pd;
+		unsigned short   _in_utcbs;
 
 	public:
 
@@ -124,6 +125,10 @@ class Kernel::Object_identity_reference
 
 		Pd &    pd()     { return _pd;    }
 		capid_t capid()  { return _capid; }
+
+		void add_to_utcb()      { _in_utcbs++; }
+		void remove_from_utcb() { _in_utcbs--; }
+		bool in_utcb()          { return _in_utcbs > 0; }
 
 		void invalidate();
 

@@ -244,6 +244,7 @@ class Kernel::Thread
 		void _call_ack_irq();
 		void _call_new_obj();
 		void _call_delete_obj();
+		void _call_ack_cap();
 		void _call_delete_cap();
 
 		template <typename T, typename... ARGS>

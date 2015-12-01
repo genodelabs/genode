@@ -161,7 +161,10 @@ class Genode::Native_utcb
 		void copy_to(Msgbuf_base &o)
 		{
 			o._snd_cap_cnt = _cap_cnt;
-			for (unsigned i = 0; i < _cap_cnt; i++) o._caps[i] = _caps[i];
+			for (unsigned i = 0; i < _cap_cnt; i++) {
+				o._caps[i] = _caps[i];
+				if (o._caps[i].valid()) Kernel::ack_cap(o._caps[i].dst());
+			}
 
 			memcpy(o.buf, _buf, min(_size, o._size));
 		}

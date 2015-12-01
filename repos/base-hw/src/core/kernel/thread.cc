@@ -585,10 +585,21 @@ void Thread::_call_delete_obj()
 }
 
 
+void Thread::_call_ack_cap()
+{
+	Object_identity_reference * oir = pd()->cap_tree().find(user_arg_1());
+	if (oir) oir->remove_from_utcb();
+}
+
+
 void Thread::_call_delete_cap()
 {
 	Object_identity_reference * oir = pd()->cap_tree().find(user_arg_1());
-	if (oir) destroy(pd()->platform_pd()->capability_slab(), oir);
+	if (!oir) return;
+
+	if (oir->in_utcb()) return;
+
+	destroy(pd()->platform_pd()->capability_slab(), oir);
 }
 
 
@@ -612,6 +623,7 @@ void Thread::_call()
 	case call_id_await_signal():         _call_await_signal(); return;
 	case call_id_ack_signal():           _call_ack_signal(); return;
 	case call_id_print_char():           _call_print_char(); return;
+	case call_id_ack_cap():              _call_ack_cap(); return;
 	case call_id_delete_cap():           _call_delete_cap(); return;
 	default:
 		/* check wether this is a core thread */

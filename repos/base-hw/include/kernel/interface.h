@@ -41,7 +41,8 @@ namespace Kernel
 	constexpr Call_arg call_id_print_char()           { return 10; }
 	constexpr Call_arg call_id_update_data_region()   { return 11; }
 	constexpr Call_arg call_id_update_instr_region()  { return 12; }
-	constexpr Call_arg call_id_delete_cap()           { return 13; }
+	constexpr Call_arg call_id_ack_cap()              { return 13; }
+	constexpr Call_arg call_id_delete_cap()           { return 14; }
 
 
 	/*****************************************************************
@@ -264,6 +265,16 @@ namespace Kernel
 	inline int kill_signal_context(capid_t const context)
 	{
 		return call(call_id_kill_signal_context(), context);
+	}
+
+	/**
+	 * Acknowledge reception of a capability
+	 *
+	 * \param cap  capability id to acknowledge
+	 */
+	inline void ack_cap(capid_t const cap)
+	{
+		call(call_id_ack_cap(), cap);
 	}
 
 	/**

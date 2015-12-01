@@ -47,13 +47,6 @@ void Ipc_node::copy_msg(Ipc_node * const sender)
 			continue;
 		}
 
-		/* within the same pd, we can simply copy the id */
-		if (pd() == sender->pd()) {
-			_utcb->cap_add(id);
-			pd()->platform_pd()->capability_slab().free(_obj_id_ref_ptr[i]);
-			continue;
-		}
-
 		/* lookup the capability id within the caller's cap space */
 		Reference *oir = (id == cap_id_invalid())
 			? nullptr : sender->pd()->cap_tree().find(id);
@@ -75,6 +68,8 @@ void Ipc_node::copy_msg(Ipc_node * const sender)
 				pd()->platform_pd()->capability_slab().free(_obj_id_ref_ptr[i]);
 		} else /* otherwise free the pre-allocation */
 			pd()->platform_pd()->capability_slab().free(_obj_id_ref_ptr[i]);
+
+		if (dst_oir) dst_oir->add_to_utcb();
 
 		/* add the translated capability id to the target buffer */
 		_utcb->cap_add(dst_oir ? dst_oir->capid() : cap_id_invalid());
