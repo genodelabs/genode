@@ -35,9 +35,14 @@ proc run_log { wait_for_re timeout_value } {
 	}
 
 	#
+	# amttool expects in the environment variable AMT_PASSWORD the password
+	#
+	set ::env(AMT_PASSWORD) [log_amt_password]
+
+	#
 	# grab output
 	#
-	set amt_cmd "amtterm -u admin -p [log_amt_password] -v [log_amt_host]"
+	set amt_cmd "amtterm -u admin -v [log_amt_host]"
 	if {[get_cmd_switch --log-amt-filter]} {
 		set amt_cmd "$amt_cmd | [log_amt_filter]"
 	}
