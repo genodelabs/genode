@@ -140,9 +140,10 @@ set err_cnt 0
 proc check_counter { name opt cnt total_cnt } {
 
 	global err_cnt
-	set    err_str "Good: "
-	set    err     0.01
-	set    is      0
+	set    bad   0
+	set    class "Good: "
+	set    tol   0.01
+	set    is    0
 
 	#
 	# On X86, the timer driver uses the PIT with a maximum timeout of 54 ms.
@@ -151,19 +152,22 @@ proc check_counter { name opt cnt total_cnt } {
 	# tolerance as for ARM where the driver, once configured, can sleep for
 	# the whole test timeout.
 	#
-	if {[have_spec x86]} { set err 0.02 }
+	if {[have_spec x86]} { set tol 0.02 }
 
 	if {[expr $total_cnt != 0]} { set is [expr double($cnt) / $total_cnt ] }
 
-	set is_pc  [expr double(round($is  * 100000)) / 1000]
-	set opt_pc [expr double(round($opt * 100000)) / 1000]
+	set err      [expr $is - $opt]
+	set is_fmt   [format {%0.3f} [expr $is  * 100]]
+	set opt_fmt  [format {%0.3f} [expr $opt * 100]]
+	set err_fmt  [format {%0.3f} [expr $err * 100]]
+	set tol_fmt  [format {%0.3f} [expr $tol * 100]]
 
-	if {[expr $is > $opt + $err || $is < $opt - $err]} {
+	if {[expr abs($err) > $tol]} {
 
-		set err_str "Bad:  "
+		set class   "Bad:  "
 		set err_cnt [expr $err_cnt + 1]
 	}
-	puts "$err_str$name received $is_pc % CPU (goal $opt_pc %)"
+	puts "$class$name received $is_fmt% CPU (goal $opt_fmt% tol $tol_fmt% err $err_fmt%)"
 }
 
 proc check_quota { name opt_sp quota_sp opt quota } {
