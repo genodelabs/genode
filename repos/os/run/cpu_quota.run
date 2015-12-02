@@ -160,6 +160,18 @@ proc check_counter { name opt cnt total_cnt } {
 	#
 	if {[have_spec zynq_qemu]} { set tol 0.03 }
 
+	#
+	# FIXME: There is no reasonable explanation by now why the test results
+	# are less stable on these platforms. We have tried several things that
+	# did not lead to an explanation or improvement:
+	#
+	#   * changing the timing parameters of the scheduler
+	#   * switching off SMP
+	#   * double-checking the speed of userland and kernel timers
+	#
+	if {[have_spec hw_odroid_xu]} { set tol 0.04 }
+	if {[have_spec hw_arndale]}   { set tol 0.04 }
+
 	if {[expr $total_cnt != 0]} { set is [expr double($cnt) / $total_cnt ] }
 
 	set err      [expr $is - $opt]
