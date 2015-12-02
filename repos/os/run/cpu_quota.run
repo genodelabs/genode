@@ -154,6 +154,12 @@ proc check_counter { name opt cnt total_cnt } {
 	#
 	if {[have_spec x86]} { set tol 0.02 }
 
+	#
+	# Zynq is currently tested merely in Qemu and most likely because of
+	# that, the results are less precise.
+	#
+	if {[have_spec zynq_qemu]} { set tol 0.03 }
+
 	if {[expr $total_cnt != 0]} { set is [expr double($cnt) / $total_cnt ] }
 
 	set err      [expr $is - $opt]
