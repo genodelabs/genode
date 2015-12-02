@@ -128,7 +128,7 @@ build_boot_image "core init timer test-cpu_quota test-sync"
 # Execution
 #
 
-append qemu_args "-nographic -m 64"
+append qemu_args "-nographic -m 128"
 
 run_genode_until ".*done.*\n.*done.*\n.*done.*\n" 100
 
