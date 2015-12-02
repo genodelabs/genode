@@ -28,6 +28,10 @@ void Platform::_init_io_mem_alloc()
 	Native_region * r = mmio_regions(0);
 	for (unsigned i = 0; r; r = mmio_regions(++i))
 		_io_mem_alloc.add_range(r->base, r->size);
+
+	r = mmio_regions(0);
+	for (unsigned i = 0; r; r = mmio_regions(++i))
+		_core_mem_alloc.virt_alloc()->remove_range(r->base, r->size);
 };
 
 
