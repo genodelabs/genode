@@ -1156,6 +1156,7 @@ struct work_struct {
 	work_func_t func;
 	struct list_head entry;
 	unsigned         pending;
+	void            *data;
 };
 
 struct delayed_work {

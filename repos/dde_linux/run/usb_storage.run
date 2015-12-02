@@ -109,7 +109,7 @@ catch { exec sh -c $cmd }
 #
 append qemu_args "-drive if=none,id=disk,file=$disk_image"
 append qemu_args {  \
--m 64 -nographic -M pc \
+-m 128 -nographic -M pc \
 -device usb-ehci,id=ehci \
 -device usb-storage,bus=ehci.0,drive=disk \
 -boot order=d }

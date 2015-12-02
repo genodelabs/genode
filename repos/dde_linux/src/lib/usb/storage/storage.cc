@@ -20,6 +20,7 @@
 #include <extern_c_begin.h>
 #include <lx_emul.h>
 #include <storage/scsi.h>
+#include <drivers/usb/storage/usb.h>
 #include <extern_c_end.h>
 
 #include <platform/lx_mem.h>
@@ -88,6 +89,11 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 				PDBG("PACKET: phys: %lx block: %llu count: %zu %s",
 				     phys, block_nr, block_count, read ? "read" : "write");
 
+			/* check if we can call queuecommand */
+			struct us_data *us = (struct us_data *) _sdev->host->hostdata;
+			if (us->srb != NULL)
+				throw Request_congestion();
+
 			struct scsi_cmnd *cmnd = _scsi_alloc_command();
 
 			cmnd->cmnd[0]           = read ? READ_10 : WRITE_10;
@@ -118,10 +124,7 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 			cmnd->request = &req;
 
 			/* send command to host driver */
-			while((_sdev->host->hostt->queuecommand(_sdev->host, cmnd)) != 0) {
-				Server::wait_and_dispatch_one_signal();
-				__wait_event();
-			}
+			_sdev->host->hostt->queuecommand(_sdev->host, cmnd);
 		}
 
 	public:
@@ -182,6 +185,20 @@ struct Factory : Block::Driver_factory
 
 
 static Storage_device *device = nullptr;
+static work_struct delayed;
+
+
+extern "C" void ack_packet(work_struct *work)
+{
+	Block::Packet_descriptor *packet =
+		static_cast<Block::Packet_descriptor *>(work->data);
+
+	if (verbose)
+		PDBG("ACK packet for block: %llu", packet->block_number());
+
+	device->ack_packet(*packet);
+	Genode::destroy(Genode::env()->heap(), packet);
+}
 
 
 void scsi_add_device(struct scsi_device *sdev)
@@ -196,6 +213,7 @@ void scsi_add_device(struct scsi_device *sdev)
 	 * XXX  move to 'main'
 	 */
 	if (!announce) {
+		PREPARE_WORK(&delayed, ack_packet);
 		static Block::Root root(_signal->ep(), env()->heap(), factory);
 		env()->parent()->announce(_signal->ep().rpc_ep().manage(&root));
 		announce = true;
@@ -205,15 +223,15 @@ void scsi_add_device(struct scsi_device *sdev)
 
 void Storage_device::_async_done(struct scsi_cmnd *cmnd)
 {
-	Block::Packet_descriptor *packet =
-		static_cast<Block::Packet_descriptor *>(cmnd->packet);
+	/*
+	 * Schedule packet ack, because we are called here in USB storage thread
+	 * context, the from code that will clear the command queue later, so we
+	 * cannot send the next packet from here
+	 */
+	delayed.data = cmnd->packet;
+	schedule_work(&delayed);
 
-	if (verbose)
-		PDBG("ACK packet for block: %llu status: %d",
-		     packet->block_number(), cmnd->result);
-
-	device->ack_packet(*packet);
-	Genode::destroy(Genode::env()->heap(), packet);
 	scsi_free_buffer(cmnd);
 	_scsi_free_command(cmnd);
+
 }

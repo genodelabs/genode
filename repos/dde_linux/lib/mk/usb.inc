@@ -27,7 +27,6 @@ CC_WARN = -Wall -Wno-unused-variable -Wno-uninitialized \
 
 CC_C_OPT += -Wno-unused-but-set-variable -Wno-pointer-sign -Wno-unused-label
 
-CXX_OPT = -fpermissive
 CC_CXX_OPT = -fpermissive
 
 #
