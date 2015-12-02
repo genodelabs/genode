@@ -29,7 +29,7 @@ class Genode::Epit_base : public Mmio
 {
 	protected:
 
-		enum { TICS_PER_MS = 32 };
+		enum { TICS_PER_MS = 33333 };
 
 		/**
 		 * Control register
@@ -69,7 +69,7 @@ class Genode::Epit_base : public Mmio
 
 			struct Clk_src : Bitfield<24, 2>      /* select clock input */
 			{
-				enum { IPG_CLK_32K = 3 };
+				enum { HIGH_FREQ_REF_CLK = 2 };
 			};
 
 			/**
@@ -89,7 +89,7 @@ class Genode::Epit_base : public Mmio
 				       Doz_en::bits(0) |
 				       Stop_en::bits(0) |
 				       Om::bits(Om::DISCONNECTED) |
-				       Clk_src::bits(Clk_src::IPG_CLK_32K);
+				       Clk_src::bits(Clk_src::HIGH_FREQ_REF_CLK);
 			}
 		};
 
