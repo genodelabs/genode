@@ -232,7 +232,7 @@ puts $launchpad_config_fd {<config>
 	</launcher>
 	<launcher name="nitpicker" ram_quota="1M">
 		<config>
-			<domain name="" layer="3" />
+			<domain name="" layer="3" conten="client" label="no" focus="click"/>
 			<policy domain="" />
 		</config>
 	</launcher>
