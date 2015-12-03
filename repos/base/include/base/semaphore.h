@@ -61,18 +61,23 @@ class Genode::Semaphore
 		 */
 		void up()
 		{
-			Lock::Guard lock_guard(_meta_lock);
+			Element * element = nullptr;
 
-			if (++_cnt > 0)
-				return;
+			{
+				Lock::Guard lock_guard(_meta_lock);
 
-			/*
-			 * Remove element from queue and wake up the corresponding
-			 * blocking thread
-			 */
-			Element * element = _queue.dequeue();
-			if (element)
-				element->wake_up();
+				if (++_cnt > 0)
+					return;
+
+				/*
+				 * Remove element from queue and wake up the corresponding
+				 * blocking thread
+				 */
+				element = _queue.dequeue();
+			}
+
+			/* do not hold the lock while unblocking a waiting thread */
+			if (element) element->wake_up();
 		}
 
 		/**
