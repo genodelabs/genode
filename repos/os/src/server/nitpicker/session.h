@@ -219,7 +219,11 @@ class Session : public Session_list::Element
 				Domain_name name(buf);
 				_domain = domain_registry.lookup(name);
 
-			} catch (...) { }
+				if (!_domain)
+					PERR("policy for label \"%s\" specifies nonexistent domain \"%s\"",
+					     _label.string(), name.string());
+
+			} catch (...) { PERR("no policy matching label \"%s\"", _label.string()); }
 		}
 };
 
