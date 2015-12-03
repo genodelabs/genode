@@ -20,6 +20,7 @@
 #include <nitpicker_gfx/texture_painter.h>
 #include <os/pixel_rgb565.h>
 #include <os/static_root.h>
+#include <timer_session/connection.h>
 
 /* local includes */
 #include "services.h"
@@ -228,9 +229,9 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 {
 	private:
 
-		Window_content &_window_content;
+		Timer::Connection _timer;
 
-		Genode::Signal_context_capability _sync_sigh;
+		Window_content &_window_content;
 
 	public:
 
@@ -252,15 +253,15 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 		void mode_sigh(Genode::Signal_context_capability sigh) override {
 			_window_content.mode_sigh(sigh); }
 
-		void sync_sigh(Genode::Signal_context_capability sigh) override {
-			_sync_sigh = sigh; }
+		void sync_sigh(Genode::Signal_context_capability sigh) override
+		{
+			_timer.sigh(sigh);
+			_timer.trigger_periodic(10*1000);
+		}
 
 		void refresh(int x, int y, int w, int h) override
 		{
 			_window_content.redraw_area(x, y, w, h);
-
-			if (_sync_sigh.valid())
-				Genode::Signal_transmitter(_sync_sigh).submit();
 		}
 };
 
