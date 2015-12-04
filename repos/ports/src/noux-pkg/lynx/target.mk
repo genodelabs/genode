@@ -7,6 +7,12 @@ NOUX_CONFIGURE_ARGS = --with-ssl \
                       --with-lss-file=/etc/lynx.lss
 
 #
+# Rather than dealing with autoconf force usage of <openssl/xxx.h>
+# by defining it explicitly
+#
+NOUX_CFLAGS += -DUSE_OPENSSL_INCL
+
+#
 # Needed for <sys/types.h>
 #
 NOUX_CFLAGS += -D__BSD_VISIBLE
@@ -16,7 +22,7 @@ LIBS += ncurses zlib libssl libcrypto libc_resolv
 #
 # Make the zlib linking test succeed
 #
-Makefile: dummy_libs 
+Makefile: dummy_libs
 
 NOUX_LDFLAGS += -L$(PWD)
 
