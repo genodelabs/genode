@@ -44,6 +44,19 @@ static Lock pthread_cleanup_list_lock;
 static List<thread_cleanup> pthread_cleanup_list;
 
 
+/*
+ * We initialize the main-thread pointer in a constructor depending on the
+ * assumption that libpthread is loaded on application startup by ldso. During
+ * this stage only the main thread is executed.
+ */
+static __attribute__((constructor)) Thread_base * main_thread()
+{
+	static Thread_base *thread = Thread_base::myself();
+
+	return thread;
+}
+
+
 extern "C" {
 
 	/* Thread */
@@ -105,6 +118,13 @@ extern "C" {
 	}
 
 
+	/* special non-POSIX function (for example used in libresolv) */
+	int _pthread_main_np(void)
+	{
+		return (Thread_base::myself() == main_thread());
+	}
+
+
 	pthread_t pthread_self(void)
 	{
 		Thread_base *myself = Thread_base::myself();
@@ -113,37 +133,34 @@ extern "C" {
 		if (pthread)
 			return pthread;
 
-		/* either it is the main thread, an alien thread or a bug */
+		/*
+		 * We pass here if the main thread or an alien thread calls
+		 * pthread_self(). So check for aliens (or other bugs) and opt-out
+		 * early.
+		 */
 
-		/* determine name of thread */
-		char name[Thread_base::Context::NAME_LEN];
-		myself->name(name, sizeof(name));
+		if (!_pthread_main_np()) {
+			char name[Thread_base::Context::NAME_LEN];
+			myself->name(name, sizeof(name));
 
-		/* determine if stack is in first context area slot */
-		addr_t stack = reinterpret_cast<addr_t>(&myself);
-		bool is_main = Native_config::context_area_virtual_base() <= stack &&
-		               stack < Native_config::context_area_virtual_base() +
-		               Native_config::context_virtual_size();
+			PERR("pthread_self() called from alien thread named '%s'", name);
 
-		/* check that stack and name is of main thread */
-		if (is_main && !strcmp(name, "main")) {
-			/* create a pthread object containing copy of main Thread_base */
-			static struct pthread_attr main_thread_attr;
-			static struct pthread *main = nullptr;
-			if (!main) {
-				/*
-				 * The pthread object does not get deleted, because this would
-				 * also delete the 'Thread_base' of the main thread.
-				 */
-				main = new (Genode::env()->heap()) struct pthread(*myself, &main_thread_attr);
-			}
-
-			return main;
+			return nullptr;
 		}
 
-		PERR("pthread_self() called from alien thread named '%s'", name);
+		/*
+		 * We create a pthread object containing a copy of main thread's
+		 * Thread_base object. Therefore, we ensure the pthread object does not
+		 * get deleted by allocating it in heap via new(). Otherwise, the
+		 * static destruction of the pthread object would also destruct the
+		 * 'Thread_base' of the main thread.
+		 */
 
-		return nullptr;
+		static struct pthread_attr main_thread_attr;
+		static struct pthread *main = new (Genode::env()->heap())
+		                              struct pthread(*myself, &main_thread_attr);
+
+		return main;
 	}
 
 
@@ -179,12 +196,6 @@ extern "C" {
 	int pthread_equal(pthread_t t1, pthread_t t2)
 	{
 		return (t1 == t2);
-	}
-
-
-	int _pthread_main_np(void)
-	{
-		return (Thread_base::myself() == 0);
 	}
 
 
