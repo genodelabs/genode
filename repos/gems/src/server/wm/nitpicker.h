@@ -895,6 +895,9 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 				catch (View_handle_registry::Lookup_failed) {
 					PWRN("view lookup failed during command execution"); }
 			}
+
+			/* propagate window-list changes to the layouter */
+			_window_registry.flush();
 		}
 
 		Framebuffer::Mode mode() override
@@ -1296,6 +1299,8 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 					break;
 				}
 			}
+
+			_window_registry.flush();
 
 			/*
 			 * Forward the request to the nitpicker control session to apply
