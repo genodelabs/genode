@@ -395,8 +395,13 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 		case SYSCALL_SELECT:
 			{
-				Sysio::Select_fds &in_fds = _sysio->select_in.fds;
-				size_t in_fds_total = in_fds.total_fds();
+				size_t in_fds_total = _sysio->select_in.fds.total_fds();
+				Sysio::Select_fds in_fds;
+				for (Genode::size_t i = 0; i < in_fds_total; i++)
+					in_fds.array[i] = _sysio->select_in.fds.array[i];
+				in_fds.num_rd = _sysio->select_in.fds.num_rd;
+				in_fds.num_wr = _sysio->select_in.fds.num_wr;
+				in_fds.num_ex = _sysio->select_in.fds.num_ex;
 
 				int _rd_array[in_fds_total];
 				int _wr_array[in_fds_total];
