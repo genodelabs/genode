@@ -38,6 +38,7 @@ namespace Floating_window_layouter {
 	using Decorator::attribute;
 	using Decorator::string_attribute;
 	using Decorator::area_attribute;
+	using Decorator::point_attribute;
 
 
 	static Xml_node xml_lookup_window_by_id(Xml_node node, unsigned const id)
@@ -512,14 +513,28 @@ void Floating_window_layouter::Main::import_window_list(Xml_node window_list_xml
 				win = new (env()->heap()) Window(id, maximized_window_geometry);
 				windows.insert(win);
 
+				Point initial_position(150*id % 800, 30 + (100*id % 500));
+
+				Window::Label const label = string_attribute(node, "label", Window::Label(""));
+				win->label(label);
+
 				/*
-				 * Define initial window position
+				 * Evaluate policy configuration for the window label
 				 */
-				win->position(Point(150*id % 800, 30 + (100*id % 500)));
+				try {
+					Session_policy const policy(label);
+
+					if (policy.has_attribute("xpos") && policy.has_attribute("ypos"))
+						initial_position = point_attribute(node);
+
+					win->is_maximized(policy.attribute_value("maximized", false));
+
+				} catch (Genode::Session_policy::No_policy_defined) { }
+
+				win->position(initial_position);
 			}
 
 			win->size(area_attribute(node));
-			win->label(string_attribute(node, "label", Window::Label("")));
 			win->title(string_attribute(node, "title", Window::Title("")));
 			win->has_alpha(node.has_attribute("has_alpha")
 			            && node.attribute("has_alpha").has_value("yes"));
