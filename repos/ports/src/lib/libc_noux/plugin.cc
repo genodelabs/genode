@@ -98,9 +98,8 @@ class Noux_connection
 		 */
 		Genode::Rm_session_capability context_area_rm_session()
 		{
-			using namespace Genode;
-			addr_t const addr = Native_config::context_area_virtual_base();
-			return _connection.lookup_rm_session(addr);
+			int on_stack;
+			return _connection.lookup_rm_session((Genode::addr_t)&on_stack);
 		}
 
 		Noux::Session *session() { return &_connection; }
@@ -518,10 +517,6 @@ extern "C" void fork_trampoline()
 	/* reinitialize noux connection */
 	construct_at<Noux_connection>(noux_connection());
 
-	/* reinitialize main-thread object which implies reinit of context area */
-	auto context_area_rm = noux_connection()->context_area_rm_session();
-	env()->reinit_main_thread(context_area_rm);
-
 	/* apply processor state that the forker had when he did the fork */
 	longjmp(fork_jmp_buf, 1);
 }
@@ -538,6 +533,11 @@ extern "C" pid_t fork(void)
 		/*
 		 * We got here via longjmp from 'fork_trampoline'.
 		 */
+
+		/* reinitialize main-thread object which implies reinit of context area */
+		auto context_area_rm = noux_connection()->context_area_rm_session();
+		Genode::env()->reinit_main_thread(context_area_rm);
+
 		return 0;
 
 	} else {

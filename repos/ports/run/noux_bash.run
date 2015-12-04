@@ -167,7 +167,7 @@ append config {
 				<dir name="ram"> <fs label="root" /> </dir>
 				<dir name="tmp"> <fs label="tmp" /> </dir>
 
-				<dir name="dev"> <rtc/> <zero/> </dir>
+				<dir name="dev"> <rtc/> <zero/> <null/> </dir>
 
 			</fstab>
 			<start name="/bin/bash">
