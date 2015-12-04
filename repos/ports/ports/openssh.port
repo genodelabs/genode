@@ -1,11 +1,13 @@
 LICENSE   := BSD
-VERSION   := 6.1p1
+VERSION   := 7.1p1
 DOWNLOADS := openssh.archive
 
-URL(openssh) := ftp://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-$(VERSION).tar.gz
-SHA(openssh) := 751c92c912310c3aa9cadc113e14458f843fc7b3
+URL(openssh) := http://artfiles.org/openbsd/OpenSSH/portable/openssh-$(VERSION).tar.gz
+SHA(openssh) := ed22af19f962262c493fcc6ed8c8826b2761d9b6
 SIG(openssh) := ${URL(openssh)}.asc
 KEY(openssh) := 3981992A1523ABA079DBFC66CE8ECB0386FF9C48
 DIR(openssh) := src/noux-pkg/openssh
 
-PATCHES := src/noux-pkg/openssh/*.patch
+PATCHES := $(addprefix ${DIR(openssh)}/,\
+                       $(notdir $(wildcard $(REP_DIR)/${DIR(openssh)}/*.patch)))
+PATCH_OPT := -N -p1

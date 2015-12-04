@@ -1,0 +1,75 @@
+Although we use FreeBSD libc we actually do not have __progname. As
+interim fix we just remove the check from configure.
+
+diff --git a/configure b/configure
+index 0d7a5b9..3218724 100755
+--- a/src/noux-pkg/openssh/configure
++++ b/src/noux-pkg/openssh/configure
+@@ -30485,67 +30485,6 @@ _ACEOF
+ 
+ fi
+ 
+-{ echo "$as_me:$LINENO: checking if libc defines __progname" >&5
+-echo $ECHO_N "checking if libc defines __progname... $ECHO_C" >&6; }
+-if test "${ac_cv_libc_defines___progname+set}" = set; then
+-  echo $ECHO_N "(cached) $ECHO_C" >&6
+-else
+-
+-	cat >conftest.$ac_ext <<_ACEOF
+-/* confdefs.h.  */
+-_ACEOF
+-cat confdefs.h >>conftest.$ac_ext
+-cat >>conftest.$ac_ext <<_ACEOF
+-/* end confdefs.h.  */
+-
+-int
+-main ()
+-{
+- extern char *__progname; printf("%s", __progname);
+-  ;
+-  return 0;
+-}
+-_ACEOF
+-rm -f conftest.$ac_objext conftest$ac_exeext
+-if { (ac_try="$ac_link"
+-case "(($ac_try" in
+-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+-  *) ac_try_echo=$ac_try;;
+-esac
+-eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+-  (eval "$ac_link") 2>conftest.er1
+-  ac_status=$?
+-  grep -v '^ *+' conftest.er1 >conftest.err
+-  rm -f conftest.er1
+-  cat conftest.err >&5
+-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+-  (exit $ac_status); } && {
+-	 test -z "$ac_c_werror_flag" ||
+-	 test ! -s conftest.err
+-       } && test -s conftest$ac_exeext &&
+-       $as_test_x conftest$ac_exeext; then
+-   ac_cv_libc_defines___progname="yes"
+-else
+-  echo "$as_me: failed program was:" >&5
+-sed 's/^/| /' conftest.$ac_ext >&5
+-
+-	 ac_cv_libc_defines___progname="no"
+-
+-fi
+-
+-rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+-      conftest$ac_exeext conftest.$ac_ext
+-
+-fi
+-{ echo "$as_me:$LINENO: result: $ac_cv_libc_defines___progname" >&5
+-echo "${ECHO_T}$ac_cv_libc_defines___progname" >&6; }
+-if test "x$ac_cv_libc_defines___progname" = "xyes" ; then
+-
+-cat >>confdefs.h <<\_ACEOF
+-#define HAVE___PROGNAME 1
+-_ACEOF
+-
+-fi
+ 
+ { echo "$as_me:$LINENO: checking whether $CC implements __FUNCTION__" >&5
+ echo $ECHO_N "checking whether $CC implements __FUNCTION__... $ECHO_C" >&6; }
