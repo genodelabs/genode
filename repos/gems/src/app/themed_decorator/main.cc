@@ -56,7 +56,7 @@ struct Decorator::Main : Window_factory_base
 	Signal_rpc_member<Main> pointer_dispatcher = {
 		ep, *this, &Main::handle_pointer_update };
 
-	Attached_rom_dataspace pointer { "pointer" };
+	Lazy_volatile_object<Attached_rom_dataspace> pointer;
 
 	Window_base::Hover hover;
 
@@ -122,7 +122,15 @@ struct Decorator::Main : Window_factory_base
 		handle_config(0);
 
 		window_layout.sigh(window_layout_dispatcher);
-		pointer.sigh(pointer_dispatcher);
+
+		try {
+			pointer.construct("pointer");
+			pointer->sigh(pointer_dispatcher);
+		} catch (Genode::Rom_connection::Rom_connection_failed) {
+			PINF("pointer information unavailable");
+
+			PDBG("is_constructed=%d", pointer.is_constructed());
+		}
 
 		nitpicker.framebuffer()->sync_sigh(nitpicker_sync_dispatcher);
 
@@ -244,8 +252,8 @@ void Decorator::Main::handle_nitpicker_sync(unsigned)
 			 * A decorator element might have appeared or disappeared under
 			 * the pointer.
 			 */
-			if (pointer.is_valid())
-				update_hover_report(Xml_node(pointer.local_addr<char>()),
+			if (pointer.is_constructed() && pointer->is_valid())
+				update_hover_report(Xml_node(pointer->local_addr<char>()),
 				                    window_stack, hover, hover_reporter);
 
 		} catch (Xml_node::Invalid_syntax) {
@@ -279,10 +287,13 @@ void Decorator::Main::handle_nitpicker_sync(unsigned)
 
 void Decorator::Main::handle_pointer_update(unsigned)
 {
-	pointer.update();
+	if (!pointer.is_constructed())
+		return;
 
-	if (pointer.is_valid())
-		update_hover_report(Xml_node(pointer.local_addr<char>()),
+	pointer->update();
+
+	if (pointer->is_valid())
+		update_hover_report(Xml_node(pointer->local_addr<char>()),
 		                    window_stack, hover, hover_reporter);
 }
 
