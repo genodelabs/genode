@@ -33,7 +33,7 @@ class Genode::Pl310 : public Arm::Pl310
 {
 	public:
 
-		Pl310(addr_t const base) : Arm::Pl310(base) { _init(); }
+		Pl310(addr_t const base) : Arm::Pl310(base) { mask_interrupts(); }
 };
 
 /**
