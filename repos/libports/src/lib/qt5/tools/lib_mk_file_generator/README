@@ -3,8 +3,14 @@ The scripts in this directory have been used to generate the
 
 Usage:
 
-- create a build directory in the 'contrib' directory
+- download and extract the Qt5 source archive
+- apply 'qt5_configuration.patch' from the 'src/lib/qt5/patches' directory
+- create a build directory next to the extracted Qt5 source directory
 - copy the scripts into this build directory
 - change into the build directory
 - execute the 'create_generated_incs' script
-- move the generated files into the 'lib/mk/' directory
+- move the generated files into the 'lib/mk' directory
+
+Notes:
+
+- ICU (libicu-dev) must be installed on the host system to get the QtWebKit files generated
