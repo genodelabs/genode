@@ -126,7 +126,11 @@ void User_state::handle_event(Input::Event ev)
 		::Session *global_receiver = nullptr;
 
 		/* update focused session */
-		if (pointed_session != Mode::focused_session() && _mouse_button(keycode)) {
+		if (_mouse_button(keycode)
+		 && _pointed_session
+		 && (_pointed_session != Mode::focused_session())
+		 && (_pointed_session->has_focusable_domain()
+		  || _pointed_session->has_same_domain(Mode::focused_session()))) {
 
 			update_all_guard.update = true;
 
@@ -140,12 +144,12 @@ void User_state::handle_event(Input::Event ev)
 
 			if (_pointed_session) {
 				Input::Event focus_ev(Input::Event::FOCUS, 1, ax, ay, 0, 0);
-				pointed_session->submit_input_event(focus_ev);
+				_pointed_session->submit_input_event(focus_ev);
 			}
 
 			if (_pointed_session->has_transient_focusable_domain())
 				global_receiver = _pointed_session;
-			else if (_pointed_session->has_click_focusable_domain())
+			else
 				focused_session(_pointed_session);
 		}
 
@@ -184,16 +188,16 @@ void User_state::handle_event(Input::Event ev)
 
 		if (Mode::has_key_cnt(0)) {
 
-			if (pointed_session) {
+			if (_pointed_session) {
 
 				/*
 				 * Unless the domain of the pointed session is configured to
 				 * always receive hover events, we deliver motion events only
 				 * to the focused domain.
 				 */
-				if (pointed_session->hover_always()
-				 || pointed_session->has_same_domain(Mode::focused_session()))
-					pointed_session->submit_input_event(ev);
+				if (_pointed_session->hover_always()
+				 || _pointed_session->has_same_domain(Mode::focused_session()))
+					_pointed_session->submit_input_event(ev);
 			}
 
 		} else if (_input_receiver)
@@ -204,9 +208,18 @@ void User_state::handle_event(Input::Event ev)
 	 * Deliver press/release event to focused session or the receiver of global
 	 * key.
 	 */
-	if (type == Event::PRESS || type == Event::RELEASE)
-		if (_input_receiver)
+	if ((type == Event::PRESS) && _input_receiver) {
+		if (!_mouse_button(ev.keycode())
+		 || (_pointed_session
+		  && (_pointed_session->has_focusable_domain()
+		   || _pointed_session->has_same_domain(Mode::focused_session()))))
 			_input_receiver->submit_input_event(ev);
+		else
+			_input_receiver = nullptr;
+	}
+
+	if ((type == Event::RELEASE) && _input_receiver)
+		_input_receiver->submit_input_event(ev);
 
 	/*
 	 * Detect end of global key sequence
