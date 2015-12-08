@@ -66,6 +66,7 @@ set config {
 			<service name="LOG">     <parent/>                </service>
 			<service name="SIGNAL">  <parent/>                </service>
 			<service name="CAP">     <parent/>                </service>
+			<service name="Timer">   <child name="timer"/>    </service>
 		</route>
 	</start>
 	<alias name="input_drv" child="fb_sdl"/>
