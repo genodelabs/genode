@@ -4,6 +4,29 @@
                                ===========
 
 
+The story behind Genode's TrustZone demo on the USB Armory | 2015-12-08
+#######################################################################
+
+| Our latest article provides a look behind the scenes of the
+| development of Genode's support for the USB Armory platform.
+
+The [http://inversepath.com/usbarmory - USB Armory] is a computer in the form
+of a USB stick. It normally runs Linux. But thanks to the ARM TrustZone
+capabilities of the device, it is possible to run Genode behind the back of
+Linux. This is useful for shielding sensitive information like cryptographic
+keys from Linux by exposing it to Genode only and thereby drastically reducing
+the attack surface. Even in the event Linux gets compromised, e.g., by a
+vulnerability in the USB stack, the secrets remain protected.
+
+The article "The story behind Genode's TrustZone demo on the USB Armory"
+presents the adventurous story behind enabling this scenario. The biggest challenge
+was splitting the hardware platform into two worlds while maintaining the
+full functionality of Linux. The article goes on to explain the interplay
+between the secure world (Genode) and the normal world (Linux). Furthermore,
+it provides all the pointers needed to reproduce the scenario.
+[http:/documentation/articles/usb_armory - Read the article...]
+
+
 Genode OS Framework release 15.11 | 2015-11-30
 ##############################################
 
