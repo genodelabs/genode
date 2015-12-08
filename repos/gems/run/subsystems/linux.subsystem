@@ -1,0 +1,59 @@
+<subsystem name="linux" help="Linux in VirtualBox">
+  <resource name="RAM" quantum="1300M" />
+  <binary name="init" />
+  <config prio_levels="2">
+    <parent-provides>
+      <service name="ROM"/>
+      <service name="RAM"/>
+      <service name="CAP"/>
+      <service name="PD"/>
+      <service name="RM"/>
+      <service name="CPU"/>
+      <service name="LOG"/>
+      <service name="SIGNAL"/>
+      <service name="Nitpicker" />
+      <service name="Rtc" />
+      <service name="File_system" />
+      <service name="Block" />
+      <service name="Report" />
+      <service name="Nic" />
+    </parent-provides>
+    <default-route>
+      <any-service> <parent/> <any-child/> </any-service>
+    </default-route>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="nit_fb" priority="0">
+		<resource name="RAM" quantum="8M" />
+		<provides>
+			<service name="Framebuffer" />
+			<service name="Input" />
+		</provides>
+		<config width="1024" height="768" />
+	</start>
+
+	<start name="vbox" priority="-1">
+		<binary name="virtualbox" />
+		<resource name="RAM" quantum="1280M"/>
+			<config vbox_file="vm_linux.vbox" vm_name="linux">
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc">
+				<vfs>
+					<dir name="dev">
+						<log/>
+						<rtc/>
+						<block name="sda2" label="home" block_buffer_count="128" />
+					 </dir>
+					<rom name="vm_linux.vbox"/>
+					<dir name="shared"> <fs label="shared"/> </dir>
+					<fs label="rump_fs"/>
+				</vfs>
+			</libc>
+		</config>
+	</start>
+
+  </config>
+</subsystem>

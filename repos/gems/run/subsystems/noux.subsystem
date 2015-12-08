@@ -1,0 +1,97 @@
+<subsystem name="noux" help="Noux">
+	<resource name="RAM" quantum="128M" />
+	<binary name="init" />
+	<config prio_levels="2">
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="RAM"/>
+			<service name="CAP"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="SIGNAL"/>
+			<service name="Nitpicker" />
+			<service name="File_system" />
+			<service name="Timer" />
+		</parent-provides>
+		<default-route>
+			<any-service> <any-child/> <parent/> </any-service>
+		</default-route>
+
+		<start name="nit_fb">
+			<resource name="RAM" quantum="3M"/>
+			<provides> <service name="Framebuffer"/>
+			           <service name="Input"/> </provides>
+			<config width="800" height="600"/>
+			<route> <any-service> <parent/> </any-service> </route>
+		</start>
+
+		<start name="terminal" priority="-1">
+			<binary name="terminal"/>
+			<resource name="RAM" quantum="2M"/>
+			<provides><service name="Terminal"/></provides>
+			<config>
+				<keyboard layout="us"/>
+				<font size="12" />
+			</config>
+			<route>
+				<any-service>
+					<child name="nit_fb"/> <parent/> <any-child/>
+				</any-service>
+			</route>
+		</start>
+
+		<start name="tmp_fs" priority="-1">
+			<binary name="ram_fs"/>
+			<resource name="RAM" quantum="16M"/>
+			<provides><service name="File_system"/></provides>
+			<config>
+				<policy label="noux -> tmp" root="/" writeable="yes" />
+			</config>
+		</start>
+
+		<start name="noux" priority="-1">
+			<exit propagate="yes"/>
+			<resource name="RAM" quantum="1G" />
+			<config ld_verbose="yes">
+				<fstab>
+					<tar name="coreutils.tar" />
+					<tar name="vim.tar" />
+					<tar name="bash.tar" />
+					<tar name="grep.tar" />
+
+					<dir name="genode"> <fs label="genode" /> </dir>
+					<dir name="shared"> <fs label="shared" /> </dir>
+					<dir name="config"> <fs label="config" /> </dir>
+					<dir name="tmp">    <fs label="tmp"    /> </dir>
+					<dir name="reports">
+						<rom name="wlan_accesspoints"/>
+						<rom name="wlan_state"/>
+						<rom name="trace_subjects"/>
+						<rom name="connectors"/>
+					</dir>
+
+					<dir name="dev"> <zero/> </dir>
+
+				</fstab>
+				<start name="/bin/bash">
+					<env name="TERM" value="linux" />
+					<env name="HOME" value="/" />
+				</start>
+			</config>
+			<route>
+				<service name="File_system">
+					<if-arg key="label" value="tmp" /> <child name="tmp_fs" />
+				</service>
+				<service name="File_system">
+					<parent/>
+				</service>
+				<any-service>
+					<child name="terminal"/> <parent/> <any-child/>
+				</any-service>
+			</route>
+		</start>
+
+	</config>
+</subsystem>

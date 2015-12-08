@@ -1,0 +1,5 @@
+<subsystem name="cpu_load_display" help="Display CPU load">
+	<resource name="RAM" quantum="6M" />
+	<binary name="cpu_load_display" />
+	<config/>
+</subsystem>
