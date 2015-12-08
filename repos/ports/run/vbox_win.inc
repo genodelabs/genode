@@ -124,6 +124,9 @@ append config_of_app {
 
 	<start name="vbox_pointer" priority="-1">
 		<resource name="RAM" quantum="1M"/>
+		<config>
+			<policy label="nit_fb" rom="shape"/>
+		</config>
 		<route>
 			<service name="Nitpicker"> <child name="nitpicker"/>  </service>
 			<service name="ROM">       <child name="report_rom"/> </service>
