@@ -427,7 +427,7 @@ class Genode::Cpu : public Arm_v7
 		 *
 		 * \param pd  kernel pd object pointer
 		 */
-		static void init_virt_kernel(Kernel::Pd * pd);
+		static void init_virt_kernel(Kernel::Pd & pd);
 
 
 		/*************

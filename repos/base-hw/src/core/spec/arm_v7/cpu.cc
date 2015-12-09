@@ -159,11 +159,11 @@ Genode::Arm::Psr::access_t Genode::Arm::Psr::init_user_with_trustzone()
 }
 
 
-void Genode::Arm_v7::init_virt_kernel(Kernel::Pd * pd)
+void Genode::Arm_v7::init_virt_kernel(Kernel::Pd & pd)
 {
-	Cidr::write(pd->asid);
+	Cidr::write(pd.asid);
 	Dacr::write(Dacr::init_virt_kernel());
-	Ttbr0::write(Ttbr0::init((Genode::addr_t)pd->translation_table()));
+	Ttbr0::write(Ttbr0::init((Genode::addr_t)pd.translation_table()));
 	Ttbcr::write(0);
 	Sctlr::write(Sctlr::init_virt_kernel());
 	inval_branch_predicts();

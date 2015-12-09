@@ -125,14 +125,12 @@ class Genode::Cpu : public Arm
 		 *
 		 * \param pd  kernel's pd object
 		 */
-		static void init_virt_kernel(Kernel::Pd* pd);
+		static void init_virt_kernel(Kernel::Pd& pd);
 
 		/**
 		 * Ensure that TLB insertions get applied
 		 */
 		static void tlb_insertions() { flush_tlb(); }
-
-		static void start_secondary_cpus(void *) { assert(!Board::is_smp()); }
 
 		/**
 		 * Return wether to retry an undefined user instruction after this call

@@ -144,7 +144,7 @@ class Genode::Cpu
 {
 	friend class Cpu_lazy_state;
 
-	private:
+	protected:
 
 		Idt *_idt;
 		Tss *_tss;
@@ -312,96 +312,6 @@ class Genode::Cpu
 		};
 
 		/**
-		 * Returns true if current execution context is running in user mode
-		 */
-		static bool is_user()
-		{
-			PDBG("not implemented");
-			return false;
-		}
-
-		/**
-		 * Invalidate all entries of all instruction caches
-		 */
-		__attribute__((always_inline)) static void invalidate_instr_caches() { }
-
-		/**
-		 * Flush all entries of all data caches
-		 */
-		inline static void flush_data_caches() { }
-
-		/**
-		 * Invalidate all entries of all data caches
-		 */
-		inline static void invalidate_data_caches() { }
-
-		/**
-		 * Flush all caches
-		 */
-		static void flush_caches()
-		{
-			flush_data_caches();
-			invalidate_instr_caches();
-		}
-
-		/**
-		 * Invalidate all TLB entries of the address space named 'pid'
-		 */
-		static void flush_tlb_by_pid(unsigned const pid)
-		{
-			flush_caches();
-		}
-
-		/**
-		 * Invalidate all TLB entries
-		 */
-		static void flush_tlb()
-		{
-			flush_caches();
-		}
-
-		/**
-		 * Flush data-cache entries for virtual region ['base', 'base + size')
-		 */
-		static void
-		flush_data_caches_by_virt_region(addr_t base, size_t const size) { }
-
-		/**
-		 * Bin instr.-cache entries for virtual region ['base', 'base + size')
-		 */
-		static void
-		invalidate_instr_caches_by_virt_region(addr_t base, size_t const size)
-		{ }
-
-		static void inval_branch_predicts() { };
-
-		/**
-		 * Switch to the virtual mode in kernel
-		 *
-		 * \param pd  kernel's pd object
-		 */
-		static void init_virt_kernel(Kernel::Pd * pd);
-
-		/**
-		 * Configure this module appropriately for the first kernel run
-		 */
-		static void init_phys_kernel()
-		{
-			Timer::disable_pit();
-			_init_fpu();
-		};
-
-		/**
-		 * Finish all previous data transfers
-		 */
-		static void data_synchronization_barrier() { }
-
-		/**
-		 * Enable secondary CPUs with instr. pointer 'ip'
-		 */
-		static void start_secondary_cpus(void * const ip) { }
-
-		/**
 		 * Wait for the next interrupt as cheap as possible
 		 */
 		static void wait_for_interrupt() { asm volatile ("pause"); }
@@ -455,12 +365,22 @@ class Genode::Cpu
 			_disable_fpu();
 		}
 
-		/*************
-		 ** Dummies **
-		 *************/
 
-		static void tlb_insertions() { inval_branch_predicts(); }
+		/*********************************************
+		 ** Dummy implementations not needed on x86 **
+		 *********************************************/
+
+		static void tlb_insertions() { }
 		static void translation_added(addr_t, size_t) { }
+		static void flush_data_caches() { }
+		static void flush_caches() { }
+		static void flush_tlb_by_pid(unsigned const pid) { }
+		static void flush_data_caches_by_virt_region(addr_t base,
+		                                             size_t const size) { }
+		static void invalidate_instr_caches() { }
+		static void invalidate_data_caches() { }
+		static void invalidate_instr_caches_by_virt_region(addr_t base,
+		                                                   size_t const size) {}
 };
 
 struct Genode::Cpu::Cr0 : Register<64>

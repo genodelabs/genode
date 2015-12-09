@@ -23,11 +23,11 @@ void Genode::Arm::invalidate_data_caches() {
 	asm volatile ("mcr p15, 0, %[rd], c7, c6, 0" :: [rd]"r"(0) : ); }
 
 
-void Genode::Cpu::init_virt_kernel(Kernel::Pd* pd)
+void Genode::Cpu::init_virt_kernel(Kernel::Pd& pd)
 {
-	Cidr::write(pd->asid);
+	Cidr::write(pd.asid);
 	Dacr::write(Dacr::init_virt_kernel());
-	Ttbr0::write(Ttbr0::init((Genode::addr_t)pd->translation_table()));
+	Ttbr0::write(Ttbr0::init((Genode::addr_t)pd.translation_table()));
 	Ttbcr::write(0);
 	Sctlr::write(Sctlr::init_virt_kernel());
 }

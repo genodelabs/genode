@@ -177,12 +177,10 @@ bool Cpu::interrupt(unsigned const irq_id)
 }
 
 
-void Cpu::exception()
+Cpu_job & Cpu::schedule()
 {
-	/* update old job */
-	Job * const old_job = scheduled_job();
-
-	old_job->exception(_id);
+	/* get new job */
+	Job & old_job = scheduled_job();
 
 	/* update scheduler */
 	unsigned const old_time = _scheduler.head_quota();
@@ -191,18 +189,18 @@ void Cpu::exception()
 	_scheduler.update(quota);
 
 	/* get new job */
-	Job * const new_job = scheduled_job();
+	Job & new_job = scheduled_job();
 	quota = _scheduler.head_quota();
 	assert(quota);
 	_timer->start_one_shot(quota, _id);
 
 	/* switch between lazy state of old and new job */
-	Cpu_lazy_state * const old_state = old_job->lazy_state();
-	Cpu_lazy_state * const new_state = new_job->lazy_state();
+	Cpu_lazy_state * const old_state = old_job.lazy_state();
+	Cpu_lazy_state * const new_state = new_job.lazy_state();
 	prepare_proceeding(old_state, new_state);
 
-	/* resume new job */
-	new_job->proceed(_id);
+	/* return new job */
+	return new_job;
 }
 
 

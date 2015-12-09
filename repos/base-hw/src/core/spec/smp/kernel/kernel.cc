@@ -14,13 +14,24 @@
 
 /* core includes */
 #include <kernel/cpu.h>
+#include <kernel/lock.h>
 
 
 extern "C" void kernel()
 {
 	using namespace Kernel;
 
-	Cpu * const cpu  = cpu_pool()->cpu(Cpu::executing_id());
-	cpu->scheduled_job().exception(cpu->id());
-	cpu->schedule().proceed(cpu->id());
+	Cpu_job * new_job;
+	unsigned cpu_id;
+
+	{
+		Lock::Guard guard(data_lock());
+
+		cpu_id = Cpu::executing_id();
+		Cpu * const cpu  = cpu_pool()->cpu(cpu_id);
+		cpu->scheduled_job().exception(cpu_id);
+		new_job = &cpu->schedule();
+	}
+
+	new_job->proceed(cpu_id);
 }

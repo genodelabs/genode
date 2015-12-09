@@ -12,6 +12,8 @@ SRC_CC += spec/arm/cpu.cc
 SRC_CC += spec/arm/kernel/cpu_context.cc
 SRC_CC += kernel/vm_thread.cc
 SRC_CC += spec/arm_v6/cpu.cc
+SRC_CC += spec/arm/kernel/cpu.cc
+SRC_CC += kernel/kernel.cc
 
 # add assembly sources
 SRC_S += spec/arm_v6/mode_transition.s

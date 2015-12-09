@@ -9,7 +9,7 @@ INC_DIR += $(REP_DIR)/src/core/include/spec/arm
 
 # add C++ sources
 SRC_CC += spec/arm/kernel/thread.cc
-SRC_CC += spec/arm/kernel/cpu.cc
+SRC_CC += spec/arm/kernel/cpu_idle.cc
 SRC_CC += spec/arm/kernel/pd.cc
 SRC_CC += spec/arm/platform_support.cc
 

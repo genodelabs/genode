@@ -274,7 +274,6 @@ class Genode::Pic : public Mmio
 		 */
 
 		void mask() { }
-		void init_cpu_local() { }
 		bool is_ip_interrupt(unsigned, unsigned) { return false; }
 		void trigger_ip_interrupt(unsigned) { }
 };

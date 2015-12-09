@@ -15,12 +15,12 @@
 #include <kernel/pd.h>
 #include <cpu.h>
 
-void Genode::Cpu::init_virt_kernel(Kernel::Pd * pd)
+void Genode::Cpu::init_virt_kernel(Kernel::Pd & pd)
 {
 	Mair0::write(Mair0::init_virt_kernel());
 	Dacr::write(Dacr::init_virt_kernel());
-	Ttbr0::write(Ttbr0::init((Genode::addr_t)pd->translation_table(),
-	                         pd->asid));
+	Ttbr0::write(Ttbr0::init((Genode::addr_t)pd.translation_table(),
+	                         pd.asid));
 	Ttbcr::write(Ttbcr::init_virt_kernel());
 	Sctlr::write(Sctlr::init_virt_kernel());
 	inval_branch_predicts();

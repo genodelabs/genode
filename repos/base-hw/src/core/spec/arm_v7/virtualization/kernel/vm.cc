@@ -56,8 +56,8 @@ struct Kernel::Vm_irq : Kernel::Irq
 	 */
 	void occurred()
 	{
-		Cpu_job * job = cpu_pool()->executing_cpu()->scheduled_job();
-		Vm *vm = dynamic_cast<Vm*>(job);
+		Cpu_job & job = cpu_pool()->executing_cpu()->scheduled_job();
+		Vm *vm = dynamic_cast<Vm*>(&job);
 		if (!vm)
 			PERR("VM timer interrupt while VM is not runnning!");
 		else

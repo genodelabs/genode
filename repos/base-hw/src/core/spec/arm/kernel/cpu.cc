@@ -13,29 +13,39 @@
  */
 
 /* core includes */
-#include <assert.h>
 #include <kernel/cpu.h>
-#include <kernel/kernel.h>
 #include <kernel/pd.h>
+#include <kernel/perf_counter.h>
+#include <pic.h>
+#include <trustzone.h>
 
-using namespace Kernel;
-
-
-Cpu_idle::Cpu_idle(Cpu * const cpu) : Cpu_job(Cpu_priority::MIN, 0)
+void Kernel::Cpu::init(Kernel::Pic &pic, Kernel::Pd & core_pd)
 {
-	Cpu_job::cpu(cpu);
-	cpu_exception = RESET;
-	ip = (addr_t)&_main;
-	sp = (addr_t)&_stack[stack_size];
-	init_thread((addr_t)core_pd()->translation_table(), core_pd()->asid);
+	/* locally initialize interrupt controller */
+	pic.init_cpu_local();
+
+	/* initialize CPU in physical mode */
+	Cpu::init_phys_kernel();
+
+	/* switch to core address space */
+	Cpu::init_virt_kernel(core_pd);
+
+	/*
+	 * TrustZone initialization code
+	 *
+	 * FIXME This is a plattform specific feature
+	 */
+	init_trustzone(pic);
+
+	/*
+	 * Enable performance counter
+	 *
+	 * FIXME This is an optional CPU specific feature
+	 */
+	perf_counter()->enable();
+
+	/* enable timer interrupt */
+	unsigned const cpu = Cpu::executing_id();
+	pic.unmask(Timer::interrupt_id(cpu), cpu);
 }
 
-
-void Cpu_idle::exception(unsigned const cpu)
-{
-	switch (cpu_exception) {
-	case INTERRUPT_REQUEST:      _interrupt(cpu); return;
-	case FAST_INTERRUPT_REQUEST: _interrupt(cpu); return;
-	case RESET:                                   return;
-	default: assert(0); }
-}

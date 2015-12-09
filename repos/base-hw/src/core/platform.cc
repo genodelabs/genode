@@ -34,7 +34,7 @@ using namespace Genode;
 extern int _prog_img_beg;
 extern int _prog_img_end;
 
-void __attribute__((weak)) Kernel::init_trustzone(Pic * pic) { }
+void __attribute__((weak)) Kernel::init_trustzone(Pic & pic) { }
 
 /**
  * Format of a boot-module header

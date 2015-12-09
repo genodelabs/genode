@@ -40,3 +40,25 @@ void Cpu_idle::exception(unsigned const cpu)
 	     errcode, (void *)ip);
 	assert(0);
 }
+
+
+void Kernel::Cpu::init(Pic &pic, Kernel::Pd &core_pd)
+{
+	Timer::disable_pit();
+
+	_init_fpu();
+
+	/*
+	 * Please do not remove the PINF(), because the serial constructor requires
+	 * access to the Bios Data Area, which is available in the initial
+	 * translation table set, but not in the final tables used after
+	 * Cr3::write().
+	 */
+	PINF("Switch to core's final translation table");
+
+	Cr3::write(Cr3::init((addr_t)core_pd.translation_table()));
+
+	/* enable timer interrupt */
+	unsigned const cpu = Cpu::executing_id();
+	pic.unmask(Timer::interrupt_id(cpu), cpu);
+}
