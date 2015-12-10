@@ -529,6 +529,9 @@ static void check_context_management()
 
 	printf("destroy sender\n");
 	destroy(env()->heap(), sender);
+
+	destroy(env()->heap(), context);
+	destroy(env()->heap(), rec);
 }
 
 
@@ -596,6 +599,7 @@ static void synchronized_context_destruction_test()
 	}
 
 	signal_context_destroyer.join();
+	signal_context_destroyed = false;
 }
 
 
