@@ -24,3 +24,4 @@ tm_smp.patch
 posix.patch
 hostservice.patch
 powerbutton.patch
+vbox_dd.patch

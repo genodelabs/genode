@@ -52,6 +52,8 @@ SRC_CC += Devices/Input/UsbKbd.cpp
 
 SRC_CC += Devices/build/VBoxDD.cpp
 
+SRC_CC += devxhci.cc
+
 INC_DIR += $(VBOX_DIR)/Devices/build
 INC_DIR += $(VBOX_DIR)/Devices/Bus
 
@@ -95,3 +97,4 @@ vboxssdt-cpuhotplug.hex: vbox-cpuhotplug.dsl
 	rm $@.tmp $@.pre
 
 vpath %.dsl $(VBOX_DIR)/Devices/PC
+vpath %.cc  $(REP_DIR)/src/virtualbox

@@ -26,6 +26,8 @@ LIBS  += virtualbox-bios virtualbox-recompiler virtualbox-runtime \
 
 LIBS  += pthread libc_terminal libc_lock_pipe libiconv
 
+LIBS  += qemu-usb
+
 INC_DIR += $(call select_from_repositories,src/lib/libc)
 INC_DIR += $(call select_from_repositories,src/lib/pthread)
 

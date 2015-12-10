@@ -324,6 +324,17 @@ index b43f5a6..6aef9df 100644
  
  ////////////////////////////////////////////////////////////////////////////////
  //
+--- a/src/app/virtualbox/src/VBox/Main/src-client/BusAssignmentManager.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-client/BusAssignmentManager.cpp
+@@ -72,6 +72,8 @@
+     {"usb-ohci",      0,  6,  0, 0},
+     {"usb-ehci",      0, 11,  0, 0},
+ 
++    {"nec-xhci",      0, 29,  0, 0},
++
+     /* ACPI controller */
+     {"acpi",          0,  7,  0, 0},
+ 
 diff --git a/src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl.cpp
 index 69e3109..141bb98 100644
 --- a/src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl.cpp
@@ -1064,6 +1075,21 @@ index caed4be..6d02496 100644
              }
              hrc = pMachine->COMGETTER(Name)(bstr.asOutParam());                             H();
              InsertConfigString(pCfg, "StreamName", bstr);
+@@ -2537,6 +2537,14 @@
+ #endif
+             } /* for every USB controller. */
+ 
++            /*
++             * NEC XHCI Device
++             */
++            InsertConfigNode(pDevices, "nec-xhci", &pDev);
++            InsertConfigNode(pDev,     "0",        &pInst);
++            InsertConfigNode(pInst,    "Config",   &pCfg);
++            InsertConfigInteger(pInst, "Trusted",  1);
++            hrc = pBusMgr->assignPCIDevice("nec-xhci", pInst);                  H();
+ 
+             /*
+              * Virtual USB Devices.
 @@ -3533,6 +3549,8 @@ int Console::configMediumAttachment(PCFGMNODE pCtlInst,
          ComPtr<IMedium> pMedium;
          hrc = pMediumAtt->COMGETTER(Medium)(pMedium.asOutParam());                          H();
