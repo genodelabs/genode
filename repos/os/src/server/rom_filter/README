@@ -43,4 +43,4 @@ Example
 ~~~~~~~
 
 For an example that illustrates the use of the component, please refer to the
-_os/run/conditional_rom.run_ script.
+_os/run/rom_filter.run_ script.
