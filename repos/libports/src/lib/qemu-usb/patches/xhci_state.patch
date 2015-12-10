@@ -1,0 +1,27 @@
+diff --git a/src/lib/qemu/hw/usb/hcd-xhci.c b/src/lib/qemu/hw/usb/hcd-xhci.c
+index c673bed..b2a8939 100644
+--- a/src/lib/qemu/hw/usb/hcd-xhci.c
++++ b/src/lib/qemu/hw/usb/hcd-xhci.c
+@@ -486,6 +486,8 @@ struct XHCIState {
+ 
+ #define TYPE_XHCI "nec-usb-xhci"
+ 
++#ifndef __cplusplus
++
+ #define XHCI(obj) \
+     OBJECT_CHECK(XHCIState, (obj), TYPE_XHCI)
+ 
+@@ -2361,6 +2363,7 @@ static TRBCCode xhci_address_slot(XHCIState *xhci, unsigned int slotid,
+ 
+     if (bsr) {
+         slot_ctx[3] = SLOT_DEFAULT << SLOT_STATE_SHIFT;
++        usb_device_reset(dev);
+     } else {
+         USBPacket p;
+         uint8_t buf[1];
+@@ -3914,3 +3917,5 @@ static void xhci_register_types(void)
+ }
+ 
+ type_init(xhci_register_types)
++
++#endif /* __cplusplus */
