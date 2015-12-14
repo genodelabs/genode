@@ -141,7 +141,7 @@ namespace Platform {
 				Device_pd_client         child;
 				Genode::Allocator_guard &_md_alloc;
 
-				enum { DEVICE_PD_RAM_QUOTA = 160 * 4096 };
+				enum { DEVICE_PD_RAM_QUOTA = 180 * 4096 };
 
 				Devicepd (Genode::Rpc_entrypoint &ep,
 				          Genode::Allocator_guard &md_alloc,
