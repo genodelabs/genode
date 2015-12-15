@@ -215,7 +215,7 @@ class Genode::Packet_descriptor_queue
 		/**
 		 * Return current packet descriptor
 		 */
-		PACKET_DESCRIPTOR peek()
+		PACKET_DESCRIPTOR peek() const
 		{
 			return _queue[_tail%QUEUE_SIZE];
 		}
@@ -355,10 +355,10 @@ class Genode::Packet_descriptor_receiver
 		Genode::Signal_context_capability _rx_ready_cap;
 
 		/* facility to send ready-to-transmit signals */
-		Genode::Signal_transmitter         _tx_ready;
+		Genode::Signal_transmitter        _tx_ready;
 
-		Genode::Lock _rx_queue_lock;
-		RX_QUEUE    *_rx_queue;
+		Genode::Lock mutable  _rx_queue_lock;
+		RX_QUEUE             *_rx_queue;
 
 	public:
 
@@ -413,7 +413,7 @@ class Genode::Packet_descriptor_receiver
 				_tx_ready.submit();
 		}
 
-		typename RX_QUEUE::Packet_descriptor_queue rx_peek()
+		typename RX_QUEUE::Packet_descriptor rx_peek() const
 		{
 			Genode::Lock::Guard lock_guard(_rx_queue_lock);
 			return _rx_queue->peek();
@@ -817,7 +817,7 @@ class Genode::Packet_stream_sink : private Packet_stream_base
 		 *
 		 * If there is no packet, an invalid packet descriptor is returned.
 		 */
-		Packet_descriptor peek_packet()
+		Packet_descriptor peek_packet() const
 		{
 			return _submit_receiver.rx_peek();
 		}
