@@ -57,10 +57,10 @@ void report_window_layout(Param param, Genode::Reporter &reporter)
 			xml.node("window", [&] ()
 			{
 				xml.attribute("id", i);
-				xml.attribute("xpos",   w * (0.25 + sin(param.angle[0])/5));
-				xml.attribute("ypos",   h * (0.25 + sin(param.angle[1])/5));
-				xml.attribute("width",  w * (0.25 + sin(param.angle[2])/5));
-				xml.attribute("height", h * (0.25 + sin(param.angle[3])/5));
+				xml.attribute("xpos",   (long)(w * (0.25 + sin(param.angle[0])/5)));
+				xml.attribute("ypos",   (long)(h * (0.25 + sin(param.angle[1])/5)));
+				xml.attribute("width",  (long)(w * (0.25 + sin(param.angle[2])/5)));
+				xml.attribute("height", (long)(h * (0.25 + sin(param.angle[3])/5)));
 
 				if (i == 2)
 					xml.attribute("focused", "yes");
