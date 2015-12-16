@@ -318,11 +318,43 @@ class Genode::Xml_generator
 			_curr_node->insert_attribute(name, str.string());
 		}
 
-		void attribute(char const *name, long value)
+		void attribute(char const *name, bool value)
+		{
+			_curr_node->insert_attribute(name, value ? "true" : "false");
+		}
+
+		void attribute(char const *name, long long value)
 		{
 			char buf[64];
-			Genode::snprintf(buf, sizeof(buf), "%ld", value);
+			Genode::snprintf(buf, sizeof(buf), "%lld", value);
 			_curr_node->insert_attribute(name, buf);
+		}
+
+		void attribute(char const *name, long value)
+		{
+			attribute(name, static_cast<long long>(value));
+		}
+
+		void attribute(char const *name, int value)
+		{
+			attribute(name, static_cast<long long>(value));
+		}
+
+		void attribute(char const *name, unsigned long long value)
+		{
+			char buf[64];
+			Genode::snprintf(buf, sizeof(buf), "%llu", value);
+			_curr_node->insert_attribute(name, buf);
+		}
+
+		void attribute(char const *name, unsigned long value)
+		{
+			attribute(name, static_cast<unsigned long long>(value));
+		}
+
+		void attribute(char const *name, unsigned value)
+		{
+			attribute(name, static_cast<unsigned long long>(value));
 		}
 
 		/**

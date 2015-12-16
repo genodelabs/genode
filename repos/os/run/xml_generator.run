@@ -35,7 +35,7 @@ compare_output_to {
 	[init -> test-xml_generator] --- XML generator test started ---
 	[init -> test-xml_generator] result:
 	[init -> test-xml_generator] 
-	[init -> test-xml_generator] <config xpos="27" ypos="34" verbose="true">
+	[init -> test-xml_generator] <config xpos="27" ypos="34">
 	[init -> test-xml_generator] 	<box width="320" height="240"/>
 	[init -> test-xml_generator] 	<label name="a test">
 	[init -> test-xml_generator] 		<sub_label/>
@@ -43,9 +43,12 @@ compare_output_to {
 	[init -> test-xml_generator] 			<sub_sub_label/>
 	[init -> test-xml_generator] 		</another_sub_label>
 	[init -> test-xml_generator] 	</label>
+	[init -> test-xml_generator] 	<bool true="true" false="false"/>
+	[init -> test-xml_generator] 	<signed int="-1" long="-2" longlong="-3"/>
+	[init -> test-xml_generator] 	<unsigned int="1" long="2" longlong="3"/>
 	[init -> test-xml_generator] </config>
 	[init -> test-xml_generator] 
-	[init -> test-xml_generator] used 200 bytes
+	[init -> test-xml_generator] used 307 bytes
 	[init -> test-xml_generator] buffer exceeded (expected error)
 	[init -> test-xml_generator] --- XML generator test finished ---
 }

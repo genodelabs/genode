@@ -39,7 +39,23 @@ static size_t fill_buffer_with_xml(char *dst, size_t dst_len)
 				xml.node("sub_sub_label");
 			});
 		});
-		xml.attribute("verbose", "true");
+		xml.node("bool", [&] ()
+		{
+			xml.attribute("true",  true);
+			xml.attribute("false", false);
+		});
+		xml.node("signed", [&] ()
+		{
+			xml.attribute("int",      -1);
+			xml.attribute("long",     -2L);
+			xml.attribute("longlong", -3LL);
+		});
+		xml.node("unsigned", [&] ()
+		{
+			xml.attribute("int",      1U);
+			xml.attribute("long",     2UL);
+			xml.attribute("longlong", 3ULL);
+		});
 	});
 
 	return xml.used();
