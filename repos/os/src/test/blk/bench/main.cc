@@ -46,6 +46,9 @@ class Test::Throughput
 		{
 			static size_t count            = REQUEST_SIZE / _blk_size;
 
+			if (_read_done && (_write_done || !TEST_WRITE))
+				return;
+
 			try {
 				while (_session.tx()->ready_to_submit()) {
 					Block::Packet_descriptor p(
