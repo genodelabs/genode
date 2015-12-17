@@ -56,6 +56,7 @@ struct SDL_PrivateAudioData {
 	Uint8             *mixbuf;
 	Uint32             mixlen;
 	Audio_out::Connection *audio[AUDIO_CHANNELS];
+	Audio_out::Packet     *packet[AUDIO_CHANNELS];
 };
 
 
@@ -146,7 +147,8 @@ static SDL_AudioDevice *GENODEAUD_CreateDevice(int devindex)
 	for (int channel = 0; channel < AUDIO_CHANNELS; channel++) {
 		try {
 			_this->hidden->audio[channel] = new (env()->heap())
-				Audio_out::Connection(channel_names[channel]);
+				Audio_out::Connection(channel_names[channel],
+				                      false, channel == 0 ? true : false);
 			_this->hidden->audio[channel]->start();
 		} catch(Genode::Parent::Service_denied) {
 			PERR("Could not connect to 'Audio_out' service.");
@@ -171,47 +173,48 @@ AudioBootStrap GENODEAUD_bootstrap = {
 };
 
 
-/* This function waits until it is possible to write a full sound buffer */
 static void GENODEAUD_WaitAudio(_THIS)
 {
-	for (int channel = 0; channel < AUDIO_CHANNELS; channel++) {
-		Audio_out::Connection *connection = _this->hidden->audio[channel];
+	Audio_out::Connection *con = _this->hidden->audio[0];
+	Audio_out::Packet     *p   = _this->hidden->packet[0];
 
-		/* wait until allocation is possible */
-		if (connection->stream()->full())
-			connection->wait_for_alloc();
+	unsigned const packet_pos = con->stream()->packet_position(p);
+	unsigned const play_pos   = con->stream()->pos();
+	unsigned queued           = packet_pos < play_pos
+	                            ? ((Audio_out::QUEUE_SIZE + packet_pos) - play_pos)
+	                            : packet_pos - play_pos;
+
+	/* wait until there is only one packet left to play */
+	while (queued > 1) {
+		con->wait_for_progress();
+		queued--;
 	}
 }
 
 
 static void GENODEAUD_PlayAudio(_THIS)
 {
-	/*
-	 * Synchronize the play pointer when this function is first called
-	 */
-	static bool initial_reset = true;
-	if (initial_reset) {
-		for (int channel = 0; channel < AUDIO_CHANNELS; channel++) {
-			Audio_out::Connection *connection = _this->hidden->audio[channel];
-			connection->stream()->reset();
-		}
-		initial_reset = false;
+	Audio_out::Connection *c[AUDIO_CHANNELS];
+	Audio_out::Packet     *p[AUDIO_CHANNELS];
+	for (int channel = 0; channel < AUDIO_CHANNELS; channel++) {
+		c[channel] = _this->hidden->audio[channel];
+		p[channel] = _this->hidden->packet[channel];
 	}
 
-	Audio_out::Packet *p[AUDIO_CHANNELS];
+	/* get the currently played packet initially */
+	static bool init = false;
+	if (!init) {
+		p[0] = c[0]->stream()->next();
+		init = true;
+	}
 
-	for (int channel = 0; channel < AUDIO_CHANNELS; channel++)
-		while (1) {
-			Audio_out::Connection *connection = _this->hidden->audio[channel];
-
-			try {
-				p[channel] = connection->stream()->alloc();
-				break;
-			} catch (Audio_out::Stream::Alloc_failed) {
-				/* wait for next finished packet */
-				connection->wait_for_alloc();
-			}
-		}
+	/*
+	 * Get new packet for left channel and use it to synchronize
+	 * the right channel
+	 */
+	p[0] = c[0]->stream()->next(p[0]);
+	unsigned ppos = c[0]->stream()->packet_position(p[0]);
+	p[1] = c[1]->stream()->get(ppos);
 
 	if (signal_receiver()->pending()) {
 		signal_receiver()->wait_for_signal();
@@ -224,8 +227,14 @@ static void GENODEAUD_PlayAudio(_THIS)
 			p[channel]->content()[sample] =
 				volume * (float)(((int16_t*)_this->hidden->mixbuf)[sample * AUDIO_CHANNELS + channel]) / 32768;
 
-	for (int channel = 0; channel < AUDIO_CHANNELS; channel++)
+	for (int channel = 0; channel < AUDIO_CHANNELS; channel++) {
 		_this->hidden->audio[channel]->submit(p[channel]);
+		/*
+		 * Save current packet to query packet position next time and
+		 * when in GENODEAUD_WaitAudio
+		 */
+		_this->hidden->packet[channel] = p[channel];
+	}
 }
 
 
