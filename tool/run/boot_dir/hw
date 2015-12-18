@@ -207,6 +207,30 @@ proc run_boot_dir {binaries} {
 		generate_tftp_config
 	}
 
+	if {[have_spec x86] && [have_include "load/ipxe"]} {
+		#
+		# Generate iPXE config file
+		#
+		set fh [open "[run_dir]/boot.cfg" "WRONLY CREAT TRUNC"]
+		puts $fh "#!ipxe"
+
+		if {[have_spec "muen"]} {
+			puts $fh "kernel image.bin"
+		} else {
+			puts $fh "kernel boot/bender"
+			puts $fh "module image.elf"
+
+			#
+			# Install bender
+			#
+			install_bender_to_run_dir
+		}
+		puts $fh "boot"
+		close $fh
+
+		update_ipxe_boot_dir
+	}
+
 	# retrieve stand-alone core
 	exec cp $core_target/$core_bin.standalone bin/$core_bin
 	exec rm $core_target/$core_bin.standalone
