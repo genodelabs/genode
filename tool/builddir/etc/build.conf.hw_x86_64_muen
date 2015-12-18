@@ -4,4 +4,43 @@ REPOSITORIES += $(GENODE_DIR)/repos/base-hw
 ## Kernel-specific run tool configuration
 ##
 
-RUN_OPT = --include boot_dir/hw --include image/iso
+RUN_OPT = --include boot_dir/hw --include image/muen
+
+#
+# Muen hardware platform
+#
+# Available platforms are located in the Muen project directory
+# 'policy/platform/'.
+RUN_OPT += --image-muen-hardware lenovo-t430s
+
+#
+# Directory, where the GNAT toolchain is installed
+#
+RUN_OPT += --image-muen-gnat-path /usr/gnat
+
+#
+# Directory, where the SPARK toolchain is installed
+#
+RUN_OPT += --image-muen-spark-path /opt/spark2014
+
+#
+# Muen system policy
+#
+# Available policies are located in the Muen project directory
+# 'policy/xml/'.
+RUN_OPT += --image-muen-system genode-base_hw
+
+#
+# Muen system components
+#
+# Available policies are located in the Muen project directory
+# 'components/'.
+RUN_OPT += --image-muen-components 'dbgserver sm tau0'
+
+#
+# External Muen build
+#
+# Specifies if the Muen kernel should be built automatically.
+# If the Muen system is built and integrated externally, i.e. outside
+# of the Genode build system, set this parameter to 1.
+RUN_OPT += --image-muen-external-build 0
