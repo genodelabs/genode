@@ -55,6 +55,3 @@ extern "C" void wait_for_continue(void)
 	lx_syscall(SYS_read, (int)0, buf, sizeof(buf));
 #endif /* DEBUG */
 }
-
-
-extern "C" int get_pid() { return lx_getpid(); }
