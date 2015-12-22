@@ -89,7 +89,7 @@ int Platform_thread::start(void *ip, void *sp)
 			res = create_ec(_sel_ec(), _pd->pd_sel(), _location.xpos(),
 			                utcb, initial_sp, _sel_exc_base, thread_global);
 			if (res == Nova::NOVA_PD_OOM && Nova::NOVA_OK != _pager->handle_oom()) {
-				_pd->assign_pd(Native_thread::INVALID_INDEX);
+				_pager->assign_pd(Native_thread::INVALID_INDEX);
 				PERR("creation of new thread failed %u", res);
 				return -4;
 			}
