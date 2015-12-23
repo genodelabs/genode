@@ -1,8 +1,8 @@
-build "core init test/ldso test/ldso/dl"
+build "core init test/ldso"
 
 create_boot_directory
 
-install_config {
+set config {
 	<config>
 		<parent-provides>
 			<service name="ROM"/>
@@ -22,6 +22,8 @@ install_config {
 		</start>
 	</config>
 }
+
+install_config $config
 
 set boot_modules {
 	core init test-ldso test-ldso_lib_1.lib.so

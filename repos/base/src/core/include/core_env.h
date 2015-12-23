@@ -32,6 +32,8 @@
 #include <core_pd_session.h>
 #include <ram_session_component.h>
 
+namespace Genode { void init_stack_area(); }
+
 namespace Genode {
 
 	/**
@@ -118,6 +120,13 @@ namespace Genode {
 
 			enum { ENTRYPOINT_STACK_SIZE = 2048 * sizeof(Genode::addr_t) };
 
+			/*
+			 * Initialize the stack area before creating the first thread,
+			 * which happens to be the '_entrypoint'.
+			 */
+			bool _init_stack_area() { init_stack_area(); return true; }
+			bool _stack_area_initialized = _init_stack_area();
+
 			Rpc_entrypoint               _entrypoint;
 			Core_rm_session              _rm_session;
 			Core_ram_session             _ram_session;
@@ -172,13 +181,14 @@ namespace Genode {
 			Pd_session             *pd_session()      override { return &_pd_session_client; }
 			Allocator              *heap()            override { return &_heap; }
 
-			Cpu_session *cpu_session()
+			Cpu_session *cpu_session() override
 			{
 				PWRN("%s:%u not implemented", __FILE__, __LINE__);
 				return 0;
 			}
 
-			Cpu_session_capability cpu_session_cap() {
+			Cpu_session_capability cpu_session_cap() override
+			{
 				PWRN("%s:%u not implemented", __FILE__, __LINE__);
 				return Cpu_session_capability();
 			}
@@ -189,9 +199,9 @@ namespace Genode {
 				return Pd_session_capability();
 			}
 
-			void reinit(Capability<Parent>::Dst, long) { }
+			void reinit(Capability<Parent>::Dst, long) override { }
 
-			void reinit_main_thread(Rm_session_capability &) { }
+			void reinit_main_thread(Rm_session_capability &) override { }
 	};
 
 

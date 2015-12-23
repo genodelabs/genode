@@ -17,6 +17,7 @@
 #include <base/thread.h>
 #include <base/trace/events.h>
 #include <signal_source/client.h>
+#include <util/volatile_object.h>
 
 using namespace Genode;
 
@@ -27,19 +28,19 @@ class Signal_handler_thread : Thread<STACK_SIZE>, Lock
 	private:
 
 		/**
-		 * Return process-wide signal source used for signal reception
+		 * Actual signal source
 		 *
-		 * This function must be called from the context of the signal handler
+		 * Member must be constructed in the context of the signal handler
 		 * thread because on some platforms (e.g., Fiasco.OC), the calling
 		 * thread context is used for implementing the signal-source protocol.
 		 */
-		static Signal_source *signal_source();
+		Lazy_volatile_object<Signal_source_client> _signal_source;
 
 		void entry()
 		{
-			Signal_source *source = signal_source();
+			_signal_source.construct(env()->pd_session()->alloc_signal_source());
 			unlock();
-			Signal_receiver::dispatch_signals(source);
+			Signal_receiver::dispatch_signals(&(*_signal_source));
 		}
 
 	public:
@@ -53,30 +54,53 @@ class Signal_handler_thread : Thread<STACK_SIZE>, Lock
 			start();
 
 			/*
-			 * Make sure to have initialized the 'signal_source()' channel
-			 * before proceeding with the use of signals. Otherwise, signals
-			 * that occurred until the construction of 'signal_source' is
-			 * completed may get lost.
+			 * Make sure the signal source was constructed before proceeding
+			 * with the use of signals. Otherwise, signals may get lost until
+			 * the construction finished.
 			 */
 			lock();
+		}
+
+		~Signal_handler_thread()
+		{
+			env()->pd_session()->free_signal_source(*_signal_source);
 		}
 };
 
 
-Signal_source *Signal_handler_thread::signal_source()
+/*
+ * The signal-handler thread will be constructed before global constructors are
+ * called and, consequently, must not be a global static object. Otherwise, the
+ * Lazy_volatile_object constructor will be executed twice.
+ */
+static Lazy_volatile_object<Signal_handler_thread> & signal_handler_thread()
 {
-	static Signal_source_client sigsrc(env()->pd_session()->alloc_signal_source());
-	return &sigsrc;
+	static Lazy_volatile_object<Signal_handler_thread> inst;
+	return inst;
 }
 
 
-/**
- * Return process-wide signal source used for signal reception
- */
-static Signal_handler_thread *signal_handler_thread()
-{
-	static Signal_handler_thread signal_handler_thread;
-	return &signal_handler_thread;
+namespace Genode {
+
+	/*
+	 * Initialize the component-local signal-handling thread
+	 *
+	 * This function is called once at the startup of the component. It must
+	 * be called before creating the first signal receiver.
+	 *
+	 * We allow this function to be overridden in to enable core to omit the
+	 * creation of the signal thread.
+	 */
+	void init_signal_thread() __attribute__((weak));
+	void init_signal_thread()
+	{
+		signal_handler_thread().construct();
+	}
+
+	void destroy_signal_thread()
+	{
+		signal_handler_thread().destruct();
+	}
 }
 
 
@@ -182,12 +206,7 @@ void Signal_context::submit(unsigned num)
  ** Signal receiver **
  *********************/
 
-
-Signal_receiver::Signal_receiver()
-{
-	/* make sure that the process-local signal handler thread is running */
-	signal_handler_thread();
-}
+Signal_receiver::Signal_receiver() { }
 
 
 Signal_context_capability Signal_receiver::manage(Signal_context *context)

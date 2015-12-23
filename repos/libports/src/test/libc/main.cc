@@ -35,6 +35,6 @@ int main(int argc, char **argv)
 	addr = malloc(1234);
 	printf("Malloc returned addr = %p\n", addr);
 
-	printf("--- returning from main ---\n");
-	return 0;
+	printf("--- exit(0) from main ---\n");
+	exit(0);
 }

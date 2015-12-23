@@ -26,11 +26,24 @@
 
 using namespace Genode;
 
+
+namespace Genode {
+
+	/*
+	 * On base-hw, no signal thread is needed.
+	 */
+	void init_signal_thread() __attribute__((weak));
+	void init_signal_thread() { }
+	void destroy_signal_thread() { }
+}
+
+
 /********************
  ** Signal context **
  ********************/
 
 void Signal_context::submit(unsigned) { PERR("not implemented"); }
+
 
 /************************
  ** Signal transmitter **

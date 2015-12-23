@@ -314,10 +314,6 @@ namespace Genode {
 
 		private:
 
-			/*******************************
-			 ** Platform-specific members **
-			 *******************************/
-
 			Ram_session_capability       _ram_session_cap;
 			Expanding_ram_session_client _ram_session_client;
 			Cpu_session_capability       _cpu_session_cap;
@@ -362,8 +358,8 @@ namespace Genode {
 			 *
 			 * Not supported on Linux.
 			 */
-			void reinit(Native_capability::Dst, long) { };
-			void reinit_main_thread(Rm_session_capability &) { };
+			void reinit(Native_capability::Dst, long)        override { }
+			void reinit_main_thread(Rm_session_capability &) override { }
 	};
 
 
@@ -388,6 +384,10 @@ namespace Genode {
 			 */
 			class Local_parent : public Expanding_parent_client
 			{
+				private:
+
+					Allocator &_alloc;
+
 				public:
 
 					/**********************
@@ -407,7 +407,8 @@ namespace Genode {
 					 *                    services
 					 */
 					Local_parent(Parent_capability parent_cap,
-					             Emergency_ram_reserve &);
+					             Emergency_ram_reserve &,
+					             Allocator &);
 			};
 
 			/**
@@ -416,6 +417,13 @@ namespace Genode {
 			Local_parent &_parent();
 
 			Heap _heap;
+
+			/*
+			 * The '_heap' must be initialized before the '_stack_area'
+			 * because the 'Local_parent' performs a dynamic memory allocation
+			 * due to the creation of the stack area's sub-RM session.
+			 */
+			Attached_stack_area _stack_area;
 
 			/*
 			 * Emergency RAM reserve

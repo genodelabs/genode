@@ -88,7 +88,15 @@ class Genode::Platform_env : public Genode::Env, public Emergency_ram_reserve
 		};
 
 		Resources _resources;
-		Heap      _heap;
+
+		Heap _heap;
+
+		/*
+		 * The '_heap' must be initialized before the '_stack_area'
+		 * because the 'Local_parent' performs a dynamic memory allocation
+		 * due to the creation of the stack area's sub-RM session.
+		 */
+		Attached_stack_area _stack_area { _parent_client, _resources.rm };
 
 		char _initial_heap_chunk[sizeof(addr_t) * 4096];
 
@@ -112,13 +120,16 @@ class Genode::Platform_env : public Genode::Env, public Emergency_ram_reserve
 			_heap(&_resources.ram, &_resources.rm, Heap::UNLIMITED,
 			      _initial_heap_chunk, sizeof(_initial_heap_chunk)),
 			_emergency_ram_ds(_resources.ram.alloc(_emergency_ram_size()))
-		{ }
+		{
+			env_stack_area_ram_session = &_resources.ram;
+			env_stack_area_rm_session  = &_stack_area;
+		}
 
 		/*
 		 * Support functions for implementing fork on Noux.
 		 */
-		void reinit(Native_capability::Dst, long);
-		void reinit_main_thread(Rm_session_capability &);
+		void reinit(Native_capability::Dst, long) override;
+		void reinit_main_thread(Rm_session_capability &) override;
 
 
 		/*************************************

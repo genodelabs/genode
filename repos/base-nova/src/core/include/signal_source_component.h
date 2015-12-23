@@ -47,9 +47,6 @@ class Genode::Signal_source_component : public Rpc_object<Nova_signal_source,
 
 		void register_semaphore(Native_capability const &cap)
 		{
-			if (_blocking_semaphore.valid())
-				PWRN("overwritting blocking signal semaphore !!!");
-
 			_blocking_semaphore = cap;
 		}
 

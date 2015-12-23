@@ -61,8 +61,11 @@ class Genode::Volatile_object
 
 		void _check_constructed() const
 		{
-			if (!_constructed)
+			if (!_constructed) {
+				PDBG("Deref_unconstructed_object");
+				PDBG("bt: %p", __builtin_return_address(0));
 				throw Deref_unconstructed_object();
+			}
 		}
 
 	protected:

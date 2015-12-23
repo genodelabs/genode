@@ -26,6 +26,8 @@ SRC_CC += thread/thread_bootstrap.cc
 SRC_CC += env/capability.cc
 SRC_CC += sleep.cc
 SRC_CC += rm_session_client.cc
+SRC_CC += entrypoint/entrypoint.cc
+SRC_CC += component/component.cc
 
 INC_DIR += $(REP_DIR)/src/include $(BASE_DIR)/src/include
 

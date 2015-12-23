@@ -74,18 +74,13 @@ namespace Noux {
 			Thread_capability create_thread(size_t weight, Name const &name,
 			                                addr_t utcb)
 			{
-				/*
-				 * Prevent any attempt to create more than the main
-				 * thread.
-				 */
-				if (_main_thread.valid()) {
-					PWRN("Invalid attempt to create a thread besides main");
-					while (1);
-					return Thread_capability();
+				if (!_main_thread.valid()) {
+					_main_thread = _cpu.create_thread(weight, name, utcb);
+					return _main_thread;
 				}
-				_main_thread = _cpu.create_thread(weight, name, utcb);
 
-				return _main_thread;
+				/* create non-main thread */
+				return _cpu.create_thread(weight, name, utcb);
 			}
 
 			Ram_dataspace_capability utcb(Thread_capability thread) {

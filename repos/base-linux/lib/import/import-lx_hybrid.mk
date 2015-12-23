@@ -50,18 +50,6 @@ LINK_ARG_PREFIX := -Wl,
 CXX_LINK_OPT += $(addprefix $(LINK_ARG_PREFIX)-rpath-link $(LINK_ARG_PREFIX),$(HOST_SO_SEARCH_DIRS))
 
 #
-# The '__libc_csu_init' function is normally provided by the C library. We
-# override the libc's version in our 'lx_hybrid' library to have a hook for
-# Genode-specific initializations. Unfortunately, this way, we get two symbols
-# with the same name. So we have to tell the linker to be forgiving. The order
-# of the libraries at the linker command line determines which symbol is used.
-# Therefore it is important to have 'lx_hybrid.lib.so' listed before '-lc',
-# which is always the case when supplying '-lc' via 'EXT_OBJECTS' (not
-# 'CXX_LINK_OPT').
-#
-CXX_LINK_OPT += -Wl,--allow-multiple-definition
-
-#
 # Make exceptions work
 #
 CXX_LINK_OPT += -Wl,--eh-frame-hdr
@@ -71,7 +59,7 @@ CXX_LINK_OPT += -Wl,--eh-frame-hdr
 # variable to the linker command line
 #
 ifneq ($(LX_LIBS),)
-EXT_OBJECTS = $(shell pkg-config --static --libs $(LX_LIBS))
+LX_LIBS_OPT = $(shell pkg-config --static --libs $(LX_LIBS))
 endif
 
 #
@@ -89,8 +77,8 @@ EXT_OBJECTS += $(shell $(CUSTOM_CC) $(CC_MARCH) -print-file-name=crtbegin.o)
 EXT_OBJECTS += $(shell $(CUSTOM_CC) $(CC_MARCH) -print-file-name=crtend.o)
 endif
 EXT_OBJECTS += $(shell cc $(CC_MARCH) -print-file-name=crtn.o)
-EXT_OBJECTS += -lgcc -lgcc_s -lsupc++ -lc
-EXT_OBJECTS += -lpthread
+
+LX_LIBS_OPT += -lgcc -lgcc_s -lsupc++ -lc -lpthread
 
 USE_HOST_LD_SCRIPT = yes
 
@@ -104,8 +92,11 @@ CXX_LINK_OPT += -Wl,--dynamic-linker=/lib/ld-linux.so.2
 endif
 endif
 
-# because we use the host compiler's libgcc, omit the Genode toolchain's version
-LD_LIBGCC =
+#
+# Because we use the host compiler's libgcc, omit the Genode toolchain's
+# version and put all libraries here we depend on.
+#
+LD_LIBGCC = $(LX_LIBS_OPT)
 
 # use the host c++ for linking to find shared libraries in DT_RPATH library paths
 LD_CMD = c++

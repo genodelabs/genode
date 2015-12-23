@@ -43,22 +43,6 @@ namespace Genode {
 			 */
 			Native_capability _sem;
 
-			/**
-			 * Request NOVA semaphore from signal-source server
-			 */
-			void _init_sem()
-			{
-				/* initialize semaphore only once */
-				if (_sem.valid()) return;
-
-				/* request mapping of semaphore capability selector */
-				Thread_base * myself = Thread_base::myself();
-				request_signal_sm_cap(Native_capability(myself->native_thread().ec_sel + 1),
-				                      myself->native_thread().exc_pt_sel + Nova::PT_SEL_STARTUP);
-				_sem = Native_capability(myself->native_thread().exc_pt_sel + Nova::PT_SEL_STARTUP);
-				call<Rpc_register_semaphore>(_sem);
-			}
-
 		public:
 
 			/**
@@ -67,11 +51,17 @@ namespace Genode {
 			Signal_source_client(Capability<Signal_source> cap)
 			: Rpc_client<Nova_signal_source>(static_cap_cast<Nova_signal_source>(cap))
 			{
-				/*
-				 * Make sure that we have acquired the
-				 * semaphore from the server
-				 */
-				_init_sem();
+				/* request mapping of semaphore capability selector */
+				Thread_base * myself = Thread_base::myself();
+				request_signal_sm_cap(Native_capability(myself->native_thread().ec_sel + 1),
+				                      myself->native_thread().exc_pt_sel + Nova::PT_SEL_STARTUP);
+				_sem = Native_capability(myself->native_thread().exc_pt_sel + Nova::PT_SEL_STARTUP);
+				call<Rpc_register_semaphore>(_sem);
+			}
+
+			~Signal_source_client()
+			{
+				Nova::revoke(Nova::Obj_crd(_sem.local_name(), 0));
 			}
 
 

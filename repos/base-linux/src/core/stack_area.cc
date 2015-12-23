@@ -105,16 +105,16 @@ class Stack_area_ram_session : public Genode::Ram_session
  */
 namespace Genode {
 
-	Rm_session *env_stack_area_rm_session()
-	{
-		static Stack_area_rm_session inst;
-		return &inst;
-	}
+	Rm_session  *env_stack_area_rm_session;
+	Ram_session *env_stack_area_ram_session;
 
-	Ram_session *env_stack_area_ram_session()
+	void init_stack_area()
 	{
-		static Stack_area_ram_session inst;
-		return &inst;
+		static Stack_area_rm_session rm_inst;
+		env_stack_area_rm_session = &rm_inst;
+
+		static Stack_area_ram_session ram_inst;
+		env_stack_area_ram_session = &ram_inst;
 	}
 }
 

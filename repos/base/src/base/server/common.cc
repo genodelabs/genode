@@ -30,6 +30,9 @@ void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
 
 	_free_rpc_cap(_pd_session, obj->cap());
 
+	/* effectively invalidate the capability used before */
+	obj->cap(Untyped_capability());
+
 	/* now the object may be safely destructed */
 }
 

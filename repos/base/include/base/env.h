@@ -22,7 +22,6 @@
 #include <cpu_session/cpu_session.h>
 #include <cpu_session/capability.h>
 #include <pd_session/capability.h>
-#include <cap_session/cap_session.h>
 #include <base/allocator.h>
 #include <base/snprintf.h>
 #include <base/lock.h>
@@ -107,7 +106,7 @@ struct Genode::Env
 	/**
 	 * Reinitialize main-thread object
 	 *
-	 * \param stack_area_rm  new RM session of the context area
+	 * \param stack_area_rm  new RM session of the stack area
 	 *
 	 * This function is solely used for implementing fork semantics
 	 * as provided by the Noux environment.

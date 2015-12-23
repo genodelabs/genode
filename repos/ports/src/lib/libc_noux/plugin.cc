@@ -543,7 +543,16 @@ extern "C" void fork_trampoline()
 }
 
 
-extern "C" pid_t fork(void)
+static pid_t fork_result;
+
+
+/**
+ * Called once the component has left the entrypoint and exited the signal
+ * dispatch loop.
+ *
+ * This function is called from the context of the initial thread.
+ */
+static void suspended_callback()
 {
 	/* stack used for executing 'fork_trampoline' */
 	enum { STACK_SIZE = 8 * 1024 };
@@ -554,7 +563,7 @@ extern "C" pid_t fork(void)
 		/*
 		 * We got here via longjmp from 'fork_trampoline'.
 		 */
-		return 0;
+		fork_result = 0;
 
 	} else {
 
@@ -573,14 +582,26 @@ extern "C" pid_t fork(void)
 		if (!noux_syscall(Noux::Session::SYSCALL_FORK)) {
 			PERR("fork error %d", sysio()->error.general);
 			switch (sysio()->error.fork) {
-			case Noux::Sysio::FORK_NOMEM:       errno = ENOMEM; break;
+			case Noux::Sysio::FORK_NOMEM: errno = ENOMEM; break;
 			default: errno = EAGAIN;
 			}
-			return -1;
+			fork_result = -1;
+			return;
 		}
 
-		return sysio()->fork_out.pid;
+		fork_result = sysio()->fork_out.pid;
 	}
+}
+
+
+namespace Libc { void schedule_suspend(void (*suspended) ()); }
+
+
+extern "C" pid_t fork(void)
+{
+	Libc::schedule_suspend(suspended_callback);
+
+	return fork_result;
 }
 
 

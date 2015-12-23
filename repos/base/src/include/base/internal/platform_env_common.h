@@ -25,6 +25,9 @@
 #include <cpu_session/client.h>
 #include <pd_session/client.h>
 
+
+#include <base/internal/stack_area.h>
+
 namespace Genode {
 
 	class Expanding_rm_session_client;
@@ -32,7 +35,14 @@ namespace Genode {
 	class Expanding_cpu_session_client;
 	class Expanding_parent_client;
 
+	struct Attached_stack_area;
+
 	Parent_capability parent_cap();
+
+	extern Rm_session  *env_stack_area_rm_session;
+	extern Ram_session *env_stack_area_ram_session;
+
+	void init_signal_thread();
 }
 
 
@@ -324,5 +334,32 @@ class Genode::Expanding_parent_client : public Parent_client
 				_wait_for_resource_response();
 		}
 };
+
+
+struct Genode::Attached_stack_area : Genode::Expanding_rm_session_client
+{
+	/**
+	 * Helper for requesting the sub RM session of the stack area
+	 */
+	Rm_session_capability _session(Parent &parent)
+	{
+		char buf[256];
+		snprintf(buf, sizeof(buf), "ram_quota=64K, start=0x0, size=0x%zx",
+		         (size_t)stack_area_virtual_size());
+
+		return static_cap_cast<Rm_session>(parent.session(Rm_session::service_name(),
+		                                                  buf, Affinity()));
+	}
+
+	Attached_stack_area(Parent &parent, Rm_session &env_rm)
+	:
+		Expanding_rm_session_client(_session(parent))
+	{
+		env_rm.attach_at(Expanding_rm_session_client::dataspace(),
+		                 stack_area_virtual_base(),
+		                 stack_area_virtual_size());
+	}
+};
+
 
 #endif /* _INCLUDE__BASE__INTERNAL__PLATFORM_ENV_COMMON_H_ */

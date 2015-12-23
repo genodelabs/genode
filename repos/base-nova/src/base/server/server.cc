@@ -70,6 +70,8 @@ void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
 	/* make sure nobody is able to find this object */
 	remove(obj);
 
+	/* effectively invalidate the capability used before */
+	obj->cap(Untyped_capability());
 
 	/*
 	 * The activation may execute a blocking operation in a dispatch function.

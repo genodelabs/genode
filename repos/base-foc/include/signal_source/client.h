@@ -70,6 +70,13 @@ namespace Genode {
 			: Rpc_client<Foc_signal_source>(static_cap_cast<Foc_signal_source>(cap))
 			{ _init_sem(); }
 
+			/**
+			 * Destructor
+			 */
+			~Signal_source_client()
+			{
+				Fiasco::l4_irq_detach(_sem.dst());
+			}
 
 			/*****************************
 			 ** Signal source interface **

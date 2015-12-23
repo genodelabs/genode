@@ -16,6 +16,7 @@
 #include <base/env.h>
 #include <base/native_env.h>
 
+
 void Genode::upgrade_pd_session_quota(Genode::size_t quota)
 {
 	char buf[128];

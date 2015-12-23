@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/env.h>
+#include <base/component.h>
 #include <base/printf.h>
 #include <os/config.h>
 #include <util/list.h>
@@ -34,13 +34,6 @@ namespace Linker {
 	struct Debug;
 
 };
-
-/**
- * Genode args to the 'main' function
- */
-extern char **genode_argv;
-extern int    genode_argc;
-extern char **genode_envp;
 
 static    Binary *binary = 0;
 bool      Linker::bind_now = false;
@@ -364,7 +357,7 @@ struct Linker::Binary : Root_object, Elf_object
 		return 0;
 	}
 
-	int call_entry_point()
+	void call_entry_point(Genode::Environment &env)
 	{
 		/* call static construtors and register destructors */
 		Func * const ctors_start = (Func *)lookup_symbol("_ctors_start");
@@ -375,11 +368,13 @@ struct Linker::Binary : Root_object, Elf_object
 		Func * const dtors_end   = (Func *)lookup_symbol("_dtors_end");
 		for (Func * dtor = dtors_start; dtor != dtors_end; genode_atexit(*dtor++));
 
-		/* call main function of the program */
-		typedef int (*Main)(int, char **, char **);
-		Main const main = reinterpret_cast<Main>(_file->entry);
+		/* call component entry point */
+		/* XXX the function type for call_component_construct() is a candidate
+		 * for a base-internal header */
+		typedef void (*Entry)(Genode::Environment &);
+		Entry const entry = reinterpret_cast<Entry>(_file->entry);
 
-		return main(genode_argc, genode_argv, genode_envp);
+		entry(env);
 	}
 
 	void relocate() override
@@ -558,7 +553,12 @@ static void dump_loaded()
 }
 
 
-int main()
+Genode::size_t Component::stack_size() { return 16*1024*sizeof(long); }
+char const * Component::name()         { return "ep"; }
+
+struct Failed_to_load_program { };
+
+void Component::construct(Genode::Environment &env)
 {
 	/* load program headers of linker now */
 	if (!Ld::linker()->file())
@@ -575,7 +575,7 @@ int main()
 		binary = new(Genode::env()->heap()) Binary();
 	} catch (...) {
 			PERR("LD: Failed to load program");
-			return -1;
+			throw Failed_to_load_program();
 	}
 
 	/* print loaded object information */
@@ -592,6 +592,5 @@ int main()
 	Link_map::dump();
 
 	/* start binary */
-	return binary->call_entry_point();
+	binary->call_entry_point(env);
 }
-

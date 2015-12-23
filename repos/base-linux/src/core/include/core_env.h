@@ -28,6 +28,8 @@
 /* base-internal includes */
 #include <base/internal/platform_env.h>
 
+namespace Genode { void init_stack_area(); }
+
 namespace Genode {
 
 	/**
@@ -136,7 +138,15 @@ namespace Genode {
 
 			typedef Synchronized_ram_session<Ram_session_component> Core_ram_session;
 
-			Core_parent                  _core_parent;
+			Core_parent _core_parent;
+
+			/*
+			 * Initialize the stack area before creating the first thread,
+			 * which happens to be the '_entrypoint'.
+			 */
+			bool _init_stack_area() { init_stack_area(); return true; }
+			bool _stack_area_initialized = _init_stack_area();
+
 			Entrypoint                   _entrypoint;
 			Core_ram_session             _ram_session;
 
@@ -152,6 +162,8 @@ namespace Genode {
 
 			Heap                         _heap;
 			Ram_session_capability const _ram_session_cap;
+
+			enum { SIGNAL_RAM_QUOTA = 1024*sizeof(long) };
 
 		public:
 
@@ -195,7 +207,7 @@ namespace Genode {
 			Pd_session             *pd_session()      override { return &_pd_session_client; }
 			Allocator              *heap()            override { return &_heap; }
 
-			Cpu_session_capability cpu_session_cap()
+			Cpu_session_capability cpu_session_cap() override
 			{
 				PWRN("%s:%u not implemented", __FILE__, __LINE__);
 				return Cpu_session_capability();

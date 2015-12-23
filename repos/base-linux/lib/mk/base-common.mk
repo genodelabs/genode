@@ -23,6 +23,8 @@ SRC_CC += thread/trace.cc thread/thread_env.cc thread/stack_allocator.cc
 SRC_CC += irq/platform.cc
 SRC_CC += sleep.cc
 SRC_CC += rm_session_client.cc
+SRC_CC += entrypoint/entrypoint.cc
+SRC_CC += component/component.cc
 
 INC_DIR += $(REP_DIR)/src/include $(BASE_DIR)/src/include
 

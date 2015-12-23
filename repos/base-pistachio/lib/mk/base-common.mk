@@ -24,6 +24,8 @@ SRC_CC += thread/myself.cc
 SRC_CC += thread/stack_allocator.cc
 SRC_CC += sleep.cc
 SRC_CC += rm_session_client.cc
+SRC_CC += entrypoint/entrypoint.cc
+SRC_CC += component/component.cc
 
 # suppress warning caused by Pistachio's 'l4/message.h'
 CC_WARN += -Wno-array-bounds

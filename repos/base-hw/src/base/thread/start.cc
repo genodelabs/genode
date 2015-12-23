@@ -24,7 +24,7 @@
 
 using namespace Genode;
 
-namespace Genode { Rm_session * env_stack_area_rm_session(); }
+namespace Genode { extern Rm_session * const env_stack_area_rm_session; }
 
 namespace Hw {
 	extern Ram_dataspace_capability _main_thread_utcb_ds;
@@ -51,7 +51,7 @@ void Thread_base::_init_platform_thread(size_t weight, Type type)
 	size_t const utcb_size  = sizeof(Native_utcb);
 	addr_t const stack_area = stack_area_virtual_base();
 	addr_t const utcb_new   = (addr_t)&_stack->utcb() - stack_area;
-	Rm_session * const rm   = env_stack_area_rm_session();
+	Rm_session * const rm   = env_stack_area_rm_session;
 
 	if (type == REINITIALIZED_MAIN) { rm->detach(utcb_new); }
 
@@ -78,7 +78,7 @@ void Thread_base::_deinit_platform_thread()
 	size_t const size = sizeof(_stack->utcb());
 	addr_t utcb = Stack_allocator::addr_to_base(_stack) +
 	              stack_virtual_size() - size - stack_area_virtual_base();
-	env_stack_area_rm_session()->detach(utcb);
+	env_stack_area_rm_session->detach(utcb);
 
 	if (_pager_cap.valid()) {
 		env()->rm_session()->remove_client(_pager_cap);
@@ -101,7 +101,7 @@ void Thread_base::start()
 		size_t const size = sizeof(_stack->utcb());
 		addr_t dst = Stack_allocator::addr_to_base(_stack) +
 		             stack_virtual_size() - size - stack_area_virtual_base();
-		env_stack_area_rm_session()->attach_at(ds, dst, size);
+		env_stack_area_rm_session->attach_at(ds, dst, size);
 	} catch (...) {
 		PERR("failed to attach userland stack");
 		sleep_forever();

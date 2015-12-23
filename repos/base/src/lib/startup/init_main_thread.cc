@@ -25,7 +25,7 @@ addr_t init_main_thread_result;
 
 extern void init_exception_handling();
 
-namespace Genode { Rm_session * env_stack_area_rm_session(); }
+namespace Genode { extern Rm_session * const env_stack_area_rm_session; }
 
 void prepare_init_main_thread();
 
@@ -92,12 +92,6 @@ extern "C" void init_main_thread()
 
 	/* initialize exception handling */
 	init_exception_handling();
-
-	/*
-	 * We create the thread-context area as early as possible to prevent other
-	 * mappings from occupying the predefined virtual-memory region.
-	 */
-	env_stack_area_rm_session();
 
 	/*
 	 * Trigger first exception. This step has two purposes.

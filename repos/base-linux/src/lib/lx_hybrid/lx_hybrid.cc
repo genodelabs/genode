@@ -1,5 +1,5 @@
 /*
- * \brief  Supplemental code for hybrid Genode/Linux programs
+ * \brief  Supplemental code for hybrid Genode/Linux components
  * \author Norman Feske
  * \date   2011-09-02
  */
@@ -13,6 +13,7 @@
 
 /* Genode includes */
 #include <base/printf.h>
+#include <base/component.h>
 #include <linux_syscalls.h>
 #include <linux_cpu_session/linux_cpu_session.h>
 
@@ -66,16 +67,45 @@ __attribute__((constructor(101))) void lx_hybrid_init()
 	lx_sigaction(LX_SIGUSR1, empty_signal_handler);
 }
 
+namespace Genode {
+	extern void bootstrap_component();
+	extern void call_global_static_constructors();
+
+	/*
+	 * Hook for intercepting the call of the 'Component::construct' method. By
+	 * hooking this function pointer in a library constructor, the libc is able
+	 * to create a task context for the component code. This context is
+	 * scheduled by the libc in a cooperative fashion, i.e. when the
+	 * component's entrypoint is activated.
+	 */
+
+	extern void (*call_component_construct)(Genode::Environment &) __attribute__((weak));
+}
+
+static void lx_hybrid_component_construct(Genode::Environment &env)
+{
+	Component::construct(env);
+}
+
+void (*Genode::call_component_construct)(Genode::Environment &) = &lx_hybrid_component_construct;
+
 /*
- * Dummy symbols to let generic tests programs (i.e., 'test-config_args') link
- * successfully. Please note that such programs are not expected to work when
- * built as hybrid Linux/Genode programs because when using the glibc startup
- * code, we cannot manipulate argv prior executing main. However, by defining
- * these symbols, we prevent the automated build bot from stumbling over such
- * binaries.
+ * Static constructors are handled by the Linux startup code - so implement
+ * this as empty function.
  */
-char **genode_argv = 0;
-int    genode_argc = 1;
+void Genode::call_global_static_constructors() { }
+
+/*
+ * Hybrid components are not allowed to implement legacy main(). This enables
+ * us to hook in and bootstrap components as usual.
+ */
+
+int main()
+{
+	Genode::bootstrap_component();
+
+	/* never reached */
+}
 
 
 /************

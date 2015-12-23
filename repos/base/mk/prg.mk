@@ -128,6 +128,13 @@ LD_CMD      += -Wl,--dynamic-linker=$(DYNAMIC_LINKER).lib.so \
 FILTER_DEPS := $(filter-out $(BASE_LIBS),$(DEPS:.lib=))
 SHARED_LIBS += $(LIB_CACHE_DIR)/$(DYNAMIC_LINKER)/$(DYNAMIC_LINKER).lib.so
 
+
+#
+# Link all dynamic executables to the component entry-point library (a
+# trampoline for component startup from ldso)
+#
+FILTER_DEPS += component_entry_point
+
 #
 # Build program position independent as well
 #
