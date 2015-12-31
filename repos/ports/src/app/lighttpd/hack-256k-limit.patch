@@ -1,0 +1,13 @@
++++ src/app/lighttpd/src/connections.c
+@@ -609,7 +609,10 @@
+ }
+ 
+ static int connection_handle_write(server *srv, connection *con) {
+-	switch(network_write_chunkqueue(srv, con, con->write_queue, MAX_WRITE_LIMIT)) {
++	// This change from MAX_WRITE_LIMIT to SSIZE_MAX might break things
++	// however, it works around the 256K static file limit. Please use this patch with care.
++	// See: https://github.com/genodelabs/genode/issues/987
++	switch(network_write_chunkqueue(srv, con, con->write_queue, SSIZE_MAX)) {
+ 	case 0:
+ 		con->write_request_ts = srv->cur_ts;
+ 		if (con->file_finished) {
