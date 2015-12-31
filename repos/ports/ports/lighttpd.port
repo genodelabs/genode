@@ -1,9 +1,9 @@
 LICENSE   := BSD
-VERSION   := 1.4.31
+VERSION   := 1.4.38
 DOWNLOADS := lighttpd.archive
 
 URL(lighttpd) := http://download.lighttpd.net/lighttpd/releases-1.4.x/lighttpd-$(VERSION).tar.gz
-SHA(lighttpd) := 6b3babc9df173cea5ae4756c2fd6b0e85e015f2a
+SHA(lighttpd) := c5333bafa266b3cb99c36f2f84dd50139c7aec14
 SIG(lighttpd) := ${URL(lighttpd)}.asc
 KEY(lighttpd) := stbuehler@lighttpd.net
 DIR(lighttpd) := src/app/lighttpd
