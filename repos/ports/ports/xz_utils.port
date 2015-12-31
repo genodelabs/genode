@@ -1,0 +1,7 @@
+LICENSE   := GPLv3
+VERSION   := 5.2.2
+DOWNLOADS := xz_utils.archive
+
+URL(xz_utils) := http://tukaani.org/xz/xz-$(VERSION).tar.xz
+SHA(xz_utils) := 72c567d3263345844191a7e618779b179d1f49e0
+DIR(xz_utils) := src/noux-pkg/xz_utils
