@@ -239,7 +239,7 @@ namespace {
 				return O_RDONLY;
 		case F_SETFD:
 			{
-				const long supported_flags = FD_CLOEXEC;
+				const long supported_flags = FD_CLOEXEC | O_NONBLOCK;
 				/* if unsupported flags are used, fall through with error */
 				if (!(arg & ~supported_flags)) {
 					/* close fd if exec is called - no exec support -> ignore */
