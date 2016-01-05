@@ -96,9 +96,10 @@ struct Ahci
 		platform_hba.ack_irq();
 	}
 
-	void ready(unsigned)
+	void ready(unsigned cnt)
 	{
-		if (--ready_count)
+		ready_count -= cnt;
+		if (ready_count)
 			return;
 
 		/* announce service */
