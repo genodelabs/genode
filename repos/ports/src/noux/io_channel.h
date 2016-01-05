@@ -81,6 +81,7 @@ namespace Noux {
 			virtual bool    dirent(Sysio *sysio)                 { return false; }
 			virtual bool     ioctl(Sysio *sysio)                 { return false; }
 			virtual bool     lseek(Sysio *sysio)                 { return false; }
+			virtual bool    isatty(Sysio *sysio)                 { return false; }
 
 			/**
 			 * Return true if an unblocking condition of the channel is satisfied

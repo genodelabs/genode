@@ -69,7 +69,8 @@ struct Vfs::File_io_service
 
 	enum Ioctl_opcode { IOCTL_OP_UNDEFINED, IOCTL_OP_TIOCGWINSZ,
 	                    IOCTL_OP_TIOCSETAF, IOCTL_OP_TIOCSETAW,
-	                    IOCTL_OP_FIONBIO,   IOCTL_OP_DIOCGMEDIASIZE };
+	                    IOCTL_OP_FIONBIO,   IOCTL_OP_DIOCGMEDIASIZE,
+	                    IOCTL_OP_TIOCGETA };
 
 	enum Ioctl_value { IOCTL_VAL_NULL, IOCTL_VAL_ECHO, IOCTL_VAL_ECHONL };
 

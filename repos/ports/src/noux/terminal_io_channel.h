@@ -193,6 +193,9 @@ namespace Noux {
 					return false;
 				}
 
+			case Vfs::File_io_service::IOCTL_OP_TIOCGETA:
+				return true;
+
 			default:
 
 				PDBG("invalid ioctl request %d", sysio->ioctl_in.request);
