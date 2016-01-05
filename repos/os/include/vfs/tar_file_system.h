@@ -176,9 +176,9 @@ class Vfs::Tar_file_system : public File_system
 		}
 
 
-		Node *lookup_child(int index)
+		Node const *lookup_child(int index) const
 		{
-			for (Node *child_node = first(); child_node; child_node = child_node->next(), index--) {
+			for (Node const *child_node = first(); child_node; child_node = child_node->next(), index--) {
 				if (index == 0)
 					return child_node;
 			}
@@ -464,7 +464,7 @@ class Vfs::Tar_file_system : public File_system
 
 		Dirent_result dirent(char const *path, file_offset index, Dirent &out) override
 		{
-			Node *node = _root_node.lookup(path);
+			Node const *node = dereference(path);
 
 			if (!node)
 				return DIRENT_ERR_INVALID_PATH;
@@ -472,6 +472,7 @@ class Vfs::Tar_file_system : public File_system
 			node = node->lookup_child(index);
 
 			if (!node) {
+				out.name[0] = '\0';
 				out.type = DIRENT_TYPE_END;
 				return DIRENT_OK;
 			}
@@ -480,16 +481,26 @@ class Vfs::Tar_file_system : public File_system
 
 			Record const *record = node->record;
 
+			while (record && (record->type() == Record::TYPE_HARDLINK)) {
+				Node const *target = dereference(record->linked_name());
+				record = target ? target->record : 0;
+			}
+
 			if (record) {
 				switch (record->type()) {
-				case 0: out.type = DIRENT_TYPE_FILE;      break;
-				case 2: out.type = DIRENT_TYPE_SYMLINK;   break;
-				case 5: out.type = DIRENT_TYPE_DIRECTORY; break;
+				case Record::TYPE_FILE:
+					out.type = DIRENT_TYPE_FILE;      break;
+				case Record::TYPE_SYMLINK:
+					out.type = DIRENT_TYPE_SYMLINK;   break;
+				case Record::TYPE_DIR:
+					out.type = DIRENT_TYPE_DIRECTORY; break;
 
 				default:
-					if (verbose)
-						PDBG("unhandled record type %d", record->type());
+					PERR("unhandled record type %d for %s", record->type(), node->name);
 				}
+			} else {
+				/* If no record exists, assume it is a directory */
+				out.type = DIRENT_TYPE_DIRECTORY;
 			}
 
 			strncpy(out.name, node->name, sizeof(out.name));
@@ -502,7 +513,7 @@ class Vfs::Tar_file_system : public File_system
 		Readlink_result readlink(char const *path, char *buf, file_size buf_size,
 		                         file_size &out_len) override
 		{
-			Node *node = _root_node.lookup(path);
+			Node const *node = dereference(path);
 			Record const *record = node ? node->record : 0;
 
 			if (!record || (record->type() != Record::TYPE_SYMLINK))
@@ -539,7 +550,7 @@ class Vfs::Tar_file_system : public File_system
 
 		bool is_directory(char const *path) override
 		{
-			Node *node = _root_node.lookup(path);
+			Node const *node = dereference(path);
 
 			if (!node)
 				return false;
