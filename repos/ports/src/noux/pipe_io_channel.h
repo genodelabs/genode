@@ -260,6 +260,10 @@ namespace Noux {
 						sysio->fcntl_out.result = Sysio::OPEN_MODE_WRONLY;
 						return true;
 
+					case Sysio::FCNTL_CMD_SET_FILE_STATUS_FLAGS:
+						sysio->fcntl_out.result = 0;
+						return true;
+
 					default:
 						return false;
 				}
@@ -334,6 +338,10 @@ namespace Noux {
 
 					case Sysio::FCNTL_CMD_GET_FILE_STATUS_FLAGS:
 						sysio->fcntl_out.result = Sysio::OPEN_MODE_RDONLY;
+						return true;
+
+					case Sysio::FCNTL_CMD_SET_FILE_STATUS_FLAGS:
+						sysio->fcntl_out.result = 0;
 						return true;
 
 					default:
