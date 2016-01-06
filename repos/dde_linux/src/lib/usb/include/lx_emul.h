@@ -930,6 +930,12 @@ void  kfree(const void *);
 void *kmalloc(size_t size, gfp_t flags);
 void *kcalloc(size_t n, size_t size, gfp_t flags);
 
+/**
+ * Genode specific for large DMA allocations
+ */
+void *dma_malloc(size_t size);
+void  dma_free(void *ptr);
+
 struct kmem_cache;
 
 /**

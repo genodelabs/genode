@@ -1,9 +1,14 @@
+set usb_raw_device ""
+
 #
 # Check if USB_RAW_DEVICE is set for Qemu
 #
-if {![info exists ::env(USB_RAW_DEVICE)] && [have_include power_on/qemu]} {
-	puts "\nPlease define USB_RAW_DEVICE environment variable and set it to your USB device <bus.device>\n"
-	exit 0
+if {[have_include power_on/qemu]} {
+	if {![info exists ::env(USB_RAW_DEVICE)]} {
+		puts "\nPlease define USB_RAW_DEVICE environment variable and set it to your USB device <bus.device>\n"
+		exit 0
+	}
+	set usb_raw_device $::env(USB_RAW_DEVICE)
 }
 
 #
@@ -67,7 +72,9 @@ append config {
 		<resource name="RAM" quantum="7M"/>
 		<provides><service name="Usb"/></provides>
 		<config uhci="yes" ehci="yes" xhci="yes">
-			<raw/>
+			<raw>
+				<policy label="usb_terminal -> usb_serial" vendor_id="0x67b" product_id="0x2303"/>
+			</raw>
 		</config>
 	</start>
 	<start name="usb_terminal">
@@ -97,7 +104,7 @@ append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 
-append qemu_args " -m 256 -nographic -usb  -usbdevice host:$::env(USB_RAW_DEVICE) -nographic"
+append qemu_args " -m 256 -nographic -usb  -usbdevice host:$usb_raw_device -nographic"
 
 
 run_genode_until forever

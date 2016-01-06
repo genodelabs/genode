@@ -110,6 +110,11 @@ class Genode::Slab_backend_alloc : public Genode::Allocator,
 				return _range.alloc(size, out_addr);
 		}
 
+		void free(void *addr)
+		{
+			_range.free(addr);
+		}
+
 		void   free(void *addr, size_t /* size */) override { }
 		size_t overhead(size_t size) const override { return  0; }
 		bool need_size_for_free() const override { return false; }
@@ -303,6 +308,22 @@ class Malloc
 			_allocator[nr]->free((void *)(addr - 1));
 		}
 
+		void *alloc_large(size_t size)
+		{
+			void *addr;
+			if (!_back_allocator->alloc(size, &addr)) {
+				PERR("Large back end allocation failed (%zu bytes)", size);
+				return nullptr;
+			}
+
+			return addr;
+		}
+
+		void free_large(void *ptr)
+		{
+			_back_allocator->free(ptr);
+		}
+
 		Genode::addr_t phys_addr(void *a)
 		{
 			return _back_allocator->phys_addr((addr_t)a);
@@ -375,6 +396,18 @@ void atomic_set(atomic_t *p, unsigned int v) { (*(volatile int *)p) = v; }
 /*************************************
  ** Memory allocation, linux/slab.h **
  *************************************/
+
+void *dma_malloc(size_t size)
+{
+	return Malloc::dma()->alloc_large(size);
+}
+
+
+void dma_free(void *ptr)
+{
+	Malloc::dma()->free_large(ptr);
+}
+
 
 void *kmalloc(size_t size, gfp_t flags)
 {

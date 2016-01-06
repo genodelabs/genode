@@ -51,7 +51,7 @@ namespace Usb_proxy_device_genode {
 
 			Data(unsigned int vendor_id, unsigned int product_id)
 			: _alloc(Genode::env()->heap()),
-			  usb_connection(&_alloc, vendor_id, product_id)
+			  usb_connection(&_alloc)
 			{
 				/* wait until device and server are ready */
 
