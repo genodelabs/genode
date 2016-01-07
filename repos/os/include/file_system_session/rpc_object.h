@@ -35,7 +35,8 @@ class File_system::Session_rpc_object : public Genode::Rpc_object<Session, Sessi
 		 *               for the tx packet stream
 		 * \param ep     entry point used for packet-stream channel
 		 */
-		Session_rpc_object(Dataspace_capability tx_ds, Rpc_entrypoint &ep)
+		Session_rpc_object(Genode::Dataspace_capability  tx_ds,
+		                   Genode::Rpc_entrypoint       &ep)
 		: _tx(tx_ds, ep) { }
 
 		/**
@@ -44,7 +45,7 @@ class File_system::Session_rpc_object : public Genode::Rpc_object<Session, Sessi
 		 * This method is called by the client via an RPC call at session
 		 * construction time.
 		 */
-		Capability<Tx> _tx_cap() { return _tx.cap(); }
+		Genode::Capability<Tx> _tx_cap() { return _tx.cap(); }
 
 		Tx::Sink *tx_sink() { return _tx.sink(); }
 };

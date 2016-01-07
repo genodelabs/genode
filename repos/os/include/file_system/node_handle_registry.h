@@ -43,7 +43,7 @@ namespace File_system {
 			/* maximum number of open nodes per session */
 			enum { MAX_NODE_HANDLES = 128U };
 
-			Lock mutable _lock;
+			Genode::Lock mutable _lock;
 
 			Node_base *_nodes[MAX_NODE_HANDLES];
 
@@ -60,7 +60,7 @@ namespace File_system {
 			 */
 			int _alloc(Node_base *node)
 			{
-				Lock::Guard guard(_lock);
+				Genode::Lock::Guard guard(_lock);
 
 				for (unsigned i = 0; i < MAX_NODE_HANDLES; i++)
 					if (!_nodes[i]) {
@@ -96,7 +96,7 @@ namespace File_system {
 			 */
 			void free(Node_handle handle)
 			{
-				Lock::Guard guard(_lock);
+				Genode::Lock::Guard guard(_lock);
 
 				if (!_in_range(handle.value))
 					return;
@@ -132,7 +132,7 @@ namespace File_system {
 			template <typename HANDLE_TYPE>
 			typename Node_type<HANDLE_TYPE>::Type *lookup(HANDLE_TYPE handle)
 			{
-				Lock::Guard guard(_lock);
+				Genode::Lock::Guard guard(_lock);
 
 				if (!_in_range(handle.value))
 					throw Invalid_handle();
@@ -155,7 +155,7 @@ namespace File_system {
 			template <typename HANDLE_TYPE>
 			typename Node_type<HANDLE_TYPE>::Type *lookup_and_lock(HANDLE_TYPE handle)
 			{
-				Lock::Guard guard(_lock);
+				Genode::Lock::Guard guard(_lock);
 
 				if (!_in_range(handle.value))
 					throw Invalid_handle();
@@ -171,7 +171,7 @@ namespace File_system {
 
 			bool refer_to_same_node(Node_handle h1, Node_handle h2) const
 			{
-				Lock::Guard guard(_lock);
+				Genode::Lock::Guard guard(_lock);
 
 				if (!_in_range(h1.value) || !_in_range(h2.value)) {
 					PDBG("refer_to_same_node -> Invalid_handle");
@@ -184,9 +184,9 @@ namespace File_system {
 			/**
 			 * Register signal handler to be notified of node changes
 			 */
-			void sigh(Node_handle handle, Signal_context_capability sigh)
+			void sigh(Node_handle handle, Genode::Signal_context_capability sigh)
 			{
-				Lock::Guard guard(_lock);
+				Genode::Lock::Guard guard(_lock);
 
 				if (!_in_range(handle.value))
 					throw Invalid_handle();

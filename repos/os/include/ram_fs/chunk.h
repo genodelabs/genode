@@ -22,6 +22,8 @@
 
 namespace File_system {
 
+	using namespace Genode;
+
 	using Genode::Noncopyable;
 
 	class Chunk_base;

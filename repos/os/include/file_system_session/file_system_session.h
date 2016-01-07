@@ -21,12 +21,12 @@
 
 namespace File_system {
 
-	using namespace Genode;
-
 	struct Node_handle;
 	struct File_handle;
 	struct Dir_handle;
 	struct Symlink_handle;
+
+	using Genode::size_t;
 
 	typedef Genode::uint64_t seek_off_t;
 	typedef Genode::uint64_t file_size_t;
@@ -40,8 +40,8 @@ namespace File_system {
 
 	enum { MAX_NAME_LEN = 256, MAX_PATH_LEN = 1024 };
 
-	typedef Rpc_in_buffer<MAX_NAME_LEN> Name;
-	typedef Rpc_in_buffer<MAX_PATH_LEN> Path;
+	typedef Genode::Rpc_in_buffer<MAX_NAME_LEN> Name;
+	typedef Genode::Rpc_in_buffer<MAX_PATH_LEN> Path;
 
 	struct Status;
 	struct Control;
@@ -112,7 +112,7 @@ class File_system::Packet_descriptor : public Genode::Packet_descriptor
 
 		Node_handle _handle;   /* node handle */
 		Opcode      _op;       /* requested operation */
-		seek_off_t  _position; /* seek offset in bytes */
+		seek_off_t  _position; /* file seek offset in bytes */
 		size_t      _length;   /* transaction length in bytes */
 		bool        _success;  /* indicates success of operation */
 
@@ -121,9 +121,10 @@ class File_system::Packet_descriptor : public Genode::Packet_descriptor
 		/**
 		 * Constructor
 		 */
-		Packet_descriptor(off_t offset = 0, size_t size = 0)
+		Packet_descriptor(Genode::off_t  buf_offset = 0,
+		                  Genode::size_t buf_size   = 0)
 		:
-			Genode::Packet_descriptor(offset, size), _handle(-1),
+			Genode::Packet_descriptor(buf_offset, buf_size), _handle(-1),
 			_op(READ), _position(0), _length(0), _success(false) { }
 
 		/**
@@ -194,9 +195,9 @@ struct File_system::Session : public Genode::Session
 {
 	enum { TX_QUEUE_SIZE = 16 };
 
-	typedef Packet_stream_policy<File_system::Packet_descriptor,
-	                             TX_QUEUE_SIZE, TX_QUEUE_SIZE,
-	                             char> Tx_policy;
+	typedef Genode::Packet_stream_policy<File_system::Packet_descriptor,
+	                                     TX_QUEUE_SIZE, TX_QUEUE_SIZE,
+	                                     char> Tx_policy;
 
 	typedef Packet_stream_tx::Channel<Tx_policy> Tx;
 
@@ -303,7 +304,7 @@ struct File_system::Session : public Genode::Session
 	/**
 	 * Register handler that should be notified on node changes
 	 */
-	virtual void sigh(Node_handle, Signal_context_capability sigh) = 0;
+	virtual void sigh(Node_handle, Genode::Signal_context_capability sigh) = 0;
 
 	/**
 	 * Synchronize file system
@@ -318,7 +319,7 @@ struct File_system::Session : public Genode::Session
 	 ** RPC interface **
 	 *******************/
 
-	GENODE_RPC(Rpc_tx_cap, Capability<Tx>, _tx_cap);
+	GENODE_RPC(Rpc_tx_cap, Genode::Capability<Tx>, _tx_cap);
 	GENODE_RPC_THROW(Rpc_file, File_handle, file,
 	                 GENODE_TYPE_LIST(Invalid_handle, Node_already_exists,
 	                                  Invalid_name, Lookup_failed,
@@ -354,7 +355,7 @@ struct File_system::Session : public Genode::Session
 	                 Dir_handle, Name const &, Dir_handle, Name const &);
 	GENODE_RPC_THROW(Rpc_sigh, void, sigh,
 	                 GENODE_TYPE_LIST(Invalid_handle),
-	                 Node_handle, Signal_context_capability);
+	                 Node_handle, Genode::Signal_context_capability);
 	GENODE_RPC(Rpc_sync, void, sync, Node_handle);
 
 	/*
@@ -362,20 +363,20 @@ struct File_system::Session : public Genode::Session
 	 * exceeds the maximum number of type-list elements supported by
 	 * 'Genode::Meta::Type_list<>'.
 	 */
-	typedef Meta::Type_tuple<Rpc_tx_cap,
-	        Meta::Type_tuple<Rpc_file,
-	        Meta::Type_tuple<Rpc_symlink,
-	        Meta::Type_tuple<Rpc_dir,
-	        Meta::Type_tuple<Rpc_node,
-	        Meta::Type_tuple<Rpc_close,
-	        Meta::Type_tuple<Rpc_status,
-	        Meta::Type_tuple<Rpc_control,
-	        Meta::Type_tuple<Rpc_unlink,
-	        Meta::Type_tuple<Rpc_truncate,
-	        Meta::Type_tuple<Rpc_move,
-	        Meta::Type_tuple<Rpc_sigh,
-	        Meta::Type_tuple<Rpc_sync,
-	                         Meta::Empty>
+	typedef Genode::Meta::Type_tuple<Rpc_tx_cap,
+	        Genode::Meta::Type_tuple<Rpc_file,
+	        Genode::Meta::Type_tuple<Rpc_symlink,
+	        Genode::Meta::Type_tuple<Rpc_dir,
+	        Genode::Meta::Type_tuple<Rpc_node,
+	        Genode::Meta::Type_tuple<Rpc_close,
+	        Genode::Meta::Type_tuple<Rpc_status,
+	        Genode::Meta::Type_tuple<Rpc_control,
+	        Genode::Meta::Type_tuple<Rpc_unlink,
+	        Genode::Meta::Type_tuple<Rpc_truncate,
+	        Genode::Meta::Type_tuple<Rpc_move,
+	        Genode::Meta::Type_tuple<Rpc_sigh,
+	        Genode::Meta::Type_tuple<Rpc_sync,
+	                         Genode::Meta::Empty>
 	        > > > > > > > > > > > > Rpc_functions;
 };
 

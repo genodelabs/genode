@@ -18,6 +18,8 @@ namespace Ffat { extern "C" {
 
 namespace File_system {
 
+	using namespace Genode;
+
 	class Directory : public Node
 	{
 		private:

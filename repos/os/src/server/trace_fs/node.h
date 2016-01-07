@@ -15,6 +15,8 @@
 
 namespace File_system {
 
+	using namespace Genode;
+
 	class Node : public Node_base, public List<Node>::Element
 	{
 		public:

@@ -23,6 +23,7 @@
 
 
 namespace File_system {
+	using namespace Genode;
 	class Node;
 }
 

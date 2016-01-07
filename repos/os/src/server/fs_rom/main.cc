@@ -24,6 +24,8 @@
 #include <os/path.h>
 
 
+using namespace Genode;
+
 /*****************
  ** ROM service **
  *****************/

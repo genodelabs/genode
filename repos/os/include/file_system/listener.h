@@ -27,7 +27,7 @@ namespace File_system {
 
 			Listener() : _marked_as_updated(false) { }
 
-			Listener(Signal_context_capability sigh)
+			Listener(Genode::Signal_context_capability sigh)
 			: _sigh(sigh), _marked_as_updated(false) { }
 
 			void notify()
@@ -35,7 +35,7 @@ namespace File_system {
 				Genode::Lock::Guard guard(_lock);
 
 				if (_marked_as_updated && _sigh.valid())
-					Signal_transmitter(_sigh).submit();
+					Genode::Signal_transmitter(_sigh).submit();
 
 				_marked_as_updated = false;
 			}

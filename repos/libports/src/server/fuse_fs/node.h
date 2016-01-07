@@ -19,6 +19,8 @@
 
 namespace File_system {
 
+	using namespace Genode;
+
 	typedef Genode::Path<MAX_PATH_LEN> Absolute_path;
 
 	class Node : public Node_base, public List<Node>::Element
