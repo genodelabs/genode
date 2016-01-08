@@ -17,8 +17,8 @@
 using namespace Genode;
 
 
-bool Pd_session_component::assign_pci(addr_t pci_config_memory)
+bool Pd_session_component::assign_pci(addr_t pci_config_memory, uint16_t bdf)
 {
-	uint8_t res = Nova::assign_pci(_pd.pd_sel(), pci_config_memory, 0);
+	uint8_t res = Nova::assign_pci(_pd.pd_sel(), pci_config_memory, bdf);
 	return res == Nova::NOVA_OK;
 }

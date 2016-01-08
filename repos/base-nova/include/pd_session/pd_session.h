@@ -49,7 +49,15 @@ namespace Genode {
 		virtual int assign_parent(Parent_capability parent) = 0;
 
 
-		virtual bool assign_pci(addr_t) = 0;
+		/**
+		 * Assign PCI device to a protection domain.
+		 *
+		 * \param   pci_config_space  virtual address of the 4K PCI config
+		 *                            space extended memory of the device
+		 * \param   bdf               bus/device/function of the PCI device
+		 * \return  true              on success, or false in case of an error
+		 */
+		virtual bool assign_pci(addr_t pci_config_space, uint16_t bdf) = 0;
 
 		/*********************
 		 ** RPC declaration **
@@ -57,7 +65,7 @@ namespace Genode {
 
 		GENODE_RPC(Rpc_bind_thread,   int, bind_thread,   Thread_capability);
 		GENODE_RPC(Rpc_assign_parent, int, assign_parent, Parent_capability);
-		GENODE_RPC(Rpc_assign_pci, bool, assign_pci, addr_t);
+		GENODE_RPC(Rpc_assign_pci, bool, assign_pci, addr_t, uint16_t);
 
 		GENODE_RPC_INTERFACE(Rpc_bind_thread, Rpc_assign_parent,
 		                     Rpc_assign_pci);

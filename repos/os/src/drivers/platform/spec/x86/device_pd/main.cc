@@ -127,7 +127,7 @@ void Platform::Device_pd_component::attach_dma_mem(Genode::Dataspace_capability 
 	}
 }
 
-void Platform::Device_pd_component::assign_pci(Genode::Io_mem_dataspace_capability io_mem_cap)
+void Platform::Device_pd_component::assign_pci(Genode::Io_mem_dataspace_capability io_mem_cap, Genode::uint16_t rid)
 {
 	using namespace Genode;
 
@@ -143,8 +143,10 @@ void Platform::Device_pd_component::assign_pci(Genode::Io_mem_dataspace_capabili
 		PERR("assignment of PCI device failed - %lx", page);
 
 	/* try to assign pci device to this protection domain */
-	if (!env()->pd_session()->assign_pci(page))
-		PERR("assignment of PCI device failed");
+	if (!env()->pd_session()->assign_pci(page, rid))
+		PERR("assignment of PCI device %x:%x.%x failed phys=%lx virt=%lx",
+		     rid >> 8, (rid >> 3) & 0x1f, rid & 0x7,
+		     ds_client.phys_addr(), page);
 
 	/* we don't need the mapping anymore */
 	rm_session()->detach(page);

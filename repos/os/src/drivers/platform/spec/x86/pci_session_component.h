@@ -266,12 +266,10 @@ namespace Platform {
 			 * A io mem dataspace is created and returned.
 			 */
 			Genode::addr_t
-			lookup_config_space(Genode::uint8_t bus, Genode::uint8_t dev,
-			                    Genode::uint8_t func)
+			lookup_config_space(Genode::uint16_t const bdf)
 			{
 				using namespace Genode;
 
-				uint32_t bdf = (bus << 8) | ((dev & 0x1f) << 3) | (func & 0x7);
 				addr_t config_space = ~0UL; /* invalid */
 
 				Config_space *e = config_space_list().first();
@@ -670,7 +668,7 @@ namespace Platform {
 
 					/* lookup if we have a extended pci config space */
 					Genode::addr_t config_space =
-						lookup_config_space(bus, device, function);
+						lookup_config_space(config.bdf());
 
 					/*
 					 * A device was found. Create a new device component for the
@@ -753,7 +751,7 @@ namespace Platform {
 					return;
 
 				try {
-					_device_pd->child.assign_pci(io_mem);
+					_device_pd->child.assign_pci(io_mem, device->config().bdf());
 
 					for (Rmrr *r = Rmrr::list()->first(); r; r = r->next()) {
 						Io_mem_dataspace_capability rmrr_cap = r->match(device->config());
