@@ -147,6 +147,9 @@ void Platform::Device_pd_component::assign_pci(Genode::Io_mem_dataspace_capabili
 		PERR("assignment of PCI device %x:%x.%x failed phys=%lx virt=%lx",
 		     rid >> 8, (rid >> 3) & 0x1f, rid & 0x7,
 		     ds_client.phys_addr(), page);
+	else
+		PINF("assignment of %x:%x.%x succeeded",
+		     rid >> 8, (rid >> 3) & 0x1f, rid & 0x7);
 
 	/* we don't need the mapping anymore */
 	rm_session()->detach(page);
@@ -155,8 +158,6 @@ void Platform::Device_pd_component::assign_pci(Genode::Io_mem_dataspace_capabili
 int main(int argc, char **argv)
 {
 	using namespace Genode;
-
-	Genode::printf("Device protection domain starting ...\n");
 
 	/*
 	 * Initialize server entry point
@@ -176,8 +177,6 @@ int main(int argc, char **argv)
 	static Static_root<Platform::Device_pd> root(ep.manage(&pd_component));
 
 	env()->parent()->announce(ep.manage(&root));
-
-	printf("Device protection domain started\n");
 
 	Genode::sleep_forever();
 	return 0;

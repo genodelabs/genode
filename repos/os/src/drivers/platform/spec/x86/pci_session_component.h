@@ -145,7 +145,8 @@ namespace Platform {
 
 				Devicepd (Genode::Rpc_entrypoint &ep,
 				          Genode::Allocator_guard &md_alloc,
-				          Genode::Ram_session_capability ram_ref_cap)
+				          Genode::Ram_session_capability ram_ref_cap,
+				          const char * label)
 				:
 				  policy(nullptr),
 				  child(Genode::reinterpret_cap_cast<Device_pd>(Genode::Native_capability())),
@@ -161,7 +162,7 @@ namespace Platform {
 					}
 
 					try {
-						policy = new (md_alloc) Device_pd_policy(ep, ram_ref_cap, DEVICE_PD_RAM_QUOTA);
+						policy = new (md_alloc) Device_pd_policy(ep, ram_ref_cap, DEVICE_PD_RAM_QUOTA, label);
 
 						using Genode::Session_capability;
 						using Genode::Affinity;
@@ -199,10 +200,10 @@ namespace Platform {
 				bool valid() { return policy && policy->root().valid() && child.valid(); }
 			};
 
-			Genode::Lazy_volatile_object<struct Devicepd> _device_pd;
-
 			Genode::Session_label                       _label;
 			Genode::Session_policy                      _policy;
+
+			Genode::Lazy_volatile_object<struct Devicepd> _device_pd;
 
 			enum { MAX_PCI_DEVICES = Device_config::MAX_BUSES *
 			                         Device_config::MAX_DEVICES *
@@ -745,7 +746,8 @@ namespace Platform {
 
 				if (!_device_pd.is_constructed())
 					_device_pd.construct(_device_pd_ep, _md_alloc,
-					                     _resources.ram().cap());
+					                     _resources.ram().cap(),
+					                     _label.string());
 
 				if (!_device_pd->valid())
 					return;
@@ -772,7 +774,8 @@ namespace Platform {
 			{
 				if (!_device_pd.is_constructed())
 					_device_pd.construct(_device_pd_ep, _md_alloc,
-					                     _resources.ram().cap());
+					                     _resources.ram().cap(),
+					                     _label.string());
 
 				if (!_md_alloc.withdraw(size))
 					throw Out_of_metadata();
