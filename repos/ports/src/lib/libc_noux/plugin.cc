@@ -227,6 +227,21 @@ extern "C" struct passwd *getpwuid(uid_t uid)
 }
 
 
+extern "C" int getdtablesize()
+{
+	if (!noux_syscall(Noux::Session::SYSCALL_GETDTABLESIZE)) {
+		PWRN("getdtablesize syscall failed");
+		errno = ENOSYS;
+		return -1;
+	}
+
+	int n = sysio()->getdtablesize_out.n;
+	if (verbose)
+		PDBG("%d", n);
+	return n;
+}
+
+
 extern "C" uid_t getgid()
 {
 	sysio()->userinfo_in.request = Noux::Sysio::USERINFO_GET_GID;
