@@ -83,11 +83,12 @@ class Genode::Slave_policy : public Genode::Child_policy
 		 */
 		Slave_policy(const char             *label,
 		             Genode::Rpc_entrypoint &entrypoint,
-		             Genode::Ram_session    *ram = 0)
+		             Genode::Ram_session    *ram = 0,
+		             const char             *binary = nullptr)
 		:
 			_label(label),
 			_entrypoint(entrypoint),
-			_binary_rom(_label, _label),
+			_binary_rom(binary ? binary : _label, _label),
 			_labeling_policy(_label),
 			_binary_policy("binary", _binary_rom.dataspace(), &_entrypoint),
 			_config_policy("config", _entrypoint, ram)
