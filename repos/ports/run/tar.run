@@ -1,0 +1,214 @@
+#
+# On OMAP4 where no PS/2 is available, we rely on USB HID
+#
+proc use_usb_input { } { return [expr ![have_spec ps2] && [have_spec usb]] }
+
+#
+# Uncomment the following line when working on the VIM source code. Otherwise,
+# the package may get recompiled, yet it does not get reinstalled into 'bin/'.
+#
+#exec rm -rf noux-pkg/bash bin/bash
+
+set build_components {
+	core init drivers/timer noux/minimal lib/libc_noux
+	drivers/framebuffer drivers/input
+	server/terminal server/ram_fs
+	test/libports/ncurses
+	drivers/rtc
+}
+
+lappend_if [use_usb_input]  build_components drivers/usb
+lappend_if [have_spec gpio] build_components drivers/gpio
+
+#
+# Build Noux packages only once
+#
+set noux_pkgs "bash coreutils vim tar xz_utils"
+
+foreach pkg $noux_pkgs {
+	lappend_if [expr ![file exists bin/$pkg]] build_components noux-pkg/$pkg }
+
+build $build_components
+
+foreach pkg $noux_pkgs {
+	exec tar cfv bin/$pkg.tar -h -C bin/$pkg . }
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
+build $build_components
+
+# write default vimrc file
+set vimrc_fd [open "bin/vim/share/vim/vimrc" w]
+puts $vimrc_fd {
+set noloadplugins
+set hls
+set nocompatible
+set laststatus=2
+set noswapfile
+set viminfo=}
+close $vimrc_fd
+
+create_boot_directory
+
+append config {
+	<config verbose="yes">
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="CAP"/>
+			<service name="RAM"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="PD"/>
+			<service name="IRQ"/>
+			<service name="IO_PORT"/>
+			<service name="IO_MEM"/>
+			<service name="SIGNAL"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<start name="timer">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Timer"/></provides>
+		</start>
+		<start name="rtc_drv">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Rtc"/></provides>
+		</start>}
+
+append_if [have_spec sdl] config {
+	<start name="fb_sdl">
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Input"/>
+			<service name="Framebuffer"/>
+		</provides>
+	</start>}
+
+append_platform_drv_config
+
+append_if [have_spec framebuffer] config {
+	<start name="fb_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Framebuffer"/></provides>
+	</start>}
+
+append_if [have_spec ps2] config {
+	<start name="ps2_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Input"/></provides>
+	</start> }
+
+append_if [have_spec gpio] config {
+	<start name="gpio_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Gpio"/></provides>
+		<config/>
+	</start>}
+
+append_if [use_usb_input] config {
+	<start name="usb_drv">
+		<resource name="RAM" quantum="12M"/>
+		<provides><service name="Input"/></provides>
+		<config uhci="yes" ehci="yes" xhci="yes"> <hid/> </config>
+	</start> }
+
+append config {
+	<start name="terminal">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Terminal"/></provides>
+		<config>
+			<keyboard layout="en"/>
+			<font size="12" />
+		</config>
+	</start>
+	<start name="ram_fs">
+		<resource name="RAM" quantum="50M"/>
+		<provides><service name="File_system"/></provides>
+		<config>
+			<!-- preload RAM file system with some ROM images -->
+			<content>
+				<dir name="tmp">
+					<rom name="init" as="blubb" />
+				</dir>
+				<dir name="home">
+					<dir name="user">
+						<!-- just a place holder -->
+						<rom name="timer" />
+					</dir>
+				</dir>
+			</content>
+			<!-- constrain sessions according to their labels -->
+			<policy label="noux -> root" root="/" />
+			<policy label="noux -> home" root="/home/user" writeable="yes" />
+			<policy label="noux -> tmp"  root="/tmp"       writeable="yes" />
+		</config>
+	</start>
+	<start name="noux">
+		<resource name="RAM" quantum="250M" />
+		<config trace_syscalls="yes">
+			<fstab>
+				<tar name="coreutils.tar" />
+				<tar name="vim.tar" />
+				<tar name="bash.tar" />
+				<tar name="tar.tar" />
+				<tar name="xz_utils.tar" />
+
+				<!-- Example of how to impose policy onto a file system
+				     session. The label attached to the 'fs' node is used
+				     as a key to select the policy of 'ram_fs' -->
+
+				<dir name="home"> <fs label="home" /> </dir>
+
+				<!-- The entirety of ram_fs is mounted within the '/ram'
+				     directory. -->
+
+				<dir name="ram"> <fs label="root" /> </dir>
+				<dir name="tmp"> <fs label="tmp" /> </dir>
+
+				<dir name="dev"> <rtc/> <zero/> <null/> </dir>
+
+			</fstab>
+			<start name="/bin/bash">
+				<env name="TERM" value="linux" />
+			</start>
+		</config>
+	</start>
+</config>
+}
+
+install_config $config
+
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer ld.lib.so noux terminal ram_fs
+	libc.lib.so libm.lib.so libc_noux.lib.so ncurses.lib.so
+	bash.tar coreutils.tar vim.tar tar.tar xz_utils.tar rtc_drv
+}
+
+# platform-specific modules
+lappend_if [have_spec       linux] boot_modules fb_sdl
+lappend_if [have_spec         ps2] boot_modules ps2_drv
+lappend_if [have_spec framebuffer] boot_modules fb_drv
+lappend_if [use_usb_input]         boot_modules usb_drv
+lappend_if [have_spec gpio]        boot_modules gpio_drv
+
+append_platform_drv_boot_modules
+
+build_boot_image $boot_modules
+
+if {[have_spec x86_64]} {
+	# bash.tar is really huge when built for x86_64
+	append qemu_args " -m 400 "
+}
+
+run_genode_until forever
+
+exec rm bin/bash.tar
