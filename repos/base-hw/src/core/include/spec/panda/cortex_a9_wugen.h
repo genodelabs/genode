@@ -14,9 +14,6 @@
 #ifndef CORTEX_A9_WUGEN_H
 #define CORTEX_A9_WUGEN_H
 
-/* base includes */
-#include <unmanaged_singleton.h>
-
 /* Genode includes */
 #include <drivers/board_base.h>
 
@@ -27,8 +24,6 @@ namespace Genode { class Cortex_a9_wugen; }
  */
 class Genode::Cortex_a9_wugen : Mmio
 {
-	friend Unmanaged_singleton_constructor;
-
 	private:
 
 		struct Aux_core_boot_0 : Register<0x800, 32> {
@@ -36,12 +31,9 @@ class Genode::Cortex_a9_wugen : Mmio
 
 		struct Aux_core_boot_1 : Register<0x804, 32> { };
 
-		Cortex_a9_wugen() : Mmio(Board_base::CORTEX_A9_WUGEN_MMIO_BASE) { }
-
 	public:
 
-		static Cortex_a9_wugen * singleton() {
-			return unmanaged_singleton<Cortex_a9_wugen>(); }
+		Cortex_a9_wugen() : Mmio(Board_base::CORTEX_A9_WUGEN_MMIO_BASE) { }
 
 		/**
 		 * Start CPU 1 with instruction pointer 'ip'

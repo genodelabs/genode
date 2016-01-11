@@ -37,45 +37,44 @@ namespace Imx
 
 class Imx::Aipstz : public Genode::Mmio
 {
-	/*
-	 * Configuration of the masters
-	 */
+	private:
 
-	struct Mpr { enum { ALL_UNBUFFERED_AND_FULLY_TRUSTED = 0x77777777 }; };
-	struct Mpr1 : Register<0x0, 32>, Mpr { };
-	struct Mpr2 : Register<0x4, 32>, Mpr { };
+		/*
+		 * Configuration of the masters
+		 */
 
-	/*
-	 * Configuration of the platform peripherals
-	 */
+		struct Mpr { enum { ALL_UNBUFFERED_AND_FULLY_TRUSTED = 0x77777777 }; };
+		struct Mpr1 : Register<0x0, 32>, Mpr { };
+		struct Mpr2 : Register<0x4, 32>, Mpr { };
 
-	struct Pacr { enum { ALL_UNBUFFERED_AND_FULLY_UNPROTECTED = 0 }; };
-	struct Pacr1 : Register<0x20, 32>, Pacr { };
-	struct Pacr2 : Register<0x24, 32>, Pacr { };
-	struct Pacr3 : Register<0x28, 32>, Pacr { };
-	struct Pacr4 : Register<0x2c, 32>, Pacr { };
+		/*
+		 * Configuration of the platform peripherals
+		 */
 
-	/*
-	 * Configuration of the off-platform peripherals
-	 */
+		struct Pacr { enum { ALL_UNBUFFERED_AND_FULLY_UNPROTECTED = 0 }; };
+		struct Pacr1 : Register<0x20, 32>, Pacr { };
+		struct Pacr2 : Register<0x24, 32>, Pacr { };
+		struct Pacr3 : Register<0x28, 32>, Pacr { };
+		struct Pacr4 : Register<0x2c, 32>, Pacr { };
 
-	struct Opacr1 : Register<0x40, 32>, Pacr { };
-	struct Opacr2 : Register<0x44, 32>, Pacr { };
-	struct Opacr3 : Register<0x48, 32>, Pacr { };
-	struct Opacr4 : Register<0x4c, 32>, Pacr { };
-	struct Opacr5 : Register<0x50, 32>, Pacr { };
+		/*
+		 * Configuration of the off-platform peripherals
+		 */
+
+		struct Opacr1 : Register<0x40, 32>, Pacr { };
+		struct Opacr2 : Register<0x44, 32>, Pacr { };
+		struct Opacr3 : Register<0x48, 32>, Pacr { };
+		struct Opacr4 : Register<0x4c, 32>, Pacr { };
+		struct Opacr5 : Register<0x50, 32>, Pacr { };
 
 	public:
 
-		/**
-		 * Constructor
-		 */
 		Aipstz(Genode::addr_t const base) : Genode::Mmio(base) { }
 
 		/**
 		 * Configure this module appropriately for the first kernel run
 		 */
-		void prepare_kernel()
+		void init()
 		{
 			/* avoid AIPS intervention at any memory access */
 			write<Mpr1>(Mpr::ALL_UNBUFFERED_AND_FULLY_TRUSTED);
@@ -94,45 +93,18 @@ class Imx::Aipstz : public Genode::Mmio
 
 class Imx::Board : public Genode::Board_base
 {
-	/*
-	 * static AIPSTZ instances
-	 */
-
-	static Aipstz * _aipstz_1()
-	{
-		static Aipstz a(AIPS_1_MMIO_BASE);
-		return &a;
-	}
-
-	static Aipstz * _aipstz_2()
-	{
-		static Aipstz a(AIPS_2_MMIO_BASE);
-		return &a;
-	}
-
 	public:
 
 		/**
 		 * Configure this module appropriately for the first kernel run
 		 */
-		static void prepare_kernel()
+		void init()
 		{
-			_aipstz_1()->prepare_kernel();
-			_aipstz_2()->prepare_kernel();
+			Aipstz _aipstz_1(AIPS_1_MMIO_BASE);
+			Aipstz _aipstz_2(AIPS_2_MMIO_BASE);
+			_aipstz_1.init();
+			_aipstz_2.init();
 		}
-
-		/**
-		 * Return wether the board has SMP extensions
-		 */
-		static bool is_smp();
-
-		/*
-		 * Dummies
-		 */
-
-		static void outer_cache_invalidate() { }
-		static void outer_cache_flush() { }
-		static void secondary_cpus_ip(void *) { }
 };
 
 #endif /* _SPEC__IMX__BOARD_SUPPORT_H_ */

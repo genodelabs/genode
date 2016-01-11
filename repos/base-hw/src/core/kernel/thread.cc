@@ -269,13 +269,6 @@ void Thread::_call_resume_local_thread()
 }
 
 
-void Thread_event::_signal_acknowledged()
-{
-	Cpu::tlb_insertions();
-	_thread->_resume();
-}
-
-
 Thread_event::Thread_event(Thread * const t)
 : _thread(t), _signal_context(0) { }
 
@@ -360,51 +353,6 @@ void Thread_event::signal_context(Signal_context * const c)
 
 Signal_context * const Thread_event::signal_context() const {
 	return _signal_context; }
-
-
-void Thread::_call_update_data_region()
-{
-	/*
-	 * FIXME: If the caller is not a core thread, the kernel operates in a
-	 *        different address space than the caller. Combined with the fact
-	 *        that at least ARMv7 doesn't provide cache operations by physical
-	 *        address, this prevents us from selectively maintaining caches.
-	 *        The future solution will be a kernel that is mapped to every
-	 *        address space so we can use virtual addresses of the caller. Up
-	 *        until then we apply operations to caches as a whole instead.
-	 */
-	if (!_core()) {
-		Cpu::flush_data_caches();
-		return;
-	}
-	auto base = (addr_t)user_arg_1();
-	auto const size = (size_t)user_arg_2();
-	Cpu::flush_data_caches_by_virt_region(base, size);
-	Cpu::invalidate_instr_caches();
-}
-
-
-void Thread::_call_update_instr_region()
-{
-	/*
-	 * FIXME: If the caller is not a core thread, the kernel operates in a
-	 *        different address space than the caller. Combined with the fact
-	 *        that at least ARMv7 doesn't provide cache operations by physical
-	 *        address, this prevents us from selectively maintaining caches.
-	 *        The future solution will be a kernel that is mapped to every
-	 *        address space so we can use virtual addresses of the caller. Up
-	 *        until then we apply operations to caches as a whole instead.
-	 */
-	if (!_core()) {
-		Cpu::flush_data_caches();
-		Cpu::invalidate_instr_caches();
-		return;
-	}
-	auto base = (addr_t)user_arg_1();
-	auto const size = (size_t)user_arg_2();
-	Cpu::flush_data_caches_by_virt_region(base, size);
-	Cpu::invalidate_instr_caches_by_virt_region(base, size);
-}
 
 
 void Thread::_print_activity(bool const printing_thread)

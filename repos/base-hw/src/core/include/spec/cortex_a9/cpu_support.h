@@ -1,18 +1,19 @@
 /*
  * \brief  CPU driver for core
  * \author Martin stein
+ * \author Stefan Kalkowski
  * \date   2011-11-03
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CPU_H_
-#define _CPU_H_
+#ifndef _SPEC__CORTEX_A9__CPU_SUPPORT_H_
+#define _SPEC__CORTEX_A9__CPU_SUPPORT_H_
 
 /* core includes */
 #include <spec/arm_v7/cpu_support.h>
@@ -28,14 +29,14 @@ namespace Genode
 	/**
 	 * CPU driver for core
 	 */
-	class Cpu;
+	class Cortex_a9;
 }
 
 namespace Kernel { using Genode::Cpu_lazy_state; }
 
 class Genode::Cpu_lazy_state
 {
-	friend class Cpu;
+	friend class Cortex_a9;
 
 	private:
 
@@ -55,7 +56,7 @@ class Genode::Cpu_lazy_state
 		inline Cpu_lazy_state();
 };
 
-class Genode::Cpu : public Arm_v7
+class Genode::Cortex_a9 : public Arm_v7
 {
 	friend class Cpu_lazy_state;
 
@@ -229,12 +230,19 @@ class Genode::Cpu : public Arm_v7
 
 			static void write(access_t const v) {
 				asm volatile ("mcr p15, 0, %0, c1, c0, 1" :: "r" (v) : ); }
+
+			static void enable_smp()
+			{
+				access_t v = read();
+				Smp::set(v, 1);
+				write(v);
+			}
 		};
 
 		/**
 		 * Constructor
 		 */
-		Cpu() : _advanced_fp_simd_state(0) { }
+		Cortex_a9() : _advanced_fp_simd_state(0) { }
 
 		/**
 		 * Initialize advanced FP/SIMD extension
@@ -281,26 +289,47 @@ class Genode::Cpu : public Arm_v7
 		}
 
 		/**
-		 * Return kernel name of the executing CPU
+		 * Write back dirty cache lines and invalidate whole data cache
 		 */
-		static unsigned executing_id();
+		void clean_invalidate_data_cache()
+		{
+			clean_invalidate_inner_data_cache();
+			Kernel::board().l2_cache().clean_invalidate();
+		}
 
 		/**
-		 * Return kernel name of the primary CPU
+		 * Invalidate whole data cache
 		 */
-		static unsigned primary_id();
+		void invalidate_data_cache()
+		{
+			invalidate_inner_data_cache();
+			Kernel::board().l2_cache().invalidate();
+		}
+
+		/**
+		 * Clean and invalidate data-cache for virtual region
+		 * 'base' - 'base + size'
+		 */
+		void clean_invalidate_data_cache_by_virt_region(addr_t base,
+		                                                size_t const size)
+		{
+			Arm::clean_invalidate_data_cache_by_virt_region(base, size);
+			Kernel::board().l2_cache().clean_invalidate();
+		}
+
+		void translation_table_insertions() { invalidate_branch_predicts(); }
+
+		static unsigned executing_id() { return Mpidr::Aff_0::get(Mpidr::read()); }
+
 
 		/*************
 		 ** Dummies **
 		 *************/
 
 		static void translation_added(addr_t, size_t) { }
-		static void tlb_insertions() { inval_branch_predicts(); }
 };
 
-void Genode::Arm_v7::finish_init_phys_kernel() { Cpu::init_advanced_fp_simd(); }
-
-Genode::Cpu_lazy_state::Cpu_lazy_state() { fpexc = Cpu::Fpexc::En::bits(1); }
+Genode::Cpu_lazy_state::Cpu_lazy_state() { fpexc = Cortex_a9::Fpexc::En::bits(1); }
 
 /*
  * Annotation 1
@@ -322,4 +351,4 @@ Genode::Cpu_lazy_state::Cpu_lazy_state() { fpexc = Cpu::Fpexc::En::bits(1); }
  *  head branch as from 2014.04.17.
  */
 
-#endif /* _CPU_H_ */
+#endif /* _SPEC__CORTEX_A9__CPU_SUPPORT_H_ */

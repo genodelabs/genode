@@ -4,10 +4,6 @@
 # \author Alexander Boettcher
 #
 
-if {[have_spec hw_panda]} {
-	puts "Platform is unsupported."
-	exit 0
-}
 
 build "core init test/mp_server"
 

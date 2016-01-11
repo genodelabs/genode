@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -29,36 +29,7 @@ using namespace Kernel;
 
 namespace Kernel
 {
-	/**
-	 * Lists all pending domain updates
-	 */
-	class Cpu_domain_update_list;
-
-	Timer * timer();
-
 	Cpu_pool * cpu_pool() { return unmanaged_singleton<Cpu_pool>(); }
-}
-
-class Kernel::Cpu_domain_update_list
-: public Double_list_typed<Cpu_domain_update>
-{
-	typedef Cpu_domain_update Update;
-
-	public:
-
-		/**
-		 * Perform all pending domain updates on the executing CPU
-		 */
-		void do_each() { for_each([] (Update * const u) { u->_do(); }); }
-};
-
-namespace Kernel
-{
-	/**
-	 * Return singleton of the CPU domain-udpate list
-	 */
-	Cpu_domain_update_list * cpu_domain_update_list() {
-		return unmanaged_singleton<Cpu_domain_update_list>(); }
 }
 
 
@@ -149,25 +120,6 @@ void Cpu::schedule(Job * const job)
 }
 
 
-void Cpu::Ipi::occurred()
-{
-	cpu_domain_update_list()->do_each();
-	pending = false;
-}
-
-
-void Cpu::Ipi::trigger(unsigned const cpu_id)
-{
-	if (pending) return;
-
-	pic()->trigger_ip_interrupt(cpu_id);
-	pending = true;
-}
-
-
-Cpu::Ipi::Ipi(Irq::Pool &p) : Irq(Pic::IPI, p) { }
-
-
 bool Cpu::interrupt(unsigned const irq_id)
 {
 	Irq * const irq = object(irq_id);
@@ -211,56 +163,6 @@ Cpu::Cpu(unsigned const id, Timer * const timer)
   _timer_irq(_timer->interrupt_id(_id), *this) { }
 
 
-/***********************
- ** Cpu_domain_update **
- ***********************/
-
-void Cpu_domain_update::_do()
-{
-	/* perform domain update locally and get pending bit */
-	unsigned const id = Cpu::executing_id();
-	if (!_pending[id]) { return; }
-	_domain_update();
-	_pending[id] = false;
-
-	/* check wether there are still CPUs pending */
-	unsigned i = 0;
-	for (; i < NR_OF_CPUS && !_pending[i]; i++) { }
-	if (i < NR_OF_CPUS) { return; }
-
-	/* as no CPU is pending anymore, end the domain update */
-	cpu_domain_update_list()->remove(this);
-	_cpu_domain_update_unblocks();
-}
-
-
-bool Cpu_domain_update::_do_global(unsigned const domain_id)
-{
-	/* perform locally and leave it at that if in uniprocessor mode */
-	_domain_id = domain_id;
-	_domain_update();
-	if (NR_OF_CPUS == 1) { return false; }
-
-	/* inform other CPUs and block until they are done */
-	cpu_domain_update_list()->insert_tail(this);
-	unsigned const cpu_id = Cpu::executing_id();
-	for (unsigned i = 0; i < NR_OF_CPUS; i++) {
-		if (i == cpu_id) { continue; }
-		_pending[i] = true;
-		cpu_pool()->cpu(i)->trigger_ip_interrupt();
-	}
-	return true;
-}
-
-
-void Cpu_domain_update::_domain_update() {
-	Genode::Cpu::flush_tlb_by_pid(_domain_id); }
-
-
-Cpu_domain_update::Cpu_domain_update() {
-	for (unsigned i = 0; i < NR_OF_CPUS; i++) { _pending[i] = false; } }
-
-
 /**************
  ** Cpu_pool **
  **************/
@@ -278,6 +180,14 @@ Cpu_pool::Cpu_pool()
 	for (unsigned id = 0; id < NR_OF_CPUS; id++) {
 		new (_cpus[id]) Cpu(id, &_timer); }
 }
+
+
+/***********************
+ ** Cpu_domain_update **
+ ***********************/
+
+Cpu_domain_update::Cpu_domain_update() {
+	for (unsigned i = 0; i < NR_OF_CPUS; i++) { _pending[i] = false; } }
 
 
 /*****************

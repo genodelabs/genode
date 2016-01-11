@@ -40,7 +40,10 @@ Kernel::Pd::~Pd() {
 		oir->~Object_identity_reference();
 
 	/* clean up buffers of memory management */
-	Cpu::flush_tlb_by_pid(asid);
+	Cpu * const cpu  = cpu_pool()->cpu(Cpu::executing_id());
+	cpu->clean_invalidate_data_cache();
+	cpu->invalidate_instr_cache();
+	cpu->invalidate_tlb_by_pid(asid);
 	alloc().free(asid);
 }
 

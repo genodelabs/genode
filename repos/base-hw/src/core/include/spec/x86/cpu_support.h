@@ -364,23 +364,6 @@ class Genode::Cpu
 
 			_disable_fpu();
 		}
-
-
-		/*********************************************
-		 ** Dummy implementations not needed on x86 **
-		 *********************************************/
-
-		static void tlb_insertions() { }
-		static void translation_added(addr_t, size_t) { }
-		static void flush_data_caches() { }
-		static void flush_caches() { }
-		static void flush_tlb_by_pid(unsigned const pid) { }
-		static void flush_data_caches_by_virt_region(addr_t base,
-		                                             size_t const size) { }
-		static void invalidate_instr_caches() { }
-		static void invalidate_data_caches() { }
-		static void invalidate_instr_caches_by_virt_region(addr_t base,
-		                                                   size_t const size) {}
 };
 
 struct Genode::Cpu::Cr0 : Register<64>

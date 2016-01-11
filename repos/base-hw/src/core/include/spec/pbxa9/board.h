@@ -19,16 +19,7 @@
 
 namespace Genode
 {
-	class Board : public Cortex_a9::Board
-	{
-		public:
-
-			static void outer_cache_invalidate() { }
-			static void outer_cache_flush() { }
-			static void prepare_kernel() { }
-			static void secondary_cpus_ip(void * const ip) { }
-			static bool is_smp() { return false; }
-	};
+	using Board = Cortex_a9::Board;
 }
 
 #endif /* _SPEC__PBXA9__BOARD_H_ */

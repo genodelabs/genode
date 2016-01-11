@@ -23,7 +23,12 @@ namespace Genode
 	/**
 	 * Board driver
 	 */
-	class Board : public Imx::Board { };
+	class Board : public Imx::Board
+	{
+		public:
+
+			bool is_smp() { return false; }
+   	};
 }
 
 #endif /* _BOARD_H_ */

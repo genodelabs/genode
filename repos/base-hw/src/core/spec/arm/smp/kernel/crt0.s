@@ -35,8 +35,5 @@ _init_kernel_sp r0, r1
 /* do multiprocessor kernel-initialization */
 bl init_kernel_mp
 
-/* call the kernel main-routine */
-bl kernel
-
 /* catch erroneous return of the kernel main-routine */
 1: b 1b

@@ -1,11 +1,12 @@
 /*
  * \brief  Class for kernel data that is needed to manage a specific CPU
  * \author Reto Buerki
+ * \author Stefan Kalkowski
  * \date   2015-02-09
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -28,21 +29,7 @@ Cpu_idle::Cpu_idle(Cpu * const cpu) : Cpu_job(Cpu_priority::MIN, 0)
 }
 
 
-void Cpu_idle::exception(unsigned const cpu)
-{
-	if (trapno == RESET) {
-		return;
-	} else if (trapno >= INTERRUPTS_START && trapno <= INTERRUPTS_END) {
-		_interrupt(cpu);
-		return;
-	}
-	PWRN("Unknown exception %lu with error code %lu at ip=%p", trapno,
-	     errcode, (void *)ip);
-	assert(0);
-}
-
-
-void Kernel::Cpu::init(Pic &pic, Kernel::Pd &core_pd)
+void Kernel::Cpu::init(Pic &pic, Kernel::Pd &core_pd, Genode::Board&)
 {
 	Timer::disable_pit();
 
@@ -62,3 +49,6 @@ void Kernel::Cpu::init(Pic &pic, Kernel::Pd &core_pd)
 	unsigned const cpu = Cpu::executing_id();
 	pic.unmask(Timer::interrupt_id(cpu), cpu);
 }
+
+
+void Cpu_domain_update::_domain_update() { }

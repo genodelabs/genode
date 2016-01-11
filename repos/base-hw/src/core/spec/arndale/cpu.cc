@@ -1,30 +1,23 @@
 /*
- * \brief  Board-specific code for Arndale
+ * \brief  CPU-specific initialization code for Arndale
  * \author Stefan Kalkowski
- * \date   2015-02-09
+ * \date   2016-01-07
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* core includes */
-#include <board.h>
 #include <cpu.h>
-#include <kernel/kernel.h>
-#include <kernel/cpu.h>
-#include <kernel/vm.h>
-#include <unmanaged_singleton.h>
-#include <long_translation_table.h>
 
-namespace Kernel {
-	void prepare_hypervisor(void);
-}
+namespace Kernel { void prepare_hypervisor(void); }
 
 static unsigned char hyp_mode_stack[1024];
+
 
 static inline void prepare_nonsecure_world()
 {
@@ -89,7 +82,7 @@ static inline void switch_to_supervisor_mode()
 }
 
 
-void Genode::Board::prepare_kernel()
+void Genode::Cpu::init()
 {
 	prepare_nonsecure_world();
 	Kernel::prepare_hypervisor();

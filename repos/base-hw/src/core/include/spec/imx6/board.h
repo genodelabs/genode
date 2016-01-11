@@ -24,7 +24,16 @@ namespace Genode
 	/**
 	 * Board driver
 	 */
-	class Board : public Imx::Board, public Cortex_a9::Board { };
+	class Board : public Imx::Board, public Cortex_a9::Board
+	{
+		public:
+
+			void init()
+			{
+				Imx::Board::init();
+				Cortex_a9::Board::init();
+			}
+	};
 }
 
 #endif /* _BOARD_H_ */

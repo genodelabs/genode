@@ -7,8 +7,8 @@
  */
 
 /*
- * Copyright (C) 2014-2015 Ksys Labs LLC
- * Copyright (C) 2014-2015 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Ksys Labs LLC
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -55,6 +55,10 @@ struct Genode::Board_base
 		CORTEX_A9_PRIVATE_MEM_BASE  = 0x00a00000,
 		CORTEX_A9_PRIVATE_MEM_SIZE  = 0x00002000,
 		CORTEX_A9_PRIVATE_TIMER_CLK = 395037500,
+
+		/* L2 cache controller */
+		PL310_MMIO_BASE = 0x00a02000,
+		PL310_MMIO_SIZE = 0x00001000,
 
 		/* CPU cache */
 		CACHE_LINE_SIZE_LOG2 = 5,

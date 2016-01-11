@@ -29,6 +29,8 @@ namespace Genode
 			TIMER_VECTOR_USER   = 50,
 			ISA_IRQ_END         = 15,
 		};
+
+		void init() { }
 	};
 }
 

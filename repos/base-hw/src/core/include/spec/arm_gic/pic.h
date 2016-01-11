@@ -107,6 +107,10 @@ class Genode::Arm_gic_distributor : public Mmio
 		{
 			struct Sgi_int_id      : Bitfield<0,  4> { };
 			struct Cpu_target_list : Bitfield<16, 8> { };
+			struct Target_list_filter : Bitfield<24, 2>
+			{
+				enum Target { TARGET_LIST, ALL_OTHER, MYSELF };
+			};
 		};
 
 		/**
@@ -266,12 +270,25 @@ class Genode::Pic
 		/**
 		 * Raise inter-processor IRQ of the CPU with kernel name 'cpu_id'
 		 */
-		void trigger_ip_interrupt(unsigned const cpu_id)
+		void send_ipi(unsigned const cpu_id)
 		{
 			typedef Distr::Sgir Sgir;
 			Sgir::access_t sgir = 0;
 			Sgir::Sgi_int_id::set(sgir, IPI);
 			Sgir::Cpu_target_list::set(sgir, 1 << cpu_id);
+			_distr.write<Sgir>(sgir);
+		}
+
+		/**
+		 * Raise inter-processor interrupt on all other cores
+		 */
+		void send_ipi()
+		{
+			typedef Distr::Sgir Sgir;
+			Sgir::access_t sgir = 0;
+			Sgir::Sgi_int_id::set(sgir, IPI);
+			Sgir::Target_list_filter::set(sgir,
+			                              Sgir::Target_list_filter::ALL_OTHER);
 			_distr.write<Sgir>(sgir);
 		}
 };

@@ -1,12 +1,12 @@
 /*
- * \brief   Class for kernel data that is needed to manage a specific CPU
+ * \brief   Kernel cpu driver implementations specific to ARM
  * \author  Martin Stein
  * \author  Stefan Kalkowski
  * \date    2014-01-14
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -19,33 +19,31 @@
 #include <pic.h>
 #include <trustzone.h>
 
-void Kernel::Cpu::init(Kernel::Pic &pic, Kernel::Pd & core_pd)
+void Kernel::Cpu::init(Kernel::Pic &pic, Kernel::Pd & core_pd,
+                       Genode::Board & board)
 {
-	/* locally initialize interrupt controller */
-	pic.init_cpu_local();
-
-	/* initialize CPU in physical mode */
-	Cpu::init_phys_kernel();
+	Sctlr::init();
 
 	/* switch to core address space */
-	Cpu::init_virt_kernel(core_pd);
+	Cpu::enable_mmu_and_caches(core_pd);
 
 	/*
 	 * TrustZone initialization code
-	 *
-	 * FIXME This is a plattform specific feature
 	 */
 	init_trustzone(pic);
 
 	/*
 	 * Enable performance counter
-	 *
-	 * FIXME This is an optional CPU specific feature
 	 */
 	perf_counter()->enable();
 
+	/* locally initialize interrupt controller */
+	pic.init_cpu_local();
+
 	/* enable timer interrupt */
-	unsigned const cpu = Cpu::executing_id();
-	pic.unmask(Timer::interrupt_id(cpu), cpu);
+	pic.unmask(Timer::interrupt_id(id()), id());
 }
 
+
+void Kernel::Cpu_domain_update::_domain_update() {
+	cpu_pool()->cpu(Cpu::executing_id())->invalidate_tlb_by_pid(_domain_id); }

@@ -33,6 +33,7 @@ void Thread::exception(unsigned const cpu)
 		PWRN("%s -> %s: undefined instruction at ip=%p",
 			 pd_label(), label(), (void*)ip);
 		_stop();
+		return;
 	case SUPERVISOR_CALL:
 		_call();
 		return;

@@ -2,11 +2,11 @@
  * \brief  Common kernel initialization
  * \author Martin Stein
  * \author Stefan Kalkowski
- * \date   2011-10-20
+ * \date   2015-12-20
  */
 
 /*
- * Copyright (C) 2011-2015 Genode Labs GmbH
+ * Copyright (C) 2015-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -18,6 +18,7 @@
 #include <kernel/test.h>
 #include <platform_pd.h>
 #include <pic.h>
+#include <board.h>
 #include <platform_thread.h>
 
 /* base includes */
@@ -35,6 +36,9 @@ Pd * Kernel::core_pd() {
 
 Pic * Kernel::pic() { return unmanaged_singleton<Pic>(); }
 
+Genode::Board & Kernel::board() {
+	return *unmanaged_singleton<Genode::Board>(); }
+
 
 /**
  * Setup kernel environment
@@ -47,17 +51,13 @@ extern "C" void init_kernel()
 	 * local static objects.
 	 */
 
-	/* calculate in advance as needed later when data writes aren't allowed */
-	core_pd();
+	board().init();
 
 	/* initialize cpu pool */
 	cpu_pool();
 
-	/* initialize PIC */
-	pic();
-
 	/* initialize current cpu */
-	cpu_pool()->cpu(Cpu::executing_id())->init(*pic(), *core_pd());
+	cpu_pool()->cpu(Cpu::executing_id())->init(*pic(), *core_pd(), board());
 
 	Core_thread::singleton();
 

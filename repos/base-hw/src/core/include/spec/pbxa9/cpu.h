@@ -1,7 +1,7 @@
 /*
- * \brief  Board-specific code for Exynos5 boards
+ * \brief  CPU driver for core
  * \author Stefan Kalkowski
- * \date   2015-02-09
+ * \date   2015-12-15
  */
 
 /*
@@ -11,7 +11,15 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* core includes */
-#include <board.h>
+#ifndef _CPU_H_
+#define _CPU_H_
 
-void Genode::Board::prepare_kernel() { }
+/* core includes */
+#include <spec/cortex_a9/cpu_support.h>
+
+namespace Genode
+{
+	using Cpu = Cortex_a9;
+}
+
+#endif /* _CPU_H_ */

@@ -1,12 +1,12 @@
 /*
- * \brief  Kernel entrypoint
+ * \brief  Kernel entrypoint for SMP systems
  * \author Martin Stein
  * \author Stefan Kalkowski
  * \date   2011-10-20
  */
 
 /*
- * Copyright (C) 2011-2015 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.

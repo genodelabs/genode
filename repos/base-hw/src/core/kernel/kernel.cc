@@ -1,5 +1,5 @@
 /*
- * \brief  Kernel entrypoint
+ * \brief  Kernel entrypoint for non-SMP systems
  * \author Martin Stein
  * \author Stefan Kalkowski
  * \date   2011-10-20
@@ -20,7 +20,16 @@ extern "C" void kernel()
 {
 	using namespace Kernel;
 
-	Cpu * const cpu  = cpu_pool()->cpu(Cpu::executing_id());
+	Cpu * const cpu = cpu_pool()->cpu(Cpu::executing_id());
 	cpu->scheduled_job().exception(cpu->id());
 	cpu->schedule().proceed(cpu->id());
 }
+
+
+void Kernel::Cpu::Ipi::occurred() { }
+
+
+void Kernel::Cpu::Ipi::trigger(unsigned const cpu_id) { }
+
+
+Kernel::Cpu::Ipi::Ipi(Kernel::Irq::Pool &p) : Kernel::Irq(Kernel::Pic::IPI, p) { }

@@ -62,7 +62,7 @@ class Genode::Translation
 		_create(Page_flags const & f, addr_t const pa)
 		{
 			typename T::access_t v = T::Pa::masked(pa);
-			T::S::set(v, Board::is_smp());
+			T::S::set(v, Kernel::board().is_smp());
 			T::Ng::set(v, !f.global);
 			T::Xn::set(v, !f.executable);
 			if (f.device) { T::Tex::set(v, _device_tex()); }

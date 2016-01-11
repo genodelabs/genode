@@ -287,8 +287,9 @@ class Kernel::Cpu : public Genode::Cpu,
 		 *
 		 * \param pic      interrupt controller object
 		 * \param core_pd  core's pd object
+		 * \param board    object encapsulating board specifics
 		 */
-		void init(Pic &pic, Kernel::Pd &core_pd);
+		void init(Pic &pic, Kernel::Pd &core_pd, Genode::Board & board);
 
 		/**
 		 * Raise the IPI of the CPU
