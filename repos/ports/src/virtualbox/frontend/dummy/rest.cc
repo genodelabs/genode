@@ -248,3 +248,5 @@ void fireNATNetworkPortForwardEvent(IEventSource* aSource,
                                     LONG a_guestPort)                           TRACE()
 
 void fireHostNameResolutionConfigurationChangeEvent(IEventSource* aSource)      TRACE()
+
+void fireMediumChangedEvent(IEventSource *, IMediumAttachment *)                DUMMY()

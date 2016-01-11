@@ -943,18 +943,6 @@ index 69e3109..3c534df 100644
  /**
   * Thread for powering down the Console.
   *
-@@ -10461,9 +10559,11 @@ DECLCALLBACK(int) Console::drvStatus_MediumEjected(PPDMIMEDIANOTIFY pInterface,
-                     alock.release();
- 
-                     ComPtr<IMediumAttachment> pNewMediumAtt;
-+#if 0
-                     rc = pThis->pConsole->mControl->EjectMedium(pMediumAtt, pNewMediumAtt.asOutParam());
-                     if (SUCCEEDED(rc))
-                         fireMediumChangedEvent(pThis->pConsole->mEventSource, pNewMediumAtt);
-+#endif
- 
-                     alock.acquire();
-                     if (pNewMediumAtt != pMediumAtt)
 diff --git a/src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl2.cpp b/src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl2.cpp
 index caed4be..19c3dc0 100644
 --- a/src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl2.cpp
