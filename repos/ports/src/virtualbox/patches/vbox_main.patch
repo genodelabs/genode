@@ -138,19 +138,6 @@ index feebfcd..4136d6d 100644
  };
  
  #endif // ____H_H_FRAMEBUFFERIMPL
-diff --git a/src/app/virtualbox/src/VBox/Main/include/MachineImpl.h b/src/app/virtualbox/src/VBox/Main/include/MachineImpl.h
-index bb91290..d3c6d85 100644
---- a/src/app/virtualbox/src/VBox/Main/include/MachineImpl.h
-+++ b/src/app/virtualbox/src/VBox/Main/include/MachineImpl.h
-@@ -1213,7 +1213,7 @@ private:
-     HRESULT setMachineState(MachineState_T aMachineState);
-     HRESULT updateMachineStateOnClient();
- 
--    HRESULT mRemoveSavedState;
-+    bool mRemoveSavedState;
- 
-     ConsoleTaskData mConsoleTaskData;
- 
 diff --git a/src/app/virtualbox/src/VBox/Main/include/NetworkServiceRunner.h b/src/app/virtualbox/src/VBox/Main/include/NetworkServiceRunner.h
 index f0ec275..78a390e 100644
 --- a/src/app/virtualbox/src/VBox/Main/include/NetworkServiceRunner.h

@@ -23,32 +23,6 @@ diff --git a/src/app/virtualbox/src/VBox/Devices/USB/VUSBDevice.cpp b/src/app/vi
 index 4790fcb..d649ad6 100644
 --- a/src/app/virtualbox/src/VBox/Devices/USB/VUSBDevice.cpp
 +++ b/src/app/virtualbox/src/VBox/Devices/USB/VUSBDevice.cpp
-@@ -230,7 +230,14 @@ bool vusbDevDoSelectConfig(PVUSBDEV pDev, PCVUSBDESCCONFIGEX pCfgDesc)
-         if (i != VUSB_PIPE_DEFAULT)
-         {
-             vusbMsgFreeExtraData(pDev->aPipes[i].pCtrl);
-+
-+            int rc = RTCritSectDelete(&pDev->aPipes[i].CritSectCtrl);
-+            AssertRC(rc);
-+
-             memset(&pDev->aPipes[i], 0, sizeof(pDev->aPipes[i]));
-+
-+            rc = RTCritSectInit(&pDev->aPipes[i].CritSectCtrl);
-+            AssertRC(rc);
-         }
-     }
-     memset(pDev->paIfStates, 0, pCfgDesc->Core.bNumInterfaces * sizeof(pDev->paIfStates[0]));
-@@ -1089,8 +1096,10 @@ static DECLCALLBACK(int) vusbDevCancelAllUrbsWorker(PVUSBDEV pDev, bool fDetachi
-             PVUSBURB pNext = pUrb->VUsb.pNext;
-             Assert(pUrb->VUsb.pDev == pDev);
- 
-+#if 0
-             AssertMsgFailed(("%s: Leaking left over URB! state=%d pDev=%p[%s]\n",
-                              pUrb->pszDesc, pUrb->enmState, pDev, pDev->pUsbIns->pszName));
-+#endif
-             vusbUrbUnlink(pUrb);
-             /* Unlink isn't enough, because boundary timer and detaching will try to reap it.
-              * It was tested with MSD & iphone attachment to vSMP guest, if
 @@ -1134,7 +1143,7 @@ static DECLCALLBACK(int) vusbDevUrbIoThread(RTTHREAD hThread, void *pvUser)
              vusbUrbDoReapAsyncDev(pDev, RT_INDEFINITE_WAIT);
  
