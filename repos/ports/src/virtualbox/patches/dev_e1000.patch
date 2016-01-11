@@ -28,7 +28,7 @@ index b8f9ebf..aa3eb87 100644
      }
 +#ifdef DEBUG
      else
-         E1kLog(("%s At %08X read (%s) attempt from non-existing register\n",
+         E1kLog2(("%s At %08X read (%s) attempt from non-existing register\n",
                  pThis->szPrf, offReg, e1kU32toHex(u32, mask, buf)));
 +#endif
  

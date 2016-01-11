@@ -1627,29 +1627,15 @@ index c61ea6f..ed4bb7a 100644
  #include "AutoCaller.h"
  #include "Logging.h"
  
-@@ -679,16 +681,21 @@ DECLCALLBACK(int) Medium::Task::fntMediumTask(RTTHREAD aThread, void *pvUser)
- 
-     HRESULT rc = pTask->handler();
- 
-+    Progress * p = nullptr;
-+
-     /* complete the progress if run asynchronously */
-     if (pTask->isAsync())
-     {
-         if (!pTask->mProgress.isNull())
--            pTask->mProgress->notifyComplete(rc);
-+            p = pTask->mProgress;
-     }
- 
-     /* pTask is no longer needed, delete it. */
+@@ -697,7 +704,7 @@ DECLCALLBACK(int) Medium::Task::fntMediumTask(RTTHREAD aThread, void *pvUser)
      delete pTask;
  
-+    if (p)
-+         p->notifyComplete(rc);
-+
-     LogFlowFunc(("rc=%Rhrc\n", rc));
-     LogFlowFuncLeave();
+     /* complete the progress if run asynchronously */
+-    if (!pProgress.isNull())
++    if (pProgress && !pProgress.isNull())
+         pProgress->notifyComplete(rc);
  
+     LogFlowFunc(("rc=%Rhrc\n", rc));
 @@ -1231,7 +1238,7 @@ HRESULT Medium::init(VirtualBox *aVirtualBox,
          else
          {
