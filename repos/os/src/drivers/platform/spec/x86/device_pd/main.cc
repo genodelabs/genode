@@ -105,6 +105,9 @@ void Platform::Device_pd_component::attach_dma_mem(Genode::Dataspace_capability 
 		page = rm_session()->attach_at(ds_cap, phys);
 	} catch (Rm_session::Out_of_metadata) {
 		throw;
+	} catch (Rm_session::Region_conflict) {
+		/* memory already attached before - done */
+		return;
 	} catch (...) { }
 
 	/* sanity check */
