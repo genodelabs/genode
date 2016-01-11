@@ -62,6 +62,7 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 			PCI_IRQ_PIN   = 0x3d,
 
 			CAP_MSI_64    = 0x80,
+			CAP_MASK      = 0x100,
 			MSI_ENABLED   = 0x1
 		};
 
