@@ -956,28 +956,8 @@ index caed4be..19c3dc0 100644
  /**
   * Translate IDE StorageControllerType_T to string representation.
   */
-@@ -522,12 +525,12 @@ static LONG GetNextUsedPort(LONG aPortUsed[30], LONG lBaseVal, uint32_t u32Size)
- 
- #define MAX_BIOS_LUN_COUNT   4
- 
--static int SetBiosDiskInfo(ComPtr<IMachine> pMachine, PCFGMNODE pCfg, PCFGMNODE pBiosCfg,
-+static HRESULT SetBiosDiskInfo(ComPtr<IMachine> pMachine, PCFGMNODE pCfg, PCFGMNODE pBiosCfg,
-                            Bstr controllerName, const char * const s_apszBiosConfig[4])
- {
-     HRESULT             hrc;
- #define MAX_DEVICES     30
--#define H()     AssertMsgReturn(!FAILED(hrc), ("hrc=%Rhrc\n", hrc), VERR_GENERAL_FAILURE)
-+#define H()     AssertMsgReturn(!FAILED(hrc), ("hrc=%Rhrc\n", hrc), E_FAIL)
- 
-     LONG lPortLUN[MAX_BIOS_LUN_COUNT];
-     LONG lPortUsed[MAX_DEVICES];
-@@ -599,9 +602,11 @@ static int SetBiosDiskInfo(ComPtr<IMachine> pMachine, PCFGMNODE pCfg, PCFGMNODE
-             LogFlowFunc(("Top %d HBA ports = %s, %d\n", j, s_apszBiosConfig[j], lPortLUN[j]));
-         }
-     }
--    return VINF_SUCCESS;
-+#undef H
-+    return S_OK;
+@@ -602,6 +602,7 @@ static int SetBiosDiskInfo(ComPtr<IMachine> pMachine, PCFGMNODE pCfg, PCFGMNODE
+     return S_OK;
  }
  
 +#if 0
