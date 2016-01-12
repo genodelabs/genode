@@ -593,7 +593,7 @@ class Vfs_server::Root :
 			Path session_root;
 			bool writeable = false;
 
-			Session_label const label(args);
+			Session_label const label = label_from_args(args);
 
 			char tmp[MAX_PATH_LEN];
 			try {

@@ -509,7 +509,7 @@ class Launcher::Panel_dialog : Input_event_handler, Dialog_generator,
 				_context_dialog.visible(false);
 		}
 
-		void kill(Child_base::Label const &label)
+		void kill(Label const &label)
 		{
 			_kill(label);
 		}

@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2006-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -20,6 +20,7 @@
 #include <base/lock.h>
 #include <base/rpc_server.h>
 #include <cpu_session/cpu_session.h>
+#include <base/session_label.h>
 
 /* core includes */
 #include <pager.h>
@@ -37,13 +38,9 @@ namespace Genode { class Cpu_session_component; }
 class Genode::Cpu_session_component : public Rpc_object<Cpu_session>,
                                       public List<Cpu_session_component>::Element
 {
-	public:
-
-		typedef Cpu_thread_component::Session_label Session_label;
-
 	private:
 
-		Session_label              _label;
+		Session_label    const     _label;
 		Rpc_entrypoint * const     _session_ep;
 		Rpc_entrypoint            *_thread_ep;
 		Pager_entrypoint          *_pager_ep;

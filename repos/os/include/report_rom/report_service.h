@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -116,7 +116,7 @@ struct Report::Root : Genode::Root_component<Session_component>
 				Arg_string::find_arg(args, "buffer_size").ulong_value(0);
 
 			return new (md_alloc())
-				Session_component(Genode::Session_label(args), buffer_size,
+				Session_component(label_from_args(args), buffer_size,
 				                  _rom_registry, _verbose);
 		}
 

@@ -16,11 +16,11 @@
 
 #include <util/arg_string.h>
 #include <os/config.h>
+#include <base/session_label.h>
 
 namespace Genode {
 
 	struct Xml_node_label_score;
-	struct Session_label;
 	class  Session_policy;
 }
 
@@ -149,30 +149,6 @@ struct Genode::Xml_node_label_score
 		/* nodes are equally good */
 
 		return false;
-	}
-};
-
-
-struct Genode::Session_label : String<128>
-{
-	Session_label() { }
-
-	/**
-	 * Constructor
-	 *
-	 * \param args  session arguments as null-terminated string
-	 *
-	 * The constructor extracts the label from the supplied session-argument
-	 * string.
-	 */
-	explicit Session_label(char const *args)
-	{
-		typedef String<128> String;
-
-		char buf[String::capacity()];
-		Arg_string::find_arg(args, "label").string(buf, sizeof(buf),
-		                                           "<undefined>");
-		*static_cast<String *>(this) = String(buf);
 	}
 };
 

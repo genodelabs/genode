@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -790,10 +790,10 @@ class Usb::Root : public Genode::Root_component<Session_component>
 		{
 			using namespace Genode;
 
+			Session_label const label = label_from_args(args);
 			try {
 				Xml_node config_node = Lx_kit::env().config_rom().xml();
 				Xml_node raw = config_node.sub_node("raw");
-				Genode::Session_label  label(args);
 				Genode::Session_policy policy(label, raw);
 
 				size_t ram_quota   = Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
@@ -822,7 +822,7 @@ class Usb::Root : public Genode::Root_component<Session_component>
 				return session;
 			} catch (Genode::Session_policy::No_policy_defined) {
 				error("Invalid session request, no matching policy for '",
-				      Genode::Session_label(args).string(), "'");
+				      label.string(), "'");
 				throw Genode::Root::Unavailable();
 			}
 		}

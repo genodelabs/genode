@@ -18,6 +18,7 @@
 #include <util/list.h>
 #include <base/rpc_server.h>
 #include <cpu_thread/cpu_thread.h>
+#include <base/session_label.h>
 
 /* core includes */
 #include <pager.h>
@@ -36,7 +37,6 @@ class Genode::Cpu_thread_component : public Rpc_object<Cpu_thread>,
 {
 	public:
 
-		typedef Trace::Session_label Session_label;
 		typedef Trace::Thread_name   Thread_name;
 
 	private:

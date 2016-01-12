@@ -170,7 +170,7 @@ class Rom::Root : public Genode::Root_component<Session_component>
 			using namespace Genode;
 
 			return new (md_alloc())
-				Session_component(_registry, Session_label(args));
+				Session_component(_registry, label_from_args(args));
 		}
 
 	public:

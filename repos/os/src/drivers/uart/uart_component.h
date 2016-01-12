@@ -221,7 +221,7 @@ namespace Uart {
 			Session_component *_create_session(const char *args)
 			{
 				try {
-					Session_label  label(args);
+					Session_label  label = label_from_args(args);
 					Session_policy policy(label);
 
 					unsigned index = 0;

@@ -504,7 +504,8 @@ namespace Platform {
 				_device_slab(&_md_alloc),
 				_device_pd_ep(device_pd_ep),
 				_resources(_md_alloc),
-				_label(args), _policy(_label)
+				_label(Genode::label_from_args(args)),
+				_policy(_label)
 			{
 				/* non-pci devices */
 				_policy.for_each_sub_node("device", [&] (Genode::Xml_node device_node) {
@@ -1073,7 +1074,7 @@ class Platform::Root : public Genode::Root_component<Session_component>
 				                                          args, _device_pd_ep);
 			} catch (Genode::Session_policy::No_policy_defined) {
 				PERR("Invalid session request, no matching policy for '%s'",
-				     Genode::Session_label(args).string());
+				     Genode::label_from_args(args).string());
 				throw Genode::Root::Unavailable();
 			}
 		}

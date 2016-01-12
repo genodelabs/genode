@@ -228,7 +228,7 @@ namespace Terminal {
 				Genode::size_t io_buffer_size = 4096;
 
 				try {
-					Genode::Session_label  label(args);
+					Genode::Session_label  label = Genode::label_from_args(args);
 					Genode::Session_policy policy(label);
 
 					char filename[256];

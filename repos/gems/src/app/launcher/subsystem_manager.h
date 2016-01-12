@@ -204,8 +204,8 @@ class Launcher::Subsystem_manager
 		{
 			Child::Binary_name const binary_name = _binary_name(subsystem);
 
-			Child::Label const label = string_attribute(subsystem, "name",
-			                                            Child::Label(""));
+			Label const label = string_attribute(subsystem, "name",
+			                                            Label(""));
 
 			Ram_config const ram_config = _ram_config(subsystem);
 
@@ -237,7 +237,7 @@ class Launcher::Subsystem_manager
 		void kill(char const *label)
 		{
 			for (Child *c = _children.first(); c; c = c->next()) {
-				if (c->label() == Child::Label(label)) {
+				if (c->label() == Label(label)) {
 					_children.remove(c);
 					destroy(env()->heap(), c);
 					return;
@@ -248,7 +248,7 @@ class Launcher::Subsystem_manager
 		/**
 		 * Call functor for each exited child
 		 *
-		 * The functor takes a 'Child_base::Label' as argument.
+		 * The functor takes a 'Label' as argument.
 		 */
 		template <typename FUNC>
 		void for_each_exited_child(FUNC const &func)
@@ -257,7 +257,7 @@ class Launcher::Subsystem_manager
 			for (Child *child = _children.first(); child; child = next) {
 				next = child->next();
 				if (child->exited())
-					func(child->label());
+					func(Label(child->label().string()));
 			}
 		}
 };

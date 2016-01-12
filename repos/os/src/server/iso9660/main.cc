@@ -23,6 +23,7 @@
 #include <util/avl_string.h>
 #include <util/misc_math.h>
 #include <os/attached_ram_dataspace.h>
+#inlcude <base/session_label.h>
 
 /* local includes */
 #include "iso9660.h"

@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -72,7 +72,7 @@ class Fs_log::Root_component :
 			dir_path[0] = '/';
 
 			bool truncate = false;
-			Session_label session_label(args);
+			Session_label const session_label = label_from_args(args);
 			char const *label_str = session_label.string();
 			char const *label_prefix = "";
 

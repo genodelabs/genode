@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2006-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -1037,11 +1037,11 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 
 			size_t const unused_quota = ram_quota - required_quota;
 
-			Session_label const label(args);
-			bool const provides_default_bg = (strcmp(label.string(), "backdrop") == 0);
+			Genode::Session_label const label = Genode::label_from_args(args);
+			bool const provides_default_bg = (label == "backdrop");
 
 			Session_component *session = new (md_alloc())
-				Session_component(Session_label(args), _view_stack, _mode,
+				Session_component(label, _view_stack, _mode,
 				                  _pointer_origin, *ep(), _framebuffer,
 				                  provides_default_bg, *md_alloc(), unused_quota,
 				                  _focus_reporter);

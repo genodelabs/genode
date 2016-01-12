@@ -18,6 +18,7 @@
 #include <base/service.h>
 #include <base/child.h>
 #include <base/rpc_server.h>
+#include <base/session_label.h>
 #include <util/arg_string.h>
 #include <rom_session/connection.h>
 
@@ -93,17 +94,13 @@ class Init::Child_policy_enforce_labeling
 		{
 			using namespace Genode;
 
-			char label_buf[Parent::Session_args::MAX_SIZE];
-			Arg_string::find_arg(args, "label").string(label_buf, sizeof(label_buf), "");
-
-			char value_buf[Parent::Session_args::MAX_SIZE];
-			Genode::snprintf(value_buf, sizeof(value_buf),
-			                 "\"%s%s%s\"",
-			                 _name,
-			                 Genode::strcmp(label_buf, "") == 0 ? "" : " -> ",
-			                 label_buf);
-
-			Arg_string::set_arg(args, args_len, "label", value_buf);
+			Session_label const old_label = label_from_args(args);
+			if (old_label == "") {
+				Arg_string::set_arg_string(args, args_len, "label", _name);
+			} else {
+				Session_label const new_label = prefixed_label(_name, old_label.string());
+				Arg_string::set_arg_string(args, args_len, "label", new_label.string());
+			}
 		}
 };
 

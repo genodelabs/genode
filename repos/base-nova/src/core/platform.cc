@@ -739,7 +739,7 @@ Platform::Platform() :
 				uint64_t execution_time = 0;
 				Nova::sc_ctrl(sc_sel, execution_time);
 
-				return { Trace::Session_label("kernel"), Trace::Thread_name(name),
+				return { Session_label("kernel"), Trace::Thread_name(name),
 				         Trace::Execution_time(execution_time), affinity };
 			}
 

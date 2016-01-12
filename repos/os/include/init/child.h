@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2010-2013 Genode Labs GmbH
+ * Copyright (C) 2010-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -177,10 +177,8 @@ namespace Init {
 		if (!service_matches)
 			return false;
 
-		typedef Genode::String<128> Label;
-
-		Label const session_label =
-			Label(skip_label_prefix(child_name, Genode::Session_label(args).string()));
+		Genode::Session_label const session_label(skip_label_prefix(
+			child_name, Genode::label_from_args(args).string()));
 
 		return !Genode::Xml_node_label_score(service_node, session_label).conflict();
 	}

@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -1108,8 +1108,8 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 		Genode::Session_capability session(Session_args const &args,
 		                                   Affinity     const &affinity) override
 		{
-			Genode::Session_label session_label(args.string());
-
+			Genode::Session_label const session_label =
+				Genode::label_from_args(args.string());
 
 			enum Role { ROLE_DECORATOR, ROLE_LAYOUTER, ROLE_REGULAR, ROLE_DIRECT };
 			Role role = ROLE_REGULAR;

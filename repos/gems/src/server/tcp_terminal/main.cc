@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -469,26 +469,28 @@ namespace Terminal {
 
 			Session_component *_create_session(const char *args)
 			{
+				using namespace Genode;
+
 				/*
 				 * XXX read I/O buffer size from args
 				 */
-				Genode::size_t io_buffer_size = 4096;
+				size_t io_buffer_size = 4096;
 
 				try {
-					Genode::Session_label  label(args);
-					Genode::Session_policy policy(label);
+					Session_label const label = label_from_args(args);
+					Session_policy policy(label);
 
 					unsigned tcp_port = 0;
 					policy.attribute("port").value(&tcp_port);
 					return new (md_alloc())
 					       Session_component(io_buffer_size, tcp_port);
 
-				} catch (Genode::Xml_node::Nonexistent_attribute) {
-					PERR("Missing \"port\" attribute in policy definition");
-					throw Genode::Root::Unavailable();
-				} catch (Genode::Session_policy::No_policy_defined) {
-					PERR("Invalid session request, no matching policy");
-					throw Genode::Root::Unavailable();
+				} catch (Xml_node::Nonexistent_attribute) {
+					error("Missing \"port\" attribute in policy definition");
+					throw Root::Unavailable();
+				} catch (Session_policy::No_policy_defined) {
+					error("Invalid session request, no matching policy");
+					throw Root::Unavailable();
 				}
 			}
 

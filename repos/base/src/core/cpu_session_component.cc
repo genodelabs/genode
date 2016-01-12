@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2006-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -246,6 +246,7 @@ Cpu_session_component::Cpu_session_component(Rpc_entrypoint         *session_ep,
                                              Affinity         const &affinity,
                                              size_t           const  quota)
 :
+	_label(label_from_args(args)),
 	_session_ep(session_ep),
 	_thread_ep(thread_ep), _pager_ep(pager_ep),
 	_md_alloc(md_alloc, remaining_session_ram_quota(args)),
@@ -257,11 +258,6 @@ Cpu_session_component::Cpu_session_component(Rpc_entrypoint         *session_ep,
 	_trace_sources(trace_sources), _quota(quota), _ref(0),
 	_native_cpu(*this, args)
 {
-	/* remember session label */
-	char buf[Session_label::size()];
-	Arg_string::find_arg(args, "label").string(buf, sizeof(buf), "");
-	_label = Session_label(buf);
-
 	Arg a = Arg_string::find_arg(args, "priority");
 	if (a.valid()) {
 		_priority = a.ulong_value(0);

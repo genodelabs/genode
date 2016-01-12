@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2010-2013 Genode Labs GmbH
+ * Copyright (C) 2010-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -198,14 +198,12 @@ class Net::Root : public Genode::Root_component<Net::Session_component>
 			memset(ip_addr, 0, MAX_IP_ADDR_LENGTH);
 
 			 try {
-				Session_label  label(args);
+				Session_label const label = label_from_args(args);
 				Session_policy policy(label, _config);
 				policy.attribute("ip_addr").value(ip_addr, sizeof(ip_addr));
 			} catch (Xml_node::Nonexistent_attribute) {
 				Genode::log("Missing \"ip_addr\" attribute in policy definition");
-			} catch (Session_policy::No_policy_defined) {
-				Genode::log("Invalid session request, no matching policy");;
-			}
+			} catch (Session_policy::No_policy_defined) { }
 
 			size_t ram_quota =
 				Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);

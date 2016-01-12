@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -947,7 +947,7 @@ class File_system::Root : public Root_component<Session_component>
 			Genode::Number_of_bytes buffer_size_max  =   1 * (1 << 20); /*   1 MiB */
 			unsigned trace_parent_levels             = 0;
 
-			Session_label  label(args);
+			Session_label const label = label_from_args(args);
 			try {
 				Session_policy policy(label);
 

@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2013-2015 Genode Labs GmbH
+ * Copyright (C) 2013-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -208,7 +208,7 @@ class Block::Root :
 		{
 			long num = -1;
 
-			Session_label label(args);
+			Session_label const label = label_from_args(args);
 			char const *label_str = label.string();
 			try {
 				Session_policy policy(label);
