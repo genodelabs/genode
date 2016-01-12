@@ -1822,3 +1822,16 @@ index 3520c9c..e3288af 100644
      }
  
      return false;
+--- a/src/app/virtualbox/src/VBox/Main/src-server/SystemPropertiesImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-server/SystemPropertiesImpl.cpp
+@@ -1191,8 +1191,8 @@
+ HRESULT SystemProperties::setLoggingLevel(const Utf8Str &aLoggingLevel)
+ {
+     Utf8Str useLoggingLevel(aLoggingLevel);
+-    if (useLoggingLevel.isEmpty())
+-        useLoggingLevel = VBOXSVC_LOG_DEFAULT;
++//    if (useLoggingLevel.isEmpty())
++//        useLoggingLevel = VBOXSVC_LOG_DEFAULT;
+     int rc = RTLogGroupSettings(RTLogRelDefaultInstance(), useLoggingLevel.c_str());
+     //  If failed and not the default logging level - try to use the default logging level.
+     if (RT_FAILURE(rc))
