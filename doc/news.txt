@@ -4,6 +4,39 @@
                                ===========
 
 
+Genode at FOSDEM 2016 | 2016-01-12
+##################################
+
+| There are four Genode-related talks scheduled at this year's FOSDEM,
+| covering the USB Armory, seL4, the Nix package manager, and Genode
+| as desktop OS.
+
+[https://fosdem.org/2016 - FOSDEM] is the worlds biggest gathering of
+open-source and free-software enthusiasts. It takes place during 30 and 31 of
+January in Brussels. This year, Genode will show a strong presence again. On
+Saturday, Emery, Martin, and Norman will contribute to the
+[https://fosdem.org/2016/schedule/track/microkernels/ - microkernel devroom].
+On Sunday, we have the opportunity to present the current state of Genode as
+desktop OS at the desktops devroom. The summary of the Genode-related parts of
+the FOSDEM schedule is as follows.
+
+Saturday 10:40 *An exploration of the seL4 kernel from Genode's perspective*
+_Microkernel devroom (K.4.601)_
+[https://fosdem.org/2016/schedule/event/microkernels_genode_sel4/ - abstract...]
+
+Saturday 14:10 *Porting Nix to Genode - Package management without a canonical file system*
+_Microkernel devroom (K.4.601)_
+[https://fosdem.org/2016/schedule/event/microkernels_genode_nix/ - abstract...]
+
+Saturday 15:55 *Genode's TrustZone demo on the USB Armory*
+_Microkernel devroom (K.4.601)_
+[https://fosdem.org/2016/schedule/event/microkernels_genode_usb_armory/ - abstract...]
+
+Sunday 10:20 *Genode as Desktop OS*
+_Desktops devroom (K.4.401)_
+[https://fosdem.org/2016/schedule/event/genode_as_a_desktop_os/ - abstract...]
+
+
 The story behind Genode's TrustZone demo on the USB Armory | 2015-12-08
 #######################################################################
 
