@@ -31,7 +31,6 @@ SRC_CC      += cap_session_component.cc \
                rm_session_component.cc \
                rm_session_support.cc \
                rom_session_component.cc \
-               signal_session_component.cc \
                signal_source_component.cc \
                thread_start.cc \
                trace_session_component.cc
@@ -57,7 +56,6 @@ vpath pd_session_component.cc     $(GEN_CORE_DIR)
 vpath ram_session_component.cc    $(GEN_CORE_DIR)
 vpath rm_session_component.cc     $(GEN_CORE_DIR)
 vpath rom_session_component.cc    $(GEN_CORE_DIR)
-vpath signal_session_component.cc $(GEN_CORE_DIR)
 vpath trace_session_component.cc  $(GEN_CORE_DIR)
 vpath pager_object.cc             $(GEN_CORE_DIR)
 vpath core_printf.cc              $(BASE_DIR)/src/base/console

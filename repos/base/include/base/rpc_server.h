@@ -385,16 +385,15 @@ class Genode::Rpc_entrypoint : Thread_base, public Object_pool<Rpc_object_base>
 		 *
 		 * \noapi
 		 *
-		 * Note: This is a temporary API method, which is going to be
-		 * removed. Please do not use this method.
-		 *
-		 * In combination with the 'reply_dst' accessor method, this
-		 * method can be used to implement services that dispatch client
-		 * requests out of order. In such cases, the server activation may
-		 * send reply messages to multiple blocking clients before
-		 * answering the original call.
+		 * In combination with the 'reply_dst' accessor method, this method
+		 * allows for the dispatching of client requests out of order. The only
+		 * designated user of this method is core's PD service. The
+		 * 'Pd_session::submit' RPC function uses it to send a reply to a
+		 * caller of the 'Signal_source::wait_for_signal' RPC function before
+		 * returning from the 'submit' call.
 		 */
-		void explicit_reply(Untyped_capability reply_cap, int return_value);
+		void reply_signal_info(Untyped_capability reply_cap,
+		                       unsigned long imprint, unsigned long cnt);
 
 		/**
 		 * Return true if the caller corresponds to the entrypoint called

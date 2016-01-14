@@ -49,7 +49,8 @@ void Rpc_entrypoint::omit_reply()
 }
 
 
-void Rpc_entrypoint::explicit_reply(Untyped_capability reply_cap, int return_value)
+void Rpc_entrypoint::reply_signal_info(Untyped_capability reply_cap,
+                                       unsigned long imprint, unsigned long cnt)
 {
 	if (!_ipc_server) return;
 
@@ -57,9 +58,9 @@ void Rpc_entrypoint::explicit_reply(Untyped_capability reply_cap, int return_val
 	Untyped_capability last_reply_cap = _ipc_server->dst();
 
 	/* direct ipc server to the specified reply destination */
-	_ipc_server->ret(return_value);
+	_ipc_server->ret(0);
 	_ipc_server->dst(reply_cap);
-	*_ipc_server << IPC_REPLY;
+	*_ipc_server << Signal_source::Signal(imprint, cnt) << IPC_REPLY;
 
 	/* restore reply capability of the original request */
 	_ipc_server->dst(last_reply_cap);

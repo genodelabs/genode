@@ -21,7 +21,7 @@ using namespace Genode;
 
 void Pd_session_component::space_pager(Thread_capability thread)
 {
-	_thread_ep->apply(thread, [this] (Cpu_thread_component *cpu_thread)
+	_thread_ep.apply(thread, [this] (Cpu_thread_component *cpu_thread)
 	{
 		if (!cpu_thread) return;
 		_pd.space_pager(cpu_thread->platform_thread());

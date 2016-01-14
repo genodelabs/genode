@@ -23,6 +23,7 @@
 #include <core_parent.h>
 #include <cap_session_component.h>
 #include <ram_session_component.h>
+#include <core_pd_session.h>
 
 /* internal base includes */
 #include <platform_env.h>
@@ -140,6 +141,17 @@ namespace Genode {
 			Cap_session_component        _cap_session;
 			Entrypoint                   _entrypoint;
 			Core_ram_session             _ram_session;
+
+			/*
+			 * The core-local PD session is provided by a real RPC object
+			 * dispatched by the same entrypoint as the signal-source RPC
+			 * objects. This is needed to allow the 'Pd_session::submit'
+			 * method to issue out-of-order replies to
+			 * 'Signal_source::wait_for_signal' calls.
+			 */
+			Core_pd_session_component _pd_session_component;
+			Pd_session_client         _pd_session_client;
+
 			Heap                         _heap;
 			Ram_session_capability const _ram_session_cap;
 
@@ -158,6 +170,8 @@ namespace Genode {
 				_ram_session(&_entrypoint, &_entrypoint,
 				             platform()->ram_alloc(), platform()->core_mem_alloc(),
 				             "ram_quota=4M", platform()->ram_alloc()->avail()),
+				_pd_session_component(_entrypoint /* XXX use a different entrypoint */),
+				_pd_session_client(_entrypoint.manage(&_pd_session_component)),
 				_heap(&_ram_session, Platform_env_base::rm_session()),
 				_ram_session_cap(_entrypoint.manage(&_ram_session))
 			{ }
@@ -183,17 +197,12 @@ namespace Genode {
 			Parent                 *parent()          { return &_core_parent; }
 			Ram_session            *ram_session()     { return &_ram_session; }
 			Ram_session_capability  ram_session_cap() { return  _ram_session_cap; }
+			Pd_session             *pd_session()      { return &_pd_session_client; }
 			Allocator              *heap()            { return &_heap; }
 
 			Cpu_session_capability cpu_session_cap() {
 				PWRN("%s:%u not implemented", __FILE__, __LINE__);
 				return Cpu_session_capability();
-			}
-
-			Pd_session *pd_session()
-			{
-				PWRN("%s:%u not implemented", __FILE__, __LINE__);
-				return 0;
 			}
 
 			void reload_parent_cap(Capability<Parent>::Dst, long) { }

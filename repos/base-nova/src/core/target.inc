@@ -21,7 +21,8 @@ SRC_CC       = context_area.cc \
                main.cc \
                pager.cc \
                pd_session_component.cc \
-               pd_session_extension.cc \
+               pd_upgrade_ram_quota.cc \
+               pd_assign_pci.cc \
                platform.cc \
                platform_pd.cc \
                platform_services.cc \
@@ -31,7 +32,6 @@ SRC_CC       = context_area.cc \
                rm_session_component.cc \
                rm_session_support.cc \
                rom_session_component.cc \
-               signal_session_component.cc \
                thread_start.cc \
                bios_data_area.cc \
                trace_session_component.cc
@@ -49,6 +49,7 @@ vpath ram_session_component.cc     $(GEN_CORE_DIR)
 vpath rom_session_component.cc     $(GEN_CORE_DIR)
 vpath cpu_session_component.cc     $(GEN_CORE_DIR)
 vpath pd_session_component.cc      $(GEN_CORE_DIR)
+vpath pd_upgrade_ram_quota.cc      $(GEN_CORE_DIR)
 vpath rm_session_component.cc      $(GEN_CORE_DIR)
 vpath trace_session_component.cc   $(GEN_CORE_DIR)
 vpath io_port_session_component.cc $(GEN_CORE_DIR)/spec/x86

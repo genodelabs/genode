@@ -3,10 +3,9 @@
  * \author Norman Feske
  * \date   2010-02-03
  *
- * This file is only included by 'signal_session/signal_session.h' and relies
- * on the headers included there. No include guards are needed. It is a
- * separate header file to make it easily replaceable by a platform-specific
- * implementation.
+ * This file is only included by 'pd_session/pd_session.h' and relies
+ * on the headers included there. It is a separate header file to make it
+ * easily replaceable by a platform-specific implementation.
  */
 
 /*
@@ -16,22 +15,19 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__SIGNAL_SESSION__SOURCE_H_
-#define _INCLUDE__SIGNAL_SESSION__SOURCE_H_
+#ifndef _INCLUDE__SIGNAL_SOURCE__SIGNAL_SOURCE_H_
+#define _INCLUDE__SIGNAL_SOURCE__SIGNAL_SOURCE_H_
 
-#include <base/rpc.h>
-
-namespace Genode { struct Signal_source; }
-
+namespace Genode { class Signal_source; }
 
 /**
- * Blocking part of the signal-session interface
+ * Blocking part of the PD-session interface
  *
  * The blocking 'wait_for_signal()' operation cannot be part of the
- * signal-session interface because otherwise, context allocations or
+ * PD-session interface because otherwise, context allocations or
  * signal submissions would not be possible while blocking for signals.
- * Therefore, the blocking part is implemented a separate interface,
- * which can be used by an independent thread.
+ * Therefore, the blocking part is implemented as a kernel-specific
+ * special case.
  */
 struct Genode::Signal_source
 {
@@ -44,10 +40,7 @@ struct Genode::Signal_source
 
 		public:
 
-			Signal(long imprint, int num) :
-				_imprint(imprint),
-				_num(num)
-			{ }
+			Signal(long imprint, int num) : _imprint(imprint), _num(num) { }
 
 			Signal() : _imprint(0), _num(0) { }
 
@@ -72,4 +65,4 @@ struct Genode::Signal_source
 	GENODE_RPC_INTERFACE(Rpc_wait_for_signal);
 };
 
-#endif /* _INCLUDE__SIGNAL_SESSION__SOURCE_H_ */
+#endif /* _INCLUDE__SIGNAL_SOURCE__SIGNAL_SOURCE_H_ */

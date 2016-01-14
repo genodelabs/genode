@@ -15,14 +15,14 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__SIGNAL_SESSION__SOURCE_RPC_OBJECT_H_
-#define _INCLUDE__SIGNAL_SESSION__SOURCE_RPC_OBJECT_H_
+#ifndef _INCLUDE__SIGNAL_SOURCE__RPC_OBJECT_H_
+#define _INCLUDE__SIGNAL_SOURCE__RPC_OBJECT_H_
 
-#include <signal_session/source.h>
 #include <base/rpc_server.h>
+#include <signal_source/signal_source.h>
 
 namespace Genode { struct Signal_source_rpc_object; }
 
 struct Genode::Signal_source_rpc_object : Rpc_object<Signal_source> { };
 
-#endif /* _INCLUDE__SIGNAL_SESSION__SOURCE_RPC_OBJECT_H_ */
+#endif /* _INCLUDE__SIGNAL_SOURCE__RPC_OBJECT_H_ */

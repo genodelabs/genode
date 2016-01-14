@@ -18,11 +18,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__SIGNAL_SESSION__SOURCE_CLIENT_H_
-#define _INCLUDE__SIGNAL_SESSION__SOURCE_CLIENT_H_
+#ifndef _INCLUDE__SIGNAL_SOURCE__CLIENT_H_
+#define _INCLUDE__SIGNAL_SOURCE__CLIENT_H_
 
 #include <base/rpc_client.h>
-#include <signal_session/nova_source.h>
+#include <signal_source/nova_signal_source.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>
@@ -60,9 +60,8 @@ namespace Genode {
 			/**
 			 * Constructor
 			 */
-			Signal_source_client(Signal_source_capability cap)
-			: Rpc_client<Nova_signal_source>(
-				static_cap_cast<Nova_signal_source>(cap))
+			Signal_source_client(Capability<Signal_source> cap)
+			: Rpc_client<Nova_signal_source>(static_cap_cast<Nova_signal_source>(cap))
 			{
 				/*
 				 * Make sure that we have acquired the
@@ -76,9 +75,9 @@ namespace Genode {
 			 ** Signal source interface **
 			 *****************************/
 
-			Signal wait_for_signal()
+			Signal wait_for_signal() override
 			{
-				/* 
+				/*
 				 * Block on semaphore, will be unblocked if
 				 * signal is available
 				 */
@@ -94,4 +93,4 @@ namespace Genode {
 	};
 }
 
-#endif /* _INCLUDE__SIGNAL_SESSION__SOURCE_CLIENT_H_ */
+#endif /* _INCLUDE__SIGNAL_SOURCE__CLIENT_H_ */

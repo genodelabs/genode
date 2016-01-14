@@ -144,6 +144,7 @@ class Genode::Platform_env : public Genode::Env, public Emergency_ram_reserve
 		Cpu_session_capability  cpu_session_cap() { return  _resources.cpu; }
 		Rm_session             *rm_session()      { return &_resources.rm; }
 		Pd_session             *pd_session()      { return &_resources.pd; }
+		Pd_session_capability   pd_session_cap()  { return  _resources.pd; }
 		Allocator              *heap()            { return &_heap; }
 };
 

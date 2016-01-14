@@ -18,7 +18,6 @@ SRC_CC        = main.cc \
                 dataspace_component.cc \
                 pd_session_component.cc \
                 io_mem_session_component.cc \
-                signal_session_component.cc \
                 signal_source_component.cc \
                 trace_session_component.cc \
                 thread_linux.cc \
@@ -44,7 +43,6 @@ vpath ram_session_component.cc    $(GEN_CORE_DIR)
 vpath cap_session_component.cc    $(GEN_CORE_DIR)
 vpath cpu_session_component.cc    $(GEN_CORE_DIR)
 vpath platform_services.cc        $(GEN_CORE_DIR)
-vpath signal_session_component.cc $(GEN_CORE_DIR)
 vpath signal_source_component.cc  $(GEN_CORE_DIR)
 vpath trace_session_component.cc  $(GEN_CORE_DIR)
 vpath core_printf.cc              $(BASE_DIR)/src/base/console

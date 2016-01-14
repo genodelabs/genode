@@ -397,11 +397,14 @@ void Pd_session_component::_start(Dataspace_component *ds)
 }
 
 
-Pd_session_component::Pd_session_component(Rpc_entrypoint * ep,
-                                           Allocator      * md_alloc,
-                                           const char     * args)
+Pd_session_component::Pd_session_component(Rpc_entrypoint &ds_ep,
+                                           Rpc_entrypoint &receiver_ep,
+                                           Rpc_entrypoint &context_ep,
+                                           Allocator      &md_alloc,
+                                           const char     *args)
 :
-	_pid(0), _uid(0), _gid(0), _ds_ep(ep)
+	_pid(0), _uid(0), _gid(0), _ds_ep(ds_ep),
+	_signal_broker(md_alloc, receiver_ep, context_ep)
 {
 	Arg_string::find_arg(args, "label").string(_label, sizeof(_label),
 	                                           "<unlabeled>");
@@ -449,7 +452,7 @@ Pd_session_component::~Pd_session_component()
 int Pd_session_component::bind_thread(Thread_capability) { return -1; }
 
 
-int Pd_session_component::assign_parent(Parent_capability parent)
+int Pd_session_component::assign_parent(Capability<Parent> parent)
 {
 	_parent = parent;
 	return 0;
@@ -459,6 +462,6 @@ int Pd_session_component::assign_parent(Parent_capability parent)
 void Pd_session_component::start(Capability<Dataspace> binary)
 {
 	/* lookup binary dataspace */
-	_ds_ep->apply(binary, [&] (Dataspace_component *ds) {
+	_ds_ep.apply(binary, [&] (Dataspace_component *ds) {
 		_start(ds); });
 };

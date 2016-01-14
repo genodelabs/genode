@@ -28,18 +28,27 @@ struct Genode::Pd_session_client : Rpc_client<Pd_session>
 	int bind_thread(Thread_capability thread) override {
 		return call<Rpc_bind_thread>(thread); }
 
-	int assign_parent(Parent_capability parent) override {
+	int assign_parent(Capability<Parent> parent) override {
 		return call<Rpc_assign_parent>(parent); }
 
-	/**
-	 * Dummy stub for PCI-device assignment operation
-	 *
-	 * The assign_pci function exists only in the NOVA-specific version of the
-	 * PD-session interface. This empty dummy stub merely exists to maintain
-	 * API compatibility accross all base platforms so that drivers don't need
-	 * to distinguish NOVA from non-NOVA.
-	 */
-	bool assign_pci(addr_t) { return false; }
+	bool assign_pci(addr_t pci_config_memory_address, uint16_t bdf) override {
+		return call<Rpc_assign_pci>(pci_config_memory_address, bdf); }
+
+	Signal_source_capability alloc_signal_source() override {
+		return call<Rpc_alloc_signal_source>(); }
+
+	void free_signal_source(Signal_source_capability cap) override {
+		call<Rpc_free_signal_source>(cap); }
+
+	Signal_context_capability alloc_context(Signal_source_capability source,
+	                                        unsigned long imprint) override {
+		return call<Rpc_alloc_context>(source, imprint); }
+
+	void free_context(Signal_context_capability cap) override {
+		call<Rpc_free_context>(cap); }
+
+	void submit(Signal_context_capability receiver, unsigned cnt = 1) override {
+		call<Rpc_submit>(receiver, cnt); }
 };
 
 #endif /* _INCLUDE__PD_SESSION__CLIENT_H_ */

@@ -13,13 +13,12 @@
 
 
 /* Genode includes */
-#include <signal_session/connection.h>
+#include <base/signal.h>
+#include <base/trace/events.h>
 
 using namespace Genode;
 
-/************************
- ** Signal transmitter **
- ************************/
+
 void Signal_transmitter::submit(unsigned cnt)
 {
 	{

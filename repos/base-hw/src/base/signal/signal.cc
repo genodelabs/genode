@@ -12,9 +12,11 @@
  */
 
 /* Genode includes */
+#include <util/retry.h>
 #include <base/thread.h>
 #include <base/signal.h>
-#include <signal_session/connection.h>
+#include <base/env.h>
+#include <base/trace/events.h>
 
 /* base-hw includes */
 #include <kernel/interface.h>
@@ -46,33 +48,22 @@ void Signal_transmitter::submit(unsigned cnt)
 
 Signal_receiver::Signal_receiver()
 {
-	/* create a kernel object that corresponds to the receiver */
-	bool session_upgraded = 0;
-	Signal_connection * const s = signal_connection();
-	while (1) {
-		try {
-			_cap = s->alloc_receiver();
-			return;
-		} catch (Signal_session::Out_of_metadata)
-		{
-			/* upgrade session quota and try again, but only once */
-			if (session_upgraded) {
-				PERR("failed to alloc signal receiver");
-				_cap = Signal_receiver_capability();
-				return;
-			}
-			PINF("upgrading quota donation for SIGNAL session");
-			env()->parent()->upgrade(s->cap(), "ram_quota=8K");
-			session_upgraded = 1;
+	retry<Pd_session::Out_of_metadata>(
+		[&] () {
+			_cap = env()->pd_session()->alloc_signal_source();
+		},
+		[&] () {
+			PINF("upgrading quota donation for PD session");
+			env()->parent()->upgrade(env()->pd_session_cap(), "ram_quota=8K");
 		}
-	}
+	);
 }
 
 
 void Signal_receiver::_platform_destructor()
 {
 	/* release server resources of receiver */
-	signal_connection()->free_receiver(_cap);
+	env()->pd_session()->free_signal_source(_cap);
 }
 
 
@@ -91,27 +82,21 @@ Signal_context_capability Signal_receiver::manage(Signal_context * const c)
 	Lock::Guard context_guard(c->_lock);
 	if (c->_receiver) { throw Context_already_in_use(); }
 
-	/* create a context kernel-object at the receiver kernel-object */
-	bool session_upgraded = 0;
-	Signal_connection * const s = signal_connection();
-	while (1) {
-		try {
-			c->_cap = s->alloc_context(_cap, (unsigned long)c);
+	retry<Pd_session::Out_of_metadata>(
+		[&] () {
+			/* use signal context as imprint */
+			c->_cap = env()->pd_session()->alloc_context(_cap, (unsigned long)c);
 			c->_receiver = this;
 			_contexts.insert(&c->_receiver_le);
 			return c->_cap;
-		} catch (Signal_session::Out_of_metadata)
-		{
-			/* upgrade session quota and try again, but only once */
-			if (session_upgraded) {
-				PERR("failed to alloc signal context");
-				return Signal_context_capability();
-			}
-			PINF("upgrading quota donation for signal session");
-			env()->parent()->upgrade(s->cap(), "ram_quota=8K");
-			session_upgraded = 1;
+		},
+		[&] () {
+			PINF("upgrading quota donation for PD session");
+			env()->parent()->upgrade(env()->pd_session_cap(), "ram_quota=8K");
 		}
-	}
+	);
+
+	return c->_cap;
 }
 
 

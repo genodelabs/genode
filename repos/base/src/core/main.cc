@@ -33,7 +33,6 @@
 #include <log_root.h>
 #include <io_mem_root.h>
 #include <irq_root.h>
-#include <signal_root.h>
 #include <trace/root.h>
 #include <platform_services.h>
 
@@ -212,16 +211,6 @@ int main()
 	 * destruction (to enable quota trading) of session component objects.
 	 */
 	static Sliced_heap sliced_heap(env()->ram_session(), env()->rm_session());
-
-	/**
-	 * Provide signal service before other services to enable the use of signal
-	 * connection during service initialization. This has been introduced due
-	 * to the use of the signal framework for paging (RM service) in base-hw.
-	 */
-	static Signal_root signal_root(&sliced_heap, core_env()->cap_session());
-	char const * const signal_name = Signal_session::service_name();
-	static Local_service signal_service(signal_name, &signal_root);
-	local_services.insert(&signal_service);
 
 	static Cap_root     cap_root     (e, &sliced_heap);
 	static Ram_root     ram_root     (e, e, platform()->ram_alloc(), &sliced_heap);

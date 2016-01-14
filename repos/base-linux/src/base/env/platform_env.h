@@ -323,6 +323,7 @@ namespace Genode {
 			Cpu_session_capability       _cpu_session_cap;
 			Expanding_cpu_session_client _cpu_session_client;
 			Rm_session_mmap              _rm_session_mmap;
+			Pd_session_capability        _pd_session_cap;
 			Pd_session_client            _pd_session_client;
 
 		public:
@@ -339,7 +340,8 @@ namespace Genode {
 				_cpu_session_cap(cpu_cap),
 				_cpu_session_client(static_cap_cast<Linux_cpu_session>(cpu_cap)),
 				_rm_session_mmap(false),
-				_pd_session_client(pd_cap)
+				_pd_session_cap(pd_cap),
+				_pd_session_client(_pd_session_cap)
 			{ }
 
 
@@ -347,12 +349,13 @@ namespace Genode {
 			 ** Env interface **
 			 *******************/
 
-			Ram_session            *ram_session()     { return &_ram_session_client; }
-			Ram_session_capability  ram_session_cap() { return  _ram_session_cap; }
-			Rm_session             *rm_session()      { return &_rm_session_mmap; }
-			Linux_cpu_session      *cpu_session()     { return &_cpu_session_client; }
-			Cpu_session_capability  cpu_session_cap() { return  _cpu_session_cap; }
-			Pd_session             *pd_session()      { return &_pd_session_client; }
+			Ram_session            *ram_session()     override { return &_ram_session_client; }
+			Ram_session_capability  ram_session_cap() override { return  _ram_session_cap; }
+			Rm_session             *rm_session()      override { return &_rm_session_mmap; }
+			Linux_cpu_session      *cpu_session()     override { return &_cpu_session_client; }
+			Cpu_session_capability  cpu_session_cap() override { return  _cpu_session_cap; }
+			Pd_session             *pd_session()      override { return &_pd_session_client; }
+			Pd_session_capability   pd_session_cap()  override { return  _pd_session_cap; }
 
 			/*
 			 * Support functions for implementing fork on Noux.
@@ -451,8 +454,8 @@ namespace Genode {
 			 ** Env interface **
 			 *******************/
 
-			Parent *parent() { return &_parent(); }
-			Heap   *heap()   { return &_heap; }
+			Parent      *parent()      override { return &_parent(); }
+			Heap        *heap()        override { return &_heap; }
 	};
 }
 

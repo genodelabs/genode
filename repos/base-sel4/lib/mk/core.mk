@@ -11,6 +11,8 @@ SRC_CC      += \
                cpu_session_component.cc \
                cpu_session_support.cc \
                pd_session_component.cc \
+               pd_assign_pci.cc \
+               pd_upgrade_ram_quota.cc \
                io_mem_session_component.cc \
                io_mem_session_support.cc \
                thread_start.cc \
@@ -22,7 +24,6 @@ SRC_CC      += \
                rm_session_component.cc \
                rm_session_support.cc \
                irq_session_component.cc \
-               signal_session_component.cc \
                signal_source_component.cc \
                trace_session_component.cc \
                core_rm_session.cc \
@@ -47,11 +48,12 @@ vpath ram_session_component.cc    $(GEN_CORE_DIR)
 vpath rom_session_component.cc    $(GEN_CORE_DIR)
 vpath cpu_session_component.cc    $(GEN_CORE_DIR)
 vpath pd_session_component.cc     $(GEN_CORE_DIR)
+vpath pd_assign_pci.cc            $(GEN_CORE_DIR)
+vpath pd_upgrade_ram_quota.cc     $(GEN_CORE_DIR)
 vpath rm_session_component.cc     $(GEN_CORE_DIR)
 vpath io_mem_session_component.cc $(GEN_CORE_DIR)
 vpath io_mem_session_support.cc   $(GEN_CORE_DIR)
 vpath platform_services.cc        $(GEN_CORE_DIR)
-vpath signal_session_component.cc $(GEN_CORE_DIR)
 vpath signal_source_component.cc  $(GEN_CORE_DIR)
 vpath trace_session_component.cc  $(GEN_CORE_DIR)
 vpath dataspace_component.cc      $(GEN_CORE_DIR)

@@ -26,7 +26,7 @@ using namespace Genode;
 
 int Pd_session_component::bind_thread(Thread_capability thread)
 {
-	return _thread_ep->apply(thread, [&] (Cpu_thread_component *cpu_thread) {
+	return _thread_ep.apply(thread, [&] (Cpu_thread_component *cpu_thread) {
 		if (!cpu_thread) return -1;
 
 		if (cpu_thread->bound()) {

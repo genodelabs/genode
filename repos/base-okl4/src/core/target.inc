@@ -31,7 +31,6 @@ SRC_CC += cap_session_component.cc \
           rm_session_component.cc \
           rm_session_support.cc \
           rom_session_component.cc \
-          signal_session_component.cc \
           signal_source_component.cc \
           thread_start.cc \
           trace_session_component.cc
@@ -53,7 +52,6 @@ vpath pd_session_component.cc     $(GEN_CORE_DIR)
 vpath rm_session_component.cc     $(GEN_CORE_DIR)
 vpath io_mem_session_component.cc $(GEN_CORE_DIR)
 vpath io_mem_session_support.cc   $(GEN_CORE_DIR)
-vpath signal_session_component.cc $(GEN_CORE_DIR)
 vpath signal_source_component.cc  $(GEN_CORE_DIR)
 vpath trace_session_component.cc  $(GEN_CORE_DIR)
 vpath dataspace_component.cc      $(GEN_CORE_DIR)

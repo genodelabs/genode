@@ -20,12 +20,12 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__SIGNAL_SESSION__SOURCE_CLIENT_H_
-#define _INCLUDE__SIGNAL_SESSION__SOURCE_CLIENT_H_
+#ifndef _INCLUDE__SIGNAL_SOURCE__CLIENT_H_
+#define _INCLUDE__SIGNAL_SOURCE__CLIENT_H_
 
 #include <base/rpc_client.h>
 #include <base/thread.h>
-#include <signal_session/foc_source.h>
+#include <signal_source/foc_signal_source.h>
 
 namespace Fiasco {
 #include <l4/sys/irq.h>
@@ -63,7 +63,7 @@ namespace Genode {
 			/**
 			 * Constructor
 			 */
-			Signal_source_client(Signal_source_capability cap)
+			Signal_source_client(Capability<Signal_source> cap)
 			: Rpc_client<Foc_signal_source>(static_cap_cast<Foc_signal_source>(cap))
 			{ _init_sem(); }
 
@@ -92,4 +92,4 @@ namespace Genode {
 	};
 }
 
-#endif /* _INCLUDE__SIGNAL_SESSION__SOURCE_CLIENT_H_ */
+#endif /* _INCLUDE__SIGNAL_SOURCE__CLIENT_H_ */
