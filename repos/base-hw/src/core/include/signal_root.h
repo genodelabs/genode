@@ -30,7 +30,7 @@ namespace Genode
 	 */
 	class Signal_handler
 	{
-		enum { STACK_SIZE = 4096 };
+		enum { STACK_SIZE = 1024 * sizeof(addr_t) };
 
 		Rpc_entrypoint _entrypoint;
 
