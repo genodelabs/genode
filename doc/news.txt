@@ -4,6 +4,22 @@
                                ===========
 
 
+Road Map for 2016 | 2016-01-15
+##############################
+
+| We finalized the road map for 2016, which is primarily focused on extending
+| the community of users.
+
+After having passed the point where a few enthusiasts use Genode as
+their day-to-day OS, it is time to extend the user base beyond
+the inner circle of developers. The road map outlines the plan to make Genode
+appealing to two target audiences, namely system builders and a narrow group
+of privacy-considerate end users. Hence, the overall theme of 2016 is to
+help a growing community to leverage the full potential of Genode.
+
+The new road map is available at the [http:/about/road-map - road-map page].
+
+
 Genode at FOSDEM 2016 | 2016-01-12
 ##################################
 
