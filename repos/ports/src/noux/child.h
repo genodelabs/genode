@@ -36,9 +36,7 @@
 #include <interrupt_handler.h>
 #include <kill_broadcaster.h>
 #include <parent_execve.h>
-
 #include <local_cpu_service.h>
-#include <local_ram_service.h>
 #include <local_rom_service.h>
 
 namespace Noux {
@@ -214,7 +212,7 @@ namespace Noux {
 			Session_capability const _noux_session_cap;
 
 			Local_noux_service _local_noux_service;
-			Local_ram_service  _local_ram_service;
+			Parent_service     _parent_ram_service;
 			Local_cpu_service  _local_cpu_service;
 			Local_rm_service   _local_rm_service;
 			Local_rom_service  _local_rom_service;
@@ -363,7 +361,7 @@ namespace Noux {
 				_sysio(_sysio_ds.local_addr<Sysio>()),
 				_noux_session_cap(Session_capability(_entrypoint.manage(this))),
 				_local_noux_service(_noux_session_cap),
-				_local_ram_service(_entrypoint),
+				_parent_ram_service(""),
 				_local_cpu_service(_entrypoint, _resources.cpu.cpu_cap()),
 				_local_rm_service(_entrypoint, _resources.ds_registry),
 				_local_rom_service(_entrypoint, _resources.ds_registry),
@@ -382,10 +380,7 @@ namespace Noux {
 				_child(forked ? Dataspace_capability() : _elf._binary_ds,
 				       _pd.cap(), _resources.ram.cap(), _resources.cpu.cap(),
 				       _resources.rm.cap(), &_entrypoint, &_child_policy,
-				       /**
-				        * Override the implicit assignment to _parent_service
-				        */
-				       _local_ram_service, _local_cpu_service, _local_rm_service)
+				       _parent_ram_service, _local_cpu_service, _local_rm_service)
 			{
 				if (verbose)
 					_args.dump();
