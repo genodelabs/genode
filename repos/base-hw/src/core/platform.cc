@@ -136,6 +136,11 @@ Platform::Platform()
 	init_alloc(_core_mem_alloc.virt_alloc(), virt_region,
 	           _core_only_ram_regions, get_page_size_log2());
 
+	/* preserve context area in core's virtual address space */
+	_core_mem_alloc.virt_alloc()->remove_range(
+		Native_config::context_area_virtual_base(),
+		Native_config::context_area_virtual_size());
+
 	_init_io_port_alloc();
 
 	/* make all non-kernel interrupts available to the interrupt allocator */
