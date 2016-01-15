@@ -14,56 +14,99 @@ The road map is not fixed. If there is commercial interest of pushing the
 Genode technology to a certain direction, we are willing to revisit our plans.
 
 
-Review of 2014
+Review of 2015
 ##############
 
-Most of the progress in 2014 was motivated by our goal to use
-Genode as general-purpose OS on x86-based platforms. To highlight a
-few achievements, we started to use [http://rumpkernel.org/ - Rump kernels]
-as file-system providers, enabled VirtualBox on NOVA, pulled off the
-engineering feat to run the Intel Wireless stack natively on microkernels, and
-came up with a new GUI architecture. We regard these features as the
-groundwork to make Genode a feasible platform for day-to-day computing.
+In the beginning of 2015, we declared four main topics to work on, namely
+Genode as general-purpose OS, our custom base-hw kernel platform, thorough
+documentation, and the seL4 kernel. It goes without saying that the stability
+and performance of the base system is a fundamental requirement for the first
+topic.
 
-That said, even though we are proud about the progress, we are still not there
-yet. So what keeps us back? The answer is actually not technical. Most
-developments over the past years were concerned with individual features or
-technical challenges. But the integration of sophisticated system scenarios
-was a rare occurrence. For the most part, such integration activities were
-solely triggered by a particular project or by a presentation. In order to
-make Genode fit for regular use, we need to make the composing of advanced
-systems a habit for most of the regular developers.
+In mid of 2015, we eventually reached the point where a hand full of
+developers started using Genode as their day-to-day OS in the form of the
+so-called
+[https://github.com/genodelabs/genode/issues/1552 - Turmvilla scenario].
+By the end of the year, the performance, stability, and device-driver support
+had reached a level that leaves people impressed every time we have the chance
+to show off our system. Once people become interested, the Genode Foundations
+book - published in Spring - provides a smooth introduction into Genode. The
+Turmvilla scenario is currently based on the NOVA kernel. For the future, we
+want to use also other kernels, in particular our custom base-hw kernel and
+seL4. Thanks to the contribution of
+[http://codelabs.ch - Codelabs], base-hw became usable on the 64-bit x86
+architecture and on the Muen separation kernel in particular. With our work
+on seL4, we reached the point where basic Genode scenarios are executable
+on this kernel.
+
+After having passed the point where a few enthusiasts are able to use Genode
+as day-to-day OS, we should put the emphasis of 2016 on
+ways to make Genode accessible for a wider community.
 
 
-Big picture for 2015
+Big picture for 2016
 ####################
 
-On the account of this realization, the overall theme of 2015 will be the
-consolidation and cultivation of the existing feature set rather than the
-conquering of new grounds. This implies the following topics:
+We identified two possible ways to extend the Genode community.
 
-* Advancing our automated test and integration infrastructure towards
-  the continuous integration of real-world system scenarios,
-* Fostering good-quality documentation,
-* Optimization of performance and stability,
-* Improvement of our tooling
+By community we refer to two groups of people. The first group are
+maker-minded people with a strong incentive to build things. By publishing a
+series of step-by-step guides that explain how to put Genode components
+together in order to create custom system scenarios, we intend to spark
+interest of system builders in Genode. Those articles could be accompanied by
+screencasts or live-system images.
 
-Furthermore, we have to address outstanding limitations of the most
-commonly used base platforms, namely base-hw and NOVA. I.e., only
-with kernel-protected capabilities, base-hw can be considered as a viable
-base platform for security-critical systems, and only with proper
-kernel-resource management, NOVA can be recommended as a kernel for
-general-purpose computing.
+The second group are certain end users with a strong desire for privacy and
+security. We expect this narrow user group to willingly trade the comfort and
+features of traditional desktop OSes for the benefits of Genode. We plan to
+showcase a system with practical value for this group, for example a
+disposable OS like Tails that allows the user to browse the internet via the
+Tor network.
 
-Besides the cultivation of the existing feature set, there will still be room
-for new things. We are particularly excited about the prospect of combining
-Genode with the [http://sel4.systems - seL4 kernel] and
-the [http://nixos.org/nix/ - Nix package manager]. Furthermore, we desire to
-continue the work on our new GUI architecture towards a capability-based
-desktop environment.
+In this spirit, the leitmotif for 2016 will be: Let us make Genode accessible
+to the world outside the inner circle of us enthusiasts.
+
+On a technical level, this motive implicates the following topics:
+
+* The deployment, management, and configuration of Genode systems, i.e., by
+  bringing forward our work on the Nix package manager and by fostering
+  dynamic configurability. This direction also reinforces the need to achieve
+  binary compatibility between the various base platforms to make the
+  distribution of binary packages, reproducible builds, and continuous test
+  and integration scalable.
+
+* Accommodation of common desktop use cases like plugging in a USB
+  stick to work with the files stored on it. Also disk encryption comes
+  into mind.
+
+* Optimization of Genode for the use on a laptop, e.g., addressing
+  fan control, power management, suspend/resume, and similar features.
+
+* Identifying ways of how Genode could contribute additional value to
+  Xen-based environments like Amazon EC2 and Qubes OS.
+
+* Foster the cross-pollination of the seL4 and Genode communities.
+  Genode would allow the seL4 community to move beyond static system
+  scenarios.
+
+* As most use cases rely on networking, we acknowledge the need for
+  improving Genode's network support such as NAT, the robustness of the
+  available TCP/IP stacks and drivers, encryption, and possibly IPv6.
+
+* Genode as distributed system, e.g., a system spread over multiple FPGA-based
+  softcore CPUs, over multiple domains of the Muen separation kernel, or a
+  local machine and a cloud-service provider.
+
+Assuming that we succeed in drawing the attention of a broader audience
+to our project, we should make sure that Genode's API won't undergo
+major changes soon after this point. Today, there are still a number of
+deficiencies in the current API. We should finalize the renovation of
+the Genode API until the mid of 2016. This will also be right the time for
+updating the Genode book. Also, the planned step-by-step guides will
+be based on the modernized API.
 
 
-Milestones for 2015
+Milestones for 2016
 ###################
 
 In the following, we present a rough schedule of the planned work. As usual,
@@ -71,38 +114,41 @@ it is not set in stone. If you are interested in a particular line of work,
 please get in touch.
 
 
-February - Release 15.02
+February - Release 16.02
 ========================
 
-* ARM virtualization on top of the base-hw kernel
-* Modularized tooling for automated tests
+* RISC-V architecture support
+* seL4 version 2.0
+* Assignment of USB devices to VirtualBox guests
+* API modernization (introduction of new component API, deprecation
+  of API legacies)
 
 
-May - Release 15.05
+May - Release 16.05
 ===================
 
-* Comprehensive documentation of the Genode foundations
-* Kernel-protected capabilities for the base-hw kernel
-* seL4 microkernel as base platform
-* Refined platform-driver architecture (support for MSIs, assignment of
-  I/O resources to drivers, standardized configuration)
+* VirtualBox on top of the Muen separation kernel
+* Update of the Genode Foundations book
+* NAT component
+* API modernization (removal of API legacies)
+* Definition of "packages"
 
 
-August - Release 15.08
+August - Release 16.08
 ======================
 
-* Capability-based desktop environment allowing the interactive installation
-  and management of Genode subsystems and the interaction with files
-* Accommodation of typical desktop-computing tasks (e.g., email)
-* Interactive tools for observing the system behavior
-* NOVA kernel-resource management
+* Cross-kernel binary compatibility
+* Interactive system scenarios on top of seL4
+* Networking via Tor
+* Block encryption
+* Build-system support for handling packages
 
 
-November - Release 15.11
+November - Release 16.11
 ========================
 
-* Achieving cross-kernel binary compatibility
-* Package management
-* Modern web browser
-
+* Genode on top of Xen
+* Exploration of Genode as distributed system
+* Deployment of packages
+* On-target building of packages
 
