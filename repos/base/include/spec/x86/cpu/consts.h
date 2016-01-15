@@ -37,9 +37,12 @@ namespace X86 {
 namespace Abi {
 
 	/**
-	 * On x86 a call will result in a growth of the stack by machine word size
+	 * On x86, we align the stack top to 16 byte. As a call will result in
+	 * growth of the stack, we further adjust the stack-top address to comply
+	 * to the AMD64 ABI rule "stack top + adjustment is 16-byte aligned".
 	 */
-	static constexpr Genode::size_t stack_adjustment() { return sizeof(Genode::addr_t); }
+	static Genode::addr_t stack_align(Genode::addr_t addr) {
+		return (addr & ~0xf) - sizeof(Genode::addr_t); }
 
 	/**
 	 * Do ABI specific initialization to a freshly created stack

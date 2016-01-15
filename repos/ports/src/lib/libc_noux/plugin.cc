@@ -564,8 +564,8 @@ extern "C" pid_t fork(void)
 		stack_in_context_area = &dummy;
 
 		/* got here during the normal control flow of the fork call */
-		sysio()->fork_in.ip              = (Genode::addr_t)(&fork_trampoline);
-		sysio()->fork_in.sp              = (Genode::addr_t)(&stack[STACK_SIZE]);
+		sysio()->fork_in.ip = (Genode::addr_t)(&fork_trampoline);
+		sysio()->fork_in.sp = Abi::stack_align((Genode::addr_t)&stack[STACK_SIZE]);
 		sysio()->fork_in.parent_cap_addr = (Genode::addr_t)(&new_parent);
 
 		if (!noux_syscall(Noux::Session::SYSCALL_FORK)) {
