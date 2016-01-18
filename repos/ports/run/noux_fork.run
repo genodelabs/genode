@@ -1,12 +1,6 @@
-if {[have_spec linux]} {
-	puts "\nLinux not supported because of missing UART driver\n"
-	exit 0
+build {
+	core init server/log_terminal noux/minimal lib/libc_noux test/noux_fork
 }
-
-build "core init drivers/timer drivers/uart noux/minimal lib/libc_noux test/noux_fork"
-
-# create tar archive
-exec tar cfv bin/noux_fork.tar -h -C bin test-noux_fork
 
 create_boot_directory
 
@@ -28,21 +22,14 @@ install_config {
 		<default-route>
 			<any-service> <any-child/> <parent/> </any-service>
 		</default-route>
-		<start name="timer">
-			<resource name="RAM" quantum="1M"/>
-			<provides><service name="Timer"/></provides>
-		</start>
-		<start name="uart_drv">
+		<start name="log_terminal">
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Terminal"/></provides>
-			<config>
-				<policy label="noux" uart="1"/>
-			</config>
 		</start>
 		<start name="noux">
 			<resource name="RAM" quantum="1G"/>
 			<config verbose="yes">
-				<fstab> <tar name="noux_fork.tar" /> </fstab>
+				<fstab> <rom name="test-noux_fork" /> </fstab>
 				<start name="test-noux_fork"> </start>
 			</config>
 		</start>
@@ -50,23 +37,10 @@ install_config {
 }
 
 build_boot_image {
-	core init timer uart_drv ld.lib.so noux libc.lib.so
-	libc_noux.lib.so noux_fork.tar
+	core init log_terminal noux ld.lib.so libc.lib.so libc_noux.lib.so
+	test-noux_fork
 }
 
-#
-# Redirect the output of Noux via the virtual serial port 1 into a file to be
-# dumped after the successful completion of the test.
-#
-set noux_output_file "noux_output.log"
-
-append qemu_args " -nographic"
-append qemu_args " -serial mon:stdio"
-append qemu_args " -serial file:$noux_output_file"
+append qemu_args " -nographic "
 
 run_genode_until "child.*exited.*\n" 20
-
-puts "[exec cat $noux_output_file]"
-
-exec rm bin/noux_fork.tar
-exec rm $noux_output_file
