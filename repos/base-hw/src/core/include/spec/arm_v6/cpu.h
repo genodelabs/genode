@@ -20,22 +20,8 @@
 #include <assert.h>
 #include <board.h>
 
-namespace Genode
-{
-	/**
-	 * Part of CPU state that is not switched on every mode transition
-	 */
-	class Cpu_lazy_state { };
+namespace Genode { class Cpu; }
 
-	/**
-	 * CPU driver for core
-	 */
-	class Cpu;
-}
-
-namespace Kernel {
-	using Genode::Cpu_lazy_state;
-}
 
 class Genode::Cpu : public Arm
 {
@@ -91,11 +77,6 @@ class Genode::Cpu : public Arm
 		}
 
 		/**
-		 * Return wether to retry an undefined user instruction after this call
-		 */
-		bool retry_undefined_instr(Cpu_lazy_state *) { return false; }
-
-		/**
 		 * Post processing after a translation was added to a translation table
 		 *
 		 * \param addr  virtual address of the translation
@@ -108,7 +89,6 @@ class Genode::Cpu : public Arm
 		 ** Dummies **
 		 *************/
 
-		static void prepare_proceeding(Cpu_lazy_state *, Cpu_lazy_state *) { }
 		static void wait_for_interrupt() { /* FIXME */ }
 		static void data_synchronization_barrier() { /* FIXME */ }
 		static void invalidate_control_flow_predictions() { /* FIXME */ }

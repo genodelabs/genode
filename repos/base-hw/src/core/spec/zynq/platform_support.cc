@@ -64,7 +64,7 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 }
 
 
-Cpu::User_context::User_context() { cpsr = Psr::init_user(); }
+Genode::Arm::User_context::User_context() { cpsr = Psr::init_user(); }
 
 
 bool Cortex_a9::Board::errata(Cortex_a9::Board::Errata err) {

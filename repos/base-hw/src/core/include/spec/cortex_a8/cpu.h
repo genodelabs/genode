@@ -18,20 +18,8 @@
 /* core includes */
 #include <spec/arm_v7/cpu_support.h>
 
-namespace Genode
-{
-	/**
-	 * Part of CPU state that is not switched on every mode transition
-	 */
-	class Cpu_lazy_state { };
+namespace Genode { class Cpu; }
 
-	/**
-	 * CPU driver for core
-	 */
-	class Cpu;
-}
-
-namespace Kernel { using Genode::Cpu_lazy_state; }
 
 class Genode::Cpu : public Arm_v7
 {

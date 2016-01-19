@@ -146,10 +146,8 @@ Cpu_job & Cpu::schedule()
 	assert(quota);
 	_timer->start_one_shot(quota, _id);
 
-	/* switch between lazy state of old and new job */
-	Cpu_lazy_state * const old_state = old_job.lazy_state();
-	Cpu_lazy_state * const new_state = new_job.lazy_state();
-	prepare_proceeding(old_state, new_state);
+	/* switch to new job */
+	switch_to(new_job);
 
 	/* return new job */
 	return new_job;

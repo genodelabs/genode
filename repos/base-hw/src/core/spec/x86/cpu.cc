@@ -15,24 +15,35 @@
 #include <cpu.h>
 #include <kernel/pd.h>
 
-void Genode::Cpu::_init_fpu()
+Genode::Cpu::Cpu()
 {
-	Cr0::access_t cr0_value = Cr0::read();
-	Cr4::access_t cr4_value = Cr4::read();
+	if (primary_id() == executing_id()) {
+		_idt = new (&_mt_idt) Idt();
+		_idt->setup(Cpu::exception_entry);
 
-	Cr0::Mp::set(cr0_value);
-	Cr0::Em::clear(cr0_value);
-	Cr0::Ts::set(cr0_value);
-	Cr0::Ne::set(cr0_value);
-	Cr0::write(cr0_value);
-
-	Cr4::Osfxsr::set(cr4_value);
-	Cr4::Osxmmexcpt::set(cr4_value);
-	Cr4::write(cr4_value);
+		_tss = new (&_mt_tss) Tss();
+		_tss->load();
+	}
+	_idt->load(Cpu::exception_entry);
+	_tss->setup(Cpu::exception_entry);
 }
 
 
-void Genode::Cpu::_disable_fpu() { Cr0::write(Cr0::read() | Cr0::Ts::bits(1)); }
+void Genode::Cpu::Context::init(addr_t const table, bool core)
+{
+	/* Constants to handle IF, IOPL values */
+	enum {
+		EFLAGS_IF_SET = 1 << 9,
+		EFLAGS_IOPL_3 = 3 << 12,
+	};
 
+	cr3 = Cr3::init(table);
 
-bool Genode::Cpu::_fpu_enabled() { return !Cr0::Ts::get(Cr0::read()); }
+	/*
+	 * Enable interrupts for all threads, set I/O privilege level
+	 * (IOPL) to 3 for core threads to allow UART access.
+	 */
+	eflags = EFLAGS_IF_SET;
+	if (core) eflags |= EFLAGS_IOPL_3;
+	else Gdt::load(Cpu::exception_entry);
+}

@@ -33,7 +33,7 @@ void Kernel::Cpu::init(Pic &pic, Kernel::Pd &core_pd, Genode::Board&)
 {
 	Timer::disable_pit();
 
-	_init_fpu();
+	fpu().init();
 
 	/*
 	 * Please do not remove the PINF(), because the serial constructor requires

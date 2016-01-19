@@ -38,7 +38,7 @@ void Thread::exception(unsigned const cpu)
 		_interrupt(cpu);
 		return;
 	case UNDEFINED_INSTRUCTION:
-		if (_cpu->retry_undefined_instr(&_lazy_state)) { return; }
+		if (_cpu->retry_undefined_instr(*this)) { return; }
 		PWRN("%s -> %s: undefined instruction at ip=%p",
 		     pd_label(), label(), (void*)ip);
 		_stop();

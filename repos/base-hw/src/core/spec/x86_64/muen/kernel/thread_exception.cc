@@ -25,7 +25,7 @@ void Thread::exception(unsigned const cpu)
 		_mmu_exception();
 		return;
 	case NO_MATH_COPROC:
-		if (_cpu->retry_fpu_instr(&_lazy_state)) { return; }
+		if (_cpu->fpu().fault(*this)) { return; }
 		PWRN("%s -> %s: FPU error", pd_label(), label());
 		_stop();
 		return;

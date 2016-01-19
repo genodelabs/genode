@@ -114,7 +114,7 @@ void Kernel::Cpu::init(Kernel::Pic &pic, Kernel::Pd & core_pd, Genode::Board & b
 	/* wait for other cores' coherency activation */
 	smp_coherency_enabled.wait_for(NR_OF_CPUS);
 
-	init_advanced_fp_simd();
+	_fpu.init();
 
 	{
 		Lock::Guard guard(data_lock());

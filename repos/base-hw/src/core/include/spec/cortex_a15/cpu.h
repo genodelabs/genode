@@ -18,20 +18,8 @@
 /* core includes */
 #include <spec/arm_v7/cpu_support.h>
 
-namespace Genode
-{
-	/**
-	 * Part of CPU state that is not switched on every mode transition
-	 */
-	class Cpu_lazy_state { };
+namespace Genode { class Cpu; }
 
-	/**
-	 * CPU driver for core
-	 */
-	class Cpu;
-}
-
-namespace Kernel { using Genode::Cpu_lazy_state; }
 
 class Genode::Cpu : public Arm_v7
 {
@@ -409,11 +397,6 @@ class Genode::Cpu : public Arm_v7
 
 
 		/**
-		 * Return wether to retry an undefined user instruction after this call
-		 */
-		bool retry_undefined_instr(Cpu_lazy_state *) { return false; }
-
-		/**
 		 * Return kernel name of the executing CPU
 		 */
 		static unsigned executing_id() { return Mpidr::Aff_0::get(Mpidr::read()); }
@@ -455,7 +438,8 @@ class Genode::Cpu : public Arm_v7
 		 ** Dummies **
 		 *************/
 
-		static void prepare_proceeding(Cpu_lazy_state *, Cpu_lazy_state *) { }
+		void switch_to(User_context&) { }
+		bool retry_undefined_instr(Context&) { return false; }
 };
 
 #endif /* _CPU_H_ */

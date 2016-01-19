@@ -28,12 +28,7 @@ namespace Kernel { class Pd; }
 
 namespace Genode
 {
-	/**
-	 * CPU driver for core
-	 */
 	class Arm;
-
-	class Cpu_lazy_state;
 
 	typedef Genode::uint64_t sizet_arithm_t;
 }
@@ -544,8 +539,8 @@ class Genode::Arm
 		 ** Dummies **
 		 *************/
 
-		void prepare_proceeding(Cpu_lazy_state *, Cpu_lazy_state *) { }
-		bool retry_undefined_instr(Cpu_lazy_state *) { return false; }
+		void switch_to(User_context&) { }
+		bool retry_undefined_instr(Context&) { return false; }
 
 		/**
 		 * Return kernel name of the executing CPU

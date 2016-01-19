@@ -59,4 +59,4 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 }
 
 
-Cpu::User_context::User_context() { cpsr = Psr::init_user(); }
+Genode::Arm::User_context::User_context() { cpsr = Psr::init_user(); }

@@ -117,12 +117,11 @@ class Kernel::Cpu_domain_update : public Double_list_item
 		virtual void _cpu_domain_update_unblocks() = 0;
 };
 
-class Kernel::Cpu_job : public Cpu_share
+class Kernel::Cpu_job : public Genode::Cpu::User_context, public Cpu_share
 {
 	protected:
 
-		Cpu *          _cpu;
-		Cpu_lazy_state _lazy_state;
+		Cpu * _cpu;
 
 		/**
 		 * Handle interrupt exception that occured during execution on CPU 'id'
@@ -196,10 +195,9 @@ class Kernel::Cpu_job : public Cpu_share
 		 ***************/
 
 		void cpu(Cpu * const cpu) { _cpu = cpu; }
-		Cpu_lazy_state * lazy_state() { return &_lazy_state; }
 };
 
-class Kernel::Cpu_idle : public Genode::Cpu::User_context, public Cpu_job
+class Kernel::Cpu_idle : public Cpu_job
 {
 	private:
 

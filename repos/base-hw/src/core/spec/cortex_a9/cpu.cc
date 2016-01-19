@@ -25,4 +25,3 @@ void Genode::Arm_v7::enable_mmu_and_caches(Kernel::Pd & pd)
 	Cpu::Sctlr::enable_mmu_and_caches();
 	invalidate_branch_predicts();
 }
-

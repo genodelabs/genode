@@ -71,7 +71,7 @@ void Cortex_a9::Board::wake_up_all_cpus(void * const ip)
 	             "sev\n");
 }
 
-Cpu::User_context::User_context() { cpsr = Psr::init_user(); }
+Genode::Arm::User_context::User_context() { cpsr = Psr::init_user(); }
 
 
 void Cpu::Actlr::enable_smp() {
