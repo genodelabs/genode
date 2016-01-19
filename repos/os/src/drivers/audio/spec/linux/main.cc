@@ -262,14 +262,6 @@ class Audio_out::Root : public Audio_out::Root_component
 };
 
 
-/*
- * Manually initialize the 'lx_environ' pointer, needed because 'nic_drv' is
- * not using the normal Genode startup code.
- */
-extern char **environ;
-char **lx_environ = environ;
-
-
 int main(int argc, char **argv)
 {
 	/* setup data available signal */
