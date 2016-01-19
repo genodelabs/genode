@@ -231,6 +231,11 @@ void Platform_thread::resume()
 	if (!is_worker()) {
 		uint8_t res;
 		do {
+			if (!_pd) {
+				PERR("protection domain undefined %s - resuming thread failed",
+				     __PRETTY_FUNCTION__);
+				return;
+			}
 			res = create_sc(_sel_sc(), _pd->pd_sel(), _sel_ec(),
 			                Qpd(Qpd::DEFAULT_QUANTUM, _priority));
 		} while (res == Nova::NOVA_PD_OOM && Nova::NOVA_OK == _pager->handle_oom());
@@ -316,6 +321,10 @@ unsigned long Platform_thread::pager_object_badge() const
 
 Weak_ptr<Address_space> Platform_thread::address_space()
 {
+	if (!_pd) {
+		PERR("protection domain undefined %s", __PRETTY_FUNCTION__);
+		return Weak_ptr<Address_space>();
+	}
 	return _pd->Address_space::weak_ptr();
 }
 
