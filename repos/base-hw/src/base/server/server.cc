@@ -16,7 +16,6 @@
 #include <base/sleep.h>
 #include <base/env.h>
 #include <util/retry.h>
-#include <cap_session/client.h>
 
 using namespace Genode;
 
@@ -27,15 +26,7 @@ using namespace Genode;
 
 Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 {
-	Untyped_capability new_obj_cap =
-		retry<Genode::Cap_session::Out_of_metadata>(
-			[&] () { return _cap_session->alloc(_cap); },
-			[&] () {
-				Cap_session_client *client =
-				dynamic_cast<Cap_session_client*>(_cap_session);
-				if (client)
-					env()->parent()->upgrade(*client, "ram_quota=16K");
-			});
+	Untyped_capability new_obj_cap = _alloc_rpc_cap(_pd_session, _cap);
 
 	/* add server object to object pool */
 	obj->cap(new_obj_cap);

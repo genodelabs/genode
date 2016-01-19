@@ -7,6 +7,7 @@ SRC_CC       = context_area.cc \
                core_mem_alloc.cc \
                core_printf.cc \
                core_rm_session.cc \
+               core_rpc_cap_alloc.cc \
                cpu_session_component.cc \
                cpu_session_extension.cc \
                cpu_session_support.cc \
@@ -21,8 +22,10 @@ SRC_CC       = context_area.cc \
                main.cc \
                pager.cc \
                pd_session_component.cc \
+               native_pd_component.cc \
                pd_upgrade_ram_quota.cc \
                pd_assign_pci.cc \
+               rpc_cap_factory.cc \
                platform.cc \
                platform_pd.cc \
                platform_services.cc \

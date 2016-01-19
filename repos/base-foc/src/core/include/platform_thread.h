@@ -22,7 +22,6 @@
 /* core includes */
 #include <pager.h>
 #include <platform_pd.h>
-#include <cap_session_component.h>
 #include <cap_mapping.h>
 #include <address_space.h>
 

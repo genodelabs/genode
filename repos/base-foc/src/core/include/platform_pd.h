@@ -69,7 +69,7 @@ namespace Genode {
 			/**
 			 * Constructor for all tasks except core.
 			 */
-			Platform_pd();
+			Platform_pd(Allocator *, char const *label);
 
 			/**
 			 * Destructor

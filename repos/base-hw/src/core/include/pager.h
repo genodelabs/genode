@@ -20,12 +20,14 @@
 #include <base/signal.h>
 #include <pager/capability.h>
 #include <unmanaged_singleton.h>
+
+/* core-local includes */
 #include <kernel/signal_receiver.h>
 #include <object.h>
+#include <rpc_cap_factory.h>
 
 namespace Genode
 {
-	class Cap_session;
 
 	/**
 	 * Translation of a virtual page frame
@@ -199,10 +201,8 @@ class Genode::Pager_entrypoint : public Object_pool<Pager_object>,
 
 		/**
 		 * Constructor
-		 *
-		 * \param a  activation that shall handle the objects of the entrypoint
 		 */
-		Pager_entrypoint(Cap_session * cap_session);
+		Pager_entrypoint(Rpc_cap_factory &);
 
 		/**
 		 * Associate pager object 'obj' with entry point

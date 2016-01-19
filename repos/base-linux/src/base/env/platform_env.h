@@ -454,8 +454,8 @@ namespace Genode {
 			 ** Env interface **
 			 *******************/
 
-			Parent      *parent()      override { return &_parent(); }
-			Heap        *heap()        override { return &_heap; }
+			Parent *parent() override { return &_parent(); }
+			Heap   *heap()   override { return &_heap; }
 	};
 }
 

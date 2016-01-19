@@ -138,6 +138,39 @@ struct Genode::Pd_session : Session
 	 ** Support for the RPC framework **
 	 ***********************************/
 
+	/**
+	 * Allocate new RPC-object capability
+	 *
+	 * \param ep  entry point that will use this capability
+	 *
+	 * \throw Out_of_metadata  if meta-data backing store is exhausted
+	 *
+	 * \return new RPC capability
+	 */
+	virtual Native_capability alloc_rpc_cap(Native_capability ep) = 0;
+
+	/**
+	 * Free RPC-object capability
+	 *
+	 * \param cap  capability to free
+	 */
+	virtual void free_rpc_cap(Native_capability cap) = 0;
+
+
+	/*****************************************
+	 ** Access to kernel-specific interface **
+	 *****************************************/
+
+	/**
+	 * Common base class of kernel-specific PD interfaces
+	 */
+	struct Native_pd { };
+
+	/**
+	 * Return capability to kernel-specific PD operations
+	 */
+	virtual Capability<Native_pd> native_pd() = 0;
+
 
 	/*********************
 	 ** RPC declaration **
@@ -161,10 +194,29 @@ struct Genode::Pd_session : Session
 
 	GENODE_RPC(Rpc_submit, void, submit, Capability<Signal_context>, unsigned);
 
+	GENODE_RPC_THROW(Rpc_alloc_rpc_cap, Native_capability, alloc_rpc_cap,
+	                 GENODE_TYPE_LIST(Out_of_metadata), Native_capability);
 
-	GENODE_RPC_INTERFACE(Rpc_bind_thread, Rpc_assign_parent, Rpc_assign_pci,
-	                     Rpc_alloc_signal_source, Rpc_free_signal_source,
-	                     Rpc_alloc_context,  Rpc_free_context, Rpc_submit);
+	GENODE_RPC(Rpc_free_rpc_cap, void, free_rpc_cap, Native_capability);
+
+	GENODE_RPC(Rpc_native_pd, Capability<Native_pd>, native_pd);
+
+	/*
+	 * Manual definition of 'Rpc_functions', see the comment in cpu_session.h.
+	 */
+	typedef Meta::Type_tuple<Rpc_bind_thread,
+	        Meta::Type_tuple<Rpc_assign_parent,
+	        Meta::Type_tuple<Rpc_assign_pci,
+	        Meta::Type_tuple<Rpc_alloc_signal_source,
+	        Meta::Type_tuple<Rpc_free_signal_source,
+	        Meta::Type_tuple<Rpc_alloc_context,
+	        Meta::Type_tuple<Rpc_free_context,
+	        Meta::Type_tuple<Rpc_submit,
+	        Meta::Type_tuple<Rpc_alloc_rpc_cap,
+	        Meta::Type_tuple<Rpc_free_rpc_cap,
+	        Meta::Type_tuple<Rpc_native_pd,
+	                         Meta::Empty>
+	        > > > > > > > > > > Rpc_functions;
 };
 
 #endif /* _INCLUDE__PD_SESSION__PD_SESSION_H_ */

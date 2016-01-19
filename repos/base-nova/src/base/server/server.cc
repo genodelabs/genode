@@ -25,32 +25,6 @@
 using namespace Genode;
 
 
-static Untyped_capability create_portal(Cap_session * cap_session,
-                                        Untyped_capability ec_cap,
-                                        addr_t entry)
-{
-	Untyped_capability obj_cap;
-
-	obj_cap = cap_session->alloc(ec_cap, entry);
-
-	if (!obj_cap.valid())
-		return obj_cap;
-
-	using namespace Nova;
-
-	/* set local badge */
-	if (pt_ctrl(obj_cap.local_name(), obj_cap.local_name()) != NOVA_OK) {
-		cap_session->free(obj_cap);
-		return Untyped_capability();
-	}
-
-	/* disable PT_CTRL permission - feature for security reasons now */
-	revoke(Obj_crd(obj_cap.local_name(), 0, Obj_crd::RIGHT_PT_CTRL));
-
-	return obj_cap;
-}
-
-
 /***********************
  ** Server entrypoint **
  ***********************/
@@ -59,7 +33,7 @@ Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 {
 	using namespace Nova;
 
-	Untyped_capability ec_cap, obj_cap;
+	Untyped_capability ec_cap;
 
 	/* _ec_sel is invalid until thread gets started */
 	if (tid().ec_sel != Native_thread::INVALID_INDEX)
@@ -67,7 +41,8 @@ Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 	else
 		ec_cap = _thread_cap;
 
-	obj_cap = create_portal(_cap_session, ec_cap, (addr_t)_activation_entry);
+	Untyped_capability obj_cap = _alloc_rpc_cap(_pd_session, ec_cap,
+	                                            (addr_t)&_activation_entry);
 	if (!obj_cap.valid())
 		return obj_cap;
 
@@ -83,7 +58,7 @@ Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
 {
 	/* de-announce object from cap_session */
-	_cap_session->free(obj->cap());
+	_free_rpc_cap(_pd_session, obj->cap());
 
 	/* avoid any incoming IPC */
 	Nova::revoke(Nova::Obj_crd(obj->cap().local_name(), 0), true);
@@ -206,13 +181,13 @@ void Rpc_entrypoint::activate()
 }
 
 
-Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
+Rpc_entrypoint::Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
                                const char  *name, bool start_on_construction,
                                Affinity::Location location)
 :
 	Thread_base(Cpu_session::DEFAULT_WEIGHT, name, stack_size),
 	_delay_start(Lock::LOCKED),
-	_cap_session(cap_session)
+	_pd_session(*pd_session)
 {
 	/* when not running in core set the affinity via cpu session */
 	if (_tid.ec_sel == Native_thread::INVALID_INDEX) {
@@ -232,8 +207,8 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 	Thread_base::start();
 
 	/* create cleanup portal */
-	_cap = create_portal(cap_session, Native_capability(_tid.ec_sel),
-	                     (addr_t)_activation_entry);
+	_cap = _alloc_rpc_cap(_pd_session, Native_capability(_tid.ec_sel),
+	                      (addr_t)_activation_entry);
 	if (!_cap.valid())
 		throw Cpu_session::Thread_creation_failed();
 
@@ -258,6 +233,5 @@ Rpc_entrypoint::~Rpc_entrypoint()
 	if (!_cap.valid())
 		return;
 
-	/* de-announce object from cap_session */
-	_cap_session->free(_cap);
+	_free_rpc_cap(_pd_session, _cap);
 }

@@ -17,7 +17,6 @@
 #include <util/string.h>
 
 /* core includes */
-#include <cap_session_component.h>
 #include <platform_thread.h>
 #include <platform.h>
 #include <core_env.h>
@@ -219,6 +218,13 @@ Affinity::Location Platform_thread::affinity() const
 }
 
 
+static Rpc_cap_factory &thread_cap_factory()
+{
+	static Rpc_cap_factory inst(*platform()->core_mem_alloc());
+	return inst;
+}
+
+
 void Platform_thread::_create_thread()
 {
 	l4_msgtag_t tag = l4_factory_create_thread(L4_BASE_FACTORY_CAP,
@@ -226,13 +232,8 @@ void Platform_thread::_create_thread()
 	if (l4_msgtag_has_error(tag))
 		PERR("cannot create more thread kernel-objects!");
 
-	/* for core threads we can't use core_env, it is to early */
-	static Cap_session_component core_thread_cap_session(0,"");
-	Cap_session &csc = (_core_thread)
-		? core_thread_cap_session : *core_env()->cap_session();
-
 	/* create initial gate for thread */
-	_gate.local = csc.alloc(_thread.local);
+	_gate.local = thread_cap_factory().alloc(_thread.local);
 }
 
 
@@ -316,7 +317,7 @@ Platform_thread::Platform_thread(const char *name)
 
 Platform_thread::~Platform_thread()
 {
-	core_env()->cap_session()->free(_gate.local);
+	thread_cap_factory().free(_gate.local);
 
 	/*
 	 * We inform our protection domain about thread destruction, which will end up in

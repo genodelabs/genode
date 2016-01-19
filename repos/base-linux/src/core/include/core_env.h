@@ -21,7 +21,7 @@
 /* core includes */
 #include <platform.h>
 #include <core_parent.h>
-#include <cap_session_component.h>
+#include <core_pd_session.h>
 #include <ram_session_component.h>
 #include <core_pd_session.h>
 
@@ -127,9 +127,9 @@ namespace Genode {
 			{
 				enum { STACK_SIZE = 2048 * sizeof(Genode::addr_t) };
 
-				Entrypoint(Cap_session *cap_session)
+				Entrypoint()
 				:
-					Rpc_entrypoint(cap_session, STACK_SIZE, "entrypoint")
+					Rpc_entrypoint(nullptr, STACK_SIZE, "entrypoint")
 				{ }
 			};
 
@@ -138,7 +138,6 @@ namespace Genode {
 			typedef Synchronized_ram_session<Ram_session_component> Core_ram_session;
 
 			Core_parent                  _core_parent;
-			Cap_session_component        _cap_session;
 			Entrypoint                   _entrypoint;
 			Core_ram_session             _ram_session;
 
@@ -165,8 +164,6 @@ namespace Genode {
 				Platform_env_base(Ram_session_capability(),
 				                  Cpu_session_capability(),
 				                  Pd_session_capability()),
-				_cap_session(platform()->core_mem_alloc(), "ram_quota=4K"),
-				_entrypoint(&_cap_session),
 				_ram_session(&_entrypoint, &_entrypoint,
 				             platform()->ram_alloc(), platform()->core_mem_alloc(),
 				             "ram_quota=4M", platform()->ram_alloc()->avail()),
@@ -186,7 +183,6 @@ namespace Genode {
 			 ** Core-specific accessor functions **
 			 **************************************/
 
-			Cap_session *cap_session() { return &_cap_session; }
 			Entrypoint  *entrypoint()  { return &_entrypoint; }
 
 
@@ -194,13 +190,14 @@ namespace Genode {
 			 ** Env interface **
 			 *******************/
 
-			Parent                 *parent()          { return &_core_parent; }
-			Ram_session            *ram_session()     { return &_ram_session; }
-			Ram_session_capability  ram_session_cap() { return  _ram_session_cap; }
-			Pd_session             *pd_session()      { return &_pd_session_client; }
-			Allocator              *heap()            { return &_heap; }
+			Parent                 *parent()          override { return &_core_parent; }
+			Ram_session            *ram_session()     override { return &_ram_session; }
+			Ram_session_capability  ram_session_cap() override { return  _ram_session_cap; }
+			Pd_session             *pd_session()      override { return &_pd_session_client; }
+			Allocator              *heap()            override { return &_heap; }
 
-			Cpu_session_capability cpu_session_cap() {
+			Cpu_session_capability cpu_session_cap()
+			{
 				PWRN("%s:%u not implemented", __FILE__, __LINE__);
 				return Cpu_session_capability();
 			}

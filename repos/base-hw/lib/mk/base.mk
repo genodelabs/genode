@@ -17,6 +17,7 @@ SRC_CC += thread/start.cc
 SRC_CC += irq/platform.cc
 SRC_CC += env.cc
 SRC_CC += capability.cc
+SRC_CC += server/rpc_cap_alloc.cc
 
 # add include paths
 INC_DIR +=  $(REP_DIR)/src/base/lock

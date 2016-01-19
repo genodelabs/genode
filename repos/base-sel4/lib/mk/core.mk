@@ -7,10 +7,10 @@ SRC_CC      += \
                ram_session_component.cc \
                ram_session_support.cc \
                rom_session_component.cc \
-               cap_session_component.cc \
                cpu_session_component.cc \
                cpu_session_support.cc \
                pd_session_component.cc \
+               rpc_cap_factory.cc \
                pd_assign_pci.cc \
                pd_upgrade_ram_quota.cc \
                io_mem_session_component.cc \
@@ -28,6 +28,7 @@ SRC_CC      += \
                trace_session_component.cc \
                core_rm_session.cc \
                core_mem_alloc.cc \
+               core_rpc_cap_alloc.cc \
                dump_alloc.cc \
                context_area.cc \
                capability_space.cc \
@@ -58,6 +59,7 @@ vpath signal_source_component.cc  $(GEN_CORE_DIR)
 vpath trace_session_component.cc  $(GEN_CORE_DIR)
 vpath dataspace_component.cc      $(GEN_CORE_DIR)
 vpath core_mem_alloc.cc           $(GEN_CORE_DIR)
+vpath core_rpc_cap_alloc.cc       $(GEN_CORE_DIR)
 vpath dump_alloc.cc               $(GEN_CORE_DIR)
 vpath pager_ep.cc                 $(GEN_CORE_DIR)
 vpath %.cc                        $(REP_DIR)/src/core

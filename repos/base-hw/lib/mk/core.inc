@@ -23,6 +23,7 @@ SRC_CC += cpu_session_component.cc
 SRC_CC += cpu_session_support.cc
 SRC_CC += core_rm_session.cc
 SRC_CC += core_mem_alloc.cc
+SRC_CC += core_rpc_cap_alloc.cc
 SRC_CC += dataspace_component.cc
 SRC_CC += dump_alloc.cc
 SRC_CC += io_mem_session_component.cc

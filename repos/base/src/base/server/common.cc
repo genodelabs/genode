@@ -24,7 +24,7 @@ void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
 	/* make sure nobody is able to find this object */
 	remove(obj);
 
-	_cap_session->free(obj->cap());
+	_free_rpc_cap(_pd_session, obj->cap());
 
 	/* now the object may be safely destructed */
 }
@@ -79,7 +79,7 @@ bool Rpc_entrypoint::is_myself() const
 }
 
 
-Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
+Rpc_entrypoint::Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
                                char const *name, bool start_on_construction,
                                Affinity::Location location)
 :
@@ -87,7 +87,7 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 	_cap(Untyped_capability()),
 	_cap_valid(Lock::LOCKED), _delay_start(Lock::LOCKED),
 	_delay_exit(Lock::LOCKED),
-	_cap_session(cap_session)
+	_pd_session(*pd_session)
 {
 	/* set CPU affinity, if specified */
 	if (location.valid())

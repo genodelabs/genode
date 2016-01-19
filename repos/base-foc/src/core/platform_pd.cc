@@ -111,7 +111,7 @@ Platform_pd::Platform_pd(Core_cap_index* i)
 }
 
 
-Platform_pd::Platform_pd()
+Platform_pd::Platform_pd(Allocator *, char const *)
 : _task(true, TASK_CAP)
 {
 	for (unsigned i = 0; i < THREAD_MAX; i++)

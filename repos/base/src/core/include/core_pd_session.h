@@ -97,6 +97,18 @@ class Genode::Core_pd_session_component : public Rpc_object<Pd_session>
 				context->source()->submit(context, cnt);
 			});
 		}
+
+		Native_capability alloc_rpc_cap(Native_capability) override
+		{
+			ASSERT_NEVER_CALLED;
+		}
+
+		void free_rpc_cap(Native_capability) override
+		{
+			ASSERT_NEVER_CALLED;
+		}
+
+		Capability<Native_pd> native_pd() override { ASSERT_NEVER_CALLED; }
 };
 
 #endif /* _CORE__INCLUDE__CORE_PD_SESSION_H_ */

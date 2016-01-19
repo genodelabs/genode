@@ -90,7 +90,7 @@ namespace Genode {
 			Pd_connection(char const *label = "", Native_pd_args const *pd_args = 0)
 			:
 				Connection<Pd_session>(
-					session("ram_quota=4K, label=\"%s\"%s%s%s", label,
+					session("ram_quota=36K, label=\"%s\"%s%s%s", label,
 					        Root_arg(pd_args).string,
 					        Uid_arg(pd_args).string,
 					        Gid_arg(pd_args).string)),

@@ -138,7 +138,7 @@ void Pager_entrypoint::entry()
 void Pager_entrypoint::dissolve(Pager_object *obj)
 {
 	/* cleanup at cap session */
-	_cap_session->free(obj->Object_pool<Pager_object>::Entry::cap());
+	_cap_factory.free(obj->Object_pool<Pager_object>::Entry::cap());
 
 	remove(obj);
 }
@@ -148,7 +148,7 @@ Pager_capability Pager_entrypoint::manage(Pager_object *obj)
 {
 	using namespace Fiasco;
 
-	Native_capability cap(_cap_session->alloc({Thread_base::_thread_cap}));
+	Native_capability cap(_cap_factory.alloc(Thread_base::_thread_cap));
 
 	/* add server object to object pool */
 	obj->cap(cap);

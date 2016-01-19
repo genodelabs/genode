@@ -16,7 +16,7 @@
 #include <base/env.h>
 #include <base/process.h>
 #include <base/printf.h>
-#include <linux_pd_session/client.h>
+#include <linux_native_pd/client.h>
 
 /* framework-internal includes */
 #include <linux_syscalls.h>
@@ -84,10 +84,10 @@ Process::Process(Dataspace_capability   elf_data_ds_cap,
 	enum { WEIGHT = Cpu_session::DEFAULT_WEIGHT };
 	_thread0_cap = _cpu_session_client.create_thread(WEIGHT, name);
 
-	Linux_pd_session_client
-		lx_pd(static_cap_cast<Linux_pd_session>(pd_session_cap));
+	Linux_native_pd_client
+		lx_pd(static_cap_cast<Linux_native_pd>(_pd_session_client.native_pd()));
 
-	lx_pd.assign_parent(parent_cap);
+	_pd_session_client.assign_parent(parent_cap);
 	lx_pd.start(elf_data_ds_cap);
 }
 

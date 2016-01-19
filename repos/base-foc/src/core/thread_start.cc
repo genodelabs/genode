@@ -17,7 +17,6 @@
 #include <base/sleep.h>
 
 /* core includes */
-#include <cap_session_component.h>
 #include <platform.h>
 #include <core_env.h>
 

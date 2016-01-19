@@ -14,6 +14,9 @@
 #ifndef _CORE__INCLUDE__PLATFORM_PD_H_
 #define _CORE__INCLUDE__PLATFORM_PD_H_
 
+/* Genode includes */
+#include <base/allocator.h>
+
 /* core includes */
 #include <platform_thread.h>
 #include <address_space.h>
@@ -121,11 +124,8 @@ namespace Genode {
 
 			/**
 			 * Protection domain allocation
-			 *
-			 * Find free L4 task and use it. We need the special case for Core
-			 * startup.
 			 */
-			int _alloc_pd(signed pd_id);
+			int _alloc_pd();
 
 			/**
 			 * Protection domain deallocation
@@ -153,7 +153,7 @@ namespace Genode {
 			 * Constructors
 			 */
 			Platform_pd(bool core);
-			Platform_pd(signed pd_id = PD_INVALID, bool create = true);
+			Platform_pd(Allocator *, char const *);
 
 			/**
 			 * Destructor

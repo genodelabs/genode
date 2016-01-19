@@ -30,7 +30,6 @@
 #include <core_parent.h>
 #include <core_rm_session.h>
 #include <core_pd_session.h>
-#include <cap_session_component.h>
 #include <ram_session_component.h>
 
 namespace Genode {
@@ -115,8 +114,7 @@ namespace Genode {
 
 			typedef Synchronized_ram_session<Ram_session_component> Core_ram_session;
 
-			Core_parent           _core_parent;
-			Cap_session_component _cap_session;
+			Core_parent _core_parent;
 
 			enum { ENTRYPOINT_STACK_SIZE = 2048 * sizeof(Genode::addr_t) };
 
@@ -144,8 +142,7 @@ namespace Genode {
 			 */
 			Core_env()
 			:
-				_cap_session(platform()->core_mem_alloc(), "ram_quota=4K"),
-				_entrypoint(&_cap_session, ENTRYPOINT_STACK_SIZE, "entrypoint"),
+				_entrypoint(nullptr, ENTRYPOINT_STACK_SIZE, "entrypoint"),
 				_rm_session(&_entrypoint),
 				_ram_session(&_entrypoint, &_entrypoint,
 				             platform()->ram_alloc(), platform()->core_mem_alloc(),
@@ -162,7 +159,6 @@ namespace Genode {
 			~Core_env() { parent()->exit(0); }
 
 			Rpc_entrypoint *entrypoint()  { return &_entrypoint; }
-			Cap_session    *cap_session() { return &_cap_session; }
 
 
 			/*******************

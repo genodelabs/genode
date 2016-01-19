@@ -25,6 +25,8 @@
 /* core includes */
 #include <platform_pd.h>
 #include <signal_broker.h>
+#include <rpc_cap_factory.h>
+#include <native_pd_component.h>
 
 namespace Genode { class Pd_session_component; }
 
@@ -48,15 +50,18 @@ class Genode::Pd_session_component : public Rpc_object<Pd_session>
 			}
 		} const _label;
 
-		Allocator_guard    _md_alloc;   /* guarded meta-data allocator */
-		Platform_pd        _pd;
-		Capability<Parent> _parent;
-		Rpc_entrypoint    &_thread_ep;
-
-		Signal_broker _signal_broker;
+		Allocator_guard     _md_alloc;   /* guarded meta-data allocator */
+		Platform_pd         _pd;
+		Capability<Parent>  _parent;
+		Rpc_entrypoint     &_thread_ep;
+		Signal_broker       _signal_broker;
+		Rpc_cap_factory     _rpc_cap_factory;
+		Native_pd_component _native_pd;
 
 		size_t _ram_quota(char const * args) {
 			return Arg_string::find_arg(args, "ram_quota").long_value(0); }
+
+		friend class Native_pd_component;
 
 	public:
 
@@ -86,7 +91,9 @@ class Genode::Pd_session_component : public Rpc_object<Pd_session>
 			_md_alloc(&md_alloc, _ram_quota(args)),
 			_pd(&_md_alloc, _label.string),
 			_thread_ep(thread_ep),
-			_signal_broker(_md_alloc, receiver_ep, context_ep)
+			_signal_broker(_md_alloc, receiver_ep, context_ep),
+			_rpc_cap_factory(_md_alloc),
+			_native_pd(*this, args)
 		{ }
 
 		/**
@@ -130,6 +137,19 @@ class Genode::Pd_session_component : public Rpc_object<Pd_session>
 
 		void submit(Signal_context_capability cap, unsigned n) override {
 			_signal_broker.submit(cap, n); }
+
+		Native_capability alloc_rpc_cap(Native_capability ep) override
+		{
+			try {
+				return _rpc_cap_factory.alloc(ep); }
+			catch (Genode::Allocator::Out_of_memory) {
+				throw Pd_session::Out_of_metadata(); }
+		}
+
+		void free_rpc_cap(Native_capability cap) override {
+			_rpc_cap_factory.free(cap); }
+
+		Capability<Native_pd> native_pd() { return _native_pd.cap(); }
 };
 
 #endif /* _CORE__INCLUDE__PD_SESSION_COMPONENT_H_ */

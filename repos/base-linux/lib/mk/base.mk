@@ -6,6 +6,7 @@
 
 LIBS   += startup cxx
 SRC_CC += thread/thread.cc thread/myself.cc thread/thread_linux.cc
+SRC_CC += server/rpc_cap_alloc.cc
 
 vpath %.cc  $(REP_DIR)/src/base
 vpath %.cc $(BASE_DIR)/src/base

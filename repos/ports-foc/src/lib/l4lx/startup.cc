@@ -105,7 +105,7 @@ static void prepare_l4re_env()
 
 	Genode::Foc_cpu_session_client cpu(Genode::env()->cpu_session_cap());
 
-	Genode::Thread_capability main_thread = Genode::env()->parent()->main_thread_cap();
+	Genode::Thread_capability main_thread = Genode::Thread_base::myself()->cap();
 	static Genode::Native_capability main_thread_cap = cpu.native_cap(main_thread);
 
 	l4re_env_t *env = l4re_env();

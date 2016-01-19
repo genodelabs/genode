@@ -23,7 +23,7 @@
 /* Genode includes */
 #include <base/printf.h>
 #include <base/env.h>
-#include <base/heap.h> 
+#include <base/heap.h>
 
 /* local includes */
 #include <platform_env_common.h>
@@ -137,15 +137,15 @@ class Genode::Platform_env : public Genode::Env, public Emergency_ram_reserve
 		 ** Env interface **
 		 *******************/
 
-		Parent                 *parent()          { return &_parent_client; }
-		Ram_session            *ram_session()     { return &_resources.ram; }
-		Ram_session_capability  ram_session_cap() { return  _resources.ram; }
-		Cpu_session            *cpu_session()     { return &_resources.cpu; }
-		Cpu_session_capability  cpu_session_cap() { return  _resources.cpu; }
-		Rm_session             *rm_session()      { return &_resources.rm; }
-		Pd_session             *pd_session()      { return &_resources.pd; }
-		Pd_session_capability   pd_session_cap()  { return  _resources.pd; }
-		Allocator              *heap()            { return &_heap; }
+		Parent                 *parent()          override { return &_parent_client; }
+		Ram_session            *ram_session()     override { return &_resources.ram; }
+		Ram_session_capability  ram_session_cap() override { return  _resources.ram; }
+		Cpu_session            *cpu_session()     override { return &_resources.cpu; }
+		Cpu_session_capability  cpu_session_cap() override { return  _resources.cpu; }
+		Rm_session             *rm_session()      override { return &_resources.rm; }
+		Pd_session             *pd_session()      override { return &_resources.pd; }
+		Pd_session_capability   pd_session_cap()  override { return  _resources.pd; }
+		Allocator              *heap()            override { return &_heap; }
 };
 
 #endif /* _PLATFORM_ENV_H_ */

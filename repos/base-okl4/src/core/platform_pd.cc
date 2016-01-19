@@ -91,29 +91,19 @@ void Platform_pd::_destroy_pd()
 }
 
 
-int Platform_pd::_alloc_pd(signed pd_id)
+int Platform_pd::_alloc_pd()
 {
-	if (pd_id == PD_INVALID) {
-		unsigned i;
+	unsigned i;
 
-		for (i = PD_FIRST; i <= PD_MAX; i++)
-			if (_pds()[i].free) break;
+	for (i = PD_FIRST; i <= PD_MAX; i++)
+		if (_pds()[i].free) break;
 
-		/* no free protection domains available */
-		if (i > PD_MAX) return -1;
+	/* no free protection domains available */
+	if (i > PD_MAX) return -1;
 
-		pd_id = i;
+	_pds()[i].free = 0;
 
-	} else {
-		if (!_pds()[pd_id].reserved || !_pds()[pd_id].free)
-			return -1;
-	}
-
-	_pds()[pd_id].free = 0;
-
-	_pd_id = pd_id;
-
-	return pd_id;
+	return i;
 }
 
 
@@ -329,26 +319,23 @@ Platform_pd::Platform_pd(bool core)
 
 	_init_threads();
 
-	_pd_id = _alloc_pd(PD_INVALID);
+	_pd_id = _alloc_pd();
 
 	_create_pd(false);
 }
 
 
-Platform_pd::Platform_pd(signed pd_id, bool create)
+Platform_pd::Platform_pd(Allocator *, char const *label)
 : _space_pager(0)
 {
-	if (!create)
-		panic("create must be true.");
-
 	_init_threads();
 
-	_pd_id = _alloc_pd(pd_id);
+	_pd_id = _alloc_pd();
 
 	if (_pd_id > PD_MAX)
 		PERR("pd alloc failed");
 
-	_create_pd(create);
+	_create_pd(true);
 }
 
 

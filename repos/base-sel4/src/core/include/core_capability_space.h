@@ -17,7 +17,7 @@
 /* base-internal includes */
 #include <internal/rpc_obj_key.h>
 
-namespace Genode { class Cap_session; }
+namespace Genode { class Pd_session; }
 
 
 namespace Genode { namespace Capability_space {
@@ -26,7 +26,7 @@ namespace Genode { namespace Capability_space {
 	 * Create new RPC object capability for the specified entrypoint
 	 */
 	Native_capability create_rpc_obj_cap(Native_capability ep_cap,
-	                                     Cap_session const *,
+	                                     Pd_session const *,
 	                                     Rpc_obj_key);
 } }
 

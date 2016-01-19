@@ -5,9 +5,9 @@ GEN_CORE_DIR = $(BASE_DIR)/src/core
 
 LIBS        += base-common
 
-SRC_CC      += cap_session_component.cc \
-               context_area.cc \
+SRC_CC      += context_area.cc \
                core_printf.cc \
+               core_rpc_cap_alloc.cc \
                cpu_session_component.cc \
                cpu_session_extension.cc \
                dataspace_component.cc \
@@ -21,7 +21,10 @@ SRC_CC      += cap_session_component.cc \
                pager.cc \
                pager_object.cc \
                pd_session_component.cc \
-               pd_session_extension.cc \
+               pd_assign_pci.cc \
+               pd_upgrade_ram_quota.cc \
+               native_pd_component.cc \
+               rpc_cap_factory.cc \
                platform.cc \
                platform_pd.cc \
                platform_services.cc \
@@ -53,10 +56,13 @@ vpath io_mem_session_support.cc   $(GEN_CORE_DIR)
 vpath main.cc                     $(GEN_CORE_DIR)
 vpath multiboot_info.cc           $(GEN_CORE_DIR)
 vpath pd_session_component.cc     $(GEN_CORE_DIR)
+vpath pd_assign_pci.cc            $(GEN_CORE_DIR)
+vpath pd_upgrade_ram_quota.cc     $(GEN_CORE_DIR)
 vpath ram_session_component.cc    $(GEN_CORE_DIR)
 vpath rm_session_component.cc     $(GEN_CORE_DIR)
 vpath rom_session_component.cc    $(GEN_CORE_DIR)
 vpath trace_session_component.cc  $(GEN_CORE_DIR)
+vpath core_rpc_cap_alloc.cc       $(GEN_CORE_DIR)
 vpath pager_object.cc             $(GEN_CORE_DIR)
 vpath core_printf.cc              $(BASE_DIR)/src/base/console
 vpath %.cc                        $(REP_DIR)/src/core

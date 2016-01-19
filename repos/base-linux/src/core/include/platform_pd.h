@@ -16,10 +16,10 @@
 #ifndef _CORE__INCLUDE__LINUX__PLATFORM_PD_H_
 #define _CORE__INCLUDE__LINUX__PLATFORM_PD_H_
 
-namespace Genode {
+#include <base/allocator.h>
 
-	class Platform_pd
-	{ };
-}
+namespace Genode { struct Platform_pd; }
+
+struct Genode::Platform_pd { Platform_pd(Allocator *, char const *) { } };
 
 #endif /* _CORE__INCLUDE__LINUX__PLATFORM_PD_H_ */
