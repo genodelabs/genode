@@ -205,7 +205,7 @@ struct Genode::Rm_session : Session
 	                 Dataspace_capability, size_t, off_t, bool, Local_addr, bool);
 	GENODE_RPC(Rpc_detach, void, detach, Local_addr);
 	GENODE_RPC_THROW(Rpc_add_client, Pager_capability, add_client,
-	                 GENODE_TYPE_LIST(Invalid_thread, Out_of_metadata),
+	                 GENODE_TYPE_LIST(Unbound_thread, Invalid_thread, Out_of_metadata),
 	                 Thread_capability);
 	GENODE_RPC(Rpc_remove_client, void, remove_client, Pager_capability);
 	GENODE_RPC(Rpc_fault_handler, void, fault_handler, Signal_context_capability);
