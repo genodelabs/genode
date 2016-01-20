@@ -21,6 +21,7 @@ SRC_CC += server/server.cc
 SRC_CC += thread/thread.cc thread/thread_context.cc thread/trace.cc
 SRC_CC += thread/myself.cc
 SRC_CC += thread/context_allocator.cc env/cap_map.cc
+SRC_CC += sleep.cc
 
 INC_DIR +=  $(REP_DIR)/src/base/lock
 INC_DIR += $(BASE_DIR)/src/base/lock

@@ -24,6 +24,7 @@ SRC_CC += thread/myself.cc
 SRC_CC += thread/context_allocator.cc
 SRC_CC += thread/thread_bootstrap.cc
 SRC_CC += env/capability.cc
+SRC_CC += sleep.cc
 
 INC_DIR +=  $(REP_DIR)/src/base
 INC_DIR +=  $(REP_DIR)/src/base/lock

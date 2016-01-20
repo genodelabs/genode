@@ -29,6 +29,7 @@ SRC_CC += thread/bootstrap.cc
 SRC_CC += thread/trace.cc
 SRC_CC += thread/context_allocator.cc
 SRC_CC += kernel/interface.cc
+SRC_CC += sleep.cc
 
 # add include paths
 INC_DIR +=  $(REP_DIR)/src/base/lock
