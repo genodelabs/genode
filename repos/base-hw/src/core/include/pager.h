@@ -19,7 +19,9 @@
 #include <base/object_pool.h>
 #include <base/signal.h>
 #include <pager/capability.h>
-#include <unmanaged_singleton.h>
+
+/* base-internal includes */
+#include <base/internal/unmanaged_singleton.h>
 
 /* core-local includes */
 #include <kernel/signal_receiver.h>

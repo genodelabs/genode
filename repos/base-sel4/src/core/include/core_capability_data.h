@@ -15,7 +15,7 @@
 #define _CORE__INCLUDE__CAPABILITY_CORE_DATA_H_
 
 /* base-internal includes */
-#include <internal/capability_data.h>
+#include <base/internal/capability_data.h>
 
 namespace Genode {
 

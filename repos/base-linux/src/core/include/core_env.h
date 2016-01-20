@@ -25,8 +25,8 @@
 #include <ram_session_component.h>
 #include <core_pd_session.h>
 
-/* internal base includes */
-#include <platform_env.h>
+/* base-internal includes */
+#include <base/internal/platform_env.h>
 
 
 namespace Genode {

@@ -12,8 +12,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* env includes */
-#include <platform_env.h>
+/* base-internal includes */
+#include <base/internal/platform_env.h>
 
 /* Genode includes */
 #include <util/construct_at.h>

@@ -17,7 +17,8 @@
 #include <base/printf.h>
 #include <base/thread.h>
 
-#include <context_area.h>
+/* base-internal includes */
+#include <base/internal/context_area.h>
 
 
 /**

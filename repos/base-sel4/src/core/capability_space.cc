@@ -16,8 +16,8 @@
 #include <base/printf.h>
 
 /* base-internal includes */
-#include <internal/capability_data.h>
-#include <internal/capability_space_sel4.h>
+#include <base/internal/capability_data.h>
+#include <base/internal/capability_space_sel4.h>
 
 /* core includes */
 #include <core_capability_space.h>

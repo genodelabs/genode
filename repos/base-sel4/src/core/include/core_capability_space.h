@@ -15,7 +15,7 @@
 #define _CORE__INCLUDE__CORE_CAPABILITY_SPACE_H_
 
 /* base-internal includes */
-#include <internal/rpc_obj_key.h>
+#include <base/internal/rpc_obj_key.h>
 
 namespace Genode { class Pd_session; }
 

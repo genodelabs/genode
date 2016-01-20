@@ -16,8 +16,8 @@
 /* Genode includes */
 #include <base/cap_map.h>
 
-/* Lock implementation local include */
-#include <spin_lock.h>
+/* base-internal includes */
+#include <base/internal/spin_lock.h>
 
 
 Genode::Spin_lock::Spin_lock() : _spinlock(SPINLOCK_UNLOCKED) {}

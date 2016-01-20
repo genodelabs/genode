@@ -22,7 +22,7 @@
 #include <cpu/cpu_state.h>
 
 /* base includes */
-#include <unmanaged_singleton.h>
+#include <base/internal/unmanaged_singleton.h>
 
 /* core includes */
 #include <fpu.h>

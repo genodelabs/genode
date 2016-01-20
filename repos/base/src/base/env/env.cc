@@ -12,7 +12,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <platform_env.h>
+#include <base/internal/platform_env.h>
 
 namespace Genode {
 

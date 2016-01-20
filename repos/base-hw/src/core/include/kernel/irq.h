@@ -18,8 +18,10 @@
 /* Genode includes */
 #include <base/native_types.h>
 #include <irq_session/irq_session.h>
-#include <unmanaged_singleton.h>
 #include <util/avl_tree.h>
+
+/* base-internal includes */
+#include <base/internal/unmanaged_singleton.h>
 
 /* core includes */
 #include <kernel/signal_receiver.h>

@@ -16,8 +16,8 @@
 #include <kernel/kernel.h>
 #include <kernel/cpu.h>
 
-/* base includes */
-#include <unmanaged_singleton.h>
+/* base-internal includes */
+#include <base/internal/unmanaged_singleton.h>
 
 
 /* spin-lock used to synchronize kernel access of different cpus */

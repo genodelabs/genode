@@ -1,7 +1,7 @@
 /*
  * \brief  Platform support specific to x86
  * \author Christian Helmuth
- * \date    2006-04-11
+ * \date   2006-04-11
  */
 
 /*
@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <pistachio/thread_helper.h>
-#include <pistachio/kip.h>
+/* core-local includes */
+#include <kip.h>
 
 #include "platform.h"
 #include "util.h"

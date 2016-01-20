@@ -12,8 +12,10 @@
  */
 
 /* Genode includes */
-#include <spin_lock.h>
 #include <base/capability.h>
+
+/* base-internal includes */
+#include <base/internal/spin_lock.h>
 
 static volatile int    spinlock = SPINLOCK_UNLOCKED;
 static Genode::uint8_t ref_counter[1 << (sizeof(Kernel::capid_t)*8)];

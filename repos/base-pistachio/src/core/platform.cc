@@ -26,8 +26,8 @@
 #include <platform_thread.h>
 #include <platform_pd.h>
 #include <util.h>
-#include <pistachio/thread_helper.h>
-#include <pistachio/kip.h>
+#include <kip.h>
+#include <print_l4_thread_id.h>
 
 /* Pistachio includes */
 namespace Pistachio {
@@ -161,13 +161,13 @@ static void _core_pager_loop()
 
 		PDBG("Got page fault (pf_addr = %08lx, pf_ip = %08lx, flags = %08lx).",
 		     pf_addr, pf_ip, flags);
-		print_l4_threadid(L4_GlobalId(t));
+		print_l4_thread_id(L4_GlobalId(t));
 
 		/* check for NULL pointer */
 		if (pf_addr < page_size) {
 			PERR("possible null pointer %s at address %lx at EIP %lx in",
 			     is_write_fault(flags) ? "WRITE" : "READ/EXEC", pf_addr, pf_ip);
-			print_l4_threadid(t);
+			print_l4_thread_id(t);
 			/* do not unblock faulter */
 			break;
 		} else if (!_core_address_ranges().valid_addr(pf_addr)) {
@@ -175,12 +175,12 @@ static void _core_pager_loop()
 
 			PERR("%s access outside of RAM at %lx IP %lx",
 			     is_write_fault(flags) ? "WRITE" : "READ", pf_addr, pf_ip);
-			print_l4_threadid(t);
+			print_l4_thread_id(t);
 			/* do not unblock faulter */
 			break;
 		} else if (verbose_core_pf) {
 			PDBG("pfa=%lx ip=%lx in", pf_addr, pf_ip);
-			print_l4_threadid(t);
+			print_l4_thread_id(t);
 		}
 
 		/* my pf handler is sigma0 - just touch the appropriate page */

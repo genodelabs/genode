@@ -19,7 +19,7 @@
 #include <util/construct_at.h>
 
 /* local includes */
-#include <trace/control.h>
+#include <base/internal/trace_control.h>
 
 using namespace Genode;
 

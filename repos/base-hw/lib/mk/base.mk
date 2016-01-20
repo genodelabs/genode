@@ -1,13 +1,11 @@
 #
-# \brief  Portions of base library that are exclusive to non-core processes
+# \brief  Portions of base library that are exclusive to non-core components
 # \author Norman Feske
 # \date   2013-02-14
 #
 
-# add library dependencies
 LIBS += base-common startup
 
-# add C++ sources
 SRC_CC += console/log_console.cc
 SRC_CC += cpu/cache.cc
 SRC_CC += env/env.cc
@@ -19,11 +17,7 @@ SRC_CC += env.cc
 SRC_CC += capability.cc
 SRC_CC += server/rpc_cap_alloc.cc
 
-# add include paths
-INC_DIR +=  $(REP_DIR)/src/base/lock
-INC_DIR += $(BASE_DIR)/src/base/lock
-INC_DIR += $(BASE_DIR)/src/base/env
+INC_DIR += $(REP_DIR)/src/include $(BASE_DIR)/src/include
 
-# declare source locations
 vpath %  $(REP_DIR)/src/base
 vpath % $(BASE_DIR)/src/base

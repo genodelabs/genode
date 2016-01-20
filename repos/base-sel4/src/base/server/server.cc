@@ -17,8 +17,10 @@
  */
 
 /* Genode includes */
-#include <internal/capability_space_sel4.h>
 #include <base/rpc_server.h>
+
+/* base-internal includes */
+#include <base/internal/capability_space_sel4.h>
 
 using namespace Genode;
 

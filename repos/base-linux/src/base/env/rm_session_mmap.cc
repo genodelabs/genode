@@ -37,10 +37,10 @@
 #include <base/thread.h>
 #include <linux_dataspace/client.h>
 #include <linux_syscalls.h>
-#include <context_area.h>
 
-/* local includes */
-#include <platform_env.h>
+/* base-internal includes */
+#include <base/internal/platform_env.h>
+#include <base/internal/context_area.h>
 
 using namespace Genode;
 

@@ -17,8 +17,8 @@
 #include <linux_dataspace/client.h>
 #include <linux_syscalls.h>
 
-/* local includes */
-#include <platform_env.h>
+/* base-internal includes */
+#include <base/internal/platform_env.h>
 
 using namespace Genode;
 

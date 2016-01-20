@@ -31,11 +31,8 @@ SRC_CC        = main.cc \
 INC_DIR      += $(REP_DIR)/src/core/include \
                 $(GEN_CORE_DIR)/include \
                 $(REP_DIR)/src/platform \
-                $(REP_DIR)/src/base/ipc \
-                $(REP_DIR)/src/base/env \
-                $(BASE_DIR)/src/base/env \
-                $(REP_DIR)/src/base/console \
-                $(BASE_DIR)/src/base/thread \
+                $(REP_DIR)/src/include \
+                $(BASE_DIR)/src/include
 
 HOST_INC_DIR += /usr/include
 

@@ -14,9 +14,11 @@
 
 /* Genode includes */
 #include <base/thread_state.h>
-#include <unmanaged_singleton.h>
 #include <cpu_session/cpu_session.h>
 #include <util/construct_at.h>
+
+/* base-internal includes */
+#include <base/internal/unmanaged_singleton.h>
 
 /* core includes */
 #include <assert.h>

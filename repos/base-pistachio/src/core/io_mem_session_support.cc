@@ -13,10 +13,10 @@
  */
 
 /* core includes */
-#include <pistachio/kip.h>
 #include <platform.h>
 #include <util.h>
 #include <io_mem_session_component.h>
+#include <kip.h>
 
 /* Pistachio includes */
 namespace Pistachio {

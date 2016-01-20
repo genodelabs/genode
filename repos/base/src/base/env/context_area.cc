@@ -11,10 +11,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
 #include <rm_session/connection.h>
-#include <base/env.h>
-#include <base/thread.h>
-#include <platform_env_common.h>
+
+/* base-internal includes */
+#include <base/internal/platform_env_common.h>
 
 using namespace Genode;
 

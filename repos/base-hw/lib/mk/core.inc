@@ -11,11 +11,8 @@ LIBS += core-perf_counter
 LIBS += base-common
 
 # add include paths
-INC_DIR +=  $(REP_DIR)/src/core/include
-INC_DIR += $(BASE_DIR)/src/core/include
-INC_DIR += $(BASE_DIR)/src/base/include
-INC_DIR += $(BASE_DIR)/src/base/thread
-INC_DIR += $(BASE_DIR)/src/lib/startup
+INC_DIR += $(REP_DIR)/src/core/include $(BASE_DIR)/src/core/include
+INC_DIR += $(REP_DIR)/src/include      $(BASE_DIR)/src/include
 
 # add C++ sources
 SRC_CC += console.cc

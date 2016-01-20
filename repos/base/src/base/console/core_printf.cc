@@ -20,9 +20,12 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <core_console.h>  /* provides 'Core_console' */
+/* Genode includes */
 #include <base/printf.h>
 #include <base/lock.h>
+
+/* base-internal includes */
+#include <base/internal/core_console.h>
 
 using namespace Genode;
 

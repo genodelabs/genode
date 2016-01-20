@@ -26,9 +26,7 @@ SRC_CC += thread/thread_bootstrap.cc
 SRC_CC += env/capability.cc
 SRC_CC += sleep.cc
 
-INC_DIR +=  $(REP_DIR)/src/base
-INC_DIR +=  $(REP_DIR)/src/base/lock
-INC_DIR += $(BASE_DIR)/src/base/thread
+INC_DIR += $(REP_DIR)/src/include $(BASE_DIR)/src/include
 
 vpath %.cc $(REP_DIR)/src/base
 vpath %.cc $(BASE_DIR)/src/base

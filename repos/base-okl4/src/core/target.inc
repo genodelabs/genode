@@ -37,11 +37,8 @@ SRC_CC += context_area.cc \
           thread_start.cc \
           trace_session_component.cc
 
-INC_DIR += $(REP_DIR)/src/core/include \
-           $(GEN_CORE_DIR)/include \
-           $(REP_DIR)/src/base/console \
-           $(BASE_DIR)/src/base/thread \
-           $(BASE_DIR)/src/lib/startup
+INC_DIR += $(REP_DIR)/src/core/include $(GEN_CORE_DIR)/include \
+           $(REP_DIR)/src/include      $(BASE_DIR)/src/include
 
 include $(GEN_CORE_DIR)/version.inc
 

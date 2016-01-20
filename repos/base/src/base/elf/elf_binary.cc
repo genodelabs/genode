@@ -18,8 +18,8 @@
 #include <base/elf.h>
 #include <util/string.h>
 
-/* local includes */
-#include "elf.h"
+/* base-internal includes */
+#include <base/internal/elf_format.h>
 
 using namespace Genode;
 

@@ -25,7 +25,7 @@
 #include <base/printf.h>
 
 /* platform-specific local helper functions */
-#include <_main_parent_cap.h>
+#include <startup/internal/_main_parent_cap.h>
 
 
 using namespace Genode;

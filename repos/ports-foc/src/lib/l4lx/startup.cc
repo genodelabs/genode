@@ -12,7 +12,6 @@
  */
 
 /* Genode includes */
-#include <base/elf.h>
 #include <base/env.h>
 #include <base/thread.h>
 #include <base/native_types.h>

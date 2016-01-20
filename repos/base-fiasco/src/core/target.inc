@@ -37,8 +37,8 @@ SRC_CC      += context_area.cc \
 
 INC_DIR     += $(REP_DIR)/src/core/include \
                $(GEN_CORE_DIR)/include \
-               $(REP_DIR)/src/base/console \
-               $(BASE_DIR)/src/base/thread
+               $(REP_DIR)/src/include \
+               $(BASE_DIR)/src/include
 
 LIBS        += base-common
 

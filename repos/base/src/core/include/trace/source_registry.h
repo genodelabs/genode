@@ -21,7 +21,7 @@
 #include <base/weak_ptr.h>
 
 /* base-internal include */
-#include <trace/control.h>
+#include <base/internal/trace_control.h>
 
 namespace Genode { namespace Trace {
 	class Source;

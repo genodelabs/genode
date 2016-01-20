@@ -13,7 +13,7 @@ SRC_CC += thread/thread_nova.cc
 SRC_CC += irq/platform.cc
 SRC_CC += server/rpc_cap_alloc.cc
 
-INC_DIR += $(BASE_DIR)/src/base/env
+INC_DIR += $(REP_DIR)/src/include $(BASE_DIR)/src/include
 
 vpath %.cc  $(REP_DIR)/src/base
 vpath %.cc $(BASE_DIR)/src/base

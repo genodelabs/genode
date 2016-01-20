@@ -22,7 +22,7 @@
 #include <kernel_object.h>
 
 /* base-internal includes */
-#include <internal/capability_space_sel4.h>
+#include <base/internal/capability_space_sel4.h>
 
 using namespace Genode;
 

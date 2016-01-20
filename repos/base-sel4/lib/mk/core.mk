@@ -37,10 +37,8 @@ SRC_CC      += \
 
 LIBS        += core_printf base-common syscall
 
-INC_DIR     += $(REP_DIR)/src/core/include \
-               $(GEN_CORE_DIR)/include \
-               $(REP_DIR)/src/base \
-               $(BASE_DIR)/src/base/thread
+INC_DIR     += $(REP_DIR)/src/core/include $(GEN_CORE_DIR)/include \
+               $(REP_DIR)/src/include      $(BASE_DIR)/src/include
 
 include $(GEN_CORE_DIR)/version.inc
 
