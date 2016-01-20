@@ -14,8 +14,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__BASE_LINUX__CAPABILITY_H_
-#define _INCLUDE__BASE_LINUX__CAPABILITY_H_
+#ifndef _INCLUDE__BASE__LOCAL_CAPABILITY_H_
+#define _INCLUDE__BASE__LOCAL_CAPABILITY_H_
 
 #include <base/capability.h>
 
@@ -57,4 +57,4 @@ class Genode::Local_capability
 			return reinterpret_cast<RPC_INTERFACE*>(c.local_name()); }
 };
 
-#endif /* _INCLUDE__BASE_LINUX__CAPABILITY_H_ */
+#endif /* _INCLUDE__BASE__LOCAL_CAPABILITY_H_ */

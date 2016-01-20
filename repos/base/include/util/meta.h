@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__BASE__UTIL__META_H_
-#define _INCLUDE__BASE__UTIL__META_H_
+#ifndef _INCLUDE__UTIL__META_H_
+#define _INCLUDE__UTIL__META_H_
 
 namespace Genode {
 
@@ -684,4 +684,4 @@ namespace Genode {
 	} /* namespace Trait */
 }
 
-#endif /* _INCLUDE__BASE__UTIL__META_H_ */
+#endif /* _INCLUDE__UTIL__META_H_ */

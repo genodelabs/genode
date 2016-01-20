@@ -11,6 +11,9 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#ifndef _INCLUDE__BASE__INTERNAL__CORE_CONSOLE_H_
+#define _INCLUDE__BASE__INTERNAL__CORE_CONSOLE_H_
+
 /* Genode includes */
 #include <base/console.h>
 
@@ -30,3 +33,5 @@ class Genode::Core_console : public Console
 			seL4_DebugPutChar(c);
 		}
 };
+
+#endif /* _INCLUDE__BASE__INTERNAL__CORE_CONSOLE_H_ */

@@ -24,8 +24,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__ARM_V6__CPU__MEMORY_BARRIER_H_
-#define _INCLUDE__ARM_V6__CPU__MEMORY_BARRIER_H_
+#ifndef _INCLUDE__SPEC__ARM_V6__CPU__MEMORY_BARRIER_H_
+#define _INCLUDE__SPEC__ARM_V6__CPU__MEMORY_BARRIER_H_
 
 namespace Genode {
 
@@ -35,4 +35,4 @@ namespace Genode {
 	}
 }
 
-#endif /* _INCLUDE__ARM_V6__CPU__MEMORY_BARRIER_H_ */
+#endif /* _INCLUDE__SPEC__ARM_V6__CPU__MEMORY_BARRIER_H_ */

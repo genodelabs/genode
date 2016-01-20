@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _BASE__INTERNAL__CAPABILITY_DATA_H_
-#define _BASE__INTERNAL__CAPABILITY_DATA_H_
+#ifndef _INCLUDE__BASE__INTERNAL__CAPABILITY_DATA_H_
+#define _INCLUDE__BASE__INTERNAL__CAPABILITY_DATA_H_
 
 /* base includes */
 #include <util/noncopyable.h>
@@ -44,4 +44,4 @@ class Genode::Capability_data
 		uint8_t dec_ref() { return --_ref_cnt; }
 };
 
-#endif /* _BASE__INTERNAL__CAPABILITY_DATA_H_ */
+#endif /* _INCLUDE__BASE__INTERNAL__CAPABILITY_DATA_H_ */

@@ -29,8 +29,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _UNMANAGED_SINGLETON_H_
-#define _UNMANAGED_SINGLETON_H_
+#ifndef _INCLUDE__BASE__INTERNAL__UNMANAGED_SINGLETON_H_
+#define _INCLUDE__BASE__INTERNAL__UNMANAGED_SINGLETON_H_
 
 /* Genode includes */
 #include <base/stdint.h>
@@ -87,4 +87,4 @@ static inline T * unmanaged_singleton(ARGS... args)
 	return reinterpret_cast<T *>(object_space);
 }
 
-#endif /* _UNMANAGED_SINGLETON_H_ */
+#endif /* _INCLUDE__BASE__INTERNAL__UNMANAGED_SINGLETON_H_ */

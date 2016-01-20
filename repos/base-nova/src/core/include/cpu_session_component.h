@@ -1,7 +1,7 @@
 /*
  * \brief  Core-specific instance of the CPU session/thread interfaces
  * \author Christian Helmuth
-   \author Norman Feske
+ * \author Norman Feske
  * \author Alexander Boettcher
  * \date   2006-07-17
  */

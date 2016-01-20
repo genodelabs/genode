@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _BASE__INTERNAL__KERNEL_DEBUGGER_H_
-#define _BASE__INTERNAL__KERNEL_DEBUGGER_H_
+#ifndef _INCLUDE__BASE__INTERNAL__KERNEL_DEBUGGER_H_
+#define _INCLUDE__BASE__INTERNAL__KERNEL_DEBUGGER_H_
 
 /* base includes */
 #include <base/thread.h>
@@ -34,4 +34,4 @@ static inline void kernel_debugger_panic(char const *msg)
 	seL4_TCB_Suspend(Genode::Thread_base::myself()->tid().tcb_sel);
 }
 
-#endif /* _BASE__INTERNAL__KERNEL_DEBUGGER_H_ */
+#endif /* _INCLUDE__BASE__INTERNAL__KERNEL_DEBUGGER_H_ */

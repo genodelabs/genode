@@ -37,4 +37,4 @@ struct Genode::Nova_native_pd_client : Rpc_client<Nova_native_pd>
 	}
 };
 
-#endif /* _INCLUDE__PD_SESSION__CLIENT_H_ */
+#endif /* _INCLUDE__NOVA_NATIVE_PD__CLIENT_H_ */

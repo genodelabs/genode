@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _LIB__STARTUP___MAIN_PARENT_CAP_H_
-#define _LIB__STARTUP___MAIN_PARENT_CAP_H_
+#ifndef _INCLUDE__STARTUP__INTERNAL___MAIN_PARENT_CAP_H_
+#define _INCLUDE__STARTUP__INTERNAL___MAIN_PARENT_CAP_H_
 
 /* Genode includes */
 #include <util/string.h>
@@ -36,4 +36,4 @@ namespace Genode {
 	}
 }
 
-#endif /* _LIB__STARTUP___MAIN_PARENT_CAP_H_ */
+#endif /* _INCLUDE__STARTUP__INTERNAL___MAIN_PARENT_CAP_H_ */

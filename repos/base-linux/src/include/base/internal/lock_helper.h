@@ -17,6 +17,9 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#ifndef _INCLUDE__BASE__INTERNAL__LOCK_HELPER_H_
+#define _INCLUDE__BASE__INTERNAL__LOCK_HELPER_H_
+
 /* Genode includes */
 #include <base/native_types.h>
 #include <base/thread.h>
@@ -63,3 +66,5 @@ static inline void thread_stop_myself()
 	                               &main_thread_futex_counter;
 	lx_futex(futex_counter_ptr, LX_FUTEX_WAIT, 0);
 }
+
+#endif /* _INCLUDE__BASE__INTERNAL__LOCK_HELPER_H_ */

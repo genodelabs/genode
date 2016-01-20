@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__PISTACHIO__PRINT_L4_THREAD_ID_
-#define _INCLUDE__PISTACHIO__PRINT_L4_THREAD_ID_
+#ifndef _CORE__INCLUDE__PRINT_L4_THREAD_ID_H_
+#define _CORE__INCLUDE__PRINT_L4_THREAD_ID_H_
 
 #include <base/printf.h>
 
@@ -41,4 +41,4 @@ namespace Pistachio {
 	}
 }
 
-#endif /* _INCLUDE__PISTACHIO__PRINT_L4_THREAD_ID_ */
+#endif /* _CORE__INCLUDE__PRINT_L4_THREAD_ID_H_ */

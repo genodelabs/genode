@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CORE__INCLUDE__RPATH_H_
-#define _CORE__INCLUDE__RPATH_H_
+#ifndef _CORE__INCLUDE__RESOURCE_PATH_H_
+#define _CORE__INCLUDE__RESOURCE_PATH_H_
 
 /* Linux syscall bindings */
 #include <linux_syscalls.h>
@@ -41,4 +41,4 @@ static inline char const *resource_path()
 	return path.string;
 }
 
-#endif /* _CORE__INCLUDE__RPATH_H_ */
+#endif /* _CORE__INCLUDE__RESOURCE_PATH_H_ */

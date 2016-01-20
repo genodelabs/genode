@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _NOVA__INCLUDE__UTIL_H_
-#define _NOVA__INCLUDE__UTIL_H_
+#ifndef _INCLUDE__NOVA__UTIL_H_
+#define _INCLUDE__NOVA__UTIL_H_
 
 #include <base/printf.h>
 #include <base/thread.h>
@@ -113,4 +113,4 @@ inline void delegate_vcpu_portals(Genode::Native_capability const &cap,
 	if (res)
 		PERR("setting exception portals for vCPU failed %u", res);
 }
-#endif /* _NOVA__INCLUDE__UTIL_H_ */
+#endif /* _INCLUDE__NOVA__UTIL_H_ */

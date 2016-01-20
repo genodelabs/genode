@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _MTC_UTIL_H_
-#define _MTC_UTIL_H_
+#ifndef _CORE__INCLUDE__SPEC__X86_64__MTC_UTIL_H_
+#define _CORE__INCLUDE__SPEC__X86_64__MTC_UTIL_H_
 
 #include <base/stdint.h>
 
@@ -33,4 +33,4 @@ namespace Genode
 	}
 }
 
-#endif /* _MTC_UTIL_H_ */
+#endif /* _CORE__INCLUDE__SPEC__X86_64__MTC_UTIL_H_ */

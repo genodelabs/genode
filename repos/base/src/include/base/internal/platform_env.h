@@ -17,8 +17,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _PLATFORM_ENV_H_
-#define _PLATFORM_ENV_H_
+#ifndef _INCLUDE__BASE__INTERNAL__PLATFORM_ENV_H_
+#define _INCLUDE__BASE__INTERNAL__PLATFORM_ENV_H_
 
 /* Genode includes */
 #include <base/printf.h>
@@ -148,4 +148,4 @@ class Genode::Platform_env : public Genode::Env, public Emergency_ram_reserve
 		Allocator              *heap()            override { return &_heap; }
 };
 
-#endif /* _PLATFORM_ENV_H_ */
+#endif /* _INCLUDE__BASE__INTERNAL__PLATFORM_ENV_H_ */

@@ -11,6 +11,9 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#ifndef _INCLUDE__BASE__INTERNAL__CORE_CONSOLE_H_
+#define _INCLUDE__BASE__INTERNAL__CORE_CONSOLE_H_
+
 /* Pistachio includes */
 namespace Pistachio {
 #include <l4/kdebug.h>
@@ -29,3 +32,4 @@ namespace Genode
 	};
 }
 
+#endif /* _INCLUDE__BASE__INTERNAL__CORE_CONSOLE_H_ */

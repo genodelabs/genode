@@ -11,6 +11,9 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#ifndef _INCLUDE__BASE__INTERNAL__CORE_CONSOLE_H_
+#define _INCLUDE__BASE__INTERNAL__CORE_CONSOLE_H_
+
 namespace Okl4 { extern "C" {
 #include <l4/kdebug.h>
 } }
@@ -28,4 +31,4 @@ namespace Genode
 	};
 }
 
-
+#endif /* _INCLUDE__BASE__INTERNAL__CORE_CONSOLE_H_ */

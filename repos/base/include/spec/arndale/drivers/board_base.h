@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__DRIVERS__BOARD_BASE_H_
-#define _INCLUDE__DRIVERS__BOARD_BASE_H_
+#ifndef _INCLUDE__SPEC__ARNDALE__DRIVERS__BOARD_BASE_H_
+#define _INCLUDE__SPEC__ARNDALE__DRIVERS__BOARD_BASE_H_
 
 /* Genode includes */
 #include <spec/exynos5/board_base.h>
@@ -47,4 +47,4 @@ struct Genode::Board_base : Exynos5
 	};
 };
 
-#endif /* _INCLUDE__DRIVERS__BOARD_BASE_H_ */
+#endif /* _INCLUDE__SPEC__ARNDALE__DRIVERS__BOARD_BASE_H_ */

@@ -12,8 +12,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _KERNEL__LOCK_H_
-#define _KERNEL__LOCK_H_
+#ifndef _CORE__INCLUDE__KERNEL__LOCK_H_
+#define _CORE__INCLUDE__KERNEL__LOCK_H_
 
 /* Genode includes */
 #include <base/lock_guard.h>
@@ -60,4 +60,4 @@ class Kernel::Lock
 		typedef Genode::Lock_guard<Kernel::Lock> Guard;
 };
 
-#endif /* _KERNEL__LOCK_H_ */
+#endif /* _CORE__INCLUDE__KERNEL__LOCK_H_ */

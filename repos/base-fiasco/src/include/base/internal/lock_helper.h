@@ -1,4 +1,3 @@
-
 /*
  * \brief  L4/Fiasco-specific helper functions for the Lock implementation
  * \author Norman Feske
@@ -19,6 +18,9 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#ifndef _INCLUDE__BASE__INTERNAL__LOCK_HELPER_H_
+#define _INCLUDE__BASE__INTERNAL__LOCK_HELPER_H_
+
 /* L4/Fiasco includes */
 namespace Fiasco {
 #include <l4/sys/ipc.h>
@@ -32,3 +34,5 @@ static inline void thread_yield()
 {
 	Fiasco::l4_ipc_sleep(Fiasco::l4_ipc_timeout(0, 0, 500, 0));
 }
+
+#endif /* _INCLUDE__BASE__INTERNAL__LOCK_HELPER_H_ */

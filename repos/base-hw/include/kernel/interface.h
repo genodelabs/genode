@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _KERNEL__INTERFACE_H_
-#define _KERNEL__INTERFACE_H_
+#ifndef _INCLUDE__KERNEL__INTERFACE_H_
+#define _INCLUDE__KERNEL__INTERFACE_H_
 
 /* base-hw includes */
 #include <kernel/interface_support.h>
@@ -288,4 +288,4 @@ namespace Kernel
 	}
 }
 
-#endif /* _KERNEL__INTERFACE_H_ */
+#endif /* _INCLUDE__KERNEL__INTERFACE_H_ */

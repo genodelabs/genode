@@ -52,4 +52,3 @@
 	} while (0) ;
 
 #endif /* _CORE__INCLUDE__ASSERT_H_ */
-

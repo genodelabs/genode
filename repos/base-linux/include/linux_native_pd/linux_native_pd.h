@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__LINUX_NATIVE_PD__LINUX_NATIVE_PD_
-#define _INCLUDE__LINUX_NATIVE_PD__LINUX_NATIVE_PD_
+#ifndef _INCLUDE__LINUX_NATIVE_PD__LINUX_NATIVE_PD_H_
+#define _INCLUDE__LINUX_NATIVE_PD__LINUX_NATIVE_PD_H_
 
 #include <pd_session/pd_session.h>
 #include <dataspace/dataspace.h>
@@ -28,4 +28,4 @@ struct Genode::Linux_native_pd : Pd_session::Native_pd
 	GENODE_RPC_INTERFACE(Rpc_start);
 };
 
-#endif /* _INCLUDE__LINUX_NATIVE_PD__LINUX_NATIVE_PD_ */
+#endif /* _INCLUDE__LINUX_NATIVE_PD__LINUX_NATIVE_PD_H_ */

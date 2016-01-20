@@ -31,8 +31,8 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef _PLATFORM__NOVA_SYSCALLS_GENERIC_H_
-#define _PLATFORM__NOVA_SYSCALLS_GENERIC_H_
+#ifndef _INCLUDE__NOVA__SYSCALL_GENERIC_H_
+#define _INCLUDE__NOVA__SYSCALL_GENERIC_H_
 
 #include <nova/stdint.h>
 
@@ -679,4 +679,4 @@ namespace Nova {
 	};
 
 }
-#endif /* _PLATFORM__NOVA_SYSCALLS_GENERIC_H_ */
+#endif /* _INCLUDE__NOVA__SYSCALL_GENERIC_H_ */

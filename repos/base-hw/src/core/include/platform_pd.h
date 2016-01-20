@@ -240,4 +240,3 @@ class Genode::Core_platform_pd : public Genode::Platform_pd
 };
 
 #endif /* _CORE__INCLUDE__PLATFORM_PD_H_ */
-

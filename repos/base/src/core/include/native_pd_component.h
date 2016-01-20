@@ -13,8 +13,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CORE__INCLUDE__NATIVE_PD_H_
-#define _CORE__INCLUDE__NATIVE_PD_H_
+#ifndef _CORE__INCLUDE__NATIVE_PD_COMPONENT_H_
+#define _CORE__INCLUDE__NATIVE_PD_COMPONENT_H_
 
 /* Genode includes */
 #include <pd_session/pd_session.h>
@@ -39,4 +39,4 @@ struct Genode::Native_pd_component
 	}
 };
 
-#endif /* _CORE__INCLUDE__RPC_CAP_FACTORY_H_ */
+#endif /* _CORE__INCLUDE__NATIVE_PD_COMPONENT_H_ */

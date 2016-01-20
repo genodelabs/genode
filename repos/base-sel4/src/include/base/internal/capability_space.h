@@ -15,8 +15,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _BASE__INTERNAL__CAPABILITY_SPACE_H_
-#define _BASE__INTERNAL__CAPABILITY_SPACE_H_
+#ifndef _INCLUDE__BASE__INTERNAL__CAPABILITY_SPACE_H_
+#define _INCLUDE__BASE__INTERNAL__CAPABILITY_SPACE_H_
 
 /* Genode includes */
 #include <base/native_types.h>
@@ -49,4 +49,4 @@ namespace Genode { namespace Capability_space {
 	Rpc_obj_key rpc_obj_key(Native_capability::Data const &data);
 } }
 
-#endif /* _BASE__INTERNAL__CAPABILITY_SPACE_H_ */
+#endif /* _INCLUDE__BASE__INTERNAL__CAPABILITY_SPACE_H_ */

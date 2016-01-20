@@ -98,4 +98,3 @@ namespace Genode {
 }
 
 #endif /* _CORE__INCLUDE__MAP_LOCAL_H_ */
-

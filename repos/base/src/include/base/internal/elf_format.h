@@ -1,8 +1,10 @@
-/**
+/*
  * \brief  ELF binary definition from GNU C library
  * \author Christian Helmuth
  * \date   2006-05-04
- *
+ */
+
+/*
  * This file was slightly modified and stripped down. Original copyright
  * header follows:
  *
@@ -26,8 +28,8 @@
  * 02111-1307 USA.
  */
 
-#ifndef _ELF_H_
-#define _ELF_H_
+#ifndef _INCLUDE__BASE__INTERNAL__ELF_FORMAT_H_
+#define _INCLUDE__BASE__INTERNAL__ELF_FORMAT_H_
 
 extern "C" {
 
@@ -251,4 +253,4 @@ typedef Elf32_Phdr Elf_Phdr;
 
 } /* extern "C" */
 
-#endif /* _ELF_H_ */
+#endif /* _INCLUDE__BASE__INTERNAL__ELF_FORMAT_H_ */

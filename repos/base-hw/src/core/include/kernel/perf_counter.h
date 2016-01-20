@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _KERNEL__PERF_COUNTER_H_
-#define _KERNEL__PERF_COUNTER_H_
+#ifndef _CORE__INCLUDE__KERNEL__PERF_COUNTER_H_
+#define _CORE__INCLUDE__KERNEL__PERF_COUNTER_H_
 
 namespace Kernel
 {
@@ -33,4 +33,4 @@ namespace Kernel
 	extern Perf_counter * perf_counter();
 }
 
-#endif /* _KERNEL__PERF_COUNTER_H_ */
+#endif /* _CORE__INCLUDE__KERNEL__PERF_COUNTER_H_ */

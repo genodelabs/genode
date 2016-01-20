@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__PLATFORM__IMX53__DRIVERS__TRUSTZONE_H_
-#define _INCLUDE__PLATFORM__IMX53__DRIVERS__TRUSTZONE_H_
+#ifndef _INCLUDE__SPEC__IMX53__DRIVERS__TRUSTZONE_H_
+#define _INCLUDE__SPEC__IMX53__DRIVERS__TRUSTZONE_H_
 
 /* Genode includes */
 #include <drivers/board_base.h>
@@ -33,5 +33,4 @@ namespace Trustzone
 	};
 }
 
-#endif /* _INCLUDE__PLATFORM__IMX53__DRIVERS__TRUSTZONE_H_ */
-
+#endif /* _INCLUDE__SPEC__IMX53__DRIVERS__TRUSTZONE_H_ */

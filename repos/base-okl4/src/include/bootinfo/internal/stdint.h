@@ -11,10 +11,10 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef __BOOTINFO__STDINT_H__
-#define __BOOTINFO__STDINT_H__
+#ifndef _INCLUDE__BOOTINFO__INTERNAL__STDINT_H_
+#define _INCLUDE__BOOTINFO__INTERNAL__STDINT_H_
 
 typedef unsigned long uintptr_t;
 typedef          long intptr_t;
 
-#endif /* __BOOTINFO__STDINT_H__ */
+#endif /* _INCLUDE__BOOTINFO__INTERNAL__STDINT_H_ */

@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _BASE__ENV__CONTEXT_AREA_H_
-#define _BASE__ENV__CONTEXT_AREA_H_
+#ifndef _INCLUDE__BASE__INTERNAL__CONTEXT_AREA_H_
+#define _INCLUDE__BASE__INTERNAL__CONTEXT_AREA_H_
 
 /* Genode includes */
 #include <base/thread.h>
@@ -61,4 +61,4 @@ static inline Genode::addr_t reserve_context_area()
 	return (addr_t) addr_out;
 }
 
-#endif /* _BASE__ENV__CONTEXT_AREA_H_ */
+#endif /* _INCLUDE__BASE__INTERNAL__CONTEXT_AREA_H_ */

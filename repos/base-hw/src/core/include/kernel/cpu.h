@@ -12,8 +12,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _KERNEL__CPU_H_
-#define _KERNEL__CPU_H_
+#ifndef _CORE__INCLUDE__KERNEL__CPU_H_
+#define _CORE__INCLUDE__KERNEL__CPU_H_
 
 /* core includes */
 #include <timer.h>
@@ -366,4 +366,4 @@ class Kernel::Cpu_pool
 		Timer * timer() { return &_timer; }
 };
 
-#endif /* _KERNEL__CPU_H_ */
+#endif /* _CORE__INCLUDE__KERNEL__CPU_H_ */

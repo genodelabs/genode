@@ -27,4 +27,4 @@ struct Genode::Foc_signal_source : Signal_source
 	GENODE_RPC_INTERFACE_INHERIT(Signal_source, Rpc_request_semaphore);
 };
 
-#endif /* _INCLUDE__SIGNAL_SOURCE__SIGNAL_SOURCE_H_ */
+#endif /* _INCLUDE__SIGNAL_SOURCE__FOC_SIGNAL_SOURCE_H_ */

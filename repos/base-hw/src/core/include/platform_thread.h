@@ -201,4 +201,3 @@ namespace Genode {
 }
 
 #endif /* _CORE__INCLUDE__PLATFORM_THREAD_H_ */
-

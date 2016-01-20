@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__BASE__NATIVE_CONFIG_H_
-#define _INCLUDE__BASE__NATIVE_CONFIG_H_
+#ifndef _INCLUDE__SPEC__X86__BASE__NATIVE_CONFIG_H_
+#define _INCLUDE__SPEC__X86__BASE__NATIVE_CONFIG_H_
 
 #include <base/stdint.h>
 
@@ -35,4 +35,4 @@ namespace Genode {
 	};
 }
 
-#endif /* _INCLUDE__BASE__NATIVE_CONFIG_H_ */
+#endif /* _INCLUDE__SPEC__X86__BASE__NATIVE_CONFIG_H_ */

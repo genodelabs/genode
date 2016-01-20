@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _KERNEL__FIFO_H_
-#define _KERNEL__FIFO_H_
+#ifndef _CORE__INCLUDE__KERNEL__FIFO_H_
+#define _CORE__INCLUDE__KERNEL__FIFO_H_
 
 /* Genode includes */
 #include <util/fifo.h>
@@ -40,4 +40,4 @@ namespace Kernel {
 	};
 }
 
-#endif /* _KERNEL__FIFO_H_ */
+#endif /* _CORE__INCLUDE__KERNEL__FIFO_H_ */

@@ -13,8 +13,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _BOARD_H_
-#define _BOARD_H_
+#ifndef _CORE__INCLUDE__SPEC__ZYNQ__BOARD_H_
+#define _CORE__INCLUDE__SPEC__ZYNQ__BOARD_H_
 
 /* core includes */
 #include <spec/cortex_a9/board_support.h>
@@ -24,4 +24,4 @@ namespace Genode
 	using Board = Cortex_a9::Board;
 }
 
-#endif /* _BOARD_H_ */
+#endif /* _CORE__INCLUDE__SPEC__ZYNQ__BOARD_H_ */

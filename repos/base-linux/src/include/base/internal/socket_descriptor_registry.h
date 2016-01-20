@@ -17,8 +17,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _BASE__IPC__SOCKET_DESCRIPTOR_REGISTRY_H_
-#define _BASE__IPC__SOCKET_DESCRIPTOR_REGISTRY_H_
+#ifndef _INCLUDE__BASE__INTERNAL__SOCKET_DESCRIPTOR_REGISTRY_H_
+#define _INCLUDE__BASE__INTERNAL__SOCKET_DESCRIPTOR_REGISTRY_H_
 
 #include <base/lock.h>
 
@@ -147,4 +147,4 @@ class Genode::Socket_descriptor_registry
 		}
 };
 
-#endif /* _BASE__IPC__SOCKET_DESCRIPTOR_REGISTRY_H_ */
+#endif /* _INCLUDE__BASE__INTERNAL__SOCKET_DESCRIPTOR_REGISTRY_H_ */

@@ -10,3 +10,7 @@
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
+
+#ifndef _INCLUDE__BOOTINFO__INTERNAL__STDIO_H_
+#define _INCLUDE__BOOTINFO__INTERNAL__STDIO_H_
+#endif /* _INCLUDE__BOOTINFO__INTERNAL__STDIO_H_ */

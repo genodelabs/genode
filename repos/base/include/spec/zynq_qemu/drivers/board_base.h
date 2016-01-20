@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__PLATFORM__DRIVERS__BOARD_BASE_H_
-#define _INCLUDE__PLATFORM__DRIVERS__BOARD_BASE_H_
+#ifndef _INCLUDE__SPEC__ZYNQ_QEMU__DRIVERS__BOARD_BASE_H_
+#define _INCLUDE__SPEC__ZYNQ_QEMU__DRIVERS__BOARD_BASE_H_
 
 #include <spec/zynq/drivers/board_base_support.h>
 
@@ -35,4 +35,4 @@ struct Genode::Board_base : Zynq::Board_base
 	};
 };
 
-#endif /* _INCLUDE__PLATFORM__DRIVERS__BOARD_BASE_H_ */
+#endif /* _INCLUDE__SPEC__ZYNQ_QEMU__DRIVERS__BOARD_BASE_H_ */

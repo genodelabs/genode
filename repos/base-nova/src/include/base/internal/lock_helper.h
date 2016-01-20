@@ -15,6 +15,9 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#ifndef _INCLUDE__BASE__INTERNAL__LOCK_HELPER_H_
+#define _INCLUDE__BASE__INTERNAL__LOCK_HELPER_H_
+
 /* Genode includes */
 #include <base/native_types.h>
 #include <base/thread.h>
@@ -57,3 +60,5 @@ static inline void thread_stop_myself()
 	if (sm_ctrl(sem, SEMAPHORE_DOWNZERO))
 		nova_die();
 }
+
+#endif /* _INCLUDE__BASE__INTERNAL__LOCK_HELPER_H_ */

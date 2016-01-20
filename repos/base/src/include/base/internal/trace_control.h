@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _TRACE_CONTROL_H_
-#define _TRACE_CONTROL_H_
+#ifndef _INCLUDE__BASE__INTERNAL__TRACE_CONTROL_H_
+#define _INCLUDE__BASE__INTERNAL__TRACE_CONTROL_H_
 
 namespace Genode { namespace Trace { class Control; } }
 
@@ -164,4 +164,4 @@ class Genode::Trace::Control
 		bool is_enabled() const { return _acknowledged_state == ENABLED; }
 };
 
-#endif /* _TRACE_CONTROL_H_ */
+#endif /* _INCLUDE__BASE__INTERNAL__TRACE_CONTROL_H_ */

@@ -14,8 +14,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__BASE__SIGNAL_H__
-#define _INCLUDE__BASE__SIGNAL_H__
+#ifndef _INCLUDE__BASE__SIGNAL_H_
+#define _INCLUDE__BASE__SIGNAL_H_
 
 #include <util/noncopyable.h>
 #include <util/list.h>
@@ -433,4 +433,4 @@ class Genode::Signal_dispatcher : public Signal_dispatcher_base,
 		void dispatch(unsigned num) { (obj.*member)(num); }
 };
 
-#endif /* _INCLUDE__BASE__SIGNAL_H__ */
+#endif /* _INCLUDE__BASE__SIGNAL_H_ */

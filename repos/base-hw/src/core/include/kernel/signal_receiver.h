@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _KERNEL__SIGNAL_RECEIVER_H_
-#define _KERNEL__SIGNAL_RECEIVER_H_
+#ifndef _CORE__INCLUDE__KERNEL__SIGNAL_RECEIVER_H_
+#define _CORE__INCLUDE__KERNEL__SIGNAL_RECEIVER_H_
 
 /* Genode includes */
 #include <base/signal.h>
@@ -358,4 +358,4 @@ class Kernel::Signal_receiver : public Kernel::Object
 			call(call_id_delete_signal_receiver(), (Call_arg)receiver); }
 };
 
-#endif /* _KERNEL__SIGNAL_RECEIVER_ */
+#endif /* _CORE__INCLUDE__KERNEL__SIGNAL_RECEIVER_H_ */

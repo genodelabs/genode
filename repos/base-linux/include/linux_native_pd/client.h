@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__LINUX_PD_SESSION__CLIENT_H_
-#define _INCLUDE__LINUX_PD_SESSION__CLIENT_H_
+#ifndef _INCLUDE__LINUX_NATIVE_PD__CLIENT_H_
+#define _INCLUDE__LINUX_NATIVE_PD__CLIENT_H_
 
 #include <linux_native_pd/linux_native_pd.h>
 #include <base/rpc_client.h>
@@ -28,4 +28,4 @@ struct Genode::Linux_native_pd_client : Rpc_client<Linux_native_pd>
 		call<Rpc_start>(binary); }
 };
 
-#endif /* _INCLUDE__LINUX_PD_SESSION__CLIENT_H_ */
+#endif /* _INCLUDE__LINUX_NATIVE_PD__CLIENT_H_ */

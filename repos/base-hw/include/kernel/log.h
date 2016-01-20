@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _KERNEL__LOG_H_
-#define _KERNEL__LOG_H_
+#ifndef _INCLUDE__KERNEL__LOG_H_
+#define _INCLUDE__KERNEL__LOG_H_
 
 /* Genode includes */
 #include <kernel/interface.h>
@@ -114,5 +114,4 @@ namespace Kernel
 	}
 }
 
-#endif /* _KERNEL__LOG_H_  */
-
+#endif /* _INCLUDE__KERNEL__LOG_H_ */

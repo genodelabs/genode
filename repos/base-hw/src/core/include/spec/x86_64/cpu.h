@@ -11,12 +11,12 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CPU_H_
-#define _CPU_H_
+#ifndef _CORE__INCLUDE__SPEC__X86_64__CPU_H_
+#define _CORE__INCLUDE__SPEC__X86_64__CPU_H_
 
 /* core includes */
 #include <spec/x86/cpu_support.h>
 
 namespace Genode { typedef __uint128_t sizet_arithm_t; }
 
-#endif /* _CPU_H_ */
+#endif /* _CORE__INCLUDE__SPEC__X86_64__CPU_H_ */

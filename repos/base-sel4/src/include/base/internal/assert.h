@@ -14,8 +14,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _BASE__INTERNAL__ASSERT_H_
-#define _BASE__INTERNAL__ASSERT_H_
+#ifndef _INCLUDE__BASE__INTERNAL__ASSERT_H_
+#define _INCLUDE__BASE__INTERNAL__ASSERT_H_
 
 /* Genode includes */
 #include <base/snprintf.h>
@@ -35,4 +35,4 @@
 	} while(0)
 #else
 
-#endif /* _BASE__INTERNAL__ASSERT_H_ */
+#endif /* _INCLUDE__BASE__INTERNAL__ASSERT_H_ */

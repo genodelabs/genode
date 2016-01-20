@@ -12,8 +12,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _SPEC__IMX__BOARD_SUPPORT_H_
-#define _SPEC__IMX__BOARD_SUPPORT_H_
+#ifndef _CORE__INCLUDE__SPEC__IMX__BOARD_SUPPORT_H_
+#define _CORE__INCLUDE__SPEC__IMX__BOARD_SUPPORT_H_
 
 /* Genode includes */
 #include <drivers/board_base.h>
@@ -107,4 +107,4 @@ class Imx::Board : public Genode::Board_base
 		}
 };
 
-#endif /* _SPEC__IMX__BOARD_SUPPORT_H_ */
+#endif /* _CORE__INCLUDE__SPEC__IMX__BOARD_SUPPORT_H_ */

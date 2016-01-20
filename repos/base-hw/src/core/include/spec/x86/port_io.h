@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _PORT_IO_H_
-#define _PORT_IO_H_
+#ifndef _CORE__INCLUDE__SPEC__X86__PORT_IO_H_
+#define _CORE__INCLUDE__SPEC__X86__PORT_IO_H_
 
 #include <base/stdint.h>
 
@@ -37,4 +37,4 @@ namespace Genode
 	}
 }
 
-#endif /* _PORT_IO_H_ */
+#endif /* _CORE__INCLUDE__SPEC__X86__PORT_IO_H_ */

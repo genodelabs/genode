@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__PISTACHIO__KIP_H_
-#define _INCLUDE__PISTACHIO__KIP_H_
+#ifndef _CORE__INCLUDE__KIP_H_
+#define _CORE__INCLUDE__KIP_H_
 
 namespace Pistachio {
 #include <l4/types.h>
@@ -53,4 +53,4 @@ namespace Pistachio {
 	}
 }
 
-#endif /* _INCLUDE__PISTACHIO__KIP_H_ */
+#endif /* _CORE__INCLUDE__KIP_H_ */

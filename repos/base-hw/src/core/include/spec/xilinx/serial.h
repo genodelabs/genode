@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _SERIAL_H_
-#define _SERIAL_H_
+#ifndef _CORE__INCLUDE__SPEC__XILINX__SERIAL_H_
+#define _CORE__INCLUDE__SPEC__XILINX__SERIAL_H_
 
 /* core includes */
 #include <board.h>
@@ -41,4 +41,4 @@ class Genode::Serial : public Xilinx_uartps_base
 		{ }
 };
 
-#endif /* _SERIAL_H_ */
+#endif /* _CORE__INCLUDE__SPEC__XILINX__SERIAL_H_ */

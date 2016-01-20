@@ -13,7 +13,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#pragma once 
+#ifndef _CORE__INCLUDE__IRQ_OBJECT_H_
+#define _CORE__INCLUDE__IRQ_OBJECT_H_
 
 /* Genode includes */
 #include <base/printf.h>
@@ -57,3 +58,5 @@ class Genode::Irq_object
 		               Irq_session::Polarity);
 		void ack_irq();
 };
+
+#endif /* _CORE__INCLUDE__IRQ_OBJECT_H_ */

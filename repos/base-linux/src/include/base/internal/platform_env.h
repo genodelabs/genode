@@ -12,8 +12,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _PLATFORM_ENV_H_
-#define _PLATFORM_ENV_H_
+#ifndef _INCLUDE__BASE__INTERNAL__PLATFORM_ENV_H_
+#define _INCLUDE__BASE__INTERNAL__PLATFORM_ENV_H_
 
 /* Linux includes */
 #include <unistd.h>
@@ -459,4 +459,4 @@ namespace Genode {
 	};
 }
 
-#endif /* _PLATFORM_ENV_H_ */
+#endif /* _INCLUDE__BASE__INTERNAL__PLATFORM_ENV_H_ */

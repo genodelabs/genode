@@ -11,6 +11,9 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#ifndef _INCLUDE__BASE__INTERNAL__CORE_CONSOLE_H_
+#define _INCLUDE__BASE__INTERNAL__CORE_CONSOLE_H_
+
 /* Fiasco includes */
 namespace Fiasco {
 #include <l4/sys/kdebug.h>
@@ -28,3 +31,5 @@ namespace Genode {
 			void _out_char(char c) { Fiasco::outchar(c); }
 	};
 }
+
+#endif /* _INCLUDE__BASE__INTERNAL__CORE_CONSOLE_H_ */

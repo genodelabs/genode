@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__BASE__LOCK__SPIN_H_
-#define _INCLUDE__BASE__LOCK__SPIN_H_
+#ifndef _INCLUDE__BASE__INTERNAL__SPIN_LOCK_H_
+#define _INCLUDE__BASE__INTERNAL__SPIN_LOCK_H_
 
 /* Genode includes */
 #include <cpu/atomic.h>
@@ -101,4 +101,4 @@ static inline void spinlock_unlock(volatile T *lock_variable)
 		Nova::ec_ctrl(Nova::EC_RESCHEDULE);
 }
 
-#endif /* _INCLUDE__BASE__LOCK__SPIN_H_ */
+#endif /* _INCLUDE__BASE__INTERNAL__SPIN_LOCK_H_ */

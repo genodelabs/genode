@@ -14,6 +14,9 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#ifndef _INCLUDE__BASE__INTERNAL__LOCK_HELPER_H_
+#define _INCLUDE__BASE__INTERNAL__LOCK_HELPER_H_
+
 /* Genode includes */
 #include <base/native_types.h>
 #include <base/thread.h>
@@ -86,3 +89,5 @@ static inline void thread_stop_myself()
 	                               main_thread_tid;
 	Okl4::L4_Stop(tid);
 }
+
+#endif /* _INCLUDE__BASE__INTERNAL__LOCK_HELPER_H_ */

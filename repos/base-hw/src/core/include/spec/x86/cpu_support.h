@@ -13,8 +13,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _SPEC__X86__CPU_SUPPORT_H_
-#define _SPEC__X86__CPU_SUPPORT_H_
+#ifndef _CORE__INCLUDE__SPEC__X86__CPU_SUPPORT_H_
+#define _CORE__INCLUDE__SPEC__X86__CPU_SUPPORT_H_
 
 /* Genode includes */
 #include <util/register.h>
@@ -255,4 +255,4 @@ struct Genode::Cpu::Cr4 : Register<64>
 	}
 };
 
-#endif /* _SPEC__X86__CPU_SUPPORT_H_ */
+#endif /* _CORE__INCLUDE__SPEC__X86__CPU_SUPPORT_H_ */

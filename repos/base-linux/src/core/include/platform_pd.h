@@ -13,8 +13,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CORE__INCLUDE__LINUX__PLATFORM_PD_H_
-#define _CORE__INCLUDE__LINUX__PLATFORM_PD_H_
+#ifndef _CORE__INCLUDE__PLATFORM_PD_H_
+#define _CORE__INCLUDE__PLATFORM_PD_H_
 
 #include <base/allocator.h>
 
@@ -22,4 +22,4 @@ namespace Genode { struct Platform_pd; }
 
 struct Genode::Platform_pd { Platform_pd(Allocator *, char const *) { } };
 
-#endif /* _CORE__INCLUDE__LINUX__PLATFORM_PD_H_ */
+#endif /* _CORE__INCLUDE__PLATFORM_PD_H_ */

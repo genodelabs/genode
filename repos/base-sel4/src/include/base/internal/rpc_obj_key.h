@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _BASE__INTERNAL__RPC_OBJ_KEY_H_
-#define _BASE__INTERNAL__RPC_OBJ_KEY_H_
+#ifndef _INCLUDE__BASE__INTERNAL__RPC_OBJ_KEY_H_
+#define _INCLUDE__BASE__INTERNAL__RPC_OBJ_KEY_H_
 
 /* base includes */
 #include <base/stdint.h>
@@ -40,4 +40,4 @@ class Genode::Rpc_obj_key
 		uint32_t value() const { return _value; }
 };
 
-#endif /* _BASE__INTERNAL__RPC_OBJ_KEY_H_ */
+#endif /* _INCLUDE__BASE__INTERNAL__RPC_OBJ_KEY_H_ */

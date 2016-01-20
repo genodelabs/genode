@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _KERNEL__CORE_INTERFACE_H_
-#define _KERNEL__CORE_INTERFACE_H_
+#ifndef _CORE__INCLUDE__KERNEL__CORE_INTERFACE_H_
+#define _CORE__INCLUDE__KERNEL__CORE_INTERFACE_H_
 
 /* base-hw includes */
 #include <kernel/interface.h>
@@ -221,4 +221,4 @@ namespace Kernel
 	}
 }
 
-#endif /* _KERNEL__CORE_INTERFACE_H_ */
+#endif /* _CORE__INCLUDE__KERNEL__CORE_INTERFACE_H_ */

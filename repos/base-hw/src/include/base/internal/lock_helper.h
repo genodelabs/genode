@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _LOCK_HELPER_H_
-#define _LOCK_HELPER_H_
+#ifndef _INCLUDE__BASE__INTERNAL__LOCK_HELPER_H_
+#define _INCLUDE__BASE__INTERNAL__LOCK_HELPER_H_
 
 /* Genode includes */
 #include <base/native_types.h>
@@ -64,5 +64,4 @@ thread_check_stopped_and_restart(Genode::Thread_base * const t)
 static inline void thread_stop_myself() { Kernel::pause_current_thread(); }
 
 
-#endif /* _LOCK_HELPER_H_ */
-
+#endif /* _INCLUDE__BASE__INTERNAL__LOCK_HELPER_H_ */
