@@ -148,6 +148,12 @@ void *kmem_cache_zalloc(struct kmem_cache *k, gfp_t flags)
 	return kmem_cache_alloc(k, flags | __GFP_ZERO);
 }
 
+void *krealloc(const void *p, size_t size, gfp_t flags)
+{
+	/* use const-less version from <impl/slab.h> */
+	return krealloc(const_cast<void*>(p), size, flags);
+}
+
 
 /*****************
  ** linux/idr.h **

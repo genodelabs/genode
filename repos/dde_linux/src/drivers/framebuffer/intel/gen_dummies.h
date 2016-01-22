@@ -964,7 +964,7 @@ void yield(void)
 
 int hdmi_avi_infoframe_init(struct hdmi_avi_infoframe *frame)
 {
-	TRACE_AND_STOP;
+	TRACE;
 	return -1;
 }
 
@@ -976,7 +976,7 @@ int hdmi_vendor_infoframe_init(struct hdmi_vendor_infoframe *frame)
 
 int hdmi_spd_infoframe_init(struct hdmi_spd_infoframe *frame, const char *vendor, const char *product)
 {
-	TRACE_AND_STOP;
+	TRACE;
 	return -1;
 }
 
