@@ -11,7 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/crt0.h>
+//#include <base/crt0.h>
 #include <base/printf.h>
 #include <linux_syscalls.h>
 #include <linux_cpu_session/linux_cpu_session.h>

@@ -17,9 +17,10 @@
 /* Genode includes */
 #include <parent/capability.h>
 
-namespace Hw {
-	extern Genode::Untyped_capability _parent_cap;
-}
+/* base-internal includes */
+#include <base/internal/crt0.h>
+
+namespace Hw { extern Genode::Untyped_capability _parent_cap; }
 
 namespace Genode {
 

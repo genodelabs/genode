@@ -19,13 +19,13 @@
  */
 
 /* Genode includes */
-#include <base/crt0.h>
 #include <base/env.h>
 #include <base/sleep.h>
 #include <base/printf.h>
 
 /* platform-specific local helper functions */
 #include <startup/internal/_main_parent_cap.h>
+#include <base/internal/crt0.h>
 
 
 using namespace Genode;

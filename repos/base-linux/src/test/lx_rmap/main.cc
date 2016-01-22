@@ -14,12 +14,10 @@
 /* Genode includes */
 #include <base/printf.h>
 #include <base/env.h>
-#include <base/crt0.h>
 #include <base/sleep.h>
 #include <base/thread.h>
 #include <util/misc_math.h>
 #include <rm_session/connection.h>
-
 
 
 static void blob() __attribute__((used));

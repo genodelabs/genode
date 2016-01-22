@@ -15,11 +15,11 @@
 
 /* Genode includes */
 #include <base/printf.h>
-#include <base/elf.h>
 #include <util/string.h>
 
 /* base-internal includes */
 #include <base/internal/elf_format.h>
+#include <base/internal/elf.h>
 
 using namespace Genode;
 

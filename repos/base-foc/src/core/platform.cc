@@ -15,9 +15,11 @@
 /* Genode includes */
 #include <base/printf.h>
 #include <base/allocator_avl.h>
-#include <base/crt0.h>
 #include <base/sleep.h>
 #include <util/misc_math.h>
+
+/* base-internal includes */
+#include <base/internal/crt0.h>
 
 /* core includes */
 #include <core_parent.h>

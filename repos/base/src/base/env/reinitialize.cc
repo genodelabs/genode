@@ -12,13 +12,13 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* base-internal includes */
-#include <base/internal/platform_env.h>
-
 /* Genode includes */
 #include <util/construct_at.h>
-#include <base/crt0.h>
 #include <rm_session/connection.h>
+
+/* base-internal includes */
+#include <base/internal/platform_env.h>
+#include <base/internal/crt0.h>
 
 void prepare_reinit_main_thread();
 

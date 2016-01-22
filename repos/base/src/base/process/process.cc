@@ -12,12 +12,15 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
 #include <base/process.h>
-#include <base/elf.h>
 #include <base/env.h>
 #include <base/printf.h>
 #include <ram_session/client.h>
 #include <dataspace/client.h>
+
+/* base-internal includes */
+#include <base/internal/elf.h>
 
 using namespace Genode;
 

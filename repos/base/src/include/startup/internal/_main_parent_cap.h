@@ -17,6 +17,9 @@
 #ifndef _INCLUDE__STARTUP__INTERNAL___MAIN_PARENT_CAP_H_
 #define _INCLUDE__STARTUP__INTERNAL___MAIN_PARENT_CAP_H_
 
+/* base-internal includes */
+#include <base/internal/crt0.h>
+
 namespace Genode {
 
 	/**

@@ -12,14 +12,14 @@
  */
 
 /* Genode includes */
-#include <base/elf.h>
 #include <base/env.h>
 #include <base/process.h>
 #include <base/printf.h>
 #include <linux_native_pd/client.h>
 
-/* framework-internal includes */
+/* base-internal includes */
 #include <linux_syscalls.h>
+#include <base/internal/elf.h>
 
 
 using namespace Genode;

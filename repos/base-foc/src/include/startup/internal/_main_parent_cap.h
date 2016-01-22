@@ -14,7 +14,11 @@
 #ifndef _INCLUDE__STARTUP__INTERNAL___MAIN_PARENT_CAP_H_
 #define _INCLUDE__STARTUP__INTERNAL___MAIN_PARENT_CAP_H_
 
+/* Genode includes */
 #include <base/native_types.h>
+
+/* base-internal includes */
+#include <base/internal/crt0.h>
 
 namespace Genode {
 
