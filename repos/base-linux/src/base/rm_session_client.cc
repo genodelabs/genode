@@ -11,10 +11,14 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/local_capability.h>
+/* Genode includes */
 #include <rm_session/client.h>
 
+/* base-internal includes */
+#include <base/internal/local_capability.h>
+
 using namespace Genode;
+
 
 /**
  * Return pointer to locally implemented RM session

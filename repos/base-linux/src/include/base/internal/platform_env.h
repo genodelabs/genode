@@ -23,11 +23,11 @@
 
 /* Genode includes */
 #include <util/misc_math.h>
-#include <base/local_capability.h>
 #include <base/heap.h>
 #include <linux_cpu_session/client.h>
 
 /* base-internal includes */
+#include <base/internal/local_capability.h>
 #include <base/internal/platform_env_common.h>
 
 

@@ -33,12 +33,12 @@
  */
 
 /* Genode includes */
-#include <base/local_capability.h>
 #include <base/thread.h>
 #include <linux_dataspace/client.h>
 #include <linux_syscalls.h>
 
 /* base-internal includes */
+#include <base/internal/local_capability.h>
 #include <base/internal/platform_env.h>
 #include <base/internal/context_area.h>
 
