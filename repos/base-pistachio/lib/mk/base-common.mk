@@ -23,6 +23,7 @@ SRC_CC += thread/thread.cc thread/trace.cc thread/thread_bootstrap.cc
 SRC_CC += thread/myself.cc
 SRC_CC += thread/context_allocator.cc
 SRC_CC += sleep.cc
+SRC_CC += rm_session_client.cc
 
 INC_DIR += $(REP_DIR)/src/include $(BASE_DIR)/src/include
 
