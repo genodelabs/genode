@@ -19,7 +19,7 @@
 
 /* base-internal includes */
 #include <base/internal/crt0.h>
-#include <fiasco/thread_helper.h>
+#include <base/internal/fiasco_thread_helper.h>
 
 /* core includes */
 #include <core_parent.h>

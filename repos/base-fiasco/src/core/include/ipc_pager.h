@@ -19,8 +19,10 @@
 #include <base/ipc.h>
 #include <base/stdint.h>
 #include <base/native_types.h>
-#include <fiasco/thread_helper.h>
 #include <util/touch.h>
+
+/* base-internal includes */
+#include <base/internal/fiasco_thread_helper.h>
 
 /* Fiasco includes */
 namespace Fiasco {
