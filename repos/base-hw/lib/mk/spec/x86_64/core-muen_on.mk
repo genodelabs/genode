@@ -4,6 +4,8 @@
 # \date   2015-06-02
 #
 
+REQUIRES = muen
+
 # add include paths
 INC_DIR += $(REP_DIR)/src/core/include/spec/x86_64/muen
 

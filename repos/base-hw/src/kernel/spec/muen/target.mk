@@ -1,19 +1,19 @@
-TARGET         = muen
-REQUIRES       = x86_64 muen
-MUEN_SRC_DIR   = $(call select_from_ports,muen)/src/kernel/muen
-MUEN_BUILD_DIR = $(BUILD_BASE_DIR)/kernel
-MUEN_CONF_FILE = $(MUEN_BUILD_DIR)/muen.conf
-MUEN_DST_DIR   = $(MUEN_BUILD_DIR)/muen
-MUEN_LOG       = $(MUEN_BUILD_DIR)/build.log
+TARGET          = muen
+REQUIRES        = x86_64 muen
+MUEN_SRC_DIR    = $(call select_from_ports,muen)/src/kernel/muen
+MUEN_BUILD_DIR  = $(BUILD_BASE_DIR)/kernel
+MUEN_CONF_FILE  = $(MUEN_BUILD_DIR)/muen.conf
+MUEN_DST_DIR    = $(MUEN_BUILD_DIR)/muen
+MUEN_LOG        = $(MUEN_BUILD_DIR)/build.log
 
-MUEN_SYSTEM     := $(shell sed -n "/^SYSTEM/s/^.*=\\s*//p" ${MUEN_CONF_FILE})
-MUEN_HARDWARE   := $(shell sed -n "/^HARDWARE/s/^.*=\\s*//p" ${MUEN_CONF_FILE})
-MUEN_COMPONENTS := $(shell sed -n "/^COMPONENTS/s/^.*=\\s*//p" ${MUEN_CONF_FILE})
-GNAT_PATH       := $(shell sed -n "/^GNAT_PATH/s/^.*=\\s*//p" ${MUEN_CONF_FILE})
-SPARK_PATH      := $(shell sed -n "/^SPARK_PATH/s/^.*=\\s*//p" ${MUEN_CONF_FILE})
+MUEN_SYSTEM     = $(shell sed -n "/^SYSTEM/s/^.*=\\s*//p" ${MUEN_CONF_FILE})
+MUEN_HARDWARE   = $(shell sed -n "/^HARDWARE/s/^.*=\\s*//p" ${MUEN_CONF_FILE})
+MUEN_COMPONENTS = $(shell sed -n "/^COMPONENTS/s/^.*=\\s*//p" ${MUEN_CONF_FILE})
+GNAT_PATH       = $(shell sed -n "/^GNAT_PATH/s/^.*=\\s*//p" ${MUEN_CONF_FILE})
+SPARK_PATH      = $(shell sed -n "/^SPARK_PATH/s/^.*=\\s*//p" ${MUEN_CONF_FILE})
 
-BUILD_ENV  = PATH=$(GNAT_PATH)/bin:$(SPARK_PATH)/bin:$$PATH
-BUILD_OPTS = SYSTEM=$(MUEN_SYSTEM) HARDWARE=$(MUEN_HARDWARE) NO_PROOF=true
+BUILD_ENV       = PATH=$(GNAT_PATH)/bin:$(SPARK_PATH)/bin:$$PATH
+BUILD_OPTS      = SYSTEM=$(MUEN_SYSTEM) HARDWARE=$(MUEN_HARDWARE) NO_PROOF=true
 
 $(TARGET): $(MUEN_DST_DIR)
 	$(MSG_BUILD)Muen kernel
