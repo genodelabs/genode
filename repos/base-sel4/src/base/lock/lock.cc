@@ -23,7 +23,7 @@ using namespace Genode;
 
 
 Cancelable_lock::Cancelable_lock(Cancelable_lock::State initial)
-: _lock(UNLOCKED)
+: _state(UNLOCKED), _owner(nullptr)
 {
 	if (initial == LOCKED)
 		lock();
@@ -32,7 +32,7 @@ Cancelable_lock::Cancelable_lock(Cancelable_lock::State initial)
 
 void Cancelable_lock::lock()
 {
-	while (!Genode::cmpxchg(&_lock, UNLOCKED, LOCKED))
+	while (!Genode::cmpxchg(&_state, UNLOCKED, LOCKED))
 		seL4_Yield();
 }
 
@@ -40,5 +40,5 @@ void Cancelable_lock::lock()
 void Cancelable_lock::unlock()
 {
 	Genode::memory_barrier();
-	_lock = UNLOCKED;
+	_state = UNLOCKED;
 }
