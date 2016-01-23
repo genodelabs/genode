@@ -18,29 +18,29 @@
 #include <base/thread.h>
 
 /* base-internal includes */
-#include <base/internal/context_area.h>
+#include <base/internal/stack_area.h>
 
 
 /**
- * Region-manager session for allocating thread contexts
+ * Region-manager session for allocating stacks
  *
- * This class corresponds to the managed dataspace that is normally
- * used for organizing thread contexts with the thread context area.
- * It "emulates" the sub address space by adjusting the local address
- * argument to 'attach' with the offset of the thread context area.
+ * This class corresponds to the managed dataspace that is normally used for
+ * organizing stacks within the stack. It "emulates" the sub address space by
+ * adjusting the local address argument to 'attach' with the offset of the
+ * stack area.
  */
-class Context_area_rm_session : public Genode::Rm_session
+class Stack_area_rm_session : public Genode::Rm_session
 {
 	public:
 
-		Context_area_rm_session()
+		Stack_area_rm_session()
 		{
-			flush_context_area();
-			reserve_context_area();
+			flush_stack_area();
+			reserve_stack_area();
 		}
 
 		/**
-		 * Attach backing store to thread-context area
+		 * Attach backing store to stack area
 		 */
 		Local_addr attach(Genode::Dataspace_capability ds_cap,
 		                  Genode::size_t size, Genode::off_t offset,
@@ -49,9 +49,9 @@ class Context_area_rm_session : public Genode::Rm_session
 		{
 			using namespace Genode;
 
-			/* convert context-area-relative to absolute virtual address */
+			/* convert stack-area-relative to absolute virtual address */
 			addr_t addr = local_addr;
-			addr       += Native_config::context_area_virtual_base();
+			addr       += Native_config::stack_area_virtual_base();
 
 			/* use anonymous mmap for allocating stack backing store */
 			int   flags = MAP_FIXED | MAP_ANONYMOUS | MAP_PRIVATE;
@@ -65,7 +65,7 @@ class Context_area_rm_session : public Genode::Rm_session
 		}
 
 		void detach(Local_addr local_addr) {
-			PWRN("context area detach from 0x%p - not implemented", (void *)local_addr); }
+			PWRN("stack area detach from 0x%p - not implemented", (void *)local_addr); }
 
 		Genode::Pager_capability add_client(Genode::Thread_capability) {
 			return Genode::Pager_capability(); }
@@ -81,7 +81,7 @@ class Context_area_rm_session : public Genode::Rm_session
 };
 
 
-class Context_area_ram_session : public Genode::Ram_session
+class Stack_area_ram_session : public Genode::Ram_session
 {
 	public:
 
@@ -102,19 +102,19 @@ class Context_area_ram_session : public Genode::Ram_session
 
 
 /**
- * Return single instance of the context-area RM and RAM session
+ * Return single instance of the stack-area RM and RAM session
  */
 namespace Genode {
 
-	Rm_session *env_context_area_rm_session()
+	Rm_session *env_stack_area_rm_session()
 	{
-		static Context_area_rm_session inst;
+		static Stack_area_rm_session inst;
 		return &inst;
 	}
 
-	Ram_session *env_context_area_ram_session()
+	Ram_session *env_stack_area_ram_session()
 	{
-		static Context_area_ram_session inst;
+		static Stack_area_ram_session inst;
 		return &inst;
 	}
 }

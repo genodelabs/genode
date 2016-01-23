@@ -94,12 +94,14 @@ class Noux_connection
 		Noux_connection() : _sysio(_obtain_sysio()) { }
 
 		/**
-		 * Return the capability of the local context-area RM session
+		 * Return the capability of the local stack-area RM session
 		 *
-		 * \param ptr  some address within the context-area
+		 * \param ptr  some address within the stack-area
 		 */
-		Genode::Rm_session_capability context_area_rm_session(void * const ptr) {
-			return _connection.lookup_rm_session((Genode::addr_t)ptr); }
+		Genode::Rm_session_capability stack_area_rm_session(void * const ptr)
+		{
+			return _connection.lookup_rm_session((Genode::addr_t)ptr);
+		}
 
 		Noux::Session *session() { return &_connection; }
 		Noux::Sysio   *sysio()   { return  _sysio; }
@@ -506,7 +508,7 @@ extern "C" int select(int nfds, fd_set *readfds, fd_set *writefds,
 #include <setjmp.h>
 
 
-static void * stack_in_context_area;
+static void * in_stack_area;
 static jmp_buf fork_jmp_buf;
 static Genode::Capability<Genode::Parent>::Raw new_parent;
 
@@ -532,9 +534,9 @@ extern "C" void fork_trampoline()
 	/* reinitialize noux connection */
 	construct_at<Noux_connection>(noux_connection());
 
-	/* reinitialize main-thread object which implies reinit of context area */
-	auto context_area_rm = noux_connection()->context_area_rm_session(stack_in_context_area);
-	Genode::env()->reinit_main_thread(context_area_rm);
+	/* reinitialize main-thread object which implies reinit of stack area */
+	auto stack_area_rm = noux_connection()->stack_area_rm_session(in_stack_area);
+	Genode::env()->reinit_main_thread(stack_area_rm);
 
 	/* apply processor state that the forker had when he did the fork */
 	longjmp(fork_jmp_buf, 1);
@@ -558,10 +560,10 @@ extern "C" pid_t fork(void)
 
 		/*
 		 * save the current stack address used for re-initializing
-		 * the context-area during process bootstrap
+		 * the stack area during process bootstrap
 		 */
 		int dummy;
-		stack_in_context_area = &dummy;
+		in_stack_area = &dummy;
 
 		/* got here during the normal control flow of the fork call */
 		sysio()->fork_in.ip = (Genode::addr_t)(&fork_trampoline);

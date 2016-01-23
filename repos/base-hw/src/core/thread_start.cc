@@ -17,6 +17,9 @@
 #include <base/sleep.h>
 #include <base/env.h>
 
+/* base-internal stack */
+#include <base/internal/stack.h>
+
 /* core includes */
 #include <map_local.h>
 #include <kernel/kernel.h>
@@ -25,11 +28,10 @@
 
 using namespace Genode;
 
-namespace Genode { Rm_session * env_context_area_rm_session(); }
+namespace Genode { Rm_session *env_stack_area_rm_session(); }
 
-namespace Hw {
-	extern Untyped_capability _main_thread_cap;
-}
+namespace Hw { extern Untyped_capability _main_thread_cap; }
+
 
 void Thread_base::start()
 {
@@ -56,13 +58,13 @@ void Thread_base::_init_platform_thread(size_t, Type type)
 {
 	if (type == NORMAL) {
 		_tid.platform_thread = new (platform()->core_mem_alloc())
-			Platform_thread(_context->name, &_context->utcb);
+			Platform_thread(_stack->name().string(), &_stack->utcb());
 		return;
 	}
 
-	/* remap initial main-thread UTCB according to context-area spec */
+	/* remap initial main-thread UTCB according to stack-area spec */
 	Genode::map_local((addr_t)Kernel::Core_thread::singleton().utcb(),
-	                  (addr_t)&_context->utcb,
+	                  (addr_t)&_stack->utcb(),
 	                  max(sizeof(Native_utcb) / get_page_size(), (size_t)1));
 
 	/* adjust initial object state in case of a main thread */

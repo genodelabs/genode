@@ -21,7 +21,7 @@ SRC_CC += signal/signal.cc signal/common.cc signal/platform.cc
 SRC_CC += server/server.cc server/common.cc
 SRC_CC += thread/thread.cc thread/thread_bootstrap.cc thread/trace.cc
 SRC_CC += thread/myself.cc
-SRC_CC += thread/context_allocator.cc
+SRC_CC += thread/stack_allocator.cc
 SRC_CC += sleep.cc
 SRC_CC += rm_session_client.cc
 

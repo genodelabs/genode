@@ -29,18 +29,17 @@ using namespace Genode;
 
 
 /**
- * Region-manager session for allocating thread contexts
+ * Region-manager session for allocating stacks
  *
- * This class corresponds to the managed dataspace that is normally
- * used for organizing thread contexts with the thread context area.
- * In contrast to the ordinary implementation, core's version does
- * not split between allocation of memory and virtual memory management.
- * Due to the missing availability of "real" dataspaces and capabilities
- * refering to it without having an entrypoint in place, the allocation
- * of a dataspace has no effect, but the attachment of the thereby "empty"
- * dataspace is doing both: allocation and attachment.
+ * This class corresponds to the managed dataspace that is normally used for
+ * organizing stacks with the stack area. In contrast to the ordinary
+ * implementation, core's version does not split between allocation of memory
+ * and virtual memory management. Due to the missing availability of "real"
+ * dataspaces and capabilities refering to it without having an entrypoint in
+ * place, the allocation of a dataspace has no effect, but the attachment of
+ * the thereby "empty" dataspace is doing both: allocation and attachment.
  */
-class Context_area_rm_session : public Rm_session
+class Stack_area_rm_session : public Rm_session
 {
 	private:
 
@@ -54,7 +53,7 @@ class Context_area_rm_session : public Rm_session
 	public:
 
 		/**
-		 * Allocate and attach on-the-fly backing store to thread-context area
+		 * Allocate and attach on-the-fly backing store to the stack area
 		 */
 		Local_addr attach(Dataspace_capability ds_cap, /* ignored capability */
 		                  size_t size, off_t offset,
@@ -72,12 +71,12 @@ class Context_area_rm_session : public Rm_session
 			Dataspace_component *ds = new (&_ds_slab)
 				Dataspace_component(size, 0, phys, CACHED, true, 0);
 			if (!ds) {
-				PERR("dataspace for core context does not exist");
+				PERR("dataspace for core stack does not exist");
 				return (addr_t)0;
 			}
 
 			addr_t const core_local_addr =
-				Native_config::context_area_virtual_base() + (addr_t)local_addr;
+				Native_config::stack_area_virtual_base() + (addr_t)local_addr;
 
 			if (verbose)
 				PDBG("core_local_addr = %lx, phys_addr = %lx, size = 0x%zx",
@@ -110,7 +109,7 @@ class Context_area_rm_session : public Rm_session
 };
 
 
-class Context_area_ram_session : public Ram_session
+class Stack_area_ram_session : public Ram_session
 {
 	public:
 
@@ -136,15 +135,15 @@ class Context_area_ram_session : public Ram_session
  */
 namespace Genode {
 
-	Rm_session *env_context_area_rm_session()
+	Rm_session *env_stack_area_rm_session()
 	{
-		static Context_area_rm_session inst;
+		static Stack_area_rm_session inst;
 		return &inst;
 	}
 
-	Ram_session *env_context_area_ram_session()
+	Ram_session *env_stack_area_ram_session()
 	{
-		static Context_area_ram_session inst;
+		static Stack_area_ram_session inst;
 		return &inst;
 	}
 }

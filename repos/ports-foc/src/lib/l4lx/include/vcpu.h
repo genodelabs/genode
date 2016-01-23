@@ -43,6 +43,7 @@ namespace L4lx {
 			Genode::addr_t              _vcpu_state;
 			Timer::Connection           _timer;
 			unsigned                    _cpu_nr;
+			Fiasco::l4_utcb_t   * const _utcb;
 
 		public:
 
@@ -57,12 +58,13 @@ namespace L4lx {
 			  _func(func),
 			  _data(data ? *data : 0),
 			  _vcpu_state(vcpu_state),
-			  _cpu_nr(cpu_nr)
+			  _cpu_nr(cpu_nr),
+			  _utcb((Fiasco::l4_utcb_t *)_cpu_session->state(cap()).utcb)
 			{
 				start();
 
 				/* set l4linux specific utcb entry: L4X_UTCB_TCR_ID */
-				l4_utcb_tcr_u(utcb())->user[0] = tid();
+				l4_utcb_tcr_u(_utcb)->user[0] = tid().kcap;
 
 				/* enable vcpu functionality respectively */
 				if (_vcpu_state)
@@ -81,11 +83,11 @@ namespace L4lx {
 
 			void unblock() { _lock.unlock(); }
 
-			Genode::addr_t sp() { return _context->stack_top(); }
+			Genode::addr_t sp() { return (Genode::addr_t)stack_top(); }
 
 			Genode::addr_t ip() { return (Genode::addr_t)_func; }
 
-			Fiasco::l4_utcb_t *utcb() { return _context->utcb; };
+			Fiasco::l4_utcb_t *utcb() { return _utcb; };
 
 			Timer::Connection* timer() { return &_timer; }
 

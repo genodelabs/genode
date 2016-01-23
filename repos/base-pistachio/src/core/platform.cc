@@ -434,8 +434,8 @@ void Platform::_setup_mem_alloc()
 
 				} else {
 					region.start = addr; region.end = addr + size;
-					if (region.intersects(Native_config::context_area_virtual_base(),
-					                      Native_config::context_area_virtual_size()) ||
+					if (region.intersects(Native_config::stack_area_virtual_base(),
+					                      Native_config::stack_area_virtual_size()) ||
 						intersects_kip_archdep(kip, addr, size)) {
 						unmap_local(region.start, size >> get_page_size_log2());
 					} else {
@@ -563,11 +563,11 @@ void Platform::_setup_basics()
 		       L4_MemoryDescLow(md), L4_MemoryDescHigh(md));
 	}
 
-	/* configure core's virtual memory, exclude KIP, context area */
+	/* configure core's virtual memory, exclude KIP, stack area */
 	_region_alloc.add_range(_vm_start, _vm_size);
 	_region_alloc.remove_range((addr_t)kip, kip_size);
-	_region_alloc.remove_range(Native_config::context_area_virtual_base(),
-	                           Native_config::context_area_virtual_size());
+	_region_alloc.remove_range(Native_config::stack_area_virtual_base(),
+	                           Native_config::stack_area_virtual_size());
 
 	/* remove KIP and MBI area from region and IO_MEM allocator */
 	remove_region(Region((addr_t)kip, (addr_t)kip + kip_size), _region_alloc);

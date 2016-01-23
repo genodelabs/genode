@@ -16,6 +16,9 @@
 #include <base/printf.h>
 #include <base/sleep.h>
 
+/* base-internal includes */
+#include <base/internal/stack.h>
+
 /* core includes */
 #include <platform.h>
 #include <platform_thread.h>
@@ -26,7 +29,7 @@ using namespace Genode;
 
 void Thread_base::_init_platform_thread(size_t, Type type)
 {
-	addr_t const utcb_virt_addr = (addr_t)&_context->utcb;
+	addr_t const utcb_virt_addr = (addr_t)&_stack->utcb();
 
 	if (type == MAIN) {
 		_tid.tcb_sel = seL4_CapInitThreadTCB;

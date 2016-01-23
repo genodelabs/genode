@@ -18,9 +18,12 @@
 #include <base/sleep.h>
 #include <base/env.h>
 
+/* base-internal includes */
+#include <base/internal/stack_allocator.h>
+
 using namespace Genode;
 
-namespace Genode { Rm_session * env_context_area_rm_session(); }
+namespace Genode { Rm_session * env_stack_area_rm_session(); }
 
 namespace Hw {
 	extern Ram_dataspace_capability _main_thread_utcb_ds;
@@ -39,18 +42,19 @@ void Thread_base::_init_platform_thread(size_t weight, Type type)
 		/* create server object */
 		char buf[48];
 		name(buf, sizeof(buf));
-		addr_t const utcb = (addr_t)&_context->utcb;
+		addr_t const utcb = (addr_t)&_stack->utcb();
 		_thread_cap = _cpu_session->create_thread(weight, buf, utcb);
 		return;
 	}
 	/* if we got reinitialized we have to get rid of the old UTCB */
-	size_t const utcb_size = sizeof(Native_utcb);
-	addr_t const context_area = Native_config::context_area_virtual_base();
-	addr_t const utcb_new = (addr_t)&_context->utcb - context_area;
-	Rm_session * const rm = env_context_area_rm_session();
+	size_t const utcb_size  = sizeof(Native_utcb);
+	addr_t const stack_area = Native_config::stack_area_virtual_base();
+	addr_t const utcb_new   = (addr_t)&_stack->utcb() - stack_area;
+	Rm_session * const rm   = env_stack_area_rm_session();
+
 	if (type == REINITIALIZED_MAIN) { rm->detach(utcb_new); }
 
-	/* remap initial main-thread UTCB according to context-area spec */
+	/* remap initial main-thread UTCB according to stack-area spec */
 	try { rm->attach_at(Hw::_main_thread_utcb_ds, utcb_new, utcb_size); }
 	catch(...) {
 		PERR("failed to re-map UTCB");
@@ -69,12 +73,12 @@ void Thread_base::_deinit_platform_thread()
 
 	_cpu_session->kill_thread(_thread_cap);
 
-	/* detach userland thread-context */
-	size_t const size = sizeof(_context->utcb);
-	addr_t utcb = Context_allocator::addr_to_base(_context) +
-	              Native_config::context_virtual_size() - size -
-	              Native_config::context_area_virtual_base();
-	env_context_area_rm_session()->detach(utcb);
+	/* detach userland stack */
+	size_t const size = sizeof(_stack->utcb());
+	addr_t utcb = Stack_allocator::addr_to_base(_stack) +
+	              Native_config::stack_virtual_size() - size -
+	              Native_config::stack_area_virtual_base();
+	env_stack_area_rm_session()->detach(utcb);
 
 	if (_pager_cap.valid()) {
 		env()->rm_session()->remove_client(_pager_cap);
@@ -91,20 +95,20 @@ void Thread_base::start()
 	_pager_cap = env()->rm_session()->add_client(_thread_cap);
 	_cpu_session->set_pager(_thread_cap, _pager_cap);
 
-	/* attach userland thread-context */
+	/* attach userland stack */
 	try {
 		Ram_dataspace_capability ds = _cpu_session->utcb(_thread_cap);
-		size_t const size = sizeof(_context->utcb);
-		addr_t dst = Context_allocator::addr_to_base(_context) +
-		             Native_config::context_virtual_size() - size -
-		             Native_config::context_area_virtual_base();
-		env_context_area_rm_session()->attach_at(ds, dst, size);
+		size_t const size = sizeof(_stack->utcb());
+		addr_t dst = Stack_allocator::addr_to_base(_stack) +
+		             Native_config::stack_virtual_size() - size -
+		             Native_config::stack_area_virtual_base();
+		env_stack_area_rm_session()->attach_at(ds, dst, size);
 	} catch (...) {
-		PERR("failed to attach userland thread-context");
+		PERR("failed to attach userland stack");
 		sleep_forever();
 	}
 	/* start thread with its initial IP and aligned SP */
-	_cpu_session->start(_thread_cap, (addr_t)_thread_start, _context->stack_top());
+	_cpu_session->start(_thread_cap, (addr_t)_thread_start, _stack->top());
 }
 
 

@@ -18,9 +18,9 @@ SRC_CC += elf/elf_binary.cc
 SRC_CC += lock/lock.cc
 SRC_CC += signal/signal.cc signal/common.cc signal/platform.cc
 SRC_CC += server/server.cc
-SRC_CC += thread/thread.cc thread/thread_context.cc thread/trace.cc
+SRC_CC += thread/thread.cc thread/stack.cc thread/trace.cc
 SRC_CC += thread/myself.cc
-SRC_CC += thread/context_allocator.cc env/cap_map.cc
+SRC_CC += thread/stack_allocator.cc env/cap_map.cc
 SRC_CC += sleep.cc
 SRC_CC += rm_session_client.cc
 

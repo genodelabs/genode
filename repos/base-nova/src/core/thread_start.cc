@@ -17,6 +17,9 @@
 #include <base/thread.h>
 #include <base/printf.h>
 
+/* base-internal includes */
+#include <base/internal/stack.h>
+
 /* NOVA includes */
 #include <nova/syscalls.h>
 
@@ -74,7 +77,7 @@ void Thread_base::_deinit_platform_thread()
 
 	/* revoke utcb */
 	Nova::Rights rwx(true, true, true);
-	addr_t utcb = reinterpret_cast<addr_t>(&_context->utcb);
+	addr_t utcb = reinterpret_cast<addr_t>(&_stack->utcb());
 	Nova::revoke(Nova::Mem_crd(utcb >> 12, 0, rwx));
 }
 
@@ -87,9 +90,9 @@ void Thread_base::start()
 	 */
 	using namespace Nova;
 
-	addr_t sp       = _context->stack_top();
-	addr_t utcb     = reinterpret_cast<addr_t>(&_context->utcb);
-	Utcb * utcb_obj = reinterpret_cast<Utcb *>(&_context->utcb);
+	addr_t sp       = _stack->top();
+	addr_t utcb     = reinterpret_cast<addr_t>(&_stack->utcb());
+	Utcb * utcb_obj = reinterpret_cast<Utcb *>(&_stack->utcb());
 	addr_t pd_sel   = Platform_pd::pd_core_sel();
 
 	/*

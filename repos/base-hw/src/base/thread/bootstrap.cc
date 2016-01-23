@@ -17,6 +17,9 @@
 #include <base/env.h>
 #include <base/sleep.h>
 
+/* base-internal includes */
+#include <base/internal/stack.h>
+
 /* base-hw includes */
 #include <kernel/interface.h>
 
@@ -57,9 +60,9 @@ void prepare_reinit_main_thread() { prepare_init_main_thread(); }
  ** Thread_base **
  *****************/
 
-Native_utcb * Thread_base::utcb()
+Native_utcb *Thread_base::utcb()
 {
-	if (this) { return &_context->utcb; }
+	if (this) { return &_stack->utcb(); }
 	return utcb_main_thread();
 }
 

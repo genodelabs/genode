@@ -28,7 +28,6 @@
 /* base-internal includes */
 #include <base/internal/platform_env.h>
 
-
 namespace Genode {
 
 	/**

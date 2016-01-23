@@ -82,8 +82,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 		X86FXSTATE _guest_fpu_state __attribute__((aligned(0x10)));
 		X86FXSTATE _emt_fpu_state __attribute__((aligned(0x10)));
 
-		Genode::Cap_connection _cap_connection;
-		Vmm::Vcpu_other_pd     _vcpu;
+		Vmm::Vcpu_other_pd _vcpu;
 
 		Genode::addr_t _ec_sel; 
 		bool _irq_win;
@@ -713,7 +712,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 		             Genode::Affinity::Location location,
 		             unsigned int cpu_id)
 		:
-			Vmm::Vcpu_dispatcher<pthread>(stack_size, _cap_connection,
+			Vmm::Vcpu_dispatcher<pthread>(stack_size, *Genode::env()->pd_session(),
 			                              cpu_session, location, 
 			                              attr ? *attr : 0, start_routine, arg),
 			_vcpu(cpu_session, location),

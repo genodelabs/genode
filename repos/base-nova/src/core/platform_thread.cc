@@ -119,8 +119,8 @@ int Platform_thread::start(void *ip, void *sp)
 	_sel_exc_base       = is_vcpu() ? _pager->exc_pt_vcpu() : _pager->exc_pt_sel_client();
 
 	if (!is_vcpu()) {
-		pd_utcb = Native_config::context_area_virtual_base() +
-		          Native_config::context_virtual_size() - get_page_size();
+		pd_utcb = Native_config::stack_area_virtual_base() +
+		          Native_config::stack_virtual_size() - get_page_size();
 
 		addr_t remap_src[] = { _pd->parent_pt_sel(), _pager->Object_pool<Pager_object>::Entry::cap().local_name() };
 		addr_t remap_dst[] = { PT_SEL_PARENT, PT_SEL_MAIN_PAGER };
@@ -315,7 +315,7 @@ Native_capability Platform_thread::single_step(bool on)
 
 unsigned long Platform_thread::pager_object_badge() const
 {
-	return reinterpret_cast<unsigned long>(_name);
+	return reinterpret_cast<unsigned long>(_name.string());
 }
 
 
@@ -353,17 +353,16 @@ Platform_thread::Platform_thread(const char *name, unsigned prio, int thread_id)
 	_pd(0), _pager(0), _id_base(cap_map()->insert(2)),
 	_sel_exc_base(Native_thread::INVALID_INDEX), _location(boot_cpu(), 0, 0, 0),
 	_features(0),
-	_priority(Cpu_session::scale_priority(Nova::Qpd::DEFAULT_PRIORITY, prio))
+	_priority(Cpu_session::scale_priority(Nova::Qpd::DEFAULT_PRIORITY, prio)),
+	_name(name)
 {
-	strncpy(_name, name, sizeof(_name));
-
 	if (_priority == 0) {
-		PWRN("priority of thread '%s' below minimum - boost to 1", _name);
+		PWRN("priority of thread '%s' below minimum - boost to 1", _name.string());
 		_priority = 1;
 	}
 	if (_priority > Nova::Qpd::DEFAULT_PRIORITY) {
 		PWRN("priority of thread '%s' above maximum - limit to %u",
-		     _name, Nova::Qpd::DEFAULT_PRIORITY);
+		     _name.string(), Nova::Qpd::DEFAULT_PRIORITY);
 		_priority = Nova::Qpd::DEFAULT_PRIORITY;
 	}
 }

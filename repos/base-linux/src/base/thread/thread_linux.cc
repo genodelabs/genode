@@ -19,6 +19,9 @@
 #include <base/sleep.h>
 #include <linux_cpu_session/linux_cpu_session.h>
 
+/* base-internal includes */
+#include <base/internal/stack.h>
+
 /* Linux syscall bindings */
 #include <linux_syscalls.h>
 
@@ -77,7 +80,7 @@ void Thread_base::_init_platform_thread(size_t weight, Type type)
 
 	/* for normal threads create an object at the CPU session */
 	if (type == NORMAL) {
-		_thread_cap = _cpu_session->create_thread(weight, _context->name);
+		_thread_cap = _cpu_session->create_thread(weight, _stack->name().string());
 		return;
 	}
 	/* adjust initial object state for main threads */

@@ -5,7 +5,7 @@ GEN_CORE_DIR = $(BASE_DIR)/src/core
 
 LIBS        += base-common
 
-SRC_CC      += context_area.cc \
+SRC_CC      += stack_area.cc \
                core_printf.cc \
                core_rpc_cap_alloc.cc \
                cpu_session_component.cc \
@@ -45,7 +45,7 @@ INC_DIR     += $(REP_DIR)/src/core/include \
 
 include $(GEN_CORE_DIR)/version.inc
 
-vpath context_area.cc             $(GEN_CORE_DIR)
+vpath stack_area.cc               $(GEN_CORE_DIR)
 vpath cpu_session_component.cc    $(GEN_CORE_DIR)
 vpath dataspace_component.cc      $(GEN_CORE_DIR)
 vpath dump_alloc.cc               $(GEN_CORE_DIR)

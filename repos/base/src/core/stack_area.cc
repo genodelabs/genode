@@ -28,18 +28,18 @@ using namespace Genode;
 
 
 /**
- * Region-manager session for allocating thread contexts
+ * Region-manager session for allocating stacks
  *
  * This class corresponds to the managed dataspace that is normally
- * used for organizing thread contexts with the thread context area.
+ * used for organizing stacks within the stack area.
  * In contrast to the ordinary implementation, core's version does
  * not split between allocation of memory and virtual memory management.
  * Due to the missing availability of "real" dataspaces and capabilities
- * refering to it without having an entrypoint in place, the allocation
+ * referring to it without having an entrypoint in place, the allocation
  * of a dataspace has no effect, but the attachment of the thereby "empty"
  * dataspace is doing both: allocation and attachment.
  */
-class Context_area_rm_session : public Rm_session
+class Stack_area_rm_session : public Rm_session
 {
 	private:
 
@@ -53,7 +53,7 @@ class Context_area_rm_session : public Rm_session
 	public:
 
 		/**
-		 * Allocate and attach on-the-fly backing store to thread-context area
+		 * Allocate and attach on-the-fly backing store to stack area
 		 */
 		Local_addr attach(Dataspace_capability ds_cap, /* ignored capability */
 		                  size_t size, off_t offset,
@@ -66,7 +66,7 @@ class Context_area_rm_session : public Rm_session
 			Range_allocator *ra = platform_specific()->ram_alloc();
 			if (ra->alloc_aligned(size, &phys_base,
 				                  get_page_size_log2()).is_error()) {
-				PERR("could not allocate backing store for new context");
+				PERR("could not allocate backing store for new stack");
 				return (addr_t)0;
 			}
 
@@ -76,11 +76,11 @@ class Context_area_rm_session : public Rm_session
 			Dataspace_component *ds = new (&_ds_slab)
 				Dataspace_component(size, 0, (addr_t)phys_base, CACHED, true, 0);
 			if (!ds) {
-				PERR("dataspace for core context does not exist");
+				PERR("dataspace for core stack does not exist");
 				return (addr_t)0;
 			}
 
-			addr_t core_local_addr = Native_config::context_area_virtual_base() +
+			addr_t core_local_addr = Native_config::stack_area_virtual_base() +
 			                         (addr_t)local_addr;
 
 			if (verbose)
@@ -103,15 +103,14 @@ class Context_area_rm_session : public Rm_session
 		{
 			using Genode::addr_t;
 
-			if ((addr_t)local_addr >= Native_config::context_area_virtual_size())
+			if ((addr_t)local_addr >= Native_config::stack_area_virtual_size())
 				return;
 
-			addr_t const detach = Native_config::context_area_virtual_base() +
+			addr_t const detach = Native_config::stack_area_virtual_base() +
 			                      (addr_t)local_addr;
-			addr_t const thread_context = Native_config::context_virtual_size();
-			addr_t const pages = ((detach & ~(thread_context - 1))
-			                      + thread_context
-			                      - detach) >> get_page_size_log2();
+			addr_t const stack  = Native_config::stack_virtual_size();
+			addr_t const pages  = ((detach & ~(stack - 1)) + stack - detach)
+			                      >> get_page_size_log2();
 
 			unmap_local(detach, pages);
 		}
@@ -129,7 +128,7 @@ class Context_area_rm_session : public Rm_session
 };
 
 
-class Context_area_ram_session : public Ram_session
+class Stack_area_ram_session : public Ram_session
 {
 	public:
 
@@ -154,15 +153,15 @@ class Context_area_ram_session : public Ram_session
  */
 namespace Genode {
 
-	Rm_session *env_context_area_rm_session()
+	Rm_session *env_stack_area_rm_session()
 	{
-		static Context_area_rm_session inst;
+		static Stack_area_rm_session inst;
 		return &inst;
 	}
 
-	Ram_session *env_context_area_ram_session()
+	Ram_session *env_stack_area_ram_session()
 	{
-		static Context_area_ram_session inst;
+		static Stack_area_ram_session inst;
 		return &inst;
 	}
 }

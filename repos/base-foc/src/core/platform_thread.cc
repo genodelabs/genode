@@ -45,7 +45,7 @@ int Platform_thread::start(void *ip, void *sp)
 	l4_thread_control_start();
 	l4_thread_control_pager(_pager.remote);
 	l4_thread_control_exc_handler(_pager.remote);
-	l4_thread_control_bind(_utcb, _platform_pd->native_task().dst());
+	l4_thread_control_bind((l4_utcb_t *)_utcb, _platform_pd->native_task().dst());
 	l4_msgtag_t tag = l4_thread_control_commit(_thread.local.dst());
 	if (l4_msgtag_has_error(tag)) {
 		PWRN("l4_thread_control_commit for %lx failed!",

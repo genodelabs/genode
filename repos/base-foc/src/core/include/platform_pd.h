@@ -48,8 +48,8 @@ namespace Genode {
 
 			addr_t utcb_area_start()
 			{
-				return (Native_config::context_area_virtual_base() +
-				       THREAD_MAX * Native_config::context_virtual_size());
+				return (Native_config::stack_area_virtual_base() +
+				       THREAD_MAX * Native_config::stack_virtual_size());
 			}
 
 			Cap_mapping       _task;

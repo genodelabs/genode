@@ -107,14 +107,14 @@ struct Genode::Env
 	/**
 	 * Reinitialize main-thread object
 	 *
-	 * \param context_area_rm  new RM session of the context area
+	 * \param stack_area_rm  new RM session of the context area
 	 *
 	 * This function is solely used for implementing fork semantics
 	 * as provided by the Noux environment.
 	 *
 	 * \noapi
 	 */
-	virtual void reinit_main_thread(Rm_session_capability &) = 0;
+	virtual void reinit_main_thread(Rm_session_capability &stack_area_rm) = 0;
 
 };
 

@@ -1408,13 +1408,13 @@ int main(int argc, char **argv)
 	{
 		/*
 		 * Reserve complete lower address space so that nobody else can take
-		 * it. The context area is moved as far as possible to a high virtual
+		 * it. The stack area is moved as far as possible to a high virtual
 		 * address. So we can use its base address as upper bound. The
 		 * reservation will be dropped when this scope is left and re-acquired
 		 * with the actual VM size which is determined below inside this scope.
 		 */
 		Vmm::Virtual_reservation
-			reservation(Genode::Native_config::context_area_virtual_base());
+			reservation(Genode::Native_config::stack_area_virtual_base());
 
 		Genode::printf("--- Vancouver VMM starting ---\n");
 
@@ -1467,10 +1467,10 @@ int main(int argc, char **argv)
 		               guest_memory.backing_store_fb_local_base() + fb_size,
 		               fb_size / 1024 / 1024);
 
-	Genode::printf("[0x%012lx, 0x%012lx) - Genode thread context area\n",
-	                Genode::Native_config::context_area_virtual_base(),
-	                Genode::Native_config::context_area_virtual_base() +
-	                Genode::Native_config::context_area_virtual_size());
+	Genode::printf("[0x%012lx, 0x%012lx) - Genode stack area\n",
+	                Genode::Native_config::stack_area_virtual_base(),
+	                Genode::Native_config::stack_area_virtual_base() +
+	                Genode::Native_config::stack_area_virtual_size());
 
 	Genode::printf("[0x%012lx, 0x%012lx) - VMM program image\n",
 	               (Genode::addr_t)&_prog_img_beg,

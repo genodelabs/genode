@@ -21,6 +21,9 @@
 #include <base/native_types.h>
 #include <base/thread.h>
 
+/* base-internal includes */
+#include <base/internal/stack.h>
+
 /* core includes */
 #include <pager.h>
 #include <address_space.h>
@@ -43,10 +46,10 @@ namespace Genode {
 				VCPU        = 0x2U,
 				WORKER      = 0x4U,
 			};
-			uint8_t            _features;
-			uint8_t            _priority;
+			uint8_t _features;
+			uint8_t _priority;
 
-			char               _name[Thread_base::Context::NAME_LEN];
+			Stack::Name _name;
 
 			addr_t _sel_ec()     const { return _id_base; }
 			addr_t _sel_pt_oom() const { return _id_base + 1; }

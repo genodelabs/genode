@@ -10,7 +10,7 @@
 LIBS += base-common syscall cxx
 
 SRC_CC += console/log_console.cc
-SRC_CC += env/env.cc env/platform_env.cc env/context_area.cc
+SRC_CC += env/env.cc env/platform_env.cc env/stack_area.cc
 SRC_CC += server/rpc_cap_alloc.cc
 
 INC_DIR += $(REP_DIR)/src/include $(BASE_DIR)/src/include

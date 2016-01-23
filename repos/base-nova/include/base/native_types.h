@@ -241,17 +241,17 @@ namespace Genode {
 	struct Native_config
 	{
 		/**
-		 * Thread-context area configuration.
+		 * Stack area configuration
 		 */
-		static constexpr addr_t context_area_virtual_base() {
+		static constexpr addr_t stack_area_virtual_base() {
 			return 0xa0000000UL; }
-		static constexpr addr_t context_area_virtual_size() {
+		static constexpr addr_t stack_area_virtual_size() {
 			return 0x10000000UL; }
 
 		/**
-		 * Size of virtual address region holding the context of one thread
+		 * Size of virtual address region holding the stack of one thread
 		 */
-		static constexpr addr_t context_virtual_size() { return 0x00100000UL; }
+		static constexpr addr_t stack_virtual_size() { return 0x00100000UL; }
 	};
 
 	struct Native_pd_args { };

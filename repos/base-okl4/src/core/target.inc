@@ -4,7 +4,7 @@ LIBS += boot_info base-common
 
 GEN_CORE_DIR = $(BASE_DIR)/src/core
 
-SRC_CC += context_area.cc \
+SRC_CC += stack_area.cc \
           core_mem_alloc.cc \
           core_printf.cc \
           core_rm_session.cc \
@@ -59,7 +59,7 @@ vpath dataspace_component.cc      $(GEN_CORE_DIR)
 vpath core_mem_alloc.cc           $(GEN_CORE_DIR)
 vpath core_rpc_cap_alloc.cc       $(GEN_CORE_DIR)
 vpath dump_alloc.cc               $(GEN_CORE_DIR)
-vpath context_area.cc             $(GEN_CORE_DIR)
+vpath stack_area.cc               $(GEN_CORE_DIR)
 vpath pager_ep.cc                 $(GEN_CORE_DIR)
 vpath pager_object.cc             $(GEN_CORE_DIR)
 vpath %.cc                        $(REP_DIR)/src/core

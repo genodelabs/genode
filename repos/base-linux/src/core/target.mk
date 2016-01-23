@@ -24,7 +24,7 @@ SRC_CC        = main.cc \
                 signal_source_component.cc \
                 trace_session_component.cc \
                 thread_linux.cc \
-                context_area.cc \
+                stack_area.cc \
                 core_printf.cc \
                 thread.cc myself.cc
 

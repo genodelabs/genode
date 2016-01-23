@@ -18,9 +18,11 @@
 #include <base/printf.h>
 #include <base/sleep.h>
 #include <base/env.h>
-
 #include <base/rpc_client.h>
 #include <session/session.h>
+
+/* base-internal includes */
+#include <base/internal/stack.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>
@@ -99,7 +101,7 @@ void Thread_base::_init_platform_thread(size_t weight, Type type)
 	 * afterwards.
 	 */
 	Rights rwx(true, true, true);
-	addr_t utcb = reinterpret_cast<addr_t>(&_context->utcb);
+	addr_t utcb = reinterpret_cast<addr_t>(&_stack->utcb());
 	revoke(Mem_crd(utcb >> 12, 0, rwx));
 
 	_tid.exc_pt_sel = cap_map()->insert(NUM_INITIAL_PT_LOG2);
@@ -177,7 +179,7 @@ void Thread_base::start()
 	try { _cpu_session->state(_thread_cap, state); }
 	catch (...) { throw Cpu_session::Thread_creation_failed(); }
 
-	if (_cpu_session->start(_thread_cap, thread_ip, _context->stack_top()))
+	if (_cpu_session->start(_thread_cap, thread_ip, _stack->top()))
 		throw Cpu_session::Thread_creation_failed();
 
 	/* request native EC thread cap */ 

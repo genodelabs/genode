@@ -211,7 +211,7 @@ namespace Genode {
 					 * the common use case of managed dataspaces as mechanism
 					 * to reserve parts of the local address space from being
 					 * populated by the 'env()->rm_session()'. (i.e., for the
-					 * context area, or for the placement of consecutive
+					 * stack area, or for the placement of consecutive
 					 * shared-library segments)
 					 */
 					addr_t _base;

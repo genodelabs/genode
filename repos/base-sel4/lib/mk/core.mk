@@ -30,7 +30,7 @@ SRC_CC      += \
                core_mem_alloc.cc \
                core_rpc_cap_alloc.cc \
                dump_alloc.cc \
-               context_area.cc \
+               stack_area.cc \
                capability_space.cc \
                pager.cc \
                pager_ep.cc

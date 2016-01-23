@@ -42,7 +42,7 @@ namespace Genode {
 			Cap_mapping        _gate;
 			Cap_mapping        _pager;
 			Cap_mapping        _irq;
-			Native_utcb        _utcb;
+			addr_t             _utcb;
 			char               _name[32];       /* thread name that will be
 			                                      registered at the kernel
 			                                      debugger */
@@ -185,7 +185,7 @@ namespace Genode {
 			Cap_mapping& gate()              { return _gate;        }
 			const char  *name()        const { return _name;        }
 			bool         core_thread() const { return _core_thread; }
-			Native_utcb  utcb()        const { return _utcb;        }
+			addr_t       utcb()        const { return _utcb;        }
 	};
 }
 

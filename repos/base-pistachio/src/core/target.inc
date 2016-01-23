@@ -4,7 +4,7 @@ LIBS         = base-common
 
 GEN_CORE_DIR = $(BASE_DIR)/src/core
 
-SRC_CC       = context_area.cc \
+SRC_CC       = stack_area.cc \
                core_printf.cc \
                core_rpc_cap_alloc.cc \
                cpu_session_component.cc \
@@ -58,7 +58,7 @@ vpath trace_session_component.cc  $(GEN_CORE_DIR)
 vpath dataspace_component.cc      $(GEN_CORE_DIR)
 vpath dump_alloc.cc               $(GEN_CORE_DIR)
 vpath core_rpc_cap_alloc.cc       $(GEN_CORE_DIR)
-vpath context_area.cc             $(GEN_CORE_DIR)
+vpath stack_area.cc               $(GEN_CORE_DIR)
 vpath pager_ep.cc                 $(GEN_CORE_DIR)
 vpath pager_object.cc             $(GEN_CORE_DIR)
 vpath core_printf.cc              $(BASE_DIR)/src/base/console

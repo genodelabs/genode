@@ -11,7 +11,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
 #include <base/thread.h>
+
+/* base-internal includes */
+#include <base/internal/stack_allocator.h>
 
 
 Genode::Thread_base *Genode::Thread_base::myself()
@@ -19,16 +23,16 @@ Genode::Thread_base *Genode::Thread_base::myself()
 	int dummy = 0; /* used for determining the stack pointer */
 
 	/*
-	 * If the stack pointer is outside the thread-context area, we assume that
+	 * If the stack pointer is outside the stack area, we assume that
 	 * we are the main thread because this condition can never met by any other
 	 * thread.
 	 */
 	addr_t sp = (addr_t)(&dummy);
-	if (sp <  Native_config::context_area_virtual_base() ||
-	    sp >= Native_config::context_area_virtual_base() +
-	          Native_config::context_area_virtual_size())
+	if (sp <  Native_config::stack_area_virtual_base() ||
+	    sp >= Native_config::stack_area_virtual_base() +
+	          Native_config::stack_area_virtual_size())
 		return 0;
 
-	addr_t base = Context_allocator::addr_to_base(&dummy);
-	return Context_allocator::base_to_context(base)->thread_base;
+	addr_t base = Stack_allocator::addr_to_base(&dummy);
+	return &Stack_allocator::base_to_stack(base)->thread();
 }

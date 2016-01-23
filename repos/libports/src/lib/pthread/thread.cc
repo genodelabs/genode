@@ -140,7 +140,7 @@ extern "C" {
 		 */
 
 		if (!_pthread_main_np()) {
-			char name[Thread_base::Context::NAME_LEN];
+			char name[64];
 			myself->name(name, sizeof(name));
 
 			PERR("pthread_self() called from alien thread named '%s'", name);

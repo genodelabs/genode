@@ -15,6 +15,9 @@
 #include <base/thread.h>
 #include <base/sleep.h>
 
+/* base-internal includes */
+#include <base/internal/stack.h>
+
 /* core includes */
 #include <platform.h>
 #include <core_env.h>
@@ -35,7 +38,7 @@ void Thread_base::start()
 {
 	/* create and start platform thread */
 	_tid.pt = new(platform()->core_mem_alloc())
-		Platform_thread(0, _context->name);
+		Platform_thread(0, _stack->name().string());
 
 	platform_specific()->core_pd()->bind_thread(_tid.pt);
 

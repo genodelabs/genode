@@ -13,7 +13,7 @@ LD_OPT      += -Bsymbolic-functions --version-script=$(DIR)/symbol.map
 ifneq ($(filter linux, $(SPECS)),)
 
 ENTRY_POINT = _start_initial_stack
-LD_OPT     += -T$(call select_from_repositories,src/ld/context_area.nostdlib.ld) \
+LD_OPT     += -T$(call select_from_repositories,src/ld/stack_area.nostdlib.ld) \
 
 ifneq ($(filter x86_32, $(SPECS)),)
 LD_OPT     += -T$(DIR)/linux-32.ld

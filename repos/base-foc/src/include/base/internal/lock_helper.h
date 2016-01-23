@@ -48,7 +48,7 @@ static inline void thread_yield() { Fiasco::l4_thread_yield(); }
 static inline bool thread_check_stopped_and_restart(Genode::Thread_base *thread_base)
 {
 	Genode::Native_thread_id tid = thread_base ?
-	                               thread_base->tid() :
+	                               thread_base->tid().kcap :
 	                               Fiasco::MAIN_THREAD_CAP;
 	Genode::Native_thread_id irq = tid + Fiasco::THREAD_IRQ_CAP;
 	Fiasco::l4_irq_trigger(irq);
@@ -62,7 +62,7 @@ static inline bool thread_check_stopped_and_restart(Genode::Thread_base *thread_
 static inline void thread_switch_to(Genode::Thread_base *thread_base)
 {
 	Genode::Native_thread_id tid = thread_base ?
-	                               thread_base->tid() :
+	                               thread_base->tid().kcap :
 	                               Fiasco::MAIN_THREAD_CAP;
 	Fiasco::l4_thread_switch(tid);
 }
@@ -82,7 +82,7 @@ static void thread_stop_myself()
 
 	Genode::Thread_base *myself = Genode::Thread_base::myself();
 	Genode::Native_thread_id tid = myself ?
-	                               myself->tid() :
+	                               myself->tid().kcap :
 	                               Fiasco::MAIN_THREAD_CAP;
 	Genode::Native_thread_id irq = tid + THREAD_IRQ_CAP;
 	l4_irq_receive(irq, L4_IPC_NEVER);

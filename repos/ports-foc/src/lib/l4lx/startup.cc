@@ -127,9 +127,9 @@ static void register_reserved_areas()
 
 	size_t bin_sz = (addr_t)&_prog_img_end - (addr_t)&_prog_img_beg;
 	L4lx::Env::env()->rm()->reserve_range((addr_t)&_prog_img_beg, bin_sz, "Binary");
-	L4lx::Env::env()->rm()->reserve_range(Native_config::context_area_virtual_base(),
-	                                      Native_config::context_area_virtual_size(),
-	                                      "Thread Context Area");
+	L4lx::Env::env()->rm()->reserve_range(Native_config::stack_area_virtual_base(),
+	                                      Native_config::stack_area_virtual_size(),
+	                                      "Stack Area");
 }
 
 

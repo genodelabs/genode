@@ -82,9 +82,29 @@ namespace Fiasco {
 namespace Genode {
 
 	typedef Fiasco::l4_cap_idx_t Native_thread_id;
-	typedef Fiasco::l4_cap_idx_t Native_thread;
+
+
+	struct Native_thread
+	{
+		Fiasco::l4_cap_idx_t kcap = 0;
+
+		Native_thread() { }
+		explicit Native_thread(Fiasco::l4_cap_idx_t kcap) : kcap(kcap) { }
+	};
+
+
 	typedef Fiasco::l4_cap_idx_t Native_task;
-	typedef Fiasco::l4_utcb_t*   Native_utcb;
+
+
+	struct Native_utcb
+	{
+		/*
+		 * The 'Native_utcb' is located within the stack slot of the thread.
+		 * We merely use it for remembering a pointer to the real UTCB, which
+		 * resides somewhere in the kernel's address space.
+		 */
+		Fiasco::l4_utcb_t *foc_utcb = nullptr;
+	};
 
 
 	/**

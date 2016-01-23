@@ -2,50 +2,10 @@
  * \brief  Thread interface
  * \author Norman Feske
  * \date   2006-04-28
- *
- * For storing thread-specific data (called thread context) such as the stack
- * and thread-local data, there is a dedicated portion of the virtual address
- * space. This portion is called thread-context area. Within the thread-context
- * area, each thread has a fixed-sized slot, a thread context. The layout of
- * each thread context looks as follows
- *
- * ; lower address
- * ;   ...
- * ;   ============================ <- aligned at the virtual context size
- * ;
- * ;             empty
- * ;
- * ;   ----------------------------
- * ;
- * ;             stack
- * ;             (top)              <- initial stack pointer
- * ;   ---------------------------- <- address of 'Context' object
- * ;    additional context members
- * ;   ----------------------------
- * ;              UTCB
- * ;   ============================ <- aligned at the virtual context size
- * ;   ...
- * ; higher address
- *
- * On some platforms, a user-level thread-control block (UTCB) area contains
- * data shared between the user-level thread and the kernel. It is typically
- * used for transferring IPC message payload or for system-call arguments.
- * The additional context members are a reference to the corresponding
- * 'Thread_base' object and the name of the thread.
- *
- * The thread context is a virtual memory area, initially not backed by real
- * memory. When a new thread is created, an empty thread context gets assigned
- * to the new thread and populated with memory pages for the stack and the
- * additional context members. Note that this memory is allocated from the RAM
- * session of the process environment and not accounted for when using the
- * 'sizeof()' operand on a 'Thread_base' object.
- *
- * A thread may be associated with more than one stack. Additional secondary
- * stacks can be associated with a thread, and used for user level scheduling.
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2006-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -70,6 +30,7 @@ namespace Genode {
 
 	class Rm_session;
 	class Thread_base;
+	class Stack;
 	template <unsigned> class Thread;
 }
 
@@ -84,174 +45,24 @@ class Genode::Thread_base
 {
 	public:
 
-		class Context_alloc_failed : public Exception { };
-		class Stack_too_large      : public Exception { };
-		class Stack_alloc_failed   : public Exception { };
-
-		/**
-		 * Thread context located within the thread-context area
-		 *
-		 * The end of a thread context is placed virtual size aligned.
-		 */
-		struct Context
-		{
-			private:
-
-				/**
-				 * Top of the stack is accessible via stack_top()
-				 *
-				 * Context provides the first word of the stack to prevent the
-				 * overlapping of stack top and the 'stack_base' member.
-				 */
-				addr_t _stack[1];
-
-			public:
-
-			/**
-			 * Top of stack
-			 *
-			 * The alignment constrains are enforced by the CPU-specific ABI.
-			 */
-			addr_t stack_top() const { return Abi::stack_align((addr_t)_stack); }
-
-			/**
-			 * Ensure that the stack has a given size at the minimum
-			 *
-			 * \param size  minimum stack size
-			 *
-			 * \throw Stack_too_large
-			 * \throw Stack_alloc_failed
-			 */
-			void stack_size(size_t const size);
-
-			/**
-			 * Virtual address of the start of the stack
-			 *
-			 * This address is pointing to the begin of the dataspace used
-			 * for backing the thread context except for the UTCB (which is
-			 * managed by the kernel).
-			 */
-			addr_t stack_base;
-
-			/**
-			 * Pointer to corresponding 'Thread_base' object
-			 */
-			Thread_base *thread_base;
-
-			/**
-			 * Dataspace containing the backing store for the thread context
-			 *
-			 * We keep the dataspace capability to be able to release the
-			 * backing store on thread destruction.
-			 */
-			Ram_dataspace_capability ds_cap;
-
-			/**
-			 * Maximum length of thread name, including null-termination
-			 */
-			enum { NAME_LEN = 64 };
-
-			/**
-			 * Thread name, used for debugging
-			 */
-			char name[NAME_LEN];
-
-			/*
-			 * <- end of regular memory area
-			 *
-			 * The following part of the thread context is backed by
-			 * kernel-managed memory. No member variables are allowed
-			 * beyond this point.
-			 */
-
-			/**
-			 * Kernel-specific user-level thread control block
-			 */
-			Native_utcb utcb;
-		};
+		class Out_of_stack_space : public Exception { };
+		class Stack_too_large    : public Exception { };
+		class Stack_alloc_failed : public Exception { };
 
 	private:
 
 		/**
-		 * Manage the allocation of thread contexts
-		 *
-		 * There exists only one instance of this class per process.
-		 */
-		class Context_allocator
-		{
-			private:
-
-				static constexpr size_t MAX_THREADS =
-					Native_config::context_area_virtual_size() /
-					Native_config::context_virtual_size();
-
-				struct Context_bit_allocator : Bit_allocator<MAX_THREADS>
-				{
-					Context_bit_allocator()
-					{
-						/* the first index is used by main thread */
-						_reserve(0, 1);
-					}
-				} _alloc;
-
-				Lock _threads_lock;
-
-			public:
-
-				/**
-				 * Allocate thread context for specified thread
-				 *
-				 * \param thread       thread for which to allocate the new context
-				 * \param main_thread  wether to alloc for the main thread
-				 *
-				 * \return  virtual address of new thread context, or
-				 *          0 if the allocation failed
-				 */
-				Context *alloc(Thread_base *thread, bool main_thread);
-
-				/**
-				 * Release thread context
-				 */
-				void free(Context *thread);
-
-				/**
-				 * Return 'Context' object for a given base address
-				 */
-				static Context *base_to_context(addr_t base);
-
-				/**
-				 * Return base address of context containing the specified address
-				 */
-				static addr_t addr_to_base(void *addr);
-
-				/**
-				 * Return index in context area for a given base address
-				 */
-				static size_t base_to_idx(addr_t base);
-
-				/**
-				 * Return base address of context given index in context area
-				 */
-				static addr_t idx_to_base(size_t idx);
-		};
-
-		/**
-		 * Return thread-context allocator
-		 */
-		static Context_allocator *_context_allocator();
-
-		/**
-		 * Allocate and locally attach a new thread context
+		 * Allocate and locally attach a new stack
 		 *
 		 * \param stack_size   size of this threads stack
 		 * \param main_thread  wether this is the main thread
 		 */
-		Context *_alloc_context(size_t stack_size, bool main_thread);
+		Stack *_alloc_stack(size_t stack_size, char const *name, bool main_thread);
 
 		/**
-		 * Detach and release thread context of the thread
+		 * Detach and release stack of the thread
 		 */
-		void _free_context(Context *context);
+		void _free_stack(Stack *stack);
 
 		/**
 		 * Platform-specific thread-startup code
@@ -297,9 +108,9 @@ class Genode::Thread_base
 		Trace::Control *_trace_control;
 
 		/**
-		 * Pointer to primary thread context
+		 * Pointer to primary stack
 		 */
-		Context *_context;
+		Stack *_stack;
 
 		/**
 		 * Physical thread ID
@@ -345,10 +156,10 @@ class Genode::Thread_base
 		 *
 		 * \noapi
 		 *
-		 * FIXME: With type = Forked_main_thread the whole
-		 *        Context::_alloc_context call gets skipped but we should
-		 *        at least set Context::ds_cap in a way that it references
-		 *        the dataspace of the already attached stack.
+		 * FIXME: With type = Forked_main_thread the stack allocation
+		 *        gets skipped but we should at least set Stack::ds_cap in a
+		 *        way that it references the dataspace of the already attached
+		 *        stack.
 		 */
 		Thread_base(size_t weight, const char *name, size_t stack_size,
 		            Type type);
@@ -362,12 +173,12 @@ class Genode::Thread_base
 		 *
 		 * \throw Stack_too_large
 		 * \throw Stack_alloc_failed
-		 * \throw Context_alloc_failed
+		 * \throw Out_of_stack_space
 		 *
 		 * The stack for the new thread will be allocated from the RAM session
-		 * of the process environment. A small portion of the stack size is
-		 * internally used by the framework for storing thread-context
-		 * information such as the thread's name ('Context').
+		 * of the component environment. A small portion of the stack size is
+		 * internally used by the framework for storing thread-specific
+		 * information such as the thread's name.
 		 */
 		Thread_base(size_t weight, const char *name, size_t stack_size)
 		: Thread_base(weight, name, stack_size, NORMAL) { }
@@ -389,7 +200,7 @@ class Genode::Thread_base
 		 *
 		 * \throw Stack_too_large
 		 * \throw Stack_alloc_failed
-		 * \throw Context_alloc_failed
+		 * \throw Out_of_stack_space
 		 */
 		Thread_base(size_t weight, const char *name, size_t stack_size,
 		            Type type, Cpu_session *);
@@ -422,13 +233,12 @@ class Genode::Thread_base
 		 *
 		 * \throw Stack_too_large
 		 * \throw Stack_alloc_failed
-		 * \throw Context_alloc_failed
+		 * \throw Out_of_stack_space
 		 *
 		 * The stack for the new thread will be allocated from the RAM
-		 * session of the process environment. A small portion of the
+		 * session of the component environment. A small portion of the
 		 * stack size is internally used by the framework for storing
-		 * thread-context information such as the thread's name (see
-		 * 'struct Context').
+		 * thread-specific information such as the thread's name.
 		 *
 		 * \return  pointer to the new stack's top
 		 */
@@ -461,14 +271,14 @@ class Genode::Thread_base
 		 *
 		 * \return  pointer just after first stack element
 		 */
-		void *stack_top() const { return (void *)_context->stack_top(); }
+		void *stack_top() const;
 
 		/**
 		 * Return base of stack
 		 *
 		 * \return  pointer to last stack element
 		 */
-		void *stack_base() { return (void*)_context->stack_base; }
+		void *stack_base() const;
 
 		/**
 		 * Return 'Thread_base' object corresponding to the calling thread
@@ -482,10 +292,10 @@ class Genode::Thread_base
 		 *
 		 * \param size  minimum stack size
 		 *
-		 * \throw Context::Stack_too_large
-		 * \throw Context::Stack_alloc_failed
+		 * \throw Stack_too_large
+		 * \throw Stack_alloc_failed
 		 */
-		void stack_size(size_t const size) { _context->stack_size(size); }
+		void stack_size(size_t const size);
 
 		/**
 		 * Return user-level thread control block

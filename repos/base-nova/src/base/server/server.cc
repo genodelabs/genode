@@ -18,6 +18,9 @@
 #include <base/rpc_server.h>
 #include <base/env.h>
 
+/* base-internal includes */
+#include <base/internal/stack.h>
+
 /* NOVA includes */
 #include <nova/syscalls.h>
 #include <nova/util.h>
@@ -213,7 +216,7 @@ Rpc_entrypoint::Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
 		throw Cpu_session::Thread_creation_failed();
 
 	/* prepare portal receive window of new thread */
-	if (!_rcv_buf.prepare_rcv_window((Nova::Utcb *)&_context->utcb))
+	if (!_rcv_buf.prepare_rcv_window((Nova::Utcb *)&_stack->utcb()))
 		throw Cpu_session::Thread_creation_failed();
 
 	if (start_on_construction)

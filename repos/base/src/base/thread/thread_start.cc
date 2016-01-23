@@ -17,6 +17,9 @@
 #include <base/sleep.h>
 #include <base/env.h>
 
+/* base-internal includes */
+#include <base/internal/stack.h>
+
 using namespace Genode;
 
 
@@ -55,7 +58,7 @@ void Thread_base::start()
 	char buf[48];
 	name(buf, sizeof(buf));
 	enum { WEIGHT = Cpu_session::DEFAULT_WEIGHT };
-	addr_t const utcb = (addr_t)&_context->utcb;
+	addr_t const utcb = (addr_t)&_stack->utcb();
 	_thread_cap = _cpu_session->create_thread(WEIGHT, buf, utcb);
 	if (!_thread_cap.valid())
 		throw Cpu_session::Thread_creation_failed();
@@ -72,7 +75,7 @@ void Thread_base::start()
 	_cpu_session->set_pager(_thread_cap, pager_cap);
 
 	/* register initial IP and SP at core */
-	_cpu_session->start(_thread_cap, (addr_t)_thread_start, _context->stack_top());
+	_cpu_session->start(_thread_cap, (addr_t)_thread_start, _stack->top());
 }
 
 

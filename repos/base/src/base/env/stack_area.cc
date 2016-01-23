@@ -1,5 +1,5 @@
 /*
- * \brief  Process-local thread-context area
+ * \brief  Component-local stack area
  * \author Norman Feske
  * \date   2010-01-19
  */
@@ -36,13 +36,13 @@ struct Expanding_rm_connection : Connection<Rm_session>, Expanding_rm_session_cl
 };
 
 
-struct Context_area_rm_session : Expanding_rm_connection
+struct Stack_area_rm_session : Expanding_rm_connection
 {
-	Context_area_rm_session()
-	: Expanding_rm_connection(0, Native_config::context_area_virtual_size())
+	Stack_area_rm_session()
+	: Expanding_rm_connection(0, Native_config::stack_area_virtual_size())
 	{
-		addr_t local_base = Native_config::context_area_virtual_base();
-		size_t size       = Native_config::context_area_virtual_size();
+		addr_t local_base = Native_config::stack_area_virtual_base();
+		size_t size       = Native_config::stack_area_virtual_size();
 
 		env()->rm_session()->attach_at(dataspace(), local_base, size);
 	}
@@ -51,13 +51,13 @@ struct Context_area_rm_session : Expanding_rm_connection
 
 namespace Genode {
 
-	Rm_session *env_context_area_rm_session()
+	Rm_session *env_stack_area_rm_session()
 	{
-		static Context_area_rm_session inst;
+		static Stack_area_rm_session inst;
 		return &inst;
 	}
 
-	Ram_session *env_context_area_ram_session()
+	Ram_session *env_stack_area_ram_session()
 	{
 		return env()->ram_session();
 	}

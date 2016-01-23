@@ -1,5 +1,5 @@
 /*
- * \brief  Linux-specific utilities for context area
+ * \brief  Linux-specific utilities for stack area
  * \author Christian Helmuth
  * \date   2013-09-26
  */
@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__BASE__INTERNAL__CONTEXT_AREA_H_
-#define _INCLUDE__BASE__INTERNAL__CONTEXT_AREA_H_
+#ifndef _INCLUDE__BASE__INTERNAL__STACK_AREA_H_
+#define _INCLUDE__BASE__INTERNAL__STACK_AREA_H_
 
 /* Genode includes */
 #include <base/thread.h>
@@ -24,12 +24,12 @@
 #include <sys/mman.h>
 
 
-static inline void flush_context_area()
+static inline void flush_stack_area()
 {
 	using namespace Genode;
 
-	void * const base = (void *) Native_config::context_area_virtual_base();
-	size_t const size = Native_config::context_area_virtual_size();
+	void * const base = (void *) Native_config::stack_area_virtual_base();
+	size_t const size = Native_config::stack_area_virtual_size();
 
 	int ret;
 	if ((ret = lx_munmap(base, size)) < 0) {
@@ -39,14 +39,14 @@ static inline void flush_context_area()
 }
 
 
-static inline Genode::addr_t reserve_context_area()
+static inline Genode::addr_t reserve_stack_area()
 {
 	using namespace Genode;
 
 	int const flags       = MAP_ANONYMOUS | MAP_PRIVATE;
 	int const prot        = PROT_NONE;
-	size_t const size     = Native_config::context_area_virtual_size();
-	void * const addr_in  = (void *)Native_config::context_area_virtual_base();
+	size_t const size     = Native_config::stack_area_virtual_size();
+	void * const addr_in  = (void *)Native_config::stack_area_virtual_base();
 	void * const addr_out = lx_mmap(addr_in, size, prot, flags, -1, 0);
 
 	/* reserve at local address failed - unmap incorrect mapping */
@@ -61,4 +61,4 @@ static inline Genode::addr_t reserve_context_area()
 	return (addr_t) addr_out;
 }
 
-#endif /* _INCLUDE__BASE__INTERNAL__CONTEXT_AREA_H_ */
+#endif /* _INCLUDE__BASE__INTERNAL__STACK_AREA_H_ */

@@ -22,9 +22,9 @@
 using namespace Genode;
 
 
-/*********************+********************
- ** Thread-context allocator concurrency **
- ******************************************/
+/*********************************
+ ** Stack-allocator concurrency **
+ *********************************/
 
 template <int CHILDREN>
 struct Helper : Thread<0x2000>
@@ -33,25 +33,25 @@ struct Helper : Thread<0x2000>
 
 	Helper() : Thread<0x2000>("helper") { }
 
-	void *context() const { return _context; }
+	void *stack() const { return _stack; }
 
 	void entry()
 	{
 		Helper helper[CHILDREN];
 
 		for (unsigned i = 0; i < CHILDREN; ++i)
-			child[i] = helper[i].context();
+			child[i] = helper[i].stack();
 	}
 };
 
 
-static void test_context_alloc()
+static void test_stack_alloc()
 {
 	printf("running '%s'\n", __func__);
 
 	/*
 	 * Create HELPER threads, which concurrently create CHILDREN threads each.
-	 * This most likely triggers any race in the thread-context allocation.
+	 * This most likely triggers any race in the stack allocation.
 	 */
 	enum { HELPER = 10, CHILDREN = 9 };
 
@@ -135,16 +135,19 @@ static void test_main_thread()
 	if (!myself) { throw -1; }
 	printf("thread base          %p\n", myself);
 
-	/* check wether my stack is inside the first context region */
-	addr_t const context_base = Native_config::context_area_virtual_base();
-	addr_t const context_size = Native_config::context_area_virtual_size();
-	addr_t const context_top  = context_base + context_size;
+	/* check whether my stack is inside the first stack region */
+	addr_t const stack_slot_base = Native_config::stack_area_virtual_base();
+	addr_t const stack_slot_size = Native_config::stack_area_virtual_size();
+	addr_t const stack_slot_top  = stack_slot_base + stack_slot_size;
+
 	addr_t const stack_top  = (addr_t)myself->stack_top();
 	addr_t const stack_base = (addr_t)myself->stack_base();
-	if (stack_top  <= context_base) { throw -2; }
-	if (stack_top  >  context_top)  { throw -3; }
-	if (stack_base >= context_top)  { throw -4; }
-	if (stack_base <  context_base) { throw -5; }
+
+	if (stack_top  <= stack_slot_base) { throw -2; }
+	if (stack_top  >  stack_slot_top)  { throw -3; }
+	if (stack_base >= stack_slot_top)  { throw -4; }
+	if (stack_base <  stack_slot_base) { throw -5; }
+
 	printf("thread stack top     %p\n", myself->stack_top());
 	printf("thread stack bottom  %p\n", myself->stack_base());
 
@@ -168,7 +171,10 @@ struct Cpu_helper : Thread<0x2000>
 
 	void entry()
 	{
-		printf("%s : _cpu_session=0x%p env()->cpu_session()=0x%p\n", _context->name, _cpu_session, env()->cpu_session());
+		char name[64];
+		Thread_base::name(name, sizeof(name));
+		printf("%s : _cpu_session=0x%p env()->cpu_session()=0x%p\n",
+		       name, _cpu_session, env()->cpu_session());
 	}
 };
 
@@ -265,8 +271,8 @@ static void test_create_as_many_threads()
 {
 	printf("running '%s'\n", __func__);
 
-	addr_t const max = Native_config::context_area_virtual_size() /
-	                   Native_config::context_virtual_size();
+	addr_t const max = Native_config::stack_area_virtual_size() /
+	                   Native_config::stack_virtual_size();
 
 	static Cpu_helper * threads[max];
 	static char thread_name[8];
@@ -281,8 +287,8 @@ static void test_create_as_many_threads()
 				threads[i]->join();
 			} catch (Cpu_session::Thread_creation_failed) {
 				throw "Thread_creation_failed";
-			} catch (Thread_base::Context_alloc_failed) {
-				throw "Context_alloc_failed";
+			} catch (Thread_base::Out_of_stack_space) {
+				throw "Out_of_stack_space";
 			}
 		}
 	} catch (const char * ex) {
@@ -295,7 +301,7 @@ static void test_create_as_many_threads()
 	}
 
 	/*
-	 * We have to get a context_alloc_failed message, because we can't create
+	 * We have to get a Out_of_stack_space message, because we can't create
 	 * up to max threads, because already the main thread is running ...
 	 */
 	throw -21;
@@ -306,7 +312,7 @@ int main()
 	printf("--- thread test started ---\n");
 
 	try {
-		test_context_alloc();
+		test_stack_alloc();
 		test_stack_alignment();
 		test_main_thread();
 		test_cpu_session();

@@ -28,7 +28,7 @@ namespace Genode
 {
 	extern bool inhibit_tracing;
 
-	Rm_session * env_context_area_rm_session();
+	Rm_session * env_stack_area_rm_session();
 }
 
 
@@ -83,12 +83,12 @@ void Genode::Platform_env::reinit(Native_capability::Dst dst,
 
 void
 Genode::Platform_env::
-reinit_main_thread(Rm_session_capability & context_area_rm)
+reinit_main_thread(Rm_session_capability & stack_area_rm)
 {
-	/* reinitialize context area RM session */
-	Rm_session * const rms = env_context_area_rm_session();
+	/* reinitialize stack area RM session */
+	Rm_session * const rms = env_stack_area_rm_session();
 	Rm_session_client * const rmc = dynamic_cast<Rm_session_client *>(rms);
-	construct_at<Rm_session_client>(rmc, context_area_rm);
+	construct_at<Rm_session_client>(rmc, stack_area_rm);
 
 	/* reinitialize main-thread object */
 	::reinit_main_thread();

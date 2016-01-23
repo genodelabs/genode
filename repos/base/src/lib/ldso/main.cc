@@ -572,9 +572,9 @@ int main()
 	/* print loaded object information */
 	try {
 		if (Genode::config()->xml_node().attribute("ld_verbose").has_value("yes")) {
-			PINF("  %lx .. %lx: context area", Genode::Native_config::context_area_virtual_base(),
-			     Genode::Native_config::context_area_virtual_base() +
-			     Genode::Native_config::context_area_virtual_size() - 1);
+			PINF("  %lx .. %lx: stack area", Genode::Native_config::stack_area_virtual_base(),
+			     Genode::Native_config::stack_area_virtual_base() +
+			     Genode::Native_config::stack_area_virtual_size() - 1);
 			dump_loaded();
 		}
 	} catch (...) {  }

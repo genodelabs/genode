@@ -53,7 +53,7 @@ class Genode::Interrupt_handler : public Thread<2048*sizeof(long)>
 
 		void entry();
 
-		static Native_thread handler_cap()
+		static Fiasco::l4_cap_idx_t handler_cap()
 		{
 			static Interrupt_handler handler;
 			return handler._thread_cap.dst();

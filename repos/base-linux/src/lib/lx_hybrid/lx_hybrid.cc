@@ -20,9 +20,9 @@
 extern "C" int raw_write_str(const char *str);
 
 /**
- * Define context area
+ * Define stack area
  */
-Genode::addr_t _context_area_start;
+Genode::addr_t _stack_area_start;
 
 
 enum { verbose_atexit = false };
@@ -137,7 +137,7 @@ namespace Genode {
 	struct Thread_meta_data
 	{
 		/**
-		 * Filled out by 'thread_start' function in the context of the new
+		 * Filled out by 'thread_start' function in the stack of the new
 		 * thread
 		 */
 		Thread_base * const thread_base;
@@ -419,7 +419,7 @@ Thread_base::Thread_base(size_t weight, const char *name, size_t stack_size,
 		PERR("pthread_create failed (returned %d, errno=%d)",
 		     ret, errno);
 		destroy(env()->heap(), _tid.meta_data);
-		throw Context_alloc_failed();
+		throw Out_of_stack_space();
 	}
 
 	_tid.meta_data->wait_for_construction();

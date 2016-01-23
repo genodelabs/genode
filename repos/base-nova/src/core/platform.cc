@@ -126,13 +126,13 @@ static void page_fault_handler()
 	       pf_type & Ipc_pager::ERR_W ? "W" : "w",
 	       pf_type & Ipc_pager::ERR_P ? "P" : "p");
 
-	if ((Native_config::context_area_virtual_base() <= pf_sp) &&
-		(pf_sp < Native_config::context_area_virtual_base() +
-		         Native_config::context_area_virtual_size()))
+	if ((Native_config::stack_area_virtual_base() <= pf_sp) &&
+		(pf_sp < Native_config::stack_area_virtual_base() +
+		         Native_config::stack_area_virtual_size()))
 	{
-		addr_t utcb_addr_f  = pf_sp / Native_config::context_virtual_size();
-		utcb_addr_f        *= Native_config::context_virtual_size();
-		utcb_addr_f        += Native_config::context_virtual_size();
+		addr_t utcb_addr_f  = pf_sp / Native_config::stack_virtual_size();
+		utcb_addr_f        *= Native_config::stack_virtual_size();
+		utcb_addr_f        += Native_config::stack_virtual_size();
 		utcb_addr_f        -= 4096;
 
 		Nova::Utcb * utcb_fault = reinterpret_cast<Nova::Utcb *>(utcb_addr_f);
@@ -397,9 +397,9 @@ Platform::Platform() :
 	/* preserve Bios Data Area (BDA) in core's virtual address space */
 	region_alloc()->remove_range(BDA_VIRT_ADDR, 0x1000);
 
-	/* preserve context area in core's virtual address space */
-	region_alloc()->remove_range(Native_config::context_area_virtual_base(),
-	                             Native_config::context_area_virtual_size());
+	/* preserve stack area in core's virtual address space */
+	region_alloc()->remove_range(Native_config::stack_area_virtual_base(),
+	                             Native_config::stack_area_virtual_size());
 
 	/* exclude utcb of core pager thread + empty guard pages before and after */
 	region_alloc()->remove_range(CORE_PAGER_UTCB_ADDR - get_page_size(),
@@ -420,14 +420,14 @@ Platform::Platform() :
 	};
 
 	for (unsigned i = 0; i < sizeof(check) / sizeof(check[0]); i++) { 
-		if (Native_config::context_area_virtual_base() <= check[i] &&
-			check[i] < Native_config::context_area_virtual_base() +
-			Native_config::context_area_virtual_size())
+		if (Native_config::stack_area_virtual_base() <= check[i] &&
+			check[i] < Native_config::stack_area_virtual_base() +
+			Native_config::stack_area_virtual_size())
 		{
 			PERR("overlapping area - [%lx, %lx) vs %lx",
-			     Native_config::context_area_virtual_base(),
-			     Native_config::context_area_virtual_base() +
-			     Native_config::context_area_virtual_size(), check[i]);
+			     Native_config::stack_area_virtual_base(),
+			     Native_config::stack_area_virtual_base() +
+			     Native_config::stack_area_virtual_size(), check[i]);
 			nova_die();
 		}
 	}

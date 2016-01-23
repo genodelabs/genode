@@ -1,5 +1,5 @@
 /*
- * \brief  Thread-context specific part of the thread library
+ * \brief  Stack-specific part of the thread library
  * \author Norman Feske
  * \author Alexander Boettcher
  * \author Martin Stein
@@ -21,6 +21,9 @@
 #include <base/env.h>
 #include <base/thread.h>
 
+/* base-internal includes */
+#include <base/internal/stack.h>
+
 /* base-nova includes */
 #include <base/cap_map.h>
 
@@ -37,8 +40,8 @@ Native_utcb * main_thread_utcb()
 {
 	using namespace Genode;
 	return reinterpret_cast<Native_utcb *>(
-	       Native_config::context_area_virtual_base() +
-	       Native_config::context_virtual_size() - Nova::PAGE_SIZE_BYTE);
+	       Native_config::stack_area_virtual_base() +
+	       Native_config::stack_virtual_size() - Nova::PAGE_SIZE_BYTE);
 }
 
 
@@ -119,5 +122,5 @@ Native_utcb *Thread_base::utcb()
 	 */
 	if (this == 0) return main_thread_utcb();
 
-	return &_context->utcb;
+	return &_stack->utcb();
 }

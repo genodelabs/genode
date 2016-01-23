@@ -8,7 +8,7 @@
  * dataspaces and 2) get the kernel to manage VM regions as we intent.
  *
  * The kernel sets up mappings for the binary on execve(), which are text and
- * data segments, the context area and special regions (stack, vdso, vsyscall).
+ * data segments, the stack area and special regions (stack, vdso, vsyscall).
  * Later mappings are done by the Genode program itself, which knows nothing
  * about these initial mappings. Therefore, most mmap() operations are _soft_
  * to detect region conflicts with existing mappings or let the kernel find
@@ -17,10 +17,10 @@
  * but not populated dataspaces are "holes" in the Linux VM space represented
  * by PROT_NONE mappings (see _reserve_local()).
  *
- * The context area is a managed dataspace as on other platforms, which is
+ * The stack area is a managed dataspace as on other platforms, which is
  * created and attached during program launch. The managed dataspace replaces
  * the inital reserved area, which is therefore flushed beforehand. Hybrid
- * programs have no context area.
+ * programs have no stack area.
  *
  * Note, we do not support nesting of managed dataspaces.
  */
@@ -40,7 +40,7 @@
 /* base-internal includes */
 #include <base/internal/local_capability.h>
 #include <base/internal/platform_env.h>
-#include <base/internal/context_area.h>
+#include <base/internal/stack_area.h>
 
 using namespace Genode;
 
@@ -58,13 +58,13 @@ addr_t Platform_env_base::Rm_session_mmap::_reserve_local(bool           use_loc
                                                           addr_t         local_addr,
                                                           Genode::size_t size)
 {
-	/* special handling for context area */
+	/* special handling for stack area */
 	if (use_local_addr
-	 && local_addr == Native_config::context_area_virtual_base()
-	 && size       == Native_config::context_area_virtual_size()) {
+	 && local_addr == Native_config::stack_area_virtual_base()
+	 && size       == Native_config::stack_area_virtual_size()) {
 
 		/*
-		 * On the first request to reserve the context area, we flush the
+		 * On the first request to reserve the stack area, we flush the
 		 * initial mapping preserved in linker script and apply the actual
 		 * reservation. Subsequent requests are just ignored.
 		 */
@@ -73,8 +73,8 @@ addr_t Platform_env_base::Rm_session_mmap::_reserve_local(bool           use_loc
 		{
 			Context()
 			{
-				flush_context_area();
-				reserve_context_area();
+				flush_stack_area();
+				reserve_stack_area();
 			}
 		} inst;
 

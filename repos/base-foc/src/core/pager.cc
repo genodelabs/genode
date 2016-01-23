@@ -69,7 +69,7 @@ void Pager_entrypoint::entry()
 						PDBG("Could not resolve pf=%p ip=%p",
 						     (void*)_pager.fault_addr(), (void*)_pager.fault_ip());
 					} else {
-						_pager.set_reply_dst(obj->badge());
+						_pager.set_reply_dst(Native_thread(obj->badge()));
 						reply_pending = true;
 						return;
 					}
@@ -99,7 +99,7 @@ void Pager_entrypoint::entry()
 					}
 
 					/* send wake up message to requested thread */
-					_pager.set_reply_dst(obj->badge());
+					_pager.set_reply_dst(Native_thread(obj->badge()));
 					_pager.acknowledge_exception();
 					break;
 				}
@@ -121,7 +121,7 @@ void Pager_entrypoint::entry()
 					 * that case we unblock it immediately.
 					 */
 					if (!obj->state.paused) {
-						_pager.set_reply_dst(obj->badge());
+						_pager.set_reply_dst(Native_thread(obj->badge()));
 						reply_pending = true;
 					}
 					break;

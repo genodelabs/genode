@@ -19,6 +19,7 @@
 #include <kernel/log.h>
 #include <base/native_capability.h>
 #include <base/ipc_msgbuf.h>
+#include <base/printf.h>
 
 namespace Genode
 {
@@ -80,17 +81,17 @@ struct Genode::Native_region
 struct Genode::Native_config
 {
 	/**
-	 * Thread-context area configuration.
+	 * Stack area configuration
 	 */
-	static constexpr addr_t context_area_virtual_base() {
+	static constexpr addr_t stack_area_virtual_base() {
 		return 0xe0000000UL; }
-	static constexpr addr_t context_area_virtual_size() {
+	static constexpr addr_t stack_area_virtual_size() {
 		return 0x10000000UL; }
 
 	/**
-	 * Size of virtual address region holding the context of one thread
+	 * Size of virtual address region holding the stack of one thread
 	 */
-	static constexpr addr_t context_virtual_size() { return 0x00100000UL; }
+	static constexpr addr_t stack_virtual_size() { return 0x00100000UL; }
 };
 
 
@@ -105,8 +106,8 @@ class Genode::Native_utcb
 	private:
 
 		Kernel::capid_t _caps[MAX_CAP_ARGS]; /* capability buffer  */
-		size_t          _cap_cnt = 0;        /* capability counter */
-		size_t          _size    = 0;        /* bytes to transfer  */
+		size_t          _cap_cnt;            /* capability counter */
+		size_t          _size;               /* bytes to transfer  */
 		uint8_t         _buf[get_page_size() - sizeof(_caps) -
 		                     sizeof(_cap_cnt) - sizeof(_size)];
 
@@ -190,7 +191,7 @@ namespace Genode
 
 	/**
 	 * The main thread's UTCB, used during bootstrap of the main thread before it
-	 * allocates its context area, needs to be outside the virtual memory area
+	 * allocates its stack area, needs to be outside the virtual memory area
 	 * controlled by the RM session, because it is needed before the main
 	 * thread can access its RM session.
 	 */

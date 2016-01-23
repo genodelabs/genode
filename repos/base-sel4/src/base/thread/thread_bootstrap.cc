@@ -15,6 +15,9 @@
 #include <base/thread.h>
 #include <base/env.h>
 
+/* base-internal includes */
+#include <base/internal/stack.h>
+
 
 /*****************************
  ** Startup library support **
@@ -32,6 +35,6 @@ void prepare_reinit_main_thread() { prepare_init_main_thread(); }
 void Genode::Thread_base::_thread_bootstrap() 
 {
 	if (tid().ep_sel == 0) {
-		tid().ep_sel = _context->utcb.ep_sel;
+		tid().ep_sel = _stack->utcb().ep_sel;
 	}
 }

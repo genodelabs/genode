@@ -38,7 +38,7 @@ class Genode::Irq_object
 
 		Signal_context_capability _sig_cap;
 
-		Native_thread _capability() const { return _cap->kcap(); }
+		Fiasco::l4_cap_idx_t _capability() const { return _cap->kcap(); }
 
 	public:
 
