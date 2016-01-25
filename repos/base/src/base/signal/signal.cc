@@ -269,9 +269,13 @@ void Signal_receiver::dispatch_signals(Signal_source *signal_source)
 			continue;
 		}
 
-		/* construct and locally submit signal object */
-		Signal::Data signal(context, source_signal.num());
-		context->_receiver->local_submit(signal);
+		if (context->_receiver) {
+			/* construct and locally submit signal object */
+			Signal::Data signal(context, source_signal.num());
+			context->_receiver->local_submit(signal);
+		} else {
+			PWRN("signal context with no receiver");
+		}
 
 		/* free context lock that was taken by 'test_and_lock' */
 		context->_lock.unlock();
