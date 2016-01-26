@@ -9,11 +9,9 @@ The report-ROM server hands out ROM modules only if explicitly permitted by a
 configured policy. For example:
 
 ! <config>
-!   <rom>
-!     <policy label="decorator -> pointer" report="nitpicker -> pointer"/>
-!     <policy ...  />
-!     ...
-!   </rom>
+!   <policy label="decorator -> pointer" report="nitpicker -> pointer"/>
+!   <policy ...  />
+!   ...
 ! </config>
 
 The label of an incoming ROM session is matched against the 'label' attribute
