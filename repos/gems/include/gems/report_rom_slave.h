@@ -133,7 +133,7 @@ class Report_rom_slave : public Genode::Noncopyable
 			/*
 			 * Set session label
 			 */
-			Arg_string::set_arg(argbuf, sizeof(argbuf), "label", label);
+			Arg_string::set_arg_string(argbuf, sizeof(argbuf), "label", label);
 
 			Session_capability session_cap = _rom_root.session(argbuf, Affinity());
 
@@ -158,7 +158,7 @@ class Report_rom_slave : public Genode::Noncopyable
 			/*
 			 * Set session label
 			 */
-			Arg_string::set_arg(argbuf, sizeof(argbuf), "label", label);
+			Arg_string::set_arg_string(argbuf, sizeof(argbuf), "label", label);
 
 			Session_capability session_cap = _report_root.session(argbuf, Affinity());
 

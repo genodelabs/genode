@@ -123,7 +123,7 @@ class Test_child : public Genode::Child_policy
 		                         char *args, Genode::size_t args_len)
 		{
 			/* define session label for sessions forwarded to our parent */
-			Genode::Arg_string::set_arg(args, args_len, "label", "child");
+			Genode::Arg_string::set_arg_string(args, args_len, "label", "child");
 		}
 };
 
