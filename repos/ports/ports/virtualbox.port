@@ -30,7 +30,7 @@ VBOX_MAIN_ALL += VirtualBoxBase
 VBOX_MAIN_CLI := AdditionsFacilityImpl ConsoleImpl2 DisplayImpl HGCM HGCMThread
 VBOX_MAIN_CLI += HGCMObjects
 VBOX_MAIN_CLI += KeyboardImpl SessionImpl VMMDevInterface BusAssignmentManager
-VBOX_MAIN_CLI += ConsoleImpl GuestImpl MouseImpl USBDeviceImpl VBoxDriversRegister
+VBOX_MAIN_CLI += ConsoleImpl GuestImpl MouseImpl VBoxDriversRegister
 
 VBOX_MAIN_SRV := AudioAdapterImpl ClientToken DHCPServerImpl Matching
 VBOX_MAIN_SRV += MediumAttachmentImpl NATEngineImpl SerialPortImpl
@@ -41,7 +41,6 @@ VBOX_MAIN_SRV += NetworkServiceRunner StorageControllerImpl VirtualBoxImpl
 VBOX_MAIN_SRV += BIOSSettingsImpl MachineImpl MediumLock ParallelPortImpl
 VBOX_MAIN_SRV += SystemPropertiesImpl VRDEServerImpl TokenImpl
 VBOX_MAIN_SRV += USBControllerImpl USBDeviceFilterImpl USBDeviceFiltersImpl
-VBOX_MAIN_SRV += USBProxyService
 
 VBOX_MAIN_INC := AdditionsFacilityImpl AudioAdapterImpl AudioSnifferInterface
 VBOX_MAIN_INC += AutoCaller AutostartDb AutoStateDep BandwidthControlImpl
@@ -63,7 +62,6 @@ VBOX_MAIN_INC += USBProxyService VirtualBoxImpl VRDEServerImpl GuestProcessImpl
 VBOX_MAIN_INC += USBDeviceImpl HostUSBDeviceImpl Matching Wrapper
 
 VBOX_SRC_VBOX := VMM Devices Runtime GuestHost/HGSMI Storage Disassembler
-VBOX_SRC_VBOX += HostDrivers/VBoxUSB/USBFilter.cpp
 VBOX_SRC_VBOX += HostServices/SharedFolders Main/xml/Settings.cpp
 VBOX_SRC_VBOX += HostServices/SharedClipboard
 VBOX_SRC_VBOX += Main/xml/VirtualBox-settings.xsd Main/xml/SchemaDefs.xsl

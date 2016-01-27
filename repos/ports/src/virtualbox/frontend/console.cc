@@ -115,9 +115,8 @@ HRESULT Console::onCPUExecutionCapChange(ULONG aExecutionCap)                   
 HRESULT Console::onStorageControllerChange()                                    DUMMY(E_FAIL)
 HRESULT Console::onMediumChange(IMediumAttachment *aMediumAttachment, BOOL)     DUMMY(E_FAIL)
 HRESULT Console::onVRDEServerChange(BOOL aRestart)                              DUMMY(E_FAIL)
-
-void Console::onUSBDeviceStateChange(IUSBDevice *aDevice, bool aAttached,
-                                     IVirtualBoxErrorInfo *aError)              TRACE()
+HRESULT Console::onUSBDeviceAttach(IUSBDevice *, IVirtualBoxErrorInfo *, ULONG) DUMMY(E_FAIL)
+HRESULT Console::onUSBDeviceDetach(IN_BSTR aId, IVirtualBoxErrorInfo *aError)   DUMMY(E_FAIL)
 
 HRESULT Console::onShowWindow(BOOL aCheck, BOOL *aCanShow, LONG64 *aWinId)      DUMMY(E_FAIL)
 HRESULT Console::onNetworkAdapterChange(INetworkAdapter *, BOOL changeAdapter)  DUMMY(E_FAIL)
