@@ -28,7 +28,7 @@ namespace Launcher { struct Main; }
 
 struct Launcher::Main
 {
-	Server::Entrypoint _ep;
+	Server::Entrypoint &_ep;
 
 	Genode::Cap_connection _cap;
 

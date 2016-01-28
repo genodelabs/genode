@@ -38,7 +38,7 @@ namespace Wm {
 
 struct Wm::Main
 {
-	Server::Entrypoint ep;
+	Server::Entrypoint &ep;
 
 	Genode::Cap_connection cap;
 
