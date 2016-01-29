@@ -576,6 +576,13 @@ class Usb::Session_component : public Session_rpc_object,
 
 		~Session_component()
 		{
+			/* release claimed interfaces */
+			if (_device) {
+				unsigned const num = _device->udev->actconfig->desc.bNumInterfaces;
+				for (unsigned i = 0; i < num; i++)
+					release_interface(i);
+			}
+
 			_worker.stop();
 		}
 
