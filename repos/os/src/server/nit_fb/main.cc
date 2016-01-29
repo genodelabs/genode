@@ -113,6 +113,8 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 
 	Genode::Signal_context_capability _mode_sigh;
 
+	Genode::Signal_context_capability _sync_sigh;
+
 	View_updater &_view_updater;
 
 	Framebuffer::Mode::Format _format = _nitpicker.mode().format();
@@ -204,6 +206,14 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 
 	void sync_sigh(Genode::Signal_context_capability sigh) override
 	{
+		/*
+		 * Keep a component-local copy of the signal capability. Otherwise,
+		 * NOVA would revoke the capability from further recipients (in this
+		 * case the nitpicker instance we are using) once we revoke the
+		 * capability locally.
+		 */
+		_sync_sigh = sigh;
+
 		_nit_fb.sync_sigh(sigh);
 	}
 };
