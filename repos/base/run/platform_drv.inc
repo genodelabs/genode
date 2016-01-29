@@ -22,10 +22,11 @@ proc append_platform_drv_build_components {} {
 proc append_platform_drv_boot_modules {} {
 	global boot_modules
 
-	lappend_if [have_platform_drv] boot_modules platform_drv
-	lappend_if [have_spec acpi]    boot_modules acpi_drv
-	lappend_if [have_spec acpi]    boot_modules report_rom
-	lappend_if [have_spec nova]    boot_modules device_pd
+	lappend_if [have_platform_drv]        boot_modules platform_drv
+	lappend_if [have_spec acpi]           boot_modules acpi_drv
+	lappend_if [have_spec acpi]           boot_modules report_rom
+	lappend_if [have_spec nova]           boot_modules device_pd
+	lappend_if [have_spec hw_x86_64_muen] boot_modules acpi
 }
 
 proc platform_drv_policy {} {
@@ -121,7 +122,7 @@ proc append_platform_drv_config {} {
 			<any-service> <parent/> </any-service>
 		</route>}
 
-		if {[have_spec acpi] || [have_spec arm]} {
+		if {[have_spec acpi] || [have_spec arm] || [have_spec hw_x86_64_muen]} {
 
 		append config {
 		<config>}
