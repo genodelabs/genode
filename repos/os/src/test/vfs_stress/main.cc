@@ -510,7 +510,7 @@ int main()
 		elapsed_ms = timer.elapsed_ms();
 
 		for (size_t i = 0; i < thread_count; ++i) {
-			snprintf(path, 3, "/%lu", i);
+			snprintf(path, 3, "/%u", i);
 			vfs_root.mkdir(path, 0);
 			threads[i] = new (Genode::env()->heap())
 				Mkdir_thread(vfs_root, path, space.location_of_index(i));
@@ -524,7 +524,7 @@ int main()
 
 		vfs_root.sync("/");
 
-		PINF("created %d empty directories, %luμs/op , %luKB consumed",
+		PINF("created %d empty directories, %luμs/op , %uKB consumed",
 		     count, (elapsed_ms*1000)/count, env()->ram_session()->used()/1024);
 	}
 
@@ -539,7 +539,7 @@ int main()
 		elapsed_ms = timer.elapsed_ms();
 
 		for (size_t i = 0; i < thread_count; ++i) {
-			snprintf(path, 3, "/%lu", i);
+			snprintf(path, 3, "/%u", i);
 			threads[i] = new (Genode::env()->heap())
 				Populate_thread(vfs_root, path, space.location_of_index(i));
 		}
@@ -553,7 +553,7 @@ int main()
 
 		vfs_root.sync("/");
 
-		PINF("created %d empty files, %luμs/op, %luKB consumed",
+		PINF("created %d empty files, %luμs/op, %uKB consumed",
 		     count, (elapsed_ms*1000)/count, env()->ram_session()->used()/1024);
 	}
 
@@ -565,7 +565,7 @@ int main()
 	if (!config()->xml_node().attribute_value("write", true)) {
 		elapsed_ms = timer.elapsed_ms();
 
-		PINF("total: %lums, %luK consumed",
+		PINF("total: %lums, %uK consumed",
 		     elapsed_ms, env()->ram_session()->used()/1024);
 
 		return 0;
@@ -577,7 +577,7 @@ int main()
 		elapsed_ms = timer.elapsed_ms();
 
 		for (size_t i = 0; i < thread_count; ++i) {
-			snprintf(path, 3, "/%lu", i);
+			snprintf(path, 3, "/%u", i);
 			threads[i] = new (Genode::env()->heap())
 				Write_thread(vfs_root, path, space.location_of_index(i));
 		}
@@ -591,7 +591,7 @@ int main()
 
 		vfs_root.sync("/");
 
-		PINF("wrote %llu bytes %llukB/s, %luKB consumed",
+		PINF("wrote %llu bytes %llukB/s, %uKB consumed",
 		     count, count/elapsed_ms, env()->ram_session()->used()/1024);
 	}
 
@@ -603,7 +603,7 @@ int main()
 	if (!config()->xml_node().attribute_value("read", true)) {
 		elapsed_ms = timer.elapsed_ms();
 
-		PINF("total: %lums, %luKB consumed",
+		PINF("total: %lums, %uKB consumed",
 		     elapsed_ms, env()->ram_session()->used()/1024);
 
 		return 0;
@@ -615,7 +615,7 @@ int main()
 		elapsed_ms = timer.elapsed_ms();
 
 		for (size_t i = 0; i < thread_count; ++i) {
-			snprintf(path, 3, "/%lu", i);
+			snprintf(path, 3, "/%u", i);
 			threads[i] = new (Genode::env()->heap())
 				Read_thread(vfs_root, path, space.location_of_index(i));
 		}
@@ -629,7 +629,7 @@ int main()
 
 		vfs_root.sync("/");
 
-		PINF("read  %llu bytes, %llukB/s, %luKB consumed",
+		PINF("read  %llu bytes, %llukB/s, %uKB consumed",
 		     count, count/elapsed_ms, env()->ram_session()->used()/1024);
 	}
 
@@ -641,7 +641,7 @@ int main()
 	if (!config()->xml_node().attribute_value("unlink", true)) {
 		elapsed_ms = timer.elapsed_ms();
 
-		PINF("total: %lums, %luKB consumed",
+		PINF("total: %lums, %uKB consumed",
 		     elapsed_ms, env()->ram_session()->used()/1024);
 
 		return 0;
@@ -654,7 +654,7 @@ int main()
 		elapsed_ms = timer.elapsed_ms();
 
 		for (size_t i = 0; i < thread_count; ++i) {
-			snprintf(path, 3, "/%lu", i);
+			snprintf(path, 3, "/%u", i);
 			threads[i] = new (Genode::env()->heap())
 				Unlink_thread(vfs_root, path, space.location_of_index(i));
 		}
@@ -668,19 +668,19 @@ int main()
 
 		vfs_root.sync("/");
 
-		PINF("unlinked %llu files in %lums, %luKB consumed",
+		PINF("unlinked %llu files in %lums, %uKB consumed",
 		     count, elapsed_ms, env()->ram_session()->used()/1024);
 	}
 
-	PINF("total: %lums, %luKB consumed",
+	PINF("total: %lums, %uKB consumed",
 	     timer.elapsed_ms(), env()->ram_session()->used()/1024);
 
 	size_t outstanding = env()->ram_session()->used() - initial_consumption;
 	if (outstanding) {
 		if (outstanding < 1024)
-			PERR("%luB not freed after unlink and sync!", outstanding);
+			PERR("%uB not freed after unlink and sync!", outstanding);
 		else
-			PERR("%luKB not freed after unlink and sync!", outstanding/1024);
+			PERR("%uKB not freed after unlink and sync!", outstanding/1024);
 	}
 
 	return 0;
