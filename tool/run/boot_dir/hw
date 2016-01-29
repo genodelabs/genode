@@ -30,6 +30,13 @@ proc run_boot_dir {binaries} {
 		set core_target "core"
 	}
 
+	# generate static ACPI report for platform driver on Muen
+	if {[have_spec "hw_x86_64_muen"]} {
+		set fh [open "bin/acpi" "WRONLY CREAT TRUNC"]
+		puts $fh "<acpi><bdf start=\"0\" count=\"16384\" base=\"0xf8000000\"/></acpi>"
+		close $fh
+	}
+
 	# strip binaries
 	copy_and_strip_genode_binaries_to_run_dir $binaries
 
