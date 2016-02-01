@@ -163,7 +163,7 @@ namespace Genode
 
 			Timer::Connection _timer;
 			Phyio& _phyio;
-			uint8_t _phyaddr;
+			int8_t _phyaddr;
 			bool _link_up;
 			Eth_speed _eth_speed;
 
