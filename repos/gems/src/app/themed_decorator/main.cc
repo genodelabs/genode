@@ -73,6 +73,8 @@ struct Decorator::Main : Window_factory_base
 
 	Theme theme { *Genode::env()->heap() };
 
+	Reporter decorator_margins_reporter = { "decorator_margins" };
+
 	/**
 	 * Process the update every 'frame_period' nitpicker sync signals. The
 	 * 'frame_cnt' holds the counter of the nitpicker sync signals.
@@ -135,6 +137,21 @@ struct Decorator::Main : Window_factory_base
 		nitpicker.framebuffer()->sync_sigh(nitpicker_sync_dispatcher);
 
 		hover_reporter.enabled(true);
+
+		decorator_margins_reporter.enabled(true);
+
+		Genode::Reporter::Xml_generator xml(decorator_margins_reporter, [&] ()
+		{
+			xml.node("floating", [&] () {
+
+				Theme::Margins const margins = theme.decor_margins();
+
+				xml.attribute("top",    margins.top);
+				xml.attribute("bottom", margins.bottom);
+				xml.attribute("left",   margins.left);
+				xml.attribute("right",  margins.right);
+			});
+		});
 
 		/* import initial state */
 		handle_pointer_update(0);

@@ -77,6 +77,8 @@ struct Decorator::Main : Window_factory_base
 
 	bool window_layout_update_needed = false;
 
+	Reporter decorator_margins_reporter = { "decorator_margins" };
+
 	Animator animator;
 
 	/**
@@ -122,6 +124,21 @@ struct Decorator::Main : Window_factory_base
 		nitpicker.framebuffer()->sync_sigh(nitpicker_sync_dispatcher);
 
 		hover_reporter.enabled(true);
+
+		decorator_margins_reporter.enabled(true);
+
+		Genode::Reporter::Xml_generator xml(decorator_margins_reporter, [&] ()
+		{
+			xml.node("floating", [&] () {
+
+				Window::Border const border = Window::border_floating();
+
+				xml.attribute("top",    border.top);
+				xml.attribute("bottom", border.bottom);
+				xml.attribute("left",   border.left);
+				xml.attribute("right",  border.right);
+			});
+		});
 
 		/* import initial state */
 		handle_pointer_update(0);
