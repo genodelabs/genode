@@ -241,6 +241,24 @@ struct Floating_window_layouter::Main : Operations
 
 	Rect maximized_window_geometry;
 
+	void handle_mode_change(unsigned)
+	{
+		/* determine maximized window geometry */
+		Framebuffer::Mode const mode = nitpicker.mode();
+		
+		/*
+		 * XXX obtain decorator constraints dynamically
+		 */
+		enum { PAD_LEFT = 4, PAD_RIGHT = 4, PAD_TOP = 20, PAD_BOTTOM = 4 };
+		maximized_window_geometry = Rect(Point(PAD_LEFT, PAD_TOP),
+		                                 Area(mode.width() - PAD_LEFT - PAD_RIGHT,
+		                                      mode.height() - PAD_TOP - PAD_BOTTOM));
+	}
+	
+	Signal_dispatcher<Main> mode_change_dispatcher = {
+		sig_rec, *this, &Main::handle_mode_change };
+
+
 	Input::Session_client input { nitpicker.input_session() };
 
 	Attached_dataspace input_ds { input.dataspace() };
@@ -266,24 +284,12 @@ struct Floating_window_layouter::Main : Operations
 	 */
 	Main(Signal_receiver &sig_rec) : sig_rec(sig_rec)
 	{
-		/* determine maximized window geometry */
-		Framebuffer::Mode const mode =
-			nitpicker.mode();
-
-		/*
-		 * XXX obtain decorator constraints dynamically
-		 */
-		enum { PAD_LEFT = 4, PAD_RIGHT = 4, PAD_TOP = 20, PAD_BOTTOM = 4 };
-		maximized_window_geometry = Rect(Point(PAD_LEFT, PAD_TOP),
-		                                 Area(mode.width() - PAD_LEFT - PAD_RIGHT,
-		                                      mode.height() - PAD_TOP - PAD_BOTTOM));
+		nitpicker.mode_sigh(mode_change_dispatcher);
+		handle_mode_change(0);
 
 		window_list.sigh(window_list_dispatcher);
-
 		focus_request.sigh(focus_request_dispatcher);
-
 		hover.sigh(hover_dispatcher);
-
 		input.sigh(input_dispatcher);
 
 		window_layout_reporter.enabled(true);

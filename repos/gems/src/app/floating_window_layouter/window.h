@@ -86,7 +86,7 @@ class Floating_window_layouter::Window : public List<Window>::Element
 		 */
 		Rect _unmaximized_geometry;
 
-		Rect const _maximized_geometry;
+		Rect const &_maximized_geometry;
 
 		/** 
 		 * Window may be partially transparent
@@ -176,7 +176,7 @@ class Floating_window_layouter::Window : public List<Window>::Element
 
 	public:
 
-		Window(Window_id id, Rect maximized_geometry)
+		Window(Window_id id, Rect &maximized_geometry)
 		:
 			_id(id), _maximized_geometry(maximized_geometry)
 		{ }
