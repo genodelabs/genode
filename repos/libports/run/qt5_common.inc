@@ -97,14 +97,15 @@ proc qt5_start_nodes { feature_arg } {
 			</provides>
 			<config>
 				<rom>
-					<policy label="layouter -> window_list"     report="wm -> window_list"/>
-					<policy label="layouter -> focus_request"   report="wm -> focus_request"/>
-					<policy label="decorator -> window_layout"  report="layouter -> window_layout"/>
-					<policy label="wm -> resize_request"        report="layouter -> resize_request"/>
-					<policy label="decorator -> pointer"        report="wm -> pointer"/>
-					<policy label="layouter -> hover"           report="decorator -> hover"/>
-					<policy label="wm -> focus"                 report="layouter -> focus"/>
-					<policy label="clipboard -> focus"          report="nitpicker -> focus"/>
+					<policy label="layouter -> window_list"       report="wm -> window_list"/>
+					<policy label="layouter -> focus_request"     report="wm -> focus_request"/>
+					<policy label="decorator -> window_layout"    report="layouter -> window_layout"/>
+					<policy label="wm -> resize_request"          report="layouter -> resize_request"/>
+					<policy label="decorator -> pointer"          report="wm -> pointer"/>
+					<policy label="layouter -> hover"             report="decorator -> hover"/>
+					<policy label="wm -> focus"                   report="layouter -> focus"/>
+					<policy label="clipboard -> focus"            report="nitpicker -> focus"/>
+					<policy label="layouter -> decorator_margins" report="decorator -> decorator_margins"/>
 				</rom>
 			</config>
 		</start>

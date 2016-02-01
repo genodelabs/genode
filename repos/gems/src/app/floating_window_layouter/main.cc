@@ -225,6 +225,23 @@ struct Floating_window_layouter::Main : Operations
 
 
 	/**
+	 * Respond to decorator-margins information reported by the decorator
+	 */
+	Attached_rom_dataspace decorator_margins { "decorator_margins" };
+
+	void handle_decorator_margins_update(unsigned)
+	{
+		decorator_margins.update();
+
+		/* respond to change by adapting the maximized window geometry */
+		handle_mode_change(0);
+	}
+
+	Signal_dispatcher<Main> decorator_margins_dispatcher = {
+		sig_rec, *this, &Main::handle_decorator_margins_update };
+
+
+	/**
 	 * Install handler for responding to user input
 	 */
 	void handle_input(unsigned)
@@ -245,14 +262,23 @@ struct Floating_window_layouter::Main : Operations
 	{
 		/* determine maximized window geometry */
 		Framebuffer::Mode const mode = nitpicker.mode();
-		
-		/*
-		 * XXX obtain decorator constraints dynamically
-		 */
-		enum { PAD_LEFT = 4, PAD_RIGHT = 4, PAD_TOP = 20, PAD_BOTTOM = 4 };
-		maximized_window_geometry = Rect(Point(PAD_LEFT, PAD_TOP),
-		                                 Area(mode.width() - PAD_LEFT - PAD_RIGHT,
-		                                      mode.height() - PAD_TOP - PAD_BOTTOM));
+
+		/* read decorator margins from the decorator's report */
+		unsigned top = 0, bottom = 0, left = 0, right = 0;
+		try {
+			Xml_node const margins_xml(decorator_margins.local_addr<char>());
+			Xml_node const floating_xml = margins_xml.sub_node("floating");
+
+			top    = attribute(floating_xml, "top",    0UL);
+			bottom = attribute(floating_xml, "bottom", 0UL);
+			left   = attribute(floating_xml, "left",   0UL);
+			right  = attribute(floating_xml, "right",  0UL);
+
+		} catch (...) { };
+
+		maximized_window_geometry = Rect(Point(left, top),
+		                                 Area(mode.width() - left - right,
+		                                      mode.height() - top - bottom));
 	}
 	
 	Signal_dispatcher<Main> mode_change_dispatcher = {
@@ -289,7 +315,9 @@ struct Floating_window_layouter::Main : Operations
 
 		window_list.sigh(window_list_dispatcher);
 		focus_request.sigh(focus_request_dispatcher);
+
 		hover.sigh(hover_dispatcher);
+		decorator_margins.sigh(decorator_margins_dispatcher);
 		input.sigh(input_dispatcher);
 
 		window_layout_reporter.enabled(true);
