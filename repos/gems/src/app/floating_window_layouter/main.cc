@@ -23,6 +23,7 @@
 #include <input/keycodes.h>
 #include <rom_session/connection.h>
 #include <decorator/xml_utils.h>
+#include <os/config.h>
 
 /* local includes */
 #include "window.h"
@@ -248,7 +249,7 @@ struct Floating_window_layouter::Main : Operations
 	{
 		while (input.is_pending())
 			_user_state.handle_input(input_ds.local_addr<Input::Event>(),
-			                         input.flush());
+			                         input.flush(), Genode::config()->xml_node());
 	}
 
 	Signal_dispatcher<Main> input_dispatcher = {

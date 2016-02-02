@@ -16,6 +16,7 @@
 
 /* local includes */
 #include "operations.h"
+#include "key_sequence_tracker.h"
 
 namespace Floating_window_layouter { class User_state; }
 
@@ -42,6 +43,8 @@ class Floating_window_layouter::User_state
 		Window_id _dragged_window_id;
 
 		unsigned  _key_cnt = 0;
+
+		Key_sequence_tracker _key_sequence_tracker;
 
 		Window::Element _hovered_element = Window::Element::UNDEFINED;
 		Window::Element _dragged_element = Window::Element::UNDEFINED;
@@ -70,7 +73,16 @@ class Floating_window_layouter::User_state
 
 		Operations &_operations;
 
-		inline void _handle_event(Input::Event const &);
+		bool _is_key(Input::Event const &ev) const
+		{
+			if (ev.type() != Input::Event::PRESS
+			 && ev.type() != Input::Event::RELEASE)
+				return false;
+
+			return ev.keycode() != Input::BTN_LEFT;
+		}
+
+		inline void _handle_event(Input::Event const &, Xml_node);
 
 		void _initiate_drag(Window_id       hovered_window_id,
 		                    Window::Element hovered_element)
@@ -119,12 +131,13 @@ class Floating_window_layouter::User_state
 
 		User_state(Operations &operations) : _operations(operations) { }
 
-		void handle_input(Input::Event const events[], unsigned num_events)
+		void handle_input(Input::Event const events[], unsigned num_events,
+		                  Xml_node const &config)
 		{
 			Point const pointer_last = _pointer_curr;
 
 			for (size_t i = 0; i < num_events; i++)
-				_handle_event(events[i]);
+				_handle_event(events[i], config);
 
 			/*
 			 * Issue drag operation when in dragged state
@@ -190,7 +203,8 @@ class Floating_window_layouter::User_state
 };
 
 
-void Floating_window_layouter::User_state::_handle_event(Input::Event const &e)
+void Floating_window_layouter::User_state::_handle_event(Input::Event const &e,
+                                                         Xml_node config)
 {
 	if (e.type() == Input::Event::MOTION
 	 || e.type() == Input::Event::FOCUS) {
@@ -260,6 +274,16 @@ void Floating_window_layouter::User_state::_handle_event(Input::Event const &e)
 
 		_operations.finalize_drag(_dragged_window_id, _dragged_element,
 		                          _pointer_clicked, _pointer_curr);
+	}
+
+	if (_is_key(e)) {
+
+		if (e.type() == Input::Event::PRESS && _key_cnt == 1)
+			_key_sequence_tracker.reset();
+
+		_key_sequence_tracker.apply(e, config, [&] (Action action) {
+			PINF("trigger action %d", action.type());
+		});
 	}
 }
 
