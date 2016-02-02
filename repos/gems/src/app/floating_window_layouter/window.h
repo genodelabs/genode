@@ -16,6 +16,7 @@
 
 /* local includes */
 #include "types.h"
+#include "focus_history.h"
 
 namespace Floating_window_layouter { class Window; }
 
@@ -113,6 +114,8 @@ class Floating_window_layouter::Window : public List<Window>::Element
 		 */
 		unsigned _topped_cnt = 0;
 
+		Focus_history::Entry _focus_history_entry;
+
 		bool _drag_left_border   = false;
 		bool _drag_right_border  = false;
 		bool _drag_top_border    = false;
@@ -176,9 +179,11 @@ class Floating_window_layouter::Window : public List<Window>::Element
 
 	public:
 
-		Window(Window_id id, Rect &maximized_geometry)
+		Window(Window_id id, Rect &maximized_geometry,
+		       Focus_history &focus_history)
 		:
-			_id(id), _maximized_geometry(maximized_geometry)
+			_id(id), _maximized_geometry(maximized_geometry),
+			_focus_history_entry(focus_history, _id)
 		{ }
 
 		bool has_id(Window_id id) const { return id == _id; }

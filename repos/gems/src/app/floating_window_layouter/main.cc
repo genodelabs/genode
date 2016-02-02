@@ -65,6 +65,8 @@ struct Floating_window_layouter::Main : Operations
 
 	List<Window> windows;
 
+	Focus_history focus_history;
+
 	Window *lookup_window_by_id(Window_id const id)
 	{
 		for (Window *w = windows.first(); w; w = w->next())
@@ -95,7 +97,7 @@ struct Floating_window_layouter::Main : Operations
 			fn(*w);
 	}
 
-	User_state _user_state { *this };
+	User_state _user_state { *this, focus_history };
 
 
 	/**************************
@@ -129,6 +131,7 @@ struct Floating_window_layouter::Main : Operations
 
 	void focus(Window_id id) override
 	{
+		generate_window_layout_model();
 		generate_focus_model();
 	}
 
@@ -354,7 +357,8 @@ void Floating_window_layouter::Main::import_window_list(Xml_node window_list_xml
 
 			Window *win = lookup_window_by_id(id);
 			if (!win) {
-				win = new (env()->heap()) Window(id, maximized_window_geometry);
+				win = new (env()->heap())
+					Window(id, maximized_window_geometry, focus_history);
 				windows.insert(win);
 
 				Point initial_position(150*id % 800, 30 + (100*id % 500));

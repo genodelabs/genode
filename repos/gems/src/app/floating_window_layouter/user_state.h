@@ -73,6 +73,8 @@ class Floating_window_layouter::User_state
 
 		Operations &_operations;
 
+		Focus_history &_focus_history;
+
 		bool _is_key(Input::Event const &ev) const
 		{
 			if (ev.type() != Input::Event::PRESS
@@ -107,6 +109,7 @@ class Floating_window_layouter::User_state
 
 				_dragged_window_id = _hovered_window_id;
 				_focused_window_id = _hovered_window_id;
+				_focus_history.focus(_focused_window_id);
 
 				_operations.toggle_fullscreen(_hovered_window_id);
 				return;
@@ -118,6 +121,7 @@ class Floating_window_layouter::User_state
 			if (_focused_window_id != _hovered_window_id) {
 
 				_focused_window_id = _hovered_window_id;
+				_focus_history.focus(_focused_window_id);
 
 				_operations.to_front(_hovered_window_id);
 				_operations.focus(_hovered_window_id);
@@ -129,7 +133,10 @@ class Floating_window_layouter::User_state
 
 	public:
 
-		User_state(Operations &operations) : _operations(operations) { }
+		User_state(Operations &operations, Focus_history &focus_history)
+		:
+			_operations(operations), _focus_history(focus_history)
+		{ }
 
 		void handle_input(Input::Event const events[], unsigned num_events,
 		                  Xml_node const &config)
@@ -181,6 +188,7 @@ class Floating_window_layouter::User_state
 			 && _hovered_window_id != last_hovered_window_id) {
 
 				_focused_window_id = _hovered_window_id;
+				_focus_history.focus(_focused_window_id);
 				_operations.focus(_focused_window_id);
 			}
 		}
@@ -220,6 +228,7 @@ void Floating_window_layouter::User_state::_handle_event(Input::Event const &e,
 	if (e.type() == Input::Event::PRESS)   _key_cnt++;
 	if (e.type() == Input::Event::RELEASE) _key_cnt--;
 
+	/* handle pointer click */
 	if (e.type()    == Input::Event::PRESS
 	 && e.keycode() == Input::BTN_LEFT
 	 && _key_cnt    == 1) {
@@ -276,15 +285,43 @@ void Floating_window_layouter::User_state::_handle_event(Input::Event const &e,
 		                          _pointer_clicked, _pointer_curr);
 	}
 
+	/* handle key sequences */
 	if (_is_key(e)) {
 
 		if (e.type() == Input::Event::PRESS && _key_cnt == 1)
 			_key_sequence_tracker.reset();
 
 		_key_sequence_tracker.apply(e, config, [&] (Action action) {
-			PINF("trigger action %d", action.type());
+
+			switch (action.type()) {
+
+			case Action::TOGGLE_FULLSCREEN:
+				_operations.toggle_fullscreen(_focused_window_id);
+				return;
+
+			case Action::RAISE_WINDOW:
+				_operations.to_front(_focused_window_id);
+				return;
+
+			case Action::NEXT_WINDOW:
+				_focused_window_id = _focus_history.next(_focused_window_id);
+				_operations.focus(_focused_window_id);
+				return;
+
+			case Action::PREV_WINDOW:
+				_focused_window_id = _focus_history.prev(_focused_window_id);
+				_operations.focus(_focused_window_id);
+				return;
+
+			default:
+				PWRN("action %d unhanded", action.type());
+			}
 		});
 	}
+
+	/* update focus history after key/button action is completed */
+	if (e.type() == Input::Event::RELEASE && _key_cnt == 0)
+		_focus_history.focus(_focused_window_id);
 }
 
 #endif /* _USER_STATE_H_ */
