@@ -21,6 +21,7 @@
 #include <platform.h>
 #include <map_local.h>
 #include <cnode.h>
+#include <untyped_memory.h>
 
 using namespace Genode;
 
@@ -83,29 +84,6 @@ void Platform::_init_unused_phys_alloc()
 }
 
 
-/**
- * Initialize allocator with untyped memory ranges according to the boot info
- */
-static void init_allocator(Range_allocator &alloc,
-                           Range_allocator &unused_phys_alloc,
-                           seL4_BootInfo const &bi,
-                           unsigned const start_idx, unsigned const num_idx)
-{
-	for (unsigned i = start_idx; i < start_idx + num_idx; i++) {
-
-		/* index into 'untypedPaddrList' and 'untypedSizeBitsList' */
-		unsigned const k = i - bi.untyped.start;
-
-		addr_t const base = bi.untypedPaddrList[k];
-		size_t const size = 1UL << bi.untypedSizeBitsList[k];
-
-		alloc.add_range(base, size);
-
-		unused_phys_alloc.remove_range(base, size);
-	}
-}
-
-
 static inline void init_sel4_ipc_buffer()
 {
 	asm volatile ("movl %0, %%gs" :: "r"(IPCBUF_GDT_SELECTOR) : "memory");
@@ -114,20 +92,44 @@ static inline void init_sel4_ipc_buffer()
 
 void Platform::_init_allocators()
 {
-	seL4_BootInfo const &bi = sel4_boot_info();
-
 	/* interrupt allocator */
 	_irq_alloc.add_range(0, 255);
 
-	/* physical memory ranges */
-	init_allocator(*_core_mem_alloc.phys_alloc(), _unused_phys_alloc,
-	               bi, bi.untyped.start,
-	               bi.untyped.end - bi.untyped.start);
+	/*
+	 * XXX allocate intermediate CNodes for organizing the untyped pages here
+	 */
+
+	/* register remaining untyped memory to physical memory allocator */
+	auto add_phys_range = [&] (Initial_untyped_pool::Range const &range) {
+
+		addr_t const page_aligned_offset =
+			align_addr(range.free_offset, get_page_size_log2());
+
+		if (page_aligned_offset >= range.size)
+			return;
+
+		addr_t const base = range.phys + page_aligned_offset;
+		size_t const size = range.size - page_aligned_offset;
+
+		PDBG("register phys mem range 0x%lx size=0x%zx", base, size);
+
+		_core_mem_alloc.phys_alloc()->add_range(base, size);
+		_unused_phys_alloc.remove_range(base, size);
+	};
+	_initial_untyped_pool.for_each_range(add_phys_range);
+
+	/* turn remaining untyped memory ranges into untyped pages */
+	_initial_untyped_pool.turn_remainder_into_untyped_pages();
+
+	/*
+	 * From this point on, we can no longer create kernel objects from the
+	 * '_initial_untyped_pool' because the pool is empty.
+	 */
 
 	/* I/O memory ranges */
-	init_allocator(_io_mem_alloc, _unused_phys_alloc,
-	               bi, bi.deviceUntyped.start,
-	               bi.deviceUntyped.end - bi.deviceUntyped.start);
+//	init_allocator(_io_mem_alloc, _unused_phys_alloc,
+//	               bi, bi.deviceUntyped.start,
+//	               bi.deviceUntyped.end - bi.deviceUntyped.start);
 
 	/* core's virtual memory */
 	_core_mem_alloc.virt_alloc()->add_range(_vm_base, _vm_size);
@@ -161,54 +163,68 @@ void Platform::_init_allocators()
 
 void Platform::_switch_to_core_cspace()
 {
-	Cnode_base const initial_cspace(seL4_CapInitThreadCNode, 32);
+	Cnode_base const initial_cspace(Cap_sel(seL4_CapInitThreadCNode), 32);
 
 	/* copy initial selectors to core's CNode */
-	_core_cnode.copy(initial_cspace, seL4_CapInitThreadTCB);
-	_core_cnode.copy(initial_cspace, seL4_CapInitThreadPD);
-	_core_cnode.move(initial_cspace, seL4_CapIRQControl); /* cannot be copied */
-	_core_cnode.copy(initial_cspace, seL4_CapIOPort);
-	_core_cnode.copy(initial_cspace, seL4_CapBootInfoFrame);
-	_core_cnode.copy(initial_cspace, seL4_CapArchBootInfoFrame);
-	_core_cnode.copy(initial_cspace, seL4_CapInitThreadIPCBuffer);
-	_core_cnode.copy(initial_cspace, seL4_CapIPI);
-	_core_cnode.copy(initial_cspace, seL4_CapDomain);
+	_core_cnode.copy(initial_cspace, Cnode_index(seL4_CapInitThreadTCB));
+	_core_cnode.copy(initial_cspace, Cnode_index(seL4_CapInitThreadVSpace));
+	_core_cnode.move(initial_cspace, Cnode_index(seL4_CapIRQControl)); /* cannot be copied */
+	_core_cnode.copy(initial_cspace, Cnode_index(seL4_CapASIDControl));
+	_core_cnode.copy(initial_cspace, Cnode_index(seL4_CapInitThreadASIDPool));
+	_core_cnode.copy(initial_cspace, Cnode_index(seL4_CapIOPort));
+	_core_cnode.copy(initial_cspace, Cnode_index(seL4_CapBootInfoFrame));
+	_core_cnode.copy(initial_cspace, Cnode_index(seL4_CapInitThreadIPCBuffer));
+	_core_cnode.copy(initial_cspace, Cnode_index(seL4_CapDomain));
 
 	/* replace seL4_CapInitThreadCNode with new top-level CNode */
-	_core_cnode.copy(initial_cspace, Core_cspace::TOP_CNODE_SEL, seL4_CapInitThreadCNode);
+	_core_cnode.copy(initial_cspace, Cnode_index(Core_cspace::TOP_CNODE_SEL),
+	                                 Cnode_index(seL4_CapInitThreadCNode));
 
 	/* copy untyped memory selectors to core's CNode */
 	seL4_BootInfo const &bi = sel4_boot_info();
 
+	/*
+	 * We have to move (not copy) the selectors for the initial untyped ranges
+	 * because some of them are already populated with kernel objects allocated
+	 * via '_initial_untyped_pool'. For such an untyped memory range, the
+	 * attempt to copy its selector would result in the following error:
+	 *
+	 *   <<seL4: Error deriving cap for CNode Copy operation.>>
+	 */
 	for (unsigned sel = bi.untyped.start; sel < bi.untyped.end; sel++)
-		_core_cnode.copy(initial_cspace, sel);
+		_core_cnode.move(initial_cspace, Cnode_index(sel));
 
-	for (unsigned sel = bi.deviceUntyped.start; sel < bi.deviceUntyped.end; sel++)
-		_core_cnode.copy(initial_cspace, sel);
+//	for (unsigned sel = bi.deviceUntyped.start; sel < bi.deviceUntyped.end; sel++)
+//		_core_cnode.copy(initial_cspace, sel);
 
 	for (unsigned sel = bi.userImageFrames.start; sel < bi.userImageFrames.end; sel++)
-		_core_cnode.copy(initial_cspace, sel);
+		_core_cnode.copy(initial_cspace, Cnode_index(sel));
 
 	/* copy statically created CNode selectors to core's CNode */
-	_core_cnode.copy(initial_cspace, Core_cspace::TOP_CNODE_SEL);
-	_core_cnode.copy(initial_cspace, Core_cspace::CORE_PAD_CNODE_SEL);
-	_core_cnode.copy(initial_cspace, Core_cspace::CORE_CNODE_SEL);
-	_core_cnode.copy(initial_cspace, Core_cspace::PHYS_CNODE_SEL);
+	_core_cnode.copy(initial_cspace, Cnode_index(Core_cspace::TOP_CNODE_SEL));
+	_core_cnode.copy(initial_cspace, Cnode_index(Core_cspace::CORE_PAD_CNODE_SEL));
+	_core_cnode.copy(initial_cspace, Cnode_index(Core_cspace::CORE_CNODE_SEL));
+	_core_cnode.copy(initial_cspace, Cnode_index(Core_cspace::PHYS_CNODE_SEL));
 
 	/*
 	 * Construct CNode hierarchy of core's CSpace
 	 */
 
 	/* insert 3rd-level core CNode into 2nd-level core-pad CNode */
-	_core_pad_cnode.copy(initial_cspace, Core_cspace::CORE_CNODE_SEL, 0);
+	_core_pad_cnode.copy(initial_cspace, Cnode_index(Core_cspace::CORE_CNODE_SEL),
+	                                     Cnode_index(0));
 
 	/* insert 2nd-level core-pad CNode into 1st-level CNode */
-	_top_cnode.copy(initial_cspace, Core_cspace::CORE_PAD_CNODE_SEL,
-	                                Core_cspace::TOP_CNODE_CORE_IDX);
+	_top_cnode.copy(initial_cspace, Cnode_index(Core_cspace::CORE_PAD_CNODE_SEL),
+	                                Cnode_index(Core_cspace::TOP_CNODE_CORE_IDX));
 
 	/* insert 2nd-level phys-mem CNode into 1st-level CNode */
-	_top_cnode.copy(initial_cspace, Core_cspace::PHYS_CNODE_SEL,
-	                                Core_cspace::TOP_CNODE_PHYS_IDX);
+	_top_cnode.copy(initial_cspace, Cnode_index(Core_cspace::PHYS_CNODE_SEL),
+	                                Cnode_index(Core_cspace::TOP_CNODE_PHYS_IDX));
+
+	/* insert 2nd-level untyped-pages CNode into 1st-level CNode */
+	_top_cnode.copy(initial_cspace, Cnode_index(Core_cspace::UNTYPED_CNODE_SEL),
+	                                Cnode_index(Core_cspace::TOP_CNODE_UNTYPED_IDX));
 
 	/* activate core's CSpace */
 	{
@@ -226,6 +242,12 @@ void Platform::_switch_to_core_cspace()
 }
 
 
+Cap_sel Platform::_init_asid_pool()
+{
+	return Cap_sel(seL4_CapInitThreadASIDPool);
+}
+
+
 void Platform::_init_core_page_table_registry()
 {
 	seL4_BootInfo const &bi = sel4_boot_info();
@@ -236,7 +258,7 @@ void Platform::_init_core_page_table_registry()
 	addr_t virt_addr = (addr_t)(&_prog_img_beg);
 	for (unsigned sel = bi.userImagePTs.start; sel < bi.userImagePTs.end; sel++) {
 
-		_core_page_table_registry.insert_page_table(virt_addr, sel);
+		_core_page_table_registry.insert_page_table(virt_addr, Cap_sel(sel));
 
 		/* one page table has 1024 entries */
 		virt_addr += 1024*get_page_size();
@@ -313,9 +335,10 @@ void Platform::_init_rom_modules()
 		/*
 		 * Install the module's frame selectors into phys CNode
 		 */
-		Cnode_base const initial_cspace(seL4_CapInitThreadCNode, 32);
+		Cnode_base const initial_cspace(Cap_sel(seL4_CapInitThreadCNode), 32);
 		for (unsigned i = 0; i < module_num_frames; i++)
-			_phys_cnode.copy(initial_cspace, module_frame_sel + i, dst_frame + i);
+			_phys_cnode.copy(initial_cspace, Cnode_index(module_frame_sel + i),
+			                                 Cnode_index(dst_frame + i));
 
 		PLOG("boot module '%s' (%zd bytes)", header->name, header->size);
 
@@ -341,14 +364,13 @@ Platform::Platform()
 	_init_unused_phys_alloc_done((_init_unused_phys_alloc(), true)),
 	_vm_base(0x2000), /* 2nd page is used as IPC buffer of main thread */
 	_vm_size(2*1024*1024*1024UL - _vm_base), /* use the lower 2GiB */
-	_init_allocators_done((_init_allocators(), true)),
 	_init_sel4_ipc_buffer_done((init_sel4_ipc_buffer(), true)),
 	_switch_to_core_cspace_done((_switch_to_core_cspace(), true)),
 	_core_page_table_registry(*core_mem_alloc()),
 	_init_core_page_table_registry_done((_init_core_page_table_registry(), true)),
-	_core_vm_space(seL4_CapInitThreadPD,
-	               Core_cspace::CORE_VM_PAD_CNODE_SEL,
-	               Core_cspace::CORE_VM_CNODE_SEL,
+	_init_allocators_done((_init_allocators(), true)),
+	_core_vm_space(Cap_sel(seL4_CapInitThreadPD),
+	               _core_sel_alloc,
 	               _phys_alloc,
 	               _top_cnode,
 	               _core_cnode,
@@ -372,35 +394,20 @@ Platform::Platform()
 }
 
 
-unsigned Platform::alloc_core_sel()
-{
-	Lock::Guard guard(_core_sel_alloc_lock);
-
-	return _core_sel_alloc.alloc();
-}
-
-
 unsigned Platform::alloc_core_rcv_sel()
 {
-	unsigned rcv_sel = alloc_core_sel();
+	Cap_sel rcv_sel = _core_sel_alloc.alloc();
 
-	seL4_SetCapReceivePath(_core_cnode.sel(), rcv_sel, _core_cnode.size_log2());
+	seL4_SetCapReceivePath(_core_cnode.sel().value(), rcv_sel.value(),
+	                       _core_cnode.size_log2());
 
-	return rcv_sel;
+	return rcv_sel.value();
 }
 
 
 void Platform::reset_sel(unsigned sel)
 {
-	_core_cnode.remove(sel);
-}
-
-
-void Platform::free_core_sel(unsigned sel)
-{
-	Lock::Guard guard(_core_sel_alloc_lock);
-
-	_core_sel_alloc.free(sel);
+	_core_cnode.remove(Cap_sel(sel));
 }
 
 

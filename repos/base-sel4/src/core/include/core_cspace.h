@@ -36,15 +36,18 @@ class Genode::Core_cspace
 			CORE_PAD_CNODE_SEL    = 0xa01,
 			CORE_CNODE_SEL        = 0xa02,
 			PHYS_CNODE_SEL        = 0xa03,
-			CORE_VM_PAD_CNODE_SEL = 0xa04,
-			CORE_VM_CNODE_SEL     = 0xa05,
+			UNTYPED_CNODE_SEL     = 0xa04,
 			CORE_STATIC_SEL_END,
 		};
 
 		/* indices within top-level CNode */
 		enum Top_cnode_idx {
-			TOP_CNODE_CORE_IDX = 0,
-			TOP_CNODE_PHYS_IDX = 0xfff
+			TOP_CNODE_CORE_IDX    = 0,
+
+			/* XXX mark last index usable for PDs */
+
+			TOP_CNODE_UNTYPED_IDX = 0xffe, /* untyped memory pages */
+			TOP_CNODE_PHYS_IDX    = 0xfff  /* phyical page frames */
 		};
 
 		enum { CORE_VM_ID = 1 };

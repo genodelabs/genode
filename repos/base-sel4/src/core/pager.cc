@@ -23,7 +23,7 @@
 #include <internal/capability_space_sel4.h>
 
 /* seL4 includes */
-#include <sel4/interfaces/sel4_client.h>
+#include <sel4/sel4.h>
 #include <sel4/arch/pfIPC.h>
 
 using namespace Genode;
@@ -74,11 +74,11 @@ void Ipc_pager::reply_and_wait_for_fault()
 		seL4_MessageInfo_t const reply_msg = seL4_MessageInfo_new(0, 0, 0, 0);
 
 		page_fault_msg_info =
-			seL4_ReplyWait(Thread_base::myself()->tid().ep_sel, reply_msg, &badge);
+			seL4_ReplyRecv(Thread_base::myself()->tid().ep_sel, reply_msg, &badge);
 
 	} else {
 		page_fault_msg_info =
-			seL4_Wait(Thread_base::myself()->tid().ep_sel, &badge);
+			seL4_Recv(Thread_base::myself()->tid().ep_sel, &badge);
 	}
 
 	Fault_info const fault_info(page_fault_msg_info);

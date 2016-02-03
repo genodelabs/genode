@@ -17,8 +17,7 @@
 #include <util/string.h>
 
 /* seL4 includes */
-#include <sel4/bootinfo.h>
-#include <sel4/interfaces/sel4_client.h>
+#include <sel4/sel4.h>
 
 
 static seL4_BootInfo const *boot_info()

@@ -21,6 +21,7 @@
 
 /* core includes */
 #include <util.h>
+#include <cap_sel_alloc.h>
 
 namespace Genode { class Page_table_registry; }
 
@@ -109,12 +110,17 @@ class Genode::Page_table_registry
 				}
 		};
 
-		class Slab_block : public Genode::Slab_block { long _data[4*1024]; };
+		struct Slab_block : Genode::Slab_block
+		{
+			long _data[4*1024];
+
+			Slab_block(Genode::Slab &slab) : Genode::Slab_block(&slab) { }
+		};
 
 		template <typename T>
 		struct Slab : Genode::Tslab<T, sizeof(Slab_block)>
 		{
-			Slab_block _initial_block;
+			Slab_block _initial_block { *this };
 
 			Slab(Allocator &md_alloc)
 			:
@@ -122,8 +128,12 @@ class Genode::Page_table_registry
 			{ }
 		};
 
+		Allocator              &_md_alloc;
 		Slab<Page_table>        _page_table_slab;
 		Slab<Page_table::Entry> _page_table_entry_slab;
+
+		/* state variable to prevent nested attempts to extend the slab-pool */
+		bool _extending_page_table_entry_slab = false;
 
 		List<Page_table> _page_tables;
 
@@ -153,6 +163,56 @@ class Genode::Page_table_registry
 
 		static constexpr bool verbose = false;
 
+		void _preserve_page_table_entry_slab_space()
+		{
+			/*
+			 * Eagerly extend the pool of slab blocks if we run out of slab
+			 * entries.
+			 *
+			 * At all times we have to ensure that the slab allocator has
+			 * enough free entries to host the meta data needed for mapping a
+			 * new slab block because such a new slab block will indeed result
+			 * in the creation of further page-table entries. We have to
+			 * preserve at least as many slab entries as the number of
+			 * page-table entries used by a single slab block.
+			 *
+			 * In the computation of 'PRESERVED', the 1 accounts for the bits
+			 * truncated by the division by page size. The 3 accounts for the
+			 * slab's built-in threshold for extending the slab, which we need
+			 * to avoid triggering (as this would result in just another
+			 * nesting level).
+			 */
+			enum { PRESERVED = sizeof(Slab_block)/get_page_size() + 1 + 3 };
+
+			/* back out if there is still enough room */
+			if (_page_table_entry_slab.num_free_entries_higher_than(PRESERVED))
+				return;
+
+			/* back out on a nested call, while extending the slab */
+			if (_extending_page_table_entry_slab)
+			 	return;
+
+		 	_extending_page_table_entry_slab = true;
+
+			try {
+				/*
+				 * Create new slab block. Note that we are entering a rat
+				 * hole here as this operation will result in the nested
+				 * call of 'map_local'.
+				 */
+				Slab_block *sb = new (_md_alloc) Slab_block(_page_table_entry_slab);
+
+				_page_table_entry_slab.insert_sb(sb);
+
+			} catch (Allocator::Out_of_memory) {
+
+				/* this should never happen */
+				PERR("Out of memory while allocating page-table meta data");
+			}
+
+			_extending_page_table_entry_slab = false;
+		}
+
 	public:
 
 		/**
@@ -162,6 +222,7 @@ class Genode::Page_table_registry
 		 */
 		Page_table_registry(Allocator &md_alloc)
 		:
+			_md_alloc(md_alloc),
 			_page_table_slab(md_alloc),
 			_page_table_entry_slab(md_alloc)
 		{ }
@@ -172,8 +233,10 @@ class Genode::Page_table_registry
 		 * \param addr  virtual address
 		 * \param sel   page-table selector
 		 */
-		void insert_page_table(addr_t addr, unsigned sel)
+		void insert_page_table(addr_t addr, Cap_sel sel)
 		{
+			/* XXX sel is unused */
+
 			if (_page_table_exists(addr)) {
 				PWRN("trying to insert page table for 0x%lx twice", addr);
 				return;
@@ -197,6 +260,8 @@ class Genode::Page_table_registry
 		 */
 		void insert_page_table_entry(addr_t addr, unsigned sel)
 		{
+			_preserve_page_table_entry_slab_space();
+
 			_lookup(addr).insert_entry(_page_table_entry_slab, addr, sel);
 		}
 
