@@ -79,7 +79,7 @@ void Genode::install_mapping(Mapping const &mapping, unsigned long pager_object_
  ** Utilities to support the Platform_thread interface **
  ********************************************************/
 
-static void prepopulate_ipc_buffer(addr_t ipc_buffer_phys, unsigned ep_sel)
+static void prepopulate_ipc_buffer(addr_t ipc_buffer_phys, Cap_sel ep_sel)
 {
 	/* IPC buffer is one page */
 	size_t const page_rounded_size = get_page_size();
@@ -97,7 +97,7 @@ static void prepopulate_ipc_buffer(addr_t ipc_buffer_phys, unsigned ep_sel)
 
 	/* populate IPC buffer with thread information */
 	Native_utcb &utcb = *(Native_utcb *)virt_addr;
-	utcb.ep_sel = ep_sel;
+	utcb.ep_sel = ep_sel.value();
 
 	/* unmap IPC buffer from core */
 	unmap_local((addr_t)virt_addr, 1);
@@ -120,7 +120,7 @@ int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 	_fault_handler_sel = _pd->alloc_sel();
 
 	/* pager endpoint in core */
-	unsigned const pager_sel = Capability_space::ipc_cap_data(_pager->cap()).sel;
+	Cap_sel const pager_sel(Capability_space::ipc_cap_data(_pager->cap()).sel);
 
 	/* install page-fault handler endpoint selector to the PD's CSpace */
 	_pd->cspace_cnode().copy(platform_specific()->core_cnode(), pager_sel,
@@ -146,9 +146,9 @@ int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 
 	seL4_CapData_t const no_cap_data = { { 0 } };
 
-	int const ret = seL4_TCB_SetSpace(_info.tcb_sel, _fault_handler_sel,
-	                                  _pd->cspace_cnode().sel(), guard_cap_data,
-	                                  _pd->page_directory_sel(), no_cap_data);
+	int const ret = seL4_TCB_SetSpace(_info.tcb_sel.value(), _fault_handler_sel.value(),
+	                                  _pd->cspace_cnode().sel().value(), guard_cap_data,
+	                                  _pd->page_directory_sel().value(), no_cap_data);
 	ASSERT(ret == 0);
 
 	start_sel4_thread(_info.tcb_sel, (addr_t)ip, (addr_t)(sp));
@@ -206,7 +206,7 @@ Platform_thread::Platform_thread(size_t, const char *name, unsigned priority,
 :
 	_name(name),
 	_utcb(utcb),
-	_pager_obj_sel(platform_specific()->alloc_core_sel())
+	_pager_obj_sel(platform_specific()->core_sel_alloc().alloc())
 
 {
 	_info.init(_utcb ? _utcb : INITIAL_IPC_BUFFER_VIRT);
@@ -219,7 +219,7 @@ Platform_thread::~Platform_thread()
 	PDBG("not completely implemented");
 
 	platform_thread_registry().remove(*this);
-	platform_specific()->free_core_sel(_pager_obj_sel);
+	platform_specific()->core_sel_alloc().free(_pager_obj_sel);
 }
 
 

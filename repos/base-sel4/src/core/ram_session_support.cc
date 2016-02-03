@@ -18,6 +18,7 @@
 #include <ram_session_component.h>
 #include <platform.h>
 #include <map_local.h>
+#include <untyped_memory.h>
 
 using namespace Genode;
 

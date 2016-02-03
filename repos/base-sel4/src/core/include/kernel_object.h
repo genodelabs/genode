@@ -14,48 +14,62 @@
 #ifndef _CORE__INCLUDE__KERNEL_OBJECT_H_
 #define _CORE__INCLUDE__KERNEL_OBJECT_H_
 
+/* Genode includes */
+#include <base/exception.h>
+
 /* core includes */
 #include <untyped_memory.h>
+#include <initial_untyped_pool.h>
 
-namespace Kernel_object {
+namespace Genode {
 
-	using Genode::Untyped_address;
-	using Genode::Untyped_memory;
-	using Genode::Range_allocator;
+	/**
+	 * Index referring to a slot in a CNode
+	 */
+	struct Cnode_index : Cap_sel
+	{
+		explicit Cnode_index(addr_t value) : Cap_sel(value) { }
 
-	struct Tcb
+		Cnode_index(Cap_sel sel) : Cap_sel(sel.value()) { }
+	};
+
+
+	struct Tcb_kobj
 	{
 		enum { SEL4_TYPE = seL4_TCBObject, SIZE_LOG2 = 12 };
 		static char const *name() { return "TCB"; }
 	};
 
 
-	struct Endpoint
+	struct Endpoint_kobj
 	{
 		enum { SEL4_TYPE = seL4_EndpointObject, SIZE_LOG2 = 4 };
 		static char const *name() { return "endpoint"; }
 	};
 
 
-	struct Cnode
+	struct Cnode_kobj
 	{
 		enum { SEL4_TYPE = seL4_CapTableObject, SIZE_LOG2 = 4 };
 		static char const *name() { return "cnode"; }
 	};
 
 
-	struct Page_table
+	struct Page_table_kobj
 	{
 		enum { SEL4_TYPE = seL4_IA32_PageTableObject, SIZE_LOG2 = 12 };
 		static char const *name() { return "page table"; }
 	};
 
 
-	struct Page_directory
+	struct Page_directory_kobj
 	{
 		enum { SEL4_TYPE = seL4_IA32_PageDirectoryObject, SIZE_LOG2 = 12 };
 		static char const *name() { return "page directory"; }
 	};
+
+
+	struct Retype_untyped_failed : Genode::Exception { };
 
 
 	/**
@@ -69,47 +83,106 @@ namespace Kernel_object {
 	 * \param size_log2      size of kernel object in bits, only needed for
 	 *                       variable-sized objects like CNodes
 	 *
+	 * \return physical address of created kernel object
+	 *
 	 * \throw Phys_alloc_failed
-	 * \throw Untyped_address::Lookup_failed
+	 * \throw Retype_untyped_failed
+	 *
+	 * The kernel-object description is a policy type that contains enum
+	 * definitions for 'SEL4_TYPE' and 'SIZE_LOG2', and a static function
+	 * 'name' that returns the type name as a char const pointer.
+	 *
+	 * XXX to be removed
+	 */
+	template <typename KOBJ>
+	static addr_t create(Range_allocator &phys_alloc,
+	                     Cap_sel          dst_cnode_sel,
+	                     Cnode_index      dst_idx,
+	                     size_t           size_log2 = 0)
+	{
+		/* allocate physical page */
+		addr_t phys_addr = Untyped_memory::alloc_page(phys_alloc);
+
+		seL4_Untyped const service     = Untyped_memory::untyped_sel(phys_addr).value();
+		int          const type        = KOBJ::SEL4_TYPE;
+		int          const size_bits   = size_log2;
+		seL4_CNode   const root        = dst_cnode_sel.value();
+		int          const node_index  = 0;
+		int          const node_depth  = 0;
+		int          const node_offset = dst_idx.value();
+		int          const num_objects = 1;
+
+		int const ret = seL4_Untyped_Retype(service,
+		                                    type,
+		                                    size_bits,
+		                                    root,
+		                                    node_index,
+		                                    node_depth,
+		                                    node_offset,
+		                                    num_objects);
+
+		if (ret != 0) {
+			PERR("seL4_Untyped_RetypeAtOffset (%s) returned %d",
+			     KOBJ::name(), ret);
+			throw Retype_untyped_failed();
+		}
+
+		PLOG("created kernel object '%s' at 0x%lx -> root=%lu index=%lu",
+		     KOBJ::name(), phys_addr, dst_cnode_sel.value(), dst_idx.value());
+
+		return phys_addr;
+	}
+
+
+	/**
+	 * Create kernel object from initial untyped memory pool
+	 *
+	 * \param KOBJ           kernel-object description
+	 * \param untyped_pool   initial untyped memory pool
+	 * \param dst_cnode_sel  CNode selector where to store the cap pointing to
+	 *                       the new kernel object
+	 * \param dst_idx        designated index of cap selector within 'dst_cnode'
+	 * \param size_log2      size of kernel object in bits, only needed for
+	 *                       variable-sized objects like CNodes
+	 *
+	 * \throw Initial_untyped_pool::Initial_untyped_pool_exhausted
+	 * \throw Retype_untyped_failed
 	 *
 	 * The kernel-object description is a policy type that contains enum
 	 * definitions for 'SEL4_TYPE' and 'SIZE_LOG2', and a static function
 	 * 'name' that returns the type name as a char const pointer.
 	 */
 	template <typename KOBJ>
-	static Untyped_address create(Range_allocator &phys_alloc,
-	                              unsigned         dst_cnode_sel,
-	                              unsigned         dst_idx,
-	                              size_t           size_log2 = 0)
+	static void create(Initial_untyped_pool &untyped_pool,
+	                   Cap_sel               dst_cnode_sel,
+	                   Cnode_index           dst_idx,
+	                   size_t                size_log2 = 0)
 	{
-		Untyped_address const untyped_addr =
-			Untyped_memory::alloc_log2(phys_alloc, KOBJ::SIZE_LOG2 + size_log2);
+		unsigned const sel = untyped_pool.alloc(KOBJ::SIZE_LOG2 + size_log2);
 
-		seL4_Untyped const service     = untyped_addr.sel();
+		seL4_Untyped const service     = sel;
 		int          const type        = KOBJ::SEL4_TYPE;
-		int          const offset      = untyped_addr.offset();
 		int          const size_bits   = size_log2;
-		seL4_CNode   const root        = dst_cnode_sel;
+		seL4_CNode   const root        = dst_cnode_sel.value();
 		int          const node_index  = 0;
 		int          const node_depth  = 0;
-		int          const node_offset = dst_idx;
+		int          const node_offset = dst_idx.value();
 		int          const num_objects = 1;
 
-		int const ret = seL4_Untyped_RetypeAtOffset(service,
-		                                            type,
-		                                            offset,
-		                                            size_bits,
-		                                            root,
-		                                            node_index,
-		                                            node_depth,
-		                                            node_offset,
-		                                            num_objects);
+		int const ret = seL4_Untyped_Retype(service,
+		                                    type,
+		                                    size_bits,
+		                                    root,
+		                                    node_index,
+		                                    node_depth,
+		                                    node_offset,
+		                                    num_objects);
 
-		if (ret != 0)
-			PERR("seL4_Untyped_RetypeAtOffset (%s) returned %d",
+		if (ret != 0) {
+			PERR("seL4_Untyped_Retype (%s) returned %d",
 			     KOBJ::name(), ret);
-
-		return untyped_addr;
+			throw Retype_untyped_failed();
+		}
 	}
 };
 

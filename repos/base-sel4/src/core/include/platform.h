@@ -22,6 +22,7 @@
 #include <core_mem_alloc.h>
 #include <vm_space.h>
 #include <core_cspace.h>
+#include <initial_untyped_pool.h>
 
 namespace Genode { class Platform; }
 
@@ -35,6 +36,8 @@ class Genode::Platform : public Platform_generic
 		Phys_allocator     _io_port_alloc;  /* I/O port allocator     */
 		Phys_allocator     _irq_alloc;      /* IRQ allocator          */
 
+		Initial_untyped_pool _initial_untyped_pool;
+
 		/*
 		 * Allocator for tracking unused physical addresses, which is used
 		 * to allocate a range within the phys CNode for ROM modules.
@@ -46,22 +49,12 @@ class Genode::Platform : public Platform_generic
 
 		Rom_fs _rom_fs;  /* ROM file system */
 
-		/**
-		 * Shortcut for physical memory allocator
-		 */
-		Range_allocator &_phys_alloc = *_core_mem_alloc.phys_alloc();
 
 		/**
 		 * Virtual address range usable by non-core processes
 		 */
 		addr_t _vm_base;
 		size_t _vm_size;
-
-		/**
-		 * Initialize core allocators
-		 */
-		void       _init_allocators();
-		bool const _init_allocators_done;
 
 		/*
 		 * Until this point, no interaction with the seL4 kernel was needed.
@@ -73,28 +66,62 @@ class Genode::Platform : public Platform_generic
 		bool const _init_sel4_ipc_buffer_done;
 
 		/* allocate 1st-level CNode */
-		Cnode _top_cnode { seL4_CapInitThreadCNode, Core_cspace::TOP_CNODE_SEL,
-		                   Core_cspace::NUM_TOP_SEL_LOG2, _phys_alloc };
+		Cnode _top_cnode { Cap_sel(seL4_CapInitThreadCNode),
+		                   Cnode_index(Core_cspace::TOP_CNODE_SEL),
+		                   Core_cspace::NUM_TOP_SEL_LOG2,
+		                   _initial_untyped_pool };
 
 		/* allocate 2nd-level CNode to align core's CNode with the LSB of the CSpace*/
-		Cnode _core_pad_cnode { seL4_CapInitThreadCNode, Core_cspace::CORE_PAD_CNODE_SEL,
+		Cnode _core_pad_cnode { Cap_sel(seL4_CapInitThreadCNode),
+		                        Cnode_index(Core_cspace::CORE_PAD_CNODE_SEL),
 		                        Core_cspace::NUM_CORE_PAD_SEL_LOG2,
-		                        _phys_alloc };
+		                        _initial_untyped_pool };
 
 		/* allocate 3rd-level CNode for core's objects */
-		Cnode _core_cnode { seL4_CapInitThreadCNode, Core_cspace::CORE_CNODE_SEL,
-		                    Core_cspace::NUM_CORE_SEL_LOG2, _phys_alloc };
+		Cnode _core_cnode { Cap_sel(seL4_CapInitThreadCNode),
+		                    Cnode_index(Core_cspace::CORE_CNODE_SEL),
+		                    Core_cspace::NUM_CORE_SEL_LOG2, _initial_untyped_pool };
 
 		/* allocate 2nd-level CNode for storing page-frame cap selectors */
-		Cnode _phys_cnode { seL4_CapInitThreadCNode, Core_cspace::PHYS_CNODE_SEL,
-		                    Core_cspace::NUM_PHYS_SEL_LOG2, _phys_alloc };
+		Cnode _phys_cnode { Cap_sel(seL4_CapInitThreadCNode),
+		                    Cnode_index(Core_cspace::PHYS_CNODE_SEL),
+		                    Core_cspace::NUM_PHYS_SEL_LOG2, _initial_untyped_pool };
 
-		struct Core_sel_alloc : Bit_allocator<1 << Core_cspace::NUM_PHYS_SEL_LOG2>
+		/* allocate 2nd-level CNode for storing cap selectors for untyped pages */
+		Cnode _untyped_cnode { Cap_sel(seL4_CapInitThreadCNode),
+		                       Cnode_index(Core_cspace::UNTYPED_CNODE_SEL),
+		                       Core_cspace::NUM_PHYS_SEL_LOG2, _initial_untyped_pool };
+
+		/*
+		 * XXX Consider making Bit_allocator::_reserve public so that we can
+		 *     turn the bit allocator into a private member of 'Core_sel_alloc'.
+		 */
+		typedef Bit_allocator<1 << Core_cspace::NUM_PHYS_SEL_LOG2> Core_sel_bit_alloc;
+
+		struct Core_sel_alloc : Cap_sel_alloc, private Core_sel_bit_alloc
 		{
-			Core_sel_alloc() { _reserve(0, Core_cspace::CORE_STATIC_SEL_END); }
-		} _core_sel_alloc;
+			Lock _lock;
 
-		Lock _core_sel_alloc_lock;
+			Core_sel_alloc() { _reserve(0, Core_cspace::CORE_STATIC_SEL_END); }
+
+			Cap_sel alloc() override
+			{
+				Lock::Guard guard(_lock);
+
+				try {
+					return Cap_sel(Core_sel_bit_alloc::alloc()); }
+				catch (Bit_allocator::Out_of_indices) {
+					throw Alloc_failed(); }
+			}
+
+			void free(Cap_sel sel) override
+			{
+				Lock::Guard guard(_lock);
+
+				Core_sel_bit_alloc::free(sel.value());
+			}
+
+		} _core_sel_alloc;
 
 		/**
 		 * Replace initial CSpace with custom CSpace layout
@@ -111,6 +138,20 @@ class Genode::Platform : public Platform_generic
 		 */
 		void       _init_core_page_table_registry();
 		bool const _init_core_page_table_registry_done;
+
+		Cap_sel _init_asid_pool();
+		Cap_sel const _asid_pool_sel = _init_asid_pool();
+
+		/**
+		 * Shortcut for physical memory allocator
+		 */
+		Range_allocator &_phys_alloc = *_core_mem_alloc.phys_alloc();
+
+		/**
+		 * Initialize core allocators
+		 */
+		void       _init_allocators();
+		bool const _init_allocators_done;
 
 		Vm_space _core_vm_space;
 
@@ -144,10 +185,12 @@ class Genode::Platform : public Platform_generic
 
 		Vm_space &core_vm_space() { return _core_vm_space; }
 
-		unsigned alloc_core_sel();
+		Cap_sel_alloc &core_sel_alloc() { return _core_sel_alloc; }
 		unsigned alloc_core_rcv_sel();
+
 		void reset_sel(unsigned sel);
-		void free_core_sel(unsigned sel);
+
+		Cap_sel asid_pool() const { return _asid_pool_sel; }
 
 		void wait_for_exit();
 };
