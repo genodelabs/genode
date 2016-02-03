@@ -27,6 +27,8 @@ check_tool = $(if $(shell which $(1)),,$(error Need to have '$(1)' installed.))
 
 default:
 
+.NOTPARALLEL: default
+
 # repository that contains the port description, used to look up patch files
 REP_DIR := $(realpath $(dir $(PORT))/..)
 
