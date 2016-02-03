@@ -120,20 +120,15 @@ VMMDECL(VBOXSTRICTRC) IOMMMIOWrite(PVM pVM, PVMCPU, RTGCPHYS GCPhys,
 	 */
 	if (rc == VERR_IOM_NOT_MMIO_RANGE_OWNER) {
 
-		/* implement what we need to - extend by need */
-
-		Assert((GCPhys & 3U) == 0);
-		Assert(cbValue == 1);
+		Assert(cbValue <= 4);
 
 		uint32_t value;
+		RTGCPHYS aligned = GCPhys & ~0x3U;
+		rc = guest_memory()->mmio_read(aligned, &value, sizeof(value));
 
-		rc = guest_memory()->mmio_read(GCPhys, &value, sizeof(value));
-		Assert(rc == VINF_SUCCESS);
-
-		value &= 0xffffff00;
-		value |= (u32Value & 0x000000ff);
-
-		rc = guest_memory()->mmio_write(GCPhys, value, sizeof(value));
+		uint32_t offset = GCPhys & 0x3;
+		memcpy(((char *)&value) + offset, &u32Value, cbValue);
+		rc = guest_memory()->mmio_write(aligned, value, sizeof(value));
 	}
 
 	Assert(rc != VERR_IOM_NOT_MMIO_RANGE_OWNER);
