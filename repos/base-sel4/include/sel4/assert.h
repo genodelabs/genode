@@ -17,7 +17,7 @@
 /* Genode includes */
 #include <base/printf.h>
 
-#define assert(v) do { \
+#define seL4_Assert(v) do { \
 	if (!(v)) { \
 		PDBG("assertion failed: %s", #v); \
 		for (;;); \

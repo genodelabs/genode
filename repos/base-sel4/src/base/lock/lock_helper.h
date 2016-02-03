@@ -15,7 +15,7 @@
  */
 
 /* seL4 includes */
-#include <sel4/interfaces/sel4_client.h>
+#include <sel4/sel4.h>
 
 
 static inline void thread_yield() { seL4_Yield(); }

@@ -83,7 +83,7 @@ Capability_space::create_rpc_obj_cap(Native_capability ep_cap,
                                      Rpc_obj_key rpc_obj_key)
 {
 	/* allocate core-local selector for RPC object */
-	unsigned const rpc_obj_sel = platform_specific()->alloc_core_sel();
+	Cap_sel const rpc_obj_sel = platform_specific()->core_sel_alloc().alloc();
 
 	/* create Genode capability */
 	Native_capability::Data &data =
@@ -92,15 +92,15 @@ Capability_space::create_rpc_obj_cap(Native_capability ep_cap,
 
 	ASSERT(ep_cap.valid());
 
-	unsigned const ep_sel = local_capability_space().sel(*ep_cap.data());
+	Cap_sel const ep_sel(local_capability_space().sel(*ep_cap.data()));
 
 	/* mint endpoint capability into RPC object capability */
 	{
 		seL4_CNode     const service    = seL4_CapInitThreadCNode;
-		seL4_Word      const dest_index = rpc_obj_sel;
+		seL4_Word      const dest_index = rpc_obj_sel.value();
 		uint8_t        const dest_depth = 32;
 		seL4_CNode     const src_root   = seL4_CapInitThreadCNode;
-		seL4_Word      const src_index  = ep_sel;
+		seL4_Word      const src_index  = ep_sel.value();
 		uint8_t        const src_depth  = 32;
 		seL4_CapRights const rights     = seL4_AllRights;
 		seL4_CapData_t const badge      = seL4_CapData_Badge_new(rpc_obj_key.value());
@@ -126,7 +126,7 @@ Capability_space::create_rpc_obj_cap(Native_capability ep_cap,
 
 Native_capability Capability_space::create_ep_cap(Thread_base &ep_thread)
 {
-	unsigned const ep_sel = ep_thread.tid().ep_sel;
+	Cap_sel const ep_sel(ep_thread.tid().ep_sel);
 
 	/* entrypoint capabilities are not allocated from a CAP session */
 	Cap_session const *cap_session = nullptr;

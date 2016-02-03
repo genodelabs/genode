@@ -17,7 +17,7 @@
 #include <cpu/memory_barrier.h>
 
 /* seL4 includes */
-#include <sel4/interfaces/sel4_client.h>
+#include <sel4/sel4.h>
 
 using namespace Genode;
 

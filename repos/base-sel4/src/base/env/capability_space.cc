@@ -94,7 +94,7 @@ namespace {
 
 Native_capability Capability_space::create_ep_cap(Thread_base &ep_thread)
 {
-	unsigned const ep_sel = ep_thread.tid().ep_sel;
+	Cap_sel const ep_sel = Cap_sel(ep_thread.tid().ep_sel);
 
 	Native_capability::Data &data =
 		local_capability_space().create_capability(ep_sel, Rpc_obj_key());
@@ -147,7 +147,9 @@ unsigned Capability_space::alloc_rcv_sel()
 
 void Capability_space::reset_sel(unsigned sel)
 {
-	PDBG("not implemented");
+	int ret = seL4_CNode_Delete(INITIAL_SEL_CNODE, sel, CSPACE_SIZE_LOG2);
+	if (ret != 0)
+		PWRN("seL4_CNode_Delete returned %d", ret);
 }
 
 

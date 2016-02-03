@@ -23,7 +23,7 @@
 #include <internal/kernel_debugger.h>
 
 /* seL4 includes */
-#include <sel4/interfaces/sel4_client.h>
+#include <sel4/sel4.h>
 
 using namespace Genode;
 
@@ -81,7 +81,7 @@ static seL4_MessageInfo_t new_seL4_message(Msgbuf_base &msg,
 				Capability_space::ipc_cap_data(cap);
 
 			seL4_SetMR(MR_IDX_CAPS + i, ipc_cap_data.rpc_obj_key.value());
-			seL4_SetCap(sel4_sel_cnt++, ipc_cap_data.sel);
+			seL4_SetCap(sel4_sel_cnt++, ipc_cap_data.sel.value());
 		} else {
 			seL4_SetMR(MR_IDX_CAPS + i, Rpc_obj_key::INVALID);
 		}
@@ -333,7 +333,7 @@ void Ipc_client::_call()
 	seL4_MessageInfo_t const request_msg_info =
 		new_seL4_message(*_snd_msg, _write_offset);
 
-	unsigned const dst_sel = Capability_space::ipc_cap_data(_dst).sel;
+	unsigned const dst_sel = Capability_space::ipc_cap_data(_dst).sel.value();
 
 	seL4_MessageInfo_t const reply_msg_info =
 		seL4_Call(dst_sel, request_msg_info);
@@ -374,7 +374,7 @@ void Ipc_server::_wait()
 {
 	seL4_Word badge = Rpc_obj_key::INVALID;
 	seL4_MessageInfo_t const msg_info =
-		seL4_Wait(Thread_base::myself()->tid().ep_sel, &badge);
+		seL4_Recv(Thread_base::myself()->tid().ep_sel, &badge);
 
 	decode_seL4_message(badge, msg_info, *_rcv_msg);
 
@@ -401,7 +401,7 @@ void Ipc_server::_reply_wait()
 			new_seL4_message(*_snd_msg, _write_offset);
 
 		seL4_MessageInfo_t const request_msg_info =
-			seL4_ReplyWait(Thread_base::myself()->tid().ep_sel,
+			seL4_ReplyRecv(Thread_base::myself()->tid().ep_sel,
 			               reply_msg_info, &badge);
 
 		decode_seL4_message(badge, request_msg_info, *_rcv_msg);

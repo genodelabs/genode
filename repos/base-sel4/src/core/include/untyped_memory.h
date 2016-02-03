@@ -19,10 +19,10 @@
 
 /* core includes */
 #include <util.h>
-#include <untyped_address.h>
+#include <cap_sel_alloc.h>
 
 /* seL4 includes */
-#include <sel4/interfaces/sel4_client.h>
+#include <sel4/sel4.h>
 
 namespace Genode { struct Untyped_memory; }
 
@@ -31,51 +31,56 @@ struct Genode::Untyped_memory
 	class Phys_alloc_failed : Exception { };
 
 
-	/**
-	 * Allocate natually-aligned physical memory for seL4 kernel object
-	 *
-	 * \throw Phys_alloc_failed
-	 * \throw Untyped_address::Lookup_failed
-	 */
-	static inline Untyped_address alloc_log2(Range_allocator &phys_alloc,
-	                                         size_t const size_log2)
+	static inline addr_t alloc_pages(Range_allocator &phys_alloc, size_t num_pages)
 	{
-		/*
-		 * The natual alignment is needed to ensure that the backing store is
-		 * contained in a single untyped memory region.
-		 */
 		void *out_ptr = nullptr;
-		size_t const size = 1UL << size_log2;
 		Range_allocator::Alloc_return alloc_ret =
-			phys_alloc.alloc_aligned(size, &out_ptr, size_log2);
-		addr_t const phys_addr = (addr_t)out_ptr;
+			phys_alloc.alloc_aligned(num_pages*get_page_size(), &out_ptr,
+			                         get_page_size_log2());
 
 		if (alloc_ret.is_error()) {
 			PERR("%s: allocation of untyped memory failed", __FUNCTION__);
 			throw Phys_alloc_failed();
 		}
 
-		return Untyped_address(phys_addr, size);
+		return (addr_t)out_ptr;
+	}
+
+
+	static inline addr_t alloc_page(Range_allocator &phys_alloc)
+	{
+		return alloc_pages(phys_alloc, 1);
 	}
 
 
 	/**
-	 * Allocate natually aligned physical memory
-	 *
-	 * \param size  size in bytes
+	 * Local utility solely used by 'untyped_sel' and 'frame_sel'
 	 */
-	static inline Untyped_address alloc(Range_allocator &phys_alloc,
-	                                    size_t const size)
+	static inline Cap_sel _core_local_sel(Core_cspace::Top_cnode_idx top_idx,
+	                                      addr_t phys_addr)
 	{
-		if (size == 0) {
-			PERR("%s: invalid size of 0x%zd", __FUNCTION__, size);
-			throw Phys_alloc_failed();
-		}
+		unsigned const upper_bits = top_idx << Core_cspace::NUM_PHYS_SEL_LOG2;
+		unsigned const lower_bits = phys_addr >> get_page_size_log2();
 
-		/* calculate next power-of-two size that fits the allocation size */
-		size_t const size_log2 = log2(size - 1) + 1;
+		return Cap_sel(upper_bits | lower_bits);
+	}
 
-		return alloc_log2(phys_alloc, size_log2);
+
+	/**
+	 * Return core-local selector for untyped page at given physical address
+	 */
+	static inline Cap_sel untyped_sel(addr_t phys_addr)
+	{
+		return _core_local_sel(Core_cspace::TOP_CNODE_UNTYPED_IDX, phys_addr);
+	}
+
+
+	/**
+	 * Return core-local selector for 4K page frame at given physical address
+	 */
+	static inline Cap_sel frame_sel(addr_t phys_addr)
+	{
+		return _core_local_sel(Core_cspace::TOP_CNODE_PHYS_IDX, phys_addr);
 	}
 
 
@@ -85,41 +90,32 @@ struct Genode::Untyped_memory
 	static inline void convert_to_page_frames(addr_t phys_addr,
 	                                          size_t num_pages)
 	{
-		size_t const size = num_pages << get_page_size_log2();
+		for (size_t i = 0; i < num_pages; i++, phys_addr += get_page_size()) {
 
-		/* align allocation offset to page boundary */
-		Untyped_address const untyped_address(align_addr(phys_addr, 12), size);
+			seL4_Untyped const service     = untyped_sel(phys_addr).value();
+			int          const type        = seL4_IA32_4K;
+			int          const size_bits   = 0;
+			seL4_CNode   const root        = Core_cspace::TOP_CNODE_SEL;
+			int          const node_index  = Core_cspace::TOP_CNODE_PHYS_IDX;
+			int          const node_depth  = Core_cspace::NUM_TOP_SEL_LOG2;
+			int          const node_offset = phys_addr >> get_page_size_log2();
+			int          const num_objects = 1;
 
-		seL4_Untyped const service     = untyped_address.sel();
-		int          const type        = seL4_IA32_4K;
-		int          const offset      = untyped_address.offset();
-		int          const size_bits   = 0;
-		seL4_CNode   const root        = Core_cspace::TOP_CNODE_SEL;
-		int          const node_index  = Core_cspace::TOP_CNODE_PHYS_IDX;
-		int          const node_depth  = Core_cspace::NUM_TOP_SEL_LOG2;
-		int          const node_offset = phys_addr >> get_page_size_log2();
-		int          const num_objects = num_pages;
+			int const ret = seL4_Untyped_Retype(service,
+			                                    type,
+			                                    size_bits,
+			                                    root,
+			                                    node_index,
+			                                    node_depth,
+			                                    node_offset,
+			                                    num_objects);
 
-		int const ret = seL4_Untyped_RetypeAtOffset(service,
-		                                            type,
-		                                            offset,
-		                                            size_bits,
-		                                            root,
-		                                            node_index,
-		                                            node_depth,
-		                                            node_offset,
-		                                            num_objects);
-
-		if (ret != 0) {
-			PERR("%s: seL4_Untyped_RetypeAtOffset (IA32_4K) returned %d",
-			     __FUNCTION__, ret);
+			if (ret != 0) {
+				PERR("%s: seL4_Untyped_RetypeAtOffset (IA32_4K) returned %d",
+				     __FUNCTION__, ret);
+				return;
+			}
 		}
-	}
-
-	static inline unsigned frame_sel(addr_t phys_addr)
-	{
-		return (Core_cspace::TOP_CNODE_PHYS_IDX << Core_cspace::NUM_PHYS_SEL_LOG2)
-		     | (phys_addr >> get_page_size_log2());
 	}
 };
 
