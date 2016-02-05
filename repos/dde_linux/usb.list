@@ -3,6 +3,7 @@ linux-3.14.5/drivers/hid/hid-core.c
 linux-3.14.5/drivers/hid/hid-generic.c
 linux-3.14.5/drivers/hid/hid-ids.h
 linux-3.14.5/drivers/hid/hid-input.c
+linux-3.14.5/drivers/hid/hid-microsoft.c
 linux-3.14.5/drivers/hid/hid-multitouch.c
 linux-3.14.5/drivers/hid/usbhid/hid-core.c
 linux-3.14.5/drivers/hid/usbhid/hid-quirks.c
