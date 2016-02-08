@@ -1,0 +1,71 @@
+This directory contains an USB Mass Storage Bulk-Only driver. It uses
+the Usb session interface to access the USB device and provides Genode's
+Block service to its client.
+
+Behavior
+--------
+
+This driver only supports USB Mass Storage Bulk-Only devices that use the
+SCSI Block Commands set (direct-access). Devices using different command
+sets, e.g, SD/HC devices or some external disc drives will not work properly
+if at all. The following configuration snippets demonstrates how to use the
+driver:
+
+!<start name="usb_block_drv">
+!  <resource name="RAM" quantum="4M"/>
+!  <provides> <service name="Block"/> </provides>
+!  <config label="usb_stick" report="yes" writeable="yes" interface="0" lun="0"/>
+!  <route>
+!   <service name="Usb"> <child name="usb_drv"/> </service>
+!   <any-service> <parent/> <any-child/> </any-service>
+!  </route>
+!</start>
+
+The drivers 'config' node features a few attributes. First, there is the 'label'
+attribute. This attribute specifies the label used when opening the Usb session
+connection. A matching policy has to be configured at the USB host controller
+driver:
+
+!<start name="usb_drv">
+!  <resource name="RAM" quantum="8M"/>
+!  <provides><service name="Usb"/></provides>
+!  <config uhci="yes" ehci="yes" xhci="yes">
+!    <raw>
+!        <policy label="usb_block_drv -> usb_stick" vendor_id="0x13fe" product_id="0x5200"/>
+!    </raw>
+!  </config>
+!</start>
+
+For static configurations the 'label' value may be chosen freely or may even
+be ommitted entirely. On the other hand it is best for dynamic configurations
+to choose a unique label, e.g. 'usb-<bus>-<dev>', at run-time (this most likely
+involves other components that generate configurations for the 'usb_block_drv'
+as well as the 'usb_drv').
+
+
+The second attribute is 'report'. If its value is 'yes' the driver
+will generate a 'devices' report that contains meta information about the
+USB device it is accessing and hence the Block session it is provding, e.g.:
+
+!<devices>
+!  <device vendor="QEMU" product="QEMU USB HARDDRIVE" block_size="512" block_count="8192" writeable="no"/>
+!</devices>
+
+The report contains a 'device' node that includes the device's vendor name and
+the product description as well as its block size and the number of blocks.
+Although the parent node is called 'devices' the driver is only able to access
+one and the same device and the report will therefore always contain one device
+only.
+
+In addition to other attributes that can be used to configure sepecific aspects
+of the driver. The 'writeable' attribute denotes the permission of the Block
+session client to write to the USB device. Independent thereof the driver will
+query the device and will set the Block session operations accordingly. The
+'interface' specifies the USB interface the driver should use. If the device
+provides multiple SCSI devices the 'lun' attribute is used to select the right
+one.
+
+The configuration of the USB block driver cannot be changed at run-time. The
+driver is either used in a static system configuration where it is configured
+once or in case of a dynamic system configuration a new driver instance with
+a proper configuration is created on demand.
