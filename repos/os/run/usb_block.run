@@ -1,0 +1,161 @@
+set use_qemu [have_include "power_on/qemu"]
+
+#
+# Build
+#
+
+set build_components {
+	core init
+	drivers/timer
+	drivers/usb
+	drivers/usb_block
+	server/report_rom
+	test/blk/cli
+	test/blk/bench
+}
+
+lappend_if [have_spec gpio] build_components drivers/gpio
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+set config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>}
+
+append_platform_drv_config
+
+append_if [have_spec gpio] config {
+	<start name="gpio_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Gpio"/></provides>
+		<config/>
+	</start>}
+
+append config {
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+	<start name="report_rom">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="yes">
+			<policy report="usb_drv -> devices"/>
+		</config>
+	</start>
+	<start name="usb_drv">
+		<resource name="RAM" quantum="12M"/>
+		<provides> <service name="Usb"/> </provides>
+		<config uhci="yes" ehci="yes" xhci="yes">
+			<raw>
+				<report devices="no"/>}
+append_if [expr !$use_qemu] config  {
+				<!--
+					The order is important because the first policy always matches.
+				 -->
+				<!-- zte open c needs interface="3" -->
+				<policy vendor="0x19d2" product="0x1350"/>
+				<!-- kingston -->
+				<policy vendor="0x0951" product="0x1666"/>
+				<!-- voyager gt stick -->
+				<policy vendor="0x1b1c" product="0x1a09"/>
+				<!-- usb3 hdd adapter -->
+				<policy vendor="0x174c" product="0x5106"/>
+				<!-- lenovo disc -->
+				<policy vendor="0x0984" product="0x0066"/>
+}
+append_if $use_qemu config {
+				<policy bus="0x001" dev="0x002"/> }
+append config {
+			</raw>
+		</config>
+		<route>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="usb_block_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="Block"/> </provides>
+		<config report="yes"/>
+		<route>
+			<service name="Usb"> <child name="usb_drv"/> </service>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="test-usb">
+		<resource name="RAM" quantum="4M"/>
+		<!-- <binary name="test-blk-bench"/> -->
+		<binary name="test-blk-cli"/>
+		<config>
+			<libc stdout="/dev/log">
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
+		</config>
+		<route>
+			<service name="Block"> <child name="usb_block_drv"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer report_rom usb_drv usb_block_drv
+	test-blk-cli test-blk-bench
+	ld.lib.so libc.lib.so
+}
+
+append_platform_drv_boot_modules
+
+build_boot_image $boot_modules
+
+#
+# Execute test case
+#
+set disk_image "bin/test.img"
+set cmd "dd if=/dev/zero of=$disk_image bs=1M count=16"
+if {$use_qemu} {
+	puts "creating disk image:\n$cmd"
+	catch { exec sh -c $cmd }
+}
+
+#
+# Qemu opts for EHCI
+#
+append qemu_args " -m 128 -nographic -M pc -boot order=d "
+append qemu_args " -drive if=none,id=disk,file=$disk_image "
+append qemu_args " -device usb-ehci,id=ehci -device usb-storage,bus=ehci.0,drive=disk "
+
+run_genode_until {.*child "test-usb" exited with exit value 0.*} 100
