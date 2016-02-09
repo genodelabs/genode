@@ -163,6 +163,9 @@ append config {
 	<start name="decorator" priority="-1">
 		<binary name="decorator"/>
 		<resource name="RAM" quantum="8M"/>
+		<config>
+			<controls> <maximizer/> <title/> </controls>
+		</config>
 		<route>
 			<any-service>
 				<child name="wm"/> <child name="report_rom"/> <parent/> <any-child/>
