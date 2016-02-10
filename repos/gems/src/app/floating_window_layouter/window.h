@@ -308,8 +308,12 @@ class Floating_window_layouter::Window : public List<Window>::Element
 
 		void finalize_drag_operation()
 		{
-			_requested_size = _geometry.area();
-			_is_dragged     = false;
+			_requested_size     = _geometry.area();
+			_is_dragged         = false;
+			_drag_left_border   = false;
+			_drag_right_border  = false;
+			_drag_top_border    = false;
+			_drag_bottom_border = false;
 		}
 
 		void topped() { _topped_cnt++; }
