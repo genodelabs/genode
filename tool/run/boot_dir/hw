@@ -149,7 +149,7 @@ proc run_boot_dir {binaries} {
 		# as startup is done in 32 bit mode, GRUB expects a 32 bit image
 		exec [cross_dev_prefix]objcopy -O elf32-i386 bin/$core_bin $elf_img
 	}
-	if {[expr [have_spec "arm"] || [have_spec "x86_32"]]} {
+	if {[expr [have_spec "arm"] || [have_spec "x86_32"] || [have_spec "riscv"]]} {
 		exec cp -L bin/$core_bin $elf_img
 	}
 
