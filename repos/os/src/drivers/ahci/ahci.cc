@@ -185,6 +185,19 @@ struct Ahci
 		return port_num < MAX_PORTS && ports[port_num] && !port_claimed[port_num] &&
 		       ports[port_num]->ready();
 	}
+
+	long device_number(const char *model_num, const char *serial_num)
+	{
+		for (long port_num = 0; port_num < MAX_PORTS; port_num++) {
+			Ata_driver* drv = dynamic_cast<Ata_driver *>(ports[port_num]);
+			if (!drv)
+				continue;
+
+			if (*drv->model == model_num && *drv->serial == serial_num)
+				return port_num;
+		}
+		return -1;
+	}
 };
 
 
@@ -219,5 +232,10 @@ bool Ahci_driver::is_avail(long device_num)
 	return sata_ahci()->is_avail(device_num);
 }
 
+
+long Ahci_driver::device_number(char const *model_num, char const *serial_num)
+{
+	return sata_ahci()->device_number(model_num, serial_num);
+}
 
 

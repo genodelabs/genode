@@ -26,6 +26,9 @@ struct Identity : Genode::Mmio
 {
 	Identity(Genode::addr_t base) : Mmio(base) { }
 
+	struct Serial_number : Register_array<0x14, 8, 20, 8> { };
+	struct Model_number : Register_array<0x36, 8, 40, 8> { };
+
 	struct Queue_depth : Register<0x96, 16>
 	{
 		struct Max_depth : Bitfield<0, 5> { };
@@ -70,6 +73,40 @@ struct Identity : Genode::Mmio
 		     read<Alignment::Logical_offset>());
 	}
 };
+
+
+/**
+ * 16-bit word big endian device ASCII characters
+ */
+template <typename DEVICE_STRING>
+struct String
+{
+	char buf[DEVICE_STRING::ITEMS + 1];
+
+	String(Identity & info)
+	{
+		long j = 0;
+		for (unsigned long i = 0; i < DEVICE_STRING::ITEMS; i++) {
+			/* read and swap even and uneven characters */
+			char c = (char)info.read<DEVICE_STRING>(i ^ 1);
+			if (Genode::is_whitespace(c) && j == 0)
+				continue;
+			buf[j++] = c;
+		}
+
+		buf[j] = 0;
+
+		/* remove trailing white spaces */
+		while ((j > 0) && (buf[--j] == ' '))
+			buf[j] = 0;
+	}
+
+	bool operator == (char const *other) const
+	{
+		return strcmp(buf, other) == 0;
+	}
+};
+
 
 /**
  * Commands to distinguish between ncq and non-ncq operation
@@ -135,9 +172,15 @@ struct Dma_ext_command : Io_command
  */
 struct Ata_driver : Port_driver
 {
-	Genode::Lazy_volatile_object<Identity>   info;
-	Io_command                              *io_cmd = nullptr;
-	Block::Packet_descriptor                 pending[32];
+	typedef ::String<Identity::Serial_number> Serial_string;
+	typedef ::String<Identity::Model_number>  Model_string;
+
+	Genode::Lazy_volatile_object<Identity>      info;
+	Genode::Lazy_volatile_object<Serial_string> serial;
+	Genode::Lazy_volatile_object<Model_string>  model;
+
+	Io_command                               *io_cmd = nullptr;
+	Block::Packet_descriptor                  pending[32];
 
 	Ata_driver(Port &port, Signal_context_capability state_change)
 	: Port_driver(port, state_change)
@@ -242,8 +285,14 @@ struct Ata_driver : Port_driver
 
 			if (Port::Is::Dss::get(status) || Port::Is::Pss::get(status)) {
 				info.construct(device_info);
-				if (verbose)
+				serial.construct(*info);
+				model.construct(*info);
+
+				if (verbose) {
+					PLOG("\t\tmodel number: %s", model->buf);
+					PLOG("\t\tserial number: %s", serial->buf);
 					info->info();
+				}
 
 				check_device();
 				if (ncq_support())
