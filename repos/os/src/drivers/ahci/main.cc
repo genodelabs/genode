@@ -61,7 +61,7 @@ class Block::Root_multiple_clients : public Root_component< ::Session_component>
 
 		Server::Entrypoint &_ep;
 
-		long _device_num(const char *session_label)
+		long _device_num(const char *session_label, char *model, char *sn, Genode::size_t bufs_len)
 		{
 			long num = -1;
 
@@ -77,8 +77,14 @@ class Block::Root_multiple_clients : public Root_component< ::Session_component>
 					if (Genode::strcmp(session_label, label_buf))
 						continue;
 
-					/* read device attribute */
-					policy.attribute("device").value(&num);
+					/* try read device port number attribute */
+					try {
+						policy.attribute("device").value(&num);
+					} catch (...) {
+						/* try read device model and serial number attributes */
+						policy.attribute("model").value(model, bufs_len);
+						policy.attribute("sn").value(sn, bufs_len);
+					}
 					break;
 				}
 			} catch (...) {}
@@ -96,12 +102,20 @@ class Block::Root_multiple_clients : public Root_component< ::Session_component>
 			/* TODO: build quota check */
 
 			/* Search for configured device */
-			char label_buf[64];
+			constexpr Genode::size_t STR_ID_LEN = 64;
+			char label_buf[64], model_buf[STR_ID_LEN], sn_buf[STR_ID_LEN];
+			Genode::memset(model_buf, 0, sizeof(model_buf));
+			Genode::memset(sn_buf, 0, sizeof(sn_buf));
+
 			Genode::Arg_string::find_arg(args,
 			                             "label").string(label_buf,
 			                                             sizeof(label_buf),
 			                                             "<unlabeled>");
-			long num = _device_num(label_buf);
+			long num = _device_num(label_buf, model_buf, sn_buf, STR_ID_LEN);
+			if (num < 0) {
+				if ((model_buf[0] != 0) && (sn_buf[0] != 0))
+					num = Ahci_driver::is_avail(model_buf, sn_buf);
+			}
 			if (num < 0) {
 				PERR("No confguration found for client: %s", label_buf);
 				throw Root::Invalid_args();

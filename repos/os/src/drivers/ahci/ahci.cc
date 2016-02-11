@@ -185,6 +185,23 @@ struct Ahci
 		return port_num < MAX_PORTS && ports[port_num] && !port_claimed[port_num] &&
 		       ports[port_num]->ready();
 	}
+
+	long is_avail(const char *model_num, const char *serial_num)
+	{
+		for (long port_num = 0; port_num < MAX_PORTS; port_num++) {
+			Ata_driver* drv = dynamic_cast<Ata_driver*>(ports[port_num]);
+			if (drv && !port_claimed[port_num] && drv->ready()) {
+				char mn[Identity::Model_number::ITEMS + 1];
+				char sn[Identity::Serial_number::ITEMS + 1];
+				drv->info->get_device_number<Identity::Model_number>(mn);
+				drv->info->get_device_number<Identity::Serial_number>(sn);
+				if ((Genode::strcmp(mn, model_num) == 0) && (Genode::strcmp(sn, serial_num) == 0))
+					return port_num;
+			}
+		}
+
+		return -1;
+	}
 };
 
 
@@ -219,5 +236,9 @@ bool Ahci_driver::is_avail(long device_num)
 	return sata_ahci()->is_avail(device_num);
 }
 
+long Ahci_driver::is_avail(const char *model_num, const char *serial_num)
+{
+	return sata_ahci()->is_avail(model_num, serial_num);
+}
 
 

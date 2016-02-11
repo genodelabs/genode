@@ -26,6 +26,9 @@ struct Identity : Genode::Mmio
 {
 	Identity(Genode::addr_t base) : Mmio(base) { }
 
+	struct Serial_number : Register_array<0x14, 8, 20, 8> { };
+	struct Model_number : Register_array<0x36, 8, 40, 8> { };
+
 	struct Queue_depth : Register<0x96, 16>
 	{
 		struct Max_depth : Bitfield<0, 5> { };
@@ -54,6 +57,15 @@ struct Identity : Genode::Mmio
 
 	void info()
 	{
+		char mn[Model_number::ITEMS + 1];
+		get_device_number<Model_number>(mn);
+		if (mn[0] != 0)
+			PLOG("\t\tModel number: %s", mn);
+		char sn[Serial_number::ITEMS + 1];
+		get_device_number<Serial_number>(sn);
+		if (sn[0] != 0)
+			PLOG("\t\tSerial number: %s", sn);
+
 		PLOG("\t\tqueue depth: %u ncq: %u",
 		     read<Queue_depth::Max_depth>() + 1,
 		     read<Sata_caps::Ncq_support>());
@@ -68,6 +80,23 @@ struct Identity : Genode::Mmio
 		     read<Logical_words>());
 		PLOG("\t\toffset of first logical block within physical: %u",
 		     read<Alignment::Logical_offset>());
+	}
+
+	template <typename Device_number>
+	void get_device_number(char output[Device_number::ITEMS + 1])
+	{
+		long j = 0;
+		for (unsigned long i = 0; i < Device_number::ITEMS; i++) {
+			char c = (char) (read<Device_number>(i ^ 1));
+			if ((c == ' ') && (j == 0))
+				continue;
+			output[j++] = c;
+		}
+
+		output[j] = 0;
+
+		while ((j > 0) && (output[--j] == ' '))
+			output[j] = 0;
 	}
 };
 
