@@ -332,7 +332,13 @@ class Kernel::Cpu_pool
 	private:
 
 		Timer _timer;
-		char  _cpus[NR_OF_CPUS][sizeof(Cpu)];
+
+		/*
+		 * Align to machine word size, otherwise load/stores might fail on some
+		 * platforms.
+		 */
+		char _cpus[NR_OF_CPUS][sizeof(Cpu)]
+		     __attribute__((aligned(sizeof(addr_t))));
 
 	public:
 

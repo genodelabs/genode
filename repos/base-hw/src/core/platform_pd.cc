@@ -2,6 +2,7 @@
  * \brief   Protection-domain facility
  * \author  Martin Stein
  * \author  Stefan Kalkowski
+ * \author  Sebastian Sumpf
  * \date    2012-02-12
  */
 
@@ -210,9 +211,16 @@ void Core_platform_pd::_map(addr_t start, addr_t end, bool io_mem)
 	const Page_flags flags =
 		Page_flags::apply_mapping(true, io_mem ? UNCACHED : CACHED, io_mem);
 
-	start        = trunc_page(start);
-	size_t size  = round_page(end) - start;
+	start = trunc_page(start);
 
+	/* omitt regions before vm_start */
+	if (start < VIRT_ADDR_SPACE_START)
+		start = VIRT_ADDR_SPACE_START;
+
+	if (end > VIRT_ADDR_SPACE_START + VIRT_ADDR_SPACE_SIZE)
+		end = VIRT_ADDR_SPACE_START + VIRT_ADDR_SPACE_SIZE;
+
+	size_t size  = round_page(end) - start;
 	try {
 		_table()->insert_translation(start, start, size, flags, _table_alloc());
 	} catch(Allocator::Out_of_memory) {
