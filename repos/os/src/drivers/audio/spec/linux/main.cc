@@ -22,6 +22,7 @@
 #include <cap_session/connection.h>
 #include <audio_out_session/rpc_object.h>
 #include <util/misc_math.h>
+#include <os/config.h>
 
 #include "alsa.h"
 
@@ -269,10 +270,17 @@ int main(int argc, char **argv)
 	static Signal_context  data_context;
 	static Signal_context_capability data_cap(data_recv.manage(&data_context));
 
+	char dev[32] = { 'h', 'w', 0 };
+	try {
+		Genode::Xml_node config = Genode::config()->xml_node();
+		config.attribute("alsa_device").value(dev, sizeof(dev));
+	} catch (...) { }
+
 	/* init ALSA */
-	int err = audio_drv_init();
+	int err = audio_drv_init(dev);
 	if (err) {
-		PERR("audio driver init returned %d", err);
+		if (err == -1) PERR("Could not open ALSA device '%s'.", dev);
+		else           PERR("audio driver init returned %d", err);
 		return 0;
 	}
 	audio_drv_start();
