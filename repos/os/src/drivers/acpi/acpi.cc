@@ -1223,10 +1223,11 @@ class Acpi_table
 
 			addr_t const rsdt = rsdp->rsdt;
 			addr_t const xsdt = rsdp->xsdt;
+			uint8_t const acpi_revision = rsdp->revision;
 			/* drop rsdp io_mem mapping since rsdt/xsdt may overlap */
 			env()->parent()->close(io_mem);
 
-			if (xsdt && sizeof(addr_t) != sizeof(uint32_t)) {
+			if (acpi_revision != 0 && xsdt && sizeof(addr_t) != sizeof(uint32_t)) {
 				/* running 64bit and xsdt is valid */
 				Table_wrapper table(xsdt);
 				uint64_t * entries = reinterpret_cast<uint64_t *>(table.table() + 1);
