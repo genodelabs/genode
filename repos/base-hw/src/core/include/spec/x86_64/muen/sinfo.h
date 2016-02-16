@@ -58,6 +58,15 @@ class Genode::Sinfo
 			bool has_vector;
 		};
 
+		/* Structure holding information about PCI devices */
+		struct Dev_info {
+			uint16_t sid;
+			uint16_t irte_start;
+			uint8_t irq_start;
+			uint8_t ir_count;
+			bool msi_capable;
+		};
+
 		/*
 		 * Check Muen sinfo Magic.
 		 */
@@ -80,6 +89,14 @@ class Genode::Sinfo
 		 */
 		static bool get_memregion_info(const char * const name,
 				struct Memregion_info *memregion);
+
+		/*
+		 * Return information for PCI device with given SID.
+		 *
+		 * The function returns false if no device information for the
+		 * specified device exists.
+		 */
+		static bool get_dev_info(const uint16_t sid, struct Dev_info *dev);
 
 		/*
 		 * Channel callback.

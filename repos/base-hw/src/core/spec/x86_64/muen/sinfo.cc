@@ -116,6 +116,19 @@ static bool is_channel(const struct resource_type * const resource)
 }
 
 
+/* Fill dev struct with data from PCI device info given by index */
+static void fill_dev_data(uint8_t idx, struct Genode::Sinfo::Dev_info *dev)
+{
+	const struct dev_info_type dev_info = sinfo->dev_info[idx];
+
+	dev->sid         = dev_info.sid;
+	dev->irte_start  = dev_info.irte_start;
+	dev->irq_start   = dev_info.irq_start;
+	dev->ir_count    = dev_info.ir_count;
+	dev->msi_capable = dev_info.flags & DEV_MSI_FLAG;
+}
+
+
 Sinfo::Sinfo()
 {
 	if (!check_magic()) {
@@ -169,6 +182,23 @@ bool Sinfo::get_memregion_info(const char * const name,
 		if (is_memregion(&sinfo->resources[i]) &&
 			strcmp(sinfo->resources[i].name.data, name) == 0) {
 			fill_memregion_data(i, memregion);
+			return true;
+		}
+	}
+	return false;
+}
+
+
+bool Sinfo::get_dev_info(const uint16_t sid, struct Dev_info *dev)
+{
+	int i;
+
+	if (!check_magic())
+		return false;
+
+	for (i = 0; i < sinfo->dev_info_count; i++) {
+		if (sinfo->dev_info[i].sid == sid) {
+			fill_dev_data(i, dev);
 			return true;
 		}
 	}
