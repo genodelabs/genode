@@ -122,6 +122,19 @@ namespace Genode {
 			                           unsigned polarity);
 
 			/**
+			 * Get MSI-related parameters from device PCI config space
+			 *
+			 * \param mmconf      PCI config space address of device
+			 * \param address     MSI address register value to use
+			 * \param data        MSI data register value to use
+			 * \param irq_number  IRQ to use
+			 *
+			 * \return  true if the device is MSI-capable, false if not
+			 */
+			static bool get_msi_params(const addr_t mmconf,
+			                           addr_t &address, addr_t &data,
+			                           unsigned &irq_number);
+			/**
 			 * Return address of cores translation table allocator
 			 */
 			static addr_t core_translation_tables();
