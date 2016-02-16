@@ -29,7 +29,15 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
 
+
 void Platform::setup_irq_mode(unsigned, unsigned, unsigned) { }
+
+
+bool Platform::get_msi_params(const addr_t mmconf, addr_t &address,
+                              addr_t &data, unsigned &irq_number)
+{
+	return false;
+}
 
 
 Native_region * Platform::_ram_regions(unsigned const i)
