@@ -18,12 +18,14 @@
 
 namespace Linker {
 
-	inline Elf::Addr dynamic_section_address()
+	inline unsigned long dynamic_address()
 	{
-		Elf::Addr d;
-		asm volatile ("lla %0, _DYNAMIC" : "=r"(d));
-		return d;
+		unsigned long addr;
+		asm volatile ("lla %0, _DYNAMIC" : "=r"(addr));
+		return addr;
 	}
+
+	inline unsigned long relocation_address(void) { return 0; }
 
 /**
  * Relocation types
