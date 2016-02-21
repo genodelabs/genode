@@ -63,9 +63,6 @@ int audio_drv_init(char const * const device)
 }
 
 
-void audio_drv_adopt_myself() { }
-
-
 int audio_drv_play(void *data, int frame_cnt)
 {
 	int err;

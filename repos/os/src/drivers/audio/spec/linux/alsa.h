@@ -20,7 +20,6 @@ extern "C" {
 #endif
 
 int audio_drv_init(char const * const);
-void audio_drv_adopt_myself();
 int audio_drv_play(void *data, int frame_cnt);
 void audio_drv_stop(void);
 void audio_drv_start(void);
