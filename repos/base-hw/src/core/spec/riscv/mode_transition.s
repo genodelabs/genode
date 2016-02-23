@@ -353,11 +353,10 @@ _mt_kernel_entry_pic:
 
 	#
 	# FIXME
-	# A TLB flush. Might be necessary to add this in the near future again
+	# A TLB flush. Might be necessary to remove this in the near future again
 	# because on real hardware we currently get problems without.
 	#
-
-	# sfence.vm x0
+	sfence.vm x0
 
 	# save x29 - x31 in user context 
 	mv   x29, x31
@@ -430,11 +429,11 @@ _mt_user_entry_pic:
 
 	#
 	# FIXME
-	# A TLB flush. Might be necessary to add this in the near future again
+	# A TLB flush. Might be necessary to remove this in the near future again
 	# because on real hardware we currently get problems without.
 	#
 
-	# sfence.vm x0
+	sfence.vm x0
 
 	# restore x29 - x31 from master context 
 	.irp reg,31,30,29
