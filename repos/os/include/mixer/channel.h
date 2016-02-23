@@ -53,8 +53,8 @@ struct Mixer::Channel
 			node.attribute("label").value(&label);
 			number = (Channel::Number) node.attribute_value<long>("number", 0);
 			volume = node.attribute_value<long>("volume", 0);
-			active = node.attribute_value<long>("active", 0);
-			muted  = node.attribute_value<long>("muted", 0);
+			active = node.attribute_value<bool>("active", true);
+			muted  = node.attribute_value<bool>("muted", true);
 		} catch (...) { throw Invalid_channel(); }
 	}
 };
