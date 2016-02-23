@@ -18,10 +18,13 @@ which client can access a certain device:
 !    <any-service> <parent /> <any-child /> </any-service>
 !  </route>
 !  <config>
-!    <policy label="test-ahci" device="0" />
+!    <!-- use model and serial number -->
+!    <policy label="test-ahci" model="QEMU HARDDISK" serial="QM00005" />
+!    <!-- use controller port number -->
 !    <policy label="bench" device="1" />
 !  </config>
 !</start>
 
-In the example above, a session request labeled with "test-ahci"
-gains access to device 0, while "bench" gains access to device 1.
+In the example above, a session request labeled with "test-ahci" gains access to
+a device with certain model and serial numbers, while "bench" gains access to
+device at port 1.
