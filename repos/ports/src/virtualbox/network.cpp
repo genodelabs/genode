@@ -420,10 +420,12 @@ static DECLCALLBACK(int) drvNicAsyncIoThread(PPDMDRVINS pDrvIns, PPDMTHREAD pThr
  */
 static DECLCALLBACK(int) drvNicAsyncIoWakeup(PPDMDRVINS pDrvIns, PPDMTHREAD pThread)
 {
-	/*
-	 * Since we already wake up on singals in the I/O thread function
-	 * we just return success at this point.
-	 */
+	PDRVNIC pThis = PDMINS_2_DATA(pDrvIns, PDRVNIC);
+	Nic_client *nic_client = pThis->nic_client;
+
+	if (nic_client)
+		Genode::Signal_transmitter(nic_client->dispatcher()).submit();
+
 	return VINF_SUCCESS;
 }
 
