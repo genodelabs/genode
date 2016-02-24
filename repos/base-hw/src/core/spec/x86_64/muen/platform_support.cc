@@ -35,28 +35,22 @@ struct Mmconf_address : Register<64>
 		return Sid::get(addr - PCI_CONFIG_BASE); }
 };
 
-struct Msi_handle : Register<16>
-{
-	struct Bits_0 : Bitfield<0, 15> { };
-	struct Bits_1 : Bitfield<15, 1> { };
-};
-
 struct Msi_address : Register<32>
 {
 	enum { BASE = 0xfee00010 };
 
 	struct Bits_0 : Bitfield<5, 15> { };
 	struct Bits_1 : Bitfield<2, 1> { };
+	struct Handle : Bitset_2<Bits_0, Bits_1> { };
 
 	/**
 	 * Return MSI address register value for given handle to enable Interrupt
 	 * Requests in Remappable Format, see VT-d specification section 5.1.2.2.
 	 */
-	static access_t to_msi_addr(Msi_handle::access_t const handle)
+	static access_t to_msi_addr(Msi_address::Handle::access_t const handle)
 	{
 		access_t addr = BASE;
-		Bits_0::set(addr, Msi_handle::Bits_0::get(handle));
-		Bits_1::set(addr, Msi_handle::Bits_1::get(handle));
+		Handle::set(addr, handle);
 		return addr;
 	}
 };
