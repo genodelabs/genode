@@ -40,10 +40,12 @@ but build upon of each other:
     See [http://genode.org/documentation/platforms/foc]
 
   :'hw':
-    The hw platform allows the execution of Genode on bare ARM hardware
+    The hw platform allows the execution of Genode on bare ARM and x86 hardware
     without the need for a separate kernel. The kernel functionality is
-    included in core.
-    See [http://genode.org/documentation/platforms/hw]
+    included in core except in the special case of the Muen separation
+    kernel.
+    See [http://genode.org/documentation/platforms/hw] and
+    [http://genode.org/documentation/platforms/muen]
 
   :'okl4':
     OKL4 kernel (x86_32 and ARM) developed at Open-Kernel-Labs.
