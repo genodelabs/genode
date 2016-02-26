@@ -4,6 +4,34 @@
                                ===========
 
 
+Genode OS Framework release 16.02 | 2016-02-26
+##############################################
+
+| Genode 16.02 introduces the RISC-V hardware architecture to the framework,
+| enables the secure pass-through of USB devices to virtual machines, and
+| updates the Muen separation kernel and the seL4 microkernel.
+
+In contrast to the feature-oriented previous release, the new version focuses
+on diverse topics around low-level platform support. First, there is the
+addition of a new hardware architecture. With the addition of RISC-V,
+we anticipate future trustworthy open-source hardware platforms.
+
+Second, as the major functional addition motivated by Genode's use as
+day-to-day OS, the new version adds the ability to assign USB devices to
+virtual machines in a dynamic yet secure way. This clears the way to cover
+many typical desktop work-flows with a Genode-based system.
+
+With respect to the framework's underlying kernels, we are happy to
+announce the update of the Muen separation kernel to version 0.7 and the
+update of the seL4 kernel to version 2.1. The new version of Muen comes with
+welcome work-flow improvements. In fact, the separation kernel can now be
+targeted by Genode's automation tools in the same uniform way as all the other
+base platforms.
+
+An in-depth coverage of these and many more improvements is provided by the
+[http:/documentation/release-notes/16.02 - release documentation of version 16.02...]
+
+
 Road Map for 2016 | 2016-01-15
 ##############################
 
