@@ -37,6 +37,7 @@ extern "C" void module_hid_generic_init();
 extern "C" void module_usb_storage_driver_init();
 extern "C" void module_wacom_driver_init();
 extern "C" void module_ch_driver_init();
+extern "C" void module_ms_driver_init();
 extern "C" void module_mt_driver_init();
 extern "C" void module_raw_driver_init();
 
@@ -73,6 +74,7 @@ static void init(Services *services)
 		module_hid_init();
 		module_hid_generic_init();
 		module_ch_driver_init();
+		module_ms_driver_init();
 		module_mt_driver_init();
 		module_wacom_driver_init();
 	}

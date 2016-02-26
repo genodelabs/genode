@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -16,6 +16,7 @@
 #define _KERNEL__KERNEL_H_
 
 #include <pic.h>
+#include <board.h>
 
 /**
  * Main routine of every kernel pass
@@ -26,11 +27,10 @@ extern "C" void kernel();
 namespace Kernel {
 
 	class Pd;
-	class Mode_transition_control;
 
-	Pd                      * core_pd();
-	Mode_transition_control * mtc();
-	Pic                     * pic();
+	Pd            * core_pd();
+	Pic           * pic();
+	Genode::Board & board();
 }
 
 #endif /* _KERNEL__KERNEL_H_ */

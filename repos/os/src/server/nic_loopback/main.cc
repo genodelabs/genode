@@ -130,13 +130,13 @@ void Nic::Loopback_component::_handle_packet_stream()
 			continue;
 		}
 
-			Genode::memcpy(_rx.source()->packet_content(packet_to_client),
-			               _tx.sink()->packet_content(packet_from_client),
-			               packet_from_client.size());
+		Genode::memcpy(_rx.source()->packet_content(packet_to_client),
+		               _tx.sink()->packet_content(packet_from_client),
+		               packet_from_client.size());
 
-			packet_to_client = Packet_descriptor(packet_to_client.offset(), packet_from_client.size());
-			_rx.source()->submit_packet(packet_to_client);
-
+		packet_to_client = Packet_descriptor(packet_to_client.offset(),
+		                                     packet_from_client.size());
+		_rx.source()->submit_packet(packet_to_client);
 
 		_tx.sink()->acknowledge_packet(packet_from_client);
 	}

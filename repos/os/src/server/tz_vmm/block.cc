@@ -206,7 +206,7 @@ class Device_registry
 			char label[Device::MAX_NAME_LEN];
 			config.sub_node(node_id).attribute("label").value(label, sizeof(label));
 
-			unsigned irq;
+			unsigned irq = ~0;
 			config.sub_node(node_id).attribute("irq").value(&irq);
 
 			static unsigned dev_id = 0;

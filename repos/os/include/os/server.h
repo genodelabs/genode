@@ -15,6 +15,8 @@
 #define _INCLUDE__OS__SERVER_H_
 
 #include <os/signal_rpc_dispatcher.h>
+#include <util/noncopyable.h>
+
 
 namespace Server {
 
@@ -37,7 +39,7 @@ namespace Server {
 }
 
 
-class Server::Entrypoint
+class Server::Entrypoint : Genode::Noncopyable
 {
 	private:
 

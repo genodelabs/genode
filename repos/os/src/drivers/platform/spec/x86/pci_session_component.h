@@ -145,7 +145,8 @@ namespace Platform {
 
 				Devicepd (Genode::Rpc_entrypoint &ep,
 				          Genode::Allocator_guard &md_alloc,
-				          Genode::Ram_session_capability ram_ref_cap)
+				          Genode::Ram_session_capability ram_ref_cap,
+				          const char * label)
 				:
 				  policy(nullptr),
 				  child(Genode::reinterpret_cap_cast<Device_pd>(Genode::Native_capability())),
@@ -161,7 +162,7 @@ namespace Platform {
 					}
 
 					try {
-						policy = new (md_alloc) Device_pd_policy(ep, ram_ref_cap, DEVICE_PD_RAM_QUOTA);
+						policy = new (md_alloc) Device_pd_policy(ep, ram_ref_cap, DEVICE_PD_RAM_QUOTA, label);
 
 						using Genode::Session_capability;
 						using Genode::Affinity;
@@ -199,10 +200,10 @@ namespace Platform {
 				bool valid() { return policy && policy->root().valid() && child.valid(); }
 			};
 
-			Genode::Lazy_volatile_object<struct Devicepd> _device_pd;
-
 			Genode::Session_label                       _label;
 			Genode::Session_policy                      _policy;
+
+			Genode::Lazy_volatile_object<struct Devicepd> _device_pd;
 
 			enum { MAX_PCI_DEVICES = Device_config::MAX_BUSES *
 			                         Device_config::MAX_DEVICES *
@@ -266,12 +267,10 @@ namespace Platform {
 			 * A io mem dataspace is created and returned.
 			 */
 			Genode::addr_t
-			lookup_config_space(Genode::uint8_t bus, Genode::uint8_t dev,
-			                    Genode::uint8_t func)
+			lookup_config_space(Genode::uint16_t const bdf)
 			{
 				using namespace Genode;
 
-				uint32_t bdf = (bus << 8) | ((dev & 0x1f) << 3) | (func & 0x7);
 				addr_t config_space = ~0UL; /* invalid */
 
 				Config_space *e = config_space_list().first();
@@ -670,7 +669,7 @@ namespace Platform {
 
 					/* lookup if we have a extended pci config space */
 					Genode::addr_t config_space =
-						lookup_config_space(bus, device, function);
+						lookup_config_space(config.bdf());
 
 					/*
 					 * A device was found. Create a new device component for the
@@ -747,13 +746,14 @@ namespace Platform {
 
 				if (!_device_pd.is_constructed())
 					_device_pd.construct(_device_pd_ep, _md_alloc,
-					                     _resources.ram().cap());
+					                     _resources.ram().cap(),
+					                     _label.string());
 
 				if (!_device_pd->valid())
 					return;
 
 				try {
-					_device_pd->child.assign_pci(io_mem);
+					_device_pd->child.assign_pci(io_mem, device->config().bdf());
 
 					for (Rmrr *r = Rmrr::list()->first(); r; r = r->next()) {
 						Io_mem_dataspace_capability rmrr_cap = r->match(device->config());
@@ -774,7 +774,8 @@ namespace Platform {
 			{
 				if (!_device_pd.is_constructed())
 					_device_pd.construct(_device_pd_ep, _md_alloc,
-					                     _resources.ram().cap());
+					                     _resources.ram().cap(),
+					                     _label.string());
 
 				if (!_md_alloc.withdraw(size))
 					throw Out_of_metadata();

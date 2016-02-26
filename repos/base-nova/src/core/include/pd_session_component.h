@@ -70,7 +70,7 @@ namespace Genode {
 
 			int bind_thread(Thread_capability);
 			int assign_parent(Parent_capability);
-			bool assign_pci(addr_t);
+			bool assign_pci(addr_t, uint16_t);
 	};
 }
 

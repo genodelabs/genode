@@ -56,8 +56,8 @@ struct Kernel::Vm_irq : Kernel::Irq
 	 */
 	void occurred()
 	{
-		Cpu_job * job = cpu_pool()->executing_cpu()->scheduled_job();
-		Vm *vm = dynamic_cast<Vm*>(job);
+		Cpu_job & job = cpu_pool()->executing_cpu()->scheduled_job();
+		Vm *vm = dynamic_cast<Vm*>(&job);
 		if (!vm)
 			PERR("VM timer interrupt while VM is not runnning!");
 		else
@@ -193,7 +193,7 @@ void Kernel::prepare_hypervisor()
 	Cpu::Hcptr::write(Cpu::Hcptr::init());
 	Cpu::Hmair0::write(Cpu::Mair0::init_virt_kernel());
 	Cpu::Vtcr::write(Cpu::Vtcr::init());
-	Cpu::Hsctlr::write(Cpu::Sctlr::init_virt_kernel());
+	Cpu::Hsctlr::write(Cpu::Sctlr::init_value());
 
 	/* initialize host context used in virtualization world switch */
 	*((void**)&_vt_host_context_ptr) = &_mt_master_context_begin;

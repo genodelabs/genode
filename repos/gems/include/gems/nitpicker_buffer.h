@@ -86,7 +86,8 @@ struct Nitpicker_buffer
 	                 Genode::Ram_session &ram)
 	:
 		ram(ram), nitpicker(nitpicker),
-		mode(size.w(), size.h(), nitpicker.mode().format())
+		mode(Genode::max(1UL, size.w()), Genode::max(1UL, size.h()),
+		     nitpicker.mode().format())
 	{ }
 
 	/**

@@ -18,15 +18,112 @@ Tutorial
 ########
 
 For information on how to download, build and prove the Muen SK refer to the
-project website. In summary, after installing the Ada/SPARK tool-chain and all
-required distribution packages, execute the following commands:
+project website. In summary: install the Ada/SPARK tool-chain and all required
+distribution packages. Also ensure that you have installed the Genode tool-chain
+that is available at:
+
+:[http://genode.org/download/tool-chain]:
+  Genode tool-chain
+
+To automatically download the Muen kernel and integrate it with Genode, issue
+the following commands:
+
+! cd <genode_dir>
+! tool/ports/prepare_port muen
+
+The next step is to create a build directory prepared for compiling Genode for
+Muen. Use the create_builddir tool for this task:
+
+! tool/create_builddir hw_x86_64_muen
+
+You can customize Muen system by changing the --image-muen RUN_OPT parameters
+in the 'build.conf' file in the build directory under build/etc.
+
+The file contains explanatory comments above each configuration variable, which
+are all set to their default values.
+
+Muen systems are built for a specific hardware platform and by default the
+system is built for the Lenovo T430s. All currently supported platforms have a
+corresponding hardware specification which can be found in the Muen project
+directory under 'policy/platform'. Note that the Muen project directory can be
+found at '<genode_dir>/contrib/muen-*/src/kernel/muen'.
+
+To get a list of all currently supported platforms issue the following command:
+
+! ls contrib/muen-*/src/kernel/muen/policy/platform/ | cut -f 1 -d '.'
+
+Set the --image-muen-hardware parameter to your intended hardware platform and
+change the other parameters to match your environment.
+
+If no platform configuration for your specific hardware is available, refer to
+the README of the 'mugenplcfg' tool
+[http://git.codelabs.ch/?p=muen/mugenplcfg.git] for instructions on how to
+generate a new configuration.
+
+You can now change to the created build directory and compile a Genode system:
+
+! cd build/hw_x86_64_muen/
+! make run/printf
+
+Once the build is done, the Muen system which contains the Genode scenario is
+available as a Multiboot binary image under 'var/run/printf/image.bin'. If an
+error occurs during the Muen build process check the log file located at
+'kernel/build.log'.
+
+Automated hardware deployment
+#############################
+
+For automated deployment and execution on real hardware, the iPXE and AMT run
+mechanisms provided by the Genode build system can be used. The modules are
+controlled by the RUN_OPT variable specified in the 'etc/build.conf' file.  An
+example configuration for executing a Muen/Genode system on a real x86 machine
+using AMT for resetting the target system and capturing the log output while
+loading the Muen system image via iPXE:
+
+!RUN_OPT += --include power_on/amt
+!RUN_OPT += --power-on-amt-host 192.168.254.2
+!RUN_OPT += --power-on-amt-password 'foo!'
+!RUN_OPT += --include load/ipxe
+!RUN_OPT += --load-ipxe-base-dir /srv/www
+!RUN_OPT += --load-ipxe-boot-dir boot
+!RUN_OPT += --include log/amt
+!RUN_OPT += --log-amt-host 192.168.254.2
+!RUN_OPT += --log-amt-password 'foo!'
+
+The target machine is expected to request the following iPXE configuration:
+http://${HOST_URL}/${ipxe-boot-dir}/boot.cfg. This can be achieved by building
+iPXE with the following embedded script:
+
+! #!ipxe
+! dhcp
+! chain http://${HOST_URL}/${ipxe-boot-dir}/boot.cfg
+
+For additional information on iPXE and embedded scripts refer to the iPXE website
+at [http://ipxe.org/howto/chainloading#breaking_the_loop_with_an_embedded_script].
+
+The deployment host must serve the Genode system image via http. In the above
+example the root directory of the webserver is '/srv/www'. Note that the
+webserver must support ranged requests as otherwise iPXE will not load (large)
+system image files correctly.
+
+Integration of Muen with Genode
+###############################
+
+Instead of letting the Genode build system compile and assemble the complete
+Muen system, you can let it only build a specific Genode base-hw run scenario
+and then do the integration yourself. This will for example allow you to run a
+simple script like run/printf on Muen in the Bochs x86 emulator
+[http://bochs.sf.net], removing the requirement for having access to supported
+hardware.
+
+As a first step acquire the Muen sources by execute the following commands:
 
 ! git clone http://git.codelabs.ch/git/muen.git
 ! cd muen
 ! make SYSTEM=genode-base_hw_simple COMPONENTS="dbgserver sm tau0" emulate
 
-This will build a Muen SK system and start it using the Bochs x86 emulator
-[http://bochs.sourceforge.net/]. You should get the following error:
+This will build a Muen SK system and start it using the Bochs emulator. You
+should get the following error:
 
 ! mupack: File '<muen_workdir>/pack/../policy/obj/base_hw' referenced by
 !         physical memory region 'base_hw|bin' not found
@@ -34,45 +131,28 @@ This will build a Muen SK system and start it using the Bochs x86 emulator
 This means that the Muen packer tool was unable to find the component binary
 'base_hw', which is expected since it has not yet been compiled.
 
-Now it is time to build the Genode 'base-hw' image for Muen. Ensure that you
-have installed the Genode tool-chain that is available at:
+Now it is time to build the Genode 'base-hw' image for Muen. To tell the Genode
+build system that the Muen system integration is performed externallyby changing
+the --image-muen-external-build parameter in the 'etc/build.conf' file within
+your build Genode directory like so:
 
-:[http://genode.org/download/tool-chain]:
-  Genode tool-chain
+! RUN_OPT += --image-muen-external-build 1
 
-Then execute the following commands:
+After this change you can build the Genode 'base-hw' image and copy the
+resulting raw binary file to the Muen working directory:
 
-! cd <genode_dir>
-! <genode_dir>/tool/create_builddir hw_x86_64_muen
-! cd build/hw_x86_64_muen/
-! make run/printf
+! cp var/run/printf/printf.bin <muen_workdir>/policy/obj/base_hw
 
-Copy the resulting RAW binary image to the Muen working directory:
+Change back to the Muen working directory to package the system image and
+restart emulation:
 
-! cp var/run/printf/image.raw <muen_workdir>/policy/obj/base_hw
-
-Change to the Muen working directory and run the command from above to re-start
-emulation:
-
+! cd <muen_workdir>
 ! make SYSTEM=genode-base_hw_simple COMPONENTS="dbgserver sm tau0" emulate
 
-The serial output of the system can be inspected in the
+The serial output of the system is written to the
 '<muen_workdir>/emulate/serial.out' file. You should see the following line:
 
 ! [init -> test-printf] -1 = -1 = -1
 
 This indicates the successful execution of the Genode 'run/printf' scenario as
-Muen subject.
-
-Hardware
-########
-
-Muen also provides a system policy to run more elaborate Genode scenarios such
-as 'run/demo' on real hardware. Execute the following command to create an ISO
-file to be run on a Lenovo T440s notebook:
-
-! make SYSTEM=genode-base_hw COMPONENTS="dbgserver sm tau0" HARDWARE=lenovo-t440s iso
-
-The created ISO file can be found at '<muen_workdir>/emulate/muen.iso'. See
-[http://muen.sk/#_deploy] for more information about how to deploy
-Muen system images to real hardware.
+Muen subject on Bochs.

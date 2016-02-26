@@ -77,9 +77,8 @@ class Kernel::Thread_event : public Signal_ack_handler
  */
 class Kernel::Thread
 :
-	public Kernel::Object, public Cpu::User_context, public Cpu_domain_update,
-	public Ipc_node, public Signal_context_killer, public Signal_handler,
-	public Cpu_job
+	public Kernel::Object, public Cpu_job, public Cpu_domain_update,
+	public Ipc_node, public Signal_context_killer, public Signal_handler
 {
 	friend class Thread_event;
 	friend class Core_thread;
@@ -190,7 +189,7 @@ class Kernel::Thread
 		void _call();
 
 		/**
-		 * Return amount of timer tics that 'quota' is worth 
+		 * Return amount of timer tics that 'quota' is worth
 		 */
 		size_t _core_to_kernel_quota(size_t const quota) const;
 

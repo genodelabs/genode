@@ -3,6 +3,7 @@
 #
 # \param --amt-host       network address of target machine
 # \param --amt-password   AMT password for target machine
+# \param --amt-filter     Sanitize output by piping it through a filter
 #
 
 source [genode_dir]/tool/run/log.inc
@@ -18,6 +19,9 @@ proc log_amt_password { } {
 	return [get_cmd_arg_first --log-amt-password ""]
 }
 
+proc log_amt_filter { } {
+	return [get_cmd_arg_first --log-amt-filter ""]
+}
 
 ##
 # Log output of the test machine using Intel's AMT
@@ -30,10 +34,33 @@ proc run_log { wait_for_re timeout_value } {
 		return false
 	}
 
+	# Check that SOL is correctly configured if wsman is available
+	if {[have_installed wsman]} {
+		set redir_state [exec wsman get http://intel.com/wbem/wscim/1/amt-schema/1/AMT_RedirectionService -h [power_on_amt_host] -P 16992 -u admin -p [power_on_amt_password]]
+		set redir_state [regexp -inline {ListenerEnabled.*ListenerEnabled} $redir_state]
+
+		if {![regexp {ListenerEnabled>true} $redir_state]} {
+			puts "  Warning: AMT_RedirectionService listener is disabled - serial output will not be available"
+			puts "           Use wsman to enable the listener service, e.g.:"
+			puts "  wsman put http://intel.com/wbem/wscim/1/amt-schema/1/AMT_RedirectionService -h [power_on_amt_host] -P 16992 -u admin -p <your-intel-me-amt-password> -k ListenerEnabled=true"
+			puts ""
+		}
+
+	}
+
+	#
+	# password via environment variable for amtterm will not show up in logs
+	#
+	set ::env(AMT_PASSWORD) [log_amt_password]
+
 	#
 	# grab output
 	#
-	set amtterm  "amtterm -u admin -p [log_amt_password] -v [log_amt_host]"
+	set amt_cmd "amtterm -u admin -v [log_amt_host]"
+	if {[get_cmd_switch --log-amt-filter]} {
+		set amt_cmd "$amt_cmd | [log_amt_filter]"
+	}
+
 	if {$wait_for_re == "forever"} {
 		set timeout -1
 	} else {
@@ -41,7 +68,7 @@ proc run_log { wait_for_re timeout_value } {
 	}
 	set exit_result 1
 
-	eval spawn $amtterm
+	spawn /bin/sh -c "$amt_cmd"
 	set output_spawn_id $spawn_id
 
 	set kernel_msg [run_boot_string]

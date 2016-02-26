@@ -65,6 +65,10 @@
 #   ! ext2load mmc 0:1 0x74000000 /uImage
 #   ! bootm 0x74000000
 #
+# :Linux login:
+#
+#   The login and password of the Linux guest are both "usbarmory"
+#
 # :Communicate with Linux via CDC Ethernet:
 #
 #   [https://github.com/inversepath/usbarmory/wiki/Host-communication#cdc-ethernet]

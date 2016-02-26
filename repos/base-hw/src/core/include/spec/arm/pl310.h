@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2014-2015 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -21,15 +21,14 @@
 
 namespace Arm
 {
-	using Genode::addr_t;
-
-	class Pl310;
+	struct Pl310;
 }
+
 
 /**
  * L2 outer cache controller
  */
-class Arm::Pl310 : Genode::Mmio
+class Arm::Pl310 : public Genode::Mmio
 {
 	protected:
 
@@ -49,21 +48,6 @@ class Arm::Pl310 : Genode::Mmio
 			struct Data_prefetch  : Bitfield<28,1> { };
 			struct Inst_prefetch  : Bitfield<29,1> { };
 			struct Early_bresp    : Bitfield<30,1> { };
-
-			static access_t init_value()
-			{
-				access_t v = 0;
-				Associativity::set(v, 1);
-				Way_size::set(v, 3);
-				Share_override::set(v, 1);
-				Reserved::set(v, 1);
-				Ns_lockdown::set(v, 1);
-				Ns_irq_ctrl::set(v, 1);
-				Data_prefetch::set(v, 1);
-				Inst_prefetch::set(v, 1);
-				Early_bresp::set(v, 1);
-				return v;
-			}
 		};
 
 		struct Irq_mask                : Register <0x214, 32> { };
@@ -72,28 +56,36 @@ class Arm::Pl310 : Genode::Mmio
 		struct Invalidate_by_way       : Register <0x77c, 32> { };
 		struct Clean_invalidate_by_way : Register <0x7fc, 32> { };
 
-		inline void _sync() { while (read<Cache_sync>()) ; }
-
-		void _init()
+		struct Debug : Register<0xf40, 32>
 		{
-			write<Irq_mask>(0);
-			write<Irq_clear>(~0);
-		}
+			struct Dcl : Bitfield<0,1> { };
+			struct Dwb : Bitfield<1,1> { };
+		};
+
+		void _sync() { while (read<Cache_sync>()) ; }
 
 	public:
 
-		Pl310(addr_t const base) : Mmio(base) { }
+		Pl310(Genode::addr_t const base) : Mmio(base) { }
 
-		void flush()
+		void enable() {}
+
+		void clean_invalidate()
 		{
-			write<Clean_invalidate_by_way>((1 << 16) - 1);
+			write<Clean_invalidate_by_way>((1UL << 16) - 1);
 			_sync();
 		}
 
 		void invalidate()
 		{
-			write<Invalidate_by_way>((1 << 16) - 1);
+			write<Invalidate_by_way>((1UL << 16) - 1);
 			_sync();
+		}
+
+		void mask_interrupts()
+		{
+			write<Irq_mask>(0);
+			write<Irq_clear>(~0UL);
 		}
 };
 

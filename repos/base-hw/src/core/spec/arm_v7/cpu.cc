@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2011-2015 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -30,7 +30,7 @@
  * Must be inserted directly before the targeted operation. Returns operand
  * for targeted operation in R6.
  */
-#define FOR_ALL_SET_WAY_OF_ALL_DATA_CACHES_0 \
+#define FOR_ALL_SET_WAY_IN_R6_0 \
  \
 	/* get the cache level value (Clidr::Loc) */ \
 	READ_CLIDR(r0) \
@@ -97,7 +97,7 @@
  *
  * Must be inserted directly after the targeted operation.
  */
-#define FOR_ALL_SET_WAY_OF_ALL_DATA_CACHES_1 \
+#define FOR_ALL_SET_WAY_IN_R6_1 \
  \
 	/* decrement the index */ \
 	"subs r7, r7, #1\n" \
@@ -129,23 +129,25 @@
 	::: "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9"
 
 
-void Genode::Arm::flush_data_caches()
+void Genode::Arm_v7::invalidate_inner_data_cache()
 {
-	asm volatile (
-		FOR_ALL_SET_WAY_OF_ALL_DATA_CACHES_0
-		WRITE_DCCSW(r6)
-		FOR_ALL_SET_WAY_OF_ALL_DATA_CACHES_1);
-	Board::outer_cache_flush();
+	/**
+	 * Data Cache Invalidate by Set/Way for all Set/Way
+	 */
+	asm volatile (FOR_ALL_SET_WAY_IN_R6_0
+	              WRITE_DCISW(r6)
+	              FOR_ALL_SET_WAY_IN_R6_1);
 }
 
 
-void Genode::Arm::invalidate_data_caches()
+void Genode::Arm_v7::clean_invalidate_inner_data_cache()
 {
-	asm volatile (
-		FOR_ALL_SET_WAY_OF_ALL_DATA_CACHES_0
-		WRITE_DCISW(r6)
-		FOR_ALL_SET_WAY_OF_ALL_DATA_CACHES_1);
-	Board::outer_cache_invalidate();
+	/**
+	 * Data Cache Clean by Set/Way for all Set/Way
+	 */
+	asm volatile (FOR_ALL_SET_WAY_IN_R6_0
+	              WRITE_DCCSW(r6)
+	              FOR_ALL_SET_WAY_IN_R6_1);
 }
 
 
@@ -156,15 +158,4 @@ Genode::Arm::Psr::access_t Genode::Arm::Psr::init_user_with_trustzone()
 	I::set(v, 1);
 	A::set(v, 1);
 	return v;
-}
-
-
-void Genode::Arm_v7::init_virt_kernel(Kernel::Pd * pd)
-{
-	Cidr::write(pd->asid);
-	Dacr::write(Dacr::init_virt_kernel());
-	Ttbr0::write(Ttbr0::init((Genode::addr_t)pd->translation_table()));
-	Ttbcr::write(0);
-	Sctlr::write(Sctlr::init_virt_kernel());
-	inval_branch_predicts();
 }

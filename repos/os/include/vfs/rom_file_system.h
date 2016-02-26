@@ -62,6 +62,11 @@ class Vfs::Rom_file_system : public Single_file_system
 		 ** Directory-service interface **
 		 ********************************/
 
+		Dataspace_capability dataspace(char const *path) override
+		{
+			return _rom.cap();
+		}
+
 		/*
 		 * Overwrite the default open function to update the ROM dataspace
 		 * each time when opening the corresponding file.

@@ -95,12 +95,11 @@ class Noux_connection
 
 		/**
 		 * Return the capability of the local context-area RM session
+		 *
+		 * \param ptr  some address within the context-area
 		 */
-		Genode::Rm_session_capability context_area_rm_session()
-		{
-			int on_stack;
-			return _connection.lookup_rm_session((Genode::addr_t)&on_stack);
-		}
+		Genode::Rm_session_capability context_area_rm_session(void * const ptr) {
+			return _connection.lookup_rm_session((Genode::addr_t)ptr); }
 
 		Noux::Session *session() { return &_connection; }
 		Noux::Sysio   *sysio()   { return  _sysio; }
@@ -224,6 +223,21 @@ extern "C" struct passwd *getpwuid(uid_t uid)
 	pw.pw_gid = sysio()->userinfo_out.gid;
 
 	return &pw;
+}
+
+
+extern "C" int getdtablesize()
+{
+	if (!noux_syscall(Noux::Session::SYSCALL_GETDTABLESIZE)) {
+		PWRN("getdtablesize syscall failed");
+		errno = ENOSYS;
+		return -1;
+	}
+
+	int n = sysio()->getdtablesize_out.n;
+	if (verbose)
+		PDBG("%d", n);
+	return n;
 }
 
 
@@ -492,6 +506,7 @@ extern "C" int select(int nfds, fd_set *readfds, fd_set *writefds,
 #include <setjmp.h>
 
 
+static void * stack_in_context_area;
 static jmp_buf fork_jmp_buf;
 static Genode::Capability<Genode::Parent>::Raw new_parent;
 
@@ -517,6 +532,10 @@ extern "C" void fork_trampoline()
 	/* reinitialize noux connection */
 	construct_at<Noux_connection>(noux_connection());
 
+	/* reinitialize main-thread object which implies reinit of context area */
+	auto context_area_rm = noux_connection()->context_area_rm_session(stack_in_context_area);
+	Genode::env()->reinit_main_thread(context_area_rm);
+
 	/* apply processor state that the forker had when he did the fork */
 	longjmp(fork_jmp_buf, 1);
 }
@@ -533,18 +552,20 @@ extern "C" pid_t fork(void)
 		/*
 		 * We got here via longjmp from 'fork_trampoline'.
 		 */
-
-		/* reinitialize main-thread object which implies reinit of context area */
-		auto context_area_rm = noux_connection()->context_area_rm_session();
-		Genode::env()->reinit_main_thread(context_area_rm);
-
 		return 0;
 
 	} else {
 
+		/*
+		 * save the current stack address used for re-initializing
+		 * the context-area during process bootstrap
+		 */
+		int dummy;
+		stack_in_context_area = &dummy;
+
 		/* got here during the normal control flow of the fork call */
-		sysio()->fork_in.ip              = (Genode::addr_t)(&fork_trampoline);
-		sysio()->fork_in.sp              = (Genode::addr_t)(&stack[STACK_SIZE]);
+		sysio()->fork_in.ip = (Genode::addr_t)(&fork_trampoline);
+		sysio()->fork_in.sp = Abi::stack_align((Genode::addr_t)&stack[STACK_SIZE]);
 		sysio()->fork_in.parent_cap_addr = (Genode::addr_t)(&new_parent);
 
 		if (!noux_syscall(Noux::Session::SYSCALL_FORK)) {

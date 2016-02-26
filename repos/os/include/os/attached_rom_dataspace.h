@@ -69,6 +69,11 @@ class Genode::Attached_rom_dataspace
 		Attached_rom_dataspace(char const *name)
 		: _rom(name) { _try_attach(); }
 
+		/**
+		 * Return capability of the used dataspace
+		 */
+		Dataspace_capability cap() const { return _ds->cap(); }
+
 		template <typename T> T *local_addr() { return _ds->local_addr<T>(); }
 
 		size_t size() const { return _ds->size(); }

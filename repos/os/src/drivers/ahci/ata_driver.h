@@ -251,6 +251,7 @@ struct Ata_driver : Port_driver
 				else
 					io_cmd = new (Genode::env()->heap()) Dma_ext_command();
 
+				ack_irq();
 			}
 			break;
 

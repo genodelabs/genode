@@ -186,21 +186,29 @@ struct Pci_driver
 	int first_device(int *bus, int *dev, int *fun)
 	{
 		_cap = _pci.first_device(CLASS_NETWORK, CLASS_MASK);
+		if (!_cap.valid())
+			return -1;
+
 		_bus_address(bus, dev, fun);
 		return 0;
 	}
 
 	int next_device(int *bus, int *dev, int *fun)
 	{
+		int result = -1;
+
 		_last_cap = _cap;
 
 		_cap = _pci.next_device(_cap, CLASS_NETWORK, CLASS_MASK);
-		_bus_address(bus, dev, fun);
+		if (_cap.valid()) {
+			_bus_address(bus, dev, fun);
+			result = 0;
+		}
 
 		if (_last_cap.valid())
 			_pci.release_device(_last_cap);
 
-		return 0;
+		return result;
 	}
 
 	Genode::addr_t alloc_dma_memory(Genode::size_t size)
@@ -383,10 +391,7 @@ extern "C" void dde_request_io(dde_uint8_t virt_bar_ioport)
 {
 	using namespace Genode;
 
-	if (_io_port) {
-		PERR("Io_port_connection already open");
-		sleep_forever();
-	}
+	if (_io_port) destroy(env()->heap(), _io_port);
 
 	Platform::Device_client device(pci_drv()._cap);
 	Io_port_session_capability cap = device.io_port(virt_bar_ioport);

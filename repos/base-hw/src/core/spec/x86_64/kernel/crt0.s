@@ -94,23 +94,10 @@
 	movq __initial_bx@GOTPCREL(%rip),%rax
 	movq %rbx, (%rax)
 
-	/* uniprocessor kernel-initialization which activates multiprocessor */
-	call init_kernel_up
+	/* kernel-initialization */
+	call init_kernel
 
-	/*********************************************
-	 ** Startup code that is common to all CPUs **
-	 *********************************************/
-
-	.global _start_secondary_cpus
-	_start_secondary_cpus:
-
-	/* do multiprocessor kernel-initialization */
-	call init_kernel_mp
-
-	/* call the kernel main-routine */
-	call kernel
-
-	/* catch erroneous return of the kernel main-routine */
+	/* catch erroneous return of the kernel initialization */
 	1: jmp 1b
 
 

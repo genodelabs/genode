@@ -8,7 +8,7 @@
 INC_DIR += $(REP_DIR)/src/core/include/spec/arm_v7/virtualization
 
 # add C++ sources
-SRC_CC += spec/arndale/board.cc
+SRC_CC += spec/arndale/cpu.cc
 SRC_CC += spec/arndale/pic.cc
 SRC_CC += spec/arndale/platform_services.cc
 SRC_CC += spec/arm_v7/kernel/vm_thread.cc

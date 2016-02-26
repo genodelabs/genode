@@ -12,6 +12,20 @@
  */
 
 /**
+ * Get base of the first kernel-stack and the common kernel-stack size
+ *
+ * \param base_dst_reg  register that shall receive the stack-area base
+ * \param size_dst_reg  register that shall receive the size of a kernel stack
+ */
+.macro _get_constraints_of_kernel_stacks base_dst_reg, size_dst_reg
+
+	ldr \base_dst_reg, =kernel_stack
+	ldr \size_dst_reg, =kernel_stack_size
+	ldr \size_dst_reg, [\size_dst_reg]
+.endm
+
+
+/**
  * Calculate and apply kernel SP for a given kernel-stacks area
  *
  * \base_reg  register that contains the base of the kernel-stacks area

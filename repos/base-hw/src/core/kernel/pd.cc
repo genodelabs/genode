@@ -13,7 +13,6 @@
  */
 
 /* core includes */
-#include <kernel/lock.h>
 #include <kernel/pd.h>
 
 /* Genode includes */
@@ -69,9 +68,6 @@ void Mode_transition_control::switch_to(Cpu::Context * const context,
                                         addr_t const entry_raw,
                                         addr_t const context_ptr_base)
 {
-	/* unlock kernel data */
-	data_lock().unlock();
-
 	/* override client-context pointer of the executing CPU */
 	size_t const context_ptr_offset = cpu * sizeof(context);
 	addr_t const context_ptr = context_ptr_base + context_ptr_offset;

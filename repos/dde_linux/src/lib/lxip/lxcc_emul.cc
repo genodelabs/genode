@@ -533,26 +533,29 @@ unsigned long ilog2(unsigned long n) { return Genode::log2<unsigned long>(n); }
  ** linux/sched.h **
  *******************/
 
+struct Timeout : Genode::Signal_dispatcher<Timeout>
+{
+	void handle(unsigned) { update_jiffies(); }
+
+	Timeout(Timer::Session_client &timer, signed long msec)
+	: Signal_dispatcher<Timeout>(*Net::Env::receiver(), *this, &Timeout::handle)
+	{
+		if (msec > 0) {
+			timer.sigh(*this);
+			timer.trigger_once(msec*1000);
+		}
+	}
+};
+
 
 static void __wait_event(signed long timeout)
 {
-		static Timer::Connection timer;
-		/* timeout is relative in jiffies, make it absolute */
-		timeout += jiffies;
+	static Timer::Connection timer;
+	Timeout to(timer, timeout);
 
-		 /* wait for signal and return upon timeout */
-		while (timeout > jiffies  && !Net::Env::receiver()->pending())
-		{
-			timer.msleep(1);
-			update_jiffies();
-
-			if (timeout <= jiffies)
-				return;
-		}
-
-		/* dispatch signal */
-		Genode::Signal s = Net::Env::receiver()->wait_for_signal();
-		static_cast<Genode::Signal_dispatcher_base *>(s.context())->dispatch(s.num());
+	/* dispatch signal */
+	Genode::Signal s = Net::Env::receiver()->wait_for_signal();
+	static_cast<Genode::Signal_dispatcher_base *>(s.context())->dispatch(s.num());
 }
 
 

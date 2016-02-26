@@ -48,6 +48,8 @@ class Decorator::Theme
 		struct Margins
 		{
 			unsigned top, bottom, left, right;
+
+			bool none() const { return !top && !bottom && !left && !right; }
 		};
 
 		enum Element_type { ELEMENT_TYPE_CLOSER, ELEMENT_TYPE_MAXIMIZER };

@@ -8,7 +8,7 @@
 SPECS += hw panda
 
 # configure multiprocessor mode
-NR_OF_CPUS = 1
+NR_OF_CPUS = 2
 
 # set address where to link the text segment at
 LD_TEXT_ADDR ?= 0x81000000

@@ -105,6 +105,9 @@ void Platform::Device_pd_component::attach_dma_mem(Genode::Dataspace_capability 
 		page = rm_session()->attach_at(ds_cap, phys);
 	} catch (Rm_session::Out_of_metadata) {
 		throw;
+	} catch (Rm_session::Region_conflict) {
+		/* memory already attached before - done */
+		return;
 	} catch (...) { }
 
 	/* sanity check */
@@ -127,7 +130,7 @@ void Platform::Device_pd_component::attach_dma_mem(Genode::Dataspace_capability 
 	}
 }
 
-void Platform::Device_pd_component::assign_pci(Genode::Io_mem_dataspace_capability io_mem_cap)
+void Platform::Device_pd_component::assign_pci(Genode::Io_mem_dataspace_capability io_mem_cap, Genode::uint16_t rid)
 {
 	using namespace Genode;
 
@@ -143,8 +146,13 @@ void Platform::Device_pd_component::assign_pci(Genode::Io_mem_dataspace_capabili
 		PERR("assignment of PCI device failed - %lx", page);
 
 	/* try to assign pci device to this protection domain */
-	if (!env()->pd_session()->assign_pci(page))
-		PERR("assignment of PCI device failed");
+	if (!env()->pd_session()->assign_pci(page, rid))
+		PERR("assignment of PCI device %x:%x.%x failed phys=%lx virt=%lx",
+		     rid >> 8, (rid >> 3) & 0x1f, rid & 0x7,
+		     ds_client.phys_addr(), page);
+	else
+		PINF("assignment of %x:%x.%x succeeded",
+		     rid >> 8, (rid >> 3) & 0x1f, rid & 0x7);
 
 	/* we don't need the mapping anymore */
 	rm_session()->detach(page);
@@ -153,8 +161,6 @@ void Platform::Device_pd_component::assign_pci(Genode::Io_mem_dataspace_capabili
 int main(int argc, char **argv)
 {
 	using namespace Genode;
-
-	Genode::printf("Device protection domain starting ...\n");
 
 	/*
 	 * Initialize server entry point
@@ -174,8 +180,6 @@ int main(int argc, char **argv)
 	static Static_root<Platform::Device_pd> root(ep.manage(&pd_component));
 
 	env()->parent()->announce(ep.manage(&root));
-
-	printf("Device protection domain started\n");
 
 	Genode::sleep_forever();
 	return 0;

@@ -74,17 +74,28 @@ class Wm::Window_registry
 
 				Id const _id;
 
-				Title _title;
+				struct Attr
+				{
+					Title         title;
+					Session_label label;
+					Area          size;
+					Has_alpha     has_alpha = HAS_NO_ALPHA;
+					Is_hidden     is_hidden = IS_NOT_HIDDEN;
+					Resizeable    resizeable = NOT_RESIZEABLE;
 
-				Session_label _label;
+					bool operator == (Attr const &other) const
+					{
+						return title      == other.title
+						    && label      == other.label
+						    && size       == other.size
+						    && has_alpha  == other.has_alpha
+						    && is_hidden  == other.is_hidden
+						    && resizeable == other.resizeable;
+					}
+				};
 
-				Area _size;
-
-				Has_alpha _has_alpha = HAS_NO_ALPHA;
-
-				Is_hidden _is_hidden = IS_NOT_HIDDEN;
-
-				Resizeable _resizeable = NOT_RESIZEABLE;
+				Attr         _attr;
+				Attr mutable _flushed_attr;
 
 				friend class Window_registry;
 
@@ -97,33 +108,54 @@ class Wm::Window_registry
 				/*
 				 * Accessors for setting attributes
 				 */
-				void attr(Title const &title)         { _title = title; }
-				void attr(Session_label const &label) { _label = label; }
-				void attr(Area size)                  { _size  = size;  }
-				void attr(Has_alpha has_alpha)        { _has_alpha = has_alpha; }
-				void attr(Is_hidden is_hidden)        { _is_hidden = is_hidden; }
-				void attr(Resizeable resizeable)      { _resizeable = resizeable; }
+				void attr(Title const &title)         { _attr.title      = title; }
+				void attr(Session_label const &label) { _attr.label      = label; }
+				void attr(Area size)                  { _attr.size       = size;  }
+				void attr(Has_alpha has_alpha)        { _attr.has_alpha  = has_alpha; }
+				void attr(Is_hidden is_hidden)        { _attr.is_hidden  = is_hidden; }
+				void attr(Resizeable resizeable)      { _attr.resizeable = resizeable; }
+
+				bool is_flushed() const { return _attr == _flushed_attr; }
 
 				void generate_window_list_entry_xml(Xml_generator &xml) const
 				{
+					/*
+					 * Skip windows that have no defined size, which happens
+					 * between the creation of a new window and the first
+					 * time when the window's properties are assigned.
+					 */
+					if (!_attr.size.valid())
+						return;
+
 					xml.node("window", [&] () {
 						xml.attribute("id",     _id.value);
-						xml.attribute("label",  _label.string());
-						xml.attribute("title",  _title.string());
-						xml.attribute("width",  _size.w());
-						xml.attribute("height", _size.h());
+						xml.attribute("label",  _attr.label.string());
+						xml.attribute("title",  _attr.title.string());
+						xml.attribute("width",  _attr.size.w());
+						xml.attribute("height", _attr.size.h());
 
-						if (_has_alpha == HAS_ALPHA)
+						if (_attr.has_alpha == HAS_ALPHA)
 							xml.attribute("has_alpha", "yes");
 
-						if (_is_hidden == IS_HIDDEN)
+						if (_attr.is_hidden == IS_HIDDEN)
 							xml.attribute("hidden", "yes");
 
-						if (_resizeable == RESIZEABLE)
+						if (_attr.resizeable == RESIZEABLE)
 							xml.attribute("resizeable", "yes");
 					});
 				}
+
+				void mark_as_flushed() const { _flushed_attr = _attr; }
 		};
+
+		bool _is_flushed() const
+		{
+			bool result = true;
+			for (Window const *w = _windows.first(); w; w = w->next())
+				result &= w->is_flushed();
+
+			return result;
+		}
 
 	private:
 
@@ -149,8 +181,10 @@ class Wm::Window_registry
 		{
 			Reporter::Xml_generator xml(_window_list_reporter, [&] ()
 			{
-				for (Window const *w = _windows.first(); w; w = w->next())
+				for (Window const *w = _windows.first(); w; w = w->next()) {
 					w->generate_window_list_entry_xml(xml);
+					w->mark_as_flushed();
+				}
 			});
 		}
 
@@ -165,8 +199,6 @@ class Wm::Window_registry
 			}
 
 			win->attr(value);
-
-			_report_updated_window_list_model();
 		}
 
 	public:
@@ -229,6 +261,14 @@ class Wm::Window_registry
 		void resizeable(Id id, bool resizeable)
 		{
 			_set_attr(id, resizeable ? Window::RESIZEABLE : Window::NOT_RESIZEABLE);
+		}
+
+		void flush()
+		{
+			if (_is_flushed())
+				return;
+
+			_report_updated_window_list_model();
 		}
 };
 

@@ -35,7 +35,11 @@ void Signal_transmitter::submit(unsigned cnt)
 	for (unsigned i = 0; res == NOVA_OK && i < cnt; i++)
 		res = sm_ctrl(_context.local_name(), SEMAPHORE_UP);
 
-	if (res != NOVA_OK)
-		PDBG("submitting signal failed - error %u - context=0x%lx", res,
-		     _context.local_name());
+	if (res == NOVA_OK)
+		return;
+
+	PDBG("submitting signal failed - error %u - context=0x%lx", res,
+	     _context.local_name());
+
+	_context = Signal_context_capability();
 }

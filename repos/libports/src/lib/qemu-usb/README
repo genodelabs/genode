@@ -1,0 +1,30 @@
+This library makes the xHCI device model of Qemu available on Genode
+and is used as a back end for such for device models in existing VMMs.
+
+Usage
+~~~~~
+
+The user of this library is required to provide certain back end
+functionality, namely a Timer_queue to handle timer events and a Pci_device
+that handles access to the PCI bus (raise interrupts, (un)map DMA memory)
+within the VMM device model.
+
+To use this library the user calls 'Qemu::usb_init' and passes
+pointers to the back end objects. In addition, a Signal_receiver
+reference has also to be handed over. It will receive all signals
+required by this library.
+
+'Qemu::usb_init' returns a pointer to a Controller object. MMIO
+access must be forwarded to this object when the device model in the VMM
+wants to access the MMIO regions of the xHCI device.
+
+Whenever the VMM requests a device reset the 'Qemu::usb_reset'
+function has to be called. It will remove and free all attached
+USB devices and will reset the state of the xHCI device model.
+
+After the xHCI device model has been reset 'Qemu::usb_update_devices'
+needs to be called to reattach USB devices.
+
+Timer callbacks that have been registered using the Timer_queue
+interface have to be executed by calling 'Qemu::usb_timer_callback'
+when the timer triggers.

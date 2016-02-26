@@ -16,6 +16,7 @@
 #include <board.h>
 #include <cpu.h>
 #include <pic.h>
+#include <cortex_a9_wugen.h>
 #include <unmanaged_singleton.h>
 
 using namespace Genode;
@@ -62,13 +63,27 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 }
 
 
-static Genode::Pl310 * l2_cache() {
-	return unmanaged_singleton<Genode::Pl310>(Board::PL310_MMIO_BASE); }
+void Cortex_a9::Board::wake_up_all_cpus(void * const ip)
+{
+	Cortex_a9_wugen wugen;
+	wugen.init_cpu_1(ip);
+	asm volatile("dsb\n"
+	             "sev\n");
+}
+
+Genode::Arm::User_context::User_context() { cpsr = Psr::init_user(); }
 
 
-void Board::outer_cache_invalidate() { l2_cache()->invalidate(); }
-void Board::outer_cache_flush()      { l2_cache()->flush();      }
-void Board::prepare_kernel()         { l2_cache()->invalidate(); }
+void Cpu::Actlr::enable_smp() {
+	Kernel::board().monitor().call(Board::Secure_monitor::CPU_ACTLR_SMP_BIT_RAISE, 0); }
 
 
-Cpu::User_context::User_context() { cpsr = Psr::init_user(); }
+bool Cortex_a9::Board::errata(Cortex_a9::Board::Errata err)
+{
+	switch (err) {
+		case Cortex_a9::Board::PL310_588369:
+		case Cortex_a9::Board::PL310_727915: return true;
+		default: ;
+	};
+	return false;
+}

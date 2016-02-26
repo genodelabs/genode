@@ -103,6 +103,9 @@ static Genode::Xml_node metadata(Genode::Allocator &alloc)
 
 Decorator::Area Decorator::Theme::background_size() const
 {
+	if (decor_margins().none() && aura_margins().none())
+		return Decorator::Area(0, 0);
+
 	Genode::Texture<Pixel_rgb888> const &texture = texture_by_id(TEXTURE_ID_DEFAULT, _alloc);
 
 	return texture.size();
@@ -138,24 +141,38 @@ Decorator::Theme::Margins Decorator::Theme::decor_margins() const
 
 Decorator::Rect Decorator::Theme::title_geometry() const
 {
-	static Rect rect = rect_attribute(metadata(_alloc).sub_node("title"));
+	static Genode::Xml_node node = metadata(_alloc);
+	static Rect rect = node.has_sub_node("title") 
+	                 ? rect_attribute(node.sub_node("title"))
+	                 : Rect(Point(0, 0), Area(0, 0));
 	return rect;
+}
+
+
+static Decorator::Rect
+element_geometry(Genode::Allocator &alloc, char const *sub_node_type,
+                 Texture_id texture_id)
+{
+	using namespace Decorator;
+
+	static Genode::Xml_node const node = metadata(alloc);
+
+	if (!node.has_sub_node(sub_node_type))
+		return Rect(Point(0, 0), Area(0, 0));
+
+	return Rect(point_attribute(node.sub_node(sub_node_type)),
+	            texture_by_id(texture_id, alloc).size());
 }
 
 
 Decorator::Rect Decorator::Theme::element_geometry(Element_type type) const
 {
-	if (type == ELEMENT_TYPE_CLOSER) {
-		static Rect rect(point_attribute(metadata(_alloc).sub_node("closer")),
-		                 texture_by_id(TEXTURE_ID_CLOSER, _alloc).size());
-		return rect;
-	}
 
-	if (type == ELEMENT_TYPE_MAXIMIZER) {
-		static Rect rect(point_attribute(metadata(_alloc).sub_node("maximizer")),
-		                 texture_by_id(TEXTURE_ID_MAXIMIZER, _alloc).size());
-		return rect;
-	}
+	if (type == ELEMENT_TYPE_CLOSER)
+		return ::element_geometry(_alloc, "closer", TEXTURE_ID_CLOSER);
+
+	if (type == ELEMENT_TYPE_MAXIMIZER)
+		return ::element_geometry(_alloc, "maximizer", TEXTURE_ID_MAXIMIZER);
 
 	struct Invalid_element_type { };
 	throw  Invalid_element_type();
@@ -166,6 +183,14 @@ void Decorator::Theme::draw_background(Decorator::Pixel_surface pixel_surface,
                                        Decorator::Alpha_surface alpha_surface,
                                        unsigned alpha) const
 {
+	/*
+	 * Back out early there is neither a decor nor an aura. In this case, we
+	 * prevent accessing the 'default.png' file. So we can skip it from the
+	 * theme.
+	 */
+	if (!background_size().valid())
+		return;
+
 	Genode::Texture<Pixel_rgb888> const &texture = texture_by_id(TEXTURE_ID_DEFAULT, _alloc);
 
 	typedef Genode::Surface_base::Point Point;
@@ -230,6 +255,10 @@ void Decorator::Theme::draw_title(Decorator::Pixel_surface pixel_surface,
                                   Decorator::Alpha_surface alpha_surface,
                                   char const *title) const
 {
+	/* skip title drawing if the metadata lacks a title declaration */
+	if (!title_geometry().area().valid())
+		return;
+
 	Text_painter::Font const &font = title_font(_alloc);
 
 	Area  const label_area(font.str_w(title), font.str_h(title));
@@ -247,6 +276,9 @@ void Decorator::Theme::draw_element(Decorator::Pixel_surface pixel_surface,
                                     Element_type element_type,
                                     unsigned alpha) const
 {
+	if (!element_geometry(element_type).area().valid())
+		return;
+
 	Genode::Texture<Pixel_rgb888> const &texture =
 		texture_by_element_type(element_type, _alloc);
 

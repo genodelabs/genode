@@ -28,7 +28,7 @@ namespace File_system {
 	struct Symlink;
 	class Node_cache;
 
-	typedef Avl_string<MAX_PATH_LEN> Avl_path_string;
+	typedef Genode::Avl_string<MAX_PATH_LEN> Avl_path_string;
 
 	Vfs::File_system *root();
 }
@@ -38,7 +38,7 @@ namespace File_system {
  * Reference counted node object that can be inserted
  * into an AVL tree.
  */
-class File_system::Node : public Node_base, public Avl_node<Node>, private Noncopyable
+class File_system::Node : public Node_base, public Genode::Avl_node<Node>, private Genode::Noncopyable
 {
 	friend class Node_cache;
 
@@ -256,7 +256,7 @@ struct File_system::Symlink : Node
  * This structure deduplicates nodes between sessions, without it
  * the signal notifications would not propagate between sessions.
  */
-struct File_system::Node_cache : Avl_tree<Node>
+struct File_system::Node_cache : Genode::Avl_tree<Node>
 {
 	Node *find(char const *path) {
 		return first() ? (Node *)first()->find_by_path(path) : nullptr; }

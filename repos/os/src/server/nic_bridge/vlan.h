@@ -16,9 +16,9 @@
 #ifndef _VLAN_H_
 #define _VLAN_H_
 
-#include "address_node.h"
-#include "avl_safe.h"
-#include "list_safe.h"
+#include <address_node.h>
+#include <avl_safe.h>
+#include <list_safe.h>
 
 namespace Net {
 

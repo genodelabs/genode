@@ -73,10 +73,12 @@ set config {
 append_platform_drv_config
 
 append_if $use_ahci_drv config {
-	<start name="ahci">
-		<resource name="RAM" quantum="1M"/>
+	<start name="ahci_drv">
+		<resource name="RAM" quantum="10M"/>
 		<provides> <service name="Block"/> </provides>
-		<config ata="yes" />
+		<config ata="yes">
+			<policy label="test-libc_block" device="0"/>
+		</config>
 	</start>
 }
 
@@ -104,7 +106,7 @@ set boot_modules {
 	test-libc_block
 }
 
-lappend_if $use_ahci_drv     boot_modules ahci
+lappend_if $use_ahci_drv     boot_modules ahci_drv
 lappend_if $use_sd_card_drv  boot_modules sd_card_drv
 
 append_platform_drv_boot_modules

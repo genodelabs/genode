@@ -864,6 +864,14 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				break;
 			}
 
+		case SYSCALL_GETDTABLESIZE:
+			{
+				_sysio->getdtablesize_out.n =
+					Noux::File_descriptor_registry::MAX_FILE_DESCRIPTORS;
+				result = true;
+				break;
+			}
+
 		case SYSCALL_SOCKET:
 		case SYSCALL_GETSOCKOPT:
 		case SYSCALL_SETSOCKOPT:

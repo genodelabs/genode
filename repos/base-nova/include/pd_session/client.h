@@ -33,8 +33,8 @@ namespace Genode {
 			return call<Rpc_assign_parent>(parent);
 		}
 
-		bool assign_pci(addr_t pci_config_memory_address) {
-			return call<Rpc_assign_pci>(pci_config_memory_address); }
+		bool assign_pci(addr_t pci_config_memory_address, uint16_t bdf) {
+			return call<Rpc_assign_pci>(pci_config_memory_address, bdf); }
 	};
 }
 

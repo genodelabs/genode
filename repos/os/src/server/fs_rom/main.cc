@@ -25,6 +25,8 @@
 #include <timer_session/connection.h>
 
 
+using namespace Genode;
+
 /*****************
  ** ROM service **
  *****************/

@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -46,10 +46,17 @@ struct Genode::Board_base
 		/* clocks */
 		OSC_6_CLOCK =  24*1000*1000,
 
+		/* system controller */
+		SYSTEM_CONTROL_MMIO_BASE = 0x10000000,
+
 		/* CPU */
 		CORTEX_A9_PRIVATE_TIMER_CLK = 100000000,
 		CORTEX_A9_PRIVATE_MEM_BASE  = 0x1f000000,
-		CORTEX_A9_PRIVATE_MEM_SIZE  = 0x01000000,
+		CORTEX_A9_PRIVATE_MEM_SIZE  = 0x2000,
+
+		/* L2 cache controller */
+		PL310_MMIO_BASE = 0x1f002000,
+		PL310_MMIO_SIZE = 0x00001000,
 
 		/* UART */
 		PL011_0_MMIO_BASE = 0x10009000,

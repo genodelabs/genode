@@ -163,6 +163,8 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>,
 
 	Nitpicker::Connection _nitpicker_session { "decorator" };
 
+	Genode::Signal_context_capability _mode_sigh;
+
 	typedef Nitpicker::Session::Command_buffer Command_buffer;
 
 	Attached_ram_dataspace _command_ds { &_ram, sizeof(Command_buffer) };
@@ -442,6 +444,11 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>,
 
 	void mode_sigh(Genode::Signal_context_capability sigh) override
 	{
+		/*
+		 * Remember signal-context capability to keep NOVA from revoking
+		 * transitive delegations of the capability.
+		 */
+		_mode_sigh = sigh;
 		_nitpicker_session.mode_sigh(sigh);
 	}
 

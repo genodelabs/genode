@@ -37,11 +37,11 @@ struct File_system::Connection : Genode::Connection<Session>, Session_client
 	 *                         transmission buffer
 	 * \param tx_buf_size      size of transmission buffer in bytes
 	 */
-	Connection(Range_allocator &tx_block_alloc,
-	           size_t           tx_buf_size = DEFAULT_TX_BUF_SIZE,
-	           char const      *label       = "",
-	           char const      *root        = "/",
-	           bool             writeable   = true)
+	Connection(Genode::Range_allocator &tx_block_alloc,
+	           size_t                   tx_buf_size = DEFAULT_TX_BUF_SIZE,
+	           char const              *label       = "",
+	           char const              *root        = "/",
+	           bool                     writeable   = true)
 	:
 		Genode::Connection<Session>(
 			session("ram_quota=%zd, "

@@ -74,7 +74,7 @@ extern "C" {
 	{
 		PDBG("Free framebuffer session object");
 		if(framebuffer != 0)
-			delete framebuffer;
+			Genode::destroy(Genode::env()->heap(), framebuffer);
 		framebuffer = 0;
 	}
 

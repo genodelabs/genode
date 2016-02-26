@@ -143,6 +143,9 @@ namespace Platform {
 			int device_number()   { return _device; }
 			int function_number() { return _function; }
 
+			Genode::uint16_t bdf () {
+				return (_bus << 8) | (_device << 3) | (_function & 0x7); }
+
 			/**
 			 * Accessor functions for device information
 			 */

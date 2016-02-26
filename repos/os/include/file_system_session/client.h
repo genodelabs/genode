@@ -21,7 +21,7 @@
 namespace File_system { class Session_client; }
 
 
-class File_system::Session_client : public Rpc_client<Session>
+class File_system::Session_client : public Genode::Rpc_client<Session>
 {
 	private:
 
@@ -36,8 +36,8 @@ class File_system::Session_client : public Rpc_client<Session>
 		 * \param tx_buffer_alloc  allocator used for managing the
 		 *                         transmission buffer
 		 */
-		Session_client(Session_capability  session,
-		               Range_allocator    &tx_buffer_alloc)
+		Session_client(Session_capability       session,
+		               Genode::Range_allocator &tx_buffer_alloc)
 		:
 			Rpc_client<Session>(session),
 			_tx(call<Rpc_tx_cap>(), &tx_buffer_alloc)
@@ -101,7 +101,7 @@ class File_system::Session_client : public Rpc_client<Session>
 			call<Rpc_move>(from_dir, from_name, to_dir, to_name);
 		}
 
-		void sigh(Node_handle node, Signal_context_capability sigh) override
+		void sigh(Node_handle node, Genode::Signal_context_capability sigh) override
 		{
 			call<Rpc_sigh>(node, sigh);
 		}
