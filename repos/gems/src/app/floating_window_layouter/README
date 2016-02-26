@@ -66,7 +66,7 @@ layouter configuration as follows:
 ! </config>
 
 Each '<press>' node defines the policy when the specified 'key' is pressed.
-If can be equipped with an 'action' attribute that triggers a window action.
+It can be equipped with an 'action' attribute that triggers a window action.
 The supported window actions are:
 
 :next_window:       Focus the next window in the focus history.
