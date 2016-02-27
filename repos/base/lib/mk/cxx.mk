@@ -1,9 +1,9 @@
-CXX_SRC_CC += misc.cc new_delete.cc malloc_free.cc exception.cc guard.cc unwind.cc
-
+CXX_SRC_CC += misc.cc new_delete.cc malloc_free.cc exception.cc guard.cc
 # We need the libsupc++ include directory
 STDINC = yes
 
 vpath %.cc $(BASE_DIR)/src/base/cxx
+vpath %.c  $(BASE_DIR)/src/base/cxx
 
 #
 # Here we define all symbols we want to hide in libsupc++ and libgcc_eh
@@ -43,10 +43,11 @@ LIBCXX_GCC = $(shell $(CUSTOM_CXX_LIB) $(CC_MARCH) -print-file-name=libsupc++.a)
 # Dummy target used by the build system
 #
 SRC_S         = supc++.o
+SRC_C         = unwind.o
 CXX_SRC       = $(sort $(CXX_SRC_CC))
 CXX_OBJECTS   = $(addsuffix .o,$(basename $(CXX_SRC)))
 LOCAL_SYMBOLS = $(patsubst %,--localize-symbol=%,$(LIBC_SYMBOLS))
-REDEF_SYMBOLS = $(foreach S, $(EH_SYMBOLS), --redefine-sym $(S)=_cxx_$(S) --redefine-sym __cxx_$(S)=$(S))
+REDEF_SYMBOLS = $(foreach S, $(EH_SYMBOLS), --redefine-sym $(S)=_cxx_$(S))
 
 #
 # Prevent symbols of the gcc support libs from being discarded during 'ld -r'

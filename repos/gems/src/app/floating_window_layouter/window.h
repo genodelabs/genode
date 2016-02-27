@@ -179,10 +179,12 @@ class Floating_window_layouter::Window : public List<Window>::Element
 
 	public:
 
-		Window(Window_id id, Rect &maximized_geometry,
+		Window(Window_id id, Rect &maximized_geometry, Area initial_size,
 		       Focus_history &focus_history)
 		:
-			_id(id), _maximized_geometry(maximized_geometry),
+			_id(id),
+			_requested_size(initial_size),
+			_maximized_geometry(maximized_geometry),
 			_focus_history_entry(focus_history, _id)
 		{ }
 
@@ -308,8 +310,12 @@ class Floating_window_layouter::Window : public List<Window>::Element
 
 		void finalize_drag_operation()
 		{
-			_requested_size = _geometry.area();
-			_is_dragged     = false;
+			_requested_size     = _geometry.area();
+			_is_dragged         = false;
+			_drag_left_border   = false;
+			_drag_right_border  = false;
+			_drag_top_border    = false;
+			_drag_bottom_border = false;
 		}
 
 		void topped() { _topped_cnt++; }

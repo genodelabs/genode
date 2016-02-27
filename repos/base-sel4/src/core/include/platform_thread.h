@@ -51,15 +51,15 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 
 		Thread_info _info;
 
-		unsigned const _pager_obj_sel;
+		Cap_sel const _pager_obj_sel;
 
 		/*
 		 * Selectors within the PD's CSpace
 		 *
 		 * Allocated when the thread is started.
 		 */
-		unsigned _fault_handler_sel = 0;
-		unsigned _ep_sel = 0;
+		Cap_sel _fault_handler_sel { 0 };
+		Cap_sel _ep_sel            { 0 };
 
 		friend class Platform_pd;
 
@@ -146,7 +146,7 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		/**
 		 * Return identification of thread when faulting
 		 */
-		unsigned long pager_object_badge() const { return _pager_obj_sel; }
+		unsigned long pager_object_badge() const { return _pager_obj_sel.value(); }
 
 		/**
 		 * Set the executing CPU for this thread
@@ -173,7 +173,7 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		 ** seL4-specific interface **
 		 *****************************/
 
-		unsigned tcb_sel() const { return _info.tcb_sel; }
+		Cap_sel tcb_sel() const { return _info.tcb_sel; }
 
 		void install_mapping(Mapping const &mapping);
 };

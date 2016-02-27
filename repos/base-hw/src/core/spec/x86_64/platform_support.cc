@@ -49,6 +49,13 @@ void Platform::setup_irq_mode(unsigned irq_number, unsigned trigger,
 }
 
 
+bool Platform::get_msi_params(const addr_t mmconf, addr_t &address,
+                              addr_t &data, unsigned &irq_number)
+{
+	return false;
+}
+
+
 Native_region * Platform::_ram_regions(unsigned const i)
 {
 	static Native_region _regions[16];

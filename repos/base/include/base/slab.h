@@ -40,7 +40,7 @@ class Genode::Slab_block
 		enum { FREE, USED };
 
 		Slab    *_slab;    /* back reference to slab allocator */
-		unsigned _avail;   /* free entries of this block       */
+		size_t   _avail;   /* free entries of this block       */
 
 		/*
 		 * Each slab block consists of three areas, a fixed-size header

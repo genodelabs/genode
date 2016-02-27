@@ -25,6 +25,7 @@
 /* base-internal includes */
 #include <internal/capability_data.h>
 
+
 namespace Genode { namespace Capability_space {
 
 	/**

@@ -440,8 +440,14 @@ class File_system::Root : public Root_component<Session_component>
 				     ram_quota, session_size);
 				throw Root::Quota_exceeded();
 			}
-			return new (md_alloc())
-				Session_component(tx_buf_size, _ep, root_dir, writeable, *md_alloc());
+
+			try {
+				return new (md_alloc())
+					Session_component(tx_buf_size, _ep, root_dir, writeable, *md_alloc());
+			} catch (Lookup_failed) {
+				PERR("File system root directory \"%s\" does not exist", root_dir);
+				throw Root::Unavailable();
+			}
 		}
 
 	public:

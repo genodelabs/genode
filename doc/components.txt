@@ -225,6 +225,9 @@ All block drivers implement the block-session interface defined at
 :'os/src/drivers/ahci':
   Driver for SATA disks and CD-ROMs on x86 PCs.
 
+:'os/src/drivers/usb_block':
+  USB Mass Storage Bulk-Only driver using the USB session interface.
+
 
 Network interface drivers
 =========================

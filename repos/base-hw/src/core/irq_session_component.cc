@@ -66,11 +66,18 @@ Irq_session_component::~Irq_session_component()
 Irq_session_component::Irq_session_component(Range_allocator * const irq_alloc,
                                              const char      * const      args)
 :
-	_irq_number(Platform::irq(_find_irq_number(args))), _irq_alloc(irq_alloc)
+	_irq_number(Platform::irq(_find_irq_number(args))), _irq_alloc(irq_alloc),
+	_is_msi(false), _address(0), _value(0)
 {
-	long const msi = Arg_string::find_arg(args, "device_config_phys").long_value(0);
-	if (msi)
-		throw Root::Unavailable();
+	const long mmconf =
+		Arg_string::find_arg(args, "device_config_phys").long_value(0);
+
+	if (mmconf) {
+		_is_msi =
+			Platform::get_msi_params(mmconf, _address, _value, _irq_number);
+		if (!_is_msi)
+			throw Root::Unavailable();
+	}
 
 	/* allocate interrupt */
 	if (_irq_alloc->alloc_addr(1, _irq_number).is_error()) {

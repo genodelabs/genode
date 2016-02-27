@@ -355,10 +355,12 @@ void Floating_window_layouter::Main::import_window_list(Xml_node window_list_xml
 			unsigned long id = 0;
 			node.attribute("id").value(&id);
 
+			Area const initial_size = area_attribute(node);
+
 			Window *win = lookup_window_by_id(id);
 			if (!win) {
 				win = new (env()->heap())
-					Window(id, maximized_window_geometry, focus_history);
+					Window(id, maximized_window_geometry, initial_size, focus_history);
 				windows.insert(win);
 
 				Point initial_position(150*id % 800, 30 + (100*id % 500));
@@ -382,7 +384,7 @@ void Floating_window_layouter::Main::import_window_list(Xml_node window_list_xml
 				win->position(initial_position);
 			}
 
-			win->size(area_attribute(node));
+			win->size(initial_size);
 			win->title(string_attribute(node, "title", Window::Title("")));
 			win->has_alpha(node.has_attribute("has_alpha")
 			            && node.attribute("has_alpha").has_value("yes"));

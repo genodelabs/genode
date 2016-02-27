@@ -22,7 +22,23 @@
 #include <internal/capability_space.h>
 #include <internal/assert.h>
 
-namespace Genode { template <unsigned, unsigned, typename> class Capability_space_sel4; }
+namespace Genode {
+	
+	template <unsigned, unsigned, typename> class Capability_space_sel4;
+
+	class Cap_sel
+	{
+		private:
+
+			addr_t _value;
+
+		public:
+
+			explicit Cap_sel(addr_t value) : _value(value) { }
+
+			addr_t value() const { return _value; }
+	};
+}
 
 
 /**
@@ -36,7 +52,7 @@ namespace Genode { namespace Capability_space {
 	struct Ipc_cap_data
 	{
 		Rpc_obj_key rpc_obj_key;
-		unsigned    sel;
+		Cap_sel     sel;
 
 		Ipc_cap_data(Rpc_obj_key rpc_obj_key, unsigned sel)
 		: rpc_obj_key(rpc_obj_key), sel(sel) { }
@@ -81,8 +97,8 @@ namespace Genode
 	};
 
 	enum {
-		CSPACE_SIZE_LOG2          = 12,
-		NUM_CORE_MANAGED_SEL_LOG2 = 10,
+		CSPACE_SIZE_LOG2          = 8,
+		NUM_CORE_MANAGED_SEL_LOG2 = 7,
 	};
 };
 
@@ -186,9 +202,11 @@ class Genode::Capability_space_sel4
 		 * of the 'Native_capability::Data' type.
 		 */
 		template <typename... ARGS>
-		Native_capability::Data &create_capability(unsigned sel, ARGS... args)
+		Native_capability::Data &create_capability(Cap_sel cap_sel, ARGS... args)
 		{
 			Lock::Guard guard(_lock);
+
+			addr_t const sel = cap_sel.value();
 
 			ASSERT(!_caps_data[sel].rpc_obj_key().valid());
 			ASSERT(sel < NUM_CAPS);

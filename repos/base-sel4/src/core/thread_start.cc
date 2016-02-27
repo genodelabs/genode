@@ -41,14 +41,14 @@ void Thread_base::_init_platform_thread(size_t, Type type)
 		     thread_info.ipc_buffer_phys, utcb_virt_addr);
 	}
 
-	_tid.tcb_sel = thread_info.tcb_sel;
-	_tid.ep_sel  = thread_info.ep_sel;
+	_tid.tcb_sel = thread_info.tcb_sel.value();
+	_tid.ep_sel  = thread_info.ep_sel.value();
 
 	Platform &platform = *platform_specific();
 
 	seL4_CapData_t no_cap_data = { { 0 } };
 	int const ret = seL4_TCB_SetSpace(_tid.tcb_sel, 0,
-	                                  platform.top_cnode().sel(), no_cap_data,
+	                                  platform.top_cnode().sel().value(), no_cap_data,
 	                                  seL4_CapInitThreadPD, no_cap_data);
 	ASSERT(ret == 0);
 }
@@ -71,7 +71,8 @@ void Thread_base::_thread_start()
 
 void Thread_base::start()
 {
-	start_sel4_thread(_tid.tcb_sel, (addr_t)&_thread_start, (addr_t)stack_top());
+	start_sel4_thread(Cap_sel(_tid.tcb_sel), (addr_t)&_thread_start,
+	                  (addr_t)stack_top());
 }
 
 

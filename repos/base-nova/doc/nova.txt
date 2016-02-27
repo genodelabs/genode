@@ -113,7 +113,7 @@ on NOVA:
 
 * Core runs directly as roottask on the NOVA hypervisor. On startup, core
   maps the complete I/O port range to itself and implements debug output via
-  comport 0.
+  the serial/UART I/O ports defined by the BIOS data area.
 
 * Because NOVA does not allow rootask to have a BSS segment, we need a slightly
   modified linker script for core (see 'src/core/core.ld').
@@ -132,7 +132,7 @@ on NOVA:
   needed to perform RPC requests is provided by the client during the RPC call.
   This way, RPC semantics becomes very similar to function call semantics with
   regard to the accounting of CPU time. Genode already distinguishes normal
-  threads (with CPU time) and server-side RPC handlers ('Server_activation')
+  threads (with CPU time) and server-side RPC handlers ('Rpc_entrypoint')
   and, therefore, can fully utilize this elegant mechanism without changing the
   Genode API.
 
@@ -151,37 +151,6 @@ on NOVA:
   introduced in the release 9.08. This has two advantages: First, a lock does
   not consume a kernel resource, and second, the full semantics of the Genode
   lock including the 'cancel-blocking' semantics are preserved.
-
-* NOVA does not support server-side out-of-order processing of RPC requests.
-  This is particularly problematic in three cases: Page-fault handling, signal
-  delivery, and the timer service.
-
-  A page-fault handler can receive a page fault request only if the previous
-  page fault has been answered. However, if there is no answer for a
-  page-fault, the page-fault handler has to decide whether to reply with a
-  dummy answer (in this case, the faulter will immediately raise the same page
-  fault again) or block until the page-fault can be resolved. But in the latter
-  case, the page-fault handler cannot handle any other page faults. This is
-  unfeasible if there is only one page-fault handler in the system. Therefore,
-  we instantiate one pager per user thread.  This way, we can block and unblock
-  individual threads when faulting.
-
-  Another classical use case for out-of-order RPC processing is signal
-  delivery. Each process has a signal-receiver thread that blocks at core's
-  signal service using an RPC call. This way, core can selectively deliver
-  signals by replying to one of these in-flight RPCs with a zero-timeout
-  response (preserving the fire-and-forget signal semantics). On NOVA however,
-  a server cannot have multiple RPCs in flight. Hence, we use a NOVA semaphore
-  shared between core and the signal-receiver thread to wakeup the
-  signal-receiver on the occurrence of a signal. Because a semaphore-up
-  operation does not carry payload, the signal has to perform a non-blocking
-  RPC call to core to pick up the details about the signal. Thanks to Genode's
-  RPC framework, the use of the NOVA semaphore is hidden in NOVA-specific stub
-  code for the signal interface and remains completely transparent at API
-  level.
-
-* Because NOVA provides no time source, we use the x86 PIT as user-level time
-  source, similar as on OKL4.
 
 * On the current version of NOVA, kernel capabilities are delegated using IPC.
   Genode supports this scheme by being able to marshal 'Capability' objects as
@@ -209,14 +178,7 @@ with NOVA looks as follows, whereas 'genode/' is a symbolic link to the
 !  module /genode/init
 !  module /genode/timer
 !  module /genode/nitpicker
-!  module /genode/liquid_fb
-!  module /genode/launchpad
-!  module /genode/scout
-!  module /genode/testnit
-!  module /genode/nitlog
-!  module /genode/pci_drv
-!  module /genode/ps2_drv
-!  module /genode/fb_drv
+!  ...
 
 Limitations
 ###########
@@ -231,5 +193,3 @@ The current limitations are:
 * For portals used as exception vectors for threads, the thread causing the
   exception and the handler thread which is bound to the exception portal must
   be on the same CPU.
-
-* Priorities for Genode threads are not supported.

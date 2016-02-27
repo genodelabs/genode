@@ -23,6 +23,7 @@
 #include <platform.h>
 #include <map_local.h>
 #include <dataspace_component.h>
+#include <untyped_memory.h>
 
 using namespace Genode;
 
@@ -63,14 +64,13 @@ class Context_area_rm_session : public Rm_session
 			size = round_page(size);
 
 			/* allocate physical memory */
-			Untyped_address const untyped_addr =
-				Untyped_memory::alloc(*platform_specific()->ram_alloc(), size);
-
-			Untyped_memory::convert_to_page_frames(untyped_addr.phys(),
-			                                       size >> get_page_size_log2());
+			Range_allocator &phys_alloc = *platform_specific()->ram_alloc();
+			size_t const num_pages = size >> get_page_size_log2();
+			addr_t const phys = Untyped_memory::alloc_pages(phys_alloc, num_pages);
+			Untyped_memory::convert_to_page_frames(phys, num_pages);
 
 			Dataspace_component *ds = new (&_ds_slab)
-				Dataspace_component(size, 0, untyped_addr.phys(), CACHED, true, 0);
+				Dataspace_component(size, 0, phys, CACHED, true, 0);
 			if (!ds) {
 				PERR("dataspace for core context does not exist");
 				return (addr_t)0;

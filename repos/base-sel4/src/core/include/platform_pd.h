@@ -36,17 +36,13 @@ class Genode::Platform_pd : public Address_space
 
 		Page_table_registry _page_table_registry;
 
-		unsigned const _vm_pad_cnode_sel;
-
-		unsigned const _vm_cnode_sel;
-
-		unsigned const        _page_directory_sel;
-		Untyped_address  _init_page_directory();
-		Untyped_address const _page_directory = _init_page_directory();
+		Cap_sel const _page_directory_sel;
+		addr_t        _init_page_directory();
+		addr_t  const _page_directory = _init_page_directory();
 
 		Vm_space _vm_space;
 
-		unsigned const _cspace_cnode_sel;
+		Cap_sel const _cspace_cnode_sel;
 
 		Cnode _cspace_cnode;
 
@@ -108,13 +104,13 @@ class Genode::Platform_pd : public Address_space
 		 ** seL4-specific interface **
 		 *****************************/
 
-		unsigned alloc_sel();
+		Cap_sel alloc_sel();
 
-		void free_sel(unsigned sel);
+		void free_sel(Cap_sel sel);
 
 		Cnode &cspace_cnode() { return _cspace_cnode; }
 
-		unsigned page_directory_sel() const { return _page_directory_sel; }
+		Cap_sel page_directory_sel() const { return _page_directory_sel; }
 
 		size_t cspace_size_log2() { return CSPACE_SIZE_LOG2; }
 

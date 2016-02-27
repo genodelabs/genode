@@ -1,3 +1,5 @@
+riscv_files.patch
+riscv.patch
 config.patch
 misc.patch
 no_short_enums.patch
