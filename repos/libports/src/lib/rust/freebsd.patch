@@ -1,0 +1,13 @@
+*** src/lib/rust/src/liblibc/src/unix/bsd/freebsdlike/freebsd/mod2.rs	2016-03-05 19:12:50.388857026 -0800
+--- src/lib/rust/src/liblibc/src/unix/bsd/freebsdlike/freebsd/mod.rs	2016-03-05 19:10:14.606459559 -0800
+***************
+*** 81,86 ****
+--- 81,88 ----
+          mod x86_64;
+          pub use self::x86_64::*;
+      } else {
++         mod x86;
++         pub use self::x86::*;
+          // ...
+      }
+  }
