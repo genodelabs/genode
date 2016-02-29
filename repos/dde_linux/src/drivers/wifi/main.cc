@@ -231,10 +231,12 @@ struct Main
 	:
 		_ep(ep)
 	{
+		Genode::Xml_node config = Genode::config()->xml_node();
 		try {
-			config_verbose = Genode::config()->xml_node().attribute("verbose").has_value("yes");
+			config_verbose = config.attribute("verbose").has_value("yes");
 		} catch (...) { }
-		_wpa = new (Genode::env()->heap()) Wpa_thread(wpa_startup_lock());
+
+		_wpa = new (Genode::env()->heap()) Wpa_thread(wpa_startup_lock(), config_verbose);
 
 		_wpa->start();
 

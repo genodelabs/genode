@@ -92,7 +92,7 @@ append config {
 	<start name="wifi_drv">
 		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="Nic"/> </provides>
-		<config verbose="yes">
+		<config ld_verbose="yes" verbose="yes">
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc">
 				<vfs>
 					<dir name="dev"> <log/> <rtc/>
@@ -128,11 +128,13 @@ append config {
 install_config $config
 
 set firmware_modules {
-	iwlwifi-6000-6.ucode
+	iwlwifi-6000-4.ucode
 	iwlwifi-6000g2a-6.ucode
 	iwlwifi-6000g2b-6.ucode
-	iwlwifi-7260-8.ucode
-	iwlwifi-7265-8.ucode
+	iwlwifi-7260-16.ucode
+	iwlwifi-7265-16.ucode
+	iwlwifi-7265D-16.ucode
+	iwlwifi-8000C-16.ucode
 }
 
 #

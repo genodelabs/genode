@@ -277,11 +277,13 @@ append_if $use_wifi_driver boot_modules {
 	vfs_jitterentropy.lib.so
 	wifi.lib.so wifi_drv
 
-	iwlwifi-6000-6.ucode
+	iwlwifi-6000-4.ucode
 	iwlwifi-6000g2a-6.ucode
 	iwlwifi-6000g2b-6.ucode
-	iwlwifi-7260-8.ucode
-	iwlwifi-7265-8.ucode
+	iwlwifi-7260-16.ucode
+	iwlwifi-7265-16.ucode
+	iwlwifi-7265D-16.ucode
+	iwlwifi-8000C-16.ucode
 }
 
 append_platform_drv_boot_modules

@@ -5,24 +5,25 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* Genode includes */
+#include <base/env.h>
 #include <base/printf.h>
 
 /* local includes */
 #include <lx.h>
+#include <lx_emul.h>
 
-#include <extern_c_begin.h>
-# include <lx_emul.h>
+#include <lx_emul/extern_c_begin.h>
 # include <linux/socket.h>
 # include <linux/net.h>
 # include <net/sock.h>
-#include <extern_c_end.h>
+#include <lx_emul/extern_c_end.h>
 
 #include <wifi/socket_call.h>
 
@@ -142,7 +143,7 @@ class Lx::Socket
 		void _do_socket()
 		{
 			struct socket *s;
-			int res = sock_create_kern(_call.socket.domain, _call.socket.type,
+			int res = sock_create_kern(nullptr, _call.socket.domain, _call.socket.type,
 			                           _call.socket.protocol, &s);
 			if (!res) {
 				_call.socket.result = s;
@@ -186,22 +187,14 @@ class Lx::Socket
 			struct socket *sock = _call_socket();
 			struct msghdr *msg  = &_call.recvmsg.msg;
 
-			/* needed by AF_NETLINK */
-			struct sock_iocb siocb;
-			Genode::memset(&siocb, 0, sizeof(struct sock_iocb));
-			struct kiocb kiocb;
-			Genode::memset(&kiocb, 0, sizeof(struct kiocb));
-
-			kiocb.private_ = &siocb;
-
 			if (_call.handle->non_block)
 				msg->msg_flags |= MSG_DONTWAIT;
 
 			size_t iovlen = 0;
-			for (size_t i = 0; i < msg->msg_iovlen; i++)
-				iovlen += msg->msg_iov[i].iov_len;
+			for (size_t i = 0; i < msg->msg_iter.nr_segs; i++)
+				iovlen += msg->msg_iter.iov[i].iov_len;
 
-			_call.err = sock->ops->recvmsg(&kiocb, sock, msg, iovlen, _call.recvmsg.flags);
+			_call.err = sock->ops->recvmsg(sock, msg, iovlen, _call.recvmsg.flags);
 		}
 
 		void _do_sendmsg()
@@ -209,22 +202,14 @@ class Lx::Socket
 			struct socket *sock = _call_socket();
 			struct msghdr *msg  = const_cast<msghdr *>(&_call.sendmsg.msg);
 
-			/* needed by AF_NETLINK */
-			struct sock_iocb siocb;
-			Genode::memset(&siocb, 0, sizeof(struct sock_iocb));
-			struct kiocb kiocb;
-			Genode::memset(&kiocb, 0, sizeof(struct kiocb));
-
-			kiocb.private_ = &siocb;
-
 			if (_call.handle->non_block)
 				msg->msg_flags |= MSG_DONTWAIT;
 
 			size_t iovlen = 0;
-			for (size_t i = 0; i < msg->msg_iovlen; i++)
-				iovlen += msg->msg_iov[i].iov_len;
+			for (size_t i = 0; i < msg->msg_iter.nr_segs; i++)
+				iovlen += msg->msg_iter.iov[i].iov_len;
 
-			_call.err = sock->ops->sendmsg(&kiocb, sock, msg, iovlen);
+			_call.err = sock->ops->sendmsg(sock, msg, iovlen);
 		}
 
 		void _do_setsockopt()
@@ -513,15 +498,16 @@ static int msg_flags(Wifi::Flags in)
 
 Wifi::ssize_t Socket_call::recvmsg(Socket *s, Wifi::Msghdr *msg, Wifi::Flags flags)
 {
-	_call.opcode                     = Call::RECVMSG;
-	_call.handle                     = s;
-	_call.recvmsg.msg.msg_name       = msg->msg_name;
-	_call.recvmsg.msg.msg_namelen    = msg->msg_namelen;
-	_call.recvmsg.msg.msg_iov        = _call.recvmsg.iov;
-	_call.recvmsg.msg.msg_iovlen     = msg->msg_iovlen;
-	_call.recvmsg.msg.msg_control    = msg->msg_control;
-	_call.recvmsg.msg.msg_controllen = msg->msg_controllen;
-	_call.recvmsg.flags              = msg_flags(flags);
+	_call.opcode                       = Call::RECVMSG;
+	_call.handle                       = s;
+	_call.recvmsg.msg.msg_name         = msg->msg_name;
+	_call.recvmsg.msg.msg_namelen      = msg->msg_namelen;
+	_call.recvmsg.msg.msg_iter.iov     = _call.recvmsg.iov;
+	_call.recvmsg.msg.msg_iter.nr_segs = msg->msg_iovlen;
+	_call.recvmsg.msg.msg_iter.count   = msg->msg_count;
+	_call.recvmsg.msg.msg_control      = msg->msg_control;
+	_call.recvmsg.msg.msg_controllen   = msg->msg_controllen;
+	_call.recvmsg.flags                = msg_flags(flags);
 
 	for (unsigned i = 0; i < msg->msg_iovlen; ++i) {
 		_call.recvmsg.iov[i].iov_base = msg->msg_iov[i].iov_base;
@@ -538,15 +524,16 @@ Wifi::ssize_t Socket_call::recvmsg(Socket *s, Wifi::Msghdr *msg, Wifi::Flags fla
 
 Wifi::ssize_t Socket_call::sendmsg(Socket *s, Wifi::Msghdr const *msg, Wifi::Flags flags)
 {
-	_call.opcode                     = Call::SENDMSG;
-	_call.handle                     = s;
-	_call.sendmsg.msg.msg_name       = msg->msg_name;
-	_call.sendmsg.msg.msg_namelen    = msg->msg_namelen;
-	_call.sendmsg.msg.msg_iov        = _call.sendmsg.iov;
-	_call.sendmsg.msg.msg_iovlen     = msg->msg_iovlen;
-	_call.sendmsg.msg.msg_control    = 0;
-	_call.sendmsg.msg.msg_controllen = 0;
-	_call.sendmsg.flags              = msg_flags(flags);
+	_call.opcode                       = Call::SENDMSG;
+	_call.handle                       = s;
+	_call.sendmsg.msg.msg_name         = msg->msg_name;
+	_call.sendmsg.msg.msg_namelen      = msg->msg_namelen;
+	_call.sendmsg.msg.msg_iter.iov     = _call.sendmsg.iov;
+	_call.sendmsg.msg.msg_iter.nr_segs = msg->msg_iovlen;
+	_call.sendmsg.msg.msg_iter.count   = msg->msg_count;
+	_call.sendmsg.msg.msg_control      = 0;
+	_call.sendmsg.msg.msg_controllen   = 0;
+	_call.sendmsg.flags                = msg_flags(flags);
 
 	for (unsigned i = 0; i < msg->msg_iovlen; ++i) {
 		_call.sendmsg.iov[i].iov_base = msg->msg_iov[i].iov_base;
