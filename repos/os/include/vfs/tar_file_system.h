@@ -528,9 +528,11 @@ class Vfs::Tar_file_system : public File_system
 			return READLINK_OK;
 		}
 
-		Rename_result rename(char const *, char const *) override
+		Rename_result rename(char const *from, char const *to) override
 		{
-			return RENAME_ERR_NO_PERM;
+			if (_root_node.lookup(from) || _root_node.lookup(to))
+				return RENAME_ERR_NO_PERM;
+			return RENAME_ERR_NO_ENTRY;
 		}
 
 		Mkdir_result mkdir(char const *, unsigned) override

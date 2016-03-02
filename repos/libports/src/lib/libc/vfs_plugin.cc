@@ -775,6 +775,24 @@ int Libc::Vfs_plugin::rename(char const *from_path, char const *to_path)
 {
 	typedef Vfs::Directory_service::Rename_result Result;
 
+	if (_root_dir.leaf_path(to_path)) {
+
+		if (_root_dir.is_directory(to_path)) {
+			if (!_root_dir.is_directory(from_path)) {
+				errno = EISDIR; return -1;
+			}
+
+			if (_root_dir.num_dirent(to_path)) {
+				errno = ENOTEMPTY; return -1;
+			}
+
+		} else {
+			if (_root_dir.is_directory(from_path)) {
+				errno = ENOTDIR; return -1;
+			}
+		}
+	}
+
 	switch (_root_dir.rename(from_path, to_path)) {
 	case Result::RENAME_ERR_NO_ENTRY: errno = ENOENT; return -1;
 	case Result::RENAME_ERR_CROSS_FS: errno = EXDEV;  return -1;
