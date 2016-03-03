@@ -262,7 +262,7 @@ Steps to test Genode on RISC-V
 
   ! # download Genode
   ! cd ../../
-  ! git clone https://github.com/ssumpf/genode.git
+  ! git clone https://github.com/genodelabs/genode.git
   !
   ! # build the Genode tool chain
   ! cd genode
