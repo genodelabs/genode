@@ -16,6 +16,7 @@
 
 /* base-internal includes */
 #include <base/internal/platform_env_common.h>
+#include <base/internal/stack_area.h>
 
 using namespace Genode;
 
@@ -39,10 +40,10 @@ struct Expanding_rm_connection : Connection<Rm_session>, Expanding_rm_session_cl
 struct Stack_area_rm_session : Expanding_rm_connection
 {
 	Stack_area_rm_session()
-	: Expanding_rm_connection(0, Native_config::stack_area_virtual_size())
+	: Expanding_rm_connection(0, stack_area_virtual_size())
 	{
-		addr_t local_base = Native_config::stack_area_virtual_base();
-		size_t size       = Native_config::stack_area_virtual_size();
+		addr_t const local_base = stack_area_virtual_base();
+		size_t const size       = stack_area_virtual_size();
 
 		env()->rm_session()->attach_at(dataspace(), local_base, size);
 	}

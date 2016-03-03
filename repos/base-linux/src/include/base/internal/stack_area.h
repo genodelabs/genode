@@ -1,5 +1,5 @@
 /*
- * \brief  Linux-specific utilities for stack area
+ * \brief  Linux-specific definitions and utilities for the stack area
  * \author Christian Helmuth
  * \date   2013-09-26
  */
@@ -24,12 +24,31 @@
 #include <sys/mman.h>
 
 
+extern Genode::addr_t _stack_area_start;
+
+
+namespace Genode {
+
+	/**
+	 * Stack area base address
+	 *
+	 * Please update platform-specific files after changing these
+	 * functions, e.g., 'base-linux/src/ld/stack_area.*.ld'.
+	 */
+	static addr_t stack_area_virtual_base() {
+		return align_addr((addr_t)&_stack_area_start, 20); }
+
+	static constexpr addr_t stack_area_virtual_size() { return 0x10000000UL; }
+	static constexpr addr_t stack_virtual_size()      { return 0x00100000UL; }
+}
+
+
 static inline void flush_stack_area()
 {
 	using namespace Genode;
 
-	void * const base = (void *) Native_config::stack_area_virtual_base();
-	size_t const size = Native_config::stack_area_virtual_size();
+	void * const base = (void *)stack_area_virtual_base();
+	size_t const size = stack_area_virtual_size();
 
 	int ret;
 	if ((ret = lx_munmap(base, size)) < 0) {
@@ -45,8 +64,8 @@ static inline Genode::addr_t reserve_stack_area()
 
 	int const flags       = MAP_ANONYMOUS | MAP_PRIVATE;
 	int const prot        = PROT_NONE;
-	size_t const size     = Native_config::stack_area_virtual_size();
-	void * const addr_in  = (void *)Native_config::stack_area_virtual_base();
+	size_t const size     = stack_area_virtual_size();
+	void * const addr_in  = (void *)stack_area_virtual_base();
 	void * const addr_out = lx_mmap(addr_in, size, prot, flags, -1, 0);
 
 	/* reserve at local address failed - unmap incorrect mapping */

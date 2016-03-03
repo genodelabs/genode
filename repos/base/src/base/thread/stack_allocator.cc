@@ -20,7 +20,7 @@ using namespace Genode;
 
 Stack *Stack_allocator::base_to_stack(addr_t base)
 {
-	addr_t result = base + Native_config::stack_virtual_size()
+	addr_t result = base + stack_virtual_size()
 	                - sizeof(Stack);
 	return reinterpret_cast<Stack *>(result);
 }
@@ -28,21 +28,19 @@ Stack *Stack_allocator::base_to_stack(addr_t base)
 
 addr_t Stack_allocator::addr_to_base(void *addr)
 {
-	return ((addr_t)addr) & ~(Native_config::stack_virtual_size() - 1);
+	return ((addr_t)addr) & ~(stack_virtual_size() - 1);
 }
 
 
 size_t Stack_allocator::base_to_idx(addr_t base)
 {
-	return (base - Native_config::stack_area_virtual_base()) /
-	       Native_config::stack_virtual_size();
+	return (base - stack_area_virtual_base()) / stack_virtual_size();
 }
 
 
 addr_t Stack_allocator::idx_to_base(size_t idx)
 {
-	return Native_config::stack_area_virtual_base() +
-	       idx * Native_config::stack_virtual_size();
+	return stack_area_virtual_base() + idx * stack_virtual_size();
 }
 
 
@@ -51,7 +49,7 @@ Stack_allocator::alloc(Thread_base *thread_base, bool main_thread)
 {
 	if (main_thread)
 		/* the main-thread stack is the first one */
-		return base_to_stack(Native_config::stack_area_virtual_base());
+		return base_to_stack(stack_area_virtual_base());
 
 	try {
 		Lock::Guard _lock_guard(_threads_lock);

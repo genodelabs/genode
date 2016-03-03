@@ -16,6 +16,7 @@
 
 /* base-internal includes */
 #include <base/internal/stack_allocator.h>
+#include <base/internal/stack_area.h>
 
 
 Genode::Thread_base *Genode::Thread_base::myself()
@@ -28,9 +29,8 @@ Genode::Thread_base *Genode::Thread_base::myself()
 	 * thread.
 	 */
 	addr_t sp = (addr_t)(&dummy);
-	if (sp <  Native_config::stack_area_virtual_base() ||
-	    sp >= Native_config::stack_area_virtual_base() +
-	          Native_config::stack_area_virtual_size())
+	if (sp <  Genode::stack_area_virtual_base() ||
+	    sp >= Genode::stack_area_virtual_base() + Genode::stack_area_virtual_size())
 		return 0;
 
 	addr_t base = Stack_allocator::addr_to_base(&dummy);

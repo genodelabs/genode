@@ -56,8 +56,7 @@ void Stack::size(size_t const size)
 		throw Thread_base::Stack_too_large();
 
 	/* allocate and attach backing store for the stack enhancement */
-	addr_t const ds_addr = _base - ds_size -
-	                       Native_config::stack_area_virtual_base();
+	addr_t const ds_addr = _base - ds_size - stack_area_virtual_base();
 	try {
 		Ram_session * const ram = env_stack_area_ram_session();
 		Ram_dataspace_capability const ds_cap = ram->alloc(ds_size);
@@ -96,7 +95,7 @@ Thread_base::_alloc_stack(size_t stack_size, char const *name, bool main_thread)
 	enum { PAGE_SIZE_LOG2 = 12 };
 	size_t ds_size = align_addr(stack_size, PAGE_SIZE_LOG2);
 
-	if (stack_size >= Native_config::stack_virtual_size() -
+	if (stack_size >= stack_virtual_size() -
 	    sizeof(Native_utcb) - (1UL << PAGE_SIZE_LOG2))
 		throw Stack_too_large();
 
@@ -106,8 +105,7 @@ Thread_base::_alloc_stack(size_t stack_size, char const *name, bool main_thread)
 	 * The stack pointer is always located at the top of the stack header.
 	 */
 	addr_t ds_addr = Stack_allocator::addr_to_base(stack) +
-	                 Native_config::stack_virtual_size() -
-	                 ds_size;
+	                 stack_virtual_size() - ds_size;
 
 	/* add padding for UTCB if defined for the platform */
 	if (sizeof(Native_utcb) >= (1 << PAGE_SIZE_LOG2))
@@ -117,7 +115,7 @@ Thread_base::_alloc_stack(size_t stack_size, char const *name, bool main_thread)
 	Ram_dataspace_capability ds_cap;
 	try {
 		ds_cap = env_stack_area_ram_session()->alloc(ds_size);
-		addr_t attach_addr = ds_addr - Native_config::stack_area_virtual_base();
+		addr_t attach_addr = ds_addr - stack_area_virtual_base();
 		if (attach_addr != (addr_t)env_stack_area_rm_session()->attach_at(ds_cap, attach_addr, ds_size))
 			throw Stack_alloc_failed();
 	}
@@ -139,7 +137,7 @@ Thread_base::_alloc_stack(size_t stack_size, char const *name, bool main_thread)
 
 void Thread_base::_free_stack(Stack *stack)
 {
-	addr_t ds_addr = stack->base() - Native_config::stack_area_virtual_base();
+	addr_t ds_addr = stack->base() - stack_area_virtual_base();
 	Ram_dataspace_capability ds_cap = stack->ds_cap();
 
 	/* call de-constructor explicitly before memory gets detached */
@@ -183,6 +181,24 @@ void *Thread_base::stack_base() const { return (void*)_stack->base(); }
 
 
 void Thread_base::stack_size(size_t const size) { _stack->size(size); }
+
+
+size_t Thread_base::stack_virtual_size()
+{
+	return Genode::stack_virtual_size();
+}
+
+
+addr_t Thread_base::stack_area_virtual_base()
+{
+	return Genode::stack_area_virtual_base();
+}
+
+
+size_t Thread_base::stack_area_virtual_size()
+{
+	return Genode::stack_area_virtual_size();
+}
 
 
 Thread_base::Thread_base(size_t weight, const char *name, size_t stack_size,

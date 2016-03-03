@@ -90,22 +90,6 @@ namespace Genode {
 	typedef Native_capability_tpl<Cap_dst_policy> Native_capability;
 	typedef Okl4::L4_ThreadId_t Native_connection_state;
 
-	struct Native_config
-	{
-		/**
-		 * Stack area configuration
-		 */
-		static constexpr addr_t stack_area_virtual_base() {
-			return 0x40000000UL; }
-		static constexpr addr_t stack_area_virtual_size() {
-			return 0x10000000UL; }
-
-		/**
-		 * Size of virtual address region holding the stack of one thread
-		 */
-		static constexpr addr_t stack_virtual_size() { return 0x00100000UL; }
-	};
-
 	struct Native_pd_args { };
 }
 

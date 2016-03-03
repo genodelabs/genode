@@ -281,6 +281,21 @@ class Genode::Thread_base
 		void *stack_base() const;
 
 		/**
+		 * Return virtual size reserved for each stack within the stack area
+		 */
+		static size_t stack_virtual_size();
+
+		/**
+		 * Return the local base address of the stack area
+		 */
+		static addr_t stack_area_virtual_base();
+
+		/**
+		 * Return total size of the stack area
+		 */
+		static size_t stack_area_virtual_size();
+
+		/**
 		 * Return 'Thread_base' object corresponding to the calling thread
 		 *
 		 * \return  pointer to caller's 'Thread_base' object

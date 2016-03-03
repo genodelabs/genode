@@ -23,6 +23,7 @@
 
 /* base-internal includes */
 #include <base/internal/stack.h>
+#include <base/internal/stack_area.h>
 
 /* base-nova includes */
 #include <base/cap_map.h>
@@ -40,8 +41,7 @@ Native_utcb * main_thread_utcb()
 {
 	using namespace Genode;
 	return reinterpret_cast<Native_utcb *>(
-	       Native_config::stack_area_virtual_base() +
-	       Native_config::stack_virtual_size() - Nova::PAGE_SIZE_BYTE);
+	       stack_area_virtual_base() + stack_virtual_size() - Nova::PAGE_SIZE_BYTE);
 }
 
 

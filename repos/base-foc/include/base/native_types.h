@@ -14,7 +14,6 @@
 #ifndef _INCLUDE__BASE__NATIVE_TYPES_H_
 #define _INCLUDE__BASE__NATIVE_TYPES_H_
 
-#include <base/native_config.h>
 #include <base/cap_map.h>
 
 namespace Fiasco {

@@ -19,6 +19,9 @@
 #include <base/synced_allocator.h>
 #include <base/thread.h>
 
+/* base-internal includes */
+#include <base/internal/stack_area.h>
+
 /* local includes */
 #include <platform.h>
 #include <map_local.h>
@@ -80,8 +83,7 @@ class Stack_area_rm_session : public Rm_session
 				return (addr_t)0;
 			}
 
-			addr_t core_local_addr = Native_config::stack_area_virtual_base() +
-			                         (addr_t)local_addr;
+			addr_t core_local_addr = stack_area_virtual_base() + (addr_t)local_addr;
 
 			if (verbose)
 				PDBG("core_local_addr = %lx, phys_addr = %lx, size = 0x%zx",
@@ -103,12 +105,11 @@ class Stack_area_rm_session : public Rm_session
 		{
 			using Genode::addr_t;
 
-			if ((addr_t)local_addr >= Native_config::stack_area_virtual_size())
+			if ((addr_t)local_addr >= stack_area_virtual_size())
 				return;
 
-			addr_t const detach = Native_config::stack_area_virtual_base() +
-			                      (addr_t)local_addr;
-			addr_t const stack  = Native_config::stack_virtual_size();
+			addr_t const detach = stack_area_virtual_base() + (addr_t)local_addr;
+			addr_t const stack  = stack_virtual_size();
 			addr_t const pages  = ((detach & ~(stack - 1)) + stack - detach)
 			                      >> get_page_size_log2();
 

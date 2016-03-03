@@ -48,7 +48,7 @@ void Thread_base::_init_platform_thread(size_t weight, Type type)
 	}
 	/* if we got reinitialized we have to get rid of the old UTCB */
 	size_t const utcb_size  = sizeof(Native_utcb);
-	addr_t const stack_area = Native_config::stack_area_virtual_base();
+	addr_t const stack_area = stack_area_virtual_base();
 	addr_t const utcb_new   = (addr_t)&_stack->utcb() - stack_area;
 	Rm_session * const rm   = env_stack_area_rm_session();
 
@@ -76,8 +76,7 @@ void Thread_base::_deinit_platform_thread()
 	/* detach userland stack */
 	size_t const size = sizeof(_stack->utcb());
 	addr_t utcb = Stack_allocator::addr_to_base(_stack) +
-	              Native_config::stack_virtual_size() - size -
-	              Native_config::stack_area_virtual_base();
+	              stack_virtual_size() - size - stack_area_virtual_base();
 	env_stack_area_rm_session()->detach(utcb);
 
 	if (_pager_cap.valid()) {
@@ -100,8 +99,7 @@ void Thread_base::start()
 		Ram_dataspace_capability ds = _cpu_session->utcb(_thread_cap);
 		size_t const size = sizeof(_stack->utcb());
 		addr_t dst = Stack_allocator::addr_to_base(_stack) +
-		             Native_config::stack_virtual_size() - size -
-		             Native_config::stack_area_virtual_base();
+		             stack_virtual_size() - size - stack_area_virtual_base();
 		env_stack_area_rm_session()->attach_at(ds, dst, size);
 	} catch (...) {
 		PERR("failed to attach userland stack");

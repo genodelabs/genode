@@ -23,6 +23,9 @@
 #include <cnode.h>
 #include <untyped_memory.h>
 
+/* base-internal includes */
+#include <base/internal/stack_area.h>
+
 using namespace Genode;
 
 static bool const verbose_boot_info = true;
@@ -156,8 +159,8 @@ void Platform::_init_allocators()
 	}
 
 	/* preserve stack area in core's virtual address space */
-	_core_mem_alloc.virt_alloc()->remove_range(Native_config::stack_area_virtual_base(),
-	                                           Native_config::stack_area_virtual_size());
+	_core_mem_alloc.virt_alloc()->remove_range(stack_area_virtual_base(),
+	                                           stack_area_virtual_size());
 }
 
 

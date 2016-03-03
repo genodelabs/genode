@@ -11,12 +11,15 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
 #include <base/env.h>
 #include <base/printf.h>
 #include <os/config.h>
 #include <util/list.h>
 #include <util/string.h>
+#include <base/thread.h>
 
+/* local includes */
 #include <dynamic.h>
 #include <init.h>
 
@@ -578,9 +581,10 @@ int main()
 	/* print loaded object information */
 	try {
 		if (Genode::config()->xml_node().attribute("ld_verbose").has_value("yes")) {
-			PINF("  %lx .. %lx: stack area", Genode::Native_config::stack_area_virtual_base(),
-			     Genode::Native_config::stack_area_virtual_base() +
-			     Genode::Native_config::stack_area_virtual_size() - 1);
+			PINF("  %lx .. %lx: stack area",
+			     Genode::Thread_base::stack_area_virtual_base(),
+			     Genode::Thread_base::stack_area_virtual_base() +
+			     Genode::Thread_base::stack_area_virtual_size() - 1);
 			dump_loaded();
 		}
 	} catch (...) {  }

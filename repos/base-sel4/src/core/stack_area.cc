@@ -25,6 +25,9 @@
 #include <dataspace_component.h>
 #include <untyped_memory.h>
 
+/* base-internal includes */
+#include <base/internal/stack_area.h>
+
 using namespace Genode;
 
 
@@ -76,7 +79,7 @@ class Stack_area_rm_session : public Rm_session
 			}
 
 			addr_t const core_local_addr =
-				Native_config::stack_area_virtual_base() + (addr_t)local_addr;
+				stack_area_virtual_base() + (addr_t)local_addr;
 
 			if (verbose)
 				PDBG("core_local_addr = %lx, phys_addr = %lx, size = 0x%zx",

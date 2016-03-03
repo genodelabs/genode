@@ -16,6 +16,7 @@
 
 /* base-internal includes */
 #include <base/internal/stack.h>
+#include <base/internal/stack_area.h>
 
 namespace Genode { class Stack_allocator; }
 
@@ -30,8 +31,8 @@ class Genode::Stack_allocator
 	private:
 
 		static constexpr size_t MAX_THREADS =
-			Native_config::stack_area_virtual_size() /
-			Native_config::stack_virtual_size();
+			stack_area_virtual_size() /
+			stack_virtual_size();
 
 		struct Stack_bit_allocator : Bit_allocator<MAX_THREADS>
 		{

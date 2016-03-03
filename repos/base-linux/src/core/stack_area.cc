@@ -50,8 +50,7 @@ class Stack_area_rm_session : public Genode::Rm_session
 			using namespace Genode;
 
 			/* convert stack-area-relative to absolute virtual address */
-			addr_t addr = local_addr;
-			addr       += Native_config::stack_area_virtual_base();
+			addr_t addr = (addr_t)local_addr + stack_area_virtual_base();
 
 			/* use anonymous mmap for allocating stack backing store */
 			int   flags = MAP_FIXED | MAP_ANONYMOUS | MAP_PRIVATE;

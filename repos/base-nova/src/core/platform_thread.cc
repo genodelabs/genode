@@ -23,6 +23,9 @@
 #include <util.h>
 #include <nova_util.h>
 
+/* base-internal includes */
+#include <base/internal/stack_area.h>
+
 /* NOVA includes */
 #include <nova/syscalls.h>
 #include <nova/util.h>
@@ -119,8 +122,7 @@ int Platform_thread::start(void *ip, void *sp)
 	_sel_exc_base       = is_vcpu() ? _pager->exc_pt_vcpu() : _pager->exc_pt_sel_client();
 
 	if (!is_vcpu()) {
-		pd_utcb = Native_config::stack_area_virtual_base() +
-		          Native_config::stack_virtual_size() - get_page_size();
+		pd_utcb = stack_area_virtual_base() + stack_virtual_size() - get_page_size();
 
 		addr_t remap_src[] = { _pd->parent_pt_sel(), _pager->Object_pool<Pager_object>::Entry::cap().local_name() };
 		addr_t remap_dst[] = { PT_SEL_PARENT, PT_SEL_MAIN_PAGER };

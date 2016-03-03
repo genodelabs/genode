@@ -18,16 +18,6 @@
 #include <base/native_capability.h>
 #include <base/stdint.h>
 
-/*
- * We cannot just include <semaphore.h> and <pthread.h> here
- * because this would imply the nested inclusion of a myriad
- * of Linux types and would pollute the namespace for everyone
- * who includes this header file. We want to cleanly separate
- * Genode from POSIX.
- */
-
-extern Genode::addr_t _stack_area_start;
-
 namespace Genode {
 
 	/**
@@ -124,26 +114,6 @@ namespace Genode {
 	};
 
 	enum { PARENT_SOCKET_HANDLE = 100 };
-
-	struct Native_config
-	{
-		/**
-		 * Stack area configuration
-		 *
-		 * Please update platform-specific files after changing these
-		 * functions, e.g., 'base-linux/src/ld/stack_area.*.ld'.
-		 */
-		static addr_t stack_area_virtual_base() {
-			return align_addr((addr_t)&_stack_area_start, 20); }
-
-		static constexpr addr_t stack_area_virtual_size() {
-			return 0x10000000UL; }
-
-		/**
-		 * Size of virtual address region holding the stack of one thread
-		 */
-		static constexpr addr_t stack_virtual_size() { return 0x00100000UL; }
-	};
 
 	class Native_pd_args
 	{

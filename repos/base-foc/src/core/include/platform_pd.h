@@ -29,6 +29,9 @@
 #include <cap_mapping.h>
 #include <address_space.h>
 
+/* base-internal includes */
+#include <base/internal/stack_area.h>
+
 /* Fiasco.OC includes */
 namespace Fiasco {
 #include <l4/sys/consts.h>
@@ -48,8 +51,8 @@ namespace Genode {
 
 			addr_t utcb_area_start()
 			{
-				return (Native_config::stack_area_virtual_base() +
-				       THREAD_MAX * Native_config::stack_virtual_size());
+				return stack_area_virtual_base() +
+				       THREAD_MAX*stack_virtual_size();
 			}
 
 			Cap_mapping       _task;

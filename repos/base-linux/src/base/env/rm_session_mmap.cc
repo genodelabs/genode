@@ -60,8 +60,8 @@ addr_t Platform_env_base::Rm_session_mmap::_reserve_local(bool           use_loc
 {
 	/* special handling for stack area */
 	if (use_local_addr
-	 && local_addr == Native_config::stack_area_virtual_base()
-	 && size       == Native_config::stack_area_virtual_size()) {
+	 && local_addr == stack_area_virtual_base()
+	 && size       == stack_area_virtual_size()) {
 
 		/*
 		 * On the first request to reserve the stack area, we flush the

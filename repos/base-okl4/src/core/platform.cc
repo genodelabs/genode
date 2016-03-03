@@ -19,6 +19,7 @@
 
 /* base-internal includes */
 #include <base/internal/crt0.h>
+#include <base/internal/stack_area.h>
 
 /* core includes */
 #include <core_parent.h>
@@ -272,8 +273,8 @@ Platform::Platform() :
 	_io_port_alloc.add_range(0, 0x10000);
 
 	/* preserve stack area in core's virtual address space */
-	_core_mem_alloc.virt_alloc()->remove_range(Native_config::stack_area_virtual_base(),
-	                                           Native_config::stack_area_virtual_size());
+	_core_mem_alloc.virt_alloc()->remove_range(stack_area_virtual_base(),
+	                                           stack_area_virtual_size());
 
 	_vm_start = 0x1000;
 	_vm_size  = 0xb0000000 - 0x1000;

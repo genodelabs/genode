@@ -136,8 +136,8 @@ static void test_main_thread()
 	printf("thread base          %p\n", myself);
 
 	/* check whether my stack is inside the first stack region */
-	addr_t const stack_slot_base = Native_config::stack_area_virtual_base();
-	addr_t const stack_slot_size = Native_config::stack_area_virtual_size();
+	addr_t const stack_slot_base = Thread_base::stack_area_virtual_base();
+	addr_t const stack_slot_size = Thread_base::stack_area_virtual_size();
 	addr_t const stack_slot_top  = stack_slot_base + stack_slot_size;
 
 	addr_t const stack_top  = (addr_t)myself->stack_top();
@@ -271,10 +271,10 @@ static void test_create_as_many_threads()
 {
 	printf("running '%s'\n", __func__);
 
-	addr_t const max = Native_config::stack_area_virtual_size() /
-	                   Native_config::stack_virtual_size();
+	addr_t const max = Thread_base::stack_area_virtual_size() /
+	                   Thread_base::stack_virtual_size();
 
-	static Cpu_helper * threads[max];
+	Cpu_helper * threads[max];
 	static char thread_name[8];
 
 	unsigned i = 0;
