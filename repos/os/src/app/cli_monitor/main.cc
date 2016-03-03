@@ -31,7 +31,6 @@
 #include <help_command.h>
 #include <yield_command.h>
 #include <ram_command.h>
-#include <gdb_command.h>
 
 using Genode::Xml_node;
 
@@ -127,10 +126,6 @@ int main(int argc, char **argv)
 	static Signal_context yield_broadcast_sig_ctx;
 	static Signal_context resource_avail_sig_ctx;
 
-	static Signal_context kill_gdb_sig_ctx;
-	static Signal_context_capability kill_gdb_sig_cap =
-		sig_rec.manage(&kill_gdb_sig_ctx);
-
 	static Signal_context exited_child_sig_ctx;
 	static Signal_context_capability exited_child_sig_cap =
 		sig_rec.manage(&exited_child_sig_ctx);
@@ -143,11 +138,6 @@ int main(int argc, char **argv)
 	commands.insert(new Help_command);
 	Kill_command kill_command(children);
 	commands.insert(&kill_command);
-	commands.insert(new Gdb_command(ram, cap, children,
-	                                subsystem_config_registry(),
-	                                yield_response_sig_cap,
-	                                kill_gdb_sig_cap,
-	                                exited_child_sig_cap));
 	commands.insert(new Start_command(ram, cap, children,
 	                                  subsystem_config_registry(),
 	                                  yield_response_sig_cap,
@@ -201,21 +191,6 @@ int main(int argc, char **argv)
 
 			for (Child *child = children.first(); child; child = child->next())
 				child->yield(amount, true);
-		}
-
-		if (signal.context() == &kill_gdb_sig_ctx) {
-			for (Child *child = children.first(); child; child = child->next()) {
-				Gdb_command_child *gdb_command_child =
-					dynamic_cast<Gdb_command_child*>(child);
-				if (gdb_command_child && gdb_command_child->kill_requested()) {
-					tprintf(terminal, "Destroying GDB subsystem after an error occured.\n");
-					children.remove(gdb_command_child);
-					Genode::destroy(Genode::env()->heap(), gdb_command_child);
-					line_editor.reset();
-					break;
-				}
-			}
-			continue;
 		}
 
 		if (signal.context() == &exited_child_sig_ctx) {
