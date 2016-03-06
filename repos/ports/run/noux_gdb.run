@@ -221,6 +221,8 @@ append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 
+append qemu_args " -m 256 "
+
 run_genode_until forever
 
 exec rm bin/gdb.tar
