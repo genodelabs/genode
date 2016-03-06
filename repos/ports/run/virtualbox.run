@@ -138,7 +138,7 @@ lappend_if [have_spec       linux] boot_modules fb_sdl
 lappend_if [have_spec         x86] boot_modules rtc_drv
 
 append boot_modules {
-	ld.lib.so libc.lib.so libm.lib.so pthread.lib.so libc_lock_pipe.lib.so
+	ld.lib.so libc.lib.so libm.lib.so pthread.lib.so libc_pipe.lib.so
 	libc_terminal.lib.so libiconv.lib.so stdcxx.lib.so
 	qemu-usb.lib.so
 }

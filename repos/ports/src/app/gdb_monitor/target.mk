@@ -10,7 +10,7 @@ INC_DIR += $(GDB_CONTRIB_DIR)/include \
            $(PRG_DIR)/gdbserver \
            $(PRG_DIR)
 
-LIBS    =  libc libc_terminal libc_lock_pipe \
+LIBS    =  libc libc_terminal libc_pipe \
            gdbserver_platform gdbserver_libc_support
 
 SRC_C   =  event-loop.c \

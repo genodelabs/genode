@@ -229,7 +229,7 @@ append boot_modules {
 	core init timer
 	part_blk ahci_drv fs_rom
 	ld.lib.so libc.lib.so libm.lib.so pthread.lib.so
-	libc_lock_pipe.lib.so libc_terminal.lib.so
+	libc_pipe.lib.so libc_terminal.lib.so
 	libiconv.lib.so stdcxx.lib.so
 	rump.lib.so rump_fs.lib.so rump_fs
 	virtualbox qemu-usb.lib.so

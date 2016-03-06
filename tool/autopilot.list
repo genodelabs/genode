@@ -8,6 +8,7 @@ tar_rom
 noux
 noux_net_netcat
 libc_ffat
+libc_pipe
 libc_vfs
 libc_vfs_ram
 libc_vfs_fs

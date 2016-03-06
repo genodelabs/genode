@@ -140,7 +140,7 @@ exec cp ${genode_dir}/repos/os/src/app/cli_monitor/gdb_command_config bin
 set boot_modules {
 	core init timer ld.lib.so noux terminal_mux terminal_crosslink
 	libc.lib.so libm.lib.so libc_noux.lib.so ncurses.lib.so expat.lib.so
-	libc_lock_pipe.lib.so libc_log.lib.so libc_terminal.lib.so
+	libc_pipe.lib.so libc_log.lib.so libc_terminal.lib.so
 	cli_monitor	gdb_monitor terminal_log gdb.tar
 	gdb_command_config
 	gdb_target.tar

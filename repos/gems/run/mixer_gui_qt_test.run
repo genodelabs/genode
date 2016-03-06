@@ -235,7 +235,7 @@ set boot_modules {
 	freetype.lib.so
 	gallium.lib.so
 	icu.lib.so
-	libc_lock_pipe.lib.so
+	libc_pipe.lib.so
 	libm.lib.so
 	libpng.lib.so
 	jpeg.lib.so

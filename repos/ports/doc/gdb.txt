@@ -228,7 +228,7 @@ in the form of a separate shared library. Please make sure to integrate those
 shared libraries along with the dynamic linker (ld.lib.so) in your boot image.
 They are 'libc.lib.so' (the libc), 'libc_log.lib.so' (for printing the LOG
 output of GDB monitor to core's LOG service), 'libc_terminal.lib.so' (to
-connect with GDB), and 'libc_lock_pipe.lib.so' (used for synchronizing threads
+connect with GDB), and 'libc_pipe.lib.so' (used for synchronizing threads
 via 'select' and 'pipe'). For using the TCP terminal, 'lwip.lib.so' (TCP/IP
 stack) is needed as well.
 

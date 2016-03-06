@@ -87,7 +87,7 @@ install_config $config
 set boot_modules {
 	core init timer
 	nic_drv
-	ld.lib.so libc.lib.so lwip.lib.so libc_lock_pipe.lib.so
+	ld.lib.so libc.lib.so lwip.lib.so libc_pipe.lib.so
 	tcp_terminal
 	test-terminal_echo
 }
