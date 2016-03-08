@@ -100,6 +100,7 @@ int main(int argc, char *argv[])
 	char const *file_name2    = "test2.tst";
 	char const *file_name3    = "test3.tst";
 	char const *file_name4    = "test4.tst";
+	char const *file_name5    = "test5.tst";
 	char const *pattern       = "a single line of text";
 
 	size_t      pattern_size  = strlen(pattern) + 1;
@@ -151,6 +152,14 @@ int main(int argc, char *argv[])
 		} else {
 			printf("file content is correct\n");
 		}
+
+		/* move file (target does not exist) */
+		CALL_AND_CHECK(fd, open(file_name5, O_CREAT | O_WRONLY), fd >= 0, "file_name=%s", file_name5);
+		CALL_AND_CHECK(ret, rename(file_name5, "x"), ret == 0, "file_name=%s", file_name5);
+
+		/* move file (target already exists) */
+		CALL_AND_CHECK(fd, open(file_name5, O_CREAT | O_WRONLY), fd >= 0, "file_name=%s", file_name5);
+		CALL_AND_CHECK(ret, rename(file_name5, "x"), ret == 0, "file_name=%s", file_name5);
 
 		/* test 'pread()' and 'pwrite()' */
 		CALL_AND_CHECK(fd, open(file_name2, O_CREAT | O_WRONLY), fd >= 0, "file_name=%s", file_name2);
