@@ -484,8 +484,14 @@ Elf::Sym const *Linker::lookup_symbol(char const *name, Dependency const *dep,
 	}
 
 	/* try searching binary's dependencies */
-	if (!weak_symbol && dep->root && dep != binary->dep.head())
-		return lookup_symbol(name, binary->dep.head(), base, undef, other);
+	if (!weak_symbol && dep->root) {
+		if (binary && dep != binary->dep.head()) {
+			return lookup_symbol(name, binary->dep.head(), base, undef, other);
+		} else {
+			PERR("Could not lookup symbol \"%s\"", name);
+			throw Not_found();
+		}
+	}
 
 	if (dep->root && verbose_lookup)
 		PDBG("Return %p", weak_symbol);
