@@ -63,14 +63,6 @@ namespace Genode {
 		return tid.raw;
 	}
 
-	/**
-	 * Empty UTCB type expected by the thread library
-	 *
-	 * On this kernel, UTCBs are not placed within the the stack area. Each
-	 * thread can request its own UTCB pointer using the kernel interface.
-	 */
-	typedef struct { } Native_utcb;
-
 	typedef Native_capability_tpl<Cap_dst_policy> Native_capability;
 	typedef Fiasco::l4_threadid_t Native_connection_state;
 }

@@ -19,6 +19,7 @@
 
 /* base-internal includes */
 #include <base/internal/stack.h>
+#include <base/internal/native_utcb.h>
 
 /* base-hw includes */
 #include <kernel/interface.h>

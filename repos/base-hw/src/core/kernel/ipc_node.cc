@@ -16,6 +16,9 @@
 #include <util/string.h>
 #include <base/native_types.h>
 
+/* base-internal includes */
+#include <base/internal/native_utcb.h>
+
 /* core includes */
 #include <assert.h>
 #include <platform_pd.h>

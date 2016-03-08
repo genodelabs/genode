@@ -19,6 +19,7 @@
 
 /* base-internal includes */
 #include <base/internal/unmanaged_singleton.h>
+#include <base/internal/native_utcb.h>
 
 /* core includes */
 #include <assert.h>

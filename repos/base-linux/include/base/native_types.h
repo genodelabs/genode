@@ -95,11 +95,6 @@ namespace Genode {
 		static void copy(void* dst, Native_capability_tpl<Cap_dst_policy>* src);
 	};
 
-	/**
-	 * Empty UTCB type expected by the thread library, unused on Linux
-	 */
-	typedef struct { } Native_utcb;
-
 	typedef Native_capability_tpl<Cap_dst_policy> Native_capability;
 
 	/**

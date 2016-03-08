@@ -20,6 +20,9 @@
 #include <base/native_types.h>
 #include <base/thread.h>
 
+/* base-internal includes */
+#include <base/internal/native_utcb.h>
+
 /* core includes */
 #include <address_space.h>
 #include <object.h>

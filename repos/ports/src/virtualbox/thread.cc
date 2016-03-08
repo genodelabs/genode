@@ -68,8 +68,10 @@ static int create_thread(pthread_t *thread, const pthread_attr_t *attr,
 
 	Assert(rtthread);
 
+	size_t const utcb_size = 4096;
+
 	size_t stack_size = Genode::Thread_base::stack_virtual_size() -
-	                    sizeof(Genode::Native_utcb) - 2 * (1UL << 12);
+	                    utcb_size - 2 * (1UL << 12);
 
 	if (rtthread->cbStack < stack_size)
 		stack_size = rtthread->cbStack;

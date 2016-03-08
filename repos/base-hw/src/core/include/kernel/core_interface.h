@@ -14,6 +14,9 @@
 #ifndef _CORE__INCLUDE__KERNEL__CORE_INTERFACE_H_
 #define _CORE__INCLUDE__KERNEL__CORE_INTERFACE_H_
 
+/* base-internal includes */
+#include <base/internal/native_utcb.h>
+
 /* base-hw includes */
 #include <kernel/interface.h>
 

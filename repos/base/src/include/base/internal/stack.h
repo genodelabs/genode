@@ -59,6 +59,9 @@
 #include <cpu/consts.h>
 #include <ram_session/ram_session.h>  /* for 'Ram_dataspace_capability' type */
 
+/* base-internal includes */
+#include <base/internal/native_utcb.h>
+
 namespace Genode { class Stack; }
 
 

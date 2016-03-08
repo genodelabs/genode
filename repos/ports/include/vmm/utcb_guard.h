@@ -30,13 +30,17 @@ namespace Vmm {
 
 class Vmm::Utcb_guard
 {
+	public:
+
+		struct Utcb_backup { char buf[Nova::Utcb::size()]; };
+
 	private:
 
-		Native_utcb &_backup_utcb;
+		Utcb_backup &_backup_utcb;
 
 	public:
 
-		Utcb_guard(Native_utcb &backup_utcb) : _backup_utcb(backup_utcb)
+		Utcb_guard(Utcb_backup &backup_utcb) : _backup_utcb(backup_utcb)
 		{
 			Nova::Utcb *utcb =
 				reinterpret_cast<Nova::Utcb *>(Thread_base::myself()->utcb());

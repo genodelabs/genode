@@ -95,17 +95,6 @@ namespace Genode {
 	typedef Fiasco::l4_cap_idx_t Native_task;
 
 
-	struct Native_utcb
-	{
-		/*
-		 * The 'Native_utcb' is located within the stack slot of the thread.
-		 * We merely use it for remembering a pointer to the real UTCB, which
-		 * resides somewhere in the kernel's address space.
-		 */
-		Fiasco::l4_utcb_t *foc_utcb = nullptr;
-	};
-
-
 	/**
 	 * Native_capability in Fiasco.OC is just a reference to a Cap_index.
 	 *

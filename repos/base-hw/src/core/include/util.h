@@ -18,6 +18,9 @@
 #include <rm_session/rm_session.h>
 #include <base/printf.h>
 
+/* base-internal includes */
+#include <base/internal/page_size.h>
+
 namespace Genode
 {
 	enum {

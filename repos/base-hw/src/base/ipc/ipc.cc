@@ -20,6 +20,9 @@
 #include <util/construct_at.h>
 #include <util/retry.h>
 
+/* base-internal includes */
+#include <base/internal/native_utcb.h>
+
 /* base-hw includes */
 #include <kernel/interface.h>
 #include <kernel/log.h>

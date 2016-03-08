@@ -29,6 +29,7 @@
 
 /* base-internal includes */
 #include <base/internal/stack_area.h>
+#include <base/internal/native_utcb.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>

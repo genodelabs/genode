@@ -28,6 +28,7 @@
 
 namespace Genode {
 
+	struct Native_utcb;
 	class Rm_session;
 	class Thread_base;
 	class Stack;

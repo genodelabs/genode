@@ -18,6 +18,9 @@
 /* Genode includes */
 #include <util/construct_at.h>
 
+/* base-local includes */
+#include <base/internal/native_utcb.h>
+
 /* core includes */
 #include <kernel/fifo.h>
 #include <kernel/interface.h>

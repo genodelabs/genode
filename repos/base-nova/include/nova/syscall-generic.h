@@ -443,6 +443,11 @@ namespace Nova {
 	struct Utcb
 	{
 		/**
+		 * Return physical size of UTCB in bytes
+		 */
+		static constexpr mword_t size() { return 4096; }
+
+		/**
 		 * Number of untyped items uses lowest 16 bit, number of typed items
 		 * uses bit 16-31, bit 32+ are ignored on 64bit
 		 */

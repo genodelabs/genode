@@ -52,6 +52,7 @@
 #include <vmm/guest_memory.h>
 #include <vmm/vcpu_thread.h>
 #include <vmm/vcpu_dispatcher.h>
+#include <vmm/utcb_guard.h>
 
 /* NOVA includes that come with Genode */
 #include <nova/syscalls.h>
@@ -77,7 +78,10 @@ enum { verbose_debug = false };
 enum { verbose_npt   = false };
 enum { verbose_io    = false };
 
-static Genode::Native_utcb utcb_backup;
+typedef Vmm::Utcb_guard::Utcb_backup Utcb_backup;
+
+static Utcb_backup utcb_backup;
+
 Genode::Lock *utcb_lock()
 {
 	static Genode::Lock inst;
@@ -1143,7 +1147,9 @@ class Machine : public StaticReceiver<Machine>
 		bool receive(MessageTime &msg)
 		{
 			Genode::Lock::Guard guard(*utcb_lock());
-			utcb_backup = *Genode::Thread_base::myself()->utcb();
+
+			Vmm::Utcb_guard utcb_guard(utcb_backup);
+			utcb_backup = *(Utcb_backup *)Genode::Thread_base::myself()->utcb();
 
 			if (!_rtc) {
 				try {
@@ -1152,7 +1158,7 @@ class Machine : public StaticReceiver<Machine>
 					Logging::printf("No RTC present, returning dummy time.\n");
 					msg.wallclocktime = msg.timestamp = 0;
 
-					*Genode::Thread_base::myself()->utcb() = utcb_backup;
+					*(Utcb_backup *)Genode::Thread_base::myself()->utcb() = utcb_backup;
 
 					return true;
 				}
@@ -1166,7 +1172,7 @@ class Machine : public StaticReceiver<Machine>
 			Logging::printf("Got time %llx\n", msg.wallclocktime);
 			msg.timestamp = _unsynchronized_motherboard.clock()->clock(MessageTime::FREQUENCY);
 
-			*Genode::Thread_base::myself()->utcb() = utcb_backup;
+			*(Utcb_backup *)Genode::Thread_base::myself()->utcb() = utcb_backup;
 
 			return true;
 		}
@@ -1176,7 +1182,8 @@ class Machine : public StaticReceiver<Machine>
 			if (msg.type != MessageNetwork::PACKET) return false;
 
 			Genode::Lock::Guard guard(*utcb_lock());
-			utcb_backup = *Genode::Thread_base::myself()->utcb();
+
+			Vmm::Utcb_guard utcb_guard(utcb_backup);
 
 			if (msg.buffer == _forward_pkt) {
 				/* don't end in an endless forwarding loop */
@@ -1210,8 +1217,6 @@ class Machine : public StaticReceiver<Machine>
 
 			/* release sent packet to free the space in the tx communication buffer */
 			_nic->tx()->release_packet(tx_packet);
-
-			*Genode::Thread_base::myself()->utcb() = utcb_backup;
 
 			return true;
 		}

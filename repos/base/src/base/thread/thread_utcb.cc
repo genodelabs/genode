@@ -16,6 +16,7 @@
 
 /* base-internal includes */
 #include <base/internal/stack.h>
+#include <base/internal/native_utcb.h>
 
 using namespace Genode;
 

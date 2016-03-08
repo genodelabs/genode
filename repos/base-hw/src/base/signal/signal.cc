@@ -18,6 +18,9 @@
 #include <base/env.h>
 #include <base/trace/events.h>
 
+/* base-internal includes */
+#include <base/internal/native_utcb.h>
+
 /* base-hw includes */
 #include <kernel/interface.h>
 

@@ -24,6 +24,7 @@
 /* base-internal includes */
 #include <base/internal/stack.h>
 #include <base/internal/stack_area.h>
+#include <base/internal/native_utcb.h>
 
 /* base-nova includes */
 #include <base/cap_map.h>

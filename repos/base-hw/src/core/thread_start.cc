@@ -19,6 +19,7 @@
 
 /* base-internal stack */
 #include <base/internal/stack.h>
+#include <base/internal/native_utcb.h>
 
 /* core includes */
 #include <map_local.h>

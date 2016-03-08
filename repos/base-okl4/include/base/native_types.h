@@ -71,14 +71,6 @@ namespace Genode {
 		return tid.raw;
 	}
 
-	/**
-	 * Empty UTCB type expected by the thread library, unused on OKL4
-	 *
-	 * On this kernel, UTCBs are not placed within the stack area. Each
-	 * thread can request its own UTCB pointer using the kernel interface.
-	 */
-	typedef struct { } Native_utcb;
-
 	struct Cap_dst_policy
 	{
 		typedef Okl4::L4_ThreadId_t Dst;
