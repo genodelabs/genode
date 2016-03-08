@@ -34,7 +34,7 @@ namespace Okl4 { extern "C" {
 static inline void thread_yield() { Okl4::L4_Yield(); }
 
 
-extern Genode::Native_thread_id main_thread_tid;
+extern Okl4::L4_ThreadId_t main_thread_tid;
 
 
 /**
@@ -54,9 +54,9 @@ static inline bool thread_check_stopped_and_restart(Genode::Thread_base *thread_
 	L4_ThreadId_t dummy_id;
 	L4_ThreadState_t state;
 
-	Genode::Native_thread_id tid = thread_base ?
-	                               thread_base->tid().l4id :
-	                               main_thread_tid;
+	Okl4::L4_ThreadId_t tid = thread_base ?
+	                          thread_base->tid().l4id :
+	                          main_thread_tid;
 
 	L4_ExchangeRegisters(tid, L4_ExReg_Resume + L4_ExReg_AbortIPC, 0, 0, 0,
 	                     0, L4_nilthread, &state.raw, &dummy, &dummy, &dummy,
@@ -71,9 +71,9 @@ static inline bool thread_check_stopped_and_restart(Genode::Thread_base *thread_
  */
 static inline void thread_switch_to(Genode::Thread_base *thread_base)
 {
-	Genode::Native_thread_id tid = thread_base ?
-	                               thread_base->tid().l4id :
-	                               main_thread_tid;
+	Okl4::L4_ThreadId_t tid = thread_base ?
+	                          thread_base->tid().l4id :
+	                          main_thread_tid;
 	Okl4::L4_ThreadSwitch(tid);
 }
 
@@ -84,9 +84,9 @@ static inline void thread_switch_to(Genode::Thread_base *thread_base)
 static inline void thread_stop_myself()
 {
 	Genode::Thread_base *myself = Genode::Thread_base::myself();
-	Genode::Native_thread_id tid = myself ?
-	                               myself->tid().l4id :
-	                               main_thread_tid;
+	Okl4::L4_ThreadId_t tid = myself ?
+	                          myself->tid().l4id :
+	                          main_thread_tid;
 	Okl4::L4_Stop(tid);
 }
 

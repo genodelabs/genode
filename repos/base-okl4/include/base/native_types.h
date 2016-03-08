@@ -31,26 +31,9 @@ namespace Genode {
 	 */
 	enum { UTCB_TCR_THREAD_WORD_MYSELF = 0 };
 
-	namespace Thread_id_bits {
-
-		/*
-		 * L4 thread ID has 18 bits for thread number and 14 bits for
-		 * version info.
-		 */
-		enum { PD = 8, THREAD = 5 };
-	}
-
-	typedef Okl4::L4_ThreadId_t Native_thread_id;
-
-	inline bool operator == (Native_thread_id t1, Native_thread_id t2) {
-		return t1.raw == t2.raw; }
-
-	inline bool operator != (Native_thread_id t1, Native_thread_id t2) {
-		return t1.raw != t2.raw; }
-
 	struct Native_thread
 	{
-		Native_thread_id l4id;
+		Okl4::L4_ThreadId_t l4id;
 
 		/**
 		 * Only used in core
@@ -61,15 +44,6 @@ namespace Genode {
 		 */
 		Platform_thread *pt;
 	};
-
-	inline unsigned long convert_native_thread_id_to_badge(Native_thread_id tid)
-	{
-		/*
-		 * OKL4 has no server-defined badges for page-fault messages.
-		 * Therefore, we have to interpret the sender ID as badge.
-		 */
-		return tid.raw;
-	}
 
 	struct Cap_dst_policy
 	{

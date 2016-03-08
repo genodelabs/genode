@@ -110,7 +110,7 @@ namespace Genode {
 	                             Rm_session::Fault_type pf_type,
 	                             unsigned long badge)
 	{
-		Native_thread_id tid;
+		Pistachio::L4_ThreadId_t tid;
 		tid.raw = badge;
 		printf("%s (%s pf_addr=%p pf_ip=%p from %02lx (raw %08lx))\n", msg,
 		       pf_type == Rm_session::WRITE_FAULT ? "WRITE" : "READ",

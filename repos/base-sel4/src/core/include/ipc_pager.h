@@ -75,7 +75,7 @@ namespace Genode {
 	{
 		private:
 
-			Native_thread_id _last;      /* faulted thread                 */
+			addr_t           _last;      /* faulted thread ID              */
 			addr_t           _pf_addr;   /* page-fault address             */
 			addr_t           _pf_ip;     /* instruction pointer of faulter */
 			bool             _pf_write;  /* true on write fault            */

@@ -80,9 +80,6 @@ namespace Fiasco {
 
 namespace Genode {
 
-	typedef Fiasco::l4_cap_idx_t Native_thread_id;
-
-
 	struct Native_thread
 	{
 		Fiasco::l4_cap_idx_t kcap = 0;

@@ -26,8 +26,6 @@ namespace Genode {
 
 	class Platform_thread;
 
-	typedef Fiasco::l4_threadid_t Native_thread_id;
-
 	struct Cap_dst_policy
 	{
 		typedef Fiasco::l4_threadid_t Dst;
@@ -42,7 +40,7 @@ namespace Genode {
 
 	struct Native_thread
 	{
-		Native_thread_id l4id;
+		Fiasco::l4_threadid_t l4id;
 
 		/**
 		 * Only used in core
@@ -53,15 +51,6 @@ namespace Genode {
 		 */
 		Platform_thread *pt;
 	};
-
-	inline unsigned long convert_native_thread_id_to_badge(Native_thread_id tid)
-	{
-		/*
-		 * Fiasco has no server-defined badges for page-fault messages.
-		 * Therefore, we have to interpret the sender ID as badge.
-		 */
-		return tid.raw;
-	}
 
 	typedef Native_capability_tpl<Cap_dst_policy> Native_capability;
 	typedef Fiasco::l4_threadid_t Native_connection_state;

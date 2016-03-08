@@ -40,13 +40,13 @@ namespace Genode {
 
 		public:
 
-			Native_capability local;  /* reference to cap that is mapped */
-			Native_thread_id  remote; /* index in cap-space of the other pd */
+			Native_capability    local;  /* reference to cap that is mapped */
+			Fiasco::l4_cap_idx_t remote; /* index in cap-space of the other pd */
 
 			Cap_mapping(bool alloc=false,
-			            Native_thread_id r = Fiasco::L4_INVALID_CAP);
+			            Fiasco::l4_cap_idx_t r = Fiasco::L4_INVALID_CAP);
 			Cap_mapping(Native_capability cap,
-			            Native_thread_id r = Fiasco::L4_INVALID_CAP);
+			            Fiasco::l4_cap_idx_t r = Fiasco::L4_INVALID_CAP);
 
 			/**
 			 * Map the cap in local to corresponding task.

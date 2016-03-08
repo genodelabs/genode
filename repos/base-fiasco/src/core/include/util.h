@@ -103,7 +103,7 @@ namespace Genode {
 	                             Rm_session::Fault_type pf_type,
 	                             unsigned long badge)
 	{
-		Native_thread_id tid;
+		Fiasco::l4_threadid_t tid;
 		tid.raw = badge;
 		printf("%s (%s pf_addr=%p pf_ip=%p from %x.%02x)\n", msg,
 		       pf_type == Rm_session::WRITE_FAULT ? "WRITE" : "READ",
@@ -115,6 +115,15 @@ namespace Genode {
 		return core_local_addr; }
 
 	inline size_t constrain_map_size_log2(size_t size_log2) { return size_log2; }
+
+	inline unsigned long convert_native_thread_id_to_badge(Fiasco::l4_threadid_t tid)
+	{
+		/*
+		 * Fiasco has no server-defined badges for page-fault messages.
+		 * Therefore, we have to interpret the sender ID as badge.
+		 */
+		return tid.raw;
+	}
 }
 
 #endif /* _CORE__INCLUDE__UTIL_H_ */

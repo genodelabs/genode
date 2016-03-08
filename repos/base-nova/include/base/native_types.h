@@ -36,20 +36,6 @@ namespace Genode {
 		                  exc_pt_sel (INVALID_INDEX), is_vcpu(false) {}
 	};
 
-	typedef Native_thread Native_thread_id;
-
-	inline bool operator == (Native_thread_id t1, Native_thread_id t2)
-	{
-		return (t1.ec_sel == t2.ec_sel) &&
-		       (t1.exc_pt_sel == t2.exc_pt_sel);
-	}
-
-	inline bool operator != (Native_thread_id t1, Native_thread_id t2)
-	{
-		return (t1.ec_sel != t2.ec_sel) &&
-		       (t1.exc_pt_sel != t2.exc_pt_sel);
-	}
-
 	class Native_capability
 	{
 		public:

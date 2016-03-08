@@ -18,7 +18,6 @@
 #include <base/allocator.h>
 
 /* core includes */
-#include <platform_thread.h>
 #include <address_space.h>
 
 namespace Okl4 { extern "C" {
@@ -26,6 +25,15 @@ namespace Okl4 { extern "C" {
 } }
 
 namespace Genode {
+
+	namespace Thread_id_bits {
+
+		/*
+		 * L4 thread ID has 18 bits for thread number and 14 bits for
+		 * version info.
+		 */
+		enum { PD = 8, THREAD = 5 };
+	}
 
 	class Platform_thread;
 	class Platform_pd : public Address_space
@@ -45,8 +53,8 @@ namespace Genode {
 			/**
 			 * Manually construct L4 thread ID from its components
 			 */
-			static Native_thread_id make_l4_id(unsigned space_no,
-			                                   unsigned thread_no)
+			static Okl4::L4_ThreadId_t make_l4_id(unsigned space_no,
+			                                      unsigned thread_no)
 			{
 				/*
 				 * On OKL4, version must be set to 1

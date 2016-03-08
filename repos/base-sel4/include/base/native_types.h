@@ -19,8 +19,6 @@
 
 namespace Genode {
 
-	typedef int Native_thread_id;
-
 	struct Native_thread
 	{
 		unsigned tcb_sel = 0;

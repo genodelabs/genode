@@ -25,7 +25,7 @@ namespace Okl4
 	}
 }
 
-Genode::Native_thread_id main_thread_tid;
+Okl4::L4_ThreadId_t main_thread_tid;
 
 
 /*******************

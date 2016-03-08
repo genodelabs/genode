@@ -34,7 +34,7 @@ using namespace Genode;
 enum
 {
 	/* size of the callee-local name of a targeted RPC object */
-	RPC_OBJECT_ID_SIZE = sizeof(Native_thread_id),
+	RPC_OBJECT_ID_SIZE = sizeof(Kernel::capid_t),
 
 	/*
 	 * The RPC framework marshalls a return value into reply messages to

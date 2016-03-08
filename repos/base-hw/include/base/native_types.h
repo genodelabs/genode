@@ -26,8 +26,6 @@ namespace Genode
 	class Platform_thread;
 	class Native_thread;
 
-	using Native_thread_id = Kernel::capid_t;
-
 	typedef int Native_connection_state;
 
 	/**

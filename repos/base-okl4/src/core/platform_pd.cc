@@ -17,6 +17,7 @@
 /* core includes */
 #include <util.h>
 #include <platform_pd.h>
+#include <platform_thread.h>
 #include <platform.h>
 
 /* OKL4 includes */

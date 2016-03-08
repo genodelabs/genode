@@ -25,8 +25,6 @@ namespace Genode {
 
 	class Platform_thread;
 
-	typedef Pistachio::L4_ThreadId_t Native_thread_id;
-
 	struct Cap_dst_policy
 	{
 		typedef Pistachio::L4_ThreadId_t Dst;
@@ -41,7 +39,7 @@ namespace Genode {
 
 	struct Native_thread
 	{
-		Native_thread_id l4id;
+		Pistachio::L4_ThreadId_t l4id;
 
 		/**
 		 * Only used in core

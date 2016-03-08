@@ -32,7 +32,7 @@ static inline void thread_yield() {
 /**
  * Return kernel name of thread t
  */
-static inline Genode::Native_thread_id
+static inline Kernel::capid_t
 native_thread_id(Genode::Thread_base * const t)
 {
 	return t ? t->tid().cap.dst() : Hw::_main_thread_cap.dst();

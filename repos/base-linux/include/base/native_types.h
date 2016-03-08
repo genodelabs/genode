@@ -21,60 +21,37 @@
 namespace Genode {
 
 	/**
-	 * Thread ID
-	 *
-	 * Unfortunately, both - PID and TID - are needed for lx_tgkill()
-	 */
-	struct Native_thread_id
-	{
-		unsigned int tid;  /* Native thread ID type as returned by the
-		                      'clone' system call */
-		unsigned int pid;  /* process ID (resp. thread-group ID) */
-
-		Native_thread_id() : tid(0), pid(0) { }
-		Native_thread_id(unsigned int tid, unsigned int pid)
-		: tid(tid), pid(pid) { }
-	};
-
-	struct Thread_meta_data;
-
-	/**
 	 * Native thread contains more thread-local data than just the ID
-	 *
-	 * FIXME doc
-	 * A thread needs two sockets as it may be a server that depends on another
-	 * service during request processing. If the server socket would be used for
-	 * the client call, the server thread may be unblocked by further requests
-	 * from its clients. In other words, the additional client socket provides
-	 * closed-receive semantics in calls. An even better solution is to use
-	 * SCM_RIGHTS messages to send a client socket descriptor with the request.
 	 */
-	struct Native_thread : Native_thread_id
+	struct Native_thread
 	{
-		bool is_ipc_server;
+		/*
+		 * Unfortunately, both - PID and TID - are needed for lx_tgkill()
+		 */
+		unsigned int tid = 0;  /* Native thread ID type as returned by the
+		                          'clone' system call */
+		unsigned int pid = 0;  /* process ID (resp. thread-group ID) */
+
+		bool is_ipc_server = false;
 
 		/**
 		 * Natively aligned memory location used in the lock implementation
 		 */
-		int futex_counter __attribute__((aligned(sizeof(Genode::addr_t))));
+		int futex_counter __attribute__((aligned(sizeof(Genode::addr_t)))) = 0;
+
+		struct Meta_data;
 
 		/**
 		 * Opaque pointer to additional thread-specific meta data
 		 *
-		 * This pointer is used by hybrid Linux/Genode program to maintain
+		 * This pointer is used by hybrid Linux/Genode programs to maintain
 		 * POSIX-thread-related meta data. For non-hybrid Genode programs, it
 		 * remains unused.
 		 */
-		Thread_meta_data *meta_data;
+		Meta_data *meta_data = nullptr;
 
-		Native_thread() : is_ipc_server(false), futex_counter(0), meta_data(0) { }
+		Native_thread() { }
 	};
-
-	inline bool operator == (Native_thread_id t1, Native_thread_id t2) {
-		return (t1.tid == t2.tid) && (t1.pid == t2.pid); }
-
-	inline bool operator != (Native_thread_id t1, Native_thread_id t2) {
-		return (t1.tid != t2.tid) || (t1.pid != t2.pid); }
 
 	struct Cap_dst_policy
 	{

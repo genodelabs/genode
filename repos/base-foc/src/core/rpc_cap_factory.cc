@@ -58,7 +58,7 @@ Core_cap_index* Cap_mapping::_get_cap()
 }
 
 
-void Cap_mapping::map(Native_thread_id task)
+void Cap_mapping::map(Fiasco::l4_cap_idx_t task)
 {
 	using namespace Fiasco;
 
@@ -73,11 +73,11 @@ void Cap_mapping::map(Native_thread_id task)
 }
 
 
-Cap_mapping::Cap_mapping(bool alloc, Native_thread_id r)
+Cap_mapping::Cap_mapping(bool alloc, Fiasco::l4_cap_idx_t r)
 : local(alloc ? _get_cap() : 0), remote(r) { }
 
 
-Cap_mapping::Cap_mapping(Native_capability cap, Native_thread_id r)
+Cap_mapping::Cap_mapping(Native_capability cap, Fiasco::l4_cap_idx_t r)
 : local(cap), remote(r) { }
 
 

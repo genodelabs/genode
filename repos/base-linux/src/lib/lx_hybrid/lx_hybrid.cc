@@ -134,7 +134,7 @@ static pthread_key_t tls_key()
 
 namespace Genode {
 
-	struct Thread_meta_data
+	struct Native_thread::Meta_data
 	{
 		/**
 		 * Filled out by 'thread_start' function in the stack of the new
@@ -152,7 +152,7 @@ namespace Genode {
 		 *
 		 * \param thread  associated 'Thread_base' object
 		 */
-		Thread_meta_data(Thread_base *thread) : thread_base(thread) { }
+		Meta_data(Thread_base *thread) : thread_base(thread) { }
 
 		/**
 		 * Used to block the constructor until the new thread has initialized
@@ -177,7 +177,7 @@ namespace Genode {
 	/*
 	 *  Thread meta data for a thread created by Genode
 	 */
-	class Thread_meta_data_created : public Thread_meta_data
+	class Thread_meta_data_created : public Native_thread::Meta_data
 	{
 		private:
 
@@ -204,7 +204,8 @@ namespace Genode {
 
 		public:
 
-			Thread_meta_data_created(Thread_base *thread) : Thread_meta_data(thread) { }
+			Thread_meta_data_created(Thread_base *thread)
+			: Native_thread::Meta_data(thread) { }
 
 			void wait_for_construction()
 			{
@@ -240,11 +241,12 @@ namespace Genode {
 	/*
 	 *  Thread meta data for an adopted thread
 	 */
-	class Thread_meta_data_adopted : public Thread_meta_data
+	class Thread_meta_data_adopted : public Native_thread::Meta_data
 	{
 		public:
 
-			Thread_meta_data_adopted(Thread_base *thread) : Thread_meta_data(thread) { }
+			Thread_meta_data_adopted(Thread_base *thread)
+			: Native_thread::Meta_data(thread) { }
 
 			void wait_for_construction()
 			{
@@ -296,7 +298,7 @@ Linux_cpu_session *cpu_session(Cpu_session * cpu_session)
 }
 
 
-static void adopt_thread(Thread_meta_data *meta_data)
+static void adopt_thread(Native_thread::Meta_data *meta_data)
 {
 	/*
 	 * Set signal handler such that canceled system calls get not
@@ -309,7 +311,7 @@ static void adopt_thread(Thread_meta_data *meta_data)
 	 */
 	lx_sigaction(LX_SIGCHLD, (void (*)(int))1);
 
-	/* assign 'Thread_meta_data' pointer to TLS entry */
+	/* assign 'Native_thread::Meta_data' pointer to TLS entry */
 	pthread_setspecific(tls_key(), meta_data);
 
 	/* enable immediate cancellation when calling 'pthread_cancel' */
@@ -326,7 +328,7 @@ static void adopt_thread(Thread_meta_data *meta_data)
 
 static void *thread_start(void *arg)
 {
-	Thread_meta_data *meta_data = (Thread_meta_data *)arg;
+	Native_thread::Meta_data *meta_data = (Native_thread::Meta_data *)arg;
 
 	adopt_thread(meta_data);
 
@@ -351,7 +353,7 @@ Thread_base *Thread_base::myself()
 	void * const tls = pthread_getspecific(tls_key());
 
 	if (tls != 0)
-		return ((Thread_meta_data *)tls)->thread_base;
+		return ((Native_thread::Meta_data *)tls)->thread_base;
 
 	bool const is_main_thread = (lx_getpid() == lx_gettid());
 	if (is_main_thread)
@@ -378,7 +380,7 @@ Thread_base *Thread_base::myself()
 	 */
 	Thread_base *thread = (Thread_base *)malloc(sizeof(Thread_base));
 	memset(thread, 0, sizeof(*thread));
-	Thread_meta_data *meta_data = new Thread_meta_data_adopted(thread);
+	Native_thread::Meta_data *meta_data = new Thread_meta_data_adopted(thread);
 
 	/*
 	 * Initialize 'Thread_base::_tid' using the default constructor of

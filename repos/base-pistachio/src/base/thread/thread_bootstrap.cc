@@ -16,12 +16,11 @@
 #include <base/env.h>
 
 /* Pistachio includes */
-namespace Pistachio
-{
+namespace Pistachio {
 	#include <l4/thread.h>
 }
 
-Genode::Native_thread_id main_thread_tid;
+Pistachio::L4_ThreadId_t main_thread_tid;
 
 
 /*****************************

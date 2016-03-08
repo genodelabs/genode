@@ -28,7 +28,7 @@ namespace Pistachio {
 }
 
 
-extern Genode::Native_thread_id main_thread_tid;
+extern Pistachio::L4_ThreadId_t main_thread_tid;
 
 
 /**
@@ -54,7 +54,7 @@ static inline bool thread_check_stopped_and_restart(Genode::Thread_base *thread_
 	L4_ThreadId_t dummy_id;
 	L4_ThreadState_t state;
 
-	Genode::Native_thread_id tid = thread_base ?
+	Pistachio::L4_ThreadId_t tid = thread_base ?
 	                               thread_base->tid().l4id :
 	                               main_thread_tid;
 
@@ -72,7 +72,7 @@ static inline bool thread_check_stopped_and_restart(Genode::Thread_base *thread_
  */
 static inline void thread_switch_to(Genode::Thread_base *thread_base)
 {
-	Genode::Native_thread_id tid = thread_base ?
+	Pistachio::L4_ThreadId_t tid = thread_base ?
 	                               thread_base->tid().l4id :
 	                               main_thread_tid;
 	Pistachio::L4_ThreadSwitch(tid);
@@ -85,7 +85,7 @@ static inline void thread_switch_to(Genode::Thread_base *thread_base)
 static inline void thread_stop_myself()
 {
 	Genode::Thread_base *myself = Genode::Thread_base::myself();
-	Genode::Native_thread_id tid = myself ?
+	Pistachio::L4_ThreadId_t tid = myself ?
 	                               myself->tid().l4id :
 	                               main_thread_tid;
 	Pistachio::L4_Stop(tid);

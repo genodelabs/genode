@@ -14,9 +14,10 @@
 /* Genode includes */
 #include <base/printf.h>
 
-/* Core includes */
+/* core includes */
 #include <ipc_pager.h>
 #include <pager.h>
+#include <platform_thread.h>
 
 namespace Okl4 { extern "C" {
 #include <l4/message.h>
