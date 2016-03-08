@@ -38,8 +38,6 @@ namespace Loader {
 				Label(char const *l) { strncpy(string, l, sizeof(string)); }
 			} _label;
 
-			Native_pd_args _pd_args;
-
 			Rpc_entrypoint &_ep;
 
 			struct Resources
@@ -87,7 +85,6 @@ namespace Loader {
 
 			Init::Child_policy_provide_rom_file _binary_policy;
 			Init::Child_policy_enforce_labeling _labeling_policy;
-			Init::Child_policy_pd_args          _pd_args_policy;
 
 			Genode::Child _child;
 
@@ -107,7 +104,6 @@ namespace Loader {
 
 			Child(char                const *binary_name,
 			      char                const *label,
-			      Native_pd_args      const &pd_args,
 			      Rpc_entrypoint            &ep,
 			      Ram_session_client        &ram_session_client,
 			      size_t                     ram_quota,
@@ -119,7 +115,6 @@ namespace Loader {
 			      Signal_context_capability fault_sigh)
 			:
 				_label(label),
-				_pd_args(pd_args),
 				_ep(ep),
 				_resources(_label.string, ram_session_client, ram_quota, fault_sigh),
 				_parent_services(parent_services),
@@ -130,7 +125,6 @@ namespace Loader {
 				_binary_rom_session(_rom_session(binary_name)),
 				_binary_policy("binary", _binary_rom_session.dataspace(), &_ep),
 				_labeling_policy(_label.string),
-				_pd_args_policy(&_pd_args),
 				_child(_binary_rom_session.dataspace(), _resources.pd.cap(),
 				       _resources.ram.cap(), _resources.cpu.cap(),
 				       _resources.rm.cap(), &_ep, this)
@@ -146,13 +140,11 @@ namespace Loader {
 			 ** Child-policy interface **
 			 ****************************/
 
-			char           const *name()    const { return _label.string; }
-			Native_pd_args const *pd_args() const { return &_pd_args; }
+			char const *name()    const { return _label.string; }
 
 			void filter_session_args(char const *service, char *args, size_t args_len)
 			{
 				_labeling_policy.filter_session_args(service, args, args_len);
-				_pd_args_policy. filter_session_args(service, args, args_len);
 			}
 
 			Service *resolve_session_request(const char *name,

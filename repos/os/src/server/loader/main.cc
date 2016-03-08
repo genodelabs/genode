@@ -363,8 +363,7 @@ class Loader::Session_component : public Rpc_object<Session>
 			_fault_sigh = sigh;
 		}
 
-		void start(Name const &binary_name, Name const &label,
-		           Genode::Native_pd_args const &pd_args) override
+		void start(Name const &binary_name, Name const &label) override
 		{
 			if (_child) {
 				PWRN("cannot start subsystem twice");
@@ -378,7 +377,7 @@ class Loader::Session_component : public Rpc_object<Session>
 			try {
 				_child = new (&_md_alloc)
 					Child(binary_name.string(), label.string(),
-					      pd_args, _ep, _ram_session_client,
+					      _ep, _ram_session_client,
 					      ram_quota, _parent_services, _rom_service,
 					      _cpu_service, _rm_service, _nitpicker_service,
 					      _fault_sigh);

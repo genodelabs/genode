@@ -414,14 +414,6 @@ class Init::Child : Genode::Child_policy
 			}
 		} _name;
 
-		/**
-		 * Platform-specific PD-session arguments
-		 */
-		struct Pd_args : Genode::Native_pd_args
-		{
-			Pd_args(Genode::Xml_node start_node);
-		} _pd_args;
-
 		struct Read_quota
 		{
 			Read_quota(Genode::Xml_node start_node,
@@ -482,15 +474,14 @@ class Init::Child : Genode::Child_policy
 
 			Resources(Genode::Xml_node start_node, const char *label,
 			          long prio_levels,
-			          Genode::Affinity::Space const &affinity_space,
-			          Genode::Native_pd_args const * pd_args)
+			          Genode::Affinity::Space const &affinity_space)
 			:
 				Read_quota(start_node, ram_quota, cpu_quota_pc, constrain_phys),
 				prio_levels_log2(Genode::log2(prio_levels)),
 				priority(read_priority(start_node, prio_levels)),
 				affinity(affinity_space,
 				         read_affinity_location(affinity_space, start_node)),
-				pd(label, pd_args),
+				pd(label),
 				ram(label),
 				cpu(label,
 				    priority*(Genode::Cpu_session::PRIORITY_LIMIT >> prio_levels_log2),
@@ -549,7 +540,6 @@ class Init::Child : Genode::Child_policy
 		Init::Child_policy_provide_rom_file      _config_policy;
 		Init::Child_policy_provide_rom_file      _binary_policy;
 		Init::Child_policy_redirect_rom_file     _configfile_policy;
-		Init::Child_policy_pd_args               _pd_args_policy;
 		Init::Child_policy_ram_phys              _ram_session_policy;
 
 	public:
@@ -568,9 +558,8 @@ class Init::Child : Genode::Child_policy
 			_default_route_node(default_route_node),
 			_name_registry(name_registry),
 			_name(start_node, name_registry),
-			_pd_args(start_node),
 			_resources(start_node, _name.unique, prio_levels,
-			           affinity_space, &_pd_args),
+			           affinity_space),
 			_entrypoint(cap_session, ENTRYPOINT_STACK_SIZE, _name.unique, false, _resources.affinity.location()),
 			_binary_rom(_name.file, _name.file),
 			_binary_rom_ds(_binary_rom.dataspace()),
@@ -585,7 +574,6 @@ class Init::Child : Genode::Child_policy
 			_config_policy("config", _config.dataspace(), &_entrypoint),
 			_binary_policy("binary", _binary_rom_ds, &_entrypoint),
 			_configfile_policy("config", _config.filename()),
-			_pd_args_policy(&_pd_args),
 			_ram_session_policy(_resources.constrain_phys)
 		{
 			using namespace Genode;
@@ -743,7 +731,6 @@ class Init::Child : Genode::Child_policy
 			_labeling_policy.  filter_session_args(service, args, args_len);
 			_priority_policy.  filter_session_args(service, args, args_len);
 			_configfile_policy.filter_session_args(service, args, args_len);
-			_pd_args_policy.   filter_session_args(service, args, args_len);
 			_ram_session_policy.filter_session_args(service, args, args_len);
 		}
 
@@ -838,8 +825,6 @@ class Init::Child : Genode::Child_policy
 			 */
 			Child_policy::exit(exit_value);
 		}
-
-		Genode::Native_pd_args const *pd_args() const { return &_pd_args; }
 };
 
 

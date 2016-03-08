@@ -114,35 +114,6 @@ namespace Genode {
 	};
 
 	enum { PARENT_SOCKET_HANDLE = 100 };
-
-	class Native_pd_args
-	{
-		public:
-
-			enum { ROOT_PATH_MAX_LEN = 256 };
-
-		private:
-
-			char _root[ROOT_PATH_MAX_LEN];
-
-			unsigned _uid;
-			unsigned _gid;
-
-		public:
-
-			Native_pd_args() : _uid(0), _gid(0) { _root[0] = 0; }
-
-			Native_pd_args(char const *root, unsigned uid, unsigned gid)
-			:
-				_uid(uid), _gid(gid)
-			{
-				Genode::strncpy(_root, root, sizeof(_root));
-			}
-
-			char const *root() const { return _root; }
-			unsigned    uid()  const { return _uid;  }
-			unsigned    gid()  const { return _gid;  }
-	};
 }
 
 #endif /* _INCLUDE__BASE__NATIVE_TYPES_H_ */

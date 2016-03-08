@@ -29,7 +29,7 @@ struct Genode::Pd_connection : Connection<Pd_session>, Pd_session_client
 	 *
 	 * \param label  session label
 	 */
-	Pd_connection(char const *label = "", Native_pd_args const *pd_args = 0)
+	Pd_connection(char const *label = "")
 	: Connection<Pd_session>(session("ram_quota=%u, label=\"%s\"",
 	                                 RAM_QUOTA, label)),
 		Pd_session_client(cap())

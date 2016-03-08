@@ -49,9 +49,8 @@ struct Loader::Session_client : Genode::Rpc_client<Session>
 	void fault_sigh(Signal_context_capability sigh) override {
 		call<Rpc_fault_sigh>(sigh); }
 
-	void start(Name const &binary, Name const &label = "",
-	           Native_pd_args const &pd_args = Native_pd_args()) override {
-		call<Rpc_start>(binary, label, pd_args); }
+	void start(Name const &binary, Name const &label = "") override {
+		call<Rpc_start>(binary, label); }
 
 	void view_geometry(Rect rect, Point offset) override {
 		call<Rpc_view_geometry>(rect, offset); }

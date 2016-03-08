@@ -40,8 +40,6 @@ namespace Genode
 	 */
 	struct Native_region;
 
-	struct Native_pd_args { };
-
 	/**
 	 * Get the the minimal supported page-size log 2
 	 */

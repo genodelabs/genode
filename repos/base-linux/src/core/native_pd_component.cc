@@ -26,166 +26,6 @@
 using namespace Genode;
 
 
-/***********************************
- ** Utilities for chroot handling **
- ***********************************/
-
-enum { MAX_PATH_LEN = 256 };
-
-
-/**
- * Return true if specified path is an existing directory
- */
-static bool is_directory(char const *path)
-{
-	struct stat64 s;
-	if (lx_stat(path, &s) != 0)
-		return false;
-
-	if (!(s.st_mode & S_IFDIR))
-		return false;
-
-	return true;
-}
-
-
-static bool is_path_delimiter(char c) { return c == '/'; }
-
-
-static bool has_trailing_path_delimiter(char const *path)
-{
-	char last_char = 0;
-	for (; *path; path++)
-		last_char = *path;
-
-	return is_path_delimiter(last_char);
-}
-
-
-/**
- * Return number of path elements of given path
- */
-static Genode::size_t num_path_elements(char const *path)
-{
-	Genode::size_t count = 0;
-
-	/*
-	 * If path starts with non-slash, the first characters belongs to a path
-	 * element.
-	 */
-	if (*path && !is_path_delimiter(*path))
-		count = 1;
-
-	/* count slashes */
-	for (; *path; path++)
-		if (is_path_delimiter(*path))
-			count++;
-
-	return count;
-}
-
-
-static bool leading_path_elements(char const *path, unsigned num,
-                                  char *dst, Genode::size_t dst_len)
-{
-	/* counter of path delimiters */
-	unsigned count = 0;
-	unsigned i     = 0;
-
-	if (is_path_delimiter(path[0]))
-		num++;
-
-	for (; path[i] && (count < num) && (i < dst_len); i++)
-	{
-		if (is_path_delimiter(path[i]))
-			count++;
-
-		if (count == num)
-			break;
-
-		dst[i] = path[i];
-	}
-
-	if (i + 1 < dst_len) {
-		dst[i] = 0;
-		return true;
-	}
-
-	/* string is cut, append null termination anyway */
-	dst[dst_len - 1] = 0;
-	return false;
-}
-
-
-static void mirror_path_to_chroot(char const *chroot_path, char const *path)
-{
-	char target_path[MAX_PATH_LEN];
-	Genode::snprintf(target_path, sizeof(target_path), "%s%s",
-	                 chroot_path, path);
-
-	/*
-	 * Create directory hierarchy pointing to the target path except for the
-	 * last element. The last element will be bind-mounted to refer to the
-	 * original 'path'.
-	 */
-	for (unsigned i = 1; i <= num_path_elements(target_path); i++)
-	{
-		char buf[MAX_PATH_LEN];
-		leading_path_elements(target_path, i, buf, sizeof(buf));
-
-		/* skip existing directories */
-		if (is_directory(buf))
-			continue;
-
-		/* create new directory */
-		lx_mkdir(buf, 0777);
-	}
-
-	lx_umount(target_path);
-
-	int ret = 0;
-	if ((ret = lx_bindmount(path, target_path)))
-		PERR("bind mount failed (errno=%d)", ret);
-}
-
-
-/**
- * Setup content of chroot environment as prerequisite to 'execve' new
- * processes within the environment. I.e., the current working directory
- * containing the ROM modules must be mounted at the same location within the
- * chroot environment.
- */
-static bool setup_chroot_environment(char const *chroot_path)
-{
-	using namespace Genode;
-
-	static char cwd_path[MAX_PATH_LEN];
-
-	lx_getcwd(cwd_path, sizeof(cwd_path));
-
-	/*
-	 * Validate chroot path
-	 */
-	if (!is_directory(chroot_path)) {
-		PERR("chroot path does not point to valid directory");
-		return false;
-	}
-
-	if (has_trailing_path_delimiter(chroot_path)) {
-		PERR("chroot path has trailing slash");
-		return false;
-	}
-
-	/*
-	 * Hardlink directories needed for running Genode within the chroot
-	 * environment.
-	 */
-	mirror_path_to_chroot(chroot_path, cwd_path);
-
-	return true;
-}
-
-
 /***************
  ** Utilities **
  ***************/
@@ -196,23 +36,16 @@ static bool setup_chroot_environment(char const *chroot_path)
 struct Execve_args
 {
 	char         const *filename;
-	char         const *root;
 	char       * const *argv;
 	char       * const *envp;
-	unsigned int const  uid;
-	unsigned int const  gid;
 	int          const parent_sd;
 
 	Execve_args(char   const *filename,
-	            char   const *root,
 	            char * const *argv,
 	            char * const *envp,
-	            unsigned int  uid,
-	            unsigned int  gid,
 	            int           parent_sd)
 	:
-		filename(filename), root(root), argv(argv), envp(envp),
-		uid(uid), gid(gid), parent_sd(parent_sd)
+		filename(filename), argv(argv), envp(envp), parent_sd(parent_sd)
 	{ }
 };
 
@@ -223,57 +56,6 @@ struct Execve_args
 static int _exec_child(Execve_args *arg)
 {
 	lx_dup2(arg->parent_sd, PARENT_SOCKET_HANDLE);
-
-	/* change to chroot environment */
-	if (arg->root && arg->root[0]) {
-		char cwd[1024];
-
-		PDBG("arg->root='%s'", arg->root);
-
-		if (setup_chroot_environment(arg->root) == false) {
-			PERR("Could not setup chroot environment");
-			return -1;
-		}
-
-		if (!lx_getcwd(cwd, sizeof(cwd))) {
-			PERR("Failed to getcwd");
-			return -1;
-		}
-
-		PLOG("changing root of %s (PID %d) to %s",
-		     arg->filename, lx_getpid(), arg->root);
-
-		int ret = lx_chroot(arg->root);
-		if (ret < 0) {
-			PERR("Syscall chroot failed (errno %d)", ret);
-			return -1;
-		}
-
-		ret = lx_chdir(cwd);
-		if (ret < 0) {
-			PERR("chdir to new chroot failed");
-			return -1;
-		}
-	}
-
-	/*
-	 * Set UID and GID
-	 *
-	 * We must set the GID prior setting the UID because setting the GID won't
-	 * be possible anymore once we set the UID to non-root.
-	 */
-	if (arg->gid) {
-		int const ret = lx_setgid(arg->gid);
-		if (ret)
-			PWRN("Could not set PID %d (%s) to GID %u (error %d)",
-			     lx_getpid(), arg->filename, arg->gid, ret);
-	}
-	if (arg->uid) {
-		int const ret = lx_setuid(arg->uid);
-		if (ret)
-			PWRN("Could not set PID %d (%s) to UID %u (error %d)",
-			     lx_getpid(), arg->filename, arg->uid, ret);
-	}
 
 	return lx_execve(arg->filename, arg->argv, arg->envp);
 }
@@ -381,7 +163,7 @@ void Native_pd_component::_start(Dataspace_component &ds)
 	 * Argument frame as passed to 'clone'. Because, we can only pass a single
 	 * pointer, all arguments are embedded within the 'execve_args' struct.
 	 */
-	Execve_args arg(filename, _root, argv_buf, env, _uid, _gid,
+	Execve_args arg(filename, argv_buf, env,
 	                _pd_session._parent.dst().socket);
 
 	_pid = lx_create_process((int (*)(void *))_exec_child,
@@ -398,37 +180,6 @@ Native_pd_component::Native_pd_component(Pd_session_component &pd_session,
 	_pd_session(pd_session)
 {
 	_pd_session._thread_ep.manage(this);
-
-	/*
-	 * Read Linux-specific session arguments
-	 */
-	Arg_string::find_arg(args, "root").string(_root, sizeof(_root), "");
-
-	_uid = Arg_string::find_arg(args, "uid").ulong_value(0);
-	_gid = Arg_string::find_arg(args, "gid").ulong_value(0);
-
-	bool const is_chroot = (Genode::strcmp(_root, "") != 0);
-
-	/*
-	 * If a UID is specified but no GID, we use the UID as GID. This way, a
-	 * configuration error where the UID is defined but the GID is left
-	 * undefined won't result in the execution of the new process with the
-	 * root user's GID.
-	 */
-	if (_gid == 0)
-		_gid = _uid;
-
-	/*
-	 * Print Linux-specific session arguments if specified
-	 *
-	 * This output used for the automated 'lx_pd_args' test.
-	 */
-	if (is_chroot || _uid || _gid)
-		printf("PD session for '%s'\n", _pd_session._label.string);
-
-	if (is_chroot) printf("  root: %s\n", _root);
-	if (_uid)      printf("  uid:  %u\n", _uid);
-	if (_gid)      printf("  gid:  %u\n", _gid);
 }
 
 

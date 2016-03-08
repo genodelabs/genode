@@ -126,8 +126,6 @@ namespace Genode {
 		};
 	};
 
-	struct Native_pd_args { };
-
 	typedef int Native_connection_state;
 }
 
