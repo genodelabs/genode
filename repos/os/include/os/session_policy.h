@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2015 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -33,7 +33,7 @@ namespace Genode {
  */
 struct Genode::Xml_node_label_score
 {
-	bool label_present  = true;
+	bool  label_present = true;
 	bool prefix_present = true;
 	bool suffix_present = true;
 
@@ -64,7 +64,7 @@ struct Genode::Xml_node_label_score
 			Prefix const prefix = node.attribute_value("label_prefix", Prefix());
 
 			if (!strcmp(label.string(), prefix.string(), prefix.length() - 1))
-				prefix_match = prefix.length();
+				prefix_match = prefix.length()-1;
 		}
 
 		if (suffix_present) {
@@ -75,7 +75,7 @@ struct Genode::Xml_node_label_score
 				unsigned const offset = label.length() - suffix.length();
 
 				if (!strcmp(label.string() + offset, suffix.string()))
-					suffix_match = suffix.length();
+					suffix_match = suffix.length()-1;
 			}
 		}
 	}
@@ -92,6 +92,10 @@ struct Genode::Xml_node_label_score
 	 */
 	bool stronger(Xml_node_label_score const &other) const
 	{
+		/* something must match */
+		if (!(label_present || prefix_present || suffix_present))
+			return false;
+
 		/* if we are in conflict, we have a lower score than any other node */
 		if (conflict())
 			return false;
@@ -214,6 +218,9 @@ class Genode::Session_policy : public Xml_node
 
 			if (!best_match.has_type("none"))
 				return best_match;
+
+			try { return config.sub_node("default-policy"); }
+			catch (...) { }
 
 			throw No_policy_defined();
 		}
