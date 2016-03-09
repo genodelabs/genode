@@ -120,7 +120,7 @@ append config_of_app {
 
 			<policy label="vbox_pointer" domain="pointer"/>
 			<policy label="nit_fb"       domain="vbox"/>
-			<policy domain=""/>
+			<default-policy domain=""/>
 		</config>
 	</start>
 

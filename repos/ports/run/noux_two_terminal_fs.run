@@ -91,7 +91,7 @@ append config {
 			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
 			<domain name="default" layer="2" content="client" focus="click" />
 			<policy label="pointer" domain="pointer"/>
-			<policy domain="default"/>
+			<default-policy domain="default"/>
 		</config>
 		<route> }
 append_if [have_spec ps2] config {

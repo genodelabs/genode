@@ -72,7 +72,7 @@ set config {
 					<domain name="pointer" layer="1" xray="no" origin="pointer" />
 					<domain name="default" layer="3" />
 					<policy label="pointer" domain="pointer"/>
-					<policy domain="default"/>
+					<default-policy domain="default"/>
 				</config>
 			</target>
 			<preserve name="RAM" quantum="2M"/>

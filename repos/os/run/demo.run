@@ -153,7 +153,7 @@ append config {
 					<policy label="pointer"                   domain="pointer"/>
 					<policy label="status_bar"                domain="panel"/>
 					<policy label_prefix="scout -> launchpad" domain="launchpad"/>
-					<policy                                   domain=""/>
+					<default-policy                           domain=""/>
 
 					<global-key name="KEY_SCROLLLOCK" label="xray_trigger" />
 					<global-key name="KEY_F1"         label="xray_trigger" />
@@ -231,7 +231,7 @@ puts $launchpad_config_fd {<config>
 	<launcher name="nitpicker" ram_quota="1M">
 		<config>
 			<domain name="" layer="3" conten="client" label="no" focus="click"/>
-			<policy domain="" />
+			<default-policy domain="" />
 		</config>
 	</launcher>
 </config>}
