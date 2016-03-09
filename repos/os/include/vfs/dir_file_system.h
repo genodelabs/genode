@@ -477,21 +477,36 @@ class Vfs::Dir_file_system : public File_system
 
 		Rename_result rename(char const *from_path, char const *to_path) override
 		{
+			from_path = _sub_path(from_path);
+			to_path = _sub_path(to_path);
+
+			/* path does not match directory name */
+			if (!from_path)
+				return RENAME_ERR_NO_ENTRY;
+
+			/*
+			 * Cannot rename a path in the static VFS configuration.
+			 */
+			if (strlen(from_path) == 0)
+				return RENAME_ERR_NO_PERM;
+
 			/*
 			 * Check if destination path resides within the same file
 			 * system instance as the source path.
 			 */
-			to_path = _sub_path(to_path);
 			if (!to_path)
 				return RENAME_ERR_CROSS_FS;
 
-			auto rename_fn = [&] (File_system &fs, char const *from_path)
-			{
-				return fs.rename(from_path, to_path);
-			};
-
-			return _dir_op(RENAME_ERR_NO_ENTRY, RENAME_ERR_NO_PERM, RENAME_OK,
-			               from_path, rename_fn);
+			Rename_result final = RENAME_ERR_NO_ENTRY;
+			for (File_system *fs = _first_file_system; fs; fs = fs->next) {
+				switch (fs->rename(from_path, to_path)) {
+				case RENAME_OK:           return RENAME_OK;
+				case RENAME_ERR_NO_ENTRY: continue;
+				case RENAME_ERR_NO_PERM:  return RENAME_ERR_NO_PERM;
+				case RENAME_ERR_CROSS_FS: final = RENAME_ERR_CROSS_FS;
+				}
+			}
+			return final;
 		}
 
 		Symlink_result symlink(char const *from, char const *to) override
