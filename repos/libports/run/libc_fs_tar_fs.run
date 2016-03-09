@@ -45,8 +45,8 @@ set config {
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="File_system"/> </provides>
 		<config>
-			<archive name="libc_fs_tar_fs.tar" />
-			<policy root="/testdir" />
+			<archive name="libc_fs_tar_fs.tar"/>
+			<default-policy root="/testdir"/>
 		</config>
 	</start>
 	<start name="test-libc_fs_tar_fs">

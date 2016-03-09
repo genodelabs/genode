@@ -10,6 +10,7 @@ set build_components {
 	drivers/timer
 	server/nitpicker
 	server/dynamic_rom
+	server/report_rom
 	drivers/framebuffer drivers/input
 	app/trace_subject_reporter
 	app/cpu_load_display
@@ -108,7 +109,7 @@ append config {
 			<domain name="default" layer="2" label="no" content="client" hover="always" />
 
 			<policy label="pointer" domain="pointer"/>
-			<policy domain="default"/>
+			<default-policy domain="default"/>
 		</config>
 	</start>
 
@@ -127,10 +128,8 @@ append config {
 			<service name="ROM"/>
 		</provides>
 		<config>
-			<rom>
-				<policy label="cpu_load_display -> trace_subjects"
-				        report="trace_subject_reporter -> trace_subjects"/>
-			</rom>
+			<policy label="cpu_load_display -> trace_subjects"
+			        report="trace_subject_reporter -> trace_subjects"/>
 		</config>
 	</start>
 

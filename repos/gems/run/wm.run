@@ -105,7 +105,7 @@ append config {
 			<domain name="default" layer="2" content="client" label="no" hover="always" focus="click" />
 
 			<policy label="pointer" domain="pointer"/>
-			<policy domain="default"/>
+			<default-policy domain="default"/>
 		</config>
 	</start>
 	<start name="pointer">
@@ -179,7 +179,7 @@ append config {
 			<launcher name="nitpicker" ram_quota="1M" >
 				<config>
 					<domain name="default" layer="2" />
-					<policy domain="default"/>
+					<default-policy domain="default"/>
 				</config>
 			</launcher>
 			<launcher name="testnit" ram_quota="768K" />

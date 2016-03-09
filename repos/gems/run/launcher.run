@@ -84,7 +84,7 @@ append config {
 			<policy label_prefix="wm -> launcher -> menu" domain="panel"/>
 			<policy label="wm -> decorator"               domain="decorator"/>
 			<policy label="status_bar"                    domain="panel"/>
-			<policy                                       domain="default"/>
+			<default-policy                               domain="default"/>
 
 			<global-key name="KEY_SCROLLLOCK" label="xray_trigger" />
 			<global-key name="KEY_F1"         label="xray_trigger" />
@@ -212,7 +212,7 @@ append config {
 					<has_value input="xray_enabled" value="yes" />
 					<then>
 						<inline>
-							<policy color="#ff0000" gradient="75" />
+							<default-policy color="#ff0000" gradient="75" />
 						</inline>
 					</then>
 				</if>

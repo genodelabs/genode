@@ -70,7 +70,7 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nitpicker"/></provides>
 		<config>
-			<domain name="" layer="2" /> <policy domain=""/>
+			<domain name="" layer="2" /> <default-policy domain=""/>
 		</config>
 	</start>
 	<start name="loader">

@@ -127,8 +127,8 @@ set config_of_app {
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="Nic"/> </provides>
 		<route>
-			<service name="IRQ"><child name="acpi" /></service>
-			<any-service> <parent /> <any-child /></any-service>
+			<service name="IRQ"><child name="acpi"/></service>
+			<any-service> <parent/> <any-child/></any-service>
 		</route>
 	</start>
 
@@ -141,68 +141,68 @@ set config_of_app {
 	</start>
 
 	<start name="noux" priority="-1">
-		<resource name="RAM" quantum="32M" />
+		<resource name="RAM" quantum="32M"/>
 		<config>
 			<fstab>
-				<tar name="coreutils.tar" />
-				<tar name="bash.tar" />
+				<tar name="coreutils.tar"/>
+				<tar name="bash.tar"/>
 
-				<dir name="from"> <fs label="share_from" /> </dir>
-				<dir name="to">   <fs label="share_to" /> </dir>
+				<dir name="from"> <fs label="share_from"/> </dir>
+				<dir name="to">   <fs label="share_to"/> </dir>
 			</fstab>
 			<start name="/bin/bash">
-				<env name="TERM" value="linux" />
+				<env name="TERM" value="linux"/>
 			</start>
 		</config>
 		<route>
 			<service name="File_system">
-				<if-arg key="label" value="share_from" />
+				<if-arg key="label" value="share_from"/>
 				<child name="ram_fs_from"/>
 			</service>
 			<service name="File_system">
-				<if-arg key="label" value="share_to" />
+				<if-arg key="label" value="share_to"/>
 				<child name="ram_fs_to"/>
 			</service>
-			<any-service> <parent/> <any-child /> </any-service>
+			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 
 	<start name="ram_fs_from" priority="-1">
-		<binary name="ram_fs" />
+		<binary name="ram_fs"/>
 		<resource name="RAM" quantum="64M"/>
 		<provides><service name="File_system"/></provides>
 		<config>
 			<content>
-				<rom name="test.bin" />
-				<rom name="template.bat" />
+				<rom name="test.bin"/>
+				<rom name="template.bat"/>
 			</content>
-			<policy root="/" writeable="no" />
+			<default-policy root="/" writeable="no"/>
 		</config>
 	</start>
 
 	<start name="ram_fs_to" priority="-1">
-		<binary name="ram_fs" />
+		<binary name="ram_fs"/>
 		<resource name="RAM" quantum="64M"/>
 		<provides><service name="File_system"/></provides>
 		<config>
-			<policy root="/" writeable="yes" />
+			<default-policy root="/" writeable="yes"/>
 		</config>
 	</start>
 
 	<start name="report_rom">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config> <rom /> </config>
+		<config> <rom/> </config>
 	</start>
 
 	<start name="vbox" priority="-2">
-		<binary name="virtualbox" />
+		<binary name="virtualbox"/>
 		<resource name="RAM" quantum="1280M"/>
 		<config vbox_file="vm_auto_share.vbox" vm_name="AutoDisk">
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc">
 				<vfs>
 					<dir name="dev"> <log/> <rtc/> </dir>
-					<rom name="vm_auto_share.vbox" />}
+					<rom name="vm_auto_share.vbox"/>}
 
 append_if [expr $use_ram_fs] config_of_app {
 					<dir name="ram">  <fs label="from_ram_fs"/> </dir>}
@@ -210,30 +210,30 @@ append_if [expr $use_ram_fs] config_of_app {
 append config_of_app {
 					<dir name="from"> <fs label="share_ram_fs_from"/> </dir>
 					<dir name="to">   <fs label="share_ram_fs_to"/> </dir>
-					<fs />
+					<fs/>
 				</vfs>
 			</libc>
 		</config>
 		<route>
-			<service name="Report"> <child name="report_rom" /> </service>}
+			<service name="Report"> <child name="report_rom"/> </service>}
 
 append_if [expr $use_ram_fs] config_of_app {
 			<service name="File_system">
-				<if-arg key="label" value="from_ram_fs" />
+				<if-arg key="label" value="from_ram_fs"/>
 				<child name="ram_fs"/>
 			</service>}
 
 append config_of_app {
 			<service name="File_system">
-				<if-arg key="label" value="share_ram_fs_from" />
+				<if-arg key="label" value="share_ram_fs_from"/>
 				<child name="ram_fs_from"/>
 			</service>
 			<service name="File_system">
-				<if-arg key="label" value="share_ram_fs_to" />
+				<if-arg key="label" value="share_ram_fs_to"/>
 				<child name="ram_fs_to"/>
 			</service>
 			<service name="File_system"> <child name="rump_fs"/> </service>
-			<any-service> <parent/> <any-child /> </any-service>
+			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 }
