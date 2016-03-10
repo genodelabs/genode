@@ -25,7 +25,23 @@
 /* kernel includes */
 #include <kernel/interface.h>
 
-namespace Genode { struct Native_utcb; }
+namespace Genode {
+	
+	struct Native_utcb;
+
+	static constexpr addr_t VIRT_ADDR_SPACE_START = 0x1000;
+	static constexpr size_t VIRT_ADDR_SPACE_SIZE  = 0xfffee000;
+
+	/**
+	 * The main thread's UTCB, used during bootstrap of the main thread before it
+	 * allocates its stack area, needs to be outside the virtual memory area
+	 * controlled by the RM session, because it is needed before the main
+	 * thread can access its RM session.
+	 */
+	static constexpr Native_utcb * utcb_main_thread() {
+		return (Native_utcb *) (VIRT_ADDR_SPACE_START + VIRT_ADDR_SPACE_SIZE); }
+}
+
 
 class Genode::Native_utcb
 {
