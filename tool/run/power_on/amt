@@ -92,7 +92,7 @@ proc amt_reset_wsman { } {
 	close $fh
 
 	exec wsman invoke -a RequestPowerStateChange -J $xml_request \
-	                  "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_PowerManagementService?SystemCreationClassName=\"CIM_ComputerSystem\",SystemName=\"Intel(r) AMT\",CreationClassName=\"CIM_PowerManagementService\",Name=\"Intel(r) AMT Power Management Service\"" \
+	                  "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_PowerManagementService" \
 	                  --port 16992 -h [power_on_amt_host] --username admin -p [power_on_amt_password] -V -v
 }
 
