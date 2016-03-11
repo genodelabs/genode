@@ -11,8 +11,10 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#pragma once
+#ifndef _X86_PCI_CONFIG_ACCESS_H_
+#define _X86_PCI_CONFIG_ACCESS_H_
 
+#include <util/bit_array.h>
 #include <io_port_session/connection.h>
 #include <platform_device/platform_device.h>
 
@@ -177,3 +179,5 @@ namespace Platform {
 			}
 	};
 }
+
+#endif /* _X86_PCI_CONFIG_ACCESS_H_ */

@@ -41,7 +41,7 @@ static inline void thread_yield()
 static inline bool thread_check_stopped_and_restart(Genode::Thread_base *thread_base)
 {
 	const int *futex_counter_ptr = thread_base ?
-	                               &thread_base->tid().futex_counter :
+	                               &thread_base->native_thread().futex_counter :
 	                               &main_thread_futex_counter;
 	return lx_futex(futex_counter_ptr, LX_FUTEX_WAKE, 1);
 }
@@ -62,7 +62,7 @@ static inline void thread_stop_myself()
 	 */
 	Genode::Thread_base *myself = Genode::Thread_base::myself();
 	const int *futex_counter_ptr = myself ?
-	                               &myself->tid().futex_counter :
+	                               &myself->native_thread().futex_counter :
 	                               &main_thread_futex_counter;
 	lx_futex(futex_counter_ptr, LX_FUTEX_WAIT, 0);
 }

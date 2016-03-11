@@ -23,27 +23,12 @@ namespace Okl4 { extern "C" {
 
 namespace Genode {
 
-	class Platform_thread;
-
 	/**
 	 * Index of the UTCB's thread word used for storing the own global
 	 * thread ID
 	 */
 	enum { UTCB_TCR_THREAD_WORD_MYSELF = 0 };
 
-	struct Native_thread
-	{
-		Okl4::L4_ThreadId_t l4id;
-
-		/**
-		 * Only used in core
-		 *
-		 * For 'Thread' objects created within core, 'pt' points to
-		 * the physical thread object, which is going to be destroyed
-		 * on destruction of the 'Thread'.
-		 */
-		Platform_thread *pt;
-	};
 
 	struct Cap_dst_policy
 	{

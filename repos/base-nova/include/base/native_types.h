@@ -15,26 +15,15 @@
 #ifndef _INCLUDE__BASE__NATIVE_TYPES_H_
 #define _INCLUDE__BASE__NATIVE_TYPES_H_
 
+/* Genode includes */
 #include <base/native_capability.h>
 #include <base/stdint.h>
-
-#include <nova/syscalls.h>
-
 #include <base/cap_map.h>
 
+/* NOVA includes */
+#include <nova/syscalls.h>
+
 namespace Genode {
-
-	struct Native_thread
-	{
-		enum { INVALID_INDEX = ~0UL };
-
-		addr_t ec_sel;    /* NOVA cap selector for execution context */
-		addr_t exc_pt_sel; /* base of event portal window */
-		bool   is_vcpu;
-
-		Native_thread() : ec_sel(INVALID_INDEX),
-		                  exc_pt_sel (INVALID_INDEX), is_vcpu(false) {}
-	};
 
 	class Native_capability
 	{

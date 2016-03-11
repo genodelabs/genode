@@ -18,8 +18,11 @@
 #include <base/printf.h>
 #include <base/lock.h>
 
-/* Core includes */
+/* core includes */
 #include <pager.h>
+
+/* base-internal includes */
+#include <base/internal/native_thread.h>
 
 /* Fiasco.OC includes */
 namespace Fiasco {

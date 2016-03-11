@@ -19,13 +19,6 @@
 
 namespace Genode {
 
-	struct Native_thread
-	{
-		unsigned tcb_sel = 0;
-		unsigned ep_sel  = 0;
-		unsigned rcv_sel = 0;
-	};
-
 	class Native_capability
 	{
 		public:

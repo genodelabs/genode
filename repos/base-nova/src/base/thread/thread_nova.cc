@@ -75,7 +75,7 @@ void Thread_base::_init_platform_thread(size_t weight, Type type)
 	 * Allocate capability selectors for the thread's execution context,
 	 * running semaphore and exception handler portals.
 	 */
-	_tid.ec_sel = Native_thread::INVALID_INDEX;
+	native_thread().ec_sel = Native_thread::INVALID_INDEX;
 
 	/* for main threads the member initialization differs */
 	if (type == MAIN || type == REINITIALIZED_MAIN) {
@@ -84,10 +84,10 @@ void Thread_base::_init_platform_thread(size_t weight, Type type)
 		Genode::Native_capability pager_cap(Nova::PT_SEL_MAIN_PAGER);
 		_pager_cap  = reinterpret_cap_cast<Pager_object>(pager_cap);
 
-		_tid.exc_pt_sel = 0;
-		_tid.ec_sel     = Nova::PT_SEL_MAIN_EC;
+		native_thread().exc_pt_sel = 0;
+		native_thread().ec_sel     = Nova::PT_SEL_MAIN_EC;
 
-		request_native_ec_cap(_pager_cap, _tid.ec_sel);
+		request_native_ec_cap(_pager_cap, native_thread().ec_sel);
 		return;
 	}
 
@@ -104,8 +104,8 @@ void Thread_base::_init_platform_thread(size_t weight, Type type)
 	addr_t utcb = reinterpret_cast<addr_t>(&_stack->utcb());
 	revoke(Mem_crd(utcb >> 12, 0, rwx));
 
-	_tid.exc_pt_sel = cap_map()->insert(NUM_INITIAL_PT_LOG2);
-	if (_tid.exc_pt_sel == Native_thread::INVALID_INDEX)
+	native_thread().exc_pt_sel = cap_map()->insert(NUM_INITIAL_PT_LOG2);
+	if (native_thread().exc_pt_sel == Native_thread::INVALID_INDEX)
 		throw Cpu_session::Thread_creation_failed();
 
 	/* if no cpu session is given, use it from the environment */
@@ -131,16 +131,16 @@ void Thread_base::_deinit_platform_thread()
 {
 	using namespace Nova;
 
-	if (_tid.ec_sel != Native_thread::INVALID_INDEX) {
-		revoke(Obj_crd(_tid.ec_sel, 1));
-		cap_map()->remove(_tid.ec_sel, 1, false);
+	if (native_thread().ec_sel != Native_thread::INVALID_INDEX) {
+		revoke(Obj_crd(native_thread().ec_sel, 1));
+		cap_map()->remove(native_thread().ec_sel, 1, false);
 	}
 
 	/* de-announce thread */
 	if (_thread_cap.valid())
 		_cpu_session->kill_thread(_thread_cap);
 
-	cap_map()->remove(_tid.exc_pt_sel, NUM_INITIAL_PT_LOG2);
+	cap_map()->remove(native_thread().exc_pt_sel, NUM_INITIAL_PT_LOG2);
 
 	if (_pager_cap.valid())
 		env()->rm_session()->remove_client(_pager_cap);
@@ -149,14 +149,14 @@ void Thread_base::_deinit_platform_thread()
 
 void Thread_base::start()
 {
-	if (_tid.ec_sel < Native_thread::INVALID_INDEX - 1)
+	if (native_thread().ec_sel < Native_thread::INVALID_INDEX - 1)
 		throw Cpu_session::Thread_creation_failed();
 
 	/*
 	 * Default: create global thread - ec.sel == INVALID_INDEX
 	 *          create  local thread - ec.sel == INVALID_INDEX - 1
 	 */ 
-	bool global = _tid.ec_sel == Native_thread::INVALID_INDEX;
+	bool global = native_thread().ec_sel == Native_thread::INVALID_INDEX;
 
 	using namespace Genode;
 
@@ -170,8 +170,8 @@ void Thread_base::start()
 
 	/* create EC at core */
 	Thread_state state;
-	state.sel_exc_base = _tid.exc_pt_sel;
-	state.is_vcpu      = _tid.is_vcpu;
+	state.sel_exc_base = native_thread().exc_pt_sel;
+	state.is_vcpu      = native_thread().is_vcpu;
 
 	/* local thread have no start instruction pointer - set via portal entry */
 	addr_t thread_ip = global ? reinterpret_cast<addr_t>(_thread_start) : 0;
@@ -183,19 +183,19 @@ void Thread_base::start()
 		throw Cpu_session::Thread_creation_failed();
 
 	/* request native EC thread cap */ 
-	_tid.ec_sel = cap_map()->insert(1);
-	if (_tid.ec_sel == Native_thread::INVALID_INDEX)
+	native_thread().ec_sel = cap_map()->insert(1);
+	if (native_thread().ec_sel == Native_thread::INVALID_INDEX)
 		throw Cpu_session::Thread_creation_failed();
 
 	/* requested pager cap used by request_native_ec_cap in Signal_source_client */
 	enum { MAP_PAGER_CAP = 1 };
-	request_native_ec_cap(_pager_cap, _tid.ec_sel, MAP_PAGER_CAP);
+	request_native_ec_cap(_pager_cap, native_thread().ec_sel, MAP_PAGER_CAP);
 
 	using namespace Nova;
 
 	/* request exception portals for normal threads */
-	if (!_tid.is_vcpu) {
-		request_event_portal(_pager_cap, _tid.exc_pt_sel, 0, NUM_INITIAL_PT_LOG2);
+	if (!native_thread().is_vcpu) {
+		request_event_portal(_pager_cap, native_thread().exc_pt_sel, 0, NUM_INITIAL_PT_LOG2);
 
 		/* default: we don't accept any mappings or translations */
 		Utcb * utcb_obj = reinterpret_cast<Utcb *>(utcb());
@@ -213,6 +213,6 @@ void Thread_base::cancel_blocking()
 {
 	using namespace Nova;
 
-	if (sm_ctrl(_tid.exc_pt_sel + SM_SEL_EC, SEMAPHORE_UP))
+	if (sm_ctrl(native_thread().exc_pt_sel + SM_SEL_EC, SEMAPHORE_UP))
 		nova_die();
 }

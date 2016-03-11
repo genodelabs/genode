@@ -15,6 +15,9 @@
 #include <base/thread.h>
 #include <base/sleep.h>
 
+/* base-internal includes */
+#include <base/internal/native_thread.h>
+
 /* Linux syscall bindings */
 #include <linux_syscalls.h>
 
@@ -54,8 +57,8 @@ void Thread_base::_deinit_platform_thread() { }
 
 void Thread_base::start()
 {
-	_tid.tid = lx_create_thread(Thread_base::_thread_start, stack_top(), this);
-	_tid.pid = lx_getpid();
+	native_thread().tid = lx_create_thread(Thread_base::_thread_start, stack_top(), this);
+	native_thread().pid = lx_getpid();
 }
 
 

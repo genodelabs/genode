@@ -18,6 +18,9 @@
 #include <util/construct_at.h>
 #include <rm_session/rm_session.h>
 
+/* base-internal includes */
+#include <base/internal/native_thread.h>
+
 /* core-local includes */
 #include <pager.h>
 #include <imprint_badge.h>
@@ -444,7 +447,7 @@ void Exception_handlers::register_handler(Pager_object *obj, Mtd mtd,
 		throw Rm_session::Invalid_thread();
 	}
 
-	addr_t const ec_sel = pager_threads[use_cpu]->tid().ec_sel;
+	addr_t const ec_sel = pager_threads[use_cpu]->native_thread().ec_sel;
 
 	/* compiler generates instance of exception entry if not specified */
 	addr_t entry = func ? (addr_t)func : (addr_t)(&_handler<EV>);
@@ -531,7 +534,7 @@ Pager_object::Pager_object(unsigned long badge, Affinity::Location location)
 		throw Rm_session::Invalid_thread();
 	}
 
-	addr_t ec_sel    = pager_threads[use_cpu]->tid().ec_sel;
+	addr_t ec_sel    = pager_threads[use_cpu]->native_thread().ec_sel;
 
 	/* create portal for page-fault handler - 14 */
 	_exceptions.register_handler<14>(this, Mtd::QUAL | Mtd::EIP,
@@ -720,7 +723,7 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 	if (assert) {
 		PERR("unknown OOM case - stop core pager thread");
 		utcb->set_msg_word(0);
-		reply(myself->stack_top(), myself->tid().exc_pt_sel + Nova::SM_SEL_EC);
+		reply(myself->stack_top(), myself->native_thread().exc_pt_sel + Nova::SM_SEL_EC);
 	}
 
 	/* be strict in case of the -strict- STOP policy - stop causing thread */
@@ -740,7 +743,7 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 		/* should not happen on Genode - we create and know every PD in core */
 		PERR("Unknown PD has insufficient kernel memory left - stop thread");
 		utcb->set_msg_word(0);
-		reply(myself->stack_top(), myself->tid().exc_pt_sel + Nova::SM_SEL_EC);
+		reply(myself->stack_top(), myself->native_thread().exc_pt_sel + Nova::SM_SEL_EC);
 
 	case SRC_CORE_PD:
 		/* core PD -> other PD, which has insufficient kernel resources */
@@ -792,7 +795,7 @@ addr_t Pager_object::get_oom_portal()
 	unsigned const use_cpu  = location.xpos();
 
 	if (kernel_hip()->is_cpu_enabled(use_cpu) && pager_threads[use_cpu]) {
-		addr_t const ec_sel     = pager_threads[use_cpu]->tid().ec_sel;
+		addr_t const ec_sel     = pager_threads[use_cpu]->native_thread().ec_sel;
 
 		uint8_t res = create_portal(pt_oom, __core_pd_sel, ec_sel, Mtd(0),
 		                            reinterpret_cast<addr_t>(_oom_handler),
@@ -866,7 +869,7 @@ Pager_capability Pager_entrypoint::manage(Pager_object *obj)
 		PWRN("invalid CPU parameter used in pager object");
 		return Pager_capability();
 	}
-	Native_capability pager_thread_cap(pager_threads[use_cpu]->tid().ec_sel);
+	Native_capability pager_thread_cap(pager_threads[use_cpu]->native_thread().ec_sel);
 
 	/* request creation of portal bind to pager thread */
 	Native_capability cap_session =

@@ -197,7 +197,7 @@ void genode_update_tsc(void (*update_func)(void), unsigned long update_us)
 
 	enum { TSC_FACTOR = 1000ULL };
 
-	Genode::addr_t sem = Thread_base::myself()->tid().exc_pt_sel + Nova::SM_SEL_EC;
+	Genode::addr_t sem = Thread_base::myself()->native_thread().exc_pt_sel + Nova::SM_SEL_EC;
 	unsigned long tsc_khz = (genode_cpu_hz() / 1000) / TSC_FACTOR;
 
 	Trace::Timestamp us_64 = update_us;

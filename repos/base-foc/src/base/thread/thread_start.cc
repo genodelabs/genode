@@ -33,7 +33,7 @@ void Thread_base::_deinit_platform_thread()
 {
 	using namespace Fiasco;
 
-	if (_tid.kcap && _thread_cap.valid()) {
+	if (native_thread().kcap && _thread_cap.valid()) {
 		Cap_index *i = (Cap_index*)l4_utcb_tcr_u(utcb()->foc_utcb)->user[UTCB_TCR_BADGE];
 		cap_map()->remove(i);
 		_cpu_session->kill_thread(_thread_cap);
@@ -62,7 +62,7 @@ void Thread_base::_init_platform_thread(size_t weight, Type type)
 		return;
 	}
 	/* adjust values whose computation differs for a main thread */
-	_tid.kcap = Fiasco::MAIN_THREAD_CAP;
+	native_thread().kcap = Fiasco::MAIN_THREAD_CAP;
 	_thread_cap = env()->parent()->main_thread_cap();
 
 	if (!_thread_cap.valid())
@@ -91,7 +91,7 @@ void Thread_base::start()
 	Fiasco::l4_utcb_t * const foc_utcb = (Fiasco::l4_utcb_t *)state.utcb;
 	utcb()->foc_utcb = foc_utcb;
 
-	_tid = Native_thread(state.kcap);
+	native_thread() = Native_thread(state.kcap);
 
 	Cap_index *i = cap_map()->insert(state.id, state.kcap);
 	l4_utcb_tcr_u(foc_utcb)->user[UTCB_TCR_BADGE]      = (unsigned long) i;

@@ -5,6 +5,7 @@
  */
 
 /* Genode includes */
+#include <util/bit_allocator.h>
 #include <base/printf.h>
 #include <os/attached_io_mem_dataspace.h>
 #include <os/config.h>

@@ -212,7 +212,7 @@ l4_cap_idx_t l4lx_thread_get_cap(l4lx_thread_t t)
 		PWRN("Invalid utcb %lx", (unsigned long) t);
 		return L4_INVALID_CAP;
 	}
-	return vcpus[thread_id(t)]->tid().kcap;
+	return vcpus[thread_id(t)]->native_thread().kcap;
 }
 
 

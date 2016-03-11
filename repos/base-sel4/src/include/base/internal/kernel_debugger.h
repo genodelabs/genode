@@ -17,6 +17,9 @@
 /* base includes */
 #include <base/thread.h>
 
+/* base-internal includes */
+#include <base/internal/native_thread.h>
+
 /* seL4 includes */
 #include <sel4/sel4.h>
 
@@ -31,7 +34,7 @@ static inline void kernel_debugger_panic(char const *msg)
 {
 	kernel_debugger_outstring(msg);
 	kernel_debugger_outstring("\n");
-	seL4_TCB_Suspend(Genode::Thread_base::myself()->tid().tcb_sel);
+	seL4_TCB_Suspend(Genode::Thread_base::myself()->native_thread().tcb_sel);
 }
 
 #endif /* _INCLUDE__BASE__INTERNAL__KERNEL_DEBUGGER_H_ */

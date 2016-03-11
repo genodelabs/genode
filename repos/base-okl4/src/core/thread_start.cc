@@ -37,13 +37,13 @@ void Thread_base::_thread_start()
 void Thread_base::start()
 {
 	/* create and start platform thread */
-	_tid.pt = new(platform_specific()->thread_slab())
+	native_thread().pt = new(platform_specific()->thread_slab())
 		Platform_thread(0, _stack->name().string());
 
-	if (platform_specific()->core_pd()->bind_thread(_tid.pt))
+	if (platform_specific()->core_pd()->bind_thread(native_thread().pt))
 		throw Cpu_session::Thread_creation_failed();
 
-	_tid.pt->start((void *)_thread_start, stack_top());
+	native_thread().pt->start((void *)_thread_start, stack_top());
 }
 
 
@@ -58,5 +58,5 @@ void Thread_base::cancel_blocking()
 void Thread_base::_deinit_platform_thread()
 {
 	/* destruct platform thread */
-	destroy(platform_specific()->thread_slab(), _tid.pt);
+	destroy(platform_specific()->thread_slab(), native_thread().pt);
 }

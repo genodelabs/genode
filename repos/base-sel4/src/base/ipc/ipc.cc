@@ -44,13 +44,13 @@ enum {
 static unsigned &rcv_sel()
 {
 	/*
-	 * When the function is called at the very early initialization phase,
-	 * we cannot access Thread_base::myself()->tid() because the Thread_base
-	 * object of the main thread does not exist yet. During this phase, we
-	 * return a reference to the 'main_rcv_sel' variable.
+	 * When the function is called at the very early initialization phase, we
+	 * cannot access Thread_base::myself()->native_thread() because the
+	 * Thread_base object of the main thread does not exist yet. During this
+	 * phase, we return a reference to the 'main_rcv_sel' variable.
 	 */
 	if (Thread_base::myself()) {
-		return Thread_base::myself()->tid().rcv_sel;
+		return Thread_base::myself()->native_thread().rcv_sel;
 	}
 
 	static unsigned main_rcv_sel = Capability_space::alloc_rcv_sel();
@@ -374,7 +374,7 @@ void Ipc_server::_wait()
 {
 	seL4_Word badge = Rpc_obj_key::INVALID;
 	seL4_MessageInfo_t const msg_info =
-		seL4_Recv(Thread_base::myself()->tid().ep_sel, &badge);
+		seL4_Recv(Thread_base::myself()->native_thread().ep_sel, &badge);
 
 	decode_seL4_message(badge, msg_info, *_rcv_msg);
 
@@ -401,7 +401,7 @@ void Ipc_server::_reply_wait()
 			new_seL4_message(*_snd_msg, _write_offset);
 
 		seL4_MessageInfo_t const request_msg_info =
-			seL4_ReplyRecv(Thread_base::myself()->tid().ep_sel,
+			seL4_ReplyRecv(Thread_base::myself()->native_thread().ep_sel,
 			               reply_msg_info, &badge);
 
 		decode_seL4_message(badge, request_msg_info, *_rcv_msg);

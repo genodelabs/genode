@@ -14,6 +14,7 @@
 /* base includes */
 #include <base/native_types.h>
 #include <base/printf.h>
+#include <util/bit_allocator.h>
 
 /* base-internal includes */
 #include <base/internal/capability_data.h>
@@ -94,7 +95,7 @@ namespace {
 
 Native_capability Capability_space::create_ep_cap(Thread_base &ep_thread)
 {
-	Cap_sel const ep_sel = Cap_sel(ep_thread.tid().ep_sel);
+	Cap_sel const ep_sel = Cap_sel(ep_thread.native_thread().ep_sel);
 
 	Native_capability::Data &data =
 		local_capability_space().create_capability(ep_sel, Rpc_obj_key());

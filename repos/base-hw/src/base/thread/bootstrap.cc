@@ -77,4 +77,4 @@ void Thread_base::_thread_start()
 }
 
 void Thread_base::_thread_bootstrap() {
-	_tid.cap = myself()->utcb()->cap_get(Native_utcb::THREAD_MYSELF); }
+	native_thread().cap = myself()->utcb()->cap_get(Native_utcb::THREAD_MYSELF); }

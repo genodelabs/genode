@@ -55,7 +55,7 @@ static inline bool thread_check_stopped_and_restart(Genode::Thread_base *thread_
 	L4_ThreadState_t state;
 
 	Pistachio::L4_ThreadId_t tid = thread_base ?
-	                               thread_base->tid().l4id :
+	                               thread_base->native_thread().l4id :
 	                               main_thread_tid;
 
 	enum { RESUME = 1 << 8, CANCEL_IPC = 3 << 1 };
@@ -73,7 +73,7 @@ static inline bool thread_check_stopped_and_restart(Genode::Thread_base *thread_
 static inline void thread_switch_to(Genode::Thread_base *thread_base)
 {
 	Pistachio::L4_ThreadId_t tid = thread_base ?
-	                               thread_base->tid().l4id :
+	                               thread_base->native_thread().l4id :
 	                               main_thread_tid;
 	Pistachio::L4_ThreadSwitch(tid);
 }
@@ -86,7 +86,7 @@ static inline void thread_stop_myself()
 {
 	Genode::Thread_base *myself = Genode::Thread_base::myself();
 	Pistachio::L4_ThreadId_t tid = myself ?
-	                               myself->tid().l4id :
+	                               myself->native_thread().l4id :
 	                               main_thread_tid;
 	Pistachio::L4_Stop(tid);
 }

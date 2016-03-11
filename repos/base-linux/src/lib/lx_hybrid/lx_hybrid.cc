@@ -11,10 +11,13 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-//#include <base/crt0.h>
+/* Genode includes */
 #include <base/printf.h>
 #include <linux_syscalls.h>
 #include <linux_cpu_session/linux_cpu_session.h>
+
+/* base-internal includes */
+#include <base/internal/native_thread.h>
 
 
 extern "C" int raw_write_str(const char *str);
@@ -134,8 +137,20 @@ static pthread_key_t tls_key()
 
 namespace Genode {
 
+	/**
+	 * Meta data tied to the thread via the pthread TLS mechanism
+	 */
 	struct Native_thread::Meta_data
 	{
+		/**
+		 * Linux-specific thread meta data
+		 *
+		 * For non-hybrid programs, this information is located at the
+		 * 'Stack'. But the POSIX threads of hybrid programs have no 'Stack'
+		 * object. So we have to keep the meta data here.
+		 */
+		Native_thread native_thread;
+
 		/**
 		 * Filled out by 'thread_start' function in the stack of the new
 		 * thread
@@ -152,7 +167,10 @@ namespace Genode {
 		 *
 		 * \param thread  associated 'Thread_base' object
 		 */
-		Meta_data(Thread_base *thread) : thread_base(thread) { }
+		Meta_data(Thread_base *thread) : thread_base(thread)
+		{
+			native_thread.meta_data = this;
+		}
 
 		/**
 		 * Used to block the constructor until the new thread has initialized
@@ -174,8 +192,8 @@ namespace Genode {
 		virtual void joined() = 0;
 	};
 
-	/*
-	 *  Thread meta data for a thread created by Genode
+	/**
+	 * Thread meta data for a thread created by Genode
 	 */
 	class Thread_meta_data_created : public Native_thread::Meta_data
 	{
@@ -238,8 +256,8 @@ namespace Genode {
 			}
 	};
 
-	/*
-	 *  Thread meta data for an adopted thread
+	/**
+	 * Thread meta data for an adopted thread
 	 */
 	class Thread_meta_data_adopted : public Native_thread::Meta_data
 	{
@@ -320,7 +338,7 @@ static void adopt_thread(Native_thread::Meta_data *meta_data)
 	/*
 	 * Initialize thread meta data
 	 */
-	Native_thread &native_thread = meta_data->thread_base->tid();
+	Native_thread &native_thread = meta_data->thread_base->native_thread();
 	native_thread.tid = lx_gettid();
 	native_thread.pid = lx_getpid();
 }
@@ -375,19 +393,18 @@ Thread_base *Thread_base::myself()
 	 * thread, which is not what we want. For the allocation, we use glibc
 	 * malloc because 'Genode::env()->heap()->alloc()' uses IPC.
 	 *
-	 * XXX  Both the 'Thread_base' and 'Threadm_meta_data' objects are never
-	 *      freed.
+	 * XXX  Both the 'Thread_base' and 'Native_thread::Meta_data' objects are
+	 *      never freed.
 	 */
 	Thread_base *thread = (Thread_base *)malloc(sizeof(Thread_base));
 	memset(thread, 0, sizeof(*thread));
 	Native_thread::Meta_data *meta_data = new Thread_meta_data_adopted(thread);
 
 	/*
-	 * Initialize 'Thread_base::_tid' using the default constructor of
-	 * 'Native_thread'. This marks the client and server sockets as
-	 * uninitialized and prompts the IPC framework to create those as needed.
+	 * Initialize 'Thread_base::_native_thread' to point to the default-
+	 * constructed 'Native_thread' (part of 'Meta_data').
 	 */
-	meta_data->thread_base->tid() = Native_thread();
+	meta_data->thread_base->_native_thread = &meta_data->native_thread;
 	adopt_thread(meta_data);
 
 	return thread;
@@ -399,37 +416,42 @@ void Thread_base::start()
 	/*
 	 * Unblock thread that is supposed to slumber in 'thread_start'.
 	 */
-	_tid.meta_data->started();
+	native_thread().meta_data->started();
 }
 
 
 void Thread_base::join()
 {
-	_tid.meta_data->wait_for_join();
+	native_thread().meta_data->wait_for_join();
 }
+
+
+Native_thread &Thread_base::native_thread() { return *_native_thread; }
 
 
 Thread_base::Thread_base(size_t weight, const char *name, size_t stack_size,
                          Type type, Cpu_session * cpu_sess)
 : _cpu_session(cpu_sess)
 {
-	_tid.meta_data = new (env()->heap()) Thread_meta_data_created(this);
+	Native_thread::Meta_data *meta_data =
+		new (env()->heap()) Thread_meta_data_created(this);
 
-	int const ret = pthread_create(&_tid.meta_data->pt, 0, thread_start,
-	                              _tid.meta_data);
+	_native_thread = &meta_data->native_thread;
+
+	int const ret = pthread_create(&meta_data->pt, 0, thread_start, meta_data);
 	if (ret) {
 		PERR("pthread_create failed (returned %d, errno=%d)",
 		     ret, errno);
-		destroy(env()->heap(), _tid.meta_data);
+		destroy(env()->heap(), meta_data);
 		throw Out_of_stack_space();
 	}
 
-	_tid.meta_data->wait_for_construction();
+	native_thread().meta_data->wait_for_construction();
 
 	Linux_cpu_session *cpu = cpu_session(_cpu_session);
 
 	_thread_cap = cpu->create_thread(weight, name);
-	cpu->thread_id(_thread_cap, _tid.pid, _tid.tid);
+	cpu->thread_id(_thread_cap, native_thread().pid, native_thread().tid);
 }
 
 
@@ -447,22 +469,22 @@ void Thread_base::cancel_blocking()
 
 Thread_base::~Thread_base()
 {
-	bool const needs_join = (pthread_cancel(_tid.meta_data->pt) == 0);
+	bool const needs_join = (pthread_cancel(native_thread().meta_data->pt) == 0);
 
 	if (needs_join) {
-		int const ret = pthread_join(_tid.meta_data->pt, 0);
+		int const ret = pthread_join(native_thread().meta_data->pt, 0);
 		if (ret)
 			PWRN("pthread_join unexpectedly returned with %d (errno=%d)",
 			     ret, errno);
 	}
 
 	Thread_meta_data_created *meta_data =
-		dynamic_cast<Thread_meta_data_created *>(_tid.meta_data);
+		dynamic_cast<Thread_meta_data_created *>(native_thread().meta_data);
 
 	if (meta_data)
 		destroy(env()->heap(), meta_data);
 
-	_tid.meta_data = 0;
+	_native_thread = nullptr;
 
 	/* inform core about the killed thread */
 	cpu_session(_cpu_session)->kill_thread(_thread_cap);

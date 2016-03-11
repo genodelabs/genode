@@ -23,6 +23,7 @@
 #include <os/config.h>
 
 #include <trace/timestamp.h>
+#include <nova/native_thread.h>
 
 #include "server.h"
 
@@ -199,7 +200,7 @@ class Greedy : public Thread<4096> {
 			Nova::Utcb * nova_utcb = reinterpret_cast<Nova::Utcb *>(utcb());
 			Nova::Rights const mapping_rwx(true, true, true);
 
-			addr_t const page_fault_portal = tid().exc_pt_sel + 14;
+			addr_t const page_fault_portal = native_thread().exc_pt_sel + 14;
 
 			PERR("cause mappings in range [0x%lx, 0x%lx) %p", mem,
 			     mem + SUB_RM_SIZE - 1, &mem);
@@ -268,7 +269,7 @@ int main(int argc, char **argv)
 		return -__LINE__;
 
 	addr_t sel_pd  = cap_map()->insert();
-	addr_t sel_ec  = myself->tid().ec_sel;
+	addr_t sel_ec  = myself->native_thread().ec_sel;
 	addr_t sel_cap = cap_map()->insert();
 	addr_t handler = 0UL;
 	uint8_t    res = 0;
@@ -287,7 +288,7 @@ int main(int argc, char **argv)
 
 	/* changing the badge of one of the portal must fail */
 	for (unsigned i = 0; i < (1U << Nova::NUM_INITIAL_PT_LOG2); i++) {
-		addr_t sel_exc = myself->tid().exc_pt_sel + i;
+		addr_t sel_exc = myself->native_thread().exc_pt_sel + i;
 		res = Nova::pt_ctrl(sel_exc, 0xbadbad);
 		check(res, "pt_ctrl %2u", i);
 	}

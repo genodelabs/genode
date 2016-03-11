@@ -124,7 +124,7 @@ Capability_space::create_rpc_obj_cap(Native_capability ep_cap,
 
 Native_capability Capability_space::create_ep_cap(Thread_base &ep_thread)
 {
-	Cap_sel const ep_sel(ep_thread.tid().ep_sel);
+	Cap_sel const ep_sel(ep_thread.native_thread().ep_sel);
 
 	/* entrypoint capabilities are not allocated from a PD session */
 	Pd_session const *pd_session = nullptr;

@@ -21,8 +21,12 @@
 #ifndef _INCLUDE__SIGNAL_SOURCE__CLIENT_H_
 #define _INCLUDE__SIGNAL_SOURCE__CLIENT_H_
 
+/* Genode includes */
 #include <base/rpc_client.h>
 #include <signal_source/nova_signal_source.h>
+
+/* base-internal includes */
+#include <base/internal/native_thread.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>
@@ -49,9 +53,9 @@ namespace Genode {
 
 				/* request mapping of semaphore capability selector */
 				Thread_base * myself = Thread_base::myself();
-				request_signal_sm_cap(Native_capability(myself->tid().ec_sel + 1),
-				                      myself->tid().exc_pt_sel + Nova::PT_SEL_STARTUP);
-				_sem = Native_capability(myself->tid().exc_pt_sel + Nova::PT_SEL_STARTUP);
+				request_signal_sm_cap(Native_capability(myself->native_thread().ec_sel + 1),
+				                      myself->native_thread().exc_pt_sel + Nova::PT_SEL_STARTUP);
+				_sem = Native_capability(myself->native_thread().exc_pt_sel + Nova::PT_SEL_STARTUP);
 				call<Rpc_register_semaphore>(_sem);
 			}
 

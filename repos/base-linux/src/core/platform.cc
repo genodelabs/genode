@@ -15,6 +15,9 @@
 #include <base/lock.h>
 #include <linux_dataspace/client.h>
 
+/* base-internal includes */
+#include <base/internal/native_thread.h>
+
 /* local includes */
 #include "platform.h"
 #include "core_env.h"
@@ -157,7 +160,7 @@ namespace Genode {
 
 	Native_connection_state server_socket_pair()
 	{
-		return create_server_socket_pair(Thread_base::myself()->tid().tid);
+		return create_server_socket_pair(Thread_base::myself()->native_thread().tid);
 	}
 
 	void destroy_server_socket_pair(Native_connection_state const &ncs)

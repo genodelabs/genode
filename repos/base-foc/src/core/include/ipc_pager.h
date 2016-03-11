@@ -23,6 +23,9 @@
 #include <base/thread_state.h>
 #include <util/touch.h>
 
+/* base-internal includes */
+#include <base/internal/native_thread.h>
+
 /* Fiasco includes */
 namespace Fiasco {
 #include <l4/sys/types.h>

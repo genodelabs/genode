@@ -14,6 +14,9 @@
 #ifndef _INCLUDE__BASE__INTERNAL__STACK_ALLOCATOR_H_
 #define _INCLUDE__BASE__INTERNAL__STACK_ALLOCATOR_H_
 
+/* Genode includes */
+#include <util/bit_allocator.h>
+
 /* base-internal includes */
 #include <base/internal/stack.h>
 #include <base/internal/stack_area.h>

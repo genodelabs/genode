@@ -17,6 +17,9 @@
 /* Genode includes */
 #include <base/cap_map.h>
 
+/* base-internal includes */
+#include <base/internal/native_thread.h>
+
 namespace Genode {
 
 	class Platform_thread;

@@ -22,6 +22,7 @@
 
 /* base-internal includes */
 #include <base/internal/native_utcb.h>
+#include <base/internal/native_thread.h>
 
 /* base-hw includes */
 #include <kernel/interface.h>
@@ -85,7 +86,7 @@ void Ipc_istream::_wait()
 Ipc_istream::Ipc_istream(Msgbuf_base *rcv_msg)
 :
 	Ipc_unmarshaller(&rcv_msg->buf[0], rcv_msg->size()),
-	Native_capability(Thread_base::myself() ? Thread_base::myself()->tid().cap
+	Native_capability(Thread_base::myself() ? Thread_base::myself()->native_thread().cap
 	                                        : Hw::_main_thread_cap),
 	_rcv_msg(rcv_msg), _rcv_cs(-1)
 { _read_offset = align_natural<unsigned>(RPC_OBJECT_ID_SIZE); }

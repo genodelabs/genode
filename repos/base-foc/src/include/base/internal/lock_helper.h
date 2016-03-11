@@ -22,6 +22,9 @@
 #include <base/native_types.h>
 #include <base/thread.h>
 
+/* base-internal includes */
+#include <base/internal/native_thread.h>
+
 /* Fiasco.OC includes */
 namespace Fiasco {
 #include <l4/sys/kdebug.h>
@@ -48,7 +51,7 @@ static inline void thread_yield() { Fiasco::l4_thread_yield(); }
 static inline bool thread_check_stopped_and_restart(Genode::Thread_base *thread_base)
 {
 	Fiasco::l4_cap_idx_t tid = thread_base ?
-	                           thread_base->tid().kcap :
+	                           thread_base->native_thread().kcap :
 	                           Fiasco::MAIN_THREAD_CAP;
 	Fiasco::l4_cap_idx_t irq = tid + Fiasco::THREAD_IRQ_CAP;
 	Fiasco::l4_irq_trigger(irq);
@@ -62,7 +65,7 @@ static inline bool thread_check_stopped_and_restart(Genode::Thread_base *thread_
 static inline void thread_switch_to(Genode::Thread_base *thread_base)
 {
 	Fiasco::l4_cap_idx_t tid = thread_base ?
-	                           thread_base->tid().kcap :
+	                           thread_base->native_thread().kcap :
 	                           Fiasco::MAIN_THREAD_CAP;
 	Fiasco::l4_thread_switch(tid);
 }
@@ -82,7 +85,7 @@ static void thread_stop_myself()
 
 	Genode::Thread_base *myself = Genode::Thread_base::myself();
 	Fiasco::l4_cap_idx_t tid = myself ?
-	                           myself->tid().kcap :
+	                           myself->native_thread().kcap :
 	                           Fiasco::MAIN_THREAD_CAP;
 	Fiasco::l4_cap_idx_t irq = tid + THREAD_IRQ_CAP;
 	l4_irq_receive(irq, L4_IPC_NEVER);

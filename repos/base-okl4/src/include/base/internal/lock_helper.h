@@ -55,7 +55,7 @@ static inline bool thread_check_stopped_and_restart(Genode::Thread_base *thread_
 	L4_ThreadState_t state;
 
 	Okl4::L4_ThreadId_t tid = thread_base ?
-	                          thread_base->tid().l4id :
+	                          thread_base->native_thread().l4id :
 	                          main_thread_tid;
 
 	L4_ExchangeRegisters(tid, L4_ExReg_Resume + L4_ExReg_AbortIPC, 0, 0, 0,
@@ -72,7 +72,7 @@ static inline bool thread_check_stopped_and_restart(Genode::Thread_base *thread_
 static inline void thread_switch_to(Genode::Thread_base *thread_base)
 {
 	Okl4::L4_ThreadId_t tid = thread_base ?
-	                          thread_base->tid().l4id :
+	                          thread_base->native_thread().l4id :
 	                          main_thread_tid;
 	Okl4::L4_ThreadSwitch(tid);
 }
@@ -85,7 +85,7 @@ static inline void thread_stop_myself()
 {
 	Genode::Thread_base *myself = Genode::Thread_base::myself();
 	Okl4::L4_ThreadId_t tid = myself ?
-	                          myself->tid().l4id :
+	                          myself->native_thread().l4id :
 	                          main_thread_tid;
 	Okl4::L4_Stop(tid);
 }

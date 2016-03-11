@@ -174,6 +174,9 @@ void Thread_base::free_secondary_stack(void* stack_addr)
 }
 
 
+Native_thread &Thread_base::native_thread() { return _stack->native_thread(); }
+
+
 void *Thread_base::stack_top() const { return (void *)_stack->top(); }
 
 

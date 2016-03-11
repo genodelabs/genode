@@ -58,7 +58,7 @@ void Thread_base::_thread_start()
 	/* inform core about the new thread and process ID of the new thread */
 	Linux_cpu_session *cpu = dynamic_cast<Linux_cpu_session *>(thread->_cpu_session);
 	if (cpu)
-		cpu->thread_id(thread->cap(), thread->tid().pid, thread->tid().tid);
+		cpu->thread_id(thread->cap(), thread->native_thread().pid, thread->native_thread().tid);
 
 	/* wakeup 'start' function */
 	startup_lock().unlock();
@@ -84,7 +84,7 @@ void Thread_base::_init_platform_thread(size_t weight, Type type)
 		return;
 	}
 	/* adjust initial object state for main threads */
-	tid().futex_counter = main_thread_futex_counter;
+	native_thread().futex_counter = main_thread_futex_counter;
 	_thread_cap = env()->parent()->main_thread_cap();
 }
 
@@ -106,7 +106,7 @@ void Thread_base::_deinit_platform_thread()
 	for (;;) {
 
 		/* destroy thread locally */
-		int ret = lx_tgkill(_tid.pid, _tid.tid, LX_SIGCANCEL);
+		int ret = lx_tgkill(native_thread().pid, native_thread().tid, LX_SIGCANCEL);
 
 		if (ret < 0) break;
 
@@ -138,8 +138,8 @@ void Thread_base::start()
 		threadlib_initialized = true;
 	}
 
-	_tid.tid = lx_create_thread(Thread_base::_thread_start, stack_top(), this);
-	_tid.pid = lx_getpid();
+	native_thread().tid = lx_create_thread(Thread_base::_thread_start, stack_top(), this);
+	native_thread().pid = lx_getpid();
 
 	/* wait until the 'thread_start' function got entered */
 	startup_lock().lock();

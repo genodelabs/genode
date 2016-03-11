@@ -17,19 +17,15 @@
 /* Genode includes */
 #include <base/exception.h>
 #include <base/lock.h>
-#include <base/native_types.h>
 #include <base/trace/logger.h>
 #include <cpu/consts.h>
 #include <util/string.h>
-#include <util/bit_allocator.h>
 #include <ram_session/ram_session.h>  /* for 'Ram_dataspace_capability' type */
 #include <cpu_session/cpu_session.h>  /* for 'Thread_capability' type */
-#include <cpu_session/capability.h>   /* for 'Cpu_session_capability' type */
 
 namespace Genode {
-
 	struct Native_utcb;
-	class Rm_session;
+	struct Native_thread;
 	class Thread_base;
 	class Stack;
 	template <unsigned> class Thread;
@@ -37,7 +33,7 @@ namespace Genode {
 
 
 /**
- * Concurrent control flow
+ * Concurrent flow of control
  *
  * A 'Thread_base' object corresponds to a physical thread. The execution
  * starts at the 'entry()' method as soon as 'start()' is called.
@@ -91,37 +87,37 @@ class Genode::Thread_base
 		 *
 		 * Used if thread creation involves core's CPU service.
 		 */
-		Genode::Thread_capability _thread_cap;
+		Thread_capability _thread_cap;
 
 		/**
 		 * Capability to pager paging this thread (created by _start())
 		 */
-		Genode::Pager_capability  _pager_cap;
+		Pager_capability  _pager_cap;
 
 		/**
 		 * Pointer to cpu session used for this thread
 		 */
-		Genode::Cpu_session *_cpu_session;
+		Cpu_session *_cpu_session = nullptr;
 
 		/**
 		 * Base pointer to Trace::Control area used by this thread
 		 */
-		Trace::Control *_trace_control;
+		Trace::Control *_trace_control = nullptr;
 
 		/**
 		 * Pointer to primary stack
 		 */
-		Stack *_stack;
+		Stack *_stack = nullptr;
 
 		/**
-		 * Physical thread ID
+		 * Pointer to kernel-specific meta data
 		 */
-		Native_thread _tid;
+		Native_thread *_native_thread = nullptr;
 
 		/**
 		 * Lock used for synchronizing the finalization of the thread
 		 */
-		Genode::Lock _join_lock;
+		Lock _join_lock;
 
 		/**
 		 * Thread type
@@ -253,7 +249,7 @@ class Genode::Thread_base
 		/**
 		 * Request capability of thread
 		 */
-		Genode::Thread_capability cap() const { return _thread_cap; }
+		Thread_capability cap() const { return _thread_cap; }
 
 		/**
 		 * Cancel currently blocking operation
@@ -261,11 +257,9 @@ class Genode::Thread_base
 		void cancel_blocking();
 
 		/**
-		 * Return thread ID
-		 *
-		 * \noapi  Only to be called from platform-specific code
+		 * Return kernel-specific thread meta data
 		 */
-		Native_thread & tid() { return _tid; }
+		Native_thread &native_thread();
 
 		/**
 		 * Return top of stack

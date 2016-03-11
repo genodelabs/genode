@@ -39,8 +39,8 @@ Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 	Untyped_capability ec_cap;
 
 	/* _ec_sel is invalid until thread gets started */
-	if (tid().ec_sel != Native_thread::INVALID_INDEX)
-		ec_cap = Native_capability(tid().ec_sel);
+	if (native_thread().ec_sel != Native_thread::INVALID_INDEX)
+		ec_cap = Native_capability(native_thread().ec_sel);
 	else
 		ec_cap = _thread_cap;
 
@@ -193,14 +193,14 @@ Rpc_entrypoint::Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
 	_pd_session(*pd_session)
 {
 	/* when not running in core set the affinity via cpu session */
-	if (_tid.ec_sel == Native_thread::INVALID_INDEX) {
+	if (native_thread().ec_sel == Native_thread::INVALID_INDEX) {
 
 		/* place new thread on the specified CPU */
 		if (location.valid())
 			_cpu_session->affinity(_thread_cap, location);
 
 		/* magic value evaluated by thread_nova.cc to start a local thread */
-		_tid.ec_sel = Native_thread::INVALID_INDEX - 1;
+		native_thread().ec_sel = Native_thread::INVALID_INDEX - 1;
 	} else {
 		/* tell affinity CPU in 'core' via stack */
 		reinterpret_cast<Affinity::Location *>(stack_base())[0] = location;
@@ -210,7 +210,7 @@ Rpc_entrypoint::Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
 	Thread_base::start();
 
 	/* create cleanup portal */
-	_cap = _alloc_rpc_cap(_pd_session, Native_capability(_tid.ec_sel),
+	_cap = _alloc_rpc_cap(_pd_session, Native_capability(native_thread().ec_sel),
 	                      (addr_t)_activation_entry);
 	if (!_cap.valid())
 		throw Cpu_session::Thread_creation_failed();

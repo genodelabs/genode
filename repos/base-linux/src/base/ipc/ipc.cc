@@ -36,6 +36,7 @@
 
 /* base-internal includes */
 #include <base/internal/socket_descriptor_registry.h>
+#include <base/internal/native_thread.h>
 
 /* Linux includes */
 #include <linux_syscalls.h>
@@ -509,7 +510,7 @@ Ipc_istream::~Ipc_istream()
 		 */
 		Thread_base *thread = Thread_base::myself();
 		if (thread)
-			thread->tid().is_ipc_server = false;
+			thread->native_thread().is_ipc_server = false;
 	}
 
 	destroy_server_socket_pair(_rcv_cs);
@@ -641,7 +642,7 @@ Ipc_server::Ipc_server(Msgbuf_base *snd_msg, Msgbuf_base *rcv_msg)
 	 * may call 'sleep_forever()', which instantiates 'Ipc_server'.
 	 */
 
-	if (thread && thread->tid().is_ipc_server) {
+	if (thread && thread->native_thread().is_ipc_server) {
 		PRAW("[%d] unexpected multiple instantiation of Ipc_server by one thread",
 		     lx_gettid());
 		struct Ipc_server_multiple_instance { };
@@ -650,7 +651,7 @@ Ipc_server::Ipc_server(Msgbuf_base *snd_msg, Msgbuf_base *rcv_msg)
 
 	if (thread) {
 		_rcv_cs = server_socket_pair();
-		thread->tid().is_ipc_server = true;
+		thread->native_thread().is_ipc_server = true;
 	}
 
 	/* override capability initialization performed by 'Ipc_istream' */

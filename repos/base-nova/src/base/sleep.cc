@@ -16,6 +16,9 @@
 #include <base/sleep.h>
 #include <base/lock.h>
 
+/* base-internal includes */
+#include <base/internal/native_thread.h>
+
 /* NOVA includes */
 #include <nova/syscalls.h>
 #include <nova/util.h>
@@ -25,7 +28,7 @@ void Genode::sleep_forever()
 	using namespace Nova;
 
 	Thread_base *myself = Thread_base::myself();
-	addr_t sem = myself ? myself->tid().exc_pt_sel + SM_SEL_EC : SM_SEL_EC;
+	addr_t sem = myself ? myself->native_thread().exc_pt_sel + SM_SEL_EC : SM_SEL_EC;
 
 	while (1) {
 		if (Nova::sm_ctrl(sem, SEMAPHORE_DOWNZERO))

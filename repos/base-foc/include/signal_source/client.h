@@ -27,6 +27,9 @@
 #include <base/thread.h>
 #include <signal_source/foc_signal_source.h>
 
+/* base-internal includes */
+#include <base/internal/native_thread.h>
+
 namespace Fiasco {
 #include <l4/sys/irq.h>
 }
@@ -53,7 +56,7 @@ namespace Genode {
 				_sem = call<Rpc_request_semaphore>();
 
 				l4_msgtag_t tag = l4_irq_attach(_sem.dst(), 0,
-				                                Thread_base::myself()->tid().kcap);
+				                                Thread_base::myself()->native_thread().kcap);
 				if (l4_error(tag))
 					PERR("l4_irq_attach failed with %ld!", l4_error(tag));
 			}

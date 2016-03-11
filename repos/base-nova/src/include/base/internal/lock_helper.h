@@ -23,6 +23,9 @@
 #include <base/thread.h>
 #include <base/stdint.h>
 
+/* base-internal includes */
+#include <base/internal/native_thread.h>
+
 /* NOVA includes */
 #include <nova/syscalls.h>
 #include <nova/util.h>
@@ -34,7 +37,7 @@ extern int main_thread_running_semaphore();
 static inline bool thread_check_stopped_and_restart(Genode::Thread_base *thread_base)
 {
 	Genode::addr_t sem = thread_base ?
-	                     thread_base->tid().exc_pt_sel + Nova::SM_SEL_EC :
+	                     thread_base->native_thread().exc_pt_sel + Nova::SM_SEL_EC :
 	                     main_thread_running_semaphore();
 
 	Nova::sm_ctrl(sem, Nova::SEMAPHORE_UP);
@@ -53,7 +56,7 @@ static inline void thread_stop_myself()
 	addr_t sem;
 	Thread_base *myself = Thread_base::myself();
 	if (myself)
-		sem = myself->tid().exc_pt_sel + SM_SEL_EC;
+		sem = myself->native_thread().exc_pt_sel + SM_SEL_EC;
 	else
 		sem = main_thread_running_semaphore();
 

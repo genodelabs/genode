@@ -16,14 +16,14 @@
 #include <base/thread.h>
 #include <base/env.h>
 
+/* base-internal includes */
+#include <base/internal/native_thread.h>
+
 /* OKL4 includes */
-namespace Okl4
-{
-	extern "C" {
-		#include <l4/utcb.h>
-		#include <l4/thread.h>
-	}
-}
+namespace Okl4 { extern "C" {
+#include <l4/utcb.h>
+#include <l4/thread.h>
+} }
 
 Okl4::L4_ThreadId_t main_thread_tid;
 
@@ -75,13 +75,13 @@ void prepare_reinit_main_thread() { prepare_init_main_thread(); }
 
 void Genode::Thread_base::_thread_bootstrap()
 {
-	_tid.l4id.raw = Okl4::copy_uregister_to_utcb();
+	native_thread().l4id.raw = Okl4::copy_uregister_to_utcb();
 }
 
 
 void Genode::Thread_base::_init_platform_thread(size_t, Type type)
 {
 	if (type == NORMAL) { return; }
-	_tid.l4id.raw = main_thread_tid.raw;
+	native_thread().l4id.raw = main_thread_tid.raw;
 	_thread_cap   = env()->parent()->main_thread_cap();
 }

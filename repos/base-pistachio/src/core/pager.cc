@@ -15,6 +15,9 @@
 #include <base/printf.h>
 #include <base/sleep.h>
 
+/* base-internal includes */
+#include <base/internal/native_thread.h>
+
 /* Core includes */
 #include <ipc_pager.h>
 #include <pager.h>
@@ -142,5 +145,5 @@ void Ipc_pager::acknowledge_wakeup()
 
 Untyped_capability Pager_entrypoint::_pager_object_cap(unsigned long badge)
 {
-	return Untyped_capability(_tid.l4id, badge);
+	return Untyped_capability(native_thread().l4id, badge);
 }

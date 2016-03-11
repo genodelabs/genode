@@ -23,8 +23,6 @@ namespace Pistachio {
 
 namespace Genode {
 
-	class Platform_thread;
-
 	struct Cap_dst_policy
 	{
 		typedef Pistachio::L4_ThreadId_t Dst;
@@ -35,20 +33,6 @@ namespace Genode {
 			return L4_nilthread;
 		}
 		static void copy(void* dst, Native_capability_tpl<Cap_dst_policy>* src);
-	};
-
-	struct Native_thread
-	{
-		Pistachio::L4_ThreadId_t l4id;
-
-		/**
-		 * Only used in core
-		 *
-		 * For 'Thread' objects created within core, 'pt' points to
-		 * the physical thread object, which is going to be destroyed
-		 * on destruction of the 'Thread'.
-		 */
-		Platform_thread *pt;
 	};
 
 	typedef Native_capability_tpl<Cap_dst_policy> Native_capability;

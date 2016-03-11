@@ -20,39 +20,6 @@
 
 namespace Genode {
 
-	/**
-	 * Native thread contains more thread-local data than just the ID
-	 */
-	struct Native_thread
-	{
-		/*
-		 * Unfortunately, both - PID and TID - are needed for lx_tgkill()
-		 */
-		unsigned int tid = 0;  /* Native thread ID type as returned by the
-		                          'clone' system call */
-		unsigned int pid = 0;  /* process ID (resp. thread-group ID) */
-
-		bool is_ipc_server = false;
-
-		/**
-		 * Natively aligned memory location used in the lock implementation
-		 */
-		int futex_counter __attribute__((aligned(sizeof(Genode::addr_t)))) = 0;
-
-		struct Meta_data;
-
-		/**
-		 * Opaque pointer to additional thread-specific meta data
-		 *
-		 * This pointer is used by hybrid Linux/Genode programs to maintain
-		 * POSIX-thread-related meta data. For non-hybrid Genode programs, it
-		 * remains unused.
-		 */
-		Meta_data *meta_data = nullptr;
-
-		Native_thread() { }
-	};
-
 	struct Cap_dst_policy
 	{
 		struct Dst

@@ -12,6 +12,7 @@
  */
 
 /* Genode includes */
+#include <util/bit_allocator.h>
 #include <base/printf.h>
 #include <irq_session/connection.h>
 

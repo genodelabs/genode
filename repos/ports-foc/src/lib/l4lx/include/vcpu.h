@@ -21,6 +21,7 @@
 #include <base/cap_map.h>
 #include <foc_cpu_session/connection.h>
 #include <timer_session/connection.h>
+#include <foc/native_thread.h>
 
 namespace Fiasco {
 #include <l4/sys/utcb.h>
@@ -64,7 +65,7 @@ namespace L4lx {
 				start();
 
 				/* set l4linux specific utcb entry: L4X_UTCB_TCR_ID */
-				l4_utcb_tcr_u(_utcb)->user[0] = tid().kcap;
+				l4_utcb_tcr_u(_utcb)->user[0] = native_thread().kcap;
 
 				/* enable vcpu functionality respectively */
 				if (_vcpu_state)

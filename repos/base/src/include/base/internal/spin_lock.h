@@ -20,6 +20,7 @@
 #include <cpu/memory_barrier.h>
 
 /* base-internal includes */
+#include <base/internal/native_thread.h>
 #include <base/internal/lock_helper.h>
 
 /*

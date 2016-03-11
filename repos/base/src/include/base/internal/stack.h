@@ -61,6 +61,7 @@
 
 /* base-internal includes */
 #include <base/internal/native_utcb.h>
+#include <base/internal/native_thread.h>
 
 namespace Genode { class Stack; }
 
@@ -112,6 +113,11 @@ class Genode::Stack
 		 */
 		Ram_dataspace_capability _ds_cap;
 
+		/**
+		 * Kernel-specific thread meta data
+		 */
+		Native_thread _native_thread;
+
 		/*
 		 * <- end of regular memory area
 		 *
@@ -156,6 +162,11 @@ class Genode::Stack
 		 * \throw Stack_alloc_failed
 		 */
 		void size(size_t const size);
+
+		/**
+		 * Return kernel-specific thread meta data
+		 */
+		Native_thread &native_thread() { return _native_thread; }
 
 		/**
 		 * Return UTCB of the stack's thread

@@ -37,28 +37,28 @@ namespace Hw { extern Untyped_capability _main_thread_cap; }
 void Thread_base::start()
 {
 	/* start thread with stack pointer at the top of stack */
-	if (_tid.platform_thread->start((void *)&_thread_start, stack_top()))
+	if (native_thread().platform_thread->start((void *)&_thread_start, stack_top()))
 		PERR("failed to start thread");
 }
 
 
 void Thread_base::cancel_blocking()
 {
-	_tid.platform_thread->cancel_blocking();
+	native_thread().platform_thread->cancel_blocking();
 }
 
 
 void Thread_base::_deinit_platform_thread()
 {
 	/* destruct platform thread */
-	destroy(platform()->core_mem_alloc(), _tid.platform_thread);
+	destroy(platform()->core_mem_alloc(), native_thread().platform_thread);
 }
 
 
 void Thread_base::_init_platform_thread(size_t, Type type)
 {
 	if (type == NORMAL) {
-		_tid.platform_thread = new (platform()->core_mem_alloc())
+		native_thread().platform_thread = new (platform()->core_mem_alloc())
 			Platform_thread(_stack->name().string(), &_stack->utcb());
 		return;
 	}
@@ -69,5 +69,5 @@ void Thread_base::_init_platform_thread(size_t, Type type)
 	                  max(sizeof(Native_utcb) / get_page_size(), (size_t)1));
 
 	/* adjust initial object state in case of a main thread */
-	tid().cap = Hw::_main_thread_cap.dst();
+	native_thread().cap = Hw::_main_thread_cap.dst();
 }

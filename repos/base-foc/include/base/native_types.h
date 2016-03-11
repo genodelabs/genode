@@ -75,19 +75,10 @@ namespace Fiasco {
 		static bool valid(l4_cap_idx_t idx) {
 			return !(idx & L4_INVALID_CAP_BIT) && idx != 0; }
 	};
-
 }
 
+
 namespace Genode {
-
-	struct Native_thread
-	{
-		Fiasco::l4_cap_idx_t kcap = 0;
-
-		Native_thread() { }
-		explicit Native_thread(Fiasco::l4_cap_idx_t kcap) : kcap(kcap) { }
-	};
-
 
 	typedef Fiasco::l4_cap_idx_t Native_task;
 

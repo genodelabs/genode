@@ -62,7 +62,7 @@ void Thread_base::_init_platform_thread(size_t weight, Type type)
 		while (1) ;
 	}
 	/* adjust initial object state in case of a main thread */
-	tid().cap   = Hw::_main_thread_cap;
+	native_thread().cap = Hw::_main_thread_cap;
 	_thread_cap = env()->parent()->main_thread_cap();
 }
 

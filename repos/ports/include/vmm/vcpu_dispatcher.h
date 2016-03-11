@@ -80,7 +80,7 @@ class Vmm::Vcpu_dispatcher : public T
 			cpu_session->affinity(T::cap(), location);
 
 			/* request creation of a 'local' EC */
-			T::_tid.ec_sel = Native_thread::INVALID_INDEX - 1;
+			T::native_thread().ec_sel = Native_thread::INVALID_INDEX - 1;
 			T::start();
 
 		}
@@ -99,7 +99,7 @@ class Vmm::Vcpu_dispatcher : public T
 			cpu_session->affinity(T::cap(), location);
 
 			/* request creation of a 'local' EC */
-			T::_tid.ec_sel = Native_thread::INVALID_INDEX - 1;
+			T::native_thread().ec_sel = Native_thread::INVALID_INDEX - 1;
 			T::start();
 		}
 
@@ -117,7 +117,7 @@ class Vmm::Vcpu_dispatcher : public T
 			/* Create the portal at the desired selector index */
 			_native_pd.rcv_window(exc_base + EV);
 
-			Native_capability thread_cap(T::tid().ec_sel);
+			Native_capability thread_cap(T::native_thread().ec_sel);
 
 			Untyped_capability handler =
 				retry<Genode::Pd_session::Out_of_metadata>(
@@ -158,7 +158,7 @@ class Vmm::Vcpu_dispatcher : public T
 		 */
 		Nova::mword_t sel_sm_ec()
 		{
-			return T::tid().exc_pt_sel + Nova::SM_SEL_EC;
+			return T::native_thread().exc_pt_sel + Nova::SM_SEL_EC;
 		}
 };
 

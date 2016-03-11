@@ -19,6 +19,9 @@
 #include <pager.h>
 #include <platform_thread.h>
 
+/* base-internal includes */
+#include <base/internal/native_thread.h>
+
 namespace Okl4 { extern "C" {
 #include <l4/message.h>
 #include <l4/ipc.h>
@@ -152,5 +155,5 @@ void Ipc_pager::acknowledge_wakeup()
 
 Untyped_capability Pager_entrypoint::_pager_object_cap(unsigned long badge)
 {
-	return Untyped_capability(_tid.l4id, badge);
+	return Untyped_capability(native_thread().l4id, badge);
 }

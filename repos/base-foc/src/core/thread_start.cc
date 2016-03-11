@@ -53,7 +53,7 @@ void Thread_base::start()
 
 	l4_utcb_t *foc_utcb = (l4_utcb_t *)(pt->utcb());
 
-	_tid = Native_thread(pt->gate().remote);
+	native_thread() = Native_thread(pt->gate().remote);
 
 	utcb()->foc_utcb = foc_utcb;
 
