@@ -654,6 +654,42 @@ index 69e3109..3c534df 100644
  /**
   * Parses one key value pair.
   *
+@@ -4566,6 +4620,8 @@
+     return rc;
+ }
+ 
++#endif /* #if 0 */
++
+ /**
+  * Removes the key interfaces from all disk attachments, useful when
+  * changing the key store or dropping it.
+@@ -4650,6 +4706,8 @@
+     return hrc;
+ }
+ 
++#if 0
++
+ /**
+  * Configures the encryption support for the disk identified by the gien UUID with
+  * the given key.
+@@ -5344,6 +5402,8 @@
+     fireVRDEServerInfoChangedEvent(mEventSource);
+ }
+ 
++#endif /* #if 0 */
++
+ HRESULT Console::i_sendACPIMonitorHotPlugEvent()
+ {
+     LogFlowThisFuncEnter();
+@@ -5385,6 +5445,8 @@
+     return rc;
+ }
+ 
++#if 0
++
+ HRESULT Console::onVideoCaptureChange()
+ {
+     AutoCaller autoCaller(this);
 @@ -6490,6 +6544,8 @@ void Console::onMouseCapabilityChange(BOOL supportsAbsolute, BOOL supportsRelati
      fireMouseCapabilityChangedEvent(mEventSource, supportsAbsolute, supportsRelative, supportsMT, needsHostCursor);
  }
@@ -907,15 +943,6 @@ index 69e3109..3c534df 100644
  /**
   * Thread for powering down the Console.
   *
-@@ -10367,8 +10467,6 @@ Console::i_pdmIfSecKey_KeyRelease(PPDMISECKEY pInterface, const char *pszId)
- }
- 
- 
--
--
- /**
-  * The Main status driver instance data.
-  */
 @@ -10461,9 +10559,11 @@ DECLCALLBACK(int) Console::drvStatus_MediumEjected(PPDMIMEDIANOTIFY pInterface,
                      alock.release();
  
@@ -1116,19 +1143,16 @@ diff --git a/src/app/virtualbox/src/VBox/Main/src-client/DisplayImpl.cpp b/src/a
 index fed0ac3..bc3c334 100644
 --- a/src/app/virtualbox/src/VBox/Main/src-client/DisplayImpl.cpp
 +++ b/src/app/virtualbox/src/VBox/Main/src-client/DisplayImpl.cpp
-@@ -16,9 +16,12 @@
-  */
- 
+@@ -16,7 +16,9 @@
  #include "DisplayImpl.h"
-+#include "MachineImpl.h"
  #include "DisplayUtils.h"
  #include "ConsoleImpl.h"
 +#if 0
  #include "ConsoleVRDPServer.h"
 +#endif
+ #include "GuestImpl.h"
  #include "VMMDev.h"
  
- #include "AutoCaller.h"
 @@ -1067,7 +1070,9 @@ void Display::handleResizeCompletedEMT(BOOL fResizeContext)
           * Must be done before calling NotifyUpdate below.
           */

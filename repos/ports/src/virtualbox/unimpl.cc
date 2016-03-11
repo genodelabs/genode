@@ -178,7 +178,7 @@ DUMMY(RTStrCatP)
 DUMMY(RTStrStr)
 
 DUMMY(RTTcpClientCloseEx)
-DUMMY(RTTcpClientConnect)
+DUMMY(RTTcpClientConnectEx)
 DUMMY(RTTcpFlush)
 DUMMY(RTTcpGetLocalAddress)
 DUMMY(RTTcpGetPeerAddress)
