@@ -31,7 +31,8 @@
 
 namespace Genode {
 
-	enum Ipc_ostream_send      { IPC_SEND };
+	class Native_connection_state;
+
 	enum Ipc_istream_wait      { IPC_WAIT };
 	enum Ipc_client_call       { IPC_CALL };
 	enum Ipc_server_reply      { IPC_REPLY };
@@ -224,11 +225,6 @@ class Genode::Ipc_ostream : public Ipc_marshaller
 		void _prepare_next_send();
 
 		/**
-		 * Send message in _snd_msg to _dst
-		 */
-		void _send();
-
-		/**
 		 * Insert capability to message buffer
 		 */
 		void _marshal_capability(Native_capability const &cap);
@@ -284,15 +280,6 @@ class Genode::Ipc_ostream : public Ipc_marshaller
 		}
 
 		/**
-		 * Issue the sending of the message buffer
-		 */
-		Ipc_ostream &operator << (Ipc_ostream_send)
-		{
-			_send();
-			return *this;
-		}
-
-		/**
 		 * Return current 'IPC_SEND' destination
 		 *
 		 * This method is typically needed by a server than sends replies
@@ -325,8 +312,7 @@ class Genode::Ipc_istream : public Ipc_unmarshaller, public Native_capability
 
 	protected:
 
-		Msgbuf_base            *_rcv_msg;
-		Native_connection_state _rcv_cs;
+		Msgbuf_base *_rcv_msg;
 
 		/**
 		 * Obtain capability from message buffer
@@ -340,11 +326,6 @@ class Genode::Ipc_istream : public Ipc_unmarshaller, public Native_capability
 		 */
 		void _prepare_next_receive();
 
-		/**
-		 * Wait for incoming message to be received in _rcv_msg
-		 */
-		void _wait();
-
 	public:
 
 		explicit Ipc_istream(Msgbuf_base *rcv_msg);
@@ -355,15 +336,6 @@ class Genode::Ipc_istream : public Ipc_unmarshaller, public Native_capability
 		 * Read badge that was supplied with the message
 		 */
 		long badge() { return _long_at_idx(0); }
-
-		/**
-		 * Block for an incoming message filling the receive buffer
-		 */
-		Ipc_istream &operator >> (Ipc_istream_wait)
-		{
-			_wait();
-			return *this;
-		}
 
 		/**
 		 * Read values from receive buffer
@@ -530,6 +502,8 @@ class Genode::Ipc_server : public Ipc_istream, public Ipc_ostream
 
 		bool _reply_needed;   /* false for the first reply_wait */
 
+		Native_connection_state &_rcv_cs;
+
 		void _prepare_next_reply_wait();
 
 		/**
@@ -560,7 +534,10 @@ class Genode::Ipc_server : public Ipc_istream, public Ipc_ostream
 		/**
 		 * Constructor
 		 */
-		Ipc_server(Msgbuf_base *snd_msg, Msgbuf_base *rcv_msg);
+		Ipc_server(Native_connection_state &,
+		           Msgbuf_base *snd_msg, Msgbuf_base *rcv_msg);
+
+		~Ipc_server();
 
 		/**
 		 * Set return value of server call

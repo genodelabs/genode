@@ -184,17 +184,6 @@ static l4_msgtag_t copy_msgbuf_to_utcb(Msgbuf_base *snd_msg, unsigned offset,
  ** Ipc_ostream **
  *****************/
 
-void Ipc_ostream::_send()
-{
-	l4_msgtag_t tag = copy_msgbuf_to_utcb(_snd_msg, _write_offset, _dst);
-	tag = l4_ipc_send(_dst.dst(), l4_utcb(), tag, L4_IPC_NEVER);
-	if (ipc_error(tag, DEBUG_MSG))
-		throw Ipc_error();
-
-	_write_offset = sizeof(l4_mword_t);
-}
-
-
 Ipc_ostream::Ipc_ostream(Native_capability dst, Msgbuf_base *snd_msg)
 :
 	Ipc_marshaller(&snd_msg->buf[0], snd_msg->size()),
@@ -207,35 +196,6 @@ Ipc_ostream::Ipc_ostream(Native_capability dst, Msgbuf_base *snd_msg)
 /*****************
  ** Ipc_istream **
  *****************/
-
-/* Build with frame pointer to make GDB backtraces work. See issue #1061. */
-__attribute__((optimize("-fno-omit-frame-pointer")))
-__attribute__((noinline))
-void Ipc_istream::_wait()
-{
-	l4_umword_t label = 0;
-	addr_t rcv_cap_sel = _rcv_msg->rcv_cap_sel_base();
-	for (int i = 0; i < Msgbuf_base::MAX_CAP_ARGS; i++) {
-		l4_utcb_br()->br[i] = rcv_cap_sel | L4_RCV_ITEM_SINGLE_CAP;
-		rcv_cap_sel += L4_CAP_SIZE;
-	}
-	l4_utcb_br()->bdr = 0;
-
-	l4_msgtag_t tag;
-	do {
-		tag = l4_ipc_wait(l4_utcb(), &label, L4_IPC_NEVER);
-	} while (ipc_error(tag, DEBUG_MSG));
-
-	/* copy received label into message buffer */
-	_rcv_msg->label(label);
-
-	/* copy message from the UTCBs message registers to the receive buffer */
-	copy_utcb_to_msgbuf(tag, _rcv_msg);
-
-	/* reset unmarshaller */
-	_read_offset = sizeof(l4_mword_t);
-}
-
 
 Ipc_istream::Ipc_istream(Msgbuf_base *rcv_msg)
 :
@@ -303,7 +263,30 @@ void Ipc_server::_prepare_next_reply_wait()
 void Ipc_server::_wait()
 {
 	/* wait for new server request */
-	try { Ipc_istream::_wait(); } catch (Blocking_canceled) { }
+	try {
+		l4_umword_t label = 0;
+		addr_t rcv_cap_sel = _rcv_msg->rcv_cap_sel_base();
+		for (int i = 0; i < Msgbuf_base::MAX_CAP_ARGS; i++) {
+			l4_utcb_br()->br[i] = rcv_cap_sel | L4_RCV_ITEM_SINGLE_CAP;
+			rcv_cap_sel += L4_CAP_SIZE;
+		}
+		l4_utcb_br()->bdr = 0;
+
+		l4_msgtag_t tag;
+		do {
+			tag = l4_ipc_wait(l4_utcb(), &label, L4_IPC_NEVER);
+		} while (ipc_error(tag, DEBUG_MSG));
+
+		/* copy received label into message buffer */
+		_rcv_msg->label(label);
+
+		/* copy message from the UTCBs message registers to the receive buffer */
+		copy_utcb_to_msgbuf(tag, _rcv_msg);
+
+		/* reset unmarshaller */
+		_read_offset = sizeof(l4_mword_t);
+
+	} catch (Blocking_canceled) { }
 
 	/* we only have an unknown implicit reply capability  */
 	/* _dst = ???; */
@@ -361,9 +344,13 @@ void Ipc_server::_reply_wait()
 }
 
 
-Ipc_server::Ipc_server(Msgbuf_base *snd_msg,
+Ipc_server::Ipc_server(Native_connection_state &cs,
+                       Msgbuf_base *snd_msg,
                        Msgbuf_base *rcv_msg)
 : Ipc_istream(rcv_msg),
   Ipc_ostream(Native_capability(), snd_msg),
-  _reply_needed(false)
+  _reply_needed(false), _rcv_cs(cs)
 { }
+
+
+Ipc_server::~Ipc_server() { }

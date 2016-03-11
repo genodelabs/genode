@@ -98,8 +98,6 @@ namespace Genode {
 
 			bool valid() const;
 	};
-
-	typedef int Native_connection_state;
 }
 
 #endif /* _INCLUDE__BASE__NATIVE_TYPES_H_ */

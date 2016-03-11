@@ -167,9 +167,6 @@ namespace Genode {
 			Dst   dst()        const { return _idx ? Dst(_idx->kcap()) : Dst(); }
 			bool  valid()      const { return (_idx != 0) && _idx->valid(); }
 	};
-
-
-	typedef int Native_connection_state;
 }
 
 #endif /* _INCLUDE__BASE__NATIVE_TYPES_H_ */

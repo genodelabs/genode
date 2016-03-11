@@ -37,6 +37,7 @@
 /* base-internal includes */
 #include <base/internal/socket_descriptor_registry.h>
 #include <base/internal/native_thread.h>
+#include <base/internal/native_connection_state.h>
 
 /* Linux includes */
 #include <linux_syscalls.h>
@@ -452,12 +453,6 @@ void Ipc_ostream::_prepare_next_send()
 }
 
 
-void Ipc_ostream::_send()
-{
-	PRAW("unexpected call to %s (%p)", __PRETTY_FUNCTION__, this);
-}
-
-
 Ipc_ostream::Ipc_ostream(Native_capability dst, Msgbuf_base *snd_msg):
 	Ipc_marshaller(snd_msg->buf, snd_msg->size()), _snd_msg(snd_msg), _dst(dst)
 { }
@@ -477,12 +472,6 @@ void Ipc_istream::_prepare_next_receive()
 }
 
 
-void Ipc_istream::_wait()
-{
-	PRAW("unexpected call to %s (%p)", __PRETTY_FUNCTION__, this);
-}
-
-
 Ipc_istream::Ipc_istream(Msgbuf_base *rcv_msg)
 :
 	Ipc_unmarshaller(rcv_msg->buf, rcv_msg->size()),
@@ -491,32 +480,7 @@ Ipc_istream::Ipc_istream(Msgbuf_base *rcv_msg)
 { }
 
 
-Ipc_istream::~Ipc_istream()
-{
-	/*
-	 * The association of the capability (client) socket must be invalidated on
-	 * server destruction. We implement it here as the IPC server currently has
-	 * no destructor. We have the plan to remove Ipc_istream and Ipc_ostream
-	 * in the future and, then, move this into the server destructor.
-	 *
-	 * IPC clients have -1 as client_sd and need no disassociation.
-	 */
-	if (_rcv_cs.client_sd != -1) {
-		Genode::ep_sd_registry()->disassociate(_rcv_cs.client_sd);
-
-		/*
-		 * Reset thread role to non-server such that we can enter 'sleep_forever'
-		 * without getting a warning.
-		 */
-		Thread_base *thread = Thread_base::myself();
-		if (thread)
-			thread->native_thread().is_ipc_server = false;
-	}
-
-	destroy_server_socket_pair(_rcv_cs);
-	_rcv_cs.client_sd = -1;
-	_rcv_cs.server_sd = -1;
-}
+Ipc_istream::~Ipc_istream() { }
 
 
 /****************
@@ -629,10 +593,11 @@ void Ipc_server::_reply_wait()
 }
 
 
-Ipc_server::Ipc_server(Msgbuf_base *snd_msg, Msgbuf_base *rcv_msg)
+Ipc_server::Ipc_server(Native_connection_state &cs,
+                       Msgbuf_base *snd_msg, Msgbuf_base *rcv_msg)
 :
 	Ipc_istream(rcv_msg),
-	Ipc_ostream(Native_capability(), snd_msg), _reply_needed(false)
+	Ipc_ostream(Native_capability(), snd_msg), _reply_needed(false), _rcv_cs(cs)
 {
 	Thread_base *thread = Thread_base::myself();
 
@@ -659,4 +624,22 @@ Ipc_server::Ipc_server(Msgbuf_base *snd_msg, Msgbuf_base *rcv_msg)
 		Native_capability(Native_capability::Dst(_rcv_cs.client_sd), 0);
 
 	_prepare_next_reply_wait();
+}
+
+
+Ipc_server::~Ipc_server()
+{
+	Genode::ep_sd_registry()->disassociate(_rcv_cs.client_sd);
+
+	/*
+	 * Reset thread role to non-server such that we can enter 'sleep_forever'
+	 * without getting a warning.
+	 */
+	Thread_base *thread = Thread_base::myself();
+	if (thread)
+		thread->native_thread().is_ipc_server = false;
+
+	destroy_server_socket_pair(_rcv_cs);
+	_rcv_cs.client_sd = -1;
+	_rcv_cs.server_sd = -1;
 }

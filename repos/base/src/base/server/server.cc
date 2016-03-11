@@ -19,6 +19,9 @@
 #include <base/rpc_server.h>
 #include <base/sleep.h>
 
+/* base-internal includes */
+#include <base/internal/native_connection_state.h>
+
 using namespace Genode;
 
 
@@ -44,7 +47,8 @@ void Rpc_entrypoint::entry()
 {
 	using Pool = Object_pool<Rpc_object_base>;
 
-	Ipc_server srv(&_snd_buf, &_rcv_buf);
+	Native_connection_state cs;
+	Ipc_server srv(cs, &_snd_buf, &_rcv_buf);
 	_ipc_server = &srv;
 	_cap = srv;
 	_cap_valid.unlock();

@@ -19,6 +19,7 @@
 
 /* base-internal includes */
 #include <base/internal/platform_env.h>
+#include <base/internal/native_connection_state.h>
 
 using namespace Genode;
 

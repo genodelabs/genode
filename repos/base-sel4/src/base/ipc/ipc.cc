@@ -277,14 +277,6 @@ void Ipc_istream::_unmarshal_capability(Native_capability &cap)
  ** Ipc_ostream **
  *****************/
 
-void Ipc_ostream::_send()
-{
-	ASSERT(false);
-
-	_write_offset = sizeof(umword_t);
-}
-
-
 Ipc_ostream::Ipc_ostream(Native_capability dst, Msgbuf_base *snd_msg)
 :
 	Ipc_marshaller((char *)snd_msg->data(), snd_msg->size()),
@@ -297,12 +289,6 @@ Ipc_ostream::Ipc_ostream(Native_capability dst, Msgbuf_base *snd_msg)
 /*****************
  ** Ipc_istream **
  *****************/
-
-void Ipc_istream::_wait()
-{
-	ASSERT(false);
-}
-
 
 Ipc_istream::Ipc_istream(Msgbuf_base *rcv_msg)
 :
@@ -411,12 +397,15 @@ void Ipc_server::_reply_wait()
 }
 
 
-Ipc_server::Ipc_server(Msgbuf_base *snd_msg,
-                       Msgbuf_base *rcv_msg)
+Ipc_server::Ipc_server(Native_connection_state &cs,
+                       Msgbuf_base *snd_msg, Msgbuf_base *rcv_msg)
 :
 	Ipc_istream(rcv_msg), Ipc_ostream(Native_capability(), snd_msg),
-	_reply_needed(false)
+	_reply_needed(false), _rcv_cs(cs)
 {
 	*static_cast<Native_capability *>(this) =
 		Native_capability(Capability_space::create_ep_cap(*Thread_base::myself()));
 }
+
+
+Ipc_server::~Ipc_server() { }

@@ -20,7 +20,10 @@
 #include <base/thread_state.h>
 #include <cpu_session/cpu_session.h>
 
-/* Core includes */
+/* base-internal includes */
+#include <base/internal/native_connection_state.h>
+
+/* core includes */
 #include <pager.h>
 
 namespace Genode {

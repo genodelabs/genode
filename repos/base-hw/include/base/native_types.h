@@ -17,9 +17,4 @@
 
 #include <base/native_capability.h>
 
-namespace Genode
-{
-	typedef int Native_connection_state;
-}
-
 #endif /* _INCLUDE__BASE__NATIVE_TYPES_H_ */

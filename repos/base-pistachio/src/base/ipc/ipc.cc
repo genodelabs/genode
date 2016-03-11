@@ -12,11 +12,16 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
 #include <base/printf.h>
 #include <base/ipc.h>
 #include <base/blocking.h>
 #include <base/sleep.h>
 
+/* base-internal includes */
+#include <base/internal/native_connection_state.h>
+
+/* Pistachio includes */
 namespace Pistachio {
 #include <l4/types.h>
 #include <l4/ipc.h>
@@ -41,39 +46,10 @@ using namespace Pistachio;
 #define IPCDEBUG(...)
 #endif
 
+
 /*****************
  ** Ipc_ostream **
  *****************/
-
-void Ipc_ostream::_send()
-{
-	IPCDEBUG("_send to 0x%08lx.\n", Ipc_ostream::_dst.dst().raw);
-
-	L4_Msg_t msg;
-	L4_StringItem_t sitem = L4_StringItem(_write_offset, _snd_msg->buf);
-	L4_Word_t local_name = Ipc_ostream::_dst.local_name();
-
-	L4_Clear(&msg);
-
-	L4_Append(&msg, local_name);
-	L4_Append(&msg, sitem);
-	L4_Load(&msg);
-
-	L4_MsgTag_t result = L4_Send(Ipc_ostream::_dst.dst());
-
-	/*
-	 * Error indicator
-	 * TODO Check what happened and print a nicer error message.
-	 */
-	if (L4_IpcFailed(result)) {
-		PERR("ipc error in _send.");
-		throw Genode::Ipc_error();
-	}
-
-	IPCDEBUG("_send successful\n");
-	_write_offset = sizeof(umword_t);
-}
-
 
 Ipc_ostream::Ipc_ostream(Native_capability dst, Msgbuf_base *snd_msg) :
 	Ipc_marshaller(&snd_msg->buf[0], snd_msg->size()),
@@ -125,55 +101,12 @@ static inline void check_ipc_result(L4_MsgTag_t result, L4_Word_t error_code)
 }
 
 
-void Ipc_istream::_wait()
-{
-	L4_MsgTag_t result;
-	L4_MsgBuffer_t msgbuf;
-
-	IPCDEBUG("_wait.\n");
-retry:
-
-	IPCDEBUG("_wait loop start (more than once means IpcError)\n");
-
-	L4_Clear (&msgbuf);
-	L4_Append (&msgbuf, L4_StringItem (_rcv_msg->size(), _rcv_msg->buf));
-	L4_Accept(L4_UntypedWordsAcceptor);
-	L4_Accept(L4_StringItemsAcceptor, &msgbuf);
-
-	// Wait for message.
-	result = L4_Wait(&_rcv_cs);
-
-	if (L4_IpcFailed(result))
-		goto retry;
-
-	IPCDEBUG("Got something from 0x%x.\n", _rcv_cs);
-	L4_Msg_t msg;
-
-	L4_Store(result, &msg);
-
-	check_ipc_result(result, L4_ErrorCode());
-
-	/* get the local name */
-	L4_Word_t local_name = L4_Get(&msg,0);
-
-	/*
-	 * Store local_name where badge() looks for it.
-	 * XXX Check this...
-	 */
-	*((long *)_rcv_msg->buf) = local_name;
-	_read_offset = sizeof(umword_t);
-
-	IPCDEBUG("_wait successful\n");
-}
-
-
 Ipc_istream::Ipc_istream(Msgbuf_base *rcv_msg) :
 	Ipc_unmarshaller(&rcv_msg->buf[0], rcv_msg->size()),
 	Native_capability(Pistachio::L4_Myself(), 0),
 	_rcv_msg(rcv_msg)
 {
 	IPCDEBUG("Ipc_istream constructed.\n");
-	_rcv_cs = L4_nilthread;
 	_read_offset = sizeof(umword_t);
 }
 
@@ -246,10 +179,50 @@ void Ipc_server::_prepare_next_reply_wait()
 void Ipc_server::_wait()
 {
 	/* wait for new server request */
-	try { Ipc_istream::_wait(); } catch (Blocking_canceled) { }
+	try {
+
+		L4_MsgTag_t result;
+		L4_MsgBuffer_t msgbuf;
+
+		IPCDEBUG("_wait.\n");
+
+		do {
+
+			IPCDEBUG("_wait loop start (more than once means IpcError)\n");
+
+			L4_Clear (&msgbuf);
+			L4_Append (&msgbuf, L4_StringItem (_rcv_msg->size(), _rcv_msg->buf));
+			L4_Accept(L4_UntypedWordsAcceptor);
+			L4_Accept(L4_StringItemsAcceptor, &msgbuf);
+
+			/* wait for message */
+			result = L4_Wait(&_rcv_cs.caller);
+
+		} while (L4_IpcFailed(result));
+
+		IPCDEBUG("Got something from 0x%x.\n", _rcv_cs.caller);
+		L4_Msg_t msg;
+
+		L4_Store(result, &msg);
+
+		check_ipc_result(result, L4_ErrorCode());
+
+		/* get the local name */
+		L4_Word_t local_name = L4_Get(&msg,0);
+
+		/*
+		 * Store local_name where badge() looks for it.
+		 * XXX Check this...
+		 */
+		*((long *)_rcv_msg->buf) = local_name;
+		_read_offset = sizeof(umword_t);
+
+		IPCDEBUG("_wait successful\n");
+
+	} catch (Blocking_canceled) { }
 
 	/* define destination of next reply */
-	Ipc_ostream::_dst = Native_capability(_rcv_cs, badge());
+	Ipc_ostream::_dst = Native_capability(_rcv_cs.caller, badge());
 
 	_prepare_next_reply_wait();
 }
@@ -299,8 +272,8 @@ void Ipc_server::_reply_wait()
 		L4_Accept(L4_StringItemsAcceptor, &msgbuf);
 
 		L4_MsgTag_t result = L4_Ipc(Ipc_ostream::_dst.dst(), L4_anythread,
-		                            L4_Timeouts(L4_ZeroTime, L4_Never), &_rcv_cs);
-		IPCDEBUG("Got something from 0x%x.\n", L4_ThreadNo(L4_GlobalId(_rcv_cs)));
+		                            L4_Timeouts(L4_ZeroTime, L4_Never), &_rcv_cs.caller);
+		IPCDEBUG("Got something from 0x%x.\n", L4_ThreadNo(L4_GlobalId(_rcv_cs.caller)));
 
 		/* error handling - check whether send or receive failed */
 		if (L4_IpcFailed(result)) {
@@ -340,7 +313,7 @@ void Ipc_server::_reply_wait()
 		IPCDEBUG("local_name = 0x%lx\n", badge());
 
 		/* define destination of next reply */
-		Ipc_ostream::_dst = Native_capability(_rcv_cs, badge());
+		Ipc_ostream::_dst = Native_capability(_rcv_cs.caller, badge());
 
 		_prepare_next_reply_wait();
 
@@ -349,8 +322,12 @@ void Ipc_server::_reply_wait()
 }
 
 
-Ipc_server::Ipc_server(Msgbuf_base *snd_msg, Msgbuf_base *rcv_msg) :
+Ipc_server::Ipc_server(Native_connection_state &cs,
+                       Msgbuf_base *snd_msg, Msgbuf_base *rcv_msg) :
 	Ipc_istream(rcv_msg),
 	Ipc_ostream(Native_capability(), snd_msg),
-	_reply_needed(false)
+	_reply_needed(false), _rcv_cs(cs)
 { }
+
+
+Ipc_server::~Ipc_server() { }

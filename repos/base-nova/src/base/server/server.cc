@@ -20,6 +20,7 @@
 
 /* base-internal includes */
 #include <base/internal/stack.h>
+#include <base/internal/native_connection_state.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>
@@ -120,7 +121,8 @@ void Rpc_entrypoint::_activation_entry()
 	/* prepare ipc server object (copying utcb content to message buffer */
 	int opcode = 0;
 
-	Ipc_server srv(&ep->_snd_buf, &ep->_rcv_buf);
+	Native_connection_state cs;
+	Ipc_server srv(cs, &ep->_snd_buf, &ep->_rcv_buf);
 	srv >> IPC_WAIT >> opcode;
 
 	/* set default return value */

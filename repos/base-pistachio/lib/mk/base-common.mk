@@ -25,6 +25,9 @@ SRC_CC += thread/stack_allocator.cc
 SRC_CC += sleep.cc
 SRC_CC += rm_session_client.cc
 
+# suppress warning caused by Pistachio's 'l4/message.h'
+CC_WARN += -Wno-array-bounds
+
 INC_DIR += $(REP_DIR)/src/include $(BASE_DIR)/src/include
 
 vpath cap_copy.cc $(BASE_DIR)/src/lib/startup

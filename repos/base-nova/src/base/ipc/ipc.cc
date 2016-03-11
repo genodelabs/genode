@@ -130,9 +130,6 @@ Ipc_ostream::Ipc_ostream(Native_capability dst, Msgbuf_base *snd_msg)
  ** Ipc_istream **
  *****************/
 
-void Ipc_istream::_wait() { }
-
-
 Ipc_istream::Ipc_istream(Msgbuf_base *rcv_msg)
 : Ipc_unmarshaller(&rcv_msg->buf[0], rcv_msg->size()), _rcv_msg(rcv_msg)
 {
@@ -233,7 +230,11 @@ void Ipc_server::_reply()
 void Ipc_server::_reply_wait() { }
 
 
-Ipc_server::Ipc_server(Msgbuf_base *snd_msg,
-                       Msgbuf_base *rcv_msg)
-: Ipc_istream(rcv_msg), Ipc_ostream(Native_capability(), snd_msg)
+Ipc_server::Ipc_server(Native_connection_state &cs,
+                       Msgbuf_base *snd_msg, Msgbuf_base *rcv_msg)
+:
+	Ipc_istream(rcv_msg), Ipc_ostream(Native_capability(), snd_msg), _rcv_cs(cs)
 { }
+
+
+Ipc_server::~Ipc_server() { }

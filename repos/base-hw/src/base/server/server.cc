@@ -17,6 +17,9 @@
 #include <base/env.h>
 #include <util/retry.h>
 
+/* base-internal includes */
+#include <base/internal/native_connection_state.h>
+
 using namespace Genode;
 
 
@@ -39,7 +42,8 @@ Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 
 void Rpc_entrypoint::entry()
 {
-	Ipc_server srv(&_snd_buf, &_rcv_buf);
+	Native_connection_state cs;
+	Ipc_server srv(cs, &_snd_buf, &_rcv_buf);
 	_ipc_server = &srv;
 	_cap = srv;
 	_cap_valid.unlock();

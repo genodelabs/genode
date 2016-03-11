@@ -11,11 +11,16 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
 #include <base/printf.h>
 #include <base/ipc.h>
 #include <base/native_types.h>
 #include <base/blocking.h>
 
+/* base-internal includes */
+#include <base/internal/native_connection_state.h>
+
+/* OKL4 includes */
 namespace Okl4 { extern "C" {
 #include <l4/config.h>
 #include <l4/types.h>
@@ -98,23 +103,6 @@ static void copy_msgbuf_to_utcb(Msgbuf_base *snd_msg, unsigned num_msg_words,
  ** Ipc_ostream **
  *****************/
 
-void Ipc_ostream::_send()
-{
-	copy_msgbuf_to_utcb(_snd_msg, _write_offset/sizeof(L4_Word_t),
-	                    _dst.local_name());
-
-	/* perform IPC send operation */
-	L4_MsgTag_t rcv_tag = L4_Send(_dst.dst());
-
-	if (L4_IpcFailed(rcv_tag)) {
-		PERR("ipc error in _send.");
-		throw Genode::Ipc_error();
-	}
-
-	_write_offset = sizeof(umword_t);
-}
-
-
 Ipc_ostream::Ipc_ostream(Native_capability dst, Msgbuf_base *snd_msg)
 :
 	Ipc_marshaller(&snd_msg->buf[0], snd_msg->size()),
@@ -127,24 +115,6 @@ Ipc_ostream::Ipc_ostream(Native_capability dst, Msgbuf_base *snd_msg)
 /*****************
  ** Ipc_istream **
  *****************/
-
-void Ipc_istream::_wait()
-{
-	/*
-	 * Wait for IPC message
-	 *
-	 * The message tag (holding the size of the message) is located at
-	 * message register 0 and implicitly addressed by 'L4_UntypedWords()'.
-	 */
-	L4_MsgTag_t rcv_tag = L4_Wait(&_rcv_cs);
-
-	/* copy message from the UTCBs message registers to the receive buffer */
-	copy_utcb_to_msgbuf(rcv_tag, _rcv_msg);
-
-	/* reset unmarshaller */
-	_read_offset = sizeof(umword_t);
-}
-
 
 /**
  * Return the global thread ID of the calling thread
@@ -167,7 +137,6 @@ Ipc_istream::Ipc_istream(Msgbuf_base *rcv_msg)
 	Native_capability(thread_get_my_global_id(), 0),
 	_rcv_msg(rcv_msg)
 {
-	_rcv_cs = Okl4::L4_nilthread;
 	_read_offset = sizeof(umword_t);
 }
 
@@ -231,10 +200,25 @@ void Ipc_server::_prepare_next_reply_wait()
 void Ipc_server::_wait()
 {
 	/* wait for new server request */
-	try { Ipc_istream::_wait(); } catch (Blocking_canceled) { }
+	try {
+		/*
+		 * Wait for IPC message
+		 *
+		 * The message tag (holding the size of the message) is located at
+		 * message register 0 and implicitly addressed by 'L4_UntypedWords()'.
+		 */
+		L4_MsgTag_t rcv_tag = L4_Wait(&_rcv_cs.caller);
+
+		/* copy message from the UTCBs message registers to the receive buffer */
+		copy_utcb_to_msgbuf(rcv_tag, _rcv_msg);
+
+		/* reset unmarshaller */
+		_read_offset = sizeof(umword_t);
+
+	} catch (Blocking_canceled) { }
 
 	/* define destination of next reply */
-	Ipc_ostream::_dst = Native_capability(_rcv_cs, badge());
+	Ipc_ostream::_dst = Native_capability(_rcv_cs.caller, badge());
 
 	_prepare_next_reply_wait();
 }
@@ -264,7 +248,7 @@ void Ipc_server::_reply_wait()
 		copy_msgbuf_to_utcb(_snd_msg, _write_offset/sizeof(L4_Word_t),
 		                    Ipc_ostream::_dst.local_name());
 
-		L4_MsgTag_t rcv_tag = L4_ReplyWait(Ipc_ostream::_dst.dst(), &_rcv_cs);
+		L4_MsgTag_t rcv_tag = L4_ReplyWait(Ipc_ostream::_dst.dst(), &_rcv_cs.caller);
 
 		/*
 		 * TODO: Check for IPC error
@@ -274,7 +258,7 @@ void Ipc_server::_reply_wait()
 		copy_utcb_to_msgbuf(rcv_tag, _rcv_msg);
 
 		/* define destination of next reply */
-		Ipc_ostream::_dst = Native_capability(_rcv_cs, badge());
+		Ipc_ostream::_dst = Native_capability(_rcv_cs.caller, badge());
 
 		_prepare_next_reply_wait();
 
@@ -283,8 +267,13 @@ void Ipc_server::_reply_wait()
 }
 
 
-Ipc_server::Ipc_server(Msgbuf_base *snd_msg, Msgbuf_base *rcv_msg) :
+Ipc_server::Ipc_server(Native_connection_state &cs,
+                       Msgbuf_base *snd_msg, Msgbuf_base *rcv_msg)
+:
 	Ipc_istream(rcv_msg),
 	Ipc_ostream(Native_capability(), snd_msg),
-	_reply_needed(false)
+	_reply_needed(false), _rcv_cs(cs)
 { }
+
+
+Ipc_server::~Ipc_server() { }

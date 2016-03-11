@@ -39,7 +39,6 @@ namespace Genode {
 	};
 
 	typedef Native_capability_tpl<Cap_dst_policy> Native_capability;
-	typedef Okl4::L4_ThreadId_t Native_connection_state;
 }
 
 #endif /* _INCLUDE__BASE__NATIVE_TYPES_H_ */

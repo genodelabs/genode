@@ -41,17 +41,6 @@ namespace Genode {
 
 	typedef Native_capability_tpl<Cap_dst_policy> Native_capability;
 
-	/**
-	 * The connection state is the socket handle of the RPC entrypoint
-	 */
-	struct Native_connection_state
-	{
-		int server_sd;
-		int client_sd;
-
-		Native_connection_state() : server_sd(-1), client_sd(-1) { }
-	};
-
 	enum { PARENT_SOCKET_HANDLE = 100 };
 }
 

@@ -76,20 +76,15 @@ Ipc_ostream::Ipc_ostream(Native_capability dst, Msgbuf_base *snd_msg)
  ** Ipc_istream **
  *****************/
 
-void Ipc_istream::_wait()
-{
-	/* FIXME: this shall be not supported */
-	Kernel::pause_current_thread();
-}
-
-
 Ipc_istream::Ipc_istream(Msgbuf_base *rcv_msg)
 :
 	Ipc_unmarshaller(&rcv_msg->buf[0], rcv_msg->size()),
 	Native_capability(Thread_base::myself() ? Thread_base::myself()->native_thread().cap
 	                                        : Hw::_main_thread_cap),
-	_rcv_msg(rcv_msg), _rcv_cs(-1)
-{ _read_offset = align_natural<unsigned>(RPC_OBJECT_ID_SIZE); }
+	_rcv_msg(rcv_msg)
+{
+	_read_offset = align_natural<unsigned>(RPC_OBJECT_ID_SIZE);
+}
 
 
 Ipc_istream::~Ipc_istream() { }
@@ -136,11 +131,14 @@ Ipc_client::Ipc_client(Native_capability const &srv, Msgbuf_base *snd_msg,
  ** Ipc_server **
  ****************/
 
-Ipc_server::Ipc_server(Msgbuf_base *snd_msg,
-                       Msgbuf_base *rcv_msg) :
+Ipc_server::Ipc_server(Native_connection_state &cs,
+                       Msgbuf_base *snd_msg,
+                       Msgbuf_base *rcv_msg)
+:
 	Ipc_istream(rcv_msg),
 	Ipc_ostream(Native_capability(), snd_msg),
-	_reply_needed(false) { }
+	_reply_needed(false), _rcv_cs(cs)
+{ }
 
 
 void Ipc_server::_prepare_next_reply_wait()
@@ -214,3 +212,6 @@ void Ipc_server::_reply_wait()
 		},
 		[&] () { upgrade_pd_session_quota(3*4096); });
 }
+
+
+Ipc_server::~Ipc_server() { }
