@@ -34,15 +34,14 @@ which will be used for both, the L4ka::Pistachio kernel and Genode.
 :[http://genode.org/download/tool-chain]:
   Preconfigured GNU tool chain for building Genode
 
-To download the kernel source codes, issue 'make prepare' from within the
-'base-pistachio' repository. This command will checkout the upstream Git
-repository of the kernel. Please make sure to have Git installed.
+To download the kernel source codes, issue './tool/ports/prepare_port pistachio'.
+This command will checkout the upstream Git repository of the kernel. Please
+make sure to have Git installed.
 
 For the vesa driver on x86 the x86emu library is required and can be downloaded
-and prepared by invoking the following command from within the 'libports'
-directory:
+and prepared by invoking the following command:
 
-! make prepare PKG=x86emu
+! ./tool/ports/prepare_port x86emu
 
 After having successfully prepared the 'base-pistachio' repository and
 'libports' you are ready to create a Genode build directory using the

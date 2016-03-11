@@ -29,12 +29,12 @@ To automatically download the Muen kernel and integrate it with Genode, issue
 the following commands:
 
 ! cd <genode_dir>
-! tool/ports/prepare_port muen
+! ./tool/ports/prepare_port muen
 
 The next step is to create a build directory prepared for compiling Genode for
 Muen. Use the create_builddir tool for this task:
 
-! tool/create_builddir hw_x86_64_muen
+! ./tool/create_builddir hw_x86_64_muen
 
 You can customize Muen system by changing the --image-muen RUN_OPT parameters
 in the 'build.conf' file in the build directory under build/etc.

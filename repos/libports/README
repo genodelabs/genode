@@ -4,23 +4,16 @@ This directory contains ports of popular 3rd-party software to Genode.
 Usage
 -----
 
-At the root of the 'libports' repository, there is 'Makefile' automating the
-task of downloading and preparing the library source codes. By just typing
-'make', you get an overview of the available libraries and further
-instructions.
+The tool './tool/ports/prepare_port' in the toplevel directory automates the
+task of downloading and preparing the library source codes. You can select
+individual packages that have to be prepared by specifying their base names
+(without the version number) as command-line argument. For example, the
+following command prepares both the C library and the Freetype library:
+! ./tool/ports/prepare_port PKG="libc freetype"
 
-In the common case, you might just want to prepare all packages by issuing:
-! make prepare
-
-Alternatively, you can select individual packages to prepare by specifying
-their base names (without the version number) as command-line argument. For
-example, the following command prepares both the C library and the Freetype
-library:
-! make prepare PKG="libc freetype"
-
-After having prepared the 'libports' repository, you are ready to include the
-repository into the build process by appending it to the 'REPOSITORIES'
-declaration of your '<build-dir>/etc/build.conf' file.
+To compile and link against 3rd-party libraries of the 'libports' repository,
+you have to include the repository into the build process by appending it to the
+'REPOSITORIES' declaration of your '<build-dir>/etc/build.conf' file.
 
 
 Under the hood

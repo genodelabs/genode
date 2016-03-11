@@ -64,12 +64,11 @@ different kernels such as L4/Fiasco, L4ka::Pistachio, OKL4, and NOVA. Those
 kernels largely differ in terms of feature sets, build systems, tools, and boot
 concepts. To relieve you from dealing with those peculiarities, Genode provides
 you with an unified way of using them. For each kernel platform, there exists
-a dedicated directory called 'base-<platform>'. Within this directory, you will
-find a 'Makefile', which automates the task of downloading the source codes of
-the kernel and interfacing the kernel with Genode. Just change to the
-respective 'base-<platform>' directory and issue:
+a dedicated description file that enables the 'prepare_port' tool to fetch and
+prepare the designated 3rd-party sources. Just issue the following command
+within the toplevel directory of the Genode source tree:
 
-! make prepare
+! ./tool/ports/prepare_port <platform>
 
 Note that each 'base-<platform>' directory comes with a 'README' file, which
 you should revisit first when exploring the base platform. Additionally, most
@@ -77,10 +76,10 @@ you should revisit first when exploring the base platform. Additionally, most
 respective 'doc/' subdirectories.
 
 For the VESA driver on x86, the x86emu library is required and can be
-downloaded and prepared by invoking the following command from within the
-'libports' directory:
+downloaded and prepared by again invoking the 3rd-party sources preparation
+tool:
 
-! make prepare PKG=x86emu
+! ./tool/ports/prepare_port x86emu
 
 Now that the base platform is prepared, the 'create_builddir' tool can be used
 to create a build directory for your platform of choice by giving the platform
@@ -92,7 +91,7 @@ steps are required:
 
 # Download the kernel:
   ! cd <genode-dir>
-  ! make -C repos/base-okl4 prepare
+  ! ./tool/ports/prepare_port okl4
 # Create a build directory
   ! ./tool/create_builddir okl4_x86 BUILD_DIR=build.okl4
 # Uncomment the following line in 'build.okl4/etc/build.conf'

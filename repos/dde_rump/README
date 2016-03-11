@@ -13,9 +13,9 @@ Building instructions
 
 In order to build the file-system server, issue
 
-! make prepare
+! ./tool/ports/prepare_port dde_rump
 
-from the directory this file is contained in.
+from Genode's toplevel directory.
 
 
 Add

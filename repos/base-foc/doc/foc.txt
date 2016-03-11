@@ -46,19 +46,16 @@ The current version of Genode is available at the public subversion repository:
 After you've fetched the Genode source tree from the subversion repository, or
 downloaded the latest release tar archive, you need the Fiasco.OC source code,
 its kernel-bindings, additional bootstrap tools etc. To simplify that step,
-you can use a Makefile in the 'base-foc' directory of the Genode source tree,
-just do:
+you can use the 'prepare_port' tool:
 
-! cd base-foc
-! make prepare
+! ./tool/ports/prepare_port foc
 
 This will install all necessary third-party source code in the 'contrib' folder.
 
 For the vesa driver on x86 the x86emu library is required and can be downloaded
-and prepared by invoking the following command from within the 'libports'
-directory:
+and prepared by invoking the following command:
 
-! make prepare PKG=x86emu
+! ./tool/ports/prepare_port x86emu
 
 Now, go to a directory where you want the Genode/Fiasco.OC build directory to
 remain. Use the helper script in the 'tool' directory of the Genode
@@ -89,11 +86,10 @@ instead of building everything:
 Running L4Linux on top of Genode
 ################################
 
-To get the L4Linux running on top of Genode, you have to change to the
-'ports-foc' repository within your Genode source tree and do a 'make prepare':
+To get the L4Linux running on top of Genode, you have to change prepare its
+sources:
 
-! cd ports-foc
-! make prepare
+! ./tool/ports/prepare_port l4linux
 
 This will fetch the currently supported version from the L4Linux subversion
 repository, and apply a patch to it, that is needed to execute it on top of

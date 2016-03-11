@@ -13,7 +13,7 @@ Usage
 =====
 
 You have to prepare the contrib sources for this repository by
-executing _tool/ports/prepare_port dde_bsd_. Also you need to make
+executing _./tool/ports/prepare_port dde_bsd_. Also you need to make
 sure to add the 'dde_bsd' repository to the REPOSITORIES variable
 in your 'etc/build.conf'.
 
