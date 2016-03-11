@@ -185,6 +185,7 @@ static void resolve_symlinks(char const *path, Absolute_path &resolved_path)
 	} while (symlink_resolved_in_this_iteration);
 
 	resolved_path.import(next_iteration_working_path.base());
+	resolved_path.remove_trailing('/');
 	PDBGV("resolved_path = %s", resolved_path.base());
 }
 
