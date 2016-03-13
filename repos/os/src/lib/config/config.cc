@@ -17,6 +17,9 @@ using namespace Genode;
 
 Xml_node _config_xml_node(Dataspace_capability config_ds)
 {
+	if (!config_ds.valid())
+		throw Exception();
+
 	return Xml_node(env()->rm_session()->attach(config_ds),
 	                Genode::Dataspace_client(config_ds).size());
 }
@@ -88,6 +91,8 @@ Config *Genode::config()
 			PERR("Could not obtain config file");
 		} catch (Genode::Xml_node::Invalid_syntax) {
 			PERR("Config file has invalid syntax");
+		} catch(...) {
+			PERR("Config dataspace is invalid");
 		}
 	}
 	/* do not try again to construct 'config_inst' */
