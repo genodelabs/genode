@@ -52,22 +52,22 @@ using namespace Genode;
  ** IPC marshalling support **
  *****************************/
 
-void Ipc_ostream::_marshal_capability(Native_capability const &cap)
+void Ipc_marshaller::insert(Native_capability const &cap)
 {
 	if (cap.valid()) {
-		_write_to_buf(cap.local_name());
+		insert(cap.local_name());
 
-		_snd_msg->append_cap(cap.dst().socket);
+		_snd_msg.append_cap(cap.dst().socket);
 	} else {
-		_write_to_buf(-1L);
+		insert(-1L);
 	}
 }
 
 
-void Ipc_istream::_unmarshal_capability(Native_capability &cap)
+void Ipc_unmarshaller::extract(Native_capability &cap)
 {
 	long local_name =  0;
-	_read_from_buf(local_name);
+	extract(local_name);
 
 	if (local_name == -1) {
 
@@ -77,7 +77,7 @@ void Ipc_istream::_unmarshal_capability(Native_capability &cap)
 	} else {
 
 		/* construct valid capability */
-		int const socket = _rcv_msg->read_cap();
+		int const socket = _rcv_msg.read_cap();
 		cap = Native_capability(Cap_dst_policy::Dst(socket), local_name);
 	}
 }
@@ -439,83 +439,31 @@ static inline void lx_reply(int reply_socket,
 }
 
 
-/*****************
- ** Ipc_ostream **
- *****************/
-
-/*
- * XXX This class will be removed soon.
- */
-
-void Ipc_ostream::_prepare_next_send()
-{
-	PRAW("unexpected call to %s (%p)", __PRETTY_FUNCTION__, this);
-}
-
-
-Ipc_ostream::Ipc_ostream(Native_capability dst, Msgbuf_base *snd_msg):
-	Ipc_marshaller(snd_msg->buf, snd_msg->size()), _snd_msg(snd_msg), _dst(dst)
-{ }
-
-
-/*****************
- ** Ipc_istream **
- *****************/
-
-/*
- * XXX This class will be removed soon.
- */
-
-void Ipc_istream::_prepare_next_receive()
-{
-	PRAW("unexpected call to %s (%p)", __PRETTY_FUNCTION__, this);
-}
-
-
-Ipc_istream::Ipc_istream(Msgbuf_base *rcv_msg)
-:
-	Ipc_unmarshaller(rcv_msg->buf, rcv_msg->size()),
-	Native_capability(Dst(-1), 0),
-	_rcv_msg(rcv_msg)
-{ }
-
-
-Ipc_istream::~Ipc_istream() { }
-
-
 /****************
  ** Ipc_client **
  ****************/
 
-void Ipc_client::_prepare_next_call()
+void Ipc_client::_call()
+{
+	lx_call(_dst.dst().socket, _snd_msg, _write_offset, _rcv_msg);
+}
+
+
+Ipc_client::Ipc_client(Native_capability const &dst,
+                       Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg, unsigned short)
+:
+	Ipc_marshaller(snd_msg), Ipc_unmarshaller(rcv_msg), _result(0), _dst(dst)
 {
 	/* prepare next request in buffer */
-	long const local_name = Ipc_ostream::_dst.local_name();
-
-	_write_offset = 0;
-	_write_to_buf(local_name);
+	long const local_name = _dst.local_name();
 
 	/* prepare response buffer */
 	_read_offset = sizeof(long);
+	_write_offset = 0;
 
-	_snd_msg->reset_caps();
-}
+	insert(local_name);
 
-
-void Ipc_client::_call()
-{
-	if (Ipc_ostream::_dst.valid())
-		lx_call(Ipc_ostream::_dst.dst().socket, *_snd_msg, _write_offset, *_rcv_msg);
-
-	_prepare_next_call();
-}
-
-
-Ipc_client::Ipc_client(Native_capability const &srv, Msgbuf_base *snd_msg,
-                       Msgbuf_base *rcv_msg, unsigned short)
-: Ipc_istream(rcv_msg), Ipc_ostream(srv, snd_msg), _result(0)
-{
-	_prepare_next_call();
+	_snd_msg.reset_caps();
 }
 
 
@@ -530,18 +478,18 @@ void Ipc_server::_prepare_next_reply_wait()
 
 	/* prepare next reply */
 	_write_offset   = 0;
-	long local_name = Ipc_ostream::_dst.local_name();
-	_write_to_buf(local_name);  /* XXX unused, needed by de/marshaller */
+	long local_name = _caller.local_name();
+	insert(local_name);  /* XXX unused, needed by de/marshaller */
 
 	/* leave space for exc code at the beginning of the msgbuf */
 	_write_offset += align_natural(sizeof(int));
 
 	/* reset capability slots of send message buffer */
-	_snd_msg->reset_caps();
+	_snd_msg.reset_caps();
 }
 
 
-void Ipc_server::_wait()
+void Ipc_server::wait()
 {
 	_reply_needed = true;
 
@@ -555,7 +503,7 @@ void Ipc_server::_wait()
 	}
 
 	try {
-		int const reply_socket = lx_wait(_rcv_cs, *_rcv_msg);
+		int const reply_socket = lx_wait(_rcv_cs, _rcv_msg);
 
 		/*
 		 * Remember reply capability
@@ -566,38 +514,40 @@ void Ipc_server::_wait()
 		 */
 		enum { DUMMY_LOCAL_NAME = -1 };
 		typedef Native_capability::Dst Dst;
-		Ipc_ostream::_dst = Native_capability(Dst(reply_socket), DUMMY_LOCAL_NAME);
+		_caller = Native_capability(Dst(reply_socket), DUMMY_LOCAL_NAME);
+		_badge  = reinterpret_cast<unsigned long *>(_rcv_msg.data())[0];
 
 		_prepare_next_reply_wait();
 	} catch (Blocking_canceled) { }
 }
 
 
-void Ipc_server::_reply()
+void Ipc_server::reply()
 {
 	try {
-		lx_reply(Ipc_ostream::_dst.dst().socket, *_snd_msg, _write_offset); }
+		lx_reply(_caller.dst().socket, _snd_msg, _write_offset); }
 	catch (Ipc_error) { }
 
 	_prepare_next_reply_wait();
 }
 
 
-void Ipc_server::_reply_wait()
+void Ipc_server::reply_wait()
 {
 	/* when first called, there was no request yet */
 	if (_reply_needed)
-		lx_reply(Ipc_ostream::_dst.dst().socket, *_snd_msg, _write_offset);
+		lx_reply(_caller.dst().socket, _snd_msg, _write_offset);
 
-	_wait();
+	wait();
 }
 
 
 Ipc_server::Ipc_server(Native_connection_state &cs,
-                       Msgbuf_base *snd_msg, Msgbuf_base *rcv_msg)
+                       Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg)
 :
-	Ipc_istream(rcv_msg),
-	Ipc_ostream(Native_capability(), snd_msg), _reply_needed(false), _rcv_cs(cs)
+	Ipc_marshaller(snd_msg), Ipc_unmarshaller(rcv_msg),
+	Native_capability(Dst(-1), 0),
+	_reply_needed(false), _rcv_cs(cs)
 {
 	Thread_base *thread = Thread_base::myself();
 
@@ -619,7 +569,7 @@ Ipc_server::Ipc_server(Native_connection_state &cs,
 		thread->native_thread().is_ipc_server = true;
 	}
 
-	/* override capability initialization performed by 'Ipc_istream' */
+	/* override capability initialization */
 	*static_cast<Native_capability *>(this) =
 		Native_capability(Native_capability::Dst(_rcv_cs.client_sd), 0);
 

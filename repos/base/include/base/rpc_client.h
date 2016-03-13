@@ -61,7 +61,7 @@ namespace Genode {
 	_marshal_args(Ipc_client &ipc_client, ATL &args) const
 	{
 		if (Trait::Rpc_direction<typename ATL::Head>::Type::IN)
-			ipc_client << args.get();
+			ipc_client.insert(args.get());
 
 		_marshal_args(ipc_client, args._2);
 	}
@@ -73,7 +73,7 @@ namespace Genode {
 	_unmarshal_result(Ipc_client &ipc_client, T &arg,
 	                  Meta::Overload_selector<Rpc_arg_out>) const
 	{
-		ipc_client >> arg;
+		ipc_client.extract(arg);
 	}
 
 
@@ -124,14 +124,14 @@ namespace Genode {
 		Msgbuf<CALL_MSG_SIZE  + PROTOCOL_OVERHEAD>  call_buf;
 		Msgbuf<REPLY_MSG_SIZE + PROTOCOL_OVERHEAD> reply_buf;
 
-		Ipc_client ipc_client(*this, &call_buf, &reply_buf, CAP_BY_VALUE);
+		Ipc_client ipc_client(*this, call_buf, reply_buf, CAP_BY_VALUE);
 
 		/* determine opcode of RPC function */
 		typedef typename RPC_INTERFACE::Rpc_functions Rpc_functions;
 		Rpc_opcode opcode = static_cast<int>(Meta::Index_of<Rpc_functions, IF>::Value);
 
 		/* marshal opcode and RPC input arguments */
-		ipc_client << opcode;
+		ipc_client.insert(opcode);
 		_marshal_args(ipc_client, args);
 
 		{
@@ -139,7 +139,8 @@ namespace Genode {
 		}
 
 		/* perform RPC, unmarshal return value */
-		ipc_client << IPC_CALL >> ret;
+		ipc_client.call();
+		ipc_client.extract(ret);
 
 		{
 			Trace::Rpc_returned trace_event(IF::name(), reply_buf);

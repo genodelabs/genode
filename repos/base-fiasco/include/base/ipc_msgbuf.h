@@ -44,7 +44,12 @@ namespace Genode {
 			/**
 			 * Return address of message buffer
 			 */
-			inline void *addr() { return &rcv_fpage; };
+			inline void *msg_start() { return &rcv_fpage; };
+
+			/**
+			 * Return pointer of message data payload
+			 */
+			inline void *data() { return buf; };
 	};
 
 

@@ -19,16 +19,18 @@ using namespace Genode;
 /**
  * Marshalling of capabilities as plain data representation
  */
-void Ipc_ostream::_marshal_capability(Native_capability const &cap)
+void Ipc_marshaller::insert(Native_capability const &cap)
 {
-	_write_to_buf(cap);
+	insert((char const *)&cap, sizeof(Native_capability));
 }
 
 
 /**
  * Unmarshalling of capabilities as plain data representation
  */
-void Ipc_istream::_unmarshal_capability(Native_capability &cap)
+void Ipc_unmarshaller::extract(Native_capability &cap)
 {
-	_read_from_buf(cap);
+	struct Raw { char buf[sizeof(Native_capability)]; } raw;
+	extract(raw);
+	(Raw &)(cap) = raw;
 }

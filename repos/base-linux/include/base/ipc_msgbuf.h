@@ -62,9 +62,9 @@ namespace Genode {
 			inline Genode::size_t size() const { return _size; };
 
 			/**
-			 * Return address of message buffer
+			 * Return pointer of message data payload
 			 */
-			inline void *addr() { return &_msg_start[0]; };
+			inline void *data() { return &_msg_start[0]; };
 
 			void reset_caps() { _used_caps = 0; _read_cap_index = 0; }
 

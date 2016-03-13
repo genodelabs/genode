@@ -69,9 +69,9 @@ class Genode::Msgbuf_base
 		size_t size() const { return _size; }
 
 		/**
-		 * Return address of message buffer
+		 * Return pointer of message data payload
 		 */
-		void *addr() { return &buf[0]; }
+		void *data() { return &buf[0]; }
 
 		/**
 		 * Reset capability buffer.

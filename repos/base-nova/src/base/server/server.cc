@@ -122,8 +122,9 @@ void Rpc_entrypoint::_activation_entry()
 	int opcode = 0;
 
 	Native_connection_state cs;
-	Ipc_server srv(cs, &ep->_snd_buf, &ep->_rcv_buf);
-	srv >> IPC_WAIT >> opcode;
+	Ipc_server srv(cs, ep->_snd_buf, ep->_rcv_buf);
+	srv.wait();
+	srv.extract(opcode);
 
 	/* set default return value */
 	srv.ret(Ipc_client::ERR_INVALID_OBJECT);
@@ -132,7 +133,7 @@ void Rpc_entrypoint::_activation_entry()
 	if (ep->_cap.local_name() == id_pt) {
 		if (!ep->_rcv_buf.prepare_rcv_window((Nova::Utcb *)ep->utcb()))
 			PWRN("out of capability selectors for handling server requests");
-		srv << IPC_REPLY;
+		srv.reply();
 	}
 
 	{
@@ -157,7 +158,7 @@ void Rpc_entrypoint::_activation_entry()
 	if (!ep->_rcv_buf.prepare_rcv_window((Nova::Utcb *)ep->utcb()))
 		PWRN("out of capability selectors for handling server requests");
 
-	srv << IPC_REPLY;
+	srv.reply();
 }
 
 

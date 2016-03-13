@@ -32,8 +32,7 @@ namespace Genode {
 			 * Begin of message buffer layout
 			 */
 			Pistachio::L4_Fpage_t rcv_fpage;
-			/* Send message */
-			/* Recv message */
+
 			char buf[];
 
 			/**
@@ -42,9 +41,9 @@ namespace Genode {
 			inline size_t size() const { return _size; };
 
 			/**
-			 * Return address of message buffer
+			 * Return pointer of message data payload
 			 */
-			inline void *addr() { return &_msg_start[0]; };
+			inline void *data() { return &_msg_start[0]; };
 	};
 
 

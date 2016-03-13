@@ -47,23 +47,6 @@ using namespace Pistachio;
 #endif
 
 
-/*****************
- ** Ipc_ostream **
- *****************/
-
-Ipc_ostream::Ipc_ostream(Native_capability dst, Msgbuf_base *snd_msg) :
-	Ipc_marshaller(&snd_msg->buf[0], snd_msg->size()),
-	_snd_msg(snd_msg), _dst(dst)
-{
-	_write_offset = sizeof(umword_t);
-	IPCDEBUG("Ipc_ostream constructed.\n");
-}
-
-
-/*****************
- ** Ipc_istream **
- *****************/
-
 /**
  * Assert that we got 1 untyped word and 2 typed words
  */
@@ -101,37 +84,21 @@ static inline void check_ipc_result(L4_MsgTag_t result, L4_Word_t error_code)
 }
 
 
-Ipc_istream::Ipc_istream(Msgbuf_base *rcv_msg) :
-	Ipc_unmarshaller(&rcv_msg->buf[0], rcv_msg->size()),
-	Native_capability(Pistachio::L4_Myself(), 0),
-	_rcv_msg(rcv_msg)
-{
-	IPCDEBUG("Ipc_istream constructed.\n");
-	_read_offset = sizeof(umword_t);
-}
-
-
-Ipc_istream::~Ipc_istream() { }
-
-
 /****************
  ** Ipc_client **
  ****************/
 
 void Ipc_client::_call()
 {
-	IPCDEBUG("Starting to _call (with %u bytes of data).\n", _write_offset);
 	L4_Msg_t msg;
-	L4_StringItem_t sitem = L4_StringItem(_write_offset, _snd_msg->buf);
-	L4_Word_t local_name = Ipc_ostream::_dst.local_name();
-
-	IPCDEBUG("Destination local_name = 0x%x\n", local_name);
+	L4_StringItem_t sitem = L4_StringItem(_write_offset, _snd_msg.buf);
+	L4_Word_t const local_name = _dst.local_name();
 
 	L4_MsgBuffer_t msgbuf;
 
 	/* prepare message buffer */
 	L4_Clear (&msgbuf);
-	L4_Append (&msgbuf, L4_StringItem (_rcv_msg->size(), _rcv_msg->buf));
+	L4_Append (&msgbuf, L4_StringItem (_rcv_msg.size(), _rcv_msg.buf));
 	L4_Accept(L4_UntypedWordsAcceptor);
 	L4_Accept(L4_StringItemsAcceptor, &msgbuf);
 
@@ -141,21 +108,20 @@ void Ipc_client::_call()
 	L4_Append(&msg, sitem);
 	L4_Load(&msg);
 
-	L4_MsgTag_t result = L4_Call(Ipc_ostream::_dst.dst());
+	L4_MsgTag_t result = L4_Call(_dst.dst());
 
 	_write_offset = _read_offset = sizeof(umword_t);
 
 	check_ipc_result(result, L4_ErrorCode());
-
-	IPCDEBUG("Call done.\n");
 }
 
 
-Ipc_client::Ipc_client(Native_capability const &srv, Msgbuf_base *snd_msg,
-                       Msgbuf_base *rcv_msg, unsigned short) :
-	Ipc_istream(rcv_msg), Ipc_ostream(srv, snd_msg), _result(0)
+Ipc_client::Ipc_client(Native_capability const &dst,
+                       Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg, unsigned short)
+:
+	Ipc_marshaller(snd_msg), Ipc_unmarshaller(rcv_msg), _result(0), _dst(dst)
 {
-	IPCDEBUG("Ipc_client constructed.\n");
+	_read_offset = _write_offset = sizeof(umword_t);
 }
 
 
@@ -176,7 +142,7 @@ void Ipc_server::_prepare_next_reply_wait()
 }
 
 
-void Ipc_server::_wait()
+void Ipc_server::wait()
 {
 	/* wait for new server request */
 	try {
@@ -184,14 +150,12 @@ void Ipc_server::_wait()
 		L4_MsgTag_t result;
 		L4_MsgBuffer_t msgbuf;
 
-		IPCDEBUG("_wait.\n");
-
 		do {
 
 			IPCDEBUG("_wait loop start (more than once means IpcError)\n");
 
 			L4_Clear (&msgbuf);
-			L4_Append (&msgbuf, L4_StringItem (_rcv_msg->size(), _rcv_msg->buf));
+			L4_Append (&msgbuf, L4_StringItem (_rcv_msg.size(), _rcv_msg.buf));
 			L4_Accept(L4_UntypedWordsAcceptor);
 			L4_Accept(L4_StringItemsAcceptor, &msgbuf);
 
@@ -200,46 +164,38 @@ void Ipc_server::_wait()
 
 		} while (L4_IpcFailed(result));
 
-		IPCDEBUG("Got something from 0x%x.\n", _rcv_cs.caller);
 		L4_Msg_t msg;
 
 		L4_Store(result, &msg);
 
 		check_ipc_result(result, L4_ErrorCode());
 
-		/* get the local name */
-		L4_Word_t local_name = L4_Get(&msg,0);
+		/* remember badge of invoked object */
+		_badge = L4_Get(&msg, 0);
 
-		/*
-		 * Store local_name where badge() looks for it.
-		 * XXX Check this...
-		 */
-		*((long *)_rcv_msg->buf) = local_name;
 		_read_offset = sizeof(umword_t);
-
-		IPCDEBUG("_wait successful\n");
 
 	} catch (Blocking_canceled) { }
 
 	/* define destination of next reply */
-	Ipc_ostream::_dst = Native_capability(_rcv_cs.caller, badge());
+	_caller = Native_capability(_rcv_cs.caller, badge());
 
 	_prepare_next_reply_wait();
 }
 
 
-void Ipc_server::_reply()
+void Ipc_server::reply()
 {
 	L4_Msg_t msg;
-	L4_StringItem_t sitem = L4_StringItem(_write_offset, _snd_msg->buf);
-	L4_Word_t local_name = Ipc_ostream::_dst.local_name();
+	L4_StringItem_t sitem = L4_StringItem(_write_offset, _snd_msg.buf);
+	L4_Word_t const local_name = _caller.local_name();
 
 	L4_Clear(&msg);
 	L4_Append(&msg, local_name);
 	L4_Append(&msg, sitem);
 	L4_Load(&msg);
 
-	L4_MsgTag_t result = L4_Reply(Ipc_ostream::_dst.dst());
+	L4_MsgTag_t result = L4_Reply(_caller.dst());
 	if (L4_IpcFailed(result))
 		PERR("ipc error in _reply, ignored");
 
@@ -247,17 +203,14 @@ void Ipc_server::_reply()
 }
 
 
-void Ipc_server::_reply_wait()
+void Ipc_server::reply_wait()
 {
-	IPCDEBUG("Starting to _reply_wait. (with %u bytes of data)\n",
-	         _reply_needed ? _write_offset : 0);
-
 	if (_reply_needed) {
 
 		/* prepare massage */
 		L4_Msg_t msg;
-		L4_StringItem_t sitem = L4_StringItem(_write_offset, _snd_msg->buf);
-		L4_Word_t local_name = Ipc_ostream::_dst.local_name();
+		L4_StringItem_t sitem = L4_StringItem(_write_offset, _snd_msg.buf);
+		L4_Word_t const local_name = _caller.local_name();
 
 		L4_Clear(&msg);
 		L4_Append(&msg, local_name);
@@ -267,13 +220,12 @@ void Ipc_server::_reply_wait()
 		/* Prepare message buffer */
 		L4_MsgBuffer_t msgbuf;
 		L4_Clear(&msgbuf);
-		L4_Append(&msgbuf, L4_StringItem (_rcv_msg->size(), _rcv_msg->buf));
+		L4_Append(&msgbuf, L4_StringItem (_rcv_msg.size(), _rcv_msg.buf));
 		L4_Accept(L4_UntypedWordsAcceptor);
 		L4_Accept(L4_StringItemsAcceptor, &msgbuf);
 
-		L4_MsgTag_t result = L4_Ipc(Ipc_ostream::_dst.dst(), L4_anythread,
+		L4_MsgTag_t result = L4_Ipc(_caller.dst(), L4_anythread,
 		                            L4_Timeouts(L4_ZeroTime, L4_Never), &_rcv_cs.caller);
-		IPCDEBUG("Got something from 0x%x.\n", L4_ThreadNo(L4_GlobalId(_rcv_cs.caller)));
 
 		/* error handling - check whether send or receive failed */
 		if (L4_IpcFailed(result)) {
@@ -283,7 +235,7 @@ void Ipc_server::_reply_wait()
 
 			PERR("IPC %s error %02lx, offset %08lx -> _wait() instead.",
 			     phase ? "receive" : "send", error, errcode >> 4);
-			_wait();
+			wait();
 			return;
 		}
 
@@ -298,36 +250,32 @@ void Ipc_server::_reply_wait()
 			 * the error to the user.
 			 */
 			IPCDEBUG("Bad IPC content -> _wait() instead.\n");
-			_wait();
+			wait();
 			return;
 		}
 
-		/* get the local name */
-		local_name = L4_Get(&msg, 0);
-
-		/*
-		 * Store local_name where badge() looks for it.
-		 * XXX Check this...
-		 */
-		*((long *)_rcv_msg->buf) = local_name;
-		IPCDEBUG("local_name = 0x%lx\n", badge());
+		/* remember badge of invoked object */
+		_badge =  L4_Get(&msg, 0);
 
 		/* define destination of next reply */
-		Ipc_ostream::_dst = Native_capability(_rcv_cs.caller, badge());
+		_caller = Native_capability(_rcv_cs.caller, badge());
 
 		_prepare_next_reply_wait();
 
 	} else
-		_wait();
+		wait();
 }
 
 
 Ipc_server::Ipc_server(Native_connection_state &cs,
-                       Msgbuf_base *snd_msg, Msgbuf_base *rcv_msg) :
-	Ipc_istream(rcv_msg),
-	Ipc_ostream(Native_capability(), snd_msg),
+                       Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg)
+:
+	Ipc_marshaller(snd_msg), Ipc_unmarshaller(rcv_msg),
+	Native_capability(Pistachio::L4_Myself(), 0),
 	_reply_needed(false), _rcv_cs(cs)
-{ }
+{
+	_read_offset = _write_offset = sizeof(umword_t);
+}
 
 
 Ipc_server::~Ipc_server() { }

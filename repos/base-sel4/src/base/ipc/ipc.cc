@@ -121,8 +121,7 @@ static seL4_MessageInfo_t new_seL4_message(Msgbuf_base &msg,
 /**
  * Convert seL4 message into Genode::Msgbuf_base
  */
-static void decode_seL4_message(umword_t badge,
-                                seL4_MessageInfo_t const &msg_info,
+static void decode_seL4_message(seL4_MessageInfo_t const &msg_info,
                                 Msgbuf_base &dst_msg)
 {
 	/*
@@ -249,11 +248,6 @@ static void decode_seL4_message(umword_t badge,
 	umword_t *dst = (umword_t *)dst_msg.data();
 	for (size_t i = 0; i < seL4_MessageInfo_get_length(msg_info); i++)
 		*dst++ = seL4_GetMR(MR_IDX_DATA + i);
-
-	/*
-	 * Store RPC object key of invoked object to be picked up by server.cc
-	 */
-	*(long *)dst_msg.data() = badge;
 }
 
 
@@ -261,45 +255,16 @@ static void decode_seL4_message(umword_t badge,
  ** IPC marshalling support **
  *****************************/
 
-void Ipc_ostream::_marshal_capability(Native_capability const &cap)
+void Ipc_marshaller::insert(Native_capability const &cap)
 {
-	_snd_msg->append_cap(cap);
+	_snd_msg.append_cap(cap);
 }
 
 
-void Ipc_istream::_unmarshal_capability(Native_capability &cap)
+void Ipc_unmarshaller::extract(Native_capability &cap)
 {
-	cap = _rcv_msg->extract_cap();
+	cap = _rcv_msg.extract_cap();
 }
-
-
-/*****************
- ** Ipc_ostream **
- *****************/
-
-Ipc_ostream::Ipc_ostream(Native_capability dst, Msgbuf_base *snd_msg)
-:
-	Ipc_marshaller((char *)snd_msg->data(), snd_msg->size()),
-	_snd_msg(snd_msg), _dst(dst)
-{
-	_write_offset = sizeof(umword_t);
-}
-
-
-/*****************
- ** Ipc_istream **
- *****************/
-
-Ipc_istream::Ipc_istream(Msgbuf_base *rcv_msg)
-:
-	Ipc_unmarshaller((char *)rcv_msg->data(), rcv_msg->size()),
-	_rcv_msg(rcv_msg)
-{
-	_read_offset = sizeof(umword_t);
-}
-
-
-Ipc_istream::~Ipc_istream() { }
 
 
 /****************
@@ -308,7 +273,7 @@ Ipc_istream::~Ipc_istream() { }
 
 void Ipc_client::_call()
 {
-	if (!Ipc_ostream::_dst.valid()) {
+	if (!_dst.valid()) {
 		PERR("Trying to invoke an invalid capability, stop.");
 		kernel_debugger_panic("IPC destination is invalid");
 	}
@@ -317,23 +282,27 @@ void Ipc_client::_call()
 		rcv_sel() = Capability_space::alloc_rcv_sel();
 
 	seL4_MessageInfo_t const request_msg_info =
-		new_seL4_message(*_snd_msg, _write_offset);
+		new_seL4_message(_snd_msg, _write_offset);
 
 	unsigned const dst_sel = Capability_space::ipc_cap_data(_dst).sel.value();
 
 	seL4_MessageInfo_t const reply_msg_info =
 		seL4_Call(dst_sel, request_msg_info);
 
-	decode_seL4_message(0, reply_msg_info, *_rcv_msg);
+	decode_seL4_message(reply_msg_info, _rcv_msg);
 
 	_write_offset = _read_offset = sizeof(umword_t);
 }
 
 
-Ipc_client::Ipc_client(Native_capability const &srv, Msgbuf_base *snd_msg,
-                       Msgbuf_base *rcv_msg, unsigned short)
-: Ipc_istream(rcv_msg), Ipc_ostream(srv, snd_msg), _result(0)
-{ }
+Ipc_client::Ipc_client(Native_capability const &dst,
+                       Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg,
+                       unsigned short)
+:
+	Ipc_marshaller(snd_msg), Ipc_unmarshaller(rcv_msg), _result(0), _dst(dst)
+{
+	_read_offset = _write_offset = sizeof(umword_t);
+}
 
 
 /****************
@@ -351,46 +320,45 @@ void Ipc_server::_prepare_next_reply_wait()
 	/* receive buffer offset */
 	_read_offset = sizeof(umword_t);
 
-	_rcv_msg->reset_read_cap_index();
-	_snd_msg->reset_caps();
+	_rcv_msg.reset_read_cap_index();
+	_snd_msg.reset_caps();
 }
 
 
-void Ipc_server::_wait()
+void Ipc_server::wait()
 {
-	seL4_Word badge = Rpc_obj_key::INVALID;
 	seL4_MessageInfo_t const msg_info =
-		seL4_Recv(Thread_base::myself()->native_thread().ep_sel, &badge);
+		seL4_Recv(Thread_base::myself()->native_thread().ep_sel,
+		          (seL4_Word *)&_badge);
 
-	decode_seL4_message(badge, msg_info, *_rcv_msg);
+	decode_seL4_message(msg_info, _rcv_msg);
 
 	_prepare_next_reply_wait();
 }
 
 
-void Ipc_server::_reply()
+void Ipc_server::reply()
 {
 	ASSERT(false);
 }
 
 
-void Ipc_server::_reply_wait()
+void Ipc_server::reply_wait()
 {
 	if (!_reply_needed) {
 
-		_wait();
+		wait();
 
 	} else {
 
-		seL4_Word badge = Rpc_obj_key::INVALID;
 		seL4_MessageInfo_t const reply_msg_info =
-			new_seL4_message(*_snd_msg, _write_offset);
+			new_seL4_message(_snd_msg, _write_offset);
 
 		seL4_MessageInfo_t const request_msg_info =
 			seL4_ReplyRecv(Thread_base::myself()->native_thread().ep_sel,
-			               reply_msg_info, &badge);
+			               reply_msg_info, (seL4_Word *)&_badge);
 
-		decode_seL4_message(badge, request_msg_info, *_rcv_msg);
+		decode_seL4_message(request_msg_info, _rcv_msg);
 	}
 
 	_prepare_next_reply_wait();
@@ -398,13 +366,15 @@ void Ipc_server::_reply_wait()
 
 
 Ipc_server::Ipc_server(Native_connection_state &cs,
-                       Msgbuf_base *snd_msg, Msgbuf_base *rcv_msg)
+                       Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg)
 :
-	Ipc_istream(rcv_msg), Ipc_ostream(Native_capability(), snd_msg),
+	Ipc_marshaller(snd_msg), Ipc_unmarshaller(rcv_msg),
 	_reply_needed(false), _rcv_cs(cs)
 {
 	*static_cast<Native_capability *>(this) =
 		Native_capability(Capability_space::create_ep_cap(*Thread_base::myself()));
+
+	_read_offset = _write_offset = sizeof(umword_t);
 }
 
 

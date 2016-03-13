@@ -38,14 +38,14 @@ void Rpc_entrypoint::_block_until_cap_valid()
 
 Untyped_capability Rpc_entrypoint::reply_dst()
 {
-	return _ipc_server ? _ipc_server->dst() : Untyped_capability();
+	return _ipc_server ? _ipc_server->caller() : Untyped_capability();
 }
 
 
 void Rpc_entrypoint::omit_reply()
 {
 	/* set current destination to an invalid capability */
-	if (_ipc_server) _ipc_server->dst(Untyped_capability());
+	if (_ipc_server) _ipc_server->caller(Untyped_capability());
 }
 
 
@@ -55,15 +55,16 @@ void Rpc_entrypoint::reply_signal_info(Untyped_capability reply_cap,
 	if (!_ipc_server) return;
 
 	/* backup reply capability of current request */
-	Untyped_capability last_reply_cap = _ipc_server->dst();
+	Untyped_capability last_reply_cap = _ipc_server->caller();
 
 	/* direct ipc server to the specified reply destination */
 	_ipc_server->ret(0);
-	_ipc_server->dst(reply_cap);
-	*_ipc_server << Signal_source::Signal(imprint, cnt) << IPC_REPLY;
+	_ipc_server->caller(reply_cap);
+	_ipc_server->insert(Signal_source::Signal(imprint, cnt));
+	_ipc_server->reply();
 
 	/* restore reply capability of the original request */
-	_ipc_server->dst(last_reply_cap);
+	_ipc_server->caller(last_reply_cap);
 }
 
 

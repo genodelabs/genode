@@ -60,26 +60,26 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 	protected:
 
 		template <typename ARG_LIST>
-		void _read_args(Ipc_istream &is, ARG_LIST &args)
+		void _read_args(Ipc_unmarshaller &msg, ARG_LIST &args)
 		{
 			if (Trait::Rpc_direction<typename ARG_LIST::Head>::Type::IN)
-				is >> args._1;
+				msg.extract(args._1);
 
-			_read_args(is, args._2);
+			_read_args(msg, args._2);
 		}
 
-		void _read_args(Ipc_istream &, Meta::Empty) { }
+		void _read_args(Ipc_unmarshaller &, Meta::Empty) { }
 
 		template <typename ARG_LIST>
-		void _write_results(Ipc_ostream &os, ARG_LIST &args)
+		void _write_results(Ipc_marshaller &msg, ARG_LIST &args)
 		{
 			if (Trait::Rpc_direction<typename ARG_LIST::Head>::Type::OUT)
-				os << args._1;
+				msg.insert(args._1);
 
-			_write_results(os, args._2);
+			_write_results(msg, args._2);
 		}
 
-		void _write_results(Ipc_ostream &, Meta::Empty) { }
+		void _write_results(Ipc_marshaller &, Meta::Empty) { }
 
 		template <typename RPC_FUNCTION, typename EXC_TL>
 		Rpc_exception_code _do_serve(typename RPC_FUNCTION::Server_args &args,
@@ -104,7 +104,8 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 		}
 
 		template <typename RPC_FUNCTIONS_TO_CHECK>
-		Rpc_exception_code _do_dispatch(Rpc_opcode opcode, Ipc_istream &is, Ipc_ostream &os,
+		Rpc_exception_code _do_dispatch(Rpc_opcode opcode,
+		                                Ipc_unmarshaller &in, Ipc_marshaller &out,
 		                                Meta::Overload_selector<RPC_FUNCTIONS_TO_CHECK>)
 		{
 			using namespace Meta;
@@ -115,8 +116,8 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 
 				typename This_rpc_function::Server_args args{};
 
-				/* read arguments from istream */
-				_read_args(is, args);
+				/* read arguments from incoming message */
+				_read_args(in, args);
 
 				{
 					Trace::Rpc_dispatch trace_event(This_rpc_function::name());
@@ -132,23 +133,23 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 				typename This_rpc_function::Ret_type ret { };
 				Rpc_exception_code exc;
 				exc = _do_serve(args, ret, Overload_selector<This_rpc_function, Exceptions>());
-				os << ret;
+				out.insert(ret);
 
 				{
 					Trace::Rpc_reply trace_event(This_rpc_function::name());
 				}
 
-				/* write results to ostream 'os' */
-				_write_results(os, args);
+				/* write results to outgoing message */
+				_write_results(out, args);
 
 				return exc;
 			}
 
 			typedef typename RPC_FUNCTIONS_TO_CHECK::Tail Tail;
-			return _do_dispatch(opcode, is, os, Overload_selector<Tail>());
+			return _do_dispatch(opcode, in, out, Overload_selector<Tail>());
 		}
 
-		int _do_dispatch(int opcode, Ipc_istream &, Ipc_ostream &,
+		int _do_dispatch(int opcode, Ipc_unmarshaller &, Ipc_marshaller &,
 		                 Meta::Overload_selector<Meta::Empty>)
 		{
 			PERR("invalid opcode %d\n", opcode);
@@ -158,7 +159,8 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 		/**
 		 * Handle corner case of having an RPC interface with no RPC functions
 		 */
-		Rpc_exception_code _do_dispatch(int opcode, Ipc_istream &, Ipc_ostream &,
+		Rpc_exception_code _do_dispatch(int opcode,
+		                                Ipc_unmarshaller &, Ipc_marshaller &,
 		                                Meta::Overload_selector<Meta::Type_list<> >)
 		{
 			return 0;
@@ -173,9 +175,10 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 
 	public:
 
-		Rpc_exception_code dispatch(int opcode, Ipc_istream &is, Ipc_ostream &os)
+		Rpc_exception_code dispatch(int opcode,
+		                            Ipc_unmarshaller &in, Ipc_marshaller &out)
 		{
-			return _do_dispatch(opcode, is, os,
+			return _do_dispatch(opcode, in, out,
 			                    Meta::Overload_selector<Rpc_functions>());
 		}
 };
@@ -191,10 +194,10 @@ class Genode::Rpc_object_base : public Object_pool<Rpc_object_base>::Entry
 		 * Interface to be implemented by a derived class
 		 *
 		 * \param op   opcode of invoked method
-		 * \param is   Ipc_input stream with method arguments
-		 * \param os   Ipc_output stream for storing method results
+		 * \param in   incoming message with method arguments
+		 * \param out  outgoing message for storing method results
 		 */
-		virtual int dispatch(int op, Ipc_istream &is, Ipc_ostream &os) = 0;
+		virtual int dispatch(int op, Ipc_unmarshaller &in, Ipc_marshaller &out) = 0;
 };
 
 
@@ -212,9 +215,9 @@ struct Genode::Rpc_object : Rpc_object_base, Rpc_dispatcher<RPC_INTERFACE, SERVE
 	 ** Server-object interface **
 	 *****************************/
 
-	Rpc_exception_code dispatch(int opcode, Ipc_istream &is, Ipc_ostream &os)
+	Rpc_exception_code dispatch(int opcode, Ipc_unmarshaller &in, Ipc_marshaller &out)
 	{
-		return Rpc_dispatcher<RPC_INTERFACE, SERVER>::dispatch(opcode, is, os);
+		return Rpc_dispatcher<RPC_INTERFACE, SERVER>::dispatch(opcode, in, out);
 	}
 
 	Capability<RPC_INTERFACE> const cap() const

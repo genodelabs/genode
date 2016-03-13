@@ -46,7 +46,7 @@ Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 void Rpc_entrypoint::entry()
 {
 	Native_connection_state cs;
-	Ipc_server srv(cs, &_snd_buf, &_rcv_buf);
+	Ipc_server srv(cs, _snd_buf, _rcv_buf);
 	_ipc_server = &srv;
 	_cap = srv;
 	_cap_valid.unlock();
@@ -64,7 +64,8 @@ void Rpc_entrypoint::entry()
 
 		int opcode = 0;
 
-		srv >> IPC_REPLY_WAIT >> opcode;
+		srv.reply_wait();
+		srv.extract(opcode);
 
 		/* set default return value */
 		srv.ret(Ipc_client::ERR_INVALID_OBJECT);
@@ -81,7 +82,7 @@ void Rpc_entrypoint::entry()
 	}
 
 	/* answer exit call, thereby wake up '~Rpc_entrypoint' */
-	srv << IPC_REPLY;
+	srv.reply();
 
 	/* defer the destruction of 'Ipc_server' until '~Rpc_entrypoint' is ready */
 	_delay_exit.lock();

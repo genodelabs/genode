@@ -51,17 +51,17 @@ static void kdb_emergency_print(const char *s)
 /**
  * Copy message registers from UTCB to destination message buffer
  */
-static void copy_utcb_to_msgbuf(L4_MsgTag_t rcv_tag, Msgbuf_base *rcv_msg)
+static void copy_utcb_to_msgbuf(L4_MsgTag_t rcv_tag, Msgbuf_base &rcv_msg)
 {
 	int num_msg_words = (int)L4_UntypedWords(rcv_tag);
 	if (num_msg_words <= 0) return;
 
 	/* look up and validate destination message buffer to receive the payload */
-	L4_Word_t *msg_buf = (L4_Word_t *)rcv_msg->buf;
-	if (num_msg_words*sizeof(L4_Word_t) > rcv_msg->size()) {
+	L4_Word_t *msg_buf = (L4_Word_t *)rcv_msg.buf;
+	if (num_msg_words*sizeof(L4_Word_t) > rcv_msg.size()) {
 		PERR("receive message buffer too small msg size=%zd, buf size=%zd",
-		     num_msg_words*sizeof(L4_Word_t), rcv_msg->size());
-		num_msg_words = rcv_msg->size()/sizeof(L4_Word_t);
+		     num_msg_words*sizeof(L4_Word_t), rcv_msg.size());
+		num_msg_words = rcv_msg.size()/sizeof(L4_Word_t);
 	}
 
 	/* read message payload into destination message buffer */
@@ -77,11 +77,11 @@ static void copy_utcb_to_msgbuf(L4_MsgTag_t rcv_tag, Msgbuf_base *rcv_msg)
  * 1 is used for the local name. All subsequent message registers hold the
  * message payload.
  */
-static void copy_msgbuf_to_utcb(Msgbuf_base *snd_msg, unsigned num_msg_words,
+static void copy_msgbuf_to_utcb(Msgbuf_base &snd_msg, unsigned num_msg_words,
                                 L4_Word_t local_name)
 {
 	/* look up address and size of message payload */
-	L4_Word_t *msg_buf = (L4_Word_t *)snd_msg->buf;
+	L4_Word_t *msg_buf = (L4_Word_t *)snd_msg.buf;
 
 	num_msg_words += 1;
 
@@ -99,51 +99,6 @@ static void copy_msgbuf_to_utcb(Msgbuf_base *snd_msg, unsigned num_msg_words,
 }
 
 
-/*****************
- ** Ipc_ostream **
- *****************/
-
-Ipc_ostream::Ipc_ostream(Native_capability dst, Msgbuf_base *snd_msg)
-:
-	Ipc_marshaller(&snd_msg->buf[0], snd_msg->size()),
-	_snd_msg(snd_msg), _dst(dst)
-{
-	_write_offset = sizeof(umword_t);
-}
-
-
-/*****************
- ** Ipc_istream **
- *****************/
-
-/**
- * Return the global thread ID of the calling thread
- *
- * On OKL4 we cannot use 'L4_Myself()' to determine our own thread's
- * identity. By convention, each thread stores its global ID in a
- * defined entry of its UTCB.
- */
-static inline Okl4::L4_ThreadId_t thread_get_my_global_id()
-{
-	Okl4::L4_ThreadId_t myself;
-	myself.raw = Okl4::__L4_TCR_ThreadWord(UTCB_TCR_THREAD_WORD_MYSELF);
-	return myself;
-}
-
-
-Ipc_istream::Ipc_istream(Msgbuf_base *rcv_msg)
-:
-	Ipc_unmarshaller(&rcv_msg->buf[0], rcv_msg->size()),
-	Native_capability(thread_get_my_global_id(), 0),
-	_rcv_msg(rcv_msg)
-{
-	_read_offset = sizeof(umword_t);
-}
-
-
-Ipc_istream::~Ipc_istream() { }
-
-
 /****************
  ** Ipc_client **
  ****************/
@@ -152,10 +107,10 @@ void Ipc_client::_call()
 {
 	/* copy call message to the UTCBs message registers */
 	copy_msgbuf_to_utcb(_snd_msg, _write_offset/sizeof(L4_Word_t),
-	                    Ipc_ostream::_dst.local_name());
+	                    _dst.local_name());
 
 	L4_Accept(L4_UntypedWordsAcceptor);
-	L4_MsgTag_t rcv_tag = L4_Call(Ipc_ostream::_dst.dst());
+	L4_MsgTag_t rcv_tag = L4_Call(_dst.dst());
 
 	enum { ERROR_MASK = 0xe, ERROR_CANCELED = 3 << 1 };
 	if (L4_IpcFailed(rcv_tag) &&
@@ -175,9 +130,13 @@ void Ipc_client::_call()
 }
 
 
-Ipc_client::Ipc_client(Native_capability const &srv, Msgbuf_base *snd_msg,
-                       Msgbuf_base *rcv_msg, unsigned short)
-: Ipc_istream(rcv_msg), Ipc_ostream(srv, snd_msg), _result(0) { }
+Ipc_client::Ipc_client(Native_capability const &dst,
+                       Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg, unsigned short)
+:
+	Ipc_marshaller(snd_msg), Ipc_unmarshaller(rcv_msg), _result(0), _dst(dst)
+{
+	_write_offset = _read_offset = sizeof(umword_t);
+}
 
 
 /****************
@@ -197,7 +156,7 @@ void Ipc_server::_prepare_next_reply_wait()
 }
 
 
-void Ipc_server::_wait()
+void Ipc_server::wait()
 {
 	/* wait for new server request */
 	try {
@@ -218,20 +177,21 @@ void Ipc_server::_wait()
 	} catch (Blocking_canceled) { }
 
 	/* define destination of next reply */
-	Ipc_ostream::_dst = Native_capability(_rcv_cs.caller, badge());
+	_caller = Native_capability(_rcv_cs.caller, badge());
+	_badge  = reinterpret_cast<unsigned long *>(_rcv_msg.data())[0];
 
 	_prepare_next_reply_wait();
 }
 
 
-void Ipc_server::_reply()
+void Ipc_server::reply()
 {
 	/* copy reply to the UTCBs message registers */
 	copy_msgbuf_to_utcb(_snd_msg, _write_offset/sizeof(L4_Word_t),
-	                    Ipc_ostream::_dst.local_name());
+	                    _caller.local_name());
 
 	/* perform non-blocking IPC send operation */
-	L4_MsgTag_t rcv_tag = L4_Reply(Ipc_ostream::_dst.dst());
+	L4_MsgTag_t rcv_tag = L4_Reply(_caller.dst());
 
 	if (L4_IpcFailed(rcv_tag))
 		PERR("ipc error in _reply - gets ignored");
@@ -240,15 +200,15 @@ void Ipc_server::_reply()
 }
 
 
-void Ipc_server::_reply_wait()
+void Ipc_server::reply_wait()
 {
 	if (_reply_needed) {
 
 		/* copy reply to the UTCBs message registers */
 		copy_msgbuf_to_utcb(_snd_msg, _write_offset/sizeof(L4_Word_t),
-		                    Ipc_ostream::_dst.local_name());
+		                    _caller.local_name());
 
-		L4_MsgTag_t rcv_tag = L4_ReplyWait(Ipc_ostream::_dst.dst(), &_rcv_cs.caller);
+		L4_MsgTag_t rcv_tag = L4_ReplyWait(_caller.dst(), &_rcv_cs.caller);
 
 		/*
 		 * TODO: Check for IPC error
@@ -258,22 +218,40 @@ void Ipc_server::_reply_wait()
 		copy_utcb_to_msgbuf(rcv_tag, _rcv_msg);
 
 		/* define destination of next reply */
-		Ipc_ostream::_dst = Native_capability(_rcv_cs.caller, badge());
+		_caller = Native_capability(_rcv_cs.caller, badge());
+		_badge  = reinterpret_cast<unsigned long *>(_rcv_msg.data())[0];
 
 		_prepare_next_reply_wait();
 
 	} else
-		_wait();
+		wait();
+}
+
+
+/**
+ * Return the global thread ID of the calling thread
+ *
+ * On OKL4 we cannot use 'L4_Myself()' to determine our own thread's
+ * identity. By convention, each thread stores its global ID in a
+ * defined entry of its UTCB.
+ */
+static inline Okl4::L4_ThreadId_t thread_get_my_global_id()
+{
+	Okl4::L4_ThreadId_t myself;
+	myself.raw = Okl4::__L4_TCR_ThreadWord(UTCB_TCR_THREAD_WORD_MYSELF);
+	return myself;
 }
 
 
 Ipc_server::Ipc_server(Native_connection_state &cs,
-                       Msgbuf_base *snd_msg, Msgbuf_base *rcv_msg)
+                       Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg)
 :
-	Ipc_istream(rcv_msg),
-	Ipc_ostream(Native_capability(), snd_msg),
+	Ipc_marshaller(snd_msg),
+	Ipc_unmarshaller(rcv_msg),
+	Native_capability(thread_get_my_global_id(), 0),
 	_reply_needed(false), _rcv_cs(cs)
-{ }
-
+{
+	_read_offset = _write_offset = sizeof(umword_t);
+}
 
 Ipc_server::~Ipc_server() { }

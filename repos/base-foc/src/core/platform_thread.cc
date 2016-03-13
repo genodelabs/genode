@@ -129,8 +129,9 @@ void Platform_thread::resume()
 
 	/* Send a message to the exception handler, to unblock the client */
 	Msgbuf<16> snd, rcv;
-	Ipc_client ipc_client(_pager_obj->cap(), &snd, &rcv);
-	ipc_client << _pager_obj << IPC_CALL;
+	Ipc_client ipc_client(_pager_obj->cap(), snd, rcv);
+	ipc_client.insert(_pager_obj);
+	ipc_client.call();
 }
 
 

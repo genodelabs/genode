@@ -47,21 +47,21 @@ using namespace Fiasco;
  ** IPC marshalling support **
  *****************************/
 
-void Ipc_ostream::_marshal_capability(Native_capability const &cap)
+void Ipc_marshaller::insert(Native_capability const &cap)
 {
 	if (cap.valid()) {
 		if (!l4_msgtag_label(l4_task_cap_valid(L4_BASE_TASK_CAP, cap.dst()))) {
-			_write_to_buf(0);
+			insert(0UL);
 			return;
 		}
 	}
 
 	/* transfer capability id */
-	_write_to_buf(cap.local_name());
+	insert(cap.local_name());
 
 	/* only transfer kernel-capability if it's a valid one */
 	if (cap.valid())
-		_snd_msg->snd_append_cap_sel(cap.dst());
+		_snd_msg.snd_append_cap_sel(cap.dst());
 
 	ASSERT(!cap.valid() ||
 	       l4_msgtag_label(l4_task_cap_valid(L4_BASE_TASK_CAP, cap.dst())),
@@ -69,12 +69,12 @@ void Ipc_ostream::_marshal_capability(Native_capability const &cap)
 }
 
 
-void Ipc_istream::_unmarshal_capability(Native_capability &cap)
+void Ipc_unmarshaller::extract(Native_capability &cap)
 {
 	long value = 0;
 
 	/* extract capability id from message buffer */
-	_read_from_buf(value);
+	extract(value);
 
 	/* if id is zero an invalid capability was transfered */
 	if (!value) {
@@ -83,7 +83,7 @@ void Ipc_istream::_unmarshal_capability(Native_capability &cap)
 	}
 
 	/* try to insert received capability in the map and return it */
-	cap = Native_capability(cap_map()->insert_map(value, _rcv_msg->rcv_cap_sel()));
+	cap = Native_capability(cap_map()->insert_map(value, _rcv_msg.rcv_cap_sel()));
 }
 
 
@@ -117,7 +117,7 @@ static inline bool ipc_error(l4_msgtag_t tag, bool print)
 /**
  * Copy message registers from UTCB to destination message buffer
  */
-static void copy_utcb_to_msgbuf(l4_msgtag_t tag, Msgbuf_base *rcv_msg)
+static void copy_utcb_to_msgbuf(l4_msgtag_t tag, Msgbuf_base &rcv_msg)
 {
 	unsigned num_msg_words = l4_msgtag_words(tag);
 	unsigned num_cap_sel   = l4_msgtag_items(tag);
@@ -125,11 +125,11 @@ static void copy_utcb_to_msgbuf(l4_msgtag_t tag, Msgbuf_base *rcv_msg)
 		return;
 
 	/* look up and validate destination message buffer to receive the payload */
-	l4_mword_t *msg_buf = (l4_mword_t *)rcv_msg->buf;
-	if (num_msg_words*sizeof(l4_mword_t) > rcv_msg->size()) {
+	l4_mword_t *msg_buf = (l4_mword_t *)rcv_msg.buf;
+	if (num_msg_words*sizeof(l4_mword_t) > rcv_msg.size()) {
 		if (DEBUG_MSG)
 			outstring("receive message buffer too small");
-		num_msg_words = rcv_msg->size()/sizeof(l4_mword_t);
+		num_msg_words = rcv_msg.size()/sizeof(l4_mword_t);
 	}
 
 	/* read message payload into destination message buffer */
@@ -138,19 +138,19 @@ static void copy_utcb_to_msgbuf(l4_msgtag_t tag, Msgbuf_base *rcv_msg)
 	for (unsigned i = 0; i < num_msg_words; i++)
 		*dst++ = *src++;
 
-	rcv_msg->rcv_reset();
+	rcv_msg.rcv_reset();
 }
 
 
 /**
  * Copy message registers from message buffer to UTCB and create message tag.
  */
-static l4_msgtag_t copy_msgbuf_to_utcb(Msgbuf_base *snd_msg, unsigned offset,
+static l4_msgtag_t copy_msgbuf_to_utcb(Msgbuf_base &snd_msg, unsigned offset,
                                        Native_capability dst)
 {
-	l4_mword_t *msg_buf       = (l4_mword_t *)snd_msg->buf;
+	l4_mword_t *msg_buf       = (l4_mword_t *)snd_msg.buf;
 	unsigned    num_msg_words = offset/sizeof(l4_mword_t);
-	unsigned    num_cap_sel   = snd_msg->snd_cap_sel_cnt();
+	unsigned    num_cap_sel   = snd_msg.snd_cap_sel_cnt();
 
 	if (num_msg_words + 2 * num_cap_sel > L4_UTCB_GENERIC_DATA_SIZE) {
 		if (DEBUG_MSG)
@@ -169,45 +169,15 @@ static l4_msgtag_t copy_msgbuf_to_utcb(Msgbuf_base *snd_msg, unsigned offset,
 	for (unsigned i = 0; i < num_cap_sel; i++) {
 		unsigned idx = num_msg_words + 2*i;
 		l4_utcb_mr()->mr[idx]     = L4_ITEM_MAP/* | L4_ITEM_CONT*/;
-		l4_utcb_mr()->mr[idx + 1] = l4_obj_fpage(snd_msg->snd_cap_sel(i),
+		l4_utcb_mr()->mr[idx + 1] = l4_obj_fpage(snd_msg.snd_cap_sel(i),
 		                                         0, L4_FPAGE_RWX).raw;
 	}
 
 	/* we have consumed capability selectors, reset message buffer */
-	snd_msg->snd_reset();
+	snd_msg.snd_reset();
 
 	return l4_msgtag(0, num_msg_words, num_cap_sel, 0);
 }
-
-
-/*****************
- ** Ipc_ostream **
- *****************/
-
-Ipc_ostream::Ipc_ostream(Native_capability dst, Msgbuf_base *snd_msg)
-:
-	Ipc_marshaller(&snd_msg->buf[0], snd_msg->size()),
-	_snd_msg(snd_msg), _dst(dst)
-{
-	_write_offset = sizeof(l4_mword_t);
-}
-
-
-/*****************
- ** Ipc_istream **
- *****************/
-
-Ipc_istream::Ipc_istream(Msgbuf_base *rcv_msg)
-:
-	Ipc_unmarshaller(&rcv_msg->buf[0], rcv_msg->size()),
-	Native_capability((Cap_index*)Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE]),
-	_rcv_msg(rcv_msg)
-{
-	_read_offset = sizeof(l4_mword_t);
-}
-
-
-Ipc_istream::~Ipc_istream() { }
 
 
 /****************
@@ -219,7 +189,7 @@ void Ipc_client::_call()
 	/* copy call message to the UTCBs message registers */
 	l4_msgtag_t tag = copy_msgbuf_to_utcb(_snd_msg, _write_offset, _dst);
 
-	addr_t rcv_cap_sel = _rcv_msg->rcv_cap_sel_base();
+	addr_t rcv_cap_sel = _rcv_msg.rcv_cap_sel_base();
 	for (int i = 0; i < Msgbuf_base::MAX_CAP_ARGS; i++) {
 		l4_utcb_br()->br[i] = rcv_cap_sel | L4_RCV_ITEM_SINGLE_CAP;
 		rcv_cap_sel += L4_CAP_SIZE;
@@ -238,9 +208,13 @@ void Ipc_client::_call()
 }
 
 
-Ipc_client::Ipc_client(Native_capability const &srv, Msgbuf_base *snd_msg,
-                       Msgbuf_base *rcv_msg, unsigned short)
-: Ipc_istream(rcv_msg), Ipc_ostream(srv, snd_msg), _result(0) { }
+Ipc_client::Ipc_client(Native_capability const &dst,
+                       Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg, unsigned short)
+:
+	Ipc_marshaller(snd_msg), Ipc_unmarshaller(rcv_msg), _result(0), _dst(dst)
+{
+	_read_offset = _write_offset = sizeof(l4_mword_t);
+}
 
 
 /****************
@@ -260,12 +234,11 @@ void Ipc_server::_prepare_next_reply_wait()
 }
 
 
-void Ipc_server::_wait()
+void Ipc_server::wait()
 {
 	/* wait for new server request */
 	try {
-		l4_umword_t label = 0;
-		addr_t rcv_cap_sel = _rcv_msg->rcv_cap_sel_base();
+		addr_t rcv_cap_sel = _rcv_msg.rcv_cap_sel_base();
 		for (int i = 0; i < Msgbuf_base::MAX_CAP_ARGS; i++) {
 			l4_utcb_br()->br[i] = rcv_cap_sel | L4_RCV_ITEM_SINGLE_CAP;
 			rcv_cap_sel += L4_CAP_SIZE;
@@ -274,11 +247,10 @@ void Ipc_server::_wait()
 
 		l4_msgtag_t tag;
 		do {
+			l4_umword_t label = 0;
 			tag = l4_ipc_wait(l4_utcb(), &label, L4_IPC_NEVER);
+			_rcv_msg.label(label);
 		} while (ipc_error(tag, DEBUG_MSG));
-
-		/* copy received label into message buffer */
-		_rcv_msg->label(label);
 
 		/* copy message from the UTCBs message registers to the receive buffer */
 		copy_utcb_to_msgbuf(tag, _rcv_msg);
@@ -288,26 +260,24 @@ void Ipc_server::_wait()
 
 	} catch (Blocking_canceled) { }
 
-	/* we only have an unknown implicit reply capability  */
-	/* _dst = ???; */
+	_badge = *reinterpret_cast<unsigned long *>(_rcv_msg.data());
 
 	_prepare_next_reply_wait();
 }
 
 
-void Ipc_server::_reply()
+void Ipc_server::reply()
 {
-	l4_msgtag_t tag = copy_msgbuf_to_utcb(_snd_msg, _write_offset, _dst);
+	l4_msgtag_t tag = copy_msgbuf_to_utcb(_snd_msg, _write_offset, Native_capability());
 	tag = l4_ipc_send(L4_SYSF_REPLY, l4_utcb(), tag, L4_IPC_SEND_TIMEOUT_0);
 	ipc_error(tag, DEBUG_MSG);
 }
 
 
-void Ipc_server::_reply_wait()
+void Ipc_server::reply_wait()
 {
 	if (_reply_needed) {
-		l4_umword_t label;
-		addr_t rcv_cap_sel = _rcv_msg->rcv_cap_sel_base();
+		addr_t rcv_cap_sel = _rcv_msg.rcv_cap_sel_base();
 		for (int i = 0; i < Msgbuf_base::MAX_CAP_ARGS; i++) {
 			l4_utcb_br()->br[i] = rcv_cap_sel | L4_RCV_ITEM_SINGLE_CAP;
 			rcv_cap_sel += L4_CAP_SIZE;
@@ -315,8 +285,11 @@ void Ipc_server::_reply_wait()
 
 		l4_utcb_br()->bdr &= ~L4_BDR_OFFSET_MASK;
 
-		l4_msgtag_t tag = copy_msgbuf_to_utcb(_snd_msg, _write_offset, _dst);
+		l4_umword_t label = 0;
+
+		l4_msgtag_t tag = copy_msgbuf_to_utcb(_snd_msg, _write_offset, Native_capability());
 		tag = l4_ipc_reply_and_wait(l4_utcb(), tag, &label, L4_IPC_SEND_TIMEOUT_0);
+		_rcv_msg.label(label);
 		if (ipc_error(tag, false)) {
 			/*
 			 * The error conditions could be a message cut (which
@@ -326,31 +299,30 @@ void Ipc_server::_reply_wait()
 			 * the user but want to wait for the next proper incoming
 			 * message. So let's just wait now.
 			 */
-			_wait();
+			wait();
 		} else {
-
-			/* copy received label into message buffer */
-			_rcv_msg->label(label);
 
 			/* copy request message from the UTCBs message registers */
 			copy_utcb_to_msgbuf(tag, _rcv_msg);
 		}
 	} else
-		_wait();
+		wait();
 
-	/* reply capability is implicit in fiasco.oc and unknown to us */
-	/* _dst = ???; */
+	_badge = *reinterpret_cast<unsigned long *>(_rcv_msg.data());
+
 	_prepare_next_reply_wait();
 }
 
 
 Ipc_server::Ipc_server(Native_connection_state &cs,
-                       Msgbuf_base *snd_msg,
-                       Msgbuf_base *rcv_msg)
-: Ipc_istream(rcv_msg),
-  Ipc_ostream(Native_capability(), snd_msg),
-  _reply_needed(false), _rcv_cs(cs)
-{ }
+                       Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg)
+:
+	Ipc_marshaller(snd_msg), Ipc_unmarshaller(rcv_msg),
+	Native_capability((Cap_index*)Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE]),
+	_reply_needed(false), _rcv_cs(cs)
+{
+	_read_offset = _write_offset = sizeof(l4_mword_t);
+}
 
 
 Ipc_server::~Ipc_server() { }
