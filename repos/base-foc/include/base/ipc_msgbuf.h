@@ -28,6 +28,8 @@ namespace Fiasco {
 
 namespace Genode {
 
+	class Ipc_marshaller;
+
 	class Msgbuf_base
 	{
 		public:
@@ -36,12 +38,16 @@ namespace Genode {
 
 		protected:
 
-			size_t _size;
+			friend class Ipc_marshaller;
+
+			size_t const _capacity;
+
+			size_t _data_size = 0;
 
 			/**
 			 * Number of capability selectors to send.
 			 */
-			size_t _snd_cap_sel_cnt;
+			size_t _snd_cap_sel_cnt = 0;
 
 			/**
 			 * Capability selectors to delegate.
@@ -51,31 +57,35 @@ namespace Genode {
 			/**
 			 * Base of capability receive window.
 			 */
-			Cap_index* _rcv_idx_base;
+			Cap_index* _rcv_idx_base = nullptr;
 
 			/**
 			 * Read counter for unmarshalling portal capability selectors
 			 */
-			addr_t _rcv_cap_sel_cnt;
+			addr_t _rcv_cap_sel_cnt = 0;
 
-			unsigned long _label;
+			unsigned long _label = 0;
 
 			char _msg_start[];  /* symbol marks start of message */
-
-		public:
 
 			/**
 			 * Constructor
 			 */
-			Msgbuf_base()
-			: _rcv_idx_base(cap_idx_alloc()->alloc_range(MAX_CAP_ARGS)), _label(0)
+			Msgbuf_base(size_t capacity)
+			:
+				_capacity(capacity),
+				_rcv_idx_base(cap_idx_alloc()->alloc_range(MAX_CAP_ARGS))
 			{
 				rcv_reset();
 				snd_reset();
 			}
 
-			~Msgbuf_base() {
-				cap_idx_alloc()->free(_rcv_idx_base, MAX_CAP_ARGS); }
+		public:
+
+			~Msgbuf_base()
+			{
+				cap_idx_alloc()->free(_rcv_idx_base, MAX_CAP_ARGS);
+			}
 
 			/*
 			 * Begin of actual message buffer
@@ -85,22 +95,30 @@ namespace Genode {
 			/**
 			 * Return size of message buffer
 			 */
-			inline size_t size() const { return _size; };
+			size_t capacity() const { return _capacity; };
 
 			/**
 			 * Return pointer of message data payload
 			 */
-			inline void *data() { return &_msg_start[0]; };
+			void       *data()       { return &_msg_start[0]; };
+			void const *data() const { return &_msg_start[0]; };
+
+			size_t data_size() const { return _data_size; }
+
+			unsigned long &word(unsigned i)
+			{
+				return reinterpret_cast<unsigned long *>(buf)[i];
+			}
 
 			/**
 			 * Reset portal capability selector payload
 			 */
-			inline void snd_reset() { _snd_cap_sel_cnt = 0; }
+			void snd_reset() { _snd_cap_sel_cnt = 0; }
 
 			/**
 			 * Append capability selector to message buffer
 			 */
-			inline bool snd_append_cap_sel(addr_t cap_sel)
+			bool snd_append_cap_sel(addr_t cap_sel)
 			{
 				if (_snd_cap_sel_cnt >= MAX_CAP_ARGS)
 					return false;
@@ -112,7 +130,7 @@ namespace Genode {
 			/**
 			 * Return number of marshalled capability selectors
 			 */
-			inline size_t snd_cap_sel_cnt() { return _snd_cap_sel_cnt; }
+			size_t snd_cap_sel_cnt() const { return _snd_cap_sel_cnt; }
 
 			/**
 			 * Return capability selector to send.
@@ -120,7 +138,7 @@ namespace Genode {
 			 * \param i  index (0 ... 'snd_cap_sel_cnt()' - 1)
 			 * \return   capability selector, or 0 if index is invalid
 			 */
-			addr_t snd_cap_sel(unsigned i) {
+			addr_t snd_cap_sel(unsigned i) const {
 				return i < _snd_cap_sel_cnt ? _snd_cap_sel[i] : 0; }
 
 			/**
@@ -153,7 +171,7 @@ namespace Genode {
 
 			char buf[BUF_SIZE];
 
-			Msgbuf() { _size = BUF_SIZE; }
+			Msgbuf() : Msgbuf_base(BUF_SIZE) { }
 	};
 }
 

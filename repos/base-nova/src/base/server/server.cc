@@ -20,7 +20,7 @@
 
 /* base-internal includes */
 #include <base/internal/stack.h>
-#include <base/internal/native_connection_state.h>
+#include <base/internal/ipc_server.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>
@@ -119,15 +119,15 @@ void Rpc_entrypoint::_activation_entry()
 	ep->_snd_buf.snd_reset();
 
 	/* prepare ipc server object (copying utcb content to message buffer */
-	int opcode = 0;
+	Rpc_opcode opcode(0);
 
 	Native_connection_state cs;
 	Ipc_server srv(cs, ep->_snd_buf, ep->_rcv_buf);
-	srv.wait();
+	srv.reply_wait();
 	srv.extract(opcode);
 
 	/* set default return value */
-	srv.ret(Ipc_client::ERR_INVALID_OBJECT);
+	srv.ret(Rpc_exception_code(Rpc_exception_code::INVALID_OBJECT));
 
 	/* in case of a portal cleanup call we are done here - just reply */
 	if (ep->_cap.local_name() == id_pt) {

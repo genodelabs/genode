@@ -11,10 +11,14 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
 #include <base/rpc_server.h>
 #include <base/rpc_client.h>
 #include <base/blocking.h>
 #include <base/env.h>
+
+/* base-internal includes */
+#include <base/internal/ipc_server.h>
 
 using namespace Genode;
 
@@ -58,7 +62,7 @@ void Rpc_entrypoint::reply_signal_info(Untyped_capability reply_cap,
 	Untyped_capability last_reply_cap = _ipc_server->caller();
 
 	/* direct ipc server to the specified reply destination */
-	_ipc_server->ret(0);
+	_ipc_server->ret(Rpc_exception_code(Rpc_exception_code::SUCCESS));
 	_ipc_server->caller(reply_cap);
 	_ipc_server->insert(Signal_source::Signal(imprint, cnt));
 	_ipc_server->reply();

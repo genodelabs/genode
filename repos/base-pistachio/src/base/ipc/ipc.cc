@@ -19,7 +19,7 @@
 #include <base/sleep.h>
 
 /* base-internal includes */
-#include <base/internal/native_connection_state.h>
+#include <base/internal/ipc_server.h>
 
 /* Pistachio includes */
 namespace Pistachio {
@@ -85,20 +85,22 @@ static inline void check_ipc_result(L4_MsgTag_t result, L4_Word_t error_code)
 
 
 /****************
- ** Ipc_client **
+ ** IPC client **
  ****************/
 
-void Ipc_client::_call()
+Rpc_exception_code Genode::ipc_call(Native_capability dst,
+                                    Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg,
+                                    size_t)
 {
 	L4_Msg_t msg;
-	L4_StringItem_t sitem = L4_StringItem(_write_offset, _snd_msg.buf);
-	L4_Word_t const local_name = _dst.local_name();
+	L4_StringItem_t sitem = L4_StringItem(snd_msg.data_size(), snd_msg.data());
+	L4_Word_t const local_name = dst.local_name();
 
 	L4_MsgBuffer_t msgbuf;
 
 	/* prepare message buffer */
 	L4_Clear (&msgbuf);
-	L4_Append (&msgbuf, L4_StringItem (_rcv_msg.size(), _rcv_msg.buf));
+	L4_Append (&msgbuf, L4_StringItem (rcv_msg.capacity(), rcv_msg.data()));
 	L4_Accept(L4_UntypedWordsAcceptor);
 	L4_Accept(L4_StringItemsAcceptor, &msgbuf);
 
@@ -108,20 +110,14 @@ void Ipc_client::_call()
 	L4_Append(&msg, sitem);
 	L4_Load(&msg);
 
-	L4_MsgTag_t result = L4_Call(_dst.dst());
+	L4_MsgTag_t result = L4_Call(dst.dst());
 
-	_write_offset = _read_offset = sizeof(umword_t);
+	L4_Clear(&msg);
+	L4_Store(result, &msg);
 
 	check_ipc_result(result, L4_ErrorCode());
-}
 
-
-Ipc_client::Ipc_client(Native_capability const &dst,
-                       Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg, unsigned short)
-:
-	Ipc_marshaller(snd_msg), Ipc_unmarshaller(rcv_msg), _result(0), _dst(dst)
-{
-	_read_offset = _write_offset = sizeof(umword_t);
+	return Rpc_exception_code(L4_Get(&msg, 0));
 }
 
 
@@ -131,63 +127,15 @@ Ipc_client::Ipc_client(Native_capability const &dst,
 
 void Ipc_server::_prepare_next_reply_wait()
 {
-	/* now we have a request to reply */
 	_reply_needed = true;
-
-	/* leave space for return value at the beginning of the msgbuf */
-	_write_offset = 2*sizeof(umword_t);
-
-	/* receive buffer offset */
-	_read_offset = sizeof(umword_t);
-}
-
-
-void Ipc_server::wait()
-{
-	/* wait for new server request */
-	try {
-
-		L4_MsgTag_t result;
-		L4_MsgBuffer_t msgbuf;
-
-		do {
-
-			IPCDEBUG("_wait loop start (more than once means IpcError)\n");
-
-			L4_Clear (&msgbuf);
-			L4_Append (&msgbuf, L4_StringItem (_rcv_msg.size(), _rcv_msg.buf));
-			L4_Accept(L4_UntypedWordsAcceptor);
-			L4_Accept(L4_StringItemsAcceptor, &msgbuf);
-
-			/* wait for message */
-			result = L4_Wait(&_rcv_cs.caller);
-
-		} while (L4_IpcFailed(result));
-
-		L4_Msg_t msg;
-
-		L4_Store(result, &msg);
-
-		check_ipc_result(result, L4_ErrorCode());
-
-		/* remember badge of invoked object */
-		_badge = L4_Get(&msg, 0);
-
-		_read_offset = sizeof(umword_t);
-
-	} catch (Blocking_canceled) { }
-
-	/* define destination of next reply */
-	_caller = Native_capability(_rcv_cs.caller, badge());
-
-	_prepare_next_reply_wait();
+	_read_offset = _write_offset = 0;
 }
 
 
 void Ipc_server::reply()
 {
 	L4_Msg_t msg;
-	L4_StringItem_t sitem = L4_StringItem(_write_offset, _snd_msg.buf);
+	L4_StringItem_t sitem = L4_StringItem(_write_offset, _snd_msg.data());
 	L4_Word_t const local_name = _caller.local_name();
 
 	L4_Clear(&msg);
@@ -205,65 +153,57 @@ void Ipc_server::reply()
 
 void Ipc_server::reply_wait()
 {
+	bool need_to_wait = true;
+
+	L4_MsgTag_t request_tag;
+
+	/* prepare request message buffer */
+	L4_MsgBuffer_t request_msgbuf;
+	L4_Clear(&request_msgbuf);
+	L4_Append(&request_msgbuf, L4_StringItem (_rcv_msg.capacity(), _rcv_msg.data()));
+	L4_Accept(L4_UntypedWordsAcceptor);
+	L4_Accept(L4_StringItemsAcceptor, &request_msgbuf);
+
 	if (_reply_needed) {
 
-		/* prepare massage */
-		L4_Msg_t msg;
-		L4_StringItem_t sitem = L4_StringItem(_write_offset, _snd_msg.buf);
-		L4_Word_t const local_name = _caller.local_name();
+		/* prepare reply massage */
+		L4_Msg_t reply_msg;
+		L4_StringItem_t sitem = L4_StringItem(_write_offset, _snd_msg.data());
 
-		L4_Clear(&msg);
-		L4_Append(&msg, local_name);
-		L4_Append(&msg, sitem);
-		L4_Load(&msg);
+		L4_Clear(&reply_msg);
+		L4_Append(&reply_msg, (L4_Word_t)_exception_code.value);
+		L4_Append(&reply_msg, sitem);
+		L4_Load(&reply_msg);
 
-		/* Prepare message buffer */
-		L4_MsgBuffer_t msgbuf;
-		L4_Clear(&msgbuf);
-		L4_Append(&msgbuf, L4_StringItem (_rcv_msg.size(), _rcv_msg.buf));
-		L4_Accept(L4_UntypedWordsAcceptor);
-		L4_Accept(L4_StringItemsAcceptor, &msgbuf);
+		/* send reply and wait for new request message */
+		request_tag = L4_Ipc(_caller.dst(), L4_anythread,
+		                     L4_Timeouts(L4_ZeroTime, L4_Never), &_rcv_cs.caller);
 
-		L4_MsgTag_t result = L4_Ipc(_caller.dst(), L4_anythread,
-		                            L4_Timeouts(L4_ZeroTime, L4_Never), &_rcv_cs.caller);
+		if (!L4_IpcFailed(request_tag))
+			need_to_wait = false;
+	}
 
-		/* error handling - check whether send or receive failed */
-		if (L4_IpcFailed(result)) {
-			L4_Word_t errcode = L4_ErrorCode();
-			L4_Word_t phase   = errcode & 1;
-			L4_Word_t error   = (errcode & 0xF) >> 1;
+	while (need_to_wait) {
 
-			PERR("IPC %s error %02lx, offset %08lx -> _wait() instead.",
-			     phase ? "receive" : "send", error, errcode >> 4);
-			wait();
-			return;
-		}
+		/* wait for new request message */
+		request_tag = L4_Wait(&_rcv_cs.caller);
 
-		L4_Clear(&msg);
-		L4_Store(result, &msg);
+		if (!L4_IpcFailed(request_tag))
+			need_to_wait = false;
+	}
 
-		try {
-			check_ipc_result(result, L4_ErrorCode());
-		} catch (...) {
-			/*
-			 * If something went wrong, just call _wait instead of relaying
-			 * the error to the user.
-			 */
-			IPCDEBUG("Bad IPC content -> _wait() instead.\n");
-			wait();
-			return;
-		}
+	/* extract request parameters */
+	L4_Msg_t msg;
+	L4_Clear(&msg);
+	L4_Store(request_tag, &msg);
 
-		/* remember badge of invoked object */
-		_badge =  L4_Get(&msg, 0);
+	/* remember badge of invoked object */
+	_badge = L4_Get(&msg, 0);
 
-		/* define destination of next reply */
-		_caller = Native_capability(_rcv_cs.caller, badge());
+	/* define destination of next reply */
+	_caller = Native_capability(_rcv_cs.caller, badge());
 
-		_prepare_next_reply_wait();
-
-	} else
-		wait();
+	_prepare_next_reply_wait();
 }
 
 
@@ -272,9 +212,9 @@ Ipc_server::Ipc_server(Native_connection_state &cs,
 :
 	Ipc_marshaller(snd_msg), Ipc_unmarshaller(rcv_msg),
 	Native_capability(Pistachio::L4_Myself(), 0),
-	_reply_needed(false), _rcv_cs(cs)
+	_rcv_cs(cs)
 {
-	_read_offset = _write_offset = sizeof(umword_t);
+	_read_offset = _write_offset = 0;
 }
 
 

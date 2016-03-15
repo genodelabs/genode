@@ -27,6 +27,8 @@
 
 namespace Genode {
 
+	class Ipc_marshaller;
+
 	class Msgbuf_base
 	{
 		public:
@@ -38,27 +40,31 @@ namespace Genode {
 
 		protected:
 
-			size_t _size;
+			friend class Ipc_marshaller;
+
+			size_t const _capacity;
+
+			size_t _data_size = 0;
 
 			/**
 			 * Number of portal-capability selectors to send
 			 */
-			size_t _snd_pt_sel_cnt;
+			size_t _snd_pt_sel_cnt = 0;
 
 			/**
 			 * Portal capability selectors to delegate
 			 */
-			Native_capability _snd_pt_sel [MAX_CAP_ARGS];
+			Native_capability _snd_pt_sel[MAX_CAP_ARGS];
 
 			/**
 			 * Base of portal receive window
 			 */
-			addr_t _rcv_pt_base;
+			addr_t _rcv_pt_base = 0;
 
 			struct {
-				addr_t sel;
-				bool   del;
-			} _rcv_pt_sel [MAX_CAP_ARGS];
+				addr_t sel = 0;
+				bool   del = 0;
+			} _rcv_pt_sel[MAX_CAP_ARGS];
 
 			/**
 			 * Normally the received capabilities start from the beginning of
@@ -89,9 +95,9 @@ namespace Genode {
 			 * Read counter for unmarshalling portal capability
 			 * selectors
 			 */
-			unsigned short _rcv_pt_sel_cnt;
-			unsigned short _rcv_pt_sel_max;
-			unsigned short _rcv_wnd_log2;
+			unsigned short _rcv_pt_sel_cnt = 0;
+			unsigned short _rcv_pt_sel_max = 0;
+			unsigned short _rcv_wnd_log2 = 0;
 
 			char _msg_start[];  /* symbol marks start of message */
 
@@ -102,8 +108,10 @@ namespace Genode {
 			/**
 			 * Constructor
 			 */
-			Msgbuf_base()
-			: _rcv_pt_base(INVALID_INDEX), _rcv_wnd_log2(MAX_CAP_ARGS_LOG2)
+			Msgbuf_base(size_t capacity)
+			:
+				_capacity(capacity),
+				_rcv_pt_base(INVALID_INDEX), _rcv_wnd_log2(MAX_CAP_ARGS_LOG2)
 			{
 				rcv_reset();
 				snd_reset();
@@ -122,17 +130,25 @@ namespace Genode {
 			/**
 			 * Return size of message buffer
 			 */
-			inline size_t size() const { return _size; }
+			size_t capacity() const { return _capacity; }
 
 			/**
 			 * Return pointer of message data payload
 			 */
-			inline void *data() { return &_msg_start[0]; }
+			void       *data()       { return &_msg_start[0]; }
+			void const *data() const { return &_msg_start[0]; }
+
+			unsigned long &word(unsigned i)
+			{
+				return reinterpret_cast<unsigned long *>(buf)[i];
+			}
+
+			size_t data_size() const { return _data_size; }
 
 			/**
 			 * Reset portal capability selector payload
 			 */
-			inline void snd_reset() {
+			void snd_reset() {
 
 				for (unsigned i = 0; i < MAX_CAP_ARGS; i++) {
 					+_snd_pt_sel[i];
@@ -145,7 +161,7 @@ namespace Genode {
 			/**
 			 * Append portal capability selector to message buffer
 			 */
-			inline bool snd_append_pt_sel(Native_capability const &cap)
+			bool snd_append_pt_sel(Native_capability const &cap)
 			{
 				if (_snd_pt_sel_cnt >= MAX_CAP_ARGS - 1)
 					return false;
@@ -158,7 +174,7 @@ namespace Genode {
 			 * Return number of marshalled portal-capability
 			 * selectors
 			 */
-			inline size_t snd_pt_sel_cnt() const
+			size_t snd_pt_sel_cnt() const
 			{
 				return _snd_pt_sel_cnt;
 			}
@@ -430,7 +446,7 @@ namespace Genode {
 
 			char buf[BUF_SIZE];
 
-			Msgbuf() { _size = BUF_SIZE; }
+			Msgbuf() : Msgbuf_base(BUF_SIZE) { }
 	};
 }
 

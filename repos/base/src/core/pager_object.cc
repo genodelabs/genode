@@ -21,10 +21,9 @@ void Pager_object::wake_up()
 {
 	/* notify pager to wake up faulter */
 	Msgbuf<16> snd, rcv;
-	Native_capability pager = cap();
-	Ipc_client ipc_client(pager, snd, rcv);
-	ipc_client.insert(this);
-	ipc_client.call();
+	Ipc_marshaller marshaller(snd);
+	marshaller.insert(this);
+	ipc_call(cap(), snd, rcv, 0);
 }
 
 

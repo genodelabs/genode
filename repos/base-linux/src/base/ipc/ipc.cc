@@ -3,21 +3,6 @@
  * \author Norman Feske
  * \author Christian Helmuth
  * \date   2011-10-11
- *
- * The current request message layout is:
- *
- *   long  server_local_name;
- *   int   opcode;
- *   ...payload...
- *
- * Response messages look like this:
- *
- *   long  scratch_word;
- *   int   exc_code;
- *   ...payload...
- *
- * All fields are naturally aligned, i.e., aligend on 4 or 8 byte boundaries on
- * 32-bit resp. 64-bit systems.
  */
 
 /*
@@ -37,7 +22,7 @@
 /* base-internal includes */
 #include <base/internal/socket_descriptor_registry.h>
 #include <base/internal/native_thread.h>
-#include <base/internal/native_connection_state.h>
+#include <base/internal/ipc_server.h>
 
 /* Linux includes */
 #include <linux_syscalls.h>
@@ -46,6 +31,32 @@
 
 
 using namespace Genode;
+
+
+/*
+ * The request message layout is:
+ *
+ *   long  local_name;
+ *   ...call arguments, starting with the opcode...
+ *
+ * Response messages look like this:
+ *
+ *   long  exception code
+ *   ...call results...
+ *
+ * First data word of message, used to transfer the local name of the invoked
+ * object (when a client calls a server) or the exception code (when the server
+ * replies). This data word is never fetched from memory but transferred via
+ * the first short-IPC register. The 'protocol_word' is needed as a spacer
+ * between the header fields define above and the regular message payload..
+ */
+struct Protocol_header
+{
+	unsigned long protocol_word;
+
+	void *msg_start() { return &protocol_word; }
+};
+
 
 
 /*****************************
@@ -303,14 +314,101 @@ static void extract_sds_from_message(unsigned start_index, Message const &msg,
 
 
 /**
- * Send request to server and wait for reply
+ * Return type of 'lx_wait'
  */
-static inline void lx_call(int dst_sd,
-                           Genode::Msgbuf_base &send_msgbuf, Genode::size_t send_msg_len,
-                           Genode::Msgbuf_base &recv_msgbuf)
+struct Request
 {
-	int ret;
-	Message send_msg(send_msgbuf.buf, send_msg_len);
+	/**
+	 * Destination socket for sending the reply of the RPC function
+	 */
+	int reply_socket = 0;
+
+	/**
+	 * Identity of invoked server object
+	 */
+	unsigned long badge = 0;
+};
+
+
+/**
+ * for request from client
+ *
+ * \return  socket descriptor of reply capability
+ */
+static Request lx_wait(Genode::Native_connection_state &cs,
+                       Genode::Msgbuf_base &rcv_msgbuf)
+{
+	Protocol_header &header = rcv_msgbuf.header<Protocol_header>();
+	Message msg(header.msg_start(), sizeof(Protocol_header) + rcv_msgbuf.capacity());
+
+	msg.accept_sockets(Message::MAX_SDS_PER_MSG);
+
+	int const ret = lx_recvmsg(cs.server_sd, msg.msg(), 0);
+
+	/* system call got interrupted by a signal */
+	if (ret == -LX_EINTR)
+		throw Genode::Blocking_canceled();
+
+	if (ret < 0) {
+		PRAW("lx_recvmsg failed with %d in lx_wait(), sd=%d", ret, cs.server_sd);
+		throw Genode::Ipc_error();
+	}
+
+	Request request;
+	request.reply_socket = msg.socket_at_index(0);
+	request.badge        = header.protocol_word;
+
+	extract_sds_from_message(1, msg, rcv_msgbuf);
+
+	return request;
+}
+
+
+/**
+ * Send reply to client
+ */
+static inline void lx_reply(int reply_socket, Rpc_exception_code exception_code,
+                            Genode::Msgbuf_base &snd_msgbuf)
+{
+
+	Protocol_header &header = snd_msgbuf.header<Protocol_header>();
+
+	header.protocol_word = exception_code.value;
+
+	Message msg(header.msg_start(), sizeof(Protocol_header) + snd_msgbuf.data_size());
+
+	/*
+	 * Marshall capabilities to be transferred to the client
+	 */
+	for (unsigned i = 0; i < snd_msgbuf.used_caps(); i++)
+		msg.marshal_socket(snd_msgbuf.cap(i));
+
+	int ret = lx_sendmsg(reply_socket, msg.msg(), 0);
+
+	/* ignore reply send error caused by disappearing client */
+	if (ret >= 0 || ret == -LX_ECONNREFUSED) {
+		lx_close(reply_socket);
+		return;
+	}
+
+	if (ret < 0)
+		PRAW("[%d] lx_sendmsg failed with %d in lx_reply()", lx_getpid(), ret);
+}
+
+
+/****************
+ ** IPC client **
+ ****************/
+
+Rpc_exception_code Genode::ipc_call(Native_capability dst,
+                                    Msgbuf_base &snd_msgbuf, Msgbuf_base &rcv_msgbuf,
+                                    size_t)
+{
+	Protocol_header &snd_header = snd_msgbuf.header<Protocol_header>();
+	snd_header.protocol_word = dst.local_name();
+
+	Message snd_msg(snd_header.msg_start(),
+	                sizeof(Protocol_header) + snd_msgbuf.data_size());
 
 	/*
 	 * Create reply channel
@@ -347,123 +445,41 @@ static inline void lx_call(int dst_sd,
 	/* assemble message */
 
 	/* marshal reply capability */
-	send_msg.marshal_socket(reply_channel.remote_socket());
+	snd_msg.marshal_socket(reply_channel.remote_socket());
 
-	/* marshal capabilities contained in 'send_msgbuf' */
-	for (unsigned i = 0; i < send_msgbuf.used_caps(); i++)
-		send_msg.marshal_socket(send_msgbuf.cap(i));
+	/* marshal capabilities contained in 'snd_msgbuf' */
+	for (unsigned i = 0; i < snd_msgbuf.used_caps(); i++)
+		snd_msg.marshal_socket(snd_msgbuf.cap(i));
 
-	ret = lx_sendmsg(dst_sd, send_msg.msg(), 0);
-	if (ret < 0) {
+	int const send_ret = lx_sendmsg(dst.dst().socket, snd_msg.msg(), 0);
+	if (send_ret < 0) {
 		PRAW("[%d] lx_sendmsg to sd %d failed with %d in lx_call()",
-		     lx_getpid(), dst_sd, ret);
+		     lx_getpid(), dst.dst().socket, send_ret);
 		throw Genode::Ipc_error();
 	}
 
 	/* receive reply */
+	Protocol_header &rcv_header = rcv_msgbuf.header<Protocol_header>();
+	rcv_header.protocol_word = 0;
 
-	Message recv_msg(recv_msgbuf.buf, recv_msgbuf.size());
-	recv_msg.accept_sockets(Message::MAX_SDS_PER_MSG);
+	Message rcv_msg(rcv_header.msg_start(),
+	                sizeof(Protocol_header) + rcv_msgbuf.capacity());
+	rcv_msg.accept_sockets(Message::MAX_SDS_PER_MSG);
 
-	ret = lx_recvmsg(reply_channel.local_socket(), recv_msg.msg(), 0);
+	int const recv_ret = lx_recvmsg(reply_channel.local_socket(), rcv_msg.msg(), 0);
 
 	/* system call got interrupted by a signal */
-	if (ret == -LX_EINTR)
+	if (recv_ret == -LX_EINTR)
 		throw Genode::Blocking_canceled();
 
-	if (ret < 0) {
-		PRAW("[%d] lx_recvmsg failed with %d in lx_call()", lx_getpid(), ret);
+	if (recv_ret < 0) {
+		PRAW("[%d] lx_recvmsg failed with %d in lx_call()", lx_getpid(), recv_ret);
 		throw Genode::Ipc_error();
 	}
 
-	extract_sds_from_message(0, recv_msg, recv_msgbuf);
-}
+	extract_sds_from_message(0, rcv_msg, rcv_msgbuf);
 
-
-/**
- * for request from client
- *
- * \return  socket descriptor of reply capability
- */
-static inline int lx_wait(Genode::Native_connection_state &cs,
-                          Genode::Msgbuf_base &recv_msgbuf)
-{
-	Message msg(recv_msgbuf.buf, recv_msgbuf.size());
-
-	msg.accept_sockets(Message::MAX_SDS_PER_MSG);
-
-	int ret = lx_recvmsg(cs.server_sd, msg.msg(), 0);
-
-	/* system call got interrupted by a signal */
-	if (ret == -LX_EINTR)
-		throw Genode::Blocking_canceled();
-
-	if (ret < 0) {
-		PRAW("lx_recvmsg failed with %d in lx_wait(), sd=%d", ret, cs.server_sd);
-		throw Genode::Ipc_error();
-	}
-
-	int const reply_socket = msg.socket_at_index(0);
-
-	extract_sds_from_message(1, msg, recv_msgbuf);
-
-	return reply_socket;
-}
-
-
-/**
- * Send reply to client
- */
-static inline void lx_reply(int reply_socket,
-                            Genode::Msgbuf_base &send_msgbuf,
-                            Genode::size_t msg_len)
-{
-	Message msg(send_msgbuf.buf, msg_len);
-
-	/*
-	 * Marshall capabilities to be transferred to the client
-	 */
-	for (unsigned i = 0; i < send_msgbuf.used_caps(); i++)
-		msg.marshal_socket(send_msgbuf.cap(i));
-
-	int ret = lx_sendmsg(reply_socket, msg.msg(), 0);
-
-	/* ignore reply send error caused by disappearing client */
-	if (ret >= 0 || ret == -LX_ECONNREFUSED) {
-		lx_close(reply_socket);
-		return;
-	}
-
-	if (ret < 0)
-		PRAW("[%d] lx_sendmsg failed with %d in lx_reply()", lx_getpid(), ret);
-}
-
-
-/****************
- ** Ipc_client **
- ****************/
-
-void Ipc_client::_call()
-{
-	lx_call(_dst.dst().socket, _snd_msg, _write_offset, _rcv_msg);
-}
-
-
-Ipc_client::Ipc_client(Native_capability const &dst,
-                       Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg, unsigned short)
-:
-	Ipc_marshaller(snd_msg), Ipc_unmarshaller(rcv_msg), _result(0), _dst(dst)
-{
-	/* prepare next request in buffer */
-	long const local_name = _dst.local_name();
-
-	/* prepare response buffer */
-	_read_offset = sizeof(long);
-	_write_offset = 0;
-
-	insert(local_name);
-
-	_snd_msg.reset_caps();
+	return Rpc_exception_code(rcv_header.protocol_word);
 }
 
 
@@ -473,25 +489,28 @@ Ipc_client::Ipc_client(Native_capability const &dst,
 
 void Ipc_server::_prepare_next_reply_wait()
 {
-	/* skip server-local name */
-	_read_offset = sizeof(long);
-
-	/* prepare next reply */
-	_write_offset   = 0;
-	long local_name = _caller.local_name();
-	insert(local_name);  /* XXX unused, needed by de/marshaller */
-
-	/* leave space for exc code at the beginning of the msgbuf */
-	_write_offset += align_natural(sizeof(int));
+	_read_offset = _write_offset = 0;
 
 	/* reset capability slots of send message buffer */
 	_snd_msg.reset_caps();
 }
 
 
-void Ipc_server::wait()
+void Ipc_server::reply()
 {
-	_reply_needed = true;
+	try {
+		lx_reply(_caller.dst().socket, _exception_code, _snd_msg); }
+	catch (Ipc_error) { }
+
+	_prepare_next_reply_wait();
+}
+
+
+void Ipc_server::reply_wait()
+{
+	/* when first called, there was no request yet */
+	if (_reply_needed)
+		lx_reply(_caller.dst().socket, _exception_code, _snd_msg);
 
 	/*
 	 * Block infinitely if called from the main thread. This may happen if the
@@ -503,42 +522,19 @@ void Ipc_server::wait()
 	}
 
 	try {
-		int const reply_socket = lx_wait(_rcv_cs, _rcv_msg);
+		Request const request = lx_wait(_rcv_cs, _rcv_msg);
 
-		/*
-		 * Remember reply capability
-		 *
-		 * The 'local_name' of a capability is meaningful for addressing server
-		 * objects only. Because a reply capabilities does not address a server
-		 * object, the 'local_name' is meaningless.
-		 */
+		/* remember reply capability */
 		enum { DUMMY_LOCAL_NAME = -1 };
 		typedef Native_capability::Dst Dst;
-		_caller = Native_capability(Dst(reply_socket), DUMMY_LOCAL_NAME);
-		_badge  = reinterpret_cast<unsigned long *>(_rcv_msg.data())[0];
+		_caller = Native_capability(Dst(request.reply_socket), DUMMY_LOCAL_NAME);
+		_badge  = request.badge;
 
 		_prepare_next_reply_wait();
+
 	} catch (Blocking_canceled) { }
-}
 
-
-void Ipc_server::reply()
-{
-	try {
-		lx_reply(_caller.dst().socket, _snd_msg, _write_offset); }
-	catch (Ipc_error) { }
-
-	_prepare_next_reply_wait();
-}
-
-
-void Ipc_server::reply_wait()
-{
-	/* when first called, there was no request yet */
-	if (_reply_needed)
-		lx_reply(_caller.dst().socket, _snd_msg, _write_offset);
-
-	wait();
+	_reply_needed = true;
 }
 
 
@@ -547,7 +543,7 @@ Ipc_server::Ipc_server(Native_connection_state &cs,
 :
 	Ipc_marshaller(snd_msg), Ipc_unmarshaller(rcv_msg),
 	Native_capability(Dst(-1), 0),
-	_reply_needed(false), _rcv_cs(cs)
+	_rcv_cs(cs)
 {
 	Thread_base *thread = Thread_base::myself();
 

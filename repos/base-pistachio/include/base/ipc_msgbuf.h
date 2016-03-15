@@ -16,6 +16,8 @@
 
 namespace Genode {
 
+	class Ipc_marshaller;
+
 	/**
 	 * IPC message buffer layout
 	 */
@@ -23,8 +25,15 @@ namespace Genode {
 	{
 		protected:
 
-			size_t _size;
-			char   _msg_start[];  /* symbol marks start of message */
+			friend class Ipc_marshaller;
+
+			size_t const _capacity;
+
+			size_t _data_size = 0;
+
+			char _msg_start[];  /* symbol marks start of message */
+
+			Msgbuf_base(size_t capacity) : _capacity(capacity) { }
 
 		public:
 
@@ -33,17 +42,18 @@ namespace Genode {
 			 */
 			Pistachio::L4_Fpage_t rcv_fpage;
 
-			char buf[];
-
 			/**
 			 * Return size of message buffer
 			 */
-			inline size_t size() const { return _size; };
+			size_t capacity() const { return _capacity; };
 
 			/**
 			 * Return pointer of message data payload
 			 */
-			inline void *data() { return &_msg_start[0]; };
+			void       *data()       { return &_msg_start[0]; };
+			void const *data() const { return &_msg_start[0]; };
+
+			size_t data_size() const { return _data_size; }
 	};
 
 
@@ -57,7 +67,7 @@ namespace Genode {
 
 			char buf[BUF_SIZE];
 
-			Msgbuf() { _size = BUF_SIZE; }
+			Msgbuf() : Msgbuf_base(BUF_SIZE) { }
 	};
 }
 

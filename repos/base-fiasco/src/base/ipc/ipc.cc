@@ -17,7 +17,7 @@
 #include <base/blocking.h>
 
 /* base-internal includes */
-#include <base/internal/native_connection_state.h>
+#include <base/internal/ipc_server.h>
 
 /* Fiasco includes */
 namespace Fiasco {
@@ -26,30 +26,89 @@ namespace Fiasco {
 #include <l4/sys/kdebug.h>
 }
 
+
+class Msg_header
+{
+	private:
+
+		/* kernel-defined message header */
+		Fiasco::l4_fpage_t   rcv_fpage; /* unused */
+		Fiasco::l4_msgdope_t size_dope;
+		Fiasco::l4_msgdope_t send_dope;
+
+		/*
+		 * First data word of message, used to transfer the local name of the
+		 * invoked object (when a client calls a server) or the exception code
+		 * (when the server replies). This data word is never fetched from
+		 * memory but transferred via the first short-IPC register. The
+		 * 'protocol_word' is needed as a spacer between the header fields
+		 * define above and the regular message payload..
+		 */
+		Fiasco::l4_umword_t protocol_word;
+
+	public:
+
+		void *msg_start() { return &rcv_fpage; }
+
+		/**
+		 * Define message size for sending
+		 */
+		void snd_size(Genode::size_t size)
+		{
+			using namespace Fiasco;
+
+			/* account for the transfer of the protocol word in front of the payload */
+			Genode::size_t const snd_words = size/sizeof(l4_umword_t);
+			send_dope = L4_IPC_DOPE(snd_words + 1, 0);
+		}
+
+		/**
+		 * Define size of receive buffer
+		 */
+		void rcv_capacity(Genode::size_t capacity)
+		{
+			using namespace Fiasco;
+
+			size_dope = L4_IPC_DOPE(capacity/sizeof(l4_umword_t), 0);
+		}
+
+		void *msg_type(Genode::size_t size)
+		{
+			using namespace Fiasco;
+
+			return size <= sizeof(l4_umword_t) ? L4_IPC_SHORT_MSG : msg_start();
+		}
+};
+
+
 using namespace Genode;
 
 
 /****************
- ** Ipc_client **
+ ** IPC client **
  ****************/
 
-void Ipc_client::_call()
+Rpc_exception_code Genode::ipc_call(Native_capability dst,
+                                    Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg,
+                                    size_t)
 {
 	using namespace Fiasco;
 
+	Msg_header &snd_header = snd_msg.header<Msg_header>();
+	snd_header.snd_size(snd_msg.data_size());
+
+	Msg_header &rcv_header = rcv_msg.header<Msg_header>();
+	rcv_header.rcv_capacity(rcv_msg.capacity());
+
 	l4_msgdope_t ipc_result;
-	long         rec_badge;
-
-	_snd_msg.send_dope = L4_IPC_DOPE((_write_offset + 2*sizeof(umword_t) - 1)>>2, 0);
-	_rcv_msg.size_dope = L4_IPC_DOPE(_rcv_msg.size()>>2, 0);
-
-	l4_ipc_call(_dst.dst(),
-	            _write_offset <= 2*sizeof(umword_t) ? L4_IPC_SHORT_MSG : _snd_msg.msg_start(),
-	            _dst.local_name(),
-	            *reinterpret_cast<l4_umword_t *>(&_snd_msg.buf[sizeof(umword_t)]),
-	            _rcv_msg.msg_start(),
-	            reinterpret_cast<l4_umword_t *>(&rec_badge),
-	            reinterpret_cast<l4_umword_t *>(&_rcv_msg.buf[sizeof(umword_t)]),
+	l4_umword_t exception_code = 0;
+	l4_ipc_call(dst.dst(),
+	            snd_header.msg_type(snd_msg.data_size()),
+	            dst.local_name(),
+	            snd_msg.word(0),
+	            rcv_header.msg_start(),
+	            &exception_code,
+	            &rcv_msg.word(0),
 	            L4_IPC_NEVER, &ipc_result);
 
 	if (L4_IPC_IS_ERROR(ipc_result)) {
@@ -61,25 +120,7 @@ void Ipc_client::_call()
 		throw Genode::Ipc_error();
 	}
 
-	/*
-	 * Reset buffer read and write offsets. We shadow the first mword of the
-	 * send message buffer (filled via '_write_offset') with the local name of
-	 * the invoked remote object. We shadow the first mword of the receive
-	 * buffer (retrieved via '_read_offset') with the local name of the reply
-	 * capability ('rec_badge'), which is bogus in the L4/Fiasco case. In both
-	 * cases, we skip the shadowed message mword when reading/writing the
-	 * message payload.
-	 */
-	_write_offset = _read_offset = sizeof(umword_t);
-}
-
-
-Ipc_client::Ipc_client(Native_capability const &dst,
-                       Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg, unsigned short)
-:
-	Ipc_marshaller(snd_msg), Ipc_unmarshaller(rcv_msg), _result(0), _dst(dst)
-{
-	_read_offset = _write_offset = sizeof(umword_t);
+	return Rpc_exception_code(exception_code);
 }
 
 
@@ -89,55 +130,39 @@ Ipc_client::Ipc_client(Native_capability const &dst,
 
 void Ipc_server::_prepare_next_reply_wait()
 {
-	/* now we have a request to reply */
 	_reply_needed = true;
-
-	/* leave space for return value at the beginning of the msgbuf */
-	_write_offset = 2*sizeof(umword_t);
-
-	/* receive buffer offset */
-	_read_offset = sizeof(umword_t);
+	_read_offset = _write_offset = 0;
 }
 
 
-void Ipc_server::wait()
+static umword_t wait(Native_connection_state &rcv_cs, Msgbuf_base &rcv_msg)
 {
-	/* wait for new server request */
-	try {
+	using namespace Fiasco;
 
-		using namespace Fiasco;
+	l4_msgdope_t result;
+	umword_t badge = 0;
 
-		l4_msgdope_t  result;
+	/*
+	 * Wait until we get a proper message and thereby
+	 * ignore receive message cuts on the server-side.
+	 * This error condition should be handled by the
+	 * client. The server does not bother.
+	 */
+	do {
+		Msg_header &rcv_header = rcv_msg.header<Msg_header>();
+		rcv_header.rcv_capacity(rcv_msg.capacity());
 
-		/*
-		 * Wait until we get a proper message and thereby
-		 * ignore receive message cuts on the server-side.
-		 * This error condition should be handled by the
-		 * client. The server does not bother.
-		 */
-		do {
-			_rcv_msg.size_dope = L4_IPC_DOPE(_rcv_msg.size()>>2, 0);
+		l4_ipc_wait(&rcv_cs.caller, rcv_header.msg_start(),
+		            &badge,
+		            &rcv_msg.word(0),
+		            L4_IPC_NEVER, &result);
 
-			l4_ipc_wait(&_rcv_cs.caller, _rcv_msg.msg_start(),
-			            reinterpret_cast<l4_umword_t *>(&_rcv_msg.buf[0]),
-			            reinterpret_cast<l4_umword_t *>(&_rcv_msg.buf[sizeof(umword_t)]),
-			            L4_IPC_NEVER, &result);
+		if (L4_IPC_IS_ERROR(result))
+			PERR("Ipc error %lx", L4_IPC_ERROR(result));
 
-			if (L4_IPC_IS_ERROR(result))
-				PERR("Ipc error %lx", L4_IPC_ERROR(result));
+	} while (L4_IPC_IS_ERROR(result));
 
-		} while (L4_IPC_IS_ERROR(result));
-
-		/* reset buffer read offset */
-		_read_offset = sizeof(umword_t);
-	
-	} catch (Blocking_canceled) { }
-
-	/* define destination of next reply */
-	_caller = Native_capability(_rcv_cs.caller, 0);
-	_badge  = reinterpret_cast<unsigned long *>(&_rcv_msg.buf)[0];
-
-	_prepare_next_reply_wait();
+	return badge;
 }
 
 
@@ -145,12 +170,13 @@ void Ipc_server::reply()
 {
 	using namespace Fiasco;
 
-	_snd_msg.send_dope = L4_IPC_DOPE((_write_offset + sizeof(umword_t) - 1)>>2, 0);
+	Msg_header &snd_header = _snd_msg.header<Msg_header>();
+	snd_header.snd_size(_snd_msg.data_size());
 
 	l4_msgdope_t result;
-	l4_ipc_send(_caller.dst(), _snd_msg.msg_start(),
-	            _caller.local_name(),
-	            *reinterpret_cast<l4_umword_t *>(&_snd_msg.buf[sizeof(umword_t)]),
+	l4_ipc_send(_caller.dst(), snd_header.msg_start(),
+	            _exception_code.value,
+	            _snd_msg.word(0),
 	            L4_IPC_SEND_TIMEOUT_0, &result);
 
 	if (L4_IPC_IS_ERROR(result))
@@ -168,22 +194,24 @@ void Ipc_server::reply_wait()
 
 		l4_msgdope_t ipc_result;
 
-		_snd_msg.send_dope = L4_IPC_DOPE((_write_offset + sizeof(umword_t) - 1)>>2, 0);
-		_rcv_msg.size_dope = L4_IPC_DOPE(_rcv_msg.size()>>2, 0);
+		Msg_header &snd_header = _snd_msg.header<Msg_header>();
+		snd_header.snd_size(_snd_msg.data_size());
+
+		Msg_header &rcv_header = _rcv_msg.header<Msg_header>();
+		rcv_header.rcv_capacity(_rcv_msg.capacity());
 
 		/*
-		 * Use short IPC for reply if possible.
-		 * This is the common case of returning
-		 * an integer as RPC result.
+		 * Use short IPC for reply if possible. This is the common case of
+		 * returning an integer as RPC result.
 		 */
 		l4_ipc_reply_and_wait(
 		            _caller.dst(),
-		            _write_offset <= 2*sizeof(umword_t) ? L4_IPC_SHORT_MSG : _snd_msg.msg_start(),
-		            _caller.local_name(),
-		            *reinterpret_cast<l4_umword_t *>(&_snd_msg.buf[sizeof(umword_t)]),
-		            &_rcv_cs.caller, _rcv_msg.msg_start(),
-		            reinterpret_cast<l4_umword_t *>(&_rcv_msg.buf[0]),
-		            reinterpret_cast<l4_umword_t *>(&_rcv_msg.buf[sizeof(umword_t)]),
+		            snd_header.msg_type(_snd_msg.data_size()),
+		            _exception_code.value,
+		            _snd_msg.word(0),
+		            &_rcv_cs.caller, rcv_header.msg_start(),
+		            &_badge,
+		            &_rcv_msg.word(0),
 		            L4_IPC_SEND_TIMEOUT_0, &ipc_result);
 
 		if (L4_IPC_IS_ERROR(ipc_result)) {
@@ -197,14 +225,14 @@ void Ipc_server::reply_wait()
 			 * the user but want to wait for the next proper incoming
 			 * message. So let's just wait now.
 			 */
-			wait();
+			_badge = wait(_rcv_cs, _rcv_msg);
 		}
-
-	} else wait();
+	} else {
+		_badge = wait(_rcv_cs, _rcv_msg);
+	}
 
 	/* define destination of next reply */
 	_caller = Native_capability(_rcv_cs.caller, 0);
-	_badge  = reinterpret_cast<unsigned long *>(_rcv_msg.buf)[0];
 
 	_prepare_next_reply_wait();
 }
@@ -215,10 +243,8 @@ Ipc_server::Ipc_server(Native_connection_state &cs,
 :
 	Ipc_marshaller(snd_msg), Ipc_unmarshaller(rcv_msg),
 	Native_capability(Fiasco::l4_myself(), 0),
-	_reply_needed(false), _rcv_cs(cs)
-{
-	_read_offset = _write_offset = sizeof(umword_t);
-}
+	_rcv_cs(cs)
+{ }
 
 
 Ipc_server::~Ipc_server() { }

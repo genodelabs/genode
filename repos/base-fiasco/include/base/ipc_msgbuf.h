@@ -14,42 +14,60 @@
 #ifndef _INCLUDE__BASE__IPC_MSGBUF_H_
 #define _INCLUDE__BASE__IPC_MSGBUF_H_
 
+#include <base/stdint.h>
+
 namespace Genode {
+
+	class Ipc_marshaller;
 
 	/**
 	 * IPC message buffer layout
 	 */
 	class Msgbuf_base
 	{
+		private:
+
+			size_t const _capacity;
+
 		protected:
 
-			Genode::size_t _size;
+			size_t _data_size = 0;
+
+			friend class Ipc_marshaller;
+
+			Msgbuf_base(size_t capacity) : _capacity(capacity) { }
+
+			struct Headroom { long space[4]; } _headroom;
+
+			char buf[];
 
 		public:
 
-			/*
-			 * Begin of message buffer layout
-			 */
+			template <typename T>
+			T &header()
+			{
+				static_assert(sizeof(T) <= sizeof(Headroom),
+				              "Header size exceeds message headroom");
+				return *reinterpret_cast<T *>(buf - sizeof(T));
+			}
 
-			Fiasco::l4_fpage_t   rcv_fpage;
-			Fiasco::l4_msgdope_t size_dope;
-			Fiasco::l4_msgdope_t send_dope;
-			char                 buf[];
+			unsigned long &word(unsigned i)
+			{
+				return reinterpret_cast<unsigned long *>(buf)[i];
+			}
 
 			/**
 			 * Return size of message buffer
 			 */
-			inline size_t size() const { return _size; };
-
-			/**
-			 * Return address of message buffer
-			 */
-			inline void *msg_start() { return &rcv_fpage; };
+			size_t capacity() const { return _capacity; };
 
 			/**
 			 * Return pointer of message data payload
 			 */
-			inline void *data() { return buf; };
+			void       *data()       { return buf; };
+			void const *data() const { return buf; };
+
+			size_t data_size() const { return _data_size; }
 	};
 
 
@@ -63,7 +81,7 @@ namespace Genode {
 
 			char buf[BUF_SIZE];
 
-			Msgbuf() { _size = BUF_SIZE; }
+			Msgbuf() : Msgbuf_base(BUF_SIZE) { }
 	};
 }
 

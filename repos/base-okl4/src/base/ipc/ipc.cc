@@ -18,7 +18,7 @@
 #include <base/blocking.h>
 
 /* base-internal includes */
-#include <base/internal/native_connection_state.h>
+#include <base/internal/ipc_server.h>
 
 /* OKL4 includes */
 namespace Okl4 { extern "C" {
@@ -47,43 +47,48 @@ static void kdb_emergency_print(const char *s)
 		Okl4::L4_KDB_PrintChar(*s);
 }
 
+/*
+ * Message layout within the UTCB
+ *
+ * The message tag contains the information about the number of message words
+ * to send. The tag is always supplied in message register 0. Message register
+ * 1 is used for the local name (when the client calls the server) or the
+ * exception code (when the server replies to the client). All subsequent
+ * message registers hold the message payload.
+ */
 
 /**
  * Copy message registers from UTCB to destination message buffer
+ *
+ * \return  local name / exception code
  */
-static void copy_utcb_to_msgbuf(L4_MsgTag_t rcv_tag, Msgbuf_base &rcv_msg)
+static L4_Word_t extract_msg_from_utcb(L4_MsgTag_t rcv_tag, Msgbuf_base &rcv_msg)
 {
-	int num_msg_words = (int)L4_UntypedWords(rcv_tag);
-	if (num_msg_words <= 0) return;
+	unsigned num_msg_words = (int)L4_UntypedWords(rcv_tag);
 
-	/* look up and validate destination message buffer to receive the payload */
-	L4_Word_t *msg_buf = (L4_Word_t *)rcv_msg.buf;
-	if (num_msg_words*sizeof(L4_Word_t) > rcv_msg.size()) {
+	if (num_msg_words*sizeof(L4_Word_t) > rcv_msg.capacity()) {
 		PERR("receive message buffer too small msg size=%zd, buf size=%zd",
-		     num_msg_words*sizeof(L4_Word_t), rcv_msg.size());
-		num_msg_words = rcv_msg.size()/sizeof(L4_Word_t);
+		     num_msg_words*sizeof(L4_Word_t), rcv_msg.capacity());
+		num_msg_words = rcv_msg.capacity()/sizeof(L4_Word_t);
 	}
 
+	L4_Word_t local_name = 0;
+	L4_StoreMR(1, &local_name);
+
 	/* read message payload into destination message buffer */
-	L4_StoreMRs(1, num_msg_words, msg_buf);
+	L4_StoreMRs(2, num_msg_words - 2, (L4_Word_t *)rcv_msg.data());
+
+	return local_name;
 }
 
 
 /**
  * Copy message payload to UTCB message registers
- *
- * The message tag contains the information about the number of message words
- * to send. The tag is always supplied in message register 0. Message register
- * 1 is used for the local name. All subsequent message registers hold the
- * message payload.
  */
-static void copy_msgbuf_to_utcb(Msgbuf_base &snd_msg, unsigned num_msg_words,
-                                L4_Word_t local_name)
+static void copy_msg_to_utcb(Msgbuf_base const &snd_msg, unsigned num_msg_words,
+                             L4_Word_t local_name)
 {
-	/* look up address and size of message payload */
-	L4_Word_t *msg_buf = (L4_Word_t *)snd_msg.buf;
-
-	num_msg_words += 1;
+	num_msg_words += 2;
 
 	if (num_msg_words >= L4_GetMessageRegisters()) {
 		kdb_emergency_print("Message does not fit into UTCB message registers\n");
@@ -95,22 +100,25 @@ static void copy_msgbuf_to_utcb(Msgbuf_base &snd_msg, unsigned num_msg_words,
 	snd_tag.X.u = num_msg_words;
 	L4_LoadMR (0, snd_tag.raw);
 	L4_LoadMR (1, local_name);
-	L4_LoadMRs(2, num_msg_words - 1, msg_buf + 1);
+	L4_LoadMRs(2, num_msg_words - 2, (L4_Word_t *)snd_msg.data());
 }
 
 
 /****************
- ** Ipc_client **
+ ** IPC client **
  ****************/
 
-void Ipc_client::_call()
+Rpc_exception_code Genode::ipc_call(Native_capability dst,
+                                    Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg,
+                                    size_t)
 {
 	/* copy call message to the UTCBs message registers */
-	copy_msgbuf_to_utcb(_snd_msg, _write_offset/sizeof(L4_Word_t),
-	                    _dst.local_name());
+	copy_msg_to_utcb(snd_msg, snd_msg.data_size()/sizeof(L4_Word_t),
+	                 dst.local_name());
 
 	L4_Accept(L4_UntypedWordsAcceptor);
-	L4_MsgTag_t rcv_tag = L4_Call(_dst.dst());
+
+	L4_MsgTag_t rcv_tag = L4_Call(dst.dst());
 
 	enum { ERROR_MASK = 0xe, ERROR_CANCELED = 3 << 1 };
 	if (L4_IpcFailed(rcv_tag) &&
@@ -119,23 +127,11 @@ void Ipc_client::_call()
 
 	if (L4_IpcFailed(rcv_tag)) {
 		kdb_emergency_print("Ipc failed\n");
-		/* set return value for ipc_generic part if call failed */
-		ret(ERR_INVALID_OBJECT);
+
+		return Rpc_exception_code(Rpc_exception_code::INVALID_OBJECT);
 	}
 
-	/* copy request message from the UTCBs message registers */
-	copy_utcb_to_msgbuf(rcv_tag, _rcv_msg);
-
-	_write_offset = _read_offset = sizeof(umword_t);
-}
-
-
-Ipc_client::Ipc_client(Native_capability const &dst,
-                       Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg, unsigned short)
-:
-	Ipc_marshaller(snd_msg), Ipc_unmarshaller(rcv_msg), _result(0), _dst(dst)
-{
-	_write_offset = _read_offset = sizeof(umword_t);
+	return Rpc_exception_code(extract_msg_from_utcb(rcv_tag, rcv_msg));
 }
 
 
@@ -145,50 +141,16 @@ Ipc_client::Ipc_client(Native_capability const &dst,
 
 void Ipc_server::_prepare_next_reply_wait()
 {
-	/* now we have a request to reply */
 	_reply_needed = true;
-
-	/* leave space for return value at the beginning of the msgbuf */
-	_write_offset = 2*sizeof(umword_t);
-
-	/* receive buffer offset */
-	_read_offset = sizeof(umword_t);
-}
-
-
-void Ipc_server::wait()
-{
-	/* wait for new server request */
-	try {
-		/*
-		 * Wait for IPC message
-		 *
-		 * The message tag (holding the size of the message) is located at
-		 * message register 0 and implicitly addressed by 'L4_UntypedWords()'.
-		 */
-		L4_MsgTag_t rcv_tag = L4_Wait(&_rcv_cs.caller);
-
-		/* copy message from the UTCBs message registers to the receive buffer */
-		copy_utcb_to_msgbuf(rcv_tag, _rcv_msg);
-
-		/* reset unmarshaller */
-		_read_offset = sizeof(umword_t);
-
-	} catch (Blocking_canceled) { }
-
-	/* define destination of next reply */
-	_caller = Native_capability(_rcv_cs.caller, badge());
-	_badge  = reinterpret_cast<unsigned long *>(_rcv_msg.data())[0];
-
-	_prepare_next_reply_wait();
+	_read_offset = _write_offset = 0;
 }
 
 
 void Ipc_server::reply()
 {
 	/* copy reply to the UTCBs message registers */
-	copy_msgbuf_to_utcb(_snd_msg, _write_offset/sizeof(L4_Word_t),
-	                    _caller.local_name());
+	copy_msg_to_utcb(_snd_msg, _write_offset/sizeof(L4_Word_t),
+	                 _exception_code.value);
 
 	/* perform non-blocking IPC send operation */
 	L4_MsgTag_t rcv_tag = L4_Reply(_caller.dst());
@@ -202,29 +164,26 @@ void Ipc_server::reply()
 
 void Ipc_server::reply_wait()
 {
+	L4_MsgTag_t rcv_tag;
+
 	if (_reply_needed) {
 
 		/* copy reply to the UTCBs message registers */
-		copy_msgbuf_to_utcb(_snd_msg, _write_offset/sizeof(L4_Word_t),
-		                    _caller.local_name());
+		copy_msg_to_utcb(_snd_msg, _write_offset/sizeof(L4_Word_t),
+		                 _exception_code.value);
 
-		L4_MsgTag_t rcv_tag = L4_ReplyWait(_caller.dst(), &_rcv_cs.caller);
+		rcv_tag = L4_ReplyWait(_caller.dst(), &_rcv_cs.caller);
+	} else {
+		rcv_tag = L4_Wait(&_rcv_cs.caller);
+	}
 
-		/*
-		 * TODO: Check for IPC error
-		 */
+	/* copy request message from the UTCBs message registers */
+	_badge = extract_msg_from_utcb(rcv_tag, _rcv_msg);
 
-		/* copy request message from the UTCBs message registers */
-		copy_utcb_to_msgbuf(rcv_tag, _rcv_msg);
+	/* define destination of next reply */
+	_caller = Native_capability(_rcv_cs.caller, badge());
 
-		/* define destination of next reply */
-		_caller = Native_capability(_rcv_cs.caller, badge());
-		_badge  = reinterpret_cast<unsigned long *>(_rcv_msg.data())[0];
-
-		_prepare_next_reply_wait();
-
-	} else
-		wait();
+	_prepare_next_reply_wait();
 }
 
 
@@ -249,9 +208,8 @@ Ipc_server::Ipc_server(Native_connection_state &cs,
 	Ipc_marshaller(snd_msg),
 	Ipc_unmarshaller(rcv_msg),
 	Native_capability(thread_get_my_global_id(), 0),
-	_reply_needed(false), _rcv_cs(cs)
-{
-	_read_offset = _write_offset = sizeof(umword_t);
-}
+	_rcv_cs(cs)
+{ }
+
 
 Ipc_server::~Ipc_server() { }

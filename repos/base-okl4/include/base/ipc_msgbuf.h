@@ -20,7 +20,12 @@
 #ifndef _INCLUDE__BASE__IPC_MSGBUF_H_
 #define _INCLUDE__BASE__IPC_MSGBUF_H_
 
+#include <base/stdint.h>
+#include <base/printf.h>
+
 namespace Genode {
+
+	class Ipc_marshaller;
 
 	/**
 	 * IPC message buffer layout
@@ -29,25 +34,28 @@ namespace Genode {
 	{
 		protected:
 
-			size_t _size;
+			size_t _data_size = 0;
+			size_t _capacity;
 			char   _msg_start[];  /* symbol marks start of message */
 
-		public:
+			Msgbuf_base(size_t capacity) : _capacity(capacity) { }
 
-			/*
-			 * Begin of actual message buffer
-			 */
-			char buf[];
+			friend class Ipc_marshaller;
+
+		public:
 
 			/**
 			 * Return size of message buffer
 			 */
-			inline size_t size() const { return _size; };
+			size_t capacity() const { return _capacity; };
 
 			/**
 			 * Return pointer of message data payload
 			 */
-			inline void *data() { return &_msg_start[0]; };
+			void       *data()       { return &_msg_start[0]; };
+			void const *data() const { return &_msg_start[0]; };
+
+			size_t data_size() const { return _data_size; }
 	};
 
 
@@ -61,7 +69,7 @@ namespace Genode {
 
 			char buf[BUF_SIZE];
 
-			Msgbuf() { _size = BUF_SIZE; }
+			Msgbuf() : Msgbuf_base(BUF_SIZE) { }
 	};
 }
 

@@ -20,6 +20,8 @@ namespace Genode {
 
 	class Msgbuf_base;
 	template <unsigned> struct Msgbuf;
+
+	class Ipc_marshaller;
 }
 
 
@@ -30,6 +32,8 @@ class Genode::Msgbuf_base
 		enum { MAX_CAPS_PER_MSG = 3 };
 
 	protected:
+
+		friend class Ipc_marshaller;
 
 		/*
 		 * Resolve ambiguity if the header is included from a libc-using
@@ -47,12 +51,12 @@ class Genode::Msgbuf_base
 		/**
 		 * Maximum size of plain-data message payload
 		 */
-		size_t const _size;
+		size_t const _capacity;
 
 		/**
 		 * Actual size of plain-data message payload
 		 */
-		size_t _used_size = 0;
+		size_t _data_size = 0;
 
 		char _msg_start[];  /* symbol marks start of message buffer data */
 
@@ -60,7 +64,7 @@ class Genode::Msgbuf_base
 		 * No member variables are allowed beyond this point!
 		 */
 
-		Msgbuf_base(size_t size) : _size(size) { }
+		Msgbuf_base(size_t capacity) : _capacity(capacity) { }
 
 	public:
 
@@ -69,7 +73,7 @@ class Genode::Msgbuf_base
 		/**
 		 * Return size of message buffer
 		 */
-		size_t size() const { return _size; };
+		size_t capacity() const { return _capacity; };
 
 		void reset_caps()
 		{
@@ -89,6 +93,8 @@ class Genode::Msgbuf_base
 		 */
 		void const *data() const { return &_msg_start[0]; };
 		void       *data()       { return &_msg_start[0]; };
+
+		size_t data_size() const { return _data_size; }
 
 		/**
 		 * Exception type
@@ -122,10 +128,8 @@ class Genode::Msgbuf_base
 		 */
 		size_t used_caps() const { return _used_caps; }
 
-		Native_capability &cap(unsigned index)
-		{
-			return _caps[index];
-		}
+		Native_capability       &cap(unsigned index)       { return _caps[index]; }
+		Native_capability const &cap(unsigned index) const { return _caps[index]; }
 };
 
 

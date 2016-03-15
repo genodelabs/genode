@@ -17,12 +17,17 @@
 #include <timer_session/connection.h>
 #include <util/volatile_object.h>
 
+/*
+ * The Genode headers must be included before any Linux header. Otherwise,
+ * the 'SUCCESS' macro defined in scsi/scsi_host.h collides with Genode's
+ * 'Rpc_exception_code::SUCCESS' enum value.
+ */
+#include "signal.h"
+#include "list.h"
+
 #include <extern_c_begin.h>
 #include <lx_emul.h>
 #include <extern_c_end.h>
-
-#include "signal.h"
-#include "list.h"
 
 unsigned long jiffies;
 

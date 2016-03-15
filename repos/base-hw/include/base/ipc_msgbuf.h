@@ -16,11 +16,14 @@
 #define _INCLUDE__BASE__IPC_MSGBUF_H_
 
 #include <base/native_capability.h>
+#include <base/stdint.h>
 #include <util/string.h>
 
-namespace Genode
-{
+namespace Genode {
+
 	class Native_utcb;
+
+	class Ipc_marshaller;
 
 	/**
 	 * IPC message buffer layout
@@ -45,11 +48,13 @@ class Genode::Msgbuf_base
 	private:
 
 		friend class Native_utcb;
+		friend class Ipc_marshaller;
 
-		size_t            _size;               /* buffer size in bytes */
-		Native_capability _caps[MAX_CAP_ARGS]; /* capability buffer    */
-		size_t            _snd_cap_cnt = 0;    /* capability counter   */
-		size_t            _rcv_cap_cnt = 0;    /* capability counter   */
+		size_t      const _capacity;           /* buffer size in bytes     */
+		size_t            _data_size = 0;      /* marshalled data in bytes */
+		Native_capability _caps[MAX_CAP_ARGS]; /* capability buffer        */
+		size_t            _snd_cap_cnt = 0;    /* capability counter       */
+		size_t            _rcv_cap_cnt = 0;    /* capability counter       */
 
 	public:
 
@@ -59,19 +64,22 @@ class Genode::Msgbuf_base
 
 		char buf[]; /* begin of actual message buffer */
 
-		Msgbuf_base(size_t size) : _size(size) { }
+		Msgbuf_base(size_t capacity) : _capacity(capacity) { }
 
 		void const * base() const { return &buf; }
 
 		/**
 		 * Return size of message buffer
 		 */
-		size_t size() const { return _size; }
+		size_t capacity() const { return _capacity; }
 
 		/**
 		 * Return pointer of message data payload
 		 */
-		void *data() { return &buf[0]; }
+		void       *data()       { return &buf[0]; }
+		void const *data() const { return &buf[0]; }
+
+		size_t data_size() const { return _data_size; }
 
 		/**
 		 * Reset capability buffer.

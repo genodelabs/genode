@@ -2,13 +2,6 @@
  * \brief  Generic IPC infrastructure
  * \author Norman Feske
  * \date   2006-06-12
- *
- * Most of the marshalling and unmarshallung code is generic for IPC
- * implementations among different platforms. In addition to the generic
- * marshalling items, platform-specific marshalling items can be realized
- * via specialized stream operators defined in the platform-specific
- * 'base/ipc.h'.  Hence, this header file is never to be included directly.
- * It should only be included by a platform-specific 'base/ipc.h' file.
  */
 
 /*
@@ -32,13 +25,24 @@
 
 namespace Genode {
 
-	class Native_connection_state;
-
 	class Ipc_error;
 	class Ipc_marshaller;
 	class Ipc_unmarshaller;
-	class Ipc_client;
-	class Ipc_server;
+
+	/**
+	 * Invoke capability to call an RPC function
+	 *
+	 * \param rcv_caps  number of capabilities expected as result
+	 * \throw Blocking_canceled
+	 *
+	 * \noapi
+	 *
+	 * The 'rcv_caps' value is used on kernels like NOVA to allocate the
+	 * receive window for incoming capability selectors.
+	 */
+	Rpc_exception_code ipc_call(Native_capability dst,
+	                            Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg,
+	                            size_t rcv_caps);
 }
 
 
@@ -51,17 +55,17 @@ class Genode::Ipc_error : public Exception { };
 /**
  * Marshal arguments into send message buffer
  */
-class Genode::Ipc_marshaller
+class Genode::Ipc_marshaller : Noncopyable
 {
 	protected:
 
 		Msgbuf_base &_snd_msg;
-		unsigned     _write_offset = 0;
+		size_t      &_write_offset = _snd_msg._data_size;
 
 	private:
 
 		char        *_snd_buf      = (char *)_snd_msg.data();
-		size_t const _snd_buf_size = _snd_msg.size();
+		size_t const _snd_buf_size = _snd_msg.capacity();
 
 	public:
 
@@ -123,17 +127,17 @@ class Genode::Ipc_marshaller
 /**
  * Unmarshal arguments from receive buffer
  */
-class Genode::Ipc_unmarshaller
+class Genode::Ipc_unmarshaller : Noncopyable
 {
 	protected:
 
 		Msgbuf_base  &_rcv_msg;
-		unsigned      _read_offset  = 0;
+		unsigned      _read_offset = 0;
 
 	private:
 
 		char         *_rcv_buf      = (char *)_rcv_msg.data();
-		size_t const  _rcv_buf_size = _rcv_msg.size();
+		size_t const  _rcv_buf_size = _rcv_msg.capacity();
 
 	public:
 
@@ -191,123 +195,9 @@ class Genode::Ipc_unmarshaller
 			_read_offset += align_natural(sizeof(T));
 		}
 
-
 	public:
 
 		Ipc_unmarshaller(Msgbuf_base &rcv_msg) : _rcv_msg(rcv_msg) { }
-};
-
-
-class Genode::Ipc_client : public Ipc_marshaller, public Ipc_unmarshaller,
-                           public Noncopyable
-{
-	protected:
-
-		int _result = 0;   /* result of most recent call */
-
-		Native_capability _dst;
-
-		/**
-		 * Set return value if call to server failed
-		 */
-		void ret(int retval)
-		{
-			reinterpret_cast<umword_t *>(_rcv_msg.data())[1] = retval;
-		}
-
-		void _call();
-
-	public:
-
-		enum { ERR_INVALID_OBJECT = -70000, };
-
-		/**
-		 * Constructor
-		 */
-		Ipc_client(Native_capability const &dst,
-		           Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg,
-		           unsigned short rcv_caps = ~0);
-
-		/**
-		 * Send RPC message and wait for result
-		 *
-		 * \throw Ipc_error
-		 */
-		void call()
-		{
-			_call();
-			extract(_result);
-			if (_result == ERR_INVALID_OBJECT)
-				throw Ipc_error();
-		}
-
-		int result() const { return _result; }
-};
-
-
-class Genode::Ipc_server : public Ipc_marshaller, public Ipc_unmarshaller,
-                           public Noncopyable, public Native_capability
-{
-	protected:
-
-		bool _reply_needed;   /* false for the first reply_wait */
-
-		Native_capability _caller;
-
-		Native_connection_state &_rcv_cs;
-
-		void _prepare_next_reply_wait();
-
-		unsigned long _badge;
-
-	public:
-
-		/**
-		 * Constructor
-		 */
-		Ipc_server(Native_connection_state &,
-		           Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg);
-
-		~Ipc_server();
-
-		/**
-		 * Wait for incoming call
-		 */
-		void wait();
-
-		/**
-		 * Send reply to destination
-		 */
-		void reply();
-
-		/**
-		 * Send result of previous RPC request and wait for new one
-		 */
-		void reply_wait();
-
-		/**
-		 * Set return value of server call
-		 */
-		void ret(int retval)
-		{
-			reinterpret_cast<umword_t *>(_snd_msg.data())[1] = retval;
-		}
-
-		/**
-		 * Read badge that was supplied with the message
-		 */
-		unsigned long badge() const { return _badge; }
-
-		/**
-		 * Set reply destination
-		 */
-		void caller(Native_capability const &caller)
-		{
-			_caller       = caller;
-			_reply_needed = caller.valid();
-		}
-
-		Native_capability caller() const { return _caller; }
 };
 
 #endif /* _INCLUDE__BASE__IPC_H_ */

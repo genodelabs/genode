@@ -21,6 +21,7 @@
 /* base-internal includes */
 #include <base/internal/capability_space_sel4.h>
 #include <base/internal/kernel_debugger.h>
+#include <base/internal/ipc_server.h>
 
 /* seL4 includes */
 #include <sel4/sel4.h>
@@ -32,8 +33,9 @@ using namespace Genode;
  * Message-register definitions
  */
 enum {
-	MR_IDX_NUM_CAPS = 0,
-	MR_IDX_CAPS     = 1,
+	MR_IDX_EXC_CODE = 0,
+	MR_IDX_NUM_CAPS = 1,
+	MR_IDX_CAPS     = 2,
 	MR_IDX_DATA     = MR_IDX_CAPS + Msgbuf_base::MAX_CAPS_PER_MSG,
 };
 
@@ -64,7 +66,7 @@ static unsigned &rcv_sel()
  * \param msg          source message buffer
  * \param data_length  size of message data in bytes
  */
-static seL4_MessageInfo_t new_seL4_message(Msgbuf_base &msg,
+static seL4_MessageInfo_t new_seL4_message(Msgbuf_base const &msg,
                                            size_t const data_length)
 {
 	/*
@@ -74,7 +76,7 @@ static seL4_MessageInfo_t new_seL4_message(Msgbuf_base &msg,
 	size_t sel4_sel_cnt = 0;
 	for (size_t i = 0; i < msg.used_caps(); i++) {
 
-		Native_capability &cap = msg.cap(i);
+		Native_capability const &cap = msg.cap(i);
 
 		if (cap.valid()) {
 			Capability_space::Ipc_cap_data const ipc_cap_data =
@@ -268,12 +270,14 @@ void Ipc_unmarshaller::extract(Native_capability &cap)
 
 
 /****************
- ** Ipc_client **
+ ** IPC client **
  ****************/
 
-void Ipc_client::_call()
+Rpc_exception_code Genode::ipc_call(Native_capability dst,
+                                    Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg,
+                                    size_t)
 {
-	if (!_dst.valid()) {
+	if (!dst.valid()) {
 		PERR("Trying to invoke an invalid capability, stop.");
 		kernel_debugger_panic("IPC destination is invalid");
 	}
@@ -282,60 +286,22 @@ void Ipc_client::_call()
 		rcv_sel() = Capability_space::alloc_rcv_sel();
 
 	seL4_MessageInfo_t const request_msg_info =
-		new_seL4_message(_snd_msg, _write_offset);
+		new_seL4_message(snd_msg, snd_msg.data_size());
 
-	unsigned const dst_sel = Capability_space::ipc_cap_data(_dst).sel.value();
+	unsigned const dst_sel = Capability_space::ipc_cap_data(dst).sel.value();
 
 	seL4_MessageInfo_t const reply_msg_info =
 		seL4_Call(dst_sel, request_msg_info);
 
-	decode_seL4_message(reply_msg_info, _rcv_msg);
+	decode_seL4_message(reply_msg_info, rcv_msg);
 
-	_write_offset = _read_offset = sizeof(umword_t);
-}
-
-
-Ipc_client::Ipc_client(Native_capability const &dst,
-                       Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg,
-                       unsigned short)
-:
-	Ipc_marshaller(snd_msg), Ipc_unmarshaller(rcv_msg), _result(0), _dst(dst)
-{
-	_read_offset = _write_offset = sizeof(umword_t);
+	return Rpc_exception_code(seL4_GetMR(MR_IDX_EXC_CODE));
 }
 
 
 /****************
  ** Ipc_server **
  ****************/
-
-void Ipc_server::_prepare_next_reply_wait()
-{
-	/* now we have a request to reply */
-	_reply_needed = true;
-
-	/* leave space for return value at the beginning of the msgbuf */
-	_write_offset = 2*sizeof(umword_t);
-
-	/* receive buffer offset */
-	_read_offset = sizeof(umword_t);
-
-	_rcv_msg.reset_read_cap_index();
-	_snd_msg.reset_caps();
-}
-
-
-void Ipc_server::wait()
-{
-	seL4_MessageInfo_t const msg_info =
-		seL4_Recv(Thread_base::myself()->native_thread().ep_sel,
-		          (seL4_Word *)&_badge);
-
-	decode_seL4_message(msg_info, _rcv_msg);
-
-	_prepare_next_reply_wait();
-}
-
 
 void Ipc_server::reply()
 {
@@ -347,12 +313,18 @@ void Ipc_server::reply_wait()
 {
 	if (!_reply_needed) {
 
-		wait();
+		seL4_MessageInfo_t const msg_info =
+			seL4_Recv(Thread_base::myself()->native_thread().ep_sel,
+			          (seL4_Word *)&_badge);
+
+		decode_seL4_message(msg_info, _rcv_msg);
 
 	} else {
 
 		seL4_MessageInfo_t const reply_msg_info =
 			new_seL4_message(_snd_msg, _write_offset);
+
+		seL4_SetMR(MR_IDX_EXC_CODE, _exception_code.value);
 
 		seL4_MessageInfo_t const request_msg_info =
 			seL4_ReplyRecv(Thread_base::myself()->native_thread().ep_sel,
@@ -361,20 +333,21 @@ void Ipc_server::reply_wait()
 		decode_seL4_message(request_msg_info, _rcv_msg);
 	}
 
-	_prepare_next_reply_wait();
+	_reply_needed = true;
+	_read_offset = _write_offset = 0;
+
+	_rcv_msg.reset_read_cap_index();
+	_snd_msg.reset_caps();
 }
 
 
 Ipc_server::Ipc_server(Native_connection_state &cs,
                        Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg)
 :
-	Ipc_marshaller(snd_msg), Ipc_unmarshaller(rcv_msg),
-	_reply_needed(false), _rcv_cs(cs)
+	Ipc_marshaller(snd_msg), Ipc_unmarshaller(rcv_msg), _rcv_cs(cs)
 {
 	*static_cast<Native_capability *>(this) =
 		Native_capability(Capability_space::create_ep_cap(*Thread_base::myself()));
-
-	_read_offset = _write_offset = sizeof(umword_t);
 }
 
 

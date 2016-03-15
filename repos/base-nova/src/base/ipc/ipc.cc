@@ -14,8 +14,10 @@
 /* Genode includes */
 #include <base/ipc.h>
 #include <base/thread.h>
-
 #include <base/printf.h>
+
+/* base-internal includes */
+#include <base/internal/ipc_server.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>
@@ -46,52 +48,70 @@ void Ipc_unmarshaller::extract(Native_capability &cap)
 
 /**
  * Copy message registers from UTCB to destination message buffer
+ *
+ * \return  protocol word delivered via the first UTCB message register
+ *
+ * The caller of this function must ensure that utcb->msg_words is greater
+ * than 0.
  */
-static void copy_utcb_to_msgbuf(Nova::Utcb *utcb, Msgbuf_base &rcv_msg)
+static mword_t copy_utcb_to_msgbuf(Nova::Utcb *utcb, Msgbuf_base &rcv_msg)
 {
 	size_t num_msg_words = utcb->msg_words();
-	if (num_msg_words == 0) return;
 
-	/* look up and validate destination message buffer to receive the payload */
-	mword_t *msg_buf = (mword_t *)rcv_msg.buf;
-	if (num_msg_words*sizeof(mword_t) > rcv_msg.size()) {
+	/*
+	 * Handle the reception of a malformed message. This should never happen
+	 * because the utcb->msg_words is checked by the caller of this function.
+	 */
+	if (num_msg_words < 1)
+		return 0;
+
+	/* the UTCB contains the protocol word followed by the message data */
+	mword_t const protocol_word  = utcb->msg[0];
+	size_t        num_data_words = num_msg_words - 1;
+
+	if (num_data_words*sizeof(mword_t) > rcv_msg.capacity()) {
 		PERR("receive message buffer too small msg size=%zx, buf size=%zd",
-		     num_msg_words*sizeof(mword_t), rcv_msg.size());
-		num_msg_words = rcv_msg.size()/sizeof(mword_t);
+		     num_data_words*sizeof(mword_t), rcv_msg.capacity());
+		num_data_words = rcv_msg.capacity()/sizeof(mword_t);
 	}
 
 	/* read message payload into destination message buffer */
-	mword_t *src = (mword_t *)(void *)(&utcb->msg[0]);
-	mword_t *dst = (mword_t *)&msg_buf[0];
-	for (unsigned i = 0; i < num_msg_words; i++)
+	mword_t *src = (mword_t *)(void *)(&utcb->msg[1]);
+	mword_t *dst = (mword_t *)rcv_msg.data();
+	for (unsigned i = 0; i < num_data_words; i++)
 		*dst++ = *src++;
+
+	return protocol_word;
 }
 
 
 /**
  * Copy message payload to UTCB message registers
  */
-static bool copy_msgbuf_to_utcb(Nova::Utcb *utcb, Msgbuf_base &snd_msg,
-                                unsigned num_msg_words, mword_t local_name)
+static bool copy_msgbuf_to_utcb(Nova::Utcb *utcb, Msgbuf_base const &snd_msg,
+                                mword_t protocol_value)
 {
 	/* look up address and size of message payload */
-	mword_t *msg_buf = (mword_t *)snd_msg.buf;
+	mword_t *msg_buf = (mword_t *)snd_msg.data();
 
-	/*
-	 * XXX determine correct number of message registers
-	 */
+	/* size of message payload in machine words */
+	size_t const num_data_words = snd_msg.data_size()/sizeof(mword_t);
+
+	/* account for protocol value in front of the message */
+	size_t num_msg_words = 1 + num_data_words;
+
 	enum { NUM_MSG_REGS = 256 };
 	if (num_msg_words > NUM_MSG_REGS) {
 		PERR("Message does not fit into UTCB message registers\n");
 		num_msg_words = NUM_MSG_REGS;
 	}
 
-	msg_buf[0] = local_name;
+	utcb->msg[0] = protocol_value;
 
 	/* store message into UTCB message registers */
 	mword_t *src = (mword_t *)&msg_buf[0];
-	mword_t *dst = (mword_t *)(void *)&utcb->msg[0];
-	for (unsigned i = 0; i < num_msg_words; i++)
+	mword_t *dst = (mword_t *)(void *)&utcb->msg[1];
+	for (unsigned i = 0; i < num_data_words; i++)
 		*dst++ = *src++;
 
 	utcb->set_msg_word(num_msg_words);
@@ -106,66 +126,56 @@ static bool copy_msgbuf_to_utcb(Nova::Utcb *utcb, Msgbuf_base &snd_msg,
 			return false;
 	}
 
-	/* we have consumed portal capability selectors, reset message buffer */
-	snd_msg.snd_reset();
-
 	return true;
 }
 
 
 /****************
- ** Ipc_client **
+ ** IPC client **
  ****************/
 
-void Ipc_client::_call()
+Rpc_exception_code Genode::ipc_call(Native_capability dst,
+                                    Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg,
+                                    size_t rcv_caps)
 {
+	/* update receive window for capability selectors if needed */
+	if (rcv_caps != ~0UL) {
+
+		/* calculate max order of caps to be received during reply */
+		unsigned short log2_max = rcv_caps ? log2(rcv_caps) : 0;
+		if ((1U << log2_max) < rcv_caps) log2_max ++;
+
+		rcv_msg.rcv_wnd(log2_max);
+	}
+
 	Nova::Utcb *utcb = (Nova::Utcb *)Thread_base::myself()->utcb();
 
-	if (!copy_msgbuf_to_utcb(utcb, _snd_msg, _write_offset/sizeof(mword_t),
-	                         _dst.local_name())) {
+	/* the protocol value is unused as the badge is delivered by the kernel */
+	if (!copy_msgbuf_to_utcb(utcb, snd_msg, 0)) {
 		PERR("could not setup IPC");
-		return;
+		throw Ipc_error();
 	}
 
 	/* if we can't setup receive window, die in order to recognize the issue */
-	if (!_rcv_msg.prepare_rcv_window(utcb, _dst.rcv_window()))
+	if (!rcv_msg.prepare_rcv_window(utcb, dst.rcv_window()))
 		/* printf doesn't work here since for IPC also rcv_prepare* is used */
 		nova_die();
 
 	/* establish the mapping via a portal traversal */
-	uint8_t res = Nova::call(_dst.local_name());
+	uint8_t res = Nova::call(dst.local_name());
 	if (res != Nova::NOVA_OK) {
 		/* If an error occurred, reset word&item count (not done by kernel). */
 		utcb->set_msg_word(0);
-		/* set return value for ipc_generic part if call failed */
-		ret(ERR_INVALID_OBJECT);
+		return Rpc_exception_code(Rpc_exception_code::INVALID_OBJECT);
 	}
 
-	_rcv_msg.post_ipc(utcb, _dst.rcv_window());
-	copy_utcb_to_msgbuf(utcb, _rcv_msg);
-	_snd_msg.snd_reset();
+	rcv_msg.post_ipc(utcb, dst.rcv_window());
 
-	_write_offset = _read_offset = sizeof(mword_t);
-}
+	/* handle malformed reply from a server */
+	if (utcb->msg_words() < 1)
+		return Rpc_exception_code(Rpc_exception_code::INVALID_OBJECT);
 
-
-Ipc_client::Ipc_client(Native_capability const &dst,
-                       Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg,
-                       unsigned short const rcv_caps)
-:
-	Ipc_marshaller(snd_msg), Ipc_unmarshaller(rcv_msg), _result(0), _dst(dst)
-{
-	if (rcv_caps == ~0)
-		/* use default values for rcv_wnd */
-		return;
-
-	/* calculate max order of caps to be received during reply */
-	unsigned short log2_max = rcv_caps ? log2(rcv_caps) : 0;
-	if ((1U << log2_max) < rcv_caps) log2_max ++;
-
-	rcv_msg.rcv_wnd(log2_max);
-
-	_read_offset = _write_offset = sizeof(mword_t);
+	return Rpc_exception_code(copy_utcb_to_msgbuf(utcb, rcv_msg));
 }
 
 
@@ -173,7 +183,19 @@ Ipc_client::Ipc_client(Native_capability const &dst,
  ** Ipc_server **
  ****************/
 
-void Ipc_server::wait()
+void Ipc_server::reply()
+{
+	Nova::Utcb *utcb = (Nova::Utcb *)Thread_base::myself()->utcb();
+
+	copy_msgbuf_to_utcb(utcb, _snd_msg, _exception_code.value);
+
+	_snd_msg.snd_reset();
+
+	Nova::reply(Thread_base::myself()->stack_top());
+}
+
+
+void Ipc_server::reply_wait()
 {
 	/*
 	 * This function is only called by the portal dispatcher of server
@@ -185,25 +207,16 @@ void Ipc_server::wait()
 	Nova::Utcb *utcb = (Nova::Utcb *)Thread_base::myself()->utcb();
 
 	_rcv_msg.post_ipc(utcb);
-	copy_utcb_to_msgbuf(utcb, _rcv_msg);
 
-	/* reset unmarshaller */
-	_read_offset  = sizeof(mword_t);
-	_write_offset = 2*sizeof(mword_t); /* leave space for the return value */
+	/* handle ill-formed message */
+	if (utcb->msg_words() < 2) {
+		_rcv_msg.word(0) = ~0UL; /* invalid opcode */
+	} else {
+		copy_utcb_to_msgbuf(utcb, _rcv_msg);
+	}
+
+	_read_offset = _write_offset = 0;
 }
-
-
-void Ipc_server::reply()
-{
-	Nova::Utcb *utcb = (Nova::Utcb *)Thread_base::myself()->utcb();
-
-	copy_msgbuf_to_utcb(utcb, _snd_msg, _write_offset/sizeof(mword_t), 0);
-
-	Nova::reply(Thread_base::myself()->stack_top());
-}
-
-
-void Ipc_server::reply_wait() { }
 
 
 Ipc_server::Ipc_server(Native_connection_state &cs,
@@ -211,7 +224,7 @@ Ipc_server::Ipc_server(Native_connection_state &cs,
 :
 	Ipc_marshaller(snd_msg), Ipc_unmarshaller(rcv_msg), _rcv_cs(cs)
 {
-	_read_offset = _write_offset = sizeof(mword_t);
+	_read_offset = _write_offset = 0;
 }
 
 

@@ -21,12 +21,18 @@
 #include <irq_session/connection.h>
 #include <util/mmio.h>
 
-/* Emulation */
+/*
+ * The Genode headers must be included before any Linux header. Otherwise,
+ * the 'SUCCESS' macro defined in scsi/scsi_host.h collides with Genode's
+ * 'Rpc_exception_code::SUCCESS' enum value.
+ */
+#include <platform.h>
 #include <platform/platform.h>
+
+/* Emulation */
 #include <extern_c_begin.h>
 #include <lx_emul.h>
 #include <extern_c_end.h>
-#include <platform.h>
 
 /* Linux */
 #include <linux/platform_data/dwc3-exynos.h>

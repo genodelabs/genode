@@ -20,7 +20,7 @@
 #include <base/rpc_server.h>
 
 /* base-internal includes */
-#include <base/internal/native_connection_state.h>
+#include <base/internal/ipc_server.h>
 
 using namespace Genode;
 
@@ -61,13 +61,13 @@ void Rpc_entrypoint::entry()
 
 	while (!_exit_handler.exit) {
 
-		int opcode = 0;
+		Rpc_opcode opcode(0);
 
 		srv.reply_wait();
 		srv.extract(opcode);
 
 		/* set default return value */
-		srv.ret(Ipc_client::ERR_INVALID_OBJECT);
+		srv.ret(Rpc_exception_code(Rpc_exception_code::INVALID_OBJECT));
 
 		apply(srv.badge(), [&] (Rpc_object_base *obj) {
 			if (!obj) return;

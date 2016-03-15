@@ -56,15 +56,20 @@ class Genode::Native_utcb
 		Kernel::capid_t _caps[MAX_CAP_ARGS]; /* capability buffer  */
 		size_t          _cap_cnt;            /* capability counter */
 		size_t          _size;               /* bytes to transfer  */
+		long            _exception_code;     /* result code of RPC */
+		Kernel::capid_t _destination;        /* invoked object     */
 		uint8_t         _buf[get_page_size() - sizeof(_caps) -
-		                     sizeof(_cap_cnt) - sizeof(_size)];
+		                     sizeof(_cap_cnt) - sizeof(_size) -
+		                     sizeof(_destination) - sizeof(_exception_code)];
 
 	public:
 
 		Native_utcb& operator= (const Native_utcb &o)
 		{
-			_cap_cnt = 0;
-			_size    = o._size;
+			_cap_cnt        = 0;
+			_size           = o._size;
+			_exception_code = o._exception_code;
+			_destination    = o._destination;
 			memcpy(_buf, o._buf, _size);
 			return *this;
 		}
@@ -72,8 +77,16 @@ class Genode::Native_utcb
 		/**
 		 * Set the destination capability id (server object identity)
 		 */
-		void destination(Kernel::capid_t id) {
-			*reinterpret_cast<long*>(_buf) = id; }
+		void destination(Kernel::capid_t id) { _destination = id; }
+
+		/**
+		 * Return identity of invoked server object
+		 */
+		Kernel::capid_t destination() const { return _destination; }
+
+		void exception_code(long code) { _exception_code = code; }
+
+		long exception_code() const { return _exception_code; }
 
 		/**
 		 * Return the count of capabilities in the UTCB
@@ -91,17 +104,17 @@ class Genode::Native_utcb
 		void const * base() const { return &_buf; }
 
 		/**
-		 * Copy data from the message buffer 'o' to this UTCB
+		 * Copy data from the message buffer 'snd_msg' to this UTCB
 		 */
-		void copy_from(Msgbuf_base &o, size_t size)
+		void copy_from(Msgbuf_base const &snd_msg)
 		{
-			_size = size;
+			_size = min(snd_msg.data_size(), sizeof(_buf));
 
-			_cap_cnt = o._snd_cap_cnt;
+			_cap_cnt = snd_msg._snd_cap_cnt;
 			for (unsigned i = 0; i < _cap_cnt; i++)
-				_caps[i] = o._caps[i].dst();
+				_caps[i] = snd_msg._caps[i].dst();
 
-			memcpy(_buf, o.buf, min(_size, o._size));
+			memcpy(_buf, snd_msg.buf, min(_size, snd_msg.capacity()));
 		}
 
 		/**
@@ -115,7 +128,7 @@ class Genode::Native_utcb
 				if (o._caps[i].valid()) Kernel::ack_cap(o._caps[i].dst());
 			}
 
-			memcpy(o.buf, _buf, min(_size, o._size));
+			memcpy(o.buf, _buf, min(_size, o.capacity()));
 		}
 
 		/**

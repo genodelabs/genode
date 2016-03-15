@@ -24,6 +24,9 @@
 #include <cap_session/cap_session.h>
 
 namespace Genode {
+
+	class Ipc_server;
+
 	template <typename, typename> class Rpc_dispatcher;
 	class Rpc_object_base;
 	template <typename, typename> struct Rpc_object;
@@ -86,12 +89,15 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 		                             typename RPC_FUNCTION::Ret_type    &ret,
 		                             Meta::Overload_selector<RPC_FUNCTION, EXC_TL>)
 		{
-			enum { EXCEPTION_CODE = RPC_EXCEPTION_BASE - Meta::Length<EXC_TL>::Value };
+			enum { EXCEPTION_CODE = Rpc_exception_code::EXCEPTION_BASE
+			                      - Meta::Length<EXC_TL>::Value };
 			try {
 				typedef typename EXC_TL::Tail Exc_tail;
 				return _do_serve(args, ret,
 				                 Meta::Overload_selector<RPC_FUNCTION, Exc_tail>());
-			} catch (typename EXC_TL::Head) { return EXCEPTION_CODE; }
+			} catch (typename EXC_TL::Head) {
+				return Rpc_exception_code(EXCEPTION_CODE);
+			}
 		}
 
 		template <typename RPC_FUNCTION>
@@ -100,7 +106,7 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 		                             Meta::Overload_selector<RPC_FUNCTION, Meta::Empty>)
 		{
 			RPC_FUNCTION::serve(*static_cast<SERVER *>(this), args, ret);
-			return 0;
+			return Rpc_exception_code(Rpc_exception_code::SUCCESS);
 		}
 
 		template <typename RPC_FUNCTIONS_TO_CHECK>
@@ -112,7 +118,7 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 
 			typedef typename RPC_FUNCTIONS_TO_CHECK::Head This_rpc_function;
 
-			if (opcode == Index_of<Rpc_functions, This_rpc_function>::Value) {
+			if (opcode.value == Index_of<Rpc_functions, This_rpc_function>::Value) {
 
 				typename This_rpc_function::Server_args args{};
 
@@ -131,8 +137,10 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 				typedef typename This_rpc_function::Exceptions Exceptions;
 
 				typename This_rpc_function::Ret_type ret { };
-				Rpc_exception_code exc;
-				exc = _do_serve(args, ret, Overload_selector<This_rpc_function, Exceptions>());
+				Rpc_exception_code
+					exc(_do_serve(args, ret,
+					              Overload_selector<This_rpc_function, Exceptions>()));
+
 				out.insert(ret);
 
 				{
@@ -149,21 +157,22 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 			return _do_dispatch(opcode, in, out, Overload_selector<Tail>());
 		}
 
-		int _do_dispatch(int opcode, Ipc_unmarshaller &, Ipc_marshaller &,
-		                 Meta::Overload_selector<Meta::Empty>)
+		Rpc_exception_code _do_dispatch(Rpc_opcode opcode,
+		                                Ipc_unmarshaller &, Ipc_marshaller &,
+		                                Meta::Overload_selector<Meta::Empty>)
 		{
-			PERR("invalid opcode %d\n", opcode);
-			return RPC_INVALID_OPCODE;
+			PERR("invalid opcode %ld\n", opcode.value);
+			return Rpc_exception_code(Rpc_exception_code::INVALID_OPCODE);
 		}
 
 		/**
 		 * Handle corner case of having an RPC interface with no RPC functions
 		 */
-		Rpc_exception_code _do_dispatch(int opcode,
+		Rpc_exception_code _do_dispatch(Rpc_opcode opcode,
 		                                Ipc_unmarshaller &, Ipc_marshaller &,
 		                                Meta::Overload_selector<Meta::Type_list<> >)
 		{
-			return 0;
+			return Rpc_exception_code(Rpc_exception_code::SUCCESS);
 		}
 
 		/**
@@ -175,7 +184,7 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 
 	public:
 
-		Rpc_exception_code dispatch(int opcode,
+		Rpc_exception_code dispatch(Rpc_opcode opcode,
 		                            Ipc_unmarshaller &in, Ipc_marshaller &out)
 		{
 			return _do_dispatch(opcode, in, out,
@@ -197,7 +206,8 @@ class Genode::Rpc_object_base : public Object_pool<Rpc_object_base>::Entry
 		 * \param in   incoming message with method arguments
 		 * \param out  outgoing message for storing method results
 		 */
-		virtual int dispatch(int op, Ipc_unmarshaller &in, Ipc_marshaller &out) = 0;
+		virtual Rpc_exception_code
+		dispatch(Rpc_opcode op, Ipc_unmarshaller &in, Ipc_marshaller &out) = 0;
 };
 
 
@@ -215,7 +225,7 @@ struct Genode::Rpc_object : Rpc_object_base, Rpc_dispatcher<RPC_INTERFACE, SERVE
 	 ** Server-object interface **
 	 *****************************/
 
-	Rpc_exception_code dispatch(int opcode, Ipc_unmarshaller &in, Ipc_marshaller &out)
+	Rpc_exception_code dispatch(Rpc_opcode opcode, Ipc_unmarshaller &in, Ipc_marshaller &out)
 	{
 		return Rpc_dispatcher<RPC_INTERFACE, SERVER>::dispatch(opcode, in, out);
 	}
