@@ -95,6 +95,7 @@ append boot_modules {
 	avformat.lib.so
 	avutil.lib.so
 	avfilter.lib.so
+	avresample.lib.so
 	swscale.lib.so
 	sdl.lib.so
 	pthread.lib.so
