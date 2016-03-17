@@ -107,7 +107,6 @@ namespace File_system {
 					_process_packet_op(packet, *node);
 				}
 				catch (Invalid_handle)     { PERR("Invalid_handle");     }
-				catch (Size_limit_reached) { PERR("Size_limit_reached"); }
 
 				/*
 				 * The 'acknowledge_packet' function cannot block because we
