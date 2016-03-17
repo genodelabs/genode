@@ -428,7 +428,7 @@ class Vfs::Fs_file_system : public File_system
 			catch (::File_system::Lookup_failed)       { return MKDIR_ERR_NO_ENTRY; }
 			catch (::File_system::Name_too_long)       { return MKDIR_ERR_NAME_TOO_LONG; }
 			catch (::File_system::No_space)            { return MKDIR_ERR_NO_SPACE; }
-			catch (::File_system::Out_of_node_handles) { return MKDIR_ERR_NO_ENTRY; }
+			catch (::File_system::Out_of_metadata)     { return MKDIR_ERR_NO_ENTRY; }
 
 			return MKDIR_OK;
 		}
@@ -467,7 +467,7 @@ class Vfs::Fs_file_system : public File_system
 			catch (::File_system::Lookup_failed)       { return SYMLINK_ERR_NO_ENTRY; }
 			catch (::File_system::Permission_denied)   { return SYMLINK_ERR_NO_PERM;  }
 			catch (::File_system::No_space)            { return SYMLINK_ERR_NO_SPACE; }
-			catch (::File_system::Out_of_node_handles) { return SYMLINK_ERR_NO_ENTRY; }
+			catch (::File_system::Out_of_metadata)     { return SYMLINK_ERR_NO_ENTRY; }
 
 			return SYMLINK_OK;
 		}
@@ -556,7 +556,7 @@ class Vfs::Fs_file_system : public File_system
 			catch (::File_system::Node_already_exists) { return OPEN_ERR_EXISTS;  }
 			catch (::File_system::Invalid_name)        { return OPEN_ERR_NAME_TOO_LONG; }
 			catch (::File_system::No_space)            { return OPEN_ERR_NO_SPACE; }
-			catch (::File_system::Out_of_node_handles) { return OPEN_ERR_UNACCESSIBLE; }
+			catch (::File_system::Out_of_metadata)     { return OPEN_ERR_UNACCESSIBLE; }
 
 			return OPEN_OK;
 		}

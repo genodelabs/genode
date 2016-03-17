@@ -67,7 +67,7 @@ namespace File_system {
 			/**
 			 * Allocate node handle
 			 *
-			 * \throw Out_of_node_handles
+			 * \throw Out_of_metadata
 			 */
 			int _alloc(Node *node, Mode mode)
 			{
@@ -80,7 +80,7 @@ namespace File_system {
 						return i;
 					}
 
-				throw Out_of_node_handles();
+				throw Out_of_metadata();
 			}
 
 			bool _in_range(int handle) const
