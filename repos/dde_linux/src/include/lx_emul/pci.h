@@ -51,8 +51,9 @@ struct pci_driver {
 	char                        *name;
 	const struct pci_device_id  *id_table;
 	int                        (*probe)  (struct pci_dev *dev,
-                                          const struct pci_device_id *id);
+                                        const struct pci_device_id *id);
 	void                       (*remove) (struct pci_dev *dev);
+	void                       (*shutdown) (struct pci_dev *dev);
 	struct device_driver         driver;
 };
 

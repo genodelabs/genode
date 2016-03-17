@@ -41,4 +41,4 @@ int spin_trylock(spinlock_t *lock);
  ** linux/spinlock_types.h **
  ****************************/
 
-#define __SPIN_LOCK_UNLOCKED(x) 0
+#define __SPIN_LOCK_UNLOCKED(x) {0}

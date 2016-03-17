@@ -24,13 +24,24 @@ struct kref { atomic_t refcount; };
 void kref_init(struct kref *kref);
 void kref_get(struct kref *kref);
 int  kref_put(struct kref *kref, void (*release) (struct kref *kref));
+int  kref_get_unless_zero(struct kref *kref);
+int  kref_put_mutex(struct kref *kref,
+                    void (*release)(struct kref *kref),
+                    struct mutex *lock);
 
 
 /*********************
  ** linux/kobject.h **
  *********************/
 
-struct kobject { struct kobject *parent; };
+struct kobject
+{
+	struct kset      *kset;
+	struct kobj_type *ktype;
+	struct kobject   *parent;
+	const char       *name;
+};
+
 struct kobj_uevent_env
 {
 	char buf[32];

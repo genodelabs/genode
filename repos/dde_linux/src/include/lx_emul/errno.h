@@ -45,6 +45,7 @@ enum {
 	ENODEV          = 19,
 	EINVAL          = 22,
 	ENFILE          = 23,
+	ENOTTY          = 25,
 	EFBIG           = 27,
 	ENOSPC          = 28,
 	ESPIPE          = 29,
@@ -99,6 +100,7 @@ enum {
 	ENOTUNIQ        = 207,
 	ERFKILL         = 208,
 	ETIME           = 209,
+	EPROBE_DEFER    = 210,
 
 	MAX_ERRNO       = 4095,
 };

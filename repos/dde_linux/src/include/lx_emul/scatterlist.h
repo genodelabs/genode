@@ -36,6 +36,7 @@ struct sg_table
 {
 	struct scatterlist *sgl;  /* the list */
 	unsigned int nents;       /* number of mapped entries */
+	unsigned int orig_nents;
 };
 
 struct sg_page_iter
@@ -55,6 +56,10 @@ struct sg_mapping_iter
 };
 
 struct page;
+
+#define sg_is_chain(sg) ((sg)->page_link & 0x01)
+#define sg_chain_ptr(sg) \
+	((struct scatterlist *) ((sg)->page_link & ~0x03))
 
 void sg_init_table(struct scatterlist *, unsigned int);
 void sg_set_buf(struct scatterlist *sg, const void *buf, unsigned int buflen);

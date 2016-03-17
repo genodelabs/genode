@@ -19,7 +19,6 @@
 #include <base/sleep.h>
 #include <dataspace/client.h>
 #include <timer_session/connection.h>
-#include <rm_session/connection.h>
 #include <region_map/client.h>
 #include <rom_session/connection.h>
 #include <util/string.h>

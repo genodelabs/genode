@@ -15,7 +15,6 @@
 /* Genode includes */
 #include <base/allocator_avl.h>
 #include <dataspace/client.h>
-#include <rm_session/connection.h>
 #include <region_map/client.h>
 #include <timer_session/connection.h>
 #include <util/string.h>

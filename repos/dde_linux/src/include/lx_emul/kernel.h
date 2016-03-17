@@ -20,6 +20,7 @@
  *********************/
 
 #define IS_ENABLED(x) x
+#define IS_BUILTIN(x) x
 
 
 /********************
@@ -38,6 +39,12 @@
 #define KERN_NOTICE  "NOTICE: "
 #define KERN_WARNING "WARNING: "
 #define KERN_WARN   "WARNING: "
+
+struct va_format
+{
+	const char *fmt;
+	va_list    *va;
+};
 
 static inline int _printk(const char *fmt, ...)
 {
