@@ -15,6 +15,7 @@
 #include <base/env.h>
 #include <base/signal.h>
 #include <base/thread.h>
+#include <base/sleep.h>
 #include <base/trace/events.h>
 #include <signal_source/client.h>
 #include <util/volatile_object.h>
@@ -277,6 +278,11 @@ void Signal_receiver::dispatch_signals(Signal_source *signal_source)
 
 		/* look up context as pointed to by the signal imprint */
 		Signal_context *context = (Signal_context *)(source_signal.imprint());
+
+		if (!context) {
+			PERR("received null signal imprint, stop signal handling");
+			sleep_forever();
+		}
 
 		if (!signal_context_registry()->test_and_lock(context)) {
 			PWRN("encountered dead signal context");

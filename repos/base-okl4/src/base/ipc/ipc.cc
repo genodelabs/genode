@@ -53,7 +53,9 @@ static void kdb_emergency_print(const char *s)
  * The message tag contains the information about the number of message words
  * to send. The tag is always supplied in message register 0. Message register
  * 1 is used for the local name (when the client calls the server) or the
- * exception code (when the server replies to the client). All subsequent
+ * exception code (when the server replies to the client). Message register
+ * 2 holds the number of transferred capability arguments. It is followed
+ * by a tuple of (thread ID, local name) for each capability. All subsequent
  * message registers hold the message payload.
  */
 
@@ -64,43 +66,79 @@ static void kdb_emergency_print(const char *s)
  */
 static L4_Word_t extract_msg_from_utcb(L4_MsgTag_t rcv_tag, Msgbuf_base &rcv_msg)
 {
-	unsigned num_msg_words = (int)L4_UntypedWords(rcv_tag);
+	rcv_msg.reset();
 
-	if (num_msg_words*sizeof(L4_Word_t) > rcv_msg.capacity()) {
-		PERR("receive message buffer too small msg size=%zd, buf size=%zd",
-		     num_msg_words*sizeof(L4_Word_t), rcv_msg.capacity());
-		num_msg_words = rcv_msg.capacity()/sizeof(L4_Word_t);
+	unsigned const num_msg_words = (int)L4_UntypedWords(rcv_tag);
+
+	if (num_msg_words < 3)
+		return Rpc_exception_code::INVALID_OBJECT;
+
+	L4_Word_t protocol_word = 0;
+	L4_StoreMR(1, &protocol_word);
+
+	L4_Word_t num_caps = 0;
+	L4_StoreMR(2, &num_caps);
+
+	/* each capability is represened as two message words (tid, local name) */
+	for (unsigned i = 0; i < num_caps; i++) {
+		L4_Word_t local_name = 0;
+		L4_ThreadId_t tid;
+		L4_StoreMR(3 + 2*i,     &tid.raw);
+		L4_StoreMR(3 + 2*i + 1, &local_name);
+		rcv_msg.insert(Native_capability(tid, local_name));
 	}
 
-	L4_Word_t local_name = 0;
-	L4_StoreMR(1, &local_name);
+	unsigned const data_start_idx = 3 + 2*num_caps;
+
+	if (num_msg_words < data_start_idx)
+		return Rpc_exception_code::INVALID_OBJECT;
+
+	unsigned const num_data_words = num_msg_words - data_start_idx;
+
+	if (num_data_words*sizeof(L4_Word_t) > rcv_msg.capacity()) {
+		PERR("receive message buffer too small msg size=%zd, buf size=%zd",
+		     num_data_words*sizeof(L4_Word_t), rcv_msg.capacity());
+		return Rpc_exception_code::INVALID_OBJECT;
+	}
 
 	/* read message payload into destination message buffer */
-	L4_StoreMRs(2, num_msg_words - 2, (L4_Word_t *)rcv_msg.data());
+	L4_StoreMRs(data_start_idx, num_data_words, (L4_Word_t *)rcv_msg.data());
 
-	return local_name;
+	rcv_msg.data_size(sizeof(num_data_words));
+
+	return protocol_word;
 }
 
 
 /**
  * Copy message payload to UTCB message registers
  */
-static void copy_msg_to_utcb(Msgbuf_base const &snd_msg, unsigned num_msg_words,
-                             L4_Word_t local_name)
+static void copy_msg_to_utcb(Msgbuf_base const &snd_msg, L4_Word_t local_name)
 {
-	num_msg_words += 2;
+	unsigned const num_header_words = 3 + 2*snd_msg.used_caps();
+	unsigned const num_data_words   = snd_msg.data_size()/sizeof(L4_Word_t);
+	unsigned const num_msg_words    = num_data_words + num_header_words;
 
 	if (num_msg_words >= L4_GetMessageRegisters()) {
 		kdb_emergency_print("Message does not fit into UTCB message registers\n");
-		num_msg_words = L4_GetMessageRegisters() - 1;
+		L4_LoadMR(0, 0);
+		return;
 	}
 
 	L4_MsgTag_t snd_tag;
 	snd_tag.raw = 0;
 	snd_tag.X.u = num_msg_words;
-	L4_LoadMR (0, snd_tag.raw);
-	L4_LoadMR (1, local_name);
-	L4_LoadMRs(2, num_msg_words - 2, (L4_Word_t *)snd_msg.data());
+
+	L4_LoadMR(0, snd_tag.raw);
+	L4_LoadMR(1, local_name);
+	L4_LoadMR(2, snd_msg.used_caps());
+
+	for (unsigned i = 0; i < snd_msg.used_caps(); i++) {
+		L4_LoadMR(3 + i*2,     snd_msg.cap(i).dst().raw);
+		L4_LoadMR(3 + i*2 + 1, snd_msg.cap(i).local_name());
+	}
+
+	L4_LoadMRs(num_header_words, num_data_words, (L4_Word_t *)snd_msg.data());
 }
 
 
@@ -113,8 +151,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
                                     size_t)
 {
 	/* copy call message to the UTCBs message registers */
-	copy_msg_to_utcb(snd_msg, snd_msg.data_size()/sizeof(L4_Word_t),
-	                 dst.local_name());
+	copy_msg_to_utcb(snd_msg, dst.local_name());
 
 	L4_Accept(L4_UntypedWordsAcceptor);
 
@@ -136,54 +173,46 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 
 
 /****************
- ** Ipc_server **
+ ** IPC server **
  ****************/
 
-void Ipc_server::_prepare_next_reply_wait()
-{
-	_reply_needed = true;
-	_read_offset = _write_offset = 0;
-}
-
-
-void Ipc_server::reply()
+void Genode::ipc_reply(Native_capability caller, Rpc_exception_code exc,
+                       Msgbuf_base &snd_msg)
 {
 	/* copy reply to the UTCBs message registers */
-	copy_msg_to_utcb(_snd_msg, _write_offset/sizeof(L4_Word_t),
-	                 _exception_code.value);
+	copy_msg_to_utcb(snd_msg, exc.value);
 
 	/* perform non-blocking IPC send operation */
-	L4_MsgTag_t rcv_tag = L4_Reply(_caller.dst());
+	L4_MsgTag_t rcv_tag = L4_Reply(caller.dst());
 
 	if (L4_IpcFailed(rcv_tag))
 		PERR("ipc error in _reply - gets ignored");
-
-	_prepare_next_reply_wait();
 }
 
 
-void Ipc_server::reply_wait()
+Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
+                                           Rpc_exception_code      exc,
+                                           Msgbuf_base            &reply_msg,
+                                           Msgbuf_base            &request_msg)
 {
 	L4_MsgTag_t rcv_tag;
 
-	if (_reply_needed) {
+	Okl4::L4_ThreadId_t caller = L4_nilthread;
+
+	if (last_caller.valid()) {
 
 		/* copy reply to the UTCBs message registers */
-		copy_msg_to_utcb(_snd_msg, _write_offset/sizeof(L4_Word_t),
-		                 _exception_code.value);
+		copy_msg_to_utcb(reply_msg, exc.value);
 
-		rcv_tag = L4_ReplyWait(_caller.dst(), &_rcv_cs.caller);
+		rcv_tag = L4_ReplyWait(last_caller.dst(), &caller);
 	} else {
-		rcv_tag = L4_Wait(&_rcv_cs.caller);
+		rcv_tag = L4_Wait(&caller);
 	}
 
 	/* copy request message from the UTCBs message registers */
-	_badge = extract_msg_from_utcb(rcv_tag, _rcv_msg);
+	unsigned long const badge = extract_msg_from_utcb(rcv_tag, request_msg);
 
-	/* define destination of next reply */
-	_caller = Native_capability(_rcv_cs.caller, badge());
-
-	_prepare_next_reply_wait();
+	return Rpc_request(Native_capability(caller, 0), badge);
 }
 
 
@@ -202,14 +231,7 @@ static inline Okl4::L4_ThreadId_t thread_get_my_global_id()
 }
 
 
-Ipc_server::Ipc_server(Native_connection_state &cs,
-                       Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg)
-:
-	Ipc_marshaller(snd_msg),
-	Ipc_unmarshaller(rcv_msg),
-	Native_capability(thread_get_my_global_id(), 0),
-	_rcv_cs(cs)
-{ }
+Ipc_server::Ipc_server() : Native_capability(thread_get_my_global_id(), 0) { }
 
 
 Ipc_server::~Ipc_server() { }

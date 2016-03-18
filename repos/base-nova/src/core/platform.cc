@@ -33,6 +33,7 @@
 
 /* NOVA includes */
 #include <nova/syscalls.h>
+#include <nova/util.h>
 
 using namespace Genode;
 using namespace Nova;

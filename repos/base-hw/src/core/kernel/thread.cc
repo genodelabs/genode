@@ -70,7 +70,7 @@ void Thread::_await_signal(Signal_receiver * const receiver)
 void Thread::_receive_signal(void * const base, size_t const size)
 {
 	assert(_state == AWAITS_SIGNAL);
-	Genode::memcpy((void*)utcb()->base(), base, size);
+	Genode::memcpy(utcb()->data(), base, size);
 	_become_active();
 }
 

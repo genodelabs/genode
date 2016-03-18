@@ -35,16 +35,55 @@ namespace Hw { extern Genode::Untyped_capability _main_thread_cap; }
 using namespace Genode;
 
 
-/*****************************
- ** IPC marshalling support **
- *****************************/
+/**
+ * Copy data from the message buffer to UTCB
+ */
+static inline void copy_msg_to_utcb(Msgbuf_base const &snd_msg, Native_utcb &utcb)
+{
+	/* copy capabilities */
+	size_t const num_caps = min((size_t)Msgbuf_base::MAX_CAPS_PER_MSG,
+	                            snd_msg.used_caps());
 
-void Ipc_marshaller::insert(Native_capability const &cap) {
-	_snd_msg.cap_add(cap); }
+	for (unsigned i = 0; i < num_caps; i++)
+		utcb.cap_set(i, snd_msg.cap(i).dst());
+
+	utcb.cap_cnt(num_caps);
+
+	/* copy data payload */
+	size_t const data_size = min(snd_msg.data_size(),
+	                             min(snd_msg.capacity(), utcb.capacity()));
+
+	memcpy(utcb.data(), snd_msg.data(), data_size);
+
+	utcb.data_size(data_size);
+}
 
 
-void Ipc_unmarshaller::extract(Native_capability &cap) {
-	cap = _rcv_msg.cap_get(); }
+/**
+ * Copy data from UTCB to the message buffer
+ */
+static inline void copy_utcb_to_msg(Native_utcb const &utcb, Msgbuf_base &rcv_msg)
+{
+	/* copy capabilities */
+	size_t const num_caps = min((size_t)Msgbuf_base::MAX_CAPS_PER_MSG,
+	                            utcb.cap_cnt());
+
+	for (unsigned i = 0; i < num_caps; i++) {
+		rcv_msg.cap(i) = utcb.cap_get(i);
+		if (rcv_msg.cap(i).valid())
+			Kernel::ack_cap(rcv_msg.cap(i).dst());
+	}
+
+	rcv_msg.used_caps(num_caps);
+
+	/* copy data payload */
+	size_t const data_size = min(utcb.data_size(),
+	                             min(utcb.capacity(), rcv_msg.capacity()));
+
+	memcpy(rcv_msg.data(), utcb.data(), data_size);
+
+	rcv_msg.data_size(data_size);
+}
 
 
 /****************
@@ -55,23 +94,19 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
                                     Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg,
                                     size_t rcv_caps)
 {
-	rcv_msg.cap_rcv_window(rcv_caps);
-
 	Native_utcb &utcb = *Thread_base::myself()->utcb();
 
 	retry<Genode::Allocator::Out_of_memory>(
 		[&] () {
 
-			/* send request and receive corresponding reply */
-			Thread_base::myself()->utcb()->copy_from(snd_msg);
+			copy_msg_to_utcb(snd_msg, *Thread_base::myself()->utcb());
 
 			switch (Kernel::send_request_msg(dst.dst(),
-			                                 rcv_msg.cap_rcv_window())) {
+			                                 rcv_caps)) {
 			case -1: throw Blocking_canceled();
 			case -2: throw Allocator::Out_of_memory();
 			default:
-				rcv_msg.reset();
-				utcb.copy_to(rcv_msg);
+				copy_utcb_to_msg(utcb, rcv_msg);
 			}
 
 		},
@@ -82,30 +117,36 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 
 
 /****************
- ** Ipc_server **
+ ** IPC server **
  ****************/
 
-void Ipc_server::reply()
+void Genode::ipc_reply(Native_capability caller, Rpc_exception_code exc,
+                       Msgbuf_base &snd_msg)
 {
-	Thread_base::myself()->utcb()->copy_from(_snd_msg);
-	_snd_msg.reset();
+	Native_utcb &utcb = *Thread_base::myself()->utcb();
+	copy_msg_to_utcb(snd_msg, utcb);
+	utcb.exception_code(exc.value);
+	snd_msg.reset();
 	Kernel::send_reply_msg(0, false);
 }
 
 
-void Ipc_server::reply_wait()
+Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &,
+                                           Rpc_exception_code      exc,
+                                           Msgbuf_base            &reply_msg,
+                                           Msgbuf_base            &request_msg)
 {
 	Native_utcb &utcb = *Thread_base::myself()->utcb();
 
 	retry<Genode::Allocator::Out_of_memory>(
 		[&] () {
 			int ret = 0;
-			if (_reply_needed) {
-				utcb.copy_from(_snd_msg);
-				utcb.exception_code(_exception_code.value);
-				ret = Kernel::send_reply_msg(Msgbuf_base::MAX_CAP_ARGS, true);
+			if (exc.value != Rpc_exception_code::INVALID_OBJECT) {
+				copy_msg_to_utcb(reply_msg, utcb);
+				utcb.exception_code(exc.value);
+				ret = Kernel::send_reply_msg(Msgbuf_base::MAX_CAPS_PER_MSG, true);
 			} else {
-				ret = Kernel::await_request_msg(Msgbuf_base::MAX_CAP_ARGS);
+				ret = Kernel::await_request_msg(Msgbuf_base::MAX_CAPS_PER_MSG);
 			}
 
 			switch (ret) {
@@ -116,27 +157,17 @@ void Ipc_server::reply_wait()
 		},
 		[&] () { upgrade_pd_session_quota(3*4096); });
 
-	_rcv_msg.reset();
-	_snd_msg.reset();
+	copy_utcb_to_msg(utcb, request_msg);
 
-	utcb.copy_to(_rcv_msg);
-	_badge = utcb.destination();
-
-	_reply_needed = true;
-	_read_offset = _write_offset = 0;
+	return Rpc_request(Native_capability(), utcb.destination());
 }
 
 
-Ipc_server::Ipc_server(Native_connection_state &cs,
-                       Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg)
+Ipc_server::Ipc_server()
 :
-	Ipc_marshaller(snd_msg), Ipc_unmarshaller(rcv_msg),
 	Native_capability(Thread_base::myself() ? Thread_base::myself()->native_thread().cap
-	                                        : Hw::_main_thread_cap),
-	_rcv_cs(cs)
-{
-	_snd_msg.reset();
-}
+	                                        : Hw::_main_thread_cap)
+{ }
 
 
 Ipc_server::~Ipc_server() { }

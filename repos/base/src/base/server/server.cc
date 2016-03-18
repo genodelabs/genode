@@ -2,22 +2,18 @@
  * \brief  Default version of platform-specific part of RPC framework
  * \author Norman Feske
  * \date   2006-05-12
- *
- * This version is suitable for platforms similar to L4. Each platform
- * for which this implementation is not suited contains a platform-
- * specific version in its respective 'base-<platform>' repository.
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2006-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* Genode includes */
+#include <util/retry.h>
 #include <base/rpc_server.h>
-#include <base/sleep.h>
 #include <base/printf.h>
 
 /* base-internal includes */
@@ -32,8 +28,7 @@ using namespace Genode;
 
 Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 {
-	Untyped_capability ep_cap = Native_capability(_cap.dst(), 0);
-	Untyped_capability new_obj_cap = _alloc_rpc_cap(_pd_session, ep_cap);
+	Untyped_capability new_obj_cap = _alloc_rpc_cap(_pd_session, _cap);
 
 	/* add server object to object pool */
 	obj->cap(new_obj_cap);
@@ -46,11 +41,7 @@ Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 
 void Rpc_entrypoint::entry()
 {
-	using Pool = Object_pool<Rpc_object_base>;
-
-	Native_connection_state cs;
-	Ipc_server srv(cs, _snd_buf, _rcv_buf);
-	_ipc_server = &srv;
+	Ipc_server srv;
 	_cap = srv;
 	_cap_valid.unlock();
 
@@ -63,27 +54,32 @@ void Rpc_entrypoint::entry()
 	 */
 	_delay_start.lock();
 
+	Rpc_exception_code exc = Rpc_exception_code(Rpc_exception_code::INVALID_OBJECT);
+
 	while (!_exit_handler.exit) {
 
-		Rpc_opcode opcode(0);
+		Rpc_request const request = ipc_reply_wait(_caller, exc, _snd_buf, _rcv_buf);
+		_caller = request.caller;
 
-		srv.reply_wait();
-		srv.extract(opcode);
+		Ipc_unmarshaller unmarshaller(_rcv_buf);
+		Rpc_opcode opcode(0);
+		unmarshaller.extract(opcode);
 
 		/* set default return value */
-		srv.ret(Rpc_exception_code(Rpc_exception_code::INVALID_OBJECT));
+		exc = Rpc_exception_code(Rpc_exception_code::INVALID_OBJECT);
+		_snd_buf.reset();
 
-		Pool::apply(srv.badge(), [&] (Rpc_object_base *obj)
+		apply(request.badge, [&] (Rpc_object_base *obj)
 		{
 			if (!obj) { return;}
-			try {
-				srv.ret(obj->dispatch(opcode, srv, srv));
-			} catch(Blocking_canceled&) { }
+			try { exc = obj->dispatch(opcode, unmarshaller, _snd_buf); }
+			catch(Blocking_canceled&) { }
 		});
 	}
 
 	/* answer exit call, thereby wake up '~Rpc_entrypoint' */
-	srv.reply();
+	Msgbuf<16> snd_buf;
+	ipc_reply(_caller, Rpc_exception_code(Rpc_exception_code::SUCCESS), snd_buf);
 
 	/* defer the destruction of 'Ipc_server' until '~Rpc_entrypoint' is ready */
 	_delay_exit.lock();

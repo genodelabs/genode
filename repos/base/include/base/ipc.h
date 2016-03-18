@@ -14,19 +14,14 @@
 #ifndef _INCLUDE__BASE__IPC_H_
 #define _INCLUDE__BASE__IPC_H_
 
-#include <util/misc_math.h>
-#include <util/string.h>
-#include <util/noncopyable.h>
-#include <base/exception.h>
-#include <base/capability.h>
 #include <base/ipc_msgbuf.h>
 #include <base/rpc_args.h>
 #include <base/printf.h>
 
 namespace Genode {
 
-	class Ipc_error;
-	class Ipc_marshaller;
+	struct Ipc_error : Exception { };
+
 	class Ipc_unmarshaller;
 
 	/**
@@ -47,92 +42,15 @@ namespace Genode {
 
 
 /**
- * Exception type
- */
-class Genode::Ipc_error : public Exception { };
-
-
-/**
- * Marshal arguments into send message buffer
- */
-class Genode::Ipc_marshaller : Noncopyable
-{
-	protected:
-
-		Msgbuf_base &_snd_msg;
-		size_t      &_write_offset = _snd_msg._data_size;
-
-	private:
-
-		char        *_snd_buf      = (char *)_snd_msg.data();
-		size_t const _snd_buf_size = _snd_msg.capacity();
-
-	public:
-
-		/**
-		 * Write value to send buffer
-		 */
-		template <typename T>
-		void insert(T const &value)
-		{
-			/* check buffer range */
-			if (_write_offset + sizeof(T) >= _snd_buf_size) return;
-
-			/* write integer to buffer */
-			*reinterpret_cast<T *>(&_snd_buf[_write_offset]) = value;
-
-			/* increment write pointer to next dword-aligned value */
-			_write_offset += align_natural(sizeof(T));
-		}
-
-		template <size_t MAX_BUFFER_SIZE>
-		void insert(Rpc_in_buffer<MAX_BUFFER_SIZE> const &b)
-		{
-			size_t const size = b.size();
-			insert(size);
-			insert(b.base(), size);
-		}
-
-		/**
-		 * Write bytes to send buffer
-		 */
-		void insert(char const *src_addr, unsigned num_bytes)
-		{
-			/* check buffer range */
-			if (_write_offset + num_bytes >= _snd_buf_size) return;
-
-			/* copy buffer */
-			memcpy(&_snd_buf[_write_offset], src_addr, num_bytes);
-
-			/* increment write pointer to next dword-aligned value */
-			_write_offset += align_natural(num_bytes);
-		}
-
-		/**
-		 * Insert capability to message buffer
-		 */
-		void insert(Native_capability const &cap);
-
-		template <typename IT>
-		void insert(Capability<IT> const &typed_cap)
-		{
-			Native_capability untyped_cap = typed_cap;
-			insert(untyped_cap);
-		}
-
-		Ipc_marshaller(Msgbuf_base &snd_msg) : _snd_msg(snd_msg) { }
-};
-
-
-/**
  * Unmarshal arguments from receive buffer
  */
 class Genode::Ipc_unmarshaller : Noncopyable
 {
 	protected:
 
-		Msgbuf_base  &_rcv_msg;
-		unsigned      _read_offset = 0;
+		Msgbuf_base &_rcv_msg;
+		unsigned     _read_offset = 0;
+		unsigned     _read_cap_index = 0;
 
 	private:
 
@@ -141,12 +59,25 @@ class Genode::Ipc_unmarshaller : Noncopyable
 
 	public:
 
+		/**
+		 * Obtain typed capability from message buffer
+		 */
 		template <typename IT>
 		void extract(Capability<IT> &typed_cap)
 		{
 			Native_capability untyped_cap;
 			extract(untyped_cap);
 			typed_cap = reinterpret_cap_cast<IT>(untyped_cap);
+		}
+
+		/**
+		 * Obtain capability from message buffer
+		 */
+		void extract(Native_capability &cap)
+		{
+			cap = _read_cap_index < _rcv_msg.used_caps()
+			    ? _rcv_msg.cap(_read_cap_index) : Native_capability();
+			_read_cap_index++;
 		}
 
 		/**
@@ -175,11 +106,6 @@ class Genode::Ipc_unmarshaller : Noncopyable
 		}
 
 		/**
-		 * Obtain capability from message buffer
-		 */
-		void extract(Native_capability &cap);
-
-		/**
 		 * Read value of type T from buffer
 		 */
 		template <typename T>
@@ -194,8 +120,6 @@ class Genode::Ipc_unmarshaller : Noncopyable
 			/* increment read pointer to next dword-aligned value */
 			_read_offset += align_natural(sizeof(T));
 		}
-
-	public:
 
 		Ipc_unmarshaller(Msgbuf_base &rcv_msg) : _rcv_msg(rcv_msg) { }
 };

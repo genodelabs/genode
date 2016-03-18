@@ -161,6 +161,9 @@ void test_server_oom()
 			PINF("received %u. cap", i);
 	}
 
+	/* XXX this code does does no longer work since the removal of 'solely_map' */
+#if 0
+
 	/* case that during send we get oom */
 	for (unsigned i = 0; i < 20000; i++) {
 		/* be evil and switch translation off - server ever uses a new selector */
@@ -176,6 +179,7 @@ void test_server_oom()
 		if (i % 5000 == 4999)
 			PINF("sent %u. cap", i);
 	}
+#endif
 
 	ep.dissolve(&component);
 }

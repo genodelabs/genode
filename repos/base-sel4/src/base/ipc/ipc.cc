@@ -63,11 +63,9 @@ static unsigned &rcv_sel()
 /**
  * Convert Genode::Msgbuf_base content into seL4 message
  *
- * \param msg          source message buffer
- * \param data_length  size of message data in bytes
+ * \param msg  source message buffer
  */
-static seL4_MessageInfo_t new_seL4_message(Msgbuf_base const &msg,
-                                           size_t const data_length)
+static seL4_MessageInfo_t new_seL4_message(Msgbuf_base const &msg)
 {
 	/*
 	 * Supply capabilities to kernel IPC message
@@ -107,7 +105,7 @@ static seL4_MessageInfo_t new_seL4_message(Msgbuf_base const &msg,
 	 * Supply data payload
 	 */
 	size_t const num_data_mwords =
-		align_natural(data_length) / sizeof(umword_t);
+		align_natural(msg.data_size()) / sizeof(umword_t);
 
 	umword_t const *src = (umword_t const *)msg.data();
 	for (size_t i = 0; i < num_data_mwords; i++)
@@ -129,7 +127,7 @@ static void decode_seL4_message(seL4_MessageInfo_t const &msg_info,
 	/*
 	 * Extract Genode capabilities from seL4 IPC message
 	 */
-	dst_msg.reset_caps();
+	dst_msg.reset();
 	size_t const num_caps = seL4_GetMR(MR_IDX_NUM_CAPS);
 	size_t curr_sel4_cap_idx = 0;
 
@@ -153,7 +151,7 @@ static void decode_seL4_message(seL4_MessageInfo_t const &msg_info,
 		 *     Hence it is meaningless as a key.
 		 */
 		if (!rpc_obj_key.valid() && seL4_MessageInfo_get_extraCaps(msg_info) == 0) {
-			dst_msg.append_cap(Native_capability());
+			dst_msg.insert(Native_capability());
 			continue;
 		}
 
@@ -185,7 +183,7 @@ static void decode_seL4_message(seL4_MessageInfo_t const &msg_info,
 
 			Native_capability arg_cap = Capability_space::lookup(rpc_obj_key);
 
-			dst_msg.append_cap(arg_cap);
+			dst_msg.insert(arg_cap);
 
 		} else {
 
@@ -224,14 +222,14 @@ static void decode_seL4_message(seL4_MessageInfo_t const &msg_info,
 
 				Capability_space::reset_sel(rcv_sel());
 
-				dst_msg.append_cap(arg_cap);
+				dst_msg.insert(arg_cap);
 
 			} else {
 
 				Capability_space::Ipc_cap_data const
 					ipc_cap_data(rpc_obj_key, rcv_sel());
 
-				dst_msg.append_cap(Capability_space::import(ipc_cap_data));
+				dst_msg.insert(Capability_space::import(ipc_cap_data));
 
 				/*
 				 * Since we keep using the received selector, we need to
@@ -247,25 +245,21 @@ static void decode_seL4_message(seL4_MessageInfo_t const &msg_info,
 	 * Extract message data payload
 	 */
 
+	size_t const num_msg_words = seL4_MessageInfo_get_length(msg_info);
+
+	/* detect malformed message with too small header */
+	if (num_msg_words < MR_IDX_DATA)
+		return;
+
+	/* copy data payload */
+	size_t const max_words      = dst_msg.capacity()/sizeof(umword_t);
+	size_t const num_data_words = min(num_msg_words - MR_IDX_DATA, max_words);
+
 	umword_t *dst = (umword_t *)dst_msg.data();
-	for (size_t i = 0; i < seL4_MessageInfo_get_length(msg_info); i++)
+	for (size_t i = 0; i < num_data_words; i++)
 		*dst++ = seL4_GetMR(MR_IDX_DATA + i);
-}
 
-
-/*****************************
- ** IPC marshalling support **
- *****************************/
-
-void Ipc_marshaller::insert(Native_capability const &cap)
-{
-	_snd_msg.append_cap(cap);
-}
-
-
-void Ipc_unmarshaller::extract(Native_capability &cap)
-{
-	cap = _rcv_msg.extract_cap();
+	dst_msg.data_size(num_data_words*sizeof(umword_t));
 }
 
 
@@ -285,8 +279,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 	if (!rcv_sel())
 		rcv_sel() = Capability_space::alloc_rcv_sel();
 
-	seL4_MessageInfo_t const request_msg_info =
-		new_seL4_message(snd_msg, snd_msg.data_size());
+	seL4_MessageInfo_t const request_msg_info = new_seL4_message(snd_msg);
 
 	unsigned const dst_sel = Capability_space::ipc_cap_data(dst).sel.value();
 
@@ -300,55 +293,51 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 
 
 /****************
- ** Ipc_server **
+ ** IPC server **
  ****************/
 
-void Ipc_server::reply()
+void Genode::ipc_reply(Native_capability caller, Rpc_exception_code exc,
+                       Msgbuf_base &snd_msg)
 {
 	ASSERT(false);
 }
 
 
-void Ipc_server::reply_wait()
+Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
+                                           Rpc_exception_code      exc,
+                                           Msgbuf_base            &reply_msg,
+                                           Msgbuf_base            &request_msg)
 {
-	if (!_reply_needed) {
+	seL4_Word badge = 0;
 
-		seL4_MessageInfo_t const msg_info =
-			seL4_Recv(Thread_base::myself()->native_thread().ep_sel,
-			          (seL4_Word *)&_badge);
+	if (exc.value == Rpc_exception_code::INVALID_OBJECT) {
 
-		decode_seL4_message(msg_info, _rcv_msg);
+		seL4_MessageInfo_t const request_msg_info =
+			seL4_Recv(Thread_base::myself()->native_thread().ep_sel, &badge);
+
+		decode_seL4_message(request_msg_info, request_msg);
 
 	} else {
 
-		seL4_MessageInfo_t const reply_msg_info =
-			new_seL4_message(_snd_msg, _write_offset);
+		seL4_MessageInfo_t const reply_msg_info = new_seL4_message(reply_msg);
 
-		seL4_SetMR(MR_IDX_EXC_CODE, _exception_code.value);
+		seL4_SetMR(MR_IDX_EXC_CODE, exc.value);
 
 		seL4_MessageInfo_t const request_msg_info =
 			seL4_ReplyRecv(Thread_base::myself()->native_thread().ep_sel,
-			               reply_msg_info, (seL4_Word *)&_badge);
+			               reply_msg_info, &badge);
 
-		decode_seL4_message(request_msg_info, _rcv_msg);
+		decode_seL4_message(request_msg_info, request_msg);
 	}
 
-	_reply_needed = true;
-	_read_offset = _write_offset = 0;
-
-	_rcv_msg.reset_read_cap_index();
-	_snd_msg.reset_caps();
+	return Rpc_request(Native_capability(), badge);
 }
 
 
-Ipc_server::Ipc_server(Native_connection_state &cs,
-                       Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg)
+Ipc_server::Ipc_server()
 :
-	Ipc_marshaller(snd_msg), Ipc_unmarshaller(rcv_msg), _rcv_cs(cs)
-{
-	*static_cast<Native_capability *>(this) =
-		Native_capability(Capability_space::create_ep_cap(*Thread_base::myself()));
-}
+	Native_capability(Capability_space::create_ep_cap(*Thread_base::myself()))
+{ }
 
 
 Ipc_server::~Ipc_server() { }

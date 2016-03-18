@@ -21,8 +21,7 @@ void Pager_object::wake_up()
 {
 	/* notify pager to wake up faulter */
 	Msgbuf<16> snd, rcv;
-	Ipc_marshaller marshaller(snd);
-	marshaller.insert(this);
+	snd.insert(this);
 	ipc_call(cap(), snd, rcv, 0);
 }
 

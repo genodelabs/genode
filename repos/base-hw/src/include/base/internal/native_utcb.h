@@ -16,6 +16,8 @@
 #define _INCLUDE__BASE__INTERNAL__NATIVE_UTCB_H_
 
 /* Genode includes */
+#include <util/misc_math.h>
+#include <util/string.h>
 #include <base/stdint.h>
 #include <base/ipc_msgbuf.h>
 
@@ -47,30 +49,37 @@ class Genode::Native_utcb
 {
 	public:
 
-		enum { MAX_CAP_ARGS = Msgbuf_base::MAX_CAP_ARGS};
+		enum { MAX_CAP_ARGS = Msgbuf_base::MAX_CAPS_PER_MSG};
 
 		enum Offsets { THREAD_MYSELF, PARENT, UTCB_DATASPACE };
 
 	private:
 
-		Kernel::capid_t _caps[MAX_CAP_ARGS]; /* capability buffer  */
+		/*
+		 * Note thats the member variables are sorted from the largest to the
+		 * smallest size to avoid padding. Otherwise, the dimensioning of
+		 * '_data' would not yield a page-sized 'Native_utcb'.
+		 */
+
 		size_t          _cap_cnt;            /* capability counter */
-		size_t          _size;               /* bytes to transfer  */
+		size_t          _data_size;          /* bytes to transfer  */
 		long            _exception_code;     /* result code of RPC */
 		Kernel::capid_t _destination;        /* invoked object     */
-		uint8_t         _buf[get_page_size() - sizeof(_caps) -
-		                     sizeof(_cap_cnt) - sizeof(_size) -
-		                     sizeof(_destination) - sizeof(_exception_code)];
+		Kernel::capid_t _caps[MAX_CAP_ARGS]; /* capability buffer  */
+		uint8_t         _data[get_page_size() - sizeof(_caps) -
+		                      sizeof(_cap_cnt) - sizeof(_data_size) -
+		                      sizeof(_destination) - sizeof(_exception_code)];
 
 	public:
 
-		Native_utcb& operator= (const Native_utcb &o)
+		Native_utcb& operator= (const Native_utcb &other)
 		{
 			_cap_cnt        = 0;
-			_size           = o._size;
-			_exception_code = o._exception_code;
-			_destination    = o._destination;
-			memcpy(_buf, o._buf, _size);
+			_data_size      = min(sizeof(_data), other._data_size);
+			_exception_code = other._exception_code;
+			_destination    = other._destination;
+			memcpy(_data, other._data, _data_size);
+
 			return *this;
 		}
 
@@ -91,7 +100,7 @@ class Genode::Native_utcb
 		/**
 		 * Return the count of capabilities in the UTCB
 		 */
-		size_t cap_cnt() { return _cap_cnt; }
+		size_t cap_cnt() const { return _cap_cnt; }
 
 		/**
 		 * Set the count of capabilities in the UTCB
@@ -101,41 +110,43 @@ class Genode::Native_utcb
 		/**
 		 * Return the start address of the payload data
 		 */
-		void const * base() const { return &_buf; }
+		void const *data() const { return &_data[0]; }
+		void       *data()       { return &_data[0]; }
 
 		/**
-		 * Copy data from the message buffer 'snd_msg' to this UTCB
+		 * Return maximum number of bytes for message payload
 		 */
-		void copy_from(Msgbuf_base const &snd_msg)
-		{
-			_size = min(snd_msg.data_size(), sizeof(_buf));
-
-			_cap_cnt = snd_msg._snd_cap_cnt;
-			for (unsigned i = 0; i < _cap_cnt; i++)
-				_caps[i] = snd_msg._caps[i].dst();
-
-			memcpy(_buf, snd_msg.buf, min(_size, snd_msg.capacity()));
-		}
+		size_t capacity() const { return sizeof(_data); }
 
 		/**
-		 * Copy data from this UTCB to the message buffer 'o'
+		 * Return size of message data in bytes
 		 */
-		void copy_to(Msgbuf_base &o)
-		{
-			o._snd_cap_cnt = _cap_cnt;
-			for (unsigned i = 0; i < _cap_cnt; i++) {
-				o._caps[i] = _caps[i];
-				if (o._caps[i].valid()) Kernel::ack_cap(o._caps[i].dst());
-			}
+		size_t data_size() const { return _data_size; }
 
-			memcpy(o.buf, _buf, min(_size, o.capacity()));
+		/**
+		 * Define size of message data to be transferred, in bytes
+		 */
+		void data_size(size_t data_size)
+		{
+			_data_size = min(data_size, sizeof(_data));
 		}
 
 		/**
 		 * Return the capability id at index 'i'
 		 */
-		Kernel::capid_t cap_get(unsigned i) {
-			return (i < _cap_cnt) ? _caps[i] : Kernel::cap_id_invalid(); }
+		Kernel::capid_t cap_get(unsigned i) const
+		{
+			return (i < MAX_CAP_ARGS) ? _caps[i] : Kernel::cap_id_invalid();
+		}
+
+		/**
+		 * Set the capability id at index 'i'
+		 */
+		void cap_set(unsigned i, Kernel::capid_t cap)
+		{
+			if (i < MAX_CAP_ARGS)
+				_caps[i] = cap;
+		}
 
 		/**
 		 * Set the capability id 'cap_id' at the next index
@@ -143,5 +154,8 @@ class Genode::Native_utcb
 		void cap_add(Kernel::capid_t cap_id) {
 			if (_cap_cnt < MAX_CAP_ARGS) _caps[_cap_cnt++] = cap_id; }
 };
+
+static_assert(sizeof(Genode::Native_utcb) == Genode::get_page_size(),
+              "Native_utcb is not page-sized");
 
 #endif /* _INCLUDE__BASE__INTERNAL__NATIVE_UTCB_H_ */

@@ -25,8 +25,8 @@ namespace Genode {
 	/**
 	 * Forward declaration needed for internal interfaces of 'Capability'
 	 */
-	class Ipc_marshaller;
 	class Ipc_unmarshaller;
+	class Msgbuf_base;
 
 
 	/**
@@ -58,9 +58,9 @@ class Genode::Capability : public Untyped_capability
 		 * Insert RPC arguments into the message buffer
 		 */
 		template <typename ATL>
-		void _marshal_args(Ipc_marshaller &, ATL &args) const;
+		void _marshal_args(Msgbuf_base &, ATL &args) const;
 
-		void _marshal_args(Ipc_marshaller &, Meta::Empty &) const { }
+		void _marshal_args(Msgbuf_base &, Meta::Empty &) const { }
 
 		/**
 		 * Unmarshal single RPC argument from the message buffer
