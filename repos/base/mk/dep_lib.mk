@@ -138,7 +138,7 @@ endif
 	  echo "	     REP_DIR=$(REP_DIR) \\"; \
 	  echo "	     LIB_MK=$(LIB_MK) \\"; \
 	  echo "	     LIB=$(LIB) \\"; \
-	  echo "	     DEPS=\"\$$($(DEP_VAR_NAME))\" \\"; \
+	  echo "	     DEPS=\"\$$(sort \$$($(DEP_VAR_NAME)))\" \\"; \
 	  echo "	     BUILD_BASE_DIR=$(BUILD_BASE_DIR) \\"; \
 	  echo "	     SHELL=$(SHELL) \\"; \
 	  echo "	     SHARED_LIBS=\"\$$(SHARED_LIBS)\"\\"; \
