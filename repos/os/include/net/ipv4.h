@@ -66,8 +66,8 @@ class Net::Ipv4_packet
 		 ** IPv4 header fields **
 		 ************************/
 
-		unsigned         _version         : 4;
 		unsigned         _header_length   : 4;
+		unsigned         _version         : 4;
 		Genode::uint8_t  _diff_service;
 		Genode::uint16_t _total_length;
 		Genode::uint16_t _identification;
@@ -132,7 +132,7 @@ class Net::Ipv4_packet
 		 *******************************/
 
 		Genode::size_t  version()     { return _version;                   }
-		Genode::size_t  header_length() { return _header_length / 4;       }
+		Genode::size_t  header_length() { return _header_length;           }
 		Genode::uint8_t precedence()  { return _diff_service & PRECEDENCE; }
 
 		bool low_delay()              { return _diff_service & DELAY;      }
