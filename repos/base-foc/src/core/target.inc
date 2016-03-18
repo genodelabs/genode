@@ -63,7 +63,6 @@ vpath rm_session_component.cc     $(GEN_CORE_DIR)
 vpath rom_session_component.cc    $(GEN_CORE_DIR)
 vpath trace_session_component.cc  $(GEN_CORE_DIR)
 vpath core_rpc_cap_alloc.cc       $(GEN_CORE_DIR)
-vpath pager_object.cc             $(GEN_CORE_DIR)
 vpath core_printf.cc              $(BASE_DIR)/src/base/console
 vpath %.cc                        $(REP_DIR)/src/core
 vpath %.cc                        $(REP_DIR)/src/base/thread

@@ -158,19 +158,19 @@ void Core_parent::exit(int exit_value)
 
 namespace Genode {
 
-	Native_connection_state server_socket_pair()
+	Socket_pair server_socket_pair()
 	{
 		return create_server_socket_pair(Thread_base::myself()->native_thread().tid);
 	}
 
-	void destroy_server_socket_pair(Native_connection_state const &ncs)
+	void destroy_server_socket_pair(Socket_pair socket_pair)
 	{
 		/*
 		 * As entrypoints in core are never destructed, this function is only
 		 * called on IPC-client destruction. In this case, it's a no-op in core
 		 * as well as in Genode processes.
 		 */
-		if (ncs.server_sd != -1 || ncs.client_sd != -1)
+		if (socket_pair.server_sd != -1 || socket_pair.client_sd != -1)
 			PERR("%s called for IPC server which should never happen", __func__);
 	}
 }

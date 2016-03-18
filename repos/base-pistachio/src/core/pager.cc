@@ -132,10 +132,7 @@ void Ipc_pager::reply_and_wait_for_fault()
 
 void Ipc_pager::acknowledge_wakeup()
 {
-	PERR("acknowledge_wakeup called, not yet implemented");
-//	/* answer wakeup call from one of core's region-manager sessions */
-//	l4_msgdope_t result;
-//	l4_ipc_send(_last, L4_IPC_SHORT_MSG, 0, 0, L4_IPC_SEND_TIMEOUT_0, &result);
+	L4_Reply(_last);
 }
 
 

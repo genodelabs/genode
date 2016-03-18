@@ -124,7 +124,7 @@ void Signal_receiver::block_for_signal()
 		return;
 	}
 	/* read signal data */
-	const void * const     utcb    = Thread_base::myself()->utcb()->base();
+	const void * const     utcb    = Thread_base::myself()->utcb()->data();
 	Signal::Data * const   data    = (Signal::Data *)utcb;
 	Signal_context * const context = data->context;
 	{

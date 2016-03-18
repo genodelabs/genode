@@ -66,7 +66,7 @@ class Kernel::Ipc_node : public Ipc_node_queue::Element
 		Ipc_node_queue        _request_queue;
 
 		/* pre-allocation array for obkject identity references */
-		void * _obj_id_ref_ptr[Genode::Msgbuf_base::MAX_CAP_ARGS];
+		void * _obj_id_ref_ptr[Genode::Msgbuf_base::MAX_CAPS_PER_MSG];
 
 		inline void copy_msg(Ipc_node * const sender);
 

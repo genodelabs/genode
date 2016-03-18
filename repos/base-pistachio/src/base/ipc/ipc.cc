@@ -68,19 +68,62 @@ static inline void check_ipc_result(L4_MsgTag_t result, L4_Word_t error_code)
 		throw Genode::Ipc_error();
 	}
 
-	if (L4_UntypedWords(result) != 1) {
-		PERR("Error in thread %08lx. Expected one untyped word (local_name), but got %lu.\n",
+	if (L4_UntypedWords(result) < 2) {
+		PERR("Error in thread %08lx. Expected at leat two untyped words, but got %lu.\n",
 		     L4_Myself().raw, L4_UntypedWords(result));
+		throw Genode::Ipc_error();
+	}
+}
 
-		PERR("This should not happen. Inspect!");
-		throw Genode::Ipc_error();
+
+/**
+ * Configure L4 receive buffer according to Genode receive buffer
+ */
+static void extract_caps(L4_Msg_t &msg, Msgbuf_base &rcv_msg)
+{
+	using namespace Pistachio;
+
+	L4_Word_t const num_caps = min((unsigned)Msgbuf_base::MAX_CAPS_PER_MSG,
+	                               L4_Get(&msg, 1));
+	for (unsigned i = 0; i < num_caps; i++) {
+
+		L4_ThreadId_t tid;
+		tid.raw = L4_Get(&msg, 2 + i*2);
+
+		L4_Word_t const local_name = L4_Get(&msg, 2 + i*2 + 1);
+
+		rcv_msg.insert(Native_capability(tid, local_name));
 	}
-	if (L4_TypedWords(result) != 2) {
-		PERR("Error. Expected two typed words (a string item). but got %lu.\n",
-		     L4_TypedWords(result));
-		PERR("This should not happen. Inspect!");
-		throw Genode::Ipc_error();
+}
+
+
+/**
+ * Configure L4 message descriptor according to Genode send buffer
+ */
+static void prepare_send(L4_Word_t protocol_value, L4_Msg_t &msg,
+                         Msgbuf_base &snd_msg)
+{
+	L4_Clear(&msg);
+	L4_Append(&msg, protocol_value);
+
+	L4_Append(&msg, (L4_Word_t)snd_msg.used_caps());
+
+	for (unsigned i = 0; i < snd_msg.used_caps(); i++) {
+		L4_Append(&msg, (L4_Word_t)snd_msg.cap(i).dst().raw);
+		L4_Append(&msg, (L4_Word_t)snd_msg.cap(i).local_name());
 	}
+
+	L4_Append(&msg, L4_StringItem(snd_msg.data_size(), snd_msg.data()));
+	L4_Load(&msg);
+}
+
+
+static void prepare_receive(L4_MsgBuffer_t &l4_msgbuf, Msgbuf_base &rcv_msg)
+{
+	L4_Clear(&l4_msgbuf);
+	L4_Append(&l4_msgbuf, L4_StringItem(rcv_msg.capacity(), rcv_msg.data()));
+	L4_Accept(L4_UntypedWordsAcceptor);
+	L4_Accept(L4_StringItemsAcceptor, &l4_msgbuf);
 }
 
 
@@ -92,23 +135,13 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
                                     Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg,
                                     size_t)
 {
-	L4_Msg_t msg;
-	L4_StringItem_t sitem = L4_StringItem(snd_msg.data_size(), snd_msg.data());
-	L4_Word_t const local_name = dst.local_name();
-
+	/* prepare receive message buffer */
 	L4_MsgBuffer_t msgbuf;
-
-	/* prepare message buffer */
-	L4_Clear (&msgbuf);
-	L4_Append (&msgbuf, L4_StringItem (rcv_msg.capacity(), rcv_msg.data()));
-	L4_Accept(L4_UntypedWordsAcceptor);
-	L4_Accept(L4_StringItemsAcceptor, &msgbuf);
+	prepare_receive(msgbuf, rcv_msg);
 
 	/* prepare sending parameters */
-	L4_Clear(&msg);
-	L4_Append(&msg, local_name);
-	L4_Append(&msg, sitem);
-	L4_Load(&msg);
+	L4_Msg_t msg;
+	prepare_send(dst.local_name(), msg, snd_msg);
 
 	L4_MsgTag_t result = L4_Call(dst.dst());
 
@@ -117,67 +150,56 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 
 	check_ipc_result(result, L4_ErrorCode());
 
+	extract_caps(msg, rcv_msg);
+
 	return Rpc_exception_code(L4_Get(&msg, 0));
 }
 
 
 /****************
- ** Ipc_server **
+ ** IPC server **
  ****************/
 
-void Ipc_server::_prepare_next_reply_wait()
-{
-	_reply_needed = true;
-	_read_offset = _write_offset = 0;
-}
-
-
-void Ipc_server::reply()
+void Genode::ipc_reply(Native_capability caller, Rpc_exception_code exc,
+                       Msgbuf_base &snd_msg)
 {
 	L4_Msg_t msg;
-	L4_StringItem_t sitem = L4_StringItem(_write_offset, _snd_msg.data());
-	L4_Word_t const local_name = _caller.local_name();
+	prepare_send(exc.value, msg, snd_msg);
 
-	L4_Clear(&msg);
-	L4_Append(&msg, local_name);
-	L4_Append(&msg, sitem);
-	L4_Load(&msg);
-
-	L4_MsgTag_t result = L4_Reply(_caller.dst());
+	L4_MsgTag_t result = L4_Reply(caller.dst());
 	if (L4_IpcFailed(result))
 		PERR("ipc error in _reply, ignored");
 
-	_prepare_next_reply_wait();
+	snd_msg.reset();
 }
 
 
-void Ipc_server::reply_wait()
+Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
+                                           Rpc_exception_code      exc,
+                                           Msgbuf_base            &reply_msg,
+                                           Msgbuf_base            &request_msg)
 {
 	bool need_to_wait = true;
 
 	L4_MsgTag_t request_tag;
 
-	/* prepare request message buffer */
-	L4_MsgBuffer_t request_msgbuf;
-	L4_Clear(&request_msgbuf);
-	L4_Append(&request_msgbuf, L4_StringItem (_rcv_msg.capacity(), _rcv_msg.data()));
-	L4_Accept(L4_UntypedWordsAcceptor);
-	L4_Accept(L4_StringItemsAcceptor, &request_msgbuf);
+	request_msg.reset();
 
-	if (_reply_needed) {
+	/* prepare receive buffer for request */
+	L4_MsgBuffer_t request_msgbuf;
+	prepare_receive(request_msgbuf, request_msg);
+
+	L4_ThreadId_t caller = L4_nilthread;
+
+	if (last_caller.valid() && exc.value != Rpc_exception_code::INVALID_OBJECT) {
 
 		/* prepare reply massage */
-		L4_Msg_t reply_msg;
-		L4_StringItem_t sitem = L4_StringItem(_write_offset, _snd_msg.data());
-
-		L4_Clear(&reply_msg);
-		L4_Append(&reply_msg, (L4_Word_t)_exception_code.value);
-		L4_Append(&reply_msg, sitem);
-		L4_Load(&reply_msg);
+		L4_Msg_t reply_l4_msg;
+		prepare_send(exc.value, reply_l4_msg, reply_msg);
 
 		/* send reply and wait for new request message */
-		request_tag = L4_Ipc(_caller.dst(), L4_anythread,
-		                     L4_Timeouts(L4_ZeroTime, L4_Never), &_rcv_cs.caller);
+		request_tag = L4_Ipc(last_caller.dst(), L4_anythread,
+		                     L4_Timeouts(L4_ZeroTime, L4_Never), &caller);
 
 		if (!L4_IpcFailed(request_tag))
 			need_to_wait = false;
@@ -186,7 +208,7 @@ void Ipc_server::reply_wait()
 	while (need_to_wait) {
 
 		/* wait for new request message */
-		request_tag = L4_Wait(&_rcv_cs.caller);
+		request_tag = L4_Wait(&caller);
 
 		if (!L4_IpcFailed(request_tag))
 			need_to_wait = false;
@@ -196,26 +218,14 @@ void Ipc_server::reply_wait()
 	L4_Msg_t msg;
 	L4_Clear(&msg);
 	L4_Store(request_tag, &msg);
+	extract_caps(msg, request_msg);
 
-	/* remember badge of invoked object */
-	_badge = L4_Get(&msg, 0);
-
-	/* define destination of next reply */
-	_caller = Native_capability(_rcv_cs.caller, badge());
-
-	_prepare_next_reply_wait();
+	unsigned long const badge = L4_Get(&msg, 0);
+	return Rpc_request(Native_capability(caller, 0), badge);
 }
 
 
-Ipc_server::Ipc_server(Native_connection_state &cs,
-                       Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg)
-:
-	Ipc_marshaller(snd_msg), Ipc_unmarshaller(rcv_msg),
-	Native_capability(Pistachio::L4_Myself(), 0),
-	_rcv_cs(cs)
-{
-	_read_offset = _write_offset = 0;
-}
+Ipc_server::Ipc_server() : Native_capability(Pistachio::L4_Myself(), 0) { }
 
 
 Ipc_server::~Ipc_server() { }

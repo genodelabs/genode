@@ -89,15 +89,23 @@ namespace Genode {
 			{
 				using namespace Fiasco;
 
-				/* block on semaphore, will be unblocked if signal is available */
-				l4_irq_receive(_sem.dst(), L4_IPC_NEVER);
+				Signal signal;
+				do {
 
-				/*
-				 * Now that the server has unblocked the semaphore, we are sure
-				 * that there is a signal pending. The following 'wait_for_signal'
-				 * request will be immediately answered.
-				 */
-				return call<Rpc_wait_for_signal>();
+					/* block on semaphore until signal context was submitted */
+					l4_irq_receive(_sem.dst(), L4_IPC_NEVER);
+
+					/*
+					 * The following request will return immediately and either
+					 * return a valid or a null signal. The latter may happen in
+					 * the case a submitted signal context was destroyed (by the
+					 * submitter) before we have a chance to raise our request.
+					 */
+					signal = call<Rpc_wait_for_signal>();
+
+				} while (!signal.imprint());
+
+				return signal;
 			}
 	};
 }

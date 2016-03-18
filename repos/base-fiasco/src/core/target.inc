@@ -64,7 +64,6 @@ vpath trace_session_component.cc  $(GEN_CORE_DIR)
 vpath dataspace_component.cc      $(GEN_CORE_DIR)
 vpath dump_alloc.cc               $(GEN_CORE_DIR)
 vpath stack_area.cc               $(GEN_CORE_DIR)
-vpath pager_object.cc             $(GEN_CORE_DIR)
 vpath pager_ep.cc                 $(GEN_CORE_DIR)
 vpath core_printf.cc              $(BASE_DIR)/src/base/console
 vpath %.cc                        $(REP_DIR)/src/core

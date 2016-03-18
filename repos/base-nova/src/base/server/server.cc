@@ -20,11 +20,12 @@
 
 /* base-internal includes */
 #include <base/internal/stack.h>
-#include <base/internal/ipc_server.h>
+#include <base/internal/ipc.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>
 #include <nova/util.h>
+#include <nova/native_thread.h>
 
 using namespace Genode;
 
@@ -106,6 +107,14 @@ void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
 }
 
 
+static void reply(Nova::Utcb &utcb, Rpc_exception_code exc, Msgbuf_base &snd_msg)
+{
+	copy_msgbuf_to_utcb(utcb, snd_msg, exc.value);
+
+	Nova::reply(Thread_base::myself()->stack_top());
+}
+
+
 void Rpc_entrypoint::_activation_entry()
 {
 	/* retrieve portal id from eax/rdi */
@@ -115,32 +124,38 @@ void Rpc_entrypoint::_activation_entry()
 	addr_t id_pt; asm volatile ("" : "=a" (id_pt));
 #endif
 
-	Rpc_entrypoint *ep = static_cast<Rpc_entrypoint *>(Thread_base::myself());
+	Rpc_entrypoint &ep   = *static_cast<Rpc_entrypoint *>(Thread_base::myself());
+	Nova::Utcb     &utcb = *(Nova::Utcb *)Thread_base::myself()->utcb();
 
-	/* required to decrease ref count of capability used during last reply */
-	ep->_snd_buf.snd_reset();
+	Receive_window &rcv_window = ep.native_thread().rcv_window;
+	rcv_window.post_ipc(utcb);
 
-	/* prepare ipc server object (copying utcb content to message buffer */
-	Rpc_opcode opcode(0);
-
-	Native_connection_state cs;
-	Ipc_server srv(cs, ep->_snd_buf, ep->_rcv_buf);
-	srv.reply_wait();
-	srv.extract(opcode);
-
-	/* set default return value */
-	srv.ret(Rpc_exception_code(Rpc_exception_code::INVALID_OBJECT));
-
-	/* in case of a portal cleanup call we are done here - just reply */
-	if (ep->_cap.local_name() == id_pt) {
-		if (!ep->_rcv_buf.prepare_rcv_window((Nova::Utcb *)ep->utcb()))
-			PWRN("out of capability selectors for handling server requests");
-		srv.reply();
+	/* handle ill-formed message */
+	if (utcb.msg_words() < 2) {
+		ep._rcv_buf.word(0) = ~0UL; /* invalid opcode */
+	} else {
+		copy_utcb_to_msgbuf(utcb, rcv_window, ep._rcv_buf);
 	}
 
+	Ipc_unmarshaller unmarshaller(ep._rcv_buf);
+
+	Rpc_opcode opcode(0);
+	unmarshaller.extract(opcode);
+
+	/* default return value */
+	Rpc_exception_code exc = Rpc_exception_code(Rpc_exception_code::INVALID_OBJECT);
+
+	/* in case of a portal cleanup call we are done here - just reply */
+	if (ep._cap.local_name() == id_pt) {
+		if (!rcv_window.prepare_rcv_window(utcb))
+			PWRN("out of capability selectors for handling server requests");
+
+		ep._rcv_buf.reset();
+		reply(utcb, exc, ep._snd_buf);
+	}
 	{
 		/* potentially delay start */
-		Lock::Guard lock_guard(ep->_delay_start);
+		Lock::Guard lock_guard(ep._delay_start);
 	}
 
 	/* atomically lookup and lock referenced object */
@@ -151,16 +166,27 @@ void Rpc_entrypoint::_activation_entry()
 			return;
 		}
 
+		/*
+		 * Inhibit removal of capabilities sent as results of client requests.
+		 * This prevents the recursive revocation of NOVA portal caps and,
+		 * therefore, permits clients to use result capabilities after server
+		 * code dropped all references.
+		 */
+		for (unsigned i = 0; i < ep._snd_buf.used_caps(); ++i)
+			ep._snd_buf.cap(i).keep_if_last_reference();
+
 		/* dispatch request */
-		try { srv.ret(obj->dispatch(opcode, srv, srv)); }
+		ep._snd_buf.reset();
+		try { exc = obj->dispatch(opcode, unmarshaller, ep._snd_buf); }
 		catch (Blocking_canceled) { }
 	};
-	ep->apply(id_pt, lambda);
+	ep.apply(id_pt, lambda);
 
-	if (!ep->_rcv_buf.prepare_rcv_window((Nova::Utcb *)ep->utcb()))
+	if (!rcv_window.prepare_rcv_window(*(Nova::Utcb *)ep.utcb()))
 		PWRN("out of capability selectors for handling server requests");
 
-	srv.reply();
+	ep._rcv_buf.reset();
+	reply(utcb, exc, ep._snd_buf);
 }
 
 
@@ -220,8 +246,10 @@ Rpc_entrypoint::Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
 	if (!_cap.valid())
 		throw Cpu_session::Thread_creation_failed();
 
+	Receive_window &rcv_window = Thread_base::native_thread().rcv_window;
+
 	/* prepare portal receive window of new thread */
-	if (!_rcv_buf.prepare_rcv_window((Nova::Utcb *)&_stack->utcb()))
+	if (!rcv_window.prepare_rcv_window(*(Nova::Utcb *)&_stack->utcb()))
 		throw Cpu_session::Thread_creation_failed();
 
 	if (start_on_construction)

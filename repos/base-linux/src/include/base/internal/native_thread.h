@@ -15,6 +15,7 @@
 #define _INCLUDE__BASE__INTERNAL__NATIVE_THREAD_H_
 
 #include <base/stdint.h>
+#include <base/internal/server_socket_pair.h>
 
 namespace Genode { struct Native_thread; }
 
@@ -44,6 +45,8 @@ struct Genode::Native_thread
 	 * remains unused.
 	 */
 	Meta_data *meta_data = nullptr;
+
+	Socket_pair socket_pair;
 
 	Native_thread() { }
 };

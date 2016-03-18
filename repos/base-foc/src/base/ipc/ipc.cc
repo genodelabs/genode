@@ -45,58 +45,11 @@ using namespace Genode;
 using namespace Fiasco;
 
 
-/*****************************
- ** IPC marshalling support **
- *****************************/
-
-void Ipc_marshaller::insert(Native_capability const &cap)
-{
-	if (cap.valid()) {
-		if (!l4_msgtag_label(l4_task_cap_valid(L4_BASE_TASK_CAP, cap.dst()))) {
-			insert(0UL);
-			return;
-		}
-	}
-
-	/* transfer capability id */
-	insert(cap.local_name());
-
-	/* only transfer kernel-capability if it's a valid one */
-	if (cap.valid())
-		_snd_msg.snd_append_cap_sel(cap.dst());
-
-	ASSERT(!cap.valid() ||
-	       l4_msgtag_label(l4_task_cap_valid(L4_BASE_TASK_CAP, cap.dst())),
-	       "Send invalid cap");
-}
-
-
-void Ipc_unmarshaller::extract(Native_capability &cap)
-{
-	long value = 0;
-
-	/* extract capability id from message buffer */
-	extract(value);
-
-	/* if id is zero an invalid capability was transfered */
-	if (!value) {
-		cap = Native_capability();
-		return;
-	}
-
-	/* try to insert received capability in the map and return it */
-	cap = Native_capability(cap_map()->insert_map(value, _rcv_msg.rcv_cap_sel()));
-}
-
-
 /***************
  ** Utilities **
  ***************/
 
-enum Debug {
-	DEBUG_MSG     = 1,
-	HALT_ON_ERROR = 0
-};
+enum Debug { DEBUG_MSG = 1, HALT_ON_ERROR = 0 };
 
 
 static inline bool ipc_error(l4_msgtag_t tag, bool print)
@@ -116,39 +69,110 @@ static inline bool ipc_error(l4_msgtag_t tag, bool print)
 }
 
 
+enum { INVALID_BADGE = ~0UL };
+
+
+/**
+ * Representation of a capability during UTCB marshalling/unmarshalling
+ */
+struct Cap_info
+{
+	bool          valid = false;
+	unsigned long sel   = 0;
+	unsigned long badge = 0;
+};
+
+
 /**
  * Copy message registers from UTCB to destination message buffer
  *
  * \return  protocol word (local name or exception code)
  */
-static unsigned long extract_msg_from_utcb(l4_msgtag_t tag, Msgbuf_base &rcv_msg)
+static unsigned long extract_msg_from_utcb(l4_msgtag_t     tag,
+                                           Receive_window &rcv_window,
+                                           Msgbuf_base    &rcv_msg)
 {
-	unsigned const num_msg_words = l4_msgtag_words(tag);
-	unsigned const num_cap_sel   = l4_msgtag_items(tag);
+	unsigned num_msg_words = l4_msgtag_words(tag);
 
-	/* each message has at least the protocol word */
-	if (num_msg_words < 2 && num_cap_sel == 0)
+	l4_mword_t const *msg_words = (l4_mword_t const *)l4_utcb_mr();
+
+	/* each message has at least the protocol word and the capability count */
+	if (num_msg_words < 2)
 		return 0;
 
-	/* the first message word is reserved for the protocol word */
-	unsigned num_data_msg_words = num_msg_words - 1;
+	/* read badge / exception code from first message word */
+	unsigned long const protocol_word = *msg_words++;
 
-	if ((num_data_msg_words)*sizeof(l4_mword_t) > rcv_msg.capacity()) {
-		if (DEBUG_MSG)
-			outstring("receive message buffer too small");
-		num_data_msg_words = rcv_msg.capacity()/sizeof(l4_mword_t);
+	/* read number of capability arguments from second message word */
+	unsigned long const num_caps = min(*msg_words, Msgbuf_base::MAX_CAPS_PER_MSG);
+	msg_words++;
+
+	num_msg_words -= 2;
+	if (num_caps > 0 && num_msg_words < num_caps) {
+		outstring("unexpected end of message, capability info missing\n");
+		return 0;
 	}
 
-	/* read protocol word from first UTCB message register */
-	unsigned long const protocol_word = l4_utcb_mr()->mr[0];
+	/*
+	 * Extract capabilities
+	 *
+	 * The badges are stored in the subsequent message registers. For each
+	 * valid badge, we expect one capability selector to be present in the
+	 * receive window. The content of the receive window is tracked via
+	 * 'sel_idx'. If we encounter an invalid badge, the sender specified
+	 * an invalid capabilty as argument.
+	 */
+	unsigned const num_cap_sel = l4_msgtag_items(tag);
+
+	Cap_info caps[num_caps];
+
+	for (unsigned i = 0, sel_idx = 0; i < num_caps; i++) {
+
+		unsigned long const badge = *msg_words++;
+
+		if (badge == INVALID_BADGE)
+			continue;
+
+		/* received a delegated capability */
+		if (sel_idx == num_cap_sel) {
+			outstring("missing capability selector in message\n");
+			break;
+		}
+
+		caps[i].badge = badge;
+		caps[i].valid = true;
+		caps[i].sel   = rcv_window.rcv_cap_sel(sel_idx++);
+	}
+	num_msg_words -= num_caps;
+
+	/* the remainder of the message contains the regular data payload */
+	if ((num_msg_words)*sizeof(l4_mword_t) > rcv_msg.capacity()) {
+		if (DEBUG_MSG)
+			outstring("receive message buffer too small\n");
+		num_msg_words = rcv_msg.capacity()/sizeof(l4_mword_t);
+	}
 
 	/* read message payload beginning from the second UTCB message register */
-	l4_mword_t *src = (l4_mword_t *)l4_utcb_mr() + 1;
 	l4_mword_t *dst = (l4_mword_t *)rcv_msg.data();
-	for (unsigned i = 0; i < num_data_msg_words; i++)
-		*dst++ = *src++;
+	for (unsigned i = 0; i < num_msg_words; i++)
+		*dst++ = *msg_words++;
 
-	rcv_msg.rcv_reset();
+	rcv_msg.data_size(sizeof(l4_mword_t)*num_msg_words);
+
+	/*
+	 * Insert received capability selectors into cap map.
+	 *
+	 * Note that this operation pollutes the UTCB. Therefore we must perform
+	 * it not before the entire message content is extracted.
+	 */
+	for (unsigned i = 0; i < num_caps; i++) {
+		if (caps[i].valid) {
+			rcv_msg.insert(Native_capability(cap_map()->insert_map(caps[i].badge,
+			                                                       caps[i].sel)));
+		} else {
+			rcv_msg.insert(Native_capability());
+		}
+	}
 
 	return protocol_word;
 }
@@ -164,31 +188,76 @@ static unsigned long extract_msg_from_utcb(l4_msgtag_t tag, Msgbuf_base &rcv_msg
 static l4_msgtag_t copy_msgbuf_to_utcb(Msgbuf_base &snd_msg,
                                        unsigned long protocol_word)
 {
-	unsigned const num_data_words = snd_msg.data_size() / sizeof(l4_mword_t);
-	unsigned const num_msg_words  = num_data_words + 1;
-	unsigned const num_cap_sel    = snd_msg.snd_cap_sel_cnt();
 
-	/* account for message words, local name, and capability arguments */
-	if (num_msg_words + 2*num_cap_sel > L4_UTCB_GENERIC_DATA_SIZE) {
-		if (DEBUG_MSG)
-			outstring("receive message buffer too small");
+	unsigned const num_data_words = snd_msg.data_size() / sizeof(l4_mword_t);
+	unsigned const num_caps       = snd_msg.used_caps();
+
+	/* validate capabilities present in the message buffer */
+	for (unsigned i = 0; i < num_caps; i++) {
+
+		Native_capability &cap = snd_msg.cap(i);
+		if (!cap.valid())
+			continue;
+
+		if (!l4_msgtag_label(l4_task_cap_valid(L4_BASE_TASK_CAP, cap.dst())))
+			cap = Native_capability();
+	}
+
+	/*
+	 * Obtain capability info from message buffer
+	 *
+	 * This step must be performed prior any write operation to the UTCB
+	 * because the 'Genode::Capability' operations may indirectly trigger
+	 * system calls, which pollute the UTCB.
+	 */
+	Cap_info caps[num_caps];
+	for (unsigned i = 0; i < num_caps; i++) {
+		Native_capability const &cap = snd_msg.cap(i);
+		if (cap.valid()) {
+			caps[i].valid = true;
+			caps[i].badge = cap.local_name();
+			caps[i].sel   = cap.dst();
+		}
+	}
+
+	/*
+	 * The message consists of a protocol word, the capability count, one badge
+	 * value per capability, and the data payload.
+	 */
+	unsigned const num_msg_words  = 2 + num_caps + num_data_words;
+
+	if (num_msg_words > L4_UTCB_GENERIC_DATA_SIZE) {
+		outstring("receive message buffer too small\n");
 		throw Ipc_error();
 	}
 
-	/* copy badge / exception code to UTCB message register */
-	l4_utcb_mr()->mr[0] = protocol_word;
+	l4_mword_t *msg_words = (l4_mword_t *)l4_utcb_mr();
+
+	*msg_words++ = protocol_word;
+	*msg_words++ = num_caps;
+
+	unsigned num_cap_sel = 0;
+
+	for (unsigned i = 0; i < num_caps; i++) {
+
+		Native_capability const &cap = snd_msg.cap(i);
+
+		/* store badge as normal message word */
+		*msg_words++ = caps[i].valid ? caps[i].badge : INVALID_BADGE;
+
+		/* setup flexpage for valid capability to delegate */
+		if (caps[i].valid) {
+			unsigned const idx = num_msg_words + 2*num_cap_sel;
+			l4_utcb_mr()->mr[idx]     = L4_ITEM_MAP/* | L4_ITEM_CONT*/;
+			l4_utcb_mr()->mr[idx + 1] = l4_obj_fpage(caps[i].sel,
+			                                         0, L4_FPAGE_RWX).raw;
+			num_cap_sel++;
+		}
+	}
 
 	/* store message data into UTCB message registers */
 	for (unsigned i = 0; i < num_data_words; i++)
-		l4_utcb_mr()->mr[i + 1] = snd_msg.word(i);
-
-	/* setup flexpages of capabilities to send */
-	for (unsigned i = 0; i < num_cap_sel; i++) {
-		unsigned const idx = num_msg_words + 2*i;
-		l4_utcb_mr()->mr[idx]     = L4_ITEM_MAP/* | L4_ITEM_CONT*/;
-		l4_utcb_mr()->mr[idx + 1] = l4_obj_fpage(snd_msg.snd_cap_sel(i),
-		                                         0, L4_FPAGE_RWX).raw;
-	}
+		*msg_words++ = snd_msg.word(i);
 
 	return l4_msgtag(0, num_msg_words, num_cap_sel, 0);
 }
@@ -202,11 +271,15 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
                                     Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg,
                                     size_t rcv_caps)
 {
+	Receive_window rcv_window;
+	rcv_window.init();
+	rcv_msg.reset();
+
 	/* copy call message to the UTCBs message registers */
 	l4_msgtag_t const call_tag = copy_msgbuf_to_utcb(snd_msg, dst.local_name());
 
-	addr_t rcv_cap_sel = rcv_msg.rcv_cap_sel_base();
-	for (int i = 0; i < Msgbuf_base::MAX_CAP_ARGS; i++) {
+	addr_t rcv_cap_sel = rcv_window.rcv_cap_sel_base();
+	for (int i = 0; i < Msgbuf_base::MAX_CAPS_PER_MSG; i++) {
 		l4_utcb_br()->br[i] = rcv_cap_sel | L4_RCV_ITEM_SINGLE_CAP;
 		rcv_cap_sel += L4_CAP_SIZE;
 	}
@@ -220,106 +293,86 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 	if (ipc_error(reply_tag, DEBUG_MSG))
 		throw Genode::Ipc_error();
 
-	return Rpc_exception_code(extract_msg_from_utcb(reply_tag, rcv_msg));
+	return Rpc_exception_code(extract_msg_from_utcb(reply_tag, rcv_window, rcv_msg));
 }
 
 
 /****************
- ** Ipc_server **
+ ** IPC server **
  ****************/
 
-void Ipc_server::_prepare_next_reply_wait()
+static bool badge_matches_label(unsigned long badge, unsigned long label)
 {
-	_reply_needed = true;
-	_read_offset = _write_offset = 0;
-
-	_snd_msg.snd_reset();
+	return badge == (label & (~0UL << 2));
 }
 
 
-static unsigned long wait(Msgbuf_base &rcv_msg)
+void Genode::ipc_reply(Native_capability caller, Rpc_exception_code exc,
+                       Msgbuf_base &snd_msg)
 {
-	addr_t rcv_cap_sel = rcv_msg.rcv_cap_sel_base();
-	for (int i = 0; i < Msgbuf_base::MAX_CAP_ARGS; i++) {
-		l4_utcb_br()->br[i] = rcv_cap_sel | L4_RCV_ITEM_SINGLE_CAP;
-		rcv_cap_sel += L4_CAP_SIZE;
-	}
-	l4_utcb_br()->bdr = 0;
-
-	l4_msgtag_t tag;
-	do {
-		l4_umword_t label = 0;
-		tag = l4_ipc_wait(l4_utcb(), &label, L4_IPC_NEVER);
-		rcv_msg.label(label);
-	} while (ipc_error(tag, DEBUG_MSG));
-
-	/* copy message from the UTCBs message registers to the receive buffer */
-	return extract_msg_from_utcb(tag, rcv_msg);
-}
-
-
-void Ipc_server::reply()
-{
-	l4_msgtag_t tag = copy_msgbuf_to_utcb(_snd_msg, _exception_code.value);
+	l4_msgtag_t tag = copy_msgbuf_to_utcb(snd_msg, exc.value);
 
 	tag = l4_ipc_send(L4_SYSF_REPLY, l4_utcb(), tag, L4_IPC_SEND_TIMEOUT_0);
 
 	ipc_error(tag, DEBUG_MSG);
-	_snd_msg.snd_reset();
 }
 
 
-void Ipc_server::reply_wait()
+Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
+                                           Rpc_exception_code      exc,
+                                           Msgbuf_base            &reply_msg,
+                                           Msgbuf_base            &request_msg)
 {
-	if (_reply_needed) {
-		addr_t rcv_cap_sel = _rcv_msg.rcv_cap_sel_base();
-		for (int i = 0; i < Msgbuf_base::MAX_CAP_ARGS; i++) {
+	Receive_window &rcv_window = Thread_base::myself()->native_thread().rcv_window;
+
+	for (;;) {
+
+		request_msg.reset();
+
+		/* prepare receive window in UTCB */
+		addr_t rcv_cap_sel = rcv_window.rcv_cap_sel_base();
+		for (int i = 0; i < Msgbuf_base::MAX_CAPS_PER_MSG; i++) {
 			l4_utcb_br()->br[i] = rcv_cap_sel | L4_RCV_ITEM_SINGLE_CAP;
 			rcv_cap_sel += L4_CAP_SIZE;
 		}
-
 		l4_utcb_br()->bdr &= ~L4_BDR_OFFSET_MASK;
 
-		l4_umword_t label = 0;
+		l4_msgtag_t request_tag;
+		l4_umword_t label = 0; /* kernel-protected label of invoked capability */
 
-		l4_msgtag_t const reply_tag =
-			copy_msgbuf_to_utcb(_snd_msg, _exception_code.value);
+		if (exc.value != Rpc_exception_code::INVALID_OBJECT) {
 
-		l4_msgtag_t const request_tag =
-			l4_ipc_reply_and_wait(l4_utcb(), reply_tag, &label,
-			                      L4_IPC_SEND_TIMEOUT_0);
+			l4_msgtag_t const reply_tag = copy_msgbuf_to_utcb(reply_msg, exc.value);
 
-		_rcv_msg.label(label);
-
-		if (ipc_error(request_tag, false)) {
-			/*
-			 * The error conditions could be a message cut (which
-			 * we want to ignore on the server side) or a reply failure
-			 * (for example, if the caller went dead during the call.
-			 * In both cases, we do not reflect the error condition to
-			 * the user but want to wait for the next proper incoming
-			 * message. So let's just wait now.
-			 */
-			_badge = wait(_rcv_msg);
+			request_tag = l4_ipc_reply_and_wait(l4_utcb(), reply_tag, &label, L4_IPC_SEND_TIMEOUT_0);
 		} else {
-
-			/* copy request message from the UTCBs message registers */
-			_badge = extract_msg_from_utcb(request_tag, _rcv_msg);
+			request_tag = l4_ipc_wait(l4_utcb(), &label, L4_IPC_NEVER);
 		}
-	} else
-		_badge = wait(_rcv_msg);
 
-	_prepare_next_reply_wait();
+		if (ipc_error(request_tag, false))
+			continue;
+
+		/* copy request message from the UTCBs message registers */
+		unsigned long const badge =
+			extract_msg_from_utcb(request_tag, rcv_window, request_msg);
+
+		/* ignore request if we detect a forged badge */
+		if (!badge_matches_label(badge, label)) {
+			outstring("badge does not match label, ignoring request\n");
+			continue;
+		}
+
+		return Rpc_request(Native_capability(), badge);
+	}
 }
 
 
-Ipc_server::Ipc_server(Native_connection_state &cs,
-                       Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg)
+Ipc_server::Ipc_server()
 :
-	Ipc_marshaller(snd_msg), Ipc_unmarshaller(rcv_msg),
-	Native_capability((Cap_index*)Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE]),
-	_rcv_cs(cs)
-{ }
+	Native_capability((Cap_index*)Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE])
+{
+	Thread_base::myself()->native_thread().rcv_window.init();
+}
 
 
 Ipc_server::~Ipc_server() { }

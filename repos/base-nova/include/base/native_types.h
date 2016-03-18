@@ -54,7 +54,6 @@ namespace Genode {
 				: dst(sel, 0, rights) { }
 			} _cap;
 
-			bool   _trans_map;
 			addr_t _rcv_window;
 
 			enum { INVALID_INDEX = ~0UL };
@@ -80,7 +79,7 @@ namespace Genode {
 			 */
 
 			Native_capability()
-			: _cap(), _trans_map(true), _rcv_window(INVALID_INDEX) {}
+			: _cap(), _rcv_window(INVALID_INDEX) {}
 
 			explicit
 			Native_capability(addr_t sel, unsigned rights = 0x1f)
@@ -92,13 +91,12 @@ namespace Genode {
 					_inc();
 				}
 
-				_trans_map = true;
-			  	_rcv_window = INVALID_INDEX;
+				_rcv_window = INVALID_INDEX;
 			}
 
 			Native_capability(const Native_capability &o)
-			: _cap(o._cap), _trans_map(o._trans_map),
-			  _rcv_window(o._rcv_window) { if (valid()) _inc(); }
+			: _cap(o._cap), _rcv_window(o._rcv_window)
+			{ if (valid()) _inc(); }
 
 			~Native_capability() { if (valid()) _dec(); }
 
@@ -108,10 +106,13 @@ namespace Genode {
 			bool operator==(const Native_capability &o) const {
 				return local_name() == o.local_name(); }
 
-			Native_capability operator+ () const
+			/**
+			 * Inhibit removal of capability from cap map if it's the last reference
+			 */
+			void keep_if_last_reference()
 			{
-				if (valid()) _inc(true);
-				return *this;
+				if (valid())
+					_inc(true);
 			}
 
 			/**
@@ -126,7 +127,6 @@ namespace Genode {
 				if (valid()) _dec();
 
 				_cap        = o._cap;
-				_trans_map  = o._trans_map;
 				_rcv_window = o._rcv_window;
 
 				if (valid()) _inc();
@@ -179,17 +179,6 @@ namespace Genode {
 			{
 				return Native_capability();
 			}
-
-			/**
-			 * Invoke map syscall instead of translate_map call
-			 */
-			void solely_map() { _trans_map = false; }
-
-			/**
-			 * Return true if the cap should be tried first to
-			 * be translated and if this fails it should be mapped.
-			 */
-			bool trans_map() const { return _trans_map; }
 	};
 }
 

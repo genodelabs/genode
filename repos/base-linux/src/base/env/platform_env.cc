@@ -19,7 +19,7 @@
 
 /* base-internal includes */
 #include <base/internal/platform_env.h>
-#include <base/internal/native_connection_state.h>
+#include <base/internal/native_thread.h>
 
 using namespace Genode;
 
@@ -180,24 +180,25 @@ Platform_env::Platform_env()
 
 namespace Genode {
 
-	Native_connection_state server_socket_pair()
+	Socket_pair server_socket_pair()
 	{
 		Linux_native_cpu_client native_cpu(env()->cpu_session()->native_cpu());
 
-		Native_connection_state ncs;
+		Socket_pair socket_pair;
 
 		Thread_base *thread = Thread_base::myself();
 		if (thread) {
-			ncs.server_sd = native_cpu.server_sd(thread->cap()).dst().socket;
-			ncs.client_sd = native_cpu.client_sd(thread->cap()).dst().socket;
+			socket_pair.server_sd = native_cpu.server_sd(thread->cap()).dst().socket;
+			socket_pair.client_sd = native_cpu.client_sd(thread->cap()).dst().socket;
+			thread->native_thread().socket_pair = socket_pair;
 		}
-		return ncs;
+		return socket_pair;
 	}
 
-	void destroy_server_socket_pair(Native_connection_state const &ncs)
+	void destroy_server_socket_pair(Socket_pair socket_pair)
 	{
 		/* close local file descriptor if it is valid */
-		if (ncs.server_sd != -1) lx_close(ncs.server_sd);
-		if (ncs.client_sd != -1) lx_close(ncs.client_sd);
+		if (socket_pair.server_sd != -1) lx_close(socket_pair.server_sd);
+		if (socket_pair.client_sd != -1) lx_close(socket_pair.client_sd);
 	}
 }

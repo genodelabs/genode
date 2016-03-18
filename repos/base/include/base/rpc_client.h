@@ -58,12 +58,12 @@ namespace Genode {
 	template <typename RPC_INTERFACE>
 	template <typename ATL>
 	void Capability<RPC_INTERFACE>::
-	_marshal_args(Ipc_marshaller &marshaller, ATL &args) const
+	_marshal_args(Msgbuf_base &msg, ATL &args) const
 	{
 		if (Trait::Rpc_direction<typename ATL::Head>::Type::IN)
-			marshaller.insert(args.get());
+			msg.insert(args.get());
 
-		_marshal_args(marshaller, args._2);
+		_marshal_args(msg, args._2);
 	}
 
 
@@ -129,9 +129,8 @@ namespace Genode {
 		Rpc_opcode opcode(static_cast<int>(Meta::Index_of<Rpc_functions, IF>::Value));
 
 		/* marshal opcode and RPC input arguments */
-		Ipc_marshaller marshaller(call_buf);
-		marshaller.insert(opcode);
-		_marshal_args(marshaller, args);
+		call_buf.insert(opcode);
+		_marshal_args(call_buf, args);
 
 		{
 			Trace::Rpc_call trace_event(IF::name(), call_buf);

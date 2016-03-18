@@ -140,8 +140,7 @@ void Platform_thread::resume()
 
 	/* Send a message to the exception handler, to unblock the client */
 	Msgbuf<16> snd, rcv;
-	Ipc_marshaller marshaller(snd);
-	marshaller.insert(_pager_obj);
+	snd.insert(_pager_obj);
 	ipc_call(_pager_obj->cap(), snd, rcv, 0);
 }
 

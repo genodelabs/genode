@@ -71,18 +71,29 @@ namespace Genode {
 
 			Signal wait_for_signal() override
 			{
-				/*
-				 * Block on semaphore, will be unblocked if
-				 * signal is available
-				 */
 				using namespace Nova;
-				mword_t value = 0;
-				mword_t count = 0;
-				if (uint8_t res = si_ctrl(_sem.local_name(), SEMAPHORE_DOWN,
-				                  value, count))
-					PWRN("signal reception failed - error %u", res);
 
-				return Signal(value, count);
+				mword_t imprint, count;
+				do {
+
+					/*
+					 * We set an invalid imprint (0) to detect a spurious
+					 * unblock. In this case, NOVA does not block
+					 * SEMAPHORE_DOWN nor touch our input values if the
+					 * deblocking (chained) semaphore was dequeued before we
+					 * intend to block.
+					 */
+					imprint = 0;
+					count   = 0;
+
+					/* block on semaphore until signal context was submitted */
+					if (uint8_t res = si_ctrl(_sem.local_name(), SEMAPHORE_DOWN,
+					                  imprint, count))
+						PWRN("signal reception failed - error %u", res);
+
+				} while (imprint == 0);
+
+				return Signal(imprint, count);
 			}
 	};
 }

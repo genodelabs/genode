@@ -74,7 +74,7 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 		void _read_args(Ipc_unmarshaller &, Meta::Empty) { }
 
 		template <typename ARG_LIST>
-		void _write_results(Ipc_marshaller &msg, ARG_LIST &args)
+		void _write_results(Msgbuf_base &msg, ARG_LIST &args)
 		{
 			if (Trait::Rpc_direction<typename ARG_LIST::Head>::Type::OUT)
 				msg.insert(args._1);
@@ -82,7 +82,7 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 			_write_results(msg, args._2);
 		}
 
-		void _write_results(Ipc_marshaller &, Meta::Empty) { }
+		void _write_results(Msgbuf_base &, Meta::Empty) { }
 
 		template <typename RPC_FUNCTION, typename EXC_TL>
 		Rpc_exception_code _do_serve(typename RPC_FUNCTION::Server_args &args,
@@ -111,7 +111,7 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 
 		template <typename RPC_FUNCTIONS_TO_CHECK>
 		Rpc_exception_code _do_dispatch(Rpc_opcode opcode,
-		                                Ipc_unmarshaller &in, Ipc_marshaller &out,
+		                                Ipc_unmarshaller &in, Msgbuf_base &out,
 		                                Meta::Overload_selector<RPC_FUNCTIONS_TO_CHECK>)
 		{
 			using namespace Meta;
@@ -158,7 +158,7 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 		}
 
 		Rpc_exception_code _do_dispatch(Rpc_opcode opcode,
-		                                Ipc_unmarshaller &, Ipc_marshaller &,
+		                                Ipc_unmarshaller &, Msgbuf_base &,
 		                                Meta::Overload_selector<Meta::Empty>)
 		{
 			PERR("invalid opcode %ld\n", opcode.value);
@@ -169,7 +169,7 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 		 * Handle corner case of having an RPC interface with no RPC functions
 		 */
 		Rpc_exception_code _do_dispatch(Rpc_opcode opcode,
-		                                Ipc_unmarshaller &, Ipc_marshaller &,
+		                                Ipc_unmarshaller &, Msgbuf_base &,
 		                                Meta::Overload_selector<Meta::Type_list<> >)
 		{
 			return Rpc_exception_code(Rpc_exception_code::SUCCESS);
@@ -185,7 +185,7 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 	public:
 
 		Rpc_exception_code dispatch(Rpc_opcode opcode,
-		                            Ipc_unmarshaller &in, Ipc_marshaller &out)
+		                            Ipc_unmarshaller &in, Msgbuf_base &out)
 		{
 			return _do_dispatch(opcode, in, out,
 			                    Meta::Overload_selector<Rpc_functions>());
@@ -207,7 +207,7 @@ class Genode::Rpc_object_base : public Object_pool<Rpc_object_base>::Entry
 		 * \param out  outgoing message for storing method results
 		 */
 		virtual Rpc_exception_code
-		dispatch(Rpc_opcode op, Ipc_unmarshaller &in, Ipc_marshaller &out) = 0;
+		dispatch(Rpc_opcode op, Ipc_unmarshaller &in, Msgbuf_base &out) = 0;
 };
 
 
@@ -225,7 +225,7 @@ struct Genode::Rpc_object : Rpc_object_base, Rpc_dispatcher<RPC_INTERFACE, SERVE
 	 ** Server-object interface **
 	 *****************************/
 
-	Rpc_exception_code dispatch(Rpc_opcode opcode, Ipc_unmarshaller &in, Ipc_marshaller &out)
+	Rpc_exception_code dispatch(Rpc_opcode opcode, Ipc_unmarshaller &in, Msgbuf_base &out)
 	{
 		return Rpc_dispatcher<RPC_INTERFACE, SERVER>::dispatch(opcode, in, out);
 	}
@@ -287,13 +287,13 @@ class Genode::Rpc_entrypoint : Thread_base, public Object_pool<Rpc_object_base>
 
 	protected:
 
-		Ipc_server      *_ipc_server;
-		Lock             _cap_valid;      /* thread startup synchronization        */
-		Lock             _delay_start;    /* delay start of request dispatching    */
-		Lock             _delay_exit;     /* delay destructor until server settled */
-		Pd_session      &_pd_session;     /* for creating capabilities             */
-		Exit_handler     _exit_handler;
-		Capability<Exit> _exit_cap;
+		Native_capability _caller;
+		Lock              _cap_valid;      /* thread startup synchronization        */
+		Lock              _delay_start;    /* delay start of request dispatching    */
+		Lock              _delay_exit;     /* delay destructor until server settled */
+		Pd_session       &_pd_session;     /* for creating capabilities             */
+		Exit_handler      _exit_handler;
+		Capability<Exit>  _exit_cap;
 
 		/**
 		 * Access to kernel-specific part of the PD session interface
@@ -402,7 +402,7 @@ class Genode::Rpc_entrypoint : Thread_base, public Object_pool<Rpc_object_base>
 		 * Typically, a capability obtained via this method is used as
 		 * argument of 'intermediate_reply'.
 		 */
-		Untyped_capability reply_dst();
+		Untyped_capability reply_dst() { return _caller; }
 
 		/**
 		 * Prevent reply of current request
@@ -417,7 +417,7 @@ class Genode::Rpc_entrypoint : Thread_base, public Object_pool<Rpc_object_base>
 		 * request. At a later time, the server may chose to unblock the
 		 * client via the 'intermedate_reply' method.
 		 */
-		void omit_reply();
+		void omit_reply() { _caller = Native_capability(); }
 
 		/**
 		 * Send a reply out of the normal call-reply order

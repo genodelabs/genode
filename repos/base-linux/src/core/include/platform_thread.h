@@ -21,7 +21,7 @@
 #include <cpu_session/cpu_session.h>
 
 /* base-internal includes */
-#include <base/internal/native_connection_state.h>
+#include <base/internal/server_socket_pair.h>
 
 /* core includes */
 #include <pager.h>
@@ -68,7 +68,7 @@ namespace Genode {
 			/**
 			 * Unix-domain socket pair bound to the thread
 			 */
-			Native_connection_state _ncs;
+			Socket_pair _socket_pair;
 
 			/*
 			 * Dummy pager object that is solely used for storing the

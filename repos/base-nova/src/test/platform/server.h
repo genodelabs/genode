@@ -81,8 +81,13 @@ bool Test::Component::cap_void(Genode::Native_capability got_cap) {
 
 Genode::Native_capability Test::Component::void_cap() {
 	Genode::Native_capability send_cap = cap();
+
+	/* XXX this code does does no longer work since the removal of 'solely_map' */
+#if 0
 	/* be evil and switch translation off - client ever uses a new selector */
 	send_cap.solely_map();
+#endif
+
 	return send_cap;
 }
 
