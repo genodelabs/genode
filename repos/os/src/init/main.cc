@@ -231,6 +231,13 @@ class Init::Child_registry : public Name_registry, Child_list
 			return _aliases.first() ? _aliases.first() : 0;
 		}
 
+		void revoke_server(Genode::Server const *server)
+		{
+			Genode::List_element<Child> *curr = first();
+			for (; curr; curr = curr->next())
+				curr->object()->_child.revoke_server(server);
+		}
+
 
 		/*****************************
 		 ** Name-registry interface **
@@ -379,7 +386,19 @@ int main(int, char **)
 		while (children.any()) {
 			Init::Child *child = children.any();
 			children.remove(child);
+			Genode::Server const *server = child->server();
 			destroy(env()->heap(), child);
+
+			/*
+			 * The killed child may have provided services to other children.
+			 * Since the server is dead by now, we cannot close its sessions
+			 * in the cooperative way. Instead, we need to instruct each
+			 * other child to forget about session associated with the dead
+			 * server. Note that the 'child' pointer points a a no-more
+			 * existing object. It is only used to identify the corresponding
+			 * session. It must never by de-referenced!
+			 */
+			children.revoke_server(server);
 		}
 
 		/* remove all known aliases */
