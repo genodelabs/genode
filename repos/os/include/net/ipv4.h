@@ -60,6 +60,8 @@ class Net::Ipv4_packet
 
 		static Ipv4_address ip_from_string(const char *ip);
 
+		static Genode::uint16_t calculate_checksum(Ipv4_packet const &packet);
+
 	private:
 
 		/************************
@@ -161,6 +163,20 @@ class Net::Ipv4_packet
 		template <typename T> T *       data()         { return (T *)(_data); }
 		template <typename T> T const * data()   const { return (T const *)(_data); }
 
+		/********************************
+		 ** IPv4 field write-accessors **
+		 ********************************/
+
+		void version(Genode::size_t version)    { _version = version; }
+		void header_length(Genode::size_t len)  { _header_length = len; }
+
+		void total_length(Genode::uint16_t len) { _total_length = host_to_big_endian(len); }
+		void time_to_live(Genode::uint8_t ttl)  { _time_to_live = ttl; }
+
+		void checksum(Genode::uint16_t checksum) { _header_checksum = host_to_big_endian(checksum); }
+
+		void dst(Ipv4_address ip) { ip.copy(&_dst_addr); }
+		void src(Ipv4_address ip) { ip.copy(&_src_addr); }
 
 		/***************
 		 ** Operators **
