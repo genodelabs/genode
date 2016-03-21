@@ -27,7 +27,7 @@ class Log_console : public Console
 {
 	private:
 
-		enum { _BUF_SIZE = 216 };
+		enum { _BUF_SIZE = Log_session::MAX_STRING_LEN };
 
 		Log_connection _log;
 		char           _buf[_BUF_SIZE];
