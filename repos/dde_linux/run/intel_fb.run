@@ -8,6 +8,8 @@ set build_components {
 	drivers/framebuffer/intel
 	test/framebuffer
 	server/report_rom
+	server/ram_fs
+	server/fs_rom
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -22,7 +24,7 @@ create_boot_directory
 #
 
 append config {
-<config verbose="yes">
+<config verbose="yes" prio_levels="2">
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="RAM"/>
@@ -45,7 +47,8 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="report_rom">
+
+	<start name="report_rom" priority="-1">
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Report" /> <service name="ROM" /> </provides>
 		<config verbose="yes">
@@ -83,13 +86,15 @@ append config {
 	<start name="intel_fb_drv">
 		<resource name="RAM" quantum="20M"/>
 		<provides><service name="Framebuffer"/></provides>
+		<configfile name="fb_drv.config"/>
 		<route>
+			<service name="ROM" label="fb_drv.config"> <child name="config_rom"/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>
 
-	<start name="intel_fb_controller">
+	<start name="intel_fb_controller" priority="-1">
 		<resource name="RAM" quantum="1M"/>
 		<route>
 			<service name="File_system">            <child name="config_fs"/> </service>
@@ -98,7 +103,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="test-framebuffer">
+	<start name="test-framebuffer" priority="-1">
 		<resource name="RAM" quantum="10M"/>
 	</start>
 </config>}

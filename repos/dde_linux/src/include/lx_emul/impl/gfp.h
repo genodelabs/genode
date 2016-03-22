@@ -33,9 +33,22 @@ struct page *alloc_pages(gfp_t gfp_mask, unsigned int order)
 		return 0;
 	}
 
-	Lx::Addr_to_page_mapping::insert(page);
+	Lx::Addr_to_page_mapping::insert(page, ds_cap);
 
 	return page;
+}
+
+
+void free_pages(unsigned long addr, unsigned int order)
+{
+	page * page = Lx::Addr_to_page_mapping::find_page(addr);
+	if (!page) return;
+
+	Genode::Ram_dataspace_capability cap =
+		Lx::Addr_to_page_mapping::remove(page);
+	if (cap.valid())
+		Lx::backend_free(cap);
+	kfree(page);
 }
 
 

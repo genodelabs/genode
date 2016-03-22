@@ -50,9 +50,9 @@ DIR(dwc_otg) := $(SRC_DIR_USB)/drivers/usb/host/dwc_otg
 # Intel framebuffer driver
 #
 SRC_DIR_INTEL_FB  := src/drivers/framebuffer/intel
-VERSION_INTEL_FB  := 3.14.5
-URL(intel_fb)     := http://www.kernel.org/pub/linux/kernel/v3.x/linux-$(VERSION_INTEL_FB).tar.gz
-SHA(intel_fb)     := 675bb3446cbf0889d59a048f6af177ca0a7aacb5
+VERSION_INTEL_FB  := 4.4.3
+URL(intel_fb)     := https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_INTEL_FB).tar.xz
+SHA(intel_fb)     := 336d66925a15ce9077cbf2c38acbdc6c2644e33f
 DIR(intel_fb)     := $(SRC_DIR_INTEL_FB)
 TAR_OPT(intel_fb) := --strip-components=1  --files-from $(REP_DIR)/intel_fb.list
 HASH_INPUT        += $(REP_DIR)/intel_fb.list
@@ -160,6 +160,7 @@ PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/libnl*.pa
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/lxip*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/intel*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb*.patch)))
+PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/intel*.patch)))
 
 #IP stack
 LXIP_OPT = -p1 -d$(SRC_DIR_LXIP)
@@ -182,13 +183,6 @@ PATCH_OPT(patches/libnl.patch) := -p1 -d ${DIR(libnl)}
 # WPA supplicant
 PATCH_OPT(patches/wpa_supplicant.patch) := -p1 -d ${DIR(wpa_supplicant)}
 
-# Intel fb
-PATCH_OPT(patches/intel_fb_16bit.patch)  := -p1 -d ${DIR(intel_fb)}
-PATCH_OPT(patches/intel_fb_edp.patch)    := -p1 -d ${DIR(intel_fb)}
-PATCH_OPT(patches/intel_fb_update.patch) := -p1 -d ${DIR(intel_fb)}
-PATCH_OPT(patches/intel_fb_x201.patch)   := -p1 -d ${DIR(intel_fb)}
-PATCH_OPT(patches/intel_fb_report.patch) := -p1 -d ${DIR(intel_fb)}
-
 # USB
 USB_OPT = -p1 -d$(SRC_DIR_USB)
 PATCH_OPT(patches/usb_ax88179.patch)     := $(USB_OPT)
@@ -196,5 +190,8 @@ PATCH_OPT(patches/usb_csum.patch)        := $(USB_OPT)
 PATCH_OPT(patches/usb_evdev.patch)       := $(USB_OPT)
 PATCH_OPT(patches/usb_mem.patch)         := $(USB_OPT)
 PATCH_OPT(patches/usb_usbnet.patch)      := $(USB_OPT)
+
+# INTEL FB
+PATCH_OPT(patches/intel_fb_export_api.patch) := -p1 -d$(SRC_DIR_INTEL_FB)
 
 # vi: set ft=make :

@@ -10,6 +10,7 @@ SRC_C   += $(notdir $(wildcard $(LX_CONTRIB_DIR)/drivers/i2c/algos/*.c))
 SRC_C   += $(notdir $(wildcard $(LX_CONTRIB_DIR)/drivers/gpu/drm/*.c))
 SRC_C   += $(notdir $(wildcard $(LX_CONTRIB_DIR)/drivers/gpu/drm/i915/*.c))
 SRC_C   += $(notdir $(wildcard $(LX_CONTRIB_DIR)/drivers/video/*.c))
+SRC_C   += $(notdir $(wildcard $(LX_CONTRIB_DIR)/drivers/video/fbdev/core/*.c))
 SRC_C   += $(notdir $(wildcard $(LX_CONTRIB_DIR)/lib/*.c))
 
 #
@@ -17,7 +18,8 @@ SRC_C   += $(notdir $(wildcard $(LX_CONTRIB_DIR)/lib/*.c))
 #
 CC_WARN = -Wall -Wno-uninitialized -Wno-unused-but-set-variable \
           -Wno-unused-variable -Wno-unused-function \
-          -Wno-pointer-arith -Wno-pointer-sign
+          -Wno-pointer-arith -Wno-pointer-sign \
+          -Wno-int-to-pointer-cast
 
 vpath %.c $(LX_CONTRIB_DIR)/drivers/char/agp
 vpath %.c $(LX_CONTRIB_DIR)/drivers/i2c
@@ -25,5 +27,6 @@ vpath %.c $(LX_CONTRIB_DIR)/drivers/i2c/algos
 vpath %.c $(LX_CONTRIB_DIR)/drivers/gpu/drm/i915
 vpath %.c $(LX_CONTRIB_DIR)/drivers/gpu/drm
 vpath %.c $(LX_CONTRIB_DIR)/drivers/video
+vpath %.c $(LX_CONTRIB_DIR)/drivers/video/fbdev/core
 vpath %.c $(LX_CONTRIB_DIR)/lib
 

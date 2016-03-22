@@ -7,17 +7,14 @@
 #ifndef _LX_EMUL_PRIVATE_H_
 #define _LX_EMUL_PRIVATE_H_
 
-/* Genode includes */
-#include <base/printf.h>
-#include <base/sleep.h>
-
 /* Linux kernel API */
-#include <lx_emul.h>
+#include <stdarg.h>
+#include <lx_emul/printf.h>
 
 #if 0
 #define TRACE \
 	do { \
-		PLOG("%s not implemented", __func__); \
+		lx_printf("%s not implemented\n", __func__); \
 	} while (0)
 #else
 #define TRACE do { ; } while (0)
@@ -25,15 +22,15 @@
 
 #define TRACE_AND_STOP \
 	do { \
-		PWRN("%s not implemented", __func__); \
-		Genode::sleep_forever(); \
+		lx_printf("%s not implemented\n", __func__); \
+		BUG(); \
 	} while (0)
 
 #define ASSERT(x) \
 	do { \
 		if (!(x)) { \
-			PWRN("%s:%u assertion failed", __func__, __LINE__); \
-			Genode::sleep_forever(); \
+			lx_printf("%s:%u assertion failed\n", __func__, __LINE__); \
+			BUG(); \
 		} \
 	} while (0)
 

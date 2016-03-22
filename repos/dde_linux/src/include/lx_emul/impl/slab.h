@@ -24,13 +24,9 @@ void *kmalloc(size_t size, gfp_t flags)
 
 	void *addr = nullptr;
 
-	if (flags & GFP_LX_DMA) {
-		addr = Lx::Malloc::dma().alloc(size, 12);
-	} else {
-		addr = (size > (1 << Lx::Malloc::MAX_SIZE_LOG2))
-			? Lx::Malloc::mem().alloc_large(size)
-			: Lx::Malloc::mem().alloc(size);
-	}
+	addr = (flags & GFP_LX_DMA)
+		? Lx::Malloc::dma().alloc(size, 12)
+		: Lx::Malloc::mem().alloc(size);
 
 	if ((Genode::addr_t)addr & 0x3)
 		PERR("unaligned kmalloc %lx", (Genode::addr_t)addr);
