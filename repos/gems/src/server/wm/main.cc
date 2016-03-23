@@ -70,6 +70,8 @@ struct Wm::Main
 	{
 		try {
 			focus_rom.update();
+			if (!focus_rom.is_valid())
+				return;
 
 			unsigned long win_id = 0;
 
@@ -94,6 +96,8 @@ struct Wm::Main
 	{
 		try {
 			resize_request_rom.update();
+			if (!resize_request_rom.is_valid())
+				return;
 
 			char const * const node_type = "window";
 
