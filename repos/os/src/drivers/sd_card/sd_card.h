@@ -95,7 +95,7 @@ namespace Sd_card {
 
 		struct Version : Bitfield<126 - BIT_BASE, 2>
 		{
-			enum { STANDARD_CAPACITY = 0, HIGH_CAPACITY = 1, EXT_CSD = 3 };
+			enum Type { STANDARD_CAPACITY = 0, HIGH_CAPACITY = 1, EXT_CSD = 3 };
 		};
 
 		struct Mmc_spec_vers : Bitfield<122 - BIT_BASE, 4> { };
@@ -361,11 +361,12 @@ namespace Sd_card {
 
 			unsigned _rca;
 			size_t   _capacity_mb;
+			const Csd3::Version::Type _version;
 
 		public:
 
-			Card_info(unsigned rca, size_t capacity_mb)
-			: _rca(rca), _capacity_mb(capacity_mb)
+			Card_info(unsigned rca, size_t capacity_mb, const Csd3::Version::Type version)
+			: _rca(rca), _capacity_mb(capacity_mb), _version(version)
 			{ }
 
 			/**
@@ -377,6 +378,12 @@ namespace Sd_card {
 			 * Return relative card address
 			 */
 			unsigned rca() const { return _rca; }
+
+			/**
+			 * Returns the version of the card
+			 */
+			Csd3::Version::Type version() const { return _version; }
+
 	};
 
 
@@ -517,7 +524,8 @@ namespace Sd_card {
 					throw Detection_failed();
 				}
 
-				return Card_info(rca, _sd_card_device_size(csd) / 2);
+				return Card_info(rca, _sd_card_device_size(csd) / 2,
+					static_cast<Csd3::Version::Type>(Csd3::Version::get(csd.csd3)));
 			}
 
 			Card_info _detect_mmc()
@@ -562,7 +570,8 @@ namespace Sd_card {
 					throw Detection_failed();
 				}
 
-				return Card_info(rca, device_size);
+				return Card_info(rca, device_size,
+					static_cast<Csd3::Version::Type>(Csd3::Version::get(csd.csd3)));
 			}
 	};
 }
