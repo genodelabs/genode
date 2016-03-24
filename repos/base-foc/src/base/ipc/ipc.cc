@@ -27,8 +27,8 @@
 #include <base/thread.h>
 #include <util/assert.h>
 
-/* base-foc/src/base/lock */
-#include <lock_helper.h> /* for 'thread_get_my_native_id()' */
+/* base-internal includes */
+#include <base/internal/lock_helper.h> /* for 'thread_get_my_native_id()' */
 
 /* Fiasco.OC includes */
 namespace Fiasco {

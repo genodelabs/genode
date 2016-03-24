@@ -18,8 +18,8 @@
 /* core includes */
 #include <serial.h>
 
-/* base includes */
-#include <unmanaged_singleton.h>
+/* base-internal includes */
+#include <base/internal/unmanaged_singleton.h>
 
 namespace Genode
 {

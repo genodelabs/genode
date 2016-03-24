@@ -17,8 +17,9 @@
 /* Genode */
 #include <root/component.h>
 
-/* Core */
+/* core-local includes */
 #include <rm_session_component.h>
+#include <rpc_cap_factory.h>
 
 namespace Genode {
 
@@ -88,21 +89,21 @@ namespace Genode {
 			 * \param ds_ep        entry point for managing dataspaces
 			 * \param thread_ep    entry point for managing threads
 			 * \param md_alloc     meta data allocator to be used by root component
-			 * \param cap_session  allocator for pager-object capabilities
+			 * \param cap_factory  for allocating pager-object capabilities
 			 * \param vm_start     begin of virtual memory (default value)
 			 * \param vm_size      size of virtual memory (default value)
 			 */
-			Rm_root(Rpc_entrypoint *session_ep,
-			        Rpc_entrypoint *ds_ep,
-			        Rpc_entrypoint *thread_ep,
-			        Allocator      *md_alloc,
-			        Cap_session    *cap_session,
-			        addr_t          vm_start,
-			        size_t          vm_size)
+			Rm_root(Rpc_entrypoint  *session_ep,
+			        Rpc_entrypoint  *ds_ep,
+			        Rpc_entrypoint  *thread_ep,
+			        Allocator       *md_alloc,
+			        Rpc_cap_factory &cap_factory,
+			        addr_t           vm_start,
+			        size_t           vm_size)
 			:
 				Root_component<Rm_session_component>(session_ep, md_alloc),
 				_ds_ep(ds_ep), _thread_ep(thread_ep), _md_alloc(md_alloc),
-				_pager_ep(cap_session), _vm_start(vm_start), _vm_size(vm_size)
+				_pager_ep(cap_factory), _vm_start(vm_start), _vm_size(vm_size)
 			{ }
 
 			/**

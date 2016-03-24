@@ -21,7 +21,7 @@
 #include <base/printf.h>
 
 /* base-internal includes */
-#include <internal/assert.h>
+#include <base/internal/assert.h>
 
 /* core includes */
 #include <map_local.h>

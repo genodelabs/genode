@@ -11,12 +11,15 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _UTIL_H_
-#define _UTIL_H_
+#ifndef _CORE__INCLUDE__UTIL_H_
+#define _CORE__INCLUDE__UTIL_H_
 
 /* Genode includes */
 #include <rm_session/rm_session.h>
 #include <base/printf.h>
+
+/* base-internal includes */
+#include <base/internal/page_size.h>
 
 namespace Genode
 {
@@ -129,4 +132,4 @@ void Genode::print_page_fault(char const * const fault_msg,
 	}
 }
 
-#endif /* _UTIL_H_ */
+#endif /* _CORE__INCLUDE__UTIL_H_ */

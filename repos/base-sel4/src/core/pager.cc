@@ -20,7 +20,7 @@
 #include <install_mapping.h>
 
 /* base-internal includes */
-#include <internal/capability_space_sel4.h>
+#include <base/internal/capability_space_sel4.h>
 
 /* seL4 includes */
 #include <sel4/sel4.h>

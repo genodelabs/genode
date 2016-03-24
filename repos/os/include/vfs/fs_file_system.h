@@ -387,6 +387,9 @@ class Vfs::Fs_file_system : public File_system
 
 		Rename_result rename(char const *from_path, char const *to_path) override
 		{
+			if ((strcmp(from_path, to_path) == 0) && leaf_path(from_path))
+				return RENAME_OK;
+
 			Absolute_path from_dir_path(from_path);
 			from_dir_path.strip_last_element();
 			from_dir_path.remove_trailing('/');

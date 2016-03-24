@@ -23,7 +23,7 @@
 #include <vm_space.h>
 
 /* base-internal includes */
-#include <internal/capability_space_sel4.h>
+#include <base/internal/capability_space_sel4.h>
 
 namespace Genode { class Platform_pd; }
 

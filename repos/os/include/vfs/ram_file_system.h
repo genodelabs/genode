@@ -353,7 +353,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			Directory *dir = &_root;
 
 			char *name = &buf[0];
-			for (size_t i = 0; i < MAX_NAME_LEN; ++i) {
+			for (size_t i = 0; i < MAX_PATH_LEN; ++i) {
 				if (buf[i] == '/') {
 					buf[i] = '\0';
 
@@ -498,6 +498,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 				return STAT_OK;
 			}
 
+			/* this should never happen */
 			return STAT_ERR_NO_ENTRY;
 		}
 
@@ -575,6 +576,9 @@ class Vfs::Ram_file_system : public Vfs::File_system
 		{
 			using namespace Vfs_ram;
 
+			if ((strcmp(from, to) == 0) && lookup(from))
+				return RENAME_OK;
+
 			char const *new_name = basename(to);
 			if (strlen(new_name) >= MAX_NAME_LEN)
 				return RENAME_ERR_NO_PERM;
@@ -586,28 +590,32 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			Directory *to_dir = lookup_parent(to);
 			if (!to_dir) return RENAME_ERR_NO_ENTRY;
 
-			if (from_dir == to_dir) {
+			/* unlock the node so a second guard can be constructed */
+			if (from_dir == to_dir)
+				from_dir->unlock();
 
-				Node *node = from_dir->child(basename(from));
-				if (!node) return RENAME_ERR_NO_ENTRY;
-				Node::Guard guard(node);
+			Node::Guard to_guard(to_dir);
 
-				if (from_dir->child(new_name)) return RENAME_ERR_NO_PERM;
-				node->name(new_name);
+			Node *from_node = from_dir->child(basename(from));
+			if (!from_node) return RENAME_ERR_NO_ENTRY;
+			Node::Guard guard(from_node);
 
-			} else {
+			Node *to_node = to_dir->child(new_name);
+			if (to_node) {
+				to_node->lock();
 
-				Node::Guard toguard(to_dir);
+				if (Directory *dir = dynamic_cast<Directory*>(to_node))
+					if (dir->length() || (!dynamic_cast<Directory*>(from_node)))
+						return RENAME_ERR_NO_PERM;
 
-				if (to_dir->child(new_name)) return RENAME_ERR_NO_PERM;
-
-				Node *node = from_dir->child(basename(from));
-				if (!node) return RENAME_ERR_NO_ENTRY;
-
-				node->name(new_name);
-				to_dir->adopt(node);
-				from_dir->release(node);
+				to_dir->release(to_node);
+				destroy(_alloc, to_node);
 			}
+
+			from_dir->release(from_node);
+			from_node->name(new_name);
+			to_dir->adopt(from_node);
+
 			return RENAME_OK;
 		}
 

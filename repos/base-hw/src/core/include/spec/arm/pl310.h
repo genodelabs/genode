@@ -13,8 +13,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _SPEC__ARM__PL310_H_
-#define _SPEC__ARM__PL310_H_
+#ifndef _CORE__INCLUDE__SPEC__ARM__PL310_H_
+#define _CORE__INCLUDE__SPEC__ARM__PL310_H_
 
 /* Genode includes */
 #include <util/mmio.h>
@@ -89,4 +89,4 @@ class Arm::Pl310 : public Genode::Mmio
 		}
 };
 
-#endif /* _SPEC__ARM__PL310_H_ */
+#endif /* _CORE__INCLUDE__SPEC__ARM__PL310_H_ */

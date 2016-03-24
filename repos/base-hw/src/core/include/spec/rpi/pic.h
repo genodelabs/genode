@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _PIC_H_
-#define _PIC_H_
+#ifndef _CORE__INCLUDE__SPEC__RPI__PIC_H_
+#define _CORE__INCLUDE__SPEC__RPI__PIC_H_
 
 /* Genode includes */
 #include <util/mmio.h>
@@ -246,4 +246,4 @@ class Genode::Pic : Mmio
 
 namespace Kernel { class Pic : public Genode::Pic { }; }
 
-#endif /* _PIC_H_ */
+#endif /* _CORE__INCLUDE__SPEC__RPI__PIC_H_ */

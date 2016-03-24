@@ -19,7 +19,7 @@ build_kernel:
 	          ARCH=x86 SEL4_ARCH=ia32 PLAT=pc99 DEBUG=1 \
 	          LDFLAGS+=-nostdlib LDFLAGS+=-Wl,-nostdlib \
 	          $(addprefix LDFLAGS+=$(LINKER_OPT_PREFIX),$(LD_MARCH)) \
-	          CFLAGS+=-fno-builtin-printf \
+	          CFLAGS+="-fno-builtin-printf -O3" \
 	          $(addprefix CFLAGS+=,$(CC_MARCH)) \
 	          CONFIG_KERNEL_EXTRA_CPPFLAGS+=-DCONFIG_MAX_NUM_IOAPIC=1 \
 	          CONFIG_KERNEL_EXTRA_CPPFLAGS+=-DCONFIG_IRQ_IOAPIC=1 \

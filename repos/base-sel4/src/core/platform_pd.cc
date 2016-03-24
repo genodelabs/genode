@@ -22,7 +22,7 @@
 #include <kernel_object.h>
 
 /* base-internal includes */
-#include <internal/capability_space_sel4.h>
+#include <base/internal/capability_space_sel4.h>
 
 using namespace Genode;
 
@@ -65,7 +65,7 @@ int Platform_pd::bind_thread(Platform_thread *thread)
 	 *     'Vm_space'. In contrast to mapping that are created as a result of
 	 *     the RM-session's page-fault resolution, the IPC buffer's mapping
 	 *     won't be recoverable once flushed. For this reason, it is important
-	 *     to attach the UTCB as a dataspace to the context-area to make the RM
+	 *     to attach the UTCB as a dataspace to the stack area to make the RM
 	 *     session aware to the mapping. This code is missing.
 	 */
 	if (thread->_utcb) {

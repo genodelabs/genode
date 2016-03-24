@@ -34,8 +34,8 @@
 #include <base/env.h>
 #include <linux_cpu_session/linux_cpu_session.h>
 
-/* local includes */
-#include <socket_descriptor_registry.h>
+/* base-internal includes */
+#include <base/internal/socket_descriptor_registry.h>
 
 /* Linux includes */
 #include <linux_syscalls.h>

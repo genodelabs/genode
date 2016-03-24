@@ -1,10 +1,6 @@
 This repository contains the implementation of Genode for the OKL4
 kernel version 2.1.  For further information, please refer to the
-following documents:
-
-:[http://genode.org/community/wiki/GenodeOnOKL4 - Genode on OKL4 Wiki page]:
-  This Wiki page contains the information on how to build and use
-  Genode with OKL4.
+following website:
 
 :[http://genode.org/documentation/articles/genode-on-okl4 - Bringing Genode to OKL4]:
   This article explains the OKL4-specific porting work.

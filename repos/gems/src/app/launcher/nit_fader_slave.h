@@ -137,7 +137,7 @@ class Launcher::Nit_fader_slave
 			/*
 			 * Set session label
 			 */
-			Arg_string::set_arg(argbuf, sizeof(argbuf), "label", label);
+			Arg_string::set_arg_string(argbuf, sizeof(argbuf), "label", label);
 
 			Session_capability session_cap = _nitpicker_root.session(argbuf, Affinity());
 

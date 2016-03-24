@@ -1,14 +1,12 @@
 #
-# \brief  Portions of base library shared by core and non-core processes
+# \brief  Portions of base library shared by core and non-core components
 # \author Norman Feske
 # \author Martin Stein
 # \date   2013-02-14
 #
 
-# add library dependencies
 LIBS += cxx
 
-# add C++ sources
 SRC_CC += ipc/ipc.cc
 SRC_CC += avl_tree/avl_tree.cc
 SRC_CC += allocator/slab.cc
@@ -27,14 +25,12 @@ SRC_CC += thread/thread.cc
 SRC_CC += thread/myself.cc
 SRC_CC += thread/bootstrap.cc
 SRC_CC += thread/trace.cc
-SRC_CC += thread/context_allocator.cc
+SRC_CC += thread/stack_allocator.cc
 SRC_CC += kernel/interface.cc
+SRC_CC += sleep.cc
+SRC_CC += rm_session_client.cc
 
-# add include paths
-INC_DIR +=  $(REP_DIR)/src/base/lock
-INC_DIR += $(BASE_DIR)/src/base/lock
-INC_DIR += $(BASE_DIR)/src/base/thread
+INC_DIR += $(REP_DIR)/src/include $(BASE_DIR)/src/include
 
-# declare source locations
 vpath %  $(REP_DIR)/src/base
 vpath % $(BASE_DIR)/src/base

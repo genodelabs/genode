@@ -20,7 +20,9 @@
 #include <base/ipc.h>
 #include <base/stdint.h>
 #include <util/touch.h>
-#include <pistachio/kip.h>
+
+/* core-local includes */
+#include <kip.h>
 
 /* Pistachio includes */
 namespace Pistachio {

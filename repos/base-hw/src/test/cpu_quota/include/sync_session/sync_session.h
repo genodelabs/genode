@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <session/session.h>
-#include <signal_session/signal_session.h>
+#include <base/signal.h>
 
 namespace Sync
 {

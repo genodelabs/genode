@@ -12,8 +12,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CPU_H_
-#define _CPU_H_
+#ifndef _CORE__INCLUDE__SPEC__CORTEX_A8__CPU_H_
+#define _CORE__INCLUDE__SPEC__CORTEX_A8__CPU_H_
 
 /* core includes */
 #include <spec/arm_v7/cpu_support.h>
@@ -51,4 +51,4 @@ class Genode::Cpu : public Arm_v7
 		static void translation_added(addr_t const addr, size_t const size);
 };
 
-#endif /* _CPU_H_ */
+#endif /* _CORE__INCLUDE__SPEC__CORTEX_A8__CPU_H_ */

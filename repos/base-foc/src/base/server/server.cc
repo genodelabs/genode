@@ -28,7 +28,7 @@ using namespace Genode;
 
 Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 {
-	Untyped_capability new_obj_cap = _cap_session->alloc(_cap);
+	Untyped_capability new_obj_cap = _alloc_rpc_cap(_pd_session, _cap);
 
 	/* add server object to object pool */
 	obj->cap(new_obj_cap);

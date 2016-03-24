@@ -18,8 +18,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__BASE__IPC_GENERIC_H_
-#define _INCLUDE__BASE__IPC_GENERIC_H_
+#ifndef _INCLUDE__BASE__IPC_H_
+#define _INCLUDE__BASE__IPC_H_
 
 #include <util/misc_math.h>
 #include <util/string.h>
@@ -635,4 +635,4 @@ class Genode::Ipc_server : public Ipc_istream, public Ipc_ostream
 		}
 };
 
-#endif /* _INCLUDE__BASE__IPC_GENERIC_H_ */
+#endif /* _INCLUDE__BASE__IPC_H_ */

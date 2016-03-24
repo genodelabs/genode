@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _ARM_V7__LONG_TRANSLATION_TABLE_H_
-#define _ARM_V7__LONG_TRANSLATION_TABLE_H_
+#ifndef _CORE__INCLUDE__SPEC__ARM_V7__LONG_TRANSLATION_TABLE_H_
+#define _CORE__INCLUDE__SPEC__ARM_V7__LONG_TRANSLATION_TABLE_H_
 
 /* Genode includes */
 #include <util/misc_math.h>
@@ -543,4 +543,4 @@ class Genode::Translation_table : public Level_1_stage_1_translation_table
 			                          TABLE_LEVEL_X_ENTRIES,
 		};
 };
-#endif /* _ARM_V7__LONG_TRANSLATION_TABLE_H_ */
+#endif /* _CORE__INCLUDE__SPEC__ARM_V7__LONG_TRANSLATION_TABLE_H_ */

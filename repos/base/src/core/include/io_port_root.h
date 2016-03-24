@@ -29,8 +29,8 @@ namespace Genode {
 
 		public:
 
-			Io_port_handler(Cap_session *cap_session) :
-				_ep(cap_session, STACK_SIZE, "ioport")
+			Io_port_handler(Pd_session *pd_session) :
+				_ep(pd_session, STACK_SIZE, "ioport")
 			{ }
 
 			Rpc_entrypoint *entrypoint() { return &_ep; }
@@ -58,11 +58,11 @@ namespace Genode {
 			 * \param io_port_alloc  platform IO_PORT allocator
 			 * \param md_alloc       meta-data allocator to be used by root component
 			 */
-			Io_port_root(Cap_session       *cap_session,
+			Io_port_root(Pd_session        *pd_session,
 			             Range_allocator   *io_port_alloc,
 			             Allocator         *md_alloc)
 			:
-				Io_port_handler(cap_session),
+				Io_port_handler(pd_session),
 				Root_component<Io_port_session_component>(entrypoint(), md_alloc),
 				_io_port_alloc(io_port_alloc) { }
 	};

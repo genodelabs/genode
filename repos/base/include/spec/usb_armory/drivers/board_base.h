@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__PLATFORM__IMX53_QSB__DRIVERS__BOARD_BASE_H_
-#define _INCLUDE__PLATFORM__IMX53_QSB__DRIVERS__BOARD_BASE_H_
+#ifndef _INCLUDE__SPEC__USB_ARMORY__DRIVERS__BOARD_BASE_H_
+#define _INCLUDE__SPEC__USB_ARMORY__DRIVERS__BOARD_BASE_H_
 
 /* Genode includes */
 #include <spec/imx53/drivers/board_base_support.h>
@@ -38,5 +38,4 @@ struct Genode::Board_base : Imx53::Board_base
 	};
 };
 
-#endif /* _INCLUDE__PLATFORM__IMX53_QSB__DRIVERS__BOARD_BASE_H_ */
-
+#endif /* _INCLUDE__SPEC__USB_ARMORY__DRIVERS__BOARD_BASE_H_ */

@@ -20,6 +20,9 @@
 #include <base/native_types.h>
 #include <base/thread.h>
 
+/* base-internal includes */
+#include <base/internal/native_utcb.h>
+
 /* core includes */
 #include <address_space.h>
 #include <object.h>
@@ -95,7 +98,7 @@ namespace Genode {
 			 * \param quota      CPU quota that shall be granted to the thread
 			 * \param label      debugging label
 			 * \param virt_prio  unscaled processor-scheduling priority
-			 * \param utcb       core local pointer to userland thread-context
+			 * \param utcb       core local pointer to userland stack
 			 */
 			Platform_thread(size_t const quota, const char * const label,
 			                unsigned const virt_prio, addr_t const utcb);
@@ -201,4 +204,3 @@ namespace Genode {
 }
 
 #endif /* _CORE__INCLUDE__PLATFORM_THREAD_H_ */
-

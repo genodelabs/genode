@@ -16,6 +16,8 @@
 #   INSTALL_DIR      - destination directory for installing shared libraries
 #
 
+ACCUMULATE_MISSING_PORTS = 1
+
 #
 # Include common utility functions
 #
@@ -132,7 +134,11 @@ ifneq ($(LIBS),)
 	@(echo "$(DEP_VAR_NAME) = $(foreach l,$(LIBS),$l.lib \$$(DEP_$l.lib))"; \
 	  echo "") >> $(LIB_DEP_FILE)
 endif
-	@(echo "$(LIB).lib: $(addsuffix .lib,$(LIBS))"; \
+ifneq ($(DEP_MISSING_PORTS),)
+	@(echo "MISSING_PORTS += $(DEP_MISSING_PORTS)"; \
+	  echo "") >> $(LIB_DEP_FILE)
+endif
+	@(echo "$(LIB).lib: check_ports $(addsuffix .lib,$(LIBS))"; \
 	  echo "	@\$$(MKDIR) -p \$$(LIB_CACHE_DIR)/$(LIB)"; \
 	  echo "	\$$(VERBOSE_MK)\$$(MAKE) $(VERBOSE_DIR) -C \$$(LIB_CACHE_DIR)/$(LIB) -f \$$(BASE_DIR)/mk/lib.mk \\"; \
 	  echo "	     REP_DIR=$(REP_DIR) \\"; \

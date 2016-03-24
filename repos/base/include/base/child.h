@@ -112,14 +112,6 @@ struct Genode::Child_policy
 	virtual Ram_session_capability ref_ram_cap() const { return env()->ram_session_cap(); }
 
 	/**
-	 * Return platform-specific PD-session arguments
-	 *
-	 * This method is used on Linux to supply additional PD-session
-	 * argument to core, i.e., the chroot path, the UID, and the GID.
-	 */
-	virtual Native_pd_args const *pd_args() const { return 0; }
-
-	/**
 	 * Respond to the release of resources by the child
 	 *
 	 * This method is called when the child confirms the release of

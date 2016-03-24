@@ -18,7 +18,7 @@
 #include <dataspace/capability.h>
 
 /* base-internal includes */
-#include <trace/control.h>
+#include <base/internal/trace_control.h>
 
 namespace Genode { namespace Trace { class Control_area; } }
 

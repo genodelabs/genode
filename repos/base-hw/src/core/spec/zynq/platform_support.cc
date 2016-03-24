@@ -17,7 +17,9 @@
 #include <board.h>
 #include <cpu.h>
 #include <pic.h>
-#include <unmanaged_singleton.h>
+
+/* base-internal includes */
+#include <base/internal/unmanaged_singleton.h>
 
 using namespace Genode;
 

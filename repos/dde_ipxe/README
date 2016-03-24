@@ -2,10 +2,9 @@ This repository contains the Device Driver Environment for the
 "donator OS" iPXE available from http://ipxe.org/.
 
 For building DDE iPXE, you first need to fetch and patch the original
-sources. The top-level makefile of this repository automates this
-task. Just issue:
+sources. The 'prepare_port' tool automates this task. Just issue:
 
-! make prepare
+! ./tool/ports/prepare_port dde_ipxe
 
 Now, you need to include the DDE iPXE repository into your Genode
 build process. Just add the path to this directory to the

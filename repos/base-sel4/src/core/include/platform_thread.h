@@ -45,7 +45,7 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		 * Virtual address of the IPC buffer within the PDs address space
 		 *
 		 * The value is 0 for the PD's main thread. For all other threads,
-		 * the value is somewhere within the context area.
+		 * the value is somewhere within the stack area.
 		 */
 		addr_t const _utcb;
 

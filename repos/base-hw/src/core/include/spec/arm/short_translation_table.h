@@ -12,8 +12,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _SPEC__ARM__SHORT_TRANSLATION_TABLE_H_
-#define _SPEC__ARM__SHORT_TRANSLATION_TABLE_H_
+#ifndef _CORE__INCLUDE__SPEC__ARM__SHORT_TRANSLATION_TABLE_H_
+#define _CORE__INCLUDE__SPEC__ARM__SHORT_TRANSLATION_TABLE_H_
 
 /* Genode includes */
 #include <util/register.h>
@@ -585,4 +585,4 @@ class Genode::Translation_table
 		}
 } __attribute__((aligned(1<<Translation_table::ALIGNM_LOG2)));
 
-#endif /* _SPEC__ARM__SHORT_TRANSLATION_TABLE_H_ */
+#endif /* _CORE__INCLUDE__SPEC__ARM__SHORT_TRANSLATION_TABLE_H_ */

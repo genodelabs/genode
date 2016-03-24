@@ -20,9 +20,11 @@
 #include <rm_session_component.h>
 #include <map_local.h>
 
-#include <kernel/pd.h>
+/* base-internal includes */
+#include <base/internal/native_utcb.h>
 
 /* kernel includes */
+#include <kernel/pd.h>
 #include <kernel/kernel.h>
 
 using namespace Genode;

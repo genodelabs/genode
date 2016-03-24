@@ -11,12 +11,15 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
 #include <base/env.h>
 #include <base/printf.h>
 #include <os/config.h>
 #include <util/list.h>
 #include <util/string.h>
+#include <base/thread.h>
 
+/* local includes */
 #include <dynamic.h>
 #include <init.h>
 
@@ -484,8 +487,14 @@ Elf::Sym const *Linker::lookup_symbol(char const *name, Dependency const *dep,
 	}
 
 	/* try searching binary's dependencies */
-	if (!weak_symbol && dep->root && dep != binary->dep.head())
-		return lookup_symbol(name, binary->dep.head(), base, undef, other);
+	if (!weak_symbol && dep->root) {
+		if (binary && dep != binary->dep.head()) {
+			return lookup_symbol(name, binary->dep.head(), base, undef, other);
+		} else {
+			PERR("Could not lookup symbol \"%s\"", name);
+			throw Not_found();
+		}
+	}
 
 	if (dep->root && verbose_lookup)
 		PDBG("Return %p", weak_symbol);
@@ -572,9 +581,10 @@ int main()
 	/* print loaded object information */
 	try {
 		if (Genode::config()->xml_node().attribute("ld_verbose").has_value("yes")) {
-			PINF("  %lx .. %lx: context area", Genode::Native_config::context_area_virtual_base(),
-			     Genode::Native_config::context_area_virtual_base() +
-			     Genode::Native_config::context_area_virtual_size() - 1);
+			PINF("  %lx .. %lx: stack area",
+			     Genode::Thread_base::stack_area_virtual_base(),
+			     Genode::Thread_base::stack_area_virtual_base() +
+			     Genode::Thread_base::stack_area_virtual_size() - 1);
 			dump_loaded();
 		}
 	} catch (...) {  }

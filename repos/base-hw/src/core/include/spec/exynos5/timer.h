@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _TIMER_H_
-#define _TIMER_H_
+#ifndef _CORE__INCLUDE__SPEC__EXYNOS5__TIMER_H_
+#define _CORE__INCLUDE__SPEC__EXYNOS5__TIMER_H_
 
 /* core include */
 #include <board.h>
@@ -254,4 +254,4 @@ class Genode::Timer : public Mmio
 
 namespace Kernel { class Timer : public Genode::Timer { }; }
 
-#endif /* _TIMER_H_ */
+#endif /* _CORE__INCLUDE__SPEC__EXYNOS5__TIMER_H_ */

@@ -12,8 +12,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _TSS_H_
-#define _TSS_H_
+#ifndef _CORE__INCLUDE__SPEC__X86_64__TSS_H_
+#define _CORE__INCLUDE__SPEC__X86_64__TSS_H_
 
 #include <base/stdint.h>
 
@@ -61,4 +61,4 @@ class Genode::Tss
 
 }__attribute__((packed));
 
-#endif /* _TSS_H_ */
+#endif /* _CORE__INCLUDE__SPEC__X86_64__TSS_H_ */

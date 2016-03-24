@@ -18,16 +18,6 @@
 #include <base/native_capability.h>
 #include <base/stdint.h>
 
-/*
- * We cannot just include <semaphore.h> and <pthread.h> here
- * because this would imply the nested inclusion of a myriad
- * of Linux types and would pollute the namespace for everyone
- * who includes this header file. We want to cleanly separate
- * Genode from POSIX.
- */
-
-extern Genode::addr_t _context_area_start;
-
 namespace Genode {
 
 	/**
@@ -105,11 +95,6 @@ namespace Genode {
 		static void copy(void* dst, Native_capability_tpl<Cap_dst_policy>* src);
 	};
 
-	/**
-	 * Empty UTCB type expected by the thread library, unused on Linux
-	 */
-	typedef struct { } Native_utcb;
-
 	typedef Native_capability_tpl<Cap_dst_policy> Native_capability;
 
 	/**
@@ -124,55 +109,6 @@ namespace Genode {
 	};
 
 	enum { PARENT_SOCKET_HANDLE = 100 };
-
-	struct Native_config
-	{
-		/**
-		 * Thread-context area configuration.
-		 *
-		 * Please update platform-specific files after changing these
-		 * functions, e.g., 'base-linux/src/ld/context_area.*.ld'.
-		 */
-		static addr_t context_area_virtual_base() {
-			return align_addr((addr_t)&_context_area_start, 20); }
-
-		static constexpr addr_t context_area_virtual_size() {
-			return 0x10000000UL; }
-
-		/**
-		 * Size of virtual address region holding the context of one thread
-		 */
-		static constexpr addr_t context_virtual_size() { return 0x00100000UL; }
-	};
-
-	class Native_pd_args
-	{
-		public:
-
-			enum { ROOT_PATH_MAX_LEN = 256 };
-
-		private:
-
-			char _root[ROOT_PATH_MAX_LEN];
-
-			unsigned _uid;
-			unsigned _gid;
-
-		public:
-
-			Native_pd_args() : _uid(0), _gid(0) { _root[0] = 0; }
-
-			Native_pd_args(char const *root, unsigned uid, unsigned gid)
-			:
-				_uid(uid), _gid(gid)
-			{
-				Genode::strncpy(_root, root, sizeof(_root));
-			}
-
-			char const *root() const { return _root; }
-			unsigned    uid()  const { return _uid;  }
-			unsigned    gid()  const { return _gid;  }
-	};
 }
 
 #endif /* _INCLUDE__BASE__NATIVE_TYPES_H_ */

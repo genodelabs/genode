@@ -13,14 +13,16 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
 #include <base/cap_map.h>
 #include <base/native_types.h>
 
 #include <util/assert.h>
 
-/* Lock implementation local include */
-#include <spin_lock.h>
+/* base-internal includes */
+#include <base/internal/spin_lock.h>
 
+/* kernel includes */
 namespace Fiasco {
 #include <l4/sys/consts.h>
 #include <l4/sys/task.h>

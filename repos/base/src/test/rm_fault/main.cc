@@ -125,7 +125,7 @@ class Test_child : public Child_policy
 		                         char *args, size_t args_len)
 		{
 			/* define session label for sessions forwarded to our parent */
-			Arg_string::set_arg(args, args_len, "label", "child");
+			Arg_string::set_arg_string(args, args_len, "label", "child");
 		}
 };
 

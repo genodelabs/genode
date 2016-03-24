@@ -21,7 +21,8 @@
 #include <ram_session/ram_session.h>
 #include <cpu_session/cpu_session.h>
 #include <cpu_session/capability.h>
-#include <pd_session/pd_session.h>
+#include <pd_session/capability.h>
+#include <cap_session/cap_session.h>
 #include <base/allocator.h>
 #include <base/snprintf.h>
 #include <base/lock.h>
@@ -80,6 +81,7 @@ struct Genode::Env
 	 * PD session of the component as created by the parent
 	 */
 	virtual Pd_session *pd_session() = 0;
+	virtual Pd_session_capability pd_session_cap() = 0;
 
 	/**
 	 * Heap backed by the RAM session of the environment
@@ -105,17 +107,15 @@ struct Genode::Env
 	/**
 	 * Reinitialize main-thread object
 	 *
-	 * \param context_area_rm  new RM session of the context area
+	 * \param stack_area_rm  new RM session of the context area
 	 *
 	 * This function is solely used for implementing fork semantics
 	 * as provided by the Noux environment.
 	 *
 	 * \noapi
 	 */
-	virtual void reinit_main_thread(Rm_session_capability &) = 0;
+	virtual void reinit_main_thread(Rm_session_capability &stack_area_rm) = 0;
 
 };
-
-
 
 #endif /* _INCLUDE__BASE__ENV_H_ */

@@ -19,8 +19,8 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-/* include from 'src/base/ipc' */
-#include <socket_descriptor_registry.h>
+/* base-internal includes */
+#include <base/internal/socket_descriptor_registry.h>
 
 /* core-local includes */
 #include <resource_path.h>

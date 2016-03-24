@@ -14,12 +14,11 @@
 /* Genode includes */
 #include <base/printf.h>
 #include <util/string.h>
-#include <pistachio/thread_helper.h>
-#include <pistachio/kip.h>
 
 /* core includes */
 #include <platform_pd.h>
 #include <platform_thread.h>
+#include <kip.h>
 
 /* Pistachio includes */
 namespace Pistachio

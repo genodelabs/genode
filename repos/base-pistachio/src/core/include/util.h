@@ -19,8 +19,10 @@
 #include <base/printf.h>
 #include <rm_session/rm_session.h>
 #include <util/touch.h>
-#include <pistachio/kip.h>
 #include <base/native_types.h>
+
+/* core-local includes */
+#include <kip.h>
 
 /* Pistachio includes */
 namespace Pistachio {

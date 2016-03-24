@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _PSEUDO_DESCRIPTOR_H_
-#define _PSEUDO_DESCRIPTOR_H_
+#ifndef _CORE__INCLUDE__SPEC__X86_64__PSEUDO_DESCRIPTOR_H_
+#define _CORE__INCLUDE__SPEC__X86_64__PSEUDO_DESCRIPTOR_H_
 
 #include <base/stdint.h>
 
@@ -36,4 +36,4 @@ class Genode::Pseudo_descriptor
 		Pseudo_descriptor(uint16_t l, uint64_t b) : _limit(l), _base (b) { };
 } __attribute__((packed));
 
-#endif /* _PSEUDO_DESCRIPTOR_H_ */
+#endif /* _CORE__INCLUDE__SPEC__X86_64__PSEUDO_DESCRIPTOR_H_ */

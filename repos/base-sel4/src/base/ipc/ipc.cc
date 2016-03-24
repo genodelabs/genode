@@ -19,8 +19,8 @@
 #include <util/misc_math.h>
 
 /* base-internal includes */
-#include <internal/capability_space_sel4.h>
-#include <internal/kernel_debugger.h>
+#include <base/internal/capability_space_sel4.h>
+#include <base/internal/kernel_debugger.h>
 
 /* seL4 includes */
 #include <sel4/sel4.h>

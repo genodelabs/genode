@@ -181,7 +181,7 @@ void Vancouver_disk::_signal_dispatch_entry(unsigned disknr)
 
 bool Vancouver_disk::receive(MessageDisk &msg)
 {
-	static Genode::Native_utcb utcb_backup;
+	static Vmm::Utcb_guard::Utcb_backup utcb_backup;
 	Vmm::Utcb_guard guard(utcb_backup);
 
 	if (msg.disknr >= MAX_DISKS)

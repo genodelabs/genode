@@ -14,6 +14,7 @@
 #ifndef _INCLUDE__BASE__NATIVE_TYPES_H_
 #define _INCLUDE__BASE__NATIVE_TYPES_H_
 
+/* Genode includes */
 #include <base/native_capability.h>
 #include <base/stdint.h>
 
@@ -62,34 +63,8 @@ namespace Genode {
 		return tid.raw;
 	}
 
-	/**
-	 * Empty UTCB type expected by the thread library
-	 *
-	 * On this kernel, UTCBs are not placed within the the context area. Each
-	 * thread can request its own UTCB pointer using the kernel interface.
-	 */
-	typedef struct { } Native_utcb;
-
 	typedef Native_capability_tpl<Cap_dst_policy> Native_capability;
 	typedef Fiasco::l4_threadid_t Native_connection_state;
-
-	struct Native_config
-	{
-		/**
-		 * Thread-context area configuration.
-		 */
-		static constexpr addr_t context_area_virtual_base() {
-			return 0x40000000UL; }
-		static constexpr addr_t context_area_virtual_size() {
-			return 0x10000000UL; }
-
-		/**
-		 * Size of virtual address region holding the context of one thread
-		 */
-		static constexpr addr_t context_virtual_size() { return 0x00100000UL; }
-	};
-
-	struct Native_pd_args { };
 }
 
 #endif /* _INCLUDE__BASE__NATIVE_TYPES_H_ */

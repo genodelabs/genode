@@ -138,8 +138,12 @@ class Vfs::Symlink_file_system : public File_system
 		Unlink_result unlink(char const *) override {
 			return UNLINK_ERR_NO_PERM; }
 
-		Rename_result rename(char const *, char const *) override {
-			return RENAME_ERR_NO_PERM; }
+		Rename_result rename(char const *from, char const *to) override
+		{
+			if (_is_single_file(from) || _is_single_file(to))
+				return RENAME_ERR_NO_PERM;
+			return RENAME_ERR_NO_ENTRY;
+		}
 
 		Mkdir_result mkdir(char const *, unsigned) override {
 			return MKDIR_ERR_NO_PERM; }

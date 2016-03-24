@@ -31,7 +31,6 @@ namespace Loader {
 
 	using Genode::Dataspace_capability;
 	using Genode::Signal_context_capability;
-	using Genode::Native_pd_args;
 	using Genode::Meta::Type_tuple;
 
 	struct Session;
@@ -144,8 +143,7 @@ struct Loader::Session : Genode::Session
 	 * \throw Rom_module_does_not_exist  if the specified binary could
 	 *                                   not obtained as ROM module
 	 */
-	virtual void start(Name const &binary, Name const &label = "",
-	                   Native_pd_args const &pd_args = Native_pd_args()) = 0;
+	virtual void start(Name const &binary, Name const &label = "") = 0;
 
 	/**
 	 * Set view geometry and buffer offset
@@ -174,7 +172,7 @@ struct Loader::Session : Genode::Session
 	GENODE_RPC(Rpc_fault_sigh, void, fault_sigh, Signal_context_capability);
 	GENODE_RPC_THROW(Rpc_start, void, start,
 	                 GENODE_TYPE_LIST(Rom_module_does_not_exist),
-	                 Name const &, Name const &, Native_pd_args const &);
+	                 Name const &, Name const &);
 	GENODE_RPC_THROW(Rpc_view_geometry, void, view_geometry,
 	                 GENODE_TYPE_LIST(View_does_not_exist),
 	                 Rect, Point);

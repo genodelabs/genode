@@ -14,10 +14,13 @@
 /* Genode includes */
 #include <base/printf.h>
 #include <base/allocator_avl.h>
-#include <base/crt0.h>
 #include <base/sleep.h>
 #include <util/misc_math.h>
-#include <fiasco/thread_helper.h>
+
+/* base-internal includes */
+#include <base/internal/crt0.h>
+#include <base/internal/fiasco_thread_helper.h>
+#include <base/internal/stack_area.h>
 
 /* core includes */
 #include <core_parent.h>
@@ -304,8 +307,8 @@ void Platform::_setup_mem_alloc()
 				}
 
 				region.start = addr; region.end = addr + size;
-				if (!region.intersects(Native_config::context_area_virtual_base(),
-				                       Native_config::context_area_virtual_size())) {
+				if (!region.intersects(stack_area_virtual_base(),
+				                       stack_area_virtual_size())) {
 					add_region(region, _ram_alloc);
 					add_region(region, _core_address_ranges());
 				}
@@ -409,9 +412,9 @@ void Platform::_setup_basics()
 	_vm_start = _vm_start == 0 ? L4_PAGESIZE : _vm_start;
 	_region_alloc.add_range(_vm_start, _vm_size);
 
-	/* preserve context area in core's virtual address space */
-	_region_alloc.remove_range(Native_config::context_area_virtual_base(),
-	                           Native_config::context_area_virtual_size());
+	/* preserve stack area in core's virtual address space */
+	_region_alloc.remove_range(stack_area_virtual_base(),
+	                           stack_area_virtual_size());
 
 	/* I/O memory could be the whole user address space */
 	/* FIXME if the kernel helps to find out max address - use info here */

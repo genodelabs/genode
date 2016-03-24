@@ -18,8 +18,9 @@
 #include <util/construct_at.h>
 #include <rm_session/rm_session.h>
 
-/* Core includes */
+/* core-local includes */
 #include <pager.h>
+#include <imprint_badge.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>
@@ -832,8 +833,8 @@ void Pager_activation_base::entry() { }
  **********************/
 
 
-Pager_entrypoint::Pager_entrypoint(Cap_session *cap_session)
-: _cap_session(cap_session)
+Pager_entrypoint::Pager_entrypoint(Rpc_cap_factory &cap_factory)
+: _cap_factory(cap_factory)
 {
 	/* sanity check space for pager threads */
 	if (kernel_hip()->cpu_max() > PAGER_CPUS) {
@@ -869,10 +870,9 @@ Pager_capability Pager_entrypoint::manage(Pager_object *obj)
 
 	/* request creation of portal bind to pager thread */
 	Native_capability cap_session =
-		_cap_session->alloc(pager_thread_cap, obj->handler_address());
+		_cap_factory.alloc(pager_thread_cap, obj->handler_address(), 0);
 
-	if (NOVA_OK != pt_ctrl(cap_session.local_name(), reinterpret_cast<mword_t>(obj)))
-		nova_die();
+	imprint_badge(cap_session.local_name(), reinterpret_cast<mword_t>(obj));
 
 	/* disable the feature for security reasons now */
 	revoke(Obj_crd(cap_session.local_name(), 0, Obj_crd::RIGHT_PT_CTRL));
@@ -890,12 +890,16 @@ Pager_capability Pager_entrypoint::manage(Pager_object *obj)
 void Pager_entrypoint::dissolve(Pager_object *obj)
 {
 	Native_capability pager_obj = obj->Object_pool<Pager_object>::Entry::cap();
-	/* cleanup at cap session */
-	_cap_session->free(pager_obj);
+
+	/* cleanup at cap factory */
+	_cap_factory.free(pager_obj);
+
 	/* revoke cap selector locally */
 	revoke(pager_obj.dst(), true);
+
 	/* remove object from pool */
 	remove(obj);
+
 	/* take care that no faults are in-flight */
 	obj->cleanup_call();
 }

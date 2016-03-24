@@ -21,8 +21,9 @@
 #include <cap_session/cap_session.h>
 #include <pager/capability.h>
 
-/* Core includes */
+/* core-local includes */
 #include <ipc_pager.h>
+#include <rpc_cap_factory.h>
 
 
 namespace Genode {
@@ -416,18 +417,18 @@ namespace Genode {
 		private:
 
 			Pager_activation_base *_activation;
-			Cap_session           *_cap_session;
+			Rpc_cap_factory       &_cap_factory;
 
 		public:
 
 			/**
 			 * Constructor
 			 *
-			 * \param cap_session  Cap_session for creating capabilities
+			 * \param cap_factory  factory for creating capabilities
 			 *                     for the pager objects managed by this
 			 *                     entry point
 			 */
-			Pager_entrypoint(Cap_session *cap_session);
+			Pager_entrypoint(Rpc_cap_factory &cap_factory);
 
 			/**
 			 * Associate Pager_object with the entry point

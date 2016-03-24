@@ -28,6 +28,17 @@ namespace Pistachio {
 #include <l4/types.h>
 }
 
+
+inline unsigned long convert_native_thread_id_to_badge(Genode::Native_thread_id tid)
+{
+	/*
+	 * Pistachio has no server-defined badges for page-fault messages.
+	 * Therefore, we have to interpret the sender ID as badge.
+	 */
+	return tid.raw;
+}
+
+
 namespace Genode {
 
 	class Platform_pd;

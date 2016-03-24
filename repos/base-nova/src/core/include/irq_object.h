@@ -10,7 +10,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#pragma once
+#ifndef _CORE__INCLUDE__IRQ_OBJECT_H_
+#define _CORE__INCLUDE__IRQ_OBJECT_H_
 
 namespace Genode { class Irq_object; }
 
@@ -42,3 +43,5 @@ class Genode::Irq_object
 
 		void start(unsigned irq, Genode::addr_t);
 };
+
+#endif /* _CORE__INCLUDE__IRQ_OBJECT_H_ */

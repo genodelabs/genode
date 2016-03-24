@@ -153,19 +153,18 @@ Building
 The source code of GDB monitor builds upon the original 'gdbserver' that
 comes as part of the GDB package. This 3rd-party source code is not included
 in Genode's source tree. To download the code and integrate it with Genode,
-change to the 'ports' repository and issue the following command
-! make prepare PKG=gdb
+issue the following command
+! ./tool/ports/prepare_port gdb
 
-This way, the Makefile of the 'ports' repository will download, unpack, and
-patch the 3rd-party source code.
+This way, the 3rd-party source code will be downloaded, unpacked, and patched.
 
 To build and use GDB monitor, you will need to enable the 'ports' source-code
 repository on your '<build-dir>/etc/build.conf' file (in addition to the
 default repositories):
 
 If you intend to use the TCP terminal for connecting GDB, you will further
-need to prepare the 'libports' repository with the 'lwip' package and enable
-the following repositories in your 'build.conf':
+need to prepare the 'lwip' package and enable the following repositories in your
+'build.conf':
 
 :libports: providing the lwIP stack needed by TCP terminal
 :gems: hosting the source code of TCP terminal
@@ -391,7 +390,7 @@ base platforms:
 :Fiasco.OC on x86_32: This is the primary platform fully supported by GDB
   monitor. To enable user-land debugging support for the Fiasco.OC kernel
   a kernel patch ('base-foc/patches/foc_single_step_x86.patch') is
-  required, which is applied on 'make prepare' in 'base-foc'.
+  required, which is applied on './tool/ports/prepare_port foc'.
 
 :Fiasco.OC on ARM: GDB Monitor works on this platform but it has not received
   the same amount of testing as the x86_32 version. Please use it with caution
@@ -406,8 +405,7 @@ base platforms:
   the kernel patches in the 'base-okl4/patched' directory.
 
 All required patches are applied to the respective kernel by default when
-issuing 'make prepare' in the kernel's respective 'base-<platform>'
-repository.
+issuing './tool/ports/prepare_port <platform>'.
 
 The other base platforms are not yet covered. We will address them according to
 the demanded by the Genode developer community.

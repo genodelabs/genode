@@ -124,7 +124,7 @@ class Vfs::Single_file_system : public File_system
 
 		char const *leaf_path(char const *path) override
 		{
-			return path;
+			return _is_single_file(path) ? path : 0;
 		}
 
 		Open_result open(char const *path, unsigned,
@@ -148,9 +148,11 @@ class Vfs::Single_file_system : public File_system
 			return READLINK_ERR_NO_ENTRY;
 		}
 
-		Rename_result rename(char const *, char const *) override
+		Rename_result rename(char const *from, char const *to) override
 		{
-			return RENAME_ERR_NO_PERM;
+			if (_is_single_file(from) || _is_single_file(to))
+				return RENAME_ERR_NO_PERM;
+			return RENAME_ERR_NO_ENTRY;
 		}
 
 		Mkdir_result mkdir(char const *, unsigned) override

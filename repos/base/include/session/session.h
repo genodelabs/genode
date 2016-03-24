@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__SESSION_H_
-#define _INCLUDE__SESSION_H_
+#ifndef _INCLUDE__SESSION__SESSION_H_
+#define _INCLUDE__SESSION__SESSION_H_
 
 /*
  * Each session interface declares an RPC interface and, therefore, relies on
@@ -37,4 +37,4 @@ class Genode::Session
 	 */
 };
 
-#endif /* _INCLUDE__SESSION_H_ */
+#endif /* _INCLUDE__SESSION__SESSION_H_ */

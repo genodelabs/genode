@@ -1,0 +1,9 @@
+{
+    "llvm-target": "arm-pc-genode-elf",
+    "target-endian": "little",
+    "target-pointer-width": "32",
+    "arch": "arm",
+    "os": "genode",
+    "cpu": "generic",
+    "no_compiler_rt": true
+}

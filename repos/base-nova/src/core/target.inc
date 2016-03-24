@@ -3,10 +3,11 @@ LIBS         = base-common core
 
 GEN_CORE_DIR = $(BASE_DIR)/src/core
 
-SRC_CC       = context_area.cc \
+SRC_CC       = stack_area.cc \
                core_mem_alloc.cc \
                core_printf.cc \
                core_rm_session.cc \
+               core_rpc_cap_alloc.cc \
                cpu_session_component.cc \
                cpu_session_extension.cc \
                cpu_session_support.cc \
@@ -21,7 +22,10 @@ SRC_CC       = context_area.cc \
                main.cc \
                pager.cc \
                pd_session_component.cc \
-               pd_session_extension.cc \
+               native_pd_component.cc \
+               pd_upgrade_ram_quota.cc \
+               pd_assign_pci.cc \
+               rpc_cap_factory.cc \
                platform.cc \
                platform_pd.cc \
                platform_services.cc \
@@ -31,15 +35,13 @@ SRC_CC       = context_area.cc \
                rm_session_component.cc \
                rm_session_support.cc \
                rom_session_component.cc \
-               signal_session_component.cc \
                thread_start.cc \
                bios_data_area.cc \
                trace_session_component.cc
 
 INC_DIR      = $(REP_DIR)/src/core/include \
-               $(REP_DIR)/src/base/console \
-               $(BASE_DIR)/src/base/thread \
-               $(BASE_DIR)/src/base/include \
+               $(REP_DIR)/src/include \
+               $(BASE_DIR)/src/include \
                $(GEN_CORE_DIR)/include
 
 include $(GEN_CORE_DIR)/version.inc
@@ -49,6 +51,7 @@ vpath ram_session_component.cc     $(GEN_CORE_DIR)
 vpath rom_session_component.cc     $(GEN_CORE_DIR)
 vpath cpu_session_component.cc     $(GEN_CORE_DIR)
 vpath pd_session_component.cc      $(GEN_CORE_DIR)
+vpath pd_upgrade_ram_quota.cc      $(GEN_CORE_DIR)
 vpath rm_session_component.cc      $(GEN_CORE_DIR)
 vpath trace_session_component.cc   $(GEN_CORE_DIR)
 vpath io_port_session_component.cc $(GEN_CORE_DIR)/spec/x86
@@ -58,6 +61,6 @@ vpath dataspace_component.cc       $(GEN_CORE_DIR)
 vpath core_mem_alloc.cc            $(GEN_CORE_DIR)
 vpath dump_alloc.cc                $(GEN_CORE_DIR)
 vpath platform_services.cc         $(GEN_CORE_DIR)/spec/x86
-vpath context_area.cc              $(GEN_CORE_DIR)
+vpath stack_area.cc                $(GEN_CORE_DIR)
 vpath core_printf.cc               $(BASE_DIR)/src/base/console
 vpath %.cc                         $(REP_DIR)/src/core

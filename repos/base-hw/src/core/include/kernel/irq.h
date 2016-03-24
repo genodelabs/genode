@@ -12,14 +12,16 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _KERNEL__IRQ_H_
-#define _KERNEL__IRQ_H_
+#ifndef _CORE__INCLUDE__KERNEL__IRQ_H_
+#define _CORE__INCLUDE__KERNEL__IRQ_H_
 
 /* Genode includes */
 #include <base/native_types.h>
 #include <irq_session/irq_session.h>
-#include <unmanaged_singleton.h>
 #include <util/avl_tree.h>
+
+/* base-internal includes */
+#include <base/internal/unmanaged_singleton.h>
 
 /* core includes */
 #include <kernel/signal_receiver.h>
@@ -155,4 +157,4 @@ class Kernel::User_irq : public Kernel::Irq, public Kernel::Object
 			return dynamic_cast<User_irq*>(_pool()->object(irq)); }
 };
 
-#endif /* _KERNEL__IRQ_H_ */
+#endif /* _CORE__INCLUDE__KERNEL__IRQ_H_ */

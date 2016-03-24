@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _KERNEL__CONFIGURATION_H_
-#define _KERNEL__CONFIGURATION_H_
+#ifndef _CORE__INCLUDE__KERNEL__CONFIGURATION_H_
+#define _CORE__INCLUDE__KERNEL__CONFIGURATION_H_
 
 namespace Kernel
 {
@@ -31,4 +31,4 @@ namespace Kernel
 	constexpr unsigned cpu_fill_ms = 10;
 }
 
-#endif /* _KERNEL__CONFIGURATION_H_ */
+#endif /* _CORE__INCLUDE__KERNEL__CONFIGURATION_H_ */

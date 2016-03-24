@@ -24,7 +24,7 @@ void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
 	/* make sure nobody is able to find this object */
 	remove(obj);
 
-	_cap_session->free(obj->cap());
+	_free_rpc_cap(_pd_session, obj->cap());
 
 	/* now the object may be safely destructed */
 }
@@ -49,7 +49,8 @@ void Rpc_entrypoint::omit_reply()
 }
 
 
-void Rpc_entrypoint::explicit_reply(Untyped_capability reply_cap, int return_value)
+void Rpc_entrypoint::reply_signal_info(Untyped_capability reply_cap,
+                                       unsigned long imprint, unsigned long cnt)
 {
 	if (!_ipc_server) return;
 
@@ -57,9 +58,9 @@ void Rpc_entrypoint::explicit_reply(Untyped_capability reply_cap, int return_val
 	Untyped_capability last_reply_cap = _ipc_server->dst();
 
 	/* direct ipc server to the specified reply destination */
-	_ipc_server->ret(return_value);
+	_ipc_server->ret(0);
 	_ipc_server->dst(reply_cap);
-	*_ipc_server << IPC_REPLY;
+	*_ipc_server << Signal_source::Signal(imprint, cnt) << IPC_REPLY;
 
 	/* restore reply capability of the original request */
 	_ipc_server->dst(last_reply_cap);
@@ -78,7 +79,7 @@ bool Rpc_entrypoint::is_myself() const
 }
 
 
-Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
+Rpc_entrypoint::Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
                                char const *name, bool start_on_construction,
                                Affinity::Location location)
 :
@@ -86,7 +87,7 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 	_cap(Untyped_capability()),
 	_cap_valid(Lock::LOCKED), _delay_start(Lock::LOCKED),
 	_delay_exit(Lock::LOCKED),
-	_cap_session(cap_session)
+	_pd_session(*pd_session)
 {
 	/* set CPU affinity, if specified */
 	if (location.valid())

@@ -21,13 +21,13 @@ SRC_CC += server/server.cc server/common.cc
 SRC_CC += thread/thread.cc
 SRC_CC += thread/trace.cc
 SRC_CC += thread/myself.cc
-SRC_CC += thread/context_allocator.cc
+SRC_CC += thread/stack_allocator.cc
 SRC_CC += thread/thread_bootstrap.cc
 SRC_CC += env/capability.cc
+SRC_CC += sleep.cc
+SRC_CC += rm_session_client.cc
 
-INC_DIR +=  $(REP_DIR)/src/base
-INC_DIR +=  $(REP_DIR)/src/base/lock
-INC_DIR += $(BASE_DIR)/src/base/thread
+INC_DIR += $(REP_DIR)/src/include $(BASE_DIR)/src/include
 
 vpath %.cc $(REP_DIR)/src/base
 vpath %.cc $(BASE_DIR)/src/base

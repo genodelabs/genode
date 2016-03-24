@@ -4,6 +4,13 @@
  * \date   2013-05-16
  */
 
+/*
+ * Copyright (C) 2013-2016 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
 #ifndef _INCLUDE__BASE__SYNCED_INTERFACE_H_
 #define _INCLUDE__BASE__SYNCED_INTERFACE_H_
 

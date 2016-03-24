@@ -59,15 +59,15 @@ How to explore Genode on NOVA?
 ##############################
 
 To download the NOVA kernel and integrate it with Genode, issue the following
-command from within the 'base-nova' directory:
+command from within toplevel directory:
 
-! make prepare
+! ./tool/ports/prepare_port nova
 
 For the vesa driver on x86 the x86emu library is required and can be downloaded
 and prepared by invoking the following command from within the 'libports'
 directory:
 
-! make prepare PKG=x86emu
+! ./tool/ports/prepare_port x86emu
 
 For creating a preconfigured build directory prepared for compiling Genode for
 NOVA, use the 'create_builddir' tool:

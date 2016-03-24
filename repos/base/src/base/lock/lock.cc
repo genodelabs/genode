@@ -15,8 +15,8 @@
 #include <base/cancelable_lock.h>
 #include <cpu/memory_barrier.h>
 
-/* local includes */
-#include <spin_lock.h>
+/* base-internal includes */
+#include <base/internal/spin_lock.h>
 
 using namespace Genode;
 

@@ -644,4 +644,3 @@ class Genode::Mmio
 };
 
 #endif /* _INCLUDE__UTIL__MMIO_H_ */
-

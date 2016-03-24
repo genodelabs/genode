@@ -278,9 +278,17 @@ class Genode::Rpc_entrypoint : Thread_base, public Object_pool<Rpc_object_base>
 		Lock             _cap_valid;      /* thread startup synchronization        */
 		Lock             _delay_start;    /* delay start of request dispatching    */
 		Lock             _delay_exit;     /* delay destructor until server settled */
-		Cap_session     *_cap_session;    /* for creating capabilities             */
+		Pd_session      &_pd_session;     /* for creating capabilities             */
 		Exit_handler     _exit_handler;
 		Capability<Exit> _exit_cap;
+
+		/**
+		 * Access to kernel-specific part of the PD session interface
+		 *
+		 * Some kernels like NOVA need a special interface for creating RPC
+		 * object capabilities.
+		 */
+		Capability<Pd_session::Native_pd> _native_pd_cap;
 
 		/**
 		 * Back end used to associate RPC object with the entry point
@@ -304,6 +312,24 @@ class Genode::Rpc_entrypoint : Thread_base, public Object_pool<Rpc_object_base>
 		void _block_until_cap_valid();
 
 		/**
+		 * Allocate new RPC object capability
+		 *
+		 * Regular servers allocate capabilities from their protection domain
+		 * via the component's environment. This method allows core to have a
+		 * special implementation that does not rely on a PD session.
+		 *
+		 * The 'entry' argument is used only on NOVA. It is the server-side
+		 * instruction pointer to be associated with the RPC object capability.
+		 */
+		Native_capability _alloc_rpc_cap(Pd_session &, Native_capability ep,
+		                                 addr_t entry = 0);
+
+		/**
+		 * Free RPC object capability
+		 */
+		void _free_rpc_cap(Pd_session &, Native_capability);
+
+		/**
 		 * Thread interface
 		 *
 		 * \noapi
@@ -322,7 +348,7 @@ class Genode::Rpc_entrypoint : Thread_base, public Object_pool<Rpc_object_base>
 		 * \param name         name of entrypoint thread
 		 * \param location     CPU affinity
 		 */
-		Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
+		Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
 		               char const *name, bool start_on_construction = true,
 		               Affinity::Location location = Affinity::Location());
 
@@ -385,16 +411,15 @@ class Genode::Rpc_entrypoint : Thread_base, public Object_pool<Rpc_object_base>
 		 *
 		 * \noapi
 		 *
-		 * Note: This is a temporary API method, which is going to be
-		 * removed. Please do not use this method.
-		 *
-		 * In combination with the 'reply_dst' accessor method, this
-		 * method can be used to implement services that dispatch client
-		 * requests out of order. In such cases, the server activation may
-		 * send reply messages to multiple blocking clients before
-		 * answering the original call.
+		 * In combination with the 'reply_dst' accessor method, this method
+		 * allows for the dispatching of client requests out of order. The only
+		 * designated user of this method is core's PD service. The
+		 * 'Pd_session::submit' RPC function uses it to send a reply to a
+		 * caller of the 'Signal_source::wait_for_signal' RPC function before
+		 * returning from the 'submit' call.
 		 */
-		void explicit_reply(Untyped_capability reply_cap, int return_value);
+		void reply_signal_info(Untyped_capability reply_cap,
+		                       unsigned long imprint, unsigned long cnt);
 
 		/**
 		 * Return true if the caller corresponds to the entrypoint called

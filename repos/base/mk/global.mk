@@ -118,6 +118,16 @@ CC_C_OPT   += $(CC_OPT)
 CC_ADA_OPT += $(CC_OLEVEL) $(CC_WARN)
 
 #
+# Use the correct linker
+#
+CC_RUSTC_OPT += -C linker=$(LD)
+
+#
+# Include dependencies
+#
+CC_RUSTC_OPT += $(foreach lib,$(LIBS),-L$(LIB_CACHE_DIR)/$(lib))
+
+#
 # Enable C++11 by default
 #
 CC_CXX_OPT_STD ?= -std=gnu++11
@@ -181,6 +191,7 @@ VERBOSE_DIR ?= --no-print-directory
 MSG_LINK     = @$(ECHO) "    LINK     "
 MSG_COMP     = @$(ECHO) "    COMPILE  "
 MSG_BUILD    = @$(ECHO) "    BUILD    "
+MSG_RENAME   = @$(ECHO) "    RENAME   "
 MSG_MERGE    = @$(ECHO) "    MERGE    "
 MSG_CONVERT  = @$(ECHO) "    CONVERT  "
 MSG_CONFIG   = @$(ECHO) "    CONFIG   "

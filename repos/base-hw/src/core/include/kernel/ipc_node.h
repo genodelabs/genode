@@ -12,11 +12,14 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _KERNEL__IPC_NODE_H_
-#define _KERNEL__IPC_NODE_H_
+#ifndef _CORE__INCLUDE__KERNEL__IPC_NODE_H_
+#define _CORE__INCLUDE__KERNEL__IPC_NODE_H_
 
 /* Genode includes */
 #include <util/construct_at.h>
+
+/* base-local includes */
+#include <base/internal/native_utcb.h>
 
 /* core includes */
 #include <kernel/fifo.h>
@@ -202,4 +205,4 @@ class Kernel::Ipc_node : public Ipc_node_queue::Element
 		Genode::Native_utcb * utcb() { return _utcb; }
 };
 
-#endif /* _KERNEL__IPC_NODE_H_ */
+#endif /* _CORE__INCLUDE__KERNEL__IPC_NODE_H_ */

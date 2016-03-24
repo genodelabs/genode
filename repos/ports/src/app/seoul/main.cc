@@ -52,6 +52,7 @@
 #include <vmm/guest_memory.h>
 #include <vmm/vcpu_thread.h>
 #include <vmm/vcpu_dispatcher.h>
+#include <vmm/utcb_guard.h>
 
 /* NOVA includes that come with Genode */
 #include <nova/syscalls.h>
@@ -77,7 +78,10 @@ enum { verbose_debug = false };
 enum { verbose_npt   = false };
 enum { verbose_io    = false };
 
-static Genode::Native_utcb utcb_backup;
+typedef Vmm::Utcb_guard::Utcb_backup Utcb_backup;
+
+static Utcb_backup utcb_backup;
+
 Genode::Lock *utcb_lock()
 {
 	static Genode::Lock inst;
@@ -1143,7 +1147,9 @@ class Machine : public StaticReceiver<Machine>
 		bool receive(MessageTime &msg)
 		{
 			Genode::Lock::Guard guard(*utcb_lock());
-			utcb_backup = *Genode::Thread_base::myself()->utcb();
+
+			Vmm::Utcb_guard utcb_guard(utcb_backup);
+			utcb_backup = *(Utcb_backup *)Genode::Thread_base::myself()->utcb();
 
 			if (!_rtc) {
 				try {
@@ -1152,7 +1158,7 @@ class Machine : public StaticReceiver<Machine>
 					Logging::printf("No RTC present, returning dummy time.\n");
 					msg.wallclocktime = msg.timestamp = 0;
 
-					*Genode::Thread_base::myself()->utcb() = utcb_backup;
+					*(Utcb_backup *)Genode::Thread_base::myself()->utcb() = utcb_backup;
 
 					return true;
 				}
@@ -1166,7 +1172,7 @@ class Machine : public StaticReceiver<Machine>
 			Logging::printf("Got time %llx\n", msg.wallclocktime);
 			msg.timestamp = _unsynchronized_motherboard.clock()->clock(MessageTime::FREQUENCY);
 
-			*Genode::Thread_base::myself()->utcb() = utcb_backup;
+			*(Utcb_backup *)Genode::Thread_base::myself()->utcb() = utcb_backup;
 
 			return true;
 		}
@@ -1176,7 +1182,8 @@ class Machine : public StaticReceiver<Machine>
 			if (msg.type != MessageNetwork::PACKET) return false;
 
 			Genode::Lock::Guard guard(*utcb_lock());
-			utcb_backup = *Genode::Thread_base::myself()->utcb();
+
+			Vmm::Utcb_guard utcb_guard(utcb_backup);
 
 			if (msg.buffer == _forward_pkt) {
 				/* don't end in an endless forwarding loop */
@@ -1210,8 +1217,6 @@ class Machine : public StaticReceiver<Machine>
 
 			/* release sent packet to free the space in the tx communication buffer */
 			_nic->tx()->release_packet(tx_packet);
-
-			*Genode::Thread_base::myself()->utcb() = utcb_backup;
 
 			return true;
 		}
@@ -1408,13 +1413,13 @@ int main(int argc, char **argv)
 	{
 		/*
 		 * Reserve complete lower address space so that nobody else can take
-		 * it. The context area is moved as far as possible to a high virtual
+		 * it. The stack area is moved as far as possible to a high virtual
 		 * address. So we can use its base address as upper bound. The
 		 * reservation will be dropped when this scope is left and re-acquired
 		 * with the actual VM size which is determined below inside this scope.
 		 */
 		Vmm::Virtual_reservation
-			reservation(Genode::Native_config::context_area_virtual_base());
+			reservation(Genode::Thread_base::stack_area_virtual_base());
 
 		Genode::printf("--- Vancouver VMM starting ---\n");
 
@@ -1467,10 +1472,10 @@ int main(int argc, char **argv)
 		               guest_memory.backing_store_fb_local_base() + fb_size,
 		               fb_size / 1024 / 1024);
 
-	Genode::printf("[0x%012lx, 0x%012lx) - Genode thread context area\n",
-	                Genode::Native_config::context_area_virtual_base(),
-	                Genode::Native_config::context_area_virtual_base() +
-	                Genode::Native_config::context_area_virtual_size());
+	Genode::printf("[0x%012lx, 0x%012lx) - Genode stack area\n",
+	                Genode::Thread_base::stack_area_virtual_base(),
+	                Genode::Thread_base::stack_area_virtual_base() +
+	                Genode::Thread_base::stack_area_virtual_size());
 
 	Genode::printf("[0x%012lx, 0x%012lx) - VMM program image\n",
 	               (Genode::addr_t)&_prog_img_beg,

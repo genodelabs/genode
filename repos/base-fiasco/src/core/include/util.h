@@ -21,7 +21,9 @@
 #include <base/printf.h>
 #include <rm_session/rm_session.h>
 #include <util/touch.h>
-#include <fiasco/thread_helper.h>
+
+/* base-internal includes */
+#include <base/internal/fiasco_thread_helper.h>
 
 /* Fiasco includes */
 namespace Fiasco {

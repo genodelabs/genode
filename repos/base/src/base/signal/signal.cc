@@ -11,10 +11,12 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <util/retry.h>
+#include <base/env.h>
 #include <base/signal.h>
 #include <base/thread.h>
 #include <base/trace/events.h>
-#include <signal_session/connection.h>
+#include <signal_source/client.h>
 
 using namespace Genode;
 
@@ -63,7 +65,7 @@ class Signal_handler_thread : Thread<STACK_SIZE>, Lock
 
 Signal_source *Signal_handler_thread::signal_source()
 {
-	static Signal_source_client sigsrc(signal_connection()->signal_source());
+	static Signal_source_client sigsrc(env()->pd_session()->alloc_signal_source());
 	return &sigsrc;
 }
 
@@ -203,30 +205,23 @@ Signal_context_capability Signal_receiver::manage(Signal_context *context)
 	/* register context at process-wide registry */
 	signal_context_registry()->insert(&context->_registry_le);
 
-	bool try_again = true;
-	for (;;) {
-		try {
-
+	retry<Pd_session::Out_of_metadata>(
+		[&] () {
 			/* use signal context as imprint */
-			context->_cap = signal_connection()->alloc_context((long)context);
-			return context->_cap;
-
-		} catch (Signal_session::Out_of_metadata) {
-
-			/* give up if the error occurred a second time */
-			if (try_again) { try_again = false; }
-			else { break; }
-
+			context->_cap = env()->pd_session()->alloc_context(_cap, (long)context);
+		},
+		[&] () {
 			size_t const quota = 1024*sizeof(long);
 			char buf[64];
 			snprintf(buf, sizeof(buf), "ram_quota=%zu", quota);
 
-			PINF("upgrading quota donation for SIGNAL session (%zu bytes)", quota);
+			PINF("upgrading quota donation for PD session (%zu bytes)", quota);
 
-			env()->parent()->upgrade(signal_connection()->cap(), buf);
+			env()->parent()->upgrade(env()->pd_session_cap(), buf);
 		}
-	};
-	return Signal_context_capability();
+	);
+
+	return context->_cap;
 }
 
 

@@ -13,17 +13,20 @@
  */
 
 
-#include <signal_session/connection.h>
+#include <base/env.h>
+#include <base/trace/events.h>
 
 using namespace Genode;
+
 
 /************************
  ** Signal transmitter **
  ************************/
+
 void Signal_transmitter::submit(unsigned cnt)
 {
 	{
 		Trace::Signal_submit trace_event(cnt);
 	}
-	connection()->submit(_context, cnt);
+	env()->pd_session()->submit(_context, cnt);
 }

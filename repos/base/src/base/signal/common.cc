@@ -14,19 +14,11 @@
  */
 
 /* Genode includes */
+#include <base/env.h>
 #include <base/signal.h>
-#include <signal_session/connection.h>
+#include <base/trace/events.h>
 
 using namespace Genode;
-
-/**
- * Return process-wide signal session
- */
-Signal_connection * Genode::signal_connection()
-{
-	static Signal_connection sc;
-	return &sc;
-}
 
 
 /************
@@ -109,9 +101,6 @@ Signal_context::~Signal_context()
 /************************
  ** Signal_transmitter **
  ************************/
-
-Signal_connection * Signal_transmitter::connection() { return signal_connection(); }
-
 
 Signal_transmitter::Signal_transmitter(Signal_context_capability context)
 : _context(context) { }
@@ -201,7 +190,7 @@ void Signal_receiver::_unsynchronized_dissolve(Signal_context * const context)
 	_platform_begin_dissolve(context);
 
 	/* tell core to stop sending signals referring to the context */
-	signal_connection()->free_context(context->_cap);
+	env()->pd_session()->free_context(context->_cap);
 
 	/* restore default initialization of signal context */
 	context->_receiver = 0;
