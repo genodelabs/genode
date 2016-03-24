@@ -107,7 +107,7 @@ catch { exec sh -c $cmd }
 #
 # Qemu opts for EHCI
 #
-append qemu_args "-drive if=none,id=disk,file=$disk_image"
+append qemu_args "-drive if=none,id=disk,file=$disk_image,format=raw"
 append qemu_args {  \
 -m 128 -nographic -M pc \
 -device usb-ehci,id=ehci \
