@@ -65,6 +65,11 @@ struct Genode::Board_base
 
 		/* CPU cache */
 		CACHE_LINE_SIZE_LOG2 = 5,
+
+		/* SD card */
+		SDHCI_BASE = MMIO_0_BASE + 0x300000,
+		SDHCI_SIZE = 0x100,
+		SDHCI_IRQ  = 62,
 	};
 
 	enum Videocore_cache_policy { NON_COHERENT = 0,
