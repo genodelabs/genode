@@ -5,7 +5,7 @@
 #
 
 # denote which specs are also fulfilled by this spec
-SPECS += hw zynq_qemu
+SPECS += hw
 
 # configure multiprocessor mode
 NR_OF_CPUS = 1
@@ -15,4 +15,3 @@ LD_TEXT_ADDR ?= 0x00100000
 
 # include implied specs
 include $(call select_from_repositories,mk/spec/hw.mk)
-include $(call select_from_repositories,mk/spec/zynq_qemu.mk)
