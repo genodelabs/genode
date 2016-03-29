@@ -15,6 +15,8 @@
 #include <base/printf.h>
 #include <base/sleep.h>
 
+#include <os/server.h>
+
 #include <cap_session/connection.h>
 #include <dataspace/client.h>
 #include <rm_session/client.h>
@@ -160,29 +162,28 @@ void Platform::Device_pd_component::assign_pci(Genode::Io_mem_dataspace_capabili
 	rm_session()->detach(page);
 }
 
-int main(int argc, char **argv)
+using namespace Genode;
+
+struct Main
 {
-	using namespace Genode;
+	Server::Entrypoint &ep;
 
-	/*
-	 * Initialize server entry point
-	 */
-	enum {
-		STACK_SIZE       = 1024*sizeof(Genode::addr_t)
-	};
+	Platform::Device_pd_component pd_component;
+	Static_root<Platform::Device_pd> root;
 
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "device_pd_ep");
+	Main(Server::Entrypoint &ep)
+	: ep(ep), root(ep.manage(pd_component))
+	{
+		env()->parent()->announce(ep.manage(root));
+	}
+};
 
-	static Platform::Device_pd_component pd_component;
+/************
+ ** Server **
+ ************/
 
-	/*
-	 * Attach input root interface to the entry point
-	 */
-	static Static_root<Platform::Device_pd> root(ep.manage(&pd_component));
-
-	env()->parent()->announce(ep.manage(&root));
-
-	Genode::sleep_forever();
-	return 0;
+namespace Server {
+	char const *name()             { return "device_pd_ep";    }
+	size_t stack_size()            { return 1024*sizeof(long); }
+	void construct(Entrypoint &ep) { static Main server(ep);   }
 }

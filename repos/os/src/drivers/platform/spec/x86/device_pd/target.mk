@@ -1,6 +1,6 @@
 TARGET   = device_pd
 SRC_CC   = main.cc
-LIBS     = base
+LIBS     = base server
 
 REQUIRES = nova
  
