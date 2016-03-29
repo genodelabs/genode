@@ -186,6 +186,15 @@ class Genode::Arg
 			size_t num_chars = min(dst_len - 1, _value.len());
 			unpack_string(_value.start(), dst, num_chars);
 		}
+
+		/**
+		 * Retrieve a dataspace (page) aligned size argument
+		 */
+		size_t aligned_size() const
+		{
+			unsigned long value = ulong_value(0);
+			return align_addr(value, 12);
+		}
 };
 
 
