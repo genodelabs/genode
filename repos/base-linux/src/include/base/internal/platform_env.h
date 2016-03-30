@@ -24,7 +24,7 @@
 /* Genode includes */
 #include <util/misc_math.h>
 #include <base/heap.h>
-#include <linux_cpu_session/client.h>
+#include <linux_native_cpu/client.h>
 
 /* base-internal includes */
 #include <base/internal/local_capability.h>
@@ -39,15 +39,15 @@ namespace Genode {
 
 struct Genode::Expanding_cpu_session_client
 :
-	Upgradeable_client<Genode::Linux_cpu_session_client>
+	Upgradeable_client<Genode::Cpu_session_client>
 {
-	Expanding_cpu_session_client(Genode::Capability<Linux_cpu_session> cap)
-	: Upgradeable_client<Genode::Linux_cpu_session_client>(cap) { }
+	Expanding_cpu_session_client(Genode::Capability<Cpu_session> cap)
+	: Upgradeable_client<Genode::Cpu_session_client>(cap) { }
 
 	Thread_capability create_thread(size_t weight, Name const &name, addr_t utcb)
 	{
 		return retry<Cpu_session::Out_of_metadata>(
-			[&] () { return Linux_cpu_session_client::create_thread(weight, name, utcb); },
+			[&] () { return Cpu_session_client::create_thread(weight, name, utcb); },
 			[&] () { upgrade_ram(8*1024); });
 	}
 };
@@ -334,7 +334,7 @@ namespace Genode {
 				_ram_session_cap(ram_cap),
 				_ram_session_client(_ram_session_cap),
 				_cpu_session_cap(cpu_cap),
-				_cpu_session_client(static_cap_cast<Linux_cpu_session>(cpu_cap)),
+				_cpu_session_client(cpu_cap),
 				_rm_session_mmap(false),
 				_pd_session_cap(pd_cap),
 				_pd_session_client(_pd_session_cap)
@@ -348,7 +348,7 @@ namespace Genode {
 			Ram_session            *ram_session()     override { return &_ram_session_client; }
 			Ram_session_capability  ram_session_cap() override { return  _ram_session_cap; }
 			Rm_session             *rm_session()      override { return &_rm_session_mmap; }
-			Linux_cpu_session      *cpu_session()     override { return &_cpu_session_client; }
+			Cpu_session            *cpu_session()     override { return &_cpu_session_client; }
 			Cpu_session_capability  cpu_session_cap() override { return  _cpu_session_cap; }
 			Pd_session             *pd_session()      override { return &_pd_session_client; }
 			Pd_session_capability   pd_session_cap()  override { return  _pd_session_cap; }

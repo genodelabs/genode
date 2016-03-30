@@ -149,6 +149,9 @@ namespace Noux {
 
 			int transfer_quota(Cpu_session_capability c, size_t q) override {
 				return _cpu.transfer_quota(c, q); }
+
+			Capability<Native_cpu> native_cpu() override {
+				return _cpu.native_cpu(); }
 	};
 }
 

@@ -230,6 +230,12 @@ Dataspace_capability Cpu_session_component::trace_policy(Thread_capability threa
 }
 
 
+Capability<Cpu_session::Native_cpu> Cpu_session_component::native_cpu()
+{
+	return _parent_cpu_session.native_cpu();
+}
+
+
 Cpu_session_component::Cpu_session_component(Signal_receiver *exception_signal_receiver, const char *args)
 : _parent_cpu_session(env()->parent()->session<Cpu_session>(args)),
   _exception_signal_receiver(exception_signal_receiver)

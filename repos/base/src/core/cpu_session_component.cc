@@ -166,6 +166,17 @@ void Cpu_session_component::pause(Thread_capability thread_cap)
 }
 
 
+void Cpu_session_component::single_step(Thread_capability thread_cap, bool enabled)
+{
+	auto lambda = [this, enabled] (Cpu_thread_component *thread) {
+		if (!thread) return;
+
+		thread->platform_thread()->single_step(enabled);
+	};
+	_thread_ep->apply(thread_cap, lambda);
+}
+
+
 void Cpu_session_component::resume(Thread_capability thread_cap)
 {
 	auto lambda = [this] (Cpu_thread_component *thread) {
@@ -416,7 +427,8 @@ Cpu_session_component::Cpu_session_component(Rpc_entrypoint         *session_ep,
 	/* map affinity to a location within the physical affinity space */
 	_location(affinity.scale_to(platform()->affinity_space())),
 
-	_trace_sources(trace_sources), _quota(quota), _ref(0)
+	_trace_sources(trace_sources), _quota(quota), _ref(0),
+	_native_cpu(*this, args)
 {
 	/* remember session label */
 	char buf[Session_label::size()];

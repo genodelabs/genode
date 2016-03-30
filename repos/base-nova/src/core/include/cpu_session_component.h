@@ -29,6 +29,7 @@
 #include <platform_thread.h>
 #include <trace/control_area.h>
 #include <trace/source_registry.h>
+#include <native_cpu_component.h>
 
 namespace Genode {
 
@@ -166,6 +167,10 @@ namespace Genode {
 			List<Cpu_session_component> _ref_members;
 			Lock                        _ref_members_lock;
 
+			Native_cpu_component      _native_cpu;
+
+			friend class Native_cpu_component;
+
 			void _incr_weight(size_t);
 			void _decr_weight(size_t);
 			size_t _weight_to_quota(size_t) const;
@@ -246,6 +251,7 @@ namespace Genode {
 			int ref_account(Cpu_session_capability c);
 			int transfer_quota(Cpu_session_capability, size_t);
 			Quota quota() override;
+			Capability<Native_cpu> native_cpu() { return Capability<Native_cpu>(); }
 
 
 			/******************************

@@ -1,5 +1,5 @@
 /*
- * \brief   Platform-specific parts of cores CPU-service
+ * \brief   Platform-specific parts of core's CPU-service
  * \author  Martin Stein
  * \date    2012-04-17
  */

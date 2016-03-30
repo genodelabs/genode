@@ -15,7 +15,7 @@
 #include <base/printf.h>
 #include <base/component.h>
 #include <linux_syscalls.h>
-#include <linux_cpu_session/linux_cpu_session.h>
+#include <linux_native_cpu/client.h>
 
 /* base-internal includes */
 #include <base/internal/native_thread.h>
@@ -336,23 +336,6 @@ namespace Genode {
 }
 
 
-/**
- * Return Linux-specific extension of the Env::CPU session interface
- */
-Linux_cpu_session *cpu_session(Cpu_session * cpu_session)
-{
-	Linux_cpu_session *cpu = dynamic_cast<Linux_cpu_session *>(cpu_session);
-
-	if (!cpu) {
-		PERR("could not obtain Linux extension to CPU session interface");
-		struct Could_not_access_linux_cpu_session { };
-		throw Could_not_access_linux_cpu_session();
-	}
-
-	return cpu;
-}
-
-
 static void adopt_thread(Native_thread::Meta_data *meta_data)
 {
 	lx_sigaltstack(signal_stack, sizeof(signal_stack));
@@ -487,10 +470,10 @@ Thread_base::Thread_base(size_t weight, const char *name, size_t stack_size,
 
 	native_thread().meta_data->wait_for_construction();
 
-	Linux_cpu_session *cpu = cpu_session(_cpu_session);
+	_thread_cap = _cpu_session->create_thread(weight, name);
 
-	_thread_cap = cpu->create_thread(weight, name);
-	cpu->thread_id(_thread_cap, native_thread().pid, native_thread().tid);
+	Linux_native_cpu_client native_cpu(_cpu_session->native_cpu());
+	native_cpu.thread_id(_thread_cap, native_thread().pid, native_thread().tid);
 }
 
 
@@ -526,5 +509,5 @@ Thread_base::~Thread_base()
 	_native_thread = nullptr;
 
 	/* inform core about the killed thread */
-	cpu_session(_cpu_session)->kill_thread(_thread_cap);
+	_cpu_session->kill_thread(_thread_cap);
 }

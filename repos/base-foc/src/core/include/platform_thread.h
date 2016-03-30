@@ -64,7 +64,7 @@ namespace Genode {
 			/**
 			 * Constructor for non-core threads
 			 */
-			Platform_thread(const char *name, unsigned priority, addr_t);
+			Platform_thread(size_t, const char *name, unsigned priority, addr_t);
 
 			/**
 			 * Constructor for core main-thread
@@ -97,6 +97,11 @@ namespace Genode {
 			 * Pause this thread
 			 */
 			void pause();
+
+			/**
+			 * Enable/disable single stepping
+			 */
+			void single_step(bool);
 
 			/**
 			 * Resume this thread

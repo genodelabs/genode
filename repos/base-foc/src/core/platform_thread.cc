@@ -116,6 +116,17 @@ void Platform_thread::pause()
 }
 
 
+void Platform_thread::single_step(bool enabled)
+{
+	Fiasco::l4_cap_idx_t const tid = thread().local.dst();
+
+	enum { THREAD_SINGLE_STEP = 0x40000 };
+	int const flags = enabled ? THREAD_SINGLE_STEP : 0;
+
+	Fiasco::l4_thread_ex_regs(tid, ~0UL, ~0UL, flags);
+}
+
+
 void Platform_thread::resume()
 {
 	if (!_pager_obj)
@@ -268,7 +279,7 @@ Weak_ptr<Address_space> Platform_thread::address_space()
 }
 
 
-Platform_thread::Platform_thread(const char *name, unsigned prio, addr_t)
+Platform_thread::Platform_thread(size_t, const char *name, unsigned prio, addr_t)
 : _state(DEAD),
   _core_thread(false),
   _thread(true),

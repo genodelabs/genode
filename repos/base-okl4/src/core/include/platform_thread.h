@@ -75,6 +75,11 @@ namespace Genode {
 			void pause();
 
 			/**
+			 * Enable/disable single stepping
+			 */
+			void single_step(bool) { }
+
+			/**
 			 * Resume this thread
 			 */
 			void resume();

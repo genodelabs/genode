@@ -79,6 +79,7 @@ class Cpu_session_component : public Rpc_object<Cpu_session>
 		int ref_account(Cpu_session_capability c);
 		int transfer_quota(Cpu_session_capability c, size_t q);
 		Quota quota() override;
+		Capability<Native_cpu> native_cpu() override;
 };
 
 #endif /* _CPU_SESSION_COMPONENT_H_ */

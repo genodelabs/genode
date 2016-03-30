@@ -135,6 +135,11 @@ namespace Genode {
 			void pause() { Kernel::pause_thread(kernel_object()); }
 
 			/**
+			 * Enable/disable single stepping
+			 */
+			void single_step(bool) { }
+
+			/**
 			 * Resume this thread
 			 */
 			void resume() { Kernel::resume_thread(kernel_object()); }
