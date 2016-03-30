@@ -57,7 +57,7 @@ struct File_system::Connection_base : Genode::Connection<Session>, Session_clien
 			        "label=\"%s\", "
 			        "root=\"%s\", "
 			        "writeable=%d",
-			        4*1024*sizeof(long) + tx_buf_size,
+			        8*1024*sizeof(long) + tx_buf_size,
 			        tx_buf_size,
 			        label, root, writeable)),
 		Session_client(cap(), tx_block_alloc)
