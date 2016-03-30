@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2014 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -102,8 +102,8 @@ class Vfs::Tar_file_system : public File_system
 
 		public:
 
-			Tar_vfs_handle(File_system &fs, int status_flags, Record const *record)
-			: Vfs_handle(fs, fs, status_flags), _record(record)
+			Tar_vfs_handle(File_system &fs, Allocator &alloc, int status_flags, Record const *record)
+			: Vfs_handle(fs, fs, alloc, status_flags), _record(record)
 			{ }
 
 			Record const *record() const { return _record; }
@@ -573,16 +573,24 @@ class Vfs::Tar_file_system : public File_system
 			return node ? path : 0;
 		}
 
-		Open_result open(char const *path, unsigned, Vfs_handle **out_handle) override
+		Open_result open(char const *path, unsigned, Vfs_handle **out_handle, Genode::Allocator& alloc) override
 		{
 			Node const *node = dereference(path);
 			if (!node || !node->record || node->record->type() != Record::TYPE_FILE)
 				return OPEN_ERR_UNACCESSIBLE;
 
-			*out_handle = new (env()->heap())
-				Tar_vfs_handle(*this, 0, node->record);
+			*out_handle = new (alloc) Tar_vfs_handle(*this, alloc, 0, node->record);
 
 			return OPEN_OK;
+		}
+
+		void close(Vfs_handle *vfs_handle) override
+		{
+			Tar_vfs_handle *tar_handle =
+				static_cast<Tar_vfs_handle *>(vfs_handle);
+
+			if (tar_handle)
+				destroy(vfs_handle->alloc(), tar_handle);
 		}
 
 

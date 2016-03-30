@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2012-2014 Genode Labs GmbH
+ * Copyright (C) 2012-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -54,16 +54,10 @@ class Vfs::Fs_file_system : public File_system
 
 			public:
 
-				Fs_vfs_handle(File_system &fs, int status_flags,
-				              ::File_system::File_handle handle)
-				: Vfs_handle(fs, fs, status_flags), _handle(handle)
+				Fs_vfs_handle(File_system &fs, Allocator &alloc,
+				              int status_flags, ::File_system::File_handle handle)
+				: Vfs_handle(fs, fs, alloc, status_flags), _handle(handle)
 				{ }
-
-				~Fs_vfs_handle()
-				{
-					Fs_file_system &fs = static_cast<Fs_file_system &>(ds());
-					fs._fs.close(_handle);
-				}
 
 				::File_system::File_handle file_handle() const { return _handle; }
 		};
@@ -521,7 +515,7 @@ class Vfs::Fs_file_system : public File_system
 			return path;
 		}
 
-		Open_result open(char const *path, unsigned vfs_mode, Vfs_handle **out_handle) override
+		Open_result open(char const *path, unsigned vfs_mode, Vfs_handle **out_handle, Genode::Allocator& alloc) override
 		{
 			Lock::Guard guard(_lock);
 
@@ -554,7 +548,7 @@ class Vfs::Fs_file_system : public File_system
 				::File_system::File_handle file = _fs.file(dir, file_name.base() + 1,
 				                                           mode, create);
 
-				*out_handle = new (env()->heap()) Fs_vfs_handle(*this, vfs_mode, file);
+				*out_handle = new (alloc) Fs_vfs_handle(*this, alloc, vfs_mode, file);
 			}
 			catch (::File_system::Permission_denied)   { return OPEN_ERR_NO_PERM; }
 			catch (::File_system::Invalid_handle)      { return OPEN_ERR_NO_PERM; }
@@ -565,6 +559,18 @@ class Vfs::Fs_file_system : public File_system
 			catch (::File_system::Out_of_node_handles) { return OPEN_ERR_UNACCESSIBLE; }
 
 			return OPEN_OK;
+		}
+
+		void close(Vfs_handle *vfs_handle) override
+		{
+			Lock::Guard guard(_lock);
+
+			Fs_vfs_handle *handle = static_cast<Fs_vfs_handle *>(vfs_handle);
+
+			if (handle) {
+				_fs.close(handle->file_handle());
+				destroy(handle->alloc(), handle);
+			}
 		}
 
 

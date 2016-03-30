@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2014 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -19,6 +19,8 @@
 namespace Vfs {
 	class Vfs_handle;
 	struct Directory_service;
+
+	using Genode::Allocator;
 }
 
 
@@ -56,7 +58,15 @@ struct Vfs::Directory_service
 		OPEN_OK
 	};
 
-	virtual Open_result open(char const *path, unsigned mode, Vfs_handle **) = 0;
+	virtual Open_result open(char const  *path,
+	                         unsigned     mode,
+	                         Vfs_handle **handle,
+	                         Allocator   &alloc = *Genode::env()->heap()) = 0;
+
+	/**
+	 * Close handle resources and deallocate handle
+	 */
+	virtual void close(Vfs_handle *handle) = 0;
 
 
 	/**********

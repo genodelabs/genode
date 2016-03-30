@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -328,7 +328,8 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags,
 
 int Libc::Vfs_plugin::close(Libc::File_descriptor *fd)
 {
-	Genode::destroy(Genode::env()->heap(), vfs_handle(fd));
+	Vfs::Vfs_handle *handle = vfs_handle(fd);
+	handle->ds().close(handle);
 	Libc::file_descriptor_allocator()->free(fd);
 	return 0;
 }

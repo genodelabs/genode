@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -323,23 +323,20 @@ class Vfs::Ram_file_system : public Vfs::File_system
 {
 	private:
 
-		class Ram_vfs_handle : public Vfs_handle
+		struct Ram_vfs_handle : Vfs_handle
 		{
-			private:
+			Vfs_ram::File &file;
 
-				Vfs_ram::File *_file;
-
-			public:
- 
-				Ram_vfs_handle(File_system &fs, int status_flags, Vfs_ram::File *file)
-				: Vfs_handle(fs, fs, status_flags), _file(file)
-				{ }
- 
-				Vfs_ram::File *file() const { return _file; }
+			Ram_vfs_handle(Ram_file_system &fs,
+			               Allocator       &alloc,
+			               int              status_flags,
+			               Vfs_ram::File   &node)
+			: Vfs_handle(fs, fs, alloc, status_flags), file(node)
+			{ }
 		};
 
 		Genode::Allocator  &_alloc;
-		Vfs_ram::Directory  _root;
+		Vfs_ram::Directory  _root = { "" };
 
 		Vfs_ram::Node *lookup(char const *path, bool return_parent = false)
 		{
@@ -388,7 +385,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 	public:
 
 		Ram_file_system(Xml_node config)
-		: _alloc(*env()->heap()), _root("") { }
+		: _alloc(*env()->heap()) { }
 
 		/*********************************
 		 ** Directory service interface **
@@ -437,7 +434,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			return MKDIR_OK;
 		}
 
-		Open_result open(char const *path, unsigned mode, Vfs_handle **handle) override
+		Open_result open(char const *path, unsigned mode, Vfs_handle **handle, Genode::Allocator &alloc) override
 		{
 			using namespace Vfs_ram;
 
@@ -464,9 +461,19 @@ class Vfs::Ram_file_system : public Vfs::File_system
 				if (!file) return OPEN_ERR_UNACCESSIBLE;
 			}
 
-			/* allocate handle on the heap */
-			*handle = new (env()->heap()) Ram_vfs_handle(*this, mode, file);
+			*handle = new (alloc) Ram_vfs_handle(*this, alloc, mode, *file);
 			return OPEN_OK;
+		}
+
+		void close(Vfs_handle *vfs_handle) override
+		{
+			Ram_vfs_handle *ram_handle =
+				static_cast<Ram_vfs_handle *>(vfs_handle);
+
+			if (ram_handle) {
+				destroy(_alloc, &ram_handle->file);
+				destroy(vfs_handle->alloc(), ram_handle);
+			}
 		}
 
 		Stat_result stat(char const *path, Stat &stat) override
@@ -686,8 +693,8 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			Ram_vfs_handle const *handle =
 				static_cast<Ram_vfs_handle *>(vfs_handle);
 
-			Vfs_ram::Node::Guard guard(handle->file());
-			out = handle->file()->write(buf, len, handle->seek());
+			Vfs_ram::Node::Guard guard(&handle->file);
+			out = handle->file.write(buf, len, handle->seek());
 
 			return WRITE_OK;
 		}
@@ -702,9 +709,9 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			Ram_vfs_handle const *handle =
 				static_cast<Ram_vfs_handle *>(vfs_handle);
 
-			Vfs_ram::Node::Guard guard(handle->file());
+			Vfs_ram::Node::Guard guard(&handle->file);
 
-			out = handle->file()->read(buf, len, handle->seek());
+			out = handle->file.read(buf, len, handle->seek());
 			return READ_OK;
 		}
 
@@ -716,8 +723,8 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			Ram_vfs_handle const *handle =
 				static_cast<Ram_vfs_handle *>(vfs_handle);
 
-			Vfs_ram::Node::Guard guard(handle->file());
-			handle->file()->truncate(len);
+			Vfs_ram::Node::Guard guard(&handle->file);
+			handle->file.truncate(len);
 			return FTRUNCATE_OK;
 		}
 

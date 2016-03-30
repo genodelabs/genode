@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -127,14 +127,21 @@ class Vfs::Single_file_system : public File_system
 			return _is_single_file(path) ? path : 0;
 		}
 
-		Open_result open(char const *path, unsigned,
-		                 Vfs_handle **out_handle) override
+		Open_result open(char const  *path, unsigned,
+		                 Vfs_handle **out_handle,
+		                 Allocator   &alloc) override
 		{
 			if (!_is_single_file(path))
 				return OPEN_ERR_UNACCESSIBLE;
 
-			*out_handle = new (env()->heap()) Vfs_handle(*this, *this, 0);
+			*out_handle = new (alloc) Vfs_handle(*this, *this, alloc, 0);
 			return OPEN_OK;
+		}
+
+		void close(Vfs_handle *handle) override
+		{
+			if (handle && (&handle->ds() == this))
+				destroy(handle->alloc(), handle);
 		}
 
 		Unlink_result unlink(char const *) override

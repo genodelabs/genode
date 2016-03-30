@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2014 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -397,7 +397,10 @@ class Vfs::Dir_file_system : public File_system
 			return 0;
 		}
 
-		Open_result open(char const *path, unsigned mode, Vfs_handle **out_handle) override
+		Open_result open(char const  *path,
+	                     unsigned     mode,
+	                     Vfs_handle **out_handle,
+	                     Allocator   &alloc = *Genode::env()->heap()) override
 		{
 			/*
 			 * If 'path' is a directory, we create a 'Vfs_handle'
@@ -405,7 +408,7 @@ class Vfs::Dir_file_system : public File_system
 			 * are subjected to the stacked file-system layout.
 			 */
 			if (is_directory(path)) {
-				*out_handle = new (env()->heap()) Vfs_handle(*this, *this, 0);
+				*out_handle = new (alloc) Vfs_handle(*this, *this, alloc, 0);
 				return OPEN_OK;
 			}
 
@@ -423,21 +426,30 @@ class Vfs::Dir_file_system : public File_system
 
 			/* path equals directory name */
 			if (strlen(path) == 0) {
-				*out_handle = new (env()->heap()) Vfs_handle(*this, *this, 0);
+				*out_handle = new (alloc) Vfs_handle(*this, *this, alloc, 0);
 				return OPEN_OK;
 			}
 
 			/* path refers to any of our sub file systems */
 			for (File_system *fs = _first_file_system; fs; fs = fs->next) {
 
-				Open_result const err = fs->open(path, mode, out_handle);
-
-				if (err == OPEN_OK)
+				Open_result const err = fs->open(path, mode, out_handle, alloc);
+				switch (err) {
+				case OPEN_ERR_UNACCESSIBLE:
+					continue;
+				default:
 					return err;
+				}
 			}
 
 			/* path does not match any existing file or directory */
 			return OPEN_ERR_UNACCESSIBLE;
+		}
+
+		void close(Vfs_handle *handle) override
+		{
+			if (handle && (&handle->ds() == this))
+				destroy(handle->alloc(), handle);
 		}
 
 		Unlink_result unlink(char const *path) override

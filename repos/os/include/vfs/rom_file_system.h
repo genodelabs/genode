@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -71,11 +71,12 @@ class Vfs::Rom_file_system : public Single_file_system
 		 * Overwrite the default open function to update the ROM dataspace
 		 * each time when opening the corresponding file.
 		 */
-		Open_result open(char const *path, unsigned,
-		                 Vfs_handle **out_handle) override
+		Open_result open(char const  *path, unsigned,
+		                 Vfs_handle **out_handle,
+		                 Allocator   &alloc) override
 		{
 			Open_result const result =
-				Single_file_system::open(path, 0, out_handle);
+				Single_file_system::open(path, 0, out_handle, alloc);
 
 			_rom.update();
 

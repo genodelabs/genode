@@ -41,7 +41,7 @@ namespace Noux {
 		~Vfs_io_channel()
 		{
 			_sig_rec.dissolve(this);
-			destroy(env()->heap(), _fh);
+			_fh->ds().close(_fh);
 		}
 
 		bool write(Sysio *sysio, size_t &offset) override

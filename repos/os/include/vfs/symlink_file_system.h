@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -131,9 +131,11 @@ class Vfs::Symlink_file_system : public File_system
 
 		void release(char const *path, Dataspace_capability ds_cap) override { }
 
-		Open_result open(char const *path, unsigned,
-		                 Vfs_handle **out_handle) override {
+		Open_result open(char const *, unsigned, Vfs_handle **out_handle,
+		                 Allocator&) override {
 			return OPEN_ERR_UNACCESSIBLE; }
+
+		void close(Vfs_handle *) override { }
 
 		Unlink_result unlink(char const *) override {
 			return UNLINK_ERR_NO_PERM; }

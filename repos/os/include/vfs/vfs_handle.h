@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2014 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -26,8 +26,9 @@ class Vfs::Vfs_handle
 
 		Directory_service &_ds;
 		File_io_service   &_fs;
+		Genode::Allocator &_alloc;
 		int                _status_flags;
-		file_size          _seek;
+		file_size          _seek = 0;
 
 	public:
 
@@ -40,21 +41,27 @@ class Vfs::Vfs_handle
 			~Guard()
 			{
 				if (handle)
-					Genode::destroy(Genode::env()->heap(), handle);
+					handle->_ds.close(handle);
 			}
 		};
 
 		enum { STATUS_RDONLY = 0, STATUS_WRONLY = 1, STATUS_RDWR = 2 };
 
-		Vfs_handle(Directory_service &ds, File_io_service &fs, int status_flags)
+		Vfs_handle(Directory_service &ds,
+		           File_io_service   &fs,
+		           Genode::Allocator &alloc,
+		           int                status_flags)
 		:
-			_ds(ds), _fs(fs), _status_flags(status_flags), _seek(0)
+			_ds(ds), _fs(fs),
+			_alloc(alloc),
+			_status_flags(status_flags)
 		{ }
 
 		virtual ~Vfs_handle() { }
 
 		Directory_service &ds() { return _ds; }
 		File_io_service   &fs() { return _fs; }
+		Allocator      &alloc() { return _alloc; }
 
 		int status_flags() const { return _status_flags; }
 
@@ -75,5 +82,6 @@ class Vfs::Vfs_handle
 		 */
 		void advance_seek(file_size incr) { _seek += incr; }
 };
+
 
 #endif /* _INCLUDE__VFS__VFS_HANDLE_H_ */
