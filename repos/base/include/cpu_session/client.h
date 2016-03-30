@@ -87,6 +87,8 @@ struct Genode::Cpu_session_client : Rpc_client<Cpu_session>
 		return call<Rpc_transfer_quota>(session, amount); }
 
 	Quota quota() override { return call<Rpc_quota>(); }
+
+	Capability<Native_cpu> native_cpu() override { return call<Rpc_native_cpu>(); }
 };
 
 #endif /* _INCLUDE__CPU_SESSION__CLIENT_H_ */

@@ -102,6 +102,8 @@ namespace Genode {
 
 		Quota quota() override { return call<Rpc_quota>(); }
 
+		Capability<Native_cpu> native_cpu() override { return call<Rpc_native_cpu>(); }
+
 		private:
 
 			Native_capability pause_sync(Thread_capability) {

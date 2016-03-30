@@ -303,7 +303,7 @@ void Platform_thread::cancel_blocking()
 }
 
 
-Native_capability Platform_thread::single_step(bool on)
+Native_capability Platform_thread::single_step_sync(bool on)
 {
 	if (!_pager) return Native_capability();
 

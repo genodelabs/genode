@@ -169,8 +169,8 @@ Platform_env::Platform_env()
 	env_stack_area_rm_session  = &_stack_area;
 
 	/* register TID and PID of the main thread at core */
-	cpu_session()->thread_id(parent()->main_thread_cap(),
-	                         lx_getpid(), lx_gettid());
+	Linux_native_cpu_client native_cpu(cpu_session()->native_cpu());
+	native_cpu.thread_id(parent()->main_thread_cap(), lx_getpid(), lx_gettid());
 }
 
 
@@ -182,25 +182,14 @@ namespace Genode {
 
 	Native_connection_state server_socket_pair()
 	{
-		/*
-		 * Obtain access to Linux-specific extension of the CPU session
-		 * interface. We can cast to the specific type because the Linux
-		 * version of 'Platform_env' is hosting a 'Linux_cpu_client' object.
-		 */
-		Linux_cpu_session *cpu = dynamic_cast<Linux_cpu_session *>(env()->cpu_session());
-
-		if (!cpu) {
-			PERR("could not obtain Linux extension to CPU session interface");
-			struct Could_not_access_linux_cpu_session { };
-			throw Could_not_access_linux_cpu_session();
-		}
+		Linux_native_cpu_client native_cpu(env()->cpu_session()->native_cpu());
 
 		Native_connection_state ncs;
 
 		Thread_base *thread = Thread_base::myself();
 		if (thread) {
-			ncs.server_sd = cpu->server_sd(thread->cap()).dst().socket;
-			ncs.client_sd = cpu->client_sd(thread->cap()).dst().socket;
+			ncs.server_sd = native_cpu.server_sd(thread->cap()).dst().socket;
+			ncs.client_sd = native_cpu.client_sd(thread->cap()).dst().socket;
 		}
 		return ncs;
 	}

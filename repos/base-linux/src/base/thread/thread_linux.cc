@@ -17,7 +17,7 @@
 #include <base/thread.h>
 #include <base/snprintf.h>
 #include <base/sleep.h>
-#include <linux_cpu_session/linux_cpu_session.h>
+#include <linux_native_cpu/client.h>
 
 /* base-internal includes */
 #include <base/internal/stack.h>
@@ -60,9 +60,8 @@ void Thread_base::_thread_start()
 	Thread_base * const thread = Thread_base::myself();
 
 	/* inform core about the new thread and process ID of the new thread */
-	Linux_cpu_session *cpu = dynamic_cast<Linux_cpu_session *>(thread->_cpu_session);
-	if (cpu)
-		cpu->thread_id(thread->cap(), thread->native_thread().pid, thread->native_thread().tid);
+	Linux_native_cpu_client native_cpu(thread->_cpu_session->native_cpu());
+	native_cpu.thread_id(thread->cap(), thread->native_thread().pid, thread->native_thread().tid);
 
 	/* wakeup 'start' function */
 	startup_lock().unlock();

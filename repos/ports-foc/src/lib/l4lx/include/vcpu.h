@@ -19,7 +19,8 @@
 #include <base/sleep.h>
 #include <base/thread.h>
 #include <base/cap_map.h>
-#include <foc_cpu_session/connection.h>
+#include <foc_native_cpu/client.h>
+#include <cpu_session/client.h>
 #include <timer_session/connection.h>
 #include <foc/native_thread.h>
 
@@ -29,7 +30,7 @@ namespace Fiasco {
 
 namespace L4lx {
 
-	extern Genode::Foc_cpu_session_client *vcpu_connection();
+	extern Genode::Cpu_session *cpu_connection();
 
 
 	class Vcpu : public Genode::Thread_base
@@ -68,8 +69,10 @@ namespace L4lx {
 				l4_utcb_tcr_u(_utcb)->user[0] = native_thread().kcap;
 
 				/* enable vcpu functionality respectively */
-				if (_vcpu_state)
-					vcpu_connection()->enable_vcpu(_thread_cap, _vcpu_state);
+				if (_vcpu_state) {
+					Genode::Foc_native_cpu_client native_cpu(cpu_connection()->native_cpu());
+					native_cpu.enable_vcpu(_thread_cap, _vcpu_state);
+				}
 
 				/* set cpu affinity */
 				set_affinity(_cpu_nr);
@@ -94,8 +97,8 @@ namespace L4lx {
 
 			void set_affinity(unsigned i)
 			{
-				vcpu_connection()->affinity(_thread_cap,
-				                            Genode::Affinity::Location(i, 0));
+				cpu_connection()->affinity(_thread_cap,
+				                           Genode::Affinity::Location(i, 0));
 			}
 	};
 

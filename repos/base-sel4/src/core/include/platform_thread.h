@@ -98,6 +98,11 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		void pause();
 
 		/**
+		 * Enable/disable single stepping
+		 */
+		void single_step(bool) { }
+
+		/**
 		 * Resume this thread
 		 */
 		void resume();

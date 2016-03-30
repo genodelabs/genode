@@ -14,8 +14,9 @@
 /* Genode includes */
 #include <base/printf.h>
 
-/* Core includes */
-#include <cpu_session_component.h>
+/* core includes */
+#include <native_cpu_component.h>
+#include <cpu_session_irqs.h>
 #include <platform.h>
 
 /* Fiasco.OC includes */
@@ -26,15 +27,9 @@ namespace Fiasco {
 
 static Genode::Avl_tree<Genode::Cpu_session_irqs> _irq_tree;
 
-Genode::Ram_dataspace_capability Genode::Cpu_session_component::utcb(Genode::Thread_capability thread_cap)
-{
-	using namespace Genode;
-	PERR("%s: Not implemented", __PRETTY_FUNCTION__);
-	return Ram_dataspace_capability();
-}
 
 
-void Genode::Cpu_session_component::enable_vcpu(Genode::Thread_capability thread_cap,
+void Genode::Native_cpu_component::enable_vcpu(Genode::Thread_capability thread_cap,
                                                 Genode::addr_t vcpu_state)
 {
 	using namespace Genode;
@@ -49,12 +44,12 @@ void Genode::Cpu_session_component::enable_vcpu(Genode::Thread_capability thread
 		if (l4_msgtag_has_error(tag))
 			PWRN("l4_thread_vcpu_control failed");
 	};
-	_thread_ep->apply(thread_cap, lambda);
+	_thread_ep.apply(thread_cap, lambda);
 }
 
 
 Genode::Native_capability
-Genode::Cpu_session_component::native_cap(Genode::Thread_capability cap)
+Genode::Native_cpu_component::native_cap(Genode::Thread_capability cap)
 {
 	using namespace Genode;
 
@@ -62,11 +57,11 @@ Genode::Cpu_session_component::native_cap(Genode::Thread_capability cap)
 		return (!thread) ? Native_capability()
 		                 : thread->platform_thread()->thread().local;
 	};
-	return _thread_ep->apply(cap, lambda);
+	return _thread_ep.apply(cap, lambda);
 }
 
 
-Genode::Native_capability Genode::Cpu_session_component::alloc_irq()
+Genode::Native_capability Genode::Native_cpu_component::alloc_irq()
 {
 	using namespace Fiasco;
 	using namespace Genode;
@@ -74,11 +69,11 @@ Genode::Native_capability Genode::Cpu_session_component::alloc_irq()
 	/* find irq object container of this cpu-session */
 	Cpu_session_irqs* node = _irq_tree.first();
 	if (node)
-		node = node->find_by_session(this);
+		node = node->find_by_session(&_cpu_session);
 
 	/* if not found, we've to create one */
 	if (!node) {
-		node = new (&_md_alloc) Cpu_session_irqs(this);
+		node = new (&_cpu_session._md_alloc) Cpu_session_irqs(&_cpu_session);
 		_irq_tree.insert(node);
 	}
 
@@ -96,22 +91,15 @@ Genode::Native_capability Genode::Cpu_session_component::alloc_irq()
 }
 
 
-void Genode::Cpu_session_component::single_step(Genode::Thread_capability thread_cap, bool enable)
+Genode::Native_cpu_component::Native_cpu_component(Cpu_session_component &cpu_session, char const *)
+:
+	_cpu_session(cpu_session), _thread_ep(*_cpu_session._thread_ep)
 {
-	using namespace Genode;
-
-	auto lambda = [&] (Cpu_thread_component *thread) {
-		if (!thread) return;
-
-		Fiasco::l4_cap_idx_t tid = thread->platform_thread()->thread().local.dst();
-
-		enum { THREAD_SINGLE_STEP = 0x40000 };
-		int flags = enable ? THREAD_SINGLE_STEP : 0;
-
-		Fiasco::l4_thread_ex_regs(tid, ~0UL, ~0UL, flags);
-	};
-	_thread_ep->apply(thread_cap, lambda);
+	_thread_ep.manage(this);
 }
 
 
-Genode::Cpu_session::Quota Genode::Cpu_session_component::quota() { return Quota(); }
+Genode::Native_cpu_component::~Native_cpu_component()
+{
+	_thread_ep.dissolve(this);
+}

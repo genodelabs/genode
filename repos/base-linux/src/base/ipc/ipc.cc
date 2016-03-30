@@ -17,7 +17,7 @@
 #include <base/thread.h>
 #include <base/blocking.h>
 #include <base/env.h>
-#include <linux_cpu_session/linux_cpu_session.h>
+#include <linux_native_cpu/linux_native_cpu.h>
 
 /* base-internal includes */
 #include <base/internal/socket_descriptor_registry.h>

@@ -97,12 +97,20 @@ namespace {
 			Genode::Signal_context     _tx;
 			char                       _name[32];
 
+			Genode::Native_capability _alloc_irq()
+			{
+				Genode::Foc_native_cpu_client
+					native_cpu(L4lx::cpu_connection()->native_cpu());
+
+				return native_cpu.alloc_irq();
+			}
+
 		public:
 
 			Block_device(const char *label)
 			: _alloc(Genode::env()->heap()),
 			  _session(&_alloc, TX_BUF_SIZE, label),
-			  _irq_cap(L4lx::vcpu_connection()->alloc_irq())
+			  _irq_cap(_alloc_irq())
 			{
 				_session.info(&_blk_cnt, &_blk_size, &_blk_ops);
 				Genode::strncpy(_name, label, sizeof(_name));

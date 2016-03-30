@@ -94,6 +94,11 @@ namespace Genode {
 			Native_capability pause();
 
 			/**
+			 * Enable/disable single stepping
+			 */
+			void single_step(bool) { }
+
+			/**
 			 * Resume this thread
 			 */
 			void resume();
@@ -167,7 +172,7 @@ namespace Genode {
 				if (main_thread) _features |= MAIN_THREAD;
 			}
 
-			Native_capability single_step(bool on);
+			Native_capability single_step_sync(bool on);
 
 			/**
 			 * Set CPU quota of the thread to 'quota'

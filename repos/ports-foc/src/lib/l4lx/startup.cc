@@ -17,9 +17,10 @@
 #include <base/native_types.h>
 #include <dataspace/client.h>
 #include <rom_session/connection.h>
-#include <foc_cpu_session/connection.h>
+#include <cpu_session/connection.h>
 #include <util/misc_math.h>
 #include <os/config.h>
+#include <foc_native_cpu/client.h>
 
 /* L4lx includes */
 #include <env.h>
@@ -102,10 +103,13 @@ static void prepare_l4re_env()
 {
 	using namespace Fiasco;
 
-	Genode::Foc_cpu_session_client cpu(Genode::env()->cpu_session_cap());
+	Genode::Cpu_session &cpu = *Genode::env()->cpu_session();
+
+	Genode::Foc_native_cpu_client native_cpu(cpu.native_cpu());
 
 	Genode::Thread_capability main_thread = Genode::Thread_base::myself()->cap();
-	static Genode::Native_capability main_thread_cap = cpu.native_cap(main_thread);
+
+	static Genode::Native_capability main_thread_cap = native_cpu.native_cap(main_thread);
 
 	l4re_env_t *env = l4re_env();
 	env->first_free_utcb = (l4_addr_t)l4_utcb() + L4_UTCB_OFFSET;

@@ -27,6 +27,7 @@
 #include <platform_thread.h>
 #include <trace/control_area.h>
 #include <trace/source_registry.h>
+#include <native_cpu_component.h>
 
 namespace Genode {
 
@@ -172,24 +173,21 @@ namespace Genode {
 			List<Cpu_session_component> _ref_members;
 			Lock                        _ref_members_lock;
 
+			Native_cpu_component        _native_cpu;
+
+			friend class Native_cpu_component;
+
 			/*
 			 * Utilities for quota accounting
 			 */
 
 			void _incr_weight(size_t const weight);
-
 			void _decr_weight(size_t const weight);
-
 			size_t _weight_to_quota(size_t const weight) const;
-
 			void _decr_quota(size_t const quota);
-
 			void _incr_quota(size_t const quota);
-
 			void _update_thread_quota(Cpu_thread_component *) const;
-
 			void _update_each_thread_quota();
-
 			void _transfer_quota(Cpu_session_component * const dst,
 			                     size_t const quota);
 
@@ -213,7 +211,6 @@ namespace Genode {
 			}
 
 			void _deinit_ref_account();
-
 			void _deinit_threads();
 
 			/**
@@ -267,6 +264,7 @@ namespace Genode {
 			int start(Thread_capability, addr_t, addr_t);
 			void pause(Thread_capability thread_cap);
 			void resume(Thread_capability thread_cap);
+			void single_step(Thread_capability thread_cap, bool enable);
 			void cancel_blocking(Thread_capability);
 			int name(Thread_capability, char *, size_t);
 			Thread_state state(Thread_capability);
@@ -281,6 +279,8 @@ namespace Genode {
 			int ref_account(Cpu_session_capability c);
 			int transfer_quota(Cpu_session_capability, size_t);
 			Quota quota() override;
+
+			Capability<Native_cpu> native_cpu() { return _native_cpu.cap(); }
 	};
 }
 

@@ -9,7 +9,7 @@ SRC_CC      += stack_area.cc \
                core_printf.cc \
                core_rpc_cap_alloc.cc \
                cpu_session_component.cc \
-               cpu_session_extension.cc \
+               cpu_session_support.cc \
                dataspace_component.cc \
                dump_alloc.cc \
                io_mem_session_component.cc \
@@ -24,6 +24,7 @@ SRC_CC      += stack_area.cc \
                pd_assign_pci.cc \
                pd_upgrade_ram_quota.cc \
                native_pd_component.cc \
+               native_cpu_component.cc \
                rpc_cap_factory.cc \
                platform.cc \
                platform_pd.cc \
@@ -47,6 +48,7 @@ include $(GEN_CORE_DIR)/version.inc
 
 vpath stack_area.cc               $(GEN_CORE_DIR)
 vpath cpu_session_component.cc    $(GEN_CORE_DIR)
+vpath cpu_session_support.cc      $(GEN_CORE_DIR)
 vpath dataspace_component.cc      $(GEN_CORE_DIR)
 vpath dump_alloc.cc               $(GEN_CORE_DIR)
 vpath io_mem_session_component.cc $(GEN_CORE_DIR)
