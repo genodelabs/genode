@@ -25,8 +25,8 @@ class Genode::Slab::Block
 {
 	public:
 
-		Block *next = nullptr;  /* next block     */
-		Block *prev = nullptr;  /* previous block */
+		Block *next = this;  /* next block in ring     */
+		Block *prev = this;  /* previous block in ring */
 
 	private:
 
@@ -101,13 +101,7 @@ class Genode::Slab::Block
 		 * These functions are called by Slab::Entry.
 		 */
 		void inc_avail(Entry &e);
-		void dec_avail();
-
-		/**
-		 * Debug and test hooks
-		 */
-		void dump();
-		int check_bounds();
+		void dec_avail() { _avail--; }
 };
 
 
@@ -193,43 +187,8 @@ Slab::Entry *Slab::Block::any_used_entry()
 void Slab::Block::inc_avail(Entry &e)
 {
 	/* mark slab entry as free */
-	int const idx = _slab_entry_idx(&e);
-	_state(idx, FREE);
+	_state(_slab_entry_idx(&e), FREE);
 	_avail++;
-
-	/* search previous block with higher avail value than this' */
-	Block *at = prev;
-
-	while (at && (at->avail() < _avail))
-		at = at->prev;
-
-	/*
-	 * If we already are the first block or our avail value is lower than the
-	 * previous block, do not reposition the block in the list.
-	 */
-	if (prev == nullptr || at == prev)
-		return;
-
-	/* reposition block in list after block with higher avail value */
-	_slab._remove_sb(this);
-	_slab._insert_sb(this, at);
-}
-
-
-void Slab::Block::dec_avail()
-{
-	_avail--;
-
-	/* search subsequent block with lower avail value than this' */
-	Block *at = this;
-
-	while (at->next && at->next->avail() > _avail)
-		at = at->next;
-
-	if (at == this) return;
-
-	_slab._remove_sb(this);
-	_slab._insert_sb(this, at);
 }
 
 
@@ -252,35 +211,38 @@ Slab::Slab(size_t slab_size, size_t block_size, void *initial_sb,
 	_entries_per_block((_block_size - sizeof(Block) - sizeof(umword_t))
 	                   / (_slab_size + sizeof(Entry) + 1)),
 
-	_first_sb((Block *)initial_sb),
-	_initial_sb(_first_sb),
-	_alloc_state(false),
+	_initial_sb((Block *)initial_sb),
+	_nested(false),
+	_curr_sb((Block *)initial_sb),
 	_backing_store(backing_store)
 {
 	/* if no initial slab block was specified, try to get one */
-	if (!_first_sb && _backing_store)
-		_first_sb = _new_slab_block();
+	if (!_curr_sb && _backing_store)
+		_curr_sb = _new_slab_block();
+
+	if (!_curr_sb) {
+		PERR("failed to obtain initial slab block");
+		return;
+	}
 
 	/* init first slab block */
-	if (_first_sb)
-		construct_at<Block>(_first_sb, *this);
+	construct_at<Block>(_curr_sb, *this);
+	_total_avail = _entries_per_block;
+	_num_blocks  = 1;
 }
 
 
 Slab::~Slab()
 {
-	/* free backing store */
-	while (_first_sb) {
-		Block * const sb = _first_sb;
-		_remove_sb(_first_sb);
+	if (!_backing_store)
+		return;
 
-		/*
-		 * Only free slab blocks that we allocated. This is not the case for
-		 * the '_initial_sb' that we got as constructor argument.
-		 */
-		if (_backing_store && (sb != _initial_sb))
-			_backing_store->free(sb, _block_size);
-	}
+	/* free backing store */
+	while (_num_blocks > 1)
+		_free_curr_sb();
+
+	/* release last block */
+	_release_backing_store(_curr_sb);
 }
 
 
@@ -294,48 +256,53 @@ Slab::Block *Slab::_new_slab_block()
 }
 
 
-void Slab::_remove_sb(Block *sb)
+void Slab::_release_backing_store(Block *block)
 {
-	Block *prev = sb->prev;
-	Block *next = sb->next;
+	if (block->avail() != _entries_per_block)
+		PWRN("freeing non-empty slab block");
 
-	if (prev) prev->next = next;
-	if (next) next->prev = prev;
+	_total_avail -= block->avail();
+	_num_blocks--;
 
-	if (_first_sb == sb)
-		_first_sb =  next;
-
-	sb->prev = sb->next = nullptr;
+	/*
+	 * Free only the slab blocks that we allocated dynamically. This is not the
+	 * case for the '_initial_sb' that we got as constructor argument.
+	 */
+	if (_backing_store && (block != _initial_sb))
+		_backing_store->free(block, _block_size);
 }
 
 
-void Slab::_insert_sb(Block *sb, Block *at)
+void Slab::_free_curr_sb()
 {
-	/* determine next-pointer where to assign the current sb */
-	Block **nextptr_to_sb = at ? &at->next : &_first_sb;
+	/* block to free */
+	Block * const block = _curr_sb;
 
-	/* insert current sb */
-	sb->next = *nextptr_to_sb;
-	*nextptr_to_sb = sb;
+	/* advance '_curr_sb' because the old pointer won't be valid any longer */
+	_curr_sb = _curr_sb->next;
 
-	/* update prev-pointer or succeeding block */
-	if (sb->next)
-		sb->next->prev = sb;
+	/* never free the initial block */
+	if (_num_blocks <= 1)
+		return;
 
-	sb->prev = at;
+	/* remove block from ring */
+	block->prev->next = block->next;
+	block->next->prev = block->prev;
+
+	_release_backing_store(block);
 }
 
 
-bool Slab::_num_free_entries_higher_than(int n)
+void Slab::_insert_sb(Block *sb)
 {
-	int cnt = 0;
+	sb->prev = _curr_sb;
+	sb->next = _curr_sb->next;
 
-	for (Block *b = _first_sb; b && b->avail() > 0; b = b->next) {
-		cnt += b->avail();
-		if (cnt > n)
-			return true;
-	}
-	return false;
+	_curr_sb->next->prev = sb;
+	_curr_sb->next = sb;
+
+	_total_avail += _entries_per_block;
+	_num_blocks++;
 }
 
 
@@ -347,9 +314,6 @@ void Slab::insert_sb(void *ptr)
 
 bool Slab::alloc(size_t size, void **out_addr)
 {
-	/* sanity check if first slab block is gone */
-	if (!_first_sb) return false;
-
 	/*
 	 * If we run out of slab, we need to allocate a new slab block. For the
 	 * special case that this block is allocated using the allocator that by
@@ -358,12 +322,12 @@ bool Slab::alloc(size_t size, void **out_addr)
 	 * new slab block early enough - that is if there are only three free slab
 	 * entries left.
 	 */
-	if (_backing_store && !_num_free_entries_higher_than(3) && !_alloc_state) {
+	if (_backing_store && (_total_avail <= 3) && !_nested) {
 
 		/* allocate new block for slab */
-		_alloc_state = true;
-		Block *sb = _new_slab_block();
-		_alloc_state = false;
+		_nested = true;
+		Block * const sb = _new_slab_block();
+		_nested = false;
 
 		if (!sb) return false;
 
@@ -375,8 +339,19 @@ bool Slab::alloc(size_t size, void **out_addr)
 		_insert_sb(sb);
 	}
 
-	*out_addr = _first_sb->alloc();
-	return *out_addr == nullptr ? false : true;
+	/* skip completely occupied slab blocks, detect cycles */
+	Block const * const orig_curr_sb = _curr_sb;
+	for (; _curr_sb->avail() == 0; _curr_sb = _curr_sb->next)
+		if (_curr_sb->next == orig_curr_sb)
+			break;
+
+	*out_addr = _curr_sb->alloc();
+
+	if (*out_addr == nullptr)
+		return false;
+
+	_total_avail--;
+	return true;
 }
 
 
@@ -384,33 +359,46 @@ void Slab::_free(void *addr)
 {
 	Entry *e = addr ? Entry::slab_entry(addr) : nullptr;
 
-	if (e)
-		e->~Entry();
+	if (!e)
+		return;
+
+	Block &block = e->block;
+
+	e->~Entry();
+	_total_avail++;
+
+	/*
+	 * Release completely free slab blocks if the total number of free slab
+	 * entries exceeds the capacity of two slab blocks. This way we keep
+	 * a modest amount of available entries around so that thrashing effects
+	 * are mitigated.
+	 */
+	_curr_sb = &block;
+	while (_total_avail > 2*_entries_per_block
+	 && _num_blocks > 1
+	 && _curr_sb->avail() == _entries_per_block) {
+		_free_curr_sb();
+	}
 }
 
 
 void *Slab::any_used_elem()
 {
-	for (Block *b = _first_sb; b; b = b->next) {
+	if (_total_avail == _num_blocks*_entries_per_block)
+		return nullptr;
 
-		/* skip completely free slab blocks */
-		if (b->avail() == _entries_per_block)
-			continue;
+	/*
+	 * We know that there exists at least one used element.
+	 */
 
-		/* found a block with used elements - return address of the first one */
-		Entry *e = b->any_used_entry();
-		if (e) return e->data;
-	}
-	return nullptr;
+	/* skip completely free slab blocks */
+	for (; _curr_sb->avail() == _entries_per_block; _curr_sb = _curr_sb->next);
+
+	/* found a block with used elements - return address of the first one */
+	Entry *e = _curr_sb->any_used_entry();
+
+	return e ? e->data : nullptr;
 }
 
 
-size_t Slab::consumed() const
-{
-	/* count number of slab blocks */
-	unsigned sb_cnt = 0;
-	for (Block *sb = _first_sb; sb; sb = sb->next)
-		sb_cnt++;
-
-	return sb_cnt * _block_size;
-}
+size_t Slab::consumed() const { return _num_blocks*_block_size; }

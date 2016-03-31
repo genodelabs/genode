@@ -41,9 +41,16 @@ class Genode::Slab : public Allocator
 		size_t const _block_size;         /* size of slab block               */
 		size_t const _entries_per_block;  /* number of slab entries per block */
 
-		Block       *_first_sb;      /* first slab block                     */
-		Block       *_initial_sb;    /* initial (static) slab block          */
-		bool         _alloc_state;   /* indicator for 'currently in service' */
+		Block       *_initial_sb;    /* initial (static) slab block        */
+		bool         _nested;        /* indicator for nested call of alloc */
+
+		size_t _num_blocks  = 0;
+		size_t _total_avail = 0;
+
+		/**
+		 * Block used for attempting the next allocation
+		 */
+		Block *_curr_sb = nullptr;
 
 		Allocator   *_backing_store;
 
@@ -57,29 +64,24 @@ class Genode::Slab : public Allocator
 		 ** Methods used by 'Block' **
 		 *****************************/
 
-		/**
-		 * Remove block from slab block list
-		 *
-		 * \noapi
-		 */
-		void _remove_sb(Block *sb);
+		void _release_backing_store(Block *);
 
 		/**
-		 * Insert block into slab block list
+		 * Insert block into slab block ring
 		 *
 		 * \noapi
 		 */
-		void _insert_sb(Block *sb, Block *at = 0);
+		void _insert_sb(Block *);
+
+		/**
+		 * Release slab block
+		 */
+		void _free_curr_sb();
 
 		/**
 		 * Free slab entry
 		 */
 		void _free(void *addr);
-
-		/**
-		 * Return true if number of free slab entries is higher than n
-		 */
-		bool _num_free_entries_higher_than(int n);
 
 	public:
 
