@@ -30,6 +30,12 @@
 using namespace Kernel;
 
 
+static inline void free_obj_id_ref(Pd *pd, void *ptr)
+{
+	pd->platform_pd()->capability_slab().free(ptr, sizeof(Object_identity_reference));
+}
+
+
 void Ipc_node::copy_msg(Ipc_node * const sender)
 {
 	using namespace Genode;
@@ -46,7 +52,7 @@ void Ipc_node::copy_msg(Ipc_node * const sender)
 
 		/* if there is no capability to send, just free the pre-allocation */
 		if (i >= sender->_utcb->cap_cnt()) {
-			pd()->platform_pd()->capability_slab().free(_obj_id_ref_ptr[i]);
+			free_obj_id_ref(pd(), _obj_id_ref_ptr[i]);
 			continue;
 		}
 
@@ -57,7 +63,7 @@ void Ipc_node::copy_msg(Ipc_node * const sender)
 		/* if the caller's capability is invalid, free the pre-allocation */
 		if (!oir) {
 			_utcb->cap_add(cap_id_invalid());
-			pd()->platform_pd()->capability_slab().free(_obj_id_ref_ptr[i]);
+			free_obj_id_ref(pd(), _obj_id_ref_ptr[i]);
 			continue;
 		}
 
@@ -68,9 +74,9 @@ void Ipc_node::copy_msg(Ipc_node * const sender)
 		if (!dst_oir && (pd() != core_pd())) {
 			dst_oir = oir->factory(_obj_id_ref_ptr[i], *pd());
 			if (!dst_oir)
-				pd()->platform_pd()->capability_slab().free(_obj_id_ref_ptr[i]);
+				free_obj_id_ref(pd(), _obj_id_ref_ptr[i]);
 		} else /* otherwise free the pre-allocation */
-			pd()->platform_pd()->capability_slab().free(_obj_id_ref_ptr[i]);
+			free_obj_id_ref(pd(), _obj_id_ref_ptr[i]);
 
 		if (dst_oir) dst_oir->add_to_utcb();
 

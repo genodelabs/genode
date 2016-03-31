@@ -108,13 +108,13 @@ Hw::Address_space::~Address_space()
  *************************************/
 
 Capability_space::Capability_space()
-: _slab(nullptr, (Slab_block*)&_initial_sb) { }
+: _slab(nullptr, &_initial_sb) { }
 
 
 void Capability_space::upgrade_slab(Allocator &alloc)
 {
 	for (;;) {
-		Slab_block * block;
+		void *block = nullptr;
 
 		/*
 		 * On every upgrade we try allocating as many blocks as possible.
@@ -122,7 +122,6 @@ void Capability_space::upgrade_slab(Allocator &alloc)
 		 * this is normal as we use it as indication when to exit the loop.
 		 */
 		if (!alloc.alloc(SLAB_SIZE, &block)) return;
-		block = construct_at<Slab_block>(block, &_slab);
 		_slab.insert_sb(block);
 	}
 }

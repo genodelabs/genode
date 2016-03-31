@@ -503,32 +503,35 @@ struct Slab_backend_alloc : public Genode::Allocator,
 };
 
 
-struct Slab_alloc : public Genode::Slab
+class Slab_alloc : public Genode::Slab
 {
-	/*
-	* Each slab block in the slab contains about 8 objects (slab entries)
-	* as proposed in the paper by Bonwick and block sizes are multiples of
-	* page size.
-	*/
-	static Genode::size_t _calculate_block_size(Genode::size_t object_size)
-	{
-		Genode::size_t block_size = 8 * (object_size + sizeof(Genode::Slab_entry))
-		                                     + sizeof(Genode::Slab_block);
-		return Genode::align_addr(block_size, 12);
-	}
+	private:
 
-	Slab_alloc(Genode::size_t object_size, Slab_backend_alloc &allocator)
-	: Slab(object_size, _calculate_block_size(object_size), 0, &allocator) { }
+		Genode::size_t const _object_size;
 
-	/**
-	 * Convenience slabe-entry allocation
-	 */
-	Genode::addr_t alloc()
-	{
-		Genode::addr_t result;
-		return (Slab::alloc(slab_size(), (void **)&result) ? result : 0);
-	}
+		static Genode::size_t _calculate_block_size(Genode::size_t object_size)
+		{
+			Genode::size_t const block_size = 8*object_size;
+			return Genode::align_addr(block_size, 12);
+		}
+
+	public:
+
+		Slab_alloc(Genode::size_t object_size, Slab_backend_alloc &allocator)
+		:
+			Slab(object_size, _calculate_block_size(object_size), 0, &allocator),
+			_object_size(object_size)
+		{ }
+
+		Genode::addr_t alloc()
+		{
+			Genode::addr_t result;
+			return (Slab::alloc(_object_size, (void **)&result) ? result : 0);
+		}
+
+		void free(void *ptr) { Slab::free(ptr, _object_size); }
 };
+
 
 struct Slab
 {

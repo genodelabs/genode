@@ -38,8 +38,7 @@ class Genode::Signal_broker
 			public:
 
 				Slab(Allocator * const allocator)
-				: Tslab<T, BLOCK_SIZE>(allocator,
-				                       (Slab_block*)&_first_block) { }
+				: Tslab<T, BLOCK_SIZE>(allocator, &_first_block) { }
 		};
 
 		Allocator                     &_md_alloc;

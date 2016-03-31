@@ -5,88 +5,200 @@
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2006-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 #include <base/slab.h>
+#include <util/construct_at.h>
 #include <util/misc_math.h>
 
 using namespace Genode;
+
+
+/**
+ * A slab block holds an array of slab entries.
+ */
+class Genode::Slab::Block
+{
+	public:
+
+		Block *next = nullptr;  /* next block     */
+		Block *prev = nullptr;  /* previous block */
+
+	private:
+
+		enum { FREE, USED };
+
+		Slab  &_slab;                              /* back reference to slab     */
+		size_t _avail = _slab._entries_per_block;  /* free entries of this block */
+
+		/*
+		 * Each slab block consists of three areas, a fixed-size header
+		 * that contains the member variables declared above, a byte array
+		 * called state table that holds the allocation state for each slab
+		 * entry, and an area holding the actual slab entries. The number
+		 * of state-table elements corresponds to the maximum number of slab
+		 * entries per slab block (the '_entries_per_block' member variable of
+		 * the Slab allocator).
+		 */
+
+		char _data[];  /* dynamic data (state table and slab entries) */
+
+		/*
+		 * Caution! no member variables allowed below this line!
+		 */
+
+		/**
+		 * Return the allocation state of a slab entry
+		 */
+		inline bool _state(int idx) { return _data[idx]; }
+
+		/**
+		 * Set the allocation state of a slab entry
+		 */
+		inline void _state(int idx, bool state) { _data[idx] = state; }
+
+		/**
+		 * Request address of slab entry by its index
+		 */
+		Entry *_slab_entry(int idx);
+
+		/**
+		 * Determine block index of specified slab entry
+		 */
+		int _slab_entry_idx(Entry *e);
+
+	public:
+
+		/**
+		 * Constructor
+		 */
+		explicit Block(Slab &slab) : _slab(slab)
+		{
+			for (unsigned i = 0; i < _avail; i++)
+				_state(i, FREE);
+		}
+
+		/**
+		 * Request number of available entries in block
+		 */
+		unsigned avail() const { return _avail; }
+
+		/**
+		 * Allocate slab entry from block
+		 */
+		void *alloc();
+
+		/**
+		 * Return a used slab block entry
+		 */
+		Entry *any_used_entry();
+
+		/**
+		 * These functions are called by Slab::Entry.
+		 */
+		void inc_avail(Entry &e);
+		void dec_avail();
+
+		/**
+		 * Debug and test hooks
+		 */
+		void dump();
+		int check_bounds();
+};
+
+
+struct Genode::Slab::Entry
+{
+		Block &block;
+		char   data[];
+
+		/*
+		 * Caution! no member variables allowed below this line!
+		 */
+
+		explicit Entry(Block &block) : block(block)
+		{
+			block.dec_avail();
+		}
+
+		~Entry()
+		{
+			block.inc_avail(*this);
+		}
+
+		/**
+		 * Lookup Entry by given address
+		 *
+		 * The specified address is supposed to point to _data[0].
+		 */
+		static Entry *slab_entry(void *addr) {
+			return (Entry *)((addr_t)addr - sizeof(Entry)); }
+};
 
 
 /****************
  ** Slab block **
  ****************/
 
-/**
- * Placement operator - tool for directly calling a constructor
- */
-inline void *operator new(size_t, void *at) { return at; }
-
-
-void Slab_block::slab(Slab *slab)
-{
-	_slab  = slab;
-	_avail = _slab->num_elem();
-	next   = prev = 0;
-
-	for (unsigned i = 0; i < _avail; i++)
-		state(i, FREE);
-}
-
-
-Slab_entry *Slab_block::slab_entry(int idx)
+Slab::Entry *Slab::Block::_slab_entry(int idx)
 {
 	/*
 	 * The slab slots start after the state array that consists
 	 * of 'num_elem' bytes. We align the first slot to a four-aligned
 	 * address.
 	 */
-	return (Slab_entry *)&_data[align_addr(_slab->num_elem(), log2(sizeof(addr_t)))
-	                            + _slab->entry_size()*idx];
+
+	size_t const entry_size = sizeof(Entry) + _slab._slab_size;
+	return (Entry *)&_data[align_addr(_slab._entries_per_block, log2(sizeof(addr_t)))
+	                            + entry_size*idx];
 }
 
 
-int Slab_block::slab_entry_idx(Slab_entry *e) {
-	return ((addr_t)e - (addr_t)slab_entry(0))/_slab->entry_size(); }
-
-
-void *Slab_block::alloc()
+int Slab::Block::_slab_entry_idx(Slab::Entry *e)
 {
-	size_t num_elem = _slab->num_elem();
-	for (unsigned i = 0; i < num_elem; i++)
-		if (state(i) == FREE) {
-			state(i, USED);
-			Slab_entry *e = slab_entry(i);
-			e->occupy(this);
-			return e->addr();
-		}
-	return 0;
+	size_t const entry_size = sizeof(Entry) + _slab._slab_size;
+	return ((addr_t)e - (addr_t)_slab_entry(0))/entry_size;
 }
 
 
-Slab_entry *Slab_block::first_used_entry()
+void *Slab::Block::alloc()
 {
-	size_t num_elem = _slab->num_elem();
-	for (unsigned i = 0; i < num_elem; i++)
-		if (state(i) == USED)
-			return slab_entry(i);
-	return 0;
+	for (unsigned i = 0; i < _slab._entries_per_block; i++) {
+		if (_state(i) != FREE)
+			continue;
+
+		_state(i, USED);
+		Entry * const e = _slab_entry(i);
+		construct_at<Entry>(e, *this);
+		return e->data;
+	}
+	return nullptr;
 }
 
 
-void Slab_block::inc_avail(Slab_entry *e)
+Slab::Entry *Slab::Block::any_used_entry()
+{
+	for (unsigned i = 0; i < _slab._entries_per_block; i++)
+		if (_state(i) == USED)
+			return _slab_entry(i);
+
+	return nullptr;
+}
+
+
+void Slab::Block::inc_avail(Entry &e)
 {
 	/* mark slab entry as free */
-	int idx = slab_entry_idx(e);
-	state(idx, FREE);
+	int const idx = _slab_entry_idx(&e);
+	_state(idx, FREE);
 	_avail++;
 
 	/* search previous block with higher avail value than this' */
-	Slab_block *at = prev;
+	Block *at = prev;
 
 	while (at && (at->avail() < _avail))
 		at = at->prev;
@@ -95,29 +207,29 @@ void Slab_block::inc_avail(Slab_entry *e)
 	 * If we already are the first block or our avail value is lower than the
 	 * previous block, do not reposition the block in the list.
 	 */
-	if (prev == 0 || at == prev)
+	if (prev == nullptr || at == prev)
 		return;
 
 	/* reposition block in list after block with higher avail value */
-	_slab->remove_sb(this);
-	_slab->insert_sb(this, at);
+	_slab._remove_sb(this);
+	_slab._insert_sb(this, at);
 }
 
 
-void Slab_block::dec_avail()
+void Slab::Block::dec_avail()
 {
 	_avail--;
 
 	/* search subsequent block with lower avail value than this' */
-	Slab_block *at = this;
+	Block *at = this;
 
 	while (at->next && at->next->avail() > _avail)
 		at = at->next;
 
 	if (at == this) return;
 
-	_slab->remove_sb(this);
-	_slab->insert_sb(this, at);
+	_slab._remove_sb(this);
+	_slab._insert_sb(this, at);
 }
 
 
@@ -125,31 +237,33 @@ void Slab_block::dec_avail()
  ** Slab **
  **********/
 
-Slab::Slab(size_t slab_size, size_t block_size, Slab_block *initial_sb,
-                                                Allocator *backing_store)
-: _slab_size(slab_size),
-  _block_size(block_size),
-  _first_sb(initial_sb),
-  _initial_sb(initial_sb),
-  _alloc_state(false),
-  _backing_store(backing_store)
-{
+Slab::Slab(size_t slab_size, size_t block_size, void *initial_sb,
+           Allocator *backing_store)
+:
+	_slab_size(slab_size),
+	_block_size(block_size),
+
 	/*
 	 * Calculate number of entries per slab block.
 	 *
 	 * The 'sizeof(umword_t)' is for the alignment of the first slab entry.
 	 * The 1 is for one byte state entry.
 	 */
-	_num_elem = (_block_size - sizeof(Slab_block) - sizeof(umword_t))
-	          / (entry_size() + 1);
+	_entries_per_block((_block_size - sizeof(Block) - sizeof(umword_t))
+	                   / (_slab_size + sizeof(Entry) + 1)),
 
+	_first_sb((Block *)initial_sb),
+	_initial_sb(_first_sb),
+	_alloc_state(false),
+	_backing_store(backing_store)
+{
 	/* if no initial slab block was specified, try to get one */
 	if (!_first_sb && _backing_store)
 		_first_sb = _new_slab_block();
 
 	/* init first slab block */
 	if (_first_sb)
-		_first_sb->slab(this);
+		construct_at<Block>(_first_sb, *this);
 }
 
 
@@ -157,8 +271,8 @@ Slab::~Slab()
 {
 	/* free backing store */
 	while (_first_sb) {
-		Slab_block *sb = _first_sb;
-		remove_sb(_first_sb);
+		Block * const sb = _first_sb;
+		_remove_sb(_first_sb);
 
 		/*
 		 * Only free slab blocks that we allocated. This is not the case for
@@ -170,21 +284,20 @@ Slab::~Slab()
 }
 
 
-Slab_block *Slab::_new_slab_block()
+Slab::Block *Slab::_new_slab_block()
 {
-	void *sb = 0;
+	void *sb = nullptr;
 	if (!_backing_store || !_backing_store->alloc(_block_size, &sb))
-		return 0;
+		return nullptr;
 
-	/* call constructor by using the placement new operator */
-	return new(sb) Slab_block(this);
+	return construct_at<Block>(sb, *this);
 }
 
 
-void Slab::remove_sb(Slab_block *sb)
+void Slab::_remove_sb(Block *sb)
 {
-	Slab_block *prev = sb->prev;
-	Slab_block *next = sb->next;
+	Block *prev = sb->prev;
+	Block *next = sb->next;
 
 	if (prev) prev->next = next;
 	if (next) next->prev = prev;
@@ -192,14 +305,14 @@ void Slab::remove_sb(Slab_block *sb)
 	if (_first_sb == sb)
 		_first_sb =  next;
 
-	sb->prev = sb->next = 0;
+	sb->prev = sb->next = nullptr;
 }
 
 
-void Slab::insert_sb(Slab_block *sb, Slab_block *at)
+void Slab::_insert_sb(Block *sb, Block *at)
 {
 	/* determine next-pointer where to assign the current sb */
-	Slab_block **nextptr_to_sb = at ? &at->next : &_first_sb;
+	Block **nextptr_to_sb = at ? &at->next : &_first_sb;
 
 	/* insert current sb */
 	sb->next = *nextptr_to_sb;
@@ -213,16 +326,22 @@ void Slab::insert_sb(Slab_block *sb, Slab_block *at)
 }
 
 
-bool Slab::num_free_entries_higher_than(int n)
+bool Slab::_num_free_entries_higher_than(int n)
 {
 	int cnt = 0;
 
-	for (Slab_block *b = _first_sb; b && b->avail() > 0; b = b->next) {
+	for (Block *b = _first_sb; b && b->avail() > 0; b = b->next) {
 		cnt += b->avail();
 		if (cnt > n)
 			return true;
 	}
 	return false;
+}
+
+
+void Slab::insert_sb(void *ptr)
+{
+	_insert_sb(construct_at<Block>(ptr, *this));
 }
 
 
@@ -239,11 +358,11 @@ bool Slab::alloc(size_t size, void **out_addr)
 	 * new slab block early enough - that is if there are only three free slab
 	 * entries left.
 	 */
-	if (_backing_store && !num_free_entries_higher_than(3) && !_alloc_state) {
+	if (_backing_store && !_num_free_entries_higher_than(3) && !_alloc_state) {
 
 		/* allocate new block for slab */
 		_alloc_state = true;
-		Slab_block *sb = _new_slab_block();
+		Block *sb = _new_slab_block();
 		_alloc_state = false;
 
 		if (!sb) return false;
@@ -253,35 +372,36 @@ bool Slab::alloc(size_t size, void **out_addr)
 		 * so we can insert it at the beginning of the sorted block
 		 * list.
 		 */
-		insert_sb(sb);
+		_insert_sb(sb);
 	}
 
 	*out_addr = _first_sb->alloc();
-	return *out_addr == 0 ? false : true;
+	return *out_addr == nullptr ? false : true;
 }
 
 
-void Slab::free(void *addr)
+void Slab::_free(void *addr)
 {
-	Slab_entry *e = addr ? Slab_entry::slab_entry(addr) : 0;
+	Entry *e = addr ? Entry::slab_entry(addr) : nullptr;
 
-	if (e) e->free();
+	if (e)
+		e->~Entry();
 }
 
 
-void *Slab::first_used_elem()
+void *Slab::any_used_elem()
 {
-	for (Slab_block *b = _first_sb; b; b = b->next) {
+	for (Block *b = _first_sb; b; b = b->next) {
 
 		/* skip completely free slab blocks */
-		if (b->avail() == _num_elem)
+		if (b->avail() == _entries_per_block)
 			continue;
 
 		/* found a block with used elements - return address of the first one */
-		Slab_entry *e = b->first_used_entry();
-		if (e) return e->addr();
+		Entry *e = b->any_used_entry();
+		if (e) return e->data;
 	}
-	return 0;
+	return nullptr;
 }
 
 
@@ -289,7 +409,7 @@ size_t Slab::consumed() const
 {
 	/* count number of slab blocks */
 	unsigned sb_cnt = 0;
-	for (Slab_block *sb = _first_sb; sb; sb = sb->next)
+	for (Block *sb = _first_sb; sb; sb = sb->next)
 		sb_cnt++;
 
 	return sb_cnt * _block_size;
