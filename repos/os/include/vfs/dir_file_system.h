@@ -334,7 +334,7 @@ class Vfs::Dir_file_system : public File_system
 			if (!path)
 				return DIRENT_ERR_INVALID_PATH;
 
-			return _dirent_of_file_systems(path, index, out);
+			return _dirent_of_file_systems(*path ? path : "/", index, out);
 		}
 
 		file_size num_dirent(char const *path) override
@@ -359,7 +359,7 @@ class Vfs::Dir_file_system : public File_system
 				 * matching dirents of all our file systems. Otherwise,
 				 * the specified path lies outside our directory node.
 				 */
-				return path ? _sum_dirents_of_file_systems(path) : 0;
+				return path ? _sum_dirents_of_file_systems(*path ? path : "/") : 0;
 			}
 		}
 
