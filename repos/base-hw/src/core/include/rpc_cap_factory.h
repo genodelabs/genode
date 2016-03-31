@@ -56,7 +56,7 @@ class Genode::Rpc_cap_factory
 
 		Rpc_cap_factory(Allocator &md_alloc)
 		:
-			_slab(&md_alloc, (Slab_block*)&_initial_slab_block)
+			_slab(&md_alloc, &_initial_slab_block)
 		{ }
 
 		~Rpc_cap_factory()

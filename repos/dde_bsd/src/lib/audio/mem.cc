@@ -127,31 +127,29 @@ class Bsd::Slab_alloc : public Genode::Slab
 {
 	private:
 
-		/*
-		 * Each slab block in the slab contains about 8 objects (slab entries)
-		 * as proposed in the paper by Bonwick and block sizes are multiples of
-		 * page size.
-		 */
-		static size_t _calculate_block_size(size_t object_size)
+		Genode::size_t const _object_size;
+
+		static Genode::size_t _calculate_block_size(Genode::size_t object_size)
 		{
-			size_t block_size = 8 * (object_size + sizeof(Genode::Slab_entry))
-			                                     + sizeof(Genode::Slab_block);
+			Genode::size_t const block_size = 16*object_size;
 			return Genode::align_addr(block_size, 12);
 		}
 
 	public:
 
-		Slab_alloc(size_t object_size, Slab_backend_alloc &allocator)
-		: Slab(object_size, _calculate_block_size(object_size), 0, &allocator) { }
+		Slab_alloc(Genode::size_t object_size, Slab_backend_alloc &allocator)
+		:
+			Slab(object_size, _calculate_block_size(object_size), 0, &allocator),
+			_object_size(object_size)
+		{ }
 
-		/**
-		 * Convenience slabe-entry allocation
-		 */
-		addr_t alloc()
+		Genode::addr_t alloc()
 		{
-			addr_t result;
-			return (Slab::alloc(slab_size(), (void **)&result) ? result : 0);
+			Genode::addr_t result;
+			return (Slab::alloc(_object_size, (void **)&result) ? result : 0);
 		}
+
+		void free(void *ptr) { Slab::free(ptr, _object_size); }
 };
 
 
@@ -164,7 +162,7 @@ class Bsd::Malloc
 
 		enum {
 			SLAB_START_LOG2 = 5,  /* 32 B */
-			SLAB_STOP_LOG2  = 17, /* 64 KiB */
+			SLAB_STOP_LOG2  = 16, /* 64 KiB */
 			NUM_SLABS = (SLAB_STOP_LOG2 - SLAB_START_LOG2) + 1,
 		};
 

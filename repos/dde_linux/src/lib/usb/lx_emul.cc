@@ -169,23 +169,29 @@ class Genode::Slab_alloc : public Genode::Slab
 {
 	private:
 
-		size_t _calculate_block_size(size_t object_size)
+		Genode::size_t const _object_size;
+
+		static Genode::size_t _calculate_block_size(Genode::size_t object_size)
 		{
-			size_t block_size = 8 * (object_size + sizeof(Slab_entry)) + sizeof(Slab_block);
-			return align_addr(block_size, 12);
+			Genode::size_t const block_size = 16*object_size;
+			return Genode::align_addr(block_size, 12);
 		}
 
 	public:
 
-		Slab_alloc(size_t object_size, Slab_backend_alloc *allocator)
-		: Slab(object_size, _calculate_block_size(object_size), 0, allocator)
-    { }
+		Slab_alloc(Genode::size_t object_size, Slab_backend_alloc &allocator)
+		:
+			Slab(object_size, _calculate_block_size(object_size), 0, &allocator),
+			_object_size(object_size)
+		{ }
 
-	inline addr_t alloc()
-	{
-		addr_t result;
-		return (Slab::alloc(slab_size(), (void **)&result) ? result : 0);
-	}
+		Genode::addr_t alloc()
+		{
+			Genode::addr_t result;
+			return (Slab::alloc(_object_size, (void **)&result) ? result : 0);
+		}
+
+		void free(void *ptr) { Slab::free(ptr, _object_size); }
 };
 
 
@@ -247,7 +253,7 @@ class Malloc
 			/* init slab allocators */
 			for (unsigned i = SLAB_START_LOG2; i <= SLAB_STOP_LOG2; i++)
 				_allocator[i - SLAB_START_LOG2] = new (Genode::env()->heap())
-				                                  Slab_alloc(1U << i, alloc);
+				                                  Slab_alloc(1U << i, *alloc);
 		}
 
 		static unsigned long max_alloc() { return 1U << SLAB_STOP_LOG2; }
