@@ -385,6 +385,7 @@ int Libc::Vfs_plugin::stat(char const *path, struct stat *buf)
 
 	switch (_root_dir.stat(path, stat)) {
 	case Result::STAT_ERR_NO_ENTRY: errno = ENOENT; return -1;
+	case Result::STAT_ERR_NO_PERM:  errno = EACCES; return -1;
 	case Result::STAT_OK:                           break;
 	}
 
@@ -459,7 +460,8 @@ ssize_t Libc::Vfs_plugin::getdirentries(Libc::File_descriptor *fd, char *buf,
 	unsigned const index = handle->seek() / sizeof(Vfs::Directory_service::Dirent);
 
 	switch (handle->ds().dirent(fd->fd_path, index, dirent_out)) {
-	case Result::DIRENT_ERR_INVALID_PATH: /* XXX errno */ return -1;
+	case Result::DIRENT_ERR_INVALID_PATH: errno = ENOENT; return -1;
+	case Result::DIRENT_ERR_NO_PERM:      errno = EACCES; return -1;
 	case Result::DIRENT_OK:                               break;
 	}
 
@@ -745,6 +747,7 @@ ssize_t Libc::Vfs_plugin::readlink(const char *path, char *buf, size_t buf_size)
 
 	switch (_root_dir.readlink(path, buf, buf_size, out_len)) {
 	case Result::READLINK_ERR_NO_ENTRY: errno = ENOENT; return -1;
+	case Result::READLINK_ERR_NO_PERM:  errno = EACCES; return -1;
 	case Result::READLINK_OK:                           break;
 	};
 
