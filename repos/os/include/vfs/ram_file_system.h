@@ -60,8 +60,6 @@ class Vfs_ram::Node : public Genode::Avl_node<Node>, public Genode::Lock
 
 		/**
 		 * Generate unique inode number
-		 *
-		 * XXX: these inodes could clash with other VFS plugins
 		 */
 		static unsigned _unique_inode()
 		{
@@ -309,33 +307,32 @@ class Vfs_ram::Directory : public Vfs_ram::Node
 
 		void dirent(file_offset index, Directory_service::Dirent &dirent)
 		{
-			dirent.fileno = index+1;
-			dirent.type = Directory_service::DIRENT_TYPE_END;
-			dirent.name[0] = '\0';
-
 			Node *node = _entries.first();
-			if (node) {
-				node = node->index(index);
-				if (!node) return;
+			if (node) node = node->index(index);
+			if (!node) {
+				dirent.type = Directory_service::DIRENT_TYPE_END;
+				return;
+			}
 
-				strncpy(dirent.name, node->name(), sizeof(dirent.name));
+			dirent.fileno = node->inode;
+			strncpy(dirent.name, node->name(), sizeof(dirent.name));
 
-				File *file = dynamic_cast<File *>(node);
-				if (file) {
-					dirent.type = Directory_service::DIRENT_TYPE_FILE;
-					return;
-				}
+			File *file = dynamic_cast<File *>(node);
+			if (file) {
+				dirent.type = Directory_service::DIRENT_TYPE_FILE;
+				return;
+			}
 
-				Directory *dir = dynamic_cast<Directory *>(node);
-				if (dir) {
-					dirent.type = Directory_service::DIRENT_TYPE_DIRECTORY;
-					return;
-				}
+			Directory *dir = dynamic_cast<Directory *>(node);
+			if (dir) {
+				dirent.type = Directory_service::DIRENT_TYPE_DIRECTORY;
+				return;
+			}
 
-				Symlink *symlink = dynamic_cast<Symlink *>(node);
-				if (symlink) {
-					dirent.type = Directory_service::DIRENT_TYPE_SYMLINK;
-				}
+			Symlink *symlink = dynamic_cast<Symlink *>(node);
+			if (symlink) {
+				dirent.type = Directory_service::DIRENT_TYPE_SYMLINK;
+				return;
 			}
 		}
 };
@@ -531,8 +528,9 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			if (!node) return STAT_ERR_NO_ENTRY;
 			Node::Guard guard(node);
 
-			stat.inode = node->inode;
 			stat.size  = node->length();
+			stat.inode  = node->inode;
+			stat.device = (Genode::addr_t)this;
 
 			File *file = dynamic_cast<File *>(node);
 			if (file) {

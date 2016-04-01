@@ -264,6 +264,8 @@ class Vfs::Fs_file_system : public File_system
 
 			out.uid = 0;
 			out.gid = 0;
+			out.inode = status.inode;
+			out.device = (Genode::addr_t)this;
 			return STAT_OK;
 		}
 
@@ -320,9 +322,8 @@ class Vfs::Fs_file_system : public File_system
 			case Directory_entry::TYPE_SYMLINK:   type = DIRENT_TYPE_SYMLINK;   break;
 			}
 
+			out.fileno = entry->inode;
 			out.type   = type;
-			out.fileno = index + 1;
-
 			strncpy(out.name, entry->name, sizeof(out.name));
 
 			source.release_packet(packet);

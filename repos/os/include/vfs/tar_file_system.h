@@ -457,7 +457,8 @@ class Vfs::Tar_file_system : public File_system
 			out.size  = record->size();
 			out.uid   = record->uid();
 			out.gid   = record->gid();
-			out.inode = (unsigned long)node;
+			out.inode = (Genode::addr_t)node;
+			out.device = (Genode::addr_t)this;
 
 			return STAT_OK;
 		}
@@ -472,12 +473,11 @@ class Vfs::Tar_file_system : public File_system
 			node = node->lookup_child(index);
 
 			if (!node) {
-				out.name[0] = '\0';
 				out.type = DIRENT_TYPE_END;
 				return DIRENT_OK;
 			}
 
-			out.fileno = (unsigned long)node;
+			out.fileno = (Genode::addr_t)node;
 
 			Record const *record = node->record;
 

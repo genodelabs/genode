@@ -167,9 +167,9 @@ struct File_system::Status
 	 * XXX  add executable bit
 	 */
 
-	file_size_t   size;
-	unsigned      mode;
-	unsigned long inode;
+	file_size_t size;
+	unsigned    mode;
+	unsigned    inode;
 
 	bool is_directory() const { return mode & MODE_DIRECTORY; }
 	bool is_symlink()   const { return mode & MODE_SYMLINK; }

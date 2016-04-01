@@ -90,7 +90,7 @@ struct Vfs::Directory_service
 		unsigned       mode;
 		unsigned       uid;
 		unsigned       gid;
-		unsigned long  inode;
+		unsigned       inode;
 		unsigned       device;
 	};
 
@@ -120,7 +120,7 @@ struct Vfs::Directory_service
 
 	struct Dirent
 	{
-		int         fileno;
+		unsigned    fileno;
 		Dirent_type type;
 		char        name[DIRENT_MAX_NAME_LEN];
 	};

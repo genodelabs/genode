@@ -168,9 +168,7 @@ class Vfs::Dir_file_system : public File_system
 				 */
 				if (index - base < fs_num_dirent) {
 					index = index - base;
-					Dirent_result const err = fs->dirent(path, index, out);
-					out.fileno += base;
-					return err;
+					return fs->dirent(path, index, out);;
 				}
 
 				/* adjust base index for next file system */
@@ -289,10 +287,12 @@ class Vfs::Dir_file_system : public File_system
 			 * current directory.
 			 */
 			if (strlen(path) == 0 || (strcmp(path, "/") == 0)) {
-				out.size = 0;
-				out.mode = STAT_MODE_DIRECTORY | 0755;
-				out.uid  = 0;
-				out.gid  = 0;
+				out.size   = 0;
+				out.mode   = STAT_MODE_DIRECTORY | 0755;
+				out.uid    = 0;
+				out.gid    = 0;
+				out.inode  = 1;
+				out.device = (Genode::addr_t)this;
 				return STAT_OK;
 			}
 
