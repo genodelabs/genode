@@ -94,7 +94,8 @@ struct Vfs::Directory_service
 		unsigned       device;
 	};
 
-	enum Stat_result { STAT_ERR_NO_ENTRY = NUM_GENERAL_ERRORS, STAT_OK };
+	enum Stat_result { STAT_ERR_NO_ENTRY = NUM_GENERAL_ERRORS,
+	                   STAT_ERR_NO_PERM, STAT_OK };
 
 	virtual Stat_result stat(char const *path, Stat &) = 0;
 
@@ -103,7 +104,7 @@ struct Vfs::Directory_service
 	 ** Dirent **
 	 ************/
 
-	enum Dirent_result { DIRENT_ERR_INVALID_PATH, DIRENT_OK };
+	enum Dirent_result { DIRENT_ERR_INVALID_PATH, DIRENT_ERR_NO_PERM, DIRENT_OK };
 
 	enum { DIRENT_MAX_NAME_LEN = 128 };
 
@@ -141,7 +142,7 @@ struct Vfs::Directory_service
 	 ** Readlink **
 	 **************/
 
-	enum Readlink_result { READLINK_ERR_NO_ENTRY, READLINK_OK };
+	enum Readlink_result { READLINK_ERR_NO_ENTRY, READLINK_ERR_NO_PERM, READLINK_OK };
 
 	virtual Readlink_result readlink(char const *path, char *buf,
 	                                 file_size buf_size, file_size &out_len) = 0;

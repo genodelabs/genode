@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -1087,10 +1087,10 @@ namespace {
 			if (verbose)
 				PWRN("stat syscall failed for path \"%s\"", path);
 			switch (sysio()->error.stat) {
-			case Vfs::Directory_service::STAT_OK: /* never reached */
-			case Vfs::Directory_service::STAT_ERR_NO_ENTRY: errno = ENOENT; break;
+			case Vfs::Directory_service::STAT_ERR_NO_ENTRY: errno = ENOENT; return -1;
+			case Vfs::Directory_service::STAT_ERR_NO_PERM:  errno = EACCES; return -1;
+			case Vfs::Directory_service::STAT_OK: break; /* never reached */
 			}
-			return -1;
 		}
 
 		_sysio_to_stat_struct(sysio(), buf);
@@ -1165,9 +1165,16 @@ namespace {
 		Genode::strncpy(sysio()->symlink_in.oldpath, oldpath, sizeof(sysio()->symlink_in.oldpath));
 		Genode::strncpy(sysio()->symlink_in.newpath, newpath, sizeof(sysio()->symlink_in.newpath));
 		if (!noux_syscall(Noux::Session::SYSCALL_SYMLINK)) {
-			PERR("symlink error");
-			/* XXX set errno */
-			return -1;
+			PWRN("symlink syscall failed for path \"%s\"", newpath);
+			typedef Vfs::Directory_service::Symlink_result Result;
+			switch (sysio()->error.symlink) {
+			case Result::SYMLINK_ERR_NO_ENTRY:      errno = ENOENT;        return -1;
+			case Result::SYMLINK_ERR_EXISTS:        errno = EEXIST;        return -1;
+			case Result::SYMLINK_ERR_NO_SPACE:      errno = ENOSPC;        return -1;
+			case Result::SYMLINK_ERR_NO_PERM:       errno = EPERM;         return -1;
+			case Result::SYMLINK_ERR_NAME_TOO_LONG: errno = ENAMETOOLONG;  return -1;
+			case Result::SYMLINK_OK: break;
+			}
 		}
 
 		return 0;
@@ -1707,9 +1714,13 @@ namespace {
 		sysio()->readlink_in.bufsiz = bufsiz;
 
 		if (!noux_syscall(Noux::Session::SYSCALL_READLINK)) {
-			PWRN("readlink syscall failed for \"%s\"", path);
-			/* XXX set errno */
-			return -1;
+			PWRN("readlink syscall failed for path \"%s\"", path);
+			typedef Vfs::Directory_service::Readlink_result Result;
+			switch (sysio()->error.readlink) {
+			case Result::READLINK_ERR_NO_ENTRY: errno = ENOENT; return -1;
+			case Result::READLINK_ERR_NO_PERM:  errno = EPERM;  return -1;
+			case Result::READLINK_OK: break;
+			}
 		}
 
 		ssize_t size = Genode::min((size_t)sysio()->readlink_out.count, bufsiz);
