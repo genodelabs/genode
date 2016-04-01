@@ -76,12 +76,14 @@ class Vfs::Symlink_file_system : public File_system
 		Stat_result stat(char const *path, Stat &out) override
 		{
 			out = { 0, 0, 0, 0, 0, 0 };
+			out.device = (Genode::addr_t)this;
 
 			if (_is_root(path)) {
 				out.mode = STAT_MODE_DIRECTORY;
 
 			} else if (_is_single_file(path)) {
 				out.mode = STAT_MODE_SYMLINK;
+				out.inode = 1;
 			} else {
 				return STAT_ERR_NO_ENTRY;
 			}
@@ -114,15 +116,13 @@ class Vfs::Symlink_file_system : public File_system
 			if (!_is_root(path))
 				return DIRENT_ERR_INVALID_PATH;
 
-			out.fileno = 1;
 			if (index == 0) {
+				out.fileno = (Genode::addr_t)this;
 				out.type = DIRENT_TYPE_SYMLINK;
 				strncpy(out.name, _filename, sizeof(out.name));
 			} else {
 				out.type = DIRENT_TYPE_END;
-				out.name[0] = '\0';
 			}
-
 			return DIRENT_OK;
 		}
 

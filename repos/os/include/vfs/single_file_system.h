@@ -71,6 +71,7 @@ class Vfs::Single_file_system : public File_system
 		Stat_result stat(char const *path, Stat &out) override
 		{
 			out = { 0, 0, 0, 0, 0, 0 };
+			out.device = (Genode::addr_t)this;
 
 			if (_is_root(path)) {
 				out.mode = STAT_MODE_DIRECTORY;
@@ -81,6 +82,7 @@ class Vfs::Single_file_system : public File_system
 				case NODE_TYPE_CHAR_DEVICE:  out.mode = STAT_MODE_CHARDEV;  break;
 				case NODE_TYPE_BLOCK_DEVICE: out.mode = STAT_MODE_BLOCKDEV; break;
 				}
+				out.inode = 1;
 			} else {
 				return STAT_ERR_NO_ENTRY;
 			}
@@ -93,6 +95,7 @@ class Vfs::Single_file_system : public File_system
 				return DIRENT_ERR_INVALID_PATH;
 
 			if (index == 0) {
+				out.fileno = (Genode::addr_t)this;
 				switch (_node_type) {
 				case NODE_TYPE_FILE:         out.type = DIRENT_TYPE_FILE;     break;
 				case NODE_TYPE_CHAR_DEVICE:  out.type = DIRENT_TYPE_CHARDEV;  break;

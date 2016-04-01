@@ -207,6 +207,8 @@ class File_system::Directory : public Node
 
 			Directory_entry *e = (Directory_entry *)(dst);
 
+			e->inode = node->inode();
+
 			if (dynamic_cast<File      *>(node)) e->type = Directory_entry::TYPE_FILE;
 			if (dynamic_cast<Directory *>(node)) e->type = Directory_entry::TYPE_DIRECTORY;
 			if (dynamic_cast<Symlink   *>(node)) e->type = Directory_entry::TYPE_SYMLINK;

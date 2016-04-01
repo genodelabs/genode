@@ -185,9 +185,10 @@ struct File_system::Control { /* to manipulate the executable bit */ };
 struct File_system::Directory_entry
 {
 	enum Type { TYPE_FILE, TYPE_DIRECTORY, TYPE_SYMLINK };
-	unsigned inode;
-	Type     type;
-	char     name[MAX_NAME_LEN];
+
+	unsigned long inode;
+	Type          type;
+	char          name[MAX_NAME_LEN];
 };
 
 
