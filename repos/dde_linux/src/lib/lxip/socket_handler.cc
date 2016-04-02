@@ -313,7 +313,7 @@ class Net::Socketcall : public Genode::Signal_dispatcher_base,
 				msg.msg_flags |= MSG_DONTWAIT;
 
 			//XXX: check for non-blocking flag
-			_result.err = call_socket()->ops->recvmsg(0, call_socket(), &msg,
+			_result.len = call_socket()->ops->recvmsg(0, call_socket(), &msg,
 			                                          _call.msg.len,
 			                                          _call.msg.flags);
 
@@ -329,8 +329,8 @@ class Net::Socketcall : public Genode::Signal_dispatcher_base,
 			struct msghdr msg;
 			struct iovec  iov;
 
-			_result.err = socket_check_state(call_socket());
-			if (_result.err < 0)
+			_result.len = socket_check_state(call_socket());
+			if (_result.len < 0)
 				return;
 
 			msg.msg_control    = NULL;
@@ -346,7 +346,7 @@ class Net::Socketcall : public Genode::Signal_dispatcher_base,
 			if (_call.handle.non_block)
 				msg.msg_flags |= MSG_DONTWAIT;
 
-			_result.err = call_socket()->ops->sendmsg(0, call_socket(), &msg,
+			_result.len = call_socket()->ops->sendmsg(0, call_socket(), &msg,
 			                                          _call.msg.len);
 		}
 
