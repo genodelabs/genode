@@ -170,10 +170,8 @@ class Vfs_server::Session_component :
 			}
 			}
 
-			if (res_length) {
-				packet.length(res_length);
-				packet.succeeded(true);
-			}
+			packet.length(res_length);
+			packet.succeeded(!!res_length);
 		}
 
 		void _process_packet()
