@@ -11,6 +11,10 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
+#include <os/config.h>
+
+/* local includes */
 #include <linker.h>
 
 
@@ -63,6 +67,13 @@ Genode::Shared_object::Shared_object(char const *file, unsigned flags)
 		bind_now = (flags & Shared_object::NOW) ? true : false;
 
 		_handle = (Root_object *)new (Genode::env()->heap()) Root_object(file ? file : binary_name(), flags);
+
+		/* print loaded object information */
+		try {
+			if (Genode::config()->xml_node().attribute("ld_verbose").has_value("yes"))
+				Linker::dump_link_map(to_root(_handle)->dep.head()->obj);
+		} catch (...) {  }
+
 	} catch (...) { throw Invalid_file(); }
 }
 

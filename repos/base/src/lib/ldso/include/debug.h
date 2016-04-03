@@ -22,7 +22,11 @@ constexpr bool verbose_link_map = false;
 namespace Linker {
 	struct Debug;
 	struct Link_map;
+
+	struct Object;
+	void dump_link_map(Object *o);
 }
+
 
 /**
  * LIBC debug support

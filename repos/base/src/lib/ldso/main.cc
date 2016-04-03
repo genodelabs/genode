@@ -538,21 +538,6 @@ extern "C" void init_rtld()
 }
 
 
-static void dump_loaded()
-{
-	Object *o = Elf_object::obj_list()->head();
-	for(; o; o = o->next_obj()) {
-
-		if (o->is_binary())
-			continue;
-
-		Genode::printf("  " EFMT " .. " EFMT ": %s\n",
-		                o->link_map()->addr, o->link_map()->addr + o->size() - 1,
-		                o->name());
-	}
-}
-
-
 Genode::size_t Component::stack_size() { return 16*1024*sizeof(long); }
 char const * Component::name()         { return "ep"; }
 
@@ -585,7 +570,7 @@ void Component::construct(Genode::Environment &env)
 			     Genode::Thread_base::stack_area_virtual_base(),
 			     Genode::Thread_base::stack_area_virtual_base() +
 			     Genode::Thread_base::stack_area_virtual_size() - 1);
-			dump_loaded();
+			dump_link_map(Elf_object::obj_list()->head());
 		}
 	} catch (...) {  }
 
