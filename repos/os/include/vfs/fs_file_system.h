@@ -132,16 +132,21 @@ class Vfs::Fs_file_system : public File_system
 
 			/* pass packet to server side */
 			source.submit_packet(packet);
-			source.get_acked_packet();
+
+			/* obtain result packet descriptor with updated status info */
+			::File_system::Packet_descriptor const
+				packet_out = source.get_acked_packet();
 
 			/*
 			 * XXX check if acked packet belongs to request,
 			 *     needed for thread safety
 			 */
 
+			file_size const write_num_bytes = min(packet_out.length(), count);
+
 			source.release_packet(packet);
 
-			return count;
+			return write_num_bytes;
 		}
 
 	public:
