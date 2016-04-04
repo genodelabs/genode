@@ -22,6 +22,7 @@
 /* Genode includes */
 #include <rm_session/connection.h>
 #include <base/rpc_server.h>
+#include <util/retry.h>
 
 namespace Noux
 {
@@ -327,7 +328,9 @@ class Noux::Rm_session_component : public Rpc_object<Rm_session>
 
 		Pager_capability add_client(Thread_capability thread)
 		{
-			return _rm.add_client(thread);
+			return retry<Rm_session::Out_of_metadata>(
+				[&] () { return _rm.add_client(thread); },
+				[&] () { Genode::env()->parent()->upgrade(_rm, "ram_quota=8192"); });
 		}
 
 		void remove_client(Pager_capability pager)
