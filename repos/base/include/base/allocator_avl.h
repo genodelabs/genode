@@ -16,6 +16,7 @@
 
 #include <base/allocator.h>
 #include <base/tslab.h>
+#include <base/printf.h>
 #include <util/avl_tree.h>
 #include <util/misc_math.h>
 
@@ -181,6 +182,8 @@ class Genode::Allocator_avl_base : public Range_allocator
 		int _add_block(Block *block_metadata,
 		               addr_t base, size_t size, bool used);
 
+		Block *_find_any_used_block(Block *sub_tree);
+
 		/**
 		 * Destroy block
 		 */
@@ -196,6 +199,15 @@ class Genode::Allocator_avl_base : public Range_allocator
 		                     Block *dst1, Block *dst2);
 
 	protected:
+
+		/**
+		 * Clean up the allocator and detect dangling allocations
+		 *
+		 * This function is called at the destruction time of the allocator. It
+		 * makes sure that the allocator instance releases all memory obtained
+		 * from the meta-data allocator.
+		 */
+		void _revert_allocations_and_ranges();
 
 		/**
 		 * Find block by specified address
@@ -218,6 +230,8 @@ class Genode::Allocator_avl_base : public Range_allocator
 		 */
 		Allocator_avl_base(Allocator *md_alloc, size_t md_entry_size) :
 			_md_alloc(md_alloc), _md_entry_size(md_entry_size) { }
+
+		~Allocator_avl_base() { _revert_allocations_and_ranges(); }
 
 	public:
 
@@ -318,6 +332,8 @@ class Genode::Allocator_avl_tpl : public Allocator_avl_base
 			Allocator_avl_base(&_metadata, sizeof(Block)),
 			_metadata((metadata_chunk_alloc) ? metadata_chunk_alloc : this,
 			          (Slab_block *)&_initial_md_block) { }
+
+		~Allocator_avl_tpl() { _revert_allocations_and_ranges(); }
 
 		/**
 		 * Assign custom meta data to block at specified address
