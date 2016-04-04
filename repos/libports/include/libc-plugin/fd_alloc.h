@@ -33,7 +33,7 @@ namespace Libc {
 	/**
 	 * Plugin-specific file-descriptor context
 	 */
-	class Plugin_context { };
+	struct Plugin_context { virtual ~Plugin_context() { } };
 
 	enum { ANY_FD = -1 };
 
