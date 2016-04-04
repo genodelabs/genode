@@ -173,6 +173,28 @@ void Allocator_avl_base::_cut_from_block(Block *b, addr_t addr, size_t size,
 }
 
 
+void Allocator_avl_base::_revert_allocations_and_ranges()
+{
+	/* revert all allocations */
+	size_t dangling_allocations = 0;
+	for (;; dangling_allocations++) {
+		addr_t addr = 0;
+		if (!any_block_addr(&addr))
+			break;
+
+		free((void *)addr);
+	}
+
+	if (dangling_allocations)
+		PWRN("%zd dangling allocation%s at allocator destruction time",
+		     dangling_allocations, (dangling_allocations > 1) ? "s" : "");
+
+	/* remove ranges */
+	while (Block *block = _addr_tree.first())
+		remove_range(block->addr(), block->size());
+}
+
+
 int Allocator_avl_base::add_range(addr_t new_addr, size_t new_size)
 {
 	Block *b;
@@ -349,12 +371,29 @@ size_t Allocator_avl_base::size_at(void const *addr) const
 }
 
 
+Allocator_avl_base::Block *Allocator_avl_base::_find_any_used_block(Block *sub_tree)
+{
+	if (!sub_tree)
+		return nullptr;
+
+	if (sub_tree->used())
+		return sub_tree;
+
+	for (unsigned i = 0; i < 2; i++)
+		if (Block *block = _find_any_used_block(sub_tree->child(i)))
+			return block;
+
+	return nullptr;
+}
+
+
 bool Allocator_avl_base::any_block_addr(addr_t *out_addr)
 {
-	Block *b = _addr_tree.first();
+	Block * const b = _find_any_used_block(_addr_tree.first());
 
 	*out_addr = b ? b->addr() : 0;
-	return (b != 0);
+
+	return b != nullptr;
 }
 
 
