@@ -50,7 +50,7 @@ if {[have_spec x86]} {
 	set platform            "hw_x86_64"
 
 	if {[have_spec foc]} {
-		set tool_chain_timeout  800
+		set tool_chain_timeout  850
 	}
 }
 
