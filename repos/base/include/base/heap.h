@@ -15,6 +15,7 @@
 #define _INCLUDE__BASE__HEAP_H_
 
 #include <util/list.h>
+#include <util/volatile_object.h>
 #include <ram_session/ram_session.h>
 #include <rm_session/rm_session.h>
 #include <base/allocator_avl.h>
@@ -64,10 +65,6 @@ class Genode::Heap : public Allocator
 
 				Dataspace(Ram_dataspace_capability c, void *local_addr, size_t size)
 				: cap(c), local_addr(local_addr), size(size) { }
-
-				inline void * operator new(Genode::size_t, void* addr) {
-					return addr; }
-				inline void operator delete(void*) { }
 		};
 
 		/*
@@ -77,31 +74,23 @@ class Genode::Heap : public Allocator
 		struct Dataspace_pool : public List<Dataspace>
 		{
 			Ram_session *ram_session; /* RAM session for backing store */
-			Rm_session  *rm_session;  /* region manager */
+			Rm_session  *rm_session;
 
-			Dataspace_pool(Ram_session *ram_session, Rm_session *rm_session)
-			: ram_session(ram_session), rm_session(rm_session) { }
+			Dataspace_pool(Ram_session *ram, Rm_session *rm)
+			: ram_session(ram), rm_session(rm) { }
 
-			/**
-			 * Destructor
-			 */
 			~Dataspace_pool();
 
 			void reassign_resources(Ram_session *ram, Rm_session *rm) {
 				ram_session = ram, rm_session = rm; }
 		};
 
-		/*
-		 * NOTE: The order of the member variables is important for
-		 *       the calling order of the destructors!
-		 */
-
-		Lock           _lock;
-		Dataspace_pool _ds_pool;      /* list of dataspaces */
-		Allocator_avl  _alloc;        /* local allocator    */
-		size_t         _quota_limit;
-		size_t         _quota_used;
-		size_t         _chunk_size;
+		Lock                           _lock;
+		Volatile_object<Allocator_avl> _alloc;        /* local allocator    */
+		Dataspace_pool                 _ds_pool;      /* list of dataspaces */
+		size_t                         _quota_limit;
+		size_t                         _quota_used;
+		size_t                         _chunk_size;
 
 		/**
 		 * Allocate a new dataspace of the specified size
@@ -140,14 +129,16 @@ class Genode::Heap : public Allocator
 		     void        *static_addr = 0,
 		     size_t       static_size = 0)
 		:
+			_alloc(nullptr),
 			_ds_pool(ram_session, rm_session),
-			_alloc(0),
 			_quota_limit(quota_limit), _quota_used(0),
 			_chunk_size(MIN_CHUNK_SIZE)
 		{
 			if (static_addr)
-				_alloc.add_range((addr_t)static_addr, static_size);
+				_alloc->add_range((addr_t)static_addr, static_size);
 		}
+
+		~Heap();
 
 		/**
 		 * Reconfigure quota limit
@@ -171,7 +162,7 @@ class Genode::Heap : public Allocator
 		bool   alloc(size_t, void **) override;
 		void   free(void *, size_t) override;
 		size_t consumed() const override { return _quota_used; }
-		size_t overhead(size_t size) const override { return _alloc.overhead(size); }
+		size_t overhead(size_t size) const override { return _alloc->overhead(size); }
 		bool   need_size_for_free() const override { return false; }
 };
 

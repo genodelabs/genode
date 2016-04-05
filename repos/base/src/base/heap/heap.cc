@@ -11,9 +11,9 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <util/construct_at.h>
 #include <base/env.h>
 #include <base/printf.h>
-#include <rm_session/rm_session.h>
 #include <base/heap.h>
 #include <base/lock.h>
 
@@ -36,8 +36,13 @@ Heap::Dataspace_pool::~Dataspace_pool()
 
 		remove(ds);
 
-		/* have the destructor of the 'cap' member called */
-		delete ds;
+		/*
+		 * Call 'Dataspace' destructor to properly release the RAM dataspace
+		 * capabilities. Note that we don't free the 'Dataspace' object at the
+		 * local allocator because this is already done by the 'Heap'
+		 * destructor prior executing the 'Dataspace_pool' destructor.
+		 */
+		ds->~Dataspace();
 
 		rm_session->detach(ds_local_addr);
 		ram_session->free(ds_cap);
@@ -84,17 +89,17 @@ Heap::Dataspace *Heap::_allocate_dataspace(size_t size, bool enforce_separate_me
 	} else {
 
 		/* add new local address range to our local allocator */
-		_alloc.add_range((addr_t)ds_addr, size);
+		_alloc->add_range((addr_t)ds_addr, size);
 
 		/* allocate the Dataspace structure */
-		if (_alloc.alloc_aligned(sizeof(Heap::Dataspace), &ds_meta_data_addr, log2(sizeof(addr_t))).is_error()) {
+		if (_alloc->alloc_aligned(sizeof(Heap::Dataspace), &ds_meta_data_addr, log2(sizeof(addr_t))).is_error()) {
 			PWRN("could not allocate dataspace meta data - this should never happen");
 			return 0;
 		}
 
 	}
 
-	ds = new (ds_meta_data_addr) Heap::Dataspace(new_ds_cap, ds_addr, size);
+	ds = construct_at<Dataspace>(ds_meta_data_addr, new_ds_cap, ds_addr, size);
 
 	_ds_pool.insert(ds);
 
@@ -104,7 +109,7 @@ Heap::Dataspace *Heap::_allocate_dataspace(size_t size, bool enforce_separate_me
 
 bool Heap::_try_local_alloc(size_t size, void **out_addr)
 {
-	if (_alloc.alloc_aligned(size, out_addr, log2(sizeof(addr_t))).is_error())
+	if (_alloc->alloc_aligned(size, out_addr, log2(sizeof(addr_t))).is_error())
 		return false;
 
 	_quota_used += size;
@@ -215,18 +220,41 @@ void Heap::free(void *addr, size_t size)
 
 		_quota_used -= ds->size;
 
-		/* have the destructor of the 'cap' member called */
-		delete ds;
-		_alloc.free(ds);
+		destroy(*_alloc, ds);
 
 	} else {
 
 		/*
-	 	 * forward request to our local allocator
-	 	 */
-		_alloc.free(addr, size);
+		 * forward request to our local allocator
+		 */
+		_alloc->free(addr, size);
 
 		_quota_used -= size;
-
 	}
+}
+
+
+Heap::~Heap()
+{
+	/*
+	 * Revert allocations of heap-internal 'Dataspace' objects. Otherwise, the
+	 * subsequent destruction of the 'Allocator_avl' would detect those blocks
+	 * as dangling allocations.
+	 *
+	 * Since no new allocations can occur at the destruction time of the
+	 * 'Heap', it is safe to release the 'Dataspace' objects at the allocator
+	 * yet still access them afterwards during the destruction of the
+	 * 'Allocator_avl'.
+	 */
+	for (Heap::Dataspace *ds = _ds_pool.first(); ds; ds = ds->next())
+		_alloc->free(ds, sizeof(Dataspace));
+
+	/*
+	 * Destruct 'Allocator_avl' before destructing the dataspace pool. This
+	 * order is important because some dataspaces of the dataspace pool are
+	 * used as backing store for the allocator's meta data. If we destroyed
+	 * the object pool before the allocator, the subsequent attempt to destruct
+	 * the allocator would access no-longer-present backing store.
+	 */
+	_alloc.destruct();
 }
