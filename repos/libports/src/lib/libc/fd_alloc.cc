@@ -13,6 +13,7 @@
  */
 
 /* Genode includes */
+#include <util/construct_at.h>
 #include <base/env.h>
 #include <base/printf.h>
 
@@ -23,8 +24,14 @@ namespace Libc {
 
 	File_descriptor_allocator *file_descriptor_allocator()
 	{
-		static File_descriptor_allocator _file_descriptor_allocator;
-		return &_file_descriptor_allocator;
+		static bool constructed = 0;
+		static char placeholder[sizeof(File_descriptor_allocator)];
+		if (!constructed) {
+			Genode::construct_at<File_descriptor_allocator>(placeholder);
+			constructed = 1;
+		}
+
+		return reinterpret_cast<File_descriptor_allocator *>(placeholder);
 	}
 }
 
