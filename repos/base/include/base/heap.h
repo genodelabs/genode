@@ -64,10 +64,6 @@ class Genode::Heap : public Allocator
 
 				Dataspace(Ram_dataspace_capability c, void *local_addr, size_t size)
 				: cap(c), local_addr(local_addr), size(size) { }
-
-				inline void * operator new(Genode::size_t, void* addr) {
-					return addr; }
-				inline void operator delete(void*) { }
 		};
 
 		/*
@@ -77,28 +73,23 @@ class Genode::Heap : public Allocator
 		struct Dataspace_pool : public List<Dataspace>
 		{
 			Ram_session *ram_session; /* RAM session for backing store */
-			Rm_session  *rm_session;  /* region manager */
+			Rm_session  *rm_session;
+			Allocator   &md_alloc;    /* meta-data allocator */
 
-			Dataspace_pool(Ram_session *ram_session, Rm_session *rm_session)
-			: ram_session(ram_session), rm_session(rm_session) { }
+			Dataspace_pool(Ram_session *ram, Rm_session *rm, Allocator &md_alloc)
+			:
+				ram_session(ram), rm_session(rm), md_alloc(md_alloc)
+			{ }
 
-			/**
-			 * Destructor
-			 */
 			~Dataspace_pool();
 
 			void reassign_resources(Ram_session *ram, Rm_session *rm) {
 				ram_session = ram, rm_session = rm; }
 		};
 
-		/*
-		 * NOTE: The order of the member variables is important for
-		 *       the calling order of the destructors!
-		 */
-
 		Lock           _lock;
-		Dataspace_pool _ds_pool;      /* list of dataspaces */
 		Allocator_avl  _alloc;        /* local allocator    */
+		Dataspace_pool _ds_pool;      /* list of dataspaces */
 		size_t         _quota_limit;
 		size_t         _quota_used;
 		size_t         _chunk_size;
@@ -140,8 +131,8 @@ class Genode::Heap : public Allocator
 		     void        *static_addr = 0,
 		     size_t       static_size = 0)
 		:
-			_ds_pool(ram_session, rm_session),
 			_alloc(0),
+			_ds_pool(ram_session, rm_session, _alloc),
 			_quota_limit(quota_limit), _quota_used(0),
 			_chunk_size(MIN_CHUNK_SIZE)
 		{

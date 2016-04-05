@@ -11,9 +11,9 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <util/construct_at.h>
 #include <base/env.h>
 #include <base/printf.h>
-#include <rm_session/rm_session.h>
 #include <base/heap.h>
 #include <base/lock.h>
 
@@ -36,8 +36,7 @@ Heap::Dataspace_pool::~Dataspace_pool()
 
 		remove(ds);
 
-		/* have the destructor of the 'cap' member called */
-		delete ds;
+		destroy(md_alloc, ds);
 
 		rm_session->detach(ds_local_addr);
 		ram_session->free(ds_cap);
@@ -94,7 +93,7 @@ Heap::Dataspace *Heap::_allocate_dataspace(size_t size, bool enforce_separate_me
 
 	}
 
-	ds = new (ds_meta_data_addr) Heap::Dataspace(new_ds_cap, ds_addr, size);
+	ds = construct_at<Dataspace>(ds_meta_data_addr, new_ds_cap, ds_addr, size);
 
 	_ds_pool.insert(ds);
 
@@ -215,18 +214,15 @@ void Heap::free(void *addr, size_t size)
 
 		_quota_used -= ds->size;
 
-		/* have the destructor of the 'cap' member called */
-		delete ds;
-		_alloc.free(ds);
+		destroy(_alloc, ds);
 
 	} else {
 
 		/*
-	 	 * forward request to our local allocator
-	 	 */
+		 * forward request to our local allocator
+		 */
 		_alloc.free(addr, size);
 
 		_quota_used -= size;
-
 	}
 }
