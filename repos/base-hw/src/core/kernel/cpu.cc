@@ -194,11 +194,21 @@ Cpu_domain_update::Cpu_domain_update() {
 
 /**
  * Enable kernel-entry assembly to get an exclusive stack for every CPU
+ *
+ * The stack alignment is determined as follows:
+ *
+ * 1) There is an architectural minimum alignment for stacks that originates
+ *    from the assumptions that some instructions make.
+ * 2) Shared cache lines between yet uncached and already cached
+ *    CPUs during multiprocessor bring-up must be avoided. Thus, the alignment
+ *    must be at least the maximum line size of global caches.
+ * 3) The alignment that originates from 1) and 2) is assumed to be always
+ *    less or equal to the minimum page size.
  */
 enum { KERNEL_STACK_SIZE = 16 * 1024 * sizeof(Genode::addr_t) };
 Genode::size_t  kernel_stack_size = KERNEL_STACK_SIZE;
 Genode::uint8_t kernel_stack[NR_OF_CPUS][KERNEL_STACK_SIZE]
-__attribute__((aligned(16)));
+__attribute__((aligned(Genode::get_page_size())));
 
 Cpu_context::Cpu_context(Genode::Translation_table * const table)
 {
