@@ -454,24 +454,30 @@ void Rm_session_component::detach(Local_addr local_addr)
 	Lock::Guard lock_guard(_lock);
 
 	/* read meta data for address */
-	Rm_region *region = _map.metadata(local_addr);
+	Rm_region *region_ptr = _map.metadata(local_addr);
 
-	if (!region) {
+	if (!region_ptr) {
 		PDBG("no attachment at %p", (void *)local_addr);
 		return;
 	}
 
-	Dataspace_component *dsc = region->dataspace();
+	Dataspace_component *dsc = region_ptr->dataspace();
 	if (!dsc)
 		PWRN("Rm_region of %p may be inconsistent!", this);
 
 	if (verbose)
 		PDBG("detach ds %p (a=%lx,s=%zx,o=%lx) at [%lx,%lx)",
-		     dsc, dsc->phys_addr(), dsc->size(), region->offset(),
-		     region->base(), region->base() + region->size());
+		     dsc, dsc->phys_addr(), dsc->size(), region_ptr->offset(),
+		     region_ptr->base(), region_ptr->base() + region_ptr->size());
 
 	/* inform dataspace about detachment */
-	dsc->detached_from(region);
+	dsc->detached_from(region_ptr);
+
+	/*
+	 * Create local copy of region data because the '_map.metadata' of the
+	 * region will become unavailable as soon as we call '_map.free' below.
+	 */
+	Rm_region region = *region_ptr;
 
 	/*
 	 * Deallocate region on platforms that support unmap
@@ -543,20 +549,20 @@ void Rm_session_component::detach(Local_addr local_addr)
 		if (prev_rc && prev_rc->has_same_address_space(*rc))
 			continue;
 
-		rc->unmap(dsc->core_local_addr() + region->offset(),
-		          region->base(), region->size());
+		rc->unmap(dsc->core_local_addr() + region.offset(),
+		          region.base(), region.size());
 	}
 
 	/*
 	 * If RM session is used as nested dataspace, unmap this
 	 * dataspace from all RM sessions.
 	 */
-	unmap_managed(this, region, 1);
+	unmap_managed(this, &region, 1);
 
 	/* update region list */
 	Rm_region_ref *p = _regions.first();
 	for (; p; p = p->next())
-		if (p->region() == region) break;
+		if (p->region() == region_ptr) break;
 
 	if (p) {
 		_regions.remove(p);
