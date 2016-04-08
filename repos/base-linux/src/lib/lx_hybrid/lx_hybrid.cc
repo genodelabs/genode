@@ -50,7 +50,11 @@ int genode___cxa_atexit(void (*func)(void*), void *arg, void *dso)
 extern char **environ;
 extern char **lx_environ;
 
+static char signal_stack[0x2000] __attribute__((aligned(0x1000)));
+
 static void empty_signal_handler(int) { }
+
+extern void lx_exception_signal_handlers();
 
 /*
  * This function must be called before any other static constructor in the Genode
@@ -59,6 +63,9 @@ static void empty_signal_handler(int) { }
 __attribute__((constructor(101))) void lx_hybrid_init()
 {
 	lx_environ = environ;
+
+	lx_sigaltstack(signal_stack, sizeof(signal_stack));
+	lx_exception_signal_handlers();
 
 	/*
 	 * Set signal handler such that canceled system calls get not
@@ -348,6 +355,8 @@ Linux_cpu_session *cpu_session(Cpu_session * cpu_session)
 
 static void adopt_thread(Native_thread::Meta_data *meta_data)
 {
+	lx_sigaltstack(signal_stack, sizeof(signal_stack));
+
 	/*
 	 * Set signal handler such that canceled system calls get not
 	 * transparently retried after a signal gets received.

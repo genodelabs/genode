@@ -258,10 +258,10 @@ inline int lx_sigaction(int signum, void (*handler)(int))
 	 * when leaving the signal handler and it should call the rt_sigreturn syscall.
 	 */
 	enum { SA_RESTORER = 0x04000000 };
-	act.flags    = SA_RESTORER;
+	act.flags    = SA_RESTORER | SA_ONSTACK;
 	act.restorer = lx_restore_rt;
 #else
-	act.flags    = 0;
+	act.flags    = SA_ONSTACK;
 	act.restorer = 0;
 #endif
 	lx_sigemptyset(&act.mask);
@@ -279,6 +279,17 @@ inline int lx_sigaction(int signum, void (*handler)(int))
 inline int lx_tgkill(int pid, int tid, int signal)
 {
 	return lx_syscall(SYS_tgkill, pid, tid, signal);
+}
+
+
+/**
+ * Alternate signal stack (handles also SIGSEGV in a safe way)
+ */
+inline int lx_sigaltstack(void *signal_stack, Genode::size_t stack_size)
+{
+	stack_t stack { signal_stack, 0, stack_size };
+
+	return lx_syscall(SYS_sigaltstack, &stack, nullptr);
 }
 
 

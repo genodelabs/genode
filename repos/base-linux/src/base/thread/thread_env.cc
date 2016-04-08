@@ -47,7 +47,7 @@ extern "C" __attribute__((weak)) int stdout_write(char const *s)
 /**
  * Signal handler for exceptions like segmentation faults
  */
-static void exception_signal_handler(int signum)
+void exception_signal_handler(int signum)
 {
 	char const *reason = nullptr;
 
@@ -81,6 +81,15 @@ static void exception_signal_handler(int signum)
 }
 
 
+void lx_exception_signal_handlers()
+{
+	lx_sigaction(LX_SIGILL,  exception_signal_handler);
+	lx_sigaction(LX_SIGBUS,  exception_signal_handler);
+	lx_sigaction(LX_SIGFPE,  exception_signal_handler);
+	lx_sigaction(LX_SIGSEGV, exception_signal_handler);
+}
+
+
 /*****************************
  ** Startup library support **
  *****************************/
@@ -98,8 +107,5 @@ void prepare_init_main_thread()
 	 */
 	lx_environ = (char**)&__initial_sp[3];
 
-	lx_sigaction(LX_SIGILL,  exception_signal_handler);
-	lx_sigaction(LX_SIGBUS,  exception_signal_handler);
-	lx_sigaction(LX_SIGFPE,  exception_signal_handler);
-	lx_sigaction(LX_SIGSEGV, exception_signal_handler);
+	lx_exception_signal_handlers();
 }

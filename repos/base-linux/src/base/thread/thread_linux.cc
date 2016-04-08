@@ -45,8 +45,12 @@ static Lock &startup_lock()
 static void thread_exit_signal_handler(int) { lx_exit(0); }
 
 
+static char signal_stack[0x2000] __attribute__((aligned(0x1000)));
+
 void Thread_base::_thread_start()
 {
+	lx_sigaltstack(signal_stack, sizeof(signal_stack));
+
 	/*
 	 * Set signal handler such that canceled system calls get not
 	 * transparently retried after a signal gets received.
