@@ -95,7 +95,7 @@ namespace Sd_card {
 
 		struct Version : Bitfield<126 - BIT_BASE, 2>
 		{
-			enum { STANDARD_CAPACITY = 0, HIGH_CAPACITY = 1, EXT_CSD = 3 };
+			enum Type { STANDARD_CAPACITY = 0, HIGH_CAPACITY = 1, EXT_CSD = 3 };
 		};
 
 		struct Mmc_spec_vers : Bitfield<122 - BIT_BASE, 4> { };
@@ -361,11 +361,12 @@ namespace Sd_card {
 
 			unsigned _rca;
 			size_t   _capacity_mb;
+			const Csd3::Version::Type _version;
 
 		public:
 
-			Card_info(unsigned rca, size_t capacity_mb)
-			: _rca(rca), _capacity_mb(capacity_mb)
+			Card_info(unsigned rca, size_t capacity_mb, const Csd3::Version::Type version)
+			: _rca(rca), _capacity_mb(capacity_mb), _version(version)
 			{ }
 
 			/**
@@ -377,6 +378,12 @@ namespace Sd_card {
 			 * Return relative card address
 			 */
 			unsigned rca() const { return _rca; }
+
+			/**
+			 * Returns the version of the card
+			 */
+			Csd3::Version::Type version() const { return _version; }
+
 	};
 
 
@@ -442,7 +449,7 @@ namespace Sd_card {
 			 * Extract capacity information from CSD register
 			 *
 			 * \throw  Detection_failed
-			 * \return capacity in 512-byte blocks
+			 * \return capacity in 512-kByte blocks
 			 */
 			size_t _sd_card_device_size(Csd const csd)
 			{
@@ -453,7 +460,6 @@ namespace Sd_card {
 				 */
 
 				if (Csd3::Version::get(csd.csd3) == Csd3::Version::STANDARD_CAPACITY) {
-
 					/*
 					 * Calculation of the capacity according to the
 					 * "Physical Layer Simplified Specification Version 4.10",
@@ -462,12 +468,14 @@ namespace Sd_card {
 					size_t const read_bl_len = Csd2::V1_read_bl_len::get(csd.csd2);
 					size_t const c_size      = (Csd2::V1_c_size_hi::get(csd.csd2) << 2)
 					                         |  Csd1::V1_c_size_lo::get(csd.csd1);
+
 					size_t const c_size_mult = Csd1::V1_c_size_mult::get(csd.csd1);
 					size_t const mult        = 1 << (c_size_mult + 2);
 					size_t const block_len   = 1 << read_bl_len;
 					size_t const capacity    = (c_size + 1)*mult*block_len;
+					size_t const capacity512KiB = capacity / (512 * 1024);
 
-					return capacity;
+					return capacity512KiB;
 				}
 
 				if (Csd3::Version::get(csd.csd3) == Csd3::Version::HIGH_CAPACITY)
@@ -516,7 +524,8 @@ namespace Sd_card {
 					throw Detection_failed();
 				}
 
-				return Card_info(rca, _sd_card_device_size(csd) / 2);
+				return Card_info(rca, _sd_card_device_size(csd) / 2,
+					static_cast<Csd3::Version::Type>(Csd3::Version::get(csd.csd3)));
 			}
 
 			Card_info _detect_mmc()
@@ -561,7 +570,8 @@ namespace Sd_card {
 					throw Detection_failed();
 				}
 
-				return Card_info(rca, device_size);
+				return Card_info(rca, device_size,
+					static_cast<Csd3::Version::Type>(Csd3::Version::get(csd.csd3)));
 			}
 	};
 }
