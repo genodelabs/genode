@@ -86,12 +86,12 @@ struct Vfs::Directory_service
 
 	struct Stat
 	{
-		file_size      size;
-		unsigned       mode;
-		unsigned       uid;
-		unsigned       gid;
-		unsigned       inode;
-		unsigned       device;
+		file_size     size;
+		unsigned      mode;
+		unsigned      uid;
+		unsigned      gid;
+		unsigned long inode;
+		unsigned long device;
 	};
 
 	enum Stat_result { STAT_ERR_NO_ENTRY = NUM_GENERAL_ERRORS,
@@ -120,9 +120,9 @@ struct Vfs::Directory_service
 
 	struct Dirent
 	{
-		unsigned    fileno;
-		Dirent_type type;
-		char        name[DIRENT_MAX_NAME_LEN];
+		unsigned long fileno;
+		Dirent_type   type;
+		char          name[DIRENT_MAX_NAME_LEN];
 	};
 
 	virtual Dirent_result dirent(char const *path, file_offset index, Dirent &) = 0;
