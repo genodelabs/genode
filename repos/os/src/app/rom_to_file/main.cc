@@ -26,7 +26,9 @@
 #include <file_system_session/connection.h>
 #include <file_system/util.h>
 
-namespace Rom_fs {
+
+namespace Rom_to_file {
+
 	using namespace Genode;
 
 	struct Main;
@@ -39,7 +41,7 @@ namespace Rom_fs {
 }
 
 
-struct Rom_fs::Main
+struct Rom_to_file::Main
 {
 	Server::Entrypoint &_ep;
 
@@ -75,7 +77,7 @@ struct Rom_fs::Main
 };
 
 
-void Rom_fs::Main::_handle_update(unsigned)
+void Rom_to_file::Main::_handle_update(unsigned)
 {
 	config()->reload();
 
@@ -130,24 +132,24 @@ void Rom_fs::Main::_handle_update(unsigned)
 
 				_fs.close(handle);
 			} catch (Permission_denied) {
-            PERR("%s%s: permission denied", dir_path, file_name);
+				PERR("%s%s: permission denied", dir_path, file_name);
 
-         } catch (No_space) {
-            PERR("file system out of space");
+			} catch (No_space) {
+				PERR("file system out of space");
 
-         } catch (Out_of_node_handles) {
-            PERR("too many open file handles");
+			} catch (Out_of_metadata) {
+				PERR("server ran out of memory");
 
-         } catch (Invalid_name) {
-            PERR("%s%s: invalid path", dir_path, file_name);
+			} catch (Invalid_name) {
+				PERR("%s%s: invalid path", dir_path, file_name);
 
-         } catch (Name_too_long) {
-            PERR("%s%s: name too long", dir_path, file_name);
+			} catch (Name_too_long) {
+				PERR("%s%s: name too long", dir_path, file_name);
 
-         } catch (...) {
-            PERR("cannot open file %s%s", dir_path, file_name);
-            throw;
-         }
+			} catch (...) {
+				PERR("cannot open file %s%s", dir_path, file_name);
+				throw;
+			}
 		} else {
 			PLOG("ROM '%s' is invalid", _rom_name.string());
 		}
@@ -157,12 +159,12 @@ void Rom_fs::Main::_handle_update(unsigned)
 
 namespace Server {
 
-	char const *name() { return "rom_fs_ep"; }
+	char const *name() { return "rom_to_file_ep"; }
 
 	size_t stack_size() { return 4*1024*sizeof(long); }
 
 	void construct(Entrypoint &ep)
 	{
-		static Rom_fs::Main main(ep);
+		static Rom_to_file::Main main(ep);
 	}
 }

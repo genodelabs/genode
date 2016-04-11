@@ -6,7 +6,7 @@ assert_spec linux
 
 build { core init drivers/timer
 	server/dynamic_rom
-	app/rom_fs
+	app/rom_to_file
 	server/lx_fs
 }
 
@@ -51,10 +51,10 @@ install_config {
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="File_system" /> </provides>
 		<config>
-			<policy label="rom_fs" root="/fs_test" writeable="yes" /> 
+			<policy label="rom_to_file" root="/fs_test" writeable="yes" />
 		</config>
 	</start>
-	<start name="rom_fs">
+	<start name="rom_to_file">
 		<resource name="RAM" quantum="4M"/>
 		<config rom="test" />
 	</start>
@@ -68,7 +68,7 @@ exec mkdir -p bin/fs_test
 
 build_boot_image { core init timer
 	dynamic_rom
-	rom_fs
+	rom_to_file
 	lx_fs
 	fs_test
 }
