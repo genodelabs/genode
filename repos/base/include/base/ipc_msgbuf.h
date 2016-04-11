@@ -164,7 +164,7 @@ class Genode::Msgbuf_base : Noncopyable
 		void insert(T const &value)
 		{
 			/* check buffer range */
-			if (_data_size + sizeof(T) >= _capacity) return;
+			if (_data_size + sizeof(T) > _capacity) return;
 
 			/* write value to buffer */
 			*reinterpret_cast<T *>(_data_last()) = value;
@@ -190,7 +190,7 @@ class Genode::Msgbuf_base : Noncopyable
 		void insert(char const *src_addr, unsigned num_bytes)
 		{
 			/* check buffer range */
-			if (_data_size + num_bytes >= _capacity) return;
+			if (_data_size + num_bytes > _capacity) return;
 
 			/* copy buffer */
 			memcpy(_data_last(), src_addr, num_bytes);

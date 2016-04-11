@@ -96,7 +96,7 @@ class Genode::Ipc_unmarshaller : Noncopyable
 			 * Note: The addr of the Rpc_in_buffer_base is a null pointer when this
 			 *       condition triggers.
 			 */
-			if (_read_offset + size >= _rcv_buf_size) {
+			if (_read_offset + size > _rcv_buf_size) {
 				PERR("message buffer overrun");
 				return;
 			}
@@ -112,7 +112,7 @@ class Genode::Ipc_unmarshaller : Noncopyable
 		void extract(T &value)
 		{
 			/* check receive buffer range */
-			if (_read_offset + sizeof(T) >= _rcv_buf_size) return;
+			if (_read_offset + sizeof(T) > _rcv_buf_size) return;
 
 			/* return value from receive buffer */
 			value = *reinterpret_cast<T *>(&_rcv_buf[_read_offset]);
