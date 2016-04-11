@@ -32,6 +32,10 @@ struct Genode::Board_base : Zynq::Board_base
 		/* CPU */
 		CORTEX_A9_CLOCK             = CPU_6X4X_CLOCK,
 		CORTEX_A9_PRIVATE_TIMER_CLK = CORTEX_A9_CLOCK,
+
+		SDHCI_BASE = SDHCI_0_BASE,
+		SDHCI_SIZE = SDHCI_0_SIZE,
+		SDHCI_IRQ  = SDHCI_0_IRQ,
 	};
 };
 

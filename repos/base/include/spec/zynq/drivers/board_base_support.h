@@ -47,8 +47,11 @@ struct Zynq::Board_base
 
 		/* UART controllers */
 		UART_0_MMIO_BASE = MMIO_0_BASE,
+		UART_1_MMIO_BASE = MMIO_0_BASE + 0x1000,
 		UART_SIZE        = 0x1000,
 		UART_CLOCK       = 50*1000*1000,
+		UART_0_IRQ       = 59,
+		UART_1_IRQ       = 82,
 
 		/* CPU */
 		CORTEX_A9_PRIVATE_MEM_BASE  = 0xf8f00000,
@@ -62,12 +65,28 @@ struct Zynq::Board_base
 		/* TTC (triple timer counter) */
 		TTC0_MMIO_BASE = MMIO_1_BASE + 0x1000,
 		TTC0_MMIO_SIZE = 0xfff,
+		TTC1_MMIO_BASE = MMIO_1_BASE + 0x2000,
+		TTC1_MMIO_SIZE = 0xfff,
 		TTC0_IRQ_0     = 42,
+		TTC0_IRQ_1     = 43,
+		TTC0_IRQ_2     = 44,
+		TTC1_IRQ_0     = 69,
+		TTC1_IRQ_1     = 70,
+		TTC1_IRQ_2     = 71,
 
 		/* Ethernet MAC PS */
 		EMAC_0_MMIO_BASE   = 0xE000B000,
 		EMAC_0_MMIO_SIZE   = 0x1000,
 		EMAC_0_IRQ         = 54,
+
+		/* SD host controller interface */
+		SDHCI_0_BASE         = MMIO_0_BASE + 0x100000,
+		SDHCI_0_SIZE         = 0x100,
+		SDHCI_0_IRQ          = 56,
+
+		SDHCI_1_BASE         = MMIO_0_BASE + 0x101000,
+		SDHCI_1_SIZE         = 0x100,
+		SDHCI_1_IRQ          = 79,
 
 		/* wether board provides security extension */
 		SECURITY_EXTENSION = 0,

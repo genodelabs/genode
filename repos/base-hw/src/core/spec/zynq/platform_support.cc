@@ -58,6 +58,7 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 
 		/* core UART */
 		{ Board::UART_0_MMIO_BASE, Board::UART_SIZE },
+		{ Board::UART_1_MMIO_BASE, Board::UART_SIZE },
 
 		/* L2 cache controller */
 		{ Board::PL310_MMIO_BASE, Board::PL310_MMIO_SIZE }
