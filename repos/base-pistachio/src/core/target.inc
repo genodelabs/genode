@@ -61,7 +61,6 @@ vpath dump_alloc.cc               $(GEN_CORE_DIR)
 vpath core_rpc_cap_alloc.cc       $(GEN_CORE_DIR)
 vpath stack_area.cc               $(GEN_CORE_DIR)
 vpath pager_ep.cc                 $(GEN_CORE_DIR)
-vpath pager_object.cc             $(GEN_CORE_DIR)
 vpath core_printf.cc              $(BASE_DIR)/src/base/console
 vpath kip.cc                      $(REP_DIR)/src/base/kip
 vpath %.cc                        $(REP_DIR)/src/core
