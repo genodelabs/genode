@@ -284,11 +284,13 @@ struct File_system::Session : public Genode::Session
 	 * Delete file or directory
 	 *
 	 * \throw Invalid_handle     directory handle is invalid
+	 * \throw Invalid_name       'name' contains invalid characters
+	 * \throw Lookup_failed      lookup of 'name' in 'dir' failed
 	 * \throw Not_empty          argument is a non-empty directory and
 	 *                           the backend does not support recursion
 	 * \throw Permission_denied
 	 */
-	virtual void unlink(Dir_handle, Name const &) = 0;
+	virtual void unlink(Dir_handle dir, Name const &name) = 0;
 
 	/**
 	 * Truncate or grow file to specified size
@@ -353,7 +355,8 @@ struct File_system::Session : public Genode::Session
 	GENODE_RPC(Rpc_status, Status, status, Node_handle);
 	GENODE_RPC(Rpc_control, void, control, Node_handle, Control);
 	GENODE_RPC_THROW(Rpc_unlink, void, unlink,
-	                 GENODE_TYPE_LIST(Invalid_handle, Not_empty,
+	                 GENODE_TYPE_LIST(Invalid_handle, Invalid_name,
+	                                  Lookup_failed, Not_empty,
 	                                  Permission_denied),
 	                 Dir_handle, Name const &);
 	GENODE_RPC_THROW(Rpc_truncate, void, truncate,

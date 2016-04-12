@@ -346,10 +346,11 @@ class Vfs::Fs_file_system : public File_system
 
 				_fs.unlink(dir, file_name.base() + 1);
 			}
-			catch (::File_system::Lookup_failed)     { return UNLINK_ERR_NO_ENTRY;  }
-			catch (::File_system::Permission_denied) { return UNLINK_ERR_NO_PERM;   }
-			catch (::File_system::Not_empty)         { return UNLINK_ERR_NOT_EMPTY; }
 			catch (::File_system::Invalid_handle)    { return UNLINK_ERR_NO_ENTRY;  }
+			catch (::File_system::Invalid_name)      { return UNLINK_ERR_NO_ENTRY;  }
+			catch (::File_system::Lookup_failed)     { return UNLINK_ERR_NO_ENTRY;  }
+			catch (::File_system::Not_empty)         { return UNLINK_ERR_NOT_EMPTY; }
+			catch (::File_system::Permission_denied) { return UNLINK_ERR_NO_PERM;   }
 
 			return UNLINK_OK;
 		}
