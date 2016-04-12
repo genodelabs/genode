@@ -86,7 +86,7 @@ Genode::Native_capability Test::Component::void_cap() {
 #if 0
 	/* be evil and switch translation off - client ever uses a new selector */
 	send_cap.solely_map();
-endif
+#endif
 
 	return send_cap;
 }
