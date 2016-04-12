@@ -98,7 +98,7 @@ static unsigned long extract_msg_from_utcb(l4_msgtag_t     tag,
 
 	num_msg_words -= 2;
 	if (num_caps > 0 && num_msg_words < num_caps) {
-		outstring("unexpected end of message, capability info missing");
+		outstring("unexpected end of message, capability info missing\n");
 		return 0;
 	}
 
@@ -111,33 +111,37 @@ static unsigned long extract_msg_from_utcb(l4_msgtag_t     tag,
 	 * 'sel_idx'. If we encounter an invalid badge, the sender specified
 	 * an invalid capabilty as argument.
 	 */
-	rcv_msg.reset();
 	unsigned const num_cap_sel = l4_msgtag_items(tag);
+
+	struct {
+		bool          valid = false;
+		unsigned      sel   = 0;
+		unsigned long badge = 0;
+	} caps[num_caps];
+
 	for (unsigned i = 0, sel_idx = 0; i < num_caps; i++) {
 
 		unsigned long const badge = *msg_words++;
 
-		if (badge == INVALID_BADGE) {
-			rcv_msg.insert(Native_capability());
+		if (badge == INVALID_BADGE)
 			continue;
-		}
 
 		/* received a delegated capability */
 		if (sel_idx == num_cap_sel) {
-			outstring("missing capability selector in message");
+			outstring("missing capability selector in message\n");
 			break;
 		}
 
-		unsigned long const sel = rcv_window.rcv_cap_sel(sel_idx++);
-		Native_capability const cap(cap_map()->insert_map(badge, sel));
-		rcv_msg.insert(cap);
+		caps[i].badge = badge;
+		caps[i].valid = true;
+		caps[i].sel   = rcv_window.rcv_cap_sel(sel_idx++);
 	}
 	num_msg_words -= num_caps;
 
 	/* the remainder of the message contains the regular data payload */
 	if ((num_msg_words)*sizeof(l4_mword_t) > rcv_msg.capacity()) {
 		if (DEBUG_MSG)
-			outstring("receive message buffer too small");
+			outstring("receive message buffer too small\n");
 		num_msg_words = rcv_msg.capacity()/sizeof(l4_mword_t);
 	}
 
@@ -145,6 +149,23 @@ static unsigned long extract_msg_from_utcb(l4_msgtag_t     tag,
 	l4_mword_t *dst = (l4_mword_t *)rcv_msg.data();
 	for (unsigned i = 0; i < num_msg_words; i++)
 		*dst++ = *msg_words++;
+
+	rcv_msg.data_size(sizeof(l4_mword_t)*num_msg_words);
+
+	/*
+	 * Insert received capability selectors into cap map.
+	 *
+	 * Note that this operation pollutes the UTCB. Therefore we must perform
+	 * it not before the entire message content is extracted.
+	 */
+	for (unsigned i = 0; i < num_caps; i++) {
+		if (caps[i].valid) {
+			rcv_msg.insert(Native_capability(cap_map()->insert_map(caps[i].badge,
+			                                                       caps[i].sel)));
+		} else {
+			rcv_msg.insert(Native_capability());
+		}
+	}
 
 	return protocol_word;
 }
@@ -182,7 +203,7 @@ static l4_msgtag_t copy_msgbuf_to_utcb(Msgbuf_base &snd_msg,
 	unsigned const num_msg_words  = 2 + num_caps + num_data_words;
 
 	if (num_msg_words > L4_UTCB_GENERIC_DATA_SIZE) {
-		outstring("receive message buffer too small");
+		outstring("receive message buffer too small\n");
 		throw Ipc_error();
 	}
 
@@ -228,6 +249,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
                                     size_t rcv_caps)
 {
 	Receive_window rcv_window;
+	rcv_msg.reset();
 
 	/* copy call message to the UTCBs message registers */
 	l4_msgtag_t const call_tag = copy_msgbuf_to_utcb(snd_msg, dst.local_name());
@@ -281,6 +303,8 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
 	l4_msgtag_t request_tag, reply_tag;
 	l4_umword_t label = 0; /* kernel-protected label of invoked capability */
 
+	request_msg.reset();
+
 	Native_thread &native_thread = Thread_base::myself()->native_thread();
 
 	/* prepare receive window in UTCB */
@@ -298,29 +322,31 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
 		                                    L4_IPC_SEND_TIMEOUT_0);
 	}
 
-	if (!ipc_error(reply_tag, false))
+	unsigned long badge = 0;
+
+	if (!ipc_error(request_tag, false)) {
 		need_to_wait = false;
 
-	/* copy request message from the UTCBs message registers */
-	unsigned long badge =
-		extract_msg_from_utcb(request_tag, native_thread.rcv_window, request_msg);
+		/* copy request message from the UTCBs message registers */
+		badge = extract_msg_from_utcb(request_tag, native_thread.rcv_window, request_msg);
 
-	/* ignore request if we detect a forged badge */
-	if (!badge_matches_label(badge, label))
-		need_to_wait = true;
+		/* ignore request if we detect a forged badge */
+		if (!badge_matches_label(badge, label))
+			need_to_wait = true;
+	}
 
 	while (need_to_wait) {
 
-		l4_msgtag_t const tag = l4_ipc_wait(l4_utcb(), &label, L4_IPC_NEVER);
+		request_tag = l4_ipc_wait(l4_utcb(), &label, L4_IPC_NEVER);
 
-		if (ipc_error(tag, DEBUG_MSG))
+		if (ipc_error(request_tag, DEBUG_MSG))
 			continue;
 
 		/* copy message from the UTCBs message registers to the receive buffer */
-		badge = extract_msg_from_utcb(tag, native_thread.rcv_window, request_msg);
+		badge = extract_msg_from_utcb(request_tag, native_thread.rcv_window, request_msg);
 
 		if (!badge_matches_label(badge, label)) {
-			outstring("badge does not match label, ignoring request");
+			outstring("badge does not match label, ignoring request\n");
 			continue;
 		}
 
