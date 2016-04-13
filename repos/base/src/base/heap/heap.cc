@@ -83,10 +83,10 @@ Heap::Dataspace *Heap::_allocate_dataspace(size_t size, bool enforce_separate_me
 	} else {
 
 		/* add new local address range to our local allocator */
-		_alloc.add_range((addr_t)ds_addr, size);
+		_alloc->add_range((addr_t)ds_addr, size);
 
 		/* allocate the Dataspace structure */
-		if (_alloc.alloc_aligned(sizeof(Heap::Dataspace), &ds_meta_data_addr, log2(sizeof(addr_t))).is_error()) {
+		if (_alloc->alloc_aligned(sizeof(Heap::Dataspace), &ds_meta_data_addr, log2(sizeof(addr_t))).is_error()) {
 			PWRN("could not allocate dataspace meta data - this should never happen");
 			return 0;
 		}
@@ -103,7 +103,7 @@ Heap::Dataspace *Heap::_allocate_dataspace(size_t size, bool enforce_separate_me
 
 bool Heap::_try_local_alloc(size_t size, void **out_addr)
 {
-	if (_alloc.alloc_aligned(size, out_addr, log2(sizeof(addr_t))).is_error())
+	if (_alloc->alloc_aligned(size, out_addr, log2(sizeof(addr_t))).is_error())
 		return false;
 
 	_quota_used += size;
@@ -214,15 +214,28 @@ void Heap::free(void *addr, size_t size)
 
 		_quota_used -= ds->size;
 
-		destroy(_alloc, ds);
+		destroy(*_alloc, ds);
 
 	} else {
 
 		/*
 		 * forward request to our local allocator
 		 */
-		_alloc.free(addr, size);
+		_alloc->free(addr, size);
 
 		_quota_used -= size;
 	}
+}
+
+
+Heap::~Heap()
+{
+	/*
+	 * Destruct 'Allocator_avl' before destructing the dataspace pool. This
+	 * order is important because some dataspaces of the dataspace pool are
+	 * used as backing store for the allocator's meta data. If we destroyed
+	 * the object pool before the allocator, the subsequent attempt to destruct
+	 * the allocator would access no-longer-present backing store.
+	 */
+	_alloc.destruct();
 }
