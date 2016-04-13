@@ -38,7 +38,11 @@ namespace Noux {
 
 			bool const        _forked;
 			Cpu_connection    _cpu;
-			Thread_capability _main_thread;
+
+			enum { MAX_THREADS = 8, MAIN_THREAD_IDX = 0 };
+
+			Thread_capability _threads[MAX_THREADS];
+			unsigned          _thread_cnt = 0;
 
 		public:
 
@@ -62,7 +66,7 @@ namespace Noux {
 			 */
 			void start_main_thread(addr_t ip, addr_t sp)
 			{
-				_cpu.start(_main_thread, ip, sp);
+				_cpu.start(_threads[MAIN_THREAD_IDX], ip, sp);
 			}
 
 			Cpu_session_capability cpu_cap() { return _cpu.cap(); }
@@ -74,13 +78,14 @@ namespace Noux {
 			Thread_capability create_thread(size_t weight, Name const &name,
 			                                addr_t utcb)
 			{
-				if (!_main_thread.valid()) {
-					_main_thread = _cpu.create_thread(weight, name, utcb);
-					return _main_thread;
+				if (_thread_cnt == MAX_THREADS) {
+					PERR("maximum number of threads per session reached");
+					throw Thread_creation_failed();
 				}
 
-				/* create non-main thread */
-				return _cpu.create_thread(weight, name, utcb);
+				Thread_capability cap =_cpu.create_thread(weight, name, utcb);
+				_threads[_thread_cnt++] = cap;
+				return cap;
 			}
 
 			Ram_dataspace_capability utcb(Thread_capability thread) {
