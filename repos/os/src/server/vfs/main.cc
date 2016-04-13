@@ -217,16 +217,19 @@ class Vfs_server::Session_component :
 		/**
 		 * Check if string represents a valid path (must start with '/')
 		 */
-		static void _assert_valid_path(char const *path) {
-			if (!path || path[0] != '/') throw Lookup_failed(); }
+		inline void _assert_valid_path(char const *path) {
+			if (path[0] != '/') throw Lookup_failed(); }
 
 		/**
 		 * Check if string represents a valid name (must not contain '/')
 		 */
-		static void _assert_valid_name(char const *name) {
+		inline void _assert_valid_name(char const *name)
+		{
+			if (!*name) throw Invalid_name();
 			for (char const *p = name; *p; ++p)
 				if (*p == '/')
-					throw Invalid_name(); }
+					throw Invalid_name();
+		}
 
 	public:
 
@@ -601,7 +604,7 @@ class Vfs_server::Root :
 				 */
 				try {
 					policy.attribute("root").value(tmp, sizeof(tmp));
-					session_root.append(tmp);
+					session_root.import(tmp, "/");
 				} catch (Xml_node::Nonexistent_attribute) { }
 
 				/* Determine if the session is writeable.
@@ -613,7 +616,10 @@ class Vfs_server::Root :
 			} catch (Session_policy::No_policy_defined) { }
 
 			Arg_string::find_arg(args, "root").string(tmp, sizeof(tmp), "/");
+			if (Genode::strcmp("/", tmp, sizeof(tmp))) {
+				session_root.append("/");
 				session_root.append(tmp);
+			}
 
 			/*
 			 * If no policy matches the client gets

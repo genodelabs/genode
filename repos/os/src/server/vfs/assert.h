@@ -22,7 +22,7 @@ static bool const verbose = false;
 #define PDBGV(...) if (verbose) PDBG(__VA_ARGS__)
 #define PERRV(...) if (verbose) PERR(__VA_ARGS__)
 
-#define PERR_THROW(e) PERR("%s - %s", __func__, #e); throw e();
+#define PERR_THROW(e) PERRV("%s - %s", __func__, #e); throw e();
 
 namespace File_system {
 
