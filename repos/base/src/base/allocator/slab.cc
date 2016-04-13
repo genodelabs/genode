@@ -339,12 +339,19 @@ bool Slab::alloc(size_t size, void **out_addr)
 		_insert_sb(sb);
 	}
 
-	/* skip completely occupied slab blocks */
-	for (; _curr_sb->avail() == 0; _curr_sb = _curr_sb->next);
+	/* skip completely occupied slab blocks, detect cycles */
+	Block const * const orig_curr_sb = _curr_sb;
+	for (; _curr_sb->avail() == 0; _curr_sb = _curr_sb->next)
+		if (_curr_sb->next == orig_curr_sb)
+			break;
 
 	*out_addr = _curr_sb->alloc();
+
+	if (*out_addr == nullptr)
+		return false;
+
 	_total_avail--;
-	return *out_addr == nullptr ? false : true;
+	return true;
 }
 
 
