@@ -217,13 +217,13 @@ class Vfs_server::Session_component :
 		/**
 		 * Check if string represents a valid path (must start with '/')
 		 */
-		inline void _assert_valid_path(char const *path) {
+		static void _assert_valid_path(char const *path) {
 			if (path[0] != '/') throw Lookup_failed(); }
 
 		/**
 		 * Check if string represents a valid name (must not contain '/')
 		 */
-		inline void _assert_valid_name(char const *name)
+		static void _assert_valid_name(char const *name)
 		{
 			if (!*name) throw Invalid_name();
 			for (char const *p = name; *p; ++p)
