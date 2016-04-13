@@ -195,7 +195,7 @@ Cpu_domain_update::Cpu_domain_update() {
 /**
  * Enable kernel-entry assembly to get an exclusive stack for every CPU
  */
-enum { KERNEL_STACK_SIZE = 64 * 1024 };
+enum { KERNEL_STACK_SIZE = 16 * 1024 * sizeof(Genode::addr_t) };
 Genode::size_t  kernel_stack_size = KERNEL_STACK_SIZE;
 Genode::uint8_t kernel_stack[NR_OF_CPUS][KERNEL_STACK_SIZE]
 __attribute__((aligned(16)));
