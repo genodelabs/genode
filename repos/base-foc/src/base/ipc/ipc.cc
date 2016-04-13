@@ -73,6 +73,17 @@ enum { INVALID_BADGE = ~0UL };
 
 
 /**
+ * Representation of a capability during UTCB marshalling/unmarshalling
+ */
+struct Cap_info
+{
+	bool          valid = false;
+	unsigned long sel   = 0;
+	unsigned long badge = 0;
+};
+
+
+/**
  * Copy message registers from UTCB to destination message buffer
  *
  * \return  protocol word (local name or exception code)
@@ -113,11 +124,7 @@ static unsigned long extract_msg_from_utcb(l4_msgtag_t     tag,
 	 */
 	unsigned const num_cap_sel = l4_msgtag_items(tag);
 
-	struct {
-		bool          valid = false;
-		unsigned      sel   = 0;
-		unsigned long badge = 0;
-	} caps[num_caps];
+	Cap_info caps[num_caps];
 
 	for (unsigned i = 0, sel_idx = 0; i < num_caps; i++) {
 
@@ -197,6 +204,23 @@ static l4_msgtag_t copy_msgbuf_to_utcb(Msgbuf_base &snd_msg,
 	}
 
 	/*
+	 * Obtain capability info from message buffer
+	 *
+	 * This step must be performed prior any write operation to the UTCB
+	 * because the 'Genode::Capability' operations may indirectly trigger
+	 * system calls, which pollute the UTCB.
+	 */
+	Cap_info caps[num_caps];
+	for (unsigned i = 0; i < num_caps; i++) {
+		Native_capability const &cap = snd_msg.cap(i);
+		if (cap.valid()) {
+			caps[i].valid = true;
+			caps[i].badge = cap.local_name();
+			caps[i].sel   = cap.dst();
+		}
+	}
+
+	/*
 	 * The message consists of a protocol word, the capability count, one badge
 	 * value per capability, and the data payload.
 	 */
@@ -218,15 +242,14 @@ static l4_msgtag_t copy_msgbuf_to_utcb(Msgbuf_base &snd_msg,
 
 		Native_capability const &cap = snd_msg.cap(i);
 
-		unsigned long const badge = cap.valid() ? cap.local_name() : INVALID_BADGE;
-
-		*msg_words++ = badge;
+		/* store badge as normal message word */
+		*msg_words++ = caps[i].valid ? caps[i].badge : INVALID_BADGE;
 
 		/* setup flexpage for valid capability to delegate */
-		if (cap.valid()) {
+		if (caps[i].valid) {
 			unsigned const idx = num_msg_words + 2*num_cap_sel;
 			l4_utcb_mr()->mr[idx]     = L4_ITEM_MAP/* | L4_ITEM_CONT*/;
-			l4_utcb_mr()->mr[idx + 1] = l4_obj_fpage(cap.dst(),
+			l4_utcb_mr()->mr[idx + 1] = l4_obj_fpage(caps[i].sel,
 			                                         0, L4_FPAGE_RWX).raw;
 			num_cap_sel++;
 		}
@@ -249,6 +272,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
                                     size_t rcv_caps)
 {
 	Receive_window rcv_window;
+	rcv_window.init();
 	rcv_msg.reset();
 
 	/* copy call message to the UTCBs message registers */
