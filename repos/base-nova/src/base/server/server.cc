@@ -111,8 +111,6 @@ static void reply(Nova::Utcb &utcb, Rpc_exception_code exc, Msgbuf_base &snd_msg
 {
 	copy_msgbuf_to_utcb(utcb, snd_msg, exc.value);
 
-	snd_msg.reset();
-
 	Nova::reply(Thread_base::myself()->stack_top());
 }
 
@@ -128,8 +126,6 @@ void Rpc_entrypoint::_activation_entry()
 
 	Rpc_entrypoint &ep   = *static_cast<Rpc_entrypoint *>(Thread_base::myself());
 	Nova::Utcb     &utcb = *(Nova::Utcb *)Thread_base::myself()->utcb();
-
-	ep._snd_buf.reset();
 
 	Receive_window &rcv_window = ep.native_thread().rcv_window;
 	rcv_window.post_ipc(utcb);
@@ -153,6 +149,8 @@ void Rpc_entrypoint::_activation_entry()
 	if (ep._cap.local_name() == id_pt) {
 		if (!rcv_window.prepare_rcv_window(utcb))
 			PWRN("out of capability selectors for handling server requests");
+
+		ep._rcv_buf.reset();
 		reply(utcb, exc, ep._snd_buf);
 	}
 	{
@@ -169,6 +167,7 @@ void Rpc_entrypoint::_activation_entry()
 		}
 
 		/* dispatch request */
+		ep._snd_buf.reset();
 		try { exc = obj->dispatch(opcode, unmarshaller, ep._snd_buf); }
 		catch (Blocking_canceled) { }
 	};
@@ -177,6 +176,7 @@ void Rpc_entrypoint::_activation_entry()
 	if (!rcv_window.prepare_rcv_window(*(Nova::Utcb *)ep.utcb()))
 		PWRN("out of capability selectors for handling server requests");
 
+	ep._rcv_buf.reset();
 	reply(utcb, exc, ep._snd_buf);
 }
 

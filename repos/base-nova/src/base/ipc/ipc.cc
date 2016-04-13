@@ -31,6 +31,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
                                     size_t rcv_caps)
 {
 	Receive_window rcv_window;
+	rcv_msg.reset();
 
 	/* update receive window for capability selectors if needed */
 	if (rcv_caps != ~0UL) {

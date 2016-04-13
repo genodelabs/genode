@@ -59,7 +59,6 @@ static inline Nova::mword_t copy_utcb_to_msgbuf(Nova::Utcb             &utcb,
 		*dst++ = *src++;
 
 	/* extract caps from UTCB */
-	rcv_msg.reset();
 	for (unsigned i = 0; i < rcv_window.num_received_caps(); i++) {
 		Native_capability cap;
 		rcv_window.rcv_pt_sel(cap);
