@@ -203,12 +203,10 @@ namespace Genode {
 			/**
 			 * Bind thread to protection domain
 			 *
-			 * \return  0  on success or
-			 *         -1  if thread ID allocation failed.
-			 *
 			 * This function allocates the physical L4 thread ID.
 			 */
-			int bind_thread(Platform_thread *thread);
+			void bind_thread(Platform_thread *thread);
+
 			int bind_initial_thread(Platform_thread *thread);
 
 			/**
@@ -221,7 +219,7 @@ namespace Genode {
 			/**
 			 * Assign parent interface to protection domain
 			 */
-			int assign_parent(Native_capability parent) { return 0; }
+			void assign_parent(Native_capability parent) { }
 
 			int pd_id() const { return _pd_id; }
 

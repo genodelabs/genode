@@ -25,11 +25,11 @@ struct Genode::Pd_session_client : Rpc_client<Pd_session>
 	explicit Pd_session_client(Pd_session_capability session)
 	: Rpc_client<Pd_session>(session) { }
 
-	int bind_thread(Thread_capability thread) override {
-		return call<Rpc_bind_thread>(thread); }
+	void bind_thread(Thread_capability thread) override {
+		call<Rpc_bind_thread>(thread); }
 
-	int assign_parent(Capability<Parent> parent) override {
-		return call<Rpc_assign_parent>(parent); }
+	void assign_parent(Capability<Parent> parent) override {
+		call<Rpc_assign_parent>(parent); }
 
 	bool assign_pci(addr_t pci_config_memory_address, uint16_t bdf) override {
 		return call<Rpc_assign_pci>(pci_config_memory_address, bdf); }

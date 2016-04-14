@@ -25,11 +25,10 @@ using namespace Genode;
  ** Public object members **
  ***************************/
 
-int Platform_pd::bind_thread(Platform_thread *thread)
+void Platform_pd::bind_thread(Platform_thread *thread)
 {
 	thread->bind_to_pd(this, _thread_cnt == 0);
 	_thread_cnt++;
-	return 0;
 }
 
 
@@ -39,13 +38,10 @@ void Platform_pd::unbind_thread(Platform_thread *thread)
 }
 
 
-int Platform_pd::assign_parent(Native_capability parent)
+void Platform_pd::assign_parent(Native_capability parent)
 {
-	if (_parent.valid()) return -1;
-	if (!parent.valid()) return -2;
-
-	_parent = parent;
-	return 0;
+	if (!_parent.valid() && parent.valid())
+		_parent = parent;
 }
 
 

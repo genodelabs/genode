@@ -24,30 +24,26 @@
 using namespace Genode;
 
 
-int Pd_session_component::bind_thread(Thread_capability thread)
+void Pd_session_component::bind_thread(Thread_capability thread)
 {
 	return _thread_ep.apply(thread, [&] (Cpu_thread_component *cpu_thread) {
-		if (!cpu_thread) return -1;
+		if (!cpu_thread) return;
 
 		if (cpu_thread->bound()) {
 			PWRN("rebinding of threads not supported");
-			return -2;
+			return;
 		}
 
 		Platform_thread *p_thread = cpu_thread->platform_thread();
 
-		int res = _pd.bind_thread(p_thread);
-
-		if (res)
-			return res;
+		_pd.bind_thread(p_thread);
 
 		cpu_thread->bound(true);
-		return 0;
 	});
 }
 
 
-int Pd_session_component::assign_parent(Parent_capability parent)
+void Pd_session_component::assign_parent(Parent_capability parent)
 {
-	return _pd.assign_parent(parent);
+	_pd.assign_parent(parent);
 }

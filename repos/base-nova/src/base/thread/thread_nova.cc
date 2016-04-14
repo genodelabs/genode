@@ -121,9 +121,7 @@ void Thread_base::_init_platform_thread(size_t weight, Type type)
 		throw Cpu_session::Thread_creation_failed();
 
 	/* assign thread to protection domain */
-	if (env()->pd_session()->bind_thread(_thread_cap))
-		throw Cpu_session::Thread_creation_failed();
-
+	env()->pd_session()->bind_thread(_thread_cap);
 }
 
 

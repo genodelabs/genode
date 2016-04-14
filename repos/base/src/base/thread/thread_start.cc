@@ -64,8 +64,7 @@ void Thread_base::start()
 		throw Cpu_session::Thread_creation_failed();
 
 	/* assign thread to protection domain */
-	if (env()->pd_session()->bind_thread(_thread_cap))
-		throw Cpu_session::Thread_creation_failed();
+	env()->pd_session()->bind_thread(_thread_cap);
 
 	/* create new pager object and assign it to the new thread */
 	Pager_capability pager_cap = env()->rm_session()->add_client(_thread_cap);

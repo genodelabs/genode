@@ -41,7 +41,7 @@ static addr_t core_utcb_base() {
  ** Public object members **
  ***************************/
 
-int Platform_pd::bind_thread(Platform_thread *thread)
+void Platform_pd::bind_thread(Platform_thread *thread)
 {
 	/*
 	 * Fiasco.OC limits the UTCB area for roottask to 16K. Therefore, the
@@ -76,11 +76,10 @@ int Platform_pd::bind_thread(Platform_thread *thread)
 
 		/* inform thread about binding */
 		thread->bind(this);
-		return 0;
+		return;
 	}
 
 	PERR("thread alloc failed");
-	return -1;
 }
 
 
@@ -97,12 +96,12 @@ void Platform_pd::unbind_thread(Platform_thread *thread)
 }
 
 
-int Platform_pd::assign_parent(Native_capability parent)
+void Platform_pd::assign_parent(Native_capability parent)
 {
-	if (!parent.valid()) return -1;
-	_parent.local  = parent;
-	_parent.remote = PARENT_CAP;
-	return 0;
+	if (_parent.remote == Fiasco::L4_INVALID_CAP && parent.valid()) {
+		_parent.local  = parent;
+		_parent.remote = PARENT_CAP;
+	}
 }
 
 

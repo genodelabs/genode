@@ -144,8 +144,7 @@ Platform::Core_pager::Core_pager(Platform_pd *core_pd, Sigma0 *sigma0)
 {
 	Platform_thread::pager(sigma0);
 
-	if (core_pd->bind_thread(this))
-		panic("Binding thread failed");
+	core_pd->bind_thread(this);
 	cap(thread().local);
 
 	/* stack begins at the top end of the '_core_pager_stack' array */
@@ -516,8 +515,7 @@ Platform::Platform() :
 		Platform_thread(thi, irqi, "core.main");
 
 	core_thread->pager(&_sigma0);
-	if (_core_pd->bind_thread(core_thread))
-		panic("Binding thread failed");
+	_core_pd->bind_thread(core_thread);
 }
 
 

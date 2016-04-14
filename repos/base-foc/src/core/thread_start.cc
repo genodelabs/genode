@@ -48,8 +48,7 @@ void Thread_base::start()
 	Platform_thread *pt =
 		new(platform()->core_mem_alloc()) Platform_thread(_stack->name().string());
 
-	if (platform_specific()->core_pd()->bind_thread(pt))
-		throw Cpu_session::Thread_creation_failed();
+	platform_specific()->core_pd()->bind_thread(pt);
 
 	l4_utcb_t *foc_utcb = (l4_utcb_t *)(pt->utcb());
 

@@ -199,7 +199,7 @@ void Platform_pd::_free_thread(int thread_id)
  ** Public object members **
  ***************************/
 
-int Platform_pd::bind_thread(Platform_thread *thread)
+void Platform_pd::bind_thread(Platform_thread *thread)
 {
 	/* thread_id is THREAD_INVALID by default - only core is the special case */
 	int thread_id = thread->thread_id();
@@ -208,7 +208,7 @@ int Platform_pd::bind_thread(Platform_thread *thread)
 	int t = _alloc_thread(thread_id, thread);
 	if (t < 0) {
 		PERR("Thread alloc failed");
-		return -1;
+		return;
 	}
 	thread_id = t;
 
@@ -219,7 +219,6 @@ int Platform_pd::bind_thread(Platform_thread *thread)
 	thread->bind(thread_id, l4_thread_id, this);
 
 	if (verbose) _debug_log_threads();
-	return 0;
 }
 
 

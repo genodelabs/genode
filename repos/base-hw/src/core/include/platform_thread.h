@@ -115,11 +115,11 @@ namespace Genode {
 			 * \param main_thread    wether thread is the first in protection domain
 			 * \param address_space  corresponding Genode address space
 			 *
-			 * \retval  0  succeeded
-			 * \retval -1  failed
+			 * This function has no effect when called more twice for a
+			 * given thread.
 			 */
-			int join_pd(Platform_pd *  const pd, bool const main_thread,
-			            Weak_ptr<Address_space> address_space);
+			void join_pd(Platform_pd *  const pd, bool const main_thread,
+			             Weak_ptr<Address_space> address_space);
 
 			/**
 			 * Run this thread

@@ -52,7 +52,7 @@ static Pd_id_alloc &pd_id_alloc()
 }
 
 
-int Platform_pd::bind_thread(Platform_thread *thread)
+void Platform_pd::bind_thread(Platform_thread *thread)
 {
 	ASSERT(thread);
 
@@ -73,8 +73,6 @@ int Platform_pd::bind_thread(Platform_thread *thread)
 	} else {
 		_vm_space.map(thread->_info.ipc_buffer_phys, thread->INITIAL_IPC_BUFFER_VIRT, 1);
 	}
-
-	return 0;
 }
 
 
@@ -84,7 +82,7 @@ void Platform_pd::unbind_thread(Platform_thread *thread)
 }
 
 
-int Platform_pd::assign_parent(Native_capability parent)
+void Platform_pd::assign_parent(Native_capability parent)
 {
 	Capability_space::Ipc_cap_data const ipc_cap_data =
 		Capability_space::ipc_cap_data(parent);
@@ -98,7 +96,6 @@ int Platform_pd::assign_parent(Native_capability parent)
 	_cspace_cnode.copy(platform_specific()->core_cnode(),
 	                   Cnode_index(ipc_cap_data.sel),
 	                   Cnode_index(INITIAL_SEL_PARENT));
-	return 0;
 }
 
 

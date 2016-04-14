@@ -106,8 +106,8 @@ class Genode::Pd_session_component : public Rpc_object<Pd_session>
 		 ** PD session interface **
 		 **************************/
 
-		int bind_thread(Thread_capability) override;
-		int assign_parent(Capability<Parent>) override;
+		void bind_thread(Thread_capability) override;
+		void assign_parent(Capability<Parent>) override;
 		bool assign_pci(addr_t, uint16_t) override;
 
 		Signal_source_capability alloc_signal_source() override

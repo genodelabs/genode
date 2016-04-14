@@ -50,11 +50,8 @@ namespace Genode {
 
 			/**
 			 * Bind thread to protection domain
-			 *
-			 * \return  0  on success or
-			 *         -1  if thread ID allocation failed.
 			 */
-			int bind_thread(Platform_thread *thread);
+			void bind_thread(Platform_thread *thread);
 
 			/**
 			 * Unbind thread from protection domain
@@ -66,7 +63,7 @@ namespace Genode {
 			/**
 			 * Assign parent interface to protection domain
 			 */
-			int assign_parent(Native_capability parent);
+			void assign_parent(Native_capability parent);
 
 			/**
 			 * Return portal capability selector for parent interface

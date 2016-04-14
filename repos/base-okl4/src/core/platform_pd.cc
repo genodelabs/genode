@@ -176,7 +176,7 @@ void Platform_pd::_free_thread(int thread_id)
  ** Public object members **
  ***************************/
 
-int Platform_pd::bind_thread(Platform_thread *thread)
+void Platform_pd::bind_thread(Platform_thread *thread)
 {
 	using namespace Okl4;
 
@@ -187,14 +187,13 @@ int Platform_pd::bind_thread(Platform_thread *thread)
 	int t = _alloc_thread(thread_id, thread);
 	if (t < 0) {
 		PERR("thread alloc failed");
-		return -1;
+		return;
 	}
 	thread_id = t;
 	l4_thread_id = make_l4_id(_pd_id, thread_id);
 
 	/* finally inform thread about binding */
 	thread->bind(thread_id, l4_thread_id, this);
-	return 0;
 }
 
 

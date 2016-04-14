@@ -17,13 +17,12 @@
 using namespace Genode;
 
 
-int Pd_session_component::bind_thread(Thread_capability) { return -1; }
+void Pd_session_component::bind_thread(Thread_capability) { }
 
 
-int Pd_session_component::assign_parent(Capability<Parent> parent)
+void Pd_session_component::assign_parent(Capability<Parent> parent)
 {
 	_parent = parent;
-	return 0;
 }
 
 

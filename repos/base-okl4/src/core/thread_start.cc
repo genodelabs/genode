@@ -40,8 +40,7 @@ void Thread_base::start()
 	native_thread().pt = new(platform_specific()->thread_slab())
 		Platform_thread(0, _stack->name().string());
 
-	if (platform_specific()->core_pd()->bind_thread(native_thread().pt))
-		throw Cpu_session::Thread_creation_failed();
+	platform_specific()->core_pd()->bind_thread(native_thread().pt);
 
 	native_thread().pt->start((void *)_thread_start, stack_top());
 }

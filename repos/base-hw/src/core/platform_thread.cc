@@ -99,20 +99,19 @@ Platform_thread::Platform_thread(size_t const quota,
 }
 
 
-int Platform_thread::join_pd(Platform_pd * pd, bool const main_thread,
-                             Weak_ptr<Address_space> address_space)
+void Platform_thread::join_pd(Platform_pd * pd, bool const main_thread,
+                              Weak_ptr<Address_space> address_space)
 {
 	/* check if thread is already in another protection domain */
 	if (_pd && _pd != pd) {
 		PERR("thread already in another protection domain");
-		return -1;
+		return;
 	}
 
 	/* join protection domain */
 	_pd = pd;
 	_main_thread = main_thread;
 	_address_space = address_space;
-	return 0;
 }
 
 

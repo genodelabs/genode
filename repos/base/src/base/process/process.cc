@@ -188,8 +188,8 @@ Process::Process(Dataspace_capability    elf_ds_cap,
 
 	enum Local_exception
 	{
-		THREAD_FAIL, ELF_FAIL, ASSIGN_PARENT_FAIL, THREAD_ADD_FAIL,
-		THREAD_BIND_FAIL, THREAD_PAGER_FAIL, THREAD_START_FAIL,
+		THREAD_FAIL, ELF_FAIL, THREAD_ADD_FAIL,
+		THREAD_PAGER_FAIL, THREAD_START_FAIL,
 	};
 
 	/* XXX this only catches local exceptions */
@@ -240,24 +240,17 @@ Process::Process(Dataspace_capability    elf_ds_cap,
 		}
 
 		/* register parent interface for new protection domain */
-		if (_pd_session_client.assign_parent(parent_cap)) {
-			PERR("Could not assign parent interface to new PD");
-			throw ASSIGN_PARENT_FAIL;
-		}
+		_pd_session_client.assign_parent(parent_cap);
 
 		/* bind thread0 */
-		err = _pd_session_client.bind_thread(_thread0_cap);
-		if (err) {
-			PERR("Thread binding failed (%d)", err);
-			throw THREAD_BIND_FAIL;
-		}
+		_pd_session_client.bind_thread(_thread0_cap);
 
 		/* register thread0 at region manager session */
 		Pager_capability pager;
 		try {
 			pager = _rm_session_client.add_client(_thread0_cap);
 		} catch (...) {
-			PERR("Pager setup failed (%d)", err);
+			PERR("Pager setup failed");
 			throw THREAD_ADD_FAIL;
 		}
 
@@ -290,8 +283,6 @@ Process::Process(Dataspace_capability    elf_ds_cap,
 		case THREAD_START_FAIL:
 		case THREAD_PAGER_FAIL:
 		case THREAD_ADD_FAIL:
-		case THREAD_BIND_FAIL:
-		case ASSIGN_PARENT_FAIL:
 		case ELF_FAIL:
 
 			_cpu_session_client.kill_thread(_thread0_cap);

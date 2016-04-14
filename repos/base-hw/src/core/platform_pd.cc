@@ -131,12 +131,12 @@ void Capability_space::upgrade_slab(Allocator &alloc)
  ** Platform_pd implementation **
  ********************************/
 
-int Platform_pd::bind_thread(Platform_thread * t)
+void Platform_pd::bind_thread(Platform_thread * t)
 {
 	/* is this the first and therefore main thread in this PD? */
 	bool main_thread = !_thread_associated;
 	_thread_associated = true;
-	return t->join_pd(this, main_thread, Address_space::weak_ptr());
+	t->join_pd(this, main_thread, Address_space::weak_ptr());
 }
 
 
@@ -144,14 +144,10 @@ void Platform_pd::unbind_thread(Platform_thread *t) {
 	t->join_pd(nullptr, false, Address_space::weak_ptr()); }
 
 
-int Platform_pd::assign_parent(Native_capability parent)
+void Platform_pd::assign_parent(Native_capability parent)
 {
-	if (!parent.valid()) {
-		PERR("parent invalid");
-		return -1;
-	}
-	_parent = parent;
-	return 0;
+	if (!_parent.valid() && parent.valid())
+		_parent = parent;
 }
 
 

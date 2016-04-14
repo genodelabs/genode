@@ -56,9 +56,10 @@ void Thread_base::_init_platform_thread(size_t weight, Type type)
 		_thread_cap = _cpu_session->create_thread(weight, buf);
 
 		/* assign thread to protection domain */
-		if (!_thread_cap.valid() ||
-		    env()->pd_session()->bind_thread(_thread_cap))
+		if (!_thread_cap.valid())
 			throw Cpu_session::Thread_creation_failed();
+
+	    env()->pd_session()->bind_thread(_thread_cap);
 		return;
 	}
 	/* adjust values whose computation differs for a main thread */

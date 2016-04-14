@@ -74,11 +74,8 @@ class Genode::Platform_pd : public Address_space
 
 		/**
 		 * Bind thread to protection domain
-		 *
-		 * \return  0  on success or
-		 *         -1  if thread ID allocation failed.
 		 */
-		int bind_thread(Platform_thread *thread);
+		void bind_thread(Platform_thread *thread);
 
 		/**
 		 * Unbind thread from protection domain
@@ -90,7 +87,7 @@ class Genode::Platform_pd : public Address_space
 		/**
 		 * Assign parent interface to protection domain
 		 */
-		int assign_parent(Native_capability parent);
+		void assign_parent(Native_capability parent);
 
 
 		/*****************************

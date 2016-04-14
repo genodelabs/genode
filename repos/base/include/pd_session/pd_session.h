@@ -41,20 +41,18 @@ struct Genode::Pd_session : Session
 	 *
 	 * \param thread  capability of thread to bind
 	 *
-	 * \return        0 on success or negative error code
-	 *
-	 * After successful bind, the thread will execute inside this
-	 * protection domain when started.
+	 * After binding, the thread will execute inside this protection domain
+	 * when started. A thread can be bound to a PD only once. Subsequent
+	 * attempts to bind the thread to another PD are ignored.
 	 */
-	virtual int bind_thread(Thread_capability thread) = 0;
+	virtual void bind_thread(Thread_capability thread) = 0;
 
 	/**
 	 * Assign parent to protection domain
 	 *
 	 * \param   parent  capability of parent interface
-	 * \return  0 on success, or negative error code
 	 */
-	virtual int assign_parent(Capability<Parent> parent) = 0;
+	virtual void assign_parent(Capability<Parent> parent) = 0;
 
 	/**
 	 * Assign PCI device to PD
@@ -176,8 +174,8 @@ struct Genode::Pd_session : Session
 	 ** RPC declaration **
 	 *********************/
 
-	GENODE_RPC(Rpc_bind_thread,   int,  bind_thread,   Thread_capability);
-	GENODE_RPC(Rpc_assign_parent, int,  assign_parent, Capability<Parent>);
+	GENODE_RPC(Rpc_bind_thread,   void, bind_thread,   Thread_capability);
+	GENODE_RPC(Rpc_assign_parent, void, assign_parent, Capability<Parent>);
 	GENODE_RPC(Rpc_assign_pci,    bool, assign_pci,    addr_t, uint16_t);
 
 	GENODE_RPC_THROW(Rpc_alloc_signal_source, Signal_source_capability,

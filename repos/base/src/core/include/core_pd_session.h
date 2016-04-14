@@ -45,12 +45,12 @@ class Genode::Core_pd_session_component : public Rpc_object<Pd_session>
 			_signal_source_ep(signal_source_ep)
 		{ }
 
-		int bind_thread(Thread_capability thread) override
+		void bind_thread(Thread_capability thread) override
 		{
 			ASSERT_NEVER_CALLED;
 		}
 
-		int assign_parent(Capability<Parent> parent) override
+		void assign_parent(Capability<Parent> parent) override
 		{
 			ASSERT_NEVER_CALLED;
 		}
