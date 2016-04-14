@@ -11,8 +11,3 @@ RUN_OPT += --include power_on/qemu --include log/qemu
 
 ## Set RUN_OPT to execute this on actual hardware.
 #RUN_OPT += --include image/uboot
-
-##
-## Add Genode World repository for board support
-##
-#REPOSITORIES += $(GENODE_DIR)/repos/world
