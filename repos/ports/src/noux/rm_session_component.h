@@ -93,6 +93,14 @@ class Noux::Rm_session_component : public Rpc_object<Rm_session>
 
 		Dataspace_registry &_ds_registry;
 
+		enum { MAX_PAGERS = 8 };
+
+		Pager_capability _pagers[MAX_PAGERS];
+		unsigned         _pager_cnt = 0;
+
+		/* exception type */
+		struct Too_many_pagers { };
+
 	public:
 
 		/**
@@ -328,9 +336,17 @@ class Noux::Rm_session_component : public Rpc_object<Rm_session>
 
 		Pager_capability add_client(Thread_capability thread)
 		{
+			if (_pager_cnt == MAX_PAGERS) {
+				PERR("maximum number of pagers per session reached");
+				throw Too_many_pagers();
+			}
+
 			return retry<Rm_session::Out_of_metadata>(
-				[&] () { return _rm.add_client(thread); },
-				[&] () { Genode::env()->parent()->upgrade(_rm, "ram_quota=8192"); });
+				[&] () {
+					Pager_capability cap = _rm.add_client(thread);
+					_pagers[_pager_cnt++] = cap;
+					return cap;
+				}, [&] () { Genode::env()->parent()->upgrade(_rm, "ram_quota=8192"); });
 		}
 
 		void remove_client(Pager_capability pager)
