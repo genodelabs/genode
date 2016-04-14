@@ -261,8 +261,7 @@ static void extract_sds_from_message(unsigned start_index,
                                      Protocol_header const &header,
                                      Genode::Msgbuf_base &buf)
 {
-	buf.reset();
-
+	unsigned sd_cnt = 0;
 	for (unsigned i = 0; i < min(header.num_caps, Msgbuf_base::MAX_CAPS_PER_MSG); i++) {
 
 		unsigned long const badge = header.badges[i];
@@ -273,7 +272,7 @@ static void extract_sds_from_message(unsigned start_index,
 			continue;
 		}
 
-		int const sd = msg.socket_at_index(start_index + i);
+		int const sd = msg.socket_at_index(start_index + sd_cnt++);
 		int const id = lookup_tid_by_client_socket(sd);
 
 		int const associated_sd = Genode::ep_sd_registry()->try_associate(sd, id);
@@ -390,6 +389,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 	                sizeof(Protocol_header) + rcv_msgbuf.capacity());
 	rcv_msg.accept_sockets(Message::MAX_SDS_PER_MSG);
 
+	rcv_msgbuf.reset();
 	int const recv_ret = lx_recvmsg(reply_channel.local_socket(), rcv_msg.msg(), 0);
 
 	/* system call got interrupted by a signal */
@@ -401,7 +401,6 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 		throw Genode::Ipc_error();
 	}
 
-	rcv_msgbuf.reset();
 	extract_sds_from_message(0, rcv_msg, rcv_header, rcv_msgbuf);
 
 	return Rpc_exception_code(rcv_header.protocol_word);
@@ -446,6 +445,7 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
 
 		Native_thread &native_thread = Thread_base::myself()->native_thread();
 
+		request_msg.reset();
 		int const ret = lx_recvmsg(native_thread.socket_pair.server_sd, msg.msg(), 0);
 
 		/* system call got interrupted by a signal */
@@ -460,8 +460,6 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
 
 		int           const reply_socket = msg.socket_at_index(0);
 		unsigned long const badge        = header.protocol_word;
-
-		request_msg.reset();
 
 		/* start at offset 1 to skip the reply channel */
 		extract_sds_from_message(1, msg, header, request_msg);
