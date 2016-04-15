@@ -94,5 +94,4 @@ File_descriptor *File_descriptor_allocator::find_by_libc_fd(int libc_fd)
  ** Libc functions **
  ********************/
 
-extern "C" int __attribute__((weak)) getdtablesize(void) {
-	PDBG("libc"); return MAX_NUM_FDS; }
+extern "C" int __attribute__((weak)) getdtablesize(void) { return MAX_NUM_FDS; }

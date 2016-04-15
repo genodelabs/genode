@@ -3,6 +3,11 @@ LIBC_GEN_DIR = $(LIBC_DIR)/lib/libc/gen
 # this file produces a warning about a missing header file, lets drop it
 FILTER_OUT_C += getosreldate.c sem.c valloc.c getpwent.c
 
+# the following are superceded by our minimalist sysctl and sysconf
+FILTER_OUT_C += \
+	devname.c feature_present.c getpagesizes.c getvfsbyname.c \
+	setproctitle.c sysconf.c sysctlbyname.c
+
 SRC_C = $(filter-out $(FILTER_OUT_C),$(notdir $(wildcard $(LIBC_GEN_DIR)/*.c)))
 
 # 'sysconf.c' includes the local 'stdtime/tzfile.h'
