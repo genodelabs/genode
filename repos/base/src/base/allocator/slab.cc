@@ -212,7 +212,7 @@ Slab::Slab(size_t slab_size, size_t block_size, void *initial_sb,
 	                   / (_slab_size + sizeof(Entry) + 1)),
 
 	_initial_sb((Block *)initial_sb),
-	_alloc_state(false),
+	_nested(false),
 	_curr_sb((Block *)initial_sb),
 	_backing_store(backing_store)
 {
@@ -322,12 +322,12 @@ bool Slab::alloc(size_t size, void **out_addr)
 	 * new slab block early enough - that is if there are only three free slab
 	 * entries left.
 	 */
-	if (_backing_store && (_total_avail <= 3) && !_alloc_state) {
+	if (_backing_store && (_total_avail <= 3) && !_nested) {
 
 		/* allocate new block for slab */
-		_alloc_state = true;
+		_nested = true;
 		Block * const sb = _new_slab_block();
-		_alloc_state = false;
+		_nested = false;
 
 		if (!sb) return false;
 

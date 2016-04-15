@@ -41,8 +41,8 @@ class Genode::Slab : public Allocator
 		size_t const _block_size;         /* size of slab block               */
 		size_t const _entries_per_block;  /* number of slab entries per block */
 
-		Block       *_initial_sb;    /* initial (static) slab block          */
-		bool         _alloc_state;   /* indicator for 'currently in service' */
+		Block       *_initial_sb;    /* initial (static) slab block        */
+		bool         _nested;        /* indicator for nested call of alloc */
 
 		size_t _num_blocks  = 0;
 		size_t _total_avail = 0;
