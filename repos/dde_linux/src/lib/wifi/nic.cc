@@ -65,6 +65,10 @@ class Wifi_session_component : public Nic::Session_component
 			}
 
 			struct sk_buff *skb = ::alloc_skb(packet.size() + HEAD_ROOM, GFP_KERNEL);
+			if (skb == nullptr) {
+				PERR("Could not allocate new sk_buff");
+				return false;
+			}
 			skb_reserve(skb, HEAD_ROOM);
 
 			unsigned char *data = skb_put(skb, packet.size());
