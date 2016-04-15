@@ -15,7 +15,7 @@
 #define _INCLUDE__BASE__PROCESS_H_
 
 #include <ram_session/capability.h>
-#include <rm_session/client.h>
+#include <region_map/client.h>
 #include <pd_session/client.h>
 #include <cpu_session/client.h>
 #include <parent/capability.h>
@@ -30,7 +30,6 @@ class Genode::Process
 		Pd_session_client  _pd_session_client;
 		Thread_capability  _thread0_cap;
 		Cpu_session_client _cpu_session_client;
-		Rm_session_client  _rm_session_client;
 
 		static Dataspace_capability _dynamic_linker_cap;
 
@@ -44,7 +43,6 @@ class Genode::Process
 		 * \param ram_session   RAM session providing the BSS for the
 		 *                      new protection domain
 		 * \param cpu_session   CPU session for the new protection domain
-		 * \param rm_session    RM session for the new protection domain
 		 * \param parent        parent of the new protection domain
 		 * \param name          name of protection domain (can be used
          *                      for debugging)
@@ -58,7 +56,6 @@ class Genode::Process
 		        Pd_session_capability   pd_session,
 		        Ram_session_capability  ram_session,
 		        Cpu_session_capability  cpu_session,
-		        Rm_session_capability   rm_session,
 		        Parent_capability       parent,
 		        char const             *name);
 

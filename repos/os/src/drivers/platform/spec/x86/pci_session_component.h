@@ -131,6 +131,13 @@ namespace Platform {
 				{
 					/* associate _ram session with platform_drv _ram session */
 					_ram.ref_account(Genode::env()->ram_session_cap());
+
+					/*
+					 * Equip RAM session with initial quota to account for
+					 * core-internal allocation meta-data overhead.
+					 */
+					enum { OVERHEAD = 4096 };
+					Genode::env()->ram_session()->transfer_quota(_ram, OVERHEAD);
 				}
 
 				Genode::Ram_connection &ram() { return _ram; }
@@ -794,7 +801,7 @@ namespace Platform {
 					[&] () { return _resources.ram().alloc(size, Genode::UNCACHED); },
 					[&] () {
 						if (!_md_alloc.withdraw(UPGRADE_QUOTA)) {
-							/* role-back */
+							/* roll-back */
 							if (_resources.ram().transfer_quota(Genode::env()->ram_session_cap(), size))
 								throw Fatal();
 							_md_alloc.upgrade(size);

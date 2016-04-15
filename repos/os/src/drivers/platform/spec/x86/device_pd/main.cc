@@ -19,7 +19,7 @@
 
 #include <cap_session/connection.h>
 #include <dataspace/client.h>
-#include <rm_session/client.h>
+#include <region_map/client.h>
 #include <pd_session/client.h>
 
 #include <util/flex_iterator.h>
@@ -29,15 +29,11 @@
 
 #include "../pci_device_pd_ipc.h"
 
-/**
- *
- */
-struct Expanding_rm_session_client : Genode::Rm_session_client
-{
-	Genode::Rm_session_capability _cap;
 
-	Expanding_rm_session_client(Genode::Rm_session_capability cap)
-	: Rm_session_client(cap), _cap(cap) { }
+struct Expanding_region_map_client : Genode::Region_map_client
+{
+	Expanding_region_map_client(Genode::Capability<Region_map> cap)
+	: Region_map_client(cap) { }
 
 	Local_addr attach(Genode::Dataspace_capability ds,
 	                          Genode::size_t size, Genode::off_t offset,
@@ -45,9 +41,9 @@ struct Expanding_rm_session_client : Genode::Rm_session_client
 	                          Local_addr local_addr,
 	                          bool executable) override
 	{
-		return Genode::retry<Rm_session::Out_of_metadata>(
+		return Genode::retry<Genode::Region_map::Out_of_metadata>(
 			[&] () {
-				return Rm_session_client::attach(ds, size, offset,
+				return Region_map_client::attach(ds, size, offset,
 				                                 use_local_addr,
 				                                 local_addr,
 				                                 executable); },
@@ -61,15 +57,16 @@ struct Expanding_rm_session_client : Genode::Rm_session_client
 				Genode::snprintf(buf, sizeof(buf), "ram_quota=%u",
 				                 UPGRADE_QUOTA);
 
-				Genode::env()->parent()->upgrade(_cap, buf);
+				Genode::env()->parent()->upgrade(Genode::env()->pd_session_cap(), buf);
 			});
 	}
 };
 
-static Genode::Rm_session *rm_session() {
+
+static Genode::Region_map &address_space() {
 	using namespace Genode;
-	static Expanding_rm_session_client rm (static_cap_cast<Rm_session>(env()->parent()->session("Env::rm_session", "")));
-	return &rm;
+	static Expanding_region_map_client rm(Genode::env()->pd_session()->address_space());
+	return rm;
 }
 
 
@@ -94,6 +91,7 @@ static bool map_eager(Genode::addr_t const page, unsigned log2_order)
 	return res == Nova::NOVA_OK;
 }
 
+
 void Platform::Device_pd_component::attach_dma_mem(Genode::Dataspace_capability ds_cap)
 {
 	using namespace Genode;
@@ -106,7 +104,7 @@ void Platform::Device_pd_component::attach_dma_mem(Genode::Dataspace_capability 
 	addr_t page = ~0UL;
 
 	try {
-		page = rm_session()->attach_at(ds_cap, phys);
+		page = address_space().attach_at(ds_cap, phys);
 	} catch (Rm_session::Out_of_metadata) {
 		throw;
 	} catch (Rm_session::Region_conflict) {
@@ -117,7 +115,7 @@ void Platform::Device_pd_component::attach_dma_mem(Genode::Dataspace_capability 
 	/* sanity check */
 	if ((page == ~0UL) || (page != phys)) {
 		if (page != ~0UL)
-			rm_session()->detach(page);
+			address_space().detach(page);
 
 		PERR("attachment of DMA memory @ %lx+%zx failed", phys, size);
 		return;
@@ -140,7 +138,7 @@ void Platform::Device_pd_component::assign_pci(Genode::Io_mem_dataspace_capabili
 
 	Dataspace_client ds_client(io_mem_cap);
 
-	addr_t page = rm_session()->attach(io_mem_cap);
+	addr_t page = address_space().attach(io_mem_cap);
 	/* sanity check */
 	if (!page)
 		throw Rm_session::Region_conflict();
@@ -159,10 +157,12 @@ void Platform::Device_pd_component::assign_pci(Genode::Io_mem_dataspace_capabili
 		     rid >> 8, (rid >> 3) & 0x1f, rid & 0x7);
 
 	/* we don't need the mapping anymore */
-	rm_session()->detach(page);
+	address_space().detach(page);
 }
 
+
 using namespace Genode;
+
 
 struct Main
 {
@@ -177,6 +177,7 @@ struct Main
 		env()->parent()->announce(ep.manage(root));
 	}
 };
+
 
 /************
  ** Server **

@@ -1,5 +1,5 @@
 /*
- * \brief  Implementation of the RM session interface
+ * \brief  Implementation of the region map interface
  * \author Christian Prochaska
  * \date   2011-05-06
  */
@@ -12,22 +12,24 @@
  */
 
 /* Genode includes */
+#include <base/env.h>
 #include <base/printf.h>
 #include <dataspace/client.h>
 
 /* local includes */
-#include "rm_session_component.h"
+#include "region_map_component.h"
 
 static bool const verbose = false;
 
-
-/**************************************
- ** Region-manager-session component **
- **************************************/
-
 using namespace Gdb_monitor;
+using namespace Genode;
 
-Rm_session_component::Region *Rm_session_component::find_region(void *local_addr, addr_t *offset_in_region)
+
+/**************************
+ ** Region map component **
+ **************************/
+
+Region_map_component::Region *Region_map_component::find_region(void *local_addr, addr_t *offset_in_region)
 {
 	Lock::Guard lock_guard(_region_map_lock);
 
@@ -42,10 +44,10 @@ Rm_session_component::Region *Rm_session_component::find_region(void *local_addr
 	*offset_in_region = ((addr_t)local_addr - (addr_t)region->start());
 //	PDBG("offset_in_region = %lx", *offset_in_region);
 
-	_managed_ds_map->apply(region->ds_cap(), [&] (Dataspace_object *managed_ds_obj) {
+	_managed_ds_map.apply(region->ds_cap(), [&] (Dataspace_object *managed_ds_obj) {
 		if (managed_ds_obj)
 			region =
-				managed_ds_obj->rm_session_component()->find_region((void*)*offset_in_region,
+				managed_ds_obj->region_map_component()->find_region((void*)*offset_in_region,
 				                                                    offset_in_region);
 	});
 
@@ -53,10 +55,10 @@ Rm_session_component::Region *Rm_session_component::find_region(void *local_addr
 }
 
 
-Rm_session::Local_addr
-Rm_session_component::attach(Dataspace_capability ds_cap, size_t size,
+Region_map::Local_addr
+Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
                              off_t offset, bool use_local_addr,
-                             Rm_session::Local_addr local_addr,
+                             Region_map::Local_addr local_addr,
                              bool executable)
 {
 	if (verbose)
@@ -76,7 +78,7 @@ Rm_session_component::attach(Dataspace_capability ds_cap, size_t size,
 		throw Invalid_args();
 	}
 
-	void *addr = _parent_rm_session.attach(ds_cap, size, offset,
+	void *addr = _parent_region_map.attach(ds_cap, size, offset,
 	                                       use_local_addr, local_addr,
 	                                       executable);
 
@@ -90,12 +92,12 @@ Rm_session_component::attach(Dataspace_capability ds_cap, size_t size,
 }
 
 
-void Rm_session_component::detach(Rm_session::Local_addr local_addr)
+void Region_map_component::detach(Region_map::Local_addr local_addr)
 {
 	if (verbose)
 		PDBG("local_addr = %p", (void *)local_addr);
 
-	_parent_rm_session.detach(local_addr);
+	_parent_region_map.detach(local_addr);
 
 	Lock::Guard lock_guard(_region_map_lock);
 	Region *region = _region_map.first()->find_by_addr(local_addr);
@@ -108,61 +110,67 @@ void Rm_session_component::detach(Rm_session::Local_addr local_addr)
 }
 
 
-Pager_capability Rm_session_component::add_client(Thread_capability thread)
+Pager_capability Region_map_component::add_client(Thread_capability thread)
 {
 	if (verbose)
 		PDBG("add_client()");
 
-	return _parent_rm_session.add_client(thread);
+	return _parent_region_map.add_client(thread);
 }
 
 
-void Rm_session_component::remove_client(Pager_capability pager)
+void Region_map_component::remove_client(Pager_capability pager)
 {
 	if (verbose)
 		PDBG("remove_client()");
 
-	return _parent_rm_session.remove_client(pager);
+	return _parent_region_map.remove_client(pager);
 }
 
 
-void Rm_session_component::fault_handler(Signal_context_capability handler)
+void Region_map_component::fault_handler(Signal_context_capability handler)
 {
 	if (verbose)
 		PDBG("fault_handler()");
 
-	_parent_rm_session.fault_handler(handler);
+	_parent_region_map.fault_handler(handler);
 }
 
 
-Rm_session::State Rm_session_component::state()
+Region_map::State Region_map_component::state()
 {
 	if (verbose)
 		PDBG("state()");
 
-	return _parent_rm_session.state();
+	return _parent_region_map.state();
 }
 
 
-Dataspace_capability Rm_session_component::dataspace()
+Dataspace_capability Region_map_component::dataspace()
 {
 	if (verbose)
 		PDBG("dataspace()");
 
-	Dataspace_capability ds_cap = _parent_rm_session.dataspace();
-	_managed_ds_map->insert(new (env()->heap()) Dataspace_object(ds_cap, this));
+	Dataspace_capability ds_cap = _parent_region_map.dataspace();
+	_managed_ds_map.insert(new (env()->heap()) Dataspace_object(ds_cap, this));
 	return ds_cap;
 }
 
-Rm_session_component::Rm_session_component
-(Object_pool<Dataspace_object> *managed_ds_map, const char *args)
-: _parent_rm_session(env()->parent()->session<Rm_session>(args)),
-  _managed_ds_map(managed_ds_map)
+Region_map_component::Region_map_component(Rpc_entrypoint &ep,
+                                           Dataspace_pool &managed_ds_map,
+                                           Capability<Region_map> parent_region_map)
+:
+	_ep(ep),
+	_parent_region_map(parent_region_map),
+	_managed_ds_map(managed_ds_map)
 {
+	_ep.manage(this);
 	if (verbose)
-		PDBG("Rm_session_component()");
+		PDBG("Region_map_component()");
 }
 
 
-Rm_session_component::~Rm_session_component()
-{ }
+Region_map_component::~Region_map_component()
+{
+	_ep.dissolve(this);
+}

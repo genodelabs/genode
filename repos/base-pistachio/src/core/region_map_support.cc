@@ -1,5 +1,5 @@
 /*
- * \brief  Pistachio-specific part of RM-session implementation
+ * \brief  Pistachio-specific part of region-map implementation
  * \author Norman Feske
  * \date   2009-04-10
  */

@@ -21,12 +21,12 @@ SRC_CC      += \
                platform_services.cc \
                platform.cc \
                dataspace_component.cc \
-               rm_session_component.cc \
-               rm_session_support.cc \
+               region_map_component.cc \
+               region_map_support.cc \
                irq_session_component.cc \
                signal_source_component.cc \
                trace_session_component.cc \
-               core_rm_session.cc \
+               core_region_map.cc \
                core_mem_alloc.cc \
                core_rpc_cap_alloc.cc \
                dump_alloc.cc \
@@ -50,7 +50,7 @@ vpath cpu_session_support.cc      $(GEN_CORE_DIR)
 vpath pd_session_component.cc     $(GEN_CORE_DIR)
 vpath pd_assign_pci.cc            $(GEN_CORE_DIR)
 vpath pd_upgrade_ram_quota.cc     $(GEN_CORE_DIR)
-vpath rm_session_component.cc     $(GEN_CORE_DIR)
+vpath region_map_component.cc     $(GEN_CORE_DIR)
 vpath io_mem_session_component.cc $(GEN_CORE_DIR)
 vpath io_mem_session_support.cc   $(GEN_CORE_DIR)
 vpath platform_services.cc        $(GEN_CORE_DIR)

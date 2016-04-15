@@ -1,5 +1,5 @@
 /*
- * \brief  RM session interface
+ * \brief  Region map interface
  * \author Christian Helmuth
  * \author Norman Feske
  * \date   2006-07-17
@@ -12,12 +12,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _RM_SESSION_COMPONENT_H_
-#define _RM_SESSION_COMPONENT_H_
+#ifndef _REGION_MAP_COMPONENT_H_
+#define _REGION_MAP_COMPONENT_H_
 
 /* Genode includes */
-#include <rm_session/connection.h>
-#include <rm_session/rm_session.h>
+#include <region_map/client.h>
 #include <base/rpc_server.h>
 
 /* GDB monitor includes */
@@ -27,11 +26,13 @@ namespace Gdb_monitor {
 
 	using namespace Genode;
 
-	class Rm_session_component : public Rpc_object<Rm_session>
+	class Region_map_component : public Rpc_object<Region_map>
 	{
 		private:
 
-			Genode::Rm_session_client _parent_rm_session;
+			Rpc_entrypoint &_ep;
+
+			Genode::Region_map_client _parent_region_map;
 
 		public:
 
@@ -65,19 +66,20 @@ namespace Gdb_monitor {
 
 		private:
 
-			Avl_tree<Region>               _region_map;
-			Lock                           _region_map_lock;
-			Object_pool<Dataspace_object> *_managed_ds_map;
+			Avl_tree<Region>  _region_map;
+			Lock              _region_map_lock;
+			Dataspace_pool   &_managed_ds_map;
 
 		public:
 
 			/**
 			 * Constructor
 			 */
-			Rm_session_component(Object_pool<Dataspace_object> *managed_ds_map,
-			                     const char *args);
+			Region_map_component(Rpc_entrypoint        &ep,
+			                     Dataspace_pool        &managed_ds_map,
+			                     Capability<Region_map> parent_region_map);
 
-			~Rm_session_component();
+			~Region_map_component();
 
 			/**
 			 * Find region for given address
@@ -104,4 +106,4 @@ namespace Gdb_monitor {
 
 }
 
-#endif /* _RM_SESSION_COMPONENT_H_ */
+#endif /* _REGION_MAP_COMPONENT_H_ */

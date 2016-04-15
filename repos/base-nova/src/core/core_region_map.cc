@@ -1,5 +1,5 @@
 /*
- * \brief  Core-local RM session
+ * \brief  Core-local region map
  * \author Norman Feske
  * \date   2009-10-02
  */
@@ -15,7 +15,7 @@
 #include <base/printf.h>
 
 /* core includes */
-#include <core_rm_session.h>
+#include <core_region_map.h>
 #include <platform.h>
 #include <util.h>
 #include <nova_util.h>
@@ -47,10 +47,10 @@ static inline void * alloc_region(Dataspace_component *ds, const size_t size)
 	return virt_addr;
 }
 
-Rm_session::Local_addr
-Core_rm_session::attach(Dataspace_capability ds_cap, size_t size,
+Region_map::Local_addr
+Core_region_map::attach(Dataspace_capability ds_cap, size_t size,
                         off_t offset, bool use_local_addr,
-                        Rm_session::Local_addr local_addr,
+                        Region_map::Local_addr local_addr,
                         bool executable)
 {
 	auto lambda = [&] (Dataspace_component *ds) -> Local_addr {
@@ -90,7 +90,7 @@ Core_rm_session::attach(Dataspace_capability ds_cap, size_t size,
 }
 
 
-void Core_rm_session::detach(Local_addr core_local_addr)
+void Core_region_map::detach(Local_addr core_local_addr)
 {
 	size_t size = platform_specific()->region_alloc_size_at(core_local_addr);
 

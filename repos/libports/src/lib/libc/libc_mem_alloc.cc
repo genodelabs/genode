@@ -39,7 +39,7 @@ Libc::Mem_alloc_impl::Dataspace_pool::~Dataspace_pool()
 
 		remove(ds);
 		delete ds;
-		_rm_session->detach(ds->local_addr);
+		_region_map->detach(ds->local_addr);
 		_ram_session->free(ds_cap);
 	}
 }
@@ -53,10 +53,10 @@ int Libc::Mem_alloc_impl::Dataspace_pool::expand(size_t size, Range_allocator *a
 	/* make new ram dataspace available at our local address space */
 	try {
 		new_ds_cap = _ram_session->alloc(size);
-		local_addr = _rm_session->attach(new_ds_cap);
+		local_addr = _region_map->attach(new_ds_cap);
 	} catch (Ram_session::Alloc_failed) {
 		return -2;
-	} catch (Rm_session::Attach_failed) {
+	} catch (Region_map::Attach_failed) {
 		_ram_session->free(new_ds_cap);
 		return -3;
 	}

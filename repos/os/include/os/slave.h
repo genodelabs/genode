@@ -163,7 +163,6 @@ class Genode::Slave
 			Genode::Pd_connection  pd;
 			Genode::Ram_connection ram;
 			Genode::Cpu_connection cpu;
-			Genode::Rm_connection  rm;
 
 			class Quota_exceeded : public Genode::Exception { };
 
@@ -192,7 +191,7 @@ class Genode::Slave
 			_resources(slave_policy.name(), ram_quota, ram_ref_cap),
 			_child(slave_policy.binary(), _resources.pd.cap(),
 			       _resources.ram.cap(), _resources.cpu.cap(),
-			       _resources.rm.cap(), &entrypoint, &slave_policy)
+			       &entrypoint, &slave_policy)
 		{ }
 
 		Genode::Ram_connection &ram() { return _resources.ram; }

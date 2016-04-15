@@ -1,5 +1,5 @@
 /*
- * \brief  Linux: Test bug in rm_session_mmap.cc
+ * \brief  Linux: Test bug in region_map_mmap.cc
  * \author Christian Helmuth
  * \date   2012-12-19
  */

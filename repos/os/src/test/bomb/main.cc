@@ -24,7 +24,6 @@
 #include <cpu_session/connection.h>
 #include <rom_session/connection.h>
 #include <cap_session/connection.h>
-#include <rm_session/connection.h>
 #include <pd_session/connection.h>
 #include <timer_session/connection.h>
 
@@ -43,7 +42,6 @@ class Bomb_child_resources
 		Genode::Rom_connection _rom;
 		Genode::Ram_connection _ram;
 		Genode::Cpu_connection _cpu;
-		Genode::Rm_connection  _rm;
 		char                   _name[32];
 
 		Bomb_child_resources(const char *file_name, const char *name,
@@ -93,7 +91,7 @@ class Bomb_child : private Bomb_child_resources,
 			Init::Child_policy_enforce_labeling(Bomb_child_resources::_name),
 			_entrypoint(cap_session, STACK_SIZE, "bomb_ep_child", false),
 			_child(_rom.dataspace(), _pd.cap(), _ram.cap(), _cpu.cap(),
-			       _rm.cap(), &_entrypoint, this),
+			       &_entrypoint, this),
 			_parent_services(parent_services),
 			_config_policy("config", _entrypoint, &_ram)
 		{

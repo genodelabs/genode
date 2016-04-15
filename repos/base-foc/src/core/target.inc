@@ -32,8 +32,8 @@ SRC_CC      += stack_area.cc \
                platform_thread.cc \
                ram_session_component.cc \
                ram_session_support.cc \
-               rm_session_component.cc \
-               rm_session_support.cc \
+               region_map_component.cc \
+               region_map_support.cc \
                rom_session_component.cc \
                signal_source_component.cc \
                thread_start.cc \
@@ -59,7 +59,7 @@ vpath pd_session_component.cc     $(GEN_CORE_DIR)
 vpath pd_assign_pci.cc            $(GEN_CORE_DIR)
 vpath pd_upgrade_ram_quota.cc     $(GEN_CORE_DIR)
 vpath ram_session_component.cc    $(GEN_CORE_DIR)
-vpath rm_session_component.cc     $(GEN_CORE_DIR)
+vpath region_map_component.cc     $(GEN_CORE_DIR)
 vpath rom_session_component.cc    $(GEN_CORE_DIR)
 vpath trace_session_component.cc  $(GEN_CORE_DIR)
 vpath core_rpc_cap_alloc.cc       $(GEN_CORE_DIR)

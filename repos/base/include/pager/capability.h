@@ -19,7 +19,7 @@
 namespace Genode {
 
 	/*
-	 * The 'Pager_capability' type is returned by 'Rm_session::add_client' and
+	 * The 'Pager_capability' type is returned by 'Region_map::add_client' and
 	 * passed as argument to 'Cpu_session::set_pager'. It is never invoked or
 	 * otherwise used.
 	 */

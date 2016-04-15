@@ -20,6 +20,7 @@
 #include <rom_session/connection.h>
 #include <base/sleep.h>
 #include <dataspace/client.h>
+#include <region_map/client.h>
 
 /* noux includes */
 #include <noux_session/connection.h>
@@ -94,13 +95,13 @@ class Noux_connection
 		Noux_connection() : _sysio(_obtain_sysio()) { }
 
 		/**
-		 * Return the capability of the local stack-area RM session
+		 * Return the capability of the local stack-area region map
 		 *
 		 * \param ptr  some address within the stack-area
 		 */
-		Genode::Rm_session_capability stack_area_rm_session(void * const ptr)
+		Genode::Capability<Genode::Region_map> stack_area_region_map(void * const ptr)
 		{
-			return _connection.lookup_rm_session((Genode::addr_t)ptr);
+			return _connection.lookup_region_map((Genode::addr_t)ptr);
 		}
 
 		Noux::Session *session() { return &_connection; }
@@ -535,7 +536,7 @@ extern "C" void fork_trampoline()
 	construct_at<Noux_connection>(noux_connection());
 
 	/* reinitialize main-thread object which implies reinit of stack area */
-	auto stack_area_rm = noux_connection()->stack_area_rm_session(in_stack_area);
+	auto stack_area_rm = noux_connection()->stack_area_region_map(in_stack_area);
 	Genode::env()->reinit_main_thread(stack_area_rm);
 
 	/* apply processor state that the forker had when he did the fork */

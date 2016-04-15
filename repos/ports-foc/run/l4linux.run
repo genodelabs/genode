@@ -100,7 +100,7 @@ append_if $use_usb_driver config {
 
 append_if $use_nic_driver config {
 	<start name="nic_drv">
-		<resource name="RAM" quantum="2M"/>
+		<resource name="RAM" quantum="3M"/>
 		<provides><service name="Nic"/></provides>
 	</start> }
 
@@ -151,7 +151,7 @@ build_boot_image  [join $boot_modules " "]
 #
 # Qemu
 #
-append qemu_args " -m 128 -nographic "
+append qemu_args " -m 160 -nographic "
 append qemu_args " -serial mon:stdio "
 append_if [have_spec     x86] qemu_args " -smp 2,cores=2 "
 append_if [have_spec     x86] qemu_args " -net nic,model=e1000 -net user "

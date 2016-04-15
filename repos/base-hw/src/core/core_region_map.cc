@@ -16,17 +16,17 @@
 
 /* core includes */
 #include <platform.h>
-#include <core_rm_session.h>
+#include <core_region_map.h>
 #include <map_local.h>
 #include <util.h>
 #include <base/heap.h>
 
 using namespace Genode;
 
-Rm_session::Local_addr
-Core_rm_session::attach(Dataspace_capability ds_cap, size_t size,
+Region_map::Local_addr
+Core_region_map::attach(Dataspace_capability ds_cap, size_t size,
                         off_t offset, bool use_local_addr,
-                        Rm_session::Local_addr, bool executable)
+                        Region_map::Local_addr, bool executable)
 {
 	auto lambda = [&] (Dataspace_component *ds) -> Local_addr {
 		if (!ds)

@@ -27,6 +27,11 @@
 #include <signal_broker.h>
 #include <rpc_cap_factory.h>
 #include <native_pd_component.h>
+#include <region_map_component.h>
+#include <platform_generic.h>
+
+/* base-internal includes */
+#include <base/internal/platform_env_common.h>
 
 namespace Genode { class Pd_session_component; }
 
@@ -58,6 +63,10 @@ class Genode::Pd_session_component : public Rpc_object<Pd_session>
 		Rpc_cap_factory     _rpc_cap_factory;
 		Native_pd_component _native_pd;
 
+		Region_map_component _address_space;
+		Region_map_component _stack_area;
+		Region_map_component _linker_area;
+
 		size_t _ram_quota(char const * args) {
 			return Arg_string::find_arg(args, "ram_quota").long_value(0); }
 
@@ -80,12 +89,12 @@ class Genode::Pd_session_component : public Rpc_object<Pd_session>
 		 * to map signal-context capabilities to 'Signal_context_component'
 		 * objects and as capability allocator for such objects.
 		 */
-
-		Pd_session_component(Rpc_entrypoint &thread_ep,
-		                     Rpc_entrypoint &receiver_ep,
-		                     Rpc_entrypoint &context_ep,
-		                     Allocator      &md_alloc,
-		                     char const     *args)
+		Pd_session_component(Rpc_entrypoint   &thread_ep,
+		                     Rpc_entrypoint   &receiver_ep,
+		                     Rpc_entrypoint   &context_ep,
+		                     Allocator        &md_alloc,
+		                     Pager_entrypoint &pager_ep,
+		                     char const       *args)
 		:
 			_label(args),
 			_md_alloc(&md_alloc, _ram_quota(args)),
@@ -93,7 +102,11 @@ class Genode::Pd_session_component : public Rpc_object<Pd_session>
 			_thread_ep(thread_ep),
 			_signal_broker(_md_alloc, receiver_ep, context_ep),
 			_rpc_cap_factory(_md_alloc),
-			_native_pd(*this, args)
+			_native_pd(*this, args),
+			_address_space(thread_ep, _md_alloc, pager_ep,
+			               platform()->vm_start(), platform()->vm_size()),
+			_stack_area(thread_ep, _md_alloc, pager_ep, 0, stack_area_virtual_size()),
+			_linker_area(thread_ep, _md_alloc, pager_ep, 0, LINKER_AREA_SIZE)
 		{ }
 
 		/**
@@ -148,6 +161,15 @@ class Genode::Pd_session_component : public Rpc_object<Pd_session>
 
 		void free_rpc_cap(Native_capability cap) override {
 			_rpc_cap_factory.free(cap); }
+
+		Capability<Region_map> address_space() {
+			return _address_space.cap(); }
+
+		Capability<Region_map> stack_area() {
+			return _stack_area.cap(); }
+
+		Capability<Region_map> linker_area() {
+			return _linker_area.cap(); }
 
 		Capability<Native_pd> native_pd() { return _native_pd.cap(); }
 };

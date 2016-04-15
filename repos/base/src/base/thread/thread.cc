@@ -33,7 +33,7 @@ using namespace Genode;
  */
 namespace Genode {
 
-	extern Rm_session  * const env_stack_area_rm_session;
+	extern Region_map  * const env_stack_area_region_map;
 	extern Ram_session * const env_stack_area_ram_session;
 }
 
@@ -60,7 +60,7 @@ void Stack::size(size_t const size)
 	try {
 		Ram_session * const ram = env_stack_area_ram_session;
 		Ram_dataspace_capability const ds_cap = ram->alloc(ds_size);
-		Rm_session * const rm = env_stack_area_rm_session;
+		Region_map * const rm = env_stack_area_region_map;
 		void * const attach_addr = rm->attach_at(ds_cap, ds_addr, ds_size);
 
 		if (ds_addr != (addr_t)attach_addr)
@@ -116,7 +116,7 @@ Thread_base::_alloc_stack(size_t stack_size, char const *name, bool main_thread)
 	try {
 		ds_cap = env_stack_area_ram_session->alloc(ds_size);
 		addr_t attach_addr = ds_addr - stack_area_virtual_base();
-		if (attach_addr != (addr_t)env_stack_area_rm_session->attach_at(ds_cap, attach_addr, ds_size))
+		if (attach_addr != (addr_t)env_stack_area_region_map->attach_at(ds_cap, attach_addr, ds_size))
 			throw Stack_alloc_failed();
 	}
 	catch (Ram_session::Alloc_failed) { throw Stack_alloc_failed(); }
@@ -143,7 +143,7 @@ void Thread_base::_free_stack(Stack *stack)
 	/* call de-constructor explicitly before memory gets detached */
 	stack->~Stack();
 
-	Genode::env_stack_area_rm_session->detach((void *)ds_addr);
+	Genode::env_stack_area_region_map->detach((void *)ds_addr);
 	Genode::env_stack_area_ram_session->free(ds_cap);
 
 	/* stack ready for reuse */

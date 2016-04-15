@@ -128,7 +128,7 @@ class Loader::Session_component : public Rpc_object<Session>
 		};
 
 		/**
-		 * Common base class of 'Local_cpu_service' and 'Local_rm_service'
+		 * Common base class of 'Local_cpu_service' and 'Local_pd_service'
 		 */
 		struct Intercepted_parent_service : Service
 		{
@@ -168,18 +168,22 @@ class Loader::Session_component : public Rpc_object<Session>
 		};
 
 		/**
-		 * Intercept RM session requests to install default fault handler
+		 * Intercept PD session requests to install default fault handler
 		 */
-		struct Local_rm_service : Intercepted_parent_service
+		struct Local_pd_service : Intercepted_parent_service
 		{
-			Local_rm_service() : Intercepted_parent_service("RM") { }
+			Local_pd_service() : Intercepted_parent_service("PD") { }
 
 			Genode::Session_capability session(char     const *args,
 			                                   Affinity const &affinity)
 			{
-				Capability<Rm_session> cap = env()->parent()->session<Rm_session>(args, affinity);
-				Rm_session_client(cap).fault_handler(fault_sigh);
-				return cap;
+				Pd_session_client pd(env()->parent()->session<Pd_session>(args, affinity));
+
+				Region_map_client(pd.address_space()).fault_handler(fault_sigh);
+				Region_map_client(pd.stack_area())   .fault_handler(fault_sigh);
+				Region_map_client(pd.linker_area())  .fault_handler(fault_sigh);
+
+				return pd;
 			}
 		};
 
@@ -256,7 +260,7 @@ class Loader::Session_component : public Rpc_object<Session>
 		Rom_module_registry       _rom_modules;
 		Local_rom_service         _rom_service;
 		Local_cpu_service         _cpu_service;
-		Local_rm_service          _rm_service;
+		Local_pd_service          _pd_service;
 		Local_nitpicker_service   _nitpicker_service;
 		Signal_context_capability _fault_sigh;
 		Child                    *_child;
@@ -352,10 +356,10 @@ class Loader::Session_component : public Rpc_object<Session>
 			_cpu_service.fault_sigh = sigh;
 
 			/*
-			 * RM fault handler for RM sessions originating from the
+			 * Region-map fault handler for PD sessions originating from the
 			 * subsystem.
 			 */
-			_rm_service.fault_sigh = sigh;
+			_pd_service.fault_sigh = sigh;
 
 			/*
 			 * CPU exception and RM fault handler for the immediate child.
@@ -379,7 +383,7 @@ class Loader::Session_component : public Rpc_object<Session>
 					Child(binary_name.string(), label.string(),
 					      _ep, _ram_session_client,
 					      ram_quota, _parent_services, _rom_service,
-					      _cpu_service, _rm_service, _nitpicker_service,
+					      _cpu_service, _pd_service, _nitpicker_service,
 					      _fault_sigh);
 			}
 			catch (Genode::Parent::Service_denied) {

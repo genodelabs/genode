@@ -22,7 +22,6 @@
 #include <parent_exit.h>
 #include <file_descriptor_registry.h>
 #include <local_noux_service.h>
-#include <local_rm_service.h>
 #include <local_rom_service.h>
 
 namespace Noux {
@@ -37,7 +36,6 @@ namespace Noux {
 			Init::Child_policy_provide_rom_file _args_policy;
 			Init::Child_policy_provide_rom_file _env_policy;
 			Local_noux_service                 &_local_noux_service;
-			Local_rm_service                   &_local_rm_service;
 			Local_rom_service                  &_local_rom_service;
 			Service_registry                   &_parent_services;
 			Family_member                      &_family_member;
@@ -56,7 +54,6 @@ namespace Noux {
 			             Dataspace_capability      env_ds,
 			             Rpc_entrypoint           &entrypoint,
 			             Local_noux_service       &local_noux_service,
-			             Local_rm_service         &local_rm_service,
 			             Local_rom_service        &local_rom_service,
 			             Service_registry         &parent_services,
 			             Family_member            &family_member,
@@ -72,7 +69,6 @@ namespace Noux {
 				_args_policy(  "args",   args_ds,   &entrypoint),
 				_env_policy(   "env",    env_ds,    &entrypoint),
 				_local_noux_service(local_noux_service),
-				_local_rm_service(local_rm_service),
 				_local_rom_service(local_rom_service),
 				_parent_services(parent_services),
 				_family_member(family_member),
@@ -106,14 +102,6 @@ namespace Noux {
 				/* check for locally implemented noux service */
 				if (strcmp(service_name, Session::service_name()) == 0)
 					return &_local_noux_service;
-
-				/*
-				 * Check for the creation of an RM session, which is used by
-				 * the dynamic linker to manually manage a part of the address
-				 * space.
-				 */
-				if (strcmp(service_name, Rm_session::service_name()) == 0)
-					return &_local_rm_service;
 
 				/*
 				 * Check for local ROM service

@@ -1,40 +1,41 @@
 /*
- * \brief  OKL4-specific implementation of core-local RM session
+ * \brief  Core-local region map
  * \author Norman Feske
- * \date   2009-04-02
+ * \date   2015-05-01
  */
 
 /*
- * Copyright (C) 2009-2013 Genode Labs GmbH
+ * Copyright (C) 2015 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
+#include <base/printf.h>
+
 /* core includes */
+#include <core_region_map.h>
 #include <platform.h>
-#include <core_rm_session.h>
 #include <map_local.h>
 
 using namespace Genode;
 
 
-Rm_session::Local_addr
-Core_rm_session::attach(Dataspace_capability ds_cap, size_t size,
+Region_map::Local_addr
+Core_region_map::attach(Dataspace_capability ds_cap, size_t size,
                         off_t offset, bool use_local_addr,
-                        Rm_session::Local_addr, bool executable)
+                        Region_map::Local_addr local_addr,
+                        bool executable)
 {
-	using namespace Okl4;
-
-	auto lambda = [&] (Dataspace_component *ds) -> void* {
+	auto lambda = [&] (Dataspace_component *ds) -> Local_addr {
 		if (!ds)
 			throw Invalid_dataspace();
 
 		if (size == 0)
 			size = ds->size();
 
-		size_t page_rounded_size = (size + get_page_size() - 1)
-			& get_page_mask();
+		size_t page_rounded_size = (size + get_page_size() - 1) & get_page_mask();
 
 		if (use_local_addr) {
 			PERR("Parameter 'use_local_addr' not supported within core");
@@ -54,10 +55,10 @@ Core_rm_session::attach(Dataspace_capability ds_cap, size_t size,
 			return nullptr;
 		}
 
-		/* map the dataspace's physical pages to corresponding virtual addresses */
-		unsigned num_pages = page_rounded_size >> get_page_size_log2();
-		if (!map_local(ds->phys_addr(), (addr_t)virt_addr, num_pages))
-			return nullptr;
+		/* map the dataspace's physical pages to core-local virtual addresses */
+		size_t num_pages = page_rounded_size >> get_page_size_log2();
+		map_local(ds->phys_addr(), (addr_t)virt_addr, num_pages);
+
 		return virt_addr;
 	};
 

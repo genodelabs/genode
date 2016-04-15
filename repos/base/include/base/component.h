@@ -57,9 +57,9 @@ struct Genode::Environment
 	virtual Cpu_session &cpu() = 0;
 
 	/**
-	 * Region-manager session of the component as created by the parent
+	 * Region map of the component's address space
 	 */
-	virtual Rm_session &rm() = 0;
+	virtual Region_map &rm() = 0;
 
 	/**
 	 * PD session of the component as created by the parent

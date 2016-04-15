@@ -38,7 +38,8 @@ void Pd_session_component::bind_thread(Thread_capability thread)
 
 		_pd.bind_thread(p_thread);
 
-		cpu_thread->bound(true);
+		if (p_thread->pd())
+			cpu_thread->bound(true);
 	});
 }
 

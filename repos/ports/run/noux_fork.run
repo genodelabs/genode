@@ -23,7 +23,7 @@ install_config {
 			<any-service> <any-child/> <parent/> </any-service>
 		</default-route>
 		<start name="log_terminal">
-			<resource name="RAM" quantum="1M"/>
+			<resource name="RAM" quantum="2M"/>
 			<provides><service name="Terminal"/></provides>
 		</start>
 		<start name="noux">

@@ -20,9 +20,9 @@
 #include <util/arg_string.h>
 #include <init/child_policy.h>
 #include <ram_session/connection.h>
-#include <rm_session/connection.h>
 #include <cpu_session/connection.h>
 #include <pd_session/connection.h>
+#include <region_map/client.h>
 
 
 namespace Loader {
@@ -45,7 +45,6 @@ namespace Loader {
 				Pd_connection  pd;
 				Ram_connection ram;
 				Cpu_connection cpu;
-				Rm_connection  rm;
 
 				Resources(char const *label,
 				          Ram_session_client       &ram_session_client,
@@ -54,8 +53,7 @@ namespace Loader {
 				: pd(label), ram(label), cpu(label)
 				{
 					/* deduce session costs from usable ram quota */
-					size_t session_donations = Rm_connection::RAM_QUOTA +
-					                           Cpu_connection::RAM_QUOTA +
+					size_t session_donations = Cpu_connection::RAM_QUOTA +
 					                           Ram_connection::RAM_QUOTA;
 
 					if (ram_quota > session_donations)
@@ -70,7 +68,8 @@ namespace Loader {
 					 * the loader client via 'Loader_session::fault_handler'.
 					 */
 					cpu.exception_handler(Thread_capability(), fault_sigh);
-					rm.fault_handler(fault_sigh);
+					Region_map_client address_space(pd.address_space());
+					address_space.fault_handler(fault_sigh);
 				}
 			} _resources;
 
@@ -79,7 +78,7 @@ namespace Loader {
 			Service &_local_nitpicker_service;
 			Service &_local_rom_service;
 			Service &_local_cpu_service;
-			Service &_local_rm_service;
+			Service &_local_pd_service;
 
 			Rom_session_client _binary_rom_session;
 
@@ -110,7 +109,7 @@ namespace Loader {
 			      Service_registry          &parent_services,
 			      Service                   &local_rom_service,
 			      Service                   &local_cpu_service,
-			      Service                   &local_rm_service,
+			      Service                   &local_pd_service,
 			      Service                   &local_nitpicker_service,
 			      Signal_context_capability fault_sigh)
 			:
@@ -121,13 +120,12 @@ namespace Loader {
 				_local_nitpicker_service(local_nitpicker_service),
 				_local_rom_service(local_rom_service),
 				_local_cpu_service(local_cpu_service),
-				_local_rm_service(local_rm_service),
+				_local_pd_service(local_pd_service),
 				_binary_rom_session(_rom_session(binary_name)),
 				_binary_policy("binary", _binary_rom_session.dataspace(), &_ep),
 				_labeling_policy(_label.string),
 				_child(_binary_rom_session.dataspace(), _resources.pd.cap(),
-				       _resources.ram.cap(), _resources.cpu.cap(),
-				       _resources.rm.cap(), &_ep, this)
+				       _resources.ram.cap(), _resources.cpu.cap(), &_ep, this)
 			{ }
 
 			~Child()
@@ -158,7 +156,7 @@ namespace Loader {
 				if (!strcmp(name, "Nitpicker")) return &_local_nitpicker_service;
 				if (!strcmp(name, "ROM"))       return &_local_rom_service;
 				if (!strcmp(name, "CPU"))       return &_local_cpu_service;
-				if (!strcmp(name, "RM"))        return &_local_rm_service;
+				if (!strcmp(name, "PD"))        return &_local_pd_service;
 
 				/* populate session-local parent service registry on demand */
 				service = _parent_services.find(name);

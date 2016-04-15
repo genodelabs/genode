@@ -173,6 +173,15 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		 */
 		const char *name() const { return "noname"; }
 
+		/**
+		 * Return pointer to the thread's PD
+		 *
+		 * Used to validate the success of the bind operation.
+		 *
+		 * XXX to be removed
+		 */
+		Platform_pd *pd() { return _pd; }
+
 
 		/*****************************
 		 ** seL4-specific interface **

@@ -20,7 +20,6 @@
 #include <init/child_policy.h>
 #include <os/child_policy_dynamic_rom.h>
 #include <cpu_session/connection.h>
-#include <rm_session/connection.h>
 #include <pd_session/connection.h>
 
 /* CLI-monitor includes */
@@ -54,7 +53,6 @@ class Child_base : public Genode::Child_policy
 			Genode::Pd_connection  pd;
 			Genode::Ram_connection ram;
 			Genode::Cpu_connection cpu;
-			Genode::Rm_connection  rm;
 
 			Resources(const char *label, Genode::size_t ram_quota)
 			: pd(label), ram(label), cpu(label)
@@ -123,7 +121,7 @@ class Child_base : public Genode::Child_policy
 			_config_policy("config", _entrypoint, &_resources.ram),
 			_child(_binary_rom.dataspace(), _resources.pd.cap(),
 			       _resources.ram.cap(), _resources.cpu.cap(),
-			       _resources.rm.cap(), &_entrypoint, this),
+			       &_entrypoint, this),
 			_yield_response_sigh_cap(yield_response_sig_cap),
 			_exit_sig_cap(exit_sig_cap)
 		{ }

@@ -1,4 +1,4 @@
-build "core init test/rm_session_mmap drivers/timer test/signal"
+build "core init test/region_map_mmap drivers/timer test/signal"
 
 create_boot_directory
 
@@ -20,7 +20,7 @@ install_config {
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
-		<start name="test-rm_session_mmap">
+		<start name="test-region_map_mmap">
 			<resource name="RAM" quantum="2M"/>
 		</start>
 
@@ -34,7 +34,7 @@ install_config {
 		</start>
 	</config>}
 
-build_boot_image "core init test-rm_session_mmap timer test-signal"
+build_boot_image "core init test-region_map_mmap timer test-signal"
 
 run_genode_until forever
 

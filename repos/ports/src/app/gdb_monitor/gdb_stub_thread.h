@@ -18,7 +18,7 @@
 
 #include "cpu_session_component.h"
 #include "dataspace_object.h"
-#include "rm_session_component.h"
+#include "region_map_component.h"
 #include "signal_handler_thread.h"
 
 namespace Gdb_monitor {
@@ -32,7 +32,7 @@ namespace Gdb_monitor {
 		private:
 
 			Cpu_session_component *_cpu_session_component;
-			Rm_session_component *_rm_session_component;
+			Region_map_component *_region_map_component;
 			Signal_receiver _exception_signal_receiver;
 			Gdb_monitor::Signal_handler_thread _signal_handler_thread;
 
@@ -46,13 +46,13 @@ namespace Gdb_monitor {
 				_cpu_session_component = cpu_session_component;
 			}
 
-			void set_rm_session_component(Rm_session_component *rm_session_component)
+			void set_region_map_component(Region_map_component *region_map_component)
 			{
-				_rm_session_component = rm_session_component;
+				_region_map_component = region_map_component;
 			}
 
 			Cpu_session_component *cpu_session_component() { return _cpu_session_component; }
-			Rm_session_component *rm_session_component() { return _rm_session_component; }
+			Region_map_component *region_map_component() { return _region_map_component; }
 			Signal_receiver *exception_signal_receiver() { return &_exception_signal_receiver; }
 			int signal_fd() { return _signal_handler_thread.pipe_read_fd(); }
 	};

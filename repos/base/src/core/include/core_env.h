@@ -28,7 +28,7 @@
 /* core includes */
 #include <platform.h>
 #include <core_parent.h>
-#include <core_rm_session.h>
+#include <core_region_map.h>
 #include <core_pd_session.h>
 #include <ram_session_component.h>
 
@@ -128,7 +128,7 @@ namespace Genode {
 			bool _stack_area_initialized = _init_stack_area();
 
 			Rpc_entrypoint               _entrypoint;
-			Core_rm_session              _rm_session;
+			Core_region_map              _region_map;
 			Core_ram_session             _ram_session;
 			Ram_session_capability const _ram_session_cap;
 
@@ -152,14 +152,14 @@ namespace Genode {
 			Core_env()
 			:
 				_entrypoint(nullptr, ENTRYPOINT_STACK_SIZE, "entrypoint"),
-				_rm_session(&_entrypoint),
+				_region_map(&_entrypoint),
 				_ram_session(&_entrypoint, &_entrypoint,
 				             platform()->ram_alloc(), platform()->core_mem_alloc(),
 				             "ram_quota=4M", platform()->ram_alloc()->avail()),
 				_ram_session_cap(_entrypoint.manage(&_ram_session)),
 				_pd_session_component(_entrypoint /* XXX use a different entrypoint */),
 				_pd_session_client(_entrypoint.manage(&_pd_session_component)),
-				_heap(&_ram_session, &_rm_session)
+				_heap(&_ram_session, &_region_map)
 			{ }
 
 			/**
@@ -177,7 +177,7 @@ namespace Genode {
 			Parent                 *parent()          override { return &_core_parent; }
 			Ram_session            *ram_session()     override { return &_ram_session; }
 			Ram_session_capability  ram_session_cap() override { return  _ram_session_cap; }
-			Rm_session             *rm_session()      override { return &_rm_session; }
+			Region_map             *rm_session()      override { return &_region_map; }
 			Pd_session             *pd_session()      override { return &_pd_session_client; }
 			Allocator              *heap()            override { return &_heap; }
 
@@ -201,7 +201,7 @@ namespace Genode {
 
 			void reinit(Capability<Parent>::Dst, long) override { }
 
-			void reinit_main_thread(Rm_session_capability &) override { }
+			void reinit_main_thread(Capability<Region_map> &) override { }
 	};
 
 

@@ -1,5 +1,5 @@
 /*
- * \brief  Core-local RM session
+ * \brief  Core-local region map
  * \author Norman Feske
  * \date   2015-05-01
  */
@@ -16,15 +16,15 @@
 
 /* Genode includes */
 #include <base/printf.h>
-#include <rm_session/rm_session.h>
+#include <region_map/region_map.h>
 
 /* core includes */
 #include <dataspace_component.h>
 
-namespace Genode { class Core_rm_session; }
+namespace Genode { class Core_region_map; }
 
 
-class Genode::Core_rm_session : public Rm_session
+class Genode::Core_region_map : public Region_map
 {
 	private:
 
@@ -32,7 +32,7 @@ class Genode::Core_rm_session : public Rm_session
 
 	public:
 
-		Core_rm_session(Rpc_entrypoint *ds_ep): _ds_ep(ds_ep) { }
+		Core_region_map(Rpc_entrypoint *ds_ep): _ds_ep(ds_ep) { }
 
 		Local_addr attach(Dataspace_capability ds_cap, size_t size = 0,
 		                  off_t offset = 0, bool use_local_addr = false,

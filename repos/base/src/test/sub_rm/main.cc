@@ -16,6 +16,7 @@
 #include <base/env.h>
 #include <base/sleep.h>
 #include <rm_session/connection.h>
+#include <region_map/client.h>
 
 /* platform-specific test policy */
 #include <config.h>
@@ -62,7 +63,9 @@ int main(int, char **)
 
 	printf("create RM connection\n");
 	enum { SUB_RM_SIZE = 1024*1024 };
-	Rm_connection sub_rm(0, SUB_RM_SIZE);
+	Rm_connection rm;
+
+	Region_map_client sub_rm(rm.create(SUB_RM_SIZE));
 
 	enum { DS_SIZE = 4*4096 };
 	Ram_dataspace_capability ds = env()->ram_session()->alloc(DS_SIZE);
@@ -79,7 +82,7 @@ int main(int, char **)
 			sub_rm.attach(ds, 0, 0, false, (addr_t)0);
 			fail("sub rm attach_any unexpectedly did not fail");
 		}
-		catch (Rm_session::Out_of_metadata) {
+		catch (Region_map::Out_of_metadata) {
 			printf("attach failed as expected\n"); }
 	}
 
@@ -127,7 +130,7 @@ int main(int, char **)
 		sub_rm.attach_at(ds, SUB_RM_SIZE - 4096, 0, 0);
 		fail("undetected boundary conflict\n");
 	}
-	catch (Rm_session::Region_conflict) {
+	catch (Region_map::Region_conflict) {
 		printf("attaching beyond sub RM boundary failed as expected\n"); }
 
 	/*
@@ -138,7 +141,7 @@ int main(int, char **)
 		sub_rm.attach_at(ds, DS_SUB_OFFSET + 4096, 0, 0);
 		fail("region conflict went undetected\n");
 	}
-	catch (Rm_session::Region_conflict) {
+	catch (Region_map::Region_conflict) {
 		printf("attaching conflicting region failed as expected\n"); }
 
 	if (attach_twice_forbidden) {
@@ -150,7 +153,7 @@ int main(int, char **)
 			env()->rm_session()->attach(sub_rm.dataspace());
 			fail("double attachment of sub RM session went undetected\n");
 		}
-		catch (Rm_session::Out_of_metadata) {
+		catch (Region_map::Out_of_metadata) {
 			printf("doubly attaching sub RM session failed as expected\n"); }
 	}
 

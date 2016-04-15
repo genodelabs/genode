@@ -226,7 +226,7 @@ int main(int argc, char **argv)
 
 	printf("exception in shared lib: ");
 	try { lib_1_exception(); }
-	catch (Rm_session::Region_conflict) { printf("caught\n"); }
+	catch (Region_map::Region_conflict) { printf("caught\n"); }
 
 	printf("exception in dynamic linker: ");
 	try { __ldso_raise_exception(); }

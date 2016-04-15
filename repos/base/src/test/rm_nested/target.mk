@@ -1,4 +1,3 @@
-TARGET   = test-rm_nested
-REQUIRES = experimental
-SRC_CC   = main.cc
-LIBS     = base
+TARGET = test-rm_nested
+SRC_CC = main.cc
+LIBS   = base

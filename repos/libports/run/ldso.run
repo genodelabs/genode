@@ -39,6 +39,8 @@ run_genode_until {child ".*" exited with exit value 123.*\n} 10
 
 # pay only attention to the output of init and its children
 grep_output {^\[init }
+unify_output {\[init \-\> test\-ldso\] upgrading quota donation for .* \([0-9]+ bytes\)} ""
+trim_lines
 
 compare_output_to {
 [init -> test-ldso] Lib_2_global 11223343

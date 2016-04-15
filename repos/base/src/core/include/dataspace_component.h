@@ -114,11 +114,11 @@ namespace Genode {
 			~Dataspace_component();
 
 			/**
-			 * Return region-manager session corresponding to nested dataspace
+			 * Return region map corresponding to nested dataspace
 			 *
 			 * \retval  invalid capability if dataspace is not a nested one
 			 */
-			virtual Native_capability sub_rm_session() { return Dataspace_capability(); }
+			virtual Native_capability sub_rm() { return Dataspace_capability(); }
 
 			addr_t core_local_addr()       const { return _core_local_addr; }
 			bool is_io_mem()               const { return _is_io_mem; }

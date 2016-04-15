@@ -99,25 +99,28 @@ Region* Region_manager::reserve_range(Genode::size_t size, int align,
                                       Genode::addr_t start)
 {
 	using namespace Genode;
-	void* addr = 0;
+	void* addr = nullptr;
 	addr_t original_start = start;
 
 	while (true) {
 
-		Rm_connection *rmc = 0;
+		Rm_connection *rmc = nullptr;
+		Region_map    *rm  = nullptr;
 
 		try {
 			/*
 			 * We attach a managed-dataspace as a placeholder to
 			 * Genode's region-map
 			 */
-			rmc = new (env()->heap()) Rm_connection(0, size);
-			addr = start ? env()->rm_session()->attach_at(rmc->dataspace(), start)
-			             : env()->rm_session()->attach(rmc->dataspace());
+			rmc = new (env()->heap()) Rm_connection;
+			rm  = new (env()->heap()) Region_map_client(rmc->create(size));
+
+			addr = start ? env()->rm_session()->attach_at(rm->dataspace(), start)
+			             : env()->rm_session()->attach(rm->dataspace());
 			//PDBG("attach done addr=%p!", addr);
 			break;
 		} catch(Rm_session::Attach_failed e) {
-			destroy(env()->heap(), rmc);
+			destroy(env()->heap(), rm);
 			 /* attach with pre-defined address failed, so search one */
 			if (start) {
 				/* the original start address might have a different alignment */

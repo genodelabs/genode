@@ -15,6 +15,7 @@
 #include <base/printf.h>
 #include <util/string.h>
 #include <rm_session/connection.h>
+#include <region_map/client.h>
 
 /* VirtualBox includes */
 #include <VBox/vmm/mm.h>
@@ -40,7 +41,8 @@
  * internally pointers at several places in base + offset, whereby offset is
  * a int32_t type.
  */
-class Sub_rm_connection : public Genode::Rm_connection
+class Sub_rm_connection : private Genode::Rm_connection,
+                          public Genode::Region_map_client
 {
 
 	private:
@@ -52,7 +54,7 @@ class Sub_rm_connection : public Genode::Rm_connection
 
 		Sub_rm_connection(Genode::size_t size)
 		:
-			Genode::Rm_connection(0, size),
+			Genode::Region_map_client(Rm_connection::create(size)),
 			_offset(Genode::env()->rm_session()->attach(dataspace())),
 			_size(size)
 		{ }
@@ -63,9 +65,9 @@ class Sub_rm_connection : public Genode::Rm_connection
 		                  Local_addr local_addr = (void *)0,
 		                  bool executable = false)
 		{
-			Local_addr addr = Rm_connection::attach(ds, size, offset,
-			                                        use_local_addr, local_addr,
-			                                        executable);
+			Local_addr addr = Region_map_client::attach(ds, size, offset,
+			                                            use_local_addr, local_addr,
+			                                            executable);
 			Genode::addr_t new_addr = addr;
 			new_addr += _offset;
 			return Local_addr(new_addr);

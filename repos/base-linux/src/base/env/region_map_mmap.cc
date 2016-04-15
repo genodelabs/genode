@@ -1,5 +1,5 @@
 /*
- * \brief  Implementation of Linux-specific local region manager
+ * \brief  Implementation of Linux-specific local region map
  * \author Norman Feske
  * \date   2008-10-22
  *
@@ -54,7 +54,7 @@ static bool is_sub_rm_session(Dataspace_capability ds)
 }
 
 
-addr_t Platform_env_base::Rm_session_mmap::_reserve_local(bool           use_local_addr,
+addr_t Platform_env_base::Region_map_mmap::_reserve_local(bool           use_local_addr,
                                                           addr_t         local_addr,
                                                           Genode::size_t size)
 {
@@ -94,7 +94,7 @@ addr_t Platform_env_base::Rm_session_mmap::_reserve_local(bool           use_loc
 	 || (((long)addr_out < 0) && ((long)addr_out > -4095))) {
 		PERR("_reserve_local: lx_mmap failed (addr_in=%p,addr_out=%p/%ld)",
 		     addr_in, addr_out, (long)addr_out);
-		throw Rm_session::Region_conflict();
+		throw Region_map::Region_conflict();
 	}
 
 	return (addr_t) addr_out;
@@ -102,7 +102,7 @@ addr_t Platform_env_base::Rm_session_mmap::_reserve_local(bool           use_loc
 
 
 void *
-Platform_env_base::Rm_session_mmap::_map_local(Dataspace_capability ds,
+Platform_env_base::Region_map_mmap::_map_local(Dataspace_capability ds,
                                                Genode::size_t       size,
                                                addr_t               offset,
                                                bool                 use_local_addr,
@@ -136,14 +136,14 @@ Platform_env_base::Rm_session_mmap::_map_local(Dataspace_capability ds,
 	 || (((long)addr_out < 0) && ((long)addr_out > -4095))) {
 		PERR("_map_local: lx_mmap failed (addr_in=%p,addr_out=%p/%ld) overmap=%d",
 		     addr_in, addr_out, (long)addr_out, overmap);
-		throw Rm_session::Region_conflict();
+		throw Region_map::Region_conflict();
 	}
 
 	return addr_out;
 }
 
 
-void Platform_env::Rm_session_mmap::_add_to_rmap(Region const &region)
+void Platform_env::Region_map_mmap::_add_to_rmap(Region const &region)
 {
 	if (_rmap.add_region(region) < 0) {
 		PERR("_add_to_rmap: could not add region to sub RM session");
@@ -152,23 +152,23 @@ void Platform_env::Rm_session_mmap::_add_to_rmap(Region const &region)
 }
 
 
-Rm_session::Local_addr
-Platform_env::Rm_session_mmap::attach(Dataspace_capability ds,
+Region_map::Local_addr
+Platform_env::Region_map_mmap::attach(Dataspace_capability ds,
                                       size_t size, off_t offset,
                                       bool use_local_addr,
-                                      Rm_session::Local_addr local_addr,
+                                      Region_map::Local_addr local_addr,
                                       bool executable)
 {
 	Lock::Guard lock_guard(_lock);
 
 	/* only support attach_at for sub RM sessions */
 	if (_sub_rm && !use_local_addr) {
-		PERR("Rm_session_mmap::attach: attaching w/o local addr not supported\n");
+		PERR("Region_map_mmap::attach: attaching w/o local addr not supported\n");
 		throw Out_of_metadata();
 	}
 
 	if (offset < 0) {
-		PERR("Rm_session_mmap::attach: negative offset not supported\n");
+		PERR("Region_map_mmap::attach: negative offset not supported\n");
 		throw Region_conflict();
 	}
 
@@ -200,7 +200,7 @@ Platform_env::Rm_session_mmap::attach(Dataspace_capability ds,
 		 * Case 4
 		 */
 		if (is_sub_rm_session(ds)) {
-			PERR("Rm_session_mmap::attach: nesting sub RM sessions is not supported");
+			PERR("Region_map_mmap::attach: nesting sub RM sessions is not supported");
 			throw Invalid_dataspace();
 		}
 
@@ -209,7 +209,7 @@ Platform_env::Rm_session_mmap::attach(Dataspace_capability ds,
 		 * sub RM session
 		 */
 		if (region_size + (addr_t)local_addr > _size) {
-			PERR("Rm_session_mmap::attach: dataspace does not fit in sub RM session");
+			PERR("Region_map_mmap::attach: dataspace does not fit in sub RM session");
 			throw Region_conflict();
 		}
 
@@ -234,7 +234,7 @@ Platform_env::Rm_session_mmap::attach(Dataspace_capability ds,
 
 			Dataspace *ds_if = Local_capability<Dataspace>::deref(ds);
 
-			Rm_session_mmap *rm = dynamic_cast<Rm_session_mmap *>(ds_if);
+			Region_map_mmap *rm = dynamic_cast<Region_map_mmap *>(ds_if);
 
 			if (!rm)
 				throw Invalid_dataspace();
@@ -245,7 +245,7 @@ Platform_env::Rm_session_mmap::attach(Dataspace_capability ds,
 			 * Detect if sub RM session is already attached
 			 */
 			if (rm->_base) {
-				PERR("Rm_session_mmap::attach: mapping a sub RM session twice is not supported");
+				PERR("Region_map_mmap::attach: mapping a sub RM session twice is not supported");
 				throw Out_of_metadata();
 			}
 
@@ -264,7 +264,7 @@ Platform_env::Rm_session_mmap::attach(Dataspace_capability ds,
 			 * been populated with dataspaces. Go through all regions and map
 			 * each of them.
 			 */
-			for (int i = 0; i < Region_map::MAX_REGIONS; i++) {
+			for (int i = 0; i < Region_registry::MAX_REGIONS; i++) {
 				Region region = rm->_rmap.region(i);
 				if (!region.used())
 					continue;
@@ -299,7 +299,7 @@ Platform_env::Rm_session_mmap::attach(Dataspace_capability ds,
 }
 
 
-void Platform_env::Rm_session_mmap::detach(Rm_session::Local_addr local_addr)
+void Platform_env::Region_map_mmap::detach(Region_map::Local_addr local_addr)
 {
 	Lock::Guard lock_guard(_lock);
 
@@ -357,7 +357,7 @@ void Platform_env::Rm_session_mmap::detach(Rm_session::Local_addr local_addr)
 	if (is_sub_rm_session(region.dataspace())) {
 
 		Dataspace *ds_if = Local_capability<Dataspace>::deref(region.dataspace());
-		Rm_session_mmap *rm = dynamic_cast<Rm_session_mmap *>(ds_if);
+		Region_map_mmap *rm = dynamic_cast<Region_map_mmap *>(ds_if);
 		if (rm)
 			rm->_base = 0;
 	}

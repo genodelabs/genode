@@ -21,6 +21,7 @@ extern "C" {
 int linux_detach_one_lwp (struct inferior_list_entry *entry, void *args);
 }
 
+#include <base/env.h>
 #include <base/printf.h>
 #include <dataspace/client.h>
 
@@ -233,21 +234,21 @@ class Memory_model
 
 		Lock _lock;
 
-		Rm_session_component * const _address_space;
+		Region_map_component * const _address_space;
 
 		/**
 		 * Representation of a currently mapped region
 		 */
 		struct Mapped_region
 		{
-			Rm_session_component::Region *_region;
+			Region_map_component::Region *_region;
 			unsigned char                *_local_base;
 
 			Mapped_region() : _region(0), _local_base(0) { }
 
 			bool valid() { return _region != 0; }
 
-			bool is_loaded(Rm_session_component::Region const * region)
+			bool is_loaded(Region_map_component::Region const * region)
 			{
 				return _region == region;
 			}
@@ -260,7 +261,7 @@ class Memory_model
 				_region = 0;
 			}
 
-			void load(Rm_session_component::Region *region)
+			void load(Region_map_component::Region *region)
 			{
 				if (region == _region)
 					return;
@@ -275,7 +276,7 @@ class Memory_model
 					_region     = region;
 					_local_base = env()->rm_session()->attach(_region->ds_cap(),
 					                                          0, _region->offset());
-				} catch (Rm_session::Attach_failed) {
+				} catch (Region_map::Attach_failed) {
 					flush();
 					PERR("Memory_model: RM attach failed");
 				}
@@ -295,7 +296,7 @@ class Memory_model
 		 *
 		 * The function returns 0 if the mapping fails
 		 */
-		unsigned char *_update_curr_region(Rm_session_component::Region *region)
+		unsigned char *_update_curr_region(Region_map_component::Region *region)
 		{
 			for (unsigned i = 0; i < NUM_MAPPED_REGIONS; i++) {
 				if (_mapped_region[i].is_loaded(region))
@@ -314,7 +315,7 @@ class Memory_model
 
 	public:
 
-		Memory_model(Rm_session_component *address_space)
+		Memory_model(Region_map_component *address_space)
 		:
 			_address_space(address_space), _evict_idx(0)
 		{ }
@@ -325,7 +326,7 @@ class Memory_model
 
 			addr_t offset_in_region = 0;
 
-			Rm_session_component::Region *region =
+			Region_map_component::Region *region =
 				_address_space->find_region(addr, &offset_in_region);
 
 			unsigned char *local_base = _update_curr_region(region);
@@ -352,7 +353,7 @@ class Memory_model
 			Lock::Guard guard(_lock);
 
 			addr_t offset_in_region = 0;
-			Rm_session_component::Region *region =
+			Region_map_component::Region *region =
 				_address_space->find_region(addr, &offset_in_region);
 
 			unsigned char *local_base = _update_curr_region(region);
@@ -373,7 +374,7 @@ class Memory_model
  */
 static Memory_model *memory_model()
 {
-	static Memory_model inst(gdb_stub_thread()->rm_session_component());
+	static Memory_model inst(gdb_stub_thread()->region_map_component());
 	return &inst;
 }
 

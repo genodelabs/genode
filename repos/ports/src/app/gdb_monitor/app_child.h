@@ -19,7 +19,6 @@
 
 #include <base/child.h>
 #include <base/service.h>
-#include <pd_session/connection.h>
 
 #include <init/child_config.h>
 #include <init/child_policy.h>
@@ -29,7 +28,7 @@
 #include "cpu_root.h"
 #include "gdb_stub_thread.h"
 #include "ram_root.h"
-#include "rm_root.h"
+#include "pd_session_component.h"
 #include "rom.h"
 
 
@@ -54,64 +53,21 @@ namespace Gdb_monitor {
 			Init::Child_policy_provide_rom_file _config_policy;
 
 			Gdb_stub_thread               _gdb_stub_thread;
-			Object_pool<Dataspace_object> _managed_ds_map;
-
-			Rm_root                       _rm_root;
-			Rm_session_capability         _rm_session_cap;
+			Dataspace_pool                _managed_ds_map;
 
 			Cpu_root                      _cpu_root;
 			Cpu_session_capability        _cpu_session_cap;
 
 			Ram_session_capability        _ram_session_cap;
 
-			Pd_connection                 _pd;
+			Pd_session_component          _pd { _unique_name, _entrypoint,
+			                                    _managed_ds_map };
 
 			Child                         _child;
 
 			Genode::Rpc_entrypoint       *_root_ep;
 
 			Rom_service                   _rom_service;
-
-			class Rm_service : public Genode::Service
-			{
-				private:
-
-					Rm_root _rm_root;
-
-				public:
-
-					Rm_service(Genode::Rpc_entrypoint        *entrypoint,
-					           Genode::Allocator             *md_alloc,
-					           Object_pool<Dataspace_object> *managed_ds_map)
-					:
-						Genode::Service("RM"),
-						_rm_root(entrypoint, md_alloc, managed_ds_map)
-					{ }
-
-					Genode::Session_capability session(const char *args,
-					                                   Genode::Affinity const &affinity)
-					{
-						return _rm_root.session(args, affinity);
-					}
-
-					void upgrade(Genode::Session_capability, const char *) { }
-
-					void close(Genode::Session_capability cap)
-					{
-						_rm_root.close(cap);
-					}
-			} _rm_service;
-
-			Rm_session_capability _get_rm_session_cap()
-			{
-				_entrypoint.manage(&_rm_root);
-				Capability<Rm_session> cap = static_cap_cast<Rm_session>
-				                             (_rm_root.session("ram_quota=64K", Affinity()));
-				Rm_session_client rm(cap);
-
-				rm.fault_handler(_gdb_stub_thread.exception_signal_receiver()->manage(new (env()->heap()) Signal_context()));
-				return cap;
-			}
 
 			Cpu_session_capability _get_cpu_session_cap()
 			{
@@ -282,26 +238,21 @@ namespace Gdb_monitor {
 			  _binary_policy("binary", elf_ds, &_entrypoint),
 			  _config_policy("config", _child_config.dataspace(), &_entrypoint),
 			  _gdb_stub_thread(),
-			  _rm_root(&_entrypoint, env()->heap() /* should be _child.heap() */, &_managed_ds_map, &_gdb_stub_thread),
-			  _rm_session_cap(_get_rm_session_cap()),
 			  _cpu_root(&_entrypoint, env()->heap() /* should be _child.heap() */, &_gdb_stub_thread),
 			  _cpu_session_cap(_get_cpu_session_cap()),
 			  _ram_session_cap(ram_session),
-			  _pd(unique_name),
 			  _child(elf_ds, _pd.cap(), ram_session, _cpu_session_cap,
-			         _rm_session_cap, &_entrypoint, this),
+			         &_entrypoint, this),
 			  _root_ep(root_ep),
-			  _rom_service(&_entrypoint, _child.heap()),
-			  _rm_service(&_entrypoint, _child.heap(), &_managed_ds_map)
+			  _rom_service(&_entrypoint, _child.heap())
 			{
-				_local_services.insert(&_rm_service);
+				_gdb_stub_thread.set_region_map_component(&_pd.region_map());
 				_local_services.insert(&_rom_service);
 				_gdb_stub_thread.start();
 			}
 
 			~App_child()
 			{
-				_rm_root.close(_rm_session_cap);
 			}
 
 			/****************************

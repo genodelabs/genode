@@ -1,11 +1,9 @@
 /*
- * \brief  Implementation of the RM session interface
+ * \brief  Implementation of the region map
  * \author Christian Helmuth
  * \author Norman Feske
  * \author Alexander Boettcher
  * \date   2006-07-17
- *
- * FIXME arg_string and quota missing
  */
 
 /*
@@ -24,140 +22,137 @@
 /* core includes */
 #include <util.h>
 #include <cpu_session_component.h>
-#include <rm_session_component.h>
+#include <region_map_component.h>
 #include <dataspace_component.h>
-
-using namespace Genode;
-
 
 static const bool verbose             = false;
 static const bool verbose_page_faults = false;
 
 
-namespace Genode {
+struct Genode::Region_map_component::Fault_area
+{
+	addr_t _fault_addr;
+	addr_t _base;
+	size_t _size_log2;
 
-	struct Rm_session_component::Fault_area
+	addr_t _upper_bound() const {
+		return (_size_log2 == ~0UL) ? ~0 : (_base + (1 << _size_log2) - 1); }
+
+	/**
+	 * Default constructor, constructs invalid fault area
+	 */
+	Fault_area() : _size_log2(0) { }
+
+	/**
+	 * Constructor, fault area spans the maximum address-space size
+	 */
+	Fault_area(addr_t fault_addr) :
+		_fault_addr(fault_addr), _base(0), _size_log2(~0) { }
+
+	/**
+	 * Constrain fault area to specified region
+	 */
+	void constrain(addr_t region_base, size_t region_size)
 	{
-		addr_t _fault_addr;
-		addr_t _base;
-		size_t _size_log2;
-
-		addr_t _upper_bound() const {
-			return (_size_log2 == ~0UL) ? ~0 : (_base + (1 << _size_log2) - 1); }
-
-		/**
-		 * Default constructor, constructs invalid fault area
+		/*
+		 * Find flexpage around _fault_addr that lies within the
+		 * specified region.
+		 *
+		 * Start with a 'size_log2' of one less than the minimal
+		 * page size. If the specified constraint conflicts with
+		 * the existing fault area, the loop breaks at the first
+		 * iteration and we can check for this condition after the
+		 * loop.
 		 */
-		Fault_area() : _size_log2(0) { }
+		size_t size_log2 = get_page_size_log2() - 1;
+		addr_t base = 0;
+		for (size_t try_size_log2 = get_page_size_log2();
+		     try_size_log2 < sizeof(addr_t)*8 ; try_size_log2++) {
+			addr_t fpage_mask = ~((1UL << try_size_log2) - 1);
+			addr_t try_base = _fault_addr & fpage_mask;
 
-		/**
-		 * Constructor, fault area spans the maximum address-space size
-		 */
-		Fault_area(addr_t fault_addr) :
-			_fault_addr(fault_addr), _base(0), _size_log2(~0) { }
+			/* check lower bound of existing fault area */
+			if (try_base < _base)
+				break;
 
-		/**
-		 * Constrain fault area to specified region
-		 */
-		void constrain(addr_t region_base, size_t region_size)
-		{
-			/*
-			 * Find flexpage around _fault_addr that lies within the
-			 * specified region.
-			 *
-			 * Start with a 'size_log2' of one less than the minimal
-			 * page size. If the specified constraint conflicts with
-			 * the existing fault area, the loop breaks at the first
-			 * iteration and we can check for this condition after the
-			 * loop.
-			 */
-			size_t size_log2 = get_page_size_log2() - 1;
-			addr_t base = 0;
-			for (size_t try_size_log2 = get_page_size_log2();
-			     try_size_log2 < sizeof(addr_t)*8 ; try_size_log2++) {
-				addr_t fpage_mask = ~((1UL << try_size_log2) - 1);
-				addr_t try_base = _fault_addr & fpage_mask;
+			/* check against upper bound of existing fault area */
+			if (try_base + (1UL << try_size_log2) - 1 > _upper_bound())
+				break;
 
-				/* check lower bound of existing fault area */
-				if (try_base < _base)
-					break;
+			/* check against lower bound of region */
+			if (try_base < region_base)
+				break;
 
-				/* check against upper bound of existing fault area */
-				if (try_base + (1UL << try_size_log2) - 1 > _upper_bound())
-					break;
+			/* check against upper bound of region */
+			if (try_base + (1 << try_size_log2) - 1 > region_base + region_size - 1)
+				break;
 
-				/* check against lower bound of region */
-				if (try_base < region_base)
-					break;
-
-				/* check against upper bound of region */
-				if (try_base + (1 << try_size_log2) - 1 > region_base + region_size - 1)
-					break;
-
-				/* flexpage is compatible with fault area, use it */
-				size_log2 = try_size_log2;
-				base      = try_base;
-			}
-
-			/* if constraint is compatible with the fault area, invalidate */
-			if (size_log2 < get_page_size_log2()) {
-				_size_log2 = 0;
-				_base      = 0;
-			} else {
-				_size_log2 = size_log2;
-				_base      = base;
-			}
+			/* flexpage is compatible with fault area, use it */
+			size_log2 = try_size_log2;
+			base      = try_base;
 		}
 
-		/**
-		 * Constrain fault area to specified flexpage size
-		 */
-		void constrain(size_t size_log2)
-		{
-			if (size_log2 >= _size_log2)
-				return;
-
-			_base = _fault_addr & ~((1 << size_log2) - 1);
+		/* if constraint is compatible with the fault area, invalidate */
+		if (size_log2 < get_page_size_log2()) {
+			_size_log2 = 0;
+			_base      = 0;
+		} else {
 			_size_log2 = size_log2;
+			_base      = base;
 		}
+	}
 
-		/**
-		 * Determine common flexpage size compatible with specified fault areas
+	/**
+	 * Constrain fault area to specified flexpage size
+	 */
+	void constrain(size_t size_log2)
+	{
+		if (size_log2 >= _size_log2)
+			return;
+
+		_base = _fault_addr & ~((1 << size_log2) - 1);
+		_size_log2 = size_log2;
+	}
+
+	/**
+	 * Determine common flexpage size compatible with specified fault areas
+	 */
+	static size_t common_size_log2(Fault_area const &a1, Fault_area const &a2)
+	{
+		/*
+		 * We have to make sure that the offset of page-fault address
+		 * relative to the flexpage base is the same for both fault areas.
+		 * This condition is met by the flexpage size equal to the number
+		 * of common least-significant bits of both offsets.
 		 */
-		static size_t common_size_log2(Fault_area const &a1, Fault_area const &a2)
-		{
-			/*
-			 * We have to make sure that the offset of page-fault address
-			 * relative to the flexpage base is the same for both fault areas.
-			 * This condition is met by the flexpage size equal to the number
-			 * of common least-significant bits of both offsets.
-			 */
-			size_t const diff = (a1.fault_addr() - a1.base())
-			                  ^ (a2.fault_addr() - a2.base());
+		size_t const diff = (a1.fault_addr() - a1.base())
+		                  ^ (a2.fault_addr() - a2.base());
 
-			/*
-			 * Find highest clear bit in 'diff', starting from the least
-			 * significant candidate. We can skip all bits lower then
-			 * 'get_page_size_log2()' because they are not relevant as
-			 * flexpage size (and are always zero).
-			 */
-			size_t n = get_page_size_log2();
-			size_t const min_size_log2 = min(a1._size_log2, a2._size_log2);
-			for (; n < min_size_log2 && !(diff & (1 << n)); n++);
+		/*
+		 * Find highest clear bit in 'diff', starting from the least
+		 * significant candidate. We can skip all bits lower then
+		 * 'get_page_size_log2()' because they are not relevant as
+		 * flexpage size (and are always zero).
+		 */
+		size_t n = get_page_size_log2();
+		size_t const min_size_log2 = min(a1._size_log2, a2._size_log2);
+		for (; n < min_size_log2 && !(diff & (1 << n)); n++);
 
-			return n;
-		}
+		return n;
+	}
 
-		addr_t fault_addr() const { return _fault_addr; }
-		addr_t base()       const { return _base; }
-		bool   valid()      const { return _size_log2 > 0; }
-	};
-}
+	addr_t fault_addr() const { return _fault_addr; }
+	addr_t base()       const { return _base; }
+	bool   valid()      const { return _size_log2 > 0; }
+};
 
 
-/***************************
- ** Region-manager client **
- ***************************/
+using namespace Genode;
+
+
+/***********************
+ ** Region-map client **
+ ***********************/
 
 /*
  * This code is executed by the page-fault handler thread.
@@ -165,17 +160,17 @@ namespace Genode {
 
 int Rm_client::pager(Ipc_pager &pager)
 {
-	using Fault_area = Rm_session_component::Fault_area;
+	using Fault_area = Region_map_component::Fault_area;
 
-	Rm_session::Fault_type pf_type = pager.is_write_fault() ? Rm_session::WRITE_FAULT
-	                                                        : Rm_session::READ_FAULT;
+	Region_map::State::Fault_type pf_type = pager.is_write_fault() ? Region_map::State::WRITE_FAULT
+	                                                               : Region_map::State::READ_FAULT;
 	addr_t pf_addr = pager.fault_addr();
 	addr_t pf_ip   = pager.fault_ip();
 
 	if (verbose_page_faults)
 		print_page_fault("page fault", pf_addr, pf_ip, pf_type, badge());
 
-	auto lambda = [&] (Rm_session_component *rm_session,
+	auto lambda = [&] (Region_map_component *region_map,
 	                   Rm_region            *region,
 	                   addr_t                ds_offset,
 	                   addr_t                region_offset) -> int
@@ -186,18 +181,17 @@ int Rm_client::pager(Ipc_pager &pager)
 			/*
 			 * We found no attachment at the page-fault address and therefore have
 			 * to reflect the page fault as region-manager fault. The signal
-			 * handler is then expected to request the state of the region-manager
-			 * session.
+			 * handler is then expected to request the state of the region map.
 			 */
 
 			/* print a warning if it's no managed-dataspace */
-			if (rm_session == member_rm_session())
+			if (region_map == member_rm())
 				print_page_fault("no RM attachment", pf_addr, pf_ip,
 				                 pf_type, badge());
 
-			/* register fault at responsible region-manager session */
-			if (rm_session)
-				rm_session->fault(this, pf_addr - region_offset, pf_type);
+			/* register fault at responsible region map */
+			if (region_map)
+				region_map->fault(this, pf_addr - region_offset, pf_type);
 
 			/* there is no attachment return an error condition */
 			return 1;
@@ -225,14 +219,14 @@ int Rm_client::pager(Ipc_pager &pager)
 		/*
 		 * Check if dataspace is compatible with page-fault type
 		 */
-		if (pf_type == Rm_session::WRITE_FAULT && !dsc->writable()) {
+		if (pf_type == Region_map::State::WRITE_FAULT && !dsc->writable()) {
 
 			/* attempted there is no attachment return an error condition */
 			print_page_fault("attempted write at read-only memory",
 			                 pf_addr, pf_ip, pf_type, badge());
 
-			/* register fault at responsible region-manager session */
-			rm_session->fault(this, src_fault_area.fault_addr(), pf_type);
+			/* register fault at responsible region map */
+			region_map->fault(this, src_fault_area.fault_addr(), pf_type);
 			return 2;
 		}
 
@@ -255,7 +249,7 @@ int Rm_client::pager(Ipc_pager &pager)
 		pager.set_reply_mapping(mapping);
 		return 0;
 	};
-	return member_rm_session()->apply_to_dataspace(pf_addr, lambda);
+	return member_rm()->apply_to_dataspace(pf_addr, lambda);
 }
 
 
@@ -263,27 +257,27 @@ int Rm_client::pager(Ipc_pager &pager)
  ** Faulter **
  *************/
 
-void Rm_faulter::fault(Rm_session_component *faulting_rm_session,
-                       Rm_session::State     fault_state)
+void Rm_faulter::fault(Region_map_component *faulting_region_map,
+                       Region_map::State     fault_state)
 {
 	Lock::Guard lock_guard(_lock);
 
-	_faulting_rm_session = faulting_rm_session;
+	_faulting_region_map = faulting_region_map;
 	_fault_state         = fault_state;
 
 	_pager_object->unresolved_page_fault_occurred();
 }
 
 
-void Rm_faulter::dissolve_from_faulting_rm_session(Rm_session_component * caller)
+void Rm_faulter::dissolve_from_faulting_region_map(Region_map_component * caller)
 {
 	/* serialize access */
 	Lock::Guard lock_guard(_lock);
 
-	if (_faulting_rm_session)
-		_faulting_rm_session->discard_faulter(this, _faulting_rm_session != caller);
+	if (_faulting_region_map)
+		_faulting_region_map->discard_faulter(this, _faulting_region_map != caller);
 
-	_faulting_rm_session = 0;
+	_faulting_region_map = 0;
 }
 
 
@@ -292,19 +286,19 @@ void Rm_faulter::continue_after_resolved_fault()
 	Lock::Guard lock_guard(_lock);
 
 	_pager_object->wake_up();
-	_faulting_rm_session = 0;
-	_fault_state = Rm_session::State();
+	_faulting_region_map = 0;
+	_fault_state = Region_map::State();
 }
 
 
-/**************************************
- ** Region-manager-session component **
- **************************************/
+/**************************
+ ** Region-map component **
+ **************************/
 
-Rm_session::Local_addr
-Rm_session_component::attach(Dataspace_capability ds_cap, size_t size,
+Region_map::Local_addr
+Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
                              off_t offset, bool use_local_addr,
-                             Rm_session::Local_addr local_addr,
+                             Region_map::Local_addr local_addr,
                              bool executable)
 {
 	/* serialize access */
@@ -422,25 +416,25 @@ Rm_session_component::attach(Dataspace_capability ds_cap, size_t size,
 }
 
 
-static void unmap_managed(Rm_session_component *session, Rm_region *region, int level)
+static void unmap_managed(Region_map_component *rm, Rm_region *region, int level)
 {
-	for (Rm_region *managed = session->dataspace_component()->regions()->first();
+	for (Rm_region *managed = rm->dataspace_component()->regions()->first();
 	     managed;
 	     managed = managed->List<Rm_region>::Element::next()) {
 
 		if (verbose)
 			PDBG("(%d: %p) a=%lx,s=%lx,off=%lx ra=%lx,s=%lx,off=%lx sub-session %p",
-			     level, session, managed->base(), (long)managed->size(), managed->offset(),
-			     region->base(), (long)region->size(), region->offset(), managed->session());
+			     level, rm, managed->base(), (long)managed->size(), managed->offset(),
+			     region->base(), (long)region->size(), region->offset(), managed->rm());
 
 		if (managed->base() - managed->offset() >= region->base() - region->offset()
 		    && managed->base() - managed->offset() + managed->size()
 		       <= region->base() - region->offset() + region->size())
-			unmap_managed(managed->session(), managed, level + 1);
+			unmap_managed(managed->rm(), managed, level + 1);
 
-		/* Found a leaf node (here a leaf is an Rm_session whose dataspace has no regions) */
-		if (!managed->session()->dataspace_component()->regions()->first())
-			for (Rm_client *rc = managed->session()->clients()->first();
+		/* found a leaf node (here a leaf is an Region_map whose dataspace has no regions) */
+		if (!managed->rm()->dataspace_component()->regions()->first())
+			for (Rm_client *rc = managed->rm()->clients()->first();
 			     rc; rc = rc->List<Rm_client>::Element::next())
 				rc->unmap(region->dataspace()->core_local_addr() + region->offset(),
 				          managed->base() + region->base() - managed->offset(), region->size());
@@ -448,7 +442,7 @@ static void unmap_managed(Rm_session_component *session, Rm_region *region, int 
 }
 
 
-void Rm_session_component::detach(Local_addr local_addr)
+void Region_map_component::detach(Local_addr local_addr)
 {
 	/* serialize access */
 	Lock::Guard lock_guard(_lock);
@@ -496,12 +490,12 @@ void Rm_session_component::detach(Local_addr local_addr)
 	/*
 	 * This function gets called from the destructor of 'Dataspace_component',
 	 * which iterates through all regions the dataspace is attached to. One
-	 * particular case is the destruction of an 'Rm_session_component' and its
+	 * particular case is the destruction of an 'Region_map_component' and its
 	 * contained managed dataspace ('_ds') member. The type of this member is
-	 * derived from 'Dataspace_component' and provides the 'sub_rm_session'
+	 * derived from 'Dataspace_component' and provides the 'sub_region_map'
 	 * function, which can normally be used to distinguish managed dataspaces
 	 * from leaf dataspaces. However, at destruction time of the '_dsc' base
-	 * class, the vtable entry of 'sub_rm_session' already points to the
+	 * class, the vtable entry of 'sub_region_map' already points to the
 	 * base-class's function. Hence, we cannot check the return value of this
 	 * function to determine if the dataspace is a managed dataspace. Instead,
 	 * we introduced a dataspace member '_managed' with the non-virtual accessor
@@ -509,7 +503,7 @@ void Rm_session_component::detach(Local_addr local_addr)
 	 */
 
 	/*
-	 * Go through all RM clients using the RM session. For each RM client, we
+	 * Go through all RM clients using the region map. For each RM client, we
 	 * need to unmap the referred region from its virtual address space.
 	 */
 	Rm_client *prev_rc = 0;
@@ -554,8 +548,8 @@ void Rm_session_component::detach(Local_addr local_addr)
 	}
 
 	/*
-	 * If RM session is used as nested dataspace, unmap this
-	 * dataspace from all RM sessions.
+	 * If region map is used as nested dataspace, unmap this dataspace from all
+	 * region maps.
 	 */
 	unmap_managed(this, &region, 1);
 
@@ -571,7 +565,7 @@ void Rm_session_component::detach(Local_addr local_addr)
 }
 
 
-Pager_capability Rm_session_component::add_client(Thread_capability thread)
+Pager_capability Region_map_component::add_client(Thread_capability thread)
 {
 	unsigned long badge;
 	Affinity::Location location;
@@ -581,6 +575,11 @@ Pager_capability Rm_session_component::add_client(Thread_capability thread)
 		/* lookup thread and setup correct parameters */
 		auto lambda = [&] (Cpu_thread_component *cpu_thread) {
 			if (!cpu_thread) throw Invalid_thread();
+
+			if (!cpu_thread->bound()) {
+				PERR("attempt to create pager for unbound thread");
+				throw Region_map::Unbound_thread();
+			}
 
 			/* determine identification of client when faulting */
 			badge = cpu_thread->platform_thread()->pager_object_badge();
@@ -610,7 +609,7 @@ Pager_capability Rm_session_component::add_client(Thread_capability thread)
 }
 
 
-void Rm_session_component::remove_client(Pager_capability pager_cap)
+void Region_map_component::remove_client(Pager_capability pager_cap)
 {
 	Rm_client *client;
 
@@ -622,12 +621,12 @@ void Rm_session_component::remove_client(Pager_capability pager_cap)
 		/*
 		 * Rm_client is derived from Pager_object. If the Pager_object is also
 		 * derived from Thread_base then the Rm_client object must be
-		 * destructed without holding the rm_session_object lock. The native
+		 * destructed without holding the region_map lock. The native
 		 * platform specific Thread_base implementation has to take care that
 		 * all in-flight page handling requests are finished before
 		 * destruction. (Either by waiting until the end of or by
 		 * <deadlock free> cancellation of the last in-flight request.
-		 * This operation can also require taking the rm_session_object lock.
+		 * This operation can also require taking the region_map lock.
 		 */
 		{
 			Lock::Guard lock_guard(_lock);
@@ -639,7 +638,7 @@ void Rm_session_component::remove_client(Pager_capability pager_cap)
 
 		{
 			Lock::Guard lock_guard(_lock);
-			client->dissolve_from_faulting_rm_session(this);
+			client->dissolve_from_faulting_region_map(this);
 		}
 	};
 	_pager_ep->apply(pager_cap, lambda);
@@ -648,11 +647,11 @@ void Rm_session_component::remove_client(Pager_capability pager_cap)
 }
 
 
-void Rm_session_component::fault(Rm_faulter *faulter, addr_t pf_addr,
-                                 Rm_session::Fault_type pf_type)
+void Region_map_component::fault(Rm_faulter *faulter, addr_t pf_addr,
+                                 Region_map::State::Fault_type pf_type)
 {
 	/* remember fault state in faulting thread */
-	faulter->fault(this, Rm_session::State(pf_type, pf_addr));
+	faulter->fault(this, Region_map::State(pf_type, pf_addr));
 
 	/* enqueue faulter */
 	_faulters.enqueue(faulter);
@@ -662,7 +661,7 @@ void Rm_session_component::fault(Rm_faulter *faulter, addr_t pf_addr,
 }
 
 
-void Rm_session_component::discard_faulter(Rm_faulter *faulter, bool do_lock)
+void Region_map_component::discard_faulter(Rm_faulter *faulter, bool do_lock)
 {
 	if (do_lock) {
 		Lock::Guard lock_guard(_lock);
@@ -672,13 +671,13 @@ void Rm_session_component::discard_faulter(Rm_faulter *faulter, bool do_lock)
 }
 
 
-void Rm_session_component::fault_handler(Signal_context_capability handler)
+void Region_map_component::fault_handler(Signal_context_capability handler)
 {
 	_fault_notifier.context(handler);
 }
 
 
-Rm_session::State Rm_session_component::state()
+Region_map::State Region_map_component::state()
 {
 	/* serialize access */
 	Lock::Guard lock_guard(_lock);
@@ -688,7 +687,7 @@ Rm_session::State Rm_session_component::state()
 
 	/* return ready state if there are not current faulters */
 	if (!faulter)
-		return Rm_session::State();
+		return Region_map::State();
 
 	/* return fault information regarding the first faulter of the list */
 	return faulter->fault_state();
@@ -698,29 +697,31 @@ static Dataspace_capability _type_deduction_helper(Dataspace_capability cap) {
 	return cap; }
 
 
-Rm_session_component::Rm_session_component(Rpc_entrypoint   *ds_ep,
-                                           Rpc_entrypoint   *thread_ep,
-                                           Rpc_entrypoint   *session_ep,
-                                           Allocator        *md_alloc,
-                                           size_t            ram_quota,
-                                           Pager_entrypoint *pager_ep,
+Region_map_component::Region_map_component(Rpc_entrypoint   &ep,
+                                           Allocator        &md_alloc,
+                                           Pager_entrypoint &pager_ep,
                                            addr_t            vm_start,
                                            size_t            vm_size)
 :
-	_ds_ep(ds_ep), _thread_ep(thread_ep), _session_ep(session_ep),
-	_md_alloc(md_alloc, ram_quota),
+	_ds_ep(&ep), _thread_ep(&ep), _session_ep(&ep),
+	_md_alloc(md_alloc),
 	_client_slab(&_md_alloc), _ref_slab(&_md_alloc),
-	_map(&_md_alloc), _pager_ep(pager_ep),
+	_map(&_md_alloc), _pager_ep(&pager_ep),
 	_ds(align_addr(vm_size, get_page_size_log2())),
-	_ds_cap(_type_deduction_helper(ds_ep->manage(&_ds)))
+	_ds_cap(_type_deduction_helper(_ds_ep->manage(&_ds)))
 {
 	/* configure managed VM area */
 	_map.add_range(vm_start, align_addr(vm_size, get_page_size_log2()));
+
+	Capability<Region_map> cap = ep.manage(this);
+	_ds.sub_rm(cap);
 }
 
 
-Rm_session_component::~Rm_session_component()
+Region_map_component::~Region_map_component()
 {
+	_ds_ep->dissolve(this);
+
 	/* dissolve all clients from pager entrypoint */
 	Rm_client *cl;
 	do {
@@ -755,13 +756,13 @@ Rm_session_component::~Rm_session_component()
 	/* serialize access */
 	_lock.lock();
 
-	/* remove all faulters with pending page faults at this rm session */
+	/* remove all faulters with pending page faults at this region map */
 	while (Rm_faulter *faulter = _faulters.head())
-		faulter->dissolve_from_faulting_rm_session(this);
+		faulter->dissolve_from_faulting_region_map(this);
 
 	/* remove all clients, invalidate rm_client pointers in cpu_thread objects */
 	while (Rm_client *cl = _client_slab()->first_object()) {
-		cl->dissolve_from_faulting_rm_session(this);
+		cl->dissolve_from_faulting_region_map(this);
 
 		Thread_capability thread_cap = cl->thread_cap();
 		if (thread_cap.valid())

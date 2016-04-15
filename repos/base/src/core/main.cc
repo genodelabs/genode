@@ -120,16 +120,16 @@ class Core_child : public Child_policy
 		 */
 		Core_child(Dataspace_capability elf_ds, Pd_session_capability pd,
 		           Ram_session_capability ram,
-		           Cpu_session_capability cpu, Rm_session_capability rm,
+		           Cpu_session_capability cpu,
 		           Service_registry &services)
 		:
 			_entrypoint(nullptr, STACK_SIZE, "init", false),
 			_local_services(services),
-			_child(elf_ds, pd, ram, cpu, rm, &_entrypoint, this,
+			_child(elf_ds, pd, ram, cpu,
+			       &_entrypoint, this,
 			       *_local_services.find(Pd_session::service_name()),
 			       *_local_services.find(Ram_session::service_name()),
-			       *_local_services.find(Cpu_session::service_name()),
-			       *_local_services.find(Rm_session::service_name()))
+			       *_local_services.find(Cpu_session::service_name()))
 		{
 			_entrypoint.activate();
 		}
@@ -233,13 +233,14 @@ int main()
 	 */
 	static Rpc_cap_factory rpc_cap_factory(sliced_heap);
 
+	static Pager_entrypoint pager_ep(rpc_cap_factory);
+
 	static Ram_root     ram_root     (e, e, platform()->ram_alloc(), &sliced_heap);
 	static Rom_root     rom_root     (e, e, platform()->rom_fs(), &sliced_heap);
-	static Rm_root      rm_root      (e, e, e, &sliced_heap, rpc_cap_factory,
-	                                  platform()->vm_start(), platform()->vm_size());
-	static Cpu_root     cpu_root     (e, e, rm_root.pager_ep(), &sliced_heap,
+	static Rm_root      rm_root      (e, &sliced_heap, pager_ep);
+	static Cpu_root     cpu_root     (e, e, &pager_ep, &sliced_heap,
 	                                  Trace::sources());
-	static Pd_root      pd_root      (e, e, &sliced_heap);
+	static Pd_root      pd_root      (e, e, pager_ep, &sliced_heap);
 	static Log_root     log_root     (e, &sliced_heap);
 	static Io_mem_root  io_mem_root  (e, e, platform()->io_mem_alloc(),
 	                                  platform()->ram_alloc(), &sliced_heap);
@@ -287,14 +288,12 @@ int main()
 
 	/* create CPU session for init and transfer all of the CPU quota to it */
 	static Cpu_session_component
-		cpu(e, e, rm_root.pager_ep(), &sliced_heap, Trace::sources(),
+		cpu(e, e, &pager_ep, &sliced_heap, Trace::sources(),
 		    "label=\"core\"", Affinity(), Cpu_session::QUOTA_LIMIT);
 	Cpu_session_capability cpu_cap = core_env()->entrypoint()->manage(&cpu);
 	Cpu_connection init_cpu("init");
 	init_cpu.ref_account(cpu_cap);
 	cpu.transfer_quota(init_cpu, Cpu_session::quota_lim_upscale(100, 100));
-
-	Rm_connection  init_rm;
 
 	/* transfer all left memory to init, but leave some memory left for core */
 	/* NOTE: exception objects thrown in core components are currently allocated on
@@ -306,7 +305,7 @@ int main()
 	Pd_connection init_pd("init");
 	Core_child *init = new (env()->heap())
 		Core_child(Rom_session_client(init_rom_session_cap).dataspace(),
-		           init_pd, init_ram_session_cap, init_cpu.cap(), init_rm.cap(),
+		           init_pd, init_ram_session_cap, init_cpu.cap(),
 		           local_services);
 
 	PDBG("--- init created, waiting for exit condition ---");

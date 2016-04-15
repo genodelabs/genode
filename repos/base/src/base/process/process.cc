@@ -37,7 +37,7 @@ static bool _check_dynamic_elf(Dataspace_capability elf_ds_cap)
 	/* attach ELF locally */
 	addr_t elf_addr;
 	try { elf_addr = env()->rm_session()->attach(elf_ds_cap); }
-	catch (Rm_session::Attach_failed) { return false; }
+	catch (Region_map::Attach_failed) { return false; }
 
 	/* read program header */
 	Elf_binary elf((addr_t)elf_addr);
@@ -52,16 +52,16 @@ static bool _check_dynamic_elf(Dataspace_capability elf_ds_cap)
  * \param parent_cap  parent capability for child (i.e. myself)
  * \param elf_ds_cap  dataspace containing the ELF binary
  * \param ram         RAM session of the new protection domain
- * \param rm          region manager session of the new protection domain
+ * \param rm          region map of the new protection domain
  */
 static addr_t _setup_elf(Parent_capability parent_cap,
                          Dataspace_capability elf_ds_cap,
-                         Ram_session &ram, Rm_session &rm)
+                         Ram_session &ram, Region_map &rm)
 {
 	/* attach ELF locally */
 	addr_t elf_addr;
 	try { elf_addr = env()->rm_session()->attach(elf_ds_cap); }
-	catch (Rm_session::Attach_failed) { return 0; }
+	catch (Region_map::Attach_failed) { return 0; }
 
 	/* setup ELF object and read program entry pointer */
 	Elf_binary elf((addr_t)elf_addr);
@@ -108,7 +108,7 @@ static addr_t _setup_elf(Parent_capability parent_cap,
 			/* attach dataspace */
 			void *base;
 			try { base = env()->rm_session()->attach(ds_cap); }
-			catch (Rm_session::Attach_failed) {
+			catch (Region_map::Attach_failed) {
 				PERR("env()->rm_session()->attach() failed");
 				entry = 0;
 				break;
@@ -140,7 +140,7 @@ static addr_t _setup_elf(Parent_capability parent_cap,
 			env()->rm_session()->detach(base);
 
 			try { out_ptr = rm.attach_at(ds_cap, addr, size, offset); }
-			catch (Rm_session::Attach_failed) { }
+			catch (Region_map::Attach_failed) { }
 
 		} else {
 
@@ -154,10 +154,10 @@ static addr_t _setup_elf(Parent_capability parent_cap,
 
 			if (exec)
 				try { out_ptr = rm.attach_executable(ds_cap, addr, size, offset); }
-				catch (Rm_session::Attach_failed) { }
+				catch (Region_map::Attach_failed) { }
 			else
 				try { out_ptr = rm.attach_at(ds_cap, addr, size, offset); }
-				catch (Rm_session::Attach_failed) { }
+				catch (Region_map::Attach_failed) { }
 		}
 
 		if ((addr_t)out_ptr != addr)
@@ -176,15 +176,16 @@ Process::Process(Dataspace_capability    elf_ds_cap,
                  Pd_session_capability   pd_session_cap,
                  Ram_session_capability  ram_session_cap,
                  Cpu_session_capability  cpu_session_cap,
-                 Rm_session_capability   rm_session_cap,
                  Parent_capability       parent_cap,
                  char const             *name)
 : _pd_session_client(pd_session_cap),
-  _cpu_session_client(cpu_session_cap),
-  _rm_session_client(rm_session_cap)
+  _cpu_session_client(cpu_session_cap)
 {
 	if (!pd_session_cap.valid())
 		return;
+
+	/* region map of the new protection domain */
+	Region_map_client rm(Pd_session_client(pd_session_cap).address_space());
 
 	enum Local_exception
 	{
@@ -232,7 +233,7 @@ Process::Process(Dataspace_capability    elf_ds_cap,
 		/* parse ELF binary and setup segment dataspaces */
 		addr_t entry = 0;
 		if (elf_ds_cap.valid()) {
-			entry = _setup_elf(parent_cap, elf_ds_cap, ram, _rm_session_client);
+			entry = _setup_elf(parent_cap, elf_ds_cap, ram, rm);
 			if (!entry) {
 				PERR("Setup ELF failed");
 				throw ELF_FAIL;
@@ -248,7 +249,7 @@ Process::Process(Dataspace_capability    elf_ds_cap,
 		/* register thread0 at region manager session */
 		Pager_capability pager;
 		try {
-			pager = _rm_session_client.add_client(_thread0_cap);
+			pager = rm.add_client(_thread0_cap);
 		} catch (...) {
 			PERR("Pager setup failed");
 			throw THREAD_ADD_FAIL;

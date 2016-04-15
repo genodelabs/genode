@@ -125,7 +125,7 @@ append config_of_app {
 	</start>
 
 	<start name="vbox_pointer" priority="-1">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="1200K"/>
 		<config>
 			<policy label="nit_fb" rom="shape"/>
 		</config>

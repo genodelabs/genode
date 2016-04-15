@@ -1,5 +1,5 @@
 /*
- * \brief  Kernel-specific supplements of the RM service
+ * \brief  Kernel-specific supplements of the region-map implementation
  * \author Norman Feske
  * \date   2015-05-01
  */

@@ -18,6 +18,7 @@
 
 #include <util/touch.h>
 #include <rm_session/connection.h>
+#include <region_map/client.h>
 
 #include <os/attached_rom_dataspace.h>
 #include <os/config.h>
@@ -53,7 +54,8 @@ void test_pat()
 	Test::Capability session_cap = ep.manage(&component);
 	Test::Client     client(session_cap);
 
-	Genode::Rm_connection rm_free_area(0, 1 << (DS_ORDER + PAGE_4K));
+	Genode::Rm_connection rm;
+	Genode::Region_map_client rm_free_area(rm.create(1 << (DS_ORDER + PAGE_4K)));
 	addr_t remap_addr = Genode::env()->rm_session()->attach(rm_free_area.dataspace());
 
 	/* trigger mapping of whole area */
@@ -193,12 +195,14 @@ class Greedy : public Thread<4096> {
 			Thread<0x1000>("greedy")
 		{ }
 
-		void entry() {
+		void entry()
+		{
 			PINF("starting");
 
 			enum { SUB_RM_SIZE = 2UL * 1024 * 1024 * 1024 };
 
-			Genode::Rm_connection sub_rm(0, SUB_RM_SIZE);
+			Genode::Rm_connection rm;
+			Genode::Region_map_client sub_rm(rm.create(SUB_RM_SIZE));
 			addr_t const mem = env()->rm_session()->attach(sub_rm.dataspace());
 
 			Nova::Utcb * nova_utcb = reinterpret_cast<Nova::Utcb *>(utcb());

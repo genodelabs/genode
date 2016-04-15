@@ -165,14 +165,10 @@ class Genode::Child : protected Rpc_object<Parent>
 		/* CPU session that contains the quota of the child */
 		Cpu_session_capability  _cpu;
 
-		/* RM session representing the address space of the child */
-		Rm_session_capability   _rm;
-
-		/* Services where the PD, RAM, CPU, and RM resources come from */
+		/* services where the PD, RAM, and CPU resources come from */
 		Service                &_pd_service;
 		Service                &_ram_service;
 		Service                &_cpu_service;
-		Service                &_rm_service;
 
 		/* heap for child-specific allocations using the child's quota */
 		Heap                    _heap;
@@ -238,14 +234,11 @@ class Genode::Child : protected Rpc_object<Parent>
 		 * \param pd           PD session representing the protection domain
 		 * \param ram          RAM session with the child's quota
 		 * \param cpu          CPU session with the child's quota
-		 * \param rm           RM session representing the address space
-		 *                     of the child
 		 * \param entrypoint   server entrypoint to serve the parent interface
 		 * \param policy       child policy
 		 * \param pd_service   provider of the 'pd' session
 		 * \param ram_service  provider of the 'ram' session
 		 * \param cpu_service  provider of the 'cpu' session
-		 * \param rm_service   provider of the 'rm' session
 		 *
 		 * If assigning a separate entry point to each child, the host of
 		 * multiple children is able to handle a blocking invocation of
@@ -253,7 +246,7 @@ class Genode::Child : protected Rpc_object<Parent>
 		 * service to other children, each having an independent entry
 		 * point.
 		 *
-		 * The 'ram_service', 'cpu_service', and 'rm_service' arguments are
+		 * The 'ram_service', 'cpu_service', and 'pd_service' arguments are
 		 * needed to direct quota upgrades referring to the resources of
 		 * the child environment. By default, we expect that these
 		 * resources are provided by the parent.
@@ -262,13 +255,11 @@ class Genode::Child : protected Rpc_object<Parent>
 		      Pd_session_capability   pd,
 		      Ram_session_capability  ram,
 		      Cpu_session_capability  cpu,
-		      Rm_session_capability   rm,
 		      Rpc_entrypoint         *entrypoint,
 		      Child_policy           *policy,
 		      Service                &pd_service  = *_parent_service(),
 		      Service                &ram_service = *_parent_service(),
-		      Service                &cpu_service = *_parent_service(),
-		      Service                &rm_service  = *_parent_service());
+		      Service                &cpu_service = *_parent_service());
 
 		/**
 		 * Destructor
@@ -286,7 +277,6 @@ class Genode::Child : protected Rpc_object<Parent>
 		Pd_session_capability  pd_session_cap()  const { return _pd; }
 		Ram_session_capability ram_session_cap() const { return _ram; }
 		Cpu_session_capability cpu_session_cap() const { return _cpu; }
-		Rm_session_capability  rm_session_cap()  const { return _rm;  }
 		Parent_capability      parent_cap()      const { return cap(); }
 
 		/**

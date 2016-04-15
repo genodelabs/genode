@@ -59,7 +59,7 @@ void Thread_base::_init_platform_thread(size_t weight, Type type)
 		if (!_thread_cap.valid())
 			throw Cpu_session::Thread_creation_failed();
 
-	    env()->pd_session()->bind_thread(_thread_cap);
+		env()->pd_session()->bind_thread(_thread_cap);
 		return;
 	}
 	/* adjust values whose computation differs for a main thread */
@@ -80,7 +80,11 @@ void Thread_base::start()
 	using namespace Fiasco;
 
 	/* create new pager object and assign it to the new thread */
-	_pager_cap = env()->rm_session()->add_client(_thread_cap);
+	try {
+		_pager_cap = env()->rm_session()->add_client(_thread_cap);
+	} catch (Region_map::Unbound_thread) {
+		throw Cpu_session::Thread_creation_failed(); }
+
 	_cpu_session->set_pager(_thread_cap, _pager_cap);
 
 	/* get gate-capability and badge of new thread */

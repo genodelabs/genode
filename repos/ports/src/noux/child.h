@@ -29,6 +29,7 @@
 #include <environment.h>
 #include <ram_session_component.h>
 #include <cpu_session_component.h>
+#include <pd_session_component.h>
 #include <child_policy.h>
 #include <io_receptor_registry.h>
 #include <destruct_queue.h>
@@ -123,8 +124,6 @@ namespace Noux {
 			enum { STACK_SIZE = 4*1024*sizeof(long) };
 			Rpc_entrypoint _entrypoint;
 
-			Pd_connection _pd;
-
 			/**
 			 * Resources assigned to the child
 			 */
@@ -146,25 +145,24 @@ namespace Noux {
 				 */
 				Ram_session_component ram;
 				Cpu_session_component cpu;
-				Rm_session_component  rm;
 
 				Resources(char const *label, Rpc_entrypoint &ep, bool forked)
 				:
-					ep(ep), ram(ds_registry), cpu(label, forked), rm(ds_registry)
+					ep(ep), ram(ds_registry), cpu(label, forked)
 				{
 					ep.manage(&ram);
-					ep.manage(&rm);
 					ep.manage(&cpu);
 				}
 
 				~Resources()
 				{
 					ep.dissolve(&ram);
-					ep.dissolve(&rm);
 					ep.dissolve(&cpu);
 				}
 
 			} _resources;
+
+			Pd_session_component _pd;
 
 			/**
 			 * Command line arguments
@@ -214,7 +212,6 @@ namespace Noux {
 			Local_noux_service _local_noux_service;
 			Parent_service     _parent_ram_service;
 			Local_cpu_service  _local_cpu_service;
-			Local_rm_service   _local_rm_service;
 			Local_rom_service  _local_rom_service;
 			Service_registry  &_parent_services;
 
@@ -352,8 +349,8 @@ namespace Noux {
 				_destruct_context_cap(sig_rec->manage(&_destruct_dispatcher)),
 				_cap_session(cap_session),
 				_entrypoint(cap_session, STACK_SIZE, "noux_process", false),
-				_pd(binary_name),
 				_resources(binary_name, resources_ep, false),
+				_pd(binary_name, resources_ep, _resources.ds_registry),
 				_args(ARGS_DS_SIZE, args),
 				_env(env),
 				_elf(binary_name, root_dir, root_dir->dataspace(binary_name)),
@@ -363,7 +360,6 @@ namespace Noux {
 				_local_noux_service(_noux_session_cap),
 				_parent_ram_service(""),
 				_local_cpu_service(_entrypoint, _resources.cpu.cpu_cap()),
-				_local_rm_service(_entrypoint, _resources.ds_registry),
 				_local_rom_service(_entrypoint, _resources.ds_registry),
 				_parent_services(parent_services),
 				_binary_ds_info(_resources.ds_registry, _elf._binary_ds),
@@ -373,14 +369,13 @@ namespace Noux {
 				_env_ds_info(_resources.ds_registry, _env.cap()),
 				_child_policy(_elf._name, _elf._binary_ds, _args.cap(), _env.cap(),
 				              _entrypoint, _local_noux_service,
-				              _local_rm_service, _local_rom_service,
-				              _parent_services,
+				              _local_rom_service, _parent_services,
 				              *this, parent_exit, *this, _destruct_context_cap,
 				              _resources.ram, verbose),
 				_child(forked ? Dataspace_capability() : _elf._binary_ds,
 				       _pd.cap(), _resources.ram.cap(), _resources.cpu.cap(),
-				       _resources.rm.cap(), &_entrypoint, &_child_policy,
-				       _parent_ram_service, _local_cpu_service, _local_rm_service)
+				       &_entrypoint, &_child_policy, _parent_ram_service,
+				       _local_cpu_service)
 			{
 				if (verbose)
 					_args.dump();
@@ -406,7 +401,8 @@ namespace Noux {
 				/* poke parent_cap_addr into child's address space */
 				Capability<Parent> const &cap = _child.parent_cap();
 				Capability<Parent>::Raw   raw = { cap.dst(), cap.local_name() };
-				_resources.rm.poke(parent_cap_addr, &raw, sizeof(raw));
+
+				_pd.poke(parent_cap_addr, &raw, sizeof(raw));
 
 				/* start execution of new main thread at supplied trampoline */
 				_resources.cpu.start_main_thread(ip, sp);
@@ -425,7 +421,7 @@ namespace Noux {
 			}
 
 			Ram_session_capability ram() const { return _resources.ram.cap(); }
-			Rm_session_capability   rm() const { return _resources.rm.cap(); }
+			Pd_session_capability  pd()  const { return _pd.cap(); }
 			Dataspace_registry &ds_registry()  { return _resources.ds_registry; }
 
 
@@ -438,9 +434,9 @@ namespace Noux {
 				return _sysio_ds.cap();
 			}
 
-			Rm_session_capability lookup_rm_session(addr_t const addr)
+			Capability<Region_map> lookup_region_map(addr_t const addr)
 			{
-				return _resources.rm.lookup_rm_session(addr);
+				return _pd.lookup_region_map(addr);
 			}
 
 			bool syscall(Syscall sc);

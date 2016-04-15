@@ -29,7 +29,7 @@ using namespace Genode;
  ****************************************************/
 
 Genode::size_t
-Platform_env_base::Rm_session_mmap::_dataspace_size(Dataspace_capability ds)
+Platform_env_base::Region_map_mmap::_dataspace_size(Dataspace_capability ds)
 {
 	if (ds.valid())
 		return Dataspace_client(ds).size();
@@ -38,17 +38,18 @@ Platform_env_base::Rm_session_mmap::_dataspace_size(Dataspace_capability ds)
 }
 
 
-int Platform_env_base::Rm_session_mmap::_dataspace_fd(Dataspace_capability ds)
+int Platform_env_base::Region_map_mmap::_dataspace_fd(Dataspace_capability ds)
 {
 	return Linux_dataspace_client(ds).fd().dst().socket;
 }
 
 
 bool
-Platform_env_base::Rm_session_mmap::_dataspace_writable(Dataspace_capability ds)
+Platform_env_base::Region_map_mmap::_dataspace_writable(Dataspace_capability ds)
 {
 	return Dataspace_client(ds).writable();
 }
+
 
 
 /********************************
@@ -63,22 +64,11 @@ Platform_env::Local_parent::session(Service_name const &service_name,
                                     Session_args const &args,
                                     Affinity     const &affinity)
 {
-	if (strcmp(service_name.string(),
-	    Rm_session::service_name()) == 0)
+	if (strcmp(service_name.string(), Rm_session::service_name()) == 0)
 	{
-		size_t size =
-			Arg_string::find_arg(args.string(),"size")
-				.ulong_value(~0);
+		Local_rm_session *session = new (_alloc) Local_rm_session(_alloc);
 
-		if (size == 0)
-			return Expanding_parent_client::session(service_name, args, affinity);
-
-		if (size != ~0UL)
-			size = align_addr(size, get_page_size_log2());
-
-		Rm_session_mmap *rm = new (_alloc) Rm_session_mmap(true, size);
-
-		return Local_capability<Session>::local_cap(rm);
+		return Local_capability<Session>::local_cap(session);
 	}
 
 	return Expanding_parent_client::session(service_name, args, affinity);
@@ -98,9 +88,9 @@ void Platform_env::Local_parent::close(Session_capability session)
 	/*
 	 * Detect capability to local RM session
 	 */
-	Capability<Rm_session_mmap> rm = static_cap_cast<Rm_session_mmap>(session);
+	Capability<Rm_session> rm = static_cap_cast<Rm_session>(session);
 
-	destroy(env()->heap(), Local_capability<Rm_session_mmap>::deref(rm));
+	destroy(_alloc, Local_capability<Rm_session>::deref(rm));
 }
 
 
@@ -162,11 +152,15 @@ Platform_env::Platform_env()
 	                  static_cap_cast<Cpu_session>(_parent().session("Env::cpu_session", "")),
 	                  static_cap_cast<Pd_session> (_parent().session("Env::pd_session",  ""))),
 	_heap(Platform_env_base::ram_session(), Platform_env_base::rm_session()),
-	_stack_area(*parent(), *rm_session()),
 	_emergency_ram_ds(ram_session()->alloc(_emergency_ram_size()))
 {
+	/* attach stack area to local address space */
+	_local_pd_session._address_space.attach_at(_local_pd_session._stack_area.dataspace(),
+	                                           stack_area_virtual_base(),
+	                                           stack_area_virtual_size());
+
+	env_stack_area_region_map  = &_local_pd_session._stack_area;
 	env_stack_area_ram_session = ram_session();
-	env_stack_area_rm_session  = &_stack_area;
 
 	/* register TID and PID of the main thread at core */
 	Linux_native_cpu_client native_cpu(cpu_session()->native_cpu());

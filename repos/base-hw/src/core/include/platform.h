@@ -28,7 +28,7 @@
 /* core includes */
 #include <translation_table_allocator_tpl.h>
 #include <platform_generic.h>
-#include <core_rm_session.h>
+#include <core_region_map.h>
 #include <core_mem_alloc.h>
 
 namespace Genode {

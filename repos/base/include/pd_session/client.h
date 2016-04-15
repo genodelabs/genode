@@ -56,6 +56,15 @@ struct Genode::Pd_session_client : Rpc_client<Pd_session>
 	void free_rpc_cap(Native_capability cap) override {
 		call<Rpc_free_rpc_cap>(cap); }
 
+	Capability<Region_map> address_space() override {
+		return call<Rpc_address_space>(); }
+
+	Capability<Region_map> stack_area() override {
+		return call<Rpc_stack_area>(); }
+
+	Capability<Region_map> linker_area() override {
+		return call<Rpc_linker_area>(); }
+
 	Capability<Native_pd> native_pd() override { return call<Rpc_native_pd>(); }
 };
 

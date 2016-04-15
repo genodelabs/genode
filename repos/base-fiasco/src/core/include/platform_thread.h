@@ -108,6 +108,15 @@ namespace Genode {
 			void unbind();
 
 			/**
+			 * Return pointer to the thread's PD
+			 *
+			 * Used to validate the success of the bind operation.
+			 *
+			 * XXX to be removed
+			 */
+			Platform_pd *pd() { return _platform_pd; }
+
+			/**
 			 * Override thread state with 's'
 			 *
 			 * \throw Cpu_session::State_access_failed

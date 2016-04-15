@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <os/attached_dataspace.h>
 #include <io_mem_session/io_mem_session.h>
+#include <region_map/client.h>
 
 /* Linux emulation environment includes */
 #include <lx_emul/impl/internal/list.h>
@@ -42,6 +43,7 @@ class Lx::Mapped_io_mem_range : public Lx::List<Mapped_io_mem_range>::Element
 		Genode::size_t const        _size;
 		Genode::addr_t const        _phys;
 		Genode::Rm_connection       _rm;
+		Genode::Region_map_client   _region_map;
 		Genode::Attached_dataspace  _ds;
 		Genode::addr_t const        _virt;
 
@@ -52,10 +54,10 @@ class Lx::Mapped_io_mem_range : public Lx::List<Mapped_io_mem_range>::Element
 		                    Genode::addr_t offset)
 		: _size(size),
 		  _phys(phys),
-		  _rm(0, size),
-		  _ds(_rm.dataspace()),
+		  _region_map(_rm.create(size)),
+		  _ds(_region_map.dataspace()),
 		  _virt((Genode::addr_t)_ds.local_addr<void>() | (phys &0xfffUL)) {
-			_rm.attach_at(ds_cap, 0, size, offset); }
+			_region_map.attach_at(ds_cap, 0, size, offset); }
 
 		Genode::addr_t phys() const { return _phys; }
 		Genode::addr_t virt() const { return _virt; }

@@ -21,6 +21,7 @@
 #include <base/env.h>
 #include <base/allocator_avl.h>
 #include <rm_session/connection.h>
+#include <region_map/client.h>
 #include <dataspace/client.h>
 
 namespace Lx {
@@ -33,7 +34,8 @@ namespace Lx {
 }
 
 class Lx::Slab_backend_alloc : public Genode::Allocator,
-                               public Genode::Rm_connection
+                               public Genode::Rm_connection,
+                               public Genode::Region_map_client
 {
 	private:
 
@@ -62,7 +64,7 @@ class Lx::Slab_backend_alloc : public Genode::Allocator,
 			try {
 				_ds_cap[_index] = Lx::backend_alloc(BLOCK_SIZE, _cached);
 				/* attach at index * BLOCK_SIZE */
-				Rm_connection::attach_at(_ds_cap[_index], _index * BLOCK_SIZE, BLOCK_SIZE, 0);
+				Region_map_client::attach_at(_ds_cap[_index], _index * BLOCK_SIZE, BLOCK_SIZE, 0);
 
 				/* lookup phys. address */
 				_ds_phys[_index] = Genode::Dataspace_client(_ds_cap[_index]).phys_addr();
@@ -80,7 +82,7 @@ class Lx::Slab_backend_alloc : public Genode::Allocator,
 
 		Slab_backend_alloc(Genode::Cache_attribute cached)
 		:
-			Rm_connection(0, VM_SIZE),
+			Region_map_client(Rm_connection::create(VM_SIZE)),
 			_cached(cached), _index(0), _range(Genode::env()->heap())
 		{
 			/* reserver attach us, anywere */

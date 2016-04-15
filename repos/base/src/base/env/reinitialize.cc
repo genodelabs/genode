@@ -78,12 +78,12 @@ void Genode::Platform_env::reinit(Native_capability::Dst dst,
 
 void
 Genode::Platform_env::
-reinit_main_thread(Rm_session_capability & stack_area_rm)
+reinit_main_thread(Capability<Region_map> &stack_area_rm)
 {
 	/* reinitialize stack area RM session */
-	Rm_session * const rms = env_stack_area_rm_session;
-	Rm_session_client * const rmc = dynamic_cast<Rm_session_client *>(rms);
-	construct_at<Rm_session_client>(rmc, stack_area_rm);
+	Region_map * const rms = env_stack_area_region_map;
+	Region_map_client * const rmc = dynamic_cast<Region_map_client *>(rms);
+	construct_at<Region_map_client>(rmc, stack_area_rm);
 
 	/* reinitialize main-thread object */
 	::reinit_main_thread();

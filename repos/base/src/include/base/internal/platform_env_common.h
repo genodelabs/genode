@@ -21,7 +21,7 @@
 #include <util/retry.h>
 #include <parent/client.h>
 #include <ram_session/client.h>
-#include <rm_session/client.h>
+#include <region_map/client.h>
 #include <cpu_session/client.h>
 #include <pd_session/client.h>
 
@@ -30,7 +30,7 @@
 
 namespace Genode {
 
-	class Expanding_rm_session_client;
+	class Expanding_region_map_client;
 	class Expanding_ram_session_client;
 	class Expanding_cpu_session_client;
 	class Expanding_parent_client;
@@ -39,7 +39,7 @@ namespace Genode {
 
 	Parent_capability parent_cap();
 
-	extern Rm_session  *env_stack_area_rm_session;
+	extern Region_map  *env_stack_area_region_map;
 	extern Ram_session *env_stack_area_ram_session;
 
 	void init_signal_thread();
@@ -71,31 +71,31 @@ struct Upgradeable_client : CLIENT
 };
 
 
-struct Genode::Expanding_rm_session_client
-:
-	Upgradeable_client<Genode::Rm_session_client>
+struct Genode::Expanding_region_map_client : Region_map_client
 {
-	Expanding_rm_session_client(Rm_session_capability cap)
-	: Upgradeable_client<Genode::Rm_session_client>(cap) { }
+	Upgradeable_client<Genode::Pd_session_client> _pd_client;
+
+	Expanding_region_map_client(Pd_session_capability pd, Capability<Region_map> rm)
+	: Region_map_client(rm), _pd_client(pd) { }
 
 	Local_addr attach(Dataspace_capability ds, size_t size, off_t offset,
 	                  bool use_local_addr, Local_addr local_addr,
 	                  bool executable)
 	{
-		return retry<Rm_session::Out_of_metadata>(
+		return retry<Region_map::Out_of_metadata>(
 			[&] () {
-				return Rm_session_client::attach(ds, size, offset,
+				return Region_map_client::attach(ds, size, offset,
 				                                 use_local_addr,
 				                                 local_addr,
 				                                 executable); },
-			[&] () { upgrade_ram(8*1024); });
+			[&] () { _pd_client.upgrade_ram(8*1024); });
 	}
 
 	Pager_capability add_client(Thread_capability thread)
 	{
-		return retry<Rm_session::Out_of_metadata>(
-			[&] () { return Rm_session_client::add_client(thread); },
-			[&] () { upgrade_ram(8*1024); });
+		return retry<Region_map::Out_of_metadata>(
+			[&] () { return Region_map_client::add_client(thread); },
+			[&] () { _pd_client.upgrade_ram(8*1024); });
 	}
 };
 
@@ -336,30 +336,18 @@ class Genode::Expanding_parent_client : public Parent_client
 };
 
 
-struct Genode::Attached_stack_area : Genode::Expanding_rm_session_client
+struct Genode::Attached_stack_area : Genode::Expanding_region_map_client
 {
-	/**
-	 * Helper for requesting the sub RM session of the stack area
-	 */
-	Rm_session_capability _session(Parent &parent)
-	{
-		char buf[256];
-		snprintf(buf, sizeof(buf), "ram_quota=64K, start=0x0, size=0x%zx",
-		         (size_t)stack_area_virtual_size());
-
-		return static_cap_cast<Rm_session>(parent.session(Rm_session::service_name(),
-		                                                  buf, Affinity()));
-	}
-
-	Attached_stack_area(Parent &parent, Rm_session &env_rm)
+	Attached_stack_area(Parent &parent, Pd_session_capability pd)
 	:
-		Expanding_rm_session_client(_session(parent))
+		Expanding_region_map_client(pd, Pd_session_client(pd).stack_area())
 	{
-		env_rm.attach_at(Expanding_rm_session_client::dataspace(),
-		                 stack_area_virtual_base(),
-		                 stack_area_virtual_size());
+		Region_map_client address_space(Pd_session_client(pd).address_space());
+
+		address_space.attach_at(Expanding_region_map_client::dataspace(),
+		                        stack_area_virtual_base(),
+		                        stack_area_virtual_size());
 	}
 };
-
 
 #endif /* _INCLUDE__BASE__INTERNAL__PLATFORM_ENV_COMMON_H_ */

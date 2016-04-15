@@ -56,13 +56,11 @@ Process::Process(Dataspace_capability   elf_data_ds_cap,
                  Pd_session_capability  pd_session_cap,
                  Ram_session_capability ram_session_cap,
                  Cpu_session_capability cpu_session_cap,
-                 Rm_session_capability  rm_session_cap,
                  Parent_capability      parent_cap,
                  char const            *name)
 :
 	_pd_session_client(pd_session_cap),
-	_cpu_session_client(cpu_session_cap),
-	_rm_session_client(Rm_session_capability())
+	_cpu_session_client(cpu_session_cap)
 {
 	/* check for dynamic program header */
 	if (_check_dynamic_elf(elf_data_ds_cap)) {

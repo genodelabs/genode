@@ -22,7 +22,7 @@ Gdb_stub_thread::Gdb_stub_thread()
 :
 	Thread<GDB_STUB_STACK_SIZE>("GDB server thread"),
 	_cpu_session_component(0),
-	_rm_session_component(0),
+	_region_map_component(0),
 	_signal_handler_thread(&_exception_signal_receiver)
 {
 	_signal_handler_thread.start();

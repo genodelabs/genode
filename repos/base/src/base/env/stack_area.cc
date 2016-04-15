@@ -16,7 +16,7 @@
 #include <base/internal/stack_area.h>
 
 namespace Genode {
-	Rm_session  *env_stack_area_rm_session;
+	Region_map  *env_stack_area_region_map;
 	Ram_session *env_stack_area_ram_session;
 }
 

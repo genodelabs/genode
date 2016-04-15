@@ -444,7 +444,7 @@ void Exception_handlers::register_handler(Pager_object *obj, Mtd mtd,
 	unsigned use_cpu = obj->location.xpos();
 	if (!kernel_hip()->is_cpu_enabled(use_cpu) || !pager_threads[use_cpu]) {
 		PWRN("invalid CPU parameter used in pager object");
-		throw Rm_session::Invalid_thread();
+		throw Region_map::Invalid_thread();
 	}
 
 	addr_t const ec_sel = pager_threads[use_cpu]->native_thread().ec_sel;
@@ -454,7 +454,7 @@ void Exception_handlers::register_handler(Pager_object *obj, Mtd mtd,
 	uint8_t res = create_portal(obj->exc_pt_sel_client() + EV,
 	                            __core_pd_sel, ec_sel, mtd, entry, obj);
 	if (res != Nova::NOVA_OK)
-		throw Rm_session::Invalid_thread();
+		throw Region_map::Invalid_thread();
 }
 
 
@@ -519,19 +519,19 @@ Pager_object::Pager_object(unsigned long badge, Affinity::Location location)
 
 	if (Native_thread::INVALID_INDEX == _selectors ||
 	    Native_thread::INVALID_INDEX == _client_exc_pt_sel)
-		throw Rm_session::Invalid_thread();
+		throw Region_map::Invalid_thread();
 
 	/* ypos information not supported by now */
 	if (location.ypos()) {
 		PWRN("Unsupported location %ux%u", location.xpos(), location.ypos());
-		throw Rm_session::Invalid_thread();
+		throw Region_map::Invalid_thread();
 	}
 
 	/* place Pager_object on specified CPU by selecting proper pager thread */
 	unsigned use_cpu = location.xpos();
 	if (!kernel_hip()->is_cpu_enabled(use_cpu) || !pager_threads[use_cpu]) {
 		PWRN("invalid CPU parameter used in pager object");
-		throw Rm_session::Invalid_thread();
+		throw Region_map::Invalid_thread();
 	}
 
 	addr_t ec_sel    = pager_threads[use_cpu]->native_thread().ec_sel;
@@ -557,7 +557,7 @@ Pager_object::Pager_object(unsigned long badge, Affinity::Location location)
 	 */
 	res = Nova::create_sm(exc_pt_sel_client() + SM_SEL_EC, pd_sel, 0);
 	if (res != Nova::NOVA_OK) {
-		throw Rm_session::Invalid_thread();
+		throw Region_map::Invalid_thread();
 	}
 
 	/* create portal for final cleanup call used during destruction */
@@ -565,19 +565,19 @@ Pager_object::Pager_object(unsigned long badge, Affinity::Location location)
 	                    reinterpret_cast<addr_t>(_invoke_handler), this);
 	if (res != Nova::NOVA_OK) {
 		PERR("could not create pager cleanup portal, error = %u\n", res);
-		throw Rm_session::Invalid_thread();
+		throw Region_map::Invalid_thread();
 	}
 
 	/* used to notify caller of as soon as pause succeeded */
 	res = Nova::create_sm(sel_sm_notify(), pd_sel, 0);
 	if (res != Nova::NOVA_OK) {
-		throw Rm_session::Invalid_thread();
+		throw Region_map::Invalid_thread();
 	}
 
 	/* semaphore used to block paged thread during page fault or recall */
 	res = Nova::create_sm(sel_sm_block(), pd_sel, 0);
 	if (res != Nova::NOVA_OK) {
-		throw Rm_session::Invalid_thread();
+		throw Region_map::Invalid_thread();
 	}
 }
 

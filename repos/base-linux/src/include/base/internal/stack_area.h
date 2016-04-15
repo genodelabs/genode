@@ -53,7 +53,7 @@ static inline void flush_stack_area()
 	int ret;
 	if ((ret = lx_munmap(base, size)) < 0) {
 		PERR("%s: failed ret=%d", __func__, ret);
-		throw Rm_session::Region_conflict();
+		throw Region_map::Region_conflict();
 	}
 }
 
@@ -74,7 +74,7 @@ static inline Genode::addr_t reserve_stack_area()
 
 		PERR("%s: failed addr_in=%p addr_out=%p ret=%ld)", __func__,
 		     addr_in, addr_out, (long)addr_out);
-		throw Rm_session::Region_conflict();
+		throw Region_map::Region_conflict();
 	}
 
 	return (addr_t) addr_out;

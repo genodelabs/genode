@@ -177,18 +177,18 @@ namespace Genode {
 
 
 /****************************************************
- ** Support for Platform_env_base::Rm_session_mmap **
+ ** Support for Platform_env_base::Region_map_mmap **
  ****************************************************/
 
 Genode::size_t
-Platform_env_base::Rm_session_mmap::_dataspace_size(Capability<Dataspace> ds_cap)
+Platform_env_base::Region_map_mmap::_dataspace_size(Capability<Dataspace> ds_cap)
 {
 	if (!ds_cap.valid())
 		return Local_capability<Dataspace>::deref(ds_cap)->size();
 
 	/* use RPC if called from a different thread */
 	if (!core_env()->entrypoint()->is_myself()) {
-		/* release Rm_session_mmap::_lock during RPC */
+		/* release Region_map_mmap::_lock during RPC */
 		_lock.unlock();
 		Genode::size_t size = Dataspace_client(ds_cap).size();
 		_lock.lock();
@@ -201,10 +201,10 @@ Platform_env_base::Rm_session_mmap::_dataspace_size(Capability<Dataspace> ds_cap
 }
 
 
-int Platform_env_base::Rm_session_mmap::_dataspace_fd(Capability<Dataspace> ds_cap)
+int Platform_env_base::Region_map_mmap::_dataspace_fd(Capability<Dataspace> ds_cap)
 {
 	if (!core_env()->entrypoint()->is_myself()) {
-		/* release Rm_session_mmap::_lock during RPC */
+		/* release Region_map_mmap::_lock during RPC */
 		_lock.unlock();
 		int socket = Linux_dataspace_client(ds_cap).fd().dst().socket;
 		_lock.lock();
@@ -215,7 +215,7 @@ int Platform_env_base::Rm_session_mmap::_dataspace_fd(Capability<Dataspace> ds_c
 
 	/*
 	 * Return a duplicate of the dataspace file descriptor, which will be freed
-	 * immediately after mmap'ing the file (see 'Rm_session_mmap').
+	 * immediately after mmap'ing the file (see 'Region_map_mmap').
 	 *
 	 * Handing out the original file descriptor would result in the premature
 	 * release of the descriptor. So the descriptor could be reused (i.e., as a
@@ -227,10 +227,10 @@ int Platform_env_base::Rm_session_mmap::_dataspace_fd(Capability<Dataspace> ds_c
 }
 
 
-bool Platform_env_base::Rm_session_mmap::_dataspace_writable(Dataspace_capability ds_cap)
+bool Platform_env_base::Region_map_mmap::_dataspace_writable(Dataspace_capability ds_cap)
 {
 	if (!core_env()->entrypoint()->is_myself()) {
-		/* release Rm_session_mmap::_lock during RPC */
+		/* release Region_map_mmap::_lock during RPC */
 		_lock.unlock();
 		bool writable = Dataspace_client(ds_cap).writable();
 		_lock.lock();

@@ -21,7 +21,7 @@
 #include <nova_cpu_session/connection.h>
 #include <cpu_session/connection.h>
 #include <pd_session/connection.h>
-#include <rm_session/connection.h>
+#include <region_map/client.h>
 
 /* NOVA includes */
 #include <nova/native_thread.h>
@@ -50,7 +50,6 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 		Genode::Pd_connection       _pd_session;
 		Genode::Affinity::Location  _location;
 		Genode::Cpu_session        *_cpu_session;
-		Genode::Rm_connection       _rm;
 
 		Genode::addr_t _exc_pt_sel;
 
@@ -75,7 +74,8 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 			_pd_session.bind_thread(vcpu_vm);
 
 			/* create new pager object and assign it to the new thread */
-			Pager_capability pager_cap = _rm.add_client(vcpu_vm);
+			Genode::Region_map_client address_space(_pd_session.address_space());
+			Pager_capability pager_cap = address_space.add_client(vcpu_vm);
 
 			_cpu_session->set_pager(vcpu_vm, pager_cap);
 

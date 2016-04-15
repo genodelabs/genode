@@ -22,6 +22,7 @@ SRC_CC += thread/thread.cc thread/stack.cc thread/trace.cc
 SRC_CC += thread/myself.cc
 SRC_CC += thread/stack_allocator.cc env/cap_map.cc
 SRC_CC += sleep.cc
+SRC_CC += region_map_client.cc
 SRC_CC += rm_session_client.cc
 SRC_CC += entrypoint/entrypoint.cc
 SRC_CC += component/component.cc

@@ -14,6 +14,7 @@
 #include <base/snprintf.h>
 #include <dataspace/client.h>
 #include <rm_session/connection.h>
+#include <region_map/client.h>
 #include <timer_session/connection.h>
 #include <trace/timestamp.h>
 
@@ -46,7 +47,8 @@ namespace Genode {
  */
 template <unsigned VM_SIZE>
 class Genode::Slab_backend_alloc : public Genode::Allocator,
-                                   public Genode::Rm_connection
+                                   public Genode::Rm_connection,
+                                   public Genode::Region_map_client
 {
 	private:
 
@@ -72,7 +74,7 @@ class Genode::Slab_backend_alloc : public Genode::Allocator,
 			try {
 				_ds_cap[_index] =  Genode::env()->ram_session()->alloc(BLOCK_SIZE, _cached);
 				/* attach at index * BLOCK_SIZE */
-				Rm_connection::attach_at(_ds_cap[_index], _index * BLOCK_SIZE, BLOCK_SIZE, 0);
+				Region_map_client::attach_at(_ds_cap[_index], _index * BLOCK_SIZE, BLOCK_SIZE, 0);
 
 				/* lookup phys. address */
 				_ds_phys[_index] = Dataspace_client(_ds_cap[_index]).phys_addr();
@@ -89,8 +91,9 @@ class Genode::Slab_backend_alloc : public Genode::Allocator,
 	public:
 
 		Slab_backend_alloc(Cache_attribute cached)
-		: Rm_connection(0, VM_SIZE), _cached(cached), _index(0),
-		  _range(env()->heap())
+		:
+			Region_map_client(Rm_connection::create(VM_SIZE)),
+			_cached(cached), _index(0), _range(env()->heap())
 		{
 			/* reserver attach us, anywere */
 			_base = env()->rm_session()->attach(dataspace());

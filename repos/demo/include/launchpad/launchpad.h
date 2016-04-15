@@ -25,6 +25,7 @@
 #include <base/lock.h>
 #include <cap_session/connection.h>
 #include <timer_session/timer_session.h>
+#include <pd_session/client.h>
 
 #include <init/child.h>
 
@@ -156,7 +157,6 @@ class Launchpad_child : public Genode::List<Launchpad_child>::Element
 		Genode::Rom_session_capability _rom;
 		Genode::Ram_session_capability _ram;
 		Genode::Cpu_session_capability _cpu;
-		Genode::Rm_session_capability  _rm;
 		Genode::Server                 _server;
 
 		/*
@@ -177,7 +177,6 @@ class Launchpad_child : public Genode::List<Launchpad_child>::Element
 			                Genode::Pd_session_capability  pd,
 			                Genode::Ram_session_capability ram,
 			                Genode::Cpu_session_capability cpu,
-			                Genode::Rm_session_capability  rm,
 			                Genode::Rom_session_capability rom,
 			                Genode::Cap_session           *cap_session,
 			                Genode::Service_registry      *parent_services,
@@ -186,17 +185,16 @@ class Launchpad_child : public Genode::List<Launchpad_child>::Element
 			                Launchpad                     *launchpad)
 			:
 				_launchpad(launchpad),
-				_rom(rom), _ram(ram), _cpu(cpu), _rm(rm), _server(_ram),
+				_rom(rom), _ram(ram), _cpu(cpu), _server(_ram),
 				_entrypoint(cap_session, ENTRYPOINT_STACK_SIZE, name, false),
 				_policy(name, &_server, parent_services, child_services,
 				        config_ds, elf_ds, &_entrypoint),
-				_child(elf_ds, pd, ram, cpu, rm, &_entrypoint, &_policy) {
+				_child(elf_ds, pd, ram, cpu, &_entrypoint, &_policy) {
 				_entrypoint.activate(); }
 
 			Genode::Rom_session_capability rom_session_cap() { return _rom; }
 			Genode::Ram_session_capability ram_session_cap() { return _ram; }
 			Genode::Cpu_session_capability cpu_session_cap() { return _cpu; }
-			Genode::Rm_session_capability  rm_session_cap()  { return _rm;  }
 
 			const char *name() const { return _policy.name(); }
 

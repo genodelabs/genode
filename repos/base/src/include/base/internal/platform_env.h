@@ -75,15 +75,15 @@ class Genode::Platform_env : public Genode::Env, public Emergency_ram_reserve
 
 			Expanding_ram_session_client ram;
 			Expanding_cpu_session_client cpu;
-			Expanding_rm_session_client  rm;
 			Pd_session_client            pd;
+			Expanding_region_map_client  rm;
 
 			Resources(Parent &parent)
 			:
 				ram(request<Ram_session>(parent, "Env::ram_session")),
 				cpu(request<Cpu_session>(parent, "Env::cpu_session")),
-				rm (request<Rm_session> (parent, "Env::rm_session")),
-				pd (request<Pd_session> (parent, "Env::pd_session"))
+				pd (request<Pd_session> (parent, "Env::pd_session")),
+				rm (pd, pd.address_space())
 			{ }
 		};
 
@@ -96,7 +96,7 @@ class Genode::Platform_env : public Genode::Env, public Emergency_ram_reserve
 		 * because the 'Local_parent' performs a dynamic memory allocation
 		 * due to the creation of the stack area's sub-RM session.
 		 */
-		Attached_stack_area _stack_area { _parent_client, _resources.rm };
+		Attached_stack_area _stack_area { _parent_client, _resources.pd };
 
 		char _initial_heap_chunk[sizeof(addr_t) * 4096];
 
@@ -105,7 +105,7 @@ class Genode::Platform_env : public Genode::Env, public Emergency_ram_reserve
 		 *
 		 * See the comment of '_fallback_sig_cap()' in 'env/env.cc'.
 		 */
-		constexpr static size_t  _emergency_ram_size() { return 8*1024; }
+		constexpr static size_t  _emergency_ram_size() { return 16*1024; }
 		Ram_dataspace_capability _emergency_ram_ds;
 
 	public:
@@ -122,14 +122,14 @@ class Genode::Platform_env : public Genode::Env, public Emergency_ram_reserve
 			_emergency_ram_ds(_resources.ram.alloc(_emergency_ram_size()))
 		{
 			env_stack_area_ram_session = &_resources.ram;
-			env_stack_area_rm_session  = &_stack_area;
+			env_stack_area_region_map  = &_stack_area;
 		}
 
 		/*
 		 * Support functions for implementing fork on Noux.
 		 */
 		void reinit(Native_capability::Dst, long) override;
-		void reinit_main_thread(Rm_session_capability &) override;
+		void reinit_main_thread(Capability<Region_map> &) override;
 
 
 		/*************************************
@@ -153,7 +153,7 @@ class Genode::Platform_env : public Genode::Env, public Emergency_ram_reserve
 		Ram_session_capability  ram_session_cap() override { return  _resources.ram; }
 		Cpu_session            *cpu_session()     override { return &_resources.cpu; }
 		Cpu_session_capability  cpu_session_cap() override { return  _resources.cpu; }
-		Rm_session             *rm_session()      override { return &_resources.rm; }
+		Region_map             *rm_session()      override { return &_resources.rm; }
 		Pd_session             *pd_session()      override { return &_resources.pd; }
 		Pd_session_capability   pd_session_cap()  override { return  _resources.pd; }
 		Allocator              *heap()            override { return &_heap; }

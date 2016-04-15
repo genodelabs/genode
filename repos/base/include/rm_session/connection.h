@@ -24,16 +24,8 @@ struct Genode::Rm_connection : Connection<Rm_session>, Rm_session_client
 {
 	enum { RAM_QUOTA = 64*1024 };
 
-	/**
-	 * Constructor
-	 *
-	 * \param start start of the managed VM-region
-	 * \param size  size of the VM-region to manage
-	 */
-	Rm_connection(addr_t start = ~0UL, size_t size = 0) :
-		Connection<Rm_session>(
-			session("ram_quota=%u, start=0x%p, size=0x%zx",
-			        RAM_QUOTA, start, size)),
+	Rm_connection() :
+		Connection<Rm_session>(session("ram_quota=%u", RAM_QUOTA)),
 		Rm_session_client(cap()) { }
 };
 

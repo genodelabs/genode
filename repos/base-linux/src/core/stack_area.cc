@@ -19,21 +19,22 @@
 
 /* base-internal includes */
 #include <base/internal/stack_area.h>
+#include <base/internal/platform_env_common.h>
 
 
 /**
- * Region-manager session for allocating stacks
+ * Region-map for allocating stacks
  *
  * This class corresponds to the managed dataspace that is normally used for
  * organizing stacks within the stack. It "emulates" the sub address space by
  * adjusting the local address argument to 'attach' with the offset of the
  * stack area.
  */
-class Stack_area_rm_session : public Genode::Rm_session
+class Stack_area_region_map : public Genode::Region_map
 {
 	public:
 
-		Stack_area_rm_session()
+		Stack_area_region_map()
 		{
 			flush_stack_area();
 			reserve_stack_area();
@@ -105,13 +106,13 @@ class Stack_area_ram_session : public Genode::Ram_session
  */
 namespace Genode {
 
-	Rm_session  *env_stack_area_rm_session;
+	Region_map  *env_stack_area_region_map;
 	Ram_session *env_stack_area_ram_session;
 
 	void init_stack_area()
 	{
-		static Stack_area_rm_session rm_inst;
-		env_stack_area_rm_session = &rm_inst;
+		static Stack_area_region_map rm_inst;
+		env_stack_area_region_map = &rm_inst;
 
 		static Stack_area_ram_session ram_inst;
 		env_stack_area_ram_session = &ram_inst;

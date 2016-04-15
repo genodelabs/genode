@@ -13,7 +13,7 @@
  */
 
 /* Genode includes */
-#include <rm_session/rm_session.h>
+#include <region_map/region_map.h>
 #include <ram_session/ram_session.h>
 #include <base/printf.h>
 #include <base/synced_allocator.h>
@@ -30,7 +30,7 @@
 
 namespace Genode {
 
-	Rm_session  *env_stack_area_rm_session;
+	Region_map  *env_stack_area_region_map;
 	Ram_session *env_stack_area_ram_session;
 
 	void init_stack_area();
@@ -52,7 +52,7 @@ using namespace Genode;
  * of a dataspace has no effect, but the attachment of the thereby "empty"
  * dataspace is doing both: allocation and attachment.
  */
-class Stack_area_rm_session : public Rm_session
+class Stack_area_region_map : public Region_map
 {
 	private:
 
@@ -161,8 +161,8 @@ class Stack_area_ram_session : public Ram_session
 
 void Genode::init_stack_area()
 {
-	static Stack_area_rm_session rm;
-	env_stack_area_rm_session = &rm;
+	static Stack_area_region_map rm;
+	env_stack_area_region_map = &rm;
 
 	static Stack_area_ram_session ram;
 	env_stack_area_ram_session = &ram;

@@ -17,7 +17,6 @@
 /* Genode includes */
 #include <pd_session/connection.h>
 #include <ram_session/connection.h>
-#include <rm_session/connection.h>
 #include <cpu_session/connection.h>
 #include <cap_session/connection.h>
 #include <base/printf.h>
@@ -468,7 +467,6 @@ class Init::Child : Genode::Child_policy
 			Genode::Pd_connection  pd;
 			Genode::Ram_connection ram;
 			Genode::Cpu_connection cpu;
-			Genode::Rm_connection  rm;
 
 			inline void transfer_cpu_quota();
 
@@ -489,7 +487,6 @@ class Init::Child : Genode::Child_policy
 			{
 				/* deduce session costs from usable ram quota */
 				Genode::size_t session_donations = Genode::Pd_connection::RAM_QUOTA +
-				                                   Genode::Rm_connection::RAM_QUOTA +
 				                                   Genode::Cpu_connection::RAM_QUOTA +
 				                                   Genode::Ram_connection::RAM_QUOTA;
 
@@ -566,7 +563,7 @@ class Init::Child : Genode::Child_policy
 			_config(_resources.ram.cap(), start_node),
 			_server(_resources.ram.cap()),
 			_child(_binary_rom_ds, _resources.pd.cap(), _resources.ram.cap(),
-			       _resources.cpu.cap(), _resources.rm.cap(), &_entrypoint, this),
+			       _resources.cpu.cap(), &_entrypoint, this),
 			_parent_services(parent_services),
 			_child_services(child_services),
 			_labeling_policy(_name.unique),

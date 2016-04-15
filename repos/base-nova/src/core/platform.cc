@@ -121,7 +121,8 @@ static void page_fault_handler()
 	addr_t pf_type = utcb->qual[0];
 
 	print_page_fault("\nPAGE-FAULT IN CORE", pf_addr, pf_ip,
-	                 (pf_type & Ipc_pager::ERR_W) ? Rm_session::WRITE_FAULT : Rm_session::READ_FAULT, 0);
+	                 (pf_type & Ipc_pager::ERR_W) ? Region_map::State::WRITE_FAULT
+	                                              : Region_map::State::READ_FAULT, 0);
 
 	printf("\nstack pointer 0x%lx, qualifiers 0x%lx %s%s%s%s%s\n",
 	       pf_sp, pf_type,

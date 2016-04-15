@@ -29,8 +29,9 @@ class Genode::Pd_root : public Genode::Root_component<Genode::Pd_session_compone
 {
 	private:
 
-		Rpc_entrypoint &_thread_ep;
-		Allocator      &_md_alloc;
+		Rpc_entrypoint   &_thread_ep;
+		Pager_entrypoint &_pager_ep;
+		Allocator        &_md_alloc;
 
 	protected:
 
@@ -40,7 +41,8 @@ class Genode::Pd_root : public Genode::Root_component<Genode::Pd_session_compone
 			return new (md_alloc()) Pd_session_component(_thread_ep,
 			                                             _thread_ep,
 			                                             _thread_ep,
-			                                             _md_alloc, args);
+			                                             _md_alloc,
+			                                             _pager_ep, args);
 		}
 
 		void _upgrade_session(Pd_session_component *p, const char *args)
@@ -59,11 +61,12 @@ class Genode::Pd_root : public Genode::Root_component<Genode::Pd_session_compone
 		 * \param thread_ep   entry point for managing threads
 		 * \param md_alloc    meta-data allocator to be used by root component
 		 */
-		Pd_root(Rpc_entrypoint *session_ep,
-		        Rpc_entrypoint *thread_ep,
-		        Allocator      *md_alloc)
+		Pd_root(Rpc_entrypoint   *session_ep,
+		        Rpc_entrypoint   *thread_ep,
+		        Pager_entrypoint &pager_ep,
+		        Allocator        *md_alloc)
 		: Root_component<Pd_session_component>(session_ep, md_alloc),
-		  _thread_ep(*thread_ep), _md_alloc(*md_alloc) { }
+		  _thread_ep(*thread_ep), _pager_ep(pager_ep), _md_alloc(*md_alloc) { }
 };
 
 #endif /* _CORE__INCLUDE__PD_ROOT_H_ */

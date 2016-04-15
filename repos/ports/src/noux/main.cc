@@ -624,8 +624,8 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				_assign_io_channels_to(child);
 
 				/* copy our address space into the new child */
-				_resources.rm.replay(child->ram(), child->rm(),
-				                     child->ds_registry(), _resources.ep);
+				_pd.replay(child->ram(), child->pd(),
+				           child->ds_registry(), _resources.ep);
 
 				/* start executing the main thread of the new process */
 				child->start_forked_main_thread(ip, sp, parent_cap_addr);

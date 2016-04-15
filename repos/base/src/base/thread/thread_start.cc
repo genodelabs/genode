@@ -67,7 +67,11 @@ void Thread_base::start()
 	env()->pd_session()->bind_thread(_thread_cap);
 
 	/* create new pager object and assign it to the new thread */
-	Pager_capability pager_cap = env()->rm_session()->add_client(_thread_cap);
+	Pager_capability pager_cap;
+	try {
+		pager_cap = env()->rm_session()->add_client(_thread_cap);
+	} catch (Region_map::Unbound_thread) { }
+
 	if (!pager_cap.valid())
 		throw Cpu_session::Thread_creation_failed();
 

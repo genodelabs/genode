@@ -131,7 +131,7 @@ namespace Iso {
 			{
 				size_t ram_quota =
 					Arg_string::find_arg(args, "ram_quota").ulong_value(0);
-				size_t session_size =  sizeof(Rom_component) + sizeof(File_info) + sizeof(Rm_connection);
+				size_t session_size =  sizeof(Rom_component) + sizeof(File_info);
 				if (ram_quota < session_size)
 					throw Root::Quota_exceeded();
 

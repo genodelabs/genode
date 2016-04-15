@@ -16,12 +16,12 @@
 #include <base/sleep.h>
 #include <base/child.h>
 #include <ram_session/connection.h>
-#include <rm_session/connection.h>
 #include <rom_session/connection.h>
 #include <cpu_session/connection.h>
 #include <cap_session/connection.h>
 #include <pd_session/connection.h>
 #include <loader_session/connection.h>
+#include <region_map/client.h>
 
 
 /***************
@@ -56,7 +56,6 @@ class Test_child : public Genode::Child_policy
 			Genode::Pd_connection  pd;
 			Genode::Ram_connection ram;
 			Genode::Cpu_connection cpu;
-			Genode::Rm_connection  rm;
 
 			Resources(Genode::Signal_context_capability sigh, char const *label)
 			: pd(label)
@@ -72,7 +71,8 @@ class Test_child : public Genode::Child_policy
 				cpu.exception_handler(Thread_capability(), sigh);
 
 				/* register handler for unresolvable page faults */
-				rm.fault_handler(sigh);
+				Region_map_client address_space(pd.address_space());
+				address_space.fault_handler(sigh);
 			}
 		} _resources;
 
@@ -101,7 +101,7 @@ class Test_child : public Genode::Child_policy
 			_elf(elf_name),
 			_log_service("LOG"), _rm_service("RM"),
 			_child(_elf.dataspace(), _resources.pd.cap(), _resources.ram.cap(),
-			       _resources.cpu.cap(), _resources.rm.cap(), &ep, this)
+			       _resources.cpu.cap(), &ep, this)
 		{ }
 
 

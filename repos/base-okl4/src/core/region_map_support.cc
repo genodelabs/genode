@@ -1,26 +1,24 @@
 /*
- * \brief  RM-session implementation
+ * \brief  OKL4-specific part of region-map implementation
  * \author Norman Feske
- * \author Sebastian Sumpf
- * \date   2009-10-02
+ * \date   2009-04-10
  */
 
 /*
- * Copyright (C) 2009-2015 Genode Labs GmbH
+ * Copyright (C) 2009-2013 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
+#include <base/printf.h>
+
 /* core includes */
-#include <rm_session_component.h>
+#include <region_map_component.h>
 
 using namespace Genode;
 
-
-/***************
- ** Rm_client **
- ***************/
 
 void Rm_client::unmap(addr_t, addr_t virt_base, size_t size)
 {

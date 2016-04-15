@@ -1,5 +1,5 @@
 /*
- * \brief  Client-side region manager session interface
+ * \brief  Client-side region map stub
  * \author Norman Feske
  * \author Alexander Boettcher
  * \date   2016-01-22
@@ -12,16 +12,16 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <rm_session/client.h>
+#include <region_map/client.h>
 
 using namespace Genode;
 
 
-Rm_session_client::Rm_session_client(Rm_session_capability session)
-: Rpc_client<Rm_session>(session) { }
+Region_map_client::Region_map_client(Capability<Region_map> session)
+: Rpc_client<Region_map>(session) { }
 
-Rm_session::Local_addr
-Rm_session_client::attach(Dataspace_capability ds, size_t size, off_t offset,
+Region_map::Local_addr
+Region_map_client::attach(Dataspace_capability ds, size_t size, off_t offset,
                           bool use_local_addr, Local_addr local_addr,
                           bool executable)
 {
@@ -29,23 +29,23 @@ Rm_session_client::attach(Dataspace_capability ds, size_t size, off_t offset,
 	                        executable);
 }
 
-void Rm_session_client::detach(Local_addr local_addr) {
+void Region_map_client::detach(Local_addr local_addr) {
 	call<Rpc_detach>(local_addr); }
 
-Pager_capability Rm_session_client::add_client(Thread_capability thread)
+Pager_capability Region_map_client::add_client(Thread_capability thread)
 {
 	return call<Rpc_add_client>(thread);
 }
 
-void Rm_session_client::remove_client(Pager_capability pager) {
+void Region_map_client::remove_client(Pager_capability pager) {
 	call<Rpc_remove_client>(pager); }
 
-void Rm_session_client::fault_handler(Signal_context_capability cap) {
+void Region_map_client::fault_handler(Signal_context_capability cap) {
 	call<Rpc_fault_handler>(cap); }
 
-	Rm_session::State Rm_session_client::state() { return call<Rpc_state>(); }
+	Region_map::State Region_map_client::state() { return call<Rpc_state>(); }
 
-Dataspace_capability Rm_session_client::dataspace()
+Dataspace_capability Region_map_client::dataspace()
 {
 	if (!_rm_ds_cap.valid())
 		_rm_ds_cap = call<Rpc_dataspace>();

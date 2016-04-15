@@ -21,6 +21,7 @@
 #include <thread/capability.h>
 #include <session/session.h>
 #include <signal_source/signal_source.h>
+#include <region_map/region_map.h>
 
 namespace Genode {
 
@@ -155,6 +156,28 @@ struct Genode::Pd_session : Session
 	virtual void free_rpc_cap(Native_capability cap) = 0;
 
 
+	/**************************************
+	 ** Virtual address-space management **
+	 **************************************/
+
+	enum { LINKER_AREA_SIZE = 160*1024*1024UL };
+
+	/**
+	 * Return region map of the PD's virtual address space
+	 */
+	virtual Capability<Region_map> address_space() = 0;
+
+	/**
+	 * Return region map of the PD's stack area
+	 */
+	virtual Capability<Region_map> stack_area() = 0;
+
+	/**
+	 * Return region map of the PD's linker area
+	 */
+	virtual Capability<Region_map> linker_area() = 0;
+
+
 	/*****************************************
 	 ** Access to kernel-specific interface **
 	 *****************************************/
@@ -180,22 +203,21 @@ struct Genode::Pd_session : Session
 
 	GENODE_RPC_THROW(Rpc_alloc_signal_source, Signal_source_capability,
 	                 alloc_signal_source, GENODE_TYPE_LIST(Out_of_metadata));
-
 	GENODE_RPC(Rpc_free_signal_source, void, free_signal_source, Signal_source_capability);
-
 	GENODE_RPC_THROW(Rpc_alloc_context, Capability<Signal_context>, alloc_context,
 	                 GENODE_TYPE_LIST(Out_of_metadata, Invalid_signal_source),
 	                 Signal_source_capability, unsigned long);
-
 	GENODE_RPC(Rpc_free_context, void, free_context,
 	           Capability<Signal_context>);
-
 	GENODE_RPC(Rpc_submit, void, submit, Capability<Signal_context>, unsigned);
 
 	GENODE_RPC_THROW(Rpc_alloc_rpc_cap, Native_capability, alloc_rpc_cap,
 	                 GENODE_TYPE_LIST(Out_of_metadata), Native_capability);
-
 	GENODE_RPC(Rpc_free_rpc_cap, void, free_rpc_cap, Native_capability);
+
+	GENODE_RPC(Rpc_address_space, Capability<Region_map>, address_space);
+	GENODE_RPC(Rpc_stack_area,    Capability<Region_map>, stack_area);
+	GENODE_RPC(Rpc_linker_area,   Capability<Region_map>, linker_area);
 
 	GENODE_RPC(Rpc_native_pd, Capability<Native_pd>, native_pd);
 
@@ -212,9 +234,12 @@ struct Genode::Pd_session : Session
 	        Meta::Type_tuple<Rpc_submit,
 	        Meta::Type_tuple<Rpc_alloc_rpc_cap,
 	        Meta::Type_tuple<Rpc_free_rpc_cap,
+	        Meta::Type_tuple<Rpc_address_space,
+	        Meta::Type_tuple<Rpc_stack_area,
+	        Meta::Type_tuple<Rpc_linker_area,
 	        Meta::Type_tuple<Rpc_native_pd,
 	                         Meta::Empty>
-	        > > > > > > > > > > Rpc_functions;
+	        > > > > > > > > > > > > > Rpc_functions;
 };
 
 #endif /* _INCLUDE__PD_SESSION__PD_SESSION_H_ */

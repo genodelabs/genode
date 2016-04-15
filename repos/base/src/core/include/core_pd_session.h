@@ -108,6 +108,12 @@ class Genode::Core_pd_session_component : public Rpc_object<Pd_session>
 			ASSERT_NEVER_CALLED;
 		}
 
+		Capability<Region_map> address_space() { ASSERT_NEVER_CALLED; }
+
+		Capability<Region_map> stack_area() { ASSERT_NEVER_CALLED; }
+
+		Capability<Region_map> linker_area() { ASSERT_NEVER_CALLED; }
+
 		Capability<Native_pd> native_pd() override { ASSERT_NEVER_CALLED; }
 };
 

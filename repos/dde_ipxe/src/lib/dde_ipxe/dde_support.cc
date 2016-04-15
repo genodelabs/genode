@@ -33,6 +33,7 @@
 #include <platform_device/client.h>
 #include <platform_session/connection.h>
 #include <rm_session/connection.h>
+#include <region_map/client.h>
 #include <timer_session/connection.h>
 #include <util/misc_math.h>
 #include <util/retry.h>
@@ -429,7 +430,8 @@ extern "C" void dde_outl(dde_addr_t port, dde_uint32_t data) {
  **********************/
 
 struct Slab_backend_alloc : public Genode::Allocator,
-                            public Genode::Rm_connection
+                            public Genode::Rm_connection,
+                            public Genode::Region_map_client
 {
 	enum {
 		VM_SIZE    = 1024 * 1024,
@@ -454,7 +456,7 @@ struct Slab_backend_alloc : public Genode::Allocator,
 
 		try {
 			_ds_cap[_index] = _ram.alloc(BLOCK_SIZE);
-			Rm_connection::attach_at(_ds_cap[_index], _index * BLOCK_SIZE, BLOCK_SIZE, 0);
+			Region_map_client::attach_at(_ds_cap[_index], _index * BLOCK_SIZE, BLOCK_SIZE, 0);
 		} catch (...) { return false; }
 
 		/* return base + offset in VM area */
@@ -467,7 +469,7 @@ struct Slab_backend_alloc : public Genode::Allocator,
 
 	Slab_backend_alloc(Genode::Ram_session &ram)
 	:
-		Rm_connection(0, VM_SIZE),
+		Region_map_client(Rm_connection::create(VM_SIZE)),
 		_index(0), _range(Genode::env()->heap()), _ram(ram)
 	{
 		/* reserver attach us, anywere */

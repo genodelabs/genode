@@ -16,8 +16,8 @@
 
 #include <parent/capability.h>
 #include <parent/parent.h>
-#include <rm_session/capability.h>
-#include <rm_session/rm_session.h>
+#include <region_map/region_map.h>
+#include <rm_session/rm_session.h>  /* deprecated, kept for API compatibility only */
 #include <ram_session/ram_session.h>
 #include <cpu_session/cpu_session.h>
 #include <cpu_session/capability.h>
@@ -73,8 +73,12 @@ struct Genode::Env
 
 	/**
 	 * Region-manager session of the component as created by the parent
+	 *
+	 * \deprecated  This function exists for API compatibility only.
+	 *              The functionality of the former RM service is now
+	 *              provided by the 'Region_map' interface.
 	 */
-	virtual Rm_session *rm_session() = 0;
+	virtual Region_map *rm_session() = 0;
 
 	/**
 	 * PD session of the component as created by the parent
@@ -113,7 +117,7 @@ struct Genode::Env
 	 *
 	 * \noapi
 	 */
-	virtual void reinit_main_thread(Rm_session_capability &stack_area_rm) = 0;
+	virtual void reinit_main_thread(Capability<Region_map> &stack_area_rm) = 0;
 
 };
 
