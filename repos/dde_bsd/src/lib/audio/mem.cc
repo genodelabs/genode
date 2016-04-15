@@ -162,7 +162,7 @@ class Bsd::Malloc
 
 		enum {
 			SLAB_START_LOG2 = 5,  /* 32 B */
-			SLAB_STOP_LOG2  = 17, /* 64 KiB */
+			SLAB_STOP_LOG2  = 16, /* 64 KiB */
 			NUM_SLABS = (SLAB_STOP_LOG2 - SLAB_START_LOG2) + 1,
 		};
 
