@@ -20,6 +20,7 @@
 #include <os/session_policy.h>
 #include <vfs/file_system_factory.h>
 #include <os/config.h>
+#include <base/sleep.h>
 
 /* Local includes */
 #include "assert.h"
@@ -37,7 +38,11 @@ namespace Vfs_server {
 	static Genode::Xml_node vfs_config()
 	{
 		try { return Genode::config()->xml_node().sub_node("vfs"); }
-		catch (...) { return Xml_node("<vfs/>"); }
+		catch (...) {
+			PERR("vfs not configured");
+			Genode::env()->parent()->exit(~0);
+			Genode::sleep_forever();
+		}
 	}
 };
 
