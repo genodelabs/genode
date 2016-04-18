@@ -131,7 +131,7 @@ class Genode::Allocator_avl_base : public Range_allocator
 				/**
 				 * Find best-fitting block
 				 */
-				Block *find_best_fit(size_t size, unsigned align = 1,
+				Block *find_best_fit(size_t size, unsigned align,
 				                     addr_t from = 0UL, addr_t to = ~0UL);
 
 				/**
@@ -260,7 +260,7 @@ class Genode::Allocator_avl_base : public Range_allocator
 
 		int          add_range(addr_t base, size_t size) override;
 		int          remove_range(addr_t base, size_t size) override;
-		Alloc_return alloc_aligned(size_t size, void **out_addr, int align = 0,
+		Alloc_return alloc_aligned(size_t size, void **out_addr, int align,
 		                           addr_t from = 0, addr_t to = ~0UL) override;
 		Alloc_return alloc_addr(size_t size, addr_t addr) override;
 		void         free(void *addr) override;
@@ -272,8 +272,11 @@ class Genode::Allocator_avl_base : public Range_allocator
 		 ** Allocator interface **
 		 *************************/
 
-		bool alloc(size_t size, void **out_addr) override {
-			return (Allocator_avl_base::alloc_aligned(size, out_addr).is_ok()); }
+		bool alloc(size_t size, void **out_addr) override
+		{
+			return (Allocator_avl_base::alloc_aligned(
+				size, out_addr, log2(sizeof(addr_t))).is_ok());
+		}
 
 		void free(void *addr, size_t) override { free(addr); }
 

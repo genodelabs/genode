@@ -91,7 +91,7 @@ class Genode::Synced_range_allocator : public Range_allocator
 		int remove_range(addr_t base, size_t size) override {
 			return _synced_object()->remove_range(base, size); }
 
-		Alloc_return alloc_aligned(size_t size, void **out_addr, int align = 0,
+		Alloc_return alloc_aligned(size_t size, void **out_addr, int align,
 		                           addr_t from = 0, addr_t to = ~0UL) override {
 			return _synced_object()->alloc_aligned(size, out_addr, align, from, to); }
 
