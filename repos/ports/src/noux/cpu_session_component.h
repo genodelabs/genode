@@ -42,7 +42,6 @@ namespace Noux {
 			enum { MAX_THREADS = 8, MAIN_THREAD_IDX = 0 };
 
 			Thread_capability _threads[MAX_THREADS];
-			unsigned          _thread_cnt = 0;
 
 		public:
 
@@ -71,6 +70,7 @@ namespace Noux {
 
 			Cpu_session_capability cpu_cap() { return _cpu.cap(); }
 
+
 			/***************************
 			 ** Cpu_session interface **
 			 ***************************/
@@ -78,21 +78,32 @@ namespace Noux {
 			Thread_capability create_thread(size_t weight, Name const &name,
 			                                addr_t utcb)
 			{
-				if (_thread_cnt == MAX_THREADS) {
-					PERR("maximum number of threads per session reached");
-					throw Thread_creation_failed();
+				/* create thread at core, keep local copy (needed on NOVA) */
+				for (unsigned i = 0; i < MAX_THREADS; i++) {
+					if (_threads[i].valid())
+						continue;
+
+					Thread_capability cap =_cpu.create_thread(weight, name, utcb);
+					_threads[i] = cap;
+					return cap;
 				}
 
-				Thread_capability cap =_cpu.create_thread(weight, name, utcb);
-				_threads[_thread_cnt++] = cap;
-				return cap;
+				PERR("maximum number of threads per session reached");
+				throw Thread_creation_failed();
 			}
 
 			Ram_dataspace_capability utcb(Thread_capability thread) {
 				return _cpu.utcb(thread); }
 
-			void kill_thread(Thread_capability thread) {
-				_cpu.kill_thread(thread); }
+			void kill_thread(Thread_capability thread)
+			{
+				/* purge local copy of thread capability */
+				for (unsigned i = 0; i < MAX_THREADS; i++)
+					if (_threads[i].local_name() == thread.local_name())
+						_threads[i] = Thread_capability();
+
+				_cpu.kill_thread(thread);
+			}
 
 			int set_pager(Thread_capability thread,
 			              Pager_capability  pager) {
