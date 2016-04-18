@@ -93,13 +93,15 @@ class Noux::Rm_session_component : public Rpc_object<Rm_session>
 
 		Dataspace_registry &_ds_registry;
 
-		enum { MAX_PAGERS = 8 };
-
-		Pager_capability _pagers[MAX_PAGERS];
-		unsigned         _pager_cnt = 0;
-
-		/* exception type */
-		struct Too_many_pagers { };
+		/**
+		 * Remember last pager capability returned by add_client
+		 *
+		 * On NOVA, we need to preserve a local copy of the pager capability
+		 * until we have passed to a call of 'Cpu_session::set_pager'.
+		 * Otherwise, NOVA would transitively revoke the capability that we
+		 * handed out to our child.
+		 */
+		Pager_capability _last_pager;
 
 	public:
 
@@ -336,15 +338,10 @@ class Noux::Rm_session_component : public Rpc_object<Rm_session>
 
 		Pager_capability add_client(Thread_capability thread)
 		{
-			if (_pager_cnt == MAX_PAGERS) {
-				PERR("maximum number of pagers per session reached");
-				throw Too_many_pagers();
-			}
-
 			return retry<Rm_session::Out_of_metadata>(
 				[&] () {
 					Pager_capability cap = _rm.add_client(thread);
-					_pagers[_pager_cnt++] = cap;
+					_last_pager = cap;
 					return cap;
 				}, [&] () { Genode::env()->parent()->upgrade(_rm, "ram_quota=8192"); });
 		}
