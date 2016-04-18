@@ -1262,7 +1262,7 @@ void Acpi::generate_report()
 	init_acpi_table();
 
 	enum { REPORT_SIZE = 4 * 4096 };
-	static Reporter acpi("acpi", REPORT_SIZE);
+	static Reporter acpi("acpi", "acpi", REPORT_SIZE);
 	acpi.enabled(true);
 
 	Genode::Reporter::Xml_generator xml(acpi, [&] () {

@@ -31,7 +31,8 @@ class Genode::Reporter : Noncopyable
 
 	private:
 
-		Name const _name;
+		Name const _xml_name;
+		Name const _label;
 
 		size_t const _buffer_size;
 
@@ -60,8 +61,12 @@ class Genode::Reporter : Noncopyable
 
 	public:
 
-		Reporter(char const *report_name, size_t buffer_size = 4096)
-		: _name(report_name), _buffer_size(buffer_size) { }
+		Reporter(char const *xml_name, char const *label = nullptr,
+		         size_t buffer_size = 4096)
+		:
+			_xml_name(xml_name), _label(label ? label : xml_name),
+			_buffer_size(buffer_size)
+		{ }
 
 		/**
 		 * Enable or disable reporting
@@ -71,7 +76,7 @@ class Genode::Reporter : Noncopyable
 			if (enabled == _enabled) return;
 
 			if (enabled)
-				_conn.construct(_name.string(), _buffer_size);
+				_conn.construct(_label.string(), _buffer_size);
 			else
 				_conn.destruct();
 
@@ -80,7 +85,7 @@ class Genode::Reporter : Noncopyable
 
 		bool is_enabled() const { return _enabled; }
 
-		Name name() const { return _name; }
+		Name name() const { return _label; }
 
 		/**
 		 * Clear report buffer
@@ -114,7 +119,7 @@ class Genode::Reporter : Noncopyable
 			:
 				Genode::Xml_generator(reporter._base(),
 				                      reporter._size(),
-				                      reporter._name.string(),
+				                      reporter._xml_name.string(),
 				                      func)
 			{
 				reporter._conn->report.submit(used());

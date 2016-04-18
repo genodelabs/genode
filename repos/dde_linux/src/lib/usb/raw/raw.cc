@@ -76,7 +76,7 @@ struct Device : List<Device>::Element
 
 	static Genode::Reporter &device_list_reporter()
 	{
-		static Genode::Reporter _r("devices", 512*1024);
+		static Genode::Reporter _r("devices", "devices", 512*1024);
 		return _r;
 	}
 
