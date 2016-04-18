@@ -12,6 +12,7 @@
  */
 
 #include <linker.h>
+#include <base/internal/page_size.h>
 
 #include <base/allocator_avl.h>
 #include <os/attached_rom_dataspace.h>
@@ -82,8 +83,12 @@ class Linker::Rm_area : public Rm_connection
 
 			if (addr && (_range.alloc_addr(size, addr).is_error()))
 				throw Region_conflict();
-			else if (!addr && _range.alloc_aligned(size, (void **)&addr, 12).is_error())
+			else if (!addr &&
+			         _range.alloc_aligned(size, (void **)&addr,
+			                              get_page_size_log2()).is_error())
+			{
 				throw Region_conflict();
+			}
 
 			return addr;
 		}
