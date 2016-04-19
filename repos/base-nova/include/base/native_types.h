@@ -106,10 +106,13 @@ namespace Genode {
 			bool operator==(const Native_capability &o) const {
 				return local_name() == o.local_name(); }
 
-			Native_capability operator+ () const
+			/**
+			 * Inhibit removal of capability from cap map if it's the last reference
+			 */
+			void keep_if_last_reference()
 			{
-				if (valid()) _inc(true);
-				return *this;
+				if (valid())
+					_inc(true);
 			}
 
 			/**

@@ -51,7 +51,7 @@ inline void request_event_portal(Genode::Native_capability const &cap,
 	utcb->crd_rcv = orig_crd;
 
 	if (res)
-		PERR("request of event (%lu) capability selector failed", event);
+		PERR("request of event (%lu) capability selector failed (res=%u)", event, res);
 }
 
 
