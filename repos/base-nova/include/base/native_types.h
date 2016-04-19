@@ -60,10 +60,10 @@ namespace Genode {
 
 		protected:
 
-			inline void _inc(bool inc_if_one = false) const
+			inline void _inc() const
 			{
 				Cap_index idx(cap_map()->find(local_name()));
-				idx.inc(inc_if_one);
+				idx.inc();
 			}
 
 			inline void _dec() const
@@ -105,15 +105,6 @@ namespace Genode {
 			 */
 			bool operator==(const Native_capability &o) const {
 				return local_name() == o.local_name(); }
-
-			/**
-			 * Inhibit removal of capability from cap map if it's the last reference
-			 */
-			void keep_if_last_reference()
-			{
-				if (valid())
-					_inc(true);
-			}
 
 			/**
 			 * Copy constructor

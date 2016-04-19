@@ -42,14 +42,11 @@ Cap_range *Cap_range::find_by_id(addr_t id)
 }
 
 
-void Cap_range::inc(unsigned id, bool inc_if_one)
+void Cap_range::inc(unsigned id)
 {
 	bool failure = false;
 	{
 		Lock::Guard guard(_lock);
-
-		if (inc_if_one && _cap_array[id] != 1)
-			return;
 
 		if (_cap_array[id] + 1 == 0)
 			failure = true;
@@ -78,7 +75,7 @@ void Cap_range::dec(unsigned const id_start, bool revoke, unsigned num_log_2)
 			}
 
 			if (revoke && _cap_array[id] == 1)
-				Nova::revoke(Nova::Obj_crd(_base + id, 0));
+				Nova::drop(Nova::Obj_crd(_base + id, 0));
 
 			_cap_array[id]--;
 		}

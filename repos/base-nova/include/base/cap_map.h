@@ -60,7 +60,7 @@ namespace Genode {
 
 			Cap_range *find_by_id(addr_t);
 
-			void inc(unsigned id, bool inc_if_one = false);
+			void inc(unsigned id);
 			void dec(unsigned id, bool revoke = true, unsigned num_log2 = 0);
 
 			addr_t alloc(size_t const num_log2);
@@ -88,10 +88,10 @@ namespace Genode {
 
 			bool     valid() const   { return _range; }
 
-			inline void inc(bool inc_if_one = false)
+			inline void inc()
 			{
 				if (_range)
-					_range->inc(_local_name - _range->base(), inc_if_one);
+					_range->inc(_local_name - _range->base());
 			}
 
 			inline void dec()

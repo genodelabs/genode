@@ -166,15 +166,6 @@ void Rpc_entrypoint::_activation_entry()
 			return;
 		}
 
-		/*
-		 * Inhibit removal of capabilities sent as results of client requests.
-		 * This prevents the recursive revocation of NOVA portal caps and,
-		 * therefore, permits clients to use result capabilities after server
-		 * code dropped all references.
-		 */
-		for (unsigned i = 0; i < ep._snd_buf.used_caps(); ++i)
-			ep._snd_buf.cap(i).keep_if_last_reference();
-
 		/* dispatch request */
 		ep._snd_buf.reset();
 		try { exc = obj->dispatch(opcode, unmarshaller, ep._snd_buf); }
