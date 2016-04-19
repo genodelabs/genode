@@ -48,8 +48,38 @@ append config {
 	<start name="report_rom">
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Report" /> <service name="ROM" /> </provides>
-		<config verbose="yes"> <rom/> </config>
+		<config verbose="yes">
+			<policy label="intel_fb_controller -> connectors" report="intel_fb_drv -> connectors"/>
+		</config>
 	</start>
+
+	<start name="config_fs" priority="-1">
+		<binary name="ram_fs"/>
+		<resource name="RAM" quantum="8M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<content>
+				<inline name="fb_drv.config">
+<config buffered="yes">
+	<report connectors="yes"/>
+</config>
+				</inline>
+			</content>
+			<policy label="config_rom" root="/"/>
+			<policy label="intel_fb_controller" root="/" writeable="yes"/>
+		</config>
+	</start>
+
+	<start name="config_rom" priority="-1">
+		<binary name="fs_rom"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="ROM"/></provides>
+		<route>
+			<service name="File_system"> <child name="config_fs" /> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
 	<start name="intel_fb_drv">
 		<resource name="RAM" quantum="20M"/>
 		<provides><service name="Framebuffer"/></provides>
@@ -58,6 +88,16 @@ append config {
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>
+
+	<start name="intel_fb_controller">
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="File_system">            <child name="config_fs"/> </service>
+			<service name="ROM" label="connectors"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
 	<start name="test-framebuffer">
 		<resource name="RAM" quantum="10M"/>
 	</start>
@@ -71,8 +111,8 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init timer intel_fb_drv
-	test-framebuffer report_rom
+	core init timer intel_fb_drv intel_fb_controller
+	test-framebuffer report_rom ram_fs fs_rom
 }
 
 append_platform_drv_boot_modules
