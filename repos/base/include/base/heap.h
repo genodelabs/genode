@@ -75,12 +75,9 @@ class Genode::Heap : public Allocator
 		{
 			Ram_session *ram_session; /* RAM session for backing store */
 			Rm_session  *rm_session;
-			Allocator   &md_alloc;    /* meta-data allocator */
 
-			Dataspace_pool(Ram_session *ram, Rm_session *rm, Allocator &md_alloc)
-			:
-				ram_session(ram), rm_session(rm), md_alloc(md_alloc)
-			{ }
+			Dataspace_pool(Ram_session *ram, Rm_session *rm)
+			: ram_session(ram), rm_session(rm) { }
 
 			~Dataspace_pool();
 
@@ -133,7 +130,7 @@ class Genode::Heap : public Allocator
 		     size_t       static_size = 0)
 		:
 			_alloc(nullptr),
-			_ds_pool(ram_session, rm_session, *_alloc),
+			_ds_pool(ram_session, rm_session),
 			_quota_limit(quota_limit), _quota_used(0),
 			_chunk_size(MIN_CHUNK_SIZE)
 		{

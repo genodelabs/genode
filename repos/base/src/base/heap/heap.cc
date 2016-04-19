@@ -36,7 +36,13 @@ Heap::Dataspace_pool::~Dataspace_pool()
 
 		remove(ds);
 
-		destroy(md_alloc, ds);
+		/*
+		 * Call 'Dataspace' destructor to properly release the RAM dataspace
+		 * capabilities. Note that we don't free the 'Dataspace' object at the
+		 * local allocator because this is already done by the 'Heap'
+		 * destructor prior executing the 'Dataspace_pool' destructor.
+		 */
+		ds->~Dataspace();
 
 		rm_session->detach(ds_local_addr);
 		ram_session->free(ds_cap);
@@ -230,6 +236,19 @@ void Heap::free(void *addr, size_t size)
 
 Heap::~Heap()
 {
+	/*
+	 * Revert allocations of heap-internal 'Dataspace' objects. Otherwise, the
+	 * subsequent destruction of the 'Allocator_avl' would detect those blocks
+	 * as dangling allocations.
+	 *
+	 * Since no new allocations can occur at the destruction time of the
+	 * 'Heap', it is safe to release the 'Dataspace' objects at the allocator
+	 * yet still access them afterwards during the destruction of the
+	 * 'Allocator_avl'.
+	 */
+	for (Heap::Dataspace *ds = _ds_pool.first(); ds; ds = ds->next())
+		_alloc->free(ds, sizeof(Dataspace));
+
 	/*
 	 * Destruct 'Allocator_avl' before destructing the dataspace pool. This
 	 * order is important because some dataspaces of the dataspace pool are
