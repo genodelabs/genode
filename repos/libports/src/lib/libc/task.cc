@@ -47,6 +47,9 @@ struct Task_resume
 };
 
 
+Genode::size_t Component::stack_size() {
+	return 32UL * 1024 * sizeof(Genode::addr_t); }
+
 /**
  * Libc task
  *
