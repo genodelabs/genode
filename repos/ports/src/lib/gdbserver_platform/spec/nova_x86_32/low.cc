@@ -1,5 +1,5 @@
 /*
- * \brief  NOVA specific helper functions for GDB server
+ * \brief  NOVA (x86_32) specific helper functions for GDB server
  * \author Alexander Boettcher
  * \date   2012-08-09
  */

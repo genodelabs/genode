@@ -6,15 +6,14 @@
 #
 
 #
-# Only the 32-bit NOVA and Fiasco.OC base platforms support most of the tested features
+# Only the NOVA and 32-bit Fiasco.OC base platforms support most of the tested features
 # at this time.
 #
 
-if {![have_include "power_on/qemu"] || (![have_spec foc] && ![have_spec nova])} {
-	 puts "Run script is only supported for foc or nova in Qemu"; exit 0
+if {![have_include "power_on/qemu"] ||
+    !([have_spec nova] || ([have_spec foc] && [have_spec 32bit]))} {
+	 puts "Run script is only supported for NOVA or 32-bit Fiasco.OC in Qemu"; exit 0
 }
-
-assert_spec 32bit
 
 #
 # Build
@@ -55,7 +54,10 @@ set config {
 	</start>
 	<start name="uart_drv">
 		<resource name="RAM" quantum="2M"/>
-		<provides> <service name="Terminal"/> </provides>
+		<provides>
+			<service name="Terminal"/>
+			<service name="Uart"/>
+		</provides>
 		<config>
 			<policy label="gdb_monitor" uart="1"/>
 		</config>
