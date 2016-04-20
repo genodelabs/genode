@@ -45,10 +45,12 @@ struct Genode::Expanding_cpu_session_client
 	Expanding_cpu_session_client(Genode::Capability<Cpu_session> cap)
 	: Upgradeable_client<Genode::Cpu_session_client>(cap) { }
 
-	Thread_capability create_thread(size_t weight, Name const &name, addr_t utcb)
+	Thread_capability create_thread(Pd_session_capability pd, size_t weight,
+	                                Name const &name, Affinity::Location affinity,
+	                                addr_t utcb)
 	{
 		return retry<Cpu_session::Out_of_metadata>(
-			[&] () { return Cpu_session_client::create_thread(weight, name, utcb); },
+			[&] () { return Cpu_session_client::create_thread(pd, weight, name, affinity, utcb); },
 			[&] () { upgrade_ram(8*1024); });
 	}
 };
@@ -279,11 +281,6 @@ class Genode::Platform_env_base : public Env
 				                  bool executable);
 
 				void detach(Local_addr local_addr);
-
-				Pager_capability add_client(Thread_capability thread) {
-					return Pager_capability(); }
-
-				void remove_client(Pager_capability pager) { }
 
 				void fault_handler(Signal_context_capability handler) { }
 

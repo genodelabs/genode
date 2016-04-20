@@ -18,8 +18,16 @@
 
 #include <base/allocator.h>
 
-namespace Genode { struct Platform_pd; }
+namespace Genode {
+	struct Platform_pd;
+	struct Platform_thread;
+}
 
-struct Genode::Platform_pd { Platform_pd(Allocator *, char const *) { } };
+struct Genode::Platform_pd
+{
+	Platform_pd(Allocator *, char const *) { }
+
+	bool bind_thread(Platform_thread *) { return true; }
+};
 
 #endif /* _CORE__INCLUDE__PLATFORM_PD_H_ */

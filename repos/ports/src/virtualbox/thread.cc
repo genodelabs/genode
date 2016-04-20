@@ -105,7 +105,8 @@ static int create_thread(pthread_t *thread, const pthread_attr_t *attr,
 	pthread_t thread_obj = new (Genode::env()->heap())
 	                           pthread(attr ? *attr : 0, start_routine,
 	                           arg, stack_size, rtthread->szName,
-	                           cpu_connection(rtthread->enmType));
+	                           cpu_connection(rtthread->enmType),
+	                           Genode::Affinity::Location());
 
 	if (!thread_obj)
 		return EAGAIN;

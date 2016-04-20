@@ -50,14 +50,6 @@ void Region_map_client::detach(Local_addr local_addr) {
 	return _local(*this)->detach(local_addr); }
 
 
-Pager_capability Region_map_client::add_client(Thread_capability thread) {
-	return _local(*this)->add_client(thread); }
-
-
-void Region_map_client::remove_client(Pager_capability pager) {
-	_local(*this)->remove_client(pager); }
-
-
 void Region_map_client::fault_handler(Signal_context_capability /*handler*/)
 {
 	/*

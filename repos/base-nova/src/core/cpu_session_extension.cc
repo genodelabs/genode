@@ -14,7 +14,7 @@
 /* Genode includes */
 #include <base/stdint.h>
 
-/* Core includes */
+/* core-local includes */
 #include <cpu_session_component.h>
 
 using namespace Genode;

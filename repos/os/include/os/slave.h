@@ -178,8 +178,9 @@ class Genode::Slave
 			}
 		};
 
-		Resources     _resources;
-		Genode::Child _child;
+		Resources                 _resources;
+		Genode::Region_map_client _address_space { _resources.pd.address_space() };
+		Genode::Child             _child;
 
 	public:
 
@@ -191,7 +192,7 @@ class Genode::Slave
 			_resources(slave_policy.name(), ram_quota, ram_ref_cap),
 			_child(slave_policy.binary(), _resources.pd.cap(),
 			       _resources.ram.cap(), _resources.cpu.cap(),
-			       &entrypoint, &slave_policy)
+			       _address_space, &entrypoint, &slave_policy)
 		{ }
 
 		Genode::Ram_connection &ram() { return _resources.ram; }

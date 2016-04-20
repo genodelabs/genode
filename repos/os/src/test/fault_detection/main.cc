@@ -83,10 +83,11 @@ class Test_child : public Genode::Child_policy
 		 * executing. Otherwise, the child may hand out already destructed
 		 * local services when dispatching an incoming session call.
 		 */
-		Genode::Rom_connection _elf;
-		Genode::Parent_service _log_service;
-		Genode::Parent_service _rm_service;
-		Genode::Child          _child;
+		Genode::Rom_connection    _elf;
+		Genode::Parent_service    _log_service;
+		Genode::Parent_service    _rm_service;
+		Genode::Region_map_client _address_space { _resources.pd.address_space() };
+		Genode::Child             _child;
 
 	public:
 
@@ -101,7 +102,7 @@ class Test_child : public Genode::Child_policy
 			_elf(elf_name),
 			_log_service("LOG"), _rm_service("RM"),
 			_child(_elf.dataspace(), _resources.pd.cap(), _resources.ram.cap(),
-			       _resources.cpu.cap(), &ep, this)
+			       _resources.cpu.cap(), _address_space, &ep, this)
 		{ }
 
 

@@ -67,11 +67,6 @@ class Stack_area_region_map : public Genode::Region_map
 		void detach(Local_addr local_addr) {
 			PWRN("stack area detach from 0x%p - not implemented", (void *)local_addr); }
 
-		Genode::Pager_capability add_client(Genode::Thread_capability) {
-			return Genode::Pager_capability(); }
-
-		void remove_client(Genode::Pager_capability) { }
-
 		void fault_handler(Genode::Signal_context_capability) { }
 
 		State state() { return State(); }

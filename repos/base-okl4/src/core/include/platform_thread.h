@@ -49,8 +49,9 @@ namespace Genode {
 			 * Constructor
 			 */
 			Platform_thread(size_t, const char *name  = 0,
-			                unsigned priority = 0, addr_t utcb = 0,
-			                int thread_id     = THREAD_INVALID);
+			                unsigned priority = 0,
+			                Affinity::Location = Affinity::Location(),
+			                addr_t utcb = 0, int thread_id = THREAD_INVALID);
 
 			/**
 			 * Destructor

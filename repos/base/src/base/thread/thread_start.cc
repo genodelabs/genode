@@ -59,25 +59,12 @@ void Thread_base::start()
 	name(buf, sizeof(buf));
 	enum { WEIGHT = Cpu_session::DEFAULT_WEIGHT };
 	addr_t const utcb = (addr_t)&_stack->utcb();
-	_thread_cap = _cpu_session->create_thread(WEIGHT, buf, utcb);
+	_thread_cap = _cpu_session->create_thread(env()->pd_session_cap(),
+	                                          WEIGHT, buf, _affinity, utcb);
 	if (!_thread_cap.valid())
 		throw Cpu_session::Thread_creation_failed();
 
-	/* assign thread to protection domain */
-	env()->pd_session()->bind_thread(_thread_cap);
-
-	/* create new pager object and assign it to the new thread */
-	Pager_capability pager_cap;
-	try {
-		pager_cap = env()->rm_session()->add_client(_thread_cap);
-	} catch (Region_map::Unbound_thread) { }
-
-	if (!pager_cap.valid())
-		throw Cpu_session::Thread_creation_failed();
-
-	_cpu_session->set_pager(_thread_cap, pager_cap);
-
-	/* register initial IP and SP at core */
+	/* start execution at initial instruction pointer and stack pointer */
 	_cpu_session->start(_thread_cap, (addr_t)_thread_start, _stack->top());
 }
 

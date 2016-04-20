@@ -205,7 +205,7 @@ namespace Genode {
 			 *
 			 * This function allocates the physical L4 thread ID.
 			 */
-			void bind_thread(Platform_thread *thread);
+			bool bind_thread(Platform_thread *thread);
 
 			int bind_initial_thread(Platform_thread *thread);
 

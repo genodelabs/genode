@@ -451,7 +451,7 @@ void Region_map_component::detach(Local_addr local_addr)
 	Rm_region *region_ptr = _map.metadata(local_addr);
 
 	if (!region_ptr) {
-		PDBG("no attachment at %p", (void *)local_addr);
+		PWRN("detach: no attachment at %p", (void *)local_addr);
 		return;
 	}
 
@@ -565,85 +565,20 @@ void Region_map_component::detach(Local_addr local_addr)
 }
 
 
-Pager_capability Region_map_component::add_client(Thread_capability thread)
+void Region_map_component::add_client(Rm_client &rm_client)
 {
-	unsigned long badge;
-	Affinity::Location location;
-	Weak_ptr<Address_space> address_space;
-
-	{
-		/* lookup thread and setup correct parameters */
-		auto lambda = [&] (Cpu_thread_component *cpu_thread) {
-			if (!cpu_thread) throw Invalid_thread();
-
-			if (!cpu_thread->bound()) {
-				PERR("attempt to create pager for unbound thread");
-				throw Region_map::Unbound_thread();
-			}
-
-			/* determine identification of client when faulting */
-			badge = cpu_thread->platform_thread()->pager_object_badge();
-
-			/* determine cpu affinity of client thread */
-			location = cpu_thread->platform_thread()->affinity();
-
-			address_space = cpu_thread->platform_thread()->address_space();
-			if (!Locked_ptr<Address_space>(address_space).is_valid())
-				throw Unbound_thread();
-		};
-		_thread_ep->apply(thread, lambda);
-	}
-
-	/* serialize access */
 	Lock::Guard lock_guard(_lock);
 
-	Rm_client *cl;
-	try { cl = new(&_client_slab) Rm_client(this, badge, address_space, location); }
-	catch (Allocator::Out_of_memory) { throw Out_of_metadata(); }
-	catch (Cpu_session::Thread_creation_failed) { throw Out_of_metadata(); }
-	catch (Thread_base::Stack_alloc_failed) { throw Out_of_metadata(); }
-
-	_clients.insert(cl);
-
-	return Pager_capability(_pager_ep->manage(cl));
+	_clients.insert(&rm_client);
 }
 
 
-void Region_map_component::remove_client(Pager_capability pager_cap)
+void Region_map_component::remove_client(Rm_client &rm_client)
 {
-	Rm_client *client;
+	Lock::Guard lock_guard(_lock);
 
-	auto lambda = [&] (Rm_client *cl) {
-		client = cl;
-
-		if (!client) return;
-
-		/*
-		 * Rm_client is derived from Pager_object. If the Pager_object is also
-		 * derived from Thread_base then the Rm_client object must be
-		 * destructed without holding the region_map lock. The native
-		 * platform specific Thread_base implementation has to take care that
-		 * all in-flight page handling requests are finished before
-		 * destruction. (Either by waiting until the end of or by
-		 * <deadlock free> cancellation of the last in-flight request.
-		 * This operation can also require taking the region_map lock.
-		 */
-		{
-			Lock::Guard lock_guard(_lock);
-			_clients.remove(client);
-		}
-
-		/* call platform specific dissolve routines */
-		_pager_ep->dissolve(client);
-
-		{
-			Lock::Guard lock_guard(_lock);
-			client->dissolve_from_faulting_region_map(this);
-		}
-	};
-	_pager_ep->apply(pager_cap, lambda);
-
-	destroy(&_client_slab, client);
+	_clients.remove(&rm_client);
+	rm_client.dissolve_from_faulting_region_map(this);
 }
 
 
@@ -705,7 +640,7 @@ Region_map_component::Region_map_component(Rpc_entrypoint   &ep,
 :
 	_ds_ep(&ep), _thread_ep(&ep), _session_ep(&ep),
 	_md_alloc(md_alloc),
-	_client_slab(&_md_alloc), _ref_slab(&_md_alloc),
+	_ref_slab(&_md_alloc),
 	_map(&_md_alloc), _pager_ep(&pager_ep),
 	_ds(align_addr(vm_size, get_page_size_log2())),
 	_ds_cap(_type_deduction_helper(_ds_ep->manage(&_ds)))
@@ -725,16 +660,27 @@ Region_map_component::~Region_map_component()
 	/* dissolve all clients from pager entrypoint */
 	Rm_client *cl;
 	do {
+		Cpu_session_capability cpu_session_cap;
+		Thread_capability      thread_cap;
 		{
 			Lock::Guard lock_guard(_lock);
 			cl = _clients.first();
 			if (!cl) break;
 
+			cl->dissolve_from_faulting_region_map(this);
+
+			cpu_session_cap = cl->cpu_session_cap();
+			thread_cap      = cl->thread_cap();
+
 			_clients.remove(cl);
 		}
 
-		/* call platform specific dissolve routines */
-		_pager_ep->dissolve(cl);
+		/* destroy thread */
+		auto lambda = [&] (Cpu_session_component *cpu_session) {
+			if (cpu_session)
+				cpu_session->kill_thread(thread_cap);
+		};
+		_thread_ep->apply(cpu_session_cap, lambda);
 	} while (cl);
 
 	/* detach all regions */
@@ -752,36 +698,4 @@ Region_map_component::~Region_map_component()
 
 	/* revoke dataspace representation */
 	_ds_ep->dissolve(&_ds);
-
-	/* serialize access */
-	_lock.lock();
-
-	/* remove all faulters with pending page faults at this region map */
-	while (Rm_faulter *faulter = _faulters.head())
-		faulter->dissolve_from_faulting_region_map(this);
-
-	/* remove all clients, invalidate rm_client pointers in cpu_thread objects */
-	while (Rm_client *cl = _client_slab()->first_object()) {
-		cl->dissolve_from_faulting_region_map(this);
-
-		Thread_capability thread_cap = cl->thread_cap();
-		if (thread_cap.valid())
-			/* invalidate thread cap in rm_client object */
-			cl->thread_cap(Thread_capability());
-
-		_lock.unlock();
-
-		/* lookup thread and reset pager pointer */
-		auto lambda = [&] (Cpu_thread_component *cpu_thread) {
-			if (cpu_thread && (cpu_thread->platform_thread()->pager() == cl))
-				cpu_thread->platform_thread()->pager(0);
-		};
-		_thread_ep->apply(thread_cap, lambda);
-
-		destroy(&_client_slab, cl);
-
-		_lock.lock();
-	}
-
-	_lock.unlock();
 }

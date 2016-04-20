@@ -111,6 +111,8 @@ class Core_child : public Child_policy
 
 		Service_registry &_local_services;
 
+		Region_map_client _address_space;
+
 		Child _child;
 
 	public:
@@ -125,7 +127,8 @@ class Core_child : public Child_policy
 		:
 			_entrypoint(nullptr, STACK_SIZE, "init", false),
 			_local_services(services),
-			_child(elf_ds, pd, ram, cpu,
+			_address_space(Pd_session_client(pd).address_space()),
+			_child(elf_ds, pd, ram, cpu, _address_space,
 			       &_entrypoint, this,
 			       *_local_services.find(Pd_session::service_name()),
 			       *_local_services.find(Ram_session::service_name()),

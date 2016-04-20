@@ -152,7 +152,7 @@ namespace Genode {
 			Core_env()
 			:
 				_entrypoint(nullptr, ENTRYPOINT_STACK_SIZE, "entrypoint"),
-				_region_map(&_entrypoint),
+				_region_map(_entrypoint),
 				_ram_session(&_entrypoint, &_entrypoint,
 				             platform()->ram_alloc(), platform()->core_mem_alloc(),
 				             "ram_quota=4M", platform()->ram_alloc()->avail()),

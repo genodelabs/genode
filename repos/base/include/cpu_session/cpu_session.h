@@ -22,9 +22,9 @@
 #include <base/signal.h>
 #include <base/affinity.h>
 #include <thread/capability.h>
-#include <pager/capability.h>
 #include <session/session.h>
 #include <ram_session/ram_session.h>
+#include <pd_session/pd_session.h>
 
 namespace Genode { struct Cpu_session; }
 
@@ -61,17 +61,22 @@ struct Genode::Cpu_session : Session
 	/**
 	 * Create a new thread
 	 *
-	 * \param quota  CPU quota that shall be granted to the thread
-	 * \param name   name for the thread
-	 * \param utcb   Base of the UTCB that will be used by the thread
-	 * \return       capability representing the new thread
-	 * \throw        Thread_creation_failed
-	 * \throw        Out_of_metadata
-	 * \throw        Quota_exceeded
+	 * \param pd        protection domain where the thread will be executed
+	 * \param quota     CPU quota that shall be granted to the thread
+	 * \param name      name for the thread
+	 * \param affinity  CPU affinity, referring to the session-local
+	 *                  affinity space
+	 * \param utcb      Base of the UTCB that will be used by the thread
+	 * \return          capability representing the new thread
+	 * \throw           Thread_creation_failed
+	 * \throw           Out_of_metadata
+	 * \throw           Quota_exceeded
 	 */
-	virtual Thread_capability create_thread(size_t quota,
-	                                        Name const &name,
-	                                        addr_t utcb = 0) = 0;
+	virtual Thread_capability create_thread(Capability<Pd_session> pd,
+	                                        size_t                 quota,
+	                                        Name const            &name,
+	                                        Affinity::Location     affinity = Affinity::Location(),
+	                                        addr_t                 utcb = 0) = 0;
 
 	/**
 	 * Get dataspace of the UTCB that is used by the specified thread
@@ -84,15 +89,6 @@ struct Genode::Cpu_session : Session
 	 * \param thread  capability of the thread to kill
 	 */
 	virtual void kill_thread(Thread_capability thread) = 0;
-
-	/**
-	 * Set paging capabilities for thread
-	 *
-	 * \param thread  thread to configure
-	 * \param pager   capability used to propagate page faults
-	 */
-	virtual int set_pager(Thread_capability thread,
-	                      Pager_capability  pager) = 0;
 
 	/**
 	 * Modify instruction and stack pointer of thread - start the
@@ -321,10 +317,10 @@ struct Genode::Cpu_session : Session
 
 	GENODE_RPC_THROW(Rpc_create_thread, Thread_capability, create_thread,
 	                 GENODE_TYPE_LIST(Thread_creation_failed, Out_of_metadata),
-	                 size_t, Name const &, addr_t);
+	                 Capability<Pd_session>, size_t, Name const &,
+	                 Affinity::Location, addr_t);
 	GENODE_RPC(Rpc_utcb, Ram_dataspace_capability, utcb, Thread_capability);
 	GENODE_RPC(Rpc_kill_thread, void, kill_thread, Thread_capability);
-	GENODE_RPC(Rpc_set_pager, int, set_pager, Thread_capability, Pager_capability);
 	GENODE_RPC(Rpc_start, int, start, Thread_capability, addr_t, addr_t);
 	GENODE_RPC(Rpc_pause, void, pause, Thread_capability);
 	GENODE_RPC(Rpc_resume, void, resume, Thread_capability);
@@ -360,7 +356,6 @@ struct Genode::Cpu_session : Session
 	typedef Meta::Type_tuple<Rpc_create_thread,
 	        Meta::Type_tuple<Rpc_utcb,
 	        Meta::Type_tuple<Rpc_kill_thread,
-	        Meta::Type_tuple<Rpc_set_pager,
 	        Meta::Type_tuple<Rpc_start,
 	        Meta::Type_tuple<Rpc_pause,
 	        Meta::Type_tuple<Rpc_resume,
@@ -380,7 +375,7 @@ struct Genode::Cpu_session : Session
 	        Meta::Type_tuple<Rpc_quota,
 	        Meta::Type_tuple<Rpc_native_cpu,
 	                         Meta::Empty>
-	        > > > > > > > > > > > > > > > > > > > > > Rpc_functions;
+	        > > > > > > > > > > > > > > > > > > > > Rpc_functions;
 };
 
 struct Genode::Cpu_session::Quota

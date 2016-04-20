@@ -26,17 +26,15 @@ struct Genode::Cpu_session_client : Rpc_client<Cpu_session>
 	: Rpc_client<Cpu_session>(session) { }
 
 	Thread_capability
-	create_thread(size_t quota, Name const &name, addr_t utcb = 0) override {
-		return call<Rpc_create_thread>(quota, name, utcb); }
+	create_thread(Capability<Pd_session> pd, size_t quota, Name const &name,
+	              Affinity::Location affinity, addr_t utcb = 0) override {
+		return call<Rpc_create_thread>(pd, quota, name, affinity, utcb); }
 
 	Ram_dataspace_capability utcb(Thread_capability thread) override {
 		return call<Rpc_utcb>(thread); }
 
 	void kill_thread(Thread_capability thread) override {
 		call<Rpc_kill_thread>(thread); }
-
-	int set_pager(Thread_capability thread, Pager_capability pager) override {
-		return call<Rpc_set_pager>(thread, pager); }
 
 	int start(Thread_capability thread, addr_t ip, addr_t sp) override {
 		return call<Rpc_start>(thread, ip, sp); }

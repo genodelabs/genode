@@ -17,6 +17,9 @@
 /* Genode includes */
 #include <base/tslab.h>
 
+/* base-internal includes */
+#include <base/internal/page_size.h>
+
 namespace Genode
 {
 	class Cpu_thread_component;
@@ -24,7 +27,7 @@ namespace Genode
 	/**
 	 * Allocator to manage CPU threads associated with a CPU session
 	 */
-	typedef Tslab<Cpu_thread_component, 1024> Cpu_thread_allocator;
+	typedef Tslab<Cpu_thread_component, get_page_size()> Cpu_thread_allocator;
 }
 
 #endif /* _CORE__INCLUDE__CPU_THREAD_ALLOCATOR_H_ */

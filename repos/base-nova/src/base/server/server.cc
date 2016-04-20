@@ -219,23 +219,13 @@ Rpc_entrypoint::Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
                                const char  *name, bool start_on_construction,
                                Affinity::Location location)
 :
-	Thread_base(Cpu_session::DEFAULT_WEIGHT, name, stack_size),
+	Thread_base(Cpu_session::DEFAULT_WEIGHT, name, stack_size, location),
 	_delay_start(Lock::LOCKED),
 	_pd_session(*pd_session)
 {
-	/* when not running in core set the affinity via cpu session */
-	if (native_thread().ec_sel == Native_thread::INVALID_INDEX) {
-
-		/* place new thread on the specified CPU */
-		if (location.valid())
-			_cpu_session->affinity(_thread_cap, location);
-
-		/* magic value evaluated by thread_nova.cc to start a local thread */
+	/* set magic value evaluated by thread_nova.cc to start a local thread */
+	if (native_thread().ec_sel == Native_thread::INVALID_INDEX)
 		native_thread().ec_sel = Native_thread::INVALID_INDEX - 1;
-	} else {
-		/* tell affinity CPU in 'core' via stack */
-		reinterpret_cast<Affinity::Location *>(stack_base())[0] = location;
-	}
 
 	/* required to create a 'local' EC */
 	Thread_base::start();

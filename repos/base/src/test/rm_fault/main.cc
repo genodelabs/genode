@@ -79,6 +79,8 @@ class Test_child : public Child_policy
 		 */
 		Rpc_entrypoint _entrypoint;
 
+		Region_map_client _address_space;
+
 		Child _child;
 
 		Parent_service _log_service;
@@ -89,13 +91,14 @@ class Test_child : public Child_policy
 		 * Constructor
 		 */
 		Test_child(Genode::Dataspace_capability    elf_ds,
-		           Genode::Pd_session_capability   pd,
+		           Genode::Pd_connection          &pd,
 		           Genode::Ram_session_capability  ram,
 		           Genode::Cpu_session_capability  cpu,
 		           Genode::Cap_session            *cap)
 		:
 			_entrypoint(cap, STACK_SIZE, "child", false),
-			_child(elf_ds, pd, ram, cpu, &_entrypoint, this),
+			_address_space(pd.address_space()),
+			_child(elf_ds, pd, ram, cpu, _address_space, &_entrypoint, this),
 			_log_service("LOG")
 		{
 			/* start execution of the new child */
@@ -147,7 +150,7 @@ void main_parent(Dataspace_capability elf_ds)
 	address_space.fault_handler(fault_handler.manage(&signal_context));
 
 	/* create child */
-	static Test_child child(elf_ds, pd.cap(), ram.cap(), cpu.cap(), &cap);
+	static Test_child child(elf_ds, pd, ram.cap(), cpu.cap(), &cap);
 
 	/* allocate dataspace used for creating shared memory between parent and child */
 	Dataspace_capability ds = env()->ram_session()->alloc(4096);

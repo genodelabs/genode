@@ -73,7 +73,7 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		 * Constructor
 		 */
 		Platform_thread(size_t, const char *name = 0, unsigned priority = 0,
-		                addr_t utcb = 0);
+		                Affinity::Location = Affinity::Location(), addr_t utcb = 0);
 
 		/**
 		 * Destructor
@@ -172,15 +172,6 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		 * Get thread name
 		 */
 		const char *name() const { return "noname"; }
-
-		/**
-		 * Return pointer to the thread's PD
-		 *
-		 * Used to validate the success of the bind operation.
-		 *
-		 * XXX to be removed
-		 */
-		Platform_pd *pd() { return _pd; }
 
 
 		/*****************************

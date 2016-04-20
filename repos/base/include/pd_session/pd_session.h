@@ -38,17 +38,6 @@ struct Genode::Pd_session : Session
 	virtual ~Pd_session() { }
 
 	/**
-	 * Bind thread to protection domain
-	 *
-	 * \param thread  capability of thread to bind
-	 *
-	 * After binding, the thread will execute inside this protection domain
-	 * when started. A thread can be bound to a PD only once. Subsequent
-	 * attempts to bind the thread to another PD are ignored.
-	 */
-	virtual void bind_thread(Thread_capability thread) = 0;
-
-	/**
 	 * Assign parent to protection domain
 	 *
 	 * \param   parent  capability of parent interface
@@ -197,7 +186,6 @@ struct Genode::Pd_session : Session
 	 ** RPC declaration **
 	 *********************/
 
-	GENODE_RPC(Rpc_bind_thread,   void, bind_thread,   Thread_capability);
 	GENODE_RPC(Rpc_assign_parent, void, assign_parent, Capability<Parent>);
 	GENODE_RPC(Rpc_assign_pci,    bool, assign_pci,    addr_t, uint16_t);
 
@@ -224,8 +212,7 @@ struct Genode::Pd_session : Session
 	/*
 	 * Manual definition of 'Rpc_functions', see the comment in cpu_session.h.
 	 */
-	typedef Meta::Type_tuple<Rpc_bind_thread,
-	        Meta::Type_tuple<Rpc_assign_parent,
+	typedef Meta::Type_tuple<Rpc_assign_parent,
 	        Meta::Type_tuple<Rpc_assign_pci,
 	        Meta::Type_tuple<Rpc_alloc_signal_source,
 	        Meta::Type_tuple<Rpc_free_signal_source,
@@ -239,7 +226,7 @@ struct Genode::Pd_session : Session
 	        Meta::Type_tuple<Rpc_linker_area,
 	        Meta::Type_tuple<Rpc_native_pd,
 	                         Meta::Empty>
-	        > > > > > > > > > > > > > Rpc_functions;
+	        > > > > > > > > > > > > Rpc_functions;
 };
 
 #endif /* _INCLUDE__PD_SESSION__PD_SESSION_H_ */

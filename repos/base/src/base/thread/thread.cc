@@ -174,7 +174,9 @@ void Thread_base::free_secondary_stack(void* stack_addr)
 }
 
 
-Native_thread &Thread_base::native_thread() { return _stack->native_thread(); }
+Native_thread &Thread_base::native_thread() {
+
+	return _stack->native_thread(); }
 
 
 void *Thread_base::stack_top() const { return (void *)_stack->top(); }
@@ -205,9 +207,10 @@ size_t Thread_base::stack_area_virtual_size()
 
 
 Thread_base::Thread_base(size_t weight, const char *name, size_t stack_size,
-                         Type type, Cpu_session *cpu_session)
+                         Type type, Cpu_session *cpu_session, Affinity::Location affinity)
 :
 	_cpu_session(cpu_session),
+	_affinity(affinity),
 	_trace_control(nullptr),
 	_stack(type == REINITIALIZED_MAIN ?
 	         _stack : _alloc_stack(stack_size, name, type == MAIN)),
@@ -224,8 +227,8 @@ Thread_base::Thread_base(size_t weight, const char *name, size_t stack_size,
 
 
 Thread_base::Thread_base(size_t weight, const char *name, size_t stack_size,
-                         Type type)
-: Thread_base(weight, name, stack_size, type, nullptr) { }
+                         Type type, Affinity::Location affinity)
+: Thread_base(weight, name, stack_size, type, nullptr, affinity) { }
 
 
 Thread_base::~Thread_base()

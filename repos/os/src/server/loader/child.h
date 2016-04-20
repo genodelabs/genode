@@ -73,6 +73,7 @@ namespace Loader {
 				}
 			} _resources;
 
+			Region_map_client _address_space { _resources.pd.address_space() };
 
 			Service_registry &_parent_services;
 			Service &_local_nitpicker_service;
@@ -125,7 +126,8 @@ namespace Loader {
 				_binary_policy("binary", _binary_rom_session.dataspace(), &_ep),
 				_labeling_policy(_label.string),
 				_child(_binary_rom_session.dataspace(), _resources.pd.cap(),
-				       _resources.ram.cap(), _resources.cpu.cap(), &_ep, this)
+				       _resources.ram.cap(), _resources.cpu.cap(),
+				       _address_space, &_ep, this)
 			{ }
 
 			~Child()

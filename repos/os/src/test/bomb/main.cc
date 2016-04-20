@@ -44,6 +44,8 @@ class Bomb_child_resources
 		Genode::Cpu_connection _cpu;
 		char                   _name[32];
 
+		Genode::Region_map_client _address_space { _pd.address_space() };
+
 		Bomb_child_resources(const char *file_name, const char *name,
 		                     Genode::size_t ram_quota)
 		: _pd(name), _rom(file_name, name), _ram(name), _cpu(name)
@@ -91,7 +93,7 @@ class Bomb_child : private Bomb_child_resources,
 			Init::Child_policy_enforce_labeling(Bomb_child_resources::_name),
 			_entrypoint(cap_session, STACK_SIZE, "bomb_ep_child", false),
 			_child(_rom.dataspace(), _pd.cap(), _ram.cap(), _cpu.cap(),
-			       &_entrypoint, this),
+			       _address_space, &_entrypoint, this),
 			_parent_services(parent_services),
 			_config_policy("config", _entrypoint, &_ram)
 		{

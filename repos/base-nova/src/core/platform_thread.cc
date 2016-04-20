@@ -39,12 +39,7 @@ using namespace Genode;
 
 void Platform_thread::affinity(Affinity::Location location)
 {
-	if (_sel_exc_base != Native_thread::INVALID_INDEX) {
-		PERR("Failure - affinity of thread could not be set");
-		return;
-	}
-
-	_location = location;
+	PERR("dynamic affinity change not supported on NOVA");
 }
 
 
@@ -350,10 +345,11 @@ unsigned long long Platform_thread::execution_time() const
 }
 
 
-Platform_thread::Platform_thread(const char *name, unsigned prio, int thread_id)
+Platform_thread::Platform_thread(const char *name, unsigned prio,
+                                 Affinity::Location affinity, int thread_id)
 :
 	_pd(0), _pager(0), _id_base(cap_map()->insert(2)),
-	_sel_exc_base(Native_thread::INVALID_INDEX), _location(boot_cpu(), 0, 0, 0),
+	_sel_exc_base(Native_thread::INVALID_INDEX), _location(affinity),
 	_features(0),
 	_priority(Cpu_session::scale_priority(Nova::Qpd::DEFAULT_PRIORITY, prio)),
 	_name(name)

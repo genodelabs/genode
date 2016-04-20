@@ -43,7 +43,8 @@ void Thread_base::_init_platform_thread(size_t weight, Type type)
 		char buf[48];
 		name(buf, sizeof(buf));
 		addr_t const utcb = (addr_t)&_stack->utcb();
-		_thread_cap = _cpu_session->create_thread(weight, buf, utcb);
+		_thread_cap = _cpu_session->create_thread(env()->pd_session_cap(),
+		                                          weight, buf, _affinity, utcb);
 		return;
 	}
 	/* if we got reinitialized we have to get rid of the old UTCB */
@@ -78,22 +79,11 @@ void Thread_base::_deinit_platform_thread()
 	addr_t utcb = Stack_allocator::addr_to_base(_stack) +
 	              stack_virtual_size() - size - stack_area_virtual_base();
 	env_stack_area_region_map->detach(utcb);
-
-	if (_pager_cap.valid()) {
-		env()->rm_session()->remove_client(_pager_cap);
-	}
 }
 
 
 void Thread_base::start()
 {
-	/* assign thread to protection domain */
-	env()->pd_session()->bind_thread(_thread_cap);
-
-	/* create pager object and assign it to the thread */
-	_pager_cap = env()->rm_session()->add_client(_thread_cap);
-	_cpu_session->set_pager(_thread_cap, _pager_cap);
-
 	/* attach userland stack */
 	try {
 		Ram_dataspace_capability ds = _cpu_session->utcb(_thread_cap);

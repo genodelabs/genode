@@ -176,6 +176,7 @@ Process::Process(Dataspace_capability    elf_ds_cap,
                  Pd_session_capability   pd_session_cap,
                  Ram_session_capability  ram_session_cap,
                  Cpu_session_capability  cpu_session_cap,
+                 Region_map             &address_space,
                  Parent_capability       parent_cap,
                  char const             *name)
 : _pd_session_client(pd_session_cap),
@@ -184,14 +185,7 @@ Process::Process(Dataspace_capability    elf_ds_cap,
 	if (!pd_session_cap.valid())
 		return;
 
-	/* region map of the new protection domain */
-	Region_map_client rm(Pd_session_client(pd_session_cap).address_space());
-
-	enum Local_exception
-	{
-		THREAD_FAIL, ELF_FAIL, THREAD_ADD_FAIL,
-		THREAD_PAGER_FAIL, THREAD_START_FAIL,
-	};
+	enum Local_exception { THREAD_FAIL, ELF_FAIL, THREAD_START_FAIL };
 
 	/* XXX this only catches local exceptions */
 
@@ -202,9 +196,12 @@ Process::Process(Dataspace_capability    elf_ds_cap,
 		/* create thread0 */
 		try {
 			enum { WEIGHT = Cpu_session::DEFAULT_WEIGHT };
-			_thread0_cap = _cpu_session_client.create_thread(WEIGHT, name);
+			_thread0_cap = _cpu_session_client.create_thread(pd_session_cap, WEIGHT, name);
 		} catch (Cpu_session::Thread_creation_failed) {
-			PERR("Creation of thread0 failed");
+			PERR("creation of initial thread failed");
+			throw THREAD_FAIL;
+		} catch (Cpu_session::Out_of_metadata) {
+			PERR("out of meta data while creating initial thread");
 			throw THREAD_FAIL;
 		}
 
@@ -233,7 +230,7 @@ Process::Process(Dataspace_capability    elf_ds_cap,
 		/* parse ELF binary and setup segment dataspaces */
 		addr_t entry = 0;
 		if (elf_ds_cap.valid()) {
-			entry = _setup_elf(parent_cap, elf_ds_cap, ram, rm);
+			entry = _setup_elf(parent_cap, elf_ds_cap, ram, address_space);
 			if (!entry) {
 				PERR("Setup ELF failed");
 				throw ELF_FAIL;
@@ -242,25 +239,6 @@ Process::Process(Dataspace_capability    elf_ds_cap,
 
 		/* register parent interface for new protection domain */
 		_pd_session_client.assign_parent(parent_cap);
-
-		/* bind thread0 */
-		_pd_session_client.bind_thread(_thread0_cap);
-
-		/* register thread0 at region manager session */
-		Pager_capability pager;
-		try {
-			pager = rm.add_client(_thread0_cap);
-		} catch (...) {
-			PERR("Pager setup failed");
-			throw THREAD_ADD_FAIL;
-		}
-
-		/* set pager in thread0 */
-		err = _cpu_session_client.set_pager(_thread0_cap, pager);
-		if (err) {
-			PERR("Setting pager for thread0 failed");
-			throw THREAD_PAGER_FAIL;
-		}
 
 		/*
 		 * Inhibit start of main thread if the new process happens to be forked
@@ -282,8 +260,6 @@ Process::Process(Dataspace_capability    elf_ds_cap,
 		switch (cause) {
 
 		case THREAD_START_FAIL:
-		case THREAD_PAGER_FAIL:
-		case THREAD_ADD_FAIL:
 		case ELF_FAIL:
 
 			_cpu_session_client.kill_thread(_thread0_cap);

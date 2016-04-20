@@ -79,6 +79,7 @@ Platform_thread::Platform_thread(const char * const label,
 Platform_thread::Platform_thread(size_t const quota,
                                  const char * const label,
                                  unsigned const virt_prio,
+                                 Affinity::Location location,
                                  addr_t const utcb)
 : Kernel_object<Kernel::Thread>(true, _priority(virt_prio), quota, _label),
   _pd(nullptr),
@@ -96,6 +97,7 @@ Platform_thread::Platform_thread(size_t const quota,
 		throw Cpu_session::Out_of_metadata();
 	}
 	_utcb_core_addr = (Native_utcb *)core_env()->rm_session()->attach(_utcb);
+	affinity(location);
 }
 
 

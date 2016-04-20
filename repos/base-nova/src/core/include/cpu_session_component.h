@@ -26,6 +26,8 @@
 
 /* core includes */
 #include <pager.h>
+#include <cpu_thread_allocator.h>
+#include <pd_session_component.h>
 #include <platform_thread.h>
 #include <trace/control_area.h>
 #include <trace/source_registry.h>
@@ -57,31 +59,120 @@ namespace Genode {
 
 		private:
 
+			Rpc_entrypoint           &_ep;
+			Pager_entrypoint         &_pager_ep;
+			Capability<Pd_session>    _pd;
+			Region_map_component     &_address_space_region_map;
+			size_t              const _weight;
 			Session_label       const _session_label;
 			Thread_name         const _name;
 			Platform_thread           _platform_thread;
-			bool                      _bound;            /* pd binding flag */
+			bool                const _bound_to_pd;
+
+			bool _bind_to_pd(Pd_session_component &pd)
+			{
+				if (!pd.bind_thread(_platform_thread))
+					throw Cpu_session::Thread_creation_failed();
+				return true;
+			}
+
 			Signal_context_capability _sigh;             /* exception handler */
-			unsigned            const _trace_control_index;
-			Trace::Source             _trace_source;
+
+			struct Trace_control_slot
+			{
+				unsigned index = 0;
+				Trace::Control_area &trace_control_area;
+
+				Trace_control_slot(Trace::Control_area &trace_control_area)
+				: trace_control_area(trace_control_area)
+				{
+					if (!trace_control_area.alloc(index))
+						throw Cpu_session::Out_of_metadata();
+				}
+
+				~Trace_control_slot()
+				{
+					trace_control_area.free(index);
+				}
+
+				Trace::Control &control()
+				{
+					return *trace_control_area.at(index);
+				}
+			};
+
+			Trace_control_slot _trace_control_slot;
+
+			Trace::Source _trace_source { *this, _trace_control_slot.control() };
+
+			Weak_ptr<Address_space> _address_space = _platform_thread.address_space();
+
+			Rm_client _rm_client;
 
 		public:
 
-			Cpu_thread_component(size_t const weight,
+			/**
+			 * Constructor
+			 *
+			 * \param ep         entrypoint used for managing the thread RPC
+			 *                   object
+			 * \param pager_ep   pager entrypoint used for handling the page
+			 *                   faults of the thread
+			 * \param pd         PD session where the thread is executed
+			 * \param weight     weighting regarding the CPU session quota
+			 * \param quota      initial quota counter-value of the weight
+			 * \param labal      label of the threads session
+			 * \param name       name for the thread
+			 * \param priority   scheduling priority
+			 * \param utcb       user-local UTCB base
+			 * \param sigh       initial exception handler
+			 */
+			Cpu_thread_component(Cpu_session_capability cpu_session_cap,
+			                     Rpc_entrypoint &ep,
+			                     Pager_entrypoint &pager_ep,
+			                     Pd_session_component &pd,
+			                     Trace::Control_area &trace_control_area,
+			                     size_t const weight,
 			                     size_t const quota,
+			                     Affinity::Location affinity,
 			                     Session_label const &label,
 			                     Thread_name const &name,
 			                     unsigned priority, addr_t utcb,
-			                     Signal_context_capability sigh,
-			                     unsigned trace_control_index,
-			                     Trace::Control &trace_control)
+			                     Signal_context_capability sigh)
 			:
+				_ep(ep), _pager_ep(pager_ep), _pd(pd.cap()),
+				_address_space_region_map(pd.address_space_region_map()),
+				_weight(weight),
 				_session_label(label), _name(name),
-				_platform_thread(name.string(), priority, utcb), _bound(false),
-				_sigh(sigh), _trace_control_index(trace_control_index),
-				_trace_source(*this, trace_control)
+				_platform_thread(name.string(), priority, affinity, utcb),
+				_bound_to_pd(_bind_to_pd(pd)),
+				_sigh(sigh),
+				_trace_control_slot(trace_control_area),
+				_rm_client(cpu_session_cap, _ep.manage(this),
+				           &_address_space_region_map,
+				           _platform_thread.pager_object_badge(),
+				           _address_space, _platform_thread.affinity())
 			{
 				update_exception_sigh();
+
+				_address_space_region_map.add_client(_rm_client);
+
+				/* acquaint thread with its pager object */
+				_pager_ep.manage(&_rm_client);
+				_platform_thread.pager(&_rm_client);
+			}
+
+			~Cpu_thread_component()
+			{
+				_pager_ep.dissolve(&_rm_client);
+				_ep.dissolve(this);
+
+				_address_space_region_map.remove_client(_rm_client);
+			}
+
+			void affinity(Affinity::Location affinity)
+			{
+				_platform_thread.affinity(affinity);
 			}
 
 
@@ -102,8 +193,6 @@ namespace Genode {
 			 ************************/
 
 			Platform_thread *platform_thread() { return &_platform_thread; }
-			bool             bound()     const { return _bound; }
-			void             bound(bool b)     { _bound = b; }
 			Trace::Source   *trace_source()    { return &_trace_source; }
 
 			size_t weight() const { return Cpu_session::DEFAULT_WEIGHT; }
@@ -122,7 +211,7 @@ namespace Genode {
 			/**
 			 * Return index within the CPU-session's trace control area
 			 */
-			unsigned trace_control_index() const { return _trace_control_index; }
+			unsigned trace_control_index() const { return _trace_control_slot.index; }
 	};
 
 
@@ -133,12 +222,6 @@ namespace Genode {
 			typedef Cpu_thread_component::Session_label Session_label;
 
 		private:
-
-			/**
-			 * Allocator used for managing the CPU threads associated with the
-			 * CPU session
-			 */
-			typedef Tslab<Cpu_thread_component, 1024> Cpu_thread_allocator;
 
 			Session_label              _label;
 			Rpc_entrypoint            *_session_ep;
@@ -167,7 +250,7 @@ namespace Genode {
 			List<Cpu_session_component> _ref_members;
 			Lock                        _ref_members_lock;
 
-			Native_cpu_component      _native_cpu;
+			Native_cpu_component        _native_cpu;
 
 			friend class Native_cpu_component;
 
@@ -201,6 +284,11 @@ namespace Genode {
 			 */
 			void _unsynchronized_kill_thread(Thread_capability cap);
 
+			/**
+			 * Convert session-local affinity location to physical location
+			 */
+			Affinity::Location _thread_affinity(Affinity::Location) const;
+
 		public:
 
 			/**
@@ -229,37 +317,37 @@ namespace Genode {
 			 ** CPU session interface **
 			 ***************************/
 
-			Thread_capability create_thread(size_t, Name const &, addr_t);
-			Ram_dataspace_capability utcb(Thread_capability thread);
-			void kill_thread(Thread_capability);
-			int set_pager(Thread_capability, Pager_capability);
-			int start(Thread_capability, addr_t, addr_t);
-			void pause(Thread_capability thread_cap);
-			void resume(Thread_capability thread_cap);
-			void single_step(Thread_capability thread_cap, bool enable);
-			void cancel_blocking(Thread_capability);
-			int name(Thread_capability, char *, size_t);
-			Thread_state state(Thread_capability);
-			void state(Thread_capability, Thread_state const &);
-			void exception_handler(Thread_capability, Signal_context_capability);
-			Affinity::Space affinity_space() const;
-			void affinity(Thread_capability, Affinity::Location);
-			Dataspace_capability trace_control();
-			unsigned trace_control_index(Thread_capability);
-			Dataspace_capability trace_buffer(Thread_capability);
-			Dataspace_capability trace_policy(Thread_capability);
-			int ref_account(Cpu_session_capability c);
-			int transfer_quota(Cpu_session_capability, size_t);
+			Thread_capability create_thread(Capability<Pd_session>, size_t, Name const &,
+			                                Affinity::Location, addr_t) override;
+			Ram_dataspace_capability utcb(Thread_capability thread) override;
+			void kill_thread(Thread_capability) override;
+			int start(Thread_capability, addr_t, addr_t) override;
+			void pause(Thread_capability thread_cap) override;
+			void resume(Thread_capability thread_cap) override;
+			void single_step(Thread_capability thread_cap, bool enable) override;
+			void cancel_blocking(Thread_capability) override;
+			Thread_state state(Thread_capability) override;
+			void state(Thread_capability, Thread_state const &) override;
+			void exception_handler(Thread_capability, Signal_context_capability) override;
+			Affinity::Space affinity_space() const override;
+			void affinity(Thread_capability, Affinity::Location) override;
+			Dataspace_capability trace_control() override;
+			unsigned trace_control_index(Thread_capability) override;
+			Dataspace_capability trace_buffer(Thread_capability) override;
+			Dataspace_capability trace_policy(Thread_capability) override;
+			int ref_account(Cpu_session_capability c) override;
+			int transfer_quota(Cpu_session_capability, size_t) override;
 			Quota quota() override;
-			Capability<Native_cpu> native_cpu() { return Capability<Native_cpu>(); }
+
+			Capability<Native_cpu> native_cpu() { return _native_cpu.cap(); }
 
 
 			/******************************
 			 ** NOVA specific extensions **
 			 ******************************/
 
-			Native_capability pause_sync(Thread_capability);
-			Native_capability single_step_sync(Thread_capability, bool);
+			Native_capability pause_sync(Thread_capability) override;
+			Native_capability single_step_sync(Thread_capability, bool) override;
 	};
 }
 

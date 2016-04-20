@@ -22,8 +22,9 @@
 #include <base/rpc_server.h>
 #include <region_map/region_map.h>
 
-/* Core includes */
+/* core includes */
 #include <pager.h>
+#include <platform_thread.h>
 
 namespace Genode {
 	struct Rm_client;
@@ -46,15 +47,13 @@ class Genode::Region_map_component : public Rpc_object<Region_map>,
 
 		void upgrade_ram_quota(size_t ram_quota) { }
 
+		void add_client(Rm_client &) { }
+		void remove_client(Rm_client &) { }
+
 		Local_addr attach(Dataspace_capability, size_t, off_t, bool, Local_addr, bool) {
 			return (addr_t)0; }
 
 		void detach(Local_addr) { }
-
-		Pager_capability add_client(Thread_capability) {
-			return Pager_capability(); }
-
-		void remove_client(Pager_capability) { }
 
 		void fault_handler(Signal_context_capability) { }
 
@@ -69,6 +68,13 @@ class Genode::Region_map_component : public Rpc_object<Region_map>,
 struct Genode::Rm_member { Region_map_component *member_rm() { return 0; } };
 
 
-struct Genode::Rm_client : Pager_object, Rm_member { };
+struct Genode::Rm_client : Pager_object, Rm_member
+{
+	Rm_client(Cpu_session_capability, Thread_capability, 
+	          Region_map_component *rm, unsigned long badge,
+	          Weak_ptr<Address_space> &address_space,
+	          Affinity::Location location)
+	{ }
+};
 
 #endif /* _CORE__INCLUDE__REGION_MAP_COMPONENT_H_ */

@@ -452,7 +452,7 @@ Native_thread &Thread_base::native_thread() { return *_native_thread; }
 
 
 Thread_base::Thread_base(size_t weight, const char *name, size_t stack_size,
-                         Type type, Cpu_session * cpu_sess)
+                         Type type, Cpu_session * cpu_sess, Affinity::Location)
 : _cpu_session(cpu_sess)
 {
 	Native_thread::Meta_data *meta_data =
@@ -470,7 +470,7 @@ Thread_base::Thread_base(size_t weight, const char *name, size_t stack_size,
 
 	native_thread().meta_data->wait_for_construction();
 
-	_thread_cap = _cpu_session->create_thread(weight, name);
+	_thread_cap = _cpu_session->create_thread(env()->pd_session_cap(), weight, name);
 
 	Linux_native_cpu_client native_cpu(_cpu_session->native_cpu());
 	native_cpu.thread_id(_thread_cap, native_thread().pid, native_thread().tid);
@@ -478,7 +478,7 @@ Thread_base::Thread_base(size_t weight, const char *name, size_t stack_size,
 
 
 Thread_base::Thread_base(size_t weight, const char *name, size_t stack_size,
-                         Type type)
+                         Type type, Affinity::Location)
 : Thread_base(weight, name, stack_size, type, env()->cpu_session()) { }
 
 void Thread_base::cancel_blocking()

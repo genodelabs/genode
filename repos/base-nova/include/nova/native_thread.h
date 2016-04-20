@@ -35,6 +35,8 @@ struct Genode::Native_thread
 	/* receive window for capability selectors received at the server side */
 	Receive_window rcv_window;
 
+	Native_capability pager_cap;
+
 	Native_thread() : ec_sel(INVALID_INDEX),
 	                  exc_pt_sel(INVALID_INDEX), is_vcpu(false) { }
 };

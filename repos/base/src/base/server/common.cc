@@ -68,16 +68,12 @@ Rpc_entrypoint::Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
                                char const *name, bool start_on_construction,
                                Affinity::Location location)
 :
-	Thread_base(Cpu_session::DEFAULT_WEIGHT, name, stack_size),
+	Thread_base(Cpu_session::DEFAULT_WEIGHT, name, stack_size, location),
 	_cap(Untyped_capability()),
 	_cap_valid(Lock::LOCKED), _delay_start(Lock::LOCKED),
 	_delay_exit(Lock::LOCKED),
 	_pd_session(*pd_session)
 {
-	/* set CPU affinity, if specified */
-	if (location.valid())
-		env()->cpu_session()->affinity(Thread_base::cap(), location);
-
 	Thread_base::start();
 	_block_until_cap_valid();
 

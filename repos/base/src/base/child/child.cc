@@ -316,7 +316,7 @@ Session_capability Child::session(Parent::Service_name const &name,
 	/* return sessions that we created for the child */
 	if (!strcmp("Env::ram_session", name.string())) return _ram;
 	if (!strcmp("Env::cpu_session", name.string())) return _cpu;
-	if (!strcmp("Env::pd_session",  name.string())) return _pd;
+	if (!strcmp("Env::pd_session",  name.string())) return _env_pd;
 
 	/* filter session arguments according to the child policy */
 	strncpy(_args, args.string(), sizeof(_args));
@@ -479,13 +479,15 @@ Child::Child(Dataspace_capability    elf_ds,
              Pd_session_capability   pd,
              Ram_session_capability  ram,
              Cpu_session_capability  cpu,
+             Region_map             &address_space,
              Rpc_entrypoint         *entrypoint,
              Child_policy           *policy,
              Service                &pd_service,
              Service                &ram_service,
-             Service                &cpu_service)
+             Service                &cpu_service,
+             Pd_session_capability   env_pd)
 :
-	_pd(pd), _pd_session_client(pd), _ram(ram), _ram_session_client(ram),
+	_pd(pd), _env_pd(env_pd.valid() ? env_pd : pd), _ram(ram),
 	_cpu(cpu), _pd_service(pd_service),
 	_ram_service(ram_service), _cpu_service(cpu_service),
 	_heap(&_ram_session_client, env()->rm_session()),
@@ -493,7 +495,7 @@ Child::Child(Dataspace_capability    elf_ds,
 	_parent_cap(_entrypoint->manage(this)),
 	_policy(policy),
 	_server(ram),
-	_process(elf_ds, pd, ram, cpu, _parent_cap, policy->name())
+	_process(elf_ds, pd, ram, cpu, address_space, _parent_cap, policy->name())
 { }
 
 

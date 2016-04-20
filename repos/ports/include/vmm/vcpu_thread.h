@@ -22,6 +22,7 @@
 #include <cpu_session/connection.h>
 #include <pd_session/connection.h>
 #include <region_map/client.h>
+#include <nova_native_cpu/client.h>
 
 /* NOVA includes */
 #include <nova/native_thread.h>
@@ -68,16 +69,7 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 
 			enum { WEIGHT = Cpu_session::DEFAULT_WEIGHT };
 			Thread_capability vcpu_vm =
-				_cpu_session->create_thread(WEIGHT, "vCPU");
-
-			/* assign thread to protection domain */
-			_pd_session.bind_thread(vcpu_vm);
-
-			/* create new pager object and assign it to the new thread */
-			Genode::Region_map_client address_space(_pd_session.address_space());
-			Pager_capability pager_cap = address_space.add_client(vcpu_vm);
-
-			_cpu_session->set_pager(vcpu_vm, pager_cap);
+				_cpu_session->create_thread(_pd_session, WEIGHT, "vCPU", _location);
 
 			/* tell parent that this will be a vCPU */
 			Thread_state state;
@@ -86,14 +78,17 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 
 			_cpu_session->state(vcpu_vm, state);
 
+			/* obtain interface to NOVA-specific CPU session operations */
+			Nova_native_cpu_client native_cpu(_cpu_session->native_cpu());
+
+			/* create new pager object and assign it to the new thread */
+			Native_capability pager_cap = native_cpu.pager_cap(vcpu_vm);
+
 			/*
 			 * Delegate parent the vCPU exception portals required during PD
 			 * creation.
 			 */
 			delegate_vcpu_portals(pager_cap, exc_base());
-
-			/* place the thread on CPU described by location object */
-			_cpu_session->affinity(vcpu_vm, _location);
 
 			/* start vCPU in separate PD */
 			_cpu_session->start(vcpu_vm, 0, 0);
@@ -118,7 +113,7 @@ class Vmm::Vcpu_same_pd : public Vmm::Vcpu_thread, Genode::Thread_base
 		Vcpu_same_pd(size_t stack_size, Cpu_session * cpu_session,
 		             Genode::Affinity::Location location)
 		:
-			Thread_base(WEIGHT, "vCPU", stack_size, Type::NORMAL, cpu_session)
+			Thread_base(WEIGHT, "vCPU", stack_size, Type::NORMAL, cpu_session, location)
 		{
 			/* release pre-allocated selectors of Thread */
 			Genode::cap_map()->remove(native_thread().exc_pt_sel, Nova::NUM_INITIAL_PT_LOG2);
@@ -128,9 +123,6 @@ class Vmm::Vcpu_same_pd : public Vmm::Vcpu_thread, Genode::Thread_base
 
 			/* tell generic thread code that this becomes a vCPU */
 			this->native_thread().is_vcpu = true;
-
-			/* place the thread on CPU described by location object */
-			cpu_session->affinity(Thread_base::cap(), location);
 		}
 
 		~Vcpu_same_pd()
@@ -150,11 +142,15 @@ class Vmm::Vcpu_same_pd : public Vmm::Vcpu_thread, Genode::Thread_base
 		{
 			this->Thread_base::start();
 
+			/* obtain interface to NOVA-specific CPU session operations */
+			Nova_native_cpu_client native_cpu(_cpu_session->native_cpu());
+
 			/*
 			 * Request native EC thread cap and put it next to the
 			 * SM cap - see Vcpu_dispatcher->sel_sm_ec description
 			 */
-			request_native_ec_cap(_pager_cap, sel_ec);
+			Native_capability pager_cap = native_cpu.pager_cap(_thread_cap);
+			request_native_ec_cap(pager_cap, sel_ec);
 		}
 
 		void entry() { }

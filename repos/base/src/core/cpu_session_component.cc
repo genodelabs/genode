@@ -20,6 +20,7 @@
 /* core includes */
 #include <cpu_session_component.h>
 #include <rm_session_component.h>
+#include <pd_session_component.h>
 #include <platform_generic.h>
 
 using namespace Genode;
@@ -33,17 +34,12 @@ void Cpu_thread_component::update_exception_sigh()
 };
 
 
-Thread_capability Cpu_session_component::create_thread(size_t weight,
+Thread_capability Cpu_session_component::create_thread(Capability<Pd_session> pd_cap,
+                                                       size_t weight,
                                                        Name const &name,
+                                                       Affinity::Location affinity,
                                                        addr_t utcb)
 {
-	unsigned trace_control_index = 0;
-	if (!_trace_control_area.alloc(trace_control_index))
-		throw Out_of_metadata();
-
-	Trace::Control * const trace_control =
-		_trace_control_area.at(trace_control_index);
-
 	Trace::Thread_name thread_name(name.string());
 
 	Cpu_thread_component *thread = 0;
@@ -61,33 +57,58 @@ Thread_capability Cpu_session_component::create_thread(size_t weight,
 	Lock::Guard thread_list_lock_guard(_thread_list_lock);
 	_incr_weight(weight);
 
-	try {
+	/*
+	 * Create thread associated with its protection domain
+	 */
+	auto create_thread_lambda = [&] (Pd_session_component *pd) {
+		if (!pd) {
+			PERR("create_thread: invalid PD argument");
+			throw Thread_creation_failed();
+		}
 		Lock::Guard slab_lock_guard(_thread_alloc_lock);
-		thread = new(&_thread_alloc)
+		thread = new (&_thread_alloc)
 			Cpu_thread_component(
-				weight, _weight_to_quota(weight), _label, thread_name,
-				_priority, utcb, _default_exception_handler,
-				trace_control_index, *trace_control);
+				cap(), *_thread_ep, *_pager_ep, *pd, _trace_control_area,
+				weight, _weight_to_quota(weight),
+				_thread_affinity(affinity), _label, thread_name,
+				_priority, utcb, _default_exception_handler);
+	};
 
-		/* set default affinity defined by CPU session */
-		thread->platform_thread()->affinity(_location);
-	} catch (Allocator::Out_of_memory) {
-		throw Out_of_metadata();
-	}
+	try { _thread_ep->apply(pd_cap, create_thread_lambda); }
+	catch (Region_map::Out_of_metadata) { throw Out_of_metadata(); }
+	catch (Allocator::Out_of_memory)    { throw Out_of_metadata(); }
 
 	_thread_list.insert(thread);
 
 	_trace_sources.insert(thread->trace_source());
 
-	return _thread_ep->manage(thread);
+	return thread->cap();
+}
+
+
+Affinity::Location Cpu_session_component::_thread_affinity(Affinity::Location location) const
+{
+	/* convert session-local location to physical location */
+	int const x1 = location.xpos() + _location.xpos(),
+	          y1 = location.ypos() + _location.ypos(),
+	          x2 = location.xpos() +  location.width(),
+	          y2 = location.ypos() +  location.height();
+
+	int const clipped_x1 = max(_location.xpos(), x1),
+	          clipped_y1 = max(_location.ypos(), y1),
+	          clipped_x2 = max(_location.xpos() + (int)_location.width()  - 1, x2),
+	          clipped_y2 = max(_location.ypos() + (int)_location.height() - 1, y2);
+
+	return Affinity::Location(clipped_x1, clipped_y1,
+	                          clipped_x2 - clipped_x1 + 1,
+	                          clipped_y2 - clipped_y1 + 1);
 }
 
 
 void Cpu_session_component::_unsynchronized_kill_thread(Thread_capability thread_cap)
 {
-	Cpu_thread_component *thread;
-	_thread_ep->apply(thread_cap, [&] (Cpu_thread_component *t) {
-		if ((thread = t)) _thread_ep->dissolve(thread); });
+	Cpu_thread_component *thread = nullptr;
+	_thread_ep->apply(thread_cap, [&] (Cpu_thread_component *t) { thread = t; });
 
 	if (!thread) return;
 
@@ -95,16 +116,12 @@ void Cpu_session_component::_unsynchronized_kill_thread(Thread_capability thread
 
 	_trace_sources.remove(thread->trace_source());
 
-	unsigned const trace_control_index = thread->trace_control_index();
-
 	_decr_weight(thread->weight());
 
 	{
 		Lock::Guard lock_guard(_thread_alloc_lock);
 		destroy(&_thread_alloc, thread);
 	}
-
-	_trace_control_area.free(trace_control_index);
 }
 
 
@@ -113,27 +130,6 @@ void Cpu_session_component::kill_thread(Thread_capability thread_cap)
 	Lock::Guard lock_guard(_thread_list_lock);
 
 	_unsynchronized_kill_thread(thread_cap);
-}
-
-
-int Cpu_session_component::set_pager(Thread_capability thread_cap,
-                                     Pager_capability  pager_cap)
-{
-	auto lambda = [&] (Cpu_thread_component *thread) {
-		if (!thread) return -1;
-
-		auto p_lambda = [&] (Pager_object *p) {
-			if (!p) return -2;
-
-			thread->platform_thread()->pager(p);
-
-			p->thread_cap(thread->cap());
-
-			return 0;
-		};
-		return _pager_ep->apply(pager_cap, p_lambda);
-	};
-	return _thread_ep->apply(thread_cap, lambda);
 }
 
 
@@ -268,20 +264,7 @@ void Cpu_session_component::affinity(Thread_capability  thread_cap,
 	auto lambda = [&] (Cpu_thread_component *thread) {
 		if (!thread) return;
 
-		/* convert session-local location to physical location */
-		int const x1 = location.xpos() + _location.xpos(),
-			y1 = location.ypos() + _location.ypos(),
-			x2 = location.xpos() +  location.width(),
-			y2 = location.ypos() +  location.height();
-
-		int const clipped_x1 = max(_location.xpos(), x1),
-			clipped_y1 = max(_location.ypos(), y1),
-			clipped_x2 = max(_location.xpos() + (int)_location.width()  - 1, x2),
-			clipped_y2 = max(_location.ypos() + (int)_location.height() - 1, y2);
-
-		thread->platform_thread()->affinity(Affinity::Location(clipped_x1, clipped_y1,
-		                                    clipped_x2 - clipped_x1 + 1,
-		                                    clipped_y2 - clipped_y1 + 1));
+		thread->affinity(_thread_affinity(location));
 	};
 	_thread_ep->apply(thread_cap, lambda);
 }

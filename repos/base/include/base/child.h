@@ -156,11 +156,13 @@ class Genode::Child : protected Rpc_object<Parent>
 
 		/* PD session representing the protection domain of the child */
 		Pd_session_capability   _pd;
-		Pd_session_client       _pd_session_client;
+
+		/* PD session presented to the child as environment */
+		Pd_session_capability   _env_pd;
 
 		/* RAM session that contains the quota of the child */
 		Ram_session_capability  _ram;
-		Ram_session_client      _ram_session_client;
+		Ram_session_client      _ram_session_client { _ram };
 
 		/* CPU session that contains the quota of the child */
 		Cpu_session_capability  _cpu;
@@ -250,16 +252,25 @@ class Genode::Child : protected Rpc_object<Parent>
 		 * needed to direct quota upgrades referring to the resources of
 		 * the child environment. By default, we expect that these
 		 * resources are provided by the parent.
+		 *
+		 * The 'env_pd' argument override the PD session capability that is
+		 * handed out as part of the child's environment. Normally, a child
+		 * will receive the physical PD capability of the PD session at core.
+		 * However, a runtime environment may wish to intercept the interaction
+		 * of the child with its PD session by specifying a capability to a
+		 * locally implemented PD session.
 		 */
 		Child(Dataspace_capability    elf_ds,
 		      Pd_session_capability   pd,
 		      Ram_session_capability  ram,
 		      Cpu_session_capability  cpu,
+		      Region_map             &address_space,
 		      Rpc_entrypoint         *entrypoint,
 		      Child_policy           *policy,
 		      Service                &pd_service  = *_parent_service(),
 		      Service                &ram_service = *_parent_service(),
-		      Service                &cpu_service = *_parent_service());
+		      Service                &cpu_service = *_parent_service(),
+		      Pd_session_capability   env_pd = Pd_session_capability());
 
 		/**
 		 * Destructor
@@ -278,6 +289,10 @@ class Genode::Child : protected Rpc_object<Parent>
 		Ram_session_capability ram_session_cap() const { return _ram; }
 		Cpu_session_capability cpu_session_cap() const { return _cpu; }
 		Parent_capability      parent_cap()      const { return cap(); }
+
+		/**
+		 */
+		void env_pd(Pd_session_capability pd) { _env_pd = pd; }
 
 		/**
 		 * Discard all sessions to specified service

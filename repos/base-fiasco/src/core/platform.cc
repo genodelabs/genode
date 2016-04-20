@@ -133,7 +133,9 @@ static void _core_pager_loop()
 }
 
 
-Platform::Sigma0::Sigma0() : Pager_object(0, Affinity::Location())
+Platform::Sigma0::Sigma0()
+:
+	Pager_object(Cpu_session_capability(), Thread_capability(), 0, Affinity::Location())
 {
 	cap(reinterpret_cap_cast<Cpu_thread>(Native_capability(Fiasco::sigma0_threadid, 0)));
 }
@@ -148,7 +150,8 @@ Platform::Sigma0 *Platform::sigma0()
 
 Platform::Core_pager::Core_pager(Platform_pd *core_pd)
 :
-	Platform_thread(0, "core.pager"), Pager_object(0, Affinity::Location())
+	Platform_thread(0, "core.pager"),
+	Pager_object(Cpu_session_capability(), Thread_capability(), 0, Affinity::Location())
 {
 	Platform_thread::pager(sigma0());
 

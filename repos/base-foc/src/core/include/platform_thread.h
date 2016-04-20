@@ -64,7 +64,8 @@ namespace Genode {
 			/**
 			 * Constructor for non-core threads
 			 */
-			Platform_thread(size_t, const char *name, unsigned priority, addr_t);
+			Platform_thread(size_t, const char *name, unsigned priority,
+			                Affinity::Location, addr_t);
 
 			/**
 			 * Constructor for core main-thread
@@ -124,15 +125,6 @@ namespace Genode {
 			 * Unbind this thread
 			 */
 			void unbind();
-
-			/**
-			 * Return pointer to the thread's PD
-			 *
-			 * Used to validate the success of the bind operation.
-			 *
-			 * XXX to be removed
-			 */
-			Platform_pd *pd() { return _platform_pd; }
 
 			/**
 			 * Override thread state with 's'

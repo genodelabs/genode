@@ -80,7 +80,7 @@ struct Genode::Expanding_region_map_client : Region_map_client
 
 	Local_addr attach(Dataspace_capability ds, size_t size, off_t offset,
 	                  bool use_local_addr, Local_addr local_addr,
-	                  bool executable)
+	                  bool executable) override
 	{
 		return retry<Region_map::Out_of_metadata>(
 			[&] () {
@@ -88,13 +88,6 @@ struct Genode::Expanding_region_map_client : Region_map_client
 				                                 use_local_addr,
 				                                 local_addr,
 				                                 executable); },
-			[&] () { _pd_client.upgrade_ram(8*1024); });
-	}
-
-	Pager_capability add_client(Thread_capability thread)
-	{
-		return retry<Region_map::Out_of_metadata>(
-			[&] () { return Region_map_client::add_client(thread); },
 			[&] () { _pd_client.upgrade_ram(8*1024); });
 	}
 };
@@ -105,7 +98,7 @@ struct Genode::Expanding_ram_session_client : Upgradeable_client<Genode::Ram_ses
 	Expanding_ram_session_client(Ram_session_capability cap)
 	: Upgradeable_client<Genode::Ram_session_client>(cap) { }
 
-	Ram_dataspace_capability alloc(size_t size, Cache_attribute cached = UNCACHED)
+	Ram_dataspace_capability alloc(size_t size, Cache_attribute cached = UNCACHED) override
 	{
 		/*
 		 * If the RAM session runs out of quota, issue a resource request
@@ -143,7 +136,7 @@ struct Genode::Expanding_ram_session_client : Upgradeable_client<Genode::Ram_ses
 			NUM_ATTEMPTS);
 	}
 
-	int transfer_quota(Ram_session_capability ram_session, size_t amount)
+	int transfer_quota(Ram_session_capability ram_session, size_t amount) override
 	{
 		enum { NUM_ATTEMPTS = 2 };
 		int ret = -1;
@@ -229,7 +222,7 @@ class Genode::Expanding_parent_client : public Parent_client
 
 		Session_capability session(Service_name const &name,
 		                           Session_args const &args,
-		                           Affinity     const &affinity)
+		                           Affinity     const &affinity) override
 		{
 			enum { NUM_ATTEMPTS = 2 };
 			return retry<Parent::Quota_exceeded>(
@@ -254,7 +247,7 @@ class Genode::Expanding_parent_client : public Parent_client
 				NUM_ATTEMPTS);
 		}
 
-		void upgrade(Session_capability to_session, Upgrade_args const &args)
+		void upgrade(Session_capability to_session, Upgrade_args const &args) override
 		{
 			/*
 			 * If the upgrade fails, attempt to issue a resource request twice.
@@ -277,7 +270,7 @@ class Genode::Expanding_parent_client : public Parent_client
 				NUM_ATTEMPTS);
 		}
 
-		void resource_avail_sigh(Signal_context_capability sigh)
+		void resource_avail_sigh(Signal_context_capability sigh) override
 		{
 			Lock::Guard guard(_lock);
 
@@ -298,7 +291,7 @@ class Genode::Expanding_parent_client : public Parent_client
 			}
 		}
 
-		void resource_request(Resource_args const &args)
+		void resource_request(Resource_args const &args) override
 		{
 			Lock::Guard guard(_lock);
 

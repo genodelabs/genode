@@ -524,6 +524,7 @@ class Init::Child : Genode::Child_policy
 		 */
 		Genode::Server _server;
 
+		Genode::Region_map_client _address_space { _resources.pd.address_space() };
 		Genode::Child _child;
 
 		Genode::Service_registry *_parent_services;
@@ -563,7 +564,7 @@ class Init::Child : Genode::Child_policy
 			_config(_resources.ram.cap(), start_node),
 			_server(_resources.ram.cap()),
 			_child(_binary_rom_ds, _resources.pd.cap(), _resources.ram.cap(),
-			       _resources.cpu.cap(), &_entrypoint, this),
+			       _resources.cpu.cap(), _address_space, &_entrypoint, this),
 			_parent_services(parent_services),
 			_child_services(child_services),
 			_labeling_policy(_name.unique),

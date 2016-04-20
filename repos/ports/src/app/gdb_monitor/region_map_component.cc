@@ -110,24 +110,6 @@ void Region_map_component::detach(Region_map::Local_addr local_addr)
 }
 
 
-Pager_capability Region_map_component::add_client(Thread_capability thread)
-{
-	if (verbose)
-		PDBG("add_client()");
-
-	return _parent_region_map.add_client(thread);
-}
-
-
-void Region_map_component::remove_client(Pager_capability pager)
-{
-	if (verbose)
-		PDBG("remove_client()");
-
-	return _parent_region_map.remove_client(pager);
-}
-
-
 void Region_map_component::fault_handler(Signal_context_capability handler)
 {
 	if (verbose)

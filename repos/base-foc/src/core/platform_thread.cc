@@ -278,7 +278,8 @@ Weak_ptr<Address_space> Platform_thread::address_space()
 }
 
 
-Platform_thread::Platform_thread(size_t, const char *name, unsigned prio, addr_t)
+Platform_thread::Platform_thread(size_t, const char *name, unsigned prio,
+                                 Affinity::Location location, addr_t)
 : _state(DEAD),
   _core_thread(false),
   _thread(true),
@@ -291,6 +292,7 @@ Platform_thread::Platform_thread(size_t, const char *name, unsigned prio, addr_t
 	((Core_cap_index*)_thread.local.idx())->pt(this);
 	_create_thread();
 	_finalize_construction(name);
+	affinity(location);
 }
 
 

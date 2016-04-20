@@ -42,8 +42,8 @@ extern "C" {
 
 		pthread(pthread_attr_t attr, void *(*start_routine) (void *),
 		        void *arg, size_t stack_size, char const * name,
-		        Genode::Cpu_session * cpu)
-		: Thread_base(WEIGHT, name, stack_size, Type::NORMAL, cpu),
+		        Genode::Cpu_session * cpu, Genode::Affinity::Location location)
+		: Thread_base(WEIGHT, name, stack_size, Type::NORMAL, cpu, location),
 		  _attr(attr),
 		  _start_routine(start_routine),
 		  _arg(arg)

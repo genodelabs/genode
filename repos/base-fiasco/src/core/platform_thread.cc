@@ -151,7 +151,8 @@ Weak_ptr<Address_space> Platform_thread::address_space()
 }
 
 
-Platform_thread::Platform_thread(size_t, const char *name, unsigned, addr_t,
+Platform_thread::Platform_thread(size_t, const char *name, unsigned,
+                                 Affinity::Location, addr_t,
                                  int thread_id)
 : _thread_id(thread_id), _l4_thread_id(L4_INVALID_ID), _pager(0)
 {

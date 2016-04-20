@@ -54,6 +54,7 @@ namespace Genode {
 			 * Constructor
 			 */
 			Platform_thread(size_t, const char *name = 0, unsigned priority = 0,
+			                Affinity::Location = Affinity::Location(),
 			                addr_t utcb = 0, int thread_id = THREAD_INVALID);
 
 			/**
@@ -106,15 +107,6 @@ namespace Genode {
 			 * Unbind this thread
 			 */
 			void unbind();
-
-			/**
-			 * Return pointer to the thread's PD
-			 *
-			 * Used to validate the success of the bind operation.
-			 *
-			 * XXX to be removed
-			 */
-			Platform_pd *pd() { return _platform_pd; }
 
 			/**
 			 * Override thread state with 's'

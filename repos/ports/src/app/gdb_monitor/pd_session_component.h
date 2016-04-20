@@ -64,9 +64,6 @@ class Pd_session_component : public Rpc_object<Pd_session>
 		 ** Pd_session interface **
 		 **************************/
 
-		void bind_thread(Thread_capability thread) override {
-			_pd.bind_thread(thread); }
-
 		void assign_parent(Capability<Parent> parent) override {
 			_pd.assign_parent(parent); }
 

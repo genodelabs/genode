@@ -118,8 +118,9 @@ namespace Genode {
 				inline void skip_reset() { _status &= ~SKIP_EXCEPTION; }
 			} _state;
 
-			Thread_capability  _thread_cap;
-			Exception_handlers _exceptions;
+			Cpu_session_capability _cpu_session_cap;
+			Thread_capability      _thread_cap;
+			Exception_handlers     _exceptions;
 
 			addr_t _pd;
 
@@ -149,7 +150,9 @@ namespace Genode {
 
 			const Affinity::Location location;
 
-			Pager_object(unsigned long badge, Affinity::Location location);
+			Pager_object(Cpu_session_capability cpu_session_cap,
+			             Thread_capability thread_cap,
+			             unsigned long badge, Affinity::Location location);
 
 			virtual ~Pager_object();
 
@@ -283,11 +286,17 @@ namespace Genode {
 			}
 
 			/**
-			 * Remember thread cap so that rm_session can tell thread that
-			 * rm_client is gone.
+			 * Return CPU session that was used to created the thread
 			 */
-			Thread_capability thread_cap() { return _thread_cap; } const
-			void thread_cap(Thread_capability cap) { _thread_cap = cap; }
+			Cpu_session_capability cpu_session_cap() const { return _cpu_session_cap; }
+
+			/**
+			 * Return thread capability
+			 *
+			 * This function enables the destructor of the thread's
+			 * address-space region map to kill the thread.
+			 */
+			Thread_capability thread_cap() const { return _thread_cap; }
 
 			/**
 			 * Note in the thread state that an unresolved page

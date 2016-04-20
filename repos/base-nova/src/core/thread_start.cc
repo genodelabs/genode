@@ -95,11 +95,7 @@ void Thread_base::start()
 	Utcb * utcb_obj = reinterpret_cast<Utcb *>(&_stack->utcb());
 	addr_t pd_sel   = Platform_pd::pd_core_sel();
 
-	/*
-	 * In core, the affinity location has been written to the stack base by
-	 * the server or pager code. So - read the value from there.
-	 */
-	Affinity::Location location = reinterpret_cast<Affinity::Location *>(stack_base())[0];
+	Affinity::Location location = _affinity;
 
 	if (!location.valid())
 		location = Affinity::Location(boot_cpu(), 0);

@@ -167,6 +167,8 @@ class Launchpad_child : public Genode::List<Launchpad_child>::Element
 		enum { ENTRYPOINT_STACK_SIZE = 12*1024 };
 		Genode::Rpc_entrypoint _entrypoint;
 
+		Genode::Region_map_client _address_space;
+
 		Launchpad_child_policy _policy;
 		Genode::Child          _child;
 
@@ -187,9 +189,10 @@ class Launchpad_child : public Genode::List<Launchpad_child>::Element
 				_launchpad(launchpad),
 				_rom(rom), _ram(ram), _cpu(cpu), _server(_ram),
 				_entrypoint(cap_session, ENTRYPOINT_STACK_SIZE, name, false),
+				_address_space(Genode::Pd_session_client(pd).address_space()),
 				_policy(name, &_server, parent_services, child_services,
 				        config_ds, elf_ds, &_entrypoint),
-				_child(elf_ds, pd, ram, cpu, &_entrypoint, &_policy) {
+				_child(elf_ds, pd, ram, cpu, _address_space, &_entrypoint, &_policy) {
 				_entrypoint.activate(); }
 
 			Genode::Rom_session_capability rom_session_cap() { return _rom; }

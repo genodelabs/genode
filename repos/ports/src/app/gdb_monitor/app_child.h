@@ -63,6 +63,8 @@ namespace Gdb_monitor {
 			Pd_session_component          _pd { _unique_name, _entrypoint,
 			                                    _managed_ds_map };
 
+			Region_map_client             _address_space { _pd.address_space() };
+
 			Child                         _child;
 
 			Genode::Rpc_entrypoint       *_root_ep;
@@ -242,7 +244,7 @@ namespace Gdb_monitor {
 			  _cpu_session_cap(_get_cpu_session_cap()),
 			  _ram_session_cap(ram_session),
 			  _child(elf_ds, _pd.cap(), ram_session, _cpu_session_cap,
-			         &_entrypoint, this),
+			         _address_space, &_entrypoint, this),
 			  _root_ep(root_ep),
 			  _rom_service(&_entrypoint, _child.heap())
 			{

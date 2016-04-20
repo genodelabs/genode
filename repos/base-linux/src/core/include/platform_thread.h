@@ -19,6 +19,7 @@
 /* Genode includes */
 #include <base/thread_state.h>
 #include <cpu_session/cpu_session.h>
+#include <base/weak_ptr.h>
 
 /* base-internal includes */
 #include <base/internal/server_socket_pair.h>
@@ -29,6 +30,8 @@
 namespace Genode {
 
 	class Platform_thread;
+
+	class Address_space;
 
 	/*
 	 * We hold all Platform_thread objects in a list in order to be able to
@@ -81,7 +84,8 @@ namespace Genode {
 			/**
 			 * Constructor
 			 */
-			Platform_thread(size_t, const char *name, unsigned priority, addr_t);
+			Platform_thread(size_t, const char *name, unsigned priority, 
+			                Affinity::Location, addr_t);
 
 			~Platform_thread();
 
@@ -174,6 +178,10 @@ namespace Genode {
 			 * Return execution time consumed by the thread
 			 */
 			unsigned long long execution_time() const { return 0; }
+
+			Weak_ptr<Address_space> address_space() { return Weak_ptr<Address_space>(); }
+
+			unsigned long pager_object_badge() const { return 0; }
 	};
 }
 

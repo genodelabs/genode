@@ -71,7 +71,7 @@ class Stack_area_region_map : public Region_map
 		Local_addr attach(Dataspace_capability ds_cap, /* ignored capability */
 		                  size_t size, off_t offset,
 		                  bool use_local_addr, Local_addr local_addr,
-		                  bool executable)
+		                  bool executable) override
 		{
 			/* allocate physical memory */
 			size = round_page(size);
@@ -111,7 +111,7 @@ class Stack_area_region_map : public Region_map
 			return local_addr;
 		}
 
-		void detach(Local_addr local_addr)
+		void detach(Local_addr local_addr) override
 		{
 			using Genode::addr_t;
 
@@ -126,16 +126,11 @@ class Stack_area_region_map : public Region_map
 			unmap_local(detach, pages);
 		}
 
-		Pager_capability add_client(Thread_capability) {
-			return Pager_capability(); }
+		void fault_handler(Signal_context_capability) override { }
 
-		void remove_client(Pager_capability) { }
+		State state() override { return State(); }
 
-		void fault_handler(Signal_context_capability) { }
-
-		State state() { return State(); }
-
-		Dataspace_capability dataspace() { return Dataspace_capability(); }
+		Dataspace_capability dataspace() override { return Dataspace_capability(); }
 };
 
 
@@ -143,19 +138,14 @@ class Stack_area_ram_session : public Ram_session
 {
 	public:
 
-		Ram_dataspace_capability alloc(size_t size, Cache_attribute cached) {
+		Ram_dataspace_capability alloc(size_t, Cache_attribute) override {
 			return reinterpret_cap_cast<Ram_dataspace>(Native_capability()); }
 
-		void free(Ram_dataspace_capability ds) { }
-
-		int ref_account(Ram_session_capability ram_session) { return 0; }
-
-		int transfer_quota(Ram_session_capability ram_session, size_t amount) {
-			return 0; }
-
-		size_t quota() { return 0; }
-
-		size_t used() { return 0; }
+		void   free           (Ram_dataspace_capability)       override { }
+		int    ref_account    (Ram_session_capability)         override { return 0; }
+		int    transfer_quota (Ram_session_capability, size_t) override { return 0; }
+		size_t quota          ()                               override { return 0; }
+		size_t used           ()                               override { return 0; }
 };
 
 

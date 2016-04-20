@@ -95,16 +95,6 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 
 		Dataspace_registry &_ds_registry;
 
-		/**
-		 * Remember last pager capability returned by add_client
-		 *
-		 * On NOVA, we need to preserve a local copy of the pager capability
-		 * until we have passed to a call of 'Cpu_session::set_pager'.
-		 * Otherwise, NOVA would transitively revoke the capability that we
-		 * handed out to our child.
-		 */
-		Pager_capability _last_pager;
-
 	public:
 
 		/**
@@ -305,21 +295,6 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 
 			_rm.detach(local_addr);
 
-		}
-
-		Pager_capability add_client(Thread_capability thread) override
-		{
-			return retry<Region_map::Out_of_metadata>(
-				[&] () {
-					Pager_capability cap = _rm.add_client(thread);
-					_last_pager = cap;
-					return cap;
-				}, [&] () { Genode::env()->parent()->upgrade(_pd, "ram_quota=8192"); });
-		}
-
-		void remove_client(Pager_capability pager) override
-		{
-			_rm.remove_client(pager);
 		}
 
 		void fault_handler(Signal_context_capability handler) override

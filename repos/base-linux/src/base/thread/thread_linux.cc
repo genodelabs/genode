@@ -83,7 +83,8 @@ void Thread_base::_init_platform_thread(size_t weight, Type type)
 
 	/* for normal threads create an object at the CPU session */
 	if (type == NORMAL) {
-		_thread_cap = _cpu_session->create_thread(weight, _stack->name().string());
+		_thread_cap = _cpu_session->create_thread(env()->pd_session_cap(),
+		                                          weight, _stack->name().string());
 		return;
 	}
 	/* adjust initial object state for main threads */

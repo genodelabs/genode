@@ -62,7 +62,7 @@ class Stack_area_region_map : public Region_map
 		Local_addr attach(Dataspace_capability ds_cap, /* ignored capability */
 		                  size_t size, off_t offset,
 		                  bool use_local_addr, Local_addr local_addr,
-		                  bool executable)
+		                  bool executable) override
 		{
 			size = round_page(size);
 
@@ -98,18 +98,13 @@ class Stack_area_region_map : public Region_map
 			return local_addr;
 		}
 
-		void detach(Local_addr local_addr) { PWRN("Not implemented!"); }
+		void detach(Local_addr) override { PWRN("Not implemented!"); }
 
-		Pager_capability add_client(Thread_capability) {
-			return Pager_capability(); }
+		void fault_handler(Signal_context_capability) override { }
 
-		void remove_client(Pager_capability) { }
+		State state() override { return State(); }
 
-		void fault_handler(Signal_context_capability) { }
-
-		State state() { return State(); }
-
-		Dataspace_capability dataspace() { return Dataspace_capability(); }
+		Dataspace_capability dataspace() override { return Dataspace_capability(); }
 };
 
 

@@ -17,9 +17,6 @@
 using namespace Genode;
 
 
-void Pd_session_component::bind_thread(Thread_capability) { }
-
-
 void Pd_session_component::assign_parent(Capability<Parent> parent)
 {
 	_parent = parent;

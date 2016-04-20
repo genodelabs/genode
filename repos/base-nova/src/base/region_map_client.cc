@@ -20,6 +20,7 @@ using namespace Genode;
 Region_map_client::Region_map_client(Capability<Region_map> session)
 : Rpc_client<Region_map>(session) { }
 
+
 Region_map::Local_addr
 Region_map_client::attach(Dataspace_capability ds, size_t size, off_t offset,
                           bool use_local_addr, Local_addr local_addr,
@@ -29,21 +30,17 @@ Region_map_client::attach(Dataspace_capability ds, size_t size, off_t offset,
 	                        executable);
 }
 
+
 void Region_map_client::detach(Local_addr local_addr) {
 	call<Rpc_detach>(local_addr); }
 
-Pager_capability Region_map_client::add_client(Thread_capability thread)
-{
-	return call<Rpc_add_client>(thread);
-}
-
-void Region_map_client::remove_client(Pager_capability pager) {
-	call<Rpc_remove_client>(pager); }
 
 void Region_map_client::fault_handler(Signal_context_capability cap) {
 	call<Rpc_fault_handler>(cap); }
 
-	Region_map::State Region_map_client::state() { return call<Rpc_state>(); }
+
+Region_map::State Region_map_client::state() { return call<Rpc_state>(); }
+
 
 Dataspace_capability Region_map_client::dataspace()
 {

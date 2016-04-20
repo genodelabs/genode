@@ -41,7 +41,7 @@ static addr_t core_utcb_base() {
  ** Public object members **
  ***************************/
 
-void Platform_pd::bind_thread(Platform_thread *thread)
+bool Platform_pd::bind_thread(Platform_thread *thread)
 {
 	/*
 	 * Fiasco.OC limits the UTCB area for roottask to 16K. Therefore, the
@@ -69,17 +69,16 @@ void Platform_pd::bind_thread(Platform_thread *thread)
 		thread->_irq.remote   = cap_offset + THREAD_IRQ_CAP;
 
 		/* if it's no core-thread we have to map parent and pager gate cap */
-		if (!thread->core_thread()) {
+		if (!thread->core_thread())
 			_task.map(_task.local.dst());
-			_parent.map(_task.local.dst());
-		}
 
 		/* inform thread about binding */
 		thread->bind(this);
-		return;
+		return true;
 	}
 
 	PERR("thread alloc failed");
+	return false;
 }
 
 
@@ -101,6 +100,7 @@ void Platform_pd::assign_parent(Native_capability parent)
 	if (_parent.remote == Fiasco::L4_INVALID_CAP && parent.valid()) {
 		_parent.local  = parent;
 		_parent.remote = PARENT_CAP;
+		_parent.map(_task.local.dst());
 	}
 }
 

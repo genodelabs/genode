@@ -61,5 +61,8 @@ Core_region_map::attach(Dataspace_capability ds_cap, size_t size,
 		return virt_addr;
 	};
 
-	return _ds_ep->apply(ds_cap, lambda);
+	return _ep.apply(ds_cap, lambda);
 }
+
+
+void Core_region_map::detach(Local_addr) { }

@@ -53,6 +53,10 @@ namespace Genode {
 		template <typename FUNC>
 		auto apply(Pager_capability, FUNC f) -> decltype(f(nullptr)) {
 			return f(nullptr); }
+
+		Pager_capability manage(Pager_object *) { return Pager_capability(); }
+
+		void dissolve(Pager_object *) { }
 	};
 }
 

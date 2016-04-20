@@ -72,12 +72,9 @@ class Vmm::Vcpu_dispatcher : public T
 		                Cpu_session * cpu_session,
 		                Genode::Affinity::Location location)
 		:
-			T(WEIGHT, "vCPU dispatcher", stack_size), _pd(pd)
+			T(WEIGHT, "vCPU dispatcher", stack_size, location), _pd(pd)
 		{
 			using namespace Genode;
-
-			/* place the thread on CPU described by location object */
-			cpu_session->affinity(T::cap(), location);
 
 			/* request creation of a 'local' EC */
 			T::native_thread().ec_sel = Native_thread::INVALID_INDEX - 1;
@@ -90,13 +87,10 @@ class Vmm::Vcpu_dispatcher : public T
 		                Cpu_session * cpu_session,
 		                Genode::Affinity::Location location,
 		                X attr, void *(*start_routine) (void *), void *arg)
-		: T(attr, start_routine, arg, stack_size, "vCPU dispatcher", nullptr),
+		: T(attr, start_routine, arg, stack_size, "vCPU dispatcher", nullptr, location),
 		  _pd(pd)
 		{
 			using namespace Genode;
-
-			/* place the thread on CPU described by location object */
-			cpu_session->affinity(T::cap(), location);
 
 			/* request creation of a 'local' EC */
 			T::native_thread().ec_sel = Native_thread::INVALID_INDEX - 1;

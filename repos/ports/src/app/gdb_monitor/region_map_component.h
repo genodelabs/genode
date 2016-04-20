@@ -95,13 +95,11 @@ namespace Gdb_monitor {
 			 **************************************/
 
 			Local_addr       attach        (Dataspace_capability, Genode::size_t,
-			                                Genode::off_t, bool, Local_addr, bool);
-			void             detach        (Local_addr);
-			Pager_capability add_client    (Thread_capability);
-			void             remove_client (Pager_capability);
-			void             fault_handler (Signal_context_capability);
-			State            state         ();
-			Dataspace_capability dataspace ();
+			                                Genode::off_t, bool, Local_addr, bool) override;
+			void             detach        (Local_addr) override;
+			void             fault_handler (Signal_context_capability) override;
+			State            state         () override;
+			Dataspace_capability dataspace () override;
 	};
 
 }

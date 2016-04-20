@@ -163,8 +163,10 @@ namespace Genode {
 
 			/**
 			 * Bind thread to protection domain
+			 *
+			 * \return true on success
 			 */
-			void bind_thread(Platform_thread *thread);
+			bool bind_thread(Platform_thread *thread);
 
 			/**
 			 * Unbind thread from protection domain

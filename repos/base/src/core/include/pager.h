@@ -55,7 +55,8 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry
 		 */
 		unsigned long _badge;
 
-		Thread_capability _thread_cap;
+		Cpu_session_capability _cpu_session_cap;
+		Thread_capability      _thread_cap;
 
 		/**
 		 * User-level signal handler registered for this pager object via
@@ -75,8 +76,11 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry
 		 *
 		 * \param location  affinity of paged thread to physical CPU
 		 */
-		Pager_object(unsigned long badge, Affinity::Location location)
-		: _badge(badge) { }
+		Pager_object(Cpu_session_capability cpu_sesion, Thread_capability thread,
+		             unsigned long badge, Affinity::Location location)
+		:
+			_badge(badge), _cpu_session_cap(cpu_sesion), _thread_cap(thread)
+		{ }
 
 		virtual ~Pager_object() { }
 
@@ -116,11 +120,17 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry
 		}
 
 		/**
-		 * Remember thread cap so that rm_session can tell thread that
-		 * rm_client is gone.
+		 * Return CPU session that was used to created the thread
 		 */
-		Thread_capability thread_cap() { return _thread_cap; } const
-		void thread_cap(Thread_capability cap) { _thread_cap = cap; }
+		Cpu_session_capability cpu_session_cap() const { return _cpu_session_cap; }
+
+		/**
+		 * Return thread capability
+		 *
+		 * This function enables the destructor of the thread's
+		 * address-space region map to kill the thread.
+		 */
+		Thread_capability thread_cap() const { return _thread_cap; }
 
 		/*
 		 * Note in the thread state that an unresolved page

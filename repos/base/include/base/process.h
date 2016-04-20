@@ -43,6 +43,7 @@ class Genode::Process
 		 * \param ram_session   RAM session providing the BSS for the
 		 *                      new protection domain
 		 * \param cpu_session   CPU session for the new protection domain
+		 * \param address_space region map of new protection domain
 		 * \param parent        parent of the new protection domain
 		 * \param name          name of protection domain (can be used
          *                      for debugging)
@@ -56,6 +57,7 @@ class Genode::Process
 		        Pd_session_capability   pd_session,
 		        Ram_session_capability  ram_session,
 		        Cpu_session_capability  cpu_session,
+		        Region_map             &address_space,
 		        Parent_capability       parent,
 		        char const             *name);
 

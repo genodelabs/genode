@@ -125,6 +125,13 @@ namespace Noux {
 			Rpc_entrypoint _entrypoint;
 
 			/**
+			 * Registry of dataspaces owned by the Noux process
+			 */
+			Dataspace_registry _ds_registry;
+
+			Pd_session_component _pd;
+
+			/**
 			 * Resources assigned to the child
 			 */
 			struct Resources
@@ -135,10 +142,6 @@ namespace Noux {
 				 */
 				Rpc_entrypoint &ep;
 
-				/**
-				 * Registry of dataspaces owned by the Noux process
-				 */
-				Dataspace_registry ds_registry;
 
 				/**
 				 * Locally-provided services for accessing platform resources
@@ -146,9 +149,11 @@ namespace Noux {
 				Ram_session_component ram;
 				Cpu_session_component cpu;
 
-				Resources(char const *label, Rpc_entrypoint &ep, bool forked)
+				Resources(char const *label, Rpc_entrypoint &ep,
+				          Dataspace_registry &ds_registry,
+				          Pd_session_capability core_pd_cap, bool forked)
 				:
-					ep(ep), ram(ds_registry), cpu(label, forked)
+					ep(ep), ram(ds_registry), cpu(label, core_pd_cap, forked)
 				{
 					ep.manage(&ram);
 					ep.manage(&cpu);
@@ -162,7 +167,7 @@ namespace Noux {
 
 			} _resources;
 
-			Pd_session_component _pd;
+			Region_map_client _address_space { _pd.address_space() };
 
 			/**
 			 * Command line arguments
@@ -211,6 +216,7 @@ namespace Noux {
 
 			Local_noux_service _local_noux_service;
 			Parent_service     _parent_ram_service;
+			Parent_service     _parent_pd_service;
 			Local_cpu_service  _local_cpu_service;
 			Local_rom_service  _local_rom_service;
 			Service_registry  &_parent_services;
@@ -349,8 +355,8 @@ namespace Noux {
 				_destruct_context_cap(sig_rec->manage(&_destruct_dispatcher)),
 				_cap_session(cap_session),
 				_entrypoint(cap_session, STACK_SIZE, "noux_process", false),
-				_resources(binary_name, resources_ep, false),
-				_pd(binary_name, resources_ep, _resources.ds_registry),
+				_pd(binary_name, resources_ep, _ds_registry),
+				_resources(binary_name, resources_ep, _ds_registry, _pd.core_pd_cap(), false),
 				_args(ARGS_DS_SIZE, args),
 				_env(env),
 				_elf(binary_name, root_dir, root_dir->dataspace(binary_name)),
@@ -359,23 +365,25 @@ namespace Noux {
 				_noux_session_cap(Session_capability(_entrypoint.manage(this))),
 				_local_noux_service(_noux_session_cap),
 				_parent_ram_service(""),
+				_parent_pd_service(""),
 				_local_cpu_service(_entrypoint, _resources.cpu.cpu_cap()),
-				_local_rom_service(_entrypoint, _resources.ds_registry),
+				_local_rom_service(_entrypoint, _ds_registry),
 				_parent_services(parent_services),
-				_binary_ds_info(_resources.ds_registry, _elf._binary_ds),
-				_sysio_ds_info(_resources.ds_registry, _sysio_ds.cap()),
-				_ldso_ds_info(_resources.ds_registry, ldso_ds_cap()),
-				_args_ds_info(_resources.ds_registry, _args.cap()),
-				_env_ds_info(_resources.ds_registry, _env.cap()),
+				_binary_ds_info(_ds_registry, _elf._binary_ds),
+				_sysio_ds_info(_ds_registry, _sysio_ds.cap()),
+				_ldso_ds_info(_ds_registry, ldso_ds_cap()),
+				_args_ds_info(_ds_registry, _args.cap()),
+				_env_ds_info(_ds_registry, _env.cap()),
 				_child_policy(_elf._name, _elf._binary_ds, _args.cap(), _env.cap(),
 				              _entrypoint, _local_noux_service,
 				              _local_rom_service, _parent_services,
 				              *this, parent_exit, *this, _destruct_context_cap,
 				              _resources.ram, verbose),
 				_child(forked ? Dataspace_capability() : _elf._binary_ds,
-				       _pd.cap(), _resources.ram.cap(), _resources.cpu.cap(),
-				       &_entrypoint, &_child_policy, _parent_ram_service,
-				       _local_cpu_service)
+				       _pd.core_pd_cap(), _resources.ram.cap(), _resources.cpu.cap(),
+				       _address_space,
+				       &_entrypoint, &_child_policy, _parent_pd_service,
+				       _parent_ram_service, _local_cpu_service, _pd.cap())
 			{
 				if (verbose)
 					_args.dump();
@@ -422,7 +430,7 @@ namespace Noux {
 
 			Ram_session_capability ram() const { return _resources.ram.cap(); }
 			Pd_session_capability  pd()  const { return _pd.cap(); }
-			Dataspace_registry &ds_registry()  { return _resources.ds_registry; }
+			Dataspace_registry &ds_registry()  { return _ds_registry; }
 
 
 			/****************************

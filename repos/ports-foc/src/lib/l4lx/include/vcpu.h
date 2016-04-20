@@ -55,7 +55,8 @@ namespace L4lx {
 			     Genode::size_t              stack_size,
 			     Genode::addr_t              vcpu_state,
 			     unsigned                    cpu_nr)
-			: Genode::Thread_base(WEIGHT, str, stack_size),
+			: Genode::Thread_base(WEIGHT, str, stack_size,
+			                      Genode::Affinity::Location(cpu_nr, 0)),
 			  _lock(Genode::Cancelable_lock::LOCKED),
 			  _func(func),
 			  _data(data ? *data : 0),
@@ -73,9 +74,6 @@ namespace L4lx {
 					Genode::Foc_native_cpu_client native_cpu(cpu_connection()->native_cpu());
 					native_cpu.enable_vcpu(_thread_cap, _vcpu_state);
 				}
-
-				/* set cpu affinity */
-				set_affinity(_cpu_nr);
 			}
 
 			void entry()

@@ -37,7 +37,6 @@ void Thread_base::_deinit_platform_thread()
 		Cap_index *i = (Cap_index*)l4_utcb_tcr_u(utcb()->foc_utcb)->user[UTCB_TCR_BADGE];
 		cap_map()->remove(i);
 		_cpu_session->kill_thread(_thread_cap);
-		env()->rm_session()->remove_client(_pager_cap);
 	}
 }
 
@@ -53,13 +52,13 @@ void Thread_base::_init_platform_thread(size_t weight, Type type)
 		/* create thread at core */
 		char buf[48];
 		name(buf, sizeof(buf));
-		_thread_cap = _cpu_session->create_thread(weight, buf);
+		_thread_cap = _cpu_session->create_thread(env()->pd_session_cap(),
+		                                          weight, buf);
 
 		/* assign thread to protection domain */
 		if (!_thread_cap.valid())
 			throw Cpu_session::Thread_creation_failed();
 
-		env()->pd_session()->bind_thread(_thread_cap);
 		return;
 	}
 	/* adjust values whose computation differs for a main thread */
@@ -78,14 +77,6 @@ void Thread_base::_init_platform_thread(size_t weight, Type type)
 void Thread_base::start()
 {
 	using namespace Fiasco;
-
-	/* create new pager object and assign it to the new thread */
-	try {
-		_pager_cap = env()->rm_session()->add_client(_thread_cap);
-	} catch (Region_map::Unbound_thread) {
-		throw Cpu_session::Thread_creation_failed(); }
-
-	_cpu_session->set_pager(_thread_cap, _pager_cap);
 
 	/* get gate-capability and badge of new thread */
 	Thread_state state;

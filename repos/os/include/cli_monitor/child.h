@@ -67,11 +67,12 @@ class Child_base : public Genode::Child_policy
 			}
 		};
 
-		size_t                   _ram_quota;
-		size_t                   _ram_limit;
-		Resources                _resources;
-		Genode::Service_registry _parent_services;
-		Genode::Rom_connection   _binary_rom;
+		size_t                    _ram_quota;
+		size_t                    _ram_limit;
+		Resources                 _resources;
+		Genode::Region_map_client _address_space { _resources.pd.address_space() };
+		Genode::Service_registry  _parent_services;
+		Genode::Rom_connection    _binary_rom;
 
 		enum { ENTRYPOINT_STACK_SIZE = 12*1024 };
 		Genode::Rpc_entrypoint _entrypoint;
@@ -120,7 +121,7 @@ class Child_base : public Genode::Child_policy
 			_binary_policy("binary", _binary_rom.dataspace(), &_entrypoint),
 			_config_policy("config", _entrypoint, &_resources.ram),
 			_child(_binary_rom.dataspace(), _resources.pd.cap(),
-			       _resources.ram.cap(), _resources.cpu.cap(),
+			       _resources.ram.cap(), _resources.cpu.cap(), _address_space,
 			       &_entrypoint, this),
 			_yield_response_sigh_cap(yield_response_sig_cap),
 			_exit_sig_cap(exit_sig_cap)

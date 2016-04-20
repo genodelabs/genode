@@ -4,6 +4,7 @@ GEN_CORE_DIR = $(BASE_DIR)/src/core
 
 SRC_CC      += stack_area.cc \
                core_printf.cc \
+               core_region_map.cc \
                core_rpc_cap_alloc.cc \
                cpu_session_component.cc \
                cpu_session_support.cc \
@@ -54,6 +55,7 @@ vpath cpu_session_support.cc      $(GEN_CORE_DIR)
 vpath pd_session_component.cc     $(GEN_CORE_DIR)
 vpath rpc_cap_factory.cc          $(GEN_CORE_DIR)
 vpath core_rpc_cap_alloc.cc       $(GEN_CORE_DIR)
+vpath core_region_map.cc          $(GEN_CORE_DIR)
 vpath pd_assign_pci.cc            $(GEN_CORE_DIR)
 vpath pd_upgrade_ram_quota.cc     $(GEN_CORE_DIR)
 vpath region_map_component.cc     $(GEN_CORE_DIR)

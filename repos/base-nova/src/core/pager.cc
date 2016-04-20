@@ -399,6 +399,10 @@ void Pager_object::cleanup_call()
 {
 	_state.mark_dissolved();
 
+	/* revoke ec and sc cap of client before the sm cap */
+	if (_state.sel_client_ec != Native_thread::INVALID_INDEX)
+		revoke(Obj_crd(_state.sel_client_ec, 2));
+
 	/* revoke all portals handling the client. */
 	revoke(Obj_crd(exc_pt_sel_client(), NUM_INITIAL_PT_LOG2));
 
@@ -502,12 +506,15 @@ Exception_handlers::Exception_handlers(Pager_object *obj)
  ******************/
 
 
-Pager_object::Pager_object(unsigned long badge, Affinity::Location location)
+Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
+                           Thread_capability thread_cap, unsigned long badge,
+                           Affinity::Location location)
 :
 	_badge(badge),
 	_selectors(cap_map()->insert(2)),
 	_client_exc_pt_sel(cap_map()->insert(NUM_INITIAL_PT_LOG2)),
 	_client_exc_vcpu(Native_thread::INVALID_INDEX),
+	_cpu_session_cap(cpu_session_cap), _thread_cap(thread_cap),
 	_exceptions(this),
 	location(location)
 {
@@ -815,12 +822,10 @@ addr_t Pager_object::get_oom_portal()
 
 Pager_activation_base::Pager_activation_base(const char *name, size_t stack_size)
 :
-	Thread_base(Cpu_session::DEFAULT_WEIGHT, name, stack_size),
+	Thread_base(Cpu_session::DEFAULT_WEIGHT, name, stack_size,
+	            Affinity::Location(which_cpu(this), 0)),
 	_cap(Native_capability()), _ep(0), _cap_valid(Lock::LOCKED)
 {
-	/* tell thread starting code on which CPU to let run the pager */
-	reinterpret_cast<Affinity::Location *>(stack_base())[0] = Affinity::Location(which_cpu(this), 0);
-
 	/* creates local EC */
 	Thread_base::start();
 

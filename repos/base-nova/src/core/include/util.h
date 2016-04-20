@@ -18,10 +18,11 @@
 #include <rm_session/rm_session.h>
 #include <base/printf.h>
 
+/* base-internal includes */
+#include <base/internal/page_size.h>
+
 namespace Genode {
 
-	constexpr size_t get_page_size_log2()       { return 12; }
-	constexpr size_t get_page_size()            { return 1 << get_page_size_log2(); }
 	constexpr size_t get_super_page_size_log2() { return 22; }
 	constexpr size_t get_super_page_size()      { return 1 << get_super_page_size_log2(); }
 	inline addr_t trunc_page(addr_t addr)    { return addr & _align_mask(get_page_size_log2()); }

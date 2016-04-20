@@ -82,7 +82,7 @@ namespace Genode {
 			/**
 			 * Bind thread to protection domain
 			 */
-			void bind_thread(Platform_thread *thread);
+			bool bind_thread(Platform_thread *thread);
 
 			/**
 			 * Unbind thread from protection domain

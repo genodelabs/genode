@@ -188,7 +188,7 @@ class Genode::Platform_pd : public Hw::Address_space,
 		/**
 		 * Bind thread 't' to protection domain
 		 */
-		void bind_thread(Platform_thread * t);
+		bool bind_thread(Platform_thread * t);
 
 		/**
 		 * Unbind thread 't' from protection domain

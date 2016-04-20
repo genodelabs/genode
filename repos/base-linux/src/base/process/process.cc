@@ -56,6 +56,7 @@ Process::Process(Dataspace_capability   elf_data_ds_cap,
                  Pd_session_capability  pd_session_cap,
                  Ram_session_capability ram_session_cap,
                  Cpu_session_capability cpu_session_cap,
+                 Region_map            &,
                  Parent_capability      parent_cap,
                  char const            *name)
 :
@@ -80,7 +81,8 @@ Process::Process(Dataspace_capability   elf_data_ds_cap,
 	 * the 'Platform_env' of the new process.
 	 */
 	enum { WEIGHT = Cpu_session::DEFAULT_WEIGHT };
-	_thread0_cap = _cpu_session_client.create_thread(WEIGHT, name);
+	_thread0_cap = _cpu_session_client.create_thread(pd_session_cap,
+	                                                 WEIGHT, name);
 
 	Linux_native_pd_client
 		lx_pd(static_cap_cast<Linux_native_pd>(_pd_session_client.native_pd()));

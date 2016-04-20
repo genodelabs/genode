@@ -25,10 +25,11 @@ using namespace Genode;
  ** Public object members **
  ***************************/
 
-void Platform_pd::bind_thread(Platform_thread *thread)
+bool Platform_pd::bind_thread(Platform_thread *thread)
 {
 	thread->bind_to_pd(this, _thread_cnt == 0);
 	_thread_cnt++;
+	return true;
 }
 
 

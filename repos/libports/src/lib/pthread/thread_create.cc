@@ -32,7 +32,8 @@ extern "C"
 
 		pthread_t thread_obj = new (Genode::env()->heap())
 		                           pthread(attr ? *attr : 0, start_routine,
-		                           arg, STACK_SIZE, "pthread", nullptr);
+		                           arg, STACK_SIZE, "pthread", nullptr,
+		                           Genode::Affinity::Location());
 
 		if (!thread_obj)
 			return EAGAIN;

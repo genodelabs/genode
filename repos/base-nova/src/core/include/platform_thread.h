@@ -70,6 +70,7 @@ namespace Genode {
 			 */
 			Platform_thread(const char *name = 0,
 			                unsigned priority = 0,
+			                Affinity::Location affinity = Affinity::Location(),
 			                int thread_id = THREAD_INVALID);
 
 			/**
@@ -171,15 +172,6 @@ namespace Genode {
 
 				if (main_thread) _features |= MAIN_THREAD;
 			}
-
-			/**
-			 * Return pointer to the thread's PD
-			 *
-			 * Used to validate the success of the bind operation.
-			 *
-			 * XXX to be removed
-			 */
-			Platform_pd *pd() { return _pd; }
 
 			Native_capability single_step_sync(bool on);
 

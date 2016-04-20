@@ -7,6 +7,7 @@ LIBS        += base-common
 
 SRC_CC      += stack_area.cc \
                core_printf.cc \
+               core_region_map.cc \
                core_rpc_cap_alloc.cc \
                cpu_session_component.cc \
                cpu_session_support.cc \
@@ -63,6 +64,7 @@ vpath region_map_component.cc     $(GEN_CORE_DIR)
 vpath rom_session_component.cc    $(GEN_CORE_DIR)
 vpath trace_session_component.cc  $(GEN_CORE_DIR)
 vpath core_rpc_cap_alloc.cc       $(GEN_CORE_DIR)
+vpath core_region_map.cc          $(GEN_CORE_DIR)
 vpath core_printf.cc              $(BASE_DIR)/src/base/console
 vpath %.cc                        $(REP_DIR)/src/core
 vpath %.cc                        $(REP_DIR)/src/base/thread

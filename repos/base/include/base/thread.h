@@ -90,14 +90,14 @@ class Genode::Thread_base
 		Thread_capability _thread_cap;
 
 		/**
-		 * Capability to pager paging this thread (created by _start())
-		 */
-		Pager_capability  _pager_cap;
-
-		/**
 		 * Pointer to cpu session used for this thread
 		 */
 		Cpu_session *_cpu_session = nullptr;
+
+		/**
+		 * Session-local thread affinity
+		 */
+		Affinity::Location _affinity;
 
 		/**
 		 * Base pointer to Trace::Control area used by this thread
@@ -159,7 +159,7 @@ class Genode::Thread_base
 		 *        stack.
 		 */
 		Thread_base(size_t weight, const char *name, size_t stack_size,
-		            Type type);
+		            Type type, Affinity::Location affinity = Affinity::Location());
 
 		/**
 		 * Constructor
@@ -177,8 +177,9 @@ class Genode::Thread_base
 		 * internally used by the framework for storing thread-specific
 		 * information such as the thread's name.
 		 */
-		Thread_base(size_t weight, const char *name, size_t stack_size)
-		: Thread_base(weight, name, stack_size, NORMAL) { }
+		Thread_base(size_t weight, const char *name, size_t stack_size,
+		            Affinity::Location affinity = Affinity::Location())
+		: Thread_base(weight, name, stack_size, NORMAL, affinity) { }
 
 		/**
 		 * Constructor
@@ -200,7 +201,8 @@ class Genode::Thread_base
 		 * \throw Out_of_stack_space
 		 */
 		Thread_base(size_t weight, const char *name, size_t stack_size,
-		            Type type, Cpu_session *);
+		            Type type, Cpu_session *,
+		            Affinity::Location affinity = Affinity::Location());
 
 		/**
 		 * Destructor

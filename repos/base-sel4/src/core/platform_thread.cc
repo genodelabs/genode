@@ -203,7 +203,7 @@ void Platform_thread::install_mapping(Mapping const &mapping)
 
 
 Platform_thread::Platform_thread(size_t, const char *name, unsigned priority,
-                                 addr_t utcb)
+                                 Affinity::Location, addr_t utcb)
 :
 	_name(name),
 	_utcb(utcb),

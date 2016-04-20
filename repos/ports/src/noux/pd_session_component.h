@@ -58,6 +58,8 @@ class Noux::Pd_session_component : public Rpc_object<Pd_session>
 			_ep.dissolve(this);
 		}
 
+		Pd_session_capability core_pd_cap() { return _pd.cap(); }
+
 		void poke(addr_t dst_addr, void const *src, size_t len)
 		{
 			_address_space.poke(dst_addr, src, len);
@@ -101,9 +103,6 @@ class Noux::Pd_session_component : public Rpc_object<Pd_session>
 		/**************************
 		 ** Pd_session interface **
 		 **************************/
-
-		void bind_thread(Thread_capability thread) override {
-			_pd.bind_thread(thread); }
 
 		void assign_parent(Capability<Parent> parent) override {
 			_pd.assign_parent(parent); }

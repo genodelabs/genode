@@ -52,7 +52,7 @@ static Pd_id_alloc &pd_id_alloc()
 }
 
 
-void Platform_pd::bind_thread(Platform_thread *thread)
+bool Platform_pd::bind_thread(Platform_thread *thread)
 {
 	ASSERT(thread);
 
@@ -73,6 +73,7 @@ void Platform_pd::bind_thread(Platform_thread *thread)
 	} else {
 		_vm_space.map(thread->_info.ipc_buffer_phys, thread->INITIAL_IPC_BUFFER_VIRT, 1);
 	}
+	return true;
 }
 
 

@@ -121,16 +121,17 @@ class Genode::Ipc_pager
 		void set_reply_mapping(Mapping m);
 };
 
-class Genode::Pager_object
-: public Object_pool<Pager_object>::Entry,
-  public Genode::Kernel_object<Kernel::Signal_context>
+
+class Genode::Pager_object : public Object_pool<Pager_object>::Entry,
+                             public Genode::Kernel_object<Kernel::Signal_context>
 {
 	friend class Pager_entrypoint;
 
 	private:
 
-		Thread_capability   _thread_cap;
-		unsigned long const _badge;
+		unsigned long    const _badge;
+		Cpu_session_capability _cpu_session_cap;
+		Thread_capability      _thread_cap;
 
 	public:
 
@@ -139,7 +140,9 @@ class Genode::Pager_object
 		 *
 		 * \param badge  user identifaction of pager object
 		 */
-		Pager_object(unsigned const badge, Affinity::Location);
+		Pager_object(Cpu_session_capability cpu_session_cap,
+		             Thread_capability thread_cap, unsigned const badge,
+		             Affinity::Location);
 
 		/**
 		 * User identification of pager object
@@ -188,9 +191,8 @@ class Genode::Pager_object
 		 ** Accessors **
 		 ***************/
 
-		Thread_capability thread_cap() const;
-
-		void thread_cap(Thread_capability const & c);
+		Cpu_session_capability cpu_session_cap() const { return _cpu_session_cap; }
+		Thread_capability      thread_cap()      const { return _thread_cap; }
 };
 
 

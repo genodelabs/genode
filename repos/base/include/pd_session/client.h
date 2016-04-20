@@ -25,9 +25,6 @@ struct Genode::Pd_session_client : Rpc_client<Pd_session>
 	explicit Pd_session_client(Pd_session_capability session)
 	: Rpc_client<Pd_session>(session) { }
 
-	void bind_thread(Thread_capability thread) override {
-		call<Rpc_bind_thread>(thread); }
-
 	void assign_parent(Capability<Parent> parent) override {
 		call<Rpc_assign_parent>(parent); }
 

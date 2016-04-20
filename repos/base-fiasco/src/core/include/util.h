@@ -24,6 +24,7 @@
 
 /* base-internal includes */
 #include <base/internal/fiasco_thread_helper.h>
+#include <base/internal/page_size.h>
 
 /* Fiasco includes */
 namespace Fiasco {
@@ -94,8 +95,6 @@ namespace Genode {
 		return l4_round_superpage(addr);
 	}
 
-	constexpr size_t get_page_size()            { return L4_PAGESIZE;      }
-	constexpr size_t get_page_size_log2()       { return L4_LOG2_PAGESIZE; }
 	constexpr size_t get_super_page_size()      { return L4_SUPERPAGESIZE; }
 	constexpr size_t get_super_page_size_log2() { return L4_LOG2_SUPERPAGESIZE; }
 

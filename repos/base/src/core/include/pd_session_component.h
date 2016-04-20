@@ -59,6 +59,7 @@ class Genode::Pd_session_component : public Rpc_object<Pd_session>
 		Platform_pd         _pd;
 		Capability<Parent>  _parent;
 		Rpc_entrypoint     &_thread_ep;
+		Pager_entrypoint   &_pager_ep;
 		Signal_broker       _signal_broker;
 		Rpc_cap_factory     _rpc_cap_factory;
 		Native_pd_component _native_pd;
@@ -99,7 +100,7 @@ class Genode::Pd_session_component : public Rpc_object<Pd_session>
 			_label(args),
 			_md_alloc(&md_alloc, _ram_quota(args)),
 			_pd(&_md_alloc, _label.string),
-			_thread_ep(thread_ep),
+			_thread_ep(thread_ep), _pager_ep(pager_ep),
 			_signal_broker(_md_alloc, receiver_ep, context_ep),
 			_rpc_cap_factory(_md_alloc),
 			_native_pd(*this, args),
@@ -114,12 +115,30 @@ class Genode::Pd_session_component : public Rpc_object<Pd_session>
 		 */
 		void upgrade_ram_quota(size_t ram_quota);
 
+		/**
+		 * Associate thread with PD
+		 *
+		 * \return true on success
+		 *
+		 * This function may fail for platform-specific reasons such as a
+		 * limit on the number of threads per protection domain or a limited
+		 * thread ID namespace.
+		 */
+		bool bind_thread(Platform_thread &thread)
+		{
+			return _pd.bind_thread(&thread);
+		}
+
+		Region_map_component &address_space_region_map()
+		{
+			return _address_space;
+		}
+
 
 		/**************************
 		 ** PD session interface **
 		 **************************/
 
-		void bind_thread(Thread_capability) override;
 		void assign_parent(Capability<Parent>) override;
 		bool assign_pci(addr_t, uint16_t) override;
 

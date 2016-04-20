@@ -28,36 +28,21 @@ class Genode::Core_region_map : public Region_map
 {
 	private:
 
-		Rpc_entrypoint *_ds_ep;
+		Rpc_entrypoint &_ep;
 
 	public:
 
-		Core_region_map(Rpc_entrypoint *ds_ep): _ds_ep(ds_ep) { }
+		Core_region_map(Rpc_entrypoint &ep) : _ep(ep) { }
 
-		Local_addr attach(Dataspace_capability ds_cap, size_t size=0,
+		Local_addr attach(Dataspace_capability, size_t size = 0,
 		                  off_t offset=0, bool use_local_addr = false,
 		                  Local_addr local_addr = 0,
-		                  bool executable = false) override
-		{
-			auto lambda = [] (Dataspace_component *ds) {
-				if (!ds)
-					throw Invalid_dataspace();
+		                  bool executable = false) override;
 
-				return (void *)ds->phys_addr();
-			};
-			return _ds_ep->apply(ds_cap, lambda);
-		}
+		void detach(Local_addr);
 
-		void detach(Local_addr) override { }
-
-		Pager_capability add_client(Thread_capability) override {
-			return Pager_capability(); }
-
-		void remove_client(Pager_capability) override { }
-
-		void fault_handler(Signal_context_capability) override { }
-
-		State state() override { return State(); }
+		void  fault_handler (Signal_context_capability) override { }
+		State state         ()                          override { return State(); }
 
 		Dataspace_capability dataspace() override { return Dataspace_capability(); }
 };

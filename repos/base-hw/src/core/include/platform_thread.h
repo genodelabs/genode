@@ -101,7 +101,8 @@ namespace Genode {
 			 * \param utcb       core local pointer to userland stack
 			 */
 			Platform_thread(size_t const quota, const char * const label,
-			                unsigned const virt_prio, addr_t const utcb);
+			                unsigned const virt_prio, Affinity::Location,
+			                addr_t const utcb);
 
 			/**
 			 * Destructor
