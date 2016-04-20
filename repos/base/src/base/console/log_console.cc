@@ -16,12 +16,9 @@
 #include <base/console.h>
 #include <base/lock.h>
 #include <base/env.h>
+#include <base/internal/unmanaged_singleton.h>
 
 using namespace Genode;
-
-
-void *operator new (size_t, void *ptr) { return ptr; }
-
 
 class Log_console : public Console
 {
@@ -104,18 +101,7 @@ class Log_console : public Console
  * use the 'Log_console' as backend.
  */
 
-Log_console *stdout_log_console()
-{
-	/*
-	 * Construct the log console object on the first call of this function.
-	 * In constrast to having a static variable in the global scope, the
-	 * constructor gets only called when needed and no static constructor
-	 * gets invoked by the initialization code.
-	 */
-	static Log_console static_log_console;
-
-	return &static_log_console;
-}
+static Log_console *stdout_log_console() { return unmanaged_singleton<Log_console>(); }
 
 
 /**
