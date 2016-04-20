@@ -438,12 +438,10 @@ class Genode::Signal_dispatcher : public Signal_dispatcher_base,
 /**
  * Signal dispatcher for handling signals by an object method
  *
- * This utility associates object methods with signals. It is intended to
+ * This utility associates an object method with signals. It is intended to
  * be used as a member variable of the class that handles incoming signals
  * of a certain type. The constructor takes a pointer-to-member to the
- * signal-handling method as argument. If a signal is received at the
- * common signal reception code, this method will be invoked by calling
- * 'Signal_dispatcher_base::dispatch'.
+ * signal-handling method as argument.
  *
  * \param T  type of signal-handling class
  * \param EP type of entrypoint handling signal RPC
@@ -454,7 +452,7 @@ struct Genode::Signal_handler : Genode::Signal_dispatcher_base,
 {
 	EP &ep;
 	T  &obj;
-	void (T::*member) (unsigned);
+	void (T::*member) ();
 
 	/**
 	 * Constructor
@@ -463,7 +461,7 @@ struct Genode::Signal_handler : Genode::Signal_dispatcher_base,
 	 * \param obj,member  object and method to call when
 	 *                    the signal occurs
 	 */
-	Signal_handler(EP &ep, T &obj, void (T::*member)(unsigned))
+	Signal_handler(EP &ep, T &obj, void (T::*member)())
 	: Signal_context_capability(ep.manage(*this)),
 	  ep(ep), obj(obj), member(member) { }
 
@@ -472,7 +470,7 @@ struct Genode::Signal_handler : Genode::Signal_dispatcher_base,
 	/**
 	 * Interface of Signal_dispatcher_base
 	 */
-	void dispatch(unsigned num) { (obj.*member)(num); }
+	void dispatch(unsigned num) { (obj.*member)(); }
 };
 
 #endif /* _INCLUDE__BASE__SIGNAL_H_ */

@@ -85,7 +85,7 @@ class Genode::Entrypoint : Genode::Noncopyable
 		 * let the signal-dispatching thread execute the actual suspend-
 		 * resume mechanism.
 		 */
-		void _handle_suspend(unsigned) { }
+		void _handle_suspend() { }
 		Lazy_volatile_object<Genode::Signal_handler<Entrypoint>> _suspend_dispatcher;
 
 		void _dispatch_signal(Signal &sig);
