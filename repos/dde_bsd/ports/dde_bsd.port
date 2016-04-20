@@ -7,7 +7,7 @@ DOWNLOADS := audio.archive
 #
 SRC_DIR_AUDIO  := src/lib/audio
 VERSION_AUDIO  := 5.7
-URL(audio)     := http://openbsd.cs.fau.de/pub/OpenBSD/$(VERSION_AUDIO)/sys.tar.gz
+URL(audio)     := http://mirror.switch.ch/ftp/pub/OpenBSD/$(VERSION_AUDIO)/sys.tar.gz
 SHA(audio)     := 1a60125a7fce6524b0d62643db47acca0b11506a
 DIR(audio)     := $(SRC_DIR_AUDIO)
 TAR_OPT(audio) := --strip-components=2 --files-from $(REP_DIR)/audio.list
