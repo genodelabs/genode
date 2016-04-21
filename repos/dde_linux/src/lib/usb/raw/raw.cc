@@ -226,6 +226,11 @@ class Usb::Worker
 				p.succeded = true;
 			}
 
+			if (err >= 0
+			    && p.control.request == USB_REQ_CLEAR_FEATURE
+			    && p.control.value == USB_ENDPOINT_HALT) {
+				usb_reset_endpoint(_device->udev, p.control.index);
+			}
 			kfree(buf);
 		}
 
@@ -247,6 +252,10 @@ class Usb::Worker
 				if (read)
 					Genode::memcpy(_sink->packet_content(p), urb->transfer_buffer, 
 					               urb->actual_length);
+			}
+
+			if (urb->status == -EPIPE) {
+				p.error = Packet_descriptor::STALL_ERROR;
 			}
 
 			_ack_packet(p);

@@ -76,6 +76,10 @@ struct Usb::Packet_descriptor : Genode::Packet_descriptor
 		};
 	};
 
+	enum Error { NO_ERROR, STALL_ERROR };
+
+	Error error = NO_ERROR;
+
 	bool is_read_transfer() { return transfer.ep & ENDPOINT_IN; }
 
 	Packet_descriptor(off_t offset = 0, size_t size = 0)
