@@ -76,8 +76,12 @@ struct Completion : Usb::Completion
 
 		if (packet.succeded)
 			p->status = USB_RET_SUCCESS;
-		else
-			p->status = USB_RET_IOERROR;
+		else {
+			if (packet.error == Usb::Packet_descriptor::STALL_ERROR)
+				p->status = USB_RET_STALL;
+			else
+				p->status = USB_RET_IOERROR;
+		}
 
 		switch (packet.type) {
 		case Usb::Packet_descriptor::CONFIG:
