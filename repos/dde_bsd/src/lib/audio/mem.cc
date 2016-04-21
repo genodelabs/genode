@@ -114,7 +114,7 @@ class Bsd::Slab_backend_alloc : public Genode::Allocator,
 			return _range.alloc(size, out_addr);
 		}
 
-		void           free(void *addr, Genode::size_t size) { }
+		void           free(void *addr, Genode::size_t size) { _range.free(addr, size); }
 		Genode::size_t overhead(Genode::size_t size) const   { return  0; }
 		bool           need_size_for_free() const override   { return false; }
 };

@@ -110,12 +110,8 @@ class Genode::Slab_backend_alloc : public Genode::Allocator,
 				return _range.alloc(size, out_addr);
 		}
 
-		void free(void *addr)
-		{
-			_range.free(addr);
-		}
-
-		void   free(void *addr, size_t /* size */) override { }
+		void   free(void *addr) { _range.free(addr); }
+		void   free(void *addr, size_t size) override { _range.free(addr, size); }
 		size_t overhead(size_t size) const override { return  0; }
 		bool need_size_for_free() const override { return false; }
 
