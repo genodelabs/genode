@@ -74,7 +74,7 @@ append config_of_app {
 		needs to be enabled in the .vbox file (disabled by default).
 		(Recording is configured to use the external mic.)
 	-->
-	<start name="audio_drv">
+	<start name="audio_drv" priority="-1">
 		<resource name="RAM" quantum="9M"/>
 		<provides>
 			<service name="Audio_out"/>
