@@ -151,6 +151,7 @@ PATCH_OPT(patches/usb_mem.patch)         := $(USB_OPT)
 PATCH_OPT(patches/usb_usbnet.patch)      := $(USB_OPT)
 PATCH_OPT(patches/usb_xchi-quirks.patch) := $(USB_OPT)
 PATCH_OPT(patches/usb_wacom.patch)       := $(USB_OPT)
+PATCH_OPT(patches/usb_xhci-ring.patch)   := $(USB_OPT)
 
 #IP stack
 LXIP_OPT = -p1 -d$(SRC_DIR_LXIP)

@@ -1,0 +1,14 @@
+--- a/drivers/usb/host/xhci-ring.c
++++ b/drivers/usb/host/xhci-ring.c
+@@ -688,6 +688,11 @@
+ {
+ 	struct xhci_virt_ep *ep = &xhci->devs[slot_id]->eps[ep_index];
+ 
++	if (!deq_state->new_deq_seg) {
++		deq_state->new_deq_ptr = 0;
++		return;
++	}
++
+ 	xhci_dbg_trace(xhci, trace_xhci_dbg_cancel_urb,
+ 			"Set TR Deq Ptr cmd, new deq seg = %p (0x%llx dma), "
+ 			"new deq ptr = %p (0x%llx dma), new cycle = %u",
