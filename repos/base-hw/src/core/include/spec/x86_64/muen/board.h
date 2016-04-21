@@ -23,6 +23,7 @@ namespace Genode
 			TIMER_SIZE      = 0x1000,
 
 			VECTOR_REMAP_BASE   = 48,
+			TIMER_EVENT_KERNEL  = 31,
 			TIMER_VECTOR_KERNEL = 32,
 			TIMER_VECTOR_USER   = 50,
 		};
