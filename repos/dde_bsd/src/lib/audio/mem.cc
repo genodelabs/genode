@@ -5,26 +5,24 @@
  */
 
 /*
- * Copyright (C) 2014-2015 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* Genode includes */
-#include <base/env.h>
 #include <base/allocator_avl.h>
-#include <base/printf.h>
+#include <base/env.h>
+#include <base/log.h>
 #include <dataspace/client.h>
 #include <rm_session/connection.h>
 #include <region_map/client.h>
 #include <util/string.h>
 
 /* local includes */
-#include "bsd.h"
-#include <extern_c_begin.h>
-# include <bsd_emul.h>
-#include <extern_c_end.h>
+#include <bsd.h>
+#include <bsd_emul.h>
 
 
 static bool const verbose = false;
@@ -64,7 +62,7 @@ class Bsd::Slab_backend_alloc : public Genode::Allocator,
 		bool _alloc_block()
 		{
 			if (_index == ELEMENTS) {
-				PERR("Slab-backend exhausted!");
+				Genode::error("Slab-backend exhausted!");
 				return false;
 			}
 
@@ -83,13 +81,14 @@ class Bsd::Slab_backend_alloc : public Genode::Allocator,
 
 	public:
 
-		Slab_backend_alloc(Genode::Ram_session &ram)
+		Slab_backend_alloc(Genode::Ram_session &ram, Genode::Region_map &rm,
+		                   Genode::Allocator &md_alloc)
 		:
 			Region_map_client(Rm_connection::create(VM_SIZE)),
-			_index(0), _range(Genode::env()->heap()), _ram(ram)
+			_index(0), _range(&md_alloc), _ram(ram)
 		{
 			/* reserver attach us, anywere */
-			_base = Genode::env()->rm_session()->attach(dataspace());
+			_base = rm.attach(dataspace());
 		}
 
 		addr_t start() const { return _base; }
@@ -109,7 +108,7 @@ class Bsd::Slab_backend_alloc : public Genode::Allocator,
 
 			done = _alloc_block();
 			if (!done) {
-				PERR("Backend allocator exhausted\n");
+				Genode::error("Backend allocator exhausted\n");
 				return false;
 			}
 
@@ -220,15 +219,16 @@ class Bsd::Malloc
 
 	public:
 
-		Malloc(Slab_backend_alloc &alloc)
+		Malloc(Slab_backend_alloc &alloc, Genode::Allocator &md_alloc)
 		:
 			_back_allocator(alloc), _start(alloc.start()),
 			_end(alloc.end())
 		{
 			/* init slab allocators */
-			for (unsigned i = SLAB_START_LOG2; i <= SLAB_STOP_LOG2; i++)
-				_allocator[i - SLAB_START_LOG2] = new (Genode::env()->heap())
-				                                  Slab_alloc(1U << i, _back_allocator);
+			for (unsigned i = SLAB_START_LOG2; i <= SLAB_STOP_LOG2; i++) {
+				_allocator[i - SLAB_START_LOG2] =
+					new (&md_alloc) Slab_alloc(1U << i, _back_allocator);
+			}
 		}
 
 		/**
@@ -254,13 +254,13 @@ class Bsd::Malloc
 				msb = SLAB_STOP_LOG2;
 
 			if (msb > SLAB_STOP_LOG2) {
-				PERR("Slab too large %u reqested %zu", 1U << msb, size);
+				Genode::error("Slab too large ", 1U << msb, " reqested ", size);
 				return 0;
 			}
 
 			addr_t addr =  _allocator[msb - SLAB_START_LOG2]->alloc();
 			if (!addr) {
-				PERR("Failed to get slab for %u", 1U << msb);
+				Genode::error("Failed to get slab for ", 1U << msb);
 				return 0;
 			}
 
@@ -306,12 +306,18 @@ class Bsd::Malloc
 };
 
 
-static Bsd::Malloc& malloc_backend()
+static Bsd::Malloc *_malloc;
+
+
+void Bsd::mem_init(Genode::Env &env, Genode::Allocator &alloc)
 {
-	static Bsd::Slab_backend_alloc sb(*Genode::env()->ram_session());
-	static Bsd::Malloc m(sb);
-	return m;
+	static Bsd::Slab_backend_alloc sb(env.ram(), env.rm(), alloc);
+	static Bsd::Malloc m(sb, alloc);
+	_malloc = &m;
 }
+
+
+static Bsd::Malloc& malloc_backend() { return *_malloc; }
 
 
 /**********************
@@ -343,17 +349,18 @@ extern "C" void free(void *addr, int type, size_t size)
 	if (!addr) return;
 
 	if (!malloc_backend().inside((Genode::addr_t)addr)) {
-		PERR("cannot free unknown memory at %p, called from %p",
-		     addr, __builtin_return_address(0));
+		Genode::error("cannot free unknown memory at ", __builtin_return_address(0),
+		              " called from ", addr);
 		return;
 	}
 
 	if (size) {
 		size_t ssize = malloc_backend().size(addr);
 
-		if (ssize != size)
-			PWRN("size: %zu for %p does not match stored size: %zu",
-			     size, addr, ssize);
+		if (ssize != size) {
+			Genode::warning("size: ", size, "for ", addr,
+			                " does not match stored size: ", ssize);
+		}
 	}
 
 	malloc_backend().free(addr);
@@ -379,7 +386,7 @@ extern "C" void bcopy(const void *src, void *dst, size_t len)
 }
 
 
-extern "C" int uiomovei(void *buf, int n, struct uio *uio)
+extern "C" int uiomove(void *buf, int n, struct uio *uio)
 {
 	void *dst = nullptr;
 	void *src = nullptr;

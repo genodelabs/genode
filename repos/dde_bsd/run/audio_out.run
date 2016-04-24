@@ -72,9 +72,7 @@ append_if $use_mixer config {
 append config {
 	<start name="audio_drv">
 		<resource name="RAM" quantum="8M"/>
-		<provides>
-			<service name="Audio_out"/>
-		</provides>
+		<provides> <service name="Audio_out"/> </provides>
 	</start>
 	<start name="test-audio_out">
 		<resource name="RAM" quantum="4M"/>
