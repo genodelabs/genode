@@ -46,7 +46,8 @@ class Genode::Timer
 			uint8_t  event_nr :5;
 		} __attribute__((packed));
 
-		struct Subject_timed_event * _event_page;
+		struct Subject_timed_event * _event_page = 0;
+		struct Subject_timed_event * _guest_event_page = 0;
 
 
 		inline uint64_t rdtsc()
@@ -75,15 +76,27 @@ class Genode::Timer
 
 			_event_page = (Subject_timed_event *)region.address;
 			_event_page->event_nr = Board::TIMER_EVENT_KERNEL;
-			PINF("muen-timer: page @0x%llx, frequency %llu kHz, event %u",
+			PINF("muen-timer: Page @0x%llx, frequency %llu kHz, event %u",
 			     region.address, _tics_per_ms, _event_page->event_nr);
+
+			if (sinfo()->get_memregion_info("monitor_timed_event", &region)) {
+				PINF("muen-timer: Found guest timed event page @0x%llx"
+					 " -> enabling preemption", region.address);
+				_guest_event_page = (Subject_timed_event *)region.address;
+				_guest_event_page->event_nr = Board::TIMER_EVENT_PREEMPT;
+			}
 		}
 
 		static unsigned interrupt_id(int) {
 			return Board::TIMER_VECTOR_KERNEL; }
 
-		inline void start_one_shot(time_t const tics, unsigned) {
-			_event_page->tsc_trigger = rdtsc() + tics; }
+		inline void start_one_shot(time_t const tics, unsigned)
+		{
+			const uint64_t t = rdtsc() + tics;
+			_event_page->tsc_trigger = t;
+
+			if (_guest_event_page)
+				_guest_event_page->tsc_trigger = t;
 		}
 
 		time_t tics_to_us(time_t const tics) const {
