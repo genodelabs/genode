@@ -128,6 +128,7 @@ class Vfs_server::File : public Node
 	private:
 
 		Vfs::Vfs_handle *_handle;
+		char const      *_leaf_path; /* offset pointer to Node::_path */
 
 	public:
 		File(Vfs::File_system  &vfs,
@@ -140,7 +141,8 @@ class Vfs_server::File : public Node
 			unsigned vfs_mode =
 				(fs_mode-1) | (create ? Vfs::Directory_service::OPEN_MODE_CREATE : 0);
 
-			assert_open(vfs.open(path(), vfs_mode, &_handle, alloc));
+			assert_open(vfs.open(file_path, vfs_mode, &_handle, alloc));
+			_leaf_path = vfs.leaf_path(file_path);
 		}
 
 		~File() { _handle->ds().close(_handle); }
@@ -160,6 +162,15 @@ class Vfs_server::File : public Node
 		{
 			Vfs::file_size res = 0;
 
+			if (seek_offset == SEEK_TAIL) {
+				typedef Directory_service::Stat_result Result;
+				Vfs::Directory_service::Stat st;
+
+				/* if stat fails, try and see if the VFS will seek to the end */
+				seek_offset = (_handle->ds().stat(_leaf_path, st) == Result::STAT_OK) ?
+					((len < st.size) ? (st.size - len) : 0) : SEEK_TAIL;
+			}
+
 			_handle->seek(seek_offset);
 			_handle->fs().read(_handle, dst, len, res);
 			return res;
@@ -168,6 +179,15 @@ class Vfs_server::File : public Node
 		size_t write(Vfs::File_system&, char const *src, size_t len, seek_off_t seek_offset)
 		{
 			Vfs::file_size res = 0;
+
+			if (seek_offset == SEEK_TAIL) {
+				typedef Directory_service::Stat_result Result;
+				Vfs::Directory_service::Stat st;
+
+				/* if stat fails, try and see if the VFS will seek to the end */
+				seek_offset = (_handle->ds().stat(_leaf_path, st) == Result::STAT_OK) ?
+					st.size : SEEK_TAIL;
+			}
 
 			_handle->seek(seek_offset);
 			_handle->fs().write(_handle, src, len, res);
