@@ -18,10 +18,8 @@
 #include <base/exception.h>
 
 namespace Genode {
-
 	class Xml_attribute;
 	class Xml_node;
-
 }
 
 

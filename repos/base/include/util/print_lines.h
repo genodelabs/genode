@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__OS__PRINT_LINES_H_
-#define _INCLUDE__OS__PRINT_LINES_H_
+#ifndef _INCLUDE__UTIL__PRINT_LINES_H_
+#define _INCLUDE__UTIL__PRINT_LINES_H_
 
 #include <util/string.h>
 
@@ -93,4 +93,4 @@ void Genode::print_lines(char const *string, size_t len, FUNC const &func)
 	}
 }
 
-#endif /* _INCLUDE__OS__PRINT_LINES_H_ */
+#endif /* _INCLUDE__UTIL__PRINT_LINES_H_ */
