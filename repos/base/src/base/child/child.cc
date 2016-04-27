@@ -201,17 +201,17 @@ void Child::_remove_session(Child::Session *s)
 	_session_list.remove(s);
 
 	/* return session quota to the ram session of the child */
-	if (_policy->ref_ram_session()->transfer_quota(_ram, s->donated_ram_quota()))
+	if (_policy.ref_ram_session()->transfer_quota(_ram, s->donated_ram_quota()))
 		PERR("We ran out of our own quota");
 
 	destroy(heap(), s);
 }
 
 
-Service *Child::_parent_service()
+Service &Child::_parent_service()
 {
 	static Parent_service parent_service("");
-	return &parent_service;
+	return parent_service;
 }
 
 
@@ -247,7 +247,7 @@ void Child::_close(Session* s)
 	 */
 	if (s->service()->ram_session_cap().valid()) {
 		Ram_session_client server_ram(s->service()->ram_session_cap());
-		if (server_ram.transfer_quota(_policy->ref_ram_cap(),
+		if (server_ram.transfer_quota(_policy.ref_ram_cap(),
 		                              s->donated_ram_quota())) {
 			PERR("Misbehaving server '%s'!", s->service()->name());
 		}
@@ -303,7 +303,7 @@ void Child::announce(Parent::Service_name const &name, Root_capability root)
 {
 	if (!name.is_valid_string()) return;
 
-	_policy->announce_service(name.string(), root, heap(), &_server);
+	_policy.announce_service(name.string(), root, heap(), &_server);
 }
 
 
@@ -316,28 +316,28 @@ Session_capability Child::session(Parent::Service_name const &name,
 	/* return sessions that we created for the child */
 	if (!strcmp("Env::ram_session", name.string())) return _ram;
 	if (!strcmp("Env::cpu_session", name.string())) return _cpu;
-	if (!strcmp("Env::pd_session",  name.string())) return _env_pd;
+	if (!strcmp("Env::pd_session",  name.string())) return _pd;
 
 	/* filter session arguments according to the child policy */
 	strncpy(_args, args.string(), sizeof(_args));
-	_policy->filter_session_args(name.string(), _args, sizeof(_args));
+	_policy.filter_session_args(name.string(), _args, sizeof(_args));
 
 	/* filter session affinity */
-	Affinity const filtered_affinity = _policy->filter_session_affinity(affinity);
+	Affinity const filtered_affinity = _policy.filter_session_affinity(affinity);
 
 	/* transfer the quota donation from the child's account to ourself */
 	size_t ram_quota = Arg_string::find_arg(_args, "ram_quota").ulong_value(0);
 
-	Transfer donation_from_child(ram_quota, _ram, _policy->ref_ram_cap());
+	Transfer donation_from_child(ram_quota, _ram, _policy.ref_ram_cap());
 
-	Service *service = _policy->resolve_session_request(name.string(), _args);
+	Service *service = _policy.resolve_session_request(name.string(), _args);
 
 	/* raise an error if no matching service provider could be found */
 	if (!service)
 		throw Service_denied();
 
 	/* transfer session quota from ourself to the service provider */
-	Transfer donation_to_service(ram_quota, _policy->ref_ram_cap(),
+	Transfer donation_to_service(ram_quota, _policy.ref_ram_cap(),
 	                             service->ram_session_cap());
 
 	/* create session */
@@ -391,10 +391,10 @@ void Child::upgrade(Session_capability to_session, Parent::Upgrade_args const &a
 			Arg_string::find_arg(args.string(), "ram_quota").ulong_value(0);
 
 		/* transfer quota from client to ourself */
-		Transfer donation_from_child(ram_quota, _ram, _policy->ref_ram_cap());
+		Transfer donation_from_child(ram_quota, _ram, _policy.ref_ram_cap());
 
 		/* transfer session quota from ourself to the service provider */
-		Transfer donation_to_service(ram_quota, _policy->ref_ram_cap(),
+		Transfer donation_to_service(ram_quota, _policy.ref_ram_cap(),
 		                             targeted_service->ram_session_cap());
 
 		try { targeted_service->upgrade(to_session, args.string()); }
@@ -439,13 +439,13 @@ void Child::exit(int exit_value)
 	 * Note that the child object must not be destructed from by this function
 	 * because it is executed by the thread contained in the child object.
 	 */
-	return _policy->exit(exit_value);
+	return _policy.exit(exit_value);
 }
 
 
 Thread_capability Child::main_thread_cap() const
 {
-	return _process.main_thread_cap();
+	return _process.initial_thread.cap;
 }
 
 
@@ -457,7 +457,7 @@ void Child::resource_avail_sigh(Signal_context_capability sigh)
 
 void Child::resource_request(Resource_args const &args)
 {
-	_policy->resource_request(args);
+	_policy.resource_request(args);
 }
 
 
@@ -472,37 +472,48 @@ Parent::Resource_args Child::yield_request()
 }
 
 
-void Child::yield_response() { _policy->yield_response(); }
+void Child::yield_response() { _policy.yield_response(); }
 
 
 Child::Child(Dataspace_capability    elf_ds,
-             Pd_session_capability   pd,
-             Ram_session_capability  ram,
-             Cpu_session_capability  cpu,
-             Region_map             &address_space,
-             Rpc_entrypoint         *entrypoint,
-             Child_policy           *policy,
+             Dataspace_capability    ldso_ds,
+             Pd_session_capability   pd_cap,
+             Pd_session             &pd,
+             Ram_session_capability  ram_cap,
+             Ram_session            &ram,
+             Cpu_session_capability  cpu_cap,
+             Cpu_session            &cpu,
+             Region_map             &local_rm,
+             Region_map             &remote_rm,
+             Rpc_entrypoint         &entrypoint,
+             Child_policy           &policy,
              Service                &pd_service,
              Service                &ram_service,
-             Service                &cpu_service,
-             Pd_session_capability   env_pd)
-:
-	_pd(pd), _env_pd(env_pd.valid() ? env_pd : pd), _ram(ram),
-	_cpu(cpu), _pd_service(pd_service),
-	_ram_service(ram_service), _cpu_service(cpu_service),
-	_heap(&_ram_session_client, env()->rm_session()),
+             Service                &cpu_service)
+try :
+	_pd(pd_cap), _ram(ram_cap), _cpu(cpu_cap),
+	_pd_service(pd_service),
+	_ram_service(ram_service),
+	_cpu_service(cpu_service),
+	_heap(&ram, &local_rm),
 	_entrypoint(entrypoint),
-	_parent_cap(_entrypoint->manage(this)),
+	_parent_cap(_entrypoint.manage(this)),
 	_policy(policy),
-	_server(ram),
-	_process(elf_ds, pd, ram, cpu, address_space, _parent_cap, policy->name())
+	_server(_ram),
+	_process(elf_ds, ldso_ds, pd_cap, pd, ram, cpu, local_rm, remote_rm,
+	         _parent_cap, policy.name())
 { }
+catch (Cpu_session::Thread_creation_failed) { throw Process_startup_failed(); }
+catch (Cpu_session::Out_of_metadata)        { throw Process_startup_failed(); }
+catch (Process::Missing_dynamic_linker)     { throw Process_startup_failed(); }
+catch (Process::Invalid_executable)         { throw Process_startup_failed(); }
+catch (Region_map::Attach_failed)           { throw Process_startup_failed(); }
 
 
 Child::~Child()
 {
-	_entrypoint->dissolve(this);
-	_policy->unregister_services();
+	_entrypoint.dissolve(this);
+	_policy.unregister_services();
 
 	_session_pool.remove_all([&] (Session *s) { _close(s); });
 }

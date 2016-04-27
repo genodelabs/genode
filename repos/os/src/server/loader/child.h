@@ -104,6 +104,7 @@ namespace Loader {
 
 			Child(char                const *binary_name,
 			      char                const *label,
+			      Dataspace_capability       ldso_ds,
 			      Rpc_entrypoint            &ep,
 			      Ram_session_client        &ram_session_client,
 			      size_t                     ram_quota,
@@ -125,9 +126,11 @@ namespace Loader {
 				_binary_rom_session(_rom_session(binary_name)),
 				_binary_policy("binary", _binary_rom_session.dataspace(), &_ep),
 				_labeling_policy(_label.string),
-				_child(_binary_rom_session.dataspace(), _resources.pd.cap(),
-				       _resources.ram.cap(), _resources.cpu.cap(),
-				       _address_space, &_ep, this)
+				_child(_binary_rom_session.dataspace(), ldso_ds,
+				       _resources.pd,  _resources.pd,
+				       _resources.ram, _resources.ram,
+				       _resources.cpu, _resources.cpu,
+				       *env()->rm_session(), _address_space, _ep, *this)
 			{ }
 
 			~Child()

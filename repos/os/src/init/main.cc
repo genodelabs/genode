@@ -286,10 +286,11 @@ int main(int, char **)
 	using namespace Init;
 	using namespace Genode;
 
-	/* look for dynamic linker */
+	/* obtain dynamic linker */
+	Dataspace_capability ldso_ds;
 	try {
 		static Rom_connection rom("ld.lib.so");
-		Process::dynamic_linker(rom.dataspace());
+		ldso_ds = rom.dataspace();
 	} catch (...) { }
 
 	static Service_registry parent_services;
@@ -344,9 +345,10 @@ int main(int, char **)
 				try {
 					children.insert(new (env()->heap())
 					                Init::Child(start_node, default_route_node,
-					                            &children, read_prio_levels(),
+					                            children, read_prio_levels(),
 					                            read_affinity_space(),
-					                            &parent_services, &child_services, &cap));
+					                            parent_services, child_services, cap,
+					                            ldso_ds));
 				}
 				catch (Rom_connection::Rom_connection_failed) {
 					/*

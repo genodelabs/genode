@@ -41,9 +41,10 @@ extern "C" int _sigprocmask() { return -1; }
 int main()
 {
 	/* look for dynamic linker */
+	Dataspace_capability ldso_ds;
 	try {
 		Rom_connection ldso_rom("ld.lib.so");
-		Process::dynamic_linker(clone_rom(ldso_rom.dataspace()));
+		ldso_ds = clone_rom(ldso_rom.dataspace());
 	} catch (...) {
 		PDBG("ld.lib.so not found");
 	}
@@ -114,6 +115,7 @@ int main()
 
 	new (env()->heap()) App_child(unique_name,
 	                              elf_cap,
+	                              ldso_ds,
 	                              ram.cap(),
 	                              &cap_session,
 	                              &parent_services,

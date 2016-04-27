@@ -36,7 +36,6 @@
 #include <vfs/file_system_factory.h>
 #include <vfs/dir_file_system.h>
 #include <timer_session/connection.h>
-#include <base/process.h>
 #include <os/config.h>
 #include <base/printf.h>
 #include <base/snprintf.h>
@@ -476,12 +475,6 @@ struct Unlink_thread : public Stress_thread
 
 int main()
 {
-	/* look for dynamic linker */
-	try {
-		static Genode::Rom_connection rom("ld.lib.so");
-		Genode::Process::dynamic_linker(rom.dataspace());
-	} catch (...) { }
-
 	static Vfs::Dir_file_system vfs_root(config()->xml_node().sub_node("vfs"),
 	                                     Vfs::global_file_system_factory());
 	static char path[Vfs::MAX_PATH_LEN];

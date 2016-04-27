@@ -142,7 +142,6 @@ namespace Noux {
 				 */
 				Rpc_entrypoint &ep;
 
-
 				/**
 				 * Locally-provided services for accessing platform resources
 				 */
@@ -226,6 +225,8 @@ namespace Noux {
 			Static_dataspace_info _ldso_ds_info;
 			Static_dataspace_info _args_ds_info;
 			Static_dataspace_info _env_ds_info;
+
+			Dataspace_capability _ldso_ds;
 
 			Child_policy  _child_policy;
 
@@ -328,6 +329,7 @@ namespace Noux {
 			 *                           the parent
 			 */
 			Child(char const           *binary_name,
+			      Dataspace_capability  ldso_ds,
 			      Parent_exit          *parent_exit,
 			      Kill_broadcaster     &kill_broadcaster,
 			      Parent_execve        &parent_execve,
@@ -374,16 +376,19 @@ namespace Noux {
 				_ldso_ds_info(_ds_registry, ldso_ds_cap()),
 				_args_ds_info(_ds_registry, _args.cap()),
 				_env_ds_info(_ds_registry, _env.cap()),
+				_ldso_ds(ldso_ds),
 				_child_policy(_elf._name, _elf._binary_ds, _args.cap(), _env.cap(),
 				              _entrypoint, _local_noux_service,
 				              _local_rom_service, _parent_services,
 				              *this, parent_exit, *this, _destruct_context_cap,
 				              _resources.ram, verbose),
 				_child(forked ? Dataspace_capability() : _elf._binary_ds,
-				       _pd.core_pd_cap(), _resources.ram.cap(), _resources.cpu.cap(),
-				       _address_space,
-				       &_entrypoint, &_child_policy, _parent_pd_service,
-				       _parent_ram_service, _local_cpu_service, _pd.cap())
+				       _ldso_ds, _pd.cap(), _pd,
+				       _resources.ram.cap(), _resources.ram,
+				       _resources.cpu.cap(), _resources.cpu,
+				       *Genode::env()->rm_session(), _address_space,
+				       _entrypoint, _child_policy, _parent_pd_service,
+				       _parent_ram_service, _local_cpu_service)
 			{
 				if (verbose)
 					_args.dump();
@@ -542,6 +547,7 @@ namespace Noux {
 				Lock::Guard signal_lock_guard(signal_lock());
 
 				Child *child = new Child(filename,
+				                         _ldso_ds,
 					                     _parent_exit,
 					                     _kill_broadcaster,
 					                     _parent_execve,

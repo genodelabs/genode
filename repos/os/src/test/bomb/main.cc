@@ -92,8 +92,9 @@ class Bomb_child : private Bomb_child_resources,
 			Bomb_child_resources(file_name, unique_name, ram_quota),
 			Init::Child_policy_enforce_labeling(Bomb_child_resources::_name),
 			_entrypoint(cap_session, STACK_SIZE, "bomb_ep_child", false),
-			_child(_rom.dataspace(), _pd.cap(), _ram.cap(), _cpu.cap(),
-			       _address_space, &_entrypoint, this),
+			_child(_rom.dataspace(), Genode::Dataspace_capability(),
+			       _pd, _pd, _ram, _ram, _cpu, _cpu,
+			       *Genode::env()->rm_session(), _address_space, _entrypoint, *this),
 			_parent_services(parent_services),
 			_config_policy("config", _entrypoint, &_ram)
 		{

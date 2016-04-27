@@ -412,6 +412,23 @@ static Timer::Session *timer_session()
 }
 
 
+Dataspace_capability Launchpad_child::_ldso_ds()
+{
+	static bool first_attempt_failed = false;
+
+	if (!first_attempt_failed) {
+		try {
+			static Rom_connection rom("ld.lib.so");
+			static Dataspace_capability ds = rom.dataspace();
+			return ds;
+		} catch (...) { }
+	}
+
+	first_attempt_failed = true;
+	return Dataspace_capability();
+}
+
+
 /* construct child-destructor thread early - in case we run out of threads */
 static Child_destructor_thread child_destructor;
 

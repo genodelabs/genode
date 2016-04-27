@@ -108,7 +108,8 @@ class Child_base : public Genode::Child_policy
 		           Genode::size_t                    ram_quota,
 		           Genode::size_t                    ram_limit,
 		           Genode::Signal_context_capability yield_response_sig_cap,
-		           Genode::Signal_context_capability exit_sig_cap)
+		           Genode::Signal_context_capability exit_sig_cap,
+		           Genode::Dataspace_capability      ldso_ds)
 		:
 			_ram(ram),
 			_label(label),
@@ -120,9 +121,10 @@ class Child_base : public Genode::Child_policy
 			_labeling_policy(_label.string()),
 			_binary_policy("binary", _binary_rom.dataspace(), &_entrypoint),
 			_config_policy("config", _entrypoint, &_resources.ram),
-			_child(_binary_rom.dataspace(), _resources.pd.cap(),
-			       _resources.ram.cap(), _resources.cpu.cap(), _address_space,
-			       &_entrypoint, this),
+			_child(_binary_rom.dataspace(), ldso_ds, _resources.pd, _resources.pd,
+			       _resources.ram, _resources.ram, _resources.cpu, _resources.cpu,
+			       *Genode::env()->rm_session(), _address_space,
+			       _entrypoint, *this),
 			_yield_response_sigh_cap(yield_response_sig_cap),
 			_exit_sig_cap(exit_sig_cap)
 		{ }

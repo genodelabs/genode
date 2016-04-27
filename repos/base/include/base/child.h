@@ -16,14 +16,16 @@
 
 #include <base/rpc_server.h>
 #include <base/heap.h>
-#include <base/process.h>
 #include <base/service.h>
 #include <base/lock.h>
 #include <util/arg_string.h>
-#include <parent/parent.h>
+#include <ram_session/capability.h>
+#include <region_map/client.h>
+#include <pd_session/client.h>
+#include <cpu_session/client.h>
+#include <parent/capability.h>
 
 namespace Genode {
-
 	struct Child_policy;
 	struct Child;
 }
@@ -157,12 +159,8 @@ class Genode::Child : protected Rpc_object<Parent>
 		/* PD session representing the protection domain of the child */
 		Pd_session_capability   _pd;
 
-		/* PD session presented to the child as environment */
-		Pd_session_capability   _env_pd;
-
 		/* RAM session that contains the quota of the child */
 		Ram_session_capability  _ram;
-		Ram_session_client      _ram_session_client { _ram };
 
 		/* CPU session that contains the quota of the child */
 		Cpu_session_capability  _cpu;
@@ -175,11 +173,11 @@ class Genode::Child : protected Rpc_object<Parent>
 		/* heap for child-specific allocations using the child's quota */
 		Heap                    _heap;
 
-		Rpc_entrypoint         *_entrypoint;
+		Rpc_entrypoint         &_entrypoint;
 		Parent_capability       _parent_cap;
 
 		/* child policy */
-		Child_policy           *_policy;
+		Child_policy           &_policy;
 
 		/* sessions opened by the child */
 		Lock                    _lock;   /* protect list manipulation */
@@ -199,6 +197,89 @@ class Genode::Child : protected Rpc_object<Parent>
 		/* arguments fetched by the child in response to a yield signal */
 		Lock          _yield_request_lock;
 		Resource_args _yield_request_args;
+
+		struct Process
+		{
+			struct Initial_thread
+			{
+				Cpu_session &cpu;
+				Thread_capability cap;
+				Initial_thread(Cpu_session &, Pd_session_capability, char const *);
+				~Initial_thread();
+			} initial_thread;
+
+			class Missing_dynamic_linker : Exception { };
+			class Invalid_executable     : Exception { };
+
+			struct Loaded_executable
+			{
+				/**
+				 * Initial instruction pointer of the new process, as defined
+				 * in the header of the executable.
+				 */
+				addr_t entry;
+
+				/**
+				 * Constructor parses the executable and sets up segment
+				 * dataspaces
+				 *
+				 * \param local_rm  local address space, needed to make the
+				 *                  segment dataspaces temporarily visible in
+				 *                  the local address space to initialize their
+				 *                  content with the data from the 'elf_ds'
+				 *
+				 * \throw Region_map::Attach_failed
+				 * \throw Invalid_executable
+				 * \throw Missing_dynamic_linker
+				 * \throw Ram_session::Alloc_failed
+				 */
+				Loaded_executable(Dataspace_capability elf_ds,
+				                  Dataspace_capability ldso_ds,
+				                  Ram_session &ram,
+				                  Region_map &local_rm,
+				                  Region_map &remote_rm,
+				                  Parent_capability parent_cap);
+			} loaded_executable;
+
+			/**
+			 * Constructor
+			 *
+			 * \param ram     RAM session used to allocate the BSS and
+			 *                DATA segments for the new process
+			 * \param cpu     CPU session used to create the initial thread
+			 * \param parent  parent of the new protection domain
+			 * \param name    name of protection domain
+			 *
+			 * \throw Cpu_session::Thread_creation_failed
+			 * \throw Cpu_session::Out_of_metadata
+			 * \throw Missing_dynamic_linker
+			 * \throw Invalid_executable
+			 * \throw Region_map::Attach_failed
+			 * \throw Ram_session::Alloc_failed
+			 *
+			 * The other arguments correspond to those of 'Child::Child'.
+			 *
+			 * On construction of a protection domain, the initial thread is
+			 * started immediately.
+			 *
+			 * The argument 'elf_ds' may be invalid to create an empty process.
+			 * In this case, all process initialization steps except for the
+			 * creation of the initial thread must be done manually, i.e., as
+			 * done for implementing fork.
+			 */
+			Process(Dataspace_capability  elf_ds,
+			        Dataspace_capability  ldso_ds,
+			        Pd_session_capability pd_cap,
+			        Pd_session           &pd,
+			        Ram_session          &ram,
+			        Cpu_session          &cpu,
+			        Region_map           &local_rm,
+			        Region_map           &remote_rm,
+			        Parent_capability     parent,
+			        char const           *name);
+
+			~Process();
+		};
 
 		Process _process;
 
@@ -225,52 +306,81 @@ class Genode::Child : protected Rpc_object<Parent>
 		 * solely used for targeting resource donations during
 		 * 'Parent::upgrade_quota()' calls.
 		 */
-		static Service *_parent_service();
+		static Service &_parent_service();
 
 	public:
 
 		/**
+		 * Exception type
+		 *
+		 * The startup of the physical process of the child may fail if the
+		 * ELF binary is invalid, if the ELF binary is dynamically linked
+		 * but no dynamic linker is provided, if the creation of the initial
+		 * thread failed, or if the RAM session of the child is exhausted.
+		 * Each of those conditions will result in a diagnostic log message.
+		 * But for the error handling, we only distinguish the RAM exhaustion
+		 * from the other conditions and subsume the latter as
+		 * 'Process_startup_failed'.
+		 */
+		class Process_startup_failed : public Exception { };
+
+		/**
 		 * Constructor
 		 *
-		 * \param elf_ds       dataspace containing the binary
-		 * \param pd           PD session representing the protection domain
-		 * \param ram          RAM session with the child's quota
-		 * \param cpu          CPU session with the child's quota
-		 * \param entrypoint   server entrypoint to serve the parent interface
-		 * \param policy       child policy
+		 * \param elf_ds       dataspace that contains the ELF binary
+		 * \param ldso_ds      dataspace that contains the dynamic linker,
+		 *                     started if 'elf_ds' is a dynamically linked
+		 *                     executable
+		 * \param pd_cap       capability of the new protection domain,
+		 *                     used as argument for creating the initial
+		 *                     thread, and handed out to the child as its
+		 *                     environment
+		 * \param pd           PD session used for assigning the parent
+		 *                     capability of the new process
+		 * \param ram_cap      RAM session capability handed out to the
+		 *                     child as its environment
+		 * \param ram          RAM session used to allocate the BSS and
+		 *                     DATA segments and as backing store for the
+		 *                     local heap partition to keep child-specific
+		 *                     meta data
+		 * \param cpu_cap      CPU session capability handed out to the
+		 *                     child as its environment
+		 * \param cpu          CPU session for the new protection domain
+		 * \param local_rm     local address space
+		 * \param remote_rm    address space of new protection domain
 		 * \param pd_service   provider of the 'pd' session
 		 * \param ram_service  provider of the 'ram' session
 		 * \param cpu_service  provider of the 'cpu' session
 		 *
-		 * If assigning a separate entry point to each child, the host of
-		 * multiple children is able to handle a blocking invocation of
-		 * the parent interface of one child while still maintaining the
-		 * service to other children, each having an independent entry
-		 * point.
+		 * \throw Ram_session::Alloc_failed
+		 * \throw Process_startup_failed
+		 *
+		 * Usually, the pairs of 'pd' and 'pd_cap', 'cpu' and 'cpu_cap',
+		 * 'ram' and 'ram_cap' belong to each other. References to the
+		 * session interfaces are passed as separate arguments in addition
+		 * to the capabilities to allow the creator of a child to operate on
+		 * locally implemented sessions during the child initialization.
 		 *
 		 * The 'ram_service', 'cpu_service', and 'pd_service' arguments are
 		 * needed to direct quota upgrades referring to the resources of
 		 * the child environment. By default, we expect that these
 		 * resources are provided by the parent.
-		 *
-		 * The 'env_pd' argument override the PD session capability that is
-		 * handed out as part of the child's environment. Normally, a child
-		 * will receive the physical PD capability of the PD session at core.
-		 * However, a runtime environment may wish to intercept the interaction
-		 * of the child with its PD session by specifying a capability to a
-		 * locally implemented PD session.
 		 */
 		Child(Dataspace_capability    elf_ds,
-		      Pd_session_capability   pd,
-		      Ram_session_capability  ram,
-		      Cpu_session_capability  cpu,
-		      Region_map             &address_space,
-		      Rpc_entrypoint         *entrypoint,
-		      Child_policy           *policy,
-		      Service                &pd_service  = *_parent_service(),
-		      Service                &ram_service = *_parent_service(),
-		      Service                &cpu_service = *_parent_service(),
-		      Pd_session_capability   env_pd = Pd_session_capability());
+		      Dataspace_capability    ldso_ds,
+		      Pd_session_capability   pd_cap,
+		      Pd_session             &pd,
+		      Ram_session_capability  ram_cap,
+		      Ram_session            &ram,
+		      Cpu_session_capability  cpu_cap,
+		      Cpu_session            &cpu,
+		      Region_map             &local_rm,
+		      Region_map             &remote_rm,
+		      Rpc_entrypoint         &entrypoint,
+		      Child_policy           &policy,
+		      Service                &pd_service  = _parent_service(),
+		      Service                &ram_service = _parent_service(),
+		      Service                &cpu_service = _parent_service());
 
 		/**
 		 * Destructor
@@ -289,10 +399,6 @@ class Genode::Child : protected Rpc_object<Parent>
 		Ram_session_capability ram_session_cap() const { return _ram; }
 		Cpu_session_capability cpu_session_cap() const { return _cpu; }
 		Parent_capability      parent_cap()      const { return cap(); }
-
-		/**
-		 */
-		void env_pd(Pd_session_capability pd) { _env_pd = pd; }
 
 		/**
 		 * Discard all sessions to specified service

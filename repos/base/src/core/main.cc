@@ -111,6 +111,16 @@ class Core_child : public Child_policy
 
 		Service_registry &_local_services;
 
+		/*
+		 * Dynamic linker, does not need to be valid because init is statically
+		 * linked
+		 */
+		Dataspace_capability _ldso_ds;
+
+		Pd_session_client  _pd;
+		Ram_session_client _ram;
+		Cpu_session_client _cpu;
+
 		Region_map_client _address_space;
 
 		Child _child;
@@ -127,9 +137,10 @@ class Core_child : public Child_policy
 		:
 			_entrypoint(nullptr, STACK_SIZE, "init", false),
 			_local_services(services),
+			_pd(pd), _ram(ram), _cpu(cpu),
 			_address_space(Pd_session_client(pd).address_space()),
-			_child(elf_ds, pd, ram, cpu, _address_space,
-			       &_entrypoint, this,
+			_child(elf_ds, _ldso_ds, _pd, _pd, _ram, _ram, _cpu, _cpu,
+			       *env()->rm_session(), _address_space, _entrypoint, *this,
 			       *_local_services.find(Pd_session::service_name()),
 			       *_local_services.find(Ram_session::service_name()),
 			       *_local_services.find(Cpu_session::service_name()))

@@ -40,7 +40,7 @@ namespace Gdb_monitor {
 
 			enum { STACK_SIZE = 4*1024*sizeof(long) };
 
-			const char                    *_unique_name;
+			const char                   *_unique_name;
 
 			Rpc_entrypoint                _entrypoint;
 
@@ -56,9 +56,9 @@ namespace Gdb_monitor {
 			Dataspace_pool                _managed_ds_map;
 
 			Cpu_root                      _cpu_root;
-			Cpu_session_capability        _cpu_session_cap;
+			Cpu_session_client            _cpu_session;
 
-			Ram_session_capability        _ram_session_cap;
+			Ram_session_client            _ram_session;
 
 			Pd_session_component          _pd { _unique_name, _entrypoint,
 			                                    _managed_ds_map };
@@ -227,6 +227,7 @@ namespace Gdb_monitor {
 			 */
 			App_child(const char                     *unique_name,
 			          Genode::Dataspace_capability    elf_ds,
+			          Genode::Dataspace_capability    ldso_ds,
 			          Genode::Ram_session_capability  ram_session,
 			          Genode::Cap_session            *cap_session,
 			          Service_registry               *parent_services,
@@ -241,10 +242,11 @@ namespace Gdb_monitor {
 			  _config_policy("config", _child_config.dataspace(), &_entrypoint),
 			  _gdb_stub_thread(),
 			  _cpu_root(&_entrypoint, env()->heap() /* should be _child.heap() */, &_gdb_stub_thread),
-			  _cpu_session_cap(_get_cpu_session_cap()),
-			  _ram_session_cap(ram_session),
-			  _child(elf_ds, _pd.cap(), ram_session, _cpu_session_cap,
-			         _address_space, &_entrypoint, this),
+			  _cpu_session(_get_cpu_session_cap()),
+			  _ram_session(ram_session),
+			  _child(elf_ds, ldso_ds, _pd.cap(), _pd,
+			         _ram_session, _ram_session, _cpu_session, _cpu_session,
+			         *Genode::env()->rm_session(), _address_space, _entrypoint, *this),
 			  _root_ep(root_ep),
 			  _rom_service(&_entrypoint, _child.heap())
 			{
@@ -301,7 +303,7 @@ namespace Gdb_monitor {
 			{
 				/* create and announce proxy for the child's root interface */
 				Child_service_root *r = new (alloc)
-					Child_service_root(_ram_session_cap, root);
+					Child_service_root(_ram_session, root);
 
 				Genode::env()->parent()->announce(name, _root_ep->manage(r));
 				return true;

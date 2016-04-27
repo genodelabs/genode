@@ -101,8 +101,11 @@ class Test_child : public Genode::Child_policy
 			_resources(sigh, elf_name),
 			_elf(elf_name),
 			_log_service("LOG"), _rm_service("RM"),
-			_child(_elf.dataspace(), _resources.pd.cap(), _resources.ram.cap(),
-			       _resources.cpu.cap(), _address_space, &ep, this)
+			_child(_elf.dataspace(), Genode::Dataspace_capability(),
+			       _resources.pd,  _resources.pd,
+			       _resources.ram, _resources.ram,
+			       _resources.cpu, _resources.cpu,
+			       *Genode::env()->rm_session(), _address_space, ep, *this)
 		{ }
 
 

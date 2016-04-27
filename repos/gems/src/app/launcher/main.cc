@@ -30,6 +30,17 @@ struct Launcher::Main
 {
 	Server::Entrypoint &_ep;
 
+	Genode::Dataspace_capability _request_ldso_ds()
+	{
+		try {
+			static Genode::Rom_connection rom("ld.lib.so");
+			return rom.dataspace();
+		} catch (...) { }
+		return Genode::Dataspace_capability();
+	}
+
+	Genode::Dataspace_capability _ldso_ds = _request_ldso_ds();
+
 	Genode::Cap_connection _cap;
 
 	char const *_report_rom_config =
@@ -65,9 +76,11 @@ struct Launcher::Main
 	Genode::Signal_rpc_member<Main> _exited_child_dispatcher =
 		{ _ep, *this, &Main::_handle_exited_child };
 
-	Subsystem_manager _subsystem_manager { _ep, _cap, _exited_child_dispatcher };
+	Subsystem_manager _subsystem_manager { _ep, _cap, _exited_child_dispatcher,
+	                                       _ldso_ds };
 
-	Panel_dialog _panel_dialog { _ep, _cap, *env()->ram_session(), *env()->heap(),
+	Panel_dialog _panel_dialog { _ep, _cap, *env()->ram_session(), _ldso_ds,
+	                             *env()->heap(),
 	                             _report_rom_slave, _subsystem_manager, _nitpicker };
 
 	void _handle_config(unsigned);
@@ -184,12 +197,6 @@ namespace Server {
 
 	void construct(Entrypoint &ep)
 	{
-		/* look for dynamic linker */
-		try {
-			static Rom_connection rom("ld.lib.so");
-			Process::dynamic_linker(rom.dataspace());
-		} catch (...) { }
-
 		static Launcher::Main desktop(ep);
 	}
 }

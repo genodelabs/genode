@@ -251,6 +251,7 @@ class Launcher::Panel_dialog : Input_event_handler, Dialog_generator,
 	public:
 
 		Panel_dialog(Server::Entrypoint &ep, Cap_session &cap, Ram_session &ram,
+		             Dataspace_capability ldso_ds,
 		             Genode::Allocator &alloc,
 		             Report_rom_slave &report_rom_slave,
 		             Subsystem_manager &subsystem_manager,
@@ -259,12 +260,13 @@ class Launcher::Panel_dialog : Input_event_handler, Dialog_generator,
 			_alloc(alloc),
 			_subsystem_manager(subsystem_manager),
 			_nitpicker(nitpicker),
-			_dialog(ep, cap, ram, report_rom_slave, "panel_dialog", "panel_hover",
+			_dialog(ep, cap, ram, ldso_ds, report_rom_slave,
+			        "panel_dialog", "panel_hover",
 			        *this, *this, *this, *this,
 			        _position),
 			_timer_dispatcher(ep, *this, &Panel_dialog::_handle_timer),
-			_context_dialog(ep, cap, ram, report_rom_slave, *this),
-			_menu_dialog(ep, cap, ram, report_rom_slave, *this)
+			_context_dialog(ep, cap, ram, ldso_ds, report_rom_slave, *this),
+			_menu_dialog(ep, cap, ram, ldso_ds, report_rom_slave, *this)
 		{
 			_elements.insert(&_menu_button);
 			_timer.sigh(_timer_dispatcher);

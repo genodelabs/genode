@@ -599,6 +599,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 					 *     reusing the name of the parent.
 					 */
 					child = new Child(_child_policy.name(),
+					                  _ldso_ds,
 					                  this,
 					                  _kill_broadcaster,
 					                  *this,
@@ -1134,9 +1135,6 @@ int main(int argc, char **argv)
 	using namespace Noux;
 	PINF("--- noux started ---");
 
-	/* register dynamic linker */
-	Genode::Process::dynamic_linker(ldso_ds_cap());
-
 	/* whitelist of service requests to be routed to the parent */
 	static Genode::Service_registry parent_services;
 	char const *service_names[] = { "LOG", "ROM", "Timer", 0 };
@@ -1198,6 +1196,7 @@ int main(int argc, char **argv)
 	static Kill_broadcaster_implementation kill_broadcaster;
 
 	init_child = new Noux::Child(name_of_init_process(),
+	                             ldso_ds_cap(),
 	                             0,
 	                             kill_broadcaster,
 	                             *init_child,

@@ -98,9 +98,10 @@ static Subsystem_config_registry &subsystem_config_registry()
 int main(int argc, char **argv)
 {
 	/* look for dynamic linker */
+	Genode::Dataspace_capability ldso_ds;
 	try {
 		static Genode::Rom_connection rom("ld.lib.so");
-		Genode::Process::dynamic_linker(rom.dataspace());
+		ldso_ds = rom.dataspace();
 	} catch (...) { }
 
 	using Genode::Signal_context;
@@ -141,7 +142,8 @@ int main(int argc, char **argv)
 	commands.insert(new Start_command(ram, cap, children,
 	                                  subsystem_config_registry(),
 	                                  yield_response_sig_cap,
-	                                  exited_child_sig_cap));
+	                                  exited_child_sig_cap,
+	                                  ldso_ds));
 	commands.insert(new Status_command(ram, children));
 	commands.insert(new Yield_command(children));
 	commands.insert(new Ram_command(children));

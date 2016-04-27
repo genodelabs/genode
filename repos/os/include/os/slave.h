@@ -187,12 +187,13 @@ class Genode::Slave
 		Slave(Genode::Rpc_entrypoint &entrypoint,
 		      Slave_policy           &slave_policy,
 		      Genode::size_t          ram_quota,
-		      Ram_session_capability  ram_ref_cap = env()->ram_session_cap())
+		      Ram_session_capability  ram_ref_cap = env()->ram_session_cap(),
+		      Dataspace_capability    ldso_ds = Dataspace_capability())
 		:
 			_resources(slave_policy.name(), ram_quota, ram_ref_cap),
-			_child(slave_policy.binary(), _resources.pd.cap(),
-			       _resources.ram.cap(), _resources.cpu.cap(),
-			       _address_space, &entrypoint, &slave_policy)
+			_child(slave_policy.binary(), ldso_ds, _resources.pd, _resources.pd,
+			       _resources.ram, _resources.ram, _resources.cpu, _resources.cpu,
+			       *env()->rm_session(), _address_space, entrypoint, slave_policy)
 		{ }
 
 		Genode::Ram_connection &ram() { return _resources.ram; }

@@ -113,10 +113,11 @@ class Launcher::Nit_fader_slave
 		 *             dataspace
 		 */
 		Nit_fader_slave(Rpc_entrypoint &ep, Ram_session &ram,
-		                Genode::Service &nitpicker_service)
+		                Genode::Service &nitpicker_service,
+		                Genode::Dataspace_capability ldso_ds)
 		:
 			_policy(ep, ram, nitpicker_service),
-			_slave(ep, _policy, _quota),
+			_slave(ep, _policy, _quota, env()->ram_session_cap(), ldso_ds),
 			_nitpicker_root(_policy.nitpicker_root())
 		{
 			visible(false);
