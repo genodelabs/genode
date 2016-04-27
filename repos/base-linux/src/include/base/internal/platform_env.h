@@ -60,7 +60,7 @@ struct Genode::Expanding_cpu_session_client
  * Common base class of the 'Platform_env' implementations for core and
  * non-core processes.
  */
-class Genode::Platform_env_base : public Env
+class Genode::Platform_env_base : public Env_deprecated
 {
 	private:
 
@@ -389,9 +389,9 @@ class Genode::Platform_env_base : public Env
 		{ }
 
 
-		/*******************
-		 ** Env interface **
-		 *******************/
+		/******************************
+		 ** Env_deprecated interface **
+		 ******************************/
 
 		Ram_session            *ram_session()     override { return &_ram_session_client; }
 		Ram_session_capability  ram_session_cap() override { return  _ram_session_cap; }
@@ -499,9 +499,9 @@ class Genode::Platform_env : public Platform_env_base, public Emergency_ram_rese
 		void release() { ram_session()->free(_emergency_ram_ds); }
 
 
-		/*******************
-		 ** Env interface **
-		 *******************/
+		/******************************
+		 ** Env_deprecated interface **
+		 ******************************/
 
 		Parent *parent() override { return &_parent(); }
 		Heap   *heap()   override { return &_heap; }

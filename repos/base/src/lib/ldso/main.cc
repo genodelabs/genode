@@ -357,7 +357,7 @@ struct Linker::Binary : Root_object, Elf_object
 		return 0;
 	}
 
-	void call_entry_point(Genode::Environment &env)
+	void call_entry_point(Genode::Env &env)
 	{
 		/* call static construtors and register destructors */
 		Func * const ctors_start = (Func *)lookup_symbol("_ctors_start");
@@ -371,7 +371,7 @@ struct Linker::Binary : Root_object, Elf_object
 		/* call component entry point */
 		/* XXX the function type for call_component_construct() is a candidate
 		 * for a base-internal header */
-		typedef void (*Entry)(Genode::Environment &);
+		typedef void (*Entry)(Genode::Env &);
 		Entry const entry = reinterpret_cast<Entry>(_file->entry);
 
 		entry(env);
@@ -543,7 +543,7 @@ char const * Component::name()         { return "ep"; }
 
 struct Failed_to_load_program { };
 
-void Component::construct(Genode::Environment &env)
+void Component::construct(Genode::Env &env)
 {
 	/* load program headers of linker now */
 	if (!Ld::linker()->file())

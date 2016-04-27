@@ -34,15 +34,15 @@ namespace Genode {
 	 * component's entrypoint is activated.
 	 */
 
-	extern void (*call_component_construct)(Genode::Environment &) __attribute__((weak));
+	extern void (*call_component_construct)(Genode::Env &) __attribute__((weak));
 }
 
-static void default_component_construct(Genode::Environment &env)
+static void default_component_construct(Genode::Env &env)
 {
 	Component::construct(env);
 }
 
-void (*Genode::call_component_construct)(Genode::Environment &) = &default_component_construct;
+void (*Genode::call_component_construct)(Genode::Env &) = &default_component_construct;
 
 
 /****************************************************
@@ -71,8 +71,8 @@ extern char **genode_envp;
 
 extern int main(int argc, char **argv, char **envp);
 
-void Component::construct(Genode::Environment &env) __attribute__((weak));
-void Component::construct(Genode::Environment &env)
+void Component::construct(Genode::Env &env) __attribute__((weak));
+void Component::construct(Genode::Env &env)
 {
 	/* call real main function */
 	exit_status = main(genode_argc, genode_argv, genode_envp);

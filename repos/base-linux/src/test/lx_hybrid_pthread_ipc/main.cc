@@ -60,7 +60,7 @@ char const * Component::name()         { return "lx_hybrid_pthread_ipc"; }
 /*
  * Component implements classical main function in construct.
  */
-void Component::construct(Genode::Environment &env)
+void Component::construct(Genode::Env &env)
 {
 	Genode::printf("--- pthread IPC test ---\n");
 

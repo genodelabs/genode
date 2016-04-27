@@ -24,7 +24,7 @@
 namespace Genode {
 	class Startup;
 	class Entrypoint;
-	class Environment;
+	class Env;
 }
 
 
@@ -67,7 +67,7 @@ class Genode::Entrypoint : Genode::Noncopyable
 			void entry() override { ep._process_incoming_signals(); }
 		};
 
-		Environment &_env;
+		Env &_env;
 
 		Volatile_object<Rpc_entrypoint> _rpc_ep;
 
@@ -100,11 +100,11 @@ class Genode::Entrypoint : Genode::Noncopyable
 		/**
 		 * Called by the startup code only
 		 */
-		Entrypoint(Environment &env);
+		Entrypoint(Env &env);
 
 	public:
 
-		Entrypoint(Environment &env, size_t stack_size, char const *name);
+		Entrypoint(Env &env, size_t stack_size, char const *name);
 
 		/**
 		 * Associate RPC object with the entry point

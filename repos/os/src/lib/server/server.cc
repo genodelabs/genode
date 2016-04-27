@@ -27,10 +27,10 @@ char const *Component::name()
 }
 
 
-static Genode::Environment *_env;
+static Genode::Env *_env;
 
 
-void Component::construct(Genode::Environment &env)
+void Component::construct(Genode::Env &env)
 {
 	_env = &env;
 	Server::construct(env.ep());

@@ -86,15 +86,15 @@ namespace Genode {
 	 * component's entrypoint is activated.
 	 */
 
-	extern void (*call_component_construct)(Genode::Environment &) __attribute__((weak));
+	extern void (*call_component_construct)(Genode::Env &) __attribute__((weak));
 }
 
-static void lx_hybrid_component_construct(Genode::Environment &env)
+static void lx_hybrid_component_construct(Genode::Env &env)
 {
 	Component::construct(env);
 }
 
-void (*Genode::call_component_construct)(Genode::Environment &) = &lx_hybrid_component_construct;
+void (*Genode::call_component_construct)(Genode::Env &) = &lx_hybrid_component_construct;
 
 /*
  * Static constructors are handled by the Linux startup code - so implement

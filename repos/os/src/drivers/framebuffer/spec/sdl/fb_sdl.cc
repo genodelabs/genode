@@ -152,7 +152,7 @@ struct Main
 	struct Sdl_videodriver_not_supported { };
 	struct Sdl_setvideomode_failed { };
 
-	Genode::Environment &env;
+	Genode::Env &env;
 
 	int fb_width  { config_arg("width",  1024) };
 	int fb_height { config_arg("height", 768) };
@@ -172,7 +172,7 @@ struct Main
 	Input::Handler_component input_handler_component { input_session };
 	Input::Handler_client    input_handler_client    { env.ep().manage(input_handler_component) };
 
-	Main(Genode::Environment &env) : env(env)
+	Main(Genode::Env &env) : env(env)
 	{
 		/*
 		 * Initialize libSDL window
@@ -214,6 +214,6 @@ struct Main
 };
 
 
-Genode::size_t Component::stack_size()              { return 4*1024*sizeof(long); }
-char const * Component::name()                      { return "fb_sdl"; }
-void Component::construct(Genode::Environment &env) { static Main inst(env); }
+Genode::size_t Component::stack_size()      { return 4*1024*sizeof(long); }
+char const * Component::name()              { return "fb_sdl"; }
+void Component::construct(Genode::Env &env) { static Main inst(env); }

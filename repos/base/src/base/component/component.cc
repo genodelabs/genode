@@ -19,11 +19,11 @@
 
 namespace {
 
-	struct Environment : Genode::Environment
+	struct Env : Genode::Env
 	{
 		Genode::Entrypoint &_ep;
 
-		Environment(Genode::Entrypoint &ep) : _ep(ep) { }
+		Env(Genode::Entrypoint &ep) : _ep(ep) { }
 
 		Genode::Parent      &parent() override { return *Genode::env()->parent(); }
 		Genode::Ram_session &ram()    override { return *Genode::env()->ram_session(); }
@@ -59,7 +59,7 @@ namespace Genode {
  */
 struct Genode::Startup
 {
-	::Environment env { ep };
+	::Env env { ep };
 
 	/*
 	 * The construction of the main entrypoint does never return.

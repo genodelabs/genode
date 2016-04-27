@@ -30,7 +30,7 @@ namespace Genode {
 	void init_signal_thread();
 	void destroy_signal_thread();
 
-	extern void (*call_component_construct)(Genode::Environment &);
+	extern void (*call_component_construct)(Genode::Env &);
 }
 
 
@@ -133,8 +133,8 @@ namespace {
 
 	struct Constructor_component : Rpc_object<Constructor, Constructor_component>
 	{
-		Environment &env;
-		Constructor_component(Environment &env) : env(env) { }
+		Env &env;
+		Constructor_component(Env &env) : env(env) { }
 
 		void construct()
 		{
@@ -149,7 +149,7 @@ namespace {
 }
 
 
-Entrypoint::Entrypoint(Environment &env)
+Entrypoint::Entrypoint(Env &env)
 :
 	_env(env),
 	_rpc_ep(&env.pd(), Component::stack_size(), Component::name())
@@ -181,7 +181,7 @@ Entrypoint::Entrypoint(Environment &env)
 }
 
 
-Entrypoint::Entrypoint(Environment &env, size_t stack_size, char const *name)
+Entrypoint::Entrypoint(Env &env, size_t stack_size, char const *name)
 :
 	_env(env),
 	_rpc_ep(&env.pd(), stack_size, name)

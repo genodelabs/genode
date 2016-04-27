@@ -34,7 +34,7 @@ char const * Component::name()         { return "lx_hybrid_exception"; }
 /*
  * Component implements classical main function in construct.
  */
-void Component::construct(Genode::Environment &env)
+void Component::construct(Genode::Env &env)
 {
 	printf("--- lx_hybrid exception test ---\n");
 

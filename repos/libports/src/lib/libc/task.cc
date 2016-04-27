@@ -35,8 +35,8 @@
 namespace Libc {
 	class Task;
 
-	void (*original_call_component_construct)(Genode::Environment &);
-	void call_component_construct(Genode::Environment &env);
+	void (*original_call_component_construct)(Genode::Env &);
+	void call_component_construct(Genode::Env &env);
 }
 
 
@@ -64,7 +64,7 @@ class Libc::Task : public Genode::Rpc_object<Task_resume, Libc::Task>
 {
 	private:
 
-		Genode::Environment &_env;
+		Genode::Env &_env;
 
 		/**
 		 * Application context and execution state
@@ -91,7 +91,7 @@ class Libc::Task : public Genode::Rpc_object<Task_resume, Libc::Task>
 
 	public:
 
-		Task(Genode::Environment &env) : _env(env) { }
+		Task(Genode::Env &env) : _env(env) { }
 
 		~Task() { PERR("%s should not be executed!", __PRETTY_FUNCTION__); }
 
@@ -184,9 +184,9 @@ namespace Libc {
  ****************************/
 
 /* XXX needs base-internal header? */
-namespace Genode { extern void (*call_component_construct)(Genode::Environment &); }
+namespace Genode { extern void (*call_component_construct)(Genode::Env &); }
 
-void Libc::call_component_construct(Genode::Environment &env)
+void Libc::call_component_construct(Genode::Env &env)
 {
 	task = unmanaged_singleton<Libc::Task>(env);
 	task->run();

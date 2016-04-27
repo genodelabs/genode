@@ -63,7 +63,7 @@ Core_env * Genode::core_env()
 }
 
 
-Env * Genode::env() {
+Env_deprecated * Genode::env() {
 	return core_env(); }
 
 

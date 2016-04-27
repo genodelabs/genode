@@ -18,7 +18,7 @@
  * Genode::component_entry_point() as a trampoline to
  * call_component_construct().
  */
-ENTRY(_ZN6Genode21component_entry_pointERNS_11EnvironmentE)
+ENTRY(_ZN6Genode21component_entry_pointERNS_3EnvE)
 
 PHDRS
 {
@@ -38,7 +38,7 @@ SECTIONS
     _prog_img_beg = .;
 
     /* put entry code at the start of the text segment / raw binary */
-    *(.text._ZN6Genode21component_entry_pointERNS_11EnvironmentE)
+    *(.text._ZN6Genode21component_entry_pointERNS_3EnvE)
 
     *(.text .stub .text.* .gnu.linkonce.t.*)
     /* .gnu.warning sections are handled specially by elf32.em.  */

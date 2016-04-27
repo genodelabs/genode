@@ -20,12 +20,12 @@
 
 /* FIXME move to base-internal header */
 namespace Genode {
-	extern void (*call_component_construct)(Environment &);
+	extern void (*call_component_construct)(Env &);
 }
 
 namespace Genode {
 
-	void component_entry_point(Genode::Environment &env)
+	void component_entry_point(Genode::Env &env)
 	{
 		call_component_construct(env);
 	}

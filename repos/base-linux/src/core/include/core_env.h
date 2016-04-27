@@ -197,9 +197,9 @@ namespace Genode {
 			Entrypoint  *entrypoint()  { return &_entrypoint; }
 
 
-			/*******************
-			 ** Env interface **
-			 *******************/
+			/******************************
+			 ** Env_deprecated interface **
+			 ******************************/
 
 			Parent                 *parent()          override { return &_core_parent; }
 			Ram_session            *ram_session()     override { return &_ram_session; }

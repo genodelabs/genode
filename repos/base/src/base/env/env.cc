@@ -19,7 +19,7 @@ namespace Genode {
 	/*
 	 * Request pointer to static environment of the Genode application
 	 */
-	Env *env()
+	Env_deprecated *env()
 	{
 		/*
 		 * By placing the environment as static object here, we ensure that its

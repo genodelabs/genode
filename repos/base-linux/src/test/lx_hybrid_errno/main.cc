@@ -55,7 +55,7 @@ struct Unexpected_errno_change { };
 /*
  * Component implements classical main function in construct.
  */
-void Component::construct(Genode::Environment &env)
+void Component::construct(Genode::Env &env)
 {
 	Genode::printf("--- thread-local errno test ---\n");
 

@@ -110,7 +110,7 @@ namespace Genode {
 	};
 
 
-	class Core_env : public Env
+	class Core_env : public Env_deprecated
 	{
 		private:
 
