@@ -145,7 +145,8 @@ include $(BASE_DIR)/mk/generic.mk
 #
 $(LIB_A): $(OBJECTS)
 	$(MSG_MERGE)$(LIB_A)
-	$(VERBOSE)$(AR) -rc $@ $(OBJECTS)
+	$(VERBOSE)$(RM) -f $@
+	$(VERBOSE)$(AR) -rcs $@ $(OBJECTS)
 # 
 # Rename from object to rlib
 #
