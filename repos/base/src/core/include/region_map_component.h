@@ -24,6 +24,7 @@
 #include <base/synced_allocator.h>
 #include <base/signal.h>
 #include <base/rpc_server.h>
+#include <base/heap.h>
 #include <util/list.h>
 #include <util/fifo.h>
 
@@ -273,7 +274,14 @@ class Genode::Region_map_component : public Rpc_object<Region_map>,
 				void sub_rm(Native_capability cap) { _rm_cap = cap; }
 		};
 
-		Tslab<Rm_region_ref, 1024>    _ref_slab;     /* backing store for
+		/*
+		 * Dimension slab allocator for regions such that backing store is
+		 * allocated at the granularity of pages.
+		 */
+		typedef Tslab<Rm_region_ref, get_page_size() - Sliced_heap::meta_data_size()>
+		        Ref_slab;
+
+		Ref_slab                      _ref_slab;     /* backing store for
 		                                                region list */
 		Allocator_avl_tpl<Rm_region>  _map;          /* region map for attach,
 		                                                detach, pagefaults */

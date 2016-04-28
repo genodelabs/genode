@@ -38,23 +38,6 @@ class Genode::Heap : public Allocator
 {
 	private:
 
-		enum {
-			MIN_CHUNK_SIZE =   4*1024,  /* in machine words */
-			MAX_CHUNK_SIZE = 256*1024,
-			/*
-			 * Meta data includes the Dataspace structure and meta data of
-			 * the AVL allocator.
-			 */
-			META_DATA_SIZE = 1024,      /* in bytes */
-			/*
-			 * Allocation sizes >= this value are considered as big
-			 * allocations, which get their own dataspace. In contrast
-			 * to smaller allocations, this memory is released to
-			 * the RAM session when 'free()' is called.
-			 */
-			BIG_ALLOCATION_THRESHOLD = 64*1024 /* in bytes */
-		};
-
 		class Dataspace : public List<Dataspace>::Element
 		{
 			public:
@@ -127,16 +110,7 @@ class Genode::Heap : public Allocator
 		     Region_map  *region_map,
 		     size_t       quota_limit = UNLIMITED,
 		     void        *static_addr = 0,
-		     size_t       static_size = 0)
-		:
-			_alloc(nullptr),
-			_ds_pool(ram_session, region_map),
-			_quota_limit(quota_limit), _quota_used(0),
-			_chunk_size(MIN_CHUNK_SIZE)
-		{
-			if (static_addr)
-				_alloc->add_range((addr_t)static_addr, static_size);
-		}
+		     size_t       static_size = 0);
 
 		~Heap();
 

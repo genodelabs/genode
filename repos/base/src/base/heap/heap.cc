@@ -20,6 +20,22 @@
 using namespace Genode;
 
 
+namespace {
+
+	enum {
+		MIN_CHUNK_SIZE =   4*1024,  /* in machine words */
+		MAX_CHUNK_SIZE = 256*1024,
+		/*
+		 * Allocation sizes >= this value are considered as big
+		 * allocations, which get their own dataspace. In contrast
+		 * to smaller allocations, this memory is released to
+		 * the RAM session when 'free()' is called.
+		 */
+		BIG_ALLOCATION_THRESHOLD = 64*1024 /* in bytes */
+	};
+}
+
+
 Heap::Dataspace_pool::~Dataspace_pool()
 {
 	/* free all ram_dataspaces */
@@ -154,10 +170,10 @@ bool Heap::_unsynchronized_alloc(size_t size, void **out_addr)
 	/*
 	 * Calculate block size of needed backing store. The block must hold the
 	 * requested 'size' and we add some space for meta data
-	 * ('Dataspace' structures, AVL nodes).
+	 * ('Dataspace' structures, AVL-node slab blocks).
 	 * Finally, we align the size to a 4K page.
 	 */
-	dataspace_size = size + META_DATA_SIZE;
+	dataspace_size = size + Allocator_avl::slab_block_size() + sizeof(Heap::Dataspace);
 
 	/*
 	 * '_chunk_size' is a multiple of 4K, so 'dataspace_size' becomes
@@ -231,6 +247,22 @@ void Heap::free(void *addr, size_t size)
 
 		_quota_used -= size;
 	}
+}
+
+
+Heap::Heap(Ram_session *ram_session,
+           Region_map  *region_map,
+           size_t       quota_limit,
+           void        *static_addr,
+           size_t       static_size)
+:
+	_alloc(nullptr),
+	_ds_pool(ram_session, region_map),
+	_quota_limit(quota_limit), _quota_used(0),
+	_chunk_size(MIN_CHUNK_SIZE)
+{
+	if (static_addr)
+		_alloc->add_range((addr_t)static_addr, static_size);
 }
 
 

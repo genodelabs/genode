@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <util/list.h>
+#include <base/heap.h>
 #include <base/tslab.h>
 #include <base/rpc_server.h>
 #include <base/allocator_guard.h>
@@ -38,7 +39,11 @@ namespace Genode {
 
 			class Invalid_dataspace : public Exception { };
 
-			static constexpr size_t SBS = get_page_size();
+			/*
+			 * Dimension 'Ds_slab' such that slab blocks (including the
+			 * meta-data overhead of the sliced-heap blocks) are page sized.
+			 */
+			static constexpr size_t SBS = get_page_size() - Sliced_heap::meta_data_size();
 
 			using Ds_slab = Synced_allocator<Tslab<Dataspace_component, SBS> >;
 
