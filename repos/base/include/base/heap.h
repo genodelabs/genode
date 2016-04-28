@@ -174,20 +174,44 @@ class Genode::Sliced_heap : public Allocator
 {
 	private:
 
-		class Block;
+		/**
+		 * Meta-data header placed in front of each allocated block
+		 */
+		struct Block : List<Block>::Element
+		{
+			Ram_dataspace_capability const ds;
+			size_t                   const size;
 
-		Ram_session    *_ram_session;  /* RAM session for backing store   */
-		Region_map     *_region_map;   /* region map of the address space */
+			Block(Ram_dataspace_capability ds, size_t size) : ds(ds), size(size)
+			{ }
+		};
+
+		Ram_session    &_ram_session;  /* RAM session for backing store   */
+		Region_map     &_region_map;   /* region map of the address space */
 		size_t          _consumed;     /* number of allocated bytes       */
-		List<Block>     _block_list;   /* list of allocated blocks        */
+		List<Block>     _blocks;       /* list of allocated blocks        */
 		Lock            _lock;         /* serialize allocations           */
 
 	public:
 
 		/**
+		 * Return size of header prepended to each allocated block in bytes
+		 */
+		static constexpr size_t meta_data_size() { return sizeof(Block); }
+
+		/**
+		 * Constructor
+		 *
+		 * \deprecated  Use the other constructor that takes reference
+		 *              arguments
+		 */
+		Sliced_heap(Ram_session *ram_session, Region_map *region_map)
+		: Sliced_heap(*ram_session, *region_map) { }
+
+		/**
 		 * Constructor
 		 */
-		Sliced_heap(Ram_session *ram_session, Region_map *region_map);
+		Sliced_heap(Ram_session &ram_session, Region_map &region_map);
 
 		/**
 		 * Destructor
