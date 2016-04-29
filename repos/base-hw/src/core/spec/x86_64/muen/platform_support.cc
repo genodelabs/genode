@@ -15,10 +15,12 @@
 /* Genode includes */
 #include <util/mmio.h>
 
+/* base includes */
+#include <muen/sinfo.h>
+
 /* core includes */
 #include <board.h>
 #include <platform.h>
-#include <sinfo.h>
 
 using namespace Genode;
 
