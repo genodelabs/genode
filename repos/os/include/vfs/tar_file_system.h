@@ -508,7 +508,14 @@ class Vfs::Tar_file_system : public File_system
 			return DIRENT_OK;
 		}
 
-		Unlink_result unlink(char const *) override { return UNLINK_ERR_NO_PERM; }
+		Unlink_result unlink(char const *path) override
+		{
+			Node const *node = dereference(path);
+			if (!node)
+				return UNLINK_ERR_NO_ENTRY;
+			else
+				return UNLINK_ERR_NO_PERM;
+		}
 
 		Readlink_result readlink(char const *path, char *buf, file_size buf_size,
 		                         file_size &out_len) override
