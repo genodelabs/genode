@@ -14,12 +14,13 @@
 #ifndef _CORE__INCLUDE__SPEC__X86_64__MUEN__TIMER_H_
 #define _CORE__INCLUDE__SPEC__X86_64__MUEN__TIMER_H_
 
+/* base includes */
 #include <base/printf.h>
 #include <kernel/types.h>
+#include <muen/sinfo.h>
 
 /* core includes */
 #include <board.h>
-#include <sinfo.h>
 
 namespace Genode
 {
