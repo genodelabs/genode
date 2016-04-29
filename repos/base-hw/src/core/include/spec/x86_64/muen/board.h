@@ -19,8 +19,6 @@ namespace Genode
 	struct Board
 	{
 		enum {
-			SINFO_BASE_ADDR = 0xe00000000,
-			SINFO_SIZE      = 0x7000,
 			TIMER_BASE_ADDR = 0xe00010000,
 			TIMER_SIZE      = 0x1000,
 

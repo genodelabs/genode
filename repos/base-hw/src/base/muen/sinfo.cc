@@ -18,12 +18,8 @@
 
 #include "musinfo.h"
 
-enum {
-	SINFO_BASE_ADDR = 0xe00000000,
-};
-
 static const subject_info_type *
-const sinfo = ((subject_info_type *)SINFO_BASE_ADDR);
+const sinfo = ((subject_info_type *)Sinfo::BASE_ADDR);
 
 
 /* Log channel information */

@@ -32,6 +32,8 @@ class Genode::Sinfo
 	public:
 
 		enum Config {
+			BASE_ADDR       = 0xe00000000,
+			SIZE            = 0x7000,
 			MAX_NAME_LENGTH = 63,
 		};
 
