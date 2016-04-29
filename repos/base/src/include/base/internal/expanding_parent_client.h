@@ -1,9 +1,7 @@
 /*
- * \brief  Platform environment of Genode process
+ * \brief  Parent client that issues resource requests on demand
  * \author Norman Feske
  * \date   2013-09-25
- *
- * Parts of 'Platform_env' shared accross all base platforms.
  */
 
 /*
@@ -13,161 +11,30 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__BASE__INTERNAL__PLATFORM_ENV_COMMON_H_
-#define _INCLUDE__BASE__INTERNAL__PLATFORM_ENV_COMMON_H_
+#ifndef _INCLUDE__BASE__INTERNAL__EXPANDING_PARENT_CLIENT_H_
+#define _INCLUDE__BASE__INTERNAL__EXPANDING_PARENT_CLIENT_H_
 
-#include <base/env.h>
+/* Genode includes */
+#include <base/signal.h>
 #include <util/arg_string.h>
 #include <util/retry.h>
 #include <parent/client.h>
-#include <ram_session/client.h>
-#include <region_map/client.h>
-#include <cpu_session/client.h>
-#include <pd_session/client.h>
 
+/* base-internal includes */
+#include <base/internal/upgradeable_client.h>
 
-#include <base/internal/stack_area.h>
-
-namespace Genode {
-
-	class Expanding_region_map_client;
-	class Expanding_ram_session_client;
-	class Expanding_cpu_session_client;
-	class Expanding_parent_client;
-
-	struct Attached_stack_area;
-
-	Parent_capability parent_cap();
-
-	extern Region_map  *env_stack_area_region_map;
-	extern Ram_session *env_stack_area_ram_session;
-
-	void init_signal_thread();
-}
-
-
-/**
- * Client object for a session that may get its session quota upgraded
- */
-template <typename CLIENT>
-struct Upgradeable_client : CLIENT
-{
-	typedef Genode::Capability<typename CLIENT::Rpc_interface> Capability;
-
-	Capability _cap;
-
-	Upgradeable_client(Capability cap) : CLIENT(cap), _cap(cap) { }
-
-	void upgrade_ram(Genode::size_t quota)
-	{
-		PINF("upgrading quota donation for Env::%s (%zu bytes)",
-		     CLIENT::Rpc_interface::service_name(), quota);
-
-		char buf[128];
-		Genode::snprintf(buf, sizeof(buf), "ram_quota=%zu", quota);
-
-		Genode::env()->parent()->upgrade(_cap, buf);
-	}
-};
-
-
-struct Genode::Expanding_region_map_client : Region_map_client
-{
-	Upgradeable_client<Genode::Pd_session_client> _pd_client;
-
-	Expanding_region_map_client(Pd_session_capability pd, Capability<Region_map> rm)
-	: Region_map_client(rm), _pd_client(pd) { }
-
-	Local_addr attach(Dataspace_capability ds, size_t size, off_t offset,
-	                  bool use_local_addr, Local_addr local_addr,
-	                  bool executable) override
-	{
-		return retry<Region_map::Out_of_metadata>(
-			[&] () {
-				return Region_map_client::attach(ds, size, offset,
-				                                 use_local_addr,
-				                                 local_addr,
-				                                 executable); },
-			[&] () { _pd_client.upgrade_ram(8*1024); });
-	}
-};
-
-
-struct Genode::Expanding_ram_session_client : Upgradeable_client<Genode::Ram_session_client>
-{
-	Expanding_ram_session_client(Ram_session_capability cap)
-	: Upgradeable_client<Genode::Ram_session_client>(cap) { }
-
-	Ram_dataspace_capability alloc(size_t size, Cache_attribute cached = UNCACHED) override
-	{
-		/*
-		 * If the RAM session runs out of quota, issue a resource request
-		 * to the parent and retry.
-		 */
-		enum { NUM_ATTEMPTS = 2 };
-		return retry<Ram_session::Quota_exceeded>(
-			[&] () {
-				/*
-				 * If the RAM session runs out of meta data, upgrade the
-				 * session quota and retry.
-				 */
-				return retry<Ram_session::Out_of_metadata>(
-					[&] () { return Ram_session_client::alloc(size, cached); },
-					[&] () { upgrade_ram(8*1024); });
-			},
-			[&] () {
-				char buf[128];
-
-				/*
-				 * The RAM service withdraws the meta data for the allocator
-				 * from the RAM quota. In the worst case, a new slab block
-				 * may be needed. To cover the worst case, we need to take
-				 * this possible overhead into account when requesting
-				 * additional RAM quota from the parent.
-				 *
-				 * Because the worst case almost never happens, we request
-				 * a bit too much quota for the most time.
-				 */
-				enum { ALLOC_OVERHEAD = 4096U };
-				Genode::snprintf(buf, sizeof(buf), "ram_quota=%zu",
-				                 size + ALLOC_OVERHEAD);
-				env()->parent()->resource_request(buf);
-			},
-			NUM_ATTEMPTS);
-	}
-
-	int transfer_quota(Ram_session_capability ram_session, size_t amount) override
-	{
-		enum { NUM_ATTEMPTS = 2 };
-		int ret = -1;
-		for (unsigned i = 0; i < NUM_ATTEMPTS; i++) {
-
-			ret = Ram_session_client::transfer_quota(ram_session, amount);
-			if (ret != -3) break;
-
-			/*
-			 * The transfer failed because we don't have enough quota. Request
-			 * the needed amount from the parent.
-			 *
-			 * XXX Let transfer_quota throw 'Ram_session::Quota_exceeded'
-			 */
-			char buf[128];
-			Genode::snprintf(buf, sizeof(buf), "ram_quota=%zu", amount);
-			env()->parent()->resource_request(buf);
-		}
-		return ret;
-	}
-};
-
-
-struct Emergency_ram_reserve
-{
-	virtual void release() = 0;
-};
+namespace Genode { class Expanding_parent_client; }
 
 
 class Genode::Expanding_parent_client : public Parent_client
 {
+	public:
+
+		struct Emergency_ram_reserve
+		{
+			virtual void release() = 0;
+		};
+
 	private:
 
 		/**
@@ -328,19 +195,4 @@ class Genode::Expanding_parent_client : public Parent_client
 		}
 };
 
-
-struct Genode::Attached_stack_area : Genode::Expanding_region_map_client
-{
-	Attached_stack_area(Parent &parent, Pd_session_capability pd)
-	:
-		Expanding_region_map_client(pd, Pd_session_client(pd).stack_area())
-	{
-		Region_map_client address_space(Pd_session_client(pd).address_space());
-
-		address_space.attach_at(Expanding_region_map_client::dataspace(),
-		                        stack_area_virtual_base(),
-		                        stack_area_virtual_size());
-	}
-};
-
-#endif /* _INCLUDE__BASE__INTERNAL__PLATFORM_ENV_COMMON_H_ */
+#endif /* _INCLUDE__BASE__INTERNAL__EXPANDING_PARENT_CLIENT_H_ */

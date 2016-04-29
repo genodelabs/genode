@@ -26,42 +26,20 @@
 #include <base/heap.h>
 
 /* base-internal includes */
-#include <base/internal/platform_env_common.h>
+#include <base/internal/globals.h>
+#include <base/internal/parent_cap.h>
+#include <base/internal/attached_stack_area.h>
+#include <base/internal/expanding_cpu_session_client.h>
+#include <base/internal/expanding_region_map_client.h>
+#include <base/internal/expanding_ram_session_client.h>
+#include <base/internal/expanding_parent_client.h>
 
 
-namespace Genode {
-	struct Expanding_cpu_session_client;
-	class Platform_env;
-}
+namespace Genode { class Platform_env; }
 
 
-struct Genode::Expanding_cpu_session_client : Upgradeable_client<Genode::Cpu_session_client>
-{
-	Expanding_cpu_session_client(Genode::Cpu_session_capability cap)
-	:
-		/*
-		 * We need to upcast the capability because on some platforms (i.e.,
-		 * NOVA), 'Cpu_session_client' refers to a platform-specific session
-		 * interface ('Nova_cpu_session').
-		 */
-		Upgradeable_client<Genode::Cpu_session_client>
-			(static_cap_cast<Genode::Cpu_session_client::Rpc_interface>(cap))
-	{ }
-
-	Thread_capability
-	create_thread(Pd_session_capability pd, size_t quota, Name const &name,
-	              Affinity::Location affinity, addr_t utcb)
-	{
-		return retry<Cpu_session::Out_of_metadata>(
-			[&] () {
-				return Cpu_session_client::create_thread(pd, quota, name, affinity, utcb); },
-			[&] () { upgrade_ram(8*1024); });
-	}
-};
-
-
-class Genode::Platform_env : public Genode::Env_deprecated,
-                             public Emergency_ram_reserve
+class Genode::Platform_env : public Env_deprecated,
+                             public Expanding_parent_client::Emergency_ram_reserve
 {
 	private:
 

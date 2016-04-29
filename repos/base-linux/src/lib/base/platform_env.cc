@@ -20,6 +20,7 @@
 /* base-internal includes */
 #include <base/internal/platform_env.h>
 #include <base/internal/native_thread.h>
+#include <base/internal/globals.h>
 
 using namespace Genode;
 
@@ -28,8 +29,7 @@ using namespace Genode;
  ** Support for Platform_env_base::Rm_session_mmap **
  ****************************************************/
 
-Genode::size_t
-Platform_env_base::Region_map_mmap::_dataspace_size(Dataspace_capability ds)
+size_t Region_map_mmap::_dataspace_size(Dataspace_capability ds)
 {
 	if (ds.valid())
 		return Dataspace_client(ds).size();
@@ -38,31 +38,26 @@ Platform_env_base::Region_map_mmap::_dataspace_size(Dataspace_capability ds)
 }
 
 
-int Platform_env_base::Region_map_mmap::_dataspace_fd(Dataspace_capability ds)
+int Region_map_mmap::_dataspace_fd(Dataspace_capability ds)
 {
 	return Linux_dataspace_client(ds).fd().dst().socket;
 }
 
 
-bool
-Platform_env_base::Region_map_mmap::_dataspace_writable(Dataspace_capability ds)
+bool Region_map_mmap::_dataspace_writable(Dataspace_capability ds)
 {
 	return Dataspace_client(ds).writable();
 }
 
 
 
-/********************************
- ** Platform_env::Local_parent **
- ********************************/
+/******************
+ ** Local_parent **
+ ******************/
 
-static inline size_t get_page_size_log2() { return 12; }
-
-
-Session_capability
-Platform_env::Local_parent::session(Service_name const &service_name,
-                                    Session_args const &args,
-                                    Affinity     const &affinity)
+Session_capability Local_parent::session(Service_name const &service_name,
+                                         Session_args const &args,
+                                         Affinity     const &affinity)
 {
 	if (strcmp(service_name.string(), Rm_session::service_name()) == 0)
 	{
@@ -75,7 +70,7 @@ Platform_env::Local_parent::session(Service_name const &service_name,
 }
 
 
-void Platform_env::Local_parent::close(Session_capability session)
+void Local_parent::close(Session_capability session)
 {
 	/*
 	 * Handle non-local capabilities
@@ -94,9 +89,9 @@ void Platform_env::Local_parent::close(Session_capability session)
 }
 
 
-Platform_env::Local_parent::Local_parent(Parent_capability parent_cap,
-                                         Emergency_ram_reserve &reserve,
-                                         Allocator &alloc)
+Local_parent::Local_parent(Parent_capability parent_cap,
+                           Emergency_ram_reserve &reserve,
+                           Allocator &alloc)
 :
 	Expanding_parent_client(parent_cap, reserve), _alloc(alloc)
 { }
@@ -139,7 +134,7 @@ static Parent_capability obtain_parent_cap()
 }
 
 
-Platform_env::Local_parent &Platform_env::_parent()
+Local_parent &Platform_env::_parent()
 {
 	static Local_parent local_parent(obtain_parent_cap(), *this, _heap);
 	return local_parent;

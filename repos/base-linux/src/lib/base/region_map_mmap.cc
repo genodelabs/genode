@@ -32,6 +32,12 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Linux includes */
+#include <unistd.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+
 /* Genode includes */
 #include <base/thread.h>
 #include <linux_dataspace/client.h>
@@ -39,7 +45,7 @@
 
 /* base-internal includes */
 #include <base/internal/local_capability.h>
-#include <base/internal/platform_env.h>
+#include <base/internal/region_map_mmap.h>
 #include <base/internal/stack_area.h>
 
 using namespace Genode;
@@ -54,9 +60,9 @@ static bool is_sub_rm_session(Dataspace_capability ds)
 }
 
 
-addr_t Platform_env_base::Region_map_mmap::_reserve_local(bool           use_local_addr,
-                                                          addr_t         local_addr,
-                                                          Genode::size_t size)
+addr_t Region_map_mmap::_reserve_local(bool           use_local_addr,
+                                       addr_t         local_addr,
+                                       Genode::size_t size)
 {
 	/* special handling for stack area */
 	if (use_local_addr
@@ -101,14 +107,13 @@ addr_t Platform_env_base::Region_map_mmap::_reserve_local(bool           use_loc
 }
 
 
-void *
-Platform_env_base::Region_map_mmap::_map_local(Dataspace_capability ds,
-                                               Genode::size_t       size,
-                                               addr_t               offset,
-                                               bool                 use_local_addr,
-                                               addr_t               local_addr,
-                                               bool                 executable,
-                                               bool                 overmap)
+void *Region_map_mmap::_map_local(Dataspace_capability ds,
+                                  Genode::size_t       size,
+                                  addr_t               offset,
+                                  bool                 use_local_addr,
+                                  addr_t               local_addr,
+                                  bool                 executable,
+                                  bool                 overmap)
 {
 	int  const  fd        = _dataspace_fd(ds);
 	bool const  writable  = _dataspace_writable(ds);
@@ -143,7 +148,7 @@ Platform_env_base::Region_map_mmap::_map_local(Dataspace_capability ds,
 }
 
 
-void Platform_env::Region_map_mmap::_add_to_rmap(Region const &region)
+void Region_map_mmap::_add_to_rmap(Region const &region)
 {
 	if (_rmap.add_region(region) < 0) {
 		PERR("_add_to_rmap: could not add region to sub RM session");
@@ -152,12 +157,11 @@ void Platform_env::Region_map_mmap::_add_to_rmap(Region const &region)
 }
 
 
-Region_map::Local_addr
-Platform_env::Region_map_mmap::attach(Dataspace_capability ds,
-                                      size_t size, off_t offset,
-                                      bool use_local_addr,
-                                      Region_map::Local_addr local_addr,
-                                      bool executable)
+Region_map::Local_addr Region_map_mmap::attach(Dataspace_capability ds,
+                                               size_t size, off_t offset,
+                                               bool use_local_addr,
+                                               Region_map::Local_addr local_addr,
+                                               bool executable)
 {
 	Lock::Guard lock_guard(_lock);
 
@@ -299,7 +303,7 @@ Platform_env::Region_map_mmap::attach(Dataspace_capability ds,
 }
 
 
-void Platform_env::Region_map_mmap::detach(Region_map::Local_addr local_addr)
+void Region_map_mmap::detach(Region_map::Local_addr local_addr)
 {
 	Lock::Guard lock_guard(_lock);
 

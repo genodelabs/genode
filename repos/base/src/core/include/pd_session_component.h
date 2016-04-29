@@ -22,6 +22,9 @@
 #include <pd_session/pd_session.h>
 #include <util/arg_string.h>
 
+/* base-internal includes */
+#include <base/internal/stack_area.h>
+
 /* core includes */
 #include <platform_pd.h>
 #include <signal_broker.h>
@@ -29,9 +32,6 @@
 #include <native_pd_component.h>
 #include <region_map_component.h>
 #include <platform_generic.h>
-
-/* base-internal includes */
-#include <base/internal/platform_env_common.h>
 
 namespace Genode { class Pd_session_component; }
 

@@ -27,7 +27,7 @@
 
 /* base-internal includes */
 #include <base/internal/stack_area.h>
-#include <base/internal/platform_env_common.h>
+#include <base/internal/globals.h>
 
 using namespace Genode;
 

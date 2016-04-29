@@ -21,7 +21,7 @@
 /* base-internal includes */
 #include <base/internal/stack_allocator.h>
 #include <base/internal/native_utcb.h>
-#include <base/internal/platform_env_common.h>
+#include <base/internal/globals.h>
 
 using namespace Genode;
 

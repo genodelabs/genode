@@ -180,8 +180,7 @@ namespace Genode {
  ** Support for Platform_env_base::Region_map_mmap **
  ****************************************************/
 
-Genode::size_t
-Platform_env_base::Region_map_mmap::_dataspace_size(Capability<Dataspace> ds_cap)
+size_t Region_map_mmap::_dataspace_size(Capability<Dataspace> ds_cap)
 {
 	if (!ds_cap.valid())
 		return Local_capability<Dataspace>::deref(ds_cap)->size();
@@ -201,7 +200,7 @@ Platform_env_base::Region_map_mmap::_dataspace_size(Capability<Dataspace> ds_cap
 }
 
 
-int Platform_env_base::Region_map_mmap::_dataspace_fd(Capability<Dataspace> ds_cap)
+int Region_map_mmap::_dataspace_fd(Capability<Dataspace> ds_cap)
 {
 	if (!core_env()->entrypoint()->is_myself()) {
 		/* release Region_map_mmap::_lock during RPC */
@@ -227,7 +226,7 @@ int Platform_env_base::Region_map_mmap::_dataspace_fd(Capability<Dataspace> ds_c
 }
 
 
-bool Platform_env_base::Region_map_mmap::_dataspace_writable(Dataspace_capability ds_cap)
+bool Region_map_mmap::_dataspace_writable(Dataspace_capability ds_cap)
 {
 	if (!core_env()->entrypoint()->is_myself()) {
 		/* release Region_map_mmap::_lock during RPC */
