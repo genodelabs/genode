@@ -64,7 +64,7 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 	static Native_region _regions[] =
 	{
 		/* Sinfo pages */
-		{ Board::SINFO_BASE_ADDR, Board::SINFO_SIZE },
+		{ Sinfo::BASE_ADDR, Sinfo::SIZE },
 		/* Timer page */
 		{ Board::TIMER_BASE_ADDR, Board::TIMER_SIZE },
 	};
@@ -114,6 +114,6 @@ void Platform::_init_additional()
 {
 	/* export subject info page as ROM module */
 	_rom_fs.insert(new (core_mem_alloc())
-	               Rom_module((addr_t)Board::SINFO_BASE_ADDR,
-	               Board::SINFO_SIZE, "subject_info_page"));
+	               Rom_module((addr_t)Sinfo::BASE_ADDR,
+	               Sinfo::SIZE, "subject_info_page"));
 }
