@@ -64,5 +64,5 @@ vpath core_mem_alloc.cc            $(GEN_CORE_DIR)
 vpath dump_alloc.cc                $(GEN_CORE_DIR)
 vpath platform_services.cc         $(GEN_CORE_DIR)/spec/x86
 vpath stack_area.cc                $(GEN_CORE_DIR)
-vpath core_printf.cc               $(BASE_DIR)/src/base/console
+vpath core_printf.cc               $(BASE_DIR)/src/lib/base
 vpath %.cc                         $(REP_DIR)/src/core

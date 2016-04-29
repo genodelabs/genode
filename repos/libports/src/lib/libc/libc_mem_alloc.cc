@@ -10,7 +10,7 @@
  * assumed to be page-aligned.
  *
  * The code is largely based on 'base/include/base/heap.h' and
- * 'base/src/base/heap/heap.cc'.
+ * 'base/src/lib/base/heap.cc'.
  */
 
 /* Genode includes */

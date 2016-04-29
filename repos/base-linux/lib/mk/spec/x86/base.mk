@@ -4,6 +4,6 @@
 # \date   2014-05-14
 #
 
-SRC_CC += cpu/cache.cc
+SRC_CC += cache.cc
 
 include $(REP_DIR)/lib/mk/base.mk

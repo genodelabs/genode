@@ -5,35 +5,8 @@
 # \date   2013-02-14
 #
 
-LIBS += cxx
+include $(BASE_DIR)/lib/mk/base-common.inc
 
-SRC_CC += ipc/ipc.cc
-SRC_CC += avl_tree/avl_tree.cc
-SRC_CC += allocator/slab.cc
-SRC_CC += allocator/allocator_avl.cc
-SRC_CC += heap/heap.cc
-SRC_CC += heap/sliced_heap.cc
-SRC_CC += child/child.cc
-SRC_CC += child/process.cc
-SRC_CC += elf/elf_binary.cc
-SRC_CC += console/console.cc
-SRC_CC += lock/lock.cc
-SRC_CC += server/server.cc
-SRC_CC += server/common.cc
-SRC_CC += signal/common.cc signal/signal.cc
-SRC_CC += thread/thread.cc
-SRC_CC += thread/myself.cc
-SRC_CC += thread/bootstrap.cc
-SRC_CC += thread/trace.cc
-SRC_CC += thread/stack_allocator.cc
+SRC_CC += rpc_dispatch_loop.cc
+SRC_CC += thread.cc thread_myself.cc thread_bootstrap.cc
 SRC_CC += kernel/interface.cc
-SRC_CC += sleep.cc
-SRC_CC += region_map_client.cc
-SRC_CC += rm_session_client.cc
-SRC_CC += entrypoint/entrypoint.cc
-SRC_CC += component/component.cc
-
-INC_DIR += $(REP_DIR)/src/include $(BASE_DIR)/src/include
-
-vpath %  $(REP_DIR)/src/base
-vpath % $(BASE_DIR)/src/base

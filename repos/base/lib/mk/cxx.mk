@@ -2,8 +2,8 @@ CXX_SRC_CC += misc.cc new_delete.cc malloc_free.cc exception.cc guard.cc
 # We need the libsupc++ include directory
 STDINC = yes
 
-vpath %.cc $(BASE_DIR)/src/base/cxx
-vpath %.c  $(BASE_DIR)/src/base/cxx
+vpath %.cc $(BASE_DIR)/src/lib/cxx
+vpath %.c  $(BASE_DIR)/src/lib/cxx
 
 #
 # Here we define all symbols we want to hide in libsupc++ and libgcc_eh

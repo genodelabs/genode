@@ -26,7 +26,8 @@ SRC_CC        = main.cc \
                 thread_linux.cc \
                 stack_area.cc \
                 core_printf.cc \
-                thread.cc myself.cc
+                env_reinit.cc \
+                thread.cc thread_myself.cc
 
 INC_DIR      += $(REP_DIR)/src/core/include \
                 $(GEN_CORE_DIR)/include \
@@ -48,8 +49,9 @@ vpath platform_services.cc        $(GEN_CORE_DIR)
 vpath signal_source_component.cc  $(GEN_CORE_DIR)
 vpath trace_session_component.cc  $(GEN_CORE_DIR)
 vpath core_rpc_cap_alloc.cc       $(GEN_CORE_DIR)
-vpath core_printf.cc              $(BASE_DIR)/src/base/console
-vpath thread.cc                   $(BASE_DIR)/src/base/thread
-vpath myself.cc                   $(BASE_DIR)/src/base/thread
-vpath trace.cc                    $(BASE_DIR)/src/base/thread
+vpath core_printf.cc              $(BASE_DIR)/src/lib/base
+vpath thread.cc                   $(BASE_DIR)/src/lib/base
+vpath thread_myself.cc            $(BASE_DIR)/src/lib/base
+vpath trace.cc                    $(BASE_DIR)/src/lib/base
+vpath env_reinit.cc               $(REP_DIR)/src/lib/base
 vpath %.cc                        $(PRG_DIR)

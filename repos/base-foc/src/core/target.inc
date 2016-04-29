@@ -65,6 +65,6 @@ vpath rom_session_component.cc    $(GEN_CORE_DIR)
 vpath trace_session_component.cc  $(GEN_CORE_DIR)
 vpath core_rpc_cap_alloc.cc       $(GEN_CORE_DIR)
 vpath core_region_map.cc          $(GEN_CORE_DIR)
-vpath core_printf.cc              $(BASE_DIR)/src/base/console
+vpath core_printf.cc              $(BASE_DIR)/src/lib/base
 vpath %.cc                        $(REP_DIR)/src/core
-vpath %.cc                        $(REP_DIR)/src/base/thread
+vpath %.cc                        $(REP_DIR)/src/lib/base

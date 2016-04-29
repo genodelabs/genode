@@ -401,13 +401,8 @@ class Genode::Platform_env_base : public Env_deprecated
 		Pd_session             *pd_session()      override { return &_local_pd_session; }
 		Pd_session_capability   pd_session_cap()  override { return  _pd_session_cap; }
 
-		/*
-		 * Support functions for implementing fork on Noux.
-		 *
-		 * Not supported on Linux.
-		 */
-		void reinit(Native_capability::Dst, long) override { }
-		void reinit_main_thread(Capability<Region_map> &) override { }
+		void reinit(Native_capability::Dst, long) override;
+		void reinit_main_thread(Capability<Region_map> &) override;
 };
 
 
