@@ -19,6 +19,7 @@
 
 /* base-internal includes */
 #include <base/internal/native_thread.h>
+#include <base/internal/globals.h>
 
 
 extern "C" int raw_write_str(const char *str);
@@ -109,6 +110,7 @@ void Genode::call_global_static_constructors() { }
 
 int main()
 {
+	Genode::init_log();
 	Genode::bootstrap_component();
 
 	/* never reached */

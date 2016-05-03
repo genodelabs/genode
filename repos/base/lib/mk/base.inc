@@ -1,4 +1,4 @@
-SRC_CC += log_console.cc
+SRC_CC += log_console.cc default_log.cc
 SRC_CC += env_deprecated.cc stack_area.cc env_reinit.cc
 SRC_CC += rpc_cap_alloc.cc
 

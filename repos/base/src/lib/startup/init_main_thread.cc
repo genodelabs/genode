@@ -19,7 +19,11 @@
 #include <base/printf.h>
 #include <base/thread.h>
 
+/* base-internal includes */
+#include <base/internal/globals.h>
+
 using namespace Genode;
+
 
 addr_t init_main_thread_result;
 
@@ -89,6 +93,7 @@ extern "C" void init_main_thread()
 	 * destructor won't be registered for the atexit routine.
 	 */
 	(void*)env();
+	init_log();
 
 	/* initialize exception handling */
 	init_exception_handling();

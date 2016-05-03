@@ -26,6 +26,7 @@ SRC_CC        = main.cc \
                 thread_linux.cc \
                 stack_area.cc \
                 core_printf.cc \
+                default_log.cc \
                 env_reinit.cc \
                 thread.cc thread_myself.cc
 
@@ -49,6 +50,7 @@ vpath platform_services.cc        $(GEN_CORE_DIR)
 vpath signal_source_component.cc  $(GEN_CORE_DIR)
 vpath trace_session_component.cc  $(GEN_CORE_DIR)
 vpath core_rpc_cap_alloc.cc       $(GEN_CORE_DIR)
+vpath default_log.cc              $(GEN_CORE_DIR)
 vpath core_printf.cc              $(BASE_DIR)/src/lib/base
 vpath thread.cc                   $(BASE_DIR)/src/lib/base
 vpath thread_myself.cc            $(BASE_DIR)/src/lib/base

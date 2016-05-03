@@ -12,6 +12,7 @@ SRC_CC += stack_area.cc \
           cpu_session_component.cc \
           cpu_session_support.cc \
           dataspace_component.cc \
+          default_log.cc \
           dump_alloc.cc \
           io_mem_session_component.cc \
           io_mem_session_support.cc \
@@ -60,6 +61,7 @@ vpath dataspace_component.cc      $(GEN_CORE_DIR)
 vpath core_mem_alloc.cc           $(GEN_CORE_DIR)
 vpath core_rpc_cap_alloc.cc       $(GEN_CORE_DIR)
 vpath dump_alloc.cc               $(GEN_CORE_DIR)
+vpath default_log.cc              $(GEN_CORE_DIR)
 vpath stack_area.cc               $(GEN_CORE_DIR)
 vpath pager_ep.cc                 $(GEN_CORE_DIR)
 vpath %.cc                        $(REP_DIR)/src/core

@@ -17,8 +17,12 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
 #include <base/console.h>
 #include <base/stdint.h>
+
+/* base-internal includes */
+#include <base/internal/output.h>
 
 using namespace Genode;
 
@@ -138,93 +142,6 @@ class Format_command
 };
 
 
-/**
- * Convert digit to ASCII value
- */
-static char ascii(int digit, int uppercase = 0)
-{
-	if (digit > 9)
-		return digit + (uppercase ? 'A' : 'a') - 10;
-
-	return digit + '0';
-}
-
-
-/**
- * Output signed value with the specified base
- */
-template <typename T>
-void Console::_out_signed(T value, unsigned base)
-{
-	/**
-	 * for base 8, the number of digits is the number of value bytes times 3
-	 * at a max, because 0xff is 0o377 and accumulating this implies a
-	 * strictly decreasing factor
-	 */
-	char buf[sizeof(value)*3];
-
-	/* set flag if value is negative */
-	int neg = value < 0 ? 1 : 0;
-
-	/* get absolute value */
-	value = value < 0 ? -value : value;
-
-	int i = 0;
-
-	/* handle zero as special case */
-	if (value == 0)
-		buf[i++] = ascii(0);
-
-	/* fill buffer starting with the least significant digits */
-	else
-		for (; value > 0; value /= base)
-			buf[i++] = ascii(value % base);
-
-	/* add sign to buffer for negative values */
-	if (neg)
-		_out_char('-');
-
-	/* output buffer in reverse order */
-	for (; i--; )
-		_out_char(buf[i]);
-}
-
-
-/**
- * Output unsigned value with the specified base and padding
- */
-template <typename T>
-void Console::_out_unsigned(T value, unsigned base, int pad)
-{
-	/**
-	 * for base 8, the number of digits is the number of value bytes times 3
-	 * at a max, because 0xff is 0o377 and accumulating this implies a
-	 * strictly decreasing factor
-	 */
-	char buf[sizeof(value)*3];
-
-	int i = 0;
-
-	/* handle zero as special case */
-	if (value == 0) {
-		buf[i++] = ascii(0);
-		pad--;
-	}
-
-	/* fill buffer starting with the least significant digits */
-	for (; value > 0; value /= base, pad--)
-		buf[i++] = ascii(value % base);
-
-	/* add padding zeros */
-	for (; pad-- > 0; )
-		_out_char(ascii(0));
-
-	/* output buffer in reverse order */
-	for (; i--; )
-		_out_char(buf[i]);
-}
-
-
 void Console::_out_string(const char *str)
 {
 	if (!str)
@@ -292,15 +209,18 @@ void Console::vprintf(const char *format, va_list list)
 			case Format_command::INT:
 
 				if (cmd.length == Format_command::LONG_LONG)
-					_out_signed<long long>(numeric_arg, cmd.base);
+					out_signed<long long>(numeric_arg, cmd.base,
+					                      [&] (char c) { _out_char(c); });
 				else
-					_out_signed<long>(numeric_arg, cmd.base);
+					out_signed<long>(numeric_arg, cmd.base,
+					                 [&] (char c) { _out_char(c); });
 				break;
 
 			case Format_command::UINT:
 
 				if (cmd.length == Format_command::LONG_LONG) {
-					_out_unsigned<unsigned long long>(numeric_arg, cmd.base, cmd.padding);
+					out_unsigned<unsigned long long>(numeric_arg, cmd.base, cmd.padding,
+					                                 [&] (char c) { _out_char(c); });
 					break;
 				}
 
@@ -308,7 +228,8 @@ void Console::vprintf(const char *format, va_list list)
 
 			case Format_command::PTR:
 
-				_out_unsigned<unsigned long>(numeric_arg, cmd.base, cmd.padding);
+				out_unsigned<unsigned long>(numeric_arg, cmd.base, cmd.padding,
+				                            [&] (char c) { _out_char(c); });
 				break;
 
 			case Format_command::CHAR:

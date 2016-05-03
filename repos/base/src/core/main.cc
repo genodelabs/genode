@@ -16,6 +16,7 @@
 #include <base/sleep.h>
 #include <base/service.h>
 #include <base/child.h>
+#include <base/log.h>
 #include <rm_session/connection.h>
 #include <pd_session/connection.h>
 #include <rom_session/connection.h>
@@ -225,7 +226,7 @@ int main()
 	 */
 	inhibit_tracing = true;
 
-	PINF("Genode %s", Genode::version_string);
+	log("Genode ", Genode::version_string);
 
 	PDBG("--- create local services ---");
 

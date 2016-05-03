@@ -26,6 +26,7 @@ namespace Genode {
 	extern Ram_session *env_stack_area_ram_session;
 
 	void init_signal_thread();
+	void init_log();
 }
 
 #endif /* _INCLUDE__BASE__INTERNAL__GLOBALS_H_ */
