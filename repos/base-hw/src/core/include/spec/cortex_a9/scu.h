@@ -66,6 +66,6 @@ class Genode::Scu : Genode::Mmio
 		void enable()
 		{
 			if (_board.errata(Board::ARM_764369)) write<Dcr::Bit_0>(1);
-			write<Cr>(Cr::Enable::bits(1));
+			write<Cr::Enable>(1);
 		}
 };
