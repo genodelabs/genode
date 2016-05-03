@@ -1192,6 +1192,8 @@ namespace {
 	ssize_t Plugin::write(Libc::File_descriptor *fd, const void *buf,
 	                      ::size_t count)
 	{
+		if (!buf) { errno = EFAULT; return -1; }
+
 		/* remember original len for the return value */
 		int const orig_count = count;
 
@@ -1229,6 +1231,8 @@ namespace {
 
 	ssize_t Plugin::read(Libc::File_descriptor *fd, void *buf, ::size_t count)
 	{
+		if (!buf) { errno = EFAULT; return -1; }
+
 		Genode::size_t sum_read_count = 0;
 
 		while (count > 0) {
@@ -2000,6 +2004,8 @@ namespace {
 
 	ssize_t Plugin::recv(Libc::File_descriptor *fd, void *buf, ::size_t len, int flags)
 	{
+		if (!buf) { errno = EFAULT; return -1; }
+
 		Genode::size_t sum_recv_count = 0;
 
 		while (len > 0) {
@@ -2041,6 +2047,8 @@ namespace {
 	ssize_t Plugin::recvfrom(Libc::File_descriptor *fd, void *buf, size_t len, int flags,
 	                         struct sockaddr *src_addr, socklen_t *addrlen)
 	{
+		if (!buf) { errno = EFAULT; return -1; }
+
 		Genode::size_t sum_recvfrom_count = 0;
 
 		while (len > 0) {
@@ -2090,6 +2098,8 @@ namespace {
 
 	ssize_t Plugin::send(Libc::File_descriptor *fd, const void *buf, ::size_t len, int flags)
 	{
+		if (!buf) { errno = EFAULT; return -1; }
+
 		/* remember original len for the return value */
 		int const orig_count = len;
 		char *src = (char *)buf;
@@ -2126,6 +2136,8 @@ namespace {
 	ssize_t Plugin::sendto(Libc::File_descriptor *fd, const void *buf, size_t len, int flags,
 			const struct sockaddr *dest_addr, socklen_t addrlen)
 	{
+		if (!buf) { errno = EFAULT; return -1; }
+
 		int const orig_count = len;
 
 		if (addrlen > sizeof (sysio()->sendto_in.dest_addr)) {
