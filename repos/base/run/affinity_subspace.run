@@ -21,9 +21,7 @@ install_config {
 			<service name="RM"/>
 			<service name="ROM"/>
 			<service name="RAM"/>
-			<service name="CAP"/>
 			<service name="PD"/>
-			<service name="SIGNAL"/>
 		</parent-provides>
 		<affinity-space width="2" />
 		<default-route>

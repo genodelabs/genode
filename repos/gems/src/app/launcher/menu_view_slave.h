@@ -53,7 +53,7 @@ class Launcher::Menu_view_slave
 				char const **_permitted_services() const
 				{
 					static char const *permitted_services[] = {
-						"ROM", "CAP", "LOG", "SIGNAL", "RM", "Timer", 0 };
+						"ROM", "LOG", "RM", "Timer", 0 };
 
 					return permitted_services;
 				};

@@ -1,9 +1,7 @@
 <config>
 	<parent-provides>
-		<service name="CAP"/>
 		<service name="LOG"/>
 		<service name="RM"/>
-		<service name="SIGNAL"/>
 
 		<!-- some timer implementations need kernel info pages -->
 		<service name="ROM"/>

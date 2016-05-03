@@ -151,7 +151,6 @@ Getting ready to start
 
 The server component won't help us much as long as we don't use it in a server
 application. Starting a service with Genode works as follows:
-* Open a CAP session to our parent, so that we are able to create capabilities.
 * Create and announce a root capability to our parent.
 * When a client requests our service, the parent invokes the root capability to
   create session objects and session capabilities. These are then used by the
@@ -254,7 +253,6 @@ entry to init's 'config' file, which is located at 'build/bin/config'.
 
 ! <config>
 !   <parent-provides>
-!     <service name="CAP"/>
 !     <service name="LOG"/>
 !     <service name="RM"/>
 !   </parent-provides>
@@ -406,10 +404,6 @@ Add a 'target.mk' file with the following content to 'src/hello/client/':
 ! LIBS   = base
 
 Extend your 'config' file as follows.
-
-# Add the 'SIGNAL' service to the '<parent-provides>' section:
-
-  ! <service name="SIGNAL"/>
 
 # Add start entries for 'Timer' service and hello client:
 

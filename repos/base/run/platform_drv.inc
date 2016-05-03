@@ -85,8 +85,6 @@ proc append_platform_drv_config {} {
 		</config>
 		<route>
 			<service name="LOG"> <parent/> </service>
-			<service name="SIGNAL"> <parent/> </service>
-			<service name="CAP"> <parent/> </service>
 			<service name="RM"> <parent/> </service>
 		</route>
 	</start>}

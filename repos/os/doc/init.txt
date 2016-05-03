@@ -39,36 +39,27 @@ illustrated by an example (the following config file can be used on Linux):
 
 ! <config>
 !   <parent-provides>
-!     <service name="CAP"/>
 !     <service name="LOG"/>
-!     <service name="SIGNAL"/>
 !   </parent-provides>
 !   <start name="timer">
 !     <resource name="RAM" quantum="1M"/>
 !     <provides> <service name="Timer"/> </provides>
-!     <route>
-!       <service name="CAP">    <parent/> </service>
-!       <service name="SIGNAL"> <parent/> </service>
-!     </route>
 !   </start>
 !   <start name="test-timer">
 !     <resource name="RAM" quantum="1M"/>
 !     <route>
-!       <service name="Timer">  <child name="timer"/> </service>
-!       <service name="LOG">    <parent/>             </service>
-!       <service name="SIGNAL"> <parent/>             </service>
+!       <service name="Timer"> <child name="timer"/> </service>
+!       <service name="LOG">   <parent/>             </service>
 !     </route>
 !   </start>
 ! </config>
 
 First, there is the declaration of services provided by the parent of the
 configured init instance. In this case, we declare that the parent provides a
-CAP service and a LOG service. For each child to start, there is a '<start>'
+LOG service. For each child to start, there is a '<start>'
 node describing resource assignments, declaring services provided by the child,
 and holding a routing table for session requests originating from the child.
-The first child is called "timer" and implements the "Timer" service. To
-implement this service, the timer requires a CAP session. In the routing table,
-we define that a CAP session request gets delegated to init's parent. The
+The first child is called "timer" and implements the "Timer" service. The
 second process called "test-timer" is a client of the timer service. In its
 routing table, we see that requests for "Timer" sessions should be routed to
 the "timer" child whereas requests for "LOG" sessions should be delegated to
@@ -96,7 +87,6 @@ of specifying
 !   <service name="RM">     <parent/> </service>
 !   <service name="PD">     <parent/> </service>
 !   <service name="CPU">    <parent/> </service>
-!   <service name="SIGNAL"> <parent/> </service>
 ! </route>
 the following shortcut can be used:
 ! <route>
@@ -189,22 +179,16 @@ service routing facility, the "Timer" session of the second-level 'timer-test'
 child is routed to the timer service started at the first-level init instance.
 ! <config>
 !   <parent-provides>
-!     <service name="CAP"/>
 !     <service name="LOG"/>
 !     <service name="ROM"/>
 !     <service name="RAM"/>
 !     <service name="CPU"/>
 !     <service name="RM"/>
 !     <service name="PD"/>
-!     <service name="SIGNAL"/>
 !   </parent-provides>
 !   <start name="timer">
 !     <resource name="RAM" quantum="1M"/>
 !     <provides><service name="Timer"/></provides>
-!     <route>
-!       <service name="CAP">    <parent/> </service>
-!       <service name="SIGNAL"> <parent/> </service>
-!     </route>
 !   </start>
 !   <start name="init">
 !     <resource name="RAM" quantum="1M"/>
@@ -212,14 +196,12 @@ child is routed to the timer service started at the first-level init instance.
 !       <parent-provides>
 !         <service name="Timer"/>
 !         <service name="LOG"/>
-!         <service name="SIGNAL"/>
 !       </parent-provides>
 !       <start name="test-timer">
 !         <resource name="RAM" quantum="1M"/>
 !         <route>
 !           <service name="Timer">  <parent/> </service>
 !           <service name="LOG">    <parent/> </service>
-!           <service name="SIGNAL"> <parent/> </service>
 !         </route>
 !       </start>
 !     </config>
@@ -228,11 +210,9 @@ child is routed to the timer service started at the first-level init instance.
 !       <service name="LOG">    <parent/>             </service>
 !       <service name="ROM">    <parent/>             </service>
 !       <service name="RAM">    <parent/>             </service>
-!       <service name="CAP">    <parent/>             </service>
 !       <service name="CPU">    <parent/>             </service>
 !       <service name="RM">     <parent/>             </service>
 !       <service name="PD">     <parent/>             </service>
-!       <service name="SIGNAL"> <parent/>             </service>
 !     </route>
 !   </start>
 ! </config>

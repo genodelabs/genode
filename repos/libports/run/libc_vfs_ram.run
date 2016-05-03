@@ -24,12 +24,10 @@ set config {
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="RAM"/>
-		<service name="CAP"/>
 		<service name="PD"/>
 		<service name="RM"/>
 		<service name="CPU"/>
 		<service name="LOG"/>
-		<service name="SIGNAL"/>
 	</parent-provides>
 	<start name="test-libc_vfs">
 		<resource name="RAM" quantum="12M"/>

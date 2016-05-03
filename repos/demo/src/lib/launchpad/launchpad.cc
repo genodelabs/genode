@@ -42,8 +42,7 @@ Launchpad::Launchpad(unsigned long initial_quota)
 	static const char *names[] = {
 
 		/* core services */
-		"CAP", "RAM", "RM", "PD", "CPU", "IO_MEM", "IO_PORT",
-		"IRQ", "ROM", "LOG", "SIGNAL",
+		"RAM", "RM", "PD", "CPU", "IO_MEM", "IO_PORT", "IRQ", "ROM", "LOG",
 
 		/* services expected to got started by init */
 		"Nitpicker", "Init", "Timer", "PCI", "Block", "Nic", "Rtc",

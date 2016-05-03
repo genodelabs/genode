@@ -41,7 +41,7 @@ class Launcher::Nit_fader_slave
 				char const **_permitted_services() const
 				{
 					static char const *permitted_services[] = {
-						"CAP", "LOG", "SIGNAL", "RM", "Timer", 0 };
+						"LOG", "RM", "Timer", 0 };
 
 					return permitted_services;
 				};

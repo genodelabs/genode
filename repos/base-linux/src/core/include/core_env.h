@@ -163,8 +163,6 @@ namespace Genode {
 			Heap                         _heap;
 			Ram_session_capability const _ram_session_cap;
 
-			enum { SIGNAL_RAM_QUOTA = 1024*sizeof(long) };
-
 		public:
 
 			/**

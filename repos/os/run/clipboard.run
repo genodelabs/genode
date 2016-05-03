@@ -25,8 +25,6 @@ append config {
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
-		<service name="CAP"/>
-		<service name="SIGNAL"/>
 	</parent-provides>
 
 	<default-route>

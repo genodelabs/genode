@@ -28,13 +28,11 @@ set config {
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="RM"/>
-		<service name="CAP"/>
 		<service name="LOG"/>
 		<service name="IO_PORT"/>
 		<service name="IO_MEM"/>
 		<service name="IRQ"/>
 		<service name="CPU"/>
-		<service name="SIGNAL"/>
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>

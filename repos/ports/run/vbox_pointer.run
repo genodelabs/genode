@@ -34,12 +34,10 @@ set config {
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
-		<service name="CAP"/>
 		<service name="PD"/>
 		<service name="RM"/>
 		<service name="CPU"/>
 		<service name="LOG"/>
-		<service name="SIGNAL"/>
 	</parent-provides>
 
 	<start name="timer">
@@ -48,8 +46,6 @@ set config {
 		<route>
 			<service name="RM">     <parent/> </service>
 			<service name="LOG">    <parent/> </service>
-			<service name="SIGNAL"> <parent/> </service>
-			<service name="CAP">    <parent/> </service>
 			<service name="ROM">    <parent/> </service>
 		</route>
 	</start>
@@ -64,8 +60,6 @@ set config {
 		<route>
 			<service name="RM">      <parent/>                </service>
 			<service name="LOG">     <parent/>                </service>
-			<service name="SIGNAL">  <parent/>                </service>
-			<service name="CAP">     <parent/>                </service>
 			<service name="Timer">   <child name="timer"/>    </service>
 		</route>
 	</start>
@@ -86,8 +80,6 @@ set config {
 		<route>
 			<service name="RM">     <parent/> </service>
 			<service name="LOG">    <parent/> </service>
-			<service name="SIGNAL"> <parent/> </service>
-			<service name="CAP">    <parent/> </service>
 		</route>
 	</start>
 	<start name="nitpicker">
@@ -108,8 +100,6 @@ set config {
 		<route>
 			<service name="RM">          <parent/>                        </service>
 			<service name="LOG">         <parent/>                        </service>
-			<service name="SIGNAL">      <parent/>                        </service>
-			<service name="CAP">         <parent/>                        </service>
 			<service name="Timer">       <child name="timer"/>            </service>
 			<service name="Framebuffer"> <child name="fb_drv"/>           </service>
 			<service name="Input">       <child name="input_drv"/>        </service>
@@ -132,8 +122,6 @@ set config {
 		<route>
 			<service name="RM">     <parent/> </service>
 			<service name="LOG">    <parent/> </service>
-			<service name="SIGNAL"> <parent/> </service>
-			<service name="CAP">    <parent/> </service>
 		</route>
 	</start>
 	<start name="shape-arrow">
@@ -142,7 +130,6 @@ set config {
 		<config shape="arrow"/>
 		<route>
 			<service name="LOG">    <parent/> </service>
-			<service name="SIGNAL"> <parent/> </service>
 			<service name="Report"> <child name="report_rom_shapes"/> </service>
 		</route>
 	</start>
@@ -152,7 +139,6 @@ set config {
 		<config shape="blade"/>
 		<route>
 			<service name="LOG">    <parent/> </service>
-			<service name="SIGNAL"> <parent/> </service>
 			<service name="Report"> <child name="report_rom_shapes"/> </service>
 		</route>
 	</start>
@@ -162,7 +148,6 @@ set config {
 		<config shape="bladex"/>
 		<route>
 			<service name="LOG">    <parent/> </service>
-			<service name="SIGNAL"> <parent/> </service>
 			<service name="Report"> <child name="report_rom_shapes"/> </service>
 		</route>
 	</start>
@@ -185,8 +170,6 @@ set config {
 		<route>
 			<service name="RM">     <parent/> </service>
 			<service name="LOG">    <parent/> </service>
-			<service name="SIGNAL"> <parent/> </service>
-			<service name="CAP">    <parent/> </service>
 			<service name="Timer">     <child name="timer"/>     </service>
 		</route>
 	</start>
@@ -196,7 +179,6 @@ set config {
 		<configfile name="smiley.config"/>
 		<route>
 			<service name="LOG">    <parent/> </service>
-			<service name="SIGNAL"> <parent/> </service>
 			<service name="ROM">    <if-args key="label" value="smiley.config"/>
 			                        <child name="shape-smiley-config"/> </service>
 			<service name="Report"> <child name="report_rom_shapes"/> </service>
@@ -215,7 +197,6 @@ set config {
 		<route>
 			<service name="RM">        <parent/>                            </service>
 			<service name="LOG">       <parent/>                            </service>
-			<service name="SIGNAL">    <parent/>                            </service>
 			<service name="Nitpicker"> <child name="nitpicker"/>            </service>
 			<service name="ROM">       <if-arg key="label" value="xray"/>
 			                           <child name="report_rom_nitpicker"/> </service>
@@ -231,8 +212,6 @@ set config {
 		<route>
 			<service name="RM">        <parent/>                 </service>
 			<service name="LOG">       <parent/>                 </service>
-			<service name="SIGNAL">    <parent/>                 </service>
-			<service name="CAP">       <parent/>                 </service>
 			<service name="PD">        <parent/>                 </service>
 			<service name="CPU">       <parent/>                 </service>
 			<service name="RAM">       <parent/>                 </service>
@@ -246,8 +225,6 @@ set config {
 		<route>
 			<service name="RM">        <parent/>                 </service>
 			<service name="LOG">       <parent/>                 </service>
-			<service name="SIGNAL">    <parent/>                 </service>
-			<service name="CAP">       <parent/>                 </service>
 			<service name="PD">        <parent/>                 </service>
 			<service name="CPU">       <parent/>                 </service>
 			<service name="RAM">       <parent/>                 </service>
@@ -261,8 +238,6 @@ set config {
 		<route>
 			<service name="RM">        <parent/>                 </service>
 			<service name="LOG">       <parent/>                 </service>
-			<service name="SIGNAL">    <parent/>                 </service>
-			<service name="CAP">       <parent/>                 </service>
 			<service name="PD">        <parent/>                 </service>
 			<service name="CPU">       <parent/>                 </service>
 			<service name="RAM">       <parent/>                 </service>
@@ -276,8 +251,6 @@ set config {
 		<route>
 			<service name="RM">        <parent/>                 </service>
 			<service name="LOG">       <parent/>                 </service>
-			<service name="SIGNAL">    <parent/>                 </service>
-			<service name="CAP">       <parent/>                 </service>
 			<service name="PD">        <parent/>                 </service>
 			<service name="CPU">       <parent/>                 </service>
 			<service name="RAM">       <parent/>                 </service>
@@ -291,9 +264,6 @@ set config {
 		<route>
 			<service name="RM">        <parent/>                 </service>
 			<service name="LOG">       <parent/>                 </service>
-			<service name="SIGNAL">    <parent/>                 </service>
-			<service name="CAP">       <parent/>                 </service>
-			<service name="PD">        <parent/>                 </service>
 			<service name="CPU">       <parent/>                 </service>
 			<service name="RAM">       <parent/>                 </service>
 			<service name="Timer">     <child name="timer"/>     </service>
@@ -306,8 +276,6 @@ set config {
 		<route>
 			<service name="RM">        <parent/>                 </service>
 			<service name="LOG">       <parent/>                 </service>
-			<service name="SIGNAL">    <parent/>                 </service>
-			<service name="CAP">       <parent/>                 </service>
 			<service name="PD">        <parent/>                 </service>
 			<service name="CPU">       <parent/>                 </service>
 			<service name="RAM">       <parent/>                 </service>

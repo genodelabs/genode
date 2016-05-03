@@ -13,12 +13,10 @@ install_config {
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="RAM"/>
-		<service name="CAP"/>
 		<service name="PD"/>
 		<service name="RM"/>
 		<service name="CPU"/>
 		<service name="LOG"/>
-		<service name="SIGNAL"/>
 	</parent-provides>
 	<default-route>
 		<any-service>  <any-child/> <parent/></any-service>

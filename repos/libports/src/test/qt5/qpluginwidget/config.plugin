@@ -2,7 +2,6 @@
 	<parent-provides>
 		<service name="LOG"/>
 		<service name="RM"/>
-		<service name="SIGNAL"/>
 		<service name="Timer"/>
 		<service name="Nitpicker"/>
 	</parent-provides>
