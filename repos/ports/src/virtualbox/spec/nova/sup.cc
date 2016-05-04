@@ -216,6 +216,9 @@ void genode_update_tsc(void (*update_func)(void), unsigned long update_us)
 }
 
 
+HRESULT genode_setup_machine(ComObjPtr<Machine> machine) { return S_OK; }
+
+
 bool Vmm_memory::revoke_from_vm(Mem_region *r)
 {
 	Assert(r);

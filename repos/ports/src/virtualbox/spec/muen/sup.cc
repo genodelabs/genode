@@ -747,6 +747,25 @@ uint64_t genode_cpu_hz()
 }
 
 
+HRESULT genode_setup_machine(ComObjPtr<Machine> machine)
+{
+	HRESULT rc;
+	ULONG cCpus;
+	rc = machine->COMGETTER(CPUCount)(&cCpus);
+	if (FAILED(rc))
+		return rc;
+
+	if (cCpus != 1) {
+		PWRN("Configured CPUs %u not supported, reducing to 1.", cCpus);
+		rc = machine->COMSETTER(CPUCount)(1);
+		if (FAILED(rc))
+			return rc;
+	}
+
+	return S_OK;
+}
+
+
 /**
  * Dummies and unimplemented stuff.
  */
