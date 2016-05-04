@@ -19,6 +19,6 @@
 using namespace Genode;
 
 
-void Thread_base::_init_platform_thread(size_t, Type type)
+void Thread::_init_platform_thread(size_t, Type type)
 {
 }

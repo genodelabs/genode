@@ -431,7 +431,7 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
 	 * Block infinitely if called from the main thread. This may happen if the
 	 * main thread calls 'sleep_forever()'.
 	 */
-	if (!Thread_base::myself()) {
+	if (!Thread::myself()) {
 		struct timespec ts = { 1000, 0 };
 		for (;;) lx_nanosleep(&ts, 0);
 	}
@@ -443,7 +443,7 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
 
 		msg.accept_sockets(Message::MAX_SDS_PER_MSG);
 
-		Native_thread &native_thread = Thread_base::myself()->native_thread();
+		Native_thread &native_thread = Thread::myself()->native_thread();
 
 		request_msg.reset();
 		int const ret = lx_recvmsg(native_thread.socket_pair.server_sd, msg.msg(), 0);
@@ -479,10 +479,10 @@ Ipc_server::Ipc_server()
 	 * definition, main is never an RPC entrypoint. However, the main thread
 	 * may call 'sleep_forever()', which instantiates 'Ipc_server'.
 	 */
-	if (!Thread_base::myself())
+	if (!Thread::myself())
 		return;
 
-	Native_thread &native_thread = Thread_base::myself()->native_thread();
+	Native_thread &native_thread = Thread::myself()->native_thread();
 
 	if (native_thread.is_ipc_server) {
 		PRAW("[%d] unexpected multiple instantiation of Ipc_server by one thread",
@@ -504,14 +504,14 @@ Ipc_server::Ipc_server()
 
 Ipc_server::~Ipc_server()
 {
-	if (!Thread_base::myself())
+	if (!Thread::myself())
 		return;
 
 	/*
 	 * Reset thread role to non-server such that we can enter 'sleep_forever'
 	 * without getting a warning.
 	 */
-	Native_thread &native_thread = Thread_base::myself()->native_thread();
+	Native_thread &native_thread = Thread::myself()->native_thread();
 
 	Genode::ep_sd_registry()->disassociate(native_thread.socket_pair.client_sd);
 	native_thread.is_ipc_server = false;

@@ -48,7 +48,7 @@ void Pager_entrypoint::entry()
 		if (Kernel::await_signal(_cap.dst())) continue;
 
 		Untyped_capability cap =
-			(*(Pager_object**)Thread_base::myself()->utcb()->data())->cap();
+			(*(Pager_object**)Thread::myself()->utcb()->data())->cap();
 
 		/*
 		 * Synchronize access and ensure that the object is still managed

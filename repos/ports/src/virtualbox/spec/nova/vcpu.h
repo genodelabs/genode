@@ -154,7 +154,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 
 		__attribute__((noreturn)) void _default_handler()
 		{
-			Nova::Utcb * utcb = reinterpret_cast<Nova::Utcb *>(Thread_base::utcb());
+			Nova::Utcb * utcb = reinterpret_cast<Nova::Utcb *>(Thread::utcb());
 
 			Assert(utcb->actv_state == ACTIVITY_STATE_ACTIVE);
 			Assert(!(utcb->inj_info & IRQ_INJ_VALID_MASK));
@@ -165,7 +165,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 
 		__attribute__((noreturn)) void _recall_handler()
 		{
-			Nova::Utcb * utcb = reinterpret_cast<Nova::Utcb *>(Thread_base::utcb());
+			Nova::Utcb * utcb = reinterpret_cast<Nova::Utcb *>(Thread::utcb());
 
 			Assert(utcb->actv_state == ACTIVITY_STATE_ACTIVE);
 
@@ -218,7 +218,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 
 		template <unsigned NPT_EPT>
 		__attribute__((noreturn)) inline
-		void _exc_memory(Genode::Thread_base * myself, Nova::Utcb * utcb,
+		void _exc_memory(Genode::Thread * myself, Nova::Utcb * utcb,
 		                 bool unmap, Genode::addr_t reason)
 		{
 			using namespace Nova;
@@ -548,7 +548,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 
 		__attribute__((noreturn)) void _irq_window()
 		{
-			Nova::Utcb * utcb = reinterpret_cast<Nova::Utcb *>(Thread_base::utcb());
+			Nova::Utcb * utcb = reinterpret_cast<Nova::Utcb *>(Thread::utcb());
 
 			PVMCPU   pVCpu = _current_vcpu;
 
@@ -836,9 +836,9 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 			PVMCPU   pVCpu = &pVM->aCpus[_cpu_id];
 			PCPUMCTX pCtx  = CPUMQueryGuestCtxPtr(pVCpu);
 
-			Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(Thread_base::utcb());
+			Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(Thread::utcb());
 
-			Assert(Thread_base::utcb() == Thread_base::myself()->utcb());
+			Assert(Thread::utcb() == Thread::myself()->utcb());
 
 			/* take the utcb state prepared during the last exit */
 			utcb->mtd        = next_utcb.mtd;

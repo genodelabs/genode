@@ -67,9 +67,9 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 		{
 			using namespace Genode;
 
-			enum { WEIGHT = Cpu_session::DEFAULT_WEIGHT };
 			Thread_capability vcpu_vm =
-				_cpu_session->create_thread(_pd_session, WEIGHT, "vCPU", _location);
+				_cpu_session->create_thread(_pd_session, "vCPU",
+				                            _location, Cpu_session::Weight());
 
 			/* tell parent that this will be a vCPU */
 			Thread_state state;
@@ -104,16 +104,16 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 };
 
 
-class Vmm::Vcpu_same_pd : public Vmm::Vcpu_thread, Genode::Thread_base
+class Vmm::Vcpu_same_pd : public Vmm::Vcpu_thread, Genode::Thread
 {
-	enum { WEIGHT = Genode::Cpu_session::DEFAULT_WEIGHT };
+	enum { WEIGHT = Genode::Cpu_session::Weight::DEFAULT_WEIGHT };
 
 	public:
 
 		Vcpu_same_pd(size_t stack_size, Cpu_session * cpu_session,
 		             Genode::Affinity::Location location)
 		:
-			Thread_base(WEIGHT, "vCPU", stack_size, Type::NORMAL, cpu_session, location)
+			Thread(WEIGHT, "vCPU", stack_size, Type::NORMAL, cpu_session, location)
 		{
 			/* release pre-allocated selectors of Thread */
 			Genode::cap_map()->remove(native_thread().exc_pt_sel, Nova::NUM_INITIAL_PT_LOG2);
@@ -140,7 +140,7 @@ class Vmm::Vcpu_same_pd : public Vmm::Vcpu_thread, Genode::Thread_base
 
 		void start(Genode::addr_t sel_ec)
 		{
-			this->Thread_base::start();
+			this->Thread::start();
 
 			/* obtain interface to NOVA-specific CPU session operations */
 			Nova_native_cpu_client native_cpu(_cpu_session->native_cpu());

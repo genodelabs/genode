@@ -128,7 +128,7 @@ namespace {
 	};
 
 
-	class Signal_thread : public Genode::Thread<8192>
+	class Signal_thread : public Genode::Thread_deprecated<8192>
 	{
 		private:
 
@@ -167,13 +167,13 @@ namespace {
 		public:
 
 			Signal_thread(Block_device **devs)
-			: Genode::Thread<8192>("blk-signal-thread"),
+			: Genode::Thread_deprecated<8192>("blk-signal-thread"),
 			  _count(Fiasco::genode_block_count()), _devs(devs),
 			  _ready_lock(Genode::Lock::LOCKED) {}
 
 			void start()
 			{
-				Genode::Thread_base::start();
+				Genode::Thread::start();
 
 				/*
 				 * Do not return until the new thread has initialized the

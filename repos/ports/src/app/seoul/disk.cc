@@ -66,7 +66,7 @@ Vancouver_disk::Vancouver_disk(Synced_motherboard &mb,
                                char         * backing_store_base,
                                Genode::size_t backing_store_size)
 :
-	Thread("vmm_disk"),
+	Thread_deprecated("vmm_disk"),
 	_motherboard(mb),
 	_backing_store_base(backing_store_base),
 	_backing_store_size(backing_store_size),

@@ -38,7 +38,7 @@ class Vcpu_handler_vmx : public Vcpu_handler
 			using namespace Nova;
 			using namespace Genode;
 
-			Thread_base *myself = Thread_base::myself();
+			Thread *myself = Thread::myself();
 			Utcb *utcb = reinterpret_cast<Utcb *>(myself->utcb());
 
 			_exc_memory<X>(myself, utcb, utcb->qual[0] & 0x38,
@@ -51,7 +51,7 @@ class Vcpu_handler_vmx : public Vcpu_handler
 		{
 			using namespace Nova;
 
-			Genode::Thread_base *myself = Genode::Thread_base::myself();
+			Genode::Thread *myself = Genode::Thread::myself();
 			Utcb *utcb = reinterpret_cast<Utcb *>(myself->utcb());
 
 			/* configure VM exits to get */
@@ -104,7 +104,7 @@ class Vcpu_handler_vmx : public Vcpu_handler
 
 		__attribute__((noreturn)) void _vmx_invalid()
 		{
-			Genode::Thread_base *myself = Genode::Thread_base::myself();
+			Genode::Thread *myself = Genode::Thread::myself();
 			Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(myself->utcb());
 
 			unsigned const dubious = utcb->inj_info |
@@ -132,7 +132,7 @@ class Vcpu_handler_vmx : public Vcpu_handler
 			unsigned long value;
 			void *stack_reply = reinterpret_cast<void *>(&value - 1);
 
-			Genode::Thread_base *myself = Genode::Thread_base::myself();
+			Genode::Thread *myself = Genode::Thread::myself();
 			Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(myself->utcb());
 
 			unsigned int cr = utcb->qual[0] & 0xf;

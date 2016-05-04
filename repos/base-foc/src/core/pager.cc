@@ -151,7 +151,7 @@ Pager_capability Pager_entrypoint::manage(Pager_object *obj)
 {
 	using namespace Fiasco;
 
-	Native_capability cap(_cap_factory.alloc(Thread_base::_thread_cap));
+	Native_capability cap(_cap_factory.alloc(Thread::_thread_cap));
 
 	/* add server object to object pool */
 	obj->cap(cap);

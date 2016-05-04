@@ -25,16 +25,16 @@
 using namespace Genode;
 
 
-void Thread_base::_thread_start()
+void Thread::_thread_start()
 {
-	Thread_base::myself()->_thread_bootstrap();
-	Thread_base::myself()->entry();
-	Thread_base::myself()->_join_lock.unlock();
+	Thread::myself()->_thread_bootstrap();
+	Thread::myself()->entry();
+	Thread::myself()->_join_lock.unlock();
 	sleep_forever();
 }
 
 
-void Thread_base::start()
+void Thread::start()
 {
 	/* create and start platform thread */
 	native_thread().pt = new(platform()->core_mem_alloc())
@@ -49,7 +49,7 @@ void Thread_base::start()
 }
 
 
-void Thread_base::cancel_blocking()
+void Thread::cancel_blocking()
 {
 	/*
 	 * Within core, we never need to unblock threads
@@ -57,7 +57,7 @@ void Thread_base::cancel_blocking()
 }
 
 
-void Thread_base::_deinit_platform_thread()
+void Thread::_deinit_platform_thread()
 {
 	/* destruct platform thread */
 	destroy(platform()->core_mem_alloc(), native_thread().pt);

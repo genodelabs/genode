@@ -88,7 +88,7 @@ static bool check_read_only()
 }
 
 
-class File_system::Sync : public Genode::Thread<1024 * sizeof(Genode::addr_t)>
+class File_system::Sync : public Genode::Thread_deprecated<1024 * sizeof(Genode::addr_t)>
 {
 	private:
 
@@ -118,7 +118,7 @@ class File_system::Sync : public Genode::Thread<1024 * sizeof(Genode::addr_t)>
 
 		Sync(Server::Entrypoint &ep)
 		:
-			Thread("rump_fs_sync"),
+			Thread_deprecated("rump_fs_sync"),
 			_sync_dispatcher(ep, *this, &Sync::_process_sync)
 		{
 				start(); 

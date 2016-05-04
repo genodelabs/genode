@@ -21,11 +21,12 @@ namespace Genode {
 
 	class Region_map;
 	class Ram_session;
+	class Env;
 
 	extern Region_map  *env_stack_area_region_map;
 	extern Ram_session *env_stack_area_ram_session;
 
-	void init_signal_thread();
+	void init_signal_thread(Env &);
 	void init_log();
 }
 

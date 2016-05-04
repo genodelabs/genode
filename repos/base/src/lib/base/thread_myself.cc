@@ -19,7 +19,7 @@
 #include <base/internal/stack_area.h>
 
 
-Genode::Thread_base *Genode::Thread_base::myself()
+Genode::Thread *Genode::Thread::myself()
 {
 	int dummy = 0; /* used for determining the stack pointer */
 

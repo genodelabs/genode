@@ -160,7 +160,7 @@ namespace Genode {
 
 	Socket_pair server_socket_pair()
 	{
-		return create_server_socket_pair(Thread_base::myself()->native_thread().tid);
+		return create_server_socket_pair(Thread::myself()->native_thread().tid);
 	}
 
 	void destroy_server_socket_pair(Socket_pair socket_pair)

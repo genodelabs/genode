@@ -59,7 +59,7 @@ class Genode::Stack_allocator
 		 * \return  virtual address of new stack, or
 		 *          0 if the allocation failed
 		 */
-		Stack *alloc(Thread_base *thread, bool main_thread);
+		Stack *alloc(Thread *thread, bool main_thread);
 
 		/**
 		 * Release stack

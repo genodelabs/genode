@@ -33,7 +33,7 @@ inline void request_event_portal(Genode::Native_capability const &cap,
                                  Genode::addr_t sel, Genode::addr_t event,
                                  unsigned short log2_count = 0)
 {
-	Genode::Thread_base * myself = Genode::Thread_base::myself();
+	Genode::Thread * myself = Genode::Thread::myself();
 	Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(myself->utcb());
 
 	/* save original receive window */
@@ -73,7 +73,7 @@ inline void request_signal_sm_cap(Genode::Native_capability const &cap,
 inline void delegate_vcpu_portals(Genode::Native_capability const &cap,
                                   Genode::addr_t const sel)
 {
-	Genode::Thread_base * myself = Genode::Thread_base::myself();
+	Genode::Thread * myself = Genode::Thread::myself();
 	Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(myself->utcb());
 
 	/* save original receive window */

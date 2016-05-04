@@ -74,7 +74,7 @@ void Pager_object::_page_fault_handler(addr_t pager_obj)
 	Ipc_pager ipc_pager;
 	ipc_pager.wait_for_fault();
 
-	Thread_base  * myself = Thread_base::myself();
+	Thread       * myself = Thread::myself();
 	Pager_object *    obj = reinterpret_cast<Pager_object *>(pager_obj);
 	Utcb         *   utcb = reinterpret_cast<Utcb *>(myself->utcb());
 	Pager_activation_base * pager_thread = static_cast<Pager_activation_base *>(myself);
@@ -130,7 +130,7 @@ void Pager_object::_page_fault_handler(addr_t pager_obj)
 
 void Pager_object::exception(uint8_t exit_id)
 {
-	Thread_base  *myself = Thread_base::myself();
+	Thread       *myself = Thread::myself();
 	Utcb         *  utcb = reinterpret_cast<Utcb *>(myself->utcb());
 	Pager_activation_base * pager_thread = static_cast<Pager_activation_base *>(myself);
 
@@ -187,7 +187,7 @@ void Pager_object::exception(uint8_t exit_id)
 
 void Pager_object::_recall_handler(addr_t pager_obj)
 {
-	Thread_base  * myself = Thread_base::myself();
+	Thread       * myself = Thread::myself();
 	Pager_object *    obj = reinterpret_cast<Pager_object *>(pager_obj);
 	Utcb         *   utcb = reinterpret_cast<Utcb *>(myself->utcb());
 
@@ -234,7 +234,7 @@ void Pager_object::_recall_handler(addr_t pager_obj)
 
 void Pager_object::_startup_handler(addr_t pager_obj)
 {
-	Thread_base  *myself = Thread_base::myself();
+	Thread       *myself = Thread::myself();
 	Pager_object *   obj = reinterpret_cast<Pager_object *>(pager_obj);
 	Utcb         *  utcb = reinterpret_cast<Utcb *>(myself->utcb());
 
@@ -250,7 +250,7 @@ void Pager_object::_startup_handler(addr_t pager_obj)
 
 void Pager_object::_invoke_handler(addr_t pager_obj)
 {
-	Thread_base  *myself = Thread_base::myself();
+	Thread       *myself = Thread::myself();
 	Pager_object *   obj = reinterpret_cast<Pager_object *>(pager_obj);
 	Utcb         *  utcb = reinterpret_cast<Utcb *>(myself->utcb());
 
@@ -406,7 +406,7 @@ void Pager_object::cleanup_call()
 	/* revoke all portals handling the client. */
 	revoke(Obj_crd(exc_pt_sel_client(), NUM_INITIAL_PT_LOG2));
 
-	Utcb *utcb = reinterpret_cast<Utcb *>(Thread_base::myself()->utcb());
+	Utcb *utcb = reinterpret_cast<Utcb *>(Thread::myself()->utcb());
 	utcb->set_msg_word(0);
 	utcb->mtd = 0;
 	if (uint8_t res = call(sel_pt_cleanup()))
@@ -694,7 +694,7 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 		asm volatile ("" : "=S" (reason));
 	}
 
-	Thread_base  * myself  = Thread_base::myself();
+	Thread       * myself  = Thread::myself();
 	Utcb         * utcb    = reinterpret_cast<Utcb *>(myself->utcb());
 	Pager_object * obj_dst = reinterpret_cast<Pager_object *>(pager_dst);
 	Pager_object * obj_src = reinterpret_cast<Pager_object *>(pager_src);
@@ -822,14 +822,14 @@ addr_t Pager_object::get_oom_portal()
 
 Pager_activation_base::Pager_activation_base(const char *name, size_t stack_size)
 :
-	Thread_base(Cpu_session::DEFAULT_WEIGHT, name, stack_size,
-	            Affinity::Location(which_cpu(this), 0)),
+	Thread(Cpu_session::Weight::DEFAULT_WEIGHT, name, stack_size,
+	       Affinity::Location(which_cpu(this), 0)),
 	_cap(Native_capability()), _ep(0), _cap_valid(Lock::LOCKED)
 {
 	/* creates local EC */
-	Thread_base::start();
+	Thread::start();
 
-	reinterpret_cast<Nova::Utcb *>(Thread_base::utcb())->crd_xlt = Obj_crd(0, ~0UL);
+	reinterpret_cast<Nova::Utcb *>(Thread::utcb())->crd_xlt = Obj_crd(0, ~0UL);
 }
 
 

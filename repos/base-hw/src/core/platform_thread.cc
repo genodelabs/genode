@@ -167,7 +167,7 @@ int Platform_thread::start(void * const ip, void * const sp)
 	unsigned const cpu =
 		_location.valid() ? _location.xpos() : Cpu::primary_id();
 
-	Native_utcb * utcb = Thread_base::myself()->utcb();
+	Native_utcb * utcb = Thread::myself()->utcb();
 
 	/* reset capability counter */
 	utcb->cap_cnt(0);

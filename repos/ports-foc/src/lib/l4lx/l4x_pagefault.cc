@@ -16,7 +16,7 @@ static Genode::Lock balloon_lock;
 
 namespace {
 
-	class Signal_thread : public Genode::Thread<8192>
+	class Signal_thread : public Genode::Thread_deprecated<8192>
 	{
 		private:
 
@@ -51,7 +51,7 @@ namespace {
 		public:
 
 			Signal_thread(Fiasco::l4_cap_idx_t cap, Genode::Lock *sync)
-			: Genode::Thread<8192>("net-signal-thread"), _cap(cap), _sync(sync) {
+			: Genode::Thread_deprecated<8192>("net-signal-thread"), _cap(cap), _sync(sync) {
 				start(); }
 	};
 }

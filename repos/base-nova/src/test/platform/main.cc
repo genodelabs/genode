@@ -76,7 +76,7 @@ void test_pat()
 	 */
 	Nova::Mem_crd snd_crd(map_addr >> PAGE_4K, DS_ORDER, all);
 
-	Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(Thread_base::myself()->utcb());
+	Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb());
 	enum {
 		HOTSPOT = 0, USER_PD = false, HOST_PGT = false, SOLELY_MAP = false,
 		NO_DMA = false, EVILLY_DONT_WRITE_COMBINE = false
@@ -186,13 +186,13 @@ void test_server_oom()
 	ep.dissolve(&component);
 }
 
-class Greedy : public Thread<4096> {
+class Greedy : public Thread_deprecated<4096> {
 
 	public:
 
 		Greedy()
 		:
-			Thread<0x1000>("greedy")
+			Thread_deprecated<0x1000>("greedy")
 		{ }
 
 		void entry()
@@ -272,7 +272,7 @@ int main(int argc, char **argv)
 		Genode::config()->xml_node().attribute("check_pat").value(&check_pat);
 	} catch (...) { }
 
-	Thread_base * myself = Thread_base::myself();
+	Thread * myself = Thread::myself();
 	if (!myself)
 		return -__LINE__;
 

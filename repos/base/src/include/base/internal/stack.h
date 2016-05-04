@@ -30,14 +30,14 @@
  * data shared between the user-level thread and the kernel. It is typically
  * used for transferring IPC message payload or for system-call arguments.
  * The additional stack members are a reference to the corresponding
- * 'Thread_base' object and the name of the thread.
+ * 'Thread' object and the name of the thread.
  *
  * The stack area is a virtual memory area, initially not backed by real
  * memory. When a new thread is created, an empty slot gets assigned to the new
  * thread and populated with memory pages for the stack and thread-specific
  * data. Note that this memory is allocated from the RAM session of the
  * component environment and not accounted for when using the 'sizeof()'
- * operand on a 'Thread_base' object.
+ * operand on a 'Thread' object.
  *
  * A thread may be associated with more than one stack. Additional secondary
  * stacks can be associated with a thread, and used for user level scheduling.
@@ -58,6 +58,7 @@
 #include <base/native_types.h>        /* for 'Native_utcb' */
 #include <cpu/consts.h>
 #include <ram_session/ram_session.h>  /* for 'Ram_dataspace_capability' type */
+#include <cpu_session/cpu_session.h>  /* for 'Cpu_session::Name' type */
 
 /* base-internal includes */
 #include <base/internal/native_utcb.h>
@@ -75,7 +76,7 @@ class Genode::Stack
 {
 	public:
 
-		typedef String<64> Name;
+		typedef Cpu_session::Name Name;
 
 	private:
 
@@ -93,9 +94,9 @@ class Genode::Stack
 		Name const _name;
 
 		/**
-		 * Pointer to corresponding 'Thread_base' object
+		 * Pointer to corresponding 'Thread' object
 		 */
-		Thread_base &_thread;
+		Thread &_thread;
 
 		/**
 		 * Virtual address of the start of the stack
@@ -135,7 +136,7 @@ class Genode::Stack
 		/**
 		 * Constructor
 		 */
-		Stack(Name const &name, Thread_base &thread, addr_t base,
+		Stack(Name const &name, Thread &thread, addr_t base,
 		      Ram_dataspace_capability ds_cap)
 		:
 			_name(name), _thread(thread), _base(base), _ds_cap(ds_cap)
@@ -179,9 +180,9 @@ class Genode::Stack
 		Name name() const { return _name; }
 
 		/**
-		 * Return 'Thread_base' object of the stack's thread
+		 * Return 'Thread' object of the stack's thread
 		 */
-		Thread_base &thread() { return _thread; }
+		Thread &thread() { return _thread; }
 
 		/**
 		 * Return dataspace used as the stack's backing storage

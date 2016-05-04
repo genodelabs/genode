@@ -26,20 +26,20 @@ using namespace Genode;
 /**
  * Entry point entered by new threads
  */
-void Thread_base::_thread_start()
+void Thread::_thread_start()
 {
-	Thread_base::myself()->_thread_bootstrap();
-	Thread_base::myself()->entry();
-	Thread_base::myself()->_join_lock.unlock();
+	Thread::myself()->_thread_bootstrap();
+	Thread::myself()->entry();
+	Thread::myself()->_join_lock.unlock();
 	Genode::sleep_forever();
 }
 
 
-/*****************
- ** Thread base **
- *****************/
+/************
+ ** Thread **
+ ************/
 
-void Thread_base::_deinit_platform_thread()
+void Thread::_deinit_platform_thread()
 {
 	if (!_cpu_session)
 		_cpu_session = env()->cpu_session();
@@ -48,19 +48,16 @@ void Thread_base::_deinit_platform_thread()
 }
 
 
-void Thread_base::start()
+void Thread::start()
 {
-	/* if no cpu session is given, use it from the environment */
+	/* if no CPU session is given, use it from the environment */
 	if (!_cpu_session)
 		_cpu_session = env()->cpu_session();
 
 	/* create thread at core */
-	char buf[48];
-	name(buf, sizeof(buf));
-	enum { WEIGHT = Cpu_session::DEFAULT_WEIGHT };
 	addr_t const utcb = (addr_t)&_stack->utcb();
-	_thread_cap = _cpu_session->create_thread(env()->pd_session_cap(),
-	                                          WEIGHT, buf, _affinity, utcb);
+	_thread_cap = _cpu_session->create_thread(env()->pd_session_cap(), name(),
+	                                          _affinity, Weight(), utcb);
 	if (!_thread_cap.valid())
 		throw Cpu_session::Thread_creation_failed();
 
@@ -69,7 +66,7 @@ void Thread_base::start()
 }
 
 
-void Thread_base::cancel_blocking()
+void Thread::cancel_blocking()
 {
 	_cpu_session->cancel_blocking(_thread_cap);
 }

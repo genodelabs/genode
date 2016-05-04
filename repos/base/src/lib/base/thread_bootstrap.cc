@@ -15,4 +15,4 @@
 
 using namespace Genode;
 
-void Thread_base::_thread_bootstrap() { }
+void Thread::_thread_bootstrap() { }

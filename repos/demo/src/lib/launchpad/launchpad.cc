@@ -295,7 +295,7 @@ Launchpad_child *Launchpad::start_child(const char *filename,
  * this case using a watchdog mechanism, unblock the 'close' call, and
  * proceed with the closing the other remaining sessions.
  */
-class Child_destructor_thread : Thread<2*4096>
+class Child_destructor_thread : Thread_deprecated<2*4096>
 {
 	private:
 
@@ -343,7 +343,7 @@ class Child_destructor_thread : Thread<2*4096>
 		 * Constructor
 		 */
 		Child_destructor_thread() :
-			Thread("child_destructor"),
+			Thread_deprecated("child_destructor"),
 			_curr_child(0), _curr_alloc(0),
 			_activate_lock(Lock::LOCKED),
 			_ready(true)

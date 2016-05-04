@@ -34,7 +34,7 @@
 extern int main_thread_running_semaphore();
 
 
-static inline bool thread_check_stopped_and_restart(Genode::Thread_base *thread_base)
+static inline bool thread_check_stopped_and_restart(Genode::Thread *thread_base)
 {
 	Genode::addr_t sem = thread_base ?
 	                     thread_base->native_thread().exc_pt_sel + Nova::SM_SEL_EC :
@@ -45,7 +45,7 @@ static inline bool thread_check_stopped_and_restart(Genode::Thread_base *thread_
 }
 
 
-static inline void thread_switch_to(Genode::Thread_base *thread_base) { }
+static inline void thread_switch_to(Genode::Thread *thread_base) { }
 
 
 static inline void thread_stop_myself()
@@ -54,7 +54,7 @@ static inline void thread_stop_myself()
 	using namespace Nova;
 
 	addr_t sem;
-	Thread_base *myself = Thread_base::myself();
+	Thread *myself = Thread::myself();
 	if (myself)
 		sem = myself->native_thread().exc_pt_sel + SM_SEL_EC;
 	else

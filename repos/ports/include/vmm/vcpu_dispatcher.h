@@ -35,7 +35,7 @@ class Vmm::Vcpu_dispatcher : public T
 {
 	private:
 
-		enum { WEIGHT = Genode::Cpu_session::DEFAULT_WEIGHT };
+		enum { WEIGHT = Genode::Cpu_session::Weight::DEFAULT_WEIGHT };
 
 		Pd_session           &_pd;
 		Nova_native_pd_client _native_pd { _pd.native_pd() };
@@ -52,7 +52,7 @@ class Vmm::Vcpu_dispatcher : public T
 		static void _portal_entry()
 		{
 			/* obtain this pointer of the event handler */
-			Genode::Thread_base *myself = Genode::Thread_base::myself();
+			Genode::Thread *myself = Genode::Thread::myself();
 			DISPATCHER *vd = static_cast<DISPATCHER *>(myself);
 
 			vd->exit_reason = EV;
@@ -131,7 +131,7 @@ class Vmm::Vcpu_dispatcher : public T
 		}
 
 		/**
-		 * Unused member of the 'Thread_base' interface
+		 * Unused member of the 'Thread' interface
 		 *
 		 * Similarly to how 'Rpc_entrypoints' are handled, a 'Vcpu_dispatcher'
 		 * comes with a custom initialization procedure, which does not call

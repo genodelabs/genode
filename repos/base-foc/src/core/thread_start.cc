@@ -31,16 +31,16 @@ namespace Fiasco {
 using namespace Genode;
 
 
-void Thread_base::_deinit_platform_thread()
+void Thread::_deinit_platform_thread()
 {
 	PWRN("%s: not implemented yet!", __func__);
 }
 
 
-void Thread_base::_init_platform_thread(size_t, Type) { }
+void Thread::_init_platform_thread(size_t, Type) { }
 
 
-void Thread_base::start()
+void Thread::start()
 {
 	using namespace Fiasco;
 
@@ -68,7 +68,7 @@ void Thread_base::start()
 }
 
 
-void Thread_base::cancel_blocking()
+void Thread::cancel_blocking()
 {
 	/*
 	 * Within core, we never need to unblock threads

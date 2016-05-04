@@ -21,13 +21,13 @@
 using namespace Genode;
 
 
-static inline Genode::Thread_base *invalid_thread_base()
+static inline Genode::Thread *invalid_thread_base()
 {
-	return (Genode::Thread_base*)~0;
+	return (Genode::Thread*)~0;
 }
 
 
-static inline bool thread_base_valid(Genode::Thread_base *thread_base)
+static inline bool thread_base_valid(Genode::Thread *thread_base)
 {
 	return (thread_base != invalid_thread_base());
 }
@@ -62,7 +62,7 @@ void Cancelable_lock::Applicant::wake_up()
 
 void Cancelable_lock::lock()
 {
-	Applicant myself(Thread_base::myself());
+	Applicant myself(Thread::myself());
 
 	spinlock_lock(&_spinlock_state);
 

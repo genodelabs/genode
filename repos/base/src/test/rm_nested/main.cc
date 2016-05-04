@@ -39,7 +39,7 @@ enum {
 /**
  * Region-manager fault handler resolves faults by attaching new dataspaces
  */
-class Local_fault_handler : public Thread<4096>
+class Local_fault_handler : public Thread_deprecated<4096>
 {
 	private:
 
@@ -50,7 +50,7 @@ class Local_fault_handler : public Thread<4096>
 
 		Local_fault_handler(Region_map &region_map, Signal_receiver &receiver)
 		:
-			Thread("local_fault_handler"),
+			Thread_deprecated("local_fault_handler"),
 			_region_map(region_map), _receiver(receiver)
 		{ }
 

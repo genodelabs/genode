@@ -140,14 +140,14 @@ static int MAX_DEPTH;
 typedef Genode::Path<Vfs::MAX_PATH_LEN> Path;
 
 
-struct Stress_thread : public Genode::Thread<4*1024*sizeof(Genode::addr_t)>
+struct Stress_thread : public Genode::Thread_deprecated<4*1024*sizeof(Genode::addr_t)>
 {
 	::Path            path;
 	Vfs::file_size    count;
 	Vfs::File_system &vfs;
 
 	Stress_thread(Vfs::File_system &vfs, char const *parent, Affinity::Location affinity)
-	: Thread(parent), path(parent), count(0), vfs(vfs)
+	: Thread_deprecated(parent), path(parent), count(0), vfs(vfs)
 	{
 		env()->cpu_session()->affinity(cap(), affinity);
 	}

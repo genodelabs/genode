@@ -34,11 +34,11 @@ static void *pthread_entry(void *)
 	PINF("first message");
 
 	/*
-	 * Without the lazy initialization of 'Thread_base' objects for threads
+	 * Without the lazy initialization of 'Thread' objects for threads
 	 * created w/o Genode's Thread API, the printing of the first message will
 	 * never return because the IPC reply could not be delivered.
 	 *
-	 * With the on-demand creation of 'Thread_base' objects, the second message
+	 * With the on-demand creation of 'Thread' objects, the second message
 	 * will appear in the LOG output.
 	 */
 

@@ -108,7 +108,7 @@ void Pager_entrypoint::dissolve(Pager_object * const o)
 
 
 Pager_entrypoint::Pager_entrypoint(Rpc_cap_factory &)
-: Thread<PAGER_EP_STACK_SIZE>("pager_ep"),
+: Thread_deprecated<PAGER_EP_STACK_SIZE>("pager_ep"),
   Kernel_object<Kernel::Signal_receiver>(true)
 { start(); }
 

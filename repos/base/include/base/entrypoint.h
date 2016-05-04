@@ -53,14 +53,13 @@ class Genode::Entrypoint : Genode::Noncopyable
 			}
 		};
 
-		enum { STACK_SIZE = 1024*sizeof(long) };
-
-		struct Signal_proxy_thread : Thread<STACK_SIZE>
+		struct Signal_proxy_thread : Thread
 		{
+			enum { STACK_SIZE = 1024*sizeof(long) };
 			Entrypoint &ep;
-			Signal_proxy_thread(Entrypoint &ep)
+			Signal_proxy_thread(Env &env, Entrypoint &ep)
 			:
-				Thread<STACK_SIZE>("signal_proxy"),
+				Thread(env, "signal_proxy", STACK_SIZE),
 				ep(ep)
 			{ }
 

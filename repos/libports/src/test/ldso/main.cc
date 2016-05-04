@@ -128,9 +128,9 @@ static void test_stack_align(char const *fmt, ...)
 	va_end(list);
 }
 
-struct Test_stack_align_thread : Thread<0x2000>
+struct Test_stack_align_thread : Thread_deprecated<0x2000>
 {
-	Test_stack_align_thread() : Thread<0x2000>("test_stack_align") { }
+	Test_stack_align_thread() : Thread_deprecated<0x2000>("test_stack_align") { }
 	void entry() { test_stack_align("%f\n%g\n", 3.142, 2.718); }
 };
 

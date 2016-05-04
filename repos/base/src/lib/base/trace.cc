@@ -163,9 +163,9 @@ Trace::Logger::Logger()
 { }
 
 
-/*****************
- ** Thread_base **
- *****************/
+/************
+ ** Thread **
+ ************/
 
 /**
  * return logger instance for the main thread **
@@ -180,12 +180,12 @@ static Trace::Logger *main_trace_logger()
 static Trace::Control *main_trace_control;
 
 
-Trace::Logger *Thread_base::_logger()
+Trace::Logger *Thread::_logger()
 {
 	if (inhibit_tracing)
 		return 0;
 
-	Thread_base * const myself = Thread_base::myself();
+	Thread * const myself = Thread::myself();
 
 	Trace::Logger * const logger = myself ? &myself->_trace_logger
 	                                      : main_trace_logger();

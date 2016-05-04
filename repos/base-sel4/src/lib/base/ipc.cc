@@ -47,12 +47,12 @@ static unsigned &rcv_sel()
 {
 	/*
 	 * When the function is called at the very early initialization phase, we
-	 * cannot access Thread_base::myself()->native_thread() because the
-	 * Thread_base object of the main thread does not exist yet. During this
+	 * cannot access Thread::myself()->native_thread() because the
+	 * Thread object of the main thread does not exist yet. During this
 	 * phase, we return a reference to the 'main_rcv_sel' variable.
 	 */
-	if (Thread_base::myself()) {
-		return Thread_base::myself()->native_thread().rcv_sel;
+	if (Thread::myself()) {
+		return Thread::myself()->native_thread().rcv_sel;
 	}
 
 	static unsigned main_rcv_sel = Capability_space::alloc_rcv_sel();
@@ -313,7 +313,7 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
 	if (exc.value == Rpc_exception_code::INVALID_OBJECT) {
 
 		seL4_MessageInfo_t const request_msg_info =
-			seL4_Recv(Thread_base::myself()->native_thread().ep_sel, &badge);
+			seL4_Recv(Thread::myself()->native_thread().ep_sel, &badge);
 
 		decode_seL4_message(request_msg_info, request_msg);
 
@@ -324,7 +324,7 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
 		seL4_SetMR(MR_IDX_EXC_CODE, exc.value);
 
 		seL4_MessageInfo_t const request_msg_info =
-			seL4_ReplyRecv(Thread_base::myself()->native_thread().ep_sel,
+			seL4_ReplyRecv(Thread::myself()->native_thread().ep_sel,
 			               reply_msg_info, &badge);
 
 		decode_seL4_message(request_msg_info, request_msg);
@@ -336,7 +336,7 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
 
 Ipc_server::Ipc_server()
 :
-	Native_capability(Capability_space::create_ep_cap(*Thread_base::myself()))
+	Native_capability(Capability_space::create_ep_cap(*Thread::myself()))
 { }
 
 

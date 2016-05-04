@@ -30,7 +30,7 @@
 using namespace Genode;
 
 
-void Thread_base::_init_platform_thread(size_t, Type type)
+void Thread::_init_platform_thread(size_t, Type type)
 {
 	/*
 	 * This function is called for constructing server activations and pager
@@ -46,7 +46,7 @@ void Thread_base::_init_platform_thread(size_t, Type type)
 
 		/*
 		 * Exception base of first thread in core is 0. We have to set
-		 * it here so that Thread_base code finds the semaphore of the
+		 * it here so that Thread code finds the semaphore of the
 		 * main thread.
 		 */
 		native_thread().exc_pt_sel = 0;
@@ -67,7 +67,7 @@ void Thread_base::_init_platform_thread(size_t, Type type)
 }
 
 
-void Thread_base::_deinit_platform_thread()
+void Thread::_deinit_platform_thread()
 {
 	unmap_local(Nova::Obj_crd(native_thread().ec_sel, 1));
 	unmap_local(Nova::Obj_crd(native_thread().exc_pt_sel, Nova::NUM_INITIAL_PT_LOG2));
@@ -82,7 +82,7 @@ void Thread_base::_deinit_platform_thread()
 }
 
 
-void Thread_base::start()
+void Thread::start()
 {
 	/*
 	 * On NOVA, core almost never starts regular threads. This simply creates a
@@ -113,7 +113,7 @@ void Thread_base::start()
 	utcb_obj->crd_rcv = Obj_crd();
 	utcb_obj->crd_xlt = Obj_crd();
 
-	if (map_local(reinterpret_cast<Nova::Utcb *>(Thread_base::myself()->utcb()),
+	if (map_local(reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb()),
 	              Obj_crd(PT_SEL_PAGE_FAULT, 0),
 	              Obj_crd(native_thread().exc_pt_sel + PT_SEL_PAGE_FAULT, 0))) {
 		PERR("could not create page fault portal");
@@ -122,7 +122,7 @@ void Thread_base::start()
 }
 
 
-void Thread_base::cancel_blocking()
+void Thread::cancel_blocking()
 {
 	using namespace Nova;
 

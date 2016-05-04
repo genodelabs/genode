@@ -92,4 +92,4 @@ Genode::Native_capability Test::Component::void_cap() {
 }
 
 Genode::addr_t Test::Component::leak_utcb_address() {
-	return reinterpret_cast<Genode::addr_t>(Genode::Thread_base::myself()->utcb()); }
+	return reinterpret_cast<Genode::addr_t>(Genode::Thread::myself()->utcb()); }

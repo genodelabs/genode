@@ -42,14 +42,24 @@ struct Genode::Cpu_session : Session
 
 	static const char *service_name() { return "CPU"; }
 
-	enum { THREAD_NAME_LEN = 48 };
+	enum { THREAD_NAME_LEN = 32 };
 	enum { PRIORITY_LIMIT = 1 << 16 };
 	enum { QUOTA_LIMIT_LOG2 = 15 };
 	enum { QUOTA_LIMIT = 1 << QUOTA_LIMIT_LOG2 };
 	enum { DEFAULT_PRIORITY = 0 };
-	enum { DEFAULT_WEIGHT = 10 };
 
-	typedef Rpc_in_buffer<THREAD_NAME_LEN> Name;
+	/**
+	 * Thread weight argument type for 'create_thread'
+	 */
+	struct Weight
+	{
+		enum { DEFAULT_WEIGHT = 10 };
+		size_t value = DEFAULT_WEIGHT;
+		Weight() { }
+		explicit Weight(size_t value) : value(value) { }
+	};
+
+	typedef String<THREAD_NAME_LEN> Name;
 
 	/**
 	 * Physical quota configuration
@@ -62,20 +72,20 @@ struct Genode::Cpu_session : Session
 	 * Create a new thread
 	 *
 	 * \param pd        protection domain where the thread will be executed
-	 * \param quota     CPU quota that shall be granted to the thread
 	 * \param name      name for the thread
 	 * \param affinity  CPU affinity, referring to the session-local
 	 *                  affinity space
-	 * \param utcb      Base of the UTCB that will be used by the thread
+	 * \param weight    CPU quota that shall be granted to the thread
+	 * \param utcb      base of the UTCB that will be used by the thread
 	 * \return          capability representing the new thread
 	 * \throw           Thread_creation_failed
 	 * \throw           Out_of_metadata
 	 * \throw           Quota_exceeded
 	 */
 	virtual Thread_capability create_thread(Capability<Pd_session> pd,
-	                                        size_t                 quota,
 	                                        Name const            &name,
-	                                        Affinity::Location     affinity = Affinity::Location(),
+	                                        Affinity::Location     affinity,
+	                                        Weight                 weight,
 	                                        addr_t                 utcb = 0) = 0;
 
 	/**
@@ -317,8 +327,8 @@ struct Genode::Cpu_session : Session
 
 	GENODE_RPC_THROW(Rpc_create_thread, Thread_capability, create_thread,
 	                 GENODE_TYPE_LIST(Thread_creation_failed, Out_of_metadata),
-	                 Capability<Pd_session>, size_t, Name const &,
-	                 Affinity::Location, addr_t);
+	                 Capability<Pd_session>, Name const &, Affinity::Location,
+	                 Weight, addr_t);
 	GENODE_RPC(Rpc_utcb, Ram_dataspace_capability, utcb, Thread_capability);
 	GENODE_RPC(Rpc_kill_thread, void, kill_thread, Thread_capability);
 	GENODE_RPC(Rpc_start, int, start, Thread_capability, addr_t, addr_t);

@@ -282,7 +282,7 @@ Platform::Platform() :
 	 *     the y component of the affinity location. When adding support
 	 *     for two-dimensional affinity spaces, look out and adjust the use of
 	 *     'Platform_thread::_location' in 'platform_thread.cc'. Also look
-	 *     at the 'Thread_base::start' function in core/thread_start.cc.
+	 *     at the 'Thread::start' function in core/thread_start.cc.
 	 */
 	_cpus = Affinity::Space(hip->cpus(), 1);
 
@@ -765,7 +765,7 @@ Platform::Platform() :
 bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr,
                                       unsigned size)
 {
-	map_local((Utcb *)Thread_base::myself()->utcb(), phys_addr,
+	map_local((Utcb *)Thread::myself()->utcb(), phys_addr,
 	          virt_addr, size / get_page_size(),
 	          Rights(true, true, true), true);
 	return true;
@@ -774,7 +774,7 @@ bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr,
 
 bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, unsigned size)
 {
-	unmap_local((Utcb *)Thread_base::myself()->utcb(),
+	unmap_local((Utcb *)Thread::myself()->utcb(),
 	            virt_addr, size / get_page_size());
 	return true;
 }

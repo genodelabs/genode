@@ -83,7 +83,7 @@ class Lx::Scheduler
 			return _ansi_esc_black();
 		}
 
-		struct Logger : Genode::Thread<0x4000>
+		struct Logger : Genode::Thread_deprecated<0x4000>
 		{
 			Timer::Connection  _timer;
 			Lx::Scheduler     &_scheduler;
@@ -91,7 +91,7 @@ class Lx::Scheduler
 
 			Logger(Lx::Scheduler &scheduler, unsigned interval_seconds)
 			:
-				Genode::Thread<0x4000>("logger"),
+				Genode::Thread_deprecated<0x4000>("logger"),
 				_scheduler(scheduler), _interval(interval_seconds)
 			{
 				start();
@@ -223,7 +223,7 @@ Lx::Task::Task(void (*func)(void*), void *arg, char const *name,
 void Lx::Task::_deinit()
 {
 	if (_stack)
-		Genode::Thread_base::myself()->free_secondary_stack(_stack);
+		Genode::Thread::myself()->free_secondary_stack(_stack);
 }
 
 

@@ -19,4 +19,4 @@
 #include <base/internal/native_utcb.h>
 
 
-Genode::Native_utcb *Genode::Thread_base::utcb() { return &_stack->utcb(); }
+Genode::Native_utcb *Genode::Thread::utcb() { return &_stack->utcb(); }

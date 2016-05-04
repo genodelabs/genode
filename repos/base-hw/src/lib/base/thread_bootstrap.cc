@@ -46,7 +46,7 @@ void prepare_init_main_thread()
 	 * Make data from the startup info persistantly available by copying it
 	 * before the UTCB gets polluted by the following function calls.
 	 */
-	Native_utcb * utcb = Thread_base::myself()->utcb();
+	Native_utcb * utcb = Thread::myself()->utcb();
 	_parent_cap = utcb->cap_get(Native_utcb::PARENT);
 	Untyped_capability ds_cap(utcb->cap_get(Native_utcb::UTCB_DATASPACE));
 	_main_thread_utcb_ds = reinterpret_cap_cast<Ram_dataspace>(ds_cap);
@@ -57,24 +57,24 @@ void prepare_init_main_thread()
 void prepare_reinit_main_thread() { prepare_init_main_thread(); }
 
 
-/*****************
- ** Thread_base **
- *****************/
+/************
+ ** Thread **
+ ************/
 
-Native_utcb *Thread_base::utcb()
+Native_utcb *Thread::utcb()
 {
 	if (this) { return &_stack->utcb(); }
 	return utcb_main_thread();
 }
 
 
-void Thread_base::_thread_start()
+void Thread::_thread_start()
 {
-	Thread_base::myself()->_thread_bootstrap();
-	Thread_base::myself()->entry();
-	Thread_base::myself()->_join_lock.unlock();
+	Thread::myself()->_thread_bootstrap();
+	Thread::myself()->entry();
+	Thread::myself()->_join_lock.unlock();
 	Genode::sleep_forever();
 }
 
-void Thread_base::_thread_bootstrap() {
+void Thread::_thread_bootstrap() {
 	native_thread().cap = myself()->utcb()->cap_get(Native_utcb::THREAD_MYSELF); }

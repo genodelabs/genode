@@ -94,12 +94,12 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
                                     Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg,
                                     size_t rcv_caps)
 {
-	Native_utcb &utcb = *Thread_base::myself()->utcb();
+	Native_utcb &utcb = *Thread::myself()->utcb();
 
 	retry<Genode::Allocator::Out_of_memory>(
 		[&] () {
 
-			copy_msg_to_utcb(snd_msg, *Thread_base::myself()->utcb());
+			copy_msg_to_utcb(snd_msg, *Thread::myself()->utcb());
 
 			switch (Kernel::send_request_msg(dst.dst(),
 			                                 rcv_caps)) {
@@ -123,7 +123,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 void Genode::ipc_reply(Native_capability caller, Rpc_exception_code exc,
                        Msgbuf_base &snd_msg)
 {
-	Native_utcb &utcb = *Thread_base::myself()->utcb();
+	Native_utcb &utcb = *Thread::myself()->utcb();
 	copy_msg_to_utcb(snd_msg, utcb);
 	utcb.exception_code(exc.value);
 	snd_msg.reset();
@@ -136,7 +136,7 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &,
                                            Msgbuf_base            &reply_msg,
                                            Msgbuf_base            &request_msg)
 {
-	Native_utcb &utcb = *Thread_base::myself()->utcb();
+	Native_utcb &utcb = *Thread::myself()->utcb();
 
 	retry<Genode::Allocator::Out_of_memory>(
 		[&] () {
@@ -165,8 +165,8 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &,
 
 Ipc_server::Ipc_server()
 :
-	Native_capability(Thread_base::myself() ? Thread_base::myself()->native_thread().cap
-	                                        : Hw::_main_thread_cap)
+	Native_capability(Thread::myself() ? Thread::myself()->native_thread().cap
+	                                   : Hw::_main_thread_cap)
 { }
 
 

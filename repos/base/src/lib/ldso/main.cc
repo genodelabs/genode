@@ -567,9 +567,9 @@ void Component::construct(Genode::Env &env)
 	try {
 		if (Genode::config()->xml_node().attribute("ld_verbose").has_value("yes")) {
 			PINF("  %lx .. %lx: stack area",
-			     Genode::Thread_base::stack_area_virtual_base(),
-			     Genode::Thread_base::stack_area_virtual_base() +
-			     Genode::Thread_base::stack_area_virtual_size() - 1);
+			     Genode::Thread::stack_area_virtual_base(),
+			     Genode::Thread::stack_area_virtual_base() +
+			     Genode::Thread::stack_area_virtual_size() - 1);
 			dump_link_map(Elf_object::obj_list()->head());
 		}
 	} catch (...) {  }

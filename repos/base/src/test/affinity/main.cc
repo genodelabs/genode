@@ -20,7 +20,7 @@
 
 enum { STACK_SIZE = sizeof(long)*1024, COUNT_VALUE = 10 * 1024 * 1024 };
 
-struct Spinning_thread : Genode::Thread<STACK_SIZE>
+struct Spinning_thread : Genode::Thread_deprecated<STACK_SIZE>
 {
 	Genode::Affinity::Location const _location;
 
@@ -50,10 +50,10 @@ struct Spinning_thread : Genode::Thread<STACK_SIZE>
 
 	Spinning_thread(Genode::Affinity::Location location, char const *name)
 	:
-		Genode::Thread<STACK_SIZE>(name), _location(location), cnt(0ULL),
+		Genode::Thread_deprecated<STACK_SIZE>(name), _location(location), cnt(0ULL),
 		barrier(Genode::Lock::LOCKED)
 	{
-		Genode::env()->cpu_session()->affinity(Thread_base::cap(), location);
+		Genode::env()->cpu_session()->affinity(Thread::cap(), location);
 		start();
 	}
 };

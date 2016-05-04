@@ -364,7 +364,7 @@ namespace Genode {
 	 * A 'Pager_activation' processes one page fault of a 'Pager_object' at a time.
 	 */
 	class Pager_entrypoint;
-	class Pager_activation_base: public Thread_base
+	class Pager_activation_base: public Thread
 	{
 		private:
 

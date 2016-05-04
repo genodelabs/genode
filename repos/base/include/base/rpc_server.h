@@ -249,7 +249,7 @@ struct Genode::Rpc_object : Rpc_object_base, Rpc_dispatcher<RPC_INTERFACE, SERVE
  * shortcut for the common case where the server's capability is handed
  * over to other parties _after_ the server is completely initialized.
  */
-class Genode::Rpc_entrypoint : Thread_base, public Object_pool<Rpc_object_base>
+class Genode::Rpc_entrypoint : Thread, public Object_pool<Rpc_object_base>
 {
 	private:
 

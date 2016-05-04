@@ -106,7 +106,7 @@ class Scout::Platform
 		 ** Timer thread **
 		 ******************/
 
-		class Timer_thread : public Genode::Thread<4096>
+		class Timer_thread : public Genode::Thread_deprecated<4096>
 		{
 			private:
 
@@ -152,7 +152,7 @@ class Scout::Platform
 				 * Start thread immediately on construction.
 				 */
 				Timer_thread(Input::Session &input, Event_queue &event_queue)
-				: Thread("timer"), _input(input), _event_queue(event_queue)
+				: Thread_deprecated("timer"), _input(input), _event_queue(event_queue)
 				{ start(); }
 
 				void entry()

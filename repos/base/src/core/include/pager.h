@@ -141,7 +141,7 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry
 
 
 class Genode::Pager_entrypoint : public Object_pool<Pager_object>,
-                                 public Thread<PAGER_EP_STACK_SIZE>
+                                 public Thread_deprecated<PAGER_EP_STACK_SIZE>
 {
 	private:
 
@@ -161,7 +161,7 @@ class Genode::Pager_entrypoint : public Object_pool<Pager_object>,
 		 */
 		Pager_entrypoint(Rpc_cap_factory &cap_factory)
 		:
-			Thread<PAGER_EP_STACK_SIZE>("pager_ep"),
+			Thread_deprecated<PAGER_EP_STACK_SIZE>("pager_ep"),
 			_cap_factory(cap_factory)
 		{ start(); }
 

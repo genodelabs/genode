@@ -22,6 +22,9 @@
 #include <rom_session/connection.h>
 #include <cpu_session/connection.h>
 
+/* base-internal includes */
+#include <base/internal/globals.h>
+
 /* core includes */
 #include <platform.h>
 #include <core_env.h>
@@ -195,7 +198,7 @@ class Core_child : public Child_policy
  * the creation of regular threads within core is unsupported.
  */
 
-namespace Genode { void init_signal_thread() { } }
+namespace Genode { void init_signal_thread(Env &) { } }
 
 
 /*******************

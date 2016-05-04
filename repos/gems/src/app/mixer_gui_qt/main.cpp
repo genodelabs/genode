@@ -21,7 +21,7 @@
 enum { THREAD_STACK_SIZE = 2 * 1024 * sizeof(long) };
 
 
-struct Report_thread : Genode::Thread<THREAD_STACK_SIZE>
+struct Report_thread : Genode::Thread_deprecated<THREAD_STACK_SIZE>
 {
 	QMember<Report_proxy> proxy;
 
@@ -51,7 +51,7 @@ struct Report_thread : Genode::Thread<THREAD_STACK_SIZE>
 
 	Report_thread()
 	:
-		Genode::Thread<THREAD_STACK_SIZE>("report_thread"),
+		Genode::Thread_deprecated<THREAD_STACK_SIZE>("report_thread"),
 		channels_dispatcher(sig_rec, *this, &Report_thread::_handle_channels)
 	{
 		channels_rom.sigh(channels_dispatcher);

@@ -43,11 +43,11 @@ using namespace Genode;
 /**
  * Dispatches interrupts from kernel
  */
-class Genode::Interrupt_handler : public Thread<2048*sizeof(long)>
+class Genode::Interrupt_handler : public Thread_deprecated<2048*sizeof(long)>
 {
 	private:
 
-		Interrupt_handler() : Thread("irq_handler") { start(); }
+		Interrupt_handler() : Thread_deprecated("irq_handler") { start(); }
 
 	public:
 

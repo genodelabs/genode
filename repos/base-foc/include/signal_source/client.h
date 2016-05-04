@@ -56,7 +56,7 @@ namespace Genode {
 				_sem = call<Rpc_request_semaphore>();
 
 				l4_msgtag_t tag = l4_irq_attach(_sem.dst(), 0,
-				                                Thread_base::myself()->native_thread().kcap);
+				                                Thread::myself()->native_thread().kcap);
 				if (l4_error(tag))
 					PERR("l4_irq_attach failed with %ld!", l4_error(tag));
 			}

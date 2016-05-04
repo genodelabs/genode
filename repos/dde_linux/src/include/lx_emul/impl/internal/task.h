@@ -203,7 +203,7 @@ class Lx::Task : public Lx::List<Lx::Task>::Element
 			if (_state == STATE_INIT) {
 				/* setup execution environment and call task's function */
 				_state = STATE_RUNNING;
-				Genode::Thread_base *th = Genode::Thread_base::myself();
+				Genode::Thread *th = Genode::Thread::myself();
 
 				enum { STACK_SIZE = 32 * 1024 }; /* FIXME make stack size configurable */
 				_stack = th->alloc_secondary_stack(_name, STACK_SIZE);

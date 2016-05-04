@@ -17,12 +17,12 @@
 
 enum { STACK_SIZE = 4096 };
 
-struct Thread : Genode::Thread<STACK_SIZE>
+struct Thread : Genode::Thread_deprecated<STACK_SIZE>
 {
 	Genode::Lock &_barrier;
 
 	Thread(Genode::Lock &barrier)
-	: Genode::Thread<STACK_SIZE>("stat"), _barrier(barrier) { start(); }
+	: Genode::Thread_deprecated<STACK_SIZE>("stat"), _barrier(barrier) { start(); }
 
 	void entry()
 	{

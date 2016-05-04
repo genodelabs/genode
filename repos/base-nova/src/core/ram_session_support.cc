@@ -64,7 +64,7 @@ void Ram_session_component::_clear_ds(Dataspace_component *ds)
 		memset(reinterpret_cast<void *>(memset_ptr), 0, page_rounded_size);
 
 	/* we don't keep any core-local mapping */
-	unmap_local(reinterpret_cast<Nova::Utcb *>(Thread_base::myself()->utcb()),
+	unmap_local(reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb()),
 	            ds->core_local_addr(),
 	            page_rounded_size >> get_page_size_log2());
 
@@ -85,7 +85,7 @@ void Ram_session_component::_export_ram_ds(Dataspace_component *ds) {
 		throw Out_of_metadata();
 
 	/* map it writeable for _clear_ds */
-	Nova::Utcb * const utcb = reinterpret_cast<Nova::Utcb *>(Thread_base::myself()->utcb());
+	Nova::Utcb * const utcb = reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb());
 	const Nova::Rights rights_rw(true, true, false);
 
 	if (map_local(utcb, ds->phys_addr(), reinterpret_cast<addr_t>(virt_ptr),

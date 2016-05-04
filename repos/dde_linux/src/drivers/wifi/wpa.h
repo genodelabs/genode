@@ -21,7 +21,7 @@
 extern "C" int wpa_main(void);
 extern "C" void wpa_conf_reload(void);
 
-class Wpa_thread : public Genode::Thread<8 * 1024 * sizeof(long)>
+class Wpa_thread : public Genode::Thread_deprecated<8 * 1024 * sizeof(long)>
 {
 	private:
 
@@ -31,7 +31,7 @@ class Wpa_thread : public Genode::Thread<8 * 1024 * sizeof(long)>
 	public:
 
 		Wpa_thread(Genode::Lock &lock)
-		: Thread("wpa_supplicant"), _lock(lock), _exit(-1) { }
+		: Thread_deprecated("wpa_supplicant"), _lock(lock), _exit(-1) { }
 
 		void entry()
 		{

@@ -14,11 +14,11 @@
 #include <base/thread.h>
 
 
-Genode::Thread_base *Genode::Thread_base::myself()
+Genode::Thread *Genode::Thread::myself()
 {
 	using namespace Fiasco;
 
-	return reinterpret_cast<Thread_base*>(l4_utcb_tcr()->user[UTCB_TCR_THREAD_OBJ]);
+	return reinterpret_cast<Thread*>(l4_utcb_tcr()->user[UTCB_TCR_THREAD_OBJ]);
 }
 
 

@@ -60,7 +60,7 @@ bool Bsd::Task::run()
 	if (_state == STATE_INIT) {
 		/* setup execution environment and call task's function */
 		_state = STATE_RUNNING;
-		Genode::Thread_base *th = Genode::Thread_base::myself();
+		Genode::Thread *th = Genode::Thread::myself();
 
 		_stack = th->alloc_secondary_stack(_name, _stack_size);
 
@@ -107,7 +107,7 @@ Bsd::Task::Task(void (*func)(void*), void *arg, char const *name,
 Bsd::Task::~Task()
 {
 	if (_stack)
-		Genode::Thread_base::myself()->free_secondary_stack(_stack);
+		Genode::Thread::myself()->free_secondary_stack(_stack);
 }
 
 
@@ -191,7 +191,7 @@ void Bsd::Scheduler::schedule()
 #include <timer_session/connection.h>
 
 namespace {
-	struct Logger : Genode::Thread<0x4000>
+	struct Logger : Genode::Thread_deprecated<0x4000>
 	{
 		Timer::Connection  _timer;
 		Bsd::Scheduler     &_scheduler;
@@ -199,7 +199,7 @@ namespace {
 
 		Logger(Bsd::Scheduler &scheduler, unsigned interval_seconds)
 		:
-			Genode::Thread<0x4000>("logger"),
+			Genode::Thread_deprecated<0x4000>("logger"),
 			_scheduler(scheduler), _interval(interval_seconds)
 		{
 			start();

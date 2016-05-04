@@ -32,7 +32,7 @@ static char const *state_name(Genode::Trace::Subject_info::State state)
 }
 
 
-struct Test_thread : Genode::Thread<1024 * sizeof (unsigned long)>
+struct Test_thread : Genode::Thread_deprecated<1024 * sizeof (unsigned long)>
 {
 	Timer::Connection _timer;
 
@@ -51,7 +51,7 @@ struct Test_thread : Genode::Thread<1024 * sizeof (unsigned long)>
 	}
 
 	Test_thread(const char *name)
-	: Thread(name) { start(); }
+	: Thread_deprecated(name) { start(); }
 };
 
 

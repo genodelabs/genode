@@ -258,8 +258,8 @@ index a272ce3..a2e7484 100644
 +
 +void StackBounds::initialize()
 +{
-+    m_bound = Genode::Thread_base::myself()->stack_base();
-+    m_origin = Genode::Thread_base::myself()->stack_top();
++    m_bound = Genode::Thread::myself()->stack_base();
++    m_origin = Genode::Thread::myself()->stack_top();
 +}
 +
  #elif OS(UNIX)

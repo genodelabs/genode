@@ -44,7 +44,7 @@ int main()
 	using namespace Genode;
 
 	/* activate for early printf in Rm_session_mmap::attach() etc. */
-	if (0) Thread_base::trace("FOO");
+	if (0) Thread::trace("FOO");
 
 	/* induce initial heap expansion to remove RM noise */
 	if (1) {

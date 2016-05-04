@@ -239,7 +239,7 @@ if {![regexp {Program received signal SIGSEGV, Segmentation fault.} $gdb_output]
 }
 
 if {![regexp {Genode::Cancelable_lock::lock\(\)} $gdb_output] ||
-    ![regexp {Genode::Thread_base::join\(\)} $gdb_output] ||
+    ![regexp {Genode::Thread::join\(\)} $gdb_output] ||
     ![regexp {in main \(\)} $gdb_output]} {
 
 	puts stderr "Error: Stack trace when in syscall is not as expected"

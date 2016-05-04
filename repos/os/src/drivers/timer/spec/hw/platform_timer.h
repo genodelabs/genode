@@ -118,7 +118,7 @@ class Platform_timer : public Platform_timer_base,
 		/**
 		 * Await the lastly scheduled timeout
 		 */
-		void wait_for_timeout(Genode::Thread_base *)
+		void wait_for_timeout(Genode::Thread *)
 		{
 			_irq_rec.wait_for_signal();
 			Irq_connection::ack_irq();

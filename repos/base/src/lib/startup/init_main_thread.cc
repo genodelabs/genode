@@ -44,7 +44,7 @@ void init_rtld() { }
 /**
  * The first thread in a program
  */
-class Main_thread : public Thread<MAIN_THREAD_STACK_SIZE>
+class Main_thread : public Thread_deprecated<MAIN_THREAD_STACK_SIZE>
 {
 	public:
 
@@ -55,7 +55,7 @@ class Main_thread : public Thread<MAIN_THREAD_STACK_SIZE>
 		 */
 		Main_thread(bool reinit)
 		:
-			Thread("main", reinit ? REINITIALIZED_MAIN : MAIN)
+			Thread_deprecated("main", reinit ? REINITIALIZED_MAIN : MAIN)
 		{ }
 
 		/**********************

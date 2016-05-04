@@ -28,7 +28,7 @@ static bool const verbose = false;
 
 Signal_handler_thread::Signal_handler_thread(Signal_receiver *receiver)
 :
-	Thread<2*4096>("sig_handler"),
+	Thread_deprecated<2*4096>("sig_handler"),
 	_signal_receiver(receiver)
 {
 	if (pipe(_pipefd))

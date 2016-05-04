@@ -297,7 +297,7 @@ extern "C" int getrlimit(int resource, struct rlimit *rlim)
 		{
 			using namespace Genode;
 
-			Thread_base * me = Thread_base::myself();
+			Thread * me = Thread::myself();
 
 			if (!me)
 				break;
@@ -2287,7 +2287,7 @@ void init_libc_noux(void)
 	 * Genodes core/main.cc with GCC in Noux.
 	 */
 	enum { STACK_SIZE = 32UL * 1024 * sizeof(Genode::addr_t) };
-	Genode::Thread_base::myself()->stack_size(STACK_SIZE);
+	Genode::Thread::myself()->stack_size(STACK_SIZE);
 }
 
 

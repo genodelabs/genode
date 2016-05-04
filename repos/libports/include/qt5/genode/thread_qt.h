@@ -20,12 +20,12 @@ enum { DEFAULT_STACK_SIZE = 4096*100 };
 
 namespace Genode {
 
-	class Thread_qt : public Thread<DEFAULT_STACK_SIZE>
+	class Thread_qt : public Thread_deprecated<DEFAULT_STACK_SIZE>
 	{
 		public:
 
 			explicit Thread_qt(const char *name = "Qt <noname>")
-			: Thread<DEFAULT_STACK_SIZE>(name) { }
+			: Thread_deprecated<DEFAULT_STACK_SIZE>(name) { }
 	};
 }
 

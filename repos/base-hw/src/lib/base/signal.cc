@@ -32,8 +32,8 @@ namespace Genode {
 	/*
 	 * On base-hw, no signal thread is needed.
 	 */
-	void init_signal_thread() __attribute__((weak));
-	void init_signal_thread() { }
+	void init_signal_thread(Env &) __attribute__((weak));
+	void init_signal_thread(Env &) { }
 	void destroy_signal_thread() { }
 }
 
@@ -124,7 +124,7 @@ void Signal_receiver::block_for_signal()
 		return;
 	}
 	/* read signal data */
-	const void * const     utcb    = Thread_base::myself()->utcb()->data();
+	const void * const     utcb    = Thread::myself()->utcb()->data();
 	Signal::Data * const   data    = (Signal::Data *)utcb;
 	Signal_context * const context = data->context;
 	{

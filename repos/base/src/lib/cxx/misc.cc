@@ -12,7 +12,7 @@
  */
 
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/stdint.h>
 #include <base/sleep.h>
 #include <base/thread.h>
@@ -23,14 +23,14 @@ using namespace Genode;
 
 extern "C" void __cxa_pure_virtual()
 {
-	PWRN("cxa pure virtual function called, return addr is %p",
-	     __builtin_return_address(0));
+	Genode::warning("cxa pure virtual function called, return addr is ",
+	                __builtin_return_address(0));
 }
 
 
 extern "C" void __pure_virtual()
 {
-	PWRN("pure virtual function called");
+	Genode::warning("pure virtual function called");
 }
 
 
@@ -103,15 +103,16 @@ extern "C" __attribute__((weak)) void raise()
 
 extern "C" void *abort(void)
 {
-	Genode::Thread_base * myself = Genode::Thread_base::myself();
-	char thread_name[64] = { "unknown" };
+	Genode::Thread const * const myself = Genode::Thread::myself();
+	Thread::Name name = "unknown";
 
 	if (myself)
-		myself->name(thread_name, sizeof(thread_name));
-	PWRN("abort called - thread: '%s'", thread_name);
+		name = myself->name();
+
+	Genode::warning("abort called - thread: ", name.string());
 
 	/* Notify the parent of failure */
-	if (!strcmp("main", thread_name, sizeof(thread_name)))
+	if (name != "main")
 		env()->parent()->exit(1);
 
 	sleep_forever();
@@ -125,7 +126,7 @@ extern "C" void *fputc(void) {
 
 
 extern "C" void *fputs(const char *s, void *) {
-	PWRN("C++ runtime: %s", s);
+	Genode::warning("C++ runtime: ", s);
 	return 0;
 }
 
@@ -166,7 +167,7 @@ void *memset(void *s, int c, size_t n)
 
 
 extern "C" void *stderr(void) {
-	PWRN("stderr - not yet implemented");
+	Genode::warning("stderr - not yet implemented");
 	return 0;
 }
 
@@ -180,7 +181,7 @@ FILE *__stderrp;
 
 extern "C" void *strcat(void)
 {
-	PWRN("strcat - not yet implemented");
+	Genode::warning("strcat - not yet implemented");
 	return 0;
 }
 
@@ -214,7 +215,7 @@ extern "C" int strcmp(const char *s1, const char *s2)
  */
 extern "C" int sprintf(char *str, const char *format, ...)
 {
-	PWRN("sprintf - not implemented");
+	Genode::warning("sprintf - not implemented");
 	return 0;
 }
 
@@ -225,5 +226,5 @@ extern "C" int sprintf(char *str, const char *format, ...)
 
 extern "C" __attribute__((weak)) void __stack_chk_fail_local(void)
 {
-	PERR("Violated stack boundary");
+	Genode::error("Violated stack boundary");
 }

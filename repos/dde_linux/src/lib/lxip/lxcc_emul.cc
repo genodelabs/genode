@@ -708,7 +708,7 @@ static void create_event(char const *fmt, va_list list)
 	       Trace::Timestamp now  = Trace::timestamp();
 	Genode::snprintf(event, sizeof(event), "delta = %llu ms %s",
 	                 (now - last) / 2260000, buf);
-	Thread_base::trace(event);
+	Thread::trace(event);
 	last = now;
 }
 

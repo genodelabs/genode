@@ -29,7 +29,7 @@ namespace Fiasco {
 using namespace Genode;
 
 
-void Thread_base::_deinit_platform_thread()
+void Thread::_deinit_platform_thread()
 {
 	using namespace Fiasco;
 
@@ -41,7 +41,7 @@ void Thread_base::_deinit_platform_thread()
 }
 
 
-void Thread_base::_init_platform_thread(size_t weight, Type type)
+void Thread::_init_platform_thread(size_t weight, Type type)
 {
 	/* if no cpu session is given, use it from the environment */
 	if (!_cpu_session)
@@ -50,10 +50,8 @@ void Thread_base::_init_platform_thread(size_t weight, Type type)
 	if (type == NORMAL)
 	{
 		/* create thread at core */
-		char buf[48];
-		name(buf, sizeof(buf));
-		_thread_cap = _cpu_session->create_thread(env()->pd_session_cap(),
-		                                          weight, buf);
+		_thread_cap = _cpu_session->create_thread(env()->pd_session_cap(), name(),
+		                                          Location(), Weight(weight));
 
 		/* assign thread to protection domain */
 		if (!_thread_cap.valid())
@@ -74,7 +72,7 @@ void Thread_base::_init_platform_thread(size_t weight, Type type)
 }
 
 
-void Thread_base::start()
+void Thread::start()
 {
 	using namespace Fiasco;
 
@@ -98,7 +96,7 @@ void Thread_base::start()
 }
 
 
-void Thread_base::cancel_blocking()
+void Thread::cancel_blocking()
 {
 	_cpu_session->cancel_blocking(_thread_cap);
 }

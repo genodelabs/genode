@@ -11,6 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
 #include <util/retry.h>
 #include <base/env.h>
 #include <base/signal.h>
@@ -20,11 +21,12 @@
 #include <signal_source/client.h>
 #include <util/volatile_object.h>
 
+/* base-internal includes */
+#include <base/internal/globals.h>
+
 using namespace Genode;
 
-enum { STACK_SIZE = 4*1024*sizeof(addr_t) };
-
-class Signal_handler_thread : Thread<STACK_SIZE>, Lock
+class Signal_handler_thread : Thread, Lock
 {
 	private:
 
@@ -44,13 +46,15 @@ class Signal_handler_thread : Thread<STACK_SIZE>, Lock
 			Signal_receiver::dispatch_signals(&(*_signal_source));
 		}
 
+		enum { STACK_SIZE = 4*1024*sizeof(addr_t) };
+
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Signal_handler_thread()
-		: Thread<STACK_SIZE>("signal handler"), Lock(Lock::LOCKED)
+		Signal_handler_thread(Env &env)
+		: Thread(env, "signal handler", STACK_SIZE), Lock(Lock::LOCKED)
 		{
 			start();
 
@@ -92,10 +96,10 @@ namespace Genode {
 	 * We allow this function to be overridden in to enable core to omit the
 	 * creation of the signal thread.
 	 */
-	void init_signal_thread() __attribute__((weak));
-	void init_signal_thread()
+	void init_signal_thread(Env &env) __attribute__((weak));
+	void init_signal_thread(Env &env)
 	{
-		signal_handler_thread().construct();
+		signal_handler_thread().construct(env);
 	}
 
 	void destroy_signal_thread()

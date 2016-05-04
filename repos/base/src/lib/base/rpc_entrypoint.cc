@@ -60,7 +60,7 @@ void Rpc_entrypoint::activate()
 
 bool Rpc_entrypoint::is_myself() const
 {
-	return (Thread_base::myself() == this);
+	return (Thread::myself() == this);
 }
 
 
@@ -68,13 +68,13 @@ Rpc_entrypoint::Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
                                char const *name, bool start_on_construction,
                                Affinity::Location location)
 :
-	Thread_base(Cpu_session::DEFAULT_WEIGHT, name, stack_size, location),
+	Thread(Cpu_session::Weight::DEFAULT_WEIGHT, name, stack_size, location),
 	_cap(Untyped_capability()),
 	_cap_valid(Lock::LOCKED), _delay_start(Lock::LOCKED),
 	_delay_exit(Lock::LOCKED),
 	_pd_session(*pd_session)
 {
-	Thread_base::start();
+	Thread::start();
 	_block_until_cap_valid();
 
 	if (start_on_construction)

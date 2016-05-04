@@ -33,7 +33,7 @@ static inline void thread_yield() {
  * Return kernel name of thread t
  */
 static inline Kernel::capid_t
-native_thread_id(Genode::Thread_base * const t)
+native_thread_id(Genode::Thread * const t)
 {
 	return t ? t->native_thread().cap.dst() : Hw::_main_thread_cap.dst();
 }
@@ -42,7 +42,7 @@ native_thread_id(Genode::Thread_base * const t)
 /**
  * Yield execution time-slice of current thread to thread t
  */
-static inline void thread_switch_to(Genode::Thread_base * const t)
+static inline void thread_switch_to(Genode::Thread * const t)
 {
 	Kernel::yield_thread(native_thread_id(t));
 }
@@ -52,7 +52,7 @@ static inline void thread_switch_to(Genode::Thread_base * const t)
  * Resume thread t and return wether t was paused or not
  */
 static inline bool
-thread_check_stopped_and_restart(Genode::Thread_base * const t)
+thread_check_stopped_and_restart(Genode::Thread * const t)
 {
 	return Kernel::resume_local_thread(native_thread_id(t));
 }

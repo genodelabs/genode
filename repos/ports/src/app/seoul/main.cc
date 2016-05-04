@@ -90,13 +90,13 @@ Genode::Lock *utcb_lock()
 
 
 /* timer service */
-using Genode::Thread;
+using Genode::Thread_deprecated;
 using Genode::Alarm_scheduler;
 using Genode::Alarm;
 
 typedef Genode::Synced_interface<TimeoutList<32, void> > Synced_timeout_list;
 
-class Alarm_thread : Thread<4096>, public Alarm_scheduler
+class Alarm_thread : Thread_deprecated<4096>, public Alarm_scheduler
 {
 	private:
 
@@ -135,7 +135,7 @@ class Alarm_thread : Thread<4096>, public Alarm_scheduler
 		 * Constructor
 		 */
 		Alarm_thread(Synced_motherboard &mb, Synced_timeout_list &timeouts)
-		: Thread("alarm"), _curr_time(0), _motherboard(mb), _timeouts(timeouts)
+		: Thread_deprecated("alarm"), _curr_time(0), _motherboard(mb), _timeouts(timeouts)
 		{ start(); }
 
 		Alarm::Time curr_time() { return _curr_time; }
@@ -253,7 +253,7 @@ class Guest_memory
 };
 
 
-typedef Vmm::Vcpu_dispatcher<Genode::Thread_base> Vcpu_handler;
+typedef Vmm::Vcpu_dispatcher<Genode::Thread> Vcpu_handler;
 
 class Vcpu_dispatcher : public Vcpu_handler,
                         public StaticReceiver<Vcpu_dispatcher>
@@ -283,7 +283,7 @@ class Vcpu_dispatcher : public Vcpu_handler,
 		 ***************/
 
 		static ::Utcb *_utcb_of_myself() {
-			return (::Utcb *)Genode::Thread_base::myself()->utcb(); }
+			return (::Utcb *)Genode::Thread::myself()->utcb(); }
 
 
 		/***********************************
@@ -1149,7 +1149,7 @@ class Machine : public StaticReceiver<Machine>
 			Genode::Lock::Guard guard(*utcb_lock());
 
 			Vmm::Utcb_guard utcb_guard(utcb_backup);
-			utcb_backup = *(Utcb_backup *)Genode::Thread_base::myself()->utcb();
+			utcb_backup = *(Utcb_backup *)Genode::Thread::myself()->utcb();
 
 			if (!_rtc) {
 				try {
@@ -1158,7 +1158,7 @@ class Machine : public StaticReceiver<Machine>
 					Logging::printf("No RTC present, returning dummy time.\n");
 					msg.wallclocktime = msg.timestamp = 0;
 
-					*(Utcb_backup *)Genode::Thread_base::myself()->utcb() = utcb_backup;
+					*(Utcb_backup *)Genode::Thread::myself()->utcb() = utcb_backup;
 
 					return true;
 				}
@@ -1172,7 +1172,7 @@ class Machine : public StaticReceiver<Machine>
 			Logging::printf("Got time %llx\n", msg.wallclocktime);
 			msg.timestamp = _unsynchronized_motherboard.clock()->clock(MessageTime::FREQUENCY);
 
-			*(Utcb_backup *)Genode::Thread_base::myself()->utcb() = utcb_backup;
+			*(Utcb_backup *)Genode::Thread::myself()->utcb() = utcb_backup;
 
 			return true;
 		}
@@ -1419,7 +1419,7 @@ int main(int argc, char **argv)
 		 * with the actual VM size which is determined below inside this scope.
 		 */
 		Vmm::Virtual_reservation
-			reservation(Genode::Thread_base::stack_area_virtual_base());
+			reservation(Genode::Thread::stack_area_virtual_base());
 
 		Genode::printf("--- Vancouver VMM starting ---\n");
 
@@ -1473,9 +1473,9 @@ int main(int argc, char **argv)
 		               fb_size / 1024 / 1024);
 
 	Genode::printf("[0x%012lx, 0x%012lx) - Genode stack area\n",
-	                Genode::Thread_base::stack_area_virtual_base(),
-	                Genode::Thread_base::stack_area_virtual_base() +
-	                Genode::Thread_base::stack_area_virtual_size());
+	                Genode::Thread::stack_area_virtual_base(),
+	                Genode::Thread::stack_area_virtual_base() +
+	                Genode::Thread::stack_area_virtual_size());
 
 	Genode::printf("[0x%012lx, 0x%012lx) - VMM program image\n",
 	               (Genode::addr_t)&_prog_img_beg,

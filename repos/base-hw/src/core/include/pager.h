@@ -197,7 +197,7 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry,
 
 
 class Genode::Pager_entrypoint : public Object_pool<Pager_object>,
-                                 public Thread<PAGER_EP_STACK_SIZE>,
+                                 public Thread_deprecated<PAGER_EP_STACK_SIZE>,
                                  public Kernel_object<Kernel::Signal_receiver>,
                                  public Ipc_pager
 {

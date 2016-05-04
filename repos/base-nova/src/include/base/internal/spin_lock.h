@@ -34,7 +34,7 @@ static inline void spinlock_lock(volatile T *lock_variable)
 {
 	using Genode::cmpxchg;
 
-	Genode::Thread_base * myself = Genode::Thread_base::myself();
+	Genode::Thread * myself = Genode::Thread::myself();
 	T const tid = myself ? myself->native_thread().ec_sel : Nova::PT_SEL_MAIN_EC;
 
 	unsigned help_counter = 0;
@@ -77,7 +77,7 @@ static inline void spinlock_unlock(volatile T *lock_variable)
 {
 	using Nova::Utcb;
 
-	Genode::Thread_base * myself = Genode::Thread_base::myself();
+	Genode::Thread * myself = Genode::Thread::myself();
 	Utcb * utcb = myself ? reinterpret_cast<Utcb *>(myself->utcb()) : 0;
 
 	/* unlock */

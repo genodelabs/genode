@@ -21,7 +21,7 @@ using namespace Genode;
 
 namespace Gdb_monitor {
 
-	class Signal_handler_thread : public Thread<2*4096>
+	class Signal_handler_thread : public Thread_deprecated<2*4096>
 	{
 		private:
 

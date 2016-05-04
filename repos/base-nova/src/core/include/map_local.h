@@ -38,7 +38,7 @@ namespace Genode {
 	inline bool map_local(addr_t from_phys, addr_t to_virt, size_t num_pages,
 	                      bool read = true, bool write = true, bool exec = true)
 	{
-		return (::map_local((Nova::Utcb *)Thread_base::myself()->utcb(),
+		return (::map_local((Nova::Utcb *)Thread::myself()->utcb(),
 		                    from_phys, to_virt, num_pages,
 		                    Nova::Rights(read, write, exec), true) == 0);
 	}
@@ -51,7 +51,7 @@ namespace Genode {
 	 */
 	inline void unmap_local(addr_t virt, size_t num_pages)
 	{
-		::unmap_local((Nova::Utcb *)Thread_base::myself()->utcb(),
+		::unmap_local((Nova::Utcb *)Thread::myself()->utcb(),
 		               virt, num_pages);
 	}
 }

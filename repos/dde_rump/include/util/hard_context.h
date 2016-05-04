@@ -54,7 +54,7 @@ class Hard_context
 
 
 class Hard_context_thread : public Hard_context,
-                            public Genode::Thread<sizeof(Genode::addr_t) * 2048>
+                            public Genode::Thread_deprecated<sizeof(Genode::addr_t) * 2048>
 {
 	private:
 
@@ -72,7 +72,7 @@ class Hard_context_thread : public Hard_context,
 	public:
 
 		Hard_context_thread(char const *name, func f, void *arg, int cookie, bool run = true)
-		: Hard_context(cookie), Thread(name),
+		: Hard_context(cookie), Thread_deprecated(name),
 			_func(f), _arg(arg) { if (run) start(); }
 };
 

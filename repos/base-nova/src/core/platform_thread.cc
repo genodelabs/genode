@@ -62,7 +62,7 @@ int Platform_thread::start(void *ip, void *sp)
 	}
 
 	addr_t const pt_oom = _pager->get_oom_portal();
-	if (!pt_oom || map_local((Utcb *)Thread_base::myself()->utcb(),
+	if (!pt_oom || map_local((Utcb *)Thread::myself()->utcb(),
 	                         Obj_crd(pt_oom, 0), Obj_crd(_sel_pt_oom(), 0))) {
 		PERR("setup of out-of-memory notification portal - failed");
 		return -8;
@@ -124,7 +124,7 @@ int Platform_thread::start(void *ip, void *sp)
 
 		/* remap exception portals for first thread */
 		for (unsigned i = 0; i < sizeof(remap_dst)/sizeof(remap_dst[0]); i++) {
-			if (map_local((Utcb *)Thread_base::myself()->utcb(),
+			if (map_local((Utcb *)Thread::myself()->utcb(),
 			              Obj_crd(remap_src[i], 0),
 			              Obj_crd(_sel_exc_base + remap_dst[i], 0)))
 				return -6;

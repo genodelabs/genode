@@ -18,7 +18,7 @@
 
 namespace Genode { class Irq_object; }
 
-class Genode::Irq_object : public Thread<4096> {
+class Genode::Irq_object : public Thread_deprecated<4096> {
 
 	private:
 

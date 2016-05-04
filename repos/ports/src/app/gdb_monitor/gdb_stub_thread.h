@@ -27,7 +27,7 @@ namespace Gdb_monitor {
 
 	enum { GDB_STUB_STACK_SIZE = 4*4096 };
 
-	class Gdb_stub_thread : public Thread<GDB_STUB_STACK_SIZE>
+	class Gdb_stub_thread : public Thread_deprecated<GDB_STUB_STACK_SIZE>
 	{
 		private:
 

@@ -38,7 +38,7 @@ static inline void thread_yield()
 }
 
 
-static inline bool thread_check_stopped_and_restart(Genode::Thread_base *thread_base)
+static inline bool thread_check_stopped_and_restart(Genode::Thread *thread_base)
 {
 	const int *futex_counter_ptr = thread_base ?
 	                               &thread_base->native_thread().futex_counter :
@@ -47,7 +47,7 @@ static inline bool thread_check_stopped_and_restart(Genode::Thread_base *thread_
 }
 
 
-static inline void thread_switch_to(Genode::Thread_base *thread_base)
+static inline void thread_switch_to(Genode::Thread *thread_base)
 {
 	thread_yield();
 }
@@ -60,7 +60,7 @@ static inline void thread_stop_myself()
 	 * 'thread_check_stopped_and_restart()' function will get called
 	 * repeatedly until this thread has actually executed the syscall.
 	 */
-	Genode::Thread_base *myself = Genode::Thread_base::myself();
+	Genode::Thread *myself = Genode::Thread::myself();
 	const int *futex_counter_ptr = myself ?
 	                               &myself->native_thread().futex_counter :
 	                               &main_thread_futex_counter;

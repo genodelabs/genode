@@ -20,7 +20,7 @@ using namespace Gdb_monitor;
 
 Gdb_stub_thread::Gdb_stub_thread()
 :
-	Thread<GDB_STUB_STACK_SIZE>("GDB server thread"),
+	Thread_deprecated<GDB_STUB_STACK_SIZE>("GDB server thread"),
 	_cpu_session_component(0),
 	_region_map_component(0),
 	_signal_handler_thread(&_exception_signal_receiver)

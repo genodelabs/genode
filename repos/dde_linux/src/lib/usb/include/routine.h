@@ -62,7 +62,7 @@ class Routine : public Genode::List<Routine>::Element
 			/* will never return */
 			if (!_started) {
 				_started = true;
-				Genode::Thread_base *th = Genode::Thread_base::myself();
+				Genode::Thread *th = Genode::Thread::myself();
 				_stack = (char *) th->alloc_secondary_stack(_name, STACK_SIZE);
 
 				if (verbose)
@@ -121,7 +121,7 @@ class Routine : public Genode::List<Routine>::Element
 		~Routine()
 		{
 			if (_stack)
-				Genode::Thread_base::myself()->free_secondary_stack(_stack);
+				Genode::Thread::myself()->free_secondary_stack(_stack);
 		}
 
 		/**

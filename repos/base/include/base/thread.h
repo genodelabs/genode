@@ -26,25 +26,30 @@
 namespace Genode {
 	struct Native_utcb;
 	struct Native_thread;
-	class Thread_base;
+	class Thread;
 	class Stack;
-	template <unsigned> class Thread;
+	class Env;
+	template <unsigned> class Thread_deprecated;
 }
 
 
 /**
  * Concurrent flow of control
  *
- * A 'Thread_base' object corresponds to a physical thread. The execution
+ * A 'Thread' object corresponds to a physical thread. The execution
  * starts at the 'entry()' method as soon as 'start()' is called.
  */
-class Genode::Thread_base
+class Genode::Thread
 {
 	public:
 
 		class Out_of_stack_space : public Exception { };
 		class Stack_too_large    : public Exception { };
 		class Stack_alloc_failed : public Exception { };
+
+		typedef Affinity::Location  Location;
+		typedef Cpu_session::Name   Name;
+		typedef Cpu_session::Weight Weight;
 
 	private:
 
@@ -157,12 +162,16 @@ class Genode::Thread_base
 		 *        gets skipped but we should at least set Stack::ds_cap in a
 		 *        way that it references the dataspace of the already attached
 		 *        stack.
+		 *
+		 * \deprecated  superseded by the 'Thread(Env &...' constructor
 		 */
-		Thread_base(size_t weight, const char *name, size_t stack_size,
-		            Type type, Affinity::Location affinity = Affinity::Location());
+		Thread(size_t weight, const char *name, size_t stack_size,
+		       Type type, Affinity::Location affinity = Affinity::Location());
 
 		/**
 		 * Constructor
+		 *
+		 * \noapi
 		 *
 		 * \param weight      weighting regarding the CPU session quota
 		 * \param name        thread name (for debugging)
@@ -176,10 +185,12 @@ class Genode::Thread_base
 		 * of the component environment. A small portion of the stack size is
 		 * internally used by the framework for storing thread-specific
 		 * information such as the thread's name.
+		 *
+		 * \deprecated  superseded by the 'Thread(Env &...' constructor
 		 */
-		Thread_base(size_t weight, const char *name, size_t stack_size,
-		            Affinity::Location affinity = Affinity::Location())
-		: Thread_base(weight, name, stack_size, NORMAL, affinity) { }
+		Thread(size_t weight, const char *name, size_t stack_size,
+		       Affinity::Location affinity = Affinity::Location())
+		: Thread(weight, name, stack_size, NORMAL, affinity) { }
 
 		/**
 		 * Constructor
@@ -199,15 +210,51 @@ class Genode::Thread_base
 		 * \throw Stack_too_large
 		 * \throw Stack_alloc_failed
 		 * \throw Out_of_stack_space
+		 *
+		 * \deprecated  superseded by the 'Thread(Env &...' constructor
 		 */
-		Thread_base(size_t weight, const char *name, size_t stack_size,
-		            Type type, Cpu_session *,
-		            Affinity::Location affinity = Affinity::Location());
+		Thread(size_t weight, const char *name, size_t stack_size,
+		       Type type, Cpu_session *,
+		       Affinity::Location affinity = Affinity::Location());
+
+		/**
+		 * Constructor
+		 *
+		 * \param env         component environment
+		 * \param name        thread name, used for debugging
+		 * \param stack_size  stack size
+		 * \param location    CPU affinity relative to the CPU-session's
+		 *                    affinity space
+		 * \param weight      scheduling weight relative to the other threads
+		 *                    sharing the same CPU session
+		 * \param cpu_session CPU session used to create the thread. Normally
+		 *                    'env.cpu()' should be specified.
+		 *
+		 * The 'env' argument is needed because the thread creation procedure
+		 * needs to interact with the environment for attaching the thread's
+		 * stack, the trace-control dataspace, and the thread's trace buffer
+		 * and policy.
+		 *
+		 * \throw Stack_too_large
+		 * \throw Stack_alloc_failed
+		 * \throw Out_of_stack_space
+		 */
+		Thread(Env &env, Name const &name, size_t stack_size, Location location,
+		       Weight weight, Cpu_session &cpu);
+
+		/**
+		 * Constructor
+		 *
+		 * This is a shortcut for the common case of creating a thread via
+		 * the environment's CPU session, at the default affinity location, and
+		 * with the default weight.
+		 */
+		Thread(Env &env, Name const &name, size_t stack_size);
 
 		/**
 		 * Destructor
 		 */
-		virtual ~Thread_base();
+		virtual ~Thread();
 
 		/**
 		 * Entry method of the thread
@@ -224,8 +271,16 @@ class Genode::Thread_base
 
 		/**
 		 * Request name of thread
+		 *
+		 * \noapi
+		 * \deprecated  use the 'Name name() const' method instead
 		 */
 		void name(char *dst, size_t dst_len);
+
+		/**
+		 * Request name of thread
+		 */
+		Name name() const;
 
 		/**
 		 * Add an additional stack to the thread
@@ -293,11 +348,11 @@ class Genode::Thread_base
 		static size_t stack_area_virtual_size();
 
 		/**
-		 * Return 'Thread_base' object corresponding to the calling thread
+		 * Return 'Thread' object corresponding to the calling thread
 		 *
-		 * \return  pointer to caller's 'Thread_base' object
+		 * \return  pointer to caller's 'Thread' object
 		 */
-		static Thread_base *myself();
+		static Thread *myself();
 
 		/**
 		 * Ensure that the stack has a given size at the minimum
@@ -352,7 +407,7 @@ class Genode::Thread_base
 
 
 template <unsigned STACK_SIZE>
-class Genode::Thread : public Thread_base
+class Genode::Thread_deprecated : public Thread
 {
 	public:
 
@@ -363,8 +418,8 @@ class Genode::Thread : public Thread_base
 		 * \param name      thread name (for debugging)
 		 * \param type      enables selection of special construction
 		 */
-		explicit Thread(size_t weight, const char *name)
-		: Thread_base(weight, name, STACK_SIZE, Type::NORMAL) { }
+		explicit Thread_deprecated(size_t weight, const char *name)
+		: Thread(weight, name, STACK_SIZE, Type::NORMAL) { }
 
 		/**
 		 * Constructor
@@ -375,8 +430,8 @@ class Genode::Thread : public Thread_base
 		 *
 		 * \noapi
 		 */
-		explicit Thread(size_t weight, const char *name, Type type)
-		: Thread_base(weight, name, STACK_SIZE, type) { }
+		explicit Thread_deprecated(size_t weight, const char *name, Type type)
+		: Thread(weight, name, STACK_SIZE, type) { }
 
 		/**
 		 * Constructor
@@ -387,25 +442,25 @@ class Genode::Thread : public Thread_base
 		 *
 		 * \noapi
 		 */
-		explicit Thread(size_t weight, const char *name,
+		explicit Thread_deprecated(size_t weight, const char *name,
 		                Cpu_session * cpu_session)
-		: Thread_base(weight, name, STACK_SIZE, Type::NORMAL, cpu_session) { }
+		: Thread(weight, name, STACK_SIZE, Type::NORMAL, cpu_session) { }
 
 		/**
 		 * Shortcut for 'Thread(DEFAULT_WEIGHT, name, type)'
 		 *
 		 * \noapi
 		 */
-		explicit Thread(const char *name, Type type = NORMAL)
-		: Thread_base(Cpu_session::DEFAULT_WEIGHT, name, STACK_SIZE, type) { }
+		explicit Thread_deprecated(const char *name, Type type = NORMAL)
+		: Thread(Weight::DEFAULT_WEIGHT, name, STACK_SIZE, type) { }
 
 		/**
 		 * Shortcut for 'Thread(DEFAULT_WEIGHT, name, cpu_session)'
 		 *
 		 * \noapi
 		 */
-		explicit Thread(const char *name, Cpu_session * cpu_session)
-		: Thread_base(Cpu_session::DEFAULT_WEIGHT, name, STACK_SIZE,
+		explicit Thread_deprecated(const char *name, Cpu_session * cpu_session)
+		: Thread(Weight::DEFAULT_WEIGHT, name, STACK_SIZE,
 		              Type::NORMAL, cpu_session)
 		{ }
 };

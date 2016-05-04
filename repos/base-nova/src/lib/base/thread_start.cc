@@ -36,19 +36,17 @@ using namespace Genode;
 /**
  * Entry point entered by new threads
  */
-void Thread_base::_thread_start()
+void Thread::_thread_start()
 {
 	using namespace Genode;
 
 	/* catch any exception at this point and try to print an error message */
 	try {
-		Thread_base::myself()->entry();
+		Thread::myself()->entry();
 	} catch (...) {
-		char thread_name[48];
-		Thread_base::myself()->name(thread_name, sizeof(thread_name));
-
 		try {
-			PERR("Thread '%s' died because of an uncaught exception", thread_name);
+			PERR("Thread '%s' died because of an uncaught exception",
+			     Thread::myself()->name().string());
 		} catch (...) {
 			/* die in a noisy way */
 			nova_die();
@@ -57,7 +55,7 @@ void Thread_base::_thread_start()
 		throw;
 	}
 
-	Thread_base::myself()->_join_lock.unlock();
+	Thread::myself()->_join_lock.unlock();
 
 	/* sleep silently */
 	Genode::sleep_forever();
@@ -68,7 +66,7 @@ void Thread_base::_thread_start()
  ** Thread base **
  *****************/
 
-void Thread_base::_init_platform_thread(size_t weight, Type type)
+void Thread::_init_platform_thread(size_t weight, Type type)
 {
 	using namespace Nova;
 
@@ -113,16 +111,14 @@ void Thread_base::_init_platform_thread(size_t weight, Type type)
 		_cpu_session = env()->cpu_session();
 
 	/* create thread at core */
-	char buf[48];
-	name(buf, sizeof(buf));
-
-	_thread_cap = _cpu_session->create_thread(env()->pd_session_cap(), weight, buf, _affinity);
+	_thread_cap = _cpu_session->create_thread(env()->pd_session_cap(), name(),
+	                                          _affinity, Weight(weight));
 	if (!_thread_cap.valid())
 		throw Cpu_session::Thread_creation_failed();
 }
 
 
-void Thread_base::_deinit_platform_thread()
+void Thread::_deinit_platform_thread()
 {
 	using namespace Nova;
 
@@ -139,7 +135,7 @@ void Thread_base::_deinit_platform_thread()
 }
 
 
-void Thread_base::start()
+void Thread::start()
 {
 	if (native_thread().ec_sel < Native_thread::INVALID_INDEX - 1)
 		throw Cpu_session::Thread_creation_failed();
@@ -201,7 +197,7 @@ void Thread_base::start()
 }
 
 
-void Thread_base::cancel_blocking()
+void Thread::cancel_blocking()
 {
 	using namespace Nova;
 

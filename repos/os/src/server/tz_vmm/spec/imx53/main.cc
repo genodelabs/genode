@@ -45,7 +45,7 @@ namespace Vmm {
 }
 
 
-class Vmm::Vmm : public Thread<8192>
+class Vmm::Vmm : public Thread_deprecated<8192>
 {
 	private:
 
@@ -128,7 +128,7 @@ class Vmm::Vmm : public Thread<8192>
 	public:
 
 		Vmm(Vm *vm)
-		: Thread<8192>("vmm"),
+		: Thread_deprecated<8192>("vmm"),
 		  _vm(vm),
 		  _m4if_io_mem(Board_base::M4IF_BASE, Board_base::M4IF_SIZE),
 		  _m4if((addr_t)env()->rm_session()->attach(_m4if_io_mem.dataspace()))

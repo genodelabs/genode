@@ -33,11 +33,11 @@ namespace L4lx {
 	extern Genode::Cpu_session *cpu_connection();
 
 
-	class Vcpu : public Genode::Thread_base
+	class Vcpu : public Genode::Thread
 	{
 		private:
 
-			enum { WEIGHT = Genode::Cpu_session::DEFAULT_WEIGHT };
+			enum { WEIGHT = Genode::Cpu_session::Weight::DEFAULT_WEIGHT };
 
 			Genode::Lock                _lock;
 			L4_CV void                (*_func)(void *data);
@@ -55,8 +55,8 @@ namespace L4lx {
 			     Genode::size_t              stack_size,
 			     Genode::addr_t              vcpu_state,
 			     unsigned                    cpu_nr)
-			: Genode::Thread_base(WEIGHT, str, stack_size,
-			                      Genode::Affinity::Location(cpu_nr, 0)),
+			: Genode::Thread(WEIGHT, str, stack_size,
+			                 Genode::Affinity::Location(cpu_nr, 0)),
 			  _lock(Genode::Cancelable_lock::LOCKED),
 			  _func(func),
 			  _data(data ? *data : 0),

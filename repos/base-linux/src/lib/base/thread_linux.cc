@@ -47,7 +47,7 @@ static void thread_exit_signal_handler(int) { lx_exit(0); }
 
 static char signal_stack[0x2000] __attribute__((aligned(0x1000)));
 
-void Thread_base::_thread_start()
+void Thread::_thread_start()
 {
 	lx_sigaltstack(signal_stack, sizeof(signal_stack));
 
@@ -57,7 +57,7 @@ void Thread_base::_thread_start()
 	 */
 	lx_sigaction(LX_SIGUSR1, empty_signal_handler);
 
-	Thread_base * const thread = Thread_base::myself();
+	Thread * const thread = Thread::myself();
 
 	/* inform core about the new thread and process ID of the new thread */
 	Linux_native_cpu_client native_cpu(thread->_cpu_session->native_cpu());
@@ -75,7 +75,7 @@ void Thread_base::_thread_start()
 }
 
 
-void Thread_base::_init_platform_thread(size_t weight, Type type)
+void Thread::_init_platform_thread(size_t weight, Type type)
 {
 	/* if no cpu session is given, use it from the environment */
 	if (!_cpu_session)
@@ -84,7 +84,9 @@ void Thread_base::_init_platform_thread(size_t weight, Type type)
 	/* for normal threads create an object at the CPU session */
 	if (type == NORMAL) {
 		_thread_cap = _cpu_session->create_thread(env()->pd_session_cap(),
-		                                          weight, _stack->name().string());
+		                                          _stack->name().string(),
+		                                          Affinity::Location(),
+		                                          Weight());
 		return;
 	}
 	/* adjust initial object state for main threads */
@@ -93,7 +95,7 @@ void Thread_base::_init_platform_thread(size_t weight, Type type)
 }
 
 
-void Thread_base::_deinit_platform_thread()
+void Thread::_deinit_platform_thread()
 {
 	/*
 	 * Kill thread until it is really really dead
@@ -124,7 +126,7 @@ void Thread_base::_deinit_platform_thread()
 }
 
 
-void Thread_base::start()
+void Thread::start()
 {
 	/* synchronize calls of the 'start' function */
 	static Lock lock;
@@ -142,7 +144,7 @@ void Thread_base::start()
 		threadlib_initialized = true;
 	}
 
-	native_thread().tid = lx_create_thread(Thread_base::_thread_start, stack_top(), this);
+	native_thread().tid = lx_create_thread(Thread::_thread_start, stack_top(), this);
 	native_thread().pid = lx_getpid();
 
 	/* wait until the 'thread_start' function got entered */
@@ -150,7 +152,7 @@ void Thread_base::start()
 }
 
 
-void Thread_base::cancel_blocking()
+void Thread::cancel_blocking()
 {
 	_cpu_session->cancel_blocking(_thread_cap);
 }

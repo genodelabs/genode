@@ -23,11 +23,11 @@
 int test_var = 1;
 
 /* a thread to test GDB thread switching support */
-class Test_thread : public Genode::Thread<2*4096>
+class Test_thread : public Genode::Thread_deprecated<2*4096>
 {
 	public:
 
-		Test_thread() : Thread("test") { }
+		Test_thread() : Thread_deprecated("test") { }
 
 		void func()
 		{

@@ -45,12 +45,12 @@ inline void Vmm::printf(const char *format, ...)
 
 	Lock::Guard guard(lock);
 
-	utcb_backup = *(Utcb_backup *)Thread_base::myself()->utcb();
+	utcb_backup = *(Utcb_backup *)Thread::myself()->utcb();
 
 	Genode::printf("VMM: ");
 	Genode::vprintf(format, list);
 
-	*(Utcb_backup *)Thread_base::myself()->utcb() = utcb_backup;
+	*(Utcb_backup *)Thread::myself()->utcb() = utcb_backup;
 
 	va_end(list);
 }

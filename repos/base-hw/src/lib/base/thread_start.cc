@@ -30,21 +30,20 @@ namespace Hw {
 	extern Untyped_capability       _main_thread_cap;
 }
 
-/*****************
- ** Thread_base **
- *****************/
+/************
+ ** Thread **
+ ************/
 
-void Thread_base::_init_platform_thread(size_t weight, Type type)
+void Thread::_init_platform_thread(size_t weight, Type type)
 {
 	if (!_cpu_session) { _cpu_session = env()->cpu_session(); }
 	if (type == NORMAL) {
 
 		/* create server object */
-		char buf[48];
-		name(buf, sizeof(buf));
 		addr_t const utcb = (addr_t)&_stack->utcb();
 		_thread_cap = _cpu_session->create_thread(env()->pd_session_cap(),
-		                                          weight, buf, _affinity, utcb);
+		                                          name(), _affinity,
+		                                          Weight(weight), utcb);
 		return;
 	}
 	/* if we got reinitialized we have to get rid of the old UTCB */
@@ -67,7 +66,7 @@ void Thread_base::_init_platform_thread(size_t weight, Type type)
 }
 
 
-void Thread_base::_deinit_platform_thread()
+void Thread::_deinit_platform_thread()
 {
 	if (!_cpu_session)
 		_cpu_session = env()->cpu_session();
@@ -82,7 +81,7 @@ void Thread_base::_deinit_platform_thread()
 }
 
 
-void Thread_base::start()
+void Thread::start()
 {
 	/* attach userland stack */
 	try {
@@ -100,7 +99,7 @@ void Thread_base::start()
 }
 
 
-void Thread_base::cancel_blocking()
+void Thread::cancel_blocking()
 {
 	_cpu_session->cancel_blocking(_thread_cap);
 }

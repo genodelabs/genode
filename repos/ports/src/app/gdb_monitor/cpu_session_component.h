@@ -56,7 +56,8 @@ class Cpu_session_component : public Rpc_object<Cpu_session>
 		 ** CPU session interface **
 		 ***************************/
 
-		Thread_capability create_thread(Capability<Pd_session>, size_t, Name const &, Affinity::Location, addr_t) override;
+		Thread_capability create_thread(Capability<Pd_session>, Name const &,
+		                                Affinity::Location, Weight, addr_t) override;
 		Ram_dataspace_capability utcb(Thread_capability thread) override;
 		void kill_thread(Thread_capability) override;
 		int start(Thread_capability, addr_t, addr_t) override;

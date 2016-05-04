@@ -43,7 +43,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 		rcv_window.rcv_wnd(log2_max);
 	}
 
-	Nova::Utcb &utcb = *(Nova::Utcb *)Thread_base::myself()->utcb();
+	Nova::Utcb &utcb = *(Nova::Utcb *)Thread::myself()->utcb();
 
 	/* the protocol value is unused as the badge is delivered by the kernel */
 	if (!copy_msgbuf_to_utcb(utcb, snd_msg, 0)) {

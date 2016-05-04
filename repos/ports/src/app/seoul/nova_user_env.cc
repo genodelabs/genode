@@ -46,12 +46,12 @@ void Logging::printf(const char *format, ...)
 
 	Genode::Lock::Guard guard(*printf_lock());
 
-	utcb_backup = *(Utcb_backup *)Genode::Thread_base::myself()->utcb();
+	utcb_backup = *(Utcb_backup *)Genode::Thread::myself()->utcb();
 
 	Genode::printf("VMM: ");
 	Genode::vprintf(format, list);
 
-	*(Utcb_backup *)Genode::Thread_base::myself()->utcb() = utcb_backup;
+	*(Utcb_backup *)Genode::Thread::myself()->utcb() = utcb_backup;
 
 	va_end(list);
 }
@@ -61,13 +61,13 @@ void Logging::vprintf(const char *format, va_list &ap)
 {
 	Genode::Lock::Guard guard(*printf_lock());
 
-	utcb_backup = *(Utcb_backup *)Genode::Thread_base::myself()->utcb();
+	utcb_backup = *(Utcb_backup *)Genode::Thread::myself()->utcb();
 
 	Genode::printf("VMM: ");
 	Genode::printf(format);
 	PWRN("Logging::vprintf not implemented");
 
-	*(Utcb_backup *)Genode::Thread_base::myself()->utcb() = utcb_backup;
+	*(Utcb_backup *)Genode::Thread::myself()->utcb() = utcb_backup;
 }
 
 

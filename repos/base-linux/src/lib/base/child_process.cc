@@ -37,7 +37,7 @@ Child::Process::Initial_thread::Initial_thread(Cpu_session          &cpu,
                                                char           const *name)
 :
 	cpu(cpu),
-	cap(cpu.create_thread(pd, Cpu_session::DEFAULT_WEIGHT, name))
+	cap(cpu.create_thread(pd, name, Affinity::Location(), Cpu_session::Weight()))
 { }
 
 

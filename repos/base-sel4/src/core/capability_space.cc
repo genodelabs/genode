@@ -122,7 +122,7 @@ Capability_space::create_rpc_obj_cap(Native_capability ep_cap,
  ** Implementation of the Capability_space interface **
  ******************************************************/
 
-Native_capability Capability_space::create_ep_cap(Thread_base &ep_thread)
+Native_capability Capability_space::create_ep_cap(Thread &ep_thread)
 {
 	Cap_sel const ep_sel(ep_thread.native_thread().ep_sel);
 

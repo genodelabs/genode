@@ -17,7 +17,7 @@
 /* core includes */
 #include <kernel/thread_event.h>
 
-namespace Kernel { class Thread_base; }
+namespace Kernel { class Thread; }
 
 /**
  * Hardware specific base of kernel thread-objects

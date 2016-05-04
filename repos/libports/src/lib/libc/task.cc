@@ -73,8 +73,8 @@ class Libc::Task : public Genode::Rpc_object<Task_resume, Libc::Task>
 		jmp_buf _app_task;
 
 		void *_app_stack = {
-			Genode::Thread_base::myself()->alloc_secondary_stack(Component::name(),
-			                                                     Component::stack_size()) };
+			Genode::Thread::myself()->alloc_secondary_stack(Component::name(),
+			                                                Component::stack_size()) };
 
 		/**
 		 * Libc context

@@ -31,7 +31,7 @@ namespace Genode { namespace Capability_space {
 	/**
 	 * Create capability for RPC entrypoint thread
 	 */
-	Native_capability create_ep_cap(Thread_base &ep_thread);
+	Native_capability create_ep_cap(Thread &ep_thread);
 
 	/**
 	 * Increment reference counter

@@ -137,7 +137,7 @@ int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 	/*
 	 * Populate the thread's IPC buffer with initial information about the
 	 * thread. Once started, the thread picks up this information in the
-	 * 'Thread_base::_thread_bootstrap' method.
+	 * 'Thread::_thread_bootstrap' method.
 	 */
 	prepopulate_ipc_buffer(_info.ipc_buffer_phys, _ep_sel);
 

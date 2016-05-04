@@ -48,7 +48,7 @@ static inline void thread_yield() { Fiasco::l4_thread_yield(); }
  *
  * \return true if the thread was in blocking state
  */
-static inline bool thread_check_stopped_and_restart(Genode::Thread_base *thread_base)
+static inline bool thread_check_stopped_and_restart(Genode::Thread *thread_base)
 {
 	Fiasco::l4_cap_idx_t tid = thread_base ?
 	                           thread_base->native_thread().kcap :
@@ -62,7 +62,7 @@ static inline bool thread_check_stopped_and_restart(Genode::Thread_base *thread_
 /**
  * Yield CPU time to the specified thread
  */
-static inline void thread_switch_to(Genode::Thread_base *thread_base)
+static inline void thread_switch_to(Genode::Thread *thread_base)
 {
 	Fiasco::l4_cap_idx_t tid = thread_base ?
 	                           thread_base->native_thread().kcap :
@@ -83,7 +83,7 @@ static void thread_stop_myself()
 {
 	using namespace Fiasco;
 
-	Genode::Thread_base *myself = Genode::Thread_base::myself();
+	Genode::Thread *myself = Genode::Thread::myself();
 	Fiasco::l4_cap_idx_t tid = myself ?
 	                           myself->native_thread().kcap :
 	                           Fiasco::MAIN_THREAD_CAP;

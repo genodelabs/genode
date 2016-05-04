@@ -194,7 +194,7 @@ namespace Genode {
 		 * Filled out by 'thread_start' function in the stack of the new
 		 * thread
 		 */
-		Thread_base * const thread_base;
+		Thread * const thread_base;
 
 		/**
 		 * POSIX thread handle
@@ -204,9 +204,9 @@ namespace Genode {
 		/**
 		 * Constructor
 		 *
-		 * \param thread  associated 'Thread_base' object
+		 * \param thread  associated 'Thread' object
 		 */
-		Meta_data(Thread_base *thread) : thread_base(thread)
+		Meta_data(Thread *thread) : thread_base(thread)
 		{
 			native_thread.meta_data = this;
 		}
@@ -261,7 +261,7 @@ namespace Genode {
 
 		public:
 
-			Thread_meta_data_created(Thread_base *thread)
+			Thread_meta_data_created(Thread *thread)
 			: Native_thread::Meta_data(thread) { }
 
 			void wait_for_construction()
@@ -302,7 +302,7 @@ namespace Genode {
 	{
 		public:
 
-			Thread_meta_data_adopted(Thread_base *thread)
+			Thread_meta_data_adopted(Thread *thread)
 			: Native_thread::Meta_data(thread) { }
 
 			void wait_for_construction()
@@ -374,13 +374,13 @@ static void *thread_start(void *arg)
 
 	adopt_thread(meta_data);
 
-	/* unblock 'Thread_base' constructor */
+	/* unblock 'Thread' constructor */
 	meta_data->constructed();
 
-	/* block until the 'Thread_base::start' gets called */
+	/* block until the 'Thread::start' gets called */
 	meta_data->wait_for_start();
 
-	Thread_base::myself()->entry();
+	Thread::myself()->entry();
 
 	meta_data->joined();
 	return 0;
@@ -390,7 +390,7 @@ static void *thread_start(void *arg)
 extern "C" void *malloc(::size_t size);
 
 
-Thread_base *Thread_base::myself()
+Thread *Thread::myself()
 {
 	void * const tls = pthread_getspecific(tls_key());
 
@@ -406,26 +406,26 @@ Thread_base *Thread_base::myself()
 	 * Genode's thread API. This may happen if a native Linux library creates
 	 * threads via the pthread library. If such a thread calls Genode code,
 	 * which then tries to perform IPC, the program fails because there exists
-	 * no 'Thread_base' object. We recover from this unfortunate situation by
-	 * creating a dummy 'Thread_base' object and associate it with the calling
+	 * no 'Thread' object. We recover from this unfortunate situation by
+	 * creating a dummy 'Thread' object and associate it with the calling
 	 * thread.
 	 */
 
 	/*
-	 * Create dummy 'Thread_base' object but suppress the execution of its
+	 * Create dummy 'Thread' object but suppress the execution of its
 	 * constructor. If we called the constructor, we would create a new Genode
 	 * thread, which is not what we want. For the allocation, we use glibc
 	 * malloc because 'Genode::env()->heap()->alloc()' uses IPC.
 	 *
-	 * XXX  Both the 'Thread_base' and 'Native_thread::Meta_data' objects are
+	 * XXX  Both the 'Thread' and 'Native_thread::Meta_data' objects are
 	 *      never freed.
 	 */
-	Thread_base *thread = (Thread_base *)malloc(sizeof(Thread_base));
+	Thread *thread = (Thread *)malloc(sizeof(Thread));
 	memset(thread, 0, sizeof(*thread));
 	Native_thread::Meta_data *meta_data = new Thread_meta_data_adopted(thread);
 
 	/*
-	 * Initialize 'Thread_base::_native_thread' to point to the default-
+	 * Initialize 'Thread::_native_thread' to point to the default-
 	 * constructed 'Native_thread' (part of 'Meta_data').
 	 */
 	meta_data->thread_base->_native_thread = &meta_data->native_thread;
@@ -435,7 +435,7 @@ Thread_base *Thread_base::myself()
 }
 
 
-void Thread_base::start()
+void Thread::start()
 {
 	/*
 	 * Unblock thread that is supposed to slumber in 'thread_start'.
@@ -444,17 +444,17 @@ void Thread_base::start()
 }
 
 
-void Thread_base::join()
+void Thread::join()
 {
 	native_thread().meta_data->wait_for_join();
 }
 
 
-Native_thread &Thread_base::native_thread() { return *_native_thread; }
+Native_thread &Thread::native_thread() { return *_native_thread; }
 
 
-Thread_base::Thread_base(size_t weight, const char *name, size_t stack_size,
-                         Type type, Cpu_session * cpu_sess, Affinity::Location)
+Thread::Thread(size_t weight, const char *name, size_t stack_size,
+               Type type, Cpu_session * cpu_sess, Affinity::Location)
 : _cpu_session(cpu_sess)
 {
 	Native_thread::Meta_data *meta_data =
@@ -472,18 +472,31 @@ Thread_base::Thread_base(size_t weight, const char *name, size_t stack_size,
 
 	native_thread().meta_data->wait_for_construction();
 
-	_thread_cap = _cpu_session->create_thread(env()->pd_session_cap(), weight, name);
+	_thread_cap = _cpu_session->create_thread(env()->pd_session_cap(), name,
+	                                          Location(), Weight(weight));
 
 	Linux_native_cpu_client native_cpu(_cpu_session->native_cpu());
 	native_cpu.thread_id(_thread_cap, native_thread().pid, native_thread().tid);
 }
 
 
-Thread_base::Thread_base(size_t weight, const char *name, size_t stack_size,
-                         Type type, Affinity::Location)
-: Thread_base(weight, name, stack_size, type, env()->cpu_session()) { }
+Thread::Thread(size_t weight, const char *name, size_t stack_size,
+               Type type, Affinity::Location)
+: Thread(weight, name, stack_size, type, env()->cpu_session()) { }
 
-void Thread_base::cancel_blocking()
+
+Thread::Thread(Env &env, Name const &name, size_t stack_size, Location location,
+               Weight weight, Cpu_session &cpu)
+: Thread(weight.value, name.string(), stack_size, NORMAL,
+         &cpu, location)
+{ }
+
+
+Thread::Thread(Env &env, Name const &name, size_t stack_size)
+: Thread(env, name, stack_size, Location(), Weight(), env.cpu()) { }
+
+
+void Thread::cancel_blocking()
 {
 	/*
 	 * XXX implement interaction with CPU session
@@ -491,7 +504,7 @@ void Thread_base::cancel_blocking()
 }
 
 
-Thread_base::~Thread_base()
+Thread::~Thread()
 {
 	bool const needs_join = (pthread_cancel(native_thread().meta_data->pt) == 0);
 

@@ -46,7 +46,7 @@ extern Okl4::L4_ThreadId_t main_thread_tid;
  *
  * \return true if the thread was in blocking state
  */
-static inline bool thread_check_stopped_and_restart(Genode::Thread_base *thread_base)
+static inline bool thread_check_stopped_and_restart(Genode::Thread *thread_base)
 {
 	using namespace Okl4;
 
@@ -69,7 +69,7 @@ static inline bool thread_check_stopped_and_restart(Genode::Thread_base *thread_
 /**
  * Yield CPU time to the specified thread
  */
-static inline void thread_switch_to(Genode::Thread_base *thread_base)
+static inline void thread_switch_to(Genode::Thread *thread_base)
 {
 	Okl4::L4_ThreadId_t tid = thread_base ?
 	                          thread_base->native_thread().l4id :
@@ -83,7 +83,7 @@ static inline void thread_switch_to(Genode::Thread_base *thread_base)
  */
 static inline void thread_stop_myself()
 {
-	Genode::Thread_base *myself = Genode::Thread_base::myself();
+	Genode::Thread *myself = Genode::Thread::myself();
 	Okl4::L4_ThreadId_t tid = myself ?
 	                          myself->native_thread().l4id :
 	                          main_thread_tid;

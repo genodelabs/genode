@@ -372,7 +372,7 @@ Vancouver_console::Vancouver_console(Synced_motherboard &mb,
                                      Genode::size_t vm_fb_size,
                                      Genode::Dataspace_capability fb_ds)
 :
-	Thread("vmm_console"),
+	Thread_deprecated("vmm_console"),
 	_startup_lock(Genode::Lock::LOCKED),
 	_motherboard(mb), _pixels(0), _guest_fb(0), _fb_size(0),
 	_fb_ds(fb_ds), _vm_fb_size(vm_fb_size), _regs(0),

@@ -175,7 +175,7 @@ namespace Genode {
 
 		Socket_pair socket_pair;
 
-		Thread_base *thread = Thread_base::myself();
+		Thread *thread = Thread::myself();
 		if (thread) {
 			socket_pair.server_sd = native_cpu.server_sd(thread->cap()).dst().socket;
 			socket_pair.client_sd = native_cpu.client_sd(thread->cap()).dst().socket;

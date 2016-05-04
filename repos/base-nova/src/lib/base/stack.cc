@@ -109,11 +109,11 @@ void prepare_reinit_main_thread()
 }
 
 
-/*****************
- ** Thread_base **
- *****************/
+/************
+ ** Thread **
+ ************/
 
-Native_utcb *Thread_base::utcb()
+Native_utcb *Thread::utcb()
 {
 	/*
 	 * If 'utcb' is called on the object returned by 'myself',

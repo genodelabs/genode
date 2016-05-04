@@ -41,19 +41,19 @@ void prepare_reinit_main_thread()
 }
 
 
-/*****************
- ** Thread_base **
- *****************/
+/************
+ ** Thread **
+ ************/
 
-void Genode::Thread_base::_thread_bootstrap() { }
+void Genode::Thread::_thread_bootstrap() { }
 
 
-void Genode::Thread_base::_thread_start()
+void Genode::Thread::_thread_start()
 {
 	using namespace Genode;
 
-	Thread_base::myself()->_thread_bootstrap();
-	Thread_base::myself()->entry();
-	Thread_base::myself()->_join_lock.unlock();
+	Thread::myself()->_thread_bootstrap();
+	Thread::myself()->entry();
+	Thread::myself()->_join_lock.unlock();
 	sleep_forever();
 }

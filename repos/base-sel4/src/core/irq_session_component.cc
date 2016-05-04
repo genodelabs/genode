@@ -44,7 +44,7 @@ void Irq_object::entry()
 
 Irq_object::Irq_object(unsigned irq)
 :
-	Thread<4096>("irq"),
+	Thread_deprecated<4096>("irq"),
 	_sync_ack(Lock::LOCKED), _sync_bootup(Lock::LOCKED),
 	_irq(irq)
 { }

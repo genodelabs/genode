@@ -63,7 +63,7 @@ namespace Genode {
 			Pager_entrypoint         &_pager_ep;
 			Capability<Pd_session>    _pd;
 			Region_map_component     &_address_space_region_map;
-			size_t              const _weight;
+			Cpu_session::Weight const _weight;
 			Session_label       const _session_label;
 			Thread_name         const _name;
 			Platform_thread           _platform_thread;
@@ -119,7 +119,8 @@ namespace Genode {
 			 * \param pager_ep   pager entrypoint used for handling the page
 			 *                   faults of the thread
 			 * \param pd         PD session where the thread is executed
-			 * \param weight     weighting regarding the CPU session quota
+			 * \param weight     scheduling weight relative to the other
+			 *                   threads of the same CPU session
 			 * \param quota      initial quota counter-value of the weight
 			 * \param labal      label of the threads session
 			 * \param name       name for the thread
@@ -127,24 +128,25 @@ namespace Genode {
 			 * \param utcb       user-local UTCB base
 			 * \param sigh       initial exception handler
 			 */
-			Cpu_thread_component(Cpu_session_capability cpu_session_cap,
-			                     Rpc_entrypoint &ep,
-			                     Pager_entrypoint &pager_ep,
-			                     Pd_session_component &pd,
-			                     Trace::Control_area &trace_control_area,
-			                     size_t const weight,
-			                     size_t const quota,
-			                     Affinity::Location affinity,
-			                     Session_label const &label,
-			                     Thread_name const &name,
-			                     unsigned priority, addr_t utcb,
+			Cpu_thread_component(Cpu_session_capability    cpu_session_cap,
+			                     Rpc_entrypoint           &ep,
+			                     Pager_entrypoint         &pager_ep,
+			                     Pd_session_component     &pd,
+			                     Trace::Control_area      &trace_control_area,
+			                     Cpu_session::Weight       weight,
+			                     size_t                    quota,
+			                     Affinity::Location        location,
+			                     Session_label      const &label,
+			                     Thread_name        const &name,
+			                     unsigned                  priority,
+			                     addr_t                    utcb,
 			                     Signal_context_capability sigh)
 			:
 				_ep(ep), _pager_ep(pager_ep), _pd(pd.cap()),
 				_address_space_region_map(pd.address_space_region_map()),
 				_weight(weight),
 				_session_label(label), _name(name),
-				_platform_thread(name.string(), priority, affinity, utcb),
+				_platform_thread(name.string(), priority, location, utcb),
 				_bound_to_pd(_bind_to_pd(pd)),
 				_sigh(sigh),
 				_trace_control_slot(trace_control_area),
@@ -193,9 +195,10 @@ namespace Genode {
 			 ************************/
 
 			Platform_thread *platform_thread() { return &_platform_thread; }
-			Trace::Source   *trace_source()    { return &_trace_source; }
 
-			size_t weight() const { return Cpu_session::DEFAULT_WEIGHT; }
+			Trace::Source *trace_source() { return &_trace_source; }
+
+			size_t weight() const { return Cpu_session::Weight::DEFAULT_WEIGHT; }
 
 			void sigh(Signal_context_capability sigh)
 			{
@@ -317,8 +320,8 @@ namespace Genode {
 			 ** CPU session interface **
 			 ***************************/
 
-			Thread_capability create_thread(Capability<Pd_session>, size_t, Name const &,
-			                                Affinity::Location, addr_t) override;
+			Thread_capability create_thread(Capability<Pd_session>, Name const &,
+			                                Affinity::Location, Weight, addr_t) override;
 			Ram_dataspace_capability utcb(Thread_capability thread) override;
 			void kill_thread(Thread_capability) override;
 			int start(Thread_capability, addr_t, addr_t) override;

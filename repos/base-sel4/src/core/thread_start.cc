@@ -27,7 +27,7 @@
 using namespace Genode;
 
 
-void Thread_base::_init_platform_thread(size_t, Type type)
+void Thread::_init_platform_thread(size_t, Type type)
 {
 	addr_t const utcb_virt_addr = (addr_t)&_stack->utcb();
 
@@ -57,29 +57,29 @@ void Thread_base::_init_platform_thread(size_t, Type type)
 }
 
 
-void Thread_base::_deinit_platform_thread()
+void Thread::_deinit_platform_thread()
 {
 	PDBG("not implemented");
 }
 
 
-void Thread_base::_thread_start()
+void Thread::_thread_start()
 {
-	Thread_base::myself()->_thread_bootstrap();
-	Thread_base::myself()->entry();
+	Thread::myself()->_thread_bootstrap();
+	Thread::myself()->entry();
 
 	sleep_forever();
 }
 
 
-void Thread_base::start()
+void Thread::start()
 {
 	start_sel4_thread(Cap_sel(native_thread().tcb_sel), (addr_t)&_thread_start,
 	                  (addr_t)stack_top());
 }
 
 
-void Thread_base::cancel_blocking()
+void Thread::cancel_blocking()
 {
 	PWRN("not implemented");
 }

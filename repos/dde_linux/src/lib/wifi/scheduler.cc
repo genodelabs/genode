@@ -62,7 +62,7 @@ bool Lx::Task::run()
 	if (_state == STATE_INIT) {
 		/* setup execution environment and call task's function */
 		_state = STATE_RUNNING;
-		Genode::Thread_base *th = Genode::Thread_base::myself();
+		Genode::Thread *th = Genode::Thread::myself();
 
 		enum { STACK_SIZE = 32 * 1024 }; /* FIXME make stack size configurable */
 		_stack = th->alloc_secondary_stack(_name, STACK_SIZE);
@@ -111,7 +111,7 @@ Lx::Task::~Task()
 {
 //	scheduler.remove(this);
 	if (_stack)
-		Genode::Thread_base::myself()->free_secondary_stack(_stack);
+		Genode::Thread::myself()->free_secondary_stack(_stack);
 }
 
 
@@ -195,7 +195,7 @@ void Lx::Scheduler::schedule()
 #include <timer_session/connection.h>
 
 namespace {
-	struct Logger : Genode::Thread<0x4000>
+	struct Logger : Genode::Thread_deprecated<0x4000>
 	{
 		Timer::Connection  _timer;
 		Lx::Scheduler     &_scheduler;
@@ -203,7 +203,7 @@ namespace {
 
 		Logger(Lx::Scheduler &scheduler, unsigned interval_seconds)
 		:
-			Genode::Thread<0x4000>("logger"),
+			Genode::Thread_deprecated<0x4000>("logger"),
 			_scheduler(scheduler), _interval(interval_seconds)
 		{
 			start();

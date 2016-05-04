@@ -143,7 +143,7 @@ static void test_weak_pointer_tracking()
  *******************************************/
 
 template <typename O>
-struct Destruct_thread : Genode::Thread<4096>
+struct Destruct_thread : Genode::Thread_deprecated<4096>
 {
 	O *obj;
 
@@ -155,7 +155,7 @@ struct Destruct_thread : Genode::Thread<4096>
 		PLOG("thread: destruction completed, job done");
 	}
 
-	Destruct_thread(O *obj) : Thread("object_destructor"), obj(obj) { }
+	Destruct_thread(O *obj) : Thread_deprecated("object_destructor"), obj(obj) { }
 };
 
 

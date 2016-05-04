@@ -323,7 +323,7 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
                                            Msgbuf_base            &reply_msg,
                                            Msgbuf_base            &request_msg)
 {
-	Receive_window &rcv_window = Thread_base::myself()->native_thread().rcv_window;
+	Receive_window &rcv_window = Thread::myself()->native_thread().rcv_window;
 
 	for (;;) {
 
@@ -371,7 +371,7 @@ Ipc_server::Ipc_server()
 :
 	Native_capability((Cap_index*)Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE])
 {
-	Thread_base::myself()->native_thread().rcv_window.init();
+	Thread::myself()->native_thread().rcv_window.init();
 }
 
 

@@ -41,7 +41,7 @@ static Terminal::Connection *terminal() {
 
 
 namespace {
-	class Signal_thread : public Genode::Thread<8192>
+	class Signal_thread : public Genode::Thread_deprecated<8192>
 	{
 		private:
 
@@ -70,7 +70,7 @@ namespace {
 		public:
 
 			Signal_thread(Fiasco::l4_cap_idx_t cap)
-			: Genode::Thread<8192>("terminal-signal-thread"), _cap(cap) { start(); }
+			: Genode::Thread_deprecated<8192>("terminal-signal-thread"), _cap(cap) { start(); }
 	};
 }
 

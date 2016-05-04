@@ -99,7 +99,7 @@ class Platform_timer
 		/**
 		 * Block for the next scheduled timeout
 		 */
-		void wait_for_timeout(Genode::Thread_base *blocking_thread)
+		void wait_for_timeout(Genode::Thread *blocking_thread)
 		{
 			using namespace Genode;
 			using namespace Nova;

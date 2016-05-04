@@ -34,7 +34,7 @@ namespace Genode { Rm_session *env_stack_area_rm_session(); }
 namespace Hw { extern Untyped_capability _main_thread_cap; }
 
 
-void Thread_base::start()
+void Thread::start()
 {
 	/* start thread with stack pointer at the top of stack */
 	if (native_thread().platform_thread->start((void *)&_thread_start, stack_top()))
@@ -42,20 +42,20 @@ void Thread_base::start()
 }
 
 
-void Thread_base::cancel_blocking()
+void Thread::cancel_blocking()
 {
 	native_thread().platform_thread->cancel_blocking();
 }
 
 
-void Thread_base::_deinit_platform_thread()
+void Thread::_deinit_platform_thread()
 {
 	/* destruct platform thread */
 	destroy(platform()->core_mem_alloc(), native_thread().platform_thread);
 }
 
 
-void Thread_base::_init_platform_thread(size_t, Type type)
+void Thread::_init_platform_thread(size_t, Type type)
 {
 	if (type == NORMAL) {
 		native_thread().platform_thread = new (platform()->core_mem_alloc())

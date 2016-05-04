@@ -52,7 +52,7 @@ void Stack::size(size_t const size)
 	addr_t const stack_slot_base = Stack_allocator::addr_to_base(this);
 	size_t const ds_size = align_addr(size - stack_size, PAGE_SIZE_LOG2);
 	if (_base - ds_size < stack_slot_base)
-		throw Thread_base::Stack_too_large();
+		throw Thread::Stack_too_large();
 
 	/* allocate and attach backing store for the stack enhancement */
 	addr_t const ds_addr = _base - ds_size - stack_area_virtual_base();
@@ -63,10 +63,10 @@ void Stack::size(size_t const size)
 		void * const attach_addr = rm->attach_at(ds_cap, ds_addr, ds_size);
 
 		if (ds_addr != (addr_t)attach_addr)
-			throw Thread_base::Out_of_stack_space();
+			throw Thread::Out_of_stack_space();
 	}
 	catch (Ram_session::Alloc_failed) {
-		throw Thread_base::Stack_alloc_failed();
+		throw Thread::Stack_alloc_failed();
 	}
 
 	/* update stack information */
@@ -75,7 +75,7 @@ void Stack::size(size_t const size)
 
 
 Stack *
-Thread_base::_alloc_stack(size_t stack_size, char const *name, bool main_thread)
+Thread::_alloc_stack(size_t stack_size, char const *name, bool main_thread)
 {
 	/*
 	 * Synchronize stack list when creating new threads from multiple threads
@@ -134,7 +134,7 @@ Thread_base::_alloc_stack(size_t stack_size, char const *name, bool main_thread)
 }
 
 
-void Thread_base::_free_stack(Stack *stack)
+void Thread::_free_stack(Stack *stack)
 {
 	addr_t ds_addr = stack->base() - stack_area_virtual_base();
 	Ram_dataspace_capability ds_cap = stack->ds_cap();
@@ -150,63 +150,66 @@ void Thread_base::_free_stack(Stack *stack)
 }
 
 
-void Thread_base::name(char *dst, size_t dst_len)
+void Thread::name(char *dst, size_t dst_len)
 {
 	snprintf(dst, dst_len, "%s", _stack->name().string());
 }
 
 
-void Thread_base::join() { _join_lock.lock(); }
+Thread::Name Thread::name() const { return _stack->name(); }
 
 
-void *Thread_base::alloc_secondary_stack(char const *name, size_t stack_size)
+void Thread::join() { _join_lock.lock(); }
+
+
+void *Thread::alloc_secondary_stack(char const *name, size_t stack_size)
 {
 	Stack *stack = _alloc_stack(stack_size, name, false);
 	return (void *)stack->top();
 }
 
 
-void Thread_base::free_secondary_stack(void* stack_addr)
+void Thread::free_secondary_stack(void* stack_addr)
 {
 	addr_t base = Stack_allocator::addr_to_base(stack_addr);
 	_free_stack(Stack_allocator::base_to_stack(base));
 }
 
 
-Native_thread &Thread_base::native_thread() {
+Native_thread &Thread::native_thread() {
 
 	return _stack->native_thread(); }
 
 
-void *Thread_base::stack_top() const { return (void *)_stack->top(); }
+void *Thread::stack_top() const { return (void *)_stack->top(); }
 
 
-void *Thread_base::stack_base() const { return (void*)_stack->base(); }
+void *Thread::stack_base() const { return (void*)_stack->base(); }
 
 
-void Thread_base::stack_size(size_t const size) { _stack->size(size); }
+void Thread::stack_size(size_t const size) { _stack->size(size); }
 
 
-size_t Thread_base::stack_virtual_size()
+size_t Thread::stack_virtual_size()
 {
 	return Genode::stack_virtual_size();
 }
 
 
-addr_t Thread_base::stack_area_virtual_base()
+addr_t Thread::stack_area_virtual_base()
 {
 	return Genode::stack_area_virtual_base();
 }
 
 
-size_t Thread_base::stack_area_virtual_size()
+size_t Thread::stack_area_virtual_size()
 {
 	return Genode::stack_area_virtual_size();
 }
 
 
-Thread_base::Thread_base(size_t weight, const char *name, size_t stack_size,
-                         Type type, Cpu_session *cpu_session, Affinity::Location affinity)
+Thread::Thread(size_t weight, const char *name, size_t stack_size,
+               Type type, Cpu_session *cpu_session, Affinity::Location affinity)
 :
 	_cpu_session(cpu_session),
 	_affinity(affinity),
@@ -225,14 +228,25 @@ Thread_base::Thread_base(size_t weight, const char *name, size_t stack_size,
 }
 
 
-Thread_base::Thread_base(size_t weight, const char *name, size_t stack_size,
-                         Type type, Affinity::Location affinity)
-: Thread_base(weight, name, stack_size, type, nullptr, affinity) { }
+Thread::Thread(size_t weight, const char *name, size_t stack_size,
+               Type type, Affinity::Location affinity)
+: Thread(weight, name, stack_size, type, nullptr, affinity) { }
 
 
-Thread_base::~Thread_base()
+Thread::Thread(Env &env, Name const &name, size_t stack_size, Location location,
+               Weight weight, Cpu_session &cpu)
+: Thread(weight.value, name.string(), stack_size, NORMAL,
+         &cpu == &env.cpu() ? nullptr : &cpu, location)
+{ }
+
+
+Thread::Thread(Env &env, Name const &name, size_t stack_size)
+: Thread(env, name, stack_size, Location(), Weight(), env.cpu()) { }
+
+
+Thread::~Thread()
 {
-	if (Thread_base::myself() == this) {
+	if (Thread::myself() == this) {
 		PERR("thread '%s' tried to self de-struct - sleeping forever.",
 		     _stack->name().string());
 		sleep_forever();

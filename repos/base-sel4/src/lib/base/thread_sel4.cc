@@ -24,38 +24,29 @@
 using namespace Genode;
 
 
-/**
- * Entry point entered by new threads
- */
-//void Thread_base::_thread_start()
-//{
-//	PDBG("not implemented");
-//}
+/************
+ ** Thread **
+ ************/
 
-
-/*****************
- ** Thread base **
- *****************/
-
-void Thread_base::_init_platform_thread(size_t, Type type)
+void Thread::_init_platform_thread(size_t, Type type)
 {
 	PDBG("not implemented");
 }
 
 
-void Thread_base::_deinit_platform_thread()
+void Thread::_deinit_platform_thread()
 {
 	PDBG("not implemented");
 }
 
 
-void Thread_base::start()
+void Thread::start()
 {
 	PDBG("not implemented");
 }
 
 
-void Thread_base::cancel_blocking()
+void Thread::cancel_blocking()
 {
 	PDBG("not implemented");
 }

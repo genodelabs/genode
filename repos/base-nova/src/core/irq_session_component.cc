@@ -82,7 +82,7 @@ static bool msi(Genode::addr_t irq_sel, Genode::addr_t phys_mem,
 
 	Nova::Mem_crd phys_crd(phys_mem >> 12,  0, Rights(true, false, false));
 	Nova::Mem_crd virt_crd(virt_addr >> 12, 0, Rights(true, false, false));
-	Utcb * utcb = reinterpret_cast<Utcb *>(Thread_base::myself()->utcb());
+	Utcb * utcb = reinterpret_cast<Utcb *>(Thread::myself()->utcb());
 
 	if (map_local_phys_to_virt(utcb, phys_crd, virt_crd)) {
 		platform()->region_alloc()->free(virt, 4096);
@@ -142,7 +142,7 @@ void Irq_object::start(unsigned irq, Genode::addr_t const device_phys)
 	Obj_crd dst(irq_sel(), 0);
 	enum { MAP_FROM_KERNEL_TO_CORE = true };
 
-	int ret = map_local((Nova::Utcb *)Thread_base::myself()->utcb(),
+	int ret = map_local((Nova::Utcb *)Thread::myself()->utcb(),
 	                    src, dst, MAP_FROM_KERNEL_TO_CORE);
 	if (ret) {
 		PERR("Getting IRQ from kernel failed - %u", irq);

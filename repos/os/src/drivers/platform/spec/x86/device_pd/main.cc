@@ -74,7 +74,7 @@ static bool map_eager(Genode::addr_t const page, unsigned log2_order)
 {
 	using Genode::addr_t;
 
-	Genode::Thread_base * myself = Genode::Thread_base::myself();
+	Genode::Thread * myself = Genode::Thread::myself();
 	Nova::Utcb * utcb = reinterpret_cast<Nova::Utcb *>(myself->utcb());
 	Nova::Rights const mapping_rw(true, true, false);
 

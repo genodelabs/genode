@@ -35,27 +35,27 @@ void Cpu_thread_component::update_exception_sigh()
 
 
 Thread_capability Cpu_session_component::create_thread(Capability<Pd_session> pd_cap,
-                                                       size_t weight,
                                                        Name const &name,
                                                        Affinity::Location affinity,
+                                                       Weight weight,
                                                        addr_t utcb)
 {
 	Trace::Thread_name thread_name(name.string());
 
 	Cpu_thread_component *thread = 0;
 
-	if (weight == 0) {
+	if (weight.value == 0) {
 		PWRN("Thread %s: Bad weight 0, using %i instead.",
-		     name.string(), DEFAULT_WEIGHT);
-		weight = DEFAULT_WEIGHT;
+		     name.string(), Weight::DEFAULT_WEIGHT);
+		weight = Weight();
 	}
-	if (weight > QUOTA_LIMIT) {
+	if (weight.value > QUOTA_LIMIT) {
 		PWRN("Thread %s: Oversized weight %zu, using %i instead.",
-		     name.string(), weight, QUOTA_LIMIT);
-		weight = QUOTA_LIMIT;
+		     name.string(), weight.value, QUOTA_LIMIT);
+		weight = Weight(QUOTA_LIMIT);
 	}
 	Lock::Guard thread_list_lock_guard(_thread_list_lock);
-	_incr_weight(weight);
+	_incr_weight(weight.value);
 
 	/*
 	 * Create thread associated with its protection domain
@@ -69,7 +69,7 @@ Thread_capability Cpu_session_component::create_thread(Capability<Pd_session> pd
 		thread = new (&_thread_alloc)
 			Cpu_thread_component(
 				cap(), *_thread_ep, *_pager_ep, *pd, _trace_control_area,
-				weight, _weight_to_quota(weight),
+				weight, _weight_to_quota(weight.value),
 				_thread_affinity(affinity), _label, thread_name,
 				_priority, utcb, _default_exception_handler);
 	};

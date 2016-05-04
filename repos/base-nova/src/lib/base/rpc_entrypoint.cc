@@ -83,7 +83,7 @@ void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
 	 */
 	using namespace Nova;
 
-	Utcb *utcb = reinterpret_cast<Utcb *>(Thread_base::myself()->utcb());
+	Utcb *utcb = reinterpret_cast<Utcb *>(Thread::myself()->utcb());
 	/* don't call ourself */
 	if (utcb == reinterpret_cast<Utcb *>(this->utcb()))
 		return;
@@ -111,7 +111,7 @@ static void reply(Nova::Utcb &utcb, Rpc_exception_code exc, Msgbuf_base &snd_msg
 {
 	copy_msgbuf_to_utcb(utcb, snd_msg, exc.value);
 
-	Nova::reply(Thread_base::myself()->stack_top());
+	Nova::reply(Thread::myself()->stack_top());
 }
 
 
@@ -124,8 +124,8 @@ void Rpc_entrypoint::_activation_entry()
 	addr_t id_pt; asm volatile ("" : "=a" (id_pt));
 #endif
 
-	Rpc_entrypoint &ep   = *static_cast<Rpc_entrypoint *>(Thread_base::myself());
-	Nova::Utcb     &utcb = *(Nova::Utcb *)Thread_base::myself()->utcb();
+	Rpc_entrypoint &ep   = *static_cast<Rpc_entrypoint *>(Thread::myself());
+	Nova::Utcb     &utcb = *(Nova::Utcb *)Thread::myself()->utcb();
 
 	Receive_window &rcv_window = ep.native_thread().rcv_window;
 	rcv_window.post_ipc(utcb);
@@ -219,7 +219,7 @@ Rpc_entrypoint::Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
                                const char  *name, bool start_on_construction,
                                Affinity::Location location)
 :
-	Thread_base(Cpu_session::DEFAULT_WEIGHT, name, stack_size, location),
+	Thread(Cpu_session::Weight::DEFAULT_WEIGHT, name, stack_size, location),
 	_delay_start(Lock::LOCKED),
 	_pd_session(*pd_session)
 {
@@ -228,7 +228,7 @@ Rpc_entrypoint::Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
 		native_thread().ec_sel = Native_thread::INVALID_INDEX - 1;
 
 	/* required to create a 'local' EC */
-	Thread_base::start();
+	Thread::start();
 
 	/* create cleanup portal */
 	_cap = _alloc_rpc_cap(_pd_session, Native_capability(native_thread().ec_sel),
@@ -236,7 +236,7 @@ Rpc_entrypoint::Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
 	if (!_cap.valid())
 		throw Cpu_session::Thread_creation_failed();
 
-	Receive_window &rcv_window = Thread_base::native_thread().rcv_window;
+	Receive_window &rcv_window = Thread::native_thread().rcv_window;
 
 	/* prepare portal receive window of new thread */
 	if (!rcv_window.prepare_rcv_window(*(Nova::Utcb *)&_stack->utcb()))

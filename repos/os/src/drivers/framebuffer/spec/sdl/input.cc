@@ -218,13 +218,13 @@ namespace Input {
 	struct Backend;
 }
 
-struct Input::Backend : Genode::Thread<STACK_SIZE>
+struct Input::Backend : Genode::Thread_deprecated<STACK_SIZE>
 {
 	Handler &handler;
 
 	Backend(Input::Handler &handler)
 	:
-		Genode::Thread<STACK_SIZE>("input_backend"),
+		Genode::Thread_deprecated<STACK_SIZE>("input_backend"),
 		handler(handler)
 	{
 		start();

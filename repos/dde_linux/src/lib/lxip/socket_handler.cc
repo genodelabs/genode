@@ -112,7 +112,7 @@ namespace Net
 class Net::Socketcall : public Genode::Signal_dispatcher_base,
                         public Genode::Signal_context_capability,
                         public Lxip::Socketcall,
-                        public Genode::Thread<64 * 1024 * sizeof(Genode::addr_t)>
+                        public Genode::Thread_deprecated<64 * 1024 * sizeof(Genode::addr_t)>
 {
 	private:
 
@@ -384,7 +384,7 @@ class Net::Socketcall : public Genode::Signal_dispatcher_base,
 	public:
 
 		Socketcall()
-		  : Thread("socketcall"),
+		  : Thread_deprecated("socketcall"),
 		    _signal(Genode::Signal_context_capability(Env::receiver()->manage(this)))
 		{
 			start();

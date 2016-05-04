@@ -75,7 +75,7 @@ Core_region_map::attach(Dataspace_capability ds_cap, size_t size,
 			throw Out_of_metadata();
 
 		/* map it */
-		Nova::Utcb * const utcb = reinterpret_cast<Nova::Utcb *>(Thread_base::myself()->utcb());
+		Nova::Utcb * const utcb = reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb());
 		const Nova::Rights rights(true, ds->writable(), executable);
 
 		if (map_local(utcb, ds->phys_addr(), reinterpret_cast<addr_t>(virt_ptr),
@@ -94,7 +94,7 @@ void Core_region_map::detach(Local_addr core_local_addr)
 {
 	size_t size = platform_specific()->region_alloc_size_at(core_local_addr);
 
-	unmap_local(reinterpret_cast<Nova::Utcb *>(Thread_base::myself()->utcb()),
+	unmap_local(reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb()),
 	            core_local_addr, size >> get_page_size_log2());
 
 	platform()->region_alloc()->free(core_local_addr);

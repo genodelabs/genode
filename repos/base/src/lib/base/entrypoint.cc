@@ -12,11 +12,14 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
 #include <base/entrypoint.h>
 #include <base/component.h>
 #include <cap_session/connection.h>
 #include <util/retry.h>
 
+/* base-internal includes */
+#include <base/internal/globals.h>
 
 using namespace Genode;
 
@@ -27,7 +30,6 @@ namespace Genode {
 
 	extern bool inhibit_tracing;
 	void call_global_static_constructors();
-	void init_signal_thread();
 	void destroy_signal_thread();
 
 	extern void (*call_component_construct)(Genode::Env &);
@@ -76,7 +78,7 @@ void Entrypoint::_process_incoming_signals()
 		/* execute fork magic in noux plugin */
 		_suspended_callback();
 
-		init_signal_thread();
+		init_signal_thread(_env);
 		_rpc_ep.construct(&_env.pd(), Component::stack_size(), Component::name());
 		_signal_proxy_cap = manage(_signal_proxy);
 		_sig_rec.construct();
@@ -155,7 +157,7 @@ Entrypoint::Entrypoint(Env &env)
 	_rpc_ep(&env.pd(), Component::stack_size(), Component::name())
 {
 	/* initialize signalling after initializing but before calling the entrypoint */
-	init_signal_thread();
+	init_signal_thread(_env);
 
 	/*
 	 * Invoke Component::construct function in the context of the entrypoint.
@@ -186,6 +188,6 @@ Entrypoint::Entrypoint(Env &env, size_t stack_size, char const *name)
 	_env(env),
 	_rpc_ep(&env.pd(), stack_size, name)
 {
-	_signal_proxy_thread.construct(*this);
+	_signal_proxy_thread.construct(env, *this);
 }
 
