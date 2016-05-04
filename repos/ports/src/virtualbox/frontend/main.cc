@@ -34,6 +34,7 @@
 /* Genode port specific includes */
 #include "console.h"
 #include "fb.h"
+#include "../sup.h"
 
 static char c_vbox_file[128];
 static char c_vbox_vmname[128];
@@ -103,6 +104,10 @@ HRESULT setupmachine()
 		return rc;
 
 	rc = machine->initFromSettings(virtualbox, vm_config, nullptr);
+	if (FAILED(rc))
+		return rc;
+
+	rc = genode_setup_machine(machine);
 	if (FAILED(rc))
 		return rc;
 

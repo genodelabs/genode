@@ -67,6 +67,7 @@ SRC_CC += Main/glue/xpcom/helpers.cpp
 
 INC_DIR += $(VBOX_DIR)/Main/xml
 INC_DIR += $(VBOX_DIR)/Main/include
+INC_DIR += $(REP_DIR)/src/virtualbox
 INC_DIR += $(REP_DIR)/src/virtualbox/frontend
 INC_DIR += $(REP_DIR)/src/virtualbox/frontend/VBoxAPIWrap
 
