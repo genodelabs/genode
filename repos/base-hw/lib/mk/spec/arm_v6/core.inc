@@ -6,7 +6,7 @@
 #
 
 # add include paths
-INC_DIR += $(REP_DIR)/src/core/include/spec/arm_v6
+INC_DIR += $(BASE_HW_DIR)/src/core/include/spec/arm_v6
 
 # add C++ sources
 SRC_CC += spec/arm_v6/cpu.cc
@@ -20,4 +20,4 @@ SRC_CC += kernel/kernel.cc
 SRC_S += spec/arm_v6/mode_transition.s
 
 # include less specific configuration
-include $(REP_DIR)/lib/mk/spec/arm/core.inc
+include $(BASE_HW_DIR)/lib/mk/spec/arm/core.inc
