@@ -18,10 +18,6 @@
 
 #include "musinfo.h"
 
-static const subject_info_type *
-const sinfo = ((subject_info_type *)Sinfo::BASE_ADDR);
-
-
 /* Log channel information */
 static bool log_channel(
 		const struct Genode::Sinfo::Channel_info * const channel,
@@ -57,48 +53,6 @@ static bool log_memregion(
 }
 
 
-/* Fill channel struct with channel information from resource given by index */
-static void fill_channel_data(uint8_t idx,
-                              struct Genode::Sinfo::Channel_info *channel)
-{
-	const struct resource_type resource = sinfo->resources[idx];
-	const struct memregion_type memregion =
-		sinfo->memregions[resource.memregion_idx - 1];
-	const struct channel_info_type channel_info =
-		sinfo->channels_info[resource.channel_info_idx - 1];
-
-	memset(&channel->name, 0, MAX_NAME_LENGTH + 1);
-	memcpy(&channel->name, resource.name.data, resource.name.length);
-
-	channel->address  = memregion.address;
-	channel->size     = memregion.size;
-	channel->writable = memregion.flags & MEM_WRITABLE_FLAG;
-
-	channel->has_event    = channel_info.flags & CHAN_EVENT_FLAG;
-	channel->event_number = channel_info.event;
-	channel->has_vector   = channel_info.flags & CHAN_VECTOR_FLAG;
-	channel->vector       = channel_info.vector;
-}
-
-
-/* Fill memregion struct with memory region info from resource given by index */
-static void fill_memregion_data(uint8_t idx,
-                                struct Genode::Sinfo::Memregion_info *region)
-{
-	const struct resource_type resource = sinfo->resources[idx];
-	const struct memregion_type memregion =
-		sinfo->memregions[resource.memregion_idx - 1];
-
-	memset(&region->name, 0, MAX_NAME_LENGTH + 1);
-	memcpy(&region->name, resource.name.data, resource.name.length);
-
-	region->address    = memregion.address;
-	region->size       = memregion.size;
-	region->writable   = memregion.flags & MEM_WRITABLE_FLAG;
-	region->executable = memregion.flags & MEM_EXECUTABLE_FLAG;
-}
-
-
 /* Returns true if the given resource is a memory region */
 static bool is_memregion(const struct resource_type * const resource)
 {
@@ -113,21 +67,10 @@ static bool is_channel(const struct resource_type * const resource)
 }
 
 
-/* Fill dev struct with data from PCI device info given by index */
-static void fill_dev_data(uint8_t idx, struct Genode::Sinfo::Dev_info *dev)
+Sinfo::Sinfo(const addr_t base_addr)
 {
-	const struct dev_info_type dev_info = sinfo->dev_info[idx];
+	sinfo = ((subject_info_type *)base_addr);
 
-	dev->sid         = dev_info.sid;
-	dev->irte_start  = dev_info.irte_start;
-	dev->irq_start   = dev_info.irq_start;
-	dev->ir_count    = dev_info.ir_count;
-	dev->msi_capable = dev_info.flags & DEV_MSI_FLAG;
-}
-
-
-Sinfo::Sinfo()
-{
 	if (!check_magic()) {
 		PERR("muen-sinfo: Subject information MAGIC mismatch\n");
 		return;
@@ -265,4 +208,54 @@ uint64_t Sinfo::get_sched_end(void)
 		return 0;
 
 	return sinfo->tsc_schedule_end;
+}
+
+
+void Sinfo::fill_memregion_data(uint8_t idx, struct Memregion_info *region)
+{
+	const struct resource_type resource = sinfo->resources[idx];
+	const struct memregion_type memregion =
+		sinfo->memregions[resource.memregion_idx - 1];
+
+	memset(&region->name, 0, MAX_NAME_LENGTH + 1);
+	memcpy(&region->name, resource.name.data, resource.name.length);
+
+	region->address    = memregion.address;
+	region->size       = memregion.size;
+	region->writable   = memregion.flags & MEM_WRITABLE_FLAG;
+	region->executable = memregion.flags & MEM_EXECUTABLE_FLAG;
+}
+
+
+void Sinfo::fill_channel_data(uint8_t idx, struct Channel_info *channel)
+{
+	const struct resource_type resource = sinfo->resources[idx];
+	const struct memregion_type memregion =
+		sinfo->memregions[resource.memregion_idx - 1];
+	const struct channel_info_type channel_info =
+		sinfo->channels_info[resource.channel_info_idx - 1];
+
+	memset(&channel->name, 0, MAX_NAME_LENGTH + 1);
+	memcpy(&channel->name, resource.name.data, resource.name.length);
+
+	channel->address  = memregion.address;
+	channel->size     = memregion.size;
+	channel->writable = memregion.flags & MEM_WRITABLE_FLAG;
+
+	channel->has_event    = channel_info.flags & CHAN_EVENT_FLAG;
+	channel->event_number = channel_info.event;
+	channel->has_vector   = channel_info.flags & CHAN_VECTOR_FLAG;
+	channel->vector       = channel_info.vector;
+}
+
+
+void Sinfo::fill_dev_data(uint8_t idx, struct Dev_info *dev)
+{
+	const struct dev_info_type dev_info = sinfo->dev_info[idx];
+
+	dev->sid         = dev_info.sid;
+	dev->irte_start  = dev_info.irte_start;
+	dev->irq_start   = dev_info.irq_start;
+	dev->ir_count    = dev_info.ir_count;
+	dev->msi_capable = dev_info.flags & DEV_MSI_FLAG;
 }
