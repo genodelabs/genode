@@ -18,5 +18,9 @@ SRC_S += spec/riscv/mode_transition.s
 SRC_S += spec/riscv/kernel/crt0.s
 SRC_S += spec/riscv/crt0.s
 
+# core.inc files use BASE_HW_DIR in order to allow
+# including these files from other repositories
+BASE_HW_DIR := $(REP_DIR)
+
 # include less specific configuration
 include $(REP_DIR)/lib/mk/core.inc
