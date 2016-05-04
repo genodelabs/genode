@@ -64,7 +64,7 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 	static Native_region _regions[] =
 	{
 		/* Sinfo pages */
-		{ Sinfo::BASE_ADDR, Sinfo::SIZE },
+		{ Sinfo::PHYSICAL_BASE_ADDR, Sinfo::SIZE },
 		/* Timer page */
 		{ Board::TIMER_BASE_ADDR, Board::TIMER_SIZE },
 	};
@@ -80,8 +80,10 @@ bool Platform::get_msi_params(const addr_t mmconf, addr_t &address,
 {
 	const unsigned sid = Mmconf_address::to_sid(mmconf);
 
+	static Sinfo sinfo(Sinfo::PHYSICAL_BASE_ADDR);
+
 	struct Sinfo::Dev_info dev_info;
-	if (!Sinfo::get_dev_info(sid, &dev_info)) {
+	if (!sinfo.get_dev_info(sid, &dev_info)) {
 		PERR("error retrieving Muen info for device with SID 0x%x", sid);
 		return false;
 	}
@@ -114,6 +116,6 @@ void Platform::_init_additional()
 {
 	/* export subject info page as ROM module */
 	_rom_fs.insert(new (core_mem_alloc())
-	               Rom_module((addr_t)Sinfo::BASE_ADDR,
+	               Rom_module((addr_t)Sinfo::PHYSICAL_BASE_ADDR,
 	               Sinfo::SIZE, "subject_info_page"));
 }

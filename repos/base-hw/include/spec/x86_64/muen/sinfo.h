@@ -19,6 +19,8 @@
 
 #include <base/stdint.h>
 
+struct subject_info_type;
+
 namespace Genode
 {
 	/**
@@ -32,12 +34,12 @@ class Genode::Sinfo
 	public:
 
 		enum Config {
-			BASE_ADDR       = 0xe00000000,
-			SIZE            = 0x7000,
-			MAX_NAME_LENGTH = 63,
+			PHYSICAL_BASE_ADDR = 0xe00000000,
+			SIZE               = 0x7000,
+			MAX_NAME_LENGTH    = 63,
 		};
 
-		Sinfo();
+		Sinfo(const addr_t base_addr);
 
 		/* Structure holding information about a memory region */
 		struct Memregion_info {
@@ -72,7 +74,7 @@ class Genode::Sinfo
 		/*
 		 * Check Muen sinfo Magic.
 		 */
-		static bool check_magic(void);
+		bool check_magic(void);
 
 		/*
 		 * Return information for a channel given by name.
@@ -81,7 +83,7 @@ class Genode::Sinfo
 		 * event_number and vector parameters are only valid if indicated by
 		 * the has_[event|vector] struct members.
 		 */
-		static bool get_channel_info(const char * const name,
+		bool get_channel_info(const char * const name,
 				struct Channel_info *channel);
 
 		/*
@@ -89,7 +91,7 @@ class Genode::Sinfo
 		 *
 		 * If no memory region with given name exists, False is returned.
 		 */
-		static bool get_memregion_info(const char * const name,
+		bool get_memregion_info(const char * const name,
 				struct Memregion_info *memregion);
 
 		/*
@@ -98,7 +100,7 @@ class Genode::Sinfo
 		 * The function returns false if no device information for the
 		 * specified device exists.
 		 */
-		static bool get_dev_info(const uint16_t sid, struct Dev_info *dev);
+		bool get_dev_info(const uint16_t sid, struct Dev_info *dev);
 
 		/*
 		 * Channel callback.
@@ -116,7 +118,7 @@ class Genode::Sinfo
 		 * invocation of the callback. If a callback invocation returns false,
 		 * processing is aborted and false is returned to the caller.
 		 */
-		static bool for_each_channel(Channel_cb func, void *data);
+		bool for_each_channel(Channel_cb func, void *data);
 
 		/*
 		 * Memory region callback.
@@ -134,24 +136,43 @@ class Genode::Sinfo
 		 * invocation of the callback. If a callback invocation returns false,
 		 * processing is aborted and false is returned to the caller.
 		 */
-		static bool for_each_memregion(Memregion_cb func, void *data);
+		bool for_each_memregion(Memregion_cb func, void *data);
 
 		/*
 		 * Return TSC tick rate in kHz.
 		 *
 		 * The function returns 0 if the TSC tick rate cannot be retrieved.
 		 */
-		static uint64_t get_tsc_khz(void);
+		uint64_t get_tsc_khz(void);
 
 		/*
 		 * Return start time of current minor frame in TSC ticks.
 		 */
-		static uint64_t get_sched_start(void);
+		uint64_t get_sched_start(void);
 
 		/*
 		 * Return end time of current minor frame in TSC ticks.
 		 */
-		static uint64_t get_sched_end(void);
+		uint64_t get_sched_end(void);
+
+	private:
+
+		subject_info_type * sinfo;
+
+		/*
+		 * Fill memregion struct with memory region info from resource given by
+		 * index.
+		 */
+		void fill_memregion_data(uint8_t idx, struct Memregion_info *region);
+
+		/*
+		 * Fill channel struct with channel information from resource given by
+		 * index.
+		 */
+		void fill_channel_data(uint8_t idx, struct Channel_info *channel);
+
+		/* Fill dev struct with data from PCI device info given by index. */
+		void fill_dev_data(uint8_t idx, struct Dev_info *dev);
 };
 
 #endif /* _INCLUDE__SPEC__X86_64__MUEN__SINFO_H_ */

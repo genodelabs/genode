@@ -38,6 +38,8 @@ class Genode::Timer
 
 		enum { TIMER_DISABLED = ~0ULL };
 
+		Sinfo _sinfo;
+
 		uint64_t _tics_per_ms;
 
 		struct Subject_timer
@@ -47,6 +49,7 @@ class Genode::Timer
 		} __attribute__((packed));
 
 		struct Subject_timer * _timer_page;
+
 
 		inline uint64_t rdtsc()
 		{
@@ -59,10 +62,12 @@ class Genode::Timer
 
 	public:
 
-		Timer() : _tics_per_ms(Sinfo::get_tsc_khz())
+		Timer() :
+			_sinfo(Sinfo::PHYSICAL_BASE_ADDR),
+			_tics_per_ms(_sinfo.get_tsc_khz())
 		{
 			struct Sinfo::Memregion_info region;
-			if (!Sinfo::get_memregion_info("timer", &region)) {
+			if (!_sinfo.get_memregion_info("timer", &region)) {
 				PERR("muen-timer: Unable to retrieve time memory region");
 				throw Invalid_region();
 			}
