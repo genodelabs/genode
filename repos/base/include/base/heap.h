@@ -112,6 +112,8 @@ class Genode::Heap : public Allocator
 		     void        *static_addr = 0,
 		     size_t       static_size = 0);
 
+		Heap(Ram_session &ram, Region_map &rm) : Heap(&ram, &rm) { }
+
 		~Heap();
 
 		/**
