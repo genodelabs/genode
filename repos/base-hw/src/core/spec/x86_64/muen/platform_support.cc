@@ -15,12 +15,10 @@
 /* Genode includes */
 #include <util/mmio.h>
 
-/* base includes */
-#include <muen/sinfo.h>
-
 /* core includes */
 #include <board.h>
 #include <platform.h>
+#include <sinfo_instance.h>
 
 using namespace Genode;
 
@@ -80,10 +78,8 @@ bool Platform::get_msi_params(const addr_t mmconf, addr_t &address,
 {
 	const unsigned sid = Mmconf_address::to_sid(mmconf);
 
-	static Sinfo sinfo(Sinfo::PHYSICAL_BASE_ADDR);
-
 	struct Sinfo::Dev_info dev_info;
-	if (!sinfo.get_dev_info(sid, &dev_info)) {
+	if (!sinfo()->get_dev_info(sid, &dev_info)) {
 		PERR("error retrieving Muen info for device with SID 0x%x", sid);
 		return false;
 	}
