@@ -62,6 +62,22 @@ Ipv4_packet::Ipv4_address Ipv4_packet::ip_from_string(const char *ip)
 	return ip_addr;
 }
 
+Genode::uint16_t Ipv4_packet::calculate_checksum(const Ipv4_packet &packet)
+{
+	Genode::uint16_t *data = (Genode::uint16_t*)&packet;
+	Genode::uint32_t sum = host_to_big_endian(data[0]) + 
+		                    host_to_big_endian(data[1]) + 
+								  host_to_big_endian(data[2]) +
+								  host_to_big_endian(data[3]) +
+								  host_to_big_endian(data[4]) +
+								  host_to_big_endian(data[6]) +
+								  host_to_big_endian(data[7]) +
+								  host_to_big_endian(data[8]) +
+								  host_to_big_endian(data[9]);
+	Genode::uint16_t checksum = ~((0xFFFF & sum) + (sum >> 16));
+	return checksum;
+}
+
 
 const Ipv4_packet::Ipv4_address Ipv4_packet::CURRENT((Genode::uint8_t)0x00);
 const Ipv4_packet::Ipv4_address Ipv4_packet::BROADCAST((Genode::uint8_t)0xFF);
