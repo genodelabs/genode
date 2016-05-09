@@ -17,10 +17,10 @@
 /* base includes */
 #include <base/printf.h>
 #include <kernel/types.h>
-#include <muen/sinfo.h>
 
 /* core includes */
 #include <board.h>
+#include <sinfo_instance.h>
 
 namespace Genode
 {
@@ -37,8 +37,6 @@ class Genode::Timer
 		using time_t = Kernel::time_t;
 
 		enum { TIMER_DISABLED = ~0ULL };
-
-		Sinfo _sinfo;
 
 		uint64_t _tics_per_ms;
 
@@ -63,11 +61,10 @@ class Genode::Timer
 	public:
 
 		Timer() :
-			_sinfo(Sinfo::PHYSICAL_BASE_ADDR),
-			_tics_per_ms(_sinfo.get_tsc_khz())
+			_tics_per_ms(sinfo()->get_tsc_khz())
 		{
 			struct Sinfo::Memregion_info region;
-			if (!_sinfo.get_memregion_info("timer", &region)) {
+			if (!sinfo()->get_memregion_info("timer", &region)) {
 				PERR("muen-timer: Unable to retrieve time memory region");
 				throw Invalid_region();
 			}
