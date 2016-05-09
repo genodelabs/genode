@@ -51,6 +51,19 @@ class Genode::Rom_connection : public Connection<Rom_session>,
 		 *
 		 * \throw Rom_connection_failed
 		 */
+		Rom_connection(Env &env, const char *module_name, const char *label = 0)
+		:
+			Connection<Rom_session>(_create_session(module_name, label)),
+			Rom_session_client(cap())
+		{ }
+
+		/**
+		 * Constructor
+		 *
+		 * \noapi
+		 * \deprecated  Use the constructor with 'Env &' as first
+		 *              argument instead
+		 */
 		Rom_connection(const char *module_name, const char *label = 0)
 		:
 			Connection<Rom_session>(_create_session(module_name, label)),

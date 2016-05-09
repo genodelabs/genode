@@ -29,6 +29,22 @@ struct Genode::Io_mem_connection : Connection<Io_mem_session>, Io_mem_session_cl
 	 * \param size            size memory-mapped I/O resource
 	 * \param write_combined  enable write-combined access to I/O memory
 	 */
+	Io_mem_connection(Env &env, addr_t base, size_t size, bool write_combined = false)
+	:
+		Connection<Io_mem_session>(
+			session("ram_quota=4K, base=0x%p, size=0x%zx, wc=%s",
+			        base, size, write_combined ? "yes" : "no")),
+
+		Io_mem_session_client(cap())
+	{ }
+
+	/**
+	 * Constructor
+	 *
+	 * \noapi
+	 * \deprecated  Use the constructor with 'Env &' as first
+	 *              argument instead
+	 */
 	Io_mem_connection(addr_t base, size_t size, bool write_combined = false)
 	:
 		Connection<Io_mem_session>(
