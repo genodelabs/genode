@@ -89,6 +89,9 @@ class Genode::Attached_dataspace : Noncopyable
 		template <typename T>
 		T *local_addr() { return static_cast<T *>(_local_addr); }
 
+		template <typename T>
+		T const *local_addr() const { return static_cast<T const *>(_local_addr); }
+
 		/**
 		 * Return size
 		 */

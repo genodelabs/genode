@@ -15,6 +15,7 @@
 #define _INCLUDE__BASE__ATTACHED_ROM_DATASPACE_H_
 
 #include <util/volatile_object.h>
+#include <util/xml_node.h>
 #include <base/attached_dataspace.h>
 #include <rom_session/connection.h>
 
@@ -85,7 +86,11 @@ class Genode::Attached_rom_dataspace
 		 */
 		Dataspace_capability cap() const { return _ds->cap(); }
 
-		template <typename T> T *local_addr() { return _ds->local_addr<T>(); }
+		template <typename T> T *local_addr() {
+			return _ds->local_addr<T>(); }
+
+		template <typename T> T const *local_addr() const {
+			return _ds->local_addr<T const>(); }
 
 		size_t size() const { return _ds->size(); }
 
@@ -119,6 +124,23 @@ class Genode::Attached_rom_dataspace
 		 * Return true of content is present
 		 */
 		bool is_valid() const { return _ds.is_constructed(); }
+
+		/**
+		 * Return dataspace content as XML node
+		 *
+		 * This method always returns a valid XML node. It never throws an
+		 * exception. If the dataspace is invalid or does not contain properly
+		 * formatted XML, the returned XML node has the form "<empty/>".
+		 */
+		Xml_node xml() const
+		{
+			try {
+				if (is_valid() && local_addr<void const>())
+					return Xml_node(local_addr<char>(), size());
+			} catch (Xml_node::Invalid_syntax) { }
+
+			return Xml_node("<empty/>");
+		}
 };
 
 #endif /* _INCLUDE__BASE__ATTACHED_ROM_DATASPACE_H_ */
