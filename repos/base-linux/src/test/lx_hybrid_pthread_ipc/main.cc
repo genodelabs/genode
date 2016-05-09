@@ -54,7 +54,6 @@ static void exit_on_suspended() { exit(exit_status); }
 
 
 Genode::size_t Component::stack_size() { return 16*1024*sizeof(long); }
-char const * Component::name()         { return "lx_hybrid_pthread_ipc"; }
 
 
 /*

@@ -36,6 +36,12 @@ namespace Genode {
 }
 
 
+/**
+ * Return thread name used for the component's initial entrypoint
+ */
+static char const *initial_ep_name() { return "ep"; }
+
+
 void Entrypoint::_dispatch_signal(Signal &sig)
 {
 	Signal_dispatcher_base *dispatcher = 0;
@@ -79,7 +85,7 @@ void Entrypoint::_process_incoming_signals()
 		_suspended_callback();
 
 		init_signal_thread(_env);
-		_rpc_ep.construct(&_env.pd(), Component::stack_size(), Component::name());
+		_rpc_ep.construct(&_env.pd(), Component::stack_size(), initial_ep_name());
 		_signal_proxy_cap = manage(_signal_proxy);
 		_sig_rec.construct();
 
@@ -154,7 +160,7 @@ namespace {
 Entrypoint::Entrypoint(Env &env)
 :
 	_env(env),
-	_rpc_ep(&env.pd(), Component::stack_size(), Component::name())
+	_rpc_ep(&env.pd(), Component::stack_size(), initial_ep_name())
 {
 	/* initialize signalling after initializing but before calling the entrypoint */
 	init_signal_thread(_env);

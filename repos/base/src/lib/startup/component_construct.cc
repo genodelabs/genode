@@ -89,10 +89,3 @@ Genode::size_t Component::stack_size()
 {
 	return 16UL * 1024 * sizeof(Genode::addr_t);
 }
-
-
-char const *Component::name() __attribute__((weak));
-char const *Component::name()
-{
-	return "ep";
-}

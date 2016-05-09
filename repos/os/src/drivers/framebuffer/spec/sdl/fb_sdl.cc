@@ -215,5 +215,4 @@ struct Main
 
 
 Genode::size_t Component::stack_size()      { return 4*1024*sizeof(long); }
-char const * Component::name()              { return "fb_sdl"; }
 void Component::construct(Genode::Env &env) { static Main inst(env); }

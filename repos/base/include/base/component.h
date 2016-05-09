@@ -31,11 +31,6 @@ namespace Component
 	Genode::size_t stack_size();
 
 	/**
-	 * Return component name
-	 */
-	char const *name();
-
-	/**
 	 * Construct component
 	 *
 	 * \param env  interface to the component's execution environment

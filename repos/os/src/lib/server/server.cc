@@ -21,12 +21,6 @@ Genode::size_t Component::stack_size()
 }
 
 
-char const *Component::name()
-{
-	return Server::name();
-}
-
-
 static Genode::Env *_env;
 
 
