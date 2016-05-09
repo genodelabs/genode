@@ -4,5 +4,6 @@
     "target-endian": "little",
     "target-pointer-width": "64",
     "arch": "x86_64",
-    "os": "genode"
+    "os": "genode",
+    "no_compiler_rt": true
 }

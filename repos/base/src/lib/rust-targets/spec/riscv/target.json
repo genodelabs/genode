@@ -4,5 +4,6 @@
     "target-endian": "little",
     "target-pointer-width": "64",
     "arch": "riscv",
-    "os": "genode"
+    "os": "genode",
+    "no_compiler_rt": true
 }
