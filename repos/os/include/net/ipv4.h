@@ -155,7 +155,9 @@ class Net::Ipv4_packet
 		Ipv4_address dst() { return Ipv4_address(&_dst_addr); }
 		Ipv4_address src() { return Ipv4_address(&_src_addr); }
 
-		void *data() { return &_data; }
+		template <typename T> T const * header() const { return (T const *)(this); }
+		template <typename T> T *       data()         { return (T *)(_data); }
+		template <typename T> T const * data()   const { return (T const *)(_data); }
 
 
 		/***************
