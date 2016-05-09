@@ -586,9 +586,10 @@ class Genode::Xml_node
 		/**
 		 * Constructor
 		 *
-		 * The constructor validates if the start tag has a
-		 * matching end tag of the same depth and counts
-		 * the number of immediate sub nodes.
+		 * The constructor validates if the start tag has a matching end tag of
+		 * the same depth and counts the number of immediate sub nodes.
+		 *
+		 * \throw Invalid_syntax
 		 */
 		Xml_node(const char *addr, size_t max_len = ~0UL) :
 			_addr(addr),
