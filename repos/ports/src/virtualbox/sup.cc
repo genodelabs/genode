@@ -328,3 +328,31 @@ void genode_VMMR0_DO_GVMM_REGISTER_VMCPU(PVMR0 pVMR0, VMCPUID idCpu)
 	PVM pVM = reinterpret_cast<PVM>(pVMR0);
 	pVM->aCpus[idCpu].hNativeThreadR0 = RTThreadNativeSelf();
 }
+
+
+HRESULT genode_check_memory_config(ComObjPtr<Machine> machine)
+{
+	HRESULT rc;
+
+	/* Validate configured memory of vbox file and Genode config */
+	ULONG memory_vbox;
+	rc = machine->COMGETTER(MemorySize)(&memory_vbox);
+	if (FAILED(rc))
+		return rc;
+
+	/* Request max available memory */
+	size_t memory_genode = Genode::env()->ram_session()->avail() >> 20;
+	size_t memory_vmm    = 28;
+
+	if (memory_vbox + memory_vmm > memory_genode) {
+		PERR("Configured memory %u MB (vbox file) is insufficient.",
+		     memory_vbox);
+		PERR("%zu MB (1) - %zu MB (2) = %zu MB (3)",
+			 memory_genode, memory_vmm, memory_genode - memory_vmm);
+		PERR("(1) available memory based defined by Genode config");
+		PERR("(2) minimum memory required for VBox VMM");
+		PERR("(3) maximal available memory to VM");
+		return E_FAIL;
+	}
+	return S_OK;
+}
