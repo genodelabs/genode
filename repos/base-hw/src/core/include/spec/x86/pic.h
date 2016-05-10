@@ -273,7 +273,6 @@ class Genode::Pic : public Mmio
 		 * Dummies
 		 */
 
-		void mask() { }
 		bool is_ip_interrupt(unsigned, unsigned) { return false; }
 		void trigger_ip_interrupt(unsigned) { }
 };

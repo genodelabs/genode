@@ -60,8 +60,6 @@ class Genode::Pic
 		void finish_request() { }
 		void unmask(unsigned const i, unsigned) { }
 		void mask(unsigned const i) { }
-		void mask() { }
-		void init_cpu_local() { }
 		bool is_ip_interrupt(unsigned, unsigned) { return false; }
 		void trigger_ip_interrupt(unsigned) { }
 
