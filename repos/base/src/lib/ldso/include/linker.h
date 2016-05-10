@@ -54,6 +54,13 @@ namespace Linker {
 	extern bool bind_now;
 
 	/**
+	 * Print diagnostic information
+	 *
+	 * The value corresponds to the config attribute "ld_verbose".
+	 */
+	extern bool verbose;
+
+	/**
 	 * Find symbol via index
 	 *
 	 * \param sym_index  Symbol index within object

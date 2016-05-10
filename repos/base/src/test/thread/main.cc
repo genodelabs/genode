@@ -18,10 +18,9 @@
 #include <base/thread.h>
 #include <base/component.h>
 #include <base/heap.h>
-#include <os/config.h>
+#include <base/attached_rom_dataspace.h>
 #include <util/volatile_object.h>
 #include <cpu_session/connection.h>
-
 
 using namespace Genode;
 
@@ -340,7 +339,7 @@ void Component::construct(Env &env)
 {
 	log("--- thread test started ---");
 
-	Xml_node config = Genode::config()->xml_node();
+	Attached_rom_dataspace config(env, "config");
 
 	try {
 		test_stack_alloc(env);
@@ -348,7 +347,7 @@ void Component::construct(Env &env)
 		test_main_thread();
 		test_cpu_session(env);
 
-		if (config.has_sub_node("pause_resume"))
+		if (config.xml().has_sub_node("pause_resume"))
 			test_pause_resume(env);
 
 		test_create_as_many_threads(env);

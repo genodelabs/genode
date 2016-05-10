@@ -14,7 +14,7 @@
 /* Genode includes */
 #include <base/component.h>
 #include <base/printf.h>
-#include <os/config.h>
+#include <base/attached_rom_dataspace.h>
 #include <util/list.h>
 #include <util/string.h>
 #include <base/thread.h>
@@ -37,6 +37,7 @@ namespace Linker {
 
 static    Binary *binary = 0;
 bool      Linker::bind_now = false;
+bool      Linker::verbose  = false;
 Link_map *Link_map::first;
 
 /**
@@ -550,11 +551,13 @@ void Component::construct(Genode::Env &env)
 	if (!Ld::linker()->file())
 		Ld::linker()->load_phdr();
 
-	/* read configuration */
+	/* read configuration, release ROM afterwards */
 	try {
-		/* bind immediately */
-		bind_now = Genode::config()->xml_node().attribute("ld_bind_now").has_value("yes");
-	} catch (...) { }
+		Genode::Attached_rom_dataspace config(env, "config");
+
+		bind_now = config.xml().attribute_value("ld_bind_now", false);
+		verbose  = config.xml().attribute_value("ld_verbose",  false);
+	} catch (Genode::Rom_connection::Rom_connection_failed) { }
 
 	/* load binary and all dependencies */
 	try {
@@ -566,7 +569,7 @@ void Component::construct(Genode::Env &env)
 
 	/* print loaded object information */
 	try {
-		if (Genode::config()->xml_node().attribute("ld_verbose").has_value("yes")) {
+		if (verbose) {
 			PINF("  %lx .. %lx: stack area",
 			     Genode::Thread::stack_area_virtual_base(),
 			     Genode::Thread::stack_area_virtual_base() +
