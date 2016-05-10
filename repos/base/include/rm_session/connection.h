@@ -24,9 +24,27 @@ struct Genode::Rm_connection : Connection<Rm_session>, Rm_session_client
 {
 	enum { RAM_QUOTA = 64*1024 };
 
-	Rm_connection() :
+	/**
+	 * Constructor
+	 */
+	Rm_connection(Env &env)
+	:
+		Connection<Rm_session>(env, session(env.parent(), "ram_quota=%u", RAM_QUOTA)),
+		Rm_session_client(cap())
+	{ }
+
+	/**
+	 * Constructor
+	 *
+	 * \noapi
+	 * \deprecated  Use the constructor with 'Env &' as first
+	 *              argument instead
+	 */
+	Rm_connection()
+	:
 		Connection<Rm_session>(session("ram_quota=%u", RAM_QUOTA)),
-		Rm_session_client(cap()) { }
+		Rm_session_client(cap())
+	{ }
 };
 
 #endif /* _INCLUDE__RM_SESSION__CONNECTION_H_ */

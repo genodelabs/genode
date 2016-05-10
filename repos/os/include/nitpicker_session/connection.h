@@ -35,7 +35,7 @@ class Nitpicker::Connection : public Genode::Connection<Session>,
 		/**
 		 * Create session and return typed session capability
 		 */
-		Session_capability _connect(char const *label)
+		Session_capability _connect(Genode::Parent &parent, char const *label)
 		{
 			enum { ARGBUF_SIZE = 128 };
 			char argbuf[ARGBUF_SIZE];
@@ -51,7 +51,7 @@ class Nitpicker::Connection : public Genode::Connection<Session>,
 			enum { SESSION_METADATA = 36*1024 };
 			Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota", SESSION_METADATA);
 
-			return session(argbuf);
+			return session(parent, argbuf);
 		}
 
 	public:
@@ -59,10 +59,28 @@ class Nitpicker::Connection : public Genode::Connection<Session>,
 		/**
 		 * Constructor
 		 */
+		Connection(Genode::Env &env, char const *label = "")
+		:
+			/* establish nitpicker session */
+			Genode::Connection<Session>(env, _connect(env.parent(), label)),
+			Session_client(cap()),
+
+			/* request frame-buffer and input sub sessions */
+			_framebuffer(framebuffer_session()),
+			_input(input_session())
+		{ }
+
+		/**
+		 * Constructor
+		 *
+		 * \noapi
+		 * \deprecated  Use the constructor with 'Env &' as first
+		 *              argument instead
+		 */
 		Connection(char const *label = "")
 		:
 			/* establish nitpicker session */
-			Genode::Connection<Session>(_connect(label)),
+			Genode::Connection<Session>(_connect(*Genode::env()->parent(), label)),
 			Session_client(cap()),
 
 			/* request frame-buffer and input sub sessions */

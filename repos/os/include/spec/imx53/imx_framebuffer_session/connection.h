@@ -29,7 +29,8 @@ class Framebuffer::Imx_connection : public Genode::Connection<Imx_session>,
 		/**
 		 * Create session and return typed session capability
 		 */
-		Capability<Imx_session> _connect(unsigned width, unsigned height,
+		Capability<Imx_session> _connect(Genode::Parent &parent,
+		                                 unsigned width, unsigned height,
 		                                 Mode::Format format)
 		{
 			using namespace Genode;
@@ -48,7 +49,7 @@ class Framebuffer::Imx_connection : public Genode::Connection<Imx_session>,
 			if (format != Mode::INVALID)
 				Arg_string::set_arg(argbuf, sizeof(argbuf), "fb_format", format);
 
-			return session(argbuf);
+			return session(parent, argbuf);
 		}
 
 	public:
@@ -56,18 +57,32 @@ class Framebuffer::Imx_connection : public Genode::Connection<Imx_session>,
 		/**
 		 * Constructor
 		 *
-		 * \param width   desired frame-buffer width
-		 * \param height  desired frame-buffer height
-		 * \param mode    desired pixel format
+		 * \param mode  desired size and pixel format
 		 *
 		 * The specified values are not enforced. After creating the
 		 * session, you should validate the actual frame-buffer attributes
 		 * by calling the 'info' method of the frame-buffer interface.
 		 */
+		Imx_connection(Genode::Env &env, Framebuffer::Mode mode)
+		:
+			Genode::Connection<Imx_session>(env, _connect(env.parent(),
+			                                              mode.width(), mode.height(),
+			                                              mode.format())),
+			Imx_client(cap())
+		{ }
+
+		/**
+		 * Constructor
+		 *
+		 * \noapi
+		 * \deprecated  Use the constructor with 'Env &' as first
+		 *              argument instead
+		 */
 		Imx_connection(unsigned     width  = 0,
 		               unsigned     height = 0,
 		               Mode::Format format = Mode::INVALID)
-		: Genode::Connection<Imx_session>(_connect(width, height, format)),
+		: Genode::Connection<Imx_session>(_connect(*Genode::env()->parent(),
+		                                           width, height, format)),
 		  Imx_client(cap()) { }
 };
 

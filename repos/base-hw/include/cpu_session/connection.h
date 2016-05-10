@@ -18,27 +18,49 @@
 #include <cpu_session/client.h>
 #include <base/connection.h>
 
-namespace Genode {
+namespace Genode { struct Cpu_connection; }
 
-	struct Cpu_connection : Connection<Cpu_session>, Cpu_session_client
+
+struct Genode::Cpu_connection : Connection<Cpu_session>, Cpu_session_client
+{
+	enum { RAM_QUOTA = 128*1024 };
+
+	Capability<Cpu_session> _session(Parent &parent,
+	                                 char const *label, long priority,
+	                                 Affinity const &affinity)
 	{
-		enum { RAM_QUOTA = 128*1024 };
+		return session(parent, affinity,
+		               "priority=0x%lx, ram_quota=128K, label=\"%s\"",
+		               priority, label);
+	}
 
-		/**
-		 * Constructor
-		 *
-		 * \param label     initial session label
-		 * \param priority  designated priority of all threads created
-		 *                  with this CPU session
-		 */
-		Cpu_connection(const char *label = "", long priority = DEFAULT_PRIORITY,
-		               Affinity const &affinity = Affinity())
-		:
-			Connection<Cpu_session>(
-				session(affinity, "priority=0x%lx, ram_quota=128K, label=\"%s\"",
-				        priority, label)),
-			Cpu_session_client(cap()) { }
-	};
-}
+	/**
+	 * Constructor
+	 *
+	 * \param label     initial session label
+	 * \param priority  designated priority of all threads created
+	 *                  with this CPU session
+	 */
+	Cpu_connection(Env &env, const char *label = "", long priority = DEFAULT_PRIORITY,
+	               Affinity const &affinity = Affinity())
+	:
+		Connection<Cpu_session>(env, _session(env.parent(), label, priority, affinity)),
+		Cpu_session_client(cap())
+	{ }
+
+	/**
+	 * Constructor
+	 *
+	 * \noapi
+	 * \deprecated  Use the constructor with 'Env &' as first
+	 *              argument instead
+	 */
+	Cpu_connection(const char *label = "", long priority = DEFAULT_PRIORITY,
+	               Affinity const &affinity = Affinity())
+	:
+		Connection<Cpu_session>(_session(*env()->parent(), label, priority, affinity)),
+		Cpu_session_client(cap())
+	{ }
+};
 
 #endif /* _INCLUDE__CPU_SESSION__CONNECTION_H_ */

@@ -42,9 +42,12 @@ class Genode::Connection : public Noncopyable
 
 		Capability<SESSION_TYPE> _cap;
 
+		Parent &_parent;
+
 		On_destruction _on_destruction;
 
-		Capability<SESSION_TYPE> _session(Affinity const &affinity,
+		Capability<SESSION_TYPE> _session(Parent &parent,
+		                                  Affinity const &affinity,
 		                                  const char *format_args, va_list list)
 		{
 			char buf[FORMAT_STRING_SIZE];
@@ -55,7 +58,7 @@ class Genode::Connection : public Noncopyable
 			va_end(list);
 
 			/* call parent interface with the resulting argument buffer */
-			return env()->parent()->session<SESSION_TYPE>(buf, affinity);
+			return parent.session<SESSION_TYPE>(buf, affinity);
 		}
 
 	public:
@@ -73,8 +76,18 @@ class Genode::Connection : public Noncopyable
 		 * session capability of the connection to another party but never
 		 * invokes any of the session's RPC functions.
 		 */
-		Connection(Capability<SESSION_TYPE> cap, On_destruction od = CLOSE):
-			_cap(cap), _on_destruction(od) { }
+		Connection(Env &env, Capability<SESSION_TYPE> cap, On_destruction od = CLOSE)
+		: _cap(cap), _parent(env.parent()), _on_destruction(od) { }
+
+		/**
+		 * Constructor
+		 *
+		 * \noapi
+		 * \deprecated  Use the constructor with 'Env &' as first
+		 *              argument instead
+		 */
+		Connection(Capability<SESSION_TYPE> cap, On_destruction od = CLOSE)
+		: _cap(cap), _parent(*env()->parent()), _on_destruction(od) { }
 
 		/**
 		 * Destructor
@@ -82,7 +95,7 @@ class Genode::Connection : public Noncopyable
 		~Connection()
 		{
 			if (_on_destruction == CLOSE)
-				env()->parent()->close(_cap);
+				_parent.close(_cap);
 		}
 
 		/**
@@ -96,18 +109,48 @@ class Genode::Connection : public Noncopyable
 		void on_destruction(On_destruction od) { _on_destruction = od; }
 
 		/**
+		 * Issue session request to the parent
+		 */
+		Capability<SESSION_TYPE> session(Parent &parent, const char *format_args, ...)
+		{
+			va_list list;
+			va_start(list, format_args);
+
+			return _session(parent, Affinity(), format_args, list);
+		}
+
+		/**
+		 * Issue session request to the parent
+		 */
+		Capability<SESSION_TYPE> session(Parent         &parent,
+		                                 Affinity const &affinity,
+		                                 char     const *format_args, ...)
+		{
+			va_list list;
+			va_start(list, format_args);
+
+			return _session(parent, affinity, format_args, list);
+		}
+
+		/**
 		 * Shortcut for env()->parent()->session()
+		 *
+		 * \noapi
+		 * \deprecated  to be removed along with Genode::env()
 		 */
 		Capability<SESSION_TYPE> session(const char *format_args, ...)
 		{
 			va_list list;
 			va_start(list, format_args);
 
-			return _session(Affinity(), format_args, list);
+			return _session(*env()->parent(), Affinity(), format_args, list);
 		}
 
 		/**
 		 * Shortcut for env()->parent()->session()
+		 *
+		 * \noapi
+		 * \deprecated  to be removed along with Genode::env()
 		 */
 		Capability<SESSION_TYPE> session(Affinity const &affinity,
 		                                 char     const *format_args, ...)

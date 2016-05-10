@@ -23,6 +23,23 @@ namespace Loader { struct Connection; }
 
 struct Loader::Connection : Genode::Connection<Session>, Session_client
 {
+	/**
+	 * Constructor
+	 */
+	Connection(Genode::Env &env, size_t ram_quota)
+	:
+		Genode::Connection<Session>(env, session(env.parent(),
+		                                         "ram_quota=%zd", ram_quota)),
+		Session_client(cap())
+	{ }
+
+	/**
+	 * Constructor
+	 *
+	 * \noapi
+	 * \deprecated  Use the constructor with 'Env &' as first
+	 *              argument instead
+	 */
 	Connection(size_t ram_quota)
 	:
 		Genode::Connection<Session>(session("ram_quota=%zd", ram_quota)),

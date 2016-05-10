@@ -23,9 +23,28 @@ namespace Gpio { struct Connection; }
 
 struct Gpio::Connection : Genode::Connection<Session>, Session_client
 {
+	/**
+	 * Constructor
+	 */
+	Connection(Genode::Env &env, unsigned long gpio_pin)
+	:
+		Genode::Connection<Session>(env, session(env.parent(),
+		                                         "ram_quota=8K, gpio=%zd", gpio_pin)),
+		Session_client(cap())
+	{ }
+
+	/**
+	 * Constructor
+	 *
+	 * \noapi
+	 * \deprecated  Use the constructor with 'Env &' as first
+	 *              argument instead
+	 */
 	Connection(unsigned long gpio_pin)
-	: Genode::Connection<Session>(session("ram_quota=8K, gpio=%zd", gpio_pin)),
-	  Session_client(cap()) { }
+	:
+		Genode::Connection<Session>(session("ram_quota=8K, gpio=%zd", gpio_pin)),
+		Session_client(cap())
+	{ }
 };
 
 #endif /* _INCLUDE__GPIO_SESSION__CONNECTION_H_ */

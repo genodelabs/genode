@@ -22,6 +22,13 @@ namespace Genode { struct Io_mem_connection; }
 
 struct Genode::Io_mem_connection : Connection<Io_mem_session>, Io_mem_session_client
 {
+	Capability<Io_mem_session> _session(Parent &parent, addr_t base, size_t size,
+	                                    bool write_combined)
+	{
+		return session("ram_quota=4K, base=0x%p, size=0x%zx, wc=%s",
+		               base, size, write_combined ? "yes" : "no");
+	}
+
 	/**
 	 * Constructor
 	 *
@@ -31,10 +38,7 @@ struct Genode::Io_mem_connection : Connection<Io_mem_session>, Io_mem_session_cl
 	 */
 	Io_mem_connection(Env &env, addr_t base, size_t size, bool write_combined = false)
 	:
-		Connection<Io_mem_session>(
-			session("ram_quota=4K, base=0x%p, size=0x%zx, wc=%s",
-			        base, size, write_combined ? "yes" : "no")),
-
+		Connection<Io_mem_session>(env, _session(env.parent(), base, size, write_combined)),
 		Io_mem_session_client(cap())
 	{ }
 
@@ -47,10 +51,7 @@ struct Genode::Io_mem_connection : Connection<Io_mem_session>, Io_mem_session_cl
 	 */
 	Io_mem_connection(addr_t base, size_t size, bool write_combined = false)
 	:
-		Connection<Io_mem_session>(
-			session("ram_quota=4K, base=0x%p, size=0x%zx, wc=%s",
-			        base, size, write_combined ? "yes" : "no")),
-
+		Connection<Io_mem_session>(_session(*env()->parent(), base, size, write_combined)),
 		Io_mem_session_client(cap())
 	{ }
 };

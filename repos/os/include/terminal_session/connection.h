@@ -42,6 +42,26 @@ struct Terminal::Connection : Genode::Connection<Session>, Session_client
 		sig_rec.dissolve(&sig_ctx);
 	}
 
+	/**
+	 * Constructor
+	 */
+	Connection(Genode::Env &env, char const *label = "")
+	:
+		Genode::Connection<Session>(env, session(env.parent(),
+		                                         "ram_quota=%zd, label=\"%s\"",
+		                                         2*4096, label)),
+		Session_client(cap())
+	{
+		wait_for_connection(cap());
+	}
+
+	/**
+	 * Constructor
+	 *
+	 * \noapi
+	 * \deprecated  Use the constructor with 'Env &' as first
+	 *              argument instead
+	 */
 	Connection(char const *label = "")
 	:
 		Genode::Connection<Session>(session("ram_quota=%zd, label=\"%s\"",

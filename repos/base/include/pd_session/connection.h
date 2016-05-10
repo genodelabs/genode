@@ -29,9 +29,24 @@ struct Genode::Pd_connection : Connection<Pd_session>, Pd_session_client
 	 *
 	 * \param label  session label
 	 */
+	Pd_connection(Env &env, char const *label = "")
+	:
+		Connection<Pd_session>(env, session(env.parent(),
+		                                    "ram_quota=%u, label=\"%s\"",
+		                                    RAM_QUOTA, label)),
+		Pd_session_client(cap())
+	{ }
+
+	/**
+	 * Constructor
+	 *
+	 * \noapi
+	 * \deprecated  Use the constructor with 'Env &' as first
+	 *              argument instead
+	 */
 	Pd_connection(char const *label = "")
-	: Connection<Pd_session>(session("ram_quota=%u, label=\"%s\"",
-	                                 RAM_QUOTA, label)),
+	:
+		Connection<Pd_session>(session("ram_quota=%u, label=\"%s\"", RAM_QUOTA, label)),
 		Pd_session_client(cap())
 	{ }
 };

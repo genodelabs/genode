@@ -30,10 +30,12 @@ class Genode::Rom_connection : public Connection<Rom_session>,
 
 	private:
 
-		Rom_session_capability _create_session(const char *module_name, const char *label)
+		Rom_session_capability _session(Parent     &parent,
+		                                char const *module_name,
+		                                char const *label)
 		{
 			try {
-				return session("ram_quota=4K, filename=\"%s\", label=\"%s\"",
+				return session(parent, "ram_quota=4K, filename=\"%s\", label=\"%s\"",
 				               module_name, label ? label: module_name); }
 			catch (...) {
 				PERR("Could not open ROM session for module \"%s\"", module_name);
@@ -53,7 +55,7 @@ class Genode::Rom_connection : public Connection<Rom_session>,
 		 */
 		Rom_connection(Env &env, const char *module_name, const char *label = 0)
 		:
-			Connection<Rom_session>(_create_session(module_name, label)),
+			Connection<Rom_session>(env, _session(env.parent(), module_name, label)),
 			Rom_session_client(cap())
 		{ }
 
@@ -66,7 +68,7 @@ class Genode::Rom_connection : public Connection<Rom_session>,
 		 */
 		Rom_connection(const char *module_name, const char *label = 0)
 		:
-			Connection<Rom_session>(_create_session(module_name, label)),
+			Connection<Rom_session>(_session(*env()->parent(), module_name, label)),
 			Rom_session_client(cap())
 		{ }
 };

@@ -23,6 +23,20 @@ namespace Platform { class Connection; }
 
 struct Platform::Connection : Genode::Connection<Session>, Client
 {
+	/**
+	 * Constructor
+	 */
+	Connection(Genode::Env &env)
+	: Genode::Connection<Session>(env, session(env.parent(), "ram_quota=4K")),
+	  Client(cap()) { }
+
+	/**
+	 * Constructor
+	 *
+	 * \noapi
+	 * \deprecated  Use the constructor with 'Env &' as first
+	 *              argument instead
+	 */
 	Connection()
 	: Genode::Connection<Session>(session("ram_quota=4K")),
 	  Client(cap()) { }
