@@ -47,4 +47,6 @@ void genode_VMMR0_DO_GVMM_REGISTER_VMCPU(PVMR0 pVMR0, VMCPUID idCpu);
 
 HRESULT genode_setup_machine(ComObjPtr<Machine> machine);
 
+HRESULT genode_check_memory_config(ComObjPtr<Machine> machine);
+
 #endif /* _SUP_H_ */
