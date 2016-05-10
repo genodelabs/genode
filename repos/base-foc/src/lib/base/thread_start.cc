@@ -18,6 +18,7 @@
 #include <base/printf.h>
 #include <base/sleep.h>
 #include <base/env.h>
+#include <cpu_thread/client.h>
 
 /* base-internal includes */
 #include <base/internal/stack.h>
@@ -76,9 +77,11 @@ void Thread::start()
 {
 	using namespace Fiasco;
 
+	Cpu_thread_client cpu_thread(_thread_cap);
+
 	/* get gate-capability and badge of new thread */
 	Thread_state state;
-	try { state = _cpu_session->state(_thread_cap); }
+	try { state = cpu_thread.state(); }
 	catch (...) { throw Cpu_session::Thread_creation_failed(); }
 
 	/* remember UTCB of the new thread */
@@ -92,11 +95,11 @@ void Thread::start()
 	l4_utcb_tcr_u(foc_utcb)->user[UTCB_TCR_THREAD_OBJ] = (addr_t)this;
 
 	/* register initial IP and SP at core */
-	_cpu_session->start(_thread_cap, (addr_t)_thread_start, _stack->top());
+	cpu_thread.start((addr_t)_thread_start, _stack->top());
 }
 
 
 void Thread::cancel_blocking()
 {
-	_cpu_session->cancel_blocking(_thread_cap);
+	Cpu_thread_client(_thread_cap).cancel_blocking();
 }

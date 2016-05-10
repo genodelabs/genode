@@ -18,6 +18,7 @@
 #include <base/snprintf.h>
 #include <base/sleep.h>
 #include <linux_native_cpu/client.h>
+#include <cpu_thread/client.h>
 
 /* base-internal includes */
 #include <base/internal/stack.h>
@@ -154,5 +155,5 @@ void Thread::start()
 
 void Thread::cancel_blocking()
 {
-	_cpu_session->cancel_blocking(_thread_cap);
+	Cpu_thread_client(_thread_cap).cancel_blocking();
 }

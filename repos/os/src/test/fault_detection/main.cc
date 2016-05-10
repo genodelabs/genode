@@ -68,13 +68,15 @@ class Test_child : public Genode::Child_policy
 				env()->ram_session()->transfer_quota(ram.cap(), CHILD_QUOTA);
 
 				/* register default exception handler */
-				cpu.exception_handler(Thread_capability(), sigh);
+				cpu.exception_sigh(sigh);
 
 				/* register handler for unresolvable page faults */
 				Region_map_client address_space(pd.address_space());
 				address_space.fault_handler(sigh);
 			}
 		} _resources;
+
+		Genode::Child::Initial_thread _initial_thread;
 
 		/*
 		 * The order of the following members is important. The services must
@@ -99,12 +101,13 @@ class Test_child : public Genode::Child_policy
 		           Genode::Signal_context_capability sigh)
 		:
 			_resources(sigh, elf_name),
+			_initial_thread(_resources.cpu, _resources.pd, elf_name),
 			_elf(elf_name),
 			_log_service("LOG"), _rm_service("RM"),
 			_child(_elf.dataspace(), Genode::Dataspace_capability(),
 			       _resources.pd,  _resources.pd,
 			       _resources.ram, _resources.ram,
-			       _resources.cpu, _resources.cpu,
+			       _resources.cpu, _initial_thread,
 			       *Genode::env()->rm_session(), _address_space, ep, *this)
 		{ }
 

@@ -17,6 +17,7 @@
 #include <base/trace/policy.h>
 #include <dataspace/client.h>
 #include <util/construct_at.h>
+#include <cpu_thread/client.h>
 
 /* local includes */
 #include <base/internal/trace_control.h>
@@ -74,7 +75,7 @@ bool Trace::Logger::_evaluate_control()
 		Control::Inhibit_guard guard(*control);
 
 		/* obtain policy */
-		Dataspace_capability policy_ds = cpu->trace_policy(thread_cap);
+		Dataspace_capability policy_ds = Cpu_thread_client(thread_cap).trace_policy();
 
 		if (!policy_ds.valid()) {
 			PWRN("could not obtain trace policy");
@@ -100,7 +101,7 @@ bool Trace::Logger::_evaluate_control()
 
 		/* obtain buffer */
 		buffer = 0;
-		Dataspace_capability buffer_ds = cpu->trace_buffer(thread_cap);
+		Dataspace_capability buffer_ds = Cpu_thread_client(thread_cap).trace_buffer();
 
 		if (!buffer_ds.valid()) {
 			PWRN("could not obtain trace buffer");
@@ -139,7 +140,7 @@ void Trace::Logger::init(Thread_capability thread, Cpu_session *cpu_session,
 	thread_cap = thread;
 	cpu        = cpu_session;
 
-	unsigned const index    = cpu->trace_control_index(thread);
+	unsigned const index    = Cpu_thread_client(thread).trace_control_index();
 	Dataspace_capability ds = cpu->trace_control();
 	size_t size             = Dataspace_client(ds).size();
 	if ((index + 1)*sizeof(Trace::Control) > size) {

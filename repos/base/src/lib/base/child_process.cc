@@ -15,6 +15,7 @@
 /* Genode includes */
 #include <base/printf.h>
 #include <base/child.h>
+#include <cpu_thread/client.h>
 
 /* base-internal includes */
 #include <base/internal/elf.h>
@@ -162,18 +163,24 @@ Child::Process::Loaded_executable::Loaded_executable(Dataspace_capability elf_ds
 }
 
 
-Child::Process::Initial_thread::Initial_thread(Cpu_session          &cpu,
-                                               Pd_session_capability pd,
-                                               char           const *name)
+Child::Initial_thread::Initial_thread(Cpu_session          &cpu,
+                                      Pd_session_capability pd,
+                                      Name           const &name)
 :
-	cpu(cpu),
-	cap(cpu.create_thread(pd, name, Affinity::Location(), Cpu_session::Weight()))
+	_cpu(cpu),
+	_cap(cpu.create_thread(pd, name, Affinity::Location(), Cpu_session::Weight()))
 { }
 
 
-Child::Process::Initial_thread::~Initial_thread()
+Child::Initial_thread::~Initial_thread()
 {
-	cpu.kill_thread(cap);
+	_cpu.kill_thread(_cap);
+}
+
+
+void Child::Initial_thread::start(addr_t ip)
+{
+	Cpu_thread_client(_cap).start(ip, 0);
 }
 
 
@@ -182,13 +189,12 @@ Child::Process::Process(Dataspace_capability  elf_ds,
                         Pd_session_capability pd_cap,
                         Pd_session           &pd,
                         Ram_session          &ram,
-                        Cpu_session          &cpu,
+                        Initial_thread_base  &initial_thread,
                         Region_map           &local_rm,
                         Region_map           &remote_rm,
-                        Parent_capability     parent_cap,
-                        char const           *name)
+                        Parent_capability     parent_cap)
 :
-	initial_thread(cpu, pd_cap, name),
+	initial_thread(initial_thread),
 	loaded_executable(elf_ds, ldso_ds, ram, local_rm, remote_rm, parent_cap)
 {
 	/* register parent interface for new protection domain */
@@ -203,10 +209,7 @@ Child::Process::Process(Dataspace_capability  elf_ds,
 		return;
 
 	/* start main thread */
-	if (cpu.start(initial_thread.cap, loaded_executable.entry, 0)) {
-		PERR("start of initial thread failed");
-		throw Cpu_session::Thread_creation_failed();
-	}
+	initial_thread.start(loaded_executable.entry);
 }
 
 

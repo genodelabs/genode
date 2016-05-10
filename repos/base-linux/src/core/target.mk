@@ -13,6 +13,7 @@ SRC_CC        = main.cc \
                 rom_session_component.cc \
                 cpu_session_component.cc \
                 cpu_session_support.cc \
+                cpu_thread_component.cc \
                 pd_session_component.cc \
                 pd_upgrade_ram_quota.cc \
                 dataspace_component.cc \
@@ -44,6 +45,7 @@ vpath main.cc                     $(GEN_CORE_DIR)
 vpath ram_session_component.cc    $(GEN_CORE_DIR)
 vpath cpu_session_component.cc    $(GEN_CORE_DIR)
 vpath cpu_session_support.cc      $(GEN_CORE_DIR)
+vpath cpu_thread_component.cc     $(GEN_CORE_DIR)
 vpath pd_upgrade_ram_quota.cc     $(GEN_CORE_DIR)
 vpath rpc_cap_factory.cc          $(GEN_CORE_DIR)
 vpath platform_services.cc        $(GEN_CORE_DIR)

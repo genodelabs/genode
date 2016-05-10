@@ -21,6 +21,7 @@
 #include <base/rpc_client.h>
 #include <session/session.h>
 #include <nova_native_cpu/client.h>
+#include <cpu_thread/client.h>
 
 /* base-internal includes */
 #include <base/internal/stack.h>
@@ -164,11 +165,11 @@ void Thread::start()
 	/* local thread have no start instruction pointer - set via portal entry */
 	addr_t thread_ip = global ? reinterpret_cast<addr_t>(_thread_start) : 0;
 
-	try { _cpu_session->state(_thread_cap, state); }
+	Cpu_thread_client cpu_thread(_thread_cap);
+	try { cpu_thread.state(state); }
 	catch (...) { throw Cpu_session::Thread_creation_failed(); }
 
-	if (_cpu_session->start(_thread_cap, thread_ip, _stack->top()))
-		throw Cpu_session::Thread_creation_failed();
+	cpu_thread.start(thread_ip, _stack->top());
 
 	/* request native EC thread cap */ 
 	native_thread().ec_sel = cap_map()->insert(1);
@@ -193,7 +194,7 @@ void Thread::start()
 
 	if (global)
 		/* request creation of SC to let thread run*/
-		_cpu_session->resume(_thread_cap);
+		cpu_thread.resume();
 }
 
 

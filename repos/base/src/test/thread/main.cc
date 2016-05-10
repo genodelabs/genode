@@ -21,6 +21,7 @@
 #include <base/attached_rom_dataspace.h>
 #include <util/volatile_object.h>
 #include <cpu_session/connection.h>
+#include <cpu_thread/client.h>
 
 using namespace Genode;
 
@@ -259,16 +260,17 @@ static void test_pause_resume(Env &env)
 	while (thread.loop < 1) { }
 
 	Thread_state state;
+	Cpu_thread_client thread_client(thread.cap());
 
 	log("--- pausing ---");
-	env.cpu().pause(thread.cap());
+	thread_client.pause();
 	unsigned loop_paused = thread.loop;
 	log("--- paused ---");
 
 	log("--- reading thread state ---");
 	try {
-		state = env.cpu().state(thread.cap());
-	} catch (Cpu_session::State_access_failed) {
+		state = thread_client.state();
+	} catch (Cpu_thread::State_access_failed) {
 		throw -10;
 	}
 	if (loop_paused != thread.loop)
@@ -276,7 +278,7 @@ static void test_pause_resume(Env &env)
 
 	thread.beep = true;
 	log("--- resuming thread ---");
-	env.cpu().resume(thread.cap());
+	thread_client.resume();
 
 	while (thread.loop == loop_paused) { }
 

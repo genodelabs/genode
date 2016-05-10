@@ -17,6 +17,7 @@
 #include <base/printf.h>
 #include <base/sleep.h>
 #include <base/env.h>
+#include <cpu_thread/client.h>
 
 /* base-internal includes */
 #include <base/internal/stack_allocator.h>
@@ -85,7 +86,7 @@ void Thread::start()
 {
 	/* attach userland stack */
 	try {
-		Ram_dataspace_capability ds = _cpu_session->utcb(_thread_cap);
+		Dataspace_capability ds = Cpu_thread_client(_thread_cap).utcb();
 		size_t const size = sizeof(_stack->utcb());
 		addr_t dst = Stack_allocator::addr_to_base(_stack) +
 		             stack_virtual_size() - size - stack_area_virtual_base();
@@ -95,11 +96,11 @@ void Thread::start()
 		sleep_forever();
 	}
 	/* start thread with its initial IP and aligned SP */
-	_cpu_session->start(_thread_cap, (addr_t)_thread_start, _stack->top());
+	Cpu_thread_client(_thread_cap).start((addr_t)_thread_start, _stack->top());
 }
 
 
 void Thread::cancel_blocking()
 {
-	_cpu_session->cancel_blocking(_thread_cap);
+	Cpu_thread_client(_thread_cap).cancel_blocking();
 }

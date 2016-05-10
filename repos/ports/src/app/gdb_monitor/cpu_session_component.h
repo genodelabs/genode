@@ -58,23 +58,10 @@ class Cpu_session_component : public Rpc_object<Cpu_session>
 
 		Thread_capability create_thread(Capability<Pd_session>, Name const &,
 		                                Affinity::Location, Weight, addr_t) override;
-		Ram_dataspace_capability utcb(Thread_capability thread) override;
 		void kill_thread(Thread_capability) override;
-		int start(Thread_capability, addr_t, addr_t) override;
-		void pause(Thread_capability thread_cap) override;
-		void resume(Thread_capability thread_cap) override;
-		void cancel_blocking(Thread_capability) override;
-		Thread_state state(Thread_capability) override;
-		void state(Thread_capability, Thread_state const &) override;
-		void exception_handler(Thread_capability         thread,
-		                       Signal_context_capability handler) override;
-		void single_step(Thread_capability thread, bool enable) override;
+		void exception_sigh(Signal_context_capability handler) override;
 		Affinity::Space affinity_space() const override;
-		void affinity(Thread_capability, Affinity::Location) override;
 		Dataspace_capability trace_control() override;
-		unsigned trace_control_index(Thread_capability) override;
-		Dataspace_capability trace_buffer(Thread_capability) override;
-		Dataspace_capability trace_policy(Thread_capability) override;
 		int ref_account(Cpu_session_capability c) override;
 		int transfer_quota(Cpu_session_capability c, size_t q) override;
 		Quota quota() override;

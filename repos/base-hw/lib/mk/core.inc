@@ -18,6 +18,7 @@ INC_DIR += $(BASE_HW_DIR)/src/include      $(BASE_DIR)/src/include
 SRC_CC += console.cc
 SRC_CC += cpu_session_component.cc
 SRC_CC += cpu_session_support.cc
+SRC_CC += cpu_thread_component.cc
 SRC_CC += core_region_map.cc
 SRC_CC += core_mem_alloc.cc
 SRC_CC += core_rpc_cap_alloc.cc

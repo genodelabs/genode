@@ -38,7 +38,7 @@ void Genode::Native_cpu_component::enable_vcpu(Genode::Thread_capability thread_
 	auto lambda = [&] (Cpu_thread_component *thread) {
 		if (!thread) return;
 
-		l4_cap_idx_t tid = thread->platform_thread()->thread().local.dst();
+		l4_cap_idx_t tid = thread->platform_thread().thread().local.dst();
 
 		l4_msgtag_t tag = l4_thread_vcpu_control(tid, vcpu_state);
 		if (l4_msgtag_has_error(tag))
@@ -55,7 +55,7 @@ Genode::Native_cpu_component::native_cap(Genode::Thread_capability cap)
 
 	auto lambda = [&] (Cpu_thread_component *thread) {
 		return (!thread) ? Native_capability()
-		                 : thread->platform_thread()->thread().local;
+		                 : thread->platform_thread().thread().local;
 	};
 	return _thread_ep.apply(cap, lambda);
 }

@@ -176,9 +176,10 @@ class Genode::Slave
 				if (ram_ref.transfer_quota(ram.cap(), ram_quota))
 					throw Quota_exceeded();
 			}
-		};
+		} _resources;
 
-		Resources                 _resources;
+		Genode::Child::Initial_thread _initial_thread;
+
 		Genode::Region_map_client _address_space { _resources.pd.address_space() };
 		Genode::Child             _child;
 
@@ -191,8 +192,9 @@ class Genode::Slave
 		      Dataspace_capability    ldso_ds = Dataspace_capability())
 		:
 			_resources(slave_policy.name(), ram_quota, ram_ref_cap),
+			_initial_thread(_resources.cpu, _resources.pd, slave_policy.name()),
 			_child(slave_policy.binary(), ldso_ds, _resources.pd, _resources.pd,
-			       _resources.ram, _resources.ram, _resources.cpu, _resources.cpu,
+			       _resources.ram, _resources.ram, _resources.cpu, _initial_thread,
 			       *env()->rm_session(), _address_space, entrypoint, slave_policy)
 		{ }
 

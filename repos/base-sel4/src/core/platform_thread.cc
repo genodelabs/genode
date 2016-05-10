@@ -172,14 +172,14 @@ void Platform_thread::resume()
 void Platform_thread::state(Thread_state s)
 {
 	PDBG("not implemented");
-	throw Cpu_session::State_access_failed();
+	throw Cpu_thread::State_access_failed();
 }
 
 
 Thread_state Platform_thread::state()
 {
 	PDBG("not implemented");
-	throw Cpu_session::State_access_failed();
+	throw Cpu_thread::State_access_failed();
 }
 
 

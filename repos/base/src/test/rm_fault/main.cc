@@ -79,10 +79,11 @@ class Test_child : public Child_policy
 		 */
 		Rpc_entrypoint _entrypoint;
 
-		Region_map_client  _address_space;
-		Pd_session_client  _pd;
-		Ram_session_client _ram;
-		Cpu_session_client _cpu;
+		Region_map_client     _address_space;
+		Pd_session_client     _pd;
+		Ram_session_client    _ram;
+		Cpu_session_client    _cpu;
+		Child::Initial_thread _initial_thread;
 
 		Child _child;
 
@@ -101,8 +102,9 @@ class Test_child : public Child_policy
 		:
 			_entrypoint(cap, STACK_SIZE, "child", false),
 			_address_space(pd.address_space()), _pd(pd), _ram(ram), _cpu(cpu),
+			_initial_thread(_cpu, _pd, "child"),
 			_child(elf_ds, Dataspace_capability(), _pd, _pd, _ram, _ram,
-			       _cpu, _cpu, *env()->rm_session(), _address_space,
+			       _cpu, _initial_thread, *env()->rm_session(), _address_space,
 			       _entrypoint, *this),
 			_log_service("LOG")
 		{

@@ -152,6 +152,46 @@ struct Genode::Child_policy
  */
 class Genode::Child : protected Rpc_object<Parent>
 {
+	public:
+
+		struct Initial_thread_base
+		{
+			/**
+			 * Start execution at specified instruction pointer
+			 */
+			virtual void start(addr_t ip) = 0;
+
+			/**
+			 * Return capability of the initial thread
+			 */
+			virtual Capability<Cpu_thread> cap() = 0;
+		};
+
+		struct Initial_thread : Initial_thread_base
+		{
+			private:
+
+				Cpu_session      &_cpu;
+				Thread_capability _cap;
+
+			public:
+
+				typedef Cpu_session::Name Name;
+
+				/**
+				 * Constructor
+				 *
+				 * \throw Cpu_session::Thread_creation_failed
+				 * \throw Cpu_session::Out_of_metadata
+				 */
+				Initial_thread(Cpu_session &, Pd_session_capability, Name const &);
+				~Initial_thread();
+
+				void start(addr_t) override;
+
+				Capability<Cpu_thread> cap() { return _cap; }
+		};
+
 	private:
 
 		class Session;
@@ -200,16 +240,10 @@ class Genode::Child : protected Rpc_object<Parent>
 
 		struct Process
 		{
-			struct Initial_thread
-			{
-				Cpu_session &cpu;
-				Thread_capability cap;
-				Initial_thread(Cpu_session &, Pd_session_capability, char const *);
-				~Initial_thread();
-			} initial_thread;
-
 			class Missing_dynamic_linker : Exception { };
 			class Invalid_executable     : Exception { };
+
+			Initial_thread_base &initial_thread;
 
 			struct Loaded_executable
 			{
@@ -246,12 +280,9 @@ class Genode::Child : protected Rpc_object<Parent>
 			 *
 			 * \param ram     RAM session used to allocate the BSS and
 			 *                DATA segments for the new process
-			 * \param cpu     CPU session used to create the initial thread
 			 * \param parent  parent of the new protection domain
 			 * \param name    name of protection domain
 			 *
-			 * \throw Cpu_session::Thread_creation_failed
-			 * \throw Cpu_session::Out_of_metadata
 			 * \throw Missing_dynamic_linker
 			 * \throw Invalid_executable
 			 * \throw Region_map::Attach_failed
@@ -272,11 +303,10 @@ class Genode::Child : protected Rpc_object<Parent>
 			        Pd_session_capability pd_cap,
 			        Pd_session           &pd,
 			        Ram_session          &ram,
-			        Cpu_session          &cpu,
+			        Initial_thread_base  &initial_thread,
 			        Region_map           &local_rm,
 			        Region_map           &remote_rm,
-			        Parent_capability     parent,
-			        char const           *name);
+			        Parent_capability     parent);
 
 			~Process();
 		};
@@ -327,39 +357,39 @@ class Genode::Child : protected Rpc_object<Parent>
 		/**
 		 * Constructor
 		 *
-		 * \param elf_ds       dataspace that contains the ELF binary
-		 * \param ldso_ds      dataspace that contains the dynamic linker,
-		 *                     started if 'elf_ds' is a dynamically linked
-		 *                     executable
-		 * \param pd_cap       capability of the new protection domain,
-		 *                     used as argument for creating the initial
-		 *                     thread, and handed out to the child as its
-		 *                     environment
-		 * \param pd           PD session used for assigning the parent
-		 *                     capability of the new process
-		 * \param ram_cap      RAM session capability handed out to the
-		 *                     child as its environment
-		 * \param ram          RAM session used to allocate the BSS and
-		 *                     DATA segments and as backing store for the
-		 *                     local heap partition to keep child-specific
-		 *                     meta data
-		 * \param cpu_cap      CPU session capability handed out to the
-		 *                     child as its environment
-		 * \param cpu          CPU session for the new protection domain
-		 * \param local_rm     local address space
-		 * \param remote_rm    address space of new protection domain
-		 * \param pd_service   provider of the 'pd' session
-		 * \param ram_service  provider of the 'ram' session
-		 * \param cpu_service  provider of the 'cpu' session
+		 * \param elf_ds          dataspace that contains the ELF binary
+		 * \param ldso_ds         dataspace that contains the dynamic linker,
+		 *                        started if 'elf_ds' is a dynamically linked
+		 *                        executable
+		 * \param pd_cap          capability of the new protection domain,
+		 *                        used as argument for creating the initial
+		 *                        thread, and handed out to the child as its
+		 *                        environment
+		 * \param pd              PD session used for assigning the parent
+		 *                        capability of the new process
+		 * \param ram_cap         RAM session capability handed out to the
+		 *                        child as its environment
+		 * \param ram             RAM session used to allocate the BSS and
+		 *                        DATA segments and as backing store for the
+		 *                        local heap partition to keep child-specific
+		 *                        meta data
+		 * \param cpu_cap         CPU session capability handed out to the
+		 *                        child as its environment
+		 * \param initial_thread  initial thread of the new protection domain
+		 * \param local_rm        local address space
+		 * \param remote_rm       address space of new protection domain
+		 * \param pd_service      provider of the 'pd' session
+		 * \param ram_service     provider of the 'ram' session
+		 * \param cpu_service     provider of the 'cpu' session
 		 *
 		 * \throw Ram_session::Alloc_failed
 		 * \throw Process_startup_failed
 		 *
-		 * Usually, the pairs of 'pd' and 'pd_cap', 'cpu' and 'cpu_cap',
-		 * 'ram' and 'ram_cap' belong to each other. References to the
-		 * session interfaces are passed as separate arguments in addition
+		 * Usually, the pairs of 'pd' and 'pd_cap', 'initial_thread' and
+		 * 'cpu_cap', 'ram' and 'ram_cap' belong to each other. References to
+		 * the session interfaces are passed as separate arguments in addition
 		 * to the capabilities to allow the creator of a child to operate on
-		 * locally implemented sessions during the child initialization.
+		 * locally implemented interfaces during the child initialization.
 		 *
 		 * The 'ram_service', 'cpu_service', and 'pd_service' arguments are
 		 * needed to direct quota upgrades referring to the resources of
@@ -373,7 +403,7 @@ class Genode::Child : protected Rpc_object<Parent>
 		      Ram_session_capability  ram_cap,
 		      Ram_session            &ram,
 		      Cpu_session_capability  cpu_cap,
-		      Cpu_session            &cpu,
+		      Initial_thread_base    &initial_thread,
 		      Region_map             &local_rm,
 		      Region_map             &remote_rm,
 		      Rpc_entrypoint         &entrypoint,

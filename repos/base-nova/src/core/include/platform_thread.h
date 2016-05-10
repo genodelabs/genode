@@ -68,7 +68,7 @@ namespace Genode {
 			/**
 			 * Constructor
 			 */
-			Platform_thread(const char *name = 0,
+			Platform_thread(size_t, const char *name = 0,
 			                unsigned priority = 0,
 			                Affinity::Location affinity = Affinity::Location(),
 			                int thread_id = THREAD_INVALID);

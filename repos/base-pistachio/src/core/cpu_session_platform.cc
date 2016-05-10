@@ -17,10 +17,11 @@
 using namespace Genode;
 using namespace Pistachio;
 
-Ram_dataspace_capability Cpu_session_component::utcb(Thread_capability thread_cap)
+
+Dataspace_capability Cpu_thread_component::utcb()
 {
 	PERR("%s: Not implemented", __PRETTY_FUNCTION__);
-	return Ram_dataspace_capability();
+	return Dataspace_capability();
 }
 
 

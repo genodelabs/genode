@@ -249,7 +249,7 @@ void Platform_thread::resume()
 
 Thread_state Platform_thread::state()
 {
-	if (!_pager) throw Cpu_session::State_access_failed();
+	if (!_pager) throw Cpu_thread::State_access_failed();
 
 	Thread_state s;
 
@@ -261,7 +261,7 @@ Thread_state Platform_thread::state()
 		return s;
 	}
 
-	throw Cpu_session::State_access_failed();
+	throw Cpu_thread::State_access_failed();
 }
 
 
@@ -269,7 +269,7 @@ void Platform_thread::state(Thread_state s)
 {
 	/* you can do it only once */
 	if (_sel_exc_base != Native_thread::INVALID_INDEX)
-		throw Cpu_session::State_access_failed();
+		throw Cpu_thread::State_access_failed();
 
 	/*
 	 * s.sel_exc_base exception base of thread in caller
@@ -345,7 +345,7 @@ unsigned long long Platform_thread::execution_time() const
 }
 
 
-Platform_thread::Platform_thread(const char *name, unsigned prio,
+Platform_thread::Platform_thread(size_t, const char *name, unsigned prio,
                                  Affinity::Location affinity, int thread_id)
 :
 	_pd(0), _pager(0), _id_base(cap_map()->insert(2)),

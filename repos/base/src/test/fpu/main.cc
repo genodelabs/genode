@@ -39,7 +39,7 @@ class Sync_signal_transmitter : public Signal_transmitter
 		}
 };
 
-class Fpu_user : public Thread_deprecated<4 * 1024>
+class Fpu_user : public Thread_deprecated<0x2000>
 {
 	private:
 

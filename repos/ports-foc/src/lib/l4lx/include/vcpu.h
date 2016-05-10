@@ -21,6 +21,7 @@
 #include <base/cap_map.h>
 #include <foc_native_cpu/client.h>
 #include <cpu_session/client.h>
+#include <cpu_thread/client.h>
 #include <timer_session/connection.h>
 #include <foc/native_thread.h>
 
@@ -62,7 +63,7 @@ namespace L4lx {
 			  _data(data ? *data : 0),
 			  _vcpu_state(vcpu_state),
 			  _cpu_nr(cpu_nr),
-			  _utcb((Fiasco::l4_utcb_t *)_cpu_session->state(cap()).utcb)
+			  _utcb((Fiasco::l4_utcb_t *)Genode::Cpu_thread_client(cap()).state().utcb)
 			{
 				start();
 
@@ -95,8 +96,7 @@ namespace L4lx {
 
 			void set_affinity(unsigned i)
 			{
-				cpu_connection()->affinity(_thread_cap,
-				                           Genode::Affinity::Location(i, 0));
+				Genode::Cpu_thread_client(_thread_cap).affinity(Genode::Affinity::Location(i, 0));
 			}
 	};
 

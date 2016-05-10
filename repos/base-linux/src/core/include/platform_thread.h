@@ -119,13 +119,13 @@ namespace Genode {
 			Thread_state state()
 			{
 				PDBG("Not implemented");
-				throw Cpu_session::State_access_failed();
+				throw Cpu_thread::State_access_failed();
 			}
 
 			void state(Thread_state)
 			{
 				PDBG("Not implemented");
-				throw Cpu_session::State_access_failed();
+				throw Cpu_thread::State_access_failed();
 			}
 
 			const char   *name() { return _name; }

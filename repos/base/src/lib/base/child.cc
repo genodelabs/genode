@@ -445,7 +445,7 @@ void Child::exit(int exit_value)
 
 Thread_capability Child::main_thread_cap() const
 {
-	return _process.initial_thread.cap;
+	return _process.initial_thread.cap();
 }
 
 
@@ -482,7 +482,7 @@ Child::Child(Dataspace_capability    elf_ds,
              Ram_session_capability  ram_cap,
              Ram_session            &ram,
              Cpu_session_capability  cpu_cap,
-             Cpu_session            &cpu,
+             Initial_thread_base    &initial_thread,
              Region_map             &local_rm,
              Region_map             &remote_rm,
              Rpc_entrypoint         &entrypoint,
@@ -500,8 +500,8 @@ try :
 	_parent_cap(_entrypoint.manage(this)),
 	_policy(policy),
 	_server(_ram),
-	_process(elf_ds, ldso_ds, pd_cap, pd, ram, cpu, local_rm, remote_rm,
-	         _parent_cap, policy.name())
+	_process(elf_ds, ldso_ds, pd_cap, pd, ram, initial_thread, local_rm, remote_rm,
+	         _parent_cap)
 { }
 catch (Cpu_session::Thread_creation_failed) { throw Process_startup_failed(); }
 catch (Cpu_session::Out_of_metadata)        { throw Process_startup_failed(); }

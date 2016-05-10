@@ -27,12 +27,6 @@ using namespace Genode;
 
 static constexpr bool verbose = false;
 
-void Cpu_thread_component::update_exception_sigh()
-{
-	if (platform_thread()->pager())
-		platform_thread()->pager()->exception_handler(_sigh);
-};
-
 
 Thread_capability Cpu_session_component::create_thread(Capability<Pd_session> pd_cap,
                                                        Name const &name,
@@ -54,6 +48,7 @@ Thread_capability Cpu_session_component::create_thread(Capability<Pd_session> pd
 		     name.string(), weight.value, QUOTA_LIMIT);
 		weight = Weight(QUOTA_LIMIT);
 	}
+
 	Lock::Guard thread_list_lock_guard(_thread_list_lock);
 	_incr_weight(weight.value);
 
@@ -69,18 +64,18 @@ Thread_capability Cpu_session_component::create_thread(Capability<Pd_session> pd
 		thread = new (&_thread_alloc)
 			Cpu_thread_component(
 				cap(), *_thread_ep, *_pager_ep, *pd, _trace_control_area,
-				weight, _weight_to_quota(weight.value),
+				_trace_sources, weight, _weight_to_quota(weight.value),
 				_thread_affinity(affinity), _label, thread_name,
-				_priority, utcb, _default_exception_handler);
+				_priority, utcb);
 	};
 
 	try { _thread_ep->apply(pd_cap, create_thread_lambda); }
 	catch (Region_map::Out_of_metadata) { throw Out_of_metadata(); }
 	catch (Allocator::Out_of_memory)    { throw Out_of_metadata(); }
 
-	_thread_list.insert(thread);
+	thread->session_exception_sigh(_exception_sigh);
 
-	_trace_sources.insert(thread->trace_source());
+	_thread_list.insert(thread);
 
 	return thread->cap();
 }
@@ -114,8 +109,6 @@ void Cpu_session_component::_unsynchronized_kill_thread(Thread_capability thread
 
 	_thread_list.remove(thread);
 
-	_trace_sources.remove(thread->trace_source());
-
 	_decr_weight(thread->weight());
 
 	{
@@ -133,118 +126,14 @@ void Cpu_session_component::kill_thread(Thread_capability thread_cap)
 }
 
 
-int Cpu_session_component::start(Thread_capability thread_cap,
-                                 addr_t ip, addr_t sp)
+void Cpu_session_component::exception_sigh(Signal_context_capability sigh)
 {
-	auto lambda = [&] (Cpu_thread_component *thread) {
-		if (!thread) return -1;
+	_exception_sigh = sigh;
 
-		/*
-		 * If an exception handler was installed prior to the call of 'set_pager',
-		 * we need to update the pager object with the current exception handler.
-		 */
-		thread->update_exception_sigh();
+	Lock::Guard lock_guard(_thread_list_lock);
 
-		return thread->platform_thread()->start((void *)ip, (void *)sp);
-	};
-	return _thread_ep->apply(thread_cap, lambda);
-}
-
-
-void Cpu_session_component::pause(Thread_capability thread_cap)
-{
-	auto lambda = [this] (Cpu_thread_component *thread) {
-		if (!thread) return;
-
-		thread->platform_thread()->pause();
-	};
-	_thread_ep->apply(thread_cap, lambda);
-}
-
-
-void Cpu_session_component::single_step(Thread_capability thread_cap, bool enabled)
-{
-	auto lambda = [this, enabled] (Cpu_thread_component *thread) {
-		if (!thread) return;
-
-		thread->platform_thread()->single_step(enabled);
-	};
-	_thread_ep->apply(thread_cap, lambda);
-}
-
-
-void Cpu_session_component::resume(Thread_capability thread_cap)
-{
-	auto lambda = [this] (Cpu_thread_component *thread) {
-		if (!thread) return;
-
-		thread->platform_thread()->resume();
-	};
-	_thread_ep->apply(thread_cap, lambda);
-}
-
-
-void Cpu_session_component::cancel_blocking(Thread_capability thread_cap)
-{
-	auto lambda = [this] (Cpu_thread_component *thread) {
-		if (!thread) return;
-
-		thread->platform_thread()->cancel_blocking();
-	};
-	_thread_ep->apply(thread_cap, lambda);
-}
-
-
-Thread_state Cpu_session_component::state(Thread_capability thread_cap)
-{
-	auto lambda = [this] (Cpu_thread_component *thread) {
-		if (!thread) throw State_access_failed();
-
-		return thread->platform_thread()->state();
-	};
-	return _thread_ep->apply(thread_cap, lambda);
-}
-
-
-void Cpu_session_component::state(Thread_capability thread_cap,
-                                  Thread_state const &state)
-{
-	auto lambda = [&] (Cpu_thread_component *thread) {
-		if (!thread) throw State_access_failed();
-
-		thread->platform_thread()->state(state);
-	};
-	_thread_ep->apply(thread_cap, lambda);
-}
-
-
-void
-Cpu_session_component::exception_handler(Thread_capability         thread_cap,
-                                         Signal_context_capability sigh_cap)
-{
-	/*
-	 * By specifying an invalid thread capability, the caller sets the default
-	 * exception handler for the CPU session.
-	 */
-	if (!thread_cap.valid()) {
-		_default_exception_handler = sigh_cap;
-		return;
-	}
-
-	/*
-	 * If an invalid signal handler is specified for a valid thread, we revert
-	 * the signal handler to the CPU session's default signal handler.
-	 */
-	if (!sigh_cap.valid()) {
-		sigh_cap = _default_exception_handler;
-	}
-
-	auto lambda = [&] (Cpu_thread_component *thread) {
-		if (!thread) return;
-
-		thread->sigh(sigh_cap);
-	};
-	_thread_ep->apply(thread_cap, lambda);
+	for (Cpu_thread_component *t = _thread_list.first(); t; t = t->next())
+		t->session_exception_sigh(_exception_sigh);
 }
 
 
@@ -258,54 +147,9 @@ Affinity::Space Cpu_session_component::affinity_space() const
 }
 
 
-void Cpu_session_component::affinity(Thread_capability  thread_cap,
-                                     Affinity::Location location)
-{
-	auto lambda = [&] (Cpu_thread_component *thread) {
-		if (!thread) return;
-
-		thread->affinity(_thread_affinity(location));
-	};
-	_thread_ep->apply(thread_cap, lambda);
-}
-
-
 Dataspace_capability Cpu_session_component::trace_control()
 {
 	return _trace_control_area.dataspace();
-}
-
-
-unsigned Cpu_session_component::trace_control_index(Thread_capability thread_cap)
-{
-	auto lambda = [] (Cpu_thread_component *thread) -> unsigned {
-		if (!thread) return 0;
-
-		return thread->trace_control_index();
-	};
-	return _thread_ep->apply(thread_cap, lambda);
-}
-
-
-Dataspace_capability Cpu_session_component::trace_buffer(Thread_capability thread_cap)
-{
-	auto lambda = [this] (Cpu_thread_component *thread) {
-		if (!thread) return Dataspace_capability();
-
-		return thread->trace_source()->buffer();
-	};
-	return _thread_ep->apply(thread_cap, lambda);
-}
-
-
-Dataspace_capability Cpu_session_component::trace_policy(Thread_capability thread_cap)
-{
-	auto lambda = [this] (Cpu_thread_component *thread) {
-		if (!thread) return Dataspace_capability();
-
-		return thread->trace_source()->policy();
-	};
-	return _thread_ep->apply(thread_cap, lambda);
 }
 
 
@@ -472,9 +316,9 @@ void Cpu_session_component::_deinit_threads()
 
 
 void Cpu_session_component::
-_update_thread_quota(Cpu_thread_component * const thread) const
+_update_thread_quota(Cpu_thread_component &thread) const
 {
-	thread->platform_thread()->quota(_weight_to_quota(thread->weight()));
+	thread.quota(_weight_to_quota(thread.weight()));
 }
 
 
@@ -511,12 +355,11 @@ void Cpu_session_component::_incr_quota(size_t const quota)
 void Cpu_session_component::_update_each_thread_quota()
 {
 	Cpu_thread_component * thread = _thread_list.first();
-	for (; thread; thread = thread->next()) { _update_thread_quota(thread); }
+	for (; thread; thread = thread->next()) { _update_thread_quota(*thread); }
 }
 
 
-size_t
-Cpu_session_component::_weight_to_quota(size_t const weight) const {
+size_t Cpu_session_component::_weight_to_quota(size_t const weight) const {
 	return (weight * _quota) / _weight; }
 
 

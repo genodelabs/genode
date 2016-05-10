@@ -156,7 +156,7 @@ class Loader::Session_component : public Rpc_object<Session>
 			                                   Affinity const &affinity)
 			{
 				Capability<Cpu_session> cap = env()->parent()->session<Cpu_session>(args, affinity);
-				Cpu_session_client(cap).exception_handler(Thread_capability(), fault_sigh);
+				Cpu_session_client(cap).exception_sigh(fault_sigh);
 				return cap;
 			}
 

@@ -171,6 +171,8 @@ class Launchpad_child : public Genode::List<Launchpad_child>::Element
 		Genode::Ram_session_client _ram;
 		Genode::Cpu_session_client _cpu;
 
+		Genode::Child::Initial_thread _initial_thread;
+
 		Genode::Server _server;
 
 		Launchpad_child_policy _policy;
@@ -193,12 +195,13 @@ class Launchpad_child : public Genode::List<Launchpad_child>::Element
 				_launchpad(launchpad),
 				_entrypoint(cap_session, ENTRYPOINT_STACK_SIZE, name, false),
 				_address_space(Genode::Pd_session_client(pd).address_space()),
-				_rom(rom), _pd(pd), _ram(ram), _cpu(cpu), _server(_ram),
+				_rom(rom), _pd(pd), _ram(ram), _cpu(cpu),
+				_initial_thread(_cpu, _pd, name), _server(_ram),
 				_policy(name, &_server, parent_services, child_services,
 				        config_ds, elf_ds, &_entrypoint),
-				_child(elf_ds, _ldso_ds(), _pd, _pd, _ram, _ram, _cpu, _cpu,
-				       *Genode::env()->rm_session(), _address_space,
-				       _entrypoint, _policy)
+				_child(elf_ds, _ldso_ds(), _pd, _pd, _ram, _ram, _cpu,
+				       _initial_thread, *Genode::env()->rm_session(),
+				       _address_space, _entrypoint, _policy)
 				{
 					_entrypoint.activate();
 				}

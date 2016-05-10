@@ -33,10 +33,9 @@ namespace Loader {
 	{
 		private:
 
-			struct Label {
-				char string[Session::Name::MAX_SIZE];
-				Label(char const *l) { strncpy(string, l, sizeof(string)); }
-			} _label;
+			typedef String<Session::Name::MAX_SIZE> Label;
+
+			Label _label;
 
 			Rpc_entrypoint &_ep;
 
@@ -67,11 +66,15 @@ namespace Loader {
 					 * Install CPU exception and RM fault handler assigned by
 					 * the loader client via 'Loader_session::fault_handler'.
 					 */
-					cpu.exception_handler(Thread_capability(), fault_sigh);
+					cpu.exception_sigh(fault_sigh);
 					Region_map_client address_space(pd.address_space());
 					address_space.fault_handler(fault_sigh);
 				}
 			} _resources;
+
+			Genode::Child::Initial_thread _initial_thread { _resources.cpu,
+			                                                _resources.pd,
+			                                                _label.string() };
 
 			Region_map_client _address_space { _resources.pd.address_space() };
 
@@ -117,7 +120,7 @@ namespace Loader {
 			:
 				_label(label),
 				_ep(ep),
-				_resources(_label.string, ram_session_client, ram_quota, fault_sigh),
+				_resources(_label.string(), ram_session_client, ram_quota, fault_sigh),
 				_parent_services(parent_services),
 				_local_nitpicker_service(local_nitpicker_service),
 				_local_rom_service(local_rom_service),
@@ -125,11 +128,11 @@ namespace Loader {
 				_local_pd_service(local_pd_service),
 				_binary_rom_session(_rom_session(binary_name)),
 				_binary_policy("binary", _binary_rom_session.dataspace(), &_ep),
-				_labeling_policy(_label.string),
+				_labeling_policy(_label.string()),
 				_child(_binary_rom_session.dataspace(), ldso_ds,
 				       _resources.pd,  _resources.pd,
 				       _resources.ram, _resources.ram,
-				       _resources.cpu, _resources.cpu,
+				       _resources.cpu, _initial_thread,
 				       *env()->rm_session(), _address_space, _ep, *this)
 			{ }
 
@@ -143,15 +146,15 @@ namespace Loader {
 			 ** Child-policy interface **
 			 ****************************/
 
-			char const *name()    const { return _label.string; }
+			char const *name() const override { return _label.string(); }
 
-			void filter_session_args(char const *service, char *args, size_t args_len)
+			void filter_session_args(char const *service, char *args, size_t args_len) override
 			{
 				_labeling_policy.filter_session_args(service, args, args_len);
 			}
 
 			Service *resolve_session_request(const char *name,
-			                                 const char *args)
+			                                 const char *args) override
 			{
 				Service *service = 0;
 

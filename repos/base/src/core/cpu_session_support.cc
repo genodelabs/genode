@@ -14,16 +14,16 @@
 /* Genode includes */
 #include <base/printf.h>
 
-/* Core includes */
+/* core includes */
 #include <cpu_session_component.h>
 
 using namespace Genode;
 
 
-Ram_dataspace_capability Cpu_session_component::utcb(Thread_capability thread_cap)
+Dataspace_capability Cpu_thread_component::utcb()
 {
 	PERR("%s: Not implemented", __PRETTY_FUNCTION__);
-	return Ram_dataspace_capability();
+	return Dataspace_capability();
 }
 
 

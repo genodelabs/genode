@@ -16,6 +16,7 @@
 #include <base/printf.h>
 #include <base/sleep.h>
 #include <base/env.h>
+#include <cpu_thread/client.h>
 
 /* base-internal includes */
 #include <base/internal/stack.h>
@@ -62,11 +63,11 @@ void Thread::start()
 		throw Cpu_session::Thread_creation_failed();
 
 	/* start execution at initial instruction pointer and stack pointer */
-	_cpu_session->start(_thread_cap, (addr_t)_thread_start, _stack->top());
+	Cpu_thread_client(_thread_cap).start((addr_t)_thread_start, _stack->top());
 }
 
 
 void Thread::cancel_blocking()
 {
-	_cpu_session->cancel_blocking(_thread_cap);
+	Cpu_thread_client(_thread_cap).cancel_blocking();
 }

@@ -40,6 +40,7 @@
 #include <base/printf.h>
 #include <base/snprintf.h>
 #include <base/exception.h>
+#include <cpu_thread/client.h>
 
 using namespace Genode;
 
@@ -149,7 +150,7 @@ struct Stress_thread : public Genode::Thread_deprecated<4*1024*sizeof(Genode::ad
 	Stress_thread(Vfs::File_system &vfs, char const *parent, Affinity::Location affinity)
 	: Thread_deprecated(parent), path(parent), count(0), vfs(vfs)
 	{
-		env()->cpu_session()->affinity(cap(), affinity);
+		Cpu_thread_client(cap()).affinity(affinity);
 	}
 };
 

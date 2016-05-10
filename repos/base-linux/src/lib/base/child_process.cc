@@ -32,16 +32,19 @@ using namespace Genode;
  * thread. Those information will be provided to core by the constructor of
  * the 'Platform_env' of the new process.
  */
-Child::Process::Initial_thread::Initial_thread(Cpu_session          &cpu,
-                                               Pd_session_capability pd,
-                                               char           const *name)
+Child::Initial_thread::Initial_thread(Cpu_session          &cpu,
+                                      Pd_session_capability pd,
+                                      Name           const &name)
 :
-	cpu(cpu),
-	cap(cpu.create_thread(pd, name, Affinity::Location(), Cpu_session::Weight()))
+	_cpu(cpu),
+	_cap(cpu.create_thread(pd, name, Affinity::Location(), Cpu_session::Weight()))
 { }
 
 
-Child::Process::Initial_thread::~Initial_thread() { }
+Child::Initial_thread::~Initial_thread() { }
+
+
+void Child::Initial_thread::start(addr_t) { }
 
 
 /*
@@ -60,13 +63,12 @@ Child::Process::Process(Dataspace_capability  elf_ds,
                         Pd_session_capability pd_cap,
                         Pd_session           &pd,
                         Ram_session          &ram,
-                        Cpu_session          &cpu,
+                        Initial_thread_base  &initial_thread,
                         Region_map           &local_rm,
                         Region_map           &remote_rm,
-                        Parent_capability     parent_cap,
-                        char const           *name)
+                        Parent_capability     parent_cap)
 :
-	initial_thread(cpu, pd_cap, name),
+	initial_thread(initial_thread),
 	loaded_executable(elf_ds, ldso_ds, ram, local_rm, remote_rm, parent_cap)
 {
 	/* skip loading when called during fork */

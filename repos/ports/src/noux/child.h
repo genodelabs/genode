@@ -166,6 +166,8 @@ namespace Noux {
 
 			} _resources;
 
+			Genode::Child::Initial_thread _initial_thread;
+
 			Region_map_client _address_space { _pd.address_space() };
 
 			/**
@@ -359,6 +361,7 @@ namespace Noux {
 				_entrypoint(cap_session, STACK_SIZE, "noux_process", false),
 				_pd(binary_name, resources_ep, _ds_registry),
 				_resources(binary_name, resources_ep, _ds_registry, _pd.core_pd_cap(), false),
+				_initial_thread(_resources.cpu, _pd.cap(), binary_name),
 				_args(ARGS_DS_SIZE, args),
 				_env(env),
 				_elf(binary_name, root_dir, root_dir->dataspace(binary_name)),
@@ -385,7 +388,7 @@ namespace Noux {
 				_child(forked ? Dataspace_capability() : _elf._binary_ds,
 				       _ldso_ds, _pd.cap(), _pd,
 				       _resources.ram.cap(), _resources.ram,
-				       _resources.cpu.cap(), _resources.cpu,
+				       _resources.cpu.cap(), _initial_thread,
 				       *Genode::env()->rm_session(), _address_space,
 				       _entrypoint, _child_policy, _parent_pd_service,
 				       _parent_ram_service, _local_cpu_service)

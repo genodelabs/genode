@@ -28,7 +28,7 @@ Native_cpu_component::pager_cap(Thread_capability thread_cap)
 		if (!thread)
 			return Native_capability();
 
-		return thread->platform_thread()->pager()->cap();
+		return thread->platform_thread().pager()->cap();
 	};
 	return _thread_ep.apply(thread_cap, lambda);
 }

@@ -24,10 +24,10 @@ Native_capability
 Cpu_session_component::pause_sync(Thread_capability thread_cap)
 {
 	auto lambda = [] (Cpu_thread_component *thread) {
-		if (!thread || !thread->platform_thread())
+		if (!thread)
 			return Native_capability();
 
-		return thread->platform_thread()->pause();
+		return thread->platform_thread().pause();
 	};
 	return _thread_ep->apply(thread_cap, lambda);
 }
@@ -39,10 +39,10 @@ Cpu_session_component::single_step_sync(Thread_capability thread_cap, bool enabl
 	using namespace Genode;
 
 	auto lambda = [enable] (Cpu_thread_component *thread) {
-		if (!thread || !thread->platform_thread())
+		if (!thread)
 			return Native_capability();
 
-		return thread->platform_thread()->single_step_sync(enable);
+		return thread->platform_thread().single_step_sync(enable);
 	};
 	return _thread_ep->apply(thread_cap, lambda);
 }

@@ -7,6 +7,7 @@ SRC_CC      += stack_area.cc \
                core_region_map.cc \
                core_rpc_cap_alloc.cc \
                cpu_session_component.cc \
+               cpu_thread_component.cc \
                cpu_session_support.cc \
                dataspace_component.cc \
                default_log.cc \
@@ -53,6 +54,7 @@ vpath rom_session_component.cc    $(GEN_CORE_DIR)
 vpath cap_session_component.cc    $(GEN_CORE_DIR)
 vpath cpu_session_component.cc    $(GEN_CORE_DIR)
 vpath cpu_session_support.cc      $(GEN_CORE_DIR)
+vpath cpu_thread_component.cc     $(GEN_CORE_DIR)
 vpath pd_session_component.cc     $(GEN_CORE_DIR)
 vpath rpc_cap_factory.cc          $(GEN_CORE_DIR)
 vpath core_rpc_cap_alloc.cc       $(GEN_CORE_DIR)

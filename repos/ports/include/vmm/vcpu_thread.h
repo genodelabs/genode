@@ -23,6 +23,7 @@
 #include <pd_session/connection.h>
 #include <region_map/client.h>
 #include <nova_native_cpu/client.h>
+#include <cpu_thread/client.h>
 
 /* NOVA includes */
 #include <nova/native_thread.h>
@@ -76,7 +77,9 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 			state.sel_exc_base = Native_thread::INVALID_INDEX;
 			state.is_vcpu      = true;
 
-			_cpu_session->state(vcpu_vm, state);
+			Cpu_thread_client cpu_thread(vcpu_vm);
+
+			cpu_thread.state(state);
 
 			/* obtain interface to NOVA-specific CPU session operations */
 			Nova_native_cpu_client native_cpu(_cpu_session->native_cpu());
@@ -91,7 +94,7 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 			delegate_vcpu_portals(pager_cap, exc_base());
 
 			/* start vCPU in separate PD */
-			_cpu_session->start(vcpu_vm, 0, 0);
+			cpu_thread.start(0, 0);
 
 			/*
 			 * Request native EC thread cap and put it next to the

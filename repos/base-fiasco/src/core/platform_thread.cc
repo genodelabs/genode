@@ -105,7 +105,7 @@ void Platform_thread::unbind()
 void Platform_thread::state(Thread_state s)
 {
 	PDBG("Not implemented");
-	throw Cpu_session::State_access_failed();
+	throw Cpu_thread::State_access_failed();
 }
 
 

@@ -501,6 +501,8 @@ class Init::Child : Genode::Child_policy
 			}
 		} _resources;
 
+		Genode::Child::Initial_thread _initial_thread { _resources.cpu, _resources.pd,
+		                                                _name.unique };
 		/*
 		 * Entry point used for serving the parent interface and the
 		 * locally provided ROM sessions for the 'config' and 'binary'
@@ -559,7 +561,8 @@ class Init::Child : Genode::Child_policy
 			_name(start_node, name_registry),
 			_resources(start_node, _name.unique, prio_levels,
 			           affinity_space),
-			_entrypoint(&cap_session, ENTRYPOINT_STACK_SIZE, _name.unique, false, _resources.affinity.location()),
+			_entrypoint(&cap_session, ENTRYPOINT_STACK_SIZE, _name.unique, false,
+			            _resources.affinity.location()),
 			_binary_rom(_name.file, _name.file),
 			_binary_rom_ds(_binary_rom.dataspace()),
 			_config(_resources.ram.cap(), start_node),
@@ -567,7 +570,7 @@ class Init::Child : Genode::Child_policy
 			_child(_binary_rom_ds, ldso_ds,
 			       _resources.pd,  _resources.pd,
 			       _resources.ram, _resources.ram,
-			       _resources.cpu, _resources.cpu,
+			       _resources.cpu, _initial_thread,
 			       *Genode::env()->rm_session(), _address_space, _entrypoint, *this),
 			_parent_services(parent_services),
 			_child_services(child_services),

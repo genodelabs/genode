@@ -24,6 +24,7 @@ int linux_detach_one_lwp (struct inferior_list_entry *entry, void *args);
 #include <base/env.h>
 #include <base/printf.h>
 #include <dataspace/client.h>
+#include <cpu_thread/client.h>
 
 #include "cpu_session_component.h"
 
@@ -113,7 +114,7 @@ extern "C" void genode_stop_all_threads()
 	Thread_capability thread_cap = csc->first();
 
 	while (thread_cap.valid()) {
-		csc->pause(thread_cap);
+		Cpu_thread_client(thread_cap).pause();
 		thread_cap = csc->next(thread_cap);
 	}
 }
@@ -126,7 +127,7 @@ extern "C" void genode_resume_all_threads()
 	Thread_capability thread_cap = csc->first();
 
 	while (thread_cap.valid()) {
-		csc->resume(thread_cap);
+		Cpu_thread_client(thread_cap).resume();
 		thread_cap = csc->next(thread_cap);
 	}
 }
@@ -162,7 +163,7 @@ void genode_interrupt_thread(unsigned long lwpid)
 		return;
 	}
 
-	csc->pause(thread_cap);
+	Cpu_thread_client(thread_cap).pause();
 }
 
 
@@ -177,8 +178,9 @@ void genode_continue_thread(unsigned long lwpid, int single_step)
 		return;
 	}
 
-	csc->single_step(thread_cap, single_step);
-	csc->resume(thread_cap);
+	Cpu_thread_client cpu_thread(thread_cap);
+	cpu_thread.single_step(single_step);
+	cpu_thread.resume();
 }
 
 
@@ -206,7 +208,7 @@ unsigned long genode_find_segfault_lwpid()
 
 			try {
 
-				Thread_state thread_state = csc->state(thread_cap);
+				Thread_state thread_state = Cpu_thread_client(thread_cap).state();
 
 				if (thread_state.unresolved_page_fault) {
 
@@ -214,12 +216,12 @@ unsigned long genode_find_segfault_lwpid()
 					 * On base-foc it is necessary to pause the thread before
 					 * IP and SP are available in the thread state.
 					 */
-					csc->pause(thread_cap);
+					Cpu_thread_client(thread_cap).pause();
 
 					return csc->lwpid(thread_cap);
 				}
 
-			} catch (Cpu_session::State_access_failed) { }
+			} catch (Cpu_thread::State_access_failed) { }
 
 			thread_cap = csc->next(thread_cap);
 		}

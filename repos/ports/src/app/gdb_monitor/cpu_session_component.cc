@@ -82,10 +82,10 @@ Cpu_session_component::create_thread(Capability<Pd_session> pd,
 }
 
 
-Ram_dataspace_capability Cpu_session_component::utcb(Thread_capability thread)
-{
-	return _parent_cpu_session.utcb(thread);
-}
+//Ram_dataspace_capability Cpu_session_component::utcb(Thread_capability thread)
+//{
+//	return _parent_cpu_session.utcb(thread);
+//}
 
 
 void Cpu_session_component::kill_thread(Thread_capability thread_cap)
@@ -123,70 +123,69 @@ Thread_capability Cpu_session_component::next(Thread_capability thread_cap)
 }
 
 
-int Cpu_session_component::start(Thread_capability thread_cap,
-                                 addr_t ip, addr_t sp)
+//int Cpu_session_component::start(Thread_capability thread_cap,
+//                                 addr_t ip, addr_t sp)
+//{
+//	Thread_info *thread_info = _thread_info(thread_cap);
+//
+//	if (thread_info)
+//		exception_handler(thread_cap, _exception_signal_receiver->manage(thread_info));
+//
+//	int result = _parent_cpu_session.start(thread_cap, ip, sp);
+//
+//	if (thread_info) {
+//		/* pause the first thread */
+//		if (thread_info->lwpid() == GENODE_LWP_BASE)
+//			pause(thread_cap);
+//
+//		genode_add_thread(thread_info->lwpid());
+//	}
+//
+//	return result;
+//}
+
+
+//void Cpu_session_component::pause(Thread_capability thread_cap)
+//{
+//	_parent_cpu_session.pause(thread_cap);
+//}
+
+
+//void Cpu_session_component::resume(Thread_capability thread_cap)
+//{
+//	_parent_cpu_session.resume(thread_cap);
+//}
+
+
+//void Cpu_session_component::cancel_blocking(Thread_capability thread_cap)
+//{
+//	_parent_cpu_session.cancel_blocking(thread_cap);
+//}
+
+
+//void Cpu_session_component::state(Thread_capability thread_cap,
+//                                 Thread_state const &state)
+//{
+//	_parent_cpu_session.state(thread_cap, state);
+//}
+
+
+//Thread_state Cpu_session_component::state(Thread_capability thread_cap)
+//{
+//	return _parent_cpu_session.state(thread_cap);
+//}
+
+
+void Cpu_session_component::exception_sigh(Signal_context_capability sigh_cap)
 {
-	Thread_info *thread_info = _thread_info(thread_cap);
-
-	if (thread_info)
-		exception_handler(thread_cap, _exception_signal_receiver->manage(thread_info));
-
-	int result = _parent_cpu_session.start(thread_cap, ip, sp);
-
-	if (thread_info) {
-		/* pause the first thread */
-		if (thread_info->lwpid() == GENODE_LWP_BASE)
-			pause(thread_cap);
-
-		genode_add_thread(thread_info->lwpid());
-	}
-
-	return result;
+	_parent_cpu_session.exception_sigh(sigh_cap);
 }
 
 
-void Cpu_session_component::pause(Thread_capability thread_cap)
-{
-	_parent_cpu_session.pause(thread_cap);
-}
-
-
-void Cpu_session_component::resume(Thread_capability thread_cap)
-{
-	_parent_cpu_session.resume(thread_cap);
-}
-
-
-void Cpu_session_component::cancel_blocking(Thread_capability thread_cap)
-{
-	_parent_cpu_session.cancel_blocking(thread_cap);
-}
-
-
-void Cpu_session_component::state(Thread_capability thread_cap,
-                                 Thread_state const &state)
-{
-	_parent_cpu_session.state(thread_cap, state);
-}
-
-
-Thread_state Cpu_session_component::state(Thread_capability thread_cap)
-{
-	return _parent_cpu_session.state(thread_cap);
-}
-
-
-void Cpu_session_component::exception_handler(Thread_capability         thread_cap,
-                                              Signal_context_capability sigh_cap)
-{
-	_parent_cpu_session.exception_handler(thread_cap, sigh_cap);
-}
-
-
-void Cpu_session_component::single_step(Thread_capability thread_cap, bool enable)
-{
-	_parent_cpu_session.single_step(thread_cap, enable);
-}
+//void Cpu_session_component::single_step(Thread_capability thread_cap, bool enable)
+//{
+//	_parent_cpu_session.single_step(thread_cap, enable);
+//}
 
 
 Affinity::Space Cpu_session_component::affinity_space() const
@@ -195,11 +194,11 @@ Affinity::Space Cpu_session_component::affinity_space() const
 }
 
 
-void Cpu_session_component::affinity(Thread_capability thread_cap,
-                                     Affinity::Location location)
-{
-	_parent_cpu_session.affinity(thread_cap, location);
-}
+//void Cpu_session_component::affinity(Thread_capability thread_cap,
+//                                     Affinity::Location location)
+//{
+//	_parent_cpu_session.affinity(thread_cap, location);
+//}
 
 
 Dataspace_capability Cpu_session_component::trace_control()
@@ -208,22 +207,22 @@ Dataspace_capability Cpu_session_component::trace_control()
 }
 
 
-unsigned Cpu_session_component::trace_control_index(Thread_capability thread)
-{
-	return _parent_cpu_session.trace_control_index(thread);
-}
+//unsigned Cpu_session_component::trace_control_index(Thread_capability thread)
+//{
+//	return _parent_cpu_session.trace_control_index(thread);
+//}
 
 
-Dataspace_capability Cpu_session_component::trace_buffer(Thread_capability thread)
-{
-	return _parent_cpu_session.trace_buffer(thread);
-}
+//Dataspace_capability Cpu_session_component::trace_buffer(Thread_capability thread)
+//{
+//	return _parent_cpu_session.trace_buffer(thread);
+//}
 
 
-Dataspace_capability Cpu_session_component::trace_policy(Thread_capability thread)
-{
-	return _parent_cpu_session.trace_policy(thread);
-}
+//Dataspace_capability Cpu_session_component::trace_policy(Thread_capability thread)
+//{
+//	return _parent_cpu_session.trace_policy(thread);
+//}
 
 
 Capability<Cpu_session::Native_cpu> Cpu_session_component::native_cpu()
