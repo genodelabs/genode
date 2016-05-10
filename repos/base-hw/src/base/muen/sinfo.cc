@@ -75,13 +75,6 @@ Sinfo::Sinfo(const addr_t base_addr)
 		PERR("muen-sinfo: Subject information MAGIC mismatch\n");
 		return;
 	}
-
-	PINF("muen-sinfo: Subject information exports %d memory region(s)\n",
-	     sinfo->memregion_count);
-	for_each_memregion(log_memregion, 0);
-	PINF("muen-sinfo: Subject information exports %d channel(s)\n",
-	     sinfo->channel_info_count);
-	for_each_channel(log_channel, 0);
 }
 
 
@@ -208,6 +201,26 @@ uint64_t Sinfo::get_sched_end(void)
 		return 0;
 
 	return sinfo->tsc_schedule_end;
+}
+
+
+void Sinfo::log_status()
+{
+	if (!sinfo) {
+		PINF("Sinfo API not initialized");
+		return;
+	}
+	if (!check_magic()) {
+		PINF("Sinfo MAGIC not found");
+		return;
+	}
+
+	PINF("muen-sinfo: Subject information exports %d memory region(s)\n",
+	     sinfo->memregion_count);
+	for_each_memregion(log_memregion, 0);
+	PINF("muen-sinfo: Subject information exports %d channel(s)\n",
+	     sinfo->channel_info_count);
+	for_each_channel(log_channel, 0);
 }
 
 
