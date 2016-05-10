@@ -155,6 +155,11 @@ class Genode::Sinfo
 		 */
 		uint64_t get_sched_end(void);
 
+		/*
+		 * Log sinfo status.
+		 */
+		void log_status();
+
 	private:
 
 		subject_info_type * sinfo;

@@ -63,6 +63,10 @@ class Genode::Timer
 		Timer() :
 			_tics_per_ms(sinfo()->get_tsc_khz())
 		{
+
+			/* first sinfo instance, output status */
+			sinfo()->log_status();
+
 			struct Sinfo::Memregion_info region;
 			if (!sinfo()->get_memregion_info("timer", &region)) {
 				PERR("muen-timer: Unable to retrieve time memory region");
