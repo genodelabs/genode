@@ -44,7 +44,7 @@ namespace Noux {
 			Dataspace_info(Dataspace_capability ds_cap)
 			:
 				Object_pool<Dataspace_info>::Entry(ds_cap),
-				_size(Dataspace_client(ds_cap).size()),
+				_size(ds_cap.valid() ? Dataspace_client(ds_cap).size() : 0),
 				_ds_cap(ds_cap)
 			{ }
 

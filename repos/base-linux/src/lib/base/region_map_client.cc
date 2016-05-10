@@ -65,5 +65,5 @@ Region_map::State Region_map_client::state() { return _local(*this)->state(); }
 
 
 Dataspace_capability Region_map_client::dataspace() {
-	return _local(*this)->dataspace(); }
+	return _local(*this) ? _local(*this)->dataspace() : Dataspace_capability(); }
 
