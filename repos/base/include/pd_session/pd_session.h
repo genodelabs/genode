@@ -209,24 +209,11 @@ struct Genode::Pd_session : Session
 
 	GENODE_RPC(Rpc_native_pd, Capability<Native_pd>, native_pd);
 
-	/*
-	 * Manual definition of 'Rpc_functions', see the comment in cpu_session.h.
-	 */
-	typedef Meta::Type_tuple<Rpc_assign_parent,
-	        Meta::Type_tuple<Rpc_assign_pci,
-	        Meta::Type_tuple<Rpc_alloc_signal_source,
-	        Meta::Type_tuple<Rpc_free_signal_source,
-	        Meta::Type_tuple<Rpc_alloc_context,
-	        Meta::Type_tuple<Rpc_free_context,
-	        Meta::Type_tuple<Rpc_submit,
-	        Meta::Type_tuple<Rpc_alloc_rpc_cap,
-	        Meta::Type_tuple<Rpc_free_rpc_cap,
-	        Meta::Type_tuple<Rpc_address_space,
-	        Meta::Type_tuple<Rpc_stack_area,
-	        Meta::Type_tuple<Rpc_linker_area,
-	        Meta::Type_tuple<Rpc_native_pd,
-	                         Meta::Empty>
-	        > > > > > > > > > > > > Rpc_functions;
+	GENODE_RPC_INTERFACE(Rpc_assign_parent, Rpc_assign_pci,
+	                     Rpc_alloc_signal_source, Rpc_free_signal_source,
+	                     Rpc_alloc_context, Rpc_free_context, Rpc_submit,
+	                     Rpc_alloc_rpc_cap, Rpc_free_rpc_cap, Rpc_address_space,
+	                     Rpc_stack_area, Rpc_linker_area, Rpc_native_pd);
 };
 
 #endif /* _INCLUDE__PD_SESSION__PD_SESSION_H_ */

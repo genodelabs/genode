@@ -227,25 +227,9 @@ struct Genode::Cpu_session : Session
 	GENODE_RPC(Rpc_quota, Quota, quota);
 	GENODE_RPC(Rpc_native_cpu, Capability<Native_cpu>, native_cpu);
 
-	/*
-	 * 'GENODE_RPC_INTERFACE' declaration done manually
-	 *
-	 * The number of RPC functions of this interface exceeds the maximum
-	 * number of elements supported by 'Meta::Type_list'. Therefore, we
-	 * construct the type list by hand using nested type tuples instead
-	 * of employing the convenience macro 'GENODE_RPC_INTERFACE'.
-	 */
-	typedef Meta::Type_tuple<Rpc_create_thread,
-	        Meta::Type_tuple<Rpc_kill_thread,
-	        Meta::Type_tuple<Rpc_exception_sigh,
-	        Meta::Type_tuple<Rpc_affinity_space,
-	        Meta::Type_tuple<Rpc_trace_control,
-	        Meta::Type_tuple<Rpc_ref_account,
-	        Meta::Type_tuple<Rpc_transfer_quota,
-	        Meta::Type_tuple<Rpc_quota,
-	        Meta::Type_tuple<Rpc_native_cpu,
-	                         Meta::Empty>
-	        > > > > > > > > Rpc_functions;
+	GENODE_RPC_INTERFACE(Rpc_create_thread, Rpc_kill_thread, Rpc_exception_sigh,
+	                     Rpc_affinity_space, Rpc_trace_control, Rpc_ref_account,
+	                     Rpc_transfer_quota, Rpc_quota, Rpc_native_cpu);
 };
 
 

@@ -31,7 +31,6 @@ namespace Loader {
 
 	using Genode::Dataspace_capability;
 	using Genode::Signal_context_capability;
-	using Genode::Meta::Type_tuple;
 
 	struct Session;
 }
@@ -179,26 +178,10 @@ struct Loader::Session : Genode::Session
 	GENODE_RPC_THROW(Rpc_view_size, Area, view_size,
 	                 GENODE_TYPE_LIST(View_does_not_exist));
 
-	/*
-	 * 'GENODE_RPC_INTERFACE' declaration done manually
-	 *
-	 * The number of RPC function of this interface exceeds the maximum
-	 * number of elements supported by 'Meta::Type_list'. Therefore, we
-	 * construct the type list by hand using nested type tuples instead
-	 * of employing the convenience macro 'GENODE_RPC_INTERFACE'.
-	 */
-	typedef Type_tuple<Rpc_alloc_rom_module,
-		    Type_tuple<Rpc_commit_rom_module,
-		    Type_tuple<Rpc_ram_quota,
-		    Type_tuple<Rpc_constrain_geometry,
-		    Type_tuple<Rpc_parent_view,
-		    Type_tuple<Rpc_view_ready_sigh,
-		    Type_tuple<Rpc_fault_sigh,
-		    Type_tuple<Rpc_start,
-		    Type_tuple<Rpc_view_geometry,
-		    Type_tuple<Rpc_view_size,
-		               Genode::Meta::Empty>
-		    > > > > > > > > > Rpc_functions;
+	GENODE_RPC_INTERFACE(Rpc_alloc_rom_module, Rpc_commit_rom_module,
+	                     Rpc_ram_quota, Rpc_constrain_geometry,
+	                     Rpc_parent_view, Rpc_view_ready_sigh, Rpc_fault_sigh,
+	                     Rpc_start, Rpc_view_geometry, Rpc_view_size);
 };
 
 #endif /* _INCLUDE__LOADER_SESSION__LOADER_SESSION_H_ */

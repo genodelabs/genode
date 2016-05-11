@@ -388,26 +388,9 @@ struct File_system::Session : public Genode::Session
 	                 Node_handle, Genode::Signal_context_capability);
 	GENODE_RPC(Rpc_sync, void, sync, Node_handle);
 
-	/*
-	 * Manual type-list definition, needed because the RPC interface
-	 * exceeds the maximum number of type-list elements supported by
-	 * 'Genode::Meta::Type_list<>'.
-	 */
-	typedef Genode::Meta::Type_tuple<Rpc_tx_cap,
-	        Genode::Meta::Type_tuple<Rpc_file,
-	        Genode::Meta::Type_tuple<Rpc_symlink,
-	        Genode::Meta::Type_tuple<Rpc_dir,
-	        Genode::Meta::Type_tuple<Rpc_node,
-	        Genode::Meta::Type_tuple<Rpc_close,
-	        Genode::Meta::Type_tuple<Rpc_status,
-	        Genode::Meta::Type_tuple<Rpc_control,
-	        Genode::Meta::Type_tuple<Rpc_unlink,
-	        Genode::Meta::Type_tuple<Rpc_truncate,
-	        Genode::Meta::Type_tuple<Rpc_move,
-	        Genode::Meta::Type_tuple<Rpc_sigh,
-	        Genode::Meta::Type_tuple<Rpc_sync,
-	                         Genode::Meta::Empty>
-	        > > > > > > > > > > > > Rpc_functions;
+	GENODE_RPC_INTERFACE(Rpc_tx_cap, Rpc_file, Rpc_symlink, Rpc_dir, Rpc_node,
+	                     Rpc_close, Rpc_status, Rpc_control, Rpc_unlink,
+	                     Rpc_truncate, Rpc_move, Rpc_sigh, Rpc_sync);
 };
 
 #endif /* _INCLUDE__FILE_SYSTEM_SESSION__FILE_SYSTEM_SESSION_H_ */

@@ -154,29 +154,11 @@ struct Genode::Cpu_thread
 	GENODE_RPC(Rpc_trace_buffer, Dataspace_capability, trace_buffer);
 	GENODE_RPC(Rpc_trace_policy, Dataspace_capability, trace_policy);
 
-	/*
-	 * 'GENODE_RPC_INTERFACE' declaration done manually
-	 *
-	 * The number of RPC functions of this interface exceeds the maximum
-	 * number of elements supported by 'Meta::Type_list'. Therefore, we
-	 * construct the type list by hand using nested type tuples instead
-	 * of employing the convenience macro 'GENODE_RPC_INTERFACE'.
-	 */
-	typedef Meta::Type_tuple<Rpc_utcb,
-	        Meta::Type_tuple<Rpc_start,
-	        Meta::Type_tuple<Rpc_pause,
-	        Meta::Type_tuple<Rpc_resume,
-	        Meta::Type_tuple<Rpc_cancel_blocking,
-	        Meta::Type_tuple<Rpc_set_state,
-	        Meta::Type_tuple<Rpc_get_state,
-	        Meta::Type_tuple<Rpc_exception_sigh,
-	        Meta::Type_tuple<Rpc_single_step,
-	        Meta::Type_tuple<Rpc_affinity,
-	        Meta::Type_tuple<Rpc_trace_control_index,
-	        Meta::Type_tuple<Rpc_trace_buffer,
-	        Meta::Type_tuple<Rpc_trace_policy,
-	                         Meta::Empty>
-	        > > > > > > > > > > > > Rpc_functions;
+	GENODE_RPC_INTERFACE(Rpc_utcb, Rpc_start, Rpc_pause, Rpc_resume,
+	                     Rpc_cancel_blocking, Rpc_set_state, Rpc_get_state,
+	                     Rpc_exception_sigh, Rpc_single_step, Rpc_affinity,
+	                     Rpc_trace_control_index, Rpc_trace_buffer,
+	                     Rpc_trace_policy);
 };
 
 #endif /* _INCLUDE__CPU_THREAD__CPU_THREAD_H_ */
