@@ -66,12 +66,12 @@ struct Ahci
 		scan_ports();
 	}
 
-	bool is_atapi(unsigned sig)
+	bool atapi(unsigned sig)
 	{
 		return sig == ATAPI_SIG_QEMU || sig == ATAPI_SIG;
 	}
 
-	bool is_ata(unsigned sig)
+	bool ata(unsigned sig)
 	{
 		return sig == ATA_SIG;
 	}
@@ -130,7 +130,7 @@ struct Ahci
 
 			/* check for ATA/ATAPI devices */
 			unsigned sig = port.read<Port::Sig>();
-			if (!is_atapi(sig) && !is_ata(sig)) {
+			if (!atapi(sig) && !ata(sig)) {
 				PINF("\t\t#%u: off", i);
 				continue;
 			}
@@ -141,7 +141,7 @@ struct Ahci
 			try { enabled = port.enable(); }
 			catch (Port::Not_ready) { PERR("Could not enable port %u", i); }
 
-			PINF("\t\t#%u: %s", i, is_atapi(sig) ? "ATAPI" : "ATA");
+			PINF("\t\t#%u: %s", i, atapi(sig) ? "ATAPI" : "ATA");
 
 			if (!enabled)
 				continue;
@@ -168,7 +168,7 @@ struct Ahci
 
 	Block::Driver *claim_port(unsigned port_num)
 	{
-		if (!is_avail(port_num))
+		if (!avail(port_num))
 			throw -1;
 
 		port_claimed[port_num] = true;
@@ -180,7 +180,7 @@ struct Ahci
 		port_claimed[port_num] = false;
 	}
 
-	bool is_avail(unsigned port_num)
+	bool avail(unsigned port_num)
 	{
 		return port_num < MAX_PORTS && ports[port_num] && !port_claimed[port_num] &&
 		       ports[port_num]->ready();
@@ -227,9 +227,9 @@ void Ahci_driver::free_port(long device_num)
 }
 
 
-bool Ahci_driver::is_avail(long device_num)
+bool Ahci_driver::avail(long device_num)
 {
-	return sata_ahci()->is_avail(device_num);
+	return sata_ahci()->avail(device_num);
 }
 
 

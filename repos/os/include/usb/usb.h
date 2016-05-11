@@ -92,8 +92,14 @@ class Usb::Endpoint : public Endpoint_descriptor
 		Endpoint(Endpoint_descriptor &endpoint_descr)
 		: Endpoint_descriptor(endpoint_descr) { }
 
-		bool is_bulk()      const { return (attributes & 0x3) == ENDPOINT_BULK;      }
-		bool is_interrupt() const { return (attributes & 0x3) == ENDPOINT_INTERRUPT; }
+		bool bulk()      const { return (attributes & 0x3) == ENDPOINT_BULK;      }
+		bool interrupt() const { return (attributes & 0x3) == ENDPOINT_INTERRUPT; }
+
+		/*
+		 * \deprecated  use 'bulk' and 'interrupt' instead
+		 */
+		bool is_bulk()      const { return bulk(); }
+		bool is_interrupt() const { return interrupt(); }
 
 		void dump()
 		{

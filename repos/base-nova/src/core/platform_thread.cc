@@ -55,7 +55,7 @@ int Platform_thread::start(void *ip, void *sp)
 		return -1;
 	}
 
-	if (!_pd || (is_main_thread() && !is_vcpu() &&
+	if (!_pd || (main_thread() && !vcpu() &&
 	             _pd->parent_pt_sel() == Native_thread::INVALID_INDEX)) {
 		PERR("protection domain undefined");
 		return -2;
@@ -68,9 +68,9 @@ int Platform_thread::start(void *ip, void *sp)
 		return -8;
 	}
 
-	if (!is_main_thread()) {
+	if (!main_thread()) {
 		addr_t const initial_sp = reinterpret_cast<addr_t>(sp);
-		addr_t const utcb       = is_vcpu() ? 0 : round_page(initial_sp);
+		addr_t const utcb       = vcpu() ? 0 : round_page(initial_sp);
 
 		if (_sel_exc_base == Native_thread::INVALID_INDEX) {
 			PERR("exception base not specified");
@@ -114,9 +114,9 @@ int Platform_thread::start(void *ip, void *sp)
 
 	addr_t pd_core_sel  = Platform_pd::pd_core_sel();
 	addr_t pd_utcb      = 0;
-	_sel_exc_base       = is_vcpu() ? _pager->exc_pt_vcpu() : _pager->exc_pt_sel_client();
+	_sel_exc_base       = vcpu() ? _pager->exc_pt_vcpu() : _pager->exc_pt_sel_client();
 
-	if (!is_vcpu()) {
+	if (!vcpu()) {
 		pd_utcb = stack_area_virtual_base() + stack_virtual_size() - get_page_size();
 
 		addr_t remap_src[] = { _pd->parent_pt_sel(), _pager->Object_pool<Pager_object>::Entry::cap().local_name() };
@@ -136,7 +136,7 @@ int Platform_thread::start(void *ip, void *sp)
 	addr_t const rights = Obj_crd::RIGHT_EC_RECALL |
 	                      Obj_crd::RIGHT_PT_CTRL | Obj_crd::RIGHT_PT_CALL |
 	                      Obj_crd::RIGHT_SM_UP | Obj_crd::RIGHT_SM_DOWN;
-	unsigned pts = is_vcpu() ?  NUM_INITIAL_VCPU_PT_LOG2 : NUM_INITIAL_PT_LOG2;
+	unsigned pts = vcpu() ?  NUM_INITIAL_VCPU_PT_LOG2 : NUM_INITIAL_PT_LOG2;
 
 	enum { KEEP_FREE_PAGES_NOT_AVAILABLE_FOR_UPGRADE = 2, UPPER_LIMIT_PAGES = 32 };
 	Obj_crd initial_pts(_sel_exc_base, pts, rights);
@@ -215,7 +215,7 @@ Native_capability Platform_thread::pause()
 	cancel_blocking();
 
 	/* local thread may never get be canceled if it doesn't receive an IPC */
-	if (is_worker()) return Native_capability();
+	if (worker()) return Native_capability();
 
 	return notify_sm;
 }
@@ -225,7 +225,7 @@ void Platform_thread::resume()
 {
 	using namespace Nova;
 
-	if (!is_worker()) {
+	if (!worker()) {
 		uint8_t res;
 		do {
 			if (!_pd) {
@@ -256,7 +256,7 @@ Thread_state Platform_thread::state()
 	if (_pager->copy_thread_state(&s))
 		return s;
 
-	if (is_worker()) {
+	if (worker()) {
 		s.sp = _pager->initial_esp();
 		return s;
 	}
@@ -274,18 +274,18 @@ void Platform_thread::state(Thread_state s)
 	/*
 	 * s.sel_exc_base exception base of thread in caller
 	 *                protection domain - not in Core !
-	 * s.is_vcpu      If true it will run as vCPU,
+	 * s.vcpu         If true it will run as vCPU,
 	 *                otherwise it will be a thread.
 	 */
-	if (!is_main_thread())
+	if (!main_thread())
 		_sel_exc_base = s.sel_exc_base;
 
-	if (!s.is_vcpu)
+	if (!s.vcpu)
 		return;
 
 	_features |= VCPU;
 
-	if (is_main_thread() && _pager)
+	if (main_thread() && _pager)
 		_pager->prepare_vCPU_portals();
 }
 
@@ -304,7 +304,7 @@ Native_capability Platform_thread::single_step_sync(bool on)
 
 	Native_capability cap = _pager->single_step(on);
 
-	if (is_worker()) return Native_capability();
+	if (worker()) return Native_capability();
 
 	return cap;
 }
@@ -334,7 +334,7 @@ unsigned long long Platform_thread::execution_time() const
 	 * For local ECs, we simply return 0 as local ECs are executed with the
 	 * time of their callers.
 	 */
-	if (is_worker())
+	if (worker())
 		return time;
 
 	uint8_t res = Nova::sc_ctrl(_sel_sc(), time);

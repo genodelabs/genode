@@ -218,7 +218,7 @@ void Xray_trigger::Main::_handle_update(unsigned)
 	/* obtain / update hover model if needed */
 	if (Genode::config()->xml_node().has_sub_node("hover")) {
 
-		if (!_hover_ds.is_constructed()) {
+		if (!_hover_ds.constructed()) {
 			_hover_ds.construct("hover");
 			_hover_ds->sigh(_update_dispatcher);
 		}

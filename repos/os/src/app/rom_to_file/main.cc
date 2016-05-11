@@ -105,10 +105,10 @@ void Rom_to_file::Main::_handle_update(unsigned)
 	/*
 	 * Update ROM module and print content to LOG
 	 */
-	if (_rom_ds.is_constructed()) {
+	if (_rom_ds.constructed()) {
 		_rom_ds->update();
 
-		if (_rom_ds->is_valid()) {
+		if (_rom_ds->valid()) {
 			using namespace File_system;
 
 			char dir_path[] = "/";

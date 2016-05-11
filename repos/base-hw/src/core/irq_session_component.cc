@@ -80,7 +80,7 @@ Irq_session_component::Irq_session_component(Range_allocator * const irq_alloc,
 	}
 
 	/* allocate interrupt */
-	if (_irq_alloc->alloc_addr(1, _irq_number).is_error()) {
+	if (_irq_alloc->alloc_addr(1, _irq_number).error()) {
 		PERR("unavailable interrupt %d requested", _irq_number);
 		throw Root::Invalid_args();
 	}

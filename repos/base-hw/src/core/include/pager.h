@@ -113,7 +113,7 @@ class Genode::Ipc_pager
 		/**
 		 * Access direction of current page fault
 		 */
-		bool is_write_fault() const;
+		bool write_fault() const;
 
 		/**
 		 * Input mapping data as reply to current page fault

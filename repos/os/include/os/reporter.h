@@ -83,7 +83,18 @@ class Genode::Reporter : Noncopyable
 			_enabled = enabled;
 		}
 
-		bool is_enabled() const { return _enabled; }
+		/**
+		 * Return true if reporter is enabled
+		 */
+		bool enabled() const { return _enabled; }
+
+		/**
+		 * Return true if reporter is enabled
+		 *
+		 * \noapi
+		 * \deprecated  use 'enabled' instead
+		 */
+		bool is_enabled() const { return enabled(); }
 
 		Name name() const { return _label; }
 

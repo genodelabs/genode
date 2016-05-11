@@ -52,7 +52,7 @@ class Vfs::Dir_file_system : public File_system
 		 */
 		char _name[MAX_NAME_LEN];
 
-		bool _is_root() const { return _name[0] == 0; }
+		bool _root() const { return _name[0] == 0; }
 
 		/**
 		 * Perform operation on a file system
@@ -125,7 +125,7 @@ class Vfs::Dir_file_system : public File_system
 		char const *_sub_path(char const *path) const
 		{
 			/* do not strip anything from the path when we are root */
-			if (_is_root())
+			if (_root())
 				return path;
 
 			/* skip heading slash in path if present */
@@ -326,7 +326,7 @@ class Vfs::Dir_file_system : public File_system
 
 		Dirent_result dirent(char const *path, file_offset index, Dirent &out) override
 		{
-			if (_is_root())
+			if (_root())
 				return _dirent_of_file_systems(path, index, out);
 
 			if (strcmp(path, "/") == 0) {
@@ -348,7 +348,7 @@ class Vfs::Dir_file_system : public File_system
 
 		file_size num_dirent(char const *path) override
 		{
-			if (_is_root()) {
+			if (_root()) {
 				return _sum_dirents_of_file_systems(path);
 
 			} else {
@@ -372,7 +372,10 @@ class Vfs::Dir_file_system : public File_system
 			}
 		}
 
-		bool is_directory(char const *path) override
+		/**
+		 * Return true if specified path is a directory
+		 */
+		bool directory(char const *path) override
 		{
 			path = _sub_path(path);
 			if (!path)
@@ -382,11 +385,19 @@ class Vfs::Dir_file_system : public File_system
 				return true;
 
 			for (File_system *fs = _first_file_system; fs; fs = fs->next)
-				if (fs->is_directory(path))
+				if (fs->directory(path))
 					return true;
 
 			return false;
 		}
+
+		/**
+		 * Return true if specified path is a directory
+		 *
+		 * \noapi
+		 * \deprecated  use 'directory instead
+		 */
+		bool is_directory(char const *path) { return directory(path); }
 
 		char const *leaf_path(char const *path) override
 		{
@@ -416,7 +427,7 @@ class Vfs::Dir_file_system : public File_system
 			 * for the root directory so that subsequent 'dirent' calls
 			 * are subjected to the stacked file-system layout.
 			 */
-			if (is_directory(path)) {
+			if (directory(path)) {
 				*out_handle = new (alloc) Vfs_handle(*this, *this, alloc, 0);
 				return OPEN_OK;
 			}

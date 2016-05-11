@@ -87,7 +87,7 @@ class Nonpci::Ps2 : public Platform::Device_component
  */
 Platform::Device_capability Platform::Session_component::device(String const &name) {
 
-	if (!name.is_valid_string())
+	if (!name.valid_string())
 		return Device_capability();
 
 	using namespace Genode;

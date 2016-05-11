@@ -111,7 +111,7 @@ class File_system::Directory : public Node
 			if (!sub_node)
 				throw Lookup_failed();
 
-			if (is_basename(path)) {
+			if (!contains_path_delimiter(path)) {
 
 				/*
 				 * Because 'path' is a basename that corresponds to an

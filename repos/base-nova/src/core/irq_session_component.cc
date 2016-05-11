@@ -70,7 +70,7 @@ static bool msi(Genode::addr_t irq_sel, Genode::addr_t phys_mem,
                 Genode::Signal_context_capability sig_cap)
 {
 	void * virt = 0;
-	if (platform()->region_alloc()->alloc_aligned(4096, &virt, 12).is_error())
+	if (platform()->region_alloc()->alloc_aligned(4096, &virt, 12).error())
 		return false;
 
 	Genode::addr_t virt_addr = reinterpret_cast<Genode::addr_t>(virt);
@@ -216,7 +216,7 @@ Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
 			throw Root::Unavailable();
 	}
 
-	if (!irq_alloc || irq_alloc->alloc_addr(1, irq_number).is_error()) {
+	if (!irq_alloc || irq_alloc->alloc_addr(1, irq_number).error()) {
 		PERR("Unavailable IRQ 0x%lx requested", irq_number);
 		throw Root::Unavailable();
 	}

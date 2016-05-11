@@ -38,7 +38,7 @@ void * Hw::Address_space::_table_alloc()
 {
 	void * ret;
 	if (!_cma()->alloc_aligned(sizeof(Translation_table), (void**)&ret,
-	                           Translation_table::ALIGNM_LOG2).is_ok())
+	                           Translation_table::ALIGNM_LOG2).ok())
 		throw Root::Quota_exceeded();
 	return ret;
 }

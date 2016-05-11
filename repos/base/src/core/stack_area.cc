@@ -78,7 +78,7 @@ class Stack_area_region_map : public Region_map
 			void *phys_base;
 			Range_allocator *ra = platform_specific()->ram_alloc();
 			if (ra->alloc_aligned(size, &phys_base,
-				                  get_page_size_log2()).is_error()) {
+				                  get_page_size_log2()).error()) {
 				PERR("could not allocate backing store for new stack");
 				return (addr_t)0;
 			}

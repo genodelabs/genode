@@ -100,7 +100,7 @@ void Ipc_pager::wait_for_fault()
 	 */
 
 	/* exception */
-	if (is_exception()) {
+	if (exception()) {
 		L4_StoreMR(1, &_fault_ip);
 
 		if (verbose_exception)

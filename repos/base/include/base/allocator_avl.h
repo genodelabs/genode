@@ -282,7 +282,7 @@ class Genode::Allocator_avl_base : public Range_allocator
 		bool alloc(size_t size, void **out_addr) override
 		{
 			return (Allocator_avl_base::alloc_aligned(
-				size, out_addr, log2(sizeof(addr_t))).is_ok());
+				size, out_addr, log2(sizeof(addr_t))).ok());
 		}
 
 		void free(void *addr, size_t) override { free(addr); }

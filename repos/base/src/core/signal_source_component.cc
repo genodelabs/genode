@@ -27,7 +27,7 @@ using namespace Genode;
 
 void Signal_source_component::release(Signal_context_component *context)
 {
-	if (context && context->is_enqueued())
+	if (context && context->enqueued())
 		_signal_queue.remove(context);
 }
 
@@ -59,7 +59,7 @@ void Signal_source_component::submit(Signal_context_component *context,
 
 	} else {
 
-		if (!context->is_enqueued())
+		if (!context->enqueued())
 			_signal_queue.enqueue(context);
 	}
 }

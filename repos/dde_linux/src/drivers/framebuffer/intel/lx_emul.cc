@@ -1205,7 +1205,7 @@ void update_genode_report()
 		reporter.enabled(false);
 	}
 
-	if (!reporter.is_enabled()) return;
+	if (!reporter.enabled()) return;
 
 	try {
 

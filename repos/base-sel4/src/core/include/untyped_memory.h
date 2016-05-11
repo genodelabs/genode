@@ -38,7 +38,7 @@ struct Genode::Untyped_memory
 			phys_alloc.alloc_aligned(num_pages*get_page_size(), &out_ptr,
 			                         get_page_size_log2());
 
-		if (alloc_ret.is_error()) {
+		if (alloc_ret.error()) {
 			PERR("%s: allocation of untyped memory failed", __FUNCTION__);
 			throw Phys_alloc_failed();
 		}

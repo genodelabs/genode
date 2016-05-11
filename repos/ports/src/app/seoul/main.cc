@@ -1338,7 +1338,7 @@ class Machine : public StaticReceiver<Machine>
 				 */
 				dmi->create(_unsynchronized_motherboard, argv, "", 0);
 
-				if (node.is_last())
+				if (node.last())
 					break;
 			}
 		}

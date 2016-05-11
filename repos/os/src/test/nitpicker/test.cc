@@ -206,7 +206,7 @@ int main(int argc, char **argv)
 	Test_view *tv = 0;
 	while (1) {
 
-		while (!nitpicker.input()->is_pending()) timer.msleep(20);
+		while (!nitpicker.input()->pending()) timer.msleep(20);
 
 		for (int i = 0, num_ev = nitpicker.input()->flush(); i < num_ev; i++) {
 

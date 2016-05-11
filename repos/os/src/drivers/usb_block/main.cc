@@ -171,7 +171,7 @@ struct Usb::Block_driver : Usb::Completion,
 			}
 
 			/* OUT transfer finished */
-			if (!p.is_read_transfer()) {
+			if (!p.read_transfer()) {
 				iface.release(p);
 				return;
 			}
@@ -571,7 +571,7 @@ struct Usb::Block_driver : Usb::Completion,
 		}
 
 		static bool request_executed = false;
-		if (!p.is_read_transfer()) {
+		if (!p.read_transfer()) {
 			/* send read/write request */
 			if (req.pending) {
 

@@ -304,7 +304,7 @@ class Genode::Xml_node
 				/**
 				 * Return true if tag is the start of a valid XML node
 				 */
-				bool is_node() const { return _type == START || _type == EMPTY; }
+				bool node() const { return _type == START || _type == EMPTY; }
 
 				/**
 				 * Return first token of tag
@@ -507,7 +507,7 @@ class Genode::Xml_node
 				}
 
 				/* count sub nodes at depth 1 */
-				if (depth == 1 && curr_tag.is_node())
+				if (depth == 1 && curr_tag.node())
 					_num_sub_nodes++;
 
 				/* keep track of the current depth */
@@ -758,11 +758,19 @@ class Genode::Xml_node
 		/**
 		 * Return true if node is the last of a node sequence
 		 */
-		bool is_last(const char *type = 0) const
+		bool last(const char *type = 0) const
 		{
 			try { next(type); return false; }
 			catch (Nonexistent_sub_node) { return true; }
 		}
+
+		/**
+		 * Return true if node is the last of a node sequence
+		 *
+		 * \noapi
+		 * \deprecated use 'last' instead
+		 */
+		bool is_last(const char *type = 0) const { return last(); }
 
 		/**
 		 * Return sub node with specified index

@@ -228,7 +228,7 @@ void Main::handle_focus(unsigned)
 {
 	/* fetch new content of the focus ROM module */
 	focus_ds.update();
-	if (!focus_ds.is_valid())
+	if (!focus_ds.valid())
 		return;
 
 	/* reset status-bar properties */

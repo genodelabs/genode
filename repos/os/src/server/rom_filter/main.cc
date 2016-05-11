@@ -87,7 +87,7 @@ class Rom_filter::Session_component : public Rpc_object<Genode::Rom_session>,
 			using namespace Genode;
 
 			/* replace dataspace by new one as needed */
-			if (!_ram_ds.is_constructed()
+			if (!_ram_ds.constructed()
 			 || _output_buffer.content_size() > _ram_ds->size()) {
 
 				_ram_ds.construct(env()->ram_session(), _output_buffer.content_size());
@@ -180,7 +180,7 @@ struct Rom_filter::Main : Input_rom_registry::Input_rom_changed_fn,
 
 		xml_ds_size = Genode::config()->xml_node().attribute_value("buffer", xml_ds_size);
 
-		if (!_xml_ds.is_constructed() || xml_ds_size != _xml_ds->size())
+		if (!_xml_ds.constructed() || xml_ds_size != _xml_ds->size())
 			_xml_ds.construct(env()->ram_session(), xml_ds_size);
 
 		/*

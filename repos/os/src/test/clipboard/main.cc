@@ -115,7 +115,7 @@ class Subsystem
 
 			_import_rom.update();
 
-			if (!_import_rom.is_valid())
+			if (!_import_rom.valid())
 				return;
 
 			_import_content = _import_rom.local_addr<char>();
@@ -203,7 +203,7 @@ class Subsystem
 			return false;
 		}
 
-		bool is_cleared() const
+		bool cleared() const
 		{
 			try {
 				_imported_text();
@@ -312,8 +312,8 @@ struct Server::Main : Handle_step_fn
 
 		case EXPECT_PRIVATE_KEY:
 
-			if (!_hobby.is_cleared()
-			 || !_work .is_cleared()
+			if (!_hobby.cleared()
+			 || !_work .cleared()
 			 || !_admin.has_content(private_key))
 				return;
 
@@ -350,7 +350,7 @@ struct Server::Main : Handle_step_fn
 
 		case EXPECT_CONTRACT:
 
-			if (!_hobby.is_cleared()
+			if (!_hobby.cleared()
 			 || !_work .has_content(contract)
 			 || !_admin.has_content(contract))
 				return;

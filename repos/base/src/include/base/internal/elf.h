@@ -63,7 +63,7 @@ class Genode::Elf_binary
 		/**
 		 * Check for dynamic elf
 		 */
-		bool is_dynamically_linked() { return (_dynamic && _interp); }
+		bool dynamically_linked() { return (_dynamic && _interp); }
 
 
 		/************************

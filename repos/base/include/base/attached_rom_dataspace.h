@@ -109,7 +109,7 @@ class Genode::Attached_rom_dataspace
 			 * the existing dataspace, we can keep everything in place. The
 			 * dataspace content gets updated by the call of '_rom.update'.
 			 */
-			if (_ds.is_constructed() && _rom.update() == true)
+			if (_ds.constructed() && _rom.update() == true)
 				return;
 
 			/*
@@ -123,7 +123,15 @@ class Genode::Attached_rom_dataspace
 		/**
 		 * Return true of content is present
 		 */
-		bool is_valid() const { return _ds.is_constructed(); }
+		bool valid() const { return _ds.constructed(); }
+
+		/**
+		 * Return true of content is present
+		 *
+		 * \noapi
+		 * \deprecated use 'valid' instead
+		 */
+		bool is_valid() const { return valid(); }
 
 		/**
 		 * Return dataspace content as XML node
@@ -135,7 +143,7 @@ class Genode::Attached_rom_dataspace
 		Xml_node xml() const
 		{
 			try {
-				if (is_valid() && local_addr<void const>())
+				if (valid() && local_addr<void const>())
 					return Xml_node(local_addr<char>(), size());
 			} catch (Xml_node::Invalid_syntax) { }
 

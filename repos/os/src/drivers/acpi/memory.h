@@ -78,7 +78,7 @@ class Acpi::Memory
 			for (addr_t size = 0; size < size_aligned; size += 0x1000UL) {
 				addr_t const low = (phys_aligned + size) &
 				                     _align_offset(ACPI_REGION_SIZE_LOG2);
-				if (!_range.alloc_addr(0x1000UL, low).is_ok())
+				if (!_range.alloc_addr(0x1000UL, low).ok())
 					continue;
 
 				/* allocate acpi page as io memory */

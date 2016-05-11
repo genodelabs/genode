@@ -118,13 +118,13 @@ namespace Libc_pipe {
 	}
 
 
-	static inline bool is_read_end(Libc::File_descriptor *fdo)
+	static inline bool read_end(Libc::File_descriptor *fdo)
 	{
 		return (context(fdo)->type() == READ_END);
 	}
 
 
-	static inline bool is_write_end(Libc::File_descriptor *fdo)
+	static inline bool write_end(Libc::File_descriptor *fdo)
 	{
 		return (context(fdo)->type() == WRITE_END);
 	}
@@ -239,7 +239,7 @@ namespace Libc_pipe {
 
 			case F_GETFL:
 
-				if (is_write_end(pipefdo))
+				if (write_end(pipefdo))
 					return O_WRONLY;
 				else
 					return O_RDONLY;
@@ -285,7 +285,7 @@ namespace Libc_pipe {
 
 	ssize_t Plugin::read(Libc::File_descriptor *fdo, void *buf, ::size_t count)
 	{
-		if (!is_read_end(fdo)) {
+		if (!read_end(fdo)) {
 			PERR("Cannot read from write end of pipe.");
 			errno = EBADF;
 			return -1;
@@ -346,14 +346,14 @@ namespace Libc_pipe {
 				continue;
 
 			if (FD_ISSET(libc_fd, &in_readfds) &&
-				is_read_end(fdo) &&
+				read_end(fdo) &&
 				!context(fdo)->buffer()->empty()) {
 				FD_SET(libc_fd, readfds);
 				nready++;
 			}
 
 			if (FD_ISSET(libc_fd, &in_writefds) &&
-			    is_write_end(fdo) &&
+			    write_end(fdo) &&
 			    (context(fdo)->buffer()->avail_capacity() > 0)) {
 				FD_SET(libc_fd, writefds);
 				nready++;
@@ -366,7 +366,7 @@ namespace Libc_pipe {
 	ssize_t Plugin::write(Libc::File_descriptor *fdo, const void *buf,
 	                      ::size_t count)
 	{
-		if (!is_write_end(fdo)) {
+		if (!write_end(fdo)) {
 			PERR("Cannot write into read end of pipe.");
 			errno = EBADF;
 			return -1;

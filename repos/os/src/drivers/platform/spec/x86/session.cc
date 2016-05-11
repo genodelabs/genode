@@ -63,7 +63,7 @@ bool Platform::bus_valid(int bus)
 					valid[bus] = true;
 
 					/* scan behind bridge */
-					if (config.is_pci_bridge()) {
+					if (config.pci_bridge()) {
 						/* PCI bridge spec 3.2.5.3, 3.2.5.4 */
 						unsigned char sec_bus = config.read(&config_access,
 						                          0x19, Device::ACCESS_8BIT);

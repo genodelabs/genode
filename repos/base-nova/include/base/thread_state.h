@@ -18,18 +18,18 @@
 
 #include <base/thread_state_base.h>
 
-namespace Genode {
+namespace Genode { struct Thread_state; }
 
-	struct Thread_state : Thread_state_base
-	{
-		bool is_vcpu;
-		addr_t sel_exc_base;
 
-		Thread_state() : is_vcpu(false), sel_exc_base(~0UL) { }
+struct Genode::Thread_state : Thread_state_base
+{
+	bool vcpu;
+	addr_t sel_exc_base;
 
-		Thread_state(bool is_vcpu, addr_t sel_exc_base)
-		: is_vcpu(is_vcpu), sel_exc_base(sel_exc_base) { }
-	};
-}
+	Thread_state() : vcpu(false), sel_exc_base(~0UL) { }
+
+	Thread_state(bool vcpu, addr_t sel_exc_base)
+	: vcpu(vcpu), sel_exc_base(sel_exc_base) { }
+};
 
 #endif /* _INCLUDE__BASE__THREAD_STATE_H_ */

@@ -198,7 +198,7 @@ void Parent_element::geometry(Rect rect)
 {
 	::Element::geometry(rect);
 
-	if (!_last || !_last->is_bottom()) return;
+	if (!_last || !_last->bottom()) return;
 
 	_last->geometry(Rect(Point(_last->position().x(),
 	                           rect.h() - _last->size().h()), _last->size()));

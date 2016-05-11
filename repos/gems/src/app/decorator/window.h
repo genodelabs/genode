@@ -434,7 +434,7 @@ class Decorator::Window : public Window_base
 			outer_geometry().cut(geometry(), top, left, right, bottom);
 		}
 
-		bool is_in_front_of(Window_base const &neighbor) const override
+		bool in_front_of(Window_base const &neighbor) const override
 		{
 			return _neighbor == neighbor.frontmost_view();
 		}

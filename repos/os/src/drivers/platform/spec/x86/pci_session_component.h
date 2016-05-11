@@ -751,7 +751,7 @@ namespace Platform {
 
 				Io_mem_dataspace_capability io_mem = device->get_config_space();
 
-				if (!_device_pd.is_constructed())
+				if (!_device_pd.constructed())
 					_device_pd.construct(_device_pd_ep, _md_alloc,
 					                     _resources.ram().cap(),
 					                     _label.string());
@@ -779,7 +779,7 @@ namespace Platform {
 
 			Ram_capability alloc_dma_buffer(Genode::size_t const size)
 			{
-				if (!_device_pd.is_constructed())
+				if (!_device_pd.constructed())
 					_device_pd.construct(_device_pd_ep, _md_alloc,
 					                     _resources.ram().cap(),
 					                     _label.string());
@@ -927,7 +927,7 @@ class Platform::Root : public Genode::Root_component<Session_component>
 
 							Device_config bridge(bus, dev, func,
 							                     &config_access);
-							if (bridge.is_pci_bridge())
+							if (bridge.pci_bridge())
 								/* PCI bridge spec 3.2.5.3, 3.2.5.4 */
 								bus = bridge.read(&config_access, 0x19,
 								                  Device::ACCESS_8BIT);
@@ -959,7 +959,7 @@ class Platform::Root : public Genode::Root_component<Session_component>
 				if (!config.valid())
 					continue;
 
-				if (!config.is_pci_bridge() && bridge_bdf != 0)
+				if (!config.pci_bridge() && bridge_bdf != 0)
 					/**
 					 * If the bridge bdf has not a type header of a bridge in
 					 * the pci config space, then it should be the host bridge

@@ -102,7 +102,7 @@ class Nitpicker::Session_client : public Genode::Rpc_client<Session>
 
 		void enqueue(Command const &command)
 		{
-			if (_command_buffer.is_full())
+			if (_command_buffer.full())
 				execute();
 
 			_command_buffer.enqueue(command);

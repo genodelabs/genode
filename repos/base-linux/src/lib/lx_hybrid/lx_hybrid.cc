@@ -397,8 +397,8 @@ Thread *Thread::myself()
 	if (tls != 0)
 		return ((Native_thread::Meta_data *)tls)->thread_base;
 
-	bool const is_main_thread = (lx_getpid() == lx_gettid());
-	if (is_main_thread)
+	bool const called_by_main_thread = (lx_getpid() == lx_gettid());
+	if (called_by_main_thread)
 		return 0;
 
 	/*

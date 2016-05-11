@@ -80,7 +80,18 @@ struct Usb::Packet_descriptor : Genode::Packet_descriptor
 
 	Error error = NO_ERROR;
 
-	bool is_read_transfer() { return transfer.ep & ENDPOINT_IN; }
+	/**
+	 * Return true if packet is a read transfer
+	 */
+	bool read_transfer() { return transfer.ep & ENDPOINT_IN; }
+
+	/**
+	 * Return true if packet is a read transfer
+	 *
+	 * \noapi
+	 * \deprecated  use 'read_transfer' instead
+	 */
+	bool is_read_transfer() { return read_transfer(); }
 
 	Packet_descriptor(off_t offset = 0, size_t size = 0)
 	: Genode::Packet_descriptor(offset, size) { }

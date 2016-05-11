@@ -86,7 +86,7 @@ Child::Process::Process(Dataspace_capability  elf_ds,
 	if (!elf.valid())
 		throw Invalid_executable();
 
-	bool const dynamically_linked = elf.is_dynamically_linked();
+	bool const dynamically_linked = elf.dynamically_linked();
 
 	local_rm.detach(elf_addr);
 

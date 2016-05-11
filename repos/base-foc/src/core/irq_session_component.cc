@@ -194,7 +194,7 @@ Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
 		}
 		msi_alloc.set(irq_number, 1);
 	} else {
-		if (!irq_alloc || irq_alloc->alloc_addr(1, irq_number).is_error()) {
+		if (!irq_alloc || irq_alloc->alloc_addr(1, irq_number).error()) {
 			PERR("Unavailable IRQ %ld requested.", irq_number);
 			throw Root::Unavailable();
 		}

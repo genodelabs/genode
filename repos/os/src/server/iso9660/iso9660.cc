@@ -274,7 +274,7 @@ namespace Iso {
 			}
 
 			/* describes this record a directory */
-			bool is_directory() { return file_flags() & DIR_FLAG; }
+			bool directory() { return file_flags() & DIR_FLAG; }
 	};
 
 
@@ -301,10 +301,10 @@ namespace Iso {
 			Directory_record * root_record() { return ptr<Directory_record *>(156); }
 
 			/* check for primary descriptor */
-			bool is_primary() { return type() == PRIMARY; }
+			bool primary() { return type() == PRIMARY; }
 
 			/* check for terminating descriptor */
-			bool is_terminator() { return type() == TERMINATOR; }
+			bool terminator() { return type() == TERMINATOR; }
 
 			/* copy the root record */
 			Directory_record *copy_root_record()
@@ -334,10 +334,10 @@ namespace Iso {
 			if (verbose)
 				PDBG("Volume: type %u", vol->type());
 
-			if (vol->is_primary())
+			if (vol->primary())
 				return vol->copy_root_record();
 
-			if (vol->is_terminator())
+			if (vol->terminator())
 				return 0;
 		}
 	}
@@ -444,7 +444,7 @@ namespace Iso {
 				if (verbose)
 					PDBG("Found %s", level);
 
-				if (!dir->is_directory()) {
+				if (!dir->directory()) {
 					blk_nr      = dir->blk_nr();
 					data_length = dir->data_length();
 				}

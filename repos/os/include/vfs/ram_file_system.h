@@ -442,7 +442,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			return 0;
 		}
 
-		bool is_directory(char const *path)
+		bool directory(char const *path) override
 		{
 			using namespace Vfs_ram;
 

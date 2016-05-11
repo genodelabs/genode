@@ -144,7 +144,7 @@ struct Floating_window_layouter::Main : Operations
 		if (!window)
 			return;
 
-		window->is_maximized(!window->is_maximized());
+		window->maximized(!window->maximized());
 
 		generate_resize_request_model();
 	}
@@ -250,7 +250,7 @@ struct Floating_window_layouter::Main : Operations
 	 */
 	void handle_input(unsigned)
 	{
-		while (input.is_pending())
+		while (input.pending())
 			_user_state.handle_input(input_ds.local_addr<Input::Event>(),
 			                         input.flush(), Genode::config()->xml_node());
 	}
@@ -297,10 +297,10 @@ struct Floating_window_layouter::Main : Operations
 	Reporter focus_reporter          = { "focus" };
 
 
-	bool focused_window_is_maximized() const
+	bool focused_window_maximized() const
 	{
 		Window const *w = lookup_window_by_id(_user_state.focused_window_id());
-		return w && w->is_maximized();
+		return w && w->maximized();
 	}
 
 	void import_window_list(Xml_node);
@@ -376,7 +376,7 @@ void Floating_window_layouter::Main::import_window_list(Xml_node window_list_xml
 					if (policy.has_attribute("xpos") && policy.has_attribute("ypos"))
 						initial_position = point_attribute(node);
 
-					win->is_maximized(policy.attribute_value("maximized", false));
+					win->maximized(policy.attribute_value("maximized", false));
 
 				} catch (Genode::Session_policy::No_policy_defined) { }
 
@@ -387,10 +387,10 @@ void Floating_window_layouter::Main::import_window_list(Xml_node window_list_xml
 			win->title(string_attribute(node, "title", Window::Title("")));
 			win->has_alpha(node.has_attribute("has_alpha")
 			            && node.attribute("has_alpha").has_value("yes"));
-			win->is_hidden(node.has_attribute("hidden")
-			            && node.attribute("hidden").has_value("yes"));
-			win->is_resizeable(node.has_attribute("resizeable")
-			            && node.attribute("resizeable").has_value("yes"));
+			win->hidden(node.has_attribute("hidden")
+			         && node.attribute("hidden").has_value("yes"));
+			win->resizeable(node.has_attribute("resizeable")
+			             && node.attribute("resizeable").has_value("yes"));
 		}
 	} catch (...) { }
 }
@@ -402,13 +402,13 @@ void Floating_window_layouter::Main::generate_window_layout_model()
 	{
 		for (Window *w = windows.first(); w; w = w->next()) {
 
-			bool const is_hovered = w->has_id(_user_state.hover_state().window_id);
-			bool const is_focused = w->has_id(_user_state.focused_window_id());
+			bool const hovered = w->has_id(_user_state.hover_state().window_id);
+			bool const focused = w->has_id(_user_state.focused_window_id());
 
 			Window::Element const highlight =
-				is_hovered ? _user_state.hover_state().element : Window::Element::UNDEFINED;
+				hovered ? _user_state.hover_state().element : Window::Element::UNDEFINED;
 
-			w->serialize(xml, is_focused, highlight);
+			w->serialize(xml, focused, highlight);
 		}
 	});
 }

@@ -160,7 +160,7 @@ int main(int argc, char **argv)
 		if (signal.context() == &read_avail_sig_ctx) {
 
 			/* supply pending terminal input to line editor */
-			while (terminal.avail() && !line_editor.is_complete()) {
+			while (terminal.avail() && !line_editor.completed()) {
 				char c;
 				terminal.read(&c, 1);
 				line_editor.submit_input(c);
@@ -207,7 +207,7 @@ int main(int argc, char **argv)
 			continue;
 		}
 
-		if (!line_editor.is_complete())
+		if (!line_editor.completed())
 			continue;
 
 		Command *command = lookup_command(buf, commands);

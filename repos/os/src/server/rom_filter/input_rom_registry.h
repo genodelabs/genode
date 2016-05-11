@@ -77,7 +77,7 @@ class Rom_filter::Input_rom_registry
 				void _handle_rom_changed(unsigned)
 				{
 					_rom_ds.update();
-					if (!_rom_ds.is_valid())
+					if (!_rom_ds.valid())
 						return;
 
 					try {

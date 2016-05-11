@@ -167,7 +167,7 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 			 * Disabling a bridge may make the devices behind non-functional,
 			 * as we have no driver which will switch it on again
 			 */
-			if (_device_config.is_pci_bridge())
+			if (_device_config.pci_bridge())
 				return;
 
 			unsigned cmd = _device_config.read(&_config_access, PCI_CMD_REG,

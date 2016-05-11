@@ -202,7 +202,7 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 		Session_capability session(Root::Session_args const &args,
 		                           Affinity           const &affinity) override
 		{
-			if (!args.is_valid_string()) throw Root::Invalid_args();
+			if (!args.valid_string()) throw Root::Invalid_args();
 
 			POLICY::aquire(args.string());
 
@@ -246,7 +246,7 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 
 		void upgrade(Session_capability session, Root::Upgrade_args const &args) override
 		{
-			if (!args.is_valid_string()) throw Root::Invalid_args();
+			if (!args.valid_string()) throw Root::Invalid_args();
 
 			_ep->apply(session, [&] (SESSION_TYPE *s) {
 				if (!s) return;

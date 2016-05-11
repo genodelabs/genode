@@ -136,7 +136,7 @@ class Genode::Signal_source_component : public Signal_source_rpc_object
 
 Genode::Signal_context_component::~Signal_context_component()
 {
-	if (is_enqueued() && _source)
+	if (enqueued() && _source)
 		_source->release(this);
 }
 

@@ -38,7 +38,7 @@ namespace Ahci_driver {
 
 	void init(Ahci_root &ep);
 
-	bool is_avail(long device_num);
+	bool avail(long device_num);
 	long device_number(char const *model_num, char const *serial_num);
 
 	Block::Driver *claim_port(long device_num);

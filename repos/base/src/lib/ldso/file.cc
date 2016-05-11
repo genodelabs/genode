@@ -87,11 +87,11 @@ class Linker::Rm_area
 		{
 			addr_t addr = vaddr;
 
-			if (addr && (_range.alloc_addr(size, addr).is_error()))
+			if (addr && (_range.alloc_addr(size, addr).error()))
 				throw Region_conflict();
 			else if (!addr &&
 			         _range.alloc_aligned(size, (void **)&addr,
-			                              get_page_size_log2()).is_error())
+			                              get_page_size_log2()).error())
 			{
 				throw Region_conflict();
 			}

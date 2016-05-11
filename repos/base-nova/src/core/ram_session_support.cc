@@ -42,7 +42,7 @@ static inline void * alloc_region(Dataspace_component *ds, const size_t size)
 	size_t align_log2 = log2(ds->size());
 	for (; align_log2 >= get_page_size_log2(); align_log2--) {
 		if (platform()->region_alloc()->alloc_aligned(size,
-		                                              &virt_addr, align_log2).is_ok())
+		                                              &virt_addr, align_log2).ok())
 			break;
 	}
 

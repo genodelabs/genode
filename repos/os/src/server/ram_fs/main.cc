@@ -256,7 +256,7 @@ namespace File_system {
 					if (!_writable)
 						throw Permission_denied();
 
-					if (!path.is_valid_string())
+					if (!path.valid_string())
 						throw Name_too_long();
 
 					Directory *parent = _root.lookup_and_lock_parent(path_str);

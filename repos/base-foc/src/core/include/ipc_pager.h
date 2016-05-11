@@ -172,12 +172,12 @@ namespace Genode {
 			 */
 			unsigned long badge() { return _badge; }
 
-			bool is_write_fault() const { return (_pf_addr & 2); }
+			bool write_fault() const { return (_pf_addr & 2); }
 
 			/**
 			 * Return true if last fault was an exception
 			 */
-			bool is_exception() const
+			bool exception() const
 			{
 				return _type == Ipc_pager::EXCEPTION;
 			}

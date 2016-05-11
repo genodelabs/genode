@@ -781,8 +781,8 @@ int Libc::Vfs_plugin::rename(char const *from_path, char const *to_path)
 
 	if (_root_dir.leaf_path(to_path)) {
 
-		if (_root_dir.is_directory(to_path)) {
-			if (!_root_dir.is_directory(from_path)) {
+		if (_root_dir.directory(to_path)) {
+			if (!_root_dir.directory(from_path)) {
 				errno = EISDIR; return -1;
 			}
 
@@ -791,7 +791,7 @@ int Libc::Vfs_plugin::rename(char const *from_path, char const *to_path)
 			}
 
 		} else {
-			if (_root_dir.is_directory(from_path)) {
+			if (_root_dir.directory(from_path)) {
 				errno = ENOTDIR; return -1;
 			}
 		}

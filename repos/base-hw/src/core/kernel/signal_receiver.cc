@@ -166,7 +166,7 @@ Signal_context::Signal_context(Signal_receiver * const r, unsigned const imprint
 
 void Signal_receiver::_add_deliverable(Signal_context * const c)
 {
-	if (!c->_deliver_fe.is_enqueued()) {
+	if (!c->_deliver_fe.enqueued()) {
 		_deliver.enqueue(&c->_deliver_fe);
 	}
 	_listen();
@@ -199,7 +199,7 @@ void Signal_receiver::_listen()
 void Signal_receiver::_context_destructed(Signal_context * const c)
 {
 	_contexts.remove(&c->_contexts_fe);
-	if (!c->_deliver_fe.is_enqueued()) { return; }
+	if (!c->_deliver_fe.enqueued()) { return; }
 	_deliver.remove(&c->_deliver_fe);
 }
 

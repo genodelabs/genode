@@ -52,7 +52,7 @@ namespace Noux {
 	static Noux::Child *init_child;
 	static int exit_value = ~0;
 
-	bool is_init_process(Child *child) { return child == init_child; }
+	bool init_process(Child *child) { return child == init_child; }
 	void init_process_exited(int exit) { init_child = 0; exit_value = exit; }
 
 };
@@ -170,7 +170,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 					Shared_pointer<Io_channel> io = _lookup_channel(_sysio->write_in.fd);
 
-					if (!io->is_nonblocking())
+					if (!io->nonblocking())
 						_block_for_io_channel(io, false, true, false);
 
 					if (io->check_unblock(false, true, false)) {
@@ -196,7 +196,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 			{
 				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->read_in.fd);
 
-				if (!io->is_nonblocking())
+				if (!io->nonblocking())
 					_block_for_io_channel(io, true, false, false);
 
 				if (io->check_unblock(true, false, false))

@@ -342,7 +342,7 @@ struct Init::Name_registry
 	 *
 	 * \return false if name already exists
 	 */
-	virtual bool is_unique(const char *name) const = 0;
+	virtual bool unique(const char *name) const = 0;
 
 	/**
 	 * Find server with specified name
@@ -397,7 +397,7 @@ class Init::Child : Genode::Child_policy
 					throw; }
 
 				/* check for a name confict with the other children */
-				if (!registry.is_unique(unique)) {
+				if (!registry.unique(unique)) {
 					PERR("Child name \"%s\" is not unique", unique);
 					throw Child_name_is_not_unique();
 				}
@@ -720,7 +720,7 @@ class Init::Child : Genode::Child_policy
 							}
 						}
 
-						if (target.is_last())
+						if (target.last())
 							break;
 					}
 				}

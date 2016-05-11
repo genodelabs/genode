@@ -49,9 +49,9 @@ struct Genode::Trace::Logger
 
 		Logger();
 
-		bool is_initialized() { return control != 0; }
+		bool initialized() { return control != 0; }
 
-		bool is_init_pending() { return pending_init; }
+		bool init_pending() { return pending_init; }
 
 		void init_pending(bool val) { pending_init = val; }
 

@@ -302,7 +302,7 @@ void Platform::_init_rom_modules()
 	Range_allocator::Alloc_return const alloc_ret =
 		_unused_phys_alloc.alloc_aligned(modules_size, &out_ptr, get_page_size_log2());
 
-	if (alloc_ret.is_error()) {
+	if (alloc_ret.error()) {
 		PERR("could not reserve phys CNode space for boot modules");
 		struct Init_rom_modules_failed { };
 		throw Init_rom_modules_failed();

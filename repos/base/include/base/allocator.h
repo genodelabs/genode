@@ -150,8 +150,14 @@ struct Genode::Range_allocator : Allocator
 		Value const value;
 		Alloc_return(Value value) : value(value) { }
 
-		bool is_ok()    const { return value == OK; }
-		bool is_error() const { return !is_ok(); }
+		bool ok()    const { return value == OK; }
+		bool error() const { return !ok(); }
+
+		/*
+		 * \deprecated  use 'ok' and 'error' instead
+		 */
+		bool is_ok()    const { return ok(); }
+		bool is_error() const { return error(); }
 	};
 
 	/**

@@ -135,7 +135,7 @@ class Wm::Decorator_content_registry
 			return _lookup(view_handle).win_id;
 		}
 
-		bool is_registered(Nitpicker::Session::View_handle view_handle) const
+		bool registered(Nitpicker::Session::View_handle view_handle) const
 		{
 			try { lookup(view_handle); return true; } catch (...) { }
 			return false;
@@ -220,7 +220,7 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>,
 		Input::Event const * const events =
 			_nitpicker_input_ds.local_addr<Input::Event>();
 
-		while (_nitpicker_input.is_pending()) {
+		while (_nitpicker_input.pending()) {
 
 			size_t const num_events = _nitpicker_input.flush();
 
@@ -394,7 +394,7 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>,
 		/*
 		 * Reset view geometry when destroying a content view
 		 */
-		if (_content_registry.is_registered(view)) {
+		if (_content_registry.registered(view)) {
 			Nitpicker::Rect rect(Nitpicker::Point(0, 0), Nitpicker::Area(0, 0));
 			_nitpicker_session.enqueue<Nitpicker::Session::Command::Geometry>(view, rect);
 			_nitpicker_session.execute();

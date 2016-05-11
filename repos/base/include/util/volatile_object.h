@@ -130,7 +130,14 @@ class Genode::Volatile_object
 		/**
 		 * Return true of volatile object contains a constructed object
 		 */
-		bool is_constructed() const { return _constructed; }
+		bool constructed() const { return _constructed; }
+
+		/**
+		 * Return true of volatile object contains a constructed object
+		 *
+		 * \deprecated use 'constructed' instead
+		 */
+		bool is_constructed() const { return constructed(); }
 
 		/**
 		 * Access contained object

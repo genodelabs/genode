@@ -160,7 +160,7 @@ void Thread::start()
 	/* create EC at core */
 	Thread_state state;
 	state.sel_exc_base = native_thread().exc_pt_sel;
-	state.is_vcpu      = native_thread().is_vcpu;
+	state.vcpu         = native_thread().vcpu;
 
 	/* local thread have no start instruction pointer - set via portal entry */
 	addr_t thread_ip = global ? reinterpret_cast<addr_t>(_thread_start) : 0;
@@ -183,7 +183,7 @@ void Thread::start()
 	using namespace Nova;
 
 	/* request exception portals for normal threads */
-	if (!native_thread().is_vcpu) {
+	if (!native_thread().vcpu) {
 		request_event_portal(pager_cap, native_thread().exc_pt_sel, 0, NUM_INITIAL_PT_LOG2);
 
 		/* default: we don't accept any mappings or translations */

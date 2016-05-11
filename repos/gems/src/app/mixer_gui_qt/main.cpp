@@ -45,7 +45,7 @@ struct Report_thread : Genode::Thread_deprecated<THREAD_STACK_SIZE>
 	{
 		channels_rom.update();
 
-		if (channels_rom.is_valid())
+		if (channels_rom.valid())
 			_report(channels_rom.local_addr<char>(), channels_rom.size());
 	}
 

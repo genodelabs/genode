@@ -65,7 +65,7 @@ int Libc::Mem_alloc_impl::Dataspace_pool::expand(size_t size, Range_allocator *a
 	alloc->add_range((addr_t)local_addr, size);
 
 	/* now that we have new backing store, allocate Dataspace structure */
-	if (alloc->alloc_aligned(sizeof(Dataspace), &ds_addr, 2).is_error()) {
+	if (alloc->alloc_aligned(sizeof(Dataspace), &ds_addr, 2).error()) {
 		PWRN("could not allocate meta data - this should never happen");
 		return -1;
 	}
@@ -85,7 +85,7 @@ void *Libc::Mem_alloc_impl::alloc(size_t size, size_t align_log2)
 
 	/* try allocation at our local allocator */
 	void *out_addr = 0;
-	if (_alloc.alloc_aligned(size, &out_addr, align_log2).is_ok())
+	if (_alloc.alloc_aligned(size, &out_addr, align_log2).ok())
 		return out_addr;
 
 	/*
@@ -112,7 +112,7 @@ void *Libc::Mem_alloc_impl::alloc(size_t size, size_t align_log2)
 	}
 
 	/* allocate originally requested block */
-	return _alloc.alloc_aligned(size, &out_addr, align_log2).is_ok() ? out_addr : 0;
+	return _alloc.alloc_aligned(size, &out_addr, align_log2).ok() ? out_addr : 0;
 }
 
 

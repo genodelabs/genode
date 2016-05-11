@@ -574,7 +574,7 @@ struct Usb_devices : List<Usb_host_device>
 		_garbage_collect();
 
 		_devices_rom.update();
-		if (!_devices_rom.is_valid())
+		if (!_devices_rom.valid())
 			return;
 
 		if (verbose_devices)

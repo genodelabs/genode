@@ -58,7 +58,7 @@ class Launcher::Panel_dialog : Input_event_handler, Dialog_generator,
 
 		Element _menu_button { _menu_button_label(), "Menu" };
 
-		bool _is_focused(Element const &e)
+		bool _focused(Element const &e)
 		{
 			size_t const label_len = strlen(e.label.string());
 
@@ -93,7 +93,7 @@ class Launcher::Panel_dialog : Input_event_handler, Dialog_generator,
 				 || (e.hovered && e.touched))
 					xml.attribute("hovered", "yes");
 
-				if (e.selected || e.touched || _is_focused(e))
+				if (e.selected || e.touched || _focused(e))
 					xml.attribute("selected", "yes");
 
 				xml.node("label", [&] () {
@@ -536,7 +536,7 @@ class Launcher::Panel_dialog : Input_event_handler, Dialog_generator,
 			/* find focused element */
 			Element *e = _elements.first();
 
-			for (; e && !_is_focused(*e); e = e->next());
+			for (; e && !_focused(*e); e = e->next());
 
 			/* none of our subsystems is focused, start with the first one */
 			if (!e)

@@ -59,7 +59,7 @@ File_descriptor *File_descriptor_allocator::alloc(Plugin *plugin,
 	if (libc_fd <= ANY_FD)
 		alloc_ok = Allocator_avl_base::alloc(1, reinterpret_cast<void**>(&addr));
 	else
-		alloc_ok = (Allocator_avl_base::alloc_addr(1, addr).is_ok());
+		alloc_ok = (Allocator_avl_base::alloc_addr(1, addr).ok());
 
 	if (!alloc_ok) {
 		PERR("could not allocate libc_fd %d%s",

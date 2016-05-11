@@ -168,12 +168,12 @@ namespace Genode {
 			/**
 			 * Return true if last fault was a write fault
 			 */
-			bool is_write_fault() const { return (_flags & 2); }
+			bool write_fault() const { return (_flags & 2); }
 
 			/**
 			 * Return true if last fault was an exception
 			 */
-			bool is_exception() const
+			bool exception() const
 			{
 				/*
 				 * Reflection of exceptions is not supported on this platform.

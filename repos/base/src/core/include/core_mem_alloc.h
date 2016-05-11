@@ -174,7 +174,7 @@ class Genode::Mapped_mem_allocator : public Genode::Core_mem_translator
 		 *************************/
 
 		bool   alloc(size_t size, void **out_addr) override {
-			return alloc_aligned(size, out_addr, log2(sizeof(addr_t))).is_ok(); }
+			return alloc_aligned(size, out_addr, log2(sizeof(addr_t))).ok(); }
 		void   free(void *addr, size_t) override;
 		size_t consumed() const override { return _phys_alloc->consumed(); }
 		size_t overhead(size_t size) const override {
@@ -300,7 +300,7 @@ class Genode::Core_mem_allocator : public Genode::Core_mem_translator
 		 *************************/
 
 		bool alloc(size_t size, void **out_addr) override {
-			return alloc_aligned(size, out_addr, log2(sizeof(addr_t))).is_ok(); }
+			return alloc_aligned(size, out_addr, log2(sizeof(addr_t))).ok(); }
 
 		void free(void *addr, size_t size) override
 		{

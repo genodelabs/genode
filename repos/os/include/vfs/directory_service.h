@@ -185,7 +185,7 @@ struct Vfs::Directory_service
 	 */
 	virtual file_size num_dirent(char const *path) = 0;
 
-	virtual bool is_directory(char const *path) = 0;
+	virtual bool directory(char const *path) = 0;
 
 	virtual char const *leaf_path(char const *path) = 0;
 };

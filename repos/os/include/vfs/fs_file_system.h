@@ -261,10 +261,10 @@ class Vfs::Fs_file_system : public File_system
 			out.size = status.size;
 			out.mode = STAT_MODE_FILE | 0777;
 
-			if (status.is_symlink())
+			if (status.symlink())
 				out.mode = STAT_MODE_SYMLINK | 0777;
 
-			if (status.is_directory())
+			if (status.directory())
 				out.mode = STAT_MODE_DIRECTORY | 0777;
 
 			out.uid = 0;
@@ -497,7 +497,7 @@ class Vfs::Fs_file_system : public File_system
 			return status.size / sizeof(::File_system::Directory_entry);
 		}
 
-		bool is_directory(char const *path) override
+		bool directory(char const *path) override
 		{
 			try {
 				::File_system::Node_handle node = _fs.node(path);
@@ -505,7 +505,7 @@ class Vfs::Fs_file_system : public File_system
 
 				::File_system::Status status = _fs.status(node);
 
-				return status.is_directory();
+				return status.directory();
 			}
 			catch (...) { return false; }
 		}

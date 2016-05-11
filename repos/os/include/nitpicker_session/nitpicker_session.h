@@ -139,7 +139,15 @@ struct Nitpicker::Session : Genode::Session
 
 		public:
 
-			bool is_full() const { return _num >= MAX_COMMANDS; }
+			bool full() const { return _num >= MAX_COMMANDS; }
+
+			/**
+			 * Return true if there is no space left in the command buffer
+			 *
+			 * \noapi
+			 * \deprecated  use 'full' instead
+			 */
+			bool is_full() const { return full(); }
 
 			unsigned num() const
 			{
@@ -154,11 +162,11 @@ struct Nitpicker::Session : Genode::Session
 			 * Enqueue command
 			 *
 			 * The command will be dropped if the buffer is full. Check for this
-			 * condition by calling 'is_full()' prior calling this method.
+			 * condition by calling 'full()' prior calling this method.
 			 */
 			void enqueue(Command const &command)
 			{
-				if (!is_full())
+				if (!full())
 					_commands[_num++] = command;
 			}
 

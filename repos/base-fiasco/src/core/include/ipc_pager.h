@@ -161,12 +161,12 @@ namespace Genode {
 			unsigned long badge() const {
 				return convert_native_thread_id_to_badge(_last); }
 
-			bool is_write_fault() const { return (_pf_addr & 2); }
+			bool write_fault() const { return (_pf_addr & 2); }
 
 			/**
 			 * Return true if last fault was an exception
 			 */
-			bool is_exception() const
+			bool exception() const
 			{
 				/*
 				 * Reflection of exceptions is not supported on this platform.

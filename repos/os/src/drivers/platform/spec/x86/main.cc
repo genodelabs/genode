@@ -63,7 +63,7 @@ int main(int argc, char **argv)
 
 		acpi_rom.sigh(sig_cap);
 
-		while (!acpi_rom.is_valid()) {
+		while (!acpi_rom.valid()) {
 			sig_rec.wait_for_signal();
 			acpi_rom.update();
 		}

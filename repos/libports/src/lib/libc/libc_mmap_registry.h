@@ -93,7 +93,7 @@ class Libc::Mmap_registry
 			return e ? e->plugin : 0;
 		}
 
-		bool is_registered(void *start) const
+		bool registered(void *start) const
 		{
 			Genode::Lock::Guard guard(_lock);
 

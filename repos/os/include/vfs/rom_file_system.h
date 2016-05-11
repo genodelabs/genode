@@ -93,7 +93,7 @@ class Vfs::Rom_file_system : public Single_file_system
 			Stat_result result = Single_file_system::stat(path, out);
 
 			_rom.update();
-			out.size = _rom.is_valid() ? _rom.size() : 0;
+			out.size = _rom.valid() ? _rom.size() : 0;
 
 			return result;
 		}

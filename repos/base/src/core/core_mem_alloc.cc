@@ -45,7 +45,7 @@ Mapped_mem_allocator::alloc_aligned(size_t size, void **out_addr, int align, add
 	/* allocate physical pages */
 	Alloc_return ret1 = _phys_alloc->alloc_aligned(page_rounded_size,
 	                                               &phys_addr, align, from, to);
-	if (!ret1.is_ok()) {
+	if (!ret1.ok()) {
 		PERR("Could not allocate physical memory region of size %zu\n",
 		     page_rounded_size);
 		return ret1;
@@ -54,7 +54,7 @@ Mapped_mem_allocator::alloc_aligned(size_t size, void **out_addr, int align, add
 	/* allocate range in core's virtual address space */
 	Alloc_return ret2 = _virt_alloc->alloc_aligned(page_rounded_size,
 	                                               out_addr, align);
-	if (!ret2.is_ok()) {
+	if (!ret2.ok()) {
 		PERR("Could not allocate virtual address range in core of size %zu\n",
 		     page_rounded_size);
 

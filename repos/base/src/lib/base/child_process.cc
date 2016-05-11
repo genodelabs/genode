@@ -49,7 +49,7 @@ Child::Process::Loaded_executable::Loaded_executable(Dataspace_capability elf_ds
 	 * If the specified executable is a dynamically linked program, we load
 	 * the dynamic linker instead.
 	 */
-	if (elf.is_dynamically_linked()) {
+	if (elf.dynamically_linked()) {
 
 		local_rm.detach(elf_addr);
 

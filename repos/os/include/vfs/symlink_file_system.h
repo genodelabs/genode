@@ -29,12 +29,12 @@ class Vfs::Symlink_file_system : public File_system
 		char _target[MAX_PATH_LEN];
 		char _filename[FILENAME_MAX_LEN];
 
-		bool _is_root(const char *path)
+		bool _root(const char *path)
 		{
 			return (strcmp(path, "") == 0) || (strcmp(path, "/") == 0);
 		}
 
-		bool _is_single_file(const char *path)
+		bool _single_file(const char *path)
 		{
 			return (strlen(path) == (strlen(_filename) + 1)) &&
 			       (strcmp(&path[1], _filename) == 0);
@@ -66,7 +66,7 @@ class Vfs::Symlink_file_system : public File_system
 		                         file_size   buf_size,
 		                         file_size  &out_len) override
 		{
-			if (!_is_single_file(path))
+			if (!_single_file(path))
 				return READLINK_ERR_NO_ENTRY;
 			out_len = min(buf_size, file_size(sizeof(_target)));
 			strncpy(buf, _target, out_len);
@@ -78,10 +78,10 @@ class Vfs::Symlink_file_system : public File_system
 			out = { 0, 0, 0, 0, 0, 0 };
 			out.device = (Genode::addr_t)this;
 
-			if (_is_root(path)) {
+			if (_root(path)) {
 				out.mode = STAT_MODE_DIRECTORY;
 
-			} else if (_is_single_file(path)) {
+			} else if (_single_file(path)) {
 				out.mode = STAT_MODE_SYMLINK;
 				out.inode = 1;
 			} else {
@@ -92,15 +92,15 @@ class Vfs::Symlink_file_system : public File_system
 
 		file_size num_dirent(char const *path) override
 		{
-			if (_is_root(path))
+			if (_root(path))
 				return 1;
 			else
 				return 0;
 		}
 
-		bool is_directory(char const *path) override
+		bool directory(char const *path) override
 		{
-			if (_is_root(path))
+			if (_root(path))
 				return true;
 
 			return false;
@@ -108,12 +108,12 @@ class Vfs::Symlink_file_system : public File_system
 
 		char const *leaf_path(char const *path) override
 		{
-			return _is_single_file(path) ? path : 0;
+			return _single_file(path) ? path : 0;
 		}
 
 		Dirent_result dirent(char const *path, file_offset index, Dirent &out) override
 		{
-			if (!_is_root(path))
+			if (!_root(path))
 				return DIRENT_ERR_INVALID_PATH;
 
 			if (index == 0) {
@@ -142,7 +142,7 @@ class Vfs::Symlink_file_system : public File_system
 
 		Rename_result rename(char const *from, char const *to) override
 		{
-			if (_is_single_file(from) || _is_single_file(to))
+			if (_single_file(from) || _single_file(to))
 				return RENAME_ERR_NO_PERM;
 			return RENAME_ERR_NO_ENTRY;
 		}

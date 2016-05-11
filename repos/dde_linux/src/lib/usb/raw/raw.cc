@@ -118,7 +118,7 @@ struct Device : List<Device>::Element
 	{
 		list()->insert(this);
 
-		if (device_list_reporter().is_enabled())
+		if (device_list_reporter().enabled())
 			report_device_list();
 	}
 
@@ -126,7 +126,7 @@ struct Device : List<Device>::Element
 	{
 		list()->remove(this);
 
-		if (device_list_reporter().is_enabled())
+		if (device_list_reporter().enabled())
 			report_device_list();
 	}
 
@@ -756,7 +756,7 @@ class Usb::Root : public Genode::Root_component<Session_component>
 
 			Genode::Xml_node config = Genode::config()->xml_node();
 
-			if (!_config_reporter.is_enabled())
+			if (!_config_reporter.enabled())
 				_config_reporter.enabled(true);
 
 			bool const uhci = config.attribute_value<bool>("uhci", false);

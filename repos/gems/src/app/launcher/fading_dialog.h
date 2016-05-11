@@ -103,8 +103,8 @@ class Launcher::Fading_dialog : private Input_event_handler
 		void _handle_hover_update(unsigned)
 		{
 			try {
-				if (!_hover_ds.is_constructed() || _hover_rom.update() == false) {
-					if (_hover_ds.is_constructed())
+				if (!_hover_ds.constructed() || _hover_rom.update() == false) {
+					if (_hover_ds.constructed())
 						_hover_ds->invalidate();
 					_hover_ds.construct(_hover_rom.dataspace());
 				}

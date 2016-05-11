@@ -557,7 +557,7 @@ class Vfs::Tar_file_system : public File_system
 			return _cached_num_dirent.num_dirent(path);
 		}
 
-		bool is_directory(char const *path) override
+		bool directory(char const *path) override
 		{
 			Node const *node = dereference(path);
 

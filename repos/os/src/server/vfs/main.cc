@@ -323,7 +323,7 @@ class Vfs_server::Session_component :
 			/* make sure a handle is free before allocating */
 			auto slot = _next_slot();
 
-			if (!create && !_vfs.is_directory(path_str))
+			if (!create && !_vfs.directory(path_str))
 				throw Lookup_failed();
 
 			Directory *dir;
@@ -653,7 +653,7 @@ class Vfs_server::Root :
 			ram_quota -= session_size;
 
 			/* check if the session root exists */
-			if (!((session_root == "/") || _vfs.is_directory(session_root.base()))) {
+			if (!((session_root == "/") || _vfs.directory(session_root.base()))) {
 				PERR("session root '%s' not found for '%s'", session_root.base(), label.string());
 				throw Root::Unavailable();
 			}

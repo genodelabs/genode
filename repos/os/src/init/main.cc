@@ -83,7 +83,7 @@ inline void determine_parent_services(Genode::Service_registry *services)
 		if (Init::config_verbose)
 			printf("  service \"%s\"\n", service_name);
 
-		if (node.is_last("service")) break;
+		if (node.last("service")) break;
 	}
 }
 
@@ -190,7 +190,7 @@ class Init::Child_registry : public Name_registry, Child_list
 		 */
 		void insert_alias(Alias *alias)
 		{
-			if (!is_unique(alias->name.string())) {
+			if (!unique(alias->name.string())) {
 				PERR("Alias name %s is not unique", alias->name.string());
 				throw Alias_name_is_not_unique();
 			}
@@ -243,7 +243,7 @@ class Init::Child_registry : public Name_registry, Child_list
 		 ** Name-registry interface **
 		 *****************************/
 
-		bool is_unique(const char *name) const
+		bool unique(const char *name) const
 		{
 			/* check for name clash with an existing child */
 			Genode::List_element<Child> const *curr = first();

@@ -41,7 +41,7 @@ Platform_thread::~Platform_thread()
 	/* detach UTCB of main threads */
 	if (_main_thread) {
 		Locked_ptr<Address_space> locked_ptr(_address_space);
-		if (locked_ptr.is_valid())
+		if (locked_ptr.valid())
 			locked_ptr->flush((addr_t)_utcb_pd_addr, sizeof(Native_utcb));
 	}
 
@@ -137,7 +137,7 @@ int Platform_thread::start(void * const ip, void * const sp)
 
 			/* lock the address space */
 			Locked_ptr<Address_space> locked_ptr(_address_space);
-			if (!locked_ptr.is_valid()) {
+			if (!locked_ptr.valid()) {
 				PERR("invalid RM client");
 				return -1;
 			};

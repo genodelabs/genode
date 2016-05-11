@@ -104,7 +104,7 @@ class Rom::Session_component : public Genode::Rpc_object<Genode::Rom_session>,
 
 		bool update() override
 		{
-			if (!_ds.is_constructed() || _module.size() > _ds->size())
+			if (!_ds.constructed() || _module.size() > _ds->size())
 				return false;
 
 			size_t const new_content_size =

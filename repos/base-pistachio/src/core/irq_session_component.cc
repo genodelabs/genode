@@ -137,7 +137,7 @@ Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
 	if (msi)
 		throw Root::Unavailable();
 
-	if (!irq_alloc || irq_alloc->alloc_addr(1, _irq_number).is_error()) {
+	if (!irq_alloc || irq_alloc->alloc_addr(1, _irq_number).error()) {
 		PERR("Unavailable IRQ 0x%x requested", _irq_number);
 		throw Root::Unavailable();
 	}

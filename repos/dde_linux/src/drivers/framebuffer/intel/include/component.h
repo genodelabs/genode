@@ -94,17 +94,17 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 		{
 			_in_update = false;
 
-			if (_fb_ds.is_constructed())
+			if (_fb_ds.constructed())
 				_fb_ds.destruct();
 
 			_fb_ds.construct(framebuffer_dataspace());
-			if (!_fb_ds.is_constructed())
+			if (!_fb_ds.constructed())
 				PERR("framebuffer dataspace not initialized");
 
 			if (_buffered) {
 				_bb_ds.construct(Genode::env()->ram_session(),
 				                 _width * _height * _bytes_per_pixel);
-				if (!_bb_ds.is_constructed()) {
+				if (!_bb_ds.constructed()) {
 					PERR("buffered mode enabled, but buffer not initialized");
 					return Genode::Dataspace_capability();
 				}

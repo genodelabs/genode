@@ -139,7 +139,7 @@ struct Registry
 		_list.insert(entry);
 	}
 
-	bool is_first(Entry const *entry)
+	bool first(Entry const *entry)
 	{
 		return _list.first() == entry;
 	}
@@ -450,52 +450,54 @@ class Menu : public Registry::Entry
 		 */
 		struct Seq_tracker
 		{
-			enum State { INIT, GOT_ESC, GOT_FIRST } state;
-			char normal, first, second;
-			bool sequence_complete;
+			enum State { INIT, GOT_ESC, GOT_FIRST } _state;
+			char _normal, _first, _second;
+			bool _sequence_complete;
 
-			Seq_tracker() : state(INIT), sequence_complete(false) { }
+			Seq_tracker() : _state(INIT), _sequence_complete(false) { }
 
 			void input(char c)
 			{
-				switch (state) {
+				switch (_state) {
 				case INIT:
 					if (c == 27)
-						state = GOT_ESC;
+						_state = GOT_ESC;
 					else
-						normal = c;
-					sequence_complete = false;
+						_normal = c;
+					_sequence_complete = false;
 					break;
 
 				case GOT_ESC:
-					first = c;
-					state = GOT_FIRST;
+					_first = c;
+					_state = GOT_FIRST;
 					break;
 
 				case GOT_FIRST:
-					second = c;
-					state = INIT;
-					sequence_complete = true;
+					_second = c;
+					_state = INIT;
+					_sequence_complete = true;
 					break;
 				}
 			}
 
-			bool is_normal() const { return state == INIT && !sequence_complete; }
+			bool normal() const { return _state == INIT && !_sequence_complete; }
 
-			bool _is_normal(char c) const { return is_normal() && normal == c; }
+			char normal_char() const { return _normal; }
+
+			bool _normal_matches(char c) const { return normal() && _normal == c; }
 
 			bool _fn_complete(char match_first, char match_second) const
 			{
-				return sequence_complete
-				    && first  == match_first
-				    && second == match_second;
+				return _sequence_complete
+				    && _first  == match_first
+				    && _second == match_second;
 			}
 
-			bool is_key_up() const {
-				return _fn_complete(91, 65) || _is_normal('k'); }
+			bool key_up() const {
+				return _fn_complete(91, 65) || _normal_matches('k'); }
 
-			bool is_key_down() const {
-				return _fn_complete(91, 66) || _is_normal('j'); }
+			bool key_down() const {
+				return _fn_complete(91, 66) || _normal_matches('j'); }
 		};
 
 		Seq_tracker _seq_tracker;
@@ -559,13 +561,13 @@ class Menu : public Registry::Entry
 		{
 			_seq_tracker.input(c);
 
-			if (_seq_tracker.is_key_up()) {
+			if (_seq_tracker.key_up()) {
 				if (_selected_idx > 0)
 					_selected_idx--;
 				flush_all();
 			}
 
-			if (_seq_tracker.is_key_down()) {
+			if (_seq_tracker.key_down()) {
 				if (_selected_idx < _max_idx)
 					_selected_idx++;
 				flush_all();
@@ -574,7 +576,7 @@ class Menu : public Registry::Entry
 			/*
 			 * Detect selection of menu entry via [enter]
 			 */
-			if (_seq_tracker.is_normal() && _seq_tracker.normal == 13) {
+			if (_seq_tracker.normal() && _seq_tracker.normal_char() == 13) {
 
 				Entry *entry = _registry.entry_at(_selected_idx + 1);
 				if (entry) {
@@ -618,7 +620,7 @@ Session_manager::Session_manager(Ncurses &ncurses, Registry &registry,
 
 void Session_manager::_refresh_menu()
 {
-	if (_registry.is_first(&_menu))
+	if (_registry.first(&_menu))
 		activate_menu();
 }
 

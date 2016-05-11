@@ -301,7 +301,7 @@ void Child::notify_resource_avail() const
 
 void Child::announce(Parent::Service_name const &name, Root_capability root)
 {
-	if (!name.is_valid_string()) return;
+	if (!name.valid_string()) return;
 
 	_policy.announce_service(name.string(), root, heap(), &_server);
 }
@@ -311,7 +311,7 @@ Session_capability Child::session(Parent::Service_name const &name,
                                   Parent::Session_args const &args,
                                   Affinity             const &affinity)
 {
-	if (!name.is_valid_string() || !args.is_valid_string()) throw Unavailable();
+	if (!name.valid_string() || !args.valid_string()) throw Unavailable();
 
 	/* return sessions that we created for the child */
 	if (!strcmp("Env::ram_session", name.string())) return _ram;
@@ -382,7 +382,7 @@ void Child::upgrade(Session_capability to_session, Parent::Upgrade_args const &a
 			return;
 		}
 
-		if (!args.is_valid_string()) {
+		if (!args.valid_string()) {
 			PWRN("no valid session-upgrade arguments");
 			return;
 		}

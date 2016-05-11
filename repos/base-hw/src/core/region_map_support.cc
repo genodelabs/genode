@@ -31,7 +31,7 @@ void Rm_client::unmap(addr_t, addr_t virt_base, size_t size)
 {
 	Locked_ptr<Address_space> locked_address_space(_address_space);
 
-	if (locked_address_space.is_valid())
+	if (locked_address_space.valid())
 		locked_address_space->flush(virt_base, size);
 }
 
@@ -76,7 +76,7 @@ void Pager_entrypoint::entry()
 			/* apply mapping that was determined by the local region managers */
 			{
 				Locked_ptr<Address_space> locked_ptr(pt->address_space());
-				if (!locked_ptr.is_valid()) return;
+				if (!locked_ptr.valid()) return;
 
 				Hw::Address_space * as = static_cast<Hw::Address_space*>(&*locked_ptr);
 				Page_flags const flags =

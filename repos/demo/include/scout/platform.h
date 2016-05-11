@@ -119,7 +119,7 @@ class Scout::Platform
 
 				void _import_events()
 				{
-					if (_input.is_pending() == false) return;
+					if (_input.pending() == false) return;
 
 					for (int i = 0, num = _input.flush(); i < num; i++)
 					{

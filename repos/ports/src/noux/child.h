@@ -97,7 +97,10 @@ namespace Noux {
 
 	class Child;
 
-	bool is_init_process(Child *child);
+	/**
+	 * Return true is child is the init process
+	 */
+	bool init_process(Child *child);
 	void init_process_exited(int);
 
 	class Child : public Rpc_object<Session>,
@@ -306,7 +309,7 @@ namespace Noux {
 
 				_entrypoint.dissolve(this);
 
-				if (is_init_process(this))
+				if (init_process(this))
 					init_process_exited(_child_policy.exit_value());
 			}
 
@@ -426,7 +429,7 @@ namespace Noux {
 
 			void submit_exit_signal()
 			{
-				if (is_init_process(this)) {
+				if (init_process(this)) {
 					PINF("init process exited");
 
 					/* trigger exit of main event loop */

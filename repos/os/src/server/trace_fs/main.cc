@@ -840,7 +840,7 @@ class File_system::Session_component : public Session_rpc_object
 			if (create)
 				throw Permission_denied();
 
-			if (!path.is_valid_string())
+			if (!path.valid_string())
 				throw Name_too_long();
 
 			Directory *dir = dynamic_cast<Directory*>(_root_dir.lookup(path_str + 1));

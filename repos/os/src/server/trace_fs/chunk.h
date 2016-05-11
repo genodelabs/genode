@@ -45,7 +45,7 @@ namespace File_system {
 			void assert_valid_range(seek_off_t start, size_t len,
 			                        file_size_t chunk_size) const
 			{
-				if (is_zero()) return;
+				if (zero()) return;
 
 				if (start < _base_offset)
 					throw Index_out_of_range();
@@ -77,7 +77,7 @@ namespace File_system {
 			/**
 			 * Return true if chunk is a read-only zero chunk
 			 */
-			bool is_zero() const { return _base_offset == (seek_off_t)(~0L); }
+			bool zero() const { return _base_offset == (seek_off_t)(~0L); }
 
 			/**
 			 * Return true if chunk has no allocated sub chunks
@@ -318,7 +318,7 @@ namespace File_system {
 				void operator () (Entry &entry, char *dst, size_t len,
 				                  seek_off_t seek_offset) const
 				{
-					if (entry.is_zero())
+					if (entry.zero())
 						memset(dst, 0, len);
 					else
 						entry.read(dst, len, seek_offset);

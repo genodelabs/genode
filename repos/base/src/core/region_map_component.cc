@@ -162,8 +162,8 @@ int Rm_client::pager(Ipc_pager &pager)
 {
 	using Fault_area = Region_map_component::Fault_area;
 
-	Region_map::State::Fault_type pf_type = pager.is_write_fault() ? Region_map::State::WRITE_FAULT
-	                                                               : Region_map::State::READ_FAULT;
+	Region_map::State::Fault_type pf_type = pager.write_fault() ? Region_map::State::WRITE_FAULT
+	                                                            : Region_map::State::READ_FAULT;
 	addr_t pf_addr = pager.fault_addr();
 	addr_t pf_ip   = pager.fault_ip();
 
@@ -231,7 +231,7 @@ int Rm_client::pager(Ipc_pager &pager)
 		}
 
 		Mapping mapping(dst_fault_area.base(), src_fault_area.base(),
-		                dsc->cacheability(), dsc->is_io_mem(),
+		                dsc->cacheability(), dsc->io_mem(),
 		                map_size_log2, dsc->writable());
 
 		/*
@@ -242,7 +242,7 @@ int Rm_client::pager(Ipc_pager &pager)
 		 * pages that are not locally mapped, the 'map_core_local' function may be
 		 * empty.
 		 */
-		if (!dsc->is_io_mem())
+		if (!dsc->io_mem())
 			mapping.prepare_map_operation();
 
 		/* answer page fault with a flex-page mapping */
@@ -359,7 +359,7 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 				Range_allocator::Alloc_return alloc_return =
 					_map.alloc_aligned(size, &r, align_log2);
 
-				if (alloc_return.is_ok())
+				if (alloc_return.ok())
 					break;
 				else if (alloc_return.value == Range_allocator::Alloc_return::OUT_OF_METADATA) {
 					_map.free(r);
@@ -499,7 +499,7 @@ void Region_map_component::detach(Local_addr local_addr)
 	 * base-class's function. Hence, we cannot check the return value of this
 	 * function to determine if the dataspace is a managed dataspace. Instead,
 	 * we introduced a dataspace member '_managed' with the non-virtual accessor
-	 * function 'is_managed'.
+	 * function 'managed'.
 	 */
 
 	/*
@@ -521,7 +521,7 @@ void Region_map_component::detach(Local_addr local_addr)
 		 *     client.
 		 */
 		if (!platform()->supports_direct_unmap()
-		 && dsc->is_managed() && dsc->core_local_addr() == 0) {
+		 && dsc->managed() && dsc->core_local_addr() == 0) {
 			PWRN("unmapping of managed dataspaces not yet supported");
 			break;
 		}

@@ -123,15 +123,15 @@ int main(int, char **)
 		printf("-- create Compound object --\n");
 		Compound compound(object_1);
 
-		PLOG("compound.member.is_constructed returns %d",
-		     compound.member.is_constructed());
-		PLOG("compound.lazy_member.is_constructed returns %d",
-		     compound.lazy_member.is_constructed());
+		PLOG("compound.member.constructed returns %d",
+		     compound.member.constructed());
+		PLOG("compound.lazy_member.constructed returns %d",
+		     compound.lazy_member.constructed());
 
 		printf("-- construct lazy member --\n");
 		compound.lazy_member.construct(object_2);
-		PLOG("compound.lazy_member.is_constructed returns %d",
-		     compound.lazy_member.is_constructed());
+		PLOG("compound.lazy_member.constructed returns %d",
+		     compound.lazy_member.constructed());
 
 		printf("-- call method on member (with reference to Object 1) --\n");
 		call_const_method(compound);

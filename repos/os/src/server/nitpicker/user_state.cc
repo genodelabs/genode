@@ -75,7 +75,7 @@ void User_state::handle_event(Input::Event ev)
 		ax = ev.ax();
 		ay = ev.ay();
 		ev = Input::Event::create_touch_event(ax, ay, ev.code(),
-		                                      ev.is_touch_release());
+		                                      ev.touch_release());
 	} else
 		ev = Input::Event(type, keycode, ax, ay, rx, ry);
 

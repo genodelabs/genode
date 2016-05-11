@@ -140,7 +140,7 @@ class Wm::Nitpicker::View : public Genode::Weak_object<View>,
 			View_handle real_neighbor_handle;
 
 			Locked_ptr<View> neighbor(_neighbor_ptr);
-			if (neighbor.is_valid())
+			if (neighbor.valid())
 				real_neighbor_handle = _real_nitpicker.view_handle(neighbor->real_view_cap());
 
 			if (_neighbor_behind)
@@ -321,7 +321,7 @@ class Wm::Nitpicker::Top_level_view : public View,
 			return _real_nitpicker.view_capability(_real_handle);
 		}
 
-		void is_hidden(bool is_hidden) { _window_registry.is_hidden(_win_id, is_hidden); }
+		void hidden(bool hidden) { _window_registry.hidden(_win_id, hidden); }
 
 		void resizeable(bool resizeable)
 		{
@@ -373,13 +373,13 @@ class Wm::Nitpicker::Child_view : public View,
 		bool belongs_to_win_id(Window_registry::Id id) const override
 		{
 			Locked_ptr<View> parent(_parent);
-			return parent.is_valid() && parent->belongs_to_win_id(id);
+			return parent.valid() && parent->belongs_to_win_id(id);
 		}
 
 		Point input_anchor_position() const override
 		{
 			Locked_ptr<View> parent(_parent);
-			if (parent.is_valid())
+			if (parent.valid())
 				return parent->input_anchor_position();
 
 			return Point();
@@ -391,7 +391,7 @@ class Wm::Nitpicker::Child_view : public View,
 				return;
 
 			Locked_ptr<View> parent(_parent);
-			if (!parent.is_valid())
+			if (!parent.valid())
 				return;
 
 			View_handle parent_handle = _real_nitpicker.view_handle(parent->real_view_cap());
@@ -514,7 +514,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 			return Input::Event();
 		}
 
-		bool _is_click_into_unfocused_view(Input::Event const ev)
+		bool _click_into_unfocused_view(Input::Event const ev)
 		{
 			/*
 			 * XXX check if unfocused
@@ -537,7 +537,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 			Input::Event const * const events =
 				_nitpicker_input_ds.local_addr<Input::Event>();
 
-			while (_nitpicker_input.is_pending()) {
+			while (_nitpicker_input.pending()) {
 
 				size_t const num_events = _nitpicker_input.flush();
 
@@ -548,7 +548,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 					Input::Event const ev = events[i];
 
 					/* propagate layout-affecting events to the layouter */
-					if (_is_click_into_unfocused_view(ev))
+					if (_click_into_unfocused_view(ev))
 						_click_handler.handle_click(Point(ev.ax(), ev.ay()));
 
 					/*
@@ -629,7 +629,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 			case Command::OP_GEOMETRY:
 				{
 					Locked_ptr<View> view(_view_handle_registry.lookup(command.geometry.view));
-					if (view.is_valid())
+					if (view.valid())
 						view->geometry(command.geometry.rect);
 					return;
 				}
@@ -637,7 +637,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 			case Command::OP_OFFSET:
 				{
 					Locked_ptr<View> view(_view_handle_registry.lookup(command.offset.view));
-					if (view.is_valid())
+					if (view.valid())
 						view->buffer_offset(command.offset.offset);
 
 					return;
@@ -646,7 +646,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 			case Command::OP_TO_FRONT:
 				{
 					Locked_ptr<View> view(_view_handle_registry.lookup(command.to_front.view));
-					if (!view.is_valid())
+					if (!view.valid())
 						return;
 
 					/* bring to front if no neighbor is specified */
@@ -683,7 +683,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 							*c = '\'';
 
 					Locked_ptr<View> view(_view_handle_registry.lookup(command.title.view));
-					if (view.is_valid())
+					if (view.valid())
 						view->title(sanitized_title);
 
 					return;
@@ -808,10 +808,10 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 				Signal_transmitter(_mode_sigh).submit();
 		}
 
-		void is_hidden(bool is_hidden)
+		void hidden(bool hidden)
 		{
 			for (Top_level_view *v = _top_level_views.first(); v; v = v->next())
-				v->is_hidden(is_hidden);
+				v->hidden(hidden);
 		}
 
 		/**
@@ -849,7 +849,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 		{
 			try {
 				Locked_ptr<View> view(_view_handle_registry.lookup(handle));
-				if (view.is_valid())
+				if (view.valid())
 					_destroy_view_object(*view);
 			}
 			catch (View_handle_registry::Lookup_failed) { }
@@ -868,7 +868,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 		{
 			Locked_ptr<View> view(_view_handle_registry.lookup(handle));
 
-			return view.is_valid() ? view->cap() : View_capability();
+			return view.valid() ? view->cap() : View_capability();
 		}
 
 		void release_view_handle(View_handle handle) override
@@ -1182,7 +1182,7 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 
 		void upgrade(Genode::Session_capability session_cap, Upgrade_args const &args) override
 		{
-			if (!args.is_valid_string()) throw Root::Invalid_args();
+			if (!args.valid_string()) throw Root::Invalid_args();
 
 			auto lambda = [&] (Rpc_object_base *session) {
 				if (!session) {
@@ -1279,11 +1279,11 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 
 				switch (operation) {
 				case Session::SESSION_CONTROL_SHOW:
-					s->is_hidden(false);
+					s->hidden(false);
 					break;
 
 				case Session::SESSION_CONTROL_HIDE:
-					s->is_hidden(true);
+					s->hidden(true);
 					break;
 
 				case Session::SESSION_CONTROL_TO_FRONT:

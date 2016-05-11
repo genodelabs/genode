@@ -116,7 +116,7 @@ class Block::Root_multiple_clients : public Root_component< ::Session_component>
 				throw Root::Invalid_args();
 			}
 
-			if (!Ahci_driver::is_avail(num)) {
+			if (!Ahci_driver::avail(num)) {
 				PERR("Device %ld not available", num);
 				throw Root::Unavailable();
 			}

@@ -250,7 +250,7 @@ class Memory_model
 
 			bool valid() { return _region != 0; }
 
-			bool is_loaded(Region_map_component::Region const * region)
+			bool loaded(Region_map_component::Region const * region)
 			{
 				return _region == region;
 			}
@@ -301,7 +301,7 @@ class Memory_model
 		unsigned char *_update_curr_region(Region_map_component::Region *region)
 		{
 			for (unsigned i = 0; i < NUM_MAPPED_REGIONS; i++) {
-				if (_mapped_region[i].is_loaded(region))
+				if (_mapped_region[i].loaded(region))
 					return _mapped_region[i].local_base();
 			}
 

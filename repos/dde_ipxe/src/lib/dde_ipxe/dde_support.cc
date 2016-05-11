@@ -365,7 +365,7 @@ extern "C" void *dde_dma_alloc(dde_size_t size, dde_size_t align,
                                     dde_size_t offset)
 {
 	void *ptr;
-	if (allocator().alloc_aligned(size, &ptr, Genode::log2(align)).is_error()) {
+	if (allocator().alloc_aligned(size, &ptr, Genode::log2(align)).error()) {
 		PERR("memory allocation failed in alloc_memblock (size=%zu, align=%zx,"
 		     " offset=%zx)", (Genode::size_t)size, (Genode::size_t)align, (Genode::size_t)offset);
 		return 0;

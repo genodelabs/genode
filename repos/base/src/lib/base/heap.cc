@@ -108,7 +108,7 @@ Heap::Dataspace *Heap::_allocate_dataspace(size_t size, bool enforce_separate_me
 		_alloc->add_range((addr_t)ds_addr, size);
 
 		/* allocate the Dataspace structure */
-		if (_alloc->alloc_aligned(sizeof(Heap::Dataspace), &ds_meta_data_addr, log2(sizeof(addr_t))).is_error()) {
+		if (_alloc->alloc_aligned(sizeof(Heap::Dataspace), &ds_meta_data_addr, log2(sizeof(addr_t))).error()) {
 			PWRN("could not allocate dataspace meta data - this should never happen");
 			return 0;
 		}
@@ -125,7 +125,7 @@ Heap::Dataspace *Heap::_allocate_dataspace(size_t size, bool enforce_separate_me
 
 bool Heap::_try_local_alloc(size_t size, void **out_addr)
 {
-	if (_alloc->alloc_aligned(size, out_addr, log2(sizeof(addr_t))).is_error())
+	if (_alloc->alloc_aligned(size, out_addr, log2(sizeof(addr_t))).error())
 		return false;
 
 	_quota_used += size;

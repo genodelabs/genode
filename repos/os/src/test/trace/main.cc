@@ -102,7 +102,7 @@ class Trace_buffer_monitor
 			PLOG("overflows: %u", _buffer->wrapped());
 
 			PLOG("read all remaining events");
-			for (; !_curr_entry.is_last(); _curr_entry = _buffer->next(_curr_entry)) {
+			for (; !_curr_entry.last(); _curr_entry = _buffer->next(_curr_entry)) {
 				/* omit empty entries */
 				if (_curr_entry.length() == 0)
 					continue;
@@ -203,7 +203,7 @@ int main(int argc, char **argv)
 
 			PINF("load module: '%s' for label: '%s'", policy_module, policy_label);
 
-			if (policy.is_last("trace_policy")) break;
+			if (policy.last("trace_policy")) break;
 		}
 
 	} catch (...) { }

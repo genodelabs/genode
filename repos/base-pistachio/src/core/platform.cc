@@ -63,7 +63,7 @@ enum { PAGER_STACK_ELEMENTS = 512 };
 static unsigned long _core_pager_stack[PAGER_STACK_ELEMENTS];
 
 
-static inline bool is_write_fault(Pistachio::L4_Word_t flags) {
+static inline bool write_fault(Pistachio::L4_Word_t flags) {
 	return (flags & 2) == 1; }
 
 
@@ -169,7 +169,7 @@ static void _core_pager_loop()
 		/* check for NULL pointer */
 		if (pf_addr < page_size) {
 			PERR("possible null pointer %s at address %lx at EIP %lx in",
-			     is_write_fault(flags) ? "WRITE" : "READ/EXEC", pf_addr, pf_ip);
+			     write_fault(flags) ? "WRITE" : "READ/EXEC", pf_addr, pf_ip);
 			print_l4_thread_id(t);
 			/* do not unblock faulter */
 			break;
@@ -177,7 +177,7 @@ static void _core_pager_loop()
 			/* page-fault address is not in RAM */
 
 			PERR("%s access outside of RAM at %lx IP %lx",
-			     is_write_fault(flags) ? "WRITE" : "READ", pf_addr, pf_ip);
+			     write_fault(flags) ? "WRITE" : "READ", pf_addr, pf_ip);
 			print_l4_thread_id(t);
 			/* do not unblock faulter */
 			break;

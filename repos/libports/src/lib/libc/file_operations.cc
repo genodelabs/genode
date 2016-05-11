@@ -462,7 +462,7 @@ extern "C" void *mmap(void *addr, ::size_t length, int prot, int flags,
 
 extern "C" int munmap(void *start, ::size_t length)
 {
-	if (!mmap_registry()->is_registered(start)) {
+	if (!mmap_registry()->registered(start)) {
 		PWRN("munmap: could not lookup plugin for address %p", start);
 		errno = EINVAL;
 		return -1;

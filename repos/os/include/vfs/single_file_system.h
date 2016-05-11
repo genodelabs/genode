@@ -33,12 +33,12 @@ class Vfs::Single_file_system : public File_system
 		enum { FILENAME_MAX_LEN = 64 };
 		char _filename[FILENAME_MAX_LEN];
 
-		bool _is_root(const char *path)
+		bool _root(const char *path)
 		{
 			return (strcmp(path, "") == 0) || (strcmp(path, "/") == 0);
 		}
 
-		bool _is_single_file(const char *path)
+		bool _single_file(const char *path)
 		{
 			return (strlen(path) == (strlen(_filename) + 1)) &&
 			       (strcmp(&path[1], _filename) == 0);
@@ -73,10 +73,10 @@ class Vfs::Single_file_system : public File_system
 			out = { 0, 0, 0, 0, 0, 0 };
 			out.device = (Genode::addr_t)this;
 
-			if (_is_root(path)) {
+			if (_root(path)) {
 				out.mode = STAT_MODE_DIRECTORY;
 
-			} else if (_is_single_file(path)) {
+			} else if (_single_file(path)) {
 				switch (_node_type) {
 				case NODE_TYPE_FILE:         out.mode = STAT_MODE_FILE;     break;
 				case NODE_TYPE_CHAR_DEVICE:  out.mode = STAT_MODE_CHARDEV;  break;
@@ -91,7 +91,7 @@ class Vfs::Single_file_system : public File_system
 
 		Dirent_result dirent(char const *path, file_offset index, Dirent &out) override
 		{
-			if (!_is_root(path))
+			if (!_root(path))
 				return DIRENT_ERR_INVALID_PATH;
 
 			if (index == 0) {
@@ -111,15 +111,15 @@ class Vfs::Single_file_system : public File_system
 
 		file_size num_dirent(char const *path) override
 		{
-			if (_is_root(path))
+			if (_root(path))
 				return 1;
 			else
 				return 0;
 		}
 
-		bool is_directory(char const *path) override
+		bool directory(char const *path) override
 		{
-			if (_is_root(path))
+			if (_root(path))
 				return true;
 
 			return false;
@@ -127,14 +127,14 @@ class Vfs::Single_file_system : public File_system
 
 		char const *leaf_path(char const *path) override
 		{
-			return _is_single_file(path) ? path : 0;
+			return _single_file(path) ? path : 0;
 		}
 
 		Open_result open(char const  *path, unsigned,
 		                 Vfs_handle **out_handle,
 		                 Allocator   &alloc) override
 		{
-			if (!_is_single_file(path))
+			if (!_single_file(path))
 				return OPEN_ERR_UNACCESSIBLE;
 
 			*out_handle = new (alloc) Vfs_handle(*this, *this, alloc, 0);
@@ -160,7 +160,7 @@ class Vfs::Single_file_system : public File_system
 
 		Rename_result rename(char const *from, char const *to) override
 		{
-			if (_is_single_file(from) || _is_single_file(to))
+			if (_single_file(from) || _single_file(to))
 				return RENAME_ERR_NO_PERM;
 			return RENAME_ERR_NO_ENTRY;
 		}

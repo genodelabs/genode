@@ -86,7 +86,7 @@ class Pci_driver : public Bsd::Bus_driver
 				}
 
 				void *ptr = nullptr;
-				bool  err = Allocator_avl::alloc_aligned(size, &ptr, align).is_error();
+				bool  err = Allocator_avl::alloc_aligned(size, &ptr, align).error();
 
 				return err ? 0 : (addr_t)ptr;
 			}

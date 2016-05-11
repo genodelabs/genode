@@ -192,11 +192,11 @@ Trace::Logger *Thread::_logger()
 	                                      : main_trace_logger();
 
 	/* logger is already being initialized */
-	if (logger->is_init_pending())
+	if (logger->init_pending())
 		return logger;
 
 	/* lazily initialize trace object */
-	if (!logger->is_initialized()) {
+	if (!logger->initialized()) {
 		logger->init_pending(true);
 
 		Thread_capability thread_cap = myself ? myself->_thread_cap

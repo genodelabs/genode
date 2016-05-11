@@ -55,7 +55,7 @@ class Decorator::Window_stack : public Window_base::Draw_behind_fn
 				if (node.has_type("window") && attribute(node, "id", 0UL) == id)
 					return node;
 
-				if (node.is_last()) break;
+				if (node.last()) break;
 			}
 
 			throw Xml_node::Nonexistent_sub_node();
@@ -329,7 +329,7 @@ void Decorator::Window_stack::update_model(Genode::Xml_node root_node)
 			_windows.insert(w);
 
 			/* propagate change stacking order to nitpicker */
-			if (w->is_in_front_of(*neighbor))
+			if (w->in_front_of(*neighbor))
 				continue;
 
 			w->stack(neighbor->frontmost_view());

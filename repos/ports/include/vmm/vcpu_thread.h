@@ -75,7 +75,7 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 			/* tell parent that this will be a vCPU */
 			Thread_state state;
 			state.sel_exc_base = Native_thread::INVALID_INDEX;
-			state.is_vcpu      = true;
+			state.vcpu         = true;
 
 			Cpu_thread_client cpu_thread(vcpu_vm);
 
@@ -125,7 +125,7 @@ class Vmm::Vcpu_same_pd : public Vmm::Vcpu_thread, Genode::Thread
 			this->native_thread().exc_pt_sel = cap_map()->insert(Nova::NUM_INITIAL_VCPU_PT_LOG2);
 
 			/* tell generic thread code that this becomes a vCPU */
-			this->native_thread().is_vcpu = true;
+			this->native_thread().vcpu = true;
 		}
 
 		~Vcpu_same_pd()

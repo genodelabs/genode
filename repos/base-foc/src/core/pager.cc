@@ -57,7 +57,7 @@ void Pager_entrypoint::entry()
 			case Ipc_pager::PAGEFAULT:
 			case Ipc_pager::EXCEPTION:
 				{
-					if (_pager.is_exception()) {
+					if (_pager.exception()) {
 						Lock::Guard guard(obj->state.lock);
 						_pager.get_regs(&obj->state);
 						obj->state.exceptions++;

@@ -611,7 +611,7 @@ Platform::Platform() :
 					addr_t const virt = mapped_cmd_line + get_page_size() * 2;
 					addr_t const phys = round_page(mem_desc->aux);
 
-					if (region_alloc()->alloc_addr(get_page_size(), virt).is_ok()) {
+					if (region_alloc()->alloc_addr(get_page_size(), virt).ok()) {
 						/* we got the virtual region */
 						err = map_local(__main_thread_utcb, phys, virt, 1,
 						                Nova::Rights(true, false, false), true);

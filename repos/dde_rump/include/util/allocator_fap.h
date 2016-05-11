@@ -140,13 +140,13 @@ namespace Allocator {
 			{
 				void *addr;
 
-				if (!_range.alloc_aligned(size, &addr, align).is_error())
+				if (!_range.alloc_aligned(size, &addr, align).error())
 					return addr;
 
 				if (!_alloc_block())
 					return 0;
 
-				if (_range.alloc_aligned(size, &addr, align).is_error()) {
+				if (_range.alloc_aligned(size, &addr, align).error()) {
 					PERR("Backend allocator: Unable to allocate memory (size: %zu align: %d:)",
 					     size, align);
 					return 0;

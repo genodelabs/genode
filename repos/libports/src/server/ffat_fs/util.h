@@ -14,34 +14,6 @@
 
 
 /**
- * Return base-name portion of null-terminated path string
- */
-static inline char const *basename(char const *path)
-{
-	char const *start = path;
-
-	for (; *path; path++)
-		if (*path == '/')
-			start = path + 1;
-
-	return start;
-}
-
-
-/**
- * Return true if specified path is a base name (contains no path delimiters)
- */
-static inline bool is_basename(char const *path)
-{
-	for (; *path; path++)
-		if (*path == '/')
-			return false;
-
-	return true;
-}
-
-
-/**
  * Return true if null-terminated string 'substr' occurs in null-terminated
  * string 'str'
  */

@@ -161,7 +161,18 @@ class Genode::Trace::Control
 
 		bool has_error() const { return _acknowledged_state == ERROR; }
 
-		bool is_enabled() const { return _acknowledged_state == ENABLED; }
+		/**
+		 * Return true if tracing is enabled
+		 */
+		bool enabled() const { return _acknowledged_state == ENABLED; }
+
+		/**
+		 * Return true if tracing is enabled
+		 *
+		 * \noapi
+		 * \deprecated  use 'enabled' instead
+		 */
+		bool is_enabled() const { return enabled(); }
 };
 
 #endif /* _INCLUDE__BASE__INTERNAL__TRACE_CONTROL_H_ */

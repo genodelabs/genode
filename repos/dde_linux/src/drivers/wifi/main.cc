@@ -151,7 +151,7 @@ struct Wlan_configration
 		 * configuration yet to fool wpa_supplicant to keep it scanning
 		 * for the non exisiting network.
 		 */
-		if (!config_rom.is_valid()) {
+		if (!config_rom.valid()) {
 			_active_dummy_configuration();
 			return;
 		}

@@ -35,7 +35,7 @@ void Pager_entrypoint::entry()
 
 		Pool::apply(_pager.badge(), [&] (Pager_object *obj) {
 			if (obj) {
-				if (_pager.is_exception())
+				if (_pager.exception())
 					obj->submit_exception_signal();
 				else
 					/* send reply if page-fault handling succeeded */
