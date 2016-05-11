@@ -1,0 +1,134 @@
+#
+# Build
+#
+
+set build_components {
+	core init drivers/timer
+	server/clipboard server/report_rom test/clipboard drivers/timer server/service_router
+}
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="RM"/>
+		<service name="LOG"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="report_rom">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="yes">
+			<rom>
+				<policy label="clipboard -> focus" report="test-clipboard -> focus"/>
+			</rom>
+		</config>
+	</start>
+
+	<start name="clipboard">
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="ROM"/>
+			<service name="Report"/>
+		</provides>
+		<config verbose="yes">
+
+			<flow from="hobby" to="work"  />
+			<flow from="hobby" to="admin" />
+			<flow from="work"  to="admin" />
+
+			<policy label="service_router -> work"  domain="work"  />
+			<policy label="service_router -> hobby" domain="hobby" />
+			<policy label="service_router -> admin"  domain="admin" />
+
+		</config>
+		<route>
+			<any-service> <child name="report_rom"/> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="service_router">
+		<resource name="RAM" quantum="1M"/>
+		<provides>
+			<service name="ROM"/>
+			<service name="Report"/>
+		</provides>
+		<route>
+			<service name="Report"> <child name="clipboard"/> </service>
+			<service name="ROM"> <child name="clipboard"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+		<config>
+			<service name="ROM"/>
+			<service name="Report"/>
+			<policy label_prefix="test-clipboard -> win7">
+				<service name="ROM" source="work"/>
+				<service name="Report" source="work"/>
+			</policy>
+			<policy label_prefix="test-clipboard -> linux">
+				<service name="ROM" source="hobby"/>
+				<service name="Report" source="hobby"/>
+			</policy>
+			<policy label_prefix="test-clipboard -> noux">
+				<service name="ROM" source="admin"/>
+				<service name="Report" source="admin"/>
+			</policy>
+		</config>
+	</start>
+
+	<start name="test-clipboard">
+		<resource name="RAM" quantum="4M"/>
+		<route>
+			<!-- for the simulation of nitpicker's focus reports -->
+			<service name="Report">
+				<if-arg key="label" value="focus"/>
+				<child name="report_rom" />
+			</service>
+
+			<!-- for the simulation of clipboard clients -->
+			<any-service>
+				<child name="service_router"/> <any-child/> <parent/>
+			</any-service>
+		</route>
+	</start>
+
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+set boot_modules { core init timer report_rom clipboard test-clipboard service_router }
+
+build_boot_image $boot_modules
+
+append qemu_args " -nographic "
+
+run_genode_until {.*-- state WAIT_FOR_SUCCESS --.*\n} 40
+
+
