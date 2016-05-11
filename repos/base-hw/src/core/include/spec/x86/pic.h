@@ -57,7 +57,7 @@ class Genode::Ioapic : public Mmio
 
 		enum {
 			/* Number of Redirection Table entries */
-			IRTE_COUNT = 0x17,
+			IRTE_COUNT = 24,
 
 			/* Register selectors */
 			IOAPICVER = 0x01,
@@ -140,7 +140,7 @@ class Genode::Ioapic : public Mmio
 				}
 
 				/* remap all IRQs managed by I/O APIC */
-				if (i <= IRTE_COUNT) {
+				if (i < IRTE_COUNT) {
 					Irte::access_t irte = _create_irt_entry(i);
 					write<Ioregsel>(IOREDTBL + 2 * i + 1);
 					write<Iowin>(irte >> Iowin::ACCESS_WIDTH);
