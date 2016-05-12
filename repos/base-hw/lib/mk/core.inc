@@ -11,8 +11,10 @@ LIBS += core-perf_counter
 LIBS += base-common
 
 # add include paths
-INC_DIR += $(BASE_HW_DIR)/src/core/include $(BASE_DIR)/src/core/include
-INC_DIR += $(BASE_HW_DIR)/src/include      $(BASE_DIR)/src/include
+INC_DIR += $(BASE_DIR)/../base-hw/src/core/include
+INC_DIR += $(BASE_DIR)/src/core/include
+INC_DIR += $(BASE_DIR)/../base-hw/src/include
+INC_DIR += $(BASE_DIR)/src/include
 
 # add C++ sources
 SRC_CC += console.cc
@@ -73,11 +75,11 @@ ifneq ($(wildcard $(BUILD_BASE_DIR)/boot_modules.s),)
   INC_DIR += $(BOOT_MODULES_VPATH)
 else
   # use dummy boot-modules per default
-  BOOT_MODULES_VPATH = $(BASE_HW_DIR)/src/core/
+  BOOT_MODULES_VPATH = $(BASE_DIR)/../base-hw/src/core/
 endif
 vpath boot_modules.s $(BOOT_MODULES_VPATH)
 
 # declare source locations
-vpath %  $(BASE_HW_DIR)/src/core
+vpath % $(BASE_DIR)/../base-hw/src/core
 vpath % $(BASE_DIR)/src/core
 vpath % $(BASE_DIR)/src/lib/startup
