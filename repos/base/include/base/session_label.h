@@ -1,6 +1,7 @@
 /*
  * \brief  Session label utility class
  * \author Emery Hemingway
+ * \author Norman Feske
  * \date   2016-07-01
  */
 
@@ -22,27 +23,51 @@ namespace Genode { struct Session_label; }
 
 struct Genode::Session_label : String<160>
 {
-	typedef String<capacity()> String;
+	private:
 
-	using String::String;
+		typedef String<capacity()> String;
 
-	char const *last_element() const
-	{
-		char const * const full      = string();
-		char const * const separator = " -> ";
+		static char const *_separator()     { return " -> "; }
+		static size_t      _separator_len() { return 4; }
 
-		size_t const full_len      = strlen(full);
-		size_t const separator_len = strlen(separator);
+	public:
 
-		if (full_len < separator_len)
-			return full;
+		using String::String;
 
-		for (unsigned i = full_len - separator_len; i > 0; --i)
-			if (!strcmp(separator, full + i, separator_len))
-				return full + i + separator_len;
+		Session_label last_element() const
+		{
+			char const * const full = string();
+			size_t const full_len   = strlen(full);
 
-		return full;
-	}
+			if (full_len < _separator_len())
+				return full;
+
+			for (unsigned i = full_len - _separator_len(); i > 0; --i)
+				if (!strcmp(_separator(), full + i, _separator_len()))
+					return full + i + _separator_len();
+
+			return Session_label(full);
+		}
+
+		/**
+		 * Return part of the label without the last element
+		 */
+		inline Session_label prefix() const
+		{
+			if (length() < _separator_len() + 1)
+				return Session_label();
+
+			/* search for last occurrence of the separator */
+			unsigned prefix_len = length() - _separator_len() - 1;
+			char const * const full = string();
+
+			for (; prefix_len > 0; prefix_len--)
+				if (strcmp(full + prefix_len, _separator(), _separator_len()) == 0)
+					break;
+
+			/* construct new label with only the prefix part */
+			return Session_label(full, prefix_len);
+		}
 };
 
 
@@ -62,16 +87,18 @@ namespace Genode {
 	/**
 	 * Create a compound label in the form of 'prefix -> label'
 	 */
-	inline Session_label prefixed_label(char const *prefix, char const *label)
+	template <size_t N1, size_t N2>
+	inline Session_label prefixed_label(String<N1> const &prefix,
+	                                    String<N2> const &label)
 	{
-		if (!*prefix)
-			return Session_label(label);
+		if (!prefix.valid())
+			return Session_label(label.string());
 
-		if (!*label)
-			return Session_label(prefix);
+		if (!label.valid())
+			return Session_label(prefix.string());
 
 		char buf[Session_label::capacity()];
-		snprintf(buf, sizeof(buf), "%s -> %s", prefix, label);
+		snprintf(buf, sizeof(buf), "%s -> %s", prefix.string(), label.string());
 
 		return Session_label(buf);
 	}

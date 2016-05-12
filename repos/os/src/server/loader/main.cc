@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2010-2013 Genode Labs GmbH
+ * Copyright (C) 2010-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -84,13 +84,10 @@ class Loader::Session_component : public Rpc_object<Session>
 				try {
 					Lock::Guard guard(_lock);
 
-					char name[Session::Name::MAX_SIZE];
-					
-					/* extract filename from session arguments */
-					Arg_string::find_arg(args, "filename")
-						.string(name, sizeof(name), "");
+					Session_label const label = label_from_args(args);
+					Session_label name = label.last_element();
 
-					Rom_module &module = _rom_modules.lookup_and_lock(name);
+					Rom_module &module = _rom_modules.lookup_and_lock(name.string());
 
 					Rom_session_component *rom = new (&_md_alloc)
 						Rom_session_component(module);

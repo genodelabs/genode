@@ -12,6 +12,7 @@
  */
 
 #include <base/printf.h>
+#include <base/log.h>
 #include <util/xml_node.h>
 
 #include <VBox/settings.h>

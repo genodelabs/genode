@@ -1,5 +1,11 @@
 include $(REP_DIR)/lib/mk/virtualbox-common.inc
 
+#
+# Prevent inclusion of the Genode::Log definition after the vbox #define
+# of 'Log'. Otherwise, the attemt to compile base/log.h will fail.
+#
+VBOX_CC_OPT += -include base/log.h
+
 LIBS  += stdcxx
 
 SRC_CC = pgm.cc sup.cc

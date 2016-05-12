@@ -38,6 +38,8 @@ class Bomb_child_resources
 {
 	protected:
 
+		Genode::Session_label _rom_label;
+
 		Genode::Pd_connection  _pd;
 		Genode::Rom_connection _rom;
 		Genode::Ram_connection _ram;
@@ -48,10 +50,13 @@ class Bomb_child_resources
 
 		Genode::Region_map_client _address_space { _pd.address_space() };
 
-		Bomb_child_resources(const char *file_name, const char *name,
+		Bomb_child_resources(const char *elf_name, const char *name,
 		                     Genode::size_t ram_quota)
 		:
-			_pd(name), _rom(file_name, name), _ram(name), _cpu(name), _name(name)
+			_rom_label(Genode::prefixed_label(Genode::Session_label(name),
+			                                  Genode::Session_label(elf_name))),
+			_pd(name), _rom(_rom_label.string()),
+			_ram(name), _cpu(name), _name(name)
 		{
 			_ram.ref_account(env()->ram_session_cap());
 			Genode::env()->ram_session()->transfer_quota(_ram.cap(), ram_quota);

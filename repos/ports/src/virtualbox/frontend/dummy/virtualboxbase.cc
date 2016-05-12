@@ -1,4 +1,5 @@
 #include <base/printf.h>
+#include <base/log.h>
 
 #include "VirtualBoxImpl.h"
 #include "VBox/com/MultiResult.h"

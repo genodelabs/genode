@@ -21,6 +21,7 @@
 #include <os/child_policy_dynamic_rom.h>
 #include <cpu_session/connection.h>
 #include <pd_session/connection.h>
+#include <base/session_label.h>
 
 /* CLI-monitor includes */
 #include <cli_monitor/ram.h>
@@ -38,15 +39,13 @@ class Child_base : public Genode::Child_policy
 
 		class Quota_exceeded : public Genode::Exception { };
 
-		typedef Genode::String<128> Label;
-
 		typedef Genode::size_t size_t;
 
 	private:
 
 		Ram &_ram;
 
-		Label const _label;
+		Genode::Session_label const _label;
 
 		size_t _ram_quota;
 		size_t _ram_limit;
@@ -119,7 +118,8 @@ class Child_base : public Genode::Child_policy
 			_ram_quota(ram_quota),
 			_ram_limit(ram_limit),
 			_resources(_label.string(), _ram_quota),
-			_binary_rom(binary, _label.string()),
+			_binary_rom(Genode::prefixed_label(Genode::Session_label(label),
+			                                   Genode::Session_label(binary)).string()),
 			_entrypoint(&cap_session, ENTRYPOINT_STACK_SIZE, _label.string(), false),
 			_labeling_policy(_label.string()),
 			_binary_policy("binary", _binary_rom.dataspace(), &_entrypoint),
@@ -132,7 +132,7 @@ class Child_base : public Genode::Child_policy
 			_exit_sig_cap(exit_sig_cap)
 		{ }
 
-		Label label() const { return _label; }
+		Genode::Session_label label() const { return _label; }
 
 		void configure(char const *config, size_t config_len)
 		{

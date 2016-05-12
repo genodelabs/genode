@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -44,13 +44,12 @@ namespace Noux {
 
 			Genode::Session_capability session(const char *args, Affinity const &)
 			{
-				enum { NAME_MAX_LEN = 128 };
-				char name[NAME_MAX_LEN];
-				Arg_string::find_arg(args, "filename").string(name, sizeof(name), "<noname>");
+				Session_label const label = label_from_args(args);
 
 				try {
+					Genode::Session_label const module_name = label.last_element();
 					Rom_session_component *rom = new (env()->heap())
-						Rom_session_component(_ds_registry, name);
+						Rom_session_component(_ds_registry, module_name.string());
 
 					return _ep.manage(rom);
 				} catch (Rom_connection::Rom_connection_failed) {

@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2010-2013 Genode Labs GmbH
+ * Copyright (C) 2010-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -22,6 +22,7 @@
 #include <base/env.h>
 #include <base/printf.h>
 #include <os/config.h>
+#include <base/session_label.h>
 
 
 /**
@@ -180,14 +181,16 @@ class Rom_root : public Genode::Root_component<Rom_session_component>
 
 		Rom_session_component *_create_session(const char *args)
 		{
-			enum { FILENAME_MAX_LEN = 128 };
-			char filename[FILENAME_MAX_LEN];
-			Genode::Arg_string::find_arg(args, "filename").string(filename, sizeof(filename), "");
+			using namespace Genode;
 
-			PINF("connection for file '%s' requested\n", filename);
+			Session_label const label = label_from_args(args);
+			Session_label const module_name = label.last_element();
+
+			PINF("connection for module '%s' requested", module_name.string());
 
 			/* create new session for the requested file */
-			return new (md_alloc()) Rom_session_component(_tar_addr, _tar_size, filename);
+			return new (md_alloc()) Rom_session_component(_tar_addr, _tar_size,
+			                                              module_name.string());
 		}
 
 	public:

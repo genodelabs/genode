@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -22,6 +22,7 @@
 #include <base/sleep.h>
 #include <os/config.h>
 #include <timer_session/connection.h>
+#include <base/session_label.h>
 
 volatile int dummy;
 
@@ -78,12 +79,12 @@ class Rom_root : public Genode::Root_component<Rom_session_component>
 
 		Rom_session_component *_create_session(const char *args)
 		{
-			enum { FILENAME_MAX_LEN = 128 };
-			char filename[FILENAME_MAX_LEN];
-			Genode::Arg_string::find_arg(args, "filename").string(filename, sizeof(filename), "");
+			Genode::Session_label const label = Genode::label_from_args(args);
+			Genode::Session_label const name  = label.last_element();
 
 			/* create new session for the requested file */
-			return new (md_alloc()) Rom_session_component(filename);
+			return new (md_alloc())
+				Rom_session_component(name.string());
 		}
 
 	public:

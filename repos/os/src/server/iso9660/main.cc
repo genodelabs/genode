@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2010-2013 Genode Labs GmbH
+ * Copyright (C) 2010-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -23,7 +23,7 @@
 #include <util/avl_string.h>
 #include <util/misc_math.h>
 #include <os/attached_ram_dataspace.h>
-#inlcude <base/session_label.h>
+#include <base/session_label.h>
 
 /* local includes */
 #include "iso9660.h"
@@ -136,9 +136,8 @@ namespace Iso {
 				if (ram_quota < session_size)
 					throw Root::Quota_exceeded();
 
-				Arg_string::find_arg(args,
-				                     "filename").string(_path,
-				                                        sizeof(_path), "");
+				Session_label const label = label_from_args(args);
+				strncpy(_path, label.last_element().string(), sizeof(_path));
 
 				if (verbose)
 					PDBG("Request for file %s lrn %zu", _path, strlen(_path));

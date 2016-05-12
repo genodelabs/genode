@@ -321,7 +321,8 @@ extern "C" int fork()
 	char *unique_name = filename;
 	Capability<Rom_dataspace> file_cap;
 	try {
-		static Rom_connection rom(filename, unique_name);
+		static Rom_connection rom(prefixed_label(Session_label(unique_name),
+		                                         Session_label(filename)).string());
 		file_cap = rom.dataspace();
 	} catch (Rom_connection::Rom_connection_failed) {
 		Genode::printf("Error: Could not access file \"%s\" from ROM service.\n", filename);

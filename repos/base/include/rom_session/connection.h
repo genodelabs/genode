@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2008-2013 Genode Labs GmbH
+ * Copyright (C) 2008-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -16,7 +16,7 @@
 
 #include <rom_session/client.h>
 #include <base/connection.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 namespace Genode { class Rom_connection; }
 
@@ -30,15 +30,11 @@ class Genode::Rom_connection : public Connection<Rom_session>,
 
 	private:
 
-		Rom_session_capability _session(Parent     &parent,
-		                                char const *module_name,
-		                                char const *label)
+		Rom_session_capability _session(Parent &parent, char const *label)
 		{
-			try {
-				return session(parent, "ram_quota=4K, filename=\"%s\", label=\"%s\"",
-				               module_name, label ? label: module_name); }
+			try { return session("ram_quota=4K, label=\"%s\"", label); }
 			catch (...) {
-				PERR("Could not open ROM session for module \"%s\"", module_name);
+				error("Could not open ROM session for \"", label, "\"");
 				throw Rom_connection_failed();
 			}
 		}
@@ -48,14 +44,13 @@ class Genode::Rom_connection : public Connection<Rom_session>,
 		/**
 		 * Constructor
 		 *
-		 * \param module_name  name of ROM module
-		 * \param label        initial session label
+		 * \param label  request label and name of ROM module
 		 *
 		 * \throw Rom_connection_failed
 		 */
-		Rom_connection(Env &env, const char *module_name, const char *label = 0)
+		Rom_connection(Env &env, const char *label)
 		:
-			Connection<Rom_session>(env, _session(env.parent(), module_name, label)),
+			Connection<Rom_session>(env, _session(env.parent(), label)),
 			Rom_session_client(cap())
 		{ }
 
@@ -66,9 +61,9 @@ class Genode::Rom_connection : public Connection<Rom_session>,
 		 * \deprecated  Use the constructor with 'Env &' as first
 		 *              argument instead
 		 */
-		Rom_connection(const char *module_name, const char *label = 0)
+		Rom_connection(const char *label)
 		:
-			Connection<Rom_session>(_session(*env()->parent(), module_name, label)),
+			Connection<Rom_session>(_session(*env()->parent(), label)),
 			Rom_session_client(cap())
 		{ }
 };

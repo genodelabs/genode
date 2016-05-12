@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -23,6 +23,7 @@
 #include <linux_dataspace/linux_dataspace.h>
 #include <util/arg_string.h>
 #include <root/root.h>
+#include <base/session_label.h>
 
 /* local includes */
 #include "dataspace_component.h"
@@ -32,12 +33,12 @@ using namespace Genode;
 
 Linux_dataspace::Filename Dataspace_component::_file_name(const char *args)
 {
-	Filename fname;
-	Arg_string::find_arg(args, "filename").string(fname.buf,
-	                                              sizeof(fname.buf), "");
-	
+	Session_label const label = label_from_args(args);
+	Linux_dataspace::Filename fname;
+	strncpy(fname.buf, label.last_element().string(), sizeof(fname.buf));
+
 	/* only files inside the current working directory are allowed */
-	for (const char *c = fname.buf; *c; c++)
+	for (const char *c = fname.buf; *c; ++c)
 		if (*c == '/') throw Root::Invalid_args();
 
 	return fname;

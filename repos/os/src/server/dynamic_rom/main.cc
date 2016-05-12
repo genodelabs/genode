@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -23,6 +23,8 @@
 #include <os/server.h>
 #include <rom_session/rom_session.h>
 #include <timer_session/connection.h>
+#include <base/session_label.h>
+#include <base/log.h>
 
 
 namespace Dynamic_rom {
@@ -202,13 +204,13 @@ class Dynamic_rom::Root : public Genode::Root_component<Session_component>
 
 		class Nonexistent_rom_module { };
 
-		Xml_node _lookup_rom_node_in_config(char const *name)
+		Xml_node _lookup_rom_node_in_config(Genode::Session_label const &name)
 		{
 			/* lookup ROM module in config */
 			for (unsigned i = 0; i < _config_node.num_sub_nodes(); i++) {
 				Xml_node node = _config_node.sub_node(i);
 				if (node.has_attribute("name")
-				 && node.attribute("name").has_value(name))
+				 && node.attribute("name").has_value(name.string()))
 					return node;
 			}
 			throw Nonexistent_rom_module();
@@ -218,18 +220,20 @@ class Dynamic_rom::Root : public Genode::Root_component<Session_component>
 
 		Session_component *_create_session(const char *args)
 		{
+			using namespace Genode;
+
 			/* read name of ROM module from args */
-			char name[200];
-			Arg_string::find_arg(args, "filename").string(name, sizeof(name), "");
+			Session_label const label = label_from_args(args);
+			Session_label const module_name = label.last_element();
 
 			try {
 				return new (md_alloc())
 					Session_component(_ep,
-					                  _lookup_rom_node_in_config(name),
+					                  _lookup_rom_node_in_config(module_name),
 					                  _verbose);
 
 			} catch (Nonexistent_rom_module) {
-				PERR("ROM module lookup for \"%s\" failed.", name);
+				error("ROM module lookup of '", label.string(), "' failed");
 				throw Root::Invalid_args();
 			}
 		}

@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2006-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -18,6 +18,7 @@
 #include <base/rpc_server.h>
 #include <dataspace_component.h>
 #include <rom_session/rom_session.h>
+#include <base/session_label.h>
 
 namespace Genode {
 
@@ -26,18 +27,17 @@ namespace Genode {
 		private:
 
 			Rom_module              *_rom_module;
-			char                     _fname[40];
 			Dataspace_component      _ds;
 			Rpc_entrypoint          *_ds_ep;
 			Rom_dataspace_capability _ds_cap;
 
 			Rom_module * _find_rom(Rom_fs *rom_fs, const char *args)
 			{
-				/* extract filename from session arguments */
-				Arg_string::find_arg(args, "filename").string(_fname, sizeof(_fname), "");
+				/* extract label */
+				Session_label const label = label_from_args(args);
 
-				/* find ROM module for file name */
-				return rom_fs->find(_fname);
+				/* find ROM module for trailing label element */
+				return rom_fs->find(label.last_element().string());
 			}
 
 		public:
@@ -48,8 +48,7 @@ namespace Genode {
 			 * \param rom_fs  ROM filesystem
 			 * \param ds_ep   entry point to manage the dataspace
 			 *                corresponding the rom session
-			 * \param args    session-construction arguments, in
-			 *                particular the filename
+			 * \param args    session-construction arguments
 			 */
 			Rom_session_component(Rom_fs            *rom_fs,
 			                      Rpc_entrypoint    *ds_ep,

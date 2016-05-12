@@ -217,7 +217,8 @@ Launchpad_child *Launchpad::start_child(const char *filename,
 		 * constructor of 'Rom_connection' throws a 'Parent::Service_denied'
 		 * exception.
 		 */
-		Rom_connection rom(filename, unique_name);
+		Rom_connection rom(prefixed_label(Session_label(unique_name),
+		                                  Session_label(filename)).string());
 		rom.on_destruction(Rom_connection::KEEP_OPEN);
 		rom_cap  = rom.cap();
 		file_cap = rom.dataspace();
