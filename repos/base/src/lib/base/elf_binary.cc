@@ -46,31 +46,6 @@ int Elf_binary::_ehdr_check_compat()
 }
 
 
-bool inline Elf_binary::_dynamic_check_compat(unsigned type)
-{
-	switch (type) {
-		case PT_NULL:
-		case PT_LOAD:
-		case PT_DYNAMIC:
-		case PT_INTERP:
-		case PT_PHDR:
-		case PT_GNU_EH_FRAME:
-		case PT_GNU_STACK:
-		case PT_GNU_RELRO:
-		case PT_TLS:
-		case PT_NOTE:
-			return true;
-		default:
-			break;
-	}
-
-	if (type >= PT_LOPROC && type <= PT_HIPROC)
-		return true;
-
-	return false;
-}
-
-
 int Elf_binary::_ph_table_check_compat()
 {
 	Elf_Phdr *ph_table = (Elf_Phdr *)_ph_table;
@@ -78,10 +53,6 @@ int Elf_binary::_ph_table_check_compat()
 	unsigned i;
 
 	for (i = 0; i < num; i++) {
-		if (!_dynamic_check_compat(ph_table[i].p_type) /* ignored */) {
-			PWRN("unsupported program segment type 0x%x", ph_table[i].p_type);
-			return -1;
-		}
 		if (ph_table[i].p_type == PT_LOAD)
 			if (ph_table[i].p_align & (0x1000 - 1)) {
 				PWRN("unsupported alignment 0x%lx", (unsigned long) ph_table[i].p_align);
