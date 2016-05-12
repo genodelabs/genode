@@ -173,7 +173,6 @@ class Vfs::Fs_file_system : public File_system
 
 			Absolute_path dir_path(path);
 			dir_path.strip_last_element();
-			dir_path.remove_trailing('/');
 
 			Absolute_path file_name(path);
 			file_name.keep_only_last_element();
@@ -340,7 +339,6 @@ class Vfs::Fs_file_system : public File_system
 		{
 			Absolute_path dir_path(path);
 			dir_path.strip_last_element();
-			dir_path.remove_trailing('/');
 
 			Absolute_path file_name(path);
 			file_name.keep_only_last_element();
@@ -368,7 +366,6 @@ class Vfs::Fs_file_system : public File_system
 			 */
 			Absolute_path abs_path(path);
 			abs_path.strip_last_element();
-			abs_path.remove_trailing('/');
 
 			Absolute_path symlink_name(path);
 			symlink_name.keep_only_last_element();
@@ -397,14 +394,12 @@ class Vfs::Fs_file_system : public File_system
 
 			Absolute_path from_dir_path(from_path);
 			from_dir_path.strip_last_element();
-			from_dir_path.remove_trailing('/');
 
 			Absolute_path from_file_name(from_path);
 			from_file_name.keep_only_last_element();
 
 			Absolute_path to_dir_path(to_path);
 			to_dir_path.strip_last_element();
-			to_dir_path.remove_trailing('/');
 
 			Absolute_path to_file_name(to_path);
 			to_file_name.keep_only_last_element();
@@ -457,7 +452,6 @@ class Vfs::Fs_file_system : public File_system
 			 */
 			Absolute_path abs_path(to);
 			abs_path.strip_last_element();
-			abs_path.remove_trailing('/');
 
 			Absolute_path symlink_name(to);
 			symlink_name.keep_only_last_element();
@@ -528,7 +522,6 @@ class Vfs::Fs_file_system : public File_system
 
 			Absolute_path dir_path(path);
 			dir_path.strip_last_element();
-			dir_path.remove_trailing('/');
 
 			Absolute_path file_name(path);
 			file_name.keep_only_last_element();

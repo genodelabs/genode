@@ -128,8 +128,7 @@ static void resolve_symlinks(char const *path, Absolute_path &resolved_path)
 			PDBGV("path_element = %s", path_element);
 
 			try {
-				next_iteration_working_path.append("/");
-				next_iteration_working_path.append(path_element);
+				next_iteration_working_path.append_element(path_element);
 			} catch (Genode::Path_base::Path_too_long) {
 				errno = ENAMETOOLONG;
 				throw Symlink_resolve_error();
@@ -167,7 +166,7 @@ static void resolve_symlinks(char const *path, Absolute_path &resolved_path)
 						/* relative target */
 						next_iteration_working_path.strip_last_element();
 						try {
-							next_iteration_working_path.append(symlink_target);
+							next_iteration_working_path.append_element(symlink_target);
 						} catch (Genode::Path_base::Path_too_long) {
 							errno = ENAMETOOLONG;
 							throw Symlink_resolve_error();
@@ -203,7 +202,7 @@ static void resolve_symlinks_except_last_element(char const *path, Absolute_path
 	Absolute_path absolute_path_last_element(path, cwd().base());
 	absolute_path_last_element.keep_only_last_element();
 	try {
-		resolved_path.append(absolute_path_last_element.base());
+		resolved_path.append_element(absolute_path_last_element.base());
 	} catch (Genode::Path_base::Path_too_long) {
 		errno = ENAMETOOLONG;
 		throw Symlink_resolve_error();
@@ -364,8 +363,7 @@ extern "C" int fstatat(int libc_fd, char const *path, struct stat *buf, int flag
 
 	if (libc_fd == AT_FDCWD) {
 		abs_path = cwd();
-		abs_path.append("/");
-		abs_path.append(path);
+		abs_path.append_element(path);
 	} else {
 		Libc::File_descriptor *fd =
 			Libc::file_descriptor_allocator()->find_by_libc_fd(libc_fd);

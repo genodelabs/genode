@@ -4,6 +4,13 @@
  * \date   2012-04-11
  */
 
+/*
+ * Copyright (C) 2012-2016 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
 #ifndef _FILE_SYSTEM__UTIL_H_
 #define _FILE_SYSTEM__UTIL_H_
 
@@ -89,7 +96,6 @@ namespace File_system {
 			} catch (Lookup_failed) {
 				Genode::Path<MAX_PATH_LEN> target(path);
 				target.strip_last_element();
-				target.remove_trailing('/');
 				fs.close(ensure_dir(fs, target.base()));
 			}
 		}

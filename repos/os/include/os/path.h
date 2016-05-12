@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -267,7 +267,8 @@ class Genode::Path_base
 
 		void strip_last_element()
 		{
-			last_element(_path)[1] = 0;
+			char *p = last_element(_path);
+			p[p == _path ? 1 : 0] = 0;
 		}
 
 		bool equals(Path_base const &ref) const { return strcmp(ref._path, _path) == 0; }
@@ -309,6 +310,12 @@ class Genode::Path_base
 		}
 
 		void append(char const *str) { _append(str); _canonicalize(); }
+
+		void append_element(char const *str)
+		{
+			_append("/"); _append(str);
+			_canonicalize();
+		}
 
 		bool operator == (char const *other) const
 		{
