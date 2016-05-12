@@ -1,3 +1,3 @@
-SRC_RS = lib.rs                               
+SRC_RS = lib.rs
 LIBS = libcore-rust
 vpath % $(REP_DIR)/src/lib/rust/libunwind

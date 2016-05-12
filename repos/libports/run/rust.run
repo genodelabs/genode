@@ -12,13 +12,13 @@ install_config {
 		<default-route>
 			<any-service> <parent/> </any-service>
 		</default-route>
-		<start name="rust-test">
+		<start name="test-rust">
 			<resource name="RAM" quantum="10M"/>
 		</start>
 	</config>
 }
 
-build_boot_image "core init rust-test ld.lib.so libc.lib.so"
+build_boot_image "core init test-rust ld.lib.so libc.lib.so"
 
 append qemu_args "-nographic -m 64"
 

@@ -5,7 +5,7 @@ macro_rules! dmb {
     }}
 }
 
-#[cfg(target_env = "armv6")] 
+#[cfg(target_env = "armv6")]
 macro_rules! dmb {
     () => {{
         asm!("MCR p15,0,r0,c7,c10,4");
