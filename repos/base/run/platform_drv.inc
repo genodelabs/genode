@@ -81,7 +81,7 @@ proc append_platform_drv_config {} {
 			<service name="Report" />
 		</provides>
 		<config>
-			<rom> <policy label="platform_drv -> acpi" report="acpi_drv -> acpi"/> </rom>
+			<policy label="platform_drv -> acpi" report="acpi_drv -> acpi"/>
 		</config>
 		<route>
 			<service name="LOG"> <parent/> </service>
@@ -109,9 +109,7 @@ proc append_platform_drv_config {} {
 		<route>}
 
 		append_if [have_spec acpi] config {
-			<service name="ROM">
-				<if-arg key="label" value="acpi"/> <child name="acpi_report_rom"/>
-			</service>}
+			<service name="ROM" label="acpi"> <child name="acpi_report_rom"/> </service>}
 
 		append_if [have_spec rpi] config {
 			<service name="Timer"> <any-child/> </service>}
