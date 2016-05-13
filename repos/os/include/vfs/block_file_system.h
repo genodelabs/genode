@@ -204,8 +204,6 @@ class Vfs::Block_file_system : public Single_file_system
 				 * than block size, we also have to read the block first.
 				 */
 				if (displ > 0 || length < _block_size) {
-					PWRN("offset:%llu block_size:%zd displacement:%llu length:%llu",
-							seek_offset, _block_size, displ, length);
 
 					_block_io(blk_nr, _block_buffer, _block_size, false);
 					/* rewind seek offset to account for the block read */
@@ -280,11 +278,6 @@ class Vfs::Block_file_system : public Single_file_system
 
 					continue;
 				}
-
-				if (displ > 0)
-					PWRN("offset:%llu is not aligned to block_size:%zu"
-					     " displacement:%llu", seek_offset, _block_size,
-					     displ);
 
 				nbytes = _block_io(blk_nr, _block_buffer, _block_size, false);
 				if ((unsigned)nbytes != _block_size) {
