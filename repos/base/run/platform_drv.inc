@@ -51,6 +51,24 @@ proc platform_drv_policy {} {
 }
 
 proc platform_drv_priority {} { return "" }
+proc platform_drv_add_routing {} {
+	if {[have_spec acpi]} {
+		return {
+			<service name="ROM" label="system"> <child name="acpi_report_rom"/> </service>}
+	}
+
+	return ""
+}
+
+proc platform_drv_config_config {} {
+	if {[have_spec acpi] || [have_spec arm] || [have_spec hw_x86_64_muen]} {
+		return {
+		<config>}
+	}
+
+	return {
+		<config acpi="no">}
+}
 
 proc append_platform_drv_config {} {
 	global config
@@ -108,6 +126,8 @@ proc append_platform_drv_config {} {
 		</provides>
 		<route>}
 
+		append config "[platform_drv_add_routing]"
+
 		append_if [have_spec acpi] config {
 			<service name="ROM" label="acpi"> <child name="acpi_report_rom"/> </service>}
 
@@ -118,18 +138,7 @@ proc append_platform_drv_config {} {
 			<any-service> <parent/> </any-service>
 		</route>}
 
-		if {[have_spec acpi] || [have_spec arm] || [have_spec hw_x86_64_muen]} {
-
-		append config {
-		<config>}
-
-		} else {
-
-		append config {
-		<config acpi="no">}
-
-		}
-
+		append config [platform_drv_config_config]
 		append config [platform_drv_policy]
 
 		append config {

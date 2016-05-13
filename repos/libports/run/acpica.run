@@ -27,6 +27,18 @@ proc platform_drv_policy {} {
 			<policy label="acpica"> <pci class="ALL"/> </policy>}
 }
 
+# add routing information to dynamically generate change of 'system' ROM
+proc platform_drv_add_routing {} {
+	return {
+			<service name="ROM" label="system"> <child name="dynamic_rom"/> </service>}
+}
+
+# override default config to react on 'system' ROM changes for reset
+proc platform_drv_config_config {} {
+	return {
+		<config acpi="yes" system="no">}
+}
+
 append_platform_drv_build_components
 
 build $build_components

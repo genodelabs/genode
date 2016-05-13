@@ -23,6 +23,7 @@
 #include <root/component.h>
 #include <root/client.h>
 
+#include <util/mmio.h>
 #include <util/retry.h>
 #include <util/volatile_object.h>
 
@@ -853,6 +854,27 @@ class Platform::Root : public Genode::Root_component<Session_component>
 {
 	private:
 
+		struct Fadt {
+			Genode::uint32_t features = 0, reset_type = 0, reset_value = 0;
+			Genode::uint64_t reset_addr = 0;
+
+			/* Table 5-35 Fixed ACPI Description Table Fixed Feature Flags */
+			struct Features : Genode::Register<32> {
+				struct Reset : Bitfield<10, 1> { };
+			};
+
+			/* ACPI spec - 5.2.3.2 Generic Address Structure */
+			struct Gas : Genode::Register<32>
+			{
+				struct Address_space : Bitfield <0, 8> {
+					enum { SYSTEM_IO = 1 };
+				};
+				struct Access_size : Bitfield<24,8> {
+					enum { UNDEFINED = 0, BYTE = 1, WORD = 2, DWORD = 3, QWORD = 4};
+				};
+			};
+		} fadt;
+
 		Genode::Rpc_entrypoint _device_pd_ep;
 
 		void _parse_report_rom(const char * acpi_rom)
@@ -936,6 +958,13 @@ class Platform::Root : public Genode::Root_component<Session_component>
 						rmrr->add(new (env()->heap()) Rmrr::Bdf(bus, dev,
 						                                        func));
 					}
+				}
+
+				if (node.has_type("fadt")) {
+					node.attribute("features").value(&fadt.features);
+					node.attribute("reset_type").value(&fadt.reset_type);
+					node.attribute("reset_addr").value(&fadt.reset_addr);
+					node.attribute("reset_value").value(&fadt.reset_value);
 				}
 
 				if (!node.has_type("routing"))
@@ -1028,5 +1057,48 @@ class Platform::Root : public Genode::Root_component<Session_component>
 					PERR("PCI config space data could not be parsed.");
 				}
 			}
+		}
+
+		void system_reset()
+		{
+			const bool io_port_space = (Fadt::Gas::Address_space::get(fadt.reset_type) == Fadt::Gas::Address_space::SYSTEM_IO);
+
+			if (!io_port_space)
+				return;
+
+			Config_access config_access;
+			const unsigned raw_access_size = Fadt::Gas::Access_size::get(fadt.reset_type);
+			const bool reset_support = config_access.reset_support(fadt.reset_addr, raw_access_size);
+			if (!reset_support)
+				return;
+
+			const bool feature_reset = Fadt::Features::Reset::get(fadt.features);
+
+			if (!feature_reset) {
+				PWRN("system reset failed - feature not supported");
+				return;
+			}
+
+			Device::Access_size access_size = Device::ACCESS_8BIT;
+
+			unsigned raw_size = Fadt::Gas::Access_size::get(fadt.reset_type);
+			switch (raw_size) {
+			case Fadt::Gas::Access_size::WORD:
+				access_size = Device::ACCESS_16BIT;
+				break;
+			case Fadt::Gas::Access_size::DWORD:
+				access_size = Device::ACCESS_32BIT;
+				break;
+			case Fadt::Gas::Access_size::QWORD:
+				PERR("system reset failed - unsupported access size");
+				return;
+			default:
+				break;
+			}
+
+			config_access.system_reset(fadt.reset_addr, fadt.reset_value,
+			                           access_size);
+			/* if we are getting here - the reset failed */
+			PINF("system reset failed");
 		}
 };

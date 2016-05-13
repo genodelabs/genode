@@ -39,7 +39,10 @@ struct Platform::Main
 	Genode::Lazy_volatile_object<Genode::Attached_rom_dataspace> acpi_rom;
 	Genode::Lazy_volatile_object<Platform::Root> root;
 
+	Genode::Lazy_volatile_object<Genode::Attached_rom_dataspace> system_state;
+
 	Genode::Signal_handler<Platform::Main> _acpi_report;
+	Genode::Signal_handler<Platform::Main> _system_report;
 
 	void acpi_update()
 	{
@@ -54,19 +57,48 @@ struct Platform::Main
 		_env.parent().announce(_env.ep().manage(*root));
 	}
 
+	void system_update()
+	{
+		system_state->update();
+
+		if (!system_state->is_valid() || !root.is_constructed())
+			return;
+
+		Genode::Xml_node system(system_state->local_addr<char>(),
+		                        system_state->size());
+
+		typedef Genode::String<16> Value;
+		const Value state = system.attribute_value("state", Value("unknown"));
+
+		if (state == "reset")
+			root->system_reset();
+	}
+
 	Main(Genode::Env &env)
 	:
 		sliced_heap(env.ram(), env.rm()),
 		_env(env),
-		_acpi_report(_env.ep(), *this, &Main::acpi_update)
+		_acpi_report(_env.ep(), *this, &Main::acpi_update),
+		_system_report(_env.ep(), *this, &Main::system_update)
 	{
+		const Genode::Xml_node &config = Genode::config()->xml_node();
+
 		typedef Genode::String<8> Value;
-		Value const wait_for_acpi = Genode::config()->xml_node().attribute_value("acpi", Value("yes"));
+		Value const wait_for_acpi = config.attribute_value("acpi", Value("yes"));
 
 		if (wait_for_acpi == "yes") {
+			bool system_reset = config.attribute_value("system", false);
+			if (system_reset) {
+				/* wait for system state changes and react upon, e.g. reset */
+				system_state.construct("system");
+				system_state->sigh(_system_report);
+			}
+
 			/* for ACPI support, wait for the first valid acpi report */
 			acpi_rom.construct("acpi");
 			acpi_rom->sigh(_acpi_report);
+			/* check if already valid */
+			acpi_update();
 			return;
 		}
 
