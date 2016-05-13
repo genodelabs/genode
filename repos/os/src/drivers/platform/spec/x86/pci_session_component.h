@@ -1011,11 +1011,12 @@ class Platform::Root : public Genode::Root_component<Session_component>
 		 * \param md_alloc  meta-data allocator for allocating PCI-session
 		 *                  components and PCI-device components
 		 */
-		Root(Genode::Rpc_entrypoint *ep, Genode::Allocator *md_alloc,
-		     const char *acpi_rom, Genode::Cap_connection &cap)
+		Root(Genode::Env &env, Genode::Allocator *md_alloc,
+		     const char *acpi_rom)
 		:
-			Genode::Root_component<Session_component>(ep, md_alloc),
-			_device_pd_ep(&cap, STACK_SIZE, "device_pd_slave")
+			Genode::Root_component<Session_component>(&env.ep().rpc_ep(),
+			                                          md_alloc),
+			_device_pd_ep(&env.pd(), STACK_SIZE, "device_pd_slave")
 		{
 			/* enforce initial bus scan */
 			bus_valid();

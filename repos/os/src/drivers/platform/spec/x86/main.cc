@@ -11,10 +11,10 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <base/component.h>
 #include <base/env.h>
-#include <base/printf.h>
-#include <base/sleep.h>
-#include <cap_session/connection.h>
+
+#include <util/volatile_object.h>
 
 #include <os/attached_rom_dataspace.h>
 
@@ -22,62 +22,59 @@
 #include "pci_device_config.h"
 #include "device_pd.h"
 
-using namespace Genode;
-using namespace Platform;
+namespace Platform {
+	struct Main;
+};
 
-int main(int argc, char **argv)
+struct Platform::Main
 {
-	printf("platform driver started\n");
-
-	/*
-	 * Initialize server entry point
-	 */
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "platform_ep");
-
 	/*
 	 * Use sliced heap to allocate each session component at a separate
 	 * dataspace.
 	 */
-	static Sliced_heap sliced_heap(env()->ram_session(), env()->rm_session());
+	Genode::Sliced_heap sliced_heap;
 
+	Genode::Env &_env;
 
-	/**
-	 * If we are running with ACPI support, wait for the first report_rom
-	 */
-	bool wait_for_acpi = true;
-	char * report_addr = nullptr;
+	Genode::Lazy_volatile_object<Genode::Attached_rom_dataspace> acpi_rom;
+	Genode::Lazy_volatile_object<Platform::Root> root;
 
-	try {
-		char yesno[4];
-		Genode::config()->xml_node().attribute("acpi").value(yesno, sizeof(yesno));
-		wait_for_acpi = strcmp(yesno, "no");
-	} catch (...) { }
+	Genode::Signal_handler<Platform::Main> _acpi_report;
 
-	if (wait_for_acpi) {
-		static Attached_rom_dataspace acpi_rom("acpi");
+	void acpi_update()
+	{
+		acpi_rom->update();
 
-		Signal_receiver sig_rec;
-		Signal_context  sig_ctx;
-		Signal_context_capability sig_cap = sig_rec.manage(&sig_ctx);
+		if (!acpi_rom->valid() || root.constructed())
+			return;
 
-		acpi_rom.sigh(sig_cap);
+		const char * report_addr = acpi_rom->local_addr<const char>();
 
-		while (!acpi_rom.valid()) {
-			sig_rec.wait_for_signal();
-			acpi_rom.update();
-		}
-		report_addr = acpi_rom.local_addr<char>();
-		sig_rec.dissolve(&sig_ctx);
+		root.construct(_env, &sliced_heap, report_addr);
+		_env.parent().announce(_env.ep().manage(*root));
 	}
 
-	/*
-	 * Let the entry point serve the PCI root interface
-	 */
-	static Platform::Root root(&ep, &sliced_heap, report_addr, cap);
+	Main(Genode::Env &env)
+	:
+		sliced_heap(env.ram(), env.rm()),
+		_env(env),
+		_acpi_report(_env.ep(), *this, &Main::acpi_update)
+	{
+		typedef Genode::String<8> Value;
+		Value const wait_for_acpi = Genode::config()->xml_node().attribute_value("acpi", Value("yes"));
 
-	env()->parent()->announce(ep.manage(&root));
+		if (wait_for_acpi == "yes") {
+			/* for ACPI support, wait for the first valid acpi report */
+			acpi_rom.construct("acpi");
+			acpi_rom->sigh(_acpi_report);
+			return;
+		}
 
-	Genode::sleep_forever();
-	return 0;
-}
+		/* non ACPI platform case */
+		root.construct(_env, &sliced_heap, nullptr);
+		_env.parent().announce(_env.ep().manage(*root));
+	}
+};
+
+Genode::size_t Component::stack_size()      { return STACK_SIZE; }
+void Component::construct(Genode::Env &env) { static Platform::Main main(env); }
