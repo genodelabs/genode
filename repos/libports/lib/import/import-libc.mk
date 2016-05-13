@@ -1,30 +1,18 @@
-LIBC_PORT_DIR := $(call select_from_ports,libc)
-
-#
-# Add generic libc headers to standard include search paths
-#
-INC_DIR += $(LIBC_PORT_DIR)/include/libc
-
-#
-# Genode-specific supplements to standard libc headers
-#
-REP_INC_DIR += include/libc-genode
-
 #
 # Add platform-specific libc headers to standard include search paths
 #
 ifeq ($(filter-out $(SPECS),x86),)
   ifeq ($(filter-out $(SPECS),32bit),)
-    LIBC_ARCH_INC_DIR := $(LIBC_PORT_DIR)/include/libc-i386
+    LIBC_ARCH_INC_DIR := include/libc-i386
   endif # 32bit
 
   ifeq ($(filter-out $(SPECS),64bit),)
-    LIBC_ARCH_INC_DIR := $(LIBC_PORT_DIR)/include/libc-amd64
+    LIBC_ARCH_INC_DIR := include/libc-amd64
   endif # 64bit
 endif # x86
 
 ifeq ($(filter-out $(SPECS),arm),)
-  LIBC_ARCH_INC_DIR := $(LIBC_PORT_DIR)/include/libc-arm
+  LIBC_ARCH_INC_DIR := include/libc-arm
 endif # ARM
 
 #
@@ -36,7 +24,19 @@ ifeq ($(LIBC_ARCH_INC_DIR),)
   REQUIRES += libc_support_for_your_target_platform
 endif
 
-INC_DIR += $(LIBC_ARCH_INC_DIR)
+ifeq ($(CONTRIB_DIR),)
+REP_INC_DIR += include/libc
+REP_INC_DIR += $(LIBC_ARCH_INC_DIR)
+else
+LIBC_PORT_DIR := $(call select_from_ports,libc)
+INC_DIR += $(LIBC_PORT_DIR)/include/libc
+INC_DIR += $(LIBC_PORT_DIR)/$(LIBC_ARCH_INC_DIR)
+endif
+
+#
+# Genode-specific supplements to standard libc headers
+#
+REP_INC_DIR += include/libc-genode
 
 #
 # Prevent gcc headers from defining __size_t. This definition is done in
@@ -55,14 +55,3 @@ CC_OPT += -D__ISO_C_VISIBLE=1999
 # or 'sincosf', which is a GNU extension, not provided by our libc.
 #
 CC_OPT += -fno-builtin-sin -fno-builtin-cos -fno-builtin-sinf -fno-builtin-cosf
-
-#
-# Automatically add the base library for targets that use the libc
-#
-# We test for an empty 'LIB_MK' variable to determine whether we are currently
-# processing a library or a target. We only want to add the base library to
-# targets, not libraries.
-#
-ifeq ($(LIB_MK),)
-LIBS += base
-endif
