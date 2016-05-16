@@ -1086,6 +1086,17 @@ index caed4be..6d02496 100644
                  }
  
  #elif defined(VBOX_WITH_NETFLT)
+@@ -5206,6 +5206,10 @@
+ 
+ #undef H
+ 
++	/* store the slot index for later */
++	InsertConfigInteger(pCfg, "Slot", uInstance);
++
++
+     return VINF_SUCCESS;
+ }
+
 diff --git a/src/app/virtualbox/src/VBox/Main/src-client/DisplayImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-client/DisplayImpl.cpp
 index fed0ac3..bc3c334 100644
 --- a/src/app/virtualbox/src/VBox/Main/src-client/DisplayImpl.cpp
