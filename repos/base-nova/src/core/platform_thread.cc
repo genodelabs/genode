@@ -79,13 +79,10 @@ int Platform_thread::start(void *ip, void *sp)
 
 		_pager->assign_pd(_pd->pd_sel());
 
-		/* ip == 0 means that caller will use the thread as worker */
-		bool thread_global = ip;
-
 		uint8_t res;
 		do {
 			res = create_ec(_sel_ec(), _pd->pd_sel(), _location.xpos(),
-			                utcb, initial_sp, _sel_exc_base, thread_global);
+			                utcb, initial_sp, _sel_exc_base, !worker());
 			if (res == Nova::NOVA_PD_OOM && Nova::NOVA_OK != _pager->handle_oom()) {
 				_pager->assign_pd(Native_thread::INVALID_INDEX);
 				PERR("creation of new thread failed %u", res);
@@ -93,9 +90,7 @@ int Platform_thread::start(void *ip, void *sp)
 			}
 		} while (res != Nova::NOVA_OK);
 
-		if (!thread_global) {
-			_features |= WORKER;
-
+		if (worker()) {
 			/* local/worker threads do not require a startup portal */
 			revoke(Obj_crd(_pager->exc_pt_sel_client() + PT_SEL_STARTUP, 0));
 		}
@@ -201,23 +196,12 @@ int Platform_thread::start(void *ip, void *sp)
 }
 
 
-Native_capability Platform_thread::pause()
+void Platform_thread::pause()
 {
-	if (!_pager) return Native_capability();
+	if (!_pager)
+		return;
 
-	Native_capability notify_sm = _pager->notify_sm();
-	if (!notify_sm.valid()) return notify_sm;
-
-	if (_pager->client_recall() != Nova::NOVA_OK)
-		return Native_capability();
-
-	/* If the thread is blocked in its own SM, get him out */
-	cancel_blocking();
-
-	/* local thread may never get be canceled if it doesn't receive an IPC */
-	if (worker()) return Native_capability();
-
-	return notify_sm;
+	_pager->client_recall(true);
 }
 
 
@@ -256,37 +240,46 @@ Thread_state Platform_thread::state()
 	if (_pager->copy_thread_state(&s))
 		return s;
 
-	if (worker()) {
-		s.sp = _pager->initial_esp();
-		return s;
-	}
-
 	throw Cpu_thread::State_access_failed();
 }
 
 
 void Platform_thread::state(Thread_state s)
 {
-	/* you can do it only once */
-	if (_sel_exc_base != Native_thread::INVALID_INDEX)
-		throw Cpu_thread::State_access_failed();
+	if (_sel_exc_base == Native_thread::INVALID_INDEX) {
 
-	/*
-	 * s.sel_exc_base exception base of thread in caller
-	 *                protection domain - not in Core !
-	 * s.vcpu         If true it will run as vCPU,
-	 *                otherwise it will be a thread.
-	 */
-	if (!main_thread())
-		_sel_exc_base = s.sel_exc_base;
+		/* you can do it only once */
 
-	if (!s.vcpu)
-		return;
+		/*
+		 * s.sel_exc_base exception base of thread in caller
+		 *                protection domain - not in Core !
+		 * s.is_vcpu      If true it will run as vCPU,
+		 *                otherwise it will be a thread.
+		 */
+		if (!main_thread())
+			_sel_exc_base = s.sel_exc_base;
 
-	_features |= VCPU;
+		if (!s.global_thread)
+			_features |= WORKER;
 
-	if (main_thread() && _pager)
-		_pager->prepare_vCPU_portals();
+		if (!s.vcpu)
+			return;
+
+		_features |= VCPU;
+
+		if (main_thread() && _pager)
+			_pager->prepare_vCPU_portals();
+
+	} else {
+
+		if (!_pager) throw Cpu_thread::State_access_failed();
+
+		if (!_pager->copy_thread_state(s))
+			throw Cpu_thread::State_access_failed();
+
+		/* the new state is transferred to the kernel by the recall handler */
+		_pager->client_recall(false);
+	}
 }
 
 
@@ -298,15 +291,11 @@ void Platform_thread::cancel_blocking()
 }
 
 
-Native_capability Platform_thread::single_step_sync(bool on)
+void Platform_thread::single_step(bool on)
 {
-	if (!_pager) return Native_capability();
+	if (!_pager) return;
 
-	Native_capability cap = _pager->single_step(on);
-
-	if (worker()) return Native_capability();
-
-	return cap;
+	_pager->single_step(on);
 }
 
 

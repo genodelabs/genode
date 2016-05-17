@@ -22,7 +22,6 @@
 #include <base/tslab.h>
 #include <base/lock.h>
 #include <base/rpc_server.h>
-#include <nova_cpu_session/nova_cpu_session.h>
 
 /* core includes */
 #include <pager.h>
@@ -37,7 +36,7 @@
 namespace Genode { class Cpu_session_component; }
 
 
-class Genode::Cpu_session_component : public Rpc_object<Nova_cpu_session>
+class Genode::Cpu_session_component : public Rpc_object<Cpu_session>
 {
 	public:
 
@@ -150,14 +149,6 @@ class Genode::Cpu_session_component : public Rpc_object<Nova_cpu_session>
 		Quota quota() override;
 
 		Capability<Native_cpu> native_cpu() { return _native_cpu.cap(); }
-
-
-		/******************************
-		 ** NOVA specific extensions **
-		 ******************************/
-
-		Native_capability pause_sync(Thread_capability) override;
-		Native_capability single_step_sync(Thread_capability, bool) override;
 };
 
 #endif /* _CORE__INCLUDE__CPU_SESSION_COMPONENT_H_ */

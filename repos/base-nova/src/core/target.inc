@@ -9,7 +9,6 @@ SRC_CC       = stack_area.cc \
                core_region_map.cc \
                core_rpc_cap_alloc.cc \
                cpu_session_component.cc \
-               cpu_session_extension.cc \
                cpu_session_support.cc \
                cpu_thread_component.cc \
                dataspace_component.cc \

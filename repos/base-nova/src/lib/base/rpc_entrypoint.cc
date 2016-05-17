@@ -215,8 +215,10 @@ Rpc_entrypoint::Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
 	_pd_session(*pd_session)
 {
 	/* set magic value evaluated by thread_nova.cc to start a local thread */
-	if (native_thread().ec_sel == Native_thread::INVALID_INDEX)
+	if (native_thread().ec_sel == Native_thread::INVALID_INDEX) {
 		native_thread().ec_sel = Native_thread::INVALID_INDEX - 1;
+		native_thread().initial_ip = (addr_t)&_activation_entry;
+	}
 
 	/* required to create a 'local' EC */
 	Thread::start();

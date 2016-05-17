@@ -25,11 +25,9 @@ struct Genode::Thread_state : Thread_state_base
 {
 	bool vcpu;
 	addr_t sel_exc_base;
+	bool global_thread;
 
-	Thread_state() : vcpu(false), sel_exc_base(~0UL) { }
-
-	Thread_state(bool vcpu, addr_t sel_exc_base)
-	: vcpu(vcpu), sel_exc_base(sel_exc_base) { }
+	Thread_state() : vcpu(false), sel_exc_base(~0UL), global_thread(true) { }
 };
 
 #endif /* _INCLUDE__BASE__THREAD_STATE_H_ */

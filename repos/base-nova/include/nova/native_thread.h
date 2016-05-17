@@ -31,6 +31,7 @@ struct Genode::Native_thread
 	addr_t ec_sel;     /* selector for execution context */
 	addr_t exc_pt_sel; /* base of event portal window */
 	bool   vcpu;       /* true if thread is a virtual CPU */
+	addr_t initial_ip; /* initial IP of local thread */
 
 	/* receive window for capability selectors received at the server side */
 	Receive_window rcv_window;
@@ -38,7 +39,9 @@ struct Genode::Native_thread
 	Native_capability pager_cap;
 
 	Native_thread() : ec_sel(INVALID_INDEX),
-	                  exc_pt_sel(INVALID_INDEX), vcpu(false) { }
+	                  exc_pt_sel(INVALID_INDEX),
+	                  vcpu(false),
+	                  initial_ip(0) { }
 };
 
 #endif /* _INCLUDE__NOVA__NATIVE_THREAD_H_ */

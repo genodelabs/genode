@@ -73,21 +73,22 @@ namespace Genode {
 			addr_t _client_exc_pt_sel;
 			addr_t _client_exc_vcpu;
 
+			Lock   _state_lock;
+
 			struct
 			{
 				struct Thread_state thread;
 				addr_t sel_client_ec;
 				enum {
-					BLOCKED        = 0x1U,
-					DEAD           = 0x2U,
-					SINGLESTEP     = 0x4U,
-					NOTIFY_REQUEST = 0x8U,
-					SIGNAL_SM      = 0x10U,
-					DISSOLVED      = 0x20U,
-					SUBMIT_SIGNAL  = 0x40U,
-					SKIP_EXCEPTION = 0x80U,
+					BLOCKED       = 0x1U,
+					DEAD          = 0x2U,
+					SINGLESTEP    = 0x4U,
+					SIGNAL_SM     = 0x8U,
+					DISSOLVED     = 0x10U,
+					SUBMIT_SIGNAL = 0x20U,
 				};
 				uint8_t _status;
+				bool modified;
 
 				/* convenience function to access pause/recall state */
 				inline bool blocked() { return _status & BLOCKED;}
@@ -99,10 +100,6 @@ namespace Genode {
 
 				inline bool singlestep() { return _status & SINGLESTEP; }
 
-				inline void notify_request()   { _status |= NOTIFY_REQUEST; }
-				inline bool notify_requested() { return _status & NOTIFY_REQUEST; }
-				inline void notify_cancel()    { _status &= ~NOTIFY_REQUEST; }
-
 				inline void mark_signal_sm() { _status |= SIGNAL_SM; }
 				inline bool has_signal_sm() { return _status & SIGNAL_SM; }
 
@@ -113,9 +110,6 @@ namespace Genode {
 				inline void submit_signal() { _status |= SUBMIT_SIGNAL; }
 				inline void reset_submit() { _status &= ~SUBMIT_SIGNAL; }
 
-				inline bool skip_requested() { return _status & SKIP_EXCEPTION; }
-				inline void skip_request() { _status |= SKIP_EXCEPTION; }
-				inline void skip_reset() { _status &= ~SKIP_EXCEPTION; }
 			} _state;
 
 			Cpu_session_capability _cpu_session_cap;
@@ -124,12 +118,15 @@ namespace Genode {
 
 			addr_t _pd;
 
-			void _copy_state(Nova::Utcb * utcb);
+			void _copy_state_from_utcb(Nova::Utcb * utcb);
+			void _copy_state_to_utcb(Nova::Utcb * utcb);
 
-			addr_t sel_pt_cleanup() const { return _selectors; }
-			addr_t sel_sm_notify()  const { return _selectors + 1; }
-			addr_t sel_sm_block()   const { return _selectors + 2; }
-			addr_t sel_oom_portal() const { return _selectors + 3; }
+			uint8_t _unsynchronized_client_recall(bool get_state_and_block);
+
+			addr_t sel_pt_cleanup()     const { return _selectors; }
+			addr_t sel_sm_block_pause() const { return _selectors + 1; }
+			addr_t sel_sm_block_oom()   const { return _selectors + 2; }
+			addr_t sel_oom_portal()     const { return _selectors + 3; }
 
 			__attribute__((regparm(1)))
 			static void _page_fault_handler(addr_t pager_obj);
@@ -223,28 +220,32 @@ namespace Genode {
 			}
 
 			/**
-			 * Return semaphore to block on until state of a recall is
-			 * available.
-			 */
-			Native_capability notify_sm()
-			{
-				if (_state.blocked() || _state.is_dead())
-					return Native_capability();
-
-				_state.notify_request();
-
-				return Native_capability(sel_sm_notify());
-			}
-
-			/**
 			 * Copy thread state of recalled thread.
 			 */
 			bool copy_thread_state(Thread_state * state_dst)
 			{
+				Lock::Guard _state_lock_guard(_state_lock);
+
 				if (!state_dst || !_state.blocked())
 					return false;
 
 				*state_dst = _state.thread;
+
+				return true;
+			}
+
+			/*
+			 * Copy thread state to recalled thread.
+			 */
+			bool copy_thread_state(Thread_state state_src)
+			{
+				Lock::Guard _state_lock_guard(_state_lock);
+
+				if (!_state.blocked())
+					return false;
+
+				_state.thread = state_src;
+				_state.modified = true;
 
 				return true;
 			}
@@ -255,34 +256,29 @@ namespace Genode {
 			 */
 			void    client_cancel_blocking();
 
-			uint8_t client_recall();
-			void    client_set_ec(addr_t ec) { _state.sel_client_ec = ec; }
+			uint8_t client_recall(bool get_state_and_block);
+			void client_set_ec(addr_t ec) { _state.sel_client_ec = ec; }
 
-			inline Native_capability single_step(bool on)
+			inline void single_step(bool on)
 			{
-				if (_state.is_dead() ||
+				_state_lock.lock();
+
+				if (_state.is_dead() || !_state.blocked() ||
 				    (on && (_state._status & _state.SINGLESTEP)) ||
-				    (!on && !(_state._status & _state.SINGLESTEP)))
-					return Native_capability();
+				    (!on && !(_state._status & _state.SINGLESTEP))) {
+				    _state_lock.unlock();
+					return;
+				}
 
 				if (on)
 					_state._status |= _state.SINGLESTEP;
 				else
 					_state._status &= ~_state.SINGLESTEP;
 
-				/* we want to be notified if state change is done */
-				_state.notify_request();
-				/* the first single step exit ignore when switching it on */
-				if (on && _state.blocked())
-					_state.skip_request();
+				_state_lock.unlock();
 
 				/* force client in exit and thereby apply single_step change */
-				client_recall();
-				/* single_step mode changes don't apply if blocked - wake up */
-				if (_state.blocked())
-					wake_up();
-
-				return Native_capability(sel_sm_notify());
+				client_recall(false);
 			}
 
 			/**
@@ -304,6 +300,8 @@ namespace Genode {
 			 */
 			void unresolved_page_fault_occurred()
 			{
+				Lock::Guard _state_lock_guard(_state_lock);
+
 				_state.thread.unresolved_page_fault = true;
 			}
 
