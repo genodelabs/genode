@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2006-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -16,8 +16,9 @@
 #define _REGION_MAP_COMPONENT_H_
 
 /* Genode includes */
-#include <region_map/client.h>
 #include <base/rpc_server.h>
+#include <pd_session/capability.h>
+#include <region_map/client.h>
 
 /* GDB monitor includes */
 #include "dataspace_object.h"
@@ -31,6 +32,8 @@ namespace Gdb_monitor {
 		private:
 
 			Rpc_entrypoint &_ep;
+
+			Pd_session_capability _pd;
 
 			Genode::Region_map_client _parent_region_map;
 
@@ -75,8 +78,9 @@ namespace Gdb_monitor {
 			/**
 			 * Constructor
 			 */
-			Region_map_component(Rpc_entrypoint        &ep,
-			                     Dataspace_pool        &managed_ds_map,
+			Region_map_component(Rpc_entrypoint &ep,
+			                     Dataspace_pool &managed_ds_map,
+			                     Pd_session_capability pd,
 			                     Capability<Region_map> parent_region_map);
 
 			~Region_map_component();

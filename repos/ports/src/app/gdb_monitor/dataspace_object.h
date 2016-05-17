@@ -41,6 +41,7 @@ namespace Gdb_monitor {
 
 			Region_map_component *region_map_component() { return _region_map_component; }
 	};
+
 }
 
 #endif /* _DATASPACE_OBJECT_H_ */

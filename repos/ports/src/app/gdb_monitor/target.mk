@@ -28,13 +28,13 @@ SRC_C   =  event-loop.c \
 
 SRC_C  +=  linux-low.c
 
-CC_OPT += -DGDBSERVER
+CC_OPT += -DGDBSERVER -DPKGVERSION="\"7.3.1\"" -DREPORT_BUGS_TO="\"\""
 
 CC_OPT_linux-low += -Wno-unused-function
 
 SRC_CC  =  genode-low.cc \
-           gdb_stub_thread.cc \
            cpu_session_component.cc \
+           cpu_thread_component.cc \
            ram_session_component.cc \
            region_map_component.cc \
            signal_handler_thread.cc \

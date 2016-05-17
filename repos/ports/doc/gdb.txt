@@ -256,7 +256,7 @@ via 'make run/gdb_monitor_interactive'. It will execute the scenario on Qemu and
 use the UART to communicate with GDB. Qemu is instructed to redirect the second
 serial interface to a local socket (using the port 5555):
 ! -serial chardev:uart
-! -chardev socket,id=uart,port=5555,host=localhost,server,nowait
+! -chardev socket,id=uart,port=5555,host=localhost,server,nowait,ipv4
 
 The used TCP port is then specified to the GDB as remote target:
 ! target remote localhost:5555

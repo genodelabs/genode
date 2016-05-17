@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -15,19 +15,19 @@
 #include <base/env.h>
 #include <base/printf.h>
 #include <dataspace/client.h>
+#include <util/retry.h>
 
 /* local includes */
 #include "region_map_component.h"
 
 static bool const verbose = false;
 
-using namespace Gdb_monitor;
-using namespace Genode;
 
-
-/**************************
+/**************************************
  ** Region map component **
- **************************/
+ **************************************/
+
+using namespace Gdb_monitor;
 
 Region_map_component::Region *Region_map_component::find_region(void *local_addr, addr_t *offset_in_region)
 {
@@ -140,13 +140,16 @@ Dataspace_capability Region_map_component::dataspace()
 
 Region_map_component::Region_map_component(Rpc_entrypoint &ep,
                                            Dataspace_pool &managed_ds_map,
+                                           Pd_session_capability pd,
                                            Capability<Region_map> parent_region_map)
 :
 	_ep(ep),
+	_pd(pd),
 	_parent_region_map(parent_region_map),
 	_managed_ds_map(managed_ds_map)
 {
 	_ep.manage(this);
+
 	if (verbose)
 		PDBG("Region_map_component()");
 }

@@ -143,14 +143,14 @@ append qemu_args " -serial mon:stdio "
 
 # connect comport 1 with TCP port $local_port
 append qemu_args " -serial chardev:uart "
-append qemu_args " -chardev socket,id=uart,port=$local_port,host=localhost,server,nowait "
+append qemu_args " -chardev socket,id=uart,port=$local_port,host=localhost,server,nowait,ipv4 "
 
-run_genode_until {.*Remote debugging using /dev/terminal.*} 30
+run_genode_until {.*\[init -> gdb_monitor\].*} 30
 
 puts "GDB monitor is up, starting GDB in a new terminal"
 
 exec [terminal] -e "[gdb] bin/nitpicker -ex \"target remote localhost:$local_port\"" &
 
-interact
+interact -i [output_spawn_id]
 
 # vi: set ft=tcl :

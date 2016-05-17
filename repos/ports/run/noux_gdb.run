@@ -1,5 +1,5 @@
-if {![have_spec foc] || ![have_spec 32bit]} {
-	puts "\nThe Noux GDB scenario is supported on 32-bit Fiasco.OC only\n"
+if {![have_spec foc] && ![have_spec nova]} {
+	puts "\nThe Noux GDB scenario is supported on NOVA and Fiasco.OC only\n"
 	exit 0
 }
 
@@ -126,7 +126,7 @@ append config {
 			<provides> <service name="Terminal"/> </provides>
 		</start>
 		<start name="gdb_monitor">
-			<resource name="RAM" quantum="10M"/>
+			<resource name="RAM" quantum="16M"/>
 			<route>
 				<service name="Terminal"><child name="terminal_gdb"/></service>
 				<any-service><parent/><any-child/></any-service>
@@ -171,19 +171,18 @@ append config {
 				</fstab> }
 append config "
 				<start name=\"/bin/${tool_prefix}gdb\">
-					<arg value=\"/gdb/${gdb_target_binary_name}\"/> "
+					<arg value=\"/gdb/ld.lib.so\"/> "
 append config {
 					<arg value="-ex" /><arg value="set interactive-mode off" />
 					<arg value="-ex" /><arg value="directory /gdb/src" />
 					<arg value="-ex" /><arg value="target remote /dev/gdb" />
-					<arg value="-ex" /><arg value="symbol-file /gdb/ld.lib.so" />
-					<arg value="-ex" /><arg value="b call_program_main" />
+					<arg value="-ex" /><arg value="b binary_ready_hook_for_gdb" />
 					<arg value="-ex" /><arg value="c" />
 					<arg value="-ex" /><arg value="delete 1" /> }
 append config "
-					<arg value=\"-ex\" /><arg value=\"symbol-file /gdb/${gdb_target_binary_name}\" /> "
+					<arg value=\"-ex\" /><arg value=\"file /gdb/${gdb_target_binary_name}\" /> "
 append config {
-					<arg value="-ex" /><arg value="b main()" />
+					<arg value="-ex" /><arg value="b main" />
 					<arg value="-ex" /><arg value="set solib-search-path /gdb" />
 					<arg value="-ex" /><arg value="sharedlibrary" />
 					<arg value="-ex" /><arg value="c" />

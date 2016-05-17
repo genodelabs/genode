@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -28,9 +28,5 @@ struct siginfo { };
 struct user {
 		unsigned long int u_debugreg [8];
 };
-
-/* Missing in libc's sys/wait.h */
-
-#define __WCLONE 0
 
 #endif /* GDBSERVER_LIBC_DUMMIES_H */

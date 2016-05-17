@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -21,10 +21,7 @@ extern "C" {
 #include "i386.h"
 #include "cpu_session_component.h"
 #include "gdbserver_platform_helper.h"
-#include "gdb_stub_thread.h"
-
-#undef PDBG
-#define PDBG(...)
+#include "genode_child_resources.h"
 
 using namespace Genode;
 
@@ -44,113 +41,146 @@ static bool in_syscall(Thread_state const &thread_state)
 	return false;
 }
 
-extern "C" int genode_fetch_register(int regno, unsigned long *reg_content)
+extern "C" int genode_fetch_register(int regno, unsigned long *value)
 {
-	Thread_state thread_state;
+	Thread_state ts;
 
-	try { thread_state = get_current_thread_state(); }
-	catch (...) { return 0; }
+	try { ts = get_current_thread_state(); }
+	catch (...) {
+		PERR("%s: could not get current thread state", __PRETTY_FUNCTION__);
+		return -1;
+	}
 
-	if (in_syscall(thread_state) || thread_state.unresolved_page_fault) {
+	if (in_syscall(ts) || ts.unresolved_page_fault) {
+
 		switch((enum reg_index)regno)
 		{
-			case EAX:  PDBG("cannot determine contents of register EAX"); return -1;
-			case ECX:  PDBG("cannot determine contents of register ECX"); return -1;
-			case EDX:  PDBG("cannot determine contents of register EDX"); return -1;
+			case EAX:  cannot_fetch_register("EAX"); return -1;
+			case ECX:  cannot_fetch_register("ECX"); return -1;
+			case EDX:  cannot_fetch_register("EDX"); return -1;
+
 			case EBX:
-				if (in_syscall(thread_state)) {
+
+				if (in_syscall(ts)) {
+
 					/* When in a syscall, the user EBX has been pushed onto the stack at address ESP+4 */
-					*reg_content = genode_read_memory_byte((void*)(thread_state.sp + 4)) +
-				               	   (genode_read_memory_byte((void*)(thread_state.sp + 5)) << 8) +
-				               	   (genode_read_memory_byte((void*)(thread_state.sp + 6)) << 16) +
-				               	   (genode_read_memory_byte((void*)(thread_state.sp + 7)) << 24);
-					PDBG("EBX = %8lx", *reg_content);
+					*value = genode_read_memory_byte((void*)(ts.sp + 4))
+					       + (genode_read_memory_byte((void*)(ts.sp + 5)) << 8)
+					       + (genode_read_memory_byte((void*)(ts.sp + 6)) << 16)
+					       + (genode_read_memory_byte((void*)(ts.sp + 7)) << 24);
+
+					/* for the debug output, if enabled */
+					fetch_register("EBX", *value, *value);
+
 					return 0;
+
 				} else {
-					PDBG("cannot determine contents of register EBX"); return -1;
+
+					cannot_fetch_register("EBX");
+
+					return -1;
 				}
-			case UESP: *reg_content = thread_state.sp; PDBG("ESP = %8lx", *reg_content); return 0;
+
+			case UESP: fetch_register("ESP", ts.sp, *value); return 0;
+
 			case EBP:
-				if (in_syscall(thread_state)) {
+
+				if (in_syscall(ts)) {
+
 					/* When in a syscall, the user EBP has been pushed onto the stack at address ESP+0 */
-					*reg_content = genode_read_memory_byte((void*)(thread_state.sp + 0)) +
-							   	   (genode_read_memory_byte((void*)(thread_state.sp + 1)) << 8) +
-							   	   (genode_read_memory_byte((void*)(thread_state.sp + 2)) << 16) +
-							   	   (genode_read_memory_byte((void*)(thread_state.sp + 3)) << 24);
-					PDBG("EBP = %8lx", *reg_content);
+					*value = genode_read_memory_byte((void*)(ts.sp + 0))
+					       + (genode_read_memory_byte((void*)(ts.sp + 1)) << 8)
+					       + (genode_read_memory_byte((void*)(ts.sp + 2)) << 16)
+					       + (genode_read_memory_byte((void*)(ts.sp + 3)) << 24);
+
+					/* for the debug output, if enabled */
+					fetch_register("EBP", *value, *value);
+
 					return 0;
+
 				} else {
-					PDBG("cannot determine contents of register EBP"); return -1;
+
+					cannot_fetch_register("EBP");
+
+					return -1;
 				}
-			case ESI:  PDBG("cannot determine contents of register ESI"); return -1;
-			case EDI:  PDBG("cannot determine contents of register EDI"); return -1;
-			case EIP:  *reg_content = thread_state.ip; PDBG("EIP = %8lx", *reg_content); return 0;
-			case EFL:  PDBG("cannot determine contents of register EFLAGS"); return -1;
-			case CS:   PDBG("cannot determine contents of register CS"); return -1;
-			case SS:   PDBG("cannot determine contents of register SS"); return -1;
-			case DS:   PDBG("cannot determine contents of register DS"); return -1;
-			case ES:   PDBG("cannot determine contents of register ES"); return -1;
-			case FS:   PDBG("cannot determine contents of register FS"); return -1;
-			case GS:   PDBG("cannot determine contents of register GS"); return -1;
+
+			case ESI:  cannot_fetch_register("ESI"); return -1;
+			case EDI:  cannot_fetch_register("EDI"); return -1;
+			case EIP:  fetch_register("EIP", ts.ip, *value); return 0;
+			case EFL:  cannot_fetch_register("EFL"); return -1;
+			case CS:   cannot_fetch_register("CS"); return -1;
+			case SS:   cannot_fetch_register("SS"); return -1;
+			case DS:   cannot_fetch_register("DS"); return -1;
+			case ES:   cannot_fetch_register("ES"); return -1;
+			case FS:   cannot_fetch_register("FS"); return -1;
+			case GS:   cannot_fetch_register("GS"); return -1;
+			default:   PERR("unhandled register %d", regno); return -1;
 		}
+
 	} else {
+
 		switch((enum reg_index)regno)
 		{
-			case EAX:  *reg_content = thread_state.eax; PDBG("EAX = %8lx", *reg_content); return 0;
-			case ECX:  *reg_content = thread_state.ecx; PDBG("ECX = %8lx", *reg_content); return 0;
-			case EDX:  *reg_content = thread_state.edx; PDBG("EDX = %8lx", *reg_content); return 0;
-			case EBX:  *reg_content = thread_state.ebx; PDBG("EBX = %8lx", *reg_content); return 0;
-			case UESP: *reg_content = thread_state.sp; PDBG("ESP = %8lx", *reg_content); return 0;
-			case EBP:  *reg_content = thread_state.ebp; PDBG("EBP = %8lx", *reg_content); return 0;
-			case ESI:  *reg_content = thread_state.esi; PDBG("ESI = %8lx", *reg_content); return 0;
-			case EDI:  *reg_content = thread_state.edi; PDBG("EDI = %8lx", *reg_content); return 0;
-			case EIP:  *reg_content = thread_state.ip; PDBG("EIP = %8lx", *reg_content); return 0;
-			case EFL:  *reg_content = thread_state.eflags; PDBG("EFLAGS = %8lx", *reg_content); return 0;
-			case CS:   PDBG("cannot determine contents of register CS"); return -1;
-			case SS:   PDBG("cannot determine contents of register SS"); return -1;
-			case DS:   PDBG("cannot determine contents of register DS"); return -1;
-			case ES:   PDBG("cannot determine contents of register ES"); return -1;
-			case FS:   *reg_content = thread_state.fs; PDBG("FS = %8lx", *reg_content); return 0;
-			case GS:   *reg_content = thread_state.gs; PDBG("GS = %8lx", *reg_content); return 0;
+			case EAX:  fetch_register("EAX", ts.eax,    *value); return 0;
+			case ECX:  fetch_register("ECX", ts.ecx,    *value); return 0;
+			case EDX:  fetch_register("EDX", ts.edx,    *value); return 0;
+			case EBX:  fetch_register("EBX", ts.ebx,    *value); return 0;
+			case UESP: fetch_register("ESP", ts.sp,     *value); return 0;
+			case EBP:  fetch_register("EBP", ts.ebp,    *value); return 0;
+			case ESI:  fetch_register("ESI", ts.esi,    *value); return 0;
+			case EDI:  fetch_register("EDI", ts.edi,    *value); return 0;
+			case EIP:  fetch_register("EIP", ts.ip,     *value); return 0;
+			case EFL:  fetch_register("EFL", ts.eflags, *value); return 0;
+			case CS:   cannot_fetch_register("CS"); return -1;
+			case SS:   cannot_fetch_register("SS"); return -1;
+			case DS:   cannot_fetch_register("DS"); return -1;
+			case ES:   cannot_fetch_register("ES"); return -1;
+			case FS:   fetch_register("FS",  ts.fs,     *value); return 0;
+			case GS:   fetch_register("GS",  ts.gs,     *value); return 0;
+			default:   PERR("unhandled register %d", regno); return -1;
 		}
 	}
 
 	return -1;
 }
 
-extern "C" void genode_store_register(int regno, unsigned long reg_content)
+extern "C" void genode_store_register(int regno, unsigned long value)
 {
-	Thread_state thread_state;
+	Thread_state ts;
 
-	try { thread_state = get_current_thread_state(); }
-	catch (...) { return; }
+	try { ts = get_current_thread_state(); }
+	catch (...) {
+		PERR("%s: could not get current thread state", __PRETTY_FUNCTION__);
+		return;
+	}
 
-	if (in_syscall(thread_state)) {
+	if (in_syscall(ts)) {
 		PDBG("cannot set registers while thread is in syscall");
 		return;
 	}
 
 	switch((enum reg_index)regno)
 	{
-		case EAX:  thread_state.eax    = reg_content; PDBG("EAX = %8lx", reg_content); break;
-		case ECX:  thread_state.ecx    = reg_content; PDBG("ECX = %8lx", reg_content); break;
-		case EDX:  thread_state.edx    = reg_content; PDBG("EDX = %8lx", reg_content); break;
-		case EBX:  thread_state.ebx    = reg_content; PDBG("EBX = %8lx", reg_content); break;
-		case UESP: thread_state.sp     = reg_content; PDBG("ESP = %8lx", reg_content); break;
-		case EBP:  thread_state.ebp    = reg_content; PDBG("EBP = %8lx", reg_content); break;
-		case ESI:  thread_state.esi    = reg_content; PDBG("ESI = %8lx", reg_content); break;
-		case EDI:  thread_state.edi    = reg_content; PDBG("EDI = %8lx", reg_content); break;
-		case EIP:  thread_state.ip     = reg_content; PDBG("EIP = %8lx", reg_content); break;
-		case EFL:  thread_state.eflags = reg_content; PDBG("EFL = %8lx", reg_content); break;
-		case CS:   PDBG("cannot set contents of register CS"); PDBG(" CS = %8lx", reg_content); break;
-		case SS:   PDBG("cannot set contents of register SS"); PDBG(" SS = %8lx", reg_content); break;
-		case DS:   PDBG("cannot set contents of register DS"); PDBG(" DS = %8lx", reg_content); break;
-		case ES:   PDBG("cannot set contents of register ES"); PDBG(" ES = %8lx", reg_content); break;
-		case FS:   thread_state.fs     = reg_content; PDBG(" FS = %8lx", reg_content); break;
-		case GS:   thread_state.gs     = reg_content; PDBG(" GS = %8lx", reg_content); break;
-
+		case EAX:  if (!store_register("EAX", ts.eax,    value)) return; break;
+		case ECX:  if (!store_register("ECX", ts.ecx,    value)) return; break;
+		case EDX:  if (!store_register("EDX", ts.edx,    value)) return; break;
+		case EBX:  if (!store_register("EBX", ts.ebx,    value)) return; break;
+		case UESP: if (!store_register("ESP", ts.sp,     value)) return; break;
+		case EBP:  if (!store_register("EBP", ts.ebp,    value)) return; break;
+		case ESI:  if (!store_register("ESI", ts.esi,    value)) return; break;
+		case EDI:  if (!store_register("EDI", ts.edi,    value)) return; break;
+		case EIP:  if (!store_register("EIP", ts.ip,     value)) return; break;
+		case EFL:  if (!store_register("EFL", ts.eflags, value)) return; break;
+		case CS:   cannot_store_register("CS", value); return;
+		case SS:   cannot_store_register("SS", value); return;
+		case DS:   cannot_store_register("DS", value); return;
+		case ES:   cannot_store_register("ES", value); return;
+		case FS:   if (!store_register("FS ", ts.fs,     value)) return; break;
+		case GS:   if (!store_register("GS ", ts.gs,     value)) return; break;
+		default:   PERR("unhandled register %d", regno); return;
 	}
 
-	set_current_thread_state(thread_state);
+	set_current_thread_state(ts);
 }
 

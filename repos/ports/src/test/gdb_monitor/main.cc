@@ -29,7 +29,12 @@ class Test_thread : public Genode::Thread_deprecated<2*4096>
 
 		Test_thread() : Thread_deprecated("test") { }
 
-		void func()
+		void step_func()
+		{
+			/* nothing */
+		}
+
+		void sigsegv_func()
 		{
 			/*
 			 * make sure that the main thread is sleeping in
@@ -43,7 +48,9 @@ class Test_thread : public Genode::Thread_deprecated<2*4096>
 
 		void entry() /* set a breakpoint here to test the 'info threads' command */
 		{
-			func();
+			step_func();
+
+			sigsegv_func();
 
 			Genode::sleep_forever();
 		}

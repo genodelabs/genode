@@ -18,9 +18,15 @@
 #include <base/rpc_server.h>
 #include <pd_session/connection.h>
 
-using namespace Genode;
+/* GDB monitor includes */
+#include "region_map_component.h"
 
-class Pd_session_component : public Rpc_object<Pd_session>
+namespace Gdb_monitor {
+	class Pd_session_component;
+	using namespace Genode;
+}
+
+class Gdb_monitor::Pd_session_component : public Rpc_object<Pd_session>
 {
 	private:
 
@@ -41,9 +47,9 @@ class Pd_session_component : public Rpc_object<Pd_session>
 		                     Dataspace_pool &managed_ds_map)
 		:
 			_ep(ep), _pd(binary_name),
-			_address_space(_ep, managed_ds_map, _pd.address_space()),
-			_stack_area   (_ep, managed_ds_map, _pd.stack_area()),
-			_linker_area  (_ep, managed_ds_map, _pd.linker_area())
+			_address_space(_ep, managed_ds_map, _pd, _pd.address_space()),
+			_stack_area   (_ep, managed_ds_map, _pd, _pd.stack_area()),
+			_linker_area  (_ep, managed_ds_map, _pd, _pd.linker_area())
 		{
 			_ep.manage(this);
 		}
@@ -54,11 +60,12 @@ class Pd_session_component : public Rpc_object<Pd_session>
 		}
 
 		/**
-		 * Accessor used to let the GDB stub thread access the PD's address
+		 * Accessor used to let the GDB monitor access the PD's address
 		 * space
 		 */
 		Region_map_component &region_map() { return _address_space; }
 
+		Pd_session_capability core_pd_cap() { return _pd.cap(); }
 
 		/**************************
 		 ** Pd_session interface **

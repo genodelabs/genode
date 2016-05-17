@@ -1,4 +1,6 @@
-SRC_CC = spec/foc_arm/low.cc
+SRC_CC = spec/foc_arm/low.cc \
+         spec/foc/native_cpu.cc
+
 SRC_C  = reg-arm.c \
          linux-arm-low.c
 

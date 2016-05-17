@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -18,7 +18,7 @@
 #include "ram_session_component.h"
 
 using namespace Genode;
-
+using namespace Gdb_monitor;
 
 Ram_session_component::Ram_session_component(const char *args)
 : _parent_ram_session(env()->parent()->session<Ram_session>(args))
