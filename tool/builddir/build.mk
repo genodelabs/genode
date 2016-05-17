@@ -195,7 +195,7 @@ endif
 # we would need to spawn one additional shell per target, which would take
 # 10-20 percent more time.
 #
-traverse_dependencies: $(dir $(LIB_DEP_FILE)) init_libdep_file init_progress_log
+traverse_target_dependencies: $(dir $(LIB_DEP_FILE)) init_libdep_file init_progress_log
 	$(VERBOSE_MK) \
 	for target in $(TARGETS_TO_VISIT); do \
 	  for rep in $(REPOSITORIES); do \
@@ -209,8 +209,31 @@ traverse_dependencies: $(dir $(LIB_DEP_FILE)) init_libdep_file init_progress_log
 	  done; \
 	done; $$result;
 
+#
+# Generate content of libdep file if manually building a single library
+# specified via the 'LIB' argument.
+#
+traverse_lib_dependencies: $(dir $(LIB_DEP_FILE)) init_libdep_file init_progress_log
+	$(VERBOSE_MK) \
+	$(MAKE) $(VERBOSE_DIR) -f $(BASE_DIR)/mk/dep_lib.mk \
+	        REP_DIR=$$rep LIB=$(LIB) \
+	        BUILD_BASE_DIR=$(BUILD_BASE_DIR) \
+	        SHELL=$(SHELL) \
+	        DARK_COL="$(DARK_COL)" DEFAULT_COL="$(DEFAULT_COL)"; \
+	echo "all: $(LIB).lib" >> $(LIB_DEP_FILE); \
+
 .PHONY: $(LIB_DEP_FILE)
-$(LIB_DEP_FILE): traverse_dependencies
+
+#
+# Depending on whether the top-level target is a list of targets or a
+# single library, we populate the LIB_DEP_FILE differently.
+#
+ifeq ($(LIB),)
+$(LIB_DEP_FILE): traverse_target_dependencies
+else
+$(LIB_DEP_FILE): traverse_lib_dependencies
+endif
+
 
 ##
 ## Second stage: build targets based on the result of the first stage
