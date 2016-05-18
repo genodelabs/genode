@@ -127,10 +127,16 @@ AUTOCONFINST_OK = $(call check_nonempty_f,$(AUTOCONF),\
                     Need to have 'autoconf-$(AUTOCONF_VERSION)' installed.)
 
 #
+# Check if 'pkg-config' is installed
+#
+PKG_CONFIG_OK = $(call check_nonempty_f,$(shell which pkg-config),\
+                Need to have 'pkg-config' installed.)
+
+#
 # Check if 'libncurses' is installed
 #
 CURSES_OK = $(call check_equal_f,\
-              $(shell $(LD) -lncurses -e0 -o /tmp/a.out && echo ok),ok,\
+              $(shell pkg-config --exists ncurses && echo ok),ok,\
               Need to have 'libncurses' installed.)
 
 #
@@ -161,11 +167,11 @@ GPG_OK = $(call check_nonempty_f,$(shell which gpg),\
 # Check if 'libexpat' is installed
 #
 EXPAT_OK = $(call check_equal_f,\
-             $(shell $(LD) -lexpat -e0 -o /tmp/a.out && echo ok),ok,\
+             $(shell pkg-config --exists expat && echo ok),ok,\
              Need to have 'libexpat' installed.)
 
 
-TOOLS_OK = $(AUTOCONF_OK) $(AUTOCONFINST_OK) $(CURSES_OK) \
+TOOLS_OK = $(AUTOCONF_OK) $(AUTOCONFINST_OK) $(PKG_CONFIG_OK) $(CURSES_OK) \
            $(TEXINFO_OK) $(WGET_OK) $(AUTOGEN_OK) $(GPG_OK) $(EXPAT_OK)
 
 ifneq ($(strip $(TOOLS_OK)),)
