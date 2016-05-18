@@ -14,6 +14,7 @@
  */
 
 /* Genode includes */
+#include <base/entrypoint.h>
 #include <base/snprintf.h>
 #include <base/tslab.h>
 #include <irq_session/client.h>

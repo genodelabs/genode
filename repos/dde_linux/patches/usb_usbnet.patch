@@ -1,12 +1,8 @@
-commit e500c61c5fce23cf3a44bdd45fded0a3f34cf4f0
-Author: Sebastian Sumpf <sebastian.sumpf@genode-labs.com>
-Date:   Mon Jun 2 13:35:56 2014 +0200
-
-    usbnet.patch
-
+diff --git a/drivers/net/usb/usbnet.c b/drivers/net/usb/usbnet.c
+index 6237370..8339402 100644
 --- a/drivers/net/usb/usbnet.c
 +++ b/drivers/net/usb/usbnet.c
-@@ -63,8 +63,30 @@
+@@ -64,8 +64,30 @@
   * the equation.
   */
  #define	MAX_QUEUE_MEMORY	(60 * 1518)

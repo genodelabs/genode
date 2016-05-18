@@ -17,13 +17,16 @@
 #include <util/endian.h>
 #include <util/list.h>
 
-#include <extern_c_begin.h>
 #include <lx_emul.h>
+
+#include <lx_kit/backend_alloc.h>
+#include <lx_kit/scheduler.h>
+
+#include <lx_emul/extern_c_begin.h>
 #include <storage/scsi.h>
 #include <drivers/usb/storage/usb.h>
-#include <extern_c_end.h>
+#include <lx_emul/extern_c_end.h>
 
-#include <platform/lx_mem.h>
 #include "signal.h"
 
 static Signal_helper *_signal = 0;
@@ -125,6 +128,10 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 
 			/* send command to host driver */
 			_sdev->host->hostt->queuecommand(_sdev->host, cmnd);
+
+			/* schedule next task if we come from EP */
+			if (Lx::scheduler().active() == false)
+				Lx::scheduler().schedule();
 		}
 
 	public:
@@ -162,10 +169,10 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 		bool dma_enabled() { return true; }
 
 		Genode::Ram_dataspace_capability alloc_dma_buffer(Genode::size_t size) {
-			return Backend_memory::alloc(size, Genode::UNCACHED); }
+			return Lx::backend_alloc(size, Genode::UNCACHED); }
 
 		void free_dma_buffer(Genode::Ram_dataspace_capability cap) {
-			return Backend_memory::free(cap); }
+			return Lx::backend_free(cap); }
 };
 
 
@@ -191,7 +198,7 @@ static work_struct delayed;
 extern "C" void ack_packet(work_struct *work)
 {
 	Block::Packet_descriptor *packet =
-		static_cast<Block::Packet_descriptor *>(work->data);
+		(Block::Packet_descriptor *)(work->data);
 
 	if (verbose)
 		PDBG("ACK packet for block: %llu", packet->block_number());

@@ -18,20 +18,6 @@
  ** asm/barrier.h **
  *******************/
 
-/*
- * This is the "safe" implementation as needed for a configuration
- * with bufferable DMA memory and SMP enabled.
- */
-
-#define mb()  asm volatile ("dsb": : :"memory")
-#define rmb() mb()
-#define wmb() asm volatile ("dsb st": : :"memory")
-
-#define smp_mb()  asm volatile ("dmb ish": : :"memory")
-#define smp_rmb() smp_mb()
-#define smp_wmb() asm volatile ("dmb ishst": : :"memory")
-
-static inline void barrier() { asm volatile ("": : :"memory"); }
-
+#include <lx_emul/barrier.h>
 
 #endif /* _ARMV7__PLATFORM__LX_EMUL_BARRIER_H_ */

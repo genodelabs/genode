@@ -19,12 +19,14 @@
 #include <usb_session/rpc_object.h>
 #include <util/list.h>
 
-#include <extern_c_begin.h>
+#include <lx_emul.h>
+#include <lx_emul/extern_c_begin.h>
 #include <linux/usb.h>
 #include "raw.h"
-#include "lx_emul.h"
-#include <extern_c_end.h>
+#include <lx_emul/extern_c_end.h>
 #include <signal.h>
+
+#include <lx_kit/scheduler.h>
 
 using namespace Genode;
 
@@ -109,6 +111,11 @@ struct Device : List<Device>::Element
 
 					Genode::snprintf(buf, sizeof(buf), "0x%4x", dev);
 					xml.attribute("dev", buf);
+
+					usb_interface *iface = d->interface(0);
+					Genode::snprintf(buf, sizeof(buf), "0x%02x",
+					                 iface->cur_altsetting->desc.bInterfaceClass);
+					xml.attribute("class", buf);
 				});
 			}
 		});
@@ -157,7 +164,7 @@ class Usb::Worker
 		Session::Tx::Sink        *_sink;
 		Device                   *_device      = nullptr;
 		Signal_context_capability _sigh_ready;
-		Routine                  *_routine     = nullptr;
+		Lx::Task                 *_task        = nullptr;
 		unsigned                  _p_in_flight = 0;
 		bool                      _device_ready = false;
 
@@ -453,8 +460,9 @@ class Usb::Worker
 
 		void _wait_for_device()
 		{
-			_wait_event(_device);
-			_wait_event(_device->udev->actconfig);
+			wait_queue_head_t wait;
+			_wait_event(wait, _device);
+			_wait_event(wait, _device->udev->actconfig);
 
 			if (_sigh_ready.valid())
 				Signal_transmitter(_sigh_ready).submit(1);
@@ -469,24 +477,20 @@ class Usb::Worker
 		{
 			/* wait for device to become ready */
 			init_completion(&_packet_avail);
-
 			_wait_for_device();
 
 			while (true) {
 				wait_for_completion(&_packet_avail);
-
 				_dispatch();
-				Routine::schedule_all();
 			}
 		}
 
 	public:
 
-		static int run(void *worker)
+		static void run(void *worker)
 		{
 			Worker *w = static_cast<Worker *>(worker);
 			w->_wait();
-			return 0;
 		}
 
 		Worker(Session::Tx::Sink *sink)
@@ -495,17 +499,23 @@ class Usb::Worker
 
 		void start()
 		{
-			if (!_routine) {
-				_routine = Routine::add(run, this, "worker");
-				Routine::schedule_all();
+			if (!_task) {
+				_task = new (Genode::env()->heap()) Lx::Task(run, this, "raw_worker",
+				                                              Lx::Task::PRIORITY_2,
+				                                              Lx::scheduler());
+				if (!Lx::scheduler().active()) {
+					Lx::scheduler().schedule();
+				}
 			}
 		}
 
 		void stop()
 		{
-			if (_routine)
-				Routine::remove(_routine);
-			_routine = nullptr;
+			if (_task) {
+				Lx::scheduler().remove(_task);
+				destroy(Genode::env()->heap(), _task);
+				_task = nullptr;
+			}
 		}
 
 		void packet_avail() { ::complete(&_packet_avail); }
@@ -551,6 +561,7 @@ class Usb::Session_component : public Session_rpc_object,
 		void _receive(unsigned)
 		{
 			_worker.packet_avail();
+			Lx::scheduler().schedule();
 		}
 
 	public:
@@ -851,6 +862,12 @@ void Raw::init(Server::Entrypoint &ep, bool report_device_list)
 int raw_notify(struct notifier_block *nb, unsigned long action, void *data)
 {
 	struct usb_device *udev = (struct usb_device*)data;
+
+	if (verbose_raw)
+		PDBG("RAW: %s vendor: %04x product: %04x\n",
+		     action == USB_DEVICE_ADD ? "Add" : "Remove",
+		     udev->descriptor.idVendor, udev->descriptor.idProduct);
+
 
 	switch (action) {
 

@@ -1,12 +1,8 @@
-commit a30968815ec1e4967a6c531744b2788f2c25e675
-Author: Sebastian Sumpf <sebastian.sumpf@genode-labs.com>
-Date:   Mon Jun 2 13:25:03 2014 +0200
-
-    evdev.patch
-
+diff --git a/drivers/input/evdev.c b/drivers/input/evdev.c
+index e9ae3d5..edd0b4f 100644
 --- a/drivers/input/evdev.c
 +++ b/drivers/input/evdev.c
-@@ -1168,6 +1168,9 @@ static int evdev_connect(struct input_handler *handler, struct input_dev *dev,
+@@ -1425,6 +1425,9 @@ static int evdev_connect(struct input_handler *handler, struct input_dev *dev,
  	if (error)
  		goto err_cleanup_evdev;
  
@@ -16,7 +12,7 @@ Date:   Mon Jun 2 13:25:03 2014 +0200
  	return 0;
  
   err_cleanup_evdev:
-@@ -1200,8 +1203,7 @@ static const struct input_device_id evdev_ids[] = {
+@@ -1457,8 +1460,7 @@ static const struct input_device_id evdev_ids[] = {
  MODULE_DEVICE_TABLE(input, evdev_ids);
  
  static struct input_handler evdev_handler = {

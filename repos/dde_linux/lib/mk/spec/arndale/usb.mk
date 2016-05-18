@@ -11,7 +11,7 @@ INC_DIR += $(LX_CONTRIB_DIR)/arch/arm/plat-samsung/include
 SRC_CC  += platform.cc
 
 #DWC3
-SRC_C   += $(addprefix usb/dwc3/, host.c core.c)
+SRC_C   += $(addprefix usb/dwc3/, dwc3-exynos.c host.c core.c)
 
 #XHCI
 SRC_C   += usb/host/xhci-plat.c

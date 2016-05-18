@@ -16,6 +16,20 @@ Configuration snippet to enable UHCI and EHCI
 
 ! <config uhci="yes" ehci="yes">
 
+BIOS Handoff
+~~~~~~~~~~~~
+
+Per default the USB driver performs a hand off of the USB controller from the
+BIOS, since it still may access the controller when booting, for example, from
+a USB device. The BIOS hand off induces the execution of BIOS/SMM USB driver
+code and potentially DMA operations. Unfortunately, some ACPI tables report
+wrong RMRR information, which implicates IOMMU faults on illegal DMA
+operations and consequently the hand off may fail after noticeably long
+timeouts. Therefore, the hand off can be disabled in the USB driver
+configuration like follows.
+
+! <config bios_handoff="no"/>
+
 HID
 ~~~
 
