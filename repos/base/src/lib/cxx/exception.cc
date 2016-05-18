@@ -20,6 +20,11 @@
 
 extern "C" char __eh_frame_start__[];                  /* from linker script */
 extern "C" void __register_frame (const void *begin);  /* from libgcc_eh     */
+extern "C" char *__cxa_demangle(const char *mangled_name,
+                                char *output_buffer,
+                                size_t *length,
+                                int *status);
+extern "C" void free(void *ptr);
 
 /*
  * This symbol is overwritten by Genode's dynamic linker (ld.lib.so).
@@ -48,7 +53,14 @@ void terminate_handler()
 {
 	std::type_info *t = __cxxabiv1::__cxa_current_exception_type();
 
-	if (t)
+	if (!t)
+		return;
+
+	char *demangled_name = __cxa_demangle(t->name(), nullptr, nullptr, nullptr);
+	if (demangled_name) {
+		PERR("Uncaught exception of type '%s'", demangled_name);
+		free(demangled_name);
+	} else
 		PERR("Uncaught exception of type '%s' (use 'c++filt -t' to demangle)",
 		     t->name());
 }
