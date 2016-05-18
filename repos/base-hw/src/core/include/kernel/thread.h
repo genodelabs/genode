@@ -78,7 +78,8 @@ class Kernel::Thread_event : public Signal_ack_handler
 class Kernel::Thread
 :
 	public Kernel::Object, public Cpu_job, public Cpu_domain_update,
-	public Ipc_node, public Signal_context_killer, public Signal_handler
+	public Ipc_node, public Signal_context_killer, public Signal_handler,
+	private Timeout
 {
 	friend class Thread_event;
 	friend class Core_thread;
@@ -106,6 +107,7 @@ class Kernel::Thread
 		State              _state;
 		Signal_receiver *  _signal_receiver;
 		char const * const _label;
+		capid_t            _timeout_sigid = 0;
 
 		void _init();
 
@@ -245,6 +247,9 @@ class Kernel::Thread
 		void _call_delete_obj();
 		void _call_ack_cap();
 		void _call_delete_cap();
+		void _call_timeout();
+		void _call_timeout_age_us();
+		void _call_timeout_max_us();
 
 		template <typename T, typename... ARGS>
 		void _call_new(ARGS &&... args)
@@ -343,6 +348,13 @@ class Kernel::Thread
 		void exception(unsigned const cpu);
 		void proceed(unsigned const cpu);
 		Cpu_job * helping_sink();
+
+
+		/*************
+		 ** Timeout **
+		 *************/
+
+		void timeout_triggered();
 
 
 		/***************

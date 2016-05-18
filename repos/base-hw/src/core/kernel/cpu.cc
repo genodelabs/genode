@@ -37,6 +37,24 @@ namespace Kernel
  ** Cpu_job **
  *************/
 
+time_t Cpu_job::timeout_age_us(Timeout const * const timeout) const
+{
+	return _cpu->timeout_age_us(timeout);
+}
+
+
+time_t Cpu_job::timeout_max_us() const
+{
+	return _cpu->timeout_max_us();
+}
+
+
+void Cpu_job::timeout(Timeout * const timeout, time_t const us)
+{
+	_cpu->set_timeout(timeout, us);
+}
+
+
 void Cpu_job::_activate_own_share() { _cpu->schedule(this); }
 
 
@@ -89,7 +107,8 @@ void Cpu_job::quota(unsigned const q)
 
 
 Cpu_job::Cpu_job(Cpu_priority const p, unsigned const q)
-: Cpu_share(p, q), _cpu(0) { }
+:
+	Cpu_share(p, q), _cpu(0) { }
 
 
 Cpu_job::~Cpu_job()
@@ -113,6 +132,17 @@ void Cpu_idle::_main() { while (1) { Genode::Cpu::wait_for_interrupt(); } }
  ** Cpu **
  *********/
 
+void Cpu::set_timeout(Timeout * const timeout, time_t const duration_us) {
+	_clock.set_timeout(timeout, _clock.us_to_tics(duration_us)); }
+
+
+time_t Cpu::timeout_age_us(Timeout const * const timeout) const {
+	return _clock.timeout_age_us(timeout); }
+
+
+time_t Cpu::timeout_max_us() const { return _clock.timeout_max_us(); }
+
+
 void Cpu::schedule(Job * const job)
 {
 	if (_id == executing_id()) { _scheduler.ready(job); }
@@ -131,20 +161,20 @@ bool Cpu::interrupt(unsigned const irq_id)
 
 Cpu_job & Cpu::schedule()
 {
-	/* get new job */
-	Job & old_job = scheduled_job();
-
 	/* update scheduler */
-	unsigned const old_time = _scheduler.head_quota();
-	unsigned const new_time = _timer->value(_id);
-	unsigned quota = old_time > new_time ? old_time - new_time : 1;
+	time_t quota = _clock.update_time();
+	Job & old_job = scheduled_job();
+	old_job.exception(id());
+	_clock.process_timeouts();
 	_scheduler.update(quota);
 
 	/* get new job */
 	Job & new_job = scheduled_job();
 	quota = _scheduler.head_quota();
-	assert(quota);
-	_timer->start_one_shot(quota, _id);
+
+	_clock.set_timeout(this, quota);
+
+	_clock.schedule_timeout();
 
 	/* switch to new job */
 	switch_to(new_job);
@@ -155,10 +185,11 @@ Cpu_job & Cpu::schedule()
 
 
 Cpu::Cpu(unsigned const id, Timer * const timer)
-: _id(id), _idle(this), _timer(timer),
-  _scheduler(&_idle, _quota(), _fill()),
-  _ipi_irq(*this),
-  _timer_irq(_timer->interrupt_id(_id), *this) { }
+:
+	_id(id), _clock(_id, timer), _idle(this),
+	_scheduler(&_idle, _quota(), _fill()),
+	_ipi_irq(*this), _timer_irq(timer->interrupt_id(_id), *this)
+{ }
 
 
 /**************
@@ -175,6 +206,25 @@ Cpu * Cpu_pool::cpu(unsigned const id) const
 
 Cpu_pool::Cpu_pool()
 {
+	/*
+	 * The timer frequency should allow a good accuracy on the smallest
+	 * timeout syscall value (1 us).
+	 */
+	assert(_timer.tics_to_us(1) < 1 ||
+	       _timer.tics_to_us(_timer.max_value()) == _timer.max_value());
+
+	/*
+	 * The maximum measurable timeout is also the maximum age of a timeout
+	 * installed by the timeout syscall. The timeout-age syscall returns a
+	 * bogus value for older timeouts. A user that awoke from waiting for a
+	 * timeout might not be schedulable in the same super period anymore.
+	 * However, if the user can't manage to read the timeout age during the
+	 * next super period, it's a bad configuration or the users fault. That
+	 * said, the maximum timeout should be at least two times the super
+	 * period).
+	 */
+	assert(_timer.tics_to_us(_timer.max_value()) > 2 * cpu_quota_us);
+
 	for (unsigned id = 0; id < NR_OF_CPUS; id++) {
 		new (_cpus[id]) Cpu(id, &_timer); }
 }

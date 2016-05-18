@@ -23,15 +23,9 @@ namespace Genode { struct Board_base; }
  */
 struct Genode::Board_base : Zynq::Board_base
 {
-	enum
-	{
-		/* clocks (assuming 6:2:1 mode) */
-		CPU_1X_CLOCK   = 111111115,
-		CPU_6X4X_CLOCK = 6 * CPU_1X_CLOCK,
-
-		/* CPU */
-		CORTEX_A9_CLOCK             = CPU_6X4X_CLOCK,
-		CORTEX_A9_PRIVATE_TIMER_CLK = CORTEX_A9_CLOCK,
+	enum {
+		CORTEX_A9_PRIVATE_TIMER_CLK = 100000000,
+		CORTEX_A9_PRIVATE_TIMER_DIV = 100,
 	};
 };
 

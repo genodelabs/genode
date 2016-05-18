@@ -187,7 +187,7 @@ size_t Thread::_core_to_kernel_quota(size_t const quota) const
 {
 	using Genode::Cpu_session;
 	using Genode::sizet_arithm_t;
-	size_t const tics = cpu_pool()->timer()->ms_to_tics(Kernel::cpu_quota_ms);
+	size_t const tics = cpu_pool()->timer()->us_to_tics(Kernel::cpu_quota_us);
 	return Cpu_session::quota_lim_downscale<sizet_arithm_t>(quota, tics);
 }
 
@@ -294,6 +294,34 @@ void Thread::_call_await_request_msg()
 		return;
 	}
 	_become_inactive(AWAITS_IPC);
+}
+
+
+void Thread::_call_timeout()
+{
+	_timeout_sigid = user_arg_2();
+	Cpu_job::timeout(this, user_arg_1());
+}
+
+
+void Thread::_call_timeout_age_us()
+{
+	user_arg_0(Cpu_job::timeout_age_us(this));
+}
+
+void Thread::_call_timeout_max_us()
+{
+	user_arg_0(Cpu_job::timeout_max_us());
+}
+
+
+void Thread::timeout_triggered()
+{
+	Signal_context * const c =
+		pd()->cap_tree().find<Signal_context>(_timeout_sigid);
+	if(!c || c->submit(1)) {
+		PWRN("%s -> %s: failed to submit timeout signal", pd_label(), label());
+	}
 }
 
 
@@ -576,6 +604,9 @@ void Thread::_call()
 	case call_id_print_char():           _call_print_char(); return;
 	case call_id_ack_cap():              _call_ack_cap(); return;
 	case call_id_delete_cap():           _call_delete_cap(); return;
+	case call_id_timeout():              _call_timeout(); return;
+	case call_id_timeout_age_us():       _call_timeout_age_us(); return;
+	case call_id_timeout_max_us():       _call_timeout_max_us(); return;
 	default:
 		/* check wether this is a core thread */
 		if (!_core()) {

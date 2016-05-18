@@ -56,6 +56,7 @@ SRC_CC += kernel/ipc_node.cc
 SRC_CC += kernel/irq.cc
 SRC_CC += kernel/pd.cc
 SRC_CC += kernel/cpu.cc
+SRC_CC += kernel/clock.cc
 SRC_CC += kernel/object.cc
 SRC_CC += init_main_thread.cc
 SRC_CC += capability.cc
