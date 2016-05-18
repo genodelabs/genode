@@ -39,7 +39,7 @@ namespace Lxip {
 	 *
 	 * \return Reference to Socketcall object
 	 */
-	Socketcall & init(char *address_config);
+	Socketcall & init(char const *address_config);
 
 	typedef Genode::uint8_t  uint8_t;
 	typedef Genode::uint16_t uint16_t;

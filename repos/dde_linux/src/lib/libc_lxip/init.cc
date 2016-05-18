@@ -18,7 +18,7 @@
 #include <os/config.h>
 #include <util/string.h>
 
-extern void create_lxip_plugin(char *address_config);
+extern void create_lxip_plugin(char const *address_config);
 
 void __attribute__((constructor)) init_libc_lxip(void)
 {
@@ -26,7 +26,7 @@ void __attribute__((constructor)) init_libc_lxip(void)
 	char netmask_str[16] = {0};
 	char gateway_str[16] = {0};
 	char address_buf[128];
-	char *address_config;
+	char const *address_config;
 
 	try {
 		Genode::Xml_node libc_node = Genode::config()->xml_node().sub_node("libc");

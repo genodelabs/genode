@@ -54,7 +54,8 @@ HASH_INPUT        += $(REP_DIR)/intel_fb.list
 # mac80211 stack, iwlwifi sources
 #
 SRC_DIR_WIFI  := src/lib/wifi
-URL(wifi)     := https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.4.3.tar.xz
+VERSION_WIFI  := 4.4.3
+URL(wifi)     := https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_WIFI).tar.xz
 SHA(wifi)     := 336d66925a15ce9077cbf2c38acbdc6c2644e33f
 DIR(wifi)     := $(SRC_DIR_WIFI)
 TAR_OPT(wifi) := --strip-components=1  --files-from $(REP_DIR)/wifi.list
@@ -64,9 +65,9 @@ HASH_INPUT    += $(REP_DIR)/wifi.list
 # IP stack sources
 #
 SRC_DIR_LXIP  := src/lib/lxip
-VERSION_LXIP  := 3.9
-URL(lxip)     := http://www.kernel.org/pub/linux/kernel/v3.x/linux-$(VERSION_LXIP).tar.gz
-SHA(lxip)     := 7979f0d670838d0552c7ede5cc06497b81dcd812
+VERSION_LXIP  := 4.4.3
+URL(lxip)     := http://www.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_LXIP).tar.xz
+SHA(lxip)     := 336d66925a15ce9077cbf2c38acbdc6c2644e33f
 DIR(lxip)     := $(SRC_DIR_LXIP)
 TAR_OPT(lxip) := --strip-components=1  --files-from $(REP_DIR)/lxip.list
 HASH_INPUT    += $(REP_DIR)/lxip.list
@@ -155,11 +156,12 @@ PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb*.patc
 
 #IP stack
 LXIP_OPT = -p1 -d$(SRC_DIR_LXIP)
-PATCH_OPT(patches/lxip_icmp.patch)      := $(LXIP_OPT)
-PATCH_OPT(patches/lxip_ip_config.patch) := $(LXIP_OPT)
-PATCH_OPT(patches/lxip_skbuff.patch)    := $(LXIP_OPT)
-PATCH_OPT(patches/lxip_tcp.patch)       := $(LXIP_OPT)
-PATCH_OPT(patches/lxip_netlink.patch)   := $(LXIP_OPT)
+PATCH_OPT(patches/lxip_icmp.patch)         := $(LXIP_OPT)
+PATCH_OPT(patches/lxip_ip_config.patch)    := $(LXIP_OPT)
+PATCH_OPT(patches/lxip_netlink.patch)      := $(LXIP_OPT)
+PATCH_OPT(patches/lxip_request_sock.patch) := $(LXIP_OPT)
+PATCH_OPT(patches/lxip_sk_wq.patch)        := $(LXIP_OPT)
+PATCH_OPT(patches/lxip_skbuff_cast.patch)  := $(LXIP_OPT)
 
 # WIFI
 WIFI_OPT = -p1 -d$(SRC_DIR_WIFI)
