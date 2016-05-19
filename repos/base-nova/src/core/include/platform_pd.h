@@ -34,6 +34,7 @@ namespace Genode {
 			Native_capability _parent;
 			int               _thread_cnt;
 			addr_t            _pd_sel;
+			const char *      _label;
 
 		public:
 
@@ -89,6 +90,13 @@ namespace Genode {
 			 */
 			static addr_t pd_core_sel() { return __core_pd_sel; }
 
+
+			/**
+			 * Label of this protection domain
+			 *
+			 * \return name of this protection domain
+			 */
+			const char * name() const { return _label; }
 
 			/*****************************
 			 ** Address-space interface **

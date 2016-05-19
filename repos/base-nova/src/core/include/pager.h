@@ -156,6 +156,9 @@ namespace Genode {
 			unsigned long badge() const { return _badge; }
 			void reset_badge() { _badge = 0; }
 
+			const char * client_thread() const;
+			const char * client_pd() const;
+
 			virtual int pager(Ipc_pager &ps) = 0;
 
 			/**

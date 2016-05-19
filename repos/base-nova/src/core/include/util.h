@@ -20,6 +20,7 @@
 
 /* base-internal includes */
 #include <base/internal/page_size.h>
+#include <platform_thread.h>
 
 namespace Genode {
 
@@ -39,11 +40,12 @@ namespace Genode {
 	                             Region_map::State::Fault_type pf_type,
 	                             unsigned long faulter_badge)
 	{
-		printf("%s (%s pf_addr=%p pf_ip=%p from %02lx %s)\n", msg,
+		Platform_thread * faulter = reinterpret_cast<Platform_thread *>(faulter_badge);
+		printf("%s (%s pf_addr=%p pf_ip=%p from %02lx '%s':'%s')\n", msg,
 		       pf_type == Region_map::State::WRITE_FAULT ? "WRITE" : "READ",
 		       (void *)pf_addr, (void *)pf_ip,
-		       faulter_badge,
-		       faulter_badge ? reinterpret_cast<char *>(faulter_badge) : 0);
+		       faulter_badge, faulter ? faulter->pd_name() : "unknown",
+		       faulter ? faulter->name() : "unknown");
 	}
 
 

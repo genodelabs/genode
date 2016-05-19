@@ -146,7 +146,7 @@ namespace Genode {
 			/**
 			 * Return identification of thread when faulting
 			 */
-			unsigned long pager_object_badge() const;
+			unsigned long pager_object_badge() { return (unsigned long)this; }
 
 			/**
 			 * Set the executing CPU for this thread
@@ -161,7 +161,12 @@ namespace Genode {
 			/**
 			 * Get thread name
 			 */
-			const char *name() const { return "noname"; }
+			const char *name() const { return _name.string(); }
+
+			/**
+			 * Get pd name
+			 */
+			const char *pd_name() const;
 
 			/**
 			 * Associate thread with protection domain

@@ -23,6 +23,7 @@
 
 /* core-local includes */
 #include <pager.h>
+#include <platform_thread.h>
 #include <imprint_badge.h>
 
 /* NOVA includes */
@@ -100,12 +101,14 @@ void Pager_object::_page_fault_handler(addr_t pager_obj)
 
 	obj->_state_lock.unlock();
 
-	char const * client = reinterpret_cast<char const *>(obj->_badge);
+	const char * client_thread = obj->client_thread();
+	const char * client_pd = obj->client_pd();
+
 	/* region manager fault - to be handled */
 	if (ret == 1) {
-		PDBG("page fault, thread '%s', cpu %u, ip=%lx, fault address=0x%lx",
-		     client, which_cpu(pager_thread), ipc_pager.fault_ip(),
-		     ipc_pager.fault_addr());
+		PDBG("page fault, pd '%s', thread '%s', cpu %u, ip=%lx, fault "
+		     "address=0x%lx", client_pd, client_thread, which_cpu(pager_thread),
+		     ipc_pager.fault_ip(), ipc_pager.fault_addr());
 
 		utcb->set_msg_word(0);
 		utcb->mtd = 0;
@@ -117,9 +120,10 @@ void Pager_object::_page_fault_handler(addr_t pager_obj)
 	/* unhandled case */
 	obj->_state.mark_dead();
 
-	PWRN("unresolvable page fault, thread '%s', cpu %u, ip=%lx, "
-	     "fault address=0x%lx ret=%u", client, which_cpu(pager_thread),
-	     ipc_pager.fault_ip(), ipc_pager.fault_addr(), ret);
+	PWRN("unresolvable page fault, pd '%s', thread '%s', cpu %u, ip=%lx, "
+	     "fault address=0x%lx ret=%u", client_pd, client_thread,
+	     which_cpu(pager_thread), ipc_pager.fault_ip(), ipc_pager.fault_addr(),
+	     ret);
 
 	Native_capability pager_cap = obj->Object_pool<Pager_object>::Entry::cap();
 	revoke(pager_cap.dst());
@@ -159,9 +163,9 @@ void Pager_object::exception(uint8_t exit_id)
 		/* nobody handles this exception - so thread will be stopped finally */
 		_state.mark_dead();
 
-		char const * client = reinterpret_cast<char const *>(_badge);
-		PWRN("unresolvable exception %u, thread '%s', cpu %u, ip=0x%lx, %s",
-		     exit_id, client, which_cpu(pager_thread), fault_ip,
+		PWRN("unresolvable exception %u, pd '%s', thread '%s', cpu %u, "
+		     "ip=0x%lx, %s", exit_id, client_pd(), client_thread(),
+		     which_cpu(pager_thread), fault_ip,
 		     res == 0xFF ? "no signal handler" :
 		     (res == NOVA_OK ? "" : "recall failed"));
 
@@ -638,8 +642,8 @@ uint8_t Pager_object::handle_oom(addr_t transfer_from,
                                  char const * src_pd, char const * src_thread,
                                  enum Pager_object::Policy policy)
 {
-	const char * dst_pd     = "unknown";
-	const char * dst_thread = reinterpret_cast<char *>(badge());
+	const char * dst_pd     = client_pd();
+	const char * dst_thread = client_thread();
 
 	enum { QUOTA_TRANSFER_PAGES = 2 };
 
@@ -655,8 +659,8 @@ uint8_t Pager_object::handle_oom(addr_t transfer_from,
 		/* request current kernel quota usage of source pd */
 		Nova::pd_ctrl_debug(transfer_from, limit_source, usage_source);
 
-		PINF("oom - '%s:%s' (%lu/%lu) - transfer %u pages from '%s:%s' (%lu/%lu)",
-		     dst_pd, dst_thread,
+		PINF("oom - '%s':'%s' (%lu/%lu) - transfer %u pages from '%s':'%s' "
+		     "(%lu/%lu)", dst_pd, dst_thread,
 		     usage_before, limit_before, QUOTA_TRANSFER_PAGES,
 		     src_pd, src_thread, usage_source, limit_source);
 	}
@@ -682,7 +686,7 @@ uint8_t Pager_object::handle_oom(addr_t transfer_from,
 	}
 
 	PWRN("kernel memory quota upgrade failed - trigger memory free up for "
-	     "causing '%s:%s' - donator is '%s:%s', policy=%u",
+	     "causing '%s':'%s' - donator is '%s':'%s', policy=%u",
 	     dst_pd, dst_thread, src_pd, src_thread, policy);
 
 	/* if nothing helps try to revoke memory */
@@ -797,8 +801,8 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 			transfer_from = __core_pd_sel;
 		else {
 			/* delegation of items between different PDs */
-			src_pd = "unknown";
-			src_thread = reinterpret_cast<char *>(obj_src->badge());
+			src_pd = obj_src->client_pd();
+			src_thread = obj_src->client_thread();
 			transfer_from = obj_src->pd_sel();
 		}
 	}
@@ -841,6 +845,19 @@ addr_t Pager_object::get_oom_portal()
 	return 0;
 }
 
+
+const char * Pager_object::client_thread() const
+{
+	Platform_thread * client = reinterpret_cast<Platform_thread *>(_badge);
+	return client ? client->name() : "unknown";
+}
+
+
+const char * Pager_object::client_pd() const
+{
+	Platform_thread * client = reinterpret_cast<Platform_thread *>(_badge);
+	return client ? client->pd_name() : "unknown";
+}
 
 /**********************
  ** Pager activation **

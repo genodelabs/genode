@@ -46,9 +46,9 @@ void Platform_pd::assign_parent(Native_capability parent)
 }
 
 
-Platform_pd::Platform_pd(Allocator * md_alloc, char const *,
+Platform_pd::Platform_pd(Allocator * md_alloc, char const *label,
                          signed pd_id, bool create)
-: _thread_cnt(0), _pd_sel(Native_thread::INVALID_INDEX) { }
+: _thread_cnt(0), _pd_sel(Native_thread::INVALID_INDEX), _label(label) { }
 
 
 Platform_pd::~Platform_pd()

@@ -298,12 +298,8 @@ void Platform_thread::single_step(bool on)
 	_pager->single_step(on);
 }
 
-
-unsigned long Platform_thread::pager_object_badge() const
-{
-	return reinterpret_cast<unsigned long>(_name.string());
-}
-
+const char * Platform_thread::pd_name() const {
+	return _pd ? _pd->name() : "unknown"; }
 
 Weak_ptr<Address_space> Platform_thread::address_space()
 {
