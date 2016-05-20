@@ -20,6 +20,7 @@
 #include <root/root.h>
 #include <base/rpc_server.h>
 #include <base/heap.h>
+#include <base/entrypoint.h>
 #include <ram_session/ram_session.h>
 #include <util/arg_string.h>
 #include <base/printf.h>
@@ -186,13 +187,26 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 		/**
 		 * Constructor
 		 *
-		 * \param ep           entry point that manages the sessions of this
-		 *                     root interface.
-		 * \param ram_session  provider of dataspaces for the backing store
-		 *                     of session objects and session data
+		 * \param ep        entry point that manages the sessions of this
+		 *                  root interface
+		 * \param md_alloc  meta-data allocator providing the backing store
+		 *                  for session objects
 		 */
-		Root_component(Rpc_entrypoint *ep, Allocator *metadata_alloc)
-		: _ep(ep), _md_alloc(metadata_alloc) { }
+		Root_component(Entrypoint &ep, Allocator &md_alloc)
+		:
+			_ep(&ep.rpc_ep()), _md_alloc(&md_alloc)
+		{ }
+
+		/**
+		 * Constructor
+		 *
+		 * \deprecated  use the constructor with the 'Entrypoint &'
+		 *              argument instead
+		 */
+		Root_component(Rpc_entrypoint *ep, Allocator *md_alloc)
+		:
+			_ep(ep), _md_alloc(md_alloc)
+		{ }
 
 
 		/********************
