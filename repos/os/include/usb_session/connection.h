@@ -22,6 +22,11 @@ namespace Usb { struct Connection; }
 
 struct Usb::Connection : Genode::Connection<Session>, Session_client
 {
+	/**
+	 * Issue session request
+	 *
+	 * \noapi
+	 */
 	Capability<Usb::Session> _session(Genode::Parent &parent,
 	                                  char const *label,
 	                                  Genode::size_t tx_buf_size)

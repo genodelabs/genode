@@ -24,6 +24,11 @@ struct Genode::Ram_connection : Connection<Ram_session>, Ram_session_client
 {
 	enum { RAM_QUOTA = 4*1024*sizeof(long) };
 
+	/**
+	 * Issue session request
+	 *
+	 * \noapi
+	 */
 	Capability<Ram_session> _session(Parent &parent, char const *label,
 	                                 addr_t phys_start, size_t phys_size)
 	{

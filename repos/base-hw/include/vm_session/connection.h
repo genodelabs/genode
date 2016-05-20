@@ -23,6 +23,11 @@ namespace Genode { struct Vm_connection; }
 
 struct Genode::Vm_connection : Connection<Vm_session>, Vm_session_client
 {
+	/**
+	 * Issue session request
+	 *
+	 * \noapi
+	 */
 	Capability<Vm_session> _session(Parent &parent, char const *label, long priority,
 	                                unsigned long affinity)
 	{

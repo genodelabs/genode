@@ -23,6 +23,11 @@ namespace Audio_out { struct Connection; }
 
 struct Audio_out::Connection : Genode::Connection<Session>, Audio_out::Session_client
 {
+	/**
+	 * Issue session request
+	 *
+	 * \noapi
+	 */
 	Capability<Audio_out::Session> _session(Genode::Parent &parent, char const *channel)
 	{
 		return session(parent, "ram_quota=%zd, channel=\"%s\"",

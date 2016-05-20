@@ -22,6 +22,11 @@ namespace Genode { struct Io_mem_connection; }
 
 struct Genode::Io_mem_connection : Connection<Io_mem_session>, Io_mem_session_client
 {
+	/**
+	 * Issue session request
+	 *
+	 * \noapi
+	 */
 	Capability<Io_mem_session> _session(Parent &parent, addr_t base, size_t size,
 	                                    bool write_combined)
 	{

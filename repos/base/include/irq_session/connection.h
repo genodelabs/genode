@@ -21,6 +21,11 @@ namespace Genode { struct Irq_connection; }
 
 struct Genode::Irq_connection : Connection<Irq_session>, Irq_session_client
 {
+	/**
+	 * Issue session request
+	 *
+	 * \noapi
+	 */
 	Capability<Irq_session> _session(Parent               &parent,
 	                                 unsigned              irq,
 	                                 Irq_session::Trigger  trigger,

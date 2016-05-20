@@ -22,6 +22,11 @@ namespace Block { struct Connection; }
 
 struct Block::Connection : Genode::Connection<Session>, Session_client
 {
+	/**
+	 * Issue session request
+	 *
+	 * \noapi
+	 */
 	Capability<Block::Session> _session(Genode::Parent &parent,
 	                                    char const *label, Genode::size_t tx_buf_size)
 	{

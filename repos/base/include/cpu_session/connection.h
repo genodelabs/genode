@@ -24,6 +24,11 @@ struct Genode::Cpu_connection : Connection<Cpu_session>, Cpu_session_client
 {
 	enum { RAM_QUOTA = 36*1024 };
 
+	/**
+	 * Issue session request
+	 *
+	 * \noapi
+	 */
 	Capability<Cpu_session> _session(Parent &parent, char const *label,
 	                                 long priority, Affinity const &affinity)
 	{

@@ -35,6 +35,11 @@ namespace File_system {
  */
 struct File_system::Connection_base : Genode::Connection<Session>, Session_client
 {
+	/**
+	 * Issue session request
+	 *
+	 * \noapi
+	 */
 	Capability<File_system::Session> _session(Genode::Parent &parent,
 	                                          char     const *label,
 	                                          char     const *root,

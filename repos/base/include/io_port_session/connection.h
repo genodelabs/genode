@@ -23,6 +23,11 @@ namespace Genode { struct Io_port_connection; }
 struct Genode::Io_port_connection : Connection<Io_port_session>,
                                     Io_port_session_client
 {
+	/**
+	 * Issue session request
+	 *
+	 * \noapi
+	 */
 	Capability<Io_port_session> _session(Parent &parent, unsigned base, unsigned size)
 	{
 		return session(parent, "ram_quota=4K, io_port_base=%u, io_port_size=%u",

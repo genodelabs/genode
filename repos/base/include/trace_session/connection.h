@@ -23,6 +23,11 @@ namespace Genode { namespace Trace { struct Connection; } }
 struct Genode::Trace::Connection : Genode::Connection<Genode::Trace::Session>,
                                    Genode::Trace::Session_client
 {
+	/**
+	 * Issue session request
+	 *
+	 * \noapi
+	 */
 	Capability<Trace::Session> _session(Parent  &parent,
 	                                    size_t   ram_quota,
 	                                    size_t   arg_buffer_size,

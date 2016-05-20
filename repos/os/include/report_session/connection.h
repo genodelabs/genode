@@ -22,6 +22,11 @@ namespace Report { struct Connection; }
 
 struct Report::Connection : Genode::Connection<Session>, Session_client
 {
+	/**
+	 * Issue session request
+	 *
+	 * \noapi
+	 */
 	Capability<Report::Session> _session(Genode::Parent &parent,
 	                                     char const *label, size_t buffer_size)
 	{

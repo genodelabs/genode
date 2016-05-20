@@ -23,6 +23,11 @@ namespace Regulator { struct Connection; }
 
 struct Regulator::Connection : Genode::Connection<Session>, Session_client
 {
+	/**
+	 * Issue session request
+	 *
+	 * \noapi
+	 */
 	Capability<Regulator::Session> _session(Genode::Parent &parent,
 	                                        char const *label,
 	                                        Regulator_id regulator)

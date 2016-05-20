@@ -137,6 +137,8 @@ class Genode::Entrypoint : Genode::Noncopyable
 		/**
 		 * Block and dispatch a single signal, return afterwards
 		 *
+		 * \noapi
+		 *
 		 * XXX Turn into static function that ensures that the used signal
 		 *     receiver belongs to the calling entrypoint. Alternatively,
 		 *     remove it.

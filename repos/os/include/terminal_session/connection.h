@@ -24,6 +24,8 @@ struct Terminal::Connection : Genode::Connection<Session>, Session_client
 {
 	/**
 	 * Wait for connection-established signal
+	 *
+	 * \noapi
 	 */
 	static void wait_for_connection(Genode::Capability<Session> cap)
 	{

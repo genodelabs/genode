@@ -1,22 +1,22 @@
 
-                  ======================================
-                  Configuring the init process of Genode
-                  ======================================
+                  ========================================
+                  Configuring the init component of Genode
+                  ========================================
 
                               Norman Feske
 
 
 The Genode architecture facilitates the flexible construction of complex usage
-scenarios out of Genode's process nodes used as generic building blocks. Thanks
+scenarios out of Genode's components used as generic building blocks. Thanks
 to the strictly hierarchic and, at the same time, recursive structure of
 Genode, a parent has full control over the way, its children interact with each
-other and with the parent. The init process plays a special role in that
+other and with the parent. The init component plays a special role in that
 picture. At boot time, it gets started by core, gets assigned all physical
-resources, and controls the execution of all further process nodes, which can
+resources, and controls the execution of all further components, which can
 be further instances of init. Init's policy is driven by a configuration file,
 which declares a number of children, their relationships, and resource
 assignments. This document describes the configuration mechansism to steer the
-policy of the init process. The configuration is described in a single XML file
+policy of the init component. The configuration is described in a single XML file
 called 'config' supplied via core's ROM service.
 
 
@@ -34,7 +34,7 @@ depend on the requested service or session-construction arguments provided
 by the child. Apart from assigning resources to children, the central
 element of the policy implemented in the parent is a set of rules to
 route session requests. Therefore, init's configuration concept is laid out
-around processes and the routing of session requests. The concept is best
+around components and the routing of session requests. The concept is best
 illustrated by an example (the following config file can be used on Linux):
 
 ! <config>
@@ -60,7 +60,7 @@ LOG service. For each child to start, there is a '<start>'
 node describing resource assignments, declaring services provided by the child,
 and holding a routing table for session requests originating from the child.
 The first child is called "timer" and implements the "Timer" service. The
-second process called "test-timer" is a client of the timer service. In its
+second component called "test-timer" is a client of the timer service. In its
 routing table, we see that requests for "Timer" sessions should be routed to
 the "timer" child whereas requests for "LOG" sessions should be delegated to
 init's parent. Per-child service routing rules provide a flexible way to
@@ -133,7 +133,7 @@ route becomes handy to keep the configuration tidy and neat.
 The combination of explicit routes and wildcards is designed to scale well from
 being convenient to use during development towards being highly secure at
 deployment time. If only explicit rules are present in the configuration, the
-permitted relationships between all processes are explicitly defined and can be
+permitted relationships between all components are explicitly defined and can be
 easily verified. Note however that the degree those rules are enforced at the
 kernel-interface level depends on the used base platform.
 
@@ -217,10 +217,10 @@ child is routed to the timer service started at the first-level init instance.
 !   </start>
 ! </config>
 The services ROM, RAM, CPU, RM, and PD are required by the second-level
-init instance to create the timer-test process.
+init instance to create the timer-test component.
 
 As illustrated by this example, the use of the nested configuration feature
-enables the construction of arbitrarily complex process trees via a single
+enables the construction of arbitrarily complex component trees via a single
 configuration file.
 
 Alternatively to specifying all nested configurations in a single config file,
@@ -236,7 +236,7 @@ Assigning subsystems to CPUs
 ============================
 
 The assignment of subsystems to CPU nodes consists of two parts, the
-definition of the affinity space dimensions as used for the init process, and
+definition of the affinity space dimensions as used for the init component, and
 the association sub systems with affinity locations (relative to the affinity
 space). The affinity space is configured as a sub node of the config node. For
 example, the following declaration describes an affinity space of 4x2:
@@ -266,7 +266,7 @@ Priority support
 The number of CPU priorities to be distinguished by init can be specified with
 'prio_levels' attribute of the '<config>' node.  The value must be a power of
 two. By default, no priorities are used. To assign a priority to a child
-process, a priority value can be specified as 'priority' attribute of the
+component, a priority value can be specified as 'priority' attribute of the
 corresponding '<start>' node. Valid priority values lie in the range of
 -prio_levels + 1 (maximum priority degradation) to 0 (no priority degradation).
 
