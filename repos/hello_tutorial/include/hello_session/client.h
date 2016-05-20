@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2008-2013 Genode Labs GmbH
+ * Copyright (C) 2008-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -16,26 +16,27 @@
 
 #include <hello_session/hello_session.h>
 #include <base/rpc_client.h>
-#include <base/printf.h>
+#include <base/log.h>
 
-namespace Hello {
+namespace Hello { struct Session_client; }
 
-	struct Session_client : Genode::Rpc_client<Session>
+
+struct Hello::Session_client : Genode::Rpc_client<Session>
+{
+	Session_client(Genode::Capability<Session> cap)
+	: Genode::Rpc_client<Session>(cap) { }
+
+	void say_hello()
 	{
-		Session_client(Genode::Capability<Session> cap)
-		: Genode::Rpc_client<Session>(cap) { }
+		Genode::log("issue RPC for saying hello");
+		call<Rpc_say_hello>();
+		Genode::log("returned from 'say_hello' RPC call");
+	}
 
-		void say_hello()
-		{
-			PDBG("Saying Hello.");
-			call<Rpc_say_hello>();
-		}
-
-		int add(int a, int b)
-		{
-			return call<Rpc_add>(a, b);
-		}
-	};
-}
+	int add(int a, int b)
+	{
+		return call<Rpc_add>(a, b);
+	}
+};
 
 #endif /* _INCLUDE__HELLO_SESSION_H__CLIENT_H_ */
