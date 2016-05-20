@@ -344,7 +344,7 @@ extern "C" {
 			case KEY_PROG2: keymap[i]=SDLK_UNKNOWN; break;
 			case KEY_WWW: keymap[i]=SDLK_UNKNOWN; break;
 			case KEY_MSDOS: keymap[i]=SDLK_UNKNOWN; break;
-			case KEY_COFFEE: keymap[i]=SDLK_UNKNOWN; break;
+			case KEY_SCREENLOCK: keymap[i]=SDLK_UNKNOWN; break;
 			case KEY_DIRECTION: keymap[i]=SDLK_UNKNOWN; break;
 			case KEY_CYCLEWINDOWS: keymap[i]=SDLK_UNKNOWN; break;
 			case KEY_MAIL: keymap[i]=SDLK_UNKNOWN; break;

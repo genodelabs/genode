@@ -103,7 +103,7 @@ static unsigned short scan_code_set_1[SCAN_CODE_SET_1_NUM_KEYS] = {
 	/* 51 */ Input::KEY_KP3,
 	/* 52 */ Input::KEY_KP0,
 	/* 53 */ Input::KEY_KPDOT,
-	/* 54 */ Input::KEY_UNKNOWN,
+	/* 54 */ Input::KEY_SYSRQ,
 	/* 55 */ Input::KEY_UNKNOWN,
 	/* 56 */ Input::KEY_102ND,
 	/* 57 */ Input::KEY_F11,
@@ -130,7 +130,7 @@ static unsigned short scan_code_set_1[SCAN_CODE_SET_1_NUM_KEYS] = {
 	/* 6c */ Input::KEY_UNKNOWN,
 	/* 6d */ Input::KEY_UNKNOWN,
 	/* 6e */ Input::KEY_UNKNOWN,
-	/* 6f */ Input::KEY_UNKNOWN,
+	/* 6f */ Input::KEY_SCREENLOCK,
 	/* 70 */ Input::KEY_UNKNOWN,
 	/* 71 */ Input::KEY_UNKNOWN,
 	/* 72 */ Input::KEY_UNKNOWN,
@@ -166,6 +166,9 @@ inline void init_scan_code_set_1_0xe0()
 
 	scan_code_set_1_0xe0[0x1c] = Input::KEY_KPENTER;
 	scan_code_set_1_0xe0[0x1d] = Input::KEY_RIGHTCTRL;
+	scan_code_set_1_0xe0[0x20] = Input::KEY_MUTE;
+	scan_code_set_1_0xe0[0x2e] = Input::KEY_VOLUMEDOWN;
+	scan_code_set_1_0xe0[0x30] = Input::KEY_VOLUMEUP;
 	scan_code_set_1_0xe0[0x35] = Input::KEY_KPSLASH;
 	scan_code_set_1_0xe0[0x37] = Input::KEY_PRINT;
 	scan_code_set_1_0xe0[0x38] = Input::KEY_RIGHTALT;
