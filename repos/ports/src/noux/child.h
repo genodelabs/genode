@@ -39,6 +39,7 @@
 #include <kill_broadcaster.h>
 #include <parent_execve.h>
 #include <local_cpu_service.h>
+#include <local_pd_service.h>
 #include <local_rom_service.h>
 
 namespace Noux {
@@ -250,6 +251,7 @@ namespace Noux {
 			Parent_service     _parent_ram_service;
 			Parent_service     _parent_pd_service;
 			Local_cpu_service  _local_cpu_service;
+			Local_pd_service   _local_pd_service;
 			Local_rom_service  _local_rom_service;
 			Service_registry  &_parent_services;
 
@@ -405,6 +407,7 @@ namespace Noux {
 				_parent_ram_service(""),
 				_parent_pd_service(""),
 				_local_cpu_service(_entrypoint, _resources.cpu.cpu_cap()),
+				_local_pd_service(_entrypoint, _pd.core_pd_cap()),
 				_local_rom_service(_entrypoint, _ds_registry),
 				_parent_services(parent_services),
 				_binary_ds_info(_ds_registry, _elf._binary_ds),
@@ -425,7 +428,7 @@ namespace Noux {
 				       _resources.ram.cap(), _resources.ram,
 				       _resources.cpu.cap(), _initial_thread,
 				       *Genode::env()->rm_session(), _address_space,
-				       _entrypoint, _child_policy, _parent_pd_service,
+				       _entrypoint, _child_policy, _local_pd_service,
 				       _parent_ram_service, _local_cpu_service)
 			{
 				if (verbose)
