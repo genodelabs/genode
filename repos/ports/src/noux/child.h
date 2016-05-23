@@ -20,6 +20,7 @@
 #include <cap_session/cap_session.h>
 #include <pd_session/connection.h>
 #include <os/attached_ram_dataspace.h>
+#include <os/attached_rom_dataspace.h>
 
 /* Noux includes */
 #include <file_descriptor_registry.h>
@@ -103,6 +104,28 @@ namespace Noux {
 	bool init_process(Child *child);
 	void init_process_exited(int);
 
+	struct Child_config : Attached_ram_dataspace
+	{
+		enum { CONFIG_DS_SIZE = 4096 };
+
+		Child_config(Genode::Ram_session &ram)
+		: Attached_ram_dataspace(&ram, CONFIG_DS_SIZE)
+		{
+			Genode::strncpy(local_addr<char>(),
+			                "<config/>",
+			                CONFIG_DS_SIZE);
+
+			try {
+				Attached_rom_dataspace noux_config("config");
+
+				if (noux_config.xml().attribute_value("ld_verbose", false))
+					Genode::strncpy(local_addr<char>(),
+					                "<config ld_verbose=\"yes\"/>",
+					                CONFIG_DS_SIZE);
+			} catch (Genode::Rom_connection::Rom_connection_failed) { }
+		}
+	};
+
 	class Child : public Rpc_object<Session>,
 	              public File_descriptor_registry,
 	              public Family_member,
@@ -183,6 +206,11 @@ namespace Noux {
 			 */
 			Environment _env;
 
+			/*
+			 * Child configuration
+			 */
+			Child_config _config;
+
 			/**
 			 * ELF binary handling
 			 */
@@ -230,6 +258,7 @@ namespace Noux {
 			Static_dataspace_info _ldso_ds_info;
 			Static_dataspace_info _args_ds_info;
 			Static_dataspace_info _env_ds_info;
+			Static_dataspace_info _config_ds_info;
 
 			Dataspace_capability _ldso_ds;
 
@@ -367,6 +396,7 @@ namespace Noux {
 				_initial_thread(_resources.cpu, _pd.cap(), binary_name),
 				_args(ARGS_DS_SIZE, args),
 				_env(env),
+				_config(*Genode::env()->ram_session()),
 				_elf(binary_name, root_dir, root_dir->dataspace(binary_name)),
 				_sysio_ds(Genode::env()->ram_session(), SYSIO_DS_SIZE),
 				_sysio(_sysio_ds.local_addr<Sysio>()),
@@ -382,8 +412,10 @@ namespace Noux {
 				_ldso_ds_info(_ds_registry, ldso_ds_cap()),
 				_args_ds_info(_ds_registry, _args.cap()),
 				_env_ds_info(_ds_registry, _env.cap()),
+				_config_ds_info(_ds_registry, _config.cap()),
 				_ldso_ds(ldso_ds),
-				_child_policy(_elf._name, _elf._binary_ds, _args.cap(), _env.cap(),
+				_child_policy(_elf._name, _elf._binary_ds, _args.cap(),
+				              _env.cap(), _config.cap(),
 				              _entrypoint, _local_noux_service,
 				              _local_rom_service, _parent_services,
 				              *this, parent_exit, *this, _destruct_context_cap,
