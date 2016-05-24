@@ -1,0 +1,1315 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 16.05
+              ===============================================
+
+                               Genode Labs
+
+
+
+After ten years of developing and refining the Genode OS Framework and
+conducting countless experiments, it is time to condense the gathered body of
+experience into a fundamentally revised API. Version 16.05 marks the most
+profound API change in the project's history. The underlying motivation is to
+reduce complexity while preserving the flexibility of the framework. With a
+narrow and orthogonal API, components become easier to develop, to evaluate,
+and to maintain. The second motivation is our aspiration to ultimately attain
+a stable binary interface that works across different kernels. The new API is
+a significant step in this direction.
+Section [The great API renovation] presents the rationale behind these changes,
+and outlines the steps for migrating to the new API. It is complemented by
+technical details given in Section [Base framework] and a comprehensive
+documentation update (Section [New revision of the Genode Foundations book]).
+
+The second focus of the current release is the update of Genode's arsenal
+of device drivers, in particular the driver stacks ported from Linux. Those
+drivers comprise the Intel wireless stack, the Intel graphics driver, the
+Linux TCP/IP stack, and the Linux USB stack. Genode scenarios can now take
+advantage of the
+same drivers as modern Linux distributions based on the Linux kernel version
+4.4.3. Furthermore, the audio driver ported from OpenBSD received an update.
+Section [Device drivers] describes this line of work in detail. The
+device-driver topic is nicely complemented with a greatly improved ACPI
+support presented in Section [Enhanced ACPI support].
+
+With respect to the framework's feature set, version 16.05 introduces
+the ability to use the Rust programming language for Genode components
+(Section [New support for the Rust programming language]), and allows the
+GNU debugger to be used on top of 64-bit NOVA
+(Section [Enhanced GDB support on NOVA]).
+
+According to the [https://genode.org/about/road-map - road map], we originally
+planned a few more functional additions that did not make it into the
+release. Even through the work on the package-management topic
+[https://github.com/nfeske/genode-pkg - progresses], we are still at an
+experimental stage. We decided to defer the work on the NAT component and
+instead focused on improvements of the base-hw kernel
+(Section [Execution on bare hardware (base-hw)]) that are highly anticipated
+by the developers of the Muen separation kernel. Speaking of
+[https://muen.sk - Muen], the support for running Genode on this kernel has
+reached the state where Virtualbox can be executed inside a Muen partition.
+However, we decided to not rush the integration of this feature into Genode's
+mainline. Right now, it still resides on a topic branch. If you are eager to
+try it out right now, please get in touch via the
+[https://genode.org/community/mailing-lists - mailing list].
+
+
+The great API renovation
+########################
+
+Genode's base API evolved over the years. When we started in 2006, our mindset
+was very much influenced by L4, which regarded synchronous IPC as the only
+mechanism required. We used to implement components ("servers") in a procedural
+programming style with a fully synchronous control flow within
+and across components (IPC).
+
+We eventually realized that the restriction to synchronous IPC was misguided
+(see  Section 3.6.2. "Asynchronous notifications" in
+[https://genode.org/documentation/genode-foundations-16-05.pdf - the Genode Foundations book]
+for a detailed discussion of the problems).
+When we started to embrace the use of asynchronous
+notifications and to disregard blocking RPC between components, we found
+ourselves designing components as state machines rather than procedural
+programs. To promote this programming style, we introduced the so-called
+server API (_os/server.h_). See
+[https://github.com/genodelabs/genode/blob/master/repos/os/src/server/nic_loopback/main.cc - NIC loopback server]
+for a canonical example of such a component.
+
+We found that this new style greatly increased the robustness and flexibility
+of the components. In particular, it completely alleviates race conditions,
+which constantly troubled us in the past. Now, following the new paradigm, we
+may end up in a deadlock, but such a situation is easy to debug compared to
+sporadic race conditions. Over the past two years, we have redesigned all
+Genode session interfaces to avoid blocking RPC. The only remains are the
+parent and root interfaces, which we still need to address.
+
+Still, the Genode API retained compatibility to the old (= wrong) style of
+developing components. We take the current release as an opportunity to
+finally clean the API from our past mistakes.
+
+
+High-level overview of the changes
+==================================
+
+Removal of side effects
+-----------------------
+
+Up to now, most components rely on the globally available 'Genode::env()'
+singleton object for interacting with its environment. When calling a function
+or method, one never knows for sure if the called code interacts with the
+'env'. E.g., we can simply create an instance of 'Timer::Connection' without
+any arguments. Under the hood, the 'Connection' object accesses the 'env' to
+open a timer session at the parent. In the spirit of capability-based
+security, we should shun the reliance on side effects like the global 'env'.
+Instead, we should pass all materials that are needed by the called code
+explicitly to the called code (e.g., by passing a reference to a 'Parent &' as
+argument). This way, someone inspecting the calling code can immediately see
+the possible reach of the called code. Another prominent example is the latent
+use of 'env()->heap()', which allows any code to arbitrary consume memory.
+Instead, we should better pass an 'Allocator &' to the called code. This way,
+we re-enforce that library code stays clean from the policy where memory is
+allocated from. If no 'Allocator &' is passed, we know that no dynamic memory
+allocation can be performed. If an 'Allocator &' is required, the called code
+needs to explain (in the form of its documentation) why the allocator is
+actually needed. Moreover, by passing an 'Allocator_guard', the calling code
+can impose a limit of the memory consumption on the called code.
+
+
+Component API
+-------------
+
+Traditionally, components started their execution at a 'main' function
+because, well, this is how it's supposed to be, right? The program exits as
+soon as main returns. With the introduction of the server API mentioned above,
+we explored a different approach: The execution of a component starts at a
+'construct' function that takes a form of the Genode environment as argument.
+The function is expected to initialize the component. Upon completion of the
+initialization, the function returns. At this point, the component becomes
+ready to respond to incoming RPC requests or signals. Each time such a
+request/signal comes in, a handler is executed. The handler applies the
+component-internal state changes and returns immediately. No blocking call is
+performed. We have essentially a state machine.
+
+Over the past two years, we have applied this new approach to all new
+components - to a great success. So it is time to promote this API to become
+Genode's base API. The major benefits are:
+
+* Servers become easier to develop as the API is much simpler.
+  Previously, a server had to manually create a CAP connection and an RPC
+  entrypoint. Now, each component has a ready-to-use entrypoint.
+
+* Signals and RPC requests are handled in the context of the same thread,
+  which alleviates the need for locking as long as the component is single
+  threaded, which is actually the case for most components.
+
+* The notions of 'Thread', 'Signal_receiver', 'Rpc_entrypoint' are no longer
+  needed by the developer of a component. There is simply an 'Entrypoint',
+  which is able to handle both RPC requests and signals.
+
+
+Shunning pointers
+-----------------
+
+The Genode API has still a lot of places where pointers are taken as arguments
+or exposed from objects. We didn't know better when we started with Genode.
+Now we do. With the current release, we streamline the base API in this
+respect. Just as one simple example, the 'Heap' used to take an RM-session
+pointer and an RAM-session pointer as arguments. These should be references.
+Pointers should be used only in situations where a nullptr is a reasonable
+argument, or when dealing with string literals as 'char const *'.
+
+
+We are not there yet
+--------------------
+
+Whereas we find designing an API that successfully strikes the balance between the
+lowest possible API complexity and highest possible flexibility extremely
+challenging, we find ourselves even more challenged with the execution of the
+transition from one API to another. The order of steps must be planned carefully
+and interim solutions must be designed as migration paths. We hope that the
+current release does not induce too much pain for the users of the framework.
+Wherever we found a way to smoothen the migration path, we took it. But there
+are a few disruptive changes that are explained in detail in Section [Base
+framework].
+
+There are still a few loose ends that we will address in the subsequent
+release, in particular the redesign of the parent interface to become
+completely asynchronous.
+
+
+New revision of the Genode Foundations book
+===========================================
+
+The profound changes of the Genode API prompted us to update the Genode
+Foundations book accordingly. Whereas the principle architecture remained
+unchanged, many details needed an adjustment.
+The changes between the last year's edition and the current revision are:
+
+: <div class="visualClear"><!-- --></div>
+: <p>
+:  <div style="clear: both; float: left; margin-right:20px;">
+:   <a class="internal-link" href="https://genode.org">
+:    <img class="image-inline" src="http://genode.org/documentation/genode-foundations-title.png">
+:   </a>
+:  </div>
+: </p>
+
+* Consolidation and interface changes of core services
+  (CAP, SIGNAL, RM, CPU, PD),
+* Architectural changes related to the management of virtual-memory regions
+  (region maps),
+* Updated functional specification matching the new API
+  (e.g., 'Entrypoint', 'Env', 'Component', 'Thread', log API, IPC),
+* Updated NOVA modifications and limitations
+  (kernel-memory quotas, remote unmap, 64-bit guests, write-combining),
+* Label-dependent session routing / policy selection
+
+: <div class="visualClear"><!-- --></div>
+
+To see the changes in detail, please refer to the book's
+[https://github.com/nfeske/genode-manual/commits/master - revision history].
+
+As another useful resource to get acquainted with the new API,
+please also consider the
+[https://genode.org/documentation/developer-resources/client_server_tutorial - updated client-server tutorial].
+
+API migration guide
+===================
+
+In the current release we promote the former "server API" to the general
+"component API", which should solely be used for new components. The old API
+is now considered as deprecated. This short guide provides the list of
+steps one has to take to adapt an existing server-API-style component to the
+new API.
+
+The steps are as follows:
+
+# Replace include directives
+
+  The 'Server' namespace is superseded by the 'Component' namespace and the
+  'Entrypoint' class has moved to the Genode namespace. Therefore, instead
+  of including the _os/server.h_ header, the _base/component.h_ header must
+  be included.
+
+# Replace server definition
+
+  Where the old API used the Server hook functions
+
+  !char const *Server::name()                    { return "server_ep";         }
+  !size_t      Server::stack_size()              { return 8*1024*sizeof(long); }
+  !void        Server::construct(Entrypoint &ep) { static Main main(ep);       }
+
+  the new API uses the Component hook functions
+
+  !size_t Component::stack_size()                { return 8*1024*sizeof(long); }
+  !void   Component::construct(Genode::Env &env) { static Main main(env);      }
+
+  Note that the 'name()' function ceased to exist.
+
+# Use 'Env' reference
+
+  Whereas the old API passes a reference to an 'Entrypoint', the new API
+  passes a reference of the 'Genode::Env' to the component's 'construct'
+  function.
+  The initial entrypoint of the component can be accessed through the 'Env'
+  reference by calling the 'ep()' method. As intermediate step while doing the
+  migration work, it is sufficient to call this method in the 'construct()'
+  method, e.g.:
+
+  !void Component::construct(Genode::Env &env) { static Main main(env.ep()); }
+
+# Replace 'Signal_rpc_member'
+
+  The 'Signal_rpc_member' class is considered deprecated and superseded by the
+  'Signal_handler' class (see _base/signal.h_). Note that the actual
+  signal-handling method as passed to a 'Signal_handler' has no argument, as
+  opposed to the old API where the handler was called with a counter value.
+
+# Replace global 'Genode::env()' accessor
+
+  The most cutting change is the discontinuation of the global 'Genode::env()'
+  accessor function. Typically, this accessor was used throughout a component
+  to access its environment, e.g. use 'Genode::env()->heap()' as allocator or
+  'Genode::env()->rm_session()->attach()' to attach a dataspace.
+
+  Since a component starts its life now at the execution of the 'construct'
+  function, the component has to pass a reference to its 'Env' interface or
+  rather a reference to the needed part of the 'Env' interface on. This
+  explicit way of handling access to the component's environment will require
+  a restructuring of the component. It is good practice to focus on the need
+  at hand rather than to always pass the 'Env' reference on. On that account,
+  it is important to note that the 'Rm_session' is no longer accessible and
+  its place is taken by the 'Region_map'. Where one would have called
+  'env()->rm_session()->attach' to attach a given dataspace,
+  'env.rm().attach' has now to be used.
+
+  Furthermore, the global heap allocator object was removed. Components that
+  want to use a heap like allocator have to create such an allocator
+  manually:
+
+  !Genode::Heap heap { &env.ram(), &env.rm() };
+
+# Use new log facilities
+
+  Instead of relying on the old print macros (PDBG, PERR, PINF, PLOG, PWRN)
+  and thereby 'Genode::printf()', a component should use the new 'Log' class to
+  produce diagnostic LOG output. There are a few convenient template functions,
+  namely 'Genode::error()', 'Genode::log()' and 'Genode::warning()' that can be
+  used. Note that these functions do not use a format string to print various
+  different data types but just a list of arguments, e.g.:
+
+  !int const      i = 42;
+  !char const * str = "world";
+  !Genode::log("Hello ", str, "! ", i);
+
+  produces 'Hello world! 42'.
+
+  Note that certain data types, e.g. 'enum' and 'char', might have to be
+  casted, e.g.:
+
+  !enum { FOO, BAR };
+  !Genode::log("enum: ", (int)FOO, " ", (int)BAR);
+
+
+Base framework
+##############
+
+New component API
+=================
+
+Each component is a composition of a protection domain (PD session), a
+memory budget (RAM session), and a CPU session, from which the initial thread
+is created. These sessions form the _environment_ of the component, which is
+represented by the 'Env' interface class (_base/env.h_). The environment is
+provided to the component as argument to the 'Component::construct'
+(_base/component.h_) function.
+
+:deprecated global 'env()' accessor function:
+
+  During the migration phase to the new API, the 'Genode::env()' is still
+  available. But it will ultimately vanish from the API.
+
+Each component is equipped with an initial 'Entrypoint' (_base/entrypoint.h_)
+that is accessible via 'Env::ep()'. Each entrypoint is able to respond to
+both RPC requests and signals. The 'Component::construct' function is
+executed in the context of the entrypoint. None of the entrypoint's RPC
+objects or signal handlers will be called before returning from the
+'Component::construct' function.
+
+:deprecated 'Rpc_entrypoint':
+
+  The 'Rpc_entrypoint' should no longer be used by components directly.
+  Internally, the 'Entrypoint' is still using an 'Rpc_entrypoint' as
+  underlying mechanism for now, but the 'Rpc_entrypoint' will eventually
+  be removed from the API.
+
+:deprecated _os/signal_rpc_dispatcher.h_:
+
+  The former 'Signal_rpc_member' is superseded by the new 'Signal_handler'
+  (_base/signal.h_).
+
+  Signal-handling methods receive no longer a signal counter value as
+  arguments as there haven't been any convincing use cases for this
+  feature. In the contrary, it actually led to wrong design choices in the
+  past where the rate of signals carried information (such as the progress
+  of time) that should better be obtained via an explicit RPC call.
+
+:deprecated connection constructors without 'Env' argument:
+
+  To eliminate the reliance on the deprecated global 'env()', all connection
+  objects have to take a reference to the component's environment as
+  argument. The original constructors are marked as deprecated. Once we have
+  completely abolished the use of the global 'env()', we will remove them.
+
+
+Consolidation of core's SIGNAL, CAP, RM, and PD services
+========================================================
+
+With the new API, each component implicitly requires a session to core's CAP
+service (to be able to handle RPC requests by the entrypoint) and a session to
+the SIGNAL service (to dispatch signals by the entrypoint). Therefore, the
+separation of these services serves no purpose any longer. To simplify the
+API, the former SIGNAL, CAP, RM, and PD services are now integrated into the
+PD service. This change has several benefits:
+
+* It reduces the API complexity,
+* It reduces the component-startup costs because only one session must
+  be created instead of four.
+* It reduces policy with respect to the dimensioning of the various
+  session quotas.
+
+In order to unify the API across all different base platforms, the PD
+session interface contains no kernel-specific parts any longer. There
+is now a dedicated sub interface called 'Native_pd' that accommodates
+such needs. A capability to this kernel-specific interface can by
+requested via the 'Pd_session::native_pd' accessor method. The kernel-specific
+interfaces are named 'Nova_native_pd', 'Foc_native_pd', and 'Linux_native_pd'.
+
+:deprecated _cap_session_:
+
+  With the integration of the CAP service into the PD service, the CAP session
+  interface ceased to exist. However, there are still old-style components
+  that manually create a 'Cap_connection' to be passed as argument to an
+  'Rpc_entrypoint'. To avoid breaking those components, we keep a pseudo
+  'Cap_connection' around. But the implementation does not actually create
+  a session but merely returns the PD session interface of the component,
+  which coincidentally matches the argument type of the 'Rpc_entrypoint'.
+
+:new _region maps_ replace former RM sessions:
+
+  The functionality of the former RM sessions has moved to the region-map
+  interface, which is an RPC interface but not a session.
+  Each PD session contains 3 region maps, one for the entire virtual
+  address space, one for the stack area (formerly called thread-context
+  area), and one for the linker area. The new RM service is merely
+  responsible for the provisioning of managed dataspaces but is no longer
+  used by regular components.
+
+  As a minor refinement, the 'Fault_type' enum values are now part of the
+  'Region_map::State' struct.
+
+
+New log-output facilities
+=========================
+
+Throughout Genode, we used to rely on C-style format strings for the output of
+diagnostic information and for the assembly of strings. There are many
+shortcomings of this approach such as the limitation of the printable types to
+the built-in format-string specifiers, the lack of type safety, and the
+mismatch between the implementation and the intuitive expectations by the API
+users (who usually expect POSIX compliance).
+
+With the current release, we introduce the new log-output facility _base/log.h_
+that will ultimately replace the original set of convenience macros PDBG,
+PWRN, PERR, PINF by C++ function templates using variadic template arguments.
+The function templates are plainly called 'log', 'error', and 'warning'
+residing in the 'Genode::' namespace. The replacement for 'PDBG' must be a
+macro in order to encode the calling function name into the string. As of now,
+this functionality is not yet covered by _base/log.h_.
+
+The header _base/output.h_ contains the mechanics for the extraction of a textual
+representation from values and object instances. It provides the abstract
+'Output' interface to be implemented by a consumer of text.
+Functions for generating output for different types are named 'print' and
+take an 'Output &' as first argument. The second argument is a 'const &'
+to the value to print. Overloads of the 'print' function for commonly
+used basic types are readily provided. The following example illustrates how
+'print' functions for custom types may be used.
+
+! enum Test_state { STATE_0, STATE_1 };
+! static void print(Genode::Output &output, Test_state const &state)
+! {
+!   switch (state) {
+!   case STATE_0: output.out_string("STATE_0"); break;
+!   case STATE_1: output.out_string("STATE_1"); break;
+!   }
+! }
+! ...
+! Test_state state;
+! state = STATE_0; Genode::log("test: ", state, " = ", (int)state);
+! state = STATE_1; Genode::log("test: ", state, " = ", (int)state);
+
+Furthermore, there is a function template that is used if none of the
+type-specific overloads match. This function template expects the argument to
+be an object with a 'print' method. In contrast to a plain 'print' function
+overload, such a method is able to incorporate private object state into the
+output.
+
+The component's execution environment provides an implementation of the
+'Output' interface that targets a LOG session. This output back end is
+offered to the component in the form of the 'log', 'warning', and 'error'
+functions that accept an arbitrary number of arguments that are printed
+in a concatenated fashion. Each messages is implicitly finalized with a
+newline character.
+
+:deprecated _base/printf.h_, _base/console.h_, and _base/snprintf.h_:
+
+  The goal of the new output facilities is the complete removal of format
+  strings from the Genode API. Hence, the listed headers should be
+  avoided.
+
+
+XML processing
+==============
+
+Since the first version, Genode's init component relied on configurations in
+an XML-like syntax. For a long time, however, we remained hesitant to make the
+base system (core and the base API) inherently dependent on XML. For the most
+part, this hesitance was founded on our observation that XML tends to be
+disliked in systems-programmers circles. However, over the years, XML
+organically became the predominant syntax for component configuration as well
+as for the propagation of state between components. Whereas the syntactical
+merits of XML are highly subjective and perhaps debatable, the beauty of using
+XML within Genode lies in its consistent application. For example, it allows
+us to naturally embed a component configuration in another component's
+configuration without even thinking about it. Much of Genode's flexibility
+that we enjoy today can be attributed to this coherency. Granted, this
+argument would apply just as well to alternatives such as JSON or
+s-expressions. But we have to take one choice and stick to it.
+Whereas we found that XML satisfies our needs and actually never stands
+in the way, the impact on the code complexity is negligibly. Our XML parsing
+and generating utilities are in the order of 700 lines of code.
+
+With this perspective, we take now the deliberate decision to make XML mandatory
+for even the lowest-level parts of the framework. For example, even the
+dynamic linker obtains the policy for diagnostic output from an XML-formatted
+configuration. Consequently, we moved the XML utilities to
+_base/include/util/_.
+
+To ease the use of the XML parsing utilities, we also added the accessors
+'Xml_node::type' and 'Xml_attribute::name' that return 'Genode::String'
+objects.
+
+:changed constructor of 'Reporter':
+
+  One prominent use of XML is the reporting of state information from
+  components to a report service. Most components facilitate the
+  'Genode::Reporter' for this job. Originally, the report name was used
+  implicitly as the top-level XML node type of the report. This is inconvenient
+  if one component needs to generate various XML reports under various names
+  (e.g., to steer consumers/clients slightly differently) but with the same XML
+  node tree structure. To accommodate those needs, the 'Reporter' now takes the XML
+  node type and the report label as two distinct arguments.
+
+
+Dataspace helpers
+=================
+
+The use of dataspaces, e.g., for setting up shared memory between components,
+involves typical sequences of operations, e.g., for attaching the dataspace to
+the local address space. The 'Attached_*_dataspace'
+utilities located at _os/include/os/_ take care of these technicalities.
+With the current release, we promote them to become part of the base API.
+Thereby, we can leverage those utilities even for the lowest-level
+components and internally within the framework. On that account, the
+corresponding header files were moved to _base/include/base/_.
+
+:changed constructors of 'Attached_*_dataspace' utilities:
+
+  Originally, the dataspace utilities relied on side effects via the
+  'Genode::env()' accessor. To break away from this bad practice, the
+  new versions have constructors that take all needed resources as explicit
+  arguments. The original constructors are scheduled for removal.
+
+The most common use case of 'Attached_rom_dataspace' is the consumption
+of XML-formatted data. To accommodate this common pattern, we equipped
+the 'Attached_rom_dataspace' with an accessor plainly named 'xml'.
+It always returns a valid 'Xml_node' even in the event
+where the dataspace is invalid or contains no XML. In such cases, the returned
+XML node is '<empty/>'. This way, we spare the caller the handling of
+exceptions that may occur during XML parsing.
+With this change in place, a configuration attribute can be obtained as follows:
+
+!Genode::Attached_rom_dataspace config(env, "config");
+!...
+!bool const verbose = config.xml().attribute_value("verbose", false);
+
+:deprecated _os/config.h_:
+
+  Since it has become so easy to consume XML from ROM sessions, the role of the
+  former 'Genode::config()' interface has become largely obsolete. In line
+  with our goal to eliminate global side effects, the _os/config.h_ has
+  become deprecated.
+
+
+Thread API and CPU-session interface
+====================================
+
+The thread API and the CPU-session interface underwent a major revision.
+
+
+CPU session interface
+---------------------
+
+:Assigning threads to a PD at their creation time:
+
+  We replaced the former 'Pd_session::bind_thread' method by a
+  PD-capability argument of the 'Cpu_session::create_thread' method, and
+  removed the ancient thread-start protocol via 'Rm_session::add_client' and
+  'Cpu_session::set_pager'. Threads are now bound to PDs at their creation
+  time and implicitly paged according to the address space of the PD.
+
+:New 'Cpu_session::Weight' type:
+
+  The new type replaces a formerly used plain integer value to prevent the
+  accidental mix-up of arguments.
+  The enum definition of 'Cpu_session::DEFAULT_WEIGHT' moved to
+  'Cpu_session::Weight::DEFAULT_WEIGHT'.
+
+:Separation of platform-specific operations from generic CPU session:
+
+  The CPU session interface has been unified across all platforms. The
+  former differences were moved to respective "native-CPU" interfaces
+  analogously to how the 'Native_pd' interface is separated from the
+  'Pd_session' interface.
+
+:Separation of thread operations from CPU session:
+
+  The former CPU-session interface contained a number of operations
+  that took a thread capability as first argument. Those thread-manipulation
+  operations are now accessible as RPC functions on the thread capability
+  directly.
+
+  A noteworthy semantic change is the meaning of the former
+  'exception_handler' RPC function, which used to define both the default
+  exception handler or a thread-specific signal handler. Now, the
+  'Cpu_session::exception_sigh' function defines the CPU-session-wide
+  default handler whereas the 'Cpu_thread::exception_sigh' function
+  defines the thread-specific one.
+
+
+Thread API
+----------
+
+Most regular components no longer need to use the thread API directly.
+Instead, the 'Entrypoint' (which is a thread) should be used whenever possible.
+
+:removed details from _base/thread.h_:
+
+  We moved the details about the stack allocation and organization from the
+  public API to framework-internal headers and replaced the notion of
+  "thread contexts" by "stacks" as this term is more intuitive.
+
+:renamed and removed classes, new constructors:
+
+  The former 'Thread<>' class template has been renamed to
+  'Thread_deprecated'. Threads with the stack supplied as template argument
+  should no longer be used. The stack size should always be passed as
+  constructor argument.
+
+  The former 'Thread_base' class is now called 'Thread'.
+
+  The new Thread constructor takes an 'Env &' as first argument, followed
+  by the thread's parameters such as the affinity and scheduling weight.
+  The original constructors are now marked as deprecated. For the
+  common use case where the default 'Weight' and 'Affinity' are
+  used, a shortcut is provided. In the long term, those two
+  constructors should be the only ones to remain.
+
+  A new 'name()' accessor returns the thread's name as 'Name'
+  object as centrally defined via 'Cpu_session::Name'. It is meant to
+  replace the old-fashioned 'name' method that takes a buffer and size
+  as arguments.
+
+
+Child management
+================
+
+The 'Child' class has been adapted to the changed core services and partially
+redesigned to enable the implementation of single-threaded runtime
+environments that virtualize the CPU, PD, and RAM services. It thereby has
+become free from side effects. I.e., instead of implicitly using
+'Genode::env()->rm_session()', it takes the reference to the local region map
+as argument. Also, the handling of the dynamic linker via global variables is
+gone. Now, the linker binary must be provided as constructor argument.
+
+
+Stylistic changes
+=================
+
+:'Heap', 'Sliced_heap', 'Root_component':
+
+  We added new constructors to these classes that take references, not
+  pointers, as arguments. The old constructors will be removed with the
+  next release.
+
+:Naming of boolean getter methods:
+
+  We already follow a convention about the naming of accessor methods (not
+  using any get_ or set_ prefixes). However, we sometimes used an "is_" prefix
+  for getter functions of boolean values, but not always. Examples are
+  'Capability::valid()' and 'Weak_ptr::is_valid()'.
+
+  In the name of the principle of least surprise, we introduced the convention
+  to not use an "is_" prefix for such methods. We adjusted all occurrences
+  within the Genode code base accordingly. To maintain API compatibility
+  during the transitional phase, we also keep the original methods until the next
+  release.
+
+:Alleviating the need for manually constructed type lists:
+
+  The 'GENODE_RPC_INTERFACE' macro of the RPC framework had a limitation
+  with respect to the number of RPC functions per RPC interface. As a
+  workaround for this limitation, large session interfaces had to manually
+  define the type list of RPC functions out of nested type tuples. With the
+  current release, we removed this limitation.
+
+
+Removed and to-be-removed APIs
+==============================
+
+:removed _base/crt0.h_ and _base/elf.h_:
+
+  Those headers are internally needed by the framework but contain no
+  actual value at the API level. Therefore we removed them from the
+  public API.
+
+:removed _base/process.h_:
+
+  The 'Process' class encapsulated the platform-specific steps to start
+  a Genode component from a given ELF file. The original intention of
+  placing this low-level functionality into a dedicated class was to allow
+  for different flavours of child-management policies. In practice, however,
+  the 'Process' remained solely being used by the 'Genode::Child'. Since
+  the core-interface changes of Section
+  [Consolidation of core's SIGNAL, CAP, RM, and PD services]
+  required us to rewrite the component-creation code anyway and we aspire to
+  narrow the API, we took the chance to make 'Process' private to the 'Child'.
+  Thereby, the rather ambiguous term "process", which we avoid in the context
+  of Genode by speaking of "components" instead, is eliminated from the public
+  API.
+
+:discourage use of _util/arg_string.h_:
+
+  The 'Arg_string' utilities are used to generate and parse session-argument
+  strings. However, to make Genode more coherent and session arguments more
+  flexible and robust, we plan to replace the current argument-string
+  syntax with XML, eventually removing the argument-string support. Hence,
+  we discourage the use of 'util/arg_string.h'.
+
+:discourage use of _base/signal.h_:
+
+  The introduction of the new 'Entrypoint' eliminates the need to manually
+  create and use 'Signal_receiver' objects. Right now, we still rely on the
+  original signal API as backend of the 'Entrypoint' but we will eventually
+  remove the current notion of signal receivers. The narrower semantics of the
+  'Entrypoint' will then allow for performance optimizations that are not
+  possible with the traditional signal receivers. Therefore, we discourage the
+  direct use of 'Signal_receiver'.
+
+
+Low-level OS infrastructure
+###########################
+
+Enhanced GDB support on NOVA
+============================
+
+During the practical work with the GDB monitor (our Genode port of the GNU
+'gdbserver' application) and our nightly automated execution of the
+'gdb_monitor.run' test, it turned out that there are still situations that
+the GDB monitor cannot handle correctly. Since the error symptoms often occured
+sporadically and it was not obvious whether the cause of the error was located
+in the Genode-specific adaptations of the gdbserver code or in the platform-
+specific functionality of the Genode base system. As a first step to improve the
+stability of the debugger we tried to remove existing Genode-specific code
+from the gdbserver codebase and emulated the Linux-specific C interface
+instead. This involved a GDB-monitor-local implementation of the
+'waitpid()' which is documented relatively well. In the
+case of an error, there would be a better chance of comparing the GDB monitor-
+internal execution sequence with a corresponding test case on the Linux version
+of gdbserver.
+
+The emulation of this interface is not trivial, though, because the behavior of
+the Linux kernel often differs from the behavior of the Genode base components.
+For example, when debugging a Linux program, a new thread created by the
+debug target gets stopped automatically by the Linux kernel, the 'waitpid()'
+function then reports a SIGSTOP signal for the new thread and a SIGTRAP signal for
+the creating thread to the gdbserver. This behavior does not match at all with
+the design of the Genode base system. Therefore,  we  emulate it in the GDB monitor
+with the help of a software breakpoint on the first instruction of the new
+thread and an artificial creation of the corresponding SIGSTOP and SIGTRAP
+signal reports.
+
+While implementing this mechanism on the NOVA base platform, we encountered
+several NOVA-specific corner cases. On NOVA, an RPC server is implemented by a so-called
+"local ECs" - a NOVA thread, which only responds to IPC and has no execution
+time of its own. When creating a local EC, the initial instruction pointer as
+passed to the 'Cpu_thread::start' function is always 0. The real instruction
+pointer is defined by a so-called NOVA portal used for calling the local EC. To
+determine the correct start address of the thread - as needed by GDB monitor to
+set the initial breakpoint - changes if the NOVA base system were necessary.
+
+The next show stopper was an attempt by GDB monitor to pause a
+thread of the debug target could block for quite some time if the particular
+thread was currently blocking in a NOVA syscall. 
+We also found that GDB monitor could block for quite some time when trying to
+pause a debug target. This behavior was caused by the targeted thread being in a
+system call, and therefore within the NOVA hypervisor,  by the time of pausing.
+In that case, the
+'Cpu_thread::pause' call returned only after the particular thread got
+executed in userland again, because only then the current register state of
+the thread can be transferred into userland for retrieval by GDB.
+We solved this problem by extending the NOVA kernel, which makes it possible
+to obtain the current register state of a to-be-paused thread immediately
+whenever possible.
+
+Furthermore, the NOVA-specific changes for GDB enable the debugger to
+modify register values and to debug 64-bit applications.
+
+As reference, the 'ports/run/gdb_monitor.run' script demonstrates and tests a
+selection of the features supported by GDB on Genode.
+
+
+New support for the Rust programming language
+=============================================
+
+[https://www.rust-lang.org/ - Rust] is a systems programming language that
+currently gains a lot of popularity. It eliminates entire classes of bugs by
+enforcing memory safety. Unlike languages that rely on a garbage-collecting
+runtime, compiled Rust programs are able to run on bare-metal hardware. This
+makes Rust an attractive language for low-level system components.
+
+The current Genode release introduces basic support for executing
+Rust programs as Genode components. This support includes the
+build-system integration, the configuration of the LLVM-based Rust
+compiler, and the port of the low-level language runtime. A simple example is
+provided via the _libports/run/rust.run_ script and the accompanied code at
+_libports/src/test/rust/_. The example runs on the x86 (32 and 64 bit) and
+ARM architectures.
+
+The port uses the nightly-built rust tool chain from 2016-03-03, so the
+nightly compiler from that day is guaranteed to work. It can be downloaded
+with via the following command:
+! curl -sSf https://static.rust-lang.org/rustup.sh |\
+!      sh -s -- --channel=nightly --date=2016-03-03
+Alternatively, it can be
+[https://static.rust-lang.org/dist/2016-03-03/index.html - manually downloaded].
+
+Thanks to Waylon Cude for bringing Rust to Genode!
+
+
+Dynamic linker
+==============
+
+The dynamic linker will now check if the binary pointer is valid before
+attempting to lookup a symbol. Shared objects with unresolved symbols and
+missing dependencies, e.g., a library that references 'errno' but is not linked
+against libc, will now produce an error message when they are loaded by the
+dynamic linker instead of triggering an ominous page-fault.
+
+
+New component for writing ROM modules to files
+==============================================
+
+The ROM-to-file component at _repos/os/src/app/rom_to_file_ requests a ROM
+session and writes the content of the ROM dataspace to a file of a file-system
+session. It is able to respond to configuration and ROM-module updates. The
+name of the ROM module must be specified via the 'rom' attribute of the
+component's '<config>' node:
+
+! <config rom="pointer"/>
+
+See _run/rom_to_file.run_ for an example.
+
+Thanks to Johannes Schlatow for this contribution!
+
+
+C runtime
+=========
+
+Sysctl
+~~~~~~
+
+The libc sysctl was replaced with an extensible implementation that reads
+values from the _/.sysctl_ directory when present. This interface is
+convergent with the _/proc/sys_ directory on Linux and allows sysctl
+values to be modified by the local component or by an external component
+through a common file system.
+
+
+libc_pipe plugin
+~~~~~~~~~~~~~~~~
+
+The new 'libc_pipe' plugin provides a more accurate implementation of pipes
+(using a ring buffer) and replaces the existing 'libc_lock_pipe' plugin.
+
+
+Device drivers
+##############
+
+In this release, we updated several device drivers ported from
+foreign OSes. In addition, we consolidated all drivers in the _dde_linux_
+repository by utilizing a new modular _lx_kit_ and made sure that each driver
+is using the same Linux version now.
+
+
+HDA audio driver update
+=======================
+
+The audio driver was synced with version 5.9 of OpenBSD. In addition to
+updating the contrib sources, the driver now uses the new component API
+and reports the internal mixer state.
+
+Reporting of the mixer state is enabled by adding the 'report_mixer'
+attribute to the drivers configuration and setting its value to 'yes'.
+
+The following snippet illustrates the format of the report:
+
+!<mixer_state>
+!  <mixer field="inputs.beep" value="108"/>
+!  <mixer field="outputs.hp_sense" value="plugged"/>
+!  <mixer field="outputs.master" value="128,128"/>
+!  <mixer field="outputs.mic_sense" value="unplugged"/>
+!  <mixer field="outputs.spkr_muters" value="hp,mic"/>
+!</mixer_state>
+
+The mixer state can expose other mixer fields as well, depending on the
+used hardware. The naming scheme of the attributes intentionally matches
+the naming scheme of OpenBSD's mixerctl(1) program.
+
+In return, 'mixer' nodes may be used to configure the audio driver by
+specifying it in the configuration, e.g.:
+
+!<config report_mixer="yes">
+!  <mixer field="outputs.master" value="255,255"/>
+!</config>
+
+will set the output volume to the highest possible value. Although it is
+now also possible to update the configuration at run time, this should
+be done with care. Updating the configuration while the driver is playing
+or recording may provoke audible artifacts. For now it is best to use the
+mixer component to regulate the volume rather than adjusting the audio
+driver directly.
+
+
+Linux kit
+=========
+
+Over the years, the way we handled our DDEs has changed. By now it became
+clear that it is easier to manage ported drivers without having to rely a
+generic API like dde_kit. Using Genode primitives directly enabled us to
+specially tailor each DDE to the driver in question. That being said,
+when having four different drivers (intel_fb, lxip, usb and wifi) and each
+one with its own specially tailored DDE, the amount of redundant code became huge.
+We created the lx_kit that enables us to share code across the drivers to
+address this issue. Thereby we reduced the amount of redundant code.
+
+This modular lx_kit separates the required back-end functionality of the
+Linux emulation environment from the front end. Thereby each driver can
+reuse generic parts and supply more suitable implementations by itself.
+It is split into several layers whose structure is as follows:
+
+The first layer in _repos/dde_linux/src/include/lx_emul_ contains those
+header files that provide the structural definitions and function
+declarations of the Linux API, e.g. _errno.h_ provides all error code
+values. The second layer in _repos/dde_linux/src/include/lx_emul/impl_
+contains the implementation of selected functions, e.g. _slab.h_
+provides the implementation of 'kmalloc()'. The lx_kit back end API is
+the third layer and provides the _Lx::Malloc_ interface
+(_repos/dde_linux/src/include/lx_kit/malloc.h_), which is used to
+implement 'kmalloc()'. There are several generic implementations of the
+lx_kit interfaces that can be used by a driver.
+
+A driver typically includes a 'lx_emul/impl/xyz.h' header once
+directly in its lx_emul compilation unit. The lx_kit interface files
+are only included in those compilation units that use or implement the
+interface. If a driver wants to use a generic implementation, it must
+add the source file to its source file list. The generic
+implementations are located in _repos/dde_linux/src/lx_kit/_.
+
+The modular lx_kit still depends on the private _lx_emul.h_ header file
+that is tailored to each driver. Since the lx_kit already contains much
+of the declarations and definitions that were originally placed in
+these private header files, those files can now omit a large amount
+of code.
+
+
+Wifi driver update
+==================
+
+The wifi_drv was updated to Linux version 4.4.3 and thereby adds support for
+Intel 8xxx wireless cards. In order to ease debugging, the driver now
+enables its debugging messages when the 'verbose' attribute in its '<config>'
+node is set to 'yes'.
+
+
+USB driver update
+=================
+
+The USB driver was updated to Linux version 4.4.3 and like the other drivers
+incorporates the modular lx_kit. The new driver exposed problems with the
+EHCI controller on older systems, namely the Thinkpad X201. Using the new USB
+driver on this machine would freeze the system when 'USB legacy Support' is
+enabled in the BIOS. The fix is to conduct a so-called USB hand-off that informs
+the BIOS that the OS wants to drive the USB host-controller and waits until
+the BIOS has acknowledged the request. Unfortunately, applying this quirk
+produces problems on certain xHCI host-controllers when using the IOMMU. In
+this case the driver tried to perform the hand-off request but got stuck while
+writing to the PCI config space. After about 20 seconds, we observed a DMA fault and
+the initialization of the USB driver went on. Presumably at this point the BIOS
+tries to access certain memory regions that - by now - are protected by the IOMMU.
+When using the IOMMU, we already take precautions, i.e., we look at the RMRR
+regions and instruct the kernel to configure the IOMMU for specific devices
+accordingly. We looked at the ACPI RMRR region of the USB on the machine in
+question and could confirm our suspicion: the registered USB RMRR region is
+indeed too small. For all we know, that sounds like a bug in BIOS or rather
+ACPI tables. To accommodate systems that nonetheless need the hand-off quirk
+and the user wants to use the IOMMU, we added the handling of a 'bios_handoff'
+attribute to the USB driver configuration. When set to 'no' the driver will not
+perform any hand-off request. The default setting is 'yes'. If you experience
+any issues with the new USB driver, disabling the hand-off is advised.
+
+While updating the driver, a regression on the Raspberry Pi was introduced.
+USB devices that use IRQ endpoints, e.g. USB HID devices, do not work
+reliably. This issue is still unresolved and dealing with it is postponed
+until after the release.
+
+Furthermore, the USB session used for implementing native USB device drivers
+propagates an EP stall error to the client and clears the stall condition by
+resetting the EP now.
+
+
+Intel graphics driver update
+============================
+
+The Intel graphics driver introduced in Genode release 15.11 was updated to
+Linux version 4.4.3. The most prominent, functional improvement is support for
+Intel Skylake graphics cards.
+Internally, we slimmed the code parts used from the Linux kernel by resigning
+the ancient framebuffer and framebuffer console layer. The new driver only uses
+the more modern DRM layer of the Linux kernel. As a side effect, all formerly
+available heuristics that were applied at initialization time or whenever a
+display got connected are not part of the driver anymore. Now, the driver only
+reports any state changes like additional available displays via its report
+session. On the other hand it always updates the graphics configuration whenever
+its config ROM module changes.
+
+To automatically control the graphics driver during display connection
+changes, an example component named intel_fb_controller is now available at
+_repos/dde_linux/src/test/framebuffer/intel_. This component reacts on report
+changes of the Intel graphics driver and configures it in a way that all
+available displays are showing one and the same framebuffer with their maximum
+resolution. Thereby displays with a minor resolution show the upper left corner
+of the whole framebuffer.
+
+
+Enhanced ACPI support
+=====================
+
+Modern PCs provide an enormous number of ways to monitor and configure the
+system via the Advance Configuration and Power Interface (ACPI)
+Specification.
+Since version 12.02, we have already a basic ACPI driver in Genode,
+which is mainly used to look up low-level data via some clever
+pattern-matching heuristics. These information, like interrupt remapping, are
+sufficient to bootstrap and setup the Genode user-level part of the system. We
+wanted to go beyond this feature set and leverage further - dynamic -
+aspects of ACPI such as system state changes of batteries in notebooks or lid
+status.
+
+The [https://acpica.org - ACPI Component Architecture project ACPICA] develops and
+maintains an operating-system-independent reference implementation of ACPI,
+which can be used by operating systems like Genode to utilize the full
+functionality of modern PCs. So we took the reference implementation of
+ACPICA and ported it to Genode. The port itself was relative straight forward
+and really a pleasure. The interfaces and abstractions to the operating system
+are well chosen by the ACPICA project, clearly documented, and a porter is well
+guided by extensive explanatory documentation.
+
+The port is hosted in the libports repository as a standalone library
+without any additionally dependencies (beside Genode's base library). To utilize
+and experiment with the ported library, we started to develop a Genode
+application called app/acpica, which utilizes the library. We experimented and
+managed to enable the ACPI lid, ACPI embedded controller (e.g. Fn keys),
+ACPI AC adapter, ACPI smart battery subsystem, and ACPI fixed events,
+e.g., power button, on some modern Intel Skylake notebook and partly also on
+some older Lenovo machines, e.g. X201. Additionally, we added support to reset
+and power-off machines via ACPI.
+
+ACPI state changes are reported by the acpica application by setting the
+config attribute 'report' to "yes".
+
+!<start name="acpica">
+!  <config reset="yes" poweroff="yes" report="yes"/>
+!  ...
+
+Whenever such a state change is detected, the application generates the
+appropriate report named 'acpi_lid', 'acpi_ac', 'acpi_battery',
+'acpi_ec' or 'acpi_fixed'. The detailed content of the reports is
+documented in the README of app/acpica or can be manually experienced by
+trying out the _acpica.run_ script in the libports repository.
+
+In order to reset or to power-off machines, the config attribute 'reset'
+respectively 'poweroff' must be set to "yes", as shown before. If one of both
+attributes is configured, app/acpica opens a ROM session called "system"
+and monitors changes of that ROM. The ROM must be XML in the following form:
+
+!<system state="..."/>
+
+If the state attribute is set to "reset" or to "poweroff", app/acpica will
+try to reset respectively power-off the machine immediately. The operation may
+fail if the hardware resources are owned by some other components in the
+Genode system. E.g., on some machines we tested, the reset operation fails
+because the required I/O ports are owned and are used by the x86 platform
+driver. For such cases, we extended the platform driver by an additionally
+config parameter "system" which must be set to "yes", e.g.:
+
+!<start name="platform_drv" >
+!  ...
+!  <config acpi="yes" system="yes">
+!  ...
+
+With this configuration in place, the platform driver also opens and monitors
+the "system" ROM session and reacts upon a state change to "reset". If the
+platform driver owns the required I/O ports, it will trigger the ACPI reset.
+
+In the current state, we still use our old simple ACPI driver to detect
+basic necessary information for the x86 platform driver. The ACPI driver
+reports all findings in form of a report, which is provided as a
+ROM session to the platform driver. Later on, after the platform driver has
+announced its service, the acpica application takes over the ACPI
+functionality of our old ACPI driver and takes care of all dynamic ACPI events.
+
+It first looks a bit cumbersome, however the reasons are twofold. First,
+we wanted to start to experiment with the acpica library without putting our
+ACPI driver at danger. Second, we wanted to see where the complexity of the
+additionally ACPI features leads us. If one is using sloccount, or cloc, as
+complexity measure and applies the tool to the respectively folders, the
+following numbers show up:
+
+! repos/os/src/driver/acpi/      ~1000
+! contrib/acpica-<hash>/         ~120000  ACPICA library
+! repos/libports/src/lib/acpica/ ~600     Genode-specific ACPICA libary support code
+! repos/libports/src/app/acpica/ ~1000    application using the ACPICA Genode port
+
+Of course, the numbers are inaccurate and the comparison is unfair since
+we do not take into account, which files of the acpica library are actually in
+use. Furthermore we can get more functionality with the acpica library, which
+we never could achieve with our own basic ACPI driver implementation. However,
+the point here to be made is, that we have to add much complexity to get a full
+ACPI capable system and that solely a small amount of the complexity actually
+is really required to drive an operating system like Genode.
+
+
+Generalized SDHCI driver
+========================
+
+The SDHCI driver was originally created for the Raspberry Pi. However, the
+same host controller is used also in other platforms, in particular Xilinx
+Zynq. Hence, the existing driver was generalized to become usable on such
+platforms. Thanks to Timo Wischer for this contribution.
+
+
+Libraries and applications
+##########################
+
+LxIP update
+===========
+
+LxIP is the port of the Linux TCP/IP stack as a library on Genode.
+Along with the work described in Section [Linux kit], LxIP was updated to
+Linux version 4.4.3 and uses the lx_kit now.
+
+
+Qemu USB
+========
+
+The QEMU USB library handles EP stalls now. In particular, this fix
+enables the use of USB storage devices in VirtualBox that do not support certain
+SCSI commands, e.g. READ_FORMAT_CAPACITY, and will stall if they receive
+such a command. Windows guests typically use the aforementioned command to
+check if the USB storage device in question is in fact an USB floppy drive.
+
+
+Platforms
+#########
+
+Generalization of platform-specific headers
+===========================================
+
+In anticipation of the planned binary compatibility of Genode components
+across different kernels, we unified most parts of Genode's base API and
+largely removed the dependency on platform-specific types. The most profound
+change is the interface of the IPC library, which used to depend on
+platform-specific message-buffer layouts.
+Besides unifying the message buffer classes across all platforms, we
+reconsidered the roles of the IPC-library classes such as 'Ipc_marhsaller',
+'Ipc_server', and 'Ipc_client'. This led to several additional simplifications in
+the server-loop implementations, which makes the flow of control and
+information much more obvious, yet is also more flexible. I.e., on NOVA, we
+don't even have the notion of reply-and-wait. Now, we are no longer forced to
+pretend otherwise.
+
+
+NOVA microhypervisor
+====================
+
+The kernel received minor adjustments because of the ACPI work. One curious
+performance issue, we actually detected and hunted before our ACPICA
+library work. It happens that a modern Intel Skylake notebook
+(Core i 6th generation) running Genode/NOVA scenarios like noux tool-chain or
+Virtualbox performed really bad - sometimes it was only as fast as a 1th
+generation Intel Core CPU as used in X201 notebooks. After some mysterious
+hunting of possible reasons, it finally turned out that the UEFI vendor did
+not disable ACPI GPE (General Purpose Events) events properly when handing
+over control to the boot loader and kernel. As soon as the NOVA kernel enabled
+the ACPI interrupt (normally IRQ 9) because it utilizes the ACPI PM timer
+feature, the kernel got a storm of GPE interrupts, which got not handled properly.
+Still the system was alive and made progress, but the performance was really
+bad. We changed the kernel to disable all event sources enabled in the
+ACPI GPE0/1 registers. Beside that, using the acpica application also solves
+the performance issue, since the library also resets the GPE registers during
+initialization. However, currently the acpica application is optional and not
+loaded in all scenarios.
+
+On 64 bit, NOVA supports the so called PCID feature, aka tagged TLB. The hardware
+actually supports up to 4096 processes at a time, which can be used with tagged
+TLBs. Unfortunately the original PCID allocator wrapped after 4096 PCIDs,
+which caused - beginning with the 4097th process - to accidentally re-use the
+same PCIDs  and therefore the same TLB entries of long living processes,
+like kernel, core, init, and drivers. This leads to the interesting phenomena of
+bugs. We changed the allocator from a monotonic increasing number to a bit
+allocator, maintaining the used and free PCIDs more accurately.
+
+Additionally, we extended the kernel to support scenarios on Genode
+where capabilities are forwarded from a capability sender to a capability
+receiver through one or more intermediary components (like servers). In such
+scenarios, the intermediary components don't need the forwarded capability for
+some reasons and want to free and re-use the used capability index.
+Unfortunately, or actually intentionally, the syscall 'revoke' will not just
+revoke the local capability but all subsequent derived capabilities. Because of
+this kernel behaviour, we had several quirks in Genode/base-nova, especially in
+the user level capability map implementation and in the Genode entrypoint reply
+handling code to deal with such situations. With all the Genode base API
+changes and unification efforts of all Genode base platforms, the quirks
+became obvious obstacles. With this release, we added support to the kernel, to
+just locally 'drop' the accessibility to the unneeded capability, but not the
+accessibility of the so far subsequent derived capabilities. With the kernel
+extension, we were able to remove the mentioned base-nova quirks.
+
+
+Execution on bare hardware (base-hw)
+====================================
+
+For running Genode scenarios on our custom kernel (base-hw), two hardware
+timers are needed. One timer is used by the kernel as the basis for the
+preemptive scheduling. The other timer is used by the user-level timer
+driver as the timing source for user-level components.
+
+On NOVA, we gathered good experiences with using the kernel's scheduling
+timer as the basis for the user-level timer. Eliminating the need for
+a real timer device driver (like for the PIT on x86) reduces the overall
+complexity. The interrupt load becomes lower without the userland triggering
+timer interrupts. And since the kernel uses CPU-core-local timers (i.e. the
+local APIC timer on x86) as opposed to a global timer in the userland,
+expensive cross-CPU-communication is avoided.
+
+With the current release, we applied the lessons learned to our base-hw
+kernel. As a further motivation, the removal of the dependency on a
+timer device clears the way to run multiple Genode instances on top of
+the Muen separation kernel.
+
+The timeout feature has the form of a new 'timeout' system call that binds
+a signal context to a timeout. Hence, timeouts are delivered asynchronously,
+like interrupts, to the user-level timer service. The actual time can be
+requested via the 'timeout_age_us' system call, which returns the time
+since the last timeout was installed.
+
+
+Linux
+=====
+
+The main purpose of Linux as Genode base platform are rapid prototyping and
+the development of components that do not depend on specific hardware
+properties. During early development (at least with C++) the most prevalent
+fatal bugs result in segmentation faults due to invalid pointers or
+insufficient stack size. Unfortunately, our platform code for Linux did not
+disclose much information about the exceptions that may occur and even
+remained silent about errors in some situations. With this release, we improve
+the exception-signal handling and use an alternate signal stack. The alternate
+stack ensures in almost all cases that Linux applications are able to handle
+exceptions including segmentation faults caused by stack overflows. We also
+enabled this facility for hybrid Linux applications.
+
+
+Tools and build system
+######################
+
+Usability improvements of the ports tools
+=========================================
+
+The ports tool set introduced in
+[https://genode.org/documentation/release-notes/14.05#Management_of_ported_3rd-party_source_code - Genode 14.05]
+has become an integral part of the work flow for Genode developers.
+With the current release, we improve the usability of the _prepare_port_ tool
+in two respects. First, the tool now accept a list of ports instead of
+merely a single argument. This alleviates the need to manually re-execute
+the tool with different arguments. Second, if the build system encounters
+a missing port, it no longer backs out immediately but collects all the
+(potentially more than one) missing ports that are required for the build.
+It then presents the user with a ready-to-use command to install all
+missing ports at once, which greatly improves the experience of working with
+sophisticated system scenarios. For example, when attempting to execute
+the _virtualbox.run_ script with a freshly cloned Genode source tree,
+the build system produces the following error message:
+
+!Error: Ports not prepared or outdated:
+!  dde_linux libc libiconv nova qemu-usb stdcxx virtualbox x86emu
+!
+!You can prepare respectively update them as follows:
+!  .../prepare_port dde_linux libc libiconv nova qemu-usb stdcxx virtualbox x86emu
+
+Furthermore, one may state the number of ports that
+shall be prepared in parallel at a max by using the -j parameter. If -j
+is not set by the user, the tool acts as with -j1.
+
+Since the _prepare_ports_ tool has completely replaced the former
+"make prepare" mechanism, we finally removed the last traces of the old
+mechanism in the form of the makefiles present in the respective source-code
+repositories.
+
+
+Updated tool chain
+==================
+
+Genode 16.05 requires a tool-chain update, which can be downloaded as
+[https://sourceforge.net/projects/genode/files/genode-toolchain/ - precompiled binary archive]
+for 32-bit and 64-bit Linux or built according to the
+[https://genode.org/download/tool-chain - tool-chain documentation].
+With the updated tool chain, we enable the '__cxa_demangle()' function to be
+able to print user-readable names of uncaught exceptions. In the course of our
+GDB improvements, we enhance the x86 debugging support for 64-bit and update
+the required GDB tools. Furthermore, we added the RISC-V relevant tools to the
+binary archive to ease developing Genode components for this platform.
+
+
+Removal of stale features
+#########################
+
+We originally added chroot support to the Linux version of Genode to
+accommodate the use of Genode as middleware on Linux. We enabled the
+configuration of custom UIDs, GIDs, and chroot paths for components started by
+init. However, apart from a brief period of time when we experimented with
+the idea, it is no longer pursued. Now, with our aspiration to attain binary
+compatibility across kernels, we removed the Linux-specific chroot support.
