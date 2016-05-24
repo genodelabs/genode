@@ -36,7 +36,7 @@ struct Ahci_root
 
 namespace Ahci_driver {
 
-	void init(Ahci_root &ep);
+	void init(Ahci_root &ep, bool support_atapi);
 
 	bool avail(long device_num);
 	long device_number(char const *model_num, char const *serial_num);

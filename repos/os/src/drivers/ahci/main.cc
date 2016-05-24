@@ -155,7 +155,8 @@ struct Main
 	: root(ep, Genode::env()->heap())
 	{
 		PINF("--- Starting AHCI driver -> done right .-) --\n");
-		Ahci_driver::init(root);
+		bool support_atapi = Genode::config()->xml_node().attribute_value("atapi", false);
+		Ahci_driver::init(root, support_atapi);
 	}
 };
 

@@ -49,10 +49,12 @@ struct Ahci
 	Signal_rpc_member<Ahci> irq;
 	Signal_rpc_member<Ahci> device_ready;
 	unsigned                ready_count = 0;
+	bool                    enable_atapi;
 
-	Ahci(Ahci_root &root)
+	Ahci(Ahci_root &root, bool support_atapi)
 	: root(root), irq(root.entrypoint(), *this, &Ahci::handle_irq),
-	  device_ready(root.entrypoint(), *this, &Ahci::ready)
+	  device_ready(root.entrypoint(), *this, &Ahci::ready),
+	  enable_atapi(support_atapi)
 	{
 		info();
 
@@ -68,7 +70,7 @@ struct Ahci
 
 	bool atapi(unsigned sig)
 	{
-		return sig == ATAPI_SIG_QEMU || sig == ATAPI_SIG;
+		return enable_atapi && (sig == ATAPI_SIG_QEMU || sig == ATAPI_SIG);
 	}
 
 	bool ata(unsigned sig)
@@ -208,9 +210,9 @@ static Ahci *sata_ahci(Ahci *ahci = 0)
 }
 
 
-void Ahci_driver::init(Ahci_root &root)
+void Ahci_driver::init(Ahci_root &root, bool support_atapi)
 {
-	static Ahci ahci(root);
+	static Ahci ahci(root, support_atapi);
 	sata_ahci(&ahci);
 }
 

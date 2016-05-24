@@ -17,7 +17,7 @@ which client can access a certain device:
 !  <route>
 !    <any-service> <parent /> <any-child /> </any-service>
 !  </route>
-!  <config>
+!  <config atapi="no">
 !    <!-- use model and serial number -->
 !    <policy label="test-ahci" model="QEMU HARDDISK" serial="QM00005" />
 !    <!-- use controller port number -->
@@ -27,4 +27,5 @@ which client can access a certain device:
 
 In the example above, a session request labeled with "test-ahci" gains access to
 a device with certain model and serial numbers, while "bench" gains access to
-device at port 1.
+device at port 1. ATAPI support is by default disabled and can be enabled by
+setting the config attribute "atapi" to "yes".
