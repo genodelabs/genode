@@ -131,6 +131,7 @@ class Vfs_server::File : public Node
 		char const      *_leaf_path; /* offset pointer to Node::_path */
 
 	public:
+
 		File(Vfs::File_system  &vfs,
 		     Genode::Allocator &alloc,
 		     char       const  *file_path,
@@ -142,7 +143,7 @@ class Vfs_server::File : public Node
 				(fs_mode-1) | (create ? Vfs::Directory_service::OPEN_MODE_CREATE : 0);
 
 			assert_open(vfs.open(file_path, vfs_mode, &_handle, alloc));
-			_leaf_path = vfs.leaf_path(file_path);
+			_leaf_path = vfs.leaf_path(path());
 		}
 
 		~File() { _handle->ds().close(_handle); }
@@ -289,5 +290,4 @@ struct Vfs_server::Directory : Node
 	}
 };
 
-
-#endif
+#endif /* _VFS__NODE_H_ */

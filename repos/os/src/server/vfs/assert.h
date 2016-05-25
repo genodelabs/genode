@@ -126,4 +126,4 @@ namespace File_system {
 	}
 }
 
-#endif
+#endif /* _VFS__ASSERT_H_ */
