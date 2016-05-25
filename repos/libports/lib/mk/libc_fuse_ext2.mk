@@ -1,3 +1,5 @@
+REQUIRES = conversion_to_vfs_plugin
+
 FUSE_EXT2_PORT_DIR := $(call select_from_ports,fuse-ext2)
 FUSE_EXT2_DIR      := $(FUSE_EXT2_PORT_DIR)/src/lib/fuse-ext2/fuse-ext2
 

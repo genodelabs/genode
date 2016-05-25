@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -28,7 +28,9 @@ class Vfs::Log_file_system : public Single_file_system
 
 	public:
 
-		Log_file_system(Xml_node config)
+		Log_file_system(Genode::Env&,
+		                Genode::Allocator&,
+		                Genode::Xml_node config)
 		:
 			Single_file_system(NODE_TYPE_CHAR_DEVICE, name(), config)
 		{ }

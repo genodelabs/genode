@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2012-2014 Genode Labs GmbH
+ * Copyright (C) 2012-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -25,28 +25,20 @@ class Vfs::Terminal_file_system : public Single_file_system
 {
 	private:
 
-		struct Label
-		{
-			enum { LABEL_MAX_LEN = 64 };
-			char string[LABEL_MAX_LEN];
-
-			Label(Xml_node config)
-			{
-				string[0] = 0;
-				try { config.attribute("label").value(string, sizeof(string)); }
-				catch (...) { }
-			}
-		} _label;
+		typedef Genode::String<64> Label;
+		Label _label;
 
 		Terminal::Connection _terminal;
 
 	public:
 
-		Terminal_file_system(Xml_node config)
+		Terminal_file_system(Genode::Env &env,
+		                     Genode::Allocator&,
+		                     Genode::Xml_node config)
 		:
 			Single_file_system(NODE_TYPE_CHAR_DEVICE, name(), config),
-			_label(config),
-			_terminal(_label.string)
+			_label(config.attribute_value("label", Label())),
+			_terminal(env, _label.string())
 		{
 			/*
 			 * Wait for connection-established signal

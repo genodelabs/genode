@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -30,7 +30,16 @@ namespace Vfs {
 
 struct Vfs::File_system_factory
 {
-	virtual File_system *create(Xml_node node) = 0;
+	/**
+	 * Create and return a new file-system
+	 *
+	 * \param env     Env for service connections
+	 * \param alloc   internal file-system allocator
+	 * \param config  file-system configuration
+	 */
+	virtual File_system *create(Genode::Env &env,
+	                            Genode::Allocator &alloc,
+	                            Xml_node config) = 0;
 };
 
 

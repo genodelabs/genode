@@ -30,6 +30,7 @@
 #include <destruct_queue.h>
 #include <kill_broadcaster.h>
 #include <vfs/dir_file_system.h>
+#include <base/component.h>
 
 /* supported file systems */
 #include <random_file_system.h>
@@ -287,7 +288,8 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				Vfs::Vfs_handle *vfs_handle = 0;
 				_sysio->error.open = root_dir()->open(_sysio->open_in.path,
 				                                      _sysio->open_in.mode,
-				                                      &vfs_handle);
+				                                      &vfs_handle,
+				                                      *Genode::env()->heap());
 				if (!vfs_handle)
 					break;
 
@@ -1049,7 +1051,9 @@ static Noux::Io_channel *connect_stdio(Vfs::Dir_file_system            &root,
 		config()->xml_node().attribute(stdio_name).value(
 			path, sizeof(path));
 
-		if (root.open(path, mode, &vfs_handle) != Directory_service::OPEN_OK) {
+		if (root.open(path, mode, &vfs_handle, *Genode::env()->heap())
+		    != Directory_service::OPEN_OK)
+		{
 			error("failed to connect ", stdio_name, " to '", Cstring(path), "'");
 			Genode::env()->parent()->exit(1);
 		}
@@ -1117,14 +1121,18 @@ void operator delete (void * ptr)
 template <typename FILE_SYSTEM>
 struct File_system_factory : Vfs::File_system_factory
 {
-	Vfs::File_system *create(Genode::Xml_node node)
+	Vfs::File_system *create(Genode::Env &env, Genode::Allocator &alloc,
+	                         Genode::Xml_node node)
 	{
-		return new FILE_SYSTEM(node);
+		return new FILE_SYSTEM(env, alloc, node);
 	}
 };
 
 
-int main(int argc, char **argv)
+/**
+ * XXX: only a partial conversion from `int main(...)` to `void construct(...)`
+ */
+void Component::construct(Genode::Env &env)
 {
 	using namespace Noux;
 	log("--- noux started ---");
@@ -1151,8 +1159,9 @@ int main(int argc, char **argv)
 	fs_factory.extend("random", random_file_system_factory);
 
 	/* initialize virtual file system */
-	static Vfs::Dir_file_system
-		root_dir(config()->xml_node().sub_node("fstab"), fs_factory);
+	static Vfs::Dir_file_system root_dir(env, *Genode::env()->heap(),
+	                                     config()->xml_node().sub_node("fstab"),
+	                                     fs_factory);
 
 	/* set user information */
 	try {
@@ -1199,7 +1208,7 @@ int main(int argc, char **argv)
 	                             parent_services,
 	                             resources_ep,
 	                             false,
-	                             env()->heap(),
+	                             Genode::env()->heap(),
 	                             destruct_queue,
 	                             verbose);
 
@@ -1241,10 +1250,10 @@ int main(int argc, char **argv)
 		destruct_queue.flush();
 
 		if (verbose_quota)
-			log("quota: avail=", env()->ram_session()->avail(), " "
-			    "used=",         env()->ram_session()->used());
+			log("quota: avail=", env.ram().avail(), " "
+			    "used=",         env.ram().used());
 	}
 
 	log("--- exiting noux ---");
-	return exit_value;
+	env.parent().exit(exit_value);
 }

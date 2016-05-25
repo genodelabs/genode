@@ -17,10 +17,12 @@
 #include <base/thread.h>
 #include <base/rpc_server.h>
 #include <base/rpc_client.h>
+#include <base/heap.h>
 
 /* libc-internal includes */
 #include <internal/call_func.h>
 #include <base/internal/unmanaged_singleton.h>
+#include "vfs_plugin.h"
 
 
 /* escape sequences for highlighting debug message prefixes */
@@ -71,6 +73,11 @@ class Libc::Task : public Genode::Rpc_object<Task_resume, Libc::Task>
 	private:
 
 		Genode::Env &_env;
+
+		/* XXX: this heap is only used by the Vfs_plugin */
+		Genode::Heap _heap { &_env.ram(), &_env.rm() };
+
+		Vfs_plugin   _vfs  { _env, _heap };
 
 		/**
 		 * Application context and execution state

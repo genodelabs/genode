@@ -89,7 +89,7 @@ class Subsystem_config_registry
 			Vfs::Directory_service::Open_result const open_result =
 				_fs.open(path.base(),
 				         Vfs::Directory_service::OPEN_MODE_RDONLY,
-				         &handle);
+				         &handle, *Genode::env()->heap());
 
 			Vfs::Vfs_handle::Guard handle_guard(handle);
 

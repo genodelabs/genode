@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2013-2014 Genode Labs GmbH
+ * Copyright (C) 2013-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -26,18 +26,10 @@ class Vfs::Block_file_system : public Single_file_system
 {
 	private:
 
-		struct Label
-		{
-			enum { LABEL_MAX_LEN = 64 };
-			char string[LABEL_MAX_LEN];
+		Genode::Allocator &_alloc;
 
-			Label(Xml_node config)
-			{
-				string[0] = 0;
-				try { config.attribute("label").value(string, sizeof(string)); }
-				catch (...) { }
-			}
-		} _label;
+		typedef Genode::String<64> Label;
+		Label _label;
 
 		/*
 		 * Serialize access to packet stream of the block session
@@ -47,7 +39,7 @@ class Vfs::Block_file_system : public Single_file_system
 		char                       *_block_buffer;
 		unsigned                    _block_buffer_count;
 
-		Genode::Allocator_avl       _tx_block_alloc;
+		Genode::Allocator_avl       _tx_block_alloc { &_alloc };
 		Block::Connection           _block;
 		Genode::size_t              _block_size;
 		Block::sector_t             _block_count;
@@ -98,14 +90,16 @@ class Vfs::Block_file_system : public Single_file_system
 
 	public:
 
-		Block_file_system(Xml_node config)
+		Block_file_system(Genode::Env &env,
+		                  Genode::Allocator &alloc,
+		                  Genode::Xml_node config)
 		:
 			Single_file_system(NODE_TYPE_BLOCK_DEVICE, name(), config),
-			_label(config),
+			_alloc(alloc),
+			_label(config.attribute_value("label", Label())),
 			_block_buffer(0),
 			_block_buffer_count(1),
-			_tx_block_alloc(env()->heap()),
-			_block(&_tx_block_alloc, 128*1024, _label.string),
+			_block(env, &_tx_block_alloc, 128*1024, _label.string()),
 			_tx_source(_block.tx()),
 			_readable(false),
 			_writeable(false)
@@ -118,12 +112,12 @@ class Vfs::Block_file_system : public Single_file_system
 			_readable  = _block_ops.supported(Block::Packet_descriptor::READ);
 			_writeable = _block_ops.supported(Block::Packet_descriptor::WRITE);
 
-			_block_buffer = new (env()->heap()) char[_block_buffer_count * _block_size];
+			_block_buffer = new (_alloc) char[_block_buffer_count * _block_size];
 		}
 
 		~Block_file_system()
 		{
-			destroy(env()->heap(), _block_buffer);
+			destroy(_alloc, _block_buffer);
 		}
 
 		static char const *name() { return "block"; }

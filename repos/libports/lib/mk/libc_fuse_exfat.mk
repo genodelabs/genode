@@ -1,3 +1,5 @@
+REQUIRES = conversion_to_vfs_plugin
+
 EXFAT_DIR := $(call select_from_ports,exfat)/src/lib/exfat
 
 SRC_C  = $(notdir $(EXFAT_DIR)/fuse/main.c)

@@ -36,6 +36,7 @@
 #include <vfs/file_system_factory.h>
 #include <vfs/dir_file_system.h>
 #include <timer_session/connection.h>
+#include <base/heap.h>
 #include <base/attached_rom_dataspace.h>
 #include <base/snprintf.h>
 #include <base/component.h>
@@ -143,12 +144,13 @@ typedef Genode::Path<Vfs::MAX_PATH_LEN> Path;
 
 struct Stress_test
 {
-	::Path            path;
-	Vfs::file_size    count;
-	Vfs::File_system &vfs;
+	::Path             path;
+	Vfs::file_size     count;
+	Vfs::File_system  &vfs;
+	Genode::Allocator &alloc;
 
-	Stress_test(Vfs::File_system &vfs, char const *parent)
-	: path(parent), count(0), vfs(vfs) { }
+	Stress_test(Vfs::File_system &vfs, Genode::Allocator &alloc, char const *parent)
+	: path(parent), count(0), vfs(vfs), alloc(alloc) { }
 };
 
 
@@ -183,8 +185,8 @@ struct Mkdir_test : public Stress_test
 		mkdir_a(depth);
 	}
 
-	Mkdir_test(Vfs::File_system &vfs, char const *parent)
-	: Stress_test(vfs, parent)
+	Mkdir_test(Vfs::File_system &vfs, Genode::Allocator &alloc, char const *parent)
+	: Stress_test(vfs, alloc, parent)
 	{
 		try { mkdir_a(1); } catch (...) {
 			error("failed at '", path, "' after ", count, " directories");
@@ -213,7 +215,7 @@ struct Populate_test : public Stress_test
 		{
 			Vfs_handle *handle = nullptr;
 			assert_open(vfs.open(
-				path.base(), Directory_service::OPEN_MODE_CREATE, &handle));
+				path.base(), Directory_service::OPEN_MODE_CREATE, &handle, alloc));
 			Vfs_handle::Guard guard(handle);
 			++count;
 		}
@@ -237,8 +239,8 @@ struct Populate_test : public Stress_test
 		}
 	}
 
-	Populate_test(Vfs::File_system &vfs, char const *parent)
-	: Stress_test(vfs, parent)
+	Populate_test(Vfs::File_system &vfs, Genode::Allocator &alloc, char const *parent)
+	: Stress_test(vfs, alloc, parent)
 	{
 		::Path start_path(path.base());
 		try {
@@ -275,7 +277,7 @@ struct Write_test : public Stress_test
 		{
 			Vfs_handle *handle = nullptr;
 			assert_open(vfs.open(
-				path.base(), Directory_service::OPEN_MODE_WRONLY, &handle));
+				path.base(), Directory_service::OPEN_MODE_WRONLY, &handle, alloc));
 			Vfs_handle::Guard guard(handle);
 
 			file_size n;
@@ -303,8 +305,8 @@ struct Write_test : public Stress_test
 		}
 	}
 
-	Write_test(Vfs::File_system &vfs, char const *parent)
-	: Stress_test(vfs, parent)
+	Write_test(Vfs::File_system &vfs, Genode::Allocator &alloc, char const *parent)
+	: Stress_test(vfs, alloc, parent)
 	{
 		size_t path_len = strlen(path.base());
 		try {
@@ -341,7 +343,7 @@ struct Read_test : public Stress_test
 		{
 			Vfs_handle *handle = nullptr;
 			assert_open(vfs.open(
-				path.base(), Directory_service::OPEN_MODE_RDONLY, &handle));
+				path.base(), Directory_service::OPEN_MODE_RDONLY, &handle, alloc));
 			Vfs_handle::Guard guard(handle);
 
 			char tmp[MAX_PATH_LEN];
@@ -371,8 +373,8 @@ struct Read_test : public Stress_test
 		}
 	}
 
-	Read_test(Vfs::File_system &vfs, char const *parent)
-	: Stress_test(vfs, parent)
+	Read_test(Vfs::File_system &vfs, Genode::Allocator &alloc, char const *parent)
+	: Stress_test(vfs, alloc, parent)
 	{
 		size_t path_len = strlen(path.base());
 		try {
@@ -426,8 +428,8 @@ struct Unlink_test : public Stress_test
 		}
 	}
 
-	Unlink_test(Vfs::File_system &vfs, char const *parent)
-	: Stress_test(vfs, parent)
+	Unlink_test(Vfs::File_system &vfs, Genode::Allocator &alloc, char const *parent)
+	: Stress_test(vfs, alloc, parent)
 	{
 		typedef Vfs::Directory_service::Unlink_result Result;
 		try {
@@ -463,11 +465,13 @@ void Component::construct(Genode::Env &env)
 {
 	enum { ROOT_TREE_COUNT = 6 };
 
+	Genode::Heap heap(env.ram(), env.rm());
+
 	Attached_rom_dataspace config_rom(env, "config");
 	Xml_node const config_xml = config_rom.xml();
 
-	Vfs::Dir_file_system vfs_root(config_xml.sub_node("vfs"),
-	                                     Vfs::global_file_system_factory());
+	Vfs::Dir_file_system vfs_root(env, heap, config_xml.sub_node("vfs"),
+	                              Vfs::global_file_system_factory());
 	char path[Vfs::MAX_PATH_LEN];
 
 	MAX_DEPTH = config_xml.attribute_value("depth", 16U);
@@ -491,7 +495,7 @@ void Component::construct(Genode::Env &env)
 		for (int i = 0; i < ROOT_TREE_COUNT; ++i) {
 			snprintf(path, 3, "/%d", i);
 			vfs_root.mkdir(path, 0);
-			Mkdir_test test(vfs_root, path);
+			Mkdir_test test(vfs_root, heap, path);
 			count += test.wait();
 		}
 		elapsed_ms = timer.elapsed_ms() - elapsed_ms;
@@ -514,7 +518,7 @@ void Component::construct(Genode::Env &env)
 
 		for (int i = 0; i < ROOT_TREE_COUNT; ++i) {
 			snprintf(path, 3, "/%d", i);
-			Populate_test test(vfs_root, path);
+			Populate_test test(vfs_root, heap, path);
 			count += test.wait();
 		}
 
@@ -544,7 +548,7 @@ void Component::construct(Genode::Env &env)
 
 		for (int i = 0; i < ROOT_TREE_COUNT; ++i) {
 			snprintf(path, 3, "/%d", i);
-			Write_test test(vfs_root, path);
+			Write_test test(vfs_root, heap, path);
 			count += test.wait();
 
 		}
@@ -576,7 +580,7 @@ void Component::construct(Genode::Env &env)
 
 		for (int i = 0; i < ROOT_TREE_COUNT; ++i) {
 			snprintf(path, 3, "/%d", i);
-			Read_test test(vfs_root, path);
+			Read_test test(vfs_root, heap, path);
 			count += test.wait();
 		}
 
@@ -608,7 +612,7 @@ void Component::construct(Genode::Env &env)
 
 		for (int i = 0; i < ROOT_TREE_COUNT; ++i) {
 			snprintf(path, 3, "/%d", i);
-			Unlink_test test(vfs_root, path);
+			Unlink_test test(vfs_root, heap, path);
 			count += test.wait();
 
 		}

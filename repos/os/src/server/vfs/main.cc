@@ -17,11 +17,11 @@
 #include <ram_session/connection.h>
 #include <root/component.h>
 #include <vfs/dir_file_system.h>
-#include <os/server.h>
 #include <os/session_policy.h>
 #include <vfs/file_system_factory.h>
 #include <os/config.h>
 #include <base/sleep.h>
+#include <base/component.h>
 
 /* Local includes */
 #include "assert.h"
@@ -34,7 +34,6 @@ namespace Vfs_server {
 
 	class  Session_component;
 	class  Root;
-	struct Main;
 
 	static Genode::Xml_node vfs_config()
 	{
@@ -70,7 +69,7 @@ class Vfs_server::Session_component :
 		Genode::Heap            _alloc =
 			{ &_ram, Genode::env()->rm_session() };
 
-		Genode::Signal_rpc_member<Session_component>
+		Genode::Signal_handler<Session_component>
 		                        _process_packet_dispatcher;
 		Vfs::Dir_file_system   &_vfs;
 		Directory               _root;
@@ -141,8 +140,10 @@ class Vfs_server::Session_component :
 			size_t     const length  = packet.length();
 			seek_off_t const seek    = packet.position();
 
+			/* assume failure by default */
+			packet.succeeded(false);
+
 			if ((!(content && length)) || (packet.length() > packet.size())) {
-				packet.succeeded(false);
 				return;
 			}
 
@@ -178,9 +179,6 @@ class Vfs_server::Session_component :
 		{
 			Packet_descriptor packet = tx_sink()->get_packet();
 
-			/* assume failure by default */
-			packet.succeeded(false);
-
 			_process_packet_op(packet);
 
 			/*
@@ -194,7 +192,7 @@ class Vfs_server::Session_component :
 		 * Called by signal dispatcher, executed in the context of the main
 		 * thread (not serialized with the RPC functions)
 		 */
-		void _process_packets(unsigned)
+		void _process_packets()
 		{
 			while (tx_sink()->packet_avail()) {
 
@@ -221,7 +219,7 @@ class Vfs_server::Session_component :
 		 * Check if string represents a valid path (must start with '/')
 		 */
 		static void _assert_valid_path(char const *path) {
-			if (path[0] != '/') throw Lookup_failed(); }
+			if (!path || path[0] != '/') throw Lookup_failed(); }
 
 		/**
 		 * Check if string represents a valid name (must not contain '/')
@@ -244,7 +242,8 @@ class Vfs_server::Session_component :
 		 * \param root_path    path root of the session
 		 * \param writable     whether the session can modify files
 		 */
-		Session_component(Server::Entrypoint  &ep,
+
+		Session_component(Genode::Env         &env,
 		                  char          const *label,
 		                  size_t               ram_quota,
 		                  size_t               tx_buf_size,
@@ -252,9 +251,9 @@ class Vfs_server::Session_component :
 		                  char           const *root_path,
 		                  bool                  writable)
 		:
-			Session_rpc_object(env()->ram_session()->alloc(tx_buf_size), ep.rpc_ep()),
+			Session_rpc_object(env.ram().alloc(tx_buf_size), env.ep().rpc_ep()),
 			_label(label),
-			_process_packet_dispatcher(ep, *this, &Session_component::_process_packets),
+			_process_packet_dispatcher(env.ep(), *this, &Session_component::_process_packets),
 			_vfs(vfs),
 			_root(vfs, root_path, false),
 			_writable(writable)
@@ -554,10 +553,11 @@ class Vfs_server::Root :
 {
 	private:
 
-		Vfs::Dir_file_system _vfs =
-			{ vfs_config(), Vfs::global_file_system_factory() };
+		Genode::Env  &_env;
+		Genode::Heap  _heap { &_env.ram(), &_env.rm() };
 
-		Server::Entrypoint &_ep;
+		Vfs::Dir_file_system _vfs
+			{ _env, _heap, vfs_config(), Vfs::global_file_system_factory() };
 
 	protected:
 
@@ -632,7 +632,7 @@ class Vfs_server::Root :
 			}
 
 			Session_component *session = new(md_alloc())
-				Session_component(_ep,
+				Session_component(_env,
 				                  label.string(),
 				                  ram_quota,
 				                  tx_buf_size,
@@ -652,48 +652,25 @@ class Vfs_server::Root :
 
 	public:
 
-		/**
-		 * Constructor
-		 *
-		 * \param ep        entrypoint
-		 * \param md_alloc  meta-data allocator
-		 */
-		Root(Server::Entrypoint &ep, Genode::Allocator &md_alloc)
+		Root(Genode::Env &env, Genode::Allocator &md_alloc)
 		:
-			Root_component<Session_component>(&ep.rpc_ep(), &md_alloc),
-			_ep(ep)
-		{ }
+			Root_component<Session_component>(&env.ep().rpc_ep(), &md_alloc),
+			_env(env)
+		{
+			env.parent().announce(env.ep().manage(*this));
+		}
 };
 
 
-struct Vfs_server::Main
+/***************
+ ** Component **
+ ***************/
+
+Genode::size_t Component::stack_size() { return 2*1024*sizeof(long); }
+
+void Component::construct(Genode::Env &env)
 {
-	Server::Entrypoint &ep;
+	static Genode::Sliced_heap sliced_heap { &env.ram(), &env.rm() };
 
-	/*
-	 * Initialize root interface
-	 */
-	Genode::Sliced_heap sliced_heap =
-		{ Genode::env()->ram_session(), Genode::env()->rm_session() };
-
-	Vfs_server::Root fs_root = { ep, sliced_heap };
-
-	Main(Server::Entrypoint &ep) : ep(ep)
-	{
-		env()->parent()->announce(ep.manage(fs_root));
-	}
-};
-
-
-/**********************
- ** Server framework **
- **********************/
-
-char const *   Server::name() { return "vfs_ep"; }
-
-Genode::size_t Server::stack_size() { return 2*1024*sizeof(long); }
-
-void Server::construct(Server::Entrypoint &ep)
-{
-	static Vfs_server::Main inst(ep);
+	static Vfs_server::Root root { env, sliced_heap };
 }

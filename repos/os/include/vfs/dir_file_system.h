@@ -206,7 +206,10 @@ class Vfs::Dir_file_system : public File_system
 
 	public:
 
-		Dir_file_system(Xml_node node, File_system_factory &fs_factory)
+		Dir_file_system(Genode::Env         &env,
+		                Genode::Allocator   &alloc,
+		                Genode::Xml_node     node,
+		                File_system_factory &fs_factory)
 		:
 			_first_file_system(0)
 		{
@@ -224,12 +227,12 @@ class Vfs::Dir_file_system : public File_system
 
 				/* traverse into <dir> nodes */
 				if (sub_node.has_type("dir")) {
-					_append_file_system(new (env()->heap())
-					                    Dir_file_system(sub_node, fs_factory));
+					_append_file_system(new (alloc)
+						Dir_file_system(env, alloc, sub_node, fs_factory));
 					continue;
 				}
 
-				File_system *fs = fs_factory.create(sub_node);
+				File_system *fs = fs_factory.create(env, alloc, sub_node);
 				if (fs) {
 					_append_file_system(fs);
 					continue;
@@ -420,7 +423,7 @@ class Vfs::Dir_file_system : public File_system
 		Open_result open(char const  *path,
 	                     unsigned     mode,
 	                     Vfs_handle **out_handle,
-	                     Allocator   &alloc = *Genode::env()->heap()) override
+	                     Allocator   &alloc) override
 		{
 			/*
 			 * If 'path' is a directory, we create a 'Vfs_handle'

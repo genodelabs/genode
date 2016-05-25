@@ -17,27 +17,22 @@
 #include <rom_session/connection.h>
 #include <vfs/file_system.h>
 #include <vfs/vfs_handle.h>
+#include <base/attached_rom_dataspace.h>
 
 namespace Vfs { class Tar_file_system; }
 
 
 class Vfs::Tar_file_system : public File_system
 {
-	struct Rom_name
-	{
-		enum { ROM_NAME_MAX_LEN = 64 };
-		char name[ROM_NAME_MAX_LEN];
+	Genode::Env       &_env;
+	Genode::Allocator &_alloc;
 
-		Rom_name(Xml_node config) {
-			config.attribute("name").value(name, sizeof(name));
-		}
-	} _rom_name;
+	typedef Genode::String<64> Rom_name;
+	Rom_name _rom_name;
 
-	Genode::Rom_connection _rom;
-
-	Genode::Dataspace_capability  _tar_ds;
-	char                         *_tar_base;
-	file_size                     _tar_size;
+	Genode::Attached_rom_dataspace _tar_ds { _env, _rom_name.string() };
+	char                          *_tar_base = _tar_ds.local_addr<char>();
+	file_size               const  _tar_size = _tar_ds.size();
 
 	class Record
 	{
@@ -192,11 +187,15 @@ class Vfs::Tar_file_system : public File_system
 	{
 		private:
 
+			Genode::Allocator &_alloc;
+
 			Node &_root_node;
 
 		public:
 
-			Add_node_action(Node &root_node) : _root_node(root_node) { }
+			Add_node_action(Genode::Allocator &alloc,
+			                Node              &root_node)
+			: _alloc(alloc), _root_node(root_node) { }
 
 			void operator()(Record const *record)
 			{
@@ -242,16 +241,16 @@ class Vfs::Tar_file_system : public File_system
 							 * pointer to save some memory
 							 */
 							Genode::size_t name_size = strlen(path_element) + 1;
-							char *name = (char*)env()->heap()->alloc(name_size);
+							char *name = (char*)_alloc.alloc(name_size);
 							strncpy(name, path_element, name_size);
-							child_node = new (env()->heap()) Node(name, record);
+							child_node = new (_alloc) Node(name, record);
 						} else {
 
 							/* create a directory node without record */
 							Genode::size_t name_size = strlen(path_element) + 1;
-							char *name = (char*)env()->heap()->alloc(name_size);
+							char *name = (char*)_alloc.alloc(name_size);
 							strncpy(name, path_element, name_size);
-							child_node = new (env()->heap()) Node(name, 0);
+							child_node = new (_alloc) Node(name, 0);
 						}
 						parent_node->insert(child_node);
 					}
@@ -343,19 +342,19 @@ class Vfs::Tar_file_system : public File_system
 
 	public:
 
-		Tar_file_system(Xml_node config)
+		Tar_file_system(Genode::Env       &env,
+		                Genode::Allocator &alloc,
+		                Genode::Xml_node   config)
 		:
-			_rom_name(config), _rom(_rom_name.name),
-			_tar_ds(_rom.dataspace()),
-			_tar_base(env()->rm_session()->attach(_tar_ds)),
-			_tar_size(Dataspace_client(_tar_ds).size()),
+			_env(env), _alloc(alloc),
+			_rom_name(config.attribute_value("name", Rom_name())),
 			_root_node("", 0),
 			_cached_num_dirent(_root_node)
 		{
-			Genode::log("tar archive '", Genode::Cstring(_rom_name.name), "' "
+			Genode::log("tar archive '", _rom_name, "' "
 			            "local at ", (void *)_tar_base, ", size is ", _tar_size);
 
-			_for_each_tar_record_do(Add_node_action(_root_node));
+			_for_each_tar_record_do(Add_node_action(_alloc, _root_node));
 		}
 
 
@@ -378,11 +377,11 @@ class Vfs::Tar_file_system : public File_system
 
 			try {
 				Ram_dataspace_capability ds_cap =
-					env()->ram_session()->alloc(record->size());
+					_env.ram().alloc(record->size());
 
-				void *local_addr = env()->rm_session()->attach(ds_cap);
+				void *local_addr = _env.rm().attach(ds_cap);
 				memcpy(local_addr, record->data(), record->size());
-				env()->rm_session()->detach(local_addr);
+				_env.rm().detach(local_addr);
 
 				return ds_cap;
 			}
@@ -393,7 +392,7 @@ class Vfs::Tar_file_system : public File_system
 
 		void release(char const *, Dataspace_capability ds_cap) override
 		{
-			env()->ram_session()->free(static_cap_cast<Genode::Ram_dataspace>(ds_cap));
+			_env.ram().free(static_cap_cast<Genode::Ram_dataspace>(ds_cap));
 		}
 
 		Stat_result stat(char const *path, Stat &out) override

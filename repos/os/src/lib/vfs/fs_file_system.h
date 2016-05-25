@@ -25,6 +25,7 @@ class Vfs::Fs_file_system : public File_system
 {
 	private:
 
+
 		/*
 		 * Lock used to serialize the interaction with the packet stream of the
 		 * file-system session.
@@ -34,7 +35,8 @@ class Vfs::Fs_file_system : public File_system
 		 */
 		Lock _lock;
 
-		Genode::Allocator_avl _fs_packet_alloc;
+		Genode::Env           &_env;
+		Genode::Allocator_avl  _fs_packet_alloc;
 
 		typedef Genode::String<64> Label_string;
 		Label_string _label;
@@ -149,9 +151,12 @@ class Vfs::Fs_file_system : public File_system
 
 	public:
 
-		Fs_file_system(Xml_node config)
+		Fs_file_system(Genode::Env       &env,
+		               Genode::Allocator &alloc,
+		               Genode::Xml_node   config)
 		:
-			_fs_packet_alloc(env()->heap()),
+			_env(env),
+			_fs_packet_alloc(&alloc),
 			_label(config.attribute_value("label", Label_string())),
 			_root( config.attribute_value("root",  Root_string())),
 			_fs(_fs_packet_alloc,
@@ -191,9 +196,9 @@ class Vfs::Fs_file_system : public File_system
 				::File_system::Status status = _fs.status(file);
 
 				Ram_dataspace_capability ds_cap =
-				    env()->ram_session()->alloc(status.size);
+				    _env.ram().alloc(status.size);
 
-				local_addr = env()->rm_session()->attach(ds_cap);
+				local_addr = _env.rm().attach(ds_cap);
 
 				::File_system::Session::Tx::Source &source = *_fs.tx();
 				file_size const max_packet_size = source.bulk_buffer_size() / 2;
@@ -225,12 +230,12 @@ class Vfs::Fs_file_system : public File_system
 					source.release_packet(packet);
 				}
 
-				env()->rm_session()->detach(local_addr);
+				_env.rm().detach(local_addr);
 
 				return ds_cap;
 			} catch(...) {
-				env()->rm_session()->detach(local_addr);
-				env()->ram_session()->free(ds_cap);
+				_env.rm().detach(local_addr);
+				_env.ram().free(ds_cap);
 				return Dataspace_capability();
 			}
 		}
@@ -238,7 +243,7 @@ class Vfs::Fs_file_system : public File_system
 		void release(char const *path, Dataspace_capability ds_cap) override
 		{
 			if (ds_cap.valid())
-				env()->ram_session()->free(static_cap_cast<Genode::Ram_dataspace>(ds_cap));
+				_env.ram().free(static_cap_cast<Genode::Ram_dataspace>(ds_cap));
 		}
 
 		Stat_result stat(char const *path, Stat &out) override

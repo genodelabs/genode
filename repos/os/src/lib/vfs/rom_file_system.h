@@ -14,7 +14,7 @@
 #ifndef _INCLUDE__VFS__ROM_FILE_SYSTEM_H_
 #define _INCLUDE__VFS__ROM_FILE_SYSTEM_H_
 
-#include <os/attached_rom_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 #include <vfs/file_system.h>
 
 namespace Vfs { class Rom_file_system; }
@@ -48,11 +48,13 @@ class Vfs::Rom_file_system : public Single_file_system
 
 	public:
 
-		Rom_file_system(Xml_node config)
+		Rom_file_system(Genode::Env &env,
+		                Genode::Allocator&,
+		                Genode::Xml_node config)
 		:
 			Single_file_system(NODE_TYPE_FILE, name(), config),
 			_label(config),
-			_rom(_label.string)
+			_rom(env, _label.string)
 		{ }
 
 		static char const *name() { return "rom"; }

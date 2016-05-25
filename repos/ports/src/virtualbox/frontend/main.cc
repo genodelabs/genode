@@ -39,6 +39,8 @@
 static char c_vbox_file[128];
 static char c_vbox_vmname[128];
 
+extern "C" void init_libc_vbox_logger(void);
+
 
 /**
  * xpcom style memory allocation
@@ -206,6 +208,9 @@ int main(int argc, char **argv)
 		Genode::error("  <config vbox_file=\"...\" vm_name=\"...\">" );
 		throw;
 	}
+
+	/* enable stdout/stderr for VBox Log infrastructure */
+	init_libc_vbox_logger();
 
 	int rc = RTR3InitExe(argc, &argv, 0);
 	if (RT_FAILURE(rc))

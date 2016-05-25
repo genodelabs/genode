@@ -16,6 +16,7 @@
 #include <cap_session/connection.h>
 #include <vfs/file_system_factory.h>
 #include <vfs/dir_file_system.h>
+#include <base/component.h>
 
 /* public CLI-monitor includes */
 #include <cli_monitor/ram.h>
@@ -71,31 +72,17 @@ static size_t ram_preservation_from_config()
 }
 
 
-/**
- * Return singleton instance of the subsystem config registry
- */
-static Subsystem_config_registry &subsystem_config_registry()
+static Genode::Xml_node vfs_config()
 {
-	try {
-
-		/* initialize virtual file system */
-		static Vfs::Dir_file_system
-			root_dir(Genode::config()->xml_node().sub_node("vfs"),
-			         Vfs::global_file_system_factory());
-
-		static Subsystem_config_registry inst(root_dir);
-
-		return inst;
-
-	} catch (Genode::Xml_node::Nonexistent_sub_node) {
-
+	try { return Genode::config()->xml_node().sub_node("vfs"); }
+	catch (Genode::Xml_node::Nonexistent_sub_node) {
 		Genode::error("missing '<vfs>' configuration");
 		throw;
 	}
 }
 
 
-int main(int argc, char **argv)
+void Component::construct(Genode::Env &env)
 {
 	/* look for dynamic linker */
 	Genode::Dataspace_capability ldso_ds;
@@ -109,7 +96,7 @@ int main(int argc, char **argv)
 	using Genode::Signal_receiver;
 
 	static Genode::Cap_connection cap;
-	static Terminal::Connection   terminal;
+	static Terminal::Connection   terminal(env);
 	static Command_registry       commands;
 	static Child_registry         children;
 
@@ -135,12 +122,18 @@ int main(int argc, char **argv)
 	               sig_rec.manage(&yield_broadcast_sig_ctx),
 	               sig_rec.manage(&resource_avail_sig_ctx));
 
+	/* initialize virtual file system */
+	static Vfs::Dir_file_system root_dir(env, *Genode::env()->heap(), vfs_config(),
+	                                     Vfs::global_file_system_factory());
+
+	static Subsystem_config_registry subsystem_config_registry(root_dir);
+
 	/* initialize generic commands */
 	commands.insert(new Help_command);
 	Kill_command kill_command(children);
 	commands.insert(&kill_command);
 	commands.insert(new Start_command(ram, cap, children,
-	                                  subsystem_config_registry(),
+	                                  subsystem_config_registry,
 	                                  yield_response_sig_cap,
 	                                  exited_child_sig_cap,
 	                                  ldso_ds));
@@ -240,5 +233,5 @@ int main(int argc, char **argv)
 		line_editor.reset();
 	}
 
-	return 0;
+	env.parent().exit(0);
 }

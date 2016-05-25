@@ -20,9 +20,10 @@
 
 struct Jitterentropy_factory : Vfs::File_system_factory
 {
-	Vfs::File_system *create(Genode::Xml_node node) override
+	Vfs::File_system *create(Genode::Env&, Genode::Allocator &alloc,
+	                         Genode::Xml_node  node) override
 	{
-		return new (Genode::env()->heap()) Jitterentropy_file_system(node);
+		return new (alloc) Jitterentropy_file_system(node);
 	}
 };
 

@@ -1,3 +1,5 @@
+REQUIRES = conversion_to_vfs_plugin
+
 NTFS_3G_DIR := $(call select_from_ports,ntfs-3g)/src/lib/ntfs-3g
 
 SRC_C  = ntfs-3g.c ntfs-3g_common.c

@@ -356,6 +356,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			}
 		};
 
+		Genode::Env        &_env;
 		Genode::Allocator  &_alloc;
 		Vfs_ram::Directory  _root = { "" };
 
@@ -419,8 +420,10 @@ class Vfs::Ram_file_system : public Vfs::File_system
 
 	public:
 
-		Ram_file_system(Xml_node config)
-		: _alloc(*env()->heap()) { }
+		Ram_file_system(Genode::Env       &env,
+		                Genode::Allocator &alloc,
+		                Genode::Xml_node)
+		: _env(env), _alloc(alloc) { }
 
 		~Ram_file_system() { _root.empty(_alloc); }
 
@@ -705,22 +708,22 @@ class Vfs::Ram_file_system : public Vfs::File_system
 
 			char *local_addr = nullptr;
 			try {
-				ds_cap = env()->ram_session()->alloc(len);
+				ds_cap = _env.ram().alloc(len);
 
-				local_addr = env()->rm_session()->attach(ds_cap);
+				local_addr = _env.rm().attach(ds_cap);
 				file->read(local_addr, file->length(), 0);
-				env()->rm_session()->detach(local_addr);
+				_env.rm().detach(local_addr);
 
 			} catch(...) {
-				env()->rm_session()->detach(local_addr);
-				env()->ram_session()->free(ds_cap);
+				_env.rm().detach(local_addr);
+				_env.ram().free(ds_cap);
 				return Dataspace_capability();
 			}
 			return ds_cap;
 		}
 
 		void release(char const *path, Dataspace_capability ds_cap) override {
-			env()->ram_session()->free(
+			_env.ram().free(
 				static_cap_cast<Genode::Ram_dataspace>(ds_cap)); }
 
 

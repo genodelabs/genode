@@ -144,7 +144,7 @@ namespace {
 } /* unnamed namespace */
 
 
-void __attribute__((constructor)) init_libc_vbox_logger(void)
+extern "C" void init_libc_vbox_logger(void)
 {
 	static Plugin plugin;
 }

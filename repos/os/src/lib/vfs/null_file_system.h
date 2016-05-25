@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2012-2014 Genode Labs GmbH
+ * Copyright (C) 2012-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -22,7 +22,9 @@ namespace Vfs { class Null_file_system; }
 
 struct Vfs::Null_file_system : Single_file_system
 {
-	Null_file_system(Xml_node config)
+	Null_file_system(Genode::Env&,
+	                 Genode::Allocator&,
+	                 Genode::Xml_node config)
 	:
 		Single_file_system(NODE_TYPE_CHAR_DEVICE, name(), config)
 	{ }

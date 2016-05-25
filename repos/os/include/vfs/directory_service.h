@@ -61,7 +61,7 @@ struct Vfs::Directory_service
 	virtual Open_result open(char const  *path,
 	                         unsigned     mode,
 	                         Vfs_handle **handle,
-	                         Allocator   &alloc = *Genode::env()->heap()) = 0;
+	                         Allocator   &alloc) = 0;
 
 	/**
 	 * Close handle resources and deallocate handle

@@ -42,13 +42,14 @@ class Vfs::Symlink_file_system : public File_system
 
 	public:
 
-		Symlink_file_system(Xml_node config)
+		Symlink_file_system(Genode::Env&,
+		                    Genode::Allocator&,
+		                    Genode::Xml_node config)
 		{
 			try {
 				config.attribute("name").value(_filename, sizeof(_filename));
 				config.attribute("target").value(_target, sizeof(_target));
 			} catch (...) { }
-
 		}
 
 		static char const *name() { return "symlink"; }

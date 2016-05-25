@@ -55,9 +55,11 @@ class Default_file_system_factory : public Vfs::Global_file_system_factory
 		{
 			Builtin_entry() : Entry_base(FILE_SYSTEM::name()) { }
 
-			Vfs::File_system *create(Genode::Xml_node node) override
+			Vfs::File_system *create(Genode::Env       &env,
+			                         Genode::Allocator &alloc,
+			                         Genode::Xml_node   node) override
 			{
-				return new (Genode::env()->heap()) FILE_SYSTEM(node);
+				return new (alloc) FILE_SYSTEM(env, alloc, node);
 			}
 		};
 
@@ -70,8 +72,10 @@ class Default_file_system_factory : public Vfs::Global_file_system_factory
 			:
 				Entry_base(name), _fs_factory(fs_factory) { }
 
-			Vfs::File_system *create(Genode::Xml_node node) override {
-				return _fs_factory.create(node); }
+			Vfs::File_system *create(Genode::Env       &env,
+			                         Genode::Allocator &alloc,
+			                         Genode::Xml_node   node) override {
+				return _fs_factory.create(env, alloc, node); }
 		};
 
 		Genode::List<Entry_base> _list;
@@ -82,11 +86,13 @@ class Default_file_system_factory : public Vfs::Global_file_system_factory
 			_list.insert(new (Genode::env()->heap()) Builtin_entry<FILE_SYSTEM>());
 		}
 
-		Vfs::File_system *_try_create(Genode::Xml_node node)
+		Vfs::File_system *_try_create(Genode::Env       &env,
+		                              Genode::Allocator &alloc,
+		                              Genode::Xml_node   node)
 		{
 			for (Entry_base *e = _list.first(); e; e = e->next())
 				if (e->matches(node))
-					return e->create(node);
+					return e->create(env, alloc, node);
 
 			return 0;
 		}
@@ -126,12 +132,13 @@ class Default_file_system_factory : public Vfs::Global_file_system_factory
 		/**
 		 * \throw Factory_not_available
 		 */
-		Vfs::File_system_factory &_load_factory(Library_name const &lib_name)
+		Vfs::File_system_factory &_load_factory(Genode::Allocator  &alloc,
+		                                        Library_name const &lib_name)
 		{
 			Genode::Shared_object *shared_object = nullptr;
 
 			try {
-				shared_object = new (Genode::env()->heap())
+				shared_object = new (alloc)
 					Genode::Shared_object(lib_name.string());
 
 				typedef Vfs::File_system_factory *(*Query_fn)();
@@ -148,18 +155,18 @@ class Default_file_system_factory : public Vfs::Global_file_system_factory
 				PWRN("could not find symbol '%s' in '%s'",
 				     _factory_symbol(), lib_name.string());
 
-				Genode::destroy(Genode::env()->heap(), shared_object);
+				Genode::destroy(alloc, shared_object);
 				throw Factory_not_available();
 			}
 		}
 
-		bool _probe_external_factory(Genode::Xml_node node)
+		bool _probe_external_factory(Genode::Allocator &alloc, Genode::Xml_node node)
 		{
 			Library_name const lib_name = _library_name(_node_name(node));
 
 			try {
-				_list.insert(new (Genode::env()->heap())
-					External_entry(_node_name(node).string(), _load_factory(lib_name)));
+				_list.insert(new (alloc)
+					External_entry(_node_name(node).string(), _load_factory(alloc, lib_name)));
 				return true;
 
 			} catch (Factory_not_available) { return false; }
@@ -167,20 +174,22 @@ class Default_file_system_factory : public Vfs::Global_file_system_factory
 
 	public:
 
-		Vfs::File_system *create(Genode::Xml_node node) override
+		Vfs::File_system *create(Genode::Env       &env,
+		                         Genode::Allocator &alloc,
+		                         Genode::Xml_node   node) override
 		{
 			try {
 				/* try if type is handled by the currently registered fs types */
-				if (Vfs::File_system *fs = _try_create(node))
+				if (Vfs::File_system *fs = _try_create(env, alloc, node))
 					return fs;
 				/* if the builtin fails, do not try loading an external */
 			} catch (...) { return 0; }
 
 			try {
 				/* probe for file system implementation available as shared lib */
-				if (_probe_external_factory(node)) {
+				if (_probe_external_factory(alloc, node)) {
 					/* try again with the new file system type loaded */
-					if (Vfs::File_system *fs = _try_create(node))
+					if (Vfs::File_system *fs = _try_create(env, alloc, node))
 						return fs;
 				}
 			} catch (...) { }

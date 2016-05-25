@@ -237,7 +237,8 @@ namespace Noux {
 
 		public:
 
-			Random_file_system(Xml_node config)
+			Random_file_system(Genode::Env&, Genode::Allocator&,
+			                   Genode::Xml_node config)
 			:
 				Single_file_system(NODE_TYPE_CHAR_DEVICE, name(), config),
 				_arc4random(0, 0)
