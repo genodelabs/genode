@@ -842,8 +842,17 @@ namespace Platform {
 
 			void free_dma_buffer(Ram_capability ram)
 			{
-				if (ram.valid())
+				/*
+				 * FIXME: proof that the ram cap come from us,
+				 * otherwise we get bookkeeping errors
+				 */
+				if (ram.valid()) {
+					Genode::size_t size = Genode::Dataspace_client(ram).size();
 					_resources.ram().free(ram);
+					if (_resources.ram().transfer_quota(Genode::env()->ram_session_cap(), size))
+						throw Fatal();
+					_md_alloc.upgrade(size);
+				}
 			}
 
 			Device_capability device(String const &name) override;
