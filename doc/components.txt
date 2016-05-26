@@ -79,6 +79,14 @@ Platform devices
   this simple ACPI parser traverses the ACPI tables and reports device-resource
   information (e.g., interrupt lines of PCI devices).
 
+:'libports/src/app/acpica':
+  In addition to our ACPI base driver, the acpica component uses the
+  ACPICA library to provide access to dynamic functions like battery
+  states, events (e.g., notebook lid close and power buttons), as well
+  as reset and power off. The componenten reports ACPI events and
+  states as reports and itself responds to system state changes of
+  certain configuration ROMs.
+
 
 UART devices
 ============
@@ -169,13 +177,13 @@ at the same time). Depending on the base platform, the implementation uses
 different time sources. Time sources are either hardware timers, a time source
 provided by the kernel, or a pseudo time source (busy):
 
-:'nova':      NOVA kernel semaphores as time source
-:'okl4_x86':  PIT as time source
-:'foc':       IPC timeout as time source
-:'fiasco':    IPC timeout as time source
-:'pistachio': IPC timeout as time source
-:'linux':     nanosleep as time source
-:'hw':        hardware timers depending on platform, e.g., PIT on x86
+:'nova':      NOVA kernel semaphores
+:'okl4_x86':  Programmable Interval Timer (PIT) device
+:'foc':       IPC timeout
+:'fiasco':    IPC timeout
+:'pistachio': IPC timeout
+:'linux':     nanosleep()
+:'hw':        kernel timer
 
 
 Audio drivers
@@ -461,9 +469,6 @@ Libraries:
 :'libports/lib/mk/libc':
   C runtime ported from FreeBSD.
 
-:'libports/lib/mk/libc_log':
-  Redirects the standard output of the libc to Genode's LOG session interface.
-
 :'libports/lib/mk/libc_lwip_nic_dhcp':
   Translates the BSD socket API to a NIC session using the lwIP stack.
 
@@ -478,13 +483,6 @@ Libraries:
 
 :'libports/lib/mk/libc_fuse_ext2':
   Accesses files on a block device that contains an ext2 file system.
-
-:'libports/lib/mk/libc_fs':
-  Allows libc-using programs to access the Genode file-system infrastructure
-  using the POSIX file API.
-
-:'libports/lib/mk/libc_block':
-  Accesses a block session as a virtual block device.
 
 :'libports/lib/mk/libc_terminal':
   Connects the standard input and output from/to Genode's terminal session
