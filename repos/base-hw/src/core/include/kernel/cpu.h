@@ -123,6 +123,8 @@ class Kernel::Cpu_job : public Genode::Cpu::User_context, public Cpu_share
 
 		Cpu * _cpu;
 
+		unsigned long long _execution_time;
+
 		/**
 		 * Handle interrupt exception that occured during execution on CPU 'id'
 		 */
@@ -201,6 +203,9 @@ class Kernel::Cpu_job : public Genode::Cpu::User_context, public Cpu_share
 		 ***************/
 
 		void cpu(Cpu * const cpu) { _cpu = cpu; }
+
+		void execution_time_inc(unsigned long long time) { _execution_time += time; }
+		unsigned long long execution_time() { return _execution_time; }
 };
 
 class Kernel::Cpu_idle : public Cpu_job

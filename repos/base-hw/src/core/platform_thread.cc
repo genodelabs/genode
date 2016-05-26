@@ -210,3 +210,12 @@ void Platform_thread::state(Thread_state thread_state)
 	Cpu_state * cstate = static_cast<Cpu_state *>(kernel_object());
 	*cstate = static_cast<Cpu_state>(thread_state);
 }
+
+/**
+ * Return execution time consumed by the thread
+*/
+unsigned long long Platform_thread::execution_time() const
+{
+	return const_cast<Platform_thread*>(this)->
+		kernel_object()->execution_time();
+}

@@ -65,6 +65,7 @@ class Genode::Native_utcb
 			size_t          cap_cnt;            /* capability counter */
 			size_t          data_size;          /* bytes to transfer  */
 			long            exception_code;     /* result code of RPC */
+			unsigned long long execution_time;  /* thread execution time */
 			Kernel::capid_t destination;        /* invoked object     */
 			Kernel::capid_t caps[MAX_CAP_ARGS]; /* capability buffer  */
 		}       _header; /* is padded to machine word boundary by the compiler */
@@ -77,6 +78,7 @@ class Genode::Native_utcb
 			_header.cap_cnt        = 0;
 			_header.data_size      = min(sizeof(_data), other._header.data_size);
 			_header.exception_code = other._header.exception_code;
+			_header.execution_time = other._header.execution_time;
 			_header.destination    = other._header.destination;
 			memcpy(_data, other._data, _header.data_size);
 
@@ -96,6 +98,10 @@ class Genode::Native_utcb
 		void exception_code(long code) { _header.exception_code = code; }
 
 		long exception_code() const { return _header.exception_code; }
+
+		void execution_time(unsigned long long execution_time) { _header.execution_time = execution_time; }
+
+		unsigned long long execution_time() const { return _header.execution_time; }
 
 		/**
 		 * Return the count of capabilities in the UTCB

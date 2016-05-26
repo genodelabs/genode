@@ -163,10 +163,14 @@ Cpu_job & Cpu::schedule()
 {
 	/* update scheduler */
 	time_t quota = _clock.update_time();
+
 	Job & old_job = scheduled_job();
 	old_job.exception(id());
 	_clock.process_timeouts();
 	_scheduler.update(quota);
+
+	/* update thread execution time (in tics) */
+	old_job.execution_time_inc(quota);
 
 	/* get new job */
 	Job & new_job = scheduled_job();

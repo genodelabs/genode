@@ -146,7 +146,13 @@ Cpu_job * Thread::helping_sink() {
 	return static_cast<Thread *>(Ipc_node::helping_sink()); }
 
 
-void Thread::proceed(unsigned const cpu) { mtc()->switch_to_user(this, cpu); }
+void Thread::proceed(unsigned const cpu)
+{
+	/* update execution time*/
+	utcb()->execution_time(_execution_time);
+
+	mtc()->switch_to_user(this, cpu);
+}
 
 
 size_t Thread::_core_to_kernel_quota(size_t const quota) const
