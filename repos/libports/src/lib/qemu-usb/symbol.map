@@ -1,0 +1,14 @@
+/*
+ *
+ */
+{
+	global:
+
+		extern "C++" {
+			Qemu::*;
+		};
+
+	local:
+
+		*;
+};

@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__DRIVERS__UART__TL16C750_BASE_H_
-#define _INCLUDE__DRIVERS__UART__TL16C750_BASE_H_
+#ifndef _INCLUDE__SPEC__TL16C750__DRIVERS__UART_BASE_H_
+#define _INCLUDE__SPEC__TL16C750__DRIVERS__UART_BASE_H_
 
 /* Genode includes */
 #include <util/mmio.h>
@@ -243,5 +243,4 @@ class Genode::Tl16c750_base : public Mmio
 		}
 };
 
-#endif /* _INCLUDE__DRIVERS__UART__TL16C750_BASE_H_ */
-
+#endif /* _INCLUDE__SPEC__TL16C750__DRIVERS__UART_BASE_H_ */

@@ -6,28 +6,28 @@
  */
 
 /*
- * Copyright (C) 2012-2013 Genode Labs GmbH
+ * Copyright (C) 2012-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _SPEC__ARM__CPU_SUPPORT_H_
-#define _SPEC__ARM__CPU_SUPPORT_H_
+#ifndef _CORE__INCLUDE__SPEC__ARM__CPU_SUPPORT_H_
+#define _CORE__INCLUDE__SPEC__ARM__CPU_SUPPORT_H_
 
 /* Genode includes */
 #include <util/register.h>
 #include <cpu/cpu_state.h>
 
 /* local includes */
+#include <kernel/kernel.h>
 #include <board.h>
 #include <util.h>
 
+namespace Kernel { class Pd; }
+
 namespace Genode
 {
-	/**
-	 * CPU driver for core
-	 */
 	class Arm;
 
 	typedef Genode::uint64_t sizet_arithm_t;
@@ -75,6 +75,7 @@ class Genode::Arm
 		struct Sctlr : Register<32>
 		{
 			struct M : Bitfield<0,1>  { }; /* enable MMU */
+			struct A : Bitfield<1,1>  { }; /* enable alignment checks */
 			struct C : Bitfield<2,1>  { }; /* enable data cache */
 			struct I : Bitfield<12,1> { }; /* enable instruction caches */
 			struct V : Bitfield<13,1> { }; /* select exception entry */
@@ -89,20 +90,26 @@ class Genode::Arm
 			static void write(access_t const v) {
 				asm volatile ("mcr p15, 0, %0, c1, c0, 0" :: "r" (v) : ); }
 
-			/**
-			 * Do initialization that is common on value 'v'
-			 */
-			static void init_common(access_t & v)
+			static void init()
 			{
-				C::set(v, 1);
-				I::set(v, 1);
+				access_t v = read();
+
+				/* disable alignment checks */
+				A::set(v, 0);
+
+				/* set exception vector to 0xffff0000 */
 				V::set(v, 1);
+				write(v);
 			}
 
-			/**
-			 * Do initialization for virtual mode in kernel on value 'v'
-			 */
-			static void init_virt_kernel(access_t & v) { M::set(v, 1); }
+			static void enable_mmu_and_caches()
+			{
+				access_t v = read();
+				C::set(v, 1);
+				I::set(v, 1);
+				M::set(v, 1);
+				write(v);
+			}
 		};
 
 		/**
@@ -162,8 +169,8 @@ class Genode::Arm
 			{
 				access_t v = Ba::masked((addr_t)table);
 				Rgn::set(v, CACHEABLE);
-				S::set(v, Board::is_smp() ? 1 : 0);
-				if (Board::is_smp()) Irgn::set(v, CACHEABLE);
+				S::set(v, Kernel::board().is_smp() ? 1 : 0);
+				if (Kernel::board().is_smp()) Irgn::set(v, CACHEABLE);
 				else C::set(v, 1);
 				return v;
 			}
@@ -473,54 +480,42 @@ class Genode::Arm
 		/**
 		 * Invalidate all entries of all instruction caches
 		 */
-		__attribute__((always_inline)) static void invalidate_instr_caches() {
+		void invalidate_instr_cache() {
 			asm volatile ("mcr p15, 0, %0, c7, c5, 0" :: "r" (0) : ); }
 
 		/**
 		 * Flush all entries of all data caches
 		 */
-		static void flush_data_caches();
+		void clean_invalidate_data_cache();
 
 		/**
-		 * Invalidate all entries of all data caches
+		 * Switch on MMU and caches
+		 *
+		 * \param pd  kernel's pd object
 		 */
-		static void invalidate_data_caches();
-
-		/**
-		 * Flush all caches
-		 */
-		static void flush_caches()
-		{
-			flush_data_caches();
-			invalidate_instr_caches();
-		}
+		void enable_mmu_and_caches(Kernel::Pd & pd);
 
 		/**
 		 * Invalidate all TLB entries of the address space named 'pid'
 		 */
-		static void flush_tlb_by_pid(unsigned const pid)
-		{
-			flush_caches();
-			asm volatile ("mcr p15, 0, %0, c8, c7, 2" :: "r" (pid) : );
-		}
+		void invalidate_tlb_by_pid(unsigned const pid) {
+			asm volatile ("mcr p15, 0, %0, c8, c7, 2" :: "r" (pid) : ); }
 
 		/**
 		 * Invalidate all TLB entries
 		 */
-		static void flush_tlb()
-		{
-			flush_caches();
-			asm volatile ("mcr p15, 0, %0, c8, c7, 0" :: "r" (0) : );
-		}
+		void invalidate_tlb() {
+			asm volatile ("mcr p15, 0, %0, c8, c7, 0" :: "r" (0) : ); }
 
 		static constexpr addr_t line_size = 1 << Board::CACHE_LINE_SIZE_LOG2;
 		static constexpr addr_t line_align_mask = ~(line_size - 1);
 
 		/**
-		 * Flush data-cache entries for virtual region ['base', 'base + size')
+		 * Clean and invalidate data-cache for virtual region
+		 * 'base' - 'base + size'
 		 */
-		static void
-		flush_data_caches_by_virt_region(addr_t base, size_t const size)
+		void clean_invalidate_data_cache_by_virt_region(addr_t base,
+		                                                size_t const size)
 		{
 			addr_t const top = base + size;
 			base &= line_align_mask;
@@ -528,15 +523,34 @@ class Genode::Arm
 		}
 
 		/**
-		 * Bin instr.-cache entries for virtual region ['base', 'base + size')
+		 * Invalidate instruction-cache for virtual region
+		 * 'base' - 'base + size'
 		 */
-		static void
-		invalidate_instr_caches_by_virt_region(addr_t base, size_t const size)
+		void invalidate_instr_cache_by_virt_region(addr_t base,
+		                                           size_t const size)
 		{
 			addr_t const top = base + size;
 			base &= line_align_mask;
 			for (; base < top; base += line_size) { Icimvau::write(base); }
 		}
+
+
+		/*************
+		 ** Dummies **
+		 *************/
+
+		void switch_to(User_context&) { }
+		bool retry_undefined_instr(Context&) { return false; }
+
+		/**
+		 * Return kernel name of the executing CPU
+		 */
+		static unsigned executing_id() { return 0; }
+
+		/**
+		 * Return kernel name of the primary CPU
+		 */
+		static unsigned primary_id() { return 0; }
 };
 
-#endif /* _SPEC__ARM__CPU_SUPPORT_H_ */
+#endif /* _CORE__INCLUDE__SPEC__ARM__CPU_SUPPORT_H_ */

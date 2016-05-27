@@ -41,9 +41,10 @@ class Platform::Device_pd_policy : public Genode::Slave_policy
 
 		Device_pd_policy(Genode::Rpc_entrypoint &slave_ep,
 		                 Genode::Ram_session_capability ram_ref_cap,
-		                 Genode::addr_t device_pd_ram_quota)
+		                 Genode::addr_t device_pd_ram_quota,
+		                 const char * label)
 		:
-			Slave_policy("device_pd", slave_ep),
+			Slave_policy(label, slave_ep, nullptr, "device_pd"),
 			_lock(Genode::Lock::LOCKED),
 			_ram_ref_cap(ram_ref_cap),
 			_device_pd_slave(slave_ep, *this, device_pd_ram_quota, ram_ref_cap)

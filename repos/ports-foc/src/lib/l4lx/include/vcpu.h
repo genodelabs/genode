@@ -19,8 +19,11 @@
 #include <base/sleep.h>
 #include <base/thread.h>
 #include <base/cap_map.h>
-#include <foc_cpu_session/connection.h>
+#include <foc_native_cpu/client.h>
+#include <cpu_session/client.h>
+#include <cpu_thread/client.h>
 #include <timer_session/connection.h>
+#include <foc/native_thread.h>
 
 namespace Fiasco {
 #include <l4/sys/utcb.h>
@@ -28,14 +31,14 @@ namespace Fiasco {
 
 namespace L4lx {
 
-	extern Genode::Foc_cpu_session_client *vcpu_connection();
+	extern Genode::Cpu_session *cpu_connection();
 
 
-	class Vcpu : public Genode::Thread_base
+	class Vcpu : public Genode::Thread
 	{
 		private:
 
-			enum { WEIGHT = Genode::Cpu_session::DEFAULT_WEIGHT };
+			enum { WEIGHT = Genode::Cpu_session::Weight::DEFAULT_WEIGHT };
 
 			Genode::Lock                _lock;
 			L4_CV void                (*_func)(void *data);
@@ -43,6 +46,7 @@ namespace L4lx {
 			Genode::addr_t              _vcpu_state;
 			Timer::Connection           _timer;
 			unsigned                    _cpu_nr;
+			Fiasco::l4_utcb_t   * const _utcb;
 
 		public:
 
@@ -52,24 +56,25 @@ namespace L4lx {
 			     Genode::size_t              stack_size,
 			     Genode::addr_t              vcpu_state,
 			     unsigned                    cpu_nr)
-			: Genode::Thread_base(WEIGHT, str, stack_size),
+			: Genode::Thread(WEIGHT, str, stack_size,
+			                 Genode::Affinity::Location(cpu_nr, 0)),
 			  _lock(Genode::Cancelable_lock::LOCKED),
 			  _func(func),
 			  _data(data ? *data : 0),
 			  _vcpu_state(vcpu_state),
-			  _cpu_nr(cpu_nr)
+			  _cpu_nr(cpu_nr),
+			  _utcb((Fiasco::l4_utcb_t *)Genode::Cpu_thread_client(cap()).state().utcb)
 			{
 				start();
 
 				/* set l4linux specific utcb entry: L4X_UTCB_TCR_ID */
-				l4_utcb_tcr_u(utcb())->user[0] = tid();
+				l4_utcb_tcr_u(_utcb)->user[0] = native_thread().kcap;
 
 				/* enable vcpu functionality respectively */
-				if (_vcpu_state)
-					vcpu_connection()->enable_vcpu(_thread_cap, _vcpu_state);
-
-				/* set cpu affinity */
-				set_affinity(_cpu_nr);
+				if (_vcpu_state) {
+					Genode::Foc_native_cpu_client native_cpu(cpu_connection()->native_cpu());
+					native_cpu.enable_vcpu(_thread_cap, _vcpu_state);
+				}
 			}
 
 			void entry()
@@ -81,18 +86,17 @@ namespace L4lx {
 
 			void unblock() { _lock.unlock(); }
 
-			Genode::addr_t sp() { return _context->stack_top(); }
+			Genode::addr_t sp() { return (Genode::addr_t)stack_top(); }
 
 			Genode::addr_t ip() { return (Genode::addr_t)_func; }
 
-			Fiasco::l4_utcb_t *utcb() { return _context->utcb; };
+			Fiasco::l4_utcb_t *utcb() { return _utcb; };
 
 			Timer::Connection* timer() { return &_timer; }
 
 			void set_affinity(unsigned i)
 			{
-				vcpu_connection()->affinity(_thread_cap,
-				                            Genode::Affinity::Location(i, 0));
+				Genode::Cpu_thread_client(_thread_cap).affinity(Genode::Affinity::Location(i, 0));
 			}
 	};
 

@@ -143,13 +143,27 @@ namespace Platform {
 			int device_number()   { return _device; }
 			int function_number() { return _function; }
 
+			Genode::uint16_t bdf () {
+				return (_bus << 8) | (_device << 3) | (_function & 0x7); }
+
 			/**
 			 * Accessor functions for device information
 			 */
 			unsigned short device_id() { return _device_id; }
 			unsigned short vendor_id() { return _vendor_id; }
 			unsigned int  class_code() { return _class_code; }
-			bool       is_pci_bridge() { return _header_type == HEADER_PCI_TO_PCI; }
+
+			/**
+			 * Return true if device is a PCI bridge
+			 */
+			bool pci_bridge() { return _header_type == HEADER_PCI_TO_PCI; }
+
+			/**
+			 * Return true if device is a PCI bridge
+			 *
+			 * \deprecated  use 'pci_bridge instead
+			 */
+			bool is_pci_bridge() { return pci_bridge(); }
 
 			/**
 			 * Return true if device is valid

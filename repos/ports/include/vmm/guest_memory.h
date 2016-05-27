@@ -28,6 +28,7 @@
 /* Genode includes */
 #include <os/attached_ram_dataspace.h>
 #include <rm_session/connection.h>
+#include <region_map/client.h>
 
 /* VMM utilities includes */
 #include <vmm/types.h>
@@ -45,11 +46,11 @@ namespace Vmm {
  * part of the address space, which contains the shadow of the VCPU's physical
  * memory.
  */
-struct Vmm::Virtual_reservation : Rm_connection
+struct Vmm::Virtual_reservation : private Rm_connection, Region_map_client
 {
 	Virtual_reservation(addr_t vm_size)
 	:
-		Rm_connection(0, vm_size)
+		Region_map_client(Rm_connection::create(vm_size))
 	{
 		try {
 			/*
@@ -57,7 +58,7 @@ struct Vmm::Virtual_reservation : Rm_connection
 			 * space. We leave out the very first page because core denies
 			 * the attachment of anything at the zero page.
 			 */
-			env()->rm_session()->attach_at(Rm_connection::dataspace(),
+			env()->rm_session()->attach_at(Region_map_client::dataspace(),
 			                               PAGE_SIZE, 0, PAGE_SIZE);
 
 		} catch (Rm_session::Region_conflict) {

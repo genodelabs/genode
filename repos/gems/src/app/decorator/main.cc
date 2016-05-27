@@ -77,6 +77,8 @@ struct Decorator::Main : Window_factory_base
 
 	bool window_layout_update_needed = false;
 
+	Reporter decorator_margins_reporter = { "decorator_margins" };
+
 	Animator animator;
 
 	/**
@@ -122,6 +124,21 @@ struct Decorator::Main : Window_factory_base
 		nitpicker.framebuffer()->sync_sigh(nitpicker_sync_dispatcher);
 
 		hover_reporter.enabled(true);
+
+		decorator_margins_reporter.enabled(true);
+
+		Genode::Reporter::Xml_generator xml(decorator_margins_reporter, [&] ()
+		{
+			xml.node("floating", [&] () {
+
+				Window::Border const border = Window::border_floating();
+
+				xml.attribute("top",    border.top);
+				xml.attribute("bottom", border.bottom);
+				xml.attribute("left",   border.left);
+				xml.attribute("right",  border.right);
+			});
+		});
 
 		/* import initial state */
 		handle_pointer_update(0);
@@ -235,7 +252,7 @@ void Decorator::Main::handle_nitpicker_sync(unsigned)
 
 	bool model_updated = false;
 
-	if (window_layout_update_needed && window_layout.is_valid()) {
+	if (window_layout_update_needed && window_layout.valid()) {
 
 		try {
 			Xml_node xml(window_layout.local_addr<char>(),
@@ -248,7 +265,7 @@ void Decorator::Main::handle_nitpicker_sync(unsigned)
 			 * A decorator element might have appeared or disappeared under
 			 * the pointer.
 			 */
-			if (pointer.is_valid())
+			if (pointer.valid())
 				update_hover_report(Xml_node(pointer.local_addr<char>()),
 				                    window_stack, hover, hover_reporter);
 
@@ -292,7 +309,7 @@ void Decorator::Main::handle_pointer_update(unsigned)
 {
 	pointer.update();
 
-	if (pointer.is_valid())
+	if (pointer.valid())
 		update_hover_report(Xml_node(pointer.local_addr<char>()),
 		                    window_stack, hover, hover_reporter);
 }

@@ -10,7 +10,7 @@
  * assumed to be page-aligned.
  *
  * The code is largely based on 'base/include/base/heap.h' and
- * 'base/src/base/heap/heap.cc'.
+ * 'base/src/lib/base/heap.cc'.
  */
 
 /* Genode includes */
@@ -39,7 +39,7 @@ Libc::Mem_alloc_impl::Dataspace_pool::~Dataspace_pool()
 
 		remove(ds);
 		delete ds;
-		_rm_session->detach(ds->local_addr);
+		_region_map->detach(ds->local_addr);
 		_ram_session->free(ds_cap);
 	}
 }
@@ -53,10 +53,10 @@ int Libc::Mem_alloc_impl::Dataspace_pool::expand(size_t size, Range_allocator *a
 	/* make new ram dataspace available at our local address space */
 	try {
 		new_ds_cap = _ram_session->alloc(size);
-		local_addr = _rm_session->attach(new_ds_cap);
+		local_addr = _region_map->attach(new_ds_cap);
 	} catch (Ram_session::Alloc_failed) {
 		return -2;
-	} catch (Rm_session::Attach_failed) {
+	} catch (Region_map::Attach_failed) {
 		_ram_session->free(new_ds_cap);
 		return -3;
 	}
@@ -65,7 +65,7 @@ int Libc::Mem_alloc_impl::Dataspace_pool::expand(size_t size, Range_allocator *a
 	alloc->add_range((addr_t)local_addr, size);
 
 	/* now that we have new backing store, allocate Dataspace structure */
-	if (alloc->alloc_aligned(sizeof(Dataspace), &ds_addr, 2).is_error()) {
+	if (alloc->alloc_aligned(sizeof(Dataspace), &ds_addr, 2).error()) {
 		PWRN("could not allocate meta data - this should never happen");
 		return -1;
 	}
@@ -85,7 +85,7 @@ void *Libc::Mem_alloc_impl::alloc(size_t size, size_t align_log2)
 
 	/* try allocation at our local allocator */
 	void *out_addr = 0;
-	if (_alloc.alloc_aligned(size, &out_addr, align_log2).is_ok())
+	if (_alloc.alloc_aligned(size, &out_addr, align_log2).ok())
 		return out_addr;
 
 	/*
@@ -112,7 +112,7 @@ void *Libc::Mem_alloc_impl::alloc(size_t size, size_t align_log2)
 	}
 
 	/* allocate originally requested block */
-	return _alloc.alloc_aligned(size, &out_addr, align_log2).is_ok() ? out_addr : 0;
+	return _alloc.alloc_aligned(size, &out_addr, align_log2).ok() ? out_addr : 0;
 }
 
 

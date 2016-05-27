@@ -46,7 +46,6 @@ append config {
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="LOG"/>
-		<service name="CAP"/>
 		<service name="RAM"/>
 		<service name="RM"/>
 		<service name="CPU"/>
@@ -54,7 +53,6 @@ append config {
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
-		<service name="SIGNAL"/>
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
@@ -161,7 +159,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init timer tcp_terminal nic_bridge
-	ld.lib.so noux_net libc.lib.so libm.lib.so libc_lock_pipe.lib.so
+	ld.lib.so noux_net libc.lib.so libm.lib.so libc_pipe.lib.so
 	libc_resolv.lib.so libc_noux.lib.so lwip.lib.so noux_netcat.tar
 }
 

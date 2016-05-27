@@ -25,7 +25,7 @@ using namespace Genode;
 /**
  * Transmit signals in a periodic fashion
  */
-class Sender : Thread<4096>
+class Sender : Thread_deprecated<4096>
 {
 	private:
 
@@ -71,7 +71,7 @@ class Sender : Thread<4096>
 		Sender(Signal_context_capability context,
 		       unsigned interval_ms, bool verbose = true)
 		:
-			Thread("sender"),
+			Thread_deprecated("sender"),
 			_transmitter(context),
 			_interval_ms(interval_ms),
 			_stop(false),
@@ -110,7 +110,7 @@ class Sender : Thread<4096>
 /**
  * Signal handler receives signals and takes some time to handle each
  */
-class Handler : Thread<4096>
+class Handler : Thread_deprecated<4096>
 {
 	private:
 
@@ -162,7 +162,7 @@ class Handler : Thread<4096>
 		 */
 		Handler(Signal_receiver *receiver, unsigned dispatch_ms, bool verbose = true)
 		:
-			Thread("handler"),
+			Thread_deprecated("handler"),
 			_dispatch_ms(dispatch_ms),
 			_id(++_id_cnt),
 			_receiver(receiver),
@@ -543,7 +543,7 @@ static void check_context_management()
 static Lock signal_context_destroyer_lock(Lock::LOCKED);
 static bool signal_context_destroyed = false;
 
-class Signal_context_destroyer : public Thread<4096>
+class Signal_context_destroyer : public Thread_deprecated<4096>
 {
 	private:
 
@@ -553,7 +553,7 @@ class Signal_context_destroyer : public Thread<4096>
 	public:
 
 		Signal_context_destroyer(Signal_receiver *receiver, Signal_context *context)
-		: Thread("signal_context_destroyer"),
+		: Thread_deprecated("signal_context_destroyer"),
 		  _receiver(receiver), _context(context) { }
 
 		void entry()

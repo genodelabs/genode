@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _BASE__NATIVE_CAPABILITY_H_
-#define _BASE__NATIVE_CAPABILITY_H_
+#ifndef _INCLUDE__BASE__NATIVE_CAPABILITY_H_
+#define _INCLUDE__BASE__NATIVE_CAPABILITY_H_
 
 /* Genode includes */
 #include <kernel/interface.h>
@@ -92,4 +92,4 @@ class Genode::Native_capability
 		}
 };
 
-#endif /* _BASE__NATIVE_CAPABILITY_H_ */
+#endif /* _INCLUDE__BASE__NATIVE_CAPABILITY_H_ */

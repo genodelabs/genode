@@ -1,0 +1,11 @@
+{
+    "llvm-target": "armv7-pc-genode-gnueabi",
+    "target-endian": "little",
+    "target-pointer-width": "32",
+    "arch": "arm",
+    "os": "genode",
+    "cpu": "generic",
+    "env": "armv7",
+    "no_compiler_rt": true,
+    "features": "+v7"
+}

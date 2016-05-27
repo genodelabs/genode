@@ -22,11 +22,37 @@ namespace Report { struct Connection; }
 
 struct Report::Connection : Genode::Connection<Session>, Session_client
 {
+	/**
+	 * Issue session request
+	 *
+	 * \noapi
+	 */
+	Capability<Report::Session> _session(Genode::Parent &parent,
+	                                     char const *label, size_t buffer_size)
+	{
+		return session(parent, "label=\"%s\", ram_quota=%zd, buffer_size=%zd",
+		               label, 2*4096 + buffer_size, buffer_size);
+	}
+
+	/**
+	 * Constructor
+	 */
+	Connection(Genode::Env &env, char const *label, size_t buffer_size = 4096)
+	:
+		Genode::Connection<Session>(env, _session(env.parent(), label, buffer_size)),
+		Session_client(cap())
+	{ }
+
+	/**
+	 * Constructor
+	 *
+	 * \noapi
+	 * \deprecated  Use the constructor with 'Env &' as first
+	 *              argument instead
+	 */
 	Connection(char const *label, size_t buffer_size = 4096)
 	:
-		Genode::Connection<Session>(
-			session("label=\"%s\", ram_quota=%zd, buffer_size=%zd",
-			        label, 2*4096 + buffer_size, buffer_size)),
+		Genode::Connection<Session>(_session(*Genode::env()->parent(), label, buffer_size)),
 		Session_client(cap())
 	{ }
 };

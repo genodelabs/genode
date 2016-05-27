@@ -93,7 +93,7 @@ class Init::Child_config
 				static_cast<char *>(addr)[config_size] = 0;
 				env()->rm_session()->detach(addr);
 
-			} catch (Rm_session::Attach_failed) {
+			} catch (Region_map::Attach_failed) {
 				rsc.free(_config_ram_ds);
 				return;
 			} catch (Ram_session::Alloc_failed) {

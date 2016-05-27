@@ -30,16 +30,20 @@ namespace Vmm {
 
 class Vmm::Utcb_guard
 {
+	public:
+
+		struct Utcb_backup { char buf[Nova::Utcb::size()]; };
+
 	private:
 
-		Native_utcb &_backup_utcb;
+		Utcb_backup &_backup_utcb;
 
 	public:
 
-		Utcb_guard(Native_utcb &backup_utcb) : _backup_utcb(backup_utcb)
+		Utcb_guard(Utcb_backup &backup_utcb) : _backup_utcb(backup_utcb)
 		{
 			Nova::Utcb *utcb =
-				reinterpret_cast<Nova::Utcb *>(Thread_base::myself()->utcb());
+				reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb());
 
 			unsigned header_len = (char *)utcb->msg - (char *)utcb;
 			unsigned len = header_len + utcb->msg_words() * sizeof(Nova::mword_t);
@@ -55,7 +59,7 @@ class Vmm::Utcb_guard
 
 			unsigned header_len = (char *)utcb->msg - (char *)utcb;
 			unsigned len = header_len + utcb->msg_words() * sizeof(Nova::mword_t);
-			Genode::memcpy(Thread_base::myself()->utcb(), utcb, len);
+			Genode::memcpy(Thread::myself()->utcb(), utcb, len);
 		}
 };
 

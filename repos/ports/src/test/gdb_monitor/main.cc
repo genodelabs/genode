@@ -23,13 +23,18 @@
 int test_var = 1;
 
 /* a thread to test GDB thread switching support */
-class Test_thread : public Genode::Thread<2*4096>
+class Test_thread : public Genode::Thread_deprecated<2*4096>
 {
 	public:
 
-		Test_thread() : Thread("test") { }
+		Test_thread() : Thread_deprecated("test") { }
 
-		void func()
+		void step_func()
+		{
+			/* nothing */
+		}
+
+		void sigsegv_func()
 		{
 			/*
 			 * make sure that the main thread is sleeping in
@@ -43,7 +48,9 @@ class Test_thread : public Genode::Thread<2*4096>
 
 		void entry() /* set a breakpoint here to test the 'info threads' command */
 		{
-			func();
+			step_func();
+
+			sigsegv_func();
 
 			Genode::sleep_forever();
 		}

@@ -14,9 +14,12 @@
 /* Genode includes */
 #include <base/printf.h>
 
-/* Core includes */
+/* core includes */
 #include <ipc_pager.h>
 #include <pager.h>
+
+/* base-internal includes */
+#include <base/internal/native_thread.h>
 
 namespace Fiasco {
 #include <l4/sys/ipc.h>
@@ -80,5 +83,5 @@ void Ipc_pager::acknowledge_wakeup()
 
 Untyped_capability Pager_entrypoint::_pager_object_cap(unsigned long badge)
 {
-	return Untyped_capability(_tid.l4id, badge);
+	return Untyped_capability(native_thread().l4id, badge);
 }

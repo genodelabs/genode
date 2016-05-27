@@ -1,0 +1,19 @@
+diff --git a/src/lib/qemu/hw/usb/bus.c b/src/lib/qemu/hw/usb/bus.c
+index 5f39e1e..b94f3af 100644
+--- a/src/lib/qemu/hw/usb/bus.c
++++ b/src/lib/qemu/hw/usb/bus.c
+@@ -433,10 +433,10 @@ void usb_claim_port(USBDevice *dev, Error **errp)
+             return;
+         }
+     } else {
+-        if (bus->nfree == 1 && strcmp(object_get_typename(OBJECT(dev)), "usb-hub") != 0) {
+-            /* Create a new hub and chain it on */
+-            usb_try_create_simple(bus, "usb-hub", NULL);
+-        }
++        // if (bus->nfree == 1 && strcmp(object_get_typename(OBJECT(dev)), "usb-hub") != 0) {
++        //     /* Create a new hub and chain it on */
++        //     usb_try_create_simple(bus, "usb-hub", NULL);
++        // }
+         if (bus->nfree == 0) {
+             error_setg(errp, "tried to attach usb device %s to a bus "
+                        "with no free ports", dev->product_desc);

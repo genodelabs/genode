@@ -34,12 +34,10 @@ append config {
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
-		<service name="CAP"/>
 		<service name="PD"/>
 		<service name="RM"/>
 		<service name="CPU"/>
 		<service name="LOG"/>
-		<service name="SIGNAL"/>
 	</parent-provides>
 	<default-route>
 		<service name="Nitpicker"> <child name="nitpicker"/> </service>

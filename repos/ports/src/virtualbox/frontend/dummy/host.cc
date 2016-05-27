@@ -3,7 +3,6 @@
 #include "VirtualBoxBase.h"
 
 #include <VBox/usbfilter.h>
-#include <USBProxyServiceGenode.h>
 
 #include "dummy/macros.h"
 
@@ -11,13 +10,6 @@
 
 static bool debug = false;
 
-
-struct Host::Data
-{
-	VirtualBox          *pParent;
-    USBDeviceFilterList  llUSBDeviceFilters; // USB device filters in use by the USB proxy service
-	USBProxyService     *pUSBProxyService;
-};
 
 STDMETHODIMP Host::COMGETTER(DVDDrives)(ComSafeArrayOut(IMedium *, drives)) DUMMY(E_FAIL)
 STDMETHODIMP Host::COMGETTER(FloppyDrives)(ComSafeArrayOut(IMedium *, drives)) DUMMY(E_FAIL)
@@ -69,36 +61,11 @@ HRESULT Host::findHostDriveById(DeviceType_T, com::Guid const&, bool,
 
 HRESULT Host::saveSettings(settings::Host&)                                     TRACE(S_OK)
 
-HRESULT Host::init(VirtualBox *aParent)
-{
-    HRESULT hrc;
-
-	m = new Data();
-
-	m->pParent = aParent;
-
-	m->pUSBProxyService = new USBProxyServiceGenode(this);	
-
-    hrc = m->pUSBProxyService->init();
-    AssertComRCReturn(hrc, hrc);
-
-	return S_OK;
-}
-
+HRESULT Host::init(VirtualBox *aParent)                                         TRACE(S_OK)
 HRESULT Host::loadSettings(const settings::Host &)                              TRACE(S_OK)
 HRESULT Host::FinalConstruct()                                                  TRACE(S_OK)
 void    Host::FinalRelease()                                                    DUMMY()
-
-void    Host::uninit()
-{
-	delete m->pUSBProxyService;
-	m->pUSBProxyService = 0;
-
-    m->llUSBDeviceFilters.clear();
-
-	delete m;
-	m = 0;
-}
+void    Host::uninit()                                                          DUMMY()
 
 void Host::generateMACAddress(Utf8Str &mac)
 {
@@ -142,24 +109,22 @@ HRESULT Host::buildFloppyDrivesList(MediaList &list) DUMMY(E_FAIL)
 #ifdef VBOX_WITH_USB
 USBProxyService* Host::usbProxyService()
 {
-	return m->pUSBProxyService;
+	TRACE(nullptr)
 }
 
 HRESULT Host::addChild(HostUSBDeviceFilter *pChild)                             DUMMY(E_FAIL)
 HRESULT Host::removeChild(HostUSBDeviceFilter *pChild)                          DUMMY(E_FAIL)
-
-VirtualBox* Host::parent()
-{
-	return m->pParent;
-}
+VirtualBox* Host::parent()                                                      DUMMY(nullptr)
 
 HRESULT Host::onUSBDeviceFilterChange(HostUSBDeviceFilter *, BOOL)              DUMMY(E_FAIL)
 
-void Host::getUSBFilters(Host::USBDeviceFilterList *aGlobalFilters)
-{
-    *aGlobalFilters = m->llUSBDeviceFilters;
-}
+void Host::getUSBFilters(Host::USBDeviceFilterList *aGlobalFilters)             DUMMY()
 
 HRESULT Host::checkUSBProxyService()                                            TRACE(S_OK)
+
+#include "HostUSBDeviceImpl.h"
+#include "USBDeviceFilterImpl.h"
+
+bool HostUSBDevice::isMatch(const USBDeviceFilter::Data &aData)                 DUMMY(false)
 
 #endif

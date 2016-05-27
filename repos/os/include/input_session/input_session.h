@@ -38,7 +38,15 @@ struct Input::Session : Genode::Session
 	 *
 	 * \return  true if new events are available
 	 */
-	virtual bool is_pending() const = 0;
+	virtual bool pending() const = 0;
+
+	/**
+	 * Request input state
+	 *
+	 * \noapi
+	 * \deprecated  use 'pending' instead
+	 */
+	bool is_pending() const { return pending(); }
 
 	/**
 	 * Flush pending events to event buffer
@@ -58,11 +66,11 @@ struct Input::Session : Genode::Session
 	 *********************/
 
 	GENODE_RPC(Rpc_dataspace, Genode::Dataspace_capability, dataspace);
-	GENODE_RPC(Rpc_is_pending, bool, is_pending);
+	GENODE_RPC(Rpc_pending, bool, pending);
 	GENODE_RPC(Rpc_flush, int, flush);
 	GENODE_RPC(Rpc_sigh, void, sigh, Genode::Signal_context_capability);
 
-	GENODE_RPC_INTERFACE(Rpc_dataspace, Rpc_is_pending, Rpc_flush, Rpc_sigh);
+	GENODE_RPC_INTERFACE(Rpc_dataspace, Rpc_pending, Rpc_flush, Rpc_sigh);
 };
 
 #endif /* _INCLUDE__INPUT_SESSION__INPUT_SESSION_H_ */

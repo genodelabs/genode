@@ -14,9 +14,12 @@
 
 /* Genode includes */
 #include <base/thread_state.h>
-#include <unmanaged_singleton.h>
 #include <cpu_session/cpu_session.h>
 #include <util/construct_at.h>
+
+/* base-internal includes */
+#include <base/internal/unmanaged_singleton.h>
+#include <base/internal/native_utcb.h>
 
 /* core includes */
 #include <assert.h>
@@ -67,7 +70,7 @@ void Thread::_await_signal(Signal_receiver * const receiver)
 void Thread::_receive_signal(void * const base, size_t const size)
 {
 	assert(_state == AWAITS_SIGNAL);
-	Genode::memcpy((void*)utcb()->base(), base, size);
+	Genode::memcpy(utcb()->data(), base, size);
 	_become_active();
 }
 
@@ -184,7 +187,7 @@ size_t Thread::_core_to_kernel_quota(size_t const quota) const
 {
 	using Genode::Cpu_session;
 	using Genode::sizet_arithm_t;
-	size_t const tics = cpu_pool()->timer()->ms_to_tics(Kernel::cpu_quota_ms);
+	size_t const tics = cpu_pool()->timer()->us_to_tics(Kernel::cpu_quota_us);
 	return Cpu_session::quota_lim_downscale<sizet_arithm_t>(quota, tics);
 }
 
@@ -269,13 +272,6 @@ void Thread::_call_resume_local_thread()
 }
 
 
-void Thread_event::_signal_acknowledged()
-{
-	Cpu::tlb_insertions();
-	_thread->_resume();
-}
-
-
 Thread_event::Thread_event(Thread * const t)
 : _thread(t), _signal_context(0) { }
 
@@ -298,6 +294,34 @@ void Thread::_call_await_request_msg()
 		return;
 	}
 	_become_inactive(AWAITS_IPC);
+}
+
+
+void Thread::_call_timeout()
+{
+	_timeout_sigid = user_arg_2();
+	Cpu_job::timeout(this, user_arg_1());
+}
+
+
+void Thread::_call_timeout_age_us()
+{
+	user_arg_0(Cpu_job::timeout_age_us(this));
+}
+
+void Thread::_call_timeout_max_us()
+{
+	user_arg_0(Cpu_job::timeout_max_us());
+}
+
+
+void Thread::timeout_triggered()
+{
+	Signal_context * const c =
+		pd()->cap_tree().find<Signal_context>(_timeout_sigid);
+	if(!c || c->submit(1)) {
+		PWRN("%s -> %s: failed to submit timeout signal", pd_label(), label());
+	}
 }
 
 
@@ -360,51 +384,6 @@ void Thread_event::signal_context(Signal_context * const c)
 
 Signal_context * const Thread_event::signal_context() const {
 	return _signal_context; }
-
-
-void Thread::_call_update_data_region()
-{
-	/*
-	 * FIXME: If the caller is not a core thread, the kernel operates in a
-	 *        different address space than the caller. Combined with the fact
-	 *        that at least ARMv7 doesn't provide cache operations by physical
-	 *        address, this prevents us from selectively maintaining caches.
-	 *        The future solution will be a kernel that is mapped to every
-	 *        address space so we can use virtual addresses of the caller. Up
-	 *        until then we apply operations to caches as a whole instead.
-	 */
-	if (!_core()) {
-		Cpu::flush_data_caches();
-		return;
-	}
-	auto base = (addr_t)user_arg_1();
-	auto const size = (size_t)user_arg_2();
-	Cpu::flush_data_caches_by_virt_region(base, size);
-	Cpu::invalidate_instr_caches();
-}
-
-
-void Thread::_call_update_instr_region()
-{
-	/*
-	 * FIXME: If the caller is not a core thread, the kernel operates in a
-	 *        different address space than the caller. Combined with the fact
-	 *        that at least ARMv7 doesn't provide cache operations by physical
-	 *        address, this prevents us from selectively maintaining caches.
-	 *        The future solution will be a kernel that is mapped to every
-	 *        address space so we can use virtual addresses of the caller. Up
-	 *        until then we apply operations to caches as a whole instead.
-	 */
-	if (!_core()) {
-		Cpu::flush_data_caches();
-		Cpu::invalidate_instr_caches();
-		return;
-	}
-	auto base = (addr_t)user_arg_1();
-	auto const size = (size_t)user_arg_2();
-	Cpu::flush_data_caches_by_virt_region(base, size);
-	Cpu::invalidate_instr_caches_by_virt_region(base, size);
-}
 
 
 void Thread::_print_activity(bool const printing_thread)
@@ -625,6 +604,9 @@ void Thread::_call()
 	case call_id_print_char():           _call_print_char(); return;
 	case call_id_ack_cap():              _call_ack_cap(); return;
 	case call_id_delete_cap():           _call_delete_cap(); return;
+	case call_id_timeout():              _call_timeout(); return;
+	case call_id_timeout_age_us():       _call_timeout_age_us(); return;
+	case call_id_timeout_max_us():       _call_timeout_max_us(); return;
 	default:
 		/* check wether this is a core thread */
 		if (!_core()) {

@@ -87,10 +87,15 @@ class Usb::Session_client : public Genode::Rpc_client<Session>
 			call<Rpc_ep_descr>(interface_num, alt_setting, endpoint_num, endpoint_descr);
 		}
 
-	void claim_interface(unsigned interface_num)
-	{
-		call<Rpc_claim_interface>(interface_num);
-	}
+		void claim_interface(unsigned interface_num)
+		{
+			call<Rpc_claim_interface>(interface_num);
+		}
+
+		void release_interface(unsigned interface_num)
+		{
+			call<Rpc_release_interface>(interface_num);
+		}
 };
 
 #endif /* _INCLUDE__USB_SESSION__CLIENT_H_ */

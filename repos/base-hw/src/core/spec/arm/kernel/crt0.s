@@ -20,20 +20,6 @@
 .include "macros.s"
 
 
-/**
- * Get base of the first kernel-stack and the common kernel-stack size
- *
- * \param base_dst_reg  register that shall receive the stack-area base
- * \param size_dst_reg  register that shall receive the size of a kernel stack
- */
-.macro _get_constraints_of_kernel_stacks base_dst_reg, size_dst_reg
-
-	ldr \base_dst_reg, =kernel_stack
-	ldr \size_dst_reg, =kernel_stack_size
-	ldr \size_dst_reg, [\size_dst_reg]
-.endm
-
-
 .section ".text.crt0"
 
 	/**********************************
@@ -65,29 +51,12 @@
 	b 1b
 	2:
 
-	/* setup temporary stack pointer for uniprocessor mode */
+	/* setup temporary stack pointer */
 	_get_constraints_of_kernel_stacks r0, r1
 	add sp, r0, r1
 
-	/* uniprocessor kernel-initialization which activates multiprocessor */
-	bl init_kernel_up
+	/* kernel-initialization */
+	bl init_kernel
 
-	/*********************************************
-	 ** Startup code that is common to all CPUs **
-	 *********************************************/
-
-	.global _start_secondary_cpus
-	_start_secondary_cpus:
-
-	/* setup multiprocessor-aware kernel stack-pointer */
-	_get_constraints_of_kernel_stacks r0, r1
-	_init_kernel_sp r0, r1
-
-	/* do multiprocessor kernel-initialization */
-	bl init_kernel_mp
-
-	/* call the kernel main-routine */
-	bl kernel
-
-	/* catch erroneous return of the kernel main-routine */
+	/* catch erroneous return of the kernel initialization routine */
 	1: b 1b

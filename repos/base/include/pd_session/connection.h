@@ -22,16 +22,31 @@ namespace Genode { struct Pd_connection; }
 
 struct Genode::Pd_connection : Connection<Pd_session>, Pd_session_client
 {
-	enum { RAM_QUOTA = 4*1024 };
+	enum { RAM_QUOTA = 20*1024*sizeof(long) };
 
 	/**
 	 * Constructor
 	 *
 	 * \param label  session label
 	 */
-	Pd_connection(char const *label = "", Native_pd_args const *pd_args = 0)
-	: Connection<Pd_session>(session("ram_quota=%u, label=\"%s\"",
-	                                 RAM_QUOTA, label)),
+	Pd_connection(Env &env, char const *label = "")
+	:
+		Connection<Pd_session>(env, session(env.parent(),
+		                                    "ram_quota=%u, label=\"%s\"",
+		                                    RAM_QUOTA, label)),
+		Pd_session_client(cap())
+	{ }
+
+	/**
+	 * Constructor
+	 *
+	 * \noapi
+	 * \deprecated  Use the constructor with 'Env &' as first
+	 *              argument instead
+	 */
+	Pd_connection(char const *label = "")
+	:
+		Connection<Pd_session>(session("ram_quota=%u, label=\"%s\"", RAM_QUOTA, label)),
 		Pd_session_client(cap())
 	{ }
 };

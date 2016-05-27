@@ -1,0 +1,169 @@
+gdbserver_x86_64.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ gdb/gdbserver/linux-x86-low.c |   54 ++++++++++++++++++++++++++++++++++++++---
+ 1 file changed, 50 insertions(+), 4 deletions(-)
+
+diff --git a/gdb/gdbserver/linux-x86-low.c b/gdb/gdbserver/linux-x86-low.c
+index e98e3bd..0ece728 100644
+--- a/gdb/gdbserver/linux-x86-low.c
++++ b/gdb/gdbserver/linux-x86-low.c
+@@ -33,6 +33,12 @@
+ #endif
+ 
+ #ifdef __GENODE__
++#ifdef __x86_64__
++void init_registers_amd64 (void);
++static inline void init_registers_amd64_linux(void) { init_registers_amd64(); }
++void init_registers_amd64_avx (void);
++static inline void init_registers_amd64_avx_linux(void) { init_registers_amd64_avx(); }
++#endif /* __x64_64__ */
+ /* Defined in auto-generated file i386.c.  */
+ void init_registers_i386 (void);
+ static inline void init_registers_i386_linux(void) { init_registers_i386(); }
+@@ -83,7 +89,9 @@ static const char *xmltarget_amd64_linux_no_xml = "@<target>\
+ #endif /* __GENODE__ */
+ 
+ #ifdef __GENODE__
+-#ifndef __x86_64__
++#ifdef __x86_64__
++#include "amd64.h"
++#else
+ #include "i386.h"
+ #endif /* __x86_64__ */
+ #else
+@@ -153,7 +161,11 @@ static /*const*/ int i386_regmap[] =
+ /* So code below doesn't have to care, i386 or amd64.  */
+ #define ORIG_EAX ORIG_RAX
+ 
+-static const int x86_64_regmap[] =
++static
++#ifndef __GENODE__
++const
++#endif
++int x86_64_regmap[] =
+ {
+   RAX * 8, RBX * 8, RCX * 8, RDX * 8,
+   RSI * 8, RDI * 8, RBP * 8, RSP * 8,
+@@ -165,7 +177,9 @@ static const int x86_64_regmap[] =
+   -1, -1, -1, -1, -1, -1, -1, -1,
+   -1, -1, -1, -1, -1, -1, -1, -1,
+   -1, -1, -1, -1, -1, -1, -1, -1, -1,
++#ifndef __GENODE__
+   ORIG_RAX * 8
++#endif
+ };
+ 
+ #define X86_64_NUM_REGS (sizeof (x86_64_regmap) / sizeof (x86_64_regmap[0]))
+@@ -188,6 +202,7 @@ static /*const*/ int i386_regmap[] =
+ 
+ /* Called by libthread_db.  */
+ 
++#ifndef __GENODE__
+ ps_err_e
+ ps_get_thread_area (const struct ps_prochandle *ph,
+ 		    lwpid_t lwpid, int idx, void **base)
+@@ -225,6 +240,7 @@ ps_get_thread_area (const struct ps_prochandle *ph,
+     return PS_OK;
+   }
+ }
++#endif
+ 
+ /* Get the thread area address.  This is used to recognize which
+    thread is which when tracing with the in-process agent library.  We
+@@ -286,6 +302,20 @@ i386_cannot_fetch_register (int regno)
+   return regno >= I386_NUM_REGS;
+ }
+ 
++#ifdef __x86_64__
++static int
++x86_64_cannot_store_register (int regno)
++{
++  return regno >= X86_64_NUM_REGS;
++}
++
++static int
++x86_64_cannot_fetch_register (int regno)
++{
++  return regno >= X86_64_NUM_REGS;
++}
++#endif /* __x86_64__ */
++
+ static void
+ x86_fill_gregset (struct regcache *regcache, void *buf)
+ {
+@@ -728,6 +758,7 @@ x86_linux_prepare_to_resume (struct lwp_info *lwp)
+    compatible with the siginfo type exported by the 32-bit userspace
+    support.  */
+ 
++#ifndef __GENODE__
+ #ifdef __x86_64__
+ 
+ typedef int compat_int_t;
+@@ -969,6 +1000,7 @@ x86_siginfo_fixup (siginfo_t *native, void *inf, int direction)
+ 
+   return 0;
+ }
++#endif
+ 
+ static int use_xml;
+ 
+@@ -1138,11 +1170,15 @@ static void
+ x86_arch_setup (void)
+ {
+ #ifdef __x86_64__
++#ifdef __GENODE__
++  int use_64bit = 1;
++#else
+   int pid = pid_of (get_thread_lwp (current_inferior));
+   char *file = linux_child_pid_to_exec_file (pid);
+   int use_64bit = elf_64_file_p (file);
+ 
+   free (file);
++#endif
+ 
+   if (use_64bit < 0)
+     {
+@@ -1152,19 +1188,25 @@ x86_arch_setup (void)
+     }
+   else if (use_64bit)
+     {
++#ifdef __GENODE__
++      the_low_target.num_regs = X86_64_NUM_REGS;
++      the_low_target.regmap = x86_64_regmap;
++      the_low_target.cannot_fetch_register = x86_64_cannot_fetch_register;
++      the_low_target.cannot_store_register = x86_64_cannot_store_register;
++#else
+       /* Amd64 doesn't have HAVE_LINUX_USRREGS.  */
+       the_low_target.num_regs = -1;
+       the_low_target.regmap = NULL;
+       the_low_target.cannot_fetch_register = NULL;
+       the_low_target.cannot_store_register = NULL;
+-
++#endif
+       /* Amd64 has 16 xmm regs.  */
+       num_xmm_registers = 16;
+ 
+       x86_linux_update_xmltarget ();
+       return;
+     }
+-#endif
++#endif /* __x86_64__ */
+ 
+   /* Ok we have a 32-bit inferior.  */
+ 
+@@ -2620,7 +2662,11 @@ struct linux_target_ops the_low_target =
+   NULL,
+   NULL,
+   /* need to fix up i386 siginfo if host is amd64 */
++#ifdef __GENODE__
++  NULL,
++#else
+   x86_siginfo_fixup,
++#endif
+   x86_linux_new_process,
+   x86_linux_new_thread,
+ #ifndef __GENODE__

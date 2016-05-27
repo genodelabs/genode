@@ -68,8 +68,10 @@ static int create_thread(pthread_t *thread, const pthread_attr_t *attr,
 
 	Assert(rtthread);
 
-	size_t stack_size = Genode::Native_config::context_virtual_size() -
-	                    sizeof(Genode::Native_utcb) - 2 * (1UL << 12);
+	size_t const utcb_size = 4096;
+
+	size_t stack_size = Genode::Thread::stack_virtual_size() -
+	                    utcb_size - 2 * (1UL << 12);
 
 	if (rtthread->cbStack < stack_size)
 		stack_size = rtthread->cbStack;
@@ -103,7 +105,8 @@ static int create_thread(pthread_t *thread, const pthread_attr_t *attr,
 	pthread_t thread_obj = new (Genode::env()->heap())
 	                           pthread(attr ? *attr : 0, start_routine,
 	                           arg, stack_size, rtthread->szName,
-	                           cpu_connection(rtthread->enmType));
+	                           cpu_connection(rtthread->enmType),
+	                           Genode::Affinity::Location());
 
 	if (!thread_obj)
 		return EAGAIN;

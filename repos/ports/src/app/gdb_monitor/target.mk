@@ -10,7 +10,7 @@ INC_DIR += $(GDB_CONTRIB_DIR)/include \
            $(PRG_DIR)/gdbserver \
            $(PRG_DIR)
 
-LIBS    =  libc libc_terminal libc_lock_pipe \
+LIBS    =  libc libc_terminal libc_pipe \
            gdbserver_platform gdbserver_libc_support
 
 SRC_C   =  event-loop.c \
@@ -28,15 +28,15 @@ SRC_C   =  event-loop.c \
 
 SRC_C  +=  linux-low.c
 
-CC_OPT += -DGDBSERVER
+CC_OPT += -DGDBSERVER -DPKGVERSION="\"7.3.1\"" -DREPORT_BUGS_TO="\"\""
 
 CC_OPT_linux-low += -Wno-unused-function
 
 SRC_CC  =  genode-low.cc \
-           gdb_stub_thread.cc \
            cpu_session_component.cc \
+           cpu_thread_component.cc \
            ram_session_component.cc \
-           rm_session_component.cc \
+           region_map_component.cc \
            signal_handler_thread.cc \
            main.cc
 

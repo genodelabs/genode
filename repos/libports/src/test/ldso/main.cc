@@ -128,9 +128,9 @@ static void test_stack_align(char const *fmt, ...)
 	va_end(list);
 }
 
-struct Test_stack_align_thread : Thread<0x2000>
+struct Test_stack_align_thread : Thread_deprecated<0x2000>
 {
-	Test_stack_align_thread() : Thread<0x2000>("test_stack_align") { }
+	Test_stack_align_thread() : Thread_deprecated<0x2000>("test_stack_align") { }
 	void entry() { test_stack_align("%f\n%g\n", 3.142, 2.718); }
 };
 
@@ -226,7 +226,7 @@ int main(int argc, char **argv)
 
 	printf("exception in shared lib: ");
 	try { lib_1_exception(); }
-	catch (Rm_session::Region_conflict) { printf("caught\n"); }
+	catch (Region_map::Region_conflict) { printf("caught\n"); }
 
 	printf("exception in dynamic linker: ");
 	try { __ldso_raise_exception(); }

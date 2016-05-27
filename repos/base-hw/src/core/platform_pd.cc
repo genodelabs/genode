@@ -2,6 +2,7 @@
  * \brief   Protection-domain facility
  * \author  Martin Stein
  * \author  Stefan Kalkowski
+ * \author  Sebastian Sumpf
  * \date    2012-02-12
  */
 
@@ -37,7 +38,7 @@ void * Hw::Address_space::_table_alloc()
 {
 	void * ret;
 	if (!_cma()->alloc_aligned(sizeof(Translation_table), (void**)&ret,
-	                           Translation_table::ALIGNM_LOG2).is_ok())
+	                           Translation_table::ALIGNM_LOG2).ok())
 		throw Root::Quota_exceeded();
 	return ret;
 }
@@ -107,13 +108,13 @@ Hw::Address_space::~Address_space()
  *************************************/
 
 Capability_space::Capability_space()
-: _slab(nullptr, (Slab_block*)&_initial_sb) { }
+: _slab(nullptr, &_initial_sb) { }
 
 
 void Capability_space::upgrade_slab(Allocator &alloc)
 {
 	for (;;) {
-		Slab_block * block;
+		void *block = nullptr;
 
 		/*
 		 * On every upgrade we try allocating as many blocks as possible.
@@ -121,7 +122,6 @@ void Capability_space::upgrade_slab(Allocator &alloc)
 		 * this is normal as we use it as indication when to exit the loop.
 		 */
 		if (!alloc.alloc(SLAB_SIZE, &block)) return;
-		block = construct_at<Slab_block>(block, &_slab);
 		_slab.insert_sb(block);
 	}
 }
@@ -131,12 +131,13 @@ void Capability_space::upgrade_slab(Allocator &alloc)
  ** Platform_pd implementation **
  ********************************/
 
-int Platform_pd::bind_thread(Platform_thread * t)
+bool Platform_pd::bind_thread(Platform_thread * t)
 {
 	/* is this the first and therefore main thread in this PD? */
 	bool main_thread = !_thread_associated;
 	_thread_associated = true;
-	return t->join_pd(this, main_thread, Address_space::weak_ptr());
+	t->join_pd(this, main_thread, Address_space::weak_ptr());
+	return true;
 }
 
 
@@ -144,14 +145,10 @@ void Platform_pd::unbind_thread(Platform_thread *t) {
 	t->join_pd(nullptr, false, Address_space::weak_ptr()); }
 
 
-int Platform_pd::assign_parent(Native_capability parent)
+void Platform_pd::assign_parent(Native_capability parent)
 {
-	if (!parent.valid()) {
-		PERR("parent invalid");
-		return -1;
-	}
-	_parent = parent;
-	return 0;
+	if (!_parent.valid() && parent.valid())
+		_parent = parent;
 }
 
 
@@ -210,9 +207,13 @@ void Core_platform_pd::_map(addr_t start, addr_t end, bool io_mem)
 	const Page_flags flags =
 		Page_flags::apply_mapping(true, io_mem ? UNCACHED : CACHED, io_mem);
 
-	start        = trunc_page(start);
-	size_t size  = round_page(end) - start;
+	start = trunc_page(start);
 
+	/* omitt regions before vm_start */
+	if (start < VIRT_ADDR_SPACE_START)
+		start = VIRT_ADDR_SPACE_START;
+
+	size_t size  = round_page(end) - start;
 	try {
 		_table()->insert_translation(start, start, size, flags, _table_alloc());
 	} catch(Allocator::Out_of_memory) {

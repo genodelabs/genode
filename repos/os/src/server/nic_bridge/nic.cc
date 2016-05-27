@@ -18,17 +18,13 @@
 #include <net/udp.h>
 #include <net/dhcp.h>
 
-#include "address_node.h"
-#include "component.h"
-#include "env.h"
-#include "nic.h"
-#include "vlan.h"
+#include <component.h>
 
 using namespace Net;
 
 
 bool Net::Nic::handle_arp(Ethernet_frame *eth, Genode::size_t size) {
-	Arp_packet *arp = new (eth->data())
+	Arp_packet *arp = new (eth->data<void>())
 		Arp_packet(size - sizeof(Ethernet_frame));
 
 	/* ignore broken packets */
@@ -36,7 +32,7 @@ bool Net::Nic::handle_arp(Ethernet_frame *eth, Genode::size_t size) {
 		return true;
 
 	/* look whether the IP address is one of our client's */
-	Ipv4_address_node *node = Env::vlan()->ip_tree()->first();
+	Ipv4_address_node *node = vlan().ip_tree()->first();
 	if (node)
 		node = node->find_by_address(arp->dst_ip());
 	if (node) {
@@ -70,18 +66,18 @@ bool Net::Nic::handle_arp(Ethernet_frame *eth, Genode::size_t size) {
 
 
 bool Net::Nic::handle_ip(Ethernet_frame *eth, Genode::size_t size) {
-	Ipv4_packet *ip = new (eth->data())
+	Ipv4_packet *ip = new (eth->data<void>())
 		Ipv4_packet(size - sizeof(Ethernet_frame));
 
 	/* is it an UDP packet ? */
 	if (ip->protocol() == Udp_packet::IP_ID)
 	{
-		Udp_packet *udp = new (ip->data())
+		Udp_packet *udp = new (ip->data<void>())
 			Udp_packet(size - sizeof(Ipv4_packet));
 
 		/* is it a DHCP packet ? */
 		if (Dhcp_packet::is_dhcp(udp)) {
-			Dhcp_packet *dhcp = new (udp->data())
+			Dhcp_packet *dhcp = new (udp->data<void>())
 				Dhcp_packet(size - sizeof(Ipv4_packet) - sizeof(Udp_packet));
 
 			/* check for DHCP ACKs containing new client ips */
@@ -95,7 +91,7 @@ bool Net::Nic::handle_ip(Ethernet_frame *eth, Genode::size_t size) {
 					Genode::uint8_t *msg_type =	(Genode::uint8_t*) ext->value();
 					if (*msg_type == Dhcp_packet::DHCP_ACK) {
 						Mac_address_node *node =
-							Env::vlan()->mac_tree()->first();
+							vlan().mac_tree()->first();
 						if (node)
 							node = node->find_by_address(dhcp->client_mac());
 						if (node)
@@ -107,8 +103,8 @@ bool Net::Nic::handle_ip(Ethernet_frame *eth, Genode::size_t size) {
 	}
 
 	/* is it an unicast message to one of our clients ? */
-	if (eth->dst() == Net::Env::nic()->mac()) {
-		Ipv4_address_node *node = Env::vlan()->ip_tree()->first();
+	if (eth->dst() == mac()) {
+		Ipv4_address_node *node = vlan().ip_tree()->first();
 		if (node) {
 			node = node->find_by_address(ip->dst());
 			if (node) {
@@ -125,8 +121,9 @@ bool Net::Nic::handle_ip(Ethernet_frame *eth, Genode::size_t size) {
 }
 
 
-Net::Nic::Nic()
-: _tx_block_alloc(Genode::env()->heap()),
+Net::Nic::Nic(Server::Entrypoint &ep, Net::Vlan &vlan)
+: Packet_handler(ep, vlan),
+  _tx_block_alloc(Genode::env()->heap()),
   _nic(&_tx_block_alloc, BUF_SIZE, BUF_SIZE),
   _mac(_nic.mac_address().addr)
 {

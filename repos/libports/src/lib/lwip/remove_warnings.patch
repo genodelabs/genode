@@ -1,0 +1,26 @@
+diff --git a/src/core/dhcp.c b/src/core/dhcp.c
+index 21fd784..d85d86c 100644
+--- a/src/core/dhcp.c
++++ b/src/core/dhcp.c
+@@ -982,7 +982,7 @@ dhcp_bind(struct netif *netif)
+ 
+   ip_addr_copy(gw_addr, dhcp->offered_gw_addr);
+   /* gateway address not given? */
+-  if (ip_addr_isany(&gw_addr)) {
++  if (gw_addr.addr == IPADDR_ANY) {
+     /* copy network address */
+     ip_addr_get_network(&gw_addr, &dhcp->offered_ip_addr, &sn_mask);
+     /* use first host address on network as gateway */
+diff --git a/src/include/ipv4/lwip/ip4_addr.h b/src/include/ipv4/lwip/ip4_addr.h
+index b05ae53..dc0d9a8 100644
+--- a/src/include/ipv4/lwip/ip4_addr.h
++++ b/src/include/ipv4/lwip/ip4_addr.h
+@@ -210,7 +210,7 @@ u8_t ip4_addr_netmask_valid(u32_t netmask);
+ #define ip_addr_islinklocal(addr1) (((addr1)->addr & PP_HTONL(0xffff0000UL)) == PP_HTONL(0xa9fe0000UL))
+ 
+ #define ip_addr_debug_print(debug, ipaddr) \
+-  LWIP_DEBUGF(debug, ("%"U16_F".%"U16_F".%"U16_F".%"U16_F,             \
++  LWIP_DEBUGF(debug, ("%" U16_F ".%" U16_F ".%" U16_F ".%" U16_F,             \
+                       ipaddr != NULL ? ip4_addr1_16(ipaddr) : 0,       \
+                       ipaddr != NULL ? ip4_addr2_16(ipaddr) : 0,       \
+                       ipaddr != NULL ? ip4_addr3_16(ipaddr) : 0,       \

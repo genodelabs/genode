@@ -2,27 +2,31 @@
  * \brief  Audio_out-out driver for Linux
  * \author Christian Helmuth
  * \author Sebastian Sumpf
+ * \author Josef Soentgen
  * \date   2010-05-11
  *
  * FIXME session and driver shutdown not implemented (audio_drv_stop)
- *
- * 2013-01-09: Adapted to news audio interface
  */
 
 /*
- * Copyright (C) 2010-2013 Genode Labs GmbH
+ * Copyright (C) 2010-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
 #include <base/env.h>
 #include <base/sleep.h>
 #include <root/component.h>
 #include <cap_session/connection.h>
 #include <audio_out_session/rpc_object.h>
 #include <util/misc_math.h>
+#include <os/config.h>
+#include <os/server.h>
+#include <timer_session/connection.h>
 
+/* local includes */
 #include "alsa.h"
 
 using namespace Genode;
@@ -87,16 +91,19 @@ static bool channel_number_from_string(const char     *name,
 }
 
 
-
 /*
  * Root component, handling new session requests.
  */
-class Audio_out::Out : public Thread<1024 * sizeof(addr_t)>
+class Audio_out::Out
 {
 	private:
 
-		Signal_receiver *_data_recv;     /* data is available */
-		
+		Server::Entrypoint                        &_ep;
+		Genode::Signal_rpc_member<Audio_out::Out>  _data_avail_dispatcher;
+		Genode::Signal_rpc_member<Audio_out::Out>  _timer_dispatcher;
+
+		Timer::Connection _timer;
+
 		bool _active() {
 			return  channel_acquired[LEFT] && channel_acquired[RIGHT] &&
 			        channel_acquired[LEFT]->active() && channel_acquired[RIGHT]->active();
@@ -134,63 +141,60 @@ class Audio_out::Out : public Thread<1024 * sizeof(addr_t)>
 			Packet *p_left  = left()->get(left()->pos());
 			Packet *p_right = right()->get(left()->pos());
 
-			bool found = false;
-			for (int i = 0; i < QUEUE_SIZE; i++) {
-				if (p_left->valid() && p_right->valid()) {
-					found = true;
-					break;
-				}
-
-				p_left  = left()->next(p_left);
-				p_right = right()->next(p_right);
-			}
-
-			if (!found)
-				return false;
-
 			/* convert float to S16LE */
 			static short data[2 * PERIOD];
 
-			for (int i = 0; i < 2 * PERIOD; i += 2) {
-				data[i] = p_left->content()[i / 2] * 32767;
-				data[i + 1] = p_right->content()[i / 2] * 32767;
-			}
+			if (p_left->valid() && p_right->valid()) {
 
-			p_left->invalidate();
-			p_right->invalidate();
-
-			if (verbose)
-				PDBG("play packet");
-
-			/* blocking-write packet to ALSA */
-			while (int err = audio_drv_play(data, PERIOD)) {
-				if (verbose) PERR("Error %d during playback", err);
-					audio_drv_stop();
-					audio_drv_start();
+				for (int i = 0; i < 2 * PERIOD; i += 2) {
+					data[i] = p_left->content()[i / 2] * 32767;
+					data[i + 1] = p_right->content()[i / 2] * 32767;
 				}
 
-			p_left->mark_as_played();
-			p_right->mark_as_played();
+				p_left->invalidate();
+				p_right->invalidate();
+
+				if (verbose)
+					PDBG("play packet");
+
+				/* blocking-write packet to ALSA */
+				while (int err = audio_drv_play(data, PERIOD)) {
+					if (verbose) PERR("Error %d during playback", err);
+						audio_drv_stop();
+						audio_drv_start();
+					}
+
+				p_left->mark_as_played();
+				p_right->mark_as_played();
+			}
 
 			_advance_position(p_left, p_right);
 
 			return true;
 		}
 
+		void _handle_data_avail(unsigned num) { }
+
+		void _handle_timer(unsigned)
+		{
+			if (_active()) _play_packet();
+		}
+
 	public:
 
-		Out(Signal_receiver *data_recv)
-		: Thread("audio_out"), _data_recv(data_recv) { }
-
-		void entry()
+		Out(Server::Entrypoint &ep)
+		:
+			_ep(ep),
+			_data_avail_dispatcher(ep, *this, &Audio_out::Out::_handle_data_avail),
+			_timer_dispatcher(ep, *this, &Audio_out::Out::_handle_timer)
 		{
-			audio_drv_adopt_myself();
+			_timer.sigh(_timer_dispatcher);
 
-			/* handle audio out */
-			while (true)
-				if (!_active() || !_play_packet())
-					_data_recv->wait_for_signal();
+			unsigned const us = (Audio_out::PERIOD * 1000 / Audio_out::SAMPLE_RATE)*1000;
+			_timer.trigger_periodic(us);
 		}
+
+		Signal_context_capability data_avail_sigh() { return _data_avail_dispatcher; }
 };
 
 
@@ -256,48 +260,50 @@ class Audio_out::Root : public Audio_out::Root_component
 
 	public:
 
-		Root(Rpc_entrypoint *session_ep, Allocator *md_alloc, Signal_context_capability data_cap)
-		: Root_component(session_ep, md_alloc), _data_cap(data_cap)
+		Root(Server::Entrypoint &ep, Allocator *md_alloc,
+		     Signal_context_capability data_cap)
+		: Root_component(&ep.rpc_ep(), md_alloc), _data_cap(data_cap)
 		{ }
 };
 
 
-/*
- * Manually initialize the 'lx_environ' pointer, needed because 'nic_drv' is
- * not using the normal Genode startup code.
- */
-extern char **environ;
-char **lx_environ = environ;
-
-
-int main(int argc, char **argv)
+struct Main
 {
-	/* setup data available signal */
-	static Signal_receiver data_recv;
-	static Signal_context  data_context;
-	static Signal_context_capability data_cap(data_recv.manage(&data_context));
+	Server::Entrypoint &ep;
 
-	/* init ALSA */
-	int err = audio_drv_init();
-	if (err) {
-		PERR("audio driver init returned %d", err);
-		return 0;
+	Main(Server::Entrypoint &ep) : ep(ep)
+	{
+		char dev[32] = { 'h', 'w', 0 };
+		try {
+			Genode::Xml_node config = Genode::config()->xml_node();
+			config.attribute("alsa_device").value(dev, sizeof(dev));
+		} catch (...) { }
+
+		/* init ALSA */
+		int err = audio_drv_init(dev);
+		if (err) {
+			if (err == -1) PERR("Could not open ALSA device '%s'.", dev);
+			else           PERR("Could not initialize driver, error: %d", err);
+
+			throw -1;
+		}
+		audio_drv_start();
+
+		static Audio_out::Out  out(ep);
+		static Audio_out::Root root(ep, Genode::env()->heap(),
+		                            out.data_avail_sigh());
+		env()->parent()->announce(ep.manage(root));
+		PINF("--- start Audio_out ALSA driver ---");
 	}
-	audio_drv_start();
+};
 
-	/* start output thread */
-	Audio_out::Out *out = new(env()->heap()) Audio_out::Out(&data_recv);
-	out->start();
 
-	enum { STACK_SIZE = 1024 * sizeof(addr_t) };
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "audio_ep");
+/************
+ ** Server **
+ ************/
 
-	/* setup service */
-	static Audio_out::Root audio_root(&ep, env()->heap(), data_cap);
-	env()->parent()->announce(ep.manage(&audio_root));
-
-	sleep_forever();
-	return 0;
+namespace Server {
+	char const *name()                    { return "audio_drv_ep";        }
+	size_t      stack_size()              { return 2*1024*sizeof(addr_t); }
+	void        construct(Entrypoint &ep) { static Main main(ep);         }
 }
-

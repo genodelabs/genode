@@ -11,6 +11,9 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
+#include <base/printf.h>
+
 /* core includes */
 #include <pager.h>
 
@@ -19,11 +22,7 @@ using namespace Genode;
 
 void Pager_object::wake_up()
 {
-	/* notify pager to wake up faulter */
-	Msgbuf<16> snd, rcv;
-	Native_capability pager = cap();
-	Ipc_client ipc_client(pager, &snd, &rcv);
-	ipc_client << this << IPC_CALL;
+	PWRN("user-level page fault handling is not supported on this platform");
 }
 
 

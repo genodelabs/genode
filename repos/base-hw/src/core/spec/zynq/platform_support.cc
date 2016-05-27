@@ -1,11 +1,12 @@
 /*
  * \brief   Platform implementations specific for base-hw and Zynq
  * \author  Johannes Schlatow
+ * \author  Stefan Kalkowski
  * \date    2014-12-15
  */
 
 /*
- * Copyright (C) 2012-2014 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -16,7 +17,9 @@
 #include <board.h>
 #include <cpu.h>
 #include <pic.h>
-#include <unmanaged_singleton.h>
+
+/* base-internal includes */
+#include <base/internal/unmanaged_singleton.h>
 
 using namespace Genode;
 
@@ -54,7 +57,7 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 		  Board::CORTEX_A9_PRIVATE_MEM_SIZE },
 
 		/* core UART */
-		{ Board::UART_0_MMIO_BASE, Board::UART_SIZE },
+		{ Board::KERNEL_UART_BASE, Board::KERNEL_UART_SIZE },
 
 		/* L2 cache controller */
 		{ Board::PL310_MMIO_BASE, Board::PL310_MMIO_SIZE }
@@ -63,13 +66,8 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 }
 
 
-Cpu::User_context::User_context() { cpsr = Psr::init_user(); }
+Genode::Arm::User_context::User_context() { cpsr = Psr::init_user(); }
 
 
-static Genode::Pl310 * l2_cache() {
-	return unmanaged_singleton<Genode::Pl310>(Board::PL310_MMIO_BASE); }
-
-
-void Genode::Board::outer_cache_invalidate() { l2_cache()->invalidate(); }
-void Genode::Board::outer_cache_flush()      { l2_cache()->flush();      }
-void Genode::Board::prepare_kernel()         { l2_cache()->invalidate(); }
+bool Cortex_a9::Board::errata(Cortex_a9::Board::Errata err) {
+	return false; }

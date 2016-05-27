@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -20,18 +20,23 @@
 #include <gdbserver_libc_support.h>
 
 enum __ptrace_request {
-	PTRACE_TRACEME,
-	PTRACE_ATTACH,
-	PTRACE_KILL,
-	PTRACE_DETACH,
-	PTRACE_SINGLESTEP,
-	PTRACE_CONT,
-	PTRACE_PEEKTEXT,
-	PTRACE_POKETEXT,
-	PTRACE_PEEKUSER,
-	PTRACE_POKEUSER,
-	PTRACE_GETREGS,
-	PTRACE_SETREGS,
+	PTRACE_TRACEME     = 0,
+	PTRACE_PEEKTEXT    = 1,
+	PTRACE_PEEKUSER    = 3,
+	PTRACE_POKETEXT    = 4,
+	PTRACE_POKEUSER    = 6,
+	PTRACE_CONT        = 7,
+	PTRACE_KILL        = 8,
+	PTRACE_SINGLESTEP  = 9,
+	PTRACE_GETREGS     = 12,
+	PTRACE_SETREGS     = 13,
+	PTRACE_ATTACH      = 16,
+	PTRACE_DETACH      = 17,
+
+	PTRACE_EVENT_CLONE = 3,
+
+	PTRACE_GETEVENTMSG = 0x4201,
+	PTRACE_GETREGSET   = 0x4204,
 };
 
 extern long ptrace(enum __ptrace_request request, ...);

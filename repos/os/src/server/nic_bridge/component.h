@@ -25,9 +25,10 @@
 #include <base/allocator_guard.h>
 #include <os/session_policy.h>
 
-#include "address_node.h"
-#include "mac.h"
-#include "packet_handler.h"
+#include <address_node.h>
+#include <mac.h>
+#include <nic.h>
+#include <packet_handler.h>
 
 namespace Net {
 
@@ -102,9 +103,9 @@ namespace Net {
 	{
 		private:
 
-			Mac_address_node   _mac_node;
-			Ipv4_address_node *_ipv4_node;
-
+			Mac_address_node                  _mac_node;
+			Ipv4_address_node                *_ipv4_node;
+			Net::Nic                         &_nic;
 			Genode::Signal_context_capability _link_state_sigh;
 
 			void _free_ipv4_node();
@@ -126,7 +127,8 @@ namespace Net {
 			                  Genode::size_t              tx_buf_size,
 			                  Genode::size_t              rx_buf_size,
 			                  Ethernet_frame::Mac_address vmac,
-			                  Genode::Rpc_entrypoint     &ep,
+			                  Server::Entrypoint         &ep,
+			                  Net::Nic                   &nic,
 			                  char                       *ip_addr = 0);
 
 			~Session_component();
@@ -181,8 +183,9 @@ namespace Net {
 
 			enum { verbose = 1 };
 
-			Mac_allocator           _mac_alloc;
-			Genode::Rpc_entrypoint &_ep;
+			Mac_allocator       _mac_alloc;
+			Server::Entrypoint &_ep;
+			Net::Nic           &_nic;
 
 		protected:
 
@@ -239,6 +242,7 @@ namespace Net {
 					                                          rx_buf_size,
 					                                          _mac_alloc.alloc(),
 					                                          _ep,
+					                                          _nic,
 					                                          ip_addr);
 				} catch(Mac_allocator::Alloc_failed) {
 					PWRN("Mac address allocation failed!");
@@ -248,10 +252,11 @@ namespace Net {
 
 		public:
 
-			Root(Genode::Rpc_entrypoint *session_ep,
-			     Genode::Allocator      *md_alloc)
-			: Genode::Root_component<Session_component>(session_ep, md_alloc),
-			  _ep(*session_ep) { }
+			Root(Server::Entrypoint &ep,
+			     Net::Nic           &nic,
+			     Genode::Allocator  *md_alloc)
+			: Genode::Root_component<Session_component>(&ep.rpc_ep(), md_alloc),
+			  _ep(ep), _nic(nic) { }
 	};
 
 } /* namespace Net */

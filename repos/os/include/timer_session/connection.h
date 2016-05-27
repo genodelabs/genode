@@ -24,19 +24,40 @@ class Timer::Connection : public Genode::Connection<Session>, public Session_cli
 {
 	private:
 
-		Genode::Lock                      _lock;
-		Genode::Signal_receiver           _sig_rec;
-		Genode::Signal_context            _default_sigh_ctx;
-		Genode::Signal_context_capability _default_sigh_cap;
+		Genode::Lock            _lock;
+		Genode::Signal_receiver _sig_rec;
+		Genode::Signal_context  _default_sigh_ctx;
+
+		Genode::Signal_context_capability
+			_default_sigh_cap = _sig_rec.manage(&_default_sigh_ctx);
+
 		Genode::Signal_context_capability _custom_sigh_cap;
 
 	public:
 
+		/**
+		 * Constructor
+		 */
+		Connection(Genode::Env &env)
+		:
+			Genode::Connection<Session>(env, session(env.parent(), "ram_quota=8K")),
+			Session_client(cap())
+		{
+			/* register default signal handler */
+			Session_client::sigh(_default_sigh_cap);
+		}
+
+		/**
+		 * Constructor
+		 *
+		 * \noapi
+		 * \deprecated  Use the constructor with 'Env &' as first
+		 *              argument instead
+		 */
 		Connection()
 		:
 			Genode::Connection<Session>(session("ram_quota=8K")),
-			Session_client(cap()),
-			_default_sigh_cap(_sig_rec.manage(&_default_sigh_ctx))
+			Session_client(cap())
 		{
 			/* register default signal handler */
 			Session_client::sigh(_default_sigh_cap);

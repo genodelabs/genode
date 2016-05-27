@@ -5,13 +5,14 @@
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <lx_emul/impl/internal/scheduler.h>
+/* Linux kit includes */
+#include <lx_kit/scheduler.h>
 
 
 enum { MUTEX_UNLOCKED = 1, MUTEX_LOCKED = 0, MUTEX_WAITERS = -1 };
@@ -24,6 +25,7 @@ void mutex_init(struct mutex *m)
 	m->holder  = nullptr;
 	m->waiters = new (Genode::env()->heap()) Lx::Task::List;
 	m->id      = ++id;
+	m->counter = 0;
 }
 
 
@@ -36,6 +38,7 @@ void mutex_destroy(struct mutex *m)
 	m->holder  = nullptr;
 	m->waiters = nullptr;
 	m->id      = 0;
+	m->counter = 0;
 }
 
 
@@ -52,8 +55,8 @@ void mutex_lock(struct mutex *m)
 		Lx::Task *t = reinterpret_cast<Lx::Task *>(m->holder);
 
 		if (t == Lx::scheduler().current()) {
-			PERR("Bug: mutex does not support recursive locking");
-			Genode::sleep_forever();
+			m->counter++;
+			return;
 		}
 
 		/* notice that a task waits for the mutex to be released */
@@ -75,6 +78,11 @@ void mutex_unlock(struct mutex *m)
 	if (m->holder != Lx::scheduler().current()) {
 		PERR("Bug: mutex unlock by task not holding the mutex");
 		Genode::sleep_forever();
+	}
+
+	if (m->counter) {
+		m->counter--;
+		return;
 	}
 
 	Lx::Task::List *waiters = static_cast<Lx::Task::List *>(m->waiters);

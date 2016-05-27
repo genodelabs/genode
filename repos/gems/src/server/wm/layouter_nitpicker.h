@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <os/server.h>
 #include <input/component.h>
+#include <nitpicker_session/connection.h>
 
 namespace Wm { using Server::Entrypoint; }
 
@@ -34,17 +35,21 @@ struct Wm::Layouter_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>
 
 	Input::Session_capability _input_session_cap;
 
+	/*
+	 * Nitpicker session solely used to supply the nitpicker mode to the
+	 * layouter
+	 */
+	Nitpicker::Connection _mode_sigh_nitpicker;
+
+	Genode::Signal_context_capability _mode_sigh;
+
 	Attached_ram_dataspace _command_ds;
 
-	Framebuffer::Mode const _mode;
-
 	Layouter_nitpicker_session(Genode::Ram_session &ram,
-	                           Input::Session_capability input_session_cap,
-	                           Framebuffer::Mode mode)
+	                           Input::Session_capability input_session_cap)
 	:
 		_input_session_cap(input_session_cap),
-		_command_ds(&ram, 4096),
-		_mode(mode)
+		_command_ds(&ram, 4096)
 	{ }
 
 
@@ -85,9 +90,18 @@ struct Wm::Layouter_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>
 
 	void execute() override { }
 
-	Framebuffer::Mode mode() override { return _mode; }
+	Framebuffer::Mode mode() override { return _mode_sigh_nitpicker.mode(); }
 
-	void mode_sigh(Genode::Signal_context_capability) override { }
+	void mode_sigh(Genode::Signal_context_capability sigh) override
+	{
+		/*
+		 * Remember signal-context capability to keep NOVA from revoking
+		 * transitive delegations of the capability.
+		 */
+		_mode_sigh = sigh;
+
+		_mode_sigh_nitpicker.mode_sigh(sigh);
+	}
 
 	void buffer(Framebuffer::Mode, bool) override { }
 

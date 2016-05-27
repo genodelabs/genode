@@ -83,11 +83,12 @@ class Genode::Slave_policy : public Genode::Child_policy
 		 */
 		Slave_policy(const char             *label,
 		             Genode::Rpc_entrypoint &entrypoint,
-		             Genode::Ram_session    *ram = 0)
+		             Genode::Ram_session    *ram = 0,
+		             const char             *binary = nullptr)
 		:
 			_label(label),
 			_entrypoint(entrypoint),
-			_binary_rom(_label, _label),
+			_binary_rom(binary ? binary : _label, _label),
 			_labeling_policy(_label),
 			_binary_policy("binary", _binary_rom.dataspace(), &_entrypoint),
 			_config_policy("config", _entrypoint, ram)
@@ -162,7 +163,6 @@ class Genode::Slave
 			Genode::Pd_connection  pd;
 			Genode::Ram_connection ram;
 			Genode::Cpu_connection cpu;
-			Genode::Rm_connection  rm;
 
 			class Quota_exceeded : public Genode::Exception { };
 
@@ -176,22 +176,26 @@ class Genode::Slave
 				if (ram_ref.transfer_quota(ram.cap(), ram_quota))
 					throw Quota_exceeded();
 			}
-		};
+		} _resources;
 
-		Resources     _resources;
-		Genode::Child _child;
+		Genode::Child::Initial_thread _initial_thread;
+
+		Genode::Region_map_client _address_space { _resources.pd.address_space() };
+		Genode::Child             _child;
 
 	public:
 
 		Slave(Genode::Rpc_entrypoint &entrypoint,
 		      Slave_policy           &slave_policy,
 		      Genode::size_t          ram_quota,
-		      Ram_session_capability  ram_ref_cap = env()->ram_session_cap())
+		      Ram_session_capability  ram_ref_cap = env()->ram_session_cap(),
+		      Dataspace_capability    ldso_ds = Dataspace_capability())
 		:
 			_resources(slave_policy.name(), ram_quota, ram_ref_cap),
-			_child(slave_policy.binary(), _resources.pd.cap(),
-			       _resources.ram.cap(), _resources.cpu.cap(),
-			       _resources.rm.cap(), &entrypoint, &slave_policy)
+			_initial_thread(_resources.cpu, _resources.pd, slave_policy.name()),
+			_child(slave_policy.binary(), ldso_ds, _resources.pd, _resources.pd,
+			       _resources.ram, _resources.ram, _resources.cpu, _initial_thread,
+			       *env()->rm_session(), _address_space, entrypoint, slave_policy)
 		{ }
 
 		Genode::Ram_connection &ram() { return _resources.ram; }

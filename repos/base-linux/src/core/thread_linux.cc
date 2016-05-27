@@ -15,6 +15,9 @@
 #include <base/thread.h>
 #include <base/sleep.h>
 
+/* base-internal includes */
+#include <base/internal/native_thread.h>
+
 /* Linux syscall bindings */
 #include <linux_syscalls.h>
 
@@ -23,9 +26,12 @@ using namespace Genode;
 
 static void empty_signal_handler(int) { }
 
+static char signal_stack[0x2000] __attribute__((aligned(0x1000)));
 
-void Thread_base::_thread_start()
+void Thread::_thread_start()
 {
+	lx_sigaltstack(signal_stack, sizeof(signal_stack));
+
 	/*
 	 * Set signal handler such that canceled system calls get not transparently
 	 * retried after a signal gets received.
@@ -40,23 +46,23 @@ void Thread_base::_thread_start()
 	 */
 	lx_sigsetmask(LX_SIGCHLD, false);
 
-	Thread_base::myself()->entry();
-	Thread_base::myself()->_join_lock.unlock();
+	Thread::myself()->entry();
+	Thread::myself()->_join_lock.unlock();
 	sleep_forever();
 }
 
 
-void Thread_base::_init_platform_thread(size_t, Type) { }
+void Thread::_init_platform_thread(size_t, Type) { }
 
 
-void Thread_base::_deinit_platform_thread() { }
+void Thread::_deinit_platform_thread() { }
 
 
-void Thread_base::start()
+void Thread::start()
 {
-	_tid.tid = lx_create_thread(Thread_base::_thread_start, stack_top(), this);
-	_tid.pid = lx_getpid();
+	native_thread().tid = lx_create_thread(Thread::_thread_start, stack_top(), this);
+	native_thread().pid = lx_getpid();
 }
 
 
-void Thread_base::cancel_blocking() { }
+void Thread::cancel_blocking() { }

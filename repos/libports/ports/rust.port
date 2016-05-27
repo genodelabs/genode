@@ -1,0 +1,10 @@
+LICENSE   := MIT
+VERSION   := nightly
+DATE      := 2016-03-03
+DOWNLOADS := rust.archive
+
+URL(rust) := http://static.rust-lang.org/dist/$(DATE)/rustc-$(VERSION)-src.tar.gz
+SHA(rust) := c75656f1238ce82e1cdede174d9cbc05f0b98ae2
+DIR(rust) := src/lib/rust
+
+PATCHES := src/lib/rust/freebsd.patch

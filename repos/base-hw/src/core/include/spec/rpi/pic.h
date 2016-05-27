@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _PIC_H_
-#define _PIC_H_
+#ifndef _CORE__INCLUDE__SPEC__RPI__PIC_H_
+#define _CORE__INCLUDE__SPEC__RPI__PIC_H_
 
 /* Genode includes */
 #include <util/mmio.h>
@@ -136,12 +136,13 @@ class Genode::Pic : Mmio
 	public:
 
 		enum {
-			/*
-			 * FIXME: dummy ipi value on non-SMP platform, should be removed
-			 *        when SMP is an aspect of CPUs only compiled where necessary
-			 */
-			IPI       = 63,
 			NR_OF_IRQ = 64,
+
+			/*
+			 * dummy IPI value on non-SMP platform,
+			 * only used in interrupt reservation within generic code
+			 */
+			IPI,
 		};
 
 	private:
@@ -241,15 +242,8 @@ class Genode::Pic : Mmio
 			else
 				write<Irq_disable_gpu_2>(1 << (i - 8 - 32));
 		}
-
-		/*
-		 * Dummies
-		 */
-
-		bool is_ip_interrupt(unsigned) { return false; }
-		void trigger_ip_interrupt(unsigned) { }
 };
 
 namespace Kernel { class Pic : public Genode::Pic { }; }
 
-#endif /* _PIC_H_ */
+#endif /* _CORE__INCLUDE__SPEC__RPI__PIC_H_ */

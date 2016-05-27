@@ -1,6 +1,7 @@
 /*
  * \brief  Intel framebuffer driver
  * \author Norman Feske
+ * \author Stefan Kalkowski
  * \date   2015-08-19
  */
 
@@ -16,66 +17,24 @@
 #include <os/server.h>
 #include <os/config.h>
 
+/* Server related local includes */
 #include <component.h>
 
 /* Linux emulation environment includes */
 #include <lx_emul.h>
-#include <lx_emul/impl/internal/scheduler.h>
-#include <lx_emul/impl/internal/timer.h>
-#include <lx_emul/impl/internal/irq.h>
-#include <lx_emul/impl/internal/pci_dev_registry.h>
-#include <lx_emul/impl/internal/pci_backend_alloc.h>
+#include <lx_kit/scheduler.h>
+#include <lx_kit/timer.h>
+#include <lx_kit/irq.h>
+#include <lx_kit/pci_dev_registry.h>
+#include <lx_kit/backend_alloc.h>
+#include <lx_kit/work.h>
+
+/* Linux module functions */
+extern "C" int postcore_i2c_init(); /* i2c-core.c */
+extern "C" int module_i915_init();  /* i915_drv.c */
 
 
 namespace Server { struct Main; }
-
-
-Lx::Scheduler & Lx::scheduler()
-{
-	static Lx::Scheduler inst;
-	return inst;
-}
-
-
-Lx::Timer & Lx::timer(Server::Entrypoint *ep, unsigned long *jiffies)
-{
-	return _timer_impl(ep, jiffies);
-}
-
-
-Lx::Irq & Lx::Irq::irq(Server::Entrypoint *ep)
-{
-	static Lx::Irq irq(*ep);
-	return irq;
-}
-
-
-Platform::Connection *Lx::pci()
-{
-	static Platform::Connection _pci;
-	return &_pci;
-}
-
-
-Lx::Pci_dev_registry *Lx::pci_dev_registry()
-{
-	static Lx::Pci_dev_registry _pci_dev_registry;
-	return &_pci_dev_registry;
-}
-
-
-namespace Lx {
-	Genode::Object_pool<Memory_object_base> memory_pool;
-};
-
-
-Framebuffer::Root * Framebuffer::root = nullptr;
-
-
-extern "C" int postcore_i2c_init(); /* i2c-core.c */
-extern "C" int module_i915_init();  /* i915_drv.c */
-extern "C" void update_framebuffer_config();
-
 
 static void run_linux(void * m);
 
@@ -102,7 +61,10 @@ struct Server::Main
 	Lx::Timer &timer = Lx::timer(&ep, &jiffies);
 
 	/* init singleton Lx::Irq */
-	Lx::Irq &irq = Lx::Irq::irq(&ep);
+	Lx::Irq &irq = Lx::Irq::irq(&ep, Genode::env()->heap());
+
+	/* init singleton Lx::Work */
+	Lx::Work &work = Lx::Work::work_queue(Genode::env()->heap());
 
 	/* Linux task that handles the initialization */
 	Lx::Task linux { run_linux, reinterpret_cast<void*>(this), "linux",
@@ -112,11 +74,12 @@ struct Server::Main
 	{
 		Genode::printf("--- intel framebuffer driver ---\n");
 
-		Framebuffer::root = &root_component;
-
 		/* give all task a first kick before returning */
 		Lx::scheduler().schedule();
 	}
+
+	void announce() {
+		Genode::env()->parent()->announce(ep.manage(root_component)); }
 };
 
 
@@ -142,17 +105,18 @@ static void run_linux(void * m)
 
 	postcore_i2c_init();
 	module_i915_init();
-
-	Genode::env()->parent()->announce(main->ep.manage(*Framebuffer::root));
+	main->root_component.session.driver().finish_initialization();
+	main->announce();
 
 	static Policy_agent pa(*main);
 	Genode::config()->sigh(pa.sd);
 
 	while (1) {
 		Lx::scheduler().current()->block_and_schedule();
-		update_framebuffer_config();
+		main->root_component.session.config_changed();
 	}
 }
+
 
 namespace Server {
 
@@ -160,8 +124,5 @@ namespace Server {
 
 	size_t stack_size() { return 8*1024*sizeof(long); }
 
-	void construct(Entrypoint &ep)
-	{
-		static Main main(ep);
-	}
+	void construct(Entrypoint &ep) { static Main m(ep); }
 }

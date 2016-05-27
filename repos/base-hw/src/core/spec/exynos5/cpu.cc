@@ -18,7 +18,4 @@
 
 using namespace Genode;
 
-unsigned Cpu::executing_id() { return Mpidr::Aff_0::get(Mpidr::read()); }
-
-
 unsigned Cpu::primary_id() { return Board::PRIMARY_MPIDR_AFF_0; }

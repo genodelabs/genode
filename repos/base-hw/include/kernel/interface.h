@@ -11,38 +11,36 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _KERNEL__INTERFACE_H_
-#define _KERNEL__INTERFACE_H_
+#ifndef _INCLUDE__KERNEL__INTERFACE_H_
+#define _INCLUDE__KERNEL__INTERFACE_H_
 
 /* base-hw includes */
+#include <kernel/types.h>
 #include <kernel/interface_support.h>
 
 namespace Kernel
 {
-	using addr_t      = Genode::addr_t;
-	using size_t      = Genode::size_t;
-	using capid_t     = Genode::uint16_t;
-
-	constexpr capid_t cap_id_invalid() { return 0; }
-
 	/**
 	 * Kernel names of the kernel calls
 	 */
-	constexpr Call_arg call_id_pause_current_thread() { return 0; }
-	constexpr Call_arg call_id_resume_local_thread()  { return 1; }
-	constexpr Call_arg call_id_yield_thread()         { return 2; }
-	constexpr Call_arg call_id_send_request_msg()     { return 3; }
-	constexpr Call_arg call_id_send_reply_msg()       { return 4; }
-	constexpr Call_arg call_id_await_request_msg()    { return 5; }
-	constexpr Call_arg call_id_kill_signal_context()  { return 6; }
-	constexpr Call_arg call_id_submit_signal()        { return 7; }
-	constexpr Call_arg call_id_await_signal()         { return 8; }
-	constexpr Call_arg call_id_ack_signal()           { return 9; }
+	constexpr Call_arg call_id_pause_current_thread() { return  0; }
+	constexpr Call_arg call_id_resume_local_thread()  { return  1; }
+	constexpr Call_arg call_id_yield_thread()         { return  2; }
+	constexpr Call_arg call_id_send_request_msg()     { return  3; }
+	constexpr Call_arg call_id_send_reply_msg()       { return  4; }
+	constexpr Call_arg call_id_await_request_msg()    { return  5; }
+	constexpr Call_arg call_id_kill_signal_context()  { return  6; }
+	constexpr Call_arg call_id_submit_signal()        { return  7; }
+	constexpr Call_arg call_id_await_signal()         { return  8; }
+	constexpr Call_arg call_id_ack_signal()           { return  9; }
 	constexpr Call_arg call_id_print_char()           { return 10; }
 	constexpr Call_arg call_id_update_data_region()   { return 11; }
 	constexpr Call_arg call_id_update_instr_region()  { return 12; }
 	constexpr Call_arg call_id_ack_cap()              { return 13; }
 	constexpr Call_arg call_id_delete_cap()           { return 14; }
+	constexpr Call_arg call_id_timeout()              { return 15; }
+	constexpr Call_arg call_id_timeout_age_us()       { return 16; }
+	constexpr Call_arg call_id_timeout_max_us()       { return 17; }
 
 
 	/*****************************************************************
@@ -79,6 +77,44 @@ namespace Kernel
 	              Call_arg arg_3,
 	              Call_arg arg_4,
 	              Call_arg arg_5);
+
+
+	/**
+	 * Install timeout for calling thread
+	 *
+	 * \param  duration_us  timeout duration in microseconds
+	 * \param  sigid        local name of signal context to trigger
+	 *
+	 * This call always overwrites the last timeout installed by the thread
+	 * if any.
+	 */
+	inline int timeout(time_t const duration_us, capid_t const sigid)
+	{
+		return call(call_id_timeout(), duration_us, sigid);
+	}
+
+
+	/**
+	 * Return time in microseconds since the caller installed its last timeout
+	 *
+	 * Must not be called if the installation is older than 'timeout_max_us'.
+	 */
+	inline time_t timeout_age_us()
+	{
+		return call(call_id_timeout_age_us());
+	}
+
+
+	/**
+	 * Return the constant maximum installable timeout in microseconds
+	 *
+	 * The return value is also the maximum delay to call 'timeout_age_us'
+	 * for a timeout after its installation.
+	 */
+	inline time_t timeout_max_us()
+	{
+		return call(call_id_timeout_max_us());
+	}
 
 
 	/**
@@ -288,4 +324,4 @@ namespace Kernel
 	}
 }
 
-#endif /* _KERNEL__INTERFACE_H_ */
+#endif /* _INCLUDE__KERNEL__INTERFACE_H_ */

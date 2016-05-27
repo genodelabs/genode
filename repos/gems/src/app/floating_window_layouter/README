@@ -1,0 +1,84 @@
+The window-layouter component complements the window manager (wm) with the
+policy of how windows are positioned on screen and how windows behave when the
+user interacts with window elements like the maximize button or the window
+title. Whereas the decorator defines how windows look, the layouter defines how
+they behave.
+
+By default, the window layouter presents each window as a floating window that
+can be positioned by dragging the window title, or resized by dragging the
+window border.
+
+
+Configurable window placement
+-----------------------------
+
+The policy of the window layouter can be adjusted via its configuration. For
+a given window label, the window's initial position and its maximized state
+can be defined as follows:
+
+! <config>
+!   <policy label="mupdf" maximized="yes"/>
+!   <policy label="nit_fb" xpos="50" ypos="50"/>
+! </config>
+
+
+Keyboard shortcuts
+------------------
+
+The window layouter is able to respond to key sequences. However, normally,
+the layouter is not a regular nitpicker client but receives only those
+input events that refer to the window decorations. It never owns the keyboard
+focus. In order to propagate global key sequences to the layouter, nitpicker
+must be explicitly configured to direct key sequences initiated with certain
+keys to the decorator. For example, the following nitpicker configuration
+routes key sequences starting with the left windows key to the decorator. The
+window manager, in turn, forwards those events to the layouter.
+
+! <start name="nitpicker">
+!   ...
+!   <config>
+!     ...
+!     <global-key name="KEY_LEFTMETA" label="wm -> decorator" />
+!     ...
+!   </config>
+!   ...
+! </start>
+
+The response of the window layouter to key sequences can be expressed in the
+layouter configuration as follows:
+
+! <config>
+!   <press key="KEY_LEFTMETA">
+!     <press key="KEY_TAB"              action="next_window">
+!       <release key="KEY_TAB">
+!         <release key="KEY_LEFTMETA"   action="raise_window"/>
+!       </release>
+!     </press>
+!     <press key="KEY_LEFTSHIFT">
+!       <press key="KEY_TAB"            action="prev_window">
+!         <release key="KEY_TAB">
+!           <release key="KEY_LEFTMETA" action="raise_window"/>
+!         </release>
+!       </press>
+!     </press>
+!     <press key="KEY_ENTER"            action="toggle_fullscreen"/>
+!   </press>
+! </config>
+
+Each '<press>' node defines the policy when the specified 'key' is pressed.
+It can be equipped with an 'action' attribute that triggers a window action.
+The supported window actions are:
+
+:next_window:       Focus the next window in the focus history.
+:prev_window:       Focus the previous window in the focus history.
+:raise_window:      Bring the focused window to the front.
+:toggle_fullscreen: Maximize/unmaximize the focused window.
+
+By nesting '<press>' nodes, actions can be tied to key sequences. In the
+example above, the 'next_window' action is executed only if TAB is pressed
+while the left windows-key is kept pressed. Furthermore, key sequences can
+contain specific release events. In the example above, the release of the left
+windows key brings the focused window to front, but only if TAB was pressed
+before.
+
+

@@ -92,10 +92,12 @@ append config_of_app {
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
 			<rom>
-				<policy label="vbox_pointer -> hover" report="nitpicker -> hover"/>
-				<policy label="vbox_pointer -> xray"  report="nitpicker -> xray"/>
-				<policy label="vbox_pointer -> shape" report="vbox -> shape"/>
-				<policy label="vbox -> usb_devices"   report="usb_drv -> devices"/>
+				<policy label="vbox_pointer -> hover"               report="nitpicker -> hover"/>
+				<policy label="vbox_pointer -> xray"                report="nitpicker -> xray"/>
+				<policy label="vbox_pointer -> shape"               report="vbox -> shape"/>
+				<policy label="usb_report_filter -> devices"        report="usb_drv -> devices"/>
+				<policy label="usb_report_filter -> usb_drv_config" report="usb_drv -> config"/>
+				<policy label="vbox -> usb_devices"                 report="usb_report_filter -> usb_devices"/>
 			</rom>
 		</config>
 	</start>
@@ -123,7 +125,7 @@ append config_of_app {
 	</start>
 
 	<start name="vbox_pointer" priority="-1">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="1200K"/>
 		<config>
 			<policy label="nit_fb" rom="shape"/>
 		</config>

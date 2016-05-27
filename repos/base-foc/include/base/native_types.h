@@ -1,7 +1,19 @@
+/*
+ * \brief  Platform-specific type definitions
+ * \author Norman Feske
+ * \date   2009-10-02
+ */
+
+/*
+ * Copyright (C) 2009-2013 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
 #ifndef _INCLUDE__BASE__NATIVE_TYPES_H_
 #define _INCLUDE__BASE__NATIVE_TYPES_H_
 
-#include <base/native_config.h>
 #include <base/cap_map.h>
 
 namespace Fiasco {
@@ -63,15 +75,12 @@ namespace Fiasco {
 		static bool valid(l4_cap_idx_t idx) {
 			return !(idx & L4_INVALID_CAP_BIT) && idx != 0; }
 	};
-
 }
+
 
 namespace Genode {
 
-	typedef Fiasco::l4_cap_idx_t Native_thread_id;
-	typedef Fiasco::l4_cap_idx_t Native_thread;
 	typedef Fiasco::l4_cap_idx_t Native_task;
-	typedef Fiasco::l4_utcb_t*   Native_utcb;
 
 
 	/**
@@ -158,11 +167,6 @@ namespace Genode {
 			Dst   dst()        const { return _idx ? Dst(_idx->kcap()) : Dst(); }
 			bool  valid()      const { return (_idx != 0) && _idx->valid(); }
 	};
-
-
-	typedef int Native_connection_state;
-
-	struct Native_pd_args { };
 }
 
 #endif /* _INCLUDE__BASE__NATIVE_TYPES_H_ */

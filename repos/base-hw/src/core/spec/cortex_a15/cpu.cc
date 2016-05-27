@@ -1,11 +1,11 @@
 /*
- * \brief   Kernel backend for protection domains
+ * \brief   Cpu driver implementations specific to ARM Cortex A15
  * \author  Stefan Kalkowski
- * \date    2015-03-20
+ * \date    2016-01-07
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -15,13 +15,12 @@
 #include <kernel/pd.h>
 #include <cpu.h>
 
-void Genode::Cpu::init_virt_kernel(Kernel::Pd * pd)
+void Genode::Arm_v7::enable_mmu_and_caches(Kernel::Pd & pd)
 {
-	Mair0::write(Mair0::init_virt_kernel());
-	Dacr::write(Dacr::init_virt_kernel());
-	Ttbr0::write(Ttbr0::init((Genode::addr_t)pd->translation_table(),
-	                         pd->asid));
-	Ttbcr::write(Ttbcr::init_virt_kernel());
-	Sctlr::write(Sctlr::init_virt_kernel());
-	inval_branch_predicts();
+	Cpu::Mair0::write(Cpu::Mair0::init_virt_kernel());
+	Cpu::Dacr::write(Cpu::Dacr::init_virt_kernel());
+	Cpu::Ttbr0::write(Cpu::Ttbr0::init((Genode::addr_t)pd.translation_table(), pd.asid));
+	Cpu::Ttbcr::write(Cpu::Ttbcr::init_virt_kernel());
+	Cpu::Sctlr::enable_mmu_and_caches();
+	invalidate_branch_predicts();
 }

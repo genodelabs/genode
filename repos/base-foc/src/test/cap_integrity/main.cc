@@ -25,8 +25,8 @@ int main(int argc, char **argv)
 
 	enum { COUNT = 1000 };
 
-	Cap_index*       idx = cap_idx_alloc()->alloc_range(COUNT);
-	Native_thread_id tid = env()->ram_session_cap().dst();
+	Cap_index*           idx = cap_idx_alloc()->alloc_range(COUNT);
+	Fiasco::l4_cap_idx_t tid = env()->ram_session_cap().dst();
 
 	/* try the first 1000 local name IDs */
 	for (int local_name = 0; local_name < COUNT; local_name++, idx++) {

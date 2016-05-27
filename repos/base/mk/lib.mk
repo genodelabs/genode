@@ -24,6 +24,15 @@ include $(BASE_DIR)/mk/base-libs.mk
 all:
 
 #
+# Make a rlib or dylib instead of object file
+#
+ifndef SHARED_LIB
+  CC_RUSTC_OPT += --crate-type rlib
+else
+  CC_RUSTC_OPT += --crate-type dylib
+endif
+
+#
 # Include common utility functions
 #
 include $(BASE_DIR)/mk/util.inc
@@ -66,13 +75,16 @@ include $(BASE_DIR)/mk/global.mk
 #
 # Name of <libname>.lib.a or <libname>.lib.so file to create
 #
-ifndef SHARED_LIB
-LIB_A        := $(addsuffix .lib.a,$(LIB))
-LIB_FILENAME := $(LIB_A)
-else
+ifdef SHARED_LIB
 LIB_SO       := $(addsuffix .lib.so,$(LIB))
 INSTALL_SO   := $(INSTALL_DIR)/$(LIB_SO)
 LIB_FILENAME := $(LIB_SO)
+else ifdef SRC_RS
+LIB_RLIB        := $(addsuffix .rlib,$(LIB))
+LIB_FILENAME := $(LIB_RLIB)
+else
+LIB_A        := $(addsuffix .lib.a,$(LIB))
+LIB_FILENAME := $(LIB_A)
 endif
 LIB_TAG := $(addsuffix .lib.tag,$(LIB))
 
@@ -118,7 +130,7 @@ all: $(LIB_TAG)
 #
 $(LIB_TAG) $(OBJECTS): $(HOST_TOOLS)
 
-$(LIB_TAG): $(LIB_A) $(LIB_SO) $(INSTALL_SO)
+$(LIB_TAG): $(LIB_A) $(LIB_SO) $(INSTALL_SO) $(LIB_RLIB)
 	@touch $@
 
 include $(BASE_DIR)/mk/generic.mk
@@ -133,7 +145,15 @@ include $(BASE_DIR)/mk/generic.mk
 #
 $(LIB_A): $(OBJECTS)
 	$(MSG_MERGE)$(LIB_A)
-	$(VERBOSE)$(AR) -rc $@ $(OBJECTS)
+	$(VERBOSE)$(RM) -f $@
+	$(VERBOSE)$(AR) -rcs $@ $(OBJECTS)
+#
+# Rename from object to rlib
+#
+$(LIB_RLIB):  $(OBJECTS)
+	$(MSG_RENAME)$(LIB_RLIB)
+	$(VERBOSE)cp $(OBJECTS) $(LIB_RLIB)
+
 
 #
 # Don't link base libraries against shared libraries except for ld.lib.so

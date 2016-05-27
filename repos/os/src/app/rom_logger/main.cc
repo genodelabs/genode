@@ -85,10 +85,10 @@ void Rom_logger::Main::_handle_update(unsigned)
 	/*
 	 * Update ROM module and print content to LOG
 	 */
-	if (_rom_ds.is_constructed()) {
+	if (_rom_ds.constructed()) {
 		_rom_ds->update();
 
-		if (_rom_ds->is_valid()) {
+		if (_rom_ds->valid()) {
 			PLOG("ROM '%s':", _rom_name.string());
 
 			Genode::print_lines<200>(_rom_ds->local_addr<char>(), _rom_ds->size(),

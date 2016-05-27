@@ -27,8 +27,13 @@
 #include <util.h>
 #include <ipc_pager.h>
 
+/* base-internal includes */
+#include <base/internal/stack_area.h>
+#include <base/internal/native_utcb.h>
+
 /* NOVA includes */
 #include <nova/syscalls.h>
+#include <nova/util.h>
 
 using namespace Genode;
 using namespace Nova;
@@ -116,7 +121,8 @@ static void page_fault_handler()
 	addr_t pf_type = utcb->qual[0];
 
 	print_page_fault("\nPAGE-FAULT IN CORE", pf_addr, pf_ip,
-	                 (pf_type & Ipc_pager::ERR_W) ? Rm_session::WRITE_FAULT : Rm_session::READ_FAULT, 0);
+	                 (pf_type & Ipc_pager::ERR_W) ? Region_map::State::WRITE_FAULT
+	                                              : Region_map::State::READ_FAULT, 0);
 
 	printf("\nstack pointer 0x%lx, qualifiers 0x%lx %s%s%s%s%s\n",
 	       pf_sp, pf_type,
@@ -126,13 +132,13 @@ static void page_fault_handler()
 	       pf_type & Ipc_pager::ERR_W ? "W" : "w",
 	       pf_type & Ipc_pager::ERR_P ? "P" : "p");
 
-	if ((Native_config::context_area_virtual_base() <= pf_sp) &&
-		(pf_sp < Native_config::context_area_virtual_base() +
-		         Native_config::context_area_virtual_size()))
+	if ((stack_area_virtual_base() <= pf_sp) &&
+		(pf_sp < stack_area_virtual_base() +
+		         stack_area_virtual_size()))
 	{
-		addr_t utcb_addr_f  = pf_sp / Native_config::context_virtual_size();
-		utcb_addr_f        *= Native_config::context_virtual_size();
-		utcb_addr_f        += Native_config::context_virtual_size();
+		addr_t utcb_addr_f  = pf_sp / stack_virtual_size();
+		utcb_addr_f        *= stack_virtual_size();
+		utcb_addr_f        += stack_virtual_size();
 		utcb_addr_f        -= 4096;
 
 		Nova::Utcb * utcb_fault = reinterpret_cast<Nova::Utcb *>(utcb_addr_f);
@@ -276,7 +282,7 @@ Platform::Platform() :
 	 *     the y component of the affinity location. When adding support
 	 *     for two-dimensional affinity spaces, look out and adjust the use of
 	 *     'Platform_thread::_location' in 'platform_thread.cc'. Also look
-	 *     at the 'Thread_base::start' function in core/thread_start.cc.
+	 *     at the 'Thread::start' function in core/thread_start.cc.
 	 */
 	_cpus = Affinity::Space(hip->cpus(), 1);
 
@@ -397,9 +403,9 @@ Platform::Platform() :
 	/* preserve Bios Data Area (BDA) in core's virtual address space */
 	region_alloc()->remove_range(BDA_VIRT_ADDR, 0x1000);
 
-	/* preserve context area in core's virtual address space */
-	region_alloc()->remove_range(Native_config::context_area_virtual_base(),
-	                             Native_config::context_area_virtual_size());
+	/* preserve stack area in core's virtual address space */
+	region_alloc()->remove_range(stack_area_virtual_base(),
+	                             stack_area_virtual_size());
 
 	/* exclude utcb of core pager thread + empty guard pages before and after */
 	region_alloc()->remove_range(CORE_PAGER_UTCB_ADDR - get_page_size(),
@@ -420,14 +426,12 @@ Platform::Platform() :
 	};
 
 	for (unsigned i = 0; i < sizeof(check) / sizeof(check[0]); i++) { 
-		if (Native_config::context_area_virtual_base() <= check[i] &&
-			check[i] < Native_config::context_area_virtual_base() +
-			Native_config::context_area_virtual_size())
+		if (stack_area_virtual_base() <= check[i] &&
+			check[i] < stack_area_virtual_base() + stack_area_virtual_size())
 		{
 			PERR("overlapping area - [%lx, %lx) vs %lx",
-			     Native_config::context_area_virtual_base(),
-			     Native_config::context_area_virtual_base() +
-			     Native_config::context_area_virtual_size(), check[i]);
+			     stack_area_virtual_base(), stack_area_virtual_base() +
+			     stack_area_virtual_size(), check[i]);
 			nova_die();
 		}
 	}
@@ -607,7 +611,7 @@ Platform::Platform() :
 					addr_t const virt = mapped_cmd_line + get_page_size() * 2;
 					addr_t const phys = round_page(mem_desc->aux);
 
-					if (region_alloc()->alloc_addr(get_page_size(), virt).is_ok()) {
+					if (region_alloc()->alloc_addr(get_page_size(), virt).ok()) {
 						/* we got the virtual region */
 						err = map_local(__main_thread_utcb, phys, virt, 1,
 						                Nova::Rights(true, false, false), true);
@@ -761,7 +765,7 @@ Platform::Platform() :
 bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr,
                                       unsigned size)
 {
-	map_local((Utcb *)Thread_base::myself()->utcb(), phys_addr,
+	map_local((Utcb *)Thread::myself()->utcb(), phys_addr,
 	          virt_addr, size / get_page_size(),
 	          Rights(true, true, true), true);
 	return true;
@@ -770,7 +774,7 @@ bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr,
 
 bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, unsigned size)
 {
-	unmap_local((Utcb *)Thread_base::myself()->utcb(),
+	unmap_local((Utcb *)Thread::myself()->utcb(),
 	            virt_addr, size / get_page_size());
 	return true;
 }

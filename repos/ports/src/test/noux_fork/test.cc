@@ -12,7 +12,7 @@ enum { MAX_COUNT = 1000 };
 
 int main(int, char **)
 {
-	int i = 0;
+	printf("--- test-noux_fork started ---\n");
 
 	pid_t fork_ret = fork();
 	if (fork_ret < 0) {
@@ -25,7 +25,7 @@ int main(int, char **)
 	if (fork_ret == 0) {
 		printf("pid %d: child says hello\n", getpid());
 		for (int j = 0; j < MAX_COUNT; j++) {
-			printf("pid %d: child  i = %d\n", getpid(), i);
+			printf("pid %d: child  j = %d\n", getpid(), j);
 		}
 		return 0;
 	}
@@ -33,7 +33,7 @@ int main(int, char **)
 	printf("pid %d: parent received child pid %d, starts counting...\n",
 	       getpid(), fork_ret);
 
-	for (; i < MAX_COUNT; ) {
+	for (int i = 0; i < MAX_COUNT; ) {
 		printf("pid %d: parent i = %d\n", getpid(), i++);
 	}
 

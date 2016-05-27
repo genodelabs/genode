@@ -11,7 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 
 extern "C" {
 	typedef long DUMMY;
@@ -23,23 +23,23 @@ enum {
 };
 
 #define DUMMY(retval, name) \
-	DUMMY name(void) { \
+DUMMY name(void) { \
 	if (SHOW_DUMMY) \
-		PDBG( #name " called (from %p) not implemented", __builtin_return_address(0)); \
+		Genode::log( #name " called (from ", __builtin_return_address(0), ") not implemented"); \
 	return retval; \
 }
 
 #define DUMMY_SKIP(retval, name) \
-	DUMMY name(void) { \
-		if (SHOW_SKIP) \
-			PLOG( #name " called (from %p) skipped", __builtin_return_address(0)); \
+DUMMY name(void) { \
+	if (SHOW_SKIP) \
+		Genode::log( #name " called (from ", __builtin_return_address(0), ") skipped"); \
 	return retval; \
 }
 
 #define DUMMY_RET(retval, name) \
-	DUMMY name(void) { \
-		if (SHOW_RET) \
-			PWRN( #name " called (from %p) return %d", __builtin_return_address(0), retval); \
+DUMMY name(void) { \
+	if (SHOW_RET) \
+		Genode::warning( #name " called (from ", __builtin_return_address(0), ") return ", retval); \
 	return retval; \
 }
 
@@ -63,5 +63,6 @@ DUMMY(0, timeout_del)
 DUMMY(0, timeout_set)
 DUMMY(0, tsleep)
 DUMMY(0, vdevgone)
+DUMMY(0, device_unref)
 
 } /* extern "C" */

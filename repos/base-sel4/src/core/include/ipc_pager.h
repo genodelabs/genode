@@ -75,7 +75,7 @@ namespace Genode {
 	{
 		private:
 
-			Native_thread_id _last;      /* faulted thread                 */
+			addr_t           _last;      /* faulted thread ID              */
 			addr_t           _pf_addr;   /* page-fault address             */
 			addr_t           _pf_ip;     /* instruction pointer of faulter */
 			bool             _pf_write;  /* true on write fault            */
@@ -141,12 +141,12 @@ namespace Genode {
 			/**
 			 * Return true if page fault was a write fault
 			 */
-			bool is_write_fault() const { return _pf_write; }
+			bool write_fault() const { return _pf_write; }
 
 			/**
 			 * Return true if last fault was an exception
 			 */
-			bool is_exception() const
+			bool exception() const
 			{
 				/*
 				 * Reflection of exceptions is not supported on this platform.

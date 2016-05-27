@@ -12,14 +12,14 @@ install_config {
 <config>
 	<affinity-space width="3" height="2" />
 	<parent-provides>
-		<service name="ROM"/>
-		<service name="RAM"/>
-		<service name="CAP"/>
-		<service name="PD"/>
-		<service name="RM"/>
 		<service name="CPU"/>
+		<service name="IO_PORT"/>
+		<service name="IRQ"/>
 		<service name="LOG"/>
-		<service name="SIGNAL"/>
+		<service name="PD"/>
+		<service name="RAM"/>
+		<service name="RM"/>
+		<service name="ROM"/>
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>

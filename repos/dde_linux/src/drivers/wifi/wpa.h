@@ -18,26 +18,29 @@
 #include <base/sleep.h>
 
 /* entry function */
-extern "C" int wpa_main(void);
+extern "C" int wpa_main(int);
 extern "C" void wpa_conf_reload(void);
 
-class Wpa_thread : public Genode::Thread<8 * 1024 * sizeof(long)>
+class Wpa_thread : public Genode::Thread_deprecated<8 * 1024 * sizeof(long)>
 {
 	private:
 
 		Genode::Lock &_lock;
-		int _exit;
+		int           _exit;
+		bool          _debug_msg;
 
 	public:
 
-		Wpa_thread(Genode::Lock &lock)
-		: Thread("wpa_supplicant"), _lock(lock), _exit(-1) { }
+		Wpa_thread(Genode::Lock &lock, bool debug_msg)
+		:
+			Thread_deprecated("wpa_supplicant"),
+			_lock(lock), _exit(-1), _debug_msg(debug_msg) { }
 
 		void entry()
 		{
 			/* wait until the wifi driver is up and running */
 			_lock.lock();
-			_exit = wpa_main();
+			_exit = wpa_main(_debug_msg);
 			Genode::sleep_forever();
 		}
 };

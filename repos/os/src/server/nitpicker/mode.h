@@ -51,7 +51,7 @@ class Mode
 
 		bool has_key_cnt(unsigned cnt) const { return cnt == _key_cnt; }
 
-		bool key_is_pressed() const { return _key_cnt > 0; }
+		bool key_pressed() const { return _key_cnt > 0; }
 
 		Session       *focused_session()       { return _focused_session; }
 		Session const *focused_session() const { return _focused_session; }
@@ -62,7 +62,7 @@ class Mode
 			_next_focused_session = session;
 		}
 
-		bool is_focused(Session const &session) const { return &session == _focused_session; }
+		bool focused(Session const &session) const { return &session == _focused_session; }
 
 		void next_focused_session(Session *session) { _next_focused_session = session; }
 
@@ -77,7 +77,7 @@ class Mode
 			 * inconsistent press and release events. However, focus changes
 			 * during global key sequences are fine.
 			 */
-			if (key_is_pressed() && !_global_key_sequence)
+			if (key_pressed() && !_global_key_sequence)
 				return;
 
 			if (_focused_session != _next_focused_session)

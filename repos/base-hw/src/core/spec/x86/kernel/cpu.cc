@@ -1,11 +1,12 @@
 /*
  * \brief  Class for kernel data that is needed to manage a specific CPU
  * \author Reto Buerki
+ * \author Stefan Kalkowski
  * \date   2015-02-09
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -28,15 +29,26 @@ Cpu_idle::Cpu_idle(Cpu * const cpu) : Cpu_job(Cpu_priority::MIN, 0)
 }
 
 
-void Cpu_idle::exception(unsigned const cpu)
+void Kernel::Cpu::init(Pic &pic, Kernel::Pd &core_pd, Genode::Board&)
 {
-	if (trapno == RESET) {
-		return;
-	} else if (trapno >= INTERRUPTS_START && trapno <= INTERRUPTS_END) {
-		_interrupt(cpu);
-		return;
-	}
-	PWRN("Unknown exception %lu with error code %lu at ip=%p", trapno,
-	     errcode, (void *)ip);
-	assert(0);
+	Timer::disable_pit();
+
+	fpu().init();
+
+	/*
+	 * Please do not remove the PINF(), because the serial constructor requires
+	 * access to the Bios Data Area, which is available in the initial
+	 * translation table set, but not in the final tables used after
+	 * Cr3::write().
+	 */
+	PINF("Switch to core's final translation table");
+
+	Cr3::write(Cr3::init((addr_t)core_pd.translation_table()));
+
+	/* enable timer interrupt */
+	unsigned const cpu = Cpu::executing_id();
+	pic.unmask(Timer::interrupt_id(cpu), cpu);
 }
+
+
+void Cpu_domain_update::_domain_update() { }

@@ -17,18 +17,19 @@
 #include <hello_session/client.h>
 #include <base/connection.h>
 
-namespace Hello {
+namespace Hello { struct Connection; }
 
-	struct Connection : Genode::Connection<Session>, Session_client
-	{
-		Connection()
-		:
-			/* create session */
-			Genode::Connection<Hello::Session>(session("foo, ram_quota=4K")),
 
-			/* initialize RPC interface */
-			Session_client(cap()) { }
-	};
-}
+struct Hello::Connection : Genode::Connection<Session>, Session_client
+{
+	Connection(Genode::Env &env)
+	:
+		/* create session */
+		Genode::Connection<Hello::Session>(env, session(env.parent(),
+		                                                "ram_quota=4K")),
+
+		/* initialize RPC interface */
+		Session_client(cap()) { }
+};
 
 #endif /* _INCLUDE__HELLO_SESSION__CONNECTION_H_ */

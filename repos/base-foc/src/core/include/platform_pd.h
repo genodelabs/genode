@@ -29,6 +29,9 @@
 #include <cap_mapping.h>
 #include <address_space.h>
 
+/* base-internal includes */
+#include <base/internal/stack_area.h>
+
 /* Fiasco.OC includes */
 namespace Fiasco {
 #include <l4/sys/consts.h>
@@ -48,8 +51,8 @@ namespace Genode {
 
 			addr_t utcb_area_start()
 			{
-				return (Native_config::context_area_virtual_base() +
-				       THREAD_MAX * Native_config::context_virtual_size());
+				return stack_area_virtual_base() +
+				       THREAD_MAX*stack_virtual_size();
 			}
 
 			Cap_mapping       _task;
@@ -69,7 +72,7 @@ namespace Genode {
 			/**
 			 * Constructor for all tasks except core.
 			 */
-			Platform_pd();
+			Platform_pd(Allocator *, char const *label);
 
 			/**
 			 * Destructor
@@ -78,13 +81,8 @@ namespace Genode {
 
 			/**
 			 * Bind thread to protection domain
-			 *
-			 * \return  0  on success or
-			 *         -1  if thread ID allocation failed.
-			 *
-			 * This function allocates the physical L4 thread ID.
 			 */
-			int bind_thread(Platform_thread *thread);
+			bool bind_thread(Platform_thread *thread);
 
 			/**
 			 * Unbind thread from protection domain
@@ -96,7 +94,7 @@ namespace Genode {
 			/**
 			 * Assign parent interface to protection domain
 			 */
-			int assign_parent(Native_capability parent);
+			void assign_parent(Native_capability parent);
 
 
 			/*******************************
@@ -112,7 +110,7 @@ namespace Genode {
 
 			/*
 			 * On Fiasco.OC, we don't use directed unmap but rely on the
-			 * in-kernel mapping database. See 'rm_session_support.cc'.
+			 * in-kernel mapping database. See 'region_map_support.cc'.
 			 */
 			void flush(addr_t, size_t) { PDBG("not implemented"); }
 	};

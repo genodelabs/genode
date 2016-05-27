@@ -87,12 +87,11 @@ class Scan_code
 
 		Scan_code(Input::Keycode keycode) : _keycode(keycode) { }
 
-		bool is_normal() const { return converter().scan_code[_keycode]; }
-		bool is_ext()    const { return converter().scan_code_ext[_keycode]; }
+		bool normal() const { return converter().scan_code[_keycode]; }
 
 		bool valid() const
 		{
-			return is_normal() || is_ext();
+			return normal() || ext();
 		}
 
 		unsigned char code() const
@@ -129,7 +128,7 @@ class GenodeConsole : public Console {
 
 		bool _key_status[Input::KEY_MAX + 1];
 
-		static bool _is_mouse_button(Input::Keycode keycode)
+		static bool _mouse_button(Input::Keycode keycode)
 		{
 			return keycode == Input::BTN_LEFT
 			    || keycode == Input::BTN_RIGHT

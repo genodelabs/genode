@@ -81,7 +81,7 @@ struct Main
 				} catch(Xml_node::Nonexistent_attribute) {
 					PWRN("Missing attribute. Ignore node.");
 				}
-				if (gpio_node.is_last("gpio")) break;
+				if (gpio_node.last("gpio")) break;
 			}
 		} catch (Xml_node::Nonexistent_sub_node) { PWRN("No GPIO config"); }
 

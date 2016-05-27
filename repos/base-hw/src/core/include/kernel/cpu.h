@@ -12,11 +12,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _KERNEL__CPU_H_
-#define _KERNEL__CPU_H_
+#ifndef _CORE__INCLUDE__KERNEL__CPU_H_
+#define _CORE__INCLUDE__KERNEL__CPU_H_
 
 /* core includes */
-#include <timer.h>
+#include <kernel/clock.h>
 #include <cpu.h>
 #include <kernel/cpu_scheduler.h>
 #include <kernel/irq.h>
@@ -117,12 +117,11 @@ class Kernel::Cpu_domain_update : public Double_list_item
 		virtual void _cpu_domain_update_unblocks() = 0;
 };
 
-class Kernel::Cpu_job : public Cpu_share
+class Kernel::Cpu_job : public Genode::Cpu::User_context, public Cpu_share
 {
 	protected:
 
-		Cpu *          _cpu;
-		Cpu_lazy_state _lazy_state;
+		Cpu * _cpu;
 
 		/**
 		 * Handle interrupt exception that occured during execution on CPU 'id'
@@ -191,15 +190,20 @@ class Kernel::Cpu_job : public Cpu_share
 		 */
 		bool own_share_active() { return Cpu_share::ready(); }
 
+		void timeout(Timeout * const timeout, time_t const duration_us);
+
+		time_t timeout_age_us(Timeout const * const timeout) const;
+
+		time_t timeout_max_us() const;
+
 		/***************
 		 ** Accessors **
 		 ***************/
 
 		void cpu(Cpu * const cpu) { _cpu = cpu; }
-		Cpu_lazy_state * lazy_state() { return &_lazy_state; }
 };
 
-class Kernel::Cpu_idle : public Genode::Cpu::User_context, public Cpu_job
+class Kernel::Cpu_idle : public Cpu_job
 {
 	private:
 
@@ -229,8 +233,7 @@ class Kernel::Cpu_idle : public Genode::Cpu::User_context, public Cpu_job
 		Cpu_job * helping_sink() { return this; }
 };
 
-class Kernel::Cpu : public Genode::Cpu,
-                    public Irq::Pool
+class Kernel::Cpu : public Genode::Cpu, public Irq::Pool, private Timeout
 {
 	private:
 
@@ -266,14 +269,14 @@ class Kernel::Cpu : public Genode::Cpu,
 		};
 
 		unsigned const _id;
+		Clock          _clock;
 		Cpu_idle       _idle;
-		Timer * const  _timer;
 		Cpu_scheduler  _scheduler;
-		Ipi        _ipi_irq;
+		Ipi            _ipi_irq;
 		Irq            _timer_irq; /* timer irq implemented as empty event */
 
-		unsigned _quota() const { return _timer->ms_to_tics(cpu_quota_ms); }
-		unsigned _fill() const  { return _timer->ms_to_tics(cpu_fill_ms); }
+		unsigned _quota() const { return _clock.us_to_tics(cpu_quota_us); }
+		unsigned _fill() const  { return _clock.us_to_tics(cpu_fill_us); }
 
 	public:
 
@@ -281,6 +284,15 @@ class Kernel::Cpu : public Genode::Cpu,
 		 * Construct object for CPU 'id' with scheduling timer 'timer'
 		 */
 		Cpu(unsigned const id, Timer * const timer);
+
+		/**
+		 * Initialize primary cpu object
+		 *
+		 * \param pic      interrupt controller object
+		 * \param core_pd  core's pd object
+		 * \param board    object encapsulating board specifics
+		 */
+		void init(Pic &pic, Kernel::Pd &core_pd, Genode::Board & board);
 
 		/**
 		 * Raise the IPI of the CPU
@@ -301,10 +313,15 @@ class Kernel::Cpu : public Genode::Cpu,
 		void schedule(Job * const job);
 
 		/**
-		 * Handle recent exception of the CPU and proceed its user execution
+		 * Return the job that should be executed at next
 		 */
-		void exception();
+		Cpu_job& schedule();
 
+		void set_timeout(Timeout * const timeout, time_t const duration_us);
+
+		time_t timeout_age_us(Timeout const * const timeout) const;
+
+		time_t timeout_max_us() const;
 
 		/***************
 		 ** Accessors **
@@ -313,8 +330,8 @@ class Kernel::Cpu : public Genode::Cpu,
 		/**
 		 * Returns the currently active job
 		 */
-		Job * scheduled_job() const {
-			return static_cast<Job *>(_scheduler.head())->helping_sink(); }
+		Job & scheduled_job() const {
+			return *static_cast<Job *>(_scheduler.head())->helping_sink(); }
 
 		unsigned id() const { return _id; }
 		Cpu_scheduler * scheduler() { return &_scheduler; }
@@ -325,7 +342,13 @@ class Kernel::Cpu_pool
 	private:
 
 		Timer _timer;
-		char  _cpus[NR_OF_CPUS][sizeof(Cpu)];
+
+		/*
+		 * Align to machine word size, otherwise load/stores might fail on some
+		 * platforms.
+		 */
+		char _cpus[NR_OF_CPUS][sizeof(Cpu)]
+		     __attribute__((aligned(sizeof(addr_t))));
 
 	public:
 
@@ -353,4 +376,4 @@ class Kernel::Cpu_pool
 		Timer * timer() { return &_timer; }
 };
 
-#endif /* _KERNEL__CPU_H_ */
+#endif /* _CORE__INCLUDE__KERNEL__CPU_H_ */

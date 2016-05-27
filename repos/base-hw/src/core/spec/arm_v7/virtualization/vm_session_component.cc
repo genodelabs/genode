@@ -85,7 +85,7 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint  *ds_ep,
 
 	/* get some aligned space for the translation table */
 	if (!cma->alloc_aligned(sizeof(Translation_table), (void**)&tt,
-	                        Translation_table::ALIGNM_LOG2).is_ok()) {
+	                        Translation_table::ALIGNM_LOG2).ok()) {
 		PERR("failed to allocate kernel object");
 		throw Root::Quota_exceeded();
 	}

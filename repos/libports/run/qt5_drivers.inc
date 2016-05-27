@@ -100,12 +100,10 @@ proc drivers_parent_provides { feature_arg } {
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
-		<service name="CAP"/>
 		<service name="PD"/>
 		<service name="RM"/>
 		<service name="CPU"/>
 		<service name="LOG"/>
-		<service name="SIGNAL"/>
 	}
 
 	return $parent_provides

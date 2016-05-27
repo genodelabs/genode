@@ -195,7 +195,7 @@ class Platform_timer
 		/**
 		 * Block for the next scheduled timeout
 		 */
-		void wait_for_timeout(Genode::Thread_base *blocking_thread)
+		void wait_for_timeout(Genode::Thread *blocking_thread)
 		{
 			_irq_rec.wait_for_signal();
 			_timer_irq.ack_irq();

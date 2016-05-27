@@ -15,15 +15,6 @@
 #ifndef _INCLUDE__BASE__SLEEP_H_
 #define _INCLUDE__BASE__SLEEP_H_
 
-#include <base/lock.h>
-
-namespace Genode {
-
-	__attribute__((noreturn)) inline void sleep_forever()
-	{
-		Lock sleep;
-		while (true) sleep.lock();
-	}
-}
+namespace Genode { __attribute__((noreturn)) void sleep_forever(); }
 
 #endif /* _INCLUDE__BASE__SLEEP_H_ */

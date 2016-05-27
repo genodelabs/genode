@@ -39,7 +39,6 @@ set config {
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="RAM"/>
-		<service name="CAP"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
 		<service name="IRQ"/>
@@ -47,7 +46,6 @@ set config {
 		<service name="RM"/>
 		<service name="CPU"/>
 		<service name="LOG"/>
-		<service name="SIGNAL"/>
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
@@ -77,15 +75,16 @@ append config {
 		</provides>
 		<config>
 			<rom>
-				<policy label="layouter -> window_list"      report="wm -> window_list"/>
-				<policy label="layouter -> focus_request"    report="wm -> focus_request"/>
-				<policy label="decorator -> window_layout"   report="layouter -> window_layout"/>
-				<policy label="wm -> resize_request"         report="layouter -> resize_request"/>
-				<policy label="decorator -> pointer"         report="wm -> pointer"/>
-				<policy label="layouter -> hover"            report="decorator -> hover"/>
-				<policy label="wm -> focus"                  report="layouter -> focus"/>
-				<policy label="mixer_gui_qt -> channel_list" report="mixer -> channel_list"/>
-				<policy label="mixer -> channel_list"        report="mixer_gui_qt -> channel_list"/>
+				<policy label="layouter -> window_list"       report="wm -> window_list"/>
+				<policy label="layouter -> focus_request"     report="wm -> focus_request"/>
+				<policy label="decorator -> window_layout"    report="layouter -> window_layout"/>
+				<policy label="wm -> resize_request"          report="layouter -> resize_request"/>
+				<policy label="decorator -> pointer"          report="wm -> pointer"/>
+				<policy label="layouter -> hover"             report="decorator -> hover"/>
+				<policy label="wm -> focus"                   report="layouter -> focus"/>
+				<policy label="layouter -> decorator_margins" report="decorator -> decorator_margins"/>
+				<policy label="mixer_gui_qt -> channel_list"  report="mixer -> channel_list"/>
+				<policy label="mixer -> channel_list"         report="mixer_gui_qt -> channel_list"/>
 			</rom>
 		</config>
 	</start>
@@ -236,7 +235,7 @@ set boot_modules {
 	freetype.lib.so
 	gallium.lib.so
 	icu.lib.so
-	libc_lock_pipe.lib.so
+	libc_pipe.lib.so
 	libm.lib.so
 	libpng.lib.so
 	jpeg.lib.so

@@ -18,28 +18,53 @@
 #include <cpu_session/cpu_session.h>
 #include <base/connection.h>
 
-namespace Genode
+namespace Genode { struct Vm_connection; }
+
+
+struct Genode::Vm_connection : Connection<Vm_session>, Vm_session_client
 {
 	/**
-	 * Connection to a VM service
+	 * Issue session request
+	 *
+	 * \noapi
 	 */
-	struct Vm_connection : Connection<Vm_session>, Vm_session_client
+	Capability<Vm_session> _session(Parent &parent, char const *label, long priority,
+	                                unsigned long affinity)
 	{
-		/**
-		 * Constructor
-		 *
-		 * \param label     initial session label
-		 * \param priority  designated priority of the VM
-		 * \param affinity  which physical CPU the VM should run on top of
-		 */
-		Vm_connection(const char *label = "",
-		              long priority = Cpu_session::DEFAULT_PRIORITY,
-		              unsigned long affinity = 0)
-		: Connection<Vm_session>(
-			session("priority=0x%lx, affinity=0x%lx, ram_quota=16K, label=\"%s\"",
-			        priority, affinity, label)),
-		  Vm_session_client(cap()) { }
-	};
-}
+		return session(parent,
+		               "priority=0x%lx, affinity=0x%lx, ram_quota=16K, label=\"%s\"",
+		               priority, affinity, label);
+	}
+
+	/**
+	 * Constructor
+	 *
+	 * \param label     initial session label
+	 * \param priority  designated priority of the VM
+	 * \param affinity  which physical CPU the VM should run on top of
+	 */
+	Vm_connection(Env &env, const char *label = "",
+	              long priority = Cpu_session::DEFAULT_PRIORITY,
+	              unsigned long affinity = 0)
+	:
+		Connection<Vm_session>(env, _session(env.parent(), label, priority, affinity)),
+		Vm_session_client(cap())
+	{ }
+
+	/**
+	 * Constructor
+	 *
+	 * \noapi
+	 * \deprecated  Use the constructor with 'Env &' as first
+	 *              argument instead
+	 */
+	Vm_connection(const char *label = "",
+	              long priority = Cpu_session::DEFAULT_PRIORITY,
+	              unsigned long affinity = 0)
+	:
+		Connection<Vm_session>(_session(*env()->parent(), label, priority, affinity)),
+		Vm_session_client(cap())
+	{ }
+};
 
 #endif /* _INCLUDE__VM_SESSION__CONNECTION_H_ */

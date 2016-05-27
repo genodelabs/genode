@@ -12,7 +12,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#pragma once
+#ifndef _CORE__INCLUDE__SPEC__X86_64__MUEN__SERIAL_H_
+#define _CORE__INCLUDE__SPEC__X86_64__MUEN__SERIAL_H_
 
 /* Genode includes */
 #include <drivers/uart_base.h>
@@ -38,3 +39,5 @@ class Genode::Serial : public X86_uart_base
 			X86_uart_base(COM1_PORT, CLOCK_UNUSED, baud_rate)
 		{ }
 };
+
+#endif /* _CORE__INCLUDE__SPEC__X86_64__MUEN__SERIAL_H_ */

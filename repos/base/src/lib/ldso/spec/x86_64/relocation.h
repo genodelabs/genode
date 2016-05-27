@@ -15,6 +15,7 @@
 #define _LIB__LDSO__SPEC__X86_64__RELOCATION_H_
 
 #include <relocation_generic.h>
+#include <dynamic_generic.h>
 
 namespace Linker {
 

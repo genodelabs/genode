@@ -50,7 +50,7 @@ int main(int argc, char **argv)
 	printf("ROM client: request brightness report\n");
 	Attached_rom_dataspace brightness_rom("brightness");
 
-	ASSERT(brightness_rom.is_valid());
+	ASSERT(brightness_rom.valid());
 
 	brightness_rom.sigh(sig_cap);
 	printf("         -> %s\n", brightness_rom.local_addr<char>());
@@ -74,7 +74,7 @@ int main(int argc, char **argv)
 	timer.msleep(250);
 
 	brightness_rom.update();
-	ASSERT(brightness_rom.is_valid());
+	ASSERT(brightness_rom.valid());
 	printf("ROM client: ROM is available despite report was closed - OK\n");
 
 	printf("Reporter: start reporting (while the ROM client still listens)\n");

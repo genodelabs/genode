@@ -48,3 +48,24 @@ static inline void add_timer(struct timer_list *timer) { mod_timer(timer, timer-
 
 static inline
 int del_timer_sync(struct timer_list * timer) { return del_timer(timer); }
+
+
+/*********************
+ ** linux/hrtimer.h **
+ *********************/
+
+enum hrtimer_mode { HRTIMER_MODE_ABS = 0 };
+enum hrtimer_restart { HRTIMER_NORESTART = 0 };
+
+struct hrtimer
+{
+	enum hrtimer_restart (*function)(struct hrtimer *);
+	struct hrtimer        *data;
+	void                  *timer;
+};
+
+int hrtimer_start_range_ns(struct hrtimer *, ktime_t,
+                          unsigned long, const enum hrtimer_mode);
+
+void hrtimer_init(struct hrtimer *, clockid_t, enum hrtimer_mode);
+int hrtimer_cancel(struct hrtimer *);

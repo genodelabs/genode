@@ -17,15 +17,29 @@
 #include <noux_session/client.h>
 #include <base/connection.h>
 
-namespace Noux {
+namespace Noux { struct Connection; }
 
-	struct Connection : Genode::Connection<Session>, Session_client
-	{
-		Connection() :
-			Genode::Connection<Session>(session("")),
-			Session_client(cap())
-		{ }
-	};
-}
+
+struct Noux::Connection : Genode::Connection<Session>, Session_client
+{
+	/**
+	 * Constructor
+	 */
+	Connection(Genode::Env &env)
+	:
+		Genode::Connection<Session>(env, session(env.parent(), "")),
+		Session_client(cap())
+	{ }
+
+	/**
+	 * Constructor
+	 *
+	 * \noapi
+	 * \deprecated  Use the constructor with 'Env &' as first
+	 *              argument instead
+	 */
+	Connection()
+	: Genode::Connection<Session>(session("")), Session_client(cap()) { }
+};
 
 #endif /* _INCLUDE__NOUX_SESSION__CONNECTION_H_ */

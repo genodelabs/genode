@@ -22,7 +22,7 @@ extern "C" {
 
 namespace Lwip {
 
-	class Lwip_thread : public Genode::Thread<16384>
+	class Lwip_thread : public Genode::Thread_deprecated<16384>
 	{
 		private:
 
@@ -34,7 +34,7 @@ namespace Lwip {
 			Lwip_thread(const char *name,
 			            void (* thread)(void *arg),
 			            void *arg)
-			: Genode::Thread<16384>(name), _thread(thread), _arg(arg) { }
+			: Genode::Thread_deprecated<16384>(name), _thread(thread), _arg(arg) { }
 
 			void entry() { _thread(_arg); }
 	};

@@ -1,0 +1,31 @@
+if {[have_spec linux]} {
+	puts "Platform does not support managed dataspaces"; exit }
+
+build "core init test/rm_nested"
+
+create_boot_directory
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="RAM"/>
+			<service name="CPU"/>
+			<service name="RM"/>
+			<service name="PD"/>
+			<service name="LOG"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<start name="test-rm_nested">
+			<resource name="RAM" quantum="10M"/>
+		</start>
+	</config>
+}
+
+build_boot_image "core init test-rm_nested"
+
+append qemu_args "-nographic -m 64"
+
+run_genode_until {child "test-rm_nested" exited with exit value 0.*} 300

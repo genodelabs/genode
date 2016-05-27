@@ -12,8 +12,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CORE__INCLUDE__LINUX__PLATFORM_H_
-#define _CORE__INCLUDE__LINUX__PLATFORM_H_
+#ifndef _CORE__INCLUDE__PLATFORM_H_
+#define _CORE__INCLUDE__PLATFORM_H_
 
 #include <base/allocator_avl.h>
 #include <base/lock_guard.h>

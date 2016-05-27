@@ -28,9 +28,9 @@
 #include "synced_motherboard.h"
 
 using Genode::List;
-using Genode::Thread;
+using Genode::Thread_deprecated;
 
-class Vancouver_network : public Thread<4096>
+class Vancouver_network : public Thread_deprecated<4096>
 {
 	private:
 

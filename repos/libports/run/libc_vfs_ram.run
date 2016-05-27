@@ -1,0 +1,74 @@
+#
+# \brief  Test for using the vfs local ram_fs
+# \author Norman Feske
+# \date   2014-04-10
+#
+# \author Emery Hemingway
+# \date   2015-07-21
+#
+
+#
+# Build
+#
+
+build { core init test/libc_vfs }
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+set config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<start name="test-libc_vfs">
+		<resource name="RAM" quantum="12M"/>
+		<route>
+			<any-service> <parent/> </any-service>
+		</route>
+		<config>
+			<iterations value="1"/>}
+append_if [have_include "power_on/qemu"] config {
+			<write-read size="1M" buffer_size="8K"/>}
+append config {
+			<libc stdout="/dev/log" cwd="/tmp" >
+				<vfs>
+					<dir name="tmp" >
+						<ram/>
+					</dir>
+					<dir name="dev"> <log/> </dir>
+				</vfs>
+			</libc>
+		</config>
+	</start>
+</config>
+}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+build_boot_image {
+	core init
+	ld.lib.so libc.lib.so
+	test-libc_vfs
+}
+
+#
+# Execute test case
+#
+
+append qemu_args " -m 128 -nographic "
+run_genode_until {.*child "test-libc_vfs" exited with exit value 0.*} 60
+
+# vi: set ft=tcl :

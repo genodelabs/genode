@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2012-2013 Genode Labs GmbH
+ * Copyright (C) 2012-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -133,9 +133,12 @@ namespace Noux {
 					memcpy(dst, &_buffer[_read_offset], upper_len);
 
 					size_t const lower_len = min(dst_len - upper_len, _write_offset);
-					memcpy(dst + upper_len, &_buffer[0], lower_len);
-
-					_read_offset = lower_len;
+					if (lower_len) {
+						memcpy(dst + upper_len, &_buffer[0], lower_len);
+						_read_offset = lower_len;
+					} else {
+						_read_offset += upper_len;
+					}
 					_wake_up_writer();
 
 					return upper_len + lower_len;

@@ -95,7 +95,6 @@ namespace File_system {
 					_process_packet_op(packet, *node);
 				}
 				catch (Invalid_handle)     { PERR("Invalid_handle");     }
-				catch (Size_limit_reached) { PERR("Size_limit_reached"); }
 
 				/*
 				 * The 'acknowledge_packet' function cannot block because we
@@ -257,7 +256,7 @@ namespace File_system {
 					if (!_writable)
 						throw Permission_denied();
 
-					if (!path.is_valid_string())
+					if (!path.valid_string())
 						throw Name_too_long();
 
 					Directory *parent = _root.lookup_and_lock_parent(path_str);

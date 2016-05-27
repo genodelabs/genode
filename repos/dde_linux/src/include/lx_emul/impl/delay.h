@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -14,7 +14,7 @@
 /* Genode includes */
 #include <timer_session/connection.h>
 
-#include <lx_emul/impl/internal/timer.h>
+#include <lx_kit/timer.h>
 
 /*
  * XXX  We may consider to use the Lx::Timer instead of opening a dedicated

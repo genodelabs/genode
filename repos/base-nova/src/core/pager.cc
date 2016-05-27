@@ -18,8 +18,13 @@
 #include <util/construct_at.h>
 #include <rm_session/rm_session.h>
 
-/* Core includes */
+/* base-internal includes */
+#include <base/internal/native_thread.h>
+
+/* core-local includes */
 #include <pager.h>
+#include <platform_thread.h>
+#include <imprint_badge.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>
@@ -70,7 +75,7 @@ void Pager_object::_page_fault_handler(addr_t pager_obj)
 	Ipc_pager ipc_pager;
 	ipc_pager.wait_for_fault();
 
-	Thread_base  * myself = Thread_base::myself();
+	Thread       * myself = Thread::myself();
 	Pager_object *    obj = reinterpret_cast<Pager_object *>(pager_obj);
 	Utcb         *   utcb = reinterpret_cast<Utcb *>(myself->utcb());
 	Pager_activation_base * pager_thread = static_cast<Pager_activation_base *>(myself);
@@ -86,32 +91,39 @@ void Pager_object::_page_fault_handler(addr_t pager_obj)
 	if (!ret)
 		ipc_pager.reply_and_wait_for_fault();
 
+	obj->_state_lock.lock();
+
 	obj->_state.thread.ip     = ipc_pager.fault_ip();
 	obj->_state.thread.sp     = 0;
 	obj->_state.thread.trapno = PT_SEL_PAGE_FAULT;
 
 	obj->_state.block();
 
-	char const * client = reinterpret_cast<char const *>(obj->_badge);
+	obj->_state_lock.unlock();
+
+	const char * client_thread = obj->client_thread();
+	const char * client_pd = obj->client_pd();
+
 	/* region manager fault - to be handled */
 	if (ret == 1) {
-		PDBG("page fault, thread '%s', cpu %u, ip=%lx, fault address=0x%lx",
-		     client, which_cpu(pager_thread), ipc_pager.fault_ip(),
-		     ipc_pager.fault_addr());
+		PDBG("page fault, pd '%s', thread '%s', cpu %u, ip=%lx, fault "
+		     "address=0x%lx", client_pd, client_thread, which_cpu(pager_thread),
+		     ipc_pager.fault_ip(), ipc_pager.fault_addr());
 
 		utcb->set_msg_word(0);
 		utcb->mtd = 0;
 
 		/* block the faulting thread until region manager is done */
-		ipc_pager.reply_and_wait_for_fault(obj->sel_sm_block());
+		ipc_pager.reply_and_wait_for_fault(obj->sel_sm_block_pause());
 	}
 
 	/* unhandled case */
 	obj->_state.mark_dead();
 
-	PWRN("unresolvable page fault, thread '%s', cpu %u, ip=%lx, "
-	     "fault address=0x%lx ret=%u", client, which_cpu(pager_thread),
-	     ipc_pager.fault_ip(), ipc_pager.fault_addr(), ret);
+	PWRN("unresolvable page fault, pd '%s', thread '%s', cpu %u, ip=%lx, "
+	     "fault address=0x%lx ret=%u", client_pd, client_thread,
+	     which_cpu(pager_thread), ipc_pager.fault_ip(), ipc_pager.fault_addr(),
+	     ret);
 
 	Native_capability pager_cap = obj->Object_pool<Pager_object>::Entry::cap();
 	revoke(pager_cap.dst());
@@ -126,7 +138,7 @@ void Pager_object::_page_fault_handler(addr_t pager_obj)
 
 void Pager_object::exception(uint8_t exit_id)
 {
-	Thread_base  *myself = Thread_base::myself();
+	Thread       *myself = Thread::myself();
 	Utcb         *  utcb = reinterpret_cast<Utcb *>(myself->utcb());
 	Pager_activation_base * pager_thread = static_cast<Pager_activation_base *>(myself);
 
@@ -137,30 +149,23 @@ void Pager_object::exception(uint8_t exit_id)
 	uint8_t res        = 0xFF;
 	addr_t  mtd        = 0;
 
-	if (_state.skip_requested()) {
-		_state.skip_reset();
-
-		utcb->set_msg_word(0);
-		utcb->mtd = 0;
-		reply(myself->stack_top());
-	}
+	_state_lock.lock();
 
 	/* remember exception type for cpu_session()->state() calls */
 	_state.thread.trapno = exit_id;
-	_state.thread.ip     = fault_ip;
 
 	if (_exception_sigh.valid()) {
 		_state.submit_signal();
-		res = client_recall();
+		res = _unsynchronized_client_recall(true);
 	}
 
 	if (res != NOVA_OK) {
 		/* nobody handles this exception - so thread will be stopped finally */
 		_state.mark_dead();
 
-		char const * client = reinterpret_cast<char const *>(_badge);
-		PWRN("unresolvable exception %u, thread '%s', cpu %u, ip=0x%lx, %s",
-		     exit_id, client, which_cpu(pager_thread), fault_ip,
+		PWRN("unresolvable exception %u, pd '%s', thread '%s', cpu %u, "
+		     "ip=0x%lx, %s", exit_id, client_pd(), client_thread(),
+		     which_cpu(pager_thread), fault_ip,
 		     res == 0xFF ? "no signal handler" :
 		     (res == NOVA_OK ? "" : "recall failed"));
 
@@ -174,6 +179,8 @@ void Pager_object::exception(uint8_t exit_id)
 		}
 	}
 
+	_state_lock.unlock();
+
 	utcb->set_msg_word(0);
 	utcb->mtd = mtd;
 
@@ -183,54 +190,46 @@ void Pager_object::exception(uint8_t exit_id)
 
 void Pager_object::_recall_handler(addr_t pager_obj)
 {
-	Thread_base  * myself = Thread_base::myself();
+	Thread       * myself = Thread::myself();
 	Pager_object *    obj = reinterpret_cast<Pager_object *>(pager_obj);
 	Utcb         *   utcb = reinterpret_cast<Utcb *>(myself->utcb());
 
-	/* save state - can be requested via cpu_session->state */
-	obj->_copy_state(utcb);
+	obj->_state_lock.lock();
 
-	obj->_state.thread.ip     = utcb->ip;
-	obj->_state.thread.sp     = utcb->sp;
+	if (obj->_state.modified) {
+		obj->_copy_state_to_utcb(utcb);
+		obj->_state.modified = false;
+	} else
+		utcb->mtd = 0;
 
-	obj->_state.thread.eflags = utcb->flags;
-
-	/* thread becomes blocked */
-	obj->_state.block();
+	/* switch on/off single step */
+	bool singlestep_state = obj->_state.thread.eflags & 0x100UL;
+	if (obj->_state.singlestep() && !singlestep_state) {
+		utcb->flags |= 0x100UL;
+		utcb->mtd |= Mtd::EFL;
+	} else if (!obj->_state.singlestep() && singlestep_state) {
+		utcb->flags &= ~0x100UL;
+		utcb->mtd |= Mtd::EFL;
+	}
 
 	/* deliver signal if it was requested */
 	if (obj->_state.to_submit())
 		obj->submit_exception_signal();
 
-	/* notify callers of cpu_session()->pause that the state is now valid */
-	if (obj->_state.notify_requested()) {
-		obj->_state.notify_cancel();
-		if (sm_ctrl(obj->sel_sm_notify(), SEMAPHORE_UP) != NOVA_OK)
-			PWRN("paused notification failed");
-	}
-
-	/* switch on/off single step */
-	bool singlestep_state = obj->_state.thread.eflags & 0x100UL;
-	if (obj->_state.singlestep() && !singlestep_state) {
-		utcb->flags = obj->_state.thread.eflags | 0x100UL;
-		utcb->mtd = Nova::Mtd(Mtd::EFL).value();
-	} else {
-		if (!obj->_state.singlestep() && singlestep_state) {
-			utcb->flags = obj->_state.thread.eflags & ~0x100UL;
-			utcb->mtd = Nova::Mtd(Mtd::EFL).value();
-		} else
-			utcb->mtd = 0;
-	}
-
 	/* block until cpu_session()->resume() respectively wake_up() call */
+
+	unsigned long sm = obj->_state.blocked() ? obj->sel_sm_block_pause() : 0;
+
+	obj->_state_lock.unlock();
+
 	utcb->set_msg_word(0);
-	reply(myself->stack_top(), obj->sel_sm_block());
+	reply(myself->stack_top(), sm);
 }
 
 
 void Pager_object::_startup_handler(addr_t pager_obj)
 {
-	Thread_base  *myself = Thread_base::myself();
+	Thread       *myself = Thread::myself();
 	Pager_object *   obj = reinterpret_cast<Pager_object *>(pager_obj);
 	Utcb         *  utcb = reinterpret_cast<Utcb *>(myself->utcb());
 
@@ -238,6 +237,14 @@ void Pager_object::_startup_handler(addr_t pager_obj)
 	utcb->sp  = obj->_initial_esp;
 
 	utcb->mtd = Mtd::EIP | Mtd::ESP;
+
+	if (obj->_state.singlestep()) {
+		utcb->flags = 0x100UL;
+		utcb->mtd |= Mtd::EFL;
+	}
+
+	obj->_state.unblock();
+
 	utcb->set_msg_word(0);
 
 	reply(myself->stack_top());
@@ -246,7 +253,7 @@ void Pager_object::_startup_handler(addr_t pager_obj)
 
 void Pager_object::_invoke_handler(addr_t pager_obj)
 {
-	Thread_base  *myself = Thread_base::myself();
+	Thread       *myself = Thread::myself();
 	Pager_object *   obj = reinterpret_cast<Pager_object *>(pager_obj);
 	Utcb         *  utcb = reinterpret_cast<Utcb *>(myself->utcb());
 
@@ -359,12 +366,16 @@ void Pager_object::_invoke_handler(addr_t pager_obj)
 
 void Pager_object::wake_up()
 {
+	Lock::Guard _state_lock_guard(_state_lock);
+
 	if (!_state.blocked())
 		return;
 
+	_state.thread.exception = false;
+
 	_state.unblock();
 
-	uint8_t res = sm_ctrl(sel_sm_block(), SEMAPHORE_UP);
+	uint8_t res = sm_ctrl(sel_sm_block_pause(), SEMAPHORE_UP);
 	if (res != NOVA_OK)
 		PWRN("canceling blocked client failed (thread sm)");
 }
@@ -385,9 +396,30 @@ void Pager_object::client_cancel_blocking()
 }
 
 
-uint8_t Pager_object::client_recall()
+uint8_t Pager_object::client_recall(bool get_state_and_block)
 {
-	return ec_ctrl(EC_RECALL, _state.sel_client_ec);
+	Lock::Guard _state_lock_guard(_state_lock);
+	return _unsynchronized_client_recall(get_state_and_block);
+}
+
+
+uint8_t Pager_object::_unsynchronized_client_recall(bool get_state_and_block)
+{
+	enum { STATE_REQUESTED = 1 };
+
+	uint8_t res = ec_ctrl(EC_RECALL, _state.sel_client_ec,
+	                      get_state_and_block ? STATE_REQUESTED : ~0UL);
+
+	if (res != NOVA_OK)
+		return res;
+
+	if (get_state_and_block) {
+		Utcb *utcb = reinterpret_cast<Utcb *>(Thread::myself()->utcb());
+		_copy_state_from_utcb(utcb);
+		_state.block();
+	}
+
+	return res;
 }
 
 
@@ -395,10 +427,14 @@ void Pager_object::cleanup_call()
 {
 	_state.mark_dissolved();
 
+	/* revoke ec and sc cap of client before the sm cap */
+	if (_state.sel_client_ec != Native_thread::INVALID_INDEX)
+		revoke(Obj_crd(_state.sel_client_ec, 2));
+
 	/* revoke all portals handling the client. */
 	revoke(Obj_crd(exc_pt_sel_client(), NUM_INITIAL_PT_LOG2));
 
-	Utcb *utcb = reinterpret_cast<Utcb *>(Thread_base::myself()->utcb());
+	Utcb *utcb = reinterpret_cast<Utcb *>(Thread::myself()->utcb());
 	utcb->set_msg_word(0);
 	utcb->mtd = 0;
 	if (uint8_t res = call(sel_pt_cleanup()))
@@ -440,17 +476,17 @@ void Exception_handlers::register_handler(Pager_object *obj, Mtd mtd,
 	unsigned use_cpu = obj->location.xpos();
 	if (!kernel_hip()->is_cpu_enabled(use_cpu) || !pager_threads[use_cpu]) {
 		PWRN("invalid CPU parameter used in pager object");
-		throw Rm_session::Invalid_thread();
+		throw Region_map::Invalid_thread();
 	}
 
-	addr_t const ec_sel = pager_threads[use_cpu]->tid().ec_sel;
+	addr_t const ec_sel = pager_threads[use_cpu]->native_thread().ec_sel;
 
 	/* compiler generates instance of exception entry if not specified */
 	addr_t entry = func ? (addr_t)func : (addr_t)(&_handler<EV>);
 	uint8_t res = create_portal(obj->exc_pt_sel_client() + EV,
 	                            __core_pd_sel, ec_sel, mtd, entry, obj);
 	if (res != Nova::NOVA_OK)
-		throw Rm_session::Invalid_thread();
+		throw Region_map::Invalid_thread();
 }
 
 
@@ -498,12 +534,15 @@ Exception_handlers::Exception_handlers(Pager_object *obj)
  ******************/
 
 
-Pager_object::Pager_object(unsigned long badge, Affinity::Location location)
+Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
+                           Thread_capability thread_cap, unsigned long badge,
+                           Affinity::Location location)
 :
 	_badge(badge),
 	_selectors(cap_map()->insert(2)),
 	_client_exc_pt_sel(cap_map()->insert(NUM_INITIAL_PT_LOG2)),
 	_client_exc_vcpu(Native_thread::INVALID_INDEX),
+	_cpu_session_cap(cpu_session_cap), _thread_cap(thread_cap),
 	_exceptions(this),
 	location(location)
 {
@@ -511,26 +550,28 @@ Pager_object::Pager_object(unsigned long badge, Affinity::Location location)
 
 	addr_t pd_sel        = __core_pd_sel;
 	_state._status       = 0;
+	_state.modified      = false;
 	_state.sel_client_ec = Native_thread::INVALID_INDEX;
+	_state.block();
 
 	if (Native_thread::INVALID_INDEX == _selectors ||
 	    Native_thread::INVALID_INDEX == _client_exc_pt_sel)
-		throw Rm_session::Invalid_thread();
+		throw Region_map::Invalid_thread();
 
 	/* ypos information not supported by now */
 	if (location.ypos()) {
 		PWRN("Unsupported location %ux%u", location.xpos(), location.ypos());
-		throw Rm_session::Invalid_thread();
+		throw Region_map::Invalid_thread();
 	}
 
 	/* place Pager_object on specified CPU by selecting proper pager thread */
 	unsigned use_cpu = location.xpos();
 	if (!kernel_hip()->is_cpu_enabled(use_cpu) || !pager_threads[use_cpu]) {
 		PWRN("invalid CPU parameter used in pager object");
-		throw Rm_session::Invalid_thread();
+		throw Region_map::Invalid_thread();
 	}
 
-	addr_t ec_sel    = pager_threads[use_cpu]->tid().ec_sel;
+	addr_t ec_sel    = pager_threads[use_cpu]->native_thread().ec_sel;
 
 	/* create portal for page-fault handler - 14 */
 	_exceptions.register_handler<14>(this, Mtd::QUAL | Mtd::EIP,
@@ -553,7 +594,7 @@ Pager_object::Pager_object(unsigned long badge, Affinity::Location location)
 	 */
 	res = Nova::create_sm(exc_pt_sel_client() + SM_SEL_EC, pd_sel, 0);
 	if (res != Nova::NOVA_OK) {
-		throw Rm_session::Invalid_thread();
+		throw Region_map::Invalid_thread();
 	}
 
 	/* create portal for final cleanup call used during destruction */
@@ -561,19 +602,19 @@ Pager_object::Pager_object(unsigned long badge, Affinity::Location location)
 	                    reinterpret_cast<addr_t>(_invoke_handler), this);
 	if (res != Nova::NOVA_OK) {
 		PERR("could not create pager cleanup portal, error = %u\n", res);
-		throw Rm_session::Invalid_thread();
+		throw Region_map::Invalid_thread();
 	}
 
-	/* used to notify caller of as soon as pause succeeded */
-	res = Nova::create_sm(sel_sm_notify(), pd_sel, 0);
+	/* semaphore used to block paged thread during recall */
+	res = Nova::create_sm(sel_sm_block_pause(), pd_sel, 0);
 	if (res != Nova::NOVA_OK) {
-		throw Rm_session::Invalid_thread();
+		throw Region_map::Invalid_thread();
 	}
 
-	/* semaphore used to block paged thread during page fault or recall */
-	res = Nova::create_sm(sel_sm_block(), pd_sel, 0);
+	/* semaphore used to block paged thread during OOM memory revoke */
+	res = Nova::create_sm(sel_sm_block_oom(), pd_sel, 0);
 	if (res != Nova::NOVA_OK) {
-		throw Rm_session::Invalid_thread();
+		throw Region_map::Invalid_thread();
 	}
 }
 
@@ -601,8 +642,8 @@ uint8_t Pager_object::handle_oom(addr_t transfer_from,
                                  char const * src_pd, char const * src_thread,
                                  enum Pager_object::Policy policy)
 {
-	const char * dst_pd     = "unknown";
-	const char * dst_thread = reinterpret_cast<char *>(badge());
+	const char * dst_pd     = client_pd();
+	const char * dst_thread = client_thread();
 
 	enum { QUOTA_TRANSFER_PAGES = 2 };
 
@@ -618,8 +659,8 @@ uint8_t Pager_object::handle_oom(addr_t transfer_from,
 		/* request current kernel quota usage of source pd */
 		Nova::pd_ctrl_debug(transfer_from, limit_source, usage_source);
 
-		PINF("oom - '%s:%s' (%lu/%lu) - transfer %u pages from '%s:%s' (%lu/%lu)",
-		     dst_pd, dst_thread,
+		PINF("oom - '%s':'%s' (%lu/%lu) - transfer %u pages from '%s':'%s' "
+		     "(%lu/%lu)", dst_pd, dst_thread,
 		     usage_before, limit_before, QUOTA_TRANSFER_PAGES,
 		     src_pd, src_thread, usage_source, limit_source);
 	}
@@ -645,13 +686,13 @@ uint8_t Pager_object::handle_oom(addr_t transfer_from,
 	}
 
 	PWRN("kernel memory quota upgrade failed - trigger memory free up for "
-	     "causing '%s:%s' - donator is '%s:%s', policy=%u",
+	     "causing '%s':'%s' - donator is '%s':'%s', policy=%u",
 	     dst_pd, dst_thread, src_pd, src_thread, policy);
 
 	/* if nothing helps try to revoke memory */
 	enum { REMOTE_REVOKE = true, PD_SELF = true };
 	Mem_crd crd_all(0, ~0U, Rights(true, true, true));
-	Nova::revoke(crd_all, PD_SELF, REMOTE_REVOKE, pd_sel(), sel_sm_block());
+	Nova::revoke(crd_all, PD_SELF, REMOTE_REVOKE, pd_sel(), sel_sm_block_oom());
 
 	/* re-request current kernel quota usage of target pd */
 	addr_t limit_after = 0, usage_after = 0;
@@ -683,7 +724,7 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 		asm volatile ("" : "=S" (reason));
 	}
 
-	Thread_base  * myself  = Thread_base::myself();
+	Thread       * myself  = Thread::myself();
 	Utcb         * utcb    = reinterpret_cast<Utcb *>(myself->utcb());
 	Pager_object * obj_dst = reinterpret_cast<Pager_object *>(pager_dst);
 	Pager_object * obj_src = reinterpret_cast<Pager_object *>(pager_src);
@@ -719,14 +760,14 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 	if (assert) {
 		PERR("unknown OOM case - stop core pager thread");
 		utcb->set_msg_word(0);
-		reply(myself->stack_top(), myself->tid().exc_pt_sel + Nova::SM_SEL_EC);
+		reply(myself->stack_top(), myself->native_thread().exc_pt_sel + Nova::SM_SEL_EC);
 	}
 
 	/* be strict in case of the -strict- STOP policy - stop causing thread */
 	if (policy == STOP) {
 		PERR("PD has insufficient kernel memory left - stop thread");
 		utcb->set_msg_word(0);
-		reply(myself->stack_top(), obj_dst->sel_sm_block());
+		reply(myself->stack_top(), obj_dst->sel_sm_block_pause());
 	}
 
 	char const * src_pd     = "core";
@@ -739,7 +780,7 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 		/* should not happen on Genode - we create and know every PD in core */
 		PERR("Unknown PD has insufficient kernel memory left - stop thread");
 		utcb->set_msg_word(0);
-		reply(myself->stack_top(), myself->tid().exc_pt_sel + Nova::SM_SEL_EC);
+		reply(myself->stack_top(), myself->native_thread().exc_pt_sel + Nova::SM_SEL_EC);
 
 	case SRC_CORE_PD:
 		/* core PD -> other PD, which has insufficient kernel resources */
@@ -760,8 +801,8 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 			transfer_from = __core_pd_sel;
 		else {
 			/* delegation of items between different PDs */
-			src_pd = "unknown";
-			src_thread = reinterpret_cast<char *>(obj_src->badge());
+			src_pd = obj_src->client_pd();
+			src_thread = obj_src->client_thread();
 			transfer_from = obj_src->pd_sel();
 		}
 	}
@@ -781,7 +822,7 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 	/* else: caller will get blocked until RCU period is over */
 
 	/* block caller in semaphore */
-	reply(myself->stack_top(), obj_dst->sel_sm_block());
+	reply(myself->stack_top(), obj_dst->sel_sm_block_oom());
 }
 
 
@@ -791,7 +832,7 @@ addr_t Pager_object::get_oom_portal()
 	unsigned const use_cpu  = location.xpos();
 
 	if (kernel_hip()->is_cpu_enabled(use_cpu) && pager_threads[use_cpu]) {
-		addr_t const ec_sel     = pager_threads[use_cpu]->tid().ec_sel;
+		addr_t const ec_sel     = pager_threads[use_cpu]->native_thread().ec_sel;
 
 		uint8_t res = create_portal(pt_oom, __core_pd_sel, ec_sel, Mtd(0),
 		                            reinterpret_cast<addr_t>(_oom_handler),
@@ -805,22 +846,33 @@ addr_t Pager_object::get_oom_portal()
 }
 
 
+const char * Pager_object::client_thread() const
+{
+	Platform_thread * client = reinterpret_cast<Platform_thread *>(_badge);
+	return client ? client->name() : "unknown";
+}
+
+
+const char * Pager_object::client_pd() const
+{
+	Platform_thread * client = reinterpret_cast<Platform_thread *>(_badge);
+	return client ? client->pd_name() : "unknown";
+}
+
 /**********************
  ** Pager activation **
  **********************/
 
 Pager_activation_base::Pager_activation_base(const char *name, size_t stack_size)
 :
-	Thread_base(Cpu_session::DEFAULT_WEIGHT, name, stack_size),
+	Thread(Cpu_session::Weight::DEFAULT_WEIGHT, name, stack_size,
+	       Affinity::Location(which_cpu(this), 0)),
 	_cap(Native_capability()), _ep(0), _cap_valid(Lock::LOCKED)
 {
-	/* tell thread starting code on which CPU to let run the pager */
-	reinterpret_cast<Affinity::Location *>(stack_base())[0] = Affinity::Location(which_cpu(this), 0);
-
 	/* creates local EC */
-	Thread_base::start();
+	Thread::start();
 
-	reinterpret_cast<Nova::Utcb *>(Thread_base::utcb())->crd_xlt = Obj_crd(0, ~0UL);
+	reinterpret_cast<Nova::Utcb *>(Thread::utcb())->crd_xlt = Obj_crd(0, ~0UL);
 }
 
 
@@ -832,8 +884,8 @@ void Pager_activation_base::entry() { }
  **********************/
 
 
-Pager_entrypoint::Pager_entrypoint(Cap_session *cap_session)
-: _cap_session(cap_session)
+Pager_entrypoint::Pager_entrypoint(Rpc_cap_factory &cap_factory)
+: _cap_factory(cap_factory)
 {
 	/* sanity check space for pager threads */
 	if (kernel_hip()->cpu_max() > PAGER_CPUS) {
@@ -865,14 +917,13 @@ Pager_capability Pager_entrypoint::manage(Pager_object *obj)
 		PWRN("invalid CPU parameter used in pager object");
 		return Pager_capability();
 	}
-	Native_capability pager_thread_cap(pager_threads[use_cpu]->tid().ec_sel);
+	Native_capability pager_thread_cap(pager_threads[use_cpu]->native_thread().ec_sel);
 
 	/* request creation of portal bind to pager thread */
 	Native_capability cap_session =
-		_cap_session->alloc(pager_thread_cap, obj->handler_address());
+		_cap_factory.alloc(pager_thread_cap, obj->handler_address(), 0);
 
-	if (NOVA_OK != pt_ctrl(cap_session.local_name(), reinterpret_cast<mword_t>(obj)))
-		nova_die();
+	imprint_badge(cap_session.local_name(), reinterpret_cast<mword_t>(obj));
 
 	/* disable the feature for security reasons now */
 	revoke(Obj_crd(cap_session.local_name(), 0, Obj_crd::RIGHT_PT_CTRL));
@@ -890,12 +941,16 @@ Pager_capability Pager_entrypoint::manage(Pager_object *obj)
 void Pager_entrypoint::dissolve(Pager_object *obj)
 {
 	Native_capability pager_obj = obj->Object_pool<Pager_object>::Entry::cap();
-	/* cleanup at cap session */
-	_cap_session->free(pager_obj);
+
+	/* cleanup at cap factory */
+	_cap_factory.free(pager_obj);
+
 	/* revoke cap selector locally */
 	revoke(pager_obj.dst(), true);
+
 	/* remove object from pool */
 	remove(obj);
+
 	/* take care that no faults are in-flight */
 	obj->cleanup_call();
 }

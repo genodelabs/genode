@@ -105,7 +105,7 @@ void Platform_thread::unbind()
 void Platform_thread::state(Thread_state s)
 {
 	PDBG("Not implemented");
-	throw Cpu_session::State_access_failed();
+	throw Cpu_thread::State_access_failed();
 }
 
 
@@ -151,7 +151,8 @@ Weak_ptr<Address_space> Platform_thread::address_space()
 }
 
 
-Platform_thread::Platform_thread(size_t, const char *name, unsigned, addr_t,
+Platform_thread::Platform_thread(size_t, const char *name, unsigned,
+                                 Affinity::Location, addr_t,
                                  int thread_id)
 : _thread_id(thread_id), _l4_thread_id(L4_INVALID_ID), _pager(0)
 {

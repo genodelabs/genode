@@ -459,6 +459,8 @@ namespace Noux {
 			SYSIO_DECL(sync,        { }, { });
 
 			SYSIO_DECL(kill,        { int pid; Signal sig; }, { });
+
+			SYSIO_DECL(getdtablesize, { }, { int n; });
 		};
 	};
 };

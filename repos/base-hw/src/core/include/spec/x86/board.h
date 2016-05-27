@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _BOARD_H_
-#define _BOARD_H_
+#ifndef _CORE__INCLUDE__SPEC__X86__BOARD_H_
+#define _CORE__INCLUDE__SPEC__X86__BOARD_H_
 
 namespace Genode
 {
@@ -29,7 +29,9 @@ namespace Genode
 			TIMER_VECTOR_USER   = 50,
 			ISA_IRQ_END         = 15,
 		};
+
+		void init() { }
 	};
 }
 
-#endif /* _BOARD_H_ */
+#endif /* _CORE__INCLUDE__SPEC__X86__BOARD_H_ */

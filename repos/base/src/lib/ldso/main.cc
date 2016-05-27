@@ -11,12 +11,15 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/env.h>
+/* Genode includes */
+#include <base/component.h>
 #include <base/printf.h>
-#include <os/config.h>
+#include <base/attached_rom_dataspace.h>
 #include <util/list.h>
 #include <util/string.h>
+#include <base/thread.h>
 
+/* local includes */
 #include <dynamic.h>
 #include <init.h>
 
@@ -32,15 +35,9 @@ namespace Linker {
 
 };
 
-/**
- * Genode args to the 'main' function
- */
-extern char **genode_argv;
-extern int    genode_argc;
-extern char **genode_envp;
-
 static    Binary *binary = 0;
 bool      Linker::bind_now = false;
+bool      Linker::verbose  = false;
 Link_map *Link_map::first;
 
 /**
@@ -361,7 +358,7 @@ struct Linker::Binary : Root_object, Elf_object
 		return 0;
 	}
 
-	int call_entry_point()
+	void call_entry_point(Genode::Env &env)
 	{
 		/* call static construtors and register destructors */
 		Func * const ctors_start = (Func *)lookup_symbol("_ctors_start");
@@ -372,11 +369,13 @@ struct Linker::Binary : Root_object, Elf_object
 		Func * const dtors_end   = (Func *)lookup_symbol("_dtors_end");
 		for (Func * dtor = dtors_start; dtor != dtors_end; genode_atexit(*dtor++));
 
-		/* call main function of the program */
-		typedef int (*Main)(int, char **, char **);
-		Main const main = reinterpret_cast<Main>(_file->entry);
+		/* call component entry point */
+		/* XXX the function type for call_component_construct() is a candidate
+		 * for a base-internal header */
+		typedef void (*Entry)(Genode::Env &);
+		Entry const entry = reinterpret_cast<Entry>(_file->entry);
 
-		return main(genode_argc, genode_argv, genode_envp);
+		entry(env);
 	}
 
 	void relocate() override
@@ -484,8 +483,14 @@ Elf::Sym const *Linker::lookup_symbol(char const *name, Dependency const *dep,
 	}
 
 	/* try searching binary's dependencies */
-	if (!weak_symbol && dep->root && dep != binary->dep.head())
-		return lookup_symbol(name, binary->dep.head(), base, undef, other);
+	if (!weak_symbol && dep->root) {
+		if (binary && dep != binary->dep.head()) {
+			return lookup_symbol(name, binary->dep.head(), base, undef, other);
+		} else {
+			PERR("Could not lookup symbol \"%s\"", name);
+			throw Not_found();
+		}
+	}
 
 	if (dep->root && verbose_lookup)
 		PDBG("Return %p", weak_symbol);
@@ -534,54 +539,49 @@ extern "C" void init_rtld()
 }
 
 
-static void dump_loaded()
-{
-	Object *o = Elf_object::obj_list()->head();
-	for(; o; o = o->next_obj()) {
-
-		if (o->is_binary())
-			continue;
-
-		Genode::printf("  " EFMT " .. " EFMT ": %s\n",
-		                o->link_map()->addr, o->link_map()->addr + o->size() - 1,
-		                o->name());
-	}
-}
+Genode::size_t Component::stack_size() { return 16*1024*sizeof(long); }
 
 
-int main()
+struct Failed_to_load_program { };
+
+
+void Component::construct(Genode::Env &env)
 {
 	/* load program headers of linker now */
 	if (!Ld::linker()->file())
 		Ld::linker()->load_phdr();
 
-	/* read configuration */
+	/* read configuration, release ROM afterwards */
 	try {
-		/* bind immediately */
-		bind_now = Genode::config()->xml_node().attribute("ld_bind_now").has_value("yes");
-	} catch (...) { }
+		Genode::Attached_rom_dataspace config(env, "config");
+
+		bind_now = config.xml().attribute_value("ld_bind_now", false);
+		verbose  = config.xml().attribute_value("ld_verbose",  false);
+	} catch (Genode::Rom_connection::Rom_connection_failed) { }
 
 	/* load binary and all dependencies */
 	try {
 		binary = new(Genode::env()->heap()) Binary();
 	} catch (...) {
 			PERR("LD: Failed to load program");
-			return -1;
+			throw Failed_to_load_program();
 	}
 
 	/* print loaded object information */
 	try {
-		if (Genode::config()->xml_node().attribute("ld_verbose").has_value("yes")) {
-			PINF("  %lx .. %lx: context area", Genode::Native_config::context_area_virtual_base(),
-			     Genode::Native_config::context_area_virtual_base() +
-			     Genode::Native_config::context_area_virtual_size() - 1);
-			dump_loaded();
+		if (verbose) {
+			PINF("  %lx .. %lx: stack area",
+			     Genode::Thread::stack_area_virtual_base(),
+			     Genode::Thread::stack_area_virtual_base() +
+			     Genode::Thread::stack_area_virtual_size() - 1);
+			dump_link_map(Elf_object::obj_list()->head());
 		}
 	} catch (...) {  }
 
 	Link_map::dump();
 
-	/* start binary */
-	return binary->call_entry_point();
-}
+	binary_ready_hook_for_gdb();
 
+	/* start binary */
+	binary->call_entry_point(env);
+}

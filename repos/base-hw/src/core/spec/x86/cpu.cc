@@ -15,38 +15,35 @@
 #include <cpu.h>
 #include <kernel/pd.h>
 
-void Genode::Cpu::init_virt_kernel(Kernel::Pd * pd)
+Genode::Cpu::Cpu()
 {
+	if (primary_id() == executing_id()) {
+		_idt = new (&_mt_idt) Idt();
+		_idt->setup(Cpu::exception_entry);
+
+		_tss = new (&_mt_tss) Tss();
+		_tss->load();
+	}
+	_idt->load(Cpu::exception_entry);
+	_tss->setup(Cpu::exception_entry);
+}
+
+
+void Genode::Cpu::Context::init(addr_t const table, bool core)
+{
+	/* Constants to handle IF, IOPL values */
+	enum {
+		EFLAGS_IF_SET = 1 << 9,
+		EFLAGS_IOPL_3 = 3 << 12,
+	};
+
+	cr3 = Cr3::init(table);
+
 	/*
-	 * Please do not remove the PINF(), because the serial constructor requires
-	 * access to the Bios Data Area, which is available in the initial
-	 * translation table set, but not in the final tables used after
-	 * Cr3::write().
+	 * Enable interrupts for all threads, set I/O privilege level
+	 * (IOPL) to 3 for core threads to allow UART access.
 	 */
-	PINF("Switch to core's final translation table");
-
-	Cr3::write(Cr3::init((addr_t)pd->translation_table()));
+	eflags = EFLAGS_IF_SET;
+	if (core) eflags |= EFLAGS_IOPL_3;
+	else Gdt::load(Cpu::exception_entry);
 }
-
-
-void Genode::Cpu::_init_fpu()
-{
-	Cr0::access_t cr0_value = Cr0::read();
-	Cr4::access_t cr4_value = Cr4::read();
-
-	Cr0::Mp::set(cr0_value);
-	Cr0::Em::clear(cr0_value);
-	Cr0::Ts::set(cr0_value);
-	Cr0::Ne::set(cr0_value);
-	Cr0::write(cr0_value);
-
-	Cr4::Osfxsr::set(cr4_value);
-	Cr4::Osxmmexcpt::set(cr4_value);
-	Cr4::write(cr4_value);
-}
-
-
-void Genode::Cpu::_disable_fpu() { Cr0::write(Cr0::read() | Cr0::Ts::bits(1)); }
-
-
-bool Genode::Cpu::_fpu_enabled() { return !Cr0::Ts::get(Cr0::read()); }

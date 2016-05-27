@@ -11,7 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#pragma once
+#ifndef _CORE__INCLUDE__SPEC__X86_64__SERIAL_H_
+#define _CORE__INCLUDE__SPEC__X86_64__SERIAL_H_
 
 /* Genode includes */
 #include <bios_data_area.h>
@@ -36,3 +37,5 @@ class Genode::Serial : public X86_uart_base
 			              CLOCK_UNUSED, baud_rate)
 		{ }
 };
+
+#endif /* _CORE__INCLUDE__SPEC__X86_64__SERIAL_H_ */

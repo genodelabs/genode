@@ -17,9 +17,7 @@
 #ifndef _BSD_EMUL_H_
 #define _BSD_EMUL_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
+#include <extern_c_begin.h>
 
 
 /*
@@ -300,7 +298,7 @@ void wakeup(const volatile void*);
 int tsleep(const volatile void *, int, const char *, int);
 int msleep(const volatile void *, struct mutex *, int,  const char*, int);
 
-int uiomovei(void *, int, struct uio *);
+int uiomove(void *, int, struct uio *);
 
 
 /*******************
@@ -681,8 +679,6 @@ int timeout_del(struct timeout *);
 #define htole32(x) ((uint32_t)(x))
 
 
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
+#include <extern_c_end.h>
 
 #endif /* _BSD_EMUL_H_ */

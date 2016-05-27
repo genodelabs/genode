@@ -79,7 +79,7 @@ Framebuffer::Session *tmp_fb;
 static void report_session(Genode::Reporter &reporter, Session *session,
                            bool active = false)
 {
-	if (!reporter.is_enabled())
+	if (!reporter.enabled())
 		return;
 
 	Genode::Reporter::Xml_generator xml(reporter, [&] ()
@@ -277,7 +277,7 @@ class Input::Session_component : public Genode::Rpc_object<Session>
 
 		Dataspace_capability dataspace() override { return _ev_ram_ds.cap(); }
 
-		bool is_pending() const override { return _num_ev > 0; }
+		bool pending() const override { return _num_ev > 0; }
 
 		int flush() override
 		{
@@ -527,7 +527,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 			case Command::OP_GEOMETRY:
 				{
 					Locked_ptr<View> view(_view_handle_registry.lookup(command.geometry.view));
-					if (!view.is_valid())
+					if (!view.valid())
 						return;
 
 					Point pos = command.geometry.rect.p1();
@@ -536,7 +536,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 					if (view->top_level())
 						pos = ::Session::phys_pos(pos, _view_stack.size());
 
-					if (view.is_valid())
+					if (view.valid())
 						_view_stack.geometry(*view, Rect(pos, command.geometry.rect.area()));
 
 					return;
@@ -546,7 +546,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 				{
 					Locked_ptr<View> view(_view_handle_registry.lookup(command.geometry.view));
 
-					if (view.is_valid())
+					if (view.valid())
 						_view_stack.buffer_offset(*view, command.offset.offset);
 
 					return;
@@ -558,7 +558,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 						return;
 
 					Locked_ptr<View> view(_view_handle_registry.lookup(command.to_front.view));
-					if (!view.is_valid())
+					if (!view.valid())
 						return;
 
 					/* bring to front if no neighbor is specified */
@@ -569,7 +569,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 					/* stack view relative to neighbor */
 					Locked_ptr<View> neighbor(_view_handle_registry.lookup(command.to_front.neighbor));
-					if (neighbor.is_valid())
+					if (neighbor.valid())
 						_view_stack.stack(*view, &(*neighbor), false);
 
 					return;
@@ -581,7 +581,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 						return;
 
 					Locked_ptr<View> view(_view_handle_registry.lookup(command.to_back.view));
-					if (!view.is_valid())
+					if (!view.valid())
 						return;
 
 					/* bring to front if no neighbor is specified */
@@ -592,7 +592,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 					/* stack view relative to neighbor */
 					Locked_ptr<View> neighbor(_view_handle_registry.lookup(command.to_back.neighbor));
-					if (neighbor.is_valid())
+					if (neighbor.valid())
 						_view_stack.stack(*view, &(*neighbor), true);
 
 					return;
@@ -602,7 +602,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 				{
 					if (_provides_default_bg) {
 						Locked_ptr<View> view(_view_handle_registry.lookup(command.to_front.view));
-						if (!view.is_valid())
+						if (!view.valid())
 							return;
 
 						view->background(true);
@@ -616,7 +616,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 					/* assign session background */
 					Locked_ptr<View> view(_view_handle_registry.lookup(command.to_front.view));
-					if (!view.is_valid())
+					if (!view.valid())
 						return;
 
 					::Session::background(&(*view));
@@ -632,7 +632,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 				{
 					Locked_ptr<View> view(_view_handle_registry.lookup(command.title.view));
 
-					if (view.is_valid())
+					if (view.valid())
 						_view_stack.title(*view, command.title.title.string());
 
 					return;
@@ -764,7 +764,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 				try {
 					Locked_ptr<View> parent(_view_handle_registry.lookup(parent_handle));
-					if (!parent.is_valid())
+					if (!parent.valid())
 						return View_handle();
 
 					view = new (_view_alloc)
@@ -849,7 +849,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 		{
 			try {
 				Locked_ptr<View> view(_view_handle_registry.lookup(handle));
-				return view.is_valid() ? view->cap() : View_capability();
+				return view.valid() ? view->cap() : View_capability();
 			}
 			catch (View_handle_registry::Lookup_failed) {
 				return View_capability();
@@ -1272,7 +1272,7 @@ void Nitpicker::Main::handle_input(unsigned)
 		user_active = false;
 
 	/* report mouse-position updates */
-	if (pointer_reporter.is_enabled() && old_pointer_pos != new_pointer_pos) {
+	if (pointer_reporter.enabled() && old_pointer_pos != new_pointer_pos) {
 
 		Genode::Reporter::Xml_generator xml(pointer_reporter, [&] ()
 		{
@@ -1282,7 +1282,7 @@ void Nitpicker::Main::handle_input(unsigned)
 	}
 
 	/* report hover changes */
-	if (!user_state.Mode::key_is_pressed()
+	if (!user_state.Mode::key_pressed()
 	 && old_pointed_session != new_pointed_session) {
 		report_session(hover_reporter, new_pointed_session);
 	}

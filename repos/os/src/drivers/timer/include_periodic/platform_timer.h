@@ -61,7 +61,7 @@ class Platform_timer
 		/**
 		 * Block until the scheduled timeout triggers
 		 */
-		void wait_for_timeout(Genode::Thread_base *blocking_thread)
+		void wait_for_timeout(Genode::Thread *blocking_thread)
 		{
 			enum { SLEEP_GRANULARITY_USEC = 1000UL };
 

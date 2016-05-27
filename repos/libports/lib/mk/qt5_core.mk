@@ -35,4 +35,4 @@ INC_DIR += $(REP_DIR)/include/qt5/qtbase/QtCore/private \
            $(QT5_CONTRIB_DIR)/qtbase/include/QtCore/$(QT_VERSION)/QtCore \
            $(QT5_CONTRIB_DIR)/qtbase/include/QtCore/$(QT_VERSION)/QtCore/private
 
-LIBS += qt5_host_tools launchpad zlib icu libc libm alarm libc_lock_pipe pthread
+LIBS += qt5_host_tools launchpad zlib icu libc libm alarm libc_pipe pthread

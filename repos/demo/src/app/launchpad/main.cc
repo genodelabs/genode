@@ -92,12 +92,6 @@ int main(int argc, char **argv)
 {
 	using namespace Scout;
 
-	/* look for dynamic linker */
-	try {
-		static Genode::Rom_connection rom("ld.lib.so");
-		Genode::Process::dynamic_linker(rom.dataspace());
-	} catch (...) { }
-
 	static Nitpicker::Connection nitpicker;
 	static Platform pf(*nitpicker.input());
 

@@ -31,8 +31,6 @@ namespace Loader {
 
 	using Genode::Dataspace_capability;
 	using Genode::Signal_context_capability;
-	using Genode::Native_pd_args;
-	using Genode::Meta::Type_tuple;
 
 	struct Session;
 }
@@ -144,8 +142,7 @@ struct Loader::Session : Genode::Session
 	 * \throw Rom_module_does_not_exist  if the specified binary could
 	 *                                   not obtained as ROM module
 	 */
-	virtual void start(Name const &binary, Name const &label = "",
-	                   Native_pd_args const &pd_args = Native_pd_args()) = 0;
+	virtual void start(Name const &binary, Name const &label = "") = 0;
 
 	/**
 	 * Set view geometry and buffer offset
@@ -174,33 +171,17 @@ struct Loader::Session : Genode::Session
 	GENODE_RPC(Rpc_fault_sigh, void, fault_sigh, Signal_context_capability);
 	GENODE_RPC_THROW(Rpc_start, void, start,
 	                 GENODE_TYPE_LIST(Rom_module_does_not_exist),
-	                 Name const &, Name const &, Native_pd_args const &);
+	                 Name const &, Name const &);
 	GENODE_RPC_THROW(Rpc_view_geometry, void, view_geometry,
 	                 GENODE_TYPE_LIST(View_does_not_exist),
 	                 Rect, Point);
 	GENODE_RPC_THROW(Rpc_view_size, Area, view_size,
 	                 GENODE_TYPE_LIST(View_does_not_exist));
 
-	/*
-	 * 'GENODE_RPC_INTERFACE' declaration done manually
-	 *
-	 * The number of RPC function of this interface exceeds the maximum
-	 * number of elements supported by 'Meta::Type_list'. Therefore, we
-	 * construct the type list by hand using nested type tuples instead
-	 * of employing the convenience macro 'GENODE_RPC_INTERFACE'.
-	 */
-	typedef Type_tuple<Rpc_alloc_rom_module,
-		    Type_tuple<Rpc_commit_rom_module,
-		    Type_tuple<Rpc_ram_quota,
-		    Type_tuple<Rpc_constrain_geometry,
-		    Type_tuple<Rpc_parent_view,
-		    Type_tuple<Rpc_view_ready_sigh,
-		    Type_tuple<Rpc_fault_sigh,
-		    Type_tuple<Rpc_start,
-		    Type_tuple<Rpc_view_geometry,
-		    Type_tuple<Rpc_view_size,
-		               Genode::Meta::Empty>
-		    > > > > > > > > > Rpc_functions;
+	GENODE_RPC_INTERFACE(Rpc_alloc_rom_module, Rpc_commit_rom_module,
+	                     Rpc_ram_quota, Rpc_constrain_geometry,
+	                     Rpc_parent_view, Rpc_view_ready_sigh, Rpc_fault_sigh,
+	                     Rpc_start, Rpc_view_geometry, Rpc_view_size);
 };
 
 #endif /* _INCLUDE__LOADER_SESSION__LOADER_SESSION_H_ */

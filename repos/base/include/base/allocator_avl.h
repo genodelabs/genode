@@ -16,6 +16,7 @@
 
 #include <base/allocator.h>
 #include <base/tslab.h>
+#include <base/printf.h>
 #include <util/avl_tree.h>
 #include <util/misc_math.h>
 
@@ -23,7 +24,14 @@ namespace Genode {
 
 	class Allocator_avl_base;
 
-	template <typename, unsigned SLAB_BLOCK_SIZE = 256*sizeof(addr_t)>
+	/*
+	 * The default slab block size is dimensioned such that slab-block
+	 * allocations make effective use of entire memory pages. To account for
+	 * the common pattern of using a 'Sliced_heap' as backing store for the
+	 * 'Allocator_avl'. We remove 8 words from the slab-block size to take the
+	 * meta-data overhead of each sliced-heap block into account.
+	 */
+	template <typename, unsigned SLAB_BLOCK_SIZE = (1024 - 8)*sizeof(addr_t)>
 	class Allocator_avl_tpl;
 
 	/**
@@ -130,7 +138,7 @@ class Genode::Allocator_avl_base : public Range_allocator
 				/**
 				 * Find best-fitting block
 				 */
-				Block *find_best_fit(size_t size, unsigned align = 1,
+				Block *find_best_fit(size_t size, unsigned align,
 				                     addr_t from = 0UL, addr_t to = ~0UL);
 
 				/**
@@ -181,6 +189,8 @@ class Genode::Allocator_avl_base : public Range_allocator
 		int _add_block(Block *block_metadata,
 		               addr_t base, size_t size, bool used);
 
+		Block *_find_any_used_block(Block *sub_tree);
+
 		/**
 		 * Destroy block
 		 */
@@ -196,6 +206,15 @@ class Genode::Allocator_avl_base : public Range_allocator
 		                     Block *dst1, Block *dst2);
 
 	protected:
+
+		/**
+		 * Clean up the allocator and detect dangling allocations
+		 *
+		 * This function is called at the destruction time of the allocator. It
+		 * makes sure that the allocator instance releases all memory obtained
+		 * from the meta-data allocator.
+		 */
+		void _revert_allocations_and_ranges();
 
 		/**
 		 * Find block by specified address
@@ -218,6 +237,8 @@ class Genode::Allocator_avl_base : public Range_allocator
 		 */
 		Allocator_avl_base(Allocator *md_alloc, size_t md_entry_size) :
 			_md_alloc(md_alloc), _md_entry_size(md_entry_size) { }
+
+		~Allocator_avl_base() { _revert_allocations_and_ranges(); }
 
 	public:
 
@@ -246,7 +267,7 @@ class Genode::Allocator_avl_base : public Range_allocator
 
 		int          add_range(addr_t base, size_t size) override;
 		int          remove_range(addr_t base, size_t size) override;
-		Alloc_return alloc_aligned(size_t size, void **out_addr, int align = 0,
+		Alloc_return alloc_aligned(size_t size, void **out_addr, int align,
 		                           addr_t from = 0, addr_t to = ~0UL) override;
 		Alloc_return alloc_addr(size_t size, addr_t addr) override;
 		void         free(void *addr) override;
@@ -258,8 +279,11 @@ class Genode::Allocator_avl_base : public Range_allocator
 		 ** Allocator interface **
 		 *************************/
 
-		bool alloc(size_t size, void **out_addr) override {
-			return (Allocator_avl_base::alloc_aligned(size, out_addr).is_ok()); }
+		bool alloc(size_t size, void **out_addr) override
+		{
+			return (Allocator_avl_base::alloc_aligned(
+				size, out_addr, log2(sizeof(addr_t))).ok());
+		}
 
 		void free(void *addr, size_t) override { free(addr); }
 
@@ -318,6 +342,13 @@ class Genode::Allocator_avl_tpl : public Allocator_avl_base
 			Allocator_avl_base(&_metadata, sizeof(Block)),
 			_metadata((metadata_chunk_alloc) ? metadata_chunk_alloc : this,
 			          (Slab_block *)&_initial_md_block) { }
+
+		~Allocator_avl_tpl() { _revert_allocations_and_ranges(); }
+
+		/**
+		 * Return size of slab blocks used for meta data
+		 */
+		static constexpr size_t slab_block_size() { return SLAB_BLOCK_SIZE; }
 
 		/**
 		 * Assign custom meta data to block at specified address

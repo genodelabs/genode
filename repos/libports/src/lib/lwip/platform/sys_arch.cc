@@ -31,11 +31,11 @@ namespace Lwip {
 	class Mutex
 	{
 		public:
-			Genode::Lock          lock;
-			int                   counter;
-			Genode::Thread_base  *thread;
+			Genode::Lock     lock;
+			int              counter;
+			Genode::Thread  *thread;
 
-			Mutex() : counter(0), thread((Genode::Thread_base*)-1) {}
+			Mutex() : counter(0), thread((Genode::Thread*)-1) {}
 	};
 
 
@@ -359,10 +359,10 @@ extern "C" {
 	 */
 	sys_prot_t sys_arch_protect(void)
 	{
-		if (global_mutex()->thread == Genode::Thread_base::myself())
+		if (global_mutex()->thread == Genode::Thread::myself())
 			return ++global_mutex()->counter;
 		global_mutex()->lock.lock();
-		global_mutex()->thread = Genode::Thread_base::myself();
+		global_mutex()->thread = Genode::Thread::myself();
 		return 0;
 	}
 
@@ -372,13 +372,13 @@ extern "C" {
 	 */
 	void sys_arch_unprotect(sys_prot_t pval)
 	{
-		if (global_mutex()->thread != Genode::Thread_base::myself())
+		if (global_mutex()->thread != Genode::Thread::myself())
 			return;
 		if (global_mutex()->counter > 1)
 			global_mutex()->counter--;
 		else {
 			global_mutex()->counter = 0;
-			global_mutex()->thread = (Genode::Thread_base*)-1;
+			global_mutex()->thread = (Genode::Thread*)-1;
 			global_mutex()->lock.unlock();
 		}
 	}
@@ -618,10 +618,10 @@ extern "C" {
 		struct Thread_timeout
 		{
 			sys_timeouts    timeouts;
-			Thread_base    *thread;
+			Thread         *thread;
 			Thread_timeout *next;
 
-			Thread_timeout(Thread_base *t = 0)
+			Thread_timeout(Thread *t = 0)
 			: thread(t), next(0) { timeouts.next = 0; }
 		};
 		static Lock mutex;
@@ -630,7 +630,7 @@ extern "C" {
 		Lock::Guard lock_guard(mutex);
 
 		try {
-			Thread_base *thread = Thread_base::myself();
+			Thread *thread = Thread::myself();
 
 			/* check available timeout heads */
 			for (Thread_timeout *tt = &thread_timeouts; tt; tt = tt->next)

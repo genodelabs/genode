@@ -73,7 +73,7 @@ class Sync::Signal
 		}
 };
 
-class Counter : private Thread<2 * 1024 * sizeof(Genode::addr_t)>
+class Counter : private Thread_deprecated<2 * 1024 * sizeof(Genode::addr_t)>
 {
 	private:
 
@@ -106,7 +106,7 @@ class Counter : private Thread<2 * 1024 * sizeof(Genode::addr_t)>
 		Counter(char const name, size_t const weight,
 		        Sync::Session * const sync)
 		:
-			Thread(weight, "counter"), _name(name), _value(0) ,
+			Thread_deprecated(weight, "counter"), _name(name), _value(0) ,
 			_sync_sig(sync, SYNC_SIG), _stage(1)
 		{
 			Thread::start();

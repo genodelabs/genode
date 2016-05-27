@@ -12,8 +12,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _IDT_H_
-#define _IDT_H_
+#ifndef _CORE__INCLUDE__SPEC__X86_64__IDT_H_
+#define _CORE__INCLUDE__SPEC__X86_64__IDT_H_
 
 #include <base/stdint.h>
 
@@ -70,4 +70,4 @@ class Genode::Idt
 		void load(addr_t const virt_base);
 };
 
-#endif /* _IDT_H_ */
+#endif /* _CORE__INCLUDE__SPEC__X86_64__IDT_H_ */

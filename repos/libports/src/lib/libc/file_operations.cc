@@ -185,6 +185,7 @@ static void resolve_symlinks(char const *path, Absolute_path &resolved_path)
 	} while (symlink_resolved_in_this_iteration);
 
 	resolved_path.import(next_iteration_working_path.base());
+	resolved_path.remove_trailing('/');
 	PDBGV("resolved_path = %s", resolved_path.base());
 }
 
@@ -351,6 +352,36 @@ extern "C" int fstat(int libc_fd, struct stat *buf)
 }
 
 
+extern "C" int fstatat(int libc_fd, char const *path, struct stat *buf, int flags)
+{
+	if (*path == '/') {
+		if (flags & AT_SYMLINK_NOFOLLOW)
+			return lstat(path, buf);
+		return stat(path, buf);
+	}
+
+	Libc::Absolute_path abs_path;
+
+	if (libc_fd == AT_FDCWD) {
+		getcwd(abs_path.base(), abs_path.capacity());
+		abs_path.append("/");
+		abs_path.append(path);
+	} else {
+		Libc::File_descriptor *fd =
+			Libc::file_descriptor_allocator()->find_by_libc_fd(libc_fd);
+		if (!fd) {
+			errno = EBADF;
+			return -1;
+		}
+		abs_path.import(path, fd->fd_path);
+	}
+
+	return (flags & AT_SYMLINK_NOFOLLOW)
+		? lstat(abs_path.base(), buf)
+		:  stat(abs_path.base(), buf);
+}
+
+
 extern "C" int _fstatfs(int libc_fd, struct statfs *buf) {
 	FD_FUNC_WRAPPER(fstatfs, libc_fd, buf); }
 
@@ -431,7 +462,7 @@ extern "C" void *mmap(void *addr, ::size_t length, int prot, int flags,
 
 extern "C" int munmap(void *start, ::size_t length)
 {
-	if (!mmap_registry()->is_registered(start)) {
+	if (!mmap_registry()->registered(start)) {
 		PWRN("munmap: could not lookup plugin for address %p", start);
 		errno = EINVAL;
 		return -1;

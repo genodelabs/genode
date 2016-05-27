@@ -7,8 +7,6 @@
 ./sys/dev/pci/eapreg.h
 ./sys/dev/pci/pcidevs.h
 ./sys/dev/pci/pcidevs_data.h
-./sys/dev/auconv.c
-./sys/dev/auconv.h
 ./sys/dev/mulaw.c
 ./sys/dev/mulaw.h
 ./sys/dev/ic/ac97.c

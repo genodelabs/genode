@@ -1,0 +1,6 @@
+qemu-2.4.1/include/hw/usb.h
+qemu-2.4.1/include/qemu/queue.h
+qemu-2.4.1/include/qom/object.h
+qemu-2.4.1/hw/usb/bus.c
+qemu-2.4.1/hw/usb/core.c
+qemu-2.4.1/hw/usb/hcd-xhci.c

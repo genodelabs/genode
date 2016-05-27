@@ -62,7 +62,7 @@ struct Usb::Pl2303_driver : Completion
 	Server::Entrypoint                      &ep;
 	Server::Signal_rpc_member<Pl2303_driver> dispatcher{ ep, *this, &Pl2303_driver::state_change };
 	Genode::Allocator_avl                    alloc;
-	Usb::Connection                          connection{ &alloc, VENDOR, PRODUCT, 512 * 1024, dispatcher };
+	Usb::Connection                          connection{ &alloc, "usb_serial", 512 * 1024, dispatcher };
 	Usb::Device                              device;
 	Signal_context_capability                connected_sigh;
 	Signal_context_capability                read_sigh;
@@ -98,7 +98,7 @@ struct Usb::Pl2303_driver : Completion
 		Interface iface = device.interface(0);
 
 		/* error or write packet */
-		if (!p.succeded || !p.is_read_transfer()) {
+		if (!p.succeded || !p.read_transfer()) {
 			iface.release(p);
 			return;
 		}

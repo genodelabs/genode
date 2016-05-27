@@ -13,13 +13,15 @@
  */
 
 /* core includes */
-#include <kernel/lock.h>
 #include <kernel/pd.h>
+#include <util.h>
 
 /* Genode includes */
 #include <assert.h>
 #include <page_flags.h>
-#include <unmanaged_singleton.h>
+
+/* base-internal includes */
+#include <base/internal/unmanaged_singleton.h>
 
 using namespace Kernel;
 
@@ -57,7 +59,7 @@ void Mode_transition_control::map(Genode::Translation_table * tt,
 {
 	try {
 		addr_t const phys_base = (addr_t)&_mt_begin;
-		tt->insert_translation(VIRT_BASE, phys_base, SIZE,
+		tt->insert_translation(Genode::trunc_page(VIRT_BASE), phys_base, SIZE,
 		                       Genode::Page_flags::mode_transition(), alloc);
 	} catch(...) {
 		PERR("Inserting exception vector in page table failed!"); }
@@ -69,9 +71,6 @@ void Mode_transition_control::switch_to(Cpu::Context * const context,
                                         addr_t const entry_raw,
                                         addr_t const context_ptr_base)
 {
-	/* unlock kernel data */
-	data_lock().unlock();
-
 	/* override client-context pointer of the executing CPU */
 	size_t const context_ptr_offset = cpu * sizeof(context);
 	addr_t const context_ptr = context_ptr_base + context_ptr_offset;

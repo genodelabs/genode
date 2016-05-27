@@ -14,56 +14,68 @@
 
 /* Genode includes */
 #include <base/printf.h>
+#include <base/log.h>
 #include <base/thread.h>
-#include <base/env.h>
+#include <base/component.h>
+#include <base/heap.h>
+#include <base/attached_rom_dataspace.h>
+#include <util/volatile_object.h>
 #include <cpu_session/connection.h>
-
+#include <cpu_thread/client.h>
 
 using namespace Genode;
 
 
-/*********************+********************
- ** Thread-context allocator concurrency **
- ******************************************/
+/*********************************
+ ** Stack-allocator concurrency **
+ *********************************/
 
 template <int CHILDREN>
-struct Helper : Thread<0x2000>
+struct Helper : Thread
 {
 	void *child[CHILDREN];
 
-	Helper() : Thread<0x2000>("helper") { }
+	enum { STACK_SIZE = 0x2000 };
 
-	void *context() const { return _context; }
+	Env &_env;
+
+	Helper(Env &env) : Thread(env, "helper", STACK_SIZE), _env(env) { }
+
+	void *stack() const { return _stack; }
 
 	void entry()
 	{
-		Helper helper[CHILDREN];
+		Lazy_volatile_object<Helper> helper[CHILDREN];
 
 		for (unsigned i = 0; i < CHILDREN; ++i)
-			child[i] = helper[i].context();
+			helper[i].construct(_env);
+
+		for (unsigned i = 0; i < CHILDREN; ++i)
+			child[i] = helper[i]->stack();
 	}
 };
 
 
-static void test_context_alloc()
+static void test_stack_alloc(Env &env)
 {
-	printf("running '%s'\n", __func__);
+	log("running '", __func__, "'");
 
 	/*
 	 * Create HELPER threads, which concurrently create CHILDREN threads each.
-	 * This most likely triggers any race in the thread-context allocation.
+	 * This most likely triggers any race in the stack allocation.
 	 */
 	enum { HELPER = 10, CHILDREN = 9 };
 
-	Helper<CHILDREN> helper[HELPER];
+	Lazy_volatile_object<Helper<CHILDREN> > helper[HELPER];
 
-	for (unsigned i = 0; i < HELPER; ++i) helper[i].start();
-	for (unsigned i = 0; i < HELPER; ++i) helper[i].join();
+	for (unsigned i = 0; i < HELPER; ++i) helper[i].construct(env);
+	for (unsigned i = 0; i < HELPER; ++i) helper[i]->start();
+	for (unsigned i = 0; i < HELPER; ++i) helper[i]->join();
 
 	if (0)
 		for (unsigned i = 0; i < HELPER; ++i)
 			for (unsigned j = 0; j < CHILDREN; ++j)
-				printf("%p [%d.%d]\n", helper[i].child[j], i, j);
+				log(helper[i]->child[j], " [", i, ".", j, "]");
 }
 
 
@@ -92,13 +104,15 @@ static void test_stack_alignment_varargs(char const *format, ...)
 static void log_stack_address(char const *who)
 {
 	long dummy;
-	printf("%s stack @ %p\n", who, &dummy);
+	log(who, " stack @ ", &dummy);
 }
 
 
-struct Stack_helper : Thread<0x2000>
+struct Stack_helper : Thread
 {
-	Stack_helper() : Thread<0x2000>("stack_helper") { }
+	enum { STACK_SIZE = 0x2000 };
+
+	Stack_helper(Env &env) : Thread(env, "stack_helper", STACK_SIZE) { }
 
 	void entry()
 	{
@@ -108,11 +122,11 @@ struct Stack_helper : Thread<0x2000>
 };
 
 
-static void test_stack_alignment()
+static void test_stack_alignment(Env &env)
 {
-	printf("running '%s'\n", __func__);
+	log("running '", __func__, "'");
 
-	Stack_helper helper;
+	Stack_helper helper(env);
 
 	helper.start();
 	helper.join();
@@ -128,32 +142,35 @@ static void test_stack_alignment()
 
 static void test_main_thread()
 {
-	printf("running '%s'\n", __func__);
+	log("running '", __func__, "'");
 
 	/* check wether my thread object exists */
-	Thread_base * myself = Genode::Thread_base::myself();
+	Thread * myself = Thread::myself();
 	if (!myself) { throw -1; }
-	printf("thread base          %p\n", myself);
+	log("thread base          ", myself);
 
-	/* check wether my stack is inside the first context region */
-	addr_t const context_base = Native_config::context_area_virtual_base();
-	addr_t const context_size = Native_config::context_area_virtual_size();
-	addr_t const context_top  = context_base + context_size;
+	/* check whether my stack is inside the first stack region */
+	addr_t const stack_slot_base = Thread::stack_area_virtual_base();
+	addr_t const stack_slot_size = Thread::stack_area_virtual_size();
+	addr_t const stack_slot_top  = stack_slot_base + stack_slot_size;
+
 	addr_t const stack_top  = (addr_t)myself->stack_top();
 	addr_t const stack_base = (addr_t)myself->stack_base();
-	if (stack_top  <= context_base) { throw -2; }
-	if (stack_top  >  context_top)  { throw -3; }
-	if (stack_base >= context_top)  { throw -4; }
-	if (stack_base <  context_base) { throw -5; }
-	printf("thread stack top     %p\n", myself->stack_top());
-	printf("thread stack bottom  %p\n", myself->stack_base());
+
+	if (stack_top  <= stack_slot_base) { throw -2; }
+	if (stack_top  >  stack_slot_top)  { throw -3; }
+	if (stack_base >= stack_slot_top)  { throw -4; }
+	if (stack_base <  stack_slot_base) { throw -5; }
+
+	log("thread stack top     ", myself->stack_top());
+	log("thread stack bottom  ", myself->stack_base());
 
 	/* check wether my stack pointer is inside my stack */
 	unsigned dummy = 0;
 	addr_t const sp = (addr_t)&dummy;
 	if (sp >= stack_top)  { throw -6; }
 	if (sp <  stack_base) { throw -7; }
-	printf("thread stack pointer %p\n", (void *)sp);
+	log("thread stack pointer ", (void *)sp);
 }
 
 
@@ -161,53 +178,63 @@ static void test_main_thread()
  ** Using cpu-session for thread creation *
  ******************************************/
 
-struct Cpu_helper : Thread<0x2000>
+struct Cpu_helper : Thread
 {
-	Cpu_helper(const char * name, Cpu_session * cpu)
-	: Thread<0x2000>(name, cpu) { }
+	enum { STACK_SIZE = 0x2000 };
+
+	Env &_env;
+
+	Cpu_helper(Env &env, const char * name, Cpu_session &cpu)
+	:
+		Thread(env, name, STACK_SIZE, Thread::Location(), Thread::Weight(), cpu),
+		_env(env)
+	{ }
 
 	void entry()
 	{
-		printf("%s : _cpu_session=0x%p env()->cpu_session()=0x%p\n", _context->name, _cpu_session, env()->cpu_session());
+		log(Thread::name().string(), " : _cpu_session=", _cpu_session,
+		    " env.cpu()=", &_env.cpu());
 	}
 };
 
 
-static void test_cpu_session()
+static void test_cpu_session(Env &env)
 {
-	printf("running '%s'\n", __func__);
+	log("running '", __func__, "'");
 
-	Cpu_helper thread0("prio high  ", env()->cpu_session());
+	Cpu_helper thread0(env, "prio high  ", env.cpu());
 	thread0.start();
 	thread0.join();
 
 	Cpu_connection con1("prio middle", Cpu_session::PRIORITY_LIMIT / 4);
-	Cpu_helper thread1("prio middle", &con1);
+	Cpu_helper thread1(env, "prio middle", con1);
 	thread1.start();
 	thread1.join();
 
 	Cpu_connection con2("prio low", Cpu_session::PRIORITY_LIMIT / 2);
-	Cpu_helper thread2("prio low   ", &con2);
+	Cpu_helper thread2(env, "prio low   ", con2);
 	thread2.start();
 	thread2.join();
 }
 
 
-struct Pause_helper : Thread<0x1000>
+struct Pause_helper : Thread
 {
 	volatile unsigned loop = 0;
 	volatile bool beep = false;
 
-	Pause_helper(const char * name, Cpu_session * cpu)
-	: Thread<0x1000>(name, cpu) { }
+	enum { STACK_SIZE = 0x1000 };
+
+	Pause_helper(Env &env, const char * name, Cpu_session &cpu)
+	: Thread(env, name, STACK_SIZE, Thread::Location(), Thread::Weight(), cpu) { }
 
 	void entry()
 	{
 		while (1) {
-			/**
-			 * Don't use printf here, since this thread becomes "paused".
-			 * If it is holding the lock of the printf backend being paused,
-			 * all other threads of this task trying to do printf will
+			/*
+			 * Don't log here, since this thread becomes "paused".
+			 * If it is holding the lock of the log backend being paused, all
+			 * other threads of this task trying to print log messages will
 			 * block - looks like a deadlock.
 			 */
 //			printf("stop me if you can\n");
@@ -222,97 +249,114 @@ struct Pause_helper : Thread<0x1000>
 	}
 };
 
-static void test_pause_resume()
-{
-	printf("running '%s'\n", __func__);
 
-	Pause_helper thread("pause", env()->cpu_session());
+static void test_pause_resume(Env &env)
+{
+	log("running '", __func__, "'");
+
+	Pause_helper thread(env, "pause", env.cpu());
 	thread.start();
 
 	while (thread.loop < 1) { }
 
 	Thread_state state;
+	Cpu_thread_client thread_client(thread.cap());
 
-	printf("--- pausing ---\n");
-	env()->cpu_session()->pause(thread.cap());
+	log("--- pausing ---");
+	thread_client.pause();
 	unsigned loop_paused = thread.loop;
-	printf("--- paused ---\n");
+	log("--- paused ---");
 
-	printf("--- reading thread state ---\n");
+	log("--- reading thread state ---");
 	try {
-		state = env()->cpu_session()->state(thread.cap());
-	} catch (Cpu_session::State_access_failed) {
+		state = thread_client.state();
+	} catch (Cpu_thread::State_access_failed) {
 		throw -10;
 	}
 	if (loop_paused != thread.loop)
 		throw -11;
 
 	thread.beep = true;
-	printf("--- resuming thread ---\n");
-	env()->cpu_session()->resume(thread.cap());
+	log("--- resuming thread ---");
+	thread_client.resume();
 
 	while (thread.loop == loop_paused) { }
 
-	printf("--- thread resumed ---\n");
+	log("--- thread resumed ---");
 	thread.join();
 }
+
 
 /*
  * Test to check that core as the used kernel behaves well if up to the
  * supported Genode maximum threads are created.
  */
-static void test_create_as_many_threads()
+static void test_create_as_many_threads(Env &env)
 {
-	printf("running '%s'\n", __func__);
+	log("running '", __func__, "'");
 
-	addr_t const max = Native_config::context_area_virtual_size() /
-	                   Native_config::context_virtual_size();
+	addr_t const max = Thread::stack_area_virtual_size() /
+	                   Thread::stack_virtual_size();
 
-	static Cpu_helper * threads[max];
+	Cpu_helper * threads[max];
 	static char thread_name[8];
+
+	Heap heap(env.ram(), env.rm());
 
 	unsigned i = 0;
 	try {
 		for (; i < max; i++) {
 			try {
 				snprintf(thread_name, sizeof(thread_name), "%u", i + 1);
-				threads[i] = new (env()->heap()) Cpu_helper(thread_name, env()->cpu_session());
+				threads[i] = new (heap) Cpu_helper(env, thread_name, env.cpu());
 				threads[i]->start();
 				threads[i]->join();
 			} catch (Cpu_session::Thread_creation_failed) {
 				throw "Thread_creation_failed";
-			} catch (Thread_base::Context_alloc_failed) {
-				throw "Context_alloc_failed";
+			} catch (Thread::Out_of_stack_space) {
+				throw "Out_of_stack_space";
 			}
 		}
 	} catch (const char * ex) {
 		PINF("created %u threads before I got '%s'", i, ex);
 		for (unsigned j = i; j > 0; j--) {
-			destroy(env()->heap(), threads[j - 1]);
+			destroy(heap, threads[j - 1]);
 			threads[j - 1] = nullptr;
 		}
 		return;
 	}
 
 	/*
-	 * We have to get a context_alloc_failed message, because we can't create
+	 * We have to get a Out_of_stack_space message, because we can't create
 	 * up to max threads, because already the main thread is running ...
 	 */
 	throw -21;
 }
 
-int main()
+
+size_t Component::stack_size() { return 16*1024*sizeof(long); }
+
+
+void Component::construct(Env &env)
 {
-	printf("--- thread test started ---\n");
+	log("--- thread test started ---");
+
+	Attached_rom_dataspace config(env, "config");
 
 	try {
-		test_context_alloc();
-		test_stack_alignment();
+		test_stack_alloc(env);
+		test_stack_alignment(env);
 		test_main_thread();
-		test_cpu_session();
-		test_pause_resume();
-		test_create_as_many_threads();
+		test_cpu_session(env);
+
+		if (config.xml().has_sub_node("pause_resume"))
+			test_pause_resume(env);
+
+		test_create_as_many_threads(env);
 	} catch (int error) {
-		return error;
+		Genode::error("error ", error);
+		throw;
 	}
+
+	log("--- test completed successfully ---");
 }

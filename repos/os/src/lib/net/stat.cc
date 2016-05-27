@@ -27,18 +27,18 @@ enum Measurement::status Measurement::_check(Net::Ethernet_frame * eth,
 	if (Genode::memcmp(eth->dst().addr, _mac.addr, sizeof(_mac.addr)))
 		return Measurement::UNKNOWN;
 
-	Ipv4_packet *ip = new (eth->data()) Ipv4_packet(size -
+	Ipv4_packet *ip = new (eth->data<void>()) Ipv4_packet(size -
 	                                                sizeof(Ethernet_frame));
 
 	if (ip->protocol() != Udp_packet::IP_ID)
 		return Measurement::UNKNOWN;
 
-	Udp_packet *udp = new (ip->data()) Udp_packet(size - sizeof(Ethernet_frame)
+	Udp_packet *udp = new (ip->data<void>()) Udp_packet(size - sizeof(Ethernet_frame)
 	                                              - sizeof(Ipv4_packet));
 
 	Genode::uint8_t magic [] = "Hello world! Genode is greeting.";
 
-	if (Genode::memcmp(udp->data(), magic, sizeof(magic) - 1))
+	if (Genode::memcmp(udp->data<void>(), magic, sizeof(magic) - 1))
 		return Measurement::FOR_US;
 	return Measurement::IS_MAGIC;
 }

@@ -36,12 +36,10 @@ set config {
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
-		<service name="CAP"/>
 		<service name="PD"/>
 		<service name="RM"/>
 		<service name="CPU"/>
 		<service name="LOG"/>
-		<service name="SIGNAL"/>
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
@@ -69,6 +67,7 @@ append config {
 		<start name="test-usb">
 		<resource name="RAM" quantum="2M" />
 		<binary name="test-blk-cli" />
+		<config test_size="1M" />
 	</start>
 </config>
 }
@@ -102,7 +101,7 @@ catch { exec sh -c $cmd }
 #
 # Qemu opts for UHCI
 #
-#append qemu_args " -m 64 -nographic -usbdevice disk::$disk_image -boot order=d"
+#append qemu_args " -m 128 -nographic -usbdevice disk::$disk_image -boot order=d"
 
 #
 # Qemu opts for EHCI
@@ -113,6 +112,15 @@ append qemu_args {  \
 -device usb-ehci,id=ehci \
 -device usb-storage,bus=ehci.0,drive=disk \
 -boot order=d }
+
+#
+# Qemu opts for XHCI
+#
+#append qemu_args {  \
+#-m 128 -nographic -M pc \
+#-device nec-usb-xhci,id=xhci \
+#-device usb-storage,bus=xhci.0,drive=disk \
+#-boot order=d }
 
 run_genode_until {.*child "test-usb" exited with exit value 0.*} 100
 

@@ -41,7 +41,7 @@ static Terminal::Connection *terminal() {
 
 
 namespace {
-	class Signal_thread : public Genode::Thread<8192>
+	class Signal_thread : public Genode::Thread_deprecated<8192>
 	{
 		private:
 
@@ -70,7 +70,7 @@ namespace {
 		public:
 
 			Signal_thread(Fiasco::l4_cap_idx_t cap)
-			: Genode::Thread<8192>("terminal-signal-thread"), _cap(cap) { start(); }
+			: Genode::Thread_deprecated<8192>("terminal-signal-thread"), _cap(cap) { start(); }
 	};
 }
 
@@ -95,7 +95,11 @@ extern "C" {
 
 
 	l4_cap_idx_t genode_terminal_irq(unsigned idx) {
-		static Genode::Native_capability cap = L4lx::vcpu_connection()->alloc_irq();
+
+		Genode::Foc_native_cpu_client
+			native_cpu(L4lx::cpu_connection()->native_cpu());
+
+		static Genode::Native_capability cap = native_cpu.alloc_irq();
 		if (!signal_thread)
 			signal_thread = new (Genode::env()->heap()) Signal_thread(cap.dst());
 		return cap.dst();

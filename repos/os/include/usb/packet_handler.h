@@ -85,6 +85,16 @@ class Usb::Packet_handler
 				throw Usb::Session::Tx::Source::Packet_alloc_failed();
 			}
 
+			if (size == 0) {
+				/*
+				 * XXX Packets without payload are not supported by the packet
+				 *     stream currently. Therefore, we use a (small) bogus
+				 *     length here and depend on the USB driver to handle this
+				 *     case correctly.
+				 */
+				size = 4;
+			}
+
 			while (true) {
 				try {
 					Packet_descriptor p = _connection.source()->alloc_packet(size);

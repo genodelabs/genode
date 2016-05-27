@@ -17,7 +17,6 @@
 /* Genode includes */
 #include <pd_session/connection.h>
 #include <ram_session/connection.h>
-#include <rm_session/connection.h>
 #include <cpu_session/connection.h>
 #include <cap_session/connection.h>
 #include <base/printf.h>
@@ -343,7 +342,7 @@ struct Init::Name_registry
 	 *
 	 * \return false if name already exists
 	 */
-	virtual bool is_unique(const char *name) const = 0;
+	virtual bool unique(const char *name) const = 0;
 
 	/**
 	 * Find server with specified name
@@ -371,7 +370,7 @@ class Init::Child : Genode::Child_policy
 
 		Genode::Xml_node _default_route_node;
 
-		Name_registry *_name_registry;
+		Name_registry &_name_registry;
 
 		/**
 		 * Unique child name and file name of ELF binary
@@ -390,7 +389,7 @@ class Init::Child : Genode::Child_policy
 			 * \param start_node XML start node
 			 * \param registry   registry tracking unique names
 			 */
-			Name(Genode::Xml_node start_node, Name_registry const *registry) {
+			Name(Genode::Xml_node start_node, Name_registry const &registry) {
 				try {
 					start_node.attribute("name").value(unique, sizeof(unique)); }
 				catch (Genode::Xml_node::Nonexistent_attribute) {
@@ -398,7 +397,7 @@ class Init::Child : Genode::Child_policy
 					throw; }
 
 				/* check for a name confict with the other children */
-				if (!registry->is_unique(unique)) {
+				if (!registry.unique(unique)) {
 					PERR("Child name \"%s\" is not unique", unique);
 					throw Child_name_is_not_unique();
 				}
@@ -413,14 +412,6 @@ class Init::Child : Genode::Child_policy
 				} catch (...) { }
 			}
 		} _name;
-
-		/**
-		 * Platform-specific PD-session arguments
-		 */
-		struct Pd_args : Genode::Native_pd_args
-		{
-			Pd_args(Genode::Xml_node start_node);
-		} _pd_args;
 
 		struct Read_quota
 		{
@@ -476,21 +467,19 @@ class Init::Child : Genode::Child_policy
 			Genode::Pd_connection  pd;
 			Genode::Ram_connection ram;
 			Genode::Cpu_connection cpu;
-			Genode::Rm_connection  rm;
 
 			inline void transfer_cpu_quota();
 
 			Resources(Genode::Xml_node start_node, const char *label,
 			          long prio_levels,
-			          Genode::Affinity::Space const &affinity_space,
-			          Genode::Native_pd_args const * pd_args)
+			          Genode::Affinity::Space const &affinity_space)
 			:
 				Read_quota(start_node, ram_quota, cpu_quota_pc, constrain_phys),
 				prio_levels_log2(Genode::log2(prio_levels)),
 				priority(read_priority(start_node, prio_levels)),
 				affinity(affinity_space,
 				         read_affinity_location(affinity_space, start_node)),
-				pd(label, pd_args),
+				pd(label),
 				ram(label),
 				cpu(label,
 				    priority*(Genode::Cpu_session::PRIORITY_LIMIT >> prio_levels_log2),
@@ -498,7 +487,6 @@ class Init::Child : Genode::Child_policy
 			{
 				/* deduce session costs from usable ram quota */
 				Genode::size_t session_donations = Genode::Pd_connection::RAM_QUOTA +
-				                                   Genode::Rm_connection::RAM_QUOTA +
 				                                   Genode::Cpu_connection::RAM_QUOTA +
 				                                   Genode::Ram_connection::RAM_QUOTA;
 
@@ -513,6 +501,8 @@ class Init::Child : Genode::Child_policy
 			}
 		} _resources;
 
+		Genode::Child::Initial_thread _initial_thread { _resources.cpu, _resources.pd,
+		                                                _name.unique };
 		/*
 		 * Entry point used for serving the parent interface and the
 		 * locally provided ROM sessions for the 'config' and 'binary'
@@ -536,10 +526,11 @@ class Init::Child : Genode::Child_policy
 		 */
 		Genode::Server _server;
 
+		Genode::Region_map_client _address_space { _resources.pd.address_space() };
 		Genode::Child _child;
 
-		Genode::Service_registry *_parent_services;
-		Genode::Service_registry *_child_services;
+		Genode::Service_registry &_parent_services;
+		Genode::Service_registry &_child_services;
 
 		/**
 		 * Policy helpers
@@ -549,35 +540,38 @@ class Init::Child : Genode::Child_policy
 		Init::Child_policy_provide_rom_file      _config_policy;
 		Init::Child_policy_provide_rom_file      _binary_policy;
 		Init::Child_policy_redirect_rom_file     _configfile_policy;
-		Init::Child_policy_pd_args               _pd_args_policy;
 		Init::Child_policy_ram_phys              _ram_session_policy;
 
 	public:
 
-		Child(Genode::Xml_node              start_node,
-		      Genode::Xml_node              default_route_node,
-		      Name_registry                *name_registry,
-		      long                          prio_levels,
+		Child(Genode::Xml_node               start_node,
+		      Genode::Xml_node               default_route_node,
+		      Name_registry                 &name_registry,
+		      long                           prio_levels,
 		      Genode::Affinity::Space const &affinity_space,
-		      Genode::Service_registry      *parent_services,
-		      Genode::Service_registry      *child_services,
-		      Genode::Cap_session           *cap_session)
+		      Genode::Service_registry      &parent_services,
+		      Genode::Service_registry      &child_services,
+		      Genode::Cap_session           &cap_session,
+		      Genode::Dataspace_capability   ldso_ds)
 		:
 			_list_element(this),
 			_start_node(start_node),
 			_default_route_node(default_route_node),
 			_name_registry(name_registry),
 			_name(start_node, name_registry),
-			_pd_args(start_node),
 			_resources(start_node, _name.unique, prio_levels,
-			           affinity_space, &_pd_args),
-			_entrypoint(cap_session, ENTRYPOINT_STACK_SIZE, _name.unique, false, _resources.affinity.location()),
+			           affinity_space),
+			_entrypoint(&cap_session, ENTRYPOINT_STACK_SIZE, _name.unique, false,
+			            _resources.affinity.location()),
 			_binary_rom(_name.file, _name.file),
 			_binary_rom_ds(_binary_rom.dataspace()),
 			_config(_resources.ram.cap(), start_node),
 			_server(_resources.ram.cap()),
-			_child(_binary_rom_ds, _resources.pd.cap(), _resources.ram.cap(),
-			       _resources.cpu.cap(), _resources.rm.cap(), &_entrypoint, this),
+			_child(_binary_rom_ds, ldso_ds,
+			       _resources.pd,  _resources.pd,
+			       _resources.ram, _resources.ram,
+			       _resources.cpu, _initial_thread,
+			       *Genode::env()->rm_session(), _address_space, _entrypoint, *this),
 			_parent_services(parent_services),
 			_child_services(child_services),
 			_labeling_policy(_name.unique),
@@ -585,7 +579,6 @@ class Init::Child : Genode::Child_policy
 			_config_policy("config", _config.dataspace(), &_entrypoint),
 			_binary_policy("binary", _binary_rom_ds, &_entrypoint),
 			_configfile_policy("config", _config.filename()),
-			_pd_args_policy(&_pd_args),
 			_ram_session_policy(_resources.constrain_phys)
 		{
 			using namespace Genode;
@@ -614,7 +607,7 @@ class Init::Child : Genode::Child_policy
 					if (config_verbose)
 						Genode::printf("  provides service %s\n", name);
 
-					child_services->insert(new (_child.heap())
+					child_services.insert(new (_child.heap())
 						Routed_service(name, &_server));
 
 				}
@@ -623,8 +616,8 @@ class Init::Child : Genode::Child_policy
 
 		virtual ~Child() {
 			Genode::Service *s;
-			while ((s = _child_services->find_by_server(&_server))) {
-				_child_services->remove(s);
+			while ((s = _child_services.find_by_server(&_server))) {
+				_child_services.remove(s);
 			}
 		}
 
@@ -681,7 +674,7 @@ class Init::Child : Genode::Child_policy
 					for (; ; target = target.next()) {
 
 						if (target.has_type("parent")) {
-							service = _parent_services->find(service_name);
+							service = _parent_services.find(service_name);
 							if (service)
 								return service;
 
@@ -696,13 +689,13 @@ class Init::Child : Genode::Child_policy
 							server_name[0] = 0;
 							target.attribute("name").value(server_name, sizeof(server_name));
 
-							Genode::Server *server = _name_registry->lookup_server(server_name);
+							Genode::Server *server = _name_registry.lookup_server(server_name);
 							if (!server) {
 								PWRN("%s: invalid route to non-existing server \"%s\"", name(), server_name);
 								return 0;
 							}
 
-							service = _child_services->find(service_name, server);
+							service = _child_services.find(service_name, server);
 							if (service)
 								return service;
 
@@ -713,11 +706,11 @@ class Init::Child : Genode::Child_policy
 						}
 
 						if (target.has_type("any-child")) {
-							if (_child_services->is_ambiguous(service_name)) {
+							if (_child_services.is_ambiguous(service_name)) {
 								PERR("%s: ambiguous routes to service \"%s\"", name(), service_name);
 								return 0;
 							}
-							service = _child_services->find(service_name);
+							service = _child_services.find(service_name);
 							if (service)
 								return service;
 
@@ -727,7 +720,7 @@ class Init::Child : Genode::Child_policy
 							}
 						}
 
-						if (target.is_last())
+						if (target.last())
 							break;
 					}
 				}
@@ -743,7 +736,6 @@ class Init::Child : Genode::Child_policy
 			_labeling_policy.  filter_session_args(service, args, args_len);
 			_priority_policy.  filter_session_args(service, args, args_len);
 			_configfile_policy.filter_session_args(service, args, args_len);
-			_pd_args_policy.   filter_session_args(service, args, args_len);
 			_ram_session_policy.filter_session_args(service, args, args_len);
 		}
 
@@ -782,7 +774,7 @@ class Init::Child : Genode::Child_policy
 				Genode::printf("child \"%s\" announces service \"%s\"\n",
 				               name(), service_name);
 
-			Genode::Service *s = _child_services->find(service_name, &_server);
+			Genode::Service *s = _child_services.find(service_name, &_server);
 			Routed_service *rs = dynamic_cast<Routed_service *>(s);
 			if (!s || !rs) {
 				PERR("%s: illegal announcement of service \"%s\"", name(), service_name);
@@ -838,8 +830,6 @@ class Init::Child : Genode::Child_policy
 			 */
 			Child_policy::exit(exit_value);
 		}
-
-		Genode::Native_pd_args const *pd_args() const { return &_pd_args; }
 };
 
 

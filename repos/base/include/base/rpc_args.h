@@ -106,8 +106,16 @@ class Genode::Rpc_in_buffer : public Rpc_in_buffer_base
 		/**
 		 * Return true if buffer contains a valid null-terminated string
 		 */
-		bool is_valid_string() const {
+		bool valid_string() const {
 			return (_size <= MAX_SIZE) && (_size > 0) && (_base[_size - 1] == '\0'); }
+
+		/**
+		 * Return true if buffer contains a valid null-terminated string
+		 *
+		 * \noapi
+		 * \deprecated use valid_string instead
+		 */
+		bool is_valid_string() const { return valid_string(); }
 
 		/**
 		 * Return buffer content as null-terminated string
@@ -117,9 +125,9 @@ class Genode::Rpc_in_buffer : public Rpc_in_buffer_base
 		 * The method returns an empty string if the buffer does not hold
 		 * a valid null-terminated string. To distinguish a buffer holding
 		 * an invalid string from a buffer holding a valid empty string,
-		 * the function 'is_valid_string' can be used.
+		 * the function 'valid_string' can be used.
 		 */
-		char const *string() const { return is_valid_string() ? base() : ""; }
+		char const *string() const { return valid_string() ? base() : ""; }
 };
 
 #endif /* _INCLUDE__BASE__RPC_ARGS_H_ */

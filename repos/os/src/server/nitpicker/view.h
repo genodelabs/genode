@@ -206,7 +206,7 @@ class View : public Same_buffer_list_elem,
 		{
 			if (!_session.label_visible()) return 0;
 
-			return mode.is_focused(_session) ? 5 : 3;
+			return mode.focused(_session) ? 5 : 3;
 		}
 
 		/**
@@ -236,10 +236,10 @@ class View : public Same_buffer_list_elem,
 		/**
 		 * Set view as background
 		 *
-		 * \param is_bg  true if view is background
+		 * \param bg  true if view is background
 		 */
-		void background(bool is_bg) {
-			_background = is_bg ? BACKGROUND : NOT_BACKGROUND; }
+		void background(bool bg) {
+			_background = bg ? BACKGROUND : NOT_BACKGROUND; }
 
 		/**
 		 * Accessors

@@ -25,13 +25,50 @@
 #include <os/attached_ram_dataspace.h>
 #include <blit/blit.h>
 
+struct drm_display_mode;
+struct drm_connector;
+struct drm_framebuffer;
+
 namespace Framebuffer {
+	class Driver;
 	class Session_component;
 	class Root;
-
-	extern Root * root;
-	Genode::Dataspace_capability framebuffer_dataspace();
 }
+
+
+class Framebuffer::Driver
+{
+	private:
+
+		Session_component        &_session;
+		int                       _height = 0;
+		int                       _width  = 0;
+		static constexpr unsigned _bytes_per_pixel = 2;
+		void                     *_new_fb_ds_base = nullptr;
+		void                     *_cur_fb_ds_base = nullptr;
+		Genode::uint64_t          _cur_fb_ds_size = 0;
+		drm_framebuffer          *_new_fb = nullptr;
+		drm_framebuffer          *_cur_fb = nullptr;
+
+		drm_display_mode * _preferred_mode(drm_connector *connector);
+
+	public:
+
+		Driver(Session_component &session) : _session(session) {}
+
+		int      width()  const { return _width;           }
+		int      height() const { return _height;          }
+		unsigned bpp()    const { return _bytes_per_pixel; }
+
+		Genode::size_t size() const {
+			return _width * _height * _bytes_per_pixel; }
+
+		void finish_initialization();
+		bool mode_changed();
+		void generate_report();
+		void free_framebuffer();
+		Genode::Dataspace_capability dataspace();
+};
 
 
 class Framebuffer::Session_component : public Genode::Rpc_object<Session>
@@ -40,49 +77,50 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 
 		template <typename T> using Lazy = Genode::Lazy_volatile_object<T>;
 
-		int                                  _height;
-		int                                  _width;
+		Driver                               _driver;
 		Genode::Signal_context_capability    _mode_sigh;
 		Timer::Connection                    _timer;
 		bool const                           _buffered;
 		Lazy<Genode::Attached_dataspace>     _fb_ds;
 		Lazy<Genode::Attached_ram_dataspace> _bb_ds;
 		bool                                 _in_update = false;
-		static constexpr unsigned            _bytes_per_pixel = 2;
 
 		void _refresh_buffered(int x, int y, int w, int h)
 		{
 			using namespace Genode;
+
+			int width = _driver.width(), height = _driver.height();
+			unsigned bpp = _driver.bpp();
+
 			/* clip specified coordinates against screen boundaries */
-			int x2 = min(x + w - 1, (int)_width  - 1),
-			    y2 = min(y + h - 1, (int)_height - 1);
+			int x2 = min(x + w - 1, width  - 1),
+			    y2 = min(y + h - 1, height - 1);
 			int x1 = max(x, 0),
 			    y1 = max(y, 0);
 			if (x1 > x2 || y1 > y2) return;
 
-			int const bpp = _bytes_per_pixel;
-
 			/* copy pixels from back buffer to physical frame buffer */
-			char *src = _bb_ds->local_addr<char>() + bpp*(_width*y1 + x1),
-			     *dst = _fb_ds->local_addr<char>() + bpp*(_width*y1 + x1);
+			char *src = _bb_ds->local_addr<char>() + bpp*(width*y1 + x1),
+			     *dst = _fb_ds->local_addr<char>() + bpp*(width*y1 + x1);
 
-			blit(src, bpp*_width, dst, bpp*_width,
+			blit(src, bpp*width, dst, bpp*width,
 			     bpp*(x2 - x1 + 1), y2 - y1 + 1);
 		}
 
 	public:
 
 		Session_component(bool buffered)
-		: _height(0), _width(0), _buffered(buffered) {}
+		: _driver(*this), _buffered(buffered) {}
 
-		void update(int height, int width)
+		Driver & driver() { return _driver; }
+
+		void config_changed()
 		{
 			_in_update = true;
-			_height = height;
-			_width  = width;
-
-			if (_mode_sigh.valid())
+			if (_driver.mode_changed() && _mode_sigh.valid())
 				Genode::Signal_transmitter(_mode_sigh).submit();
+			else
+				_in_update = false;
 		}
 
 
@@ -94,16 +132,18 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 		{
 			_in_update = false;
 
-			if (_fb_ds.is_constructed())
+			if (_fb_ds.constructed())
 				_fb_ds.destruct();
 
-			_fb_ds.construct(framebuffer_dataspace());
+			_fb_ds.construct(_driver.dataspace());
 			if (!_fb_ds.is_constructed())
 				PERR("framebuffer dataspace not initialized");
 
 			if (_buffered) {
-				_bb_ds.construct(Genode::env()->ram_session(),
-				                 _width * _height * _bytes_per_pixel);
+				if (_bb_ds.is_constructed())
+					_bb_ds.destruct();
+
+				_bb_ds.construct(Genode::env()->ram_session(), _driver.size());
 				if (!_bb_ds.is_constructed()) {
 					PERR("buffered mode enabled, but buffer not initialized");
 					return Genode::Dataspace_capability();
@@ -115,7 +155,7 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 		}
 
 		Mode mode() const override {
-			return Mode(_width, _height, Mode::RGB565); }
+			return Mode(_driver.width(), _driver.height(), Mode::RGB565); }
 
 		void mode_sigh(Genode::Signal_context_capability sigh) override {
 			_mode_sigh = sigh; }
@@ -131,27 +171,18 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 };
 
 
-class Framebuffer::Root
-: public Genode::Root_component<Framebuffer::Session_component,
-                                Genode::Single_client>
+struct Framebuffer::Root
+: Genode::Root_component<Framebuffer::Session_component, Genode::Single_client>
 {
-	private:
+	Session_component session; /* single session */
 
-		Session_component _single_session;
+	Session_component *_create_session(const char *args) override {
+		return &session; }
 
-		Session_component *_create_session(const char *args) override {
-			return &_single_session; }
-
-	public:
-
-		Root(Genode::Rpc_entrypoint *session_ep, Genode::Allocator *md_alloc,
-		     bool buffered)
-		: Genode::Root_component<Session_component,
-		                         Genode::Single_client>(session_ep, md_alloc),
-		  _single_session(buffered) { }
-
-		void update(int height, int width) {
-			_single_session.update(height, width); }
+	Root(Genode::Rpc_entrypoint *ep, Genode::Allocator *alloc, bool buffered)
+	: Genode::Root_component<Session_component,
+	                         Genode::Single_client>(ep, alloc),
+	  session(buffered) { }
 };
 
 #endif /* __COMPONENT_H__ */

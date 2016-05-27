@@ -19,6 +19,8 @@
 
 namespace File_system {
 
+	using namespace Genode;
+
 	class Record
 	{
 		private:

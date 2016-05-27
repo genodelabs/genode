@@ -21,6 +21,9 @@
 #include <base/printf.h>
 #include <util/touch.h>
 
+/* base-internal includes */
+#include <base/internal/page_size.h>
+
 /* OKL4 includes */
 namespace Okl4 { extern "C" {
 #include <l4/types.h>
@@ -61,8 +64,6 @@ namespace Genode {
 		}
 	}
 
-	constexpr size_t get_page_size_log2() { return 12; }
-	constexpr size_t get_page_size()      { return 1 << get_page_size_log2(); }
 	constexpr addr_t get_page_mask()      { return ~(get_page_size() - 1); }
 
 	inline size_t get_super_page_size_log2()
@@ -114,11 +115,11 @@ namespace Genode {
 	}
 
 	inline void print_page_fault(const char *msg, addr_t pf_addr, addr_t pf_ip,
-	                             Rm_session::Fault_type pf_type,
+	                             Region_map::State::Fault_type pf_type,
 	                             unsigned long faulter_badge)
 	{
 		printf("%s (%s pf_addr=%p pf_ip=%p from %02lx)\n", msg,
-		       pf_type == Rm_session::WRITE_FAULT ? "WRITE" : "READ",
+		       pf_type == Region_map::State::WRITE_FAULT ? "WRITE" : "READ",
 		       (void *)pf_addr, (void *)pf_ip,
 		       faulter_badge);
 	}

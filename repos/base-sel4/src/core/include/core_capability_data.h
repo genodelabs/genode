@@ -11,11 +11,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CORE__INCLUDE__CAPABILITY_CORE_DATA_H_
-#define _CORE__INCLUDE__CAPABILITY_CORE_DATA_H_
+#ifndef _CORE__INCLUDE__CORE_CAPABILITY_DATA_H_
+#define _CORE__INCLUDE__CORE_CAPABILITY_DATA_H_
 
 /* base-internal includes */
-#include <internal/capability_data.h>
+#include <base/internal/capability_data.h>
 
 namespace Genode {
 
@@ -43,4 +43,4 @@ class Genode::Core_capability_data : public Capability_data
 		}
 };
 
-#endif /* _CORE__INCLUDE__CAPABILITY_CORE_DATA_H_ */
+#endif /* _CORE__INCLUDE__CORE_CAPABILITY_DATA_H_ */

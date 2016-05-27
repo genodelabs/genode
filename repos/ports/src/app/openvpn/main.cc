@@ -42,7 +42,7 @@ extern int    genode_argc;
 extern "C" int openvpn_main(int, char*[]);
 
 
-class Openvpn_thread : public Genode::Thread<16UL * 1024 * sizeof (long)>
+class Openvpn_thread : public Genode::Thread_deprecated<16UL * 1024 * sizeof (long)>
 {
 	private:
 
@@ -54,7 +54,7 @@ class Openvpn_thread : public Genode::Thread<16UL * 1024 * sizeof (long)>
 
 		Openvpn_thread(int argc, char *argv[])
 		:
-			Thread("openvpn_main"),
+			Thread_deprecated("openvpn_main"),
 			_argc(argc), _argv(argv),
 			_exitcode(-1)
 		{

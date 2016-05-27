@@ -150,12 +150,10 @@ append config {
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
-		<service name="CAP"/>
 		<service name="PD"/>
 		<service name="RM"/>
 		<service name="CPU"/>
 		<service name="LOG"/>
-		<service name="SIGNAL"/>
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
@@ -354,12 +352,10 @@ if {$use_fancy_stuff} {
 				<service name="IRQ"/>
 				<service name="IO_MEM"/>
 				<service name="IO_PORT"/>
-				<service name="CAP"/>
 				<service name="PD"/>
 				<service name="RM"/>
 				<service name="CPU"/>
 				<service name="LOG"/>
-				<service name="SIGNAL"/>
 				<service name="Nitpicker"/>
 				<service name="Timer"/>
 				<service name="Nic"/>

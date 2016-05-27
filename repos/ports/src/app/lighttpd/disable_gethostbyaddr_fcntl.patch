@@ -9,7 +9,7 @@
  
  	return -1;
 +++ src/app/lighttpd/src/http-header-glue.c
-@@ -175,6 +175,7 @@ int http_response_redirect_to_directory(server *srv, connection *con) {
+@@ -172,6 +172,7 @@ int http_response_redirect_to_directory(server *srv, connection *con) {
  			break;
  #endif
  		case AF_INET:
@@ -17,7 +17,7 @@
  			if (NULL == (he = gethostbyaddr((char *)&our_addr.ipv4.sin_addr, sizeof(struct in_addr), AF_INET))) {
  				log_error_write(srv, __FILE__, __LINE__,
  						"SdS", "NOTICE: gethostbyaddr failed: ",
-@@ -184,6 +185,8 @@ int http_response_redirect_to_directory(server *srv, connection *con) {
+@@ -181,6 +182,8 @@ int http_response_redirect_to_directory(server *srv, connection *con) {
  			} else {
  				buffer_append_string(o, he->h_name);
  			}
@@ -27,7 +27,7 @@
  		default:
  			log_error_write(srv, __FILE__, __LINE__,
 +++ src/app/lighttpd/src/network.c
-@@ -301,6 +301,7 @@ static int network_server_init(server *srv, buffer *host_token, specific_config
+@@ -323,6 +323,7 @@ static int network_server_init(server *srv, buffer *host_token, specific_config
  		if (host == NULL) {
  			srv_socket->addr.ipv4.sin_addr.s_addr = htonl(INADDR_ANY);
  		} else {
@@ -35,7 +35,7 @@
  			struct hostent *he;
  			if (NULL == (he = gethostbyname(host))) {
  				log_error_write(srv, __FILE__, __LINE__,
-@@ -320,6 +321,7 @@ static int network_server_init(server *srv, buffer *host_token, specific_config
+@@ -342,6 +343,7 @@ static int network_server_init(server *srv, buffer *host_token, specific_config
  			}
  
  			memcpy(&(srv_socket->addr.ipv4.sin_addr.s_addr), he->h_addr_list[0], he->h_length);
@@ -44,28 +44,32 @@
  		srv_socket->addr.ipv4.sin_port = htons(port);
  
 +++ src/app/lighttpd/src/fdevent.c
-@@ -198,16 +198,23 @@ void * fdevent_get_context(fdevents *ev, int fd) {
+@@ -201,15 +201,18 @@
+ }
+ 
+ void fd_close_on_exec(int fd) {
++#if 0
+ #ifdef FD_CLOEXEC
+ 	if (fd < 0) return;
+ 	force_assert(-1 != fcntl(fd, F_SETFD, FD_CLOEXEC));
+ #else
+ 	UNUSED(fd);
+ #endif
++#endif
  }
  
  int fdevent_fcntl_set(fdevents *ev, int fd) {
 +#if 0
- #ifdef FD_CLOEXEC
- 	/* close fd on exec (cgi) */
- 	fcntl(fd, F_SETFD, FD_CLOEXEC);
- #endif
--	if ((ev) && (ev->fcntl_set)) return ev->fcntl_set(ev, fd);
-+	if ((ev) && (ev->fcntl_set)){
-+		fprintf(stderr, "call ev->fcntl_set(ev, %d)\n", fd);
-+		return ev->fcntl_set(ev, fd);
-+	}
+ 	fd_close_on_exec(fd);
+ 	if ((ev) && (ev->fcntl_set)) return ev->fcntl_set(ev, fd);
  #ifdef O_NONBLOCK
-+		fprintf(stderr, "call fcntl(ev, %d)\n", fd);
- 	return fcntl(fd, F_SETFL, O_NONBLOCK | O_RDWR);
+@@ -217,6 +220,9 @@
  #else
  	return 0;
  #endif
-+#endif
++#else
 +	return 0;
++#endif
  }
  
  

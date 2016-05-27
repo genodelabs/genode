@@ -36,11 +36,11 @@
 #include <vfs/file_system_factory.h>
 #include <vfs/dir_file_system.h>
 #include <timer_session/connection.h>
-#include <base/process.h>
 #include <os/config.h>
 #include <base/printf.h>
 #include <base/snprintf.h>
 #include <base/exception.h>
+#include <cpu_thread/client.h>
 
 using namespace Genode;
 
@@ -141,16 +141,16 @@ static int MAX_DEPTH;
 typedef Genode::Path<Vfs::MAX_PATH_LEN> Path;
 
 
-struct Stress_thread : public Genode::Thread<4*1024*sizeof(Genode::addr_t)>
+struct Stress_thread : public Genode::Thread_deprecated<4*1024*sizeof(Genode::addr_t)>
 {
 	::Path            path;
 	Vfs::file_size    count;
 	Vfs::File_system &vfs;
 
 	Stress_thread(Vfs::File_system &vfs, char const *parent, Affinity::Location affinity)
-	: Thread(parent), path(parent), count(0), vfs(vfs)
+	: Thread_deprecated(parent), path(parent), count(0), vfs(vfs)
 	{
-		env()->cpu_session()->affinity(cap(), affinity);
+		Cpu_thread_client(cap()).affinity(affinity);
 	}
 };
 
@@ -476,12 +476,6 @@ struct Unlink_thread : public Stress_thread
 
 int main()
 {
-	/* look for dynamic linker */
-	try {
-		static Genode::Rom_connection rom("ld.lib.so");
-		Genode::Process::dynamic_linker(rom.dataspace());
-	} catch (...) { }
-
 	static Vfs::Dir_file_system vfs_root(config()->xml_node().sub_node("vfs"),
 	                                     Vfs::global_file_system_factory());
 	static char path[Vfs::MAX_PATH_LEN];
@@ -510,7 +504,7 @@ int main()
 		elapsed_ms = timer.elapsed_ms();
 
 		for (size_t i = 0; i < thread_count; ++i) {
-			snprintf(path, 3, "/%lu", i);
+			snprintf(path, 3, "/%zu", i);
 			vfs_root.mkdir(path, 0);
 			threads[i] = new (Genode::env()->heap())
 				Mkdir_thread(vfs_root, path, space.location_of_index(i));
@@ -524,7 +518,7 @@ int main()
 
 		vfs_root.sync("/");
 
-		PINF("created %d empty directories, %luμs/op , %luKB consumed",
+		PINF("created %d empty directories, %luμs/op , %zuKB consumed",
 		     count, (elapsed_ms*1000)/count, env()->ram_session()->used()/1024);
 	}
 
@@ -539,7 +533,7 @@ int main()
 		elapsed_ms = timer.elapsed_ms();
 
 		for (size_t i = 0; i < thread_count; ++i) {
-			snprintf(path, 3, "/%lu", i);
+			snprintf(path, 3, "/%zu", i);
 			threads[i] = new (Genode::env()->heap())
 				Populate_thread(vfs_root, path, space.location_of_index(i));
 		}
@@ -553,7 +547,7 @@ int main()
 
 		vfs_root.sync("/");
 
-		PINF("created %d empty files, %luμs/op, %luKB consumed",
+		PINF("created %d empty files, %luμs/op, %zuKB consumed",
 		     count, (elapsed_ms*1000)/count, env()->ram_session()->used()/1024);
 	}
 
@@ -565,7 +559,7 @@ int main()
 	if (!config()->xml_node().attribute_value("write", true)) {
 		elapsed_ms = timer.elapsed_ms();
 
-		PINF("total: %lums, %luK consumed",
+		PINF("total: %lums, %zuK consumed",
 		     elapsed_ms, env()->ram_session()->used()/1024);
 
 		return 0;
@@ -577,7 +571,7 @@ int main()
 		elapsed_ms = timer.elapsed_ms();
 
 		for (size_t i = 0; i < thread_count; ++i) {
-			snprintf(path, 3, "/%lu", i);
+			snprintf(path, 3, "/%zu", i);
 			threads[i] = new (Genode::env()->heap())
 				Write_thread(vfs_root, path, space.location_of_index(i));
 		}
@@ -591,7 +585,7 @@ int main()
 
 		vfs_root.sync("/");
 
-		PINF("wrote %llu bytes %llukB/s, %luKB consumed",
+		PINF("wrote %llu bytes %llukB/s, %zuKB consumed",
 		     count, count/elapsed_ms, env()->ram_session()->used()/1024);
 	}
 
@@ -603,7 +597,7 @@ int main()
 	if (!config()->xml_node().attribute_value("read", true)) {
 		elapsed_ms = timer.elapsed_ms();
 
-		PINF("total: %lums, %luKB consumed",
+		PINF("total: %lums, %zuKB consumed",
 		     elapsed_ms, env()->ram_session()->used()/1024);
 
 		return 0;
@@ -615,7 +609,7 @@ int main()
 		elapsed_ms = timer.elapsed_ms();
 
 		for (size_t i = 0; i < thread_count; ++i) {
-			snprintf(path, 3, "/%lu", i);
+			snprintf(path, 3, "/%zu", i);
 			threads[i] = new (Genode::env()->heap())
 				Read_thread(vfs_root, path, space.location_of_index(i));
 		}
@@ -629,7 +623,7 @@ int main()
 
 		vfs_root.sync("/");
 
-		PINF("read  %llu bytes, %llukB/s, %luKB consumed",
+		PINF("read  %llu bytes, %llukB/s, %zuKB consumed",
 		     count, count/elapsed_ms, env()->ram_session()->used()/1024);
 	}
 
@@ -641,7 +635,7 @@ int main()
 	if (!config()->xml_node().attribute_value("unlink", true)) {
 		elapsed_ms = timer.elapsed_ms();
 
-		PINF("total: %lums, %luKB consumed",
+		PINF("total: %lums, %zuKB consumed",
 		     elapsed_ms, env()->ram_session()->used()/1024);
 
 		return 0;
@@ -654,7 +648,7 @@ int main()
 		elapsed_ms = timer.elapsed_ms();
 
 		for (size_t i = 0; i < thread_count; ++i) {
-			snprintf(path, 3, "/%lu", i);
+			snprintf(path, 3, "/%zu", i);
 			threads[i] = new (Genode::env()->heap())
 				Unlink_thread(vfs_root, path, space.location_of_index(i));
 		}
@@ -668,19 +662,19 @@ int main()
 
 		vfs_root.sync("/");
 
-		PINF("unlinked %llu files in %lums, %luKB consumed",
+		PINF("unlinked %llu files in %lums, %zuKB consumed",
 		     count, elapsed_ms, env()->ram_session()->used()/1024);
 	}
 
-	PINF("total: %lums, %luKB consumed",
+	PINF("total: %lums, %zuKB consumed",
 	     timer.elapsed_ms(), env()->ram_session()->used()/1024);
 
 	size_t outstanding = env()->ram_session()->used() - initial_consumption;
 	if (outstanding) {
 		if (outstanding < 1024)
-			PERR("%luB not freed after unlink and sync!", outstanding);
+			PERR("%zuB not freed after unlink and sync!", outstanding);
 		else
-			PERR("%luKB not freed after unlink and sync!", outstanding/1024);
+			PERR("%zuKB not freed after unlink and sync!", outstanding/1024);
 	}
 
 	return 0;

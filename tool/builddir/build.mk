@@ -221,6 +221,21 @@ $(INSTALL_DIR):
 
 .PHONY: gen_deps_and_build_targets
 gen_deps_and_build_targets: $(INSTALL_DIR) $(LIB_DEP_FILE)
+	@(echo ""; \
+	  echo "ifneq (\$$(MISSING_PORTS),)"; \
+	  echo "check_ports:"; \
+	  echo "	@echo \"\""; \
+	  echo "	@echo \"Error: Ports not prepared or outdated:\""; \
+	  echo "	@echo \"  \$$(sort \$$(MISSING_PORTS))\""; \
+	  echo "	@echo \"\""; \
+	  echo "	@echo \"You can prepare respectively update them as follows:\""; \
+	  echo "	@echo \"  $(GENODE_DIR)/tool/ports/prepare_port \$$(sort \$$(MISSING_PORTS))\""; \
+	  echo "	@echo \"\""; \
+	  echo "	@false"; \
+	  echo "else"; \
+	  echo "check_ports:"; \
+	  echo "endif"; \
+	  echo "") >> $(LIB_DEP_FILE)
 	@$(VERBOSE_MK)$(MAKE) $(VERBOSE_DIR) -f $(LIB_DEP_FILE) all
 
 .PHONY: again

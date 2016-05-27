@@ -193,14 +193,14 @@ void Menu_view::Main::handle_input(unsigned)
 
 		Input::Event ev = ev_buf[i];
 
-		if (ev.is_absolute_motion()) {
+		if (ev.absolute_motion()) {
 
 			Point const at = Point(ev.ax(), ev.ay()) - position;
 			Widget::Unique_id const new_hovered = root_widget.hovered(at);
 
 			if (hovered != new_hovered) {
 
-				if (hover_reporter.is_enabled()) {
+				if (hover_reporter.enabled()) {
 					Genode::Reporter::Xml_generator xml(hover_reporter, [&] () {
 						root_widget.gen_hover_model(xml, at);
 					});
@@ -218,7 +218,7 @@ void Menu_view::Main::handle_input(unsigned)
 
 			hovered = Widget::Unique_id();
 
-			if (hover_reporter.is_enabled()) {
+			if (hover_reporter.enabled()) {
 				Genode::Reporter::Xml_generator xml(hover_reporter, [&] () { });
 			}
 		}
@@ -251,10 +251,10 @@ void Menu_view::Main::handle_frame_timer(unsigned)
 
 		frame_cnt = 0;
 
-		Area const old_size = buffer.is_constructed() ? buffer->size() : Area();
+		Area const old_size = buffer.constructed() ? buffer->size() : Area();
 		Area const size     = root_widget.min_size();
 
-		if (!buffer.is_constructed() || size != old_size)
+		if (!buffer.constructed() || size != old_size)
 			buffer.construct(nitpicker, size, *env()->ram_session());
 		else
 			buffer->reset_surface();

@@ -7,34 +7,33 @@ REPOSITORIES += $(GENODE_DIR)/repos/base-hw
 RUN_OPT = --include boot_dir/hw --include image/muen
 
 #
-# Muen hardware platform
+# Muen hardware configuration
 #
-# Available platforms are located in the Muen project directory
-# 'policy/platform/'.
-RUN_OPT += --image-muen-hardware lenovo-t430s
+# The specified file must be relative to the Muen policy directory or an
+# absolute path.
+RUN_OPT += --image-muen-hardware platform/lenovo-t430s.xml
 
 #
 # Directory, where the GNAT toolchain is installed
 #
-RUN_OPT += --image-muen-gnat-path /usr/gnat
+RUN_OPT += --image-muen-gnat-path /opt/gnat
 
 #
 # Directory, where the SPARK toolchain is installed
 #
-RUN_OPT += --image-muen-spark-path /opt/spark2014
+RUN_OPT += --image-muen-spark-path /opt/spark
 
 #
 # Muen system policy
 #
-# Available policies are located in the Muen project directory
-# 'policy/xml/'.
-RUN_OPT += --image-muen-system genode-base_hw
+# The specified file must be relative to the Muen policy directory or an
+# absolute path.
+RUN_OPT += --image-muen-system xml/genode-base_hw.xml
 
 #
 # Muen system components
 #
-# Available policies are located in the Muen project directory
-# 'components/'.
+# Available components are located in the Muen project directory 'components/'.
 RUN_OPT += --image-muen-components 'dbgserver sm tau0'
 
 #

@@ -22,7 +22,16 @@ constexpr bool verbose_link_map = false;
 namespace Linker {
 	struct Debug;
 	struct Link_map;
+
+	struct Object;
+	void dump_link_map(Object *o);
 }
+
+/*
+ * GDB can set a breakpoint at this function to find out when ldso has loaded
+ * the binary into memory.
+ */
+void binary_ready_hook_for_gdb();
 
 /**
  * LIBC debug support

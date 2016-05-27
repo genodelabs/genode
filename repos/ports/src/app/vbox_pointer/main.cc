@@ -190,7 +190,7 @@ void Main::_handle_hover(unsigned)
 	using Vbox_pointer::read_string_attribute;
 
 	_hover_ds.update();
-	if (!_hover_ds.is_valid())
+	if (!_hover_ds.valid())
 		return;
 
 	/* read new hover information from nitpicker's hover report */
@@ -216,7 +216,7 @@ void Main::_handle_hover(unsigned)
 void Main::_handle_xray(unsigned)
 {
 	_xray_ds.update();
-	if (!_xray_ds.is_valid())
+	if (!_xray_ds.valid())
 		return;
 
 	try {

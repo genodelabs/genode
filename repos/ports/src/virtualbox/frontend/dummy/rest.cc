@@ -178,6 +178,36 @@ HRESULT SharedFolder::init(Console*, com::Utf8Str const&, com::Utf8Str const&,
                            bool, bool, bool)                                    DUMMY(E_FAIL)
 
 
+/* USBFilter.cpp */
+
+#include "VBox/usbfilter.h"
+
+USBFILTERMATCH USBFilterGetMatchingMethod(PCUSBFILTER, USBFILTERIDX)            DUMMY(USBFILTERMATCH_INVALID)
+int  USBFilterGetNum(PCUSBFILTER pFilter, USBFILTERIDX enmFieldIdx)             DUMMY(-1)
+const char * USBFilterGetString(PCUSBFILTER pFilter, USBFILTERIDX enmFieldIdx)  DUMMY(nullptr)
+void USBFilterInit(PUSBFILTER pFilter, USBFILTERTYPE enmType)                   DUMMY()
+bool USBFilterIsMethodNumeric(USBFILTERMATCH enmMatchingMethod)                 DUMMY(false)
+bool USBFilterIsMethodString(USBFILTERMATCH enmMatchingMethod)                  DUMMY(false)
+bool USBFilterIsNumericField(USBFILTERIDX enmFieldIdx)                          DUMMY(false)
+bool USBFilterIsStringField(USBFILTERIDX enmFieldIdx)                           DUMMY(false)
+bool USBFilterMatch(PCUSBFILTER pFilter, PCUSBFILTER pDevice)                   DUMMY(false)
+int  USBFilterSetIgnore(PUSBFILTER pFilter, USBFILTERIDX enmFieldIdx)           DUMMY(-1)
+int  USBFilterSetNumExact(PUSBFILTER, USBFILTERIDX, uint16_t, bool)             DUMMY(-1)
+int  USBFilterSetNumExpression(PUSBFILTER, USBFILTERIDX, const char *, bool)    DUMMY(-1)
+int  USBFilterSetStringExact(PUSBFILTER, USBFILTERIDX, const char *, bool)      DUMMY(-1)
+int  USBFilterSetStringPattern(PUSBFILTER, USBFILTERIDX, const char *, bool)    DUMMY(-1)
+
+
+/* USBProxyService.cpp */
+
+#include "USBProxyService.h"
+
+HRESULT USBProxyService::autoCaptureDevicesForVM(SessionMachine *)              DUMMY(E_FAIL)
+HRESULT USBProxyService::captureDeviceForVM(SessionMachine *, IN_GUID)          DUMMY(E_FAIL)
+HRESULT USBProxyService::detachAllDevicesFromVM(SessionMachine*, bool, bool)    DUMMY(E_FAIL)
+HRESULT USBProxyService::detachDeviceFromVM(SessionMachine*, IN_GUID, bool)     DUMMY(E_FAIL)
+
+
 /* VirtualBoxImpl.cpp */
 
 #include "VirtualBoxImpl.h"

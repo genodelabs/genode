@@ -30,7 +30,6 @@ build $build_components
 set gdb_target_binaries {
 	ld.lib.so
 	libc.lib.so
-	libc_log.lib.so
 }
 lappend gdb_target_binaries ${gdb_target_binary_name}
 
@@ -44,7 +43,6 @@ append config {
 		<parent-provides>
 			<service name="ROM"/>
 			<service name="LOG"/>
-			<service name="CAP"/>
 			<service name="RAM"/>
 			<service name="RM"/>
 			<service name="CPU"/>
@@ -52,7 +50,6 @@ append config {
 			<service name="IRQ"/>
 			<service name="IO_PORT"/>
 			<service name="IO_MEM"/>
-			<service name="SIGNAL"/>
 		</parent-provides>
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
@@ -142,7 +139,7 @@ exec cp ${genode_dir}/repos/os/src/app/cli_monitor/gdb_command_config bin
 set boot_modules {
 	core init timer ld.lib.so noux terminal_mux terminal_crosslink
 	libc.lib.so libm.lib.so libc_noux.lib.so ncurses.lib.so expat.lib.so
-	libc_lock_pipe.lib.so libc_log.lib.so libc_terminal.lib.so
+	libc_pipe.lib.so libc_terminal.lib.so
 	cli_monitor	gdb_monitor terminal_log gdb.tar
 	gdb_command_config
 	gdb_target.tar

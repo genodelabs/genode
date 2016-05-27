@@ -18,10 +18,12 @@
 #include <rm_session/rm_session.h>
 #include <base/printf.h>
 
+/* base-internal includes */
+#include <base/internal/page_size.h>
+#include <platform_thread.h>
+
 namespace Genode {
 
-	constexpr size_t get_page_size_log2()       { return 12; }
-	constexpr size_t get_page_size()            { return 1 << get_page_size_log2(); }
 	constexpr size_t get_super_page_size_log2() { return 22; }
 	constexpr size_t get_super_page_size()      { return 1 << get_super_page_size_log2(); }
 	inline addr_t trunc_page(addr_t addr)    { return addr & _align_mask(get_page_size_log2()); }
@@ -35,14 +37,15 @@ namespace Genode {
 
 
 	inline void print_page_fault(const char *msg, addr_t pf_addr, addr_t pf_ip,
-	                             Rm_session::Fault_type pf_type,
+	                             Region_map::State::Fault_type pf_type,
 	                             unsigned long faulter_badge)
 	{
-		printf("%s (%s pf_addr=%p pf_ip=%p from %02lx %s)\n", msg,
-		       pf_type == Rm_session::WRITE_FAULT ? "WRITE" : "READ",
+		Platform_thread * faulter = reinterpret_cast<Platform_thread *>(faulter_badge);
+		printf("%s (%s pf_addr=%p pf_ip=%p from %02lx '%s':'%s')\n", msg,
+		       pf_type == Region_map::State::WRITE_FAULT ? "WRITE" : "READ",
 		       (void *)pf_addr, (void *)pf_ip,
-		       faulter_badge,
-		       faulter_badge ? reinterpret_cast<char *>(faulter_badge) : 0);
+		       faulter_badge, faulter ? faulter->pd_name() : "unknown",
+		       faulter ? faulter->name() : "unknown");
 	}
 
 

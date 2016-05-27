@@ -7,7 +7,7 @@ REV(ipxe) := c4bce43c3c4d3c5ebb2d926b58ad16dc9642c19d
 DIR(ipxe) := src/lib/dde_ipxe
 
 PATCHES   := patches/dde_ipxe.patch \
-             patches/add_devices.patch \
+             patches/intel.patch \
              patches/tg3.patch
 
 PATCH_OPT := -p1 -d ${DIR(ipxe)}

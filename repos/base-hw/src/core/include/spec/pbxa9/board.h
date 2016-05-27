@@ -11,24 +11,15 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _SPEC__PBXA9__BOARD_H_
-#define _SPEC__PBXA9__BOARD_H_
+#ifndef _CORE__INCLUDE__SPEC__PBXA9__BOARD_H_
+#define _CORE__INCLUDE__SPEC__PBXA9__BOARD_H_
 
 /* core includes */
 #include <spec/cortex_a9/board_support.h>
 
 namespace Genode
 {
-	class Board : public Cortex_a9::Board
-	{
-		public:
-
-			static void outer_cache_invalidate() { }
-			static void outer_cache_flush() { }
-			static void prepare_kernel() { }
-			static void secondary_cpus_ip(void * const ip) { }
-			static bool is_smp() { return false; }
-	};
+	using Board = Cortex_a9::Board;
 }
 
-#endif /* _SPEC__PBXA9__BOARD_H_ */
+#endif /* _CORE__INCLUDE__SPEC__PBXA9__BOARD_H_ */

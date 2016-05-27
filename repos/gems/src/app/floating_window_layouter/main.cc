@@ -23,30 +23,24 @@
 #include <input/keycodes.h>
 #include <rom_session/connection.h>
 #include <decorator/xml_utils.h>
+#include <os/config.h>
 
+/* local includes */
+#include "window.h"
+#include "user_state.h"
+#include "operations.h"
 
 namespace Floating_window_layouter {
 
-	using namespace Genode;
 	struct Main;
-	class Window;
 
-	typedef Decorator::Point Point;
-	typedef Decorator::Area  Area;
-	typedef Decorator::Rect  Rect;
-
-	using Decorator::attribute;
-	using Decorator::string_attribute;
-	using Decorator::area_attribute;
-
-
-	static Xml_node xml_lookup_window_by_id(Xml_node node, unsigned const id)
+	static Xml_node xml_lookup_window_by_id(Xml_node node, Window_id const id)
 	{
 		char const *tag     = "window";
 		char const *id_attr = "id";
 
 		for (node = node.sub_node(tag); ; node = node.next(tag))
-			if (attribute(node, id_attr, 0UL) == id)
+			if (attribute(node, id_attr, 0UL) == id.value)
 				return node;
 
 		throw Xml_node::Nonexistent_sub_node();
@@ -57,329 +51,143 @@ namespace Floating_window_layouter {
 	 * Return true if compound XML node contains a sub node with ID
 	 */
 	static bool xml_contains_window_node_with_id(Xml_node node,
-	                                             unsigned const id)
+	                                             Window_id const id)
 	{
-		try { xml_lookup_window_by_id(node, id); return true; }
+		try { xml_lookup_window_by_id(node, id.value); return true; }
 		catch (Xml_node::Nonexistent_sub_node) { return false; }
 	}
 }
 
 
-class Floating_window_layouter::Window : public List<Window>::Element
-{
-	public:
-
-		typedef String<256> Title;
-		typedef String<256> Label;
-
-		struct Element
-		{
-			enum Type { UNDEFINED, TITLE, LEFT, RIGHT, TOP, BOTTOM,
-			            TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT,
-			            CLOSER, MAXIMIZER, MINIMIZER };
-
-			Type type;
-
-			char const *name() const
-			{
-				switch (type) {
-				case UNDEFINED:    return "";
-				case TITLE:        return "title";
-				case LEFT:         return "left";
-				case RIGHT:        return "right";
-				case TOP:          return "top";
-				case BOTTOM:       return "bottom";
-				case TOP_LEFT:     return "top_left";
-				case TOP_RIGHT:    return "top_right";
-				case BOTTOM_LEFT:  return "bottom_left";
-				case BOTTOM_RIGHT: return "bottom_right";
-				case CLOSER:       return "closer";
-				case MAXIMIZER:    return "maximizer";
-				case MINIMIZER:    return "minimizer";
-				}
-				return "";
-			}
-
-			Element(Type type) : type(type) { }
-
-			bool operator != (Element const &other) const { return other.type != type; }
-			bool operator == (Element const &other) const { return other.type == type; }
-		};
-
-	private:
-
-		unsigned const _id = 0;
-
-		Title _title;
-
-		Label _label;
-
-		Rect _geometry;
-
-		/**
-		 * Window geometry at the start of the current drag operation
-		 */
-		Rect _orig_geometry;
-
-		/**
-		 * Size as desired by the user during resize drag operations
-		 */
-		Area _requested_size;
-
-		/**
-		 * Backup of the original geometry while the window is maximized
-		 */
-		Rect _unmaximized_geometry;
-
-		Rect const _maximized_geometry;
-
-		/** 
-		 * Window may be partially transparent
-		 */
-		bool _has_alpha = false;
-
-		/**
-		 * Window is temporarily not visible
-		 */
-		bool _is_hidden = false;
-
-		bool _is_resizeable = false;
-
-		bool _is_maximized = false;
-
-		/*
-		 * Number of times the window has been topped. This value is used by
-		 * the decorator to detect the need for bringing the window to the
-		 * front of nitpicker's global view stack even if the stacking order
-		 * stays the same within the decorator instance. This is important in
-		 * the presence of more than a single decorator.
-		 */
-		unsigned _topped_cnt = 0;
-
-		bool _drag_left_border   = false;
-		bool _drag_right_border  = false;
-		bool _drag_top_border    = false;
-		bool _drag_bottom_border = false;
-
-	public:
-
-		Window(unsigned id, Rect maximized_geometry)
-		:
-			_id(id), _maximized_geometry(maximized_geometry)
-		{ }
-
-		bool has_id(unsigned id) const { return id == _id; }
-
-		unsigned id() const { return _id; }
-
-		void title(Title const &title) { _title = title; }
-
-		void label(Label const &label) { _label = label; }
-
-		void geometry(Rect geometry) { _geometry = geometry; }
-
-		Point position() const { return _geometry.p1(); }
-
-		void position(Point pos) { _geometry = Rect(pos, _geometry.area()); }
-
-		void has_alpha(bool has_alpha) { _has_alpha = has_alpha; }
-
-		void is_hidden(bool is_hidden) { _is_hidden = is_hidden; }
-
-		void is_resizeable(bool is_resizeable) { _is_resizeable = is_resizeable; }
-
-		bool label_matches(Label const &label) const { return label == _label; }
-
-		/**
-		 * Return true if user drags a window border
-		 */
-		bool _drag_border() const
-		{
-			return  _drag_left_border || _drag_right_border
-			     || _drag_top_border  || _drag_bottom_border;
-		}
-
-		/**
-		 * Define window size
-		 *
-		 * This function is called when the window-list model changes.
-		 */
-		void size(Area size)
-		{
-			if (_is_maximized) {
-				_geometry = Rect(_maximized_geometry.p1(), size);
-				return;
-			}
-
-			if (!_drag_border()) {
-				_geometry = Rect(_geometry.p1(), size);
-				return;
-			}
-
-			Point p1 = _geometry.p1(), p2 = _geometry.p2();
-
-			if (_drag_left_border)
-				p1 = Point(p2.x() - size.w() + 1, p1.y());
-
-			if (_drag_right_border)
-				p2 = Point(p1.x() + size.w() - 1, p2.y());
-
-			if (_drag_top_border)
-				p1 = Point(p1.x(), p2.y() - size.h() + 1);
-
-			if (_drag_bottom_border)
-				p2 = Point(p2.x(), p1.y() + size.h() - 1);
-
-			_geometry = Rect(p1, p2);
-		}
-
-		Area size() const { return _geometry.area(); }
-
-		Area requested_size() const { return _requested_size; }
-
-		void serialize(Xml_generator &xml, bool focused, Element highlight)
-		{
-			/* omit window from the layout if hidden */
-			if (_is_hidden)
-				return;
-
-			xml.node("window", [&]() {
-
-				xml.attribute("id", _id);
-
-				/* present concatenation of label and title in the window's title bar */
-				{
-					bool const has_title = Genode::strlen(_title.string()) > 0;
-
-					char buf[Label::capacity()];
-					Genode::snprintf(buf, sizeof(buf), "%s%s%s",
-					                 _label.string(),
-					                 has_title ? " " : "",
-					                 _title.string());
-
-					xml.attribute("title",  buf);
-				}
-
-				xml.attribute("xpos",   _geometry.x1());
-				xml.attribute("ypos",   _geometry.y1());
-				xml.attribute("width",  _geometry.w());
-				xml.attribute("height", _geometry.h());
-				xml.attribute("topped", _topped_cnt);
-
-				if (focused)
-					xml.attribute("focused", "yes");
-
-				if (highlight.type != Element::UNDEFINED) {
-					xml.node("highlight", [&] () {
-						xml.node(highlight.name());
-					});
-				}
-
-				if (_has_alpha)
-					xml.attribute("has_alpha", "yes");
-
-				if (_is_resizeable) {
-					xml.attribute("maximizer", "yes");
-					xml.attribute("closer", "yes");
-				}
-			});
-		}
-
-		/**
-		 * Called when the user starts dragging a window element
-		 */
-		void initiate_drag_operation(Window::Element element)
-		{
-			_drag_left_border   = (element.type == Window::Element::LEFT)
-			                   || (element.type == Window::Element::TOP_LEFT)
-			                   || (element.type == Window::Element::BOTTOM_LEFT);
-
-			_drag_right_border  = (element.type == Window::Element::RIGHT)
-			                   || (element.type == Window::Element::TOP_RIGHT)
-			                   || (element.type == Window::Element::BOTTOM_RIGHT);
-
-			_drag_top_border    = (element.type == Window::Element::TOP)
-			                   || (element.type == Window::Element::TOP_LEFT)
-			                   || (element.type == Window::Element::TOP_RIGHT);
-
-			_drag_bottom_border = (element.type == Window::Element::BOTTOM)
-			                   || (element.type == Window::Element::BOTTOM_LEFT)
-			                   || (element.type == Window::Element::BOTTOM_RIGHT);
-
-			_orig_geometry = _geometry;
-
-			_requested_size = _geometry.area();
-		}
-
-		void apply_drag_operation(Point offset)
-		{
-			if (!_drag_border())
-				position(_orig_geometry.p1() + offset);
-
-			int requested_w = _orig_geometry.w(),
-			    requested_h = _orig_geometry.h();
-
-			if (_drag_left_border)   requested_w -= offset.x();
-			if (_drag_right_border)  requested_w += offset.x();
-			if (_drag_top_border)    requested_h -= offset.y();
-			if (_drag_bottom_border) requested_h += offset.y();
-
-			_requested_size = Area(max(1, requested_w), max(1, requested_h));
-		}
-
-		void finalize_drag_operation()
-		{
-			_requested_size = _geometry.area();
-		}
-
-		void topped() { _topped_cnt++; }
-
-		void close() { _requested_size = Area(0, 0); }
-
-		bool is_maximized() const { return _is_maximized; }
-
-		void is_maximized(bool is_maximized)
-		{
-			/* enter maximized state */
-			if (!_is_maximized && is_maximized) {
-				_unmaximized_geometry = _geometry;
-				_requested_size = _maximized_geometry.area();
-			}
-
-			/* leave maximized state */
-			if (_is_maximized && !is_maximized) {
-				_requested_size = _unmaximized_geometry.area();
-				_geometry = Rect(_unmaximized_geometry.p1(), _geometry.area());
-			}
-
-			_is_maximized = is_maximized;
-		}
-};
-
-
-struct Floating_window_layouter::Main
+struct Floating_window_layouter::Main : Operations
 {
 	Signal_receiver &sig_rec;
 
 	List<Window> windows;
 
-	unsigned hovered_window_id = 0;
-	unsigned focused_window_id = 0;
-	unsigned key_cnt = 0;
+	Focus_history focus_history;
 
-	Window::Element hovered_element     = Window::Element::UNDEFINED;
-	Window::Element hovered_element_now = Window::Element::UNDEFINED;
-
-	bool drag_state     = false;
-	bool drag_init_done = true;
-
-	Window *lookup_window_by_id(unsigned id)
+	Window *lookup_window_by_id(Window_id const id)
 	{
 		for (Window *w = windows.first(); w; w = w->next())
 			if (w->has_id(id))
 				return w;
 
 		return nullptr;
+	}
+
+	Window const *lookup_window_by_id(Window_id const id) const
+	{
+		for (Window const *w = windows.first(); w; w = w->next())
+			if (w->has_id(id))
+				return w;
+
+		return nullptr;
+	}
+
+	/**
+	 * Apply functor to each window
+	 *
+	 * The functor is called with 'Window const &' as argument.
+	 */
+	template <typename FUNC>
+	void for_each_window(FUNC const &fn) const
+	{
+		for (Window const *w = windows.first(); w; w = w->next())
+			fn(*w);
+	}
+
+	User_state _user_state { *this, focus_history };
+
+
+	/**************************
+	 ** Operations interface **
+	 **************************/
+
+	void close(Window_id id) override
+	{
+		Window *window = lookup_window_by_id(id);
+		if (!window)
+			return;
+
+		window->close();
+		generate_resize_request_model();
+		generate_focus_model();
+	}
+
+	void to_front(Window_id id) override
+	{
+		Window *window = lookup_window_by_id(id);
+		if (!window)
+			return;
+
+		if (window != windows.first()) {
+			windows.remove(window);
+			windows.insert(window);
+			window->topped();
+			generate_window_layout_model();
+		}
+	}
+
+	void focus(Window_id id) override
+	{
+		generate_window_layout_model();
+		generate_focus_model();
+	}
+
+	void toggle_fullscreen(Window_id id) override
+	{
+		/* make sure that the specified window is the front-most one */
+		to_front(id);
+
+		Window *window = lookup_window_by_id(id);
+		if (!window)
+			return;
+
+		window->maximized(!window->maximized());
+
+		generate_resize_request_model();
+	}
+
+	void drag(Window_id id, Window::Element element, Point clicked, Point curr) override
+	{
+		to_front(id);
+
+		Window *window = lookup_window_by_id(id);
+		if (!window)
+			return;
+
+		/*
+		 * The drag operation may result in a change of the window geometry.
+		 * We detect such a change be comparing the original geometry with
+		 * the geometry with the drag operation applied.
+		 */
+		Point const last_pos            = window->position();
+		Area  const last_requested_size = window->requested_size();
+
+		window->drag(element, clicked, curr);
+
+		if (last_pos != window->position())
+			generate_window_layout_model();
+
+		if (last_requested_size != window->requested_size())
+			generate_resize_request_model();
+	}
+
+	void finalize_drag(Window_id id, Window::Element, Point clicked, Point final)
+	{
+		Window *window = lookup_window_by_id(id);
+		if (!window)
+			return;
+
+		window->finalize_drag_operation();
+
+		/*
+		 * Update window layout because highlighting may have changed after the
+		 * drag operation. E.g., if the window has not kept up with the
+		 * dragging of a resize handle, the resize handle is no longer hovered.
+		 */
+		generate_window_layout_model();
 	}
 
 
@@ -419,10 +227,33 @@ struct Floating_window_layouter::Main
 
 	Attached_rom_dataspace hover { "hover" };
 
+
+	/**
+	 * Respond to decorator-margins information reported by the decorator
+	 */
+	Attached_rom_dataspace decorator_margins { "decorator_margins" };
+
+	void handle_decorator_margins_update(unsigned)
+	{
+		decorator_margins.update();
+
+		/* respond to change by adapting the maximized window geometry */
+		handle_mode_change(0);
+	}
+
+	Signal_dispatcher<Main> decorator_margins_dispatcher = {
+		sig_rec, *this, &Main::handle_decorator_margins_update };
+
+
 	/**
 	 * Install handler for responding to user input
 	 */
-	void handle_input(unsigned);
+	void handle_input(unsigned)
+	{
+		while (input.pending())
+			_user_state.handle_input(input_ds.local_addr<Input::Event>(),
+			                         input.flush(), Genode::config()->xml_node());
+	}
 
 	Signal_dispatcher<Main> input_dispatcher = {
 		sig_rec, *this, &Main::handle_input };
@@ -430,6 +261,32 @@ struct Floating_window_layouter::Main
 	Nitpicker::Connection nitpicker;
 
 	Rect maximized_window_geometry;
+
+	void handle_mode_change(unsigned)
+	{
+		/* determine maximized window geometry */
+		Framebuffer::Mode const mode = nitpicker.mode();
+
+		/* read decorator margins from the decorator's report */
+		unsigned top = 0, bottom = 0, left = 0, right = 0;
+		try {
+			Xml_node const floating_xml = decorator_margins.xml().sub_node("floating");
+
+			top    = attribute(floating_xml, "top",    0UL);
+			bottom = attribute(floating_xml, "bottom", 0UL);
+			left   = attribute(floating_xml, "left",   0UL);
+			right  = attribute(floating_xml, "right",  0UL);
+
+		} catch (...) { };
+
+		maximized_window_geometry = Rect(Point(left, top),
+		                                 Area(mode.width() - left - right,
+		                                      mode.height() - top - bottom));
+	}
+	
+	Signal_dispatcher<Main> mode_change_dispatcher = {
+		sig_rec, *this, &Main::handle_mode_change };
+
 
 	Input::Session_client input { nitpicker.input_session() };
 
@@ -439,41 +296,31 @@ struct Floating_window_layouter::Main
 	Reporter resize_request_reporter = { "resize_request" };
 	Reporter focus_reporter          = { "focus" };
 
-	unsigned dragged_window_id = 0;
 
-	Point pointer_clicked;
-	Point pointer_last;
-	Point pointer_curr;
+	bool focused_window_maximized() const
+	{
+		Window const *w = lookup_window_by_id(_user_state.focused_window_id());
+		return w && w->maximized();
+	}
 
 	void import_window_list(Xml_node);
 	void generate_window_layout_model();
 	void generate_resize_request_model();
 	void generate_focus_model();
-	void initiate_window_drag(Window &window);
 
 	/**
 	 * Constructor
 	 */
 	Main(Signal_receiver &sig_rec) : sig_rec(sig_rec)
 	{
-		/* determine maximized window geometry */
-		Framebuffer::Mode const mode =
-			nitpicker.mode();
-
-		/*
-		 * XXX obtain decorator constraints dynamically
-		 */
-		enum { PAD_LEFT = 4, PAD_RIGHT = 4, PAD_TOP = 20, PAD_BOTTOM = 4 };
-		maximized_window_geometry = Rect(Point(PAD_LEFT, PAD_TOP),
-		                                 Area(mode.width() - PAD_LEFT - PAD_RIGHT,
-		                                      mode.height() - PAD_TOP - PAD_BOTTOM));
+		nitpicker.mode_sigh(mode_change_dispatcher);
+		handle_mode_change(0);
 
 		window_list.sigh(window_list_dispatcher);
-
 		focus_request.sigh(focus_request_dispatcher);
 
 		hover.sigh(hover_dispatcher);
-
+		decorator_margins.sigh(decorator_margins_dispatcher);
 		input.sigh(input_dispatcher);
 
 		window_layout_reporter.enabled(true);
@@ -507,26 +354,43 @@ void Floating_window_layouter::Main::import_window_list(Xml_node window_list_xml
 			unsigned long id = 0;
 			node.attribute("id").value(&id);
 
+			Area const initial_size = area_attribute(node);
+
 			Window *win = lookup_window_by_id(id);
 			if (!win) {
-				win = new (env()->heap()) Window(id, maximized_window_geometry);
+				win = new (env()->heap())
+					Window(id, maximized_window_geometry, initial_size, focus_history);
 				windows.insert(win);
 
+				Point initial_position(150*id % 800, 30 + (100*id % 500));
+
+				Window::Label const label = string_attribute(node, "label", Window::Label(""));
+				win->label(label);
+
 				/*
-				 * Define initial window position
+				 * Evaluate policy configuration for the window label
 				 */
-				win->position(Point(150*id % 800, 30 + (100*id % 500)));
+				try {
+					Session_policy const policy(label);
+
+					if (policy.has_attribute("xpos") && policy.has_attribute("ypos"))
+						initial_position = point_attribute(node);
+
+					win->maximized(policy.attribute_value("maximized", false));
+
+				} catch (Genode::Session_policy::No_policy_defined) { }
+
+				win->position(initial_position);
 			}
 
-			win->size(area_attribute(node));
-			win->label(string_attribute(node, "label", Window::Label("")));
+			win->size(initial_size);
 			win->title(string_attribute(node, "title", Window::Title("")));
 			win->has_alpha(node.has_attribute("has_alpha")
 			            && node.attribute("has_alpha").has_value("yes"));
-			win->is_hidden(node.has_attribute("hidden")
-			            && node.attribute("hidden").has_value("yes"));
-			win->is_resizeable(node.has_attribute("resizeable")
-			            && node.attribute("resizeable").has_value("yes"));
+			win->hidden(node.has_attribute("hidden")
+			         && node.attribute("hidden").has_value("yes"));
+			win->resizeable(node.has_attribute("resizeable")
+			             && node.attribute("resizeable").has_value("yes"));
 		}
 	} catch (...) { }
 }
@@ -538,13 +402,13 @@ void Floating_window_layouter::Main::generate_window_layout_model()
 	{
 		for (Window *w = windows.first(); w; w = w->next()) {
 
-			bool const is_hovered = w->has_id(hovered_window_id);
-			bool const is_focused = w->has_id(focused_window_id);
+			bool const hovered = w->has_id(_user_state.hover_state().window_id);
+			bool const focused = w->has_id(_user_state.focused_window_id());
 
 			Window::Element const highlight =
-				is_hovered ? hovered_element : Window::Element::UNDEFINED;
+				hovered ? _user_state.hover_state().element : Window::Element::UNDEFINED;
 
-			w->serialize(xml, is_focused, highlight);
+			w->serialize(xml, focused, highlight);
 		}
 	});
 }
@@ -554,18 +418,17 @@ void Floating_window_layouter::Main::generate_resize_request_model()
 {
 	Reporter::Xml_generator xml(resize_request_reporter, [&] ()
 	{
-		Window const *dragged_window = lookup_window_by_id(dragged_window_id);
-		if (dragged_window) {
+		for_each_window([&] (Window const &window) {
 
-			Area const requested_size = dragged_window->requested_size();
-			if (requested_size != dragged_window->size()) {
+			Area const requested_size = window.requested_size();
+			if (requested_size != window.size()) {
 				xml.node("window", [&] () {
-					xml.attribute("id",     dragged_window_id);
+					xml.attribute("id",     window.id().value);
 					xml.attribute("width",  requested_size.w());
 					xml.attribute("height", requested_size.h());
 				});
 			}
-		}
+		});
 	});
 }
 
@@ -575,7 +438,7 @@ void Floating_window_layouter::Main::generate_focus_model()
 	Reporter::Xml_generator xml(focus_reporter, [&] ()
 	{
 		xml.node("window", [&] () {
-			xml.attribute("id", focused_window_id);
+			xml.attribute("id", _user_state.focused_window_id().value);
 		});
 	});
 }
@@ -610,24 +473,7 @@ element_from_hover_model(Genode::Xml_node hover_window_xml)
 	if (hover_window_xml.has_sub_node("maximizer")) return Type::MAXIMIZER;
 	if (hover_window_xml.has_sub_node("minimizer")) return Type::MINIMIZER;
 
-
 	return Type::UNDEFINED;
-}
-
-
-void Floating_window_layouter::Main::initiate_window_drag(Window &window)
-{
-	window.initiate_drag_operation(hovered_element);
-
-	drag_init_done = true;
-
-	/* bring focused window to front */
-	if (&window != windows.first()) {
-		windows.remove(&window);
-		windows.insert(&window);
-	}
-
-	window.topped();
 }
 
 
@@ -636,7 +482,7 @@ void Floating_window_layouter::Main::handle_window_list_update(unsigned)
 	window_list.update();
 
 	try {
-		import_window_list(Xml_node(window_list.local_addr<char>())); }
+		import_window_list(window_list.xml()); }
 	catch (...) {
 		PERR("Error while importing window list"); }
 
@@ -646,59 +492,53 @@ void Floating_window_layouter::Main::handle_window_list_update(unsigned)
 
 void Floating_window_layouter::Main::_apply_focus_request()
 {
-	try {
-		Xml_node node(focus_request.local_addr<char>());
+	Window::Label const label =
+		focus_request.xml().attribute_value("label", Window::Label(""));
 
-		Window::Label const label = node.attribute_value("label", Window::Label(""));
+	int const id = focus_request.xml().attribute_value("id", 0L);
 
-		int const id = node.attribute_value("id", 0L);
+	/* don't apply the same focus request twice */
+	if (id == handled_focus_request_id)
+		return;
 
-		/* don't apply the same focus request twice */
-		if (id == handled_focus_request_id)
-			return;
+	bool focus_redefined = false;
 
-		bool focus_redefined = false;
+	/*
+	 * Move all windows that match the requested label to the front while
+	 * maintaining their ordering.
+	 */
+	Window *at = nullptr;
+	for (Window *w = windows.first(); w; w = w->next()) {
+
+		if (!w->label_matches(label))
+			continue;
+
+		focus_redefined = true;
 
 		/*
-		 * Move all windows that match the requested label to the front while
-		 * maintaining their ordering.
+		 * Move window to behind the previous window that we moved to
+		 * front. If 'w' is the first window that matches the selector,
+		 * move it to the front ('at' argument of 'insert' is 0).
 		 */
-		Window *at = nullptr;
-		for (Window *w = windows.first(); w; w = w->next()) {
+		windows.remove(w);
+		windows.insert(w, at);
 
-			if (!w->label_matches(label))
-				continue;
+		/*
+		 * Bring top-most window to the front of nitpicker's global view
+		 * stack and set the focus to the top-most window.
+		 */
+		if (at == nullptr) {
+			w->topped();
 
-			focus_redefined = true;
-
-			/*
-			 * Move window to behind the previous window that we moved to
-			 * front. If 'w' is the first window that matches the selector,
-			 * move it to the front ('at' argument of 'insert' is 0).
-			 */
-			windows.remove(w);
-			windows.insert(w, at);
-
-			/*
-			 * Bring top-most window to the front of nitpicker's global view
-			 * stack and set the focus to the top-most window.
-			 */
-			if (at == nullptr) {
-				w->topped();
-
-				focused_window_id = w->id();
-				generate_focus_model();
-			}
-
-			at = w;
+			_user_state.focused_window_id(w->id());
+			generate_focus_model();
 		}
 
-		if (focus_redefined)
-			handled_focus_request_id = id;
-
+		at = w;
 	}
-	catch (...) {
-		PERR("Error while handling focus request"); }
+
+	if (focus_redefined)
+		handled_focus_request_id = id;
 }
 
 
@@ -717,250 +557,31 @@ void Floating_window_layouter::Main::handle_hover_update(unsigned)
 	hover.update();
 
 	try {
-		Xml_node const hover_xml(hover.local_addr<char>());
+		Xml_node const hover_window_xml = hover.xml().sub_node("window");
 
-		Xml_node const hover_window_xml = hover_xml.sub_node("window");
+		_user_state.hover(attribute(hover_window_xml, "id", 0UL),
+		                  element_from_hover_model(hover_window_xml));
+	}
 
-		unsigned const id = attribute(hover_window_xml, "id", 0UL);
-
-		hovered_element_now = element_from_hover_model(hover_window_xml);
+	/*
+	 * An exception may occur during the 'Xml_node' construction if the hover
+	 * model is malformed. Under this condition, we invalidate the hover state.
+	 */
+	catch (...) {
+		
+		_user_state.reset_hover();
 
 		/*
-		 * Check if we have just received an update while already being in
-		 * dragged state.
-		 *
-		 * This can happen when the user selects a new nitpicker domain by
-		 * clicking on a window decoration. Prior the click, the new session is
-		 * not aware of the current mouse position. So the hover model is not
-		 * up to date. As soon as nitpicker assigns the focus to the new
-		 * session and delivers the corresponding press event, we enter the
-		 * drag state (in the 'handle_input' function. But we don't know which
-		 * window is dragged until the decorator updates the hover model. Now,
-		 * when the model is updated and we are still in dragged state, we can
-		 * finally initiate the window-drag operation for the now-known window.
+		 * Don't generate a focus-model update here. In a situation where the
+		 * pointer has moved over a native nitpicker view (outside the realm of
+		 * the window manager), the hover model as generated by the decorator
+		 * naturally becomes empty. If we posted a focus update, this would
+		 * steal the focus away from the native nitpicker view.
 		 */
-		if (id && !drag_init_done && dragged_window_id == 0)
-		{
-			dragged_window_id = id;
-			hovered_window_id = id;
-			focused_window_id = id;
-
-			Window *window = lookup_window_by_id(id);
-			if (window) {
-				initiate_window_drag(*window);
-				generate_window_layout_model();
-				generate_focus_model();
-			}
-		}
-
-		if (!drag_state && (id != hovered_window_id || hovered_element_now != hovered_element)) {
-
-			hovered_window_id = id;
-			hovered_element   = hovered_element_now;
-
-			/* XXX read from config */
-			bool const focus_follows_pointer = true;
-			if (id && focus_follows_pointer) {
-				focused_window_id = id;
-				generate_focus_model();
-			}
-
-			generate_window_layout_model();
-		}
-	} catch (...) {
-
-		/* reset focused window if pointer does not hover over any window */
-		if (!drag_state) {
-			hovered_element = Window::Element::UNDEFINED;
-			hovered_window_id = 0;
-			generate_window_layout_model();
-
-			/*
-			 * Don't generate a focus-model update here. In a situation where
-			 * the pointer has moved over a native nitpicker view (outside
-			 * the realm of the window manager), the hover model as generated
-			 * by the decorator naturally becomes empty. If we posted a
-			 * focus update, this would steal the focus away from the native
-			 * nitpicker view.
-			 */
-		}
-	}
-}
-
-
-void Floating_window_layouter::Main::handle_input(unsigned)
-{
-	bool need_regenerate_window_layout_model  = false;
-	bool need_regenerate_resize_request_model = false;
-
-	Window *hovered_window = lookup_window_by_id(hovered_window_id);
-
-	while (input.is_pending()) {
-
-		size_t const num_events = input.flush();
-
-		Input::Event const * const ev = input_ds.local_addr<Input::Event>();
-
-		for (size_t i = 0; i < num_events; i++) {
-
-			Input::Event e = ev[i];
-
-			if (e.type() == Input::Event::MOTION
-			 || e.type() == Input::Event::FOCUS)
-				pointer_curr = Point(e.ax(), e.ay());
-
-			/* track number of pressed buttons/keys */
-			if (e.type() == Input::Event::PRESS)   key_cnt++;
-			if (e.type() == Input::Event::RELEASE) key_cnt--;
-
-			if (e.type()    == Input::Event::PRESS
-			 && e.keycode() == Input::BTN_LEFT) {
-
-				/*
-				 * Toggle maximized state
-				 */
-				if (hovered_element == Window::Element::MAXIMIZER) {
-
-					if (hovered_window) {
-
-						dragged_window_id = hovered_window_id;
-						hovered_window->is_maximized(!hovered_window->is_maximized());
-
-						/* bring focused window to front */
-						if (hovered_window != windows.first()) {
-							windows.remove(hovered_window);
-							windows.insert(hovered_window);
-						}
-						hovered_window->topped();
-
-						focused_window_id = hovered_window_id;
-
-						need_regenerate_window_layout_model  = true;
-						need_regenerate_resize_request_model = true;
-					}
-				}
-
-				bool const hovered_window_is_maximized =
-					hovered_window ? hovered_window->is_maximized() : false;
-
-				/*
-				 * Change window geometry unless the window is in maximized
-				 * state.
-				 */
-				if (hovered_element != Window::Element::MAXIMIZER) {
-
-					 if (!hovered_window_is_maximized) {
-
-						drag_state        = true;
-						drag_init_done    = false;
-						dragged_window_id = hovered_window_id;
-						pointer_clicked   = pointer_curr;
-						pointer_last      = pointer_clicked;
-
-						/*
-					 	 * If the hovered window is known at the time of the press
-					 	 * event, we can initiate the drag operation immediately.
-					 	 * Otherwise, we the initiation is deferred to the next
-					 	 * update of the hover model.
-					 	 */
-						if (hovered_window)
-							initiate_window_drag(*hovered_window);
-					}
-
-					if (hovered_window) {
-						if (focused_window_id != hovered_window_id) {
-							focused_window_id  = hovered_window_id;
-
-							/* bring focused window to front */
-							if (hovered_window != windows.first()) {
-								windows.remove(hovered_window);
-								windows.insert(hovered_window);
-							}
-
-							hovered_window->topped();
-
-							generate_focus_model();
-						}
-						need_regenerate_window_layout_model = true;
-					}
-				}
-			}
-
-			/* detect end of drag operation */
-			if (e.type() == Input::Event::RELEASE) {
-				if (key_cnt == 0) {
-					drag_state = false;
-					generate_focus_model();
-
-					bool const manipulate_geometry =
-						hovered_element != Window::Element::CLOSER;
-
-					Window *dragged_window = lookup_window_by_id(dragged_window_id);
-
-					if (dragged_window && manipulate_geometry) {
-
-						Area const last_requested_size = dragged_window->requested_size();
-						dragged_window->finalize_drag_operation();
-
-						if (last_requested_size != dragged_window->requested_size())
-							need_regenerate_resize_request_model = true;
-
-						/*
-						 * Update window layout because highlighting may have
-						 * changed after the drag operation. E.g., if the
-						 * window has not kept up with the dragging of a
-						 * resize handle, the resize handle is no longer
-						 * hovered.
-						 */
-					}
-
-					/**
-					 * Issue resize to 0x0 when releasing the the window closer
-					 */
-					if (dragged_window && hovered_element == Window::Element::CLOSER) {
-
-						if (hovered_element_now == hovered_element) {
-							dragged_window->close();
-							need_regenerate_resize_request_model = true;
-						}
-					}
-
-					if (dragged_window) {
-						handle_hover_update(0);
-					}
-				}
-			}
-		}
 	}
 
-	if (drag_state && (pointer_curr != pointer_last)) {
-
-		pointer_last = pointer_curr;
-
-		bool const manipulate_geometry =
-			hovered_element != Window::Element::CLOSER;
-
-		Window *dragged_window = lookup_window_by_id(dragged_window_id);
-		if (dragged_window && manipulate_geometry) {
-
-			Point const last_pos            = dragged_window->position();
-			Area  const last_requested_size = dragged_window->requested_size();
-
-			dragged_window->apply_drag_operation(pointer_curr - pointer_clicked);
-
-			if (last_pos != dragged_window->position())
-				need_regenerate_window_layout_model = true;
-
-			if (last_requested_size != dragged_window->requested_size())
-				need_regenerate_resize_request_model = true;
-		}
-	}
-
-	if (need_regenerate_window_layout_model)
-		generate_window_layout_model();
-
-	if (need_regenerate_resize_request_model)
-		generate_resize_request_model();
+	/* propagate changed hovering to the decorator */
+	generate_window_layout_model();
 }
 
 

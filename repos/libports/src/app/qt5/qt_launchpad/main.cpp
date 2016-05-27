@@ -17,14 +17,6 @@
 
 int main(int argc, char *argv[])
 {
-	/* look for dynamic linker */
-	try {
-		static Genode::Rom_connection rom("ld.lib.so");
-		Genode::Process::dynamic_linker(rom.dataspace());
-	} catch (...) { }
-
-	int result;
-
 	static QApplication a(argc, argv);
 
 	static Qt_launchpad launchpad(Genode::env()->ram_session()->quota());
@@ -38,7 +30,7 @@ int main(int argc, char *argv[])
 
 	a.connect(&a, SIGNAL(lastWindowClosed()), &a, SLOT(quit()));
 
-	result = a.exec();
+	int const result = a.exec();
 
 	return result;
 }

@@ -36,7 +36,7 @@ namespace File_system {
 			/**
 			 * Assign name
 			 */
-			void name(char const *name) { strncpy(_name, name, sizeof(_name)); }
+			void name(char const *name) { Genode::strncpy(_name, name, sizeof(_name)); }
 
 			virtual size_t read(char *dst, size_t len, seek_off_t) = 0;
 			virtual size_t write(char const *src, size_t len, seek_off_t) = 0;

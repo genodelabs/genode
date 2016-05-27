@@ -29,12 +29,15 @@
 #include <translation_table.h>
 #include <trustzone.h>
 
+/* base-internal includes */
+#include <base/internal/stack_area.h>
+
 using namespace Genode;
 
 extern int _prog_img_beg;
 extern int _prog_img_end;
 
-void __attribute__((weak)) Kernel::init_trustzone(Pic * pic) { }
+void __attribute__((weak)) Kernel::init_trustzone(Pic & pic) { }
 
 /**
  * Format of a boot-module header
@@ -135,6 +138,10 @@ Platform::Platform()
 	           _core_only_ram_regions, get_page_size_log2());
 	init_alloc(_core_mem_alloc.virt_alloc(), virt_region,
 	           _core_only_ram_regions, get_page_size_log2());
+
+	/* preserve stack area in core's virtual address space */
+	_core_mem_alloc.virt_alloc()->remove_range(stack_area_virtual_base(),
+	                                           stack_area_virtual_size());
 
 	_init_io_port_alloc();
 

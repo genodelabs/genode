@@ -4,6 +4,13 @@
  * \date   2013-08-12
  */
 
+/*
+ * Copyright (C) 2013 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
 #ifndef _INCLUDE__BASE__TRACE__TYPES_H_
 #define _INCLUDE__BASE__TRACE__TYPES_H_
 

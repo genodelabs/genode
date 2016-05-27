@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _SPEC__CORTEX_A15__BOARD_SUPPORT_H_
-#define _SPEC__CORTEX_A15__BOARD_SUPPORT_H_
+#ifndef _CORE__INCLUDE__SPEC__CORTEX_A15__BOARD_SUPPORT_H_
+#define _CORE__INCLUDE__SPEC__CORTEX_A15__BOARD_SUPPORT_H_
 
 /* core includes */
 #include <drivers/board_base.h>
@@ -38,4 +38,4 @@ namespace Cortex_a15
 	};
 }
 
-#endif /* _SPEC__CORTEX_A15__BOARD_SUPPORT_H_ */
+#endif /* _CORE__INCLUDE__SPEC__CORTEX_A15__BOARD_SUPPORT_H_ */

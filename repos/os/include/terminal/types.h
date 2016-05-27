@@ -36,7 +36,7 @@ struct Terminal::Character
 	Character() : c(0) { }
 	Character(unsigned char c) : c(c) { }
 
-	bool is_valid() const { return c != 0; }
+	bool valid() const { return c != 0; }
 
 	unsigned char ascii() const { return c; }
 };

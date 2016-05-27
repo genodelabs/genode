@@ -8,9 +8,9 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  qtdeclarative/src/qml/qml/qqmlimport.cpp           |    9 
  qtdeclarative/src/qml/qml/v8/qv8qobjectwrapper.cpp |    4 
  qtdeclarative/src/qml/types/qqmldelegatemodel_p.h  |    2 
- qtjsbackend/src/3rdparty/v8/src/platform-genode.cc |  701 ++++++++++++++++++++
+ qtjsbackend/src/3rdparty/v8/src/platform-genode.cc |  706 ++++++++++++++++++++
  qtjsbackend/src/v8/v8.pri                          |    2 
- 6 files changed, 717 insertions(+), 3 deletions(-)
+ 6 files changed, 722 insertions(+), 3 deletions(-)
  create mode 100644 qtjsbackend/src/3rdparty/v8/src/platform-genode.cc
 
 diff --git a/qtdeclarative/src/qml/qml/qqmlaccessors_p.h b/qtdeclarative/src/qml/qml/qqmlaccessors_p.h
@@ -90,10 +90,10 @@ index 5702c59..3d616b5 100644
  QT_BEGIN_NAMESPACE
 diff --git a/qtjsbackend/src/3rdparty/v8/src/platform-genode.cc b/qtjsbackend/src/3rdparty/v8/src/platform-genode.cc
 new file mode 100644
-index 0000000..a2e5634
+index 0000000..de6f632
 --- /dev/null
 +++ b/qtjsbackend/src/3rdparty/v8/src/platform-genode.cc
-@@ -0,0 +1,701 @@
+@@ -0,0 +1,706 @@
 +// Copyright 2012 the V8 project authors. All rights reserved.
 +// Redistribution and use in source and binary forms, with or without
 +// modification, are permitted provided that the following conditions are
@@ -127,6 +127,7 @@ index 0000000..a2e5634
 +// messages.
 +
 +#include <base/printf.h>
++#include <region_map/client.h>
 +#include <rm_session/connection.h>
 +#include <util/avl_tree.h>
 +
@@ -318,8 +319,10 @@ index 0000000..a2e5634
 +
 +/* --- */
 +
-+class Attached_rm_connection : public Genode::Rm_connection,
-+                               public Genode::Avl_node<Attached_rm_connection>
++class Attached_region_map : private Genode::Rm_connection,
++                            public Genode::Region_map_client,
++                            public Genode::Avl_node<Attached_region_map>
++
 +{
 +
 +	private:
@@ -331,8 +334,10 @@ index 0000000..a2e5634
 +
 +	public:
 +
-+		Attached_rm_connection(size_t size, size_t alignment = 0)
-+		: Genode::Rm_connection(0, size),
++		typedef Region_map_client::Region_conflict Region_conflict;
++
++		Attached_region_map(size_t size, size_t alignment = 0)
++		: Genode::Region_map_client(Rm_connection::create(size)),
 +		  _ds_cap(dataspace()),
 +		  _size(size)
 +		{
@@ -345,16 +350,16 @@ index 0000000..a2e5634
 +					try {
 +						Genode::env()->rm_session()->attach_at(_ds_cap, _base_addr);
 +						return;
-+					} catch (Genode::Rm_connection::Region_conflict) {
++					} catch (Genode::Region_map::Region_conflict) {
 +						if (verbose)
 +							PDBG("could not attach at address 0x%lx", _base_addr);
 +					}
 +				}
-+				throw Rm_connection::Region_conflict();
++				throw Region_map::Region_conflict();
 +			}
 +		}
 +
-+		~Attached_rm_connection()
++		~Attached_region_map()
 +		{
 +			Genode::env()->rm_session()->detach(_base_addr);
 +		}
@@ -366,12 +371,12 @@ index 0000000..a2e5634
 +		void attach(Genode::Dataspace_capability ds_cap, Genode::addr_t addr,
 +		            bool executable)
 +		{
-+			Genode::Rm_connection::attach(ds_cap, 0, 0, true,
++			Genode::Region_map_client::attach(ds_cap, 0, 0, true,
 +			                              (void*)(addr - _base_addr),
 +			                              executable);
 +		}
 +
-+		Attached_rm_connection *find_by_addr(Genode::addr_t addr)
++		Attached_region_map *find_by_addr(Genode::addr_t addr)
 +		{
 +			if (verbose)
 +				PDBG("addr = 0x%lx, _base_addr = 0x%lx, _end_addr = 0x%lx",
@@ -379,33 +384,33 @@ index 0000000..a2e5634
 +			if ((addr >= _base_addr) && (addr < _base_addr + _size))
 +				return this;
 +
-+			Attached_rm_connection *next = child(addr > _base_addr);
++			Attached_region_map *next = child(addr > _base_addr);
 +			return next ? next->find_by_addr(addr) : 0;
 +		}
 +
 +		/**
 +		  * Avl_node interface
 +		  */
-+		bool higher(Attached_rm_connection *other)
++		bool higher(Attached_region_map *other)
 +		{
 +			return ((Genode::addr_t)other->base_addr() > _base_addr);
 +		}
 +};
 +
 +
-+static Genode::Avl_tree<Attached_rm_connection> &vm_registry()
++static Genode::Avl_tree<Attached_region_map> &vm_registry()
 +{
-+	static Genode::Avl_tree<Attached_rm_connection> _vm_registry;
++	static Genode::Avl_tree<Attached_region_map> _vm_registry;
 +	return _vm_registry;
 +}
 +
 +
 +static void *reserve_region(size_t size, size_t alignment = 0)
 +{
-+  Attached_rm_connection *rm;
++  Attached_region_map *rm;
 +  try {
-+    rm = new Attached_rm_connection(size, alignment);
-+  } catch (Attached_rm_connection::Region_conflict) {
++    rm = new Attached_region_map(size, alignment);
++  } catch (Attached_region_map::Region_conflict) {
 +	PDBG("could not reserve region");
 +	return 0;
 +  }
@@ -481,7 +486,7 @@ index 0000000..a2e5634
 +bool VirtualMemory::CommitRegion(void* base, size_t size, bool is_executable) {
 +  if (verbose)
 +    PDBG("base = 0x%p, size = 0x%zx", base, size);
-+  Attached_rm_connection *rm = vm_registry().first();
++  Attached_region_map *rm = vm_registry().first();
 +  rm = rm->find_by_addr((Genode::addr_t)base);
 +  if (!rm) {
 +    if (verbose)

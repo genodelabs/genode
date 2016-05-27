@@ -27,14 +27,12 @@ using namespace Genode;
 const char *config = " \
 <config> \
     <parent-provides> \
-        <service name=\"CAP\"/> \
         <service name=\"CPU\"/> \
         <service name=\"LOG\"/> \
         <service name=\"PD\"/> \
         <service name=\"RAM\"/> \
         <service name=\"RM\"/> \
         <service name=\"ROM\"/> \
-        <service name=\"SIGNAL\"/> \
         <service name=\"Timer\"/> \
         <service name=\"Nitpicker\"/> \
     </parent-provides> \

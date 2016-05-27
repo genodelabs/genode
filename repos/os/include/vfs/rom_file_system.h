@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -62,15 +62,21 @@ class Vfs::Rom_file_system : public Single_file_system
 		 ** Directory-service interface **
 		 ********************************/
 
+		Dataspace_capability dataspace(char const *path) override
+		{
+			return _rom.cap();
+		}
+
 		/*
 		 * Overwrite the default open function to update the ROM dataspace
 		 * each time when opening the corresponding file.
 		 */
-		Open_result open(char const *path, unsigned,
-		                 Vfs_handle **out_handle) override
+		Open_result open(char const  *path, unsigned,
+		                 Vfs_handle **out_handle,
+		                 Allocator   &alloc) override
 		{
 			Open_result const result =
-				Single_file_system::open(path, 0, out_handle);
+				Single_file_system::open(path, 0, out_handle, alloc);
 
 			_rom.update();
 
@@ -87,7 +93,7 @@ class Vfs::Rom_file_system : public Single_file_system
 			Stat_result result = Single_file_system::stat(path, out);
 
 			_rom.update();
-			out.size = _rom.is_valid() ? _rom.size() : 0;
+			out.size = _rom.valid() ? _rom.size() : 0;
 
 			return result;
 		}

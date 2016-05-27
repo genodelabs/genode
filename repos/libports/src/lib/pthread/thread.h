@@ -32,18 +32,18 @@ extern "C" {
 	 * This class is named 'struct pthread' because the 'pthread_t' type is
 	 * defined as 'struct pthread*' in '_pthreadtypes.h'
 	 */
-	struct pthread : Genode::Thread_base
+	struct pthread : Genode::Thread
 	{
 		pthread_attr_t _attr;
 		void *(*_start_routine) (void *);
 		void *_arg;
 
-		enum { WEIGHT = Genode::Cpu_session::DEFAULT_WEIGHT };
+		enum { WEIGHT = Genode::Cpu_session::Weight::DEFAULT_WEIGHT };
 
 		pthread(pthread_attr_t attr, void *(*start_routine) (void *),
 		        void *arg, size_t stack_size, char const * name,
-		        Genode::Cpu_session * cpu)
-		: Thread_base(WEIGHT, name, stack_size, Type::NORMAL, cpu),
+		        Genode::Cpu_session * cpu, Genode::Affinity::Location location)
+		: Thread(WEIGHT, name, stack_size, Type::NORMAL, cpu, location),
 		  _attr(attr),
 		  _start_routine(start_routine),
 		  _arg(arg)
@@ -56,8 +56,8 @@ extern "C" {
 		 * Constructor to create pthread object out of existing thread,
 		 * e.g. main Genode thread
 		 */
-		pthread(Thread_base &myself, pthread_attr_t attr)
-		: Thread_base(myself),
+		pthread(Thread &myself, pthread_attr_t attr)
+		: Thread(myself),
 		  _attr(attr), _start_routine(nullptr), _arg(nullptr)
 		{
 			if (_attr)

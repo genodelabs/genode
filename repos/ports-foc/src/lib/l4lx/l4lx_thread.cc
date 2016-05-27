@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <base/printf.h>
-#include <foc_cpu_session/connection.h>
+#include <cpu_session/connection.h>
 
 #include <env.h>
 #include <vcpu.h>
@@ -48,12 +48,9 @@ static l4_addr_t utcb_base_addr()
 	return _addr;
 }
 
-Genode::Foc_cpu_session_client* L4lx::vcpu_connection()
+Genode::Cpu_session* L4lx::cpu_connection()
 {
-	using namespace Genode;
-
-	static Foc_cpu_session_client _client(Genode::env()->cpu_session_cap());
-	return &_client;
+	return Genode::env()->cpu_session();
 }
 
 
@@ -102,7 +99,11 @@ void l4lx_thread_alloc_irq(l4_cap_idx_t c)
 {
 	Linux::Irq_guard guard;
 
-	Genode::Native_capability cap = L4lx::vcpu_connection()->alloc_irq();
+	Genode::Foc_native_cpu_client
+		native_cpu(L4lx::cpu_connection()->native_cpu());
+
+	Genode::Native_capability cap = native_cpu.alloc_irq();
+
 	l4_task_map(L4_BASE_TASK_CAP, L4_BASE_TASK_CAP,
 	            l4_obj_fpage(cap.dst(), 0, L4_FPAGE_RWX), c | L4_ITEM_MAP);
 }
@@ -212,7 +213,7 @@ l4_cap_idx_t l4lx_thread_get_cap(l4lx_thread_t t)
 		PWRN("Invalid utcb %lx", (unsigned long) t);
 		return L4_INVALID_CAP;
 	}
-	return vcpus[thread_id(t)]->tid();
+	return vcpus[thread_id(t)]->native_thread().kcap;
 }
 
 

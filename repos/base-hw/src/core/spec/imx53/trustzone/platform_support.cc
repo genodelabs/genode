@@ -40,15 +40,10 @@ bool secure_irq(unsigned const i)
 }
 
 
-void Kernel::init_trustzone(Pic * pic)
+void Kernel::init_trustzone(Pic & pic)
 {
 	using namespace Genode;
 
-	/* check for compatibility */
-	if (NR_OF_CPUS > 1) {
-		PERR("trustzone not supported with multiprocessing");
-		return;
-	}
 	/* set exception vector entry */
 	Cpu::mon_exception_entry_at((Genode::addr_t)&_mon_kernel_entry);
 
@@ -60,7 +55,7 @@ void Kernel::init_trustzone(Pic * pic)
 
 	/* configure non-secure interrupts */
 	for (unsigned i = 0; i < Pic::NR_OF_IRQ; i++) {
-		if (!secure_irq(i)) { pic->unsecure(i); } }
+		if (!secure_irq(i)) { pic.unsecure(i); } }
 
 	/* configure central security unit */
 	Genode::Csu csu(Board::CSU_BASE);
@@ -109,7 +104,5 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
 
-
-bool Imx::Board::is_smp() { return false; }
 
 Cpu::User_context::User_context() { cpsr = Psr::init_user_with_trustzone(); }

@@ -20,6 +20,8 @@ SRC_C += $(addprefix lib/genl/, ctrl.c family.c genl.c mngt.c)
 CC_OPT   += -DSYSCONFDIR=\"/\"
 CC_C_OPT += -include $(LIB_INC_DIR)/libnl_emul.h
 
+CC_OPT += -D_LINUX_SOCKET_H
+
 # libnl-route
 #SRC_C += $(wildcard lib/fib_lookup/*.c)   \
 #         $(wildcard lib/route/act/*.c)    \

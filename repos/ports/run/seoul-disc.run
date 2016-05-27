@@ -38,7 +38,7 @@ if {[have_include power_on/qemu]} {
 
 	append qemu_args " -m 1024 "
 	append qemu_args " -cpu phenom"
-	append_if $use_block_sata qemu_args " -drive id=disk,file=bin/seoul-disc.raw,if=none -device ahci,id=ahci -device ide-drive,drive=disk,bus=ahci.0 -boot d"
+	append_if $use_block_sata qemu_args " -drive id=disk,file=bin/seoul-disc.raw,format=raw,if=none -device ahci,id=ahci -device ide-drive,drive=disk,bus=ahci.0 -boot d"
 }
 
 run_genode_until forever

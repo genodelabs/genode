@@ -37,9 +37,9 @@
 #include <input/event.h>
 
 using Genode::List;
-using Genode::Thread;
+using Genode::Thread_deprecated;
 
-class Vancouver_console : public Thread<8192>, public StaticReceiver<Vancouver_console>
+class Vancouver_console : public Thread_deprecated<8192>, public StaticReceiver<Vancouver_console>
 {
 	private:
 

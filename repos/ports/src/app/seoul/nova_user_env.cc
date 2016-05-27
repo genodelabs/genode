@@ -17,6 +17,9 @@
 #include <base/sleep.h>
 #include <base/thread.h>
 
+/* VMM utils */
+#include <vmm/utcb_guard.h>
+
 /* NOVA userland includes */
 #include <service/logging.h>
 #include <service/memory.h>
@@ -31,7 +34,9 @@ Genode::Lock *printf_lock()
 }
 
 
-static Genode::Native_utcb utcb_backup;
+typedef Vmm::Utcb_guard::Utcb_backup Utcb_backup;
+
+static Utcb_backup utcb_backup;
 
 
 void Logging::printf(const char *format, ...)
@@ -41,12 +46,12 @@ void Logging::printf(const char *format, ...)
 
 	Genode::Lock::Guard guard(*printf_lock());
 
-	utcb_backup = *Genode::Thread_base::myself()->utcb();
+	utcb_backup = *(Utcb_backup *)Genode::Thread::myself()->utcb();
 
 	Genode::printf("VMM: ");
 	Genode::vprintf(format, list);
 
-	*Genode::Thread_base::myself()->utcb() = utcb_backup;
+	*(Utcb_backup *)Genode::Thread::myself()->utcb() = utcb_backup;
 
 	va_end(list);
 }
@@ -56,13 +61,13 @@ void Logging::vprintf(const char *format, va_list &ap)
 {
 	Genode::Lock::Guard guard(*printf_lock());
 
-	utcb_backup = *Genode::Thread_base::myself()->utcb();
+	utcb_backup = *(Utcb_backup *)Genode::Thread::myself()->utcb();
 
 	Genode::printf("VMM: ");
 	Genode::printf(format);
 	PWRN("Logging::vprintf not implemented");
 
-	*Genode::Thread_base::myself()->utcb() = utcb_backup;
+	*(Utcb_backup *)Genode::Thread::myself()->utcb() = utcb_backup;
 }
 
 

@@ -37,11 +37,11 @@ struct Genode::Irq_handler
 /**
  * Thread activated by IRQ
  */
-class Genode::Irq_activation : Thread_base
+class Genode::Irq_activation : Thread
 {
 	private:
 
-		enum { WEIGHT = Cpu_session::DEFAULT_WEIGHT };
+		enum { WEIGHT = Cpu_session::Weight::DEFAULT_WEIGHT };
 
 		int             _number;
 		Irq_connection  _connection;
@@ -74,7 +74,7 @@ class Genode::Irq_activation : Thread_base
 		 */
 		Irq_activation(int irq_number, Irq_handler &handler, size_t stack_size)
 		:
-			Thread_base(WEIGHT, _create_thread_name(irq_number), stack_size),
+			Thread(WEIGHT, _create_thread_name(irq_number), stack_size),
 			_number(irq_number), _connection(irq_number), _handler(handler),
 			_dispatcher(_sig_rec, *this, &Irq_activation::_handle)
 		{

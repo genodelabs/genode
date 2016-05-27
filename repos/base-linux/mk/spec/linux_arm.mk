@@ -10,7 +10,7 @@ endif
 #
 # We need to manually add the default linker script on the command line in case
 # of standard library use. Otherwise, we were not able to extend it by the
-# context area section.
+# stack area section.
 #
 ifeq ($(USE_HOST_LD_SCRIPT),yes)
 LD_SCRIPT_STATIC = ldscripts/armelf_linux_eabi.xc

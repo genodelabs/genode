@@ -21,12 +21,12 @@
 
 #define WARN_ON(condition) ({ \
 	int ret = !!(condition); \
-	if (ret) lx_printf("[%s] WARN_ON(" #condition ") ", __func__); \
+	if (ret) lx_printf("[%s] WARN_ON(" #condition ") \n", __func__); \
 	ret; })
 
 #define WARN(condition, fmt, arg...) ({ \
 	int ret = !!(condition); \
-	if (ret) lx_printf("[%s] *WARN* " fmt , __func__ , ##arg); \
+	if (ret) lx_printf("[%s] *WARN* " fmt " \n", __func__ , ##arg); \
 	ret; })
 
 #define BUG() do { \
@@ -38,3 +38,9 @@
 #define WARN_ONCE    WARN
 
 #define BUG_ON(condition) do { if (condition) BUG(); } while(0)
+
+#define BUILD_BUG_ON_MSG(cond,msg) ({ \
+		extern int __attribute__((error(msg))) build_bug(); \
+		if (cond) { build_bug(); } })
+
+#define BUILD_BUG() BUILD_BUG_ON_MSG(1,"BUILD_BUG failed")

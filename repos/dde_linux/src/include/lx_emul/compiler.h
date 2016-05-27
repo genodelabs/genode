@@ -45,7 +45,7 @@
 
 #define __attribute_const__
 #undef  __always_inline
-#define __always_inline
+#define __always_inline inline
 #undef __unused
 
 #define noinline     __attribute__((noinline))
@@ -56,6 +56,13 @@
 #define __read_mostly
 
 #define __noreturn    __attribute__((noreturn))
+
+#define WRITE_ONCE(x, val) \
+({                                                      \
+        barrier(); \
+        __builtin_memcpy((void *)&(x), (const void *)&(val), sizeof(x)); \
+        barrier(); \
+})
 
 
 /**************************

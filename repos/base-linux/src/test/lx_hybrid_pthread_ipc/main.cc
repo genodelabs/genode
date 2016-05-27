@@ -12,11 +12,14 @@
  */
 
 /* Genode includes */
+#include <base/component.h>
 #include <base/thread.h>
 #include <base/printf.h>
 
 /* libc includes */
 #include <pthread.h>
+#include <stdlib.h>
+
 
 
 static Genode::Lock *main_wait_lock()
@@ -31,11 +34,11 @@ static void *pthread_entry(void *)
 	PINF("first message");
 
 	/*
-	 * Without the lazy initialization of 'Thread_base' objects for threads
+	 * Without the lazy initialization of 'Thread' objects for threads
 	 * created w/o Genode's Thread API, the printing of the first message will
 	 * never return because the IPC reply could not be delivered.
 	 *
-	 * With the on-demand creation of 'Thread_base' objects, the second message
+	 * With the on-demand creation of 'Thread' objects, the second message
 	 * will appear in the LOG output.
 	 */
 
@@ -46,7 +49,17 @@ static void *pthread_entry(void *)
 }
 
 
-int main(int, char **)
+static int exit_status;
+static void exit_on_suspended() { exit(exit_status); }
+
+
+Genode::size_t Component::stack_size() { return 16*1024*sizeof(long); }
+
+
+/*
+ * Component implements classical main function in construct.
+ */
+void Component::construct(Genode::Env &env)
 {
 	Genode::printf("--- pthread IPC test ---\n");
 
@@ -58,5 +71,6 @@ int main(int, char **)
 	main_wait_lock()->lock();
 
 	Genode::printf("--- finished pthread IPC test ---\n");
-	return 0;
+	exit_status = 0;
+	env.ep().schedule_suspend(exit_on_suspended, nullptr);
 }

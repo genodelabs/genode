@@ -1,36 +1,25 @@
 /*
  * \brief  CPU driver for core
  * \author Martin stein
+ * \author Stefan Kalkowski
  * \date   2011-11-03
  */
 
 /*
- * Copyright (C) 2011-2012 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CPU_H_
-#define _CPU_H_
+#ifndef _CORE__INCLUDE__SPEC__CORTEX_A15__CPU_H_
+#define _CORE__INCLUDE__SPEC__CORTEX_A15__CPU_H_
 
 /* core includes */
 #include <spec/arm_v7/cpu_support.h>
 
-namespace Genode
-{
-	/**
-	 * Part of CPU state that is not switched on every mode transition
-	 */
-	class Cpu_lazy_state { };
+namespace Genode { class Cpu; }
 
-	/**
-	 * CPU driver for core
-	 */
-	class Cpu;
-}
-
-namespace Kernel { using Genode::Cpu_lazy_state; }
 
 class Genode::Cpu : public Arm_v7
 {
@@ -408,14 +397,9 @@ class Genode::Cpu : public Arm_v7
 
 
 		/**
-		 * Return wether to retry an undefined user instruction after this call
-		 */
-		bool retry_undefined_instr(Cpu_lazy_state *) { return false; }
-
-		/**
 		 * Return kernel name of the executing CPU
 		 */
-		static unsigned executing_id();
+		static unsigned executing_id() { return Mpidr::Aff_0::get(Mpidr::read()); }
 
 		/**
 		 * Return kernel name of the primary CPU
@@ -427,18 +411,35 @@ class Genode::Cpu : public Arm_v7
 		 *
 		 * \param pd  kernel pd object pointer
 		 */
-		static void init_virt_kernel(Kernel::Pd * pd);
+		static void init_virt_kernel(Kernel::Pd & pd);
+
+		/**
+		 * Write back dirty cache lines and invalidate all cache lines
+		 */
+		void clean_invalidate_data_cache() {
+			clean_invalidate_inner_data_cache(); }
+
+		/**
+		 * Invalidate all cache lines
+		 */
+		void invalidate_data_cache() {
+			invalidate_inner_data_cache(); }
+
+		void translation_table_insertions() { invalidate_branch_predicts(); }
+
+		/**
+		 * Hook function called at the very beginning
+		 * of the local cpu initialization
+		 */
+		void init();
 
 
 		/*************
 		 ** Dummies **
 		 *************/
 
-		static void tlb_insertions() { inval_branch_predicts(); }
-		static void translation_added(addr_t, size_t) { }
-		static void prepare_proceeding(Cpu_lazy_state *, Cpu_lazy_state *) { }
+		void switch_to(User_context&) { }
+		bool retry_undefined_instr(Context&) { return false; }
 };
-
-void Genode::Arm_v7::finish_init_phys_kernel() { }
 
 #endif /* _CPU_H_ */

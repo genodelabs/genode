@@ -5,12 +5,13 @@
  */
 
 /*
- * Copyright (C) 2012-2013 Genode Labs GmbH
+ * Copyright (C) 2012-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
 #include <base/env.h>
 #include <base/printf.h>
 #include <base/tslab.h>
@@ -18,13 +19,12 @@
 #include <timer_session/connection.h>
 #include <util/volatile_object.h>
 
-#include <lx/extern_c_begin.h>
+/* Linux kit includes */
+#include <lx_kit/internal/list.h>
+
+/* local includes */
 #include <lx_emul.h>
-#include <lx/extern_c_end.h>
-
-#include <env.h>
-
-#include <lx/list.h>
+#include <lx.h>
 
 
 /*********************
@@ -32,8 +32,6 @@
  *********************/
 
 unsigned long jiffies;
-
-unsigned long msecs_to_jiffies(const unsigned int m) { return m / (1000 / HZ); }
 
 /**
  * Lx::Timer
@@ -49,7 +47,7 @@ class Lx::Timer
 		/**
 		 * Context encapsulates a regular linux timer_list
 		 */
-		struct Context : public Lx::List<Context>::Element
+		struct Context : public Lx_kit::List<Context>::Element
 		{
 			enum { INVALID_TIMEOUT = ~0UL };
 			enum Type { LIST };
@@ -86,7 +84,7 @@ class Lx::Timer
 	private:
 
 		::Timer::Connection                          _timer_conn;
-		Lx::List<Context>                            _list;
+		Lx_kit::List<Context>                        _list;
 		Genode::Signal_dispatcher<Lx::Timer>         _dispatcher;
 		Genode::Tslab<Context, 32 * sizeof(Context)> _timer_alloc;
 
@@ -187,9 +185,9 @@ class Lx::Timer
 		/**
 		 * Constructor
 		 */
-		Timer()
+		Timer(Genode::Signal_receiver &sig_rec)
 		:
-			_dispatcher(*Net::Env::receiver(), *this, &Lx::Timer::_handle),
+			_dispatcher(sig_rec, *this, &Lx::Timer::_handle),
 			_timer_alloc(Genode::env()->heap())
 		{
 			_timer_conn.sigh(_dispatcher);
@@ -283,19 +281,22 @@ class Lx::Timer
 		 * Get first timer context
 		 */
 		Context* first() { return _list.first(); }
-
-		static Timer &t()
-		{
-			static Lx::Timer _t;
-			return _t;
-		}
-
 };
+
+
+static Lx::Timer *_timer;
+
+
+void Lx::timer_init(Genode::Signal_receiver &sig_rec)
+{
+	static Lx::Timer inst(sig_rec);
+	_timer = &inst;
+}
 
 
 void update_jiffies()
 {
-	Lx::Timer::t().update_jiffies();
+	_timer->update_jiffies();
 }
 
 
@@ -305,6 +306,7 @@ void update_jiffies()
 
 void init_timer(struct timer_list *timer) { }
 
+
 void add_timer(struct timer_list *timer)
 {
 	BUG_ON(timer_pending(timer));
@@ -312,15 +314,14 @@ void add_timer(struct timer_list *timer)
 }
 
 
-
 int mod_timer(struct timer_list *timer, unsigned long expires)
 {
 	update_jiffies();
 
-	if (!Lx::Timer::t().find(timer))
-		Lx::Timer::t().add(timer);
+	if (!_timer->find(timer))
+		_timer->add(timer);
 
-	return Lx::Timer::t().schedule(timer, expires);
+	return _timer->schedule(timer, expires);
 }
 
 
@@ -334,7 +335,7 @@ void setup_timer(struct timer_list *timer,void (*function)(unsigned long),
 
 int timer_pending(const struct timer_list * timer)
 {
-	bool pending = Lx::Timer::t().pending(timer);
+	bool pending = _timer->pending(timer);
 	lx_log(DEBUG_TIMER, "Pending %p %u", timer, pending);
 	return pending;
 }
@@ -344,10 +345,8 @@ int del_timer(struct timer_list *timer)
 {
 	update_jiffies();
 	lx_log(DEBUG_TIMER, "Delete timer %p", timer);
-	int rv = Lx::Timer::t().del(timer);
-	Lx::Timer::t().schedule_next();
+	int rv = _timer->del(timer);
+	_timer->schedule_next();
 
 	return rv;
 }
-
-

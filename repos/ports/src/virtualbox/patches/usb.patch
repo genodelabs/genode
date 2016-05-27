@@ -1,17 +1,21 @@
 usb.patch
 
 diff --git a/src/app/virtualbox/src/VBox/Devices/USB/USBProxyDevice.cpp b/src/app/virtualbox/src/VBox/Devices/USB/USBProxyDevice.cpp
-index a51bc36..d21c6cb 100644
+index a51bc36..bed42e8 100644
 --- a/src/app/virtualbox/src/VBox/Devices/USB/USBProxyDevice.cpp
 +++ b/src/app/virtualbox/src/VBox/Devices/USB/USBProxyDevice.cpp
-@@ -845,8 +845,10 @@ static DECLCALLBACK(int) usbProxyConstruct(PPDMUSBINS pUsbIns, int iInstance, PC
+@@ -843,10 +843,14 @@ static DECLCALLBACK(int) usbProxyConstruct(PPDMUSBINS pUsbIns, int iInstance, PC
+     /*
+      * Select backend and open the device.
       */
++
++    return PDMUSB_SET_ERROR(pUsbIns, VERR_NOT_SUPPORTED, N_("USBProxy: not supported on Genode"));
++#if 0
      if (!fRemote)
          pThis->pOps = &g_USBProxyDeviceHost;
-+#if 0
      else
          pThis->pOps = &g_USBProxyDeviceVRDP;
-+#endif
++#endif /* if 0 */
  
      pThis->pvInstanceDataR3 = RTMemAllocZ(pThis->pOps->cbBackend);
      if (!pThis->pvInstanceDataR3)
@@ -91,21 +95,41 @@ index 2f01f69..9b13e37 100644
  
  private:
  
-diff --git a/src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl.cpp
-index 141bb98..43cedfe 100644
---- a/src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl.cpp
-+++ b/src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl.cpp
-@@ -9136,10 +9136,9 @@ HRESULT Console::captureUSBDevices(PUVM pUVM)
-          * us back from under its lock (e.g. onUSBDeviceAttach()) which would
-          * produce an inter-process dead-lock otherwise. */
-         alock.release();
--#if 0
-+
-         HRESULT hrc = mControl->AutoCaptureUSBDevices();
-         ComAssertComRCRetRC(hrc);
--#endif
-     }
+diff --git a/src/app/virtualbox/src/VBox/Main/src-server/MachineImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-server/MachineImpl.cpp
+index 3889a01..7ae9d1c 100644
+--- a/src/app/virtualbox/src/VBox/Main/src-server/MachineImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-server/MachineImpl.cpp
+@@ -13571,6 +13582,7 @@ STDMETHODIMP SessionMachine::AutoCaptureUSBDevices()
+     AutoCaller autoCaller(this);
+     AssertComRCReturn(autoCaller.rc(), autoCaller.rc());
  
++#if 0
+ #ifdef VBOX_WITH_USB
+     HRESULT rc = mUSBDeviceFilters->notifyProxy(true /* aInsertFilters */);
+     AssertComRC(rc);
+@@ -13579,6 +13591,7 @@ STDMETHODIMP SessionMachine::AutoCaptureUSBDevices()
+     USBProxyService *service = mParent->host()->usbProxyService();
+     AssertReturn(service, E_FAIL);
+     return service->autoCaptureDevicesForVM(this);
++#endif /* if 0 */
+ #else
+     return S_OK;
+ #endif
+@@ -13614,6 +13614,7 @@
+     AutoCaller autoCaller(this);
+     AssertComRCReturn(autoCaller.rc(), autoCaller.rc());
+ 
++#if 0
+ #ifdef VBOX_WITH_USB
+     HRESULT rc = mUSBDeviceFilters->notifyProxy(false /* aInsertFilters */);
+     AssertComRC(rc);
+@@ -13622,6 +13623,7 @@
+     USBProxyService *service = mParent->host()->usbProxyService();
+     AssertReturn(service, E_FAIL);
+     return service->detachAllDevicesFromVM(this, !!aDone, false /* aAbnormal */);
++#endif /* if 0 */
+ #else
+     NOREF(aDone);
      return S_OK;
 diff --git a/src/app/virtualbox/src/VBox/Main/src-server/USBDeviceFiltersImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-server/USBDeviceFiltersImpl.cpp
 index 09b42f5..c179ca6 100644

@@ -33,13 +33,13 @@ static unsigned num_consecutive_events(Input::Event const *ev, unsigned max)
 	if (max < 1) return 0;
 	if (ev->type() != Input::Event::MOTION) return 1;
 
-	bool first_is_absolute = ev->is_absolute_motion();
+	bool const first_absolute = ev->absolute_motion();
 
 	/* iterate until we get a different event type, start at second */
 	unsigned cnt = 1;
 	for (ev++ ; cnt < max; cnt++, ev++) {
 		if (ev->type() != Input::Event::MOTION) break;
-		if (first_is_absolute != ev->is_absolute_motion()) break;
+		if (first_absolute != ev->absolute_motion()) break;
 	}
 	return cnt;
 }
@@ -72,7 +72,7 @@ static Input::Event merge_motion_events(Input::Event const *ev, unsigned n)
 static bool import_input_events(Input::Event *ev_buf, unsigned num_ev,
                                 User_state &user_state)
 {
-	bool user_is_active = false;
+	bool user_active = false;
 
 	if (num_ev > 0) {
 		/*
@@ -97,7 +97,7 @@ static bool import_input_events(Input::Event *ev_buf, unsigned num_ev,
 			 * a zero-motion event, drop it. Otherwise, it would be
 			 * misinterpreted as absolute event pointing to (0, 0).
 			 */
-			if (e->is_relative_motion() && curr.rx() == 0 && curr.ry() == 0)
+			if (e->relative_motion() && curr.rx() == 0 && curr.ry() == 0)
 				continue;
 
 			/*
@@ -105,7 +105,7 @@ static bool import_input_events(Input::Event *ev_buf, unsigned num_ev,
 			 * we regard the user as active. This check captures the presence
 			 * of press-release combinations within one batch of input events.
 			 */
-			user_is_active |= user_state.key_is_pressed();
+			user_active |= user_state.key_pressed();
 
 			/* pass event to user state */
 			user_state.handle_event(curr);
@@ -122,9 +122,9 @@ static bool import_input_events(Input::Event *ev_buf, unsigned num_ev,
 	/*
 	 * If at least one key is kept pressed, we regard the user as active.
 	 */
-	user_is_active |= user_state.key_is_pressed();
+	user_active |= user_state.key_pressed();
 
-	return user_is_active;
+	return user_active;
 }
 
 #endif /* _INPUT_H_ */

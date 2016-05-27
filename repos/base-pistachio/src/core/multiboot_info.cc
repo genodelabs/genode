@@ -15,10 +15,10 @@
 #include <base/printf.h>
 #include <multiboot.h>
 #include <util/misc_math.h>
-#include <pistachio/kip.h>
 
 /* core includes */
 #include <util.h>
+#include <kip.h>
 
 /* Pistachio includes */
 namespace Pistachio {

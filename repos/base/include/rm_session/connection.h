@@ -26,15 +26,25 @@ struct Genode::Rm_connection : Connection<Rm_session>, Rm_session_client
 
 	/**
 	 * Constructor
-	 *
-	 * \param start start of the managed VM-region
-	 * \param size  size of the VM-region to manage
 	 */
-	Rm_connection(addr_t start = ~0UL, size_t size = 0) :
-		Connection<Rm_session>(
-			session("ram_quota=%u, start=0x%p, size=0x%zx",
-			        RAM_QUOTA, start, size)),
-		Rm_session_client(cap()) { }
+	Rm_connection(Env &env)
+	:
+		Connection<Rm_session>(env, session(env.parent(), "ram_quota=%u", RAM_QUOTA)),
+		Rm_session_client(cap())
+	{ }
+
+	/**
+	 * Constructor
+	 *
+	 * \noapi
+	 * \deprecated  Use the constructor with 'Env &' as first
+	 *              argument instead
+	 */
+	Rm_connection()
+	:
+		Connection<Rm_session>(session("ram_quota=%u", RAM_QUOTA)),
+		Rm_session_client(cap())
+	{ }
 };
 
 #endif /* _INCLUDE__RM_SESSION__CONNECTION_H_ */

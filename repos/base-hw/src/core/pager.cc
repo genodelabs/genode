@@ -53,7 +53,7 @@ addr_t Ipc_pager::fault_ip() const { return _fault.ip; }
 
 addr_t Ipc_pager::fault_addr() const { return _fault.addr; }
 
-bool Ipc_pager::is_write_fault() const { return _fault.writes; }
+bool Ipc_pager::write_fault() const { return _fault.writes; }
 
 void Ipc_pager::set_reply_mapping(Mapping m) { _mapping = m; }
 
@@ -61,10 +61,6 @@ void Ipc_pager::set_reply_mapping(Mapping m) { _mapping = m; }
 /******************
  ** Pager_object **
  ******************/
-
-Thread_capability Pager_object::thread_cap() const { return _thread_cap; }
-
-void Pager_object::thread_cap(Thread_capability const & c) { _thread_cap = c; }
 
 void Pager_object::wake_up()
 {
@@ -92,9 +88,12 @@ void Pager_object::unresolved_page_fault_occurred()
 		     pt->kernel_object()->sp, pt->kernel_object()->fault_addr());
 }
 
-Pager_object::Pager_object(unsigned const badge, Affinity::Location)
-: Object_pool<Pager_object>::Entry(Kernel_object<Kernel::Signal_context>::_cap),
-  _badge(badge)
+Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
+                           Thread_capability thread_cap, unsigned const badge,
+                           Affinity::Location)
+:
+	Object_pool<Pager_object>::Entry(Kernel_object<Kernel::Signal_context>::_cap),
+	_badge(badge), _cpu_session_cap(cpu_session_cap), _thread_cap(thread_cap)
 { }
 
 
@@ -108,8 +107,8 @@ void Pager_entrypoint::dissolve(Pager_object * const o)
 }
 
 
-Pager_entrypoint::Pager_entrypoint(Cap_session *)
-: Thread<PAGER_EP_STACK_SIZE>("pager_ep"),
+Pager_entrypoint::Pager_entrypoint(Rpc_cap_factory &)
+: Thread_deprecated<PAGER_EP_STACK_SIZE>("pager_ep"),
   Kernel_object<Kernel::Signal_receiver>(true)
 { start(); }
 

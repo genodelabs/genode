@@ -10,6 +10,9 @@ build "test/hw_info"
 # create directory where the boot files are written to
 create_boot_directory
 
+# the init config is not used but the build system needs it
+install_config {<dummy/>}
+
 # create single boot image from the compiled program images
 set core_test 1
 build_boot_image "test-hw_info"

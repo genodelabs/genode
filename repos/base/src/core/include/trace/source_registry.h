@@ -21,7 +21,7 @@
 #include <base/weak_ptr.h>
 
 /* base-internal include */
-#include <trace/control.h>
+#include <base/internal/trace_control.h>
 
 namespace Genode { namespace Trace {
 	class Source;
@@ -115,16 +115,16 @@ class Genode::Trace::Source
 			return true;
 		}
 
-		bool is_owned_by(Source_owner const *owner) { return owner == _owner; }
+		bool owned_by(Source_owner const *owner) { return owner == _owner; }
 
 		void release_ownership(Source_owner const *owner)
 		{
-			if (is_owned_by(owner))
+			if (owned_by(owner))
 				_owner = 0;
 		}
 
 		bool error()   const { return _control.has_error(); }
-		bool enabled() const { return _control.is_enabled(); }
+		bool enabled() const { return _control.enabled(); }
 
 
 		/***********************************

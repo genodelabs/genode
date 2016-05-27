@@ -1,18 +1,22 @@
 LICENSE   := GPLv3
-VERSION   := 0.8.2
+VERSION   := 11.6
 DOWNLOADS := libav.archive
 
-URL(libav) := http://www.libav.org/releases/libav-$(VERSION).tar.gz
-SHA(libav) := e5231f8f995fae53c99e0bd30a455b3e5a906b71
+URL(libav) := https://www.libav.org/releases/libav-$(VERSION).tar.gz
+SHA(libav) := 4f65d7474a45330ec2d51ad80ab00159515229eb
 DIR(libav) := src/lib/libav
 SIG(libav) := ${URL(libav)}.asc
 
-PATCHES := src/app/avplay/avplay.patch
+PATCHES := src/app/avplay/avplay.patch \
+           src/lib/libav/avcodec.patch
 
 include_subdirs := . libavcodec libavfilter libavutil libavformat libswscale \
-                   libavutil/x86 libavutil/arm libavcodec/x86 libavcodec/arm
+                   libavutil/x86 libavutil/arm libavutil/ppc libavcodec/x86 \
+                   libavcodec/arm libavresample
 
 DIRS := $(addprefix include/libav/,$(include_subdirs))
 
 $(foreach dir,$(include_subdirs),\
           $(eval DIR_CONTENT(include/libav/$(dir)) := src/lib/libav/$(dir)/*.h))
+
+DIR_CONTENT(include/libav/libavutil) += src/lib/libav/libavutil/log2_tab.c

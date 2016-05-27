@@ -27,6 +27,7 @@ namespace Launcher {
 	using Decorator::string_attribute;
 }
 
+
 /***************
  ** Utilities **
  ***************/
@@ -60,8 +61,9 @@ class Launcher::Subsystem_manager
 
 	private:
 
-		Server::Entrypoint &_ep;
-		Cap_session        &_cap;
+		Server::Entrypoint  &_ep;
+		Cap_session         &_cap;
+		Dataspace_capability _ldso_ds;
 
 		struct Child : Child_base, List<Child>::Element
 		{
@@ -74,7 +76,8 @@ class Launcher::Subsystem_manager
 			      size_t                    ram_quota,
 			      size_t                    ram_limit,
 			      Signal_context_capability yield_response_sig_cap,
-			      Signal_context_capability exit_sig_cap)
+			      Signal_context_capability exit_sig_cap,
+			      Dataspace_capability      ldso_ds)
 			:
 				Child_base(ram,
 				           label.string(),
@@ -83,7 +86,8 @@ class Launcher::Subsystem_manager
 				           ram_quota,
 				           ram_limit,
 				           yield_response_sig_cap,
-				           exit_sig_cap)
+				           exit_sig_cap,
+				           ldso_ds)
 			{ }
 		};
 
@@ -184,9 +188,11 @@ class Launcher::Subsystem_manager
 	public:
 
 		Subsystem_manager(Server::Entrypoint &ep, Cap_session &cap,
-		                  Genode::Signal_context_capability exited_child_sig_cap)
+		                  Genode::Signal_context_capability exited_child_sig_cap,
+		                  Dataspace_capability ldso_ds)
 		:
-			_ep(ep), _cap(cap), _exited_child_sig_cap(exited_child_sig_cap)
+			_ep(ep), _cap(cap), _ldso_ds(ldso_ds),
+			_exited_child_sig_cap(exited_child_sig_cap)
 		{ }
 
 		/**
@@ -210,7 +216,7 @@ class Launcher::Subsystem_manager
 					Child(_ram, label, binary_name.string(), _cap,
 					      ram_config.quantum, ram_config.limit,
 					      _yield_broadcast_dispatcher,
-					      _exited_child_sig_cap);
+					      _exited_child_sig_cap, _ldso_ds);
 
 				/* configure child */
 				try {

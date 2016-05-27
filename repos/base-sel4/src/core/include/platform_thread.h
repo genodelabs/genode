@@ -45,21 +45,21 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		 * Virtual address of the IPC buffer within the PDs address space
 		 *
 		 * The value is 0 for the PD's main thread. For all other threads,
-		 * the value is somewhere within the context area.
+		 * the value is somewhere within the stack area.
 		 */
 		addr_t const _utcb;
 
 		Thread_info _info;
 
-		unsigned const _pager_obj_sel;
+		Cap_sel const _pager_obj_sel;
 
 		/*
 		 * Selectors within the PD's CSpace
 		 *
 		 * Allocated when the thread is started.
 		 */
-		unsigned _fault_handler_sel = 0;
-		unsigned _ep_sel = 0;
+		Cap_sel _fault_handler_sel { 0 };
+		Cap_sel _ep_sel            { 0 };
 
 		friend class Platform_pd;
 
@@ -73,7 +73,7 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		 * Constructor
 		 */
 		Platform_thread(size_t, const char *name = 0, unsigned priority = 0,
-		                addr_t utcb = 0);
+		                Affinity::Location = Affinity::Location(), addr_t utcb = 0);
 
 		/**
 		 * Destructor
@@ -96,6 +96,11 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		 * Pause this thread
 		 */
 		void pause();
+
+		/**
+		 * Enable/disable single stepping
+		 */
+		void single_step(bool) { }
 
 		/**
 		 * Resume this thread
@@ -146,7 +151,7 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		/**
 		 * Return identification of thread when faulting
 		 */
-		unsigned long pager_object_badge() const { return _pager_obj_sel; }
+		unsigned long pager_object_badge() const { return _pager_obj_sel.value(); }
 
 		/**
 		 * Set the executing CPU for this thread
@@ -173,7 +178,7 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		 ** seL4-specific interface **
 		 *****************************/
 
-		unsigned tcb_sel() const { return _info.tcb_sel; }
+		Cap_sel tcb_sel() const { return _info.tcb_sel; }
 
 		void install_mapping(Mapping const &mapping);
 };

@@ -25,7 +25,7 @@ extern const void * _forward_pkt;
 
 
 Vancouver_network::Vancouver_network(Synced_motherboard &mb, Nic::Session *nic)
-: Thread("vmm_network"), _motherboard(mb), _nic(nic)
+: Thread_deprecated("vmm_network"), _motherboard(mb), _nic(nic)
 {
 	start();
 }

@@ -397,6 +397,16 @@ class Decorator::Window : public Window_base
 			_animator(animator), _config(config)
 		{ }
 
+		/**
+		 * Return border margins of floating window
+		 */
+		static Border border_floating()
+		{
+			return Border(_border_size + _title_height,
+			              _border_size, _border_size, _border_size);
+
+		}
+
 		void stack(Nitpicker::Session::View_handle neighbor) override
 		{
 			_neighbor = neighbor;
@@ -424,7 +434,7 @@ class Decorator::Window : public Window_base
 			outer_geometry().cut(geometry(), top, left, right, bottom);
 		}
 
-		bool is_in_front_of(Window_base const &neighbor) const override
+		bool in_front_of(Window_base const &neighbor) const override
 		{
 			return _neighbor == neighbor.frontmost_view();
 		}

@@ -44,13 +44,13 @@ class Linux_session_component : public Nic::Session_component
 {
 	private:
 
-		struct Rx_signal_thread : Genode::Thread<0x1000>
+		struct Rx_signal_thread : Genode::Thread_deprecated<0x1000>
 		{
 			int                               fd;
 			Genode::Signal_context_capability sigh;
 
 			Rx_signal_thread(int fd, Genode::Signal_context_capability sigh)
-			: Genode::Thread<0x1000>("rx_signal"), fd(fd), sigh(sigh) { }
+			: Genode::Thread_deprecated<0x1000>("rx_signal"), fd(fd), sigh(sigh) { }
 
 			void entry()
 			{
@@ -207,7 +207,7 @@ class Linux_session_component : public Nic::Session_component
 						_mac_addr.addr[2],
 						_mac_addr.addr[3],
 						_mac_addr.addr[4],
-						_mac_addr.addr[5]	);
+						_mac_addr.addr[5]);
 			} catch (...) {
 				/* fall back to fake MAC address (unicast, locally managed) */
 				_mac_addr.addr[0] = 0x02;

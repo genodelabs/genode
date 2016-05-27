@@ -1,5 +1,5 @@
 /*
- * \brief  Supplemental code for hybrid Genode/Linux programs
+ * \brief  Supplemental code for hybrid Genode/Linux components
  * \author Norman Feske
  * \date   2011-09-02
  */
@@ -11,18 +11,23 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/crt0.h>
+/* Genode includes */
 #include <base/printf.h>
+#include <base/component.h>
 #include <linux_syscalls.h>
-#include <linux_cpu_session/linux_cpu_session.h>
+#include <linux_native_cpu/client.h>
+
+/* base-internal includes */
+#include <base/internal/native_thread.h>
+#include <base/internal/globals.h>
 
 
 extern "C" int raw_write_str(const char *str);
 
 /**
- * Define context area
+ * Define stack area
  */
-Genode::addr_t _context_area_start;
+Genode::addr_t _stack_area_start;
 
 
 enum { verbose_atexit = false };
@@ -46,7 +51,11 @@ int genode___cxa_atexit(void (*func)(void*), void *arg, void *dso)
 extern char **environ;
 extern char **lx_environ;
 
+static char signal_stack[0x2000] __attribute__((aligned(0x1000)));
+
 static void empty_signal_handler(int) { }
+
+extern void lx_exception_signal_handlers();
 
 /*
  * This function must be called before any other static constructor in the Genode
@@ -56,6 +65,9 @@ __attribute__((constructor(101))) void lx_hybrid_init()
 {
 	lx_environ = environ;
 
+	lx_sigaltstack(signal_stack, sizeof(signal_stack));
+	lx_exception_signal_handlers();
+
 	/*
 	 * Set signal handler such that canceled system calls get not
 	 * transparently retried after a signal gets received.
@@ -63,16 +75,46 @@ __attribute__((constructor(101))) void lx_hybrid_init()
 	lx_sigaction(LX_SIGUSR1, empty_signal_handler);
 }
 
+namespace Genode {
+	extern void bootstrap_component();
+	extern void call_global_static_constructors();
+
+	/*
+	 * Hook for intercepting the call of the 'Component::construct' method. By
+	 * hooking this function pointer in a library constructor, the libc is able
+	 * to create a task context for the component code. This context is
+	 * scheduled by the libc in a cooperative fashion, i.e. when the
+	 * component's entrypoint is activated.
+	 */
+
+	extern void (*call_component_construct)(Genode::Env &) __attribute__((weak));
+}
+
+static void lx_hybrid_component_construct(Genode::Env &env)
+{
+	Component::construct(env);
+}
+
+void (*Genode::call_component_construct)(Genode::Env &) = &lx_hybrid_component_construct;
+
 /*
- * Dummy symbols to let generic tests programs (i.e., 'test-config_args') link
- * successfully. Please note that such programs are not expected to work when
- * built as hybrid Linux/Genode programs because when using the glibc startup
- * code, we cannot manipulate argv prior executing main. However, by defining
- * these symbols, we prevent the automated build bot from stumbling over such
- * binaries.
+ * Static constructors are handled by the Linux startup code - so implement
+ * this as empty function.
  */
-char **genode_argv = 0;
-int    genode_argc = 1;
+void Genode::call_global_static_constructors() { }
+
+/*
+ * Hybrid components are not allowed to implement legacy main(). This enables
+ * us to hook in and bootstrap components as usual.
+ */
+
+int main()
+{
+	Genode::init_log();
+	Genode::bootstrap_component();
+
+	/* never reached */
+}
 
 
 /************
@@ -134,13 +176,25 @@ static pthread_key_t tls_key()
 
 namespace Genode {
 
-	struct Thread_meta_data
+	/**
+	 * Meta data tied to the thread via the pthread TLS mechanism
+	 */
+	struct Native_thread::Meta_data
 	{
 		/**
-		 * Filled out by 'thread_start' function in the context of the new
+		 * Linux-specific thread meta data
+		 *
+		 * For non-hybrid programs, this information is located at the
+		 * 'Stack'. But the POSIX threads of hybrid programs have no 'Stack'
+		 * object. So we have to keep the meta data here.
+		 */
+		Native_thread native_thread;
+
+		/**
+		 * Filled out by 'thread_start' function in the stack of the new
 		 * thread
 		 */
-		Thread_base * const thread_base;
+		Thread * const thread_base;
 
 		/**
 		 * POSIX thread handle
@@ -150,9 +204,12 @@ namespace Genode {
 		/**
 		 * Constructor
 		 *
-		 * \param thread  associated 'Thread_base' object
+		 * \param thread  associated 'Thread' object
 		 */
-		Thread_meta_data(Thread_base *thread) : thread_base(thread) { }
+		Meta_data(Thread *thread) : thread_base(thread)
+		{
+			native_thread.meta_data = this;
+		}
 
 		/**
 		 * Used to block the constructor until the new thread has initialized
@@ -174,10 +231,10 @@ namespace Genode {
 		virtual void joined() = 0;
 	};
 
-	/*
-	 *  Thread meta data for a thread created by Genode
+	/**
+	 * Thread meta data for a thread created by Genode
 	 */
-	class Thread_meta_data_created : public Thread_meta_data
+	class Thread_meta_data_created : public Native_thread::Meta_data
 	{
 		private:
 
@@ -204,7 +261,8 @@ namespace Genode {
 
 		public:
 
-			Thread_meta_data_created(Thread_base *thread) : Thread_meta_data(thread) { }
+			Thread_meta_data_created(Thread *thread)
+			: Native_thread::Meta_data(thread) { }
 
 			void wait_for_construction()
 			{
@@ -237,14 +295,15 @@ namespace Genode {
 			}
 	};
 
-	/*
-	 *  Thread meta data for an adopted thread
+	/**
+	 * Thread meta data for an adopted thread
 	 */
-	class Thread_meta_data_adopted : public Thread_meta_data
+	class Thread_meta_data_adopted : public Native_thread::Meta_data
 	{
 		public:
 
-			Thread_meta_data_adopted(Thread_base *thread) : Thread_meta_data(thread) { }
+			Thread_meta_data_adopted(Thread *thread)
+			: Native_thread::Meta_data(thread) { }
 
 			void wait_for_construction()
 			{
@@ -279,25 +338,10 @@ namespace Genode {
 }
 
 
-/**
- * Return Linux-specific extension of the Env::CPU session interface
- */
-Linux_cpu_session *cpu_session(Cpu_session * cpu_session)
+static void adopt_thread(Native_thread::Meta_data *meta_data)
 {
-	Linux_cpu_session *cpu = dynamic_cast<Linux_cpu_session *>(cpu_session);
+	lx_sigaltstack(signal_stack, sizeof(signal_stack));
 
-	if (!cpu) {
-		PERR("could not obtain Linux extension to CPU session interface");
-		struct Could_not_access_linux_cpu_session { };
-		throw Could_not_access_linux_cpu_session();
-	}
-
-	return cpu;
-}
-
-
-static void adopt_thread(Thread_meta_data *meta_data)
-{
 	/*
 	 * Set signal handler such that canceled system calls get not
 	 * transparently retried after a signal gets received.
@@ -309,7 +353,7 @@ static void adopt_thread(Thread_meta_data *meta_data)
 	 */
 	lx_sigaction(LX_SIGCHLD, (void (*)(int))1);
 
-	/* assign 'Thread_meta_data' pointer to TLS entry */
+	/* assign 'Native_thread::Meta_data' pointer to TLS entry */
 	pthread_setspecific(tls_key(), meta_data);
 
 	/* enable immediate cancellation when calling 'pthread_cancel' */
@@ -318,7 +362,7 @@ static void adopt_thread(Thread_meta_data *meta_data)
 	/*
 	 * Initialize thread meta data
 	 */
-	Native_thread &native_thread = meta_data->thread_base->tid();
+	Native_thread &native_thread = meta_data->thread_base->native_thread();
 	native_thread.tid = lx_gettid();
 	native_thread.pid = lx_getpid();
 }
@@ -326,17 +370,17 @@ static void adopt_thread(Thread_meta_data *meta_data)
 
 static void *thread_start(void *arg)
 {
-	Thread_meta_data *meta_data = (Thread_meta_data *)arg;
+	Native_thread::Meta_data *meta_data = (Native_thread::Meta_data *)arg;
 
 	adopt_thread(meta_data);
 
-	/* unblock 'Thread_base' constructor */
+	/* unblock 'Thread' constructor */
 	meta_data->constructed();
 
-	/* block until the 'Thread_base::start' gets called */
+	/* block until the 'Thread::start' gets called */
 	meta_data->wait_for_start();
 
-	Thread_base::myself()->entry();
+	Thread::myself()->entry();
 
 	meta_data->joined();
 	return 0;
@@ -346,15 +390,15 @@ static void *thread_start(void *arg)
 extern "C" void *malloc(::size_t size);
 
 
-Thread_base *Thread_base::myself()
+Thread *Thread::myself()
 {
 	void * const tls = pthread_getspecific(tls_key());
 
 	if (tls != 0)
-		return ((Thread_meta_data *)tls)->thread_base;
+		return ((Native_thread::Meta_data *)tls)->thread_base;
 
-	bool const is_main_thread = (lx_getpid() == lx_gettid());
-	if (is_main_thread)
+	bool const called_by_main_thread = (lx_getpid() == lx_gettid());
+	if (called_by_main_thread)
 		return 0;
 
 	/*
@@ -362,80 +406,97 @@ Thread_base *Thread_base::myself()
 	 * Genode's thread API. This may happen if a native Linux library creates
 	 * threads via the pthread library. If such a thread calls Genode code,
 	 * which then tries to perform IPC, the program fails because there exists
-	 * no 'Thread_base' object. We recover from this unfortunate situation by
-	 * creating a dummy 'Thread_base' object and associate it with the calling
+	 * no 'Thread' object. We recover from this unfortunate situation by
+	 * creating a dummy 'Thread' object and associate it with the calling
 	 * thread.
 	 */
 
 	/*
-	 * Create dummy 'Thread_base' object but suppress the execution of its
+	 * Create dummy 'Thread' object but suppress the execution of its
 	 * constructor. If we called the constructor, we would create a new Genode
 	 * thread, which is not what we want. For the allocation, we use glibc
 	 * malloc because 'Genode::env()->heap()->alloc()' uses IPC.
 	 *
-	 * XXX  Both the 'Thread_base' and 'Threadm_meta_data' objects are never
-	 *      freed.
+	 * XXX  Both the 'Thread' and 'Native_thread::Meta_data' objects are
+	 *      never freed.
 	 */
-	Thread_base *thread = (Thread_base *)malloc(sizeof(Thread_base));
+	Thread *thread = (Thread *)malloc(sizeof(Thread));
 	memset(thread, 0, sizeof(*thread));
-	Thread_meta_data *meta_data = new Thread_meta_data_adopted(thread);
+	Native_thread::Meta_data *meta_data = new Thread_meta_data_adopted(thread);
 
 	/*
-	 * Initialize 'Thread_base::_tid' using the default constructor of
-	 * 'Native_thread'. This marks the client and server sockets as
-	 * uninitialized and prompts the IPC framework to create those as needed.
+	 * Initialize 'Thread::_native_thread' to point to the default-
+	 * constructed 'Native_thread' (part of 'Meta_data').
 	 */
-	meta_data->thread_base->tid() = Native_thread();
+	meta_data->thread_base->_native_thread = &meta_data->native_thread;
 	adopt_thread(meta_data);
 
 	return thread;
 }
 
 
-void Thread_base::start()
+void Thread::start()
 {
 	/*
 	 * Unblock thread that is supposed to slumber in 'thread_start'.
 	 */
-	_tid.meta_data->started();
+	native_thread().meta_data->started();
 }
 
 
-void Thread_base::join()
+void Thread::join()
 {
-	_tid.meta_data->wait_for_join();
+	native_thread().meta_data->wait_for_join();
 }
 
 
-Thread_base::Thread_base(size_t weight, const char *name, size_t stack_size,
-                         Type type, Cpu_session * cpu_sess)
+Native_thread &Thread::native_thread() { return *_native_thread; }
+
+
+Thread::Thread(size_t weight, const char *name, size_t stack_size,
+               Type type, Cpu_session * cpu_sess, Affinity::Location)
 : _cpu_session(cpu_sess)
 {
-	_tid.meta_data = new (env()->heap()) Thread_meta_data_created(this);
+	Native_thread::Meta_data *meta_data =
+		new (env()->heap()) Thread_meta_data_created(this);
 
-	int const ret = pthread_create(&_tid.meta_data->pt, 0, thread_start,
-	                              _tid.meta_data);
+	_native_thread = &meta_data->native_thread;
+
+	int const ret = pthread_create(&meta_data->pt, 0, thread_start, meta_data);
 	if (ret) {
 		PERR("pthread_create failed (returned %d, errno=%d)",
 		     ret, errno);
-		destroy(env()->heap(), _tid.meta_data);
-		throw Context_alloc_failed();
+		destroy(env()->heap(), meta_data);
+		throw Out_of_stack_space();
 	}
 
-	_tid.meta_data->wait_for_construction();
+	native_thread().meta_data->wait_for_construction();
 
-	Linux_cpu_session *cpu = cpu_session(_cpu_session);
+	_thread_cap = _cpu_session->create_thread(env()->pd_session_cap(), name,
+	                                          Location(), Weight(weight));
 
-	_thread_cap = cpu->create_thread(weight, name);
-	cpu->thread_id(_thread_cap, _tid.pid, _tid.tid);
+	Linux_native_cpu_client native_cpu(_cpu_session->native_cpu());
+	native_cpu.thread_id(_thread_cap, native_thread().pid, native_thread().tid);
 }
 
 
-Thread_base::Thread_base(size_t weight, const char *name, size_t stack_size,
-                         Type type)
-: Thread_base(weight, name, stack_size, type, env()->cpu_session()) { }
+Thread::Thread(size_t weight, const char *name, size_t stack_size,
+               Type type, Affinity::Location)
+: Thread(weight, name, stack_size, type, env()->cpu_session()) { }
 
-void Thread_base::cancel_blocking()
+
+Thread::Thread(Env &env, Name const &name, size_t stack_size, Location location,
+               Weight weight, Cpu_session &cpu)
+: Thread(weight.value, name.string(), stack_size, NORMAL,
+         &cpu, location)
+{ }
+
+
+Thread::Thread(Env &env, Name const &name, size_t stack_size)
+: Thread(env, name, stack_size, Location(), Weight(), env.cpu()) { }
+
+
+void Thread::cancel_blocking()
 {
 	/*
 	 * XXX implement interaction with CPU session
@@ -443,25 +504,25 @@ void Thread_base::cancel_blocking()
 }
 
 
-Thread_base::~Thread_base()
+Thread::~Thread()
 {
-	bool const needs_join = (pthread_cancel(_tid.meta_data->pt) == 0);
+	bool const needs_join = (pthread_cancel(native_thread().meta_data->pt) == 0);
 
 	if (needs_join) {
-		int const ret = pthread_join(_tid.meta_data->pt, 0);
+		int const ret = pthread_join(native_thread().meta_data->pt, 0);
 		if (ret)
 			PWRN("pthread_join unexpectedly returned with %d (errno=%d)",
 			     ret, errno);
 	}
 
 	Thread_meta_data_created *meta_data =
-		dynamic_cast<Thread_meta_data_created *>(_tid.meta_data);
+		dynamic_cast<Thread_meta_data_created *>(native_thread().meta_data);
 
 	if (meta_data)
 		destroy(env()->heap(), meta_data);
 
-	_tid.meta_data = 0;
+	_native_thread = nullptr;
 
 	/* inform core about the killed thread */
-	cpu_session(_cpu_session)->kill_thread(_thread_cap);
+	_cpu_session->kill_thread(_thread_cap);
 }

@@ -14,8 +14,8 @@ Genode.
 Recommended development platform
 ################################
 
-We currently use [http://www.ubuntu.com/ - Ubuntu] 12.04 LTS on servers and
-client machines. Hence, Genode should always build without trouble on these
+We use recent [http://www.ubuntu.com/ - Ubuntu] LTS releases on our
+development hosts. Hence, Genode should always build without trouble on these
 platforms.
 
 
@@ -23,9 +23,10 @@ Unified tool chain
 ##################
 
 Starting with Genode version 11.11, there is a unified tool chain for all base
-platforms and supported CPU architectures (x86_32, x86_64, and ARM). For Genode
-development, we highly recommend the use of the official Genode tool chain. It
-can be obtained in two ways: as pre-compiled binaries or manually compiled:
+platforms and supported CPU architectures (x86_32, x86_64, ARM, and RISC-V). For
+Genode development, we highly recommend the use of the official Genode tool
+chain. It can be obtained in two ways: as pre-compiled binaries or manually
+compiled:
 
 :Pre-compiled:
   Our pre-compiled tool chain is runnable on Linux x86_32 and x86_64. The
@@ -44,32 +45,18 @@ can be obtained in two ways: as pre-compiled binaries or manually compiled:
   instructions, just start the tool without arguments.
 
 In both cases, the tool chain will be installed to '/usr/local/genode-gcc'. All
-tools are prefixed with 'genode-x86-' or 'genode-arm-' respectively such that
-it is safe to add the installation directory to our 'PATH' variable (optional).
-The Genode tool chain will be used by the Genode build system by default. If
-you desire to use a different tool chain, create a file called 'tools.conf' in
-the 'etc/' subdirectory of your build directory where you can define the
-tool-chain prefix to be used:
+tools are prefixed with 'genode-x86-', 'genode-arm-', or 'genode-riscv-'
+respectively such that it is safe to add the installation directory to our
+'PATH' variable (optional). The Genode tool chain will be used by the Genode
+build system by default. If you desire to use a different tool chain, create a
+file called 'tools.conf' in the 'etc/' subdirectory of your build directory
+where you can define the tool-chain prefix to be used:
 
 ! CROSS_DEV_PREFIX = /path/to/your/custom/tool_chain/your-x86-
 
 However, we recommend you to stick with the official Genode tool chain. If you
 see a valid reason not to use it, please contact us (e.g., via the mailing
 list).
-
-
-; XXX The Gentoo Portage overlay must be update to the new tool chain
-;
-;Gentoo Portage overlay
-;######################
-;
-;For Gentoo users, there exist a Portage overlay, which includes the Genode
-;toolchain.
-;
-;:[https://github.com/blitz/blitz-overlay]:
-;  Portage overlay for using the Genode tool chain on Gentoo
-;
-;You'll find the toolchain under sys-devel/genode-toolchain.
 
 
 Background information - Why do we need a special tool chain?

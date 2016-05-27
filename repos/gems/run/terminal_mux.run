@@ -26,7 +26,6 @@ append config {
 		<parent-provides>
 			<service name="ROM"/>
 			<service name="LOG"/>
-			<service name="CAP"/>
 			<service name="RAM"/>
 			<service name="RM"/>
 			<service name="CPU"/>
@@ -34,7 +33,6 @@ append config {
 			<service name="IRQ"/>
 			<service name="IO_PORT"/>
 			<service name="IO_MEM"/>
-			<service name="SIGNAL"/>
 		</parent-provides>
 		<default-route>
 			<any-service> <any-child/> <parent/> </any-service>
@@ -92,45 +90,54 @@ append config {
 			<resource name="RAM" quantum="100M"/>
 			<config>
 				<preservation name="RAM" quantum="16M" />
-				<subsystem name="noux" help="VIM executed in the noux runtime">
-					<resource name="RAM" quantum="16M" />
-					<config>
-						<fstab> <tar name="vim.tar" /> </fstab>
-						<start name="/bin/vim">
-							<env name="TERM" value="linux" />
+				<vfs>
+					<dir name="subsystems">
+						<inline name="noux.subsystem">
+							<subsystem name="noux" help="VIM executed in the noux runtime">
+								<resource name="RAM" quantum="16M" />
+								<config>
+									<fstab> <tar name="vim.tar" /> </fstab>
+									<start name="/bin/vim">
+										<env name="TERM" value="linux" />
 
-							<!-- Deactivate the loading of plugins. Otherwise, vim will
-							     attempt to use a sub shell for pattern matching -->
-							<arg value="--noplugin" />
+										<!-- Deactivate the loading of plugins. Otherwise, vim will
+										     attempt to use a sub shell for pattern matching -->
+										<arg value="--noplugin" />
 
-							<!-- Do not use swap file. Any attempt to create of would
-							     fail because we are on a read-only file system -->
-							<arg value="-n" />
+										<!-- Do not use swap file. Any attempt to create of would
+										     fail because we are on a read-only file system -->
+										<arg value="-n" />
 
-							<!-- Use the nocompatible mode, which is much nicer than
-							     the plain vi mode -->
-							<arg value="-N" />
+										<!-- Use the nocompatible mode, which is much nicer than
+										     the plain vi mode -->
+										<arg value="-N" />
 
-							<!-- Permanently display status bar -->
-							<arg value="--cmd" />
-							<arg value="set laststatus=2" />
+										<!-- Permanently display status bar -->
+										<arg value="--cmd" />
+										<arg value="set laststatus=2" />
 
-							<!-- Enable highlighted search results -->
-							<arg value="--cmd" />
-							<arg value="set hls" />
-
-						</start>
-					</config>
-				</subsystem>
-				<subsystem name="signal" help="signalling test program">
-					<resource name="RAM" quantum="5M" />
-					<binary name="test-signal" />
-				</subsystem>
-				<subsystem name="ram_eater" help="resource-yield test program">
-					<resource name="RAM" quantum="25M" />
-					<binary name="test-resource_yield" />
-					<config child="yes" expand="yes" period_ms="100" />
-				</subsystem>
+										<!-- Enable highlighted search results -->
+										<arg value="--cmd" />
+										<arg value="set hls" />
+									</start>
+								</config>
+							</subsystem>
+						</inline>
+						<inline name="ram_eater.subsystem">
+							<subsystem name="ram_eater" help="resource-yield test program">
+								<resource name="RAM" quantum="25M" />
+								<binary name="test-resource_yield" />
+								<config child="yes" expand="yes" period_ms="100" />
+							</subsystem>
+						</inline>
+						<inline name="signal.subsystem">
+							<subsystem name="signal" help="signalling test program">
+								<resource name="RAM" quantum="5M" />
+								<binary name="test-signal" />
+							</subsystem>
+						</inline>
+					</dir>
+				</vfs>
 			</config>
 			<route>
 				<any-service> <child name="terminal_mux" /> <any-child/> <parent/> </any-service>

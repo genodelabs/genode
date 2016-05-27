@@ -9,9 +9,15 @@
 -include $(BUILD_BASE_DIR)/etc/okl4.conf
 
 #
-# If no OKL4 source directory is set, we use the standard contrib directory
+# If no OKL4 source directory is set, we use the standard contrib directory.
+# We do this with ifeq and := as ?= would be done lazy. Forcing the
+# evaluation of $(call select_from_ports,okl4) ensures that the kernel
+# port, if missing, is added to the missing-ports list of the first build
+# stage.
 #
-OKL4_DIR ?= $(call select_from_ports,okl4)/src/kernel/okl4
+ifeq ($(OKL4_DIR),)
+OKL4_DIR := $(call select_from_ports,okl4)/src/kernel/okl4
+endif
 
 #
 # Make sure that symlink modification times are handled correctly.

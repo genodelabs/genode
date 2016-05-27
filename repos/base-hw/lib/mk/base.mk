@@ -1,28 +1,8 @@
-#
-# \brief  Portions of base library that are exclusive to non-core processes
-# \author Norman Feske
-# \date   2013-02-14
-#
+include $(BASE_DIR)/lib/mk/base.inc
 
-# add library dependencies
-LIBS += base-common startup
-
-# add C++ sources
-SRC_CC += console/log_console.cc
-SRC_CC += cpu/cache.cc
-SRC_CC += env/env.cc
-SRC_CC += env/context_area.cc
-SRC_CC += env/reinitialize.cc
-SRC_CC += thread/start.cc
-SRC_CC += irq/platform.cc
+SRC_CC += thread_start.cc
 SRC_CC += env.cc
 SRC_CC += capability.cc
+SRC_CC += cache.cc
 
-# add include paths
-INC_DIR +=  $(REP_DIR)/src/base/lock
-INC_DIR += $(BASE_DIR)/src/base/lock
-INC_DIR += $(BASE_DIR)/src/base/env
-
-# declare source locations
-vpath %  $(REP_DIR)/src/base
-vpath % $(BASE_DIR)/src/base
+LIBS += startup

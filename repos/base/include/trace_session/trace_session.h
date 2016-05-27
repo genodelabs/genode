@@ -141,20 +141,10 @@ struct Genode::Trace::Session : Genode::Session
 	GENODE_RPC_THROW(Rpc_free, void, free,
 	                 GENODE_TYPE_LIST(Nonexistent_subject), Subject_id);
 
-	typedef Meta::Type_tuple<Rpc_dataspace,
-	        Meta::Type_tuple<Rpc_alloc_policy,
-	        Meta::Type_tuple<Rpc_policy,
-	        Meta::Type_tuple<Rpc_unload_policy,
-	        Meta::Type_tuple<Rpc_trace,
-	        Meta::Type_tuple<Rpc_rule,
-	        Meta::Type_tuple<Rpc_pause,
-	        Meta::Type_tuple<Rpc_resume,
-	        Meta::Type_tuple<Rpc_subjects,
-	        Meta::Type_tuple<Rpc_subject_info,
-	        Meta::Type_tuple<Rpc_buffer,
-	        Meta::Type_tuple<Rpc_free,
-	                         Meta::Empty>
-	        > > > > > > > > > > > Rpc_functions;
+	GENODE_RPC_INTERFACE(Rpc_dataspace, Rpc_alloc_policy, Rpc_policy,
+	                     Rpc_unload_policy, Rpc_trace, Rpc_rule, Rpc_pause,
+	                     Rpc_resume, Rpc_subjects, Rpc_subject_info, Rpc_buffer,
+	                     Rpc_free);
 };
 
 #endif /* _INCLUDE__TRACE_SESSION__TRACE_SESSION_H_ */

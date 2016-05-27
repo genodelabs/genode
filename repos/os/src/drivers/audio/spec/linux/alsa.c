@@ -18,13 +18,13 @@
 
 static snd_pcm_t *playback_handle;
 
-int audio_drv_init(void)
+int audio_drv_init(char const * const device)
 {
 	unsigned int rate = 44100;
 	int err;
 	snd_pcm_hw_params_t *hw_params;
 
-	if ((err = snd_pcm_open(&playback_handle, "hw", SND_PCM_STREAM_PLAYBACK, 0)) < 0)
+	if ((err = snd_pcm_open(&playback_handle, device, SND_PCM_STREAM_PLAYBACK, 0)) < 0)
 		return -1;
 
 	if ((err = snd_pcm_hw_params_malloc(&hw_params)) < 0)
@@ -61,9 +61,6 @@ int audio_drv_init(void)
 
 	return 0;
 }
-
-
-void audio_drv_adopt_myself() { }
 
 
 int audio_drv_play(void *data, int frame_cnt)

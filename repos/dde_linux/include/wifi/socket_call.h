@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -68,6 +68,7 @@ struct Wifi::Msghdr
 	unsigned  msg_namelen;
 	Iov       msg_iov[MAX_IOV_LEN];
 	unsigned  msg_iovlen;
+	unsigned  msg_count;
 	/* XXX recvmsg msg_flags ? */
 	void     *msg_control;
 	unsigned  msg_controllen;

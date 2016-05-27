@@ -10,12 +10,10 @@ install_config {
 			<service name="IRQ"/>
 			<service name="IO_MEM"/>
 			<service name="IO_PORT"/>
-			<service name="CAP"/>
 			<service name="PD"/>
 			<service name="RM"/>
 			<service name="CPU"/>
 			<service name="LOG"/>
-			<service name="SIGNAL"/>
 		</parent-provides>
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
@@ -52,6 +50,8 @@ append qemu_args "-nographic -m 128"
 run_genode_until {child "test-report_rom" exited with exit value 0.*\n} 30
 
 grep_output {^\[init -> test-report_rom}
+unify_output {\[init \-\> test\-report_rom\] upgrading quota donation for .* \([0-9]+ bytes\)} ""
+trim_lines
 
 compare_output_to {
 	[init -> test-report_rom] --- test-report_rom started ---

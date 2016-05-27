@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__PLATFORM__IMX53__DRIVERS__BOARD_BASE_SUPPORT_H_
-#define _INCLUDE__PLATFORM__IMX53__DRIVERS__BOARD_BASE_SUPPORT_H_
+#ifndef _INCLUDE__SPEC__IMX53__DRIVERS__BOARD_BASE_SUPPORT_H_
+#define _INCLUDE__SPEC__IMX53__DRIVERS__BOARD_BASE_SUPPORT_H_
 
 namespace Imx53 { struct Board_base; }
 
@@ -117,5 +117,4 @@ struct Imx53::Board_base
 	};
 };
 
-#endif /* _INCLUDE__PLATFORM__IMX53__DRIVERS__BOARD_BASE_SUPPORT_H_ */
-
+#endif /* _INCLUDE__SPEC__IMX53__DRIVERS__BOARD_BASE_SUPPORT_H_ */

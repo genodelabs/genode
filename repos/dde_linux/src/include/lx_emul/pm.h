@@ -23,7 +23,11 @@ struct device;
 
 typedef struct pm_message { int event; } pm_message_t;
 
-struct dev_pm_info { pm_message_t power_state; };
+struct dev_pm_info
+{
+	pm_message_t power_state;
+	bool         is_prepared;
+};
 
 struct dev_pm_ops {
 	int (*suspend)(struct device *dev);
@@ -34,10 +38,17 @@ struct dev_pm_ops {
 	int (*restore)(struct device *dev);
 	int (*runtime_suspend)(struct device *dev);
 	int (*runtime_resume)(struct device *dev);
+	int (*suspend_late)(struct device *dev);
+	int (*resume_early)(struct device *dev);
+	int (*freeze_late)(struct device *dev);
+	int (*thaw_early)(struct device *dev);
+	int (*poweroff_late)(struct device *dev);
+	int (*restore_early)(struct device *dev);
 };
 
 #define PMSG_IS_AUTO(msg) 0
 
 enum { PM_EVENT_AUTO_SUSPEND = 0x402 };
 
+#define PM_EVENT_FREEZE    0x0001
 #define PM_EVENT_SUSPEND   0x0002

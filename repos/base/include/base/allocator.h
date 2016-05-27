@@ -150,8 +150,14 @@ struct Genode::Range_allocator : Allocator
 		Value const value;
 		Alloc_return(Value value) : value(value) { }
 
-		bool is_ok()    const { return value == OK; }
-		bool is_error() const { return !is_ok(); }
+		bool ok()    const { return value == OK; }
+		bool error() const { return !ok(); }
+
+		/*
+		 * \deprecated  use 'ok' and 'error' instead
+		 */
+		bool is_ok()    const { return ok(); }
+		bool is_error() const { return error(); }
 	};
 
 	/**
@@ -163,7 +169,7 @@ struct Genode::Range_allocator : Allocator
 	 * \param align     alignment of new block specified
 	 *                  as the power of two
 	 */
-	virtual Alloc_return alloc_aligned(size_t size, void **out_addr, int align = 0, addr_t from=0, addr_t to = ~0UL) = 0;
+	virtual Alloc_return alloc_aligned(size_t size, void **out_addr, int align, addr_t from=0, addr_t to = ~0UL) = 0;
 
 	/**
 	 * Allocate block at address

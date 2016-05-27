@@ -22,14 +22,9 @@
 #include <util/mmio.h>
 
 /* Emulation */
-#include <platform/platform.h>
-#include <extern_c_begin.h>
 #include <lx_emul.h>
-#include <extern_c_end.h>
 #include <platform.h>
 
-/* Linux */
-#include <linux/platform_data/dwc3-exynos.h>
 
 using namespace Genode;
 
@@ -54,7 +49,6 @@ static resource _dwc3[] =
 	{ DWC3_IRQ, DWC3_IRQ, "dwc3-irq", IORESOURCE_IRQ },
 };
 
-static struct dwc3_exynos_data  _dwc3_data;
 
 /**
  * EHCI controller
@@ -293,8 +287,7 @@ extern "C" void module_usbnet_init();
 extern "C" void module_asix_driver_init();
 extern "C" void module_ax88179_178a_driver_init();
 extern "C" void module_dwc3_driver_init();
-extern "C" void module_xhci_hcd_init();
-
+extern "C" void module_xhci_plat_init();
 extern "C" void module_asix_init();
 
 
@@ -331,7 +324,7 @@ void xhci_setup(Services *services)
 		module_ax88179_178a_driver_init();
 
 	module_dwc3_driver_init();
-	module_xhci_hcd_init();
+	module_xhci_plat_init();
 
 	arndale_xhci_init();
 
@@ -341,7 +334,6 @@ void xhci_setup(Services *services)
 	pdev->id                = 0;
 	pdev->num_resources     = 2;
 	pdev->resource          = _dwc3;
-	pdev->dev.platform_data = &_dwc3_data;
 
 	/*needed for DMA buffer allocation. See 'hcd_buffer_alloc' in 'buffer.c' */
 	static u64 dma_mask         = ~(u64)0;

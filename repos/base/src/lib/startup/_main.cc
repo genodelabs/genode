@@ -2,6 +2,7 @@
  * \brief   Startup code
  * \author  Christian Helmuth
  * \author  Christian Prochaska
+ * \author  Norman Feske
  * \date    2006-04-12
  *
  * The startup code calls constructors for static objects before calling
@@ -12,25 +13,22 @@
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2006-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* Genode includes */
-#include <base/crt0.h>
 #include <base/env.h>
 #include <base/sleep.h>
 #include <base/printf.h>
+#include <base/component.h>
 
 /* platform-specific local helper functions */
-#include <_main_parent_cap.h>
+#include <startup/internal/_main_parent_cap.h>
+#include <base/internal/crt0.h>
 
-
-using namespace Genode;
-
-extern int main(int argc, char **argv, char **envp);
 
 enum { ATEXIT_SIZE = 256 };
 
@@ -64,9 +62,9 @@ static struct atexit
 } _atexit;
 
 
-static Lock &atexit_lock()
+static Genode::Lock &atexit_lock()
 {
-	static Lock _atexit_lock;
+	static Genode::Lock _atexit_lock;
 	return _atexit_lock;
 }
 
@@ -79,7 +77,7 @@ static void atexit_enable()
 
 static int atexit_register(struct atexit_fn *fn)
 {
-	Lock::Guard atexit_lock_guard(atexit_lock());
+	Genode::Lock::Guard atexit_lock_guard(atexit_lock());
 
 	if (!_atexit.enabled)
 		return 0;
@@ -188,10 +186,10 @@ void genode_exit(int status)
 	for (func = &_dtors_start; func != &_dtors_end; (*func++)());
 
 	/* inform parent about the exit status */
-	env()->parent()->exit(status);
+	Genode::env()->parent()->exit(status);
 
 	/* wait for destruction by the parent */
-	sleep_forever();
+	Genode::sleep_forever();
 }
 
 
@@ -213,15 +211,28 @@ int    genode_argc = 1;
 char **genode_envp = 0;
 
 
-namespace Genode { extern bool inhibit_tracing; }
+/******************************************************
+ ** C entry function called by the crt0 startup code **
+ ******************************************************/
 
 
-/**
- * C entry function called by the crt0 startup code
- *
- * Note, _main is executed twice when starting dynamic programs: in ld.lib.so
- * and also in the loaded binary.
- */
+namespace Genode {
+
+	/*
+	 * To be called from the context of the initial entrypoiny before
+	 * passing control to the 'Component::construct' function.
+	 */
+	void call_global_static_constructors()
+	{
+		void (**func)();
+		for (func = &_ctors_end; func != &_ctors_start; (*--func)());
+	}
+
+	/* XXX move to base-internal header */
+	extern void bootstrap_component();
+}
+
+
 extern "C" int _main()
 {
 	/*
@@ -234,20 +245,8 @@ extern "C" int _main()
 	 */
 	atexit_enable();
 
-	/* call constructors for static objects */
-	void (**func)();
-	for (func = &_ctors_end; func != &_ctors_start; (*--func)());
+	Genode::bootstrap_component();
 
-	/* now, it is save to call printf */
-
-	/* enable tracing support */
-	inhibit_tracing = false;
-
-	/* call real main function */
-	int ret = main(genode_argc, genode_argv, genode_envp);
-
-	genode_exit(ret);
-
-	/* not reached */
-	return ret;
+	/* never reached */
+	return 0;
 }

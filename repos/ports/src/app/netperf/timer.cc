@@ -18,7 +18,7 @@
 
 using namespace Genode;
 
-class Alarm_thread : Thread<4096>, public Alarm_scheduler
+class Alarm_thread : Thread_deprecated<4096>, public Alarm_scheduler
 {
 	private:
 
@@ -44,7 +44,7 @@ class Alarm_thread : Thread<4096>, public Alarm_scheduler
 		/**
 		 * Constructor
 		 */
-		Alarm_thread(): Thread("netperf_alarm"), _curr_time(0) { start(); }
+		Alarm_thread(): Thread_deprecated("netperf_alarm"), _curr_time(0) { start(); }
 
 		Alarm::Time curr_time() { return _curr_time; }
 };

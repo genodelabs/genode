@@ -19,7 +19,7 @@ ifeq ($(L4_BUILD_DIR),$(BUILD_BASE_DIR)/l4)
 all: $(L4_SRC_DIR)
 
 $(L4_SRC_DIR):
-	$(VERBOSE)$(ECHO) "--> Please, execute 'make prepare' in $(REP_DIR)"
+	$(VERBOSE)$(ECHO) "--> Please, execute './tool/ports/prepare_port fiasco' in $(GENODE_DIR)"
 	$(VERBOSE)$(ECHO) "--> before compiling Genode apps for Fiasco."
 	$(VERBOSE)exit 1
 endif

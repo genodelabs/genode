@@ -17,12 +17,9 @@
 #include <nic_session/connection.h>
 #include <nic/packet_allocator.h>
 
-#include "env.h"
-#include "packet_handler.h"
+#include <packet_handler.h>
 
-namespace Net {
-	class Nic;
-}
+namespace Net { class Nic; }
 
 
 class Net::Nic : public Net::Packet_handler
@@ -40,7 +37,7 @@ class Net::Nic : public Net::Packet_handler
 
 	public:
 
-		Nic();
+		Nic(Server::Entrypoint&, Vlan&);
 
 		::Nic::Connection          *nic() { return &_nic; }
 		Ethernet_frame::Mac_address mac() { return _mac; }

@@ -69,7 +69,7 @@ static Hard_context * main_thread()
 
 static Hard_context *myself()
 {
-	Hard_context *h = dynamic_cast<Hard_context *>(Genode::Thread_base::myself());
+	Hard_context *h = dynamic_cast<Hard_context *>(Genode::Thread::myself());
 	return h ? h : main_thread();
 }
 

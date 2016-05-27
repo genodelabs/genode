@@ -40,7 +40,6 @@ set config {
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="RAM"/>
-		<service name="CAP"/>
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
@@ -48,7 +47,6 @@ set config {
 		<service name="RM"/>
 		<service name="CPU"/>
 		<service name="LOG"/>
-		<service name="SIGNAL"/>
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
@@ -134,8 +132,8 @@ catch { exec sh -c $cmd }
 # Qemu
 #
 append qemu_args " -m 128 -nographic "
-append_if $use_ahci_drv    qemu_args " -drive id=disk,file=$disk_image,if=none -device ahci,id=ahci -device ide-drive,drive=disk,bus=ahci.0 -boot d"
-append_if $use_sd_card_drv qemu_args " -drive file=$disk_image,if=sd,cache=writeback "
+append_if $use_ahci_drv    qemu_args " -drive id=disk,file=$disk_image,format=raw,if=none -device ahci,id=ahci -device ide-drive,drive=disk,bus=ahci.0 -boot d"
+append_if $use_sd_card_drv qemu_args " -drive file=$disk_image,format=raw,if=sd,cache=writeback "
 
 run_genode_until {.*child "test-libc_vfs" exited with exit value 0.*} 60
 

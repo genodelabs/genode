@@ -43,6 +43,8 @@ class Input::Session_component : public Rpc_object<Session>
 		Motion_delta  &_motion_delta;
 		Event  * const _ev_buf;
 
+		Genode::Signal_context_capability _sigh;
+
 	public:
 
 		/**
@@ -67,7 +69,7 @@ class Input::Session_component : public Rpc_object<Session>
 
 		Dataspace_capability dataspace() override { return _real_input.dataspace(); }
 
-		bool is_pending() const override { return _real_input.is_pending(); }
+		bool pending() const override { return _real_input.pending(); }
 
 		int flush() override
 		{
@@ -99,6 +101,12 @@ class Input::Session_component : public Rpc_object<Session>
 
 		void sigh(Signal_context_capability sigh) override
 		{
+			/*
+			 * Maintain local copy of signal-context capability to keep
+			 * NOVA from flushing transitive delegations of the capability.
+			 */
+			_sigh = sigh;
+
 			_real_input.sigh(sigh);
 		}
 };

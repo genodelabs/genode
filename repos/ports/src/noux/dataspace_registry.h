@@ -44,7 +44,7 @@ namespace Noux {
 			Dataspace_info(Dataspace_capability ds_cap)
 			:
 				Object_pool<Dataspace_info>::Entry(ds_cap),
-				_size(Dataspace_client(ds_cap).size()),
+				_size(ds_cap.valid() ? Dataspace_client(ds_cap).size() : 0),
 				_ds_cap(ds_cap)
 			{ }
 
@@ -106,14 +106,14 @@ namespace Noux {
 			virtual void poke(addr_t dst_offset, void const *src, size_t len) = 0;
 
 			/**
-			 * Return leaf RM session that covers a given address
+			 * Return leaf region map that covers a given address
 			 *
-			 * \param addr  address that is covered by the requested RM session
+			 * \param addr  address that is covered by the requested region map
 			 */
-			virtual Rm_session_capability lookup_rm_session(addr_t const addr)
+			virtual Capability<Region_map> lookup_region_map(addr_t const addr)
 			{
-				/* by default a dataspace is no sub RM, so return invalid */
-				return Rm_session_capability();
+				/* by default a dataspace is no sub region map, so return invalid */
+				return Capability<Region_map>();
 			}
 	};
 

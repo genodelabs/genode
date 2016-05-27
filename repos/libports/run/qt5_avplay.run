@@ -80,7 +80,7 @@ append boot_modules {
 	icu.lib.so
 	ld.lib.so
 	libc.lib.so
-	libc_lock_pipe.lib.so
+	libc_pipe.lib.so
 	libm.lib.so
 	libpng.lib.so
 	jpeg.lib.so
@@ -95,6 +95,7 @@ append boot_modules {
 	avformat.lib.so
 	avutil.lib.so
 	avfilter.lib.so
+	avresample.lib.so
 	swscale.lib.so
 	sdl.lib.so
 	pthread.lib.so

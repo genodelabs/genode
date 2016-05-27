@@ -610,7 +610,7 @@ int main(int, char **)
 
 		flush_callback_registry.flush();
 
-		while (!input.is_pending()) {
+		while (!input.pending()) {
 			enum { PASSED_MSECS = 10 };
 			timer.msleep(PASSED_MSECS);
 

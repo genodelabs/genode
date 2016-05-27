@@ -45,7 +45,7 @@ namespace Input {
 
 			Dataspace_capability dataspace() override { return ev_ds_cap; }
 
-			bool is_pending() const override { return 0; }
+			bool pending() const override { return 0; }
 
 			int flush() override
 			{

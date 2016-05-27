@@ -19,8 +19,8 @@ namespace File_system {
 	{
 		private:
 
-			Lock           _lock;
-			List<Listener> _listeners;
+			Genode::Lock           _lock;
+			Genode::List<Listener> _listeners;
 
 		public:
 

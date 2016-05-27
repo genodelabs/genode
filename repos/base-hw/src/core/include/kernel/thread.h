@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _KERNEL__THREAD_H_
-#define _KERNEL__THREAD_H_
+#ifndef _CORE__INCLUDE__KERNEL__THREAD_H_
+#define _CORE__INCLUDE__KERNEL__THREAD_H_
 
 /* core includes */
 #include <kernel/signal_receiver.h>
@@ -77,9 +77,9 @@ class Kernel::Thread_event : public Signal_ack_handler
  */
 class Kernel::Thread
 :
-	public Kernel::Object, public Cpu::User_context, public Cpu_domain_update,
+	public Kernel::Object, public Cpu_job, public Cpu_domain_update,
 	public Ipc_node, public Signal_context_killer, public Signal_handler,
-	public Cpu_job
+	private Timeout
 {
 	friend class Thread_event;
 	friend class Core_thread;
@@ -107,6 +107,7 @@ class Kernel::Thread
 		State              _state;
 		Signal_receiver *  _signal_receiver;
 		char const * const _label;
+		capid_t            _timeout_sigid = 0;
 
 		void _init();
 
@@ -190,7 +191,7 @@ class Kernel::Thread
 		void _call();
 
 		/**
-		 * Return amount of timer tics that 'quota' is worth 
+		 * Return amount of timer tics that 'quota' is worth
 		 */
 		size_t _core_to_kernel_quota(size_t const quota) const;
 
@@ -246,6 +247,9 @@ class Kernel::Thread
 		void _call_delete_obj();
 		void _call_ack_cap();
 		void _call_delete_cap();
+		void _call_timeout();
+		void _call_timeout_age_us();
+		void _call_timeout_max_us();
 
 		template <typename T, typename... ARGS>
 		void _call_new(ARGS &&... args)
@@ -346,6 +350,13 @@ class Kernel::Thread
 		Cpu_job * helping_sink();
 
 
+		/*************
+		 ** Timeout **
+		 *************/
+
+		void timeout_triggered();
+
+
 		/***************
 		 ** Accessors **
 		 ***************/
@@ -372,4 +383,4 @@ class Kernel::Core_thread : public Core_object<Kernel::Thread>
 		static Thread & singleton();
 };
 
-#endif /* _KERNEL__THREAD_H_ */
+#endif /* _CORE__INCLUDE__KERNEL__THREAD_H_ */

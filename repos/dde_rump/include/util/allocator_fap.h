@@ -17,6 +17,7 @@
 #include <base/allocator_avl.h>
 #include <dataspace/client.h>
 #include <rm_session/connection.h>
+#include <region_map/client.h>
 
 
 namespace Allocator {
@@ -48,7 +49,8 @@ namespace Allocator {
 	 */
 	template <unsigned VM_SIZE, typename POLICY = Default_allocator_policy>
 	class Backend_alloc : public Genode::Allocator,
-	                      public Genode::Rm_connection
+	                      public Genode::Rm_connection,
+	                      public Genode::Region_map_client
 	{
 		private:
 
@@ -84,14 +86,14 @@ namespace Allocator {
 				try {
 					_ds_cap[_index] =  Genode::env()->ram_session()->alloc(BLOCK_SIZE, _cached);
 					/* attach at index * BLOCK_SIZE */
-					Rm_connection::attach_at(_ds_cap[_index], _index * BLOCK_SIZE, BLOCK_SIZE, 0);
+					Region_map_client::attach_at(_ds_cap[_index], _index * BLOCK_SIZE, BLOCK_SIZE, 0);
 					/* lookup phys. address */
 					_ds_phys[_index] = Genode::Dataspace_client(_ds_cap[_index]).phys_addr();
 				} catch (Genode::Ram_session::Quota_exceeded) {
 					PWRN("Backend allocator exhausted");
 					_quota_exceeded = true;
 					return false;
-				} catch (Genode::Rm_session::Attach_failed) {
+				} catch (Genode::Region_map::Attach_failed) {
 					PWRN("Backend VM region exhausted");
 					_quota_exceeded = true;
 					return false;
@@ -108,8 +110,10 @@ namespace Allocator {
 		public:
 
 			Backend_alloc(Cache_attribute cached)
-			: Rm_connection(0, VM_SIZE), _cached(cached),
-			  _range(Genode::env()->heap())
+			:
+				Region_map_client(Rm_connection::create(VM_SIZE)),
+				_cached(cached),
+				_range(Genode::env()->heap())
 			{
 				/* reserver attach us, anywere */
 				_base = Genode::env()->rm_session()->attach(dataspace());
@@ -136,13 +140,13 @@ namespace Allocator {
 			{
 				void *addr;
 
-				if (!_range.alloc_aligned(size, &addr, align).is_error())
+				if (!_range.alloc_aligned(size, &addr, align).error())
 					return addr;
 
 				if (!_alloc_block())
 					return 0;
 
-				if (_range.alloc_aligned(size, &addr, align).is_error()) {
+				if (_range.alloc_aligned(size, &addr, align).error()) {
 					PERR("Backend allocator: Unable to allocate memory (size: %zu align: %d:)",
 					     size, align);
 					return 0;

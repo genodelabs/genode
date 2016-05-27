@@ -38,7 +38,7 @@ class Kdb_uart : public Uart::Driver
 
 		enum { STACK_SIZE = 2*1024*sizeof(addr_t) };
 
-		class Char_avail_checker_thread : public Thread<STACK_SIZE>
+		class Char_avail_checker_thread : public Thread_deprecated<STACK_SIZE>
 		{
 			private:
 
@@ -50,7 +50,7 @@ class Kdb_uart : public Uart::Driver
 				Char_avail_checker_thread(Uart::Driver &uart_driver,
 				                          Uart::Char_avail_callback &char_avail_callback)
 				:
-					Thread<STACK_SIZE>("char_avail_handler"),
+					Thread_deprecated<STACK_SIZE>("char_avail_handler"),
 					_uart_driver(uart_driver),
 					_char_avail_callback(char_avail_callback)
 				{ }

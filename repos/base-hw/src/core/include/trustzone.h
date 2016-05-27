@@ -18,7 +18,7 @@
 #include <pic.h>
 
 namespace Kernel {
-	void init_trustzone(Pic * pic);
+	void init_trustzone(Pic & pic);
 }
 
 #endif /* _CORE__INCLUDE__TRUSTZONE_H_ */

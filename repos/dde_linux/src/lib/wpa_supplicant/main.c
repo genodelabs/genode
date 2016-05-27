@@ -32,9 +32,11 @@
 #include "common.h"
 #include "wpa_supplicant_i.h"
 
+
 static char const *conf_file = "/config/wpa_supplicant.conf";
 
-int wpa_main(void)
+
+int wpa_main(int debug_msg)
 {
 	struct wpa_interface iface;
 	int exitcode = 0;
@@ -43,8 +45,7 @@ int wpa_main(void)
 
 	memset(&params, 0, sizeof(params));
 
-	params.wpa_debug_level = MSG_INFO;
-	// params.wpa_debug_level = MSG_DEBUG;
+	params.wpa_debug_level = debug_msg ? MSG_DEBUG : MSG_INFO;
 
 	global = wpa_supplicant_init(&params);
 	if (global == NULL)

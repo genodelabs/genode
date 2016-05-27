@@ -39,17 +39,25 @@ class Genode::Fifo
 
 				friend class Fifo;
 
-				QT *_next;
-				bool _is_enqueued;
+				QT  *_next;
+				bool _enqueued;
 
 			public:
 
-				Element(): _next(0), _is_enqueued(false) { }
+				Element(): _next(0), _enqueued(false) { }
 
 				/**
 				 * Return true is fifo element is enqueued in a fifo
 				 */
-				bool is_enqueued() { return _is_enqueued; }
+				bool enqueued() { return _enqueued; }
+
+				/**
+				 * Return true is fifo element is enqueued in a fifo
+				 *
+				 * \noapi
+				 * \deprecated  use 'enqueued' instead
+				 */
+				bool is_enqueued() { return enqueued(); }
 
 				/**
 				 * Return next element in queue
@@ -107,7 +115,7 @@ class Genode::Fifo
 			}
 
 			qe->Element::_next = 0;
-			qe->Element::_is_enqueued = 0;
+			qe->Element::_enqueued = 0;
 		}
 
 		/**
@@ -116,7 +124,7 @@ class Genode::Fifo
 		void enqueue(QT *e)
 		{
 			e->Fifo::Element::_next = 0;
-			e->Fifo::Element::_is_enqueued = true;
+			e->Fifo::Element::_enqueued = true;
 
 			if (empty()) {
 				_tail = _head = e;
@@ -146,7 +154,7 @@ class Genode::Fifo
 			/* mark fifo queue element as free */
 			if (result) {
 				result->Fifo::Element::_next = 0;
-				result->Fifo::Element::_is_enqueued = false;
+				result->Fifo::Element::_enqueued = false;
 			}
 
 			return result;

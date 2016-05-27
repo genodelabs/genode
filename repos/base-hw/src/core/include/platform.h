@@ -28,7 +28,7 @@
 /* core includes */
 #include <translation_table_allocator_tpl.h>
 #include <platform_generic.h>
-#include <core_rm_session.h>
+#include <core_region_map.h>
 #include <core_mem_alloc.h>
 
 namespace Genode {
@@ -122,6 +122,19 @@ namespace Genode {
 			                           unsigned polarity);
 
 			/**
+			 * Get MSI-related parameters from device PCI config space
+			 *
+			 * \param mmconf      PCI config space address of device
+			 * \param address     MSI address register value to use
+			 * \param data        MSI data register value to use
+			 * \param irq_number  IRQ to use
+			 *
+			 * \return  true if the device is MSI-capable, false if not
+			 */
+			static bool get_msi_params(const addr_t mmconf,
+			                           addr_t &address, addr_t &data,
+			                           unsigned &irq_number);
+			/**
 			 * Return address of cores translation table allocator
 			 */
 			static addr_t core_translation_tables();
@@ -171,4 +184,3 @@ namespace Genode {
 }
 
 #endif /* _CORE__INCLUDE__PLATFORM_H_ */
-
