@@ -58,6 +58,12 @@ void Genode::print(Output &output, unsigned long value)
 }
 
 
+void Genode::print(Output &output, unsigned long long value)
+{
+	out_unsigned<unsigned long long>(value, 10, 0, [&] (char c) { output.out_char(c); });
+}
+
+
 void Genode::print(Output &output, long value)
 {
 	out_signed<long>(value, 10, [&] (char c) { output.out_char(c); });

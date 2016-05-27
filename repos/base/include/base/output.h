@@ -72,6 +72,11 @@ namespace Genode {
 	void print(Output &output, unsigned long);
 
 	/**
+	 * Print unsigned long long value
+	 */
+	void print(Output &output, unsigned long long);
+
+	/**
 	 * Print unsigned integer value
 	 */
 	static inline void print(Output &output, unsigned value)
