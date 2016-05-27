@@ -13,16 +13,17 @@
 
 /* Genode includes */
 #include <base/allocator_avl.h>
+#include <base/attached_rom_dataspace.h>
+#include <base/component.h>
+#include <base/log.h>
 #include <block/component.h>
 #include <block/driver.h>
 #include <block_session/connection.h>
-#include <os/config.h>
 #include <os/reporter.h>
-#include <os/server.h>
 #include <timer_session/connection.h>
 #include <usb/usb.h>
 
-
+/* used by cbw_csw.h so declare it here */
 static bool verbose_scsi = false;
 
 /* local includes */
@@ -33,6 +34,7 @@ namespace Usb {
 	using namespace Genode;
 
 	struct Block_driver;
+	struct Main;
 }
 
 
@@ -43,9 +45,10 @@ namespace Usb {
 struct Usb::Block_driver : Usb::Completion,
                            Block::Driver
 {
-	Server::Entrypoint &ep;
+	Env        &env;
+	Entrypoint &ep;
 
-	Genode::Signal_context_capability announce_sigh;
+	Signal_context_capability announce_sigh;
 
 	/*
 	 * Pending block request
@@ -66,7 +69,7 @@ struct Usb::Block_driver : Usb::Completion,
 	/**
 	 * Handle stage change signal
 	 */
-	void handle_state_change(unsigned)
+	void handle_state_change()
 	{
 		if (!usb.plugged()) {
 			PDBG("Device unplugged");
@@ -75,43 +78,61 @@ struct Usb::Block_driver : Usb::Completion,
 		}
 
 		if (initialized) {
-			PERR("Device was already initialized");
+			Genode::error("Device was already initialized");
 			return;
 		}
 
 		PDBG("Device plugged");
 
-		if (initialize())
-			Genode::Signal_transmitter(announce_sigh).submit();
+		if (!initialize()) {
+			return;
+		}
+
+		/* all is well, announce the device */
+		Signal_transmitter(announce_sigh).submit();
 	}
 
-	Server::Signal_rpc_member<Block_driver> state_change_dispatcher = {
+	Signal_handler<Block_driver> state_change_dispatcher = {
 		ep, *this, &Block_driver::handle_state_change };
+
+	/*
+	 * Config ROM
+	 */
+	Attached_rom_dataspace config { env, "config" };
 
 	/*
 	 * Read Usb session label from the configuration
 	 */
-	static char const *get_label()
+	static char const *get_label(Xml_node node)
 	{
 		static Genode::String<256> usb_label;
 		try {
-			Genode::config()->xml_node().attribute("label").value(&usb_label);
+			node.attribute("label").value(&usb_label);
 			return usb_label.string();
 		} catch (...) { }
 
 		return "usb_storage";
 	}
 
-	Genode::Allocator_avl alloc;
-	Usb::Connection       usb { &alloc, get_label(), 2 * (1<<20), state_change_dispatcher };
-	Usb::Device           device;
+	/*
+	 * USB session
+	 */
+	Allocator_avl   alloc;
+	Usb::Connection usb { env, &alloc, get_label(config.xml()), 2 * (1<<20), state_change_dispatcher };
+	Usb::Device     device;
 
-	Genode::Reporter reporter { "devices" };
+	/*
+	 * Reporter
+	 */
+	Reporter reporter { "devices" };
 	bool _report_device = false;
 
+	/*
+	 * Block session
+	 */
 	Block::Session::Operations _block_ops;
 	Block::sector_t            _block_count;
-	Genode::size_t             _block_size;
+	size_t                     _block_size;
 
 	bool _writeable = false;
 
@@ -143,10 +164,10 @@ struct Usb::Block_driver : Usb::Completion,
 		bool try_again     = false;
 
 		Usb::Device &device;
-		uint8_t interface;
+		uint8_t      interface;
 
 		Block::sector_t block_count;
-		Genode::size_t  block_size;
+		size_t          block_size;
 
 		char vendor[Scsi::Inquiry_response::Vid::ITEMS+1];
 		char product[Scsi::Inquiry_response::Pid::ITEMS+1];
@@ -159,13 +180,13 @@ struct Usb::Block_driver : Usb::Completion,
 			Interface iface = device.interface(interface);
 
 			if (p.type != Packet_descriptor::BULK) {
-				PERR("Can only handle BULK packets");
+				Genode::error("Can only handle BULK packets");
 				iface.release(p);
 				return;
 			}
 
 			if (!p.succeded) {
-				PERR("init complete error: packet not succeded");
+				Genode::error("init complete error: packet not succeded");
 				iface.release(p);
 				return;
 			}
@@ -188,8 +209,9 @@ struct Usb::Block_driver : Usb::Completion,
 				Inquiry_response r((addr_t)data);
 				if (verbose_scsi) r.dump();
 
-				if (!r.sbc())
-					PWRN("Device does not use SCSI Block Commands and may not work");
+				if (!r.sbc()) {
+					Genode::warning("Device does not use SCSI Block Commands and may not work");
+				}
 
 				r.get_id<Inquiry_response::Vid>(vendor, sizeof(vendor));
 				r.get_id<Inquiry_response::Pid>(product, sizeof(product));
@@ -224,15 +246,17 @@ struct Usb::Block_driver : Usb::Completion,
 				enum { MEDIUM_NOT_PRESENT = 0x3a, NOT_READY_TO_READY_CHANGE = 0x28 };
 				switch (asc) {
 				case MEDIUM_NOT_PRESENT:
-					PERR("Not ready - medium not present");
+					Genode::error("Not ready - medium not present");
 					no_medium = true;
 					break;
 				case NOT_READY_TO_READY_CHANGE: /* asq == 0x00 */
-					PWRN("Not ready - try again");
+					Genode::warning("Not ready - try again");
 					try_again = true;
 					break;
 				default:
-					PERR("Request_sense_response asc: 0x%02x asq: 0x%02x", asc, asq);
+					Genode::error("Request_sense_response asc: ",
+					              Hex(asc, Hex::PREFIX, Hex::PAD),
+					              " asq: ", Hex(asq, Hex::PREFIX, Hex::PAD));
 					break;
 				}
 				break;
@@ -243,14 +267,16 @@ struct Usb::Block_driver : Usb::Completion,
 
 				uint32_t const sig = csw.sig();
 				if (sig != Csw::SIG) {
-					PERR("CSW signature does not match: 0x%04x", sig);
+					Genode::error("CSW signature does not match: ",
+					              Hex(sig, Hex::PREFIX, Hex::PAD));
 					break;
 				}
 
 				uint32_t const   tag = csw.tag();
 				uint8_t const status = csw.sts();
 				if (status != Csw::PASSED) {
-					PERR("CSW failed: 0x%02x tag: %u", status, tag);
+					Genode::error("CSW failed: ", Hex(status, Hex::PREFIX, Hex::PAD),
+					              " tag: ", tag);
 					break;
 				}
 
@@ -270,37 +296,37 @@ struct Usb::Block_driver : Usb::Completion,
 	/**
 	 * Send CBW
 	 */
-	void cbw(void *cb, Completion *c, bool block = false)
+	void cbw(void *cb, Completion &c, bool block = false)
 	{
 		enum { CBW_VALID_SIZE = Cbw::LENGTH };
 		Usb::Interface     &iface = device.interface(active_interface);
 		Usb::Endpoint         &ep = iface.endpoint(OUT);
 		Usb::Packet_descriptor  p = iface.alloc(CBW_VALID_SIZE);
 		memcpy(iface.content(p), cb, CBW_VALID_SIZE);
-		iface.bulk_transfer(p, ep, 0, block, c);
+		iface.bulk_transfer(p, ep, 0, block, &c);
 	}
 
 	/**
 	 * Receive CSW
 	 */
-	void csw(Completion *c, bool block = false)
+	void csw(Completion &c, bool block = false)
 	{
 		enum { CSW_VALID_SIZE = Csw::LENGTH };
 		Usb::Interface     &iface = device.interface(active_interface);
 		Usb::Endpoint         &ep = iface.endpoint(IN);
 		Usb::Packet_descriptor  p = iface.alloc(CSW_VALID_SIZE);
-		iface.bulk_transfer(p, ep, 0, block, c);
+		iface.bulk_transfer(p, ep, 0, block, &c);
 	}
 
 	/**
 	 * Receive response
 	 */
-	void resp(size_t size, Completion *c, bool block = false)
+	void resp(size_t size, Completion &c, bool block = false)
 	{
 		Usb::Interface     &iface = device.interface(active_interface);
 		Usb::Endpoint         &ep = iface.endpoint(IN);
 		Usb::Packet_descriptor  p = iface.alloc(size);
-		iface.bulk_transfer(p, ep, 0, block, c);
+		iface.bulk_transfer(p, ep, 0, block, &c);
 	}
 
 	/**
@@ -319,7 +345,7 @@ struct Usb::Block_driver : Usb::Completion,
 					xml.attribute("writeable", _writeable);
 				});
 			});
-		} catch (...) { PWRN("Could not report block device"); }
+		} catch (...) { Genode::warning("Could not report block device"); }
 	}
 
 	/**
@@ -338,10 +364,10 @@ struct Usb::Block_driver : Usb::Completion,
 		Interface &iface = device.interface(active_interface);
 		try { iface.claim(); }
 		catch (Usb::Session::Interface_already_claimed) {
-			PERR("Device already claimed");
+			Genode::error("Device already claimed");
 			return false;
 		} catch (Usb::Session::Interface_not_found) {
-			PERR("Interface not found");
+			Genode::error("Interface not found");
 			return false;
 		}
 
@@ -357,11 +383,11 @@ struct Usb::Block_driver : Usb::Completion,
 			if (alt_iface.iclass != ICLASS_MASS_STORAGE
 				|| alt_iface.isubclass != ISUBCLASS_SCSI
 				|| alt_iface.iprotocol != IPROTO_BULK_ONLY) {
-				PERR("No mass storage SCSI bulk-only device");
+				Genode::error("No mass storage SCSI bulk-only device");
 				return false;
 			}
 		} catch (Usb::Session::Interface_not_found) {
-			PERR("Interface not found");
+			Genode::error("Interface not found");
 			return false;
 		}
 
@@ -370,7 +396,7 @@ struct Usb::Block_driver : Usb::Completion,
 			Usb::Packet_descriptor p = iface.alloc(0);
 			iface.control_transfer(p, 0x21, 0xff, 0, active_interface, 100);
 			if (!p.succeded) {
-				PERR("Could not reset device");
+				Genode::error("Could not reset device");
 				throw -1;
 			}
 
@@ -400,18 +426,18 @@ struct Usb::Block_driver : Usb::Completion,
 			/* Scsi::Opcode::INQUIRY */
 			Inquiry inq((addr_t)cbw_buffer, INQ_TAG, active_lun);
 
-			cbw(cbw_buffer, &init, true);
-			resp(Scsi::Inquiry_response::LENGTH, &init, true);
-			csw(&init, true);
+			cbw(cbw_buffer, init, true);
+			resp(Scsi::Inquiry_response::LENGTH, init, true);
+			csw(init, true);
 
 			if (!init.inquiry) {
-				PWRN("Inquiry_cmd failed");
+				Genode::warning("Inquiry_cmd failed");
 				throw -1;
 			}
 
 			/* Scsi::Opcode::TEST_UNIT_READY */
 			{
-				Timer::Connection timer;
+				Timer::Connection timer { env };
 				/*
 				 * It might take some time for devices to get ready (e.g. the ZTE Open C
 				 * takes 3 retries to actually present us a medium and another try to
@@ -422,17 +448,17 @@ struct Usb::Block_driver : Usb::Completion,
 				for (retries = 0; retries < MAX_RETRIES; retries++) {
 					Test_unit_ready unit_ready((addr_t)cbw_buffer, RDY_TAG, active_lun);
 
-					cbw(cbw_buffer, &init, true);
-					csw(&init, true);
+					cbw(cbw_buffer, init, true);
+					csw(init, true);
 
 					if (!init.unit_ready) {
 						Request_sense sense((addr_t)cbw_buffer, REQ_TAG, active_lun);
 
-						cbw(cbw_buffer, &init, true);
-						resp(Scsi::Request_sense_response::LENGTH, &init, true);
-						csw(&init, true);
+						cbw(cbw_buffer, init, true);
+						resp(Scsi::Request_sense_response::LENGTH, init, true);
+						csw(init, true);
 						if (!init.request_sense) {
-							PWRN("Request_sense failed");
+							Genode::warning("Request_sense failed");
 							throw -1;
 						}
 
@@ -446,7 +472,7 @@ struct Usb::Block_driver : Usb::Completion,
 					timer.msleep(1000);
 				}
 				if (retries == MAX_RETRIES) {
-					PWRN("Test_unit_ready_cmd failed");
+					Genode::warning("Test_unit_ready_cmd failed");
 					throw -1;
 				}
 			}
@@ -454,24 +480,24 @@ struct Usb::Block_driver : Usb::Completion,
 			/* Scsi::Opcode::READ_CAPACITY_16 */
 			Read_capacity_16 read_cap((addr_t)cbw_buffer, CAP_TAG, active_lun);
 
-			cbw(cbw_buffer, &init, true);
-			resp(Scsi::Capacity_response_16::LENGTH, &init, true);
-			csw(&init, true);
+			cbw(cbw_buffer, init, true);
+			resp(Scsi::Capacity_response_16::LENGTH, init, true);
+			csw(init, true);
 
 			if (!init.read_capacity) {
 				/* try Scsi::Opcode::READ_CAPACITY_10 next */
 				Read_capacity_10 read_cap((addr_t)cbw_buffer, CAP_TAG, active_lun);
 
-				cbw(cbw_buffer, &init, true);
-				resp(Scsi::Capacity_response_10::LENGTH, &init, true);
-				csw(&init, true);
+				cbw(cbw_buffer, init, true);
+				resp(Scsi::Capacity_response_10::LENGTH, init, true);
+				csw(init, true);
 
 				if (!init.read_capacity) {
-					PWRN("Read_capacity_cmd failed");
+					Genode::warning("Read_capacity_cmd failed");
 					throw -1;
 				}
 
-				PWRN("Device does not support CDB 16-byte commands, force 10-byte commands");
+				Genode::warning("Device does not support CDB 16-byte commands, force 10-byte commands");
 				force_cmd_10 = true;
 			}
 
@@ -487,8 +513,9 @@ struct Usb::Block_driver : Usb::Completion,
 			device.manufactorer_string.to_char(vendor, sizeof(vendor));
 			device.product_string.to_char(product, sizeof(product));
 
-			PINF("Found USB device: %s (%s) block size: %zu count: %llu",
-				 vendor, product, _block_size, _block_count);
+			Genode::log("Found USB device: ", (char const*)vendor, " (",
+			            (char const*)product, ") block size: ", _block_size,
+			            " count: ", _block_count);
 
 			if (_report_device)
 				report_device(init.vendor, init.product,
@@ -496,11 +523,11 @@ struct Usb::Block_driver : Usb::Completion,
 			return true;
 		} catch (int) {
 			/* handle command failures */
-			PERR("Could not initialize storage device");
+			Genode::error("Could not initialize storage device");
 			return false;
 		} catch (...) {
 			/* handle Usb::Session failures */
-			PERR("Could not initialize storage device");
+			Genode::error("Could not initialize storage device");
 			throw;
 		}
 		return false;
@@ -554,16 +581,17 @@ struct Usb::Block_driver : Usb::Completion,
 		Interface iface = device.interface(active_interface);
 
 		if (p.type != Packet_descriptor::BULK) {
-			PERR("No BULK packet");
+			Genode::error("No BULK packet");
 			iface.release(p);
 			return;
 		}
 
 		if (!p.succeded) {
-			PERR("complete error: packet not succeded");
+			Genode::error("complete error: packet not succeded");
 			if (req.pending) {
-				PERR("req.pending: tag: %u is_read: %d buffer: %p lba: %llu size: %zu",
-				     active_tag, req.read, req.buffer, req.lba, req.size);
+				Genode::error("request pending: tag: ", active_tag, " read: ",
+				              (int)req.read, " buffer: ", req.buffer, " lba: ",
+				              req.lba, " size: ", req.size);
 				ack_pending_request(false);
 			}
 			iface.release(p);
@@ -583,7 +611,7 @@ struct Usb::Block_driver : Usb::Completion,
 					request_executed = execute_pending_request();
 				} else {
 					/* the content was successfully written, get the CSW */
-					csw(this);
+					csw(*this);
 				}
 			}
 
@@ -593,7 +621,7 @@ struct Usb::Block_driver : Usb::Completion,
 
 		int actual_size = p.transfer.actual_size;
 		if (actual_size < 0) {
-			PERR("Transfer actual size: %d", actual_size);
+			Genode::error("Transfer actual size: ", actual_size);
 			actual_size = 0;
 		}
 
@@ -603,7 +631,7 @@ struct Usb::Block_driver : Usb::Completion,
 
 				/* the content was successfully read, get the CSW */
 				memcpy(req.buffer, iface.content(p), actual_size);
-				csw(this);
+				csw(*this);
 			}
 
 			iface.release(p);
@@ -612,33 +640,37 @@ struct Usb::Block_driver : Usb::Completion,
 
 		/* when ending up here, we should have gotten an CSW packet */
 		if (actual_size != Csw::LENGTH)
-			PWRN("This is not the actual size you are looking for");
+			Genode::warning("This is not the actual size you are looking for");
 
 		do {
 			Csw csw((addr_t)iface.content(p));
 
 			uint32_t const sig = csw.sig();
 			if (sig != Csw::SIG) {
-				PERR("CSW signature does not match: 0x%04x", sig);
+				Genode::error("CSW signature does not match: ",
+				              Hex(sig, Hex::PREFIX, Hex::PAD));
 				break;
 			}
 
 			uint32_t const tag = csw.tag();
 			if (tag != active_tag) {
-				PERR("CSW tag mismatch. Got %u expected: %u", tag, active_tag);
+				Genode::error("CSW tag mismatch. Got ", tag, " expected: ",
+				              active_tag);
 				break;
 			}
 
 			uint8_t const status = csw.sts();
 			if (status != Csw::PASSED) {
-				PERR("CSW failed: 0x%02x tag: %u req.read: %d req.buffer: %p "
-				     "req.lba: %llu req.size: %zu", status, tag, req.read,
-				      req.buffer, req.lba, req.size);
+				Genode::error("CSW failed: ", Hex(status, Hex::PREFIX, Hex::PAD),
+				              " read: ", (int)req.read, " buffer: ", req.buffer,
+				              " lba: ", req.lba, " size: ", req.size);
 				break;
 			}
 
 			uint32_t const dr = csw.dr();
-			if (dr) PWRN("CSW data residue: %u not considered", dr);
+			if (dr) {
+				Genode::warning("CSW data residue: ", dr, " not considered");
+			}
 
 			/* ack Block::Packet_descriptor */
 			request_executed = false;
@@ -651,22 +683,20 @@ struct Usb::Block_driver : Usb::Completion,
 	/**
 	 * Parse configuration
 	 */
-	void parse_config()
+	void parse_config(Xml_node node)
 	{
-		Genode::Xml_node config = Genode::config()->xml_node();
-
 		_block_ops.set_operation(Block::Packet_descriptor::READ);
 
-		_writeable = config.attribute_value<bool>("writeable", false);
+		_writeable = node.attribute_value<bool>("writeable", false);
 		if (_writeable)
 			_block_ops.set_operation(Block::Packet_descriptor::WRITE);
 
-		_report_device = config.attribute_value<bool>("report", false);
+		_report_device = node.attribute_value<bool>("report", false);
 
-		active_interface = config.attribute_value<unsigned long>("interface", 0);
-		active_lun       = config.attribute_value<unsigned long>("lun", 0);
+		active_interface = node.attribute_value<unsigned long>("interface", 0);
+		active_lun       = node.attribute_value<unsigned long>("lun", 0);
 
-		verbose_scsi = config.attribute_value<bool>("verbose_scsi", false);
+		verbose_scsi = node.attribute_value<bool>("verbose_scsi", false);
 	}
 
 	/**
@@ -676,13 +706,13 @@ struct Usb::Block_driver : Usb::Completion,
 	 * \param ep    Server::Endpoint
 	 * \param sigh  signal context used for annoucing Block service
 	 */
-	Block_driver(Genode::Allocator &alloc, Server::Entrypoint &ep,
+	Block_driver(Env &env, Genode::Allocator &alloc,
 	             Genode::Signal_context_capability sigh)
 	:
-		ep(ep), announce_sigh(sigh), alloc(Genode::env()->heap()),
-		device(Genode::env()->heap(), usb, ep)
+		env(env), ep(env.ep()), announce_sigh(sigh), alloc(&alloc),
+		device(&alloc, usb, ep)
 	{
-		parse_config();
+		parse_config(config.xml());
 		reporter.enabled(true);
 
 		/* USB device gets initialized by handle_state_change() */
@@ -704,7 +734,7 @@ struct Usb::Block_driver : Usb::Completion,
 			else               Write_10 w((addr_t)cb, t, active_lun, lba, len, _block_size);
 		}
 
-		cbw(cb, this);
+		cbw(cb, *this);
 	}
 
 	/**
@@ -752,31 +782,32 @@ struct Usb::Block_driver : Usb::Completion,
 };
 
 
-struct Main
+struct Usb::Main
 {
-	Server::Entrypoint &ep;
+	Env  &env;
+	Heap  heap { env.ram(), env.rm() };
 
-	void announce(unsigned)
+	void announce()
 	{
-		Genode::env()->parent()->announce(ep.manage(root));
+		env.parent().announce(env.ep().manage(root));
 	}
 
-	Server::Signal_rpc_member<Main> announce_dispatcher {
-		ep, *this, &Main::announce };
+	Signal_handler<Main> announce_dispatcher {
+		env.ep(), *this, &Usb::Main::announce };
 
 	struct Factory : Block::Driver_factory
 	{
-		Genode::Allocator                 &alloc;
-		Server::Entrypoint                &ep;
-		Genode::Signal_context_capability  sigh;
+		Env                       &env;
+		Allocator                 &alloc;
+		Signal_context_capability  sigh;
 
 		Usb::Block_driver *driver = nullptr;
 
-		Factory(Genode::Allocator &alloc, Server::Entrypoint &ep,
-		        Genode::Signal_context_capability sigh)
-		: alloc(alloc), ep(ep), sigh(sigh)
+		Factory(Env &env, Allocator &alloc,
+		        Signal_context_capability sigh)
+		: env(env), alloc(alloc), sigh(sigh)
 		{
-			driver = new (Genode::env()->heap()) Usb::Block_driver(alloc, ep, sigh);
+			driver = new (&alloc) Usb::Block_driver(env, alloc, sigh);
 		}
 
 		Block::Driver *create() { return driver; }
@@ -784,20 +815,18 @@ struct Main
 		void destroy(Block::Driver *driver) { }
 	};
 
-	Factory     factory { *Genode::env()->heap(), ep, announce_dispatcher };
-	Block::Root root;
+	Factory     factory { env, heap, announce_dispatcher };
+	Block::Root root    { env.ep(), &heap, factory };
 
-	Main(Server::Entrypoint &ep)
-	: ep(ep), root(ep, Genode::env()->heap(), factory) { }
+	Main(Env &env) : env(env) { }
 };
 
 
-/************
- ** Server **
- ************/
+/***************
+ ** Component **
+ ***************/
 
-namespace Server {
-	char const *name()             { return "usb_block_ep";      }
-	size_t stack_size()            { return 2*1024*sizeof(long); }
-	void construct(Entrypoint &ep) { static Main main(ep);       }
+namespace Component {
+	size_t stack_size()              { return 2*1024*sizeof(long); }
+	void construct(Genode::Env &env) { static Usb::Main main(env); }
 }
