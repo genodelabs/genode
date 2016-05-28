@@ -134,9 +134,18 @@ static void test_out_of_metadata()
 	enum { MAX_SUBJECT_IDS = 16 };
 	Genode::Trace::Subject_id subject_ids[MAX_SUBJECT_IDS];
 
-	Genode::Trace::Connection trace(sizeof(subject_ids) + 4096, sizeof(subject_ids), 0);
+	try {
+		Genode::Trace::Connection trace(sizeof(subject_ids) + 4096, sizeof(subject_ids), 0);
+
+		/* we should never arrive here */
+		struct Unexpectedly_got_no_exception{};
+		throw  Unexpectedly_got_no_exception();
+	} catch (Genode::Parent::Service_denied) {
+		printf("got Genode::Parent::Service_denied exception as expected\n");
+	}
 
 	try {
+		Genode::Trace::Connection trace(sizeof(subject_ids) + 5*4096, sizeof(subject_ids), 0);
 		trace.subjects(subject_ids, MAX_SUBJECT_IDS);
 
 		/* we should never arrive here */
