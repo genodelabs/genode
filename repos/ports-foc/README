@@ -16,9 +16,9 @@ Quickstart
 
 L4Linux on Genode/Fiasco.OC IA32
 ----------------------------------
-Prepare this repository:
+Prepare the L4Linux sources via:
 
-! make prepare
+! ./tool/ports/prepare_port l4linux
 
 Create a new build-directory:
 
@@ -44,9 +44,9 @@ Go to your newly created build directory, and execute the run-script for L4Andro
 
 L4Android on Genode/Fiasco.OC IA32
 ----------------------------------
-Prepare this repository:
+Prepare the L4Android sources:
 
-! make prepare TARGET=l4android
+! ./tool/ports/prepare_port l4android
 
 Create a new build-directory:
 
@@ -58,8 +58,10 @@ lines:
 ! REPOSITORIES += $(GENODE_DIR)/repos/ports-foc
 ! REPOSITORIES += $(GENODE_DIR)/repos/dde_gpxe
 
-Please do not forget to issue 'make prepare' in the 'dde_ipxe' and 'base-foc'
-repositories.
+Please do not forget to issue:
+
+! ./tool/ports/prepare_port dde_ipxe base-foc
+
 Optionally, add an appropriate '-j' option to the make command in the same file:
 
 ! MAKE += -j4
@@ -98,14 +100,13 @@ Preparing the L4Linux/L4android kernel source code
 --------------------------------------------------
 
 For building L4Linux for Genode, you first need to checkout and patch the
-original sources. The top-level makefile of this repository automates this
-task. Just issue:
+original sources. The 'prepare_port' tool automates this task. Just issue:
 
-! make prepare
+! ./tool/ports/prepare_port l4linux
 
 If you like to build the L4Android kernel version as well, additionally type:
 
-! make prepare TARGET=l4android
+! ./tool/ports/prepare_port l4android
 
 Afterwards you need to include the L4Linux repository into the Genode build
 process. Just add the path to this directory to the 'REPOSITORIES' declaration

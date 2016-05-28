@@ -126,7 +126,7 @@ class Gpt : public Block::Partition_table
 				PLOGV(" gpe crc: %x", _gpe_crc);
 			}
 
-			bool is_valid(bool check_primary = true)
+			bool valid(bool check_primary = true)
 			{
 				dump_hdr(check_primary);
 
@@ -156,7 +156,7 @@ class Gpt : public Block::Partition_table
 				if (check_primary) {
 					/* check backup gpt header */
 					Sector backup_hdr(_backup_hdr_lba, 1);
-					if (!backup_hdr.addr<Gpt_hdr*>()->is_valid(false)) {
+					if (!backup_hdr.addr<Gpt_hdr*>()->valid(false)) {
 						PWRN("Backup GPT header is corrupted");
 					}
 				}
@@ -181,7 +181,7 @@ class Gpt : public Block::Partition_table
 			Genode::uint64_t _attr;           /* partition attributes */
 			Genode::uint16_t _name[NAME_LEN]; /* partition name in UNICODE-16 */
 
-			bool is_valid()
+			bool valid()
 			{
 				if (_type.time_low == 0x00000000)
 					return false;
@@ -226,7 +226,7 @@ class Gpt : public Block::Partition_table
 		 */
 		void _parse_gpt(Gpt_hdr *gpt)
 		{
-			if (!(gpt->is_valid()))
+			if (!(gpt->valid()))
 				throw Genode::Exception();
 
 			Sector entry_array(gpt->_gpe_lba,
@@ -236,7 +236,7 @@ class Gpt : public Block::Partition_table
 			for (int i = 0; i < MAX_PARTITIONS; i++) {
 				Gpt_entry *e = (entries + i);
 
-				if (!e->is_valid())
+				if (!e->valid())
 					continue;
 
 				Genode::uint64_t start  = e->_lba_start;

@@ -7,6 +7,12 @@
 #
 
 #
+# We do this also in the first build stage to ensure that the kernel
+# port, if missing, is added to the missing-ports list of this stage.
+#
+FOC_CONTRIB_DIR := $(call select_from_ports,foc)/src/kernel/foc
+
+#
 # Execute the rules in this file only at the second build stage when we know
 # about the complete build settings, e.g., the 'CROSS_DEV_PREFIX'.
 #
@@ -25,8 +31,6 @@ all: $(addprefix $(BUILD_BASE_DIR)/include/,$(L4_INC_TARGETS))
 $(BUILD_BASE_DIR)/include/%:
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)ln -sf $(L4_BUILD_DIR)/include/$* $@
-
-FOC_CONTRIB_DIR := $(call select_from_ports,foc)/src/kernel/foc
 
 #
 # Create L4 build directory

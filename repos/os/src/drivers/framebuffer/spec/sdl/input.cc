@@ -6,21 +6,23 @@
  */
 
 /*
- * Copyright (C) 2006-2015 Genode Labs GmbH
+ * Copyright (C) 2006-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
-/* Linux */
+/* Linux includes */
 #include <SDL/SDL.h>
 
-/* Genode */
-#include <input/keycodes.h>
+/* Genode includes */
 #include <base/printf.h>
+#include <base/thread.h>
+#include <input/keycodes.h>
 
-/* local */
-#include <input.h>
+/* local includes */
+#include "input.h"
+
 
 /**
  * Convert SDL keycode to Genode keycode
@@ -210,14 +212,38 @@ static Input::Event wait_for_sdl_event()
 	return Event(type, keycode, mx, my, mx - ox, my - oy);
 }
 
-Input::Event wait_for_event()
-{
-	Input::Event e;
 
-	/* prevent flooding of client with invalid events */
-	do {
-		e = wait_for_sdl_event();
-	} while (e.type() == Input::Event::INVALID);
-
-	return e;
+namespace Input {
+	enum { STACK_SIZE = 4096*sizeof(long) };
+	struct Backend;
 }
+
+struct Input::Backend : Genode::Thread_deprecated<STACK_SIZE>
+{
+	Handler &handler;
+
+	Backend(Input::Handler &handler)
+	:
+		Genode::Thread_deprecated<STACK_SIZE>("input_backend"),
+		handler(handler)
+	{
+		start();
+	}
+
+	void entry()
+	{
+		while (true) {
+			Input::Event e;
+
+			/* prevent flooding of client with invalid events */
+			do {
+				e = wait_for_sdl_event();
+			} while (e.type() == Input::Event::INVALID);
+
+			handler.event(e);
+		}
+	}
+};
+
+
+void init_input_backend(Input::Handler &h) { static Input::Backend inst(h); }

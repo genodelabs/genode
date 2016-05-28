@@ -11,11 +11,15 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _BASE__SRC__CORE__INCLUDE__CPU_THREAD_ALLOCATOR_H_
-#define _BASE__SRC__CORE__INCLUDE__CPU_THREAD_ALLOCATOR_H_
+#ifndef _CORE__INCLUDE__CPU_THREAD_ALLOCATOR_H_
+#define _CORE__INCLUDE__CPU_THREAD_ALLOCATOR_H_
 
 /* Genode includes */
 #include <base/tslab.h>
+#include <base/heap.h>
+
+/* base-internal includes */
+#include <base/internal/page_size.h>
 
 namespace Genode
 {
@@ -23,9 +27,12 @@ namespace Genode
 
 	/**
 	 * Allocator to manage CPU threads associated with a CPU session
+	 *
+	 * We take the knowledge about the used backing-store allocator (sliced
+	 * heap) into account to make sure that slab blocks fill whole pages.
 	 */
-	typedef Tslab<Cpu_thread_component, 1024> Cpu_thread_allocator;
+	typedef Tslab<Cpu_thread_component, get_page_size() - Sliced_heap::meta_data_size()>
+	        Cpu_thread_allocator;
 }
 
-#endif /* _BASE__SRC__CORE__INCLUDE__CPU_THREAD_ALLOCATOR_H_ */
-
+#endif /* _CORE__INCLUDE__CPU_THREAD_ALLOCATOR_H_ */

@@ -111,7 +111,7 @@ class File_system::Directory : public Node
 			if (!sub_node)
 				throw Lookup_failed();
 
-			if (is_basename(path)) {
+			if (!contains_path_delimiter(path)) {
 
 				/*
 				 * Because 'path' is a basename that corresponds to an
@@ -206,6 +206,8 @@ class File_system::Directory : public Node
 				return 0;
 
 			Directory_entry *e = (Directory_entry *)(dst);
+
+			e->inode = node->inode();
 
 			if (dynamic_cast<File      *>(node)) e->type = Directory_entry::TYPE_FILE;
 			if (dynamic_cast<Directory *>(node)) e->type = Directory_entry::TYPE_DIRECTORY;

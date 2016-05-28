@@ -24,9 +24,9 @@ namespace Genode {
 
 	struct Thread_state : Thread_state_base
 	{
-		Native_thread         kcap;         /* thread's gate cap in its pd */
+		Fiasco::l4_cap_idx_t  kcap;         /* thread's gate cap in its pd */
 		int                   id;           /* id of gate capability */
-		Native_utcb           utcb;         /* thread's utcb in its pd */
+		addr_t                utcb;         /* thread's utcb in its pd */
 		unsigned              exceptions;   /* counts exceptions raised by the thread */
 		bool                  paused;       /* indicates whether thread is stopped */
 		bool                  in_exception; /* true if thread is in exception */

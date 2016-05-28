@@ -33,7 +33,7 @@ static const char *server_text = "Hello from server, too.";
 static char test_data[TEST_DATA_SIZE];
 
 
-class Partner : public Thread<STACK_SIZE>
+class Partner : public Thread_deprecated<STACK_SIZE>
 {
 	protected:
 
@@ -46,7 +46,7 @@ class Partner : public Thread<STACK_SIZE>
 
 	public:
 
-		Partner(const char *name) : Thread<STACK_SIZE>(name)
+		Partner(const char *name) : Thread_deprecated<STACK_SIZE>(name)
 		{
 			_terminal.read_avail_sigh(_sig_rec.manage(&_sig_ctx));
 		}

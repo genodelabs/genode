@@ -14,9 +14,13 @@
 /* Genode includes */
 #include <base/printf.h>
 
-/* Core includes */
+/* core includes */
 #include <ipc_pager.h>
 #include <pager.h>
+#include <platform_thread.h>
+
+/* base-internal includes */
+#include <base/internal/native_thread.h>
 
 namespace Okl4 { extern "C" {
 #include <l4/message.h>
@@ -96,7 +100,7 @@ void Ipc_pager::wait_for_fault()
 	 */
 
 	/* exception */
-	if (is_exception()) {
+	if (exception()) {
 		L4_StoreMR(1, &_fault_ip);
 
 		if (verbose_exception)
@@ -151,5 +155,5 @@ void Ipc_pager::acknowledge_wakeup()
 
 Untyped_capability Pager_entrypoint::_pager_object_cap(unsigned long badge)
 {
-	return Untyped_capability(_tid.l4id, badge);
+	return Untyped_capability(native_thread().l4id, badge);
 }

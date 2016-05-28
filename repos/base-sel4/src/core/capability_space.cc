@@ -16,14 +16,12 @@
 #include <base/printf.h>
 
 /* base-internal includes */
-#include <internal/capability_data.h>
-#include <internal/capability_space_sel4.h>
+#include <base/internal/capability_data.h>
+#include <base/internal/capability_space_sel4.h>
 
 /* core includes */
 #include <core_capability_space.h>
 #include <platform.h>
-
-namespace Genode { class Cap_session; }
 
 
 /**
@@ -33,20 +31,20 @@ class Genode::Native_capability::Data : public Capability_data
 {
 	private:
 
-		Cap_session const *_cap_session = nullptr;
+		Pd_session const *_pd_session = nullptr;
 
 	public:
 
-		Data(Cap_session const *cap_session, Rpc_obj_key key)
+		Data(Pd_session const *pd_session, Rpc_obj_key key)
 		:
-			Capability_data(key), _cap_session(cap_session)
+			Capability_data(key), _pd_session(pd_session)
 		{ }
 
 		Data() { }
 
-		bool belongs_to(Cap_session const *session) const
+		bool belongs_to(Pd_session const *session) const
 		{
-			return _cap_session == session;
+			return _pd_session == session;
 		}
 };
 
@@ -79,7 +77,7 @@ namespace {
 
 Native_capability
 Capability_space::create_rpc_obj_cap(Native_capability ep_cap,
-                                     Cap_session const *cap_session,
+                                     Pd_session const *pd_session,
                                      Rpc_obj_key rpc_obj_key)
 {
 	/* allocate core-local selector for RPC object */
@@ -87,7 +85,7 @@ Capability_space::create_rpc_obj_cap(Native_capability ep_cap,
 
 	/* create Genode capability */
 	Native_capability::Data &data =
-		local_capability_space().create_capability(rpc_obj_sel, cap_session,
+		local_capability_space().create_capability(rpc_obj_sel, pd_session,
 		                                           rpc_obj_key);
 
 	ASSERT(ep_cap.valid());
@@ -124,15 +122,15 @@ Capability_space::create_rpc_obj_cap(Native_capability ep_cap,
  ** Implementation of the Capability_space interface **
  ******************************************************/
 
-Native_capability Capability_space::create_ep_cap(Thread_base &ep_thread)
+Native_capability Capability_space::create_ep_cap(Thread &ep_thread)
 {
-	Cap_sel const ep_sel(ep_thread.tid().ep_sel);
+	Cap_sel const ep_sel(ep_thread.native_thread().ep_sel);
 
-	/* entrypoint capabilities are not allocated from a CAP session */
-	Cap_session const *cap_session = nullptr;
+	/* entrypoint capabilities are not allocated from a PD session */
+	Pd_session const *pd_session = nullptr;
 
 	Native_capability::Data &data =
-		local_capability_space().create_capability(ep_sel, cap_session,
+		local_capability_space().create_capability(ep_sel, pd_session,
 		                                           Rpc_obj_key());
 
 	return Native_capability(data);
@@ -185,11 +183,11 @@ void Capability_space::reset_sel(unsigned sel)
 
 Native_capability Capability_space::import(Ipc_cap_data ipc_cap_data)
 {
-	/* imported capabilities are not associated with a CAP session */
-	Cap_session const *cap_session = nullptr;
+	/* imported capabilities are not associated with a PD session */
+	Pd_session const *pd_session = nullptr;
 
 	Native_capability::Data &data =
-		local_capability_space().create_capability(ipc_cap_data.sel, cap_session,
+		local_capability_space().create_capability(ipc_cap_data.sel, pd_session,
 		                                           ipc_cap_data.rpc_obj_key);
 
 	return Native_capability(data);

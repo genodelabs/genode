@@ -78,7 +78,7 @@ QMimeData *QGenodeClipboard::mimeData(QClipboard::Mode mode)
 
 	_clipboard_ds->update();
 
-	if (!_clipboard_ds->is_valid()) {
+	if (!_clipboard_ds->valid()) {
 		if (verbose)
 			PERR("invalid clipboard dataspace");
 		return 0;

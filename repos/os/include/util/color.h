@@ -27,8 +27,14 @@ struct Genode::Color
 {
 	int r, g, b, a;
 
-	bool is_opaque()      const { return a == 255; }
-	bool is_transparent() const { return a == 0; }
+	bool opaque()      const { return a == 255; }
+	bool transparent() const { return a == 0; }
+
+	/*
+	 * \deprecated  use 'opaque' and 'transparent' instead
+	 */
+	bool is_opaque()      const { return opaque(); }
+	bool is_transparent() const { return transparent(); }
 
 	Color(int red, int green, int blue, int alpha = 255)
 	: r(red), g(green), b(blue), a(alpha) { }

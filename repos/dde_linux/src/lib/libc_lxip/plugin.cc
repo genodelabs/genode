@@ -81,7 +81,7 @@ struct Plugin : Libc::Plugin
 	/**
 	 * Constructor
 	 */
-	Plugin(char *address_config);
+	Plugin(char const *address_config);
 
 	bool supports_select(int nfds,
 	                     fd_set *readfds,
@@ -138,7 +138,7 @@ struct Plugin : Libc::Plugin
 };
 
 
-Plugin::Plugin(char *address_config) : socketcall(Lxip::init(address_config))
+Plugin::Plugin(char const *address_config) : socketcall(Lxip::init(address_config))
 {
 	PDBG("using the lxip libc plugin");
 }
@@ -649,7 +649,7 @@ int Plugin::translate_ops_linux(int optname)
 } /* unnamed namespace */
 
 
-void create_lxip_plugin(char *address_config)
+void create_lxip_plugin(char const *address_config)
 {
 	static Plugin lxip_plugin(address_config);
 }

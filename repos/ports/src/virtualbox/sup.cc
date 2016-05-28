@@ -48,9 +48,9 @@ enum {
 PSUPGLOBALINFOPAGE g_pSUPGlobalInfoPage;
 
 
-struct Periodic_gip : public Genode::Thread<4096>
+struct Periodic_gip : public Genode::Thread_deprecated<4096>
 {
-	Periodic_gip() : Thread("periodic_gip") { start(); }
+	Periodic_gip() : Thread_deprecated("periodic_gip") { start(); }
 
 	static void update()
 	{

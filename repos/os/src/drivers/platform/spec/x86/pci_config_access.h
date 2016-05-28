@@ -11,8 +11,10 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#pragma once
+#ifndef _X86_PCI_CONFIG_ACCESS_H_
+#define _X86_PCI_CONFIG_ACCESS_H_
 
+#include <util/bit_array.h>
 #include <io_port_session/connection.h>
 #include <platform_device/platform_device.h>
 
@@ -22,7 +24,7 @@ namespace Platform {
 	{
 		private:
 
-			enum { REG_ADDR = 0xcf8, REG_DATA = 0xcfc };
+			enum { REG_ADDR = 0xcf8, REG_DATA = 0xcfc, REG_SIZE = 4 };
 
 			/**
 			 * Request interface to access an I/O port
@@ -45,7 +47,7 @@ namespace Platform {
 				 * Once created, each I/O-port session persists until
 				 * the PCI driver gets killed by its parent.
 				 */
-				static Genode::Io_port_connection io_port(port, 4);
+				static Genode::Io_port_connection io_port(port, REG_SIZE);
 				return &io_port;
 			}
 
@@ -175,5 +177,33 @@ namespace Platform {
 					return true;
 				}
 			}
+
+			bool reset_support(unsigned reg, unsigned reg_size) const
+			{
+				return (REG_ADDR <= reg) &&
+				       reg + reg_size <= REG_ADDR + REG_SIZE;
+			}
+
+			bool system_reset(unsigned reg, unsigned long long value,
+			                  const Device::Access_size &access_size)
+			{
+				switch (access_size) {
+				case Device::ACCESS_8BIT:
+					_io_port<REG_ADDR>()->outb(reg, value);
+					break;
+				case Device::ACCESS_16BIT:
+					_io_port<REG_ADDR>()->outw(reg, value);
+					break;
+				case Device::ACCESS_32BIT:
+					_io_port<REG_ADDR>()->outl(reg, value);
+					break;
+				default:
+					return false;
+				}
+
+				return true;
+			}
 	};
 }
+
+#endif /* _X86_PCI_CONFIG_ACCESS_H_ */

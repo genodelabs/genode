@@ -52,7 +52,7 @@ namespace Noux {
 	static Noux::Child *init_child;
 	static int exit_value = ~0;
 
-	bool is_init_process(Child *child) { return child == init_child; }
+	bool init_process(Child *child) { return child == init_child; }
 	void init_process_exited(int exit) { init_child = 0; exit_value = exit; }
 
 };
@@ -66,7 +66,7 @@ extern void init_network();
 namespace Noux {
 	using namespace Genode;
 
-	class Timeout_scheduler : Thread<4096>, public Alarm_scheduler
+	class Timeout_scheduler : Thread_deprecated<4096>, public Alarm_scheduler
 	{
 		private:
 			Timer::Connection _timer;
@@ -85,7 +85,7 @@ namespace Noux {
 
 		public:
 			Timeout_scheduler(unsigned long curr_time)
-			: Thread("timeout_sched"), _curr_time(curr_time) { start(); }
+			: Thread_deprecated("timeout_sched"), _curr_time(curr_time) { start(); }
 
 			Alarm::Time curr_time() const { return _curr_time; }
 	};
@@ -170,7 +170,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 					Shared_pointer<Io_channel> io = _lookup_channel(_sysio->write_in.fd);
 
-					if (!io->is_nonblocking())
+					if (!io->nonblocking())
 						_block_for_io_channel(io, false, true, false);
 
 					if (io->check_unblock(false, true, false)) {
@@ -196,7 +196,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 			{
 				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->read_in.fd);
 
-				if (!io->is_nonblocking())
+				if (!io->nonblocking())
 					_block_for_io_channel(io, true, false, false);
 
 				if (io->check_unblock(true, false, false))
@@ -599,6 +599,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 					 *     reusing the name of the parent.
 					 */
 					child = new Child(_child_policy.name(),
+					                  _ldso_ds,
 					                  this,
 					                  _kill_broadcaster,
 					                  *this,
@@ -624,8 +625,8 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				_assign_io_channels_to(child);
 
 				/* copy our address space into the new child */
-				_resources.rm.replay(child->ram(), child->rm(),
-				                     child->ds_registry(), _resources.ep);
+				_pd.replay(child->ram(), child->pd(),
+				           child->ds_registry(), _resources.ep);
 
 				/* start executing the main thread of the new process */
 				child->start_forked_main_thread(ip, sp, parent_cap_addr);
@@ -1134,9 +1135,6 @@ int main(int argc, char **argv)
 	using namespace Noux;
 	PINF("--- noux started ---");
 
-	/* register dynamic linker */
-	Genode::Process::dynamic_linker(ldso_ds_cap());
-
 	/* whitelist of service requests to be routed to the parent */
 	static Genode::Service_registry parent_services;
 	char const *service_names[] = { "LOG", "ROM", "Timer", 0 };
@@ -1198,6 +1196,7 @@ int main(int argc, char **argv)
 	static Kill_broadcaster_implementation kill_broadcaster;
 
 	init_child = new Noux::Child(name_of_init_process(),
+	                             ldso_ds_cap(),
 	                             0,
 	                             kill_broadcaster,
 	                             *init_child,

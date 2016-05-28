@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -20,6 +20,7 @@
 #include <rom_session/connection.h>
 #include <base/sleep.h>
 #include <dataspace/client.h>
+#include <region_map/client.h>
 
 /* noux includes */
 #include <noux_session/connection.h>
@@ -94,12 +95,14 @@ class Noux_connection
 		Noux_connection() : _sysio(_obtain_sysio()) { }
 
 		/**
-		 * Return the capability of the local context-area RM session
+		 * Return the capability of the local stack-area region map
 		 *
-		 * \param ptr  some address within the context-area
+		 * \param ptr  some address within the stack-area
 		 */
-		Genode::Rm_session_capability context_area_rm_session(void * const ptr) {
-			return _connection.lookup_rm_session((Genode::addr_t)ptr); }
+		Genode::Capability<Genode::Region_map> stack_area_region_map(void * const ptr)
+		{
+			return _connection.lookup_region_map((Genode::addr_t)ptr);
+		}
 
 		Noux::Session *session() { return &_connection; }
 		Noux::Sysio   *sysio()   { return  _sysio; }
@@ -294,7 +297,7 @@ extern "C" int getrlimit(int resource, struct rlimit *rlim)
 		{
 			using namespace Genode;
 
-			Thread_base * me = Thread_base::myself();
+			Thread * me = Thread::myself();
 
 			if (!me)
 				break;
@@ -506,7 +509,7 @@ extern "C" int select(int nfds, fd_set *readfds, fd_set *writefds,
 #include <setjmp.h>
 
 
-static void * stack_in_context_area;
+static void * in_stack_area;
 static jmp_buf fork_jmp_buf;
 static Genode::Capability<Genode::Parent>::Raw new_parent;
 
@@ -532,16 +535,25 @@ extern "C" void fork_trampoline()
 	/* reinitialize noux connection */
 	construct_at<Noux_connection>(noux_connection());
 
-	/* reinitialize main-thread object which implies reinit of context area */
-	auto context_area_rm = noux_connection()->context_area_rm_session(stack_in_context_area);
-	Genode::env()->reinit_main_thread(context_area_rm);
+	/* reinitialize main-thread object which implies reinit of stack area */
+	auto stack_area_rm = noux_connection()->stack_area_region_map(in_stack_area);
+	Genode::env()->reinit_main_thread(stack_area_rm);
 
 	/* apply processor state that the forker had when he did the fork */
 	longjmp(fork_jmp_buf, 1);
 }
 
 
-extern "C" pid_t fork(void)
+static pid_t fork_result;
+
+
+/**
+ * Called once the component has left the entrypoint and exited the signal
+ * dispatch loop.
+ *
+ * This function is called from the context of the initial thread.
+ */
+static void suspended_callback()
 {
 	/* stack used for executing 'fork_trampoline' */
 	enum { STACK_SIZE = 8 * 1024 };
@@ -552,16 +564,16 @@ extern "C" pid_t fork(void)
 		/*
 		 * We got here via longjmp from 'fork_trampoline'.
 		 */
-		return 0;
+		fork_result = 0;
 
 	} else {
 
 		/*
 		 * save the current stack address used for re-initializing
-		 * the context-area during process bootstrap
+		 * the stack area during process bootstrap
 		 */
 		int dummy;
-		stack_in_context_area = &dummy;
+		in_stack_area = &dummy;
 
 		/* got here during the normal control flow of the fork call */
 		sysio()->fork_in.ip = (Genode::addr_t)(&fork_trampoline);
@@ -571,14 +583,26 @@ extern "C" pid_t fork(void)
 		if (!noux_syscall(Noux::Session::SYSCALL_FORK)) {
 			PERR("fork error %d", sysio()->error.general);
 			switch (sysio()->error.fork) {
-			case Noux::Sysio::FORK_NOMEM:       errno = ENOMEM; break;
+			case Noux::Sysio::FORK_NOMEM: errno = ENOMEM; break;
 			default: errno = EAGAIN;
 			}
-			return -1;
+			fork_result = -1;
+			return;
 		}
 
-		return sysio()->fork_out.pid;
+		fork_result = sysio()->fork_out.pid;
 	}
+}
+
+
+namespace Libc { void schedule_suspend(void (*suspended) ()); }
+
+
+extern "C" pid_t fork(void)
+{
+	Libc::schedule_suspend(suspended_callback);
+
+	return fork_result;
 }
 
 
@@ -1064,10 +1088,10 @@ namespace {
 			if (verbose)
 				PWRN("stat syscall failed for path \"%s\"", path);
 			switch (sysio()->error.stat) {
-			case Vfs::Directory_service::STAT_OK: /* never reached */
-			case Vfs::Directory_service::STAT_ERR_NO_ENTRY: errno = ENOENT; break;
+			case Vfs::Directory_service::STAT_ERR_NO_ENTRY: errno = ENOENT; return -1;
+			case Vfs::Directory_service::STAT_ERR_NO_PERM:  errno = EACCES; return -1;
+			case Vfs::Directory_service::STAT_OK: break; /* never reached */
 			}
-			return -1;
 		}
 
 		_sysio_to_stat_struct(sysio(), buf);
@@ -1142,9 +1166,16 @@ namespace {
 		Genode::strncpy(sysio()->symlink_in.oldpath, oldpath, sizeof(sysio()->symlink_in.oldpath));
 		Genode::strncpy(sysio()->symlink_in.newpath, newpath, sizeof(sysio()->symlink_in.newpath));
 		if (!noux_syscall(Noux::Session::SYSCALL_SYMLINK)) {
-			PERR("symlink error");
-			/* XXX set errno */
-			return -1;
+			PWRN("symlink syscall failed for path \"%s\"", newpath);
+			typedef Vfs::Directory_service::Symlink_result Result;
+			switch (sysio()->error.symlink) {
+			case Result::SYMLINK_ERR_NO_ENTRY:      errno = ENOENT;        return -1;
+			case Result::SYMLINK_ERR_EXISTS:        errno = EEXIST;        return -1;
+			case Result::SYMLINK_ERR_NO_SPACE:      errno = ENOSPC;        return -1;
+			case Result::SYMLINK_ERR_NO_PERM:       errno = EPERM;         return -1;
+			case Result::SYMLINK_ERR_NAME_TOO_LONG: errno = ENAMETOOLONG;  return -1;
+			case Result::SYMLINK_OK: break;
+			}
 		}
 
 		return 0;
@@ -1161,6 +1192,8 @@ namespace {
 	ssize_t Plugin::write(Libc::File_descriptor *fd, const void *buf,
 	                      ::size_t count)
 	{
+		if (!buf) { errno = EFAULT; return -1; }
+
 		/* remember original len for the return value */
 		int const orig_count = count;
 
@@ -1198,6 +1231,8 @@ namespace {
 
 	ssize_t Plugin::read(Libc::File_descriptor *fd, void *buf, ::size_t count)
 	{
+		if (!buf) { errno = EFAULT; return -1; }
+
 		Genode::size_t sum_read_count = 0;
 
 		while (count > 0) {
@@ -1687,9 +1722,13 @@ namespace {
 		sysio()->readlink_in.bufsiz = bufsiz;
 
 		if (!noux_syscall(Noux::Session::SYSCALL_READLINK)) {
-			PWRN("readlink syscall failed for \"%s\"", path);
-			/* XXX set errno */
-			return -1;
+			PWRN("readlink syscall failed for path \"%s\"", path);
+			typedef Vfs::Directory_service::Readlink_result Result;
+			switch (sysio()->error.readlink) {
+			case Result::READLINK_ERR_NO_ENTRY: errno = ENOENT; return -1;
+			case Result::READLINK_ERR_NO_PERM:  errno = EPERM;  return -1;
+			case Result::READLINK_OK: break;
+			}
 		}
 
 		ssize_t size = Genode::min((size_t)sysio()->readlink_out.count, bufsiz);
@@ -1968,6 +2007,8 @@ namespace {
 
 	ssize_t Plugin::recv(Libc::File_descriptor *fd, void *buf, ::size_t len, int flags)
 	{
+		if (!buf) { errno = EFAULT; return -1; }
+
 		Genode::size_t sum_recv_count = 0;
 
 		while (len > 0) {
@@ -2009,6 +2050,8 @@ namespace {
 	ssize_t Plugin::recvfrom(Libc::File_descriptor *fd, void *buf, size_t len, int flags,
 	                         struct sockaddr *src_addr, socklen_t *addrlen)
 	{
+		if (!buf) { errno = EFAULT; return -1; }
+
 		Genode::size_t sum_recvfrom_count = 0;
 
 		while (len > 0) {
@@ -2058,6 +2101,8 @@ namespace {
 
 	ssize_t Plugin::send(Libc::File_descriptor *fd, const void *buf, ::size_t len, int flags)
 	{
+		if (!buf) { errno = EFAULT; return -1; }
+
 		/* remember original len for the return value */
 		int const orig_count = len;
 		char *src = (char *)buf;
@@ -2094,6 +2139,8 @@ namespace {
 	ssize_t Plugin::sendto(Libc::File_descriptor *fd, const void *buf, size_t len, int flags,
 			const struct sockaddr *dest_addr, socklen_t addrlen)
 	{
+		if (!buf) { errno = EFAULT; return -1; }
+
 		int const orig_count = len;
 
 		if (addrlen > sizeof (sysio()->sendto_in.dest_addr)) {
@@ -2255,7 +2302,7 @@ void init_libc_noux(void)
 	 * Genodes core/main.cc with GCC in Noux.
 	 */
 	enum { STACK_SIZE = 32UL * 1024 * sizeof(Genode::addr_t) };
-	Genode::Thread_base::myself()->stack_size(STACK_SIZE);
+	Genode::Thread::myself()->stack_size(STACK_SIZE);
 }
 
 

@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2012-2015 Genode Labs GmbH
+ * Copyright (C) 2012-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -167,13 +167,6 @@ class Bsd::Scheduler
 		 * Returns if no task is runnable.
 		 */
 		void schedule();
-
-		/**
-		 * Log current state of tasks in present list (debug)
-		 *
-		 * Log lines are prefixed with 'prefix'
-		 */
-		void log_state(char const *prefix);
 };
 
 #endif /* _SCHEDULER_H_ */

@@ -1,0 +1,37 @@
+build "core init drivers/timer test/slab"
+
+create_boot_directory
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="RAM"/>
+			<service name="CPU"/>
+			<service name="RM"/>
+			<service name="PD"/>
+			<service name="IRQ"/>
+			<service name="IO_PORT"/>
+			<service name="IO_MEM"/>
+			<service name="LOG"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<start name="timer">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Timer"/></provides>
+		</start>
+		<start name="test-slab">
+			<resource name="RAM" quantum="64M"/>
+		</start>
+	</config>
+}
+
+build_boot_image "core init timer test-slab"
+
+append qemu_args "-nographic -m 128"
+
+run_genode_until {child "test-slab" exited with exit value 0.*\n} 100
+
+puts "Test succeeded"

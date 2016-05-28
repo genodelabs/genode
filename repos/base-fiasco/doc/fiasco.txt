@@ -40,15 +40,14 @@ Information about Fiasco are provided at its official website:
 ! http://os.inf.tu-dresden.de/fiasco/prev/
 
 To download the kernel and integrate it with Genode, issue the following
-command from within the 'base-fiasco' directory:
+command from within the toplevel directory:
 
-! make prepare
+! ./tool/ports/prepare_port fiasco
 
 For the vesa driver on x86 the x86emu library is required and can be downloaded
-and prepared by invoking the following command from within the 'libports'
-directory:
+and prepared by invoking the following command:
 
-! make prepare PKG=x86emu
+! ./tool/ports/prepare_port x86emu
 
 This command will download a prepackaged version of the kernel tested
 with Genode. The build process of the kernel is integrated with Genode's

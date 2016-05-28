@@ -5,13 +5,14 @@
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <lx_emul/impl/internal/malloc.h>
+/* Linux kit includes */
+#include <lx_kit/malloc.h>
 
 
 void *kmalloc(size_t size, gfp_t flags)
@@ -21,8 +22,11 @@ void *kmalloc(size_t size, gfp_t flags)
 	if (flags & __GFP_DMA32)
 		PWRN("GFP_DMA32 memory (below 4 GiB) requested (%p)", __builtin_return_address(0));
 
-	void *addr = flags & GFP_LX_DMA ? Lx::Malloc::dma().alloc(size, 12)
-	                                : Lx::Malloc::mem().alloc(size);
+	void *addr = nullptr;
+
+	addr = (flags & GFP_LX_DMA)
+		? Lx::Malloc::dma().alloc(size, 12)
+		: Lx::Malloc::mem().alloc(size);
 
 	if ((Genode::addr_t)addr & 0x3)
 		PERR("unaligned kmalloc %lx", (Genode::addr_t)addr);
@@ -137,35 +141,39 @@ void *kmemdup(const void *src, size_t size, gfp_t flags)
 
 struct kmem_cache : Lx::Slab_alloc
 {
-	kmem_cache(size_t object_size, bool dma)
+	size_t _object_size;
+	void (*ctor)(void *);
+
+	kmem_cache(size_t object_size, bool dma, void (*ctor)(void *))
 	:
 		Lx::Slab_alloc(object_size, dma ? Lx::Slab_backend_alloc::dma()
-		                                : Lx::Slab_backend_alloc::mem())
+		                                : Lx::Slab_backend_alloc::mem()),
+		_object_size(object_size),
+		ctor(ctor)
 	{ }
+
+	size_t size() const { return _object_size; }
 };
 
 
 struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align,
                                      unsigned long flags, void (*ctor)(void *))
 {
-	if (ctor) {
-		PERR("%s: ctor not supported", __func__);
-		return nullptr;
-	}
-
 	/*
 	 * Copied from wifi_drv.
 	 *
 	 * XXX SLAB_LX_DMA is never used anywhere else, remove it?
 	 */
 	enum { SLAB_LX_DMA = 0x80000000ul, };
-	return new (Genode::env()->heap()) kmem_cache(size, flags & SLAB_LX_DMA);
+	return new (Genode::env()->heap()) kmem_cache(size, flags & SLAB_LX_DMA, ctor);
 }
 
 
 void * kmem_cache_alloc(struct kmem_cache *cache, gfp_t flags)
 {
-	return (void *)cache->alloc();
+	void *addr = (void *)cache->alloc();
+	if (addr && cache->ctor) { cache->ctor(addr); }
+	return addr;
 }
 
 

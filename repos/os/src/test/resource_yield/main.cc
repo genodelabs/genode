@@ -260,7 +260,7 @@ class Parent : Genode::Slave_policy
 
 		char const **_permitted_services() const
 		{
-			static char const *services[] = { "RM", "SIGNAL", "LOG", "Timer" };
+			static char const *services[] = { "RM", "LOG", "Timer" };
 			return services;
 		}
 

@@ -27,6 +27,7 @@ INC_DIR += $(WS_CONTRIB_DIR)/src/drivers \
 
 CC_OPT += -DCONFIG_DRIVER_NL80211
 CC_OPT += -DCONFIG_LIBNL20
+CC_OPT += -D_LINUX_SOCKET_H
 
 vpath %.c $(WS_CONTRIB_DIR)
 vpath %.cc $(LIB_DIR)

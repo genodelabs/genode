@@ -645,7 +645,7 @@ class Genode::Packet_stream_source : private Packet_stream_base
 		Packet_descriptor alloc_packet(Genode::size_t size, int align = POLICY::Packet_descriptor::PACKET_ALIGNMENT)
 		{
 			void *base = 0;
-			if (_packet_alloc->alloc_aligned(size, &base, align).is_error())
+			if (_packet_alloc->alloc_aligned(size, &base, align).error())
 				throw Packet_alloc_failed();
 
 			return Packet_descriptor((Genode::off_t)base, size);

@@ -39,12 +39,10 @@ set config {
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
-		<service name="CAP"/>
 		<service name="PD"/>
 		<service name="RM"/>
 		<service name="CPU"/>
 		<service name="LOG"/>
-		<service name="SIGNAL"/>
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
@@ -159,7 +157,7 @@ append_if [expr $use_usb] config {
 
 	<start name="usb_config_rom" priority="-1">
 		<binary name="fs_rom"/>
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="1200K"/>
 		<provides><service name="ROM"/></provides>
 		<route>
 			<service name="File_system"><child name="usb_config_fs"/></service>
@@ -168,7 +166,7 @@ append_if [expr $use_usb] config {
 	</start>
 
 	<start name="usb_report_filter" priority="-1">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="1200K"/>
 		<configfile name="usb_report_filter.config"/>
 		<route>
 			<service name="Report"><child name="report_rom" /></service>
@@ -231,7 +229,7 @@ append boot_modules {
 	core init timer
 	part_blk ahci_drv fs_rom
 	ld.lib.so libc.lib.so libm.lib.so pthread.lib.so
-	libc_lock_pipe.lib.so libc_terminal.lib.so
+	libc_pipe.lib.so libc_terminal.lib.so
 	libiconv.lib.so stdcxx.lib.so
 	rump.lib.so rump_fs.lib.so rump_fs
 	virtualbox qemu-usb.lib.so

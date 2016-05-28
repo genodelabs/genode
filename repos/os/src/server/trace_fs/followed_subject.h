@@ -68,7 +68,7 @@ namespace Trace_fs {
 
 				bool last_entry() const
 				{
-					return current_entry.is_last();
+					return current_entry.last();
 				}
 
 				void rewind() { current_entry = buffer->first(); }

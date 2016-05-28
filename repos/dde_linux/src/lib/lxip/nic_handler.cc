@@ -1,38 +1,103 @@
+/**
+ * \brief  Linux emulation code
+ * \author Sebastian Sumpf
+ * \author Josef Soentgen
+ * \date   2013-08-28
+ */
+
+/*
+ * Copyright (C) 2013-2016 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
+/* Genode includes */
 #include <base/printf.h>
 #include <nic/packet_allocator.h>
 #include <nic_session/connection.h>
 
-#include <env.h>
+/* local includes */
+#include <lx.h>
 #include <nic.h>
-#include <packet_handler.h>
-
-enum { 
-	MAC_LEN = 17,
-	ETH_ALEN = 6,
-};
-
-namespace Net {
-	class Nic;
-}
 
 
-class Net::Nic : public Net::Packet_handler
+class Nic_client
 {
 	private:
 
 		enum {
-			PACKET_SIZE = ::Nic::Packet_allocator::DEFAULT_PACKET_SIZE,
-			BUF_SIZE    = ::Nic::Session::QUEUE_SIZE * PACKET_SIZE,
+			PACKET_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE,
+			BUF_SIZE    = Nic::Session::QUEUE_SIZE * PACKET_SIZE,
 		};
 
-		::Nic::Packet_allocator _tx_block_alloc;
-		::Nic::Connection       _nic;
+		Nic::Packet_allocator _tx_block_alloc;
+		Nic::Connection       _nic;
+
+		Genode::Signal_dispatcher<Nic_client> _sink_ack;
+		Genode::Signal_dispatcher<Nic_client> _sink_submit;
+		Genode::Signal_dispatcher<Nic_client> _source_ack;
+		Genode::Signal_dispatcher<Nic_client> _source_submit;
+
+		/**
+		 * submit queue not empty anymore
+		 */
+		void _packet_avail(unsigned)
+		{
+			enum { MAX_PACKETS = 20 };
+
+			int count = 0;
+			while (_nic.rx()->packet_avail() &&
+			       _nic.rx()->ready_to_ack() &&
+			       count++ < MAX_PACKETS)
+			{
+				Nic::Packet_descriptor p = _nic.rx()->get_packet();
+				net_driver_rx(_nic.rx()->packet_content(p), p.size());
+
+				_nic.rx()->acknowledge_packet(p);
+			}
+
+			if (_nic.rx()->packet_avail())
+				Genode::Signal_transmitter(_sink_submit).submit();
+		}
+
+		/**
+		 * acknoledgement queue not full anymore
+		 */
+		void _ready_to_ack(unsigned num)
+		{
+			_packet_avail(num);
+		}
+
+		/**
+		 * acknoledgement queue not empty anymore
+		 */
+		void _ack_avail(unsigned)
+		{
+			while (_nic.tx()->ack_avail()) {
+				Nic::Packet_descriptor p = _nic.tx()->get_acked_packet();
+				_nic.tx()->release_packet(p);
+			}
+		}
+
+		/**
+		 * submit queue not full anymore
+		 *
+		 * TODO: by now, we just drop packets that cannot be transferred
+		 *       to the other side, that's why we ignore this signal.
+		 */
+		void _ready_to_submit(unsigned) { }
 
 	public:
 
-		Nic()
-		: _tx_block_alloc(Genode::env()->heap()),
-		  _nic(&_tx_block_alloc, BUF_SIZE, BUF_SIZE)
+		Nic_client(Genode::Signal_receiver &sig_rec)
+		:
+			_tx_block_alloc(Genode::env()->heap()),
+			_nic(&_tx_block_alloc, BUF_SIZE, BUF_SIZE),
+			_sink_ack(sig_rec, *this, &Nic_client::_ready_to_ack),
+			_sink_submit(sig_rec, *this, &Nic_client::_packet_avail),
+			_source_ack(sig_rec, *this, &Nic_client::_ack_avail),
+			_source_submit(sig_rec, *this, &Nic_client::_ready_to_submit)
 		{
 			_nic.rx_channel()->sigh_ready_to_ack(_sink_ack);
 			_nic.rx_channel()->sigh_packet_avail(_sink_submit);
@@ -40,108 +105,58 @@ class Net::Nic : public Net::Packet_handler
 			_nic.tx_channel()->sigh_ready_to_submit(_source_submit);
 		}
 
-		/******************************
-		 ** Packet_handler interface **
-		 ******************************/
-
-		Packet_stream_sink< ::Nic::Session::Policy> * sink() {
-			return _nic.rx(); }
-
-		Packet_stream_source< ::Nic::Session::Policy> * source() {
-			return _nic.tx(); }
-
-		static Nic *nic()
-		{
-			static Nic _net_nic;
-			return &_net_nic;
-		}
-
-		static ::Nic::Connection *n()
-		{
-			return &nic()->_nic;
-		}
-
+		Nic::Connection *nic() { return &_nic; }
 };
 
 
-Net::Packet_handler::Packet_handler()
-: _sink_ack(*Net::Env::receiver(), *this, &Packet_handler::_ready_to_ack),
-  _sink_submit(*Net::Env::receiver(), *this, &Packet_handler::_packet_avail),
-  _source_ack(*Net::Env::receiver(), *this, &Packet_handler::_ack_avail),
-  _source_submit(*Net::Env::receiver(), *this, &Packet_handler::_ready_to_submit)
-{ }
+static Nic_client *_nic_client;
 
 
-void Net::Packet_handler::_ack_avail(unsigned)
+void Lx::nic_client_init(Genode::Signal_receiver &sig_rec)
 {
-	while (source()->ack_avail())
-		source()->release_packet(source()->get_acked_packet());
+	static Nic_client _inst(sig_rec);
+	_nic_client = &_inst;
 }
 
 
-void Net::Packet_handler::_ready_to_ack(unsigned num)
-{
-	_packet_avail(num);
-}
-
-
-void Net::Packet_handler::_packet_avail(unsigned)
-{
-	using namespace Net;
-	enum { MAX_PACKETS = 20 };
-
-	int count = 0;
-	while(Nic::n()->rx()->packet_avail() &&
-	      Nic::n()->rx()->ready_to_ack() &&
-	      count++ < MAX_PACKETS)
-	{
-		Packet_descriptor p = Nic::n()->rx()->get_packet();
-		net_driver_rx(Net::Nic::n()->rx()->packet_content(p), p.size());
-		Nic::n()->rx()->acknowledge_packet(p);
-	}
-
-	if (Nic::n()->rx()->packet_avail())
-		Genode::Signal_transmitter(_sink_submit).submit();
-}
-
-
-static void snprint_mac(unsigned char *buf, unsigned char *mac)
-{
-	for (int i = 0; i < ETH_ALEN; i++) {
-		Genode::snprintf((char *)&buf[i * 3], 3, "%02x", mac[i]);
-		if ((i * 3) < MAC_LEN)
-		buf[(i * 3) + 2] = ':';
-	}
-
-	buf[MAC_LEN] = 0;
-}
-
-
+/**
+ * Call by back-end driver while initializing
+ */
 void net_mac(void* mac, unsigned long size)
 {
+	enum { MAC_LEN = 17, ETH_ALEN = 6, };
+
 	unsigned char str[MAC_LEN + 1];
 	using namespace Genode;
 
-	Nic::Mac_address m = Net::Nic::n()->mac_address();
+	Nic::Mac_address m = _nic_client->nic()->mac_address();
 	Genode::memcpy(mac, &m.addr, min(sizeof(m.addr), (size_t)size));
 
-	snprint_mac(str, (unsigned char *)m.addr);
+	unsigned char const *mac_addr = (unsigned char const*)m.addr;
+	for (int i = 0; i < ETH_ALEN; i++) {
+		Genode::snprintf((char *)&str[i * 3], 3, "%02x", mac_addr[i]);
+		if ((i * 3) < MAC_LEN)
+		str[(i * 3) + 2] = ':';
+	}
+	str[MAC_LEN] = 0;
+
 	PINF("Received mac: %s", str);
 }
 
 
+/**
+ * Call by back-end driver when a packet should be sent
+ */
 int net_tx(void* addr, unsigned long len)
 {
 	try {
-		Net::Packet_descriptor packet = Net::Nic::n()->tx()->alloc_packet(len);
-		void* content                 = Net::Nic::n()->tx()->packet_content(packet);
+		Nic::Packet_descriptor packet = _nic_client->nic()->tx()->alloc_packet(len);
+		void* content                 = _nic_client->nic()->tx()->packet_content(packet);
 
 		Genode::memcpy((char *)content, addr, len);
-		Net::Nic::n()->tx()->submit_packet(packet);
+		_nic_client->nic()->tx()->submit_packet(packet);
 
 		return 0;
-	/* 'Packet_alloc_failed' */
-	} catch(...) {
-		return 1;
-	}
+	/* Packet_alloc_failed */
+	} catch(...) { return 1; }
 }

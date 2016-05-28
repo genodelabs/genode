@@ -20,7 +20,8 @@
 #include <platform_pd.h>
 
 /* base-internal includes */
-#include <internal/capability_space_sel4.h>
+#include <base/internal/capability_space_sel4.h>
+#include <base/internal/native_utcb.h>
 
 using namespace Genode;
 
@@ -136,7 +137,7 @@ int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 	/*
 	 * Populate the thread's IPC buffer with initial information about the
 	 * thread. Once started, the thread picks up this information in the
-	 * 'Thread_base::_thread_bootstrap' method.
+	 * 'Thread::_thread_bootstrap' method.
 	 */
 	prepopulate_ipc_buffer(_info.ipc_buffer_phys, _ep_sel);
 
@@ -171,14 +172,14 @@ void Platform_thread::resume()
 void Platform_thread::state(Thread_state s)
 {
 	PDBG("not implemented");
-	throw Cpu_session::State_access_failed();
+	throw Cpu_thread::State_access_failed();
 }
 
 
 Thread_state Platform_thread::state()
 {
 	PDBG("not implemented");
-	throw Cpu_session::State_access_failed();
+	throw Cpu_thread::State_access_failed();
 }
 
 
@@ -202,7 +203,7 @@ void Platform_thread::install_mapping(Mapping const &mapping)
 
 
 Platform_thread::Platform_thread(size_t, const char *name, unsigned priority,
-                                 addr_t utcb)
+                                 Affinity::Location, addr_t utcb)
 :
 	_name(name),
 	_utcb(utcb),

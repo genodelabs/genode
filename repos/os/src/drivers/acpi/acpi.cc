@@ -190,6 +190,34 @@ struct Dmar_rmrr : Genode::Mmio
 };
 
 
+/* Fixed ACPI description table (FADT) */
+struct Fadt : Genode::Mmio
+{
+	static uint32_t features;
+	static uint32_t reset_type;
+	static uint64_t reset_addr;
+	static uint8_t  reset_value;
+
+	Fadt(addr_t a) : Genode::Mmio(a)
+	{
+		features    = read<Fadt::Feature_flags>();
+		reset_type  = read<Fadt::Reset_reg_type>();
+		reset_addr  = read<Fadt::Reset_reg_addr>();
+		reset_value = read<Fadt::Reset_value>();
+	}
+
+	struct Dsdt           : Register<0x28, 32> { };
+	struct Feature_flags  : Register<0x70, 32> { };
+	struct Reset_reg_type : Register<0x74, 32> { };
+	struct Reset_reg_addr : Register<0x78, 64> { };
+	struct Reset_value    : Register<0x80, 8>  { };
+};
+
+uint32_t Fadt::features    = 0;
+uint32_t Fadt::reset_type  = 0;
+uint64_t Fadt::reset_addr  = 0;
+uint8_t  Fadt::reset_value = 0;
+
 class Dmar_entry : public List<Dmar_entry>::Element
 {
 	private:
@@ -1143,8 +1171,10 @@ class Acpi_table
 				uint32_t dsdt = 0;
 				{
 					Table_wrapper table(entries[i]);
-					if (table.is_facp())
-						dsdt = *reinterpret_cast<uint32_t *>(table->signature + 40);
+					if (table.is_facp()) {
+						Fadt fadt(reinterpret_cast<Genode::addr_t>(table->signature));
+						dsdt = fadt.read<Fadt::Dsdt>();
+					}
 
 					if (table.is_searched()) {
 
@@ -1257,39 +1287,49 @@ static void init_acpi_table()
 }
 
 
+static void attribute_hex(Xml_generator &xml, char const *name,
+                          unsigned long long value)
+{
+	char buf[32];
+	Genode::snprintf(buf, sizeof(buf), "0x%llx", value);
+	xml.attribute(name, buf);
+}
+
+
 void Acpi::generate_report()
 {
 	init_acpi_table();
 
 	enum { REPORT_SIZE = 4 * 4096 };
-	static Reporter acpi("acpi", REPORT_SIZE);
+	static Reporter acpi("acpi", "acpi", REPORT_SIZE);
 	acpi.enabled(true);
 
 	Genode::Reporter::Xml_generator xml(acpi, [&] () {
+		if (!(!Fadt::features && !Fadt::reset_type &&
+		      !Fadt::reset_addr && !Fadt::reset_value))
+			xml.node("fadt", [&] () {
+				attribute_hex(xml, "features"   , Fadt::features);
+				attribute_hex(xml, "reset_type" , Fadt::reset_type);
+				attribute_hex(xml, "reset_addr" , Fadt::reset_addr);
+				attribute_hex(xml, "reset_value", Fadt::reset_value);
+			});
+
 		for (Pci_config_space *e = Pci_config_space::list()->first(); e;
 		     e = e->next())
 		{
 			xml.node("bdf", [&] () {
-				char number[20];
-				Genode::snprintf(number, sizeof(number), "%u", e->_bdf_start);
-				xml.attribute("start", number);
-				Genode::snprintf(number, sizeof(number), "%u", e->_func_count);
-				xml.attribute("count", number);
-				Genode::snprintf(number, sizeof(number), "0x%lx", e->_base);
-				xml.attribute("base", number);
+				xml.attribute("start", e->_bdf_start);
+				xml.attribute("count", e->_func_count);
+				attribute_hex(xml, "base", e->_base);
 			});
 		}
 
 		for (Irq_override *i = Irq_override::list()->first(); i; i = i->next())
 		{
 			xml.node("irq_override", [&] () {
-				char number[8];
-				Genode::snprintf(number, sizeof(number), "%u", i->irq());
-				xml.attribute("irq", number);
-				Genode::snprintf(number, sizeof(number), "%u", i->gsi());
-				xml.attribute("gsi", number);
-				Genode::snprintf(number, sizeof(number), "0x%x", i->flags());
-				xml.attribute("flags", number);
+				xml.attribute("irq", i->irq());
+				xml.attribute("gsi", i->gsi());
+				attribute_hex(xml, "flags", i->flags());
 			});
 		}
 
@@ -1297,19 +1337,13 @@ void Acpi::generate_report()
 		auto func_scope = [&] (Device_scope const &scope)
 		{
 			xml.node("scope", [&] () {
-				char number[8];
-				Genode::snprintf(number, sizeof(number), "%u",
-				                 scope.read<Device_scope::Bus>());
-				xml.attribute("bus_start", number);
+				xml.attribute("bus_start", scope.read<Device_scope::Bus>());
 				for (unsigned j = 0 ; j < scope.count(); j++) {
 					xml.node("path", [&] () {
-						char number[8];
-						Genode::snprintf(number, sizeof(number), "0x%x",
-						                 scope.read<Device_scope::Path::Dev>(j));
-						xml.attribute("dev", number);
-						Genode::snprintf(number, sizeof(number), "0x%x",
-						                 scope.read<Device_scope::Path::Func>(j));
-						xml.attribute("func", number);
+						attribute_hex(xml, "dev",
+						              scope.read<Device_scope::Path::Dev>(j));
+						attribute_hex(xml, "func",
+						              scope.read<Device_scope::Path::Func>(j));
 					});
 				}
 			});
@@ -1325,13 +1359,8 @@ void Acpi::generate_report()
 				Dmar_rmrr rmrr(dmar.base);
 
 				xml.node("rmrr", [&] () {
-					char number[20];
-					Genode::snprintf(number, sizeof(number), "0x%llx",
-					                 rmrr.read<Dmar_rmrr::Base>());
-					xml.attribute("start", number);
-					Genode::snprintf(number, sizeof(number), "0x%llx",
-					                 rmrr.read<Dmar_rmrr::Limit>());
-					xml.attribute("end", number);
+					attribute_hex(xml, "start", rmrr.read<Dmar_rmrr::Base>());
+					attribute_hex(xml, "end", rmrr.read<Dmar_rmrr::Limit>());
 
 					rmrr.apply(func_scope);
 				});
@@ -1347,15 +1376,10 @@ void Acpi::generate_report()
 				Pci_routing *r = e->pci_list()->first();
 				for (; r; r = r->next()) {
 					xml.node("routing", [&] () {
-						char number[8];
-						Genode::snprintf(number, sizeof(number), "0x%x", r->gsi());
-						xml.attribute("gsi", number);
-						Genode::snprintf(number, sizeof(number), "0x%x", e->bdf());
-						xml.attribute("bridge_bdf", number);
-						Genode::snprintf(number, sizeof(number), "0x%x", r->device());
-						xml.attribute("device", number);
-						Genode::snprintf(number, sizeof(number), "0x%x", r->pin());
-						xml.attribute("device_pin", number);
+						attribute_hex(xml, "gsi", r->gsi());
+						attribute_hex(xml, "bridge_bdf", e->bdf());
+						attribute_hex(xml, "device", r->device());
+						attribute_hex(xml, "device_pin", r->pin());
 					});
 				}
 			}

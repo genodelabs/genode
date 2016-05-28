@@ -2,6 +2,8 @@
  * \brief  Dataspace utility
  * \author Norman Feske
  * \date   2014-01-10
+ *
+ * \deprecated  This header exists for API compatibility only.
  */
 
 /*
@@ -14,85 +16,6 @@
 #ifndef _INCLUDE__OS__ATTACHED_DATASPACE_H_
 #define _INCLUDE__OS__ATTACHED_DATASPACE_H_
 
-#include <dataspace/client.h>
-#include <base/env.h>
-
-namespace Genode { class Attached_dataspace; }
-
-
-class Genode::Attached_dataspace : Noncopyable
-{
-	public:
-
-		/**
-		 * Exception type
-		 */
-		class Invalid_dataspace { };
-
-	private:
-
-		Dataspace_capability _ds;
-
-		size_t const _size = { Dataspace_client(_ds).size() };
-
-		void *_local_addr = { env()->rm_session()->attach(_ds) };
-
-		Dataspace_capability _check(Dataspace_capability ds)
-		{
-			if (ds.valid())
-				return ds;
-
-			throw Invalid_dataspace();
-		}
-
-	public:
-
-		/**
-		 * Constructor
-		 *
-		 * \throw Rm_session::Attach_failed
-		 * \throw Invalid_dataspace
-		 */
-		Attached_dataspace(Dataspace_capability ds) : _ds(_check(ds)) { }
-
-		/**
-		 * Destructor
-		 */
-		~Attached_dataspace()
-		{
-			if (_local_addr)
-				env()->rm_session()->detach(_local_addr);
-		}
-
-		/**
-		 * Return capability of the used dataspace
-		 */
-		Dataspace_capability cap() const { return _ds; }
-
-		/**
-		 * Request local address
-		 *
-		 * This is a template to avoid inconvenient casts at the caller.
-		 * A newly attached dataspace is untyped memory anyway.
-		 */
-		template <typename T>
-		T *local_addr() { return static_cast<T *>(_local_addr); }
-
-		/**
-		 * Return size
-		 */
-		size_t size() const { return _size; }
-
-		/**
-		 * Forget dataspace, thereby skipping the detachment on destruction
-		 *
-		 * This method can be called if the the dataspace is known to be
-		 * physically destroyed, e.g., because the session where the dataspace
-		 * originated from was closed. In this case, core will already have
-		 * removed the memory mappings of the dataspace. So we have to omit the
-		 * detach operation in '~Attached_dataspace'.
-		 */
-		void invalidate() { _local_addr = nullptr; }
-};
+#include <base/attached_dataspace.h>
 
 #endif /* _INCLUDE__OS__ATTACHED_DATASPACE_H_ */

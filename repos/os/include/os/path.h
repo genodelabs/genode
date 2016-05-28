@@ -32,10 +32,18 @@ class Genode::Path_base
 
 	protected:
 
-		static bool is_absolute(char const *path)
+		static bool absolute(char const *path)
 		{
 			return path[0] == '/';
 		}
+
+		/**
+		 * Return true if path starts with a '/'
+		 *
+		 * \noapi
+		 * \deprecated  use 'absolute' instead
+		 */
+		static bool is_absolute(char const *path) { return absolute(path); }
 
 		static bool ends_with(char c, char const *path)
 		{
@@ -71,10 +79,17 @@ class Genode::Path_base
 			return result;
 		}
 
-		static bool is_empty(char const *path)
+		static bool empty(char const *path)
 		{
 			return strlen(path) == 0;
 		}
+
+		/**
+		 * Return true if path contains no characters
+		 *
+		 * \deprecated  use 'empty' instead
+		 */
+		static bool is_empty(char const *path) { return empty(path); }
 
 		/**
 		 * Remove superfluous single dots followed by a slash from path
@@ -200,7 +215,7 @@ class Genode::Path_base
 			/*
 			 * Use argument path if absolute
 			 */
-			if (is_absolute(path))
+			if (absolute(path))
 				strncpy(_path, path, _path_max_len);
 
 			/*
@@ -212,7 +227,7 @@ class Genode::Path_base
 
 				strncpy(_path, pwd, _path_max_len);
 
-				if (!is_empty(relative_path)) {
+				if (!empty(relative_path)) {
 
 					/* make sure to have a slash separating both portions */
 					_append_slash_if_needed();

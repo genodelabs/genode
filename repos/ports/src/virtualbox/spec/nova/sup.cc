@@ -197,7 +197,7 @@ void genode_update_tsc(void (*update_func)(void), unsigned long update_us)
 
 	enum { TSC_FACTOR = 1000ULL };
 
-	Genode::addr_t sem = Thread_base::myself()->tid().exc_pt_sel + Nova::SM_SEL_EC;
+	Genode::addr_t sem = Thread::myself()->native_thread().exc_pt_sel + Nova::SM_SEL_EC;
 	unsigned long tsc_khz = (genode_cpu_hz() / 1000) / TSC_FACTOR;
 
 	Trace::Timestamp us_64 = update_us;
@@ -251,7 +251,7 @@ extern "C" void pthread_yield(void)
 {
 /*
 	char _name[64];
-	Genode::Thread_base::myself()->name(_name, sizeof(_name));
+	Genode::Thread::myself()->name(_name, sizeof(_name));
 	PERR("pthread_yield %p - '%s'", __builtin_return_address(0), _name);
 	Assert(!"pthread_yield called");
 */

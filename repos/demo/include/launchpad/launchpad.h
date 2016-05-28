@@ -25,6 +25,7 @@
 #include <base/lock.h>
 #include <cap_session/connection.h>
 #include <timer_session/timer_session.h>
+#include <pd_session/client.h>
 
 #include <init/child.h>
 
@@ -151,13 +152,9 @@ class Launchpad_child : public Genode::List<Launchpad_child>::Element
 {
 	private:
 
-		Launchpad *_launchpad;
+		static Genode::Dataspace_capability _ldso_ds();
 
-		Genode::Rom_session_capability _rom;
-		Genode::Ram_session_capability _ram;
-		Genode::Cpu_session_capability _cpu;
-		Genode::Rm_session_capability  _rm;
-		Genode::Server                 _server;
+		Launchpad *_launchpad;
 
 		/*
 		 * Entry point used for serving the parent interface and the
@@ -166,6 +163,17 @@ class Launchpad_child : public Genode::List<Launchpad_child>::Element
 		 */
 		enum { ENTRYPOINT_STACK_SIZE = 12*1024 };
 		Genode::Rpc_entrypoint _entrypoint;
+
+		Genode::Region_map_client  _address_space;
+
+		Genode::Rom_session_client _rom;
+		Genode::Pd_session_client  _pd;
+		Genode::Ram_session_client _ram;
+		Genode::Cpu_session_client _cpu;
+
+		Genode::Child::Initial_thread _initial_thread;
+
+		Genode::Server _server;
 
 		Launchpad_child_policy _policy;
 		Genode::Child          _child;
@@ -177,7 +185,6 @@ class Launchpad_child : public Genode::List<Launchpad_child>::Element
 			                Genode::Pd_session_capability  pd,
 			                Genode::Ram_session_capability ram,
 			                Genode::Cpu_session_capability cpu,
-			                Genode::Rm_session_capability  rm,
 			                Genode::Rom_session_capability rom,
 			                Genode::Cap_session           *cap_session,
 			                Genode::Service_registry      *parent_services,
@@ -186,17 +193,22 @@ class Launchpad_child : public Genode::List<Launchpad_child>::Element
 			                Launchpad                     *launchpad)
 			:
 				_launchpad(launchpad),
-				_rom(rom), _ram(ram), _cpu(cpu), _rm(rm), _server(_ram),
 				_entrypoint(cap_session, ENTRYPOINT_STACK_SIZE, name, false),
+				_address_space(Genode::Pd_session_client(pd).address_space()),
+				_rom(rom), _pd(pd), _ram(ram), _cpu(cpu),
+				_initial_thread(_cpu, _pd, name), _server(_ram),
 				_policy(name, &_server, parent_services, child_services,
 				        config_ds, elf_ds, &_entrypoint),
-				_child(elf_ds, pd, ram, cpu, rm, &_entrypoint, &_policy) {
-				_entrypoint.activate(); }
+				_child(elf_ds, _ldso_ds(), _pd, _pd, _ram, _ram, _cpu,
+				       _initial_thread, *Genode::env()->rm_session(),
+				       _address_space, _entrypoint, _policy)
+				{
+					_entrypoint.activate();
+				}
 
 			Genode::Rom_session_capability rom_session_cap() { return _rom; }
 			Genode::Ram_session_capability ram_session_cap() { return _ram; }
 			Genode::Cpu_session_capability cpu_session_cap() { return _cpu; }
-			Genode::Rm_session_capability  rm_session_cap()  { return _rm;  }
 
 			const char *name() const { return _policy.name(); }
 

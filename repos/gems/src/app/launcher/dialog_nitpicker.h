@@ -96,7 +96,7 @@ struct Launcher::Dialog_nitpicker_session : Wrapped_nitpicker_session
 		Input::Event const * const events =
 			_nitpicker_input_ds.local_addr<Input::Event>();
 
-		while (_nitpicker_input.is_pending()) {
+		while (_nitpicker_input.pending()) {
 
 			size_t const num_events = _nitpicker_input.flush();
 			for (size_t i = 0; i < num_events; i++) {

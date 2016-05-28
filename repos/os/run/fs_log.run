@@ -14,14 +14,12 @@ set rounds 20
 set config {
 <config prio_levels="2">
 	<parent-provides>
-		<service name="CAP"/>
 		<service name="CPU"/>
 		<service name="LOG"/>
 		<service name="PD"/>
 		<service name="RAM"/>
 		<service name="RM"/>
 		<service name="ROM"/>
-		<service name="SIGNAL"/>
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>

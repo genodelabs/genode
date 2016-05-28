@@ -227,7 +227,7 @@ class Usb_filter::Device_registry
 		{
 			_devices_rom.update();
 
-			if (!_devices_rom.is_valid()) return;
+			if (!_devices_rom.valid()) return;
 
 			if (verbose)
 				PLOG("device report:\n%s", _devices_rom.local_addr<char>());
@@ -320,7 +320,7 @@ class Usb_filter::Device_registry
 		{
 			_usb_drv_config_rom.update();
 
-			if (!_usb_drv_config_rom.is_valid()) return;
+			if (!_usb_drv_config_rom.valid()) return;
 
 			Xml_node config(_usb_drv_config_rom.local_addr<char>(),
 			                _usb_drv_config_rom.size());

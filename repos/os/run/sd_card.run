@@ -27,12 +27,10 @@ set config  {
 			<service name="RAM"/>
 			<service name="IRQ"/>
 			<service name="IO_MEM"/>
-			<service name="CAP"/>
 			<service name="PD"/>
 			<service name="RM"/>
 			<service name="CPU"/>
 			<service name="LOG"/>
-			<service name="SIGNAL"/>
 		</parent-provides>
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
@@ -79,7 +77,7 @@ lappend_if [have_spec rpi]     boot_modules platform_drv
 set disk_image "bin/sd_card.img"
 
 build_boot_image $boot_modules
-append qemu_args "-drive file=$disk_image,if=sd,cache=writeback -nographic "
+append qemu_args "-drive file=$disk_image,format=raw,if=sd,cache=writeback -nographic "
 
 if { [file exists $disk_image] == 0 } then {
 	# create empty block device file

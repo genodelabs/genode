@@ -30,7 +30,6 @@ namespace Nitpicker {
 	typedef Genode::Surface_base::Rect  Rect;
 	typedef Genode::Surface_base::Point Point;
 	typedef Genode::Surface_base::Area  Area;
-	using Genode::Meta::Type_tuple;
 }
 
 
@@ -140,7 +139,15 @@ struct Nitpicker::Session : Genode::Session
 
 		public:
 
-			bool is_full() const { return _num >= MAX_COMMANDS; }
+			bool full() const { return _num >= MAX_COMMANDS; }
+
+			/**
+			 * Return true if there is no space left in the command buffer
+			 *
+			 * \noapi
+			 * \deprecated  use 'full' instead
+			 */
+			bool is_full() const { return full(); }
 
 			unsigned num() const
 			{
@@ -155,11 +162,11 @@ struct Nitpicker::Session : Genode::Session
 			 * Enqueue command
 			 *
 			 * The command will be dropped if the buffer is full. Check for this
-			 * condition by calling 'is_full()' prior calling this method.
+			 * condition by calling 'full()' prior calling this method.
 			 */
 			void enqueue(Command const &command)
 			{
-				if (!is_full())
+				if (!full())
 					_commands[_num++] = command;
 			}
 
@@ -332,27 +339,11 @@ struct Nitpicker::Session : Genode::Session
 	GENODE_RPC_THROW(Rpc_buffer, void, buffer, GENODE_TYPE_LIST(Out_of_metadata),
 	                 Framebuffer::Mode, bool);
 
-	/*
-	 * The 'GENODE_RPC_INTERFACE' declaration is done manually because the
-	 * number of RPC functions exceeds the maxium arguments supported by the
-	 * 'Type_list' template.
-	 */
-	typedef Type_tuple<Rpc_framebuffer_session,
-	        Type_tuple<Rpc_input_session,
-	        Type_tuple<Rpc_create_view,
-	        Type_tuple<Rpc_destroy_view,
-	        Type_tuple<Rpc_view_handle,
-	        Type_tuple<Rpc_view_capability,
-	        Type_tuple<Rpc_release_view_handle,
-	        Type_tuple<Rpc_command_dataspace,
-	        Type_tuple<Rpc_execute,
-	        Type_tuple<Rpc_mode,
-	        Type_tuple<Rpc_mode_sigh,
-	        Type_tuple<Rpc_buffer,
-	        Type_tuple<Rpc_focus,
-	        Type_tuple<Rpc_session_control,
-	                   Genode::Meta::Empty>
-	        > > > > > > > > > > > > > Rpc_functions;
+	GENODE_RPC_INTERFACE(Rpc_framebuffer_session, Rpc_input_session,
+	                     Rpc_create_view, Rpc_destroy_view, Rpc_view_handle,
+	                     Rpc_view_capability, Rpc_release_view_handle,
+	                     Rpc_command_dataspace, Rpc_execute, Rpc_mode,
+	                     Rpc_mode_sigh, Rpc_buffer, Rpc_focus, Rpc_session_control);
 };
 
 #endif /* _INCLUDE__NITPICKER_SESSION__NITPICKER_SESSION_H_ */

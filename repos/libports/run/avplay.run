@@ -6,7 +6,6 @@ set build_components {
 	core init
 	drivers/timer
 	drivers/framebuffer drivers/input drivers/audio
-	server/mixer
 	app/avplay drivers/acpi
 }
 
@@ -39,12 +38,10 @@ set config {
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
-		<service name="CAP"/>
 		<service name="PD"/>
 		<service name="RM"/>
 		<service name="CPU"/>
 		<service name="LOG"/>
-		<service name="SIGNAL"/>
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
@@ -89,14 +86,6 @@ append config {
 			<service name="Audio_out"/>
 		</provides>
 	</start>
-	<start name="mixer">
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Audio_out"/></provides>
-		<route>
-			<service name="Audio_out"> <child name="audio_drv"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
 	<start name="avplay">
 		<resource name="RAM" quantum="64M"/>
 		<config>
@@ -112,7 +101,7 @@ append config {
 		</config>
 		<route>
 			<service name="Platform"> <any-child /> </service>
-			<service name="Audio_out"> <child name="mixer"/> </service>
+			<service name="Audio_out"> <child name="audio_drv"/> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>
@@ -126,9 +115,10 @@ install_config $config
 #
 
 set boot_modules {
-	core init timer audio_drv mixer avplay
+	core init timer audio_drv avplay
 	ld.lib.so libc.lib.so libm.lib.so pthread.lib.so zlib.lib.so sdl.lib.so
 	avfilter.lib.so avutil.lib.so avcodec.lib.so avformat.lib.so swscale.lib.so
+	avresample.lib.so
 	mediafile
 }
 

@@ -110,10 +110,18 @@ NOUX_CXXFLAGS += $(NOUX_COMMON_CFLAGS_CXXFLAGS)
 # Unfortunately, the use of '--start-group' and '--end-group' does not suffice
 # in all cases because 'libtool' strips those arguments from the 'LIBS' variable.
 #
+# Furthermore, 'libtool' reorders library names on the command line in a way that
+# shared libraries appear before static libraries. This has the unfortunate effect
+# that the program's entry symbol 'Genode::component_entry_point' in the static
+# library 'component_entry_point.lib.a' is not found anymore. Passing the static
+# library names as linker arguments (-Wl,...) works around this problem, because
+# 'libtool' keeps command line arguments before the shared library names.
+#
 
 NOUX_LIBS_A  = $(filter %.a, $(sort $(LINK_ITEMS)) $(EXT_OBJECTS) $(LIBGCC))
 NOUX_LIBS_SO = $(filter %.so,$(sort $(LINK_ITEMS)) $(EXT_OBJECTS) $(LIBGCC))
-NOUX_LIBS += $(NOUX_LIBS_A) $(NOUX_LIBS_SO) $(NOUX_LIBS_A)
+comma := ,
+NOUX_LIBS += $(addprefix -Wl$(comma),$(NOUX_LIBS_A)) $(NOUX_LIBS_SO) $(NOUX_LIBS_A)
 
 #
 # Re-configure the Makefile if the Genode build environment changes

@@ -44,13 +44,13 @@ class Linux_session_component : public Nic::Session_component
 {
 	private:
 
-		struct Rx_signal_thread : Genode::Thread<0x1000>
+		struct Rx_signal_thread : Genode::Thread_deprecated<0x1000>
 		{
 			int                               fd;
 			Genode::Signal_context_capability sigh;
 
 			Rx_signal_thread(int fd, Genode::Signal_context_capability sigh)
-			: Genode::Thread<0x1000>("rx_signal"), fd(fd), sigh(sigh) { }
+			: Genode::Thread_deprecated<0x1000>("rx_signal"), fd(fd), sigh(sigh) { }
 
 			void entry()
 			{

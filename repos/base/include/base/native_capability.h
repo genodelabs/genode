@@ -116,4 +116,3 @@ class Genode::Native_capability_tpl
 };
 
 #endif /* _INCLUDE__BASE__NATIVE_CAPABILITY_H_ */
-

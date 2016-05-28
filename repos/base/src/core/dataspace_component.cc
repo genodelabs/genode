@@ -13,7 +13,7 @@
 
 /* core includes */
 #include <dataspace_component.h>
-#include <rm_session_component.h>
+#include <region_map_component.h>
 
 using namespace Genode;
 
@@ -43,7 +43,7 @@ void Dataspace_component::detach_from_rm_sessions()
 		 * and thereby removes the current region from the '_regions' list.
 		 */
 		_lock.unlock();
-		r->session()->detach((void *)r->base());
+		r->rm()->detach((void *)r->base());
 		_lock.lock();
 	}
 

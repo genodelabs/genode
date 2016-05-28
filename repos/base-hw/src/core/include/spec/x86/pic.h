@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _PIC_H_
-#define _PIC_H_
+#ifndef _CORE__INCLUDE__SPEC__X86__PIC_H_
+#define _CORE__INCLUDE__SPEC__X86__PIC_H_
 
 /* Genode includes */
 #include <util/mmio.h>
@@ -57,7 +57,7 @@ class Genode::Ioapic : public Mmio
 
 		enum {
 			/* Number of Redirection Table entries */
-			IRTE_COUNT = 0x17,
+			IRTE_COUNT = 24,
 
 			/* Register selectors */
 			IOAPICVER = 0x01,
@@ -140,7 +140,7 @@ class Genode::Ioapic : public Mmio
 				}
 
 				/* remap all IRQs managed by I/O APIC */
-				if (i <= IRTE_COUNT) {
+				if (i < IRTE_COUNT) {
 					Irte::access_t irte = _create_irt_entry(i);
 					write<Ioregsel>(IOREDTBL + 2 * i + 1);
 					write<Iowin>(irte >> Iowin::ACCESS_WIDTH);
@@ -273,11 +273,10 @@ class Genode::Pic : public Mmio
 		 * Dummies
 		 */
 
-		void mask() { }
 		bool is_ip_interrupt(unsigned, unsigned) { return false; }
 		void trigger_ip_interrupt(unsigned) { }
 };
 
 namespace Kernel { class Pic : public Genode::Pic { }; }
 
-#endif /* _PIC_H_ */
+#endif /* _CORE__INCLUDE__SPEC__X86__PIC_H_ */

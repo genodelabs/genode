@@ -19,15 +19,6 @@
 
 namespace Genode {
 
-	typedef int Native_thread_id;
-
-	struct Native_thread
-	{
-		unsigned tcb_sel = 0;
-		unsigned ep_sel  = 0;
-		unsigned rcv_sel = 0;
-	};
-
 	class Native_capability
 	{
 		public:
@@ -107,44 +98,6 @@ namespace Genode {
 
 			bool valid() const;
 	};
-
-	struct Native_utcb
-	{
-		/**
-		 * On seL4, the UTCB is called IPC buffer. We use one page
-		 * for each IPC buffer.
-		 */
-		enum { IPC_BUFFER_SIZE = 4096 };
-
-		union {
-
-			addr_t raw[IPC_BUFFER_SIZE/sizeof(addr_t)];
-
-			struct {
-				addr_t ep_sel;
-			};
-		};
-	};
-
-	struct Native_config
-	{
-		/**
-		 * Thread-context area configuration.
-		 */
-		static constexpr addr_t context_area_virtual_base() {
-			return 0x40000000UL; }
-		static constexpr addr_t context_area_virtual_size() {
-			return 0x10000000UL; }
-
-		/**
-		 * Size of virtual address region holding the context of one thread
-		 */
-		static constexpr addr_t context_virtual_size() { return 0x00100000UL; }
-	};
-
-	struct Native_pd_args { };
-
-	typedef int Native_connection_state;
 }
 
 #endif /* _INCLUDE__BASE__NATIVE_TYPES_H_ */

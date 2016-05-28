@@ -44,14 +44,13 @@ if {[have_spec arm]} {
 }
 
 if {[have_spec x86]} {
-	set platform_base_dir   "base-nova"
+	set platform_base_dir   "base-hw"
 	set noux_boot_timeout   100
-	set tool_chain_timeout  600
+	set tool_chain_timeout  450
+	set platform            "hw_x86_64"
 
-	if {[have_spec 32bit]} {
-		set platform          "nova_x86_32"
-	} else {
-		set platform          "nova_x86_64"
+	if {[have_spec foc]} {
+		set tool_chain_timeout  850
 	}
 }
 

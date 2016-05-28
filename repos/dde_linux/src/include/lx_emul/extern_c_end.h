@@ -13,9 +13,12 @@
 
 #ifdef __cplusplus
 
+#undef delete
 #undef new
 #undef class
 #undef private
+#undef namespace
+#undef virtual
 
 #pragma GCC diagnostic pop
 

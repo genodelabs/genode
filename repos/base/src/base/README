@@ -1,7 +1,0 @@
-This directory contains the mandatory Genode infrastructure
-on which all Genode components rely. Each subdirectory
-corresponds to a library.
-
-:Note: Do not mistake the name of this directory with the
-  make variable $(BASE_DIR). The make variable refers to
-  the top-level directory of the whole Genode source tree.

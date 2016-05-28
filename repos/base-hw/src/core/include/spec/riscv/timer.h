@@ -14,6 +14,9 @@
 #ifndef _TIMER_H_
 #define _TIMER_H_
 
+/* base-hw includes */
+#include <kernel/types.h>
+
 /* Genode includes */
 #include <base/printf.h>
 #include <base/stdint.h>
@@ -29,6 +32,13 @@ namespace Genode { class Timer; }
 struct Genode::Timer
 {
 	private:
+
+		using time_t = Kernel::time_t;
+
+		enum {
+			SPIKE_TIMER_HZ = 500000,
+			TICS_PER_MS    = SPIKE_TIMER_HZ / 1000,
+		};
 
 		addr_t _timeout = 0;
 
@@ -48,48 +58,35 @@ struct Genode::Timer
 			asm volatile ("csrs sie, %0" : : "r"(STIE));
 		}
 
-		enum {
-			SPIKE_TIMER_HZ = 500000,
-			MS_TICS        = SPIKE_TIMER_HZ / 1000,
-		};
-
 		/**
 		 * Start single timeout run
 		 *
 		 * \param tics  delay of timer interrupt
 		 */
-		void start_one_shot(unsigned const tics, unsigned /* cpu */)
+		void start_one_shot(time_t const tics, unsigned const)
 		{
 			_timeout = _stime() + tics;
 			Machine::set_sys_timer(_timeout);
 		}
 
-		/**
-		 * Translate milliseconds to a native timer value
-		 */
-		unsigned ms_to_tics(unsigned const ms)
-		{
-			return ms * MS_TICS;
-		}
+		time_t tics_to_us(time_t const tics) const {
+			return (tics / TICS_PER_MS) * 1000; }
 
-		/**
-		 * Translate native timer value to milliseconds
-		 */
-		unsigned tics_to_ms(unsigned const tics)
-		{
-			return tics / MS_TICS;
-		}
+		time_t us_to_tics(time_t const us) const {
+			return (us / 1000) * TICS_PER_MS; }
+
+		time_t max_value() { return (addr_t)~0; }
 
 		/**
 		 * Return current native timer value
 		 */
-		unsigned value(unsigned const)
+		time_t value(unsigned const)
 		{
 			addr_t time = _stime();
 			return time < _timeout ? _timeout - time : 0;
 		}
 
-		static unsigned interrupt_id(int) { return 1; }
+		static unsigned interrupt_id(unsigned const) { return 1; }
 };
 
 namespace Kernel { class Timer : public Genode::Timer { }; }

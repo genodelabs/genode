@@ -154,7 +154,7 @@ extern "C" int nanosleep(const struct timespec *req, struct timespec *rem)
 /*
 	if (req) { // && req->tv_sec == 0 && req->tv_nsec <= 10 *1000000) {
 		char _name[64];
-		Genode::Thread_base::myself()->name(_name, sizeof(_name));
+		Genode::Thread::myself()->name(_name, sizeof(_name));
 		PERR("%zd:%ld s:ns rip %p '%s'", req->tv_sec, req->tv_nsec,
 		     __builtin_return_address(0), _name);
 	}

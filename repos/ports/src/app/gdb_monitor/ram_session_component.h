@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2006-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -18,9 +18,13 @@
 #include <base/rpc_server.h>
 #include <ram_session/client.h>
 
-using namespace Genode;
+namespace Gdb_monitor
+{
+	class Ram_session_component;
+	using namespace Genode;
+}
 
-class Ram_session_component : public Rpc_object<Ram_session>
+class Gdb_monitor::Ram_session_component : public Rpc_object<Ram_session>
 {
 	private:
 

@@ -96,7 +96,7 @@ namespace Noux {
 			/**
 			 * Return true if the channel is set to non-blocking mode
 			 */
-			virtual bool is_nonblocking() { return false; }
+			virtual bool nonblocking() { return false; }
 
 			/**
 			 * Register blocker for getting waked up on an I/O channel event

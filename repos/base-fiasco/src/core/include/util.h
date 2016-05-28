@@ -19,9 +19,12 @@
 /* Genode includes */
 #include <base/stdint.h>
 #include <base/printf.h>
-#include <rm_session/rm_session.h>
+#include <region_map/region_map.h>
 #include <util/touch.h>
-#include <fiasco/thread_helper.h>
+
+/* base-internal includes */
+#include <base/internal/fiasco_thread_helper.h>
+#include <base/internal/page_size.h>
 
 /* Fiasco includes */
 namespace Fiasco {
@@ -92,19 +95,17 @@ namespace Genode {
 		return l4_round_superpage(addr);
 	}
 
-	constexpr size_t get_page_size()            { return L4_PAGESIZE;      }
-	constexpr size_t get_page_size_log2()       { return L4_LOG2_PAGESIZE; }
 	constexpr size_t get_super_page_size()      { return L4_SUPERPAGESIZE; }
 	constexpr size_t get_super_page_size_log2() { return L4_LOG2_SUPERPAGESIZE; }
 
 	inline void print_page_fault(const char *msg, addr_t pf_addr, addr_t pf_ip,
-	                             Rm_session::Fault_type pf_type,
+	                             Region_map::State::Fault_type pf_type,
 	                             unsigned long badge)
 	{
-		Native_thread_id tid;
+		Fiasco::l4_threadid_t tid;
 		tid.raw = badge;
 		printf("%s (%s pf_addr=%p pf_ip=%p from %x.%02x)\n", msg,
-		       pf_type == Rm_session::WRITE_FAULT ? "WRITE" : "READ",
+		       pf_type == Region_map::State::WRITE_FAULT ? "WRITE" : "READ",
 		       (void *)pf_addr, (void *)pf_ip,
 		       (int)tid.id.task, (int)tid.id.lthread);
 	}
@@ -113,6 +114,15 @@ namespace Genode {
 		return core_local_addr; }
 
 	inline size_t constrain_map_size_log2(size_t size_log2) { return size_log2; }
+
+	inline unsigned long convert_native_thread_id_to_badge(Fiasco::l4_threadid_t tid)
+	{
+		/*
+		 * Fiasco has no server-defined badges for page-fault messages.
+		 * Therefore, we have to interpret the sender ID as badge.
+		 */
+		return tid.raw;
+	}
 }
 
 #endif /* _CORE__INCLUDE__UTIL_H_ */

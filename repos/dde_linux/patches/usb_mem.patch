@@ -1,180 +1,137 @@
+commit 91eb4a3e68978feca81f6a5bc31cfcd7c683d628
+Author: Sebastian Sumpf <sebastian.sumpf@genode-labs.com>
+Date:   Tue Mar 15 09:59:11 2016 +0100
+
+    mem
+
 diff --git a/drivers/hid/usbhid/hid-core.c b/drivers/hid/usbhid/hid-core.c
-index 44df131..0d0aa68 100644
+index 5dd426f..6b4294a 100644
 --- a/drivers/hid/usbhid/hid-core.c
 +++ b/drivers/hid/usbhid/hid-core.c
-@@ -840,7 +840,7 @@ static int hid_alloc_buffers(struct usb_device *dev, struct hid_device *hid)
+@@ -841,7 +841,7 @@ static int hid_alloc_buffers(struct usb_device *dev, struct hid_device *hid)
  			&usbhid->inbuf_dma);
  	usbhid->outbuf = usb_alloc_coherent(dev, usbhid->bufsize, GFP_KERNEL,
  			&usbhid->outbuf_dma);
 -	usbhid->cr = kmalloc(sizeof(*usbhid->cr), GFP_KERNEL);
-+	usbhid->cr = kmalloc(sizeof(*usbhid->cr), GFP_NOIO);
++	usbhid->cr = kmalloc(sizeof(*usbhid->cr), GFP_LX_DMA);
  	usbhid->ctrlbuf = usb_alloc_coherent(dev, usbhid->bufsize, GFP_KERNEL,
  			&usbhid->ctrlbuf_dma);
  	if (!usbhid->inbuf || !usbhid->outbuf || !usbhid->cr ||
-@@ -998,7 +998,7 @@ static int usbhid_parse(struct hid_device *hid)
+@@ -1013,7 +1013,7 @@ static int usbhid_parse(struct hid_device *hid)
  		return -EINVAL;
  	}
  
 -	if (!(rdesc = kmalloc(rsize, GFP_KERNEL))) {
-+	if (!(rdesc = kmalloc(rsize, GFP_NOIO))) {
++	if (!(rdesc = kmalloc(rsize, GFP_LX_DMA))) {
  		dbg_hid("couldn't allocate rdesc memory\n");
  		return -ENOMEM;
  	}
 diff --git a/drivers/net/usb/usbnet.c b/drivers/net/usb/usbnet.c
-index f9e96c4..31d8b12 100644
+index 0744bf2..6237370 100644
 --- a/drivers/net/usb/usbnet.c
 +++ b/drivers/net/usb/usbnet.c
-@@ -228,7 +228,7 @@ static int init_status (struct usbnet *dev, struct usb_interface *intf)
+@@ -229,7 +229,7 @@ static int init_status (struct usbnet *dev, struct usb_interface *intf)
  	period = max ((int) dev->status->desc.bInterval,
  		(dev->udev->speed == USB_SPEED_HIGH) ? 7 : 3);
  
 -	buf = kmalloc (maxp, GFP_KERNEL);
-+	buf = kmalloc (maxp, GFP_NOIO);
++	buf = kmalloc (maxp, GFP_LX_DMA);
  	if (buf) {
  		dev->interrupt = usb_alloc_urb (0, GFP_KERNEL);
  		if (!dev->interrupt) {
-@@ -1772,7 +1772,7 @@ int usbnet_resume (struct usb_interface *intf)
- 
- 	if (!--dev->suspend_count) {
- 		/* resume interrupt URB if it was previously submitted */
--		__usbnet_status_start_force(dev, GFP_NOIO);
-+		__usbnet_status_start_force(dev, GFP_KERNEL);
- 
- 		spin_lock_irq(&dev->txq.lock);
- 		while ((res = usb_get_from_anchor(&dev->deferred))) {
-@@ -1801,7 +1801,7 @@ int usbnet_resume (struct usb_interface *intf)
- 			if (netif_device_present(dev->net) &&
- 				!timer_pending(&dev->delay) &&
- 				!test_bit(EVENT_RX_HALT, &dev->flags))
--					rx_alloc_submit(dev, GFP_NOIO);
-+					rx_alloc_submit(dev, GFP_KERNEL);
- 
- 			if (!(dev->txq.qlen >= TX_QLEN(dev)))
- 				netif_tx_wake_all_queues(dev->net);
-@@ -1867,7 +1867,7 @@ static int __usbnet_read_cmd(struct usbnet *dev, u8 cmd, u8 reqtype,
+@@ -1916,7 +1916,7 @@ static int __usbnet_read_cmd(struct usbnet *dev, u8 cmd, u8 reqtype,
  		   cmd, reqtype, value, index, size);
  
  	if (data) {
 -		buf = kmalloc(size, GFP_KERNEL);
-+		buf = kmalloc(size, GFP_NOIO);
++		buf = kmalloc(size, GFP_LX_DMA);
  		if (!buf)
  			goto out;
  	}
-@@ -1894,7 +1894,7 @@ static int __usbnet_write_cmd(struct usbnet *dev, u8 cmd, u8 reqtype,
+@@ -1943,7 +1943,7 @@ static int __usbnet_write_cmd(struct usbnet *dev, u8 cmd, u8 reqtype,
  		   cmd, reqtype, value, index, size);
  
  	if (data) {
 -		buf = kmemdup(data, size, GFP_KERNEL);
-+		buf = kmemdup(data, size, GFP_NOIO);
++		buf = kmemdup(data, size, GFP_LX_DMA);
  		if (!buf)
  			goto out;
  	}
-@@ -2006,7 +2006,7 @@ int usbnet_write_cmd_async(struct usbnet *dev, u8 cmd, u8 reqtype,
+@@ -2192,7 +2192,7 @@ int usbnet_write_cmd_async(struct usbnet *dev, u8 cmd, u8 reqtype,
  	}
  
  	if (data) {
 -		buf = kmemdup(data, size, GFP_ATOMIC);
-+		buf = kmemdup(data, size, GFP_NOIO);
++		buf = kmemdup(data, size, GFP_LX_DMA);
  		if (!buf) {
  			netdev_err(dev->net, "Error allocating buffer"
  				   " in %s!\n", __func__);
-@@ -2014,7 +2014,7 @@ int usbnet_write_cmd_async(struct usbnet *dev, u8 cmd, u8 reqtype,
+@@ -2200,7 +2200,7 @@ int usbnet_write_cmd_async(struct usbnet *dev, u8 cmd, u8 reqtype,
  		}
  	}
  
 -	req = kmalloc(sizeof(struct usb_ctrlrequest), GFP_ATOMIC);
-+	req = kmalloc(sizeof(struct usb_ctrlrequest), GFP_NOIO);
++	req = kmalloc(sizeof(struct usb_ctrlrequest), GFP_LX_DMA);
  	if (!req)
  		goto fail_free_buf;
  
 diff --git a/drivers/usb/core/config.c b/drivers/usb/core/config.c
-index 062967c..f5da439 100644
+index 5050760..9ac55f9 100644
 --- a/drivers/usb/core/config.c
 +++ b/drivers/usb/core/config.c
-@@ -683,7 +683,7 @@ int usb_get_configuration(struct usb_device *dev)
+@@ -695,7 +695,7 @@ int usb_get_configuration(struct usb_device *dev)
  	if (!dev->rawdescriptors)
  		goto err2;
  
 -	desc = kmalloc(USB_DT_CONFIG_SIZE, GFP_KERNEL);
-+	desc = kmalloc(USB_DT_CONFIG_SIZE, GFP_NOIO);
++	desc = kmalloc(USB_DT_CONFIG_SIZE, GFP_LX_DMA);
  	if (!desc)
  		goto err2;
  
-@@ -712,7 +712,7 @@ int usb_get_configuration(struct usb_device *dev)
+@@ -724,7 +724,7 @@ int usb_get_configuration(struct usb_device *dev)
  		    USB_DT_CONFIG_SIZE);
  
  		/* Now that we know the length, get the whole thing */
 -		bigbuffer = kmalloc(length, GFP_KERNEL);
-+		bigbuffer = kmalloc(length, GFP_NOIO);
++		bigbuffer = kmalloc(length, GFP_LX_DMA);
  		if (!bigbuffer) {
  			result = -ENOMEM;
  			goto err;
-@@ -774,7 +774,7 @@ int usb_get_bos_descriptor(struct usb_device *dev)
+@@ -786,7 +786,7 @@ int usb_get_bos_descriptor(struct usb_device *dev)
  	int length, total_len, num, i;
  	int ret;
  
 -	bos = kzalloc(sizeof(struct usb_bos_descriptor), GFP_KERNEL);
-+	bos = kzalloc(sizeof(struct usb_bos_descriptor), GFP_NOIO);
++	bos = kzalloc(sizeof(struct usb_bos_descriptor), GFP_LX_DMA);
  	if (!bos)
  		return -ENOMEM;
  
-@@ -800,7 +800,7 @@ int usb_get_bos_descriptor(struct usb_device *dev)
+@@ -812,7 +812,7 @@ int usb_get_bos_descriptor(struct usb_device *dev)
  		return -ENOMEM;
  
  	/* Now let's get the whole BOS descriptor set */
 -	buffer = kzalloc(total_len, GFP_KERNEL);
-+	buffer = kzalloc(total_len, GFP_NOIO);
++	buffer = kzalloc(total_len, GFP_LX_DMA);
  	if (!buffer) {
  		ret = -ENOMEM;
  		goto err;
-diff --git a/drivers/usb/core/devices.c b/drivers/usb/core/devices.c
-index 2a3bbdf..c78eedd 100644
---- a/drivers/usb/core/devices.c
-+++ b/drivers/usb/core/devices.c
-@@ -513,7 +513,7 @@ static ssize_t usb_device_dump(char __user **buffer, size_t *nbytes,
- 		return 0;
- 	/* allocate 2^1 pages = 8K (on i386);
- 	 * should be more than enough for one device */
--	pages_start = (char *)__get_free_pages(GFP_NOIO, 1);
-+	pages_start = (char *)__get_free_pages(GFP_KERNEL, 1);
- 	if (!pages_start)
- 		return -ENOMEM;
- 
 diff --git a/drivers/usb/core/hub.c b/drivers/usb/core/hub.c
-index d498d03..87b0b6b 100644
+index 1560f3f..54e99b5 100644
 --- a/drivers/usb/core/hub.c
 +++ b/drivers/usb/core/hub.c
-@@ -1056,7 +1056,7 @@ static void hub_activate(struct usb_hub *hub, enum hub_activation_type type)
- 			hcd = bus_to_hcd(hdev->bus);
- 			if (hcd->driver->update_hub_device) {
- 				ret = hcd->driver->update_hub_device(hcd, hdev,
--						&hub->tt, GFP_NOIO);
-+						&hub->tt, GFP_KERNEL);
- 				if (ret < 0) {
- 					dev_err(hub->intfdev, "Host not "
- 							"accepting hub info "
-@@ -1205,7 +1205,7 @@ static void hub_activate(struct usb_hub *hub, enum hub_activation_type type)
-  init3:
- 	hub->quiescing = 0;
- 
--	status = usb_submit_urb(hub->urb, GFP_NOIO);
-+	status = usb_submit_urb(hub->urb, GFP_KERNEL);
- 	if (status < 0)
- 		dev_err(hub->intfdev, "activate --> %d\n", status);
- 	if (hub->has_indicators && blinkenlights)
-@@ -1296,20 +1296,20 @@ static int hub_configure(struct usb_hub *hub,
- 	unsigned unit_load;
+@@ -1365,20 +1365,20 @@ static int hub_configure(struct usb_hub *hub,
  	unsigned full_load;
+ 	unsigned maxchild;
  
 -	hub->buffer = kmalloc(sizeof(*hub->buffer), GFP_KERNEL);
-+	hub->buffer = kmalloc(sizeof(*hub->buffer), GFP_NOIO);
++	hub->buffer = kmalloc(sizeof(*hub->buffer), GFP_LX_DMA);
  	if (!hub->buffer) {
  		ret = -ENOMEM;
  		goto fail;
  	}
  
 -	hub->status = kmalloc(sizeof(*hub->status), GFP_KERNEL);
-+	hub->status = kmalloc(sizeof(*hub->status), GFP_NOIO);
++	hub->status = kmalloc(sizeof(*hub->status), GFP_LX_DMA);
  	if (!hub->status) {
  		ret = -ENOMEM;
  		goto fail;
@@ -182,105 +139,34 @@ index d498d03..87b0b6b 100644
  	mutex_init(&hub->status_mutex);
  
 -	hub->descriptor = kmalloc(sizeof(*hub->descriptor), GFP_KERNEL);
-+	hub->descriptor = kmalloc(sizeof(*hub->descriptor), GFP_NOIO);
++	hub->descriptor = kmalloc(sizeof(*hub->descriptor), GFP_LX_DMA);
  	if (!hub->descriptor) {
  		ret = -ENOMEM;
  		goto fail;
-@@ -3464,9 +3464,9 @@ static int usb_req_set_sel(struct usb_device *udev, enum usb3_link_state state)
- 	/*
- 	 * usb_enable_lpm() can be called as part of a failed device reset,
- 	 * which may be initiated by an error path of a mass storage driver.
--	 * Therefore, use GFP_NOIO.
-+	 * Therefore, use GFP_KERNEL.
- 	 */
--	sel_values = kmalloc(sizeof *(sel_values), GFP_NOIO);
-+	sel_values = kmalloc(sizeof *(sel_values), GFP_KERNEL);
- 	if (!sel_values)
- 		return -ENOMEM;
+@@ -4586,7 +4586,7 @@ check_highspeed(struct usb_hub *hub, struct usb_device *udev, int port1)
+ 	if (udev->quirks & USB_QUIRK_DEVICE_QUALIFIER)
+ 		return;
  
-@@ -4299,7 +4299,7 @@ check_highspeed (struct usb_hub *hub, struct usb_device *udev, int port1)
- 	struct usb_qualifier_descriptor	*qual;
- 	int				status;
- 
--	qual = kmalloc (sizeof *qual, GFP_KERNEL);
-+	qual = kmalloc (sizeof *qual, GFP_NOIO);
+-	qual = kmalloc(sizeof *qual, GFP_KERNEL);
++	qual = kmalloc(sizeof *qual, GFP_LX_DMA);
  	if (qual == NULL)
  		return;
  
-@@ -5030,7 +5030,7 @@ static int descriptors_changed(struct usb_device *udev,
- 		len = max(len, old_length);
- 	}
- 
--	buf = kmalloc(len, GFP_NOIO);
-+	buf = kmalloc(len, GFP_KERNEL);
- 	if (buf == NULL) {
- 		dev_err(&udev->dev, "no mem to re-read configs after reset\n");
- 		/* assume the worst */
 diff --git a/drivers/usb/core/message.c b/drivers/usb/core/message.c
-index f829a1a..91aa41a 100644
+index 8e641b5..5807f68 100644
 --- a/drivers/usb/core/message.c
 +++ b/drivers/usb/core/message.c
-@@ -49,7 +49,7 @@ static int usb_start_wait_urb(struct urb *urb, int timeout, int *actual_length)
- 	init_completion(&ctx.done);
- 	urb->context = &ctx;
- 	urb->actual_length = 0;
--	retval = usb_submit_urb(urb, GFP_NOIO);
-+	retval = usb_submit_urb(urb, GFP_KERNEL);
- 	if (unlikely(retval))
- 		goto out;
- 
-@@ -86,7 +86,7 @@ static int usb_internal_control_msg(struct usb_device *usb_dev,
- 	int retv;
- 	int length;
- 
--	urb = usb_alloc_urb(0, GFP_NOIO);
-+	urb = usb_alloc_urb(0, GFP_KERNEL);
- 	if (!urb)
- 		return -ENOMEM;
- 
-@@ -869,11 +869,11 @@ char *usb_cache_string(struct usb_device *udev, int index)
- 	if (index <= 0)
- 		return NULL;
- 
--	buf = kmalloc(MAX_USB_STRING_SIZE, GFP_NOIO);
-+	buf = kmalloc(MAX_USB_STRING_SIZE, GFP_KERNEL);
- 	if (buf) {
- 		len = usb_string(udev, index, buf, MAX_USB_STRING_SIZE);
- 		if (len > 0) {
--			smallbuf = kmalloc(++len, GFP_NOIO);
-+			smallbuf = kmalloc(++len, GFP_KERNEL);
- 			if (!smallbuf)
- 				return buf;
- 			memcpy(smallbuf, buf, len);
-@@ -944,7 +944,7 @@ int usb_get_device_descriptor(struct usb_device *dev, unsigned int size)
+@@ -942,7 +942,7 @@ int usb_get_device_descriptor(struct usb_device *dev, unsigned int size)
  int usb_get_status(struct usb_device *dev, int type, int target, void *data)
  {
  	int ret;
 -	__le16 *status = kmalloc(sizeof(*status), GFP_KERNEL);
-+	__le16 *status = kmalloc(sizeof(*status), GFP_NOIO);
++	__le16 *status = kmalloc(sizeof(*status), GFP_LX_DMA);
  
  	if (!status)
  		return -ENOMEM;
-@@ -1743,7 +1743,7 @@ int usb_set_configuration(struct usb_device *dev, int configuration)
- 	if (cp) {
- 		nintf = cp->desc.bNumInterfaces;
- 		new_interfaces = kmalloc(nintf * sizeof(*new_interfaces),
--				GFP_NOIO);
-+				GFP_KERNEL);
- 		if (!new_interfaces) {
- 			dev_err(&dev->dev, "Out of memory\n");
- 			return -ENOMEM;
-@@ -1752,7 +1752,7 @@ int usb_set_configuration(struct usb_device *dev, int configuration)
- 		for (; n < nintf; ++n) {
- 			new_interfaces[n] = kzalloc(
- 					sizeof(struct usb_interface),
--					GFP_NOIO);
-+					GFP_KERNEL);
- 			if (!new_interfaces[n]) {
- 				dev_err(&dev->dev, "Out of memory\n");
- 				ret = -ENOMEM;
 diff --git a/drivers/usb/host/ehci-mem.c b/drivers/usb/host/ehci-mem.c
-index c0fb6a8..107f41d 100644
+index b6205fa..99cae0f 100644
 --- a/drivers/usb/host/ehci-mem.c
 +++ b/drivers/usb/host/ehci-mem.c
 @@ -82,7 +82,7 @@ static struct ehci_qh *ehci_qh_alloc (struct ehci_hcd *ehci, gfp_t flags)
@@ -288,104 +174,154 @@ index c0fb6a8..107f41d 100644
  	dma_addr_t		dma;
  
 -	qh = kzalloc(sizeof *qh, GFP_ATOMIC);
-+	qh = kzalloc(sizeof *qh, GFP_NOIO);
++	qh = kzalloc(sizeof *qh, GFP_LX_DMA);
  	if (!qh)
  		goto done;
  	qh->hw = (struct ehci_qh_hw *)
-diff --git a/drivers/usb/host/xhci-hub.c b/drivers/usb/host/xhci-hub.c
-index 9992fbf..10f539c 100644
---- a/drivers/usb/host/xhci-hub.c
-+++ b/drivers/usb/host/xhci-hub.c
-@@ -276,7 +276,7 @@ static int xhci_stop_device(struct xhci_hcd *xhci, int slot_id, int suspend)
- 
- 	ret = 0;
- 	virt_dev = xhci->devs[slot_id];
--	cmd = xhci_alloc_command(xhci, false, true, GFP_NOIO);
-+	cmd = xhci_alloc_command(xhci, false, true, GFP_KERNEL);
- 	if (!cmd) {
- 		xhci_dbg(xhci, "Couldn't allocate command structure.\n");
- 		return -ENOMEM;
 diff --git a/drivers/usb/host/xhci.c b/drivers/usb/host/xhci.c
-index cca2896..9b5c07e 100644
+index 776d59c..e32db7b 100644
 --- a/drivers/usb/host/xhci.c
 +++ b/drivers/usb/host/xhci.c
-@@ -1279,7 +1279,7 @@ int xhci_urb_enqueue(struct usb_hcd *hcd, struct urb *urb, gfp_t mem_flags)
+@@ -1354,7 +1354,7 @@ int xhci_urb_enqueue(struct usb_hcd *hcd, struct urb *urb, gfp_t mem_flags)
  		size = 1;
  
  	urb_priv = kzalloc(sizeof(struct urb_priv) +
 -				  size * sizeof(struct xhci_td *), mem_flags);
-+				  size * sizeof(struct xhci_td *), GFP_NOIO);
++				  size * sizeof(struct xhci_td *), GFP_LX_DMA);
  	if (!urb_priv)
  		return -ENOMEM;
  
-@@ -1722,7 +1722,7 @@ int xhci_add_endpoint(struct usb_hcd *hcd, struct usb_device *udev,
- 	 * process context, not interrupt context (or so documenation
- 	 * for usb_set_interface() and usb_set_configuration() claim).
- 	 */
--	if (xhci_endpoint_init(xhci, virt_dev, udev, ep, GFP_NOIO) < 0) {
-+	if (xhci_endpoint_init(xhci, virt_dev, udev, ep, GFP_KERNEL) < 0) {
- 		dev_dbg(&udev->dev, "%s - could not initialize ep %#x\n",
- 				__func__, ep->desc.bEndpointAddress);
- 		return -ENOMEM;
-@@ -3435,10 +3435,10 @@ int xhci_discover_or_reset_device(struct usb_hcd *hcd, struct usb_device *udev)
- 	/* Allocate the command structure that holds the struct completion.
- 	 * Assume we're in process context, since the normal device reset
- 	 * process has to wait for the device anyway.  Storage devices are
--	 * reset as part of error handling, so use GFP_NOIO instead of
-+	 * reset as part of error handling, so use GFP_KERNEL instead of
- 	 * GFP_KERNEL.
- 	 */
--	reset_device_cmd = xhci_alloc_command(xhci, false, true, GFP_NOIO);
-+	reset_device_cmd = xhci_alloc_command(xhci, false, true, GFP_KERNEL);
- 	if (!reset_device_cmd) {
- 		xhci_dbg(xhci, "Couldn't allocate command structure.\n");
- 		return -ENOMEM;
-@@ -3682,11 +3682,11 @@ int xhci_alloc_dev(struct usb_hcd *hcd, struct usb_device *udev)
- 		}
- 		spin_unlock_irqrestore(&xhci->lock, flags);
- 	}
--	/* Use GFP_NOIO, since this function can be called from
-+	/* Use GFP_KERNEL, since this function can be called from
- 	 * xhci_discover_or_reset_device(), which may be called as part of
- 	 * mass storage driver error handling.
- 	 */
--	if (!xhci_alloc_virt_device(xhci, xhci->slot_id, udev, GFP_NOIO)) {
-+	if (!xhci_alloc_virt_device(xhci, xhci->slot_id, udev, GFP_KERNEL)) {
- 		xhci_warn(xhci, "Could not allocate xHCI USB device data structures\n");
- 		goto disable_slot;
- 	}
-diff --git a/drivers/usb/storage/transport.c b/drivers/usb/storage/transport.c
-index 22c7d43..783f745 100644
---- a/drivers/usb/storage/transport.c
-+++ b/drivers/usb/storage/transport.c
-@@ -151,7 +151,7 @@ static int usb_stor_msg_common(struct us_data *us, int timeout)
- 	us->current_urb->transfer_dma = us->iobuf_dma;
- 
- 	/* submit the URB */
--	status = usb_submit_urb(us->current_urb, GFP_NOIO);
-+	status = usb_submit_urb(us->current_urb, GFP_KERNEL);
- 	if (status) {
- 		/* something went wrong */
- 		return status;
-@@ -427,7 +427,7 @@ static int usb_stor_bulk_transfer_sglist(struct us_data *us, unsigned int pipe,
- 	/* initialize the scatter-gather request block */
- 	usb_stor_dbg(us, "xfer %u bytes, %d entries\n", length, num_sg);
- 	result = usb_sg_init(&us->current_sg, us->pusb_dev, pipe, 0,
--			sg, num_sg, length, GFP_NOIO);
-+			sg, num_sg, length, GFP_KERNEL);
- 	if (result) {
- 		usb_stor_dbg(us, "usb_sg_init returned %d\n", result);
- 		return USB_STOR_XFER_ERROR;
 diff --git a/drivers/usb/storage/usb.c b/drivers/usb/storage/usb.c
-index 1c0b89f..e34e087 100644
+index 43576ed..2b13b4e 100644
 --- a/drivers/usb/storage/usb.c
 +++ b/drivers/usb/storage/usb.c
-@@ -442,7 +442,7 @@ static int associate_dev(struct us_data *us, struct usb_interface *intf)
+@@ -450,7 +450,7 @@ static int associate_dev(struct us_data *us, struct usb_interface *intf)
  	usb_set_intfdata(intf, us);
  
  	/* Allocate the control/setup and DMA-mapped buffers */
 -	us->cr = kmalloc(sizeof(*us->cr), GFP_KERNEL);
-+	us->cr = kmalloc(sizeof(*us->cr), GFP_NOIO);
++	us->cr = kmalloc(sizeof(*us->cr), GFP_LX_DMA);
  	if (!us->cr)
+ 		return -ENOMEM;
+ 
+--- a/drivers/hid/hid-multitouch.c
++++ b/drivers/hid/hid-multitouch.c
+@@ -325,7 +325,7 @@
+ 	if (td->mtclass.name != MT_CLS_WIN_8)
+ 		return;
+ 
+-	buf = hid_alloc_report_buf(report, GFP_KERNEL);
++	buf = hid_alloc_report_buf(report, GFP_LX_DMA);
+ 	if (!buf)
+ 		return;
+ 
+@@ -912,7 +912,7 @@
+ 	if (r) {
+ 		if (cls->quirks & MT_QUIRK_FORCE_GET_FEATURE) {
+ 			report_len = hid_report_len(r);
+-			buf = hid_alloc_report_buf(r, GFP_KERNEL);
++			buf = hid_alloc_report_buf(r, GFP_LX_DMA);
+ 			if (!buf) {
+ 				hid_err(hdev, "failed to allocate buffer for report\n");
+ 				return;
+@@ -1043,7 +1043,7 @@
+ 	if (suffix) {
+ 		name = devm_kzalloc(&hi->input->dev,
+ 				    strlen(hdev->name) + strlen(suffix) + 2,
+-				    GFP_KERNEL);
++				    GFP_LX_DMA);
+ 		if (name) {
+ 			sprintf(name, "%s %s", hdev->name, suffix);
+ 			hi->input->name = name;
+@@ -1096,7 +1096,7 @@
+ 		 */
+ 		hdev->quirks |= HID_QUIRK_NO_INIT_REPORTS;
+ 
+-	td = devm_kzalloc(&hdev->dev, sizeof(struct mt_device), GFP_KERNEL);
++	td = devm_kzalloc(&hdev->dev, sizeof(struct mt_device), GFP_LX_DMA);
+ 	if (!td) {
+ 		dev_err(&hdev->dev, "cannot allocate multitouch data\n");
+ 		return -ENOMEM;
+@@ -1110,7 +1110,7 @@
+ 	hid_set_drvdata(hdev, td);
+ 
+ 	td->fields = devm_kzalloc(&hdev->dev, sizeof(struct mt_fields),
+-				  GFP_KERNEL);
++				  GFP_LX_DMA);
+ 	if (!td->fields) {
+ 		dev_err(&hdev->dev, "cannot allocate multitouch fields data\n");
+ 		return -ENOMEM;
+--- a/drivers/hid/wacom_sys.c
++++ b/drivers/hid/wacom_sys.c
+@@ -124,7 +124,7 @@
+ 		/* leave touch_max as is if predefined */
+ 		if (!features->touch_max) {
+ 			/* read manually */
+-			data = kzalloc(2, GFP_KERNEL);
++			data = kzalloc(2, GFP_LX_DMA);
+ 			if (!data)
+ 				break;
+ 			data[0] = field->report->id;
+@@ -328,7 +328,7 @@
+ 	unsigned char *rep_data;
+ 	int error = -ENOMEM, limit = 0;
+ 
+-	rep_data = kzalloc(length, GFP_KERNEL);
++	rep_data = kzalloc(length, GFP_LX_DMA);
+ 	if (!rep_data)
+ 		return error;
+ 
+@@ -530,7 +530,7 @@
+ 
+ 	data = wacom_get_hdev_data(hdev);
+ 	if (!data) {
+-		data = kzalloc(sizeof(struct wacom_hdev_data), GFP_KERNEL);
++		data = kzalloc(sizeof(struct wacom_hdev_data), GFP_LX_DMA);
+ 		if (!data) {
+ 			retval = -ENOMEM;
+ 			goto out;
+@@ -595,7 +595,7 @@
+ 		report_id = WAC_CMD_WL_LED_CONTROL;
+ 		buf_size = 13;
+ 	}
+-	buf = kzalloc(buf_size, GFP_KERNEL);
++	buf = kzalloc(buf_size, GFP_LX_DMA);
+ 	if (!buf)
+ 		return -ENOMEM;
+ 
+@@ -648,7 +648,7 @@
+ 	int i, retval;
+ 	const unsigned chunk_len = len / 4; /* 4 chunks are needed to be sent */
+ 
+-	buf = kzalloc(chunk_len + 3 , GFP_KERNEL);
++	buf = kzalloc(chunk_len + 3 , GFP_LX_DMA);
+ 	if (!buf)
+ 		return -ENOMEM;
+ 
+@@ -1176,7 +1176,7 @@
+ 
+ 	wacom_wac->serial[index] = serial;
+ 
+-	buf = kzalloc(WAC_REMOTE_SERIAL_MAX_STRLEN, GFP_KERNEL);
++	buf = kzalloc(WAC_REMOTE_SERIAL_MAX_STRLEN, GFP_LX_DMA);
+ 	if (!buf)
+ 		return -ENOMEM;
+ 	snprintf(buf, WAC_REMOTE_SERIAL_MAX_STRLEN, "%d", serial);
+@@ -1222,7 +1222,7 @@
+ 	unsigned char *buf;
+ 	int retval;
+ 
+-	buf = kzalloc(buf_size, GFP_KERNEL);
++	buf = kzalloc(buf_size, GFP_LX_DMA);
+ 	if (!buf)
+ 		return -ENOMEM;
+ 
+@@ -1705,7 +1705,7 @@
+ 	/* hid-core sets this quirk for the boot interface */
+ 	hdev->quirks &= ~HID_QUIRK_NOGET;
+ 
+-	wacom = kzalloc(sizeof(struct wacom), GFP_KERNEL);
++	wacom = kzalloc(sizeof(struct wacom), GFP_LX_DMA);
+ 	if (!wacom)
  		return -ENOMEM;
  

@@ -12,11 +12,7 @@
  */
 
 #include <os/attached_io_mem_dataspace.h>
-
-#include <lx/extern_c_begin.h>
 #include <lx_emul.h>
-#include <lx/extern_c_end.h>
-
 
 
 #define to_platform_driver(drv) (container_of((drv), struct platform_driver, \
@@ -198,20 +194,20 @@ void platform_set_drvdata(struct platform_device *pdev, void *data)
  ** asm-generic/io.h **
  **********************/
 
-void *_ioremap(resource_size_t phys_addr, unsigned long size, int wc)
+void *_ioremap(phys_addr_t phys_addr, unsigned long size, int wc)
 {
 	try {
 		Genode::Attached_io_mem_dataspace *ds = new(Genode::env()->heap())
 		                                        Genode::Attached_io_mem_dataspace(phys_addr, size, !!wc);
 		return ds->local_addr<void>();
 	} catch (...) {
-		panic("Failed to request I/O memory: [%zx,%lx)", phys_addr, phys_addr + size);
+		panic("Failed to request I/O memory: [%lx,%lx)", phys_addr, phys_addr + size);
 		return 0;
 	}
 }
 
 
-void *ioremap(resource_size_t offset, unsigned long size)
+void *ioremap(phys_addr_t offset, unsigned long size)
 {
 	return _ioremap(offset, size, 0);
 }

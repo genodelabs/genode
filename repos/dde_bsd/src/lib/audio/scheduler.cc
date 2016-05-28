@@ -9,23 +9,19 @@
  */
 
 /*
- * Copyright (C) 2012-2015 Genode Labs GmbH
+ * Copyright (C) 2012-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* Genode includes */
+#include <base/log.h>
 #include <base/sleep.h>
 
 /* local includes */
 #include <bsd.h>
 #include <scheduler.h>
-
-
-static bool const debugging = false;
-static bool const verbose   = false;
-#define PDBGV(...)  do { if (verbose) PDBG(__VA_ARGS__); } while (0)
 
 
 /**********
@@ -40,7 +36,7 @@ bool Bsd::Task::_runnable() const
 	case STATE_BLOCKED:       return false;
 	}
 
-	PERR("state %d not handled by switch", _state);
+	Genode::error("state ", (unsigned)_state, " not handled by switch");
 	Genode::sleep_forever();
 }
 
@@ -60,7 +56,7 @@ bool Bsd::Task::run()
 	if (_state == STATE_INIT) {
 		/* setup execution environment and call task's function */
 		_state = STATE_RUNNING;
-		Genode::Thread_base *th = Genode::Thread_base::myself();
+		Genode::Thread *th = Genode::Thread::myself();
 
 		_stack = th->alloc_secondary_stack(_name, _stack_size);
 
@@ -72,7 +68,7 @@ bool Bsd::Task::run()
 	}
 
 	/* never reached */
-	PERR("Unexpected return of Task");
+	Genode::error("Unexpected return of Task");
 	Genode::sleep_forever();
 }
 
@@ -99,15 +95,13 @@ Bsd::Task::Task(void (*func)(void*), void *arg, char const *name,
 	_func(func), _arg(arg), _name(name), _stack_size(stack_size)
 {
 	scheduler.add(this);
-
-	PDBGV("name: '%s' func: %p arg: %p prio: %u t: %p", name, func, arg, priority, this);
 }
 
 
 Bsd::Task::~Task()
 {
 	if (_stack)
-		Genode::Thread_base::myself()->free_secondary_stack(_stack);
+		Genode::Thread::myself()->free_secondary_stack(_stack);
 }
 
 
@@ -125,7 +119,7 @@ Bsd::Scheduler & Bsd::scheduler()
 Bsd::Task *Bsd::Scheduler::current()
 {
 	if (!_current) {
-		PERR("BUG: _current is zero!");
+		Genode::error("BUG: _current is zero!");
 		Genode::sleep_forever();
 	}
 
@@ -179,8 +173,7 @@ void Bsd::Scheduler::schedule()
 	}
 
 	if (!at_least_one) {
-		PWRN("schedule() called without runnable tasks");
-		log_state("SCHEDULE");
+		Genode::warning("schedule() called without runnable tasks");
 	}
 
 	/* clear current as no task is running */
@@ -188,69 +181,7 @@ void Bsd::Scheduler::schedule()
 }
 
 
-#include <timer_session/connection.h>
-
-namespace {
-	struct Logger : Genode::Thread<0x4000>
-	{
-		Timer::Connection  _timer;
-		Bsd::Scheduler     &_scheduler;
-		unsigned     const _interval;
-
-		Logger(Bsd::Scheduler &scheduler, unsigned interval_seconds)
-		:
-			Genode::Thread<0x4000>("logger"),
-			_scheduler(scheduler), _interval(interval_seconds)
-		{
-			start();
-		}
-
-		void entry()
-		{
-			PWRN("Scheduler::Logger is up");
-			_timer.msleep(1000 * _interval);
-			while (true) {
-				_scheduler.log_state("LOGGER");
-				_timer.msleep(2000);
-			}
-		}
-	};
-}
-
-#define ANSI_ESC_RESET      "\033[00m"
-#define ANSI_ESC_BLACK      "\033[30m"
-#define ANSI_ESC_RED        "\033[31m"
-#define ANSI_ESC_YELLOW     "\033[33m"
-
-static char const *state_color(Bsd::Task::State state)
-{
-	switch (state) {
-	case Bsd::Task::STATE_INIT:          return ANSI_ESC_RESET;
-	case Bsd::Task::STATE_RUNNING:       return ANSI_ESC_RED;
-	case Bsd::Task::STATE_BLOCKED:       return ANSI_ESC_YELLOW;
-	}
-
-	return ANSI_ESC_BLACK;
-}
-
-
-void Bsd::Scheduler::log_state(char const *prefix)
-{
-	unsigned  i;
-	Bsd::Task *t;
-	for (i = 0, t = _present_list.first(); t; t = t->next(), ++i) {
-		Genode::printf("%s [%u] prio: %u state: %s%u" ANSI_ESC_RESET " %s\n",
-		               prefix, i, t->priority(), state_color(t->state()),
-		               t->state(), t->name());
-	}
-}
-
-
-Bsd::Scheduler::Scheduler()
-{
-	if (debugging)
-		new (Genode::env()->heap()) Logger(*this, 10);
-}
+Bsd::Scheduler::Scheduler() { }
 
 
 Bsd::Scheduler::~Scheduler() { }

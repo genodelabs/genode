@@ -123,41 +123,6 @@ inline int lx_pollpid()
 }
 
 
-/*********************
- ** Chroot handling **
- *********************/
-
-inline int lx_chroot(char const *path)
-{
-	return lx_syscall(SYS_chroot, path);
-}
-
-
-inline int lx_chdir(char const *path)
-{
-	return lx_syscall(SYS_chdir, path);
-}
-
-
-inline int lx_getcwd(char *dst, size_t dst_len)
-{
-	return lx_syscall(SYS_getcwd, dst, dst_len);
-}
-
-
-inline int lx_bindmount(char const *source, char const *target)
-{
-	enum { MS_BIND = 4096 };
-	return lx_syscall(SYS_mount, source, target, 0, MS_BIND, 0);
-}
-
-
-inline int lx_umount(char const *target)
-{
-	return lx_syscall(SYS_umount2, target, 0);
-}
-
-
 /********************************************
  ** Communication over Unix-domain sockets **
  ********************************************/

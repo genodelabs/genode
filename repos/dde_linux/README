@@ -16,6 +16,20 @@ Configuration snippet to enable UHCI and EHCI
 
 ! <config uhci="yes" ehci="yes">
 
+BIOS Handoff
+~~~~~~~~~~~~
+
+Per default the USB driver performs a hand off of the USB controller from the
+BIOS, since it still may access the controller when booting, for example, from
+a USB device. The BIOS hand off induces the execution of BIOS/SMM USB driver
+code and potentially DMA operations. Unfortunately, some ACPI tables report
+wrong RMRR information, which implicates IOMMU faults on illegal DMA
+operations and consequently the hand off may fail after noticeably long
+timeouts. Therefore, the hand off can be disabled in the USB driver
+configuration like follows.
+
+! <config bios_handoff="no"/>
+
 HID
 ~~~
 
@@ -251,3 +265,35 @@ address is not fixed and may change every time the same device is plugged in.
 The configuration of the USB driver can be changed at runtime to satisfy
 dynamic configurations or rather policies when using the 'Usb' session
 interface.
+
+
+lx_kit
+######
+
+The modular lx_kit seperates the required back end functionality of the Linux
+emulation environment from the front end. Thereby each driver can reuse
+specific parts or supply more suitable implementations by itself. It is used to
+reduce the amount of redundant code in each driver.
+
+The lx_kit is split into several layers whose structure is as follows:
+
+The first layer in _repos/dde_linux/src/include/lx_emul_ contains those header
+files that provide the structural definitions and function declarations of the
+Linux API, e.g. _errno.h_ provides all error code values. The second layer in
+_repos/dde_linux/src/include/lx_emul/impl_ contains the implementation of
+selected functions, e.g. _slab.h_ provides the implementation of 'kmalloc()'.
+The lx_kit back end API is the third layer and provides the _Lx::Malloc_
+interface (_repos/dde_linux/src/include/lx_kit/malloc.h_) which is used to
+implement 'kmalloc()'. There are several generic implementations of the lx_kit
+interfaces that can be used by a driver.
+
+A driver typically includes a 'lx_emul/impl/xyz.h' header once directly in its
+lx_emul compilation unit. The lx_kit interface files are only included in those
+compilation units that use or implement the interface. If a driver wants to use
+a generic implementation it must add the source file to its source file list.
+The generic implementations are located in _repos/dde_linux/src/lx_kit/_.
+
+The modular lx_kit still depends on the private _lx_emul.h_ header file that is
+tailored to each driver. Since the lx_kit already contains much of the
+declarations and definitions that were originally placed in these private
+header files, those files can now ommit a large amount of code.

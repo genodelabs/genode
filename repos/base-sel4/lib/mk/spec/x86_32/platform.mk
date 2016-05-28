@@ -6,12 +6,16 @@
 #
 
 #
+# We do this also in the first build stage to ensure that the kernel
+# port, if missing, is added to the missing-ports list of this stage.
+#
+LIBSEL4_DIR := $(call select_from_ports,sel4)/src/kernel/sel4/libsel4
+
+#
 # Execute the rules in this file only at the second build stage when we know
 # about the complete build settings, e.g., the 'CROSS_DEV_PREFIX'.
 #
 ifeq ($(called_from_lib_mk),yes)
-
-LIBSEL4_DIR := $(call select_from_ports,sel4)/src/kernel/sel4/libsel4
 
 #
 # Make seL4 kernel API headers available to the Genode build system

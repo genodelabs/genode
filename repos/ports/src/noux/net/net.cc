@@ -113,6 +113,7 @@ bool Noux::Child::_syscall_net(Noux::Session::Syscall sc)
 		case SYSCALL_UTIMES:
 		case SYSCALL_SYNC:
 		case SYSCALL_KILL:
+		case SYSCALL_GETDTABLESIZE:
 			break;
 		case SYSCALL_SOCKET:
 			{

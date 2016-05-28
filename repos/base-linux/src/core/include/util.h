@@ -14,9 +14,7 @@
 #ifndef _CORE__INCLUDE__UTIL_H_
 #define _CORE__INCLUDE__UTIL_H_
 
-namespace Genode {
-	constexpr size_t get_page_size_log2() { return 12; }
-	constexpr size_t get_page_size()      { return 1 << get_page_size_log2(); }
-}
+/* base-internal includes */
+#include <base/internal/page_size.h>
 
 #endif /* _CORE__INCLUDE__UTIL_H_ */

@@ -144,7 +144,7 @@ struct Floating_window_layouter::Main : Operations
 		if (!window)
 			return;
 
-		window->is_maximized(!window->is_maximized());
+		window->maximized(!window->maximized());
 
 		generate_resize_request_model();
 	}
@@ -250,7 +250,7 @@ struct Floating_window_layouter::Main : Operations
 	 */
 	void handle_input(unsigned)
 	{
-		while (input.is_pending())
+		while (input.pending())
 			_user_state.handle_input(input_ds.local_addr<Input::Event>(),
 			                         input.flush(), Genode::config()->xml_node());
 	}
@@ -270,8 +270,7 @@ struct Floating_window_layouter::Main : Operations
 		/* read decorator margins from the decorator's report */
 		unsigned top = 0, bottom = 0, left = 0, right = 0;
 		try {
-			Xml_node const margins_xml(decorator_margins.local_addr<char>());
-			Xml_node const floating_xml = margins_xml.sub_node("floating");
+			Xml_node const floating_xml = decorator_margins.xml().sub_node("floating");
 
 			top    = attribute(floating_xml, "top",    0UL);
 			bottom = attribute(floating_xml, "bottom", 0UL);
@@ -298,10 +297,10 @@ struct Floating_window_layouter::Main : Operations
 	Reporter focus_reporter          = { "focus" };
 
 
-	bool focused_window_is_maximized() const
+	bool focused_window_maximized() const
 	{
 		Window const *w = lookup_window_by_id(_user_state.focused_window_id());
-		return w && w->is_maximized();
+		return w && w->maximized();
 	}
 
 	void import_window_list(Xml_node);
@@ -377,7 +376,7 @@ void Floating_window_layouter::Main::import_window_list(Xml_node window_list_xml
 					if (policy.has_attribute("xpos") && policy.has_attribute("ypos"))
 						initial_position = point_attribute(node);
 
-					win->is_maximized(policy.attribute_value("maximized", false));
+					win->maximized(policy.attribute_value("maximized", false));
 
 				} catch (Genode::Session_policy::No_policy_defined) { }
 
@@ -388,10 +387,10 @@ void Floating_window_layouter::Main::import_window_list(Xml_node window_list_xml
 			win->title(string_attribute(node, "title", Window::Title("")));
 			win->has_alpha(node.has_attribute("has_alpha")
 			            && node.attribute("has_alpha").has_value("yes"));
-			win->is_hidden(node.has_attribute("hidden")
-			            && node.attribute("hidden").has_value("yes"));
-			win->is_resizeable(node.has_attribute("resizeable")
-			            && node.attribute("resizeable").has_value("yes"));
+			win->hidden(node.has_attribute("hidden")
+			         && node.attribute("hidden").has_value("yes"));
+			win->resizeable(node.has_attribute("resizeable")
+			             && node.attribute("resizeable").has_value("yes"));
 		}
 	} catch (...) { }
 }
@@ -403,13 +402,13 @@ void Floating_window_layouter::Main::generate_window_layout_model()
 	{
 		for (Window *w = windows.first(); w; w = w->next()) {
 
-			bool const is_hovered = w->has_id(_user_state.hover_state().window_id);
-			bool const is_focused = w->has_id(_user_state.focused_window_id());
+			bool const hovered = w->has_id(_user_state.hover_state().window_id);
+			bool const focused = w->has_id(_user_state.focused_window_id());
 
 			Window::Element const highlight =
-				is_hovered ? _user_state.hover_state().element : Window::Element::UNDEFINED;
+				hovered ? _user_state.hover_state().element : Window::Element::UNDEFINED;
 
-			w->serialize(xml, is_focused, highlight);
+			w->serialize(xml, focused, highlight);
 		}
 	});
 }
@@ -483,7 +482,7 @@ void Floating_window_layouter::Main::handle_window_list_update(unsigned)
 	window_list.update();
 
 	try {
-		import_window_list(Xml_node(window_list.local_addr<char>())); }
+		import_window_list(window_list.xml()); }
 	catch (...) {
 		PERR("Error while importing window list"); }
 
@@ -493,59 +492,53 @@ void Floating_window_layouter::Main::handle_window_list_update(unsigned)
 
 void Floating_window_layouter::Main::_apply_focus_request()
 {
-	try {
-		Xml_node node(focus_request.local_addr<char>());
+	Window::Label const label =
+		focus_request.xml().attribute_value("label", Window::Label(""));
 
-		Window::Label const label = node.attribute_value("label", Window::Label(""));
+	int const id = focus_request.xml().attribute_value("id", 0L);
 
-		int const id = node.attribute_value("id", 0L);
+	/* don't apply the same focus request twice */
+	if (id == handled_focus_request_id)
+		return;
 
-		/* don't apply the same focus request twice */
-		if (id == handled_focus_request_id)
-			return;
+	bool focus_redefined = false;
 
-		bool focus_redefined = false;
+	/*
+	 * Move all windows that match the requested label to the front while
+	 * maintaining their ordering.
+	 */
+	Window *at = nullptr;
+	for (Window *w = windows.first(); w; w = w->next()) {
+
+		if (!w->label_matches(label))
+			continue;
+
+		focus_redefined = true;
 
 		/*
-		 * Move all windows that match the requested label to the front while
-		 * maintaining their ordering.
+		 * Move window to behind the previous window that we moved to
+		 * front. If 'w' is the first window that matches the selector,
+		 * move it to the front ('at' argument of 'insert' is 0).
 		 */
-		Window *at = nullptr;
-		for (Window *w = windows.first(); w; w = w->next()) {
+		windows.remove(w);
+		windows.insert(w, at);
 
-			if (!w->label_matches(label))
-				continue;
+		/*
+		 * Bring top-most window to the front of nitpicker's global view
+		 * stack and set the focus to the top-most window.
+		 */
+		if (at == nullptr) {
+			w->topped();
 
-			focus_redefined = true;
-
-			/*
-			 * Move window to behind the previous window that we moved to
-			 * front. If 'w' is the first window that matches the selector,
-			 * move it to the front ('at' argument of 'insert' is 0).
-			 */
-			windows.remove(w);
-			windows.insert(w, at);
-
-			/*
-			 * Bring top-most window to the front of nitpicker's global view
-			 * stack and set the focus to the top-most window.
-			 */
-			if (at == nullptr) {
-				w->topped();
-
-				_user_state.focused_window_id(w->id());
-				generate_focus_model();
-			}
-
-			at = w;
+			_user_state.focused_window_id(w->id());
+			generate_focus_model();
 		}
 
-		if (focus_redefined)
-			handled_focus_request_id = id;
-
+		at = w;
 	}
-	catch (...) {
-		PERR("Error while handling focus request"); }
+
+	if (focus_redefined)
+		handled_focus_request_id = id;
 }
 
 
@@ -564,18 +557,15 @@ void Floating_window_layouter::Main::handle_hover_update(unsigned)
 	hover.update();
 
 	try {
-		Xml_node const hover_xml(hover.local_addr<char>());
-		Xml_node const hover_window_xml = hover_xml.sub_node("window");
+		Xml_node const hover_window_xml = hover.xml().sub_node("window");
 
 		_user_state.hover(attribute(hover_window_xml, "id", 0UL),
 		                  element_from_hover_model(hover_window_xml));
-
 	}
 
 	/*
 	 * An exception may occur during the 'Xml_node' construction if the hover
-	 * model is missing or malformed. Under this condition, we invalidate
-	 * the hover state.
+	 * model is malformed. Under this condition, we invalidate the hover state.
 	 */
 	catch (...) {
 		

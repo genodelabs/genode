@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CORE__INCLUDE__CPU_SESSION_SUPPORT_H_
-#define _CORE__INCLUDE__CPU_SESSION_SUPPORT_H_
+#ifndef _CORE__INCLUDE__CPU_THREAD_ALLOCATOR_H_
+#define _CORE__INCLUDE__CPU_THREAD_ALLOCATOR_H_
 
 #include <base/printf.h>
 #include <base/allocator.h>
@@ -66,4 +66,4 @@ namespace Genode
 	};
 }
 
-#endif /* _CORE__INCLUDE__CPU_SESSION_SUPPORT_H_ */
+#endif /* _CORE__INCLUDE__CPU_THREAD_ALLOCATOR_H_ */

@@ -69,7 +69,7 @@ void Gpio::process_config(Gpio::Driver &driver)
 			} catch(Gpio::Invalid_gpio_number) {
 				PWRN("Invalid GPIO number %d. Ignore node", num);
 			}
-			if (gpio_node.is_last("gpio")) break;
+			if (gpio_node.last("gpio")) break;
 		}
 	}
 	catch (Genode::Xml_node::Nonexistent_sub_node) {

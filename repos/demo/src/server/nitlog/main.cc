@@ -294,7 +294,7 @@ class Log_session_component : public Genode::Rpc_object<Genode::Log_session>
 
 		Genode::size_t write(String const &log_text)
 		{
-			if (!log_text.is_valid_string()) {
+			if (!log_text.valid_string()) {
 				PERR("corrupted string");
 				return 0;
 			}
@@ -441,7 +441,7 @@ int main(int argc, char **argv)
 	unsigned key_cnt = 0;
 	while (1) {
 
-		while (!nitpicker.input()->is_pending()) {
+		while (!nitpicker.input()->pending()) {
 			if (log_window.draw())
 				nitpicker.framebuffer()->refresh(0, 0, log_win_w, log_win_h);
 			timer.msleep(20);

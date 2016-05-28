@@ -25,20 +25,45 @@ struct Genode::Cpu_connection : Connection<Cpu_session>, Cpu_session_client
 	enum { RAM_QUOTA = 36*1024 };
 
 	/**
+	 * Issue session request
+	 *
+	 * \noapi
+	 */
+	Capability<Cpu_session> _session(Parent &parent, char const *label,
+	                                 long priority, Affinity const &affinity)
+	{
+		return session(parent, affinity,
+		               "priority=0x%lx, ram_quota=128K, label=\"%s\"",
+		               priority, label);
+	}
+
+	/**
 	 * Constructor
 	 *
 	 * \param label     initial session label
 	 * \param priority  designated priority of all threads created
 	 *                  with this CPU session
 	 */
-	Cpu_connection(char     const *label    = "",
-	               long            priority = DEFAULT_PRIORITY,
+	Cpu_connection(Env &env, const char *label = "", long priority = DEFAULT_PRIORITY,
 	               Affinity const &affinity = Affinity())
 	:
-		Connection<Cpu_session>(
-			session(affinity, "priority=0x%lx, ram_quota=%u, label=\"%s\"",
-			        priority, RAM_QUOTA, label)),
-		Cpu_session_client(cap()) { }
+		Connection<Cpu_session>(env, _session(env.parent(), label, priority, affinity)),
+		Cpu_session_client(cap())
+	{ }
+
+	/**
+	 * Constructor
+	 *
+	 * \noapi
+	 * \deprecated  Use the constructor with 'Env &' as first
+	 *              argument instead
+	 */
+	Cpu_connection(const char *label = "", long priority = DEFAULT_PRIORITY,
+	               Affinity const &affinity = Affinity())
+	:
+		Connection<Cpu_session>(_session(*env()->parent(), label, priority, affinity)),
+		Cpu_session_client(cap())
+	{ }
 };
 
 #endif /* _INCLUDE__CPU_SESSION__CONNECTION_H_ */

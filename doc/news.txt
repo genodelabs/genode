@@ -4,6 +4,61 @@
                                ===========
 
 
+Genode OS Framework release 16.05 | 2016-05-27
+##############################################
+
+| With version 16.05, the Genode API receives a fundamental revision.
+| The list of further improvements ranges from the introduction of Rust,
+| over improved GDB support, to a profound update of many device drivers
+| and ACPI features.
+
+The current release marks the most profound API revision in the project's
+history. The new API is designed to reinforce the best practices
+for implementing Genode components. It is the result of countless
+experiments and the practical experiences made while developing over hundred
+genuine components during the past ten years.
+
+The introduction of the new API prompted us to rework our documentation.
+In particular, Genode 16.05 is accompanied with a new edition of the
+"Genode Foundations" book that incorporates all architectural changes and
+interface modifications of the past year.
+
+The second focus of the current release is the major update of device
+drivers. All the drivers that we ported from the Linux kernel correspond
+now to Linux version 4.4.3. Those drivers comprise the Intel wireless
+stack, the Intel graphics driver, the USB drivers, and the TCP/IP stack.
+The updated OpenBSD-based audio driver corresponds to OpenBSD 5.9.
+
+Apart from the revision of the base framework and device drivers, Genode
+gains the ability to use the Rust programming language, makes many ACPI
+features accessible, and allows the use of the GNU debugger with the
+64-bit version of the NOVA hypervisor.
+
+The complete story behind these and many more changes is covered by the
+[http:/documentation/release-notes/16.05 - release documentation of version 16.05...]
+
+
+How Genode came to RISC-V | 2016-03-22
+######################################
+
+| Our new article provides a look behind the scenes of porting Genode to
+| the RISC-V hardware architecture.
+
+The experience report
+[http:/documentation/articles/riscv - How Genode came to RISC-V] complements
+our recent
+[http:/documentation/release-notes/16.02#New_support_for_the_RISC-V_CPU_architecture - announcement]
+about Genode's added RISC-V support with in-depth technical information.
+It briefly introduces the parts of the instruction set architecture (ISA) that
+were most relevant for the porting work, presents various challenges we
+encountered, and explains how we overcame them.
+
+The article is written with two target audiences in mind: People interested in
+practical experiences with RISC-V, and developers who aspire to port Genode
+to new CPU architectures.
+[http:/documentation/articles/riscv - Read the article...]
+
+
 Genode OS Framework release 16.02 | 2016-02-26
 ##############################################
 

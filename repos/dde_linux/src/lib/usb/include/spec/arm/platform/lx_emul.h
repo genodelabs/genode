@@ -131,6 +131,8 @@ int    regulator_disable(struct regulator *);
 void   regulator_put(struct regulator *regulator);
 struct regulator *regulator_get(struct device *dev, const char *id);
 
+struct regulator *__must_check devm_regulator_get(struct device *dev,
+                                                  const char *id);
 
 /*******************************************
  ** arch/arm/plat-omap/include/plat/usb.h **
@@ -174,11 +176,16 @@ int devm_gpio_request_one(struct device *dev, unsigned gpio,
  ****************/
 
 #define of_match_ptr(ptr) NULL
+#define for_each_available_child_of_node(parent, child) while (0)
+
 
 unsigned of_usb_get_maximum_speed(struct device_node *np);
 unsigned of_usb_get_dr_mode(struct device_node *np);
-int      of_device_is_compatible(const struct device_node *device,
-                                 const char *);
+int      of_device_is_compatible(const struct device_node *device, const char *);
+void     of_node_put(struct device_node *node);
+
+int of_property_read_u32(const struct device_node *np, const char *propname,
+                         u32 *out_value);
 
 
 /*************************
@@ -240,12 +247,35 @@ int  phy_ethtool_gset(struct phy_device *phydev, struct ethtool_cmd *cmd);
 void phy_start(struct phy_device *phydev);
 int  phy_start_aneg(struct phy_device *phydev);
 void phy_stop(struct phy_device *phydev);
+int  phy_create_lookup(struct phy *phy, const char *con_id, const char *dev_id);
+void phy_remove_lookup(struct phy *phy, const char *con_id, const char *dev_id);
+
+
 int  genphy_resume(struct phy_device *phydev);
 
 struct phy_device * phy_connect(struct net_device *dev, const char *bus_id,
                                 void (*handler)(struct net_device *),
                                 phy_interface_t interface);
 void phy_disconnect(struct phy_device *phydev);
+
+struct phy *devm_phy_get(struct device *dev, const char *string);
+struct phy *devm_of_phy_get(struct device *dev, struct device_node *np,
+                            const char *con_id);
+
+
+/*********************************
+ ** linux/usb/usb_phy_generic.h **
+ *********************************/
+
+#include <linux/usb/ch9.h>
+#include <linux/usb/phy.h>
+
+struct usb_phy_generic_platform_data
+{
+	enum usb_phy_type type;
+	int  gpio_reset;
+};
+
 
 
 /*******************************
@@ -276,7 +306,7 @@ void *dma_to_virt(struct device *dev, dma_addr_t addr);
 
 void local_fiq_disable();
 void local_fiq_enable();
-
+unsigned smp_processor_id(void);
 
 /***************
  ** asm/fiq.h **
@@ -300,7 +330,20 @@ struct usb_phy_gen_xceiv_platform_data
  int      gpio_reset;
 };
 
-#include <linux/usb/ch9.h>
-#include <linux/usb/phy.h>
+
+/******************************
+ ** linux/usb/xhci_pdriver.h **
+ ******************************/
+
+struct usb_xhci_pdata {
+	unsigned usb3_lpm_capable:1;
+};
+
+
+/******************
+ ** asm/memory.h **
+ ******************/
+
+#define __bus_to_virt phys_to_virt
 
 #endif /* _ARM__PLATFORM__LX_EMUL_H_ */

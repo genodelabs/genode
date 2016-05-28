@@ -191,6 +191,11 @@ class Open_socket : public Genode::List<Open_socket>::Element
 			/* read from socket */
 			_read_buf_bytes_used = ::read(_sd, _read_buf, sizeof(_read_buf));
 
+			if (_read_buf_bytes_used == 0) {
+				_sd = -1;
+				return;
+			}
+
 			/* notify client about bytes available for reading */
 			if (_read_avail_sigh.valid())
 				Genode::Signal_transmitter(_read_avail_sigh).submit();

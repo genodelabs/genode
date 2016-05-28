@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014-2015 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -13,6 +13,7 @@
 
 /* Genode includes */
 #include <base/allocator_avl.h>
+#include <base/log.h>
 #include <base/object_pool.h>
 #include <dataspace/client.h>
 #include <io_port_session/connection.h>
@@ -22,9 +23,10 @@
 #include <util/retry.h>
 
 /* local includes */
-#include "bsd.h"
+#include <bsd.h>
+#include <bsd_emul.h>
+
 #include <extern_c_begin.h>
-# include <bsd_emul.h>
 # include <dev/pci/pcidevs.h>
 #include <extern_c_end.h>
 
@@ -42,6 +44,9 @@ class Pci_driver : public Bsd::Bus_driver
 
 	private:
 
+		Genode::Env       &_env;
+		Genode::Allocator &_alloc;
+
 		struct pci_attach_args _pa { 0, 0, 0, 0, 0 };
 
 		Platform::Connection        _pci;
@@ -55,6 +60,8 @@ class Pci_driver : public Bsd::Bus_driver
 		 */
 		struct Dma_region_manager : public Genode::Allocator_avl
 		{
+			Genode::Env &env;
+
 			enum { BACKING_STORE_SIZE = 1024 * 1024 };
 
 			Genode::addr_t base;
@@ -64,8 +71,10 @@ class Pci_driver : public Bsd::Bus_driver
 
 			Pci_driver &_drv;
 
-			Dma_region_manager(Genode::Allocator &alloc, Pci_driver &drv)
-			: Genode::Allocator_avl(&alloc), _drv(drv) { }
+			Dma_region_manager(Genode::Env       &env,
+			                   Genode::Allocator &alloc,
+			                   Pci_driver &drv)
+			: Genode::Allocator_avl(&alloc), env(env), _drv(drv) { }
 
 			Genode::addr_t alloc(Genode::size_t size, int align)
 			{
@@ -74,19 +83,19 @@ class Pci_driver : public Bsd::Bus_driver
 				if (!_dma_initialized) {
 					try {
 						Ram_dataspace_capability cap = _drv._alloc_dma_memory(BACKING_STORE_SIZE);
-						mapped_base = (addr_t)env()->rm_session()->attach(cap);
+						mapped_base = (addr_t)env.rm().attach(cap);
 						base        = Dataspace_client(cap).phys_addr();
 
 						Allocator_avl::add_range(mapped_base, BACKING_STORE_SIZE);
 					} catch (...) {
-						PERR("alloc DMA memory failed");
+						Genode::error("alloc DMA memory failed");
 						return 0;
 					}
 					_dma_initialized = true;
 				}
 
 				void *ptr = nullptr;
-				bool  err = Allocator_avl::alloc_aligned(size, &ptr, align).is_error();
+				bool  err = Allocator_avl::alloc_aligned(size, &ptr, align).error();
 
 				return err ? 0 : (addr_t)ptr;
 			}
@@ -129,14 +138,22 @@ class Pci_driver : public Bsd::Bus_driver
 					char quota[32];
 					Genode::snprintf(quota, sizeof(quota), "ram_quota=%zd",
 					                 donate);
-					Genode::env()->parent()->upgrade(_pci.cap(), quota);
+					_env.parent().upgrade(_pci.cap(), quota);
 					donate = donate * 2 > size ? 4096 : donate * 2;
 				});
 		}
 
 	public:
 
-		Pci_driver() : _dma_region_manager(*Genode::env()->heap(), *this) { }
+		Pci_driver(Genode::Env &env, Genode::Allocator &alloc)
+		:
+			_env(env), _alloc(alloc),
+			_dma_region_manager(_env, _alloc, *this)
+		{ }
+
+		Genode::Env &env() { return _env; }
+
+		Genode::Allocator &alloc() { return _alloc; }
 
 		Platform::Device_capability cap() { return _cap; }
 
@@ -146,7 +163,7 @@ class Pci_driver : public Bsd::Bus_driver
 		{
 			char buf[32];
 			Genode::snprintf(buf, sizeof(buf), "ram_quota=%u", 8192U);
-			Genode::env()->parent()->upgrade(_pci.cap(), buf);
+			_env.parent().upgrade(_pci.cap(), buf);
 
 			/*
 			 * We hide ourself in the bus_dma_tag_t as well as
@@ -166,8 +183,8 @@ class Pci_driver : public Bsd::Bus_driver
 
 				if ((device.device_id() == PCI_PRODUCT_INTEL_CORE4G_HDA_2) ||
 				    (bus == 0 && dev == 3 && func == 0)) {
-					PWRN("ignore %u:%u:%u not supported HDMI/DP HDA device",
-					     bus, dev, func);
+					Genode::warning("ignore ", (unsigned)bus, ":", (unsigned)dev, ":",
+					                (unsigned)func, "not supported HDMI/DP HDA device");
 					continue;
 				}
 
@@ -264,7 +281,9 @@ struct Io_memory : public Bus_space
 	Genode::Io_mem_dataspace_capability _mem_ds;
 	Genode::addr_t                      _vaddr;
 
-	Io_memory(Genode::addr_t base, Genode::Io_mem_session_capability cap)
+	Io_memory(Genode::Region_map                &rm,
+	          Genode::addr_t                     base,
+	          Genode::Io_mem_session_capability  cap)
 	:
 		_mem(cap),
 		_mem_ds(_mem.dataspace())
@@ -272,7 +291,7 @@ struct Io_memory : public Bus_space
 		if (!_mem_ds.valid())
 			throw Genode::Exception();
 
-		_vaddr = Genode::env()->rm_session()->attach(_mem_ds);
+		_vaddr = rm.attach(_mem_ds);
 		_vaddr |= base & 0xfff;
 	}
 
@@ -298,10 +317,10 @@ struct Io_memory : public Bus_space
 } /* anonymous namespace */
 
 
-int Bsd::probe_drivers()
+int Bsd::probe_drivers(Genode::Env &env, Genode::Allocator &alloc)
 {
 	PINF("--- probe drivers ---");
-	static Pci_driver drv;
+	static Pci_driver drv(env, alloc);
 	return drv.probe();
 }
 
@@ -342,21 +361,21 @@ extern "C" int pci_mapreg_map(struct pci_attach_args *pa,
 	switch (res.type()) {
 	case Platform::Device::Resource::IO:
 		{
-			Io_port *iop = new (Genode::env()->heap())
+			Io_port *iop = new (&drv->alloc())
 			                   Io_port(res.base(), device.io_port(r));
 			*tagp = (Genode::addr_t) iop;
 			break;
 		}
 	case Platform::Device::Resource::MEMORY:
 		{
-			Io_memory *iom = new (Genode::env()->heap())
-			                     Io_memory(res.base(), device.io_mem(r));
+			Io_memory *iom = new (&drv->alloc())
+			                     Io_memory(drv->env().rm(), res.base(), device.io_mem(r));
 			*tagp = (Genode::addr_t) iom;
 			break;
 		}
 	case Platform::Device::Resource::INVALID:
 		{
-			PERR("PCI resource type invalid");
+			Genode::error("PCI resource type invalid");
 			return -1;
 		}
 	}
@@ -388,7 +407,7 @@ extern "C" int pci_mapreg_map(struct pci_attach_args *pa,
 			char quota[32];
 			Genode::snprintf(quota, sizeof(quota), "ram_quota=%zd",
 			                 donate);
-			Genode::env()->parent()->upgrade(drv->pci().cap(), quota);
+			drv->env().parent().upgrade(drv->pci().cap(), quota);
 			donate *= 2;
 		});
 
@@ -510,7 +529,8 @@ extern "C" int bus_dmamap_load(bus_dma_tag_t tag, bus_dmamap_t dmam, void *buf,
 
 extern "C" void bus_dmamap_unload(bus_dma_tag_t, bus_dmamap_t)
 {
-	PDBG("not implemented, called from %p", __builtin_return_address(0));
+	Genode::log("not implemented, called from ",
+	            __builtin_return_address(0));
 }
 
 
@@ -549,7 +569,7 @@ extern "C" int bus_dmamem_map(bus_dma_tag_t tag, bus_dma_segment_t *segs, int ns
                               size_t size, caddr_t *kvap, int flags)
 {
 	if (nsegs > 1) {
-		PERR("%s: cannot map more than 1 segment", __func__);
+		Genode::error(__func__, ": cannot map more than 1 segment");
 		return -1;
 	}
 
@@ -570,6 +590,7 @@ extern "C" void bus_dmamem_unmap(bus_dma_tag_t, caddr_t, size_t) { }
 extern "C" paddr_t bus_dmamem_mmap(bus_dma_tag_t, bus_dma_segment_t *,
                                    int, off_t, int, int)
 {
-	PDBG("not implemented, called from %p", __builtin_return_address(0));
+	Genode::log("not implemented, called from ",
+	            __builtin_return_address(0));
 	return 0;
 }

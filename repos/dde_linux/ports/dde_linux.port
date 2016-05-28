@@ -1,8 +1,9 @@
-LICENSE     := GPL
-VERSION     := 1
-DOWNLOADS   := dwc_otg.git usb.archive lxip.archive intel_fb.archive wifi.archive \
-               libnl.archive wpa_supplicant.archive \
-               fw_6000.archive fw_6205a.archive fw_6205b.archive fw_7260.archive fw_7265.archive
+LICENSE     := GPLv2
+VERSION     := 2
+DOWNLOADS   := dwc_otg.git usb.archive intel_fb.archive lxip.archive \
+               wifi.archive libnl.archive wpa_supplicant.archive \
+               fw_6000.archive fw_6205a.archive fw_6205b.archive fw_7260.archive  \
+               fw_7265.archive fw_8260.archive
 
 #
 # Tools
@@ -19,13 +20,20 @@ YACC = bison
 #
 usb.archive: dwc_otg.git
 
+
+#
+# The git checkout checks for the existence of SRC_DIR, which is created by the
+# Linux extraction, therefore make sure to checkout the GIT sources first.
+#
+usb.archive: dwc_otg.git
+
 #
 # USB
 #
 SRC_DIR_USB  := src/lib/usb
-VERSION_USB  := 3.14.5
-URL(usb)     := http://www.kernel.org/pub/linux/kernel/v3.x/linux-$(VERSION_USB).tar.gz
-SHA(usb)     := 675bb3446cbf0889d59a048f6af177ca0a7aacb5
+VERSION_USB  := 4.4.3
+URL(usb)     := http://www.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_USB).tar.xz
+SHA(usb)     := 336d66925a15ce9077cbf2c38acbdc6c2644e33f
 DIR(usb)     := $(SRC_DIR_USB)
 TAR_OPT(usb) := --strip-components=1 --files-from $(REP_DIR)/usb.list
 HASH_INPUT   += $(REP_DIR)/usb.list
@@ -33,26 +41,29 @@ HASH_INPUT   += $(REP_DIR)/usb.list
 #
 # Raspberry Pi USB controller
 #
-URL(dwc_otg) := https://github.com/nfeske/dwc_otg.git
-REV(dwc_otg) := r2
+URL(dwc_otg) := https://github.com/ssumpf/dwc_otg.git
+REV(dwc_otg) := r3
 DIR(dwc_otg) := $(SRC_DIR_USB)/drivers/usb/host/dwc_otg
+
 
 #
 # Intel framebuffer driver
 #
 SRC_DIR_INTEL_FB  := src/drivers/framebuffer/intel
-URL(intel_fb)     := ${URL(usb)}
-SHA(intel_fb)     := ${SHA(usb)}
+VERSION_INTEL_FB  := 4.4.3
+URL(intel_fb)     := https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_INTEL_FB).tar.xz
+SHA(intel_fb)     := 336d66925a15ce9077cbf2c38acbdc6c2644e33f
 DIR(intel_fb)     := $(SRC_DIR_INTEL_FB)
 TAR_OPT(intel_fb) := --strip-components=1  --files-from $(REP_DIR)/intel_fb.list
 HASH_INPUT        += $(REP_DIR)/intel_fb.list
 
 #
-# mac80211 stack, iwlwifi and iwslegacy sources
+# mac80211 stack, iwlwifi sources
 #
 SRC_DIR_WIFI  := src/lib/wifi
-URL(wifi)     := ${URL(usb)}
-SHA(wifi)     := ${SHA(usb)}
+VERSION_WIFI  := 4.4.3
+URL(wifi)     := https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_WIFI).tar.xz
+SHA(wifi)     := 336d66925a15ce9077cbf2c38acbdc6c2644e33f
 DIR(wifi)     := $(SRC_DIR_WIFI)
 TAR_OPT(wifi) := --strip-components=1  --files-from $(REP_DIR)/wifi.list
 HASH_INPUT    += $(REP_DIR)/wifi.list
@@ -61,14 +72,15 @@ HASH_INPUT    += $(REP_DIR)/wifi.list
 # IP stack sources
 #
 SRC_DIR_LXIP  := src/lib/lxip
-VERSION_LXIP  := 3.9
-URL(lxip)     := http://www.kernel.org/pub/linux/kernel/v3.x/linux-$(VERSION_LXIP).tar.gz
-SHA(lxip)     := 7979f0d670838d0552c7ede5cc06497b81dcd812
+VERSION_LXIP  := 4.4.3
+URL(lxip)     := http://www.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_LXIP).tar.xz
+SHA(lxip)     := 336d66925a15ce9077cbf2c38acbdc6c2644e33f
 DIR(lxip)     := $(SRC_DIR_LXIP)
 TAR_OPT(lxip) := --strip-components=1  --files-from $(REP_DIR)/lxip.list
 HASH_INPUT    += $(REP_DIR)/lxip.list
 
 
+#
 # libnl sources
 #
 URL(libnl) := http://www.infradead.org/~tgr/libnl/files/libnl-3.2.25.tar.gz
@@ -100,47 +112,76 @@ DIR(wpa_supplicant) := src/app/wpa_supplicant
 #
 # Firmware images for iwlwifi Ultimate-N 6300 and Advanced-N 6200
 #
-URL(fw_6000)     := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-6000-ucode-9.221.4.1.tgz
-SHA(fw_6000)     := a888cf54974702594e82bcbfca20c26d8f906e9f
-DIR(fw_6000)     := firmware
-
-default: symlink_fw_6000
-symlink_fw_6000: $(DOWNLOADS)
-	@$(MSG_PREFIX)symlink firmware 6000-4 to 6000-6
-	$(VERBOSE)ln -sf iwlwifi-6000-4.ucode firmware/iwlwifi-6000-6.ucode
+URL(fw_6000) := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-6000-ucode-9.221.4.1.tgz
+SHA(fw_6000) := a888cf54974702594e82bcbfca20c26d8f906e9f
+DIR(fw_6000) := firmware
 
 #
 # Firmware images for iwlwifi Advanced-N 6205
 #
-URL(fw_6205a)     := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-6000g2a-ucode-18.168.6.1.tgz
-SHA(fw_6205a)     := a542c82dba96e0bfb1b0e01817a59575c5c87fc4
-DIR(fw_6205a)     := firmware
+URL(fw_6205a) := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-6000g2a-ucode-18.168.6.1.tgz
+SHA(fw_6205a) := a542c82dba96e0bfb1b0e01817a59575c5c87fc4
+DIR(fw_6205a) := firmware
 
 #
 # Firmware images for iwlwifi Advanced-N 6230 / 6235 and Wireless-N 130 / 1030
 #
-URL(fw_6205b)     := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-6000g2b-ucode-18.168.6.1.tgz
-SHA(fw_6205b)     := f4c72b75ae8415661182d63154234dc0a55bc3db
-DIR(fw_6205b)     := firmware
+URL(fw_6205b) := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-6000g2b-ucode-18.168.6.1.tgz
+SHA(fw_6205b) := f4c72b75ae8415661182d63154234dc0a55bc3db
+DIR(fw_6205b) := firmware
 
 #
 # Firmware images for iwlwifi Wireless 7260
 #
-URL(fw_7260)     := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-7260-ucode-22.24.8.0.tgz
-SHA(fw_7260)     := d4ef19560464b9dc9a2278c31d6158f0615871c7
-DIR(fw_7260)     := firmware
+URL(fw_7260) := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-7260-ucode-16.242414.0.tgz
+SHA(fw_7260) := e167ae4d3ed5ac5ca4d8b5f154d47324809717e6
+DIR(fw_7260) := firmware
 
 #
 # Firmware images for iwlwifi Wireless 7265
 #
-URL(fw_7265)     := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-7265-ucode-22.24.8.0.tgz
-SHA(fw_7265)     := 92ab0629010c2545689a868bc53b808474410159
-DIR(fw_7265)     := firmware
+URL(fw_7265) := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-7265-ucode-16.242414.0.tgz
+SHA(fw_7265) := 2a408809f51d552aa2c5d26c9a582d7729ce612b
+DIR(fw_7265) := firmware
+
+#
+# Firmware images for iwlwifi Wireless 8260
+#
+URL(fw_8260) := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-8000-ucode-16.242414.0.tgz
+SHA(fw_8260) := ec5ee829aeebab93e1228848a7675e4469ab3ce2
+DIR(fw_8260) := firmware
+
 
 #
 # Patches
 #
-PATCHES := $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/*.patch)))
+PATCHES := $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/w*.patch)))
+PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/libnl*.patch)))
+PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/lxip*.patch)))
+PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/intel*.patch)))
+PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb*.patch)))
+PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/intel*.patch)))
+
+#IP stack
+LXIP_OPT = -p1 -d$(SRC_DIR_LXIP)
+PATCH_OPT(patches/lxip_icmp.patch)         := $(LXIP_OPT)
+PATCH_OPT(patches/lxip_ip_config.patch)    := $(LXIP_OPT)
+PATCH_OPT(patches/lxip_netlink.patch)      := $(LXIP_OPT)
+PATCH_OPT(patches/lxip_request_sock.patch) := $(LXIP_OPT)
+PATCH_OPT(patches/lxip_sk_wq.patch)        := $(LXIP_OPT)
+PATCH_OPT(patches/lxip_skbuff_cast.patch)  := $(LXIP_OPT)
+
+# WIFI
+WIFI_OPT = -p1 -d$(SRC_DIR_WIFI)
+PATCH_OPT(patches/wifi.patch)        := $(WIFI_OPT)
+PATCH_OPT(patches/wifi_crypto.patch) := $(WIFI_OPT)
+PATCH_OPT(patches/wifi_mem.patch)    := $(WIFI_OPT)
+
+# libnl
+PATCH_OPT(patches/libnl.patch) := -p1 -d ${DIR(libnl)}
+
+# WPA supplicant
+PATCH_OPT(patches/wpa_supplicant.patch) := -p1 -d ${DIR(wpa_supplicant)}
 
 # USB
 USB_OPT = -p1 -d$(SRC_DIR_USB)
@@ -149,34 +190,8 @@ PATCH_OPT(patches/usb_csum.patch)        := $(USB_OPT)
 PATCH_OPT(patches/usb_evdev.patch)       := $(USB_OPT)
 PATCH_OPT(patches/usb_mem.patch)         := $(USB_OPT)
 PATCH_OPT(patches/usb_usbnet.patch)      := $(USB_OPT)
-PATCH_OPT(patches/usb_xchi-quirks.patch) := $(USB_OPT)
-PATCH_OPT(patches/usb_wacom.patch)       := $(USB_OPT)
 
-#IP stack
-LXIP_OPT = -p1 -d$(SRC_DIR_LXIP)
-PATCH_OPT(patches/lxip_icmp.patch)      := $(LXIP_OPT)
-PATCH_OPT(patches/lxip_ip_config.patch) := $(LXIP_OPT)
-PATCH_OPT(patches/lxip_skbuff.patch)    := $(LXIP_OPT)
-PATCH_OPT(patches/lxip_tcp.patch)       := $(LXIP_OPT)
-PATCH_OPT(patches/lxip_netlink.patch)   := $(LXIP_OPT)
-
-# WIFI
-WIFI_OPT = -p1 -d$(SRC_DIR_WIFI)
-PATCH_OPT(patches/wifi.patch)     := $(WIFI_OPT)
-PATCH_OPT(patches/wifi_crypto.patch) := $(WIFI_OPT)
-PATCH_OPT(patches/wifi_mem.patch) := $(WIFI_OPT)
-
-# libnl
-PATCH_OPT(patches/libnl.patch) := -p1 -d ${DIR(libnl)}
-
-# WPA supplicant
-PATCH_OPT(patches/wpa_supplicant.patch) := -p1 -d ${DIR(wpa_supplicant)}
-
-# Intel fb
-PATCH_OPT(patches/intel_fb_16bit.patch)  := -p1 -d ${DIR(intel_fb)}
-PATCH_OPT(patches/intel_fb_edp.patch)    := -p1 -d ${DIR(intel_fb)}
-PATCH_OPT(patches/intel_fb_update.patch) := -p1 -d ${DIR(intel_fb)}
-PATCH_OPT(patches/intel_fb_x201.patch)   := -p1 -d ${DIR(intel_fb)}
-PATCH_OPT(patches/intel_fb_report.patch) := -p1 -d ${DIR(intel_fb)}
+# INTEL FB
+PATCH_OPT(patches/intel_fb_export_api.patch) := -p1 -d$(SRC_DIR_INTEL_FB)
 
 # vi: set ft=make :

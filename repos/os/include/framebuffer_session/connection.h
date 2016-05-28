@@ -29,7 +29,8 @@ class Framebuffer::Connection : public Genode::Connection<Session>,
 		/**
 		 * Create session and return typed session capability
 		 */
-		Session_capability _connect(unsigned width, unsigned height,
+		Session_capability _connect(Genode::Parent &parent,
+		                            unsigned width, unsigned height,
 		                            Mode::Format format)
 		{
 			using namespace Genode;
@@ -48,7 +49,7 @@ class Framebuffer::Connection : public Genode::Connection<Session>,
 			if (format != Mode::INVALID)
 				Arg_string::set_arg(argbuf, sizeof(argbuf), "fb_format", format);
 
-			return session(argbuf);
+			return session(parent, argbuf);
 		}
 
 	public:
@@ -56,19 +57,33 @@ class Framebuffer::Connection : public Genode::Connection<Session>,
 		/**
 		 * Constructor
 		 *
-		 * \param width   desired frame-buffer width
-		 * \param height  desired frame-buffer height
-		 * \param mode    desired pixel format
+		 * \param mode  desired size and pixel format
 		 *
 		 * The specified values are not enforced. After creating the
 		 * session, you should validate the actual frame-buffer attributes
 		 * by calling the 'info' method of the frame-buffer interface.
 		 */
+		Connection(Genode::Env &env, Framebuffer::Mode mode)
+		:
+			Genode::Connection<Session>(env, _connect(env.parent(),
+			                                          mode.width(), mode.height(),
+			                                          mode.format())),
+			Session_client(cap())
+		{ }
+
+		/**
+		 * Constructor
+		 *
+		 * \noapi
+		 * \deprecated  Use the constructor with 'Env &' as first
+		 *              argument instead
+		 */
 		Connection(unsigned     width  = 0,
 		           unsigned     height = 0,
 		           Mode::Format format = Mode::INVALID)
 		:
-			Genode::Connection<Session>(_connect(width, height, format)),
+			Genode::Connection<Session>(_connect(*Genode::env()->parent(),
+			                                     width, height, format)),
 			Session_client(cap())
 		{ }
 };

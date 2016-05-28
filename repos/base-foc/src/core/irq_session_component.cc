@@ -43,17 +43,17 @@ using namespace Genode;
 /**
  * Dispatches interrupts from kernel
  */
-class Genode::Interrupt_handler : public Thread<2048*sizeof(long)>
+class Genode::Interrupt_handler : public Thread_deprecated<2048*sizeof(long)>
 {
 	private:
 
-		Interrupt_handler() : Thread("irq_handler") { start(); }
+		Interrupt_handler() : Thread_deprecated("irq_handler") { start(); }
 
 	public:
 
 		void entry();
 
-		static Native_thread handler_cap()
+		static Fiasco::l4_cap_idx_t handler_cap()
 		{
 			static Interrupt_handler handler;
 			return handler._thread_cap.dst();
@@ -194,7 +194,7 @@ Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
 		}
 		msi_alloc.set(irq_number, 1);
 	} else {
-		if (!irq_alloc || irq_alloc->alloc_addr(1, irq_number).is_error()) {
+		if (!irq_alloc || irq_alloc->alloc_addr(1, irq_number).error()) {
 			PERR("Unavailable IRQ %ld requested.", irq_number);
 			throw Root::Unavailable();
 		}

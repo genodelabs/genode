@@ -94,7 +94,6 @@ class File_system::Session_component : public Session_rpc_object
 				_process_packet_op(packet, *node);
 			}
 			catch (Invalid_handle)     { PERR("Invalid_handle");     }
-			catch (Size_limit_reached) { PERR("Size_limit_reached"); }
 
 			/*
 			 * The 'acknowledge_packet' function cannot block because we
@@ -223,7 +222,7 @@ class File_system::Session_component : public Session_rpc_object
 			if (!_writable && create)
 				throw Permission_denied();
 
-			if (!path.is_valid_string())
+			if (!path.valid_string())
 				throw Name_too_long();
 
 			Directory *dir = _root.subdir(path_str, create);

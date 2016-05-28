@@ -20,9 +20,11 @@
 #include <rm_session_component.h>
 #include <map_local.h>
 
-#include <kernel/pd.h>
+/* base-internal includes */
+#include <base/internal/native_utcb.h>
 
 /* kernel includes */
+#include <kernel/pd.h>
 #include <kernel/kernel.h>
 
 using namespace Genode;
@@ -39,7 +41,7 @@ Platform_thread::~Platform_thread()
 	/* detach UTCB of main threads */
 	if (_main_thread) {
 		Locked_ptr<Address_space> locked_ptr(_address_space);
-		if (locked_ptr.is_valid())
+		if (locked_ptr.valid())
 			locked_ptr->flush((addr_t)_utcb_pd_addr, sizeof(Native_utcb));
 	}
 
@@ -77,6 +79,7 @@ Platform_thread::Platform_thread(const char * const label,
 Platform_thread::Platform_thread(size_t const quota,
                                  const char * const label,
                                  unsigned const virt_prio,
+                                 Affinity::Location location,
                                  addr_t const utcb)
 : Kernel_object<Kernel::Thread>(true, _priority(virt_prio), quota, _label),
   _pd(nullptr),
@@ -94,23 +97,23 @@ Platform_thread::Platform_thread(size_t const quota,
 		throw Cpu_session::Out_of_metadata();
 	}
 	_utcb_core_addr = (Native_utcb *)core_env()->rm_session()->attach(_utcb);
+	affinity(location);
 }
 
 
-int Platform_thread::join_pd(Platform_pd * pd, bool const main_thread,
-                             Weak_ptr<Address_space> address_space)
+void Platform_thread::join_pd(Platform_pd * pd, bool const main_thread,
+                              Weak_ptr<Address_space> address_space)
 {
 	/* check if thread is already in another protection domain */
 	if (_pd && _pd != pd) {
 		PERR("thread already in another protection domain");
-		return -1;
+		return;
 	}
 
 	/* join protection domain */
 	_pd = pd;
 	_main_thread = main_thread;
 	_address_space = address_space;
-	return 0;
 }
 
 
@@ -134,7 +137,7 @@ int Platform_thread::start(void * const ip, void * const sp)
 
 			/* lock the address space */
 			Locked_ptr<Address_space> locked_ptr(_address_space);
-			if (!locked_ptr.is_valid()) {
+			if (!locked_ptr.valid()) {
 				PERR("invalid RM client");
 				return -1;
 			};
@@ -164,7 +167,7 @@ int Platform_thread::start(void * const ip, void * const sp)
 	unsigned const cpu =
 		_location.valid() ? _location.xpos() : Cpu::primary_id();
 
-	Native_utcb * utcb = Thread_base::myself()->utcb();
+	Native_utcb * utcb = Thread::myself()->utcb();
 
 	/* reset capability counter */
 	utcb->cap_cnt(0);

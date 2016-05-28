@@ -46,9 +46,9 @@ struct Mbr_partition_table : public Block::Partition_table
 			Genode::uint32_t _lba;        /* logical block address */
 			Genode::uint32_t _sectors;    /* number of sectors */
 
-			bool is_valid()      { return _type != INVALID; }
-			bool is_extented()   { return _type == EXTENTED; }
-			bool is_protective() { return _type == PROTECTIVE; }
+			bool valid()      { return _type != INVALID; }
+			bool extented()   { return _type == EXTENTED; }
+			bool protective() { return _type == PROTECTIVE; }
 		} __attribute__((packed));
 
 
@@ -61,7 +61,7 @@ struct Mbr_partition_table : public Block::Partition_table
 			Partition_record _records[4];
 			Genode::uint16_t _magic;
 
-			bool is_valid()
+			bool valid()
 			{
 				/* magic number of partition table */
 				enum { MAGIC = 0xaa55 };
@@ -86,13 +86,13 @@ struct Mbr_partition_table : public Block::Partition_table
 				Sector s(lba, 1);
 				Mbr *ebr = s.addr<Mbr *>();
 
-				if (!(ebr->is_valid()))
+				if (!(ebr->valid()))
 					return;
 
 			/* The first record is the actual logical partition. The lba of this
 			 * partition is relative to the lba of the current EBR */
 			Partition_record *logical = &(ebr->_records[0]);
-			if (logical->is_valid() && nr < MAX_PARTITIONS) {
+			if (logical->valid() && nr < MAX_PARTITIONS) {
 				_part_list[nr++] = new (Genode::env()->heap())
 					Block::Partition(logical->_lba + lba, logical->_sectors);
 
@@ -107,29 +107,29 @@ struct Mbr_partition_table : public Block::Partition_table
 			r = &(ebr->_records[1]);
 			lba += ebr->_records[1]._lba;
 
-			} while (r->is_valid());
+			} while (r->valid());
 		}
 
 		void _parse_mbr(Mbr *mbr)
 		{
 			/* no partition table, use whole disc as partition 0 */
-			if (!(mbr->is_valid()))
+			if (!(mbr->valid()))
 				_part_list[0] = new(Genode::env()->heap())
 					Block::Partition(0, Block::Driver::driver().blk_cnt() - 1);
 
 			for (int i = 0; i < 4; i++) {
 				Partition_record *r = &(mbr->_records[i]);
 
-				if (!r->is_valid())
+				if (!r->valid())
 					continue;
 
 				PINF("Partition %d: LBA %u (%u blocks) type: %x",
 				     i + 1, r->_lba, r->_sectors, r->_type);
 
-				if (r->is_protective())
+				if (r->protective())
 					throw Protective_mbr_found();
 
-				if (r->is_extented()) {
+				if (r->extented()) {
 					_parse_extented(r);
 					continue;
 				}

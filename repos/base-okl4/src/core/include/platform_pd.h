@@ -14,8 +14,10 @@
 #ifndef _CORE__INCLUDE__PLATFORM_PD_H_
 #define _CORE__INCLUDE__PLATFORM_PD_H_
 
+/* Genode includes */
+#include <base/allocator.h>
+
 /* core includes */
-#include <platform_thread.h>
 #include <address_space.h>
 
 namespace Okl4 { extern "C" {
@@ -23,6 +25,15 @@ namespace Okl4 { extern "C" {
 } }
 
 namespace Genode {
+
+	namespace Thread_id_bits {
+
+		/*
+		 * L4 thread ID has 18 bits for thread number and 14 bits for
+		 * version info.
+		 */
+		enum { PD = 8, THREAD = 5 };
+	}
 
 	class Platform_thread;
 	class Platform_pd : public Address_space
@@ -42,8 +53,8 @@ namespace Genode {
 			/**
 			 * Manually construct L4 thread ID from its components
 			 */
-			static Native_thread_id make_l4_id(unsigned space_no,
-			                                   unsigned thread_no)
+			static Okl4::L4_ThreadId_t make_l4_id(unsigned space_no,
+			                                      unsigned thread_no)
 			{
 				/*
 				 * On OKL4, version must be set to 1
@@ -121,11 +132,8 @@ namespace Genode {
 
 			/**
 			 * Protection domain allocation
-			 *
-			 * Find free L4 task and use it. We need the special case for Core
-			 * startup.
 			 */
-			int _alloc_pd(signed pd_id);
+			int _alloc_pd();
 
 			/**
 			 * Protection domain deallocation
@@ -153,7 +161,7 @@ namespace Genode {
 			 * Constructors
 			 */
 			Platform_pd(bool core);
-			Platform_pd(signed pd_id = PD_INVALID, bool create = true);
+			Platform_pd(Allocator *, char const *);
 
 			/**
 			 * Destructor
@@ -163,12 +171,9 @@ namespace Genode {
 			/**
 			 * Bind thread to protection domain
 			 *
-			 * \return  0  on success or
-			 *         -1  if thread ID allocation failed.
-			 *
 			 * This function allocates the physical L4 thread ID.
 			 */
-			int bind_thread(Platform_thread *thread);
+			bool bind_thread(Platform_thread *thread);
 
 			/**
 			 * Unbind thread from protection domain
@@ -180,7 +185,7 @@ namespace Genode {
 			/**
 			 * Assign parent interface to protection domain
 			 */
-			int assign_parent(Native_capability parent) { return 0; }
+			void assign_parent(Native_capability parent) { }
 
 			Platform_thread* space_pager() const { return _space_pager; }
 

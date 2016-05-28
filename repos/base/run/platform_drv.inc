@@ -51,6 +51,24 @@ proc platform_drv_policy {} {
 }
 
 proc platform_drv_priority {} { return "" }
+proc platform_drv_add_routing {} {
+	if {[have_spec acpi]} {
+		return {
+			<service name="ROM" label="system"> <child name="acpi_report_rom"/> </service>}
+	}
+
+	return ""
+}
+
+proc platform_drv_config_config {} {
+	if {[have_spec acpi] || [have_spec arm] || [have_spec hw_x86_64_muen]} {
+		return {
+		<config>}
+	}
+
+	return {
+		<config acpi="no">}
+}
 
 proc append_platform_drv_config {} {
 	global config
@@ -81,12 +99,10 @@ proc append_platform_drv_config {} {
 			<service name="Report" />
 		</provides>
 		<config>
-			<rom> <policy label="platform_drv -> acpi" report="acpi_drv -> acpi"/> </rom>
+			<policy label="platform_drv -> acpi" report="acpi_drv -> acpi"/>
 		</config>
 		<route>
 			<service name="LOG"> <parent/> </service>
-			<service name="SIGNAL"> <parent/> </service>
-			<service name="CAP"> <parent/> </service>
 			<service name="RM"> <parent/> </service>
 		</route>
 	</start>}
@@ -110,10 +126,10 @@ proc append_platform_drv_config {} {
 		</provides>
 		<route>}
 
+		append config "[platform_drv_add_routing]"
+
 		append_if [have_spec acpi] config {
-			<service name="ROM">
-				<if-arg key="label" value="acpi"/> <child name="acpi_report_rom"/>
-			</service>}
+			<service name="ROM" label="acpi"> <child name="acpi_report_rom"/> </service>}
 
 		append_if [have_spec rpi] config {
 			<service name="Timer"> <any-child/> </service>}
@@ -122,18 +138,7 @@ proc append_platform_drv_config {} {
 			<any-service> <parent/> </any-service>
 		</route>}
 
-		if {[have_spec acpi] || [have_spec arm] || [have_spec hw_x86_64_muen]} {
-
-		append config {
-		<config>}
-
-		} else {
-
-		append config {
-		<config acpi="no">}
-
-		}
-
+		append config [platform_drv_config_config]
 		append config [platform_drv_policy]
 
 		append config {

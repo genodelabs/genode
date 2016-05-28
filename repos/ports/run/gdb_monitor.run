@@ -6,15 +6,14 @@
 #
 
 #
-# Only Genode/Fiasco.OC and Genode/NOVA supports all the tested features
-# at this time
+# Only the NOVA and 32-bit Fiasco.OC base platforms support most of the tested features
+# at this time.
 #
 
-if {![have_include "power_on/qemu"] || (![have_spec foc] && ![have_spec nova])} {
-	 puts "Run script is only supported for foc or nova in Qemu"; exit 0
+if {![have_include "power_on/qemu"] ||
+    !([have_spec nova] || ([have_spec foc] && [have_spec 32bit]))} {
+	 puts "Run script is only supported for NOVA or 32-bit Fiasco.OC in Qemu"; exit 0
 }
-
-assert_spec 32bit
 
 #
 # Build
@@ -41,23 +40,24 @@ set config {
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
-		<service name="CAP"/>
 		<service name="PD"/>
 		<service name="RM"/>
 		<service name="CPU"/>
 		<service name="LOG"/>
-		<service name="SIGNAL"/>
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 	<start name="uart_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides> <service name="Terminal"/> </provides>
+		<resource name="RAM" quantum="2M"/>
+		<provides>
+			<service name="Terminal"/>
+			<service name="Uart"/>
+		</provides>
 		<config>
 			<policy label="gdb_monitor" uart="1"/>
 		</config>
@@ -90,7 +90,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init timer
-	ld.lib.so libc.lib.so libc_lock_pipe.lib.so libc_terminal.lib.so
+	ld.lib.so libc.lib.so libc_pipe.lib.so libc_terminal.lib.so
 	uart_drv
 	gdb_monitor test-gdb_monitor
 }
@@ -111,9 +111,9 @@ append qemu_args " -serial mon:stdio "
 
 # connect comport 1 with TCP port $local_port
 append qemu_args " -serial chardev:uart "
-append qemu_args " -chardev socket,id=uart,port=$local_port,host=localhost,server,nowait "
+append qemu_args " -chardev socket,id=uart,port=$local_port,host=localhost,server,nowait,ipv4 "
 
-run_genode_until {.*Remote debugging using /dev/terminal.*} 30
+run_genode_until {.*\[init -> gdb_monitor\].*} 30
 set genode_id [output_spawn_id]
 
 puts "GDB monitor is up, starting GDB"
@@ -125,128 +125,164 @@ set gdb_target_binary "test-gdb_monitor"
 # sequence of GDB commands to execute at startup
 set gdb_cmds ""
 append gdb_cmds {-ex "target remote localhost:$local_port" }
-
 append gdb_cmds [gdb_main_breakpoint_cmds $gdb_target_binary]
 
-#
-# Test commands
-#
+# run GDB and redirect stderr to stdio to get the relevant output into the expect buffer
+eval spawn [gdb] bin/ld.lib.so -n $gdb_cmds 2&>1
+set gdb_id [list $spawn_id $genode_id]
 
-# test: breakpoint in shared library 
-append gdb_cmds {-ex "b puts" }
-append gdb_cmds {-ex "c" }
+puts ""
+puts "----- test: breakpoint in 'main()' -----"
+puts ""
 
-# test: stack trace when not in syscall
-append gdb_cmds {-ex "bt" }
+run_genode_until {\(gdb\)} 60 $gdb_id
 
-# test: modify variable
-append gdb_cmds {-ex "print test_var" }
-append gdb_cmds {-ex "set var test_var=2" }
-append gdb_cmds {-ex "print test_var" }
-
-# test: 'call' command
-if {![have_spec nova]} {
-append gdb_cmds {-ex "call test_var_func()" }
-}
-
-# test: thread info
-append gdb_cmds {-ex "b Test_thread::entry()" }
-append gdb_cmds {-ex "c" }
-append gdb_cmds {-ex "info threads" }
-
-# test: single stepping
-append gdb_cmds {-ex "step" }
-
-# test: catch segmentation fault
-append gdb_cmds {-ex "c" }
-
-# test: stack trace when in syscall
-append gdb_cmds {-ex "thread 1" }
-append gdb_cmds {-ex "bt" }
-
-# quit
-append gdb_cmds {-ex "q" }
-
-# run GDB and redirect stderr to stdio to get the relevant output into the expect buffer  
-eval spawn [gdb] bin/$gdb_target_binary -n -batch $gdb_cmds 2&>1
-set gdb_id $spawn_id
-
-set timeout 120
-expect {
-	-i [list $genode_id $gdb_id]
-	timeout { puts stderr "Error: Test execution timed out"; exit -2 }
-}
-
-set gdb_output $expect_out(buffer)
-
-#
-# Evaluate the test results
-#
-
-if {![regexp {Breakpoint 2, main ()} $gdb_output]} {
-	puts stderr "Error: Breakpoint in main() did not trigger"
+if {![regexp {Breakpoint 2, main ()} $output]} {
+	puts stderr "*** Error: Breakpoint in main() did not trigger"
 	exit -1
 }
 
-if {![regexp {Breakpoint 3, puts (.*)} $gdb_output]} {
-	puts "Error: Breakpoint in shared library did not trigger"
+puts "\n"
+puts "----- test: breakpoint in shared library -----"
+puts ""
+
+send "b puts\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+send "c\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+if {![regexp {Breakpoint 3, puts ()} $output]} {
+	puts "*** Error: Breakpoint in shared library did not trigger"
 	exit -1
 }
 
-if {![regexp {#0  puts} $gdb_output] ||
-    ![regexp {in func2()} $gdb_output] ||
-    ![regexp {in func1()} $gdb_output] ||
-    ![regexp {in main ()} $gdb_output]} {
+puts "\n"
+puts "----- test: stack trace when not in syscall -----"
+puts ""
 
-	puts stderr "Error: Stack trace when not in syscall is not as expected"
+send "bt\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+if {![regexp {#0  puts} $output] ||
+    ![regexp {in func2()} $output] ||
+    ![regexp {in func1()} $output] ||
+    ![regexp {in main ()} $output]} {
+
+	puts stderr "*** Error: Stack trace when not in syscall is not as expected"
 	exit -1
 }
 
-if {![regexp {\$1 = 1} $gdb_output]} {
-	puts stderr "Error: first 'print test_var' command didn't result in the expected output"
+puts "\n"
+puts "----- test: modification of a variable value -----"
+puts ""
+
+send "print test_var\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+if {![regexp {\$1 = 1} $output]} {
+	puts stderr "*** Error: first 'print test_var' command didn't result in the expected output"
 	exit -1
 }
 
-if {![regexp {\$2 = 2} $gdb_output]} {
-	puts stderr "Error: second 'print test_var' command didn't result in the expected output"
+send "set var test_var=2\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+send "print test_var\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+if {![regexp {\$2 = 2} $output]} {
+	puts stderr "*** Error: second 'print test_var' command didn't result in the expected output"
 	exit -1
 }
 
-if {![have_spec nova]} {
-if {![regexp {\$3 = 3} $gdb_output]} {
-	puts stderr "Error: 'call' command didn't result in the expected output"
-	exit -1
-}
-}
+puts "\n"
+puts "----- test: 'call' command -----"
+puts ""
 
-if {![regexp {Breakpoint 4, Test_thread::entry()} $gdb_output]} {
-	puts stderr "Error: Breakpoint in test thread did not trigger"
-	exit -1
-}
+send "call test_var_func()\n"
+run_genode_until {\(gdb\)} 60 $gdb_id
 
-if {![regexp {\* 2    Thread 2          Test_thread::entry} $gdb_output] || 
-    ![regexp {  1    Thread 1} $gdb_output]} {
-	puts stderr "Error: Thread info is not as expected"
+if {![regexp {\$3 = 3} $output]} {
+	puts stderr "*** Error: 'call' command didn't result in the expected output"
 	exit -1
 }
 
-if {![regexp {38				static Timer::Connection timer} $gdb_output]} {
-	puts stderr "Error: Single stepping didn't result in the expected output"
+puts "\n"
+puts "----- test: thread info -----"
+puts ""
+
+send "b Test_thread::entry()\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+send "c\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+if {![regexp {Breakpoint 4, Test_thread::entry()} $output]} {
+	puts stderr "*** Error: Breakpoint in test thread did not trigger"
 	exit -1
 }
 
-if {![regexp {Program received signal SIGSEGV, Segmentation fault.} $gdb_output]} {
-	puts stderr "Error: Segmentation fault exception was not catched"
+send "info threads\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+if {![regexp {  4    Thread 3} $output] ||
+    ![regexp {\* 3    Thread 4          Test_thread::entry} $output] ||
+    ![regexp {  2    Thread 2} $output] ||
+    ![regexp {  1    Thread 1} $output]} {
+	puts stderr "*** Error: Thread info is not as expected"
 	exit -1
 }
 
-if {![regexp {Genode::Cancelable_lock::lock\(\)} $gdb_output] ||
-    ![regexp {Genode::Thread_base::join\(\)} $gdb_output] ||
-    ![regexp {in main \(\)} $gdb_output]} {
+puts "\n"
+puts "----- test: step into function -----"
+puts ""
 
-	puts stderr "Error: Stack trace when in syscall is not as expected"
+send "step\n"
+run_genode_until {\(gdb\)} 30 $gdb_id
+
+send "thread 2\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+if {![regexp {Test_thread::step_func} $output]} {
+	puts stderr "*** Error: Step into function didn't result in the expected output"
 	exit -1
-
 }
+
+puts "\n"
+puts "----- test: catching a segmentation fault -----"
+puts ""
+
+send "c\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+if {![regexp {Program received signal SIGSEGV, Segmentation fault.} $output]} {
+	puts stderr "*** Error: Segmentation fault exception was not caught"
+	exit -1
+}
+
+# does not work well on ARM yet
+if {![have_spec arm]} {
+
+	puts "\n"
+	puts "----- test: stack trace when in syscall -----"
+	puts ""
+
+	send "thread 2\n"
+	run_genode_until {\(gdb\)} 20 $gdb_id
+
+	send "bt\n"
+	run_genode_until {\(gdb\)} 20 $gdb_id
+
+	if {![regexp {Genode::Cancelable_lock::lock\(\)} $output] ||
+		![regexp {Genode::Thread::join\(\)} $output] ||
+		![regexp {in main \(\)} $output]} {
+
+		puts stderr "*** Error: Stack trace when in syscall is not as expected"
+		exit -1
+
+	}
+}
+
+puts ""
 
 # vi: set ft=tcl :

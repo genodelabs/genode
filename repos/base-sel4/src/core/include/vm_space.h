@@ -24,7 +24,6 @@
 #include <cnode.h>
 #include <cap_sel_alloc.h>
 #include <core_cspace.h>
-#include <reentrant_lock.h>
 
 namespace Genode { class Vm_space; }
 
@@ -141,23 +140,7 @@ class Genode::Vm_space
 			return Cnode_index(idx & (LEAF_CNODE_SIZE - 1));
 		}
 
-		/*
-		 * We have to use a reentrant lock here to account for the fact that
-		 * 'map_local' may be called recursively in some circumstances.
-		 *
-		 * For example, to zero-out physical memory pages, the '_clear_ds'
-		 * method needs to locally map the pages within core's local address
-		 * space by calling 'map_local'. The 'map_local' function populates
-		 * core's VM space and performs the required book keeping via the
-		 * page-table registry embedded within core's 'Vm_space' object.
-		 * Internally, the page-table registry maintains metadata via slab
-		 * allocators. In the corner case where a new slab block needs to be
-		 * allocated as a side effect of adding metadata for a new page or page
-		 * table, the slab allocator needs to make another physical memory
-		 * range visible within core, which eventually leads to a nested call
-		 * of 'map_local'.
-		 */
-		Reentrant_lock _lock;
+		Lock _lock;
 
 		/**
 		 * Return selector for a capability slot within '_vm_cnodes'
@@ -322,7 +305,7 @@ class Genode::Vm_space
 
 		void map(addr_t from_phys, addr_t to_virt, size_t num_pages)
 		{
-			Reentrant_lock::Guard guard(_lock);
+			Lock::Guard guard(_lock);
 
 			/* check if we need to add a page table to core's VM space */
 			if (!_page_table_registry.has_page_table_at(to_virt))
@@ -336,7 +319,7 @@ class Genode::Vm_space
 
 		void unmap(addr_t virt, size_t num_pages)
 		{
-			Reentrant_lock::Guard guard(_lock);
+			Lock::Guard guard(_lock);
 
 			for (size_t i = 0; i < num_pages; i++) {
 				off_t const offset = i << get_page_size_log2();

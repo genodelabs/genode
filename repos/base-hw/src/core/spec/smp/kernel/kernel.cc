@@ -29,7 +29,6 @@ extern "C" void kernel()
 
 		cpu_id = Cpu::executing_id();
 		Cpu * const cpu  = cpu_pool()->cpu(cpu_id);
-		cpu->scheduled_job().exception(cpu_id);
 		new_job = &cpu->schedule();
 	}
 

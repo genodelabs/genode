@@ -17,7 +17,7 @@
 # with the signature of the declarated function.
 #
 
-set symbol $argv
+set symbol [lindex $argv 0]
 
 # determine contrib directory of dde_linux
 set lx_drv_path [exec ../../../../../../tool/ports/current dde_linux]

@@ -60,10 +60,10 @@ struct cdevsw cdevsw[] = {
 		(int (*)(struct tty*, int)) enodev,
 		0,
 		audiopoll,
-		audiommap,
 		0,
 		0,
-		audiokqfilter,
+		0,
+		0,
 	},
 };
 
@@ -138,4 +138,13 @@ struct device *config_found_sm(struct device *parent, void *aux, cfprint_t print
 	}
 
 	return 0;
+}
+
+
+struct device *device_lookup(struct cfdriver *cd, int unit)
+{
+	if (unit >= audio_cd.cd_ndevs || audio_cd.cd_devs[unit] == NULL)
+		return NULL;
+
+	return audio_cd.cd_devs[unit];
 }

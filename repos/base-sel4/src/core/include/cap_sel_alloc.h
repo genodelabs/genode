@@ -18,7 +18,7 @@
 #include <base/exception.h>
 
 /* base-internal includes */
-#include <internal/capability_space_sel4.h>
+#include <base/internal/capability_space_sel4.h>
 
 namespace Genode { struct Cap_sel_alloc; }
 

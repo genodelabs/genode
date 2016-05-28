@@ -18,12 +18,22 @@
 #include <base/connection.h>
 #include <base/allocator.h>
 
-
 namespace Audio_in { struct Connection; }
 
 
 struct Audio_in::Connection : Genode::Connection<Session>, Audio_in::Session_client
 {
+	/**
+	 * Issue session request
+	 *
+	 * \noapi
+	 */
+	Capability<Audio_in::Session> _session(Genode::Parent &parent, char const *channel)
+	{
+		return session(parent, "ram_quota=%zd, channel=\"%s\"",
+		               2*4096 + sizeof(Stream), channel);
+	}
+
 	/**
 	 * Constructor
 	 *
@@ -31,11 +41,22 @@ struct Audio_in::Connection : Genode::Connection<Session>, Audio_in::Session_cli
 	 *                         call 'wait_for_progress', which is sent when the
 	 *                         server processed one or more packets
 	 */
+	Connection(Genode::Env &env, char const *channel, bool progress_signal = false)
+	:
+		Genode::Connection<Session>(env, _session(env.parent(), channel)),
+		Session_client(cap(), progress_signal)
+	{ }
+
+	/**
+	 * Constructor
+	 *
+	 * \noapi
+	 * \deprecated  Use the constructor with 'Env &' as first
+	 *              argument instead
+	 */
 	Connection(char const *channel, bool progress_signal = false)
 	:
-		Genode::Connection<Session>(
-			session("ram_quota=%zd, channel=\"%s\"",
-			        2*4096 + sizeof(Stream), channel)),
+		Genode::Connection<Session>(_session(*Genode::env()->parent(), channel)),
 		Session_client(cap(), progress_signal)
 	{ }
 };

@@ -107,7 +107,7 @@ append boot_modules {
 	libc.lib.so libm.lib.so lwip.lib.so
 	zlib.lib.so libpng.lib.so jpeg.lib.so libssl.lib.so libcrypto.lib.so
 	freetype.lib.so
-	libc_lock_pipe.lib.so
+	libc_pipe.lib.so
 	stdcxx.lib.so
 	nitpicker_plugin.tar
 }

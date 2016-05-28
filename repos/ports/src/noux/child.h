@@ -20,6 +20,7 @@
 #include <cap_session/cap_session.h>
 #include <pd_session/connection.h>
 #include <os/attached_ram_dataspace.h>
+#include <os/attached_rom_dataspace.h>
 
 /* Noux includes */
 #include <file_descriptor_registry.h>
@@ -29,6 +30,7 @@
 #include <environment.h>
 #include <ram_session_component.h>
 #include <cpu_session_component.h>
+#include <pd_session_component.h>
 #include <child_policy.h>
 #include <io_receptor_registry.h>
 #include <destruct_queue.h>
@@ -37,6 +39,7 @@
 #include <kill_broadcaster.h>
 #include <parent_execve.h>
 #include <local_cpu_service.h>
+#include <local_pd_service.h>
 #include <local_rom_service.h>
 
 namespace Noux {
@@ -96,8 +99,33 @@ namespace Noux {
 
 	class Child;
 
-	bool is_init_process(Child *child);
+	/**
+	 * Return true is child is the init process
+	 */
+	bool init_process(Child *child);
 	void init_process_exited(int);
+
+	struct Child_config : Attached_ram_dataspace
+	{
+		enum { CONFIG_DS_SIZE = 4096 };
+
+		Child_config(Genode::Ram_session &ram)
+		: Attached_ram_dataspace(&ram, CONFIG_DS_SIZE)
+		{
+			Genode::strncpy(local_addr<char>(),
+			                "<config/>",
+			                CONFIG_DS_SIZE);
+
+			try {
+				Attached_rom_dataspace noux_config("config");
+
+				if (noux_config.xml().attribute_value("ld_verbose", false))
+					Genode::strncpy(local_addr<char>(),
+					                "<config ld_verbose=\"yes\"/>",
+					                CONFIG_DS_SIZE);
+			} catch (Genode::Rom_connection::Rom_connection_failed) { }
+		}
+	};
 
 	class Child : public Rpc_object<Session>,
 	              public File_descriptor_registry,
@@ -123,7 +151,12 @@ namespace Noux {
 			enum { STACK_SIZE = 4*1024*sizeof(long) };
 			Rpc_entrypoint _entrypoint;
 
-			Pd_connection _pd;
+			/**
+			 * Registry of dataspaces owned by the Noux process
+			 */
+			Dataspace_registry _ds_registry;
+
+			Pd_session_component _pd;
 
 			/**
 			 * Resources assigned to the child
@@ -137,34 +170,32 @@ namespace Noux {
 				Rpc_entrypoint &ep;
 
 				/**
-				 * Registry of dataspaces owned by the Noux process
-				 */
-				Dataspace_registry ds_registry;
-
-				/**
 				 * Locally-provided services for accessing platform resources
 				 */
 				Ram_session_component ram;
 				Cpu_session_component cpu;
-				Rm_session_component  rm;
 
-				Resources(char const *label, Rpc_entrypoint &ep, bool forked)
+				Resources(char const *label, Rpc_entrypoint &ep,
+				          Dataspace_registry &ds_registry,
+				          Pd_session_capability core_pd_cap, bool forked)
 				:
-					ep(ep), ram(ds_registry), cpu(label, forked), rm(ds_registry)
+					ep(ep), ram(ds_registry), cpu(label, core_pd_cap, forked)
 				{
 					ep.manage(&ram);
-					ep.manage(&rm);
 					ep.manage(&cpu);
 				}
 
 				~Resources()
 				{
 					ep.dissolve(&ram);
-					ep.dissolve(&rm);
 					ep.dissolve(&cpu);
 				}
 
 			} _resources;
+
+			Genode::Child::Initial_thread _initial_thread;
+
+			Region_map_client _address_space { _pd.address_space() };
 
 			/**
 			 * Command line arguments
@@ -175,6 +206,11 @@ namespace Noux {
 			 * Environment variables
 			 */
 			Environment _env;
+
+			/*
+			 * Child configuration
+			 */
+			Child_config _config;
 
 			/**
 			 * ELF binary handling
@@ -213,8 +249,9 @@ namespace Noux {
 
 			Local_noux_service _local_noux_service;
 			Parent_service     _parent_ram_service;
+			Parent_service     _parent_pd_service;
 			Local_cpu_service  _local_cpu_service;
-			Local_rm_service   _local_rm_service;
+			Local_pd_service   _local_pd_service;
 			Local_rom_service  _local_rom_service;
 			Service_registry  &_parent_services;
 
@@ -223,6 +260,9 @@ namespace Noux {
 			Static_dataspace_info _ldso_ds_info;
 			Static_dataspace_info _args_ds_info;
 			Static_dataspace_info _env_ds_info;
+			Static_dataspace_info _config_ds_info;
+
+			Dataspace_capability _ldso_ds;
 
 			Child_policy  _child_policy;
 
@@ -300,7 +340,7 @@ namespace Noux {
 
 				_entrypoint.dissolve(this);
 
-				if (is_init_process(this))
+				if (init_process(this))
 					init_process_exited(_child_policy.exit_value());
 			}
 
@@ -325,6 +365,7 @@ namespace Noux {
 			 *                           the parent
 			 */
 			Child(char const           *binary_name,
+			      Dataspace_capability  ldso_ds,
 			      Parent_exit          *parent_exit,
 			      Kill_broadcaster     &kill_broadcaster,
 			      Parent_execve        &parent_execve,
@@ -352,35 +393,43 @@ namespace Noux {
 				_destruct_context_cap(sig_rec->manage(&_destruct_dispatcher)),
 				_cap_session(cap_session),
 				_entrypoint(cap_session, STACK_SIZE, "noux_process", false),
-				_pd(binary_name),
-				_resources(binary_name, resources_ep, false),
+				_pd(binary_name, resources_ep, _ds_registry),
+				_resources(binary_name, resources_ep, _ds_registry, _pd.core_pd_cap(), false),
+				_initial_thread(_resources.cpu, _pd.cap(), binary_name),
 				_args(ARGS_DS_SIZE, args),
 				_env(env),
+				_config(*Genode::env()->ram_session()),
 				_elf(binary_name, root_dir, root_dir->dataspace(binary_name)),
 				_sysio_ds(Genode::env()->ram_session(), SYSIO_DS_SIZE),
 				_sysio(_sysio_ds.local_addr<Sysio>()),
 				_noux_session_cap(Session_capability(_entrypoint.manage(this))),
 				_local_noux_service(_noux_session_cap),
 				_parent_ram_service(""),
+				_parent_pd_service(""),
 				_local_cpu_service(_entrypoint, _resources.cpu.cpu_cap()),
-				_local_rm_service(_entrypoint, _resources.ds_registry),
-				_local_rom_service(_entrypoint, _resources.ds_registry),
+				_local_pd_service(_entrypoint, _pd.core_pd_cap()),
+				_local_rom_service(_entrypoint, _ds_registry),
 				_parent_services(parent_services),
-				_binary_ds_info(_resources.ds_registry, _elf._binary_ds),
-				_sysio_ds_info(_resources.ds_registry, _sysio_ds.cap()),
-				_ldso_ds_info(_resources.ds_registry, ldso_ds_cap()),
-				_args_ds_info(_resources.ds_registry, _args.cap()),
-				_env_ds_info(_resources.ds_registry, _env.cap()),
-				_child_policy(_elf._name, _elf._binary_ds, _args.cap(), _env.cap(),
+				_binary_ds_info(_ds_registry, _elf._binary_ds),
+				_sysio_ds_info(_ds_registry, _sysio_ds.cap()),
+				_ldso_ds_info(_ds_registry, ldso_ds_cap()),
+				_args_ds_info(_ds_registry, _args.cap()),
+				_env_ds_info(_ds_registry, _env.cap()),
+				_config_ds_info(_ds_registry, _config.cap()),
+				_ldso_ds(ldso_ds),
+				_child_policy(_elf._name, _elf._binary_ds, _args.cap(),
+				              _env.cap(), _config.cap(),
 				              _entrypoint, _local_noux_service,
-				              _local_rm_service, _local_rom_service,
-				              _parent_services,
+				              _local_rom_service, _parent_services,
 				              *this, parent_exit, *this, _destruct_context_cap,
 				              _resources.ram, verbose),
 				_child(forked ? Dataspace_capability() : _elf._binary_ds,
-				       _pd.cap(), _resources.ram.cap(), _resources.cpu.cap(),
-				       _resources.rm.cap(), &_entrypoint, &_child_policy,
-				       _parent_ram_service, _local_cpu_service, _local_rm_service)
+				       _ldso_ds, _pd.cap(), _pd,
+				       _resources.ram.cap(), _resources.ram,
+				       _resources.cpu.cap(), _initial_thread,
+				       *Genode::env()->rm_session(), _address_space,
+				       _entrypoint, _child_policy, _local_pd_service,
+				       _parent_ram_service, _local_cpu_service)
 			{
 				if (verbose)
 					_args.dump();
@@ -406,7 +455,8 @@ namespace Noux {
 				/* poke parent_cap_addr into child's address space */
 				Capability<Parent> const &cap = _child.parent_cap();
 				Capability<Parent>::Raw   raw = { cap.dst(), cap.local_name() };
-				_resources.rm.poke(parent_cap_addr, &raw, sizeof(raw));
+
+				_pd.poke(parent_cap_addr, &raw, sizeof(raw));
 
 				/* start execution of new main thread at supplied trampoline */
 				_resources.cpu.start_main_thread(ip, sp);
@@ -414,7 +464,7 @@ namespace Noux {
 
 			void submit_exit_signal()
 			{
-				if (is_init_process(this)) {
+				if (init_process(this)) {
 					PINF("init process exited");
 
 					/* trigger exit of main event loop */
@@ -425,8 +475,8 @@ namespace Noux {
 			}
 
 			Ram_session_capability ram() const { return _resources.ram.cap(); }
-			Rm_session_capability   rm() const { return _resources.rm.cap(); }
-			Dataspace_registry &ds_registry()  { return _resources.ds_registry; }
+			Pd_session_capability  pd()  const { return _pd.cap(); }
+			Dataspace_registry &ds_registry()  { return _ds_registry; }
 
 
 			/****************************
@@ -438,9 +488,9 @@ namespace Noux {
 				return _sysio_ds.cap();
 			}
 
-			Rm_session_capability lookup_rm_session(addr_t const addr)
+			Capability<Region_map> lookup_region_map(addr_t const addr)
 			{
-				return _resources.rm.lookup_rm_session(addr);
+				return _pd.lookup_region_map(addr);
 			}
 
 			bool syscall(Syscall sc);
@@ -538,6 +588,7 @@ namespace Noux {
 				Lock::Guard signal_lock_guard(signal_lock());
 
 				Child *child = new Child(filename,
+				                         _ldso_ds,
 					                     _parent_exit,
 					                     _kill_broadcaster,
 					                     _parent_execve,

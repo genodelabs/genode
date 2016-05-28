@@ -39,11 +39,11 @@ static const char *http_get_request =
  * and sends as much 'http get' requests as possible,
  * printing out the response.
  */
-class Client : public Genode::Thread<4096>
+class Client : public Genode::Thread_deprecated<4096>
 {
 	public:
 
-		Client() : Thread("client") { }
+		Client() : Thread_deprecated("client") { }
 
 		void entry()
 		{

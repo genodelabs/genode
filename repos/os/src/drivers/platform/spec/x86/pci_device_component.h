@@ -67,11 +67,9 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 		};
 
 		Genode::Tslab<Genode::Io_port_connection, IO_BLOCK_SIZE> _slab_ioport;
-		Genode::Slab_block _slab_ioport_block;
 		char _slab_ioport_block_data[IO_BLOCK_SIZE];
 
 		Genode::Tslab<Io_mem, IO_MEM_SIZE> _slab_iomem;
-		Genode::Slab_block _slab_iomem_block;
 		char _slab_iomem_block_data[IO_MEM_SIZE];
 
 		char _mem_irq_component[sizeof(Irq_session_component)];
@@ -169,7 +167,7 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 			 * Disabling a bridge may make the devices behind non-functional,
 			 * as we have no driver which will switch it on again
 			 */
-			if (_device_config.is_pci_bridge())
+			if (_device_config.pci_bridge())
 				return;
 
 			unsigned cmd = _device_config.read(&_config_access, PCI_CMD_REG,
@@ -200,20 +198,14 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 			_irq_line(_device_config.read(&_config_access, PCI_IRQ_LINE,
 			                              Platform::Device::ACCESS_8BIT)),
 			_irq_session(nullptr),
-			_slab_ioport(md_alloc, &_slab_ioport_block),
-			_slab_iomem(md_alloc, &_slab_iomem_block)
+			_slab_ioport(md_alloc, &_slab_ioport_block_data),
+			_slab_iomem(md_alloc, &_slab_iomem_block_data)
 		{
 			for (unsigned i = 0; i < Device::NUM_RESOURCES; i++) {
 				_io_port_conn[i] = nullptr;
 			}
 
-			if (_slab_ioport.num_elem() != Device::NUM_RESOURCES)
-				PERR("incorrect amount of space for io port resources");
-			if (_slab_iomem.num_elem() != Device::NUM_RESOURCES)
-				PERR("incorrect amount of space for io mem resources");
-
 			_disable_bus_master_dma();
-
 		}
 
 		/**
@@ -226,8 +218,8 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 			_ep(ep), _session(session),
 			_irq_line(irq),
 			_irq_session(nullptr),
-			_slab_ioport(0, &_slab_ioport_block),
-			_slab_iomem(0, &_slab_iomem_block)
+			_slab_ioport(0, &_slab_ioport_block_data),
+			_slab_iomem(0, &_slab_iomem_block_data)
 		{
 			for (unsigned i = 0; i < Device::NUM_RESOURCES; i++)
 				_io_port_conn[i] = nullptr;

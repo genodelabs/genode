@@ -50,7 +50,7 @@ struct Shape
 
 struct Shape_report : Vbox_pointer::Shape_report
 {
-	Genode::Reporter reporter { "shape", sizeof(Vbox_pointer::Shape_report) };
+	Genode::Reporter reporter { "shape", "shape", sizeof(Vbox_pointer::Shape_report) };
 
 	Shape_report()
 	:

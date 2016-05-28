@@ -1,4 +1,4 @@
-if {[have_spec linux] || [have_spec pistachio]} {
+if {[have_spec linux]} {
 	puts "Platform does not support managed dataspaces"; exit }
 
 build "core init test/rm_fault"
@@ -12,9 +12,7 @@ install_config {
 			<service name="RAM"/>
 			<service name="CPU"/>
 			<service name="RM"/>
-			<service name="CAP"/>
 			<service name="PD"/>
-			<service name="SIGNAL"/>
 			<service name="LOG"/>
 		</parent-provides>
 		<default-route>
@@ -30,4 +28,4 @@ build_boot_image "core init test-rm_fault"
 
 append qemu_args "-nographic -m 64"
 
-run_genode_until {child "test-rm_fault" exited with exit value 0.*} 10
+run_genode_until {child "test-rm_fault" exited with exit value 0.*} 300

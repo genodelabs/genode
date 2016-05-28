@@ -35,12 +35,10 @@ set config {
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
-		<service name="CAP"/>
 		<service name="PD"/>
 		<service name="RM"/>
 		<service name="CPU"/>
 		<service name="LOG"/>
-		<service name="SIGNAL"/>
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
@@ -155,7 +153,7 @@ if {$use_qemu} {
 # Qemu opts for EHCI
 #
 append qemu_args " -m 128 -nographic -M pc -boot order=d "
-append qemu_args " -drive if=none,id=disk,file=$disk_image "
+append qemu_args " -drive if=none,id=disk,file=$disk_image,format=raw "
 append qemu_args " -device usb-ehci,id=ehci -device usb-storage,bus=ehci.0,drive=disk "
 
 run_genode_until {.*child "test-usb" exited with exit value 0.*} 100

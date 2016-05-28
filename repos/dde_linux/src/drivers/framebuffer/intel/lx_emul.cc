@@ -1,10 +1,12 @@
 /*
  * \brief  Emulation of Linux kernel interfaces
  * \author Norman Feske
+ * \author Stefan Kalkowski
  * \date   2015-08-19
  */
 
 /* Genode includes */
+#include <util/bit_allocator.h>
 #include <base/printf.h>
 #include <os/attached_io_mem_dataspace.h>
 #include <os/config.h>
@@ -12,15 +14,260 @@
 
 /* local includes */
 #include <component.h>
-#include "lx_emul_private.h"
 
 /* DRM-specific includes */
-extern "C" {
+#include <lx_emul.h>
+#include <lx_emul/extern_c_begin.h>
+#include "lx_emul_private.h"
 #include <drm/drmP.h>
-#include <i915/i915_drv.h>
-#include <i915/intel_drv.h>
+#include <drm/drm_gem.h>
+#include <lx_emul/extern_c_end.h>
+
+#include <lx_emul/impl/kernel.h>
+#include <lx_emul/impl/delay.h>
+#include <lx_emul/impl/slab.h>
+#include <lx_emul/impl/gfp.h>
+#include <lx_emul/impl/io.h>
+#include <lx_emul/impl/pci.h>
+#include <lx_emul/impl/work.h>
+#include <lx_emul/impl/spinlock.h>
+#include <lx_emul/impl/mutex.h>
+#include <lx_emul/impl/sched.h>
+#include <lx_emul/impl/timer.h>
+#include <lx_emul/impl/completion.h>
+#include <lx_emul/impl/wait.h>
+
+static struct drm_device * dde_drm_device = nullptr;
+
+extern "C" struct drm_framebuffer*
+dde_c_allocate_framebuffer(int width, int height, void ** base,
+                           uint64_t * size, struct drm_device * dev);
+extern "C" void
+dde_c_set_mode(struct drm_device * dev, struct drm_connector * connector,
+               struct drm_framebuffer *fb, struct drm_display_mode *mode);
+extern "C" void  dde_c_set_driver(struct drm_device * dev, void * driver);
+extern "C" void* dde_c_get_driver(struct drm_device * dev);
+
+
+struct Drm_guard
+{
+	drm_device * _dev;
+
+	Drm_guard(drm_device *dev) : _dev(dev)
+	{
+		if (dev) {
+			mutex_lock(&dev->mode_config.mutex);
+			mutex_lock(&dev->mode_config.blob_lock);
+			drm_modeset_lock_all(dev);
+		}
+	}
+
+	~Drm_guard()
+	{
+		if (_dev) {
+			drm_modeset_unlock_all(_dev);
+			mutex_unlock(&_dev->mode_config.mutex);
+			mutex_unlock(&_dev->mode_config.blob_lock);
+		}
+	}
+};
+
+
+template <typename FUNCTOR>
+static inline void dde_for_each_connector(drm_device * dev, FUNCTOR f)
+{
+	struct drm_connector *connector;
+	list_for_each_entry(connector, &dev->mode_config.connector_list, head)
+		f(connector);
 }
 
+
+drm_display_mode *
+Framebuffer::Driver::_preferred_mode(drm_connector *connector)
+{
+	using namespace Genode;
+
+	/* try to read configuration for connector */
+	try {
+		config()->reload();
+		Xml_node node = config()->xml_node();
+		Xml_node xn = node.sub_node();
+		for (unsigned i = 0; i < node.num_sub_nodes(); xn = xn.next()) {
+			if (!xn.has_type("connector"))
+				continue;
+
+			String<64> con_policy;
+			xn.attribute("name").value(&con_policy);
+			if (Genode::strcmp(con_policy.string(), connector->name) != 0)
+				continue;
+
+			bool enabled = xn.attribute_value("enabled", true);
+			if (!enabled)
+				return nullptr;
+
+			unsigned long width  = 0;
+			unsigned long height = 0;
+			xn.attribute("width").value(&width);
+			xn.attribute("height").value(&height);
+
+			struct drm_display_mode *mode;
+			list_for_each_entry(mode, &connector->modes, head) {
+			if (mode->hdisplay == (int) width &&
+				mode->vdisplay == (int) height)
+				return mode;
+		};
+		}
+	} catch (...) {
+		/**
+		 * If no config is given, we take the most wide mode of a
+		 * connector as long as it is connected at all
+		 */
+		if (connector->status != connector_status_connected)
+			return nullptr;
+
+		struct drm_display_mode *mode = nullptr, *tmp;
+		list_for_each_entry(tmp, &connector->modes, head) {
+			if (!mode || tmp->hdisplay > mode->hdisplay) mode = tmp;
+		};
+		return mode;
+   	}
+	return nullptr;
+}
+
+
+void Framebuffer::Driver::finish_initialization()
+{
+	dde_c_set_driver(dde_drm_device, (void*)this);
+	generate_report();
+	mode_changed();
+}
+
+bool Framebuffer::Driver::mode_changed()
+{
+	using namespace Genode;
+
+	int width = 0, height = 0;
+
+	dde_for_each_connector(dde_drm_device, [&] (drm_connector *c) {
+		drm_display_mode * mode = _preferred_mode(c);
+		if (!mode) return;
+		if (mode->hdisplay > width)  width  = mode->hdisplay;
+		if (mode->vdisplay > height) height = mode->vdisplay;
+	});
+
+	if (width == _width && height == _height) return false;
+
+	drm_framebuffer *fb =
+		dde_c_allocate_framebuffer(width, height, &_new_fb_ds_base,
+		                           &_cur_fb_ds_size, dde_drm_device);
+	if (!fb) {
+		PERR("failed to allocate framebuffer %dx%d", width, height);
+		return false;
+	}
+
+	Drm_guard guard(dde_drm_device);
+	dde_for_each_connector(dde_drm_device, [&] (drm_connector *c) {
+		dde_c_set_mode(dde_drm_device, c, fb,
+		               _preferred_mode(c)); });
+
+	_new_fb = fb;
+	_width  = width;
+	_height = height;
+	return true;
+}
+
+
+void Framebuffer::Driver::free_framebuffer()
+{
+	Lx::iounmap(_cur_fb_ds_base);
+	_cur_fb->funcs->destroy(_cur_fb);
+	_cur_fb_ds_base = nullptr;
+}
+
+
+void dde_run_fb_destroy(void * data)
+{
+	Framebuffer::Driver * drv = (Framebuffer::Driver*) data;
+	drv->free_framebuffer();
+	while (true) Lx::scheduler().current()->block_and_schedule();
+}
+
+
+Genode::Dataspace_capability Framebuffer::Driver::dataspace()
+{
+	using namespace Genode;
+
+	if (_cur_fb_ds_base) {
+		Lx::Task task(dde_run_fb_destroy, this, "fb_destroy",
+		              Lx::Task::PRIORITY_3, Lx::scheduler());
+		while (_cur_fb_ds_base) Lx::scheduler().schedule();
+		Lx::scheduler().remove(&task);
+	}
+
+	_cur_fb = _new_fb;
+	_cur_fb_ds_base = _new_fb_ds_base;
+	return Lx::ioremap_lookup((addr_t)_cur_fb_ds_base,
+	                          (size_t)_cur_fb_ds_size);
+}
+
+
+void Framebuffer::Driver::generate_report()
+{
+	static Genode::Reporter reporter("connectors");
+
+	try {
+		Genode::config()->reload();
+		reporter.enabled(Genode::config()->xml_node().sub_node("report")
+		                 .attribute_value(reporter.name().string(), false));
+	} catch (...) {
+		reporter.enabled(false);
+	}
+
+	if (!reporter.is_enabled()) return;
+
+	try {
+		Genode::Reporter::Xml_generator xml(reporter, [&] ()
+		{
+			struct drm_device *dev = dde_drm_device;
+			struct drm_connector *connector;
+			struct list_head panel_list;
+
+			Drm_guard guard(dev);
+
+			INIT_LIST_HEAD(&panel_list);
+
+			list_for_each_entry(connector, &dev->mode_config.connector_list, head) {
+				xml.node("connector", [&] ()
+				{
+					if (list_empty(&connector->modes))
+						connector->funcs->fill_modes(connector, 0, 0);
+
+					bool connected = connector->status == connector_status_connected;
+					xml.attribute("name", connector->name);
+					xml.attribute("connected", connected);
+
+					if (!connected) return;
+
+					struct drm_display_mode *mode;
+					struct list_head mode_list;
+					INIT_LIST_HEAD(&mode_list);
+					list_for_each_entry(mode, &connector->modes, head) {
+						xml.node("mode", [&] ()
+						{
+							xml.attribute("width", mode->hdisplay);
+							xml.attribute("height", mode->vdisplay);
+							xml.attribute("hz", mode->vrefresh);
+						});
+					}
+				});
+			}
+		});
+	} catch (...) {
+		PWRN("Failed to generate report");
+	}
+}
+
+extern "C" {
 
 void lx_printf(char const *fmt, ...)
 {
@@ -41,7 +288,14 @@ void lx_vprintf(char const *fmt, va_list va)
  ** Common Linux kernel infrastructure **
  ****************************************/
 
-#include <lx_emul/impl/kernel.h>
+
+/**********************
+ ** Global variables **
+ **********************/
+
+struct task_struct *current;
+
+struct boot_cpu_data boot_cpu_data;
 
 int oops_in_progress;
 
@@ -86,6 +340,24 @@ long simple_strtol(const char *cp, char **endp, unsigned int base)
 	return result;
 }
 
+size_t strlcpy(char *dest, const char *src, size_t size)
+{
+	size_t ret = strlen(src);
+
+	if (size) {
+		size_t len = (ret >= size) ? size - 1 : ret;
+		memcpy(dest, src, len);
+		dest[len] = '\0';
+	}
+	return ret;
+}
+
+int sysfs_create_link(struct kobject *kobj, struct kobject *target, const char *name)
+{
+	TRACE;
+	return 0;
+}
+
 
 /*****************
  ** linux/dmi.h **
@@ -102,41 +374,18 @@ int dmi_check_system(const struct dmi_system_id *list)
 
 
 /*******************
- ** linux/delay.h **
+ ** linux/timer.h **
  *******************/
 
-#include <lx_emul/impl/delay.h>
-
-
-/*******************************
- ** kernel/time/timekeeping.c **
- *******************************/
-
-void getrawmonotonic(struct timespec *ts)
+int mod_timer_pinned(struct timer_list *timer, unsigned long expires)
 {
-	unsigned long ms = _delay_timer.elapsed_ms();
-	ts->tv_sec  = ms / 1000;
-	ts->tv_nsec = (ms - ts->tv_sec*1000) * 1000000;
+	return mod_timer(timer, expires);
 }
-
-
-/**********************
- ** Global variables **
- **********************/
-
-struct task_struct *current;
-
-
-struct boot_cpu_data boot_cpu_data;
 
 
 /*******************
  ** Kernel memory **
  *******************/
-
-#include <lx_emul/impl/slab.h>
-#include <lx_emul/impl/gfp.h>
-
 
 dma_addr_t page_to_phys(struct page *page)
 {
@@ -177,6 +426,7 @@ int idr_alloc(struct idr *idp, void *ptr, int start, int end, gfp_t gfp_mask)
 
 	/* allocate id */
 	id = id_allocator.alloc();
+	if (id == 0) id = id_allocator.alloc(); /* do not use id zero */
 	if (id > max) return -ENOSPC;
 
 	ASSERT(id >= start);
@@ -213,6 +463,12 @@ void *idr_find(struct idr *idr, int id)
 	return NULL;
 }
 
+void *idr_replace(struct idr *idp, void *ptr, int id)
+{
+	TRACE;
+	return NULL;
+}
+
 
 /**********************
  ** asm/cacheflush.h **
@@ -235,9 +491,6 @@ struct resource iomem_resource;
 /*********
  ** PCI **
  *********/
-
-#include <lx_emul/impl/io.h>
-#include <lx_emul/impl/pci.h>
 
 struct pci_dev *pci_get_bus_and_slot(unsigned int bus, unsigned int devfn)
 {
@@ -341,7 +594,8 @@ void vga_put(struct pci_dev *pdev, unsigned int rsrc)
 
 int pci_bus_alloc_resource(struct pci_bus *, struct resource *, resource_size_t,
                            resource_size_t, resource_size_t, unsigned int,
-                           resource_size_t (*)(void *, const struct resource *, resource_size_t, resource_size_t),
+                           resource_size_t (*)(void *, const struct resource *,
+                                               resource_size_t, resource_size_t),
                            void *alignf_data)
 {
 	TRACE;
@@ -500,7 +754,6 @@ int bus_for_each_dev(struct bus_type *bus, struct device *start, void *data,
 
 int dev_set_name(struct device *dev, const char *name, ...)
 {
-	PDBG("name=%s", name);
 	TRACE;
 	return 0;
 }
@@ -527,14 +780,6 @@ int bus_for_each_drv(struct bus_type *bus, struct device_driver *start,
 
 struct workqueue_struct *system_wq;
 
-/** needed by workqueue backend implementation **/
-struct tasklet_struct {
-	void (*func)(unsigned long);
-	unsigned long data;
-};
-
-#include <lx_emul/impl/work.h>
-
 struct workqueue_struct *create_singlethread_workqueue(char const *)
 {
 	workqueue_struct *wq = (workqueue_struct *)kzalloc(sizeof(workqueue_struct), 0);
@@ -546,46 +791,26 @@ struct workqueue_struct *alloc_ordered_workqueue(char const *name , unsigned int
 	return create_singlethread_workqueue(name);
 }
 
+bool flush_work(struct work_struct *work)
+{
+	cancel_work_sync(work);
+	return 0;
+}
+
+
 
 /***************
  ** Execution **
  ***************/
 
-#include <lx_emul/impl/spinlock.h>
-#include <lx_emul/impl/mutex.h>
-#include <lx_emul/impl/sched.h>
-#include <lx_emul/impl/timer.h>
-#include <lx_emul/impl/completion.h>
-#include <lx_emul/impl/wait.h>
-
-
-void __wait_completion(struct completion *work)
-{
-	TRACE_AND_STOP;
-}
-
-
-void mutex_lock_nest_lock(struct mutex *lock, struct mutex *)
-{
-	TRACE;
-	/*
-	 * Called by drm_crtc.c: drm_modeset_lock_all, drm_crtc_init to
-	 * lock the crtc mutex.
-	 */
-	mutex_lock(lock);
-}
-
-
 bool in_atomic()
 {
-	TRACE;
 	return false;
 }
 
 
 bool irqs_disabled()
 {
-	TRACE;
 	return false;
 }
 
@@ -607,16 +832,36 @@ unsigned long round_jiffies_up_relative(unsigned long j)
  ** DRM implementation **
  ************************/
 
-#include <lx_emul/impl/internal/irq.h>
-
-unsigned int drm_debug = 1;
+unsigned int drm_debug = 0x0;
 
 
 extern "C" int drm_pci_init(struct drm_driver *driver, struct pci_driver *pdriver)
 {
-	PDBG("call pci_register_driver");
-
 	return pci_register_driver(pdriver);
+}
+
+
+void drm_ut_debug_printk(const char *function_name, const char *format, ...)
+{
+	using namespace Genode;
+
+	va_list list;
+	va_start(list, format);
+	printf("[drm:%s] ", function_name);
+	vprintf(format, list);
+	va_end(list);
+}
+
+
+void drm_err(const char *format, ...)
+{
+	using namespace Genode;
+
+	va_list list;
+	va_start(list, format);
+	printf("[drm:ERROR] ");
+	vprintf(format, list);
+	va_end(list);
 }
 
 
@@ -626,18 +871,21 @@ struct drm_device *drm_dev_alloc(struct drm_driver *driver, struct device *paren
 	if (!dev)
 		return nullptr;
 
+	dev->dev = parent;
 	dev->driver = driver;
 
-	spin_lock_init(&dev->count_lock);
+	INIT_LIST_HEAD(&dev->filelist);
+	INIT_LIST_HEAD(&dev->ctxlist);
+	INIT_LIST_HEAD(&dev->vmalist);
+	INIT_LIST_HEAD(&dev->maplist);
+	INIT_LIST_HEAD(&dev->vblank_event_list);
+
+	spin_lock_init(&dev->buf_lock);
 	spin_lock_init(&dev->event_lock);
 
+	mutex_init(&dev->ctxlist_mutex);
+	mutex_init(&dev->master_mutex);
 	mutex_init(&dev->struct_mutex);
-
-//	ret = drm_gem_init(dev);
-//	if (ret) {
-//		PERR("drm_gem_init failed");
-//		return nullptr;
-//	}
 
 	return dev;
 }
@@ -645,34 +893,22 @@ struct drm_device *drm_dev_alloc(struct drm_driver *driver, struct device *paren
 
 static void drm_get_minor(struct drm_device *dev, struct drm_minor **minor, int type)
 {
-	// int minor_id = drm_minor_get_id(dev, type);
-
 	struct drm_minor *new_minor = (struct drm_minor*)
 		kzalloc(sizeof(struct drm_minor), GFP_KERNEL);
 	ASSERT(new_minor);
 	new_minor->type = type;
-	//new_minor->device = MKDEV(DRM_MAJOR, minor_id);
 	new_minor->dev = dev;
-	//new_minor->index = minor_id;
-	//INIT_LIST_HEAD(&new_minor->master_list);
 	*minor = new_minor;
 }
 
-static struct drm_device * singleton_drm_device = nullptr;
 
-static void drm_dev_register(struct drm_device *dev, unsigned long flags)
+int drm_dev_register(struct drm_device *dev, unsigned long flags)
 {
-	//if (drm_core_check_feature(dev, DRIVER_MODESET))
-	//	drm_get_minor(dev, &dev->control, DRM_MINOR_CONTROL);
-
-	//if (drm_core_check_feature(dev, DRIVER_RENDER) && drm_rnodes)
-	//	drm_get_minor(dev, &dev->render, DRM_MINOR_RENDER);
-
 	drm_get_minor(dev, &dev->primary, DRM_MINOR_LEGACY);
 
-	ASSERT(!singleton_drm_device);
-	singleton_drm_device = dev;
-	ASSERT(!dev->driver->load(dev, flags));
+	ASSERT(!dde_drm_device);
+	dde_drm_device = dev;
+	return dev->driver->load(dev, flags);
 }
 
 
@@ -687,13 +923,9 @@ int drm_get_pci_dev(struct pci_dev *pdev, const struct pci_device_id *ent,
 	if (!dev)
 		return -ENOMEM;
 
-//	ret = pci_enable_device(pdev);
-
 	dev->pdev = pdev;
 
 	pci_set_drvdata(pdev, dev);
-
-//	drm_pci_agp_init(dev);
 
 	/*
 	 * Kick off the actual driver initialization code
@@ -711,145 +943,53 @@ int drm_get_pci_dev(struct pci_dev *pdev, const struct pci_device_id *ent,
 }
 
 
-static void vblank_disable_fn(unsigned long arg)
+#include <lx_kit/irq.h>
+
+int request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags,
+                const char *name, void *dev)
 {
-	struct drm_device *dev = (struct drm_device *)arg;
-	unsigned long irqflags;
-	int i = 0;
-
-	if (!dev->vblank_disable_allowed)
-		return;
-
-	//for (i = 0; i < dev->num_crtcs; i++) {
-		spin_lock_irqsave(&dev->vbl_lock, irqflags);
-	//	if (atomic_read(&dev->vblank_refcount[i]) == 0 &&
-	//		dev->vblank_enabled[i]) {
-	//		DRM_DEBUG("disabling vblank on crtc %d\n", i);
-	//		dev->last_vblank[i] =
-	//			dev->driver->get_vblank_counter(dev, i);
-			dev->driver->disable_vblank(dev, i);
-			//dev->vblank_enabled[i] = 0;
-	//	}
-	spin_unlock_irqrestore(&dev->vbl_lock, irqflags);
-	//}
-}
-
-/**
- * Called from 'i915_driver_load'
- */
-int drm_vblank_init(struct drm_device *dev, int num_crtcs)
-{
-	setup_timer(&dev->vblank_disable_timer, vblank_disable_fn,
-				(unsigned long)dev);
-	spin_lock_init(&dev->vbl_lock);
-	dev->vblank = (drm_vblank_crtc*) kzalloc(num_crtcs * sizeof(*dev->vblank), GFP_KERNEL);
-	dev->vblank_disable_allowed = 0;
+	struct drm_device * drm_dev = (struct drm_device*) dev;
+	Lx::Pci_dev * pci_dev = (Lx::Pci_dev*) drm_dev->pdev->bus;
+	Lx::Irq::irq().request_irq(pci_dev->client(), handler, dev);
 	return 0;
 }
 
-
-void drm_vblank_pre_modeset(struct drm_device *dev, int crtc)
-{
-	/* Enable vblank irqs under vblank_time_lock protection.
-	 * All vblank count & timestamp updates are held off
-	 * until we are done reinitializing master counter and
-	 * timestamps. Filtercode in drm_handle_vblank() will
-	 * prevent double-accounting of same vblank interval.
-	 */
-	int ret = dev->driver->enable_vblank(dev, crtc);
-	DRM_DEBUG("enabling vblank on crtc %d, ret: %d\n",
-			  crtc, ret);
-	//drm_update_vblank_count(dev, crtc);
-}
-
-
-void drm_vblank_post_modeset(struct drm_device *dev, int crtc)
-{
-	dev->vblank_disable_allowed = true;
-
-	//if (drm_vblank_offdelay > 0)
-	if (dev->vblank_disable_timer.function == 0) PERR("NO TIMER FUNC");
-	mod_timer(&dev->vblank_disable_timer,
-			  jiffies + ((5000/*drm_vblank_offdelay*/ * HZ)/1000));
-}
-
-
-int drm_irq_install(struct drm_device *dev)
-{
-	if (!drm_core_check_feature(dev, DRIVER_HAVE_IRQ))
-		return -EINVAL;
-
-	if (dev->irq_enabled)
-		return -EBUSY;
-
-	dev->irq_enabled = true;
-
-	if (dev->driver->irq_preinstall)
-		dev->driver->irq_preinstall(dev);
-
-	/* enable IRQ */
-	Lx::Pci_dev * pci_dev = (Lx::Pci_dev*) dev->pdev->bus;
-	Lx::Irq::irq().request_irq(pci_dev->client(), dev->driver->irq_handler, (void*)dev);
-
-	/* After installing handler */
-	int ret = 0;
-	if (dev->driver->irq_postinstall)
-		ret = dev->driver->irq_postinstall(dev);
-
-	return ret;
-}
-
-
-void drm_calc_timestamping_constants(struct drm_crtc *crtc, const struct drm_display_mode *mode)
-{
-	int linedur_ns = 0, pixeldur_ns = 0, framedur_ns = 0;
-	int dotclock = mode->crtc_clock;
-
-	/* Valid dotclock? */
-	if (dotclock > 0) {
-		int frame_size = mode->crtc_htotal * mode->crtc_vtotal;
-
-		/*
-		 * Convert scanline length in pixels and video
-		 * dot clock to line duration, frame duration
-		 * and pixel duration in nanoseconds:
-		 */
-		pixeldur_ns = 1000000 / dotclock;
-		linedur_ns  = div_u64((u64) mode->crtc_htotal * 1000000, dotclock);
-		framedur_ns = div_u64((u64) frame_size * 1000000, dotclock);
-
-		/*
-		 * Fields of interlaced scanout modes are only half a frame duration.
-		 */
-		if (mode->flags & DRM_MODE_FLAG_INTERLACE)
-			framedur_ns /= 2;
-	} else
-		DRM_ERROR("crtc %d: Can't calculate constants, dotclock = 0!\n",
-				  crtc->base.id);
-
-	crtc->pixeldur_ns = pixeldur_ns;
-	crtc->linedur_ns  = linedur_ns;
-	crtc->framedur_ns = framedur_ns;
-
-	DRM_DEBUG("crtc %d: hwmode: htotal %d, vtotal %d, vdisplay %d\n",
-			  crtc->base.id, mode->crtc_htotal,
-			  mode->crtc_vtotal, mode->crtc_vdisplay);
-	DRM_DEBUG("crtc %d: clock %d kHz framedur %d linedur %d, pixeldur %d\n",
-			  crtc->base.id, dotclock, framedur_ns,
-			  linedur_ns, pixeldur_ns);
-	TRACE;
-}
-
-
-void drm_gem_private_object_init(struct drm_device *dev, struct drm_gem_object *obj, size_t size)
+void drm_gem_private_object_init(struct drm_device *dev,
+                                 struct drm_gem_object *obj, size_t size)
 {
 	obj->dev = dev;
+	kref_init(&obj->refcount);
 	obj->filp = NULL;
-
-	//kref_init(&obj->refcount);
-	//obj->handle_count = 0;
 	obj->size = size;
-	//drm_vma_node_reset(&obj->vma_node);
+}
+
+
+void drm_gem_object_free(struct kref *kref)
+{
+	struct drm_gem_object *obj =
+		container_of(kref, struct drm_gem_object, refcount);
+	struct drm_device *dev = obj->dev;
+
+	if (dev->driver->gem_free_object != NULL)
+		dev->driver->gem_free_object(obj);
+}
+
+
+void drm_gem_free_mmap_offset(struct drm_gem_object *obj)
+{
+	if (obj && obj->filp && obj->filp->f_inode && obj->filp->f_inode->i_mapping)
+		free_pages((unsigned long)obj->filp->f_inode->i_mapping->my_page->addr, 0);
+}
+
+
+void drm_gem_object_release(struct drm_gem_object *obj)
+{
+	if (!obj || !obj->filp || !obj->filp->f_inode
+	    || !obj->filp->f_inode->i_mapping) return;
+
+	kfree(obj->filp->f_inode->i_mapping);
+	kfree(obj->filp->f_inode);
+	kfree(obj->filp);
 }
 
 
@@ -881,13 +1021,22 @@ bool mod_delayed_work(struct workqueue_struct *, struct delayed_work *, unsigned
 	return false;
 }
 
+bool flush_delayed_work(struct delayed_work *dwork)
+{
+	TRACE;
+	return false;
+}
 
-/********************
- ** kernel/panic.c **
- ********************/
+async_cookie_t async_schedule(async_func_t func, void *data)
+{
+	TRACE;
+	return 0;
+}
 
-struct atomic_notifier_head panic_notifier_list;
-int panic_timeout;
+void async_synchronize_full(void)
+{
+	TRACE;
+}
 
 
 /***********************
@@ -921,12 +1070,10 @@ int sg_alloc_table(struct sg_table *table, unsigned int nents, gfp_t gfp_mask)
 {
 	enum { MAX_ENTS = 4096 / sizeof(struct scatterlist) };
 
-	ASSERT(nents <= MAX_ENTS);
-
 	Genode::memset(table, 0, sizeof(*table));
 
 	struct scatterlist *sg = (scatterlist*)
-		kmalloc(nents * sizeof(struct scatterlist), gfp_mask);
+		Lx::Malloc::mem().alloc_large(nents * sizeof(struct scatterlist));
 	if (!sg) return -ENOMEM;
 
 	Genode::memset(sg, 0, sizeof(*sg) * nents);
@@ -936,14 +1083,16 @@ int sg_alloc_table(struct sg_table *table, unsigned int nents, gfp_t gfp_mask)
 	return 0;
 }
 
-static inline bool sg_is_chain(struct scatterlist* sg) {
-	return ((sg)->page_link & 0x01); }
 
-	static inline bool sg_is_last(struct scatterlist* sg) {
-		return ((sg)->page_link & 0x02); }
+void sg_free_table(struct sg_table *table)
+{
+	TRACE;
+	if (table && table->sgl) Lx::Malloc::mem().free_large(table->sgl);
+}
 
-		static inline struct scatterlist* sg_chain_ptr(struct scatterlist* sg) {
-			return (struct scatterlist *) ((sg)->page_link & ~0x03); }
+
+static inline bool sg_is_last(scatterlist * sg) {
+	return (sg->page_link & 0x02); }
 
 struct scatterlist *sg_next(struct scatterlist * sg)
 {
@@ -957,7 +1106,8 @@ struct scatterlist *sg_next(struct scatterlist * sg)
 	return sg;
 }
 
-void __sg_page_iter_start(struct sg_page_iter *piter, struct scatterlist *sglist, unsigned int nents, unsigned long pgoffset)
+void __sg_page_iter_start(struct sg_page_iter *piter, struct scatterlist *sglist,
+                          unsigned int nents, unsigned long pgoffset)
 {
 	piter->__pg_advance = 0;
 	piter->__nents = nents;
@@ -993,6 +1143,36 @@ dma_addr_t sg_page_iter_dma_address(struct sg_page_iter *piter)
 }
 
 
+struct page *sg_page_iter_page(struct sg_page_iter *piter)
+{
+	return (page*)(PAGE_SIZE * (page_to_pfn((sg_page(piter->sg))) + (piter->sg_pgoffset)));
+}
+
+
+void dma_unmap_sg_attrs(struct device *dev, struct scatterlist *sg, int nents, enum dma_data_direction dir, struct dma_attrs *attrs)
+{
+	TRACE;
+}
+
+
+void mark_page_accessed(struct page *p)
+{
+	//TRACE;
+}
+
+
+void put_page(struct page *page)
+{
+	//TRACE;
+}
+
+unsigned long invalidate_mapping_pages(struct address_space *mapping, pgoff_t start, pgoff_t end)
+{
+	TRACE;
+	return 0;
+}
+
+
 /******************
  ** linux/kref.h **
  ******************/
@@ -1013,115 +1193,20 @@ int kref_put(struct kref *kref, void (*release) (struct kref *kref))
 	return 0;
 }
 
-
-/*****************************
- ** drivers/video/fbsysfs.c **
- *****************************/
-
-struct fb_info *framebuffer_alloc(size_t size, struct device *dev)
+int kref_put_mutex(struct kref *kref, void (*release)(struct kref *kref), struct mutex *lock)
 {
-	static constexpr int BYTES_PER_LONG = BITS_PER_LONG / 8;
-	static constexpr int PADDING =
-		BYTES_PER_LONG - (sizeof(struct fb_info) % BYTES_PER_LONG);
-
-	int fb_info_size = sizeof(struct fb_info);
-	struct fb_info *info;
-	char *p;
-
-	if (size)
-		fb_info_size += PADDING;
-
-	p = (char*)kzalloc(fb_info_size + size, GFP_KERNEL);
-
-	if (!p)
-		return NULL;
-
-	info = (struct fb_info *) p;
-
-	if (size)
-		info->par = p + fb_info_size;
-
-	//info->device = dev;
-
-	return info;
-}
-
-void framebuffer_release(struct fb_info *info)
-{
-	kfree(info);
-}
-
-
-/****************
- ** linux/fb.h **
- ****************/
-
-struct apertures_struct *alloc_apertures(unsigned int max_num)
-{
-	struct apertures_struct *a = (struct apertures_struct*)
-		kzalloc(sizeof(struct apertures_struct)
-		        + max_num * sizeof(struct aperture), GFP_KERNEL);
-	if (!a)
-		return NULL;
-	a->count = max_num;
-	return a;
-}
-
-extern "C" void update_framebuffer_config()
-{
-	struct drm_i915_private *dev_priv = (struct drm_i915_private*)singleton_drm_device->dev_private;
-	struct intel_framebuffer * ifb = &dev_priv->fbdev->ifb;
-
-	struct drm_connector *connector;
-	list_for_each_entry(connector, &singleton_drm_device->mode_config.connector_list, head)
-		connector->force = DRM_FORCE_UNSPECIFIED;
-	intel_fbdev_fini(singleton_drm_device);
-	i915_gem_object_release_stolen(ifb->obj);
-	drm_mode_config_reset(singleton_drm_device);
-	intel_fbdev_init(singleton_drm_device);
-	intel_fbdev_initial_config(singleton_drm_device);
-}
-
-static Genode::addr_t new_fb_ds_base = 0;
-static Genode::addr_t cur_fb_ds_base = 0;
-static Genode::size_t cur_fb_ds_size = 0;
-
-Genode::Dataspace_capability Framebuffer::framebuffer_dataspace()
-{
-	if (cur_fb_ds_base)
-		Lx::iounmap((void*)cur_fb_ds_base);
-	cur_fb_ds_base = new_fb_ds_base;
-	return Lx::ioremap_lookup(cur_fb_ds_base, cur_fb_ds_size);
-}
-
-int register_framebuffer(struct fb_info *fb_info)
-{
-	using namespace Genode;
-
-	fb_info->fbops->fb_set_par(fb_info);
-	new_fb_ds_base = (addr_t)fb_info->screen_base;
-	cur_fb_ds_size = (size_t)fb_info->screen_size;
-	Framebuffer::root->update(fb_info->var.yres_virtual, fb_info->fix.line_length / 2);
-	return 0;
-}
-
-int unregister_framebuffer(struct fb_info *fb_info)
-{
-	TRACE;
+	if (kref_put(kref, release)) {
+		mutex_lock(lock);
+		return 1;
+	}
 	return 0;
 }
 
 
-/*********************************************
- ** drivers/gpu/drm/i915/intel_ringbuffer.c **
- *********************************************/
-
-int intel_init_render_ring_buffer(struct drm_device *dev)
+void *kmalloc_array(size_t n, size_t size, gfp_t flags)
 {
-	drm_i915_private_t *dev_priv = dev->dev_private;
-	struct intel_ring_buffer *ring = &dev_priv->ring[0];
-	ring->dev = dev;
-	return 0;
+	if (size != 0 && n > SIZE_MAX / size) return NULL;
+	return kmalloc(n * size, flags);
 }
 
 
@@ -1136,45 +1221,28 @@ void pm_qos_add_request(struct pm_qos_request *req, int pm_qos_class, s32 value)
 
 void pm_qos_update_request(struct pm_qos_request *req, s32 new_value)
 {
-	TRACE;
 }
 
-void i915_gem_detect_bit_6_swizzle(struct drm_device *dev)
-{
-	TRACE;
-}
-
-int register_shrinker(struct shrinker *)
-{
-	TRACE;
-	return 0;
-}
-
-int vga_client_register(struct pci_dev *pdev, void *cookie, void (*irq_set_state)(void *cookie, bool state), unsigned int (*set_vga_decode)(void *cookie, bool state))
+int vga_client_register(struct pci_dev *pdev, void *cookie,
+                        void (*irq_set_state)(void *cookie, bool state),
+                        unsigned int (*set_vga_decode)(void *cookie, bool state))
 {
 	TRACE;
 	return -ENODEV;
 }
 
-int vga_switcheroo_register_client(struct pci_dev *dev, const struct vga_switcheroo_client_ops *ops, bool driver_power_control)
+int vga_switcheroo_register_client(struct pci_dev *dev,
+                                   const struct vga_switcheroo_client_ops *ops,
+                                   bool driver_power_control)
 {
 	TRACE;
 	return 0;
 }
 
-int intel_plane_init(struct drm_device *dev, enum pipe pipe, int plane)
-{
-	TRACE;
-	return 0;
-}
-
-struct i915_ctx_hang_stats * i915_gem_context_get_hang_stats(struct drm_device *dev, struct drm_file *file, u32 id)
-{
-	TRACE_AND_STOP;
-	return NULL;
-}
-
-struct resource * devm_request_mem_region(struct device *dev, resource_size_t start, resource_size_t n, const char *name)
+struct resource * devm_request_mem_region(struct device *dev,
+                                          resource_size_t start,
+                                          resource_size_t n,
+                                          const char *name)
 {
 	/*
 	 * This function solely called for keeping the stolen memory preserved
@@ -1192,148 +1260,36 @@ int acpi_lid_notifier_register(struct notifier_block *nb)
 	return 0;
 }
 
-void update_genode_report()
-{
-	static Genode::Reporter reporter("connectors");
-
-	try {
-		Genode::config()->reload();
-		reporter.enabled(Genode::config()->xml_node().sub_node("report")
-		                 .attribute_value(reporter.name().string(), false));
-	} catch (...) {
-		reporter.enabled(false);
-	}
-
-	if (!reporter.is_enabled()) return;
-
-	try {
-
-		Genode::Reporter::Xml_generator xml(reporter, [&] ()
-		{
-			struct drm_device *dev = singleton_drm_device;
-			struct drm_connector *connector;
-			struct list_head panel_list;
-
-			INIT_LIST_HEAD(&panel_list);
-
-			list_for_each_entry(connector, &dev->mode_config.connector_list, head) {
-				xml.node("connector", [&] ()
-				{
-					bool connected = connector->status == connector_status_connected;
-					xml.attribute("name", drm_get_connector_name(connector));
-					xml.attribute("connected", connected);
-
-					struct drm_display_mode *mode;
-					struct list_head mode_list;
-					INIT_LIST_HEAD(&mode_list);
-					list_for_each_entry(mode, &connector->modes, head) {
-						xml.node("mode", [&] ()
-						{
-							xml.attribute("width", mode->hdisplay);
-							xml.attribute("height", mode->vdisplay);
-							xml.attribute("hz", mode->vrefresh);
-						});
-					}
-					INIT_LIST_HEAD(&mode_list);
-					list_for_each_entry(mode, &connector->probed_modes, head) {
-						xml.node("mode", [&] ()
-						{
-							xml.attribute("width", mode->hdisplay);
-							xml.attribute("height", mode->vdisplay);
-							xml.attribute("hz", mode->vrefresh);
-						});
-					}
-				});
-			}
-		});
-	} catch (...) {
-		PWRN("Failed to generate report");
-	}
-}
-
 int drm_sysfs_connector_add(struct drm_connector *connector)
 {
 	TRACE;
+	connector->kdev = (struct device*)
+		kmalloc(sizeof(struct device), GFP_KERNEL);
+	DRM_DEBUG("adding \"%s\" to sysfs\n", connector->name);
+	drm_sysfs_hotplug_event(NULL);
 	return 0;
 }
 
 void drm_sysfs_connector_remove(struct drm_connector *connector)
 {
 	TRACE;
+	kfree(connector->kdev);
 }
 
 void assert_spin_locked(spinlock_t *lock)
 {
-	TRACE;
-}
-
-int intel_init_bsd_ring_buffer(struct drm_device *dev)
-{
-	TRACE;
-	return 0;
-}
-
-int intel_init_blt_ring_buffer(struct drm_device *dev)
-{
-	TRACE;
-	return 0;
-}
-
-int intel_init_vebox_ring_buffer(struct drm_device *dev)
-{
-	TRACE;
-	return 0;
-}
-
-int __must_check i915_gem_context_init(struct drm_device *dev)
-{
-	TRACE;
-	return 0;
 }
 
 void spin_lock_irq(spinlock_t *lock)
 {
-	TRACE;
 }
 
 void spin_unlock_irq(spinlock_t *lock)
 {
-	TRACE;
 }
 
 int fb_get_options(const char *name, char **option)
 {
-	using namespace Genode;
-
-	String<64> con_to_scan(name);
-
-	/* try to read custom user config */
-	try {
-		config()->reload();
-		Xml_node node = config()->xml_node();
-		Xml_node xn = node.sub_node();
-		for (unsigned i = 0; i < node.num_sub_nodes(); xn = xn.next()) {
-			if (!xn.has_type("connector")) continue;
-
-			String<64> con_policy;
-			xn.attribute("name").value(&con_policy);
-			if (!(con_policy == con_to_scan)) continue;
-
-			bool enabled = xn.attribute_value("enabled", true);
-			if (!enabled) {
-				*option = (char*)"d";
-				return 0;
-			}
-
-			unsigned width, height;
-			xn.attribute("width").value(&width);
-			xn.attribute("height").value(&height);
-
-			*option = (char*)kmalloc(64, GFP_KERNEL);
-			Genode::snprintf(*option, 64, "%ux%u", width, height);
-			PLOG("set connector %s to %ux%u", con_policy.string(), width, height);
-		}
-	} catch (...) { }
 	return 0;
 }
 
@@ -1343,28 +1299,12 @@ void vga_switcheroo_client_fb_set(struct pci_dev *dev, struct fb_info *info)
 }
 
 
-int atomic_notifier_chain_register(struct atomic_notifier_head *nh, struct notifier_block *nb)
-{
-	TRACE;
-	return 0;
-}
-
 int register_sysrq_key(int key, struct sysrq_key_op *op)
 {
 	TRACE;
 	return 0;
 }
 
-void drm_vblank_off(struct drm_device *dev, int crtc)
-{
-	TRACE;
-}
-
-
-void hex_dump_to_buffer(const void *buf, size_t len, int rowsize, int groupsize, char *linebuf, size_t linebuflen, bool ascii)
-{
-	TRACE;
-}
 
 void trace_intel_gpu_freq_change(int)
 {
@@ -1377,11 +1317,6 @@ struct cpufreq_policy *cpufreq_cpu_get(unsigned int cpu)
 	return NULL;
 }
 
-int atomic_notifier_chain_unregister(struct atomic_notifier_head *nh, struct notifier_block *nb)
-{
-	TRACE;
-	return 0;
-}
 
 int unregister_sysrq_key(int key, struct sysrq_key_op *op)
 {
@@ -1389,9 +1324,420 @@ int unregister_sysrq_key(int key, struct sysrq_key_op *op)
 	return 0;
 }
 
-void drm_gem_object_unreference_unlocked(struct drm_gem_object *obj)
+
+int of_alias_get_highest_id(const char *stem)
+{
+	TRACE;
+	return 0;
+}
+
+void down_write(struct rw_semaphore *sem)
 {
 	TRACE;
 }
 
-DEFINE_SPINLOCK(mchdev_lock);
+void up_write(struct rw_semaphore *sem)
+{
+	TRACE;
+}
+
+void intel_csr_ucode_init(struct drm_device *dev)
+{
+	TRACE;
+}
+
+void intel_guc_ucode_init(struct drm_device *dev)
+{
+	TRACE;
+}
+
+void i915_gem_shrinker_init(struct drm_i915_private *dev_priv)
+{
+	TRACE;
+}
+
+void intel_init_audio(struct drm_device *dev)
+{
+	TRACE;
+}
+
+bool static_key_false(struct static_key *key)
+{
+	TRACE;
+	return false;
+}
+
+int i915_gem_init_userptr(struct drm_device *dev)
+{
+	TRACE;
+	return 0;
+}
+
+void i915_gem_batch_pool_init(struct drm_device *dev, struct i915_gem_batch_pool *pool)
+{
+	TRACE;
+}
+
+void spin_lock(spinlock_t *lock)
+{
+}
+
+#define __GFP_BITS_SHIFT 26
+#define __GFP_BITS_MASK ((__force gfp_t)((1 << __GFP_BITS_SHIFT) - 1))
+
+int drm_gem_object_init(struct drm_device *dev, struct drm_gem_object *obj, size_t size)
+{
+	drm_gem_private_object_init(dev, obj, size);
+
+	struct file          * filp    = (struct file*) kmalloc(sizeof(struct file), GFP_KERNEL);
+	struct inode         * inode   = (struct inode*) kmalloc(sizeof(struct inode*), GFP_KERNEL);
+	struct address_space * mapping = (struct address_space*)
+		kmalloc(sizeof(struct address_space*), GFP_KERNEL);
+
+	inode->i_mapping = mapping;
+	filp->f_inode    = inode;
+	obj->filp        = filp;
+
+	unsigned long npages = (size + PAGE_SIZE - 1) >> PAGE_SHIFT;
+	size_t sz_log2 = Genode::log2(npages);
+	sz_log2 += (npages > (1UL << sz_log2)) ? 1 : 0;
+	struct page *pages = alloc_pages(0, sz_log2);
+	mapping->my_page = pages;
+
+	size = PAGE_SIZE * npages;
+	void * data = page_address(pages);
+	memset(data, 0, size);
+
+	return 0;
+}
+
+struct inode *file_inode(struct file *f)
+{
+	return f->f_inode;
+}
+
+void mapping_set_gfp_mask(struct address_space *m, gfp_t mask)
+{
+	TRACE;
+}
+
+gfp_t mapping_gfp_constraint(struct address_space *mapping, gfp_t gfp_mask)
+{
+	TRACE;
+	return 0;
+}
+
+struct page *shmem_read_mapping_page_gfp(struct address_space *mapping,
+                                         pgoff_t index, gfp_t gfp_mask)
+{
+	return mapping->my_page;
+}
+
+void sg_set_page(struct scatterlist *sg, struct page *page,
+                 unsigned int len, unsigned int offset)
+{
+	unsigned long page_link = sg->page_link & 0x3;
+	sg->page_link = page_link | (unsigned long) page;
+	sg->offset = offset;
+	sg->length = len;
+}
+
+dma_addr_t page_to_pfn(struct page *page)
+{
+	return page->paddr / PAGE_SIZE;
+}
+
+struct page *sg_page(struct scatterlist *sg)
+{
+	return (struct page *)((sg)->page_link & ~0x3);
+}
+
+void *sg_virt(struct scatterlist *sg)
+{
+	return (void*)((size_t)page_address(sg_page(sg)) + sg->offset);
+}
+
+int dma_map_sg_attrs(struct device *dev, struct scatterlist *sg, int nents,
+                     enum dma_data_direction dir, struct dma_attrs *attrs)
+{
+	int i;
+	struct scatterlist *s;
+	Genode::addr_t base = page_to_phys(sg_page(sg));
+	Genode::size_t offs = 0;
+	for_each_sg(sg, s, nents, i) {
+		s->dma_address = base + offs;
+		offs += s->length;
+	}
+	return nents;
+}
+
+dma_addr_t dma_map_page(struct device *dev, struct page *page,
+                        unsigned long offset, size_t size,
+                        enum dma_data_direction direction)
+{
+	return page_to_phys(page) + offset;
+}
+
+int dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
+{
+	return 0;
+}
+
+int on_each_cpu(void (*func) (void *info), void *info, int wait)
+{
+	func(info);
+	return 0;
+}
+
+void wbinvd()
+{
+	TRACE;
+}
+
+int i915_cmd_parser_init_ring(struct intel_engine_cs *ring)
+{
+	TRACE;
+	return 0;
+}
+
+u64 ktime_get_raw_ns(void)
+{
+	return ktime_get().tv64;
+}
+
+ktime_t ktime_add_ns(const ktime_t kt, u64 nsec)
+{
+	ktime_t ktime;
+	ktime.tv64 = kt.tv64 + nsec;
+	return ktime;
+}
+
+s64 ktime_us_delta(const ktime_t later, const ktime_t earlier)
+{
+	return ktime_to_us(ktime_sub(later, earlier));
+}
+
+void i915_setup_sysfs(struct drm_device *dev_priv)
+{
+	TRACE;
+}
+
+int acpi_video_register(void)
+{
+	TRACE;
+	return 0;
+}
+
+void i915_audio_component_init(struct drm_i915_private *dev_priv)
+{
+	TRACE;
+}
+
+void ww_mutex_init(struct ww_mutex *lock, struct ww_class *ww_class)
+{
+	lock->ctx = NULL;
+	lock->locked = false;
+}
+
+void ww_acquire_init(struct ww_acquire_ctx *ctx, struct ww_class *ww_class)
+{
+	TRACE;
+}
+
+int  ww_mutex_lock(struct ww_mutex *lock, struct ww_acquire_ctx *ctx)
+{
+	if (ctx && (lock->ctx == ctx))
+		return -EALREADY;
+
+	lock->ctx = ctx;
+	lock->locked = true;
+	return 0;
+}
+
+void ww_mutex_unlock(struct ww_mutex *lock)
+{
+	lock->ctx = NULL;
+	lock->locked = false;
+}
+
+bool ww_mutex_is_locked(struct ww_mutex *lock)
+{
+	return lock->locked;
+}
+
+void ww_acquire_fini(struct ww_acquire_ctx *ctx)
+{
+	TRACE;
+}
+
+void local_irq_disable()
+{
+	TRACE;
+}
+
+void local_irq_enable()
+{
+	TRACE;
+}
+
+void drm_sysfs_hotplug_event(struct drm_device *dev)
+{
+	Framebuffer::Driver * driver = (Framebuffer::Driver*)
+		dde_c_get_driver(dde_drm_device);
+
+	if (driver) {
+		DRM_DEBUG("generating hotplug event\n");
+		driver->generate_report();
+	}
+}
+
+void intel_audio_codec_enable(struct intel_encoder *encoder)
+{
+	TRACE;
+}
+
+static void clflush(uint8_t * page)
+{
+	unsigned int i;
+	const int size = 64;
+
+	ASSERT(sizeof(unsigned long) == 8);
+
+	// FIXME clflush with other opcode see X86_FEATURE_CLFLUSHOPT
+	for (i = 0; i < PAGE_SIZE; i += size)
+		asm volatile(".byte 0x3e; clflush %P0"
+		             : "+m" (*(volatile char __force *)(page+i)));
+}
+
+void drm_clflush_sg(struct sg_table *st)
+{
+	unsigned int i;
+	struct scatterlist *s;
+
+	Genode::addr_t base = (Genode::addr_t) sg_virt(st->sgl);
+	Genode::size_t offs = 0;
+
+	asm volatile("mfence":::"memory");
+	for_each_sg(st->sgl, s, st->nents, i) {
+		clflush((uint8_t*)(base + offs));
+		offs += s->length;
+	}
+	asm volatile("mfence":::"memory");
+}
+
+void intel_audio_codec_disable(struct intel_encoder *encoder)
+{
+	TRACE;
+}
+
+struct backlight_device *backlight_device_register(const char *name,
+  struct device *dev, void *devdata, const struct backlight_ops *ops,
+  const struct backlight_properties *props)
+{
+	struct backlight_device *new_bd;
+	new_bd = (backlight_device*) kzalloc(sizeof(struct backlight_device), GFP_KERNEL);
+	return new_bd;
+}
+
+void synchronize_irq(unsigned int irq)
+{
+	TRACE;
+}
+
+void bitmap_zero(unsigned long *dst, unsigned int nbits)
+{
+	unsigned int len = BITS_TO_LONGS(nbits) * sizeof(unsigned long);
+	Genode::memset(dst, 0, len);
+}
+
+int bitmap_empty(const unsigned long *src, unsigned nbits)
+{
+	return find_first_bit(src, nbits) == nbits;
+}
+
+#define BITMAP_FIRST_WORD_MASK(start) (~0UL << ((start) & (BITS_PER_LONG - 1)))
+#define BITMAP_LAST_WORD_MASK(nbits) (~0UL >> (-(nbits) & (BITS_PER_LONG - 1)))
+unsigned long find_next_bit(const unsigned long *addr, unsigned long nbits,
+                            unsigned long start)
+{
+	unsigned long tmp;
+
+	if (!nbits || start >= nbits)
+		return nbits;
+
+	tmp = addr[start / BITS_PER_LONG] ^ 0UL;
+
+	/* Handle 1st word. */
+	tmp &= BITMAP_FIRST_WORD_MASK(start);
+	start = round_down(start, BITS_PER_LONG);
+
+	while (!tmp) {
+		start += BITS_PER_LONG;
+		if (start >= nbits)
+			return nbits;
+		tmp = addr[start / BITS_PER_LONG] ^ 0UL;
+	}
+
+	return min(start + __ffs(tmp), nbits);
+}
+
+void bitmap_set(unsigned long *map, unsigned int start, int len)
+{
+	unsigned long *p = map + BIT_WORD(start);
+	const unsigned int size = start + len;
+	int bits_to_set = BITS_PER_LONG - (start % BITS_PER_LONG);
+	unsigned long mask_to_set = BITMAP_FIRST_WORD_MASK(start);
+
+	while (len - bits_to_set >= 0) {
+		*p |= mask_to_set;
+		len -= bits_to_set;
+		bits_to_set = BITS_PER_LONG;
+		mask_to_set = ~0UL;
+		p++;
+	}
+	if (len) {
+		mask_to_set &= BITMAP_LAST_WORD_MASK(size);
+		*p |= mask_to_set;
+	}
+}
+
+void bitmap_or(unsigned long *dst, const unsigned long *src1,
+               const unsigned long *src2, unsigned int nbits)
+{
+	unsigned int k;
+	unsigned int nr = BITS_TO_LONGS(nbits);
+
+	for (k = 0; k < nr; k++)
+		dst[k] = src1[k] | src2[k];
+}
+
+int i915_gem_render_state_init(struct drm_i915_gem_request *req)
+{
+	TRACE;
+	return 0;
+}
+
+int intel_dp_mst_encoder_init(struct intel_digital_port *intel_dig_port, int conn_id)
+{
+	TRACE;
+	return 0;
+}
+
+signed long schedule_timeout_uninterruptible(signed long timeout)
+{
+	return schedule_timeout(timeout);
+}
+
+int intel_logical_rings_init(struct drm_device *dev)
+{
+	TRACE;
+	return 0;
+}
+
+int intel_guc_ucode_load(struct drm_device *dev)
+{
+	TRACE;
+	return 0;
+}
+
+} /* extern "C" */

@@ -13,12 +13,14 @@
 
 
 /*
- * Program doesn't need to startup with CRT0 as LDSO has done this
- * initialization during its own CRT0 already.
+ * Components don't need to startup with CRT0 as LDSO has done this
+ * initialization during its own CRT0 already. The component always starts at
+ * Genode::component_entry_point() as a trampoline to
+ * call_component_construct().
  */
-ENTRY(main)
+ENTRY(_ZN6Genode21component_entry_pointERNS_3EnvE)
 
-PHDRS 
+PHDRS
 {
   phdr     PT_PHDR PHDRS;
   interp   PT_INTERP;
@@ -34,11 +36,15 @@ SECTIONS
   .text :
   {
     _prog_img_beg = .;
+
+    /* put entry code at the start of the text segment / raw binary */
+    *(.text._ZN6Genode21component_entry_pointERNS_3EnvE)
+
     *(.text .stub .text.* .gnu.linkonce.t.*)
     /* .gnu.warning sections are handled specially by elf32.em.  */
     *(.gnu.warning)
   } : ro =0x0
-  
+
   .interp         : { *(.interp) } : interp : ro
   .note.gnu.build-id : { *(.note.gnu.build-id) }
   .hash           : { *(.hash) }
@@ -137,7 +143,7 @@ SECTIONS
   /* Thread Local Storage sections  */
   .tdata : { *(.tdata .tdata.* .gnu.linkonce.td.*) }
   .tbss  : { *(.tbss .tbss.* .gnu.linkonce.tb.*) *(.tcommon) }
-  
+
   /* Take out for now because these sections cause warnings on ARM. If this
    * should lead to an error then we'll take it back in.
   .preinit_array     :
@@ -201,7 +207,7 @@ SECTIONS
   .jcr            : { KEEP (*(.jcr)) }
   .data.rel.ro : { *(.data.rel.ro.local* .gnu.linkonce.d.rel.ro.local.*) *(.data.rel.ro* .gnu.linkonce.d.rel.ro.*) }
   .dynamic        : { *(.dynamic) } : rw : dynamic
-  
+
   /* merge .got.plt and .got into .got, since the ARM toolchain for OKL4
    * set's * DT_PLTGOT to .got instead of .got.plt */
   .got            : { *(.got.plt) *(.got) }

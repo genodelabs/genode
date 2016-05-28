@@ -308,50 +308,52 @@ class Line_editor
 		 */
 		struct Seq_tracker
 		{
-			enum State { INIT, GOT_ESC, GOT_FIRST } state;
-			char normal, first, second;
-			bool sequence_complete;
+			enum State { INIT, GOT_ESC, GOT_FIRST } _state;
+			char _normal, _first, _second;
+			bool _sequence_complete;
 
-			Seq_tracker() : state(INIT), sequence_complete(false) { }
+			Seq_tracker() : _state(INIT), _sequence_complete(false) { }
 
 			void input(char c)
 			{
-				switch (state) {
+				switch (_state) {
 				case INIT:
 					if (c == 27)
-						state = GOT_ESC;
+						_state = GOT_ESC;
 					else
-						normal = c;
-					sequence_complete = false;
+						_normal = c;
+					_sequence_complete = false;
 					break;
 
 				case GOT_ESC:
-					first = c;
-					state = GOT_FIRST;
+					_first = c;
+					_state = GOT_FIRST;
 					break;
 
 				case GOT_FIRST:
-					second = c;
-					state = INIT;
-					sequence_complete = true;
+					_second = c;
+					_state = INIT;
+					_sequence_complete = true;
 					break;
 				}
 			}
 
-			bool is_normal() const { return state == INIT && !sequence_complete; }
+			bool normal() const { return _state == INIT && !_sequence_complete; }
+
+			char normal_char() const { return _normal; }
 
 			bool _fn_complete(char match_first, char match_second) const
 			{
-				return sequence_complete
-				    && first  == match_first
-				    && second == match_second;
+				return _sequence_complete
+				    && _first  == match_first
+				    && _second == match_second;
 			}
 
-			bool is_key_up()     const { return _fn_complete(91, 65); }
-			bool is_key_down()   const { return _fn_complete(91, 66); }
-			bool is_key_right()  const { return _fn_complete(91, 67); }
-			bool is_key_left()   const { return _fn_complete(91, 68); }
-			bool is_key_delete() const { return _fn_complete(91, 51); }
+			bool key_up()     const { return _fn_complete(91, 65); }
+			bool key_down()   const { return _fn_complete(91, 66); }
+			bool key_right()  const { return _fn_complete(91, 67); }
+			bool key_left()   const { return _fn_complete(91, 68); }
+			bool key_delete() const { return _fn_complete(91, 51); }
 		};
 
 		Seq_tracker _seq_tracker;
@@ -418,7 +420,7 @@ class Line_editor
 			       LINE_FEED       = 10,
 			       CARRIAGE_RETURN = 13 };
 
-			if (_seq_tracker.is_key_left()) {
+			if (_seq_tracker.key_left()) {
 				if (_cursor_pos > 0) {
 					_cursor_pos--;
 					_write(BACKSPACE);
@@ -426,7 +428,7 @@ class Line_editor
 				return;
 			}
 
-			if (_seq_tracker.is_key_right()) {
+			if (_seq_tracker.key_right()) {
 				if (_cursor_pos < strlen(_buf)) {
 					_cursor_pos++;
 					_move_cursor_to(_cursor_pos);
@@ -434,13 +436,13 @@ class Line_editor
 				return;
 			}
 
-			if (_seq_tracker.is_key_delete())
+			if (_seq_tracker.key_delete())
 				_delete_character();
 
-			if (!_seq_tracker.is_normal())
+			if (!_seq_tracker.normal())
 				return;
 
-			char const c = _seq_tracker.normal;
+			char const c = _seq_tracker.normal_char();
 
 			if (c == TAB) {
 				_perform_completion();
@@ -864,7 +866,7 @@ class Line_editor
 		 * Returns true if the editing is complete, i.e., the user pressed the
 		 * return key.
 		 */
-		bool is_complete() const { return _complete; }
+		bool completed() const { return _complete; }
 };
 
 #endif /* _LINE_EDITOR_H_ */

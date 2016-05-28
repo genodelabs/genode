@@ -8,11 +8,12 @@ from the Python website.
 
 Usage
 -----
-Call 'make prepare' from within the 'libports' directory. Add 'libports' to
-your build.conf file. A sample Genode configuration is provided with the
-'python.run' script located at 'libports/run/'. It starts a Python script can
-be found within this directory. If you are not using Linux as a Genode base
-platform, do not forget to add 'python.lib.so' to your boot module list.
+Call './tool/ports/prepare_port libc python' from within Genode's toplevel
+directory. Add 'libports' to your build.conf file. A sample Genode configuration
+is provided with the 'python.run' script located at 'libports/run/'. It starts a
+Python script can be found within this directory. If you are not using Linux as
+a Genode base platform, do not forget to add 'python.lib.so' to your boot module
+list.
 
 Limitations
 -----------

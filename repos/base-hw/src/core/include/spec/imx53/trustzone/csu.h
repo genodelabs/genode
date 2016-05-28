@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CSU_H_
-#define _CSU_H_
+#ifndef _CORE__INCLUDE__SPEC__IMX53__TRUSTZONE__CSU_H_
+#define _CORE__INCLUDE__SPEC__IMX53__TRUSTZONE__CSU_H_
 
 /* Genode includes */
 #include <util/mmio.h>
@@ -239,4 +239,4 @@ namespace Genode {
 	};
 }
 
-#endif /* _CSU_H_ */
+#endif /* _CORE__INCLUDE__SPEC__IMX53__TRUSTZONE__CSU_H_ */

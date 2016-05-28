@@ -163,7 +163,7 @@ class Nit_fader::Framebuffer_session_component
 
 		void transfer_src_to_dst_pixel(Rect const rect)
 		{
-			if (!_dst_buffer.is_constructed())
+			if (!_dst_buffer.constructed())
 				return;
 
 			_dst_buffer->pixel_surface().clip(rect);
@@ -178,7 +178,7 @@ class Nit_fader::Framebuffer_session_component
 
 		void transfer_src_to_dst_alpha(Rect const rect)
 		{
-			if (!_dst_buffer.is_constructed())
+			if (!_dst_buffer.constructed())
 				return;
 
 			_dst_buffer->alpha_surface().clip(rect);
@@ -193,8 +193,8 @@ class Nit_fader::Framebuffer_session_component
 
 		Area size()
 		{
-			return _dst_buffer.is_constructed() ? _dst_buffer->pixel_surface().size()
-			                                    : Area();
+			return _dst_buffer.constructed() ? _dst_buffer->pixel_surface().size()
+			                                 : Area();
 		}
 
 		bool animate(unsigned num_frames)

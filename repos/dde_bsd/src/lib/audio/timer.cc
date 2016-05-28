@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014-2015 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -14,7 +14,7 @@
 /* Genode includes */
 #include <base/env.h>
 #include <base/heap.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/sleep.h>
 #include <base/tslab.h>
 #include <timer_session/connection.h>
@@ -22,10 +22,7 @@
 /* local includes */
 #include <list.h>
 #include <bsd.h>
-
-#include <extern_c_begin.h>
-# include <bsd_emul.h>
-#include <extern_c_end.h>
+#include <bsd_emul.h>
 
 
 static unsigned long millisecs;
@@ -42,13 +39,13 @@ class Bsd::Timer
 {
 	private:
 
-		::Timer::Connection                          _timer_conn;
-		Genode::Signal_rpc_member<Bsd::Timer>        _dispatcher;
+		::Timer::Connection                _timer_conn;
+		Genode::Signal_handler<Bsd::Timer> _dispatcher;
 
 		/**
 		 * Handle trigger_once signal
 		 */
-		void _handle(unsigned)
+		void _handle()
 		{
 			Bsd::scheduler().schedule();
 		}
@@ -58,7 +55,7 @@ class Bsd::Timer
 		/**
 		 * Constructor
 		 */
-		Timer(Server::Entrypoint &ep)
+		Timer(Genode::Entrypoint &ep)
 		:
 			_dispatcher(ep, *this, &Bsd::Timer::_handle)
 		{
@@ -78,7 +75,7 @@ class Bsd::Timer
 static Bsd::Timer *_bsd_timer;
 
 
-void Bsd::timer_init(Server::Entrypoint &ep)
+void Bsd::timer_init(Genode::Entrypoint &ep)
 {
 	/* XXX safer way preventing possible nullptr access? */
 	static Bsd::Timer bsd_timer(ep);
@@ -106,16 +103,13 @@ static Bsd::Task *_sleep_task;
 extern "C" int msleep(const volatile void *ident, struct mutex *mtx,
                       int priority, const char *wmesg, int timo)
 {
-	// PDBG("ident: %p mtx: %p priority: %d wmesg: '%s' timo: %d",
-	//      ident, mtx, priority, wmesg, timo);
-
 	if (_sleep_task) {
-		PERR("_sleep_task is not null, current task: '%s'", Bsd::scheduler().current()->name());
+		Genode::error("_sleep_task is not null, current task: ",
+		              Bsd::scheduler().current()->name());
 		Genode::sleep_forever();
 	}
 
 	_sleep_task = Bsd::scheduler().current();
-	// PERR("msleep: '%s' %p", _sleep_task->name(), ident);
 	_sleep_task->block_and_schedule();
 
 	return 0;
@@ -123,7 +117,6 @@ extern "C" int msleep(const volatile void *ident, struct mutex *mtx,
 
 extern "C" void wakeup(const volatile void *ident)
 {
-	// PERR("wakeup: '%s' %p", _sleep_task->name(), ident);
 	_sleep_task->unblock();
 	_sleep_task = nullptr;
 }

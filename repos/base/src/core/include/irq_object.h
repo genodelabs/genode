@@ -11,13 +11,14 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#pragma once
+#ifndef _CORE__INCLUDE__IRQ_OBJECT_H_
+#define _CORE__INCLUDE__IRQ_OBJECT_H_
 
 #include <base/thread.h>
 
 namespace Genode { class Irq_object; }
 
-class Genode::Irq_object : public Thread<4096> {
+class Genode::Irq_object : public Thread_deprecated<4096> {
 
 	private:
 
@@ -40,3 +41,5 @@ class Genode::Irq_object : public Thread<4096> {
 
 		void start() override;
 };
+
+#endif /* _CORE__INCLUDE__IRQ_OBJECT_H_ */

@@ -246,7 +246,7 @@ void Static_character_screen::dump() const
 		for (int x = 0; x < boundary.width; x++) {
 
 			Character c = _char_array.get(Position(x, y));
-			if (c.is_valid())
+			if (c.valid())
 				line[x] = c.ascii();
 			else
 				line[x] = ' ';

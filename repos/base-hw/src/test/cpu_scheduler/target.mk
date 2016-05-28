@@ -12,3 +12,6 @@ LIBS += core
 
 # add C++ sources
 SRC_CC += kernel/test.cc
+
+# allow the test to use base-internal headers, i.e., page_size.h
+INC_DIR += $(BASE_DIR)/src/include

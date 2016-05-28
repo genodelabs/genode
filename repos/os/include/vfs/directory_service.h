@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2014 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -19,6 +19,8 @@
 namespace Vfs {
 	class Vfs_handle;
 	struct Directory_service;
+
+	using Genode::Allocator;
 }
 
 
@@ -56,7 +58,15 @@ struct Vfs::Directory_service
 		OPEN_OK
 	};
 
-	virtual Open_result open(char const *path, unsigned mode, Vfs_handle **) = 0;
+	virtual Open_result open(char const  *path,
+	                         unsigned     mode,
+	                         Vfs_handle **handle,
+	                         Allocator   &alloc = *Genode::env()->heap()) = 0;
+
+	/**
+	 * Close handle resources and deallocate handle
+	 */
+	virtual void close(Vfs_handle *handle) = 0;
 
 
 	/**********
@@ -76,15 +86,16 @@ struct Vfs::Directory_service
 
 	struct Stat
 	{
-		file_size      size;
-		unsigned       mode;
-		unsigned       uid;
-		unsigned       gid;
-		unsigned long  inode;
-		unsigned       device;
+		file_size     size;
+		unsigned      mode;
+		unsigned      uid;
+		unsigned      gid;
+		unsigned long inode;
+		unsigned long device;
 	};
 
-	enum Stat_result { STAT_ERR_NO_ENTRY = NUM_GENERAL_ERRORS, STAT_OK };
+	enum Stat_result { STAT_ERR_NO_ENTRY = NUM_GENERAL_ERRORS,
+	                   STAT_ERR_NO_PERM, STAT_OK };
 
 	virtual Stat_result stat(char const *path, Stat &) = 0;
 
@@ -93,7 +104,7 @@ struct Vfs::Directory_service
 	 ** Dirent **
 	 ************/
 
-	enum Dirent_result { DIRENT_ERR_INVALID_PATH, DIRENT_OK };
+	enum Dirent_result { DIRENT_ERR_INVALID_PATH, DIRENT_ERR_NO_PERM, DIRENT_OK };
 
 	enum { DIRENT_MAX_NAME_LEN = 128 };
 
@@ -109,9 +120,9 @@ struct Vfs::Directory_service
 
 	struct Dirent
 	{
-		int         fileno;
-		Dirent_type type;
-		char        name[DIRENT_MAX_NAME_LEN];
+		unsigned long fileno;
+		Dirent_type   type;
+		char          name[DIRENT_MAX_NAME_LEN];
 	};
 
 	virtual Dirent_result dirent(char const *path, file_offset index, Dirent &) = 0;
@@ -131,7 +142,7 @@ struct Vfs::Directory_service
 	 ** Readlink **
 	 **************/
 
-	enum Readlink_result { READLINK_ERR_NO_ENTRY, READLINK_OK };
+	enum Readlink_result { READLINK_ERR_NO_ENTRY, READLINK_ERR_NO_PERM, READLINK_OK };
 
 	virtual Readlink_result readlink(char const *path, char *buf,
 	                                 file_size buf_size, file_size &out_len) = 0;
@@ -174,7 +185,7 @@ struct Vfs::Directory_service
 	 */
 	virtual file_size num_dirent(char const *path) = 0;
 
-	virtual bool is_directory(char const *path) = 0;
+	virtual bool directory(char const *path) = 0;
 
 	virtual char const *leaf_path(char const *path) = 0;
 };

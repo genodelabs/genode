@@ -61,7 +61,12 @@ class Input::Session_component : public Genode::Rpc_object<Input::Session>
 
 		Genode::Dataspace_capability dataspace() override { return _ds.cap(); }
 
-		bool is_pending() const override { return !_event_queue.empty(); }
+		bool pending() const override { return !_event_queue.empty(); }
+
+		/*
+		 * \deprecated  use 'pending' instead
+		 */
+		bool is_pending() const { return pending(); }
 
 		int flush() override
 		{

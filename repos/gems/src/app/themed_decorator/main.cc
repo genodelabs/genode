@@ -131,7 +131,7 @@ struct Decorator::Main : Window_factory_base
 		} catch (Genode::Rom_connection::Rom_connection_failed) {
 			PINF("pointer information unavailable");
 
-			PDBG("is_constructed=%d", pointer.is_constructed());
+			PDBG("constructed=%d", pointer.constructed());
 		}
 
 		nitpicker.framebuffer()->sync_sigh(nitpicker_sync_dispatcher);
@@ -256,7 +256,7 @@ void Decorator::Main::handle_nitpicker_sync(unsigned)
 
 	bool model_updated = false;
 
-	if (window_layout_update_needed && window_layout.is_valid()) {
+	if (window_layout_update_needed && window_layout.valid()) {
 
 		try {
 			Xml_node xml(window_layout.local_addr<char>(),
@@ -269,7 +269,7 @@ void Decorator::Main::handle_nitpicker_sync(unsigned)
 			 * A decorator element might have appeared or disappeared under
 			 * the pointer.
 			 */
-			if (pointer.is_constructed() && pointer->is_valid())
+			if (pointer.constructed() && pointer->valid())
 				update_hover_report(Xml_node(pointer->local_addr<char>()),
 				                    window_stack, hover, hover_reporter);
 
@@ -304,12 +304,12 @@ void Decorator::Main::handle_nitpicker_sync(unsigned)
 
 void Decorator::Main::handle_pointer_update(unsigned)
 {
-	if (!pointer.is_constructed())
+	if (!pointer.constructed())
 		return;
 
 	pointer->update();
 
-	if (pointer->is_valid())
+	if (pointer->valid())
 		update_hover_report(Xml_node(pointer->local_addr<char>()),
 		                    window_stack, hover, hover_reporter);
 }

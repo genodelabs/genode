@@ -12,6 +12,7 @@
  */
 
 /* Genode includes */
+#include <util/bit_allocator.h>
 #include <base/printf.h>
 #include <irq_session/connection.h>
 
@@ -106,7 +107,7 @@ class NoThread
 /**
  * Thread waiting for signals caused by IRQs 
  */
-class Platform::Irq_thread : public Genode::Thread<4096>
+class Platform::Irq_thread : public Genode::Thread_deprecated<4096>
 {
 	private:
 
@@ -114,7 +115,7 @@ class Platform::Irq_thread : public Genode::Thread<4096>
 
 	public:
 
-		Irq_thread() : Thread<4096>("irq_sig_recv") { start(); }
+		Irq_thread() : Thread_deprecated<4096>("irq_sig_recv") { start(); }
 
 		Genode::Signal_receiver & sig_rec() { return _sig_rec; }
 

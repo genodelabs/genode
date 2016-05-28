@@ -8,7 +8,7 @@
 
 
 
-With version 16.02, we add RISC-V to the Genode's supported CPU architectures,
+With version 16.02, we add RISC-V to Genode's supported CPU architectures,
 enable the secure pass-through of individual USB devices to virtual machines,
 and update the support for the Muen and seL4 kernels.
 
@@ -97,9 +97,9 @@ implement inheritance. This object model is used throughout QEMU. We took the
 easy way out and just used a C++ wrapper class that contains all QEMU objects
 that are used in the USB subsystem.
 
-The next step was to develop an USB host device model. This model connects a
+The next step was to develop a USB host device model. This model connects a
 USB device attached to Genode's USB host-controller driver to the xHCI device
-model. Lucky for us, QEMU already contains an USB host device model that uses
+model. Lucky for us, QEMU already contains a USB host device model that uses
 libusb, which we could use as blueprint. We implemented a USB host device that
 leverages Genode's custom USB session interface. This host device reacts to a
 USB device report coming from another component such as the host-controller
@@ -107,7 +107,7 @@ driver. It tries to claim all devices it finds in that report and then creates
 a QEMU USB device for each of them that is attached to the xHCI device model.
 
 The xHCI device model needs infrastructure that normally is provided by QEMU
-itself such as a timer queue and PCI device handling. We introduced an QEMU
+itself such as a timer queue and PCI device handling. We introduced a QEMU
 USB controller interface _repos/libports/include/qemu/usb.h_ whose back-end
 library interface has to be implemented by a component, i.e. the VMM, that
 wants to use the library.
@@ -262,7 +262,7 @@ Steps to test Genode on RISC-V
 
   ! # download Genode
   ! cd ../../
-  ! git clone https://github.com/ssumpf/genode.git
+  ! git clone https://github.com/genodelabs/genode.git
   !
   ! # build the Genode tool chain
   ! cd genode
@@ -475,7 +475,7 @@ Execution on bare hardware (base-hw)
 
 Within the last months, the initialization code of our custom kernel got
 re-arranged to simplify the addition of new architectures, e.g., the RISC-V
-port (Section [New support for the RISC-V CPU architecture]) while also make
+port (Section [New support for the RISC-V CPU architecture]) while also making
 its implementation leaner. A positive side effect of this work was the
 generalization of multi-processor and L2-cache support for ARM's Cortex-A9
 CPUs. For instance, the Wandboard (Freescale i.MX6 SoC) is now driven with all

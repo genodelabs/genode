@@ -112,7 +112,7 @@ class Decorator::Window_base : public Window_list::Element
 
 		virtual Nitpicker::Session::View_handle frontmost_view() const = 0;
 
-		virtual bool is_in_front_of(Window_base const &neighbor) const = 0;
+		virtual bool in_front_of(Window_base const &neighbor) const = 0;
 
 		/**
 		 * Draw window elements

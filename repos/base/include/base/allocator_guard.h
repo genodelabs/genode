@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _ALLOCATOR_GUARD_H_
-#define _ALLOCATOR_GUARD_H_
+#ifndef _INCLUDE__BASE__ALLOCATOR_GUARD_H_
+#define _INCLUDE__BASE__ALLOCATOR_GUARD_H_
 
 #include <base/allocator.h>
 #include <base/printf.h>
@@ -109,4 +109,4 @@ class Genode::Allocator_guard : public Allocator
 			return _allocator->need_size_for_free(); }
 };
 
-#endif /* _ALLOCATOR_GUARD_H_ */
+#endif /* _INCLUDE__BASE__ALLOCATOR_GUARD_H_ */

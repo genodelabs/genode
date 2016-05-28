@@ -359,4 +359,3 @@ struct Genode::Bitset_3
 };
 
 #endif /* _INCLUDE__UTIL__REGISTER_H_ */
-

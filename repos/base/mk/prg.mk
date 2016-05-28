@@ -20,6 +20,11 @@
 all:
 
 #
+# Tell rust to make an object file instead of anything else
+#
+CC_RUSTC_OPT += --emit obj
+
+#
 # Include common utility functions
 #
 include $(BASE_DIR)/mk/util.inc
@@ -123,6 +128,13 @@ LD_CMD      += -Wl,--dynamic-linker=$(DYNAMIC_LINKER).lib.so \
 FILTER_DEPS := $(filter-out $(BASE_LIBS),$(DEPS:.lib=))
 SHARED_LIBS += $(LIB_CACHE_DIR)/$(DYNAMIC_LINKER)/$(DYNAMIC_LINKER).lib.so
 
+
+#
+# Link all dynamic executables to the component entry-point library (a
+# trampoline for component startup from ldso)
+#
+FILTER_DEPS += component_entry_point
+
 #
 # Build program position independent as well
 #
@@ -147,6 +159,13 @@ LD_CMD += $(addprefix $(LD_SCRIPT_PREFIX), $(LD_SCRIPTS))
 
 STATIC_LIBS := $(foreach l,$(FILTER_DEPS),$(LIB_CACHE_DIR)/$l/$l.lib.a)
 STATIC_LIBS := $(sort $(wildcard $(STATIC_LIBS)))
+
+#
+# --whole-archive does not work with rlibs
+#
+RUST_LIBS := $(foreach l,$(FILTER_DEPS),$(LIB_CACHE_DIR)/$l/$l.rlib)
+RUST_LIBS :=  $(sort $(wildcard $(RUST_LIBS))) 
+SHORT_RUST_LIBS := $(subst $(LIB_CACHE_DIR),$$libs,$(RUST_LIBS))
 
 #
 # For hybrid Linux/Genode programs, prevent the linkage Genode's cxx and base
@@ -181,7 +200,9 @@ $(LINK_ITEMS) $(TARGET): $(HOST_TOOLS)
 LD_CMD += -Wl,--whole-archive -Wl,--start-group
 LD_CMD += $(SHORT_LINK_ITEMS)
 LD_CMD += $(EXT_OBJECTS)
-LD_CMD += -Wl,--end-group -Wl,--no-whole-archive
+LD_CMD += -Wl,--no-whole-archive
+LD_CMD += $(SHORT_RUST_LIBS)
+LD_CMD += -Wl,--end-group
 
 #
 # Link libgcc to each program

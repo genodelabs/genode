@@ -119,7 +119,7 @@ Decorator::for_each_sub_node(Genode::Xml_node node, char const *type,
 		if (node.has_type(type))
 			func(node);
 
-		if (node.is_last()) break;
+		if (node.last()) break;
 	}
 }
 

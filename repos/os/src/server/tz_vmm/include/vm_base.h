@@ -15,7 +15,6 @@
 #define _SRC__SERVER__VMM__INCLUDE__VM_H_
 
 /* Genode includes */
-#include <base/elf.h>
 #include <dataspace/client.h>
 #include <io_mem_session/connection.h>
 #include <rom_session/connection.h>

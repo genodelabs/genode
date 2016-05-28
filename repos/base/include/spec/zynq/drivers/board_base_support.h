@@ -13,8 +13,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__SPEC__ZYNQ__DRIVERS__BOARD_BASE_H_
-#define _INCLUDE__SPEC__ZYNQ__DRIVERS__BOARD_BASE_H_
+#ifndef _INCLUDE__SPEC__ZYNQ__DRIVERS__BOARD_BASE_SUPPORT_H_
+#define _INCLUDE__SPEC__ZYNQ__DRIVERS__BOARD_BASE_SUPPORT_H_
 
 namespace Zynq { struct Board_base; }
 
@@ -74,4 +74,4 @@ struct Zynq::Board_base
 	};
 };
 
-#endif /* _INCLUDE__SPEC__ZYNQ__DRIVERS__BOARD_BASE_H_ */
+#endif /* _INCLUDE__SPEC__ZYNQ__DRIVERS__BOARD_BASE_SUPPORT_H_ */

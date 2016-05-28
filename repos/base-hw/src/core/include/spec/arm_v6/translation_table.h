@@ -12,12 +12,12 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _TRANSLATION_TABLE_H_
-#define _TRANSLATION_TABLE_H_
+#ifndef _CORE__INCLUDE__SPEC__ARM_V6__TRANSLATION_TABLE_H_
+#define _CORE__INCLUDE__SPEC__ARM_V6__TRANSLATION_TABLE_H_
 
 /* core includes */
 #include <spec/arm/short_translation_table.h>
 
 constexpr unsigned Genode::Translation::_device_tex() { return 0; }
 
-#endif /* _TRANSLATION_TABLE_H_ */
+#endif /* _CORE__INCLUDE__SPEC__ARM_V6__TRANSLATION_TABLE_H_ */

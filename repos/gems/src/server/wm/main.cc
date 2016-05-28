@@ -70,6 +70,8 @@ struct Wm::Main
 	{
 		try {
 			focus_rom.update();
+			if (!focus_rom.valid())
+				return;
 
 			unsigned long win_id = 0;
 
@@ -94,6 +96,8 @@ struct Wm::Main
 	{
 		try {
 			resize_request_rom.update();
+			if (!resize_request_rom.valid())
+				return;
 
 			char const * const node_type = "window";
 
@@ -109,7 +113,7 @@ struct Wm::Main
 
 				nitpicker_root.request_resize(win_id, Area(width, height));
 
-				if (window.is_last(node_type))
+				if (window.last(node_type))
 					break;
 
 				window = window.next(node_type);

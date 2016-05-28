@@ -524,6 +524,9 @@ class Genode::String
 			strncpy(_buf, str, _length);
 		}
 
+		/**
+		 * Return length of string, including the terminating null character
+		 */
 		size_t length() const { return _length; }
 
 		static constexpr size_t capacity() { return CAPACITY; }

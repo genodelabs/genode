@@ -22,7 +22,7 @@
 #include <kernel_object.h>
 
 /* base-internal includes */
-#include <internal/capability_space_sel4.h>
+#include <base/internal/capability_space_sel4.h>
 
 using namespace Genode;
 
@@ -52,7 +52,7 @@ static Pd_id_alloc &pd_id_alloc()
 }
 
 
-int Platform_pd::bind_thread(Platform_thread *thread)
+bool Platform_pd::bind_thread(Platform_thread *thread)
 {
 	ASSERT(thread);
 
@@ -65,7 +65,7 @@ int Platform_pd::bind_thread(Platform_thread *thread)
 	 *     'Vm_space'. In contrast to mapping that are created as a result of
 	 *     the RM-session's page-fault resolution, the IPC buffer's mapping
 	 *     won't be recoverable once flushed. For this reason, it is important
-	 *     to attach the UTCB as a dataspace to the context-area to make the RM
+	 *     to attach the UTCB as a dataspace to the stack area to make the RM
 	 *     session aware to the mapping. This code is missing.
 	 */
 	if (thread->_utcb) {
@@ -73,8 +73,7 @@ int Platform_pd::bind_thread(Platform_thread *thread)
 	} else {
 		_vm_space.map(thread->_info.ipc_buffer_phys, thread->INITIAL_IPC_BUFFER_VIRT, 1);
 	}
-
-	return 0;
+	return true;
 }
 
 
@@ -84,7 +83,7 @@ void Platform_pd::unbind_thread(Platform_thread *thread)
 }
 
 
-int Platform_pd::assign_parent(Native_capability parent)
+void Platform_pd::assign_parent(Native_capability parent)
 {
 	Capability_space::Ipc_cap_data const ipc_cap_data =
 		Capability_space::ipc_cap_data(parent);
@@ -98,7 +97,6 @@ int Platform_pd::assign_parent(Native_capability parent)
 	_cspace_cnode.copy(platform_specific()->core_cnode(),
 	                   Cnode_index(ipc_cap_data.sel),
 	                   Cnode_index(INITIAL_SEL_PARENT));
-	return 0;
 }
 
 

@@ -45,7 +45,7 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		 * Virtual address of the IPC buffer within the PDs address space
 		 *
 		 * The value is 0 for the PD's main thread. For all other threads,
-		 * the value is somewhere within the context area.
+		 * the value is somewhere within the stack area.
 		 */
 		addr_t const _utcb;
 
@@ -73,7 +73,7 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		 * Constructor
 		 */
 		Platform_thread(size_t, const char *name = 0, unsigned priority = 0,
-		                addr_t utcb = 0);
+		                Affinity::Location = Affinity::Location(), addr_t utcb = 0);
 
 		/**
 		 * Destructor
@@ -96,6 +96,11 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		 * Pause this thread
 		 */
 		void pause();
+
+		/**
+		 * Enable/disable single stepping
+		 */
+		void single_step(bool) { }
 
 		/**
 		 * Resume this thread

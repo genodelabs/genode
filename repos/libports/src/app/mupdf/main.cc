@@ -318,7 +318,7 @@ int main(int, char **)
 	 * Input event loop
 	 */
 	for (;;) {
-		while (!input.is_pending()) timer.msleep(20);
+		while (!input.pending()) timer.msleep(20);
 
 		for (int i = 0, num_ev = input.flush(); i < num_ev; i++) {
 

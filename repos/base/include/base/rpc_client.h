@@ -58,39 +58,39 @@ namespace Genode {
 	template <typename RPC_INTERFACE>
 	template <typename ATL>
 	void Capability<RPC_INTERFACE>::
-	_marshal_args(Ipc_client &ipc_client, ATL &args) const
+	_marshal_args(Msgbuf_base &msg, ATL &args) const
 	{
 		if (Trait::Rpc_direction<typename ATL::Head>::Type::IN)
-			ipc_client << args.get();
+			msg.insert(args.get());
 
-		_marshal_args(ipc_client, args._2);
+		_marshal_args(msg, args._2);
 	}
 
 
 	template <typename RPC_INTERFACE>
 	template <typename T>
 	void Capability<RPC_INTERFACE>::
-	_unmarshal_result(Ipc_client &ipc_client, T &arg,
+	_unmarshal_result(Ipc_unmarshaller &unmarshaller, T &arg,
 	                  Meta::Overload_selector<Rpc_arg_out>) const
 	{
-		ipc_client >> arg;
+		unmarshaller.extract(arg);
 	}
 
 
 	template <typename RPC_INTERFACE>
 	template <typename T>
 	void Capability<RPC_INTERFACE>::
-	_unmarshal_result(Ipc_client &ipc_client, T &arg,
+	_unmarshal_result(Ipc_unmarshaller &unmarshaller, T &arg,
 	                  Meta::Overload_selector<Rpc_arg_inout>) const
 	{
-		_unmarshal_result(ipc_client, arg, Meta::Overload_selector<Rpc_arg_out>());
+		_unmarshal_result(unmarshaller, arg, Meta::Overload_selector<Rpc_arg_out>());
 	}
 
 
 	template <typename RPC_INTERFACE>
 	template <typename ATL>
 	void Capability<RPC_INTERFACE>::
-	_unmarshal_results(Ipc_client &ipc_client, ATL &args) const
+	_unmarshal_results(Ipc_unmarshaller &unmarshaller, ATL &args) const
 	{
 		/*
 		 * Unmarshal current argument. The overload of
@@ -98,10 +98,10 @@ namespace Genode {
 		 * direction.
 		 */
 		typedef typename Trait::Rpc_direction<typename ATL::Head>::Type Rpc_dir;
-		_unmarshal_result(ipc_client, args.get(), Meta::Overload_selector<Rpc_dir>());
+		_unmarshal_result(unmarshaller, args.get(), Meta::Overload_selector<Rpc_dir>());
 
 		/* unmarshal remaining arguments */
-		_unmarshal_results(ipc_client, args._2);
+		_unmarshal_results(unmarshaller, args._2);
 	}
 
 
@@ -119,37 +119,42 @@ namespace Genode {
 		enum { PROTOCOL_OVERHEAD = 4*sizeof(long),
 		       CALL_MSG_SIZE     = Rpc_function_msg_size<IF, RPC_CALL>::Value,
 		       REPLY_MSG_SIZE    = Rpc_function_msg_size<IF, RPC_REPLY>::Value,
-		       CAP_BY_VALUE      = Rpc_function_caps_out<IF>::Value };
+		       RECEIVE_CAPS      = Rpc_function_caps_out<IF>::Value };
 
 		Msgbuf<CALL_MSG_SIZE  + PROTOCOL_OVERHEAD>  call_buf;
 		Msgbuf<REPLY_MSG_SIZE + PROTOCOL_OVERHEAD> reply_buf;
 
-		Ipc_client ipc_client(*this, &call_buf, &reply_buf, CAP_BY_VALUE);
-
 		/* determine opcode of RPC function */
 		typedef typename RPC_INTERFACE::Rpc_functions Rpc_functions;
-		Rpc_opcode opcode = static_cast<int>(Meta::Index_of<Rpc_functions, IF>::Value);
+		Rpc_opcode opcode(static_cast<int>(Meta::Index_of<Rpc_functions, IF>::Value));
 
 		/* marshal opcode and RPC input arguments */
-		ipc_client << opcode;
-		_marshal_args(ipc_client, args);
+		call_buf.insert(opcode);
+		_marshal_args(call_buf, args);
 
 		{
 			Trace::Rpc_call trace_event(IF::name(), call_buf);
 		}
 
 		/* perform RPC, unmarshal return value */
-		ipc_client << IPC_CALL >> ret;
+		Rpc_exception_code const exception_code =
+			ipc_call(*this, call_buf, reply_buf, RECEIVE_CAPS);
+
+		if (exception_code.value == Rpc_exception_code::INVALID_OBJECT)
+			throw Ipc_error();
+
+		Ipc_unmarshaller unmarshaller(reply_buf);
+		unmarshaller.extract(ret);
 
 		{
 			Trace::Rpc_returned trace_event(IF::name(), reply_buf);
 		}
 
 		/* unmarshal RPC output arguments */
-		_unmarshal_results(ipc_client, args);
+		_unmarshal_results(unmarshaller, args);
 
 		/* reflect callee-side exception at the caller */
-		_check_for_exceptions(ipc_client.result(),
+		_check_for_exceptions(exception_code,
 		                      Meta::Overload_selector<typename IF::Exceptions>());
 	}
 }

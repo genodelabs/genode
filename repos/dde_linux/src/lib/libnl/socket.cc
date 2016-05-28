@@ -180,6 +180,7 @@ ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
 	w_msg.msg_iovlen          = 1;
 	w_msg.msg_iov[0].iov_base = buf;
 	w_msg.msg_iov[0].iov_len  = len;
+	w_msg.msg_count           = len;
 
 	/* FIXME convert to/from Sockaddr */
 	/* FIXME flags values */
@@ -221,6 +222,7 @@ ssize_t recvmsg(int sockfd, struct msghdr *msg, int flags)
 	for (unsigned i = 0; i < w_msg.msg_iovlen; ++i) {
 		w_msg.msg_iov[i].iov_base = msg->msg_iov[i].iov_base;
 		w_msg.msg_iov[i].iov_len  = msg->msg_iov[i].iov_len;
+		w_msg.msg_count          += msg->msg_iov[i].iov_len;
 	}
 
 	w_msg.msg_control    = msg->msg_control;
@@ -279,6 +281,7 @@ ssize_t sendmsg(int sockfd, const struct msghdr *msg, int flags)
 	for (unsigned i = 0; i < w_msg.msg_iovlen; ++i) {
 		w_msg.msg_iov[i].iov_base = msg->msg_iov[i].iov_base;
 		w_msg.msg_iov[i].iov_len  = msg->msg_iov[i].iov_len;
+		w_msg.msg_count          += msg->msg_iov[i].iov_len;
 	}
 
 	int const err = socket_call.sendmsg(s, &w_msg, Wifi::WIFI_F_NONE);
@@ -306,6 +309,7 @@ ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
 	w_msg.msg_iovlen          = 1;
 	w_msg.msg_iov[0].iov_base = const_cast<void*>(buf);
 	w_msg.msg_iov[0].iov_len  = len;
+	w_msg.msg_count           = len;
 
 	/* FIXME convert to/from Sockaddr */
 	/* FIXME flags values */

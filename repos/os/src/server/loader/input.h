@@ -69,7 +69,7 @@ class Input::Session_component : public Rpc_object<Session>
 
 		Dataspace_capability dataspace() override { return _real_input.dataspace(); }
 
-		bool is_pending() const override { return _real_input.is_pending(); }
+		bool pending() const override { return _real_input.pending(); }
 
 		int flush() override
 		{

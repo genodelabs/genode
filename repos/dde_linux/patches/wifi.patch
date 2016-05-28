@@ -12,10 +12,10 @@ index 0977d93..3ccfd0e 100644
  			/* revert to active table if search table is not valid*/
  			tbl->lq_type = LQ_NONE;
 diff --git a/drivers/net/wireless/iwlwifi/iwl-debug.c b/drivers/net/wireless/iwlwifi/iwl-debug.c
-index 8a44f59..1045fe5 100644
+index 09feff4..f218fe6 100644
 --- a/drivers/net/wireless/iwlwifi/iwl-debug.c
 +++ b/drivers/net/wireless/iwlwifi/iwl-debug.c
-@@ -80,7 +80,9 @@ void __iwl_ ##fn(struct device *dev, const char *fmt, ...)	\
+@@ -78,7 +78,9 @@ void __iwl_ ##fn(struct device *dev, const char *fmt, ...)	\
  								\
  	va_start(args, fmt);					\
  	vaf.va = &args;						\
@@ -26,7 +26,7 @@ index 8a44f59..1045fe5 100644
  	trace_iwlwifi_ ##fn(&vaf);				\
  	va_end(args);						\
  }
-@@ -103,10 +105,12 @@ void __iwl_err(struct device *dev, bool rfkill_prefix, bool trace_only,
+@@ -101,10 +103,12 @@ void __iwl_err(struct device *dev, bool rfkill_prefix, bool trace_only,
  	va_start(args, fmt);
  	vaf.va = &args;
  	if (!trace_only) {
@@ -41,21 +41,33 @@ index 8a44f59..1045fe5 100644
  	}
  	trace_iwlwifi_err(&vaf);
  	va_end(args);
-@@ -127,9 +131,11 @@ void __iwl_dbg(struct device *dev,
+@@ -125,9 +129,12 @@ void __iwl_dbg(struct device *dev,
  	vaf.va = &args;
  #ifdef CONFIG_IWLWIFI_DEBUG
  	if (iwl_have_debug_level(level) &&
 -	    (!limit || net_ratelimit()))
--		dev_dbg(dev, "%c %s %pV", in_interrupt() ? 'I' : 'U',
--			function, &vaf);
+-		dev_printk(KERN_DEBUG, dev, "%c %s %pV",
+-			   in_interrupt() ? 'I' : 'U', function, &vaf);
 +	    (!limit || net_ratelimit())) {
 +		char buf[256];
 +		vsnprintf(buf, sizeof(buf), vaf.fmt, *vaf.va);
-+		dev_dbg(dev, "%c %s %s", in_interrupt() ? 'I' : 'U', function, buf);
++		dev_printk(KERN_DEBUG, dev, "%c %s %s",
++			   in_interrupt() ? 'I' : 'U', function, buf);
 +	}
  #endif
  	trace_iwlwifi_dbg(level, in_interrupt(), function, &vaf);
  	va_end(args);
+--- a/drivers/net/wireless/iwlwifi/iwl-trans.c
++++ b/drivers/net/wireless/iwlwifi/iwl-trans.c
+@@ -96,7 +96,7 @@
+ 				  sizeof(struct iwl_device_cmd)
+ 				  + trans->dev_cmd_headroom,
+ 				  sizeof(void *),
+-				  SLAB_HWCACHE_ALIGN,
++				  SLAB_HWCACHE_ALIGN | SLAB_LX_DMA,
+ 				  NULL);
+ 	if (!trans->dev_cmd_pool)
+ 		goto free;
 diff --git a/drivers/net/wireless/iwlwifi/mvm/mac80211.c b/drivers/net/wireless/iwlwifi/mvm/mac80211.c
 index 9a856e5..e70f9b7 100644
 --- a/drivers/net/wireless/iwlwifi/mvm/mac80211.c
@@ -82,34 +94,6 @@ index 2b0ba1f..8de16d0 100644
  #include <linux/spinlock.h>
  #include <linux/leds.h>
  #include <linux/in6.h>
-diff --git a/drivers/net/wireless/iwlwifi/mvm/ops.c b/drivers/net/wireless/iwlwifi/mvm/ops.c
-index 529d991..5b4c766 100644
---- a/drivers/net/wireless/iwlwifi/mvm/ops.c
-+++ b/drivers/net/wireless/iwlwifi/mvm/ops.c
-@@ -385,6 +385,11 @@ iwl_op_mode_mvm_start(struct iwl_trans *trans, const struct iwl_cfg *cfg,
- 	trans_cfg.n_no_reclaim_cmds = ARRAY_SIZE(no_reclaim_cmds);
- 	trans_cfg.rx_buf_size_8k = iwlwifi_mod_params.amsdu_size_8K;
- 
-+	if (mvm->fw->ucode_capa.flags & IWL_UCODE_TLV_FLAGS_PM_CMD_SUPPORT)
-+		mvm->pm_ops = &pm_mac_ops;
-+	else
-+		mvm->pm_ops = &pm_legacy_ops;
-+
- 	if (mvm->fw->ucode_capa.flags & IWL_UCODE_TLV_FLAGS_DW_BC_TABLE)
- 		trans_cfg.bc_table_dword = true;
- 
-@@ -462,11 +467,6 @@ iwl_op_mode_mvm_start(struct iwl_trans *trans, const struct iwl_cfg *cfg,
- 	if (err)
- 		goto out_unregister;
- 
--	if (mvm->fw->ucode_capa.flags & IWL_UCODE_TLV_FLAGS_PM_CMD_SUPPORT)
--		mvm->pm_ops = &pm_mac_ops;
--	else
--		mvm->pm_ops = &pm_legacy_ops;
--
- 	memset(&mvm->rx_stats, 0, sizeof(struct mvm_statistics_rx));
- 
- 	return op_mode;
 diff --git a/include/linux/ieee80211.h b/include/linux/ieee80211.h
 index e526a8c..f3134fe 100644
 --- a/include/linux/ieee80211.h
@@ -294,3 +278,48 @@ index 9ee6bc1..02d740d 100644
  };
  
  int wiphy_sysfs_init(void)
+--- a/include/linux/skbuff.h
++++ b/include/linux/skbuff.h
+@@ -3281,7 +3281,7 @@
+ 
+ 	 if (unlikely(skb->ip_summed != CHECKSUM_COMPLETE)) {
+ 		__skb_checksum_complete(skb);
+-		skb_postpull_rcsum(skb, skb->data, ptr - (void *)skb->data);
++		skb_postpull_rcsum(skb, skb->data, (unsigned char*)ptr - skb->data);
+ 	}
+ 
+ 	delta = remcsum_adjust(ptr, skb->csum, start, offset);
+--- a/drivers/net/wireless/iwlwifi/mvm/rx.c
++++ b/drivers/net/wireless/iwlwifi/mvm/rx.c
+@@ -115,7 +115,11 @@
+ 	 * to do so) we should revisit this and ieee80211_data_to_8023().
+ 	 */
+ 	hdrlen = (len <= skb_tailroom(skb)) ? len :
+-					      sizeof(*hdr) + crypt_len + 8;
++					      sizeof(*hdr);// + crypt_len + 8;
++	/*
++	 * XXX decreasing the hdrlen by removing the appendage makes the
++	 *     driver work... why?
++	 */
+ 
+ 	memcpy(skb_put(skb, hdrlen), hdr, hdrlen);
+ 	fraglen = len - hdrlen;
+--- a/crypto/scatterwalk.c
++++ b/crypto/scatterwalk.c
+@@ -115,9 +115,13 @@
+ 
+ 	sg = scatterwalk_ffwd(tmp, sg, start);
+ 
+-	if (sg_page(sg) == virt_to_page(buf) &&
+-	    sg->offset == offset_in_page(buf))
+-		return;
++	//
++	// We have no working virt_to_page and offset_in_page
++	// for this use case.
++	//
++	// if (sg_page(sg) == virt_to_page(buf) &&
++	//     sg->offset == offset_in_page(buf))
++	// 	return;
+ 
+ 	scatterwalk_start(&walk, sg);
+ 	scatterwalk_copychunks(buf, &walk, nbytes, out);

@@ -76,7 +76,7 @@ int main(int argc, char **argv)
 {
 	Param param(0, 1, 2, 3);
 
-	Genode::Reporter window_layout_reporter("window_layout", 10*4096);
+	Genode::Reporter window_layout_reporter("window_layout", "window_layout", 10*4096);
 	window_layout_reporter.enabled(true);
 
 	static Timer::Connection timer;

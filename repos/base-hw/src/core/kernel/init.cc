@@ -22,7 +22,7 @@
 #include <platform_thread.h>
 
 /* base includes */
-#include <unmanaged_singleton.h>
+#include <base/internal/unmanaged_singleton.h>
 #include <base/native_types.h>
 
 using namespace Kernel;

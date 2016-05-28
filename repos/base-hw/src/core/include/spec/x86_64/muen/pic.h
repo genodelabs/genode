@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _PIC_H_
-#define _PIC_H_
+#ifndef _CORE__INCLUDE__SPEC__X86_64__MUEN__PIC_H_
+#define _CORE__INCLUDE__SPEC__X86_64__MUEN__PIC_H_
 
 namespace Genode
 {
@@ -60,8 +60,6 @@ class Genode::Pic
 		void finish_request() { }
 		void unmask(unsigned const i, unsigned) { }
 		void mask(unsigned const i) { }
-		void mask() { }
-		void init_cpu_local() { }
 		bool is_ip_interrupt(unsigned, unsigned) { return false; }
 		void trigger_ip_interrupt(unsigned) { }
 
@@ -72,4 +70,4 @@ class Genode::Pic
 
 namespace Kernel { class Pic : public Genode::Pic { }; }
 
-#endif /* _PIC_H_ */
+#endif /* _CORE__INCLUDE__SPEC__X86_64__MUEN__PIC_H_ */

@@ -24,4 +24,6 @@ typedef genode_uint64_t uint64_t;
 
 int abs(int j);
 
+#ifndef NULL
 #define NULL (void*)0
+#endif

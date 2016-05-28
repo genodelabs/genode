@@ -191,23 +191,23 @@ void GenodeConsole::handle_input(unsigned)
 	for (int i = 0, num_ev = _input.flush(); i < num_ev; ++i) {
 		Input::Event &ev = _ev_buf[i];
 
-		bool const is_press   = ev.type() == Input::Event::PRESS;
-		bool const is_release = ev.type() == Input::Event::RELEASE;
-		bool const is_key     = is_press || is_release;
-		bool const is_motion  = ev.type() == Input::Event::MOTION;
-		bool const is_wheel   = ev.type() == Input::Event::WHEEL;
-		bool const is_touch   = ev.type() == Input::Event::TOUCH;
+		bool const press   = ev.type() == Input::Event::PRESS;
+		bool const release = ev.type() == Input::Event::RELEASE;
+		bool const key     = press || release;
+		bool const motion  = ev.type() == Input::Event::MOTION;
+		bool const wheel   = ev.type() == Input::Event::WHEEL;
+		bool const touch   = ev.type() == Input::Event::TOUCH;
 
-		if (is_key) {
+		if (key) {
 			Scan_code scan_code(ev.keycode());
 
 			unsigned char const release_bit =
 				(ev.type() == Input::Event::RELEASE) ? 0x80 : 0;
 
-			if (scan_code.is_normal())
+			if (scan_code.normal())
 				_vbox_keyboard->PutScancode(scan_code.code() | release_bit);
 
-			if (scan_code.is_ext()) {
+			if (scan_code.ext()) {
 				_vbox_keyboard->PutScancode(0xe0);
 				_vbox_keyboard->PutScancode(scan_code.ext() | release_bit);
 			}
@@ -217,22 +217,22 @@ void GenodeConsole::handle_input(unsigned)
 		 * Track press/release status of keys and buttons. Currently,
 		 * only the mouse-button states are actually used.
 		 */
-		if (is_press)
+		if (press)
 			_key_status[ev.keycode()] = true;
 
-		if (is_release)
+		if (release)
 			_key_status[ev.keycode()] = false;
 
-		bool const is_mouse_button_event =
-			is_key && _is_mouse_button(ev.keycode());
+		bool const mouse_button_event =
+			key && _mouse_button(ev.keycode());
 
-		bool const is_mouse_event = is_mouse_button_event || is_motion;
+		bool const mouse_event = mouse_button_event || motion;
 
-		if (is_mouse_event) {
+		if (mouse_event) {
 			unsigned const buttons = (_key_status[Input::BTN_LEFT]   ? MouseButtonState_LeftButton : 0)
-					               | (_key_status[Input::BTN_RIGHT]  ? MouseButtonState_RightButton : 0)
-					               | (_key_status[Input::BTN_MIDDLE] ? MouseButtonState_MiddleButton : 0);
-			if (ev.is_absolute_motion()) {
+			                       | (_key_status[Input::BTN_RIGHT]  ? MouseButtonState_RightButton : 0)
+			                       | (_key_status[Input::BTN_MIDDLE] ? MouseButtonState_MiddleButton : 0);
+			if (ev.absolute_motion()) {
 
 				_last_received_motion_event_was_absolute = true;
 
@@ -246,12 +246,12 @@ void GenodeConsole::handle_input(unsigned)
 					_vbox_mouse->PutMouseEvent(rx, ry, 0, 0, buttons);
 				} else
 					_vbox_mouse->PutMouseEventAbsolute(ev.ax(), ev.ay(), 0,
-							                           0, buttons);
+					                                   0, buttons);
 
 				_ax = ev.ax();
 				_ay = ev.ay();
 
-			} else if (ev.is_relative_motion()) {
+			} else if (ev.relative_motion()) {
 
 				_last_received_motion_event_was_absolute = false;
 
@@ -284,14 +284,14 @@ void GenodeConsole::handle_input(unsigned)
 			}
 		}
 
-		if (is_wheel) {
+		if (wheel) {
 			if (_last_received_motion_event_was_absolute)
 				_vbox_mouse->PutMouseEventAbsolute(_ax, _ay, -ev.ry(), -ev.rx(), 0);
 			else
 				_vbox_mouse->PutMouseEvent(0, 0, -ev.ry(), -ev.rx(), 0);
 		}
 
-		if (is_touch) {
+		if (touch) {
 			/* if multitouch queue is full - send it */
 			if (mt_number >= sizeof(mt_events) / sizeof(mt_events[0])) {
 				_vbox_mouse->PutEventMultiTouch(mt_number, mt_number,
@@ -314,7 +314,7 @@ void GenodeConsole::handle_input(unsigned)
 			};
 
 			int status = MultiTouch::InContact | MultiTouch::InRange;
-			if (ev.is_touch_release())
+			if (ev.touch_release())
 				status = MultiTouch::None;
 
 			uint16_t const s = RT_MAKE_U16(slot, status);
@@ -476,7 +476,7 @@ int vboxClipboardReadData (VBOXCLIPBOARDCLIENTDATA *pClient, uint32_t format,
 
 	clipboard_rom->update();
 
-	if (!clipboard_rom->is_valid()) {
+	if (!clipboard_rom->valid()) {
 		PERR("invalid clipboard dataspace");
 		return VERR_NOT_SUPPORTED;
 	}

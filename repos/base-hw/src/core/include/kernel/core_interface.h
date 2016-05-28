@@ -11,8 +11,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _KERNEL__CORE_INTERFACE_H_
-#define _KERNEL__CORE_INTERFACE_H_
+#ifndef _CORE__INCLUDE__KERNEL__CORE_INTERFACE_H_
+#define _CORE__INCLUDE__KERNEL__CORE_INTERFACE_H_
+
+/* base-internal includes */
+#include <base/internal/native_utcb.h>
 
 /* base-hw includes */
 #include <kernel/interface.h>
@@ -32,29 +35,29 @@ namespace Kernel
 	/**
 	 * Kernel names of the kernel calls
 	 */
-	constexpr Call_arg call_id_new_thread()             { return 15; }
-	constexpr Call_arg call_id_delete_thread()          { return 16; }
-	constexpr Call_arg call_id_start_thread()           { return 17; }
-	constexpr Call_arg call_id_pause_thread()           { return 18; }
-	constexpr Call_arg call_id_resume_thread()          { return 19; }
-	constexpr Call_arg call_id_route_thread_event()     { return 20; }
-	constexpr Call_arg call_id_thread_quota()           { return 21; }
-	constexpr Call_arg call_id_update_pd()              { return 22; }
-	constexpr Call_arg call_id_new_pd()                 { return 23; }
-	constexpr Call_arg call_id_delete_pd()              { return 24; }
-	constexpr Call_arg call_id_new_signal_receiver()    { return 25; }
-	constexpr Call_arg call_id_new_signal_context()     { return 26; }
-	constexpr Call_arg call_id_delete_signal_context()  { return 27; }
-	constexpr Call_arg call_id_delete_signal_receiver() { return 28; }
-	constexpr Call_arg call_id_new_vm()                 { return 29; }
-	constexpr Call_arg call_id_run_vm()                 { return 30; }
-	constexpr Call_arg call_id_pause_vm()               { return 31; }
-	constexpr Call_arg call_id_delete_vm()              { return 32; }
-	constexpr Call_arg call_id_new_irq()                { return 33; }
-	constexpr Call_arg call_id_delete_irq()             { return 34; }
-	constexpr Call_arg call_id_ack_irq()                { return 35; }
-	constexpr Call_arg call_id_new_obj()                { return 36; }
-	constexpr Call_arg call_id_delete_obj()             { return 37; }
+	constexpr Call_arg call_id_new_thread()             { return 100; }
+	constexpr Call_arg call_id_delete_thread()          { return 101; }
+	constexpr Call_arg call_id_start_thread()           { return 102; }
+	constexpr Call_arg call_id_pause_thread()           { return 103; }
+	constexpr Call_arg call_id_resume_thread()          { return 104; }
+	constexpr Call_arg call_id_route_thread_event()     { return 105; }
+	constexpr Call_arg call_id_thread_quota()           { return 106; }
+	constexpr Call_arg call_id_update_pd()              { return 107; }
+	constexpr Call_arg call_id_new_pd()                 { return 108; }
+	constexpr Call_arg call_id_delete_pd()              { return 109; }
+	constexpr Call_arg call_id_new_signal_receiver()    { return 110; }
+	constexpr Call_arg call_id_new_signal_context()     { return 111; }
+	constexpr Call_arg call_id_delete_signal_context()  { return 112; }
+	constexpr Call_arg call_id_delete_signal_receiver() { return 113; }
+	constexpr Call_arg call_id_new_vm()                 { return 114; }
+	constexpr Call_arg call_id_run_vm()                 { return 115; }
+	constexpr Call_arg call_id_pause_vm()               { return 116; }
+	constexpr Call_arg call_id_delete_vm()              { return 117; }
+	constexpr Call_arg call_id_new_irq()                { return 118; }
+	constexpr Call_arg call_id_delete_irq()             { return 119; }
+	constexpr Call_arg call_id_ack_irq()                { return 120; }
+	constexpr Call_arg call_id_new_obj()                { return 121; }
+	constexpr Call_arg call_id_delete_obj()             { return 122; }
 
 	/**
 	 * Update locally effective domain configuration to in-memory state
@@ -221,4 +224,4 @@ namespace Kernel
 	}
 }
 
-#endif /* _KERNEL__CORE_INTERFACE_H_ */
+#endif /* _CORE__INCLUDE__KERNEL__CORE_INTERFACE_H_ */

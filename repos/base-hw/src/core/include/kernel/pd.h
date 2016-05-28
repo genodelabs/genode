@@ -12,8 +12,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _KERNEL__PD_H_
-#define _KERNEL__PD_H_
+#ifndef _CORE__INCLUDE__KERNEL__PD_H_
+#define _CORE__INCLUDE__KERNEL__PD_H_
 
 /* core includes */
 #include <translation_table_allocator_tpl.h>
@@ -187,4 +187,4 @@ class Kernel::Pd : public Cpu::Pd,
 		Object_identity_reference_tree & cap_tree()     { return _cap_tree;    }
 };
 
-#endif /* _KERNEL__PD_H_ */
+#endif /* _CORE__INCLUDE__KERNEL__PD_H_ */

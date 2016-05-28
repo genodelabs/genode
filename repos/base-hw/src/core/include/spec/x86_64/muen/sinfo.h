@@ -14,8 +14,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _SINFO_H
-#define _SINFO_H
+#ifndef _CORE__INCLUDE__SPEC__X86_64__MUEN__SINFO_H_
+#define _CORE__INCLUDE__SPEC__X86_64__MUEN__SINFO_H_
 
 #include <base/stdint.h>
 
@@ -152,4 +152,4 @@ class Genode::Sinfo
 		static uint64_t get_sched_end(void);
 };
 
-#endif /* _SINFO_H */
+#endif /* _CORE__INCLUDE__SPEC__X86_64__MUEN__SINFO_H_ */

@@ -61,7 +61,7 @@ struct Ps2_mouse_packet : Genode::Register<32>
 };
 
 
-static bool is_mouse_event(Input::Event const *ev)
+static bool mouse_event(Input::Event const *ev)
 {
 	using Input::Event;
 	if (ev->type() == Event::PRESS || ev->type() == Event::RELEASE) {
@@ -96,7 +96,7 @@ unsigned Vancouver_console::_input_to_ps2mouse(Input::Event const *ev)
 	int rx;
 	int ry;
 
-	if (ev->is_absolute_motion()) {
+	if (ev->absolute_motion()) {
 		static Input::Event last_event;
 		rx = ev->ax() - last_event.ax();
 		ry = ev->ay() - last_event.ay();
@@ -257,7 +257,7 @@ void Vancouver_console::entry()
 	_startup_lock.unlock();
 
 	while (1) {
-		while (!input.is_pending()) {
+		while (!input.pending()) {
 
 			/* transfer text buffer content into chunky canvas */
 			if (_regs && ++count % 10 == 0 && _regs->mode == 0
@@ -341,7 +341,7 @@ void Vancouver_console::entry()
 			Input::Event *ev = &ev_buf[i];
 
 			/* update mouse model (PS2) */
-			if (is_mouse_event(ev)) {
+			if (mouse_event(ev)) {
 				MessageInput msg(0x10001, _input_to_ps2mouse(ev));
 				_motherboard()->bus_input.send(msg);
 			}
@@ -372,7 +372,7 @@ Vancouver_console::Vancouver_console(Synced_motherboard &mb,
                                      Genode::size_t vm_fb_size,
                                      Genode::Dataspace_capability fb_ds)
 :
-	Thread("vmm_console"),
+	Thread_deprecated("vmm_console"),
 	_startup_lock(Genode::Lock::LOCKED),
 	_motherboard(mb), _pixels(0), _guest_fb(0), _fb_size(0),
 	_fb_ds(fb_ds), _vm_fb_size(vm_fb_size), _regs(0),

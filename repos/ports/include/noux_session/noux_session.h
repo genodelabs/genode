@@ -17,7 +17,7 @@
 #include <base/stdint.h>
 #include <session/session.h>
 #include <dataspace/capability.h>
-#include <rm_session/capability.h>
+#include <region_map/region_map.h>
 
 #define NOUX_DECL_SYSCALL_NAME(name) \
 	case SYSCALL_##name:  return #name;
@@ -35,11 +35,11 @@ namespace Noux {
 		virtual Dataspace_capability sysio_dataspace() = 0;
 
 		/**
-		 * Return leaf RM session that covers a given address
+		 * Return leaf region map that covers a given address
 		 *
-		 * \param addr  address that is covered by the requested RM session
+		 * \param addr  address that is covered by the requested region map
 		 */
-		virtual Rm_session_capability lookup_rm_session(addr_t const addr) = 0;
+		virtual Capability<Region_map> lookup_region_map(addr_t const addr) = 0;
 
 		enum Syscall {
 			SYSCALL_WRITE,
@@ -164,12 +164,12 @@ namespace Noux {
 		 *********************/
 
 		GENODE_RPC(Rpc_sysio_dataspace, Dataspace_capability, sysio_dataspace);
-		GENODE_RPC(Rpc_lookup_rm_session, Rm_session_capability,
-		           lookup_rm_session, addr_t);
+		GENODE_RPC(Rpc_lookup_region_map, Capability<Region_map>,
+		           lookup_region_map, addr_t);
 		GENODE_RPC(Rpc_syscall, bool, syscall, Syscall);
 		GENODE_RPC(Rpc_next_open_fd, int, next_open_fd, int);
 
-		GENODE_RPC_INTERFACE(Rpc_sysio_dataspace, Rpc_lookup_rm_session,
+		GENODE_RPC_INTERFACE(Rpc_sysio_dataspace, Rpc_lookup_region_map,
 		                     Rpc_syscall, Rpc_next_open_fd);
 	};
 }

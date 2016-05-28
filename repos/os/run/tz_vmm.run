@@ -78,7 +78,7 @@
 #
 # :Tutorial on how to reproduce the Linux images:
 #
-#   [https://github.com/m-stein/genode_binaries/blob/master/tz_vmm/usb_armory/README]
+#   [http://genode.org/files/release-15.11/usb_armory_tz_vmm/README]
 #
 # :Wiki about the USB Armory and the Linux:
 #
@@ -126,12 +126,10 @@ set config {
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
-		<service name="CAP"/>
 		<service name="PD"/>
 		<service name="RM"/>
 		<service name="CPU"/>
 		<service name="LOG"/>
-		<service name="SIGNAL"/>
 		<service name="VM"/>
 	</parent-provides>
 	<default-route>
@@ -198,7 +196,7 @@ install_config $config
 cd bin
 if { $inversepath_linux } {
 
-	set linux_uri "https://github.com/m-stein/genode_binaries/raw/master/tz_vmm/usb_armory/linux"
+	set linux_uri "http://genode.org/files/release-15.11/usb_armory_tz_vmm/linux"
 
 }  elseif { $freescale_linux } {
 
@@ -216,7 +214,7 @@ set boot_modules { core init tz_vmm linux }
 if { $dtb } {
 
 	# download and add DTB
-	set dtb_uri "https://github.com/m-stein/genode_binaries/raw/master/tz_vmm/usb_armory/dtb"
+	set dtb_uri "http://genode.org/files/release-15.11/usb_armory_tz_vmm/dtb"
 	if {![file exists dtb]} {
 		puts "Download device tree ..."
 		exec >& /dev/null wget -c -O dtb $dtb_uri
@@ -235,7 +233,7 @@ if { $mmc_rootfs } {
 	lappend boot_modules part_blk
 
 	# download and add rootfs
-	set rootfs_uri "https://github.com/m-stein/genode_binaries/raw/master/tz_vmm/usb_armory/rootfs"
+	set rootfs_uri "http://genode.org/files/release-15.11/usb_armory_tz_vmm/rootfs"
 	if {![file exists rootfs]} {
 		puts "Download rootfs ..."
 		exec >& /dev/null wget -c -O rootfs.gz $rootfs_uri.gz

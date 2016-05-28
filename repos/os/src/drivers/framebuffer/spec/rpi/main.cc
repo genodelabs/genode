@@ -81,7 +81,7 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 
 		Dataspace_capability dataspace() override
 		{
-			if (_bb_mem.is_constructed())
+			if (_bb_mem.constructed())
 				return _bb_mem->cap();
 			else
 				return _fb_mem.cap();
@@ -102,7 +102,7 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 
 		void refresh(int x, int y, int w, int h) override
 		{
-			if (_bb_mem.is_constructed())
+			if (_bb_mem.constructed())
 				_refresh_buffered(x, y, w, h);
 		}
 };

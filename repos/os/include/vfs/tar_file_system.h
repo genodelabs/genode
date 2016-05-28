@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2014 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -102,8 +102,8 @@ class Vfs::Tar_file_system : public File_system
 
 		public:
 
-			Tar_vfs_handle(File_system &fs, int status_flags, Record const *record)
-			: Vfs_handle(fs, fs, status_flags), _record(record)
+			Tar_vfs_handle(File_system &fs, Allocator &alloc, int status_flags, Record const *record)
+			: Vfs_handle(fs, fs, alloc, status_flags), _record(record)
 			{ }
 
 			Record const *record() const { return _record; }
@@ -457,7 +457,8 @@ class Vfs::Tar_file_system : public File_system
 			out.size  = record->size();
 			out.uid   = record->uid();
 			out.gid   = record->gid();
-			out.inode = (unsigned long)node;
+			out.inode = (Genode::addr_t)node;
+			out.device = (Genode::addr_t)this;
 
 			return STAT_OK;
 		}
@@ -472,12 +473,11 @@ class Vfs::Tar_file_system : public File_system
 			node = node->lookup_child(index);
 
 			if (!node) {
-				out.name[0] = '\0';
 				out.type = DIRENT_TYPE_END;
 				return DIRENT_OK;
 			}
 
-			out.fileno = (unsigned long)node;
+			out.fileno = (Genode::addr_t)node;
 
 			Record const *record = node->record;
 
@@ -508,7 +508,14 @@ class Vfs::Tar_file_system : public File_system
 			return DIRENT_OK;
 		}
 
-		Unlink_result unlink(char const *) override { return UNLINK_ERR_NO_PERM; }
+		Unlink_result unlink(char const *path) override
+		{
+			Node const *node = dereference(path);
+			if (!node)
+				return UNLINK_ERR_NO_ENTRY;
+			else
+				return UNLINK_ERR_NO_PERM;
+		}
 
 		Readlink_result readlink(char const *path, char *buf, file_size buf_size,
 		                         file_size &out_len) override
@@ -528,9 +535,11 @@ class Vfs::Tar_file_system : public File_system
 			return READLINK_OK;
 		}
 
-		Rename_result rename(char const *, char const *) override
+		Rename_result rename(char const *from, char const *to) override
 		{
-			return RENAME_ERR_NO_PERM;
+			if (_root_node.lookup(from) || _root_node.lookup(to))
+				return RENAME_ERR_NO_PERM;
+			return RENAME_ERR_NO_ENTRY;
 		}
 
 		Mkdir_result mkdir(char const *, unsigned) override
@@ -548,7 +557,7 @@ class Vfs::Tar_file_system : public File_system
 			return _cached_num_dirent.num_dirent(path);
 		}
 
-		bool is_directory(char const *path) override
+		bool directory(char const *path) override
 		{
 			Node const *node = dereference(path);
 
@@ -571,16 +580,24 @@ class Vfs::Tar_file_system : public File_system
 			return node ? path : 0;
 		}
 
-		Open_result open(char const *path, unsigned, Vfs_handle **out_handle) override
+		Open_result open(char const *path, unsigned, Vfs_handle **out_handle, Genode::Allocator& alloc) override
 		{
 			Node const *node = dereference(path);
 			if (!node || !node->record || node->record->type() != Record::TYPE_FILE)
 				return OPEN_ERR_UNACCESSIBLE;
 
-			*out_handle = new (env()->heap())
-				Tar_vfs_handle(*this, 0, node->record);
+			*out_handle = new (alloc) Tar_vfs_handle(*this, alloc, 0, node->record);
 
 			return OPEN_OK;
+		}
+
+		void close(Vfs_handle *vfs_handle) override
+		{
+			Tar_vfs_handle *tar_handle =
+				static_cast<Tar_vfs_handle *>(vfs_handle);
+
+			if (tar_handle)
+				destroy(vfs_handle->alloc(), tar_handle);
 		}
 
 

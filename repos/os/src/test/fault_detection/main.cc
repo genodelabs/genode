@@ -16,12 +16,12 @@
 #include <base/sleep.h>
 #include <base/child.h>
 #include <ram_session/connection.h>
-#include <rm_session/connection.h>
 #include <rom_session/connection.h>
 #include <cpu_session/connection.h>
 #include <cap_session/connection.h>
 #include <pd_session/connection.h>
 #include <loader_session/connection.h>
+#include <region_map/client.h>
 
 
 /***************
@@ -56,7 +56,6 @@ class Test_child : public Genode::Child_policy
 			Genode::Pd_connection  pd;
 			Genode::Ram_connection ram;
 			Genode::Cpu_connection cpu;
-			Genode::Rm_connection  rm;
 
 			Resources(Genode::Signal_context_capability sigh, char const *label)
 			: pd(label)
@@ -69,12 +68,15 @@ class Test_child : public Genode::Child_policy
 				env()->ram_session()->transfer_quota(ram.cap(), CHILD_QUOTA);
 
 				/* register default exception handler */
-				cpu.exception_handler(Thread_capability(), sigh);
+				cpu.exception_sigh(sigh);
 
 				/* register handler for unresolvable page faults */
-				rm.fault_handler(sigh);
+				Region_map_client address_space(pd.address_space());
+				address_space.fault_handler(sigh);
 			}
 		} _resources;
+
+		Genode::Child::Initial_thread _initial_thread;
 
 		/*
 		 * The order of the following members is important. The services must
@@ -83,10 +85,11 @@ class Test_child : public Genode::Child_policy
 		 * executing. Otherwise, the child may hand out already destructed
 		 * local services when dispatching an incoming session call.
 		 */
-		Genode::Rom_connection _elf;
-		Genode::Parent_service _log_service;
-		Genode::Parent_service _rm_service;
-		Genode::Child          _child;
+		Genode::Rom_connection    _elf;
+		Genode::Parent_service    _log_service;
+		Genode::Parent_service    _rm_service;
+		Genode::Region_map_client _address_space { _resources.pd.address_space() };
+		Genode::Child             _child;
 
 	public:
 
@@ -98,10 +101,14 @@ class Test_child : public Genode::Child_policy
 		           Genode::Signal_context_capability sigh)
 		:
 			_resources(sigh, elf_name),
+			_initial_thread(_resources.cpu, _resources.pd, elf_name),
 			_elf(elf_name),
 			_log_service("LOG"), _rm_service("RM"),
-			_child(_elf.dataspace(), _resources.pd.cap(), _resources.ram.cap(),
-			       _resources.cpu.cap(), _resources.rm.cap(), &ep, this)
+			_child(_elf.dataspace(), Genode::Dataspace_capability(),
+			       _resources.pd,  _resources.pd,
+			       _resources.ram, _resources.ram,
+			       _resources.cpu, _initial_thread,
+			       *Genode::env()->rm_session(), _address_space, ep, *this)
 		{ }
 
 
@@ -123,7 +130,7 @@ class Test_child : public Genode::Child_policy
 		                         char *args, Genode::size_t args_len)
 		{
 			/* define session label for sessions forwarded to our parent */
-			Genode::Arg_string::set_arg(args, args_len, "label", "child");
+			Genode::Arg_string::set_arg_string(args, args_len, "label", "child");
 		}
 };
 

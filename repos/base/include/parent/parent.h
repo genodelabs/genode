@@ -250,19 +250,10 @@ class Genode::Parent
 		GENODE_RPC(Rpc_yield_request, Resource_args, yield_request);
 		GENODE_RPC(Rpc_yield_response, void, yield_response);
 
-		typedef Meta::Type_tuple<Rpc_exit,
-		        Meta::Type_tuple<Rpc_announce,
-		        Meta::Type_tuple<Rpc_session,
-		        Meta::Type_tuple<Rpc_upgrade,
-		        Meta::Type_tuple<Rpc_close,
-		        Meta::Type_tuple<Rpc_main_thread,
-		        Meta::Type_tuple<Rpc_resource_avail_sigh,
-		        Meta::Type_tuple<Rpc_resource_request,
-		        Meta::Type_tuple<Rpc_yield_sigh,
-		        Meta::Type_tuple<Rpc_yield_request,
-		        Meta::Type_tuple<Rpc_yield_response,
-		                         Meta::Empty>
-		        > > > > > > > > > > Rpc_functions;
+		GENODE_RPC_INTERFACE(Rpc_exit, Rpc_announce, Rpc_session, Rpc_upgrade,
+		                     Rpc_close, Rpc_main_thread, Rpc_resource_avail_sigh,
+		                     Rpc_resource_request, Rpc_yield_sigh, Rpc_yield_request,
+		                     Rpc_yield_response);
 };
 
 

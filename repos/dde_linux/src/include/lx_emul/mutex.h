@@ -24,6 +24,7 @@ struct mutex
 	int       state;
 	void     *holder;
 	void     *waiters;
+	unsigned  counter;
 	unsigned  id; /* for debugging */
 };
 

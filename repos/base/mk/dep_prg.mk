@@ -3,6 +3,8 @@
 #
 all:
 
+ACCUMULATE_MISSING_PORTS = 1
+
 #
 # Include common utility functions
 #
@@ -53,7 +55,11 @@ ifneq ($(LIBS),)
 	@(echo "DEP_$(TARGET).prg = $(foreach l,$(LIBS),$l.lib \$$(DEP_$l.lib))"; \
 	  echo "") >> $(LIB_DEP_FILE)
 endif
-	@(echo "$(TARGET).prg: $(addsuffix .lib,$(LIBS))"; \
+ifneq ($(DEP_MISSING_PORTS),)
+	@(echo "MISSING_PORTS += $(DEP_MISSING_PORTS)"; \
+	  echo "") >> $(LIB_DEP_FILE)
+endif
+	@(echo "$(TARGET).prg: check_ports $(addsuffix .lib,$(LIBS))"; \
 	  echo "	@\$$(MKDIR) -p $(PRG_REL_DIR)"; \
 	  echo "	\$$(VERBOSE_MK)\$$(MAKE) $(VERBOSE_DIR) -C $(PRG_REL_DIR) -f \$$(BASE_DIR)/mk/prg.mk \\"; \
 	  echo "	     REP_DIR=$(REP_DIR) \\"; \

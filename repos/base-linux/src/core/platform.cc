@@ -15,6 +15,9 @@
 #include <base/lock.h>
 #include <linux_dataspace/client.h>
 
+/* base-internal includes */
+#include <base/internal/native_thread.h>
+
 /* local includes */
 #include "platform.h"
 #include "core_env.h"
@@ -155,37 +158,36 @@ void Core_parent::exit(int exit_value)
 
 namespace Genode {
 
-	Native_connection_state server_socket_pair()
+	Socket_pair server_socket_pair()
 	{
-		return create_server_socket_pair(Thread_base::myself()->tid().tid);
+		return create_server_socket_pair(Thread::myself()->native_thread().tid);
 	}
 
-	void destroy_server_socket_pair(Native_connection_state const &ncs)
+	void destroy_server_socket_pair(Socket_pair socket_pair)
 	{
 		/*
 		 * As entrypoints in core are never destructed, this function is only
 		 * called on IPC-client destruction. In this case, it's a no-op in core
 		 * as well as in Genode processes.
 		 */
-		if (ncs.server_sd != -1 || ncs.client_sd != -1)
+		if (socket_pair.server_sd != -1 || socket_pair.client_sd != -1)
 			PERR("%s called for IPC server which should never happen", __func__);
 	}
 }
 
 
 /****************************************************
- ** Support for Platform_env_base::Rm_session_mmap **
+ ** Support for Platform_env_base::Region_map_mmap **
  ****************************************************/
 
-Genode::size_t
-Platform_env_base::Rm_session_mmap::_dataspace_size(Capability<Dataspace> ds_cap)
+size_t Region_map_mmap::_dataspace_size(Capability<Dataspace> ds_cap)
 {
 	if (!ds_cap.valid())
 		return Local_capability<Dataspace>::deref(ds_cap)->size();
 
 	/* use RPC if called from a different thread */
 	if (!core_env()->entrypoint()->is_myself()) {
-		/* release Rm_session_mmap::_lock during RPC */
+		/* release Region_map_mmap::_lock during RPC */
 		_lock.unlock();
 		Genode::size_t size = Dataspace_client(ds_cap).size();
 		_lock.lock();
@@ -198,10 +200,10 @@ Platform_env_base::Rm_session_mmap::_dataspace_size(Capability<Dataspace> ds_cap
 }
 
 
-int Platform_env_base::Rm_session_mmap::_dataspace_fd(Capability<Dataspace> ds_cap)
+int Region_map_mmap::_dataspace_fd(Capability<Dataspace> ds_cap)
 {
 	if (!core_env()->entrypoint()->is_myself()) {
-		/* release Rm_session_mmap::_lock during RPC */
+		/* release Region_map_mmap::_lock during RPC */
 		_lock.unlock();
 		int socket = Linux_dataspace_client(ds_cap).fd().dst().socket;
 		_lock.lock();
@@ -212,7 +214,7 @@ int Platform_env_base::Rm_session_mmap::_dataspace_fd(Capability<Dataspace> ds_c
 
 	/*
 	 * Return a duplicate of the dataspace file descriptor, which will be freed
-	 * immediately after mmap'ing the file (see 'Rm_session_mmap').
+	 * immediately after mmap'ing the file (see 'Region_map_mmap').
 	 *
 	 * Handing out the original file descriptor would result in the premature
 	 * release of the descriptor. So the descriptor could be reused (i.e., as a
@@ -224,10 +226,10 @@ int Platform_env_base::Rm_session_mmap::_dataspace_fd(Capability<Dataspace> ds_c
 }
 
 
-bool Platform_env_base::Rm_session_mmap::_dataspace_writable(Dataspace_capability ds_cap)
+bool Region_map_mmap::_dataspace_writable(Dataspace_capability ds_cap)
 {
 	if (!core_env()->entrypoint()->is_myself()) {
-		/* release Rm_session_mmap::_lock during RPC */
+		/* release Region_map_mmap::_lock during RPC */
 		_lock.unlock();
 		bool writable = Dataspace_client(ds_cap).writable();
 		_lock.lock();

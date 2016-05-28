@@ -29,19 +29,6 @@ static inline char const *basename(char const *path)
 
 
 /**
- * Return true if specified path is a base name (contains no path delimiters)
- */
-static inline bool is_basename(char const *path)
-{
-	for (; *path; path++)
-		if (*path == '/')
-			return false;
-
-	return true;
-}
-
-
-/**
  * Return true if null-terminated string 'substr' occurs in null-terminated
  * string 'str'
  */

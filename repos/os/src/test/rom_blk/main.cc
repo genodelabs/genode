@@ -24,7 +24,7 @@
 #include <rom_session/connection.h>
 
 
-class Comparer : public Genode::Thread<8192>
+class Comparer : public Genode::Thread_deprecated<8192>
 {
 	private:
 
@@ -42,7 +42,7 @@ class Comparer : public Genode::Thread<8192>
 
 		Comparer(Genode::Allocator_avl *block_alloc,
 		         const char* filename)
-		: Thread("comparer"), _blk_con(block_alloc), _rom(filename),
+		: Thread_deprecated("comparer"), _blk_con(block_alloc), _rom(filename),
 		  _addr(Genode::env()->rm_session()->attach(_rom.dataspace())) { }
 
 		void entry()

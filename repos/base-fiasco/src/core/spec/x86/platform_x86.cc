@@ -11,7 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <fiasco/thread_helper.h>
+#include <base/internal/fiasco_thread_helper.h>
 
 #include "platform.h"
 #include "util.h"

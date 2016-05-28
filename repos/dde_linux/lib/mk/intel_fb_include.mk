@@ -9,7 +9,7 @@ ifeq ($(called_from_lib_mk),yes)
 LX_CONTRIB_DIR := $(call select_from_ports,dde_linux)/src/drivers/framebuffer/intel
 LX_EMUL_H      := $(REP_DIR)/src/drivers/framebuffer/intel/include/lx_emul.h
 
-GEN_INCLUDES := $(shell grep -rh "^\#include .*\/" $(LX_CONTRIB_DIR) |\
+GEN_INCLUDES := $(shell grep -rh "^\#include .*" $(LX_CONTRIB_DIR) |\
                         sed "s/^\#include [^<\"]*[<\"]\([^>\"]*\)[>\"].*/\1/" | sort | uniq)
 
 #

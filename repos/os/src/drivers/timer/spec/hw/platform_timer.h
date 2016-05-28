@@ -15,115 +15,94 @@
 #define _OS__SRC__DRIVERS__TIMER__HW__PLATFORM_TIMER_H_
 
 /* Genode includes */
-#include <irq_session/connection.h>
+#include <base/signal.h>
 #include <os/server.h>
 
-/* Local includes */
-#include <platform_timer_base.h>
+/* base-hw includes */
+#include <kernel/interface.h>
 
 /**
  * Platform timer specific for base-hw
  */
-class Platform_timer : public Platform_timer_base,
-                       public Genode::Irq_connection
+class Platform_timer
 {
 	private:
 
-		enum { MAX_TIMER_IRQS_PER_MS = 1 };
+		using time_t = Kernel::time_t;
 
-		unsigned long   const   _max_timeout_us;        /* maximum timeout in microsecs */
-		unsigned long mutable   _curr_time_us;          /* accumulate already measured timeouts */
-		unsigned long mutable   _init_value;            /* mark last processed timer value */
-		Genode::Lock  mutable   _update_curr_time_lock; /* serialize curr_time access */
-
-		Genode::Signal_receiver _irq_rec;
-		Genode::Signal_context  _irq_ctx;
+		Genode::Signal_receiver _sigrec;
+		Genode::Signal_context  _sigctx;
+		Kernel::capid_t const   _sigid;
+		unsigned long mutable   _curr_time_us;
+		Genode::Lock  mutable   _curr_time_us_lock;
+		unsigned long mutable   _last_timeout_us;
+		time_t const            _max_timeout_us;
 
 	public:
 
-		/**
-		 * Constructor
-		 */
 		Platform_timer()
 		:
-			Irq_connection(Platform_timer_base::IRQ),
-			_max_timeout_us(tics_to_us(max_value())),
-			_curr_time_us(0), _init_value(0)
+			_sigid(_sigrec.manage(&_sigctx).dst()), _curr_time_us(0),
+			_last_timeout_us(0), _max_timeout_us(Kernel::timeout_max_us())
 		{
-			Irq_connection::sigh(_irq_rec.manage(&_irq_ctx));
-			Irq_connection::ack_irq();
+			PINF("Maximum timeout %lu us", _max_timeout_us);
+			if (max_timeout() < min_timeout()) {
+				PERR("Minimum timeout greater then maximum timeout");
+				throw Genode::Exception();
+			}
 		}
 
-		~Platform_timer() { _irq_rec.dissolve(&_irq_ctx); }
+		~Platform_timer() { _sigrec.dissolve(&_sigctx); }
 
 		/**
 		 * Refresh and return our instance-own "now"-time in microseconds
 		 *
-		 * This function has to be executed regulary,
-		 * at least all max_timeout() us.
+		 * This function has to be executed regulary, at least all
+		 * max_timeout() us.
 		 */
 		unsigned long curr_time() const
 		{
-			/* serialize updates on timeout counter */
-			Genode::Lock::Guard lock(_update_curr_time_lock);
-
-			/* get time that passed since last time we've read the timer */
-			bool wrapped;
-			unsigned long const v = value(wrapped);
-			unsigned long passed_time;
-			if (wrapped) passed_time = _init_value + max_value() - v;
-			else passed_time = _init_value - v;
-
-			/* update initial value for subsequent calculations */
-			_init_value = v;
-
-			/* refresh our timeout counter and return it */
-			_curr_time_us += tics_to_us(passed_time);
+			Genode::Lock::Guard lock(_curr_time_us_lock);
+			time_t const passed_us = Kernel::timeout_age_us();
+			_last_timeout_us -= passed_us;
+			_curr_time_us += passed_us;
 			return _curr_time_us;
 		}
 
 		/**
-		 * Return maximum timeout as supported by the platform
+		 * Return maximum timeout in microseconds
 		 */
-		unsigned long max_timeout() const { return _max_timeout_us; }
+		time_t max_timeout() const { return _max_timeout_us; }
 
 		/**
-		 * Schedule next timeout, oversized timeouts are truncated
+		 * Return minimum timeout in microseconds
+		 */
+		static time_t min_timeout() { return 1000; }
+
+		/**
+		 * Schedule next timeout, bad timeouts are adapted
 		 *
 		 * \param  timeout_us  Timeout in microseconds
 		 */
-		void schedule_timeout(unsigned long timeout_us)
+		void schedule_timeout(time_t timeout_us)
 		{
-			/* serialize updates on timeout counter */
-			Genode::Lock::Guard lock(_update_curr_time_lock);
+			Genode::Lock::Guard lock(_curr_time_us_lock);
+			if (timeout_us < min_timeout()) { timeout_us = min_timeout(); }
+			if (timeout_us > max_timeout()) { timeout_us = max_timeout(); }
 
 			/*
-			 * Constrain timout value with our maximum IRQ rate and the maximum
-			 * possible timeout.
-			 */
-			if (timeout_us < 1000/MAX_TIMER_IRQS_PER_MS)
-				timeout_us = 1000/MAX_TIMER_IRQS_PER_MS;
-			if (timeout_us > _max_timeout_us)
-				timeout_us = _max_timeout_us;
-
-			/*
-			 * Once the timer runs, one can wait for its IRQ and update our
+			 * Once the timer runs, one can wait for its signal and update our
 			 * timeout counter through 'curr_time()' (We rely on the fact that
 			 * this is done at least one time in every max-timeout period)
 			 */
-			_init_value = us_to_tics(timeout_us);
-			run_and_wrap(_init_value);
+			_last_timeout_us = timeout_us;
+			Kernel::timeout(timeout_us, _sigid);
 		}
 
 		/**
 		 * Await the lastly scheduled timeout
 		 */
-		void wait_for_timeout(Genode::Thread_base *)
-		{
-			_irq_rec.wait_for_signal();
-			Irq_connection::ack_irq();
-		}
+		void wait_for_timeout(Genode::Thread *) { _sigrec.wait_for_signal(); }
 };
 
 #endif /* _OS__SRC__DRIVERS__TIMER__HW__PLATFORM_TIMER_H_ */
-

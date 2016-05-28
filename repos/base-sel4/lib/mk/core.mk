@@ -7,10 +7,13 @@ SRC_CC      += \
                ram_session_component.cc \
                ram_session_support.cc \
                rom_session_component.cc \
-               cap_session_component.cc \
                cpu_session_component.cc \
                cpu_session_support.cc \
+               cpu_thread_component.cc \
                pd_session_component.cc \
+               rpc_cap_factory.cc \
+               pd_assign_pci.cc \
+               pd_upgrade_ram_quota.cc \
                io_mem_session_component.cc \
                io_mem_session_support.cc \
                thread_start.cc \
@@ -19,26 +22,24 @@ SRC_CC      += \
                platform_services.cc \
                platform.cc \
                dataspace_component.cc \
-               rm_session_component.cc \
-               rm_session_support.cc \
+               region_map_component.cc \
+               region_map_support.cc \
                irq_session_component.cc \
-               signal_session_component.cc \
                signal_source_component.cc \
                trace_session_component.cc \
-               core_rm_session.cc \
+               core_region_map.cc \
                core_mem_alloc.cc \
+               core_rpc_cap_alloc.cc \
                dump_alloc.cc \
-               context_area.cc \
+               stack_area.cc \
                capability_space.cc \
                pager.cc \
                pager_ep.cc
 
 LIBS        += core_printf base-common syscall
 
-INC_DIR     += $(REP_DIR)/src/core/include \
-               $(GEN_CORE_DIR)/include \
-               $(REP_DIR)/src/base \
-               $(BASE_DIR)/src/base/thread
+INC_DIR     += $(REP_DIR)/src/core/include $(GEN_CORE_DIR)/include \
+               $(REP_DIR)/src/include      $(BASE_DIR)/src/include
 
 include $(GEN_CORE_DIR)/version.inc
 
@@ -46,16 +47,20 @@ vpath main.cc                     $(GEN_CORE_DIR)
 vpath ram_session_component.cc    $(GEN_CORE_DIR)
 vpath rom_session_component.cc    $(GEN_CORE_DIR)
 vpath cpu_session_component.cc    $(GEN_CORE_DIR)
+vpath cpu_session_support.cc      $(GEN_CORE_DIR)
+vpath cpu_thread_component.cc     $(GEN_CORE_DIR)
 vpath pd_session_component.cc     $(GEN_CORE_DIR)
-vpath rm_session_component.cc     $(GEN_CORE_DIR)
+vpath pd_assign_pci.cc            $(GEN_CORE_DIR)
+vpath pd_upgrade_ram_quota.cc     $(GEN_CORE_DIR)
+vpath region_map_component.cc     $(GEN_CORE_DIR)
 vpath io_mem_session_component.cc $(GEN_CORE_DIR)
 vpath io_mem_session_support.cc   $(GEN_CORE_DIR)
 vpath platform_services.cc        $(GEN_CORE_DIR)
-vpath signal_session_component.cc $(GEN_CORE_DIR)
 vpath signal_source_component.cc  $(GEN_CORE_DIR)
 vpath trace_session_component.cc  $(GEN_CORE_DIR)
 vpath dataspace_component.cc      $(GEN_CORE_DIR)
 vpath core_mem_alloc.cc           $(GEN_CORE_DIR)
+vpath core_rpc_cap_alloc.cc       $(GEN_CORE_DIR)
 vpath dump_alloc.cc               $(GEN_CORE_DIR)
 vpath pager_ep.cc                 $(GEN_CORE_DIR)
 vpath %.cc                        $(REP_DIR)/src/core

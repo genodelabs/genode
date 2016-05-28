@@ -27,6 +27,7 @@
 #include <base/lock.h>
 #include <util/list.h>
 #include <rm_session/connection.h>
+#include <region_map/client.h>
 
 #define PAGE_SIZE BACKUP_PAGESIZE
 
@@ -39,14 +40,16 @@ class Vmm_memory
 	struct Region;
 
 	typedef Genode::Ram_session            Ram_session;
-	typedef Genode::Rm_session             Rm_session;
+	typedef Genode::Region_map             Region_map;
 	typedef Genode::size_t                 size_t;
 	typedef Genode::Lock                   Lock;
 	typedef Genode::List<Region>           Region_list;
 
 	private:
 
-		struct Region : Region_list::Element, Genode::Rm_connection
+		struct Region : public  Region_list::Element,
+		                private Genode::Rm_connection,
+		                public  Genode::Region_map_client
 		{
 			PPDMDEVINS           pDevIns;
 			unsigned const       iRegion;
@@ -61,11 +64,11 @@ class Vmm_memory
 			Region(Ram_session &ram, size_t size, PPDMDEVINS pDevIns,
 			           unsigned iRegion, unsigned sub_rm_max_ds = 32 * 1024 * 1024)
 			:
-				Rm_connection(0, size),
+				Region_map_client(Rm_connection::create(size)),
 				pDevIns(pDevIns),
 				iRegion(iRegion),
 				vm_phys(0), pfnHandlerR3(0), pvUserR3(0),
-				_base(Genode::env()->rm_session()->attach(Rm_connection::dataspace())),
+				_base(Genode::env()->rm_session()->attach(Region_map_client::dataspace())),
 				_size(size)
 			{
 				Genode::addr_t rest_size = _size;
@@ -119,7 +122,7 @@ class Vmm_memory
 
 		/**
 		 * \throw  Ram_session::Alloc_failed
-		 * \throw  Rm_session::Attach_failed
+		 * \throw  Region_map::Attach_failed
 		 */
 		void *alloc(size_t cb, PPDMDEVINS pDevIns, unsigned iRegion)
 		{
@@ -135,7 +138,7 @@ class Vmm_memory
 			} catch (Ram_session::Alloc_failed) {
 				PERR("Vmm_memory::alloc(0x%zx): RAM allocation failed", cb);
 				throw;
-			} catch (Rm_session::Attach_failed) {
+			} catch (Region_map::Attach_failed) {
 				PERR("Vmm_memory::alloc(0x%zx): RM attach failed", cb);
 				throw;
 			}

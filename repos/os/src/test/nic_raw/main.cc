@@ -29,7 +29,7 @@ enum {
 	STACK_SIZE = 4096,
 };
 
-class Nic_worker : public Genode::Thread<STACK_SIZE>
+class Nic_worker : public Genode::Thread_deprecated<STACK_SIZE>
 {
 	private:
 
@@ -54,7 +54,7 @@ class Nic_worker : public Genode::Thread<STACK_SIZE>
 
 		Nic_worker(Nic::Connection *nic)
 		:
-			Genode::Thread<STACK_SIZE>("nic-worker"), _nic(nic)
+			Genode::Thread_deprecated<STACK_SIZE>("nic-worker"), _nic(nic)
 		{
 			using namespace Genode;
 

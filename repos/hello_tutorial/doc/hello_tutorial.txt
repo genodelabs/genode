@@ -1,32 +1,25 @@
 
-               Creating your first Genode application
+                     A simple client-server scenario
 
-                      Björn Döbel and Norman Feske
+                      BjÃ¶rn DÃ¶bel and Norman Feske
 
 Abstract
 ########
 
-This section will give you a step-by-step introduction for writing your first
-little client-server application using the Genode OS Framework. We will create
+This tutorial will give you a step-by-step introduction for creating your first
+little client-server application scenario using the Genode OS Framework. We will create
 a server that provides two functions to its clients and a client that uses
 these functions. The code samples in this section are not necessarily complete.
-You can download the complete tutorial source code from the link at the bottom
-of this page.
+You can can find the complete source code at the _repos/hello_tutorial_
+directory within Genode's source tree.
 
 
 Prerequisites
 #############
 
-We assume that you know how to write code and have read:
-
-Norman Feske and Christian Helmuth:
-"Design of the Genode OS Architecture",
-_TU Dresden technical report TUD-FI06-07, Dresden, Germany, December 2006_.
-
-[http://genode-labs.com/publications/bastei-design-2006.pdf]
-
-so that you have a basic understanding of what Genode is and how things work.
-Of course, you will also need to check out Genode before going any further.
+We assume that you have acquainted yourself with the basic concepts of
+Genode and have read the "Getting started" section of the Genode Foundations
+book. Our can download the book from [http://genode.org].
 
 
 Setting up the build environment
@@ -46,16 +39,16 @@ following subdirectory structure:
 ! hello_tutorial/src/hello/client
 
 In the remaining document when referring to non-absolute directories, these are
-local to 'hello_tutorial'.
-Now we tell the Genode build system, that there is a new repository. Therefore
-we add the path to our new repository to 'build/etc/build.conf':
+local to _hello_tutorial_.
+Now we tell the Genode build system that there is a new repository. Therefore
+we add the path to our new repository to _build/etc/build.conf_:
 
 ! REPOSITORIES += /path/to/your/hello_tutorial
 
-Later we will place build description files into the tutorial subdirectories so
-that the build system can figure out what is needed to build your applications.
-You can then build these apps from the 'build' directory using one of the
-following commands:
+Later we will place build description files into the tutorial subdirectories
+so that the build system can figure out what is needed to build your custom
+components. You can then build these components from the _build_ directory
+using one of the following commands:
 
 ! make hello
 ! make hello/server
@@ -67,8 +60,8 @@ commands build only the specific target respectively.
 Defining an interface
 #####################
 
-In our example we are going to implement a server providing two functions:
-:'void say_hello()': makes the server print "Hello world."
+In our example, we are going to implement a server providing two functions:
+:'void say_hello()': makes the server print a message, and
 :'int add(int a, int b)': adds two integers and returns the result.
 
 The interface of a Genode service is called a _session_. We will define it as a
@@ -77,36 +70,35 @@ C++ class in 'include/hello_session/hello_session.h'
 !#include <session/session.h>
 !#include <base/rpc.h>
 !
-!namespace Hello {
+!namespace Hello { struct Session; }
 !
-!  struct Session : public Genode::Session
-!  {
-!      static const char *service_name() { return "Hello"; }
+!struct Hello::Session : Genode::Session
+!{
+!  static const char *service_name() { return "Hello"; }
 !
-!      virtual void say_hello() = 0;
-!      virtual int add(int a, int b) = 0;
+!  virtual void say_hello() = 0;
+!  virtual int add(int a, int b) = 0;
 !
-!      GENODE_RPC(Rpc_say_hello, void, say_hello);
-!      GENODE_RPC(Rpc_add, int, add, int, int);
-!      GENODE_RPC_INTERFACE(Rpc_say_hello, Rpc_add);
-!  };
-!}
+!  GENODE_RPC(Rpc_say_hello, void, say_hello);
+!  GENODE_RPC(Rpc_add, int, add, int, int);
+!  GENODE_RPC_INTERFACE(Rpc_say_hello, Rpc_add);
+!};
 
 As a good practice, we place the Hello service into a dedicated namespace. The
 _Hello::Session_ class defines the public interface for our service as well as
 the meta information that Genode needs to perform remote procedure calls (RPC)
-accross process boundaries.
-Furthermore, we use the interface to specify the name of the
-service by using the 'service_name' function. This function will later
-be used by both the server for announcing the service at its parent and
-the client for requesting the creation of a "Hello" session.
+across component boundaries.
+Furthermore, we use the interface to specify the name of the service by
+providing the 'service_name' method. This method will later be used by both
+the server for announcing the service at its parent and the client for
+requesting the creation of a "Hello" session.
 
 The 'GENODE_RPC' macro is used to declare an RPC function. Its first argument
 is a type name that is used to refer to the RPC function. The type name can
-be choosen freely. However, it is a good practice to prefix the type name
+be chosen freely. However, it is a good practice to prefix the type name
 with 'Rpc_'. The remaining arguments are the return type of the RPC function,
 the server-side name of the RPC implementation, and the function arguments.
-The 'GENODE_RPC_INTERFACE' macros declares the list of RPC functions that the
+The 'GENODE_RPC_INTERFACE' macro declares the list of RPC functions that the
 RPC interface is comprised of. Under the hood, the 'GENODE_RPC*' macros enrich
 the compound class with the type information used to automatically generate the
 RPC communication code at compile time. They do not add any members to the
@@ -129,21 +121,20 @@ instantiating this template class with the session interface as argument, the
 'Session_component' class gets equipped with the communication code that
 will make the server's functions accessible via RPC.
 
-!#include <base/printf.h>
+!#include <base/log.h>
 !#include <hello_session/hello_session.h>
 !#include <base/rpc_server.h>
 !
-!namespace Hello {
+!namespace Hello { struct Session_component; }
 !
-!  struct Session_component : Genode::Rpc_object<Session>
-!  {
-!    void say_hello() {
-!      PDBG("I am here... Hello."); }
+!struct Hello::Session_component : Genode::Rpc_object<Session>
+!{
+!  void say_hello() {
+!    Genode::log("I am here... Hello."); }
 !
-!    int add(int a, int b) {
-!      return a + b; }
-!  };
-!}
+!  int add(int a, int b) {
+!    return a + b; }
+!};
 
 
 Getting ready to start
@@ -151,89 +142,86 @@ Getting ready to start
 
 The server component won't help us much as long as we don't use it in a server
 application. Starting a service with Genode works as follows:
-* Open a CAP session to our parent, so that we are able to create capabilities.
 * Create and announce a root capability to our parent.
 * When a client requests our service, the parent invokes the root capability to
   create session objects and session capabilities. These are then used by the
   client to communicate with the server.
 
 The class 'Hello::Root_component' is derived from Genode's 'Root_component'
-class template. This class defines a '_create_session' method which is called
+class template. This class defines a '_create_session' method, which is called
 each time a client wants to establish a connection to the server. This function
 is responsible for parsing the parameter string the client hands over to the
-server and creating a 'Hello::Session_component' object from these parameters.
+server and for creating a 'Hello::Session_component' object from these
+parameters.
 
-!#include <base/printf.h>
+!#include <base/log.h>
 !#include <root/component.h>
 !
-!namespace Hello {
+!namespace Hello { class Root_component; }
 !
-!  class Root_component : public Genode::Root_component<Session_component>
-!  {
-!    protected:
-!
-!      Session_component *_create_session(const char *args)
-!      {
-!        PDBG("creating hello session.");
-!        return new (md_alloc()) Session_component();
-!      }
-!
-!    public:
-!
-!      Root_component(Genode::Rpc_entrypoint *ep,
-!                     Genode::Allocator      *allocator)
-!      : Genode::Root_component<Session_component>(ep, allocator)
-!      {
-!        PDBG("Creating root component.");
-!      }
-!  };
-!}
-
-Now we only need a main method that announces the service to our parent:
-
-!#include <base/sleep.h>
-!#include <cap_session/connection.h>
-!
-!using namespace Genode;
-!
-!int main(void)
+!class Hello::Root_component
+!:
+!  public Genode::Root_component<Session_component>
 !{
-!  /*
-!   * Get a session for the parent's capability service, so that we
-!   * are able to create capabilities.
-!   */
-!  Cap_connection cap;
+!  protected:
 !
-!  /*
-!   * A sliced heap is used for allocating session objects - thereby we
-!   * can release objects separately.
-!   */
-!  static Sliced_heap sliced_heap(env()->ram_session(),
-!                                 env()->rm_session());
+!    Session_component *_create_session(const char *args)
+!    {
+!      Genode::log("creating hello session");
+!      return new (md_alloc()) Session_component();
+!    }
 !
-!  /*
-!   * Create objects for use by the framework.
-!   *
-!   * An 'Rpc_entrypoint' is created to announce our service's root
-!   * capability to our parent, manage incoming session creation
-!   * requests, and dispatch the session interface. The incoming RPC
-!   * requests are dispatched via a dedicated thread. The 'STACK_SIZE'
-!   * argument defines the size of the thread's stack. The additional
-!   * string argument is the name of the entry point, used for
-!   * debugging purposes only.
-!   */
-!  enum { STACK_SIZE = 4096 };
-!  static Rpc_entrypoint ep(&cap, STACK_SIZE, "hello_ep");
+!  public:
 !
-!  static Hello::Root_component hello_root(&ep, &sliced_heap);
-!  env()->parent()->announce(ep.manage(&hello_root));
+!    Root_component(Genode::Entrypoint &ep,
+!                   Genode::Allocator &alloc)
+!    :
+!      Genode::Root_component<Session_component>(ep, alloc)
+!    {
+!      Genode::log("creating root component");
+!    }
+!};
+
+Now we only need the actual application code that instantiates the root
+component and the service to our parent. It is good practice to represent
+the applications as a class called 'Main' with its constructor taking the
+component's environment as argument.
+
+!#include <base/component.h>
 !
-!  /*
-!   * We are done with this and only act upon client requests now.
-!   */
-!  sleep_forever();
+!namespace Hello { struct Main; }
 !
-!  return 0;
+!struct Hello::Main
+!{
+!  Genode::Env &env;
+!
+!  Genode::Sliced_heap sliced_heap { env.ram(), env.rm() };
+!
+!  Hello::Root_component root { env.ep(), sliced_heap };
+!
+!  Main(Genode::Env &env) : env(env)
+!  {
+!    env.parent().announce(env.ep().manage(root));
+!  }
+!};
+
+The sliced heap is used for the dynamic allocation of session objects.
+It interacts with the component's RAM session to obtain the backing store
+for the allocations, and the component's region map to make
+backing store visible within its virtual address space.
+
+The announcement of the service is performed by the body of the constructor by
+creating a capability for the root component as return value of the 'manage'
+method, and passing this capability to the parent.
+
+The 'Component::construct' function of the hello server simply constructs a singleton
+instance of 'Hello::Main' as a _static_ local variable.
+
+!Genode::size_t Component::stack_size() { return 64*1024; }
+!
+!void Component::construct(Genode::Env &env)
+!{
+!  static Hello::Main main(env);
 !}
 
 
@@ -249,14 +237,12 @@ create a 'target.mk' file in 'src/hello/server':
 ! SRC_CC = main.cc
 ! LIBS   = base
 
-To tell the init process to start the new program, we have to add a '<start>'
+To tell the init component to start the new program, we have to add a '<start>'
 entry to init's 'config' file, which is located at 'build/bin/config'.
 
 ! <config>
 !   <parent-provides>
-!     <service name="CAP"/>
 !     <service name="LOG"/>
-!     <service name="RM"/>
 !   </parent-provides>
 !   <default-route>
 !     <any-service> <parent/> <any-child/> </any-service>
@@ -267,53 +253,51 @@ entry to init's 'config' file, which is located at 'build/bin/config'.
 !   </start>
 ! </config>
 
-For information about the configuring the init process, please refer
-to [http://genode.org/documentation/developer-resources/init].
-
-Now rebuild 'core', 'init', and 'hello/server', go to 'build/bin', run './core'.
+For information about the configuring concept, please refer to the
+"System configuration" section of the Genode Foundations book.
 
 
 Writing client code
 ###################
 
-In the next part we are going to have a look at the client-side implementation.
+In the next part, we are going to have a look at the client-side implementation.
 The most basic steps here are:
 
-* Get a capability for the "Hello" service from our parent
+* Obtain a capability for the "Hello" service from our parent
 * Invoke RPCs via the obtained capability
 
 
 A client object
 ===============
 
-We will encapsulate the Genode IPC interface in a 'Hello::Session_client' class.
+We will encapsulate the Genode RPC interface in a 'Hello::Session_client' class.
 This class derives from 'Hello:Session' and implements a client-side object.
 Therefore edit 'include/hello_session/client.h':
 
 !#include <hello_session/hello_session.h>
 !#include <base/rpc_client.h>
-!#include <base/printf.h>
+!#include <base/log.h>
 !
-!namespace Hello {
+!namespace Hello { struct Session_client; }
 !
-!  struct Session_client : Genode::Rpc_client<Session>
+!
+!struct Hello::Session_client : Genode::Rpc_client<Session>
+!{
+!  Session_client(Genode::Capability<Session> cap)
+!  : Genode::Rpc_client<Session>(cap) { }
+!
+!  void say_hello()
 !  {
-!    Session_client(Genode::Capability<Session> cap)
-!    : Genode::Rpc_client<Session>(cap) { }
+!    Genode::log("issue RPC for saying hello");
+!    call<Rpc_say_hello>();
+!    Genode::log("returned from 'say_hello' RPC call");
+!  }
 !
-!    void say_hello()
-!    {
-!      PDBG("Saying Hello.");
-!      call<Rpc_say_hello>();
-!    }
-!
-!    int add(int a, int b)
-!    {
-!      return call<Rpc_add>(a, b);
-!    }
-!  };
-!}
-
+!  int add(int a, int b)
+!  {
+!    return call<Rpc_add>(a, b);
+!  }
+!};
 
 A 'Hello::Session_client' object takes a 'Capability' as constructor argument.
 This capability is tagged with the session type and gets passed to the
@@ -322,51 +306,26 @@ code via the 'call' template function. The template argument for 'call' is the
 RPC type as declared in the session interface.
 
 
-Client implementation
-=====================
+A connection object
+===================
 
-The client-side implementation using the 'Hello::Session_client' object is pretty
-straightforward. We request a capability for the Hello service from our parent.
-This call blocks as long as the service has not been registered at the parent.
-Afterwards, we create a 'Hello::Session_client' object with it and invoke calls. In
-addition, we use the Timer service that comes with Genode. This server
-enables us to sleep for a certain amount of milliseconds.
+Whereas the 'Hello::Session_client' is able to perform RPC calls to an RPC
+object when given a capability for such an object, the question of how
+the client obtains this capability is still open.
+Here, the so-called connection object enters the picture. A connection
+object has the purposes:
 
-Put this code into 'src/hello/client/main.cc':
+* It transforms session-specific parameters into a format that can be
+  passed to the server along with the session request. The connection
+  object thereby hides the details of how the session parameters are
+  represented "on the wire".
 
-!#include <base/env.h>
-!#include <base/printf.h>
-!#include <hello_session/client.h>
-!#include <timer_session/connection.h>
-!
-!using namespace Genode;
-!
-!int main(void)
-!{
-!  Capability<Hello::Session> h_cap =
-!    env()->parent()->session<Hello::Session>("foo, ram_quota=4K");
-!
-!  Hello::Session_client h(h_cap);
-!
-!  Timer::Connection timer;
-!
-!  while (1) {
-!    h.say_hello();
-!    timer.msleep(1000);
-!
-!    int foo = h.add(2,5);
-!    PDBG("Added 2 + 5 = %d", foo);
-!    timer.msleep(1000);
-!  }
-!
-!  return 0;
-!}
+* It issues a session request to the parent and retrieves a session
+  capability as response.
 
-Compared to the creation of the Timer session, the creation of "Hello" session
-looks rather inconvenient and takes multiple lines of code. For this reason, it
-is a good practice to supply a convenience wrapper for creating sessions as
-used for the timer session. This wrapper is also the right place to for
-documenting session-construction arguments and assembling the argument string.
+* It acts as a session-client object such that the session's RPC functions
+  can directly be called on the connection object.
+
 By convention, the wrapper is called 'connection.h' and placed in the directory
 of the session interface. For our case, the file
 'include/hello_session/connection.h' looks like this:
@@ -374,26 +333,43 @@ of the session interface. For our case, the file
 !#include <hello_session/client.h>
 !#include <base/connection.h>
 !
-!namespace Hello {
+!namespace Hello { struct Connection; }
 !
-!  struct Connection : Genode::Connection<Session>, Session_client
-!  {
-!    Connection()
-!    :
-!      /* create session */
-!      Genode::Connection<Hello::Session>(session("foo, ram_quota=4K")),
+!struct Hello::Connection : Genode::Connection<Session>, Session_client
+!{
+!  Connection(Genode::Env &env)
+!  :
+!    /* create session */
+!    Genode::Connection<Hello::Session>(env, session(env.parent(),
+!                                                    "ram_quota=4K")),
+!    /* initialize RPC interface */
+!    Session_client(cap()) { }
+!};
+
+
+Client implementation
+=====================
+
+The client-side implementation using the 'Hello::Connection' object is pretty
+straightforward. Put this code into 'src/hello/client/main.cc':
+
+!#include <base/component.h>
+!#include <base/log.h>
+!#include <hello_session/connection.h>
 !
-!      /* initialize RPC interface */
-!      Session_client(cap()) { }
-!  };
+!Genode::size_t Component::stack_size() { return 64*1024; }
+!
+!void Component::construct(Genode::Env &env)
+!{
+!  Hello::Connection hello(env);
+!
+!  hello.say_hello();
+!
+!  int const sum = hello.add(2, 5);
+!  Genode::log("added 2 + 5 = ", sum);
+!
+!  Genode::log("hello test completed");
 !}
-
-With the 'Connection' class in place, we can now use Hello sessions
-by just instantiating 'Hello::Connection' objects and invoke
-functions directly on such an object. For example:
-
-!Hello::Connection hello;
-!int foo = hello.add(2, 5);
 
 
 Ready, set, go...
@@ -405,23 +381,56 @@ Add a 'target.mk' file with the following content to 'src/hello/client/':
 ! SRC_CC = main.cc
 ! LIBS   = base
 
-Extend your 'config' file as follows.
+Extend your init _config_ as follows to also start the hello-client component:
 
-# Add the 'SIGNAL' service to the '<parent-provides>' section:
+! <start name="hello_client">
+!   <resource name="RAM" quantum="1M"/>
+! </start>
 
-  ! <service name="SIGNAL"/>
 
-# Add start entries for 'Timer' service and hello client:
+Creating a run script to automate your work flow
+================================================
 
-  ! <start name="timer">
-  !   <resource name="RAM" quantum="1M"/>
-  !   <provides><service name="Timer"/></provides>
-  ! </start>
-  ! <start name="hello_client">
-  !   <resource name="RAM" quantum="1M"/>
-  ! </start>
+The procedure of building, configuring, integrating, and executing Genode
+system scenarios across different kernels can be automated using a run
+script, which can be executed directly from within your build directory.
+A run script for the hello client-server scenario should be placed
+at the _run/hello.run_ and look as follows:
 
-Build 'drivers/timer', and 'hello/client', go to 'build/bin', and run './core'
-again.  You have now successfully implemented your first Genode client-server
-scenario.
+!build { core init hello }
+!
+!create_boot_directory
+!
+!install_config {
+!<config>
+!  <parent-provides>
+!    <service name="LOG"/>
+!  </parent-provides>
+!  <default-route>
+!    <any-service> <parent/> <any-child/> </any-service>
+!  </default-route>
+!  <start name="hello_server">
+!    <resource name="RAM" quantum="1M"/>
+!    <provides> <service name="Hello"/> </provides>
+!  </start>
+!  <start name="hello_client">
+!    <resource name="RAM" quantum="1M"/>
+!  </start>
+!</config>}
+!
+!build_boot_image { core init hello_client hello_server }
+!
+!append qemu_args " -nographic "
+!
+!run_genode_until "hello test completed.*\n" 10
 
+When executed via 'make run/hello', it performs the given steps in sequence.
+Note that the run script is kernel-agnostic. Hence, you can execute the system
+scenario on all the different kernels supported by Genode without any
+modification. The regular expression specified to the 'run_genode_until' step
+is used as pattern for detecting the success of the step. If the log output
+produced by the scenario matches the pattern, the run script completes
+successfully. If the pattern does not appear within the specified time (in
+this example ten seconds), the run script aborts with an error. By creating
+the run script, we have not just automated our work flow but have actually
+created an automated test case for our components.

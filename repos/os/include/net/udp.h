@@ -79,7 +79,9 @@ class Net::Udp_packet
 		Genode::uint16_t dst_port()  { return host_to_big_endian(_dst_port); }
 		Genode::uint16_t length()    { return host_to_big_endian(_length);   }
 		Genode::uint16_t checksum()  { return host_to_big_endian(_checksum); }
-		void* data()                 { return &_data;           }
+
+		template <typename T> T *       data()       { return (T *)(_data); }
+		template <typename T> T const * data() const { return (T const *)(_data); }
 
 
 		/***************

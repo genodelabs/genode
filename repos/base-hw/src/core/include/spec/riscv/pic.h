@@ -35,7 +35,7 @@ class Genode::Pic
 		};
 
 		Pic() { }
-		bool take_request(unsigned & i) { return true; }
+		bool take_request(unsigned & i) { i = 0; return true; }
 		void unmask(unsigned const i, unsigned) { }
 		void mask(unsigned const i) { }
 		void finish_request() { }

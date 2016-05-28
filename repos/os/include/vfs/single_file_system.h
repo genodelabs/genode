@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -33,12 +33,12 @@ class Vfs::Single_file_system : public File_system
 		enum { FILENAME_MAX_LEN = 64 };
 		char _filename[FILENAME_MAX_LEN];
 
-		bool _is_root(const char *path)
+		bool _root(const char *path)
 		{
 			return (strcmp(path, "") == 0) || (strcmp(path, "/") == 0);
 		}
 
-		bool _is_single_file(const char *path)
+		bool _single_file(const char *path)
 		{
 			return (strlen(path) == (strlen(_filename) + 1)) &&
 			       (strcmp(&path[1], _filename) == 0);
@@ -71,16 +71,18 @@ class Vfs::Single_file_system : public File_system
 		Stat_result stat(char const *path, Stat &out) override
 		{
 			out = { 0, 0, 0, 0, 0, 0 };
+			out.device = (Genode::addr_t)this;
 
-			if (_is_root(path)) {
+			if (_root(path)) {
 				out.mode = STAT_MODE_DIRECTORY;
 
-			} else if (_is_single_file(path)) {
+			} else if (_single_file(path)) {
 				switch (_node_type) {
 				case NODE_TYPE_FILE:         out.mode = STAT_MODE_FILE;     break;
 				case NODE_TYPE_CHAR_DEVICE:  out.mode = STAT_MODE_CHARDEV;  break;
 				case NODE_TYPE_BLOCK_DEVICE: out.mode = STAT_MODE_BLOCKDEV; break;
 				}
+				out.inode = 1;
 			} else {
 				return STAT_ERR_NO_ENTRY;
 			}
@@ -89,10 +91,11 @@ class Vfs::Single_file_system : public File_system
 
 		Dirent_result dirent(char const *path, file_offset index, Dirent &out) override
 		{
-			if (!_is_root(path))
+			if (!_root(path))
 				return DIRENT_ERR_INVALID_PATH;
 
 			if (index == 0) {
+				out.fileno = (Genode::addr_t)this;
 				switch (_node_type) {
 				case NODE_TYPE_FILE:         out.type = DIRENT_TYPE_FILE;     break;
 				case NODE_TYPE_CHAR_DEVICE:  out.type = DIRENT_TYPE_CHARDEV;  break;
@@ -108,15 +111,15 @@ class Vfs::Single_file_system : public File_system
 
 		file_size num_dirent(char const *path) override
 		{
-			if (_is_root(path))
+			if (_root(path))
 				return 1;
 			else
 				return 0;
 		}
 
-		bool is_directory(char const *path) override
+		bool directory(char const *path) override
 		{
-			if (_is_root(path))
+			if (_root(path))
 				return true;
 
 			return false;
@@ -124,17 +127,24 @@ class Vfs::Single_file_system : public File_system
 
 		char const *leaf_path(char const *path) override
 		{
-			return path;
+			return _single_file(path) ? path : 0;
 		}
 
-		Open_result open(char const *path, unsigned,
-		                 Vfs_handle **out_handle) override
+		Open_result open(char const  *path, unsigned,
+		                 Vfs_handle **out_handle,
+		                 Allocator   &alloc) override
 		{
-			if (!_is_single_file(path))
+			if (!_single_file(path))
 				return OPEN_ERR_UNACCESSIBLE;
 
-			*out_handle = new (env()->heap()) Vfs_handle(*this, *this, 0);
+			*out_handle = new (alloc) Vfs_handle(*this, *this, alloc, 0);
 			return OPEN_OK;
+		}
+
+		void close(Vfs_handle *handle) override
+		{
+			if (handle && (&handle->ds() == this))
+				destroy(handle->alloc(), handle);
 		}
 
 		Unlink_result unlink(char const *) override
@@ -148,9 +158,11 @@ class Vfs::Single_file_system : public File_system
 			return READLINK_ERR_NO_ENTRY;
 		}
 
-		Rename_result rename(char const *, char const *) override
+		Rename_result rename(char const *from, char const *to) override
 		{
-			return RENAME_ERR_NO_PERM;
+			if (_single_file(from) || _single_file(to))
+				return RENAME_ERR_NO_PERM;
+			return RENAME_ERR_NO_ENTRY;
 		}
 
 		Mkdir_result mkdir(char const *, unsigned) override

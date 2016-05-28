@@ -35,12 +35,12 @@ void Genode::Weak_object_base::debug_info() const
 }
 
 
-static int weak_ptr_is_valid;
+static int weak_ptr_valid;
 
 
 void Genode::Weak_ptr_base::debug_info() const
 {
-	weak_ptr_is_valid = (_obj != nullptr);
+	weak_ptr_valid = (_obj != nullptr);
 }
 
 
@@ -64,7 +64,7 @@ static void assert_weak_ptr_valid(Genode::Weak_ptr_base const &ptr, bool valid)
 {
 	ptr.debug_info();
 
-	if (weak_ptr_is_valid == valid)
+	if (weak_ptr_valid == valid)
 		return;
 
 	PERR("weak pointer unexpectedly %s", valid ? "valid" : "invalid");
@@ -76,17 +76,17 @@ static void assert_weak_ptr_valid(Genode::Weak_ptr_base const &ptr, bool valid)
  ** Test for the tracking of weak pointers **
  ********************************************/
 
-static bool object_is_constructed;
+static bool object_constructed;
 
 
 struct Object : Genode::Weak_object<Object>
 {
-	Object() { object_is_constructed = true; }
+	Object() { object_constructed = true; }
 
 	~Object()
 	{
 		Weak_object<Object>::lock_for_destruction();
-		object_is_constructed = false;
+		object_constructed = false;
 	}
 };
 
@@ -143,7 +143,7 @@ static void test_weak_pointer_tracking()
  *******************************************/
 
 template <typename O>
-struct Destruct_thread : Genode::Thread<4096>
+struct Destruct_thread : Genode::Thread_deprecated<4096>
 {
 	O *obj;
 
@@ -155,17 +155,17 @@ struct Destruct_thread : Genode::Thread<4096>
 		PLOG("thread: destruction completed, job done");
 	}
 
-	Destruct_thread(O *obj) : Thread("object_destructor"), obj(obj) { }
+	Destruct_thread(O *obj) : Thread_deprecated("object_destructor"), obj(obj) { }
 };
 
 
 static void assert_constructed(bool expect_constructed)
 {
-	if (object_is_constructed == expect_constructed)
+	if (object_constructed == expect_constructed)
 		return;
 
 	PERR("object unexpectedly %sconstructed",
-	     !object_is_constructed ? "not" : "");
+	     !object_constructed ? "not" : "");
 	throw Fatal_error();
 }
 
@@ -230,7 +230,7 @@ static void test_acquisition_failure()
 	{
 		Locked_ptr<Object> locked_ptr(ptr);
 
-		if (!locked_ptr.is_valid()) {
+		if (!locked_ptr.valid()) {
 			PERR("locked pointer unexpectedly invalid");
 			throw Fatal_error();
 		}
@@ -245,7 +245,7 @@ static void test_acquisition_failure()
 	{
 		Locked_ptr<Object> locked_ptr(ptr);
 
-		if (locked_ptr.is_valid()) {
+		if (locked_ptr.valid()) {
 			PERR("locked pointer unexpectedly valid");
 			throw Fatal_error();
 		}
@@ -262,13 +262,13 @@ struct Object_with_delayed_destruction
 {
 	Timer::Connection timer;
 
-	Object_with_delayed_destruction() { object_is_constructed = true; }
+	Object_with_delayed_destruction() { object_constructed = true; }
 
 	~Object_with_delayed_destruction()
 	{
 		Weak_object<Object_with_delayed_destruction>::lock_for_destruction();
 		timer.msleep(2000);
-		object_is_constructed = false;
+		object_constructed = false;
 	}
 };
 

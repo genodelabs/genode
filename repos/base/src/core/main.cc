@@ -16,24 +16,26 @@
 #include <base/sleep.h>
 #include <base/service.h>
 #include <base/child.h>
+#include <base/log.h>
 #include <rm_session/connection.h>
 #include <pd_session/connection.h>
 #include <rom_session/connection.h>
 #include <cpu_session/connection.h>
+
+/* base-internal includes */
+#include <base/internal/globals.h>
 
 /* core includes */
 #include <platform.h>
 #include <core_env.h>
 #include <ram_root.h>
 #include <rom_root.h>
-#include <cap_root.h>
 #include <rm_root.h>
 #include <cpu_root.h>
 #include <pd_root.h>
 #include <log_root.h>
 #include <io_mem_root.h>
 #include <irq_root.h>
-#include <signal_root.h>
 #include <trace/root.h>
 #include <platform_services.h>
 
@@ -65,7 +67,7 @@ Core_env * Genode::core_env()
 }
 
 
-Env * Genode::env() {
+Env_deprecated * Genode::env() {
 	return core_env(); }
 
 
@@ -113,6 +115,20 @@ class Core_child : public Child_policy
 
 		Service_registry &_local_services;
 
+		/*
+		 * Dynamic linker, does not need to be valid because init is statically
+		 * linked
+		 */
+		Dataspace_capability _ldso_ds;
+
+		Pd_session_client  _pd;
+		Ram_session_client _ram;
+		Cpu_session_client _cpu;
+
+		Child::Initial_thread _initial_thread { _cpu, _pd, "name" };
+
+		Region_map_client _address_space;
+
 		Child _child;
 
 	public:
@@ -121,17 +137,19 @@ class Core_child : public Child_policy
 		 * Constructor
 		 */
 		Core_child(Dataspace_capability elf_ds, Pd_session_capability pd,
-		           Cap_session *cap_session, Ram_session_capability ram,
-		           Cpu_session_capability cpu, Rm_session_capability rm,
+		           Ram_session_capability ram,
+		           Cpu_session_capability cpu,
 		           Service_registry &services)
 		:
-			_entrypoint(cap_session, STACK_SIZE, "init", false),
+			_entrypoint(nullptr, STACK_SIZE, "name", false),
 			_local_services(services),
-			_child(elf_ds, pd, ram, cpu, rm, &_entrypoint, this,
+			_pd(pd), _ram(ram), _cpu(cpu),
+			_address_space(Pd_session_client(pd).address_space()),
+			_child(elf_ds, _ldso_ds, _pd, _pd, _ram, _ram, _cpu, _initial_thread,
+			       *env()->rm_session(), _address_space, _entrypoint, *this,
 			       *_local_services.find(Pd_session::service_name()),
 			       *_local_services.find(Ram_session::service_name()),
-			       *_local_services.find(Cpu_session::service_name()),
-			       *_local_services.find(Rm_session::service_name()))
+			       *_local_services.find(Cpu_session::service_name()))
 		{
 			_entrypoint.activate();
 		}
@@ -169,6 +187,22 @@ class Core_child : public Child_policy
 };
 
 
+/****************
+ ** Signal API **
+ ****************/
+
+/*
+ * In contrast to the 'Platform_env' used by non-core components, core disables
+ * the signal thread but overriding 'Genode::init_signal_thread' with a dummy.
+ * Within core, the signal thread is not needed as core is never supposed to
+ * receive any signals. Otherwise, the signal thread would be the only
+ * non-entrypoint thread within core, which would be a problem on NOVA where
+ * the creation of regular threads within core is unsupported.
+ */
+
+namespace Genode { void init_signal_thread(Env &) { } }
+
+
 /*******************
  ** Trace support **
  *******************/
@@ -189,6 +223,7 @@ namespace Genode {
 	extern char const *version_string;
 }
 
+
 int main()
 {
 	/**
@@ -196,7 +231,7 @@ int main()
 	 */
 	inhibit_tracing = true;
 
-	PINF("Genode %s", Genode::version_string);
+	log("Genode ", Genode::version_string);
 
 	PDBG("--- create local services ---");
 
@@ -213,28 +248,23 @@ int main()
 	 */
 	static Sliced_heap sliced_heap(env()->ram_session(), env()->rm_session());
 
-	/**
-	 * Provide signal service before other services to enable the use of signal
-	 * connection during service initialization. This has been introduced due
-	 * to the use of the signal framework for paging (RM service) in base-hw.
+	/*
+	 * Factory for creating RPC capabilities within core
 	 */
-	static Signal_root signal_root(&sliced_heap, core_env()->cap_session());
-	char const * const signal_name = Signal_session::service_name();
-	static Local_service signal_service(signal_name, &signal_root);
-	local_services.insert(&signal_service);
+	static Rpc_cap_factory rpc_cap_factory(sliced_heap);
 
-	static Cap_root     cap_root     (e, &sliced_heap);
+	static Pager_entrypoint pager_ep(rpc_cap_factory);
+
 	static Ram_root     ram_root     (e, e, platform()->ram_alloc(), &sliced_heap);
 	static Rom_root     rom_root     (e, e, platform()->rom_fs(), &sliced_heap);
-	static Rm_root      rm_root      (e, e, e, &sliced_heap, core_env()->cap_session(),
-	                                  platform()->vm_start(), platform()->vm_size());
-	static Cpu_root     cpu_root     (e, e, rm_root.pager_ep(), &sliced_heap,
+	static Rm_root      rm_root      (e, &sliced_heap, pager_ep);
+	static Cpu_root     cpu_root     (e, e, &pager_ep, &sliced_heap,
 	                                  Trace::sources());
-	static Pd_root      pd_root      (e, e, &sliced_heap);
+	static Pd_root      pd_root      (e, e, pager_ep, &sliced_heap);
 	static Log_root     log_root     (e, &sliced_heap);
 	static Io_mem_root  io_mem_root  (e, e, platform()->io_mem_alloc(),
 	                                  platform()->ram_alloc(), &sliced_heap);
-	static Irq_root     irq_root     (core_env()->cap_session(),
+	static Irq_root     irq_root     (core_env()->pd_session(),
 	                                  platform()->irq_alloc(), &sliced_heap);
 	static Trace::Root  trace_root   (e, &sliced_heap, Trace::sources(), trace_policies);
 
@@ -245,7 +275,6 @@ int main()
 	static Local_service ls[] = {
 		Local_service(Rom_session::service_name(),     &rom_root),
 		Local_service(Ram_session::service_name(),     &ram_root),
-		Local_service(Cap_session::service_name(),     &cap_root),
 		Local_service(Rm_session::service_name(),      &rm_root),
 		Local_service(Cpu_session::service_name(),     &cpu_root),
 		Local_service(Pd_session::service_name(),      &pd_root),
@@ -279,27 +308,25 @@ int main()
 
 	/* create CPU session for init and transfer all of the CPU quota to it */
 	static Cpu_session_component
-		cpu(e, e, rm_root.pager_ep(), &sliced_heap, Trace::sources(),
+		cpu(e, e, &pager_ep, &sliced_heap, Trace::sources(),
 		    "label=\"core\"", Affinity(), Cpu_session::QUOTA_LIMIT);
 	Cpu_session_capability cpu_cap = core_env()->entrypoint()->manage(&cpu);
 	Cpu_connection init_cpu("init");
 	init_cpu.ref_account(cpu_cap);
 	cpu.transfer_quota(init_cpu, Cpu_session::quota_lim_upscale(100, 100));
 
-	Rm_connection  init_rm;
-
 	/* transfer all left memory to init, but leave some memory left for core */
 	/* NOTE: exception objects thrown in core components are currently allocated on
 	         core's heap and not accounted by the component's meta data allocator */
-	Genode::size_t init_quota = platform()->ram_alloc()->avail() - 172*1024;
+	Genode::size_t init_quota = platform()->ram_alloc()->avail() - 224*1024;
 	env()->ram_session()->transfer_quota(init_ram_session_cap, init_quota);
 	PDBG("transferred %zu MB to init", init_quota / (1024*1024));
 
 	Pd_connection init_pd("init");
 	Core_child *init = new (env()->heap())
 		Core_child(Rom_session_client(init_rom_session_cap).dataspace(),
-		           init_pd, core_env()->cap_session(), init_ram_session_cap,
-		           init_cpu.cap(), init_rm.cap(), local_services);
+		           init_pd, init_ram_session_cap, init_cpu.cap(),
+		           local_services);
 
 	PDBG("--- init created, waiting for exit condition ---");
 	platform()->wait_for_exit();

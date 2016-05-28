@@ -116,22 +116,27 @@ class File_system::File : public Node
 
 		size_t read(char *dst, size_t len, seek_off_t seek_offset)
 		{
-			ssize_t ret = rump_sys_pread(_fd, dst, len, seek_offset);
+			ssize_t ret;
+
+			if (seek_offset == SEEK_TAIL)
+				ret = rump_sys_lseek(_fd, -len, SEEK_END) != -1 ?
+					rump_sys_read(_fd, dst, len) : 0;
+			else
+				ret = rump_sys_pread(_fd, dst, len, seek_offset);
 
 			return ret == -1 ? 0 : ret;
 		}
 
 		size_t write(char const *src, size_t len, seek_off_t seek_offset)
 		{
-			/* should we append? */
-			if (seek_offset == ~0ULL) {
-				off_t off = rump_sys_lseek(_fd, 0, SEEK_END);
-				if (off == -1)
-					return 0;
-				seek_offset = off;
-			}
+			ssize_t ret;
 
-			ssize_t ret = rump_sys_pwrite(_fd, src, len, seek_offset);
+			if (seek_offset == SEEK_TAIL)
+				ret = rump_sys_lseek(_fd, 0, SEEK_END) != -1 ?
+					rump_sys_write(_fd, src, len) : 0;
+			else
+				ret = rump_sys_pwrite(_fd, src, len, seek_offset);
+
 			return ret == -1 ? 0 : ret;
 		}
 

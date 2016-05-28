@@ -37,5 +37,5 @@ build_boot_image {
 
 append qemu_args " -nographic -m 64 "
 
-run_genode_until "--- returning from main ---" 10
+run_genode_until "child .* exited with exit value 0.*\n" 10
 

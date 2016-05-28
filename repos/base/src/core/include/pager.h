@@ -16,11 +16,15 @@
 #ifndef _CORE__INCLUDE__PAGER_H_
 #define _CORE__INCLUDE__PAGER_H_
 
+/* Genode includes */
 #include <base/thread.h>
 #include <base/object_pool.h>
 #include <cap_session/cap_session.h>
 #include <pager/capability.h>
 #include <ipc_pager.h>
+
+/* core-local includes */
+#include <rpc_cap_factory.h>
 
 namespace Genode {
 
@@ -51,7 +55,8 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry
 		 */
 		unsigned long _badge;
 
-		Thread_capability _thread_cap;
+		Cpu_session_capability _cpu_session_cap;
+		Thread_capability      _thread_cap;
 
 		/**
 		 * User-level signal handler registered for this pager object via
@@ -71,8 +76,11 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry
 		 *
 		 * \param location  affinity of paged thread to physical CPU
 		 */
-		Pager_object(unsigned long badge, Affinity::Location location)
-		: _badge(badge) { }
+		Pager_object(Cpu_session_capability cpu_sesion, Thread_capability thread,
+		             unsigned long badge, Affinity::Location location)
+		:
+			_badge(badge), _cpu_session_cap(cpu_sesion), _thread_cap(thread)
+		{ }
 
 		virtual ~Pager_object() { }
 
@@ -112,11 +120,17 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry
 		}
 
 		/**
-		 * Remember thread cap so that rm_session can tell thread that
-		 * rm_client is gone.
+		 * Return CPU session that was used to created the thread
 		 */
-		Thread_capability thread_cap() { return _thread_cap; } const
-		void thread_cap(Thread_capability cap) { _thread_cap = cap; }
+		Cpu_session_capability cpu_session_cap() const { return _cpu_session_cap; }
+
+		/**
+		 * Return thread capability
+		 *
+		 * This function enables the destructor of the thread's
+		 * address-space region map to kill the thread.
+		 */
+		Thread_capability thread_cap() const { return _thread_cap; }
 
 		/*
 		 * Note in the thread state that an unresolved page
@@ -127,12 +141,12 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry
 
 
 class Genode::Pager_entrypoint : public Object_pool<Pager_object>,
-                                 public Thread<PAGER_EP_STACK_SIZE>
+                                 public Thread_deprecated<PAGER_EP_STACK_SIZE>
 {
 	private:
 
-		Ipc_pager    _pager;
-		Cap_session *_cap_session;
+		Ipc_pager       _pager;
+		Rpc_cap_factory _cap_factory;
 
 		Untyped_capability _pager_object_cap(unsigned long badge);
 
@@ -141,13 +155,15 @@ class Genode::Pager_entrypoint : public Object_pool<Pager_object>,
 		/**
 		 * Constructor
 		 *
-		 * \param cap_session  Cap_session for creating capabilities
+		 * \param cap_factory  factory for creating capabilities
 		 *                     for the pager objects managed by this
 		 *                     entry point
 		 */
-		Pager_entrypoint(Cap_session *cap_session)
-		: Thread<PAGER_EP_STACK_SIZE>("pager_ep"),
-		  _cap_session(cap_session) { start(); }
+		Pager_entrypoint(Rpc_cap_factory &cap_factory)
+		:
+			Thread_deprecated<PAGER_EP_STACK_SIZE>("pager_ep"),
+			_cap_factory(cap_factory)
+		{ start(); }
 
 		/**
 		 * Associate Pager_object with the entry point

@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _KERNEL__CONFIGURATION_H_
-#define _KERNEL__CONFIGURATION_H_
+#ifndef _CORE__INCLUDE__KERNEL__CONFIGURATION_H_
+#define _CORE__INCLUDE__KERNEL__CONFIGURATION_H_
 
 namespace Kernel
 {
@@ -25,10 +25,10 @@ namespace Kernel
 	constexpr unsigned cpu_priorities = 4;
 
 	/* super period in CPU scheduling and the overall allocatable CPU time */
-	constexpr unsigned cpu_quota_ms = 1000;
+	constexpr time_t cpu_quota_us = 1000000;
 
 	/* time slice for the round-robin mode and the idle in CPU scheduling */
-	constexpr unsigned cpu_fill_ms = 10;
+	constexpr time_t cpu_fill_us = 10000;
 }
 
-#endif /* _KERNEL__CONFIGURATION_H_ */
+#endif /* _CORE__INCLUDE__KERNEL__CONFIGURATION_H_ */

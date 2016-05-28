@@ -1,5 +1,5 @@
 /*
- * \brief  Test for the 'Thread_base::join()' function
+ * \brief  Test for the 'Thread::join()' function
  * \author Norman Feske
  * \date   2012-11-16
  */
@@ -18,7 +18,7 @@
 using namespace Genode;
 
 
-struct Worker : Genode::Thread<4096>
+struct Worker : Genode::Thread_deprecated<4096>
 {
 	Timer::Session   &timer;
 	unsigned    const result_value;
@@ -36,7 +36,7 @@ struct Worker : Genode::Thread<4096>
 
 	Worker(Timer::Session &timer, int result_value)
 	:
-		Thread("worker"),
+		Thread_deprecated("worker"),
 		timer(timer), result_value(result_value), result(~0)
 	{
 		start();

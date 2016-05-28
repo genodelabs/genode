@@ -42,7 +42,7 @@ enum {
 static const char *channel_names[] = { "front left", "front right" };
 
 
-class Track : Thread<8192>
+class Track : Thread_deprecated<8192>
 {
 	private:
 
@@ -51,7 +51,7 @@ class Track : Thread<8192>
 
 	public:
 
-		Track(const char *file) : Thread("track"), _file(file)
+		Track(const char *file) : Thread_deprecated("track"), _file(file)
 		{
 			for (int i = 0; i < CHN_CNT; ++i) {
 				/* allocation signal for first channel only */

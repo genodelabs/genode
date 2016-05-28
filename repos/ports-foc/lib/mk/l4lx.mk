@@ -33,6 +33,9 @@ SRC_CC  += env.cc \
 INC_DIR += $(REP_DIR)/include \
            $(REP_DIR)/src/lib/l4lx/include \
 
+# for reusing the 'Expanding_rm_session' from the platform env in dataspace.h
+INC_DIR += $(BASE_DIR)/src/include
+
 LIBS     = base config
 
 vpath %.cc $(REP_DIR)/src/lib/l4lx

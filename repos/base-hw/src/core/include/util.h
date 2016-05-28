@@ -11,15 +11,24 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _UTIL_H_
-#define _UTIL_H_
+#ifndef _CORE__INCLUDE__UTIL_H_
+#define _CORE__INCLUDE__UTIL_H_
 
 /* Genode includes */
 #include <rm_session/rm_session.h>
 #include <base/printf.h>
 
+/* base-internal includes */
+#include <base/internal/page_size.h>
+
 namespace Genode
 {
+	struct Native_region
+	{
+		addr_t base;
+		size_t size;
+	};
+
 	enum {
 		ACTIVITY_TABLE_ON_FAULTS = 0,
 	};
@@ -105,7 +114,7 @@ namespace Genode
 	inline void print_page_fault(char const * const fault_msg,
 	                             addr_t const fault_addr,
 	                             addr_t const fault_ip,
-	                             Rm_session::Fault_type const fault_type,
+	                             Region_map::State::Fault_type const fault_type,
 	                             unsigned const faulter_badge);
 }
 
@@ -113,14 +122,14 @@ namespace Genode
 void Genode::print_page_fault(char const * const fault_msg,
                               addr_t const fault_addr,
                               addr_t const fault_ip,
-                              Rm_session::Fault_type const fault_type,
+                              Region_map::State::Fault_type const fault_type,
                               unsigned const faulter_badge)
 {
 	const char read[] = "read from";
 	const char write[] = "write to";
 	printf("\033[31m%s\033[0m (faulter %x", fault_msg, faulter_badge);
 	printf(" with IP %p attempts to", (void *)fault_ip);
-	printf(" %s", fault_type == Rm_session::READ_FAULT ? read : write);
+	printf(" %s", fault_type == Region_map::State::READ_FAULT ? read : write);
 	printf(" address %p)\n", (void *)fault_addr);
 	if (ACTIVITY_TABLE_ON_FAULTS) {
 		printf("---------- activity table ----------\n");
@@ -129,4 +138,4 @@ void Genode::print_page_fault(char const * const fault_msg,
 	}
 }
 
-#endif /* _UTIL_H_ */
+#endif /* _CORE__INCLUDE__UTIL_H_ */

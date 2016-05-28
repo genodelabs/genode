@@ -83,7 +83,7 @@ inline void determine_parent_services(Genode::Service_registry *services)
 		if (Init::config_verbose)
 			printf("  service \"%s\"\n", service_name);
 
-		if (node.is_last("service")) break;
+		if (node.last("service")) break;
 	}
 }
 
@@ -190,7 +190,7 @@ class Init::Child_registry : public Name_registry, Child_list
 		 */
 		void insert_alias(Alias *alias)
 		{
-			if (!is_unique(alias->name.string())) {
+			if (!unique(alias->name.string())) {
 				PERR("Alias name %s is not unique", alias->name.string());
 				throw Alias_name_is_not_unique();
 			}
@@ -231,12 +231,19 @@ class Init::Child_registry : public Name_registry, Child_list
 			return _aliases.first() ? _aliases.first() : 0;
 		}
 
+		void revoke_server(Genode::Server const *server)
+		{
+			Genode::List_element<Child> *curr = first();
+			for (; curr; curr = curr->next())
+				curr->object()->_child.revoke_server(server);
+		}
+
 
 		/*****************************
 		 ** Name-registry interface **
 		 *****************************/
 
-		bool is_unique(const char *name) const
+		bool unique(const char *name) const
 		{
 			/* check for name clash with an existing child */
 			Genode::List_element<Child> const *curr = first();
@@ -279,10 +286,11 @@ int main(int, char **)
 	using namespace Init;
 	using namespace Genode;
 
-	/* look for dynamic linker */
+	/* obtain dynamic linker */
+	Dataspace_capability ldso_ds;
 	try {
 		static Rom_connection rom("ld.lib.so");
-		Process::dynamic_linker(rom.dataspace());
+		ldso_ds = rom.dataspace();
 	} catch (...) { }
 
 	static Service_registry parent_services;
@@ -337,9 +345,10 @@ int main(int, char **)
 				try {
 					children.insert(new (env()->heap())
 					                Init::Child(start_node, default_route_node,
-					                            &children, read_prio_levels(),
+					                            children, read_prio_levels(),
 					                            read_affinity_space(),
-					                            &parent_services, &child_services, &cap));
+					                            parent_services, child_services, cap,
+					                            ldso_ds));
 				}
 				catch (Rom_connection::Rom_connection_failed) {
 					/*
@@ -379,7 +388,19 @@ int main(int, char **)
 		while (children.any()) {
 			Init::Child *child = children.any();
 			children.remove(child);
+			Genode::Server const *server = child->server();
 			destroy(env()->heap(), child);
+
+			/*
+			 * The killed child may have provided services to other children.
+			 * Since the server is dead by now, we cannot close its sessions
+			 * in the cooperative way. Instead, we need to instruct each
+			 * other child to forget about session associated with the dead
+			 * server. Note that the 'child' pointer points a a no-more
+			 * existing object. It is only used to identify the corresponding
+			 * session. It must never by de-referenced!
+			 */
+			children.revoke_server(server);
 		}
 
 		/* remove all known aliases */

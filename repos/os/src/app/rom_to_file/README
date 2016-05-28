@@ -1,0 +1,10 @@
+The rom_to_file component requests a ROM session and writes the content of the
+ROM dataspace to a File_system. It responds to configuration and ROM-module
+updates.
+
+The name of the ROM module must be specified via the 'rom' attribute of the
+components '<config>' node
+
+! <config rom="pointer"/>
+
+See run/rom_to_file.run for an example.

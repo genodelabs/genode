@@ -14,6 +14,10 @@
 #ifndef _INCLUDE__VMM__VCPU_DISPATCHER_H_
 #define _INCLUDE__VMM__VCPU_DISPATCHER_H_
 
+/* Genode includes */
+#include <util/retry.h>
+#include <nova_native_pd/client.h>
+
 namespace Vmm {
 
 	using namespace Genode;
@@ -31,9 +35,10 @@ class Vmm::Vcpu_dispatcher : public T
 {
 	private:
 
-		enum { WEIGHT = Genode::Cpu_session::DEFAULT_WEIGHT };
+		enum { WEIGHT = Genode::Cpu_session::Weight::DEFAULT_WEIGHT };
 
-		Cap_connection &_cap;
+		Pd_session           &_pd;
+		Nova_native_pd_client _native_pd { _pd.native_pd() };
 
 		/**
 		 * Portal entry point entered on virtualization events
@@ -47,7 +52,7 @@ class Vmm::Vcpu_dispatcher : public T
 		static void _portal_entry()
 		{
 			/* obtain this pointer of the event handler */
-			Genode::Thread_base *myself = Genode::Thread_base::myself();
+			Genode::Thread *myself = Genode::Thread::myself();
 			DISPATCHER *vd = static_cast<DISPATCHER *>(myself);
 
 			vd->exit_reason = EV;
@@ -63,39 +68,32 @@ class Vmm::Vcpu_dispatcher : public T
 
 		unsigned int exit_reason = 0;
 
-		Vcpu_dispatcher(size_t stack_size, Cap_connection &cap,
+		Vcpu_dispatcher(size_t stack_size, Pd_session &pd,
 		                Cpu_session * cpu_session,
 		                Genode::Affinity::Location location)
 		:
-			T(WEIGHT, "vCPU dispatcher", stack_size),
-			_cap(cap)
+			T(WEIGHT, "vCPU dispatcher", stack_size, location), _pd(pd)
 		{
 			using namespace Genode;
 
-			/* place the thread on CPU described by location object */
-			cpu_session->affinity(T::cap(), location);
-
 			/* request creation of a 'local' EC */
-			T::_tid.ec_sel = Native_thread::INVALID_INDEX - 1;
+			T::native_thread().ec_sel = Native_thread::INVALID_INDEX - 1;
 			T::start();
 
 		}
 
 		template <typename X>
-		Vcpu_dispatcher(size_t stack_size, Cap_connection &cap,
+		Vcpu_dispatcher(size_t stack_size, Pd_session &pd,
 		                Cpu_session * cpu_session,
 		                Genode::Affinity::Location location,
 		                X attr, void *(*start_routine) (void *), void *arg)
-		: T(attr, start_routine, arg, stack_size, "vCPU dispatcher", nullptr),
-		  _cap(cap)
+		: T(attr, start_routine, arg, stack_size, "vCPU dispatcher", nullptr, location),
+		  _pd(pd)
 		{
 			using namespace Genode;
 
-			/* place the thread on CPU described by location object */
-			cpu_session->affinity(T::cap(), location);
-
 			/* request creation of a 'local' EC */
-			T::_tid.ec_sel = Native_thread::INVALID_INDEX - 1;
+			T::native_thread().ec_sel = Native_thread::INVALID_INDEX - 1;
 			T::start();
 		}
 
@@ -111,17 +109,29 @@ class Vmm::Vcpu_dispatcher : public T
 			void (*entry)() = &_portal_entry<EV, DISPATCHER, FUNC>;
 
 			/* Create the portal at the desired selector index */
-			_cap.rcv_window(exc_base + EV);
+			_native_pd.rcv_window(exc_base + EV);
 
-			Native_capability thread_cap(T::tid().ec_sel);
-			Native_capability handler =
-				_cap.alloc(thread_cap, (Nova::mword_t)entry, mtd.value());
+			Native_capability thread_cap(T::native_thread().ec_sel);
+
+			Untyped_capability handler =
+				retry<Genode::Pd_session::Out_of_metadata>(
+					[&] () {
+						return _native_pd.alloc_rpc_cap(thread_cap, (addr_t)entry,
+						                                mtd.value());
+					},
+					[&] () {
+						Pd_session_client *client =
+							dynamic_cast<Pd_session_client*>(&_pd);
+
+						if (client)
+							env()->parent()->upgrade(*client, "ram_quota=16K");
+					});
 
 			return handler.valid() && (exc_base + EV == handler.local_name());
 		}
 
 		/**
-		 * Unused member of the 'Thread_base' interface
+		 * Unused member of the 'Thread' interface
 		 *
 		 * Similarly to how 'Rpc_entrypoints' are handled, a 'Vcpu_dispatcher'
 		 * comes with a custom initialization procedure, which does not call
@@ -142,7 +152,7 @@ class Vmm::Vcpu_dispatcher : public T
 		 */
 		Nova::mword_t sel_sm_ec()
 		{
-			return T::tid().exc_pt_sel + Nova::SM_SEL_EC;
+			return T::native_thread().exc_pt_sel + Nova::SM_SEL_EC;
 		}
 };
 

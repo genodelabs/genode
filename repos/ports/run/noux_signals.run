@@ -16,7 +16,6 @@ append config {
 		<parent-provides>
 			<service name="ROM"/>
 			<service name="LOG"/>
-			<service name="CAP"/>
 			<service name="RAM"/>
 			<service name="RM"/>
 			<service name="CPU"/>
@@ -24,7 +23,6 @@ append config {
 			<service name="IRQ"/>
 			<service name="IO_MEM"/>
 			<service name="IO_PORT"/>
-			<service name="SIGNAL"/>
 		</parent-provides>
 		<default-route>
 			<any-service> <any-child/> <parent/> </any-service>

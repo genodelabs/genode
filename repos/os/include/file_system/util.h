@@ -39,15 +39,26 @@ namespace File_system {
 
 
 	/**
-	 * Return true if specified path is a base name (contains no path delimiters)
+	 * Return true if specified path contains at least path delimiters
 	 */
-	static inline bool is_basename(char const *path)
+	static inline bool contains_path_delimiter(char const *path)
 	{
 		for (; *path; path++)
 			if (*path == '/')
-				return false;
+				return true;
 
-		return true;
+		return false;
+	}
+
+
+	/**
+	 * Return true if specified path is a base name (contains no path delimiters)
+	 *
+	 * \deprecated  use !contains_path_delimiter instead
+	 */
+	static inline bool is_basename(char const *path)
+	{
+		return !contains_path_delimiter(path);
 	}
 
 

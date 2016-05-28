@@ -1,73 +1,266 @@
 /*
- * \brief  C-library back end
- * \author Norman Feske
- * \date   2008-11-11
+ * \brief  Sysctl facade
+ * \author Emery Hemingway
+ * \date   2016-04-27
  */
 
 /*
- * Copyright (C) 2008-2013 Genode Labs GmbH
+ * Copyright (C) 2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+/* Genode includes */
+#include <util/string.h>
+#include <base/env.h>
 
-#include <sys/types.h>
+/* Genode-specific libc interfaces */
+#include <libc-plugin/plugin.h>
+#include <libc-plugin/fd_alloc.h>
+
+/* Libc includes */
 #include <sys/sysctl.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <unistd.h>
 
-#include "libc_debug.h"
+#include "libc_errno.h"
+
+
+enum { PAGESIZE = 4096 };
+
+
+extern "C" long sysconf(int name)
+{
+	switch (name) {
+	case _SC_CHILD_MAX:        return CHILD_MAX;
+	case _SC_OPEN_MAX:         return getdtablesize();
+	case _SC_NPROCESSORS_CONF: return 1;
+	case _SC_NPROCESSORS_ONLN: return 1;
+	case _SC_PAGESIZE:         return PAGESIZE;
+
+	case _SC_PHYS_PAGES:
+		return Genode::env()->ram_session()->quota() / PAGESIZE;
+	default:
+		PWRN("%s(%d) not implemented", __func__, name);
+		return Libc::Errno(EINVAL);
+	}
+}
+
+
+/* non-standard FreeBSD function not supported */
+extern "C" int sysctlbyname(char const *name, void *oldp, size_t *oldlenp,
+                            void *newp, size_t newlen)
+{
+	PWRN("%s(%s,...) not implemented", __func__, name);
+	return Libc::Errno(ENOENT);
+}
+
 
 extern "C" int __sysctl(int *name, u_int namelen, void *oldp, size_t *oldlenp,
                         void *newp, size_t newlen)
 {
-	int i;
-	raw_write_str("__sysctl called\n");
+	static const ctlname ctl_names[] = CTL_NAMES;
+	static const ctlname ctl_kern_names[] = CTL_KERN_NAMES;
+	static const ctlname ctl_hw_names[] = CTL_HW_NAMES;
+	static const ctlname ctl_user_names[] = CTL_USER_NAMES;
+	static const ctlname ctl_p1003_1b_names[] = CTL_P1003_1B_NAMES;
 
-	/*
-	 * During printf, __sysctl is called by malloc with the parameters
-	 *
-	 * name[0] == 6 (CTL_HW)
-	 * name[1] == 3 (HW_NCPU)
-	 *
-	 * In this case, we can return -1, and the libC assumes that we
-	 * have one CPU.
-	 */
-	if ((name[0] == CTL_HW) && (name[1] == HW_NCPU))
-		return -1;
+	/* read only */
+	if (!oldp) /* check for write attempt */
+		return Libc::Errno(newp ? EPERM : EINVAL);
 
-	/*
-	 * CTL_P1003_1B is used by sysconf(_SC_PAGESIZE) to determine
-	 * the actual page size.
-	 */
-	if (((name[0] == CTL_HW) && (name[1] == HW_PAGESIZE)) ||
-	    ((name[0] == CTL_P1003_1B) && (name[1] == CTL_P1003_1B_PAGESIZE))) {
-		int result = 4096;
-		if (oldp) {
-			if (*oldlenp >= sizeof(result)) {
-				*(int*)oldp = result;
-				*oldlenp = sizeof(result);
+	ctlname const *ctl = nullptr;
+	char *buf = (char*)oldp;
+	int index_a = name[0];
+	int index_b = name[1];
+
+	if (namelen != 2) return Libc::Errno(ENOENT);
+	if (index_a >= CTL_MAXID) return Libc::Errno(EINVAL);
+
+	switch(index_a) {
+	case CTL_KERN:
+		if (index_b >= KERN_MAXID) return Libc::Errno(EINVAL);
+		ctl = &ctl_kern_names[index_b]; break;
+
+	case CTL_HW:
+		if (index_b >= HW_MAXID) return Libc::Errno(EINVAL);
+		ctl = &ctl_hw_names[index_b]; break;
+
+	case CTL_USER:
+		if (index_b >= USER_MAXID) return Libc::Errno(EINVAL);
+		ctl = &ctl_user_names[index_b]; break;
+
+	case CTL_P1003_1B:
+		if (index_b >= CTL_P1003_1B_MAXID) return Libc::Errno(EINVAL);
+		ctl = &ctl_p1003_1b_names[index_b]; break;
+	}
+
+	if (!ctl) return Libc::Errno(EINVAL);
+
+	if (((ctl->ctl_type == CTLTYPE_INT)    && (*oldlenp < sizeof(int))) ||
+	    ((ctl->ctl_type == CTLTYPE_STRING) && (*oldlenp < 1)) ||
+	    ((ctl->ctl_type == CTLTYPE_QUAD)   && (*oldlenp < sizeof(Genode::uint64_t))) ||
+	    ((ctl->ctl_type == CTLTYPE_UINT)   && (*oldlenp < sizeof(unsigned int))) ||
+	    ((ctl->ctl_type == CTLTYPE_LONG)   && (*oldlenp < sizeof(long))) ||
+	    ((ctl->ctl_type == CTLTYPE_ULONG)  && (*oldlenp < sizeof(unsigned long))))
+	{
+		return Libc::Errno(EINVAL);
+	}
+
+	/* builtins */
+	{
+		switch(index_a) {
+		case CTL_HW: switch(index_b) {
+
+			case HW_PHYSMEM:
+			case HW_USERMEM:
+				*(unsigned long*)oldp = Genode::env()->ram_session()->quota();
+				*oldlenp = sizeof(unsigned long);
 				return 0;
-			} else {
-				PERR("not enough room to store the old value");
-				return -1;
-			}
-		} else {
-			PERR("cannot store the result in oldp, since it is NULL");
-			return -1;
+
+			case HW_PAGESIZE:
+				*(int*)oldp = (int)PAGESIZE;
+				*oldlenp = sizeof(int);
+				return 0;
+
+			} break;
+
+		case CTL_P1003_1B: switch(index_b) {
+
+			case CTL_P1003_1B_PAGESIZE:
+				*(int*)oldp = PAGESIZE;
+				*oldlenp = sizeof(int);
+				return 0;
+
+			} break;
 		}
 	}
 
-	raw_write_str(newp ? "newp provided\n" : "no newp provided\n");
 
-	for (i = 0; i < name[0]; i++)
-		raw_write_str("*");
-	raw_write_str("\n");
-	for (i = 0; i < name[1]; i++)
-		raw_write_str("%");
-	raw_write_str("\n");
+	/* runtime overrides */
+	{
+		Libc::Absolute_path sysctl_path(ctl_names[index_a].ctl_name, "/.sysctl/");
+		sysctl_path.append("/");
+		sysctl_path.append(ctl->ctl_name);
 
-	return 0;
+		/*
+		 * read from /.sysctl/...
+		 *
+		 * The abstracted libc interface is used to read files here
+		 * rather than to explicity resolve a file system plugin.
+		 */
+		int fd = open(sysctl_path.base(), 0);
+		if (fd != -1) {
+			auto n = read(fd, buf, *oldlenp);
+			close(fd);
+
+			if (n > 0) switch (ctl->ctl_type) {
+			case CTLTYPE_INT: {
+				long value = 0;
+				Genode::ascii_to((char*)oldp, value);
+				*(int*)oldp = int(value);
+				*oldlenp = sizeof(int);
+				return 0;
+			}
+
+			case CTLTYPE_STRING:
+				*oldlenp = n;
+				return 0;
+
+			case CTLTYPE_QUAD: {
+				Genode::uint64_t value = 0;
+				Genode::ascii_to((char*)oldp, value);
+				*(Genode::uint64_t*)oldp = value;
+				*oldlenp = sizeof(Genode::uint64_t);
+				return 0;
+			}
+
+			case CTLTYPE_UINT: {
+				unsigned value = 0;
+				Genode::ascii_to((char*)oldp, value);
+				*(unsigned*)oldp = value;
+				*oldlenp = sizeof(unsigned);
+				return 0;
+			}
+
+			case CTLTYPE_LONG: {
+				long value = 0;
+				Genode::ascii_to((char*)oldp, value);
+				*(long*)oldp = value;
+				*oldlenp = sizeof(long);
+				return 0;
+			}
+
+			case CTLTYPE_ULONG: {
+				unsigned long value = 0;
+				Genode::ascii_to((char*)oldp, value);
+				*(unsigned long*)oldp = value;
+				*oldlenp = sizeof(unsigned long);
+				return 0;
+			}
+
+			default:
+				PWRN("unhandled sysctl data type for %s", sysctl_path.base());
+				return Libc::Errno(EINVAL);
+			}
+		}
+	}
+
+
+	/* fallback values */
+	{
+		switch(index_a) {
+
+		case CTL_KERN:
+			switch(index_b) {
+			case KERN_OSTYPE:
+				Genode::strncpy(buf, "Genode", *oldlenp);
+				*oldlenp = Genode::strlen(buf);
+				return 0;
+
+			case KERN_OSRELEASE:
+				Genode::strncpy(buf, GENODE_OSRELEASE, *oldlenp);
+				*oldlenp = Genode::strlen(buf);
+				return 0;
+
+			case KERN_OSREV:
+				*(int*)oldp = int(GENODE_OSREV);
+				*oldlenp = sizeof(int);
+				return 0;
+
+			case KERN_VERSION:
+				Genode::strncpy(buf, GENODE_VERSION, *oldlenp);
+				*oldlenp = Genode::strlen(buf);
+				return 0;
+
+			case KERN_HOSTNAME:
+				Genode::strncpy(buf, "localhost", *oldlenp);
+				*oldlenp = Genode::strlen(buf);
+				return 0;
+
+			} break;
+
+		case CTL_HW: switch(index_b) {
+
+			case HW_MACHINE:
+				Genode::strncpy(buf, GENODE_MACHINE, *oldlenp);
+				*oldlenp = Genode::strlen(buf);
+				return 0;
+
+			case HW_NCPU:
+				*(int*)oldp = 1;
+				*oldlenp = sizeof(int);
+				return 0;
+
+			} break;
+
+		}
+	}
+
+	PWRN("sysctl: no builtin or override value found for %s.%s",
+	     ctl_names[index_a].ctl_name, ctl->ctl_name);
+	return Libc::Errno(ENOENT);
 }
-

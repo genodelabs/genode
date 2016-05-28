@@ -1,7 +1,11 @@
 /*
- * \brief  Utility for dispatching signals via an RPC entrypoint **
+ * \brief  Utility for dispatching signals at at RPC entrypoint
  * \author Norman Feske
  * \date   2013-09-07
+ *
+ * \deprecated  This header merely exists to maintain API compatibility
+ *              to Genode 15.11. Its functionality moved to base/signal.h.
+ *              The header will eventually be removed.
  */
 
 /*
@@ -14,19 +18,13 @@
 #ifndef _INCLUDE__OS__SIGNAL_RPC_DISPATCHER_H_
 #define _INCLUDE__OS__SIGNAL_RPC_DISPATCHER_H_
 
-#include <base/rpc_server.h>
 #include <base/signal.h>
 
-namespace Genode {
-	template <typename, typename> class Signal_rpc_member;
-}
+namespace Genode { template <typename, typename> class Signal_rpc_member; }
 
-namespace Server{
-	class Entrypoint;
-}
 
 /**
- * Signal dispatcher for directing signals via RPC to object methods
+ * Signal dispatcher for handling signals by an object method
  *
  * This utility associates object methods with signals. It is intended to
  * be used as a member variable of the class that handles incoming signals
@@ -37,8 +35,11 @@ namespace Server{
  *
  * \param T  type of signal-handling class
  * \param EP type of entrypoint handling signal RPC
+ *
+ * \deprecated  this class template is superseded by the 'Signal_handler'
+ *              in base/signal.h
  */
-template <typename T, typename EP = Server::Entrypoint>
+template <typename T, typename EP = Genode::Entrypoint>
 struct Genode::Signal_rpc_member : Genode::Signal_dispatcher_base,
                                    Genode::Signal_context_capability
 {

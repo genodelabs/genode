@@ -24,7 +24,6 @@
 #include <cpu_session/connection.h>
 #include <rom_session/connection.h>
 #include <cap_session/connection.h>
-#include <rm_session/connection.h>
 #include <pd_session/connection.h>
 #include <timer_session/connection.h>
 
@@ -43,15 +42,17 @@ class Bomb_child_resources
 		Genode::Rom_connection _rom;
 		Genode::Ram_connection _ram;
 		Genode::Cpu_connection _cpu;
-		Genode::Rm_connection  _rm;
-		char                   _name[32];
+
+		typedef String<32> Name;
+		Name _name;
+
+		Genode::Region_map_client _address_space { _pd.address_space() };
 
 		Bomb_child_resources(const char *file_name, const char *name,
 		                     Genode::size_t ram_quota)
-		: _pd(name), _rom(file_name, name), _ram(name), _cpu(name)
+		:
+			_pd(name), _rom(file_name, name), _ram(name), _cpu(name), _name(name)
 		{
-			Genode::strncpy(_name, name, sizeof(_name));
-
 			_ram.ref_account(env()->ram_session_cap());
 			Genode::env()->ram_session()->transfer_quota(_ram.cap(), ram_quota);
 
@@ -65,10 +66,13 @@ class Bomb_child_resources
 
 class Bomb_child : private Bomb_child_resources,
                    public  Genode::Child_policy,
-                   private Init::Child_policy_enforce_labeling,
                    public  Genode::List<Bomb_child>::Element
 {
 	private:
+
+		Init::Child_policy_enforce_labeling _enforce_labeling_policy;
+
+		Genode::Child::Initial_thread _initial_thread;
 
 		/*
 		 * Entry point used for serving the parent interface
@@ -90,10 +94,12 @@ class Bomb_child : private Bomb_child_resources,
 		           unsigned          generation)
 		:
 			Bomb_child_resources(file_name, unique_name, ram_quota),
-			Init::Child_policy_enforce_labeling(Bomb_child_resources::_name),
+			_enforce_labeling_policy(_name.string()),
+			_initial_thread(_cpu, _pd, unique_name),
 			_entrypoint(cap_session, STACK_SIZE, "bomb_ep_child", false),
-			_child(_rom.dataspace(), _pd.cap(), _ram.cap(), _cpu.cap(),
-			       _rm.cap(), &_entrypoint, this),
+			_child(_rom.dataspace(), Genode::Dataspace_capability(),
+			       _pd, _pd, _ram, _ram, _cpu, _initial_thread,
+			       *Genode::env()->rm_session(), _address_space, _entrypoint, *this),
 			_parent_services(parent_services),
 			_config_policy("config", _entrypoint, &_ram)
 		{
@@ -112,11 +118,11 @@ class Bomb_child : private Bomb_child_resources,
 		 ** Child-policy interface **
 		 ****************************/
 
-		const char *name() const { return Bomb_child_resources::_name; }
+		const char *name() const { return Bomb_child_resources::_name.string(); }
 
 		void filter_session_args(const char * x, char *args, Genode::size_t args_len)
 		{
-			Child_policy_enforce_labeling::filter_session_args(0, args, args_len);
+			_enforce_labeling_policy.filter_session_args(0, args, args_len);
 		}
 
 		Service *resolve_session_request(const char *service_name,

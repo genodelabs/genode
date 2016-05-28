@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -328,7 +328,8 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags,
 
 int Libc::Vfs_plugin::close(Libc::File_descriptor *fd)
 {
-	Genode::destroy(Genode::env()->heap(), vfs_handle(fd));
+	Vfs::Vfs_handle *handle = vfs_handle(fd);
+	handle->ds().close(handle);
 	Libc::file_descriptor_allocator()->free(fd);
 	return 0;
 }
@@ -384,6 +385,7 @@ int Libc::Vfs_plugin::stat(char const *path, struct stat *buf)
 
 	switch (_root_dir.stat(path, stat)) {
 	case Result::STAT_ERR_NO_ENTRY: errno = ENOENT; return -1;
+	case Result::STAT_ERR_NO_PERM:  errno = EACCES; return -1;
 	case Result::STAT_OK:                           break;
 	}
 
@@ -458,7 +460,8 @@ ssize_t Libc::Vfs_plugin::getdirentries(Libc::File_descriptor *fd, char *buf,
 	unsigned const index = handle->seek() / sizeof(Vfs::Directory_service::Dirent);
 
 	switch (handle->ds().dirent(fd->fd_path, index, dirent_out)) {
-	case Result::DIRENT_ERR_INVALID_PATH: /* XXX errno */ return -1;
+	case Result::DIRENT_ERR_INVALID_PATH: errno = ENOENT; return -1;
+	case Result::DIRENT_ERR_NO_PERM:      errno = EACCES; return -1;
 	case Result::DIRENT_OK:                               break;
 	}
 
@@ -744,6 +747,7 @@ ssize_t Libc::Vfs_plugin::readlink(const char *path, char *buf, size_t buf_size)
 
 	switch (_root_dir.readlink(path, buf, buf_size, out_len)) {
 	case Result::READLINK_ERR_NO_ENTRY: errno = ENOENT; return -1;
+	case Result::READLINK_ERR_NO_PERM:  errno = EACCES; return -1;
 	case Result::READLINK_OK:                           break;
 	};
 
@@ -774,6 +778,24 @@ int Libc::Vfs_plugin::unlink(char const *path)
 int Libc::Vfs_plugin::rename(char const *from_path, char const *to_path)
 {
 	typedef Vfs::Directory_service::Rename_result Result;
+
+	if (_root_dir.leaf_path(to_path)) {
+
+		if (_root_dir.directory(to_path)) {
+			if (!_root_dir.directory(from_path)) {
+				errno = EISDIR; return -1;
+			}
+
+			if (_root_dir.num_dirent(to_path)) {
+				errno = ENOTEMPTY; return -1;
+			}
+
+		} else {
+			if (_root_dir.directory(from_path)) {
+				errno = ENOTDIR; return -1;
+			}
+		}
+	}
 
 	switch (_root_dir.rename(from_path, to_path)) {
 	case Result::RENAME_ERR_NO_ENTRY: errno = ENOENT; return -1;

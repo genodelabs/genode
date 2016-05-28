@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -13,48 +13,118 @@
 
 /* Genode includes */
 #include <file_system_session/rpc_object.h>
+#include <ram_session/connection.h>
 #include <root/component.h>
-#include <file_system/node.h>
 #include <vfs/dir_file_system.h>
 #include <os/server.h>
 #include <os/session_policy.h>
 #include <vfs/file_system_factory.h>
 #include <os/config.h>
+#include <base/sleep.h>
 
 /* Local includes */
 #include "assert.h"
-#include "node_cache.h"
-#include "node_handle_registry.h"
+#include "node.h"
 
-namespace File_system {
+namespace Vfs_server {
 
-	using namespace Genode;
+	using namespace File_system;
 	using namespace Vfs;
 
 	class  Session_component;
 	class  Root;
 	struct Main;
 
-	typedef Genode::Path<MAX_PATH_LEN> Subpath;
-
-	Vfs::File_system *root()
+	static Genode::Xml_node vfs_config()
 	{
-		static Vfs::Dir_file_system _root(config()->xml_node().sub_node("vfs"),
-		                                  Vfs::global_file_system_factory());
-
-		return &_root;
+		try { return Genode::config()->xml_node().sub_node("vfs"); }
+		catch (...) {
+			PERR("vfs not configured");
+			Genode::env()->parent()->exit(~0);
+			Genode::sleep_forever();
+		}
 	}
 };
 
 
-class File_system::Session_component : public Session_rpc_object
+class Vfs_server::Session_component :
+	public File_system::Session_rpc_object
 {
 	private:
 
-		Node_handle_registry                  _handle_registry;
-		Subpath                         const _root_path;
-		Signal_rpc_member<Session_component>  _process_packet_dispatcher;
-		bool                                  _writable;
+		/* maximum number of open nodes per session */
+		enum { MAX_NODE_HANDLES = 128U };
+
+		Node *_nodes[MAX_NODE_HANDLES];
+
+		/**
+		 * Each open node handle can act as a listener to be informed about
+		 * node changes.
+		 */
+		Listener _listeners[MAX_NODE_HANDLES];
+
+		Genode::String<160>     _label;
+
+		Genode::Ram_connection  _ram = { _label.string() };
+		Genode::Heap            _alloc =
+			{ &_ram, Genode::env()->rm_session() };
+
+		Genode::Signal_rpc_member<Session_component>
+		                        _process_packet_dispatcher;
+		Vfs::Dir_file_system   &_vfs;
+		Directory               _root;
+		bool                    _writable;
+
+
+		/****************************
+		 ** Handle to node mapping **
+		 ****************************/
+
+		bool _in_range(int handle) const {
+			return ((handle >= 0) && (handle < MAX_NODE_HANDLES));
+		}
+
+		int _next_slot()
+		{
+			for (int i = 1; i < MAX_NODE_HANDLES; ++i)
+				if (_nodes[i] == nullptr)
+					return i;
+
+			throw Out_of_metadata();
+		}
+
+		/**
+		 * Lookup node using its handle as key
+		 */
+		Node *_lookup_node(Node_handle handle) {
+			return _in_range(handle.value) ? _nodes[handle.value] : 0; }
+
+		/**
+		 * Lookup typed node using its handle as key
+		 *
+		 * \throw Invalid_handle
+		 */
+		template <typename HANDLE_TYPE>
+		typename Node_type<HANDLE_TYPE>::Type &_lookup(HANDLE_TYPE handle)
+		{
+			if (!_in_range(handle.value))
+				throw Invalid_handle();
+
+			typedef typename Node_type<HANDLE_TYPE>::Type Node;
+			Node *node = dynamic_cast<Node *>(_nodes[handle.value]);
+			if (!node)
+				throw Invalid_handle();
+
+			return *node;
+		}
+
+		bool _refer_to_same_node(Node_handle h1, Node_handle h2) const
+		{
+			if (!(_in_range(h1.value) && _in_range(h2.value)))
+				throw Invalid_handle();
+
+			return _nodes[h1.value] == _nodes[h2.value];
+		}
 
 
 		/******************************
@@ -68,9 +138,10 @@ class File_system::Session_component : public Session_rpc_object
 		{
 			void     * const content = tx_sink()->packet_content(packet);
 			size_t     const length  = packet.length();
-			seek_off_t const offset  = packet.position();
+			seek_off_t const seek    = packet.position();
 
 			if ((!(content && length)) || (packet.length() > packet.size())) {
+				PDBGV("bad packet %d: %llu:%zu", packet.handle().value, packet.position(), packet.length());
 				packet.succeeded(false);
 				return;
 			}
@@ -81,26 +152,26 @@ class File_system::Session_component : public Session_rpc_object
 			switch (packet.operation()) {
 
 			case Packet_descriptor::READ: {
-				Node *node = _handle_registry.lookup_read(packet.handle());
-				if (!node) return;
-				Node_lock_guard guard(node);
-				res_length = node->read((char *)content, length, offset);
+				Node *node = _lookup_node(packet.handle());
+				if (!(node && (node->mode&READ_ONLY)))
+					return;
+
+				res_length = node->read(_vfs, (char *)content, length, seek);
 				break;
 			}
 
 			case Packet_descriptor::WRITE: {
-				Node *node = _handle_registry.lookup_write(packet.handle());
-				if (!node) return;
-				Node_lock_guard guard(node);
-				res_length = node->write((char const *)content, length, offset);
+				Node *node = _lookup_node(packet.handle());
+				if (!(node && (node->mode&WRITE_ONLY)))
+					return;
+
+				res_length = node->write(_vfs, (char const *)content, length, seek);
 				break;
 			}
 			}
 
-			if (res_length) {
-				packet.length(res_length);
-				packet.succeeded(true);
-			}
+			packet.length(res_length);
+			packet.succeeded(!!res_length);
 		}
 
 		void _process_packet()
@@ -150,15 +221,18 @@ class File_system::Session_component : public Session_rpc_object
 		 * Check if string represents a valid path (must start with '/')
 		 */
 		static void _assert_valid_path(char const *path) {
-			if (!path || path[0] != '/') throw Lookup_failed(); }
+			if (path[0] != '/') throw Lookup_failed(); }
 
 		/**
 		 * Check if string represents a valid name (must not contain '/')
 		 */
-		static void _assert_valid_name(char const *name) {
+		static void _assert_valid_name(char const *name)
+		{
+			if (!*name) throw Invalid_name();
 			for (char const *p = name; *p; ++p)
 				if (*p == '/')
-					throw Invalid_name(); }
+					throw Invalid_name();
+		}
 
 	public:
 
@@ -170,16 +244,19 @@ class File_system::Session_component : public Session_rpc_object
 		 * \param root_path    path root of the session
 		 * \param writable     whether the session can modify files
 		 */
-		Session_component(Server::Entrypoint &ep,
-		                  Node_cache         &cache,
-		                  size_t              tx_buf_size,
-		                  Subpath      const &root_path,
-		                  bool                writable)
+		Session_component(Server::Entrypoint  &ep,
+		                  char          const *label,
+		                  size_t               ram_quota,
+		                  size_t               tx_buf_size,
+		                  Vfs::Dir_file_system &vfs,
+		                  char           const *root_path,
+		                  bool                  writable)
 		:
 			Session_rpc_object(env()->ram_session()->alloc(tx_buf_size), ep.rpc_ep()),
-			_handle_registry(cache),
-			_root_path(root_path.base()),
+			_label(label),
 			_process_packet_dispatcher(ep, *this, &Session_component::_process_packets),
+			_vfs(vfs),
+			_root(vfs, root_path, false),
 			_writable(writable)
 		{
 			/*
@@ -188,6 +265,18 @@ class File_system::Session_component : public Session_rpc_object
 			 */
 			_tx.sigh_packet_avail(_process_packet_dispatcher);
 			_tx.sigh_ready_to_ack(_process_packet_dispatcher);
+
+			/*
+			 * the '/' node is not dynamically allocated, so it is
+			 * permanently bound to Dir_handle(0);
+			 */
+			_nodes[0] = &_root;
+			for (unsigned i = 1; i < MAX_NODE_HANDLES; ++i)
+				_nodes[i] = nullptr;
+
+			_ram.ref_account(Genode::env()->ram_session_cap());
+			Genode::env()->ram_session()->transfer_quota(_ram.cap(), ram_quota);
+			PWRN("ram quota starts at %zd for %s", _ram.quota(), _label.string());
 		}
 
 		/**
@@ -196,7 +285,15 @@ class File_system::Session_component : public Session_rpc_object
 		~Session_component()
 		{
 			Dataspace_capability ds = tx_sink()->dataspace();
-			env()->ram_session()->free(static_cap_cast<Ram_dataspace>(ds));
+			env()->ram_session()->free(static_cap_cast<Genode::Ram_dataspace>(ds));
+		}
+
+		void upgrade(char const *args)
+		{
+			size_t new_quota =
+				Genode::Arg_string::find_arg(args, "ram_quota").ulong_value(0);
+			Genode::env()->ram_session()->transfer_quota(_ram.cap(), new_quota);
+			PWRN("ram quota upgraded to %zd for %s", _ram.quota(), _label.string());
 		}
 
 
@@ -204,91 +301,161 @@ class File_system::Session_component : public Session_rpc_object
 		 ** File_system interface **
 		 ***************************/
 
-		Dir_handle dir(Path const &path, bool create) override
+		Dir_handle dir(File_system::Path const &path, bool create) override
 		{
-			if ((!_writable) && create)
+			PDBGV("%s create=%d", path.string(), create);
+
+			if (create && (!_writable))
 				throw Permission_denied();
 
 			char const *path_str = path.string();
+			/* '/' is bound to '0' */
+			if (!strcmp(path_str, "/")) {
+				if (create) throw Node_already_exists();
+				return Dir_handle(0);
+			}
+
 			_assert_valid_path(path_str);
+			Vfs_server::Path fullpath(_root.path());
+			fullpath.append(path_str);
+			path_str = fullpath.base();
 
-			/* re-root the path */
-			Subpath dir_path(path_str+1, _root_path.base());
-			path_str = dir_path.base();
+			/* make sure a handle is free before allocating */
+			auto slot = _next_slot();
 
-			return _handle_registry.directory(path_str, create);
+			if (!create && !_vfs.directory(path_str))
+				throw Lookup_failed();
+
+			Directory *dir;
+			try { dir = new (_alloc) Directory(_vfs, path_str, create); }
+			catch (Out_of_memory) { throw Out_of_metadata(); }
+
+			_nodes[slot] = dir;
+			return Dir_handle(slot);
 		}
 
 		File_handle file(Dir_handle dir_handle, Name const &name,
 		                 Mode fs_mode, bool create) override
 		{
-			if ((!_writable) &&
-				(create || (fs_mode != STAT_ONLY && fs_mode != READ_ONLY)))
-					throw Permission_denied();
+			PDBGV("%d:%s create=%d", dir_handle.value, name.string(), create);
+
+			if ((create || (fs_mode & WRITE_ONLY)) && (!_writable))
+				throw Permission_denied();
+
+			Directory &dir = _lookup(dir_handle);
 
 			char const *name_str = name.string();
 			_assert_valid_name(name_str);
 
-			Directory *dir = _handle_registry.lookup_and_lock(dir_handle);
-			Node_lock_guard dir_guard(dir);
+			/* make sure a handle is free before allocating */
+			auto slot = _next_slot();
 
-			/* re-root the path */
-			Subpath subpath(name_str, dir->path());
-			char *path_str = subpath.base();
-			File_handle handle = _handle_registry.file(path_str, fs_mode, create);
-			if (create)
-				dir->mark_as_updated();
-			return handle;
+			File *file = dir.file(_vfs, _alloc, name_str, fs_mode, create);
+
+			_nodes[slot] = file;
+			return File_handle(slot);
 		}
 
 		Symlink_handle symlink(Dir_handle dir_handle, Name const &name, bool create) override
 		{
+			PDBGV("%d:%s create=%d", dir_handle.value, name.string(), create);
+
 			if (create && !_writable) throw Permission_denied();
+
+			Directory &dir = _lookup(dir_handle);
 
 			char const *name_str = name.string();
 			_assert_valid_name(name_str);
 
-			Directory *dir = _handle_registry.lookup_and_lock(dir_handle);
-			Node_lock_guard dir_guard(dir);
+			/* make sure a handle is free before allocating */
+			auto slot = _next_slot();
 
-			/* re-root the path */
-			Subpath subpath(name_str, dir->path());
-			char *path_str = subpath.base();
+			Symlink *link = dir.symlink(_vfs, _alloc, name_str,
+				_writable ? READ_WRITE : READ_ONLY, create);
 
-			Symlink_handle handle = _handle_registry.symlink(
-				path_str, (_writable ? READ_WRITE : READ_ONLY), create);
-			if (create)
-				dir->mark_as_updated();
-			return handle;
+			_nodes[slot] = link;
+			return Symlink_handle(slot);
 		}
 
-		Node_handle node(Path const &path) override
+		Node_handle node(File_system::Path const &path) override
 		{
+			PDBGV("%s", path.string());
+
 			char const *path_str = path.string();
+			/* '/' is bound to '0' */
+			if (!strcmp(path_str, "/"))
+				return Node_handle(0);
+
 			_assert_valid_path(path_str);
 
 			/* re-root the path */
-			Subpath sub_path(path_str+1, _root_path.base());
+			Path sub_path(path_str+1, _root.path());
 			path_str = sub_path.base();
+			if (!_vfs.leaf_path(path_str))
+				throw Lookup_failed();
 
-			return _handle_registry.node(path_str);
+			auto slot = _next_slot();
+			Node *node;
+
+			try { node  = new (_alloc) Node(path_str, STAT_ONLY); }
+			catch (Out_of_memory) { throw Out_of_metadata(); }
+
+			_nodes[slot] = node;
+			return Node_handle(slot);
 		}
 
-		void close(Node_handle handle) { _handle_registry.free(handle); }
+		void close(Node_handle handle) override
+		{
+			PDBGV("%d", handle.value);
+
+			/* handle '0' cannot be freed */
+			if (!handle.value) {
+				_root.notify_listeners();
+				return;
+			}
+
+			if (!_in_range(handle.value))
+				return;
+
+			Node *node = _nodes[handle.value];
+			if (!node) { return; }
+
+			node->notify_listeners();
+
+			/*
+			 * De-allocate handle
+			 */
+			Listener &listener = _listeners[handle.value];
+
+			if (listener.valid())
+				node->remove_listener(&listener);
+
+			if (File *file = dynamic_cast<File*>(node))
+				destroy(_alloc, file);
+			else if (Directory *dir = dynamic_cast<Directory*>(node))
+				destroy(_alloc, dir);
+			else if (Symlink *link = dynamic_cast<Symlink*>(node))
+				destroy(_alloc, link);
+			else
+				destroy(_alloc, node);
+
+			_nodes[handle.value] = 0;
+			listener = Listener();
+		}
 
 		Status status(Node_handle node_handle)
 		{
+			PDBGV("%d", node_handle.value);
+
 			Directory_service::Stat vfs_stat;
 			File_system::Status      fs_stat;
-			Node *node;
-			try { node = _handle_registry.lookup_and_lock(node_handle); }
-			catch (Invalid_handle) { return fs_stat; }
-			Node_lock_guard guard(node);
 
-			char const *path_str = node->path();
+			Node &node = _lookup(node_handle);
 
-			if (root()->stat(path_str, vfs_stat) != Directory_service::STAT_OK)
+			if (_vfs.stat(node.path(), vfs_stat) != Directory_service::STAT_OK) {
+				memset(&fs_stat, 0x00, sizeof(fs_stat));
 				return fs_stat;
+			}
 
 			fs_stat.inode = vfs_stat.inode;
 
@@ -299,7 +466,7 @@ class File_system::Session_component : public Session_rpc_object
 
 			case Directory_service::STAT_MODE_DIRECTORY:
 				fs_stat.mode = File_system::Status::MODE_DIRECTORY;
-				fs_stat.size = root()->num_dirent(path_str) * sizeof(Directory_entry);
+				fs_stat.size = _vfs.num_dirent(node.path()) * sizeof(Directory_entry);
 				return fs_stat;
 
 			case Directory_service::STAT_MODE_SYMLINK:
@@ -315,56 +482,36 @@ class File_system::Session_component : public Session_rpc_object
 			return fs_stat;
 		}
 
-		/**
-		 * Set information about an open file or directory
-		 */
-		void control(Node_handle, Control) { }
-
-		/**
-		 * Delete file or directory
-		 */
 		void unlink(Dir_handle dir_handle, Name const &name)
 		{
+			PDBGV("%d:%s", dir_handle.value, name.string());
+
 			if (!_writable) throw Permission_denied();
 
-			char const *str = name.string();
-			_assert_valid_name(str);
+			Directory &dir = _lookup(dir_handle);
 
-			Directory *dir = _handle_registry.lookup_and_lock(dir_handle);
-			Node_lock_guard guard(dir);
+			char const *name_str = name.string();
+			_assert_valid_name(name_str);
 
-			Subpath path(str, dir->path());
-			str = path.base();
+			Path path(name_str, dir.path());
 
-			/*
-			 * If the file is open in any other session,
-			 * unlinking is not allowed. This is to prevent
-			 * dangling pointers in handle registries.
-			 */
-			if (_handle_registry.is_open(str))
-				throw Permission_denied();
-
-			assert_unlink(root()->unlink(str));
-			dir->mark_as_updated();
+			assert_unlink(_vfs.unlink(path.base()));
+			dir.mark_as_updated();
 		}
 
-		/**
-		 * Truncate or grow file to specified size
-		 */
 		void truncate(File_handle file_handle, file_size_t size)
 		{
-			File *file = _handle_registry.lookup_and_lock(file_handle);
-			Node_lock_guard guard(file);
-			file->truncate(size);
-			file->mark_as_updated();
+			PDBGV("%d", file_handle.value);
+			_lookup(file_handle).truncate(size);
 		}
 
-		/**
-		 * Move and rename directory entry
-		 */
 		void move(Dir_handle from_dir_handle, Name const &from_name,
 		          Dir_handle to_dir_handle,   Name const &to_name)
 		{
+			PDBGV("%d:%s - %d:%s",
+			      from_dir_handle.value, from_name.string(),
+			        to_dir_handle.value,   to_name.string());
+
 			if (!_writable)
 				throw Permission_denied();
 
@@ -374,94 +521,94 @@ class File_system::Session_component : public Session_rpc_object
 			_assert_valid_name(from_str);
 			_assert_valid_name(  to_str);
 
-			if (_handle_registry.refer_to_same_node(from_dir_handle, to_dir_handle)) {
-				Directory *dir = _handle_registry.lookup_and_lock(from_dir_handle);
-				Node_lock_guard from_guard(dir);
+			Directory &from_dir = _lookup(from_dir_handle);
+			Directory   &to_dir = _lookup(  to_dir_handle);
 
-				from_str = Subpath(from_str, dir->path()).base();
-				  to_str = Subpath(  to_str, dir->path()).base();
+			Path from_path(from_str, from_dir.path());
+			Path   to_path(  to_str,   to_dir.path());
 
-				if (_handle_registry.is_open(to_str))
-					throw Permission_denied();
+			assert_rename(_vfs.rename(from_path.base(), to_path.base()));
 
-				assert_rename(root()->rename(from_str, to_str));
-				_handle_registry.rename(from_str, to_str);
-
-				dir->mark_as_updated();
-				return;
-			}
-
-			Directory *from_dir = _handle_registry.lookup_and_lock(from_dir_handle);
-			Node_lock_guard from_guard(from_dir);
-
-			Directory   *to_dir = _handle_registry.lookup_and_lock(  to_dir_handle);
-			Node_lock_guard to_guard(to_dir);
-
-			from_str = Subpath(from_str, from_dir->path()).base();
-			  to_str = Subpath(  to_str,   to_dir->path()).base();
-			if (_handle_registry.is_open(to_str))
-				throw Permission_denied();
-
-			assert_rename(root()->rename(from_str, to_str));
-			_handle_registry.rename(from_str, to_str);
-
-			from_dir->mark_as_updated();
-			to_dir->mark_as_updated();
+			from_dir.mark_as_updated();
+			to_dir.mark_as_updated();
 		}
 
-		void sigh(Node_handle node_handle, Signal_context_capability sigh) {
-			_handle_registry.sigh(node_handle, sigh); }
+		void sigh(Node_handle handle, Signal_context_capability sigh) override
+		{
+			PDBGV("%d", handle.value);
+			if (!_in_range(handle.value))
+				throw Invalid_handle();
+
+			Node *node = dynamic_cast<Node *>(_nodes[handle.value]);
+			if (!node)
+				throw Invalid_handle();
+
+			Listener &listener = _listeners[handle.value];
+
+			/*
+			 * If there was already a handler registered for the node,
+			 * remove the old handler.
+			 */
+			if (listener.valid())
+				node->remove_listener(&listener);
+
+			/*
+			 * Register new handler
+			 */
+			listener = Listener(sigh);
+			node->add_listener(&listener);
+		}
 
 		/**
-		 * Sync the VFS and send any pending signal on the node.
+		 * Sync the VFS and send any pending signals on the node.
 		 */
 		void sync(Node_handle handle)
 		{
-			Node *node;
+			PDBGV("%d", handle.value);
 			try {
-				node = _handle_registry.lookup_and_lock(handle);
-			} catch (Invalid_handle) {
-				return;
-			}
-			Node_lock_guard guard(node);
-
-			root()->sync(node->path());
-			node->notify_listeners();
+				Node &node = _lookup(handle);
+				_vfs.sync(node.path());
+				node.notify_listeners();
+			} catch (Invalid_handle) { }
 		}
+
+		void control(Node_handle, Control) { }
 };
 
 
-class File_system::Root : public Root_component<Session_component>
+class Vfs_server::Root :
+	public Genode::Root_component<Session_component>
 {
 	private:
 
-		Node_cache          _cache;
+		Vfs::Dir_file_system _vfs =
+			{ vfs_config(), Vfs::global_file_system_factory() };
+
 		Server::Entrypoint &_ep;
 
 	protected:
 
 		Session_component *_create_session(const char *args) override
 		{
-			Subpath session_root;
+			using namespace Genode;
+
+			Path session_root;
 			bool writeable = false;
 
 			Session_label const label(args);
 
+			char tmp[MAX_PATH_LEN];
 			try {
 				Session_policy policy(label);
-				char buf[MAX_PATH_LEN];
 
 				/* Determine the session root directory.
 				 * Defaults to '/' if not specified by session
 				 * policy or session arguments.
 				 */
 				try {
-					policy.attribute("root").value(buf, MAX_PATH_LEN);
-					session_root.append(buf);
+					policy.attribute("root").value(tmp, sizeof(tmp));
+					session_root.import(tmp, "/");
 				} catch (Xml_node::Nonexistent_attribute) { }
-
-				Arg_string::find_arg(args, "root").string(buf, MAX_PATH_LEN, "/");
-				session_root.append(buf);
 
 				/* Determine if the session is writeable.
 				 * Policy overrides arguments, both default to false.
@@ -469,13 +616,23 @@ class File_system::Root : public Root_component<Session_component>
 				if (policy.attribute_value("writeable", false))
 					writeable = Arg_string::find_arg(args, "writeable").bool_value(false);
 
-			} catch (Session_policy::No_policy_defined) {
-				PERR("rejecting session request, no matching policy for %s", label.string());
-				throw Root::Unavailable();
+			} catch (Session_policy::No_policy_defined) { }
+
+			Arg_string::find_arg(args, "root").string(tmp, sizeof(tmp), "/");
+			if (Genode::strcmp("/", tmp, sizeof(tmp))) {
+				session_root.append("/");
+				session_root.append(tmp);
 			}
 
-			size_t ram_quota   = Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
-			size_t tx_buf_size = Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
+			/*
+			 * If no policy matches the client gets
+			 * read-only access to the root.
+			 */
+
+			size_t ram_quota =
+				Arg_string::find_arg(args, "ram_quota").aligned_size();
+			size_t tx_buf_size =
+				Arg_string::find_arg(args, "tx_buf_size").aligned_size();
 
 			if (!tx_buf_size)
 				throw Root::Invalid_args();
@@ -484,23 +641,40 @@ class File_system::Root : public Root_component<Session_component>
 			 * Check if donated ram quota suffices for session data,
 			 * and communication buffer.
 			 */
-			size_t session_size = sizeof(Session_component) + tx_buf_size;
-			if (max((size_t)4096, session_size) > ram_quota) {
+			size_t session_size =
+				max((size_t)4096, sizeof(Session_component)) +
+				tx_buf_size;
+
+			if (session_size > ram_quota) {
 				PERR("insufficient 'ram_quota' from %s, got %zd, need %zd",
 				     label.string(), ram_quota, session_size);
 				throw Root::Quota_exceeded();
 			}
+			ram_quota -= session_size;
 
 			/* check if the session root exists */
-			if (!root()->is_directory(session_root.base())) {
+			if (!((session_root == "/") || _vfs.directory(session_root.base()))) {
 				PERR("session root '%s' not found for '%s'", session_root.base(), label.string());
 				throw Root::Unavailable();
 			}
 
 			Session_component *session = new(md_alloc())
-				Session_component(_ep, _cache, tx_buf_size, session_root, writeable);
+				Session_component(_ep,
+				                  label.string(),
+				                  ram_quota,
+				                  tx_buf_size,
+				                  _vfs,
+				                  session_root.base(),
+				                  writeable);
+
 			PLOG("session opened for '%s' at '%s'", label.string(), session_root.base());
 			return session;
+		}
+
+		void _upgrade_session(Session_component *session,
+		                      char        const *args) override
+		{
+			session->upgrade(args);
 		}
 
 	public:
@@ -511,7 +685,7 @@ class File_system::Root : public Root_component<Session_component>
 		 * \param ep        entrypoint
 		 * \param md_alloc  meta-data allocator
 		 */
-		Root(Server::Entrypoint &ep, Allocator &md_alloc)
+		Root(Server::Entrypoint &ep, Genode::Allocator &md_alloc)
 		:
 			Root_component<Session_component>(&ep.rpc_ep(), &md_alloc),
 			_ep(ep)
@@ -519,16 +693,17 @@ class File_system::Root : public Root_component<Session_component>
 };
 
 
-struct File_system::Main
+struct Vfs_server::Main
 {
 	Server::Entrypoint &ep;
 
 	/*
 	 * Initialize root interface
 	 */
-	Sliced_heap sliced_heap = { env()->ram_session(), env()->rm_session() };
+	Genode::Sliced_heap sliced_heap =
+		{ Genode::env()->ram_session(), Genode::env()->rm_session() };
 
-	Root fs_root = { ep, sliced_heap };
+	Vfs_server::Root fs_root = { ep, sliced_heap };
 
 	Main(Server::Entrypoint &ep) : ep(ep)
 	{
@@ -546,5 +721,7 @@ char const *   Server::name() { return "vfs_ep"; }
 
 Genode::size_t Server::stack_size() { return 2*1024*sizeof(long); }
 
-void Server::construct(Server::Entrypoint &ep) {
-	static File_system::Main inst(ep); }
+void Server::construct(Server::Entrypoint &ep)
+{
+	static Vfs_server::Main inst(ep);
+}

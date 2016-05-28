@@ -10,7 +10,7 @@ the project's official website:
 
 :Official project website for the Genode OS Framework:
 
-  [http://genode.org/documentation/general-overview]
+  [https://genode.org/documentation/general-overview]
 
 The current implementation can be compiled for 8 different kernels: Linux,
 L4ka::Pistachio, L4/Fiasco, OKL4, NOVA, Fiasco.OC, seL4, and a custom
@@ -70,5 +70,5 @@ mailing list. Please feel welcome to join in!
 
 :Genode Mailing Lists:
 
-  [http://genode.org/community/mailing-lists]
+  [https://genode.org/community/mailing-lists]
 

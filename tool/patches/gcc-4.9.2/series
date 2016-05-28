@@ -6,6 +6,7 @@ no_short_enums.patch
 host_target_combination.patch
 prefer_pic.patch
 libstdcxx_without_libc.patch
+libsupcxx_demangle.patch
 libgcc_s.patch
 go_libbacktrace.patch
 target_libbacktrace.patch

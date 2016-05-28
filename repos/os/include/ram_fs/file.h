@@ -15,6 +15,7 @@
 #define _INCLUDE__RAM_FS__FILE_H_
 
 /* Genode includes */
+#include <file_system_session/file_system_session.h>
 #include <base/allocator.h>
 
 /* local includes */
@@ -46,7 +47,9 @@ class File_system::File : public Node
 		{
 			file_size_t const chunk_used_size = _chunk.used_size();
 
-			if (seek_offset >= _length)
+			if (seek_offset == SEEK_TAIL)
+				seek_offset = (len < _length) ? (_length - len) : 0;
+			else if (seek_offset >= _length)
 				return 0;
 
 			/*
@@ -78,11 +81,13 @@ class File_system::File : public Node
 
 		size_t write(char const *src, size_t len, seek_off_t seek_offset)
 		{
-			if (seek_offset == (seek_off_t)(~0))
-				seek_offset = _chunk.used_size();
+			if (seek_offset == SEEK_TAIL)
+				seek_offset = _length;
 
-			if (seek_offset + len >= Chunk_level_0::SIZE)
-				throw Size_limit_reached();
+			if (seek_offset + len >= Chunk_level_0::SIZE) {
+				len = (Chunk_level_0::SIZE-1) - seek_offset;
+				PERR("%s: size limit %d reached", name(), Chunk_level_0::SIZE);
+			}
 
 			_chunk.write(src, len, (size_t)seek_offset);
 

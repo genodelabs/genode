@@ -12,8 +12,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _BOARD_H_
-#define _BOARD_H_
+#ifndef _CORE__INCLUDE__SPEC__IMX53__BOARD_H_
+#define _CORE__INCLUDE__SPEC__IMX53__BOARD_H_
 
 /* core includes */
 #include <spec/imx/board_support.h>
@@ -31,4 +31,4 @@ namespace Genode
    	};
 }
 
-#endif /* _BOARD_H_ */
+#endif /* _CORE__INCLUDE__SPEC__IMX53__BOARD_H_ */

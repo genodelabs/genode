@@ -11,7 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#pragma once
+#ifndef _CORE__INCLUDE__IRQ_SESSION_COMPONENT_H_
+#define _CORE__INCLUDE__IRQ_SESSION_COMPONENT_H_
 
 #include <base/lock.h>
 #include <base/rpc_server.h>
@@ -57,3 +58,5 @@ class Genode::Irq_session_component : public Rpc_object<Irq_session>,
 		void sigh(Signal_context_capability) override;
 		Info info() override;
 };
+
+#endif /* _CORE__INCLUDE__IRQ_SESSION_COMPONENT_H_ */

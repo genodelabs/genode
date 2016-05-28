@@ -61,27 +61,32 @@ class Block::Root_multiple_clients : public Root_component< ::Session_component>
 
 		Server::Entrypoint &_ep;
 
-		long _device_num(const char *session_label)
+		long _device_num(const char *session_label, char *model, char *sn, size_t bufs_len)
 		{
 			long num = -1;
 
-			try {
-				using namespace Genode;
+			Xml_node policy = config()->xml_node().sub_node("policy");
 
-				Xml_node policy = Genode::config()->xml_node().sub_node("policy");
+			for (;; policy = policy.next("policy")) {
+				char label_buf[64];
+				policy.attribute("label").value(label_buf, sizeof(label_buf));
 
-				for (;; policy = policy.next("policy")) {
-					char label_buf[64];
-					policy.attribute("label").value(label_buf, sizeof(label_buf));
+				if (Genode::strcmp(session_label, label_buf))
+					continue;
 
-					if (Genode::strcmp(session_label, label_buf))
-						continue;
-
-					/* read device attribute */
+				/* try read device port number attribute */
+				try {
 					policy.attribute("device").value(&num);
-					break;
-				}
-			} catch (...) {}
+				} catch (...) { }
+
+				/* try read device model and serial number attributes */
+				try {
+					model[0] = sn[0] = 0;
+					policy.attribute("model").value(model, bufs_len);
+					policy.attribute("serial").value(sn, bufs_len);
+				} catch (...) { }
+				break;
+			}
 
 			return num;
 		}
@@ -96,18 +101,22 @@ class Block::Root_multiple_clients : public Root_component< ::Session_component>
 			/* TODO: build quota check */
 
 			/* Search for configured device */
-			char label_buf[64];
+			char label_buf[64], model_buf[64], sn_buf[64];
 			Genode::Arg_string::find_arg(args,
 			                             "label").string(label_buf,
 			                                             sizeof(label_buf),
 			                                             "<unlabeled>");
-			long num = _device_num(label_buf);
+			long num = _device_num(label_buf, model_buf, sn_buf, sizeof(model_buf));
+			/* prefer model/serial routing */
+			if ((model_buf[0] != 0) && (sn_buf[0] != 0))
+				num = Ahci_driver::device_number(model_buf, sn_buf);
+
 			if (num < 0) {
 				PERR("No confguration found for client: %s", label_buf);
 				throw Root::Invalid_args();
 			}
 
-			if (!Ahci_driver::is_avail(num)) {
+			if (!Ahci_driver::avail(num)) {
 				PERR("Device %ld not available", num);
 				throw Root::Unavailable();
 			}
@@ -146,7 +155,8 @@ struct Main
 	: root(ep, Genode::env()->heap())
 	{
 		PINF("--- Starting AHCI driver -> done right .-) --\n");
-		Ahci_driver::init(root);
+		bool support_atapi = Genode::config()->xml_node().attribute_value("atapi", false);
+		Ahci_driver::init(root, support_atapi);
 	}
 };
 

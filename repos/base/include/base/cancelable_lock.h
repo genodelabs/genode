@@ -19,7 +19,7 @@
 
 namespace Genode {
 
-	class Thread_base;
+	class Thread;
 	class Cancelable_lock;
 }
 
@@ -32,12 +32,12 @@ class Genode::Cancelable_lock
 		{
 			private:
 
-				Thread_base *_thread_base;
-				Applicant   *_to_wake_up;
+				Thread    *_thread_base;
+				Applicant *_to_wake_up;
 
 			public:
 
-				explicit Applicant(Thread_base *thread_base)
+				explicit Applicant(Thread *thread_base)
 				: _thread_base(thread_base), _to_wake_up(0) { }
 
 				void applicant_to_wake_up(Applicant *to_wake_up) {
@@ -45,7 +45,7 @@ class Genode::Cancelable_lock
 
 				Applicant *applicant_to_wake_up() { return _to_wake_up; }
 
-				Thread_base *thread_base() { return _thread_base; }
+				Thread *thread_base() { return _thread_base; }
 
 				/**
 				 * Called from previous lock owner

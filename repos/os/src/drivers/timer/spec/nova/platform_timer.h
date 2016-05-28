@@ -19,6 +19,9 @@
 #include <os/server.h>
 #include <trace/timestamp.h>
 
+/* NOVA includes */
+#include <nova/native_thread.h>
+
 class Platform_timer
 {
 	private:
@@ -96,13 +99,13 @@ class Platform_timer
 		/**
 		 * Block for the next scheduled timeout
 		 */
-		void wait_for_timeout(Genode::Thread_base *blocking_thread)
+		void wait_for_timeout(Genode::Thread *blocking_thread)
 		{
 			using namespace Genode;
 			using namespace Nova;
 
 			if (_sem == ~0UL)
-				_sem = blocking_thread->tid().exc_pt_sel + SM_SEL_EC;
+				_sem = blocking_thread->native_thread().exc_pt_sel + SM_SEL_EC;
  
 			addr_t sem = _sem;
 

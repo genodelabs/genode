@@ -75,9 +75,16 @@ class Input::Event
 			return _type == PRESS || _type == RELEASE ? (Keycode)_code : KEY_UNKNOWN;
 		}
 
-		bool is_absolute_motion() const { return _type == MOTION && !_rx && !_ry; }
-		bool is_relative_motion() const { return _type == MOTION && (_rx || _ry); }
-		bool is_touch_release() const { return _type == TOUCH && (_rx == -1) && (_ry == -1); }
+		bool absolute_motion() const { return _type == MOTION && !_rx && !_ry; }
+		bool relative_motion() const { return _type == MOTION && (_rx || _ry); }
+		bool touch_release()   const { return _type == TOUCH && (_rx == -1) && (_ry == -1); }
+
+		/*
+		 * \deprecated use methods without the 'is_' prefix instead
+		 */
+		bool is_absolute_motion() const { return absolute_motion(); }
+		bool is_relative_motion() const { return relative_motion(); }
+		bool is_touch_release()   const { return touch_release(); }
 
 		static Event create_touch_event(int ax, int ay, int id, bool last = false)
 		{

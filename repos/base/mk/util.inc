@@ -40,6 +40,18 @@ _lookup_port_hash_file  = $(wildcard $(addsuffix /ports/$1.hash,$(REPOSITORIES))
 _capture_port_hash_file = $(call _capture,$(call _lookup_port_hash_file,$1),PORT_HASH_FILES)
 _hash_of_port           = $(shell echo | cat $(call _capture_port_hash_file,$1))
 _port_dir               = $(wildcard $(CONTRIB_DIR)/$1-$(call _hash_of_port,$1))
-_checked_port_dir       = $(call _assert,$(call _port_dir,$1),$1 is not prepared or outdated)
+
+#
+# We accumulate missing ports instead of stopping only if the environment
+# explicitely states that it is aware of it. This ensures that environments
+# that are not aware can't run into troubles with missing ports.
+#
+ifeq (ACCUMULATE_MISSING_PORTS,)
+_checked_port_dir = $(call _assert,$(call _port_dir,$1),$1 is not prepared or outdated)
+else
+_port_missing     = $(eval DEP_MISSING_PORTS += $1)
+_checked_port     = $(if $2,$2,$(call _port_missing,$1))
+_checked_port_dir = $(call _checked_port,$1,$(call _port_dir,$1))
+endif
 
 select_from_ports = $(call _checked_port_dir,$1)

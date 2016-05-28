@@ -25,7 +25,8 @@ namespace Genode {
 	/**
 	 * Forward declaration needed for internal interfaces of 'Capability'
 	 */
-	class Ipc_client;
+	class Ipc_unmarshaller;
+	class Msgbuf_base;
 
 
 	/**
@@ -57,32 +58,32 @@ class Genode::Capability : public Untyped_capability
 		 * Insert RPC arguments into the message buffer
 		 */
 		template <typename ATL>
-		void _marshal_args(Ipc_client &ipc_client, ATL &args) const;
+		void _marshal_args(Msgbuf_base &, ATL &args) const;
 
-		void _marshal_args(Ipc_client &, Meta::Empty &) const { }
+		void _marshal_args(Msgbuf_base &, Meta::Empty &) const { }
 
 		/**
 		 * Unmarshal single RPC argument from the message buffer
 		 */
 		template <typename T>
-		void _unmarshal_result(Ipc_client &ipc_client, T &arg,
+		void _unmarshal_result(Ipc_unmarshaller &, T &arg,
 		                       Meta::Overload_selector<Rpc_arg_out>) const;
 
 		template <typename T>
-		void _unmarshal_result(Ipc_client &ipc_client, T &arg,
+		void _unmarshal_result(Ipc_unmarshaller &, T &arg,
 		                       Meta::Overload_selector<Rpc_arg_inout>) const;
 
 		template <typename T>
-		void _unmarshal_result(Ipc_client &, T &,
+		void _unmarshal_result(Ipc_unmarshaller &, T &,
 		                       Meta::Overload_selector<Rpc_arg_in>) const { }
 
 		/**
 		 * Read RPC results from the message buffer
 		 */
 		template <typename ATL>
-		void _unmarshal_results(Ipc_client &ipc_client, ATL &args) const;
+		void _unmarshal_results(Ipc_unmarshaller &, ATL &args) const;
 
-		void _unmarshal_results(Ipc_client &, Meta::Empty &) const { }
+		void _unmarshal_results(Ipc_unmarshaller &, Meta::Empty &) const { }
 
 		/**
 		 * Check RPC return code for the occurrence of exceptions
@@ -97,9 +98,10 @@ class Genode::Capability : public Untyped_capability
 		void _check_for_exceptions(Rpc_exception_code const exc_code,
 		                           Meta::Overload_selector<EXC_TL>) const
 		{
-			enum { EXCEPTION_CODE = RPC_EXCEPTION_BASE - Meta::Length<EXC_TL>::Value };
+			enum { EXCEPTION_CODE = Rpc_exception_code::EXCEPTION_BASE
+			                      - Meta::Length<EXC_TL>::Value };
 
-			if (exc_code == EXCEPTION_CODE)
+			if (exc_code.value == EXCEPTION_CODE)
 				throw typename EXC_TL::Head();
 
 			_check_for_exceptions(exc_code, Meta::Overload_selector<typename EXC_TL::Tail>());

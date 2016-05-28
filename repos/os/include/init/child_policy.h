@@ -25,7 +25,6 @@ namespace Init {
 
 	class Child_policy_ram_phys;
 	class Child_policy_enforce_labeling;
-	class Child_policy_pd_args;
 	class Child_policy_handle_cpu_priorities;
 	class Child_policy_provide_rom_file;
 	class Child_policy_redirect_rom_file;
@@ -106,29 +105,6 @@ class Init::Child_policy_enforce_labeling
 
 			Arg_string::set_arg(args, args_len, "label", value_buf);
 		}
-};
-
-
-/**
- * Policy for handling platform-specific PD-session arguments
- *
- * This policy is used onthe Linux base platform for prepending the chroot
- * path of the child. By applying this policy, the chroot path of the child
- * gets supplied to PD session requests.
- */
-class Init::Child_policy_pd_args
-{
-	private:
-
-		Genode::Native_pd_args const *_pd_args;
-
-	public:
-
-		Child_policy_pd_args(Genode::Native_pd_args const *pd_args)
-		: _pd_args(pd_args) { }
-
-		void filter_session_args(const char *session, char *args,
-		                         Genode::size_t args_len);
 };
 
 

@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _GDT_H_
-#define _GDT_H_
+#ifndef _CORE__INCLUDE__SPEC__X86_64__GDT_H_
+#define _CORE__INCLUDE__SPEC__X86_64__GDT_H_
 
 /* core includes */
 #include <pseudo_descriptor.h>
@@ -48,4 +48,4 @@ class Genode::Gdt
 		}
 };
 
-#endif /* _GDT_H_ */
+#endif /* _CORE__INCLUDE__SPEC__X86_64__GDT_H_ */

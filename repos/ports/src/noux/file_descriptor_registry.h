@@ -32,7 +32,7 @@ namespace Noux {
 				Shared_pointer<Io_channel> io_channel;
 			} _fds[MAX_FILE_DESCRIPTORS];
 
-			bool _is_valid_fd(int fd) const
+			bool _valid_fd(int fd) const
 			{
 				return (fd >= 0) && (fd < MAX_FILE_DESCRIPTORS);
 			}
@@ -79,7 +79,7 @@ namespace Noux {
 					return -1;
 				}
 
-				if (!_is_valid_fd(fd)) {
+				if (!_valid_fd(fd)) {
 					PERR("File descriptor %d is out of range", fd);
 					return -2;
 				}
@@ -90,7 +90,7 @@ namespace Noux {
 
 			virtual void remove_io_channel(int fd)
 			{
-				if (!_is_valid_fd(fd))
+				if (!_valid_fd(fd))
 					PERR("File descriptor %d is out of range", fd);
 				else
 					_reset_fd(fd);
@@ -98,7 +98,7 @@ namespace Noux {
 
 			bool fd_in_use(int fd) const
 			{
-				return (_is_valid_fd(fd) && _fds[fd].io_channel);
+				return (_valid_fd(fd) && _fds[fd].io_channel);
 			}
 
 			Shared_pointer<Io_channel> io_channel_by_fd(int fd) const

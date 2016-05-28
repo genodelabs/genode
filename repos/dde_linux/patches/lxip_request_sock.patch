@@ -1,0 +1,23 @@
+diff --git a/include/net/request_sock.h b/include/net/request_sock.h
+index a0dde04..dccc51f 100644
+--- a/include/net/request_sock.h
++++ b/include/net/request_sock.h
+@@ -109,7 +109,7 @@ reqsk_alloc(const struct request_sock_ops *ops, struct sock *sk_listener,
+ static inline void reqsk_free(struct request_sock *req)
+ {
+ 	/* temporary debugging */
+-	WARN_ON_ONCE(atomic_read(&req->rsk_refcnt) != 0);
++	// WARN_ON_ONCE(atomic_read(&req->rsk_refcnt) != 0);
+ 
+ 	req->rsk_ops->destructor(req);
+ 	if (req->rsk_listener)
+@@ -120,7 +120,8 @@ static inline void reqsk_free(struct request_sock *req)
+ 
+ static inline void reqsk_put(struct request_sock *req)
+ {
+-	if (atomic_dec_and_test(&req->rsk_refcnt))
++	if (atomic_dec_and_test(&req->rsk_refcnt)
++	    || req->rsk_refcnt.counter == 1)
+ 		reqsk_free(req);
+ }
+ 

@@ -1,0 +1,26 @@
+build "core init test/xml_node"
+
+create_boot_directory
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="LOG"/>
+			<service name="RM"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<start name="test-xml_node">
+			<resource name="RAM" quantum="10M"/>
+		</start>
+	</config>
+}
+
+build_boot_image "core init test-xml_node"
+
+append qemu_args "-nographic -m 64"
+
+run_genode_until {.*child "test-xml_node" exited with exit value 0.*\n} 10
+
+puts "Test succeeded"

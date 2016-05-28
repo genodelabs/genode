@@ -24,17 +24,38 @@ struct Genode::Io_port_connection : Connection<Io_port_session>,
                                     Io_port_session_client
 {
 	/**
+	 * Issue session request
+	 *
+	 * \noapi
+	 */
+	Capability<Io_port_session> _session(Parent &parent, unsigned base, unsigned size)
+	{
+		return session(parent, "ram_quota=4K, io_port_base=%u, io_port_size=%u",
+		               base, size);
+	}
+
+	/**
 	 * Constructor
 	 *
 	 * \param base  base address of port range
 	 * \param size  size of port range
 	 */
+	Io_port_connection(Env &env, unsigned base, unsigned size)
+	:
+		Connection<Io_port_session>(env, _session(env.parent(), base, size)),
+		Io_port_session_client(cap())
+	{ }
+
+	/**
+	 * Constructor
+	 *
+	 * \noapi
+	 * \deprecated  Use the constructor with 'Env &' as first
+	 *              argument instead
+	 */
 	Io_port_connection(unsigned base, unsigned size)
 	:
-		Connection<Io_port_session>(
-			session("ram_quota=4K, io_port_base=%u, io_port_size=%u",
-			        base, size)),
-
+		Connection<Io_port_session>(_session(*env()->parent(), base, size)),
 		Io_port_session_client(cap())
 	{ }
 };

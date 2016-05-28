@@ -34,7 +34,7 @@ extern void (*libc_select_notify)();
 
 namespace {
 
-	typedef Genode::Thread<4096> Read_sigh_thread;
+	typedef Genode::Thread_deprecated<4096> Read_sigh_thread;
 
 
 	/**

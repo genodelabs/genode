@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2012-2013 Genode Labs GmbH
+ * Copyright (C) 2012-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -24,17 +24,20 @@
 
 /* local includes */
 #include <lx.h>
-
-#include <extern_c_begin.h>
 #include <lx_emul.h>
-#include <net/cfg80211.h>
-#include <extern_c_end.h>
+
+#include <lx_emul/extern_c_begin.h>
+# include <linux/skbuff.h>
+# include <net/cfg80211.h>
+# include <lxc.h>
+#include <lx_emul/extern_c_end.h>
 
 extern bool config_verbose;
 
 enum {
 	HEAD_ROOM = 128, /* XXX guessed value but works */
 };
+
 
 /**
  * Nic::Session implementation
@@ -64,10 +67,9 @@ class Wifi_session_component : public Nic::Session_component
 				return true;
 			}
 
-			struct sk_buff *skb = ::alloc_skb(packet.size() + HEAD_ROOM, GFP_KERNEL);
-			skb_reserve(skb, HEAD_ROOM);
+			struct sk_buff *skb = lxc_alloc_skb(packet.size() + HEAD_ROOM, HEAD_ROOM);
 
-			unsigned char *data = skb_put(skb, packet.size());
+			unsigned char *data = lxc_skb_put(skb, packet.size());
 			Genode::memcpy(data, _tx.sink()->packet_content(packet), packet.size());
 
 			_ndev->netdev_ops->ndo_start_xmit(skb, _ndev);
@@ -119,44 +121,24 @@ class Wifi_session_component : public Nic::Session_component
 		{
 			_handle_packet_stream();
 
-			if (!_rx.source()->ready_to_submit())
+			if (!_rx.source()->ready_to_submit()) {
+				PWRN("Not ready to receive packet");
 				return;
-
-			/* get mac header back */
-			skb_push(skb, ETH_HLEN);
-
-			void *packet       = skb->data;
-			size_t packet_size = ETH_HLEN;
-			void *frag         = 0;
-			size_t frag_size   = 0;
-
-			/**
-			 * If received packets are too large (as of now 128 bytes) the actually
-			 * payload is put into a fragment. Otherwise the payload is stored directly
-			 * in the sk_buff.
-			 */
-			if (skb_shinfo(skb)->nr_frags) {
-				if (skb_shinfo(skb)->nr_frags > 1)
-					PERR("more than 1 fragment in skb");
-
-				skb_frag_t *f = &skb_shinfo(skb)->frags[0];
-				frag          = skb_frag_address(f);
-				frag_size     = skb_frag_size(f);
 			}
-			else
-				packet_size += skb->len;
 
+			Skb s = skb_helper(skb);
 
 			try {
-				Nic::Packet_descriptor p = _rx.source()->alloc_packet(packet_size + frag_size);
+				Nic::Packet_descriptor p = _rx.source()->alloc_packet(s.packet_size + s.frag_size);
 				void *buffer = _rx.source()->packet_content(p);
-				memcpy(buffer, packet, packet_size);
-				if (frag_size)
-					memcpy((char *)buffer + packet_size, frag, frag_size);
+				memcpy(buffer, s.packet, s.packet_size);
+
+				if (s.frag_size)
+					memcpy((char *)buffer + s.packet_size, s.frag, s.frag_size);
 
 				_rx.source()->submit_packet(p);
 			} catch (...) {
-				PDBG("failed to process received packet");
+				PWRN("failed to process received packet");
 			}
 		}
 
@@ -266,7 +248,7 @@ class Lx::Notifier
 			Block(struct notifier_block *nb) : nb(nb) { }
 		};
 
-		Lx::List<Block> _list;
+		Lx_kit::List<Block> _list;
 		Genode::Tslab<Block, 32 * sizeof(Block)> _block_alloc;
 
 	public:
@@ -375,7 +357,7 @@ extern "C" struct net_device * netdev_notifier_info_to_dev(struct netdev_notifie
 }
 
 
-struct Proto_hook : public Lx::List<Proto_hook>::Element
+struct Proto_hook : public Lx_kit::List<Proto_hook>::Element
 {
 	struct packet_type &pt;
 
@@ -387,7 +369,7 @@ class Proto_hook_list
 {
 	private:
 
-		Lx::List<Proto_hook>  _list;
+		Lx_kit::List<Proto_hook>  _list;
 		Genode::Allocator    &_alloc;
 
 	public:
@@ -438,6 +420,12 @@ extern "C" struct net_device *__dev_get_by_index(struct net *net, int ifindex)
 	}
 
 	return Root::instance->device;
+}
+
+
+extern "C" struct net_device *dev_get_by_index_rcu(struct net *net, int ifindex)
+{
+	return __dev_get_by_index(net, ifindex);
 }
 
 
@@ -585,7 +573,7 @@ extern "C" int netif_receive_skb(struct sk_buff *skb)
 	 */
 
 	/* send EAPOL related frames only to the wpa_supplicant */
-	if (ntohs(skb->protocol) == ETH_P_PAE) {
+	if (is_eapol(skb)) {
 		/* XXX call only AF_PACKET hook */
 		for (Proto_hook* ph = proto_hook_list().first(); ph; ph = ph->next()) {
 			ph->pt.func(skb, Root::instance->device, &ph->pt, Root::instance->device);
@@ -598,6 +586,30 @@ extern "C" int netif_receive_skb(struct sk_buff *skb)
 
 	dev_kfree_skb(skb);
 	return NET_RX_SUCCESS;
+}
+
+
+gro_result_t napi_gro_receive(struct napi_struct *napi, struct sk_buff *skb)
+{
+	return netif_receive_skb(skb);
+}
+
+
+extern "C" void netif_start_subqueue(struct net_device *dev, u16 queue_index)
+{
+	dev->_tx[queue_index].state = NETDEV_QUEUE_START;
+}
+
+
+extern "C" void netif_stop_subqueue(struct net_device *dev, u16 queue_index)
+{
+	dev->_tx[queue_index].state = 0;
+}
+
+
+extern "C" void netif_wake_subqueue(struct net_device *dev, u16 queue_index)
+{
+	dev->_tx[queue_index].state = NETDEV_QUEUE_START;
 }
 
 
@@ -614,6 +626,7 @@ extern "C" u16 netdev_cap_txqueue(struct net_device *dev, u16 queue_index)
 
 
 extern "C" struct net_device *alloc_netdev_mqs(int sizeof_priv, const char *name,
+                                    unsigned char name_assign_type,
                                     void (*setup)(struct net_device *),
                                     unsigned int txqs, unsigned int rxqs)
 {

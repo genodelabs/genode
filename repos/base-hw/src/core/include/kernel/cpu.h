@@ -12,11 +12,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _KERNEL__CPU_H_
-#define _KERNEL__CPU_H_
+#ifndef _CORE__INCLUDE__KERNEL__CPU_H_
+#define _CORE__INCLUDE__KERNEL__CPU_H_
 
 /* core includes */
-#include <timer.h>
+#include <kernel/clock.h>
 #include <cpu.h>
 #include <kernel/cpu_scheduler.h>
 #include <kernel/irq.h>
@@ -190,6 +190,12 @@ class Kernel::Cpu_job : public Genode::Cpu::User_context, public Cpu_share
 		 */
 		bool own_share_active() { return Cpu_share::ready(); }
 
+		void timeout(Timeout * const timeout, time_t const duration_us);
+
+		time_t timeout_age_us(Timeout const * const timeout) const;
+
+		time_t timeout_max_us() const;
+
 		/***************
 		 ** Accessors **
 		 ***************/
@@ -227,8 +233,7 @@ class Kernel::Cpu_idle : public Cpu_job
 		Cpu_job * helping_sink() { return this; }
 };
 
-class Kernel::Cpu : public Genode::Cpu,
-                    public Irq::Pool
+class Kernel::Cpu : public Genode::Cpu, public Irq::Pool, private Timeout
 {
 	private:
 
@@ -264,14 +269,14 @@ class Kernel::Cpu : public Genode::Cpu,
 		};
 
 		unsigned const _id;
+		Clock          _clock;
 		Cpu_idle       _idle;
-		Timer * const  _timer;
 		Cpu_scheduler  _scheduler;
 		Ipi            _ipi_irq;
 		Irq            _timer_irq; /* timer irq implemented as empty event */
 
-		unsigned _quota() const { return _timer->ms_to_tics(cpu_quota_ms); }
-		unsigned _fill() const  { return _timer->ms_to_tics(cpu_fill_ms); }
+		unsigned _quota() const { return _clock.us_to_tics(cpu_quota_us); }
+		unsigned _fill() const  { return _clock.us_to_tics(cpu_fill_us); }
 
 	public:
 
@@ -312,6 +317,11 @@ class Kernel::Cpu : public Genode::Cpu,
 		 */
 		Cpu_job& schedule();
 
+		void set_timeout(Timeout * const timeout, time_t const duration_us);
+
+		time_t timeout_age_us(Timeout const * const timeout) const;
+
+		time_t timeout_max_us() const;
 
 		/***************
 		 ** Accessors **
@@ -366,4 +376,4 @@ class Kernel::Cpu_pool
 		Timer * timer() { return &_timer; }
 };
 
-#endif /* _KERNEL__CPU_H_ */
+#endif /* _CORE__INCLUDE__KERNEL__CPU_H_ */

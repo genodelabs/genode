@@ -65,10 +65,10 @@ class Scout::Element
 		/**
 		 * Accessor functionse
 		 */
-		Point position()  const { return _position; }
-		Area  size()      const { return _size; }
-		Area  min_size()  const { return _min_size; }
-		bool  is_bottom() const { return _flags.bottom; }
+		Point position() const { return _position; }
+		Area  size()     const { return _size; }
+		Area  min_size() const { return _min_size; }
+		bool  bottom()   const { return _flags.bottom; }
 
 		void findable(int flag) { _flags.findable = flag; }
 

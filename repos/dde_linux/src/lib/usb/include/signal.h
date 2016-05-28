@@ -19,41 +19,7 @@
 #include <base/signal.h>
 #include <os/server.h>
 
-#include "routine.h"
-
-/**
- * This singleton currently received all signals
- */
-class Service_handler
-{
-	private:
-
-		Service_handler() { }
-
-	public:
-
-		static Service_handler * s()
-		{
-			static Service_handler _s;
-			return &_s;
-		}
-
-		/**
-		 * Dispatch for wait for signal
-		 */
-		void process()
-		{
-			Timer::update_jiffies();
-
-			if (Routine::all()) {
-				Routine::schedule();
-				return;
-			}
-
-			Routine::schedule_main();
-		}
-};
-
+static bool const verbose = false;
 
 /**
  * Helper that holds sender and entrypoint
@@ -74,21 +40,6 @@ class Signal_helper
 };
 
 
-namespace Timer
-{
-	void init(Server::Entrypoint &ep);
-}
-
-namespace Irq
-{
-	void init(Server::Entrypoint &ep);
-	void check_irq();
-}
-
-namespace Event
-{
-	void init(Server::Entrypoint &ep);
-}
 
 namespace Storage
 {
