@@ -5,33 +5,53 @@
  */
 
  /*
-  * Copyright (C) 2009-2015 Genode Labs GmbH
+  * Copyright (C) 2009-2016 Genode Labs GmbH
   *
   * This file is part of the Genode OS framework, which is distributed
   * under the terms of the GNU General Public License version 2.
   */
 
-#include <base/printf.h>
-#include <base/sleep.h>
+/* Genode includes */
+#include <base/component.h>
+#include <base/heap.h>
+#include <base/log.h>
+#include <util/xml_generator.h>
 
-#include <os/reporter.h>
+/* local includes */
+#include <acpi.h>
 
-#include "acpi.h"
 
-int main(int argc, char **argv)
-{
+namespace Acpi {
 	using namespace Genode;
 
-	try {
-		Acpi::generate_report();
-	} catch (Genode::Xml_generator::Buffer_exceeded) {
-		PERR("ACPI report too large - failure");
-		throw;
-	} catch (...) {
-		PERR("Unknown exception occured - failure");
-		throw;
-	}
+	struct Main;
+}
 
-	Genode::sleep_forever();
-	return 0;
+struct Acpi::Main
+{
+	Genode::Env  &env;
+	Genode::Heap  heap { env.ram(), env.rm() };
+
+	Main(Env &env) : env(env)
+	{
+		try {
+			Acpi::generate_report(env, heap);
+		} catch (Genode::Xml_generator::Buffer_exceeded) {
+			Genode::error("ACPI report too large - failure");
+			throw;
+		} catch (...) {
+			Genode::error("Unknown exception occured - failure");
+			throw;
+		}
+	}
+};
+
+
+/***************
+ ** Component **
+ ***************/
+
+namespace Component {
+	Genode::size_t stack_size()      { return 2*1024*sizeof(long);  }
+	void construct(Genode::Env &env) { static Acpi::Main main(env); }
 }
