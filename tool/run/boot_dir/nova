@@ -3,10 +3,10 @@ proc binary_name_core_o    { } { return "core-nova.o" }
 proc binary_name_timer     { } { return "nova_timer_drv" }
 
 proc kernel_files { } { return hypervisor }
-
+proc kernel_output { } { return "novga serial" }
 
 proc run_boot_string { } {
-	return "\n\r\fNOVA Microhypervisor"
+	return "\nHypervisor reports "
 }
 
 
@@ -126,7 +126,7 @@ proc run_boot_dir {binaries} {
 		puts $fh " insmod multiboot2"
 		puts $fh " insmod gzio"
 		puts $fh " multiboot2 /boot/bender $serial_bender_opt"
-		puts $fh " module2 /boot/hypervisor hypervisor iommu serial novpid novga"
+		puts $fh " module2 /boot/hypervisor hypervisor iommu novpid [kernel_output]"
 		puts $fh " module2 /boot/image.elf.gz image.elf"
 		puts $fh "}"
 		close $fh
@@ -148,7 +148,7 @@ proc run_boot_dir {binaries} {
 		#
 		set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
 		puts $fh " exec /boot/bender"
-		puts $fh " load /boot/hypervisor iommu serial novpid novga"
+		puts $fh " load /boot/hypervisor iommu novpid [kernel_output]"
 		puts $fh " load /boot/image.elf"
 		close $fh
 

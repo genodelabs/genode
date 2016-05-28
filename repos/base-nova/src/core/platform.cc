@@ -527,6 +527,9 @@ Platform::Platform() :
 		ram_alloc()->add_range(base, size);
 	}
 
+	uint64_t hyp_log = 0;
+	uint64_t hyp_log_size = 0;
+
 	/*
 	 * Exclude all non-available memory from physical allocator AFTER all
 	 * available RAM was added - otherwise the non-available memory gets not
@@ -535,6 +538,14 @@ Platform::Platform() :
 	mem_desc = (Hip::Mem_desc *)mem_desc_base;
 	for (unsigned i = 0; i < num_mem_desc; i++, mem_desc++) {
 		if (mem_desc->type == Hip::Mem_desc::AVAILABLE_MEMORY) continue;
+
+		if (verbose_boot_info)
+			log("detected res memory: ", Hex(mem_desc->addr), " - size: ",
+			    Hex(mem_desc->size), " type=", (int)mem_desc->type);
+		if (mem_desc->type == Hip::Mem_desc::HYPERVISOR_LOG) {
+			hyp_log = mem_desc->addr;
+			hyp_log_size = mem_desc->size;
+		}
 
 		/* skip regions above 4G on 32 bit, no op on 64 bit */
 		if (mem_desc->addr > ~0UL) continue;
@@ -710,6 +721,11 @@ Platform::Platform() :
 
 		init_core_log( Core_log_range { core_local_addr, log_size } );
 	}
+
+	/* export hypervisor log memory */
+	if (hyp_log && hyp_log_size)
+		_rom_fs.insert(new (core_mem_alloc()) Rom_module(hyp_log, hyp_log_size,
+		                                                 "kernel_log"));
 
 	/* I/O port allocator (only meaningful for x86) */
 	_io_port_alloc.add_range(0, 0x10000);
