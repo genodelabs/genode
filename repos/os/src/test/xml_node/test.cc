@@ -126,6 +126,17 @@ static const char *xml_test_text_between_nodes =
 	"  sometext3"
 	"</config>";
 
+/* strange but valid XML comments */
+static const char *xml_test_comments =
+	"<config>"
+	"<visible-tag/>"
+	"<!---->"
+	"<!-- <invisible-tag/> -->"
+	"<!--<invisible-tag/>-->"
+	"<!--invisible-tag></invisible-tag-->"
+	"<visible-tag/>"
+	"</config>";
+
 
 /******************
  ** Test program **
@@ -267,7 +278,7 @@ static void print_xml_info(const char *xml_string)
 int main()
 {
 	printf("--- XML-token test ---\n");
-        print_xml_tokens<Scanner_policy_identifier_with_underline>(xml_test_text_between_nodes);
+	print_xml_tokens<Scanner_policy_identifier_with_underline>(xml_test_text_between_nodes);
 
 	printf("--- XML-parser test ---\n");
 
@@ -297,6 +308,9 @@ int main()
 
 	printf("-- Test parsing XML with nodes mixed with text --\n");
 	print_xml_info(xml_test_text_between_nodes);
+
+	printf("-- Test parsing XML with comments --\n");
+	print_xml_info(xml_test_comments);
 
 	printf("--- End of XML-parser test ---\n");
 	return 0;

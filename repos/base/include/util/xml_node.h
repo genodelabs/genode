@@ -346,20 +346,6 @@ class Genode::Xml_node
 				Token _next;   /* token following the comment */
 				bool  _valid;  /* true if comment is well formed */
 
-				/**
-				 * Check if token sequence matches specified character sequence
-				 *
-				 * \param t  start of token sequence
-				 * \param s  null-terminated character sequence
-				 */
-				static bool _match(Token t, const char *s)
-				{
-					for (int i = 0; s[i]; t = t.next(), i++)
-						if (t[0] != s[i])
-							return false;
-					return true;
-				}
-
 			public:
 
 				/**
@@ -369,18 +355,16 @@ class Genode::Xml_node
 				 */
 				Comment(Token t) : _valid(false)
 				{
-					/* check for comment-start tag */
-					if (!_match(t, "<!--"))
+					/* check for comment start */
+					if (!t.matches("<!--"))
 						return;
 
-					/* search for comment-end tag */
-					for ( ; t && !_match(t, "-->"); t = t.next());
+					/* skip four single characters for "<!--" */
+					t = t.next().next().next().next();
 
-					if (t.type() == Token::END)
-						return;
-
-					_next  = t.next().next().next();
-					_valid = true;
+					/* find token after comment delimiter */
+					_next  = t.next_after("-->");
+					_valid = _next.valid();
 				}
 
 				/**
