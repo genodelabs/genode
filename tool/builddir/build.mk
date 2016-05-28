@@ -165,7 +165,7 @@ $(dir $(LIB_DEP_FILE)):
 # Find all 'target.mk' files located within any of the specified subdirectories
 # ('DST_DIRS') and any repository. The 'sort' is used to remove duplicates.
 #
-TARGETS_TO_VISIT := $(shell find $(REPOSITORIES:=/src) -false \
+TARGETS_TO_VISIT := $(shell find $(wildcard $(REPOSITORIES:=/src)) -false \
                             $(foreach DST,$(DST_DIRS), \
                                       -or -path "*/src/$(DST)/**target.mk" \
                                           -printf " %P "))
