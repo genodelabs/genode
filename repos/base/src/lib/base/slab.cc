@@ -222,7 +222,7 @@ Slab::Slab(size_t slab_size, size_t block_size, void *initial_sb,
 
 	if (!_curr_sb) {
 		PERR("failed to obtain initial slab block");
-		return;
+		throw Out_of_memory();
 	}
 
 	/* init first slab block */
