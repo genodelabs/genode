@@ -86,7 +86,7 @@ class Backing_store
 				/**
 				 * Return true if block is in use
 				 */
-				bool is_occupied() const { return _user != 0; }
+				bool occupied() const { return _user != 0; }
 
 				/**
 				 * Return user of the block
@@ -192,7 +192,7 @@ class Backing_store
 			}
 
 			/* evict block if needed */
-			if (_curr_block()->is_occupied())
+			if (_curr_block()->occupied())
 				_curr_block()->evict();
 
 			/* reserve allocated block (prevent eviction prior assignment) */

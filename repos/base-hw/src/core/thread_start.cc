@@ -17,6 +17,10 @@
 #include <base/sleep.h>
 #include <base/env.h>
 
+/* base-internal stack */
+#include <base/internal/stack.h>
+#include <base/internal/native_utcb.h>
+
 /* core includes */
 #include <map_local.h>
 #include <kernel/kernel.h>
@@ -25,46 +29,45 @@
 
 using namespace Genode;
 
-namespace Genode { Rm_session * env_context_area_rm_session(); }
+namespace Genode { Rm_session *env_stack_area_rm_session(); }
 
-namespace Hw {
-	extern Untyped_capability _main_thread_cap;
-}
+namespace Hw { extern Untyped_capability _main_thread_cap; }
 
-void Thread_base::start()
+
+void Thread::start()
 {
 	/* start thread with stack pointer at the top of stack */
-	if (_tid.platform_thread->start((void *)&_thread_start, stack_top()))
+	if (native_thread().platform_thread->start((void *)&_thread_start, stack_top()))
 		PERR("failed to start thread");
 }
 
 
-void Thread_base::cancel_blocking()
+void Thread::cancel_blocking()
 {
-	_tid.platform_thread->cancel_blocking();
+	native_thread().platform_thread->cancel_blocking();
 }
 
 
-void Thread_base::_deinit_platform_thread()
+void Thread::_deinit_platform_thread()
 {
 	/* destruct platform thread */
-	destroy(platform()->core_mem_alloc(), _tid.platform_thread);
+	destroy(platform()->core_mem_alloc(), native_thread().platform_thread);
 }
 
 
-void Thread_base::_init_platform_thread(size_t, Type type)
+void Thread::_init_platform_thread(size_t, Type type)
 {
 	if (type == NORMAL) {
-		_tid.platform_thread = new (platform()->core_mem_alloc())
-			Platform_thread(_context->name, &_context->utcb);
+		native_thread().platform_thread = new (platform()->core_mem_alloc())
+			Platform_thread(_stack->name().string(), &_stack->utcb());
 		return;
 	}
 
-	/* remap initial main-thread UTCB according to context-area spec */
+	/* remap initial main-thread UTCB according to stack-area spec */
 	Genode::map_local((addr_t)Kernel::Core_thread::singleton().utcb(),
-	                  (addr_t)&_context->utcb,
+	                  (addr_t)&_stack->utcb(),
 	                  max(sizeof(Native_utcb) / get_page_size(), (size_t)1));
 
 	/* adjust initial object state in case of a main thread */
-	tid().cap = Hw::_main_thread_cap.dst();
+	native_thread().cap = Hw::_main_thread_cap.dst();
 }

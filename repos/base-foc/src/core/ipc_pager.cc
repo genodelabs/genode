@@ -106,7 +106,7 @@ void Ipc_pager::reply_and_wait_for_fault()
 	}
 	l4_utcb_mr()->mr[1] = _reply_mapping.fpage().raw;
 
-	_tag = l4_ipc_send_and_wait(_last, l4_utcb(), snd_tag,
+	_tag = l4_ipc_send_and_wait(_last.kcap, l4_utcb(), snd_tag,
 	                            &label, L4_IPC_SEND_TIMEOUT_0);
 	int err = l4_ipc_error(_tag, l4_utcb());
 	if (err) {
@@ -119,7 +119,7 @@ void Ipc_pager::reply_and_wait_for_fault()
 
 void Ipc_pager::acknowledge_wakeup()
 {
-	l4_cap_idx_t dst = Fiasco::Capability::valid(_last) ? _last : L4_SYSF_REPLY;
+	l4_cap_idx_t dst = Fiasco::Capability::valid(_last.kcap) ? _last.kcap : L4_SYSF_REPLY;
 
 	/* answer wakeup call from one of core's region-manager sessions */
 	l4_ipc_send(dst, l4_utcb(), l4_msgtag(0, 0, 0, 0), L4_IPC_SEND_TIMEOUT_0);
@@ -129,7 +129,7 @@ void Ipc_pager::acknowledge_wakeup()
 void Ipc_pager::acknowledge_exception()
 {
 	memcpy(l4_utcb_exc(), &_regs, sizeof(l4_exc_regs_t));
-	l4_cap_idx_t dst = Fiasco::Capability::valid(_last) ? _last : L4_SYSF_REPLY;
+	l4_cap_idx_t dst = Fiasco::Capability::valid(_last.kcap) ? _last.kcap : L4_SYSF_REPLY;
 	l4_ipc_send(dst, l4_utcb(), l4_msgtag(0, L4_UTCB_EXCEPTION_REGS_SIZE, 0, 0), L4_IPC_SEND_TIMEOUT_0);
 }
 

@@ -23,6 +23,9 @@
 #include <util.h>
 #include <nova_util.h>
 
+/* base-internal includes */
+#include <base/internal/stack_area.h>
+
 /* NOVA includes */
 #include <nova/syscalls.h>
 #include <nova/util.h>
@@ -36,12 +39,7 @@ using namespace Genode;
 
 void Platform_thread::affinity(Affinity::Location location)
 {
-	if (_sel_exc_base != Native_thread::INVALID_INDEX) {
-		PERR("Failure - affinity of thread could not be set");
-		return;
-	}
-
-	_location = location;
+	PERR("dynamic affinity change not supported on NOVA");
 }
 
 
@@ -57,22 +55,22 @@ int Platform_thread::start(void *ip, void *sp)
 		return -1;
 	}
 
-	if (!_pd || (is_main_thread() && !is_vcpu() &&
+	if (!_pd || (main_thread() && !vcpu() &&
 	             _pd->parent_pt_sel() == Native_thread::INVALID_INDEX)) {
 		PERR("protection domain undefined");
 		return -2;
 	}
 
 	addr_t const pt_oom = _pager->get_oom_portal();
-	if (!pt_oom || map_local((Utcb *)Thread_base::myself()->utcb(),
+	if (!pt_oom || map_local((Utcb *)Thread::myself()->utcb(),
 	                         Obj_crd(pt_oom, 0), Obj_crd(_sel_pt_oom(), 0))) {
 		PERR("setup of out-of-memory notification portal - failed");
 		return -8;
 	}
 
-	if (!is_main_thread()) {
+	if (!main_thread()) {
 		addr_t const initial_sp = reinterpret_cast<addr_t>(sp);
-		addr_t const utcb       = is_vcpu() ? 0 : round_page(initial_sp);
+		addr_t const utcb       = vcpu() ? 0 : round_page(initial_sp);
 
 		if (_sel_exc_base == Native_thread::INVALID_INDEX) {
 			PERR("exception base not specified");
@@ -81,13 +79,10 @@ int Platform_thread::start(void *ip, void *sp)
 
 		_pager->assign_pd(_pd->pd_sel());
 
-		/* ip == 0 means that caller will use the thread as worker */
-		bool thread_global = ip;
-
 		uint8_t res;
 		do {
 			res = create_ec(_sel_ec(), _pd->pd_sel(), _location.xpos(),
-			                utcb, initial_sp, _sel_exc_base, thread_global);
+			                utcb, initial_sp, _sel_exc_base, !worker());
 			if (res == Nova::NOVA_PD_OOM && Nova::NOVA_OK != _pager->handle_oom()) {
 				_pager->assign_pd(Native_thread::INVALID_INDEX);
 				PERR("creation of new thread failed %u", res);
@@ -95,9 +90,7 @@ int Platform_thread::start(void *ip, void *sp)
 			}
 		} while (res != Nova::NOVA_OK);
 
-		if (!thread_global) {
-			_features |= WORKER;
-
+		if (worker()) {
 			/* local/worker threads do not require a startup portal */
 			revoke(Obj_crd(_pager->exc_pt_sel_client() + PT_SEL_STARTUP, 0));
 		}
@@ -116,18 +109,17 @@ int Platform_thread::start(void *ip, void *sp)
 
 	addr_t pd_core_sel  = Platform_pd::pd_core_sel();
 	addr_t pd_utcb      = 0;
-	_sel_exc_base       = is_vcpu() ? _pager->exc_pt_vcpu() : _pager->exc_pt_sel_client();
+	_sel_exc_base       = vcpu() ? _pager->exc_pt_vcpu() : _pager->exc_pt_sel_client();
 
-	if (!is_vcpu()) {
-		pd_utcb = Native_config::context_area_virtual_base() +
-		          Native_config::context_virtual_size() - get_page_size();
+	if (!vcpu()) {
+		pd_utcb = stack_area_virtual_base() + stack_virtual_size() - get_page_size();
 
 		addr_t remap_src[] = { _pd->parent_pt_sel(), _pager->Object_pool<Pager_object>::Entry::cap().local_name() };
 		addr_t remap_dst[] = { PT_SEL_PARENT, PT_SEL_MAIN_PAGER };
 
 		/* remap exception portals for first thread */
 		for (unsigned i = 0; i < sizeof(remap_dst)/sizeof(remap_dst[0]); i++) {
-			if (map_local((Utcb *)Thread_base::myself()->utcb(),
+			if (map_local((Utcb *)Thread::myself()->utcb(),
 			              Obj_crd(remap_src[i], 0),
 			              Obj_crd(_sel_exc_base + remap_dst[i], 0)))
 				return -6;
@@ -139,7 +131,7 @@ int Platform_thread::start(void *ip, void *sp)
 	addr_t const rights = Obj_crd::RIGHT_EC_RECALL |
 	                      Obj_crd::RIGHT_PT_CTRL | Obj_crd::RIGHT_PT_CALL |
 	                      Obj_crd::RIGHT_SM_UP | Obj_crd::RIGHT_SM_DOWN;
-	unsigned pts = is_vcpu() ?  NUM_INITIAL_VCPU_PT_LOG2 : NUM_INITIAL_PT_LOG2;
+	unsigned pts = vcpu() ?  NUM_INITIAL_VCPU_PT_LOG2 : NUM_INITIAL_PT_LOG2;
 
 	enum { KEEP_FREE_PAGES_NOT_AVAILABLE_FOR_UPGRADE = 2, UPPER_LIMIT_PAGES = 32 };
 	Obj_crd initial_pts(_sel_exc_base, pts, rights);
@@ -204,23 +196,12 @@ int Platform_thread::start(void *ip, void *sp)
 }
 
 
-Native_capability Platform_thread::pause()
+void Platform_thread::pause()
 {
-	if (!_pager) return Native_capability();
+	if (!_pager)
+		return;
 
-	Native_capability notify_sm = _pager->notify_sm();
-	if (!notify_sm.valid()) return notify_sm;
-
-	if (_pager->client_recall() != Nova::NOVA_OK)
-		return Native_capability();
-
-	/* If the thread is blocked in its own SM, get him out */
-	cancel_blocking();
-
-	/* local thread may never get be canceled if it doesn't receive an IPC */
-	if (is_worker()) return Native_capability();
-
-	return notify_sm;
+	_pager->client_recall(true);
 }
 
 
@@ -228,7 +209,7 @@ void Platform_thread::resume()
 {
 	using namespace Nova;
 
-	if (!is_worker()) {
+	if (!worker()) {
 		uint8_t res;
 		do {
 			if (!_pd) {
@@ -252,44 +233,53 @@ void Platform_thread::resume()
 
 Thread_state Platform_thread::state()
 {
-	if (!_pager) throw Cpu_session::State_access_failed();
+	if (!_pager) throw Cpu_thread::State_access_failed();
 
 	Thread_state s;
 
 	if (_pager->copy_thread_state(&s))
 		return s;
 
-	if (is_worker()) {
-		s.sp = _pager->initial_esp();
-		return s;
-	}
-
-	throw Cpu_session::State_access_failed();
+	throw Cpu_thread::State_access_failed();
 }
 
 
 void Platform_thread::state(Thread_state s)
 {
-	/* you can do it only once */
-	if (_sel_exc_base != Native_thread::INVALID_INDEX)
-		throw Cpu_session::State_access_failed();
+	if (_sel_exc_base == Native_thread::INVALID_INDEX) {
 
-	/*
-	 * s.sel_exc_base exception base of thread in caller
-	 *                protection domain - not in Core !
-	 * s.is_vcpu      If true it will run as vCPU,
-	 *                otherwise it will be a thread.
-	 */
-	if (!is_main_thread())
-		_sel_exc_base = s.sel_exc_base;
+		/* you can do it only once */
 
-	if (!s.is_vcpu)
-		return;
+		/*
+		 * s.sel_exc_base exception base of thread in caller
+		 *                protection domain - not in Core !
+		 * s.is_vcpu      If true it will run as vCPU,
+		 *                otherwise it will be a thread.
+		 */
+		if (!main_thread())
+			_sel_exc_base = s.sel_exc_base;
 
-	_features |= VCPU;
+		if (!s.global_thread)
+			_features |= WORKER;
 
-	if (is_main_thread() && _pager)
-		_pager->prepare_vCPU_portals();
+		if (!s.vcpu)
+			return;
+
+		_features |= VCPU;
+
+		if (main_thread() && _pager)
+			_pager->prepare_vCPU_portals();
+
+	} else {
+
+		if (!_pager) throw Cpu_thread::State_access_failed();
+
+		if (!_pager->copy_thread_state(s))
+			throw Cpu_thread::State_access_failed();
+
+		/* the new state is transferred to the kernel by the recall handler */
+		_pager->client_recall(false);
+	}
 }
 
 
@@ -301,23 +291,15 @@ void Platform_thread::cancel_blocking()
 }
 
 
-Native_capability Platform_thread::single_step(bool on)
+void Platform_thread::single_step(bool on)
 {
-	if (!_pager) return Native_capability();
+	if (!_pager) return;
 
-	Native_capability cap = _pager->single_step(on);
-
-	if (is_worker()) return Native_capability();
-
-	return cap;
+	_pager->single_step(on);
 }
 
-
-unsigned long Platform_thread::pager_object_badge() const
-{
-	return reinterpret_cast<unsigned long>(_name);
-}
-
+const char * Platform_thread::pd_name() const {
+	return _pd ? _pd->name() : "unknown"; }
 
 Weak_ptr<Address_space> Platform_thread::address_space()
 {
@@ -337,7 +319,7 @@ unsigned long long Platform_thread::execution_time() const
 	 * For local ECs, we simply return 0 as local ECs are executed with the
 	 * time of their callers.
 	 */
-	if (is_worker())
+	if (worker())
 		return time;
 
 	uint8_t res = Nova::sc_ctrl(_sel_sc(), time);
@@ -348,22 +330,22 @@ unsigned long long Platform_thread::execution_time() const
 }
 
 
-Platform_thread::Platform_thread(const char *name, unsigned prio, int thread_id)
+Platform_thread::Platform_thread(size_t, const char *name, unsigned prio,
+                                 Affinity::Location affinity, int thread_id)
 :
 	_pd(0), _pager(0), _id_base(cap_map()->insert(2)),
-	_sel_exc_base(Native_thread::INVALID_INDEX), _location(boot_cpu(), 0, 0, 0),
+	_sel_exc_base(Native_thread::INVALID_INDEX), _location(affinity),
 	_features(0),
-	_priority(Cpu_session::scale_priority(Nova::Qpd::DEFAULT_PRIORITY, prio))
+	_priority(Cpu_session::scale_priority(Nova::Qpd::DEFAULT_PRIORITY, prio)),
+	_name(name)
 {
-	strncpy(_name, name, sizeof(_name));
-
 	if (_priority == 0) {
-		PWRN("priority of thread '%s' below minimum - boost to 1", _name);
+		PWRN("priority of thread '%s' below minimum - boost to 1", _name.string());
 		_priority = 1;
 	}
 	if (_priority > Nova::Qpd::DEFAULT_PRIORITY) {
 		PWRN("priority of thread '%s' above maximum - limit to %u",
-		     _name, Nova::Qpd::DEFAULT_PRIORITY);
+		     _name.string(), Nova::Qpd::DEFAULT_PRIORITY);
 		_priority = Nova::Qpd::DEFAULT_PRIORITY;
 	}
 }

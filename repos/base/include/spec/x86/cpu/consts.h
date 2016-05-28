@@ -41,7 +41,7 @@ namespace Abi {
 	 * growth of the stack, we further adjust the stack-top address to comply
 	 * to the AMD64 ABI rule "stack top + adjustment is 16-byte aligned".
 	 */
-	static Genode::addr_t stack_align(Genode::addr_t addr) {
+	inline Genode::addr_t stack_align(Genode::addr_t addr) {
 		return (addr & ~0xf) - sizeof(Genode::addr_t); }
 
 	/**

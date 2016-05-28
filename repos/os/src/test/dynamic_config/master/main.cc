@@ -22,7 +22,7 @@ struct Test_slave_policy : Genode::Slave_policy
 	const char **_permitted_services() const
 	{
 		static const char *permitted_services[] = {
-			"RM", "LOG", "SIGNAL", 0 };
+			"RM", "LOG", 0 };
 
 		return permitted_services;
 	};

@@ -15,6 +15,7 @@ SPARK_PATH      = $(shell sed -n "/^SPARK_PATH/s/^.*=\\s*//p" ${MUEN_CONF_FILE})
 BUILD_ENV       = PATH=$(GNAT_PATH)/bin:$(SPARK_PATH)/bin:$$PATH
 BUILD_OPTS      = SYSTEM=$(MUEN_SYSTEM) HARDWARE=$(MUEN_HARDWARE) NO_PROOF=true
 
+ifneq ($(filter muen, $(SPECS)),)
 $(TARGET): $(MUEN_DST_DIR)
 	$(MSG_BUILD)Muen kernel
 	$(VERBOSE)$(BUILD_ENV) $(MAKE) -C $(MUEN_DST_DIR) $(BUILD_OPTS) kernel > $(MUEN_LOG) 2>&1
@@ -39,5 +40,7 @@ clean_muen:
 	$(VERBOSE)rm -rf $(MUEN_DST_DIR)
 	$(VERBOSE)rm -f  $(MUEN_CONF_FILE)
 	$(VERBOSE)rm -f  $(MUEN_LOG)
+endif
+
 
 .PHONY: $(TARGET)

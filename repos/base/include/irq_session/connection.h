@@ -21,26 +21,56 @@ namespace Genode { struct Irq_connection; }
 
 struct Genode::Irq_connection : Connection<Irq_session>, Irq_session_client
 {
-	public:
+	/**
+	 * Issue session request
+	 *
+	 * \noapi
+	 */
+	Capability<Irq_session> _session(Parent               &parent,
+	                                 unsigned              irq,
+	                                 Irq_session::Trigger  trigger,
+	                                 Irq_session::Polarity polarity,
+	                                 Genode::addr_t        device_config_phys)
+	{
+		return session("ram_quota=4K, irq_number=%u, irq_trigger=%u, "
+		               " irq_polarity=%u, device_config_phys=0x%lx",
+		               irq, trigger, polarity, device_config_phys);
+	}
 
-		/**
-		 * Constructor
-		 *
-		 * \param irq      physical interrupt number
-		 * \param trigger  interrupt trigger (e.g., level/edge)
-		 * \param polarity interrupt trigger polarity (e.g., low/high)
-		 */
-		Irq_connection(unsigned irq,
-		               Irq_session::Trigger  trigger  = Irq_session::TRIGGER_UNCHANGED,
-		               Irq_session::Polarity polarity = Irq_session::POLARITY_UNCHANGED,
-		               Genode::addr_t device_config_phys = 0)
-		:
-			Connection<Irq_session>(
-				session("ram_quota=4K, irq_number=%u, irq_trigger=%u, "
-				        " irq_polarity=%u, device_config_phys=0x%lx",
-				        irq, trigger, polarity, device_config_phys)),
-			Irq_session_client(cap())
-		{ }
+	/**
+	 * Constructor
+	 *
+	 * \param irq      physical interrupt number
+	 * \param trigger  interrupt trigger (e.g., level/edge)
+	 * \param polarity interrupt trigger polarity (e.g., low/high)
+	 */
+	Irq_connection(Env                  &env,
+	               unsigned              irq,
+	               Irq_session::Trigger  trigger  = Irq_session::TRIGGER_UNCHANGED,
+	               Irq_session::Polarity polarity = Irq_session::POLARITY_UNCHANGED,
+	               Genode::addr_t        device_config_phys = 0)
+	:
+		Connection<Irq_session>(env, _session(env.parent(), irq, trigger,
+		                                      polarity, device_config_phys)),
+		Irq_session_client(cap())
+	{ }
+
+	/**
+	 * Constructor
+	 *
+	 * \noapi
+	 * \deprecated  Use the constructor with 'Env &' as first
+	 *              argument instead
+	 */
+	Irq_connection(unsigned irq,
+	               Irq_session::Trigger  trigger  = Irq_session::TRIGGER_UNCHANGED,
+	               Irq_session::Polarity polarity = Irq_session::POLARITY_UNCHANGED,
+	               Genode::addr_t device_config_phys = 0)
+	:
+		Connection<Irq_session>(_session(*Genode::env()->parent(), irq,
+		                                 trigger, polarity, device_config_phys)),
+		Irq_session_client(cap())
+	{ }
 };
 
 #endif /* _INCLUDE__IRQ_SESSION__CONNECTION_H_ */

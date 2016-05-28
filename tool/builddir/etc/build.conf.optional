@@ -34,3 +34,11 @@
 # The 'gems' repository depends on 'libc' and 'libports'.
 #
 #REPOSITORIES += $(GENODE_DIR)/repos/gems
+
+#
+# Genode world repository
+#
+# Collection of community-maintained components available at
+# https://github.com/genodelabs/genode-world.git
+#
+#REPOSITORIES += $(GENODE_DIR)/repos/world

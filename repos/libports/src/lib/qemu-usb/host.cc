@@ -76,8 +76,12 @@ struct Completion : Usb::Completion
 
 		if (packet.succeded)
 			p->status = USB_RET_SUCCESS;
-		else
-			p->status = USB_RET_IOERROR;
+		else {
+			if (packet.error == Usb::Packet_descriptor::STALL_ERROR)
+				p->status = USB_RET_STALL;
+			else
+				p->status = USB_RET_IOERROR;
+		}
 
 		switch (packet.type) {
 		case Usb::Packet_descriptor::CONFIG:
@@ -224,9 +228,18 @@ struct Usb_host_device : List<Usb_host_device>::Element
 
 	Usb::Packet_descriptor alloc_packet(int length)
 	{
-
 		if (!usb_raw.source()->ready_to_submit())
 			throw -1;
+
+		if (length <= 0) {
+			/*
+			 * XXX Packets without payload are not supported by the packet stream
+			 *     currently. Therefore, we use a (small) bogus length
+			 *     here and depend on the USB driver to handle this case
+			 *     correctly.
+			 */
+			length = 4;
+		}
 
 		Usb::Packet_descriptor packet = usb_raw.source()->alloc_packet(length);
 		packet.completion = alloc_completion();
@@ -570,7 +583,7 @@ struct Usb_devices : List<Usb_host_device>
 		_garbage_collect();
 
 		_devices_rom.update();
-		if (!_devices_rom.is_valid())
+		if (!_devices_rom.valid())
 			return;
 
 		if (verbose_devices)

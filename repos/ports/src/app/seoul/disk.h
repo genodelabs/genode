@@ -54,7 +54,7 @@ class Vancouver_disk_signal : public Genode::Signal_dispatcher<Vancouver_disk>
 };
 
 
-class Vancouver_disk : public Genode::Thread<8192>, public StaticReceiver<Vancouver_disk>
+class Vancouver_disk : public Genode::Thread_deprecated<8192>, public StaticReceiver<Vancouver_disk>
 {
 	private:
 

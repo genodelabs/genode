@@ -11,6 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#ifdef __cplusplus
+
 #define extern_c_begin
 
 extern "C" {
@@ -24,3 +26,5 @@ extern "C" {
 #define private private_
 #define class   class_
 #define new     new_
+
+#endif /* __cplusplus */

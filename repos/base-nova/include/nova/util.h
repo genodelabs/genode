@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _NOVA__INCLUDE__UTIL_H_
-#define _NOVA__INCLUDE__UTIL_H_
+#ifndef _INCLUDE__NOVA__UTIL_H_
+#define _INCLUDE__NOVA__UTIL_H_
 
 #include <base/printf.h>
 #include <base/thread.h>
@@ -33,7 +33,7 @@ inline void request_event_portal(Genode::Native_capability const &cap,
                                  Genode::addr_t sel, Genode::addr_t event,
                                  unsigned short log2_count = 0)
 {
-	Genode::Thread_base * myself = Genode::Thread_base::myself();
+	Genode::Thread * myself = Genode::Thread::myself();
 	Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(myself->utcb());
 
 	/* save original receive window */
@@ -51,7 +51,7 @@ inline void request_event_portal(Genode::Native_capability const &cap,
 	utcb->crd_rcv = orig_crd;
 
 	if (res)
-		PERR("request of event (%lu) capability selector failed", event);
+		PERR("request of event (%lu) capability selector failed (res=%u)", event, res);
 }
 
 
@@ -73,7 +73,7 @@ inline void request_signal_sm_cap(Genode::Native_capability const &cap,
 inline void delegate_vcpu_portals(Genode::Native_capability const &cap,
                                   Genode::addr_t const sel)
 {
-	Genode::Thread_base * myself = Genode::Thread_base::myself();
+	Genode::Thread * myself = Genode::Thread::myself();
 	Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(myself->utcb());
 
 	/* save original receive window */
@@ -113,4 +113,4 @@ inline void delegate_vcpu_portals(Genode::Native_capability const &cap,
 	if (res)
 		PERR("setting exception portals for vCPU failed %u", res);
 }
-#endif /* _NOVA__INCLUDE__UTIL_H_ */
+#endif /* _INCLUDE__NOVA__UTIL_H_ */

@@ -1,5 +1,5 @@
 TARGET   = scout
-LIBS     = libpng_static libz_static mini_c launchpad scout_widgets
+LIBS     = libpng_static libz_static mini_c launchpad scout_widgets config
 SRC_CC   = main.cc            doc.cc       \
            browser_window.cc  png_image.cc \
            navbar.cc          about.cc     \

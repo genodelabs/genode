@@ -79,10 +79,15 @@ class Test_child : public Child_policy
 		 */
 		Rpc_entrypoint _entrypoint;
 
+		Region_map_client     _address_space;
+		Pd_session_client     _pd;
+		Ram_session_client    _ram;
+		Cpu_session_client    _cpu;
+		Child::Initial_thread _initial_thread;
+
 		Child _child;
 
 		Parent_service _log_service;
-		Parent_service _rm_service;
 
 	public:
 
@@ -90,21 +95,22 @@ class Test_child : public Child_policy
 		 * Constructor
 		 */
 		Test_child(Genode::Dataspace_capability    elf_ds,
-		           Genode::Pd_session_capability   pd,
+		           Genode::Pd_connection          &pd,
 		           Genode::Ram_session_capability  ram,
 		           Genode::Cpu_session_capability  cpu,
-		           Genode::Rm_session_capability   rm,
 		           Genode::Cap_session            *cap)
 		:
 			_entrypoint(cap, STACK_SIZE, "child", false),
-			_child(elf_ds, pd, ram, cpu, rm, &_entrypoint, this),
-			_log_service("LOG"), _rm_service("RM")
+			_address_space(pd.address_space()), _pd(pd), _ram(ram), _cpu(cpu),
+			_initial_thread(_cpu, _pd, "child"),
+			_child(elf_ds, Dataspace_capability(), _pd, _pd, _ram, _ram,
+			       _cpu, _initial_thread, *env()->rm_session(), _address_space,
+			       _entrypoint, *this),
+			_log_service("LOG")
 		{
 			/* start execution of the new child */
 			_entrypoint.activate();
 		}
-
-		Rm_session_capability rm_session_cap() { return _child.rm_session_cap(); }
 
 
 		/****************************
@@ -116,16 +122,14 @@ class Test_child : public Child_policy
 		Service *resolve_session_request(const char *service, const char *)
 		{
 			/* forward white-listed session requests to our parent */
-			return !strcmp(service, "LOG") ? &_log_service
-			     : !strcmp(service, "RM")  ? &_rm_service
-			     : 0;
+			return !strcmp(service, "LOG") ? &_log_service : 0;
 		}
 
 		void filter_session_args(const char *service,
 		                         char *args, size_t args_len)
 		{
 			/* define session label for sessions forwarded to our parent */
-			Arg_string::set_arg(args, args_len, "label", "child");
+			Arg_string::set_arg_string(args, args_len, "label", "child");
 		}
 };
 
@@ -138,7 +142,6 @@ void main_parent(Dataspace_capability elf_ds)
 	static Pd_connection  pd;
 	static Ram_connection ram;
 	static Cpu_connection cpu;
-	static Rm_connection  rm;
 	static Cap_connection cap;
 
 	/* transfer some of our own ram quota to the new child */
@@ -148,13 +151,13 @@ void main_parent(Dataspace_capability elf_ds)
 
 	static Signal_receiver fault_handler;
 
-	/* register fault handler */
+	/* register fault handler at the child's address space */
 	static Signal_context signal_context;
-	rm.fault_handler(fault_handler.manage(&signal_context));
+	Region_map_client address_space(pd.address_space());
+	address_space.fault_handler(fault_handler.manage(&signal_context));
 
 	/* create child */
-	static Test_child child(elf_ds, pd.cap(), ram.cap(), cpu.cap(),
-	                        rm.cap(), &cap);
+	static Test_child child(elf_ds, pd, ram.cap(), cpu.cap(), &cap);
 
 	/* allocate dataspace used for creating shared memory between parent and child */
 	Dataspace_capability ds = env()->ram_session()->alloc(4096);
@@ -166,16 +169,16 @@ void main_parent(Dataspace_capability elf_ds)
 		fault_handler.wait_for_signal();
 		printf("received region-manager fault signal, request fault state\n");
 
-		Rm_session::State state = rm.state();
+		Region_map::State state = address_space.state();
 
 		printf("rm session state is %s, pf_addr=0x%p\n",
-		       state.type == Rm_session::READ_FAULT  ? "READ_FAULT"  :
-		       state.type == Rm_session::WRITE_FAULT ? "WRITE_FAULT" :
-		       state.type == Rm_session::EXEC_FAULT  ? "EXEC_FAULT"  : "READY",
+		       state.type == Region_map::State::READ_FAULT  ? "READ_FAULT"  :
+		       state.type == Region_map::State::WRITE_FAULT ? "WRITE_FAULT" :
+		       state.type == Region_map::State::EXEC_FAULT  ? "EXEC_FAULT"  : "READY",
 		       (void *)state.addr);
 
 		/* ignore spuriuous fault signal */
-		if (state.type == Rm_session::READY) {
+		if (state.type == Region_map::State::READY) {
 			PINF("ignoring spurious fault signal");
 			continue;
 		}
@@ -186,7 +189,7 @@ void main_parent(Dataspace_capability elf_ds)
 		printf("attach dataspace to the child at 0x%p\n", (void *)child_virt_addr);
 		*local_addr = 0x1234;
 
-		rm.attach_at(ds, child_virt_addr);
+		address_space.attach_at(ds, child_virt_addr);
 
 		/* wait until our child modifies the dataspace content */
 		while (*local_addr == 0x1234);
@@ -194,7 +197,7 @@ void main_parent(Dataspace_capability elf_ds)
 		printf("child modified dataspace content, new value is %x\n", *local_addr);
 
 		printf("revoke dataspace from child\n");
-		rm.detach((void *)child_virt_addr);
+		address_space.detach((void *)child_virt_addr);
 	}
 
 	fault_handler.dissolve(&signal_context);

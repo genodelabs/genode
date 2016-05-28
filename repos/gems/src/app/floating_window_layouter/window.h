@@ -97,13 +97,13 @@ class Floating_window_layouter::Window : public List<Window>::Element
 		/**
 		 * Window is temporarily not visible
 		 */
-		bool _is_hidden = false;
+		bool _hidden = false;
 
-		bool _is_resizeable = false;
+		bool _resizeable = false;
 
-		bool _is_maximized = false;
+		bool _maximized = false;
 
-		bool _is_dragged = false;
+		bool _dragged = false;
 
 		/*
 		 * Number of times the window has been topped. This value is used by
@@ -146,7 +146,7 @@ class Floating_window_layouter::Window : public List<Window>::Element
 
 			_requested_size = _geometry.area();
 
-			_is_dragged = true;
+			_dragged = true;
 		}
 
 		/**
@@ -179,10 +179,12 @@ class Floating_window_layouter::Window : public List<Window>::Element
 
 	public:
 
-		Window(Window_id id, Rect &maximized_geometry,
+		Window(Window_id id, Rect &maximized_geometry, Area initial_size,
 		       Focus_history &focus_history)
 		:
-			_id(id), _maximized_geometry(maximized_geometry),
+			_id(id),
+			_requested_size(initial_size),
+			_maximized_geometry(maximized_geometry),
 			_focus_history_entry(focus_history, _id)
 		{ }
 
@@ -202,9 +204,9 @@ class Floating_window_layouter::Window : public List<Window>::Element
 
 		void has_alpha(bool has_alpha) { _has_alpha = has_alpha; }
 
-		void is_hidden(bool is_hidden) { _is_hidden = is_hidden; }
+		void hidden(bool hidden) { _hidden = hidden; }
 
-		void is_resizeable(bool is_resizeable) { _is_resizeable = is_resizeable; }
+		void resizeable(bool resizeable) { _resizeable = resizeable; }
 
 		bool label_matches(Label const &label) const { return label == _label; }
 
@@ -215,7 +217,7 @@ class Floating_window_layouter::Window : public List<Window>::Element
 		 */
 		void size(Area size)
 		{
-			if (_is_maximized) {
+			if (_maximized) {
 				_geometry = Rect(_maximized_geometry.p1(), size);
 				return;
 			}
@@ -249,7 +251,7 @@ class Floating_window_layouter::Window : public List<Window>::Element
 		void serialize(Xml_generator &xml, bool focused, Element highlight)
 		{
 			/* omit window from the layout if hidden */
-			if (_is_hidden)
+			if (_hidden)
 				return;
 
 			xml.node("window", [&]() {
@@ -287,7 +289,7 @@ class Floating_window_layouter::Window : public List<Window>::Element
 				if (_has_alpha)
 					xml.attribute("has_alpha", "yes");
 
-				if (_is_resizeable) {
+				if (_resizeable) {
 					xml.attribute("maximizer", "yes");
 					xml.attribute("closer", "yes");
 				}
@@ -297,10 +299,10 @@ class Floating_window_layouter::Window : public List<Window>::Element
 		void drag(Window::Element element, Point clicked, Point curr)
 		{
 			/* prevent maximized windows from being dragged */
-			if (is_maximized())
+			if (maximized())
 				return;
 
-			if (!_is_dragged)
+			if (!_dragged)
 				_initiate_drag_operation(element);
 
 			_apply_drag_operation(curr - clicked);
@@ -308,31 +310,35 @@ class Floating_window_layouter::Window : public List<Window>::Element
 
 		void finalize_drag_operation()
 		{
-			_requested_size = _geometry.area();
-			_is_dragged     = false;
+			_requested_size     = _geometry.area();
+			_dragged         = false;
+			_drag_left_border   = false;
+			_drag_right_border  = false;
+			_drag_top_border    = false;
+			_drag_bottom_border = false;
 		}
 
 		void topped() { _topped_cnt++; }
 
 		void close() { _requested_size = Area(0, 0); }
 
-		bool is_maximized() const { return _is_maximized; }
+		bool maximized() const { return _maximized; }
 
-		void is_maximized(bool is_maximized)
+		void maximized(bool maximized)
 		{
 			/* enter maximized state */
-			if (!_is_maximized && is_maximized) {
+			if (!_maximized && maximized) {
 				_unmaximized_geometry = _geometry;
 				_requested_size = _maximized_geometry.area();
 			}
 
 			/* leave maximized state */
-			if (_is_maximized && !is_maximized) {
+			if (_maximized && !maximized) {
 				_requested_size = _unmaximized_geometry.area();
 				_geometry = Rect(_unmaximized_geometry.p1(), _geometry.area());
 			}
 
-			_is_maximized = is_maximized;
+			_maximized = maximized;
 		}
 };
 

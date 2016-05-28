@@ -98,7 +98,7 @@ struct Usb::Pl2303_driver : Completion
 		Interface iface = device.interface(0);
 
 		/* error or write packet */
-		if (!p.succeded || !p.is_read_transfer()) {
+		if (!p.succeded || !p.read_transfer()) {
 			iface.release(p);
 			return;
 		}

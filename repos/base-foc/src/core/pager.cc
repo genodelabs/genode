@@ -18,8 +18,11 @@
 #include <base/printf.h>
 #include <base/lock.h>
 
-/* Core includes */
+/* core includes */
 #include <pager.h>
+
+/* base-internal includes */
+#include <base/internal/native_thread.h>
 
 /* Fiasco.OC includes */
 namespace Fiasco {
@@ -54,7 +57,7 @@ void Pager_entrypoint::entry()
 			case Ipc_pager::PAGEFAULT:
 			case Ipc_pager::EXCEPTION:
 				{
-					if (_pager.is_exception()) {
+					if (_pager.exception()) {
 						Lock::Guard guard(obj->state.lock);
 						_pager.get_regs(&obj->state);
 						obj->state.exceptions++;
@@ -69,7 +72,7 @@ void Pager_entrypoint::entry()
 						PDBG("Could not resolve pf=%p ip=%p",
 						     (void*)_pager.fault_addr(), (void*)_pager.fault_ip());
 					} else {
-						_pager.set_reply_dst(obj->badge());
+						_pager.set_reply_dst(Native_thread(obj->badge()));
 						reply_pending = true;
 						return;
 					}
@@ -99,7 +102,7 @@ void Pager_entrypoint::entry()
 					}
 
 					/* send wake up message to requested thread */
-					_pager.set_reply_dst(obj->badge());
+					_pager.set_reply_dst(Native_thread(obj->badge()));
 					_pager.acknowledge_exception();
 					break;
 				}
@@ -121,7 +124,7 @@ void Pager_entrypoint::entry()
 					 * that case we unblock it immediately.
 					 */
 					if (!obj->state.paused) {
-						_pager.set_reply_dst(obj->badge());
+						_pager.set_reply_dst(Native_thread(obj->badge()));
 						reply_pending = true;
 					}
 					break;
@@ -138,7 +141,7 @@ void Pager_entrypoint::entry()
 void Pager_entrypoint::dissolve(Pager_object *obj)
 {
 	/* cleanup at cap session */
-	_cap_session->free(obj->Object_pool<Pager_object>::Entry::cap());
+	_cap_factory.free(obj->Object_pool<Pager_object>::Entry::cap());
 
 	remove(obj);
 }
@@ -148,7 +151,7 @@ Pager_capability Pager_entrypoint::manage(Pager_object *obj)
 {
 	using namespace Fiasco;
 
-	Native_capability cap(_cap_session->alloc({Thread_base::_thread_cap}));
+	Native_capability cap(_cap_factory.alloc(Thread::_thread_cap));
 
 	/* add server object to object pool */
 	obj->cap(cap);

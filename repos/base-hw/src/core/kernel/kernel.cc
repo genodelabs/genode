@@ -21,7 +21,6 @@ extern "C" void kernel()
 	using namespace Kernel;
 
 	Cpu * const cpu = cpu_pool()->cpu(Cpu::executing_id());
-	cpu->scheduled_job().exception(cpu->id());
 	cpu->schedule().proceed(cpu->id());
 }
 

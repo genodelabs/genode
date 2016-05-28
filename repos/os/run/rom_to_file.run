@@ -1,0 +1,82 @@
+assert_spec linux
+
+#
+# Build
+#
+
+build { core init drivers/timer
+	server/dynamic_rom
+	app/rom_to_file
+	server/lx_fs
+}
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="LOG"/>
+		<service name="RM"/>
+		<service name="ROM" />
+		<service name="RAM" />
+		<service name="CPU" />
+		<service name="PD" />
+	</parent-provides>
+	<default-route>
+		<any-service> <any-child/> <parent/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="dynamic_rom">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="ROM"/></provides>
+		<config verbose="yes">
+			<rom name="test">
+				<inline description="update"><test />
+				</inline>
+				<sleep milliseconds="1000" />
+				<inline description="finished"/>
+			</rom>
+		</config>
+	</start>
+	<start name="lx_fs">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="File_system" /> </provides>
+		<config>
+			<policy label="rom_to_file" root="/fs_test" writeable="yes" />
+		</config>
+	</start>
+	<start name="rom_to_file">
+		<resource name="RAM" quantum="4M"/>
+		<config rom="test" />
+	</start>
+</config>}
+
+#
+# Boot image
+#
+
+exec mkdir -p bin/fs_test
+
+build_boot_image { core init timer
+	dynamic_rom
+	rom_to_file
+	lx_fs
+	fs_test
+}
+
+append qemu_args " -nographic "
+
+run_genode_until "finished" 10
+
+set output [exec cat bin/fs_test/test]
+
+compare_output_to {<test />}
+
+exec rm -r bin/fs_test

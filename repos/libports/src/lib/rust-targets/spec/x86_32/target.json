@@ -1,0 +1,8 @@
+{
+    "llvm-target": "i686-pc-genode-elf",
+    "target-endian": "little",
+    "target-pointer-width": "32",
+    "arch": "x86",
+    "os": "genode",
+    "no_compiler_rt": true
+}

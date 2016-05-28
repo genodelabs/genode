@@ -30,6 +30,13 @@ proc run_boot_dir {binaries} {
 		set core_target "core"
 	}
 
+	# generate static ACPI report for platform driver on Muen
+	if {[have_spec "hw_x86_64_muen"]} {
+		set fh [open "bin/acpi" "WRONLY CREAT TRUNC"]
+		puts $fh "<acpi><bdf start=\"0\" count=\"16384\" base=\"0xf8000000\"/></acpi>"
+		close $fh
+	}
+
 	# strip binaries
 	copy_and_strip_genode_binaries_to_run_dir $binaries
 
@@ -149,7 +156,7 @@ proc run_boot_dir {binaries} {
 		# as startup is done in 32 bit mode, GRUB expects a 32 bit image
 		exec [cross_dev_prefix]objcopy -O elf32-i386 bin/$core_bin $elf_img
 	}
-	if {[expr [have_spec "arm"] || [have_spec "x86_32"]]} {
+	if {[expr [have_spec "arm"] || [have_spec "x86_32"] || [have_spec "riscv"]]} {
 		exec cp -L bin/$core_bin $elf_img
 	}
 

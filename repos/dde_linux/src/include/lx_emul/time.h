@@ -24,7 +24,12 @@ struct timespec {
 	long            tv_nsec;
 };
 
-struct timeval { };
+struct timeval
+{
+	__kernel_time_t      tv_sec;
+	__kernel_suseconds_t tv_usec;
+};
+
 struct timespec current_kernel_time(void);
 void do_gettimeofday(struct timeval *tv);
 
@@ -74,7 +79,13 @@ static inline ktime_t ktime_add(const ktime_t a, const ktime_t b)
 
 s64 ktime_us_delta(const ktime_t later, const ktime_t earlier);
 
-struct timeval ktime_to_timeval(const ktime_t);
+static inline struct timeval ktime_to_timeval(const ktime_t kt)
+{
+	struct timeval tv;
+	tv.tv_sec = kt.tv64 / NSEC_PER_SEC;
+	tv.tv_usec = (kt.tv64 - (tv.tv_sec * NSEC_PER_SEC)) / NSEC_PER_USEC;
+	return tv;
+}
 
 ktime_t ktime_get_real(void);
 ktime_t ktime_sub(const ktime_t, const ktime_t);

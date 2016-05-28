@@ -30,12 +30,10 @@ append config {
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
-		<service name="CAP"/>
 		<service name="PD"/>
 		<service name="RM"/>
 		<service name="CPU"/>
 		<service name="LOG"/>
-		<service name="SIGNAL" />
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
@@ -56,7 +54,7 @@ append config {
 		<provides><service name="Timer"/></provides>
 	</start>
 	<start name="usb_drv">
-		<resource name="RAM" quantum="10M"/>
+		<resource name="RAM" quantum="16M"/>
 		<provides><service name="Input"/></provides>
 		<config uhci="yes" ehci="yes" xhci="yes">
 			<hid/>

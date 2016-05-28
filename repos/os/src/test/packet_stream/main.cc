@@ -45,7 +45,7 @@ void Genode::Packet_stream_base::_debug_print_buffers()
 /**
  * Thread generating packets
  */
-class Source : private Genode::Thread<STACK_SIZE>,
+class Source : private Genode::Thread_deprecated<STACK_SIZE>,
                private Genode::Allocator_avl,
                public  Genode::Packet_stream_source<Test_packet_stream_policy>
 {
@@ -140,7 +140,7 @@ class Source : private Genode::Thread<STACK_SIZE>,
 		Source(Genode::Dataspace_capability ds_cap)
 		:
 			/* init bulk buffer allocator, storing its meta data on the heap */
-			Thread("source"),
+			Thread_deprecated("source"),
 			Genode::Allocator_avl(Genode::env()->heap()),
 			Packet_stream_source<Test_packet_stream_policy>(this, ds_cap),
 			_operation(OP_NONE),
@@ -168,7 +168,7 @@ class Source : private Genode::Thread<STACK_SIZE>,
 };
 
 
-class Sink : private Genode::Thread<STACK_SIZE>,
+class Sink : private Genode::Thread_deprecated<STACK_SIZE>,
              public  Genode::Packet_stream_sink<Test_packet_stream_policy>
 {
 	private:
@@ -221,7 +221,7 @@ class Sink : private Genode::Thread<STACK_SIZE>,
 		 */
 		Sink(Genode::Dataspace_capability ds_cap)
 		:
-			Thread("sink"),
+			Thread_deprecated("sink"),
 			Packet_stream_sink<Test_packet_stream_policy>(ds_cap),
 			_operation(OP_NONE),
 			_lock(Genode::Lock::LOCKED),

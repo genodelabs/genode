@@ -21,7 +21,15 @@
 #include <cap_session/connection.h>
 #include <base/rpc_server.h>
 
-namespace Test { struct Session; struct Client; struct Component; }
+namespace Test {
+	struct Session;
+	struct Client;
+	struct Component;
+
+	long cap_void_manual(Genode::Native_capability dst,
+	                     Genode::Native_capability arg1,
+	                     Genode::addr_t &local_name);
+}
 
 /**
  * Test session interface definition
@@ -30,24 +38,30 @@ struct Test::Session : Genode::Session
 {
 	static const char *service_name() { return "TEST"; }
 
-	GENODE_RPC(Rpc_cap_void, bool, cap_void,
-	           Genode::Native_capability);
+	GENODE_RPC(Rpc_cap_void, bool, cap_void, Genode::Native_capability,
+	           Genode::addr_t &);
 	GENODE_RPC(Rpc_void_cap, Genode::Native_capability,
 	           void_cap);
+	GENODE_RPC(Rpc_cap_cap, Genode::Native_capability, cap_cap,
+	           Genode::addr_t);
 	GENODE_RPC(Rpc_leak_utcb_address, Genode::addr_t, leak_utcb_address);
 
-	GENODE_RPC_INTERFACE(Rpc_cap_void, Rpc_void_cap, Rpc_leak_utcb_address);
+	GENODE_RPC_INTERFACE(Rpc_cap_void, Rpc_void_cap, Rpc_cap_cap,
+	                     Rpc_leak_utcb_address);
 };
 
 struct Test::Client : Genode::Rpc_client<Session>
 {
 	Client(Capability<Session> cap) : Rpc_client<Session>(cap) { }
 
-	bool cap_void(Genode::Native_capability cap) {
-		return call<Rpc_cap_void>(cap); }
+	bool cap_void(Genode::Native_capability cap, Genode::addr_t &local_name) {
+		return call<Rpc_cap_void>(cap, local_name); }
 
 	Genode::Native_capability void_cap() {
 		return call<Rpc_void_cap>(); }
+
+	Genode::Native_capability cap_cap(Genode::addr_t cap) {
+		return call<Rpc_cap_cap>(cap); }
 
 	Genode::addr_t leak_utcb_address() {
 		return call<Rpc_leak_utcb_address>(); }
@@ -56,9 +70,11 @@ struct Test::Client : Genode::Rpc_client<Session>
 struct Test::Component : Genode::Rpc_object<Test::Session, Test::Component>
 {
 	/* Test to transfer a object capability during send */
-	bool cap_void(Genode::Native_capability);
+	bool cap_void(Genode::Native_capability, Genode::addr_t &);
 	/* Test to transfer a object capability during reply */
 	Genode::Native_capability void_cap();
+	/* Test to transfer a specific object capability during reply */
+	Genode::Native_capability cap_cap(Genode::addr_t);
 	/* Leak utcb address of entrypoint to manipulate utcb receive window */
 	Genode::addr_t leak_utcb_address();
 };
@@ -68,7 +84,11 @@ namespace Test { typedef Genode::Capability<Test::Session> Capability; }
 /**
  * Session implementation
  */
-bool Test::Component::cap_void(Genode::Native_capability got_cap) {
+inline bool Test::Component::cap_void(Genode::Native_capability got_cap,
+                                      Genode::addr_t &local_name)
+{
+	local_name = got_cap.local_name();
+
 	if (!got_cap.valid())
 		return false;
 
@@ -79,12 +99,20 @@ bool Test::Component::cap_void(Genode::Native_capability got_cap) {
 	return true;
 }
 
-Genode::Native_capability Test::Component::void_cap() {
+inline Genode::Native_capability Test::Component::void_cap() {
 	Genode::Native_capability send_cap = cap();
+
+	/* XXX this code does does no longer work since the removal of 'solely_map' */
+#if 0
 	/* be evil and switch translation off - client ever uses a new selector */
 	send_cap.solely_map();
+#endif
+
 	return send_cap;
 }
 
-Genode::addr_t Test::Component::leak_utcb_address() {
-	return reinterpret_cast<Genode::addr_t>(Genode::Thread_base::myself()->utcb()); }
+inline Genode::addr_t Test::Component::leak_utcb_address() {
+	return reinterpret_cast<Genode::addr_t>(Genode::Thread::myself()->utcb()); }
+
+inline Genode::Native_capability Test::Component::cap_cap(Genode::addr_t cap) {
+	return Genode::Native_capability(cap); }

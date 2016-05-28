@@ -23,7 +23,7 @@ extern int qt_main(int argc, char *argv[]);
 
 int main(int argc, char *argv[])
 {
-	Genode::Thread_base::myself()->stack_size(QT_MAIN_STACK_SIZE);
+	Genode::Thread::myself()->stack_size(QT_MAIN_STACK_SIZE);
 	
 	return qt_main(argc, argv);
 }

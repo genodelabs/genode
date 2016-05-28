@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014-2015 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -14,22 +14,21 @@
 /* Genode includes */
 #include <audio_out_session/audio_out_session.h>
 #include <audio_in_session/audio_in_session.h>
-#include <os/config.h>
-#include <os/server.h>
+#include <base/env.h>
+#include <base/log.h>
+#include <os/reporter.h>
 #include <util/xml_node.h>
 
 /* local includes */
 #include <audio/audio.h>
 #include <bsd.h>
+#include <bsd_emul.h>
 
 #include <extern_c_begin.h>
-# include <bsd_emul.h>
 # include <sys/device.h>
 # include <sys/audioio.h>
 #include <extern_c_end.h>
 
-
-static bool verbose = false;
 
 extern struct cfdriver audio_cd;
 
@@ -55,33 +54,24 @@ static bool drv_loaded()
  ******************************/
 
 #define DUMP_INFO(field) \
-	PLOG("--- " #field " information ---");        \
-	PLOG("sample_rate: %u", ai.field.sample_rate); \
-	PLOG("channels: %u",    ai.field.channels);    \
-	PLOG("precision: %u",   ai.field.precision);   \
-	PLOG("bps: %u",         ai.field.bps);         \
-	PLOG("encoding: %u",    ai.field.encoding);    \
-	PLOG("gain: %u",        ai.field.gain);        \
-	PLOG("port: %u",        ai.field.port);        \
-	PLOG("seek: %u",        ai.field.seek);        \
-	PLOG("avail_ports: %u", ai.field.avail_ports); \
-	PLOG("buffer_size: %u", ai.field.buffer_size); \
-	PLOG("block_size: %u",  ai.field.block_size);  \
-	PLOG("samples: %u",     ai.field.samples);     \
-	PLOG("eof: %u",         ai.field.eof);         \
-	PLOG("pause: %u",       ai.field.pause);       \
-	PLOG("error: %u",       ai.field.error);       \
-	PLOG("waiting: %u",     ai.field.waiting);     \
-	PLOG("balance: %u",     ai.field.balance);     \
-	PLOG("open: %u",        ai.field.open);        \
-	PLOG("active: %u",      ai.field.active)
+	Genode::log("--- " #field " information ---");      \
+	Genode::log("sample_rate: ", (unsigned)ai.field.sample_rate); \
+	Genode::log("channels: ",    (unsigned)ai.field.channels);    \
+	Genode::log("precision: ",   (unsigned)ai.field.precision);   \
+	Genode::log("bps: ",         (unsigned)ai.field.bps);         \
+	Genode::log("encoding: ",    (unsigned)ai.field.encoding);    \
+	Genode::log("buffer_size: ", (unsigned)ai.field.buffer_size); \
+	Genode::log("block_size: ",  (unsigned)ai.field.block_size);  \
+	Genode::log("samples: ",     (unsigned)ai.field.samples);     \
+	Genode::log("pause: ",       (unsigned)ai.field.pause);       \
+	Genode::log("active: ",      (unsigned)ai.field.active)
 
 
 static void dump_pinfo()
 {
 	struct audio_info ai;
 	if (audioioctl(adev, AUDIO_GETINFO, (char*)&ai, 0, 0)) {
-		PERR("could not gather play information");
+		Genode::error("could not gather play information");
 		return;
 	}
 
@@ -93,7 +83,7 @@ static void dump_rinfo()
 {
 	struct audio_info ai;
 	if (audioioctl(adev, AUDIO_GETINFO, (char*)&ai, 0, 0)) {
-		PERR("could not gather play information");
+		Genode::error("could not gather play information");
 		return;
 	}
 
@@ -182,7 +172,7 @@ static bool set_mixer_value(Mixer &mixer, char const * const field,
 		if (audioioctl(mdev, AUDIO_MIXER_READ, (char*)&ctrl, 0, 0)) {
 			ctrl.un.value.num_channels = 1;
 			if (audioioctl(mdev, AUDIO_MIXER_READ, (char*)&ctrl, 0, 0)) {
-				PERR("could not read mixer %d'", ctrl.dev);
+				Genode::error("could not read mixer ", ctrl.dev);
 				return 0;
 			}
 		}
@@ -232,11 +222,10 @@ static bool set_mixer_value(Mixer &mixer, char const * const field,
 			break;
 
 		if (audioioctl(mdev, AUDIO_MIXER_WRITE, (char*)&ctrl, FWRITE, 0)) {
-			PERR("could not set '%s' from %d to %d", field, oldv, newv);
+			Genode::error("could not set ", field, " from ", oldv, " to ", newv);
 			break;
 		}
 
-		PLOG("%s: %d -> %d", field, oldv, newv);
 		return true;
 	}
 
@@ -256,7 +245,7 @@ static char const *get_mixer_value(mixer_devinfo_t *info)
 	if (audioioctl(mdev, AUDIO_MIXER_READ, (char*)&ctrl, 0, 0)) {
 		ctrl.un.value.num_channels = 1;
 		if (audioioctl(mdev, AUDIO_MIXER_READ, (char*)&ctrl, 0, 0)) {
-			PERR("could not read mixer %d'", ctrl.dev);
+			Genode::error("could not read mixer ", ctrl.dev);
 			return 0;
 		}
 	}
@@ -302,7 +291,7 @@ static char const *get_mixer_value(mixer_devinfo_t *info)
 
 static void dump_mixer(Mixer const &mixer)
 {
-	PLOG("--- mixer information ---");
+	Genode::log("--- mixer information ---");
 	for (unsigned i = 0; i < mixer.num; i++) {
 		if (mixer.info[i].type == AUDIO_MIXER_CLASS)
 			continue;
@@ -313,8 +302,44 @@ static void dump_mixer(Mixer const &mixer)
 		char const * const value      = get_mixer_value(&mixer.info[i]);
 
 		if (value)
-			PLOG("%s.%s=%s", class_name, name, value);
+			Genode::log(class_name, ".", name, "=", value);
 	}
+}
+
+
+static Genode::Reporter mixer_reporter = { "mixer_state" };
+
+
+static void report_mixer(Mixer const &mixer)
+{
+	if (!mixer_reporter.is_enabled()) { return; }
+
+	try {
+
+		Genode::Reporter::Xml_generator xml(mixer_reporter, [&]() {
+
+			for (unsigned i = 0; i < mixer.num; i++) {
+				if (mixer.info[i].type == AUDIO_MIXER_CLASS)
+					continue;
+
+				unsigned mixer_class          = mixer.info[i].mixer_class;
+				char const * const class_name = mixer.info[mixer_class].label.name;
+				char const * const name       = mixer.info[i].label.name;
+				char const * const value      = get_mixer_value(&mixer.info[i]);
+
+				if (value) {
+					xml.node("mixer", [&]() {
+						char tmp[64];
+						Genode::snprintf(tmp, sizeof(tmp), "%s.%s",
+						                 class_name, name);
+
+						xml.attribute("field", tmp);
+						xml.attribute("value", value);
+					});
+				}
+			}
+		});
+	} catch (...) { Genode::warning("Could not report mixer state"); }
 }
 
 
@@ -335,26 +360,14 @@ static bool open_audio_device(dev_t dev)
 }
 
 
-static bool config_verbose()
+static void parse_config(Mixer &mixer, Genode::Xml_node config)
 {
 	using namespace Genode;
 
-	try {
-		return config()->xml_node().attribute("verbose").has_value("yes");
-	} catch (...) { }
+	bool const v = config.attribute_value<bool>("report_mixer", false);
+	mixer_reporter.enabled(v);
 
-	return false;
-}
-
-
-static void parse_config(Mixer &mixer)
-{
-	using namespace Genode;
-
-	PLOG("--- parse config ---");
-
-	Xml_node config_node = config()->xml_node();
-	config_node.for_each_sub_node("mixer", [&] (Xml_node node) {
+	config.for_each_sub_node("mixer", [&] (Xml_node node) {
 		char field[32];
 		char value[16];
 		try {
@@ -367,7 +380,7 @@ static void parse_config(Mixer &mixer)
 }
 
 
-static bool configure_audio_device(dev_t dev)
+static bool configure_audio_device(dev_t dev, Genode::Xml_node config)
 {
 	struct audio_info ai;
 
@@ -408,31 +421,49 @@ static bool configure_audio_device(dev_t dev)
 	if (!mixer.info || !query_mixer(mixer))
 		return false;
 
-	if (config_verbose()) verbose = true;
+	bool const verbose = config.attribute_value<bool>("verbose", false);
 
 	if (verbose) dump_pinfo();
 	if (verbose) dump_rinfo();
 	if (verbose) dump_mixer(mixer);
 
-	parse_config(mixer);
+	parse_config(mixer, config);
+	report_mixer(mixer);
 
 	return true;
 }
 
 
-static void run_bsd(void *)
+namespace {
+
+	struct Task_args
+	{
+		Genode::Env       &env;
+		Genode::Allocator &alloc;
+		Genode::Xml_node   config;
+
+		Task_args(Genode::Env &env, Genode::Allocator &alloc,
+		          Genode::Xml_node config)
+		: env(env), alloc(alloc), config(config) { }
+	};
+}
+
+
+static void run_bsd(void *p)
 {
-	if (!Bsd::probe_drivers()) {
-		PERR("no supported sound card found");
+	Task_args *args = static_cast<Task_args*>(p);
+
+	if (!Bsd::probe_drivers(args->env, args->alloc)) {
+		Genode::error("no supported sound card found");
 		Genode::sleep_forever();
 	}
 
 	if (!open_audio_device(adev)) {
-		PERR("could not initialize sound card");
+		Genode::error("could not initialize sound card");
 		Genode::sleep_forever();
 	}
 
-	adev_usuable = configure_audio_device(adev);
+	adev_usuable = configure_audio_device(adev, args->config);
 
 	while (true) {
 		Bsd::scheduler().current()->block_and_schedule();
@@ -472,14 +503,27 @@ extern "C" void notify_record()
  ** private Audio namespace **
  *****************************/
 
-void Audio::init_driver(Server::Entrypoint &ep)
+void Audio::update_config(Genode::Xml_node config)
 {
-	Bsd::irq_init(ep);
-	Bsd::timer_init(ep);
+	if (mixer.info == nullptr) { return; }
 
-	static Bsd::Task task_bsd(run_bsd, nullptr, "bsd",
+	parse_config(mixer, config);
+	report_mixer(mixer);
+}
+
+
+void Audio::init_driver(Genode::Env &env, Genode::Allocator &alloc,
+                        Genode::Xml_node config)
+{
+	Bsd::mem_init(env, alloc);
+	Bsd::irq_init(env.ep(), alloc);
+	Bsd::timer_init(env.ep());
+
+	static Task_args args(env, alloc, config);
+
+	static Bsd::Task task_bsd(run_bsd, &args, "bsd",
 	                          Bsd::Task::PRIORITY_0, Bsd::scheduler(),
-	                          2048 * sizeof(long));
+	                          2048 * sizeof(Genode::addr_t));
 	Bsd::scheduler().schedule();
 }
 

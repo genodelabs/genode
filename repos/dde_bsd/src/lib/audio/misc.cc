@@ -18,9 +18,7 @@
 #include <util/string.h>
 
 /* local includes */
-#include <extern_c_begin.h>
 #include <bsd_emul.h>
-#include <extern_c_end.h>
 
 /* compiler includes */
 #include <stdarg.h>

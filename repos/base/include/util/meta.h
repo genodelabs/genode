@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__BASE__UTIL__META_H_
-#define _INCLUDE__BASE__UTIL__META_H_
+#ifndef _INCLUDE__UTIL__META_H_
+#define _INCLUDE__UTIL__META_H_
 
 namespace Genode {
 
@@ -87,41 +87,17 @@ namespace Genode {
 		/**
 		 * Type list with variable number of types
 		 */
-		template <typename T1 = Void, typename  T2 = Void, typename T3 = Void, typename T4 = Void,
-		          typename T5 = Void, typename  T6 = Void, typename T7 = Void, typename T8 = Void,
-		          typename T9 = Void, typename T10 = Void>
+		template <typename...>
 		struct Type_list;
 
 		template <>
-		struct Type_list<Void, Void, Void, Void, Void, Void, Void, Void, Void, Void> { typedef Empty Head; };
+		struct Type_list<> { typedef Empty Head; };
 
-		template <typename T1>
-		struct Type_list<T1, Void> : public Type_tuple<T1, Empty> { };
+		template <typename T>
+		struct Type_list<T> : Type_tuple<T, Empty> { };
 
-		template <typename T1, typename T2>
-		struct Type_list<T1, T2, Void> : public Type_tuple<T1, Type_list<T2> > { };
-
-		template <typename T1, typename T2, typename T3>
-		struct Type_list<T1, T2, T3, Void> : public Type_tuple<T1, Type_list<T2, T3> > { };
-
-		template <typename T1, typename T2, typename T3, typename T4>
-		struct Type_list<T1, T2, T3, T4, Void> : public Type_tuple<T1, Type_list<T2, T3, T4> > { };
-
-		template <typename T1, typename T2, typename T3, typename T4, typename T5>
-		struct Type_list<T1, T2, T3, T4, T5, Void> : public Type_tuple<T1, Type_list<T2, T3, T4, T5> > { };
-
-		template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
-		struct Type_list<T1, T2, T3, T4, T5, T6, Void> : public Type_tuple<T1, Type_list<T2, T3, T4, T5, T6> > { };
-
-		template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
-		struct Type_list<T1, T2, T3, T4, T5, T6, T7, Void> : public Type_tuple<T1, Type_list<T2, T3, T4, T5, T6, T7> > { };
-
-		template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
-		struct Type_list<T1, T2, T3, T4, T5, T6, T7, T8, Void> : public Type_tuple<T1, Type_list<T2, T3, T4, T5, T6, T7, T8> > { };
-
-		template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9>
-		struct Type_list<T1, T2, T3, T4, T5, T6, T7, T8, T9, Void> : public Type_tuple<T1, Type_list<T2, T3, T4, T5, T6, T7, T8, T9> > { };
-
+		template <typename HEAD, typename... TAIL>
+		struct Type_list<HEAD, TAIL...> : Type_tuple<HEAD, Type_list<TAIL...> > { };
 
 		/**
 		 * Macro for wrapping the 'Type_list' template
@@ -684,4 +660,4 @@ namespace Genode {
 	} /* namespace Trait */
 }
 
-#endif /* _INCLUDE__BASE__UTIL__META_H_ */
+#endif /* _INCLUDE__UTIL__META_H_ */

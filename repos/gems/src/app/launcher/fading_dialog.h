@@ -103,8 +103,8 @@ class Launcher::Fading_dialog : private Input_event_handler
 		void _handle_hover_update(unsigned)
 		{
 			try {
-				if (!_hover_ds.is_constructed() || _hover_rom.update() == false) {
-					if (_hover_ds.is_constructed())
+				if (!_hover_ds.constructed() || _hover_rom.update() == false) {
+					if (_hover_ds.constructed())
 						_hover_ds->invalidate();
 					_hover_ds.construct(_hover_rom.dataspace());
 				}
@@ -212,6 +212,7 @@ class Launcher::Fading_dialog : private Input_event_handler
 		Fading_dialog(Server::Entrypoint  &ep,
 		              Cap_session         &cap,
 		              Ram_session         &ram,
+		              Dataspace_capability ldso_ds,
 		              Report_rom_slave    &report_rom_slave,
 		              char          const *dialog_name,
 		              char          const *hover_name,
@@ -232,8 +233,9 @@ class Launcher::Fading_dialog : private Input_event_handler
 			_hover_update_dispatcher(ep, *this, &Fading_dialog::_handle_hover_update),
 			_fader_slave_ep(&cap, _fader_slave_ep_stack_size, "nit_fader"),
 			_nitpicker_service(ep, _fader_slave_ep, *this),
-			_nit_fader_slave(_fader_slave_ep, ram, _nitpicker_service),
-			_menu_view_slave(cap, ram, _nit_fader_slave.nitpicker_session("menu"),
+			_nit_fader_slave(_fader_slave_ep, ram, _nitpicker_service, ldso_ds),
+			_menu_view_slave(cap, ram, ldso_ds,
+			                 _nit_fader_slave.nitpicker_session("menu"),
 			                 _dialog_rom, _hover_report, initial_position)
 		{
 			Rom_session_client(_hover_rom).sigh(_hover_update_dispatcher);

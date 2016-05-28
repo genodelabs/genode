@@ -49,9 +49,9 @@ static List<thread_cleanup> pthread_cleanup_list;
  * assumption that libpthread is loaded on application startup by ldso. During
  * this stage only the main thread is executed.
  */
-static __attribute__((constructor)) Thread_base * main_thread()
+static __attribute__((constructor)) Thread * main_thread()
 {
-	static Thread_base *thread = Thread_base::myself();
+	static Thread *thread = Thread::myself();
 
 	return thread;
 }
@@ -121,13 +121,13 @@ extern "C" {
 	/* special non-POSIX function (for example used in libresolv) */
 	int _pthread_main_np(void)
 	{
-		return (Thread_base::myself() == main_thread());
+		return (Thread::myself() == main_thread());
 	}
 
 
 	pthread_t pthread_self(void)
 	{
-		Thread_base *myself = Thread_base::myself();
+		Thread *myself = Thread::myself();
 
 		pthread_t pthread = dynamic_cast<pthread_t>(myself);
 		if (pthread)
@@ -140,20 +140,18 @@ extern "C" {
 		 */
 
 		if (!_pthread_main_np()) {
-			char name[Thread_base::Context::NAME_LEN];
-			myself->name(name, sizeof(name));
-
-			PERR("pthread_self() called from alien thread named '%s'", name);
+			PERR("pthread_self() called from alien thread named '%s'",
+			     myself->name().string());
 
 			return nullptr;
 		}
 
 		/*
 		 * We create a pthread object containing a copy of main thread's
-		 * Thread_base object. Therefore, we ensure the pthread object does not
+		 * Thread object. Therefore, we ensure the pthread object does not
 		 * get deleted by allocating it in heap via new(). Otherwise, the
 		 * static destruction of the pthread object would also destruct the
-		 * 'Thread_base' of the main thread.
+		 * 'Thread' of the main thread.
 		 */
 
 		static struct pthread_attr main_thread_attr;
@@ -615,7 +613,7 @@ extern "C" {
 			 * thread to mark the key slot as used.
 			 */
 			if (!key_list[k].first()) {
-				Key_element *key_element = new (env()->heap()) Key_element(Thread_base::myself(), 0);
+				Key_element *key_element = new (env()->heap()) Key_element(Thread::myself(), 0);
 				key_list[k].insert(key_element);
 				*key = k;
 				return 0;
@@ -647,7 +645,7 @@ extern "C" {
 		if (key < 0 || key >= PTHREAD_KEYS_MAX)
 			return EINVAL;
 
-		void *myself = Thread_base::myself();
+		void *myself = Thread::myself();
 
 		Lock_guard<Lock> key_list_lock_guard(key_list_lock);
 
@@ -659,7 +657,7 @@ extern "C" {
 			}
 
 		/* key element does not exist yet - create a new one */
-		Key_element *key_element = new (env()->heap()) Key_element(Thread_base::myself(), value);
+		Key_element *key_element = new (env()->heap()) Key_element(Thread::myself(), value);
 		key_list[key].insert(key_element);
 		return 0;
 	}
@@ -670,7 +668,7 @@ extern "C" {
 		if (key < 0 || key >= PTHREAD_KEYS_MAX)
 			return nullptr;
 
-		void *myself = Thread_base::myself();
+		void *myself = Thread::myself();
 
 		Lock_guard<Lock> key_list_lock_guard(key_list_lock);
 

@@ -137,7 +137,8 @@ class Net::Ethernet_frame
 		/**
 		 * \return payload data.
 		 */
-		void *data() { return &_data; }
+		template <typename T> T *       data()       { return (T *)(_data); }
+		template <typename T> T const * data() const { return (T const *)(_data); }
 
 
 		/***********************************

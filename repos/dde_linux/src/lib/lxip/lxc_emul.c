@@ -1,77 +1,51 @@
 /**
  * \brief  Linux emulation code
  * \author Sebastian Sumpf
+ * \author Josef Soentgen
  * \date   2013-08-30
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
+
+/* Linux includes */
+#include <linux/inetdevice.h>
+#include <linux/net.h>
 #include <linux/netdevice.h>
-#include <net/ip_fib.h>
 #include <uapi/linux/rtnetlink.h>
 #include <net/sock.h>
 #include <net/route.h>
+#include <net/ip_fib.h>
 #include <net/tcp.h>
+#include <net/tcp_states.h>
 
 
-/********************
- ** linux/slab.h   **
- ********************/
+/***********************
+ ** linux/genetlink.h **
+ ***********************/
 
-struct kmem_cache
+/* needed by af_netlink.c */
+atomic_t genl_sk_destructing_cnt;
+wait_queue_head_t genl_sk_destructing_waitq;
+
+
+/****************************
+ ** asm-generic/atomic64.h **
+ ****************************/
+
+long long atomic64_read(const atomic64_t *v)
 {
-	const char *name;  /* cache name */
-	unsigned    size;  /* object size */
-};
-
-
-struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align,
-                                     unsigned long falgs, void (*ctor)(void *))
-{
-	lx_log(DEBUG_SLAB, "\"%s\" obj_size=%zd", name, size);
-
-	struct kmem_cache *cache;
-
-	if (!name) {
-		pr_info("kmem_cache name required\n");
-		return 0;
-	}
-
-	cache = (struct kmem_cache *)kmalloc(sizeof(*cache), 0);
-	if (!cache) {
-		pr_crit("No memory for slab cache\n");
-		return 0;
-	}
-
-	cache->name = name;
-	cache->size = size;
-
-	return cache;
+	return v->counter;
 }
 
 
-void *kmem_cache_alloc_node(struct kmem_cache *cache, gfp_t flags, int node)
+void atomic64_set(atomic64_t *v, long long i)
 {
-	lx_log(DEBUG_SLAB, "\"%s\" alloc obj_size=%u",  cache->name,cache->size);
-	return kmalloc(cache->size, 0);
-}
-
-
-void *kmem_cache_alloc(struct kmem_cache *cache, gfp_t flags)
-{
-	lx_log(DEBUG_SLAB, "\"%s\" alloc obj_size=%u",  cache->name,cache->size);
-	return kmalloc(cache->size, 0);
-}
-
-
-void kmem_cache_free(struct kmem_cache *cache, void *objp)
-{
-	lx_log(DEBUG_SLAB, "\"%s\" (%p)", cache->name, objp);
-	kfree(objp);
+	v->counter = i;
 }
 
 
@@ -134,6 +108,7 @@ u32 hash_32(u32 val, unsigned int bits)
 	return hash;
 }
 
+
 /******************
  ** linux/dcache **
  ******************/
@@ -146,6 +121,7 @@ unsigned int full_name_hash(const unsigned char *name, unsigned int len)
 
 	return hash;
 }
+
 
 /******************************
  *  net/core/net/namespace.h **
@@ -196,16 +172,6 @@ struct iphdr *ip_hdr(const struct sk_buff *skb)
 }
 
 
-/***********************
- ** linux/netdevice.h **
- ***********************/
-
- struct netdev_queue *netdev_pick_tx(struct net_device *dev, struct sk_buff *skb)
- {
- 	return netdev_get_tx_queue(dev, 0); 
- }
-
-
 /*******************************
  ** asm-generic/bitops/find.h **
  *******************************/
@@ -249,8 +215,10 @@ int get_order(unsigned long size)
  ** linux/jiffies.h **
  *********************/
 
-long time_after_eq(long a, long b) { return (a - b) >= 0; }
-long time_after(long a, long b) { return (b - a) < 0; }
+clock_t jiffies_to_clock_t(unsigned long j)
+{
+	return j / HZ; /* XXX not sure if this is enough */
+}
 
 
 /*********************
@@ -356,14 +324,211 @@ __wsum csum_block_add(__wsum csum, __wsum csum2, int offset)
 }
 
 
-/**
- * Misc
+__wsum csum_block_add_ext(__wsum csum, __wsum csum2, int offset, int len)
+{
+	return csum_block_add(csum, csum2, offset);
+}
+
+
+/***************************
+ ** Linux socket function **
+ ***************************/
+
+static const struct net_proto_family *net_families[NPROTO];
+
+
+int sock_register(const struct net_proto_family *ops)
+{
+	if (ops->family >= NPROTO) {
+		printk("protocol %d >=  NPROTO (%d)\n", ops->family, NPROTO);
+		return -ENOBUFS;
+	}
+
+	net_families[ops->family] = ops;
+	pr_info("NET: Registered protocol family %d\n", ops->family);
+	return 0;
+}
+
+
+struct socket *sock_alloc(void)
+{
+	struct socket *sock = (struct socket *)kzalloc(sizeof(struct socket), 0);
+
+	/*
+	 * Linux normally allocates the socket_wq when calling
+	 * sock_alloc_inode() while we do it here hoping for the best.
+	 */
+	sock->wq = (struct socket_wq*)kzalloc(sizeof(*sock->wq), 0);
+	if (!sock->wq) {
+		kfree(sock);
+		return NULL;
+	}
+
+	return sock;
+}
+
+
+int sock_create_lite(int family, int type, int protocol, struct socket **res)
+
+{
+	struct socket *sock = sock_alloc();
+
+	if (!sock)
+		return -ENOMEM;
+
+	sock->type = type;
+	*res = sock;
+	return 0;
+}
+
+
+int sock_create_kern(struct net *net, int family, int type, int proto,
+                     struct socket **res)
+{
+	struct socket *sock;
+	const struct net_proto_family *pf;
+	int err;
+
+	if (family < 0 || family > NPROTO)
+		return -EAFNOSUPPORT;
+
+	if (type < 0 || type > SOCK_MAX)
+		return -EINVAL;
+
+	pf = net_families[family];
+
+	if (!pf) {
+		printk("No protocol found for family %d\n", family);
+		return -ENOPROTOOPT;
+	}
+
+	sock = sock_alloc();
+	if (!sock) {
+		printk("Could not allocate socket\n");
+		return -ENFILE;
+	}
+
+	sock->type = type;
+
+	err = pf->create(&init_net, sock, proto, 1);
+	if (err) {
+		kfree(sock);
+		return err;
+	}
+
+	*res = sock;
+
+	return 0;
+}
+
+
+static void sock_init(void)
+{
+	skb_init();
+}
+
+
+core_initcall(sock_init);
+
+
+/*************************
+ ** Lxip initialization **
+ *************************/
+
+/*
+ * Header declarations and tuning
  */
+struct net init_net;
+
+unsigned long *sysctl_local_reserved_ports;
+struct pernet_operations loopback_net_ops;
+
+
+/**
+ * nr_free_buffer_pages - count number of pages beyond high watermark
+ *
+ * nr_free_buffer_pages() counts the number of pages which are beyond the
+ * high
+ * watermark within ZONE_DMA and ZONE_NORMAL.
+ */
+unsigned long nr_free_buffer_pages(void)
+{
+	return 1000;
+}
+
+
+/*
+ * Declare stuff used
+ */
+int __ip_auto_config_setup(char *addrs);
+void core_sock_init(void);
+void core_netlink_proto_init(void);
+void subsys_net_dev_init(void);
+void fs_inet_init(void);
+void module_driver_init(void);
+void module_cubictcp_register(void);
+void late_ip_auto_config(void);
+void late_tcp_congestion_default(void);
+
+
+/**
+ * Initialize sub-systems
+ */
+int lxip_init(char const *address_config)
+{
+	/* init data */
+	INIT_LIST_HEAD(&init_net.dev_base_head);
+
+	/* call __setup stuff */
+	__ip_auto_config_setup((char *)address_config);
+
+	core_sock_init();
+	core_netlink_proto_init();
+
+	/* sub-systems */
+	subsys_net_dev_init();
+	fs_inet_init();
+
+	/* enable local accepts */
+	IPV4_DEVCONF_ALL(&init_net, ACCEPT_LOCAL) = 0x1;
+
+	/* congestion control */
+	module_cubictcp_register();
+
+	/* driver */
+	module_driver_init();
+
+	/* late  */
+	late_tcp_congestion_default();
+
+	/* dhcp or static configuration */
+	late_ip_auto_config();
+
+	return 0;
+}
+
+
+/******************
+ ** Lxip private **
+ ******************/
 
 void set_sock_wait(struct socket *sock, unsigned long ptr)
 {
-
 	sock->sk->sk_wq = (struct socket_wq *)ptr;
 }
 
 
+int socket_check_state(struct socket *socket)
+{
+	if (socket->sk->sk_state == TCP_CLOSE_WAIT)
+		return -EINTR;
+
+	return 0;
+}
+
+
+void log_sock(struct socket *socket)
+{
+	printk("\nNEW socket %p sk %p fsk %x &sk %p &fsk %p\n\n",
+	       socket, socket->sk, socket->flags, &socket->sk, &socket->flags);
+}

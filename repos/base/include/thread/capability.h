@@ -2,6 +2,8 @@
  * \brief  Thread capability type
  * \author Norman Feske
  * \date   2008-08-16
+ *
+ * \deprecated  Use cpu_thread/capability.h instead
  */
 
 /*
@@ -14,16 +16,8 @@
 #ifndef _INCLUDE__THREAD__CAPABILITY_H_
 #define _INCLUDE__THREAD__CAPABILITY_H_
 
-#include <base/capability.h>
+#include <cpu_thread/capability.h>
 
-namespace Genode {
-
-	/*
-	 * The 'Thread_capability' type is created by the CPU session.
-	 * Hence, we use the CPU session's 'Cpu_thread' as association.
-	 */
-	class Cpu_thread;
-	typedef Capability<Cpu_thread> Thread_capability;
-}
+namespace Genode { typedef Cpu_thread_capability Thread_capability; }
 
 #endif /* _INCLUDE__THREAD__CAPABILITY_H_ */

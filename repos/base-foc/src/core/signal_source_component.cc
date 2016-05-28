@@ -17,8 +17,8 @@
 #include <base/native_types.h>
 
 /* core includes */
-#include <signal_session_component.h>
 #include <platform.h>
+#include <signal_source_component.h>
 
 namespace Fiasco {
 #include <l4/sys/factory.h>
@@ -34,18 +34,17 @@ using namespace Genode;
 
 void Signal_source_component::release(Signal_context_component *context)
 {
-	if (context && context->is_enqueued())
+	if (context && context->enqueued())
 		_signal_queue.remove(context);
 }
 
 void Signal_source_component::submit(Signal_context_component *context,
-                                     Ipc_ostream              *ostream,
-                                     int                       cnt)
+                                     unsigned long             cnt)
 {
 	/* enqueue signal to context */
 	context->increment_signal_cnt(cnt);
 
-	if (!context->is_enqueued()) {
+	if (!context->enqueued()) {
 		_signal_queue.enqueue(context);
 
 		/* wake up client */

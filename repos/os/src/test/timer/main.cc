@@ -20,7 +20,7 @@
 enum { STACK_SIZE = 4096 };
 
 class Timer_client : public Genode::List<Timer_client>::Element,
-                     Timer::Connection, Genode::Thread<STACK_SIZE>
+                     Timer::Connection, Genode::Thread_deprecated<STACK_SIZE>
 {
 	private:
 
@@ -47,7 +47,7 @@ class Timer_client : public Genode::List<Timer_client>::Element,
 		 * Constructor
 		 */
 		Timer_client(unsigned long period_msec)
-		: Thread("timer_client"),
+		: Thread_deprecated("timer_client"),
 		  _period_msec(period_msec), _cnt(0), _stop(false) { }
 
 		/**
@@ -55,7 +55,7 @@ class Timer_client : public Genode::List<Timer_client>::Element,
 		 */
 		void start()
 		{
-			Genode::Thread<STACK_SIZE>::start();
+			Genode::Thread_deprecated<STACK_SIZE>::start();
 		}
 
 		/**
@@ -78,7 +78,7 @@ class Timer_client : public Genode::List<Timer_client>::Element,
 /**
  * Timer client that continuously reprograms timeouts
  */
-struct Timer_stressful_client : Timer::Connection, Genode::Thread<STACK_SIZE>
+struct Timer_stressful_client : Timer::Connection, Genode::Thread_deprecated<STACK_SIZE>
 {
 	unsigned long us;
 
@@ -99,9 +99,9 @@ struct Timer_stressful_client : Timer::Connection, Genode::Thread<STACK_SIZE>
 
 	Timer_stressful_client(unsigned long us)
 	:
-		Thread("timer_stressful_client"), us(us)
+		Thread_deprecated("timer_stressful_client"), us(us)
 	{
-		Genode::Thread<STACK_SIZE>::start();
+		Genode::Thread_deprecated<STACK_SIZE>::start();
 	}
 };
 

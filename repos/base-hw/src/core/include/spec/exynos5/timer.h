@@ -11,8 +11,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _TIMER_H_
-#define _TIMER_H_
+#ifndef _CORE__INCLUDE__SPEC__EXYNOS5__TIMER_H_
+#define _CORE__INCLUDE__SPEC__EXYNOS5__TIMER_H_
+
+/* base-hw includes */
+#include <kernel/types.h>
 
 /* core include */
 #include <board.h>
@@ -31,6 +34,8 @@ namespace Genode
 class Genode::Timer : public Mmio
 {
 	private:
+
+		using time_t = Kernel::time_t;
 
 		enum {
 			PRESCALER = 1,
@@ -177,10 +182,8 @@ class Genode::Timer : public Mmio
 		 *
 		 * \param clock  input clock
 		 */
-		unsigned static _calc_tics_per_ms(unsigned const clock)
-		{
-			return clock / (PRESCALER + 1) / (1 << DIV_MUX) / 1000;
-		}
+		time_t static _calc_tics_per_ms(unsigned const clock) {
+			return clock / (PRESCALER + 1) / (1 << DIV_MUX) / 1000; }
 
 		unsigned const _tics_per_ms;
 
@@ -218,7 +221,7 @@ class Genode::Timer : public Mmio
 		/**
 		 * Raise interrupt of CPU 'cpu' once after timeout 'tics'
 		 */
-		inline void start_one_shot(unsigned const tics, unsigned const cpu)
+		void start_one_shot(time_t const tics, unsigned const cpu)
 		{
 			switch (cpu) {
 			case 0:
@@ -237,12 +240,7 @@ class Genode::Timer : public Mmio
 			}
 		}
 
-		/**
-		 * Translate 'ms' milliseconds to a native timer value
-		 */
-		unsigned ms_to_tics(unsigned const ms) { return ms * _tics_per_ms; }
-
-		unsigned value(unsigned const cpu)
+		time_t value(unsigned const cpu)
 		{
 			switch (cpu) {
 			case 0: return read<L0_int_cstat::Frcnt>() ? 0 : read<L0_frcnto>();
@@ -250,8 +248,16 @@ class Genode::Timer : public Mmio
 			default: return 0;
 			}
 		}
+
+		time_t tics_to_us(time_t const tics) const {
+			return (tics / _tics_per_ms) * 1000; }
+
+		time_t us_to_tics(time_t const us) const {
+			return (us / 1000) * _tics_per_ms; }
+
+		time_t max_value() { return (L0_frcnto::access_t)~0; }
 };
 
 namespace Kernel { class Timer : public Genode::Timer { }; }
 
-#endif /* _TIMER_H_ */
+#endif /* _CORE__INCLUDE__SPEC__EXYNOS5__TIMER_H_ */

@@ -245,7 +245,7 @@ class Domain_registry
 
 				_insert(domain);
 
-				if (domain.is_last(type))
+				if (domain.last(type))
 					break;
 			}
 		}

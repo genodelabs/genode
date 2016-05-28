@@ -39,7 +39,7 @@ $(OKL4_INCLUDE_DIRS):
 	$(VERBOSE)mkdir -p $@
 
 $(OKL4_DIR):
-	$(VERBOSE)$(ECHO) "--> Please, execute 'make prepare' in $(REP_DIR)"
+	$(VERBOSE)$(ECHO) "--> Please, execute './tool/ports/prepare_port okl4' in $(GENODE_DIR)"
 	$(VERBOSE)$(ECHO) "--> before compiling Genode apps for OKL4."
 	$(VERBOSE)exit 1
 

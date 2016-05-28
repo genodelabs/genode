@@ -21,21 +21,25 @@ namespace Gdb_monitor {
 
 	using namespace Genode;
 
-	class Rm_session_component;
+	class Region_map_component;
 
-	class Dataspace_object : public Object_pool<Dataspace_object>::Entry
+	class Dataspace_object;
+
+	typedef Object_pool<Dataspace_object> Dataspace_pool;
+
+	class Dataspace_object : public Dataspace_pool::Entry
 	{
 		private:
 
-			Rm_session_component *_rm_session_component;
+			Region_map_component *_region_map_component;
 
 		public:
 
-			Dataspace_object(Dataspace_capability ds_cap, Rm_session_component *rm_session_component)
+			Dataspace_object(Dataspace_capability ds_cap, Region_map_component *region_map_component)
 			: Object_pool<Dataspace_object>::Entry(ds_cap),
-			  _rm_session_component(rm_session_component) { }
+			  _region_map_component(region_map_component) { }
 
-			Rm_session_component *rm_session_component() { return _rm_session_component; }
+			Region_map_component *region_map_component() { return _region_map_component; }
 	};
 
 }

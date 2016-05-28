@@ -187,11 +187,8 @@ class Genode::Platform_pd : public Hw::Address_space,
 
 		/**
 		 * Bind thread 't' to protection domain
-		 *
-		 * \return  0  on success or
-		 *         -1  if failed
 		 */
-		int bind_thread(Platform_thread * t);
+		bool bind_thread(Platform_thread * t);
 
 		/**
 		 * Unbind thread 't' from protection domain
@@ -202,7 +199,7 @@ class Genode::Platform_pd : public Hw::Address_space,
 		/**
 		 * Assign parent interface to protection domain
 		 */
-		int assign_parent(Native_capability parent);
+		void assign_parent(Native_capability parent);
 
 
 		/***************
@@ -240,4 +237,3 @@ class Genode::Core_platform_pd : public Genode::Platform_pd
 };
 
 #endif /* _CORE__INCLUDE__PLATFORM_PD_H_ */
-

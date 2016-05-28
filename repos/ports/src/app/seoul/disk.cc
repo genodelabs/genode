@@ -66,7 +66,7 @@ Vancouver_disk::Vancouver_disk(Synced_motherboard &mb,
                                char         * backing_store_base,
                                Genode::size_t backing_store_size)
 :
-	Thread("vmm_disk"),
+	Thread_deprecated("vmm_disk"),
 	_motherboard(mb),
 	_backing_store_base(backing_store_base),
 	_backing_store_size(backing_store_size),
@@ -181,7 +181,7 @@ void Vancouver_disk::_signal_dispatch_entry(unsigned disknr)
 
 bool Vancouver_disk::receive(MessageDisk &msg)
 {
-	static Genode::Native_utcb utcb_backup;
+	static Vmm::Utcb_guard::Utcb_backup utcb_backup;
 	Vmm::Utcb_guard guard(utcb_backup);
 
 	if (msg.disknr >= MAX_DISKS)

@@ -16,8 +16,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CORE__INCLUDE__LINUX__DATASPACE_COMPONENT_H_
-#define _CORE__INCLUDE__LINUX__DATASPACE_COMPONENT_H_
+#ifndef _CORE__INCLUDE__DATASPACE_COMPONENT_H_
+#define _CORE__INCLUDE__DATASPACE_COMPONENT_H_
 
 #include <linux_dataspace/linux_dataspace.h>
 #include <util/string.h>
@@ -129,4 +129,4 @@ namespace Genode {
 	};
 }
 
-#endif /* _CORE__INCLUDE__LINUX__DATASPACE_COMPONENT_H_ */
+#endif /* _CORE__INCLUDE__DATASPACE_COMPONENT_H_ */

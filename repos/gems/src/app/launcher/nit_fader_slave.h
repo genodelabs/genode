@@ -41,7 +41,7 @@ class Launcher::Nit_fader_slave
 				char const **_permitted_services() const
 				{
 					static char const *permitted_services[] = {
-						"CAP", "LOG", "SIGNAL", "RM", "Timer", 0 };
+						"LOG", "RM", "Timer", 0 };
 
 					return permitted_services;
 				};
@@ -113,10 +113,11 @@ class Launcher::Nit_fader_slave
 		 *             dataspace
 		 */
 		Nit_fader_slave(Rpc_entrypoint &ep, Ram_session &ram,
-		                Genode::Service &nitpicker_service)
+		                Genode::Service &nitpicker_service,
+		                Genode::Dataspace_capability ldso_ds)
 		:
 			_policy(ep, ram, nitpicker_service),
-			_slave(ep, _policy, _quota),
+			_slave(ep, _policy, _quota, env()->ram_session_cap(), ldso_ds),
 			_nitpicker_root(_policy.nitpicker_root())
 		{
 			visible(false);
@@ -137,7 +138,7 @@ class Launcher::Nit_fader_slave
 			/*
 			 * Set session label
 			 */
-			Arg_string::set_arg(argbuf, sizeof(argbuf), "label", label);
+			Arg_string::set_arg_string(argbuf, sizeof(argbuf), "label", label);
 
 			Session_capability session_cap = _nitpicker_root.session(argbuf, Affinity());
 

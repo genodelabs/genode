@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__BASE__FLEX_ITERATOR_H
-#define _INCLUDE__BASE__FLEX_ITERATOR_H
+#ifndef _INCLUDE__UTIL__FLEX_ITERATOR_H_
+#define _INCLUDE__UTIL__FLEX_ITERATOR_H_
 
 #include <base/stdint.h>
 #include <util/misc_math.h>
@@ -113,4 +113,4 @@ class Genode::Flexpage_iterator
 		}
 };
 
-#endif /* _INCLUDE__BASE__FLEX_ITERATOR_H */
+#endif /* _INCLUDE__UTIL__FLEX_ITERATOR_H_ */

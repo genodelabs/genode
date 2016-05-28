@@ -35,7 +35,7 @@ namespace Input_merger
 
 				Arg_string::set_arg(session_args, sizeof(Parent::Session_args),
 				                    "ram_quota", "16K");
-				Arg_string::set_arg(session_args, sizeof(Parent::Session_args),
+				Arg_string::set_arg_string(session_args, sizeof(Parent::Session_args),
 				                    "label", label);
 
 				return env()->parent()->session<Input::Session>(session_args);

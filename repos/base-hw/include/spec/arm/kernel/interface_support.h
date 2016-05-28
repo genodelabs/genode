@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _KERNEL__INTERFACE_SUPPORT_H_
-#define _KERNEL__INTERFACE_SUPPORT_H_
+#ifndef _INCLUDE__SPEC__ARM__KERNEL__INTERFACE_SUPPORT_H_
+#define _INCLUDE__SPEC__ARM__KERNEL__INTERFACE_SUPPORT_H_
 
 /* Genode includes */
 #include <base/stdint.h>
@@ -31,5 +31,4 @@ namespace Kernel
 	};
 }
 
-#endif /* _KERNEL__INTERFACE_SUPPORT_H_ */
-
+#endif /* _INCLUDE__SPEC__ARM__KERNEL__INTERFACE_SUPPORT_H_ */

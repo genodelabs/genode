@@ -24,6 +24,9 @@
 #include <cap_session/cap_session.h>
 
 namespace Genode {
+
+	class Ipc_server;
+
 	template <typename, typename> class Rpc_dispatcher;
 	class Rpc_object_base;
 	template <typename, typename> struct Rpc_object;
@@ -60,38 +63,41 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 	protected:
 
 		template <typename ARG_LIST>
-		void _read_args(Ipc_istream &is, ARG_LIST &args)
+		void _read_args(Ipc_unmarshaller &msg, ARG_LIST &args)
 		{
 			if (Trait::Rpc_direction<typename ARG_LIST::Head>::Type::IN)
-				is >> args._1;
+				msg.extract(args._1);
 
-			_read_args(is, args._2);
+			_read_args(msg, args._2);
 		}
 
-		void _read_args(Ipc_istream &, Meta::Empty) { }
+		void _read_args(Ipc_unmarshaller &, Meta::Empty) { }
 
 		template <typename ARG_LIST>
-		void _write_results(Ipc_ostream &os, ARG_LIST &args)
+		void _write_results(Msgbuf_base &msg, ARG_LIST &args)
 		{
 			if (Trait::Rpc_direction<typename ARG_LIST::Head>::Type::OUT)
-				os << args._1;
+				msg.insert(args._1);
 
-			_write_results(os, args._2);
+			_write_results(msg, args._2);
 		}
 
-		void _write_results(Ipc_ostream &, Meta::Empty) { }
+		void _write_results(Msgbuf_base &, Meta::Empty) { }
 
 		template <typename RPC_FUNCTION, typename EXC_TL>
 		Rpc_exception_code _do_serve(typename RPC_FUNCTION::Server_args &args,
 		                             typename RPC_FUNCTION::Ret_type    &ret,
 		                             Meta::Overload_selector<RPC_FUNCTION, EXC_TL>)
 		{
-			enum { EXCEPTION_CODE = RPC_EXCEPTION_BASE - Meta::Length<EXC_TL>::Value };
+			enum { EXCEPTION_CODE = Rpc_exception_code::EXCEPTION_BASE
+			                      - Meta::Length<EXC_TL>::Value };
 			try {
 				typedef typename EXC_TL::Tail Exc_tail;
 				return _do_serve(args, ret,
 				                 Meta::Overload_selector<RPC_FUNCTION, Exc_tail>());
-			} catch (typename EXC_TL::Head) { return EXCEPTION_CODE; }
+			} catch (typename EXC_TL::Head) {
+				return Rpc_exception_code(EXCEPTION_CODE);
+			}
 		}
 
 		template <typename RPC_FUNCTION>
@@ -100,23 +106,24 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 		                             Meta::Overload_selector<RPC_FUNCTION, Meta::Empty>)
 		{
 			RPC_FUNCTION::serve(*static_cast<SERVER *>(this), args, ret);
-			return 0;
+			return Rpc_exception_code(Rpc_exception_code::SUCCESS);
 		}
 
 		template <typename RPC_FUNCTIONS_TO_CHECK>
-		Rpc_exception_code _do_dispatch(Rpc_opcode opcode, Ipc_istream &is, Ipc_ostream &os,
+		Rpc_exception_code _do_dispatch(Rpc_opcode opcode,
+		                                Ipc_unmarshaller &in, Msgbuf_base &out,
 		                                Meta::Overload_selector<RPC_FUNCTIONS_TO_CHECK>)
 		{
 			using namespace Meta;
 
 			typedef typename RPC_FUNCTIONS_TO_CHECK::Head This_rpc_function;
 
-			if (opcode == Index_of<Rpc_functions, This_rpc_function>::Value) {
+			if (opcode.value == Index_of<Rpc_functions, This_rpc_function>::Value) {
 
 				typename This_rpc_function::Server_args args{};
 
-				/* read arguments from istream */
-				_read_args(is, args);
+				/* read arguments from incoming message */
+				_read_args(in, args);
 
 				{
 					Trace::Rpc_dispatch trace_event(This_rpc_function::name());
@@ -130,38 +137,42 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 				typedef typename This_rpc_function::Exceptions Exceptions;
 
 				typename This_rpc_function::Ret_type ret { };
-				Rpc_exception_code exc;
-				exc = _do_serve(args, ret, Overload_selector<This_rpc_function, Exceptions>());
-				os << ret;
+				Rpc_exception_code
+					exc(_do_serve(args, ret,
+					              Overload_selector<This_rpc_function, Exceptions>()));
+
+				out.insert(ret);
 
 				{
 					Trace::Rpc_reply trace_event(This_rpc_function::name());
 				}
 
-				/* write results to ostream 'os' */
-				_write_results(os, args);
+				/* write results to outgoing message */
+				_write_results(out, args);
 
 				return exc;
 			}
 
 			typedef typename RPC_FUNCTIONS_TO_CHECK::Tail Tail;
-			return _do_dispatch(opcode, is, os, Overload_selector<Tail>());
+			return _do_dispatch(opcode, in, out, Overload_selector<Tail>());
 		}
 
-		int _do_dispatch(int opcode, Ipc_istream &, Ipc_ostream &,
-		                 Meta::Overload_selector<Meta::Empty>)
+		Rpc_exception_code _do_dispatch(Rpc_opcode opcode,
+		                                Ipc_unmarshaller &, Msgbuf_base &,
+		                                Meta::Overload_selector<Meta::Empty>)
 		{
-			PERR("invalid opcode %d\n", opcode);
-			return RPC_INVALID_OPCODE;
+			PERR("invalid opcode %ld\n", opcode.value);
+			return Rpc_exception_code(Rpc_exception_code::INVALID_OPCODE);
 		}
 
 		/**
 		 * Handle corner case of having an RPC interface with no RPC functions
 		 */
-		Rpc_exception_code _do_dispatch(int opcode, Ipc_istream &, Ipc_ostream &,
+		Rpc_exception_code _do_dispatch(Rpc_opcode opcode,
+		                                Ipc_unmarshaller &, Msgbuf_base &,
 		                                Meta::Overload_selector<Meta::Type_list<> >)
 		{
-			return 0;
+			return Rpc_exception_code(Rpc_exception_code::SUCCESS);
 		}
 
 		/**
@@ -173,9 +184,10 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 
 	public:
 
-		Rpc_exception_code dispatch(int opcode, Ipc_istream &is, Ipc_ostream &os)
+		Rpc_exception_code dispatch(Rpc_opcode opcode,
+		                            Ipc_unmarshaller &in, Msgbuf_base &out)
 		{
-			return _do_dispatch(opcode, is, os,
+			return _do_dispatch(opcode, in, out,
 			                    Meta::Overload_selector<Rpc_functions>());
 		}
 };
@@ -191,10 +203,11 @@ class Genode::Rpc_object_base : public Object_pool<Rpc_object_base>::Entry
 		 * Interface to be implemented by a derived class
 		 *
 		 * \param op   opcode of invoked method
-		 * \param is   Ipc_input stream with method arguments
-		 * \param os   Ipc_output stream for storing method results
+		 * \param in   incoming message with method arguments
+		 * \param out  outgoing message for storing method results
 		 */
-		virtual int dispatch(int op, Ipc_istream &is, Ipc_ostream &os) = 0;
+		virtual Rpc_exception_code
+		dispatch(Rpc_opcode op, Ipc_unmarshaller &in, Msgbuf_base &out) = 0;
 };
 
 
@@ -212,9 +225,9 @@ struct Genode::Rpc_object : Rpc_object_base, Rpc_dispatcher<RPC_INTERFACE, SERVE
 	 ** Server-object interface **
 	 *****************************/
 
-	Rpc_exception_code dispatch(int opcode, Ipc_istream &is, Ipc_ostream &os)
+	Rpc_exception_code dispatch(Rpc_opcode opcode, Ipc_unmarshaller &in, Msgbuf_base &out)
 	{
-		return Rpc_dispatcher<RPC_INTERFACE, SERVER>::dispatch(opcode, is, os);
+		return Rpc_dispatcher<RPC_INTERFACE, SERVER>::dispatch(opcode, in, out);
 	}
 
 	Capability<RPC_INTERFACE> const cap() const
@@ -236,7 +249,7 @@ struct Genode::Rpc_object : Rpc_object_base, Rpc_dispatcher<RPC_INTERFACE, SERVE
  * shortcut for the common case where the server's capability is handed
  * over to other parties _after_ the server is completely initialized.
  */
-class Genode::Rpc_entrypoint : Thread_base, public Object_pool<Rpc_object_base>
+class Genode::Rpc_entrypoint : Thread, public Object_pool<Rpc_object_base>
 {
 	private:
 
@@ -274,13 +287,21 @@ class Genode::Rpc_entrypoint : Thread_base, public Object_pool<Rpc_object_base>
 
 	protected:
 
-		Ipc_server      *_ipc_server;
-		Lock             _cap_valid;      /* thread startup synchronization        */
-		Lock             _delay_start;    /* delay start of request dispatching    */
-		Lock             _delay_exit;     /* delay destructor until server settled */
-		Cap_session     *_cap_session;    /* for creating capabilities             */
-		Exit_handler     _exit_handler;
-		Capability<Exit> _exit_cap;
+		Native_capability _caller;
+		Lock              _cap_valid;      /* thread startup synchronization        */
+		Lock              _delay_start;    /* delay start of request dispatching    */
+		Lock              _delay_exit;     /* delay destructor until server settled */
+		Pd_session       &_pd_session;     /* for creating capabilities             */
+		Exit_handler      _exit_handler;
+		Capability<Exit>  _exit_cap;
+
+		/**
+		 * Access to kernel-specific part of the PD session interface
+		 *
+		 * Some kernels like NOVA need a special interface for creating RPC
+		 * object capabilities.
+		 */
+		Capability<Pd_session::Native_pd> _native_pd_cap;
 
 		/**
 		 * Back end used to associate RPC object with the entry point
@@ -304,6 +325,24 @@ class Genode::Rpc_entrypoint : Thread_base, public Object_pool<Rpc_object_base>
 		void _block_until_cap_valid();
 
 		/**
+		 * Allocate new RPC object capability
+		 *
+		 * Regular servers allocate capabilities from their protection domain
+		 * via the component's environment. This method allows core to have a
+		 * special implementation that does not rely on a PD session.
+		 *
+		 * The 'entry' argument is used only on NOVA. It is the server-side
+		 * instruction pointer to be associated with the RPC object capability.
+		 */
+		Native_capability _alloc_rpc_cap(Pd_session &, Native_capability ep,
+		                                 addr_t entry = 0);
+
+		/**
+		 * Free RPC object capability
+		 */
+		void _free_rpc_cap(Pd_session &, Native_capability);
+
+		/**
 		 * Thread interface
 		 *
 		 * \noapi
@@ -322,7 +361,7 @@ class Genode::Rpc_entrypoint : Thread_base, public Object_pool<Rpc_object_base>
 		 * \param name         name of entrypoint thread
 		 * \param location     CPU affinity
 		 */
-		Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
+		Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
 		               char const *name, bool start_on_construction = true,
 		               Affinity::Location location = Affinity::Location());
 
@@ -363,7 +402,7 @@ class Genode::Rpc_entrypoint : Thread_base, public Object_pool<Rpc_object_base>
 		 * Typically, a capability obtained via this method is used as
 		 * argument of 'intermediate_reply'.
 		 */
-		Untyped_capability reply_dst();
+		Untyped_capability reply_dst() { return _caller; }
 
 		/**
 		 * Prevent reply of current request
@@ -378,23 +417,22 @@ class Genode::Rpc_entrypoint : Thread_base, public Object_pool<Rpc_object_base>
 		 * request. At a later time, the server may chose to unblock the
 		 * client via the 'intermedate_reply' method.
 		 */
-		void omit_reply();
+		void omit_reply() { _caller = Native_capability(); }
 
 		/**
 		 * Send a reply out of the normal call-reply order
 		 *
 		 * \noapi
 		 *
-		 * Note: This is a temporary API method, which is going to be
-		 * removed. Please do not use this method.
-		 *
-		 * In combination with the 'reply_dst' accessor method, this
-		 * method can be used to implement services that dispatch client
-		 * requests out of order. In such cases, the server activation may
-		 * send reply messages to multiple blocking clients before
-		 * answering the original call.
+		 * In combination with the 'reply_dst' accessor method, this method
+		 * allows for the dispatching of client requests out of order. The only
+		 * designated user of this method is core's PD service. The
+		 * 'Pd_session::submit' RPC function uses it to send a reply to a
+		 * caller of the 'Signal_source::wait_for_signal' RPC function before
+		 * returning from the 'submit' call.
 		 */
-		void explicit_reply(Untyped_capability reply_cap, int return_value);
+		void reply_signal_info(Untyped_capability reply_cap,
+		                       unsigned long imprint, unsigned long cnt);
 
 		/**
 		 * Return true if the caller corresponds to the entrypoint called

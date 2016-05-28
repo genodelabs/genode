@@ -56,7 +56,7 @@ int main()
 	dump(ptr, 0x20000);
 
 	Attached_rom_dataspace rom("/notavail.txt");
-	if (!rom.is_valid())
+	if (!rom.valid())
 		PDBG("Expected ROM error occured");
 	else
 		PERR("found file where no file should be!");

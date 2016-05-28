@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _PLATFORM__NOVA_STDINT_H_
-#define _PLATFORM__NOVA_STDINT_H_
+#ifndef _INCLUDE__NOVA__STDINT_H_
+#define _INCLUDE__NOVA__STDINT_H_
 
 #include <base/fixed_stdint.h>
 
@@ -25,4 +25,4 @@ namespace Nova {
 	typedef Genode::uint64_t uint64_t;
 }
 
-#endif /* _PLATFORM__NOVA_STDINT_H_ */
+#endif /* _INCLUDE__NOVA__STDINT_H_ */

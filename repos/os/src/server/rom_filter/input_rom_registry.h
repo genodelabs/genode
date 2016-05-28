@@ -77,6 +77,8 @@ class Rom_filter::Input_rom_registry
 				void _handle_rom_changed(unsigned)
 				{
 					_rom_ds.update();
+					if (!_rom_ds.valid())
+						return;
 
 					try {
 						_top_level = Xml_node(_rom_ds.local_addr<char>());

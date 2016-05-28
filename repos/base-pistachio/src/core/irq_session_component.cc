@@ -60,7 +60,7 @@ void Irq_object::_wait_for_irq()
 
 void Irq_object::start()
 {
-	::Thread_base::start();
+	::Thread::start();
 	_sync_bootup.lock();
 }
 
@@ -115,7 +115,7 @@ void Irq_object::entry()
 
 Irq_object::Irq_object(unsigned irq)
 :
-	Thread<4096>("irq"),
+	Thread_deprecated<4096>("irq"),
 	_sync_ack(Lock::LOCKED), _sync_bootup(Lock::LOCKED),
 	_irq(irq)
 { }
@@ -137,7 +137,7 @@ Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
 	if (msi)
 		throw Root::Unavailable();
 
-	if (!irq_alloc || irq_alloc->alloc_addr(1, _irq_number).is_error()) {
+	if (!irq_alloc || irq_alloc->alloc_addr(1, _irq_number).error()) {
 		PERR("Unavailable IRQ 0x%x requested", _irq_number);
 		throw Root::Unavailable();
 	}

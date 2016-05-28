@@ -40,7 +40,7 @@ namespace Fiasco {
  * Debugging/Tracing
  */
 #if TX_BENCH | RX_BENCH
-struct Counter : public Genode::Thread<8192>
+struct Counter : public Genode::Thread_deprecated<8192>
 {
 	int             cnt;
 	Genode::size_t size;
@@ -59,7 +59,7 @@ struct Counter : public Genode::Thread<8192>
 
 	void inc(Genode::size_t s) { cnt++; size += s; }
 
-	Counter() : Thread("net-counter"), cnt(0), size(0)  { start(); }
+	Counter() : Thread_deprecated("net-counter"), cnt(0), size(0)  { start(); }
 };
 #else
 struct Counter { inline void inc(Genode::size_t s) { } };
@@ -93,7 +93,7 @@ static Nic::Connection *nic() {
 
 namespace {
 
-	class Signal_thread : public Genode::Thread<8192>
+	class Signal_thread : public Genode::Thread_deprecated<8192>
 	{
 		private:
 
@@ -126,7 +126,7 @@ namespace {
 		public:
 
 			Signal_thread(Fiasco::l4_cap_idx_t cap, Genode::Lock *sync)
-			: Genode::Thread<8192>("net-signal-thread"), _cap(cap), _sync(sync) {
+			: Genode::Thread_deprecated<8192>("net-signal-thread"), _cap(cap), _sync(sync) {
 				start(); }
 	};
 }
@@ -149,7 +149,9 @@ extern "C" {
 	l4_cap_idx_t genode_net_irq_cap()
 	{
 		Linux::Irq_guard guard;
-		static Genode::Native_capability cap = L4lx::vcpu_connection()->alloc_irq();
+		Genode::Foc_native_cpu_client
+			native_cpu(L4lx::cpu_connection()->native_cpu());
+		static Genode::Native_capability cap = native_cpu.alloc_irq();
 		static Genode::Lock lock(Genode::Lock::LOCKED);
 		static Signal_thread th(cap.dst(), &lock);
 		lock.lock();

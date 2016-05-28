@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -18,7 +18,10 @@
 #ifndef _AUDIO__AUDIO_H_
 #define _AUDIO__AUDIO_H_
 
-#include <os/server.h>
+/* Genode includes */
+#include <base/env.h>
+#include <util/xml_node.h>
+
 
 /*****************************
  ** private Audio namespace **
@@ -38,7 +41,9 @@ namespace Audio_in {
 
 namespace Audio {
 
-	void init_driver(Server::Entrypoint &ep);
+	void update_config(Genode::Xml_node);
+
+	void init_driver(Genode::Env &, Genode::Allocator &, Genode::Xml_node);
 
 	bool driver_active();
 

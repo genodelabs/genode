@@ -17,8 +17,8 @@
 /* Genode includes */
 #include <util/mmio.h>
 
-/* base includes */
-#include <unmanaged_singleton.h>
+/* base-internal includes */
+#include <base/internal/unmanaged_singleton.h>
 
 namespace Genode { class Bios_data_area; }
 

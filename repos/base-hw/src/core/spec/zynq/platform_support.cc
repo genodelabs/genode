@@ -17,7 +17,9 @@
 #include <board.h>
 #include <cpu.h>
 #include <pic.h>
-#include <unmanaged_singleton.h>
+
+/* base-internal includes */
+#include <base/internal/unmanaged_singleton.h>
 
 using namespace Genode;
 
@@ -55,7 +57,7 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 		  Board::CORTEX_A9_PRIVATE_MEM_SIZE },
 
 		/* core UART */
-		{ Board::UART_0_MMIO_BASE, Board::UART_SIZE },
+		{ Board::KERNEL_UART_BASE, Board::KERNEL_UART_SIZE },
 
 		/* L2 cache controller */
 		{ Board::PL310_MMIO_BASE, Board::PL310_MMIO_SIZE }

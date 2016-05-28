@@ -66,7 +66,7 @@ int main(int argc, char **argv)
 	int key_cnt = 0;
 	while (1) {
 		/* poll input service every 20 ms */
-		while (!input.is_pending()) timer.msleep(20);
+		while (!input.pending()) timer.msleep(20);
 
 		for (int i = 0, num_ev = input.flush(); i < num_ev; ++i) {
 

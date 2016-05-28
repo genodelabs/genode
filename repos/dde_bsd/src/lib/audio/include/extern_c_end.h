@@ -11,6 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#ifdef __cplusplus
+
 #undef new
 #undef class
 #undef private
@@ -18,3 +20,5 @@
 #pragma GCC diagnostic pop
 
 } /* extern "C" */
+
+#endif /* __cplusplus */

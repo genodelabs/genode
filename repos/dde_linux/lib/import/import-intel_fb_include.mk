@@ -3,7 +3,7 @@ SRC_DIR        := $(REP_DIR)/src/drivers/framebuffer/intel
 
 # architecture-dependent includes
 ifeq ($(filter-out $(SPECS),x86),)
-  ARCH_SRC_INC_DIR += $(REP_DIR)/src/include/x86 \
+  ARCH_SRC_INC_DIR += $(REP_DIR)/src/include/spec/x86 \
                       $(LX_CONTRIB_DIR)/arch/x86/include
   ifeq ($(filter-out $(SPECS),32bit),)
     ARCH_SRC_INC_DIR += $(REP_DIR)/src/include/spec/x86_32

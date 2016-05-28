@@ -1303,7 +1303,7 @@ You can build the demo by executing
 A tutorial on how to create a bootable SD card can be found in the
 corresponding run script _os/tz_vmm.run_. A tutorial on how to reproduce the
 pre-built Linux image, Rootfs and DTB - used by the run script - can be found
-at [https://github.com/m-stein/genode_binaries/blob/master/tz_vmm/usb_armory/README].
+at [http://genode.org/files/release-15.11/usb_armory_tz_vmm/README].
 
 
 NOVA

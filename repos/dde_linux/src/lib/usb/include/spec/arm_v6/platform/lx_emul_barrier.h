@@ -18,15 +18,6 @@
  ** asm/barrier.h **
  *******************/
 
-#define mb()  asm volatile ("": : :"memory")
-#define rmb() mb()
-#define wmb() asm volatile ("": : :"memory")
-
-#define smp_mb()  asm volatile ("": : :"memory")
-#define smp_rmb() smp_mb()
-#define smp_wmb() asm volatile ("": : :"memory")
-
-static inline void barrier() { asm volatile ("": : :"memory"); }
-
+#include <lx_emul/barrier.h>
 
 #endif /* _ARMV6__PLATFORM__LX_EMUL_BARRIER_H_ */

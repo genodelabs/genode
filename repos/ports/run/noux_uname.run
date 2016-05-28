@@ -1,0 +1,74 @@
+build { core init drivers/timer noux/minimal
+        lib/libc_noux noux-pkg/coreutils }
+
+# strip coreutils binaries and create tar archive
+exec sh -c "[cross_dev_prefix]strip bin/coreutils/bin/*"
+exec tar cfv bin/coreutils.tar -h -C bin/coreutils .
+
+create_boot_directory
+
+install_config {
+	<config verbose="yes">
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="RAM"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="PD"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <any-child/> <parent/> </any-service>
+		</default-route>
+		<start name="timer">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Timer"/></provides>
+		</start>
+		<start name="spoof">
+			<binary name="noux"/>
+			<resource name="RAM" quantum="16M"/>
+			<config verbose="yes" stdin="/null" stdout="/log" stderr="/log">
+				<fstab>
+					<null/> <log/>
+					<dir name=".sysctl">
+						<dir name="kern">
+							<inline name="ostype">Muck OS XIII</inline>
+							<inline name="hostname">localhost</inline>
+						</dir>
+						<dir name="hw">
+							<inline name="machine">norisc</inline>
+						</dir>
+					</dir>
+					<tar name="coreutils.tar" />
+				</fstab>
+				<start name="/bin/uname"> <arg value="-a"/> </start>
+			</config>
+		</start>
+		<start name="noux">
+			<resource name="RAM" quantum="16M"/>
+			<config verbose="yes" stdin="/null" stdout="/log" stderr="/log">
+				<fstab> <null/> <log/> <tar name="coreutils.tar" /> </fstab>
+				<start name="/bin/uname"> <arg value="-a"/> </start>
+			</config>
+		</start>
+	</config>
+}
+
+build_boot_image {
+	core init timer ld.lib.so noux libc.lib.so libm.lib.so
+	libc_noux.lib.so coreutils.tar
+}
+
+append qemu_args " -nographic -serial mon:stdio "
+
+if {[have_spec x86_64]} {
+	# coreutils.tar is really huge when built for x86_64
+	append qemu_args " -m 300 "
+}
+
+run_genode_until {child "noux" exited with exit value 0.*\n} 30
+
+exec rm bin/coreutils.tar

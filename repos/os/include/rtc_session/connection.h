@@ -23,9 +23,27 @@ namespace Rtc { struct Connection; }
 
 struct Rtc::Connection : Genode::Connection<Session>, Session_client
 {
-	Connection() :
-		Genode::Connection<Rtc::Session>(session("foo, ram_quota=4K")),
-		Session_client(cap()) { }
+	/**
+	 * Constructor
+	 */
+	Connection(Genode::Env &env)
+	:
+		Genode::Connection<Rtc::Session>(env, session(env.parent(), "ram_quota=4K")),
+		Session_client(cap())
+	{ }
+
+	/**
+	 * Constructor
+	 *
+	 * \noapi
+	 * \deprecated  Use the constructor with 'Env &' as first
+	 *              argument instead
+	 */
+	Connection()
+	:
+		Genode::Connection<Rtc::Session>(session("ram_quota=4K")),
+		Session_client(cap())
+	{ }
 };
 
 #endif /* _INCLUDE__RTC_SESSION__CONNECTION_H_ */

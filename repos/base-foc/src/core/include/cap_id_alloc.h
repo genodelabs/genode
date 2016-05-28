@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CORE__INCLUDE__CAP_IP_ALLOC_H_
-#define _CORE__INCLUDE__CAP_IP_ALLOC_H_
+#ifndef _CORE__INCLUDE__CAP_ID_ALLOC_H_
+#define _CORE__INCLUDE__CAP_ID_ALLOC_H_
 
 /* Genode includes */
 #include <base/allocator_avl.h>
@@ -48,4 +48,4 @@ namespace Genode {
 	};
 }
 
-#endif /* _CORE__INCLUDE__CAP_IP_ALLOC_H_ */
+#endif /* _CORE__INCLUDE__CAP_ID_ALLOC_H_ */

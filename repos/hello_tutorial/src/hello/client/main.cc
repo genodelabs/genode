@@ -1,38 +1,33 @@
 /*
  * \brief  Test client for the Hello RPC interface
  * \author Björn Döbel
+ * \author Norman Feske
  * \date   2008-03-20
  */
 
 /*
- * Copyright (C) 2008-2013 Genode Labs GmbH
+ * Copyright (C) 2008-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/env.h>
-#include <base/printf.h>
-#include <hello_session/client.h>
+#include <base/component.h>
+#include <base/log.h>
 #include <hello_session/connection.h>
 
-#include <timer_session/connection.h>
 
-using namespace Genode;
+Genode::size_t Component::stack_size() { return 64*1024; }
 
-int main(void)
+
+void Component::construct(Genode::Env &env)
 {
-	Hello::Connection h;
+	Hello::Connection hello(env);
 
-	Timer::Connection timer;
+	hello.say_hello();
 
-	while (1) {
-		h.say_hello();
+	int const sum = hello.add(2, 5);
+	Genode::log("added 2 + 5 = ", sum);
 
-		int foo = h.add(2, 5);
-		PDBG("Added 2 + 5 = %d", foo);
-		timer.msleep(1000);
-	}
-
-	return 0;
+	Genode::log("hello test completed");
 }

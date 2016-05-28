@@ -61,7 +61,7 @@ class Vbox_pointer::Policy_entry : public Vbox_pointer::Policy,
 
 			_shape_ds.update();
 
-			if (!_shape_ds.is_valid())
+			if (!_shape_ds.valid())
 				return;
 
 			if (_shape_ds.size() < sizeof(Vbox_pointer::Shape_report))

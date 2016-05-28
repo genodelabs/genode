@@ -18,12 +18,8 @@
 #include <platform_session/connection.h>
 
 /* emulation */
-#include <platform/platform.h>
 #include <platform.h>
-
-#include <extern_c_begin.h>
 #include <lx_emul.h>
-#include <extern_c_end.h>
 
 /* dwc-otg */
 #define new new_
@@ -115,7 +111,6 @@ DUMMY(-1, dwc_otg_pcd_get_rmwkup_enable);
 DUMMY(-1, dwc_otg_pcd_initiate_srp);
 DUMMY(-1, pcd_remove);
 SILENT_DUMMY( 0, pcd_init);
-DUMMY(-1, printk_once);
 
 
 /************************************************************************
@@ -124,6 +119,8 @@ DUMMY(-1, printk_once);
 
 void local_fiq_disable() { }
 void local_fiq_enable() { }
+extern "C" void fiq_fsm_spin_lock(void *lock) { }
+extern "C" void fiq_fsm_spin_unlock(void *lock) { }
 int claim_fiq(struct fiq_handler *f) { return 0; }
 void set_fiq_regs(struct pt_regs const *regs) { }
 void set_fiq_handler(void *start, unsigned int length) { }
@@ -138,22 +135,6 @@ extern "C" void dwc_otg_fiq_fsm(struct fiq_state *state, int num_channels) { TRA
 unsigned char _dwc_otg_fiq_stub, _dwc_otg_fiq_stub_end;
 
 extern int fiq_enable, fiq_fsm_enable;
-
-
-/***********************
- ** linux/workqueue.h **
- ***********************/
-
-struct workqueue_struct *create_singlethread_workqueue(char *)
-{
-	workqueue_struct *wq = (workqueue_struct *)kzalloc(sizeof(workqueue_struct), 0);
-	return wq;
-}
-
-void destroy_workqueue(struct workqueue_struct *wq) { TRACE; }
-
-
-bool queue_work(struct workqueue_struct *wq, struct work_struct *work) { TRACE; return 0; }
 
 
 /***********************

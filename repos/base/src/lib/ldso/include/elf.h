@@ -445,7 +445,7 @@ namespace Linker {
 /**
  * Define bit-width independent types
  */
-#ifdef __x86_64__
+#ifdef _LP64
 namespace Elf = Linker::Elf64;
 #define ELFCLASS ELFCLASS64
 #define EFMT "%llx"

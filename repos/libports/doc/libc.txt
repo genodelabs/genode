@@ -10,12 +10,11 @@ Usage
 -----
 
 Before the libc is ready to use, the original FreeBSD source codes must be
-downloaded and integrated with the Genode build system. The Makefile found
-at the top level of the 'libports' repository automates this task. Please make
-sure to have Subversion installed. Then issue the following command from
-within the 'libports/' directory:
+downloaded and integrated with the Genode build system. The tool 'prepare_port'
+automates this task. Please make sure to have Subversion installed. Then issue
+the following command:
 
-! make prepare PKG=libc
+! ./tool/ports/prepare_port libc
 
 To use the libc in your application, add 'libc' to the 'LIBS' declaration in
 your build-description file. This declaration will make the libc headers

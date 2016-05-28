@@ -19,8 +19,13 @@
 #include <base/printf.h>
 #include <rm_session/rm_session.h>
 #include <util/touch.h>
-#include <pistachio/kip.h>
 #include <base/native_types.h>
+
+/* base-internal includes */
+#include <base/internal/page_size.h>
+
+/* core-local includes */
+#include <kip.h>
 
 /* Pistachio includes */
 namespace Pistachio {
@@ -78,8 +83,6 @@ namespace Genode {
 			touch_read_write(bptr);
 	}
 
-	constexpr size_t get_page_size_log2() { return 12; }
-	constexpr size_t get_page_size()      { return 1 << get_page_size_log2(); }
 	constexpr addr_t get_page_mask()      { return ~(get_page_size() - 1); }
 
 	inline size_t get_super_page_size_log2()
@@ -105,13 +108,13 @@ namespace Genode {
 	}
 
 	inline void print_page_fault(const char *msg, addr_t pf_addr, addr_t pf_ip,
-	                             Rm_session::Fault_type pf_type,
+	                             Region_map::State::Fault_type pf_type,
 	                             unsigned long badge)
 	{
-		Native_thread_id tid;
+		Pistachio::L4_ThreadId_t tid;
 		tid.raw = badge;
 		printf("%s (%s pf_addr=%p pf_ip=%p from %02lx (raw %08lx))\n", msg,
-		       pf_type == Rm_session::WRITE_FAULT ? "WRITE" : "READ",
+		       pf_type == Region_map::State::WRITE_FAULT ? "WRITE" : "READ",
 		       (void *)pf_addr, (void *)pf_ip,
 		       Pistachio::L4_GlobalId(tid).global.X.thread_no, tid.raw);
 	}

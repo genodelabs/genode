@@ -59,15 +59,15 @@ namespace Libc {
 				private:
 
 					Genode::Ram_session *_ram_session;  /* ram session for backing store */
-					Genode::Rm_session  *_rm_session;   /* region manager                */
+					Genode::Region_map  *_region_map;   /* region map of address space   */
 
 				public:
 
 					/**
 					 * Constructor
 					 */
-					Dataspace_pool(Genode::Ram_session *ram_session, Genode::Rm_session *rm_session):
-						_ram_session(ram_session), _rm_session(rm_session) { }
+					Dataspace_pool(Genode::Ram_session *ram, Genode::Region_map *rm):
+						_ram_session(ram), _region_map(rm) { }
 
 					/**
 					 * Destructor
@@ -81,18 +81,18 @@ namespace Libc {
 					 * \param md_alloc  allocator to expand. This allocator is also
 					 *                  used for meta data allocation (only after
 					 *                  being successfully expanded).
-					 * \throw           Rm_session::Invalid_dataspace,
-					 *                  Rm_session::Region_conflict
+					 * \throw           Region_map::Invalid_dataspace,
+					 *                  Region_map::Region_conflict
 					 * \return          0 on success or negative error code
 					 */
 					int expand(Genode::size_t size, Genode::Range_allocator *alloc);
 
-					void reassign_resources(Genode::Ram_session *ram, Genode::Rm_session *rm) {
-						_ram_session = ram, _rm_session = rm; }
+					void reassign_resources(Genode::Ram_session *ram, Genode::Region_map *rm) {
+						_ram_session = ram, _region_map = rm; }
 			};
 
 			Genode::Lock   mutable _lock;
-			Dataspace_pool _ds_pool;      /* list of dataspaces */
+			Dataspace_pool         _ds_pool;      /* list of dataspaces */
 			Genode::Allocator_avl  _alloc;        /* local allocator    */
 			Genode::size_t         _chunk_size;
 
@@ -108,7 +108,7 @@ namespace Libc {
 
 		public:
 
-			Mem_alloc_impl(Genode::Rm_session  * rm  = Genode::env()->rm_session(),
+			Mem_alloc_impl(Genode::Region_map  * rm  = Genode::env()->rm_session(),
 			               Genode::Ram_session * ram = Genode::env()->ram_session())
 			:
 				_ds_pool(ram, rm),
@@ -121,7 +121,5 @@ namespace Libc {
 			Genode::size_t size_at(void const *ptr) const;
 	};
 }
-
-
 
 #endif /* _LIBC_MEM_ALLOC_H_ */

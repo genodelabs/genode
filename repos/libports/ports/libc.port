@@ -99,11 +99,13 @@ DIR_CONTENT(include/libc/vm) := \
 DIRS += include/libc/net
 DIR_CONTENT(include/libc/net) := \
     $(addprefix src/lib/libc/sys/net/, if.h if_dl.h if_tun.h if_types.h \
-                radix.h route.h)
+                radix.h route.h \
+                ethernet.h if_arp.h)
 
 DIRS += include/libc/netinet
 DIR_CONTENT(include/libc/netinet) := \
-    $(addprefix src/lib/libc/sys/netinet/, in.h in_systm.h ip.h tcp.h)
+    $(addprefix src/lib/libc/sys/netinet/, in.h in_systm.h ip.h tcp.h \
+                udp.h ip_icmp.h if_ether.h)
 
 DIRS += include/libc/netinet6
 DIR_CONTENT(include/libc/netinet6) := src/lib/libc/sys/netinet6/in6.h

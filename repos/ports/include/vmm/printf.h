@@ -19,6 +19,9 @@
 #include <base/lock.h>
 #include <base/printf.h>
 
+/* NOVA includes */
+#include <nova/syscalls.h>
+
 namespace Vmm {
 
 	using namespace Genode;
@@ -35,17 +38,19 @@ inline void Vmm::printf(const char *format, ...)
 	va_list list;
 	va_start(list, format);
 
+	struct Utcb_backup { char buf[Nova::Utcb::size()]; };
+
 	static Lock        lock;
-	static Native_utcb utcb_backup;
+	static Utcb_backup utcb_backup;
 
 	Lock::Guard guard(lock);
 
-	utcb_backup = *Thread_base::myself()->utcb();
+	utcb_backup = *(Utcb_backup *)Thread::myself()->utcb();
 
 	Genode::printf("VMM: ");
 	Genode::vprintf(format, list);
 
-	*Thread_base::myself()->utcb() = utcb_backup;
+	*(Utcb_backup *)Thread::myself()->utcb() = utcb_backup;
 
 	va_end(list);
 }

@@ -34,12 +34,10 @@ set config {
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
-		<service name="CAP"/>
 		<service name="PD"/>
 		<service name="RM"/>
 		<service name="CPU"/>
 		<service name="LOG"/>
-		<service name="SIGNAL"/>
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
@@ -140,8 +138,9 @@ lappend_if [have_spec       linux] boot_modules fb_sdl
 lappend_if [have_spec         x86] boot_modules rtc_drv
 
 append boot_modules {
-	ld.lib.so libc.lib.so libm.lib.so pthread.lib.so libc_lock_pipe.lib.so
+	ld.lib.so libc.lib.so libm.lib.so pthread.lib.so libc_pipe.lib.so
 	libc_terminal.lib.so libiconv.lib.so stdcxx.lib.so
+	qemu-usb.lib.so
 }
 
 append_if [expr $use_net]          boot_modules { nic_drv }

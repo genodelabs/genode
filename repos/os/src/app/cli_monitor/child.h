@@ -31,7 +31,8 @@ struct Child : Child_base, List<Child>::Element
 	      Genode::size_t                    ram_quota,
 	      Genode::size_t                    ram_limit,
 	      Genode::Signal_context_capability yield_response_sig_cap,
-	      Genode::Signal_context_capability exit_sig_cap)
+	      Genode::Signal_context_capability exit_sig_cap,
+	      Genode::Dataspace_capability      ldso_ds)
 	:
 		Child_base(ram,
 		           label,
@@ -40,7 +41,8 @@ struct Child : Child_base, List<Child>::Element
 		           ram_quota,
 		           ram_limit,
 		           yield_response_sig_cap,
-		           exit_sig_cap),
+		           exit_sig_cap,
+		           ldso_ds),
 		argument(label, "subsystem")
 	{ }
 };

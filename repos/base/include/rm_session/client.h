@@ -1,11 +1,11 @@
 /*
  * \brief  Client-side region manager session interface
- * \author Christian Helmuth
- * \date   2006-07-11
+ * \author Norman Feske
+ * \date   2016-04-15
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -22,36 +22,10 @@ namespace Genode { struct Rm_session_client; }
 
 struct Genode::Rm_session_client : Rpc_client<Rm_session>
 {
-	explicit Rm_session_client(Rm_session_capability session)
-	: Rpc_client<Rm_session>(session) { }
+	explicit Rm_session_client(Rm_session_capability);
 
-	Local_addr attach(Dataspace_capability ds, size_t size = 0,
-	                  off_t offset = 0, bool use_local_addr = false,
-	                  Local_addr local_addr = (void *)0,
-	                  bool executable = false) override
-	{
-		return call<Rpc_attach>(ds, size, offset,
-		                        use_local_addr, local_addr,
-		                        executable);
-	}
-
-	void detach(Local_addr local_addr) override {
-		call<Rpc_detach>(local_addr); }
-
-	Pager_capability add_client(Thread_capability thread) override {
-		return call<Rpc_add_client>(thread); }
-
-	void remove_client(Pager_capability pager) override {
-		call<Rpc_remove_client>(pager); }
-
-	void fault_handler(Signal_context_capability handler) override {
-		call<Rpc_fault_handler>(handler); }
-
-	State state() override {
-		return call<Rpc_state>(); }
-
-	Dataspace_capability dataspace() override {
-		return call<Rpc_dataspace>(); }
+	Capability<Region_map> create(size_t) override;
+	void destroy(Capability<Region_map>) override;
 };
 
 #endif /* _INCLUDE__RM_SESSION__CLIENT_H_ */

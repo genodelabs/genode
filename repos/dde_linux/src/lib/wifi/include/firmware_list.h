@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -18,9 +18,9 @@ typedef __SIZE_TYPE__ size_t;
 
 struct Firmware_list
 {
-	char const *name;
+	char const *requested_name;
 	size_t      size;
+	char const *available_name;
 };
 
 #endif /* _FIRMWARE_LIST_H_ */
-

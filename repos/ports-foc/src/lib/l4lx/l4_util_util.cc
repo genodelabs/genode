@@ -24,7 +24,7 @@ extern "C" {
 
 	void l4_sleep(int ms)
 	{
-		L4lx::Vcpu *vcpu = static_cast<L4lx::Vcpu*>(Genode::Thread_base::myself());
+		L4lx::Vcpu *vcpu = static_cast<L4lx::Vcpu*>(Genode::Thread::myself());
 		if (vcpu)
 			vcpu->timer()->msleep(ms);
 		else {

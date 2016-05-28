@@ -62,7 +62,7 @@ namespace Linux {
 
 			Irq_guard()
 			: _flags(0),
-			  _vcpu(dynamic_cast<L4lx::Vcpu*>(Genode::Thread_base::myself()))
+			  _vcpu(dynamic_cast<L4lx::Vcpu*>(Genode::Thread::myself()))
 			{
 				if (_vcpu)
 					l4x_irq_save(&_flags);

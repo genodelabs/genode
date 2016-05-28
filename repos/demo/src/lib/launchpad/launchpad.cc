@@ -42,8 +42,7 @@ Launchpad::Launchpad(unsigned long initial_quota)
 	static const char *names[] = {
 
 		/* core services */
-		"CAP", "RAM", "RM", "PD", "CPU", "IO_MEM", "IO_PORT",
-		"IRQ", "ROM", "LOG", "SIGNAL",
+		"RAM", "RM", "PD", "CPU", "IO_MEM", "IO_PORT", "IRQ", "ROM", "LOG",
 
 		/* services expected to got started by init */
 		"Nitpicker", "Init", "Timer", "PCI", "Block", "Nic", "Rtc",
@@ -251,16 +250,6 @@ Launchpad_child *Launchpad::start_child(const char *filename,
 		return 0;
 	}
 
-	Rm_connection rm;
-	rm.on_destruction(Rm_connection::KEEP_OPEN);
-	if (!rm.cap().valid()) {
-		PWRN("Failed to create RM session");
-		env()->parent()->close(ram.cap());
-		env()->parent()->close(cpu.cap());
-		env()->parent()->close(rom_cap);
-		return 0;
-	}
-
 	Pd_connection pd;
 	pd.on_destruction(Pd_connection::KEEP_OPEN);
 	if (!pd.cap().valid()) {
@@ -268,14 +257,13 @@ Launchpad_child *Launchpad::start_child(const char *filename,
 		env()->parent()->close(ram.cap());
 		env()->parent()->close(cpu.cap());
 		env()->parent()->close(rom_cap);
-		env()->parent()->close(rm.cap());
 		return 0;
 	}
 
 	try {
 		Launchpad_child *c = new (&_sliced_heap)
 			Launchpad_child(unique_name, file_cap, pd.cap(), ram.cap(),
-			                cpu.cap(), rm.cap(), rom_cap,
+			                cpu.cap(), rom_cap,
 			                &_cap_session, &_parent_services, &_child_services,
 			                config_ds, this);
 
@@ -291,7 +279,6 @@ Launchpad_child *Launchpad::start_child(const char *filename,
 		PWRN("Failed to create child - unknown reason");
 	}
 
-	env()->parent()->close(rm.cap());
 	env()->parent()->close(ram.cap());
 	env()->parent()->close(cpu.cap());
 	env()->parent()->close(rom_cap);
@@ -308,7 +295,7 @@ Launchpad_child *Launchpad::start_child(const char *filename,
  * this case using a watchdog mechanism, unblock the 'close' call, and
  * proceed with the closing the other remaining sessions.
  */
-class Child_destructor_thread : Thread<2*4096>
+class Child_destructor_thread : Thread_deprecated<2*4096>
 {
 	private:
 
@@ -356,7 +343,7 @@ class Child_destructor_thread : Thread<2*4096>
 		 * Constructor
 		 */
 		Child_destructor_thread() :
-			Thread("child_destructor"),
+			Thread_deprecated("child_destructor"),
 			_curr_child(0), _curr_alloc(0),
 			_activate_lock(Lock::LOCKED),
 			_ready(true)
@@ -424,6 +411,23 @@ static Timer::Session *timer_session()
 }
 
 
+Dataspace_capability Launchpad_child::_ldso_ds()
+{
+	static bool first_attempt_failed = false;
+
+	if (!first_attempt_failed) {
+		try {
+			static Rom_connection rom("ld.lib.so");
+			static Dataspace_capability ds = rom.dataspace();
+			return ds;
+		} catch (...) { }
+	}
+
+	first_attempt_failed = true;
+	return Dataspace_capability();
+}
+
+
 /* construct child-destructor thread early - in case we run out of threads */
 static Child_destructor_thread child_destructor;
 
@@ -453,7 +457,6 @@ void Launchpad::exit_child(Launchpad_child *child,
 	Lock::Guard lock_guard(_children_lock);
 	_children.remove(child);
 
-	Rm_session_capability   rm_session_cap = child->rm_session_cap();
 	Ram_session_capability ram_session_cap = child->ram_session_cap();
 	Cpu_session_capability cpu_session_cap = child->cpu_session_cap();
 	Rom_session_capability rom_session_cap = child->rom_session_cap();
@@ -461,7 +464,6 @@ void Launchpad::exit_child(Launchpad_child *child,
 	const Genode::Server *server = child->server();
 	destruct_child(&_sliced_heap, child, timer, session_close_timeout_ms);
 
-	env()->parent()->close(rm_session_cap);
 	env()->parent()->close(cpu_session_cap);
 	env()->parent()->close(rom_session_cap);
 	env()->parent()->close(ram_session_cap);

@@ -39,7 +39,7 @@ class Sync_signal_transmitter : public Signal_transmitter
 		}
 };
 
-class Fpu_user : public Thread<4 * 1024>
+class Fpu_user : public Thread_deprecated<0x2000>
 {
 	private:
 
@@ -56,7 +56,7 @@ class Fpu_user : public Thread<4 * 1024>
 
 	public:
 
-		Fpu_user() : Thread("fpu_user"), _x(0), _st(0) { }
+		Fpu_user() : Thread_deprecated("fpu_user"), _x(0), _st(0) { }
 
 		void start(float const x, Sync_signal_transmitter * const st)
 		{

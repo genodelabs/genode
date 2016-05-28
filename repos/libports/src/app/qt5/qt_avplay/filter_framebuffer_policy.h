@@ -31,8 +31,7 @@ class Filter_framebuffer_policy : public Genode::Slave_policy
 		const char **_permitted_services() const
 		{
 			static const char *permitted_services[] = {
-				"CAP", "LOG", "RM", "ROM", "SIGNAL",
-				"Timer", 0 };
+				"LOG", "RM", "ROM", "Timer", 0 };
 
 			return permitted_services;
 		};

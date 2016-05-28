@@ -124,7 +124,7 @@ class Ps2_keyboard : public Input_driver
 				void process(unsigned char v, bool verbose_scan_codes)
 				{
 					if (verbose_scan_codes)
-						PLOG("process %02x", v);
+						PLOG("process %02x scan code set 1", v);
 
 					switch (_state) {
 
@@ -257,7 +257,7 @@ class Ps2_keyboard : public Input_driver
 				void process(unsigned char v, bool verbose_scan_codes)
 				{
 					if (verbose_scan_codes)
-						PLOG("process %02x", v);
+						PLOG("process %02x scan code set 2", v);
 
 					enum {
 						EXTENDED_KEY_PREFIX = 0xe0,

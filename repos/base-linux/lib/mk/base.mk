@@ -4,13 +4,8 @@
 # \date   2014-02-21
 #
 
-LIBS   += startup cxx
-SRC_CC += thread/thread.cc thread/myself.cc thread/thread_linux.cc
-
-vpath %.cc  $(REP_DIR)/src/base
-vpath %.cc $(BASE_DIR)/src/base
-
 include $(REP_DIR)/lib/mk/base.inc
 
-
+LIBS   += startup
+SRC_CC += thread.cc thread_myself.cc thread_linux.cc
 

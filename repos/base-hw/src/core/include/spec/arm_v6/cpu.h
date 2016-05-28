@@ -12,8 +12,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CPU_H_
-#define _CPU_H_
+#ifndef _CORE__INCLUDE__SPEC__ARM_V6__CPU_H_
+#define _CORE__INCLUDE__SPEC__ARM_V6__CPU_H_
 
 /* core includes */
 #include <spec/arm/cpu_support.h>
@@ -94,4 +94,4 @@ class Genode::Cpu : public Arm
 		static void invalidate_control_flow_predictions() { /* FIXME */ }
 };
 
-#endif /* _CPU_H_ */
+#endif /* _CORE__INCLUDE__SPEC__ARM_V6__CPU_H_ */

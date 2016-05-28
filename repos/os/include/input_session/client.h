@@ -28,8 +28,8 @@ struct Input::Session_client : Genode::Rpc_client<Session>
 	Genode::Dataspace_capability dataspace() override {
 		return call<Rpc_dataspace>(); }
 
-	bool is_pending() const override {
-		return call<Rpc_is_pending>(); }
+	bool pending() const override {
+		return call<Rpc_pending>(); }
 
 	int flush() override {
 		return call<Rpc_flush>(); }

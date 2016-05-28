@@ -77,7 +77,7 @@ struct Rom::Registry : Registry_for_reader, Registry_for_writer, Genode::Noncopy
 
 		void _try_to_destroy(Module const &module)
 		{
-			if (module._is_in_use())
+			if (module._in_use())
 				return;
 
 			_modules.remove(&module);

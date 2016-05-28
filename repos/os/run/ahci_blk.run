@@ -36,12 +36,10 @@ set config {
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
-		<service name="CAP"/>
 		<service name="PD"/>
 		<service name="RM"/>
 		<service name="CPU"/>
 		<service name="LOG"/>
-		<service name="SIGNAL"/>
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
@@ -84,7 +82,7 @@ append_platform_drv_boot_modules
 build_boot_image $boot_modules
 
 append qemu_args " -nographic -m 256 "
-append qemu_args " -drive id=disk,file=bin/ext2.raw,if=none -device ahci,id=ahci -device ide-hd,drive=disk,bus=ahci.0 -boot d"
+append qemu_args " -drive id=disk,file=bin/ext2.raw,format=raw,if=none -device ahci,id=ahci -device ide-hd,drive=disk,bus=ahci.0 -boot d"
 append qemu_args " -drive id=cd,file=[run_dir]/../ahci_blk.iso,if=none,media=cdrom -device ide-cd,drive=cd,bus=ahci.1"
 
 run_genode_until "Tests finished successfully!" 100

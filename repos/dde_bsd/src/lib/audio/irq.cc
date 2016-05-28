@@ -5,13 +5,14 @@
  */
 
 /*
- * Copyright (C) 2014-2015 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* Genode includes */
+#include <base/log.h>
 #include <base/thread.h>
 #include <base/tslab.h>
 #include <timer_session/connection.h>
@@ -20,9 +21,7 @@
 /* local includes */
 #include <audio/audio.h>
 #include <bsd.h>
-#include <extern_c_begin.h>
-# include <bsd_emul.h>
-#include <extern_c_end.h>
+#include <bsd_emul.h>
 
 
 namespace Bsd {
@@ -49,7 +48,7 @@ class Bsd::Irq
 
 				Bsd::Task                          _task;
 				Genode::Irq_session_client         _irq;
-				Genode::Signal_rpc_member<Context> _dispatcher;
+				Genode::Signal_handler<Context> _dispatcher;
 
 				intrh_t  _intrh;
 				void    *_intarg;
@@ -57,7 +56,7 @@ class Bsd::Irq
 				/**
 				 * Signal handler
 				 */
-				void _handle(unsigned)
+				void _handle()
 				{
 					_task.unblock();
 					Bsd::scheduler().schedule();
@@ -68,7 +67,7 @@ class Bsd::Irq
 				/**
 				 * Constructor
 				 */
-				Context(Server::Entrypoint &ep,
+				Context(Genode::Entrypoint &ep,
 				        Genode::Irq_session_capability cap,
 				        intrh_t intrh, void *intarg)
 				:
@@ -95,7 +94,7 @@ class Bsd::Irq
 	private:
 
 		Genode::Allocator  &_alloc;
-		Server::Entrypoint &_ep;
+		Genode::Entrypoint &_ep;
 		Context            *_ctx;
 
 	public:
@@ -103,7 +102,7 @@ class Bsd::Irq
 		/**
 		 * Constructor
 		 */
-		Irq(Genode::Allocator &alloc, Server::Entrypoint &ep)
+		Irq(Genode::Allocator &alloc, Genode::Entrypoint &ep)
 		: _alloc(alloc), _ep(ep), _ctx(nullptr) { }
 
 		/**
@@ -112,7 +111,7 @@ class Bsd::Irq
 		void establish_intr(Genode::Irq_session_capability cap, intrh_t intrh, void *intarg)
 		{
 			if (_ctx) {
-				PERR("interrupt already established");
+				Genode::error("interrupt already established");
 				Genode::sleep_forever();
 			}
 
@@ -124,9 +123,9 @@ class Bsd::Irq
 static Bsd::Irq *_bsd_irq;
 
 
-void Bsd::irq_init(Server::Entrypoint &ep)
+void Bsd::irq_init(Genode::Entrypoint &ep, Genode::Allocator &alloc)
 {
-	static Bsd::Irq irq_context(*Genode::env()->heap(), ep);
+	static Bsd::Irq irq_context(alloc, ep);
 	_bsd_irq = &irq_context;
 }
 

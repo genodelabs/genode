@@ -23,6 +23,7 @@
 #include <root/component.h>
 #include <root/client.h>
 
+#include <util/mmio.h>
 #include <util/retry.h>
 #include <util/volatile_object.h>
 
@@ -131,6 +132,13 @@ namespace Platform {
 				{
 					/* associate _ram session with platform_drv _ram session */
 					_ram.ref_account(Genode::env()->ram_session_cap());
+
+					/*
+					 * Equip RAM session with initial quota to account for
+					 * core-internal allocation meta-data overhead.
+					 */
+					enum { OVERHEAD = 4096 };
+					Genode::env()->ram_session()->transfer_quota(_ram, OVERHEAD);
 				}
 
 				Genode::Ram_connection &ram() { return _ram; }
@@ -744,7 +752,7 @@ namespace Platform {
 
 				Io_mem_dataspace_capability io_mem = device->get_config_space();
 
-				if (!_device_pd.is_constructed())
+				if (!_device_pd.constructed())
 					_device_pd.construct(_device_pd_ep, _md_alloc,
 					                     _resources.ram().cap(),
 					                     _label.string());
@@ -772,7 +780,7 @@ namespace Platform {
 
 			Ram_capability alloc_dma_buffer(Genode::size_t const size)
 			{
-				if (!_device_pd.is_constructed())
+				if (!_device_pd.constructed())
 					_device_pd.construct(_device_pd_ep, _md_alloc,
 					                     _resources.ram().cap(),
 					                     _label.string());
@@ -794,7 +802,7 @@ namespace Platform {
 					[&] () { return _resources.ram().alloc(size, Genode::UNCACHED); },
 					[&] () {
 						if (!_md_alloc.withdraw(UPGRADE_QUOTA)) {
-							/* role-back */
+							/* roll-back */
 							if (_resources.ram().transfer_quota(Genode::env()->ram_session_cap(), size))
 								throw Fatal();
 							_md_alloc.upgrade(size);
@@ -834,8 +842,17 @@ namespace Platform {
 
 			void free_dma_buffer(Ram_capability ram)
 			{
-				if (ram.valid())
+				/*
+				 * FIXME: proof that the ram cap come from us,
+				 * otherwise we get bookkeeping errors
+				 */
+				if (ram.valid()) {
+					Genode::size_t size = Genode::Dataspace_client(ram).size();
 					_resources.ram().free(ram);
+					if (_resources.ram().transfer_quota(Genode::env()->ram_session_cap(), size))
+						throw Fatal();
+					_md_alloc.upgrade(size);
+				}
 			}
 
 			Device_capability device(String const &name) override;
@@ -845,6 +862,27 @@ namespace Platform {
 class Platform::Root : public Genode::Root_component<Session_component>
 {
 	private:
+
+		struct Fadt {
+			Genode::uint32_t features = 0, reset_type = 0, reset_value = 0;
+			Genode::uint64_t reset_addr = 0;
+
+			/* Table 5-35 Fixed ACPI Description Table Fixed Feature Flags */
+			struct Features : Genode::Register<32> {
+				struct Reset : Bitfield<10, 1> { };
+			};
+
+			/* ACPI spec - 5.2.3.2 Generic Address Structure */
+			struct Gas : Genode::Register<32>
+			{
+				struct Address_space : Bitfield <0, 8> {
+					enum { SYSTEM_IO = 1 };
+				};
+				struct Access_size : Bitfield<24,8> {
+					enum { UNDEFINED = 0, BYTE = 1, WORD = 2, DWORD = 3, QWORD = 4};
+				};
+			};
+		} fadt;
 
 		Genode::Rpc_entrypoint _device_pd_ep;
 
@@ -920,7 +958,7 @@ class Platform::Root : public Genode::Root_component<Session_component>
 
 							Device_config bridge(bus, dev, func,
 							                     &config_access);
-							if (bridge.is_pci_bridge())
+							if (bridge.pci_bridge())
 								/* PCI bridge spec 3.2.5.3, 3.2.5.4 */
 								bus = bridge.read(&config_access, 0x19,
 								                  Device::ACCESS_8BIT);
@@ -929,6 +967,13 @@ class Platform::Root : public Genode::Root_component<Session_component>
 						rmrr->add(new (env()->heap()) Rmrr::Bdf(bus, dev,
 						                                        func));
 					}
+				}
+
+				if (node.has_type("fadt")) {
+					node.attribute("features").value(&fadt.features);
+					node.attribute("reset_type").value(&fadt.reset_type);
+					node.attribute("reset_addr").value(&fadt.reset_addr);
+					node.attribute("reset_value").value(&fadt.reset_value);
 				}
 
 				if (!node.has_type("routing"))
@@ -952,7 +997,7 @@ class Platform::Root : public Genode::Root_component<Session_component>
 				if (!config.valid())
 					continue;
 
-				if (!config.is_pci_bridge() && bridge_bdf != 0)
+				if (!config.pci_bridge() && bridge_bdf != 0)
 					/**
 					 * If the bridge bdf has not a type header of a bridge in
 					 * the pci config space, then it should be the host bridge
@@ -1004,11 +1049,12 @@ class Platform::Root : public Genode::Root_component<Session_component>
 		 * \param md_alloc  meta-data allocator for allocating PCI-session
 		 *                  components and PCI-device components
 		 */
-		Root(Genode::Rpc_entrypoint *ep, Genode::Allocator *md_alloc,
-		     const char *acpi_rom, Genode::Cap_connection &cap)
+		Root(Genode::Env &env, Genode::Allocator *md_alloc,
+		     const char *acpi_rom)
 		:
-			Genode::Root_component<Session_component>(ep, md_alloc),
-			_device_pd_ep(&cap, STACK_SIZE, "device_pd_slave")
+			Genode::Root_component<Session_component>(&env.ep().rpc_ep(),
+			                                          md_alloc),
+			_device_pd_ep(&env.pd(), STACK_SIZE, "device_pd_slave")
 		{
 			/* enforce initial bus scan */
 			bus_valid();
@@ -1020,5 +1066,48 @@ class Platform::Root : public Genode::Root_component<Session_component>
 					PERR("PCI config space data could not be parsed.");
 				}
 			}
+		}
+
+		void system_reset()
+		{
+			const bool io_port_space = (Fadt::Gas::Address_space::get(fadt.reset_type) == Fadt::Gas::Address_space::SYSTEM_IO);
+
+			if (!io_port_space)
+				return;
+
+			Config_access config_access;
+			const unsigned raw_access_size = Fadt::Gas::Access_size::get(fadt.reset_type);
+			const bool reset_support = config_access.reset_support(fadt.reset_addr, raw_access_size);
+			if (!reset_support)
+				return;
+
+			const bool feature_reset = Fadt::Features::Reset::get(fadt.features);
+
+			if (!feature_reset) {
+				PWRN("system reset failed - feature not supported");
+				return;
+			}
+
+			Device::Access_size access_size = Device::ACCESS_8BIT;
+
+			unsigned raw_size = Fadt::Gas::Access_size::get(fadt.reset_type);
+			switch (raw_size) {
+			case Fadt::Gas::Access_size::WORD:
+				access_size = Device::ACCESS_16BIT;
+				break;
+			case Fadt::Gas::Access_size::DWORD:
+				access_size = Device::ACCESS_32BIT;
+				break;
+			case Fadt::Gas::Access_size::QWORD:
+				PERR("system reset failed - unsupported access size");
+				return;
+			default:
+				break;
+			}
+
+			config_access.system_reset(fadt.reset_addr, fadt.reset_value,
+			                           access_size);
+			/* if we are getting here - the reset failed */
+			PINF("system reset failed");
 		}
 };

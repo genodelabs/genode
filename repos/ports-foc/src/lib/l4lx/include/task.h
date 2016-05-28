@@ -15,7 +15,8 @@
 #define _L4LX__TASK_H_
 
 /* Genode includes */
-#include <foc_pd_session/connection.h>
+#include <pd_session/connection.h>
+#include <foc_native_pd/client.h>
 #include <util/avl_tree.h>
 
 namespace Fiasco {
@@ -30,9 +31,10 @@ namespace L4lx {
 	{
 		private:
 
-			Fiasco::l4_cap_idx_t      _ref;
-			Genode::Foc_pd_connection _pd;
-			Genode::Native_capability _cap;
+			Fiasco::l4_cap_idx_t         _ref;
+			Genode::Pd_connection        _pd;
+			Genode::Foc_native_pd_client _native_pd { _pd.native_pd() };
+			Genode::Native_capability    _cap;
 
 		public:
 
@@ -40,7 +42,9 @@ namespace L4lx {
 			 ** Constructor **
 			 *****************/
 
-			Task(Fiasco::l4_cap_idx_t ref) : _ref(ref), _cap(_pd.task_cap())
+			Task(Fiasco::l4_cap_idx_t ref)
+			:
+				_ref(ref), _cap(_native_pd.task_cap())
 			{
 				using namespace Fiasco;
 

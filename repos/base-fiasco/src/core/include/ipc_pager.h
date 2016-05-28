@@ -19,8 +19,13 @@
 #include <base/ipc.h>
 #include <base/stdint.h>
 #include <base/native_types.h>
-#include <fiasco/thread_helper.h>
 #include <util/touch.h>
+
+/* base-internal includes */
+#include <base/internal/fiasco_thread_helper.h>
+
+/* core includes */
+#include <util.h>
 
 /* Fiasco includes */
 namespace Fiasco {
@@ -89,10 +94,10 @@ namespace Genode {
 	{
 		private:
 
-			Native_thread_id _last;           /* origin of last fault message   */
-			addr_t           _pf_addr;        /* page-fault address             */
-			addr_t           _pf_ip;          /* instruction pointer of faulter */
-			Mapping          _reply_mapping;  /* page-fault answer              */
+			Fiasco::l4_threadid_t _last;           /* origin of last fault message   */
+			addr_t                _pf_addr;        /* page-fault address             */
+			addr_t                _pf_ip;          /* instruction pointer of faulter */
+			Mapping               _reply_mapping;  /* page-fault answer              */
 
 		public:
 
@@ -156,12 +161,12 @@ namespace Genode {
 			unsigned long badge() const {
 				return convert_native_thread_id_to_badge(_last); }
 
-			bool is_write_fault() const { return (_pf_addr & 2); }
+			bool write_fault() const { return (_pf_addr & 2); }
 
 			/**
 			 * Return true if last fault was an exception
 			 */
-			bool is_exception() const
+			bool exception() const
 			{
 				/*
 				 * Reflection of exceptions is not supported on this platform.

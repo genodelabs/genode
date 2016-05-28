@@ -34,8 +34,6 @@ set config {
 			<service name="LOG"/>
 			<service name="CPU"/>
 			<service name="RM"/>
-			<service name="CAP"/>
-			<service name="SIGNAL"/>
 			<service name="RAM"/>
 			<service name="ROM"/>
 			<service name="IO_MEM"/>

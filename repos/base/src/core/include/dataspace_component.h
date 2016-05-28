@@ -40,7 +40,7 @@ namespace Genode {
 			addr_t const _phys_addr;        /* address of dataspace in physical memory */
 			addr_t       _core_local_addr;  /* address of core-local mapping           */
 			size_t const _size;             /* size of dataspace in bytes              */
-			bool   const _is_io_mem;        /* dataspace is I/O mem, not to be touched */
+			bool   const _io_mem;           /* dataspace is I/O mem, not to be touched */
 			Cache_attribute const _cache;   /* access memory cached, write-combined, or
 			                                   uncached respectively                   */
 			bool   const _writable;         /* false if dataspace is read-only         */
@@ -73,7 +73,7 @@ namespace Genode {
 			Dataspace_component()
 			:
 				_phys_addr(0), _core_local_addr(0), _size(0),
-				_is_io_mem(false), _cache(CACHED), _writable(false),
+				_io_mem(false), _cache(CACHED), _writable(false),
 				_owner(0), _managed(false) { }
 
 			/**
@@ -86,7 +86,7 @@ namespace Genode {
 			                    Dataspace_owner *owner)
 			:
 				_phys_addr(core_local_addr), _core_local_addr(core_local_addr),
-				_size(round_page(size)), _is_io_mem(false),
+				_size(round_page(size)), _io_mem(false),
 				_cache(cache), _writable(writable),
 				_owner(owner), _managed(false) { }
 
@@ -105,7 +105,7 @@ namespace Genode {
 			                    bool writable, Dataspace_owner *owner)
 			:
 				_phys_addr(phys_addr), _core_local_addr(core_local_addr),
-				_size(size), _is_io_mem(true), _cache(cache),
+				_size(size), _io_mem(true), _cache(cache),
 				_writable(writable), _owner(owner), _managed(false) { }
 
 			/**
@@ -114,14 +114,14 @@ namespace Genode {
 			~Dataspace_component();
 
 			/**
-			 * Return region-manager session corresponding to nested dataspace
+			 * Return region map corresponding to nested dataspace
 			 *
 			 * \retval  invalid capability if dataspace is not a nested one
 			 */
-			virtual Native_capability sub_rm_session() { return Dataspace_capability(); }
+			virtual Native_capability sub_rm() { return Dataspace_capability(); }
 
 			addr_t core_local_addr()       const { return _core_local_addr; }
-			bool is_io_mem()               const { return _is_io_mem; }
+			bool io_mem()                  const { return _io_mem; }
 			Cache_attribute cacheability() const { return _cache; }
 
 			/**
@@ -156,10 +156,11 @@ namespace Genode {
 			 ** Dataspace interface **
 			 *************************/
 
-			size_t size()            { return _size; }
-			addr_t phys_addr()       { return _phys_addr; }
-			bool   writable()        { return _writable; }
-			bool   is_managed()      { return _managed; }
+			size_t size()      override { return _size; }
+			addr_t phys_addr() override { return _phys_addr; }
+			bool   writable()  override { return _writable; }
+
+			bool managed() { return _managed; }
 	};
 }
 

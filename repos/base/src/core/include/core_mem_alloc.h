@@ -159,7 +159,7 @@ class Genode::Mapped_mem_allocator : public Genode::Core_mem_translator
 		int add_range(addr_t base, size_t size) override { return -1; }
 		int remove_range(addr_t base, size_t size) override { return -1; }
 		Alloc_return alloc_aligned(size_t size, void **out_addr,
-		                           int align = 0, addr_t from = 0,
+		                           int align, addr_t from = 0,
 		                           addr_t to = ~0UL) override;
 		Alloc_return alloc_addr(size_t size, addr_t addr) override {
 			return Alloc_return::RANGE_CONFLICT; }
@@ -174,7 +174,7 @@ class Genode::Mapped_mem_allocator : public Genode::Core_mem_translator
 		 *************************/
 
 		bool   alloc(size_t size, void **out_addr) override {
-			return alloc_aligned(size, out_addr).is_ok(); }
+			return alloc_aligned(size, out_addr, log2(sizeof(addr_t))).ok(); }
 		void   free(void *addr, size_t) override;
 		size_t consumed() const override { return _phys_alloc->consumed(); }
 		size_t overhead(size_t size) const override {
@@ -277,7 +277,7 @@ class Genode::Core_mem_allocator : public Genode::Core_mem_translator
 		Alloc_return alloc_addr(size_t size, addr_t addr) override {
 			return Alloc_return::RANGE_CONFLICT; }
 
-		Alloc_return alloc_aligned(size_t size, void **out_addr, int align = 0,
+		Alloc_return alloc_aligned(size_t size, void **out_addr, int align,
 		                           addr_t from = 0, addr_t to = ~0UL) override
 		{
 			Lock::Guard lock_guard(_lock);
@@ -300,7 +300,7 @@ class Genode::Core_mem_allocator : public Genode::Core_mem_translator
 		 *************************/
 
 		bool alloc(size_t size, void **out_addr) override {
-			return alloc_aligned(size, out_addr).is_ok(); }
+			return alloc_aligned(size, out_addr, log2(sizeof(addr_t))).ok(); }
 
 		void free(void *addr, size_t size) override
 		{

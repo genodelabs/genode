@@ -14,8 +14,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _SINFO_H
-#define _SINFO_H
+#ifndef _CORE__INCLUDE__SPEC__X86_64__MUEN__SINFO_H_
+#define _CORE__INCLUDE__SPEC__X86_64__MUEN__SINFO_H_
 
 #include <base/stdint.h>
 
@@ -58,6 +58,15 @@ class Genode::Sinfo
 			bool has_vector;
 		};
 
+		/* Structure holding information about PCI devices */
+		struct Dev_info {
+			uint16_t sid;
+			uint16_t irte_start;
+			uint8_t irq_start;
+			uint8_t ir_count;
+			bool msi_capable;
+		};
+
 		/*
 		 * Check Muen sinfo Magic.
 		 */
@@ -80,6 +89,14 @@ class Genode::Sinfo
 		 */
 		static bool get_memregion_info(const char * const name,
 				struct Memregion_info *memregion);
+
+		/*
+		 * Return information for PCI device with given SID.
+		 *
+		 * The function returns false if no device information for the
+		 * specified device exists.
+		 */
+		static bool get_dev_info(const uint16_t sid, struct Dev_info *dev);
 
 		/*
 		 * Channel callback.
@@ -135,4 +152,4 @@ class Genode::Sinfo
 		static uint64_t get_sched_end(void);
 };
 
-#endif /* _SINFO_H */
+#endif /* _CORE__INCLUDE__SPEC__X86_64__MUEN__SINFO_H_ */

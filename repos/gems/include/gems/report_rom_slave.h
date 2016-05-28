@@ -40,7 +40,7 @@ class Report_rom_slave : public Genode::Noncopyable
 				char const **_permitted_services() const
 				{
 					static char const *permitted_services[] = {
-						"CAP", "LOG", "SIGNAL", "RM", 0 };
+						"LOG", "RM", 0 };
 
 					return permitted_services;
 				};
@@ -133,7 +133,7 @@ class Report_rom_slave : public Genode::Noncopyable
 			/*
 			 * Set session label
 			 */
-			Arg_string::set_arg(argbuf, sizeof(argbuf), "label", label);
+			Arg_string::set_arg_string(argbuf, sizeof(argbuf), "label", label);
 
 			Session_capability session_cap = _rom_root.session(argbuf, Affinity());
 
@@ -158,7 +158,7 @@ class Report_rom_slave : public Genode::Noncopyable
 			/*
 			 * Set session label
 			 */
-			Arg_string::set_arg(argbuf, sizeof(argbuf), "label", label);
+			Arg_string::set_arg_string(argbuf, sizeof(argbuf), "label", label);
 
 			Session_capability session_cap = _report_root.session(argbuf, Affinity());
 

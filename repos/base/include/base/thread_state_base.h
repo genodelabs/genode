@@ -22,10 +22,11 @@ namespace Genode { struct Thread_state_base; }
 
 struct Genode::Thread_state_base : Cpu_state
 {
-	bool unresolved_page_fault;
+	bool unresolved_page_fault = false;
+	bool exception = false;
 
-	Thread_state_base() : unresolved_page_fault(false) { };
-	Thread_state_base(Cpu_state &c) : Cpu_state(c), unresolved_page_fault(false) { };
+	Thread_state_base() { };
+	Thread_state_base(Cpu_state &c) : Cpu_state(c) { };
 };
 
 #endif /* _INCLUDE__BASE__THREAD_STATE_BASE_H_ */

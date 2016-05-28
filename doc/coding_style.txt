@@ -55,7 +55,7 @@ Identifiers
 * 'Multi_word_identifiers' use underline to separate words.
 * 'CONSTANTS' and template arguments are upper case.
 * Private and protected members of a class begin with an '_'-character.
-* Accessor functions are named after their corresponding attributes:
+* Accessor methods are named after their corresponding attributes:
 
   ! /**
   !  * Request private member variable
@@ -66,6 +66,10 @@ Identifiers
   !  * Set the private member variable
   !  */
   ! void value(int value) { _value = value; }
+
+* Accessors that return a boolean value do not carry an 'is_' prefix. E.g.,
+  a method for requesting the validity of an object should be named
+  'valid()', not 'is_valid()'.
 
 
 Indentation
@@ -136,13 +140,13 @@ Braces
   ! {
   !   public:
   !
-  !     void function(void)
+  !     void method(void)
   !     {
   !       ...
   !     }
   ! };
 
-  except for single-line functions.
+  except for one-line functions.
 
 * All other occurrences of open braces (for 'if', 'while', 'do', 'for',
   'namespace', 'enum' etc.) are at the end of a line:
@@ -153,7 +157,8 @@ Braces
   !   ..
   ! }
 
-* Surprisingly, one-line functions should be written on one line.
+* One-line functions should be written on a single line as long as the line
+  length does not exceed approximately 80 characters.
   Typically, this applies for accessor functions.
   If slightly more space than one line is needed, indent as follows:
 
@@ -164,10 +169,10 @@ Braces
 Comments
 ========
 
-Function header
-~~~~~~~~~~~~~~~
+Function/method header
+~~~~~~~~~~~~~~~~~~~~~~
 
-Each public or protected (but no private) function in a header-file should be
+Each public or protected (but no private) method in a header-file should be
 prepended by a header as follows:
 
 ! /**

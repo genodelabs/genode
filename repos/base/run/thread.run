@@ -2,11 +2,21 @@ build "core init test/thread"
 
 create_boot_directory
 
-install_config {
+#
+# We skip pause-resume test on platforms where this functionality is not
+# supported.
+#
+proc pause_resume_supported { } {
+	if {[have_spec pistachio]} { return 0 }
+	if {[have_spec linux]}     { return 0 }
+	if {[have_spec fiasco]}    { return 0 }
+	return 1;
+}
+
+set config {
 	<config>
 		<parent-provides>
 			<service name="LOG"/>
-			<service name="RM"/>
 			<service name="CPU"/>
 		</parent-provides>
 		<default-route>
@@ -14,27 +24,21 @@ install_config {
 		</default-route>
 		<start name="test-thread">
 			<resource name="RAM" quantum="10M"/>
+			<config>}
+
+append_if [pause_resume_supported] config {				<pause_resume/> }
+
+append config {
+			</config>
 		</start>
 	</config>
 }
+
+install_config $config
 
 build_boot_image "core init test-thread"
 
 append qemu_args "-nographic -m 64"
 
-run_genode_until {child "test-thread" exited with exit value .*\n} 40
+run_genode_until {.*test completed successfully.*\n} 60
 
-# determine error code of child exit
-set exit_code [regexp -inline {child "test-thread" exited with exit value .*\n} $output]
-set exit_code [regexp -inline {[-+]?[0-9]+} $exit_code]
-
-# good case
-if {$exit_code eq 0} {
-	return
-}
-# no pause/resume support for Fiasco and Pistachio - they may return a error
-if {[expr [have_spec fiasco] || [have_spec pistachio]] && $exit_code eq -11} { return }
-# no puase/resume support for Linux - it may return a error
-if {[have_spec linux] && $exit_code eq -10} { return }
-
-exit -1

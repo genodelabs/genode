@@ -20,17 +20,6 @@
  		if (!priv->scan_cmd) {
  			IWL_DEBUG_SCAN(priv,
  				       "fail to allocate memory for scan\n");
---- a/drivers/net/wireless/iwlwifi/pcie/trans.c
-+++ b/drivers/net/wireless/iwlwifi/pcie/trans.c
-@@ -1593,7 +1593,7 @@ struct iwl_trans *iwl_trans_pcie_alloc(struct pci_dev *pdev,
- 				  sizeof(struct iwl_device_cmd)
- 				  + trans->dev_cmd_headroom,
- 				  sizeof(void *),
--				  SLAB_HWCACHE_ALIGN,
-+				  SLAB_HWCACHE_ALIGN | SLAB_LX_DMA,
- 				  NULL);
- 
- 	if (!trans->dev_cmd_pool) {
 --- a/drivers/net/wireless/iwlwifi/pcie/tx.c
 +++ b/drivers/net/wireless/iwlwifi/pcie/tx.c
 @@ -492,7 +492,7 @@ static int iwl_pcie_txq_alloc(struct iwl_trans *trans,
@@ -80,26 +69,6 @@
  	/*
  	 * Try a regular allocation, when that fails and we're not entitled
  	 * to the reserves, fail.
---- a/drivers/net/wireless/iwlwifi/mvm/bt-coex.c
-+++ b/drivers/net/wireless/iwlwifi/mvm/bt-coex.c
-@@ -365,7 +365,7 @@
- 	if (!(mvm->fw->ucode_capa.flags & IWL_UCODE_TLV_FLAGS_NEWBT_COEX))
- 		return 0;
- 
--	bt_cmd = kzalloc(sizeof(*bt_cmd), GFP_KERNEL);
-+	bt_cmd = kzalloc(sizeof(*bt_cmd), GFP_KERNEL | GFP_LX_DMA);
- 	if (!bt_cmd)
- 		return -ENOMEM;
- 	cmd.data[0] = bt_cmd;
-@@ -467,7 +467,7 @@
- 
- 	mvm->bt_kill_msk = bt_kill_msk;
- 
--	bt_cmd = kzalloc(sizeof(*bt_cmd), GFP_KERNEL);
-+	bt_cmd = kzalloc(sizeof(*bt_cmd), GFP_KERNEL | GFP_LX_DMA);
- 	if (!bt_cmd)
- 		return -ENOMEM;
- 	cmd.data[0] = bt_cmd;
 --- a/drivers/net/wireless/iwlwifi/iwl-phy-db.c
 +++ a/drivers/net/wireless/iwlwifi/iwl-phy-db.c
 @@ -233,7 +233,7 @@
@@ -111,14 +80,41 @@
  	if (!entry->data) {
  		entry->size = 0;
  		return -ENOMEM;
+diff --git a/drivers/net/wireless/iwlwifi/mvm/ops.c b/drivers/net/wireless/iwlwifi/mvm/ops.c
+index 13c97f6..68a8657 100644
 --- a/drivers/net/wireless/iwlwifi/mvm/ops.c
 +++ b/drivers/net/wireless/iwlwifi/mvm/ops.c
-@@ -450,7 +450,7 @@
- 	scan_size = sizeof(struct iwl_scan_cmd) +
- 		mvm->fw->ucode_capa.max_probe_length +
- 		(MAX_NUM_SCAN_CHANNELS * sizeof(struct iwl_scan_channel));
+@@ -574,7 +574,7 @@ iwl_op_mode_mvm_start(struct iwl_trans *trans, const struct iwl_cfg *cfg,
+ 
+ 	scan_size = iwl_mvm_scan_size(mvm);
+ 
 -	mvm->scan_cmd = kmalloc(scan_size, GFP_KERNEL);
 +	mvm->scan_cmd = kmalloc(scan_size, GFP_KERNEL | GFP_LX_DMA);
  	if (!mvm->scan_cmd)
  		goto out_free;
+ 
+--- a/drivers/net/wireless/iwlwifi/mvm/scan.c
++++ b/drivers/net/wireless/iwlwifi/mvm/scan.c
+@@ -481,11 +481,11 @@
+ 	else
+ 		blacklist_len = IWL_SCAN_MAX_BLACKLIST_LEN;
+ 
+-	blacklist = kzalloc(sizeof(*blacklist) * blacklist_len, GFP_KERNEL);
++	blacklist = kzalloc(sizeof(*blacklist) * blacklist_len, GFP_KERNEL|GFP_LX_DMA);
+ 	if (!blacklist)
+ 		return -ENOMEM;
+ 
+-	profile_cfg = kzalloc(sizeof(*profile_cfg), GFP_KERNEL);
++	profile_cfg = kzalloc(sizeof(*profile_cfg), GFP_KERNEL|GFP_LX_DMA);
+ 	if (!profile_cfg) {
+ 		ret = -ENOMEM;
+ 		goto free_blacklist;
+@@ -916,7 +916,7 @@
+ 
+ 	cmd_size = sizeof(*scan_config) + mvm->fw->ucode_capa.n_scan_channels;
+ 
+-	scan_config = kzalloc(cmd_size, GFP_KERNEL);
++	scan_config = kzalloc(cmd_size, GFP_KERNEL|GFP_LX_DMA);
+ 	if (!scan_config)
+ 		return -ENOMEM;
  

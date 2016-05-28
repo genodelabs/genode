@@ -153,19 +153,18 @@ Building
 The source code of GDB monitor builds upon the original 'gdbserver' that
 comes as part of the GDB package. This 3rd-party source code is not included
 in Genode's source tree. To download the code and integrate it with Genode,
-change to the 'ports' repository and issue the following command
-! make prepare PKG=gdb
+issue the following command
+! ./tool/ports/prepare_port gdb
 
-This way, the Makefile of the 'ports' repository will download, unpack, and
-patch the 3rd-party source code.
+This way, the 3rd-party source code will be downloaded, unpacked, and patched.
 
 To build and use GDB monitor, you will need to enable the 'ports' source-code
 repository on your '<build-dir>/etc/build.conf' file (in addition to the
 default repositories):
 
 If you intend to use the TCP terminal for connecting GDB, you will further
-need to prepare the 'libports' repository with the 'lwip' package and enable
-the following repositories in your 'build.conf':
+need to prepare the 'lwip' package and enable the following repositories in your
+'build.conf':
 
 :libports: providing the lwIP stack needed by TCP terminal
 :gems: hosting the source code of TCP terminal
@@ -227,9 +226,8 @@ scenario, please refer to the 'tcp_terminal.run' script proved at 'gems/run/'.
 GDB monitor is built upon the libc and a few custom libc plugins, each coming
 in the form of a separate shared library. Please make sure to integrate those
 shared libraries along with the dynamic linker (ld.lib.so) in your boot image.
-They are 'libc.lib.so' (the libc), 'libc_log.lib.so' (for printing the LOG
-output of GDB monitor to core's LOG service), 'libc_terminal.lib.so' (to
-connect with GDB), and 'libc_lock_pipe.lib.so' (used for synchronizing threads
+They are 'libc.lib.so' (the libc), 'libc_terminal.lib.so' (to
+connect with GDB), and 'libc_pipe.lib.so' (used for synchronizing threads
 via 'select' and 'pipe'). For using the TCP terminal, 'lwip.lib.so' (TCP/IP
 stack) is needed as well.
 
@@ -250,14 +248,14 @@ To get acquainted with GDB monitor, the 'ports' repository comes with two
 example run scripts. The 'gdb_monitor_interactive.run' script executes a
 simple test program via GDB monitor. The test program can be found at
 'ports/src/test/gdb_monitor/'. When looking behind the scenes, the simple
-program is not simple at all. It uses shared libraries (the libc and libc_log)
+program is not simple at all. It uses shared libraries (the libc)
 plugin and executes multiple threads. So it is a nice testbed for exercising
 these aspects. The run script can be invoked right from the build directory
 via 'make run/gdb_monitor_interactive'. It will execute the scenario on Qemu and
 use the UART to communicate with GDB. Qemu is instructed to redirect the second
 serial interface to a local socket (using the port 5555):
 ! -serial chardev:uart
-! -chardev socket,id=uart,port=5555,host=localhost,server,nowait
+! -chardev socket,id=uart,port=5555,host=localhost,server,nowait,ipv4
 
 The used TCP port is then specified to the GDB as remote target:
 ! target remote localhost:5555
@@ -286,6 +284,9 @@ breakpoint will trigger with a message like this:
 ! Breakpoint 3, puts (s=0x10039c0 "in func2()\n")
 !     at /.../libc-8.2.0/libc/stdio/puts.c:53
 ! 53 {
+
+_The following example applies to an older version of Genode and must_
+_be revised for recent versions._
 
 Now, you can inspect the source code of the function via the 'list' command,
 inspect the function arguments ('info args' command) or start stepping
@@ -391,7 +392,7 @@ base platforms:
 :Fiasco.OC on x86_32: This is the primary platform fully supported by GDB
   monitor. To enable user-land debugging support for the Fiasco.OC kernel
   a kernel patch ('base-foc/patches/foc_single_step_x86.patch') is
-  required, which is applied on 'make prepare' in 'base-foc'.
+  required, which is applied on './tool/ports/prepare_port foc'.
 
 :Fiasco.OC on ARM: GDB Monitor works on this platform but it has not received
   the same amount of testing as the x86_32 version. Please use it with caution
@@ -406,8 +407,7 @@ base platforms:
   the kernel patches in the 'base-okl4/patched' directory.
 
 All required patches are applied to the respective kernel by default when
-issuing 'make prepare' in the kernel's respective 'base-<platform>'
-repository.
+issuing './tool/ports/prepare_port <platform>'.
 
 The other base platforms are not yet covered. We will address them according to
 the demanded by the Genode developer community.

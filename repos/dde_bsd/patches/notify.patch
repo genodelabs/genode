@@ -1,17 +1,19 @@
+diff --git a/dev/audio.c b/dev/audio.c
+index 1271bc7..6535d10 100644
 --- a/dev/audio.c
 +++ b/dev/audio.c
-@@ -2293,6 +2293,8 @@
- 		sc->sc_pqui = 1;
- 		audio_wake(&sc->sc_wchan);
+@@ -411,6 +411,8 @@ audio_pintr(void *addr)
+ 		}
+ 		selwakeup(&sc->play.sel);
  	}
 +
 +	notify_play();
  }
  
  /*
-@@ -2400,6 +2402,8 @@
- 		sc->sc_rqui = 1;
- 		audio_wake(&sc->sc_rchan);
+@@ -486,6 +488,8 @@ audio_rintr(void *addr)
+ 		}
+ 		selwakeup(&sc->rec.sel);
  	}
 +
 +	notify_record();

@@ -12,8 +12,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CPU_H_
-#define _CPU_H_
+#ifndef _CORE__INCLUDE__SPEC__CORTEX_A15__CPU_H_
+#define _CORE__INCLUDE__SPEC__CORTEX_A15__CPU_H_
 
 /* core includes */
 #include <spec/arm_v7/cpu_support.h>

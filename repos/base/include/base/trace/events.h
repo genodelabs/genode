@@ -36,7 +36,7 @@ struct Genode::Trace::Rpc_call
 	Rpc_call(char const *rpc_name, Msgbuf_base const &msg)
 	: rpc_name(rpc_name), msg(msg)
 	{
-		Thread_base::trace(this);
+		Thread::trace(this);
 	}
 
 	size_t generate(Policy_module &policy, char *dst) const {
@@ -52,7 +52,7 @@ struct Genode::Trace::Rpc_returned
 	Rpc_returned(char const *rpc_name, Msgbuf_base const &msg)
 	: rpc_name(rpc_name), msg(msg)
 	{
-		Thread_base::trace(this);
+		Thread::trace(this);
 	}
 
 	size_t generate(Policy_module &policy, char *dst) const {
@@ -68,7 +68,7 @@ struct Genode::Trace::Rpc_dispatch
 	:
 		rpc_name(rpc_name)
 	{
-		Thread_base::trace(this);
+		Thread::trace(this);
 	}
 
 	size_t generate(Policy_module &policy, char *dst) const {
@@ -84,7 +84,7 @@ struct Genode::Trace::Rpc_reply
 	:
 		rpc_name(rpc_name)
 	{
-		Thread_base::trace(this);
+		Thread::trace(this);
 	}
 
 	size_t generate(Policy_module &policy, char *dst) const {
@@ -97,7 +97,7 @@ struct Genode::Trace::Signal_submit
 	unsigned const num;
 
 	Signal_submit(unsigned const num) : num(num)
-	{ Thread_base::trace(this); }
+	{ Thread::trace(this); }
 
 	size_t generate(Policy_module &policy, char *dst) const {
 		return policy.signal_submit(dst, num); }
@@ -113,7 +113,7 @@ struct Genode::Trace::Signal_received
 	:
 		signal_context(signal_context), num(num)
 	{
-		Thread_base::trace(this);
+		Thread::trace(this);
 	}
 
 	size_t generate(Policy_module &policy, char *dst) const {

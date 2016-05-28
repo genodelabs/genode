@@ -31,7 +31,7 @@ class Vcpu_handler_svm : public Vcpu_handler
 			using namespace Nova;
 			using namespace Genode;
 
-			Thread_base *myself = Thread_base::myself();
+			Thread *myself = Thread::myself();
 			Utcb *utcb = reinterpret_cast<Utcb *>(myself->utcb());
 
 			if (utcb->qual[0] & 0x4) {
@@ -55,7 +55,7 @@ class Vcpu_handler_svm : public Vcpu_handler
 			using namespace Nova;
 			using namespace Genode;
 
-			Thread_base *myself = Thread_base::myself();
+			Thread *myself = Thread::myself();
 			Utcb *utcb = reinterpret_cast<Utcb *>(myself->utcb());
 
 			_exc_memory<X>(myself, utcb, utcb->qual[0] & 1,

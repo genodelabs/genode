@@ -14,10 +14,13 @@
 /* Genode includes */
 #include <base/printf.h>
 #include <base/allocator_avl.h>
-#include <base/crt0.h>
 #include <base/sleep.h>
 #include <base/capability.h>
 #include <util/misc_math.h>
+
+/* base-internal includes */
+#include <base/internal/crt0.h>
+#include <base/internal/stack_area.h>
 
 /* core includes */
 #include <core_parent.h>
@@ -26,8 +29,8 @@
 #include <platform_thread.h>
 #include <platform_pd.h>
 #include <util.h>
-#include <pistachio/thread_helper.h>
-#include <pistachio/kip.h>
+#include <kip.h>
+#include <print_l4_thread_id.h>
 
 /* Pistachio includes */
 namespace Pistachio {
@@ -60,7 +63,7 @@ enum { PAGER_STACK_ELEMENTS = 512 };
 static unsigned long _core_pager_stack[PAGER_STACK_ELEMENTS];
 
 
-static inline bool is_write_fault(Pistachio::L4_Word_t flags) {
+static inline bool write_fault(Pistachio::L4_Word_t flags) {
 	return (flags & 2) == 1; }
 
 
@@ -161,26 +164,26 @@ static void _core_pager_loop()
 
 		PDBG("Got page fault (pf_addr = %08lx, pf_ip = %08lx, flags = %08lx).",
 		     pf_addr, pf_ip, flags);
-		print_l4_threadid(L4_GlobalId(t));
+		print_l4_thread_id(L4_GlobalId(t));
 
 		/* check for NULL pointer */
 		if (pf_addr < page_size) {
 			PERR("possible null pointer %s at address %lx at EIP %lx in",
-			     is_write_fault(flags) ? "WRITE" : "READ/EXEC", pf_addr, pf_ip);
-			print_l4_threadid(t);
+			     write_fault(flags) ? "WRITE" : "READ/EXEC", pf_addr, pf_ip);
+			print_l4_thread_id(t);
 			/* do not unblock faulter */
 			break;
 		} else if (!_core_address_ranges().valid_addr(pf_addr)) {
 			/* page-fault address is not in RAM */
 
 			PERR("%s access outside of RAM at %lx IP %lx",
-			     is_write_fault(flags) ? "WRITE" : "READ", pf_addr, pf_ip);
-			print_l4_threadid(t);
+			     write_fault(flags) ? "WRITE" : "READ", pf_addr, pf_ip);
+			print_l4_thread_id(t);
 			/* do not unblock faulter */
 			break;
 		} else if (verbose_core_pf) {
 			PDBG("pfa=%lx ip=%lx in", pf_addr, pf_ip);
-			print_l4_threadid(t);
+			print_l4_thread_id(t);
 		}
 
 		/* my pf handler is sigma0 - just touch the appropriate page */
@@ -199,7 +202,9 @@ static void _core_pager_loop()
 }
 
 
-Platform::Sigma0::Sigma0() : Pager_object(0, Affinity::Location())
+Platform::Sigma0::Sigma0()
+:
+	Pager_object(Cpu_session_capability(), Thread_capability(), 0, Affinity::Location())
 {
 	cap(Native_capability(Pistachio::get_sigma0(), 0));
 }
@@ -214,7 +219,8 @@ Platform::Sigma0 *Platform::sigma0()
 
 Platform::Core_pager::Core_pager(Platform_pd *core_pd)
 :
-	Platform_thread(0, "core.pager"), Pager_object(0, Affinity::Location())
+	Platform_thread(0, "core.pager"),
+	Pager_object(Cpu_session_capability(), Thread_capability(), 0, Affinity::Location())
 {
 	Platform_thread::pager(sigma0());
 
@@ -432,8 +438,8 @@ void Platform::_setup_mem_alloc()
 
 				} else {
 					region.start = addr; region.end = addr + size;
-					if (region.intersects(Native_config::context_area_virtual_base(),
-					                      Native_config::context_area_virtual_size()) ||
+					if (region.intersects(stack_area_virtual_base(),
+					                      stack_area_virtual_size()) ||
 						intersects_kip_archdep(kip, addr, size)) {
 						unmap_local(region.start, size >> get_page_size_log2());
 					} else {
@@ -561,11 +567,11 @@ void Platform::_setup_basics()
 		       L4_MemoryDescLow(md), L4_MemoryDescHigh(md));
 	}
 
-	/* configure core's virtual memory, exclude KIP, context area */
+	/* configure core's virtual memory, exclude KIP, stack area */
 	_region_alloc.add_range(_vm_start, _vm_size);
 	_region_alloc.remove_range((addr_t)kip, kip_size);
-	_region_alloc.remove_range(Native_config::context_area_virtual_base(),
-	                           Native_config::context_area_virtual_size());
+	_region_alloc.remove_range(stack_area_virtual_base(),
+	                           stack_area_virtual_size());
 
 	/* remove KIP and MBI area from region and IO_MEM allocator */
 	remove_region(Region((addr_t)kip, (addr_t)kip + kip_size), _region_alloc);

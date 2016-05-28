@@ -298,19 +298,35 @@ namespace Nova {
 	 * \param sm     SM selector which gets an up() by the kernel if the
 	 *               memory of the current revoke invocation gets freed up
 	 *               (end of RCU period)
+	 * \param kim    keep_in_mdb - if set to true the kernel will make the
+	 *               resource inaccessible for solely for the specified pd.
+	 *               All already beforehand delegated resources will not be
+	 *               changed, e.g. revoked. All rights of the local resource
+	 *               will be removed (independent of what is specified by crd).
 	 */
 	ALWAYS_INLINE
 	inline uint8_t revoke(Crd crd, bool self = true, bool remote = false,
-	                      mword_t pd = 0, mword_t sm = 0)
+	                      mword_t pd = 0, mword_t sm = 0, bool kim = false)
 	{
 		uint8_t flags = self ? 0x1 : 0;
 
 		if (remote)
 			flags |= 0x2;
+		if (kim)
+			flags |= 0x4;
 
 		mword_t value_crd = crd.value();
 		return syscall_5(NOVA_REVOKE, flags, sm, value_crd, pd);
 	}
+
+
+	/*
+	 * Shortcut for revoke, where solely the local cap should be revoked and
+	 * not all subsequent delegations of the local cap.
+	 */
+	ALWAYS_INLINE
+	inline uint8_t drop(Crd crd) {
+		return revoke(crd, true, false, 0, 0, true); }
 
 
 	ALWAYS_INLINE

@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _ECHO_H_
-#define _ECHO_H_
+#ifndef _CORE__INCLUDE__ECHO_H_
+#define _CORE__INCLUDE__ECHO_H_
 
 /* NOVA includes */
 #include <nova/syscalls.h>
@@ -55,4 +55,4 @@ class Echo
  */
 Echo *echo();
 
-#endif /* _ECHO_H_ */
+#endif /* _CORE__INCLUDE__ECHO_H_ */

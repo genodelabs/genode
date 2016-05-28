@@ -1,8 +1,8 @@
 diff --git a/crypto/ccm.c b/crypto/ccm.c
-index 1df8421..a5ee033 100644
+index cc31ea4..7eabdb8 100644
 --- a/crypto/ccm.c
 +++ b/crypto/ccm.c
-@@ -52,7 +52,8 @@ static inline struct crypto_ccm_req_priv_ctx *crypto_ccm_reqctx(
+@@ -58,7 +58,8 @@ static inline struct crypto_ccm_req_priv_ctx *crypto_ccm_reqctx(
  {
  	unsigned long align = crypto_aead_alignmask(crypto_aead_reqtfm(req));
  
@@ -12,13 +12,12 @@ index 1df8421..a5ee033 100644
  }
  
  static int set_msg_len(u8 *block, unsigned int msglen, int csize)
-@@ -681,8 +682,10 @@ static struct aead_request *crypto_rfc4309_crypt(struct aead_request *req)
- 	struct crypto_aead *aead = crypto_aead_reqtfm(req);
+@@ -710,8 +711,9 @@ static struct aead_request *crypto_rfc4309_crypt(struct aead_request *req)
  	struct crypto_rfc4309_ctx *ctx = crypto_aead_ctx(aead);
  	struct crypto_aead *child = ctx->child;
+ 	struct scatterlist *sg;
 -	u8 *iv = PTR_ALIGN((u8 *)(subreq + 1) + crypto_aead_reqsize(child),
 -			   crypto_aead_alignmask(child) + 1);
-+
 +	unsigned long m = crypto_aead_alignmask(child) + 1;
 +	u8 *p           = (u8 *)(subreq + 1) + crypto_aead_reqsize(child);
 +	u8 *iv = PTR_ALIGN(p, m);

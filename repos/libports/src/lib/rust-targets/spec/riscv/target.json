@@ -1,0 +1,9 @@
+{
+    "pre-link-args": ["-mriscv=RV64IAMFD"],
+    "llvm-target": "riscv-pc-genode-elf",
+    "target-endian": "little",
+    "target-pointer-width": "64",
+    "arch": "riscv",
+    "os": "genode",
+    "no_compiler_rt": true
+}

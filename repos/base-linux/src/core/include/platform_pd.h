@@ -13,13 +13,21 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CORE__INCLUDE__LINUX__PLATFORM_PD_H_
-#define _CORE__INCLUDE__LINUX__PLATFORM_PD_H_
+#ifndef _CORE__INCLUDE__PLATFORM_PD_H_
+#define _CORE__INCLUDE__PLATFORM_PD_H_
+
+#include <base/allocator.h>
 
 namespace Genode {
-
-	class Platform_pd
-	{ };
+	struct Platform_pd;
+	struct Platform_thread;
 }
 
-#endif /* _CORE__INCLUDE__LINUX__PLATFORM_PD_H_ */
+struct Genode::Platform_pd
+{
+	Platform_pd(Allocator *, char const *) { }
+
+	bool bind_thread(Platform_thread *) { return true; }
+};
+
+#endif /* _CORE__INCLUDE__PLATFORM_PD_H_ */

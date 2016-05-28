@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2014 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -52,7 +52,7 @@ class Vfs::Dir_file_system : public File_system
 		 */
 		char _name[MAX_NAME_LEN];
 
-		bool _is_root() const { return _name[0] == 0; }
+		bool _root() const { return _name[0] == 0; }
 
 		/**
 		 * Perform operation on a file system
@@ -125,7 +125,7 @@ class Vfs::Dir_file_system : public File_system
 		char const *_sub_path(char const *path) const
 		{
 			/* do not strip anything from the path when we are root */
-			if (_is_root())
+			if (_root())
 				return path;
 
 			/* skip heading slash in path if present */
@@ -168,9 +168,7 @@ class Vfs::Dir_file_system : public File_system
 				 */
 				if (index - base < fs_num_dirent) {
 					index = index - base;
-					Dirent_result const err = fs->dirent(path, index, out);
-					out.fileno += base;
-					return err;
+					return fs->dirent(path, index, out);;
 				}
 
 				/* adjust base index for next file system */
@@ -212,6 +210,8 @@ class Vfs::Dir_file_system : public File_system
 		:
 			_first_file_system(0)
 		{
+			using namespace Genode;
+
 			/* remember directory name */
 			if (node.has_type("fstab") || node.has_type("vfs"))
 				_name[0] = 0;
@@ -235,9 +235,16 @@ class Vfs::Dir_file_system : public File_system
 					continue;
 				}
 
-				char type_name[64];
-				sub_node.type_name(type_name, sizeof(type_name));
-				PWRN("unknown fstab node type <%s>", type_name);
+				PERR("failed to create <%s> VFS node", sub_node.type().string());
+				try {
+					String<64> value;
+					for (unsigned i = 0; i < 16; ++i) {
+						Xml_attribute attr = sub_node.attribute(i);
+						attr.value(&value);
+
+						PERR("\t%s=\"%s\"", attr.name().string(), value.string());
+					}
+				} catch (Xml_node::Nonexistent_attribute) { }
 			}
 		}
 
@@ -289,10 +296,12 @@ class Vfs::Dir_file_system : public File_system
 			 * current directory.
 			 */
 			if (strlen(path) == 0 || (strcmp(path, "/") == 0)) {
-				out.size = 0;
-				out.mode = STAT_MODE_DIRECTORY | 0755;
-				out.uid  = 0;
-				out.gid  = 0;
+				out.size   = 0;
+				out.mode   = STAT_MODE_DIRECTORY | 0755;
+				out.uid    = 0;
+				out.gid    = 0;
+				out.inode  = 1;
+				out.device = (Genode::addr_t)this;
 				return STAT_OK;
 			}
 
@@ -317,7 +326,7 @@ class Vfs::Dir_file_system : public File_system
 
 		Dirent_result dirent(char const *path, file_offset index, Dirent &out) override
 		{
-			if (_is_root())
+			if (_root())
 				return _dirent_of_file_systems(path, index, out);
 
 			if (strcmp(path, "/") == 0) {
@@ -334,12 +343,12 @@ class Vfs::Dir_file_system : public File_system
 			if (!path)
 				return DIRENT_ERR_INVALID_PATH;
 
-			return _dirent_of_file_systems(path, index, out);
+			return _dirent_of_file_systems(*path ? path : "/", index, out);
 		}
 
 		file_size num_dirent(char const *path) override
 		{
-			if (_is_root()) {
+			if (_root()) {
 				return _sum_dirents_of_file_systems(path);
 
 			} else {
@@ -359,11 +368,14 @@ class Vfs::Dir_file_system : public File_system
 				 * matching dirents of all our file systems. Otherwise,
 				 * the specified path lies outside our directory node.
 				 */
-				return path ? _sum_dirents_of_file_systems(path) : 0;
+				return path ? _sum_dirents_of_file_systems(*path ? path : "/") : 0;
 			}
 		}
 
-		bool is_directory(char const *path) override
+		/**
+		 * Return true if specified path is a directory
+		 */
+		bool directory(char const *path) override
 		{
 			path = _sub_path(path);
 			if (!path)
@@ -373,11 +385,19 @@ class Vfs::Dir_file_system : public File_system
 				return true;
 
 			for (File_system *fs = _first_file_system; fs; fs = fs->next)
-				if (fs->is_directory(path))
+				if (fs->directory(path))
 					return true;
 
 			return false;
 		}
+
+		/**
+		 * Return true if specified path is a directory
+		 *
+		 * \noapi
+		 * \deprecated  use 'directory instead
+		 */
+		bool is_directory(char const *path) { return directory(path); }
 
 		char const *leaf_path(char const *path) override
 		{
@@ -397,15 +417,18 @@ class Vfs::Dir_file_system : public File_system
 			return 0;
 		}
 
-		Open_result open(char const *path, unsigned mode, Vfs_handle **out_handle) override
+		Open_result open(char const  *path,
+	                     unsigned     mode,
+	                     Vfs_handle **out_handle,
+	                     Allocator   &alloc = *Genode::env()->heap()) override
 		{
 			/*
 			 * If 'path' is a directory, we create a 'Vfs_handle'
 			 * for the root directory so that subsequent 'dirent' calls
 			 * are subjected to the stacked file-system layout.
 			 */
-			if (is_directory(path)) {
-				*out_handle = new (env()->heap()) Vfs_handle(*this, *this, 0);
+			if (directory(path)) {
+				*out_handle = new (alloc) Vfs_handle(*this, *this, alloc, 0);
 				return OPEN_OK;
 			}
 
@@ -423,21 +446,30 @@ class Vfs::Dir_file_system : public File_system
 
 			/* path equals directory name */
 			if (strlen(path) == 0) {
-				*out_handle = new (env()->heap()) Vfs_handle(*this, *this, 0);
+				*out_handle = new (alloc) Vfs_handle(*this, *this, alloc, 0);
 				return OPEN_OK;
 			}
 
 			/* path refers to any of our sub file systems */
 			for (File_system *fs = _first_file_system; fs; fs = fs->next) {
 
-				Open_result const err = fs->open(path, mode, out_handle);
-
-				if (err == OPEN_OK)
+				Open_result const err = fs->open(path, mode, out_handle, alloc);
+				switch (err) {
+				case OPEN_ERR_UNACCESSIBLE:
+					continue;
+				default:
 					return err;
+				}
 			}
 
 			/* path does not match any existing file or directory */
 			return OPEN_ERR_UNACCESSIBLE;
+		}
+
+		void close(Vfs_handle *handle) override
+		{
+			if (handle && (&handle->ds() == this))
+				destroy(handle->alloc(), handle);
 		}
 
 		Unlink_result unlink(char const *path) override
@@ -465,21 +497,36 @@ class Vfs::Dir_file_system : public File_system
 
 		Rename_result rename(char const *from_path, char const *to_path) override
 		{
+			from_path = _sub_path(from_path);
+			to_path = _sub_path(to_path);
+
+			/* path does not match directory name */
+			if (!from_path)
+				return RENAME_ERR_NO_ENTRY;
+
+			/*
+			 * Cannot rename a path in the static VFS configuration.
+			 */
+			if (strlen(from_path) == 0)
+				return RENAME_ERR_NO_PERM;
+
 			/*
 			 * Check if destination path resides within the same file
 			 * system instance as the source path.
 			 */
-			to_path = _sub_path(to_path);
 			if (!to_path)
 				return RENAME_ERR_CROSS_FS;
 
-			auto rename_fn = [&] (File_system &fs, char const *from_path)
-			{
-				return fs.rename(from_path, to_path);
-			};
-
-			return _dir_op(RENAME_ERR_NO_ENTRY, RENAME_ERR_NO_PERM, RENAME_OK,
-			               from_path, rename_fn);
+			Rename_result final = RENAME_ERR_NO_ENTRY;
+			for (File_system *fs = _first_file_system; fs; fs = fs->next) {
+				switch (fs->rename(from_path, to_path)) {
+				case RENAME_OK:           return RENAME_OK;
+				case RENAME_ERR_NO_ENTRY: continue;
+				case RENAME_ERR_NO_PERM:  return RENAME_ERR_NO_PERM;
+				case RENAME_ERR_CROSS_FS: final = RENAME_ERR_CROSS_FS;
+				}
+			}
+			return final;
 		}
 
 		Symlink_result symlink(char const *from, char const *to) override

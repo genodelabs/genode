@@ -17,10 +17,10 @@
 /* Genode includes */
 #include <util/list.h>
 #include <base/exception.h>
-#include <base/tslab.h>
 
 /* core includes */
 #include <util.h>
+#include <cap_sel_alloc.h>
 
 namespace Genode { class Page_table_registry; }
 
@@ -86,22 +86,22 @@ class Genode::Page_table_registry
 					throw Lookup_failed();
 				}
 
-				void insert_entry(Allocator &entry_slab, addr_t addr, unsigned sel)
+				void insert_entry(Allocator &entry_alloc, addr_t addr, unsigned sel)
 				{
 					if (_entry_exists(addr)) {
 						PWRN("trying to insert page frame for 0x%lx twice", addr);
 						return;
 					}
 
-					_entries.insert(new (entry_slab) Entry(addr, sel));
+					_entries.insert(new (entry_alloc) Entry(addr, sel));
 				}
 
-				void remove_entry(Allocator &entry_slab, addr_t addr)
+				void remove_entry(Allocator &entry_alloc, addr_t addr)
 				{
 					try {
 						Entry &entry = lookup(addr);
 						_entries.remove(&entry);
-						destroy(entry_slab, &entry);
+						destroy(entry_alloc, &entry);
 					} catch (Lookup_failed) {
 						if (verbose)
 							PWRN("trying to remove non-existing page frame for 0x%lx", addr);
@@ -109,21 +109,63 @@ class Genode::Page_table_registry
 				}
 		};
 
-		class Slab_block : public Genode::Slab_block { long _data[4*1024]; };
-
-		template <typename T>
-		struct Slab : Genode::Tslab<T, sizeof(Slab_block)>
+		/**
+		 * Allocator operating on a static memory pool
+		 *
+		 * \param ELEM  element type
+		 * \param MAX   maximum number of elements
+		 *
+		 * The size of a single ELEM must be a multiple of sizeof(long).
+		 */
+		template <typename ELEM, size_t MAX>
+		class Static_allocator : public Allocator
 		{
-			Slab_block _initial_block;
+			private:
 
-			Slab(Allocator &md_alloc)
-			:
-				Tslab<T, sizeof(Slab_block)>(&md_alloc, &_initial_block)
-			{ }
+				Bit_allocator<MAX> _used;
+
+				struct Elem_space
+				{
+					long space[sizeof(ELEM)/sizeof(long)];
+				};
+
+				Elem_space _elements[MAX];
+
+			public:
+
+				class Alloc_failed { };
+
+				bool alloc(size_t size, void **out_addr) override
+				{
+					*out_addr = nullptr;
+
+					if (size > sizeof(Elem_space)) {
+						PERR("unexpected allocation size of %zd", size);
+						return false;
+					}
+
+					try {
+						*out_addr = &_elements[_used.alloc()]; }
+					catch (typename Bit_allocator<MAX>::Out_of_indices) {
+						return false; }
+
+					return true;
+				}
+
+				size_t overhead(size_t) const override { return 0; }
+
+				void free(void *ptr, size_t) override
+				{
+					Elem_space *elem = reinterpret_cast<Elem_space *>(ptr);
+					unsigned const index = elem - &_elements[0];
+					_used.free(index);
+				}
+
+				bool need_size_for_free() const { return false; }
 		};
 
-		Slab<Page_table>        _page_table_slab;
-		Slab<Page_table::Entry> _page_table_entry_slab;
+		Static_allocator<Page_table, 128>         _page_table_alloc;
+		Static_allocator<Page_table::Entry, 4096> _page_table_entry_alloc;
 
 		List<Page_table> _page_tables;
 
@@ -159,12 +201,11 @@ class Genode::Page_table_registry
 		 * Constructor
 		 *
 		 * \param md_alloc  backing store allocator for metadata
+		 *
+		 * XXX The md_alloc argument is currently unused as we dimension
+		 *     MAX_PAGE_TABLES and MAX_PAGE_TABLE_ENTRIES statically.
 		 */
-		Page_table_registry(Allocator &md_alloc)
-		:
-			_page_table_slab(md_alloc),
-			_page_table_entry_slab(md_alloc)
-		{ }
+		Page_table_registry(Allocator &md_alloc) { }
 
 		/**
 		 * Register page table
@@ -172,14 +213,16 @@ class Genode::Page_table_registry
 		 * \param addr  virtual address
 		 * \param sel   page-table selector
 		 */
-		void insert_page_table(addr_t addr, unsigned sel)
+		void insert_page_table(addr_t addr, Cap_sel sel)
 		{
+			/* XXX sel is unused */
+
 			if (_page_table_exists(addr)) {
 				PWRN("trying to insert page table for 0x%lx twice", addr);
 				return;
 			}
 
-			_page_tables.insert(new (_page_table_slab) Page_table(addr));
+			_page_tables.insert(new (_page_table_alloc) Page_table(addr));
 		}
 
 		bool has_page_table_at(addr_t addr) const
@@ -197,7 +240,7 @@ class Genode::Page_table_registry
 		 */
 		void insert_page_table_entry(addr_t addr, unsigned sel)
 		{
-			_lookup(addr).insert_entry(_page_table_entry_slab, addr, sel);
+			_lookup(addr).insert_entry(_page_table_entry_alloc, addr, sel);
 		}
 
 		/**
@@ -207,7 +250,7 @@ class Genode::Page_table_registry
 		{
 			try {
 				Page_table &page_table = _lookup(addr);
-				page_table.remove_entry(_page_table_entry_slab, addr);
+				page_table.remove_entry(_page_table_entry_alloc, addr);
 			} catch (...) {
 				if (verbose)
 					PDBG("no PT entry found for virtual address 0x%lx", addr);

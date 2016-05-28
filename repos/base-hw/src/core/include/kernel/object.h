@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _KERNEL__OBJECT_H_
-#define _KERNEL__OBJECT_H_
+#ifndef _CORE__INCLUDE__KERNEL__OBJECT_H_
+#define _CORE__INCLUDE__KERNEL__OBJECT_H_
 
 /* Genode includes */
 #include <util/avl_tree.h>
@@ -190,4 +190,4 @@ class Kernel::Core_object : public T, public Kernel::Core_object_identity<T>
 		: T(args...), Core_object_identity<T>(*static_cast<T*>(this)) { }
 };
 
-#endif /* _KERNEL__OBJECT_H_ */
+#endif /* _CORE__INCLUDE__KERNEL__OBJECT_H_ */

@@ -17,7 +17,6 @@
 #include <util/string.h>
 
 /* core includes */
-#include <cap_session_component.h>
 #include <platform_thread.h>
 #include <platform.h>
 #include <core_env.h>
@@ -46,7 +45,7 @@ int Platform_thread::start(void *ip, void *sp)
 	l4_thread_control_start();
 	l4_thread_control_pager(_pager.remote);
 	l4_thread_control_exc_handler(_pager.remote);
-	l4_thread_control_bind(_utcb, _platform_pd->native_task().dst());
+	l4_thread_control_bind((l4_utcb_t *)_utcb, _platform_pd->native_task().dst());
 	l4_msgtag_t tag = l4_thread_control_commit(_thread.local.dst());
 	if (l4_msgtag_has_error(tag)) {
 		PWRN("l4_thread_control_commit for %lx failed!",
@@ -117,6 +116,17 @@ void Platform_thread::pause()
 }
 
 
+void Platform_thread::single_step(bool enabled)
+{
+	Fiasco::l4_cap_idx_t const tid = thread().local.dst();
+
+	enum { THREAD_SINGLE_STEP = 0x40000 };
+	int const flags = enabled ? THREAD_SINGLE_STEP : 0;
+
+	Fiasco::l4_thread_ex_regs(tid, ~0UL, ~0UL, flags);
+}
+
+
 void Platform_thread::resume()
 {
 	if (!_pager_obj)
@@ -130,8 +140,8 @@ void Platform_thread::resume()
 
 	/* Send a message to the exception handler, to unblock the client */
 	Msgbuf<16> snd, rcv;
-	Ipc_client ipc_client(_pager_obj->cap(), &snd, &rcv);
-	ipc_client << _pager_obj << IPC_CALL;
+	snd.insert(_pager_obj);
+	ipc_call(_pager_obj->cap(), snd, rcv, 0);
 }
 
 
@@ -219,6 +229,13 @@ Affinity::Location Platform_thread::affinity() const
 }
 
 
+static Rpc_cap_factory &thread_cap_factory()
+{
+	static Rpc_cap_factory inst(*platform()->core_mem_alloc());
+	return inst;
+}
+
+
 void Platform_thread::_create_thread()
 {
 	l4_msgtag_t tag = l4_factory_create_thread(L4_BASE_FACTORY_CAP,
@@ -226,13 +243,8 @@ void Platform_thread::_create_thread()
 	if (l4_msgtag_has_error(tag))
 		PERR("cannot create more thread kernel-objects!");
 
-	/* for core threads we can't use core_env, it is to early */
-	static Cap_session_component core_thread_cap_session(0,"");
-	Cap_session &csc = (_core_thread)
-		? core_thread_cap_session : *core_env()->cap_session();
-
 	/* create initial gate for thread */
-	_gate.local = csc.alloc(_thread.local);
+	_gate.local = thread_cap_factory().alloc(_thread.local);
 }
 
 
@@ -266,7 +278,8 @@ Weak_ptr<Address_space> Platform_thread::address_space()
 }
 
 
-Platform_thread::Platform_thread(const char *name, unsigned prio, addr_t)
+Platform_thread::Platform_thread(size_t, const char *name, unsigned prio,
+                                 Affinity::Location location, addr_t)
 : _state(DEAD),
   _core_thread(false),
   _thread(true),
@@ -279,6 +292,7 @@ Platform_thread::Platform_thread(const char *name, unsigned prio, addr_t)
 	((Core_cap_index*)_thread.local.idx())->pt(this);
 	_create_thread();
 	_finalize_construction(name);
+	affinity(location);
 }
 
 
@@ -316,7 +330,7 @@ Platform_thread::Platform_thread(const char *name)
 
 Platform_thread::~Platform_thread()
 {
-	core_env()->cap_session()->free(_gate.local);
+	thread_cap_factory().free(_gate.local);
 
 	/*
 	 * We inform our protection domain about thread destruction, which will end up in

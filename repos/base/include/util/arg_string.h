@@ -186,6 +186,15 @@ class Genode::Arg
 			size_t num_chars = min(dst_len - 1, _value.len());
 			unpack_string(_value.start(), dst, num_chars);
 		}
+
+		/**
+		 * Retrieve a dataspace (page) aligned size argument
+		 */
+		size_t aligned_size() const
+		{
+			unsigned long value = ulong_value(0);
+			return align_addr(value, 12);
+		}
 };
 
 
@@ -277,14 +286,17 @@ class Genode::Arg_string
 		 * Add new argument
 		 */
 		static bool add_arg(char *args, unsigned args_len,
-		                    const char *key, const char *value)
+		                    const char *key, const char *value,
+		                    Token::Type type = Token::Type::IDENT)
 		{
 			if (!args || !key || !value) return false;
 
 			unsigned old_len = strlen(args);
 
 			/* check if args string has enough capacity */
-			if (old_len + strlen(key) + strlen(value) + 2 > args_len)
+			if ((type == Token::Type::STRING
+			  && old_len + strlen(key) + strlen(value) + 4 > args_len)
+			 || (old_len + strlen(key) + strlen(value) + 2 > args_len))
 				return false;
 
 			args += old_len;
@@ -292,7 +304,10 @@ class Genode::Arg_string
 			if (old_len)
 				args = _append(args, ", ");
 
-			_append(_append(_append(args, key), "="), value);
+			if (type == Token::Type::STRING)
+				_append(_append(_append(_append(args, key), "=\""), value), "\"");
+			else
+				_append(_append(_append(args, key), "="), value);
 			return true;
 		}
 
@@ -315,6 +330,16 @@ class Genode::Arg_string
 			char buf[STRING_LONG_MAX];
 			snprintf(buf, sizeof(buf), "%d", value);
 			return remove_arg(args, key) && add_arg(args, args_len, key, buf);
+		}
+
+		/**
+		 * Assign new string argument
+		 */
+		static bool set_arg_string(char *args, unsigned args_len,
+		                    const char *key, const char *value)
+		{
+			return remove_arg(args, key)
+			    && add_arg(args, args_len, key, value, Token::Type::STRING);
 		}
 };
 

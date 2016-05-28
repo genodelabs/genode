@@ -15,8 +15,6 @@
 #include <base/printf.h>
 #include <util/string.h>
 
-#include <vmm/printf.h>
-
 /* VirtualBox includes */
 #include "PGMInternal.h" /* enable access to pgm.s.* */
 #include "EMInternal.h"
@@ -644,8 +642,8 @@ extern "C" int MMIO2_MAPPED_SYNC(PVM pVM, RTGCPHYS GCPhys, size_t cbWrite,
 			return VINF_SUCCESS;
 		}
 		
-		Vmm::printf("%s: GCPhys=0x%llx failed - unexpected rc=%d\n",
-		            __func__, (Genode::uint64_t)GCPhys, rc);
+//		Vmm::printf("%s: GCPhys=0x%llx failed - unexpected rc=%d\n",
+//		            __func__, (Genode::uint64_t)GCPhys, rc);
 		return rc;
 	}
 
@@ -659,10 +657,10 @@ extern "C" int MMIO2_MAPPED_SYNC(PVM pVM, RTGCPHYS GCPhys, size_t cbWrite,
 	Assert(pv);
 
 	fli = Flexpage_iterator((addr_t)pv, map_size, map_start, map_size, map_start);
-	if (verbose_debug)
-		Vmm::printf("%s: GCPhys=0x%llx - %llx+%zx\n", __func__,
-		            (Genode::uint64_t)GCPhys, (Genode::uint64_t)map_start,
-		            map_size);
+//	if (verbose_debug)
+//		Vmm::printf("%s: GCPhys=0x%llx - %llx+%zx\n", __func__,
+//		            (Genode::uint64_t)GCPhys, (Genode::uint64_t)map_start,
+//		            map_size);
 
 	*ppv = pv;
 

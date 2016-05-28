@@ -1,0 +1,652 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 16.02
+              ===============================================
+
+                               Genode Labs
+
+
+
+With version 16.02, we add RISC-V to Genode's supported CPU architectures,
+enable the secure pass-through of individual USB devices to virtual machines,
+and update the support for the Muen and seL4 kernels.
+
+Trustworthy hardware becomes an increasingly pressing problem. With each new
+generation of today's commodity hardware comes a dramatic increase of
+complexity, the addition of proprietary companion processors, and opaque
+firmware blobs. Even with a perfectly secure operating system, the user's
+privacy and security remains at risk as there is no way to assess the
+trustworthiness of our underlying hardware. RISC-V is a new hardware
+architecture that tries to overcome this problem by the means of open source
+and transparency. It is designed to scale from micro controllers to
+general-purpose computers, and to be both synthesizable as FPGA softcores and
+implementable in ASICs. The prospect of a scalable and trustworthy open-source
+hardware platform motivated us to add RISC-V to Genode's supported CPU
+architectures. Section [New support for the RISC-V CPU architecture] gives a
+brief overview of this line of work.
+
+Thanks to the growing number of our regular developers using Genode as day to
+day OS, we create a natural incentive to address typical desktop-OS work
+flows. In particular, the new version comes with the ability to assign
+individual USB devices to VirtualBox instances. Conceptually, this looks like
+a relatively straight-forward feature. But as discussed in Section
+[Assignment of USB devices to virtual machines], we had to overcome a number of
+challenging problems caused by the inherently dynamic nature of USB-device
+hot-plugging. Also on the account of day-to-day computing, the GUI stack
+received welcomed usability improvements like keyboard shortcuts for certain
+window-management operations.
+
+With respect to Genode's underlying base platforms, we are happy to announce
+the updates of the Muen and seL4 kernels. The Muen separation kernel received
+an update to version 0.7, which accommodates Genode's regular work flows (via
+run scripts) much better than the previous version. As described in Section
+[Muen separation kernel], this change clears the way to subject Muen to
+Genode's regular automated tests. The seL4 kernel represents an exciting
+playground as a future base platform for Genode. We have updated the kernel to
+version 2.1, which prompted us to fundamentally revisit the low-level resource
+management of Genode on this kernel. A summary of this undertaking is presented
+in Section [seL4 version 2.1].
+
+According to the [http:/about/road-map - road map], we originally planned to
+revise the framework API in this release. Even though this topic is
+[https://github.com/genodelabs/genode/issues/1832 - very actively pursued], we
+decided to not rush it. We find it important to provide a smooth migration path
+from the old API to the new one. Determining the best path is actually trickier
+than revising the API, though. To let our decisions settle a bit, we postpone
+the transition to the upcoming release.
+
+
+Assignment of USB devices to virtual machines
+#############################################
+
+As a migration strategy for running Genode on a daily basis, using VirtualBox
+to execute a feature-rich OS is vital. In release
+[http://genode.org/documentation/release-notes/15.05#USB-device_pass-through_support - 15.05],
+we added USB pass-through support to VirtualBox by enabling its integrated USB
+proxy service. Since we use the open-source edition of VirtualBox, we were
+merely able to use the OHCI device model and were therefore limited to using
+USB 1.x devices in low and full speed mode only. To make matters worse, when
+using the OHCI controller model, it is difficult if not impossible to access
+USB mass-storage devices. Usually, VirtualBox facilitates the EHCI or xHCI
+device models for the pass-through of storage devices. Unfortunately, those
+models are only available as a proprietary extension, which cannot be used by
+our VirtualBox port.
+
+Having support for the pass-through of high-speed and super-speed USB devices
+is a must in such controller models. Therefore, we either have to implement
+these models ourselves or port existing ones from another VMM or emulator to
+fill the gap. We went for porting existing models first because device-model
+development from scratch could end up being time consuming if we want to
+guarantee them to work with a variety of different OS drivers.
+
+
+QEMU xHCI device model
+----------------------
+
+QEMU features a NEC xHCI (UPD720200) device model that works well with Windows
+guests. For this reason, we decided to give porting this device model a shot.
+We applied the DDE approach and started by creating a QEMU emulation
+environment so that only the bare minimum amount of source code needed to be
+taken from the QEMU sources. It came down to a handful of source files, mainly
+the USB core and the xHCI device model files. We iteratively extended the
+emulation environment until the QEMU sources compiled and linked fine. One
+particular cumbersome issue we had to overcome was the emulation of the QEMU
+Object Model. Since QEMU is written in C, it uses its own object model to
+implement inheritance. This object model is used throughout QEMU. We took the
+easy way out and just used a C++ wrapper class that contains all QEMU objects
+that are used in the USB subsystem.
+
+The next step was to develop a USB host device model. This model connects a
+USB device attached to Genode's USB host-controller driver to the xHCI device
+model. Lucky for us, QEMU already contains a USB host device model that uses
+libusb, which we could use as blueprint. We implemented a USB host device that
+leverages Genode's custom USB session interface. This host device reacts to a
+USB device report coming from another component such as the host-controller
+driver. It tries to claim all devices it finds in that report and then creates
+a QEMU USB device for each of them that is attached to the xHCI device model.
+
+The xHCI device model needs infrastructure that normally is provided by QEMU
+itself such as a timer queue and PCI device handling. We introduced a QEMU
+USB controller interface _repos/libports/include/qemu/usb.h_ whose back-end
+library interface has to be implemented by a component, i.e. the VMM, that
+wants to use the library.
+
+In the end, this work resulted in a small library that contains the xHCI
+device model and works in a standalone way. All required resources have to be
+provided by the component using the library. This makes it easy to integrate
+the library in different VMMs because the user of the library is not forced to
+employ the library in a certain way but free to use it any way he chooses.
+
+
+xHCI device model wrapper in VirtualBox
+---------------------------------------
+
+We implemented an xHCI device model _repos/port/src/virtualbox/devxhci.cc_ in
+VirtualBox that merely wraps the QEMU USB library and provides the back-end
+functionality required by the library to glue QEMU's xHCI device model to
+VirtualBox. For now, this device is always part of a VM because there is
+currently no way to disable it from within the VirtualBox configuration
+front end. Therefore, it is necessary to always give VirtualBox access to a
+_usb_devices_ ROM module.
+
+We removed the afore mentioned USB proxy service from our VirtualBox port
+because it became redundant with the advent of our xHCI device model.
+
+
+USB device report filter
+------------------------
+
+With the xHCI support in VirtualBox in place, we had to come up with a
+mechanism to select, which USB devices it may access. Since USB devices are
+usually hot-plugged by the user of the system, we need to be able to configure
+the access permissions dynamically at run-time. On this account, we created a
+component that intercepts the report from the USB host-controller driver. On
+the one hand, this USB device report-filter component screens the device
+report coming from the USB host-controller driver by checking each reported
+device against a given white list of devices. Only approved devices are
+reported to a consumer of the report, i.e. VirtualBox. On the other hand, this
+component generates a new configuration for the USB host-controller driver.
+The configuration has to be changed each time the filter component finds a
+suitable device because the driver will hand out access to a given device to a
+client only if there is a valid policy. As we do not know in advance, which
+devices might be plugged in, this policy must be maintained dynamically. The
+report filter will send the device report only if the host-controller driver
+has changed its configuration. This ensures that a matching policy will be in
+effect at the time when the client component tries to access the device.
+
+The configuration of the report-filter component can also be changed at run
+time.
+
+See _repos/os/src/app/usb_report_filter/README_ for more details on how the
+USB device report filter may be configured.
+
+
+Example configuration
+---------------------
+
+The following figure illustrates the interplay and configuration of the
+involved components:
+
+[image qemu_xhci]
+
+When the user plugs in a USB device, the USB host-controller driver generates
+a device report that is consumed by the USB device report-filter component
+(1). The filter component then examines the report and checks if it contains a
+device it should report to its report consumer. It then reconfigures the
+host-controller driver (2). Afterwards it sends a report to its consumer (3).
+The consumer, in this case a VMM, then accesses the USB device (4).
+
+
+New support for the RISC-V CPU architecture
+###########################################
+
+We became aware of [http://riscv.org - RISC-V] when attending several talks
+about the project at [https://fosdem.org - FOSDEM] in 2015. RISC-V aims to be
+an open-source hardware architecture and is now complemented by many projects
+that target the release of real hardware or ASICs (for example,
+[http://lowrisc.org - the LowRISC project]). We have experience with various
+major CPU architectures and many systems on a chip and, therefore, embrace a
+sharp eye on certain platform properties. Intel's ME and ARM's Trustzone
+practically lock out operating systems of certain hardware and firmware
+features. The true nature of these mechanisms becomes increasingly dubious,
+especially when trying to build a secure open-source operating system. Intel's
+AMT technology for instance comes with a complete TCP/IP stack that intercepts
+packets from the integrated NIC and a VNC server that can magically expose a
+mouse and a keyboard at the USB controller. If you are interested in more
+details about this topic
+[http://blog.invisiblethings.org/papers/2015/x86_harmful.pdf - Intel x86 considered harmful]
+by Joanna Rutkowska is a very good read. We decided to have a deeper look at
+the RISC-V architecture as an alternative open hardware platform. Especially,
+since the LowRISC project promises a completely open system on chip, including
+the peripherals.
+
+RISC-V comes with a lot of optional features, so it can cover a large field of
+applications reaching from simple I/O processors to general-purpose computing.
+For example, there are 64 and 32 bit ISA (instruction set architecture)
+versions, three page table formats with the option to omit paging at all, up
+to four privilege modes, and a minimal integer core ISA (I). Everything else,
+like multiplication and division (M), atomic instructions (A), and floating
+point support (F) are subject to ISA extensions and are completely optional
+for a specific hardware implementation.
+
+For Genode, we chose to add the RISC-V support to our custom _base-hw_ kernel.
+Since Genode may be used as a general purpose OS, we implemented the kernel
+using the 64 bit RISC-V version, the Sv39 three-level page table format, and
+the so-called general-purpose extension (G), which is the abbreviation for the
+IAMF extensions. The current implementation provides the kernel and the
+necessary adaptations of the user level part of core.
+
+For testing, we used the RISC-V instruction emulator called
+[https://github.com/riscv/riscv-isa-sim - Spike]. There also exists a RISC-V
+implementation for various Zynq FPGAs. Genode's Zynq board support has kindly
+been added and contributed by Mark Vels.
+
+In the current state, basic Genode applications including core, init, and
+components that use shared libraries can be executed on top of our RISC-V
+port. We did not enable the libc and postponed further activity as the
+platform currently does not specify the interaction with peripherals.
+
+
+Steps to test Genode on RISC-V
+------------------------------
+
+# Building the instruction emulator
+
+  ! # download the front end server
+  ! git clone https://github.com/ssumpf/riscv-fesvr.git
+  !
+  ! # build the front end server
+  ! cd riscv-fesvr
+  ! mkdir build
+  ! cd build
+  ! export RISCV=<installation path>
+  ! ../configure --prefix=$RISCV
+  ! (sudo) make install
+  !
+  ! # download the instruction emulator
+  ! cd ../../
+  ! git clone https://github.com/ssumpf/riscv-isa-sim.git
+  ! cd riscv-isa-sim
+  !
+  ! # build the emulator
+  ! mkdir build
+  ! cd build
+  ! ../configure --prefix=$RISCV --with-fesvr=$RISCV
+  ! (sudo) make install
+  !
+  ! # add $RISCV/bin to path
+  ! export PATH=$RISCV/bin:$PATH
+
+# Building Genode and running a test scenario
+
+  ! # download Genode
+  ! cd ../../
+  ! git clone https://github.com/genodelabs/genode.git
+  !
+  ! # build the Genode tool chain
+  ! cd genode
+  ! ./tool/tool_chain riscv
+  !
+  ! # create RISC-V build directory
+  ! ./tool/create_builddir hw_riscv
+  ! cd build/hw_riscv
+  !
+  ! # build and execute the printf run script
+  ! make run/printf
+
+
+GUI stack usability improvements
+################################
+
+Motivated by the daily use of Genode as desktop OS by an increasingly number
+of developers, the window-layouter component of the
+[http://genode.org/documentation/release-notes/15.11#GUI_stack - GUI stack]
+received welcomed usability improvements.
+
+
+Configurable window placement
+-----------------------------
+
+The policy of the window layouter can be adjusted via its configuration. For
+a given window label, the window's initial position and its maximized state
+can be defined as follows:
+
+! <config>
+!   <policy label="mupdf" maximized="yes"/>
+!   <policy label="nit_fb" xpos="50" ypos="50"/>
+! </config>
+
+
+Keyboard shortcuts
+------------------
+
+The window layouter has become able to respond to key sequences. However,
+normally, the layouter is not a regular nitpicker client but receives only
+those input events that refer to the window decorations. It never owns the
+keyboard focus. In order to propagate global key sequences to the layouter,
+nitpicker must be explicitly configured to direct key sequences initiated with
+certain keys to the decorator. For example, the following nitpicker
+configuration routes key sequences starting with the left windows key to the
+decorator. The window manager, in turn, forwards those events to the layouter.
+
+! <start name="nitpicker">
+!   ...
+!   <config>
+!     ...
+!     <global-key name="KEY_LEFTMETA" label="wm -> decorator" />
+!     ...
+!   </config>
+!   ...
+! </start>
+
+The response of the window layouter to key sequences can be expressed in the
+layouter configuration as follows:
+
+! <config>
+!   <press key="KEY_LEFTMETA">
+!     <press key="KEY_TAB"              action="next_window">
+!       <release key="KEY_TAB">
+!         <release key="KEY_LEFTMETA"   action="raise_window"/>
+!       </release>
+!     </press>
+!     <press key="KEY_LEFTSHIFT">
+!       <press key="KEY_TAB"            action="prev_window">
+!         <release key="KEY_TAB">
+!           <release key="KEY_LEFTMETA" action="raise_window"/>
+!         </release>
+!       </press>
+!     </press>
+!     <press key="KEY_ENTER"            action="toggle_fullscreen"/>
+!   </press>
+! </config>
+
+Each '<press>' node defines the policy when the specified 'key' is pressed.
+It can be equipped with an 'action' attribute that triggers a window action.
+The supported window actions are:
+
+:next_window:       Focus the next window in the focus history.
+:prev_window:       Focus the previous window in the focus history.
+:raise_window:      Bring the focused window to the front.
+:toggle_fullscreen: Maximize/unmaximize the focused window.
+
+By nesting '<press>' nodes, actions can be tied to key sequences. In the
+example above, the 'next_window' action is executed only if TAB is pressed
+while the left windows-key is kept pressed. Furthermore, key sequences can
+contain specific release events. In the example above, the release of the left
+windows key brings the focused window to front, but only if TAB was pressed
+before.
+
+
+Device drivers
+##############
+
+USB host-controller driver enhancements
+=======================================
+
+The _usb_drv_ component now solely uses a policy to grant other components
+access to USB devices exposed by its raw interface (USB session). On the basis
+of the 'label' attribute, it will choose a pre-configured device that is
+identified by either the 'bus' and 'dev' or the 'vendor' and 'product'
+attribute tuple. To accommodate policy decisions made at run time, the USB
+driver is now able to reload its configuration on demand. The USB device
+report now contains a 'bus' and a 'dev' attribute as well in order to identify
+a USB device more precisely. In addition to that, there is also a generated
+'label' attribute in form of 'usb-<bus>-<dev>' that may be used to form
+policies while configuring the system dynamically, e.g., when using the
+_usb_report_filter_ component.
+
+
+USB mass-storage driver
+=======================
+
+Up to now, access to USB storage devices was provided by the USB
+host-controller driver only. However, its ability to do so is limited. E.g.,
+it only supports one storage device and the storage device cannot be changed
+at run-time. With this release we add a USB mass-storage driver that supports
+UMS bulk-only devices that use the SCSI Block Commands set (direct-access).
+This is still most common for USB sticks. Devices using different command
+sets, e.g SD/HC devices or some external disc drives, will not work properly
+if at all. The driver uses the USB session interface to access the USB device
+and provides its service as block session to its client.
+
+This component is part of the first step providing the ability to mount and
+use USB sticks dynamically when using Genode as a general purpose OS. In the
+future, the _usb_drv_ component should solely be the host-controller driver
+while other tasks are handled by dedicated USB driver components such as this
+one.
+
+
+Audio output on Linux
+=====================
+
+The audio-out driver for Linux was modernized by replacing its multi-threaded
+architecture by an event-driven architecture using Genode's server API. In
+addition, the playback is now driven by a timer. For now it is a periodic
+timer that triggers every 11 ms which is roughly the current audio-out period.
+
+The driver now also behaves like the other BSD-based audio-out driver, i.e.,
+it always advances the play pointer. That is vital for the audio-out stack
+above the driver to work properly (e.g., the mixer).
+
+
+Libraries and applications
+##########################
+
+New Genode-world repository
+===========================
+
+With a growing number of users and contributors comes the desire to bring more
+and more existing software to Genode. Most of such libraries and applications,
+however, are outside of the scope of Genode as an OS framework. In contrast to
+device drivers, protocol stacks, and low-level OS services, which we subject
+to our regular automated tests, most 3rd-party software is pretty independent
+from Genode. The attempt to integrate the growing pool of such diverse
+software into the main repository does not scale.
+
+For this reason, we introduce the new
+[https://github.com/genodelabs/genode-world - Genode World] repository, which
+is the designated place for hosting ported applications, libraries, and games.
+
+To use it, you first need to obtain a clone of Genode:
+
+! git clone https://github.com/genodelabs/genode.git genode
+
+Now, clone the _genode-world.git_ repository to _genode/repos/world:_
+
+! git clone https://github.com/genodelabs/genode-world.git genode/repos/world
+
+By placing the _world_ repository under the _repos/_ directory, Genode's tools
+will automatically incorporate the ports provided by the _world_ repository.
+
+For building software of the _world_ repository, the build-directory
+configuration _etc/build.conf_ must be extended with the following line:
+
+! REPOSITORIES += $(GENODE_DIR)/repos/world
+
+*Word of caution*
+
+In contrast to the components found in the mainline Genode repository, the
+components within the _world_ repository are not subjected to the regular
+quality-assurance measures of Genode Labs. Hence, problems are to be expected.
+If you encounter bugs, build problems, or stability issues, please report them
+to the [https://github.com/genodelabs/genode-world/issues - issue tracker] or
+the [http://genode.org/community/mailing-lists - mailing list].
+
+
+Updated 3rd-party software
+==========================
+
+The following 3rd-party code packages of the _ports_ and _libports_
+repositories have been ported or updated:
+
+* Lynx 2.8.8rel.2 (noux package)
+* OpenSSH 7.1p1 (noux package)
+* tar-1.27 (noux package)
+* libssh 0.7.2
+* Lighttpd 1.4.38
+
+
+Platforms
+#########
+
+Execution on bare hardware (base-hw)
+====================================
+
+Within the last months, the initialization code of our custom kernel got
+re-arranged to simplify the addition of new architectures, e.g., the RISC-V
+port (Section [New support for the RISC-V CPU architecture]) while also making
+its implementation leaner. A positive side effect of this work was the
+generalization of multi-processor and L2-cache support for ARM's Cortex-A9
+CPUs. For instance, the Wandboard (Freescale i.MX6 SoC) is now driven with all
+four cores, and its memory can be accessed with full speed.
+
+Besides those feature additions, we fixed an extremely rare and tricky race
+condition in the implementation of the kernel-protected capabilities,
+introduced in release 15.05. A capability's lifetime within a component is
+tracked by a reference-counting like mechanism that is under control of the
+component itself. When the kernel transfered a capability to a component, and
+the very same capability was deleted within the component simultaneously, the
+received capability was marked as invalid, which led to diverse, sporadic
+faults. This deficit in the capabilities reference-counting is solved with the
+current release.
+
+
+Muen separation kernel
+======================
+
+Build integration
+-----------------
+
+Building Genode scenarios running on top of the
+[http://muen.sk - Muen separation kernel] has been greatly simplified by
+properly integrating the Muen system build process into the Genode build system.
+As described in the
+[http://genode.org/documentation/release-notes/15.08#Genode_on_top_of_the_Muen_Separation_Kernel - 15.08 release notes],
+the architecture with Muen is different since the entire hw_x86_64_muen Genode
+system runs as a guest VM on top of the separation kernel. This means that the
+Genode base-hw image must itself be packaged into the final Muen system image
+as an additional step after the Genode system build.
+
+The packaging process of a Muen system image is performed by the new
+_image/muen_ run-tool plugin, which processes the following RUN_OPT parameters.
+
+:--image-muen-external-build:
+  Muen system is built automatically or externally
+
+:--image-muen-system:
+  Muen system policy
+
+:--image-muen-components:
+  Muen system components required for the given system policy
+
+:--image-muen-hardware:
+  Muen target hardware platform
+
+:--image-muen-gnat-path:
+  Path to GNAT toolchain
+
+:--image-muen-spark-path:
+  Path to SPARK toolchain
+
+The options are automatically added to the _etc/build.conf_ file for the
+hw_x86_64_muen base-hw platform. The
+[http://genode.org/documentation/platforms/muen - documentation] has been
+updated to reflect the new, simplified build process.
+
+A port file was added to facilitate the download of the Muen sources v0.7 and
+to check the required dependencies.
+
+Using the new _image/muen_ script in combination with iPXE allows to run the
+Genode test suite via the autopilot tool.
+
+
+MSI support
+-----------
+
+Muen employs Intel VT-d interrupt remapping (IR) besides DMA remapping for
+secure device assignment. As a consequence, PCI devices using Message Signaled
+Interrupts (MSI) must be programmed to trigger requests in remappable format
+(see Intel VT-d specification, Section 5.1.2.2 for further details).
+
+To enable the use of MSIs with the base-hw kernel, a platform-specific
+function has been introduced that returns the necessary MSI parameters for a
+given PCI device. If either the platform or the specific device does not
+support MSI, the function returns false.
+
+On hw_x86_64_muen, the function consults the Muen subject info page to supply
+the appropriate information to the IRQ session. This allows Genode device
+drivers to transparently use MSIs for passed-through PCI devices.
+
+
+seL4 version 2.1
+================
+
+By the end of 2015, the [http://sel4.systems/ - seL4 kernel] version 2.0 was
+published. With the current release, we update Genode's preliminary support
+for this kernel from the experimental branch of one year ago to the master
+branch of version 2.1. Note that this line of work is still considered as an
+exploration. As of now, there is still a way to go until we can leverage seL4
+as a fully featured base platform. Under the hood of Genode, the transition to
+the version 2.1 master branch had the following implications.
+
+In contrast to the experimental branch, the seL4 master branch has no way to
+manually define the allocation of kernel objects within untyped memory ranges.
+Instead, the kernel maintains a built-in allocation policy. This policy rules
+out the deallocation of once-used parts of untyped memory. The only way to
+reuse memory is to revoke the entire untyped memory range. Consequently, we
+cannot share a large untyped memory range for kernel objects of different
+protection domains. In order to reuse memory at a reasonably fine granularity,
+we need to split the initial untyped memory ranges into small chunks that can
+be individually revoked. Those chunks are called "untyped pages". An untyped
+page is a 4 KiB untyped memory region.
+
+The bootstrapping of core has to employ a two-stage allocation approach now.
+For creating the initial kernel objects for core, which remain static during
+the entire lifetime of the system, kernel objects are created directly out of
+the initial untyped memory regions as reported by the kernel. The so-called
+"initial untyped pool" keeps track of the consumption of those untyped memory
+ranges by mimicking the kernel's internal allocation policy. Kernel objects
+created this way can be of any size. For example the CNode, which is used to
+store page-frame capabilities is 16 MiB in size. Also, core's CSpace uses a
+relatively large CNode.
+
+After the initial setup phase, all remaining untyped memory is turned into
+untyped pages. From this point on, newly created kernel objects cannot exceed
+4 KiB in size because one kernel object cannot span multiple untyped memory
+regions. The capability selectors for untyped pages are organized similarly to
+those of page-frame capabilities. There is a new 2nd-level CNode
+(UNTYPED_CORE_CNODE) that is dimensioned according to the maximum amount of
+physical memory (1M entries, each entry representing 4 KiB). The CNode is
+organized such that an index into the CNode directly corresponds to the
+physical frame number of the underlying memory. This way, we can easily
+determine an untyped page selector for any physical addresses, i.e., for
+revoking the kernel objects allocated at a specific physical page. The
+downside is the need for another 16 MiB chunk of meta data. Also, we need to
+keep in mind that this approach won't scale to 64-bit systems. We will
+eventually need to replace the PHYS_CORE_CNODE and UNTYPED_CORE_CNODE by CNode
+hierarchies to model a sparsely populated CNode. The following figure
+illustrates the layout of core's capability space.
+
+[image sel4_core_cspace_master]
+  Organization of core's capability space on seL4
+
+For each protection domain, core maintains a so-called VM CSpace that holds
+capability selectors for page frames and page tables. The size constraint of
+kernel objects has the immediate implication that the VM CSpaces of protection
+domains must be organized via several levels of CNodes. I.e., as the top-level
+CNode of core has a size of 2^12, the remaining 20 PD-specific CSpace address
+bits are organized as a 2nd-level 2^4 padding CNode, a 3rd-level 2^8 CNode,
+and several 4th-level 2^8 leaf CNodes. The latter contain the actual selectors
+for the page tables and page-table entries of the respective PD.
+
+As another slight difference from the experimental branch, the master branch
+requires the explicit assignment of page directories to an ASID pool.
+
+Functionality-wise the update to version 2.1 brings no changes. The
+preliminary support is still limited to Genode's most fundamental mechanisms
+like the bootstrapping, the creation of protection domains, the execution of
+threads, and inter-component communication. User-level device drivers are not
+supported yet. Such functional improvements are scheduled for Genode 16.08.
+
+
+Linux
+=====
+
+We started to experience crashes of our dynamic linker (ldso) when using
+Genode's _base-linux_ platform on recent Linux kernels. Ldso is primarily a
+shared object, which is linked to dynamic binaries. But ldso is also an
+executable, which, once started loads the dynamically-linked binary along with
+all shared libraries required by the binary. Up to now, ldso had to be loaded
+at a link address defined at compilation time, which we enforced through
+linker-script magic. Unfortunately, this does not work any longer on recent
+Linux versions. The kernel notices that ldso is a shared object and loads it
+at an arbitrary (randomized) address, which ultimately results in a
+segmentation fault during ldso initialization. We found a fix for this issue
+by marking ldso as an executable in the ELF header. But since ldso is linked
+to all dynamic binaries (it contains Genode's base libraries) the GNU linker
+then refused to link because ldso was not marked as a shared object.
+Therefore, we decided to implement true self relocation within ldso. This
+feature only works on Genode's base-linux platform as it requires some
+symbol-address magic.
+

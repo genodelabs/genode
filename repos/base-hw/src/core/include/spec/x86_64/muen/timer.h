@@ -11,10 +11,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _TIMER_H_
-#define _TIMER_H_
+#ifndef _CORE__INCLUDE__SPEC__X86_64__MUEN__TIMER_H_
+#define _CORE__INCLUDE__SPEC__X86_64__MUEN__TIMER_H_
 
 #include <base/printf.h>
+#include <kernel/types.h>
 
 /* core includes */
 #include <board.h>
@@ -32,9 +33,9 @@ class Genode::Timer
 {
 	private:
 
-		enum {
-			TIMER_DISABLED = ~0ULL,
-		};
+		using time_t = Kernel::time_t;
+
+		enum { TIMER_DISABLED = ~0ULL };
 
 		uint64_t _tics_per_ms;
 
@@ -71,22 +72,21 @@ class Genode::Timer
 			     region.address, _tics_per_ms, _timer_page->vector);
 		}
 
-		static unsigned interrupt_id(int)
-		{
-			return Board::TIMER_VECTOR_KERNEL;
-		}
+		static unsigned interrupt_id(int) {
+			return Board::TIMER_VECTOR_KERNEL; }
 
-		inline void start_one_shot(uint32_t const tics, unsigned)
-		{
-			_timer_page->value = rdtsc() + tics;
-		}
+		inline void start_one_shot(time_t const tics, unsigned) {
+			_timer_page->value = rdtsc() + tics; }
 
-		uint32_t ms_to_tics(unsigned const ms)
-		{
-			return ms * _tics_per_ms;
-		}
+		time_t tics_to_us(time_t const tics) const {
+			return (tics / _tics_per_ms) * 1000; }
 
-		unsigned value(unsigned)
+		time_t us_to_tics(time_t const us) const {
+			return (us / 1000) * _tics_per_ms; }
+
+		time_t max_value() { return (time_t)~0; }
+
+		time_t value(unsigned)
 		{
 			const uint64_t now = rdtsc();
 			if (_timer_page->value != TIMER_DISABLED
@@ -96,12 +96,9 @@ class Genode::Timer
 			return 0;
 		}
 
-		/*
-		 * Dummies
-		 */
 		static void disable_pit(void) { }
 };
 
 namespace Kernel { class Timer : public Genode::Timer { }; }
 
-#endif /* _TIMER_H_ */
+#endif /* _CORE__INCLUDE__SPEC__X86_64__MUEN__TIMER_H_ */

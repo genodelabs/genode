@@ -326,7 +326,7 @@ int main(int, char **)
 		/*
 		 * Forward input events to the X session
 		 */
-		while (input.is_pending()) {
+		while (input.pending()) {
 
 			int num_ev = input.flush();
 			for (int i = 0; i < num_ev; i++)

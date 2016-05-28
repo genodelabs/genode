@@ -74,7 +74,8 @@ Platform_thread::Registry *Platform_thread::_registry()
  ** Platform_thread **
  *********************/
 
-Platform_thread::Platform_thread(const char *name, unsigned, addr_t)
+Platform_thread::Platform_thread(size_t, const char *name, unsigned,
+                                 Affinity::Location, addr_t)
 : _tid(-1), _pid(-1)
 {
 	strncpy(_name, name, min(sizeof(_name), strlen(name) + 1));
@@ -85,13 +86,13 @@ Platform_thread::Platform_thread(const char *name, unsigned, addr_t)
 
 Platform_thread::~Platform_thread()
 {
-	ep_sd_registry()->disassociate(_ncs.client_sd);
+	ep_sd_registry()->disassociate(_socket_pair.client_sd);
 
-	if (_ncs.client_sd)
-		lx_close(_ncs.client_sd);
+	if (_socket_pair.client_sd)
+		lx_close(_socket_pair.client_sd);
 
-	if (_ncs.server_sd)
-		lx_close(_ncs.server_sd);
+	if (_socket_pair.server_sd)
+		lx_close(_socket_pair.server_sd);
 
 	_registry()->remove(this);
 }
@@ -119,15 +120,15 @@ void Platform_thread::resume()
 int Platform_thread::client_sd()
 {
 	/* construct socket pair on first call */
-	if (_ncs.client_sd == -1)
-		_ncs = create_server_socket_pair(_tid);
+	if (_socket_pair.client_sd == -1)
+		_socket_pair = create_server_socket_pair(_tid);
 
-	return _ncs.client_sd;
+	return _socket_pair.client_sd;
 }
 
 
 int Platform_thread::server_sd()
 {
 	client_sd();
-	return _ncs.server_sd;
+	return _socket_pair.server_sd;
 }

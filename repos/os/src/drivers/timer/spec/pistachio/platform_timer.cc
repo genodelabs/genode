@@ -41,10 +41,6 @@ void Platform_timer::_usleep(unsigned long usecs)
 {
 	using namespace Pistachio;
 
-	/*
-	 * See 'base/src/base/lock' for a description of how the
-	 * user-defined handle is used.
-	 */
 	enum { MAGIC_USER_DEFINED_HANDLE = 13 };
 	L4_Set_UserDefinedHandle(MAGIC_USER_DEFINED_HANDLE);
 

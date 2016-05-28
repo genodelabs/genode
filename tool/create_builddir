@@ -38,6 +38,7 @@ usage:
 	@echo "                  'hw_zynq'"
 	@echo "                  'hw_x86_64'"
 	@echo "                  'hw_x86_64_muen'"
+	@echo "                  'hw_riscv'"
 	@echo "                  'foc_x86_32'"
 	@echo "                  'foc_x86_64'"
 	@echo "                  'foc_pbxa9'"
@@ -251,6 +252,9 @@ hw_rpi::
 
 hw_zynq::
 	@echo "SPECS = genode hw_zynq" > $(BUILD_DIR)/etc/specs.conf
+	@echo "SPECS += perf_counter" >> $(BUILD_DIR)/etc/specs.conf
+	@echo "## By default, hw_zynq is executed on Qemu" >> $(BUILD_DIR)/etc/specs.conf
+	@echo "SPECS += zynq_qemu" >> $(BUILD_DIR)/etc/specs.conf
 
 hw_odroid_xu::
 	@echo "SPECS = genode hw_odroid_xu" > $(BUILD_DIR)/etc/specs.conf
@@ -262,6 +266,9 @@ hw_x86_64::
 
 hw_x86_64_muen::
 	@echo "SPECS = genode hw_x86_64_muen" > $(BUILD_DIR)/etc/specs.conf
+
+hw_riscv::
+	@echo "SPECS = genode hw_riscv" > $(BUILD_DIR)/etc/specs.conf
 
 $(PLATFORM)::
 	@echo "Successfully created build directory at $(BUILD_DIR)."

@@ -149,7 +149,7 @@ struct Server::Main
 
 	Genode::Trace::Connection trace { 512*1024, 32*1024, 0 };
 
-	Genode::Reporter reporter { "trace_subjects", 64*1024 };
+	Genode::Reporter reporter { "trace_subjects", "trace_subjects", 64*1024 };
 
 	static unsigned long default_period_ms() { return 5000; }
 

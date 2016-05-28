@@ -13,7 +13,7 @@ should be documented but isn't? Or the documentation contains errors with
 regard to content or spelling? Please let us know by raising the issue at the
 genode-main mailing list:
 
-:[http://genode.org/community/mailing-lists - Genode mailing lists]:
+:[https://genode.org/community/mailing-lists - Genode mailing lists]:
 
 If you are interested in getting your hands dirty with working on the Genode
 code base or authoring additional documentation, you are more than welcome.
@@ -31,9 +31,9 @@ Alternatively, you may like to have a look at our road map and future
 challenges to see the big picture of our developments and to get inspiration
 for your own activities:
 
-:[http://genode.org/about/road-map]: Road Map
+:[https://genode.org/about/road-map]: Road Map
 
-:[http://genode.org/about/challenges]: Future Challenges
+:[https://genode.org/about/challenges]: Future Challenges
 
 Once you settled on a specific topic to work on, it is a good idea to get
 acquainted with the work flow and tools used by the project. The following
@@ -81,7 +81,7 @@ Genode's source code follows certain time-tested conventions regarding the
 coding style and code pattern, which are important to us. The coding style
 is described in the following document:
 
-:[http://genode.org/documentation/developer-resources/coding_style]:
+:[https://genode.org/documentation/developer-resources/coding_style]:
   Coding Style Guidelines
 
 We know from experience that for new developers, adhering the coding style can

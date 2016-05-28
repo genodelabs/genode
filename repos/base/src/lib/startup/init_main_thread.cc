@@ -19,13 +19,17 @@
 #include <base/printf.h>
 #include <base/thread.h>
 
+/* base-internal includes */
+#include <base/internal/globals.h>
+
 using namespace Genode;
+
 
 addr_t init_main_thread_result;
 
 extern void init_exception_handling();
 
-namespace Genode { Rm_session * env_context_area_rm_session(); }
+namespace Genode { extern Region_map * env_stack_area_region_map; }
 
 void prepare_init_main_thread();
 
@@ -40,7 +44,7 @@ void init_rtld() { }
 /**
  * The first thread in a program
  */
-class Main_thread : public Thread<MAIN_THREAD_STACK_SIZE>
+class Main_thread : public Thread_deprecated<MAIN_THREAD_STACK_SIZE>
 {
 	public:
 
@@ -51,7 +55,7 @@ class Main_thread : public Thread<MAIN_THREAD_STACK_SIZE>
 		 */
 		Main_thread(bool reinit)
 		:
-			Thread("main", reinit ? REINITIALIZED_MAIN : MAIN)
+			Thread_deprecated("main", reinit ? REINITIALIZED_MAIN : MAIN)
 		{ }
 
 		/**********************
@@ -89,15 +93,10 @@ extern "C" void init_main_thread()
 	 * destructor won't be registered for the atexit routine.
 	 */
 	(void*)env();
+	init_log();
 
 	/* initialize exception handling */
 	init_exception_handling();
-
-	/*
-	 * We create the thread-context area as early as possible to prevent other
-	 * mappings from occupying the predefined virtual-memory region.
-	 */
-	env_context_area_rm_session();
 
 	/*
 	 * Trigger first exception. This step has two purposes.
@@ -112,7 +111,7 @@ extern "C" void init_main_thread()
 	 * Genode's heap and, in some corner cases, consumes several KB of stack.
 	 * This is usually not a problem when the first exception is triggered from
 	 * the main thread but it becomes an issue when the first exception is
-	 * thrown from the context of a thread with a specially tailored (and
+	 * thrown from the stack of a thread with a specially tailored (and
 	 * otherwise sufficient) stack size. By throwing an exception here, we
 	 * mitigate this issue by eagerly performing those allocations.
 	 */

@@ -59,7 +59,7 @@ class Genode::Fpu
 			public:
 
 				~Context() { if (_fpu) _fpu->unset(*this); }
-		} __attribute__((aligned(16)));
+		};
 
 	private:
 

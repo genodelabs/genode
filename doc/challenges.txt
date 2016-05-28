@@ -29,13 +29,6 @@ Applications and library infrastructure
   platform. This would allow Chrome to be considered as a secure interface to
   the web for use cases in the high-assurance domain.
 
-:Qemu or Virtual Box on Genode:
-
-  Using Genode as hosting platform for virtual machines running in Qemu or
-  Virtual Box would enable the execution of security-sensitive functions (for
-  example cryptography) with a minimally-complex trusted computing base
-  beside running Windows on the same machine.
-
 :VNC server implementing Genode's framebuffer session interface:
 
   With 'Input' and 'Framebuffer', Genode provides two low-level interfaces
@@ -217,19 +210,6 @@ Device drivers
   decomposition of this solution such that the USB host driver and each USB
   device driver runs in a separate process.
 
-:IOMMU support on the NOVA Hypervisor:
-
-  The NOVA hypervisor is the first open-source microkernel with thorough
-  support for IOMMUs, which principally enables the use of untrusted device
-  drivers alongside sensitive software on one machine. Without an IOMMU, each
-  device driver for a device that operates with DMA, is able to indirectly
-  access the whole physical memory through programming the device. With IOMMU,
-  the physical memory addressable by DMA operations can be restrained per
-  device. The goal of this challenge is to enhance Genode with I/O protection
-  when running on the NOVA kernel. This would clear the way towards reusing
-  complex untrusted device drivers running in dedicated device-driver OS
-  instances.
-
 :I/O Kit:
 
   I/O Kit is the device-driver framework as used by the Darwin operating
@@ -323,22 +303,6 @@ Runtime environments
   removed from the trusted computing base of Android, facilitating the use of
   this mobile OS in high-assurance settings.
 
-:Vancouver VMM for Genode on the NOVA hypervisor:
-
-  Vancouver is the user-level virtual-machine monitor accompanying the NOVA
-  hypervisor. It combines a VT-based CPU virtualization with a rich set of
-  device models to run unmodified guest operating systems at near-native
-  performance. Since NOVA is a supported base platform of Genode, running
-  Vancouver in the dynamic Genode environment has become feasible. By running
-  Vancouver on Genode instead of NOVA's original static userland would open up
-  new use cases where the combination of faithful virtualization with dynamic
-  applications is desired.
-
-  Genode 11.11 introduced the initial integration of Vancouver into Genode.
-  This version of Vancouver is able to bootstrap another kernel (e.g.,
-  Fiasco.OC) within the virtual machine. However, several pieces are missing
-  for reaching the goal of running a fully-fledged Linux OS as guest.
-
 :Runtime for the D programming language:
 
   The D systems programming language was designed to overcome many gripes that
@@ -361,10 +325,9 @@ Platforms
   Several of Genode's supported base platforms come with multi-processor
   support, i.e., Linux, NOVA, L4ka::Pistachio, and Fiasco.OC. Each of
   these kernels follows a different approach for utilizing multiple CPUs. For
-  example, Linux manages the association of threads with CPUs
-  largely transparent for user-level programs. In contrast, NOVA makes the use
-  of multiple CPUs explicit and constraints the modes of IPC interaction of
-  threads running on different CPUs. Furthermore, kernels differ with regard to
+  example, Linux manages the association of threads with CPUs largely
+  transparent for user-level programs - not so for the available microkernels.
+  Furthermore, microkernels differ with reagrd to
   thread migration and scheduling. The goal of this project is to identify ways
   to support the SMP features of the respective kernels at Genode's API level
   such that SMP can be easily utilized by Genode programs in a largely kernel
@@ -399,23 +362,6 @@ Platforms
   with feedback regarding the universality of Genode's internal interfaces.
   Finally, this project has the potential to ignite a further collaboration
   between the HelenOS and Genode communities.
-
-:Support for the seL4 kernel:
-
-  The seL4 kernel developed by NICTA and OK-Labs is the first formally verified
-  microkernel. It runs on the x86 and ARM architectures and supports the
-  execution of a paravirtualized version of Linux on top. Even though seL4 is
-  proprietary technology, a free binary release and the specification of the
-  kernel API has been published early 2011. Being a capability-based kernel,
-  seL4 is in the line of the current-generation L4 kernels alongside NOVA and
-  Fiasco.OC. Genode already supports the latter two kernel, which hints at the
-  feasibility to support seL4 as well. Currently, the seL4 kernel comes with a
-  rather static user land, which is far from utilizing the full potential of
-  the kernel with regard to dynamic resource management. By adapting Genode to
-  seL4, a rich dynamic application workload would become available to this
-  kernel, which could potentially spawn interest in extending the formal
-  verification efforts at NICTA to the Genode system executing dynamic
-  real-world applications.
 
 :Support for the Barrelfish kernel:
 

@@ -140,7 +140,7 @@ class Timer::Wake_up_alarm : public Genode::Alarm
 
 
 class Timer::Timeout_scheduler : public Genode::Alarm_scheduler,
-                                 Genode::Thread<STACK_SIZE>
+                                 Genode::Thread_deprecated<STACK_SIZE>
 {
 	private:
 
@@ -180,7 +180,7 @@ class Timer::Timeout_scheduler : public Genode::Alarm_scheduler,
 		 */
 		Timeout_scheduler(Platform_timer *pt, Genode::Rpc_entrypoint *ep)
 		:
-			Thread("timeout_scheduler"),
+			Thread_deprecated("timeout_scheduler"),
 			_platform_timer(pt),
 			_irq_dispatcher_component(this, pt),
 			_irq_dispatcher_cap(ep->manage(&_irq_dispatcher_component))

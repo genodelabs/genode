@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__IRQ_SESSION_COMPONENT_H_
-#define __INCLUDE__IRQ_SESSION_COMPONENT_H_
+#ifndef _CORE__INCLUDE__IRQ_SESSION_COMPONENT_H_
+#define _CORE__INCLUDE__IRQ_SESSION_COMPONENT_H_
 
 /* Genode includes */
 #include <base/rpc_server.h>
@@ -31,6 +31,8 @@ class Genode::Irq_session_component : public Rpc_object<Irq_session>,
 		unsigned         _irq_number;
 		Range_allocator *_irq_alloc;
 		Genode::uint8_t  _kernel_object[sizeof(Kernel::User_irq)];
+		bool             _is_msi;
+		addr_t           _address, _value;
 
 		Signal_context_capability _sig_cap;
 
@@ -58,8 +60,16 @@ class Genode::Irq_session_component : public Rpc_object<Irq_session>,
 
 		void ack_irq() override;
 		void sigh(Signal_context_capability) override;
-		Info info() override {
-			return { .type = Genode::Irq_session::Info::Type::INVALID }; }
+
+		Info info() override
+		{
+			if (!_is_msi) {
+				return { .type = Info::Type::INVALID };
+			}
+			return { .type    = Info::Type::MSI,
+			         .address = _address,
+			         .value   = _value };
+		}
 };
 
-#endif /* _INCLUDE__IRQ_SESSION_COMPONENT_H_ */
+#endif /* _CORE__INCLUDE__IRQ_SESSION_COMPONENT_H_ */

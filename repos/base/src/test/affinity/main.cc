@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -14,13 +14,13 @@
 /* Genode includes */
 #include <base/printf.h>
 #include <base/thread.h>
-#include <base/env.h>
-#include <base/sleep.h>
+#include <base/component.h>
+#include <base/heap.h>
 
 
 enum { STACK_SIZE = sizeof(long)*1024, COUNT_VALUE = 10 * 1024 * 1024 };
 
-struct Spinning_thread : Genode::Thread<STACK_SIZE>
+struct Spinning_thread : Genode::Thread
 {
 	Genode::Affinity::Location const _location;
 
@@ -48,35 +48,45 @@ struct Spinning_thread : Genode::Thread<STACK_SIZE>
 		}
 	}
 
-	Spinning_thread(Genode::Affinity::Location location, char const *name)
+	Spinning_thread(Genode::Env &env, Location location)
 	:
-		Genode::Thread<STACK_SIZE>(name), _location(location), cnt(0ULL),
-		barrier(Genode::Lock::LOCKED)
+		Genode::Thread(env, Name("spinning_thread"), STACK_SIZE, Location(),
+		               Weight(), env.cpu()),
+		_location(location), cnt(0ULL), barrier(Genode::Lock::LOCKED)
 	{
-		Genode::env()->cpu_session()->affinity(Thread_base::cap(), location);
 		start();
 	}
 };
 
 
-int main(int argc, char **argv)
+struct Main
+{
+	Genode::Env &env;
+
+	Genode::Heap heap { env.ram(), env.rm() };
+
+	Main(Genode::Env &env);
+};
+
+
+Main::Main(Genode::Env &env) : env(env)
 {
 	using namespace Genode;
 
 	printf("--- test-affinity started ---\n");
 
-	Affinity::Space cpus = env()->cpu_session()->affinity_space();
+	Affinity::Space cpus = env.cpu().affinity_space();
 	printf("Detected %ux%u CPU%s\n",
 	       cpus.width(), cpus.height(), cpus.total() > 1 ? "s." : ".");
 
 	/* get some memory for the thread objects */
-	Spinning_thread ** threads = new (env()->heap()) Spinning_thread*[cpus.total()];
-	uint64_t * thread_cnt = new (env()->heap()) uint64_t[cpus.total()];
+	Spinning_thread ** threads = new (heap) Spinning_thread*[cpus.total()];
+	uint64_t * thread_cnt = new (heap) uint64_t[cpus.total()];
 
 	/* construct the thread objects */
 	for (unsigned i = 0; i < cpus.total(); i++)
-		threads[i] = new (env()->heap())
-		             Spinning_thread(cpus.location_of_index(i), "spinning_thread");
+		threads[i] = new (heap)
+		             Spinning_thread(env, cpus.location_of_index(i));
 
 	/* wait until all threads are up and running */
 	for (unsigned i = 0; i < cpus.total(); i++)
@@ -92,7 +102,7 @@ int main(int argc, char **argv)
 
 	char const   text_cpu[] = "     CPU: ";
 	char const text_round[] = "Round %2u: ";
-	char * output_buffer = new (env()->heap()) char [sizeof(text_cpu) + 3 * cpus.total()];
+	char * output_buffer = new (heap) char [sizeof(text_cpu) + 3 * cpus.total()];
 
 	for (;;) {
 		cnt++;
@@ -123,5 +133,7 @@ int main(int argc, char **argv)
 			round ++;
 		}
 	}
-	sleep_forever();
 }
+
+Genode::size_t Component::stack_size()      { return 8*1024*sizeof(long); }
+void Component::construct(Genode::Env &env) { static Main inst(env); }

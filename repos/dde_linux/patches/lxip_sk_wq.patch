@@ -1,0 +1,13 @@
+diff --git a/net/ipv4/af_inet.c b/net/ipv4/af_inet.c
+index 5c5db66..6cb68a1 100644
+--- a/net/ipv4/af_inet.c
++++ b/net/ipv4/af_inet.c
+@@ -764,6 +764,8 @@ int inet_recvmsg(struct socket *sock, struct msghdr *msg, size_t size,
+ 
+ 	sock_rps_record_flow(sk);
+ 
++	if (sk->sk_wq == 0) sk->sk_wq = sock->wq;
++
+ 	err = sk->sk_prot->recvmsg(sk, msg, size, flags & MSG_DONTWAIT,
+ 				   flags & ~MSG_DONTWAIT, &addr_len);
+ 	if (err >= 0)

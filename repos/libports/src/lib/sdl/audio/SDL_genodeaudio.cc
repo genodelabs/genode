@@ -63,7 +63,7 @@ struct SDL_PrivateAudioData {
 /*
  * The first 'Signal_receiver' object in a process creates a signal receiver
  * thread. Currently this must not happen before the main program has started
- * or else the thread's context area would get overmapped on Genode/Linux when
+ * or else the thread's stack area would get overmapped on Genode/Linux when
  * the main program calls 'main_thread_bootstrap()' from '_main()'.
  */
 static Signal_receiver *signal_receiver()

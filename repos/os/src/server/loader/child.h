@@ -20,9 +20,9 @@
 #include <util/arg_string.h>
 #include <init/child_policy.h>
 #include <ram_session/connection.h>
-#include <rm_session/connection.h>
 #include <cpu_session/connection.h>
 #include <pd_session/connection.h>
+#include <region_map/client.h>
 
 
 namespace Loader {
@@ -33,12 +33,9 @@ namespace Loader {
 	{
 		private:
 
-			struct Label {
-				char string[Session::Name::MAX_SIZE];
-				Label(char const *l) { strncpy(string, l, sizeof(string)); }
-			} _label;
+			typedef String<Session::Name::MAX_SIZE> Label;
 
-			Native_pd_args _pd_args;
+			Label _label;
 
 			Rpc_entrypoint &_ep;
 
@@ -47,7 +44,6 @@ namespace Loader {
 				Pd_connection  pd;
 				Ram_connection ram;
 				Cpu_connection cpu;
-				Rm_connection  rm;
 
 				Resources(char const *label,
 				          Ram_session_client       &ram_session_client,
@@ -56,8 +52,7 @@ namespace Loader {
 				: pd(label), ram(label), cpu(label)
 				{
 					/* deduce session costs from usable ram quota */
-					size_t session_donations = Rm_connection::RAM_QUOTA +
-					                           Cpu_connection::RAM_QUOTA +
+					size_t session_donations = Cpu_connection::RAM_QUOTA +
 					                           Ram_connection::RAM_QUOTA;
 
 					if (ram_quota > session_donations)
@@ -71,23 +66,28 @@ namespace Loader {
 					 * Install CPU exception and RM fault handler assigned by
 					 * the loader client via 'Loader_session::fault_handler'.
 					 */
-					cpu.exception_handler(Thread_capability(), fault_sigh);
-					rm.fault_handler(fault_sigh);
+					cpu.exception_sigh(fault_sigh);
+					Region_map_client address_space(pd.address_space());
+					address_space.fault_handler(fault_sigh);
 				}
 			} _resources;
 
+			Genode::Child::Initial_thread _initial_thread { _resources.cpu,
+			                                                _resources.pd,
+			                                                _label.string() };
+
+			Region_map_client _address_space { _resources.pd.address_space() };
 
 			Service_registry &_parent_services;
 			Service &_local_nitpicker_service;
 			Service &_local_rom_service;
 			Service &_local_cpu_service;
-			Service &_local_rm_service;
+			Service &_local_pd_service;
 
 			Rom_session_client _binary_rom_session;
 
 			Init::Child_policy_provide_rom_file _binary_policy;
 			Init::Child_policy_enforce_labeling _labeling_policy;
-			Init::Child_policy_pd_args          _pd_args_policy;
 
 			Genode::Child _child;
 
@@ -107,33 +107,33 @@ namespace Loader {
 
 			Child(char                const *binary_name,
 			      char                const *label,
-			      Native_pd_args      const &pd_args,
+			      Dataspace_capability       ldso_ds,
 			      Rpc_entrypoint            &ep,
 			      Ram_session_client        &ram_session_client,
 			      size_t                     ram_quota,
 			      Service_registry          &parent_services,
 			      Service                   &local_rom_service,
 			      Service                   &local_cpu_service,
-			      Service                   &local_rm_service,
+			      Service                   &local_pd_service,
 			      Service                   &local_nitpicker_service,
 			      Signal_context_capability fault_sigh)
 			:
 				_label(label),
-				_pd_args(pd_args),
 				_ep(ep),
-				_resources(_label.string, ram_session_client, ram_quota, fault_sigh),
+				_resources(_label.string(), ram_session_client, ram_quota, fault_sigh),
 				_parent_services(parent_services),
 				_local_nitpicker_service(local_nitpicker_service),
 				_local_rom_service(local_rom_service),
 				_local_cpu_service(local_cpu_service),
-				_local_rm_service(local_rm_service),
+				_local_pd_service(local_pd_service),
 				_binary_rom_session(_rom_session(binary_name)),
 				_binary_policy("binary", _binary_rom_session.dataspace(), &_ep),
-				_labeling_policy(_label.string),
-				_pd_args_policy(&_pd_args),
-				_child(_binary_rom_session.dataspace(), _resources.pd.cap(),
-				       _resources.ram.cap(), _resources.cpu.cap(),
-				       _resources.rm.cap(), &_ep, this)
+				_labeling_policy(_label.string()),
+				_child(_binary_rom_session.dataspace(), ldso_ds,
+				       _resources.pd,  _resources.pd,
+				       _resources.ram, _resources.ram,
+				       _resources.cpu, _initial_thread,
+				       *env()->rm_session(), _address_space, _ep, *this)
 			{ }
 
 			~Child()
@@ -146,17 +146,15 @@ namespace Loader {
 			 ** Child-policy interface **
 			 ****************************/
 
-			char           const *name()    const { return _label.string; }
-			Native_pd_args const *pd_args() const { return &_pd_args; }
+			char const *name() const override { return _label.string(); }
 
-			void filter_session_args(char const *service, char *args, size_t args_len)
+			void filter_session_args(char const *service, char *args, size_t args_len) override
 			{
 				_labeling_policy.filter_session_args(service, args, args_len);
-				_pd_args_policy. filter_session_args(service, args, args_len);
 			}
 
 			Service *resolve_session_request(const char *name,
-			                                 const char *args)
+			                                 const char *args) override
 			{
 				Service *service = 0;
 
@@ -166,7 +164,7 @@ namespace Loader {
 				if (!strcmp(name, "Nitpicker")) return &_local_nitpicker_service;
 				if (!strcmp(name, "ROM"))       return &_local_rom_service;
 				if (!strcmp(name, "CPU"))       return &_local_cpu_service;
-				if (!strcmp(name, "RM"))        return &_local_rm_service;
+				if (!strcmp(name, "PD"))        return &_local_pd_service;
 
 				/* populate session-local parent service registry on demand */
 				service = _parent_services.find(name);

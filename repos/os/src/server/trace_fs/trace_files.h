@@ -260,7 +260,7 @@ namespace File_system {
 			 */
 			void _refresh_content()
 			{
-				unsigned long tmp;
+				unsigned long tmp = 0;
 
 				_content[_content_filled - 1] = '\0';
 				_content_filled = 0;

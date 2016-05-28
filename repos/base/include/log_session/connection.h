@@ -22,6 +22,22 @@ namespace Genode { struct Log_connection; }
 
 struct Genode::Log_connection : Connection<Log_session>, Log_session_client
 {
+	/**
+	 * Constructor
+	 */
+	Log_connection(Env &env)
+	:
+		Connection<Log_session>(env, session(env.parent(), "ram_quota=8K")),
+		Log_session_client(cap())
+	{ }
+
+	/**
+	 * Constructor
+	 *
+	 * \noapi
+	 * \deprecated  Use the constructor with 'Env &' as first
+	 *              argument instead
+	 */
 	Log_connection()
 	:
 		Connection<Log_session>(session("ram_quota=8K")),

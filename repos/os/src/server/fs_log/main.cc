@@ -167,8 +167,8 @@ class Fs_log::Root_component :
 			} catch (No_space) {
 				PERR("file system out of space");
 
-			} catch (Out_of_node_handles) {
-				PERR("too many open file handles");
+			} catch (Out_of_metadata) {
+				PERR("file system server out of metadata");
 
 			} catch (Invalid_name) {
 				PERR("%s: invalid path", Path(file_name, dir_path).base());

@@ -30,12 +30,10 @@ append config {
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
-		<service name="CAP"/>
 		<service name="PD"/>
 		<service name="RM"/>
 		<service name="CPU"/>
 		<service name="LOG"/>
-		<service name="SIGNAL"/>
 	</parent-provides>
 	<default-route/>
 
@@ -43,11 +41,9 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 		<route>
-			<service name="CAP"> <parent/> </service>
 			<service name="LOG"> <parent/> </service>
 			<service name="RM">  <parent/> </service>
 			<service name="ROM"> <parent/> </service>
-			<service name="SIGNAL"> <parent/> </service>
 			<service name="IO_MEM"> <parent/> </service>
 			<service name="IRQ">    <parent/> </service>
 			<service name="IO_PORT"> <parent/> </service>
@@ -59,11 +55,9 @@ append config {
 		<provides><service name="Input"/></provides>
 		<config verbose_keyboard="no" verbose_mouse="no" verbose_scancodes="no"/>
 		<route>
-			<service name="CAP">     <parent/> </service>
 			<service name="IO_PORT"> <parent/> </service>
 			<service name="LOG">     <parent/> </service>
 			<service name="RM">      <parent/> </service>
-			<service name="SIGNAL">  <parent/> </service>
 			<service name="IO_MEM">  <parent/> </service>
 			<service name="IRQ">     <parent/> </service>
 			<service name="Platform"> <any-child/> </service>
@@ -75,7 +69,6 @@ append config {
 		<route>
 			<service name="LOG">     <parent/> </service>
 			<service name="RM">      <parent/> </service>
-			<service name="SIGNAL">  <parent/> </service>
 
 			<service name="Input">   <child name="ps2_drv"/> </service>
 			<service name="Timer">   <child name="timer"/> </service>

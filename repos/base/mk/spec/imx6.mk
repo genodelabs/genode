@@ -7,12 +7,11 @@
 #
 
 # denote wich specs are also fullfilled by this spec
-SPECS += cortex_a9 imx6 imx epit
+SPECS += cortex_a9 imx6 imx
 
 # add repository relative include paths
 REP_INC_DIR += include/spec/imx6
 REP_INC_DIR += include/spec/imx
-REP_INC_DIR += include/spec/epit
 
 # include implied specs
 include $(call select_from_repositories,mk/spec/cortex_a9.mk)

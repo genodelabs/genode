@@ -22,7 +22,6 @@
 #include <parent_exit.h>
 #include <file_descriptor_registry.h>
 #include <local_noux_service.h>
-#include <local_rm_service.h>
 #include <local_rom_service.h>
 
 namespace Noux {
@@ -36,8 +35,8 @@ namespace Noux {
 			Init::Child_policy_provide_rom_file _binary_policy;
 			Init::Child_policy_provide_rom_file _args_policy;
 			Init::Child_policy_provide_rom_file _env_policy;
+			Init::Child_policy_provide_rom_file _config_policy;
 			Local_noux_service                 &_local_noux_service;
-			Local_rm_service                   &_local_rm_service;
 			Local_rom_service                  &_local_rom_service;
 			Service_registry                   &_parent_services;
 			Family_member                      &_family_member;
@@ -54,9 +53,9 @@ namespace Noux {
 			             Dataspace_capability      binary_ds,
 			             Dataspace_capability      args_ds,
 			             Dataspace_capability      env_ds,
+			             Dataspace_capability      config_ds,
 			             Rpc_entrypoint           &entrypoint,
 			             Local_noux_service       &local_noux_service,
-			             Local_rm_service         &local_rm_service,
 			             Local_rom_service        &local_rom_service,
 			             Service_registry         &parent_services,
 			             Family_member            &family_member,
@@ -71,8 +70,8 @@ namespace Noux {
 				_binary_policy("binary", binary_ds, &entrypoint),
 				_args_policy(  "args",   args_ds,   &entrypoint),
 				_env_policy(   "env",    env_ds,    &entrypoint),
+				_config_policy("config", config_ds, &entrypoint),
 				_local_noux_service(local_noux_service),
-				_local_rm_service(local_rm_service),
 				_local_rom_service(local_rom_service),
 				_parent_services(parent_services),
 				_family_member(family_member),
@@ -98,22 +97,15 @@ namespace Noux {
 				Service *service = 0;
 
 				/* check for local ROM file requests */
-				if ((service =   _args_policy.resolve_session_request(service_name, args))
-				 || (service =    _env_policy.resolve_session_request(service_name, args))
+				if ((service = _args_policy.resolve_session_request(service_name, args))
+				 || (service = _env_policy.resolve_session_request(service_name, args))
+				 || (service = _config_policy.resolve_session_request(service_name, args))
 				 || (service = _binary_policy.resolve_session_request(service_name, args)))
 					return service;
 
 				/* check for locally implemented noux service */
 				if (strcmp(service_name, Session::service_name()) == 0)
 					return &_local_noux_service;
-
-				/*
-				 * Check for the creation of an RM session, which is used by
-				 * the dynamic linker to manually manage a part of the address
-				 * space.
-				 */
-				if (strcmp(service_name, Rm_session::service_name()) == 0)
-					return &_local_rm_service;
 
 				/*
 				 * Check for local ROM service

@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -21,18 +21,19 @@ using namespace Genode;
 
 namespace Gdb_monitor {
 
-	class Signal_handler_thread : public Thread<2*4096>
+	enum { SIGNAL_HANDLER_THREAD_STACK_SIZE = 2*1024*sizeof(addr_t) };
+
+	class Signal_handler_thread
+	: public Thread_deprecated<SIGNAL_HANDLER_THREAD_STACK_SIZE>
 	{
 		private:
 
-			int              _pipefd[2];
 			Signal_receiver *_signal_receiver;
 
 		public:
 
 			Signal_handler_thread(Signal_receiver *receiver);
 			void entry();
-			int pipe_read_fd() { return _pipefd[0]; }
 	};
 
 }

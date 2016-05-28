@@ -15,8 +15,9 @@
 #define _INCLUDE__BASE__HEAP_H_
 
 #include <util/list.h>
+#include <util/volatile_object.h>
 #include <ram_session/ram_session.h>
-#include <rm_session/rm_session.h>
+#include <region_map/region_map.h>
 #include <base/allocator_avl.h>
 #include <base/lock.h>
 
@@ -37,23 +38,6 @@ class Genode::Heap : public Allocator
 {
 	private:
 
-		enum {
-			MIN_CHUNK_SIZE =   4*1024,  /* in machine words */
-			MAX_CHUNK_SIZE = 256*1024,
-			/*
-			 * Meta data includes the Dataspace structure and meta data of
-			 * the AVL allocator.
-			 */
-			META_DATA_SIZE = 1024,      /* in bytes */
-			/*
-			 * Allocation sizes >= this value are considered as big
-			 * allocations, which get their own dataspace. In contrast
-			 * to smaller allocations, this memory is released to
-			 * the RAM session when 'free()' is called.
-			 */
-			BIG_ALLOCATION_THRESHOLD = 64*1024 /* in bytes */
-		};
-
 		class Dataspace : public List<Dataspace>::Element
 		{
 			public:
@@ -64,10 +48,6 @@ class Genode::Heap : public Allocator
 
 				Dataspace(Ram_dataspace_capability c, void *local_addr, size_t size)
 				: cap(c), local_addr(local_addr), size(size) { }
-
-				inline void * operator new(Genode::size_t, void* addr) {
-					return addr; }
-				inline void operator delete(void*) { }
 		};
 
 		/*
@@ -77,31 +57,23 @@ class Genode::Heap : public Allocator
 		struct Dataspace_pool : public List<Dataspace>
 		{
 			Ram_session *ram_session; /* RAM session for backing store */
-			Rm_session  *rm_session;  /* region manager */
+			Region_map  *region_map;
 
-			Dataspace_pool(Ram_session *ram_session, Rm_session *rm_session)
-			: ram_session(ram_session), rm_session(rm_session) { }
+			Dataspace_pool(Ram_session *ram, Region_map *rm)
+			: ram_session(ram), region_map(rm) { }
 
-			/**
-			 * Destructor
-			 */
 			~Dataspace_pool();
 
-			void reassign_resources(Ram_session *ram, Rm_session *rm) {
-				ram_session = ram, rm_session = rm; }
+			void reassign_resources(Ram_session *ram, Region_map *rm) {
+				ram_session = ram, region_map = rm; }
 		};
 
-		/*
-		 * NOTE: The order of the member variables is important for
-		 *       the calling order of the destructors!
-		 */
-
-		Lock           _lock;
-		Dataspace_pool _ds_pool;      /* list of dataspaces */
-		Allocator_avl  _alloc;        /* local allocator    */
-		size_t         _quota_limit;
-		size_t         _quota_used;
-		size_t         _chunk_size;
+		Lock                           _lock;
+		Volatile_object<Allocator_avl> _alloc;        /* local allocator    */
+		Dataspace_pool                 _ds_pool;      /* list of dataspaces */
+		size_t                         _quota_limit;
+		size_t                         _quota_used;
+		size_t                         _chunk_size;
 
 		/**
 		 * Allocate a new dataspace of the specified size
@@ -109,8 +81,8 @@ class Genode::Heap : public Allocator
 		 * \param size                       number of bytes to allocate
 		 * \param enforce_separate_metadata  if true, the new dataspace
 		 *                                   will not contain any meta data
-		 * \throw                            Rm_session::Invalid_dataspace,
-		 *                                   Rm_session::Region_conflict
+		 * \throw                            Region_map::Invalid_dataspace,
+		 *                                   Region_map::Region_conflict
 		 * \return                           0 on success or negative error code
 		 */
 		Heap::Dataspace *_allocate_dataspace(size_t size, bool enforce_separate_metadata);
@@ -135,19 +107,14 @@ class Genode::Heap : public Allocator
 		enum { UNLIMITED = ~0 };
 
 		Heap(Ram_session *ram_session,
-		     Rm_session  *rm_session,
+		     Region_map  *region_map,
 		     size_t       quota_limit = UNLIMITED,
 		     void        *static_addr = 0,
-		     size_t       static_size = 0)
-		:
-			_ds_pool(ram_session, rm_session),
-			_alloc(0),
-			_quota_limit(quota_limit), _quota_used(0),
-			_chunk_size(MIN_CHUNK_SIZE)
-		{
-			if (static_addr)
-				_alloc.add_range((addr_t)static_addr, static_size);
-		}
+		     size_t       static_size = 0);
+
+		Heap(Ram_session &ram, Region_map &rm) : Heap(&ram, &rm) { }
+
+		~Heap();
 
 		/**
 		 * Reconfigure quota limit
@@ -160,7 +127,7 @@ class Genode::Heap : public Allocator
 		/**
 		 * Re-assign RAM and RM sessions
 		 */
-		void reassign_resources(Ram_session *ram, Rm_session *rm) {
+		void reassign_resources(Ram_session *ram, Region_map *rm) {
 			_ds_pool.reassign_resources(ram, rm); }
 
 
@@ -171,7 +138,7 @@ class Genode::Heap : public Allocator
 		bool   alloc(size_t, void **) override;
 		void   free(void *, size_t) override;
 		size_t consumed() const override { return _quota_used; }
-		size_t overhead(size_t size) const override { return _alloc.overhead(size); }
+		size_t overhead(size_t size) const override { return _alloc->overhead(size); }
 		bool   need_size_for_free() const override { return false; }
 };
 
@@ -183,20 +150,44 @@ class Genode::Sliced_heap : public Allocator
 {
 	private:
 
-		class Block;
+		/**
+		 * Meta-data header placed in front of each allocated block
+		 */
+		struct Block : List<Block>::Element
+		{
+			Ram_dataspace_capability const ds;
+			size_t                   const size;
 
-		Ram_session    *_ram_session;  /* RAM session for backing store */
-		Rm_session     *_rm_session;   /* region manager                */
-		size_t          _consumed;     /* number of allocated bytes     */
-		List<Block>     _block_list;   /* list of allocated blocks      */
-		Lock            _lock;         /* serialize allocations         */
+			Block(Ram_dataspace_capability ds, size_t size) : ds(ds), size(size)
+			{ }
+		};
+
+		Ram_session    &_ram_session;  /* RAM session for backing store   */
+		Region_map     &_region_map;   /* region map of the address space */
+		size_t          _consumed;     /* number of allocated bytes       */
+		List<Block>     _blocks;       /* list of allocated blocks        */
+		Lock            _lock;         /* serialize allocations           */
 
 	public:
 
 		/**
+		 * Return size of header prepended to each allocated block in bytes
+		 */
+		static constexpr size_t meta_data_size() { return sizeof(Block); }
+
+		/**
+		 * Constructor
+		 *
+		 * \deprecated  Use the other constructor that takes reference
+		 *              arguments
+		 */
+		Sliced_heap(Ram_session *ram_session, Region_map *region_map)
+		: Sliced_heap(*ram_session, *region_map) { }
+
+		/**
 		 * Constructor
 		 */
-		Sliced_heap(Ram_session *ram_session, Rm_session *rm_session);
+		Sliced_heap(Ram_session &ram_session, Region_map &region_map);
 
 		/**
 		 * Destructor

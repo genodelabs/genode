@@ -17,10 +17,14 @@
 #ifndef _CORE__INCLUDE__PAGER_H_
 #define _CORE__INCLUDE__PAGER_H_
 
+/* Genode includes */
 #include <base/signal.h>
 #include <pager/capability.h>
 #include <cap_session/cap_session.h>
 #include <thread/capability.h>
+
+/* core-local includes */
+#include <rpc_cap_factory.h>
 
 namespace Genode {
 
@@ -44,11 +48,15 @@ namespace Genode {
 
 	struct Pager_entrypoint
 	{
-		Pager_entrypoint(Cap_session *) { }
+		Pager_entrypoint(Rpc_cap_factory &) { }
 
 		template <typename FUNC>
 		auto apply(Pager_capability, FUNC f) -> decltype(f(nullptr)) {
 			return f(nullptr); }
+
+		Pager_capability manage(Pager_object *) { return Pager_capability(); }
+
+		void dissolve(Pager_object *) { }
 	};
 }
 

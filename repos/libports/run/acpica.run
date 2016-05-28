@@ -1,0 +1,173 @@
+assert_spec acpi
+
+if {
+	![have_spec hw] &&
+	![have_spec nova]
+} {
+	puts "Platform is unsupported."
+	exit 0
+}
+
+set build_components {
+	core init
+	drivers/input
+	drivers/timer
+	server/dynamic_rom
+	server/report_rom
+	app/acpica
+	test/input
+}
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+
+# override default platform driver policy
+proc platform_drv_policy {} {
+	return {
+			<policy label="ps2_drv"> <device name="PS2"/> </policy>
+			<policy label="acpica"> <pci class="ALL"/> </policy>}
+}
+
+# add routing information to dynamically generate change of 'system' ROM
+proc platform_drv_add_routing {} {
+	return {
+			<service name="ROM" label="system"> <child name="dynamic_rom"/> </service>}
+}
+
+# override default config to react on 'system' ROM changes for reset
+proc platform_drv_config_config {} {
+	return {
+		<config acpi="yes" system="no">}
+}
+
+append_platform_drv_build_components
+
+build $build_components
+
+create_boot_directory
+
+set config {
+	<config>
+		<parent-provides>
+			<service name="IRQ"/>
+			<service name="RAM"/>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="RM"/>
+			<service name="IO_MEM" />
+			<service name="IO_PORT" />
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<start name="timer">
+			<resource name="RAM" quantum="2M"/>
+			<provides><service name="Timer"/></provides>
+		</start>
+		<start name="acpica">
+<!--			<binary name="debug-acpica"/> -->
+			<resource name="RAM" quantum="4M"/>
+			<config ld_verbose="yes" reset="no" poweroff="no" report="yes">
+<!-- required for "debug-acpica":
+				<libc stdout="/dev/log">
+					<vfs> <dir name="dev"> <log/> </dir> </vfs>
+				</libc>
+-->
+			</config>
+			<route>
+				<service name="ROM" label="system"> <child name="dynamic_rom"/> </service>
+				<service name="Report">  <child name="acpi_state"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>}
+
+append config {
+		<start name="acpi_state">
+			<binary name="report_rom"/>
+			<resource name="RAM" quantum="2M"/>
+			<provides>
+				<service name="ROM" />
+				<service name="Report" />
+			</provides>
+			<config verbose="yes">
+			</config>
+			<route>
+				<service name="LOG"> <parent/> </service>
+				<service name="SIGNAL"> <parent/> </service>
+				<service name="CAP"> <parent/> </service>
+				<service name="RM"> <parent/> </service>
+			</route>
+		</start>}
+
+append config {
+		<start name="dynamic_rom">
+			<resource name="RAM" quantum="4M"/>
+			<provides><service name="ROM"/></provides>
+			<config verbose="yes">
+				<rom name="system">
+					<inline description="set system state to 'normal'">
+						<system state="normal"/>
+					</inline>
+					<sleep milliseconds="5000" />
+					<inline description="set system state to 'reset'">
+						<system state="reset"/>
+					</inline>
+<!--
+					<inline description="set system state to 'poweroff'">
+						<system state="poweroff"/>
+					</inline>
+-->
+					<sleep milliseconds="500" />
+				</rom>
+			</config>
+		</start>}
+
+append config {
+		<start name="ps2_drv">
+			<resource name="RAM" quantum="2M"/>
+			<provides><service name="Input"/></provides>
+			<config verbose_keyboard="no" verbose_mouse="no" verbose_scancodes="no"/>
+			<route>
+				<service name="LOG">     <parent/> </service>
+				<service name="RM">      <parent/> </service>
+				<service name="Platform"> <child name="platform_drv"/> </service>
+			</route>
+		</start>
+
+		<start name="test-input">
+			<resource name="RAM" quantum="1M"/>
+			<route>
+				<service name="LOG">     <parent/> </service>
+				<service name="RM">      <parent/> </service>
+
+				<service name="Input">   <child name="ps2_drv"/> </service>
+				<service name="Timer">   <child name="timer"/> </service>
+			</route>
+		</start>}
+
+append_platform_drv_config
+
+append config {
+</config>
+}
+
+install_config $config
+
+set boot_modules {
+	core init
+	ld.lib.so libc.lib.so
+	timer
+	ps2_drv
+	report_rom
+	dynamic_rom
+	acpica
+	debug-acpica
+	test-input
+}
+
+append_platform_drv_boot_modules
+
+build_boot_image $boot_modules
+
+append qemu_args "-nographic -m 128"
+
+run_genode_until {\[init -\> acpica\].*SCI IRQ:.*\n} 30

@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CORE__INCLUDE__VM_SESSION_COMPONENT_H_
-#define _CORE__INCLUDE__VM_SESSION_COMPONENT_H_
+#ifndef _CORE__INCLUDE__SPEC__ARM_V7__VIRTUALIZATION__VM_SESSION_COMPONENT_H_
+#define _CORE__INCLUDE__SPEC__ARM_V7__VIRTUALIZATION__VM_SESSION_COMPONENT_H_
 
 /* Genode includes */
 #include <base/allocator.h>
@@ -76,4 +76,4 @@ class Genode::Vm_session_component
 		void detach(addr_t vm_addr, size_t size);
 };
 
-#endif /* _CORE__INCLUDE__VM_SESSION_COMPONENT_H_ */
+#endif /* _CORE__INCLUDE__SPEC__ARM_V7__VIRTUALIZATION__VM_SESSION_COMPONENT_H_ */

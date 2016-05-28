@@ -11,7 +11,9 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* local includes */
 #include <lx_emul.h>
+
 
 int security_secid_to_secctx(u32 secid, char **secdata, u32 *seclen)
 {

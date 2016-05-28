@@ -1,9 +1,8 @@
 /*
  * \brief  Core implementation of the PD session interface
  * \author Christian Helmuth
+ * \author Norman Feske
  * \date   2006-07-17
- *
- * FIXME arg_string and quota missing
  */
 
 /*
@@ -13,10 +12,10 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* Genode */
+/* Genode includes */
 #include <base/printf.h>
 
-/* Core */
+/* core-local includes */
 #include <util.h>
 #include <pd_session_component.h>
 #include <cpu_session_component.h>
@@ -24,30 +23,7 @@
 using namespace Genode;
 
 
-int Pd_session_component::bind_thread(Thread_capability thread)
+void Pd_session_component::assign_parent(Parent_capability parent)
 {
-	return _thread_ep->apply(thread, [&] (Cpu_thread_component *cpu_thread) {
-		if (!cpu_thread) return -1;
-
-		if (cpu_thread->bound()) {
-			PWRN("rebinding of threads not supported");
-			return -2;
-		}
-
-		Platform_thread *p_thread = cpu_thread->platform_thread();
-
-		int res = _pd.bind_thread(p_thread);
-
-		if (res)
-			return res;
-
-		cpu_thread->bound(true);
-		return 0;
-	});
-}
-
-
-int Pd_session_component::assign_parent(Parent_capability parent)
-{
-	return _pd.assign_parent(parent);
+	_pd.assign_parent(parent);
 }

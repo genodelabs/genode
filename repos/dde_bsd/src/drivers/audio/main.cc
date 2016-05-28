@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014-2015 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -15,21 +15,16 @@
 /* Genode includes */
 #include <audio_in_session/rpc_object.h>
 #include <audio_out_session/rpc_object.h>
-#include <base/env.h>
-#include <base/sleep.h>
-#include <cap_session/connection.h>
-#include <os/config.h>
-#include <os/server.h>
+#include <base/attached_rom_dataspace.h>
+#include <base/component.h>
+#include <base/log.h>
 #include <root/component.h>
-#include <util/misc_math.h>
-#include <trace/timestamp.h>
 
 /* local includes */
 #include <audio/audio.h>
 
 
 using namespace Genode;
-
 using namespace Audio;
 
 
@@ -72,9 +67,9 @@ class Audio_out::Out
 {
 	private:
 
-		Server::Entrypoint                        &_ep;
-		Genode::Signal_rpc_member<Audio_out::Out>  _data_avail_dispatcher;
-		Genode::Signal_rpc_member<Audio_out::Out>  _notify_dispatcher;
+		Genode::Entrypoint                     &_ep;
+		Genode::Signal_handler<Audio_out::Out>  _data_avail_dispatcher;
+		Genode::Signal_handler<Audio_out::Out>  _notify_dispatcher;
 
 		bool _active() {
 			return  channel_acquired[LEFT] && channel_acquired[RIGHT] &&
@@ -110,8 +105,9 @@ class Audio_out::Out
 			static short silence[Audio_out::PERIOD * Audio_out::MAX_CHANNELS] = { 0 };
 
 			int err = Audio::play(silence, sizeof(silence));
-			if (err && err != 35)
-				PWRN("Error %d during silence playback", err);
+			if (err && err != 35) {
+				Genode::warning("Error ", err, " during silence playback");
+			}
 		}
 
 		void _play_packet()
@@ -132,8 +128,9 @@ class Audio_out::Out
 				}
 
 				/* send to driver */
-				if (int err = Audio::play(data, sizeof(data)))
-					PWRN("Error %d during playback", err);
+				if (int err = Audio::play(data, sizeof(data))) {
+					Genode::warning("Error ", err, " during playback");
+				}
 
 				p_left->invalidate();
 				p_right->invalidate();
@@ -161,12 +158,12 @@ class Audio_out::Out
 		 * started to play and we will keep doing it, even if it is
 		 * silence.
 		 */
-		void _handle_data_avail(unsigned) { }
+		void _handle_data_avail() { }
 
 		/*
 		 * DMA block played
 		 */
-		void _handle_notify(unsigned)
+		void _handle_notify()
 		{
 			if (_active())
 				_play_packet();
@@ -174,7 +171,7 @@ class Audio_out::Out
 
 	public:
 
-		Out(Server::Entrypoint &ep)
+		Out(Genode::Entrypoint &ep)
 		:
 			_ep(ep),
 			_data_avail_dispatcher(ep, *this, &Audio_out::Out::_handle_data_avail),
@@ -225,8 +222,8 @@ struct Audio_out::Root_policy
 
 		if ((ram_quota < session_size) ||
 		    (sizeof(Stream) > ram_quota - session_size)) {
-			PERR("insufficient 'ram_quota', got %zd, need %zd",
-			     ram_quota, sizeof(Stream) + session_size);
+			Genode::error("insufficient 'ram_quota', got ", ram_quota,
+			              " need ", sizeof(Stream) + session_size);
 			throw ::Root::Quota_exceeded();
 		}
 
@@ -257,7 +254,7 @@ class Audio_out::Root : public Audio_out::Root_component
 {
 	private:
 
-		Server::Entrypoint &_ep;
+		Genode::Entrypoint &_ep;
 
 		Signal_context_capability _cap;
 
@@ -278,7 +275,7 @@ class Audio_out::Root : public Audio_out::Root_component
 
 	public:
 
-		Root(Server::Entrypoint &ep, Allocator &md_alloc,
+		Root(Genode::Entrypoint &ep, Allocator &md_alloc,
 		     Signal_context_capability cap)
 		:
 			Root_component(&ep.rpc_ep(), &md_alloc),
@@ -323,8 +320,8 @@ class Audio_in::In
 {
 	private:
 
-		Server::Entrypoint                      &_ep;
-		Genode::Signal_rpc_member<Audio_in::In>  _notify_dispatcher;
+		Genode::Entrypoint                   &_ep;
+		Genode::Signal_handler<Audio_in::In>  _notify_dispatcher;
 
 		bool _active() { return channel_acquired && channel_acquired->active(); }
 
@@ -334,8 +331,9 @@ class Audio_in::In
 		{
 			static short data[2 * Audio_in::PERIOD];
 			if (int err = Audio::record(data, sizeof(data))) {
-					if (err && err != 35)
-						PWRN("Error %d during recording", err);
+					if (err && err != 35) {
+						Genode::warning("Error ", err, " during recording");
+					}
 					return;
 			}
 
@@ -361,7 +359,7 @@ class Audio_in::In
 			if (overrun) channel_acquired->overrun_submit();
 		}
 
-		void _handle_notify(unsigned)
+		void _handle_notify()
 		{
 			if (_active())
 				_record_packet();
@@ -369,7 +367,7 @@ class Audio_in::In
 
 	public:
 
-		In(Server::Entrypoint &ep)
+		In(Genode::Entrypoint &ep)
 		:
 			_ep(ep),
 			_notify_dispatcher(ep, *this, &Audio_in::In::_handle_notify)
@@ -408,8 +406,8 @@ struct Audio_in::Root_policy
 
 		if ((ram_quota < session_size) ||
 		    (sizeof(Stream) > (ram_quota - session_size))) {
-			PERR("insufficient 'ram_quota', got %zu, need %zu",
-			     ram_quota, sizeof(Stream) + session_size);
+			Genode::error("insufficient 'ram_quota', got ", ram_quota,
+			              " need ", sizeof(Stream) + session_size);
 			throw Genode::Root::Quota_exceeded();
 		}
 
@@ -440,7 +438,7 @@ class Audio_in::Root : public Audio_in::Root_component
 {
 	private:
 
-		Server::Entrypoint        &_ep;
+		Genode::Entrypoint        &_ep;
 		Signal_context_capability  _cap;
 
 	protected:
@@ -458,7 +456,7 @@ class Audio_in::Root : public Audio_in::Root_component
 
 	public:
 
-		Root(Server::Entrypoint &ep, Allocator &md_alloc,
+		Root(Genode::Entrypoint &ep, Allocator &md_alloc,
 		     Signal_context_capability cap)
 		: Root_component(&ep.rpc_ep(), &md_alloc), _ep(ep), _cap(cap) { }
 };
@@ -468,67 +466,73 @@ class Audio_in::Root : public Audio_in::Root_component
  ** Main **
  **********/
 
-static bool disable_playback()
+static bool check(Genode::Xml_node   config,
+                  char const * const attr,
+                  char const * const value)
 {
-	using namespace Genode;
-	try {
-		return config()->xml_node().attribute("playback").has_value("no");
-	} catch (...) { }
-
-	return false;
-}
-
-
-static bool enable_recording()
-{
-	using namespace Genode;
-	try {
-		return config()->xml_node().attribute("recording").has_value("yes");
-	} catch (...) { }
-
-	return false;
+	try         { return config.attribute(attr).has_value(value); }
+	catch (...) { return false; }
 }
 
 
 struct Main
 {
-	Server::Entrypoint &ep;
+	Genode::Env        &env;
+	Genode::Entrypoint &ep;
+	Genode::Heap       heap { &env.ram(), &env.rm() };
 
-	Main(Server::Entrypoint &ep) : ep(ep)
+	Genode::Attached_rom_dataspace config { env, "config" };
+
+	Genode::Signal_handler<Main> config_update_dispatcher {
+		ep, *this, &Main::handle_config_update };
+
+	void handle_config_update()
 	{
-		Audio::init_driver(ep);
+		config.update();
+		if (!config.is_valid()) { return; }
+		Audio::update_config(config.xml());
+	}
 
-		if (Audio::driver_active()) {
+	Main(Genode::Env &env) : env(env), ep(env.ep())
+	{
+		Audio::init_driver(env, heap, config.xml());
 
-			/* playback */
-			if (!disable_playback()) {
-				static Audio_out::Out out(ep);
-				Audio::play_sigh(out.sigh());
-				static Audio_out::Root out_root(ep, *env()->heap(), out.data_avail());
-				env()->parent()->announce(ep.manage(out_root));
-				PINF("--- BSD Audio driver enable playback ---");
-			}
-
-			/* recording */
-			if (enable_recording()) {
-				static Audio_in::In in(ep);
-				Audio::record_sigh(in.sigh());
-				static Audio_in::Root in_root(ep, *env()->heap(),
-				                              Genode::Signal_context_capability());
-				env()->parent()->announce(ep.manage(in_root));
-				PINF("--- BSD Audio driver enable recording ---");
-			}
+		if (!Audio::driver_active()) {
+			return;
 		}
+
+		/* playback */
+		if (!check(config.xml(), "playback", "no")) {
+			static Audio_out::Out out(ep);
+			Audio::play_sigh(out.sigh());
+			static Audio_out::Root out_root(ep, heap, out.data_avail());
+			env.parent().announce(ep.manage(out_root));
+
+			Genode::log("--- BSD Audio driver enable playback ---");
+		}
+
+		/* recording */
+		if (check(config.xml(), "recording", "yes")) {
+			static Audio_in::In in(ep);
+			Audio::record_sigh(in.sigh());
+			static Audio_in::Root in_root(ep, heap,
+			                              Genode::Signal_context_capability());
+			env.parent().announce(ep.manage(in_root));
+
+			Genode::log("--- BSD Audio driver enable recording ---");
+		}
+
+		config.sigh(config_update_dispatcher);
 	}
 };
 
 
-/************
- ** Server **
- ************/
+/***************
+ ** Component **
+ ***************/
 
-namespace Server {
-	char const *name()             { return "audio_drv_ep";      }
-	size_t      stack_size()       { return 8*1024*sizeof(long); }
-	void construct(Entrypoint &ep) { static Main server(ep);     }
+namespace Component {
+	char const *name()               { return "audio_drv_ep";      }
+	size_t      stack_size()         { return 8*1024*sizeof(long); }
+	void construct(Genode::Env &env) { static Main server(env);    }
 }

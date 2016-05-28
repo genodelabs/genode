@@ -21,35 +21,27 @@
 #include <stdarg.h>
 #include <base/fixed_stdint.h>
 
-#define DEBUG_COMPLETION 0
-#define DEBUG_DMA        0
-#define DEBUG_DRIVER     0
-#define DEBUG_IRQ        0
-#define DEBUG_KREF       0
-#define DEBUG_PRINTK     0
-#define DEBUG_PCI        0
-#define DEBUG_SKB        0
-#define DEBUG_SLAB       0
-#define DEBUG_TIMER      0
-#define DEBUG_THREAD     0
-#define DEBUG_TRACE      0
+#include <lx_emul/extern_c_begin.h>
+
+#define DEBUG_COMPLETION   0
+#define DEBUG_DMA          0
+#define DEBUG_DRIVER       0
+#define DEBUG_KREF         0
+#define DEBUG_LINUX_PRINTK 0
+#define DEBUG_PCI          0
+#define DEBUG_SKB          0
+#define DEBUG_SLAB         0
+#define DEBUG_TIMER        0
+#define DEBUG_THREAD       0
+#define DEBUG_TRACE        0
 
 #define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
-#define LINUX_VERSION_CODE KERNEL_VERSION(3,9,0)
+#define LINUX_VERSION_CODE KERNEL_VERSION(4,4,3)
 
 #define KBUILD_MODNAME "mod-noname"
 
-void lx_printf(char const *, ...) __attribute__((format(printf, 1, 2)));
-void lx_vprintf(char const *, va_list);
-
-#define lx_log(doit, msg...)         \
-	do {                               \
-		if (doit) {                      \
-			lx_printf("%s(): ", __func__); \
-			lx_printf(msg);                \
-			lx_printf("\n");               \
-		}                                \
-	} while(0);
+/* lx_printf */
+#include <lx_emul/printf.h>
 
 static inline void bt()
 {
@@ -70,29 +62,13 @@ static inline void bt()
 
 #define bin2bcd(x) ((((x) / 10) << 4) + (x) % 10)
 
+
 /***************
  ** asm/bug.h **
  ***************/
 
-#define WARN_ON(condition) ({ \
-	int ret = !!(condition); \
-	if (ret) lx_printf("[%s] WARN_ON(" #condition ") ", __func__); \
-	ret; })
+#include <lx_emul/bug.h>
 
-#define WARN(condition, fmt, arg...) ({ \
-	int ret = !!(condition); \
-	if (ret) lx_printf("[%s] *WARN* " fmt , __func__ , ##arg); \
-	ret; })
-
-#define BUG() do { \
-	lx_printf("BUG: failure at %s:%d/%s()!\n", __FILE__, __LINE__, __func__); \
-	while (1); \
-} while (0)
-
-#define WARN_ON_ONCE WARN_ON
-#define WARN_ONCE    WARN
-
-#define BUG_ON(condition) do { if (condition) BUG(); } while(0)
 
 /*********************
  ** linux/kconfig.h **
@@ -119,6 +95,7 @@ enum { USBDEVICE_SUPER_MAGIC = 0x9fa2 };
  ******************/
 
 typedef struct atomic { unsigned int v; } atomic_t;
+typedef void*  atomic_long_t;
 
 void atomic_set(atomic_t *p, unsigned int v);
 unsigned int atomic_read(atomic_t *p);
@@ -137,42 +114,11 @@ int atomic_inc_return(atomic_t *v);
  ** linux/types.h **
  *******************/
 
-typedef genode_int8_t   int8_t;
-typedef genode_uint8_t  uint8_t;
-typedef genode_int16_t  int16_t;
-typedef genode_uint16_t uint16_t;
-typedef genode_int32_t  int32_t;
-typedef genode_uint32_t uint32_t;
-typedef __SIZE_TYPE__   size_t;
-typedef genode_int64_t  int64_t;
-typedef genode_uint64_t uint64_t;
-
-typedef uint32_t      uint;
-typedef unsigned long ulong;
-
-typedef int8_t   s8;
-typedef uint8_t  u8;
-typedef int16_t  s16;
-typedef uint16_t u16;
-typedef int32_t  s32;
-typedef uint32_t u32;
-typedef int64_t  s64;
-typedef uint64_t u64;
-
-typedef int8_t   __s8;
-typedef uint8_t  __u8;
-typedef int16_t  __s16;
-typedef uint16_t __u16;
-typedef int32_t  __s32;
-typedef uint32_t __u32;
-typedef int64_t  __s64;
-typedef uint64_t __u64;
+#include <lx_emul/types.h>
 
 typedef __u16 __le16;
 typedef __u32 __le32;
 typedef __u64 __le64;
-typedef __u16 __be16;
-typedef __u32 __be32;
 typedef __u64 __be64;
 
 typedef __u16 __sum16;
@@ -181,63 +127,10 @@ typedef __u32 __wsum;
 typedef u64 sector_t;
 typedef int clockid_t;
 
-struct list_head {
-	struct list_head *next, *prev;
-};
-
-struct hlist_head {
-	struct hlist_node *first;
-};
-
-struct hlist_node {
-	struct hlist_node *next, **pprev;
-};
-
-#ifndef __cplusplus
-typedef int bool;
-enum { true = 1, false = 0 };
-#endif /* __cplusplus */
-
-#ifndef NULL
-#ifdef __cplusplus
-#define NULL 0
-#else
-#define NULL ((void *)0)
-#endif /* __cplusplus */
-#endif /* NULL */
-
-typedef unsigned       gfp_t;
-typedef unsigned long  pgoff_t;
-typedef long long      loff_t;
-typedef long           ssize_t;
-typedef unsigned long  uintptr_t;
-typedef int            dev_t;
-typedef size_t         resource_size_t;
-typedef long           off_t;
-typedef int            pid_t;
-typedef unsigned       fmode_t;
-typedef u32            uid_t;
-typedef u32            gid_t;
-typedef unsigned       kuid_t;
-typedef unsigned       kgid_t;
-typedef long           __kernel_time_t;
-typedef unsigned short umode_t;
-typedef __u16          __be16;
-typedef __u32          __be32;
 
 #ifndef __cplusplus
 typedef u16            wchar_t;
 #endif
-
-/*
- * needed by usb.h
- */
-typedef unsigned long dma_addr_t;
-
-/*
- * XXX 'mode_t' is 'unsigned int' on x86_64
- */
-typedef unsigned short mode_t;
 
 /*
  * Needed by 'dwc_common_port/usb.h'
@@ -254,6 +147,7 @@ typedef uint32_t      u_int32_t;
  */
 typedef unsigned short ushort;
 
+typedef unsigned long phys_addr_t;
 
 #define DIV_ROUND_UP(n,d) (((n) + (d) - 1) / (d))
 #define BITS_TO_LONGS(nr)       DIV_ROUND_UP(nr, 8 * sizeof(long))
@@ -263,103 +157,29 @@ typedef unsigned short ushort;
 
 #include <linux/usb/storage.h>
 
+
 /**********************
  ** linux/compiler.h **
  **********************/
 
-#define likely
-#define unlikely
+#include <lx_emul/compiler.h>
 
 #define notrace /* needed by 'dwc_otg_hcd_intr.c' */
+#define __must_hold(x)
 
-#define __user   /* needed by usb/core/devices.c */
-#define __iomem  /* needed by usb/hcd.h */
-
-#define __releases(x) /* needed by usb/core/devio.c */
-#define __acquires(x) /* needed by usb/core/devio.c */
-#define __force
-#define __maybe_unused
-#define __bitwise
-
-#define __rcu
-#define __must_check
-
-#define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
-
-#define __attribute_const__
-
-#undef  __always_inline
-#define __always_inline
-
-#undef __unused
-
-#define __printf(a, b) __attribute__((format(printf, a, b)))
-
-
-/**************************
- ** linux/compiler-gcc.h **
- **************************/
-
-#define __noreturn    __attribute__((noreturn))
 
 /*********************
- ** linux/jiffies.h **
+ ** uapi/linux/uuid **
  *********************/
 
-extern unsigned long jiffies;
-unsigned long msecs_to_jiffies(const unsigned int m);
-unsigned int jiffies_to_msecs(const unsigned long j);
-long time_after(long a, long b);
-long time_after_eq(long a, long b);
-long time_before(long a, long b);
-
-
-/***********************
- ** linux/irqreturn.h **
- ***********************/
-
-enum irqreturn {
-	IRQ_NONE,
-	IRQ_HANDLED = (1 << 0),
-};
-
-/* needed by 'dwc_otg_hcd_linux.c' */
-#define IRQ_RETVAL(x) ((x) != IRQ_NONE)
-
-typedef enum irqreturn irqreturn_t;
-
-/*************************************
- ** linux/byteorder/little_endian.h **
- *************************************/
-
-#include <uapi/linux/byteorder/little_endian.h>
+typedef struct { __u8 b[16]; } uuid_le;
 
 
 /*******************************
  ** linux/byteorder/generic.h **
  *******************************/
 
-#define le16_to_cpu  __le16_to_cpu
-#define be16_to_cpu  __be16_to_cpu
-#define le32_to_cpu  __le32_to_cpu
-#define be32_to_cpu  __be32_to_cpu
-#define le16_to_cpus __le16_to_cpus
-#define cpu_to_le16p __cpu_to_le16p
-#define cpu_to_be16p __cpu_to_be16p
-#define cpu_to_le16  __cpu_to_le16
-#define cpu_to_le16s __cpu_to_le16s
-#define cpu_to_be16  __cpu_to_be16
-#define cpu_to_le32  __cpu_to_le32
-#define cpu_to_be32  __cpu_to_be32
-#define cpu_to_le32s __cpu_to_le32s
-#define cpu_to_le64  __cpu_to_le64
-#define le16_to_cpup __le16_to_cpup
-#define be16_to_cpup __be16_to_cpup
-#define le32_to_cpup __le32_to_cpup
-#define le32_to_cpus __le32_to_cpus
-#define be32_to_cpup __be32_to_cpup
-#define le64_to_cpu  __le64_to_cpu
-
+#include <lx_emul/byteorder.h>
 
 struct __una_u16 { u16 x; } __attribute__((packed));
 struct __una_u32 { u32 x; } __attribute__((packed));
@@ -412,111 +232,23 @@ struct page
 };
 
 
-/********************
- ** linux/poison.h **
- ********************/
-
-/*
- * In list.h, LIST_POISON1 and LIST_POISON2 are assigned to 'struct list_head
- * *' as well as 'struct hlist_node *' pointers. Consequently, C++ compiler
- * produces an error "cannot convert... in assignment". To compile 'list.h'
- * included by C++ source code, we have to define these macros to the only
- * value universally accepted for pointer assigments.h
- */
-
-#ifdef __cplusplus
-#define LIST_POISON1 0
-#define LIST_POISON2 0
-#else
-#define LIST_POISON1 ((void *)0x00100100)
-#define LIST_POISON2 ((void *)0x00200200)
-#endif  /* __cplusplus */
-
-
 /*******************************
  ** linux/errno.h and friends **
  *******************************/
 
-/**
- * Error codes
- *
- * Note that the codes do not correspond to those of the Linux kernel.
- */
+#include <lx_emul/errno.h>
+
 enum {
-	EINVAL        =  1,
-	ENODEV        =  2,
-	ENOMEM        =  3,
-	EFAULT        =  4,
-	EBADF         =  5,
-	EAGAIN        =  6,
-	ERESTARTSYS   =  7,
-	ENOSPC        =  8,
-	EIO           =  9,
-	EBUSY         = 10,
-	EPERM         = 11,
-	EINTR         = 12,
-	ENOMSG        = 13,
-	ECONNRESET    = 14,
-	ENOENT        = 15,
-	EHOSTUNREACH  = 16,
-	ESRCH         = 17,
-	EPIPE         = 18,
-	ENODATA       = 19,
-	EREMOTEIO     = 20,
-	ENOTTY        = 21,
-	ENOIOCTLCMD   = 22,
-	EADDRINUSE    = 23,
-	ENFILE        = 23,
-	EXFULL        = 24,
-	EIDRM         = 25,
-	ESHUTDOWN     = 26,
-	EMSGSIZE      = 27,
-	E2BIG         = 28,
-	EINPROGRESS   = 29,
-	ESPIPE        = 29,
-	ETIMEDOUT     = 30,
-	ENOSYS        = 31,
-	ENOTCONN      = 32,
-	EPROTO        = 33,
-	ENOTSUPP      = 34,
-	EISDIR        = 35,
-	EEXIST        = 36,
-	ENOTEMPTY     = 37,
-	ENXIO         = 38,
-	ENOEXEC       = 39,
-	EXDEV         = 40,
-	EOVERFLOW     = 41,
-	ENOSR         = 42,
-	ECOMM         = 43,
-	EFBIG         = 44,
-	EILSEQ        = 45,
-	ETIME         = 46,
-	EALREADY      = 47,
-	EOPNOTSUPP    = 48,
-	EDOM          = 49,
-	ENOLINK       = 50,
-	EADDRNOTAVAIL = 51,
-	EPROBE_DEFER  = 52,
+	ENOEXEC       = 8,
+	EISDIR        = 21,
+	EXFULL        = 52,
 	ERESTART      = 53,
-	ECONNABORTED  = 54,
+	ESHUTDOWN     = 58,
+	ECOMM         = 70,
+	EIDRM         = 82,
+	ENOSR         = 211,
 };
 
-
-/*****************
- ** linux/err.h **
- *****************/
-
-static inline bool IS_ERR(void const *ptr) {
-	return (unsigned long)(ptr) > (unsigned long)(-1000); }
-
-long PTR_ERR(const void *ptr);
-
-static inline long IS_ERR_OR_NULL(const void *ptr) {
-	return !ptr || IS_ERR(ptr); }
-
-static inline void *ERR_PTR(long error) {
-	return (void *) error;
-}
 
 /*******************
  ** linux/major.h **
@@ -526,116 +258,24 @@ enum {
 	INPUT_MAJOR = 13
 };
 
+
 /********************
  ** linux/kernel.h **
  ********************/
 
-/*
- * Log tags
- */
-#define KERN_DEBUG  "DEBUG: "
-#define KERN_ERR    "ERROR: "
-#define KERN_INFO   "INFO: "
-#define KERN_NOTICE "NOTICE: "
+#include <lx_emul/kernel.h>
 
-/*
- * Debug macros
- */
-#if DEBUG_PRINTK
-#define printk  _printk
-#define vprintk _lx_vprintf
-#else
-#define printk(...)
-#define vprintk(...)
-#endif
+#undef swap
 
-static inline __printf(1, 2) void panic(const char *fmt, ...) __noreturn;
-static inline void panic(const char *fmt, ...)
-{
-	va_list args;
-	va_start(args, fmt);
-	lx_vprintf(fmt, args);
-	va_end(args);
-	lx_printf("panic()");
-	while (1) ;
-}
-
-/*
- * Bits and types
- */
-
-/* needed by linux/list.h */
-#define container_of(ptr, type, member) ({ \
-	const typeof( ((type *)0)->member ) *__mptr = (ptr); \
-	(type *)( (char *)__mptr - offsetof(type,member) );})
-
-/* normally provided by linux/stddef.h, needed by linux/list.h */
-#define offsetof(TYPE, MEMBER) ((size_t) &((TYPE *)0)->MEMBER)
-
-#define max_t(type, x, y) ({			\
-	type __max1 = (x);			\
-	type __max2 = (y);			\
-	__max1 > __max2 ? __max1: __max2; })
-
-/**
- * Return minimum of two given values
- *
- * XXX check how this function is used (argument types)
- */
-static inline size_t min(size_t a, size_t b) {
-	return a < b ? a : b; }
-
-/**
- * Return maximum of two given values
- *
- * XXX check how this function is used (argument types)
- */
-#define max(x, y) ({                      \
-	typeof(x) _max1 = (x);                  \
-	typeof(y) _max2 = (y);                  \
-	(void) (&_max1 == &_max2);              \
-	_max1 > _max2 ? _max1 : _max2; })
-
-#define min_t(type, x, y) ({ \
-	type __min1 = (x); \
-	type __min2 = (y); \
-	__min1 < __min2 ? __min1: __min2; })
-
-#define abs(x) ( { \
-                  typeof (x) _x = (x); \
-                  _x < 0 ? -_x : _x;  })
-
-#define lower_32_bits(n) ((u32)(n))
-#define upper_32_bits(n) ((u32)(((n) >> 16) >> 16))
-
-#define roundup(x, y) (                           \
-{                                                 \
-	const typeof(y) __y = y;                        \
-	(((x) + (__y - 1)) / __y) * __y;                \
-})
-
-#define clamp_val(val, min, max) ({             \
-        typeof(val) __val = (val);              \
-        typeof(val) __min = (min);              \
-        typeof(val) __max = (max);              \
-        __val = __val < __min ? __min: __val;   \
-        __val > __max ? __max: __val; })
-
-
-#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
-
-#define BUILD_BUG_ON(condition)
-
-void might_sleep();
-
-#define INT_MAX  ((int)(~0U>>1))
-#define UINT_MAX (~0U)
+char *bin2hex(char *dst, const void *src, size_t count);
+int   hex2bin(u8 *dst, const char *src, size_t count);
 
 char *kasprintf(gfp_t gfp, const char *fmt, ...);
-int kstrtouint(const char *s, unsigned int base, unsigned int *res);
-int kstrtoul(const char *s, unsigned int base, unsigned long *res);
+int   kstrtouint(const char *s, unsigned int base, unsigned int *res);
+int   kstrtoul(const char *s, unsigned int base, unsigned long *res);
+int   kstrtou8(const char *s, unsigned int base, u8 *res);
 
-#define clamp(val, min, max) ({                 \
+#define clamp(val, min, max) ({           \
 	typeof(val) __val = (val);              \
 	typeof(min) __min = (min);              \
 	typeof(max) __max = (max);              \
@@ -644,14 +284,10 @@ int kstrtoul(const char *s, unsigned int base, unsigned long *res);
 	__val = __val < __min ? __min: __val;   \
 	__val > __max ? __max: __val; })
 
-#define DIV_ROUND_CLOSEST(x, divisor)(      \
-{                                           \
-	typeof(x) __x = x;                        \
-	typeof(divisor) __d = divisor;            \
-	(((typeof(x))-1) > 0 ||                   \
-	((typeof(divisor))-1) > 0 || (__x) > 0) ? \
-	(((__x) + ((__d) / 2)) / (__d)) :         \
-	(((__x) - ((__d) / 2)) / (__d));          \
+#define rounddown(x, y) (                 \
+{                                         \
+	typeof(x) __x = (x);                    \
+	__x - (__x % (y));                      \
 })
 
 #define PTR_ALIGN(p, a) ({              \
@@ -661,8 +297,9 @@ int kstrtoul(const char *s, unsigned int base, unsigned long *res);
 	p;                                    \
 })
 
-int strict_strtoul(const char *s, unsigned int base, unsigned long *res);
+int  strict_strtoul(const char *s, unsigned int base, unsigned long *res);
 long simple_strtoul(const char *cp, char **endp, unsigned int base);
+long simple_strtol(const char *,char **,unsigned int);
 
 int hex_to_bin(char ch);
 
@@ -678,8 +315,18 @@ int sprintf(char *buf, const char *fmt, ...);
 int sscanf(const char *, const char *, ...);
 int scnprintf(char *buf, size_t size, const char *fmt, ...);
 
-struct completion;
-void complete_and_exit(struct completion *, long);
+
+/*********************
+ ** linux/preempt.h **
+ *********************/
+
+bool in_softirq(void);
+
+/*********************
+ ** linux/jiffies.h **
+ *********************/
+
+#include <lx_emul/jiffies.h>
 
 
 /*********************
@@ -716,46 +363,43 @@ void print_hex_dump(const char *level, const char *prefix_str,
                     int prefix_type, int rowsize, int groupsize,
                     const void *buf, size_t len, bool ascii);
 
-#define KERN_WARNING "<4>"
 #define pr_info(fmt, ...) printk(KERN_INFO fmt, ##__VA_ARGS__)
 #define pr_err(fmt, ...) printk(KERN_ERR fmt, ##__VA_ARGS__)
 #define pr_debug(fmt, ...) printk(KERN_DEBUG fmt, ##__VA_ARGS__)
 #define pr_warning(fmt, ...) printk(KERN_WARNING fmt, ##__VA_ARGS__)
+#define pr_warn_once pr_warning
 #define pr_warn pr_warning
 
 bool printk_ratelimit();
 bool printk_ratelimited();
 bool printk_timed_ratelimit(unsigned long *, unsigned int);
-
-struct va_format
-{
-	const char *fmt;
-	va_list *va;
-};
-
-static inline int _printk(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
-static inline int _printk(const char *fmt, ...)
-{
-	va_list args;
-	va_start(args, fmt);
-	lx_vprintf(fmt, args);
-	va_end(args);
-	return 0;
-}
+#define printk_once(fmt, ...)
 
 /**********************************
  ** linux/bitops.h, asm/bitops.h **
  **********************************/
 
-#include <asm-generic/bitops/__ffs.h>
 
-#define BIT(nr)	      (1UL << (nr))
-#define BITS_PER_LONG (sizeof(long) * 8)
-
+#define BIT(nr)       (1UL << (nr))
+#define BITS_PER_LONG (__SIZEOF_LONG__ * 8)
 #define BIT_MASK(nr)  (1UL << ((nr) % BITS_PER_LONG))
 #define BIT_WORD(nr)  ((nr) / BITS_PER_LONG)
 
+/* normally declared in asm-generic/bitops/ffs.h */
+int ffs(int x);
+int fls(int x);
+
+#include <asm-generic/bitops/__ffs.h>
+#include <asm-generic/bitops/__fls.h>
 #include <asm-generic/bitops/non-atomic.h>
+#include <asm-generic/bitops/fls64.h>
+
+static inline unsigned fls_long(unsigned long l)
+{
+	if (sizeof(l) == 4)
+		return fls(l);
+	return fls64(l);
+}
 
 #define test_and_clear_bit(nr, addr) \
 	__test_and_clear_bit(nr, (volatile unsigned long *)(addr))
@@ -769,28 +413,16 @@ static inline int _printk(const char *fmt, ...)
 /**
  * Find first zero bit (limit to machine word size)
  */
-long find_next_zero_bit_le(const void *addr,
-                           unsigned long size, unsigned long offset);
+long find_next_zero_bit_le(const void *addr, unsigned long size, unsigned long offset);
+unsigned long find_next_bit(const unsigned long *addr, unsigned long size, unsigned long offset);
 
 #define find_next_zero_bit find_next_zero_bit_le
-
-/* normally declared in asm-generic/bitops/ffs.h */
-int ffs(int x);
-int fls(int x);
-
-static inline unsigned find_next_bit(unsigned long where, unsigned size, unsigned bit)
-{
-	for (; bit < size; bit++)
-		if ((1 << bit) & where)
-			return bit;
-
-	return size;
-}
+#define find_first_bit(addr, size) find_next_bit((addr), (size), 0)
 
 #define for_each_set_bit(bit, addr, size) \
-	for ((e) = find_next_bit((*addr), (size), 0); \
-	(e) < (size);                                 \
-	(e) =  find_next_bit((*addr),(size), (e) + 1))
+	for ((bit) = find_first_bit((addr), (size)); \
+	     (bit) < (size);                    \
+	     (bit) = find_next_bit((addr), (size), (bit) + 1))
 
 
 /*****************************************
@@ -804,27 +436,10 @@ static inline unsigned find_next_bit(unsigned long where, unsigned size, unsigne
 /********************
  ** linux/string.h **
  ********************/
-#undef memcpy
 
-void  *memcpy(void *d, const void *s, size_t n);
-void  *memset(void *s, int c, size_t n);
-int    memcmp(const void *, const void *, size_t);
-void  *memscan(void *addr, int c, size_t size);
-char  *strcat(char *dest, const char *src);
-int    strcmp(const char *s1, const char *s2);
-int    strncmp(const char *cs, const char *ct, size_t count);
-char  *strcpy(char *to, const char *from);
-char  *strncpy(char *, const char *, size_t);
-char  *strchr(const char *, int);
-char  *strrchr(const char *,int);
-size_t strlcat(char *dest, const char *src, size_t n);
-size_t strlcpy(char *dest, const char *src, size_t size);
-size_t strlen(const char *);
-char * strsep(char **,const char *);
-char *strstr(const char *, const char *);
-char  *kstrdup(const char *s, gfp_t gfp);
-void  *kmemdup(const void *src, size_t len, gfp_t gfp);
-void  *memmove(void *, const void *, size_t);
+#include <lx_emul/string.h>
+
+int strtobool(const char *, bool *);
 
 
 /*****************
@@ -848,40 +463,30 @@ int isprint(int);
  ** linux/init.h **
  ******************/
 
-#define __init
+#include <lx_emul/module.h>
+
 #define __initconst
 #define __initdata
 #define __devinit
-#define __devinitconst
 #define __devexit
 #define __devexit_p(x) x
-#define __exit
 
 #define __exit_p(x) x
-
-#define subsys_initcall(fn) void subsys_##fn(void) { fn(); }
 
 
 /********************
  ** linux/module.h **
  ********************/
 
-#define EXPORT_SYMBOL(x)
-#define EXPORT_SYMBOL_GPL(x)
-#define MODULE_AUTHOR(x)
-#define MODULE_VERSION(x)
-#define MODULE_DESCRIPTION(x)
-#define MODULE_LICENSE(x)
-#define MODULE_PARM_DESC(x, y)
-//#define MODULE_ALIAS_MISCDEV(x)  /* needed by agp/backend.c */
-#define MODULE_ALIAS(x)
 #define MODULE_SOFTDEP(x)
 
 #define THIS_MODULE 0
 
 #define MODULE_DEVICE_TABLE(type, name)
 
-struct module;
+#undef module_init
+#undef module_exit
+
 #define _MOD_CONCAT(a,b) module_##a##b
 #define MOD_CONCAT(a,b) _MOD_CONCAT(a,b)
 #define module_init(fn) void MOD_CONCAT(fn, MOD_SUFFIX)(void) { fn(); }
@@ -900,11 +505,6 @@ struct module;
 	module_exit(__driver##_exit);
 
 
-int try_module_get(struct module *module);
-
-static inline void module_put(struct module *module) { }
-static inline void __module_get(struct module *module) { }
-
 /*************************
  ** linux/moduleparam.h **
  *************************/
@@ -921,8 +521,9 @@ static inline void __module_get(struct module *module) { }
  ******************/
 
 enum {
-	SLAB_HWCACHE_ALIGN = 0x00002000UL,
-	SLAB_CACHE_DMA     = 0x00004000UL,
+	SLAB_HWCACHE_ALIGN    = 0x00002000UL,
+	SLAB_CACHE_DMA        = 0x00004000UL,
+	ARCH_KMALLOC_MINALIGN = 128, 
 };
 
 void *kzalloc(size_t size, gfp_t flags);
@@ -965,38 +566,23 @@ void *kmem_cache_zalloc(struct kmem_cache *k, gfp_t flags);
 void  kmem_cache_free(struct kmem_cache *, void *);
 
 
+void *kmalloc_array(size_t n, size_t size, gfp_t flags);
+
+
 /**********************
  ** linux/spinlock.h **
  **********************/
 
-typedef uint32_t spinlock_t;
-#define DEFINE_SPINLOCK(name) spinlock_t name = 0;
-
-void spin_lock(spinlock_t *lock);
-void spin_lock_nested(spinlock_t *lock, int subclass);
-void spin_unlock(spinlock_t *lock);
-void spin_lock_init(spinlock_t *lock);
-void spin_lock_irqsave(spinlock_t *lock, unsigned long flags);
-void spin_lock_irqrestore(spinlock_t *lock, unsigned long flags);
-void spin_unlock_irqrestore(spinlock_t *lock, unsigned long flags);
-void spin_lock_irq(spinlock_t *lock);
-void spin_unlock_irq(spinlock_t *lock);
-void assert_spin_locked(spinlock_t *lock);
+#include <lx_emul/spinlock.h>
 
 
 /*******************
  ** linux/mutex.h **
  *******************/
 
-struct mutex { uint8_t d; };
+#include <lx_emul/mutex.h>
 
-void mutex_init(struct mutex *m);
-void mutex_lock(struct mutex *m);
-void mutex_lock_nested(struct mutex *lock, unsigned int subclass);
-void mutex_unlock(struct mutex *m);
 int  mutex_lock_interruptible(struct mutex *m);
-
-#define DEFINE_MUTEX(mutexname) struct mutex mutexname = { 0 };
 
 
 /***********************
@@ -1012,133 +598,37 @@ void down(struct semaphore *sem);
  ** linux/rwsem.h **
  *******************/
 
-struct rw_semaphore { int dummy; };
-
-#define DECLARE_RWSEM(name) \
-	struct rw_semaphore name = { 0 };
-
-void down_read(struct rw_semaphore *sem);
-void up_read(struct rw_semaphore *sem);
-void down_write(struct rw_semaphore *sem);
-void up_write(struct rw_semaphore *sem);
-
-#define __RWSEM_INITIALIZER(name) { 0 }
+#include <lx_emul/semaphore.h>
 
 
 /******************
  ** linux/time.h **
  ******************/
 
-struct timespec {
-	__kernel_time_t tv_sec;
-	long            tv_nsec;
+#include <lx_emul/time.h>
+
+enum { CLOCK_BOOTTIME  = 7, };
+
+
+/*************************
+ ** linux/timekeeping.h **
+ *************************/
+
+enum tk_offsets {
+	TK_OFFS_BOOT = 1,
 };
 
-struct timeval { };
-struct timespec current_kernel_time(void);
-void do_gettimeofday(struct timeval *tv);
+ktime_t ktime_get_boottime(void);
+ktime_t ktime_mono_to_any(ktime_t tmono, enum tk_offsets offs);
+ktime_t ktime_mono_to_real(ktime_t mono);
 
-#define CURRENT_TIME (current_kernel_time())
-
-
-
-enum {
-	CLOCK_REALTIME  = 0,
-	CLOCK_MONOTONIC = 1,
-	NSEC_PER_USEC   = 1000L,
-	NSEC_PER_MSEC   = 1000000L,
-	NSEC_PER_SEC    = 1000L * NSEC_PER_MSEC,
-};
-
-
-/*******************
- ** linux/ktime.h **
- *******************/
-
-union ktime { s64 tv64; };
-
-typedef union ktime ktime_t;
-
-ktime_t ktime_add_ns(const ktime_t kt, u64 nsec);
-
-static inline ktime_t ktime_add_us(const ktime_t kt, const u64 usec)
-{
-	return ktime_add_ns(kt, usec * 1000);
-}
-
-static inline ktime_t ktime_get(void)
-{
-	return (ktime_t){ .tv64 = (s64)jiffies * HZ * NSEC_PER_MSEC /* ns */ };
-}
-
-static inline ktime_t ktime_set(const long sec, const unsigned long nsec)
-{
-	return (ktime_t){ .tv64 = (s64)sec * NSEC_PER_SEC + (s64)nsec /* ns */ };
-}
-
-static inline ktime_t ktime_add(const ktime_t a, const ktime_t b)
-{
-	return (ktime_t){ .tv64 = a.tv64 + b.tv64 /* ns */ };
-}
-
-
-s64 ktime_us_delta(const ktime_t later, const ktime_t earlier);
-
-struct timeval ktime_to_timeval(const ktime_t);
-
-ktime_t ktime_get_real(void);
-ktime_t ktime_sub(const ktime_t, const ktime_t);
-ktime_t ktime_get_monotonic_offset(void);
 
 /*******************
  ** linux/timer.h **
  *******************/
 
-struct tvec_base;
-extern struct tvec_base boot_tvec_bases;  /* needed by 'dwc_common_linux.c' */
+#include <lx_emul/timer.h>
 
-struct timer_list {
-	void (*function)(unsigned long);
-	unsigned long data;
-	void *timer;
-	unsigned long expires;
-	struct tvec_base *base;  /* needed by 'dwc_common_linux.c' */
-};
-
-void init_timer(struct timer_list *);
-int mod_timer(struct timer_list *timer, unsigned long expires);
-int del_timer(struct timer_list * timer);
-void setup_timer(struct timer_list *timer,void (*function)(unsigned long),
-                 unsigned long data);
-int timer_pending(const struct timer_list * timer);
-unsigned long round_jiffies(unsigned long j);
-
-void set_timer_slack(struct timer_list *time, int slack_hz);
-static inline void add_timer(struct timer_list *timer) { mod_timer(timer, timer->expires); }
-
-static inline
-int del_timer_sync(struct timer_list * timer) { return del_timer(timer); }
-
-
-/*********************
- ** linux/hrtimer.h **
- *********************/
-
-enum hrtimer_mode { HRTIMER_MODE_ABS = 0 };
-enum hrtimer_restart { HRTIMER_NORESTART = 0 };
-
-struct hrtimer
-{
-	enum hrtimer_restart (*function)(struct hrtimer *);
-	struct hrtimer        *data;
-	void                  *timer;
-};
-
-int hrtimer_start_range_ns(struct hrtimer *, ktime_t,
-                          unsigned long, const enum hrtimer_mode);
-
-void hrtimer_init(struct hrtimer *, clockid_t, enum hrtimer_mode);
-int hrtimer_cancel(struct hrtimer *);
 
 /*******************
  ** linux/delay.h **
@@ -1148,6 +638,8 @@ void msleep(unsigned int msecs);
 void udelay(unsigned long usecs);
 void mdelay(unsigned long usecs);
 
+void usleep_range(unsigned long min, unsigned long max);
+
 extern unsigned long loops_per_jiffy;  /* needed by 'dwc_otg_attr.c' */
 
 
@@ -1155,151 +647,42 @@ extern unsigned long loops_per_jiffy;  /* needed by 'dwc_otg_attr.c' */
  ** linux/workquque.h **
  ***********************/
 
-struct work_struct;
-typedef void (*work_func_t)(struct work_struct *work);
+#include <lx_emul/work.h>
 
-struct work_struct {
-	work_func_t func;
-	struct list_head entry;
-	unsigned         pending;
-	void            *data;
+enum {
+	WORK_STRUCT_PENDING_BIT = 0,
+	WQ_FREEZABLE            = (1 << 2),
 };
 
-struct delayed_work {
-	struct timer_list timer;
-	struct work_struct work;
-	unsigned           pending;
-};
 
-bool cancel_work_sync(struct work_struct *work);
-int cancel_delayed_work_sync(struct delayed_work *work);
-int schedule_delayed_work(struct delayed_work *work, unsigned long delay);
-int schedule_work(struct work_struct *work);
+#define work_data_bits(work) ((unsigned long *)(&(work)->data))
 
-bool flush_work(struct work_struct *work);
-bool flush_work_sync(struct work_struct *work);
+#define work_pending(work) \
+        test_bit(WORK_STRUCT_PENDING_BIT, work_data_bits(work))
 
-
-#define PREPARE_WORK(_work, _func) \
-	do { \
-	 (_work)->func    = (_func); \
-	 (_work)->pending = 0; \
-	} while (0)
-
-#define PREPARE_DELAYED_WORK(_work, _func) \
-	do { \
-		PREPARE_WORK(&(_work)->work, (_func)); \
-		(_work)->pending = 0; \
-	} while (0)
-
-
-#define __INIT_WORK(_work, _func, on_stack) \
-	do { \
-		INIT_LIST_HEAD(&(_work)->entry); \
-		PREPARE_WORK((_work), (_func)); \
-	} while (0)
-
-#define INIT_WORK(_work, _func)\
-	do { __INIT_WORK((_work), (_func), 0); } while (0)
-
-#define INIT_DELAYED_WORK(_work, _func) \
-	do { \
-		INIT_WORK(&(_work)->work, (_func)); \
-		init_timer(&(_work)->timer); \
-		(_work)->pending = 0; \
-	} while (0)
-
+#define delayed_work_pending(w) \
+         work_pending(&(w)->work)
 
 /* dummy for queue_delayed_work call in storage/usb.c */
 #define system_freezable_wq 0
-struct workqueue_struct { };
 
-bool queue_delayed_work(struct workqueue_struct *,
-                        struct delayed_work *, unsigned long);
-bool cancel_delayed_work(struct delayed_work *);
-
-
-/* needed for 'dwc_common_linux.c' */
-struct workqueue_struct *create_singlethread_workqueue(char *n);
-
-void destroy_workqueue(struct workqueue_struct *wq);
-
-bool queue_work(struct workqueue_struct *wq, struct work_struct *work);
+extern struct workqueue_struct *system_power_efficient_wq;
 
 
 /******************
  ** linux/wait.h **
  ******************/
 
-
-typedef struct wait_queue { int dummy; } wait_queue_t;
-
-#define __WAIT_QUEUE_INITIALIZER(name, tsk) { 0 }
-
-#define DECLARE_WAITQUEUE(name, tsk) \
-	wait_queue_t name = __WAIT_QUEUE_INITIALIZER(name, tsk)
-
-typedef struct wait_queue_head { struct wait_queue *q; } wait_queue_head_t;
-
-void init_waitqueue_head(wait_queue_head_t *q);
-
-#define __WAIT_QUEUE_HEAD_INITIALIZER(name) { 0 }
-#define DECLARE_WAIT_QUEUE_HEAD(name) \
-	wait_queue_head_t name = __WAIT_QUEUE_HEAD_INITIALIZER(name)
-
 #define DECLARE_WAIT_QUEUE_HEAD_ONSTACK(name) DECLARE_WAIT_QUEUE_HEAD(name)
-
-void __wake_up();
-void add_wait_queue(wait_queue_head_t *q, wait_queue_t *wait);
-void remove_wait_queue(wait_queue_head_t *q, wait_queue_t *wait);
-int  waitqueue_active(wait_queue_head_t *q);
-
-#define wake_up(x) __wake_up()
-#define wake_up_all(x) __wake_up()
-#define wake_up_interruptible(x) __wake_up()
 
 extern wait_queue_t wait;
 void breakpoint();
 
-/* our wait event implementation */
-void __wait_event(void);
-
-
-#define _wait_event(condition) \
-	while(!(condition)) { \
-		__wait_event();     \
-	}                     \
-
-#define wait_event(wq, condition) \
-	({ _wait_event(condition); })
-
-
-#define _wait_event_timeout(condition, timeout) \
-({ \
-	unsigned long _j = jiffies + timeout; \
-	while(1) { \
-		__wait_event();     \
-		if (condition || _j <= jiffies)     \
-			break;          \
-	}  \
-})
-
-#define wait_event_interruptible(wq, condition) \
-({                        \
-	_wait_event(condition); \
-	0;                      \
-})
 
 #define wait_event_interruptible_timeout(wq, condition, timeout) \
 ({                        \
-	_wait_event_timeout(condition, timeout); \
+	_wait_event_timeout(wq, condition, timeout); \
 	1;                      \
-})
-
-#define wait_event_timeout(wq, condition, timeout) \
-({                                \
-	_wait_event_timeout(condition, timeout); \
-	1;                              \
 })
 
 
@@ -1332,7 +715,6 @@ void schedule(void);
 signed long schedule_timeout(signed long);
 signed long schedule_timeout_uninterruptible(signed long timeout);
 void yield(void);
-int wake_up_process(struct task_struct *tsk);
 
 /* normally defined in asm/current.h, included by sched.h */
 extern struct task_struct *current;
@@ -1351,10 +733,6 @@ int kthread_should_stop(void);
 int kthread_stop(struct task_struct *k);
 
 struct task_struct *kthread_run(int (*)(void *), void *, const char *, ...);
-
-struct task_struct *kthread_create(int (*threadfn)(void *data),
-                                   void *data,
-                                   const char namefmt[], ...);
 
 
 /**********************
@@ -1410,93 +788,14 @@ int atomic_notifier_chain_unregister(struct atomic_notifier_head *nh,
  ** linux/scatterlist.h **
  *************************/
 
-enum {
-	SG_MITER_TO_SG   = 2,
-	SG_MITER_FROM_SG = 4,
-};
-
-struct scatterlist {
-	unsigned long page_link;
-	unsigned int  offset;
-	unsigned int  length;
-	dma_addr_t    dma_address;
-	int           last;
-};
-
-struct sg_table
-{
-	struct scatterlist *sgl;  /* the list */
-	unsigned int nents;       /* number of mapped entries */
-};
-
-struct sg_page_iter
-{
-	struct scatterlist *sg;
-};
-
-struct sg_mapping_iter
-{
-	void               *addr;
-	size_t              length;
-
-	struct sg_page_iter piter;
-};
-
-void sg_init_table(struct scatterlist *, unsigned int);
-void sg_set_buf(struct scatterlist *sg, const void *buf, unsigned int buflen);
-void sg_set_page(struct scatterlist *sg, struct page *page,
-                 unsigned int len, unsigned int offset);
-
-struct page        *sg_page(struct scatterlist *sg);
-void               *sg_virt(struct scatterlist *sg);
-struct scatterlist *sg_next(struct scatterlist *);
-
-int    sg_nents(struct scatterlist *sg);
-size_t sg_copy_from_buffer(struct scatterlist *sgl, unsigned int nents,
-                           void *buf, size_t buflen);
-size_t sg_copy_to_buffer(struct scatterlist *sgl, unsigned int nents,
-                         void *buf, size_t buflen);
-
-#define for_each_sg(sglist, sg, nr, __i) \
-	for (__i = 0, sg = (sglist); __i < (nr); __i++, sg = sg_next(sg))
-
-#define sg_dma_address(sg) ((sg)->dma_address)
-#define sg_dma_len(sg)     ((sg)->length)
-
-void sg_miter_start(struct sg_mapping_iter *miter, struct scatterlist *sgl,
-                    unsigned int nents, unsigned int flags);
-bool sg_miter_skip(struct sg_mapping_iter *miter, off_t offset);
-bool sg_miter_next(struct sg_mapping_iter *miter);
-void sg_miter_stop(struct sg_mapping_iter *miter);
-
-
-/******************
- ** linux/kref.h **
- ******************/
-
-struct kref { atomic_t refcount; };
-
-void kref_init(struct kref *kref);
-void kref_get(struct kref *kref);
-int  kref_put(struct kref *kref, void (*release) (struct kref *kref));
+#include <lx_emul/scatterlist.h>
 
 
 /*********************
  ** linux/kobject.h **
  *********************/
 
-struct kobject { struct kobject *parent; };
-struct kobj_uevent_env
-{
-	char buf[32];
-	int buflen;
-};
-
-struct kobj_uevent_env;
-
-int add_uevent_var(struct kobj_uevent_env *env, const char *format, ...);
-char *kobject_name(const struct kobject *kobj);
-char *kobject_get_path(struct kobject *kobj, gfp_t gfp_mask);
+#include <lx_emul/kobject.h>
 
 
 /*******************
@@ -1506,6 +805,12 @@ char *kobject_get_path(struct kobject *kobj, gfp_t gfp_mask);
 struct attribute {
 	const char *name;
 	mode_t      mode;
+};
+
+struct kobj_attribute {
+	struct attribute attr;
+	void * show;
+	void * store;
 };
 
 struct attribute_group {
@@ -1553,31 +858,23 @@ void sysfs_remove_group(struct kobject *kobj,
 int sysfs_create_link(struct kobject *kobj, struct kobject *target,
                       const char *name);
 void sysfs_remove_link(struct kobject *kobj, const char *name);
+int sysfs_create_files(struct kobject *kobj, const struct attribute **ptr);
 
 
 /****************
  ** linux/pm.h **
  ****************/
 
-struct device;
+#include <lx_emul/pm.h>
 
-typedef struct pm_message { int event; } pm_message_t;
-
-struct dev_pm_info { bool is_prepared; };
-
-struct dev_pm_ops {
-	int (*suspend)(struct device *dev);
-	int (*resume)(struct device *dev);
-};
-
-#define PMSG_IS_AUTO(msg) 0
-
-enum { PM_EVENT_AUTO_SUSPEND = 0x402 };
+#define PMSG_AUTO_SUSPEND ((struct pm_message) \
+                           { .event = PM_EVENT_AUTO_SUSPEND, })
 
 /************************
  ** linux/pm_runtime.h **
  ************************/
 
+bool pm_runtime_active(struct device *dev);
 int  pm_runtime_set_active(struct device *dev);
 void pm_suspend_ignore_children(struct device *dev, bool enable);
 void pm_runtime_enable(struct device *dev);
@@ -1594,7 +891,7 @@ void pm_runtime_set_autosuspend_delay(struct device *dev, int delay);
 int  pm_runtime_get_sync(struct device *dev);
 int  pm_runtime_put_sync(struct device *dev);
 int  pm_runtime_put(struct device *dev);
-
+int  pm_runtime_barrier(struct device *dev);
 
 /***********************
  ** linux/pm_wakeup.h **
@@ -1611,25 +908,44 @@ bool device_can_wakeup(struct device *dev);
  ** linux/pm_qos.h **
  ********************/
 
- enum { PM_QOS_FLAG_NO_POWER_OFF = 1 };
+enum { PM_QOS_FLAG_NO_POWER_OFF = 1 };
+enum  dev_pm_qos_req_type { DEV_PM_QOS_FLAGS = 3 };
 
- int dev_pm_qos_expose_flags(struct device *dev, s32 value);
+struct dev_pm_qos_request { unsigned dummy; };
+
+int dev_pm_qos_add_request(struct device *dev, struct dev_pm_qos_request *req,
+                           enum dev_pm_qos_req_type type, s32 value);
+int dev_pm_qos_remove_request(struct dev_pm_qos_request *req);
+int dev_pm_qos_expose_flags(struct device *dev, s32 value);
+
+
+/******************
+ ** linux/acpi.h **
+ ******************/
+
+#define ACPI_PTR(_ptr)  (NULL)
+
 
 /********************
  ** linux/device.h **
  ********************/
 
-#define dev_info(dev, format, arg...) lx_printf("dev_info: "  format, ## arg)
-#define dev_warn(dev, format, arg...) lx_printf("dev_warn: "  format, ## arg)
-#define dev_WARN(dev, format, arg...) lx_printf("dev_WARN: "  format, ## arg)
-#define dev_err( dev, format, arg...) lx_printf("dev_error: " format, ## arg)
-#define dev_notice(dev, format, arg...) lx_printf("dev_notice: " format, ## arg)
+#define dev_info(dev, format, arg...)      lx_printf("dev_info: "  format, ## arg)
+#define dev_warn(dev, format, arg...)      lx_printf("dev_warn: "  format, ## arg)
+#define dev_WARN(dev, format, arg...)      lx_printf("dev_WARN: "  format, ## arg)
+#define dev_err( dev, format, arg...)      lx_printf("dev_error: " format, ## arg)
+#define dev_notice(dev, format, arg...)    lx_printf("dev_notice: " format, ## arg)
 #define dev_dbg_ratelimited(dev, format, arg...)
 
+#define dev_WARN_ONCE(dev, condition, format, arg...) ({\
+	lx_printf("dev_WARN_ONCE: "  format, ## arg); \
+	!!condition; \
+})
 
-#if DEBUG_PRINTK
+#if DEBUG_LINUX_PRINTK
 #define dev_dbg(dev, format, arg...)  lx_printf("dev_dbg: " format, ## arg)
 #define dev_vdbg(dev, format, arg...) lx_printf("dev_dbg: " format, ## arg)
+#define CONFIG_DYNAMIC_DEBUG
 #else
 #define dev_dbg( dev, format, arg...)
 #define dev_vdbg( dev, format, arg...)
@@ -1640,6 +956,9 @@ bool device_can_wakeup(struct device *dev);
 
 #define dev_warn_ratelimited(dev, format, arg...) \
 	lx_printf("dev_warn_ratelimited: " format "\n", ## arg)
+
+#define dev_warn_once(dev, format, ...) \
+	lx_printf("dev_warn_ratelimited: " format "\n", ##__VA_ARGS__)
 
 enum {
 	BUS_NOTIFY_ADD_DEVICE = 0x00000001,
@@ -1663,7 +982,8 @@ struct device_driver {
 	struct bus_type *bus;
 	struct module   *owner;
 	const char      *mod_name;
-	const struct of_device_id  *of_match_table;
+	const struct of_device_id   *of_match_table;
+	const struct acpi_device_id *acpi_match_table;
 	int            (*probe)  (struct device *dev);
 	int            (*remove) (struct device *dev);
 
@@ -1697,6 +1017,7 @@ struct device {
 	const struct device_type      *type;
 	struct device_driver          *driver;
 	void                          *platform_data;
+	u64                           _dma_mask_buf;
 	u64                           *dma_mask; /* needed by usb/hcd.h */
 	u64                            coherent_dma_mask; /* omap driver */
 	struct dev_pm_info             power;
@@ -1882,10 +1203,18 @@ void  dma_free_coherent(struct device *, size_t, void *, dma_addr_t);
 #define DMA_BIT_MASK(n) (((n) == 64) ? ~0ULL : ((1ULL<<(n))-1))
 static inline int dma_set_coherent_mask(struct device *dev, u64 mask) { dev->coherent_dma_mask = mask; return 0; }
 static inline int dma_set_mask(struct device *dev, u64 mask) { *dev->dma_mask = mask; return 0; }
+
 static inline int dma_coerce_mask_and_coherent(struct device *dev, u64 mask)
 {
 	dma_set_mask(dev, mask);
 	return dma_set_coherent_mask(dev, mask);
+}
+
+static inline int dma_set_mask_and_coherent(struct device *dev, u64 mask)
+{
+	dma_set_mask(dev, mask);
+	dma_set_coherent_mask(dev, mask);
+	return 0;
 }
 
 /*********************
@@ -1901,6 +1230,9 @@ size_t copy_to_user(void *dst, void const *src, size_t len);
 
 #define get_user(x, ptr) ({ lx_printf("get_user not implemented"); (0);})
 #define put_user(x, ptr) ({ lx_printf("put_user not implemented"); (0);})
+
+
+unsigned long clear_user(void *to, unsigned long n);
 
 
 /*****************
@@ -2179,15 +1511,11 @@ int seq_putc(struct seq_file *, char);
  ** linux/gfp.h **
  *****************/
 
+#include <lx_emul/gfp.h>
+
 enum {
-	__GFP_DMA    = 0x01u,
-	__GFP_NOWARN = 0x200u,
-	__GFP_WAIT   = 0x10u,
-	GFP_DMA      = __GFP_DMA,
-	GFP_DMA32    = 0x04u,   /* needed by 'dwc_common_linux.c' */
-	GFP_ATOMIC   = 0x20u,
-	GFP_KERNEL   = 0x0u,
-	GFP_NOIO     = __GFP_WAIT,
+	GFP_NOIO     = GFP_LX_DMA,
+	GFP_NOWAIT   = 0x2000000u,
 };
 
 unsigned long __get_free_pages(gfp_t gfp_mask, unsigned int order);
@@ -2234,6 +1562,7 @@ bool is_highmem(void *);
 
 struct zone *page_zone(const struct page *page);
 int    is_vmalloc_addr(const void *x);
+void   kvfree(const void *addr);
 
 /*********************
  ** linux/pagemap.h **
@@ -2255,7 +1584,9 @@ void kunmap(struct page *page);
  ** asm-generic/io.h **
  **********************/
 
-void *ioremap(resource_size_t offset, unsigned long size);
+#include <lx_emul/mmio.h>
+
+void *ioremap(phys_addr_t addr, unsigned long size);
 void  iounmap(volatile void *addr);
 void *devm_ioremap(struct device *dev, resource_size_t offset,
                    unsigned long size);
@@ -2265,10 +1596,6 @@ void *devm_ioremap_nocache(struct device *dev, resource_size_t offset,
 #define ioremap_nocache ioremap
 
 void *phys_to_virt(unsigned long address);
-
-#define writel(value, addr) (*(volatile uint32_t *)(addr) = (value))
-#define readl(addr) (*(volatile uint32_t *)(addr))
-#define readb(addr) (*(volatile uint8_t  *)(addr))
 
 void outb(u8  value, u32 port);
 void outw(u16 value, u32 port);
@@ -2293,30 +1620,19 @@ static inline u32 inl_p(u32 port) { u32 ret = inl(port); native_io_delay(); retu
  ** linux/ioport.h **
  ********************/
 
-#define IORESOURCE_IO  0x00000100
-#define IORESOURCE_MEM 0x00000200
-#define IORESOURCE_IRQ 0x00000400
-
-struct resource
-{
-	resource_size_t start;
-	resource_size_t end;
-	const char     *name;
-	unsigned long   flags;
-};
-
-struct resource *request_region(resource_size_t start, resource_size_t n,
-                                const char *name);
-struct resource *request_mem_region(resource_size_t start, resource_size_t n,
-                                    const char *name);
-struct resource * devm_request_mem_region(struct device *dev, resource_size_t start,
-                                          resource_size_t n, const char *name);
+#include <lx_emul/ioport.h>
 
 
-void release_region(resource_size_t start, resource_size_t n);
-void release_mem_region(resource_size_t start, resource_size_t n);
 
-resource_size_t resource_size(const struct resource *res);
+/***********************
+ ** linux/irqreturn.h **
+ ***********************/
+
+#include <lx_emul/irq.h>
+
+/* needed by 'dwc_otg_hcd_linux.c' */
+#define IRQ_RETVAL(x) ((x) != IRQ_NONE)
+
 
 /***********************
  ** linux/interrupt.h **
@@ -2328,10 +1644,9 @@ resource_size_t resource_size(const struct resource *res);
 void local_irq_enable(void);
 void local_irq_disable(void);
 
-typedef irqreturn_t (*irq_handler_t)(int, void *);
-
 int request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags,
                 const char *name, void *dev);
+
 void free_irq(unsigned int, void *);
 
 
@@ -2376,62 +1691,18 @@ bool in_interrupt(void);
  ** linux/pci.h **
  *****************/
 
-#include <linux/pci_ids.h>
-#include <uapi/linux/pci_regs.h>
-
-enum {
-	PCI_D3hot = 3,
-};
 
 /*
  * Definitions normally found in pci_regs.h
  */
 extern struct  bus_type pci_bus_type;
-enum { PCI_ANY_ID = ~0U };
+
 enum { DEVICE_COUNT_RESOURCE = 6 };
 
-#define PCI_DEVICE_CLASS(dev_class,dev_class_mask) \
-	.class = (dev_class), .class_mask = (dev_class_mask), \
-	.vendor = PCI_ANY_ID, .device = PCI_ANY_ID, \
-	.subvendor = PCI_ANY_ID, .subdevice = PCI_ANY_ID
-
-#define PCI_SLOT(devfn)		(((devfn) >> 3) & 0x1f)
-
-#define PCI_DEVICE(vend,dev) \
-	.vendor = (vend), .device = (dev), \
-	.subvendor = PCI_ANY_ID, .subdevice = PCI_ANY_ID
-
-#define PCI_VDEVICE(vendor, device)             \
-        PCI_VENDOR_ID_##vendor, (device),       \
-        PCI_ANY_ID, PCI_ANY_ID, 0, 0
-
-typedef enum { PCI_D0 = 0 } pci_power_t;
-
-/*
- * Deal with C++ keyword used as member name of 'pci_dev'
- */
-struct msix_entry
-{
-	u32 vector;
-	u16 entry;
-};
-
-struct pci_dev;
-
-int  pci_enable_msi(struct pci_dev *);
-void pci_disable_msi(struct pci_dev *);
-
-int  pci_enable_msix(struct pci_dev *, struct msix_entry *, int);
-void pci_disable_msix(struct pci_dev *);
-
-
-#include <linux/mod_devicetable.h>
 
 /*
  * PCI types
  */
-struct pci_bus;
-
 struct pci_dev {
 	unsigned int devfn;
 	unsigned int irq;
@@ -2440,10 +1711,13 @@ struct pci_dev {
 	unsigned short vendor;
 	unsigned short device;
 	unsigned short subsystem_vendor;
+	unsigned short subsystem_device;
 	unsigned int   class;
 	u8             revision;
-	struct device dev; /* needed for intel-agp.c */
-	pci_power_t     current_state;
+	u8             pcie_cap;
+	u16            pcie_flags_reg;
+	struct         device dev;
+	unsigned       current_state;
 };
 
 struct pci_fixup {
@@ -2454,102 +1728,49 @@ struct pci_fixup {
 	void (*hook)(struct pci_dev *dev);
 };
 
+#include <lx_emul/pci.h>
+#include <linux/mod_devicetable.h>
+
+#define PCI_DEVICE_CLASS(dev_class,dev_class_mask) \
+	.class = (dev_class), .class_mask = (dev_class_mask), \
+	.vendor = PCI_ANY_ID, .device = PCI_ANY_ID, \
+	.subvendor = PCI_ANY_ID, .subdevice = PCI_ANY_ID
+
+#define PCI_DEVICE(vend,dev) \
+	.vendor = (vend), .device = (dev), \
+	.subvendor = PCI_ANY_ID, .subdevice = PCI_ANY_ID
+
+#define PCI_VDEVICE(vendor, device)             \
+        PCI_VENDOR_ID_##vendor, (device),       \
+        PCI_ANY_ID, PCI_ANY_ID, 0, 0
 
 /* quirks */
-#define DECLARE_PCI_FIXUP_SECTION(section, name, vendor, device, class, \
-                                  class_shift, hook)                    \
-        static const struct pci_fixup __pci_fixup_##name __used         \
-        __attribute__((__section__(#section), aligned((sizeof(void *)))))    \
-                = { vendor, device, class, class_shift, hook };
-
 #define DECLARE_PCI_FIXUP_CLASS_FINAL(vendor, device, class,            \
                                          class_shift, hook)             \
-        DECLARE_PCI_FIXUP_SECTION(.pci_fixup_final,                     \
-                vendor##device##hook, vendor, device, class, class_shift, hook)
-
-enum {
-	PCI_ROM_RESOURCE = 6
-};
-
-/*
- * Interface functions provided by the EHCI USB HCD driver.
- */
-struct pci_driver {
-	char                        *name;
-	const struct pci_device_id  *id_table;
-	int                        (*probe)  (struct pci_dev *dev,
-	                                      const struct pci_device_id *id);
-	void                       (*remove) (struct pci_dev *dev);
-	void                       (*shutdown) (struct pci_dev *dev);
-	struct device_driver         driver;
-};
-
-
-static inline uint32_t PCI_DEVFN(unsigned slot, unsigned func) {
-	return ((slot & 0x1f) << 3) | (func & 0x07); }
-
-int pci_bus_read_config_byte(struct pci_bus *bus, unsigned int devfn, int where, u8 *val);
-int pci_bus_read_config_word(struct pci_bus *bus, unsigned int devfn, int where, u16 *val);
-int pci_bus_read_config_dword(struct pci_bus *bus, unsigned int devfn, int where, u32 *val);
-int pci_bus_write_config_byte(struct pci_bus *bus, unsigned int devfn, int where, u8 val);
-int pci_bus_write_config_word(struct pci_bus *bus, unsigned int devfn, int where, u16 val);
-int pci_bus_write_config_dword(struct pci_bus *bus, unsigned int devfn, int where, u32 val);
-
-static inline
-int pci_read_config_byte(struct pci_dev *dev, int where, u8 *val) {
-	return pci_bus_read_config_byte(dev->bus, dev->devfn, where, val); }
-
-static inline
-int pci_read_config_word(struct pci_dev *dev, int where, u16 *val) {
-	return pci_bus_read_config_word(dev->bus, dev->devfn, where, val); }
-
-static inline
-int pci_read_config_dword(struct pci_dev *dev, int where, u32 *val) {
-	return pci_bus_read_config_dword(dev->bus, dev->devfn, where, val); }
-
-static inline
-int pci_write_config_byte(struct pci_dev *dev, int where, u8 val) {
-	return pci_bus_write_config_byte(dev->bus, dev->devfn, where, val); }
-
-static inline
-int pci_write_config_word(struct pci_dev *dev, int where, u16 val) {
-	return pci_bus_write_config_word(dev->bus, dev->devfn, where, val); }
-
-static inline
-int pci_write_config_dword(struct pci_dev *dev, int where, u32 val) {
-	return pci_bus_write_config_dword(dev->bus, dev->devfn, where, val); }
-
-size_t pci_resource_len(struct pci_dev *dev, unsigned bar);
-size_t pci_resource_start(struct pci_dev *dev, unsigned bar);
-void *pci_get_drvdata(struct pci_dev *pdev);
-void pci_dev_put(struct pci_dev *dev);
-struct pci_dev *pci_get_device(unsigned int vendor, unsigned int device,
-                               struct pci_dev *from);
-int pci_enable_device(struct pci_dev *dev);
-void pci_disable_device(struct pci_dev *dev);
-int pci_set_consistent_dma_mask(struct pci_dev *dev, u64 mask);
-int pci_register_driver(struct pci_driver *driver);
-void pci_unregister_driver(struct pci_driver *driver);
-const char *pci_name(const struct pci_dev *pdev);
-bool pci_dev_run_wake(struct pci_dev *dev);
-unsigned int pci_resource_flags(struct pci_dev *dev, unsigned bar);
-void pci_set_master(struct pci_dev *dev);
-int pci_set_mwi(struct pci_dev *dev);
-int pci_find_capability(struct pci_dev *dev, int cap);
-struct pci_dev *pci_get_slot(struct pci_bus *bus, unsigned int devfn);
-const struct pci_device_id *pci_match_id(const struct pci_device_id *ids,
-                                         struct pci_dev *dev);
-void *pci_ioremap_bar(struct pci_dev *pdev, int bar);
-int pci_set_power_state(struct pci_dev *dev, pci_power_t state);
+                     void __pci_fixup_##hook(void *data) { hook(data); }
 
 #define for_each_pci_dev(d) printk("for_each_pci_dev called\n"); while(0)
 
-#define to_pci_dev(n) container_of(n, struct pci_dev, dev)
+enum { PCI_ROM_RESOURCE = 6 };
 
-#define DECLARE_PCI_FIXUP_FINAL(vendor, device, hook)
+/*
+ * Deal with C++ keyword used as member name of 'pci_dev'
+ */
+struct msix_entry
+{
+	u32 vector;
+	u16 entry;
+};
 
-#define DEFINE_PCI_DEVICE_TABLE(_table) \
-	const struct pci_device_id _table[] __devinitconst
+
+int  pci_enable_msix(struct pci_dev *, struct msix_entry *, int);
+void pci_disable_msix(struct pci_dev *);
+int  pci_enable_msix_exact(struct pci_dev *,struct msix_entry *, int);
+
+
+int pci_set_consistent_dma_mask(struct pci_dev *dev, u64 mask);
+int pci_set_power_state(struct pci_dev *dev, pci_power_t state);
+
 
 
 /**********************
@@ -2744,14 +1965,10 @@ int match_octal(substring_t *, int *result);
  ** linux/completion.h **
  ************************/
 
-struct completion { unsigned int done; };
-void complete(struct completion *);
-void init_completion(struct completion *x);
-unsigned long wait_for_completion_timeout(struct completion *x,
-                                          unsigned long timeout);
-void wait_for_completion(struct completion *x);
-int wait_for_completion_interruptible(struct completion *x);
-long wait_for_completion_interruptible_timeout(struct completion *x, unsigned long timeout);
+#include <lx_emul/completion.h>
+
+struct completion { unsigned int done; void *task; };
+long  __wait_completion(struct completion *work, unsigned long timeout);;
 
 
 /*******************
@@ -2794,7 +2011,13 @@ enum { HID_DEBUG_BUFSIZE=512 };
  ** linux/list.h **
  ******************/
 
-#include <linux/list.h>
+/*
+ * Important to decl here, otherwise the compiler will generate
+ * a non-static function and all hell breaks loose.
+ */
+static inline void barrier();
+
+#include <lx_emul/list.h>
 
 
 /********************
@@ -2846,6 +2069,8 @@ static inline void list_del_rcu(struct list_head *entry) {
 /*********************
  ** linux/lockdep.h **
  *********************/
+
+enum { SINGLE_DEPTH_NESTING = 1 };
 
 bool lockdep_is_held(void *);
 
@@ -2918,6 +2143,28 @@ void blk_complete_request(struct request *);
 sector_t blk_rq_pos(const struct request *rq);
 
 unsigned int queue_max_hw_sectors(struct request_queue *q);
+
+
+/********************
+ ** linux/blk-mq.h **
+ ********************/
+
+struct blk_mq_tag_set
+{
+	unsigned dummy;
+};
+
+
+/************************
+ ** scsi/scsci_proto.h **
+ ************************/
+
+enum {
+	SAM_STAT_GOOD                      = 0x00,
+	SAM_STAT_INTERMEDIATE              = 0x10,
+	SAM_STAT_INTERMEDIATE_CONDITION_MET= 0x14,
+	SAM_STAT_COMMAND_TERMINATED        = 0x22,
+};
 
 #include <scsi/scsi_host.h>
 
@@ -3079,14 +2326,19 @@ struct scsi_target
 	unsigned int     pdt_1f_for_no_lun:1;    /* PDT = 0x1f */
 	unsigned int     no_report_luns:1;       /* Don't use
 	                                          * REPORT LUNS for scanning. */
-	unsigned int     target_blocked;
+	atomic_t         target_blocked;
 	char             scsi_level;
 };
 
 enum scsi_device_state
 {
+	SDEV_CANCEL = 1,
 	SDEV_DEL, /* device deleted 
 	           * no commands allowed */
+};
+
+enum {
+	SCSI_VPD_PG_LEN  = 255,
 };
 
 struct scsi_device
@@ -3106,10 +2358,16 @@ struct scsi_device
 	unsigned short        last_queue_full_count;  /* scsi_track_queue_full() */
 	unsigned long         last_queue_full_time;   /* last queue full time */
 
-	unsigned int          id, lun, channel;
+	unsigned int          id, channel;
+	u64                   lun;
 	char                  type;
 	char                  scsi_level;
 	unsigned char         inquiry_len;            /* valid bytes in 'inquiry' */
+
+	int                   vpd_pg83_len;
+	unsigned char        *vpd_pg83;
+	int                   vpd_pg80_len;
+	unsigned char        *vpd_pg80;
 	struct scsi_target   *sdev_target;            /* used only for single_lun */
 
 	unsigned              sdev_bflags;
@@ -3134,8 +2392,9 @@ struct scsi_device
 	unsigned              no_read_disc_info:1;    /* avoid READ_DISC_INFO cmds */
 	unsigned              try_rc_10_first:1;      /* Try READ_CAPACACITY_10 first */
 	unsigned              wce_default_on:1;       /* Cache is ON by default */
+	unsigned              broken_fua:1;           /* Don't set FUA bit */
 
-	unsigned int          device_blocked;         /* device returned QUEUE_FULL. */
+	atomic_t              device_blocked;         /* device returned QUEUE_FULL. */
 
 	atomic_t              iorequest_cnt;
 	struct device         sdev_gendev;
@@ -3374,12 +2633,15 @@ enum {
 
 	SPEED_100    = 100,
 	SPEED_1000   = 1000,
+	SUPPORTED_100baseT_Full  = (1 << 3),
+	SUPPORTED_1000baseT_Full = (1 << 5),
 };
 
 
 struct ethtool_cmd
 {
 	u32 cmd;
+	u16 speed;
 	u8  duplex;
 };
 
@@ -3407,11 +2669,20 @@ struct ethtool_drvinfo
 
 struct ethtool_wolinfo {
 	u32 supported;
-	u32	wolopts;
+	u32 wolopts;
 };
 
 struct ethhdr { };
 struct ethtool_ts_info; 
+
+struct ethtool_eee
+{
+	u32 supported;
+	u32 advertised;
+	u32 lp_advertised;
+	u32 eee_active;
+	u32 eee_enabled;
+};
 
 
 struct ethtool_ops
@@ -3431,7 +2702,8 @@ struct ethtool_ops
 	void    (*get_wol)(struct net_device *, struct ethtool_wolinfo *);
 	int     (*set_wol)(struct net_device *, struct ethtool_wolinfo *);
 	int     (*get_ts_info)(struct net_device *, struct ethtool_ts_info *);
-
+	int     (*get_eee)(struct net_device *, struct ethtool_eee *);
+	int     (*set_eee)(struct net_device *, struct ethtool_eee *);
 };
 
 __u32 ethtool_cmd_speed(const struct ethtool_cmd *);
@@ -3454,7 +2726,7 @@ int ethtool_op_get_ts_info(struct net_device *, struct ethtool_ts_info *);
 
 #define netdev_for_each_mc_addr(a, b) if (0)
 
-#if DEBUG_PRINTK
+#if DEBUG_LINUX_PRINTK
 #define netif_dbg(priv, type, dev, fmt, args...) lx_printf("netif_dbg: "  fmt, ## args)
 #define netdev_dbg(dev, fmt, args...)  lx_printf("netdev_dbg: " fmt, ##args)
 #else
@@ -3597,6 +2869,11 @@ enum {
 	MII_ADVERTISE = 0x4,
 	MII_LPA       = 0x5,
 	MII_CTRL1000  = 0x9,
+	MII_MMD_CTRL  = 0xd,
+	MII_MMD_DATA  = 0xe,
+	MII_PHYADDR   = 0x19,
+
+	MII_MMD_CTRL_NOINCR = 0x4000,
 
 	BMCR_RESET    = 0x8000, /* reset to default state */
 	BMCR_ANENABLE = 0x1000, /* enable auto negotiation */
@@ -3643,9 +2920,29 @@ int generic_mii_ioctl(struct mii_if_info *,
 struct mii_ioctl_data *if_mii(struct ifreq *);
 
 
+/***********************
+ ** uapi/linux/mdio.h **
+ ***********************/
+
+enum {
+	MDIO_MMD_PCS       = 3,
+	MDIO_MMD_AN        = 7,
+	MDIO_PCS_EEE_ABLE  = 20,
+	MDIO_AN_EEE_ADV    = 60,
+	MDIO_AN_EEE_LPABLE = 61,
+};
+
+
+u32 mmd_eee_cap_to_ethtool_sup_t(u16 eee_cap);
+u32 mmd_eee_adv_to_ethtool_adv_t(u16 eee_adv);
+u16 ethtool_adv_to_mmd_eee_adv_t(u32 adv);
+
+
 /**********************
  ** linux/inerrupt.h **
  **********************/
+
+extern struct workqueue_struct *tasklet_wq;
 
 struct tasklet_struct
 {
@@ -3716,6 +3013,8 @@ struct async_domain { };
 
 #define ASYNC_DOMAIN(name) struct async_domain name = { };
 void async_unregister_domain(struct async_domain *domain);
+#define ASYNC_DOMAIN_EXCLUSIVE(_name)
+
 
 
 /*******************************
@@ -3738,6 +3037,7 @@ struct usbdevfs_hub_portinfo
 int bitmap_subset(const unsigned long *,
                   const unsigned long *, int);
 
+int bitmap_weight(const unsigned long *src, unsigned int nbits);
 
 /*******************
  ** linux/crc16.h **
@@ -3767,6 +3067,16 @@ typedef enum {
 	PHY_INTERFACE_MODE_MII = 1,
 } phy_interface_t;
 
+struct phy;
+
+int phy_init(struct phy *phy);
+int phy_exit(struct phy *phy);
+
+struct phy *phy_get(struct device *dev, const char *string);
+void   phy_put(struct phy *phy);
+
+int phy_power_on(struct phy *phy);
+int phy_power_off(struct phy *phy);
 
 /************************
  ** linux/usb/gadget.h **
@@ -3784,6 +3094,17 @@ struct usb_gadget { };
 bool of_property_read_bool(const struct device_node *np, const char *propname);
 
 
+/**********************
+ ** linux/property.h **
+ **********************/
+
+int device_property_read_string(struct device *dev, const char *propname,
+                                const char **val);
+bool device_property_read_bool(struct device *dev, const char *propname);
+int  device_property_read_u8(struct device *dev, const char *propname, u8 *val);
+int  device_property_read_u32(struct device *dev, const char *propname, u32 *val);
+
+
 /************************
  ** linux/radix-tree.h **
  ************************/
@@ -3793,14 +3114,18 @@ struct radix_tree_root { };
 void *radix_tree_lookup(struct radix_tree_root *root, unsigned long index);
 int   radix_tree_insert(struct radix_tree_root *, unsigned long, void *);
 void *radix_tree_delete(struct radix_tree_root *, unsigned long);
+int   radix_tree_preload(gfp_t gfp_mask);
+void  radix_tree_preload_end(void);
+int   radix_tree_maybe_preload(gfp_t gfp_mask);
+
 
 /**********************************
  ** Platform specific defintions **
  **********************************/
 
-
 #include <platform/lx_emul.h>
 
+ 
 /**********
  ** misc **
  **********/
@@ -3881,6 +3206,23 @@ struct pt_regs { unsigned long dummy; };
 #define ARM_fp dummy
 
 
+/*****************
+ ** linux/smp.h **
+ *****************/
+
+typedef void (*smp_call_func_t)(void *info);
+
+int smp_call_function_single(int cpuid, smp_call_func_t func, void *info,
+                             int wait);
+
+
+/*********************
+ ** otg_whitelist.h **
+ *********************/
+
+struct usb_device;
+static inline int is_targeted(struct usb_device *dev) { return 0; }
+
 /************************
  ** linux/tracepoint.h **
  ************************/
@@ -3895,13 +3237,6 @@ struct pt_regs { unsigned long dummy; };
 #define TP_ARGS(args...)      (args)
 #define TP_printk(fmt, args...) (fmt "\n" args)
 #define TP_fast_assign(args...) (args)
-/*
- * #define TP_ARGS(args...)      (args)
- * #define TP_CONDITION(args...) (args)
- * #define TP_STRUCT__entry(args...) (args)
- *
- * #define TP_fast_assign(args...) (args)
- * */
 
 
 /*******************
@@ -3918,5 +3253,13 @@ static inline void trace_xhci_dbg_cancel_urb(struct va_format *v) { }
 static inline void trace_xhci_dbg_reset_ep(struct va_format *v) { }
 static inline void trace_xhci_dbg_quirks(struct va_format *v) { }
 static inline void trace_xhci_dbg_address(struct va_format *v) { }
+
+static inline void trace_dwc3_readl(struct va_format *v) { }
+static inline void trace_dwc3_writel(struct va_format *v) { }
+static inline void trace_dwc3_core(struct va_format *v) { }
+
+void backtrace(void);
+
+#include <lx_emul/extern_c_end.h>
 
 #endif /* _LX_EMUL_H_ */

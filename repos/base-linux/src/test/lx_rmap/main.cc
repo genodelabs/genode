@@ -14,12 +14,11 @@
 /* Genode includes */
 #include <base/printf.h>
 #include <base/env.h>
-#include <base/crt0.h>
 #include <base/sleep.h>
 #include <base/thread.h>
 #include <util/misc_math.h>
 #include <rm_session/connection.h>
-
+#include <region_map/client.h>
 
 
 static void blob() __attribute__((used));
@@ -45,7 +44,7 @@ int main()
 	using namespace Genode;
 
 	/* activate for early printf in Rm_session_mmap::attach() etc. */
-	if (0) Thread_base::trace("FOO");
+	if (0) Thread::trace("FOO");
 
 	/* induce initial heap expansion to remove RM noise */
 	if (1) {
@@ -68,26 +67,28 @@ int main()
 		env()->rm_session()->attach_at(ds, beg);
 		PERR("after RAM dataspace attach -- ERROR");
 		sleep_forever();
-	} catch (Rm_session::Region_conflict) {
+	} catch (Region_map::Region_conflict) {
 		PLOG("OK caught Region_conflict exception");
 	}
 
 	/* empty managed dataspace overlapping binary */
 	try {
-		Rm_connection        rm(0, size);
+		Rm_connection        rm_connection;
+		Region_map_client    rm(rm_connection.create(size));
 		Dataspace_capability ds(rm.dataspace());
 
 		PLOG("before sub-RM dataspace attach");
 		env()->rm_session()->attach_at(ds, beg);
 		PERR("after sub-RM dataspace attach -- ERROR");
 		sleep_forever();
-	} catch (Rm_session::Region_conflict) {
+	} catch (Region_map::Region_conflict) {
 		PLOG("OK caught Region_conflict exception");
 	}
 
 	/* sparsely populated managed dataspace in free VM area */
 	try {
-		Rm_connection rm(0, 0x100000);
+		Rm_connection rm_connection;
+		Region_map_client rm(rm_connection.create(0x100000));
 
 		rm.attach_at(env()->ram_session()->alloc(0x1000), 0x1000);
 
@@ -99,7 +100,7 @@ int main()
 		char const val = *addr;
 		*addr = 0x55;
 		PLOG("after touch (%x/%x)", val, *addr);
-	} catch (Rm_session::Region_conflict) {
+	} catch (Region_map::Region_conflict) {
 		PERR("Caught Region_conflict exception -- ERROR");
 		sleep_forever();
 	}

@@ -75,7 +75,7 @@ class Floating_window_layouter::User_state
 
 		Focus_history &_focus_history;
 
-		bool _is_key(Input::Event const &ev) const
+		bool _key(Input::Event const &ev) const
 		{
 			if (ev.type() != Input::Event::PRESS
 			 && ev.type() != Input::Event::RELEASE)
@@ -286,7 +286,7 @@ void Floating_window_layouter::User_state::_handle_event(Input::Event const &e,
 	}
 
 	/* handle key sequences */
-	if (_is_key(e)) {
+	if (_key(e)) {
 
 		if (e.type() == Input::Event::PRESS && _key_cnt == 1)
 			_key_sequence_tracker.reset();

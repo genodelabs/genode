@@ -99,7 +99,7 @@ class Cpu_load_display::Timeline : public Genode::List<Timeline>::Element
 
 		bool idle() const { return _sum_activity == 0; }
 
-		bool is_kernel() const
+		bool kernel() const
 		{
 			return _label == Label("kernel");
 		}
@@ -293,7 +293,7 @@ class Cpu_load_display::Scene : public Nano3d::Scene<PT>
 		{
 			_trace_subjects.update();
 
-			if (!_trace_subjects.is_valid())
+			if (!_trace_subjects.valid())
 				return;
 
 			_cpu_registry.advance(++_now);
@@ -348,7 +348,7 @@ class Cpu_load_display::Scene : public Nano3d::Scene<PT>
 
 			cpu.for_each_timeline([&] (Timeline const &timeline) {
 
-				if (timeline.is_kernel())
+				if (timeline.kernel())
 					return;
 
 				bool first = true;

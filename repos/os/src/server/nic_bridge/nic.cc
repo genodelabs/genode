@@ -24,7 +24,7 @@ using namespace Net;
 
 
 bool Net::Nic::handle_arp(Ethernet_frame *eth, Genode::size_t size) {
-	Arp_packet *arp = new (eth->data())
+	Arp_packet *arp = new (eth->data<void>())
 		Arp_packet(size - sizeof(Ethernet_frame));
 
 	/* ignore broken packets */
@@ -66,18 +66,18 @@ bool Net::Nic::handle_arp(Ethernet_frame *eth, Genode::size_t size) {
 
 
 bool Net::Nic::handle_ip(Ethernet_frame *eth, Genode::size_t size) {
-	Ipv4_packet *ip = new (eth->data())
+	Ipv4_packet *ip = new (eth->data<void>())
 		Ipv4_packet(size - sizeof(Ethernet_frame));
 
 	/* is it an UDP packet ? */
 	if (ip->protocol() == Udp_packet::IP_ID)
 	{
-		Udp_packet *udp = new (ip->data())
+		Udp_packet *udp = new (ip->data<void>())
 			Udp_packet(size - sizeof(Ipv4_packet));
 
 		/* is it a DHCP packet ? */
 		if (Dhcp_packet::is_dhcp(udp)) {
-			Dhcp_packet *dhcp = new (udp->data())
+			Dhcp_packet *dhcp = new (udp->data<void>())
 				Dhcp_packet(size - sizeof(Ipv4_packet) - sizeof(Udp_packet));
 
 			/* check for DHCP ACKs containing new client ips */

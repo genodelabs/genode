@@ -118,9 +118,14 @@ class Genode::Trace::Buffer
 
 			public:
 
-				size_t      length()  const { return _entry->len; }
-				char const *data()    const { return _entry->data; }
-				bool        is_last() const { return _entry == 0; }
+				size_t      length() const { return _entry->len; }
+				char const *data()   const { return _entry->data; }
+				bool        last()   const { return _entry == 0; }
+
+				/*
+				 * \deprecated use 'last' instead
+				 */
+				bool is_last() const { return last(); }
 		};
 
 		Entry first() const
@@ -130,7 +135,7 @@ class Genode::Trace::Buffer
 
 		Entry next(Entry entry) const
 		{
-			if (entry.is_last())
+			if (entry.last())
 				return Entry(0);
 
 			if (entry.length() == 0)

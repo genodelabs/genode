@@ -140,7 +140,7 @@ class Genode::Object_pool
 
 			{
 				Locked_ptr lock_ptr(ptr);
-				Object_pointer op = lock_ptr.is_valid()
+				Object_pointer op = lock_ptr.valid()
 					? dynamic_cast<Object_pointer>(&lock_ptr->obj) : nullptr;
 				return func(op);
 			}
@@ -170,7 +170,7 @@ class Genode::Object_pool
 					Weak_ptr ptr = obj->_lock.weak_ptr();
 					{
 						Locked_ptr lock_ptr(ptr);
-						if (!lock_ptr.is_valid()) return;
+						if (!lock_ptr.valid()) return;
 
 						_tree.remove(obj);
 					}

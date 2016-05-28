@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -18,27 +18,29 @@
 #ifndef GENODE_LOW_H
 #define GENODE_LOW_H
 
+#include <sys/types.h>
+
 #include "server.h"
 
-int genode_signal_fd();
+/* exception type */
+struct No_memory_at_address { };
 
-void genode_wait_for_target_main_thread();
-void genode_detect_all_threads();
+/* interface for linux-low.c */
 
 void genode_stop_all_threads();
-void genode_resume_all_threads();
-
-ptid_t genode_wait_for_signal_or_gdb_interrupt(struct target_waitstatus *status);
 void genode_continue_thread(unsigned long lwpid, int single_step);
 
-unsigned long genode_find_segfault_lwpid();
+int genode_kill(int pid);
+int genode_detach(int pid);
+void genode_fetch_registers(struct regcache *regcache, int regno);
+void genode_store_registers(struct regcache *regcache, int regno);
+int genode_read_memory(CORE_ADDR memaddr, unsigned char *myaddr, int len);
+int genode_write_memory (CORE_ADDR memaddr, const unsigned char *myaddr, int len);
+
+/* interface for genode-low.cc and low.cc */
 
 int genode_fetch_register(int regno, unsigned long *reg_content);
 void genode_store_register(int regno, unsigned long reg_content);
 unsigned char genode_read_memory_byte(void *addr);
-void genode_write_memory_byte(void *addr, unsigned char value);
-
-int genode_detach(int pid);
-int genode_kill(int pid);
 
 #endif /* GENODE_LOW_H */

@@ -66,7 +66,7 @@ class Wm::Window_registry
 
 				enum Has_alpha { HAS_ALPHA, HAS_NO_ALPHA };
 
-				enum Is_hidden { IS_HIDDEN, IS_NOT_HIDDEN };
+				enum Hidden { HIDDEN, NOT_HIDDEN };
 
 				enum Resizeable { RESIZEABLE, NOT_RESIZEABLE };
 
@@ -80,7 +80,7 @@ class Wm::Window_registry
 					Session_label label;
 					Area          size;
 					Has_alpha     has_alpha = HAS_NO_ALPHA;
-					Is_hidden     is_hidden = IS_NOT_HIDDEN;
+					Hidden        hidden = NOT_HIDDEN;
 					Resizeable    resizeable = NOT_RESIZEABLE;
 
 					bool operator == (Attr const &other) const
@@ -89,7 +89,7 @@ class Wm::Window_registry
 						    && label      == other.label
 						    && size       == other.size
 						    && has_alpha  == other.has_alpha
-						    && is_hidden  == other.is_hidden
+						    && hidden     == other.hidden
 						    && resizeable == other.resizeable;
 					}
 				};
@@ -112,10 +112,10 @@ class Wm::Window_registry
 				void attr(Session_label const &label) { _attr.label      = label; }
 				void attr(Area size)                  { _attr.size       = size;  }
 				void attr(Has_alpha has_alpha)        { _attr.has_alpha  = has_alpha; }
-				void attr(Is_hidden is_hidden)        { _attr.is_hidden  = is_hidden; }
+				void attr(Hidden hidden)              { _attr.hidden     = hidden; }
 				void attr(Resizeable resizeable)      { _attr.resizeable = resizeable; }
 
-				bool is_flushed() const { return _attr == _flushed_attr; }
+				bool flushed() const { return _attr == _flushed_attr; }
 
 				void generate_window_list_entry_xml(Xml_generator &xml) const
 				{
@@ -137,7 +137,7 @@ class Wm::Window_registry
 						if (_attr.has_alpha == HAS_ALPHA)
 							xml.attribute("has_alpha", "yes");
 
-						if (_attr.is_hidden == IS_HIDDEN)
+						if (_attr.hidden == HIDDEN)
 							xml.attribute("hidden", "yes");
 
 						if (_attr.resizeable == RESIZEABLE)
@@ -148,11 +148,11 @@ class Wm::Window_registry
 				void mark_as_flushed() const { _flushed_attr = _attr; }
 		};
 
-		bool _is_flushed() const
+		bool _flushed() const
 		{
 			bool result = true;
 			for (Window const *w = _windows.first(); w; w = w->next())
-				result &= w->is_flushed();
+				result &= w->flushed();
 
 			return result;
 		}
@@ -253,9 +253,9 @@ class Wm::Window_registry
 			_set_attr(id, has_alpha ? Window::HAS_ALPHA : Window::HAS_NO_ALPHA);
 		}
 
-		void is_hidden(Id id, bool is_hidden)
+		void hidden(Id id, bool hidden)
 		{
-			_set_attr(id, is_hidden ? Window::IS_HIDDEN : Window::IS_NOT_HIDDEN);
+			_set_attr(id, hidden ? Window::HIDDEN : Window::NOT_HIDDEN);
 		}
 
 		void resizeable(Id id, bool resizeable)
@@ -265,7 +265,7 @@ class Wm::Window_registry
 
 		void flush()
 		{
-			if (_is_flushed())
+			if (_flushed())
 				return;
 
 			_report_updated_window_list_model();

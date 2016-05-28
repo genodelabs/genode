@@ -22,7 +22,7 @@
 #include <kernel_object.h>
 
 /* base-internal includes */
-#include <internal/capability_space_sel4.h>
+#include <base/internal/capability_space_sel4.h>
 
 using namespace Genode;
 
@@ -52,7 +52,7 @@ static Pd_id_alloc &pd_id_alloc()
 }
 
 
-int Platform_pd::bind_thread(Platform_thread *thread)
+bool Platform_pd::bind_thread(Platform_thread *thread)
 {
 	ASSERT(thread);
 
@@ -65,7 +65,7 @@ int Platform_pd::bind_thread(Platform_thread *thread)
 	 *     'Vm_space'. In contrast to mapping that are created as a result of
 	 *     the RM-session's page-fault resolution, the IPC buffer's mapping
 	 *     won't be recoverable once flushed. For this reason, it is important
-	 *     to attach the UTCB as a dataspace to the context-area to make the RM
+	 *     to attach the UTCB as a dataspace to the stack area to make the RM
 	 *     session aware to the mapping. This code is missing.
 	 */
 	if (thread->_utcb) {
@@ -73,8 +73,7 @@ int Platform_pd::bind_thread(Platform_thread *thread)
 	} else {
 		_vm_space.map(thread->_info.ipc_buffer_phys, thread->INITIAL_IPC_BUFFER_VIRT, 1);
 	}
-
-	return 0;
+	return true;
 }
 
 
@@ -84,7 +83,7 @@ void Platform_pd::unbind_thread(Platform_thread *thread)
 }
 
 
-int Platform_pd::assign_parent(Native_capability parent)
+void Platform_pd::assign_parent(Native_capability parent)
 {
 	Capability_space::Ipc_cap_data const ipc_cap_data =
 		Capability_space::ipc_cap_data(parent);
@@ -96,34 +95,42 @@ int Platform_pd::assign_parent(Native_capability parent)
 	 * INITIAL_SEL_PARENT within the PD's CSpace.
 	 */
 	_cspace_cnode.copy(platform_specific()->core_cnode(),
-	                   ipc_cap_data.sel,
-	                   INITIAL_SEL_PARENT);
-	return 0;
+	                   Cnode_index(ipc_cap_data.sel),
+	                   Cnode_index(INITIAL_SEL_PARENT));
 }
 
 
-Untyped_address Platform_pd::_init_page_directory()
+addr_t Platform_pd::_init_page_directory()
 {
-	using namespace Kernel_object;
-	return create<Page_directory>(*platform()->ram_alloc(),
-	                              platform_specific()->core_cnode().sel(),
-	                              _page_directory_sel);
+	PDBG("_init_page_directory at sel %lu", _page_directory_sel.value());
+	addr_t const phys =
+		create<Page_directory_kobj>(*platform()->ram_alloc(),
+		                            platform_specific()->core_cnode().sel(),
+		                            _page_directory_sel);
+
+	int const ret = seL4_IA32_ASIDPool_Assign(platform_specific()->asid_pool().value(),
+	                                          _page_directory_sel.value());
+
+	if (ret != 0)
+		PERR("seL4_IA32_ASIDPool_Assign returned %d", ret);
+
+	return phys;
 }
 
 
-unsigned Platform_pd::alloc_sel()
+Cap_sel Platform_pd::alloc_sel()
 {
 	Lock::Guard guard(_sel_alloc_lock);
 
-	return _sel_alloc.alloc();
+	return Cap_sel(_sel_alloc.alloc());
 }
 
 
-void Platform_pd::free_sel(unsigned sel)
+void Platform_pd::free_sel(Cap_sel sel)
 {
 	Lock::Guard guard(_sel_alloc_lock);
 
-	_sel_alloc.free(sel);
+	_sel_alloc.free(sel.value());
 }
 
 
@@ -144,19 +151,17 @@ Platform_pd::Platform_pd(Allocator * md_alloc, char const *,
 :
 	_id(pd_id_alloc().alloc()),
 	_page_table_registry(*md_alloc),
-	_vm_pad_cnode_sel(platform_specific()->alloc_core_sel()),
-	_vm_cnode_sel(platform_specific()->alloc_core_sel()),
-	_page_directory_sel(platform_specific()->alloc_core_sel()),
+	_page_directory_sel(platform_specific()->core_sel_alloc().alloc()),
 	_page_directory(_init_page_directory()),
 	_vm_space(_page_directory_sel,
-	          _vm_pad_cnode_sel, _vm_cnode_sel,
+	          platform_specific()->core_sel_alloc(),
 	          *platform()->ram_alloc(),
 	          platform_specific()->top_cnode(),
 	          platform_specific()->core_cnode(),
 	          platform_specific()->phys_cnode(),
 	          _id,
 	          _page_table_registry),
-	_cspace_cnode_sel(platform_specific()->alloc_core_sel()),
+	_cspace_cnode_sel(platform_specific()->core_sel_alloc().alloc()),
 	_cspace_cnode(platform_specific()->core_cnode().sel(), _cspace_cnode_sel,
 	              CSPACE_SIZE_LOG2,
 	              *platform()->ram_alloc())
@@ -164,7 +169,7 @@ Platform_pd::Platform_pd(Allocator * md_alloc, char const *,
 	/* install CSpace selector at predefined position in the PD's CSpace */
 	_cspace_cnode.copy(platform_specific()->core_cnode(),
 	                   _cspace_cnode_sel,
-	                   INITIAL_SEL_CNODE);
+	                   Cnode_index(INITIAL_SEL_CNODE));
 }
 
 
@@ -172,8 +177,4 @@ Platform_pd::~Platform_pd()
 {
 	/* invalidate weak pointers to this object */
 	Address_space::lock_for_destruction();
-
-	platform_specific()->free_core_sel(_vm_cnode_sel);
-	platform_specific()->free_core_sel(_vm_pad_cnode_sel);
-	platform_specific()->free_core_sel(_cspace_cnode_sel);
 }

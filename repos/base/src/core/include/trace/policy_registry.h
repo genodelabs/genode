@@ -53,7 +53,7 @@ class Genode::Trace::Policy : public Genode::List<Genode::Trace::Policy>::Elemen
 
 		Allocator &md_alloc() { return _md_alloc; }
 
-		bool is_owned_by(Policy_owner const &owner) const
+		bool owned_by(Policy_owner const &owner) const
 		{
 			return &_owner == &owner;
 		}
@@ -81,7 +81,7 @@ class Genode::Trace::Policy_registry
 		Policy *_unsynchronized_lookup(Policy_owner const &owner, Policy_id id)
 		{
 			for (Policy *p = _policies.first(); p; p = p->next())
-				if (p->is_owned_by(owner) && p->has_id(id))
+				if (p->owned_by(owner) && p->has_id(id))
 					return p;
 
 			throw Nonexistent_policy();
@@ -90,7 +90,7 @@ class Genode::Trace::Policy_registry
 		Policy *_any_policy_owned_by(Policy_owner const &owner)
 		{
 			for (Policy *p = _policies.first(); p; p = p->next())
-				if (p->is_owned_by(owner))
+				if (p->owned_by(owner))
 					return p;
 
 			return 0;
@@ -123,7 +123,7 @@ class Genode::Trace::Policy_registry
 				Policy *tmp = p;
 				p = p->next();
 
-				if (tmp->is_owned_by(owner) && tmp->has_id(id)) {
+				if (tmp->owned_by(owner) && tmp->has_id(id)) {
 					_policies.remove(tmp);
 					destroy(&tmp->md_alloc(), tmp);
 				}

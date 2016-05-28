@@ -33,6 +33,7 @@
 #include <platform_device/client.h>
 #include <platform_session/connection.h>
 #include <rm_session/connection.h>
+#include <region_map/client.h>
 #include <timer_session/connection.h>
 #include <util/misc_math.h>
 #include <util/retry.h>
@@ -364,7 +365,7 @@ extern "C" void *dde_dma_alloc(dde_size_t size, dde_size_t align,
                                     dde_size_t offset)
 {
 	void *ptr;
-	if (allocator().alloc_aligned(size, &ptr, Genode::log2(align)).is_error()) {
+	if (allocator().alloc_aligned(size, &ptr, Genode::log2(align)).error()) {
 		PERR("memory allocation failed in alloc_memblock (size=%zu, align=%zx,"
 		     " offset=%zx)", (Genode::size_t)size, (Genode::size_t)align, (Genode::size_t)offset);
 		return 0;
@@ -429,7 +430,8 @@ extern "C" void dde_outl(dde_addr_t port, dde_uint32_t data) {
  **********************/
 
 struct Slab_backend_alloc : public Genode::Allocator,
-                            public Genode::Rm_connection
+                            public Genode::Rm_connection,
+                            public Genode::Region_map_client
 {
 	enum {
 		VM_SIZE    = 1024 * 1024,
@@ -454,7 +456,7 @@ struct Slab_backend_alloc : public Genode::Allocator,
 
 		try {
 			_ds_cap[_index] = _ram.alloc(BLOCK_SIZE);
-			Rm_connection::attach_at(_ds_cap[_index], _index * BLOCK_SIZE, BLOCK_SIZE, 0);
+			Region_map_client::attach_at(_ds_cap[_index], _index * BLOCK_SIZE, BLOCK_SIZE, 0);
 		} catch (...) { return false; }
 
 		/* return base + offset in VM area */
@@ -467,7 +469,7 @@ struct Slab_backend_alloc : public Genode::Allocator,
 
 	Slab_backend_alloc(Genode::Ram_session &ram)
 	:
-		Rm_connection(0, VM_SIZE),
+		Region_map_client(Rm_connection::create(VM_SIZE)),
 		_index(0), _range(Genode::env()->heap()), _ram(ram)
 	{
 		/* reserver attach us, anywere */
@@ -497,38 +499,41 @@ struct Slab_backend_alloc : public Genode::Allocator,
 		return _range.alloc(size, out_addr);
 	}
 
-	void           free(void *addr, Genode::size_t size) { }
+	void           free(void *addr, Genode::size_t size) { _range.free(addr, size); }
 	Genode::size_t overhead(Genode::size_t size) const   { return 0; }
 	bool           need_size_for_free() const            { return false; }
 };
 
 
-struct Slab_alloc : public Genode::Slab
+class Slab_alloc : public Genode::Slab
 {
-	/*
-	* Each slab block in the slab contains about 8 objects (slab entries)
-	* as proposed in the paper by Bonwick and block sizes are multiples of
-	* page size.
-	*/
-	static Genode::size_t _calculate_block_size(Genode::size_t object_size)
-	{
-		Genode::size_t block_size = 8 * (object_size + sizeof(Genode::Slab_entry))
-		                                     + sizeof(Genode::Slab_block);
-		return Genode::align_addr(block_size, 12);
-	}
+	private:
 
-	Slab_alloc(Genode::size_t object_size, Slab_backend_alloc &allocator)
-	: Slab(object_size, _calculate_block_size(object_size), 0, &allocator) { }
+		Genode::size_t const _object_size;
 
-	/**
-	 * Convenience slabe-entry allocation
-	 */
-	Genode::addr_t alloc()
-	{
-		Genode::addr_t result;
-		return (Slab::alloc(slab_size(), (void **)&result) ? result : 0);
-	}
+		static Genode::size_t _calculate_block_size(Genode::size_t object_size)
+		{
+			Genode::size_t const block_size = 8*object_size;
+			return Genode::align_addr(block_size, 12);
+		}
+
+	public:
+
+		Slab_alloc(Genode::size_t object_size, Slab_backend_alloc &allocator)
+		:
+			Slab(object_size, _calculate_block_size(object_size), 0, &allocator),
+			_object_size(object_size)
+		{ }
+
+		Genode::addr_t alloc()
+		{
+			Genode::addr_t result;
+			return (Slab::alloc(_object_size, (void **)&result) ? result : 0);
+		}
+
+		void free(void *ptr) { Slab::free(ptr, _object_size); }
 };
+
 
 struct Slab
 {

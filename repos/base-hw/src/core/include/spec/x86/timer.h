@@ -12,8 +12,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _TIMER_H_
-#define _TIMER_H_
+#ifndef _CORE__INCLUDE__SPEC__X86__TIMER_H_
+#define _CORE__INCLUDE__SPEC__X86__TIMER_H_
+
+/* base-hw includes */
+#include <kernel/types.h>
 
 /* Genode includes */
 #include <util/mmio.h>
@@ -24,17 +27,16 @@
 #include <port_io.h>
 #include <board.h>
 
-namespace Genode
-{
-	/**
-	 * LAPIC-based timer driver for core
-	 */
-	class Timer;
-}
+namespace Genode { class Timer; }
 
+/**
+ * LAPIC-based timer driver for core
+ */
 class Genode::Timer : public Mmio
 {
 	private:
+
+		using time_t = Kernel::time_t;
 
 		enum {
 			/* PIT constants */
@@ -57,6 +59,17 @@ class Genode::Timer : public Mmio
 		};
 		struct Tmr_initial : Register <0x380, 32> { };
 		struct Tmr_current : Register <0x390, 32> { };
+
+		struct Divide_configuration : Register <0x03e0, 32>
+		{
+			struct Divide_value_0_2 : Bitfield<0, 2> { };
+			struct Divide_value_2_1 : Bitfield<3, 1> { };
+			struct Divide_value :
+				Bitset_2<Divide_value_0_2, Divide_value_2_1>
+			{
+				enum { MAX = 6 };
+			};
+		};
 
 		uint32_t _tics_per_ms = 0;
 
@@ -91,6 +104,9 @@ class Genode::Timer : public Mmio
 
 		Timer() : Mmio(Board::MMIO_LAPIC_BASE)
 		{
+			write<Divide_configuration::Divide_value>(
+				Divide_configuration::Divide_value::MAX);
+
 			/* Enable LAPIC timer in one-shot mode */
 			write<Tmr_lvt::Vector>(Board::TIMER_VECTOR_KERNEL);
 			write<Tmr_lvt::Delivery>(0);
@@ -99,41 +115,36 @@ class Genode::Timer : public Mmio
 
 			/* Calculate timer frequency */
 			_tics_per_ms = _pit_calc_timer_freq();
-			PINF("LAPIC: timer frequency %u kHz", _tics_per_ms);
 		}
 
 		/**
 		 * Disable PIT timer channel. This is necessary since BIOS sets up
 		 * channel 0 to fire periodically.
 		 */
-		static void disable_pit(void)
+		static void disable_pit()
 		{
 			outb(PIT_MODE, 0x30);
 			outb(PIT_CH0_DATA, 0);
 			outb(PIT_CH0_DATA, 0);
 		}
 
-		static unsigned interrupt_id(int)
-		{
-			return Board::TIMER_VECTOR_KERNEL;
-		}
+		static unsigned interrupt_id(unsigned const) {
+			return Board::TIMER_VECTOR_KERNEL; }
 
-		inline void start_one_shot(uint32_t const tics, unsigned)
-		{
-			write<Tmr_initial>(tics);
-		}
+		void start_one_shot(time_t const tics, unsigned const) {
+			write<Tmr_initial>(tics); }
 
-		uint32_t ms_to_tics(unsigned const ms)
-		{
-			return ms * _tics_per_ms;
-		}
+		time_t tics_to_us(time_t const tics) const {
+			return (tics / _tics_per_ms) * 1000; }
 
-		unsigned value(unsigned)
-		{
-			return read<Tmr_current>();
-		}
+		time_t us_to_tics(time_t const us) const {
+			return (us / 1000) * _tics_per_ms; }
+
+		time_t max_value() { return (Tmr_initial::access_t)~0; }
+
+		time_t value(unsigned const) { return read<Tmr_current>(); }
 };
 
 namespace Kernel { class Timer : public Genode::Timer { }; }
 
-#endif /* _TIMER_H_ */
+#endif /* _CORE__INCLUDE__SPEC__X86__TIMER_H_ */

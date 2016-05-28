@@ -21,12 +21,14 @@
 /* core includes */
 #include <platform.h>
 #include <core_parent.h>
-#include <cap_session_component.h>
+#include <core_pd_session.h>
 #include <ram_session_component.h>
+#include <core_pd_session.h>
 
-/* internal base includes */
-#include <platform_env.h>
+/* base-internal includes */
+#include <base/internal/platform_env.h>
 
+namespace Genode { void init_stack_area(); }
 
 namespace Genode {
 
@@ -126,9 +128,9 @@ namespace Genode {
 			{
 				enum { STACK_SIZE = 2048 * sizeof(Genode::addr_t) };
 
-				Entrypoint(Cap_session *cap_session)
+				Entrypoint()
 				:
-					Rpc_entrypoint(cap_session, STACK_SIZE, "entrypoint")
+					Rpc_entrypoint(nullptr, STACK_SIZE, "entrypoint")
 				{ }
 			};
 
@@ -136,10 +138,28 @@ namespace Genode {
 
 			typedef Synchronized_ram_session<Ram_session_component> Core_ram_session;
 
-			Core_parent                  _core_parent;
-			Cap_session_component        _cap_session;
+			Core_parent _core_parent;
+
+			/*
+			 * Initialize the stack area before creating the first thread,
+			 * which happens to be the '_entrypoint'.
+			 */
+			bool _init_stack_area() { init_stack_area(); return true; }
+			bool _stack_area_initialized = _init_stack_area();
+
 			Entrypoint                   _entrypoint;
 			Core_ram_session             _ram_session;
+
+			/*
+			 * The core-local PD session is provided by a real RPC object
+			 * dispatched by the same entrypoint as the signal-source RPC
+			 * objects. This is needed to allow the 'Pd_session::submit'
+			 * method to issue out-of-order replies to
+			 * 'Signal_source::wait_for_signal' calls.
+			 */
+			Core_pd_session_component _pd_session_component;
+			Pd_session_client         _pd_session_client;
+
 			Heap                         _heap;
 			Ram_session_capability const _ram_session_cap;
 
@@ -153,11 +173,11 @@ namespace Genode {
 				Platform_env_base(Ram_session_capability(),
 				                  Cpu_session_capability(),
 				                  Pd_session_capability()),
-				_cap_session(platform()->core_mem_alloc(), "ram_quota=4K"),
-				_entrypoint(&_cap_session),
 				_ram_session(&_entrypoint, &_entrypoint,
 				             platform()->ram_alloc(), platform()->core_mem_alloc(),
 				             "ram_quota=4M", platform()->ram_alloc()->avail()),
+				_pd_session_component(_entrypoint /* XXX use a different entrypoint */),
+				_pd_session_client(_entrypoint.manage(&_pd_session_component)),
 				_heap(&_ram_session, Platform_env_base::rm_session()),
 				_ram_session_cap(_entrypoint.manage(&_ram_session))
 			{ }
@@ -172,28 +192,23 @@ namespace Genode {
 			 ** Core-specific accessor functions **
 			 **************************************/
 
-			Cap_session *cap_session() { return &_cap_session; }
 			Entrypoint  *entrypoint()  { return &_entrypoint; }
 
 
-			/*******************
-			 ** Env interface **
-			 *******************/
+			/******************************
+			 ** Env_deprecated interface **
+			 ******************************/
 
-			Parent                 *parent()          { return &_core_parent; }
-			Ram_session            *ram_session()     { return &_ram_session; }
-			Ram_session_capability  ram_session_cap() { return  _ram_session_cap; }
-			Allocator              *heap()            { return &_heap; }
+			Parent                 *parent()          override { return &_core_parent; }
+			Ram_session            *ram_session()     override { return &_ram_session; }
+			Ram_session_capability  ram_session_cap() override { return  _ram_session_cap; }
+			Pd_session             *pd_session()      override { return &_pd_session_client; }
+			Allocator              *heap()            override { return &_heap; }
 
-			Cpu_session_capability cpu_session_cap() {
-				PWRN("%s:%u not implemented", __FILE__, __LINE__);
-				return Cpu_session_capability();
-			}
-
-			Pd_session *pd_session()
+			Cpu_session_capability cpu_session_cap() override
 			{
 				PWRN("%s:%u not implemented", __FILE__, __LINE__);
-				return 0;
+				return Cpu_session_capability();
 			}
 
 			void reload_parent_cap(Capability<Parent>::Dst, long) { }

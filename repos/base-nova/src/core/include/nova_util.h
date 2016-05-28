@@ -13,8 +13,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _NOVA_UTIL_H_
-#define _NOVA_UTIL_H_
+#ifndef _CORE__INCLUDE__NOVA_UTIL_H_
+#define _CORE__INCLUDE__NOVA_UTIL_H_
 
 /* Genode includes */
 #include <base/printf.h>
@@ -233,4 +233,4 @@ inline void unmap_local(Nova::Utcb *utcb, Genode::addr_t start,
 }
 
 
-#endif /* _NOVA_UTIL_H_ */
+#endif /* _CORE__INCLUDE__NOVA_UTIL_H_ */

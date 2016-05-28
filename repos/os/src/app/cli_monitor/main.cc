@@ -31,7 +31,6 @@
 #include <help_command.h>
 #include <yield_command.h>
 #include <ram_command.h>
-#include <gdb_command.h>
 
 using Genode::Xml_node;
 
@@ -99,9 +98,10 @@ static Subsystem_config_registry &subsystem_config_registry()
 int main(int argc, char **argv)
 {
 	/* look for dynamic linker */
+	Genode::Dataspace_capability ldso_ds;
 	try {
 		static Genode::Rom_connection rom("ld.lib.so");
-		Genode::Process::dynamic_linker(rom.dataspace());
+		ldso_ds = rom.dataspace();
 	} catch (...) { }
 
 	using Genode::Signal_context;
@@ -127,10 +127,6 @@ int main(int argc, char **argv)
 	static Signal_context yield_broadcast_sig_ctx;
 	static Signal_context resource_avail_sig_ctx;
 
-	static Signal_context kill_gdb_sig_ctx;
-	static Signal_context_capability kill_gdb_sig_cap =
-		sig_rec.manage(&kill_gdb_sig_ctx);
-
 	static Signal_context exited_child_sig_ctx;
 	static Signal_context_capability exited_child_sig_cap =
 		sig_rec.manage(&exited_child_sig_ctx);
@@ -143,15 +139,11 @@ int main(int argc, char **argv)
 	commands.insert(new Help_command);
 	Kill_command kill_command(children);
 	commands.insert(&kill_command);
-	commands.insert(new Gdb_command(ram, cap, children,
-	                                subsystem_config_registry(),
-	                                yield_response_sig_cap,
-	                                kill_gdb_sig_cap,
-	                                exited_child_sig_cap));
 	commands.insert(new Start_command(ram, cap, children,
 	                                  subsystem_config_registry(),
 	                                  yield_response_sig_cap,
-	                                  exited_child_sig_cap));
+	                                  exited_child_sig_cap,
+	                                  ldso_ds));
 	commands.insert(new Status_command(ram, children));
 	commands.insert(new Yield_command(children));
 	commands.insert(new Ram_command(children));
@@ -168,7 +160,7 @@ int main(int argc, char **argv)
 		if (signal.context() == &read_avail_sig_ctx) {
 
 			/* supply pending terminal input to line editor */
-			while (terminal.avail() && !line_editor.is_complete()) {
+			while (terminal.avail() && !line_editor.completed()) {
 				char c;
 				terminal.read(&c, 1);
 				line_editor.submit_input(c);
@@ -203,21 +195,6 @@ int main(int argc, char **argv)
 				child->yield(amount, true);
 		}
 
-		if (signal.context() == &kill_gdb_sig_ctx) {
-			for (Child *child = children.first(); child; child = child->next()) {
-				Gdb_command_child *gdb_command_child =
-					dynamic_cast<Gdb_command_child*>(child);
-				if (gdb_command_child && gdb_command_child->kill_requested()) {
-					tprintf(terminal, "Destroying GDB subsystem after an error occured.\n");
-					children.remove(gdb_command_child);
-					Genode::destroy(Genode::env()->heap(), gdb_command_child);
-					line_editor.reset();
-					break;
-				}
-			}
-			continue;
-		}
-
 		if (signal.context() == &exited_child_sig_ctx) {
 			Child *next = nullptr;
 			for (Child *child = children.first(); child; child = next) {
@@ -230,7 +207,7 @@ int main(int argc, char **argv)
 			continue;
 		}
 
-		if (!line_editor.is_complete())
+		if (!line_editor.completed())
 			continue;
 
 		Command *command = lookup_command(buf, commands);

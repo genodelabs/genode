@@ -1,0 +1,9 @@
+{
+    "pre-link-args": ["-m64"],
+    "llvm-target": "x86_64-pc-genode-elf",
+    "target-endian": "little",
+    "target-pointer-width": "64",
+    "arch": "x86_64",
+    "os": "genode",
+    "no_compiler_rt": true
+}

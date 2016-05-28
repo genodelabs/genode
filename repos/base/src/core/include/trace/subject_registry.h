@@ -32,7 +32,7 @@
 #include <trace/source_registry.h>
 
 /* base-internal include */
-#include <trace/control.h>
+#include <base/internal/trace_control.h>
 
 namespace Genode { namespace Trace {
 	class Subject;
@@ -144,12 +144,12 @@ class Genode::Trace::Subject
 			Locked_ptr<Source> source(_source);
 
 			/* source vanished */
-			if (!source.is_valid())
+			if (!source.valid())
 				return Subject_info::DEAD;
 
 			if (source->enabled())
-				return source->is_owned_by(this) ? Subject_info::TRACED
-				                                 : Subject_info::FOREIGN;
+				return source->owned_by(this) ? Subject_info::TRACED
+				                              : Subject_info::FOREIGN;
 			if (source->error())
 				return Subject_info::ERROR;
 
@@ -200,7 +200,7 @@ class Genode::Trace::Subject
 			/* inform trace source about the new buffer */
 			Locked_ptr<Source> source(_source);
 
-			if (!source.is_valid())
+			if (!source.valid())
 				throw Source_is_dead();
 
 			if (!source->try_acquire(this))
@@ -214,7 +214,7 @@ class Genode::Trace::Subject
 			/* inform trace source about the new buffer */
 			Locked_ptr<Source> source(_source);
 
-			if (source.is_valid())
+			if (source.valid())
 				source->disable();
 		}
 
@@ -228,7 +228,7 @@ class Genode::Trace::Subject
 			/* inform trace source about the new buffer */
 			Locked_ptr<Source> source(_source);
 
-			if (!source.is_valid())
+			if (!source.valid())
 				throw Source_is_dead();
 
 			source->enable();
@@ -242,7 +242,7 @@ class Genode::Trace::Subject
 			{
 				Locked_ptr<Source> source(_source);
 
-				if (source.is_valid()) {
+				if (source.valid()) {
 					Trace::Source::Info const info = source->info();
 					execution_time = info.execution_time;
 					affinity       = info.affinity;
@@ -261,7 +261,7 @@ class Genode::Trace::Subject
 			Locked_ptr<Source> source(_source);
 
 			/* source vanished */
-			if (!source.is_valid())
+			if (!source.valid())
 				return 0;
 
 			return _buffer.flush() + _policy.flush();

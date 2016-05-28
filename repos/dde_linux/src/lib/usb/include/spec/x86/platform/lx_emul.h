@@ -14,28 +14,20 @@
 #ifndef _X86_32__PLATFORM__LX_EMUL_
 #define _X86_32__PLATFORM__LX_EMUL_
 
-struct platform_device
-{
-	void *data;
-};
 
 /*******************
  ** asm/barrier.h **
  *******************/
 
-#define mb()  asm volatile ("mfence": : :"memory")
-#define rmb() asm volatile ("lfence": : :"memory")
-#define wmb() asm volatile ("sfence": : :"memory")
+#include <lx_emul/barrier.h>
 
-/*
- * This is the "safe" implementation as needed for a configuration
- * with SMP enabled.
- */
 
-#define smp_mb()  mb()
-#define smp_rmb() barrier()
-#define smp_wmb() barrier()
+struct platform_device
+{
+	void *data;
+};
 
-static inline void barrier() { asm volatile ("": : :"memory"); }
+
+#define dev_is_pci(d) (1)
 
 #endif /* _X86_32__PLATFORM__LX_EMUL_ */

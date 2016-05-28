@@ -28,6 +28,17 @@ namespace Pistachio {
 #include <l4/types.h>
 }
 
+
+inline unsigned long convert_native_thread_id_to_badge(Pistachio::L4_ThreadId_t tid)
+{
+	/*
+	 * Pistachio has no server-defined badges for page-fault messages.
+	 * Therefore, we have to interpret the sender ID as badge.
+	 */
+	return tid.raw;
+}
+
+
 namespace Genode {
 
 	class Platform_pd;
@@ -35,17 +46,17 @@ namespace Genode {
 	{
 		private:
 
-			int                _thread_id;      /* plain thread number */
-			Native_thread_id   _l4_thread_id;   /* L4 thread ID */
-			char               _name[32];       /* thread name that will be
-			                                       registered at the kernel
-			                                       debugger */
-			Platform_pd       *_platform_pd;    /* protection domain thread
-			                                       is bound to */
-			unsigned           _priority;       /* thread priority */
-			Pager_object      *_pager;
+			int                      _thread_id;      /* plain thread number */
+			Pistachio::L4_ThreadId_t _l4_thread_id;   /* L4 thread ID */
+			char                     _name[32];       /* thread name that will be
+			                                             registered at the kernel
+			                                             debugger */
+			Platform_pd             *_platform_pd;    /* protection domain thread
+			                                             is bound to */
+			unsigned                 _priority;       /* thread priority */
+			Pager_object            *_pager;
 
-			Affinity::Location _location;
+			Affinity::Location       _location;
 
 		public:
 
@@ -56,6 +67,7 @@ namespace Genode {
 			 * Constructor
 			 */
 			Platform_thread(size_t, const char *name = 0, unsigned priority = 0,
+			                Affinity::Location = Affinity::Location(),
 			                addr_t utcb = 0, int thread_id = THREAD_INVALID);
 
 			/**
@@ -80,6 +92,11 @@ namespace Genode {
 			void pause();
 
 			/**
+			 * Enable/disable single stepping
+			 */
+			void single_step(bool) { }
+
+			/**
 			 * Resume this thread
 			 */
 			void resume();
@@ -96,7 +113,7 @@ namespace Genode {
 			 * \param l4_thread_id  final L4 thread ID
 			 * \param pd            platform pd, thread is bound to
 			 */
-			void bind(int thread_id, Native_thread_id l4_thread_id,
+			void bind(int thread_id, Pistachio::L4_ThreadId_t l4_thread_id,
 			          Platform_pd *pd);
 
 			/**
@@ -163,12 +180,12 @@ namespace Genode {
 			 ** Pistachio-specific Accessors **
 			 **********************************/
 
-			int              thread_id()        const { return _thread_id; }
-			Native_thread_id native_thread_id() const { return _l4_thread_id; }
-			const char      *name()             const { return _name; }
+			int                      thread_id()        const { return _thread_id; }
+			Pistachio::L4_ThreadId_t native_thread_id() const { return _l4_thread_id; }
+			const char              *name()             const { return _name; }
 
 			/* use only for core... */
-			void set_l4_thread_id(Native_thread_id id) { _l4_thread_id = id; }
+			void set_l4_thread_id(Pistachio::L4_ThreadId_t id) { _l4_thread_id = id; }
 	};
 }
 

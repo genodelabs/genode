@@ -12,8 +12,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _SRC__CORE__INCLUDE__SYNCED_RANGE_ALLOCATOR_H_
-#define _SRC__CORE__INCLUDE__SYNCED_RANGE_ALLOCATOR_H_
+#ifndef _CORE__INCLUDE__SYNCED_RANGE_ALLOCATOR_H_
+#define _CORE__INCLUDE__SYNCED_RANGE_ALLOCATOR_H_
 
 #include <base/allocator.h>
 #include <base/synced_interface.h>
@@ -91,7 +91,7 @@ class Genode::Synced_range_allocator : public Range_allocator
 		int remove_range(addr_t base, size_t size) override {
 			return _synced_object()->remove_range(base, size); }
 
-		Alloc_return alloc_aligned(size_t size, void **out_addr, int align = 0,
+		Alloc_return alloc_aligned(size_t size, void **out_addr, int align,
 		                           addr_t from = 0, addr_t to = ~0UL) override {
 			return _synced_object()->alloc_aligned(size, out_addr, align, from, to); }
 
@@ -108,4 +108,4 @@ class Genode::Synced_range_allocator : public Range_allocator
 			return _synced_object()->valid_addr(addr); }
 };
 
-#endif /* _SRC__CORE__INCLUDE__SYNCED_RANGE_ALLOCATOR_H_ */
+#endif /* _CORE__INCLUDE__SYNCED_RANGE_ALLOCATOR_H_ */

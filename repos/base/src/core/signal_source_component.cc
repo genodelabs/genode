@@ -16,7 +16,7 @@
 #include <base/printf.h>
 
 /* core includes */
-#include <signal_session_component.h>
+#include <signal_source_component.h>
 
 using namespace Genode;
 
@@ -27,14 +27,13 @@ using namespace Genode;
 
 void Signal_source_component::release(Signal_context_component *context)
 {
-	if (context && context->is_enqueued())
+	if (context && context->enqueued())
 		_signal_queue.remove(context);
 }
 
 
 void Signal_source_component::submit(Signal_context_component *context,
-                                     Ipc_ostream              *ostream,
-                                     int                       cnt)
+                                     unsigned long             cnt)
 {
 	/*
 	 * If the client does not block in 'wait_for_signal', the
@@ -49,8 +48,7 @@ void Signal_source_component::submit(Signal_context_component *context,
 	 */
 	if (_reply_cap.valid()) {
 
-		*ostream << Signal(context->imprint(), context->cnt());
-		_entrypoint->explicit_reply(_reply_cap, 0);
+		_entrypoint->reply_signal_info(_reply_cap, context->imprint(), context->cnt());
 
 		/*
 		 * We unblocked the client and, therefore, can invalidate
@@ -61,7 +59,7 @@ void Signal_source_component::submit(Signal_context_component *context,
 
 	} else {
 
-		if (!context->is_enqueued())
+		if (!context->enqueued())
 			_signal_queue.enqueue(context);
 	}
 }
@@ -108,6 +106,6 @@ void Signal_source_component::Finalizer_component::exit()
 	if (!source._reply_cap.valid())
 		return;
 
-	source._entrypoint->explicit_reply(source._reply_cap, 0);
+	source._entrypoint->reply_signal_info(source._reply_cap, 0, 0);
 	source._reply_cap = Untyped_capability();
 }

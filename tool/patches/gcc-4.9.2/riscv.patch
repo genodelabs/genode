@@ -1,0 +1,463 @@
+diff --git a/config.sub b/config.sub
+index 61cb4bc..d6e23cb 100755
+--- a/config.sub
++++ b/config.sub
+@@ -334,6 +334,9 @@ case $basic_machine in
+ 	ms1)
+ 		basic_machine=mt-unknown
+ 		;;
++	riscv)
++		basic_machine=riscv-ucb
++		;;
+ 
+ 	strongarm | thumb | xscale)
+ 		basic_machine=arm-unknown
+diff --git a/gcc/config.gcc b/gcc/config.gcc
+index 9d3fa57..b7ebc07 100644
+--- a/gcc/config.gcc
++++ b/gcc/config.gcc
+@@ -447,6 +447,10 @@ powerpc*-*-*)
+ 	esac
+ 	extra_options="${extra_options} g.opt fused-madd.opt rs6000/rs6000-tables.opt"
+ 	;;
++riscv*)
++	cpu_type=riscv
++	need_64bit_hwint=yes
++	;;
+ rs6000*-*-*)
+ 	need_64bit_hwint=yes
+ 	extra_options="${extra_options} g.opt fused-madd.opt rs6000/rs6000-tables.opt"
+@@ -1949,6 +1953,27 @@ microblaze*-*-elf)
+ 	cxx_target_objs="${cxx_target_objs} microblaze-c.o"
+ 	tmake_file="${tmake_file} microblaze/t-microblaze"
+         ;;
++riscv32*-*-linux*)				# Linux RISC-V
++	tm_file="elfos.h gnu-user.h linux.h glibc-stdint.h riscv/default-32.h ${tm_file} riscv/linux.h riscv/linux64.h"
++	tmake_file="${tmake_file} riscv/t-linux64"
++	gnu_ld=yes
++	gas=yes
++	gcc_cv_initfini_array=yes
++	;;
++riscv*-*-linux*)				# Linux RISC-V
++	tm_file="elfos.h gnu-user.h linux.h glibc-stdint.h ${tm_file} riscv/linux.h riscv/linux64.h"
++	tmake_file="${tmake_file} riscv/t-linux64"
++	gnu_ld=yes
++	gas=yes
++	gcc_cv_initfini_array=yes
++	;;
++riscv*-*-elf*)				# Linux RISC-V
++	tm_file="elfos.h newlib-stdint.h ${tm_file} riscv/elf.h"
++	tmake_file="${tmake_file} riscv/t-elf"
++	gnu_ld=yes
++	gas=yes
++	gcc_cv_initfini_array=yes
++	;;
+ mips*-*-netbsd*)			# NetBSD/mips, either endian.
+ 	target_cpu_default="MASK_ABICALLS"
+ 	tm_file="elfos.h ${tm_file} mips/elf.h netbsd.h netbsd-elf.h mips/netbsd.h"
+@@ -3756,6 +3781,31 @@ case "${target}" in
+ 		done
+ 		;;
+ 
++	riscv*-*-*)
++		supported_defaults="abi arch arch_32 arch_64 float tune tune_32 tune_64"
++
++		case ${with_float} in
++		"" | soft | hard)
++			# OK
++			;;
++		*)
++			echo "Unknown floating point type used in --with-float=$with_float" 1>&2
++			exit 1
++			;;
++		esac
++
++		case ${with_abi} in
++		"" | 32 | 64)
++			# OK
++			;;
++		*)
++			echo "Unknown ABI used in --with-abi=$with_abi" 1>&2
++			exit 1
++			;;
++		esac
++
++    ;;
++
+ 	mips*-*-*)
+ 		supported_defaults="abi arch arch_32 arch_64 float fpu nan tune tune_32 tune_64 divide llsc mips-plt synci"
+ 
+diff --git a/gcc/configure b/gcc/configure
+index 291e463..dae2d8f 100755
+--- a/gcc/configure
++++ b/gcc/configure
+@@ -23515,6 +23515,25 @@ x3:	.space 4
+ 	tls_first_minor=14
+ 	tls_as_opt="-a32 --fatal-warnings"
+ 	;;
++  riscv*-*-*)
++    conftest_s='
++	.section .tdata,"awT",@progbits
++x:
++	.word 2
++	.text
++	la.tls.gd a0,x
++	la.tls.ie a1,x
++	lui a0,%tls_ie_pcrel_hi(x)
++	lw a0,%pcrel_lo(x)(a0)
++	add a0,a0,tp
++	lw a0,0(a0)
++	lui a0,%tprel_hi(x)
++	add a0,a0,tp,%tprel_add(x)
++	lw a0,%tprel_lo(x)(a0)'
++	tls_first_major=2
++	tls_first_minor=21
++	tls_as_opt='-m32 --fatal-warnings'
++	;;
+   s390-*-*)
+     conftest_s='
+ 	.section ".tdata","awT",@progbits
+diff --git a/gcc/configure.ac b/gcc/configure.ac
+index b9a3799..c39db9a 100644
+--- a/gcc/configure.ac
++++ b/gcc/configure.ac
+@@ -3178,6 +3178,25 @@ x3:	.space 4
+ 	tls_first_minor=14
+ 	tls_as_opt="-a32 --fatal-warnings"
+ 	;;
++  riscv*-*-*)
++    conftest_s='
++	.section .tdata,"awT",@progbits
++x:
++	.word 2
++	.text
++	la.tls.gd a0,x
++	la.tls.ie a1,x
++	lui a0,%tls_ie_pcrel_hi(x)
++	lw a0,%pcrel_lo(x)(a0)
++	add a0,a0,tp
++	lw a0,0(a0)
++	lui a0,%tprel_hi(x)
++	add a0,a0,tp,%tprel_add(x)
++	lw a0,%tprel_lo(x)(a0)'
++	tls_first_major=2
++	tls_first_minor=21
++	tls_as_opt='-m32 --fatal-warnings'
++	;;
+   s390-*-*)
+     conftest_s='
+ 	.section ".tdata","awT",@progbits
+diff --git a/gcc/testsuite/gcc.c-torture/execute/20101011-1.c b/gcc/testsuite/gcc.c-torture/execute/20101011-1.c
+index 1952dbd..7015082 100644
+--- a/gcc/testsuite/gcc.c-torture/execute/20101011-1.c
++++ b/gcc/testsuite/gcc.c-torture/execute/20101011-1.c
+@@ -6,6 +6,9 @@
+ #elif defined (__powerpc__) || defined (__PPC__) || defined (__ppc__) || defined (__POWERPC__) || defined (__ppc)
+   /* On PPC division by zero does not trap.  */
+ # define DO_TEST 0
++#elif defined (__riscv__)
++  /* On RISC-V division by zero does not trap.  */
++# define DO_TEST 0
+ #elif defined (__SPU__)
+   /* On SPU division by zero does not trap.  */
+ # define DO_TEST 0
+diff --git a/gcc/testsuite/gcc.dg/20020312-2.c b/gcc/testsuite/gcc.dg/20020312-2.c
+index 63fbfcc..b346eba 100644
+--- a/gcc/testsuite/gcc.dg/20020312-2.c
++++ b/gcc/testsuite/gcc.dg/20020312-2.c
+@@ -66,6 +66,8 @@ extern void abort (void);
+ # else
+ #  define PIC_REG  "30"
+ # endif
++#elif defined(__riscv__)
++/* No pic register.  */
+ #elif defined(__RX__)
+ /* No pic register.  */
+ #elif defined(__s390__)
+diff --git a/gcc/testsuite/gcc.dg/20040813-1.c b/gcc/testsuite/gcc.dg/20040813-1.c
+index 8be831d..bc74ec8 100644
+--- a/gcc/testsuite/gcc.dg/20040813-1.c
++++ b/gcc/testsuite/gcc.dg/20040813-1.c
+@@ -2,7 +2,7 @@
+ /* Contributed by Devang Patel  <dpatel@apple.com>  */
+ 
+ /* { dg-do compile } */
+-/* { dg-skip-if "No stabs" { aarch64*-*-* mmix-*-* *-*-aix* alpha*-*-* hppa*64*-*-* ia64-*-* tile*-*-* nios2-*-* *-*-vxworks* } { "*" } { "" } } */
++/* { dg-skip-if "No stabs" { aarch64*-*-* mmix-*-* *-*-aix* alpha*-*-* hppa*64*-*-* ia64-*-* riscv*-*-* tile*-*-* nios2-*-* *-*-vxworks* } { "*" } { "" } } */
+ /* { dg-options "-gstabs" } */
+ 
+ int
+diff --git a/gcc/testsuite/gcc.dg/stack-usage-1.c b/gcc/testsuite/gcc.dg/stack-usage-1.c
+index 05e3df7..4afc483 100644
+--- a/gcc/testsuite/gcc.dg/stack-usage-1.c
++++ b/gcc/testsuite/gcc.dg/stack-usage-1.c
+@@ -61,6 +61,8 @@
+ #  else
+ #    define SIZE 240
+ #  endif
++#elif defined (__riscv__)
++#  define SIZE 240
+ #elif defined (__AVR__)
+ #  define SIZE 254
+ #elif defined (__s390x__)
+diff --git a/libatomic/cas_n.c b/libatomic/cas_n.c
+index 801262d..a885afa 100644
+--- a/libatomic/cas_n.c
++++ b/libatomic/cas_n.c
+@@ -70,7 +70,7 @@ SIZE(libat_compare_exchange) (UTYPE *mptr, UTYPE *eptr, UTYPE newval,
+       mask = -1;
+     }
+ 
+-  weval = *eptr << shift;
++  weval = (UWORD)*eptr << shift;
+   wnewval = (UWORD)newval << shift;
+   woldval = __atomic_load_n (wptr, __ATOMIC_RELAXED);
+   do
+diff --git a/libatomic/configure.tgt b/libatomic/configure.tgt
+index a3757ef..516348d 100644
+--- a/libatomic/configure.tgt
++++ b/libatomic/configure.tgt
+@@ -29,6 +29,7 @@
+ case "${target_cpu}" in
+   alpha*)		ARCH=alpha ;;
+   rs6000 | powerpc*)	ARCH=powerpc ;;
++  riscv*)		ARCH=riscv ;;
+   sh*)			ARCH=sh ;;
+ 
+   arm*)
+diff --git a/libatomic/fop_n.c b/libatomic/fop_n.c
+index 4a18da9..854d648 100644
+--- a/libatomic/fop_n.c
++++ b/libatomic/fop_n.c
+@@ -1,4 +1,4 @@
+-/* Copyright (C) 2012-2014 Free Software Foundation, Inc.
++/* Copyright (C) 2012-2015 Free Software Foundation, Inc.
+    Contributed by Richard Henderson <rth@redhat.com>.
+ 
+    This file is part of the GNU Atomic Library (libatomic).
+@@ -112,9 +112,9 @@ SIZE(C2(libat_fetch_,NAME)) (UTYPE *mptr, UTYPE opval, int smodel)
+ 
+   pre_barrier (smodel);
+ 
+-  wptr = (UWORD *)mptr;
+-  shift = 0;
+-  mask = -1;
++  wptr = (UWORD *)((uintptr_t)mptr & -WORDSIZE);
++  shift = (((uintptr_t)mptr % WORDSIZE) * CHAR_BIT) ^ SIZE(INVERT_MASK);
++  mask = SIZE(MASK) << shift;
+ 
+   wopval = (UWORD)opval << shift;
+   woldval = __atomic_load_n (wptr, __ATOMIC_RELAXED);
+@@ -136,9 +136,9 @@ SIZE(C3(libat_,NAME,_fetch)) (UTYPE *mptr, UTYPE opval, int smodel)
+ 
+   pre_barrier (smodel);
+ 
+-  wptr = (UWORD *)mptr;
+-  shift = 0;
+-  mask = -1;
++  wptr = (UWORD *)((uintptr_t)mptr & -WORDSIZE);
++  shift = (((uintptr_t)mptr % WORDSIZE) * CHAR_BIT) ^ SIZE(INVERT_MASK);
++  mask = SIZE(MASK) << shift;
+ 
+   wopval = (UWORD)opval << shift;
+   woldval = __atomic_load_n (wptr, __ATOMIC_RELAXED);
+diff --git a/libcpp/configure b/libcpp/configure
+index b421e48..1270509 100755
+--- a/libcpp/configure
++++ b/libcpp/configure
+@@ -7163,6 +7163,7 @@ case $target in
+ 	mips*-*-* | \
+ 	mmix-*-* | \
+ 	powerpc*-*-* | \
++	riscv*-*-* | \
+ 	rs6000*-*-* | \
+ 	s390*-*-* | \
+ 	sparc*-*-* | \
+diff --git a/libcpp/configure.ac b/libcpp/configure.ac
+index 8515abf..89df04d 100644
+--- a/libcpp/configure.ac
++++ b/libcpp/configure.ac
+@@ -192,6 +192,7 @@ case $target in
+ 	mips*-*-* | \
+ 	mmix-*-* | \
+ 	powerpc*-*-* | \
++	riscv*-*-* | \
+ 	rs6000*-*-* | \
+ 	s390*-*-* | \
+ 	sparc*-*-* | \
+diff --git a/libgcc/config.host b/libgcc/config.host
+index f4a7428..e1f49c8 100644
+--- a/libgcc/config.host
++++ b/libgcc/config.host
+@@ -167,6 +167,9 @@ powerpc*-*-*)
+ 	;;
+ rs6000*-*-*)
+ 	;;
++riscv*)
++	cpu_type=riscv
++	;;
+ score*-*-*)
+ 	cpu_type=score
+ 	;;
+@@ -1002,6 +1005,18 @@ powerpcle-*-eabi*)
+ 	tmake_file="${tmake_file} rs6000/t-ppccomm rs6000/t-crtstuff t-crtstuff-pic t-fdpbit"
+ 	extra_parts="$extra_parts crtbegin.o crtend.o crtbeginS.o crtendS.o crtbeginT.o ecrti.o ecrtn.o ncrti.o ncrtn.o"
+ 	;;
++riscv32*-*-linux*)
++	tmake_file="${tmake_file} riscv/t-fpbit riscv/t-dpbit riscv/t-tpbit riscv/t-elf riscv/t-elf32"
++	extra_parts="$extra_parts crtbegin.o crtend.o crti.o crtn.o crtendS.o crtbeginT.o"
++	;;
++riscv*-*-linux*)
++	tmake_file="${tmake_file} riscv/t-fpbit riscv/t-dpbit riscv/t-tpbit riscv/t-elf"
++	extra_parts="$extra_parts crtbegin.o crtend.o crti.o crtn.o crtendS.o crtbeginT.o"
++	;;
++riscv*-*-*)
++	tmake_file="${tmake_file} riscv/t-fpbit riscv/t-dpbit riscv/t-elf"
++	extra_parts="$extra_parts crtbegin.o crtend.o crti.o crtn.o"
++	;;
+ rs6000-ibm-aix4.[3456789]* | powerpc-ibm-aix4.[3456789]*)
+ 	md_unwind_header=rs6000/aix-unwind.h
+ 	tmake_file="t-fdpbit rs6000/t-ppc64-fp rs6000/t-slibgcc-aix rs6000/t-ibm-ldouble"
+diff --git a/libsanitizer/asan/asan_linux.cc b/libsanitizer/asan/asan_linux.cc
+index 0692eb1..2a7b656 100644
+--- a/libsanitizer/asan/asan_linux.cc
++++ b/libsanitizer/asan/asan_linux.cc
+@@ -98,6 +98,11 @@ void GetPcSpBp(void *context, uptr *pc, uptr *sp, uptr *bp) {
+   *pc = ucontext->uc_mcontext.gregs[31];
+   *bp = ucontext->uc_mcontext.gregs[30];
+   *sp = ucontext->uc_mcontext.gregs[29];
++# elif defined(__riscv__)
++  ucontext_t *ucontext = (ucontext_t*)context;
++  *pc = ucontext->uc_mcontext.gregs[REG_PC];
++  *bp = ucontext->uc_mcontext.gregs[REG_S0];
++  *sp = ucontext->uc_mcontext.gregs[REG_SP];
+ #else
+ # error "Unsupported arch"
+ #endif
+diff --git a/libsanitizer/sanitizer_common/sanitizer_linux.cc b/libsanitizer/sanitizer_common/sanitizer_linux.cc
+index 69c9c10..2419ae6 100644
+--- a/libsanitizer/sanitizer_common/sanitizer_linux.cc
++++ b/libsanitizer/sanitizer_common/sanitizer_linux.cc
+@@ -93,11 +93,11 @@ uptr internal_close(fd_t fd) {
+ }
+ 
+ uptr internal_open(const char *filename, int flags) {
+-  return internal_syscall(__NR_open, (uptr)filename, flags);
++  return internal_syscall(__NR_openat, AT_FDCWD, (uptr)filename, flags);
+ }
+ 
+ uptr internal_open(const char *filename, int flags, u32 mode) {
+-  return internal_syscall(__NR_open, (uptr)filename, flags, mode);
++  return internal_syscall(__NR_openat, AT_FDCWD, (uptr)filename, flags, mode);
+ }
+ 
+ uptr OpenFile(const char *filename, bool write) {
+@@ -139,7 +139,7 @@ static void stat64_to_stat(struct stat64 *in, struct stat *out) {
+ 
+ uptr internal_stat(const char *path, void *buf) {
+ #if SANITIZER_LINUX_USES_64BIT_SYSCALLS
+-  return internal_syscall(__NR_stat, (uptr)path, (uptr)buf);
++  return internal_syscall(__NR_newfstatat, AT_FDCWD, (uptr)path, (uptr)buf, 0);
+ #else
+   struct stat64 buf64;
+   int res = internal_syscall(__NR_stat64, path, &buf64);
+@@ -150,7 +150,7 @@ uptr internal_stat(const char *path, void *buf) {
+ 
+ uptr internal_lstat(const char *path, void *buf) {
+ #if SANITIZER_LINUX_USES_64BIT_SYSCALLS
+-  return internal_syscall(__NR_lstat, (uptr)path, (uptr)buf);
++  return internal_syscall(__NR_newfstatat, AT_FDCWD, (uptr)path, (uptr)buf, AT_SYMLINK_NOFOLLOW);
+ #else
+   struct stat64 buf64;
+   int res = internal_syscall(__NR_lstat64, path, &buf64);
+@@ -178,15 +178,15 @@ uptr internal_filesize(fd_t fd) {
+ }
+ 
+ uptr internal_dup2(int oldfd, int newfd) {
+-  return internal_syscall(__NR_dup2, oldfd, newfd);
++  return internal_syscall(__NR_dup3, oldfd, newfd, 0);
+ }
+ 
+ uptr internal_readlink(const char *path, char *buf, uptr bufsize) {
+-  return internal_syscall(__NR_readlink, (uptr)path, (uptr)buf, bufsize);
++  return internal_syscall(__NR_readlinkat, AT_FDCWD, (uptr)path, (uptr)buf, bufsize);
+ }
+ 
+ uptr internal_unlink(const char *path) {
+-  return internal_syscall(__NR_unlink, (uptr)path);
++  return internal_syscall(__NR_unlinkat, AT_FDCWD, (uptr)path);
+ }
+ 
+ uptr internal_sched_yield() {
+@@ -588,7 +588,7 @@ uptr internal_getppid() {
+ }
+ 
+ uptr internal_getdents(fd_t fd, struct linux_dirent *dirp, unsigned int count) {
+-  return internal_syscall(__NR_getdents, fd, (uptr)dirp, count);
++  return internal_syscall(__NR_getdents64, fd, (uptr)dirp, count);
+ }
+ 
+ uptr internal_lseek(fd_t fd, OFF_T offset, int whence) {
+diff --git a/libsanitizer/sanitizer_common/sanitizer_platform_limits_linux.cc b/libsanitizer/sanitizer_common/sanitizer_platform_limits_linux.cc
+index ac56f33..8e1ec46 100644
+--- a/libsanitizer/sanitizer_common/sanitizer_platform_limits_linux.cc
++++ b/libsanitizer/sanitizer_common/sanitizer_platform_limits_linux.cc
+@@ -63,7 +63,7 @@ namespace __sanitizer {
+   unsigned struct_statfs64_sz = sizeof(struct statfs64);
+ }  // namespace __sanitizer
+ 
+-#if !defined(__powerpc64__) && !defined(__x86_64__) && !defined(__sparc__)
++#if !defined(__powerpc64__) && !defined(__x86_64__) && !defined(__sparc__) && !defined(__riscv__)
+ COMPILER_CHECK(struct___old_kernel_stat_sz == sizeof(struct __old_kernel_stat));
+ #endif
+ 
+diff --git a/libsanitizer/sanitizer_common/sanitizer_platform_limits_posix.h b/libsanitizer/sanitizer_common/sanitizer_platform_limits_posix.h
+index aec9504..c063107 100644
+--- a/libsanitizer/sanitizer_common/sanitizer_platform_limits_posix.h
++++ b/libsanitizer/sanitizer_common/sanitizer_platform_limits_posix.h
+@@ -67,6 +67,10 @@ namespace __sanitizer {
+   const unsigned struct___old_kernel_stat_sz = 0;
+   const unsigned struct_kernel_stat_sz = 144;
+   const unsigned struct_kernel_stat64_sz = 104;
++#elif defined(__riscv__)
++  const unsigned struct___old_kernel_stat_sz = 0;
++  const unsigned struct_kernel_stat_sz = 128;
++  const unsigned struct_kernel_stat64_sz = 128;
+ #elif defined(__sparc__) && defined(__arch64__)
+   const unsigned struct___old_kernel_stat_sz = 0;
+   const unsigned struct_kernel_stat_sz = 104;
+@@ -367,7 +371,7 @@ namespace __sanitizer {
+   typedef long __sanitizer___kernel_off_t;
+ #endif
+ 
+-#if defined(__powerpc__)
++#if defined(__powerpc__) || defined(__riscv__)
+   typedef unsigned int __sanitizer___kernel_old_uid_t;
+   typedef unsigned int __sanitizer___kernel_old_gid_t;
+ #else
+diff --git a/libstdc++-v3/configure b/libstdc++-v3/configure
+index 16e09f0..acd62fc 100755
+--- a/libstdc++-v3/configure
++++ b/libstdc++-v3/configure
+@@ -16550,7 +16550,7 @@ ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+   # Long term, -std=c++0x could be even better, could manage to explicitly
+   # request C99 facilities to the underlying C headers.
+   ac_save_CXXFLAGS="$CXXFLAGS"
+-  CXXFLAGS="$CXXFLAGS -std=c++98"
++  CXXFLAGS="$CXXFLAGS -std=gnu++98"
+   ac_save_LIBS="$LIBS"
+   ac_save_gcc_no_link="$gcc_no_link"
+ 
+@@ -17170,9 +17170,11 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+ $as_echo "$glibcxx_cv_c99_wchar" >&6; }
+   fi
+ 
++  # For newlib, don't check complex since missing c99 functions, but
++  #   rest of c99 stuff is there so don't loose it
+   # Option parsed, now set things appropriately.
+   if test x"$glibcxx_cv_c99_math" = x"no" ||
+-     test x"$glibcxx_cv_c99_complex" = x"no" ||
++     # test x"$glibcxx_cv_c99_complex" = x"no" ||
+      test x"$glibcxx_cv_c99_stdio" = x"no" ||
+      test x"$glibcxx_cv_c99_stdlib" = x"no" ||
+      test x"$glibcxx_cv_c99_wchar" = x"no"; then

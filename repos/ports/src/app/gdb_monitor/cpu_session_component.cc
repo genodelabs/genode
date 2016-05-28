@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -14,31 +14,69 @@
 /* Genode includes */
 #include <base/env.h>
 #include <base/printf.h>
+#include <base/sleep.h>
 #include <cpu_session_component.h>
 #include <util/list.h>
 
 /* GDB monitor includes */
-#include "config.h"
+#include "cpu_thread_component.h"
 
-extern void genode_add_thread(unsigned long lwpid);
+/* genode-low.cc */
 extern void genode_remove_thread(unsigned long lwpid);
 
 using namespace Genode;
 using namespace Gdb_monitor;
 
-/* FIXME: use an allocator */
-static unsigned long new_lwpid = GENODE_LWP_BASE;
 
-
-Thread_info *Cpu_session_component::_thread_info(Thread_capability thread_cap)
+Cpu_session &Cpu_session_component::parent_cpu_session()
 {
-	Thread_info *thread_info = _thread_list.first();
-	while (thread_info) {
-		if (thread_info->thread_cap().local_name() == thread_cap.local_name()) {
-			return thread_info;
-			break;
-		}
-		thread_info = thread_info->next();
+	return _parent_cpu_session;
+}
+
+
+Rpc_entrypoint &Cpu_session_component::thread_ep()
+{
+	return *_thread_ep;
+}
+
+
+Signal_receiver *Cpu_session_component::exception_signal_receiver()
+{
+	return _exception_signal_receiver;
+}
+
+
+Thread_capability Cpu_session_component::thread_cap(unsigned long lwpid)
+{
+	Cpu_thread_component *cpu_thread = _thread_list.first();
+	while (cpu_thread) {
+		if (cpu_thread->lwpid() == lwpid)
+			return cpu_thread->thread_cap();
+		cpu_thread = cpu_thread->next();
+	}
+	return Thread_capability();
+}
+
+
+Cpu_thread_component *Cpu_session_component::lookup_cpu_thread(unsigned long lwpid)
+{
+	Cpu_thread_component *cpu_thread = _thread_list.first();
+	while (cpu_thread) {
+		if (cpu_thread->lwpid() == lwpid)
+			return cpu_thread;
+		cpu_thread = cpu_thread->next();
+	}
+	return nullptr;
+}
+
+
+Cpu_thread_component *Cpu_session_component::lookup_cpu_thread(Thread_capability thread_cap)
+{
+	Cpu_thread_component *cpu_thread = _thread_list.first();
+	while (cpu_thread) {
+		if (cpu_thread->thread_cap().local_name() == thread_cap.local_name())
+			return cpu_thread;
+		cpu_thread = cpu_thread->next();
 	}
 	return 0;
 }
@@ -46,65 +84,150 @@ Thread_info *Cpu_session_component::_thread_info(Thread_capability thread_cap)
 
 unsigned long Cpu_session_component::lwpid(Thread_capability thread_cap)
 {
-	return _thread_info(thread_cap)->lwpid();
+	return lookup_cpu_thread(thread_cap)->lwpid();
 }
 
 
-Thread_capability Cpu_session_component::thread_cap(unsigned long lwpid)
+int Cpu_session_component::signal_pipe_read_fd(Thread_capability thread_cap)
 {
-	Thread_info *thread_info = _thread_list.first();
-	while (thread_info) {
-		if (thread_info->lwpid() == lwpid) {
-			return thread_info->thread_cap();
+	return lookup_cpu_thread(thread_cap)->signal_pipe_read_fd();
+}
+
+
+int Cpu_session_component::send_signal(Thread_capability thread_cap,
+                                       int signo)
+{
+	Cpu_thread_component *cpu_thread = lookup_cpu_thread(thread_cap);
+
+	cpu_thread->pause();
+
+	switch (signo) {
+		case SIGSTOP:
+			Signal_transmitter(cpu_thread->sigstop_signal_context_cap()).submit();
+			return 1;
+		case SIGINT:
+			Signal_transmitter(cpu_thread->sigint_signal_context_cap()).submit();
+			return 1;
+		default:
+			PERR("unexpected signal %d", signo);
+			return 0;
+	}
+}
+
+
+/*
+ * This function delivers a SIGSEGV to the first thread with an unresolved
+ * page fault that it finds. Multiple page-faulted threads are currently
+ * not supported.
+ */
+
+void Cpu_session_component::handle_unresolved_page_fault()
+{
+	/*
+	 * It can happen that the thread state of the thread which caused the
+	 * page fault is not accessible yet. In that case, we'll retry until
+	 * it is accessible.
+	 */
+
+	while (1) {
+
+		Thread_capability thread_cap = first();
+
+		while (thread_cap.valid()) {
+
+			try {
+
+				Cpu_thread_component *cpu_thread = lookup_cpu_thread(thread_cap);
+
+				Thread_state thread_state = cpu_thread->state();
+
+				if (thread_state.unresolved_page_fault) {
+
+					/*
+					 * On base-foc it is necessary to pause the thread before
+					 * IP and SP are available in the thread state.
+					 */
+					cpu_thread->pause();
+					cpu_thread->deliver_signal(SIGSEGV);
+
+					return;
+				}
+
+			} catch (Cpu_thread::State_access_failed) { }
+
+			thread_cap = next(thread_cap);
 		}
-		thread_info = thread_info->next();
+
 	}
-	return Thread_capability();
 }
 
 
-Thread_capability
-Cpu_session_component::create_thread(size_t weight, Name const &name,
-                                     addr_t utcb)
+void Cpu_session_component::stop_new_threads(bool stop)
 {
-	Thread_capability thread_cap =
-		_parent_cpu_session.create_thread(weight, name.string(), utcb);
-
-	if (thread_cap.valid()) {
-		Thread_info *thread_info = new (env()->heap()) Thread_info(thread_cap, new_lwpid++);
-		_thread_list.append(thread_info);
-	}
-
-	return thread_cap;
+	_stop_new_threads = stop;
 }
 
 
-Ram_dataspace_capability Cpu_session_component::utcb(Thread_capability thread)
+bool Cpu_session_component::stop_new_threads()
 {
-	return _parent_cpu_session.utcb(thread);
+	return _stop_new_threads;
 }
 
 
-void Cpu_session_component::kill_thread(Thread_capability thread_cap)
+Lock &Cpu_session_component::stop_new_threads_lock()
 {
-	Thread_info *thread_info = _thread_info(thread_cap);
+	return _stop_new_threads_lock;
+}
 
-	if (thread_info) {
-		_exception_signal_receiver->dissolve(thread_info);
-		genode_remove_thread(thread_info->lwpid());
-		_thread_list.remove(thread_info);
-		destroy(env()->heap(), thread_info);
+
+int Cpu_session_component::handle_initial_breakpoint(unsigned long lwpid)
+{
+	Cpu_thread_component *cpu_thread = _thread_list.first();
+	while (cpu_thread) {
+		if (cpu_thread->lwpid() == lwpid)
+			return cpu_thread->handle_initial_breakpoint();
+		cpu_thread = cpu_thread->next();
 	}
+	return 0;
+}
 
-	_parent_cpu_session.kill_thread(thread_cap);
+
+void Cpu_session_component::pause_all_threads()
+{
+	Lock::Guard stop_new_threads_lock_guard(stop_new_threads_lock());
+
+	stop_new_threads(true);
+
+	for (Cpu_thread_component *cpu_thread = _thread_list.first();
+	     cpu_thread;
+		 cpu_thread = cpu_thread->next()) {
+
+		cpu_thread->pause();
+	}
+}
+
+
+void Cpu_session_component::resume_all_threads()
+{
+Lock::Guard stop_new_threads_guard(stop_new_threads_lock());
+
+	stop_new_threads(false);
+
+	for (Cpu_thread_component *cpu_thread = _thread_list.first();
+	     cpu_thread;
+		 cpu_thread = cpu_thread->next()) {
+
+		cpu_thread->single_step(false);
+		cpu_thread->resume();
+	}
 }
 
 
 Thread_capability Cpu_session_component::first()
 {
-	Thread_info *thread_info = _thread_list.first();
-	if (thread_info)
-		return thread_info->thread_cap();
+	Cpu_thread_component *cpu_thread = _thread_list.first();
+	if (cpu_thread)
+		return cpu_thread->thread_cap();
 	else
 		return Thread_capability();
 }
@@ -112,84 +235,49 @@ Thread_capability Cpu_session_component::first()
 
 Thread_capability Cpu_session_component::next(Thread_capability thread_cap)
 {
-	Thread_info *next_thread_info = _thread_info(thread_cap)->next();
-	if (next_thread_info)
-		return next_thread_info->thread_cap();
+	Cpu_thread_component *next_cpu_thread = lookup_cpu_thread(thread_cap)->next();
+	if (next_cpu_thread)
+		return next_cpu_thread->thread_cap();
 	else
 		return Thread_capability();
 }
 
 
-int Cpu_session_component::set_pager(Thread_capability thread_cap,
-                                     Pager_capability  pager_cap)
+Thread_capability Cpu_session_component::create_thread(Capability<Pd_session> pd,
+                                                       Cpu_session::Name const &name,
+                                                       Affinity::Location affinity,
+                                                       Weight weight,
+                                                       addr_t utcb)
 {
-	return _parent_cpu_session.set_pager(thread_cap, pager_cap);
+	Cpu_thread_component *cpu_thread =
+		new (_md_alloc) Cpu_thread_component(*this, _core_pd, name,
+		                                     affinity, weight, utcb);
+
+	_thread_list.append(cpu_thread);
+
+	return cpu_thread->cap();
 }
 
 
-int Cpu_session_component::start(Thread_capability thread_cap,
-                                 addr_t ip, addr_t sp)
+void Cpu_session_component::kill_thread(Thread_capability thread_cap)
 {
-	Thread_info *thread_info = _thread_info(thread_cap);
+	Cpu_thread_component *cpu_thread = lookup_cpu_thread(thread_cap);
 
-	if (thread_info)
-		exception_handler(thread_cap, _exception_signal_receiver->manage(thread_info));
+	if (cpu_thread) {
+		genode_remove_thread(cpu_thread->lwpid());
+		_thread_list.remove(cpu_thread);
+		destroy(_md_alloc, cpu_thread);
+	} else
+		PERR("%s: could not find thread info for the given thread capability",
+		     __PRETTY_FUNCTION__);
 
-	int result = _parent_cpu_session.start(thread_cap, ip, sp);
-
-	if (thread_info) {
-		/* pause the first thread */
-		if (thread_info->lwpid() == GENODE_LWP_BASE)
-			pause(thread_cap);
-
-		genode_add_thread(thread_info->lwpid());
-	}
-
-	return result;
+	_parent_cpu_session.kill_thread(thread_cap);
 }
 
 
-void Cpu_session_component::pause(Thread_capability thread_cap)
+void Cpu_session_component::exception_sigh(Signal_context_capability handler)
 {
-	_parent_cpu_session.pause(thread_cap);
-}
-
-
-void Cpu_session_component::resume(Thread_capability thread_cap)
-{
-	_parent_cpu_session.resume(thread_cap);
-}
-
-
-void Cpu_session_component::cancel_blocking(Thread_capability thread_cap)
-{
-	_parent_cpu_session.cancel_blocking(thread_cap);
-}
-
-
-void Cpu_session_component::state(Thread_capability thread_cap,
-                                 Thread_state const &state)
-{
-	_parent_cpu_session.state(thread_cap, state);
-}
-
-
-Thread_state Cpu_session_component::state(Thread_capability thread_cap)
-{
-	return _parent_cpu_session.state(thread_cap);
-}
-
-
-void Cpu_session_component::exception_handler(Thread_capability         thread_cap,
-                                              Signal_context_capability sigh_cap)
-{
-	_parent_cpu_session.exception_handler(thread_cap, sigh_cap);
-}
-
-
-void Cpu_session_component::single_step(Thread_capability thread_cap, bool enable)
-{
-	_parent_cpu_session.single_step(thread_cap, enable);
+	_parent_cpu_session.exception_sigh(handler);
 }
 
 
@@ -199,50 +287,49 @@ Affinity::Space Cpu_session_component::affinity_space() const
 }
 
 
-void Cpu_session_component::affinity(Thread_capability thread_cap,
-                                     Affinity::Location location)
-{
-	_parent_cpu_session.affinity(thread_cap, location);
-}
-
-
 Dataspace_capability Cpu_session_component::trace_control()
 {
 	return _parent_cpu_session.trace_control();
 }
 
 
-unsigned Cpu_session_component::trace_control_index(Thread_capability thread)
+Capability<Cpu_session::Native_cpu> Cpu_session_component::native_cpu()
 {
-	return _parent_cpu_session.trace_control_index(thread);
+	return _native_cpu_cap;
 }
 
 
-Dataspace_capability Cpu_session_component::trace_buffer(Thread_capability thread)
-{
-	return _parent_cpu_session.trace_buffer(thread);
-}
-
-
-Dataspace_capability Cpu_session_component::trace_policy(Thread_capability thread)
-{
-	return _parent_cpu_session.trace_policy(thread);
-}
-
-
-Cpu_session_component::Cpu_session_component(Signal_receiver *exception_signal_receiver, const char *args)
-: _parent_cpu_session(env()->parent()->session<Cpu_session>(args)),
-  _exception_signal_receiver(exception_signal_receiver)
+Cpu_session_component::Cpu_session_component(Rpc_entrypoint *thread_ep,
+                                             Allocator *md_alloc,
+                                             Pd_session_capability core_pd,
+                                             Signal_receiver *exception_signal_receiver,
+                                             const char *args)
+: _thread_ep(thread_ep),
+  _md_alloc(md_alloc),
+  _core_pd(core_pd),
+  _parent_cpu_session(env()->parent()->session<Cpu_session>(args)),
+  _exception_signal_receiver(exception_signal_receiver),
+  _native_cpu_cap(_setup_native_cpu())
 {
 }
 
 
 Cpu_session_component::~Cpu_session_component()
 {
+	for (Cpu_thread_component *cpu_thread = _thread_list.first();
+	     cpu_thread; cpu_thread = _thread_list.first()) {
+	     _thread_list.remove(cpu_thread);
+	     destroy(_md_alloc, cpu_thread);
+	}
+
+	_cleanup_native_cpu();
 }
+
 
 int Cpu_session_component::ref_account(Cpu_session_capability) { return -1; }
 
+
 int Cpu_session_component::transfer_quota(Cpu_session_capability, size_t) { return -1; }
+
 
 Cpu_session::Quota Cpu_session_component::quota() { return Quota(); }

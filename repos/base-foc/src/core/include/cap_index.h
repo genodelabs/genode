@@ -17,33 +17,35 @@
 /* Genode includes */
 #include <base/cap_map.h>
 
-/* Core includes */
-#include <cap_session_component.h>
+/* base-internal includes */
+#include <base/internal/native_thread.h>
 
 namespace Genode {
 
 	class Platform_thread;
+	class Pd_session_component;
+
 	class Core_cap_index : public Cap_index
 	{
 		private:
 
-			Cap_session_component *_session;
+			Pd_session_component *_session;
 			Platform_thread       *_pt;
 			Native_thread          _gate;
 
 		public:
 
-			Core_cap_index(Cap_session_component *session = 0,
-			               Platform_thread       *pt      = 0,
-			               Native_thread          gate    = Native_thread() )
+			Core_cap_index(Pd_session_component *session = 0,
+			               Platform_thread      *pt      = 0,
+			               Native_thread         gate    = Native_thread() )
 			: _session(session), _pt(pt), _gate(gate) {}
 
-			Cap_session_component *session() { return _session; }
-			Platform_thread       *pt()      { return _pt;      }
-			Native_thread          gate()    { return _gate;    }
+			Pd_session_component *session() { return _session; }
+			Platform_thread      *pt()      { return _pt;      }
+			Native_thread         gate()    { return _gate;    }
 
-			void session(Cap_session_component* c) { _session = c; }
-			void pt(Platform_thread* t)            { _pt = t;      }
+			void session(Pd_session_component *c) { _session = c; }
+			void pt(Platform_thread *t)           { _pt = t;      }
 	};
 }
 

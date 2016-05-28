@@ -15,363 +15,30 @@
 /* Genode includes */
 #include <base/allocator_avl.h>
 #include <dataspace/client.h>
-#include <rm_session/connection.h>
+#include <region_map/client.h>
 #include <timer_session/connection.h>
 #include <util/string.h>
 
 /* Local includes */
-#include "routine.h"
 #include "signal.h"
-#include "platform/lx_mem.h"
-
-#include <extern_c_begin.h>
 #include "lx_emul.h"
-#include <extern_c_end.h>
 
+#include <lx_kit/backend_alloc.h>
+#include <lx_kit/irq.h>
+#include <lx_kit/scheduler.h>
+#include <lx_kit/work.h>
+
+
+#include <lx_emul/impl/slab.h>
 
 namespace Genode {
 	class Slab_backend_alloc;
 	class Slab_alloc;
 }
 
-/**
- * Back-end allocator for Genode's slab allocator
- */
-class Genode::Slab_backend_alloc : public Genode::Allocator,
-                                   public Genode::Rm_connection
-{
-	private:
 
-		enum {
-			VM_SIZE       = 64 * 1024 * 1024,       /* size of VM region to reserve */
-			P_BLOCK_SIZE  = 2 * 1024 * 1024,        /* 2 MB physical contiguous */
-			V_BLOCK_SIZE  = P_BLOCK_SIZE * 2,       /* 2 MB virtual used, 2 MB virtual left free to avoid that Allocator_avl merges virtual contiguous regions which are physically non-contiguous */
-			ELEMENTS      = VM_SIZE / V_BLOCK_SIZE /* MAX number of dataspaces in VM */
-		};
-
-		addr_t                   _base;              /* virt. base address */
-		Genode::Cache_attribute  _cached;            /* non-/cached RAM */
-		Ram_dataspace_capability _ds_cap[ELEMENTS];  /* dataspaces to put in VM */
-		addr_t                   _ds_phys[ELEMENTS]; /* physical bases of dataspaces */
-		int                      _index;             /* current index in ds_cap */
-		Allocator_avl            _range;             /* manage allocations */
-
-		bool _alloc_block()
-		{
-			if (_index == ELEMENTS) {
-				PERR("Slab-backend exhausted!");
-				return false;
-			}
-
-			try {
-				_ds_cap[_index] = Backend_memory::alloc(P_BLOCK_SIZE, _cached);
-				/* attach at index * V_BLOCK_SIZE */
-				Rm_connection::attach_at(_ds_cap[_index], _index * V_BLOCK_SIZE, P_BLOCK_SIZE, 0);
-
-				/* lookup phys. address */
-				_ds_phys[_index] = Dataspace_client(_ds_cap[_index]).phys_addr();
-			} catch (...) { return false; }
-
-			/* return base + offset in VM area */
-			addr_t block_base = _base + (_index * V_BLOCK_SIZE);
-			++_index;
-
-			_range.add_range(block_base, P_BLOCK_SIZE);
-
-			return true;
-		}
-
-	public:
-
-		Slab_backend_alloc(Genode::Cache_attribute cached)
-		: Rm_connection(0, VM_SIZE), _cached(cached), _index(0),
-		  _range(env()->heap())
-		{
-			/* reserver attach us, anywere */
-			_base = env()->rm_session()->attach(dataspace());
-		}
-
-		/**
-		 * Allocate 
-		 */
-		bool alloc(size_t size, void **out_addr) override
-		{
-				bool done = _range.alloc(size, out_addr);
-
-				if (done)
-					return done;
-
-				done = _alloc_block();
-				if (!done) {
-					PERR("Backend allocator exhausted\n");
-					return false;
-				}
-
-				return _range.alloc(size, out_addr);
-		}
-
-		void free(void *addr)
-		{
-			_range.free(addr);
-		}
-
-		void   free(void *addr, size_t /* size */) override { }
-		size_t overhead(size_t size) const override { return  0; }
-		bool need_size_for_free() const override { return false; }
-
-		/**
-		 * Return phys address for given virtual addr.
-		 */
-		addr_t phys_addr(addr_t addr)
-		{
-			if (addr < _base || addr >= (_base + VM_SIZE))
-				return ~0UL;
-
-			int index = (addr - _base) / V_BLOCK_SIZE;
-
-			/* physical base of dataspace */
-			addr_t phys = _ds_phys[index];
-
-			if (!phys)
-				return ~0UL;
-
-			/* add offset */
-			phys += (addr - _base - (index * V_BLOCK_SIZE));
-			return phys;
-		}
-
-		/**
-		 * Translate given physical address to virtual address
-		 *
-		 * \return virtual address, or 0 if no translation exists
-		 */
-		addr_t virt_addr(addr_t phys)
-		{
-			for (unsigned i = 0; i < ELEMENTS; i++) {
-				if (_ds_cap[i].valid()
-				 && phys >= _ds_phys[i] && phys < _ds_phys[i] + P_BLOCK_SIZE)
-					return _base + i * V_BLOCK_SIZE + (phys - _ds_phys[i]);
-			}
-
-			PWRN("virt_addr(0x%lx) - no translation", phys);
-			return 0;
-		}
-
-		addr_t start() const { return _base; }
-		addr_t end()   const { return _base + VM_SIZE - 1; }
-};
-
-
-/**
- * Slab allocator using our back-end allocator
- */
-class Genode::Slab_alloc : public Genode::Slab
-{
-	private:
-
-		size_t _calculate_block_size(size_t object_size)
-		{
-			size_t block_size = 8 * (object_size + sizeof(Slab_entry)) + sizeof(Slab_block);
-			return align_addr(block_size, 12);
-		}
-
-	public:
-
-		Slab_alloc(size_t object_size, Slab_backend_alloc *allocator)
-		: Slab(object_size, _calculate_block_size(object_size), 0, allocator)
-    { }
-
-	inline addr_t alloc()
-	{
-		addr_t result;
-		return (Slab::alloc(slab_size(), (void **)&result) ? result : 0);
-	}
-};
-
-
-/**
- * Memory interface used used for Linux emulation
- */
-class Malloc
-{
-	private:
-
-		enum {
-			SLAB_START_LOG2 = 3,  /* 8 B */
-			SLAB_STOP_LOG2  = 16, /* 64 KB */
-			NUM_SLABS = (SLAB_STOP_LOG2 - SLAB_START_LOG2) + 1,
-		};
-
-		typedef Genode::addr_t addr_t;
-		typedef Genode::Slab_alloc Slab_alloc;
-		typedef Genode::Slab_backend_alloc Slab_backend_alloc;
-
-		Slab_backend_alloc     *_back_allocator;
-		Slab_alloc             *_allocator[NUM_SLABS];
-		Genode::Cache_attribute _cached; /* cached or un-cached memory */
-		addr_t                  _start;  /* VM region of this allocator */
-		addr_t                  _end;
-
-		/**
-		 * Set 'value' at 'addr'
-		 */
-		void _set_at(addr_t addr, addr_t value) { *((addr_t *)addr) = value; }
-
-		/**
-		 * Retrieve slab index belonging to given address
-		 */
-		unsigned _slab_index(Genode::addr_t **addr)
-		{
-			using namespace Genode;
-			/* get index */
-			addr_t index = *(*addr - 1);
-
-			/*
-			 * If index large, we use aligned memory, retrieve beginning of slab entry
-			 * and read index from there
-			 */
-			if (index > 32) {
-				*addr = (addr_t *)*(*addr - 1);
-				index = *(*addr - 1);
-			}
-
-			return index;
-		}
-
-	public:
-
-		Malloc(Slab_backend_alloc *alloc, Genode::Cache_attribute cached)
-		: _back_allocator(alloc), _cached(cached), _start(alloc->start()),
-		  _end(alloc->end())
-		{
-			/* init slab allocators */
-			for (unsigned i = SLAB_START_LOG2; i <= SLAB_STOP_LOG2; i++)
-				_allocator[i - SLAB_START_LOG2] = new (Genode::env()->heap())
-				                                  Slab_alloc(1U << i, alloc);
-		}
-
-		static unsigned long max_alloc() { return 1U << SLAB_STOP_LOG2; }
-
-		/**
-		 * Alloc in slabs
-		 */
-		void *alloc(Genode::size_t size, int align = 0, Genode::addr_t *phys = 0)
-		{
-			using namespace Genode;
-			/* += slab index + aligment size */
-			size += sizeof(addr_t) + (align > 2 ? (1 << align) : 0);
-
-			int msb = Genode::log2(size);
-
-			if (size > (1U << msb))
-				msb++;
-
-			if (size < (1U << SLAB_START_LOG2))
-				msb = SLAB_STOP_LOG2;
-
-			if (msb > SLAB_STOP_LOG2) {
-				PERR("Slab too large %u reqested %zu cached %d", 1U << msb, size, _cached);
-				return 0;
-			}
-
-			addr_t addr =  _allocator[msb - SLAB_START_LOG2]->alloc();
-			if (!addr) {
-				PERR("Failed to get slab for %u", 1 << msb);
-				return 0;
-			}
-
-			_set_at(addr, msb - SLAB_START_LOG2);
-			addr += sizeof(addr_t);
-
-			if (align > 2) {
-				/* save */
-				addr_t ptr = addr;
-				addr_t align_val = (1U << align);
-				addr_t align_mask = align_val - 1;
-				/* align */
-				addr = (addr + align_val) & ~align_mask;
-				/* write start address before aligned address */
-				_set_at(addr - sizeof(addr_t), ptr);
-			}
-
-			if (phys)
-				*phys = _back_allocator->phys_addr(addr);
-			return (addr_t *)addr;
-		}
-
-		void free(void const *a)
-		{
-			using namespace Genode;
-			addr_t *addr = (addr_t *)a;
-
-			unsigned nr = _slab_index(&addr);
-			_allocator[nr]->free((void *)(addr - 1));
-		}
-
-		void *alloc_large(size_t size)
-		{
-			void *addr;
-			if (!_back_allocator->alloc(size, &addr)) {
-				PERR("Large back end allocation failed (%zu bytes)", size);
-				return nullptr;
-			}
-
-			return addr;
-		}
-
-		void free_large(void *ptr)
-		{
-			_back_allocator->free(ptr);
-		}
-
-		Genode::addr_t phys_addr(void *a)
-		{
-			return _back_allocator->phys_addr((addr_t)a);
-		}
-
-		Genode::addr_t virt_addr(Genode::addr_t phys)
-		{
-			return _back_allocator->virt_addr(phys);
-		}
-
-		/**
-		 * Belongs given address to this allocator
-		 */
-		bool inside(addr_t const addr) const { return (addr > _start) && (addr <= _end); }
-
-		/**
-		 * Cached memory allocator
-		 */
-		static Malloc *mem()
-		{
-			static Slab_backend_alloc _b(Genode::CACHED);
-			static Malloc _m(&_b, Genode::CACHED);
-			return &_m;
-		}
-
-		/**
-		 * DMA allocator
-		 */
-		static Malloc *dma()
-		{
-			static Slab_backend_alloc _b(Genode::UNCACHED);
-			static Malloc _m(&_b, Genode::UNCACHED);
-			return &_m;
-		}
-};
-
-
-void lx_printf(char const *fmt, ...)
-{
-	va_list va;
-	va_start(va, fmt);
-	Genode::vprintf(fmt, va);
-	va_end(va);
-}
-
-
-void lx_vprintf(char const *fmt, va_list va) {
-	Genode::vprintf(fmt, va); }
+unsigned long jiffies;
+void backtrace() { }
 
 
 /***********************
@@ -382,15 +49,15 @@ void lx_vprintf(char const *fmt, va_list va) {
  * Actually not atomic, for now
  */
 
-unsigned int atomic_read(atomic_t *p) { return *(volatile int *)p; }
+unsigned int atomic_read(atomic_t *p) { return p->v; }
 
-void atomic_inc(atomic_t *v) { (*(volatile int *)v)++; }
-void atomic_dec(atomic_t *v) { (*(volatile int *)v)--; }
+void atomic_inc(atomic_t *v) { v->v++;  }
+void atomic_dec(atomic_t *v) { v->v--; }
 
-void atomic_add(int i, atomic_t *v) { (*(volatile int *)v) += i; }
-void atomic_sub(int i, atomic_t *v) { (*(volatile int *)v) -= i; }
+void atomic_add(int i, atomic_t *v) { v->v += i; }
+void atomic_sub(int i, atomic_t *v) { v->v -= i; }
 
-void atomic_set(atomic_t *p, unsigned int v) { (*(volatile int *)p) = v; }
+void atomic_set(atomic_t *p, unsigned int v) { p->v = v; }
 
 
 /*************************************
@@ -399,58 +66,13 @@ void atomic_set(atomic_t *p, unsigned int v) { (*(volatile int *)p) = v; }
 
 void *dma_malloc(size_t size)
 {
-	return Malloc::dma()->alloc_large(size);
+	return Lx::Malloc::dma().alloc_large(size);
 }
 
 
 void dma_free(void *ptr)
 {
-	Malloc::dma()->free_large(ptr);
-}
-
-
-void *kmalloc(size_t size, gfp_t flags)
-{
-	void *addr = flags & GFP_NOIO ? Malloc::dma()->alloc(size) : Malloc::mem()->alloc(size);
-
-	unsigned long a = (unsigned long)addr;
-
-	if (a & 0x3)
-		PERR("Unaligned kmalloc %lx", a);
-
-	//PDBG("Kmalloc: [%lx-%lx) from %p", a, a + size, __builtin_return_address(0));
-	return addr;
-}
-
-
-void *kzalloc(size_t size, gfp_t flags)
-{
-	void *addr = kmalloc(size, flags);
-	if (addr)
-		Genode::memset(addr, 0, size);
-
-	return addr;
-}
-
-
-void *kcalloc(size_t n, size_t size, gfp_t flags)
-{
-	 if (size != 0 && n > ~0UL / size)
-		return 0;
-
-	return kzalloc(n * size, flags);
-}
-
-void kfree(const void *p)
-{
-	if (!p)
-		return;
-
-	if (Malloc::mem()->inside((Genode::addr_t)p))
-		Malloc::mem()->free(p);
-	
-	if (Malloc::dma()->inside((Genode::addr_t)p))
-		Malloc::dma()->free(p);
+	Lx::Malloc::dma().free_large(ptr);
 }
 
 
@@ -584,7 +206,11 @@ int scnprintf(char *buf, size_t size, const char *fmt, ...)
 	return sc.len();
 }
 
-int    strcmp(const char *s1, const char *s2) { return Genode::strcmp(s1, s2); }
+int    strcmp(const char *s1, const char *s2)
+{
+	printk("%s:%d from %p\n", __func__, __LINE__, __builtin_return_address(0));
+	return Genode::strcmp(s1, s2);
+}
 size_t strlen(const char *s) { return Genode::strlen(s); }
 
 
@@ -617,14 +243,6 @@ size_t strlcpy(char *dest, const char *src, size_t size)
 }
 
 
-void  *kmemdup(const void *src, size_t len, gfp_t gfp)
-{
-	void *ptr = kmalloc(len, gfp);
-	memcpy(ptr, src, len);
-	return ptr;
-}
-
-
 void *memscan(void *addr, int c, size_t size)
 {
 	unsigned char* p = (unsigned char *)addr;
@@ -648,65 +266,18 @@ int ilog2(u32 n) { return Genode::log2(n); }
  ** linux/slab.h   **
  ********************/
 
-struct kmem_cache
-{
-	const char *name;  /* cache name */
-	unsigned    size;  /* object size */
-};
-
-
-struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align,
-                                     unsigned long falgs, void (*ctor)(void *))
-{
-	lx_log(DEBUG_SLAB, "\"%s\" obj_size=%zd", name, size);
-
-	if (size > Malloc::max_alloc()) {
-		PERR("kmem_cache_create: slab size > %lu", Malloc::max_alloc());
-		return 0;
-	}
-
-	struct kmem_cache *cache;
-
-	if (!name) {
-		printk("kmem_cache name reqeuired\n");
-		return 0;
-	}
-
-	cache = (struct kmem_cache *)kmalloc(sizeof(*cache), 0);
-	if (!cache) {
-		printk("No memory for slab cache\n");
-		return 0;
-	}
-
-	cache->name = name;
-	cache->size = size;
-
-	return cache;
-}
-
-
 void kmem_cache_destroy(struct kmem_cache *cache)
 {
-	lx_log(DEBUG_SLAB, "\"%s\"", cache->name);
-	kfree(cache);
+	destroy(Genode::env()->heap(), cache);
 }
 
 
 void *kmem_cache_zalloc(struct kmem_cache *cache, gfp_t flags)
 {
 	void *ret;
-
-	lx_log(DEBUG_SLAB, "\"%s\" flags=%x", cache->name, flags);
-
-	ret = kzalloc(cache->size, flags);
+	ret = kmem_cache_alloc(cache, flags);
+	memset(ret, 0, cache->size());
 	return ret;
-}
-
-
-void kmem_cache_free(struct kmem_cache *cache, void *objp)
-{
-	lx_log(DEBUG_SLAB, "\"%s\" (%p)", cache->name, objp);
-	kfree(objp);
 }
 
 
@@ -716,7 +287,7 @@ void kmem_cache_free(struct kmem_cache *cache, void *objp)
 
 void *phys_to_virt(unsigned long address)
 {
-	return (void *)Malloc::dma()->virt_addr(address);
+	return (void *)Lx::Malloc::dma().virt_addr(address);
 }
 
 
@@ -843,6 +414,22 @@ int dev_set_drvdata(struct device *dev, void *data)
 
 const char *dev_name(const struct device *dev) { return dev->name; }
 
+/*******************************
+ ** asm-generic/bitops/find.h **
+ *******************************/
+
+unsigned long find_next_bit(const unsigned long *addr, unsigned long size,
+                            unsigned long offset)
+{
+	unsigned long i  = offset / BITS_PER_LONG;
+	offset -= (i * BITS_PER_LONG);
+
+	for (; offset < size; offset++)
+		if (addr[i] & (1UL << offset))
+			return offset;
+
+	return size;
+}
 
 long find_next_zero_bit_le(const void *addr,
                            unsigned long size, unsigned long offset)
@@ -940,30 +527,7 @@ int fls(int x)
  ** linux/delay.h **
  *******************/
 
-static Timer::Connection _timer;
-
-
-void udelay(unsigned long usecs)
-{
-	_timer.usleep(usecs);
-}
-
-
-void msleep(unsigned int msecs) { _timer.msleep(msecs); }
-void mdelay(unsigned long msecs) { msleep(msecs); }
-
-
-/*********************
- ** linux/jiffies.h **
- *********************/
-
-enum { JIFFIES_TICK_MS = 1000 / HZ };
-
-unsigned long msecs_to_jiffies(const unsigned int m) { return m / JIFFIES_TICK_MS; }
-unsigned int jiffies_to_msecs(const unsigned long j) { return j * JIFFIES_TICK_MS; }
-
-long time_after_eq(long a, long b) { return (a - b) >= 0; }
-long time_after(long a, long b)    { return (b - a) < 0; }
+#include <lx_emul/impl/delay.h>
 
 
 /*********
@@ -1012,13 +576,13 @@ void *dma_pool_alloc(struct dma_pool *d, gfp_t f, dma_addr_t *dma)
 void  dma_pool_free(struct dma_pool *d, void *vaddr, dma_addr_t a)
 {
 	lx_log(DEBUG_DMA, "free: addr %p, size: %zx", vaddr, d->size);
-	Malloc::dma()->free(vaddr);
+	Lx::Malloc::dma().free(vaddr);
 }
 
 
 void *dma_alloc_coherent(struct device *, size_t size, dma_addr_t *dma, gfp_t)
 {
-	void *addr = Malloc::dma()->alloc(size, PAGE_SHIFT, dma);
+	void *addr = Lx::Malloc::dma().alloc(size, PAGE_SHIFT, dma);
 
 	if (!addr)
 		return 0;
@@ -1032,7 +596,7 @@ void *dma_alloc_coherent(struct device *, size_t size, dma_addr_t *dma, gfp_t)
 void dma_free_coherent(struct device *, size_t size, void *vaddr, dma_addr_t)
 {
 	lx_log(DEBUG_DMA, "free: addr %p, size: %zx", vaddr, size);
-	Malloc::dma()->free(vaddr);
+	Lx::Malloc::dma().free(vaddr);
 }
 
 
@@ -1045,7 +609,7 @@ dma_addr_t dma_map_single_attrs(struct device *dev, void *ptr,
                                 enum dma_data_direction dir,
                                 struct dma_attrs *attrs)
 {
-	dma_addr_t phys = (dma_addr_t)Malloc::dma()->phys_addr(ptr);
+	dma_addr_t phys = (dma_addr_t)Lx::Malloc::dma().phys_addr(ptr);
 
 	if (phys == ~0UL)
 		PERR("translation virt->phys %p->%lx failed, return ip %p", ptr, phys,
@@ -1076,22 +640,15 @@ int dma_map_sg_attrs(struct device *dev, struct scatterlist *sg,
 
 struct task_struct *kthread_run(int (*fn)(void *), void *arg, const char *n, ...)
 {
-	lx_log(DEBUG_THREAD, "Run %s", n);
-	Routine::add(fn, arg, n);
-	return 0;
-}
-
-
-struct task_struct *kthread_create(int (*threadfn)(void *data),
-                                   void *data,
-                                   const char namefmt[], ...)
-{
 	/*
 	 * This is just called for delayed device scanning (see
 	 * 'drivers/usb/storage/usb.c')
 	 */
-	lx_log(DEBUG_THREAD, "Create %s", namefmt);
-	Routine::add(threadfn, data, namefmt);
+	lx_log(DEBUG_THREAD, "Run %s", n);
+
+	new (Genode::env()->heap()) Lx::Task((void (*)(void *))fn, arg, n,
+	                                     Lx::Task::PRIORITY_2,
+	                                     Lx::scheduler());
 	return 0;
 }
 
@@ -1147,6 +704,15 @@ struct resource * devm_request_mem_region(struct device *dev, resource_size_t st
 
 	return r;
 }
+
+
+/*****************
+ ** linux/smp.h **
+ *****************/
+
+int smp_call_function_single(int cpu, smp_call_func_t func, void *info,
+                             int wait) { func(info); return 0; }
+
 
 /****************
  ** Networking **
@@ -1271,44 +837,6 @@ int rounddown_pow_of_two(u32 n)
 }
 
 
-/******************
- ** linux/wait.h **
- ******************/
-
-void init_waitqueue_head(wait_queue_head_t *q)
-{
-	q->q = 0;
-}
-
-
-void add_wait_queue(wait_queue_head_t *q, wait_queue_t *wait)
-{
-	if (q->q) {
-		PERR("Non-empty wait queue");
-		return;
-	}
-
-	q->q = wait;
-}
-
-
-void remove_wait_queue(wait_queue_head_t *q, wait_queue_t *wait)
-{
-	if (q->q != wait) {
-		PERR("Remove unkown element from wait queue");
-		return;
-	}
-
-	q->q = 0;
-}
-
-
-int waitqueue_active(wait_queue_head_t *q)
-{
-	return q->q ? 1 : 0;
-}
-
-
 /*****************
  ** linux/nls.h **
  *****************/
@@ -1385,3 +913,116 @@ int blocking_notifier_call_chain(struct blocking_notifier_head *nh,
 {
 	return raw_notifier_call_chain((struct raw_notifier_head *)nh, val, v);
 }
+
+
+/*******************
+ ** linux/timer.h **
+ *******************/
+
+#include <lx_emul/impl/timer.h>
+#include <lx_emul/impl/sched.h>
+
+signed long schedule_timeout_uninterruptible(signed long timeout)
+{
+	lx_log(DEBUG_COMPLETION, "%ld\n", timeout);
+	schedule_timeout(timeout);
+	return 0;
+}
+
+
+/************************
+ ** linux/completion.h **
+ ************************/
+
+#include <lx_emul/impl/completion.h>
+
+
+static void _completion_timeout(unsigned long t)
+{
+	Lx::Task *task = (Lx::Task *)t;
+	task->unblock();
+}
+
+
+long __wait_completion(struct completion *work, unsigned long timeout)
+{
+	timer_list t;
+	unsigned long j = timeout ? jiffies + timeout : 0;
+
+	if (timeout) {
+		setup_timer(&t, _completion_timeout, (unsigned long)Lx::scheduler().current());
+		mod_timer(&t, timeout);
+	}
+
+	while (!work->done) {
+
+		if (j && j <= jiffies) {
+			lx_log(1, "timeout jiffies %lu", jiffies);
+			return 0;
+		}
+
+		Lx::Task *task = Lx::scheduler().current();
+		work->task = (void *)task;
+		task->block_and_schedule();
+	}
+
+	if (timeout)
+		del_timer(&t);
+
+	work->done = 0;
+
+	return j ? j - jiffies : 1;
+}
+
+
+/***********************
+ ** linux/workqueue.h **
+ ***********************/
+
+#include <lx_emul/impl/work.h>
+
+
+void tasklet_init(struct tasklet_struct *t, void (*f)(unsigned long), unsigned long d)
+{
+	t->func    = f;
+	t->data    = d;
+}
+
+
+void tasklet_schedule(struct tasklet_struct *tasklet)
+{
+	Lx::Work *lx_work = (Lx::Work *)tasklet_wq->task;
+	lx_work->schedule_tasklet(tasklet);
+	lx_work->unblock();
+}
+
+
+void tasklet_hi_schedule(struct tasklet_struct *tasklet)
+{
+	tasklet_schedule(tasklet);
+}
+
+
+struct workqueue_struct *create_singlethread_workqueue(char const *name)
+{
+	workqueue_struct *wq = (workqueue_struct *)kzalloc(sizeof(workqueue_struct), 0);
+	Lx::Work *work = Lx::Work::alloc_work_queue(Genode::env()->heap(), name);
+	wq->task       = (void *)work;
+
+	return wq;
+}
+
+
+struct workqueue_struct *alloc_workqueue(const char *fmt, unsigned int flags,
+                                         int max_active, ...)
+{
+	return create_singlethread_workqueue(fmt);
+}
+
+
+/******************
+ ** linux/wait.h **
+ ******************/
+
+#include <lx_emul/impl/wait.h>
+

@@ -41,12 +41,12 @@ struct Box_painter
 
 		int const alpha = color.a;
 
-		if (color.is_opaque())
+		if (color.opaque())
 			for (int w, h = clipped.h() ; h--; dst_line += surface.size().w())
 				for (dst = dst_line, w = clipped.w(); w--; dst++)
 					*dst = pix;
 
-		else if (!color.is_transparent())
+		else if (!color.transparent())
 			for (int w, h = clipped.h() ; h--; dst_line += surface.size().w())
 				for (dst = dst_line, w = clipped.w(); w--; dst++)
 					*dst = PT::mix(*dst, pix, alpha);

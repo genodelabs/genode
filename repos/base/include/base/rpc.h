@@ -152,25 +152,47 @@ namespace Genode {
 	/**
 	 * Type used for transmitting the opcode of a RPC function (used for RPC call)
 	 */
-	typedef int Rpc_opcode;
+	struct Rpc_opcode
+	{
+		long value = 0;
+
+		explicit Rpc_opcode(int value) : value(value) { }
+	};
 
 
 	/**
 	 * Type used for transmitting exception information (used for RPC reply)
 	 */
-	typedef int Rpc_exception_code;
+	struct Rpc_exception_code
+	{
+		long value;
 
+		enum {
+			SUCCESS = 0,
 
-	/**
-	 * Special exception code used to respond to illegal opcodes
-	 */
-	enum { RPC_INVALID_OPCODE = -1 };
+			/**
+			 * Server-side object does not exist
+			 *
+			 * This exception code is not meant to be reflected from the server
+			 * to the client. On kernels with capability support, the condition
+			 * can never occur. On kernels without capability protection, the
+			 * code is merely used for diagnostic purposes at the server side.
+			 */
+			INVALID_OBJECT = -1,
 
+			/**
+			 * Special exception code used to respond to illegal opcodes
+			 */
+			INVALID_OPCODE = -2,
 
-	/**
-	 * Opcode base used for passing exception information
-	 */
-	enum { RPC_EXCEPTION_BASE = -1000 };
+			/**
+			 * Opcode base used for passing exception information
+			 */
+			EXCEPTION_BASE = -1000
+		};
+
+		explicit Rpc_exception_code(int value) : value(value) { }
+	};
 
 
 	/**

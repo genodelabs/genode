@@ -12,15 +12,15 @@
  */
 
 /* Genode includes */
-#include <base/elf.h>
 #include <base/env.h>
 #include <base/thread.h>
 #include <base/native_types.h>
 #include <dataspace/client.h>
 #include <rom_session/connection.h>
-#include <foc_cpu_session/connection.h>
+#include <cpu_session/connection.h>
 #include <util/misc_math.h>
 #include <os/config.h>
+#include <foc_native_cpu/client.h>
 
 /* L4lx includes */
 #include <env.h>
@@ -103,10 +103,13 @@ static void prepare_l4re_env()
 {
 	using namespace Fiasco;
 
-	Genode::Foc_cpu_session_client cpu(Genode::env()->cpu_session_cap());
+	Genode::Cpu_session &cpu = *Genode::env()->cpu_session();
 
-	Genode::Thread_capability main_thread = Genode::env()->parent()->main_thread_cap();
-	static Genode::Native_capability main_thread_cap = cpu.native_cap(main_thread);
+	Genode::Foc_native_cpu_client native_cpu(cpu.native_cpu());
+
+	Genode::Thread_capability main_thread = Genode::Thread::myself()->cap();
+
+	static Genode::Native_capability main_thread_cap = native_cpu.native_cap(main_thread);
 
 	l4re_env_t *env = l4re_env();
 	env->first_free_utcb = (l4_addr_t)l4_utcb() + L4_UTCB_OFFSET;
@@ -128,9 +131,9 @@ static void register_reserved_areas()
 
 	size_t bin_sz = (addr_t)&_prog_img_end - (addr_t)&_prog_img_beg;
 	L4lx::Env::env()->rm()->reserve_range((addr_t)&_prog_img_beg, bin_sz, "Binary");
-	L4lx::Env::env()->rm()->reserve_range(Native_config::context_area_virtual_base(),
-	                                      Native_config::context_area_virtual_size(),
-	                                      "Thread Context Area");
+	L4lx::Env::env()->rm()->reserve_range(Thread::stack_area_virtual_base(),
+	                                      Thread::stack_area_virtual_size(),
+	                                      "Stack Area");
 }
 
 

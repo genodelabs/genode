@@ -1,2 +1,2 @@
-This repository contains the source code of the 'Hello' client-server tutorial
-written by Björn Döbel. Please find the document at 'doc/hello_tutorial.txt'.
+This repository contains the source code of a simple client-server scenario
+using Genode's RPC mechanism.

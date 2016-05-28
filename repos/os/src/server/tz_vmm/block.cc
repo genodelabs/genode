@@ -269,7 +269,7 @@ class Device_registry
 /**
  * Thread that listens to device interrupts and propagates them to a VM
  */
-class Callback : public Thread<8192>
+class Callback : public Thread_deprecated<8192>
 {
 	private:
 
@@ -324,11 +324,11 @@ class Callback : public Thread<8192>
 		 */
 		Callback(Vm_base * const vm)
 		:
-			Thread<8192>("blk-signal-thread"),
+			Thread_deprecated<8192>("blk-signal-thread"),
 			_ready_lock(Lock::LOCKED),
 			_vm(vm)
 		{
-			Thread_base::start();
+			Thread::start();
 			_ready_lock.lock();
 		}
 };

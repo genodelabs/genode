@@ -1,3 +1,4 @@
+
 /*
  * \brief   OKL4 thread facility
  * \author  Julian Stecklina
@@ -178,7 +179,8 @@ Weak_ptr<Address_space> Platform_thread::address_space()
 }
 
 
-Platform_thread::Platform_thread(size_t, const char *name, unsigned prio, addr_t, int thread_id)
+Platform_thread::Platform_thread(size_t, const char *name, unsigned prio,
+                                 Affinity::Location, addr_t, int thread_id)
 : _thread_id(thread_id), _l4_thread_id(L4_nilthread), _platform_pd(0),
   _priority(prio), _pager(0)
 {
