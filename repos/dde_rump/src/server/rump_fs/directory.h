@@ -203,6 +203,7 @@ class File_system::Directory : public Node
 			else
 				return 0;
 
+			e->inode = s.st_ino;
 			strncpy(e->name, dent->d_name, dent->d_namlen + 1);
 			return sizeof(Directory_entry);
 		}
