@@ -75,7 +75,16 @@ select_from_repositories = $(firstword $(foreach REP,$(REPOSITORIES),$(wildcard 
 
 -include $(call select_from_repositories,etc/specs.conf)
 -include $(BUILD_BASE_DIR)/etc/specs.conf
-export SPEC_FILES := $(foreach SPEC,$(SPECS),$(call select_from_repositories,mk/spec/$(SPEC).mk))
+
+#
+# Determine the spec files to incorporate into the build configuration from the
+# repositories. Always consider the spec files present in BASE_DIR. This is
+# needed when the build system is invoked from the package-build tool where the
+# repos/base is not present in the list of REPOSITORIES.
+#
+export SPEC_FILES := \
+       $(sort $(foreach SPEC,$(SPECS),$(call select_from_repositories,mk/spec/$(SPEC).mk)) \
+              $(wildcard $(foreach SPEC,$(SPECS),$(BASE_DIR)/mk/spec/$(SPEC).mk)))
 include $(SPEC_FILES)
 export SPECS
 
