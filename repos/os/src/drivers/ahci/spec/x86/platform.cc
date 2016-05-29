@@ -32,19 +32,21 @@ struct X86_hba : Platform::Hba
 		PCI_CMD            = 0x4,
 	};
 
-	Platform::Connection                          pci;
+	Genode::Env &env;
+
+	Platform::Connection                          pci { env };
 	Platform::Device_capability                   pci_device_cap;
 	Lazy_volatile_object<Platform::Device_client> pci_device;
 	Lazy_volatile_object<Irq_session_client>      irq;
 	addr_t                                        res_base;
 	size_t                                        res_size;
 
-	X86_hba()
+	X86_hba(Genode::Env &env) : env(env)
 	{
 		pci_device_cap = retry<Platform::Session::Out_of_metadata>(
 			[&] () { return pci.next_device(pci_device_cap, AHCI_DEVICE,
 				                            CLASS_MASK); },
-			[&] () { env()->parent()->upgrade(pci.cap(), "ram_quota=4096"); });
+			[&] () { env.parent().upgrade(pci.cap(), "ram_quota=4096"); });
 
 		if (!pci_device_cap.valid()) {
 			PERR("No AHCI controller found");
@@ -105,7 +107,7 @@ struct X86_hba : Platform::Hba
 				char quota[32];
 				Genode::snprintf(quota, sizeof(quota), "ram_quota=%zd",
 				                 donate);
-				Genode::env()->parent()->upgrade(pci.cap(), quota);
+				env.parent().upgrade(pci.cap(), quota);
 				donate *= 2;
 			});
 	}
@@ -136,7 +138,7 @@ struct X86_hba : Platform::Hba
 			[&] () {
 				char quota[32];
 				snprintf(quota, sizeof(quota), "ram_quota=%zd", donate);
-				env()->parent()->upgrade(pci.cap(), quota);
+				env.parent().upgrade(pci.cap(), quota);
 				donate = donate * 2 > size ? 4096 : donate * 2;
 			});
 	}
@@ -148,8 +150,8 @@ struct X86_hba : Platform::Hba
 };
 
 
-Platform::Hba &Platform::init(Mmio::Delayer &)
+Platform::Hba &Platform::init(Genode::Env &env, Mmio::Delayer &)
 {
-	static X86_hba h;
+	static X86_hba h(env);
 	return h;
 }

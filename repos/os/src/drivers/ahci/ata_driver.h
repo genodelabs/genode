@@ -172,6 +172,8 @@ struct Dma_ext_command : Io_command
  */
 struct Ata_driver : Port_driver
 {
+	Genode::Allocator &alloc;
+
 	typedef ::String<Identity::Serial_number> Serial_string;
 	typedef ::String<Identity::Model_number>  Model_string;
 
@@ -182,8 +184,9 @@ struct Ata_driver : Port_driver
 	Io_command                               *io_cmd = nullptr;
 	Block::Packet_descriptor                  pending[32];
 
-	Ata_driver(Port &port, Signal_context_capability state_change)
-	: Port_driver(port, state_change)
+	Ata_driver(Genode::Allocator &alloc,
+	           Port &port, Signal_context_capability state_change)
+	: Port_driver(port, state_change), alloc(alloc)
 	{
 		Port::init();
 		identify_device();
@@ -192,7 +195,7 @@ struct Ata_driver : Port_driver
 	~Ata_driver()
 	{
 		if (io_cmd)
-			destroy (Genode::env()->heap(), io_cmd);
+			destroy(&alloc, io_cmd);
 	}
 
 	unsigned find_free_cmd_slot()
@@ -296,9 +299,9 @@ struct Ata_driver : Port_driver
 
 				check_device();
 				if (ncq_support())
-					io_cmd = new (Genode::env()->heap()) Ncq_command();
+					io_cmd = new (&alloc) Ncq_command();
 				else
-					io_cmd = new (Genode::env()->heap()) Dma_ext_command();
+					io_cmd = new (&alloc) Dma_ext_command();
 
 				ack_irq();
 			}

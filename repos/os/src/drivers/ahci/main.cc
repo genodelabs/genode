@@ -5,22 +5,27 @@
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
+#include <base/attached_rom_dataspace.h>
+#include <base/component.h>
+#include <base/log.h>
 #include <block/component.h>
-#include <os/config.h>
-#include <os/server.h>
 #include <util/xml_node.h>
 
-#include "ahci.h"
+/* local includes */
+#include <ahci.h>
+
 
 namespace Block {
 	class Factory;
 	class Root_multiple_clients;
+	class Main;
 }
 
 
@@ -59,13 +64,15 @@ class Block::Root_multiple_clients : public Root_component< ::Session_component>
 {
 	private:
 
-		Server::Entrypoint &_ep;
+		Genode::Env       &_env;
+		Genode::Allocator &_alloc;
+		Genode::Xml_node   _config;
 
 		long _device_num(const char *session_label, char *model, char *sn, size_t bufs_len)
 		{
 			long num = -1;
 
-			Xml_node policy = config()->xml_node().sub_node("policy");
+			Xml_node policy = _config.sub_node("policy");
 
 			for (;; policy = policy.next("policy")) {
 				char label_buf[64];
@@ -121,48 +128,56 @@ class Block::Root_multiple_clients : public Root_component< ::Session_component>
 				throw Root::Unavailable();
 			}
 
-			Factory *factory = new (Genode::env()->heap()) Factory(num);
-			return new (md_alloc()) ::Session_component(*factory,
-			                                            _ep, tx_buf_size);
+			Factory *factory = new (&_alloc) Factory(num);
+			return new (&_alloc) ::Session_component(*factory,
+			                                         _env.ep(), tx_buf_size);
 		}
 
 		void _destroy_session(::Session_component *session)
 		{
 			Driver_factory &factory = session->factory();
-			destroy(env()->heap(), session);
-			destroy(env()->heap(), &factory);
+			destroy(&_alloc, session);
+			destroy(&_alloc, &factory);
 		}
 
 	public:
 
-		Root_multiple_clients(Server::Entrypoint &ep, Allocator *md_alloc)
-		: Root_component(&ep.rpc_ep(), md_alloc), _ep(ep) { }
+		Root_multiple_clients(Genode::Env &env, Genode::Allocator &alloc,
+		                      Genode::Xml_node config)
+		:
+			Root_component(&env.ep().rpc_ep(), &alloc),
+			_env(env), _alloc(alloc), _config(config)
+		{ }
 
-		Server::Entrypoint &entrypoint() override { return _ep; }
+		Genode::Entrypoint &entrypoint() override { return _env.ep(); }
 
 		void announce() override
 		{
-			Genode::env()->parent()->announce(_ep.manage(*this));
+			_env.parent().announce(_env.ep().manage(*this));
 		}
 };
 
 
-struct Main
+struct Block::Main
 {
+	Genode::Env  &env;
+	Genode::Heap  heap { env.ram(), env.rm() };
+
+	Genode::Attached_rom_dataspace config { env, "config" };
+
 	Block::Root_multiple_clients root;
 
-	Main(Server::Entrypoint &ep)
-	: root(ep, Genode::env()->heap())
+	Main(Genode::Env &env)
+	: env(env), root(env, heap, config.xml())
 	{
-		PINF("--- Starting AHCI driver -> done right .-) --\n");
-		bool support_atapi = Genode::config()->xml_node().attribute_value("atapi", false);
-		Ahci_driver::init(root, support_atapi);
+		Genode::log("--- Starting AHCI driver ---");
+		bool support_atapi = config.xml().attribute_value("atapi", false);
+		Ahci_driver::init(env, heap, root, support_atapi);
 	}
 };
 
 
-namespace Server {
-	char const *name()                    { return "ahci_ep"; }
-	size_t      stack_size()              { return 2 * 1024 * sizeof(long); }
-	void        construct(Entrypoint &ep) { static Main server(ep); }
+namespace Component {
+	Genode::size_t stack_size()      { return 2 * 1024 * sizeof(long); }
+	void construct(Genode::Env &env) { static Block::Main server(env); }
 }

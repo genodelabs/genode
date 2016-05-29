@@ -31,6 +31,9 @@ Mmio::Delayer &Hba::delayer()
 
 struct Ahci
 {
+	Genode::Env       &env;
+	Genode::Allocator &alloc;
+
 	/* read device signature */
 	enum Signature {
 		ATA_SIG        = 0x101,
@@ -39,7 +42,7 @@ struct Ahci
 	};
 
 	Ahci_root     &root;
-	Platform::Hba &platform_hba = Platform::init(Hba::delayer());
+	Platform::Hba &platform_hba = Platform::init(env, Hba::delayer());
 	Hba            hba          = { platform_hba };
 
 	enum { MAX_PORTS = 32 };
@@ -51,10 +54,13 @@ struct Ahci
 	unsigned                ready_count = 0;
 	bool                    enable_atapi;
 
-	Ahci(Ahci_root &root, bool support_atapi)
-	: root(root), irq(root.entrypoint(), *this, &Ahci::handle_irq),
-	  device_ready(root.entrypoint(), *this, &Ahci::ready),
-	  enable_atapi(support_atapi)
+	Ahci(Genode::Env &env, Genode::Allocator &alloc,
+	     Ahci_root &root, bool support_atapi)
+	:
+		env(env), alloc(alloc),
+		root(root), irq(root.entrypoint(), *this, &Ahci::handle_irq),
+		device_ready(root.entrypoint(), *this, &Ahci::ready),
+		enable_atapi(support_atapi)
 	{
 		info();
 
@@ -65,7 +71,7 @@ struct Ahci
 		hba.init();
 
 		/* search for devices */
-		scan_ports();
+		scan_ports(env.rm());
 	}
 
 	bool atapi(unsigned sig)
@@ -118,7 +124,7 @@ struct Ahci
 		PINF("\t64 bit support: %s", hba.supports_64bit() ? "yes" : "no");
 	}
 
-	void scan_ports()
+	void scan_ports(Genode::Region_map &rm)
 	{
 		PINF("\tnumber of ports: %u pi: %x", hba.port_count(), hba.read<Hba::Pi>());
 		unsigned available = hba.read<Hba::Pi>();
@@ -128,7 +134,7 @@ struct Ahci
 			if (!(available & (1U << i)))
 				continue;
 
-			Port port(hba, platform_hba, i);
+			Port port(rm, hba, platform_hba, i);
 
 			/* check for ATA/ATAPI devices */
 			unsigned sig = port.read<Port::Sig>();
@@ -152,13 +158,13 @@ struct Ahci
 			switch (sig) {
 
 				case ATA_SIG:
-					ports[i] = new (Genode::env()->heap()) Ata_driver(port, device_ready);
+					ports[i] = new (&alloc) Ata_driver(alloc, port, device_ready);
 					ready_count++;
 					break;
 
 				case ATAPI_SIG:
 				case ATAPI_SIG_QEMU:
-					ports[i] = new (Genode::env()->heap()) Atapi_driver(port, device_ready);
+					ports[i] = new (&alloc) Atapi_driver(port, device_ready);
 					ready_count++;
 					break;
 
@@ -210,9 +216,10 @@ static Ahci *sata_ahci(Ahci *ahci = 0)
 }
 
 
-void Ahci_driver::init(Ahci_root &root, bool support_atapi)
+void Ahci_driver::init(Genode::Env &env, Genode::Allocator &alloc,
+                       Ahci_root &root, bool support_atapi)
 {
-	static Ahci ahci(root, support_atapi);
+	static Ahci ahci(env, alloc, root, support_atapi);
 	sata_ahci(&ahci);
 }
 
