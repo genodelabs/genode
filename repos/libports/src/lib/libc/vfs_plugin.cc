@@ -201,11 +201,13 @@ class Libc::Vfs_plugin : public Libc::Plugin
 		 */
 		Vfs_plugin() : _root_dir(_vfs_config(), Vfs::global_file_system_factory())
 		{
-			chdir(initial_cwd());
+			if (_root_dir.num_dirent("/")) {
+				chdir(initial_cwd());
 
-			_open_stdio(0, config_stdin(),  O_RDONLY);
-			_open_stdio(1, config_stdout(), O_WRONLY);
-			_open_stdio(2, config_stderr(), O_WRONLY);
+				_open_stdio(0, config_stdin(),  O_RDONLY);
+				_open_stdio(1, config_stdout(), O_WRONLY);
+				_open_stdio(2, config_stderr(), O_WRONLY);
+			}
 		}
 
 		~Vfs_plugin() { }
