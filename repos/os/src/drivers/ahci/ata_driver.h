@@ -198,7 +198,7 @@ struct Ata_driver : Port_driver
 	unsigned find_free_cmd_slot()
 	{
 		for (unsigned slot = 0; slot < cmd_slots; slot++)
-			if (!pending[slot].valid())
+			if (!pending[slot].size())
 				return slot;
 
 		throw Block::Driver::Request_congestion();
@@ -209,7 +209,7 @@ struct Ata_driver : Port_driver
 		unsigned slots =  Port::read<Ci>() | Port::read<Sact>();
 
 		for (unsigned slot = 0; slot < cmd_slots; slot++) {
-			if ((slots & (1U << slot)) || !pending[slot].valid())
+			if ((slots & (1U << slot)) || !pending[slot].size())
 				continue;
 
 			Block::Packet_descriptor p = pending[slot];
@@ -224,7 +224,7 @@ struct Ata_driver : Port_driver
 		Block::sector_t end = block_number + count - 1;
 
 		for (unsigned slot = 0; slot < cmd_slots; slot++) {
-			if (!pending[slot].valid())
+			if (!pending[slot].size())
 				continue;
 
 			Block::sector_t pending_start = pending[slot].block_number();

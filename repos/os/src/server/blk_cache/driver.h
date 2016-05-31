@@ -254,8 +254,8 @@ class Driver : public Block::Driver
 			} catch(Block::Session::Tx::Source::Packet_alloc_failed) {
 				throw Request_congestion();
 			} catch(Genode::Allocator::Out_of_memory) {
-				if (p_to_dev.valid()) /* clean up */
-					_blk.tx()->release_packet(p_to_dev);
+				/* clean up */
+				_blk.tx()->release_packet(p_to_dev);
 				throw Request_congestion();
 			}
 		}

@@ -86,7 +86,7 @@ struct Atapi_driver : Port_driver
 	{
 		unsigned slots = Port::read<Ci>();
 
-		if (slots & 1 || !pending.valid())
+		if (slots & 1 || !pending.size())
 			return;
 
 		Block::Packet_descriptor p = pending;
@@ -176,7 +176,7 @@ struct Atapi_driver : Port_driver
 	              addr_t                    phys,
 	              Block::Packet_descriptor &packet) override
 	{
-		if (pending.valid())
+		if (pending.size())
 			throw Block::Driver::Request_congestion();
 
 		sanity_check(block_number, count);

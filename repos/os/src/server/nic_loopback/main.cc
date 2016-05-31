@@ -124,8 +124,8 @@ void Nic::Loopback_component::_handle_packet_stream()
 
 		/* obtain packet */
 		Packet_descriptor const packet_from_client = _tx.sink()->get_packet();
-		if (!packet_from_client.valid()) {
-			PWRN("received invalid packet");
+		if (!packet_from_client.size()) {
+			PWRN("received zero-size packet");
 			_rx.source()->release_packet(packet_to_client);
 			continue;
 		}

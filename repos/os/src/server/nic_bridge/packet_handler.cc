@@ -30,7 +30,7 @@ void Packet_handler::_ready_to_submit(unsigned)
 	/* as long as packets are available, and we can ack them */
 	while (sink()->packet_avail()) {
 		_packet = sink()->get_packet();
-		if (!_packet.valid()) continue;
+		if (!_packet.size()) continue;
 		handle_ethernet(sink()->packet_content(_packet), _packet.size());
 
 		if (!sink()->ready_to_ack()) {

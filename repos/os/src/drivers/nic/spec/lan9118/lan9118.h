@@ -199,7 +199,7 @@ class Lan9118 : public Nic::Session_component,
 				return false;
 
 			Genode::Packet_descriptor packet = _tx.sink()->get_packet();
-			if (!packet.valid()) {
+			if (!packet.size()) {
 				PWRN("Invalid tx packet");
 				return true;
 			}
