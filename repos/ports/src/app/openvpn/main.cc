@@ -110,7 +110,7 @@ class Openvpn_component : public Tuntap_device,
 				return false;
 
 			Packet_descriptor packet = _tx.sink()->get_packet();
-			if (!packet.valid()) {
+			if (!packet.size()) {
 				PWRN("Invalid tx packet");
 				return true;
 			}

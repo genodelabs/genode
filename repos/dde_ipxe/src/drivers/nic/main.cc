@@ -59,7 +59,7 @@ class Ipxe_session_component  : public Nic::Session_component
 				return false;
 
 			Packet_descriptor packet = _tx.sink()->get_packet();
-			if (!packet.valid()) {
+			if (!packet.size()) {
 				PWRN("Invalid tx packet");
 				return true;
 			}

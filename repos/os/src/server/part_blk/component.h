@@ -73,7 +73,7 @@ class Block::Session_component : public Block::Session_rpc_object,
 			_p_to_handle.succeeded(false);
 
 			/* ignore invalid packets */
-			if (!packet.valid() || !_range_check(_p_to_handle)) {
+			if (!packet.size() || !_range_check(_p_to_handle)) {
 				_ack_packet(_p_to_handle);
 				return;
 			}

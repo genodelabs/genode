@@ -100,7 +100,7 @@ class Usb_nic::Session_component : public Nic::Session_component
 			unsigned char *ptr = nullptr;
 
 			/* submit received packets to lower layer */
-			while (((_tx.sink()->packet_avail() || save.valid()) && _tx.sink()->ready_to_ack()))
+			while (((_tx.sink()->packet_avail() || save.size()) && _tx.sink()->ready_to_ack()))
 			{
 				/* alloc skb */
 				if (!skb) {
@@ -111,7 +111,7 @@ class Usb_nic::Session_component : public Nic::Session_component
 					work_skb.data = nullptr;
 				}
 
-				Packet_descriptor packet = save.valid() ? save : _tx.sink()->get_packet();
+				Packet_descriptor packet = save.size() ? save : _tx.sink()->get_packet();
 				save                     = Packet_descriptor();
 
 				if (!_device->skb_fill(&work_skb, ptr, packet.size(), skb->end)) {
@@ -147,7 +147,7 @@ class Usb_nic::Session_component : public Nic::Session_component
 				return false;
 
 			Genode::Packet_descriptor packet = _tx.sink()->get_packet();
-			if (!packet.valid()) {
+			if (!packet.size()) {
 				PWRN("Invalid tx packet");
 				return true;
 			}
