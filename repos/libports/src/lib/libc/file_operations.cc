@@ -110,7 +110,7 @@ static void resolve_symlinks(char const *path, Absolute_path &resolved_path)
 			throw Symlink_resolve_error();
 		}
 
-		current_iteration_working_path.import(next_iteration_working_path.base());
+		current_iteration_working_path = next_iteration_working_path;
 		PDBGV("current_iteration_working_path = %s", current_iteration_working_path.base());
 
 		next_iteration_working_path.import("");
@@ -184,7 +184,7 @@ static void resolve_symlinks(char const *path, Absolute_path &resolved_path)
 
 	} while (symlink_resolved_in_this_iteration);
 
-	resolved_path.import(next_iteration_working_path.base());
+	resolved_path = next_iteration_working_path;
 	resolved_path.remove_trailing('/');
 	PDBGV("resolved_path = %s", resolved_path.base());
 }
@@ -363,7 +363,7 @@ extern "C" int fstatat(int libc_fd, char const *path, struct stat *buf, int flag
 	Libc::Absolute_path abs_path;
 
 	if (libc_fd == AT_FDCWD) {
-		getcwd(abs_path.base(), abs_path.capacity());
+		abs_path = cwd();
 		abs_path.append("/");
 		abs_path.append(path);
 	} else {

@@ -192,6 +192,8 @@ class Genode::Path_base
 
 		void _strip_from_begin(unsigned count) { strip(_path, count); }
 
+	protected:
+
 		/**
 		 * Remove superfluous artifacts from absolute path
 		 */
@@ -203,7 +205,9 @@ class Genode::Path_base
 			remove_trailing('.', _path);
 		}
 
-		void _import(char const *path, char const *pwd = 0)
+	public:
+
+		void import(char const *path, char const *pwd = 0)
 		{
 			/*
 			 * Validate 'pwd' argument, if not supplied, enforce invariant
@@ -237,17 +241,13 @@ class Genode::Path_base
 			_canonicalize();
 		}
 
-	public:
-
 		Path_base(char *buf, size_t buf_len,
 		          char const *path, char const *pwd = 0)
 		:
 			_path(buf), _path_max_len(buf_len)
 		{
-			_import(path, pwd);
+			import(path, pwd);
 		}
-
-		void import(char const *path, char const *pwd = 0) { _import(path, pwd); }
 
 		char       *base()       { return _path; }
 		char const *base() const { return _path; }
@@ -345,6 +345,21 @@ class Genode::Path : public Path_base {
 		: Path_base(_buf, sizeof(_buf), path, pwd) { }
 
 		constexpr size_t capacity() { return MAX_LEN; }
+
+		Path& operator=(char const *path)
+		{
+			Genode::strncpy(_buf, path, MAX_LEN);
+			_canonicalize();
+			return *this;
+		}
+
+		template <unsigned N>
+		Path& operator=(Path<N> &other)
+		{
+			Genode::strncpy(_buf, other._buf, MAX_LEN);
+			return *this;
+		}
+
 };
 
 #endif /* _INCLUDE__OS__PATH_H_ */
