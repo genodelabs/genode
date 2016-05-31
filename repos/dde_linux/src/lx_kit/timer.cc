@@ -194,15 +194,18 @@ class Lx_kit::Timer : public Lx::Timer
 			while (1) {
 				Lx::scheduler().current()->block_and_schedule();
 
-				Lx_kit::Timer::Context *ctx = t.first();
-				if (!ctx || ctx->timeout > t.jiffies())
-					continue;;
+				while (Lx_kit::Timer::Context *ctx = t.first()) {
+					if (ctx->timeout > t.jiffies()) {
+						break;
+					}
 
-				ctx->pending = false;
-				ctx->function();
+					ctx->pending = false;
+					ctx->function();
 
-				if (!ctx->pending)
-					t.del(ctx->timer);
+					if (!ctx->pending) {
+						t.del(ctx->timer);
+					}
+				}
 
 				t.schedule_next();
 			}
