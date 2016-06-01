@@ -44,7 +44,20 @@ namespace Platform {
 
 	class Rmrr;
 	class Root;
+	class Ram_dataspace;
 }
+
+class Platform::Ram_dataspace : public Genode::List<Ram_dataspace>::Element {
+
+	private:
+		Genode::Ram_dataspace_capability _cap;
+
+	public:
+		Ram_dataspace(Genode::Ram_dataspace_capability c) : _cap(c) { }
+
+		bool match(const Genode::Ram_dataspace_capability &cap) const {
+			return cap.local_name() == _cap.local_name(); }
+};
 
 class Platform::Rmrr : public Genode::List<Platform::Rmrr>::Element
 {
@@ -123,12 +136,16 @@ namespace Platform {
 			Genode::Rpc_entrypoint                     &_device_pd_ep;
 
 			struct Resources {
-				Genode::Ram_connection                  _ram;
+				Genode::Ram_connection _ram;
+				Genode::List<Platform::Ram_dataspace> _ram_caps;
+				Genode::Tslab<Platform::Ram_dataspace, 4096 - 64>  _ram_caps_slab;
 
-				Resources() :
+				Resources(Genode::Allocator_guard &md_alloc)
+				:
 					/* restrict physical address to 3G on 32bit */
 					_ram("dma", 0, (sizeof(void *) == 4)
-					               ? 0xc0000000UL : 0x100000000ULL)
+					               ? 0xc0000000UL : 0x100000000ULL),
+					_ram_caps_slab(&md_alloc)
 				{
 					/* associate _ram session with platform_drv _ram session */
 					_ram.ref_account(Genode::env()->ram_session_cap());
@@ -142,6 +159,18 @@ namespace Platform {
 				}
 
 				Genode::Ram_connection &ram() { return _ram; }
+
+				void insert(Genode::Ram_dataspace_capability cap) {
+					_ram_caps.insert(new (_ram_caps_slab) Platform::Ram_dataspace(cap)); }
+
+				bool remove(Genode::Ram_dataspace_capability cap) {
+					for (Platform::Ram_dataspace *ds = _ram_caps.first(); ds;
+					     ds = ds->next())
+						if (ds->match(cap))
+							return true;
+					return false;
+				}
+
 			} _resources;
 
 			struct Devicepd {
@@ -474,6 +503,7 @@ namespace Platform {
 				_md_alloc(md_alloc, Genode::Arg_string::find_arg(args, "ram_quota").long_value(0)),
 				_device_slab(&_md_alloc),
 				_device_pd_ep(device_pd_ep),
+				_resources(_md_alloc),
 				_label(args), _policy(_label)
 			{
 				/* non-pci devices */
@@ -778,6 +808,26 @@ namespace Platform {
 			 */
 			typedef Genode::Ram_dataspace_capability Ram_capability;
 
+
+			/**
+			 * Helper method for rollback
+			 */
+			void _rollback(const Genode::size_t size,
+			               const Ram_capability ram_cap = Ram_capability(),
+			               const bool throw_oom = true)
+			{
+				if (ram_cap.valid())
+					_resources.ram().free(ram_cap);
+
+				if (_resources.ram().transfer_quota(Genode::env()->ram_session_cap(), size))
+					throw Fatal();
+
+				_md_alloc.upgrade(size);
+
+				if (throw_oom)
+					throw Out_of_metadata();
+			}
+
 			Ram_capability alloc_dma_buffer(Genode::size_t const size)
 			{
 				if (!_device_pd.constructed())
@@ -798,61 +848,57 @@ namespace Platform {
 				enum { UPGRADE_QUOTA = 4096 };
 
 				/* allocate dataspace from session specific ram session */
-				Ram_capability ram_cap = Genode::retry<Genode::Ram_session::Out_of_metadata>(
-					[&] () { return _resources.ram().alloc(size, Genode::UNCACHED); },
+				Ram_capability ram_cap = Genode::retry<Genode::Ram_session::Quota_exceeded>(
 					[&] () {
-						if (!_md_alloc.withdraw(UPGRADE_QUOTA)) {
-							/* roll-back */
-							if (_resources.ram().transfer_quota(Genode::env()->ram_session_cap(), size))
-								throw Fatal();
-							_md_alloc.upgrade(size);
-							throw Out_of_metadata();
-						}
+						Ram_capability ram = Genode::retry<Genode::Ram_session::Out_of_metadata>(
+							[&] () { return _resources.ram().alloc(size, Genode::UNCACHED); },
+							[&] () { throw Genode::Ram_session::Quota_exceeded(); });
+						return ram;
+					},
+					[&] () {
+						if (!_md_alloc.withdraw(UPGRADE_QUOTA))
+							_rollback(size);
+
 						char buf[32];
 						Genode::snprintf(buf, sizeof(buf), "ram_quota=%u",
 						                 UPGRADE_QUOTA);
 						Genode::env()->parent()->upgrade(_resources.ram().cap(), buf);
 					});
 
-				if (!_device_pd->valid())
+				if (!ram_cap.valid())
 					return ram_cap;
 
-				Genode::retry<Genode::Rm_session::Out_of_metadata>(
-					[&] () { _device_pd->child.attach_dma_mem(ram_cap); },
-					[&] () {
-						if (!_md_alloc.withdraw(UPGRADE_QUOTA)) {
-							/* role-back */
-							_resources.ram().free(ram_cap);
-							if (_resources.ram().transfer_quota(Genode::env()->ram_session_cap(), size))
+				if (_device_pd->valid()) {
+					Genode::retry<Genode::Rm_session::Out_of_metadata>(
+						[&] () { _device_pd->child.attach_dma_mem(ram_cap); },
+						[&] () {
+							if (!_md_alloc.withdraw(UPGRADE_QUOTA))
+								_rollback(size, ram_cap);
+
+							if (rs->transfer_quota(_resources.ram().cap(), UPGRADE_QUOTA))
 								throw Fatal();
-							_md_alloc.upgrade(size);
-							throw Out_of_metadata();
-						}
 
-						if (rs->transfer_quota(_resources.ram().cap(), UPGRADE_QUOTA))
-							throw Fatal();
+							Genode::Ram_connection &slave = _device_pd->policy->ram_slave();
+							if (_resources.ram().transfer_quota(slave.cap(), UPGRADE_QUOTA))
+								throw Fatal();
+						});
+				}
 
-						Genode::Ram_connection &slave = _device_pd->policy->ram_slave();
-						if (_resources.ram().transfer_quota(slave.cap(), UPGRADE_QUOTA))
-							throw Fatal();
-					});
-
+				try {
+					_resources.insert(ram_cap);
+				} catch(Genode::Allocator::Out_of_memory) {
+					_rollback(size, ram_cap);
+				}
 				return ram_cap;
 			}
 
-			void free_dma_buffer(Ram_capability ram)
+			void free_dma_buffer(Ram_capability ram_cap)
 			{
-				/*
-				 * FIXME: proof that the ram cap come from us,
-				 * otherwise we get bookkeeping errors
-				 */
-				if (ram.valid()) {
-					Genode::size_t size = Genode::Dataspace_client(ram).size();
-					_resources.ram().free(ram);
-					if (_resources.ram().transfer_quota(Genode::env()->ram_session_cap(), size))
-						throw Fatal();
-					_md_alloc.upgrade(size);
-				}
+				if (!ram_cap.valid() || !_resources.remove(ram_cap))
+					return;
+
+				Genode::size_t size = Genode::Dataspace_client(ram_cap).size();
+				_rollback(size, ram_cap, false);
 			}
 
 			Device_capability device(String const &name) override;
