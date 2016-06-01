@@ -119,6 +119,9 @@ proc append_platform_drv_config {} {
 		<provides>
 			<service name="Platform"/>}
 
+		append_if [have_spec acpi] config {
+			<service name="Acpi"/>}
+
 		append_if [have_spec arm] config {
 			<service name="Regulator"/>}
 

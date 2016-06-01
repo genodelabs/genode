@@ -10,6 +10,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <base/allocator_avl.h>
 #include <base/component.h>
 #include <base/printf.h>
 #include <base/signal.h>
@@ -215,6 +216,7 @@ struct Acpica::Main {
 		bool enable_reset = Genode::config()->xml_node().attribute_value("reset", false);
 		bool enable_poweroff = Genode::config()->xml_node().attribute_value("poweroff", false);
 		bool enable_report = Genode::config()->xml_node().attribute_value("report", false);
+		bool enable_ready = Genode::config()->xml_node().attribute_value("acpi_ready", false);
 
 		if (enable_report)
 			_report = new (Genode::env()->heap()) Acpica::Reportstate();
@@ -229,16 +231,29 @@ struct Acpica::Main {
 			                                                enable_poweroff);
 
 		/* setup IRQ */
-		if (irq_handler.handler) {
-			_sci_conn.construct(irq_handler.irq);
-
-			PINF("SCI IRQ: %u", irq_handler.irq);
-
-			_sci_conn->sigh(_sci_irq);
-			_sci_conn->ack_irq();
-		} else
+		if (!irq_handler.handler) {
 			PWRN("no IRQ handling available");
+			return;
+		}
 
+		_sci_conn.construct(irq_handler.irq);
+
+		PINF("SCI IRQ: %u", irq_handler.irq);
+
+		_sci_conn->sigh(_sci_irq);
+		_sci_conn->ack_irq();
+
+		if (!enable_ready)
+			return;
+
+		/* we are ready - signal it via changing system state */
+		const char * system_file = "system";
+
+		static Genode::Reporter _system_rom { "system", "acpi_ready" };
+		_system_rom.enabled(true);
+		Genode::Reporter::Xml_generator xml(_system_rom, [&] () {
+			xml.attribute("state", "acpi_ready");
+		});
 	}
 
 	void acpi_irq()

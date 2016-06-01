@@ -27,6 +27,15 @@ changes of the 'state' attribute:
 
 !<system state="something"/>
 
+Additionally, if the config attributes 'acpi_ready' is set to yes, the
+application generates a reports named 'acpi_ready' and set the state to
+
+!<system state="acpi_ready"/>
+
+after finishing the ACPI bring up. This is used by platform_drv to finally
+announce the Platform session, so that drivers can start after acpica has
+finished.
+
 If the ROM changes to 'state="reset"' the application tries to reset the 
 machine immediately.
 If the ROM changes to 'state="poweroff"' the application tries to poweroff 
@@ -51,7 +60,7 @@ Excerpt of important parts of the acpica configuration
 !<start name="acpica">
 !  <!-- <binary name="debug-acpica"/> -->
 !  ...
-!  <config reset="no" poweroff="no" report="yes"/>
+!  <config reset="no" poweroff="no" report="yes" acpi_ready="yes"/>
 !  <route>
 !    <service name="ROM" label="system"> <child name="..."/> </service>
 !    <service name="Report"> <child name="..."/> </service>
