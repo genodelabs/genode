@@ -7,9 +7,8 @@
 
 /* Genode includes */
 #include <util/bit_allocator.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <os/attached_io_mem_dataspace.h>
-#include <os/config.h>
 #include <os/reporter.h>
 
 /* local includes */
@@ -89,10 +88,9 @@ Framebuffer::Driver::_preferred_mode(drm_connector *connector)
 
 	/* try to read configuration for connector */
 	try {
-		config()->reload();
-		Xml_node node = config()->xml_node();
-		Xml_node xn = node.sub_node();
-		for (unsigned i = 0; i < node.num_sub_nodes(); xn = xn.next()) {
+		Xml_node config = _session.config();
+		Xml_node xn = config.sub_node();
+		for (unsigned i = 0; i < config.num_sub_nodes(); xn = xn.next()) {
 			if (!xn.has_type("connector"))
 				continue;
 
@@ -161,7 +159,7 @@ bool Framebuffer::Driver::mode_changed()
 		dde_c_allocate_framebuffer(width, height, &_new_fb_ds_base,
 		                           &_cur_fb_ds_size, dde_drm_device);
 	if (!fb) {
-		PERR("failed to allocate framebuffer %dx%d", width, height);
+		Genode::error("failed to allocate framebuffer ", width, "x", height);
 		return false;
 	}
 
@@ -216,8 +214,7 @@ void Framebuffer::Driver::generate_report()
 	static Genode::Reporter reporter("connectors");
 
 	try {
-		Genode::config()->reload();
-		reporter.enabled(Genode::config()->xml_node().sub_node("report")
+		reporter.enabled(_session.config().sub_node("report")
 		                 .attribute_value(reporter.name().string(), false));
 	} catch (...) {
 		reporter.enabled(false);
@@ -263,31 +260,11 @@ void Framebuffer::Driver::generate_report()
 			}
 		});
 	} catch (...) {
-		PWRN("Failed to generate report");
+		Genode::warning("Failed to generate report");
 	}
 }
 
 extern "C" {
-
-void lx_printf(char const *fmt, ...)
-{
-	va_list va;
-	va_start(va, fmt);
-	Genode::vprintf(fmt, va);
-	va_end(va);
-}
-
-
-void lx_vprintf(char const *fmt, va_list va)
-{
-	Genode::vprintf(fmt, va);
-}
-
-
-/****************************************
- ** Common Linux kernel infrastructure **
- ****************************************/
-
 
 /**********************
  ** Global variables **
@@ -508,7 +485,7 @@ struct pci_dev *pci_get_bus_and_slot(unsigned int bus, unsigned int devfn)
 		client.bus_address(&dev_bus, &dev_slot, &dev_fn);
 
 		if (dev_bus == bus && PCI_SLOT(devfn) == dev_slot && PCI_FUNC(devfn) == dev_fn) {
-			Lx::Pci_dev *dev = new (Genode::env()->heap()) Lx::Pci_dev(cap);
+			Lx::Pci_dev *dev = new (Lx::Malloc::mem()) Lx::Pci_dev(cap);
 			Lx::pci_dev_registry()->insert(dev);
 			pci_dev = dev;
 			return true;
@@ -543,7 +520,7 @@ struct pci_dev *pci_get_class(unsigned int class_code, struct pci_dev *from)
 		Platform::Device_client client(cap);
 
 		if (client.class_code() == class_code) {
-			pci_dev = new (Genode::env()->heap()) Lx::Pci_dev(cap);
+			pci_dev = new (Lx::Malloc::mem()) Lx::Pci_dev(cap);
 			return true;
 		}
 
@@ -657,11 +634,11 @@ struct io_mapping *io_mapping_create_wc(resource_size_t base, unsigned long size
 	TRACE;
 
 	if (called++ != 0) {
-		PERR("io_mapping_create_wc unexpectedly called twice");
+		Genode::error("io_mapping_create_wc unexpectedly called twice");
 		return 0;
 	}
 
-	io_mapping *mapping = new (Genode::env()->heap()) io_mapping(base, size);
+	io_mapping *mapping = new (Lx::Malloc::mem()) io_mapping(base, size);
 	return mapping;
 }
 
@@ -847,8 +824,8 @@ void drm_ut_debug_printk(const char *function_name, const char *format, ...)
 
 	va_list list;
 	va_start(list, format);
-	printf("[drm:%s] ", function_name);
-	vprintf(format, list);
+	lx_printf("[drm:%s] ", function_name);
+	lx_vprintf(format, list);
 	va_end(list);
 }
 
@@ -859,8 +836,8 @@ void drm_err(const char *format, ...)
 
 	va_list list;
 	va_start(list, format);
-	printf("[drm:ERROR] ");
-	vprintf(format, list);
+	lx_printf("[drm:ERROR] ");
+	lx_vprintf(format, list);
 	va_end(list);
 }
 

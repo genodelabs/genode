@@ -23,6 +23,7 @@
 #include <util/volatile_object.h>
 #include <os/attached_dataspace.h>
 #include <os/attached_ram_dataspace.h>
+#include <os/attached_rom_dataspace.h>
 #include <blit/blit.h>
 
 struct drm_display_mode;
@@ -41,14 +42,14 @@ class Framebuffer::Driver
 	private:
 
 		Session_component        &_session;
-		int                       _height = 0;
-		int                       _width  = 0;
+		int                       _height          = 0;
+		int                       _width           = 0;
 		static constexpr unsigned _bytes_per_pixel = 2;
-		void                     *_new_fb_ds_base = nullptr;
-		void                     *_cur_fb_ds_base = nullptr;
-		Genode::uint64_t          _cur_fb_ds_size = 0;
-		drm_framebuffer          *_new_fb = nullptr;
-		drm_framebuffer          *_cur_fb = nullptr;
+		void                     *_new_fb_ds_base  = nullptr;
+		void                     *_cur_fb_ds_base  = nullptr;
+		Genode::uint64_t          _cur_fb_ds_size  = 0;
+		drm_framebuffer          *_new_fb          = nullptr;
+		drm_framebuffer          *_cur_fb          = nullptr;
 
 		drm_display_mode * _preferred_mode(drm_connector *connector);
 
@@ -78,12 +79,16 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 		template <typename T> using Lazy = Genode::Lazy_volatile_object<T>;
 
 		Driver                               _driver;
+		Genode::Attached_rom_dataspace      &_config;
 		Genode::Signal_context_capability    _mode_sigh;
 		Timer::Connection                    _timer;
-		bool const                           _buffered;
+		bool                                 _buffered;
 		Lazy<Genode::Attached_dataspace>     _fb_ds;
 		Lazy<Genode::Attached_ram_dataspace> _bb_ds;
 		bool                                 _in_update = false;
+
+		bool _buffered_from_config() {
+			return _config.xml().attribute_value("buffered", false); }
 
 		void _refresh_buffered(int x, int y, int w, int h)
 		{
@@ -109,19 +114,26 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 
 	public:
 
-		Session_component(bool buffered)
-		: _driver(*this), _buffered(buffered) {}
+		Session_component(Genode::Attached_rom_dataspace &config)
+		: _driver(*this), _config(config),
+		  _buffered(_buffered_from_config()) {}
 
 		Driver & driver() { return _driver; }
 
 		void config_changed()
 		{
+			_config.update();
+			if (!_config.valid()) return;
+
 			_in_update = true;
+			_buffered  = _buffered_from_config();
 			if (_driver.mode_changed() && _mode_sigh.valid())
 				Genode::Signal_transmitter(_mode_sigh).submit();
 			else
 				_in_update = false;
 		}
+
+		Genode::Xml_node config() { return _config.xml(); }
 
 
 		/***********************************
@@ -179,10 +191,11 @@ struct Framebuffer::Root
 	Session_component *_create_session(const char *args) override {
 		return &session; }
 
-	Root(Genode::Rpc_entrypoint *ep, Genode::Allocator *alloc, bool buffered)
+	Root(Genode::Entrypoint &ep, Genode::Allocator &alloc,
+	     Genode::Attached_rom_dataspace &config)
 	: Genode::Root_component<Session_component,
 	                         Genode::Single_client>(ep, alloc),
-	  session(buffered) { }
+	  session(config) { }
 };
 
 #endif /* __COMPONENT_H__ */
