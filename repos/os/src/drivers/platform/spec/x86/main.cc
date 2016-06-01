@@ -40,9 +40,14 @@ struct Platform::Main
 	Genode::Lazy_volatile_object<Platform::Root> root;
 
 	Genode::Lazy_volatile_object<Genode::Attached_rom_dataspace> system_state;
+	Genode::Lazy_volatile_object<Genode::Attached_rom_dataspace> acpi_ready;
 
 	Genode::Signal_handler<Platform::Main> _acpi_report;
 	Genode::Signal_handler<Platform::Main> _system_report;
+
+	Genode::Capability<Genode::Typed_root<Platform::Session_component> > root_cap;
+
+	bool _system_rom = false;
 
 	void acpi_update()
 	{
@@ -54,24 +59,50 @@ struct Platform::Main
 		const char * report_addr = acpi_rom->local_addr<const char>();
 
 		root.construct(_env, &sliced_heap, report_addr);
-		_env.parent().announce(_env.ep().manage(*root));
+
+		root_cap = _env.ep().manage(*root);
+
+		if (_system_rom) {
+			Genode::Parent::Service_name announce_for_acpi("Acpi");
+			_env.parent().announce(announce_for_acpi, root_cap);
+		} else
+			_env.parent().announce(root_cap);
 	}
 
 	void system_update()
 	{
-		system_state->update();
-
-		if (!system_state->is_valid() || !root.is_constructed())
+		if (!_system_rom || !system_state.is_constructed() ||
+		    !acpi_ready.is_constructed())
 			return;
 
-		Genode::Xml_node system(system_state->local_addr<char>(),
-		                        system_state->size());
+		system_state->update();
+		acpi_ready->update();
 
-		typedef Genode::String<16> Value;
-		const Value state = system.attribute_value("state", Value("unknown"));
+		if (!root.is_constructed())
+			return;
 
-		if (state == "reset")
-			root->system_reset();
+		if (system_state->is_valid()) {
+			Genode::Xml_node system(system_state->local_addr<char>(),
+			                        system_state->size());
+
+			typedef Genode::String<16> Value;
+			const Value state = system.attribute_value("state", Value("unknown"));
+
+			if (state == "reset")
+				root->system_reset();
+		}
+		if (acpi_ready->is_valid()) {
+			Genode::Xml_node system(acpi_ready->local_addr<char>(),
+			                        acpi_ready->size());
+
+			typedef Genode::String<16> Value;
+			const Value state = system.attribute_value("state", Value("unknown"));
+
+			if (state == "acpi_ready" && root_cap.valid()) {
+				_env.parent().announce(root_cap);
+				root_cap = Genode::Capability<Genode::Typed_root<Platform::Session_component> > ();
+			}
+		}
 	}
 
 	Main(Genode::Env &env)
@@ -83,22 +114,26 @@ struct Platform::Main
 	{
 		const Genode::Xml_node &config = Genode::config()->xml_node();
 
+		_system_rom = config.attribute_value("system", false);
+
 		typedef Genode::String<8> Value;
 		Value const wait_for_acpi = config.attribute_value("acpi", Value("yes"));
 
-		if (wait_for_acpi == "yes") {
-			bool system_reset = config.attribute_value("system", false);
-			if (system_reset) {
-				/* wait for system state changes and react upon, e.g. reset */
-				system_state.construct("system");
-				system_state->sigh(_system_report);
-			}
+		if (_system_rom) {
+			/* wait for system state changes, e.g. reset and acpi_ready */
+			system_state.construct("system");
+			system_state->sigh(_system_report);
+			acpi_ready.construct("acpi_ready");
+			acpi_ready->sigh(_system_report);
+		}
 
+		if (wait_for_acpi == "yes") {
 			/* for ACPI support, wait for the first valid acpi report */
 			acpi_rom.construct("acpi");
 			acpi_rom->sigh(_acpi_report);
 			/* check if already valid */
 			acpi_update();
+			system_update();
 			return;
 		}
 
