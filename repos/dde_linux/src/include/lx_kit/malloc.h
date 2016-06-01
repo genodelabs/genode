@@ -60,4 +60,7 @@ class Lx::Malloc
 		static Malloc &dma();
 };
 
+
+void *operator new (Genode::size_t, Lx::Malloc &);
+
 #endif /* _LX_KIT__MALLOC_H_ */
