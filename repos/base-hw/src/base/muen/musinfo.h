@@ -1,7 +1,7 @@
 /*
  * \brief   Muen subject info
- * \author  Stefan Kalkowski
- * \date    2015-06-02
+ * \author  Reto Buerki
+ * \date    2015-04-21
  */
 
 /*
