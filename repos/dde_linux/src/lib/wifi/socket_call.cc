@@ -306,7 +306,7 @@ class Lx::Socket
 					sock->sk->sk_wq = &wq[i];
 				}
 
-				long t = jiffies + msecs_to_jiffies(timeout);
+				long t = msecs_to_jiffies(timeout);
 				timeout_triggered = !schedule_timeout(t);
 
 				task->wait_dequeue(&wait_list);
