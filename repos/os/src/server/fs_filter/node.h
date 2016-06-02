@@ -9,6 +9,7 @@
 
 /* Genode includes */
 #include <file_system/node.h>
+#include <os/path.h>
 
 /* local includes */
 #include "fs_registry.h"
@@ -64,46 +65,34 @@ namespace File_system {
 	
 	class Directory : public Node
 	{
+	private:
+		Session_component &_session;
+		String<MAX_PATH_LEN> _path;
+
 	public:
 		/* TODO: add mix functionality */
 
-		Directory(Connection *fs, Dir_handle dest): Node(fs, dest);
+		Directory(Connection *fs, Dir_handle dest, char *path, Session_component &_session): Node(fs, dest), _path(path), _session(session) { }
 		Directory(): fs(0);
-		
-		virtual File_handle file(Name const &name, Mode mode, bool create)
-		{
-			return fs->file(static_cast<Dir_handle>(dest), name, mode, create);
-		}
 
-		virtual Symlink_handle symlink(Name const &name, bool create)
+		File *file(Name const &name, Mode mode, bool create)
 		{
-			return fs->symlink(static_cast<Symlink_handle>(dest), name, mode, create);
+			for (Attachment *atch = _session._attachments.first(); atch; atch = atch.next() {
+				if (_path == atch->dir && strcmp(name.string(), atch->name) == 0) {
+					Connection target_fs = FS_reference::get_fs(atch->target_fs);
+					Dir_handle dir = target_fs->dir(Name(atch->target_path), create);
+					File_handle file = target_fs->file(dir, name, mode, create);
+					target_fs->close(dir);
+					return new (env()->heap()) File(target_fs, file);
+				}
+			}
+			return new (env()->heap())File(fs, fs->file(static_cast<Dir_handle>(dest), name, mode, create));
 		}
-		
-		virtual void unlink(Name const &name)
-		{
-			fs->unlink(dest, name);
-		}
-	};
-	
-	
-	class Mixed_directory : public Directory
-	{
-	private:
-		Session_component &_session;
-	public:
-		Mixed_directory(Session_component &session, Dir_handle dest): Directory(session._root_fs,dest), _session(session) { }
-
-		File_handle file(Name const &name, Mode mode, bool create)
+                
+		Symlink *symlink(Name const &name, bool create)
 		{
 			/* TODO: handle mixed directory */
-			return fs->file(static_cast<Dir_handle>(dest), name, mode, create);
-		}
-		
-		Symlink_handle symlink(Name const &name, bool create)
-		{
-			/* TODO: handle mixed directory */
-			return fs->symlink(static_cast<Symlink_handle>(dest), name, mode, create);
+			return fs->symlink(static_cast<Dir_handle>(dest), name, mode, create);
 		}
 
 		virtual void close()
@@ -111,13 +100,14 @@ namespace File_system {
 			/* TODO: handle mixed directory */
 			fs->close(dest);
 		}
-		
+                
 		virtual Status status()
 		{
 			/* TODO: handle mixed directory */
 			return fs->status(dest);
 		}
 	};
+	
 }
 
 #endif
