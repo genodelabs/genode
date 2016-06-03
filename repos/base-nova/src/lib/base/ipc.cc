@@ -58,13 +58,16 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 
 	/* establish the mapping via a portal traversal */
 	uint8_t res = Nova::call(dst.local_name());
-	if (res != Nova::NOVA_OK) {
+
+	if (res != Nova::NOVA_OK)
 		/* If an error occurred, reset word&item count (not done by kernel). */
 		utcb.set_msg_word(0);
-		return Rpc_exception_code(Rpc_exception_code::INVALID_OBJECT);
-	}
 
+	/* track potentially received caps and invalidate unused caps slots */
 	rcv_window.post_ipc(utcb, dst.rcv_window());
+
+	if (res != Nova::NOVA_OK)
+		return Rpc_exception_code(Rpc_exception_code::INVALID_OBJECT);
 
 	/* handle malformed reply from a server */
 	if (utcb.msg_words() < 1)
