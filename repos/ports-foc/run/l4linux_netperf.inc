@@ -138,6 +138,7 @@ append config {
 	<start name="nic_bridge">
 		<resource name="RAM" quantum="6M"/>
 		<provides><service name="Nic"/></provides>
+		<config/>
 		<route>
 			<service name="Nic"> <child name="usb_drv"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>

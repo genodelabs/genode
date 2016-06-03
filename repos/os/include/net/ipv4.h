@@ -16,6 +16,7 @@
 
 /* Genode */
 #include <base/exception.h>
+#include <base/output.h>
 #include <util/string.h>
 
 #include <util/endian.h>
@@ -53,7 +54,18 @@ class Net::Ipv4_packet
 			ADDR_LEN = 4, /* Ip address length in bytes */
 		};
 
-		typedef Network_address<ADDR_LEN> Ipv4_address;
+		struct Ipv4_address : Network_address<ADDR_LEN>
+		{
+			using Network_address<ADDR_LEN>::Network_address;
+
+			void print(Genode::Output &output) const
+			{
+				for (unsigned i = 0; i < ADDR_LEN; i++) {
+					Genode::print(output, (unsigned) addr[i]);
+					if (i < ADDR_LEN-1) output.out_char('.');
+				}
+			}
+		};
 
 		static const Ipv4_address CURRENT;    /* current network   */
 		static const Ipv4_address BROADCAST;  /* broadcast address */

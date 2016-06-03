@@ -66,6 +66,7 @@ append_if $use_nic_bridge config {
 	<start name="nic_bridge">
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Nic"/></provides>
+		<config/>
 		<route>
 			<service name="Nic"> }
 append_if [expr $use_nic_bridge && ([have_spec omap4] || [have_spec arndale])] config {

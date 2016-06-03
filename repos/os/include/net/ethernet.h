@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <base/exception.h>
+#include <base/output.h>
 #include <util/string.h>
 
 #include <util/endian.h>
@@ -43,7 +44,21 @@ class Net::Ethernet_frame
 			ADDR_LEN  = 6, /* MAC address length in bytes */
 		};
 
-		typedef Network_address<ADDR_LEN> Mac_address;
+		struct Mac_address : Network_address<ADDR_LEN>
+		{
+			using Network_address<ADDR_LEN>::Network_address;
+
+			void print(Genode::Output &output) const
+			{
+				using namespace Genode;
+
+				for (unsigned i = 0; i < ADDR_LEN; i++) {
+					Genode::print(output, Hex(addr[i], Hex::OMIT_PREFIX,
+					                          Hex::PAD));
+					if (i < ADDR_LEN-1) output.out_char(':');
+				}
+			}
+		};
 
 		static const Mac_address BROADCAST;  /* broadcast address */
 

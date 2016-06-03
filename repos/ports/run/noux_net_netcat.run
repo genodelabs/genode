@@ -90,6 +90,7 @@ append config {
 	<start name="nic_bridge">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nic"/></provides>
+		<config/>
 		<route>}
 append_if $use_nic_driver config {
 			<service name="Nic"> <child name="nic_drv"/></service>}
