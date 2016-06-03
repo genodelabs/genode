@@ -81,7 +81,7 @@ void Genode::print(Output &output, Hex const &value)
 	if (value.prefix == Hex::PREFIX)
 		output.out_string("0x");
 
-	size_t const pad_len = value.pad ? value.digits : 0;
+	size_t const pad_len = (value.pad == Hex::PAD) ? value.digits : 0;
 
 	out_unsigned<unsigned long>(value.value, 16, pad_len,
 	                            [&] (char c) { output.out_char(c); });
