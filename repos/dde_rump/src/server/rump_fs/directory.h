@@ -165,11 +165,17 @@ class File_system::Directory : public Node
 				void *current, *end;
 				for (current = buf, end = &buf[bytes];
 				     current < end;
-				     current = _DIRENT_NEXT((dirent *)current), i++)
-					if (i == index) {
-						dent = (dirent *)current;
-						break;
+				     current = _DIRENT_NEXT((dirent *)current))
+				{
+					struct ::dirent *d = (dirent*)current;
+					if (strcmp(".", d->d_name) && strcmp("..", d->d_name)) {
+						if (i == index) {
+							dent = d;
+							break;
+						}
+						++i;
 					}
+				}
 			} while(bytes && !dent);
 
 			if (!dent)
