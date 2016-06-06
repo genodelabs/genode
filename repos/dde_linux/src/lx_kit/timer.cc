@@ -86,6 +86,7 @@ class Lx_kit::Timer : public Lx::Timer
 		Lx::Task                                     _timer_task;
 		Genode::Signal_rpc_member<Lx_kit::Timer>     _dispatcher;
 		Genode::Tslab<Context, 32 * sizeof(Context)> _timer_alloc;
+		Lx::jiffies_update_func                      _jiffies_func = nullptr;
 
 		/**
 		 * Lookup local timer
@@ -289,7 +290,10 @@ class Lx_kit::Timer : public Lx::Timer
 		}
 
 		void update_jiffies() {
-			_jiffies = msecs_to_jiffies(_timer_conn.elapsed_ms()); }
+			_jiffies = _jiffies_func ? _jiffies_func() : msecs_to_jiffies(_timer_conn.elapsed_ms()); }
+
+		void register_jiffies_func(Lx::jiffies_update_func func) {
+			_jiffies_func = func; }
 };
 
 
@@ -307,4 +311,10 @@ Lx::Timer &Lx::timer(Server::Entrypoint *ep, unsigned long *jiffies)
 void Lx::timer_update_jiffies()
 {
 	timer().update_jiffies();
+}
+
+
+void Lx::register_jiffies_func(jiffies_update_func func)
+{
+	dynamic_cast<Lx_kit::Timer &>(timer()).register_jiffies_func(func);
 }
