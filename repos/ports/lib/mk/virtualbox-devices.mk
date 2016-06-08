@@ -21,6 +21,7 @@ SRC_CC += Devices/Graphics/HGSMI/HGSMIHost.cpp
 SRC_CC += Devices/Graphics/HGSMI/HGSMIHostHlp.cpp
 SRC_CC += Devices/Graphics/HGSMI/SHGSMIHost.cpp
 SRC_CC += Devices/Storage/ATAPIPassthrough.cpp
+SRC_CC += Devices/Storage/DevAHCI.cpp
 SRC_CC += Devices/Storage/DevATA.cpp
 SRC_CC += Devices/Storage/Debug.cpp
 SRC_CC += Devices/Storage/DevFdc.c

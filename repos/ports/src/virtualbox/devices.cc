@@ -50,6 +50,7 @@ extern "C" int VBoxDevicesRegister(PPDMDEVREGCB pCallbacks, uint32_t u32Version)
 	REGISTER(DeviceFloppyController);
 	REGISTER(DeviceSerialPort);
 	REGISTER(DevicePIIX3IDE);
+	REGISTER(DeviceAHCI);
 	REGISTER(DevicePCNet);
 	REGISTER(DeviceE1000);
 	REGISTER(DeviceVMMDev);

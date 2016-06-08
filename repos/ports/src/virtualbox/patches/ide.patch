@@ -1,0 +1,12 @@
+--- a/src/app/virtualbox/src/VBox/Devices/Storage/ide.h
++++ b/src/app/virtualbox/src/VBox/Devices/Storage/ide.h
+@@ -202,8 +202,7 @@
+ #define ATAPI_INQUIRY_PRODUCT_ID_LENGTH 16
+ #define ATAPI_INQUIRY_REVISION_LENGTH    4
+ 
+-
+-#if defined(DEBUG) && defined(IN_RING3)
++#if defined(LOG_ENABLED) && defined(IN_RING3)
+ const char * ATACmdText(uint8_t uCmd);
+ #endif
+ 

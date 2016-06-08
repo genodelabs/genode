@@ -44,6 +44,8 @@ VBOX_CC_OPT += -DVBOX_WITH_USB -DVBOX_WITH_VUSB
 # Enable Intel Network model E1000
 VBOX_CC_OPT += -DVBOX_WITH_E1000
 
+VBOX_CC_OPT += -DVBOX_WITH_AHCI
+
 VIRTUALBOX_VERSION_MAJOR := $(shell cat $(VIRTUALBOX_DIR)/Config.kmk | grep "VBOX_VERSION_MAJOR = " | grep -v "'VBOX_VERSION_MAJOR" | sed "s/^.*= //")
 VIRTUALBOX_VERSION_MINOR := $(shell cat $(VIRTUALBOX_DIR)/Config.kmk | grep "VBOX_VERSION_MINOR = " | grep -v "'VBOX_VERSION_MINOR" | sed "s/^.*= //")
 VIRTUALBOX_VERSION_BUILD := $(shell cat $(VIRTUALBOX_DIR)/Config.kmk | grep "VBOX_VERSION_BUILD = " | grep -v "'VBOX_VERSION_BUILD" | sed "s/^.*= //")
