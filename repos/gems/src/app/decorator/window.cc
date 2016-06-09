@@ -193,16 +193,6 @@ void Decorator::Window::draw(Decorator::Canvas_base &canvas,
 }
 
 
-/**
- * Return true if specified XML attribute has the given value
- */
-static bool attribute_has_value(Genode::Xml_node node,
-                                char const *attr, char const *value)
-{
-	return node.has_attribute(attr) && node.attribute(attr).has_value(value);
-}
-
-
 bool Decorator::Window::update(Genode::Xml_node window_node)
 {
 	bool updated = false;
@@ -234,8 +224,8 @@ bool Decorator::Window::update(Genode::Xml_node window_node)
 		updated |= true;
 	}
 
-	_focused   = attribute_has_value(window_node, "focused",   "yes");
-	_has_alpha = attribute_has_value(window_node, "has_alpha", "yes");
+	_focused   = window_node.attribute_value(  "focused", false);
+	_has_alpha = window_node.attribute_value("has_alpha", false);
 
 	Window_title title = Decorator::string_attribute(window_node, "title",
 	                                                 Window_title("<untitled>"));
@@ -268,7 +258,7 @@ bool Decorator::Window::update(Genode::Xml_node window_node)
 				char const * const attr =
 					Control::type_name(window_control.type());
 
-				if (attribute_has_value(window_node, attr, "yes"))
+				if (window_node.attribute_value(attr, false))
 					new_controls.add(window_control);
 				break;
 			}

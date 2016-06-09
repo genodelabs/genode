@@ -52,10 +52,7 @@ void __attribute__((constructor)) init_nic_dhcp(void)
 	try {
 		Genode::Xml_node libc_node = Genode::config()->xml_node().sub_node("libc");
 
-		try {
-			if (libc_node.attribute("resolv").has_value("no"))
-				provide_etc_resolv_conf = false;
-		} catch(...) { }
+		provide_etc_resolv_conf = libc_node.attribute_value("resolv", provide_etc_resolv_conf);
 
 		try {
 			libc_node.attribute("ip_addr").value(ip_addr_str, sizeof(ip_addr_str));

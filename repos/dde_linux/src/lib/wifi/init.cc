@@ -139,8 +139,7 @@ void wifi_init(Server::Entrypoint &ep, Genode::Lock &lock)
 	 * For testing testing only the wireless stack with wpa_supplicant,
 	 * amongst other on linux, we do not want to load the iwlwifi drivers.
 	 */
-	if (Genode::config()->xml_node().has_attribute("mac80211_only"))
-		mac80211_only = Genode::config()->xml_node().attribute("mac80211_only").has_value("yes");
+	mac80211_only = Genode::config()->xml_node().attribute_value("mac80211_only", mac80211_only);
 	if (mac80211_only)
 		PINF("Initalizing only mac80211 stack without any driver!");
 

@@ -444,8 +444,7 @@ class Audio_out::Mixer
 			config()->reload();
 
 			Xml_node config_node = config()->xml_node();
-			try { verbose = config_node.attribute("verbose").has_value("yes"); }
-			catch (...) { verbose = false; }
+			verbose = config_node.attribute_value("verbose", verbose);
 
 			_set_default_config(config_node);
 

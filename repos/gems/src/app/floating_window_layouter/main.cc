@@ -385,12 +385,9 @@ void Floating_window_layouter::Main::import_window_list(Xml_node window_list_xml
 
 			win->size(initial_size);
 			win->title(string_attribute(node, "title", Window::Title("")));
-			win->has_alpha(node.has_attribute("has_alpha")
-			            && node.attribute("has_alpha").has_value("yes"));
-			win->hidden(node.has_attribute("hidden")
-			         && node.attribute("hidden").has_value("yes"));
-			win->resizeable(node.has_attribute("resizeable")
-			             && node.attribute("resizeable").has_value("yes"));
+			win->has_alpha( node.attribute_value("has_alpha",  false));
+			win->hidden(    node.attribute_value("hidden",     false));
+			win->resizeable(node.attribute_value("resizeable", false));
 		}
 	} catch (...) { }
 }

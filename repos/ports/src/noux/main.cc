@@ -1144,12 +1144,8 @@ int main(int argc, char **argv)
 	static Genode::Cap_connection cap;
 
 	/* obtain global configuration */
-	try {
-		trace_syscalls = config()->xml_node().attribute("trace_syscalls").has_value("yes");
-	} catch (Xml_node::Nonexistent_attribute) { }
-	try {
-		verbose = config()->xml_node().attribute("verbose").has_value("yes");
-	} catch (Xml_node::Nonexistent_attribute) { }
+	trace_syscalls = config()->xml_node().attribute_value("trace_syscalls", trace_syscalls);
+	verbose        = config()->xml_node().attribute_value("verbose", verbose);
 
 	/* register additional file systems to the VFS */
 	Vfs::Global_file_system_factory &fs_factory = Vfs::global_file_system_factory();

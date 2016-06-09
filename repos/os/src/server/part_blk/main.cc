@@ -37,11 +37,7 @@ void Block::Driver::_ready_to_submit(unsigned) {
 
 static bool _use_gpt()
 {
-	try {
-		return Genode::config()->xml_node().attribute("use_gpt").has_value("yes");
-	} catch(...) { }
-
-	return false;
+	return Genode::config()->xml_node().attribute_value("use_gpt", false);
 }
 
 

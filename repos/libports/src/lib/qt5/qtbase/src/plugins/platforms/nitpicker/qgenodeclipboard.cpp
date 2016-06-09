@@ -31,29 +31,25 @@ static constexpr bool verbose = false;
 QGenodeClipboard::QGenodeClipboard(Genode::Signal_receiver &sig_rcv)
 : _clipboard_signal_dispatcher(sig_rcv, *this, &QGenodeClipboard::_handle_clipboard)
 {
-	try {
+	if (Genode::config()->xml_node().attribute_value("clipboard", false)) {
 
-		if (Genode::config()->xml_node().attribute("clipboard").has_value("yes")) {
+		try {
 
-			try {
+			_clipboard_ds = new (Genode::env()->heap())
+				Genode::Attached_rom_dataspace("clipboard");
 
-				_clipboard_ds = new (Genode::env()->heap())
-					Genode::Attached_rom_dataspace("clipboard");
+			_clipboard_ds->sigh(_clipboard_signal_dispatcher);
+			_clipboard_ds->update();
 
-				_clipboard_ds->sigh(_clipboard_signal_dispatcher);
-				_clipboard_ds->update();
+		} catch (...) { }
 
-			} catch (...) { }
+		try {
+			_clipboard_reporter = new (Genode::env()->heap())
+				Genode::Reporter("clipboard");
+			_clipboard_reporter->enabled(true);
+		} catch (...) {	}
 
-			try {
-				_clipboard_reporter = new (Genode::env()->heap())
-					Genode::Reporter("clipboard");
-				_clipboard_reporter->enabled(true);
-			} catch (...) {	}
-
-		}
-
-	} catch (...) { }
+	}
 }
 
 

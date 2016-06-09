@@ -232,10 +232,7 @@ namespace Uart {
 						policy.attribute("baudrate").value(&baudrate);
 					} catch (Xml_node::Nonexistent_attribute) { }
 
-					bool detect_size = false;
-					try {
-						detect_size = policy.attribute("detect_size").has_value("yes");
-					} catch (Xml_node::Nonexistent_attribute) { }
+					bool detect_size = policy.attribute_value("detect_size", false);
 
 					return new (md_alloc())
 						Session_component(_driver_factory, index, baudrate, detect_size);

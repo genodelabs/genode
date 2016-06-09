@@ -310,10 +310,8 @@ int main(int, char **)
 
 	for (;;) {
 
-		try {
-			config_verbose =
-				config()->xml_node().attribute("verbose").has_value("yes"); }
-		catch (...) { }
+		config_verbose =
+			config()->xml_node().attribute_value("verbose", false);
 
 		try { determine_parent_services(&parent_services); }
 		catch (...) { }

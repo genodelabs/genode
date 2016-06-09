@@ -162,7 +162,7 @@ struct Server::Main
 	{
 		try {
 			return Genode::config()->xml_node().sub_node("report")
-			                                   .attribute(attr).has_value("yes");
+			                                   .attribute_value(attr, false);
 		} catch (...) { return false; }
 	}
 

@@ -477,10 +477,9 @@ class File_system::Root : public Root_component<Session_component>
 				/*
 				 * Determine if write access is permitted for the session.
 				 */
-				try {
-					writeable = policy.attribute("writeable").has_value("yes");
+				writeable = policy.attribute_value("writeable", false);
+				if (writeable)
 					PWRN("WARNING: write support in fuse_fs is considered experimental, data-loss may occur.");
-				} catch (Xml_node::Nonexistent_attribute) { }
 
 			} catch (Session_policy::No_policy_defined) {
 				PERR("Invalid session request, no matching policy");

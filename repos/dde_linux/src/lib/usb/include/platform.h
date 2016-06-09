@@ -58,7 +58,7 @@ struct Services
 				Genode::Xml_node node_screen = node_hid.sub_node("touchscreen");
 				node_screen.attribute("width").value(&screen_width);
 				node_screen.attribute("height").value(&screen_height);
-				multitouch = node_screen.attribute("multitouch").has_value("yes");
+				multitouch = node_screen.attribute_value("multitouch", false);
 			} catch (...) {
 				screen_width = screen_height = 0;
 				PDBG("Could not read screen resolution in config node");
@@ -87,32 +87,26 @@ struct Services
 
 			try {
 				Genode::Xml_node node_report = node_raw.sub_node("report");
-				raw_report_device_list = node_report.attribute("devices").has_value("yes");
+				raw_report_device_list = node_report.attribute_value("devices", false);
 			} catch (...) { }
 		} catch (Xml_node::Nonexistent_sub_node) {
 			PDBG("No <raw> config node found - not starting external USB service");
 		}
 
-		try {
-			if (!config()->xml_node().attribute("uhci").has_value("yes"))
-				throw -1;
+		if (config()->xml_node().attribute_value("uhci", false)) {
 			uhci = true;
 			PINF("Enabled UHCI (USB 1.0/1.1) support");
-		} catch (...) { }
+		}
 
-		try {
-			if (!config()->xml_node().attribute("ehci").has_value("yes"))
-				throw -1;
+		if (config()->xml_node().attribute_value("ehci", false)) {
 			ehci = true;
 			PINF("Enabled EHCI (USB 2.0) support");
-		} catch (...) { }
+		}
 
-		try {
-			if (!config()->xml_node().attribute("xhci").has_value("yes"))
-				throw -1;
+		if (config()->xml_node().attribute_value("xhci", false)) {
 			xhci = true;
 			PINF("Enabled XHCI (USB 3.0) support");
-		} catch (...) { }
+		}
 
 		if (!(uhci | ehci | xhci))
 			PWRN("Warning: No USB controllers enabled.\n"

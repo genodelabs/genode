@@ -232,9 +232,7 @@ struct Main
 		_ep(ep)
 	{
 		Genode::Xml_node config = Genode::config()->xml_node();
-		try {
-			config_verbose = config.attribute("verbose").has_value("yes");
-		} catch (...) { }
+		config_verbose = config.attribute_value("verbose", config_verbose);
 
 		_wpa = new (Genode::env()->heap()) Wpa_thread(wpa_startup_lock(), config_verbose);
 
