@@ -222,18 +222,9 @@ extern "C" int __sysctl(int *name, u_int namelen, void *oldp, size_t *oldlenp,
 				return 0;
 
 			case KERN_OSRELEASE:
-				Genode::strncpy(buf, GENODE_OSRELEASE, *oldlenp);
-				*oldlenp = Genode::strlen(buf);
-				return 0;
-
 			case KERN_OSREV:
-				*(int*)oldp = int(GENODE_OSREV);
-				*oldlenp = sizeof(int);
-				return 0;
-
 			case KERN_VERSION:
-				Genode::strncpy(buf, GENODE_VERSION, *oldlenp);
-				*oldlenp = Genode::strlen(buf);
+				*oldlenp = 0;
 				return 0;
 
 			case KERN_HOSTNAME:
@@ -246,8 +237,7 @@ extern "C" int __sysctl(int *name, u_int namelen, void *oldp, size_t *oldlenp,
 		case CTL_HW: switch(index_b) {
 
 			case HW_MACHINE:
-				Genode::strncpy(buf, GENODE_MACHINE, *oldlenp);
-				*oldlenp = Genode::strlen(buf);
+				*oldlenp = 0;
 				return 0;
 
 			case HW_NCPU:
