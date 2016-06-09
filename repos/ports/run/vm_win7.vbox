@@ -91,7 +91,7 @@
       <GuestProperties/>
     </Hardware>
     <StorageControllers>
-      <StorageController name="IDE" type="PIIX4" PortCount="2" useHostIOCache="true" Bootable="true">
+      <StorageController name="SATA" type="AHCI" PortCount="2" useHostIOCache="true" Bootable="true">
         <AttachedDevice type="HardDisk" port="0" device="0">
           <Image uuid="{4c5ed34f-f6cf-48e8-808d-2c06f0d11464}"/>
         </AttachedDevice>
