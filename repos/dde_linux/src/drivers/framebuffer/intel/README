@@ -35,6 +35,15 @@ configuration like this:
 
 ! <config buffered="yes"/>
 
+If you experience problems like hotplugging of connectors does not work, you
+can force the driver to poll frequently for hotplug events by defining a period
+in milliseconds like this:
+
+! <config poll="1000"/>
+
+If you define a period of zero, the driver won't poll at all, which is the
+default value.
+
 To present all available connectors and their possible resolutions to the user
 the driver is able to export a corresponding report ROM. This has to be
 configured too, like in the following:
