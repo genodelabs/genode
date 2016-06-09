@@ -96,18 +96,7 @@ class Lx_kit::Irq : public Lx::Irq
 				Lx_kit::List<Handler>       _handler;
 				Lx::Task                    _task;
 
-				Genode::Signal_rpc_member<Context> _dispatcher;
-
-				/**
-				 * Signal handler
-				 */
-				void _handle(unsigned)
-				{
-					_task.unblock();
-
-					/* kick off scheduling */
-					Lx::scheduler().schedule();
-				}
+				Genode::Signal_handler<Context> _dispatcher;
 
 				static void _run_irq(void *args)
 				{
@@ -131,12 +120,23 @@ class Lx_kit::Irq : public Lx::Irq
 					_dev(dev),
 					_irq_sess(dev.irq(0)),
 					_task(_run_irq, this, _name.name, Lx::Task::PRIORITY_3, Lx::scheduler()),
-					_dispatcher(ep, *this, &Context::_handle)
+					_dispatcher(ep, *this, &Context::unblock)
 				{
 					_irq_sess.sigh(_dispatcher);
 
 					/* initial ack to receive further IRQ signals */
 					_irq_sess.ack_irq();
+				}
+
+				/**
+				 * Unblock this context, e.g., as result of an IRQ signal
+				 */
+				void unblock()
+				{
+					_task.unblock();
+
+					/* kick off scheduling */
+					Lx::scheduler().schedule();
 				}
 
 				/**
@@ -213,6 +213,12 @@ class Lx_kit::Irq : public Lx::Irq
 			Handler *h = new (&_handler_alloc)
 			                   Handler(dev_id, handler, thread_fn);
 			ctx->add_handler(h);
+		}
+
+		void inject_irq(Platform::Device &dev)
+		{
+			Context *ctx = _find_context(dev);
+			if (ctx) ctx->unblock();
 		}
 };
 

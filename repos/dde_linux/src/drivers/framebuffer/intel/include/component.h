@@ -15,6 +15,7 @@
 #define __COMPONENT_H__
 
 /* Genode includes */
+#include <base/component.h>
 #include <base/rpc_server.h>
 #include <root/component.h>
 #include <dataspace/capability.h>
@@ -41,21 +42,28 @@ class Framebuffer::Driver
 {
 	private:
 
-		Session_component        &_session;
-		int                       _height          = 0;
-		int                       _width           = 0;
-		static constexpr unsigned _bytes_per_pixel = 2;
-		void                     *_new_fb_ds_base  = nullptr;
-		void                     *_cur_fb_ds_base  = nullptr;
-		Genode::uint64_t          _cur_fb_ds_size  = 0;
-		drm_framebuffer          *_new_fb          = nullptr;
-		drm_framebuffer          *_cur_fb          = nullptr;
+		Session_component             &_session;
+		Timer::Connection              _timer;
+		Genode::Signal_handler<Driver> _poll_handler;
+		int                            _height          = 0;
+		int                            _width           = 0;
+		static constexpr unsigned      _bytes_per_pixel = 2;
+		void                          *_new_fb_ds_base  = nullptr;
+		void                          *_cur_fb_ds_base  = nullptr;
+		Genode::uint64_t               _cur_fb_ds_size  = 0;
+		drm_framebuffer               *_new_fb          = nullptr;
+		drm_framebuffer               *_cur_fb          = nullptr;
+		unsigned long                  _poll_ms         = false;
 
 		drm_display_mode * _preferred_mode(drm_connector *connector);
 
+		void _poll();
+
 	public:
 
-		Driver(Session_component &session) : _session(session) {}
+		Driver(Genode::Env & env, Session_component &session)
+		: _session(session), _timer(env),
+		  _poll_handler(env.ep(), *this, &Driver::_poll) {}
 
 		int      width()  const { return _width;           }
 		int      height() const { return _height;          }
@@ -65,6 +73,7 @@ class Framebuffer::Driver
 			return _width * _height * _bytes_per_pixel; }
 
 		void finish_initialization();
+		void set_polling(unsigned long poll);
 		bool mode_changed();
 		void generate_report();
 		void free_framebuffer();
@@ -90,6 +99,9 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 		bool _buffered_from_config() {
 			return _config.xml().attribute_value("buffered", false); }
 
+		unsigned long _polling_from_config() {
+			return _config.xml().attribute_value<unsigned long>("poll", 0); }
+
 		void _refresh_buffered(int x, int y, int w, int h)
 		{
 			using namespace Genode;
@@ -114,8 +126,9 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 
 	public:
 
-		Session_component(Genode::Attached_rom_dataspace &config)
-		: _driver(*this), _config(config),
+		Session_component(Genode::Env &env,
+		                  Genode::Attached_rom_dataspace &config)
+		: _driver(env, *this), _config(config), _timer(env),
 		  _buffered(_buffered_from_config()) {}
 
 		Driver & driver() { return _driver; }
@@ -127,6 +140,7 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 
 			_in_update = true;
 			_buffered  = _buffered_from_config();
+			_driver.set_polling(_polling_from_config());
 			if (_driver.mode_changed() && _mode_sigh.valid())
 				Genode::Signal_transmitter(_mode_sigh).submit();
 			else
@@ -191,11 +205,11 @@ struct Framebuffer::Root
 	Session_component *_create_session(const char *args) override {
 		return &session; }
 
-	Root(Genode::Entrypoint &ep, Genode::Allocator &alloc,
+	Root(Genode::Env &env, Genode::Allocator &alloc,
 	     Genode::Attached_rom_dataspace &config)
 	: Genode::Root_component<Session_component,
-	                         Genode::Single_client>(ep, alloc),
-	  session(config) { }
+	                         Genode::Single_client>(env.ep(), alloc),
+	  session(env, config) { }
 };
 
 #endif /* __COMPONENT_H__ */

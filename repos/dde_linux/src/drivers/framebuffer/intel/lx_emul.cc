@@ -137,8 +137,33 @@ void Framebuffer::Driver::finish_initialization()
 {
 	dde_c_set_driver(dde_drm_device, (void*)this);
 	generate_report();
-	mode_changed();
+	_session.config_changed();
 }
+
+
+#include <lx_kit/irq.h>
+
+void Framebuffer::Driver::_poll()
+{
+	Lx::Pci_dev * pci_dev = (Lx::Pci_dev*) dde_drm_device->pdev->bus;
+	Lx::Irq::irq().inject_irq(pci_dev->client());
+}
+
+
+void Framebuffer::Driver::set_polling(unsigned long poll)
+{
+	if (poll == _poll_ms) return;
+
+	_poll_ms = poll;
+
+	if (_poll_ms) {
+		_timer.sigh(_poll_handler);
+		_timer.trigger_periodic(_poll_ms * 1000);
+	} else {
+		_timer.sigh(Genode::Signal_context_capability());
+	}
+}
+
 
 bool Framebuffer::Driver::mode_changed()
 {
@@ -919,8 +944,6 @@ int drm_get_pci_dev(struct pci_dev *pdev, const struct pci_device_id *ent,
 	return 0;
 }
 
-
-#include <lx_kit/irq.h>
 
 int request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags,
                 const char *name, void *dev)

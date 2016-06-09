@@ -41,11 +41,11 @@ unsigned long jiffies;
 
 struct Main
 {
-	Genode::Entrypoint            &ep;
-	Genode::Attached_rom_dataspace config;
-	Genode::Heap                   heap;
-
-	Framebuffer::Root root { ep, heap, config };
+	Genode::Env                   &env;
+	Genode::Entrypoint            &ep     { env.ep() };
+	Genode::Attached_rom_dataspace config { env, "config" };
+	Genode::Heap                   heap   { env.ram(), env.rm() };
+	Framebuffer::Root              root   { env, heap, config };
 
 	/* init singleton Lx::Timer */
 	Lx::Timer &timer = Lx::timer(&ep, &jiffies);
@@ -60,8 +60,7 @@ struct Main
 	Lx::Task linux { run_linux, reinterpret_cast<void*>(this), "linux",
 	                 Lx::Task::PRIORITY_0, Lx::scheduler() };
 
-	Main(Genode::Env &env)
-	: ep(env.ep()), config(env, "config"), heap(env.ram(), env.rm())
+	Main(Genode::Env &env) : env(env)
 	{
 		Genode::log("--- intel framebuffer driver ---");
 
