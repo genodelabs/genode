@@ -174,8 +174,7 @@ void Menu_view::Main::handle_config(unsigned)
 
 	try {
 		hover_reporter.enabled(config()->xml_node().sub_node("report")
-		                                           .attribute("hover")
-		                                           .has_value("yes"));
+		                                           .attribute_value("hover", false));
 	} catch (...) {
 		hover_reporter.enabled(false);
 	}

@@ -168,8 +168,7 @@ static inline unsigned long read_period_ms_from_config()
 
 Child::Child()
 :
-	_expand(Genode::config()->xml_node().has_attribute("expand")
-	     && Genode::config()->xml_node().attribute("expand").has_value("yes")),
+	_expand(Genode::config()->xml_node().attribute_value("expand", false)),
 	_periodic_timeout_dispatcher(_sig_rec, *this,
 	                             &Child::_dispatch_periodic_timeout),
 	_yield_dispatcher(_sig_rec, *this,
@@ -357,7 +356,7 @@ int main(int argc, char **argv)
 	 * the child or the parent role.
 	 */
 	bool const is_child = config()->xml_node().has_attribute("child")
-	                   && config()->xml_node().attribute("child").has_value("yes");
+	                   && config()->xml_node().attribute_value("child", false);
 
 	if (is_child) {
 		printf("--- test-resource_yield child role started ---\n");

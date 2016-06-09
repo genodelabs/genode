@@ -222,8 +222,7 @@ void Main::_handle_xray(unsigned)
 	try {
 		Genode::Xml_node node(_xray_ds.local_addr<char>());
 
-		bool xray = node.has_attribute("enabled")
-		         && node.attribute("enabled").has_value("yes");
+		bool xray = node.attribute_value("enabled", false);
 
 		/* update pointer if xray status changed */
 		if (xray != _xray) {

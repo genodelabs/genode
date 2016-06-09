@@ -152,18 +152,12 @@ extern "C" int pci_register_driver(struct pci_driver *driver)
 		/* register driver at the 'pci_dev' struct */
 		pci_dev->dev.driver = &driver->driver;
 
-		bool bios_handoff = true;
-		try {
-			if (config()->xml_node().attribute("bios_handoff").has_value("no"))
-				bios_handoff = false;
-		} catch (...) { }
-
 		/*
 		 * This quirk handles device handoff from BIOS, since the BIOS may still
 		 * access the USB controller after bootup. For this the ext cap register of
 		 * the PCI config space is checked
 		 */
-		if (bios_handoff)
+		if (config()->xml_node().attribute_value("bios_handoff", true))
 			__pci_fixup_quirk_usb_early_handoff(pci_dev);
 
 		/* call probe function of the Linux driver */

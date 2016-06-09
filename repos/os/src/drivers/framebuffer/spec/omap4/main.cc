@@ -143,12 +143,7 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 
 static bool config_attribute(const char *attr_name)
 {
-	bool result = false;
-	try {
-		result =
-			Genode::config()->xml_node().attribute(attr_name).has_value("yes"); }
-	catch (...) {}
-	return result;
+	return Genode::config()->xml_node().attribute_value(attr_name, false);
 }
 
 

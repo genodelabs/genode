@@ -52,11 +52,9 @@ struct Main
 
 	enum { REG_IOPORT_DATA = 0, REG_IOPORT_STATUS};
 
-	bool _check_verbose(const char * verbose) {
-		using namespace Genode;
-		try {
-			return config()->xml_node().attribute(verbose).has_value("yes");
-		} catch (...) { return false; }
+	bool _check_verbose(const char * verbose)
+	{
+		return Genode::config()->xml_node().attribute_value(verbose, false);
 	}
 
 	Main(Server::Entrypoint &ep)

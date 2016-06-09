@@ -78,8 +78,7 @@ struct Server::Main : Rom::Module::Read_policy, Rom::Module::Write_policy
 	bool _verbose_config()
 	{
 		char const *attr = "verbose";
-		return Genode::config()->xml_node().has_attribute(attr)
-		    && Genode::config()->xml_node().attribute(attr).has_value("yes");
+		return Genode::config()->xml_node().attribute_value(attr, false);
 	}
 
 	bool verbose = _verbose_config();
@@ -107,7 +106,7 @@ struct Server::Main : Rom::Module::Read_policy, Rom::Module::Write_policy
 		try {
 			Genode::Xml_node focus(_focus_ds.local_addr<char>(), _focus_ds.size());
 
-			if (focus.attribute("active").has_value("yes"))
+			if (focus.attribute_value("active", false))
 				_focused_domain = focus.attribute_value("domain", Domain());
 
 		} catch (...) { }

@@ -656,7 +656,7 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 
 	static bool _enabled(Xml_node node, char const *attr)
 	{
-		return node.has_attribute(attr) && node.attribute(attr).has_value("yes");
+		return node.attribute_value(attr, false);
 	}
 
 	Button_widget(Widget_factory &factory, Xml_node node, Unique_id unique_id)

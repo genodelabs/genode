@@ -251,8 +251,7 @@ struct Dynamic_rom::Main
 	{
 		Xml_node config = Genode::config()->xml_node();
 
-		return config.has_attribute("verbose")
-		    && config.attribute("verbose").has_value("yes");
+		return config.attribute_value("verbose", false);
 	}
 
 	bool verbose = _verbose_config();

@@ -1317,8 +1317,7 @@ static void configure_reporter(Genode::Reporter &reporter)
 	try {
 		Genode::Xml_node config_xml = Genode::config()->xml_node();
 		reporter.enabled(config_xml.sub_node("report")
-		                           .attribute(reporter.name().string())
-		                           .has_value("yes"));
+		                           .attribute_value(reporter.name().string(), false);
 	} catch (...) {
 		reporter.enabled(false);
 	}
@@ -1339,11 +1338,9 @@ void Nitpicker::Main::handle_config(unsigned)
 	} catch (...) { }
 
 	/* enable or disable redraw debug mode */
-	try {
-		tmp_fb = nullptr;
-		if (config()->xml_node().attribute("flash").has_value("yes"))
-			tmp_fb = &framebuffer;
-	} catch (...) { }
+	tmp_fb = config()->xml_node().attribute_value("flash", false)
+		? &framebuffer
+		: nullptr;
 
 	configure_reporter(pointer_reporter);
 	configure_reporter(hover_reporter);

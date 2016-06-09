@@ -431,7 +431,7 @@ class Init::Child : Genode::Child_policy
 						try {
 							if (rsc.attribute("name").has_value("RAM")) {
 								rsc.attribute("quantum").value(&ram_bytes);
-								constrain_phys = rsc.attribute("constrain_phys").has_value("yes");
+								constrain_phys = rsc.attribute_value("constrain_phys", false);
 							} else if (rsc.attribute("name").has_value("CPU")) {
 								rsc.attribute("quantum").value(&cpu_quota_pc); }
 						} catch (...) { }
@@ -817,7 +817,7 @@ class Init::Child : Genode::Child_policy
 		void exit(int exit_value) override
 		{
 			try {
-				if (_start_node.sub_node("exit").attribute("propagate").has_value("yes")) {
+				if (_start_node.sub_node("exit").attribute_value("propagate", false)) {
 					Genode::env()->parent()->exit(exit_value);
 					return;
 				}
