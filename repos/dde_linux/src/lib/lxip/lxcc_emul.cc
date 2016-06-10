@@ -253,6 +253,12 @@ void *memcpy(void *d, const void *s, size_t n)
 }
 
 
+void *memmove(void *d, const void *s, size_t n)
+{
+	return Genode::memmove(d, s, n);
+}
+
+
 /*******************
  ** linux/sched.h **
  *******************/
