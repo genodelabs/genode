@@ -6,14 +6,14 @@
  */
 
 /*
- * Copyright (C) 2015 - 2016 Genode Labs GmbH
+ * Copyright (C) 2015-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__ARM__OS__BACKTRACE_H_
-#define _INCLUDE__ARM__OS__BACKTRACE_H_
+#ifndef _INCLUDE__SPEC__ARM__OS__BACKTRACE_H_
+#define _INCLUDE__SPEC__ARM__OS__BACKTRACE_H_
 
 #include <base/log.h>
 
@@ -37,4 +37,4 @@ void inline Genode::backtrace()
 	}
 }
 
-#endif /* _INCLUDE__ARM__OS__BACKTRACE_H_ */
+#endif /* _INCLUDE__SPEC__ARM__OS__BACKTRACE_H_ */
