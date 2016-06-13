@@ -11,7 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/cap_alloc.h>
+#include <base/internal/cap_alloc.h>
 
 Genode::Cap_index_allocator* Genode::cap_idx_alloc()
 {

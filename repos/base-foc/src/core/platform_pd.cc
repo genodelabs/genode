@@ -13,7 +13,7 @@
  */
 
 /* Genode includes */
-#include <base/native_types.h>
+#include <base/native_capability.h>
 #include <util/misc_math.h>
 
 /* core includes */

@@ -15,7 +15,8 @@
 #define _INCLUDE__STARTUP__INTERNAL___MAIN_PARENT_CAP_H_
 
 /* Genode includes */
-#include <base/native_types.h>
+#include <base/native_capability.h>
+#include <foc/native_capability.h>
 
 /* base-internal includes */
 #include <base/internal/crt0.h>

@@ -19,8 +19,8 @@
 #define _INCLUDE__BASE__INTERNAL__LOCK_HELPER_H_
 
 /* Genode includes */
-#include <base/native_types.h>
 #include <base/thread.h>
+#include <foc/native_capability.h>
 
 /* base-internal includes */
 #include <base/internal/native_thread.h>

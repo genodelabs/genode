@@ -14,7 +14,6 @@
 
 /* Genode includes */
 #include <base/capability.h>
-#include <base/cap_alloc.h>
 #include <util/misc_math.h>
 
 /* core includes */
@@ -23,6 +22,10 @@
 #include <cap_index.h>
 #include <platform.h>
 
+/* base-internal includes */
+#include <base/internal/cap_alloc.h>
+
+/* Fiasco includes */
 namespace Fiasco {
 #include <l4/sys/consts.h>
 #include <l4/sys/debugger.h>

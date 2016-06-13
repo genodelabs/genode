@@ -17,7 +17,6 @@
 
 /* Genode includes */
 #include <ram_session/ram_session.h>
-#include <base/native_types.h>
 #include <base/thread.h>
 
 /* base-internal includes */

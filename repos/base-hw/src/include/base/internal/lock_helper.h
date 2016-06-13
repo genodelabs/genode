@@ -15,7 +15,6 @@
 #define _INCLUDE__BASE__INTERNAL__LOCK_HELPER_H_
 
 /* Genode includes */
-#include <base/native_types.h>
 #include <base/thread.h>
 
 namespace Hw {

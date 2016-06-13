@@ -15,9 +15,13 @@
 #include <base/printf.h>
 #include <base/thread.h>
 
-/* Core includes */
+/* core includes */
 #include <ipc_pager.h>
 
+/* base-internal includes */
+#include <base/internal/native_utcb.h>
+
+/* Fiasco includes */
 namespace Fiasco {
 #include <l4/sys/ipc.h>
 }

@@ -23,7 +23,6 @@
 
 /* base includes */
 #include <base/internal/unmanaged_singleton.h>
-#include <base/native_types.h>
 
 using namespace Kernel;
 

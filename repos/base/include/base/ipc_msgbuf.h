@@ -15,7 +15,6 @@
 #define _INCLUDE__BASE__IPC_MSGBUF_H_
 
 #include <util/noncopyable.h>
-#include <base/native_types.h>
 #include <base/capability.h>
 #include <base/exception.h>
 #include <base/rpc_args.h>

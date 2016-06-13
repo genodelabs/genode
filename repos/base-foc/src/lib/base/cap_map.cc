@@ -15,7 +15,7 @@
 
 /* Genode includes */
 #include <base/cap_map.h>
-#include <base/native_types.h>
+#include <base/native_capability.h>
 
 #include <util/assert.h>
 

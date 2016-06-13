@@ -14,11 +14,11 @@
 /* Genode includes */
 #include <base/printf.h>
 #include <base/ipc.h>
-#include <base/native_types.h>
 #include <base/blocking.h>
 
 /* base-internal includes */
 #include <base/internal/ipc_server.h>
+#include <base/internal/native_utcb.h>
 
 /* OKL4 includes */
 namespace Okl4 { extern "C" {

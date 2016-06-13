@@ -16,7 +16,6 @@
 
 /* Genode includes */
 #include <base/thread_state.h>
-#include <base/native_types.h>
 #include <util/string.h>
 
 /* core includes */

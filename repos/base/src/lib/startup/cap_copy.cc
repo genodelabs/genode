@@ -12,7 +12,7 @@
  */
 
 #include <util/string.h>
-#include <base/native_types.h>
+#include <base/native_capability.h>
 
 using namespace Genode;
 

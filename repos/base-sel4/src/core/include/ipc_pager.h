@@ -17,7 +17,6 @@
 #include <base/cache.h>
 #include <base/ipc.h>
 #include <base/stdint.h>
-#include <base/native_types.h>
 
 namespace Genode {
 

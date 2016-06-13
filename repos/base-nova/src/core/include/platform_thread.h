@@ -18,7 +18,6 @@
 /* Genode includes */
 #include <thread/capability.h>
 #include <base/thread_state.h>
-#include <base/native_types.h>
 #include <base/thread.h>
 
 /* base-internal includes */

@@ -17,6 +17,7 @@
 
 /* base-internal includes */
 #include <base/internal/native_thread.h>
+#include <base/internal/parent_socket_handle.h>
 
 /* local includes */
 #include "platform.h"

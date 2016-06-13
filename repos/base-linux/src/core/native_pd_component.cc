@@ -20,6 +20,9 @@
 #include <pd_session_component.h>
 #include <dataspace_component.h>
 
+/* base-internal includes */
+#include <base/internal/parent_socket_handle.h>
+
 /* Linux includes */
 #include <core_linux_syscalls.h>
 

@@ -14,13 +14,13 @@
 /* Genode includes */
 #include <base/env.h>
 #include <base/thread.h>
-#include <base/native_types.h>
 #include <dataspace/client.h>
 #include <rom_session/connection.h>
 #include <cpu_session/connection.h>
 #include <util/misc_math.h>
 #include <os/config.h>
 #include <foc_native_cpu/client.h>
+#include <foc/native_capability.h>
 
 /* L4lx includes */
 #include <env.h>

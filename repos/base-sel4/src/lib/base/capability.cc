@@ -15,7 +15,6 @@
 #include <base/printf.h>
 
 /* base-internal includes */
-#include <base/internal/native_types.h>
 #include <base/internal/capability_space.h>
 
 using namespace Genode;

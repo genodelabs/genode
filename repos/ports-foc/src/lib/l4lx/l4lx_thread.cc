@@ -14,6 +14,7 @@
 /* Genode includes */
 #include <base/printf.h>
 #include <cpu_session/connection.h>
+#include <foc/native_capability.h>
 
 #include <env.h>
 #include <vcpu.h>

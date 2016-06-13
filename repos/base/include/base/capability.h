@@ -18,7 +18,7 @@
 
 #include <util/string.h>
 #include <base/rpc.h>
-#include <base/native_types.h>
+#include <base/native_capability.h>
 
 namespace Genode {
 

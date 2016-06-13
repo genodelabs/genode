@@ -14,7 +14,7 @@
 #ifndef _CORE__INCLUDE__OBJECT_H_
 #define _CORE__INCLUDE__OBJECT_H_
 
-#include <base/native_types.h>
+#include <base/capability.h>
 #include <kernel/interface.h>
 #include <kernel/object.h>
 #include <util/construct_at.h>

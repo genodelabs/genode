@@ -22,6 +22,7 @@
 namespace Fiasco {
 #include <l4/sys/types.h>
 #include <l4/sys/consts.h>
+#include <l4/sys/task.h>
 }
 
 namespace L4lx {

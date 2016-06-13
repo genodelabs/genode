@@ -35,7 +35,6 @@
 #include <util/touch.h>
 #include <base/sleep.h>
 #include <base/rpc_server.h>
-#include <base/native_types.h>
 #include <util/misc_math.h>
 #include <rom_session/connection.h>
 #include <rm_session/connection.h>

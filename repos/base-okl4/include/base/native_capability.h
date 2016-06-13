@@ -1,5 +1,5 @@
 /*
- * \brief  Native types on OKL4
+ * \brief  Native capability type
  * \author Norman Feske
  * \date   2008-07-26
  */
@@ -11,10 +11,10 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__BASE__NATIVE_TYPES_H_
-#define _INCLUDE__BASE__NATIVE_TYPES_H_
+#ifndef _INCLUDE__BASE__NATIVE_CAPABILITY_H_
+#define _INCLUDE__BASE__NATIVE_CAPABILITY_H_
 
-#include <base/native_capability.h>
+#include <base/native_capability_tpl.h>
 #include <base/stdint.h>
 
 namespace Okl4 { extern "C" {
@@ -22,13 +22,6 @@ namespace Okl4 { extern "C" {
 } }
 
 namespace Genode {
-
-	/**
-	 * Index of the UTCB's thread word used for storing the own global
-	 * thread ID
-	 */
-	enum { UTCB_TCR_THREAD_WORD_MYSELF = 0 };
-
 
 	struct Cap_dst_policy
 	{
@@ -41,4 +34,4 @@ namespace Genode {
 	typedef Native_capability_tpl<Cap_dst_policy> Native_capability;
 }
 
-#endif /* _INCLUDE__BASE__NATIVE_TYPES_H_ */
+#endif /* _INCLUDE__BASE__NATIVE_CAPABILITY_H_ */

@@ -15,8 +15,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__BASE__NATIVE_CAPABILITY_H_
-#define _INCLUDE__BASE__NATIVE_CAPABILITY_H_
+#ifndef _INCLUDE__BASE__NATIVE_CAPABILITY_TPL_H_
+#define _INCLUDE__BASE__NATIVE_CAPABILITY_TPL_H_
 
 namespace Genode { template <typename> class Native_capability_tpl; } 
 
@@ -115,4 +115,4 @@ class Genode::Native_capability_tpl
 		Dst dst() const { return _dst; }
 };
 
-#endif /* _INCLUDE__BASE__NATIVE_CAPABILITY_H_ */
+#endif /* _INCLUDE__BASE__NATIVE_CAPABILITY_TPL_H_ */

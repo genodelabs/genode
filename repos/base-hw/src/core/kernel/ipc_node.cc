@@ -14,7 +14,6 @@
 
 /* Genode includes */
 #include <util/string.h>
-#include <base/native_types.h>
 
 /* base-internal includes */
 #include <base/internal/native_utcb.h>

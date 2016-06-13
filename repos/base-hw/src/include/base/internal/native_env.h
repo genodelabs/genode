@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__BASE__NATIVE_ENV_H_
-#define _INCLUDE__BASE__NATIVE_ENV_H_
+#ifndef _INCLUDE__BASE__INTERNAL__NATIVE_ENV_H_
+#define _INCLUDE__BASE__INTERNAL__NATIVE_ENV_H_
 
 /* Genode includes */
 #include <base/stdint.h>
@@ -25,4 +25,4 @@ namespace Genode
 	void upgrade_pd_session_quota(Genode::size_t);
 };
 
-#endif /* _INCLUDE__BASE__NATIVE_ENV_H_ */
+#endif /* _INCLUDE__BASE__INTERNAL__NATIVE_ENV_H_ */

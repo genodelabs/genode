@@ -21,6 +21,7 @@
 #include <base/internal/platform_env.h>
 #include <base/internal/native_thread.h>
 #include <base/internal/globals.h>
+#include <base/internal/parent_socket_handle.h>
 
 using namespace Genode;
 

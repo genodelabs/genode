@@ -1,5 +1,5 @@
 /*
- * \brief  Native types
+ * \brief  Native capability type
  * \author Norman Feske
  * \date   2007-10-15
  */
@@ -11,11 +11,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__BASE__NATIVE_TYPES_H_
-#define _INCLUDE__BASE__NATIVE_TYPES_H_
+#ifndef _INCLUDE__BASE__NATIVE_CAPABILITY_H_
+#define _INCLUDE__BASE__NATIVE_CAPABILITY_H_
 
 #include <util/string.h>
-#include <base/native_capability.h>
+#include <base/native_capability_tpl.h>
 #include <base/stdint.h>
 
 namespace Genode {
@@ -40,8 +40,6 @@ namespace Genode {
 	};
 
 	typedef Native_capability_tpl<Cap_dst_policy> Native_capability;
-
-	enum { PARENT_SOCKET_HANDLE = 100 };
 }
 
-#endif /* _INCLUDE__BASE__NATIVE_TYPES_H_ */
+#endif /* _INCLUDE__BASE__NATIVE_CAPABILITY_H_ */

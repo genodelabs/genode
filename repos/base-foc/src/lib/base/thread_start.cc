@@ -19,10 +19,12 @@
 #include <base/sleep.h>
 #include <base/env.h>
 #include <cpu_thread/client.h>
+#include <foc/native_capability.h>
 
 /* base-internal includes */
 #include <base/internal/stack.h>
 
+/* Fiasco includes */
 namespace Fiasco {
 #include <l4/sys/utcb.h>
 }

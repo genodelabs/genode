@@ -12,7 +12,7 @@
  */
 
 /* base includes */
-#include <base/native_types.h>
+#include <base/capability.h>
 #include <base/printf.h>
 #include <util/bit_allocator.h>
 

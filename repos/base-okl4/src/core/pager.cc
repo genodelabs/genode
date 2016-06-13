@@ -21,6 +21,7 @@
 
 /* base-internal includes */
 #include <base/internal/native_thread.h>
+#include <base/internal/native_utcb.h>
 
 namespace Okl4 { extern "C" {
 #include <l4/message.h>

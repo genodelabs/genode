@@ -20,6 +20,9 @@
 #include <irq_root.h>
 #include <irq_session_component.h>
 
+/* base-internal includes */
+#include <base/internal/native_utcb.h>
+
 /* OKL4 includes */
 namespace Okl4 { extern "C" {
 #include <l4/thread.h>

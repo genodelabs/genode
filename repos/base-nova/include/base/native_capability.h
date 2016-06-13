@@ -1,5 +1,5 @@
 /*
- * \brief  Platform-specific type definitions
+ * \brief  Platform-specific capability type
  * \author Norman Feske
  * \author Alexander Boettcher
  * \date   2009-10-02
@@ -12,11 +12,10 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__BASE__NATIVE_TYPES_H_
-#define _INCLUDE__BASE__NATIVE_TYPES_H_
+#ifndef _INCLUDE__BASE__NATIVE_CAPABILITY_H_
 
 /* Genode includes */
-#include <base/native_capability.h>
+#include <base/native_capability_tpl.h>
 #include <base/stdint.h>
 #include <base/cap_map.h>
 
@@ -173,4 +172,4 @@ namespace Genode {
 	};
 }
 
-#endif /* _INCLUDE__BASE__NATIVE_TYPES_H_ */
+#endif /* _INCLUDE__BASE__NATIVE_CAPABILITY_H_ */

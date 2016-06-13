@@ -14,7 +14,7 @@
 
 /* Genode includes */
 #include <base/printf.h>
-#include <base/native_types.h>
+#include <base/native_capability.h>
 
 /* core includes */
 #include <platform.h>

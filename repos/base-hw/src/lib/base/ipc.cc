@@ -17,7 +17,6 @@
 #include <base/ipc.h>
 #include <base/allocator.h>
 #include <base/thread.h>
-#include <base/native_env.h>
 #include <util/construct_at.h>
 #include <util/retry.h>
 
@@ -25,6 +24,7 @@
 #include <base/internal/native_utcb.h>
 #include <base/internal/native_thread.h>
 #include <base/internal/ipc_server.h>
+#include <base/internal/native_env.h>
 
 /* base-hw includes */
 #include <kernel/interface.h>

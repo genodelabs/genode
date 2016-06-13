@@ -19,7 +19,6 @@
 #include <base/printf.h>
 #include <rm_session/rm_session.h>
 #include <util/touch.h>
-#include <base/native_types.h>
 
 /* base-internal includes */
 #include <base/internal/page_size.h>

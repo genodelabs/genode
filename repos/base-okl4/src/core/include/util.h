@@ -15,7 +15,6 @@
 #define _CORE__INCLUDE__UTIL_H_
 
 /* Genode includes */
-#include <base/native_types.h>
 #include <rm_session/rm_session.h>
 #include <base/stdint.h>
 #include <base/printf.h>

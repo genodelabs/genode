@@ -15,9 +15,10 @@
 #define _INCLUDE__BASE__CAP_ALLOC_H_
 
 #include <base/cap_map.h>
-#include <base/native_types.h>
+#include <base/native_capability.h>
 #include <util/assert.h>
 #include <util/construct_at.h>
+#include <foc/native_capability.h>
 
 namespace Genode {
 

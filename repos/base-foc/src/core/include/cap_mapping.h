@@ -53,7 +53,7 @@ namespace Genode {
 			 *
 			 * \param task capability of task to map to
 			 */
-			void map(Native_task task);
+			void map(Fiasco::l4_cap_idx_t task);
 	};
 }
 

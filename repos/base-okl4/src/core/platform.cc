@@ -20,6 +20,7 @@
 /* base-internal includes */
 #include <base/internal/crt0.h>
 #include <base/internal/stack_area.h>
+#include <base/internal/native_utcb.h>
 
 /* core includes */
 #include <core_parent.h>

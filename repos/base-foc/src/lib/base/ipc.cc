@@ -31,6 +31,7 @@
 /* base-internal includes */
 #include <base/internal/lock_helper.h> /* for 'thread_get_my_native_id()' */
 #include <base/internal/ipc_server.h>
+#include <base/internal/native_utcb.h>
 
 /* Fiasco.OC includes */
 namespace Fiasco {

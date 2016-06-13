@@ -19,7 +19,6 @@
 #define _INCLUDE__BASE__INTERNAL__CAPABILITY_SPACE_H_
 
 /* Genode includes */
-#include <base/native_types.h>
 #include <base/thread.h>
 
 /* base-internal includes */
