@@ -27,8 +27,7 @@ void reinit_main_thread();
 namespace Genode { extern bool inhibit_tracing; }
 
 
-void Genode::Platform_env::reinit(Native_capability::Dst dst,
-                                  long local_name)
+void Genode::Platform_env::reinit(Native_capability::Raw raw)
 {
 	/*
 	 * This function is unused during the normal operation of Genode. It is
@@ -54,9 +53,7 @@ void Genode::Platform_env::reinit(Native_capability::Dst dst,
 	 * Patch new parent capability into the original location as specified by
 	 * the linker script.
 	 */
-	Native_capability::Raw *raw = (Native_capability::Raw *)(&_parent_cap);
-	raw->dst                    = dst;
-	raw->local_name             = local_name;
+	*(Native_capability::Raw *)(&_parent_cap) = raw;
 
 	/*
 	 * Re-initialize 'Platform_env' members

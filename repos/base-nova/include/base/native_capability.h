@@ -30,16 +30,7 @@ namespace Genode {
 
 			typedef Nova::Obj_crd Dst;
 
-			struct Raw
-			{
-				Dst dst;
-
-				/*
-				 * It is obsolete and unused in NOVA, however still used by
-				 * generic base part
-				 */
-				addr_t local_name;
-			};
+			struct Raw { };
 
 		private:
 
@@ -169,6 +160,8 @@ namespace Genode {
 			{
 				return Native_capability();
 			}
+
+			Raw raw() const { return Raw(); }
 	};
 }
 

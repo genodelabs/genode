@@ -23,12 +23,10 @@ namespace Genode {
 		public:
 
 			/*
-			 * XXX remove dependency in 'process.cc' and 'core_env.h' from
-			 * 'Raw', 'Dst', and the 'dst' member.
+			 * Platform-specific raw information of the capability that is
+			 * transferred as-is when the capability is delegated.
 			 */
-			typedef int Dst;
-			struct Raw { Dst dst = 0; long local_name = 0; };
-			Dst dst() const { return 0; }
+			struct Raw { long v[4]; };
 
 			/**
 			 * Forward declaration of the platform-specific internal capability
@@ -96,6 +94,8 @@ namespace Genode {
 			long local_name() const;
 
 			bool valid() const;
+
+			Raw raw() const { return { { 0, 0, 0, 0 } }; }
 	};
 }
 

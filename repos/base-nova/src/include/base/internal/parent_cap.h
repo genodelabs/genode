@@ -1,5 +1,5 @@
 /*
- * \brief  Obtain parent capability
+ * \brief  Interface to obtain the parent capability for the component
  * \author Norman Feske
  * \author Alexander Boettcher
  * \date   2010-01-26
@@ -9,32 +9,29 @@
  */
 
 /*
- * Copyright (C) 2010-2013 Genode Labs GmbH
+ * Copyright (C) 2010-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__STARTUP__INTERNAL___MAIN_PARENT_CAP_H_
-#define _INCLUDE__STARTUP__INTERNAL___MAIN_PARENT_CAP_H_
+#ifndef _INCLUDE__BASE__INTERNAL__PARENT_CAP_H_
+#define _INCLUDE__BASE__INTERNAL__PARENT_CAP_H_
 
 /* Genode includes */
-#include <util/string.h>
+#include <parent/capability.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>
 
+
 namespace Genode {
 
-	/**
-	 * Return constructed parent capability
-	 */
-	Parent_capability parent_cap()
+	static inline Parent_capability parent_cap()
 	{
-		/* assemble parent capability */
 		return reinterpret_cap_cast<Parent>(
 			Native_capability(Nova::PT_SEL_PARENT));
 	}
 }
 
-#endif /* _INCLUDE__STARTUP__INTERNAL___MAIN_PARENT_CAP_H_ */
+#endif /* _INCLUDE__BASE__INTERNAL__PARENT_CAP_H_ */

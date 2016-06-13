@@ -113,6 +113,11 @@ class Genode::Native_capability_tpl
 		 * Return capability destination
 		 */
 		Dst dst() const { return _dst; }
+
+		/**
+		 * Return raw data representation of the capability
+		 */
+		Raw raw() const { return { _dst, _local_name }; }
 };
 
 #endif /* _INCLUDE__BASE__NATIVE_CAPABILITY_TPL_H_ */

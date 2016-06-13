@@ -108,7 +108,7 @@ class Genode::Platform_env : public Env_deprecated,
 		/*
 		 * Support functions for implementing fork on Noux.
 		 */
-		void reinit(Native_capability::Dst, long) override;
+		void reinit(Native_capability::Raw) override;
 		void reinit_main_thread(Capability<Region_map> &) override;
 
 

@@ -38,7 +38,6 @@ namespace Genode {
 
 			struct Raw
 			{
-				Dst  dst;
 				long local_name;
 			};
 
@@ -107,6 +106,8 @@ namespace Genode {
 			long  local_name() const { return _idx ? _idx->id() : 0;        }
 			Dst   dst()        const { return _idx ? Dst(_idx->kcap()) : Dst(); }
 			bool  valid()      const { return (_idx != 0) && _idx->valid(); }
+
+			Raw raw() const { return { local_name() }; }
 	};
 }
 

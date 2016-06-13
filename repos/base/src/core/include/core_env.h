@@ -199,7 +199,7 @@ namespace Genode {
 				return Pd_session_capability();
 			}
 
-			void reinit(Capability<Parent>::Dst, long) override { }
+			void reinit(Capability<Parent>::Raw) override { }
 
 			void reinit_main_thread(Capability<Region_map> &) override { }
 	};

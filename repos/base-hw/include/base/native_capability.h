@@ -36,13 +36,7 @@ class Genode::Native_capability
 
 	public:
 
-		struct Raw
-		{
-			Dst dst;
-
-			/* obsolete in base-hw, but still used in generic code path */
-			addr_t local_name;
-		};
+		struct Raw { };
 
 		/**
 		 * Create an invalid capability
@@ -90,6 +84,8 @@ class Genode::Native_capability
 			_inc();
 			return *this;
 		}
+
+		Raw raw() const { return Raw(); }
 };
 
 #endif /* _INCLUDE__BASE__NATIVE_CAPABILITY_H_ */

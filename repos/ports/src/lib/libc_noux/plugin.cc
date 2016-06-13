@@ -523,7 +523,7 @@ extern "C" void fork_trampoline()
 {
 	/* reinitialize environment */
 	using namespace Genode;
-	env()->reinit(new_parent.dst, new_parent.local_name);
+	env()->reinit(new_parent);
 
 	/* reinitialize standard-output connection */
 	stdout_reconnect();

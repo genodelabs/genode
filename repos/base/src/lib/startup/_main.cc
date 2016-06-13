@@ -26,7 +26,7 @@
 #include <base/component.h>
 
 /* platform-specific local helper functions */
-#include <startup/internal/_main_parent_cap.h>
+#include <base/internal/parent_cap.h>
 #include <base/internal/crt0.h>
 
 

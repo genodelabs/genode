@@ -19,6 +19,7 @@
 
 /* base-internal includes */
 #include <base/internal/elf.h>
+#include <base/internal/parent_cap.h>
 
 using namespace Genode;
 
@@ -123,11 +124,7 @@ Child::Process::Loaded_executable::Loaded_executable(Dataspace_capability elf_ds
 			 * data segment
 			 */
 			if (!parent_info) {
-				Native_capability::Raw *raw = (Native_capability::Raw *)ptr;
-
-				raw->dst        = parent_cap.dst();
-				raw->local_name = parent_cap.local_name();
-
+				*(Untyped_capability::Raw *)ptr = parent_cap.raw();
 				parent_info = true;
 			}
 

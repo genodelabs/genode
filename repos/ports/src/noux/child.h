@@ -453,8 +453,7 @@ namespace Noux {
 			void start_forked_main_thread(addr_t ip, addr_t sp, addr_t parent_cap_addr)
 			{
 				/* poke parent_cap_addr into child's address space */
-				Capability<Parent> const &cap = _child.parent_cap();
-				Capability<Parent>::Raw   raw = { cap.dst(), cap.local_name() };
+				Capability<Parent>::Raw const raw = _child.parent_cap().raw();
 
 				_pd.poke(parent_cap_addr, &raw, sizeof(raw));
 

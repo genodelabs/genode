@@ -37,8 +37,9 @@ extern unsigned _stack_high;    /* upper bound of intial stack */
  ***************************************************/
 
 /*
- * The protection domain creator initializes the information about
- * the parent capability prior the execution of the main thread.
+ * The protection domain creator initializes the information about the parent
+ * capability prior the execution of the main thread. It corresponds to the
+ * '_parent_cap' symbol defined in 'src/ld/genode.ld'.
  */
 extern unsigned long _parent_cap;
 

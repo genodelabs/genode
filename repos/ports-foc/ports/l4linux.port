@@ -4,6 +4,8 @@ DOWNLOADS    := l4linux.git
 URL(l4linux) := https://github.com/skalk/l4linux.git
 REV(l4linux) := 25aa4a5f25c920e18aa18899e45c71974058d813
 DIR(l4linux) := src/l4linux
+PATCHES      := patches/parent_cap_ld_script.patch
+PATCH_OPT    := -p0 -d src/l4linux
 sym_link     := src/l4linux/arch/l4/drivers
 
 default: $(sym_link)

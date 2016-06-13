@@ -1,14 +1,11 @@
 /*
  * \brief  Interface to obtain the parent capability for the component
- * \author Norman Feske
- * \date   2013-09-25
- *
- * This implementation is used on platforms that rely on global IDs (thread
- * IDs, global unique object IDs) as capability representation.
+ * \author Stefan Kalkowski
+ * \date   2015-04-27
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2015-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -19,19 +16,14 @@
 
 /* Genode includes */
 #include <parent/capability.h>
-#include <util/string.h>
 
-/* base-internal includes */
-#include <base/internal/crt0.h>
-
+namespace Hw { extern Genode::Untyped_capability _parent_cap; }
 
 namespace Genode {
 
 	static inline Parent_capability parent_cap()
 	{
-		Parent_capability cap;
-		memcpy(&cap, (void *)&_parent_cap, sizeof(cap));
-		return Parent_capability(cap);
+		return reinterpret_cap_cast<Parent>(Hw::_parent_cap);
 	}
 }
 
