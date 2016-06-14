@@ -80,7 +80,7 @@ typedef __u32 __wsum;
 
 #include <lx_emul/bitops.h>
 
-#define ffz(x) ffs(~(x))
+#define ffz(x) __ffs(~(x))
 
 /*******************************
  ** asm-generic/bitops/find.h **
