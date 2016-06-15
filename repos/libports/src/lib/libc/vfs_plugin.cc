@@ -351,8 +351,15 @@ int Libc::Vfs_plugin::fstat(Libc::File_descriptor *fd, struct stat *buf)
 }
 
 
-int Libc::Vfs_plugin::fstatfs(Libc::File_descriptor *, struct statfs *buf)
+int Libc::Vfs_plugin::fstatfs(Libc::File_descriptor *fd, struct statfs *buf)
 {
+	if (!fd || !buf) {
+		errno = EFAULT;
+		return -1;
+	}
+
+	Genode::memset(buf, 0, sizeof(*buf));
+
 	buf->f_flags = MNT_UNION;
 	return 0;
 }
