@@ -37,6 +37,7 @@
 
 /* libc-internal includes */
 #include <libc_mem_alloc.h>
+#include "libc_errno.h"
 
 
 static Vfs::Vfs_handle *vfs_handle(Libc::File_descriptor *fd)
@@ -351,8 +352,13 @@ int Libc::Vfs_plugin::fstat(Libc::File_descriptor *fd, struct stat *buf)
 }
 
 
-int Libc::Vfs_plugin::fstatfs(Libc::File_descriptor *, struct statfs *buf)
+int Libc::Vfs_plugin::fstatfs(Libc::File_descriptor *fd, struct statfs *buf)
 {
+	if (!fd || !buf)
+		return Libc::Errno(EFAULT);
+
+	Genode::memset(buf, 0, sizeof(*buf));
+
 	buf->f_flags = MNT_UNION;
 	return 0;
 }
