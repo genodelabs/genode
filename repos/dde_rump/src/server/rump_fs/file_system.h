@@ -25,11 +25,8 @@ extern "C" {
 #include <rump/rump_syscalls.h>
 }
 
-#include <base/signal.h>
-#include <os/server.h>
-
 namespace File_system {
-	void init(Server::Entrypoint &ep);
+	void init();
 	bool supports_symlinks();
 }
 

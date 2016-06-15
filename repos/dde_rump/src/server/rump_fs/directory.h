@@ -19,6 +19,7 @@
 /* Genode include */
 #include <os/path.h>
 #include <file_system/util.h>
+#include <base/log.h>
 
 /* local includes */
 #include "node.h"
@@ -143,12 +144,12 @@ class File_system::Directory : public Node
 		size_t read(char *dst, size_t len, seek_off_t seek_offset)
 		{
 			if (len < sizeof(Directory_entry)) {
-				PERR("read buffer too small for directory entry");
+				Genode::error("read buffer too small for directory entry");
 				return 0;
 			}
 
 			if (seek_offset % sizeof(Directory_entry)) {
-				PERR("seek offset not aligned to sizeof(Directory_entry)");
+				Genode::error("seek offset not aligned to sizeof(Directory_entry)");
 				return 0;
 			}
 
@@ -256,7 +257,7 @@ class File_system::Directory : public Node
 				throw Lookup_failed();
 
 			if (ret == -1)
-				PERR("Error during unlink of %s", node_path.base());
+				Genode::error("Error during unlink of ", node_path.base());
 		}
 };
 
