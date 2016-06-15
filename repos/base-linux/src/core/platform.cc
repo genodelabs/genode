@@ -18,6 +18,7 @@
 /* base-internal includes */
 #include <base/internal/native_thread.h>
 #include <base/internal/parent_socket_handle.h>
+#include <base/internal/capability_space_tpl.h>
 
 /* local includes */
 #include "platform.h"
@@ -206,7 +207,8 @@ int Region_map_mmap::_dataspace_fd(Capability<Dataspace> ds_cap)
 	if (!core_env()->entrypoint()->is_myself()) {
 		/* release Region_map_mmap::_lock during RPC */
 		_lock.unlock();
-		int socket = Linux_dataspace_client(ds_cap).fd().dst().socket;
+		Untyped_capability fd_cap = Linux_dataspace_client(ds_cap).fd();
+		int socket = Capability_space::ipc_cap_data(fd_cap).dst.socket;
 		_lock.lock();
 		return socket;
 	}
@@ -223,7 +225,7 @@ int Region_map_mmap::_dataspace_fd(Capability<Dataspace> ds_cap)
 	 * dataspace, the descriptor would unexpectedly be closed again.
 	 */
 	return core_env()->entrypoint()->apply(lx_ds_cap, [] (Linux_dataspace *ds) {
-		return ds ? lx_dup(ds->fd().dst().socket) : -1; });
+		return ds ? lx_dup(Capability_space::ipc_cap_data(ds->fd()).dst.socket) : -1; });
 }
 
 

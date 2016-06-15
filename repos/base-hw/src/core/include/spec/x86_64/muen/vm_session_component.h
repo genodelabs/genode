@@ -50,7 +50,7 @@ class Genode::Vm_session_component
 
 		void exception_handler(Signal_context_capability handler)
 		{
-			if (!create(&_state, handler.dst(), nullptr))
+			if (!create(&_state, Capability_space::capid(handler), nullptr))
 				PWRN("Cannot instantiate vm kernel object, "
 				     "invalid signal context?");
 		}

@@ -21,6 +21,7 @@
 #include <nic/packet_allocator.h>
 #include <nic_session/connection.h>
 #include <timer_session/connection.h>
+#include <foc/capability_space.h>
 
 #include <vcpu.h>
 #include <linux.h>
@@ -153,9 +154,10 @@ extern "C" {
 			native_cpu(L4lx::cpu_connection()->native_cpu());
 		static Genode::Native_capability cap = native_cpu.alloc_irq();
 		static Genode::Lock lock(Genode::Lock::LOCKED);
-		static Signal_thread th(cap.dst(), &lock);
+		static Fiasco::l4_cap_idx_t const kcap = Genode::Capability_space::kcap(cap);
+		static Signal_thread th(kcap, &lock);
 		lock.lock();
-		return cap.dst();
+		return kcap;
 	}
 
 

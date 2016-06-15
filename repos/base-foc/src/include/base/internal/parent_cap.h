@@ -24,6 +24,7 @@
 
 /* base-internal includes */
 #include <base/internal/crt0.h>
+#include <base/internal/cap_map.h>
 
 
 namespace Genode {
@@ -43,7 +44,7 @@ namespace Genode {
 			i = cap_map()->insert(local_name, Fiasco::PARENT_CAP);
 		}
 
-		return reinterpret_cap_cast<Parent>(Native_capability(i));
+		return reinterpret_cap_cast<Parent>(Native_capability(*i));
 	}
 }
 

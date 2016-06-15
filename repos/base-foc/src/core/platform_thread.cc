@@ -39,24 +39,24 @@ int Platform_thread::start(void *ip, void *sp)
 {
 	/* map the pager cap */
 	if (_platform_pd)
-		_pager.map(_platform_pd->native_task().dst());
+		_pager.map(_platform_pd->native_task().data()->kcap());
 
 	/* reserve utcb area and associate thread with this task */
 	l4_thread_control_start();
 	l4_thread_control_pager(_pager.remote);
 	l4_thread_control_exc_handler(_pager.remote);
-	l4_thread_control_bind((l4_utcb_t *)_utcb, _platform_pd->native_task().dst());
-	l4_msgtag_t tag = l4_thread_control_commit(_thread.local.dst());
+	l4_thread_control_bind((l4_utcb_t *)_utcb, _platform_pd->native_task().data()->kcap());
+	l4_msgtag_t tag = l4_thread_control_commit(_thread.local.data()->kcap());
 	if (l4_msgtag_has_error(tag)) {
 		PWRN("l4_thread_control_commit for %lx failed!",
-		     (unsigned long) _thread.local.dst());
+		     (unsigned long) _thread.local.data()->kcap());
 		return -1;
 	}
 
 	_state = RUNNING;
 
 	/* set ip and sp and run the thread */
-	tag = l4_thread_ex_regs(_thread.local.dst(), (l4_addr_t) ip,
+	tag = l4_thread_ex_regs(_thread.local.data()->kcap(), (l4_addr_t) ip,
 	                        (l4_addr_t) sp, 0);
 	if (l4_msgtag_has_error(tag)) {
 		PWRN("l4_thread_ex_regs failed!");
@@ -92,7 +92,7 @@ void Platform_thread::pause()
 	 * The pager thread, which also acts as exception handler, will
 	 * leave the thread in exception state until, it gets woken again
 	 */
-	l4_thread_ex_regs_ret(_thread.local.dst(), &_pager_obj->state.ip,
+	l4_thread_ex_regs_ret(_thread.local.data()->kcap(), &_pager_obj->state.ip,
 	                      &_pager_obj->state.sp, &flags);
 
 	/*
@@ -111,14 +111,14 @@ void Platform_thread::pause()
 		 * the requested thread, and stored its thread state
 		 */
 		while (exc == _pager_obj->state.exceptions && !_pager_obj->state.in_exception)
-			l4_thread_switch(_thread.local.dst());
+			l4_thread_switch(_thread.local.data()->kcap());
 	}
 }
 
 
 void Platform_thread::single_step(bool enabled)
 {
-	Fiasco::l4_cap_idx_t const tid = thread().local.dst();
+	Fiasco::l4_cap_idx_t const tid = thread().local.data()->kcap();
 
 	enum { THREAD_SINGLE_STEP = 0x40000 };
 	int const flags = enabled ? THREAD_SINGLE_STEP : 0;
@@ -148,8 +148,8 @@ void Platform_thread::resume()
 void Platform_thread::bind(Platform_pd *pd)
 {
 	_platform_pd = pd;
-	_gate.map(pd->native_task().dst());
-	_irq.map(pd->native_task().dst());
+	_gate.map(pd->native_task().data()->kcap());
+	_irq.map(pd->native_task().data()->kcap());
 }
 
 
@@ -160,12 +160,12 @@ void Platform_thread::unbind()
 		l4_thread_control_start();
 		l4_thread_control_pager(_gate.remote);
 		l4_thread_control_exc_handler(_gate.remote);
-		if (l4_msgtag_has_error(l4_thread_control_commit(_thread.local.dst())))
+		if (l4_msgtag_has_error(l4_thread_control_commit(_thread.local.data()->kcap())))
 			PWRN("l4_thread_control_commit for %lx failed!",
-				 (unsigned long) _thread.local.dst());
+				 (unsigned long) _thread.local.data()->kcap());
 
 		/* now force it into a pagefault */
-		l4_thread_ex_regs(_thread.local.dst(), 0, 0, L4_THREAD_EX_REGS_CANCEL);
+		l4_thread_ex_regs(_thread.local.data()->kcap(), 0, 0, L4_THREAD_EX_REGS_CANCEL);
 	}
 
 	_platform_pd = (Platform_pd*) 0;
@@ -204,7 +204,7 @@ Thread_state Platform_thread::state()
 
 void Platform_thread::cancel_blocking()
 {
-	l4_irq_trigger(_irq.local.dst());
+	l4_irq_trigger(_irq.local.data()->kcap());
 }
 
 
@@ -217,9 +217,9 @@ void Platform_thread::affinity(Affinity::Location location)
 	l4_sched_param_t params = l4_sched_param(_prio);
 	params.affinity         = l4_sched_cpu_set(cpu, 0, 1);
 	l4_msgtag_t tag = l4_scheduler_run_thread(L4_BASE_SCHEDULER_CAP,
-	                                          _thread.local.dst(), &params);
+	                                          _thread.local.data()->kcap(), &params);
 	if (l4_error(tag))
-		PWRN("setting affinity of %lx to %d failed!", _thread.local.dst(), cpu);
+		PWRN("setting affinity of %lx to %d failed!", _thread.local.data()->kcap(), cpu);
 }
 
 
@@ -239,7 +239,7 @@ static Rpc_cap_factory &thread_cap_factory()
 void Platform_thread::_create_thread()
 {
 	l4_msgtag_t tag = l4_factory_create_thread(L4_BASE_FACTORY_CAP,
-	                                           _thread.local.dst());
+	                                           _thread.local.data()->kcap());
 	if (l4_msgtag_has_error(tag))
 		PERR("cannot create more thread kernel-objects!");
 
@@ -252,22 +252,22 @@ void Platform_thread::_finalize_construction(const char *name)
 {
 	/* create irq for new thread */
 	l4_msgtag_t tag = l4_factory_create_irq(L4_BASE_FACTORY_CAP,
-	                                        _irq.local.dst());
+	                                        _irq.local.data()->kcap());
 	if (l4_msgtag_has_error(tag))
 		PWRN("creating thread's irq failed");
 
 	/* attach thread to irq */
-	tag = l4_irq_attach(_irq.local.dst(), 0, _thread.local.dst());
+	tag = l4_irq_attach(_irq.local.data()->kcap(), 0, _thread.local.data()->kcap());
 	if (l4_msgtag_has_error(tag))
 		PWRN("attaching thread's irq failed");
 
 	/* set human readable name in kernel debugger */
 	strncpy(_name, name, sizeof(_name));
-	Fiasco::l4_debugger_set_object_name(_thread.local.dst(), name);
+	Fiasco::l4_debugger_set_object_name(_thread.local.data()->kcap(), name);
 
 	/* set priority of thread */
 	l4_sched_param_t params = l4_sched_param(_prio);
-	l4_scheduler_run_thread(L4_BASE_SCHEDULER_CAP, _thread.local.dst(),
+	l4_scheduler_run_thread(L4_BASE_SCHEDULER_CAP, _thread.local.data()->kcap(),
 	                        &params);
 }
 
@@ -289,7 +289,8 @@ Platform_thread::Platform_thread(size_t, const char *name, unsigned prio,
   _pager_obj(0),
   _prio(Cpu_session::scale_priority(DEFAULT_PRIORITY, prio))
 {
-	((Core_cap_index*)_thread.local.idx())->pt(this);
+	/* XXX remove const cast */
+	((Core_cap_index *)_thread.local.data())->pt(this);
 	_create_thread();
 	_finalize_construction(name);
 	affinity(location);
@@ -300,14 +301,15 @@ Platform_thread::Platform_thread(Core_cap_index* thread,
                                  Core_cap_index* irq, const char *name)
 : _state(RUNNING),
   _core_thread(true),
-  _thread(Native_capability(thread), L4_BASE_THREAD_CAP),
-  _irq(Native_capability(irq)),
+  _thread(Native_capability(*thread), L4_BASE_THREAD_CAP),
+  _irq(Native_capability(*irq)),
   _utcb(0),
   _platform_pd(0),
   _pager_obj(0),
   _prio(Cpu_session::scale_priority(DEFAULT_PRIORITY, 0))
 {
-	reinterpret_cast<Core_cap_index*>(_thread.local.idx())->pt(this);
+	/* XXX remove const cast */
+	((Core_cap_index *)_thread.local.data())->pt(this);
 	_finalize_construction(name);
 }
 
@@ -322,7 +324,8 @@ Platform_thread::Platform_thread(const char *name)
   _pager_obj(0),
   _prio(Cpu_session::scale_priority(DEFAULT_PRIORITY, 0))
 {
-	((Core_cap_index*)_thread.local.idx())->pt(this);
+	/* XXX remove const cast */
+	((Core_cap_index *)_thread.local.data())->pt(this);
 	_create_thread();
 	_finalize_construction(name);
 }

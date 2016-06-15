@@ -24,6 +24,9 @@
 #include <util/arg_string.h>
 #include <root/root.h>
 
+/* base-internal includes */
+#include <base/internal/capability_space_tpl.h>
+
 /* local includes */
 #include "rom_session_component.h"
 
@@ -44,7 +47,7 @@ Rom_session_component::~Rom_session_component()
 {
 	_ds_ep->dissolve(&_ds);
 
-	int const fd = _ds.fd().dst().socket;
+	int const fd = Capability_space::ipc_cap_data(_ds.fd()).dst.socket;
 	if (fd != -1)
 		lx_close(fd);
 }

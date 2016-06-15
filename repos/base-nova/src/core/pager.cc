@@ -29,6 +29,7 @@
 /* NOVA includes */
 #include <nova/syscalls.h>
 #include <nova_util.h> /* map_local */
+#include <nova/capability_space.h>
 
 static bool verbose_oom = false;
 
@@ -126,7 +127,8 @@ void Pager_object::_page_fault_handler(addr_t pager_obj)
 	     ret);
 
 	Native_capability pager_cap = obj->Object_pool<Pager_object>::Entry::cap();
-	revoke(pager_cap.dst());
+
+	revoke(Capability_space::crd(pager_cap).base());
 
 	revoke(Obj_crd(obj->exc_pt_sel_client(), NUM_INITIAL_PT_LOG2));
 
@@ -917,7 +919,8 @@ Pager_capability Pager_entrypoint::manage(Pager_object *obj)
 		PWRN("invalid CPU parameter used in pager object");
 		return Pager_capability();
 	}
-	Native_capability pager_thread_cap(pager_threads[use_cpu]->native_thread().ec_sel);
+	Native_capability pager_thread_cap =
+		Capability_space::import(pager_threads[use_cpu]->native_thread().ec_sel);
 
 	/* request creation of portal bind to pager thread */
 	Native_capability cap_session =
@@ -946,7 +949,7 @@ void Pager_entrypoint::dissolve(Pager_object *obj)
 	_cap_factory.free(pager_obj);
 
 	/* revoke cap selector locally */
-	revoke(pager_obj.dst(), true);
+	revoke(Capability_space::crd(pager_obj), true);
 
 	/* remove object from pool */
 	remove(obj);

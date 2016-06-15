@@ -20,6 +20,7 @@
 
 /* base-internal includes */
 #include <base/internal/native_utcb.h>
+#include <base/internal/cap_map.h>
 
 /* Fiasco includes */
 namespace Fiasco {
@@ -139,6 +140,8 @@ void Ipc_pager::acknowledge_exception()
 
 
 Ipc_pager::Ipc_pager()
-: Native_capability((Cap_index*)Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE]),
-  _badge(0) { }
+:
+	Native_capability(*(Cap_index*)Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE]),
+	_badge(0)
+{ }
 

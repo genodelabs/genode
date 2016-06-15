@@ -20,6 +20,11 @@
 #include <base/lock.h>
 #include <base/thread_state_base.h>
 
+/* Fiasco includes */
+namespace Fiasco {
+#include <l4/sys/types.h>
+}
+
 namespace Genode {
 
 	struct Thread_state : Thread_state_base

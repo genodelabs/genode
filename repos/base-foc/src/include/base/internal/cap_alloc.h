@@ -14,11 +14,14 @@
 #ifndef _INCLUDE__BASE__CAP_ALLOC_H_
 #define _INCLUDE__BASE__CAP_ALLOC_H_
 
-#include <base/cap_map.h>
+/* Genode includes */
 #include <base/native_capability.h>
 #include <util/assert.h>
 #include <util/construct_at.h>
 #include <foc/native_capability.h>
+
+/* base-internal includes */
+#include <base/internal/cap_map.h>
 
 namespace Genode {
 
@@ -117,8 +120,8 @@ namespace Genode {
 				}
 			}
 
-			addr_t idx_to_kcap(Cap_index *idx) {
-				return ((T*)idx - &_indices[0]) << Fiasco::L4_CAP_SHIFT;
+			addr_t idx_to_kcap(Cap_index const *idx) const {
+				return ((T const *)idx - &_indices[0]) << Fiasco::L4_CAP_SHIFT;
 			}
 
 			Cap_index* kcap_to_idx(addr_t kcap) {

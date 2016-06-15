@@ -20,6 +20,7 @@
 
 /* base-internal includes */
 #include <base/internal/native_utcb.h>
+#include <base/internal/cap_map.h>
 
 
 /*****************************

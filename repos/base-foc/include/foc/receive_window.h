@@ -17,7 +17,6 @@
 /* Genode includes */
 #include <base/stdint.h>
 #include <base/ipc_msgbuf.h>
-#include <base/cap_map.h>
 
 namespace Genode { struct Receive_window; }
 
@@ -29,7 +28,7 @@ class Genode::Receive_window
 		/**
 		 * Base of capability receive window.
 		 */
-		Cap_index* _rcv_idx_base = nullptr;
+		Native_capability::Data * _rcv_idx_base = nullptr;
 
 		enum { MAX_CAPS_PER_MSG = Msgbuf_base::MAX_CAPS_PER_MSG };
 
@@ -37,29 +36,21 @@ class Genode::Receive_window
 
 		Receive_window() { }
 
-		~Receive_window()
-		{
-			if (_rcv_idx_base)
-				cap_idx_alloc()->free(_rcv_idx_base, MAX_CAPS_PER_MSG);
-		}
+		~Receive_window();
 
-		void init()
-		{
-			_rcv_idx_base = cap_idx_alloc()->alloc_range(MAX_CAPS_PER_MSG);
-		}
+		void init();
 
 		/**
 		 * Return address of capability receive window
 		 */
-		addr_t rcv_cap_sel_base() { return _rcv_idx_base->kcap(); }
+		addr_t rcv_cap_sel_base();
 
 		/**
 		 * Return received selector with index i
 		 *
 		 * \return   capability selector, or 0 if index is invalid
 		 */
-		addr_t rcv_cap_sel(unsigned i) {
-			return rcv_cap_sel_base() + i*Fiasco::L4_CAP_SIZE; }
+		addr_t rcv_cap_sel(unsigned i);
 };
 
 #endif /* _INCLUDE__FOC__RECEIVE_WINDOW_H_ */

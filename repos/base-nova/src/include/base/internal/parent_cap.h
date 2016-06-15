@@ -22,7 +22,7 @@
 #include <parent/capability.h>
 
 /* NOVA includes */
-#include <nova/syscalls.h>
+#include <nova/capability_space.h>
 
 
 namespace Genode {
@@ -30,7 +30,7 @@ namespace Genode {
 	static inline Parent_capability parent_cap()
 	{
 		return reinterpret_cap_cast<Parent>(
-			Native_capability(Nova::PT_SEL_PARENT));
+			Capability_space::import(Nova::PT_SEL_PARENT));
 	}
 }
 

@@ -17,6 +17,7 @@
 #include <block_session/connection.h>
 #include <os/config.h>
 #include <util/assert.h>
+#include <foc/capability_space.h>
 
 #include <vcpu.h>
 #include <linux.h>
@@ -116,9 +117,13 @@ namespace {
 				Genode::strncpy(_name, label, sizeof(_name));
 			}
 
+			Fiasco::l4_cap_idx_t irq_cap()
+			{
+				return Genode::Capability_space::kcap(_irq_cap);
+			}
+
 			Req_cache              *cache()       { return &_cache;         }
 			Block::Connection      *session()     { return &_session;       }
-			Fiasco::l4_cap_idx_t    irq_cap()     { return  _irq_cap.dst(); }
 			Genode::Signal_context *context()     { return &_tx;            }
 			Genode::size_t          block_size()  { return  _blk_size;      }
 			Genode::size_t          block_count() { return  _blk_cnt;       }

@@ -14,6 +14,8 @@
 #ifndef _CORE__INCLUDE__KERNEL__CONFIGURATION_H_
 #define _CORE__INCLUDE__KERNEL__CONFIGURATION_H_
 
+#include <kernel/interface.h>
+
 namespace Kernel
 {
 	enum {

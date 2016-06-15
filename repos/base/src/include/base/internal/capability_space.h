@@ -35,17 +35,22 @@ namespace Genode { namespace Capability_space {
 	/**
 	 * Increment reference counter
 	 */
-	void dec_ref(Native_capability::Data &data);
+	void dec_ref(Native_capability::Data &);
 
 	/**
 	 * Decrement reference counter
 	 */
-	void inc_ref(Native_capability::Data &data);
+	void inc_ref(Native_capability::Data &);
 
 	/**
 	 * Obtain RPC object key
 	 */
-	Rpc_obj_key rpc_obj_key(Native_capability::Data const &data);
+	Rpc_obj_key rpc_obj_key(Native_capability::Data const &);
+
+	/**
+	 * Print internal capability representation
+	 */
+	void print(Output &, Native_capability::Data const &);
 } }
 
 #endif /* _INCLUDE__BASE__INTERNAL__CAPABILITY_SPACE_H_ */

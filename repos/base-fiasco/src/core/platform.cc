@@ -21,6 +21,7 @@
 #include <base/internal/crt0.h>
 #include <base/internal/fiasco_thread_helper.h>
 #include <base/internal/stack_area.h>
+#include <base/internal/capability_space_tpl.h>
 
 /* core includes */
 #include <core_parent.h>
@@ -137,7 +138,7 @@ Platform::Sigma0::Sigma0()
 :
 	Pager_object(Cpu_session_capability(), Thread_capability(), 0, Affinity::Location())
 {
-	cap(reinterpret_cap_cast<Cpu_thread>(Native_capability(Fiasco::sigma0_threadid, 0)));
+	cap(Capability_space::import(Fiasco::sigma0_threadid, Rpc_obj_key()));
 }
 
 
@@ -156,7 +157,7 @@ Platform::Core_pager::Core_pager(Platform_pd *core_pd)
 	Platform_thread::pager(sigma0());
 
 	core_pd->bind_thread(this);
-	cap(Native_capability(native_thread_id(), 0));
+	cap(Capability_space::import(native_thread_id(), Rpc_obj_key()));
 
 	/* pager needs to know core's pd ID */
 	_core_pager_arg = core_pd->pd_id();

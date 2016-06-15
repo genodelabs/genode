@@ -21,6 +21,7 @@
 /* base-internal includes */
 #include <base/internal/crt0.h>
 #include <base/internal/stack_area.h>
+#include <base/internal/capability_space_tpl.h>
 
 /* core includes */
 #include <core_parent.h>
@@ -206,7 +207,7 @@ Platform::Sigma0::Sigma0()
 :
 	Pager_object(Cpu_session_capability(), Thread_capability(), 0, Affinity::Location())
 {
-	cap(Native_capability(Pistachio::get_sigma0(), 0));
+	cap(Capability_space::import(Pistachio::get_sigma0(), Rpc_obj_key()));
 }
 
 
@@ -225,7 +226,7 @@ Platform::Core_pager::Core_pager(Platform_pd *core_pd)
 	Platform_thread::pager(sigma0());
 
 	core_pd->bind_thread(this);
-	cap(Native_capability(native_thread_id(), 0));
+	cap(Capability_space::import(native_thread_id(), Rpc_obj_key()));
 
 	/* stack begins at the top end of the '_core_pager_stack' array */
 	void *sp = (void *)&_core_pager_stack[PAGER_STACK_ELEMENTS - 1];

@@ -20,6 +20,7 @@
 
 /* base-internal includes */
 #include <base/internal/native_thread.h>
+#include <base/internal/capability_space_tpl.h>
 
 namespace Fiasco {
 #include <l4/sys/ipc.h>
@@ -83,5 +84,5 @@ void Ipc_pager::acknowledge_wakeup()
 
 Untyped_capability Pager_entrypoint::_pager_object_cap(unsigned long badge)
 {
-	return Untyped_capability(native_thread().l4id, badge);
+	return Capability_space::import(native_thread().l4id, Rpc_obj_key(badge));
 }

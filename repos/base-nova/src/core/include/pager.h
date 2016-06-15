@@ -21,6 +21,9 @@
 #include <cap_session/cap_session.h>
 #include <pager/capability.h>
 
+/* NOVA includes */
+#include <nova/cap_map.h>
+
 /* core-local includes */
 #include <ipc_pager.h>
 #include <rpc_cap_factory.h>

@@ -69,7 +69,7 @@ void Cap_mapping::map(Fiasco::l4_cap_idx_t task)
 		return;
 
 	l4_msgtag_t tag = l4_task_map(task, L4_BASE_TASK_CAP,
-	                              l4_obj_fpage(local.dst(), 0, L4_FPAGE_RWX),
+	                              l4_obj_fpage(local.data()->kcap(), 0, L4_FPAGE_RWX),
 	                              ((l4_cap_idx_t)remote) | L4_ITEM_MAP);
 	if (l4_msgtag_has_error(tag))
 		PERR("mapping cap failed");
@@ -77,7 +77,7 @@ void Cap_mapping::map(Fiasco::l4_cap_idx_t task)
 
 
 Cap_mapping::Cap_mapping(bool alloc, Fiasco::l4_cap_idx_t r)
-: local(alloc ? _get_cap() : 0), remote(r) { }
+: local(alloc ? *_get_cap() : *(Native_capability::Data *)nullptr), remote(r) { }
 
 
 Cap_mapping::Cap_mapping(Native_capability cap, Fiasco::l4_cap_idx_t r)
@@ -100,7 +100,7 @@ Native_capability Rpc_cap_factory::alloc(Native_capability ep)
 	try {
 		using namespace Fiasco;
 
-		Core_cap_index* ref = static_cast<Core_cap_index*>(ep.idx());
+		Core_cap_index const * ref = static_cast<Core_cap_index const*>(ep.data());
 
 		ASSERT(ref && ref->pt(), "No valid platform_thread");
 
@@ -118,7 +118,7 @@ Native_capability Rpc_cap_factory::alloc(Native_capability ep)
 
 		l4_msgtag_t tag = l4_factory_create_gate(L4_BASE_FACTORY_CAP,
 		                                         idx->kcap(),
-		                                         ref->pt()->thread().local.dst(), id);
+		                                         ref->pt()->thread().local.data()->kcap(), id);
 		if (l4_msgtag_has_error(tag)) {
 			PERR("l4_factory_create_gate failed!");
 			cap_map()->remove(idx);
@@ -131,7 +131,7 @@ Native_capability Rpc_cap_factory::alloc(Native_capability ep)
 		// XXX remove cast
 		idx->session((Pd_session_component *)this);
 		idx->pt(ref->pt());
-		cap = Native_capability(idx);
+		cap = Native_capability(*idx);
 	} catch (Cap_id_allocator::Out_of_ids) {
 		PERR("Out of capability ids");
 	}
@@ -155,8 +155,9 @@ void Rpc_cap_factory::free(Native_capability cap)
 
 	if (!cap.valid()) return;
 
-	/* proof whether the capability was created by this cap_session */
-	if (static_cast<Core_cap_index*>(cap.idx())->session() != (Pd_session_component *)this) return;
+	/* check whether the capability was created by this cap_session */
+	if (static_cast<Core_cap_index const *>(cap.data())->session() != (Pd_session_component *)this)
+		return;
 
 	Entry * entry;
 	_pool.apply(cap, [&] (Entry *e) {

@@ -17,6 +17,7 @@
 /* NOVA includes */
 #include <nova/syscalls.h>
 #include <nova/native_thread.h>
+#include <nova/capability_space.h>
 
 /**
  * Copy message registers from UTCB to destination message buffer
@@ -108,7 +109,7 @@ static inline bool copy_msgbuf_to_utcb(Nova::Utcb                &utcb,
 	for (unsigned i = 0; i < snd_msg.used_caps(); i++) {
 
 		Native_capability const &cap = snd_msg.cap(i);
-		Nova::Obj_crd crd(cap.local_name(), 0, cap.dst().rights());
+		Nova::Crd const crd = Capability_space::crd(cap);
 
 		if (crd.base() == ~0UL) continue;
 

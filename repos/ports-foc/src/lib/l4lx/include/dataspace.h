@@ -16,16 +16,12 @@
 
 /* Genode includes */
 #include <dataspace/client.h>
-#include <base/cap_map.h>
 #include <base/env.h>
 #include <util/avl_tree.h>
 #include <rm_session/connection.h>
 #include <region_map/client.h>
 #include <platform_env.h>
-
-namespace Fiasco {
-#include <l4/sys/types.h>
-}
+#include <foc/capability_space.h>
 
 namespace L4lx {
 
@@ -86,10 +82,10 @@ namespace L4lx {
 		public:
 
 			Single_dataspace(const char*                    name,
-							 Genode::size_t                 size,
-							 Genode::Dataspace_capability   ds,
+			                 Genode::size_t                 size,
+			                 Genode::Dataspace_capability   ds,
 			                 Fiasco::l4_cap_idx_t           ref =
-				Genode::cap_idx_alloc()->alloc_range(1)->kcap())
+			                         Genode::Capability_space::alloc_kcap())
 			: Dataspace(name, size, ref), _cap(ds) {}
 
 			Genode::Dataspace_capability cap() { return _cap;  }

@@ -29,6 +29,8 @@
 /* NOVA includes */
 #include <nova/syscalls.h>
 #include <nova/util.h>
+#include <nova/cap_map.h>
+#include <nova/capability_space.h>
 
 using namespace Genode;
 
@@ -80,7 +82,8 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 	if (type == MAIN || type == REINITIALIZED_MAIN) {
 		_thread_cap = env()->parent()->main_thread_cap();
 
-		Genode::Native_capability pager_cap(Nova::PT_SEL_MAIN_PAGER);
+		Genode::Native_capability pager_cap =
+			Capability_space::import(Nova::PT_SEL_MAIN_PAGER);
 
 		native_thread().exc_pt_sel = 0;
 		native_thread().ec_sel     = Nova::PT_SEL_MAIN_EC;

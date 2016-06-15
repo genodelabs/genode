@@ -23,7 +23,6 @@
 #include <base/internal/ipc.h>
 
 /* NOVA includes */
-#include <nova/syscalls.h>
 #include <nova/util.h>
 #include <nova/native_thread.h>
 
@@ -42,7 +41,7 @@ Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 
 	/* _ec_sel is invalid until thread gets started */
 	if (native_thread().ec_sel != Native_thread::INVALID_INDEX)
-		ec_cap = Native_capability(native_thread().ec_sel);
+		ec_cap = Capability_space::import(native_thread().ec_sel);
 	else
 		ec_cap = _thread_cap;
 
@@ -127,7 +126,7 @@ void Rpc_entrypoint::_activation_entry()
 	Rpc_entrypoint &ep   = *static_cast<Rpc_entrypoint *>(Thread::myself());
 	Nova::Utcb     &utcb = *(Nova::Utcb *)Thread::myself()->utcb();
 
-	Receive_window &rcv_window = ep.native_thread().rcv_window;
+	Receive_window &rcv_window = ep.native_thread().server_rcv_window;
 	rcv_window.post_ipc(utcb);
 
 	/* handle ill-formed message */
@@ -146,7 +145,7 @@ void Rpc_entrypoint::_activation_entry()
 	Rpc_exception_code exc = Rpc_exception_code(Rpc_exception_code::INVALID_OBJECT);
 
 	/* in case of a portal cleanup call we are done here - just reply */
-	if (ep._cap.local_name() == id_pt) {
+	if (ep._cap.local_name() == (long)id_pt) {
 		if (!rcv_window.prepare_rcv_window(utcb))
 			PWRN("out of capability selectors for handling server requests");
 
@@ -224,12 +223,13 @@ Rpc_entrypoint::Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
 	Thread::start();
 
 	/* create cleanup portal */
-	_cap = _alloc_rpc_cap(_pd_session, Native_capability(native_thread().ec_sel),
+	_cap = _alloc_rpc_cap(_pd_session,
+	                      Capability_space::import(native_thread().ec_sel),
 	                      (addr_t)_activation_entry);
 	if (!_cap.valid())
 		throw Cpu_session::Thread_creation_failed();
 
-	Receive_window &rcv_window = Thread::native_thread().rcv_window;
+	Receive_window &rcv_window = Thread::native_thread().server_rcv_window;
 
 	/* prepare portal receive window of new thread */
 	if (!rcv_window.prepare_rcv_window(*(Nova::Utcb *)&_stack->utcb()))

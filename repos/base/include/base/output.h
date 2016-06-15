@@ -173,6 +173,15 @@ namespace Genode {
 	{
 		obj.print(output);
 	}
+
+	/**
+	 * Print a variable number of arguments
+	 */
+	template <typename HEAD, typename... TAIL>
+	static inline void print(Output &output, HEAD const &head, TAIL... tail)
+	{
+		Output::out_args(output, head, tail...);
+	}
 }
 
 #endif /* _INCLUDE__BASE__OUTPUT_H_ */

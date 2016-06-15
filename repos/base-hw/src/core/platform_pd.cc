@@ -103,15 +103,14 @@ Hw::Address_space::~Address_space()
 }
 
 
-/*************************************
- ** Capability_space implementation **
- *************************************/
+/******************************
+ ** Cap_space implementation **
+ ******************************/
 
-Capability_space::Capability_space()
-: _slab(nullptr, &_initial_sb) { }
+Cap_space::Cap_space() : _slab(nullptr, &_initial_sb) { }
 
 
-void Capability_space::upgrade_slab(Allocator &alloc)
+void Cap_space::upgrade_slab(Allocator &alloc)
 {
 	for (;;) {
 		void *block = nullptr;

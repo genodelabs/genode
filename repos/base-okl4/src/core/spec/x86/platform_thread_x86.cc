@@ -26,7 +26,6 @@ using namespace Okl4;
 Thread_state Platform_thread::state()
 {
 	Thread_state s;
-	s.tid = _l4_thread_id;
 
 	L4_Copy_regs_to_mrs(_l4_thread_id);
 

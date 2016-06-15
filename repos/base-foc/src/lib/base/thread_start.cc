@@ -23,6 +23,7 @@
 
 /* base-internal includes */
 #include <base/internal/stack.h>
+#include <base/internal/cap_map.h>
 
 /* Fiasco includes */
 namespace Fiasco {

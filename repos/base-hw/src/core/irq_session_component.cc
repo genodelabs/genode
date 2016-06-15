@@ -20,6 +20,9 @@
 #include <irq_root.h>
 #include <core_env.h>
 
+/* base-internal includes */
+#include <base/internal/capability_space.h>
+
 using namespace Genode;
 
 
@@ -47,7 +50,8 @@ void Irq_session_component::sigh(Signal_context_capability cap)
 
 	_sig_cap = cap;
 
-	if (Kernel::new_irq((addr_t)&_kernel_object, _irq_number, _sig_cap.dst()))
+	if (Kernel::new_irq((addr_t)&_kernel_object, _irq_number,
+	                    Capability_space::capid(_sig_cap)))
 		PWRN("invalid signal handler for IRQ %u", _irq_number);
 }
 

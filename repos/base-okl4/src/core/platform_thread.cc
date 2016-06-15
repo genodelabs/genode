@@ -24,6 +24,9 @@
 #include <platform_pd.h>
 #include <platform_thread.h>
 
+/* base-internal includes */
+#include <base/internal/capability_space_tpl.h>
+
 /* OKL4 includes */
 namespace Okl4 { extern "C" {
 #include <l4/utcb.h>
@@ -50,7 +53,11 @@ int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 	                                                            _thread_id);
 	L4_SpaceId_t  space_id           = L4_SpaceId(space_no);
 	L4_ThreadId_t scheduler          = L4_rootserver;
-	L4_ThreadId_t pager              = _pager ? _pager->cap().dst() : L4_nilthread;
+
+	L4_ThreadId_t pager  = _pager
+	                     ? Capability_space::ipc_cap_data(_pager->cap()).dst
+	                     : L4_nilthread;
+
 	L4_ThreadId_t exception_handler  = pager;
 	L4_Word_t     resources          = 0;
 	L4_Word_t     utcb_size_per_task = L4_GetUtcbSize()*(1 << Thread_id_bits::THREAD);

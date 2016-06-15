@@ -120,7 +120,7 @@ static void prepare_l4re_env()
 	env->scheduler       = L4_BASE_SCHEDULER_CAP;
 	env->mem_alloc       = L4_INVALID_CAP;
 	env->log             = L4_INVALID_CAP;
-	env->main_thread     = main_thread_cap.dst();
+	env->main_thread     = Genode::Capability_space::kcap(main_thread_cap);
 	env->rm              = Fiasco::THREAD_AREA_BASE + Fiasco::THREAD_PAGER_CAP;
 }
 

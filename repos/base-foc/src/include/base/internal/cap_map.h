@@ -35,50 +35,12 @@
 #include <util/noncopyable.h>
 #include <util/string.h>
 
-namespace Genode
-{
-	/**
-	 * A Cap_index represents a single mapping of the global capability id
-	 * to the address in the local capability space.
-	 *
-	 * The address of the Cap_index determines the location in the
-	 * (platform-specific) capability space of the process. Therefore it
-	 * shouldn't be copied around, but only referenced by
-	 * e.g. Native_capability.
-	 */
-	class Cap_index : public Avl_node<Cap_index>,
-	                         Noncopyable
-	{
-		private:
+/* base-internal includes */
+#include <base/internal/capability_data.h>
 
-			enum { INVALID_ID = -1, UNUSED = 0 };
+namespace Genode {
 
-			uint8_t  _ref_cnt; /* reference counter    */
-			uint16_t _id;      /* global capability id */
-
-		public:
-
-			Cap_index() : _ref_cnt(0), _id(INVALID_ID) { }
-
-			bool     valid() const   { return _id != INVALID_ID; }
-			bool     used()  const   { return _id != UNUSED;     }
-			uint16_t id()    const   { return _id;               }
-			void     id(uint16_t id) { _id = id;                 }
-			uint8_t  inc();
-			uint8_t  dec();
-			addr_t   kcap();
-
-			void* operator new    (size_t size, Cap_index* idx) { return idx; }
-			void  operator delete (void* idx) { memset(idx, 0, sizeof(Cap_index)); }
-
-
-			/************************
-			 ** Avl node interface **
-			 ************************/
-
-			bool higher(Cap_index *n);
-			Cap_index *find_by_id(uint16_t id);
-	};
+	typedef Native_capability::Data Cap_index;
 
 
 	/**
@@ -129,7 +91,7 @@ namespace Genode
 			 *
 			 * \param idx pointer to the Cap_index object in question
 			 */
-			virtual addr_t idx_to_kcap(Cap_index *idx) = 0;
+			virtual addr_t idx_to_kcap(Cap_index const *idx) const = 0;
 
 			/**
 			 * Get the Cap_index object of a specific location

@@ -49,8 +49,8 @@ void test_translate()
 
 	long rpc = Test::cap_void_manual(session_cap, session_cap, local_name);
 	if (rpc != Genode::Rpc_exception_code::SUCCESS ||
-	    local_name == session_cap.local_name() ||
-	    local_name == Native_thread::INVALID_INDEX)
+	    local_name == (addr_t)session_cap.local_name() ||
+	    local_name == (addr_t)Native_thread::INVALID_INDEX)
 	{
 		failed ++;
 		PERR("%s: ipc call failed %lx", __func__, rpc);
@@ -58,12 +58,12 @@ void test_translate()
 		return;
 	}
 
-	Genode::Native_capability copy1(local_name);
+	Genode::Native_capability copy1 = Capability_space::import(local_name);
 
 	rpc = Test::cap_void_manual(session_cap, copy1, local_name);
 	if (rpc != Genode::Rpc_exception_code::SUCCESS ||
-	    local_name == copy1.local_name() ||
-	    local_name == Native_thread::INVALID_INDEX)
+	    local_name == (addr_t)copy1.local_name() ||
+	    local_name == (addr_t)Native_thread::INVALID_INDEX)
 	{
 		failed ++;
 		PERR("%s: ipc call failed %lx", __func__, rpc);
@@ -71,7 +71,7 @@ void test_translate()
 		return;
 	}
 
-	Genode::Native_capability copy2(local_name);
+	Genode::Native_capability copy2 = Capability_space::import(local_name);
 
 	PINF("delegation session_cap->copy1->copy2 0x%lx->0x%lx->0x%lx",
 	     session_cap.local_name(), copy1.local_name(), copy2.local_name());
@@ -144,8 +144,8 @@ void test_revoke()
 
 	long rpc = Test::cap_void_manual(session_cap, session_cap, local_name);
 	if (rpc != Genode::Rpc_exception_code::SUCCESS ||
-	    local_name == session_cap.local_name() ||
-	    local_name == Native_thread::INVALID_INDEX)
+	    local_name == (addr_t)session_cap.local_name() ||
+	    local_name == (addr_t)Native_thread::INVALID_INDEX)
 	{
 		failed ++;
 		PERR("test_revoke ipc call failed %lx", rpc);
@@ -153,12 +153,12 @@ void test_revoke()
 		return;
 	}
 
-	Genode::Native_capability copy_session_cap(local_name);
+	Genode::Native_capability copy_session_cap = Capability_space::import(local_name);
 
 	rpc = Test::cap_void_manual(copy_session_cap, copy_session_cap, local_name);
 	if (rpc != Genode::Rpc_exception_code::SUCCESS ||
-	    local_name == copy_session_cap.local_name() ||
-	    local_name == Native_thread::INVALID_INDEX)
+	    local_name == (addr_t)copy_session_cap.local_name() ||
+	    local_name == (addr_t)Native_thread::INVALID_INDEX)
 	{
 		failed ++;
 		PERR("test_revoke ipc call failed %lx", rpc);
@@ -178,8 +178,8 @@ void test_revoke()
 
 	Nova::Obj_crd crd_ses(copy_session_cap.local_name(), 0);
 	res = Nova::lookup(crd_ses);
-	if (res != Nova::NOVA_OK || crd_ses.base() != copy_session_cap.local_name() || crd_ses.type() != 3 ||
-	    crd_ses.order() != 0) {
+	if (res != Nova::NOVA_OK || crd_ses.base() != (addr_t)copy_session_cap.local_name()
+	 || crd_ses.type() != 3 || crd_ses.order() != 0) {
 		failed ++;
 		PERR("%u - lookup call failed err=%x is_null=%u", __LINE__, res, crd_ses.is_null());
 		ep.dissolve(&component);
@@ -222,13 +222,13 @@ void test_revoke()
 	 * as used before by copy_session_cap
 	 */
 	Genode::Thread * myself = Genode::Thread::myself();
-	Genode::Native_capability pager_cap(myself->native_thread().ec_sel + 1);
+	Genode::Native_capability pager_cap = Capability_space::import(myself->native_thread().ec_sel + 1);
 	request_event_portal(pager_cap, copy_session_cap.local_name(), 0, 0);
 
 	/* check whether the requested cap before is valid and placed well */
 	crd_ses = Nova::Obj_crd(copy_session_cap.local_name(), 0);
 	res = Nova::lookup(crd_ses);
-	if (res != Nova::NOVA_OK || crd_ses.base() != copy_session_cap.local_name() ||
+	if (res != Nova::NOVA_OK || crd_ses.base() != (addr_t)copy_session_cap.local_name() ||
 	    crd_ses.type() != 3 || crd_ses.order() != 0) {
 		failed ++;
 		PERR("%u - lookup call failed err=%x is_null=%u", __LINE__, res, crd_ses.is_null());

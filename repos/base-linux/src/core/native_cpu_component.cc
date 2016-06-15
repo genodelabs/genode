@@ -15,6 +15,9 @@
 #include <cpu_session_component.h>
 #include <native_cpu_component.h>
 
+/* base-internal includes */
+#include <base/internal/capability_space_tpl.h>
+
 using namespace Genode;
 
 
@@ -30,10 +33,8 @@ Untyped_capability Native_cpu_component::server_sd(Thread_capability thread_cap)
 	auto lambda = [] (Cpu_thread_component *thread) {
 		if (!thread) return Untyped_capability();
 
-		enum { DUMMY_LOCAL_NAME = 0 };
-		typedef Native_capability::Dst Dst;
-		return Untyped_capability(Dst(thread->platform_thread().server_sd()),
-		                          DUMMY_LOCAL_NAME);
+		return Capability_space::import(Rpc_destination(thread->platform_thread().server_sd()),
+		                                Rpc_obj_key());
 	};
 	return _thread_ep.apply(thread_cap, lambda);
 }
@@ -44,10 +45,8 @@ Untyped_capability Native_cpu_component::client_sd(Thread_capability thread_cap)
 	auto lambda = [] (Cpu_thread_component *thread) {
 		if (!thread) return Untyped_capability();
 
-		enum { DUMMY_LOCAL_NAME = 0 };
-		typedef Native_capability::Dst Dst;
-		return Untyped_capability(Dst(thread->platform_thread().client_sd()),
-		                          DUMMY_LOCAL_NAME);
+		return Capability_space::import(Rpc_destination(thread->platform_thread().client_sd()),
+		                                Rpc_obj_key());
 	};
 	return _thread_ep.apply(thread_cap, lambda);
 }

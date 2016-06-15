@@ -19,6 +19,9 @@
 #include <platform_thread.h>
 #include <platform_pd.h>
 
+/* base-internal includes */
+#include <base/internal/capability_space.h>
+
 using namespace Genode;
 
 
@@ -65,7 +68,7 @@ void Ipc_pager::set_reply_mapping(Mapping m) { _mapping = m; }
 void Pager_object::wake_up()
 {
 	using Object = Kernel_object<Kernel::Signal_context>;
-	Kernel::ack_signal(Object::_cap.dst());
+	Kernel::ack_signal(Capability_space::capid(Object::_cap));
 }
 
 void Pager_object::start_paging(Kernel::Signal_receiver * receiver)

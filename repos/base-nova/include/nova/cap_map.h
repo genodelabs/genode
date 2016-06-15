@@ -3,6 +3,9 @@
  * \author Alexander Boettcher
  * \date   2013-08-26
  *
+ * This header is public to allow user-level VMMs to manually allocate windows
+ * of consecutive selectors (for virtualization event portals) in the
+ * component's capability space.
  */
 
 /*
@@ -12,8 +15,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__BASE__CAP_MAP_H_
-#define _INCLUDE__BASE__CAP_MAP_H_
+#ifndef _INCLUDE__NOVA__CAP_MAP_H_
+#define _INCLUDE__NOVA__CAP_MAP_H_
 
 /* Genode includes */
 #include <base/stdint.h>
@@ -126,4 +129,4 @@ namespace Genode {
 	Capability_map *cap_map();
 }
 
-#endif /* _INCLUDE__BASE__CAP_MAP_H_ */
+#endif /* _INCLUDE__NOVA__CAP_MAP_H_ */

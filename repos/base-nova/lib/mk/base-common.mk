@@ -12,3 +12,4 @@ SRC_CC += signal_submit.cc
 SRC_CC += thread.cc thread_myself.cc
 SRC_CC += stack.cc
 SRC_CC += cap_map.cc
+SRC_CC += capability.cc

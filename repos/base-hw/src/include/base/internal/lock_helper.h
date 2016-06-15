@@ -17,9 +17,11 @@
 /* Genode includes */
 #include <base/thread.h>
 
-namespace Hw {
-	extern Genode::Untyped_capability _main_thread_cap;
-}
+/* base-internal includes */
+#include <base/internal/capability_space.h>
+
+namespace Hw { extern Genode::Untyped_capability _main_thread_cap; }
+
 
 /**
  * Yield execution time-slice of current thread
@@ -34,7 +36,8 @@ static inline void thread_yield() {
 static inline Kernel::capid_t
 native_thread_id(Genode::Thread * const t)
 {
-	return t ? t->native_thread().cap.dst() : Hw::_main_thread_cap.dst();
+	using Genode::Capability_space::capid;
+	return t ? capid(t->native_thread().cap) : capid(Hw::_main_thread_cap);
 }
 
 

@@ -28,7 +28,7 @@ void Vm_session_component::exception_handler(Signal_context_capability handler)
 	Core_mem_allocator * cma =
 		static_cast<Core_mem_allocator*>(platform()->core_mem_alloc());
 
-	if (!create((void*)_ds.core_local_addr(), handler.dst(),
+	if (!create((void*)_ds.core_local_addr(), Capability_space::capid(handler),
 	            cma->phys_addr(_table)))
 		PWRN("Cannot instantiate vm kernel object, invalid signal context?");
 }

@@ -20,9 +20,7 @@
 
 /* base-internal includes */
 #include <base/internal/native_utcb.h>
-
-/* base-hw includes */
-#include <kernel/interface.h>
+#include <base/internal/capability_space.h>
 
 using namespace Genode;
 
@@ -54,7 +52,7 @@ void Signal_transmitter::submit(unsigned cnt)
 	{
 		Trace::Signal_submit trace_event(cnt);
 	}
-	Kernel::submit_signal(_context.dst(), cnt);
+	Kernel::submit_signal(Capability_space::capid(_context), cnt);
 }
 
 
@@ -85,7 +83,7 @@ void Signal_receiver::_platform_destructor()
 
 void Signal_receiver::_platform_begin_dissolve(Signal_context * const c)
 {
-	Kernel::kill_signal_context(c->_cap.dst());
+	Kernel::kill_signal_context(Capability_space::capid(c->_cap));
 }
 
 void Signal_receiver::_platform_finish_dissolve(Signal_context *) { }
@@ -119,7 +117,7 @@ Signal_context_capability Signal_receiver::manage(Signal_context * const c)
 void Signal_receiver::block_for_signal()
 {
 	/* wait for a signal */
-	if (Kernel::await_signal(_cap.dst())) {
+	if (Kernel::await_signal(Capability_space::capid(_cap))) {
 		PERR("failed to receive signal");
 		return;
 	}
@@ -135,7 +133,7 @@ void Signal_receiver::block_for_signal()
 		context->_curr_signal = Signal::Data(context, num);
 	}
 	/* end kernel-aided life-time management */
-	Kernel::ack_signal(data->context->_cap.dst());
+	Kernel::ack_signal(Capability_space::capid(data->context->_cap));
 }
 
 

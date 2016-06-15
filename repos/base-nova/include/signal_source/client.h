@@ -31,6 +31,7 @@
 /* NOVA includes */
 #include <nova/syscalls.h>
 #include <nova/util.h>
+#include <nova/capability_space.h>
 
 namespace Genode {
 
@@ -53,9 +54,9 @@ namespace Genode {
 			{
 				/* request mapping of semaphore capability selector */
 				Thread * myself = Thread::myself();
-				request_signal_sm_cap(Native_capability(myself->native_thread().ec_sel + 1),
+				request_signal_sm_cap(Capability_space::import(myself->native_thread().ec_sel + 1),
 				                      myself->native_thread().exc_pt_sel + Nova::PT_SEL_STARTUP);
-				_sem = Native_capability(myself->native_thread().exc_pt_sel + Nova::PT_SEL_STARTUP);
+				_sem = Capability_space::import(myself->native_thread().exc_pt_sel + Nova::PT_SEL_STARTUP);
 				call<Rpc_register_semaphore>(_sem);
 			}
 

@@ -25,6 +25,7 @@
 #include <base/internal/native_thread.h>
 #include <base/internal/ipc_server.h>
 #include <base/internal/native_env.h>
+#include <base/internal/capability_space.h>
 
 /* base-hw includes */
 #include <kernel/interface.h>
@@ -44,7 +45,7 @@ static inline void copy_msg_to_utcb(Msgbuf_base const &snd_msg, Native_utcb &utc
 	                            snd_msg.used_caps());
 
 	for (unsigned i = 0; i < num_caps; i++)
-		utcb.cap_set(i, snd_msg.cap(i).dst());
+		utcb.cap_set(i, Capability_space::capid(snd_msg.cap(i)));
 
 	utcb.cap_cnt(num_caps);
 
@@ -68,9 +69,9 @@ static inline void copy_utcb_to_msg(Native_utcb const &utcb, Msgbuf_base &rcv_ms
 	                            utcb.cap_cnt());
 
 	for (unsigned i = 0; i < num_caps; i++) {
-		rcv_msg.cap(i) = utcb.cap_get(i);
+		rcv_msg.cap(i) = Capability_space::import(utcb.cap_get(i));
 		if (rcv_msg.cap(i).valid())
-			Kernel::ack_cap(rcv_msg.cap(i).dst());
+			Kernel::ack_cap(Capability_space::capid(rcv_msg.cap(i)));
 	}
 
 	rcv_msg.used_caps(num_caps);
@@ -100,8 +101,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 
 			copy_msg_to_utcb(snd_msg, *Thread::myself()->utcb());
 
-			switch (Kernel::send_request_msg(dst.dst(),
-			                                 rcv_caps)) {
+			switch (Kernel::send_request_msg(Capability_space::capid(dst), rcv_caps)) {
 			case -1: throw Blocking_canceled();
 			case -2: throw Allocator::Out_of_memory();
 			default:

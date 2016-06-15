@@ -20,10 +20,14 @@
 #include <base/lock.h>
 #include <base/tslab.h>
 #include <base/capability.h>
+#include <base/log.h>
 
 /* core-local includes */
 #include <object.h>
 #include <kernel/thread.h>
+
+/* base-internal includes */
+#include <base/internal/capability_space.h>
 
 namespace Genode { class Rpc_cap_factory; }
 
@@ -86,10 +90,11 @@ class Genode::Rpc_cap_factory
 			construct_at<Kobject>(obj);
 
 			/* create kernel object via syscall */
-			obj->cap = Kernel::new_obj(obj->data, ep.dst());
+			Kernel::capid_t capid = Kernel::new_obj(obj->data, Capability_space::capid(ep));
+			obj->cap = Capability_space::import(capid);
 			if (!obj->cap.valid()) {
-				PWRN("Invalid entrypoint %u for allocating a capability!",
-				     ep.dst());
+				raw("Invalid entrypoint ", (addr_t)Capability_space::capid(ep),
+				    " for allocating a capability!");
 				destroy(&_slab, obj);
 				return Native_capability();
 			}
@@ -104,7 +109,7 @@ class Genode::Rpc_cap_factory
 			Lock::Guard guard(_lock);
 
 			for (Kobject * obj = _list.first(); obj; obj = obj->next()) {
-				if (obj->cap.dst() == cap.dst()) {
+				if (obj->cap.data() == cap.data()) {
 					Kernel::delete_obj(obj->data);
 					_list.remove(obj);
 					destroy(&_slab, obj);

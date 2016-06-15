@@ -69,5 +69,5 @@ void Thread::_init_platform_thread(size_t, Type type)
 	                  max(sizeof(Native_utcb) / get_page_size(), (size_t)1));
 
 	/* adjust initial object state in case of a main thread */
-	native_thread().cap = Hw::_main_thread_cap.dst();
+	native_thread().cap = Hw::_main_thread_cap;
 }

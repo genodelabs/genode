@@ -210,8 +210,6 @@ namespace Genode {
 				PWRN("%s:%u not implemented", __FILE__, __LINE__);
 				return Cpu_session_capability();
 			}
-
-			void reload_parent_cap(Capability<Parent>::Dst, long) { }
 	};
 
 

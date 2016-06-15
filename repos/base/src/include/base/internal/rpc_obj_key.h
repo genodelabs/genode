@@ -16,6 +16,7 @@
 
 /* base includes */
 #include <base/stdint.h>
+#include <base/output.h>
 
 namespace Genode { struct Rpc_obj_key; }
 
@@ -28,16 +29,27 @@ class Genode::Rpc_obj_key
 
 	private:
 
-		uint32_t _value = INVALID;
+		addr_t _value = INVALID;
 
 	public:
 
 		Rpc_obj_key() { }
 
-		explicit Rpc_obj_key(uint32_t value) : _value(value) { }
+		explicit Rpc_obj_key(addr_t value) : _value(value) { }
 
-		bool     valid() const { return _value != INVALID; }
-		uint32_t value() const { return _value; }
+		bool   valid() const { return _value != INVALID; }
+		addr_t value() const { return _value; }
+
+		void print(Output &out) const
+		{
+			/*
+			 * We print the value as signed long to make 'INVALID' or platform-
+			 * specific low-level codes like 'Protocol_header::INVALID_BADGE'
+			 * on Linux) easily recognizable. Such codes appear as negative
+			 * numbers.
+			 */
+			Genode::print(out, "key=", (long)_value);
+		}
 };
 
 #endif /* _INCLUDE__BASE__INTERNAL__RPC_OBJ_KEY_H_ */

@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <base/printf.h>
-#include <base/cap_map.h>
+#include <foc/capability_space.h>
 
 #include <env.h>
 #include <l4lx_task.h>
@@ -67,8 +67,7 @@ int l4lx_task_number_free(l4_cap_idx_t task)
 {
 	Linux::Irq_guard guard;
 
-	Genode::Cap_index* idx = Genode::cap_idx_alloc()->kcap_to_idx(task);
-	Genode::cap_idx_alloc()->free(idx, 1);
+	Genode::Capability_space::free_kcap(task);
 	return 0;
 }
 
@@ -89,7 +88,7 @@ int l4lx_task_get_new_task(l4_cap_idx_t parent_id,
 {
 	Linux::Irq_guard guard;
 
-	*id = Genode::cap_idx_alloc()->alloc_range(1)->kcap();
+	*id = Genode::Capability_space::alloc_kcap();
 	return 0;
 }
 

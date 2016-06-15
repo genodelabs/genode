@@ -106,7 +106,8 @@ void l4lx_thread_alloc_irq(l4_cap_idx_t c)
 	Genode::Native_capability cap = native_cpu.alloc_irq();
 
 	l4_task_map(L4_BASE_TASK_CAP, L4_BASE_TASK_CAP,
-	            l4_obj_fpage(cap.dst(), 0, L4_FPAGE_RWX), c | L4_ITEM_MAP);
+	            l4_obj_fpage(Genode::Capability_space::kcap(cap), 0, L4_FPAGE_RWX),
+	            c | L4_ITEM_MAP);
 }
 
 l4lx_thread_t l4lx_thread_create(L4_CV void (*thread_func)(void *data),

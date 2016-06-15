@@ -11,12 +11,12 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/cap_map.h>
-
+/* Genode includes */
 #include <base/printf.h>
 
-/* base-nova specific include */
+/* NOVA includes */
 #include <nova/syscalls.h>
+#include <nova/cap_map.h>
 
 using namespace Genode;
 

@@ -126,24 +126,12 @@ struct Genode::Receive_window
 		/**
 		 * Return received portal-capability selector
 		 */
-		void rcv_pt_sel(Native_capability &cap)
-		{
-			if (_rcv_pt_sel_cnt >= _rcv_pt_sel_max) {
-				cap = Native_capability();
-				return;
-			}
-
-			/* return only received or translated caps */
-			cap = Native_capability(_rcv_pt_sel[_rcv_pt_sel_cnt++].sel);
-		}
+		void rcv_pt_sel(Native_capability &cap);
 
 		/**
 		 * Return true if receive window must be re-initialized
 		 */
-		bool rcv_invalid() const
-		{
-			return _rcv_pt_base == INVALID_INDEX;
-		}
+		bool rcv_invalid() const;
 
 		unsigned num_received_caps() const { return _rcv_pt_sel_max; }
 
@@ -167,56 +155,7 @@ struct Genode::Receive_window
 		 * \result 'true'  -  receive window must be re-initialized
 		 *         'false' -  portal selectors has been kept
 		 */
-		bool rcv_cleanup(bool keep, unsigned short const new_max = MAX_CAP_ARGS)
-		{
-			/* mark used mapped capabilities as used to prevent freeing */
-			bool reinit = false;
-			for (unsigned i = 0; i < _rcv_pt_sel_cnt; i++) {
-				if (!_rcv_pt_sel[i].del)
-					continue;
-
-				/* should never happen */
-				if (_rcv_pt_sel[i].sel < _rcv_pt_base ||
-					(_rcv_pt_sel[i].sel >= _rcv_pt_base + MAX_CAP_ARGS))
-						nova_die();
-
-				_rcv_pt_cap_free [_rcv_pt_sel[i].sel - _rcv_pt_base] = USED_CAP;
-
-				reinit = true;
-			}
-
-			/* if old receive window was smaller, we need to re-init */
-			for (unsigned i = 0; !reinit && i < new_max; i++)
-				if (_rcv_pt_cap_free[i] == FREE_INVALID)
-					reinit = true;
-
-			_rcv_pt_sel_cnt = 0;
-			_rcv_pt_sel_max = 0;
-
-			/* we can keep the cap selectors if none was used */
-			if (keep && !reinit) {
-				for (unsigned i = 0; i < MAX_CAP_ARGS; i++) {
-					/* revoke received caps which are unused */
-					if (_rcv_pt_cap_free[i] == UNUSED_CAP)
-						Nova::revoke(Nova::Obj_crd(_rcv_pt_base + i, 0), true);
-
-					/* free rest of indexes if new_max is smaller then last window */
-					if (i >= new_max && _rcv_pt_cap_free[i] == FREE_SEL)
-						cap_map()->remove(_rcv_pt_base + i, 0, false);
-				}
-
-				return false;
-			}
-
-			/* decrease ref count if valid selector */
-			for (unsigned i = 0; i < MAX_CAP_ARGS; i++) {
-				if (_rcv_pt_cap_free[i] == FREE_INVALID)
-					continue;
-				cap_map()->remove(_rcv_pt_base + i, 0, _rcv_pt_cap_free[i] != FREE_SEL);
-			}
-
-			return true;
-		}
+		bool rcv_cleanup(bool keep, unsigned short const new_max = MAX_CAP_ARGS);
 
 		/**
 		 * Initialize receive window for portal capability
@@ -234,39 +173,7 @@ struct Genode::Receive_window
 		 * fresh receive window and clears 'rcv_invalid'.
 		 */
 		bool prepare_rcv_window(Nova::Utcb &utcb,
-		                        addr_t rcv_window = INVALID_INDEX)
-		{
-			/* open maximal translate window */
-			utcb.crd_xlt = Nova::Obj_crd(0, ~0UL);
-
-			/* use receive window if specified */
-			if (rcv_window != INVALID_INDEX) {
-				/* cleanup if receive window already used */
-				if (!rcv_invalid()) rcv_cleanup(false);
-
-				_rcv_pt_base = rcv_window;
-
-				/* open receive window */
-				utcb.crd_rcv = Nova::Obj_crd(_rcv_pt_base, _rcv_wnd_log2);
-				return true;
-			}
-
-			/* allocate receive window if necessary, otherwise use old one */
-			if (rcv_invalid() || rcv_cleanup(true, 1U << _rcv_wnd_log2))
-			{
-				_rcv_pt_base = cap_map()->insert(_rcv_wnd_log2);
-
-				if (_rcv_pt_base == INVALID_INDEX) {
-					/* no mappings can be received */
-					utcb.crd_rcv = Nova::Obj_crd();
-					return false;
-				}
-			}
-
-			/* open receive window */
-			utcb.crd_rcv = Nova::Obj_crd(_rcv_pt_base, _rcv_wnd_log2);
-			return true;
-		}
+		                        addr_t rcv_window = INVALID_INDEX);
 
 		/**
 		 * Post IPC processing.

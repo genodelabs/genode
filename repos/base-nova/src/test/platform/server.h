@@ -21,6 +21,10 @@
 #include <cap_session/connection.h>
 #include <base/rpc_server.h>
 
+/* NOVA includes */
+#include <nova/cap_map.h>
+#include <nova/capability_space.h>
+
 namespace Test {
 	struct Session;
 	struct Client;
@@ -115,4 +119,4 @@ inline Genode::addr_t Test::Component::leak_utcb_address() {
 	return reinterpret_cast<Genode::addr_t>(Genode::Thread::myself()->utcb()); }
 
 inline Genode::Native_capability Test::Component::cap_cap(Genode::addr_t cap) {
-	return Genode::Native_capability(cap); }
+	return Genode::Capability_space::import(cap); }

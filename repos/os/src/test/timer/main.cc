@@ -17,7 +17,7 @@
 #include <base/thread.h>
 #include <timer_session/connection.h>
 
-enum { STACK_SIZE = 4096 };
+enum { STACK_SIZE = 1024*sizeof(long) };
 
 class Timer_client : public Genode::List<Timer_client>::Element,
                      Timer::Connection, Genode::Thread_deprecated<STACK_SIZE>

@@ -16,6 +16,9 @@
 #include <base/signal.h>
 #include <base/trace/events.h>
 
+/* NOVA includes */
+#include <nova/syscalls.h>
+
 using namespace Genode;
 
 

@@ -15,6 +15,9 @@
 #include <base/printf.h>
 #include <util/string.h>
 
+/* base-internal includes */
+#include <base/internal/capability_space_tpl.h>
+
 /* core includes */
 #include <platform_pd.h>
 #include <platform_thread.h>
@@ -64,7 +67,9 @@ Affinity::Location Platform_thread::affinity() const
 int Platform_thread::start(void *ip, void *sp)
 {
 	L4_ThreadId_t thread = _l4_thread_id;
-	L4_ThreadId_t pager  = _pager ? _pager->cap().dst() : L4_nilthread;
+	L4_ThreadId_t pager  = _pager
+	                     ? Capability_space::ipc_cap_data(_pager->cap()).dst
+	                     : L4_nilthread;
 
 	/* XXX should always be the root task */
 	L4_ThreadId_t preempter = L4_Myself();

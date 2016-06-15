@@ -22,6 +22,9 @@
 /* core includes */
 #include <platform_thread.h>
 
+/* base-internal includes */
+#include <base/internal/capability_space_tpl.h>
+
 /* Fiasco includes */
 namespace Fiasco {
 #include <l4/sys/types.h>
@@ -38,7 +41,9 @@ int Platform_thread::start(void *ip, void *sp)
 {
 	l4_umword_t dummy, old_eflags;
 	l4_threadid_t thread      = _l4_thread_id;
-	l4_threadid_t pager       = _pager ? _pager->cap().dst() : L4_INVALID_ID;
+	l4_threadid_t pager       = _pager
+	                          ? Capability_space::ipc_cap_data(_pager->cap()).dst
+	                          : L4_INVALID_ID;
 	l4_threadid_t preempter   = L4_INVALID_ID;
 	l4_threadid_t cap_handler = L4_INVALID_ID;
 

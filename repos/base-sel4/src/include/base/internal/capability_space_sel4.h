@@ -37,6 +37,8 @@ namespace Genode {
 			explicit Cap_sel(addr_t value) : _value(value) { }
 
 			addr_t value() const { return _value; }
+
+			void print(Output &out) const { Genode::print(out, "sel=", _value); }
 	};
 }
 
@@ -56,6 +58,8 @@ namespace Genode { namespace Capability_space {
 
 		Ipc_cap_data(Rpc_obj_key rpc_obj_key, unsigned sel)
 		: rpc_obj_key(rpc_obj_key), sel(sel) { }
+
+		void print(Output &out) const { Genode::print(out, sel, ",", rpc_obj_key); }
 	};
 
 	/**
@@ -111,7 +115,7 @@ namespace Genode
  * First, core must keep track of all capabilities of the system. Hence, its
  * capability space must be dimensioned larger.
  *
- * Second, core has to maintain the information about the CAP session that
+ * Second, core has to maintain the information about the PD session that
  * was used to allocate the capability to prevent misbehaving clients from
  * freeing capabilities allocated from another component. This information
  * is part of the core-specific 'Native_capability::Data' structure.
@@ -249,6 +253,11 @@ class Genode::Capability_space_sel4
 		Rpc_obj_key rpc_obj_key(Data const &data) const
 		{
 			return data.rpc_obj_key();
+		}
+
+		void print(Output &out, Data const &data) const
+		{
+			ipc_cap_data(data).print(out);
 		}
 
 		Capability_space::Ipc_cap_data ipc_cap_data(Data const &data) const

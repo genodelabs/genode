@@ -137,7 +137,7 @@ Platform::Sigma0::Sigma0(Cap_index* i)
 	 * We use the Pager_object here in a slightly different manner,
 	 * just to tunnel the pager cap to the Platform_thread::start method.
 	 */
-	cap(i);
+	cap(*i);
 }
 
 
@@ -158,8 +158,8 @@ Platform::Core_pager::Core_pager(Platform_pd *core_pd, Sigma0 *sigma0)
 	using namespace Fiasco;
 
 	l4_thread_control_start();
-	l4_thread_control_pager(thread().local.dst());
-	l4_thread_control_exc_handler(thread().local.dst());
+	l4_thread_control_pager(thread().local.data()->kcap());
+	l4_thread_control_exc_handler(thread().local.data()->kcap());
 	l4_msgtag_t tag = l4_thread_control_commit(L4_BASE_THREAD_CAP);
 	if (l4_msgtag_has_error(tag))
 		PWRN("l4_thread_control_commit failed!");

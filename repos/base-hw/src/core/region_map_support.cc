@@ -20,6 +20,8 @@
 #include <platform_thread.h>
 #include <translation_table.h>
 
+/* base-internal includes */
+
 using namespace Genode;
 
 
@@ -45,7 +47,7 @@ void Pager_entrypoint::entry()
 	while (1)
 	{
 		/* receive fault */
-		if (Kernel::await_signal(_cap.dst())) continue;
+		if (Kernel::await_signal(Capability_space::capid(_cap))) continue;
 
 		Untyped_capability cap =
 			(*(Pager_object**)Thread::myself()->utcb()->data())->cap();

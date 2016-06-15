@@ -56,7 +56,7 @@ class Genode::Interrupt_handler : public Thread_deprecated<2048*sizeof(long)>
 		static Fiasco::l4_cap_idx_t handler_cap()
 		{
 			static Interrupt_handler handler;
-			return handler._thread_cap.dst();
+			return handler._thread_cap.data()->kcap();
 		}
 
 };

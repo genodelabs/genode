@@ -24,6 +24,7 @@
 #include <base/internal/native_thread.h>
 #include <base/internal/ipc_server.h>
 #include <base/internal/server_socket_pair.h>
+#include <base/internal/capability_space_tpl.h>
 
 /* Linux includes */
 #include <linux_syscalls.h>
@@ -31,6 +32,19 @@
 #include <sys/socket.h>
 
 using namespace Genode;
+
+
+namespace {
+
+	struct Pid
+	{
+		int value;
+
+		Pid() : value(lx_getpid()) { }
+
+		void print(Output &out) const { Genode::print(out, "[", value, "]"); }
+	};
+}
 
 
 /*
@@ -60,10 +74,19 @@ struct Protocol_header
 	/* badges of the transferred capability arguments */
 	unsigned long badges[Msgbuf_base::MAX_CAPS_PER_MSG];
 
-	enum { INVALID_BADGE = ~0UL };
+	enum { INVALID_BADGE = ~1UL };
 
 	void *msg_start() { return &protocol_word; }
 };
+
+
+/*
+ * The INVALID_BADGE must be different from the representation of an
+ * invalid RPC object key because this key value is used by manually
+ * created NON-RPC-object capabilities (client_sd, server_sd, dataspace fd).
+ */
+static_assert((int)Protocol_header::INVALID_BADGE != (int)Rpc_obj_key::INVALID,
+              "ambigious INVALID_BADGE");
 
 
 /******************************
@@ -242,8 +265,11 @@ static void insert_sds_into_message(Message &msg,
 		Native_capability const &cap = snd_msgbuf.cap(i);
 
 		if (cap.valid()) {
-			msg.marshal_socket(cap.dst().socket);
-			header.badges[i] = cap.local_name();
+			Capability_space::Ipc_cap_data cap_data =
+				Capability_space::ipc_cap_data(cap);
+
+			msg.marshal_socket(cap_data.dst.socket);
+			header.badges[i] = cap_data.rpc_obj_key.value();
 		} else {
 			header.badges[i] = Protocol_header::INVALID_BADGE;
 		}
@@ -277,7 +303,8 @@ static void extract_sds_from_message(unsigned start_index,
 
 		int const associated_sd = Genode::ep_sd_registry()->try_associate(sd, id);
 
-		buf.insert(Native_capability(Cap_dst_policy::Dst(associated_sd), badge));
+		buf.insert(Capability_space::import(Rpc_destination(associated_sd),
+		                                    Rpc_obj_key(badge)));
 
 		if ((associated_sd >= 0) && (associated_sd != sd)) {
 
@@ -374,10 +401,13 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 	/* marshal capabilities contained in 'snd_msgbuf' */
 	insert_sds_into_message(snd_msg, snd_header, snd_msgbuf);
 
-	int const send_ret = lx_sendmsg(dst.dst().socket, snd_msg.msg(), 0);
+	int const dst_socket = Capability_space::ipc_cap_data(dst).dst.socket;
+
+	int const send_ret = lx_sendmsg(dst_socket, snd_msg.msg(), 0);
 	if (send_ret < 0) {
-		PRAW("[%d] lx_sendmsg to sd %d failed with %d in lx_call()",
-		     lx_getpid(), dst.dst().socket, send_ret);
+		raw(Pid(), " lx_sendmsg to sd ", dst_socket,
+		    " failed with ", send_ret, " in lx_call()");
+		for (;;);
 		throw Genode::Ipc_error();
 	}
 
@@ -414,7 +444,9 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 void Genode::ipc_reply(Native_capability caller, Rpc_exception_code exc,
                        Msgbuf_base &snd_msg)
 {
-	try { lx_reply(caller.dst().socket, exc, snd_msg); } catch (Ipc_error) { }
+	int const reply_socket = Capability_space::ipc_cap_data(caller).dst.socket;
+
+	try { lx_reply(reply_socket, exc, snd_msg); } catch (Ipc_error) { }
 }
 
 
@@ -425,7 +457,7 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
 {
 	/* when first called, there was no request yet */
 	if (last_caller.valid() && exc.value != Rpc_exception_code::INVALID_OBJECT)
-		lx_reply(last_caller.dst().socket, exc, reply_msg);
+		lx_reply(Capability_space::ipc_cap_data(last_caller).dst.socket, exc, reply_msg);
 
 	/*
 	 * Block infinitely if called from the main thread. This may happen if the
@@ -464,15 +496,15 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
 		/* start at offset 1 to skip the reply channel */
 		extract_sds_from_message(1, msg, header, request_msg);
 
-		typedef Native_capability::Dst Dst;
-		return Rpc_request(Native_capability(Dst(reply_socket), ~0UL), badge);
+		return Rpc_request(Capability_space::import(Rpc_destination(reply_socket),
+		                                            Rpc_obj_key()), badge);
 	}
 }
 
 
 Ipc_server::Ipc_server()
 :
-	Native_capability(Dst(-1), 0)
+	Native_capability(Capability_space::import(Rpc_destination(), Rpc_obj_key()))
 {
 	/*
 	 * If 'thread' is 0, the constructor was called by the main thread. By
@@ -498,7 +530,8 @@ Ipc_server::Ipc_server()
 
 	/* override capability initialization */
 	*static_cast<Native_capability *>(this) =
-		Native_capability(Native_capability::Dst(socket_pair.client_sd), 0);
+		Capability_space::import(Rpc_destination(socket_pair.client_sd),
+		                         Rpc_obj_key());
 }
 
 

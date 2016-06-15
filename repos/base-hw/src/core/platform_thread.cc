@@ -22,6 +22,7 @@
 
 /* base-internal includes */
 #include <base/internal/native_utcb.h>
+#include <base/internal/capability_space.h>
 
 /* kernel includes */
 #include <kernel/pd.h>
@@ -171,10 +172,10 @@ int Platform_thread::start(void * const ip, void * const sp)
 
 	/* reset capability counter */
 	utcb->cap_cnt(0);
-	utcb->cap_add(_cap.dst());
+	utcb->cap_add(Capability_space::capid(_cap));
 	if (_main_thread) {
-		utcb->cap_add(_pd->parent().dst());
-		utcb->cap_add(_utcb.dst());
+		utcb->cap_add(Capability_space::capid(_pd->parent()));
+		utcb->cap_add(Capability_space::capid(_utcb));
 	}
 	Kernel::start_thread(kernel_object(), cpu, _pd->kernel_pd(),
 	                     _utcb_core_addr);
@@ -187,7 +188,8 @@ void Platform_thread::pager(Pager_object * const pager)
 	using namespace Kernel;
 
 	if (route_thread_event(kernel_object(), Thread_event_id::FAULT,
-	                       pager ? pager->cap().dst() : cap_id_invalid()))
+	                       pager ? Capability_space::capid(pager->cap())
+	                             : cap_id_invalid()))
 		PERR("failed to set pager object for thread %s", label());
 
 	_pager = pager;

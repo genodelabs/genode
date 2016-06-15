@@ -15,7 +15,6 @@
 #define _INCLUDE__VMM__VCPU_THREAD_H_
 
 /* Genode includes */
-#include <base/cap_map.h>
 #include <base/thread.h>
 #include <cap_session/connection.h>
 #include <cpu_session/connection.h>
@@ -26,6 +25,7 @@
 
 /* NOVA includes */
 #include <nova/native_thread.h>
+#include <nova/cap_map.h>
 
 namespace Vmm {
 

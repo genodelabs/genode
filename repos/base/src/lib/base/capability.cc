@@ -11,13 +11,13 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* base includes */
-#include <base/printf.h>
-
 /* base-internal includes */
 #include <base/internal/capability_space.h>
 
 using namespace Genode;
+
+
+Native_capability::Native_capability() { }
 
 
 void Native_capability::_inc()
@@ -42,6 +42,20 @@ long Native_capability::local_name() const
 
 bool Native_capability::valid() const
 {
-	return _data != 0;
+	return _data != nullptr;
+}
+
+
+void Native_capability::print(Output &out) const
+{
+	using Genode::print;
+
+	print(out, "cap<");
+	if (_data) {
+		Capability_space::print(out, *_data);
+	} else {
+		print(out, "invalid");
+	}
+	print(out, ">");
 }
 

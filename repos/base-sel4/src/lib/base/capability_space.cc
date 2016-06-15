@@ -122,6 +122,12 @@ Rpc_obj_key Capability_space::rpc_obj_key(Native_capability::Data const &data)
 }
 
 
+void Capability_space::print(Output &out, Native_capability::Data const &data)
+{
+	return local_capability_space().print(out, data);
+}
+
+
 Capability_space::Ipc_cap_data Capability_space::ipc_cap_data(Native_capability const &cap)
 {
 	return local_capability_space().ipc_cap_data(*cap.data());

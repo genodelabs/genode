@@ -25,6 +25,9 @@
 #include <base/rpc_server.h>
 #include <base/printf.h>
 
+/* base-internal includes */
+#include <base/internal/capability_space_tpl.h>
+
 namespace Genode {
 
 	/**
@@ -122,9 +125,10 @@ namespace Genode {
 
 			Untyped_capability fd()
 			{
-				typedef Untyped_capability::Dst Dst;
-				enum { DUMMY_LOCAL_NAME = 0 };
-				return Untyped_capability(Dst(_fd), DUMMY_LOCAL_NAME);
+				Untyped_capability fd_cap =
+					Capability_space::import(Rpc_destination(_fd), Rpc_obj_key());
+
+				return fd_cap;
 			}
 	};
 }

@@ -21,6 +21,9 @@
 /* base-internal includes */
 #include <base/internal/page_size.h>
 
+/* base-hw includes */
+#include <kernel/interface.h>
+
 namespace Genode
 {
 	struct Native_region

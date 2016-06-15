@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <util/retry.h>
 #include <nova_native_pd/client.h>
+#include <nova/capability_space.h>
 
 namespace Vmm {
 
@@ -108,18 +109,20 @@ class Vmm::Vcpu_dispatcher : public T
 			 */
 			void (*entry)() = &_portal_entry<EV, DISPATCHER, FUNC>;
 
-			/* Create the portal at the desired selector index */
-			_native_pd.rcv_window(exc_base + EV);
-
-			Native_capability thread_cap(T::native_thread().ec_sel);
+			/* create the portal at the desired selector index (EV) */
+			Native_capability thread_cap =
+				Capability_space::import(T::native_thread().ec_sel);
 
 			Untyped_capability handler =
 				retry<Genode::Pd_session::Out_of_metadata>(
 					[&] () {
+						/* manually define selector used for RPC result */
+						Thread::myself()->native_thread().client_rcv_sel = exc_base + EV;
 						return _native_pd.alloc_rpc_cap(thread_cap, (addr_t)entry,
 						                                mtd.value());
 					},
 					[&] () {
+						Thread::myself()->native_thread().reset_client_rcv_sel();
 						Pd_session_client *client =
 							dynamic_cast<Pd_session_client*>(&_pd);
 
@@ -127,7 +130,10 @@ class Vmm::Vcpu_dispatcher : public T
 							env()->parent()->upgrade(*client, "ram_quota=16K");
 					});
 
-			return handler.valid() && (exc_base + EV == handler.local_name());
+			/* revert selector allocation to automatic mode of operation */
+			Thread::myself()->native_thread().reset_client_rcv_sel();
+
+			return handler.valid() && (exc_base + EV == (addr_t)handler.local_name());
 		}
 
 		/**

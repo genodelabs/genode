@@ -38,7 +38,7 @@ void Genode::Native_cpu_component::enable_vcpu(Genode::Thread_capability thread_
 	auto lambda = [&] (Cpu_thread_component *thread) {
 		if (!thread) return;
 
-		l4_cap_idx_t tid = thread->platform_thread().thread().local.dst();
+		l4_cap_idx_t tid = thread->platform_thread().thread().local.data()->kcap();
 
 		l4_msgtag_t tag = l4_thread_vcpu_control(tid, vcpu_state);
 		if (l4_msgtag_has_error(tag))
@@ -86,7 +86,7 @@ Genode::Native_capability Genode::Native_cpu_component::alloc_irq()
 	}
 
 	/* construct cap and hold a reference in the irq container object */
-	Genode::Native_capability cap(i);
+	Genode::Native_capability cap(*i);
 	return (node->add(cap)) ? cap : Genode::Native_capability();
 }
 

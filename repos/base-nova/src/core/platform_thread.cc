@@ -114,7 +114,8 @@ int Platform_thread::start(void *ip, void *sp)
 	if (!vcpu()) {
 		pd_utcb = stack_area_virtual_base() + stack_virtual_size() - get_page_size();
 
-		addr_t remap_src[] = { _pd->parent_pt_sel(), _pager->Object_pool<Pager_object>::Entry::cap().local_name() };
+		addr_t remap_src[] = { _pd->parent_pt_sel(),
+		                       (unsigned long)_pager->Object_pool<Pager_object>::Entry::cap().local_name() };
 		addr_t remap_dst[] = { PT_SEL_PARENT, PT_SEL_MAIN_PAGER };
 
 		/* remap exception portals for first thread */

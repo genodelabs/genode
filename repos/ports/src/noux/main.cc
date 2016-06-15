@@ -66,7 +66,8 @@ extern void init_network();
 namespace Noux {
 	using namespace Genode;
 
-	class Timeout_scheduler : Thread_deprecated<4096>, public Alarm_scheduler
+	class Timeout_scheduler : Thread_deprecated<1024*sizeof(long)>,
+	                          public Alarm_scheduler
 	{
 		private:
 			Timer::Connection _timer;

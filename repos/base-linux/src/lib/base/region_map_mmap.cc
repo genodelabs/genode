@@ -53,7 +53,7 @@ using namespace Genode;
 
 static bool is_sub_rm_session(Dataspace_capability ds)
 {
-	if (ds.valid())
+	if (ds.valid() && !local(ds))
 		return false;
 
 	return Local_capability<Dataspace>::deref(ds) != 0;

@@ -22,6 +22,7 @@
 
 /* base-internal includes */
 #include <base/internal/parent_socket_handle.h>
+#include <base/internal/capability_space_tpl.h>
 
 /* Linux includes */
 #include <core_linux_syscalls.h>
@@ -117,7 +118,8 @@ void Native_pd_component::_start(Dataspace_component &ds)
 
 		char buf[4096];
 		int num_bytes = 0;
-		while ((num_bytes = lx_read(ds.fd().dst().socket, buf, sizeof(buf))) != 0)
+		int const fd_socket = Capability_space::ipc_cap_data(ds.fd()).dst.socket;
+		while ((num_bytes = lx_read(fd_socket, buf, sizeof(buf))) != 0)
 			lx_write(tmp_binary_fd, buf, num_bytes);
 
 		lx_close(tmp_binary_fd);
@@ -167,7 +169,7 @@ void Native_pd_component::_start(Dataspace_component &ds)
 	 * pointer, all arguments are embedded within the 'execve_args' struct.
 	 */
 	Execve_args arg(filename, argv_buf, env,
-	                _pd_session._parent.dst().socket);
+	                Capability_space::ipc_cap_data(_pd_session._parent).dst.socket);
 
 	_pid = lx_create_process((int (*)(void *))_exec_child,
 	                         stack + STACK_SIZE - sizeof(umword_t), &arg);
