@@ -21,6 +21,7 @@
 #include <signal.h>
 #include <sys/time.h>
 #include <sys/mount.h>    /* statfs */
+#include <sys/statvfs.h>
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>        /* open */
@@ -216,17 +217,45 @@ extern "C" int _sigprocmask()
 /**
  * Used by Shared Folders Guest additions
  */
-extern "C" int _fstatfs(int libc_fd, struct statfs *buf);
 extern "C" int statfs(const char *path, struct statfs *buf)
 {
+	if (!buf)
+		return -1;
+
 	int fd = open(path, 0);
 
 	if (fd < 0)
 		return fd;
 
-	int res = _fstatfs(fd, buf);
+	struct statvfs result;
+	int res = fstatvfs(fd, &result);
 
 	close(fd);
+
+	if (res)
+		return res;
+
+	Genode::memset(buf, 0, sizeof(*buf));
+
+	buf->f_bavail = result.f_bavail;
+	buf->f_bfree  = result.f_bfree;
+	buf->f_blocks = result.f_blocks;
+	buf->f_ffree  = result.f_ffree;
+	buf->f_files  = result.f_files;
+	buf->f_bsize  = result.f_bsize;
+
+	bool show_warning = !buf->f_bsize || !buf->f_blocks || !buf->f_bavail;
+
+	if (!buf->f_bsize)
+		buf->f_bsize = 4096;
+	if (!buf->f_blocks)
+		buf->f_blocks = 128 * 1024;
+	if (!buf->f_bavail)
+		buf->f_bavail = buf->f_blocks;
+
+	if (show_warning)
+		PWRN("statfs provides bogus values for '%s' (probably a shared folder)",
+		     path);
 
 	return res;
 }
