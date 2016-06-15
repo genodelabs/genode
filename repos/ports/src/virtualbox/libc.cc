@@ -21,10 +21,12 @@
 #include <signal.h>
 #include <sys/time.h>
 #include <sys/mount.h>    /* statfs */
+#include <sys/statvfs.h>
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>        /* open */
 
+#include "libc_errno.h"
 
 
 /* libc memory allocator */
@@ -52,7 +54,8 @@ extern "C" void *malloc(size_t size)
 extern "C" void *calloc(size_t nmemb, size_t size)
 {
 	void *ret = malloc(nmemb*size);
-	Genode::memset(ret, 0, nmemb*size);
+	if (ret)
+		Genode::memset(ret, 0, nmemb*size);
 	return ret;
 }
 
@@ -151,14 +154,7 @@ extern "C" int _nanosleep(const struct timespec *req, struct timespec *rem);
 extern "C" int nanosleep(const struct timespec *req, struct timespec *rem)
 {
 	Assert(req);
-/*
-	if (req) { // && req->tv_sec == 0 && req->tv_nsec <= 10 *1000000) {
-		char _name[64];
-		Genode::Thread::myself()->name(_name, sizeof(_name));
-		PERR("%zd:%ld s:ns rip %p '%s'", req->tv_sec, req->tv_nsec,
-		     __builtin_return_address(0), _name);
-	}
-*/
+
 	return _nanosleep(req, rem);
 }
 
@@ -216,17 +212,45 @@ extern "C" int _sigprocmask()
 /**
  * Used by Shared Folders Guest additions
  */
-extern "C" int _fstatfs(int libc_fd, struct statfs *buf);
 extern "C" int statfs(const char *path, struct statfs *buf)
 {
+	if (!buf)
+		return Libc::Errno(EFAULT);
+
 	int fd = open(path, 0);
 
 	if (fd < 0)
 		return fd;
 
-	int res = _fstatfs(fd, buf);
+	struct statvfs result;
+	int res = fstatvfs(fd, &result);
 
 	close(fd);
+
+	if (res)
+		return res;
+
+	Genode::memset(buf, 0, sizeof(*buf));
+
+	buf->f_bavail = result.f_bavail;
+	buf->f_bfree  = result.f_bfree;
+	buf->f_blocks = result.f_blocks;
+	buf->f_ffree  = result.f_ffree;
+	buf->f_files  = result.f_files;
+	buf->f_bsize  = result.f_bsize;
+
+	bool show_warning = !buf->f_bsize || !buf->f_blocks || !buf->f_bavail;
+
+	if (!buf->f_bsize)
+		buf->f_bsize = 4096;
+	if (!buf->f_blocks)
+		buf->f_blocks = 128 * 1024;
+	if (!buf->f_bavail)
+		buf->f_bavail = buf->f_blocks;
+
+	if (show_warning)
+		PWRN("statfs provides bogus values for '%s' (probably a shared folder)",
+		     path);
 
 	return res;
 }
