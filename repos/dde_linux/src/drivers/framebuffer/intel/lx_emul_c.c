@@ -43,7 +43,7 @@ dde_c_allocate_framebuffer(int width, int height, void ** base,
 	r->pixel_format = DRM_FORMAT_RGB565;
 	r->pitches[0]   = width * 2;
 	fb = dde_c_intel_framebuffer_create(dev, r, obj);
-	if (!fb) goto err2;
+	if (IS_ERR(fb)) goto err2;
 
 	if (intel_pin_and_fence_fb_obj(NULL, fb, NULL, NULL, NULL))
 		goto err1;
@@ -56,8 +56,8 @@ dde_c_allocate_framebuffer(int width, int height, void ** base,
 
 err1:
 	drm_framebuffer_remove(fb);
-	fb = NULL;
 err2:
+	fb = NULL;
 	drm_gem_object_unreference(&obj->base);
 out1:
 	kfree(r);

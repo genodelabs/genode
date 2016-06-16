@@ -68,8 +68,7 @@ struct Main
 		Lx::scheduler().schedule();
 	}
 
-	void announce() {
-		Genode::env()->parent()->announce(ep.manage(root)); }
+	void announce() { env.parent().announce(ep.manage(root)); }
 };
 
 

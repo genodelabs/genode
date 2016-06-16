@@ -63,7 +63,7 @@ append config {
 		<config>
 			<content>
 				<inline name="fb_drv.config">
-<config buffered="yes">
+<config>
 	<report connectors="yes"/>
 </config>
 				</inline>

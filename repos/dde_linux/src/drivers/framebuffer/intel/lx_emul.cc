@@ -165,120 +165,82 @@ void Framebuffer::Driver::set_polling(unsigned long poll)
 }
 
 
-bool Framebuffer::Driver::mode_changed()
+void Framebuffer::Driver::update_mode()
 {
 	using namespace Genode;
 
-	int width = 0, height = 0;
+	Configuration old = _config;
+	_config = Configuration();
 
 	dde_for_each_connector(dde_drm_device, [&] (drm_connector *c) {
 		drm_display_mode * mode = _preferred_mode(c);
 		if (!mode) return;
-		if (mode->hdisplay > width)  width  = mode->hdisplay;
-		if (mode->vdisplay > height) height = mode->vdisplay;
+		if (mode->hdisplay > _config.width)  _config.width  = mode->hdisplay;
+		if (mode->vdisplay > _config.height) _config.height = mode->vdisplay;
 	});
 
-	if (width == _width && height == _height) return false;
+	_config.lx_obj =
+		dde_c_allocate_framebuffer(_config.width, _config.height, &_config.addr,
+	                               (uint64_t*)&_config.size, dde_drm_device);
+	_config.cap = _config.addr ? Lx::ioremap_lookup((addr_t)_config.addr, _config.size)
+	                           : Genode::Dataspace_capability();
 
-	drm_framebuffer *fb =
-		dde_c_allocate_framebuffer(width, height, &_new_fb_ds_base,
-		                           &_cur_fb_ds_size, dde_drm_device);
-	if (!fb) {
-		Genode::error("failed to allocate framebuffer ", width, "x", height);
-		return false;
+	{
+		Drm_guard guard(dde_drm_device);
+		dde_for_each_connector(dde_drm_device, [&] (drm_connector *c) {
+		                       dde_c_set_mode(dde_drm_device, c, _config.lx_obj,
+		                                      _preferred_mode(c)); });
 	}
 
-	Drm_guard guard(dde_drm_device);
-	dde_for_each_connector(dde_drm_device, [&] (drm_connector *c) {
-		dde_c_set_mode(dde_drm_device, c, fb,
-		               _preferred_mode(c)); });
-
-	_new_fb = fb;
-	_width  = width;
-	_height = height;
-	return true;
-}
-
-
-void Framebuffer::Driver::free_framebuffer()
-{
-	Lx::iounmap(_cur_fb_ds_base);
-	_cur_fb->funcs->destroy(_cur_fb);
-	_cur_fb_ds_base = nullptr;
-}
-
-
-void dde_run_fb_destroy(void * data)
-{
-	Framebuffer::Driver * drv = (Framebuffer::Driver*) data;
-	drv->free_framebuffer();
-	while (true) Lx::scheduler().current()->block_and_schedule();
-}
-
-
-Genode::Dataspace_capability Framebuffer::Driver::dataspace()
-{
-	using namespace Genode;
-
-	if (_cur_fb_ds_base) {
-		Lx::Task task(dde_run_fb_destroy, this, "fb_destroy",
-		              Lx::Task::PRIORITY_3, Lx::scheduler());
-		while (_cur_fb_ds_base) Lx::scheduler().schedule();
-		Lx::scheduler().remove(&task);
-	}
-
-	_cur_fb = _new_fb;
-	_cur_fb_ds_base = _new_fb_ds_base;
-	return Lx::ioremap_lookup((addr_t)_cur_fb_ds_base,
-	                          (size_t)_cur_fb_ds_size);
+	if (old.addr)   Lx::iounmap(old.addr);
+	if (old.lx_obj) old.lx_obj->funcs->destroy(old.lx_obj);
 }
 
 
 void Framebuffer::Driver::generate_report()
 {
-	static Genode::Reporter reporter("connectors");
+	Drm_guard guard(dde_drm_device);
 
+	/* detect mode information per connector */
+	{
+		struct drm_connector *c;
+		list_for_each_entry(c, &dde_drm_device->mode_config.connector_list,
+		                    head)
+			if (list_empty(&c->modes)) c->funcs->fill_modes(c, 0, 0);
+	}
+
+	/* check for report configuration option */
+	static Genode::Reporter reporter("connectors");
 	try {
 		reporter.enabled(_session.config().sub_node("report")
 		                 .attribute_value(reporter.name().string(), false));
 	} catch (...) {
 		reporter.enabled(false);
 	}
-
 	if (!reporter.is_enabled()) return;
 
+	/* write new report */
 	try {
 		Genode::Reporter::Xml_generator xml(reporter, [&] ()
 		{
-			struct drm_device *dev = dde_drm_device;
-			struct drm_connector *connector;
-			struct list_head panel_list;
-
-			Drm_guard guard(dev);
-
-			INIT_LIST_HEAD(&panel_list);
-
-			list_for_each_entry(connector, &dev->mode_config.connector_list, head) {
+			struct drm_connector *c;
+			list_for_each_entry(c, &dde_drm_device->mode_config.connector_list,
+			                    head) {
 				xml.node("connector", [&] ()
 				{
-					if (list_empty(&connector->modes))
-						connector->funcs->fill_modes(connector, 0, 0);
-
-					bool connected = connector->status == connector_status_connected;
-					xml.attribute("name", connector->name);
+					bool connected = c->status == connector_status_connected;
+					xml.attribute("name", c->name);
 					xml.attribute("connected", connected);
 
 					if (!connected) return;
 
 					struct drm_display_mode *mode;
-					struct list_head mode_list;
-					INIT_LIST_HEAD(&mode_list);
-					list_for_each_entry(mode, &connector->modes, head) {
+					list_for_each_entry(mode, &c->modes, head) {
 						xml.node("mode", [&] ()
 						{
-							xml.attribute("width", mode->hdisplay);
+							xml.attribute("width",  mode->hdisplay);
 							xml.attribute("height", mode->vdisplay);
-							xml.attribute("hz", mode->vrefresh);
+							xml.attribute("hz",     mode->vrefresh);
 						});
 					}
 				});
@@ -288,6 +250,7 @@ void Framebuffer::Driver::generate_report()
 		Genode::warning("Failed to generate report");
 	}
 }
+
 
 extern "C" {
 

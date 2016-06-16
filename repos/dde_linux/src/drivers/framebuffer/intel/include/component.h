@@ -42,18 +42,20 @@ class Framebuffer::Driver
 {
 	private:
 
+		struct Configuration {
+			int                          height = 16;
+			int                          width  = 64;
+			unsigned                     bpp    = 2;
+			Genode::Dataspace_capability cap;
+			void                       * addr   = nullptr;
+			Genode::size_t               size   = 0;
+			drm_framebuffer            * lx_obj = nullptr;
+		} _config;
+
 		Session_component             &_session;
 		Timer::Connection              _timer;
 		Genode::Signal_handler<Driver> _poll_handler;
-		int                            _height          = 0;
-		int                            _width           = 0;
-		static constexpr unsigned      _bytes_per_pixel = 2;
-		void                          *_new_fb_ds_base  = nullptr;
-		void                          *_cur_fb_ds_base  = nullptr;
-		Genode::uint64_t               _cur_fb_ds_size  = 0;
-		drm_framebuffer               *_new_fb          = nullptr;
-		drm_framebuffer               *_cur_fb          = nullptr;
-		unsigned long                  _poll_ms         = false;
+		unsigned long                  _poll_ms = 0;
 
 		drm_display_mode * _preferred_mode(drm_connector *connector);
 
@@ -65,19 +67,16 @@ class Framebuffer::Driver
 		: _session(session), _timer(env),
 		  _poll_handler(env.ep(), *this, &Driver::_poll) {}
 
-		int      width()  const { return _width;           }
-		int      height() const { return _height;          }
-		unsigned bpp()    const { return _bytes_per_pixel; }
-
-		Genode::size_t size() const {
-			return _width * _height * _bytes_per_pixel; }
+		int width()  const { return _config.width;  }
+		int height() const { return _config.height; }
+		int bpp()    const { return _config.bpp;    }
+		Genode::Dataspace_capability dataspace() const {
+			return _config.cap; }
 
 		void finish_initialization();
 		void set_polling(unsigned long poll);
-		bool mode_changed();
+		void update_mode();
 		void generate_report();
-		void free_framebuffer();
-		Genode::Dataspace_capability dataspace();
 };
 
 
@@ -91,45 +90,20 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 		Genode::Attached_rom_dataspace      &_config;
 		Genode::Signal_context_capability    _mode_sigh;
 		Timer::Connection                    _timer;
-		bool                                 _buffered;
 		Lazy<Genode::Attached_dataspace>     _fb_ds;
-		Lazy<Genode::Attached_ram_dataspace> _bb_ds;
-		bool                                 _in_update = false;
-
-		bool _buffered_from_config() {
-			return _config.xml().attribute_value("buffered", false); }
+		Genode::Ram_session                 &_ram;
+		Genode::Attached_ram_dataspace       _bb_ds;
+		bool                                 _in_mode_change = true;
 
 		unsigned long _polling_from_config() {
 			return _config.xml().attribute_value<unsigned long>("poll", 0); }
-
-		void _refresh_buffered(int x, int y, int w, int h)
-		{
-			using namespace Genode;
-
-			int width = _driver.width(), height = _driver.height();
-			unsigned bpp = _driver.bpp();
-
-			/* clip specified coordinates against screen boundaries */
-			int x2 = min(x + w - 1, width  - 1),
-			    y2 = min(y + h - 1, height - 1);
-			int x1 = max(x, 0),
-			    y1 = max(y, 0);
-			if (x1 > x2 || y1 > y2) return;
-
-			/* copy pixels from back buffer to physical frame buffer */
-			char *src = _bb_ds->local_addr<char>() + bpp*(width*y1 + x1),
-			     *dst = _fb_ds->local_addr<char>() + bpp*(width*y1 + x1);
-
-			blit(src, bpp*width, dst, bpp*width,
-			     bpp*(x2 - x1 + 1), y2 - y1 + 1);
-		}
 
 	public:
 
 		Session_component(Genode::Env &env,
 		                  Genode::Attached_rom_dataspace &config)
 		: _driver(env, *this), _config(config), _timer(env),
-		  _buffered(_buffered_from_config()) {}
+		  _ram(env.ram()), _bb_ds(env.ram(), env.rm(), 0) {}
 
 		Driver & driver() { return _driver; }
 
@@ -138,13 +112,19 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 			_config.update();
 			if (!_config.valid()) return;
 
-			_in_update = true;
-			_buffered  = _buffered_from_config();
 			_driver.set_polling(_polling_from_config());
-			if (_driver.mode_changed() && _mode_sigh.valid())
-				Genode::Signal_transmitter(_mode_sigh).submit();
+
+			_in_mode_change = true;
+
+			_driver.update_mode();
+
+			if (_driver.dataspace().valid())
+				_fb_ds.construct(_driver.dataspace());
 			else
-				_in_update = false;
+				_fb_ds.destruct();
+
+			if (_mode_sigh.valid())
+				Genode::Signal_transmitter(_mode_sigh).submit();
 		}
 
 		Genode::Xml_node config() { return _config.xml(); }
@@ -156,28 +136,9 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 
 		Genode::Dataspace_capability dataspace() override
 		{
-			_in_update = false;
-
-			if (_fb_ds.constructed())
-				_fb_ds.destruct();
-
-			_fb_ds.construct(_driver.dataspace());
-			if (!_fb_ds.is_constructed())
-				PERR("framebuffer dataspace not initialized");
-
-			if (_buffered) {
-				if (_bb_ds.is_constructed())
-					_bb_ds.destruct();
-
-				_bb_ds.construct(Genode::env()->ram_session(), _driver.size());
-				if (!_bb_ds.is_constructed()) {
-					PERR("buffered mode enabled, but buffer not initialized");
-					return Genode::Dataspace_capability();
-				}
-				return _bb_ds->cap();
-			}
-
-			return _fb_ds->cap();
+			_bb_ds.realloc(&_ram, _driver.width()*_driver.height()*_driver.bpp());
+			_in_mode_change = false;
+			return _bb_ds.cap();
 		}
 
 		Mode mode() const override {
@@ -192,8 +153,32 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 			_timer.trigger_periodic(10*1000);
 		}
 
-		void refresh(int x, int y, int w, int h) override {
-			if (_buffered && !_in_update) _refresh_buffered(x, y, w, h); }
+		void refresh(int x, int y, int w, int h) override
+		{
+			using namespace Genode;
+
+			if (!_fb_ds.constructed()       ||
+				!_bb_ds.local_addr<void>()  ||
+				_in_mode_change) return;
+
+			int width    = _driver.width();
+			int height   = _driver.height();
+			unsigned bpp = _driver.bpp();
+
+			/* clip specified coordinates against screen boundaries */
+			int x2 = min(x + w - 1, width  - 1),
+			    y2 = min(y + h - 1, height - 1);
+			int x1 = max(x, 0),
+			    y1 = max(y, 0);
+			if (x1 > x2 || y1 > y2) return;
+
+			/* copy pixels from back buffer to physical frame buffer */
+			char *src = _bb_ds.local_addr<char>()  + bpp*(width*y1 + x1),
+			     *dst = _fb_ds->local_addr<char>() + bpp*(width*y1 + x1);
+
+			blit(src, bpp*width, dst, bpp*width,
+			     bpp*(x2 - x1 + 1), y2 - y1 + 1);
+		}
 };
 
 

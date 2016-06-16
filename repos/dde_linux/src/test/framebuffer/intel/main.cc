@@ -84,7 +84,6 @@ void Framebuffer_controller::update_fb_config(Xml_node & report)
 		static char buf[4096];
 
 		Xml_generator xml(buf, sizeof(buf), "config", [&] {
-			xml.attribute("buffered", "yes");
 			xml.node("report", [&] {
 				xml.attribute("connectors", "yes");
 			});

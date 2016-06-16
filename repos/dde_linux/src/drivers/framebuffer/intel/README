@@ -26,15 +26,6 @@ this case it will also change the current virtual resolution to the maximum of
 the configured resolutions in width and height, and it will inform its client
 about the change in resolution.
 
-It is possible to run the driver in 'buffered' mode, which means it does not
-export the framebuffer memory directly to the client, but provides a simple RAM
-dataspace instead. The copying from the RAM dataspace to the framebuffer memory
-is done by the framebuffer driver when triggered by a refresh operation. This
-option can alleviate tearing effects, and has to be enabled via the
-configuration like this:
-
-! <config buffered="yes"/>
-
 If you experience problems like hotplugging of connectors does not work, you
 can force the driver to poll frequently for hotplug events by defining a period
 in milliseconds like this:
