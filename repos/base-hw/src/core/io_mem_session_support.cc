@@ -12,9 +12,6 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* Genode includes */
-#include <kernel/log.h>
-
 /* core includes */
 #include <io_mem_session_component.h>
 

@@ -43,6 +43,7 @@
 #include <util/string.h>
 #include <base/printf.h>
 #include <base/snprintf.h>
+#include <base/log.h>
 
 
 /***********************************
@@ -50,14 +51,13 @@
  ***********************************/
 
 extern "C" void wait_for_continue(void);
-extern "C" int raw_write_str(const char *str);
 
 #define PRAW(fmt, ...)                                             \
 	do {                                                           \
 		char str[128];                                             \
 		Genode::snprintf(str, sizeof(str),                         \
 		                 ESC_ERR fmt ESC_END "\n", ##__VA_ARGS__); \
-		raw_write_str(str);                                        \
+		Genode::raw(str);                                          \
 	} while (0)
 
 

@@ -27,9 +27,9 @@
 #include <address_space.h>
 #include <object.h>
 
+/* kernel includes */
 #include <kernel/core_interface.h>
 #include <kernel/thread.h>
-#include <kernel/log.h>
 
 namespace Genode {
 

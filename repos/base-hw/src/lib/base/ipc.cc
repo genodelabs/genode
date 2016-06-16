@@ -28,7 +28,6 @@
 
 /* base-hw includes */
 #include <kernel/interface.h>
-#include <kernel/log.h>
 
 namespace Hw { extern Genode::Untyped_capability _main_thread_cap; }
 

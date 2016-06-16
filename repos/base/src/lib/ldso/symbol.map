@@ -36,7 +36,6 @@
 		wait_for_continue;
 		stdout_write;
 		stdout_reconnect;
-		raw_write_str;
 
 		/* Testing */
 		extern "C++" {

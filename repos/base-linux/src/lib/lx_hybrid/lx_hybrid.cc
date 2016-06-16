@@ -13,6 +13,7 @@
 
 /* Genode includes */
 #include <base/printf.h>
+#include <base/log.h>
 #include <base/component.h>
 #include <linux_syscalls.h>
 #include <linux_native_cpu/client.h>
@@ -21,8 +22,6 @@
 #include <base/internal/native_thread.h>
 #include <base/internal/globals.h>
 
-
-extern "C" int raw_write_str(const char *str);
 
 /**
  * Define stack area
@@ -39,7 +38,7 @@ enum { verbose_atexit = false };
 int genode___cxa_atexit(void (*func)(void*), void *arg, void *dso)
 {
 	if (verbose_atexit)
-		raw_write_str("genode___cxa_atexit called, not implemented\n");
+		Genode::raw("genode___cxa_atexit called, not implemented\n");
 	return 0;
 }
 
