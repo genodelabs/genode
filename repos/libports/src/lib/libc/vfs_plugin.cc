@@ -37,6 +37,7 @@
 
 /* libc-internal includes */
 #include <libc_mem_alloc.h>
+#include "libc_errno.h"
 
 
 static Vfs::Vfs_handle *vfs_handle(Libc::File_descriptor *fd)
@@ -353,10 +354,8 @@ int Libc::Vfs_plugin::fstat(Libc::File_descriptor *fd, struct stat *buf)
 
 int Libc::Vfs_plugin::fstatfs(Libc::File_descriptor *fd, struct statfs *buf)
 {
-	if (!fd || !buf) {
-		errno = EFAULT;
-		return -1;
-	}
+	if (!fd || !buf)
+		return Libc::Errno(EFAULT);
 
 	Genode::memset(buf, 0, sizeof(*buf));
 
