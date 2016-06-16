@@ -426,14 +426,16 @@ unsigned long find_next_bit(const unsigned long *addr, unsigned long size,
 
 	for (; offset < size; offset++)
 		if (addr[i] & (1UL << offset))
-			return offset;
+			return offset + (i * BITS_PER_LONG);
 
 	return size;
 }
 
+
 long find_next_zero_bit_le(const void *addr,
                            unsigned long size, unsigned long offset)
 {
+	static unsigned cnt = 0;
 	unsigned long max_size = sizeof(long) * 8;
 	if (offset >= max_size) {
 		PWRN("Offset greater max size");
@@ -444,7 +446,8 @@ long find_next_zero_bit_le(const void *addr,
 		if (!(*(unsigned long*)addr & (1L << offset)))
 			return offset;
 
-	PERR("No zero bit findable");
+	lx_log(DEBUG_TRACE, "No zero bit findable %u", cnt++);
+
 	return offset + size;
 }
 
