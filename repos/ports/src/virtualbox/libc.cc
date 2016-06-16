@@ -26,6 +26,7 @@
 #include <errno.h>
 #include <fcntl.h>        /* open */
 
+#include "libc_errno.h"
 
 
 /* libc memory allocator */
@@ -53,7 +54,8 @@ extern "C" void *malloc(size_t size)
 extern "C" void *calloc(size_t nmemb, size_t size)
 {
 	void *ret = malloc(nmemb*size);
-	Genode::memset(ret, 0, nmemb*size);
+	if (ret)
+		Genode::memset(ret, 0, nmemb*size);
 	return ret;
 }
 
@@ -152,14 +154,7 @@ extern "C" int _nanosleep(const struct timespec *req, struct timespec *rem);
 extern "C" int nanosleep(const struct timespec *req, struct timespec *rem)
 {
 	Assert(req);
-/*
-	if (req) { // && req->tv_sec == 0 && req->tv_nsec <= 10 *1000000) {
-		char _name[64];
-		Genode::Thread::myself()->name(_name, sizeof(_name));
-		PERR("%zd:%ld s:ns rip %p '%s'", req->tv_sec, req->tv_nsec,
-		     __builtin_return_address(0), _name);
-	}
-*/
+
 	return _nanosleep(req, rem);
 }
 
@@ -220,7 +215,7 @@ extern "C" int _sigprocmask()
 extern "C" int statfs(const char *path, struct statfs *buf)
 {
 	if (!buf)
-		return -1;
+		return Libc::Errno(EFAULT);
 
 	int fd = open(path, 0);
 
