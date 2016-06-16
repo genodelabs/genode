@@ -14,6 +14,7 @@
 /* Genode includes */
 #include <base/stdint.h>
 #include <base/env.h>
+#include <base/log.h>
 
 #include <linux_syscalls.h>
 
@@ -41,7 +42,8 @@ extern "C" int stdout_write(char const *);
  */
 extern "C" __attribute__((weak)) int stdout_write(char const *s)
 {
-	return raw_write_str(s);
+	raw(s);
+	return strlen(s);
 }
 
 /**

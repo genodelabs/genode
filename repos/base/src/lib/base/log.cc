@@ -42,3 +42,20 @@ void Log::_release()
 	_lock.unlock();
 }
 
+
+void Raw::_acquire()
+{
+	/*
+	 * Mark raw output with distinct color
+	 */
+	_output().out_string("\033[32mKernel: ");
+}
+
+
+void Raw::_release()
+{
+	/*
+	 * Reset color and add newline
+	 */
+	_output().out_string("\033[0m\n");
+}

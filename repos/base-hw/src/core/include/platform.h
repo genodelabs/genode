@@ -21,7 +21,6 @@
 #include <irq_session/irq_session.h>
 
 /* base-hw includes */
-#include <kernel/log.h>
 #include <kernel/configuration.h>
 #include <kernel/core_interface.h>
 

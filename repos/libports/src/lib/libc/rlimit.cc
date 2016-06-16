@@ -11,11 +11,13 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
+#include <base/log.h>
+
+/* libc includes */
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <stdio.h>
-
-#include "libc_debug.h"
 
 extern "C" int __attribute__((weak)) getrlimit(int resource, struct rlimit *rlim)
 {
@@ -30,7 +32,7 @@ extern "C" int __attribute__((weak)) getrlimit(int resource, struct rlimit *rlim
 		return 0;
 	}
 
-	raw_write_str("getrlimit called, return 0\n");
+	Genode::raw("getrlimit called, return 0");
 	return 0;
 }
 

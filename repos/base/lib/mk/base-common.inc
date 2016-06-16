@@ -18,6 +18,7 @@ SRC_CC += elf_binary.cc
 SRC_CC += ipc.cc
 SRC_CC += lock.cc
 SRC_CC += log.cc
+SRC_CC += raw_output.cc
 SRC_CC += rpc_entrypoint.cc
 SRC_CC += signal.cc signal_common.cc
 SRC_CC += sleep.cc

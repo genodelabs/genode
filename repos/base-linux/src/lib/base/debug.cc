@@ -11,34 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/*
- * With the enabled 'DEBUG' flag, status information can be printed directly
- * via a Linux system call by using the 'raw_write_str' function. This output
- * bypasses the Genode 'LOG' mechanism, which is useful for debugging low-level
- * code such as a libC back-end.
- */
-#define DEBUG 1
-
-
-#if DEBUG
 #include <linux_syscalls.h>
-#endif /* DEBUG */
-
-
-/**
- * Write function targeting directly the Linux system call layer and bypassing
- * any Genode code.
- */
-extern "C" int raw_write_str(const char *str)
-{
-#if DEBUG
-	unsigned len = 0;
-	for (; str[len] != 0; len++);
-	lx_syscall(SYS_write, (int)1, str, len);
-	return len;
-#endif /* DEBUG */
-}
-
 
 /**
  * Debug function waiting until the user presses return
@@ -50,8 +23,6 @@ extern "C" int raw_write_str(const char *str)
  */
 extern "C" void wait_for_continue(void)
 {
-#if DEBUG
 	char buf[16];
 	lx_syscall(SYS_read, (int)0, buf, sizeof(buf));
-#endif /* DEBUG */
 }

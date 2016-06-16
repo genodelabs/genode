@@ -39,6 +39,19 @@ struct Genode::Output
 	 * overridden by the backend for improving efficiency.
 	 */
 	virtual void out_string(char const *str, size_t n = ~0UL);
+
+	/**
+	 * Helper for the sequential output of a variable list of arguments
+	 */
+	template <typename HEAD, typename... TAIL>
+	static void out_args(Output &output, HEAD && head, TAIL &&... tail)
+	{
+		print(output, head);
+		out_args(output, tail...);
+	}
+
+	template <typename LAST>
+	static void out_args(Output &output, LAST && last) { print(output, last); }
 };
 
 

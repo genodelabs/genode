@@ -15,7 +15,7 @@
 /* Genode includes */
 #include <base/printf.h>
 #include <base/sleep.h>
-#include <kernel/log.h>
+#include <base/log.h>
 
 /* core includes */
 #include <core_parent.h>
@@ -200,8 +200,8 @@ Platform::Platform()
 
 void Core_parent::exit(int exit_value)
 {
-	Kernel::log() << __PRETTY_FUNCTION__ << "not implemented\n";
-	while (1) ;
+	log(__PRETTY_FUNCTION__, "not implemented");
+	while (1);
 }
 
 
