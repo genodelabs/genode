@@ -27,9 +27,7 @@
 #include <os/attached_rom_dataspace.h>
 #include <blit/blit.h>
 
-struct drm_display_mode;
-struct drm_connector;
-struct drm_framebuffer;
+#include <lx_emul_c.h>
 
 namespace Framebuffer {
 	class Driver;
@@ -42,14 +40,10 @@ class Framebuffer::Driver
 {
 	private:
 
-		struct Configuration {
-			int                          height = 16;
-			int                          width  = 64;
-			unsigned                     bpp    = 2;
-			Genode::Dataspace_capability cap;
-			void                       * addr   = nullptr;
-			Genode::size_t               size   = 0;
-			drm_framebuffer            * lx_obj = nullptr;
+		struct Configuration
+		{
+			struct lx_c_fb_config _lx = { 16, 64, 64, 2,
+			                              nullptr, 0, nullptr };
 		} _config;
 
 		Session_component             &_session;
@@ -67,11 +61,11 @@ class Framebuffer::Driver
 		: _session(session), _timer(env),
 		  _poll_handler(env.ep(), *this, &Driver::_poll) {}
 
-		int width()  const { return _config.width;  }
-		int height() const { return _config.height; }
-		int bpp()    const { return _config.bpp;    }
-		Genode::Dataspace_capability dataspace() const {
-			return _config.cap; }
+		int      width()   const { return _config._lx.width;  }
+		int      height()  const { return _config._lx.height; }
+		int      bpp()     const { return _config._lx.bpp;    }
+		void *   fb_addr() const { return _config._lx.addr;   }
+		unsigned pitch()   const { return _config._lx.pitch;  }
 
 		void finish_initialization();
 		void set_polling(unsigned long poll);
@@ -90,9 +84,8 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 		Genode::Attached_rom_dataspace      &_config;
 		Genode::Signal_context_capability    _mode_sigh;
 		Timer::Connection                    _timer;
-		Lazy<Genode::Attached_dataspace>     _fb_ds;
 		Genode::Ram_session                 &_ram;
-		Genode::Attached_ram_dataspace       _bb_ds;
+		Genode::Attached_ram_dataspace       _ds;
 		bool                                 _in_mode_change = true;
 
 		unsigned long _polling_from_config() {
@@ -103,7 +96,7 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 		Session_component(Genode::Env &env,
 		                  Genode::Attached_rom_dataspace &config)
 		: _driver(env, *this), _config(config), _timer(env),
-		  _ram(env.ram()), _bb_ds(env.ram(), env.rm(), 0) {}
+		  _ram(env.ram()), _ds(env.ram(), env.rm(), 0) {}
 
 		Driver & driver() { return _driver; }
 
@@ -118,11 +111,6 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 
 			_driver.update_mode();
 
-			if (_driver.dataspace().valid())
-				_fb_ds.construct(_driver.dataspace());
-			else
-				_fb_ds.destruct();
-
 			if (_mode_sigh.valid())
 				Genode::Signal_transmitter(_mode_sigh).submit();
 		}
@@ -136,9 +124,9 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 
 		Genode::Dataspace_capability dataspace() override
 		{
-			_bb_ds.realloc(&_ram, _driver.width()*_driver.height()*_driver.bpp());
+			_ds.realloc(&_ram, _driver.width()*_driver.height()*_driver.bpp());
 			_in_mode_change = false;
-			return _bb_ds.cap();
+			return _ds.cap();
 		}
 
 		Mode mode() const override {
@@ -157,13 +145,14 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 		{
 			using namespace Genode;
 
-			if (!_fb_ds.constructed()       ||
-				!_bb_ds.local_addr<void>()  ||
+			if (!_driver.fb_addr()         ||
+				!_ds.local_addr<void>() ||
 				_in_mode_change) return;
 
-			int width    = _driver.width();
-			int height   = _driver.height();
-			unsigned bpp = _driver.bpp();
+			int width      = _driver.width();
+			int height     = _driver.height();
+			unsigned bpp   = _driver.bpp();
+			unsigned pitch = _driver.pitch();
 
 			/* clip specified coordinates against screen boundaries */
 			int x2 = min(x + w - 1, width  - 1),
@@ -173,10 +162,10 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 			if (x1 > x2 || y1 > y2) return;
 
 			/* copy pixels from back buffer to physical frame buffer */
-			char *src = _bb_ds.local_addr<char>()  + bpp*(width*y1 + x1),
-			     *dst = _fb_ds->local_addr<char>() + bpp*(width*y1 + x1);
+			char *src = _ds.local_addr<char>()  + bpp*(width*y1 + x1),
+			     *dst = (char*)_driver.fb_addr() + pitch*y1 + bpp*x1;
 
-			blit(src, bpp*width, dst, bpp*width,
+			blit(src, bpp*width, dst, pitch,
 			     bpp*(x2 - x1 + 1), y2 - y1 + 1);
 		}
 };

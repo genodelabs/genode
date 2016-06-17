@@ -1,5 +1,5 @@
-#include "lx_emul_private.h"
 #include <lx_emul.h>
+#include <lx_emul_c.h>
 #include <drm/drmP.h>
 #include <drm/drm_crtc.h>
 #include <drm/drm_dp_mst_helper.h>

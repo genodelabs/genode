@@ -1,3 +1,16 @@
+/*
+ * \brief  Linux emulation Intel i915 parameter struct definition
+ * \author Stefan Kalkowski
+ * \date   2016-03-22
+ */
+
+/*
+ * Copyright (C) 2016 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
 #include <../drivers/gpu/drm/i915/i915_drv.h>
 
 struct i915_params i915 = {

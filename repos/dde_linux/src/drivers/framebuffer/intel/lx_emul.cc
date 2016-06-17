@@ -5,6 +5,13 @@
  * \date   2015-08-19
  */
 
+/*
+ * Copyright (C) 2015-2016 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
 /* Genode includes */
 #include <util/bit_allocator.h>
 #include <base/log.h>
@@ -16,8 +23,8 @@
 
 /* DRM-specific includes */
 #include <lx_emul.h>
+#include <lx_emul_c.h>
 #include <lx_emul/extern_c_begin.h>
-#include "lx_emul_private.h"
 #include <drm/drmP.h>
 #include <drm/drm_gem.h>
 #include <lx_emul/extern_c_end.h>
@@ -36,16 +43,7 @@
 #include <lx_emul/impl/completion.h>
 #include <lx_emul/impl/wait.h>
 
-static struct drm_device * dde_drm_device = nullptr;
-
-extern "C" struct drm_framebuffer*
-dde_c_allocate_framebuffer(int width, int height, void ** base,
-                           uint64_t * size, struct drm_device * dev);
-extern "C" void
-dde_c_set_mode(struct drm_device * dev, struct drm_connector * connector,
-               struct drm_framebuffer *fb, struct drm_display_mode *mode);
-extern "C" void  dde_c_set_driver(struct drm_device * dev, void * driver);
-extern "C" void* dde_c_get_driver(struct drm_device * dev);
+static struct drm_device * lx_drm_device = nullptr;
 
 
 struct Drm_guard
@@ -73,7 +71,7 @@ struct Drm_guard
 
 
 template <typename FUNCTOR>
-static inline void dde_for_each_connector(drm_device * dev, FUNCTOR f)
+static inline void lx_for_each_connector(drm_device * dev, FUNCTOR f)
 {
 	struct drm_connector *connector;
 	list_for_each_entry(connector, &dev->mode_config.connector_list, head)
@@ -135,7 +133,7 @@ Framebuffer::Driver::_preferred_mode(drm_connector *connector)
 
 void Framebuffer::Driver::finish_initialization()
 {
-	dde_c_set_driver(dde_drm_device, (void*)this);
+	lx_c_set_driver(lx_drm_device, (void*)this);
 	generate_report();
 	_session.config_changed();
 }
@@ -145,7 +143,7 @@ void Framebuffer::Driver::finish_initialization()
 
 void Framebuffer::Driver::_poll()
 {
-	Lx::Pci_dev * pci_dev = (Lx::Pci_dev*) dde_drm_device->pdev->bus;
+	Lx::Pci_dev * pci_dev = (Lx::Pci_dev*) lx_drm_device->pdev->bus;
 	Lx::Irq::irq().inject_irq(pci_dev->client());
 }
 
@@ -172,39 +170,35 @@ void Framebuffer::Driver::update_mode()
 	Configuration old = _config;
 	_config = Configuration();
 
-	dde_for_each_connector(dde_drm_device, [&] (drm_connector *c) {
+	lx_for_each_connector(lx_drm_device, [&] (drm_connector *c) {
 		drm_display_mode * mode = _preferred_mode(c);
 		if (!mode) return;
-		if (mode->hdisplay > _config.width)  _config.width  = mode->hdisplay;
-		if (mode->vdisplay > _config.height) _config.height = mode->vdisplay;
+		if (mode->hdisplay > _config._lx.width)  _config._lx.width  = mode->hdisplay;
+		if (mode->vdisplay > _config._lx.height) _config._lx.height = mode->vdisplay;
 	});
 
-	_config.lx_obj =
-		dde_c_allocate_framebuffer(_config.width, _config.height, &_config.addr,
-	                               (uint64_t*)&_config.size, dde_drm_device);
-	_config.cap = _config.addr ? Lx::ioremap_lookup((addr_t)_config.addr, _config.size)
-	                           : Genode::Dataspace_capability();
+	lx_c_allocate_framebuffer(lx_drm_device, &_config._lx);
 
 	{
-		Drm_guard guard(dde_drm_device);
-		dde_for_each_connector(dde_drm_device, [&] (drm_connector *c) {
-		                       dde_c_set_mode(dde_drm_device, c, _config.lx_obj,
+		Drm_guard guard(lx_drm_device);
+		lx_for_each_connector(lx_drm_device, [&] (drm_connector *c) {
+		                       lx_c_set_mode(lx_drm_device, c, _config._lx.lx_fb,
 		                                      _preferred_mode(c)); });
 	}
 
-	if (old.addr)   Lx::iounmap(old.addr);
-	if (old.lx_obj) old.lx_obj->funcs->destroy(old.lx_obj);
+	if (old._lx.addr)  Lx::iounmap(old._lx.addr);
+	if (old._lx.lx_fb) old._lx.lx_fb->funcs->destroy(old._lx.lx_fb);
 }
 
 
 void Framebuffer::Driver::generate_report()
 {
-	Drm_guard guard(dde_drm_device);
+	Drm_guard guard(lx_drm_device);
 
 	/* detect mode information per connector */
 	{
 		struct drm_connector *c;
-		list_for_each_entry(c, &dde_drm_device->mode_config.connector_list,
+		list_for_each_entry(c, &lx_drm_device->mode_config.connector_list,
 		                    head)
 			if (list_empty(&c->modes)) c->funcs->fill_modes(c, 0, 0);
 	}
@@ -224,7 +218,7 @@ void Framebuffer::Driver::generate_report()
 		Genode::Reporter::Xml_generator xml(reporter, [&] ()
 		{
 			struct drm_connector *c;
-			list_for_each_entry(c, &dde_drm_device->mode_config.connector_list,
+			list_for_each_entry(c, &lx_drm_device->mode_config.connector_list,
 			                    head) {
 				xml.node("connector", [&] ()
 				{
@@ -871,8 +865,8 @@ int drm_dev_register(struct drm_device *dev, unsigned long flags)
 {
 	drm_get_minor(dev, &dev->primary, DRM_MINOR_LEGACY);
 
-	ASSERT(!dde_drm_device);
-	dde_drm_device = dev;
+	ASSERT(!lx_drm_device);
+	lx_drm_device = dev;
 	return dev->driver->load(dev, flags);
 }
 
@@ -1546,7 +1540,7 @@ void local_irq_enable()
 void drm_sysfs_hotplug_event(struct drm_device *dev)
 {
 	Framebuffer::Driver * driver = (Framebuffer::Driver*)
-		dde_c_get_driver(dde_drm_device);
+		lx_c_get_driver(lx_drm_device);
 
 	if (driver) {
 		DRM_DEBUG("generating hotplug event\n");
