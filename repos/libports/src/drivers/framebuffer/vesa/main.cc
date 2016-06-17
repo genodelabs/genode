@@ -63,7 +63,7 @@ unsigned long session_arg(const char *attr_name, const char *args,
 
 bool config_attribute(const char *attr_name)
 {
-	return Genode::config()->xml_node().attribute_value(attr_name, false); }
+	return Genode::config()->xml_node().attribute_value(attr_name, false);
 }
 
 
