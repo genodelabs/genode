@@ -1317,7 +1317,7 @@ static void configure_reporter(Genode::Reporter &reporter)
 	try {
 		Genode::Xml_node config_xml = Genode::config()->xml_node();
 		reporter.enabled(config_xml.sub_node("report")
-		                           .attribute_value(reporter.name().string(), false);
+		                           .attribute_value(reporter.name().string(), false));
 	} catch (...) {
 		reporter.enabled(false);
 	}
