@@ -12,9 +12,9 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
 #include <base/sleep.h>
 #include <base/thread.h>
+#include <base/log.h>
 
 /* core includes */
 #include <core_parent.h>
@@ -24,6 +24,7 @@
 #include <untyped_memory.h>
 
 /* base-internal includes */
+#include <base/internal/globals.h>
 #include <base/internal/stack_area.h>
 
 using namespace Genode;
@@ -83,6 +84,9 @@ bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, unsigned size)
 
 void Platform::_init_unused_phys_alloc()
 {
+	/* enable log support early */
+	init_log();
+
 	_unused_phys_alloc.add_range(0, ~0UL);
 }
 
@@ -113,8 +117,6 @@ void Platform::_init_allocators()
 
 		addr_t const base = range.phys + page_aligned_offset;
 		size_t const size = range.size - page_aligned_offset;
-
-		PDBG("register phys mem range 0x%lx size=0x%zx", base, size);
 
 		_core_mem_alloc.phys_alloc()->add_range(base, size);
 		_unused_phys_alloc.remove_range(base, size);
@@ -153,9 +155,11 @@ void Platform::_init_allocators()
 	_core_mem_alloc.virt_alloc()->remove_range(core_virt_beg, core_size);
 
 	if (verbose_boot_info) {
-		printf("core image:\n");
-		printf("  virtual address range [%08lx,%08lx) size=0x%zx\n",
-		       core_virt_beg, core_virt_end, core_size);
+		log("core image:");
+		log("  virtual address range [",
+		    Hex(core_virt_beg, Hex::OMIT_PREFIX, Hex::PAD), ",",
+		    Hex(core_virt_end, Hex::OMIT_PREFIX, Hex::PAD), ") size=",
+		    Hex(core_size));
 	}
 
 	/* preserve stack area in core's virtual address space */
@@ -238,9 +242,8 @@ void Platform::_switch_to_core_cspace()
 		                                  Core_cspace::TOP_CNODE_SEL, null_data,
 		                                  seL4_CapInitThreadPD, null_data);
 
-		if (ret != 0) {
-			PERR("%s: seL4_TCB_SetSpace returned %d", __FUNCTION__, ret);
-		}
+		if (ret != seL4_NoError)
+			error(__FUNCTION__, ": seL4_TCB_SetSpace returned ", ret);
 	}
 }
 
@@ -259,7 +262,7 @@ void Platform::_init_core_page_table_registry()
 	 * Register initial page tables
 	 */
 	addr_t virt_addr = (addr_t)(&_prog_img_beg);
-	for (unsigned sel = bi.userImagePTs.start; sel < bi.userImagePTs.end; sel++) {
+	for (unsigned sel = bi.userImagePaging.start; sel < bi.userImagePaging.end; sel++) {
 
 		_core_page_table_registry.insert_page_table(virt_addr, Cap_sel(sel));
 
@@ -303,7 +306,7 @@ void Platform::_init_rom_modules()
 		_unused_phys_alloc.alloc_aligned(modules_size, &out_ptr, get_page_size_log2());
 
 	if (alloc_ret.error()) {
-		PERR("could not reserve phys CNode space for boot modules");
+		error("could not reserve phys CNode space for boot modules");
 		struct Init_rom_modules_failed { };
 		throw Init_rom_modules_failed();
 	}
@@ -366,7 +369,7 @@ Platform::Platform()
 	_unused_phys_alloc(core_mem_alloc()),
 	_init_unused_phys_alloc_done((_init_unused_phys_alloc(), true)),
 	_vm_base(0x2000), /* 2nd page is used as IPC buffer of main thread */
-	_vm_size(2*1024*1024*1024UL - _vm_base), /* use the lower 2GiB */
+	_vm_size(3*1024*1024*1024UL - _vm_base), /* use the lower 3GiB */
 	_init_sel4_ipc_buffer_done((init_sel4_ipc_buffer(), true)),
 	_switch_to_core_cspace_done((_switch_to_core_cspace(), true)),
 	_core_page_table_registry(*core_mem_alloc()),
@@ -382,15 +385,16 @@ Platform::Platform()
 	               _core_page_table_registry)
 {
 	/*
-	 * Print statistics about allocator initialization
+	 * Log statistics about allocator initialization
 	 */
-	printf("VM area at [%08lx,%08lx)\n", _vm_base, _vm_base + _vm_size);
+	log("VM area at [", Hex(_vm_base, Hex::OMIT_PREFIX, Hex::PAD), ",",
+	    Hex(_vm_base + _vm_size, Hex::OMIT_PREFIX, Hex::PAD), ")");
 
 	if (verbose_boot_info) {
-		printf(":phys_alloc:       "); (*_core_mem_alloc.phys_alloc())()->dump_addr_tree();
-		printf(":unused_phys_alloc:"); _unused_phys_alloc()->dump_addr_tree();
-		printf(":virt_alloc:       "); (*_core_mem_alloc.virt_alloc())()->dump_addr_tree();
-		printf(":io_mem_alloc:     "); _io_mem_alloc()->dump_addr_tree();
+		log(":phys_alloc:       "); (*_core_mem_alloc.phys_alloc())()->dump_addr_tree();
+		log(":unused_phys_alloc:"); _unused_phys_alloc()->dump_addr_tree();
+		log(":virt_alloc:       "); (*_core_mem_alloc.virt_alloc())()->dump_addr_tree();
+		log(":io_mem_alloc:     "); _io_mem_alloc()->dump_addr_tree();
 	}
 
 	_init_rom_modules();

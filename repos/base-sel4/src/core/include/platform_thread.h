@@ -170,7 +170,7 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		/**
 		 * Get thread name
 		 */
-		const char *name() const { return "noname"; }
+		const char *name() const { return _name.string(); }
 
 
 		/*****************************

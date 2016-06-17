@@ -12,9 +12,9 @@
  */
 
 /* Genode includes */
-#include <base/ipc.h>
-#include <base/printf.h>
 #include <base/blocking.h>
+#include <base/ipc.h>
+#include <base/log.h>
 #include <base/thread.h>
 #include <util/misc_math.h>
 
@@ -173,12 +173,12 @@ static void decode_seL4_message(seL4_MessageInfo_t const &msg_info,
 			 * So it is already present within the capability space.
 			 */
 
-			unsigned const arg_badge =
+			unsigned long const arg_badge =
 				seL4_CapData_Badge_get_Badge(seL4_GetBadge(curr_sel4_cap_idx));
 
 			if (arg_badge != rpc_obj_key.value()) {
-				PWRN("argument badge (%d) != RPC object key (%d)",
-				     arg_badge, rpc_obj_key.value());
+				warning("argument badge (", arg_badge, ") != RPC object key (",
+				        rpc_obj_key.value(), ")");
 			}
 
 			Native_capability arg_cap = Capability_space::lookup(rpc_obj_key);
@@ -272,7 +272,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
                                     size_t)
 {
 	if (!dst.valid()) {
-		PERR("Trying to invoke an invalid capability, stop.");
+		error("Trying to invoke an invalid capability, stop.");
 		kernel_debugger_panic("IPC destination is invalid");
 	}
 

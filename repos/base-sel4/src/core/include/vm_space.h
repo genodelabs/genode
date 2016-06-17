@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <util/bit_allocator.h>
 #include <util/volatile_object.h>
+#include <base/log.h>
 #include <base/thread.h>
 
 /* core includes */
@@ -169,17 +170,16 @@ class Genode::Vm_space
 			 * Insert copy of page-frame selector into page table
 			 */
 			{
-				seL4_IA32_Page          const service = _idx_to_sel(pte_idx);
-				seL4_IA32_PageDirectory const pd      = _pd_sel.value();
-				seL4_Word               const vaddr   = to_virt;
-				seL4_CapRights          const rights  = seL4_AllRights;
-				seL4_IA32_VMAttributes  const attr    = seL4_IA32_Default_VMAttributes;
+				seL4_X86_Page          const service = _idx_to_sel(pte_idx);
+				seL4_X86_PageDirectory const pd      = _pd_sel.value();
+				seL4_Word              const vaddr   = to_virt;
+				seL4_CapRights         const rights  = seL4_AllRights;
+				seL4_X86_VMAttributes  const attr    = seL4_X86_Default_VMAttributes;
 
-				int const ret = seL4_IA32_Page_Map(service, pd, vaddr, rights, attr);
+				int const ret = seL4_X86_Page_Map(service, pd, vaddr, rights, attr);
 
-				if (ret != 0)
-					PERR("seL4_IA32_Page_Map to 0x%lx returned %d",
-					     (unsigned long)vaddr, ret);
+				if (ret != seL4_NoError)
+					error("seL4_X86_Page_Map to ", Hex(vaddr), " returned ", ret);
 			}
 		}
 
@@ -199,17 +199,14 @@ class Genode::Vm_space
 
 		void _map_page_table(Cap_sel pt_sel, addr_t to_virt)
 		{
-			seL4_IA32_PageTable     const service = pt_sel.value();
-			seL4_IA32_PageDirectory const pd      = _pd_sel.value();
-			seL4_Word               const vaddr   = to_virt;
-			seL4_IA32_VMAttributes  const attr    = seL4_IA32_Default_VMAttributes;
+			seL4_X86_PageTable     const service = pt_sel.value();
+			seL4_X86_PageDirectory const pd      = _pd_sel.value();
+			seL4_Word              const vaddr   = to_virt;
+			seL4_X86_VMAttributes  const attr    = seL4_X86_Default_VMAttributes;
 
-			PDBG("map page table 0x%lx to virt 0x%lx, pdir sel %lu",
-			     pt_sel.value(), to_virt, _pd_sel.value());
-
-			int const ret = seL4_IA32_PageTable_Map(service, pd, vaddr, attr);
-			if (ret != 0)
-				PDBG("seL4_IA32_PageTable_Map returned %d", ret);
+			int const ret = seL4_X86_PageTable_Map(service, pd, vaddr, attr);
+			if (ret != seL4_NoError)
+				error("seL4_X86_PageTable_Map returned ", ret);
 		}
 
 		class Alloc_page_table_failed : Exception { };

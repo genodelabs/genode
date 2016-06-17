@@ -93,7 +93,7 @@ struct Genode::Untyped_memory
 		for (size_t i = 0; i < num_pages; i++, phys_addr += get_page_size()) {
 
 			seL4_Untyped const service     = untyped_sel(phys_addr).value();
-			int          const type        = seL4_IA32_4K;
+			int          const type        = seL4_X86_4K;
 			int          const size_bits   = 0;
 			seL4_CNode   const root        = Core_cspace::TOP_CNODE_SEL;
 			int          const node_index  = Core_cspace::TOP_CNODE_PHYS_IDX;

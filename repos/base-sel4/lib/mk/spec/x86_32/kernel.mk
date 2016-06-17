@@ -17,11 +17,10 @@ build_kernel:
 	$(VERBOSE)$(MAKE) \
 	          TOOLPREFIX=$(CROSS_DEV_PREFIX) \
 	          ARCH=x86 SEL4_ARCH=ia32 PLAT=pc99 DEBUG=1 \
+	          CONFIG_KERNEL_EXTRA_CPPFLAGS="-DCONFIG_PRINTING=y -DCONFIG_USER_STACK_TRACE_LENGTH=16" \
 	          LDFLAGS+=-nostdlib LDFLAGS+=-Wl,-nostdlib \
 	          $(addprefix LDFLAGS+=$(LINKER_OPT_PREFIX),$(LD_MARCH)) \
 	          CFLAGS+="-fno-builtin-printf -O3" \
 	          $(addprefix CFLAGS+=,$(CC_MARCH)) \
-	          CONFIG_KERNEL_EXTRA_CPPFLAGS+=-DCONFIG_MAX_NUM_IOAPIC=1 \
-	          CONFIG_KERNEL_EXTRA_CPPFLAGS+=-DCONFIG_IRQ_IOAPIC=1 \
 	          SOURCE_ROOT=$(SEL4_DIR) -f$(SEL4_DIR)/Makefile
 

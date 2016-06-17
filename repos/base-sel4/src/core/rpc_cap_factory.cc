@@ -55,10 +55,14 @@ void Rpc_cap_factory::free(Native_capability cap)
 	if (!cap.valid())
 		return;
 
-	PDBG("not implemented");
-
 	/*
 	 * XXX check whether this CAP session has created the capability to delete.
 	 */
+
+	static uint64_t leakage = 0;
+
+	leakage ++;
+	if (1ULL << log2(leakage) == leakage)
+		warning(__PRETTY_FUNCTION__, " not implemented - resources leaked: ", Hex(leakage));
 }
 

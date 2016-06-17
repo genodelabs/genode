@@ -111,7 +111,7 @@ Capability_space::create_rpc_obj_cap(Native_capability ep_cap,
 		                                src_depth,
 		                                rights,
 		                                badge);
-		ASSERT(ret == 0);
+		ASSERT(ret == seL4_NoError);
 	}
 
 	return Native_capability(data);

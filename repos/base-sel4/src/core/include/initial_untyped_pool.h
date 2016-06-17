@@ -65,20 +65,6 @@ class Genode::Initial_untyped_pool
 			{ }
 		};
 
-		Initial_untyped_pool()
-		{
-			size_t total_bytes = 0;
-
-			PINF("initial untyped pool:");
-			for_each_range([&] (Range const &range) {
-				total_bytes += range.size;
-				PINF("  [%u] phys=0x%lx size=0x%zx",
-				     range.sel, range.phys, range.size);
-			});
-
-			PINF("  total: %zd bytes", total_bytes);
-		}
-
 		/**
 		 * Apply functor to each untyped memory range
 		 *
@@ -141,9 +127,6 @@ class Genode::Initial_untyped_pool
 					 * of 'alloc' to perform the actual kernel-object creation.
 					 */
 					range.free_offset = new_free_offset;
-
-					PDBG("alloc 0x%lx bytes from %u -> free index 0x%lx",
-					     1UL << size_log2, range.sel, range.free_offset);
 
 					/* return selector is matching range */
 					sel = range.sel;

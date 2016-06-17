@@ -1,0 +1,11 @@
+--- src/kernel/sel4/libsel4/tools/syscall_stub_gen.py
++++ src/kernel/sel4/libsel4/tools/syscall_stub_gen.py
+@@ -807,7 +807,7 @@ def main():
+             print "Invalid word size in configuration file."
+             sys.exit(2)
+     else:
+-        wordsize = args.wsize
++        wordsize = int(args.wsize)
+ 
+     if wordsize is -1:
+         print "Invalid word size."
