@@ -65,6 +65,8 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 		{ Sinfo::PHYSICAL_BASE_ADDR, Sinfo::SIZE },
 		/* Timer page */
 		{ Board::TIMER_BASE_ADDR, Board::TIMER_SIZE },
+		/* Optional guest timed event page for preemption */
+		{ Board::TIMER_PREEMPT_BASE_ADDR, Board::TIMER_PREEMPT_SIZE },
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }

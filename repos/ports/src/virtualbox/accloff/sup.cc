@@ -123,7 +123,13 @@ void genode_update_tsc(void (*update_func)(void), unsigned long update_us)
 }
 
 
-bool Vmm_memory::revoke_from_vm(Region *r)
+HRESULT genode_setup_machine(ComObjPtr<Machine> machine)
+{
+	return genode_check_memory_config(machine);
+}
+
+
+bool Vmm_memory::revoke_from_vm(Mem_region *r)
 {
 	PWRN("%s unimplemented", __func__);
 	return false;
