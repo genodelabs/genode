@@ -31,7 +31,7 @@ static constexpr bool verbose = false;
 QGenodeClipboard::QGenodeClipboard(Genode::Signal_receiver &sig_rcv)
 : _clipboard_signal_dispatcher(sig_rcv, *this, &QGenodeClipboard::_handle_clipboard)
 {
-	if (Genode::config()->xml_node().attribute_value("clipboard" false) {
+	if (Genode::config()->xml_node().attribute_value("clipboard", false)) {
 
 		try {
 
