@@ -165,7 +165,13 @@ struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align
 	 * XXX SLAB_LX_DMA is never used anywhere else, remove it?
 	 */
 	enum { SLAB_LX_DMA = 0x80000000ul, };
-	return new (Genode::env()->heap()) kmem_cache(size, flags & SLAB_LX_DMA, ctor);
+	return new (Lx::Malloc::mem()) kmem_cache(size, flags & SLAB_LX_DMA, ctor);
+}
+
+
+void kmem_cache_destroy(struct kmem_cache *cache)
+{
+	destroy(Lx::Malloc::mem(), cache);
 }
 
 

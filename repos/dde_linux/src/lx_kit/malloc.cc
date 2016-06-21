@@ -382,7 +382,3 @@ Lx::Malloc &Lx::Malloc::mem() {
 Lx::Malloc &Lx::Malloc::dma() {
 	return Lx_kit::Malloc::dma(); }
 
-/**
- * Placement new for Malloc allocator
- */
-void *operator new (Genode::size_t s, Lx::Malloc &a) { return a.alloc(s); }
