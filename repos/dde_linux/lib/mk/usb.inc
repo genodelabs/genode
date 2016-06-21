@@ -38,7 +38,7 @@ MOD_SUFFIX =
 CC_OPT += -DMOD_SUFFIX=$(MOD_SUFFIX)
 
 # lx_kit
-SRC_CC += printf.cc work.cc timer.cc scheduler.cc irq.cc malloc.cc
+SRC_CC += printf.cc work.cc timer.cc scheduler.cc irq.cc malloc.cc env.cc
 
 # common lib
 SRC_C += lib/int_sqrt.c

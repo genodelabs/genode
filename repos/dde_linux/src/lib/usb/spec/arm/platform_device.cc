@@ -14,6 +14,7 @@
 #include <os/attached_io_mem_dataspace.h>
 #include <lx_emul.h>
 
+#include <lx_kit/malloc.h>
 
 #define to_platform_driver(drv) (container_of((drv), struct platform_driver, \
                                  driver))
@@ -197,7 +198,7 @@ void platform_set_drvdata(struct platform_device *pdev, void *data)
 void *_ioremap(phys_addr_t phys_addr, unsigned long size, int wc)
 {
 	try {
-		Genode::Attached_io_mem_dataspace *ds = new(Genode::env()->heap())
+		Genode::Attached_io_mem_dataspace *ds = new(Lx::Malloc::mem())
 		                                        Genode::Attached_io_mem_dataspace(phys_addr, size, !!wc);
 		return ds->local_addr<void>();
 	} catch (...) {

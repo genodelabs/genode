@@ -17,6 +17,12 @@
 #ifndef _ARM__PLATFORM_DEVICE__PLATFORM_DEVICE_H_
 #define _ARM__PLATFORM_DEVICE__PLATFORM_DEVICE_H_
 
+
+#include <lx_emul/extern_c_begin.h>
+#include <lx_emul/printf.h>
+#include <lx_emul/extern_c_end.h>
+
+#include <lx_kit/malloc.h>
 #include <platform_device/device.h>
 
 #include <irq_session/connection.h>
@@ -46,7 +52,7 @@ struct Platform::Device : Platform::Abstract_device, Genode::List<Device>::Eleme
 	                                         Genode::Cache_attribute,
 	                                         Genode::addr_t, Genode::size_t) override
 	{
-		PERR("%s: not implemented", __PRETTY_FUNCTION__);
+		lx_printf("%s: not implemented\n", __PRETTY_FUNCTION__);
 		return Genode::Io_mem_session_capability();
 	}
 
@@ -63,7 +69,7 @@ struct Platform::Device : Platform::Abstract_device, Genode::List<Device>::Eleme
 			if (d->irq_num == irq_num)
 				return *d;
 
-		d = new (Genode::env()->heap()) Device(irq_num);
+		d = new (Lx::Malloc::mem()) Device(irq_num);
 		list().insert(d);
 
 		return *d;

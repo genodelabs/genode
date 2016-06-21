@@ -14,6 +14,7 @@
 #ifndef _USB_NIC_COMPONENT_H_
 #define _USB_NIC_COMPONENT_H_
 
+#include <base/log.h>
 #include <nic/component.h>
 #include <root/component.h>
 
@@ -148,7 +149,7 @@ class Usb_nic::Session_component : public Nic::Session_component
 
 			Genode::Packet_descriptor packet = _tx.sink()->get_packet();
 			if (!packet.size()) {
-				PWRN("Invalid tx packet");
+				Genode::warning("Invalid tx packet");
 				return true;
 			}
 
@@ -178,7 +179,7 @@ class Usb_nic::Session_component : public Nic::Session_component
 		                  Genode::size_t const rx_buf_size,
 		                  Genode::Allocator   &rx_block_md_alloc,
 		                  Genode::Ram_session &ram_session,
-		                  Server::Entrypoint  &ep,
+		                  Genode::Entrypoint  &ep,
 		                  Device *device)
 		: Nic::Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, ram_session, ep),
 			_device(device)
@@ -222,7 +223,7 @@ class Root : public Root_component
 {
 	private:
 
-		Server::Entrypoint &_ep;
+		Genode::Env        &_env;
 		Usb_nic::Device    *_device;
 
 	protected:
@@ -246,24 +247,24 @@ class Root : public Root_component
 			 */
 			if (tx_buf_size + rx_buf_size < tx_buf_size ||
 			    tx_buf_size + rx_buf_size > ram_quota - session_size) {
-				PERR("insufficient 'ram_quota', got %zd, need %zd",
-				     ram_quota, tx_buf_size + rx_buf_size + session_size);
+				Genode::error("insufficient 'ram_quota', got ", ram_quota, " need %zd",
+				              tx_buf_size + rx_buf_size + session_size);
 				throw Genode::Root::Quota_exceeded();
 			}
 
 			return new (Root::md_alloc())
 			            Usb_nic::Session_component(tx_buf_size, rx_buf_size,
-			                                       *env()->heap(),
-			                                       *env()->ram_session(),
-			                                       _ep, _device);
+			                                       Lx::Malloc::mem(),
+			                                       _env.ram(),
+			                                       _env.ep(), _device);
 		}
 
 	public:
 
-		Root(Server::Entrypoint &ep, Genode::Allocator &md_alloc,
+		Root(Genode::Env &env, Genode::Allocator &md_alloc,
 		     Usb_nic::Device *device)
-		: Root_component(&ep.rpc_ep(), &md_alloc),
-			_ep(ep), _device(device)
+		: Root_component(&env.ep().rpc_ep(), &md_alloc),
+			_env(env), _device(device)
 		{ }
 };
 

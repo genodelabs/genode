@@ -14,6 +14,7 @@
 #define _INCLUDE__USB__USB_H_
 
 #include <base/allocator.h>
+#include <base/entrypoint.h>
 #include <usb/types.h>
 #include <usb/packet_handler.h>
 #include <usb_session/connection.h>
@@ -451,7 +452,7 @@ class Usb::Device : public Meta_data
 		String serial_number_string;
 
 		Device(Genode::Allocator * const md_alloc, Connection &connection,
-		       Server::Entrypoint &ep)
+		       Genode::Entrypoint &ep)
 		: Meta_data(md_alloc, connection, _handler), _handler(connection, ep)
 		{ }
 

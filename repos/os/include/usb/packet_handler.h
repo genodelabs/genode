@@ -24,8 +24,13 @@ class Usb::Packet_handler
 	private:
 
 		Usb::Connection                  &_connection;
-		Signal_rpc_member<Packet_handler> _rpc_ack_avail;
-		Signal_rpc_member<Packet_handler> _rpc_ready_submit;
+		Genode::Entrypoint               &_ep;
+
+		Signal_rpc_member<Packet_handler> _rpc_ack_avail =
+			{_ep, *this, &Packet_handler::_packet_handler };
+
+		Signal_rpc_member<Packet_handler> _rpc_ready_submit =
+			{ _ep, *this, &Packet_handler::_ready_handler };
 
 		bool _ready_submit = true;
 
@@ -51,10 +56,8 @@ class Usb::Packet_handler
 
 	public:
 
-		Packet_handler(Connection &connection, Server::Entrypoint &ep)
-		: _connection(connection),
-		  _rpc_ack_avail(ep, *this, &Packet_handler::_packet_handler),
-		  _rpc_ready_submit(ep, *this, &Packet_handler::_ready_handler)
+		Packet_handler(Connection &connection, Genode::Entrypoint &ep)
+		: _connection(connection), _ep(ep)
 		{
 			/* connect 'ack_avail' to our rpc member */
 			_connection.tx_channel()->sigh_ack_avail(_rpc_ack_avail);
@@ -73,7 +76,7 @@ class Usb::Packet_handler
 
 		void wait_for_packet()
 		{
-			packet_avail() ? _packet_handler(0) : Server::wait_and_dispatch_one_signal();
+			packet_avail() ? _packet_handler(0) : _ep.wait_and_dispatch_one_signal();
 		}
 
 		Packet_descriptor alloc(size_t size)
@@ -104,7 +107,7 @@ class Usb::Packet_handler
 
 				/* wait for ready_to_submit signal */
 				while (!_ready_submit)
-					Server::wait_and_dispatch_one_signal();
+					_ep.wait_and_dispatch_one_signal();
 			}
 
 			_connection.source()->submit_packet(p);

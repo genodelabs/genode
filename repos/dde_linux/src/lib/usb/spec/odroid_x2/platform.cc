@@ -130,18 +130,18 @@ static void clock_pwr_init()
 	reg_pwr.state(true);
 }
 
-static void usb_phy_init()
+static void usb_phy_init(Genode::Env &env)
 {
-	Io_mem_connection io_usbotg(USBOTG, 0x1000);
-	addr_t usbotg_base = (addr_t)env()->rm_session()->attach(io_usbotg.dataspace());
+	Io_mem_connection io_usbotg(env, USBOTG, 0x1000);
+	addr_t usbotg_base = (addr_t)env.rm().attach(io_usbotg.dataspace());
 	Usb_Otg usbotg(usbotg_base);
-	env()->rm_session()->detach(usbotg_base);
+	env.rm().detach(usbotg_base);
 }
 
-static void odroidx2_ehci_init()
+static void odroidx2_ehci_init(Genode::Env &env)
 {
 	clock_pwr_init();
-	usb_phy_init();
+	usb_phy_init(env);
 
 	/* reset hub via GPIO */
 	enum { X30 = 294, X34 = 298, X35 = 299 };
@@ -161,12 +161,12 @@ static void odroidx2_ehci_init()
 	gpio_x34.write(true);
 
 	/* reset ehci controller */
-	Io_mem_connection io_ehci(EHCI_BASE, 0x1000);
-	addr_t ehci_base = (addr_t)env()->rm_session()->attach(io_ehci.dataspace());
+	Io_mem_connection io_ehci(env, EHCI_BASE, 0x1000);
+	addr_t ehci_base = (addr_t)env.rm().attach(io_ehci.dataspace());
 
 	Ehci ehci(ehci_base);
 
-	env()->rm_session()->detach(ehci_base);
+	env.rm().detach(ehci_base);
 }
 
 extern "C" void module_ehci_exynos_init();
@@ -187,7 +187,7 @@ void ehci_setup(Services *services)
 	module_ehci_exynos_init();
 
 	/* setup controller */
-	odroidx2_ehci_init();
+	odroidx2_ehci_init(services->env);
 
 	/* setup EHCI-controller platform device */
 	platform_device *pdev   = (platform_device *)kzalloc(sizeof(platform_device), 0);

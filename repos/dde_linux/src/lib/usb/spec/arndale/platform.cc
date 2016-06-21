@@ -116,7 +116,7 @@ static void gpio_direction_output(Gpio_bank *bank, int gpio, int en)
 }
 
 
-static void arndale_ehci_init()
+static void arndale_ehci_init(Genode::Env &env)
 {
 	enum Gpio_offset { D1 = 0x180, X3 = 0xc60 };
 
@@ -128,8 +128,8 @@ static void arndale_ehci_init()
 	reg_pwr.state(true);
 
 	/* reset hub via GPIO */
-	Io_mem_connection io_gpio(GPIO_BASE, 0x1000);
-	addr_t gpio_base = (addr_t)env()->rm_session()->attach(io_gpio.dataspace());
+	Io_mem_connection io_gpio(env, GPIO_BASE, 0x1000);
+	addr_t gpio_base = (addr_t)env.rm().attach(io_gpio.dataspace());
 
 	Gpio_bank *d1 = reinterpret_cast<Gpio_bank *>(gpio_base + D1);
 	Gpio_bank *x3 = reinterpret_cast<Gpio_bank *>(gpio_base + X3);
@@ -142,14 +142,14 @@ static void arndale_ehci_init()
 	gpio_direction_output(x3, 5, 1);
 	gpio_direction_output(d1, 7, 1);
 
-	env()->rm_session()->detach(gpio_base);
+	env.rm().detach(gpio_base);
 
 	/* reset ehci controller */
-	Io_mem_connection io_ehci(EHCI_BASE, 0x1000);
-	addr_t ehci_base = (addr_t)env()->rm_session()->attach(io_ehci.dataspace());
+	Io_mem_connection io_ehci(env, EHCI_BASE, 0x1000);
+	addr_t ehci_base = (addr_t)env.rm().attach(io_ehci.dataspace());
 
 	Ehci ehci(ehci_base);
-	env()->rm_session()->detach(ehci_base);
+	env.rm().detach(ehci_base);
 }
 
 
@@ -267,7 +267,7 @@ struct Phy_usb3 : Genode::Mmio
 };
 
 
-static void arndale_xhci_init()
+static void arndale_xhci_init(Genode::Env &env)
 {
 	/* enable USB3 clock and power up */
 	static Regulator::Connection reg_clk(Regulator::CLK_USB30);
@@ -277,7 +277,7 @@ static void arndale_xhci_init()
 	reg_pwr.state(true);
 
 	/* setup PHY */
-	Attached_io_mem_dataspace io_phy(DWC3_PHY_BASE, 0x1000);
+	Attached_io_mem_dataspace io_phy(env, DWC3_PHY_BASE, 0x1000);
 	Phy_usb3 phy((addr_t)io_phy.local_addr<addr_t>());
 }
 
@@ -300,7 +300,7 @@ void ehci_setup(Services *services)
 	module_ehci_exynos_init();
 
 	/* setup controller */
-	arndale_ehci_init();
+	arndale_ehci_init(services->env);
 
 	/* setup EHCI-controller platform device */
 	platform_device *pdev   = (platform_device *)kzalloc(sizeof(platform_device), 0);
@@ -326,7 +326,7 @@ void xhci_setup(Services *services)
 	module_dwc3_driver_init();
 	module_xhci_plat_init();
 
-	arndale_xhci_init();
+	arndale_xhci_init(services->env);
 
 	/* setup DWC3-controller platform device */
 	platform_device *pdev   = (platform_device *)kzalloc(sizeof(platform_device), 0);

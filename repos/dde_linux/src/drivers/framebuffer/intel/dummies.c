@@ -659,11 +659,6 @@ unsigned int jiffies_to_usecs(const unsigned long j)
 	return -1;
 }
 
-void kmem_cache_destroy(struct kmem_cache *cache)
-{
-	TRACE_AND_STOP;
-}
-
 int kobject_uevent_env(struct kobject *kobj, enum kobject_action action, char *envp[])
 {
 	TRACE_AND_STOP;

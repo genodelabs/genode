@@ -17,13 +17,15 @@
 #include <cap_session/connection.h>
 #include <nic/xml_node.h>
 #include <util/xml_node.h>
-#include <os/config.h>
 
 #include <lx_emul.h>
 #include <lx_emul/extern_c_begin.h>
 #include <linux/usb.h>
 #include <linux/usb/usbnet.h>
 #include <lx_emul/extern_c_end.h>
+
+#include <lx_kit/env.h>
+#include <lx_kit/malloc.h>
 
 #include <usb_nic_component.h>
 #include "signal.h"
@@ -176,7 +178,7 @@ class Nic_device : public Usb_nic::Device
 		 * Add device
 		 */
 		static Nic_device *add(struct net_device *ndev) {
-			return new (Genode::env()->heap()) Nic_device(ndev); }
+			return new (Lx::Malloc::mem()) Nic_device(ndev); }
 
 		/**
 		 * Report link state
@@ -244,7 +246,7 @@ class Nic_device : public Usb_nic::Device
 			_ndev->netdev_ops->ndo_start_xmit(skb, _ndev); 
 
 			if (dropped < dev->net->stats.tx_dropped)
-				PWRN("Dropped SKB");
+				Genode::warning("Dropped SKB");
 		}
 
 		/**
@@ -254,7 +256,7 @@ class Nic_device : public Usb_nic::Device
 		{
 			struct usbnet *dev = (usbnet *)netdev_priv(_ndev);
 			if(!_tx_fixup || !_tx_fixup(dev, skb, 0))
-				PERR("Tx fixup error");
+				Genode::error("Tx fixup error");
 		}
 
 
@@ -302,8 +304,8 @@ class Nic_device : public Usb_nic::Device
 static Nic_device *_nic = 0;
 
 
-void Nic::init(Server::Entrypoint &ep) {
-	_signal = new (Genode::env()->heap()) Signal_helper(ep); }
+void Nic::init(Genode::Env &env) {
+	_signal = new (Lx::Malloc::mem()) Signal_helper(env); }
 
 
 /***********************
@@ -320,7 +322,7 @@ int register_netdev(struct net_device *ndev)
 
 	/* XXX: move to 'main' */
 	if (!announce) {
-		static ::Root root(_signal->ep(), *env()->heap(), nic);
+		static ::Root root(_signal->env(), Lx::Malloc::mem(), nic);
 
 		announce = true;
 
@@ -334,7 +336,7 @@ int register_netdev(struct net_device *ndev)
 			ndev->netdev_ops->ndo_set_rx_mode(ndev);
 
 		_nic = nic;
-		env()->parent()->announce(_signal->ep().rpc_ep().manage(&root));
+		_signal->parent().announce(_signal->ep().rpc_ep().manage(&root));
 	}
 
 	return err;
@@ -387,7 +389,7 @@ int netif_rx(struct sk_buff *skb)
 		try {
 		_stat.data(new (skb->data) Net::Ethernet_frame(skb->len), skb->len);
 		} catch(Net::Ethernet_frame::No_ethernet_frame) {
-			PWRN("No ether frame");
+			Genode::warning("No ether frame");
 		}
 	}
 #endif
@@ -441,7 +443,7 @@ struct sk_buff *netdev_alloc_skb_ip_align(struct net_device *dev, unsigned int l
 void dev_kfree_skb(struct sk_buff *skb)
 {
 	lx_log(DEBUG_SKB, "free skb: %p start: %p cloned: %d",
-	            skb, skb->start, skb->cloned);
+	       skb, skb->start, skb->cloned);
 
 	if (skb->cloned) {
 		skb->start = skb->clone;
@@ -466,8 +468,8 @@ void kfree_skb(struct sk_buff *skb) { dev_kfree_skb(skb); }
 void skb_reserve(struct sk_buff *skb, int len)
 {
 	if ((skb->data + len) > skb->end) {
-		PERR("Error resevring SKB data: skb: %p data: %p end: %p len: %d",
-		     skb, skb->data, skb->end, skb->len);
+		Genode::error("Error resevring SKB data: skb: ", skb,  " data: ", skb->data,
+		              " end: ", skb->end,  "len: ", skb->len);
 		return;
 	}
 	skb->data += len;
@@ -481,8 +483,8 @@ void skb_reserve(struct sk_buff *skb, int len)
 unsigned char *skb_push(struct sk_buff *skb, unsigned int len)
 {
 	if((skb->data - len) < skb->start) {
-		PERR("Error SKB head room too small: %p data: %p start: %p len: %u",
-		     skb, skb->data, skb->start, len);
+		Genode::error("Error SKB head room too small: ", skb, " data: ", skb->data,
+		              " start: ", skb->start, " len: ", len);
 		return 0;
 	}
 
@@ -500,8 +502,8 @@ unsigned char *skb_push(struct sk_buff *skb, unsigned int len)
 unsigned char *skb_put(struct sk_buff *skb, unsigned int len)
 {
 	if ((skb->data + len > skb->end)) {
-		PERR("Error increasing SKB length: skb: %p data: %p end: %p len: %u",
-		      skb, skb->data, skb->end, len);
+		Genode::error("Error increasing SKB length: skb: ", skb, " data: ", skb->data,
+		              " end: ", skb->end,  " len: ", len);
 		return 0;
 	}
 
@@ -535,8 +537,8 @@ int skb_tailroom(const struct sk_buff *skb)
 unsigned char *skb_pull(struct sk_buff *skb, unsigned int len)
 {
 	if (len > skb->len) {
-		PERR("Error try to pull too much: skb: %p len: %u pull len: %u",
-		     skb, skb->len, len);
+		Genode::error("Error try to pull too much: skb: ", skb, " len: ", skb->len,
+		              " pull len: ", len);
 		return 0;
 	}
 	skb->len -= len;
@@ -551,8 +553,8 @@ unsigned char *skb_pull(struct sk_buff *skb, unsigned int len)
 void skb_trim(struct sk_buff *skb, unsigned int len)
 {
 	if (skb->len <= len) {
-		PERR("Error trimming to %u bytes skb: %p data: %p start: %p len %u ret: %p",
-		     len, skb, skb->data, skb->start, skb->len, __builtin_return_address((0)));
+		Genode::error("Error trimming to ", len, " bytes skb: ", skb, " data: ",
+		              skb->data, "  start: ", skb->start,  " len ", skb->len);
 		return;
 	}
 
@@ -708,16 +710,17 @@ void random_ether_addr(u8 *addr)
 	u8 fallback[] = { 0x2e, 0x60, 0x90, 0x0c, 0x4e, 0x01 };
 	Nic::Mac_address mac;
 
+	Xml_node config_node = Lx_kit::env().config_rom().xml();
+
 	/* try using configured mac */
 	try {
-		Xml_node nic_config = config()->xml_node().sub_node("nic");
+		Xml_node nic_config = config_node.sub_node("nic");
 		Xml_node::Attribute mac_node = nic_config.attribute("mac");
 		mac_node.value(&mac);
 	} catch (...) {
 	/* use fallback mac */
 		snprint_mac(str, fallback);
-		PWRN("No mac address or wrong format attribute in <nic> - using fallback (%s)",
-		     str);
+		Genode::warning("No mac address or wrong format attribute in <nic> - using fallback (", str, ")");
 
 		Genode::memcpy(addr, fallback, ETH_ALEN);
 		return;
@@ -726,7 +729,7 @@ void random_ether_addr(u8 *addr)
 	/* use configured mac*/
 	Genode::memcpy(addr, mac.addr, ETH_ALEN);
 	snprint_mac(str, (u8 *)mac.addr);
-	PINF("Using configured mac: %s", str);
+	Genode::log("Using configured mac: ", str);
 
 #ifdef GENODE_NET_STAT
 	_stat.set_mac(mac.addr);

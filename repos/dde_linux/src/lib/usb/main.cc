@@ -16,17 +16,17 @@
 
 
 /* Genode */
-#include <base/printf.h>
 #include <base/sleep.h>
 #include <os/server.h>
 #include <nic_session/nic_session.h>
 
 /* Local */
-#include <platform.h>
 #include <signal.h>
 #include <lx_emul.h>
 
+#include <lx_kit/env.h>
 #include <lx_kit/irq.h>
+#include <lx_kit/malloc.h>
 #include <lx_kit/scheduler.h>
 #include <lx_kit/timer.h>
 #include <lx_kit/work.h>
@@ -53,7 +53,7 @@ struct workqueue_struct *system_power_efficient_wq;
 struct workqueue_struct *system_wq;
 struct workqueue_struct *tasklet_wq;
 
-void breakpoint() { PDBG("BREAK"); }
+void breakpoint() { Genode::log("BREAK"); }
 
 extern "C" int stdout_write(const char *);
 
@@ -103,25 +103,26 @@ static void run_linux(void *s)
 }
 
 
-void start_usb_driver(Server::Entrypoint &ep)
+void start_usb_driver(Genode::Env &env)
 {
-	static Services services;
+	/* initialize USB env */
+	Lx_kit::construct_env(env);
+	static Services services(env);
 
 	if (services.hid)
-		start_input_service(&ep.rpc_ep(), &services);
+		start_input_service(&env.ep().rpc_ep(), &services);
 
-	Storage::init(ep);
-	Nic::init(ep);
+	Storage::init(env);
+	Nic::init(env);
 
 	if (services.raw)
-		Raw::init(ep, services.raw_report_device_list);
+		Raw::init(env, services.raw_report_device_list);
 
 	Lx::Scheduler &sched  = Lx::scheduler();
-	Lx::Timer &timer = Lx::timer(&ep, &jiffies);
+	Lx::Timer &timer = Lx::timer(&env.ep(), &jiffies);
 
-	Lx::Irq::irq(&ep, Genode::env()->heap());
-	Lx::Work::work_queue(Genode::env()->heap());
-
+	Lx::Irq::irq(&env.ep(), &Lx_kit::env().heap());
+	Lx::Work::work_queue(&Lx_kit::env().heap());
 
 	static Lx::Task linux(run_linux, &services, "linux", Lx::Task::PRIORITY_0,
 	                      Lx::scheduler());

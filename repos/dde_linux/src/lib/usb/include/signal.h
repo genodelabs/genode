@@ -14,10 +14,9 @@
 #ifndef _SIGNAL_H_
 #define _SIGNAL_H_
 
-#include <base/env.h>
-#include <base/printf.h>
+#include <platform.h>
+
 #include <base/signal.h>
-#include <os/server.h>
 
 static bool const verbose = false;
 
@@ -28,32 +27,34 @@ class Signal_helper
 {
 	private:
 
-		Server::Entrypoint        &_ep;
-		Genode::Signal_transmitter _sender;
+		Genode::Env                &_env;
+		Genode::Signal_transmitter  _sender;
 
 	public:
 
-		Signal_helper(Server::Entrypoint &ep) : _ep(ep) { }
+		Signal_helper(Genode::Env &env) : _env(env) { }
 
-		Server::Entrypoint         &ep()     { return _ep;      }
-		Genode::Signal_transmitter &sender() { return _sender; }
+		Genode::Entrypoint         &ep()     { return _env.ep(); }
+		Genode::Signal_transmitter &sender() { return _sender;   }
+		Genode::Parent             &parent() { return _env.parent(); } 
+		Genode::Env                &env()    { return _env; }
 };
-
 
 
 namespace Storage
 {
-	void init(Server::Entrypoint &ep);
+	void init(Genode::Env &env);
 }
 
 namespace Nic
 {
-	void init(Server::Entrypoint &ep);
+	void init(Genode::Env &env);
 }
 
 namespace Raw
 {
-	void init(Server::Entrypoint &ep, bool report_device_list);
+	void init(Genode::Env &env, bool report_device_list);
 }
+
 
 #endif /* _SIGNAL_H_ */

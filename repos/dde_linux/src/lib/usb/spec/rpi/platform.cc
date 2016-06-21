@@ -204,7 +204,7 @@ extern "C" long name() { return retval; }
 
 int in_irq()
 {
-	TRACE; PDBG("called by %p", __builtin_return_address(0));
+	TRACE;
 	return 0;
 }
 

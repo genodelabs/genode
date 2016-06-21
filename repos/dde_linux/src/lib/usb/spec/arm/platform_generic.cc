@@ -11,11 +11,10 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/env.h>
-
 #include <lx_emul/irq.h>
-
+#include <base/env.h>
 #include <lx_kit/backend_alloc.h>
+#include <lx_kit/env.h>
 #include <lx_kit/irq.h>
 
 
@@ -25,11 +24,11 @@
 
 Genode::Ram_dataspace_capability
 Lx::backend_alloc(Genode::addr_t size, Genode::Cache_attribute cached) {
-	return Genode::env()->ram_session()->alloc(size, cached); }
+	return Lx_kit::env().env().ram().alloc(size, cached); }
 
 
 void Lx::backend_free(Genode::Ram_dataspace_capability cap) {
-	return Genode::env()->ram_session()->free(cap); }
+	return Lx_kit::env().env().ram().free(cap); }
 
 
 /***********************
