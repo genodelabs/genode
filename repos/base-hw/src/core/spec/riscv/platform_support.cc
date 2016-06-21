@@ -34,6 +34,8 @@ void Platform::_init_io_port_alloc() { }
 
 void Platform::_init_io_mem_alloc() { }
 
+void Platform::_init_additional() { }
+
 void Platform::setup_irq_mode(unsigned, unsigned, unsigned) { }
 
 long Platform::irq(long const user_irq) { return 0; }
