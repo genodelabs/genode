@@ -262,7 +262,6 @@ struct Vfs_server::Directory : Node
 		size_t remains = len;
 
 		while (remains >= blocksize) {
-			memset(&vfs_dirent, 0x00, sizeof(vfs_dirent));
 			if (vfs.dirent(path(), index++, vfs_dirent)
 				!= Vfs::Directory_service::DIRENT_OK)
 				return len - remains;

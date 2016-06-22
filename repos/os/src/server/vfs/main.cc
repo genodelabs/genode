@@ -452,10 +452,8 @@ class Vfs_server::Session_component :
 
 			Node &node = _lookup(node_handle);
 
-			if (_vfs.stat(node.path(), vfs_stat) != Directory_service::STAT_OK) {
-				memset(&fs_stat, 0x00, sizeof(fs_stat));
+			if (_vfs.stat(node.path(), vfs_stat) != Directory_service::STAT_OK)
 				return fs_stat;
-			}
 
 			fs_stat.inode = vfs_stat.inode;
 

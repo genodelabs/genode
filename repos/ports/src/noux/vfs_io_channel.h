@@ -85,8 +85,9 @@ namespace Noux {
 			 * 'sysio.stat_in' is not used in '_fh->ds().stat()',
 			 * so no 'sysio' member translation is needed here
 			 */
-			sysio->error.stat =  _fh->ds().stat(_leaf_path.base(),
-			                                    sysio->fstat_out.st);
+			Vfs::Directory_service::Stat stat;
+			sysio->error.stat =  _fh->ds().stat(_leaf_path.base(), stat);
+			sysio->fstat_out.st = stat;
 
 			return (sysio->error.stat == Vfs::Directory_service::STAT_OK);
 
@@ -149,9 +150,10 @@ namespace Noux {
 			 * Align index range to zero when calling the directory service.
 			 */
 
-			if (!_fh->ds().dirent(_path.base(), index - 2,
-			                      sysio->dirent_out.entry))
+			Vfs::Directory_service::Dirent dirent;
+			if (!_fh->ds().dirent(_path.base(), index - 2, dirent))
 				return false;
+			sysio->dirent_out.entry = dirent;
 
 			_fh->advance_seek(sizeof(Sysio::Dirent));
 			return true;

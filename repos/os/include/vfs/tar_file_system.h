@@ -425,6 +425,8 @@ class Vfs::Tar_file_system : public File_system
 			if (verbose)
 				PDBG("path = %s", path);
 
+			out = Stat();
+
 			Node const *node = dereference(path);
 			if (!node)
 				return STAT_ERR_NO_ENTRY;
@@ -433,7 +435,6 @@ class Vfs::Tar_file_system : public File_system
 				if (verbose)
 					PDBG("found a virtual directoty node");
 
-				memset(&out, 0, sizeof(out));
 				out.mode = STAT_MODE_DIRECTORY;
 				return STAT_OK;
 			}
@@ -452,7 +453,6 @@ class Vfs::Tar_file_system : public File_system
 					PDBG("unhandled record type %d", record->type());
 			}
 
-			memset(&out, 0, sizeof(out));
 			out.mode  = mode;
 			out.size  = record->size();
 			out.uid   = record->uid();

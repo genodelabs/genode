@@ -255,7 +255,7 @@ class Vfs::Fs_file_system : public File_system
 			catch (::File_system::Lookup_failed)   { return STAT_ERR_NO_ENTRY; }
 			catch (::File_system::Out_of_metadata) { return STAT_ERR_NO_PERM;  }
 
-			memset(&out, 0, sizeof(out));
+			out = Stat();
 
 			out.size = status.size;
 			out.mode = STAT_MODE_FILE | 0777;
