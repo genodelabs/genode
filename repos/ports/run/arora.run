@@ -142,7 +142,7 @@ build_boot_image $boot_modules
 
 append qemu_args " -m 512 "
 
-append_if [have_spec x86]     qemu_args " -net nic,model=pcnet "
+append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
 append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
 
 append qemu_args " -net user "

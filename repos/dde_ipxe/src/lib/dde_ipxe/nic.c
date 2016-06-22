@@ -40,7 +40,6 @@ extern struct pci_driver
 	realtek_driver,
 	ifec_driver,
 	intel_driver,
-	pcnet32_driver,
 	tg3_pci_driver;
 
 
@@ -51,7 +50,6 @@ static struct pci_driver *pci_drivers[] = {
 	&realtek_driver,
 	&ifec_driver,
 	&intel_driver,
-	&pcnet32_driver,
 	&tg3_pci_driver
 };
 

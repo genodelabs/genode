@@ -11,7 +11,7 @@ SRC_C += $(addprefix net/, ethernet.c netdevice.c nullnet.c eth_slow.c iobpad.c)
 SRC_C += $(addprefix drivers/bus/, pciextra.c)
 SRC_C += $(addprefix drivers/bitbash/, bitbash.c spi_bit.c)
 SRC_C += $(addprefix drivers/nvs/, nvs.c threewire.c)
-SRC_C += $(addprefix drivers/net/, pcnet32.c intel.c eepro100.c realtek.c mii.c)
+SRC_C += $(addprefix drivers/net/, intel.c eepro100.c realtek.c mii.c)
 SRC_C += $(addprefix drivers/net/tg3/, tg3.c tg3_hw.c tg3_phy.c)
 
 INC_DIR += $(LIB_DIR)/include
