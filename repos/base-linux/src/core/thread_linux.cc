@@ -17,6 +17,7 @@
 
 /* base-internal includes */
 #include <base/internal/native_thread.h>
+#include <base/internal/stack.h>
 
 /* Linux syscall bindings */
 #include <linux_syscalls.h>
@@ -26,17 +27,22 @@ using namespace Genode;
 
 static void empty_signal_handler(int) { }
 
-static char signal_stack[0x2000] __attribute__((aligned(0x1000)));
 
 void Thread::_thread_start()
 {
-	lx_sigaltstack(signal_stack, sizeof(signal_stack));
+	Thread * const thread = Thread::myself();
+
+	/* use primary stack as alternate stack for fatal signals (exceptions) */
+	void   *stack_base = (void *)thread->_stack->base();
+	size_t  stack_size = thread->_stack->top() - thread->_stack->base();
+
+	lx_sigaltstack(stack_base, stack_size);
 
 	/*
 	 * Set signal handler such that canceled system calls get not transparently
 	 * retried after a signal gets received.
 	 */
-	lx_sigaction(LX_SIGUSR1, empty_signal_handler);
+	lx_sigaction(LX_SIGUSR1, empty_signal_handler, false);
 
 	/*
 	 * Deliver SIGCHLD signals to no thread other than the main thread. Core's

@@ -90,10 +90,10 @@ Platform::Platform()
 : _core_mem_alloc(nullptr)
 {
 	/* catch control-c */
-	lx_sigaction(LX_SIGINT, sigint_handler);
+	lx_sigaction(LX_SIGINT, sigint_handler, false);
 
 	/* catch SIGCHLD */
-	lx_sigaction(LX_SIGCHLD, sigchld_handler);
+	lx_sigaction(LX_SIGCHLD, sigchld_handler, false);
 
 	/* create resource directory under /tmp */
 	lx_mkdir(resource_path(), S_IRWXU);

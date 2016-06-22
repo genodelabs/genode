@@ -78,17 +78,18 @@ void exception_signal_handler(int signum)
 	 * We reset the signal handler to SIG_DFL and trigger exception again,
 	 * i.e., terminate the process.
 	 */
-	lx_sigaction(signum, nullptr);
+	lx_sigaction(signum, nullptr, false);
 	return;
 }
 
 
 void lx_exception_signal_handlers()
 {
-	lx_sigaction(LX_SIGILL,  exception_signal_handler);
-	lx_sigaction(LX_SIGBUS,  exception_signal_handler);
-	lx_sigaction(LX_SIGFPE,  exception_signal_handler);
-	lx_sigaction(LX_SIGSEGV, exception_signal_handler);
+	/* use alternate stack in fatal-signal handlers */
+	lx_sigaction(LX_SIGILL,  exception_signal_handler, true);
+	lx_sigaction(LX_SIGBUS,  exception_signal_handler, true);
+	lx_sigaction(LX_SIGFPE,  exception_signal_handler, true);
+	lx_sigaction(LX_SIGSEGV, exception_signal_handler, true);
 }
 
 

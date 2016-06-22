@@ -71,7 +71,7 @@ __attribute__((constructor(101))) void lx_hybrid_init()
 	 * Set signal handler such that canceled system calls get not
 	 * transparently retried after a signal gets received.
 	 */
-	lx_sigaction(LX_SIGUSR1, empty_signal_handler);
+	lx_sigaction(LX_SIGUSR1, empty_signal_handler, false);
 }
 
 namespace Genode {
@@ -345,12 +345,12 @@ static void adopt_thread(Native_thread::Meta_data *meta_data)
 	 * Set signal handler such that canceled system calls get not
 	 * transparently retried after a signal gets received.
 	 */
-	lx_sigaction(LX_SIGUSR1, empty_signal_handler);
+	lx_sigaction(LX_SIGUSR1, empty_signal_handler, false);
 
 	/*
 	 * Prevent children from becoming zombies. (SIG_IGN = 1)
 	 */
-	lx_sigaction(LX_SIGCHLD, (void (*)(int))1);
+	lx_sigaction(LX_SIGCHLD, (void (*)(int))1, false);
 
 	/* assign 'Native_thread::Meta_data' pointer to TLS entry */
 	pthread_setspecific(tls_key(), meta_data);
