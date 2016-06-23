@@ -12,9 +12,9 @@
  */
 
 /* Genode includes */
-#include <base/env.h>
 #include <base/allocator_avl.h>
-#include <base/printf.h>
+#include <base/env.h>
+#include <base/log.h>
 #include <base/snprintf.h>
 #include <base/sleep.h>
 #include <dataspace/client.h>
@@ -28,15 +28,14 @@
 #include <lx.h>
 #include <lx_emul.h>
 
+#include <lx_kit/env.h>
 #include <lx_kit/malloc.h>
 #include <lx_kit/scheduler.h>
 
 
-static bool const verbose = false;
-#define PWRNV(...) do { if (verbose) PWRN(__VA_ARGS__); } while (0)
-
 typedef Genode::size_t size_t;
 typedef Genode::addr_t addr_t;
+
 
 
 /********************
@@ -404,8 +403,10 @@ void *vmalloc(unsigned long size)
 {
 	size_t real_size = size + sizeof(size_t);
 	size_t *addr;
-	try { addr = (size_t *)Genode::env()->heap()->alloc(real_size); }
-	catch (...) { return 0; }
+	
+	if (!Lx_kit::env().heap().alloc(real_size, (void**)&addr)) {
+		return nullptr;
+	}
 
 	*addr = real_size;
 	return addr + 1;
@@ -417,7 +418,7 @@ void vfree(const void *addr)
 	if (!addr) return;
 
 	size_t size = *(((size_t *)addr) - 1);
-	Genode::env()->heap()->free(const_cast<void *>(addr), size);
+	Lx_kit::env().heap().free(const_cast<void *>(addr), size);
 }
 
 
@@ -494,7 +495,7 @@ class Driver : public Genode::List<Driver>::Element
 
 int driver_register(struct device_driver *drv)
 {
-	new (Genode::env()->heap()) Driver(drv);
+	new (&Lx_kit::env().heap()) Driver(drv);
 	return 0;
 }
 
@@ -577,12 +578,16 @@ int strict_strtoul(const char *s, unsigned int base, unsigned long *res)
  ** linux/delay.h **
  *******************/
 
-static Timer::Connection _timer;
+static Timer::Connection &timer_for_msleep()
+{
+	static Timer::Connection inst(Lx_kit::env().env());
+	return inst;
+}
 
 
 void udelay(unsigned long usecs)
 {
-	_timer.usleep(usecs);
+	timer_for_msleep().usleep(usecs);
 
 	Lx::scheduler().current()->schedule();
 }
@@ -590,7 +595,7 @@ void udelay(unsigned long usecs)
 
 void usleep_range(unsigned long min, unsigned long max)
 {
-	_timer.usleep(min);
+	timer_for_msleep().usleep(min);
 
 	Lx::scheduler().current()->schedule();
 }
@@ -598,7 +603,7 @@ void usleep_range(unsigned long min, unsigned long max)
 
 void msleep(unsigned int msecs)
 {
-	_timer.msleep(msecs);
+	timer_for_msleep().msleep(msecs);
 
 	Lx::scheduler().current()->schedule();
 }
@@ -718,7 +723,7 @@ int request_firmware_nowait(struct module *module, bool uevent,
 	}
 
 	if (!fwl) {
-		PERR("Firmware '%s' is not in the firmware white list.", name);
+		Genode::error("firmware '", name, "' is not in the firmware white list");
 		return -1;
 	}
 
@@ -728,27 +733,26 @@ int request_firmware_nowait(struct module *module, bool uevent,
 	Genode::Dataspace_capability ds_cap = rom.dataspace();
 
 	if (!ds_cap.valid()) {
-		PERR("Could not get firmware ROM dataspace");
+		Genode::error("could not get firmware ROM dataspace");
 		return -1;
 	}
 
-	firmware *fw = (firmware *)kzalloc(sizeof (firmware), 0);
+	struct firmware *fw = (struct firmware *)kzalloc(sizeof(struct firmware), 0);
 	if (!fw) {
-		PERR("Could not allocate memory for firmware metadata");
+		Genode::error("could not allocate memory for firmware metadata");
 		return -1;
 	}
 
-	/* use Genode env because our slab only goes up to 64KiB */
-	fw->data = (u8*)Genode::env()->heap()->alloc(fwl->size);
-	if (!fw->data) {
-		PERR("Could not allocate memory for firmware image");
+	/* use allocator because fw is too big for slab */
+	if (!Lx_kit::env().heap().alloc(fwl->size, (void**)&fw->data)) {
+		Genode::error("Could not allocate memory for firmware image");
 		kfree(fw);
 		return -1;
 	}
 
-	void const *image = Genode::env()->rm_session()->attach(ds_cap);
+	void const *image = Lx_kit::env().env().rm().attach(ds_cap);
 	Genode::memcpy((void*)fw->data, image, fwl->size);
-	Genode::env()->rm_session()->detach(image);
+	Lx_kit::env().env().rm().detach(image);
 
 	fw->size = fwl->size;
 
@@ -759,7 +763,7 @@ int request_firmware_nowait(struct module *module, bool uevent,
 
 void release_firmware(const struct firmware *fw)
 {
-	Genode::env()->heap()->free(const_cast<u8 *>(fw->data), fw->size);
+	Lx_kit::env().heap().free(const_cast<u8 *>(fw->data), fw->size);
 	kfree(fw);
 }
 
@@ -775,7 +779,6 @@ void *dma_alloc_coherent(struct device *dev, size_t size,
 	void *addr = Lx::Malloc::dma().alloc(size, 12, &dma_addr);
 
 	if (!addr) {
-		// PERR("dma alloc: %zu failed", size);
 		return 0;
 	}
 
@@ -800,10 +803,11 @@ void *dma_zalloc_coherent(struct device *dev, size_t size,
 void dma_free_coherent(struct device *dev, size_t size,
                        void *vaddr, dma_addr_t dma_handle)
 {
-	if (Lx::Malloc::dma().inside((Genode::addr_t)vaddr))
+	if (Lx::Malloc::dma().inside((Genode::addr_t)vaddr)) {
 		Lx::Malloc::dma().free(vaddr);
-	else
-		PERR("vaddr: %p is not DMA memory", vaddr);
+	} else {
+		Genode::error("vaddr: ", vaddr, " is not DMA memory");
+	}
 }
 
 
@@ -811,14 +815,16 @@ dma_addr_t dma_map_page(struct device *dev, struct page *page,
                         size_t offset, size_t size,
                         enum dma_data_direction direction)
 {
-	if (!Lx::Malloc::dma().inside((Genode::addr_t)page->addr))
-		PERR("page->page: %p not DMA address", page->addr);
+	if (!Lx::Malloc::dma().inside((Genode::addr_t)page->addr)) {
+		Genode::error(__func__, ": virtual address ", (void*)page->addr, " not an DMA address");
+	}
 
 	dma_addr_t dma_addr = (dma_addr_t) Lx::Malloc::dma().phys_addr(page->addr);
 
-	if (dma_addr == ~0UL)
-		PERR("%s: virtual address %p not registered for DMA, called from: %p",
-		     __func__, page->addr, __builtin_return_address(0));
+	if (dma_addr == ~0UL) {
+		Genode::error(__func__, ": virtual address ", (void*)page->addr,
+		              " not registered for DMA");
+	}
 
 	return dma_addr;
 }
@@ -828,9 +834,10 @@ dma_addr_t dma_map_single(struct device *dev, void *cpu_addr, size_t size,
 {
 	dma_addr_t dma_addr = (dma_addr_t) Lx::Malloc::dma().phys_addr(cpu_addr);
 
-	if (dma_addr == ~0UL)
-		PERR("%s: virtual address %p not registered for DMA, called from: %p",
-		     __func__, cpu_addr, __builtin_return_address(0));
+	if (dma_addr == ~0UL) {
+		Genode::error(__func__, ": virtual address ", cpu_addr,
+		              " not registered for DMA");
+	}
 
 	return dma_addr;
 }
@@ -948,7 +955,7 @@ struct page *alloc_pages(gfp_t gfp_mask, unsigned int order)
 	page->addr = Lx::Malloc::dma().alloc(size, 12);
 
 	if (!page->addr) {
-		PERR("alloc_pages: %zu failed", size);
+		Genode::error("alloc_pages: ", size, " failed");
 		kfree(page);
 		return 0;
 	}
@@ -981,8 +988,8 @@ void __free_page_frag(void *addr)
 void __free_pages(struct page *page, unsigned int order)
 {
 	if (!atomic_dec_and_test(&page->_count)) {
-		PWRNV("attempting to free page  %p with _count: %d, called from: %p",
-		     page, atomic_read(&page->_count), __builtin_return_address(0));
+		Genode::warning("attempting to free page ", page, " with _count: ",
+		                atomic_read(&page->_count));
 		return;
 	}
 
@@ -1016,9 +1023,8 @@ struct page *virt_to_head_page(const void *addr)
 		unsigned long aligned_addr = (unsigned long)addr & ~0xfff;
 		page = Addr_to_page_mapping::find_page(aligned_addr);
 		if (!page) {
-			PERR("BUG: addr: %p and aligned addr: %p have no page mapping, "
-			     " called from: %p", addr, (void*)aligned_addr,
-			     __builtin_return_address(0));
+			Genode::error("BUG: addr: ", addr, " and aligned addr: ",
+			              (void*)aligned_addr, " have no page mapping, ");
 			Genode::sleep_forever();
 		}
 	}
@@ -1036,7 +1042,7 @@ void get_page(struct page *page)
 void put_page(struct page *page)
 {
 	if (!page) {
-		PWRN("put_page: page is zero called from: %p", __builtin_return_address(0));
+		Genode::warning(__func__, ": page is zero");
 		return;
 	}
 
@@ -1223,7 +1229,22 @@ int request_module(char const* format, ...)
  ** kernel/locking/mutex.c **
  ****************************/
 
+/*
+ * XXX We have to create the waiters list lazy because the way
+ *     DEFINE_MUTEX is currently implemented does not work w/o
+ *     a global Env that was constructed before the static ctors
+ *     are called.
+ */
+static inline void __check_or_initialize_mutex(struct mutex *m)
+{
+	if (!m->waiters) {
+		m->waiters = new (&Lx_kit::env().heap()) Lx::Task::List;
+	}
+}
+
+
 enum { MUTEX_UNLOCKED = 1, MUTEX_LOCKED = 0, MUTEX_WAITERS = -1 };
+
 
 void mutex_init(struct mutex *m)
 {
@@ -1231,7 +1252,7 @@ void mutex_init(struct mutex *m)
 
 	m->state   = MUTEX_UNLOCKED;
 	m->holder  = nullptr;
-	m->waiters = new (Genode::env()->heap()) Lx::Task::List;
+	m->waiters = nullptr;
 	m->id      = ++id;
 }
 
@@ -1240,7 +1261,8 @@ void mutex_destroy(struct mutex *m)
 {
 	/* FIXME potentially blocked tasks are not unblocked */
 
-	Genode::destroy(Genode::env()->heap(), static_cast<Lx::Task::List *>(m->waiters));
+	Genode::destroy(&Lx_kit::env().heap(),
+	                static_cast<Lx::Task::List *>(m->waiters));
 
 	m->holder  = nullptr;
 	m->waiters = nullptr;
@@ -1250,6 +1272,8 @@ void mutex_destroy(struct mutex *m)
 
 void mutex_lock(struct mutex *m)
 {
+	__check_or_initialize_mutex(m);
+
 	while (1) {
 		if (m->state == MUTEX_UNLOCKED) {
 			m->state  = MUTEX_LOCKED;
@@ -1261,7 +1285,7 @@ void mutex_lock(struct mutex *m)
 		Lx::Task *t = reinterpret_cast<Lx::Task *>(m->holder);
 
 		if (t == Lx::scheduler().current()) {
-			PERR("Bug: mutex does not support recursive locking");
+			Genode::error("BUG: mutex does not support recursive locking");
 			Genode::sleep_forever();
 		}
 
@@ -1277,12 +1301,14 @@ void mutex_lock(struct mutex *m)
 
 void mutex_unlock(struct mutex *m)
 {
+	__check_or_initialize_mutex(m);
+
 	if (m->state == MUTEX_UNLOCKED) {
-		PERR("Bug: multiple mutex unlock detected");
+		Genode::error("BUG: multiple mutex unlock detected");
 		Genode::sleep_forever();
 	}
 	if (m->holder != Lx::scheduler().current()) {
-		PERR("Bug: mutex unlock by task not holding the mutex");
+		Genode::error("BUG: mutex unlock by task not holding the mutex");
 		Genode::sleep_forever();
 	}
 

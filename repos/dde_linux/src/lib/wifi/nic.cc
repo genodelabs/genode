@@ -13,11 +13,11 @@
  */
 
 /* Genode includes */
+#include <base/log.h>
 #include <base/rpc_server.h>
 #include <base/snprintf.h>
 #include <cap_session/connection.h>
 #include <nic/xml_node.h>
-#include <os/config.h>
 #include <nic/component.h>
 #include <root/component.h>
 #include <util/xml_node.h>
@@ -32,7 +32,6 @@
 # include <lxc.h>
 #include <lx_emul/extern_c_end.h>
 
-extern bool config_verbose;
 
 enum {
 	HEAD_ROOM = 128, /* XXX guessed value but works */
@@ -63,7 +62,7 @@ class Wifi_session_component : public Nic::Session_component
 
 			Packet_descriptor packet = _tx.sink()->get_packet();
 			if (!packet.size()) {
-				PWRN("Invalid tx packet");
+				Genode::warning("invalid tx packet");
 				return true;
 			}
 
@@ -122,7 +121,7 @@ class Wifi_session_component : public Nic::Session_component
 			_handle_packet_stream();
 
 			if (!_rx.source()->ready_to_submit()) {
-				PWRN("Not ready to receive packet");
+				Genode::warning("not ready to receive packet");
 				return;
 			}
 
@@ -138,7 +137,7 @@ class Wifi_session_component : public Nic::Session_component
 
 				_rx.source()->submit_packet(p);
 			} catch (...) {
-				PWRN("failed to process received packet");
+				Genode::warning("failed to process received packet");
 			}
 		}
 
@@ -166,7 +165,7 @@ class Root : public Genode::Root_component<Wifi_session_component,
 {
 	private:
 
-		Server::Entrypoint &_ep;
+		Genode::Env &_env;
 
 	protected:
 
@@ -189,16 +188,16 @@ class Root : public Genode::Root_component<Wifi_session_component,
 			 */
 			if (tx_buf_size + rx_buf_size < tx_buf_size ||
 			    tx_buf_size + rx_buf_size > ram_quota - session_size) {
-				PERR("insufficient 'ram_quota', got %zd, need %zd",
-				     ram_quota, tx_buf_size + rx_buf_size + session_size);
+				Genode::error("insufficient 'ram_quota', got ", ram_quota, " need ",
+				              tx_buf_size + rx_buf_size + session_size);
 				throw Genode::Root::Quota_exceeded();
 			}
 
 			session = new (md_alloc())
 			          Wifi_session_component(tx_buf_size, rx_buf_size,
-			                                *env()->heap(),
-			                                *env()->ram_session(),
-			                                _ep, device);
+			                                *md_alloc(),
+			                                _env.ram(),
+			                                _env.ep(), device);
 			return session;
 		}
 
@@ -208,22 +207,29 @@ class Root : public Genode::Root_component<Wifi_session_component,
 		Wifi_session_component *session = nullptr;
 		static Root            *instance;
 
-		Root(Server::Entrypoint &ep, Genode::Allocator &md_alloc)
-		: Genode::Root_component<Wifi_session_component, Genode::Single_client>(&ep.rpc_ep(), &md_alloc),
-			_ep(ep)
+		Root(Genode::Env &env, Genode::Allocator &md_alloc)
+		: Genode::Root_component<Wifi_session_component, Genode::Single_client>(&env.ep().rpc_ep(), &md_alloc),
+			_env(env)
 		{ }
 
-		void announce() { Genode::env()->parent()->announce(_ep.rpc_ep().manage(this)); }
+		void announce() { _env.parent().announce(_env.ep().manage(*this)); }
 };
 
 
 Root *Root::instance;
 
 
-void Lx::nic_init(Server::Entrypoint &ep)
+static Genode::Env       *_env;
+static Genode::Allocator *_alloc;
+
+
+void Lx::nic_init(Genode::Env &env, Genode::Allocator &alloc)
 {
-	static Root root(ep, *Genode::env()->heap());
+	static Root root(env, alloc);
 	Root::instance = &root;
+
+	_env = &env;
+	_alloc = &alloc;
 }
 
 
@@ -253,7 +259,7 @@ class Lx::Notifier
 
 	public:
 
-		Notifier() : _block_alloc(Genode::env()->heap()) { }
+		Notifier() : _block_alloc(_alloc) { }
 
 		void register_block(struct notifier_block *nb)
 		{
@@ -395,7 +401,7 @@ class Proto_hook_list
 
 static Proto_hook_list& proto_hook_list()
 {
-	static Proto_hook_list inst(*Genode::env()->heap());
+	static Proto_hook_list inst(*_alloc);
 	return inst;
 }
 
@@ -415,7 +421,7 @@ extern "C" void __dev_remove_pack(struct packet_type *pt)
 extern "C" struct net_device *__dev_get_by_index(struct net *net, int ifindex)
 {
 	if (!Root::instance->device) {
-		PERR("no net device registered!");
+		Genode::error("no net device registered!");
 		return 0;
 	}
 
@@ -463,8 +469,9 @@ extern "C" int dev_queue_xmit(struct sk_buff *skb)
 	struct net_device_ops const *ops = dev->netdev_ops;
 	int rv = NETDEV_TX_OK;
 
-	if (skb->next)
-		PWRN("more skb's queued");
+	if (skb->next) {
+		Genode::warning("more skb's queued");
+	}
 
 	rv = ops->ndo_start_xmit(skb, dev);
 
@@ -484,7 +491,7 @@ extern "C" int register_netdevice(struct net_device *ndev)
 	static bool already_registered = false;
 
 	if (already_registered) {
-		PERR("We don't support multiple network devices in one driver instance");
+		Genode::error("We don't support multiple network devices in one driver instance");
 		return -ENODEV;
 	}
 
@@ -503,14 +510,20 @@ extern "C" int register_netdevice(struct net_device *ndev)
 	/* set mac adress */
 	Genode::memcpy(ndev->perm_addr, ndev->ieee80211_ptr->wiphy->perm_addr, ETH_ALEN);
 
-	if (config_verbose)
-		PINF("mac_address: %02x:%02x:%02x:%02x:%02x:%02x",
-		     ndev->perm_addr[0], ndev->perm_addr[1], ndev->perm_addr[2],
-		     ndev->perm_addr[3], ndev->perm_addr[4], ndev->perm_addr[5]);
+	{
+		using namespace Genode;
+		log("mac_address: ",
+		    Hex(ndev->perm_addr[0], Hex::OMIT_PREFIX, Hex::PAD), ":",
+		    Hex(ndev->perm_addr[1], Hex::OMIT_PREFIX, Hex::PAD), ":",
+		    Hex(ndev->perm_addr[2], Hex::OMIT_PREFIX, Hex::PAD), ":",
+		    Hex(ndev->perm_addr[3], Hex::OMIT_PREFIX, Hex::PAD), ":",
+		    Hex(ndev->perm_addr[4], Hex::OMIT_PREFIX, Hex::PAD), ":",
+		    Hex(ndev->perm_addr[5], Hex::OMIT_PREFIX, Hex::PAD));
+	}
 
 	int err = ndev->netdev_ops->ndo_open(ndev);
 	if (err) {
-		PERR("ndev->netdev_ops->ndo_open(ndev): %d", err);
+		Genode::error("ndo_open() failed: ", err);
 		return err;
 	}
 
@@ -553,9 +566,6 @@ extern "C" void netif_carrier_on(struct net_device *dev)
 
 extern "C" void netif_carrier_off(struct net_device *dev)
 {
-	if (!dev)
-		PERR("!dev %p", __builtin_return_address(0));
-
 	dev->state |= 1UL << __LINK_STATE_NOCARRIER;
 
 	Wifi_session_component *session = (Wifi_session_component *)dev->lx_nic_device;
@@ -616,8 +626,8 @@ extern "C" void netif_wake_subqueue(struct net_device *dev, u16 queue_index)
 extern "C" u16 netdev_cap_txqueue(struct net_device *dev, u16 queue_index)
 {
 	if (queue_index > dev-> real_num_tx_queues) {
-		PERR("error: queue_index %d out of range (%d max) called from: %p",
-		     queue_index, dev->real_num_tx_queues, __builtin_return_address(0));
+		Genode::error("queue_index ", queue_index, " out of range (",
+		              dev->real_num_tx_queues, " max)");
 		return 0;
 	}
 
@@ -673,7 +683,7 @@ extern "C" struct net_device *alloc_netdev_mqs(int sizeof_priv, const char *name
 	                           kcalloc(txqs, sizeof(struct netdev_queue),
 	                                   GFP_KERNEL | GFP_LX_DMA);
 	if (!tx) {
-		PERR("could not allocate ndev_queues");
+		Genode::error("could not allocate ndev_queues");
 	}
 
 	dev->_tx = tx;

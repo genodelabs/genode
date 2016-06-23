@@ -12,8 +12,8 @@
  */
 
 /* Genode includes */
-#include <os/config.h>
-#include <os/server.h>
+#include <base/env.h>
+#include <base/lock.h>
 
 /* local includes */
 #include <firmware_list.h>
@@ -21,6 +21,7 @@
 
 #include <lx_emul.h>
 
+#include <lx_kit/env.h>
 #include <lx_kit/irq.h>
 #include <lx_kit/work.h>
 #include <lx_kit/timer.h>
@@ -44,8 +45,6 @@ extern "C" void module_krng_mod_init(void);
 
 struct workqueue_struct *system_power_efficient_wq;
 struct workqueue_struct *system_wq;
-
-static bool mac80211_only = false;
 
 struct pernet_operations loopback_net_ops;
 
@@ -100,8 +99,8 @@ static Genode::Lock *_wpa_lock;
 
 static void run_linux(void *)
 {
-	system_power_efficient_wq = alloc_workqueue("system_power_efficient_wq", 0, 0); 
-	system_wq                 = alloc_workqueue("system_wq", 0, 0); 
+	system_power_efficient_wq = alloc_workqueue("system_power_efficient_wq", 0, 0);
+	system_wq                 = alloc_workqueue("system_wq", 0, 0);
 
 	core_sock_init();
 	core_netlink_proto_init();
@@ -117,11 +116,8 @@ static void run_linux(void *)
 	module_aes_init();
 	module_arc4_init();
 	module_chainiv_module_init();
-	// module_krng_mod_init();
 
-	if (!mac80211_only) {
-		module_iwl_drv_init();
-	}
+	module_iwl_drv_init();
 
 	_wpa_lock->unlock();
 
@@ -133,15 +129,9 @@ static void run_linux(void *)
 unsigned long jiffies;
 
 
-void wifi_init(Server::Entrypoint &ep, Genode::Lock &lock)
+void wifi_init(Genode::Env &env, Genode::Lock &lock)
 {
-	/**
-	 * For testing testing only the wireless stack with wpa_supplicant,
-	 * amongst other on linux, we do not want to load the iwlwifi drivers.
-	 */
-	mac80211_only = Genode::config()->xml_node().attribute_value("mac80211_only", mac80211_only);
-	if (mac80211_only)
-		PINF("Initalizing only mac80211 stack without any driver!");
+	Lx_kit::construct_env(env);
 
 	_wpa_lock = &lock;
 
@@ -151,13 +141,13 @@ void wifi_init(Server::Entrypoint &ep, Genode::Lock &lock)
 
 	Lx::scheduler();
 
-	Lx::timer(&ep, &jiffies);
+	Lx::timer(&env.ep(), &jiffies);
 
-	Lx::Irq::irq(&ep, Genode::env()->heap());
-	Lx::Work::work_queue(Genode::env()->heap());
+	Lx::Irq::irq(&env.ep(), &Lx_kit::env().heap());
+	Lx::Work::work_queue(&Lx_kit::env().heap());
 
-	Lx::socket_init(ep);
-	Lx::nic_init(ep);
+	Lx::socket_init(env.ep(), Lx_kit::env().heap());
+	Lx::nic_init(env, Lx_kit::env().heap());
 
 	/* Linux task (handles the initialization only currently) */
 	static Lx::Task linux(run_linux, nullptr, "linux",
