@@ -89,13 +89,12 @@ namespace Genode {
 	 */
 	void print(Output &output, unsigned long long);
 
-	/**
-	 * Print unsigned integer value
+	/*
+	 * Overloads for unsigned integer types
 	 */
-	static inline void print(Output &output, unsigned value)
-	{
-		print(output, (unsigned long)value);
-	}
+	static inline void print(Output &o, unsigned char  v) { print(o, (unsigned long)v); }
+	static inline void print(Output &o, unsigned short v) { print(o, (unsigned long)v); }
+	static inline void print(Output &o, unsigned int   v) { print(o, (unsigned long)v); }
 
 	/**
 	 * Print signed long value
@@ -103,17 +102,24 @@ namespace Genode {
 	void print(Output &output, long);
 
 	/**
-	 * Print signed integer value
-	 */
-	static inline void print(Output &output, int value)
-	{
-		print(output, (long)value);
-	}
-
-	/**
 	 * Print signed long long value
 	 */
 	void print(Output &output, long long);
+
+	/*
+	 * Overloads for signed integer types
+	 */
+	static inline void print(Output &o, char  v) { print(o, (long)v); }
+	static inline void print(Output &o, short v) { print(o, (long)v); }
+	static inline void print(Output &o, int   v) { print(o, (long)v); }
+
+	/**
+	 * Print bool value
+	 */
+	static inline void print(Output &output, bool value)
+	{
+		print(output, (int)value);
+	}
 
 	/**
 	 * Helper for the hexadecimal output of integer values
