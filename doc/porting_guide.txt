@@ -397,7 +397,7 @@ First, we specify the components that need to be built
 
 ! set build_components {
 !   core init drivers/audio drivers/framebuffer drivers/input
-!   drivers/pci drivers/timer server/tar_fs app/dosbox
+!   drivers/pci drivers/timer app/dosbox
 ! }
 ! build $build_components
 
