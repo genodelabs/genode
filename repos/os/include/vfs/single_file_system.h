@@ -24,7 +24,10 @@ class Vfs::Single_file_system : public File_system
 {
 	public:
 
-		enum Node_type { NODE_TYPE_FILE, NODE_TYPE_CHAR_DEVICE, NODE_TYPE_BLOCK_DEVICE };
+		enum Node_type {
+			NODE_TYPE_FILE,        NODE_TYPE_SYMLINK,
+			NODE_TYPE_CHAR_DEVICE, NODE_TYPE_BLOCK_DEVICE
+		};
 
 	private:
 
@@ -32,6 +35,8 @@ class Vfs::Single_file_system : public File_system
 
 		enum { FILENAME_MAX_LEN = 64 };
 		char _filename[FILENAME_MAX_LEN];
+
+	protected:
 
 		bool _root(const char *path)
 		{
@@ -79,6 +84,7 @@ class Vfs::Single_file_system : public File_system
 			} else if (_single_file(path)) {
 				switch (_node_type) {
 				case NODE_TYPE_FILE:         out.mode = STAT_MODE_FILE;     break;
+				case NODE_TYPE_SYMLINK:      out.mode = STAT_MODE_SYMLINK;  break;
 				case NODE_TYPE_CHAR_DEVICE:  out.mode = STAT_MODE_CHARDEV;  break;
 				case NODE_TYPE_BLOCK_DEVICE: out.mode = STAT_MODE_BLOCKDEV; break;
 				}
@@ -98,6 +104,7 @@ class Vfs::Single_file_system : public File_system
 				out.fileno = (Genode::addr_t)this;
 				switch (_node_type) {
 				case NODE_TYPE_FILE:         out.type = DIRENT_TYPE_FILE;     break;
+				case NODE_TYPE_SYMLINK:      out.type = DIRENT_TYPE_SYMLINK;  break;
 				case NODE_TYPE_CHAR_DEVICE:  out.type = DIRENT_TYPE_CHARDEV;  break;
 				case NODE_TYPE_BLOCK_DEVICE: out.type = DIRENT_TYPE_BLOCKDEV; break;
 				}
