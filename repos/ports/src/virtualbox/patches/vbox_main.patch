@@ -1,5 +1,42 @@
 vbox_main.patch
 
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ .../virtualbox/src/VBox/Main/include/ConsoleImpl.h |   18 ++-
+ .../virtualbox/src/VBox/Main/include/DisplayImpl.h |    8 +
+ .../src/VBox/Main/include/FramebufferImpl.h        |    1 
+ .../virtualbox/src/VBox/Main/include/MachineImpl.h |    2 
+ .../src/VBox/Main/include/NetworkServiceRunner.h   |    5 +
+ .../src/VBox/Main/include/ProgressProxyImpl.h      |    2 
+ .../virtualbox/src/VBox/Main/include/SessionImpl.h |    4 +
+ .../virtualbox/src/VBox/Main/src-all/EventImpl.cpp |   13 ++
+ .../VBox/Main/src-all/PCIDeviceAttachmentImpl.cpp  |    4 -
+ .../src/VBox/Main/src-all/ProgressImpl.cpp         |   13 +-
+ .../src/VBox/Main/src-all/VirtualBoxBase.cpp       |    4 +
+ .../VBox/Main/src-client/BusAssignmentManager.cpp  |    2 
+ .../src/VBox/Main/src-client/ConsoleImpl.cpp       |  116 +++++++++++++++++++-
+ .../src/VBox/Main/src-client/ConsoleImpl2.cpp      |   51 +++++++--
+ .../src/VBox/Main/src-client/DisplayImpl.cpp       |   19 +++
+ .../src/VBox/Main/src-client/GuestImpl.cpp         |    8 +
+ .../src/VBox/Main/src-client/MouseImpl.cpp         |    6 +
+ .../src/VBox/Main/src-client/SessionImpl.cpp       |   11 ++
+ .../VBox/Main/src-client/VBoxDriversRegister.cpp   |    6 +
+ .../src/VBox/Main/src-client/VMMDevInterface.cpp   |    2 
+ .../src/VBox/Main/src-server/ClientToken.cpp       |    6 -
+ .../src/VBox/Main/src-server/DHCPServerImpl.cpp    |    1 
+ .../src/VBox/Main/src-server/MachineImpl.cpp       |   35 ++++--
+ .../VBox/Main/src-server/MachineImplCloneVM.cpp    |    2 
+ .../src/VBox/Main/src-server/MediumImpl.cpp        |   15 ++-
+ .../src/VBox/Main/src-server/MediumLock.cpp        |    2 
+ .../VBox/Main/src-server/NetworkAdapterImpl.cpp    |    2 
+ .../src/VBox/Main/src-server/SnapshotImpl.cpp      |    3 -
+ .../src/VBox/Main/src-server/VRDEServerImpl.cpp    |   11 +-
+ .../src/VBox/Main/src-server/VirtualBoxImpl.cpp    |    8 +
+ src/app/virtualbox/src/VBox/Main/xml/Settings.cpp  |    4 +
+ 31 files changed, 311 insertions(+), 73 deletions(-)
+
 diff --git a/src/app/virtualbox/src/VBox/Main/include/ConsoleImpl.h b/src/app/virtualbox/src/VBox/Main/include/ConsoleImpl.h
 index 030a601..7fce453 100644
 --- a/src/app/virtualbox/src/VBox/Main/include/ConsoleImpl.h
@@ -324,9 +361,11 @@ index b43f5a6..6aef9df 100644
  
  ////////////////////////////////////////////////////////////////////////////////
  //
+diff --git a/src/app/virtualbox/src/VBox/Main/src-client/BusAssignmentManager.cpp b/src/app/virtualbox/src/VBox/Main/src-client/BusAssignmentManager.cpp
+index 068bb79..3b6adb3 100644
 --- a/src/app/virtualbox/src/VBox/Main/src-client/BusAssignmentManager.cpp
 +++ b/src/app/virtualbox/src/VBox/Main/src-client/BusAssignmentManager.cpp
-@@ -72,6 +72,8 @@
+@@ -72,6 +72,8 @@ static const DeviceAssignmentRule aGenericRules[] =
      {"usb-ohci",      0,  6,  0, 0},
      {"usb-ehci",      0, 11,  0, 0},
  
@@ -903,7 +942,7 @@ index 69e3109..3c534df 100644
                      alock.acquire();
                      if (pNewMediumAtt != pMediumAtt)
 diff --git a/src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl2.cpp b/src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl2.cpp
-index caed4be..6d02496 100644
+index caed4be..19c3dc0 100644
 --- a/src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl2.cpp
 +++ b/src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl2.cpp
 @@ -27,6 +27,7 @@
@@ -999,7 +1038,7 @@ index caed4be..6d02496 100644
          InsertConfigNode(pDevices, "AudioSniffer", &pDev);
          InsertConfigNode(pDev,     "0", &pInst);
          InsertConfigNode(pInst,    "Config", &pCfg);
-@@ -2300,9 +2311,10 @@ int Console::configConstructorInner(PUVM pUVM, PVM pVM, AutoWriteLock *pAlock)
+@@ -2300,6 +2311,7 @@ int Console::configConstructorInner(PUVM pUVM, PVM pVM, AutoWriteLock *pAlock)
          /*
           * AC'97 ICH / SoundBlaster16 audio / Intel HD Audio
           */
@@ -1007,10 +1046,7 @@ index caed4be..6d02496 100644
          BOOL fAudioEnabled = FALSE;
          ComPtr<IAudioAdapter> audioAdapter;
          hrc = pMachine->COMGETTER(AudioAdapter)(audioAdapter.asOutParam());                 H();
-         if (audioAdapter)
-             hrc = audioAdapter->COMGETTER(Enabled)(&fAudioEnabled);                         H();
- 
-@@ -2421,6 +2435,8 @@ int Console::configConstructorInner(PUVM pUVM, PVM pVM, AutoWriteLock *pAlock)
+@@ -2421,6 +2433,8 @@ int Console::configConstructorInner(PUVM pUVM, PVM pVM, AutoWriteLock *pAlock)
                      break;
                  }
  #endif
@@ -1019,10 +1055,20 @@ index caed4be..6d02496 100644
              }
              hrc = pMachine->COMGETTER(Name)(bstr.asOutParam());                             H();
              InsertConfigString(pCfg, "StreamName", bstr);
-@@ -2537,6 +2537,14 @@
+@@ -2523,7 +2537,6 @@ int Console::configConstructorInner(PUVM pUVM, PVM pVM, AutoWriteLock *pAlock)
  #endif
              } /* for every USB controller. */
  
+-
+             /*
+              * Virtual USB Devices.
+              */
+@@ -2652,6 +2665,18 @@ int Console::configConstructorInner(PUVM pUVM, PVM pVM, AutoWriteLock *pAlock)
+             }
+         }
+ 
++        extern bool use_xhci_controller();
++        if (use_xhci_controller()) {
 +            /*
 +             * NEC XHCI Device
 +             */
@@ -1031,10 +1077,12 @@ index caed4be..6d02496 100644
 +            InsertConfigNode(pInst,    "Config",   &pCfg);
 +            InsertConfigInteger(pInst, "Trusted",  1);
 +            hrc = pBusMgr->assignPCIDevice("nec-xhci", pInst);                  H();
- 
-             /*
-              * Virtual USB Devices.
-@@ -3533,6 +3549,8 @@ int Console::configMediumAttachment(PCFGMNODE pCtlInst,
++        }
++
+         /*
+          * Clipboard
+          */
+@@ -3533,6 +3558,8 @@ int Console::configMediumAttachment(PCFGMNODE pCtlInst,
          ComPtr<IMedium> pMedium;
          hrc = pMediumAtt->COMGETTER(Medium)(pMedium.asOutParam());                          H();
  
@@ -1043,7 +1091,7 @@ index caed4be..6d02496 100644
          /*
           * 1. Only check this for hard disk images.
           * 2. Only check during VM creation and not later, especially not during
-@@ -3717,6 +3735,8 @@ int Console::configMediumAttachment(PCFGMNODE pCtlInst,
+@@ -3717,6 +3744,8 @@ int Console::configMediumAttachment(PCFGMNODE pCtlInst,
              }
          }
  
@@ -1052,7 +1100,7 @@ index caed4be..6d02496 100644
          if (pMedium)
          {
              BOOL fHostDrive;
-@@ -3810,7 +3830,7 @@ int Console::configMedium(PCFGMNODE pLunL0,
+@@ -3810,7 +3839,7 @@ int Console::configMedium(PCFGMNODE pLunL0,
      // InsertConfig* throws
      try
      {
@@ -1061,7 +1109,7 @@ index caed4be..6d02496 100644
          HRESULT hrc;
          Bstr bstr;
          PCFGMNODE pLunL1 = NULL;
-@@ -4414,7 +4434,7 @@ int Console::configNetwork(const char *pszDevice,
+@@ -4414,7 +4443,7 @@ int Console::configNetwork(const char *pszDevice,
                  {
                      switch (hrc)
                      {
@@ -1070,7 +1118,7 @@ index caed4be..6d02496 100644
                              return VMSetError(VMR3GetVM(mpUVM), VERR_HOSTIF_INIT_FAILED, RT_SRC_POS,  N_(
                                              "Failed to open '/dev/net/tun' for read/write access. Please check the "
                                              "permissions of that node. Either run 'chmod 0666 /dev/net/tun' or "
-@@ -4428,12 +4448,12 @@ int Console::configNetwork(const char *pszDevice,
+@@ -4428,12 +4457,12 @@ int Console::configNetwork(const char *pszDevice,
                      }
                  }
  
@@ -1086,7 +1134,7 @@ index caed4be..6d02496 100644
                  }
  
  #elif defined(VBOX_WITH_NETFLT)
-@@ -5206,6 +5206,10 @@
+@@ -5180,6 +5209,10 @@ int Console::configNetwork(const char *pszDevice,
  
  #undef H
  
@@ -1096,7 +1144,7 @@ index caed4be..6d02496 100644
 +
      return VINF_SUCCESS;
  }
-
+ 
 diff --git a/src/app/virtualbox/src/VBox/Main/src-client/DisplayImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-client/DisplayImpl.cpp
 index fed0ac3..bc3c334 100644
 --- a/src/app/virtualbox/src/VBox/Main/src-client/DisplayImpl.cpp

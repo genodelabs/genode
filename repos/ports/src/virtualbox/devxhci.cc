@@ -15,6 +15,7 @@
 /* Genode includes */
 #include <base/env.h>
 #include <base/printf.h>
+#include <os/attached_rom_dataspace.h>
 #include <util/list.h>
 
 /* qemu-usb includes */
@@ -569,3 +570,14 @@ const PDMDEVREG g_DeviceXHCI =
 	/* u32VersionEnd */
 	PDM_DEVREG_VERSION
 };
+
+
+bool use_xhci_controller()
+{
+	try {
+		Genode::Attached_rom_dataspace config("config");
+		return config.xml().attribute_value("xhci", false);
+	} catch (Genode::Rom_connection::Rom_connection_failed) {
+		return false;
+	}
+}

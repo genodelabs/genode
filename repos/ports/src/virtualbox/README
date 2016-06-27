@@ -1,0 +1,10 @@
+VirtualBox configuration options
+################################
+
+XHCI controller
+===============
+
+The virtual XHCI controller can be enabled with the following
+configuration option:
+
+<config xhci="yes">
