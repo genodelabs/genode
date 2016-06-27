@@ -32,13 +32,6 @@
 #include <vfs/dir_file_system.h>
 
 /* supported file systems */
-#include <vfs/tar_file_system.h>
-#include <vfs/fs_file_system.h>
-#include <vfs/terminal_file_system.h>
-#include <vfs/null_file_system.h>
-#include <vfs/zero_file_system.h>
-#include <vfs/block_file_system.h>
-#include <vfs/rtc_file_system.h>
 #include <random_file_system.h>
 #include <stdio_file_system.h>
 

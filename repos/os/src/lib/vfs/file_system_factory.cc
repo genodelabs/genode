@@ -16,18 +16,18 @@
 #include <base/shared_object.h>
 
 /* supported builtin file systems */
-#include <vfs/tar_file_system.h>
-#include <vfs/fs_file_system.h>
-#include <vfs/terminal_file_system.h>
-#include <vfs/null_file_system.h>
-#include <vfs/zero_file_system.h>
-#include <vfs/block_file_system.h>
-#include <vfs/log_file_system.h>
-#include <vfs/rom_file_system.h>
-#include <vfs/inline_file_system.h>
-#include <vfs/rtc_file_system.h>
-#include <vfs/ram_file_system.h>
-#include <vfs/symlink_file_system.h>
+#include "block_file_system.h"
+#include "fs_file_system.h"
+#include "inline_file_system.h"
+#include "log_file_system.h"
+#include "null_file_system.h"
+#include "ram_file_system.h"
+#include "rom_file_system.h"
+#include "rtc_file_system.h"
+#include "symlink_file_system.h"
+#include "tar_file_system.h"
+#include "terminal_file_system.h"
+#include "zero_file_system.h"
 
 
 class Default_file_system_factory : public Vfs::Global_file_system_factory
