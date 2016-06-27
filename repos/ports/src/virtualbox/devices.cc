@@ -13,6 +13,7 @@
 
 /* Genode includes */
 #include <base/printf.h>
+#include <os/attached_rom_dataspace.h>
 
 /* VirtualBox includes */
 #include <VBoxDD.h>
@@ -61,4 +62,26 @@ extern "C" int VBoxDevicesRegister(PPDMDEVREGCB pCallbacks, uint32_t u32Version)
 	REGISTER(DeviceXHCI);
 
 	return VINF_SUCCESS;
+}
+
+/*
+ * The virtual PCI model delivers IRQs to the PIC by default and to the IOAPIC
+ * only if the guest operating system selected the IOAPIC with the '_PIC' ACPI
+ * method and if it called the '_PRT' ACPI method afterwards. When running a
+ * guest operating system which uses the IOAPIC, but does not call these ACPI
+ * methods (for example Genode/NOVA), IRQ delivery to the IOAPIC can be
+ * enforced with the 'force_ioapic' configuration option.
+ *
+ * References:
+ *   - 'pciSetIrqInternal()' in DevPCI.cpp
+ *   - '_PIC' and '_PRT' ACPI methods in vbox.dsl
+ */
+bool force_ioapic()
+{
+	try {
+		Genode::Attached_rom_dataspace config("config");
+		return config.xml().attribute_value("force_ioapic", false);
+	} catch (Genode::Rom_connection::Rom_connection_failed) {
+		return false;
+	}
 }

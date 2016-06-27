@@ -25,3 +25,4 @@ posix.patch
 hostservice.patch
 vbox_dd.patch
 ide.patch
+force_ioapic.patch
