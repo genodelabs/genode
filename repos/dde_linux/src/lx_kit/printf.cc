@@ -19,7 +19,10 @@
 #include <lx_emul.h>
 
 
-namespace Lx { class Console; }
+namespace Lx {
+	class Console;
+	class Format_command;
+}
 
 extern "C" int stdout_write(const char *s);
 
@@ -28,7 +31,7 @@ static const bool verbose_console = false;
 /**
  * Format string command representation
  */
-class Format_command
+class Lx::Format_command
 {
 	public:
 
@@ -300,7 +303,6 @@ class Lx::Console
 
 		void vprintf(const char *format, va_list list)
 		{
-		
 			while (*format) {
 
 				/* eat and output plain characters */
