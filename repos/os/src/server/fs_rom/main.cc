@@ -381,7 +381,7 @@ int main(void)
 	/* receiver of directory-change signals */
 	static Signal_receiver sig_rec;
 
-	enum { STACK_SIZE = 8*1024 };
+	enum { STACK_SIZE = 2*1024*sizeof(long) };
 	static Rpc_entrypoint ep(&cap, STACK_SIZE, "fs_rom_ep");
 	static Rom_root rom_root(ep, sliced_heap, fs, sig_rec);
 
