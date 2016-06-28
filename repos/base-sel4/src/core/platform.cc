@@ -384,6 +384,9 @@ Platform::Platform()
 	               Core_cspace::CORE_VM_ID,
 	               _core_page_table_registry)
 {
+	/* I/O port allocator (only meaningful for x86) */
+	_io_port_alloc.add_range(0, 0x10000);
+
 	/*
 	 * Log statistics about allocator initialization
 	 */
