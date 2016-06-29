@@ -192,3 +192,16 @@ Native_capability Capability_space::import(Ipc_cap_data ipc_cap_data)
 
 	return Native_capability(data);
 }
+
+
+Native_capability
+Capability_space::create_notification_cap(Cap_sel &notify_cap)
+{
+	Pd_session const *pd_session = nullptr;
+
+	Native_capability::Data &data =
+		local_capability_space().create_capability(notify_cap, pd_session,
+		                                           Rpc_obj_key());
+
+	return Native_capability(data);
+}

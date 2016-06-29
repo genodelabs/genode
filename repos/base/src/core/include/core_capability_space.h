@@ -17,7 +17,7 @@
 /* base-internal includes */
 #include <base/internal/rpc_obj_key.h>
 
-namespace Genode { class Pd_session; }
+namespace Genode { class Cap_sel; class Pd_session; }
 
 
 namespace Genode { namespace Capability_space {
@@ -28,6 +28,8 @@ namespace Genode { namespace Capability_space {
 	Native_capability create_rpc_obj_cap(Native_capability ep_cap,
 	                                     Pd_session const *,
 	                                     Rpc_obj_key);
+
+	Native_capability create_notification_cap(Genode::Cap_sel &notify_cap);
 } }
 
 #endif /* _CORE__INCLUDE__CORE_CAPABILITY_SPACE_H_ */

@@ -48,6 +48,13 @@ namespace Genode {
 	};
 
 
+	struct Notification_kobj
+	{
+		enum { SEL4_TYPE = seL4_NotificationObject, SIZE_LOG2 = 4 };
+		static char const *name() { return "notification"; }
+	};
+
+
 	struct Cnode_kobj
 	{
 		enum { SEL4_TYPE = seL4_CapTableObject, SIZE_LOG2 = 4 };
