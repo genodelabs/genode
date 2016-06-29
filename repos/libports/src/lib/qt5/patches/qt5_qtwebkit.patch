@@ -12,10 +12,10 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  qtwebkit/Source/WTF/wtf/OSAllocatorPosix.cpp       |   13 ++++++++++++
  qtwebkit/Source/WTF/wtf/OSRandomSource.cpp         |    8 ++++++++
  qtwebkit/Source/WTF/wtf/Platform.h                 |   19 +++++++++++++++---
- qtwebkit/Source/WTF/wtf/StackBounds.cpp            |   12 +++++++++++
+ qtwebkit/Source/WTF/wtf/StackBounds.cpp            |   13 ++++++++++++
  qtwebkit/Source/WTF/wtf/TCSystemAlloc.cpp          |   21 ++++++++++++++++++++
  .../platform/graphics/qt/MediaPlayerPrivateQt.cpp  |    3 +++
- 11 files changed, 96 insertions(+), 6 deletions(-)
+ 11 files changed, 97 insertions(+), 6 deletions(-)
 
 diff --git a/qtwebkit/Source/JavaScriptCore/dfg/DFGOperations.cpp b/qtwebkit/Source/JavaScriptCore/dfg/DFGOperations.cpp
 index bb9ccc3..077cbed 100644
@@ -236,7 +236,7 @@ index 35fa7e3..89e6205 100644
  
  /* Setting this flag compares JIT results with interpreter results. */
 diff --git a/qtwebkit/Source/WTF/wtf/StackBounds.cpp b/qtwebkit/Source/WTF/wtf/StackBounds.cpp
-index a272ce3..a2e7484 100644
+index a272ce3..65a5a1f 100644
 --- a/qtwebkit/Source/WTF/wtf/StackBounds.cpp
 +++ b/qtwebkit/Source/WTF/wtf/StackBounds.cpp
 @@ -44,6 +44,10 @@
@@ -250,7 +250,7 @@ index a272ce3..a2e7484 100644
  #elif OS(UNIX)
  
  #include <pthread.h>
-@@ -128,6 +132,14 @@ void StackBounds::initialize()
+@@ -128,6 +132,15 @@ void StackBounds::initialize()
      m_bound = estimateStackBound(m_origin);
  }
  
@@ -258,8 +258,9 @@ index a272ce3..a2e7484 100644
 +
 +void StackBounds::initialize()
 +{
-+    m_bound = Genode::Thread::myself()->stack_base();
-+    m_origin = Genode::Thread::myself()->stack_top();
++    Genode::Thread::Stack_info stack_info = Genode::Thread::mystack();
++    m_bound = (void*)stack_info.base;
++    m_origin = (void*)stack_info.top;
 +}
 +
  #elif OS(UNIX)

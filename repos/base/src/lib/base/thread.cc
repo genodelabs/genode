@@ -190,6 +190,14 @@ void *Thread::stack_base() const { return (void*)_stack->base(); }
 void Thread::stack_size(size_t const size) { _stack->size(size); }
 
 
+Thread::Stack_info Thread::mystack()
+{
+	addr_t base = Stack_allocator::addr_to_base(&base);
+	Stack *stack = Stack_allocator::base_to_stack(base);
+	return { stack->base(), stack->top() };
+}
+
+
 size_t Thread::stack_virtual_size()
 {
 	return Genode::stack_virtual_size();
