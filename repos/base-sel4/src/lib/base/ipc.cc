@@ -308,6 +308,9 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
                                            Msgbuf_base            &reply_msg,
                                            Msgbuf_base            &request_msg)
 {
+	if (!rcv_sel())
+		rcv_sel() = Capability_space::alloc_rcv_sel();
+
 	seL4_Word badge = 0;
 
 	if (exc.value == Rpc_exception_code::INVALID_OBJECT) {
