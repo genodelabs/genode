@@ -299,7 +299,11 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 void Genode::ipc_reply(Native_capability caller, Rpc_exception_code exc,
                        Msgbuf_base &snd_msg)
 {
-	ASSERT(false);
+	/* called when entrypoint thread leaves entry loop and exits */
+	seL4_MessageInfo_t const reply_msg_info = new_seL4_message(snd_msg);
+	seL4_SetMR(MR_IDX_EXC_CODE, exc.value);
+
+	seL4_Reply(reply_msg_info);
 }
 
 
