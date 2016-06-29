@@ -59,7 +59,19 @@ void Thread::_init_platform_thread(size_t, Type type)
 
 void Thread::_deinit_platform_thread()
 {
-	PDBG("not implemented");
+	addr_t const utcb_virt_addr = (addr_t)&_stack->utcb();
+
+	bool ret = unmap_local(utcb_virt_addr, 1);
+	ASSERT(ret);
+
+	int res = seL4_CNode_Delete(seL4_CapInitThreadCNode,
+	                            native_thread().lock_sel, 32);
+	if (res)
+		error(__PRETTY_FUNCTION__, ": seL4_CNode_Delete (",
+		      Hex(native_thread().lock_sel), ") returned ", res);
+
+	Platform &platform = *platform_specific();
+	platform.core_sel_alloc().free(Cap_sel(native_thread().lock_sel));
 }
 
 

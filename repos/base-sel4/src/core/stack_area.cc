@@ -98,7 +98,25 @@ class Stack_area_region_map : public Region_map
 			return local_addr;
 		}
 
-		void detach(Local_addr) override { PWRN("Not implemented!"); }
+		void detach(Local_addr local_addr) override
+		{
+			using Genode::addr_t;
+
+			if ((addr_t)local_addr >= stack_area_virtual_size())
+				return;
+
+			addr_t const detach = stack_area_virtual_base() + (addr_t)local_addr;
+			addr_t const stack  = stack_virtual_size();
+			addr_t const pages  = ((detach & ~(stack - 1)) + stack - detach)
+			                      >> get_page_size_log2();
+
+			unmap_local(detach, pages);
+
+			/* XXX missing XXX */
+			warning(__PRETTY_FUNCTION__, ": not implemented");
+			// Untyped_memory::convert_to_untyped_frames(phys_addr, phys_size)
+			// Untyped_memory::free_pages(phys_alloc, num_pages);
+		}
 
 		void fault_handler(Signal_context_capability) override { }
 
