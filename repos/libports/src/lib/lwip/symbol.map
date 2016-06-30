@@ -1,0 +1,12 @@
+{
+	global:
+
+		lwip_*;
+		ipaddr_addr;
+		dns_getserver;
+		ipaddr_ntoa;
+
+	local:
+
+		*;
+};
