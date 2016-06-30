@@ -30,6 +30,8 @@ D_OPTS   = ERRNO
 D_OPTS  := $(addprefix -D,$(D_OPTS))
 CC_DEF  += $(D_OPTS)
 
+LD_OPT  += --version-script=$(REP_DIR)/src/lib/lwip/symbol.map
+
 INC_DIR += $(REP_DIR)/include/lwip \
            $(LWIP_PORT_DIR)/include/lwip \
            $(LWIP_DIR)/src/include \
