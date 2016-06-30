@@ -217,7 +217,10 @@ Platform_thread::Platform_thread(size_t, const char *name, unsigned priority,
 
 Platform_thread::~Platform_thread()
 {
-	PDBG("not completely implemented");
+	if (_pd) {
+		seL4_TCB_Suspend(_info.tcb_sel.value());
+		_pd->unbind_thread(this);
+	}
 
 	platform_thread_registry().remove(*this);
 	platform_specific()->core_sel_alloc().free(_pager_obj_sel);

@@ -79,7 +79,13 @@ bool Platform_pd::bind_thread(Platform_thread *thread)
 
 void Platform_pd::unbind_thread(Platform_thread *thread)
 {
-	PDBG("not implemented");
+	if (!thread)
+		return;
+
+	if (thread->_utcb)
+		_vm_space.unmap(thread->_utcb, 1);
+	else
+		_vm_space.unmap(thread->INITIAL_IPC_BUFFER_VIRT, 1);
 }
 
 
