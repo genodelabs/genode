@@ -148,7 +148,7 @@ namespace Noux {
 
 			Cap_session * const _cap_session;
 
-			enum { STACK_SIZE = 4*1024*sizeof(long) };
+			enum { STACK_SIZE = 5*1024*sizeof(long) };
 			Rpc_entrypoint _entrypoint;
 
 			/**
