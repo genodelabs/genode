@@ -193,6 +193,14 @@ class Genode::Platform : public Platform_generic
 		Cap_sel asid_pool() const { return _asid_pool_sel; }
 
 		void wait_for_exit();
+
+		/**
+		 * Determine size of a core local mapping required for a
+		 * core_rm_session detach().
+		 */
+		size_t region_alloc_size_at(void * addr) {
+			return (*_core_mem_alloc.virt_alloc())()->size_at(addr); }
+
 };
 
 #endif /* _CORE__INCLUDE__PLATFORM_H_ */
