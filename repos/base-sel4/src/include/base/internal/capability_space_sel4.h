@@ -101,7 +101,9 @@ namespace Genode
 	};
 
 	enum {
-		CSPACE_SIZE_LOG2          = 8,
+		CSPACE_SIZE_LOG2_1ST      = 4,
+		CSPACE_SIZE_LOG2_2ND      = 8,
+		CSPACE_SIZE_LOG2          = CSPACE_SIZE_LOG2_1ST + CSPACE_SIZE_LOG2_2ND,
 		NUM_CORE_MANAGED_SEL_LOG2 = 7,
 	};
 };

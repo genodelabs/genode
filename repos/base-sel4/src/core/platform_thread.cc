@@ -124,15 +124,15 @@ int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 	Cap_sel const pager_sel(Capability_space::ipc_cap_data(_pager->cap()).sel);
 
 	/* install page-fault handler endpoint selector to the PD's CSpace */
-	_pd->cspace_cnode().copy(platform_specific()->core_cnode(), pager_sel,
-	                         _fault_handler_sel);
+	_pd->cspace_cnode(_fault_handler_sel).copy(platform_specific()->core_cnode(),
+	                                           pager_sel, _fault_handler_sel);
 
 	/* allocate endpoint selector in the PD's CSpace */
 	_ep_sel = _pd->alloc_sel();
 
 	/* install the thread's endpoint selector to the PD's CSpace */
-	_pd->cspace_cnode().copy(platform_specific()->core_cnode(), _info.ep_sel,
-	                         _ep_sel);
+	_pd->cspace_cnode(_ep_sel).copy(platform_specific()->core_cnode(),
+	                                _info.ep_sel, _ep_sel);
 
 	/*
 	 * Populate the thread's IPC buffer with initial information about the
@@ -148,7 +148,7 @@ int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 	seL4_CapData_t const no_cap_data = { { 0 } };
 
 	int const ret = seL4_TCB_SetSpace(_info.tcb_sel.value(), _fault_handler_sel.value(),
-	                                  _pd->cspace_cnode().sel().value(), guard_cap_data,
+	                                  _pd->cspace_cnode_1st().sel().value(), guard_cap_data,
 	                                  _pd->page_directory_sel().value(), no_cap_data);
 	ASSERT(ret == 0);
 

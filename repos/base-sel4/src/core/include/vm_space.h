@@ -57,7 +57,7 @@ class Genode::Vm_space
 			/**
 			 * Number of leaf CNodes
 			 */
-			NUM_LEAF_CNODES_LOG2 = 4UL,
+			NUM_LEAF_CNODES_LOG2 = 6UL,
 			NUM_LEAF_CNODES      = 1UL << NUM_LEAF_CNODES_LOG2,
 
 			/**

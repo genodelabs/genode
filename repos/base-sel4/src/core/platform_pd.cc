@@ -100,9 +100,9 @@ void Platform_pd::assign_parent(Native_capability parent)
 	 * Install parent endpoint selector at the predefined position
 	 * INITIAL_SEL_PARENT within the PD's CSpace.
 	 */
-	_cspace_cnode.copy(platform_specific()->core_cnode(),
-	                   Cnode_index(ipc_cap_data.sel),
-	                   Cnode_index(INITIAL_SEL_PARENT));
+	_cspace_cnode_2nd[0]->copy(platform_specific()->core_cnode(),
+	                           Cnode_index(ipc_cap_data.sel),
+	                           Cnode_index(INITIAL_SEL_PARENT));
 }
 
 
@@ -166,15 +166,28 @@ Platform_pd::Platform_pd(Allocator * md_alloc, char const *,
 	          platform_specific()->phys_cnode(),
 	          _id,
 	          _page_table_registry),
-	_cspace_cnode_sel(platform_specific()->core_sel_alloc().alloc()),
-	_cspace_cnode(platform_specific()->core_cnode().sel(), _cspace_cnode_sel,
-	              CSPACE_SIZE_LOG2,
-	              *platform()->ram_alloc())
+	_cspace_cnode_1st(platform_specific()->core_cnode().sel(),
+	                  platform_specific()->core_sel_alloc().alloc(),
+	                  CSPACE_SIZE_LOG2_1ST,
+	                  *platform()->ram_alloc())
 {
+	/* add all 2nd level CSpace's to 1st level CSpace */
+	for (unsigned i = 0; i < sizeof(_cspace_cnode_2nd) /
+	                         sizeof(_cspace_cnode_2nd[0]); i++) {
+		_cspace_cnode_2nd[i].construct(platform_specific()->core_cnode().sel(),
+		                               platform_specific()->core_sel_alloc().alloc(),
+		                               CSPACE_SIZE_LOG2_2ND,
+		                               *platform()->ram_alloc());
+
+		_cspace_cnode_1st.copy(platform_specific()->core_cnode(),
+		                       _cspace_cnode_2nd[i]->sel(),
+		                       Cnode_index(i));
+	}
+
 	/* install CSpace selector at predefined position in the PD's CSpace */
-	_cspace_cnode.copy(platform_specific()->core_cnode(),
-	                   _cspace_cnode_sel,
-	                   Cnode_index(INITIAL_SEL_CNODE));
+	_cspace_cnode_2nd[0]->copy(platform_specific()->core_cnode(),
+	                           _cspace_cnode_1st.sel(),
+	                           Cnode_index(INITIAL_SEL_CNODE));
 }
 
 
