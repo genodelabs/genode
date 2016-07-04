@@ -1,0 +1,181 @@
+set use_linux [have_spec linux]
+
+#
+# Check used commands
+#
+set dd [check_installed dd]
+
+#
+# Build
+#
+set build_components {
+	core init
+	drivers/ahci
+	drivers/timer
+	server/ram_blk
+	server/lx_block
+	app/block_tester
+}
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
+build $build_components
+
+#
+# Build EXT2-file-system image
+#
+catch { exec $dd if=/dev/zero of=bin/block.raw bs=1M count=0 seek=32768 }
+
+create_boot_directory
+
+#
+# Generate config
+#
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL" />
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<default caps="100"/>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>}
+
+append_platform_drv_config
+
+append_if [expr !$use_linux] config {
+	<start name="ahci_drv">
+		<resource name="RAM" quantum="10M" />
+		<provides><service name="Block" /></provides>
+		<config>
+		<!-- CAUTION setting writeable! -->
+		<policy label_prefix="block_tester" device="0" writeable="yes"/>
+		</config>
+	</start>}
+
+append_if $use_linux config {
+	<start name="ahci_drv">
+		<binary name="lx_block"/>
+		<resource name="RAM" quantum="2G"/>
+		<provides><service name="Block"/></provides>
+		<config file="block.raw" block_size="512" writeable="yes"/>
+	</start>}
+
+append config {
+	<start name="block_tester">
+		<resource name="RAM" quantum="32M"/>
+		<config verbose="yes" report="no" log="yes" stop_on_error="no">
+			<tests>
+				<!-- synchronous="no" 4K/8K currently leads to deadlocking ahci_drv
+				<sequential length="1G" size="4K"/>
+				<sequential length="1G" size="8K"/>
+				-->
+				<sequential length="1G" size="4K" synchronous="yes"/>
+				<sequential length="1G" size="8K" synchronous="yes"/>
+				<sequential length="1G" size="16K"/>
+				<sequential length="1G" size="64K"/>
+				<sequential length="1G" size="128K"/>
+				<sequential length="1G" size="4K" synchronous="yes" write="yes"/>
+				<sequential length="1G" size="64K" write="yes" synchronous="yes"/>
+				<random length="1G" size="16K" seed="0xdeadbeef" synchronous="yes"/>
+				<random length="8G" size="512K" seed="0xc0ffee" synchronous="yes"/>
+				<ping_pong length="1G" size="16K"/>
+				<replay bulk="no">
+					<request type="read" lba="0" count="1"/>
+					<request type="read" lba="0" count="1"/>
+					<request type="read" lba="0" count="1"/>
+					<request type="read" lba="2048" count="1016"/>
+					<request type="read" lba="0" count="1"/>
+					<request type="read" lba="0" count="1"/>
+					<request type="read" lba="0" count="1"/>
+					<request type="read" lba="2048" count="1016"/>
+					<request type="read" lba="0" count="1"/>
+					<request type="read" lba="0" count="1"/>
+					<request type="read" lba="0" count="1"/>
+					<request type="read" lba="2048" count="1016"/>
+					<request type="read" lba="4096" count="1"/>
+					<request type="read" lba="51881" count="1"/>
+					<request type="read" lba="51890" count="1"/>
+					<request type="read" lba="114184" count="14"/>
+					<request type="read" lba="114198" count="1"/>
+					<request type="read" lba="114033" count="127"/>
+					<request type="read" lba="114160" count="24"/>
+					<request type="write" lba="0" count="1"/>
+					<request type="read" lba="12288" count="2048"/>
+					<request type="write" lba="4096" count="2048"/>
+					<request type="write" lba="0" count="1"/>
+					<request type="write" lba="2048" count="1"/>
+					<request type="write" lba="5696" count="1"/>
+					<request type="write" lba="5696" count="1"/>
+					<request type="write" lba="5696" count="1"/>
+					<request type="read" lba="4096" count="1"/>
+					<request type="read" lba="61440" count="16"/>
+					<request type="read" lba="158777" count="127"/>
+					<request type="write" lba="40960" count="2048"/>
+					<request type="write" lba="0" count="1"/>
+					<request type="write" lba="2073" count="1"/>
+					<request type="read" lba="190483" count="64"/>
+					<request type="read" lba="190411" count="53"/>
+					<request type="read" lba="190464" count="11"/>
+					<request type="read" lba="106074" count="64"/>
+					<request type="read" lba="105954" count="56"/>
+					<request type="read" lba="122802" count="24"/>
+					<request type="read" lba="123594" count="64"/>
+					<request type="read" lba="123722" count="64"/>
+				</replay>
+			</tests>
+		</config>
+		<route>
+			<service name="Block"><child name="ahci_drv"/></service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer ahci_drv ram_blk block_tester
+	ld.lib.so
+}
+
+append_if $use_linux boot_modules {
+	block.raw lx_block
+}
+
+append_platform_drv_boot_modules
+
+build_boot_image $boot_modules
+
+#append qemu_args " -m 256 -nographic"
+
+append qemu_args " -nographic -m 512 "
+append qemu_args " -drive id=disk,file=bin/block.raw,format=raw,if=none -device ahci,id=ahci -device ide-hd,drive=disk,bus=ahci.0 -boot d"
+append qemu_args " -drive id=cd,file=[run_dir]/../block_replay.iso,if=none,media=cdrom -device ide-cd,drive=cd,bus=ahci.1"
+
+
+#run_genode_until {.*child "block_tester" exited.*\n} 360
+run_genode_until forever
+
+exec rm -f bin/block.raw
