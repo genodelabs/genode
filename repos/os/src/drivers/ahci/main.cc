@@ -68,18 +68,28 @@ class Block::Root_multiple_clients : public Root_component< ::Session_component>
 		Genode::Allocator &_alloc;
 		Genode::Xml_node   _config;
 
+		Xml_node _lookup_policy(char const *label)
+		{
+			for (Xml_node policy = _config.sub_node("policy");;
+			     policy = policy.next("policy")) {
+
+				char label_buf[64];
+				policy.attribute("label").value(label_buf, sizeof(label_buf));
+
+				if (Genode::strcmp(label, label_buf) == 0) {
+					return policy;
+				}
+			}
+
+			throw Xml_node::Nonexistent_sub_node();
+		}
+
 		long _device_num(const char *session_label, char *model, char *sn, size_t bufs_len)
 		{
 			long num = -1;
 
-			Xml_node policy = _config.sub_node("policy");
-
-			for (;; policy = policy.next("policy")) {
-				char label_buf[64];
-				policy.attribute("label").value(label_buf, sizeof(label_buf));
-
-				if (Genode::strcmp(session_label, label_buf))
-					continue;
+			try {
+				Xml_node policy = _lookup_policy(session_label);
 
 				/* try read device port number attribute */
 				try {
@@ -92,8 +102,7 @@ class Block::Root_multiple_clients : public Root_component< ::Session_component>
 					policy.attribute("model").value(model, bufs_len);
 					policy.attribute("serial").value(sn, bufs_len);
 				} catch (...) { }
-				break;
-			}
+			} catch (...) { }
 
 			return num;
 		}
