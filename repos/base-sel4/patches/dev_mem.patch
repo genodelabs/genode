@@ -1,0 +1,83 @@
+--- src/kernel/sel4/src/arch/x86/kernel/boot_sys.c
++++ src/kernel/sel4/src/arch/x86/kernel/boot_sys.c
+@@ -294,9 +294,11 @@ parse_mem_map(uint32_t mmap_length, uint32_t mmap_addr)
+     multiboot_mmap_t *mmap = (multiboot_mmap_t *)((word_t)mmap_addr);
+     printf("Parsing GRUB physical memory map\n");
+ 
++    p_region_t bios_area = { .start = BIOS_PADDR_START, .end = BIOS_PADDR_END };
++
+     while ((word_t)mmap < (word_t)(mmap_addr + mmap_length)) {
+-        uint64_t mem_start = mmap->base_addr;
+-        uint64_t mem_length = mmap->length;
++        uint64_t mem_start = mmap->base_addr & ~0xFFFUL;
++        uint64_t mem_length = (mmap->length + (mmap->base_addr & 0xFFFUL)) & ~0xFFFUL;
+         uint32_t type = mmap->type;
+         if (mem_start != (uint64_t)(word_t)mem_start) {
+             printf("\tPhysical memory region not addressable\n");
+@@ -307,9 +309,46 @@ parse_mem_map(uint32_t mmap_length, uint32_t mmap_addr)
+                     mem_start, mem_start + mem_length
+                 });
+             }
++            if (type == MULTIBOOT_MMAP_RESERVED_TYPE) {
++                p_region_t reg = { .start = mem_start, .end = mem_start + mem_length};
++
++                bool_t const inside_start = bios_area.start <= reg.start && reg.start < bios_area.end;
++                bool_t const inside_end   = bios_area.start < reg.end && reg.end <= bios_area.end;
++
++                /* trim BIOS area if we detect overlaps */
++                if (!inside_start && !inside_end &&
++                    (reg.start <= bios_area.start && bios_area.start < reg.end))
++                    bios_area.start = bios_area.end;
++                else
++                if (inside_start && inside_end) {
++                    p_region_t tail = { .start = reg.end, .end = bios_area.end };
++                    if (tail.start < tail.end)
++                        insert_dev_p_reg(tail);
++
++                    bios_area.end = reg.start;
++                } else {
++                    if (inside_start)
++                        bios_area.end = reg.start;
++                    if (inside_end)
++                        bios_area.start = reg.end;
++                }
++
++                insert_dev_p_reg(reg);
++            }
+         }
+         mmap++;
+     }
++
++    /* first physical page - required by acpi drivers and vesa drivers */
++    insert_dev_p_reg((p_region_t) { .start = 0, .end = 0x1000 });
++
++    /* bios data area - required by acpi drivers */
++    if (bios_area.start < bios_area.end)
++        insert_dev_p_reg(bios_area);
++
++    /* check this XXX - vesa driver requires the regions on Qemu XXX */
++    insert_dev_p_reg((p_region_t) { .start = BIOS_PADDR_IVDEO_RAM_END, .end = BIOS_PADDR_START });
++    insert_dev_p_reg((p_region_t) { .start = BIOS_PADDR_VIDEO_RAM_START, .end = BIOS_PADDR_VIDEO_RAM_START + 0x8000 });
+ }
+ 
+ static BOOT_CODE bool_t
+@@ -348,6 +387,9 @@ try_boot_sys(
+     /* copy CPU bootup code to lower memory */
+     memcpy((void*)BOOT_NODE_PADDR, boot_cpu_start, boot_cpu_end - boot_cpu_start);
+ 
++    /* Prepare for accepting device regions from here on */
++    boot_state.dev_p_regs.count = 0;
++
+     boot_state.mem_p_regs.count = 0;
+     if (mbi->flags & MULTIBOOT_INFO_MMAP_FLAG) {
+         parse_mem_map(mbi->mmap_length, mbi->mmap_addr);
+@@ -377,9 +419,6 @@ try_boot_sys(
+         pic_disable();
+     }
+ 
+-    /* Prepare for accepting device regions from here on */
+-    boot_state.dev_p_regs.count = 0;
+-
+     /* get ACPI root table */
+     acpi_rsdt = acpi_init();
+     if (!acpi_rsdt) {

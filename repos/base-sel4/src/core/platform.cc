@@ -93,7 +93,8 @@ void Platform::_init_unused_phys_alloc()
 	/* enable log support early */
 	init_log();
 
-	_unused_phys_alloc.add_range(0, ~0UL);
+	/* the lower physical ram is kept by the kernel and not usable to us */
+	_unused_phys_alloc.add_range(0x100000, 0UL - 0x100000);
 }
 
 
@@ -106,7 +107,7 @@ static inline void init_sel4_ipc_buffer()
 void Platform::_init_allocators()
 {
 	/* interrupt allocator */
-	_irq_alloc.add_range(0, 255);
+	_irq_alloc.add_range(0, 256);
 
 	/*
 	 * XXX allocate intermediate CNodes for organizing the untyped pages here
