@@ -154,10 +154,7 @@ Platform_env::Platform_env()
 	_heap(Platform_env_base::ram_session(), Platform_env_base::rm_session()),
 	_emergency_ram_ds(ram_session()->alloc(_emergency_ram_size()))
 {
-	/* attach stack area to local address space */
-	_local_pd_session._address_space.attach_at(_local_pd_session._stack_area.dataspace(),
-	                                           stack_area_virtual_base(),
-	                                           stack_area_virtual_size());
+	_attach_stack_area();
 
 	env_stack_area_region_map  = &_local_pd_session._stack_area;
 	env_stack_area_ram_session = ram_session();

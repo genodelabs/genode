@@ -118,6 +118,11 @@ class Genode::Platform_env : public Platform_env_base,
 		constexpr static size_t  _emergency_ram_size() { return 8*1024; }
 		Ram_dataspace_capability _emergency_ram_ds;
 
+		/**
+		 * Attach stack area to local address space (for non-hybrid components)
+		 */
+		void _attach_stack_area();
+
 	public:
 
 		/**

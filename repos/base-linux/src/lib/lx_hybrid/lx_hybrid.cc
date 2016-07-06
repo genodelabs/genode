@@ -21,6 +21,7 @@
 /* base-internal includes */
 #include <base/internal/native_thread.h>
 #include <base/internal/globals.h>
+#include <base/internal/platform_env.h>
 
 
 /**
@@ -524,4 +525,18 @@ Thread::~Thread()
 
 	/* inform core about the killed thread */
 	_cpu_session->kill_thread(_thread_cap);
+}
+
+
+/******************
+ ** Platform_env **
+ ******************/
+
+void Platform_env::_attach_stack_area()
+{
+	/*
+	 * Omit attaching the stack area to the local address space for hybrid
+	 * components. Otherwise, it may collide with the (randomized) loading
+	 * locations of shared objects or the binary.
+	 */
 }
