@@ -258,14 +258,10 @@ append_if [expr $use_nic_session && !$use_nic_bridge] config {
 append_if $use_framebuffer config {
 			<service name="Framebuffer"><child name="fb_drv"/></service>}
 append_if $use_genode_iso config {
-			<service name="ROM">
-				<if-arg key="filename" value="vm_seoul.cfg"/>
-				<parent/>
-			</service>
-			<service name="ROM">
-				<if-arg key="filename" value="hypervisor_info_page"/>
-				<parent/>
-			</service>
+			<service name="ROM" label="vm_seoul.cfg">
+				<parent/> </service>
+			<service name="ROM" label="hypervisor_info_page">
+				<parent/> </service>
 			<service name="ROM"><child name="iso9660"/></service>}
 append config {
 			<service name="Rtc"><child name="rtc_drv"/></service>
