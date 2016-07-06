@@ -286,7 +286,9 @@ struct Ata_driver : Port_driver
 
 		case IDENTIFY:
 
-			if (Port::Is::Dss::get(status) || Port::Is::Pss::get(status)) {
+			if (Port::Is::Dss::get(status)
+			    || Port::Is::Pss::get(status)
+			    || Port::Is::Dhrs::get(status)) {
 				info.construct(device_info);
 				serial.construct(*info);
 				model.construct(*info);
