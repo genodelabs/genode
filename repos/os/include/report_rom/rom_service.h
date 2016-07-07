@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -20,7 +20,6 @@
 #include <rom_session/rom_session.h>
 #include <root/component.h>
 #include <report_rom/rom_registry.h>
-#include <os/session_policy.h>
 
 namespace Rom {
 	class Session_component;
@@ -175,11 +174,11 @@ class Rom::Root : public Genode::Root_component<Session_component>
 
 	public:
 
-		Root(Server::Entrypoint   &ep,
+		Root(Genode::Env          &env,
 		     Genode::Allocator    &md_alloc,
 		     Registry_for_reader  &registry)
 		:
-			Genode::Root_component<Session_component>(&ep.rpc_ep(), &md_alloc),
+			Genode::Root_component<Session_component>(&env.ep().rpc_ep(), &md_alloc),
 			_registry(registry)
 		{ }
 };
