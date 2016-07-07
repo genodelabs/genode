@@ -207,7 +207,7 @@ void Platform::_switch_to_core_cspace()
 	_core_cnode.copy(initial_cspace, Cnode_index(seL4_CapDomain));
 
 	/* replace seL4_CapInitThreadCNode with new top-level CNode */
-	_core_cnode.copy(initial_cspace, Cnode_index(Core_cspace::TOP_CNODE_SEL),
+	_core_cnode.copy(initial_cspace, Cnode_index(Core_cspace::top_cnode_sel()),
 	                                 Cnode_index(seL4_CapInitThreadCNode));
 
 	/* copy untyped memory selectors to core's CNode */
@@ -235,29 +235,29 @@ void Platform::_switch_to_core_cspace()
 		_core_cnode.copy(initial_cspace, Cnode_index(sel));
 
 	/* copy statically created CNode selectors to core's CNode */
-	_core_cnode.copy(initial_cspace, Cnode_index(Core_cspace::TOP_CNODE_SEL));
-	_core_cnode.copy(initial_cspace, Cnode_index(Core_cspace::CORE_PAD_CNODE_SEL));
-	_core_cnode.copy(initial_cspace, Cnode_index(Core_cspace::CORE_CNODE_SEL));
-	_core_cnode.copy(initial_cspace, Cnode_index(Core_cspace::PHYS_CNODE_SEL));
+	_core_cnode.copy(initial_cspace, Cnode_index(Core_cspace::top_cnode_sel()));
+	_core_cnode.copy(initial_cspace, Cnode_index(Core_cspace::core_pad_cnode_sel()));
+	_core_cnode.copy(initial_cspace, Cnode_index(Core_cspace::core_cnode_sel()));
+	_core_cnode.copy(initial_cspace, Cnode_index(Core_cspace::phys_cnode_sel()));
 
 	/*
 	 * Construct CNode hierarchy of core's CSpace
 	 */
 
 	/* insert 3rd-level core CNode into 2nd-level core-pad CNode */
-	_core_pad_cnode.copy(initial_cspace, Cnode_index(Core_cspace::CORE_CNODE_SEL),
+	_core_pad_cnode.copy(initial_cspace, Cnode_index(Core_cspace::core_cnode_sel()),
 	                                     Cnode_index(0));
 
 	/* insert 2nd-level core-pad CNode into 1st-level CNode */
-	_top_cnode.copy(initial_cspace, Cnode_index(Core_cspace::CORE_PAD_CNODE_SEL),
+	_top_cnode.copy(initial_cspace, Cnode_index(Core_cspace::core_pad_cnode_sel()),
 	                                Cnode_index(Core_cspace::TOP_CNODE_CORE_IDX));
 
 	/* insert 2nd-level phys-mem CNode into 1st-level CNode */
-	_top_cnode.copy(initial_cspace, Cnode_index(Core_cspace::PHYS_CNODE_SEL),
+	_top_cnode.copy(initial_cspace, Cnode_index(Core_cspace::phys_cnode_sel()),
 	                                Cnode_index(Core_cspace::TOP_CNODE_PHYS_IDX));
 
 	/* insert 2nd-level untyped-pages CNode into 1st-level CNode */
-	_top_cnode.copy(initial_cspace, Cnode_index(Core_cspace::UNTYPED_CNODE_SEL),
+	_top_cnode.copy(initial_cspace, Cnode_index(Core_cspace::untyped_cnode_sel()),
 	                                Cnode_index(Core_cspace::TOP_CNODE_UNTYPED_IDX));
 
 	/* activate core's CSpace */
@@ -266,7 +266,7 @@ void Platform::_switch_to_core_cspace()
 
 		int const ret = seL4_TCB_SetSpace(seL4_CapInitThreadTCB,
 		                                  seL4_CapNull, /* fault_ep */
-		                                  Core_cspace::TOP_CNODE_SEL, null_data,
+		                                  Core_cspace::top_cnode_sel(), null_data,
 		                                  seL4_CapInitThreadPD, null_data);
 
 		if (ret != seL4_NoError)

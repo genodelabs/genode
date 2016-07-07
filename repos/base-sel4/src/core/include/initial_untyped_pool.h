@@ -174,7 +174,7 @@ class Genode::Initial_untyped_pool
 					seL4_Untyped const service     = range.sel;
 					int          const type        = seL4_UntypedObject;
 					int          const size_bits   = get_page_size_log2();
-					seL4_CNode   const root        = Core_cspace::TOP_CNODE_SEL;
+					seL4_CNode   const root        = Core_cspace::top_cnode_sel();
 					int          const node_index  = Core_cspace::TOP_CNODE_UNTYPED_IDX;
 					int          const node_depth  = Core_cspace::NUM_TOP_SEL_LOG2;
 					int          const node_offset = phys_addr >> get_page_size_log2();
