@@ -427,9 +427,16 @@ namespace Iso {
 
 			t.string(level, PATH_LENGTH);
 
+			/*
+			 * Save current block number in a variable because successive
+			 * iterations might override the memory location where dir points
+			 * to when a directory entry spans several sectors.
+			 */
+			uint32_t current_blk_nr = dir->blk_nr();
+
 			/* load extent of directory record and search for level */
 			for (unsigned long i = 0; i < Sector::to_blk(dir->data_length()); i++) {
-				Sector sec(dir->blk_nr() + i, 1);
+				Sector sec(current_blk_nr + i, 1);
 				Directory_record *tmp = sec.addr<Directory_record *>()->locate(level);
 
 				if (!tmp && i == Sector::to_blk(dir->data_length()) - 1) {
@@ -440,12 +447,13 @@ namespace Iso {
 				if (!tmp) continue;
 
 				dir = tmp;
+				current_blk_nr = dir->blk_nr();
 
 				if (verbose)
 					PDBG("Found %s", level);
 
 				if (!dir->directory()) {
-					blk_nr      = dir->blk_nr();
+					blk_nr      = current_blk_nr;
 					data_length = dir->data_length();
 				}
 
