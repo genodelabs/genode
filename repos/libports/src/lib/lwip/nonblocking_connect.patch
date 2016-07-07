@@ -1,0 +1,26 @@
+Avoid assertion on nonblocking connect()
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+When calling 'connect()' in nonblocking mode and the connection has been
+established, don't call 'tcp_connect()' again, which would trigger an
+assertion with the message 'tcp_connect: can only connect from state
+CLOSED'.
+---
+ src/api/api_msg.c |    3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src/api/api_msg.c b/src/api/api_msg.c
+index c00222c..d05a5ae 100644
+--- a/src/api/api_msg.c
++++ b/src/api/api_msg.c
+@@ -1008,7 +1008,8 @@ lwip_netconn_do_connect(struct api_msg_msg *msg)
+ #if LWIP_TCP
+     case NETCONN_TCP:
+       /* Prevent connect while doing any other action. */
+-      if (msg->conn->state != NETCONN_NONE) {
++      if ((msg->conn->state != NETCONN_NONE) ||
++          ((msg->conn->pcb.tcp->state == ESTABLISHED) && netconn_is_nonblocking(msg->conn))) {
+         msg->err = ERR_ISCONN;
+       } else {
+         setup_tcp(msg->conn);
