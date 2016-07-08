@@ -151,7 +151,7 @@ void Platform_pd::flush(addr_t virt_addr, size_t size)
 }
 
 
-Platform_pd::Platform_pd(Allocator * md_alloc, char const *,
+Platform_pd::Platform_pd(Allocator * md_alloc, char const *label,
                          signed pd_id, bool create)
 :
 	_id(pd_id_alloc().alloc()),
@@ -165,7 +165,8 @@ Platform_pd::Platform_pd(Allocator * md_alloc, char const *,
 	          platform_specific()->core_cnode(),
 	          platform_specific()->phys_cnode(),
 	          _id,
-	          _page_table_registry),
+	          _page_table_registry,
+	          label),
 	_cspace_cnode_1st(platform_specific()->core_cnode().sel(),
 	                  platform_specific()->core_sel_alloc().alloc(),
 	                  CSPACE_SIZE_LOG2_1ST,

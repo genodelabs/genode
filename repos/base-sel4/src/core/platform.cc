@@ -416,7 +416,8 @@ Platform::Platform()
 	               _core_cnode,
 	               _phys_cnode,
 	               Core_cspace::CORE_VM_ID,
-	               _core_page_table_registry)
+	               _core_page_table_registry,
+	               "core")
 {
 	/* I/O port allocator (only meaningful for x86) */
 	_io_port_alloc.add_range(0, 0x10000);

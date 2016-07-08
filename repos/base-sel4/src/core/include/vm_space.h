@@ -19,6 +19,7 @@
 #include <util/volatile_object.h>
 #include <base/log.h>
 #include <base/thread.h>
+#include <base/session_label.h>
 
 /* core includes */
 #include <page_table_registry.h>
@@ -32,6 +33,8 @@ namespace Genode { class Vm_space; }
 class Genode::Vm_space
 {
 	private:
+
+		Session_label _pd_label;
 
 		Cap_sel_alloc &_cap_sel_alloc;
 
@@ -170,7 +173,8 @@ class Genode::Vm_space
 				if (!flush_support)
 					throw;
 
-				warning("flush page table entries - mapping cache full");
+				warning("flush page table entries - mapping cache full - PD: ",
+				        _pd_label.string());
 
 				_page_table_registry.flush_cache();
 
@@ -270,8 +274,10 @@ class Genode::Vm_space
 		         Cnode               &core_cnode,
 		         Cnode               &phys_cnode,
 		         unsigned             id,
-		         Page_table_registry &page_table_registry)
+		         Page_table_registry &page_table_registry,
+		         const char *         label)
 		:
+			_pd_label(label),
 			_cap_sel_alloc(cap_sel_alloc),
 			_page_table_registry(page_table_registry),
 			_id(id), _pd_sel(pd_sel),
