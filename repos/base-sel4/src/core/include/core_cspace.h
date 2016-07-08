@@ -26,7 +26,8 @@ class Genode::Core_cspace
 		/* CNode dimensions */
 		enum {
 			NUM_TOP_SEL_LOG2  = 12UL,
-			NUM_CORE_SEL_LOG2 = 14UL,
+			/* CONFIG_ROOT_CNODE_SIZE_BITS from seL4 autoconf.h */
+			NUM_CORE_SEL_LOG2 = CONFIG_ROOT_CNODE_SIZE_BITS + 1,
 			NUM_PHYS_SEL_LOG2 = 20UL,
 
 			NUM_CORE_PAD_SEL_LOG2 = 32UL - NUM_TOP_SEL_LOG2 - NUM_CORE_SEL_LOG2,
@@ -52,6 +53,5 @@ class Genode::Core_cspace
 
 		enum { CORE_VM_ID = 1 };
 };
-
 
 #endif /* _CORE__INCLUDE__CORE_CSPACE_H_ */
