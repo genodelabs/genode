@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <util/list.h>
 #include <base/exception.h>
+#include <base/log.h>
 
 /* core includes */
 #include <util.h>
@@ -30,6 +31,7 @@ class Genode::Page_table_registry
 	public:
 
 		class Lookup_failed : Exception { };
+		class Mapping_cache_full : Exception { };
 
 	private:
 
@@ -93,7 +95,11 @@ class Genode::Page_table_registry
 						return;
 					}
 
-					_entries.insert(new (entry_alloc) Entry(addr, sel));
+					try {
+						_entries.insert(new (entry_alloc) Entry(addr, sel));
+					} catch (Genode::Allocator::Out_of_memory) {
+						throw Mapping_cache_full();
+					}
 				}
 
 				void remove_entry(Allocator &entry_alloc, addr_t addr)
@@ -105,6 +111,14 @@ class Genode::Page_table_registry
 					} catch (Lookup_failed) {
 						if (verbose)
 							PWRN("trying to remove non-existing page frame for 0x%lx", addr);
+					}
+				}
+
+				void flush_all(Allocator &entry_alloc)
+				{
+					for (; Entry *entry = _entries.first();) {
+						_entries.remove(entry);
+						destroy(entry_alloc, entry);
 					}
 				}
 		};
@@ -255,6 +269,13 @@ class Genode::Page_table_registry
 				if (verbose)
 					PDBG("no PT entry found for virtual address 0x%lx", addr);
 			}
+		}
+
+
+		void flush_cache()
+		{
+			for (Page_table *pt = _page_tables.first(); pt; pt = pt->next())
+				pt->flush_all(_page_table_entry_alloc);
 		}
 
 		/**

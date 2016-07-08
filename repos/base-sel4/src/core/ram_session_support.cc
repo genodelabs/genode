@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 
 /* core includes */
 #include <ram_session_component.h>
@@ -43,14 +43,18 @@ void Ram_session_component::_clear_ds (Dataspace_component *ds)
 	/* allocate range in core's virtual address space */
 	void *virt_addr;
 	if (!platform()->region_alloc()->alloc(page_rounded_size, &virt_addr)) {
-		PERR("could not allocate virtual address range in core of size %zd\n",
-		     page_rounded_size);
+		error("could not allocate virtual address range in core of size ",
+		      page_rounded_size);
 		return;
 	}
 
 	/* map the dataspace's physical pages to core-local virtual addresses */
 	size_t num_pages = page_rounded_size >> get_page_size_log2();
-	map_local(ds->phys_addr(), (addr_t)virt_addr, num_pages);
+	if (!map_local(ds->phys_addr(), (addr_t)virt_addr, num_pages)) {
+		error("could not map virtual address range in core of size ",
+		      page_rounded_size);
+		return;
+	}
 
 	/* clear dataspace */
 	size_t num_longwords = page_rounded_size/sizeof(long);

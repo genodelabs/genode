@@ -148,7 +148,7 @@ class Genode::Vm_space
 		 */
 		unsigned _idx_to_sel(unsigned idx) const { return (_id << 20) | idx; }
 
-		void _map_page(addr_t from_phys, addr_t to_virt)
+		void _map_page(addr_t from_phys, addr_t to_virt, bool flush_support)
 		{
 			/* allocate page-table entry selector */
 			unsigned pte_idx = _sel_alloc.alloc();
@@ -164,7 +164,19 @@ class Genode::Vm_space
 			                          Cnode_index(_leaf_cnode_entry(pte_idx)));
 
 			/* remember relationship between pte_sel and the virtual address */
-			_page_table_registry.insert_page_table_entry(to_virt, pte_idx);
+			try {
+				_page_table_registry.insert_page_table_entry(to_virt, pte_idx);
+			} catch (Page_table_registry::Mapping_cache_full) {
+				if (!flush_support)
+					throw;
+
+				warning("flush page table entries - mapping cache full");
+
+				_page_table_registry.flush_cache();
+
+				/* re-try once */
+				_page_table_registry.insert_page_table_entry(to_virt, pte_idx);
+			}
 
 			/*
 			 * Insert copy of page-frame selector into page table
@@ -300,7 +312,8 @@ class Genode::Vm_space
 				_vm_cnodes[i].destruct(_cap_sel_alloc);
 		}
 
-		void map(addr_t from_phys, addr_t to_virt, size_t num_pages)
+		void map(addr_t from_phys, addr_t to_virt, size_t num_pages,
+		         bool flush_support = true)
 		{
 			Lock::Guard guard(_lock);
 
@@ -310,7 +323,7 @@ class Genode::Vm_space
 
 			for (size_t i = 0; i < num_pages; i++) {
 				off_t const offset = i << get_page_size_log2();
-				_map_page(from_phys + offset, to_virt + offset);
+				_map_page(from_phys + offset, to_virt + offset, flush_support);
 			}
 		}
 
