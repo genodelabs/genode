@@ -14,7 +14,7 @@
 #include "irq.h"
 
 
-namespace Nonpci { class Ps2; }
+namespace Nonpci { class Ps2; class Pit; }
 
 class Nonpci::Ps2 : public Platform::Device_component
 {
@@ -82,6 +82,37 @@ class Nonpci::Ps2 : public Platform::Device_component
 };
 
 
+class Nonpci::Pit : public Platform::Device_component
+{
+	private:
+
+		enum {
+			IRQ_PIT     = 0,
+
+			PIT_PORT    = 0x40,
+			PORTS_WIDTH = 4
+		};
+
+		Genode::Io_port_connection _ports;
+
+	public:
+
+		Pit(Genode::Rpc_entrypoint * ep, Platform::Session_component * session)
+		:
+			Platform::Device_component(ep, session, IRQ_PIT),
+			_ports(PIT_PORT, PORTS_WIDTH)
+		{ }
+
+		Genode::Io_port_session_capability io_port(Genode::uint8_t io_port) override
+		{
+			if (io_port == 0)
+				return _ports.cap();
+
+			return Genode::Io_port_session_capability();
+		}
+};
+
+
 /**
  * Platform session component devices which are non PCI devices, e.g. PS2
  */
@@ -93,7 +124,7 @@ Platform::Device_capability Platform::Session_component::device(String const &na
 	using namespace Genode;
 
 	char const * device_name = name.string();
-	const char * devices []  = { "PS2" };
+	const char * devices []  = { "PS2", "PIT" };
 	unsigned      devices_i  = 0;
 
 	for (; devices_i < sizeof(devices) / sizeof(devices[0]); devices_i++)
@@ -117,6 +148,9 @@ Platform::Device_capability Platform::Session_component::device(String const &na
 		switch(devices_i) {
 			case 0:
 				dev = new (_md_alloc) Nonpci::Ps2(_ep, this);
+				break;
+			case 1:
+				dev = new (_md_alloc) Nonpci::Pit(_ep, this);
 				break;
 			default:
 				return Device_capability();
