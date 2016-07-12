@@ -170,14 +170,14 @@ void Platform::_init_allocators()
 	/* remove core image from core's virtual address allocator */
 
 	/*
-	 * XXX Why do we need to skip a few KiB after the end of core?
+	 * XXX Why do we need to skip a page after the end of core?
 	 *     When allocating a PTE immediately after _prog_img_end, the
 	 *     kernel would complain "Mapping already present" on the
 	 *     attempt to map a page frame.
 	 */
 	addr_t const core_virt_beg = trunc_page((addr_t)&_prog_img_beg),
 	             core_virt_end = round_page((addr_t)&_boot_modules_binaries_end)
-	                           + 64*1024;
+	                           + 4096;
 	size_t const core_size     = core_virt_end - core_virt_beg;
 
 	_core_mem_alloc.virt_alloc()->remove_range(core_virt_beg, core_size);
@@ -189,6 +189,12 @@ void Platform::_init_allocators()
 		    Hex(core_virt_end, Hex::OMIT_PREFIX, Hex::PAD), ") size=",
 		    Hex(core_size));
 	}
+
+	/* preserve sel4 boot info page in core's virtual address space */
+	addr_t const sel4_boot_info_page = reinterpret_cast<addr_t>(&bi);
+	_core_mem_alloc.virt_alloc()->remove_range(sel4_boot_info_page, 0x1000);
+	if (sel4_boot_info_page != core_virt_end)
+		warning("unexpected core binary layout");
 
 	/* preserve stack area in core's virtual address space */
 	_core_mem_alloc.virt_alloc()->remove_range(stack_area_virtual_base(),
