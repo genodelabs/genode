@@ -20,7 +20,6 @@
 #include <base/exception.h>
 #include <thread/capability.h>
 #include <session/session.h>
-#include <signal_source/signal_source.h>
 #include <region_map/region_map.h>
 
 namespace Genode {

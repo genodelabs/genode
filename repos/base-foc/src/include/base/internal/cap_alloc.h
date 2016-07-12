@@ -16,12 +16,12 @@
 
 /* Genode includes */
 #include <base/native_capability.h>
-#include <util/assert.h>
 #include <util/construct_at.h>
 #include <foc/native_capability.h>
 
 /* base-internal includes */
 #include <base/internal/cap_map.h>
+#include <base/internal/foc_assert.h>
 
 namespace Genode {
 

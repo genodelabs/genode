@@ -13,13 +13,10 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* Genode includes */
-#include <util/assert.h>
-#include <base/log.h>
-
 /* base-internal includes */
 #include <base/internal/spin_lock.h>
 #include <base/internal/cap_map.h>
+#include <base/internal/foc_assert.h>
 
 /* kernel includes */
 #include <foc/capability_space.h>

@@ -24,6 +24,7 @@
 
 /* base-internal includes */
 #include <base/internal/cap_alloc.h>
+#include <base/internal/foc_assert.h>
 
 /* Fiasco includes */
 namespace Fiasco {
@@ -33,8 +34,6 @@ namespace Fiasco {
 #include <l4/sys/task.h>
 #include <l4/sys/types.h>
 }
-
-#include <util/assert.h>
 
 using namespace Genode;
 

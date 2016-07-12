@@ -19,6 +19,7 @@
 
 /* base-internal includes */
 #include <base/internal/ipc_server.h>
+#include <signal_source/signal_source.h>
 
 using namespace Genode;
 

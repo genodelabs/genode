@@ -18,11 +18,11 @@
 #include <base/thread.h>
 #include <base/sleep.h>
 #include <base/trace/events.h>
-#include <signal_source/client.h>
 #include <util/volatile_object.h>
 
 /* base-internal includes */
 #include <base/internal/globals.h>
+#include <signal_source/client.h>
 
 using namespace Genode;
 

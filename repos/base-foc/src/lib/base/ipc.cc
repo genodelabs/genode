@@ -26,13 +26,13 @@
 #include <base/ipc.h>
 #include <base/ipc_msgbuf.h>
 #include <base/thread.h>
-#include <util/assert.h>
 
 /* base-internal includes */
 #include <base/internal/lock_helper.h> /* for 'thread_get_my_native_id()' */
 #include <base/internal/ipc_server.h>
 #include <base/internal/native_utcb.h>
 #include <base/internal/cap_map.h>
+#include <base/internal/foc_assert.h>
 
 /* Fiasco.OC includes */
 namespace Fiasco {

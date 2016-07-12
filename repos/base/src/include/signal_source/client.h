@@ -16,6 +16,7 @@
 
 #include <base/rpc_client.h>
 #include <pd_session/pd_session.h>
+#include <signal_source/signal_source.h>
 
 namespace Genode { class Signal_source_client; }
 

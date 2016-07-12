@@ -16,7 +16,6 @@
 #include <base/allocator_avl.h>
 #include <block_session/connection.h>
 #include <os/config.h>
-#include <util/assert.h>
 #include <foc/capability_space.h>
 
 #include <vcpu.h>
@@ -25,6 +24,7 @@
 namespace Fiasco {
 #include <genode/block.h>
 #include <l4/sys/irq.h>
+#include <l4/sys/kdebug.h>
 }
 
 namespace {
@@ -63,7 +63,10 @@ namespace {
 			void insert(void *packet, void *request)
 			{
 				int idx = _find(0);
-				ASSERT(idx >= 0, "Req cache full!");
+				if (idx == 0) {
+					PERR("Req cache full!");
+					enter_kdebug("Req_cache");
+				}
 
 				_cache[idx] = Req_entry(packet, request);
 			}
@@ -71,7 +74,10 @@ namespace {
 			void remove(void *packet, void **request)
 			{
 				int idx = _find(packet);
-				ASSERT(idx >= 0, "Req cache entry not found!");
+				if (idx == 0) {
+					PERR("Req cache entry not found!");
+					enter_kdebug("Req_cache");
+				}
 
 				*request = _cache[idx].req;
 				_cache[idx].pkt = 0;
