@@ -144,6 +144,11 @@ void Platform::_init_allocators()
 
 	for (unsigned region = 0; region < bi.numDeviceRegions; region++) {
 		size_t const frame_size = 1UL << bi.deviceRegions[region].frameSizeBits;
+		if (frame_size != 4096) {
+			error("unsupported device memory frame size of ", Hex(frame_size));
+			class Unsupported_dev_memory_framesize{};
+			throw Unsupported_dev_memory_framesize();
+		}
 
 		for (uint64_t sel = bi.deviceRegions[region].frames.start,
 		     phys_addr = bi.deviceRegions[region].basePaddr;

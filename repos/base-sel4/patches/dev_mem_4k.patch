@@ -1,0 +1,11 @@
+--- src/kernel/sel4/src/arch/x86/kernel/boot.c
++++ src/kernel/sel4/src/arch/x86/kernel/boot.c
+@@ -83,7 +83,7 @@ create_device_frames(
+         /* use large frames if possible, otherwise use 4K frames */
+         if (IS_ALIGNED(dev_reg.start, LARGE_PAGE_BITS) &&
+                 IS_ALIGNED(dev_reg.end,   LARGE_PAGE_BITS)) {
+-            frame_size = X86_LargePage;
++            frame_size = X86_SmallPage;
+         } else {
+             frame_size = X86_SmallPage;
+         }
