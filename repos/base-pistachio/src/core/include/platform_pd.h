@@ -37,7 +37,7 @@ namespace Genode {
 			 */
 			enum {
 				PD_BITS      = 9,
-				THREAD_BITS  = 9,
+				THREAD_BITS  = 7,
 				VERSION_BITS = 14 - 1, /* preserve 1 bit, see 'make_l4_id' */
 				PD_FIRST     = 0,
 				PD_MAX       = (1 << PD_BITS)      - 1,
